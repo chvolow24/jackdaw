@@ -1,3 +1,7 @@
+/**************************************************************************************************
+ * Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation
+ **************************************************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -8,8 +12,6 @@
 #include "audio.h"
 #include "theme.h"
 #include "text.h"
-
-#define RECORD_SECONDS 2
 
 #define abs_min(a,b) (abs(a) < abs(b) ? a : b)
 #define lesser_of(a,b) (a < b ? a : b)

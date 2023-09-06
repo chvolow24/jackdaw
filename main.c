@@ -18,7 +18,7 @@
 #define greater_of(a,b) (a > b ? a : b)
 #define get_color(color) (dark_mode ? color.dark : color.light)
 
-bool dark_mode = true;
+bool dark_mode = false;
 int play_direction = 0;
 bool record = 0;
 
@@ -69,23 +69,44 @@ void set_color(SDL_Renderer **rend, JDAW_Color* color_class)
     SDL_SetRenderDrawColor(*rend, color.r, color.g, color.b, color.a);
 }
 
+SDL_Rect mark_I;
+SDL_Rect mark_O;
+void mark_in(SDL_Point play_head_start)
+{
+    mark_I = (SDL_Rect) {play_head_start.x, play_head_start.y - 20, 50, 50};
+}
+
+void mark_out(SDL_Point play_head_start)
+{
+    mark_O = (SDL_Rect) {play_head_start.x, play_head_start.y - 20, 50, 50};
+
+}
+
 int main()
 {
     SDL_Window *main_win = NULL;
+    int main_win_w, main_win_h;
     SDL_Renderer *rend = NULL;
     init_graphics(&main_win, &rend);
     if (main_win == NULL || rend == NULL) {
         fprintf(stderr, "\nError: unknown.");
     }
-    init_audio();
+    SDL_GetWindowSize(main_win, &main_win_w, &main_win_h);
+    // init_audio();
     init_SDL_ttf();
-    TTF_Font* free_sans = open_font(FREE_SANS, 128);
+    TTF_Font *open_sans_12 = open_font(OPEN_SANS, 12);
+    TTF_Font *open_sans_14 = open_font(OPEN_SANS, 14);
+    TTF_Font *open_sans_16 = open_font(OPEN_SANS, 16);
 
+    /* TEMP */
     int wavebox_width = 500;
-    SDL_Rect wavebox = {200, 100, 500, 100};
-    SDL_Point play_head_start = {200, 100};
-    SDL_Point play_head_end = {200, 200};
+    SDL_Rect wavebox = {200, 200, 500, 100};
+    SDL_Point play_head_start = {200, 200};
+    SDL_Point play_head_end = {200, 300};
+    /* -TEMP */
 
+    SDL_Color txt_soft_c = get_color(txt_soft);
+    SDL_Color txt_main_c = get_color(txt_main);
 
 
     bool quit = false;
@@ -94,6 +115,8 @@ int main()
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT) {
                 quit = true;
+            } else if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+                SDL_GetWindowSize(main_win, &main_win_w, &main_win_h);
             } else if (e.type == SDL_KEYUP) {
                 switch (e.key.keysym.scancode) {        
                     case SDL_SCANCODE_R:
@@ -135,6 +158,12 @@ int main()
                             play_direction *= 2;
                         }
                         break;
+                    case SDL_SCANCODE_I:
+                        mark_in(play_head_start);
+                        break;
+                    case SDL_SCANCODE_O:
+                        mark_out(play_head_start);
+                        break;
                     default:
                         break;
                 }
@@ -143,13 +172,16 @@ int main()
 
         set_color(&rend, &bckgrnd_color);
         SDL_RenderClear(rend);
-
-        SDL_SetRenderDrawColor(rend, 0, 255, 0, 255);
-
+        const char *title_text = "Jackdaw | by Charlie Volow";
+        int title_w = 0;
+        TTF_SizeText(open_sans_12, title_text, &title_w, NULL);
+        SDL_Rect title = (SDL_Rect) {main_win_w / 2 - title_w / 2, main_win_h - 20, 500, 100};
+        write_text(rend, &title, open_sans_12, &txt_soft_c, "Jackdaw | by Charlie Volow", true);
+        write_text(rend, &mark_I, open_sans_16, &txt_main_c, "I", true);
+        write_text(rend, &mark_O, open_sans_16, &txt_main_c, "O", true);
+        SDL_SetRenderDrawColor(rend, 255, 150, 255, 255);
         SDL_RenderDrawRect(rend, &wavebox);
 
-        SDL_Rect r2 = (SDL_Rect) {10, 10, 180, 30};
-        SDL_RenderDrawRect(rend, &r2);
         SDL_Point play_head[2];
         play_head[0] = play_head_start;
         play_head[1] = play_head_end;
@@ -157,9 +189,8 @@ int main()
             SDL_SetRenderDrawColor(rend, 255, 0, 0, 255);
         }
         SDL_RenderDrawLines(rend, play_head, 2);
-        SDL_Color textc = get_color(txt_color);
-        write_text(rend, &r2, free_sans, &textc, "Hello, world!");
-
+        SDL_Rect r3 = (SDL_Rect) {200, 50, 200, 30};
+        write_text(rend, &r3, open_sans_16, &txt_main_c, "Lorem ipsum, bullshit tell me I am not a piece of crap, please.", true);
         SDL_RenderPresent(rend);
         if (
             (play_head_start.x <= wavebox.x + wavebox.w && play_direction > 0) ||

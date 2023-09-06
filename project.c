@@ -3,55 +3,9 @@
  * Structs defined here contain all data that will be serialized and saved with a project.
  **************************************************************************************************/
 #include <stdio.h>
-#include <pthread.h>
-#include <stdbool.h>
-#include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
-
-/* Timeline- and clip-related constants */
-#define MAX_TRACKS 25
-#define MAX_NAMELENGTH 25
-
-typedef struct track {
-    char name[MAX_NAMELENGTH];
-    bool stereo;
-    bool muted;
-    bool solo;
-    bool record;
-    uint8_t tl_rank;
-    Clip *clips;
-    uint16_t num_clips;
-} Track;
-
-typedef struct clip {
-    char name[MAX_NAMELENGTH];
-    int clip_gain;
-    Track *track;
-    uint32_t length; // in samples
-    uint32_t absolute_position; // in samples
-    int16_t *samples;
-} Clip;
-
-struct time_sig {
-    uint8_t num;
-    uint8_t denom;
-    uint8_t beats;
-    uint8_t subidv;
-};
-
-typedef struct timeline {
-    uint32_t play_position; // in samples
-    pthread_mutex_t play_position_lock;
-    Track *tracks;
-    uint8_t num_tracks;
-    uint16_t tempo;
-    bool click_on;
-} Timeline;
-
-bool in_clip(Track *track)
-{
-
-}
+#include "project.h"
 
 int16_t get_track_sample(Track *track, Timeline *tl)
 {
@@ -68,18 +22,6 @@ int16_t get_track_sample(Track *track, Timeline *tl)
         }
     }
 }
-
-// int16_t get_tl_sample(Timeline* tl) // Do I want to advance the play head in this function?
-// {
-//     int16_t sample = 0;
-//     // pthread_mutex_lock(&(tl->play_position_lock));
-
-//     for (int i=0; i<tl->num_tracks; i++) {
-//         sample += get_track_sample(tl->tracks + i, tl);
-//     }
-//     return sample;
-//     // pthread_mutex_unlock(&(tl->play_position_lock));
-// }
 
 int16_t *get_mixdown_chunk(Timeline* tl, int length)
 {
@@ -98,4 +40,84 @@ int16_t *get_mixdown_chunk(Timeline* tl, int length)
     return mixdown;
 }
 
+Project *create_project(const char* name, bool dark_mode)
+{
+    Project *proj = malloc(sizeof(Project));
+    strcpy(proj->name, name);
+    proj->dark_mode = dark_mode;
+    proj->loose_clips = NULL;
+    Timeline *tl = (Timeline *) malloc(sizeof(Timeline));
+    tl->num_tracks = 0;
+    tl->tracks = NULL;
+    tl->play_position = 0;
+    tl->tempo = 120;
+    tl->click_on = false;
+    proj->tl = tl;
+    return proj;
+}
 
+Track *create_track(Timeline *tl, bool stereo)
+{
+    Track *track = malloc(sizeof(Track));
+    track->tl = tl;
+    track->tl_rank = ++(tl->num_tracks);
+    sprintf(track->name, "Track %d", track->tl_rank);
+    track->stereo = stereo;
+    track->muted = false;
+    track->solo = false;
+    track->record = false;
+    track->clips = NULL;
+    track->num_clips = 0;
+    return track;
+}
+
+Clip *create_clip(Track *track, uint32_t length, uint32_t absolute_position) {
+    track->num_clips += 1;
+    Clip* clip = malloc(sizeof(Clip));
+    sprintf(clip->name, "T%d-%d", track->tl_rank, track->num_clips);
+    track->length = length;
+    track->absolute_position = absolute_position;
+    track->samples = malloc(sizeof(int16_t) * length);
+    return clip;
+}
+
+void destroy_clip(Clip *clip)
+{
+    if (clip->samples) {
+        free(clip->samples);
+        clip->samples = NULL;
+    }
+    free(clip);
+    clip = NULL;
+}
+
+void destroy_track(Track *track)
+{
+
+    /* Destroy track clips */
+    while (track->num_clips > 0) {
+        if (track->clips + num_clips - 1) {
+            destroy_clip(track->clips + num_clips - 1);
+        }
+        track->num_clips--;
+    }
+
+    /* Save rank for timeline renumbering */
+    int rank = track->tl_rank;
+
+    /* Free track */
+    free(track);
+    track = NULL;
+
+    /* Renumber subsequent tracks in timeline if not last track */
+    while (rank <= tl->num_tracks)
+        Track* t;
+        if (t = tl->track + rank) {
+            t->tl_rank--;
+        } else {
+            fprintf("\nError: track expected at rank %d but not found.", rank);
+        }
+        rank++;
+    }
+    tl->num_tracks--;
+}

@@ -2,3 +2,4 @@
 *.txt
 *.o
 jackdaw
+.vscode/

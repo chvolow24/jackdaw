@@ -68,6 +68,8 @@ Track *create_track(Timeline *tl, bool stereo)
     track->record = false;
     track->clips = NULL;
     track->num_clips = 0;
+    tl->tracks + tl->num_tracks = track;
+    tl->num_tracks++;
     return track;
 }
 
@@ -110,7 +112,7 @@ void destroy_track(Track *track)
     track = NULL;
 
     /* Renumber subsequent tracks in timeline if not last track */
-    while (rank <= tl->num_tracks)
+    while (rank <= tl->num_tracks) {
         Track* t;
         if (t = tl->track + rank) {
             t->tl_rank--;

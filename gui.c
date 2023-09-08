@@ -214,7 +214,8 @@ void draw_project(Project *proj)
     int track_x = tl_box.x + 5;
     int track_y = tl_box.y + 5;
     int track_w = tl_box.w - 10;
-    int track_spacing = 5;
+    int track_spacing = 10;
+    int samples_per_pixel = DEFAULT_TL_WIDTH_SAMPLES / track_w;
     set_rend_color(proj, &track_bckgrnd);
     for (int i=0; i < proj->tl->num_tracks; i++) {
         if ((track = (*(proj->tl->tracks + i)))) {
@@ -233,18 +234,14 @@ void draw_project(Project *proj)
                     int wav_y = clipbox.y + clipbox.h / 2;
 
                     if (clip->done) {
-                        int sample = (int)((clip->samples)[0]);
-                        int next_sample;
-                        for (int i=0; i<clip->length-1; i++) {
-                            next_sample = (int)((clip->samples)[i+1]);
-                            if (next_sample != 0) {
-                                fprintf(stderr, "next sample: %d;", next_sample);
-                                fprintf(stderr, " y offset: %d\n", next_sample * clipbox.h / 100);
-
-                            }
-                            SDL_RenderDrawLine(proj->rend, wav_x, wav_y + (sample * clipbox.h / 100), wav_x + 1, wav_y + (next_sample * (clipbox.h / 32767)));
+                        int16_t sample = (int)((clip->samples)[0]);
+                        int16_t next_sample;
+                        for (int i=0; i<clip->length-1; i+= samples_per_pixel) {
+                            next_sample = (clip->samples)[i];
+                            SDL_RenderDrawLine(proj->rend, wav_x, wav_y + (sample / 50), wav_x + 1, wav_y + (next_sample / 50));
                             sample = next_sample;
                             wav_x++;
+
                             // SDL_RenderDrawLine
                         }
                     }

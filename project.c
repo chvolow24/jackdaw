@@ -13,21 +13,21 @@ int16_t get_track_sample(Track *track, Timeline *tl, int pos_in_chunk)
     if (track->muted) {
         return 0;
     }
+    int16_t sample = 0;
     for (int i=0; i < track->num_clips; i++) {
         Clip *clip = (track->clips)[i];
         long int pos_in_clip = tl->play_position + pos_in_chunk - clip->absolute_position;
 
         if (pos_in_clip >= 0 && pos_in_clip < clip->length) {
-            return (clip->samples)[pos_in_clip];
-        } else {
-            return 0;
+            sample += (clip->samples)[pos_in_clip];
         }
     }
-    return 0;
+    return sample;
 }
 
 int16_t *get_mixdown_chunk(Timeline* tl, int length)
 {
+    fprintf(stderr, "Enter get_mixdown_chunk\n");
     int bytelen = sizeof(int16_t) * length;
     int16_t *mixdown = malloc(bytelen);
     memset(mixdown, '\0', bytelen);
@@ -35,16 +35,14 @@ int16_t *get_mixdown_chunk(Timeline* tl, int length)
         fprintf(stderr, "\nError: could not allocate mixdown chunk.");
         exit(1);
     }
-    FILE* f = fopen("samples.txt", "w");
 
     for (int i=0; i<length; i++) {
-        fprintf(stderr, "i: %d\n", i);
         for (int t=0; t<tl->num_tracks; t++) {
-            fprintf(stderr, "\ttrack: %d\n", t);
             mixdown[i] += get_track_sample((tl->tracks)[t], tl, i);
         }
-        fprintf(f, "%d\n", mixdown[i]);
     }
+    fprintf(stderr, "\t->exit get_mixdown_chunk\n");
+
     
     return mixdown;
 }
@@ -54,6 +52,7 @@ Project *create_project(const char* name, bool dark_mode)
     Project *proj = malloc(sizeof(Project));
     strcpy(proj->name, name);
     proj->dark_mode = dark_mode;
+    proj->play_speed = 0;
     Timeline *tl = (Timeline *)malloc(sizeof(Timeline));
     tl->num_tracks = 0;
     tl->play_position = 0;
@@ -93,7 +92,9 @@ Project *create_project(const char* name, bool dark_mode)
 
 Track *create_track(Timeline *tl, bool stereo)
 {
+
     Track *track = malloc(sizeof(Track));
+    fprintf(stderr, "Create track @ %p\n", track);
     track->tl = tl;
     track->tl_rank = (tl->num_tracks)++;
     sprintf(track->name, "Track %d", track->tl_rank);
@@ -104,6 +105,7 @@ Track *create_track(Timeline *tl, bool stereo)
     track->num_clips = 0;
     track->height = 100;
     (tl->tracks)[tl->num_tracks - 1] = track;
+    fprintf(stderr, "\t->exit create track\n");
 
     return track;
 }
@@ -111,7 +113,6 @@ Track *create_track(Timeline *tl, bool stereo)
 Clip *create_clip(Track *track, uint32_t length, uint32_t absolute_position) {
     Clip *clip = malloc(sizeof(Clip));
     sprintf(clip->name, "T%d-%d", track->tl_rank, track->num_clips);
-
     clip->length = length;
     clip->absolute_position = absolute_position;
     // clip->samples = malloc(sizeof(int16_t) * length);
@@ -135,21 +136,20 @@ void destroy_clip(Clip *clip)
 
 void destroy_track(Track *track)
 {
+    fprintf(stderr, "Enter destroy track. Destroy @ %p\n", track);
+
 
     /* Destroy track clips */
     while (track->num_clips > 0) {
-        if (*(track->clips + track->num_clips - 1)) {
+        if ((track->clips)[track->num_clips - 1]) {
             destroy_clip(*(track->clips + track->num_clips - 1));
         }
         track->num_clips--;
     }
 
+
     /* Save rank for timeline renumbering */
     int rank = track->tl_rank;
-
-    /* Free track */
-    free(track);
-    track = NULL;
 
     /* Renumber subsequent tracks in timeline if not last track */
     while (rank <= track->tl->num_tracks) {
@@ -161,5 +161,12 @@ void destroy_track(Track *track)
         }
         rank++;
     }
-    track->tl->num_tracks--;
+
+    (track->tl->num_tracks)--;
+
+    /* Free track */
+    free(track);
+    track = NULL;
+
+    fprintf(stderr, "Exit destroy track\n");
 }

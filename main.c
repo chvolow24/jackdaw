@@ -23,7 +23,6 @@
 bool dark_mode = true;
 
 /* Temporary */
-int play_direction = 0;
 bool record = 0;
 /* -Temporary */
 
@@ -80,12 +79,12 @@ void mark_out(SDL_Point play_head_start)
 }
 
 
-void playback(int play_direction)
+void playback()
 {
-    if (play_direction == 1 && !record) {
+    if (proj->play_speed == 1 && !record) {
         start_playback();
-    } else if (play_direction != 0) {
-        proj->tl->play_position += play_direction * 441;
+    } else if (proj->play_speed != 0 && !record) {
+        proj->tl->play_position += proj->play_speed * 441;
     }
 
 }
@@ -112,7 +111,7 @@ int main()
     SDL_Point play_head_start = {200, 200};
     SDL_Point play_head_end = {200, 300};
     /* -TEMP */
-    Clip *active_clip;
+    // Clip *active_clip;
     int active_track = 0;
     bool quit = false;
     while (!quit) {
@@ -128,13 +127,13 @@ int main()
                         if (!record) {
                             printf("Record!\n");
                             record = true;
-                            active_clip = create_clip((proj->tl->tracks)[active_track], 0, proj->tl->play_position);
+                            proj->active_clip = create_clip((proj->tl->tracks)[active_track], 0, proj->tl->play_position);
                             start_recording();
-                            play_direction = 1;
+                            proj->play_speed = 1;
                         } else {
                             record = false;
-                            stop_recording(active_clip);
-                            play_direction = 0;
+                            stop_recording(proj->active_clip);
+                            proj->play_speed = 0;
                         }
                         break;
                     case SDL_SCANCODE_L:
@@ -142,10 +141,10 @@ int main()
                         if (record) {
                             record = false;
                         }
-                        if (play_direction <= 0) {
-                            play_direction = 1;
-                        } else if (play_direction < 32) {
-                            play_direction *= 2;
+                        if (proj->play_speed <= 0) {
+                            proj->play_speed = 1;
+                        } else if (proj->play_speed < 32) {
+                            proj->play_speed *= 2;
                         }
                         break;
                     case SDL_SCANCODE_K:
@@ -153,7 +152,7 @@ int main()
                         if (record) {
                             record = false;
                         }
-                        play_direction = 0;
+                        proj->play_speed = 0;
                         stop_playback();
                         break;
                     case SDL_SCANCODE_J:
@@ -161,10 +160,10 @@ int main()
                         if (record) {
                             record = false;
                         }
-                        if (play_direction >= 0) {
-                            play_direction = -1;
-                        } else if (play_direction > -32) {
-                            play_direction *= 2;
+                        if (proj->play_speed >= 0) {
+                            proj->play_speed = -1;
+                        } else if (proj->play_speed > -32) {
+                            proj->play_speed *= 2;
                         }
                         break;
                     case SDL_SCANCODE_I:
@@ -185,16 +184,28 @@ int main()
                     case SDL_SCANCODE_3:
                         active_track = 2;
                         break;
+                    case SDL_SCANCODE_4:
+                        active_track = 3;
+                        break;
+                    case SDL_SCANCODE_5:
+                        active_track = 4;
+                        break;
+                    case SDL_SCANCODE_6:
+                        active_track = 5;
+                        break;
+                    case SDL_SCANCODE_D:
+                        destroy_track((proj->tl->tracks)[proj->tl->num_tracks - 1]);
+                        break;
                     default:
                         break;
                 }
             }
         }
-        playback(play_direction);
-        // proj->tl->play_position += play_direction * 441;
+        playback(proj->play_speed);
+        // proj->tl->play_position += proj->play_speed * 441;
 
         draw_project(proj);
-        SDL_Delay(10);
+        SDL_Delay(1);
     }
 
     SDL_Quit();

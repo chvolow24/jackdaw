@@ -36,6 +36,8 @@ static void recording_callback(void* user_data, uint8_t *stream, int streamLengt
         write_buffpos = 0;
     }
     write_buffpos += streamLength / 2;
+    proj->active_clip->length += streamLength / 2;
+    proj->tl->play_position += streamLength / 2;
 }
 
 static void play_callback(void* user_data, uint8_t* stream, int streamLength)
@@ -106,7 +108,17 @@ static void *copy_buff_to_clip(void* arg)
     Clip *clip = (Clip *)arg;
     clip->length = write_buffpos;
     clip->samples = malloc(sizeof(int16_t) * write_buffpos);
-    memcpy(clip->samples, audio_buffer, write_buffpos);
+    int sample = audio_buffer[0];
+    int next_sample = 0;
+    for (int i=0; i<write_buffpos - 1; i++) {
+        next_sample = audio_buffer[i+1];
+        /* high freq/amp filtering */
+        if (abs(next_sample - sample) < 5000) {
+            sample = next_sample;
+        }
+        (clip->samples)[i] = sample;
+    }
+    // memcpy(clip->samples, audio_buffer, write_buffpos);
     clip->done = true;
     memset(audio_buffer, '\0', BUFFLEN);
     write_buffpos = 0;

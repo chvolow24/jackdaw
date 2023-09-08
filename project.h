@@ -56,6 +56,8 @@ typedef struct project {
     uint8_t num_loose_clips;
     SDL_Window *win;
     SDL_Renderer *rend;
+    Clip *active_clip;
+    int8_t play_speed;
 } Project;
 
 int16_t get_track_sample(Track *track, Timeline *tl, int pos_in_chunk);

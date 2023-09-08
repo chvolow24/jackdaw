@@ -7,6 +7,8 @@
 #include <string.h>
 #include "project.h"
 
+extern Project *proj;
+
 int16_t get_track_sample(Track *track, Timeline *tl, int pos_in_chunk)
 {
 
@@ -36,14 +38,25 @@ int16_t *get_mixdown_chunk(Timeline* tl, int length)
         exit(1);
     }
 
-    for (int i=0; i<length; i++) {
+    int i=0;
+    int j=0;
+    while (i < length) {
         for (int t=0; t<tl->num_tracks; t++) {
-            mixdown[i] += get_track_sample((tl->tracks)[t], tl, i);
+            mixdown[i] += get_track_sample((tl->tracks)[t], tl, j);
         }
+        j += proj->play_speed;
+        i++;
+    }
+    // for (int i=0; i<length; i++) {
+    //     for (int t=0; t<tl->num_tracks; t++) {
+    //         mixdown[i] += get_track_sample((tl->tracks)[t], tl, i);
+    //     }
+    // }
+    if (!(proj->recording)) {
+        proj->tl->play_position += length * proj->play_speed;
     }
     fprintf(stderr, "\t->exit get_mixdown_chunk\n");
 
-    
     return mixdown;
 }
 
@@ -59,6 +72,8 @@ Project *create_project(const char* name, bool dark_mode)
     tl->tempo = 120;
     tl->click_on = false;
     proj->tl = tl;
+    proj->playing = false;
+    proj->recording = false;
 
     /* Create SDL_Window and accompanying SDL_Renderer */
     char project_window_name[MAX_NAMELENGTH + 10];

@@ -23,7 +23,8 @@
 bool dark_mode = true;
 
 /* Temporary */
-bool record = 0;
+// bool proj->recording = 0;
+bool playing = 0;
 /* -Temporary */
 
 Project *proj;
@@ -65,27 +66,18 @@ void init_fonts()
     courier_new_12 = open_font(COURIER_NEW, 12);
 }
 
-SDL_Rect mark_I;
-SDL_Rect mark_O;
-void mark_in(SDL_Point play_head_start)
-{
-    mark_I = (SDL_Rect) {play_head_start.x, play_head_start.y - 20, 50, 50};
-}
-
-void mark_out(SDL_Point play_head_start)
-{
-    mark_O = (SDL_Rect) {play_head_start.x, play_head_start.y - 20, 50, 50};
-
-}
-
 
 void playback()
 {
-    if (proj->play_speed == 1 && !record) {
+    if (proj->play_speed != 0) {
         start_playback();
-    } else if (proj->play_speed != 0 && !record) {
-        proj->tl->play_position += proj->play_speed * 441;
+        playing = true;
     }
+    // if (proj->play_speed == 1 && !proj->recording) {
+    //     start_playback();
+    // } else if (proj->play_speed != 0 && !proj->recording) {
+    //     proj->tl->play_position += proj->play_speed * 441;
+    // }
 
 }
 
@@ -105,13 +97,6 @@ int main()
     // txt_soft_c = get_color(txt_soft);
     // txt_main_c = get_color(txt_main);
 
-    /* TEMP */
-    int wavebox_width = 500;
-    SDL_Rect wavebox = {200, 200, 500, 100};
-    SDL_Point play_head_start = {200, 200};
-    SDL_Point play_head_end = {200, 300};
-    /* -TEMP */
-    // Clip *active_clip;
     int active_track = 0;
     bool quit = false;
     while (!quit) {
@@ -124,22 +109,27 @@ int main()
             } else if (e.type == SDL_KEYUP) {
                 switch (e.key.keysym.scancode) {        
                     case SDL_SCANCODE_R:
-                        if (!record) {
-                            printf("Record!\n");
-                            record = true;
+                        if (!proj->recording) {
+                            printf("proj->recording!\n");
+                            proj->recording = true;
                             proj->active_clip = create_clip((proj->tl->tracks)[active_track], 0, proj->tl->play_position);
                             start_recording();
-                            proj->play_speed = 1;
+                            if (!playing) {
+                                proj->play_speed = 1; 
+                                playback();
+                            }
+
                         } else {
-                            record = false;
+                            proj->recording = false;
                             stop_recording(proj->active_clip);
                             proj->play_speed = 0;
                         }
                         break;
                     case SDL_SCANCODE_L:
                         printf("Play!\n");
-                        if (record) {
-                            record = false;
+                        if (proj->recording) {
+                            proj->recording = false;
+                            stop_recording(proj->active_clip);
                         }
                         if (proj->play_speed <= 0) {
                             proj->play_speed = 1;
@@ -149,28 +139,32 @@ int main()
                         break;
                     case SDL_SCANCODE_K:
                         printf("Pause\n");
-                        if (record) {
-                            record = false;
+                        if (proj->recording) {
+                            proj->recording = false;
+                            stop_recording(proj->active_clip);
                         }
                         proj->play_speed = 0;
                         stop_playback();
+                        playing = false;
                         break;
                     case SDL_SCANCODE_J:
                         printf("Rewind!\n");
-                        if (record) {
-                            record = false;
-                        }
-                        if (proj->play_speed >= 0) {
+                        if (proj->recording) {
+                            proj->play_speed = 0;
+                            playing = 0;
+                            proj->recording = false;
+                            stop_recording(proj->active_clip);
+                        } else if (proj->play_speed >= 0) {
                             proj->play_speed = -1;
                         } else if (proj->play_speed > -32) {
                             proj->play_speed *= 2;
                         }
                         break;
                     case SDL_SCANCODE_I:
-                        mark_in(play_head_start);
+                        // mark_in(play_head_start);
                         break;
                     case SDL_SCANCODE_O:
-                        mark_out(play_head_start);
+                        // mark_out(play_head_start);
                         break;
                     case SDL_SCANCODE_T:
                         create_track(proj->tl, false);
@@ -201,7 +195,7 @@ int main()
                 }
             }
         }
-        playback(proj->play_speed);
+        playback();
         // proj->tl->play_position += proj->play_speed * 441;
 
         draw_project(proj);

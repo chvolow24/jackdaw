@@ -58,6 +58,8 @@ typedef struct project {
     SDL_Renderer *rend;
     Clip *active_clip;
     int8_t play_speed;
+    bool playing;
+    bool recording;
 } Project;
 
 int16_t get_track_sample(Track *track, Timeline *tl, int pos_in_chunk);

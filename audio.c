@@ -44,7 +44,7 @@ static void play_callback(void* user_data, uint8_t* stream, int streamLength)
 {
     int16_t *chunk = get_mixdown_chunk(proj->tl, streamLength / 2);
     memcpy(stream, chunk, streamLength);
-    proj->tl->play_position += streamLength / 2;
+
 
 
     // if (read_buffpos + (streamLength / 2) < BUFFLEN) {

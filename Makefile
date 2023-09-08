@@ -1,7 +1,7 @@
 CC := gcc
 CFLAGS := -Wall -I/opt/homebrew/include/ `sdl2-config --libs --cflags` -lSDL2 -lSDL2_ttf
-HDRS := audio.h text.h project.h theme.h gui.h
-SRCS := audio.c text.c project.c theme.c gui.c main.c 
+HDRS := audio.h text.h project.h theme.h gui.h wav.h
+SRCS := audio.c text.c project.c theme.c gui.c wav.c main.c 
 OBJS := $(SRCS:.c=.o)
 EXEC := jackdaw
 

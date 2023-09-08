@@ -15,6 +15,7 @@
 #include "text.h"
 #include "project.h"
 #include "gui.h"
+#include "wav.h"
 
 #define abs_min(a,b) (abs(a) < abs(b) ? a : b)
 #define lesser_of(a,b) (a < b ? a : b)
@@ -83,6 +84,7 @@ void playback()
 
 int main()
 {
+    write_wav("TEST.wav");
 
     proj = create_project("Untitled", dark_mode);
     init_graphics();

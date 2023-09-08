@@ -7,36 +7,45 @@
 #include <string.h>
 #include "project.h"
 
-int16_t get_track_sample(Track *track, Timeline *tl)
+int16_t get_track_sample(Track *track, Timeline *tl, int pos_in_chunk)
 {
+
     if (track->muted) {
         return 0;
     }
-    for (int i=0; track->num_clips; i++) {
-        Clip *clip = track->clips + i;
-        long int pos_in_clip = tl->play_position - clip->absolute_position;
+    for (int i=0; i < track->num_clips; i++) {
+        Clip *clip = (track->clips)[i];
+        long int pos_in_clip = tl->play_position + pos_in_chunk - clip->absolute_position;
+
         if (pos_in_clip >= 0 && pos_in_clip < clip->length) {
-            return *(clip->samples + pos_in_clip);
+            return (clip->samples)[pos_in_clip];
         } else {
             return 0;
         }
     }
+    return 0;
 }
 
 int16_t *get_mixdown_chunk(Timeline* tl, int length)
 {
-    int bytelen = sizeof(uint32_t) * length;
+    int bytelen = sizeof(int16_t) * length;
     int16_t *mixdown = malloc(bytelen);
     memset(mixdown, '\0', bytelen);
     if (!mixdown) {
         fprintf(stderr, "\nError: could not allocate mixdown chunk.");
         exit(1);
     }
+    FILE* f = fopen("samples.txt", "w");
+
     for (int i=0; i<length; i++) {
+        fprintf(stderr, "i: %d\n", i);
         for (int t=0; t<tl->num_tracks; t++) {
-            mixdown[i] += get_track_sample(tl->tracks + i, tl);
+            fprintf(stderr, "\ttrack: %d\n", t);
+            mixdown[i] += get_track_sample((tl->tracks)[t], tl, i);
         }
+        fprintf(f, "%d\n", mixdown[i]);
     }
+    
     return mixdown;
 }
 
@@ -45,14 +54,40 @@ Project *create_project(const char* name, bool dark_mode)
     Project *proj = malloc(sizeof(Project));
     strcpy(proj->name, name);
     proj->dark_mode = dark_mode;
-    proj->loose_clips = NULL;
-    Timeline *tl = (Timeline *) malloc(sizeof(Timeline));
+    Timeline *tl = (Timeline *)malloc(sizeof(Timeline));
     tl->num_tracks = 0;
-    tl->tracks = NULL;
     tl->play_position = 0;
     tl->tempo = 120;
     tl->click_on = false;
     proj->tl = tl;
+
+    /* Create SDL_Window and accompanying SDL_Renderer */
+    char project_window_name[MAX_NAMELENGTH + 10];
+    sprintf(project_window_name, "Jackdaw | %s", name);
+
+    proj->win = NULL;
+    proj->win = SDL_CreateWindow(
+        project_window_name,
+        SDL_WINDOWPOS_CENTERED, 
+        SDL_WINDOWPOS_CENTERED - 20, 
+        900, 
+        650, 
+        SDL_WINDOW_RESIZABLE
+    );
+
+    if (!(proj->win)) {
+        fprintf(stderr, "Error creating window: %s", SDL_GetError());
+        exit(1);
+    }
+
+    Uint32 render_flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC;
+    proj->rend = SDL_CreateRenderer(proj->win, -1, render_flags);
+    if (!(proj->rend)) {
+        fprintf(stderr, "Error creating renderer: %s\n", SDL_GetError());
+        exit(1);
+    }
+
+
     return proj;
 }
 
@@ -60,26 +95,31 @@ Track *create_track(Timeline *tl, bool stereo)
 {
     Track *track = malloc(sizeof(Track));
     track->tl = tl;
-    track->tl_rank = ++(tl->num_tracks);
+    track->tl_rank = (tl->num_tracks)++;
     sprintf(track->name, "Track %d", track->tl_rank);
     track->stereo = stereo;
     track->muted = false;
     track->solo = false;
     track->record = false;
-    track->clips = NULL;
     track->num_clips = 0;
-    tl->tracks + tl->num_tracks = track;
-    tl->num_tracks++;
+    track->height = 100;
+    (tl->tracks)[tl->num_tracks - 1] = track;
+
     return track;
 }
 
 Clip *create_clip(Track *track, uint32_t length, uint32_t absolute_position) {
-    track->num_clips += 1;
-    Clip* clip = malloc(sizeof(Clip));
+    Clip *clip = malloc(sizeof(Clip));
     sprintf(clip->name, "T%d-%d", track->tl_rank, track->num_clips);
-    track->length = length;
-    track->absolute_position = absolute_position;
-    track->samples = malloc(sizeof(int16_t) * length);
+
+    clip->length = length;
+    clip->absolute_position = absolute_position;
+    // clip->samples = malloc(sizeof(int16_t) * length);
+    if (track) {
+        track->num_clips += 1;
+        track->clips[track->num_clips - 1] = clip;
+    }
+    clip->done = false;
     return clip;
 }
 
@@ -98,8 +138,8 @@ void destroy_track(Track *track)
 
     /* Destroy track clips */
     while (track->num_clips > 0) {
-        if (track->clips + num_clips - 1) {
-            destroy_clip(track->clips + num_clips - 1);
+        if (*(track->clips + track->num_clips - 1)) {
+            destroy_clip(*(track->clips + track->num_clips - 1));
         }
         track->num_clips--;
     }
@@ -112,14 +152,14 @@ void destroy_track(Track *track)
     track = NULL;
 
     /* Renumber subsequent tracks in timeline if not last track */
-    while (rank <= tl->num_tracks) {
+    while (rank <= track->tl->num_tracks) {
         Track* t;
-        if (t = tl->track + rank) {
+        if ((t = *(track->tl->tracks + rank))) {
             t->tl_rank--;
         } else {
-            fprintf("\nError: track expected at rank %d but not found.", rank);
+            fprintf(stderr, "\nError: track expected at rank %d but not found.", rank);
         }
         rank++;
     }
-    tl->num_tracks--;
+    track->tl->num_tracks--;
 }

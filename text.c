@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include "SDL2/SDL.h"
 #include "SDL2/SDL_ttf.h"
+#include "theme.h"
 
 void init_SDL_ttf()
 {
@@ -30,7 +31,7 @@ int write_text(
     SDL_Renderer *rend, 
     SDL_Rect *rect, 
     TTF_Font* font, 
-    SDL_Color* color, 
+    JDAW_Color* color, 
     const char *text, 
     bool allow_resize
     )
@@ -52,12 +53,12 @@ int write_text(
     SDL_Rect new_rect = {rect->x, rect->y, width, rows * h};
     SDL_Surface *surface;
     SDL_Texture *texture;
-    surface = TTF_RenderUTF8_Blended_Wrapped(font, text, *color, rect->w);
+    SDL_Color sdl_col = get_color(color);
+    surface = TTF_RenderUTF8_Blended_Wrapped(font, text, sdl_col, rect->w);
     if (!surface) {
         fprintf(stderr, "\nError: TTF_RenderText_Blended failed: %s", TTF_GetError());
         exit(1);
     }
-
     texture = SDL_CreateTextureFromSurface(rend, surface);
     if (!texture) {
         fprintf(stderr, "\nError: SDL_CreateTextureFromSurface failed: %s", TTF_GetError());

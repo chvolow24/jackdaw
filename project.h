@@ -57,7 +57,7 @@ typedef struct project {
     SDL_Window *win;
     SDL_Renderer *rend;
     Clip *active_clip;
-    int8_t play_speed;
+    float play_speed;
     bool playing;
     bool recording;
 } Project;

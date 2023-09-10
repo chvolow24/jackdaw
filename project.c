@@ -11,19 +11,26 @@ extern Project *proj;
 
 int16_t get_track_sample(Track *track, Timeline *tl, int pos_in_chunk)
 {
+    // fprintf(stderr, "Enter get_track_sample\n");
 
     if (track->muted) {
         return 0;
     }
     int16_t sample = 0;
     for (int i=0; i < track->num_clips; i++) {
+        // fprintf(stderr, "\ti, num_clips: %d, %d\n", i, track->num_clips);
         Clip *clip = (track->clips)[i];
+        if (!(clip->done)) {
+            break;
+        }
         long int pos_in_clip = tl->play_position + pos_in_chunk - clip->absolute_position;
-
         if (pos_in_clip >= 0 && pos_in_clip < clip->length) {
+            // fprintf(stderr, "\tpos_in_clip, cliplen: %ld, %d\n", pos_in_clip, clip->length);
             sample += (clip->samples)[pos_in_clip];
         }
     }
+    // fprintf(stderr, "\t->exit get_track_sample\n");
+
     return sample;
 }
 
@@ -107,9 +114,8 @@ Project *create_project(const char* name, bool dark_mode)
 
 Track *create_track(Timeline *tl, bool stereo)
 {
-
+    fprintf(stderr, "Enter create_track\n");
     Track *track = malloc(sizeof(Track));
-    fprintf(stderr, "Create track @ %p\n", track);
     track->tl = tl;
     track->tl_rank = (tl->num_tracks)++;
     sprintf(track->name, "Track %d", track->tl_rank);
@@ -121,11 +127,12 @@ Track *create_track(Timeline *tl, bool stereo)
     track->height = 100;
     (tl->tracks)[tl->num_tracks - 1] = track;
     fprintf(stderr, "\t->exit create track\n");
-
     return track;
 }
 
 Clip *create_clip(Track *track, uint32_t length, uint32_t absolute_position) {
+    fprintf(stderr, "Enter create_clip\n");
+
     Clip *clip = malloc(sizeof(Clip));
     sprintf(clip->name, "T%d-%d", track->tl_rank, track->num_clips);
     clip->length = length;
@@ -137,6 +144,8 @@ Clip *create_clip(Track *track, uint32_t length, uint32_t absolute_position) {
     }
     clip->done = false;
     return clip;
+    fprintf(stderr, "\t->exit create_clip\n");
+
 }
 
 void destroy_clip(Clip *clip)

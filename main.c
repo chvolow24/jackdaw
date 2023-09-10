@@ -84,17 +84,27 @@ void playback()
 
 int main()
 {
-    write_wav("TEST.wav");
+    // write_wav("TEST.wav");
+
 
     proj = create_project("Untitled", dark_mode);
     init_graphics();
-    init_fonts();
-
-    // SDL_GetWindowSize(main_win, &main_win_w, &main_win_h);
-    
     init_audio();
     init_SDL_ttf();
     init_fonts();
+
+    const char **playback_devices = NULL;
+    const char **record_devices = NULL;
+    int num_playback_devices = query_audio_devices(&playback_devices, 0);
+    int num_record_devices = query_audio_devices(&record_devices, 1);
+    fprintf(stderr, "pointers: %p, %p\n", playback_devices, record_devices);
+    fprintf(stderr, "Num play and record devices: %d, %d\n", num_playback_devices, num_record_devices);
+    for (int i=0; i<num_playback_devices; i++) {
+        printf("Opened audio device: %s\n", playback_devices[i]);
+    }
+    for (int i=0; i<num_record_devices; i++) {
+        printf("Opened recording device: %s\n", record_devices[i]);
+    }
 
     // txt_soft_c = get_color(txt_soft);
     // txt_main_c = get_color(txt_main);
@@ -112,7 +122,6 @@ int main()
                 switch (e.key.keysym.scancode) {        
                     case SDL_SCANCODE_R:
                         if (!proj->recording) {
-                            printf("proj->recording!\n");
                             proj->recording = true;
                             proj->active_clip = create_clip((proj->tl->tracks)[active_track], 0, proj->tl->play_position);
                             start_recording();
@@ -162,6 +171,30 @@ int main()
                             proj->play_speed *= 2;
                         }
                         break;
+                    // case SDL_SCANCODE_SEMICOLON:
+                    //     printf("Play slow\n");
+                    //     if (proj->recording) {
+                    //         proj->recording = false;
+                    //         stop_recording(proj->active_clip);
+                    //     }
+                    //     if (proj->play_speed <= 0) {
+                    //         proj->play_speed = 0.5;
+                    //     } else if (proj->play_speed > 0.01) {
+                    //         proj->play_speed *= 0.5;
+                    //     }
+                    //     break;
+                    // case SDL_SCANCODE_H:
+                    //     printf("Rewind slow\n");
+                    //     if (proj->recording) {
+                    //         proj->recording = false;
+                    //         stop_recording(proj->active_clip);
+                    //     }
+                    //     if (proj->play_speed <= 0) {
+                    //         proj->play_speed = -0.5;
+                    //     } else if (proj->play_speed < -0.01) {
+                    //         proj->play_speed *= 0.5;
+                    //     }
+                    //     break;
                     case SDL_SCANCODE_I:
                         // mark_in(play_head_start);
                         break;

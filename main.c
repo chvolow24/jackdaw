@@ -93,19 +93,32 @@ int main()
     init_SDL_ttf();
     init_fonts();
 
-    const char **playback_devices = NULL;
-    const char **record_devices = NULL;
+    AudioDevice **playback_devices = NULL;
+    AudioDevice **record_devices = NULL;
     int num_playback_devices = query_audio_devices(&playback_devices, 0);
     int num_record_devices = query_audio_devices(&record_devices, 1);
-    fprintf(stderr, "pointers: %p, %p\n", playback_devices, record_devices);
-    fprintf(stderr, "Num play and record devices: %d, %d\n", num_playback_devices, num_record_devices);
     for (int i=0; i<num_playback_devices; i++) {
-        printf("Opened audio device: %s\n", playback_devices[i]);
+        AudioDevice *dev = playback_devices[i];
+        if (open_audio_device(dev, dev->spec.channels, 44100, 512) == 0) {
+            fprintf(stderr, "Opened audio device: %s\n\tchannels: %d\n\tformat: %s\n", dev->name, dev->spec.channels, get_audio_fmt_str(dev->spec.format));
+
+        } else {
+            // fprintf(stderr, "Error: failed to open device %s\n", dev->name);
+        }
     }
     for (int i=0; i<num_record_devices; i++) {
-        printf("Opened recording device: %s\n", record_devices[i]);
-    }
+        AudioDevice *dev = record_devices[i];
+        if (open_audio_device(dev, dev->spec.channels, 44100, 512) == 0) {
+            fprintf(stderr, "Opened record device: %s\n\tchannels: %u\n\tformat: %s\n", dev->name, dev->spec.channels, get_audio_fmt_str(dev->spec.format));
 
+        } else {
+            // fprintf(stderr, "Error: failed to open record device %s\n", dev->name);
+        }
+    }
+    proj->record_devices = record_devices;
+    proj->playback_devices = playback_devices;
+    proj->num_record_devices = num_record_devices;
+    proj->num_playback_devices = num_playback_devices;
     // txt_soft_c = get_color(txt_soft);
     // txt_main_c = get_color(txt_main);
 
@@ -123,7 +136,7 @@ int main()
                     case SDL_SCANCODE_R:
                         if (!proj->recording) {
                             proj->recording = true;
-                            proj->active_clip = create_clip((proj->tl->tracks)[active_track], 0, proj->tl->play_position);
+                            proj->active_clip = create_clip((proj->tl->tracks)[active_track], 0, proj->tl->play_position - 512 * 10);
                             start_recording();
                             if (!playing) {
                                 proj->play_speed = 1; 
@@ -202,6 +215,7 @@ int main()
                         // mark_out(play_head_start);
                         break;
                     case SDL_SCANCODE_T:
+                        proj->play_speed = 0;
                         create_track(proj->tl, false);
                         break;
                     case SDL_SCANCODE_1:
@@ -223,6 +237,11 @@ int main()
                         active_track = 5;
                         break;
                     case SDL_SCANCODE_D:
+                        proj->play_speed = 0;
+                        if (proj->recording) {
+                            proj->recording = false;
+                            stop_recording(proj->active_clip);
+                        }
                         destroy_track((proj->tl->tracks)[proj->tl->num_tracks - 1]);
                         break;
                     default:

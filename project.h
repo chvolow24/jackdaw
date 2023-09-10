@@ -48,6 +48,16 @@ typedef struct timeline {
     bool click_on;
 } Timeline;
 
+typedef struct audiodevice{
+    int index;
+    const char *name;
+    bool open;
+    bool iscapture;
+    SDL_AudioDeviceID id;
+    SDL_AudioSpec spec;
+    void *rec_buffer;
+} AudioDevice;
+
 typedef struct project {
     char name[MAX_NAMELENGTH];
     bool dark_mode;
@@ -60,6 +70,10 @@ typedef struct project {
     float play_speed;
     bool playing;
     bool recording;
+    AudioDevice **record_devices;
+    AudioDevice **playback_devices;
+    int num_record_devices;
+    int num_playback_devices;
 } Project;
 
 int16_t get_track_sample(Track *track, Timeline *tl, int pos_in_chunk);

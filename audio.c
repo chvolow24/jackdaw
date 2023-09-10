@@ -73,7 +73,7 @@ void init_audio()
     desired.samples = SAMPLES;
     desired.channels = 2;
     desired.callback = play_callback;
-    playback_device = SDL_OpenAudioDevice(NULL, 0, &desired, &obtained, SDL_AUDIO_ALLOW_ANY_CHANGE);
+    playback_device = SDL_OpenAudioDevice("H5", 0, &desired, &obtained, SDL_AUDIO_ALLOW_ANY_CHANGE);
     desired.callback = recording_callback;
     recording_device = SDL_OpenAudioDevice("H5", 1, &desired, &obtained, SDL_AUDIO_ALLOW_ANY_CHANGE);
 
@@ -146,17 +146,31 @@ void stop_recording(Clip *clip)
 
 
 /* AUDIO DEVICE HANDLING */
-int query_audio_devices(const char ***device_list, int iscapture)
+int query_audio_devices(AudioDevice ***device_list, int iscapture)
 {
+    fprintf(stderr, "Querying audio devices. iscapture: %d\n", iscapture);
     int num_devices = SDL_GetNumAudioDevices(iscapture);
-    *device_list = malloc(sizeof(char *) * num_devices);
-    for (int i=0; i < num_devices; i++) {
-        (*device_list)[i] = SDL_GetAudioDeviceName(i, iscapture);
+    (*device_list) = malloc(sizeof(AudioDevice *) * num_devices);
+    if (!(*device_list)) {
+        fprintf(stderr, "Error: unable to allocate memory for device list.\n");
+        exit(1);
+    }
+    for (int i=0; i<num_devices; i++) {
+        AudioDevice *dev = malloc(sizeof(AudioDevice));
+        dev->open = false;
+        dev->index = i;
+        dev->name = SDL_GetAudioDeviceName(i, iscapture);
         SDL_AudioSpec spec;
         if (SDL_GetAudioDeviceSpec(i, iscapture, &spec) != 0) {
-            fprintf(stderr, "ERROR getting device spec: %s\n", SDL_GetError());
+            fprintf(stderr, "Error getting device spec: %s\n", SDL_GetError());
         };
-        fprintf(stderr, "%s dev: %s \n\tchannels: %d", iscapture ? "Rec" : "Play", (*device_list)[i], spec.channels);
+        dev->spec = spec;
+        (*device_list)[i] = dev;
+        fprintf(stderr, "\tFound device: %s, index: %d\n", dev->name, dev->index);
+
+    }
+
+        
         /*
         #define AUDIO_U8        0x0008  < Unsigned 8-bit samples
         #define AUDIO_S8        0x8008  < Signed 8-bit samples
@@ -169,43 +183,10 @@ int query_audio_devices(const char ***device_list, int iscapture)
         #define AUDIO_F32LSB    0x8120  < 32-bit floating point samples
         #define AUDIO_F32MSB    0x9120  < As above, but big-endian byte order
         */
-        char format[16];
-        switch (spec.format) {
-            case AUDIO_U8:
-                strncpy(format, "AUDIO_S8", 16);
-                break;
-            case AUDIO_S8:
-                strncpy(format, "AUDIO_S8", 16);
-                break;
-            case AUDIO_U16LSB:
-                strncpy(format, "AUDIO_U16LSB", 16);
-                break;
-            case AUDIO_S16LSB:
-                strncpy(format, "AUDIO_S16LSB", 16);
-                break;
-            case AUDIO_U16MSB:
-                strcpy(format, "AUDIO_U16MSB");
-                break;
-            case AUDIO_S16MSB:
-                strcpy(format, "AUDIO_S16MSB");
-                break;
-            case AUDIO_S32LSB:
-                strcpy(format, "AUDIO_S32LSB");
-                break;
-            case AUDIO_S32MSB:
-                strcpy(format, "AUDIO_S32MSB");
-                break;
-            case AUDIO_F32LSB:
-                strcpy(format, "AUDIO_F32LSB");
-                break;
-            case AUDIO_F32MSB:
-                strcpy(format, "AUDIO_F32MSB");
-                break;
-            default:
-                break;
-        }
-        fprintf(stderr, " format: %s | sample rate: %d | freq: %d\n", format, spec.samples, spec.freq);
-    }
+
+        // Format seems to be null until device is opened. Move this.
+        // char format[16];
+
     return num_devices;
 }
 
@@ -224,22 +205,61 @@ void*               | userdata  | a pointer that is passed to callback (otherwis
 ==========================================================================*/
 
 /* Open an audio device and store info in the returned AudioDevice struct. */
-AudioDevice *open_audio_device(char *name, bool iscapture, int channels, int sample_rate, uint16_t chunk_size)
+int open_audio_device(AudioDevice *device, uint8_t desired_channels, int desired_sample_rate, uint16_t chunk_size)
 {
-    SDL_AudioSpec desired;
+    // SDL_AudioSpec desired;
     SDL_AudioSpec obtained;
-
-    desired.freq = sample_rate;
-    desired.format = AUDIO_S16SYS; // For now, only allow 16bit signed samples in native byte order.
-    desired.channels = channels;
-    desired.samples = chunk_size;
-    desired.callback = iscapture ? recording_callback : play_callback;
-
-    AudioDevice *device = malloc(sizeof(AudioDevice));
-
-    device->id = SDL_OpenAudioDevice(name, iscapture, &desired, &obtained, SDL_AUDIO_ALLOW_ANY_CHANGE);
-    device->spec = obtained;
-    device->name = name;
-    return device;
+    device->spec.format = AUDIO_S16SYS; // For now, only allow 16bit signed samples in native byte order.
+    device->spec.samples = chunk_size;
+    device->spec.channels = desired_channels;
+    device->spec.callback = device->iscapture ? recording_callback : play_callback;
+    if ((device->id = SDL_OpenAudioDevice(device->name, device->iscapture, &(device->spec), &obtained, SDL_AUDIO_ALLOW_ANY_CHANGE))) {
+        device->spec = obtained;
+        device->open = true;
+        return 0;
+    } else {
+        device->open = false;
+        fprintf(stderr, "Error opening audio device %s : %s\n", device->name, SDL_GetError());
+        return -1;
+    }
 }
 
+const char *get_audio_fmt_str(SDL_AudioFormat fmt)
+{
+    const char* fmt_str = NULL;
+    switch (fmt) {
+        case AUDIO_U8:
+            fmt_str = "AUDIO_U8";
+            break;
+        case AUDIO_S8:
+            fmt_str = "AUDIO_S8";
+            break;
+        case AUDIO_U16LSB:
+            fmt_str = "AUDIO_U16LSB";
+            break;
+        case AUDIO_S16LSB:
+            fmt_str = "AUDIO_S16LSB";
+            break;
+        case AUDIO_U16MSB:
+            fmt_str = "AUDIO_U16MSB";
+            break;
+        case AUDIO_S16MSB:
+            fmt_str = "AUDIO_S16MSB";
+            break;
+        case AUDIO_S32LSB:
+            fmt_str = "AUDIO_S32LSB";
+            break;
+        case AUDIO_S32MSB:
+            fmt_str = "AUDIO_S32MSB";
+            break;
+        case AUDIO_F32LSB:
+            fmt_str = "AUDIO_F32LSB";
+            break;
+        case AUDIO_F32MSB:
+            fmt_str = "AUDIO_F32MSB";
+            break;
+        default:
+            break;
+    }
+    return fmt_str;
+}

@@ -6,18 +6,33 @@
 #include "project.h"
 #include "text.h"
 #include "theme.h"
+#include "audio.h"
 
 #define DEFAULT_TL_WIDTH_SAMPLES 220500
 
 
 extern TTF_Font *open_sans_12;
+extern TTF_Font *open_sans_14;
+extern TTF_Font *open_sans_16;
 extern TTF_Font *open_sans_var_12;
 extern TTF_Font *courier_new_12;
-extern JDAW_Color bckgrnd_color;
-extern JDAW_Color txt_soft;
-extern JDAW_Color tl_bckgrnd;
-extern JDAW_Color track_bckgrnd;
-extern JDAW_Color play_head;
+
+JDAW_Color red = {{255, 0, 0, 255},{255, 0, 0, 255}};
+JDAW_Color green = {{0, 255, 0, 255},{0, 255, 0, 255}};
+JDAW_Color blue = {{0, 0, 255, 255},{0, 0, 255, 255}};
+JDAW_Color white = {{255, 255, 255, 255},{255, 255, 255, 255}};
+JDAW_Color lightgrey = {{180, 180, 180, 255}, {180, 180, 180, 255}};
+JDAW_Color black = {{0, 0, 0, 255},{0, 0, 0, 255}};
+JDAW_Color menu_bckgrnd = {{25, 25, 25, 230}, {25, 25, 25, 230}};
+JDAW_Color bckgrnd_color = {{255, 240, 200, 255}, {22, 28, 34, 255}};
+JDAW_Color txt_soft = {{50, 50, 50, 255}, {200, 200, 200, 255}};
+JDAW_Color txt_main = {{10, 10, 10, 255}, {240, 240, 240, 255}};
+JDAW_Color tl_bckgrnd = {{240, 235, 235, 255}, {50, 52, 55, 255}};
+JDAW_Color track_bckgrnd = {{168, 168, 162, 255}, {83, 98, 127, 255}};
+JDAW_Color play_head = {{0, 0, 0, 255}, {255, 255, 255, 255}};
+
+//TODO: Replace project arguments with reference to global var;
+extern Project *proj;
 
 /* Get SDL_Rect with size and position relative to parent window */
 SDL_Rect relative_rect(SDL_Rect *win_rect, float x_rel, float y_rel, float w_rel, float h_rel)
@@ -184,6 +199,39 @@ void draw_track(Track *track)
 
 }
 
+void draw_device_list(AudioDevice **dev_list, int num_devices, int x, int y, int padding) 
+{
+    SDL_Rect list_box = {x, y, 0, padding<<1};
+    int w;
+    int h;
+
+    for (int i=0; i<num_devices; i++) {
+        TTF_SizeText(open_sans_16, dev_list[i]->name, &w, &h);
+        if (w > list_box.w) {
+            list_box.w = w + (padding<<1);
+        }
+        list_box.h += h + padding;
+    }
+
+    set_rend_color(proj, &menu_bckgrnd);
+    SDL_RenderFillRect(proj->rend, &list_box);
+    set_rend_color(proj, &lightgrey);
+    SDL_RenderDrawRect(proj->rend, &list_box);
+    int spacer = padding<<1;
+    for (int i=0; i<num_devices; i++) {
+        SDL_Rect item_box = {list_box.x + (padding<<1), list_box.y + spacer, list_box.w, h};
+        // set_rend_color(proj, &red);
+        // SDL_RenderDrawRect(proj->rend, &item_box);
+        spacer += h + padding;
+        if (dev_list[i]-> open) {
+            write_text(proj->rend, &item_box, open_sans_12, &white, dev_list[i]->name, true);
+        } else {
+            write_text(proj->rend, &item_box, open_sans_12, &red, dev_list[i]->name, true);
+        }
+    }
+
+}
+
 void draw_timeline(Timeline *tl)
 {
     Track* track;
@@ -196,6 +244,7 @@ void draw_timeline(Timeline *tl)
 
 void draw_project(Project *proj)
 {
+    SDL_SetRenderDrawBlendMode(proj->rend, SDL_BLENDMODE_BLEND);
     const static char *bottom_text = "Jackdaw | by Charlie Volow";
     SDL_Rect winbox;
     SDL_GetWindowSize(proj->win, &(winbox.w), &(winbox.h));
@@ -256,7 +305,7 @@ void draw_project(Project *proj)
 
         }
     }
-    set_rend_color(proj, &play_head);
+    set_rend_color(proj, &white);
     int play_head_x = (tl_box.w * proj->tl->play_position / DEFAULT_TL_WIDTH_SAMPLES) + tl_box.x;
     SDL_RenderDrawLine(proj->rend, play_head_x, tl_box.y, play_head_x, tl_box.y + tl_box.h);
 
@@ -268,6 +317,10 @@ void draw_project(Project *proj)
     titlebox.y -= title_h + 2;
     titlebox.x -= title_w / 2 + 5;
     write_text(proj->rend, &titlebox, open_sans_12, &txt_soft, bottom_text, true);
+
+    draw_device_list(proj->playback_devices, proj->num_playback_devices, 10, 500, 5);
+    draw_device_list(proj->record_devices, proj->num_record_devices, 500, 500, 5);
+
     SDL_RenderPresent(proj->rend);
 
 }

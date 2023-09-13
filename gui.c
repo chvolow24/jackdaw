@@ -1,7 +1,6 @@
 #include <float.h>
 #include <math.h>
-#include "SDL2/SDL.h"
-#include "SDL2/SDL_render.h"
+#include "SDL.h"
 #include "theme.h"
 #include "project.h"
 #include "text.h"
@@ -10,6 +9,9 @@
 #include "gui.h"
 
 #define DEFAULT_TL_WIDTH_SAMPLES 220500
+#define TRACK_SPACING 10
+
+#define TRACK_CONSOLE (Dim) {ABS, 0}, (Dim) {ABS, 0}, (Dim) {ABS, 280}, (Dim) {REL, 100}
 
 
 JDAW_Color red = {{255, 0, 0, 255},{255, 0, 0, 255}};
@@ -17,14 +19,15 @@ JDAW_Color green = {{0, 255, 0, 255},{0, 255, 0, 255}};
 JDAW_Color blue = {{0, 0, 255, 255},{0, 0, 255, 255}};
 JDAW_Color white = {{255, 255, 255, 255},{255, 255, 255, 255}};
 JDAW_Color lightgrey = {{180, 180, 180, 255}, {180, 180, 180, 255}};
+JDAW_Color lightblue = {{101, 204, 255, 255}, {101, 204, 255, 255}};
 JDAW_Color black = {{0, 0, 0, 255},{0, 0, 0, 255}};
 JDAW_Color menu_bckgrnd = {{25, 25, 25, 230}, {25, 25, 25, 230}};
 JDAW_Color bckgrnd_color = {{255, 240, 200, 255}, {22, 28, 34, 255}};
 JDAW_Color txt_soft = {{50, 50, 50, 255}, {200, 200, 200, 255}};
 JDAW_Color txt_main = {{10, 10, 10, 255}, {240, 240, 240, 255}};
 JDAW_Color tl_bckgrnd = {{240, 235, 235, 255}, {50, 52, 55, 255}};
-JDAW_Color track_bckgrnd = {{168, 168, 162, 255}, {83, 98, 127, 255}};
 JDAW_Color play_head = {{0, 0, 0, 255}, {255, 255, 255, 255}};
+
 
 //TODO: Replace project arguments with reference to global var;
 extern Project *proj;
@@ -254,6 +257,69 @@ void draw_device_list(AudioDevice **dev_list, int num_devices, int x, int y, int
 
 }
 
+void draw_track(Track* track, int *track_y) {
+    int track_x = track->tl->rect.x + 5;
+    int track_w = track->tl->rect.w;
+    int samples_per_pixel = DEFAULT_TL_WIDTH_SAMPLES / track_w;
+    SDL_Rect trackbox = {track_x, *track_y, track_w, track->rect.h};
+    set_rend_color(proj, &lightgrey);
+    SDL_RenderFillRect(proj->rend, &trackbox);
+    SDL_Rect console = get_rect(trackbox, TRACK_CONSOLE);
+    set_rend_color(proj, &bckgrnd_color);
+    SDL_RenderFillRect(proj->rend, &console);
+    SDL_Rect colorbar = (SDL_Rect) {track_x + console.w, *track_y, 10, track->rect.h};
+    set_rend_color(proj, track->color);
+    SDL_RenderFillRect(proj->rend, &colorbar);
+    Clip* clip;
+    for (int j=0; j<track->num_clips; j++) {
+        if ((clip = (*(track->clips + j)))) {
+            SDL_Rect clipbox = {
+                track_x + track_w * clip->absolute_position / DEFAULT_TL_WIDTH_SAMPLES, 
+                *track_y + 4, 
+                track_w * clip->length / DEFAULT_TL_WIDTH_SAMPLES,
+                trackbox.h - 8
+            };
+            int wav_x = clipbox.x;
+            int wav_y = clipbox.y + clipbox.h / 2;
+            set_rend_color(proj, &lightblue);
+            SDL_RenderFillRect(proj->rend, &clipbox);
+            set_rend_color(proj, &black);
+            for (int i=0; i<2; i++) {
+                SDL_RenderDrawRect(proj->rend, &clipbox);
+                clipbox.x += 1;
+                clipbox.y += 1;
+                clipbox.w -= 2;
+                clipbox.h -= 2;
+            }
+            set_rend_color(proj, &white);
+            for (int i=0; i<4; i++) {
+                SDL_RenderDrawRect(proj->rend, &clipbox);
+                clipbox.x += 1;
+                clipbox.y += 1;
+                clipbox.w -= 2;
+                clipbox.h -= 2;
+            }
+
+            SDL_SetRenderDrawColor(proj->rend, 5, 5, 60, 255);
+            if (clip->done) {
+                int16_t sample = (int)((clip->samples)[0]);
+                int16_t next_sample;
+                for (int i=0; i<clip->length-1; i+= samples_per_pixel) {
+                    next_sample = (clip->samples)[i];
+                    SDL_RenderDrawLine(proj->rend, wav_x, wav_y + (sample / 50), wav_x + 1, wav_y + (next_sample / 50));
+                    sample = next_sample;
+                    wav_x++;
+
+                    // SDL_RenderDrawLine
+                }
+            }
+            // SDL_RenderFillRect(proj->rend, &clipbox);
+            // set_rend_color(proj, &trck_bckgrnd);
+
+        }
+    }
+    *track_y += track->rect.h + TRACK_SPACING;
+}
 
 void draw_project(Project *proj)
 {
@@ -276,46 +342,10 @@ void draw_project(Project *proj)
     int track_x = proj->tl->rect.x + 5;
     int track_y = proj->tl->rect.y + 5;
     int track_w = proj->tl->rect.w - 10;
-    int track_spacing = 10;
-    int samples_per_pixel = DEFAULT_TL_WIDTH_SAMPLES / track_w;
-    set_rend_color(proj, &track_bckgrnd);
+
     for (int i=0; i < proj->tl->num_tracks; i++) {
         if ((track = (*(proj->tl->tracks + i)))) {
-            SDL_Rect trackbox = {track_x, track_y, track_w, track->rect.h};
-            draw_rounded_rect(proj->rend, &trackbox, STD_RAD);
-            for (int j=0; j<track->num_clips; j++) {
-                if ((clip = (*(track->clips + j)))) {
-                    SDL_Rect clipbox = {
-                        track_x + track_w * clip->absolute_position / DEFAULT_TL_WIDTH_SAMPLES, 
-                        track_y + 4, 
-                        track_w * clip->length / DEFAULT_TL_WIDTH_SAMPLES,
-                        trackbox.h - 8
-                    };
-                    SDL_SetRenderDrawColor(proj->rend, 0, 255, 0, 255);
-                    int wav_x = clipbox.x;
-                    int wav_y = clipbox.y + clipbox.h / 2;
-
-                    if (clip->done) {
-                        int16_t sample = (int)((clip->samples)[0]);
-                        int16_t next_sample;
-                        for (int i=0; i<clip->length-1; i+= samples_per_pixel) {
-                            next_sample = (clip->samples)[i];
-                            SDL_RenderDrawLine(proj->rend, wav_x, wav_y + (sample / 50), wav_x + 1, wav_y + (next_sample / 50));
-                            sample = next_sample;
-                            wav_x++;
-
-                            // SDL_RenderDrawLine
-                        }
-                    }
-
-                    SDL_RenderDrawRect(proj->rend, &clipbox);
-                    // SDL_RenderFillRect(proj->rend, &clipbox);
-                    set_rend_color(proj, &track_bckgrnd);
-
-                }
-            }
-            track_y += track->rect.h + track_spacing;
-
+            draw_track(track, &track_y);
         }
     }
     set_rend_color(proj, &white);
@@ -331,8 +361,8 @@ void draw_project(Project *proj)
     titlebox.x -= title_w / 2 + 10;
     write_text(proj->rend, &titlebox, proj->fonts[1], &txt_soft, bottom_text, true);
 
-    draw_device_list(proj->playback_devices, proj->num_playback_devices, 10, 500, 5);
-    draw_device_list(proj->record_devices, proj->num_record_devices, 500, 500, 5);
+    // draw_device_list(proj->playback_devices, proj->num_playback_devices, 10, 500, 5);
+    // draw_device_list(proj->record_devices, proj->num_record_devices, 500, 500, 5);
 
     SDL_RenderPresent(proj->rend);
 

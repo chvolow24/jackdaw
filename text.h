@@ -1,8 +1,8 @@
 #ifndef JDAW_TEXT_H
 #define JDAW_TEXT_H
 
-#include "SDL2/SDL.h"
-#include "SDL2/SDL_ttf.h"
+#include "SDL.h"
+#include "SDL_ttf.h"
 #include "theme.h"
 
 #define FREE_SANS "assets/ttf/free_sans.ttf"

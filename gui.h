@@ -1,6 +1,6 @@
 #ifndef JDAW_GUI_H
 #define JDAW_GUI_H
-#include "SDL2/SDL.h"
+#include "SDL.h"
 #include "project.h"
 
 #define STD_RAD 20

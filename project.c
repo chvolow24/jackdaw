@@ -7,11 +7,23 @@
 #include <string.h>
 #include "project.h"
 #include "gui.h"
+#include "theme.h"
 
 #define STD_TRACK_HEIGHT 100
-#define TL_RECT (Dim) {ABS, 180}, (Dim) {REL, 10}, (Dim) {REL, 100}, (Dim) {REL, 85}
+#define TL_RECT (Dim) {ABS, 10}, (Dim) {REL, 20}, (Dim) {REL, 100}, (Dim) {REL, 76}
 
 extern Project *proj;
+
+JDAW_Color trck_colors[6] = {
+    {{210, 18, 18, 255}, {210, 18, 18, 255}},
+    {{226, 151, 0, 255}, {226, 151, 0, 255}},
+    {{15, 228, 0, 255}, {15, 228, 0, 255}},
+    {{0, 226, 219, 255}, {0, 226, 219, 255}},
+    {{0, 98, 226, 255}, {0, 98, 226, 255}},
+    {{128, 0, 226, 255}, {128, 0, 226, 255}},
+};
+
+int trck_color_index = 0;
 
 int16_t get_track_sample(Track *track, Timeline *tl, int pos_in_chunk)
 {
@@ -138,6 +150,10 @@ Track *create_track(Timeline *tl, bool stereo)
     track->num_clips = 0;
     track->rect.h = STD_TRACK_HEIGHT * proj->scale_factor;
     (tl->tracks)[tl->num_tracks - 1] = track;
+
+    trck_color_index++;
+    trck_color_index %= 5;
+    track->color = &(trck_colors[trck_color_index]);
     fprintf(stderr, "\t->exit create track\n");
     return track;
 }

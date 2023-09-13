@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 #include "project.h"
-#include "SDL2/SDL_audio.h"
+#include "SDL_audio.h"
 
 typedef struct clip Clip;
 

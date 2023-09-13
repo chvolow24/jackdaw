@@ -9,6 +9,7 @@
 #include "SDL.h"
 #include "SDL_ttf.h"
 #include "audio.h"
+#include "theme.h"
 
 /* Timeline- and clip-related constants */
 #define MAX_TRACKS 25
@@ -32,6 +33,7 @@ typedef struct track {
     uint16_t num_clips;
     
     /* GUI members */
+    JDAW_Color *color;
     SDL_Rect rect;
     void (*OnClick)(Track *track);
     void (*OnHover)(Track *track);

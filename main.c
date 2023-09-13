@@ -8,8 +8,8 @@
 #include <math.h>
 #include <string.h>
 #include <pthread.h>
-#include "SDL2/SDL.h"
-#include "SDL2/SDL_ttf.h"
+#include "SDL.h"
+#include "SDL_ttf.h"
 #include "audio.h"
 #include "theme.h"
 #include "text.h"
@@ -230,6 +230,12 @@ int main()
                         } else {
                             fprintf(stderr, "Error: no track found to destry at index %d\n", proj->tl->num_tracks - 1);
                         }
+                        break;
+                    case SDL_SCANCODE_RIGHT:
+                        proj->tl->play_position += 512;
+                        break;
+                    case SDL_SCANCODE_LEFT:
+                        proj->tl->play_position -= 512;
                         break;
                     default:
                         break;

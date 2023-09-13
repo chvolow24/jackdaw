@@ -5,6 +5,19 @@
 #include "project.h"
 #include "SDL2/SDL_audio.h"
 
+typedef struct clip Clip;
+
+typedef struct audiodevice{
+    int index;
+    const char *name;
+    bool open;
+    bool iscapture;
+    SDL_AudioDeviceID id;
+    SDL_AudioSpec spec;
+    void *rec_buffer;
+} AudioDevice;
+
+
 void init_audio(void);
 void start_recording(void);
 void stop_recording(Clip *clip);

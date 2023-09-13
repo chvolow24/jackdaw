@@ -22,21 +22,7 @@
 #define greater_of(a,b) (a > b ? a : b)
 
 bool dark_mode = true;
-
-/* Temporary */
-// bool proj->recording = 0;
-bool playing = 0;
-/* -Temporary */
-
 Project *proj;
-
-TTF_Font *open_sans_12;
-TTF_Font *open_sans_14;
-TTF_Font *open_sans_16;
-TTF_Font *open_sans_var_12;
-TTF_Font *open_sans_var_14;
-TTF_Font *open_sans_var_16;
-TTF_Font *courier_new_12;
 
 extern JDAW_Color bckgrnd_color;
 extern JDAW_Color tl_bckgrnd;
@@ -56,30 +42,23 @@ void init_graphics()
     }
 }
 
-void init_fonts()
-{
-    open_sans_12 = open_font(OPEN_SANS, 12);
-    open_sans_14 = open_font(OPEN_SANS, 14);
-    open_sans_16 = open_font(OPEN_SANS, 16);
-    open_sans_var_12 = open_font(OPEN_SANS_VAR, 12);
-    open_sans_var_14 = open_font(OPEN_SANS_VAR, 14);
-    open_sans_var_16 = open_font(OPEN_SANS_VAR, 16);
-    courier_new_12 = open_font(COURIER_NEW, 12);
-}
-
 
 void playback()
 {
     if (proj->play_speed != 0) {
         start_playback();
-        playing = true;
+        proj->playing = true;
     }
-    // if (proj->play_speed == 1 && !proj->recording) {
-    //     start_playback();
-    // } else if (proj->play_speed != 0 && !proj->recording) {
-    //     proj->tl->play_position += proj->play_speed * 441;
-    // }
+}
 
+static void set_dpi_scale_factor() {
+    int rw = 0, rh = 0, ww = 0, wh = 0;
+    SDL_GetWindowSize(proj->win, &ww, &wh);
+    SDL_GetRendererOutputSize(proj->rend, &rw, &rh);
+    proj->scale_factor = (float)rw / (float)ww;
+    if (proj->scale_factor != (float)rh / (float)wh) {
+        fprintf(stderr, "Error! Scale factor w != h.\n");
+    }
 }
 
 int main()
@@ -89,9 +68,11 @@ int main()
 
     proj = create_project("Untitled", dark_mode);
     init_graphics();
+    // reset_winrect();
+    set_dpi_scale_factor();
     init_audio();
     init_SDL_ttf();
-    init_fonts();
+    init_fonts(proj->fonts, OPEN_SANS, 11);
 
     AudioDevice **playback_devices = NULL;
     AudioDevice **record_devices = NULL;
@@ -130,7 +111,8 @@ int main()
             if (e.type == SDL_QUIT) {
                 quit = true;
             } else if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
-                // SDL_GetWindowSize(main_win, &main_win_w, &main_win_h);
+                reset_winrect(proj);
+                reset_tl_rect(proj->tl);
             } else if (e.type == SDL_KEYUP) {
                 switch (e.key.keysym.scancode) {        
                     case SDL_SCANCODE_R:
@@ -138,7 +120,7 @@ int main()
                             proj->recording = true;
                             proj->active_clip = create_clip((proj->tl->tracks)[active_track], 0, proj->tl->play_position - 512 * 10);
                             start_recording();
-                            if (!playing) {
+                            if (!proj->playing) {
                                 proj->play_speed = 1; 
                                 playback();
                             }
@@ -169,13 +151,13 @@ int main()
                         }
                         proj->play_speed = 0;
                         stop_playback();
-                        playing = false;
+                        proj->playing = false;
                         break;
                     case SDL_SCANCODE_J:
                         printf("Rewind!\n");
                         if (proj->recording) {
                             proj->play_speed = 0;
-                            playing = 0;
+                            proj->playing = 0;
                             proj->recording = false;
                             stop_recording(proj->active_clip);
                         } else if (proj->play_speed >= 0) {
@@ -242,7 +224,12 @@ int main()
                             proj->recording = false;
                             stop_recording(proj->active_clip);
                         }
-                        destroy_track((proj->tl->tracks)[proj->tl->num_tracks - 1]);
+                        Track *track_to_destroy;
+                        if ((track_to_destroy = (proj->tl->tracks)[proj->tl->num_tracks - 1])) {
+                            destroy_track(track_to_destroy);
+                        } else {
+                            fprintf(stderr, "Error: no track found to destry at index %d\n", proj->tl->num_tracks - 1);
+                        }
                         break;
                     default:
                         break;

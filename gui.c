@@ -7,15 +7,10 @@
 #include "text.h"
 #include "theme.h"
 #include "audio.h"
+#include "gui.h"
 
 #define DEFAULT_TL_WIDTH_SAMPLES 220500
 
-
-extern TTF_Font *open_sans_12;
-extern TTF_Font *open_sans_14;
-extern TTF_Font *open_sans_16;
-extern TTF_Font *open_sans_var_12;
-extern TTF_Font *courier_new_12;
 
 JDAW_Color red = {{255, 0, 0, 255},{255, 0, 0, 255}};
 JDAW_Color green = {{0, 255, 0, 255},{0, 255, 0, 255}};
@@ -33,6 +28,7 @@ JDAW_Color play_head = {{0, 0, 0, 255}, {255, 255, 255, 255}};
 
 //TODO: Replace project arguments with reference to global var;
 extern Project *proj;
+uint8_t scale_factor;
 
 /* Get SDL_Rect with size and position relative to parent window */
 SDL_Rect relative_rect(SDL_Rect *win_rect, float x_rel, float y_rel, float w_rel, float h_rel)
@@ -42,6 +38,43 @@ SDL_Rect relative_rect(SDL_Rect *win_rect, float x_rel, float y_rel, float w_rel
     ret.y = y_rel * win_rect->h;
     ret.w = w_rel * win_rect->w;
     ret.h = h_rel * win_rect->h;
+    return ret;
+}
+
+SDL_Rect get_rect(SDL_Rect parent_rect, Dim x, Dim y, Dim w, Dim h) {
+    SDL_Rect ret;
+    switch (x.dimType) {
+        case ABS:
+            ret.x = parent_rect.x + x.value;
+            break;
+        case REL:
+            ret.x = parent_rect.x + x.value * parent_rect.w / 100;
+            break;
+    }
+    switch (y.dimType) {
+        case ABS:
+            ret.y = parent_rect.y + y.value;
+            break;
+        case REL:
+            ret.y = parent_rect.y + y.value * parent_rect.h / 100;
+            break;
+    }
+    switch (w.dimType) {
+        case ABS:
+            ret.w = w.value;
+            break;
+        case REL:
+            ret.w = w.value * parent_rect.w / 100;
+            break;
+    }
+    switch (h.dimType) {
+        case ABS:
+            ret.h = h.value;
+            break;
+        case REL:
+            ret.h = h.value * parent_rect.h / 100;
+            break;
+    }
     return ret;
 }
 
@@ -72,15 +105,6 @@ void draw_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const regist
                 SDL_RenderDrawLine(rend, xinit + y, yinit, xinit + y, yinit + x);
                 break;
         }
-        // SDL_Rect bar = {xinit, yinit - y,  ,1}
-        // SDL_RenderFillRect(rend, &bar);
-
-        // SDL_Rect fill = {xinit, yinit, xinit + r, yinit +_r}
-
-        // SDL_RenderDrawPoint(rend, x + xinit, y + yinit);
-        // SDL_RenderDrawPoint(rend, y + xinit, x + yinit);
-        // SDL_RenderDrawPoint(rend, x + xinit, (y * -1) + yinit);
-        // SDL_RenderDrawPoint(rend, y + xinit, (x * -1) + yinit);
         if (d>0) {
             /* Select SE coordinate */
             d += (x<<1) - (y<<1) + 5;
@@ -141,6 +165,7 @@ void draw_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r)
     // // SDL_RenderFillRects(rend, rects, 4);
 }
 
+/* Set the render color based on project display mode */
 void set_rend_color(Project *proj, JDAW_Color* color_class) 
 {
     SDL_Color color;
@@ -153,7 +178,7 @@ void set_rend_color(Project *proj, JDAW_Color* color_class)
 }
 
 
-
+/* Draw an empty circle */
 void draw_circle(SDL_Renderer *rend, int xinit, int yinit, int r)
 {
     int x = 0;
@@ -180,24 +205,21 @@ void draw_circle(SDL_Renderer *rend, int xinit, int yinit, int r)
     }
 }
 
+/* Draw the hamburger menu */
 void draw_hamburger(Project * proj)
 {
     set_rend_color(proj, &txt_soft);
-    SDL_Rect winbox;
-    SDL_GetWindowSize(proj->win, &(winbox.w), &(winbox.h));
-    SDL_Rect hmbrgr_1 = relative_rect(&winbox, 0.95, 0.04, 0.02, 0.004);
-    SDL_Rect hmbrgr_2 = relative_rect(&winbox, 0.95, 0.048, 0.02, 0.004);
-    SDL_Rect hmbrgr_3 = relative_rect(&winbox, 0.95, 0.056, 0.02, 0.004);
+    SDL_GL_GetDrawableSize(proj->win, &((proj->winrect).w), &((proj->winrect).h));
+    SDL_Rect hmbrgr_1 = relative_rect(&(proj->winrect), 0.95, 0.04, 0.02, 0.004);
+    SDL_Rect hmbrgr_2 = relative_rect(&(proj->winrect), 0.95, 0.048, 0.02, 0.004);
+    SDL_Rect hmbrgr_3 = relative_rect(&(proj->winrect), 0.95, 0.056, 0.02, 0.004);
     SDL_RenderDrawRect(proj->rend, &hmbrgr_1);
     SDL_RenderFillRect(proj->rend, &hmbrgr_1);
     SDL_RenderFillRect(proj->rend, &hmbrgr_2);
     SDL_RenderFillRect(proj->rend, &hmbrgr_3);
 }
 
-void draw_track(Track *track)
-{
-
-}
+/* Draw a list of audio devices */
 
 void draw_device_list(AudioDevice **dev_list, int num_devices, int x, int y, int padding) 
 {
@@ -206,7 +228,7 @@ void draw_device_list(AudioDevice **dev_list, int num_devices, int x, int y, int
     int h;
 
     for (int i=0; i<num_devices; i++) {
-        TTF_SizeText(open_sans_16, dev_list[i]->name, &w, &h);
+        TTF_SizeText(proj->fonts[2], dev_list[i]->name, &w, &h);
         if (w > list_box.w) {
             list_box.w = w + (padding<<1);
         }
@@ -224,52 +246,43 @@ void draw_device_list(AudioDevice **dev_list, int num_devices, int x, int y, int
         // SDL_RenderDrawRect(proj->rend, &item_box);
         spacer += h + padding;
         if (dev_list[i]-> open) {
-            write_text(proj->rend, &item_box, open_sans_12, &white, dev_list[i]->name, true);
+            write_text(proj->rend, &item_box, proj->fonts[2], &white, dev_list[i]->name, true);
         } else {
-            write_text(proj->rend, &item_box, open_sans_12, &red, dev_list[i]->name, true);
+            write_text(proj->rend, &item_box, proj->fonts[2], &red, dev_list[i]->name, true);
         }
     }
 
 }
 
-void draw_timeline(Timeline *tl)
-{
-    Track* track;
-    for (int i=0; i < tl->num_tracks; i++) {
-        if ((track = (*(tl->tracks + i)))) {
-            draw_track(track);
-        }
-    }
-}
 
 void draw_project(Project *proj)
 {
     SDL_SetRenderDrawBlendMode(proj->rend, SDL_BLENDMODE_BLEND);
     const static char *bottom_text = "Jackdaw | by Charlie Volow";
-    SDL_Rect winbox;
-    SDL_GetWindowSize(proj->win, &(winbox.w), &(winbox.h));
+    SDL_GL_GetDrawableSize(proj->win, &((proj->winrect).w), &((proj->winrect).h));
     set_rend_color(proj, &bckgrnd_color);
     SDL_RenderClear(proj->rend);
     draw_hamburger(proj);
 
     /* Draw the timeline */
     set_rend_color(proj, &tl_bckgrnd);
-    SDL_Rect tl_box = relative_rect(&winbox, 0.05, 0.1, 0.9, 0.86);
-    draw_rounded_rect(proj->rend, &tl_box, 5);
+    // SDL_Rect proj->tl->rect = relative_rect(&(proj->winrect), 0.05, 0.1, 0.9, 0.86);
+    SDL_RenderFillRect(proj->rend, &(proj->tl->rect));
+    // draw_rounded_rect(proj->rend, &(proj->tl->rect), STD_RAD);
 
 
     Track *track;
     Clip *clip;
-    int track_x = tl_box.x + 5;
-    int track_y = tl_box.y + 5;
-    int track_w = tl_box.w - 10;
+    int track_x = proj->tl->rect.x + 5;
+    int track_y = proj->tl->rect.y + 5;
+    int track_w = proj->tl->rect.w - 10;
     int track_spacing = 10;
     int samples_per_pixel = DEFAULT_TL_WIDTH_SAMPLES / track_w;
     set_rend_color(proj, &track_bckgrnd);
     for (int i=0; i < proj->tl->num_tracks; i++) {
         if ((track = (*(proj->tl->tracks + i)))) {
-            SDL_Rect trackbox = {track_x, track_y, track_w, track->height};
-            draw_rounded_rect(proj->rend, &trackbox, 5);
+            SDL_Rect trackbox = {track_x, track_y, track_w, track->rect.h};
+            draw_rounded_rect(proj->rend, &trackbox, STD_RAD);
             for (int j=0; j<track->num_clips; j++) {
                 if ((clip = (*(track->clips + j)))) {
                     SDL_Rect clipbox = {
@@ -301,22 +314,22 @@ void draw_project(Project *proj)
 
                 }
             }
-            track_y += track->height + track_spacing;
+            track_y += track->rect.h + track_spacing;
 
         }
     }
     set_rend_color(proj, &white);
-    int play_head_x = (tl_box.w * proj->tl->play_position / DEFAULT_TL_WIDTH_SAMPLES) + tl_box.x;
-    SDL_RenderDrawLine(proj->rend, play_head_x, tl_box.y, play_head_x, tl_box.y + tl_box.h);
+    int play_head_x = (proj->tl->rect.w * proj->tl->play_position / DEFAULT_TL_WIDTH_SAMPLES) + proj->tl->rect.x;
+    SDL_RenderDrawLine(proj->rend, play_head_x, proj->tl->rect.y, play_head_x, proj->tl->rect.y + proj->tl->rect.h);
 
 
     int title_w = 0;
     int title_h = 0;
-    TTF_SizeText(open_sans_12, bottom_text, &title_w, &title_h);
-    SDL_Rect titlebox = relative_rect(&winbox, 0.5, 1, 0.5, 0.1);
-    titlebox.y -= title_h + 2;
-    titlebox.x -= title_w / 2 + 5;
-    write_text(proj->rend, &titlebox, open_sans_12, &txt_soft, bottom_text, true);
+    TTF_SizeText(proj->fonts[1], bottom_text, &title_w, &title_h);
+    SDL_Rect titlebox = relative_rect(&(proj->winrect), 0.5, 1, 0.5, 0.1);
+    titlebox.y -= title_h + 2 + 10;
+    titlebox.x -= title_w / 2 + 10;
+    write_text(proj->rend, &titlebox, proj->fonts[1], &txt_soft, bottom_text, true);
 
     draw_device_list(proj->playback_devices, proj->num_playback_devices, 10, 500, 5);
     draw_device_list(proj->record_devices, proj->num_record_devices, 500, 500, 5);

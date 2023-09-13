@@ -6,6 +6,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include "project.h"
+#include "gui.h"
+
+#define STD_TRACK_HEIGHT 100
+#define TL_RECT (Dim) {ABS, 180}, (Dim) {REL, 10}, (Dim) {REL, 100}, (Dim) {REL, 85}
 
 extern Project *proj;
 
@@ -67,6 +71,10 @@ int16_t *get_mixdown_chunk(Timeline* tl, int length)
     return mixdown;
 }
 
+void reset_winrect(Project *proj) {
+    SDL_GL_GetDrawableSize(proj->win, &((proj->winrect).w), &((proj->winrect).h));
+}
+
 Project *create_project(const char* name, bool dark_mode)
 {
     Project *proj = malloc(sizeof(Project));
@@ -85,7 +93,6 @@ Project *create_project(const char* name, bool dark_mode)
     /* Create SDL_Window and accompanying SDL_Renderer */
     char project_window_name[MAX_NAMELENGTH + 10];
     sprintf(project_window_name, "Jackdaw | %s", name);
-
     proj->win = NULL;
     proj->win = SDL_CreateWindow(
         project_window_name,
@@ -93,7 +100,7 @@ Project *create_project(const char* name, bool dark_mode)
         SDL_WINDOWPOS_CENTERED - 20, 
         900, 
         650, 
-        SDL_WINDOW_RESIZABLE
+        SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI
     );
 
     if (!(proj->win)) {
@@ -107,8 +114,13 @@ Project *create_project(const char* name, bool dark_mode)
         fprintf(stderr, "Error creating renderer: %s\n", SDL_GetError());
         exit(1);
     }
-
-
+    // SDL_RenderSetScale(proj->rend,2,2);
+    proj->winrect = (SDL_Rect) {0, 0, 0, 0};
+    reset_winrect(proj);
+    tl->rect = get_rect(proj->winrect, TL_RECT);
+    fprintf(stderr, "tl rect: %d %d %d %d\n", tl->rect.x, tl->rect.y, tl->rect.w, tl->rect.h);
+    // tl->rect = relative_rect(&(proj->winrect), 0.05, 0.1, 1, 0.86);
+    // draw_rounded_rect(proj->rend, &tl_box, STD_RAD);
     return proj;
 }
 
@@ -124,7 +136,7 @@ Track *create_track(Timeline *tl, bool stereo)
     track->solo = false;
     track->record = false;
     track->num_clips = 0;
-    track->height = 100;
+    track->rect.h = STD_TRACK_HEIGHT * proj->scale_factor;
     (tl->tracks)[tl->num_tracks - 1] = track;
     fprintf(stderr, "\t->exit create track\n");
     return track;
@@ -172,19 +184,19 @@ void destroy_track(Track *track)
     }
 
 
-    /* Save rank for timeline renumbering */
-    int rank = track->tl_rank;
+    // /* Save rank for timeline renumbering */
+    // int rank = track->tl_rank;
 
-    /* Renumber subsequent tracks in timeline if not last track */
-    while (rank <= track->tl->num_tracks) {
-        Track* t;
-        if ((t = *(track->tl->tracks + rank))) {
-            t->tl_rank--;
-        } else {
-            fprintf(stderr, "\nError: track expected at rank %d but not found.", rank);
-        }
-        rank++;
-    }
+    // /* Renumber subsequent tracks in timeline if not last track */
+    // while (rank <= track->tl->num_tracks) {
+    //     Track* t;
+    //     if ((t = *(track->tl->tracks + rank))) {
+    //         t->tl_rank--;
+    //     } else {
+    //         fprintf(stderr, "Error: track expected at rank %d but not found.\n", rank);
+    //     }
+    //     rank++;
+    // }
 
     (track->tl->num_tracks)--;
 
@@ -193,4 +205,9 @@ void destroy_track(Track *track)
     track = NULL;
 
     fprintf(stderr, "Exit destroy track\n");
+}
+
+void reset_tl_rect(Timeline *tl)
+{
+    tl->rect = get_rect(proj->winrect, TL_RECT);
 }

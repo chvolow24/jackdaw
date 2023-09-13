@@ -73,9 +73,9 @@ void init_audio()
     desired.samples = SAMPLES;
     desired.channels = 2;
     desired.callback = play_callback;
-    playback_device = SDL_OpenAudioDevice("H5", 0, &desired, &obtained, SDL_AUDIO_ALLOW_ANY_CHANGE);
+    playback_device = SDL_OpenAudioDevice(NULL, 0, &desired, &obtained, SDL_AUDIO_ALLOW_ANY_CHANGE);
     desired.callback = recording_callback;
-    recording_device = SDL_OpenAudioDevice("H5", 1, &desired, &obtained, SDL_AUDIO_ALLOW_ANY_CHANGE);
+    recording_device = SDL_OpenAudioDevice(NULL, 1, &desired, &obtained, SDL_AUDIO_ALLOW_ANY_CHANGE);
 
     if (!playback_device) {
         fprintf(stderr, "\nError opening audio device.");

@@ -1,7 +1,9 @@
 /**************************************************************************************************
- * Timeline, Track, Clip, and related functions.
- * Structs defined here contain all data that will be serialized and saved with a project.
+ * Create and destroy Project, Timeline, Track, and Clip objects
+ * Get audio mixdown chunks for playback or saving
+ * Save a project to a .jdaw file
  **************************************************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,8 +11,9 @@
 #include "gui.h"
 #include "theme.h"
 
-#define STD_TRACK_HEIGHT 100
+#define DEFAULT_TRACK_HEIGHT 100
 #define TL_RECT (Dim) {ABS, 10}, (Dim) {REL, 20}, (Dim) {REL, 100}, (Dim) {REL, 76}
+#define DEFAULT_SFPP 300 // sample frames per pixel
 
 extern Project *proj;
 
@@ -25,7 +28,7 @@ JDAW_Color trck_colors[6] = {
 
 int trck_color_index = 0;
 
-int16_t get_track_sample(Track *track, Timeline *tl, int pos_in_chunk)
+int16_t get_track_sample(Track *track, Timeline *tl, uint32_t start_pos, uint32_t pos_in_chunk)
 {
     // fprintf(stderr, "Enter get_track_sample\n");
 
@@ -39,7 +42,7 @@ int16_t get_track_sample(Track *track, Timeline *tl, int pos_in_chunk)
         if (!(clip->done)) {
             break;
         }
-        long int pos_in_clip = tl->play_position + pos_in_chunk - clip->absolute_position;
+        int32_t pos_in_clip = start_pos + pos_in_chunk - clip->absolute_position;
         if (pos_in_clip >= 0 && pos_in_clip < clip->length) {
             // fprintf(stderr, "\tpos_in_clip, cliplen: %ld, %d\n", pos_in_clip, clip->length);
             sample += (clip->samples)[pos_in_clip];
@@ -50,10 +53,9 @@ int16_t get_track_sample(Track *track, Timeline *tl, int pos_in_chunk)
     return sample;
 }
 
-int16_t *get_mixdown_chunk(Timeline* tl, int length)
+int16_t *get_mixdown_chunk(Timeline* tl, uint32_t length, bool from_mark_in)
 {
-    fprintf(stderr, "Enter get_mixdown_chunk\n");
-    int bytelen = sizeof(int16_t) * length;
+    uint32_t bytelen = sizeof(int16_t) * length;
     int16_t *mixdown = malloc(bytelen);
     memset(mixdown, '\0', bytelen);
     if (!mixdown) {
@@ -62,24 +64,18 @@ int16_t *get_mixdown_chunk(Timeline* tl, int length)
     }
 
     int i=0;
-    int j=0;
+    float j=0;
+    uint32_t start_pos = from_mark_in ? proj->tl->in_mark : proj->tl->play_position;
     while (i < length) {
         for (int t=0; t<tl->num_tracks; t++) {
-            mixdown[i] += get_track_sample((tl->tracks)[t], tl, j);
+            mixdown[i] += get_track_sample((tl->tracks)[t], tl, start_pos, (int) j);
         }
-        j += proj->play_speed;
+        j += from_mark_in ? 1 : proj->play_speed;
         i++;
     }
-    // for (int i=0; i<length; i++) {
-    //     for (int t=0; t<tl->num_tracks; t++) {
-    //         mixdown[i] += get_track_sample((tl->tracks)[t], tl, i);
-    //     }
+    proj->tl->play_position += length * proj->play_speed;
     // }
-    if (!(proj->recording)) {
-        proj->tl->play_position += length * proj->play_speed;
-    }
-    fprintf(stderr, "\t->exit get_mixdown_chunk\n");
-
+    // fprintf(stderr, "\t->exit get_mixdown_chunk\n");
     return mixdown;
 }
 
@@ -98,6 +94,8 @@ Project *create_project(const char* name, bool dark_mode)
     tl->play_position = 0;
     tl->tempo = 120;
     tl->click_on = false;
+    tl->sample_frames_per_pixel = DEFAULT_SFPP;
+    tl->offset = 0;
     proj->tl = tl;
     proj->playing = false;
     proj->recording = false;
@@ -142,13 +140,13 @@ Track *create_track(Timeline *tl, bool stereo)
     Track *track = malloc(sizeof(Track));
     track->tl = tl;
     track->tl_rank = (tl->num_tracks)++;
-    sprintf(track->name, "Track %d", track->tl_rank);
+    sprintf(track->name, "Track %d", track->tl_rank + 1);
     track->stereo = stereo;
     track->muted = false;
     track->solo = false;
     track->record = false;
     track->num_clips = 0;
-    track->rect.h = STD_TRACK_HEIGHT * proj->scale_factor;
+    track->rect.h = DEFAULT_TRACK_HEIGHT * proj->scale_factor;
     (tl->tracks)[tl->num_tracks - 1] = track;
 
     trck_color_index++;
@@ -162,7 +160,7 @@ Clip *create_clip(Track *track, uint32_t length, uint32_t absolute_position) {
     fprintf(stderr, "Enter create_clip\n");
 
     Clip *clip = malloc(sizeof(Clip));
-    sprintf(clip->name, "T%d-%d", track->tl_rank, track->num_clips);
+    sprintf(clip->name, "Track %d, take %d", track->tl_rank + 1, track->num_clips + 1);
     clip->length = length;
     clip->absolute_position = absolute_position;
     // clip->samples = malloc(sizeof(int16_t) * length);

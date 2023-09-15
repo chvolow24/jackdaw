@@ -5,6 +5,12 @@
 #include "project.h"
 #include "SDL_audio.h"
 
+/* Define some low-level audio constants */
+#define SAMPLE_RATE 48000
+#define CHUNK_SIZE 512
+#define BUFFLEN_SECONDS 60
+#define BUFFLEN SAMPLE_RATE * BUFFLEN_SECONDS
+
 typedef struct clip Clip;
 
 typedef struct audiodevice{
@@ -26,6 +32,7 @@ void stop_playback(void);
 int query_audio_devices(AudioDevice ***device_list, int iscapture);
 int open_audio_device(AudioDevice *device, uint8_t desired_channels, int desired_sample_rate, uint16_t chunk_size);
 const char *get_audio_fmt_str(SDL_AudioFormat fmt);
+void write_mixdown_to_wav();
 
 
 #endif

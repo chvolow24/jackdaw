@@ -1,3 +1,9 @@
+/**************************************************************************************************
+ * Write wav files from sample arrays
+ **************************************************************************************************/
+
+
+
 /****************************** WAV File Specification ******************************
 
 Positions	Sample Value	    Description
@@ -19,13 +25,14 @@ Positions	Sample Value	    Description
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-void write_wav_header(FILE *f, uint32_t samples, uint16_t bits_per_sample, uint8_t channels)
+#include "audio.h"
+void write_wav_header(FILE *f, uint32_t num_samples, uint16_t bits_per_sample, uint8_t channels)
 {
     // int bps = 16;
 
     /* RIFF rhunk descriptor */
     const static char spec[] = {'R','I','F','F'};
-    uint32_t file_size = 44 + samples * (bits_per_sample / 8);
+    uint32_t file_size = 44 + num_samples * (bits_per_sample / 8);
     const static char ftype[] = {'W','A','V','E'};
 
     /* fmt sub-chunk */
@@ -33,14 +40,14 @@ void write_wav_header(FILE *f, uint32_t samples, uint16_t bits_per_sample, uint8
     uint32_t fmt_data_len = 16;
     const static uint16_t fmt_type = 1;
     uint16_t num_channels = channels;
-    uint32_t sample_rate = 44100;
+    uint32_t sample_rate = SAMPLE_RATE;
     uint32_t bytes_per_sec = (sample_rate * bits_per_sample * num_channels) / 8;
     uint16_t block_align = num_channels * fmt_data_len / 8;
     /* bits per sample goes here */
 
     /* data sub-chunk */
     char chunk_id[] = {'d','a','t','a'};
-    uint32_t chunk_size = samples * (bits_per_sample / 8);
+    uint32_t chunk_size = num_samples * (bits_per_sample / 8);
 
     fwrite(spec, 1, 4, f);
     fwrite(&file_size, 4, 1, f);
@@ -57,24 +64,15 @@ void write_wav_header(FILE *f, uint32_t samples, uint16_t bits_per_sample, uint8
     fwrite(&chunk_size, 4, 1, f);
 }
 
-void write_wav(const char *fname)
+void write_wav(const char *fname, int16_t *samples, uint32_t num_samples, uint16_t bits_per_sample, uint8_t channels)
 {
+    fprintf(stderr, "Write wav, num_samples: %d, chanels: %d, bitspsamle: %d\n", num_samples, channels, bits_per_sample);
     FILE* f = fopen(fname, "wb");
-    int16_t samples[220500];
-    memset(samples, 0, 220500 * 2);
-
-    int up = 0;
-    int16_t amplitude = 2000;
-    for (int i=0; i<220500; i++) {
-        if (up) {
-            samples[i] = amplitude;
-        } else {
-            samples[i] = amplitude * -1;
-        }
-        if (i%735 == 0) {
-            up = up == 0 ? 1 : 0;
-        }
+    if (!f) {
+        fprintf(stderr, "Error: failed to open file at %s\n", fname);
+    } else {
+        write_wav_header(f, num_samples, bits_per_sample, channels);
+        fwrite(samples, bits_per_sample / 8, num_samples, f);
     }
-    write_wav_header(f, 220500, 16, 1);
-    fwrite(samples, 2, 220500, f);
+
 }

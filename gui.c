@@ -8,16 +8,29 @@
 #include "audio.h"
 #include "gui.h"
 
-#define DEFAULT_TL_WIDTH_SAMPLES 220500
+#define PLAYHEAD_TRI_H 20
 #define TRACK_SPACING 10
+#define PADDING (4 * proj->scale_factor)
+#define MAX_SFPP 8000
 
-#define TRACK_CONSOLE (Dim) {ABS, 0}, (Dim) {ABS, 0}, (Dim) {ABS, 280}, (Dim) {REL, 100}
+#define TRACK_CONSOLE_WIDTH 280
+
+#define TRACK_CONSOLE (Dim) {ABS, 0}, (Dim) {ABS, 0}, (Dim) {ABS, TRACK_CONSOLE_WIDTH}, (Dim) {REL, 100}
+#define TRACK_NAME_BOX (Dim) {REL, 1}, (Dim) {REL, 1}, (Dim) {REL, 75}, (Dim) {ABS, 32}
+#define CLIP_NAME_RECT (Dim) {ABS, 10}, (Dim) {REL, 3}, (Dim) {ABS, 100}, (Dim) {ABS, 20}
+// #define TITLE_RECT (Dim) {ABS, 0}, (Dim) {ABS, 0}, (Dim) {REL, 100}, (Dim) {ABS, 20}
+// #define TITLE_TXT_RECT (Dim) {REL, 40}, (Dim) {ABS, 0}, (Dim) {REL, 60}, (Dim) {ABS, 100}
+
+#define lesser_of(a,b) (a < b ? a : b)
+#define greater_of(a,b) (a > b ? a : b)
+
 
 
 JDAW_Color red = {{255, 0, 0, 255},{255, 0, 0, 255}};
 JDAW_Color green = {{0, 255, 0, 255},{0, 255, 0, 255}};
 JDAW_Color blue = {{0, 0, 255, 255},{0, 0, 255, 255}};
 JDAW_Color white = {{255, 255, 255, 255},{255, 255, 255, 255}};
+JDAW_Color grey = {{128, 128, 128, 255}, {128, 128, 128, 255}};
 JDAW_Color lightgrey = {{180, 180, 180, 255}, {180, 180, 180, 255}};
 JDAW_Color lightblue = {{101, 204, 255, 255}, {101, 204, 255, 255}};
 JDAW_Color black = {{0, 0, 0, 255},{0, 0, 0, 255}};
@@ -257,54 +270,82 @@ void draw_device_list(AudioDevice **dev_list, int num_devices, int x, int y, int
 
 }
 
+uint32_t get_abs_tl_x(int draw_x)
+{
+    return (draw_x - proj->tl->audio_rect.x) * proj->tl->sample_frames_per_pixel + proj->tl->offset; 
+}
+
+int get_tl_draw_x(uint32_t abs_x) 
+{
+    if (proj->tl->sample_frames_per_pixel != 0) {
+        return proj->tl->audio_rect.x + ((int) abs_x - (int) proj->tl->offset) / (int) proj->tl->sample_frames_per_pixel;
+    } else {
+        fprintf(stderr, "Error: proj tl sfpp value 0\n");
+    }
+}
+
+int get_tl_draw_w(uint32_t abs_w) 
+{
+    if (proj->tl->sample_frames_per_pixel != 0) {
+        return abs_w / proj->tl->sample_frames_per_pixel;
+    } else {
+        fprintf(stderr, "Error: proj tl sfpp value 0\n");
+        return 0;
+    }
+}
+
+int32_t get_tl_abs_w(int draw_w) 
+{
+    return draw_w * proj->tl->sample_frames_per_pixel;
+}
+
 void draw_track(Track* track, int *track_y) {
-    int track_x = track->tl->rect.x + 5;
+    int track_x = track->tl->rect.x + PADDING;
     int track_w = track->tl->rect.w;
-    int samples_per_pixel = DEFAULT_TL_WIDTH_SAMPLES / track_w;
+    // int samples_per_pixel = DEFAULT_TL_WIDTH / track_w;
     SDL_Rect trackbox = {track_x, *track_y, track_w, track->rect.h};
     set_rend_color(proj, &lightgrey);
     SDL_RenderFillRect(proj->rend, &trackbox);
-    SDL_Rect console = get_rect(trackbox, TRACK_CONSOLE);
-    set_rend_color(proj, &bckgrnd_color);
-    SDL_RenderFillRect(proj->rend, &console);
-    SDL_Rect colorbar = (SDL_Rect) {track_x + console.w, *track_y, 10, track->rect.h};
-    set_rend_color(proj, track->color);
-    SDL_RenderFillRect(proj->rend, &colorbar);
+
     Clip* clip;
     for (int j=0; j<track->num_clips; j++) {
         if ((clip = (*(track->clips + j)))) {
-            SDL_Rect clipbox = {
-                track_x + track_w * clip->absolute_position / DEFAULT_TL_WIDTH_SAMPLES, 
+            int clip_x = get_tl_draw_x(clip->absolute_position);
+            int clip_w = get_tl_draw_w(clip->length);
+            SDL_Rect cliprect = {
+                clip_x,
                 *track_y + 4, 
-                track_w * clip->length / DEFAULT_TL_WIDTH_SAMPLES,
-                trackbox.h - 8
+                clip_w,
+                track->tl->audio_rect.h - 4
             };
-            int wav_x = clipbox.x;
-            int wav_y = clipbox.y + clipbox.h / 2;
+            int wav_x = cliprect.x;
+            int wav_y = cliprect.y + cliprect.h / 2;
             set_rend_color(proj, &lightblue);
-            SDL_RenderFillRect(proj->rend, &clipbox);
+            SDL_RenderFillRect(proj->rend, &cliprect);
+            SDL_Rect clipnamerect = get_rect(cliprect, CLIP_NAME_RECT);
+            write_text(proj->rend, &clipnamerect, proj->fonts[1], &grey, clip->name, true);
             set_rend_color(proj, &black);
             for (int i=0; i<2; i++) {
-                SDL_RenderDrawRect(proj->rend, &clipbox);
-                clipbox.x += 1;
-                clipbox.y += 1;
-                clipbox.w -= 2;
-                clipbox.h -= 2;
+                SDL_RenderDrawRect(proj->rend, &cliprect);
+                cliprect.x += 1;
+                cliprect.y += 1;
+                cliprect.w -= 2;
+                cliprect.h -= 2;
             }
             set_rend_color(proj, &white);
             for (int i=0; i<4; i++) {
-                SDL_RenderDrawRect(proj->rend, &clipbox);
-                clipbox.x += 1;
-                clipbox.y += 1;
-                clipbox.w -= 2;
-                clipbox.h -= 2;
+                SDL_RenderDrawRect(proj->rend, &cliprect);
+                cliprect.x += 1;
+                cliprect.y += 1;
+                cliprect.w -= 2;
+                cliprect.h -= 2;
             }
 
             SDL_SetRenderDrawColor(proj->rend, 5, 5, 60, 255);
             if (clip->done) {
                 int16_t sample = (int)((clip->samples)[0]);
                 int16_t next_sample;
-                for (int i=0; i<clip->length-1; i+= samples_per_pixel) {
+                for (int i=0; i<clip->length-1; i+=track->tl->sample_frames_per_pixel) {
                     next_sample = (clip->samples)[i];
                     SDL_RenderDrawLine(proj->rend, wav_x, wav_y + (sample / 50), wav_x + 1, wav_y + (next_sample / 50));
                     sample = next_sample;
@@ -318,7 +359,55 @@ void draw_track(Track* track, int *track_y) {
 
         }
     }
+    SDL_Rect consolerect = get_rect(trackbox, TRACK_CONSOLE);
+    set_rend_color(proj, &grey);
+    SDL_RenderFillRect(proj->rend, &consolerect);
+    SDL_Rect namerect = get_rect(consolerect, TRACK_NAME_BOX);
+    set_rend_color(proj, &txt_soft);
+    SDL_RenderFillRect(proj->rend, &namerect);
+    set_rend_color(proj, &black);
+    SDL_RenderDrawRect(proj->rend, &namerect);
+    namerect.x += PADDING;
+    write_text(proj->rend, &namerect, proj->fonts[1], &black, track->name, true);
+    // draw_rounded_rect(proj->rend, &namerect, 14);
+    SDL_Rect colorbar = (SDL_Rect) {track_x + consolerect.w, *track_y, 10, track->rect.h};
+    track->tl->audio_rect = (SDL_Rect) {colorbar.x + colorbar.w, colorbar.y, trackbox.w - consolerect.w, trackbox.h};
+    set_rend_color(proj, track->color);
+    SDL_RenderFillRect(proj->rend, &colorbar);
     *track_y += track->rect.h + TRACK_SPACING;
+}
+
+void translate_tl(int translate_by_w)
+{
+    int32_t new_offset = proj->tl->offset + get_tl_abs_w(translate_by_w);
+    if (new_offset < 0) {
+        proj->tl->offset = 0;
+    } else {
+        proj->tl->offset = new_offset;
+    }
+}
+
+void rescale_timeline(double scale_factor, uint32_t center_abs_pos) 
+{
+    if (scale_factor == 0) {
+        fprintf(stderr, "Warning! Scale factor 0 in rescale_timeline\n");
+        return;
+    }
+    int init_draw_pos = get_tl_draw_x(center_abs_pos);
+    double new_sfpp = proj->tl->sample_frames_per_pixel / scale_factor;
+
+    if (new_sfpp < 2 || new_sfpp > MAX_SFPP) {
+        return;
+    }
+    proj->tl->sample_frames_per_pixel = new_sfpp;
+
+    int new_draw_pos = get_tl_draw_x(center_abs_pos);
+    int offset_draw_delta = new_draw_pos - init_draw_pos;
+    if (offset_draw_delta < (-1 * get_tl_draw_w(proj->tl->offset))) {
+        proj->tl->offset = 0;
+    } else {
+        proj->tl->offset += (get_tl_abs_w(offset_draw_delta));
+    }
 }
 
 void draw_project(Project *proj)
@@ -332,16 +421,13 @@ void draw_project(Project *proj)
 
     /* Draw the timeline */
     set_rend_color(proj, &tl_bckgrnd);
-    // SDL_Rect proj->tl->rect = relative_rect(&(proj->winrect), 0.05, 0.1, 0.9, 0.86);
+    // proj->tl->rect = relative_rect(&(proj->winrect), 0.05, 0.1, 0.9, 0.86);
     SDL_RenderFillRect(proj->rend, &(proj->tl->rect));
     // draw_rounded_rect(proj->rend, &(proj->tl->rect), STD_RAD);
 
 
     Track *track;
-    Clip *clip;
-    int track_x = proj->tl->rect.x + 5;
-    int track_y = proj->tl->rect.y + 5;
-    int track_w = proj->tl->rect.w - 10;
+    int track_y = proj->tl->rect.y + PADDING;
 
     for (int i=0; i < proj->tl->num_tracks; i++) {
         if ((track = (*(proj->tl->tracks + i)))) {
@@ -349,21 +435,70 @@ void draw_project(Project *proj)
         }
     }
     set_rend_color(proj, &white);
-    int play_head_x = (proj->tl->rect.w * proj->tl->play_position / DEFAULT_TL_WIDTH_SAMPLES) + proj->tl->rect.x;
-    SDL_RenderDrawLine(proj->rend, play_head_x, proj->tl->rect.y, play_head_x, proj->tl->rect.y + proj->tl->rect.h);
+
+    /* Draw play head line */
+    int tri_y = proj->tl->rect.y;
+    if (proj->tl->play_position >= proj->tl->offset) {
+        int play_head_x = get_tl_draw_x(proj->tl->play_position);
+        SDL_RenderDrawLine(proj->rend, play_head_x, proj->tl->rect.y, play_head_x, proj->tl->rect.y + proj->tl->rect.h);
+
+        /* Draw play head triangle */
+        int tri_x1 = play_head_x;
+        int tri_x2 = play_head_x;
+        int tri_y = proj->tl->rect.y;
+        for (int i=0; i<PLAYHEAD_TRI_H; i++) {
+            SDL_RenderDrawLine(proj->rend, tri_x1, tri_y, tri_x2, tri_y);
+            tri_y -= 1;
+            tri_x2 += 1;
+            tri_x1 -= 1;
+        }
+    }
+
+
+    /* draw mark in */
+    if (proj->tl->in_mark >= proj->tl->offset) {
+        int in_x = get_tl_draw_x(proj->tl->in_mark);
+        int i_tri_x2 = in_x;
+        tri_y = proj->tl->rect.y;
+        for (int i=0; i<PLAYHEAD_TRI_H; i++) {
+            SDL_RenderDrawLine(proj->rend, in_x, tri_y, i_tri_x2, tri_y);
+            tri_y -= 1;
+            i_tri_x2 += 1;    
+        }            
+    }
+
+    /* draw mark out */
+    if (proj->tl->out_mark >= proj->tl->offset) {
+        int out_x = get_tl_draw_x(proj->tl->out_mark);
+        int o_tri_x1 = out_x;
+        tri_y = proj->tl->rect.y;
+        for (int i=0; i<PLAYHEAD_TRI_H; i++) {
+            SDL_RenderDrawLine(proj->rend, o_tri_x1, tri_y, out_x, tri_y);
+            tri_y -= 1;
+            o_tri_x1 -= 1;
+        }
+    }
 
 
     int title_w = 0;
     int title_h = 0;
     TTF_SizeText(proj->fonts[1], bottom_text, &title_w, &title_h);
-    SDL_Rect titlebox = relative_rect(&(proj->winrect), 0.5, 1, 0.5, 0.1);
-    titlebox.y -= title_h + 2 + 10;
-    titlebox.x -= title_w / 2 + 10;
-    write_text(proj->rend, &titlebox, proj->fonts[1], &txt_soft, bottom_text, true);
+    SDL_Rect title_rect = {0, proj->winrect.h - 20 * proj->scale_factor, proj->winrect.w, 20 * proj->scale_factor};
+    set_rend_color(proj, &bckgrnd_color);
+    SDL_RenderFillRect(proj->rend, &title_rect);
+    SDL_Rect title_text_rect = {(proj->winrect.w - title_w) / 2, title_rect.y, title_w, title_h};
+    // titlebox.y -= title_h + 2 + 10;
+    // titlebox.x -= title_w / 2 + 10;
+    write_text(proj->rend, &title_text_rect, proj->fonts[1], &txt_soft, bottom_text, true);
+
+    SDL_Rect mask_left = {0, 0, proj->tl->rect.x, proj->winrect.h};
+    SDL_RenderFillRect(proj->rend, &mask_left);
+    SDL_Rect mask_left_2 = {proj->tl->rect.x, proj->tl->rect.y, PADDING, proj->tl->rect.h};
+    set_rend_color(proj, &tl_bckgrnd);
+    SDL_RenderFillRect(proj->rend, &mask_left_2);
+
 
     // draw_device_list(proj->playback_devices, proj->num_playback_devices, 10, 500, 5);
     // draw_device_list(proj->record_devices, proj->num_record_devices, 500, 500, 5);
-
     SDL_RenderPresent(proj->rend);
-
 }

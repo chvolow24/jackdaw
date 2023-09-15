@@ -1,5 +1,5 @@
 #include <stdbool.h>
-#include "SDL2/SDL.h"
+#include "SDL.h"
 #include "theme.h"
 
 extern bool dark_mode;

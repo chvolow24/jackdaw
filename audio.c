@@ -5,18 +5,15 @@
 
 #include <pthread.h>
 #include <string.h>
-#include "SDL2/SDL.h"
-#include "SDL2/SDL_audio.h"
+#include "SDL.h"
+#include "SDL_audio.h"
 
 #include "project.h"
 #include "audio.h"
+#include "wav.h"
 
 
-/* Define some low-level audio constants */
-#define SAMPLE_RATE 44100
-#define SAMPLES 512
-#define BUFFLEN_SECONDS 60
-#define BUFFLEN 44100 * BUFFLEN_SECONDS
+
 
 /* The main playback buffer, which is an array of 16-bit unsigned integer samples */
 static Sint16 audio_buffer[BUFFLEN];
@@ -40,22 +37,15 @@ static void recording_callback(void* user_data, uint8_t *stream, int streamLengt
     }
     write_buffpos += streamLength / 2;
     proj->active_clip->length += streamLength / 2;
-    proj->tl->play_position += streamLength / 2;
+    proj->tl->record_position += streamLength / 2;
+    // proj->tl->play_position += streamLength / 2;
 }
 
 static void play_callback(void* user_data, uint8_t* stream, int streamLength)
 {
-    int16_t *chunk = get_mixdown_chunk(proj->tl, streamLength / 2);
+    int16_t *chunk = get_mixdown_chunk(proj->tl, streamLength / 2, false);
     memcpy(stream, chunk, streamLength);
-
-
-
-    // if (read_buffpos + (streamLength / 2) < BUFFLEN) {
-    //     memcpy(stream, audio_buffer + read_buffpos, streamLength);
-    // } else {
-    //     read_buffpos = 0;
-    // }
-    // read_buffpos += streamLength / 2;
+    free(chunk);
 }
 
 void init_audio()
@@ -70,7 +60,7 @@ void init_audio()
     SDL_zero(obtained);
     desired.freq = SAMPLE_RATE;
     desired.format = AUDIO_S16SYS;
-    desired.samples = SAMPLES;
+    desired.samples = CHUNK_SIZE;
     desired.channels = 2;
     desired.callback = play_callback;
     playback_device = SDL_OpenAudioDevice(NULL, 0, &desired, &obtained, SDL_AUDIO_ALLOW_ANY_CHANGE);
@@ -91,7 +81,9 @@ void init_audio()
 
 void start_recording()
 {
+    proj->tl->record_position = proj->tl->play_position;
     SDL_PauseAudioDevice(recording_device, 0);
+    proj->tl->record_position = proj->tl->play_position;
 }
 // void stop_recording()
 // {
@@ -132,6 +124,7 @@ static void *copy_buff_to_clip(void* arg)
     // for (int i=0; i<clip->length; i++) {
     //     fprintf(w, "%d\n", (clip->samples)[i]);
     // }
+    return NULL;
 }
 
 void stop_recording(Clip *clip)
@@ -262,4 +255,14 @@ const char *get_audio_fmt_str(SDL_AudioFormat fmt)
             break;
     }
     return fmt_str;
+}
+
+
+void write_mixdown_to_wav()
+{
+    uint32_t num_samples = proj->tl->out_mark - proj->tl->in_mark;
+    int16_t *samples = get_mixdown_chunk(proj->tl, num_samples, true);
+    write_wav("wavs/testfile.wav", samples, num_samples, 16, 2);
+
+    free(samples);
 }

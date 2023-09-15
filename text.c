@@ -1,6 +1,6 @@
 #include <stdbool.h>
-#include "SDL2/SDL.h"
-#include "SDL2/SDL_ttf.h"
+#include "SDL.h"
+#include "SDL_ttf.h"
 #include "theme.h"
 #include "text.h"
 #include "project.h"
@@ -68,7 +68,7 @@ int write_text(
     SDL_Surface *surface;
     SDL_Texture *texture;
     SDL_Color sdl_col = get_color(color);
-    surface = TTF_RenderUTF8_Blended(font, text, (SDL_Color){255, 255, 255, 255});
+    surface = TTF_RenderUTF8_Blended(font, text, sdl_col);
     if (!surface) {
         fprintf(stderr, "\nError: TTF_RenderText_Blended failed: %s", TTF_GetError());
         exit(1);

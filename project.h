@@ -56,7 +56,10 @@ typedef struct clip {
 } Clip;
 
 typedef struct timeline {
-    uint32_t play_position; // in samples
+    uint32_t play_position; // in sample frames
+    uint32_t record_position; // in sample frames
+    uint32_t in_mark;
+    uint32_t out_mark;
     pthread_mutex_t play_position_lock;
     Track *tracks[MAX_TRACKS];
     uint8_t num_tracks;
@@ -65,6 +68,10 @@ typedef struct timeline {
 
     /* GUI members */
     SDL_Rect rect;
+    SDL_Rect audio_rect;
+    uint32_t offset; // in samples frames
+    // uint32_t sample_frames_shown; // determines timeline scale
+    double sample_frames_per_pixel;
     void (*OnClick)(Track *track);
     void (*OnHover)(Track *track);
 } Timeline;
@@ -94,8 +101,8 @@ typedef struct project {
 
 } Project;
 
-int16_t get_track_sample(Track *track, Timeline *tl, int pos_in_chunk);
-int16_t *get_mixdown_chunk(Timeline* tl, int length);
+int16_t get_track_sample(Track *track, Timeline *tl, uint32_t start_pos, uint32_t pos_in_chunk);
+int16_t *get_mixdown_chunk(Timeline* tl, uint32_t length, bool from_mark_in);
 Project *create_project(const char* name, bool dark_mode);
 Track *create_track(Timeline *tl, bool stereo);
 Clip *create_clip(Track *track, uint32_t length, uint32_t absolute_position);

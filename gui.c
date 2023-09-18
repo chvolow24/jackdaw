@@ -1,3 +1,35 @@
+/**************************************************************************************************
+ * Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation. Built on SDL.
+***************************************************************************************************
+
+  Copyright (C) 2023 Charlie Volow
+
+  This software is provided 'as-is', without any express or implied
+  warranty.  In no event will the authors be held liable for any damages
+  arising from the use of this software.
+
+  Permission is granted to anyone to use this software for any purpose,
+  including commercial applications, and to alter it and redistribute it
+  freely, subject to the following restrictions:
+
+  1. The origin of this software must not be misrepresented; you must not
+     claim that you wrote the original software. If you use this software
+     in a product, an acknowledgment in the product documentation would be
+     appreciated but is not required.
+  2. Altered source versions must be plainly marked as such, and must not be
+     misrepresented as being the original software.
+  3. This notice may not be removed or altered from any source distribution.
+
+**************************************************************************************************/
+
+/**************************************************************************************************
+ * Drawing functions
+    -> incl. "draw_project," which is called on every iteration of the animation loop.
+ * Creation of GUI primitives, like Textbox. Project.c initializes some of these primitives.
+ * Modification (resizing, repositioning) of GUI elements
+ **************************************************************************************************/
+
+
 #include <float.h>
 #include <math.h>
 #include "SDL.h"
@@ -8,16 +40,7 @@
 #include "audio.h"
 #include "gui.h"
 
-#define PLAYHEAD_TRI_H 20
-#define TRACK_SPACING 10
-#define PADDING (4 * proj->scale_factor)
-#define MAX_SFPP 8000
 
-#define TRACK_CONSOLE_WIDTH 280
-
-#define TRACK_CONSOLE (Dim) {ABS, 0}, (Dim) {ABS, 0}, (Dim) {ABS, TRACK_CONSOLE_WIDTH}, (Dim) {REL, 100}
-#define TRACK_NAME_BOX (Dim) {REL, 1}, (Dim) {REL, 1}, (Dim) {REL, 75}, (Dim) {ABS, 32}
-#define CLIP_NAME_RECT (Dim) {ABS, 10}, (Dim) {REL, 3}, (Dim) {ABS, 100}, (Dim) {ABS, 20}
 // #define TITLE_RECT (Dim) {ABS, 0}, (Dim) {ABS, 0}, (Dim) {REL, 100}, (Dim) {ABS, 20}
 // #define TITLE_TXT_RECT (Dim) {REL, 40}, (Dim) {ABS, 0}, (Dim) {REL, 60}, (Dim) {ABS, 100}
 
@@ -32,6 +55,7 @@ JDAW_Color blue = {{0, 0, 255, 255},{0, 0, 255, 255}};
 JDAW_Color white = {{255, 255, 255, 255},{255, 255, 255, 255}};
 JDAW_Color grey = {{128, 128, 128, 255}, {128, 128, 128, 255}};
 JDAW_Color lightgrey = {{180, 180, 180, 255}, {180, 180, 180, 255}};
+JDAW_Color lightergrey = {{240, 240, 240, 255}, {240, 240, 240, 255}};
 JDAW_Color lightblue = {{101, 204, 255, 255}, {101, 204, 255, 255}};
 JDAW_Color black = {{0, 0, 0, 255},{0, 0, 0, 255}};
 JDAW_Color menu_bckgrnd = {{25, 25, 25, 230}, {25, 25, 25, 230}};
@@ -40,6 +64,10 @@ JDAW_Color txt_soft = {{50, 50, 50, 255}, {200, 200, 200, 255}};
 JDAW_Color txt_main = {{10, 10, 10, 255}, {240, 240, 240, 255}};
 JDAW_Color tl_bckgrnd = {{240, 235, 235, 255}, {50, 52, 55, 255}};
 JDAW_Color play_head = {{0, 0, 0, 255}, {255, 255, 255, 255}};
+JDAW_Color console_bckgrnd = {{128, 128, 128, 255}, {128, 128, 128, 255}};
+JDAW_Color console_bckgrnd_active = {{140, 140, 140, 255}, {140, 140, 140, 255}};
+
+
 
 
 //TODO: Replace project arguments with reference to global var;
@@ -58,18 +86,22 @@ SDL_Rect relative_rect(SDL_Rect *win_rect, float x_rel, float y_rel, float w_rel
 }
 
 SDL_Rect get_rect(SDL_Rect parent_rect, Dim x, Dim y, Dim w, Dim h) {
+    if (!proj || !(proj->scale_factor)) {
+        return (SDL_Rect) {0,0,0,0};
+    }
+
     SDL_Rect ret;
     switch (x.dimType) {
         case ABS:
-            ret.x = parent_rect.x + x.value;
+            ret.x = parent_rect.x + x.value * proj->scale_factor;
             break;
         case REL:
-            ret.x = parent_rect.x + x.value * parent_rect.w / 100;
+            ret.x = parent_rect.x + x.value *  parent_rect.w / 100;
             break;
     }
     switch (y.dimType) {
         case ABS:
-            ret.y = parent_rect.y + y.value;
+            ret.y = parent_rect.y + y.value * proj->scale_factor;
             break;
         case REL:
             ret.y = parent_rect.y + y.value * parent_rect.h / 100;
@@ -77,7 +109,7 @@ SDL_Rect get_rect(SDL_Rect parent_rect, Dim x, Dim y, Dim w, Dim h) {
     }
     switch (w.dimType) {
         case ABS:
-            ret.w = w.value;
+            ret.w = w.value * proj->scale_factor;
             break;
         case REL:
             ret.w = w.value * parent_rect.w / 100;
@@ -85,7 +117,7 @@ SDL_Rect get_rect(SDL_Rect parent_rect, Dim x, Dim y, Dim w, Dim h) {
     }
     switch (h.dimType) {
         case ABS:
-            ret.h = h.value;
+            ret.h = h.value * proj->scale_factor;
             break;
         case REL:
             ret.h = h.value * parent_rect.h / 100;
@@ -221,6 +253,111 @@ void draw_circle(SDL_Renderer *rend, int xinit, int yinit, int r)
     }
 }
 
+// int write_text(
+//     SDL_Renderer *rend, 
+//     SDL_Rect *rect, 
+//     TTF_Font* font, 
+//     JDAW_Color* color, 
+//     const char *text, 
+//     bool allow_resize
+// );
+
+
+    // int x;
+    // int y;
+    // int fixed_w;    // optional creation argument; box sized to text if null
+    // int fixed_h;    // optional creation argument; box sized to text if null
+    // int padding;    // optional; default used if null
+    // TTF_Font *font;
+    // char *value;
+    // SDL_Rect container; // populated at creation with values determined by preceding members
+    // SDL_Rect txt_container;     // populated at creation ''
+    // JDAW_Color *txt_color;  // optional; default if null
+    // JDAW_Color *border_color;   // optional; default if null
+    // JDAW_Color *bckgrnd_color;  // optional; default if null
+    // void (*onclick)(Textbox *self); // optional; function to run when txt box clicked
+    // void (*onhover)(Textbox *self); // optional; function to run when mouse hovers over txt box
+    // char *tooltip;  // optional
+
+Textbox *create_textbox(
+    int fixed_w, 
+    int fixed_h, 
+    int padding, 
+    TTF_Font *font, 
+    char *value,
+    JDAW_Color *txt_color,
+    JDAW_Color *border_color,
+    JDAW_Color *bckgrnd_color,
+    void (*onclick)(Textbox *self),
+    void (*onhover)(Textbox *self),
+    char *tooltip
+)
+{
+    Textbox *tb = malloc(sizeof(Textbox));
+    tb->container.x = 0;
+    tb->container.y = 0;
+    tb->padding = padding;
+    tb->font = font;
+    tb->value = value;
+    if (txt_color) {
+        tb->txt_color = txt_color;
+    } else {
+        tb->txt_color = &black;
+    }
+    if (border_color) {
+        tb->border_color = border_color;
+    } else {
+        tb->border_color = &black;
+    }
+    if (bckgrnd_color) {
+        tb->bckgrnd_color = bckgrnd_color;
+    } else {
+        tb->bckgrnd_color = &lightergrey;
+    }
+    tb->onclick = onclick;
+    tb->onhover = onhover;
+
+    int txtw, txth;
+    TTF_SizeText(font, value, &txtw, &txth);
+
+    if (fixed_w) {
+        tb->container.w = fixed_w;
+    } else {
+        tb->container.w = txtw + padding * 2;
+    }
+    if (fixed_h) {
+        tb->container.h = fixed_h;
+    } else {
+        tb->container.h = txth + padding * 2;
+    }
+    tb->txt_container.w = txtw;
+    tb->txt_container.h = txth;
+    return tb;
+
+}
+
+void position_textbox(Textbox *tb, int x, int y)
+{
+    int scale_factor = proj && proj->scale_factor ? proj->scale_factor : 1;
+    tb->container.x = x;
+    tb->container.y = y;
+    tb->txt_container.x = x + tb->padding * scale_factor;
+    tb->txt_container.y = y + tb->padding * scale_factor;
+
+}
+
+void draw_textbox(Textbox *tb)
+{
+    if (!proj) {
+        return;
+    }
+    set_rend_color(proj, tb->bckgrnd_color);
+    SDL_RenderFillRect(proj->rend, &(tb->container));
+    set_rend_color(proj, tb->border_color);
+    SDL_RenderDrawRect(proj->rend, &(tb->container));
+    write_text(proj->rend, &(tb->txt_container), tb->font, tb->txt_color, tb->value, true);
+}
+
 /* Draw the hamburger menu */
 void draw_hamburger(Project * proj)
 {
@@ -235,40 +372,38 @@ void draw_hamburger(Project * proj)
     SDL_RenderFillRect(proj->rend, &hmbrgr_3);
 }
 
-/* Draw a list of audio devices */
+// void draw_device_list(AudioDevice **dev_list, int num_devices, int x, int y, int padding) 
+// {
+//     SDL_Rect list_box = {x, y, 0, padding<<1};
+//     int w;
+//     int h;
 
-void draw_device_list(AudioDevice **dev_list, int num_devices, int x, int y, int padding) 
-{
-    SDL_Rect list_box = {x, y, 0, padding<<1};
-    int w;
-    int h;
+//     for (int i=0; i<num_devices; i++) {
+//         TTF_SizeText(proj->fonts[2], dev_list[i]->name, &w, &h);
+//         if (w > list_box.w) {
+//             list_box.w = w + (padding<<1);
+//         }
+//         list_box.h += h + padding;
+//     }
 
-    for (int i=0; i<num_devices; i++) {
-        TTF_SizeText(proj->fonts[2], dev_list[i]->name, &w, &h);
-        if (w > list_box.w) {
-            list_box.w = w + (padding<<1);
-        }
-        list_box.h += h + padding;
-    }
+//     set_rend_color(proj, &menu_bckgrnd);
+//     SDL_RenderFillRect(proj->rend, &list_box);
+//     set_rend_color(proj, &lightgrey);
+//     SDL_RenderDrawRect(proj->rend, &list_box);
+//     int spacer = padding<<1;
+//     for (int i=0; i<num_devices; i++) {
+//         SDL_Rect item_box = {list_box.x + (padding<<1), list_box.y + spacer, list_box.w, h};
+//         // set_rend_color(proj, &red);
+//         // SDL_RenderDrawRect(proj->rend, &item_box);
+//         spacer += h + padding;
+//         if (dev_list[i]-> open) {
+//             write_text(proj->rend, &item_box, proj->fonts[2], &white, dev_list[i]->name, true);
+//         } else {
+//             write_text(proj->rend, &item_box, proj->fonts[2], &red, dev_list[i]->name, true);
+//         }
+//     }
 
-    set_rend_color(proj, &menu_bckgrnd);
-    SDL_RenderFillRect(proj->rend, &list_box);
-    set_rend_color(proj, &lightgrey);
-    SDL_RenderDrawRect(proj->rend, &list_box);
-    int spacer = padding<<1;
-    for (int i=0; i<num_devices; i++) {
-        SDL_Rect item_box = {list_box.x + (padding<<1), list_box.y + spacer, list_box.w, h};
-        // set_rend_color(proj, &red);
-        // SDL_RenderDrawRect(proj->rend, &item_box);
-        spacer += h + padding;
-        if (dev_list[i]-> open) {
-            write_text(proj->rend, &item_box, proj->fonts[2], &white, dev_list[i]->name, true);
-        } else {
-            write_text(proj->rend, &item_box, proj->fonts[2], &red, dev_list[i]->name, true);
-        }
-    }
-
-}
+// }
 
 uint32_t get_abs_tl_x(int draw_x)
 {
@@ -281,6 +416,7 @@ int get_tl_draw_x(uint32_t abs_x)
         return proj->tl->audio_rect.x + ((int) abs_x - (int) proj->tl->offset) / (int) proj->tl->sample_frames_per_pixel;
     } else {
         fprintf(stderr, "Error: proj tl sfpp value 0\n");
+        return 0;
     }
 }
 
@@ -299,13 +435,9 @@ int32_t get_tl_abs_w(int draw_w)
     return draw_w * proj->tl->sample_frames_per_pixel;
 }
 
-void draw_track(Track* track, int *track_y) {
-    int track_x = track->tl->rect.x + PADDING;
-    int track_w = track->tl->rect.w;
-    // int samples_per_pixel = DEFAULT_TL_WIDTH / track_w;
-    SDL_Rect trackbox = {track_x, *track_y, track_w, track->rect.h};
+void draw_track(Track* track) {
     set_rend_color(proj, &lightgrey);
-    SDL_RenderFillRect(proj->rend, &trackbox);
+    SDL_RenderFillRect(proj->rend, &track->rect);
 
     Clip* clip;
     for (int j=0; j<track->num_clips; j++) {
@@ -314,7 +446,7 @@ void draw_track(Track* track, int *track_y) {
             int clip_w = get_tl_draw_w(clip->length);
             SDL_Rect cliprect = {
                 clip_x,
-                *track_y + 4, 
+                track->rect.y + 4, 
                 clip_w,
                 track->tl->audio_rect.h - 4
             };
@@ -350,31 +482,34 @@ void draw_track(Track* track, int *track_y) {
                     SDL_RenderDrawLine(proj->rend, wav_x, wav_y + (sample / 50), wav_x + 1, wav_y + (next_sample / 50));
                     sample = next_sample;
                     wav_x++;
-
-                    // SDL_RenderDrawLine
                 }
             }
-            // SDL_RenderFillRect(proj->rend, &clipbox);
-            // set_rend_color(proj, &trck_bckgrnd);
-
         }
     }
-    SDL_Rect consolerect = get_rect(trackbox, TRACK_CONSOLE);
-    set_rend_color(proj, &grey);
+
+
+    /* Draw the track information console */
+    SDL_Rect consolerect = get_rect(track->rect, TRACK_CONSOLE);
+    if (track->active) {
+        set_rend_color(proj, &console_bckgrnd_active);
+    } else {
+        set_rend_color(proj, &console_bckgrnd);
+    }
     SDL_RenderFillRect(proj->rend, &consolerect);
-    SDL_Rect namerect = get_rect(consolerect, TRACK_NAME_BOX);
-    set_rend_color(proj, &txt_soft);
-    SDL_RenderFillRect(proj->rend, &namerect);
-    set_rend_color(proj, &black);
-    SDL_RenderDrawRect(proj->rend, &namerect);
-    namerect.x += PADDING;
-    write_text(proj->rend, &namerect, proj->fonts[1], &black, track->name, true);
-    // draw_rounded_rect(proj->rend, &namerect, 14);
-    SDL_Rect colorbar = (SDL_Rect) {track_x + consolerect.w, *track_y, 10, track->rect.h};
-    track->tl->audio_rect = (SDL_Rect) {colorbar.x + colorbar.w, colorbar.y, trackbox.w - consolerect.w, trackbox.h};
+
+
+// #define TRACK_NAME_RECT (Dim) {REL, 1}, (Dim) {ABS, 4}, (Dim) {REL, 75}, (Dim) {ABS, 16}
+// #define CLIP_NAME_RECT (Dim) {ABS, 5}, (Dim) {REL, 3}, (Dim) {ABS, 50}, (Dim) {ABS, 10}
+// #define TRACK_IN_ROW (Dim) {REL, 1}, (Dim) {ABS, 24}, (Dim) {REL, 99}, (Dim) {ABS, 16}
+// #define TRACK_IN_LABEL (Dim) {ABS, 4}, (Dim) {ABS, 0}, (Dim) {REL, 20}, (Dim) {REL, 100}
+// #define TRACK_IN_NAME (Dim) {ABS, 40}, (Dim) {ABS, 0}, (Dim) {REL, 60}, (Dim) {REL, 100}
+    position_textbox(track->name_box, consolerect.x + 4, consolerect.y + 4);
+    draw_textbox(track->name_box);
+    // TODO: fix this 
+    SDL_Rect colorbar = (SDL_Rect) {track->rect.x + consolerect.w, track->rect.y, COLOR_BAR_W, track->rect.h};
+    track->tl->audio_rect = (SDL_Rect) {colorbar.x + colorbar.w, colorbar.y, track->rect.w - consolerect.w, track->rect.h};
     set_rend_color(proj, track->color);
     SDL_RenderFillRect(proj->rend, &colorbar);
-    *track_y += track->rect.h + TRACK_SPACING;
 }
 
 void translate_tl(int translate_by_w)
@@ -410,6 +545,7 @@ void rescale_timeline(double scale_factor, uint32_t center_abs_pos)
     }
 }
 
+
 void draw_project(Project *proj)
 {
     SDL_SetRenderDrawBlendMode(proj->rend, SDL_BLENDMODE_BLEND);
@@ -427,11 +563,10 @@ void draw_project(Project *proj)
 
 
     Track *track;
-    int track_y = proj->tl->rect.y + PADDING;
 
     for (int i=0; i < proj->tl->num_tracks; i++) {
         if ((track = (*(proj->tl->tracks + i)))) {
-            draw_track(track, &track_y);
+            draw_track(track);
         }
     }
     set_rend_color(proj, &white);
@@ -498,7 +633,26 @@ void draw_project(Project *proj)
     SDL_RenderFillRect(proj->rend, &mask_left_2);
 
 
-    // draw_device_list(proj->playback_devices, proj->num_playback_devices, 10, 500, 5);
-    // draw_device_list(proj->record_devices, proj->num_record_devices, 500, 500, 5);
+
+
+
+    // Textbox *tb = create_textbox(0, 0, 1, proj->fonts[3], "Hello, there!", &black, &black, &lightgrey, do_thing, NULL, NULL);
+    // draw_textbox(tb, 500, 500);
+
+    // Textbox *tb2 = create_textbox(500, 0, 4, proj->fonts[2], "Hi!", &black, &black, &lightgrey, do_thing_2, NULL, NULL);
+    // draw_textbox(tb2, 500, 600);
+
+    // Textbox *tb3 = create_textbox(0, 0, 8, proj->bold_fonts[2], "This is a name", NULL, NULL, NULL, do_thing_2, NULL, NULL);
+    // draw_textbox(tb3, 700, 500);
+    // draw_textbox(tb3, 600, 300);
+    // draw_textbox(tb3, 500, 100);
+    // draw_textbox(tb3, 400, -100);
+
+    // free(tb);
+    // free(tb2);
+    // free(tb3);
+
+
+
     SDL_RenderPresent(proj->rend);
 }

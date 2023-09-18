@@ -1,3 +1,27 @@
+/**************************************************************************************************
+ * Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation. Built on SDL.
+***************************************************************************************************
+
+  Copyright (C) 2023 Charlie Volow
+
+  This software is provided 'as-is', without any express or implied
+  warranty.  In no event will the authors be held liable for any damages
+  arising from the use of this software.
+
+  Permission is granted to anyone to use this software for any purpose,
+  including commercial applications, and to alter it and redistribute it
+  freely, subject to the following restrictions:
+
+  1. The origin of this software must not be misrepresented; you must not
+     claim that you wrote the original software. If you use this software
+     in a product, an acknowledgment in the product documentation would be
+     appreciated but is not required.
+  2. Altered source versions must be plainly marked as such, and must not be
+     misrepresented as being the original software.
+  3. This notice may not be removed or altered from any source distribution.
+
+**************************************************************************************************/
+
 #ifndef JDAW_PROJECT_H
 #define JDAW_PROJECT_H
 
@@ -8,21 +32,22 @@
 #include <string.h>
 #include "SDL.h"
 #include "SDL_ttf.h"
-#include "audio.h"
 #include "theme.h"
 
 /* Timeline- and clip-related constants */
 #define MAX_TRACKS 25
 #define MAX_NAMELENGTH 25
-
+#define TL_RECT (Dim) {ABS, 5}, (Dim) {REL, 20}, (Dim) {REL, 100}, (Dim) {REL, 76}
 
 typedef struct clip Clip;
 typedef struct timeline Timeline;
 typedef struct audiodevice AudioDevice;
 typedef struct track Track;
+typedef struct textbox Textbox;
 
 typedef struct track {
     char name[MAX_NAMELENGTH];
+    bool active;
     bool stereo;
     bool muted;
     bool solo;
@@ -31,12 +56,19 @@ typedef struct track {
     uint8_t tl_rank;
     Clip *clips[100];
     uint16_t num_clips;
-    
-    /* GUI members */
+    AudioDevice *input;
+
+    /* 
+    GUI members
+    Positions and dimensions are cached to avoid re-calculation on every re-draw. Repositioning and resizing are
+    handled in their own functions
+     */
     JDAW_Color *color;
     SDL_Rect rect;
-    void (*OnClick)(Track *track);
-    void (*OnHover)(Track *track);
+    Textbox *name_box;
+    Textbox *input_label_box;
+    Textbox *input_name_box;
+
 
 } Track;
 
@@ -51,8 +83,11 @@ typedef struct clip {
 
     /* GUI members */
     SDL_Rect rect;
-    void (*OnClick)(void);
-    void (*OnHover)(void);
+    void (*onclick)(void);
+    void (*onhover)(void);
+    Textbox *namebox;
+    Textbox *input_label;
+    Textbox *input;
 } Clip;
 
 typedef struct timeline {
@@ -72,8 +107,6 @@ typedef struct timeline {
     uint32_t offset; // in samples frames
     // uint32_t sample_frames_shown; // determines timeline scale
     double sample_frames_per_pixel;
-    void (*OnClick)(Track *track);
-    void (*OnHover)(Track *track);
 } Timeline;
 
 
@@ -98,6 +131,7 @@ typedef struct project {
     uint8_t scale_factor;
     SDL_Rect winrect;
     TTF_Font *fonts[11];
+    TTF_Font *bold_fonts[11];
 
 } Project;
 

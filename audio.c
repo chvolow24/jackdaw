@@ -1,6 +1,31 @@
 /**************************************************************************************************
- * System audio controls; device settings, callbacks, etc.
- * Functions called primarily by project.c
+ * Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation. Built on SDL.
+***************************************************************************************************
+
+  Copyright (C) 2023 Charlie Volow
+
+  This software is provided 'as-is', without any express or implied
+  warranty.  In no event will the authors be held liable for any damages
+  arising from the use of this software.
+
+  Permission is granted to anyone to use this software for any purpose,
+  including commercial applications, and to alter it and redistribute it
+  freely, subject to the following restrictions:
+
+  1. The origin of this software must not be misrepresented; you must not
+     claim that you wrote the original software. If you use this software
+     in a product, an acknowledgment in the product documentation would be
+     appreciated but is not required.
+  2. Altered source versions must be plainly marked as such, and must not be
+     misrepresented as being the original software.
+  3. This notice may not be removed or altered from any source distribution.
+
+**************************************************************************************************/
+
+/**************************************************************************************************
+    audio.c
+    * System audio controls; device settings, callbacks, etc.
+    * Functions are called primarily by project.c
  **************************************************************************************************/
 
 #include <pthread.h>
@@ -11,8 +36,6 @@
 #include "project.h"
 #include "audio.h"
 #include "wav.h"
-
-
 
 
 /* The main playback buffer, which is an array of 16-bit unsigned integer samples */

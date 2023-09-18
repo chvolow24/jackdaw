@@ -1,6 +1,30 @@
 /**************************************************************************************************
- * Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation
- **************************************************************************************************/
+ * Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation. Built on SDL.
+***************************************************************************************************
+
+  Copyright (C) 2023 Charlie Volow
+
+  This software is provided 'as-is', without any express or implied
+  warranty.  In no event will the authors be held liable for any damages
+  arising from the use of this software.
+
+  Permission is granted to anyone to use this software for any purpose,
+  including commercial applications, and to alter it and redistribute it
+  freely, subject to the following restrictions:
+
+  1. The origin of this software must not be misrepresented; you must not
+     claim that you wrote the original software. If you use this software
+     in a product, an acknowledgment in the product documentation would be
+     appreciated but is not required.
+  2. Altered source versions must be plainly marked as such, and must not be
+     misrepresented as being the original software.
+  3. This notice may not be removed or altered from any source distribution.
+
+**************************************************************************************************/
+
+/**************************************************************************************************
+ * main.c initialized variouses resources (incl SDL) and handles events.
+**************************************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,7 +53,7 @@
 #define CATCHUP_STEP (500 * proj->scale_factor)
 
 bool dark_mode = true;
-Project *proj;
+Project *proj = NULL;
 
 extern JDAW_Color bckgrnd_color;
 extern JDAW_Color tl_bckgrnd;
@@ -58,21 +82,32 @@ void playback()
     }
 }
 
-static void set_dpi_scale_factor() {
-    int rw = 0, rh = 0, ww = 0, wh = 0;
-    SDL_GetWindowSize(proj->win, &ww, &wh);
-    SDL_GetRendererOutputSize(proj->rend, &rw, &rh);
-    proj->scale_factor = (float)rw / (float)ww;
-    if (proj->scale_factor != (float)rh / (float)wh) {
-        fprintf(stderr, "Error! Scale factor w != h.\n");
-    }
-}
-
 static void get_mouse_state(SDL_Point *mouse_p) 
 {
     SDL_GetMouseState(&(mouse_p->x), &(mouse_p->y));
     mouse_p->x *= proj->scale_factor;
     mouse_p->y *= proj->scale_factor;
+}
+
+static void triage_mouseclick(SDL_Point *mouse_p)
+{
+    if (SDL_PointInRect(mouse_p, &(proj->tl->rect))) {
+        fprintf(stderr, "Mouse in tl\n");
+        for (int i=0; i<proj->tl->num_tracks; i++) {
+            Track *track;
+            if ((track = proj->tl->tracks[i])) {
+                if (SDL_PointInRect(mouse_p, &(track->rect))) {
+                    fprintf(stderr, "-> Mouse in track %d. name_box: %d, %d, %d, %d\n", i, track->name_box->container.x, track->name_box->container.y, track->name_box->container.w, track->name_box->container.h);
+
+                    if (SDL_PointInRect(mouse_p, &(track->name_box->container))) {
+                        fprintf(stderr, "-> -> Mouse in namebox\n");
+
+                        track->name_box->onclick(track->name_box);
+                    }
+                }
+            }
+        }
+    }
 }
 
 int main()
@@ -81,12 +116,14 @@ int main()
 
 
     proj = create_project("Untitled", dark_mode);
+    proj->tl->rect = get_rect(proj->winrect, TL_RECT);
     init_graphics();
     // reset_winrect();
-    set_dpi_scale_factor();
+    // set_dpi_scale_factor();
     init_audio();
     init_SDL_ttf();
     init_fonts(proj->fonts, OPEN_SANS, 11);
+    init_fonts(proj->bold_fonts, OPEN_SANS_BOLD, 11);
 
     AudioDevice **playback_devices = NULL;
     AudioDevice **record_devices = NULL;
@@ -117,7 +154,8 @@ int main()
     // txt_soft_c = get_color(txt_soft);
     // txt_main_c = get_color(txt_main);
 
-    int active_track = 0;
+    int active_track_i = 0;
+    Track *active_track;
     bool mousebutton_down;
     bool cmd_ctrl_down;
     bool shift_down;
@@ -141,6 +179,7 @@ int main()
             } else if (e.type == SDL_MOUSEBUTTONDOWN) {
                 mousebutton_down = true;
                 get_mouse_state(&mouse_p);
+                triage_mouseclick(&mouse_p);
                 proj->tl->play_position = get_abs_tl_x(mouse_p.x);
             } else if (e.type == SDL_MOUSEWHEEL) {
                 get_mouse_state(&(mouse_p));
@@ -171,7 +210,7 @@ int main()
                     case SDL_SCANCODE_R:
                         if (!proj->recording) {
                             proj->recording = true;
-                            proj->active_clip = create_clip((proj->tl->tracks)[active_track], 0, proj->tl->play_position);
+                            proj->active_clip = create_clip((proj->tl->tracks)[active_track_i], 0, proj->tl->play_position);
                             start_recording();
                             if (!proj->playing) {
                                 proj->play_speed = 1; 
@@ -246,30 +285,6 @@ int main()
                         rescale_timeline(scale_factor, proj->tl->play_position);
                         break;
                     }
-                    // case SDL_SCANCODE_SEMICOLON:
-                    //     printf("Play slow\n");
-                    //     if (proj->recording) {
-                    //         proj->recording = false;
-                    //         stop_recording(proj->active_clip);
-                    //     }
-                    //     if (proj->play_speed <= 0) {
-                    //         proj->play_speed = 0.5;
-                    //     } else if (proj->play_speed > 0.01) {
-                    //         proj->play_speed *= 0.5;
-                    //     }
-                    //     break;
-                    // case SDL_SCANCODE_H:
-                    //     printf("Rewind slow\n");
-                    //     if (proj->recording) {
-                    //         proj->recording = false;
-                    //         stop_recording(proj->active_clip);
-                    //     }
-                    //     if (proj->play_speed <= 0) {
-                    //         proj->play_speed = -0.5;
-                    //     } else if (proj->play_speed < -0.01) {
-                    //         proj->play_speed *= 0.5;
-                    //     }
-                    //     break;
                     case SDL_SCANCODE_I:
                         if (cmd_ctrl_down) {
                             proj->tl->play_position = proj->tl->in_mark;
@@ -291,22 +306,66 @@ int main()
                         }
                         break;
                     case SDL_SCANCODE_1:
-                        active_track = 0;
+                        if ((active_track = proj->tl->tracks[0])) {
+                            active_track_i = 0;
+                            if (active_track->active) {
+                                active_track->active = false;
+                            } else {
+                                active_track->active = true;
+
+                            }
+                        }
                         break;
                     case SDL_SCANCODE_2:
-                        active_track = 1;
+                        if ((active_track = proj->tl->tracks[1])) {
+                            active_track_i = 1;
+                            if (active_track->active) {
+                                active_track->active = false;
+                            } else {
+                                active_track->active = true;
+
+                            }
+                        }
                         break;
                     case SDL_SCANCODE_3:
-                        active_track = 2;
+                        if ((active_track = proj->tl->tracks[2])) {
+                            active_track_i = 2;
+                            if (active_track->active) {
+                                active_track->active = false;
+                            } else {
+                                active_track->active = true;
+                            }
+                        }
                         break;
                     case SDL_SCANCODE_4:
-                        active_track = 3;
+                        if ((active_track = proj->tl->tracks[3])) {
+                            active_track_i = 3;
+                            if (active_track->active) {
+                                active_track->active = false;
+                            } else {
+                                active_track->active = true;
+                            }
+                        }
                         break;
                     case SDL_SCANCODE_5:
-                        active_track = 4;
+                        if ((active_track = proj->tl->tracks[4])) {
+                            active_track_i = 4;
+                            if (active_track->active) {
+                                active_track->active = false;
+                            } else {
+                                active_track->active = true;
+                            }
+                        }
                         break;
                     case SDL_SCANCODE_6:
-                        active_track = 5;
+                        if ((active_track = proj->tl->tracks[5])) {
+                            active_track_i = 5;
+                            if (active_track->active) {
+                                active_track->active = false;
+                            } else {
+                                active_track->active = true;
+                            }
+                        }
                         break;
                     case SDL_SCANCODE_D:
                         proj->play_speed = 0;

@@ -24,10 +24,13 @@
 
 *****************************************************************************************************************/
 
-/**************************************************************************************************
- * main.c initialized variouses resources (incl SDL) and handles events.
-**************************************************************************************************/
+/*****************************************************************************************************************
+    main.c
 
+    * Initialize resources
+    * Handle events in the main loop. 
+        Ancillary event loops are defined elsewhere for things like textbox editing (gui.c)
+ *****************************************************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -44,15 +47,18 @@
 #include "project.h"
 #include "gui.h"
 #include "wav.h"
+#include "draw.h"
 
 #define abs_min(a,b) (abs(a) < abs(b) ? a : b)
 #define lesser_of(a,b) (a < b ? a : b)
 #define greater_of(a,b) (a > b ? a : b)
 
 #define TL_SHIFT_STEP (50 * proj->scale_factor)
-#define TL_SHIFT_SCROLL_STEP (10 * proj->scale_factor)
+#define TL_SCROLL_STEP_H (10 * proj->scale_factor)
+#define TL_SCROLL_STEP_V (10 * proj->scale_factor)
+
 #define SFPP_STEP 1.2
-#define CATCHUP_STEP (500 * proj->scale_factor)
+#define CATCHUP_STEP (600 * proj->scale_factor)
 
 bool dark_mode = true;
 Project *proj = NULL;
@@ -104,7 +110,7 @@ static void triage_mouseclick(SDL_Point *mouse_p)
                     if (SDL_PointInRect(mouse_p, &(track->name_box->container))) {
                         fprintf(stderr, "-> -> Mouse in namebox\n");
 
-                        track->name_box->onclick(track->name_box);
+                        track->name_box->onclick((void *)track);
                     }
                 }
             }
@@ -112,58 +118,16 @@ static void triage_mouseclick(SDL_Point *mouse_p)
     }
 }
 
-int main()
+void project_loop()
 {
-    // write_wav("TEST.wav");
-
-
-    proj = create_project("Untitled", dark_mode);
-    proj->tl->rect = get_rect(proj->winrect, TL_RECT);
-    init_graphics();
-    // reset_winrect();
-    // set_dpi_scale_factor();
-    init_audio();
-    init_SDL_ttf();
-    init_fonts(proj->fonts, OPEN_SANS, 11);
-    init_fonts(proj->bold_fonts, OPEN_SANS_BOLD, 11);
-
-    AudioDevice **playback_devices = NULL;
-    AudioDevice **record_devices = NULL;
-    int num_playback_devices = query_audio_devices(&playback_devices, 0);
-    int num_record_devices = query_audio_devices(&record_devices, 1);
-    for (int i=0; i<num_playback_devices; i++) {
-        AudioDevice *dev = playback_devices[i];
-        if (open_audio_device(dev, dev->spec.channels, SAMPLE_RATE, CHUNK_SIZE) == 0) {
-            fprintf(stderr, "Opened audio device: %s\n\tchannels: %d\n\tformat: %s\n", dev->name, dev->spec.channels, get_audio_fmt_str(dev->spec.format));
-
-        } else {
-            // fprintf(stderr, "Error: failed to open device %s\n", dev->name);
-        }
-    }
-    for (int i=0; i<num_record_devices; i++) {
-        AudioDevice *dev = record_devices[i];
-        if (open_audio_device(dev, dev->spec.channels, SAMPLE_RATE, CHUNK_SIZE) == 0) {
-            fprintf(stderr, "Opened record device: %s\n\tchannels: %u\n\tformat: %s\n", dev->name, dev->spec.channels, get_audio_fmt_str(dev->spec.format));
-
-        } else {
-            // fprintf(stderr, "Error: failed to open record device %s\n", dev->name);
-        }
-    }
-    proj->record_devices = record_devices;
-    proj->playback_devices = playback_devices;
-    proj->num_record_devices = num_record_devices;
-    proj->num_playback_devices = num_playback_devices;
-    // txt_soft_c = get_color(txt_soft);
-    // txt_main_c = get_color(txt_main);
-
     int active_track_i = 0;
-    Track *active_track;
-    bool mousebutton_down;
-    bool cmd_ctrl_down;
-    bool shift_down;
-    bool k_down;
-    bool l_down;
-    bool j_down;
+    Track *active_track = NULL;
+    bool mousebutton_down = false;
+    bool cmd_ctrl_down = false;
+    bool shift_down = false;
+    bool k_down = false;
+    bool l_down = false;
+    bool j_down = false;
     bool quit = false;
     SDL_Point mouse_p;
     while (!quit) {
@@ -191,7 +155,7 @@ int main()
                         rescale_timeline(scale_factor, get_abs_tl_x(mouse_p.x));
                     } else {
 
-                        translate_tl(TL_SHIFT_SCROLL_STEP * e.wheel.x);
+                        translate_tl(TL_SCROLL_STEP_H * e.wheel.x, TL_SCROLL_STEP_V * e.wheel.y);
                     }
                 }
             } else if (e.type == SDL_KEYDOWN) {
@@ -270,11 +234,11 @@ int main()
                         }
                         break;
                     case SDL_SCANCODE_SEMICOLON:
-                        translate_tl(TL_SHIFT_STEP);
+                        translate_tl(TL_SHIFT_STEP, 0);
                         // proj->tl->offset += proj->tl->sample_frames_per_pixel * TL_SHIFT_STEP;
                         break;
                     case SDL_SCANCODE_H:
-                        translate_tl(TL_SHIFT_STEP * -1);
+                        translate_tl(TL_SHIFT_STEP * -1, 0);
                         // proj->tl->offset -= lesser_of(proj->tl->offset, proj->tl->sample_frames_per_pixel * TL_SHIFT_STEP);
                         break;
                     case SDL_SCANCODE_COMMA: {
@@ -435,14 +399,61 @@ int main()
             proj->tl->play_position = get_abs_tl_x(mouse_p.x);
         }
         if (proj->play_speed < 0 && proj->tl->offset > proj->tl->play_position) {
-            translate_tl(CATCHUP_STEP * -1);
+            translate_tl(CATCHUP_STEP * -1, 0);
         } else if (proj->play_speed > 0 && get_tl_draw_x(proj->tl->play_position) > proj->winrect.w) {
-            translate_tl(CATCHUP_STEP);
+            translate_tl(CATCHUP_STEP, 0);
         }
         playback();
         draw_project(proj);
         SDL_Delay(1);
     }
+}
+
+int main()
+{
+    // write_wav("TEST.wav");
+
+
+    proj = create_project("Untitled", dark_mode);
+    proj->tl->rect = get_rect(proj->winrect, TL_RECT);
+    init_graphics();
+    // reset_winrect();
+    // set_dpi_scale_factor();
+    init_audio();
+    init_SDL_ttf();
+    init_fonts(proj->fonts, OPEN_SANS, 11);
+    init_fonts(proj->bold_fonts, OPEN_SANS_BOLD, 11);
+
+    AudioDevice **playback_devices = NULL;
+    AudioDevice **record_devices = NULL;
+    int num_playback_devices = query_audio_devices(&playback_devices, 0);
+    int num_record_devices = query_audio_devices(&record_devices, 1);
+    for (int i=0; i<num_playback_devices; i++) {
+        AudioDevice *dev = playback_devices[i];
+        if (open_audio_device(dev, dev->spec.channels, SAMPLE_RATE, CHUNK_SIZE) == 0) {
+            fprintf(stderr, "Opened audio device: %s\n\tchannels: %d\n\tformat: %s\n", dev->name, dev->spec.channels, get_audio_fmt_str(dev->spec.format));
+
+        } else {
+            // fprintf(stderr, "Error: failed to open device %s\n", dev->name);
+        }
+    }
+    for (int i=0; i<num_record_devices; i++) {
+        AudioDevice *dev = record_devices[i];
+        if (open_audio_device(dev, dev->spec.channels, SAMPLE_RATE, CHUNK_SIZE) == 0) {
+            fprintf(stderr, "Opened record device: %s\n\tchannels: %u\n\tformat: %s\n", dev->name, dev->spec.channels, get_audio_fmt_str(dev->spec.format));
+
+        } else {
+            // fprintf(stderr, "Error: failed to open record device %s\n", dev->name);
+        }
+    }
+    proj->record_devices = record_devices;
+    proj->playback_devices = playback_devices;
+    proj->num_record_devices = num_record_devices;
+    proj->num_playback_devices = num_playback_devices;
+    // txt_soft_c = get_color(txt_soft);
+    // txt_main_c = get_color(txt_main);
+
+    project_loop();
 
     SDL_Quit();
 }

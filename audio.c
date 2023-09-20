@@ -27,8 +27,8 @@
 /*****************************************************************************************************************
     audio.c
 
-    * system audio controls; device settings, callbacks, etc.
-    * functions defined here are called primarily in project.c
+    * High-level system audio controls; device settings, callbacks, etc.
+    * Signal processing is handled in dsp.c
  *****************************************************************************************************************/
 
 #include <pthread.h>
@@ -111,10 +111,7 @@ void start_recording()
     SDL_PauseAudioDevice(recording_device, 0);
     proj->tl->record_position = proj->tl->play_position;
 }
-// void stop_recording()
-// {
-//     SDL_PauseAudioDevice(recording_device, 1);
-// }
+
 void start_playback()
 {
     SDL_PauseAudioDevice(playback_device, 0);
@@ -140,16 +137,10 @@ static void *copy_buff_to_clip(void* arg)
         }
         (clip->samples)[i] = sample;
     }
-    // memcpy(clip->samples, audio_buffer, write_buffpos);
     clip->done = true;
     memset(audio_buffer, '\0', BUFFLEN);
     write_buffpos = 0;
     fprintf(stderr, "\t->exit copy_buff_to_clip\n");
-
-    // FILE *w = fopen("samples.txt", "w");
-    // for (int i=0; i<clip->length; i++) {
-    //     fprintf(w, "%d\n", (clip->samples)[i]);
-    // }
     return NULL;
 }
 

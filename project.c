@@ -24,23 +24,30 @@
 
 *****************************************************************************************************************/
 
-/**************************************************************************************************
- * Create and destroy Project, Timeline, Track, and Clip objects
- * Get audio mixdown chunks for playback or saving
- * Save a project to a .jdaw file
- **************************************************************************************************/
+/*****************************************************************************************************************
+    project.c
+
+    * Create and destroy project objects, incl global "Project", Track, Timeline, and Clip
+    * Retrieve audio data from the timeline
+ *****************************************************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "SDL_events.h"
 #include "project.h"
 #include "gui.h"
 #include "theme.h"
+#include "audio.h"
+#include "draw.h"
 
 #define DEFAULT_TRACK_HEIGHT (100 * proj->scale_factor)
 #define DEFAULT_SFPP 300 // sample frames per pixel
 
 extern Project *proj;
+extern JDAW_Color clear;
+extern JDAW_Color white;
+extern JDAW_Color lightergrey;
 
 /* Alternating bright colors to easily distinguish tracks */
 JDAW_Color trck_colors[6] = {
@@ -54,17 +61,21 @@ JDAW_Color trck_colors[6] = {
 
 int trck_color_index = 0;
 
-
-/* Temporary test functions, for event handling */
-void do_thing(Textbox* tb)
+void rename_track(void *track_v)
 {
-    fprintf(stderr, "DONE THING: %s\n", tb->value);
+    Track *track = (Track *)track_v;
+    track->name_box->bckgrnd_color = &white;
+    track->name_box->show_cursor = true;
+    track->name_box->cursor_countdown = CURSOR_COUNTDOWN;
+    track->name_box->cursor_pos = strlen(track->name);
+    edit_textbox(track->name_box);
+    track->name_box->bckgrnd_color = &lightergrey;
+    track->name_box->show_cursor = false;
 }
 
-void do_thing_2(Textbox* tb)
+void select_track_input(void *track_v)
 {
-    fprintf(stderr, "DONE THING TWO: %s\n", tb->value);
-
+    Track *track = (Track *)track_v;
 }
 
 /* Query track clips and return audio sample representing a given point in the timeline. */
@@ -138,10 +149,10 @@ Project *create_project(const char* name, bool dark_mode)
     tl->click_on = false;
     tl->sample_frames_per_pixel = DEFAULT_SFPP;
     tl->offset = 0;
+    tl->v_offset = 0;
     proj->tl = tl;
     proj->playing = false;
     proj->recording = false;
-
     /* Create SDL_Window and accompanying SDL_Renderer */
     char project_window_name[MAX_NAMELENGTH + 10];
     sprintf(project_window_name, "Jackdaw | %s", name);
@@ -178,6 +189,7 @@ Project *create_project(const char* name, bool dark_mode)
     if (proj->scale_factor != (float)rh / (float)wh) {
         fprintf(stderr, "Error! Scale factor w != h.\n");
     }
+    tl->console_width = TRACK_CONSOLE_WIDTH;
     // tl->rect = get_rect(proj->winrect, TL_RECT);
     return proj;
 }
@@ -188,7 +200,7 @@ Track *create_track(Timeline *tl, bool stereo)
     fprintf(stderr, "Enter create_track\n");
     Track *track = malloc(sizeof(Track));
     track->tl = tl;
-    track->tl_rank = (tl->num_tracks)++;
+    track->tl_rank = tl->num_tracks++;
     sprintf(track->name, "Track %d", track->tl_rank + 1);
     track->stereo = stereo;
     track->muted = false;
@@ -197,9 +209,13 @@ Track *create_track(Timeline *tl, bool stereo)
     track->num_clips = 0;
     track->rect.h = DEFAULT_TRACK_HEIGHT;
     track->rect.x = proj->tl->rect.x + PADDING;
-    track->rect.y = proj->tl->rect.y + PADDING + track->tl_rank * (track->rect.h + TRACK_SPACING);
+    Track *last_track = track->tl->tracks[track->tl_rank - 1];
+    if (track->tl_rank == 0) {
+        track->rect.y = proj->tl->rect.y + PADDING;
+    } else {
+        track->rect.y = last_track->rect.y + last_track->rect.h + TRACK_SPACING;
+    }
     track->rect.w = proj->winrect.w - track->rect.x;
-
     (tl->tracks)[tl->num_tracks - 1] = track;
 
     trck_color_index++;
@@ -210,17 +226,46 @@ Track *create_track(Timeline *tl, bool stereo)
     }
 
     track->name_box = create_textbox(
-        NAMEBOX_W, 
+        NAMEBOX_W * proj->tl->console_width / 100, 
         0, 
         2, 
-        proj->bold_fonts[1],
+        proj->bold_fonts[2],
         track->name,
         NULL,
         NULL,
         NULL,
-        do_thing_2,
-        do_thing_2,
-        NULL
+        rename_track,
+        NULL,
+        NULL,
+        0
+    );
+    track->input_label_box = create_textbox(
+        0, 
+        0, 
+        2, 
+        proj->bold_fonts[1],
+        "Input:",
+        NULL,
+        &clear,
+        &clear,
+        NULL,
+        NULL,
+        NULL,
+        0
+    );
+    track->input_name_box = create_textbox(
+        TRACK_IN_W * proj->tl->console_width / 100, 
+        0, 
+        4, 
+        proj->fonts[1],
+        (char *) track->input->name,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        5 * proj->scale_factor
     );
     fprintf(stderr, "\t->exit create track\n");
     return track;
@@ -238,6 +283,7 @@ Clip *create_clip(Track *track, uint32_t length, uint32_t absolute_position) {
     if (track) {
         track->num_clips += 1;
         track->clips[track->num_clips - 1] = clip;
+        clip->track = track;
     }
     clip->done = false;
     return clip;
@@ -285,11 +331,11 @@ void destroy_track(Track *track)
     //     rank++;
     // }
 
+    track->tl->tracks[track->tl->num_tracks - 1] = NULL;
     (track->tl->num_tracks)--;
 
     /* Free track */
     free(track);
-    track = NULL;
 
     fprintf(stderr, "Exit destroy track\n");
 }

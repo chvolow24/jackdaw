@@ -34,10 +34,10 @@
 #define PLAYHEAD_TRI_H (10 * proj->scale_factor)
 #define TRACK_SPACING (5 * proj->scale_factor)
 #define PADDING (4 * proj->scale_factor)
-#define MAX_SFPP 8000
+// #define MAX_SFPP 80000
 #define COLOR_BAR_W (5 * proj->scale_factor)
 
-#define TRACK_CONSOLE_WIDTH 140
+#define TRACK_CONSOLE_WIDTH (160 * proj->scale_factor)
 
 #define TRACK_CONSOLE (Dim) {ABS, 0}, (Dim) {ABS, 0}, (Dim) {ABS, TRACK_CONSOLE_WIDTH}, (Dim) {REL, 100}
 #define TRACK_NAME_RECT (Dim) {REL, 1}, (Dim) {ABS, 4}, (Dim) {REL, 75}, (Dim) {ABS, 16}
@@ -45,8 +45,11 @@
 #define TRACK_IN_ROW (Dim) {REL, 1}, (Dim) {ABS, 24}, (Dim) {REL, 99}, (Dim) {ABS, 16}
 #define TRACK_IN_LABEL (Dim) {ABS, 4}, (Dim) {ABS, 0}, (Dim) {REL, 20}, (Dim) {REL, 100}
 #define TRACK_IN_NAME (Dim) {ABS, 40}, (Dim) {ABS, 0}, (Dim) {REL, 60}, (Dim) {REL, 100}
-#define NAMEBOX_W (100 * proj->scale_factor)
-
+#define NAMEBOX_W 75
+#define TRACK_IN_W 64
+#define TRACK_INTERNAL_PADDING (6 * proj->scale_factor)
+#define CURSOR_COUNTDOWN 50
+#define CURSOR_WIDTH (1 * proj->scale_factor)
 
 enum dimType {REL, ABS};
 
@@ -70,20 +73,24 @@ typedef struct textbox{
     JDAW_Color *txt_color;  // optional; default if null
     JDAW_Color *border_color;   // optional; default if null
     JDAW_Color *bckgrnd_color;  // optional; default if null
-    void (*onclick)(Textbox *self); // optional; function to run when txt box clicked
-    void (*onhover)(Textbox *self); // optional; function to run when mouse hovers over txt box
+    void (*onclick)(void *object); // optional; function to run when txt box clicked
+    void (*onhover)(void *object); // optional; function to run when mouse hovers over txt box
     char *tooltip;  // optional
+    int radius;
+    bool show_cursor;
+    uint8_t cursor_countdown;
+    uint8_t cursor_pos;
 } Textbox;
 
 SDL_Rect get_rect(SDL_Rect parent_rect, Dim x, Dim y, Dim w, Dim h);
 SDL_Rect relative_rect(SDL_Rect *win_rect, float x_rel, float y_rel, float w_rel, float h_rel);
-void draw_project(Project *proj);
 void rescale_timeline(double scale_factor, uint32_t center_draw_position);
 
 uint32_t get_abs_tl_x(int draw_x);
 int get_tl_draw_x(uint32_t abs_x);
 int get_tl_draw_w(uint32_t abs_w);
-void translate_tl(int translate_by_w);
+void translate_tl(int translate_by_x, int translate_by_y);
+void position_textbox(Textbox *tb, int x, int y);
 
 Textbox *create_textbox(
     int fixed_w, 
@@ -93,10 +100,13 @@ Textbox *create_textbox(
     char *value,
     JDAW_Color *txt_color,
     JDAW_Color *border_color,
-    JDAW_Color *bckgrnd_color,
-    void (*onclick)(Textbox *self),
-    void (*onhover)(Textbox *self),
-    char *tooltip
+    JDAW_Color *bckgrnd_clr,
+    void (*onclick)(void *object),
+    void (*onhover)(void *object),
+    char *tooltip,
+    int radius
 );
+
+void edit_textbox(Textbox *tb);
 
 #endif

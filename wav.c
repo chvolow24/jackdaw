@@ -24,9 +24,11 @@
 
 *****************************************************************************************************************/
 
-/**************************************************************************************************
- * Write wav files from sample arrays
- **************************************************************************************************/
+/*****************************************************************************************************************
+    wav.c
+
+    * Create and save wav files
+ *****************************************************************************************************************/
 
 
 
@@ -52,6 +54,7 @@ Positions	Sample Value	    Description
 #include <stdio.h>
 #include <string.h>
 #include "audio.h"
+
 void write_wav_header(FILE *f, uint32_t num_samples, uint16_t bits_per_sample, uint8_t channels)
 {
     // int bps = 16;
@@ -100,5 +103,6 @@ void write_wav(const char *fname, int16_t *samples, uint32_t num_samples, uint16
         write_wav_header(f, num_samples, bits_per_sample, channels);
         fwrite(samples, bits_per_sample / 8, num_samples, f);
     }
+    fprintf(stderr, "/t-> Done writing wav.\n");
 
 }

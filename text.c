@@ -24,6 +24,13 @@
 
 *****************************************************************************************************************/
 
+/*****************************************************************************************************************
+    text.c
+
+    * Wrappers around SDL_TTF functions
+    * "write_text" function provides simple interface for writing text to a rect
+ *****************************************************************************************************************/
+
 #include <stdbool.h>
 #include "SDL.h"
 #include "SDL_ttf.h"
@@ -76,7 +83,7 @@ void close_fonts(TTF_Font **font_array, int arrlen)
 }
 
 /* Write text to a SDL rect. If text fits, return 0. Else, truncate and return num truncated chars */
-int write_text(
+void write_text(
     SDL_Renderer *rend, 
     SDL_Rect *rect, 
     TTF_Font* font, 
@@ -85,26 +92,25 @@ int write_text(
     bool allow_resize
 )
 {
-    int w, h;
-    if (TTF_SizeText(font, text,  &w, &h) !=0) {
-        fprintf(stderr, "Error: could not size text size (SDLErr:  %s)", SDL_GetError());
+    if (strlen(text) == 0) {
+        return;
     }
 
-    SDL_Rect new_rect = {rect->x, rect->y, w, h};
+    SDL_Rect new_rect = {rect->x, rect->y, 0, 0};
     SDL_Surface *surface;
     SDL_Texture *texture;
     SDL_Color sdl_col = get_color(color);
     surface = TTF_RenderUTF8_Blended(font, text, sdl_col);
     if (!surface) {
         fprintf(stderr, "\nError: TTF_RenderText_Blended failed: %s", TTF_GetError());
-        exit(1);
+        return;
     }
     texture = SDL_CreateTextureFromSurface(rend, surface);
 
     SDL_QueryTexture(texture, NULL, NULL, &(new_rect.w), &(new_rect.h));
     if (!texture) {
         fprintf(stderr, "\nError: SDL_CreateTextureFromSurface failed: %s", TTF_GetError());
-        exit(1);
+        return;
     }
 
     SDL_RenderCopy(rend, texture, NULL, &new_rect);

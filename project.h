@@ -37,7 +37,7 @@
 #include "theme.h"
 
 /* Timeline- and clip-related constants */
-#define MAX_TRACKS 25
+#define MAX_TRACKS 100
 #define MAX_NAMELENGTH 25
 #define TL_RECT (Dim) {ABS, 5}, (Dim) {REL, 20}, (Dim) {REL, 100}, (Dim) {REL, 76}
 
@@ -107,8 +107,10 @@ typedef struct timeline {
     SDL_Rect rect;
     SDL_Rect audio_rect;
     uint32_t offset; // in samples frames
-    // uint32_t sample_frames_shown; // determines timeline scale
     double sample_frames_per_pixel;
+    int console_width;
+    int v_offset;
+
 } Timeline;
 
 

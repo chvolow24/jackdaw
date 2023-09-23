@@ -55,11 +55,13 @@ Positions	Sample Value	    Description
 #include <string.h>
 #include "audio.h"
 
+
+//TODO: Endianness!
 void write_wav_header(FILE *f, uint32_t num_samples, uint16_t bits_per_sample, uint8_t channels)
 {
     // int bps = 16;
 
-    /* RIFF rhunk descriptor */
+    /* RIFF chunk descriptor */
     const static char spec[] = {'R','I','F','F'};
     uint32_t file_size = 44 + num_samples * (bits_per_sample / 8);
     const static char ftype[] = {'W','A','V','E'};

@@ -43,13 +43,64 @@
 #include "gui.h"
 #include "draw.h"
 
+extern Project *proj;
+extern uint8_t scale_factor;
+// extern TTF_Font *fonts[11];
+// extern TTF_Font *bold_fonts[11];
+extern bool dark_mode;
+
 extern JDAW_Color default_textbox_text_color;
 extern JDAW_Color default_textbox_border_color;
 extern JDAW_Color default_textbox_fill_color;
+extern JDAW_Color clear;
 
 
-//TODO: Replace project arguments with reference to global var;
-extern Project *proj;
+JDAWWindow *create_jwin(const char *title, int x, int y, int w, int h)
+{
+    JDAWWindow *jwin = malloc(sizeof(JDAWWindow));
+    jwin->win = SDL_CreateWindow(title, x, y, w, h, (Uint32)DEFAULT_WINDOW_FLAGS);
+    if (!jwin->win) {
+        fprintf(stderr, "Error creating window: %s", SDL_GetError());
+        exit(1);
+    }
+    jwin->rend = SDL_CreateRenderer(jwin->win, -1, (Uint32)DEFAULT_RENDER_FLAGS);
+    if (!jwin->rend) {
+        fprintf(stderr, "Error creating renderer: %s", SDL_GetError());
+    }
+
+    SDL_SetRenderDrawBlendMode(jwin->rend, SDL_BLENDMODE_BLEND);
+
+    int rw = 0, rh = 0, ww = 0, wh = 0;
+    SDL_GetWindowSize(jwin->win, &ww, &wh);
+    SDL_GetRendererOutputSize(jwin->rend, &rw, &rh);
+    jwin->scale_factor = (float)rw / (float)ww;
+    scale_factor = jwin->scale_factor;
+    if (jwin->scale_factor != (float)rh / (float)wh) {
+        fprintf(stderr, "Error: scale factor w != h.\n");
+    }
+
+    init_fonts(jwin->fonts, OPEN_SANS);
+    init_fonts(jwin->bold_fonts, OPEN_SANS_BOLD);
+    SDL_GL_GetDrawableSize(jwin->win, &(jwin->w), &(jwin->h));
+
+    return jwin;
+}
+
+
+void destroy_jwin(JDAWWindow *jwin)
+{
+    SDL_DestroyRenderer(jwin->rend);
+    SDL_DestroyWindow(jwin->win);
+    close_fonts(jwin->fonts);
+    close_fonts(jwin->bold_fonts);
+    free(jwin);
+    jwin = NULL;
+}
+
+void reset_dims(JDAWWindow *jwin)
+{
+    SDL_GL_GetDrawableSize(jwin->win, &(jwin->w), &(jwin->h));
+}
 
 /* Get SDL_Rect with size and position relative to parent window */
 SDL_Rect relative_rect(SDL_Rect *win_rect, float x_rel, float y_rel, float w_rel, float h_rel)
@@ -64,14 +115,14 @@ SDL_Rect relative_rect(SDL_Rect *win_rect, float x_rel, float y_rel, float w_rel
 
 /* Get an SDL_Rect from four dimensions, which can be relative or absolute */
 SDL_Rect get_rect(SDL_Rect parent_rect, Dim x, Dim y, Dim w, Dim h) {
-    if (!proj || !(proj->scale_factor)) {
+    if (!scale_factor) {
         return (SDL_Rect) {0,0,0,0};
     }
 
     SDL_Rect ret;
     switch (x.dimType) {
         case ABS:
-            ret.x = parent_rect.x + x.value * proj->scale_factor;
+            ret.x = parent_rect.x + x.value * scale_factor;
             break;
         case REL:
             ret.x = parent_rect.x + x.value *  parent_rect.w / 100;
@@ -79,7 +130,7 @@ SDL_Rect get_rect(SDL_Rect parent_rect, Dim x, Dim y, Dim w, Dim h) {
     }
     switch (y.dimType) {
         case ABS:
-            ret.y = parent_rect.y + y.value * proj->scale_factor;
+            ret.y = parent_rect.y + y.value * scale_factor;
             break;
         case REL:
             ret.y = parent_rect.y + y.value * parent_rect.h / 100;
@@ -87,7 +138,7 @@ SDL_Rect get_rect(SDL_Rect parent_rect, Dim x, Dim y, Dim w, Dim h) {
     }
     switch (w.dimType) {
         case ABS:
-            ret.w = w.value * proj->scale_factor;
+            ret.w = w.value * scale_factor;
             break;
         case REL:
             ret.w = w.value * parent_rect.w / 100;
@@ -95,7 +146,7 @@ SDL_Rect get_rect(SDL_Rect parent_rect, Dim x, Dim y, Dim w, Dim h) {
     }
     switch (h.dimType) {
         case ABS:
-            ret.h = h.value * proj->scale_factor;
+            ret.h = h.value * scale_factor;
             break;
         case REL:
             ret.h = h.value * parent_rect.h / 100;
@@ -120,6 +171,10 @@ Textbox *create_textbox(
     int radius
 )
 {
+    if (font == NULL) {
+        fprintf(stderr, "Error: font is null: %p", font);
+        exit(1);
+    }
     Textbox *tb = malloc(sizeof(Textbox));
     tb->container.x = 0;
     tb->container.y = 0;
@@ -146,8 +201,10 @@ Textbox *create_textbox(
     tb->onhover = onhover;
 
     int txtw, txth;
-    TTF_SizeText(font, value, &txtw, &txth);
-
+    if (TTF_SizeUTF8(font, value, &txtw, &txth) == -1) {
+        fprintf(stderr, "Error: could not size text. %s\n", TTF_GetError());
+    };
+    bool test = (fixed_w);
     if (fixed_w) {
         tb->container.w = fixed_w;
         /* Truncate text if it doesn't fit in fixed width container (handle draw space overflow) */
@@ -156,7 +213,7 @@ Textbox *create_textbox(
             char truncated[len];
             for (int i=0; i<strlen(tb->value); i++) {
                 sprintf(&(truncated[i]), "%c...", tb->value[i]);
-                TTF_SizeText(font, truncated, &txtw, NULL);
+                TTF_SizeUTF8(font, truncated, &txtw, NULL);
                 if (txtw > fixed_w - 20) {
                     strcpy(tb->value, truncated);
                     break;
@@ -171,8 +228,8 @@ Textbox *create_textbox(
     } else {
         tb->container.h = txth + padding * 2;
     }
-    tb->txt_container.w = txtw;
-    tb->txt_container.h = txth;
+    // tb->txt_container.w = txtw;
+    // tb->txt_container.h = txth;
     return tb;
 
 }
@@ -180,22 +237,23 @@ Textbox *create_textbox(
 /* Reposition a textbox */
 void position_textbox(Textbox *tb, int x, int y)
 {
-    int scale_factor = proj && proj->scale_factor ? proj->scale_factor : 1;
     tb->container.x = x;
     tb->container.y = y;
     tb->txt_container.x = x + tb->padding * scale_factor;
     tb->txt_container.y = y + tb->padding * scale_factor;
 }
 
-/* Opens a new event loop to handle textual input */
-void edit_textbox(Textbox *tb)
+/* Opens a new event loop to handle textual input. Returns new value */
+char *edit_textbox(Textbox *tb)
 {
     bool done = false;
     bool shift_down = false;
     while (!done) {
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
-            if (e.type == SDL_QUIT || e.type == SDL_MOUSEBUTTONDOWN) {
+            if (e.type == SDL_QUIT 
+                || (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_CLOSE) 
+                || e.type == SDL_MOUSEBUTTONDOWN) {
                 done = true;
                 /* Push the event back to the main event stack, so it can be handled in main.c */
                 SDL_PushEvent(&e);
@@ -227,7 +285,6 @@ void edit_textbox(Textbox *tb)
                         tb->cursor_countdown = CURSOR_COUNTDOWN;
                         break;
                     case SDL_SCANCODE_BACKSPACE: {
-                        int len;
                         if (tb->cursor_pos > 0) {
                             tb->value[tb->cursor_pos - 1] = '\0';
                             tb->cursor_pos--;
@@ -269,7 +326,7 @@ void edit_textbox(Textbox *tb)
         } // exit event loop
 
         int txtw;
-        TTF_SizeText(tb->font, tb->value, &txtw, NULL);
+        TTF_SizeUTF8(tb->font, tb->value, &txtw, NULL);
 
         /* Truncate text if it doesn't fit in fixed width container (handle draw space overflow) */
         if (txtw > tb->container.w) {
@@ -277,7 +334,7 @@ void edit_textbox(Textbox *tb)
             char truncated[len];
             for (int i=0; i<strlen(tb->value); i++) {
                 sprintf(&(truncated[i]), "%c...", tb->value[i]);
-                TTF_SizeText(tb->font, truncated, &txtw, NULL);
+                TTF_SizeUTF8(tb->font, truncated, &txtw, NULL);
                 if (txtw > tb->container.w - 20) {
                     strcpy(tb->value, truncated);
                     break;
@@ -286,6 +343,56 @@ void edit_textbox(Textbox *tb)
         }
         draw_project(proj);
         SDL_Delay(1);
+    }
+    return tb->value;
+}
 
+TextboxList *create_textbox_list_from_strings(
+    int fixed_w,
+    int padding,
+    TTF_Font *font,
+    char **values,
+    uint8_t num_values,
+    JDAW_Color *txt_color,
+    JDAW_Color *border_color,
+    JDAW_Color *bckgrnd_clr,
+    void (*onclick)(void *object),
+    void (*onhover)(void *object),
+    char *tooltip,
+    int radius
+
+)
+{
+
+    TextboxList *list = malloc(sizeof(TextboxList));
+    int w = 0;
+    int tw = 0;
+    for (uint8_t i=0; i<num_values; i++) {
+        list->textboxes[i] = create_textbox(
+            fixed_w, 0, padding, font, values[i], txt_color, &clear, &clear, onclick, onhover, tooltip, radius
+        );
+        if ((tw = list->textboxes[i]->container.w) > w) {
+            w = tw;
+        }
+    }
+    list->num_textboxes = num_values;
+    list->container = (SDL_Rect) {0, 0, w, (list->textboxes[0]->container.h + padding) * num_values};
+    list->txt_color = txt_color;
+    list->border_color = border_color;
+    list->bckgrnd_color = bckgrnd_clr;
+    list->padding = padding;
+
+    return list;
+}
+
+/* Reposition a textbox list */
+void position_textbox_list(TextboxList *tbl, int x, int y)
+{
+    tbl->container.x = x;
+    tbl->container.y = y;
+    y += tbl->padding;
+    for (uint8_t i=0; i<tbl->num_textboxes; i++) {
+        position_textbox(tbl->textboxes[i], x, y);
+        y += tbl->padding + tbl->textboxes[0]->container.h;
     }
 }

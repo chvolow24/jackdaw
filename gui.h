@@ -29,15 +29,18 @@
 #include "SDL.h"
 #include "project.h"
 
+#define DEFAULT_WINDOW_FLAGS SDL_WINDOW_ALLOW_HIGHDPI
+#define DEFAULT_RENDER_FLAGS SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
+
 #define STD_RAD 20
 
-#define PLAYHEAD_TRI_H (10 * proj->scale_factor)
-#define TRACK_SPACING (5 * proj->scale_factor)
-#define PADDING (4 * proj->scale_factor)
+#define PLAYHEAD_TRI_H (10 * scale_factor)
+#define TRACK_SPACING (5 * scale_factor)
+#define PADDING (4 * scale_factor)
 // #define MAX_SFPP 80000
-#define COLOR_BAR_W (5 * proj->scale_factor)
+#define COLOR_BAR_W (5 * scale_factor)
 
-#define TRACK_CONSOLE_WIDTH (160 * proj->scale_factor)
+#define TRACK_CONSOLE_WIDTH (160 * scale_factor)
 
 #define TRACK_CONSOLE (Dim) {ABS, 0}, (Dim) {ABS, 0}, (Dim) {ABS, TRACK_CONSOLE_WIDTH}, (Dim) {REL, 100}
 #define TRACK_NAME_RECT (Dim) {REL, 1}, (Dim) {ABS, 4}, (Dim) {REL, 75}, (Dim) {ABS, 16}
@@ -47,10 +50,23 @@
 #define TRACK_IN_NAME (Dim) {ABS, 40}, (Dim) {ABS, 0}, (Dim) {REL, 60}, (Dim) {REL, 100}
 #define NAMEBOX_W 75
 #define TRACK_IN_W 64
-#define TRACK_INTERNAL_PADDING (6 * proj->scale_factor)
+#define TRACK_INTERNAL_PADDING (6 * scale_factor)
 #define CURSOR_COUNTDOWN 50
-#define CURSOR_WIDTH (1 * proj->scale_factor)
+#define CURSOR_WIDTH (1 * scale_factor)
+#define MAX_TB_LIST_LEN 100
 
+/* For convenient initialization of windows and drawing resources */
+typedef struct jdaw_window {
+    SDL_Window *win;
+    SDL_Renderer *rend;
+    TTF_Font *fonts[11];
+    TTF_Font *bold_fonts[11];
+    uint8_t scale_factor;
+    int w;
+    int h;
+} JDAWWindow;
+
+/* Draw at an absolute position or relative to dimensions of parent */
 enum dimType {REL, ABS};
 
 typedef struct dim {
@@ -60,27 +76,40 @@ typedef struct dim {
 
 typedef struct textbox Textbox;
 
-typedef struct textbox{
-    // int x;
-    // int y;
-    // int fixed_w;    // optional creation argument; box sized to text if null
-    // int fixed_h;    // optional creation argument; box sized to text if null
-    int padding;    // optional; default used if null
-    TTF_Font *font;
+typedef struct textbox {
     char *value;
     SDL_Rect container; // populated at creation with values determined by preceding members
     SDL_Rect txt_container;     // populated at creation ''
+    TTF_Font *font;
     JDAW_Color *txt_color;  // optional; default if null
     JDAW_Color *border_color;   // optional; default if null
     JDAW_Color *bckgrnd_color;  // optional; default if null
     void (*onclick)(void *object); // optional; function to run when txt box clicked
     void (*onhover)(void *object); // optional; function to run when mouse hovers over txt box
-    char *tooltip;  // optional
+    int padding;
     int radius;
     bool show_cursor;
     uint8_t cursor_countdown;
     uint8_t cursor_pos;
+    char *tooltip;  // optional
 } Textbox;
+
+/* An array of textboxes, all of which share may share an onclick functions */
+typedef struct textbox_list {
+    Textbox *textboxes[MAX_TB_LIST_LEN];
+    uint8_t num_textboxes;
+    SDL_Rect container;
+    JDAW_Color *txt_color;  // optional; default if null
+    JDAW_Color *border_color;   // optional; default if null
+    JDAW_Color *bckgrnd_color;  // optional; default if null
+    int padding;
+    int radius;
+} TextboxList;
+
+
+JDAWWindow *create_jwin(const char *title, int x, int y, int w, int h);
+void destroy_jwin(JDAWWindow *jwin);
+void reset_dims(JDAWWindow *jwin);
 
 SDL_Rect get_rect(SDL_Rect parent_rect, Dim x, Dim y, Dim w, Dim h);
 SDL_Rect relative_rect(SDL_Rect *win_rect, float x_rel, float y_rel, float w_rel, float h_rel);
@@ -107,6 +136,23 @@ Textbox *create_textbox(
     int radius
 );
 
-void edit_textbox(Textbox *tb);
+TextboxList *create_textbox_list_from_strings(
+    int fixed_w,
+    int padding,
+    TTF_Font *font,
+    char **values,
+    uint8_t num_values,
+    JDAW_Color *txt_color,
+    JDAW_Color *border_color,
+    JDAW_Color *bckgrnd_clr,
+    void (*onclick)(void *object),
+    void (*onhover)(void *object),
+    char *tooltip,
+    int radius
+);
+
+
+char *edit_textbox(Textbox *tb);
+void position_textbox_list(TextboxList *tbl, int x, int y);
 
 #endif

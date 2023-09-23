@@ -234,6 +234,7 @@ int open_audio_device(AudioDevice *device, uint8_t desired_channels, int desired
     }
 }
 
+
 const char *get_audio_fmt_str(SDL_AudioFormat fmt)
 {
     const char* fmt_str = NULL;

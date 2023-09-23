@@ -46,6 +46,7 @@ typedef struct timeline Timeline;
 typedef struct audiodevice AudioDevice;
 typedef struct track Track;
 typedef struct textbox Textbox;
+typedef struct jdaw_window JDAWWindow;
 
 typedef struct track {
     char name[MAX_NAMELENGTH];
@@ -116,12 +117,11 @@ typedef struct timeline {
 
 typedef struct project {
     char name[MAX_NAMELENGTH];
-    bool dark_mode;
+    // bool dark_mode;
     Timeline *tl;
     Clip *loose_clips[100];
     uint8_t num_loose_clips;
-    SDL_Window *win;
-    SDL_Renderer *rend;
+    JDAWWindow *jwin;
     Clip *active_clip;
     float play_speed;
     bool playing;
@@ -130,23 +130,15 @@ typedef struct project {
     AudioDevice **playback_devices;
     int num_record_devices;
     int num_playback_devices;
-
-    /* UI "Globals" */
-    uint8_t scale_factor;
-    SDL_Rect winrect;
-    TTF_Font *fonts[11];
-    TTF_Font *bold_fonts[11];
-
 } Project;
 
 int16_t get_track_sample(Track *track, Timeline *tl, uint32_t start_pos, uint32_t pos_in_chunk);
 int16_t *get_mixdown_chunk(Timeline* tl, uint32_t length, bool from_mark_in);
-Project *create_project(const char* name, bool dark_mode);
+Project *create_project(const char* name);
 Track *create_track(Timeline *tl, bool stereo);
 Clip *create_clip(Track *track, uint32_t length, uint32_t absolute_position);
 void destroy_clip(Clip *clip);
 void destroy_track(Track *track);
-void reset_winrect(Project *proj);
 void reset_tl_rect(Timeline *tl);
 
 

@@ -42,6 +42,10 @@
 #include "audio.h"
 #include "gui.h"
 
+extern Project *proj;
+extern uint8_t scale_factor;
+extern bool dark_mode;
+
 JDAW_Color red = {{255, 0, 0, 255},{255, 0, 0, 255}};
 JDAW_Color green = {{0, 255, 0, 255},{0, 255, 0, 255}};
 JDAW_Color blue = {{0, 0, 255, 255},{0, 0, 255, 255}};
@@ -53,19 +57,22 @@ JDAW_Color lightblue = {{101, 204, 255, 255}, {101, 204, 255, 255}};
 JDAW_Color black = {{0, 0, 0, 255},{0, 0, 0, 255}};
 JDAW_Color menu_bckgrnd = {{25, 25, 25, 230}, {25, 25, 25, 230}};
 JDAW_Color bckgrnd_color = {{255, 240, 200, 255}, {22, 28, 34, 255}};
+JDAW_Color track_bckgrnd = {{120, 130, 150, 255}, {120, 130, 150, 255}};
+JDAW_Color track_bckgrnd_active = {{170, 180, 200, 255}, {170, 180, 200, 255}};
 JDAW_Color txt_soft = {{50, 50, 50, 255}, {200, 200, 200, 255}};
 JDAW_Color txt_main = {{10, 10, 10, 255}, {240, 240, 240, 255}};
 JDAW_Color tl_bckgrnd = {{240, 235, 235, 255}, {50, 52, 55, 255}};
 JDAW_Color play_head = {{0, 0, 0, 255}, {255, 255, 255, 255}};
-JDAW_Color console_bckgrnd = {{128, 128, 128, 255}, {128, 128, 128, 255}};
-JDAW_Color console_bckgrnd_active = {{140, 140, 140, 255}, {140, 140, 140, 255}};
+JDAW_Color console_bckgrnd = {{140, 140, 140, 255}, {140, 140, 140, 255}};
+JDAW_Color console_bckgrnd_active = {{200, 200, 200, 255}, {200, 200, 200, 255}};
 JDAW_Color clear = {{0, 0, 0, 0}, {0, 0, 0, 0}};
+
 
 JDAW_Color default_textbox_text_color = {{0, 0, 0, 255}, {0, 0, 0, 255}};
 JDAW_Color default_textbox_border_color = {{0, 0, 0, 255}, {0, 0, 0, 255}};
 JDAW_Color default_textbox_fill_color = {{240, 240, 240, 255}, {240, 240, 240, 255}};
 
-extern Project *proj;
+
 
 /* Draw and fill a quadrant. quad 0 = upper right, 1 = upper left, 2 = lower left, 3 = lower right*/
 void draw_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad)
@@ -155,15 +162,15 @@ void draw_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r)
 }
 
 /* Set the render color based on project display mode */
-void set_rend_color(Project *proj, JDAW_Color* color_class) 
+void set_rend_color(SDL_Renderer *rend, JDAW_Color *color_class) 
 {
     SDL_Color color;
-    if (proj->dark_mode) {
+    if (dark_mode) {
         color = color_class->dark;
     } else {
         color = color_class->light;
     }
-    SDL_SetRenderDrawColor(proj->rend, color.r, color.g, color.b, color.a);
+    SDL_SetRenderDrawColor(rend, color.r, color.g, color.b, color.a);
 }
 
 
@@ -194,21 +201,18 @@ void draw_circle(SDL_Renderer *rend, int xinit, int yinit, int r)
     }
 }
 
-void draw_textbox(Textbox *tb)
+void draw_textbox(SDL_Renderer *rend, Textbox *tb)
 {
-    if (!proj) {
-        return;
-    }
-    set_rend_color(proj, tb->bckgrnd_color);
+    set_rend_color(rend, tb->bckgrnd_color);
     if (tb->radius == 0) {
-        SDL_RenderFillRect(proj->rend, &(tb->container));
-        set_rend_color(proj, tb->border_color);
-        SDL_RenderDrawRect(proj->rend, &(tb->container));
+        SDL_RenderFillRect(rend, &(tb->container));
+        set_rend_color(rend, tb->border_color);
+        SDL_RenderDrawRect(rend, &(tb->container));
     } else {
-        draw_rounded_rect(proj->rend, &(tb->container), tb->radius);
+        draw_rounded_rect(rend, &(tb->container), tb->radius);
+        //TODO: rounded rect border
     }
-
-    write_text(proj->rend, &(tb->txt_container), tb->font, tb->txt_color, tb->value, true);
+    write_text(rend, &(tb->txt_container), tb->font, tb->txt_color, tb->value, true);
 
     if (tb->show_cursor) {
         if (tb->cursor_countdown == 0) {
@@ -218,11 +222,11 @@ void draw_textbox(Textbox *tb)
             strncpy(newstr, tb->value, tb->cursor_pos);
             newstr[tb->cursor_pos] = '\0';
             int w;
-            TTF_SizeText(tb->font, newstr, &w, NULL);
-            set_rend_color(proj, &bckgrnd_color);
+            TTF_SizeUTF8(tb->font, newstr, &w, NULL);
+            set_rend_color(rend, &bckgrnd_color);
             int x = tb->txt_container.x + w;
             for (int i=0; i<CURSOR_WIDTH; i++) {
-                SDL_RenderDrawLine(proj->rend, x, tb->txt_container.y, x, tb->txt_container.y + tb->txt_container.h);
+                SDL_RenderDrawLine(rend, x, tb->txt_container.y, x, tb->txt_container.y + tb->txt_container.h);
                 x++;
             }
         }
@@ -230,17 +234,46 @@ void draw_textbox(Textbox *tb)
     }
 }
 
+// typedef struct textbox_list {
+//     Textbox *textboxes;
+//     uint8_t num_textboxes;
+//     SDL_Rect container;
+//     JDAW_Color *txt_color;  // optional; default if null
+//     JDAW_Color *border_color;   // optional; default if null
+//     JDAW_Color *bckgrnd_color;  // optional; default if null
+//     int padding;
+// } TextboxList;
+
+void draw_textbox_list(SDL_Renderer *rend, TextboxList *tbl)
+{
+    // fprintf(stderr, "container: %d, %d, %d, %d\n", tbl->container.x, tbl->container.y, tbl->container.w, tbl->container.h);
+    set_rend_color(rend, tbl->bckgrnd_color);
+    if (tbl->radius == 0) {
+        SDL_RenderFillRect(rend, &(tbl->container));
+        set_rend_color(rend, tbl->border_color);
+        SDL_RenderDrawRect(rend, &(tbl->container));
+        // fprintf(stderr, "Container I'm drawing: %d, %d, %d, %d", tbl->container.x, tbl->container.y, tbl->container.w, tbl->container.h);
+    } else {
+        draw_rounded_rect(rend, &(tbl->container), tbl->radius);
+        //TODO: Empty rounded rect border
+    }
+    for (uint8_t i=0; i<tbl->num_textboxes; i++) {
+        draw_textbox(rend, tbl->textboxes[i]);
+    }
+}
+
 void draw_hamburger(Project * proj)
 {
-    set_rend_color(proj, &txt_soft);
-    SDL_GL_GetDrawableSize(proj->win, &((proj->winrect).w), &((proj->winrect).h));
-    SDL_Rect hmbrgr_1 = relative_rect(&(proj->winrect), 0.95, 0.04, 0.02, 0.004);
-    SDL_Rect hmbrgr_2 = relative_rect(&(proj->winrect), 0.95, 0.048, 0.02, 0.004);
-    SDL_Rect hmbrgr_3 = relative_rect(&(proj->winrect), 0.95, 0.056, 0.02, 0.004);
-    SDL_RenderDrawRect(proj->rend, &hmbrgr_1);
-    SDL_RenderFillRect(proj->rend, &hmbrgr_1);
-    SDL_RenderFillRect(proj->rend, &hmbrgr_2);
-    SDL_RenderFillRect(proj->rend, &hmbrgr_3);
+    set_rend_color(proj->jwin->rend, &txt_soft);
+    SDL_GL_GetDrawableSize(proj->jwin->win, &(proj->jwin->w), &(proj->jwin->h));
+    // TODO: fix relative recting
+    // SDL_Rect hmbrgr_1 = relative_rect(&(proj->winrect), 0.95, 0.04, 0.02, 0.004);
+    // SDL_Rect hmbrgr_2 = relative_rect(&(proj->winrect), 0.95, 0.048, 0.02, 0.004);
+    // SDL_Rect hmbrgr_3 = relative_rect(&(proj->winrect), 0.95, 0.056, 0.02, 0.004);
+    // SDL_RenderDrawRect(proj->jwin->rend, &hmbrgr_1);
+    // SDL_RenderFillRect(proj->jwin->rend, &hmbrgr_1);
+    // SDL_RenderFillRect(proj->jwin->rend, &hmbrgr_2);
+    // SDL_RenderFillRect(proj->jwin->rend, &hmbrgr_3);
 }
 
 void draw_clip(Clip *clip)
@@ -249,40 +282,40 @@ void draw_clip(Clip *clip)
     int clip_w = get_tl_draw_w(clip->length);
     SDL_Rect cliprect = {
         clip_x,
-        clip->track->rect.y + 4, 
+        clip->track->rect.y + 4, //TODO: fix these
         clip_w,
-        clip->track->tl->audio_rect.h - 4
+        clip->track->rect.h - 4
     };
     int wav_x = cliprect.x;
     int wav_y = cliprect.y + cliprect.h / 2;
-    set_rend_color(proj, &lightblue);
-    SDL_RenderFillRect(proj->rend, &cliprect);
+    set_rend_color(proj->jwin->rend, &lightblue);
+    SDL_RenderFillRect(proj->jwin->rend, &cliprect);
     SDL_Rect clipnamerect = get_rect(cliprect, CLIP_NAME_RECT);
-    write_text(proj->rend, &clipnamerect, proj->fonts[1], &grey, clip->name, true);
-    set_rend_color(proj, &black);
+    write_text(proj->jwin->rend, &clipnamerect, proj->jwin->bold_fonts[1], &grey, clip->name, true);
+    set_rend_color(proj->jwin->rend, &black);
     for (int i=0; i<2; i++) {
-        SDL_RenderDrawRect(proj->rend, &cliprect);
+        SDL_RenderDrawRect(proj->jwin->rend, &cliprect);
         cliprect.x += 1;
         cliprect.y += 1;
         cliprect.w -= 2;
         cliprect.h -= 2;
     }
-    set_rend_color(proj, &white);
+    set_rend_color(proj->jwin->rend, &white);
     for (int i=0; i<4; i++) {
-        SDL_RenderDrawRect(proj->rend, &cliprect);
+        SDL_RenderDrawRect(proj->jwin->rend, &cliprect);
         cliprect.x += 1;
         cliprect.y += 1;
         cliprect.w -= 2;
         cliprect.h -= 2;
     }
 
-    SDL_SetRenderDrawColor(proj->rend, 5, 5, 60, 255);
+    SDL_SetRenderDrawColor(proj->jwin->rend, 5, 5, 60, 255);
     if (clip->done) {
         int16_t sample = (int)((clip->samples)[0]);
         int16_t next_sample;
         for (int i=0; i<clip->length-1; i+=clip->track->tl->sample_frames_per_pixel) {
             next_sample = (clip->samples)[i];
-            SDL_RenderDrawLine(proj->rend, wav_x, wav_y + (sample / 50), wav_x + 1, wav_y + (next_sample / 50));
+            SDL_RenderDrawLine(proj->jwin->rend, wav_x, wav_y + (sample / 50), wav_x + 1, wav_y + (next_sample / 50));
             sample = next_sample;
             wav_x++;
         }
@@ -291,8 +324,12 @@ void draw_clip(Clip *clip)
 
 void draw_track(Track * track) 
 {    
-    set_rend_color(proj, &lightgrey);
-    SDL_RenderFillRect(proj->rend, &track->rect);
+    if (track->active) {
+        set_rend_color(proj->jwin->rend, &track_bckgrnd_active);
+    } else {
+        set_rend_color(proj->jwin->rend, &track_bckgrnd);
+    }
+    SDL_RenderFillRect(proj->jwin->rend, &track->rect);
 
     Clip* clip;
     for (int j=0; j<track->num_clips; j++) {
@@ -301,45 +338,48 @@ void draw_track(Track * track)
         }
     }
 
-
     /* Draw the track information console */
     SDL_Rect consolerect = get_rect(track->rect, TRACK_CONSOLE);
     consolerect.w = track->tl->console_width;
 
     if (track->active) {
-        set_rend_color(proj, &console_bckgrnd_active);
+        set_rend_color(proj->jwin->rend, &console_bckgrnd_active);
     } else {
-        set_rend_color(proj, &console_bckgrnd);
+        set_rend_color(proj->jwin->rend, &console_bckgrnd);
     }
-    SDL_RenderFillRect(proj->rend, &consolerect);
+    SDL_RenderFillRect(proj->jwin->rend, &consolerect);
 
     position_textbox(track->name_box, consolerect.x + 4, consolerect.y + 4);
-    draw_textbox(track->name_box);
+    draw_textbox(proj->jwin->rend, track->name_box);
     position_textbox(track->input_label_box, consolerect.x + TRACK_INTERNAL_PADDING, track->name_box->container.y + track->name_box->container.h + TRACK_INTERNAL_PADDING); //TODO: replace 4 with padding
-    draw_textbox(track->input_label_box);
+    draw_textbox(proj->jwin->rend, track->input_label_box);
     position_textbox(track->input_name_box, track->input_label_box->container.x + track->input_label_box->container.w + TRACK_INTERNAL_PADDING, track->input_label_box->container.y);
-    draw_textbox(track->input_name_box);
+    draw_textbox(proj->jwin->rend, track->input_name_box);
     // TODO: fix this 
     SDL_Rect colorbar = (SDL_Rect) {track->rect.x + consolerect.w, track->rect.y, COLOR_BAR_W, track->rect.h};
-    track->tl->audio_rect = (SDL_Rect) {colorbar.x + colorbar.w, colorbar.y, track->rect.w - consolerect.w, track->rect.h};
-    set_rend_color(proj, track->color);
-    SDL_RenderFillRect(proj->rend, &colorbar);
+    if (track->tl->audio_rect.x < colorbar.x + colorbar.w) {
+        track->tl->audio_rect.x = colorbar.x + colorbar.w;
+    }
+    // track->tl->audio_rect = (SDL_Rect) {colorbar.x + colorbar.w, colorbar.y, track->rect.w - consolerect.w, track->rect.h};
+    set_rend_color(proj->jwin->rend, track->color);
+    SDL_RenderFillRect(proj->jwin->rend, &colorbar);
 }
 
 void draw_project(Project *proj)
 {
-    SDL_SetRenderDrawBlendMode(proj->rend, SDL_BLENDMODE_BLEND);
-    const static char *bottom_text = "Jackdaw | by Charlie Volow";
-    SDL_GL_GetDrawableSize(proj->win, &((proj->winrect).w), &((proj->winrect).h));
-    set_rend_color(proj, &bckgrnd_color);
-    SDL_RenderClear(proj->rend);
-    draw_hamburger(proj);
 
+    SDL_SetRenderDrawBlendMode(proj->jwin->rend, SDL_BLENDMODE_BLEND);
+    const static char *bottom_text = "Jackdaw | by Charlie Volow";
+    // SDL_GL_GetDrawableSize(proj->jwin->win, &(proj->jwin->w), &(proj->jwin->h));
+    set_rend_color(proj->jwin->rend, &bckgrnd_color);
+    SDL_RenderClear(proj->jwin->rend);
+    draw_hamburger(proj);
     /* Draw the timeline */
-    set_rend_color(proj, &tl_bckgrnd);
+    set_rend_color(proj->jwin->rend, &tl_bckgrnd);
     // proj->tl->rect = relative_rect(&(proj->winrect), 0.05, 0.1, 0.9, 0.86);
-    SDL_RenderFillRect(proj->rend, &(proj->tl->rect));
-    // draw_rounded_rect(proj->rend, &(proj->tl->rect), STD_RAD);
+    SDL_RenderFillRect(proj->jwin->rend, &(proj->tl->rect));
+    fprintf(stderr, "tl rect: %d,%d,%d,%d\n", proj->tl->rect.x, proj->tl->rect.y, proj->tl->rect.w, proj->tl->rect.h);
+    // draw_rounded_rect(proj->jwin->rend, &(proj->tl->rect), STD_RAD);
 
 
     Track *track;
@@ -353,20 +393,20 @@ void draw_project(Project *proj)
             
         }
     }
-    set_rend_color(proj, &white);
+    set_rend_color(proj->jwin->rend, &white);
 
     /* Draw play head line */
     int tri_y = proj->tl->rect.y;
     if (proj->tl->play_position >= proj->tl->offset) {
         int play_head_x = get_tl_draw_x(proj->tl->play_position);
-        SDL_RenderDrawLine(proj->rend, play_head_x, proj->tl->rect.y, play_head_x, proj->tl->rect.y + proj->tl->rect.h);
+        SDL_RenderDrawLine(proj->jwin->rend, play_head_x, proj->tl->rect.y, play_head_x, proj->tl->rect.y + proj->tl->rect.h);
 
         /* Draw play head triangle */
         int tri_x1 = play_head_x;
         int tri_x2 = play_head_x;
         int tri_y = proj->tl->rect.y;
         for (int i=0; i<PLAYHEAD_TRI_H; i++) {
-            SDL_RenderDrawLine(proj->rend, tri_x1, tri_y, tri_x2, tri_y);
+            SDL_RenderDrawLine(proj->jwin->rend, tri_x1, tri_y, tri_x2, tri_y);
             tri_y -= 1;
             tri_x2 += 1;
             tri_x1 -= 1;
@@ -380,7 +420,7 @@ void draw_project(Project *proj)
         int i_tri_x2 = in_x;
         tri_y = proj->tl->rect.y;
         for (int i=0; i<PLAYHEAD_TRI_H; i++) {
-            SDL_RenderDrawLine(proj->rend, in_x, tri_y, i_tri_x2, tri_y);
+            SDL_RenderDrawLine(proj->jwin->rend, in_x, tri_y, i_tri_x2, tri_y);
             tri_y -= 1;
             i_tri_x2 += 1;    
         }            
@@ -392,28 +432,24 @@ void draw_project(Project *proj)
         int o_tri_x1 = out_x;
         tri_y = proj->tl->rect.y;
         for (int i=0; i<PLAYHEAD_TRI_H; i++) {
-            SDL_RenderDrawLine(proj->rend, o_tri_x1, tri_y, out_x, tri_y);
+            SDL_RenderDrawLine(proj->jwin->rend, o_tri_x1, tri_y, out_x, tri_y);
             tri_y -= 1;
             o_tri_x1 -= 1;
         }
     }
 
-
     int title_w = 0;
     int title_h = 0;
-    TTF_SizeText(proj->fonts[1], bottom_text, &title_w, &title_h);
-    SDL_Rect title_rect = {0, proj->winrect.h - 20 * proj->scale_factor, proj->winrect.w, 20 * proj->scale_factor};
-    set_rend_color(proj, &bckgrnd_color);
-    SDL_RenderFillRect(proj->rend, &title_rect);
-    SDL_Rect title_text_rect = {(proj->winrect.w - title_w) / 2, title_rect.y, title_w, title_h};
-    // titlebox.y -= title_h + 2 + 10;
-    // titlebox.x -= title_w / 2 + 10;
-    write_text(proj->rend, &title_text_rect, proj->fonts[1], &txt_soft, bottom_text, true);
-
-    SDL_Rect mask_left = {0, 0, proj->tl->rect.x, proj->winrect.h};
-    SDL_RenderFillRect(proj->rend, &mask_left);
+    TTF_SizeUTF8(proj->jwin->fonts[1], bottom_text, &title_w, &title_h);
+    SDL_Rect title_rect = {0, proj->jwin->h - 20 * scale_factor, proj->jwin->w, 20 * scale_factor};
+    set_rend_color(proj->jwin->rend, &bckgrnd_color);
+    SDL_RenderFillRect(proj->jwin->rend, &title_rect);
+    SDL_Rect title_text_rect = {(proj->jwin->w - title_w) / 2, title_rect.y, title_w, title_h};
+    write_text(proj->jwin->rend, &title_text_rect, proj->jwin->fonts[1], &txt_soft, bottom_text, true);
+    SDL_Rect mask_left = {0, 0, proj->tl->rect.x, proj->jwin->h};
+    SDL_RenderFillRect(proj->jwin->rend, &mask_left);
     SDL_Rect mask_left_2 = {proj->tl->rect.x, proj->tl->rect.y, PADDING, proj->tl->rect.h};
-    set_rend_color(proj, &tl_bckgrnd);
-    SDL_RenderFillRect(proj->rend, &mask_left_2);
-    SDL_RenderPresent(proj->rend);
+    set_rend_color(proj->jwin->rend, &tl_bckgrnd);
+    SDL_RenderFillRect(proj->jwin->rend, &mask_left_2);
+    SDL_RenderPresent(proj->jwin->rend);
 }

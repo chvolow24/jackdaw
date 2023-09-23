@@ -27,7 +27,7 @@
 /*****************************************************************************************************************
     project.c
 
-    * Create and destroy project objects, incl global "Project", Track, Timeline, and Clip
+    * Create and destroy project objects, incl Project, Track, Timeline, and Clip
     * Retrieve audio data from the timeline
  *****************************************************************************************************************/
 
@@ -35,28 +35,33 @@
 #include <stdlib.h>
 #include <string.h>
 #include "SDL_events.h"
+#include "SDL_video.h"
 #include "project.h"
 #include "gui.h"
 #include "theme.h"
 #include "audio.h"
 #include "draw.h"
 
-#define DEFAULT_TRACK_HEIGHT (100 * proj->scale_factor)
+#define DEFAULT_TRACK_HEIGHT (100 * scale_factor)
 #define DEFAULT_SFPP 300 // sample frames per pixel
 
 extern Project *proj;
+extern uint8_t scale_factor;
+
 extern JDAW_Color clear;
 extern JDAW_Color white;
 extern JDAW_Color lightergrey;
+extern JDAW_Color black;
 
 /* Alternating bright colors to easily distinguish tracks */
-JDAW_Color trck_colors[6] = {
-    {{210, 18, 18, 255}, {210, 18, 18, 255}},
+JDAW_Color trck_colors[7] = {
+    {{180, 40, 40, 255}, {180, 40, 40, 255}},
     {{226, 151, 0, 255}, {226, 151, 0, 255}},
     {{15, 228, 0, 255}, {15, 228, 0, 255}},
     {{0, 226, 219, 255}, {0, 226, 219, 255}},
     {{0, 98, 226, 255}, {0, 98, 226, 255}},
     {{128, 0, 226, 255}, {128, 0, 226, 255}},
+    {{226, 100, 226, 255}, {226, 100, 226, 255}}
 };
 
 int trck_color_index = 0;
@@ -69,6 +74,9 @@ void rename_track(void *track_v)
     track->name_box->cursor_countdown = CURSOR_COUNTDOWN;
     track->name_box->cursor_pos = strlen(track->name);
     edit_textbox(track->name_box);
+    // strcpy(track->name, newname); 
+    // memcpy(track->name, newname, strlen(newname)); // TODO: wtf is strcpy producing a trace trap
+
     track->name_box->bckgrnd_color = &lightergrey;
     track->name_box->show_cursor = false;
 }
@@ -76,6 +84,7 @@ void rename_track(void *track_v)
 void select_track_input(void *track_v)
 {
     Track *track = (Track *)track_v;
+
 }
 
 /* Query track clips and return audio sample representing a given point in the timeline. */
@@ -130,17 +139,16 @@ int16_t *get_mixdown_chunk(Timeline* tl, uint32_t length, bool from_mark_in)
 }
 
 /* Reset the cached size of the window. Called whenever the window is resized (see event loop in main.c) */
-void reset_winrect(Project *proj) {
-    SDL_GL_GetDrawableSize(proj->win, &((proj->winrect).w), &((proj->winrect).h));
-}
+// void reset_winrect(Project *proj) {
+//     SDL_GL_GetDrawableSize(proj->win, &((proj->winrect).w), &((proj->winrect).h));
+// }
 
 /* An active project is required for jackdaw to run. This function creates a project based on various specifications,
 and initalizes a variety of UI "globals." */
-Project *create_project(const char* name, bool dark_mode)
+Project *create_project(const char* name)
 {
     Project *proj = malloc(sizeof(Project));
     strcpy(proj->name, name);
-    proj->dark_mode = dark_mode;
     proj->play_speed = 0;
     Timeline *tl = (Timeline *)malloc(sizeof(Timeline));
     tl->num_tracks = 0;
@@ -156,41 +164,11 @@ Project *create_project(const char* name, bool dark_mode)
     /* Create SDL_Window and accompanying SDL_Renderer */
     char project_window_name[MAX_NAMELENGTH + 10];
     sprintf(project_window_name, "Jackdaw | %s", name);
-    proj->win = NULL;
-    proj->win = SDL_CreateWindow(
-        project_window_name,
-        SDL_WINDOWPOS_CENTERED, 
-        SDL_WINDOWPOS_CENTERED - 20, 
-        900, 
-        650, 
-        SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI
-    );
+    proj->jwin = create_jwin(project_window_name, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED-20, 900, 650);
 
-    if (!(proj->win)) {
-        fprintf(stderr, "Error creating window: %s", SDL_GetError());
-        exit(1);
-    }
-
-    Uint32 render_flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC;
-    proj->rend = SDL_CreateRenderer(proj->win, -1, render_flags);
-    if (!(proj->rend)) {
-        fprintf(stderr, "Error creating renderer: %s\n", SDL_GetError());
-        exit(1);
-    }
-    // SDL_RenderSetScale(proj->rend,2,2);
-    proj->winrect = (SDL_Rect) {0, 0, 0, 0};
-    reset_winrect(proj);
-
-    /* Set DPI Scale Factor */
-    int rw = 0, rh = 0, ww = 0, wh = 0;
-    SDL_GetWindowSize(proj->win, &ww, &wh);
-    SDL_GetRendererOutputSize(proj->rend, &rw, &rh);
-    proj->scale_factor = (float)rw / (float)ww;
-    if (proj->scale_factor != (float)rh / (float)wh) {
-        fprintf(stderr, "Error! Scale factor w != h.\n");
-    }
     tl->console_width = TRACK_CONSOLE_WIDTH;
-    // tl->rect = get_rect(proj->winrect, TL_RECT);
+    tl->rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h,}, TL_RECT);    
+    fprintf(stderr, "win w, h: %d, %d; TL: %d, %d, %d, %d", proj->jwin->w, proj->jwin->h, tl->rect.x, tl->rect.y, tl->rect.w, tl->rect.h);
     return proj;
 }
 
@@ -215,11 +193,11 @@ Track *create_track(Timeline *tl, bool stereo)
     } else {
         track->rect.y = last_track->rect.y + last_track->rect.h + TRACK_SPACING;
     }
-    track->rect.w = proj->winrect.w - track->rect.x;
+    track->rect.w = proj->jwin->w - track->rect.x;
     (tl->tracks)[tl->num_tracks - 1] = track;
 
     trck_color_index++;
-    trck_color_index %= 5;
+    trck_color_index %= 7;
     track->color = &(trck_colors[trck_color_index]);
     if (proj && proj->record_devices[0]) {
         track->input = proj->record_devices[0];
@@ -229,9 +207,9 @@ Track *create_track(Timeline *tl, bool stereo)
         NAMEBOX_W * proj->tl->console_width / 100, 
         0, 
         2, 
-        proj->bold_fonts[2],
+        proj->jwin->bold_fonts[2],
         track->name,
-        NULL,
+        &black,
         NULL,
         NULL,
         rename_track,
@@ -243,7 +221,7 @@ Track *create_track(Timeline *tl, bool stereo)
         0, 
         0, 
         2, 
-        proj->bold_fonts[1],
+        proj->jwin->bold_fonts[1],
         "Input:",
         NULL,
         &clear,
@@ -257,16 +235,20 @@ Track *create_track(Timeline *tl, bool stereo)
         TRACK_IN_W * proj->tl->console_width / 100, 
         0, 
         4, 
-        proj->fonts[1],
+        proj->jwin->bold_fonts[1],
         (char *) track->input->name,
         NULL,
         NULL,
         NULL,
+        select_track_input,
         NULL,
         NULL,
-        NULL,
-        5 * proj->scale_factor
+        5 * scale_factor
     );
+
+
+    //TODO: get this out of create track
+    // tl->audio_rect = (SDL_Rect) {tl->rect.x + TRACK_CONSOLE_WIDTH + COLOR_BAR_W, tl->rect.y, tl->rect.w, tl->rect.h};
     fprintf(stderr, "\t->exit create track\n");
     return track;
 }
@@ -276,7 +258,7 @@ Clip *create_clip(Track *track, uint32_t length, uint32_t absolute_position) {
     fprintf(stderr, "Enter create_clip\n");
 
     Clip *clip = malloc(sizeof(Clip));
-    sprintf(clip->name, "Track %d, take %d", track->tl_rank + 1, track->num_clips + 1);
+    sprintf(clip->name, "%s, take %d", track->name, track->num_clips + 1);
     clip->length = length;
     clip->absolute_position = absolute_position;
     // clip->samples = malloc(sizeof(int16_t) * length);
@@ -305,7 +287,6 @@ void destroy_track(Track *track)
 {
     fprintf(stderr, "Enter destroy track. Destroy @ %p\n", track);
 
-
     /* Destroy track clips */
     while (track->num_clips > 0) {
         if ((track->clips)[track->num_clips - 1]) {
@@ -313,8 +294,6 @@ void destroy_track(Track *track)
         }
         track->num_clips--;
     }
-
-
     // TODO: Reorder tracks when a track that is not the last track is deleted.
 
     // /* Save rank for timeline renumbering */
@@ -342,5 +321,12 @@ void destroy_track(Track *track)
 
 void reset_tl_rect(Timeline *tl)
 {
-    tl->rect = get_rect(proj->winrect, TL_RECT);
+    tl->rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h,}, TL_RECT);
+    Track *track = NULL;
+
+    for (int t=0; t<tl->num_tracks; t++) {
+        track = tl->tracks[t];
+        track->rect.w = tl->rect.w;
+    }
+
 }

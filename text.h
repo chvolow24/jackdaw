@@ -47,8 +47,8 @@
 
 void init_SDL_ttf();
 TTF_Font* open_font(const char* path, int size);
-void init_fonts(TTF_Font **font_array, const char *path, int arrlen);
-void close_font(TTF_Font* font);
+void init_fonts(TTF_Font **font_array, const char *path);
+void close_fonts(TTF_Font **font_array);
 void write_text(
     SDL_Renderer *rend, 
     SDL_Rect *rect, 

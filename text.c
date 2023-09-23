@@ -39,6 +39,7 @@
 #include "project.h"
 
 extern Project *proj;
+extern uint8_t scale_factor;
 
 TTF_Font *open_sans_fonts[11];
 
@@ -61,22 +62,21 @@ TTF_Font *open_font(const char* path, int size)
 }
 
 /* Open a font at standard sizes, accounting for high DPI scaling */
-void init_fonts(TTF_Font **font_array, const char *path, int arrlen)
+void init_fonts(TTF_Font **font_array, const char *path)
 {
     int standard_sizes[] = STD_FONT_SIZES;
-    for (int i=0; i<arrlen; i++) {
+    for (int i=0; i<STD_FONT_ARRLEN; i++) {
         int size = standard_sizes[i];
         /* Account for high DPI scaling using global scale_factor */
-        printf("Opening font at size: %d, scale fact: %d\n", size, proj->scale_factor);
-
-        size *= proj->scale_factor;
+        fprintf(stderr, "Multiplying size %d by sf %d\n", size, scale_factor);
+        size *= scale_factor;
         font_array[i] = open_font(path, size);
     }
 }
 
-void close_fonts(TTF_Font **font_array, int arrlen)
+void close_fonts(TTF_Font **font_array)
 {
-    for (int i=0; i<arrlen; i++) {
+    for (int i=0; i<STD_FONT_ARRLEN; i++) {
         TTF_CloseFont(font_array[i]);
     }
 

@@ -31,12 +31,16 @@
     * Handle events in the main loop. 
         Ancillary event loops are defined elsewhere for things like textbox editing (gui.c)
  *****************************************************************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <math.h>
 #include <string.h>
 #include <pthread.h>
+#include <unistd.h>
+#include <pwd.h>
+
 #include "SDL.h"
 #include "SDL_events.h"
 #include "SDL_scancode.h"
@@ -53,20 +57,41 @@
 #define lesser_of(a,b) (a < b ? a : b)
 #define greater_of(a,b) (a > b ? a : b)
 
-#define TL_SHIFT_STEP (50 * proj->scale_factor)
-#define TL_SCROLL_STEP_H (10 * proj->scale_factor)
-#define TL_SCROLL_STEP_V (10 * proj->scale_factor)
+#define TL_SHIFT_STEP (50 * scale_factor)
+#define TL_SCROLL_STEP_H (10 * scale_factor)
+#define TL_SCROLL_STEP_V (10 * scale_factor)
 
 #define SFPP_STEP 1.2
-#define CATCHUP_STEP (600 * proj->scale_factor)
+#define CATCHUP_STEP (600 * scale_factor)
 
-bool dark_mode = true;
+/* GLOBALS */
 Project *proj = NULL;
+uint8_t scale_factor = 1;
+// TTF_Font *fonts[11];
+// TTF_Font *bold_fonts[11];
+bool dark_mode = true;
+char *home_dir;
 
 extern JDAW_Color bckgrnd_color;
 extern JDAW_Color tl_bckgrnd;
 extern JDAW_Color txt_soft;
 extern JDAW_Color txt_main;
+
+extern JDAW_Color lightgrey;
+extern JDAW_Color black;
+extern JDAW_Color white;
+
+
+void set_dpi_scale_factor(JDAWWindow *jwin)
+{
+    int rw = 0, rh = 0, ww = 0, wh = 0;
+    SDL_GetWindowSize(jwin->win, &ww, &wh);
+    SDL_GetRendererOutputSize(jwin->rend, &rw, &rh);
+    jwin->scale_factor = (float)rw / (float)ww;
+    if (jwin->scale_factor != (float)rh / (float)wh) {
+        fprintf(stderr, "Error! Scale factor w != h.\n");
+    }
+}
 
 void init_graphics()
 {
@@ -93,23 +118,21 @@ void playback()
 static void get_mouse_state(SDL_Point *mouse_p) 
 {
     SDL_GetMouseState(&(mouse_p->x), &(mouse_p->y));
-    mouse_p->x *= proj->scale_factor;
-    mouse_p->y *= proj->scale_factor;
+    mouse_p->x *= scale_factor;
+    mouse_p->y *= scale_factor;
 }
 
 static void triage_mouseclick(SDL_Point *mouse_p)
 {
     if (SDL_PointInRect(mouse_p, &(proj->tl->rect))) {
-        fprintf(stderr, "Mouse in tl\n");
+        if (SDL_PointInRect(mouse_p, &(proj->tl->audio_rect))) {
+            proj->tl->play_position = get_abs_tl_x(mouse_p->x);
+        }
         for (int i=0; i<proj->tl->num_tracks; i++) {
             Track *track;
             if ((track = proj->tl->tracks[i])) {
                 if (SDL_PointInRect(mouse_p, &(track->rect))) {
-                    fprintf(stderr, "-> Mouse in track %d. name_box: %d, %d, %d, %d\n", i, track->name_box->container.x, track->name_box->container.y, track->name_box->container.w, track->name_box->container.h);
-
                     if (SDL_PointInRect(mouse_p, &(track->name_box->container))) {
-                        fprintf(stderr, "-> -> Mouse in namebox\n");
-
                         track->name_box->onclick((void *)track);
                     }
                 }
@@ -117,6 +140,56 @@ static void triage_mouseclick(SDL_Point *mouse_p)
         }
     }
 }
+
+void click_item(void *tb_v)
+{
+    Textbox *tb = (Textbox *)tb_v;
+    tb->value = "New value";
+}
+
+/* Present a window to allow user to create or open a project. Return project name */
+char *new_project_loop(JDAWWindow *jwin) 
+{
+    fprintf(stderr, "Jwin? %p\n", jwin);
+
+    char *strarray[3];
+    strarray[0] = "Hello, there";
+    strarray[1] = "Another item";
+    strarray[2] = "Third item!";
+    fprintf(stderr, "Got here. jwin->fonts[2] %p\n", jwin->fonts);
+    TextboxList *testlist = create_textbox_list_from_strings(
+        0, 
+        10, 
+        jwin->fonts[2], 
+        strarray, 
+        3, 
+        &black, 
+        &black, 
+        &lightgrey,
+        click_item, 
+        NULL, 
+        NULL, 
+        0
+    );
+    position_textbox_list(testlist, 100, 50);
+
+    bool quit = false;
+    while (!quit) {
+        SDL_Event e;
+        while (SDL_PollEvent(&e)) {
+            if (e.type == SDL_QUIT || (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_CLOSE)) {
+                quit = true;
+            }
+        }
+        set_rend_color(jwin->rend, &bckgrnd_color);
+        SDL_RenderClear(jwin->rend);
+        draw_textbox_list(jwin->rend, testlist);
+        SDL_RenderPresent(jwin->rend);
+        SDL_Delay(1);
+    }
+    destroy_jwin(jwin);
+}
+
 
 void project_loop()
 {
@@ -133,10 +206,10 @@ void project_loop()
     while (!quit) {
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
-            if (e.type == SDL_QUIT) {
+            if (e.type == SDL_QUIT || (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_CLOSE)) {
                 quit = true;
             } else if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
-                reset_winrect(proj);
+                reset_dims(proj->jwin);
                 reset_tl_rect(proj->tl);
             } else if (e.type == SDL_MOUSEBUTTONUP) {
                 if (mousebutton_down) {
@@ -146,7 +219,10 @@ void project_loop()
                 mousebutton_down = true;
                 get_mouse_state(&mouse_p);
                 triage_mouseclick(&mouse_p);
-                proj->tl->play_position = get_abs_tl_x(mouse_p.x);
+                // get_mouse_state(&(mouse_p));
+                // if (SDL_PointInRect(&mouse_p, &(proj->tl->audio_rect))) {
+                //     proj->tl->play_position = get_abs_tl_x(mouse_p.x);
+                // }
             } else if (e.type == SDL_MOUSEWHEEL) {
                 get_mouse_state(&(mouse_p));
                 if (SDL_PointInRect(&mouse_p, &(proj->tl->rect))) {
@@ -185,6 +261,7 @@ void project_loop()
 
                         } else {
                             proj->recording = false;
+                            proj->playing = false;
                             stop_recording(proj->active_clip);
                             proj->play_speed = 0;
                         }
@@ -394,13 +471,14 @@ void project_loop()
                 }
             }
         }
-        if (mousebutton_down && !proj->playing) {
-            get_mouse_state(&mouse_p);
-            proj->tl->play_position = get_abs_tl_x(mouse_p.x);
-        }
+        // if (mousebutton_down && !proj->playing) {
+        //     get_mouse_state(&mouse_p);
+        //     proj->tl->play_position = get_abs_tl_x(mouse_p.x);
+        // }
+
         if (proj->play_speed < 0 && proj->tl->offset > proj->tl->play_position) {
             translate_tl(CATCHUP_STEP * -1, 0);
-        } else if (proj->play_speed > 0 && get_tl_draw_x(proj->tl->play_position) > proj->winrect.w) {
+        } else if (proj->play_speed > 0 && get_tl_draw_x(proj->tl->play_position) > proj->jwin->w) {
             translate_tl(CATCHUP_STEP, 0);
         }
         playback();
@@ -409,20 +487,33 @@ void project_loop()
     }
 }
 
+
+char *get_home_dir()
+{
+    uid_t uid = getuid();
+    struct passwd *pw = getpwuid(uid);
+    return pw->pw_dir;
+}
+
 int main()
 {
-    // write_wav("TEST.wav");
+    home_dir = get_home_dir();
 
-
-    proj = create_project("Untitled", dark_mode);
-    proj->tl->rect = get_rect(proj->winrect, TL_RECT);
+    //TODO: open project creation window if proj==NULL;
     init_graphics();
-    // reset_winrect();
-    // set_dpi_scale_factor();
     init_audio();
     init_SDL_ttf();
-    init_fonts(proj->fonts, OPEN_SANS, 11);
-    init_fonts(proj->bold_fonts, OPEN_SANS_BOLD, 11);
+    JDAWWindow *new_project = create_jwin("Create a new Jackdaw project", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 600, 400);
+    new_project_loop(new_project);
+
+    // create_or_open_project();
+    proj = create_project("Untitled");
+    // init_fonts(fonts, OPEN_SANS);
+    // init_fonts(bold_fonts, OPEN_SANS_BOLD);
+    // set_dpi_scale_factor(proj->win, proj->rend);
+    fprintf(stderr, "project scale factor: %d\n", scale_factor);
+    // proj->tl->rect = get_rect(proj->winrect, TL_RECT); // TODO: Why is this here?
+
 
     AudioDevice **playback_devices = NULL;
     AudioDevice **record_devices = NULL;
@@ -452,6 +543,7 @@ int main()
     proj->num_playback_devices = num_playback_devices;
     // txt_soft_c = get_color(txt_soft);
     // txt_main_c = get_color(txt_main);
+
 
     project_loop();
 

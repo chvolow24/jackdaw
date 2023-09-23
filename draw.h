@@ -24,11 +24,18 @@
 
 *****************************************************************************************************************/
 
+
 #ifndef JDAW_DRAW_H
 #define JDAW_DRAW_H
 
+#include "SDL.h"
 #include "project.h"
+#include "gui.h"
+#include "theme.h"
 
 void draw_project(Project *proj);
+void set_rend_color(SDL_Renderer *rend, JDAW_Color *color);
+void draw_textbox_list(SDL_Renderer *rend, TextboxList *tbl);
+
 
 #endif

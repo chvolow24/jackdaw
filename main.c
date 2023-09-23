@@ -37,9 +37,13 @@
 #include <stdbool.h>
 #include <math.h>
 #include <string.h>
+
+/*vvv Unportable vvv*/
 #include <pthread.h>
 #include <unistd.h>
 #include <pwd.h>
+#include <dirent.h>
+/*^^^^^^^^^^^^^^^^^^*/
 
 #include "SDL.h"
 #include "SDL_events.h"
@@ -80,6 +84,7 @@ extern JDAW_Color txt_main;
 extern JDAW_Color lightgrey;
 extern JDAW_Color black;
 extern JDAW_Color white;
+extern JDAW_Color grey;
 
 
 void set_dpi_scale_factor(JDAWWindow *jwin)
@@ -150,19 +155,25 @@ void click_item(void *tb_v)
 /* Present a window to allow user to create or open a project. Return project name */
 char *new_project_loop(JDAWWindow *jwin) 
 {
-    fprintf(stderr, "Jwin? %p\n", jwin);
+    char *strarray[255];
+    DIR *homedir = opendir(home_dir);
+    int i=0;
+    struct dirent *rdir;
+    while ((rdir = readdir(homedir)) != NULL)
+    {
+        fprintf(stderr, "%s: %hhu\n", rdir->d_name, rdir->d_type);
+        strarray[i] = malloc(255);
+        strcpy(strarray[i], rdir->d_name);
+        i++;
+    }
 
-    char *strarray[3];
-    strarray[0] = "Hello, there";
-    strarray[1] = "Another item";
-    strarray[2] = "Third item!";
-    fprintf(stderr, "Got here. jwin->fonts[2] %p\n", jwin->fonts);
+
     TextboxList *testlist = create_textbox_list_from_strings(
         0, 
         10, 
         jwin->fonts[2], 
         strarray, 
-        3, 
+        i+1, 
         &black, 
         &black, 
         &lightgrey,
@@ -173,6 +184,7 @@ char *new_project_loop(JDAWWindow *jwin)
     );
     position_textbox_list(testlist, 100, 50);
 
+    SDL_Point mouse_p;
     bool quit = false;
     while (!quit) {
         SDL_Event e;
@@ -181,9 +193,22 @@ char *new_project_loop(JDAWWindow *jwin)
                 quit = true;
             }
         }
+
+        get_mouse_state(&mouse_p);
+        if (SDL_PointInRect(&mouse_p, &testlist->container)) {
+            for (uint8_t i=0; i<testlist->num_textboxes; i++) {
+                if (SDL_PointInRect(&mouse_p, &(testlist->textboxes[i]->container))) {
+                    testlist->textboxes[i]->mouse_hover = true;
+                } else {
+                    testlist->textboxes[i]->mouse_hover = false;
+                }
+            }
+
+        }
         set_rend_color(jwin->rend, &bckgrnd_color);
         SDL_RenderClear(jwin->rend);
-        draw_textbox_list(jwin->rend, testlist);
+        draw_menu_list(jwin->rend, testlist);
+
         SDL_RenderPresent(jwin->rend);
         SDL_Delay(1);
     }

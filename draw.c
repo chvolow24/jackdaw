@@ -35,6 +35,7 @@
 #include <math.h>
 #include <string.h>
 #include "SDL.h"
+#include "SDL_render.h"
 #include "theme.h"
 #include "project.h"
 #include "text.h"
@@ -72,10 +73,50 @@ JDAW_Color default_textbox_text_color = {{0, 0, 0, 255}, {0, 0, 0, 255}};
 JDAW_Color default_textbox_border_color = {{0, 0, 0, 255}, {0, 0, 0, 255}};
 JDAW_Color default_textbox_fill_color = {{240, 240, 240, 255}, {240, 240, 240, 255}};
 
+JDAW_Color menulist_bckgrnd = (JDAW_Color) {{40, 40, 40, 248},{40, 40, 40, 248}};
+JDAW_Color menulist_inner_brdr = (JDAW_Color) {{10, 10, 10, 250},{10, 10, 10, 250}};
+JDAW_Color menulist_outer_brdr = {{130, 130, 130, 250},{130, 130, 130, 250}};
+JDAW_Color menulist_item_hvr = {{0, 100, 250, 250}, {0, 100, 250, 250}};
 
+
+/* Draw a circle quadrant. Quad 0 = upper right, 1 = upper left, 2 = lower left, 3 = lower right */
+void draw_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad)
+{
+    int x = 0;
+    int y = r;
+    int d = 1-r;
+    while (x <= y) {
+        switch(quad) {
+            case 0:
+                SDL_RenderDrawPoint(rend, xinit + x, yinit - y);
+                SDL_RenderDrawPoint(rend, xinit + y, yinit  - x);
+                break;
+            case 1:
+                SDL_RenderDrawPoint(rend, xinit - x, yinit - y);
+                SDL_RenderDrawPoint(rend, xinit - y, yinit - x);
+                break;
+            case 2:
+                SDL_RenderDrawPoint(rend, xinit - x, yinit + y);
+                SDL_RenderDrawPoint(rend, xinit - y, yinit + x);
+                break;
+            case 3:
+                SDL_RenderDrawPoint(rend, xinit + x, yinit + y);
+                SDL_RenderDrawPoint(rend, xinit + y, yinit + x);
+                break;
+        }
+        if (d>0) {
+            /* Select SE coordinate */
+            d += (x<<1) - (y<<1) + 5;
+            y--;
+        } else {
+            d += (x<<1) + 3;
+        }
+        x++;
+    }
+}
 
 /* Draw and fill a quadrant. quad 0 = upper right, 1 = upper left, 2 = lower left, 3 = lower right*/
-void draw_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad)
+void fill_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad)
 {
     int x = 0;
     int y = r;
@@ -146,6 +187,41 @@ void draw_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r)
     draw_quadrant(rend, ul.x, ul.y, r, 1);
     draw_quadrant(rend, ll.x, ll.y, r, 2);
     draw_quadrant(rend, lr.x, lr.y, r, 3);
+    /* top */
+    SDL_RenderDrawLine(rend, left_x, rect->y, right_x, rect->y);
+    /* bottom */
+    SDL_RenderDrawLine(rend, left_x, lower_y + r, right_x, lower_y + r);
+    /* left */
+    SDL_RenderDrawLine(rend, rect->x, upper_y, rect->x, lower_y);
+    /* right */
+    SDL_RenderDrawLine(rend, right_x + r, upper_y, right_x + r, lower_y);
+    // int d = r<<1;
+    // SDL_Rect top = {left_x, rect->y, rect->w - d, r};
+    // SDL_Rect bottom = {left_x, lower_y, rect->w - d, r + 1};
+    // SDL_Rect left = {rect->x, upper_y, r, rect->h - d};
+    // SDL_Rect right = {right_x, upper_y, r + 1, rect->h -d};
+    // SDL_Rect middle = {left_x, upper_y, rect->w - d, rect->h - d};
+    // SDL_RenderFillRect(rend, &top);
+    // SDL_RenderFillRect(rend, &bottom);
+    // SDL_RenderFillRect(rend, &right);
+    // SDL_RenderFillRect(rend, &left);
+    // SDL_RenderFillRect(rend, &middle);    
+}
+
+void fill_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r)
+{
+    int left_x = rect->x + r;
+    int right_x = rect->x + rect->w -r;
+    int upper_y = rect->y + r;
+    int lower_y = rect->y + rect->h - r;
+    SDL_Point ul = {left_x, upper_y};
+    SDL_Point ur = {right_x, upper_y};
+    SDL_Point ll = {left_x, lower_y};
+    SDL_Point lr = {right_x, lower_y};
+    fill_quadrant(rend, ur.x, ur.y, r, 0);
+    fill_quadrant(rend, ul.x, ul.y, r, 1);
+    fill_quadrant(rend, ll.x, ll.y, r, 2);
+    fill_quadrant(rend, lr.x, lr.y, r, 3);
     int d = r<<1;
     SDL_Rect top = {left_x, rect->y, rect->w - d, r};
     SDL_Rect bottom = {left_x, lower_y, rect->w - d, r + 1};
@@ -209,7 +285,7 @@ void draw_textbox(SDL_Renderer *rend, Textbox *tb)
         set_rend_color(rend, tb->border_color);
         SDL_RenderDrawRect(rend, &(tb->container));
     } else {
-        draw_rounded_rect(rend, &(tb->container), tb->radius);
+        fill_rounded_rect(rend, &(tb->container), tb->radius);
         //TODO: rounded rect border
     }
     write_text(rend, &(tb->txt_container), tb->font, tb->txt_color, tb->value, true);
@@ -234,15 +310,55 @@ void draw_textbox(SDL_Renderer *rend, Textbox *tb)
     }
 }
 
-// typedef struct textbox_list {
-//     Textbox *textboxes;
-//     uint8_t num_textboxes;
-//     SDL_Rect container;
-//     JDAW_Color *txt_color;  // optional; default if null
-//     JDAW_Color *border_color;   // optional; default if null
-//     JDAW_Color *bckgrnd_color;  // optional; default if null
-//     int padding;
-// } TextboxList;
+void draw_menu_item(SDL_Renderer *rend, Textbox *tb)
+{
+    // set_rend_color(rend, tb->bckgrnd_color);
+    // if (tb->radius == 0) {
+    //     SDL_RenderFillRect(rend, &(tb->container));
+    //     set_rend_color(rend, tb->border_color);
+    //     SDL_RenderDrawRect(rend, &(tb->container));
+    // } else {
+    //     fill_rounded_rect(rend, &(tb->container), tb->radius);
+    //     //TODO: rounded rect border
+    // }
+    if (tb->mouse_hover) {
+        set_rend_color(rend, &menulist_item_hvr);
+        fill_rounded_rect(rend, &tb->container, MENU_LIST_R);
+    }
+    write_text(rend, &(tb->txt_container), tb->font, &white, tb->value, true);
+
+    if (tb->show_cursor) {
+        if (tb->cursor_countdown == 0) {
+            tb->cursor_countdown = CURSOR_COUNTDOWN;
+        } else if (tb->cursor_countdown > CURSOR_COUNTDOWN / 2) {
+            char newstr[255];
+            strncpy(newstr, tb->value, tb->cursor_pos);
+            newstr[tb->cursor_pos] = '\0';
+            int w;
+            TTF_SizeUTF8(tb->font, newstr, &w, NULL);
+            set_rend_color(rend, &bckgrnd_color);
+            int x = tb->txt_container.x + w;
+            for (int i=0; i<CURSOR_WIDTH; i++) {
+                SDL_RenderDrawLine(rend, x, tb->txt_container.y, x, tb->txt_container.y + tb->txt_container.h);
+                x++;
+            }
+        }
+        tb->cursor_countdown -= 1;
+    }
+}
+void draw_menu_list(SDL_Renderer *rend, TextboxList *tbl)
+{
+    SDL_Rect innerrect = (SDL_Rect) {tbl->container.x + 1, tbl->container.y + 1, tbl->container.w - 2, tbl->container.h - 2};
+    set_rend_color(rend, &menulist_bckgrnd);
+    fill_rounded_rect(rend, &(tbl->container), MENU_LIST_R);
+    set_rend_color(rend, &menulist_outer_brdr);
+    draw_rounded_rect(rend, &(tbl->container), MENU_LIST_R);
+    set_rend_color(rend, &menulist_inner_brdr);
+    draw_rounded_rect(rend, &innerrect, MENU_LIST_R - 1);
+    for (uint8_t i=0; i<tbl->num_textboxes; i++) {
+        draw_menu_item(rend, tbl->textboxes[i]);
+    }
+}
 
 void draw_textbox_list(SDL_Renderer *rend, TextboxList *tbl)
 {
@@ -254,7 +370,7 @@ void draw_textbox_list(SDL_Renderer *rend, TextboxList *tbl)
         SDL_RenderDrawRect(rend, &(tbl->container));
         // fprintf(stderr, "Container I'm drawing: %d, %d, %d, %d", tbl->container.x, tbl->container.y, tbl->container.w, tbl->container.h);
     } else {
-        draw_rounded_rect(rend, &(tbl->container), tbl->radius);
+        fill_rounded_rect(rend, &(tbl->container), tbl->radius);
         //TODO: Empty rounded rect border
     }
     for (uint8_t i=0; i<tbl->num_textboxes; i++) {
@@ -378,7 +494,6 @@ void draw_project(Project *proj)
     set_rend_color(proj->jwin->rend, &tl_bckgrnd);
     // proj->tl->rect = relative_rect(&(proj->winrect), 0.05, 0.1, 0.9, 0.86);
     SDL_RenderFillRect(proj->jwin->rend, &(proj->tl->rect));
-    fprintf(stderr, "tl rect: %d,%d,%d,%d\n", proj->tl->rect.x, proj->tl->rect.y, proj->tl->rect.w, proj->tl->rect.h);
     // draw_rounded_rect(proj->jwin->rend, &(proj->tl->rect), STD_RAD);
 
 

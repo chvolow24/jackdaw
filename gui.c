@@ -228,8 +228,7 @@ Textbox *create_textbox(
     } else {
         tb->container.h = txth + padding * 2;
     }
-    // tb->txt_container.w = txtw;
-    // tb->txt_container.h = txth;
+    tb->mouse_hover = false;
     return tb;
 
 }

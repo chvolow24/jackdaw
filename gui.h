@@ -55,6 +55,8 @@
 #define CURSOR_WIDTH (1 * scale_factor)
 #define MAX_TB_LIST_LEN 100
 
+#define MENU_LIST_R 14
+
 /* For convenient initialization of windows and drawing resources */
 typedef struct jdaw_window {
     SDL_Window *win;
@@ -92,6 +94,7 @@ typedef struct textbox {
     uint8_t cursor_countdown;
     uint8_t cursor_pos;
     char *tooltip;  // optional
+    bool mouse_hover;
 } Textbox;
 
 /* An array of textboxes, all of which share may share an onclick functions */

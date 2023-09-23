@@ -68,7 +68,6 @@ void init_fonts(TTF_Font **font_array, const char *path)
     for (int i=0; i<STD_FONT_ARRLEN; i++) {
         int size = standard_sizes[i];
         /* Account for high DPI scaling using global scale_factor */
-        fprintf(stderr, "Multiplying size %d by sf %d\n", size, scale_factor);
         size *= scale_factor;
         font_array[i] = open_font(path, size);
     }

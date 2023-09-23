@@ -112,6 +112,7 @@ void start_recording()
     proj->tl->record_position = proj->tl->play_position;
 }
 
+
 void start_playback()
 {
     SDL_PauseAudioDevice(playback_device, 0);

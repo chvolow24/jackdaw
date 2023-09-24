@@ -54,18 +54,24 @@
 #define CURSOR_COUNTDOWN 50
 #define CURSOR_WIDTH (1 * scale_factor)
 #define MAX_TB_LIST_LEN 100
+#define NUM_FONT_SIZES 11
+#define MAX_ACTIVE_MENUS 8
 
 #define MENU_LIST_R 14
+
+typedef struct textbox_list TextboxList;
 
 /* For convenient initialization of windows and drawing resources */
 typedef struct jdaw_window {
     SDL_Window *win;
     SDL_Renderer *rend;
-    TTF_Font *fonts[11];
-    TTF_Font *bold_fonts[11];
+    TTF_Font *fonts[NUM_FONT_SIZES];
+    TTF_Font *bold_fonts[NUM_FONT_SIZES];
     uint8_t scale_factor;
     int w;
     int h;
+    TextboxList *active_menus[MAX_ACTIVE_MENUS];
+    uint8_t num_active_menus;
 } JDAWWindow;
 
 /* Draw at an absolute position or relative to dimensions of parent */
@@ -110,20 +116,14 @@ typedef struct textbox_list {
 } TextboxList;
 
 
+
 JDAWWindow *create_jwin(const char *title, int x, int y, int w, int h);
 void destroy_jwin(JDAWWindow *jwin);
-void reset_dims(JDAWWindow *jwin);
 
+void reset_dims(JDAWWindow *jwin);
 SDL_Rect get_rect(SDL_Rect parent_rect, Dim x, Dim y, Dim w, Dim h);
 SDL_Rect relative_rect(SDL_Rect *win_rect, float x_rel, float y_rel, float w_rel, float h_rel);
-void rescale_timeline(double scale_factor, uint32_t center_draw_position);
-
-uint32_t get_abs_tl_x(int draw_x);
-int get_tl_draw_x(uint32_t abs_x);
-int get_tl_draw_w(uint32_t abs_w);
-void translate_tl(int translate_by_x, int translate_by_y);
 void position_textbox(Textbox *tb, int x, int y);
-
 Textbox *create_textbox(
     int fixed_w, 
     int fixed_h, 
@@ -138,7 +138,6 @@ Textbox *create_textbox(
     char *tooltip,
     int radius
 );
-
 TextboxList *create_textbox_list_from_strings(
     int fixed_w,
     int padding,
@@ -153,9 +152,18 @@ TextboxList *create_textbox_list_from_strings(
     char *tooltip,
     int radius
 );
-
-
 char *edit_textbox(Textbox *tb);
 void position_textbox_list(TextboxList *tbl, int x, int y);
+TextboxList *create_menulist(
+    JDAWWindow *jwin,
+    int fixed_w,
+    int padding,
+    TTF_Font *font,
+    char **values,
+    uint8_t num_values,
+    void (*onclick)(void *object)
+);
+void destroy_pop_menulist(JDAWWindow *jwin);
+void menulist_hover(JDAWWindow *jwin, SDL_Point *mouse_p);
 
 #endif

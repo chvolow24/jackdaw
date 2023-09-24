@@ -56,6 +56,7 @@
 #include "gui.h"
 #include "wav.h"
 #include "draw.h"
+#include "timeline.h"
 
 #define abs_min(a,b) (abs(a) < abs(b) ? a : b)
 #define lesser_of(a,b) (a < b ? a : b)
@@ -139,6 +140,8 @@ static void triage_mouseclick(SDL_Point *mouse_p)
                 if (SDL_PointInRect(mouse_p, &(track->rect))) {
                     if (SDL_PointInRect(mouse_p, &(track->name_box->container))) {
                         track->name_box->onclick((void *)track);
+                    } else if (SDL_PointInRect(mouse_p, &(track->input_name_box->container))) {
+                        select_track_input_menu((void *)track);
                     }
                 }
             }
@@ -162,25 +165,16 @@ char *new_project_loop(JDAWWindow *jwin)
     while ((rdir = readdir(homedir)) != NULL)
     {
         fprintf(stderr, "%s: %hhu\n", rdir->d_name, rdir->d_type);
-        strarray[i] = malloc(255);
-        strcpy(strarray[i], rdir->d_name);
-        i++;
+        if (rdir->d_type == DT_DIR && rdir->d_name[0] != '.') {
+            fprintf(stderr, "\tOK\n");
+
+            strarray[i] = malloc(255);
+            strcpy(strarray[i], rdir->d_name);
+            i++;
+        }
     }
-
-
-    TextboxList *testlist = create_textbox_list_from_strings(
-        0, 
-        10, 
-        jwin->fonts[2], 
-        strarray, 
-        i+1, 
-        &black, 
-        &black, 
-        &lightgrey,
-        click_item, 
-        NULL, 
-        NULL, 
-        0
+    TextboxList *testlist = create_menulist(
+        jwin, 400, 5, jwin->fonts[2], strarray, i+1, NULL
     );
     position_textbox_list(testlist, 100, 50);
 
@@ -193,22 +187,10 @@ char *new_project_loop(JDAWWindow *jwin)
                 quit = true;
             }
         }
-
         get_mouse_state(&mouse_p);
-        if (SDL_PointInRect(&mouse_p, &testlist->container)) {
-            for (uint8_t i=0; i<testlist->num_textboxes; i++) {
-                if (SDL_PointInRect(&mouse_p, &(testlist->textboxes[i]->container))) {
-                    testlist->textboxes[i]->mouse_hover = true;
-                } else {
-                    testlist->textboxes[i]->mouse_hover = false;
-                }
-            }
-
-        }
-        set_rend_color(jwin->rend, &bckgrnd_color);
-        SDL_RenderClear(jwin->rend);
-        draw_menu_list(jwin->rend, testlist);
-
+        menulist_hover(jwin, &mouse_p);
+        draw_jwin_background(jwin);
+        draw_jwin_menus(jwin);
         SDL_RenderPresent(jwin->rend);
         SDL_Delay(1);
     }
@@ -506,8 +488,12 @@ void project_loop()
         } else if (proj->play_speed > 0 && get_tl_draw_x(proj->tl->play_position) > proj->jwin->w) {
             translate_tl(CATCHUP_STEP, 0);
         }
+        get_mouse_state(&mouse_p);
+        menulist_hover(proj->jwin, &mouse_p);
         playback();
         draw_project(proj);
+        draw_jwin_menus(proj->jwin);
+        SDL_RenderPresent(proj->jwin->rend);
         SDL_Delay(1);
     }
 }

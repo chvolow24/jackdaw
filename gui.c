@@ -55,6 +55,21 @@ extern JDAW_Color default_textbox_fill_color;
 extern JDAW_Color clear;
 
 
+
+// typedef struct jdaw_window {
+//     SDL_Window *win;
+//     SDL_Renderer *rend;
+//     TTF_Font *fonts[NUM_FONT_SIZES];
+//     TTF_Font *bold_fonts[NUM_FONT_SIZES];
+//     uint8_t scale_factor;
+//     int w;
+//     int h;
+//     TextboxList *active_menus[MAX_ACTIVE_MENUS];
+//     uint8_t num_active_menus;
+//     void *(*run_loop)(JDAWWindow *jwin);
+//     void *(*triage_click)(JDAWWindow *jwin, SDL_Point *mouse_pos);
+// } JDAWWindow;
+
 JDAWWindow *create_jwin(const char *title, int x, int y, int w, int h)
 {
     JDAWWindow *jwin = malloc(sizeof(JDAWWindow));
@@ -242,6 +257,12 @@ void position_textbox(Textbox *tb, int x, int y)
     tb->txt_container.y = y + tb->padding * scale_factor;
 }
 
+void destroy_textbox(Textbox *tb)
+{
+    free(tb);
+    tb = NULL;
+}
+
 /* Opens a new event loop to handle textual input. Returns new value */
 char *edit_textbox(Textbox *tb)
 {
@@ -359,10 +380,8 @@ TextboxList *create_textbox_list_from_strings(
     void (*onhover)(void *object),
     char *tooltip,
     int radius
-
 )
 {
-
     TextboxList *list = malloc(sizeof(TextboxList));
     int w = 0;
     int tw = 0;
@@ -374,14 +393,67 @@ TextboxList *create_textbox_list_from_strings(
             w = tw;
         }
     }
+    for (uint8_t i=0; i<num_values; i++) {
+        list->textboxes[i]->container.w = w - 2 * padding;
+    }
     list->num_textboxes = num_values;
-    list->container = (SDL_Rect) {0, 0, w, (list->textboxes[0]->container.h + padding) * num_values};
+    list->container = (SDL_Rect) {0, 0, w + padding * 2, (list->textboxes[0]->container.h + padding) * num_values};
     list->txt_color = txt_color;
     list->border_color = border_color;
     list->bckgrnd_color = bckgrnd_clr;
     list->padding = padding;
-
     return list;
+}
+
+void destroy_textbox_list(TextboxList *tbl)
+{
+    for (uint8_t i=0; i<tbl->num_textboxes; i++) {
+        destroy_textbox(tbl->textboxes[i]);
+    }
+    free(tbl);
+    tbl = NULL;
+}
+
+TextboxList *create_menulist(
+    JDAWWindow *jwin,
+    int fixed_w,
+    int padding,
+    TTF_Font *font,
+    char **values,
+    uint8_t num_values,
+    void (*onclick)(void *object)
+)
+{
+    TextboxList *tbl = create_textbox_list_from_strings(
+        fixed_w,
+        padding,
+        font,
+        values,
+        num_values,
+        NULL,
+        NULL,
+        NULL,
+        onclick,
+        NULL,
+        NULL,
+        0
+    );
+
+    jwin->active_menus[jwin->num_active_menus] = tbl;
+    jwin->num_active_menus += 1;
+
+    return tbl;
+}
+
+
+void destroy_pop_menulist(JDAWWindow *jwin)
+{
+    if (jwin->num_active_menus == 0) {
+        return;
+    }
+    destroy_textbox_list(jwin->active_menus[jwin->num_active_menus - 1]);
+    jwin->active_menus[jwin->num_active_menus - 1] = NULL;
+    jwin->num_active_menus -= 1;
 }
 
 /* Reposition a textbox list */
@@ -391,7 +463,25 @@ void position_textbox_list(TextboxList *tbl, int x, int y)
     tbl->container.y = y;
     y += tbl->padding;
     for (uint8_t i=0; i<tbl->num_textboxes; i++) {
-        position_textbox(tbl->textboxes[i], x, y);
+        position_textbox(tbl->textboxes[i], x + tbl->padding, y);
         y += tbl->padding + tbl->textboxes[0]->container.h;
+    }
+}
+
+/* Run this in every JDAWWindow animation loop to ensure active menus are highlighted appropriately */
+void menulist_hover(JDAWWindow *jwin, SDL_Point *mouse_p)
+{   
+    for (uint8_t i=0; i<jwin->num_active_menus; i++) {
+        TextboxList *menu = jwin->active_menus[i];
+        if (SDL_PointInRect(mouse_p, &(menu->container))) {
+            for (uint8_t j=0; j<menu->num_textboxes; j++) {
+                Textbox *tb = menu->textboxes[j];
+                if (SDL_PointInRect(mouse_p, &(tb->container))) {
+                    tb->mouse_hover = true;
+                } else {
+                    tb->mouse_hover = false;
+                }
+            }
+        }
     }
 }

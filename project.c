@@ -84,7 +84,25 @@ void rename_track(void *track_v)
 void select_track_input(void *track_v)
 {
     Track *track = (Track *)track_v;
+}
 
+void select_track_input_menu(void *track_v)
+{
+    Track *track = (Track *)track_v;
+    char *device_names[proj->num_record_devices];
+    for (uint8_t i=0; i<proj->num_record_devices; i++) {
+        device_names[i] = (char *) proj->record_devices[i]->name;
+    }
+    TextboxList *tbl = create_menulist(
+        proj->jwin,
+        0,
+        5,
+        proj->jwin->fonts[2],
+        device_names,
+        proj->num_record_devices,
+        select_track_input
+    );
+    position_textbox_list(tbl, track->input_name_box->container.x, track->input_name_box->container.y);
 }
 
 /* Query track clips and return audio sample representing a given point in the timeline. */

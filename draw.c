@@ -42,6 +42,7 @@
 #include "theme.h"
 #include "audio.h"
 #include "gui.h"
+#include "timeline.h"
 
 extern Project *proj;
 extern uint8_t scale_factor;
@@ -76,7 +77,7 @@ JDAW_Color default_textbox_fill_color = {{240, 240, 240, 255}, {240, 240, 240, 2
 JDAW_Color menulist_bckgrnd = (JDAW_Color) {{40, 40, 40, 248},{40, 40, 40, 248}};
 JDAW_Color menulist_inner_brdr = (JDAW_Color) {{10, 10, 10, 250},{10, 10, 10, 250}};
 JDAW_Color menulist_outer_brdr = {{130, 130, 130, 250},{130, 130, 130, 250}};
-JDAW_Color menulist_item_hvr = {{0, 100, 250, 250}, {0, 100, 250, 250}};
+JDAW_Color menulist_item_hvr = {{12, 107, 249, 250}, {12, 107, 249, 250}};
 
 
 /* Draw a circle quadrant. Quad 0 = upper right, 1 = upper left, 2 = lower left, 3 = lower right */
@@ -481,10 +482,23 @@ void draw_track(Track * track)
     SDL_RenderFillRect(proj->jwin->rend, &colorbar);
 }
 
+void draw_jwin_background(JDAWWindow *jwin)
+{
+    set_rend_color(jwin->rend, &bckgrnd_color);
+    SDL_RenderClear(jwin->rend);
+}
+
+void draw_jwin_menus(JDAWWindow *jwin)
+{
+    for (uint8_t i=0; i<jwin->num_active_menus; i++) {
+        draw_menu_list(jwin->rend, jwin->active_menus[i]);
+    }
+}
+
 void draw_project(Project *proj)
 {
 
-    SDL_SetRenderDrawBlendMode(proj->jwin->rend, SDL_BLENDMODE_BLEND);
+    // SDL_SetRenderDrawBlendMode(proj->jwin->rend, SDL_BLENDMODE_BLEND);
     const static char *bottom_text = "Jackdaw | by Charlie Volow";
     // SDL_GL_GetDrawableSize(proj->jwin->win, &(proj->jwin->w), &(proj->jwin->h));
     set_rend_color(proj->jwin->rend, &bckgrnd_color);
@@ -566,5 +580,5 @@ void draw_project(Project *proj)
     SDL_Rect mask_left_2 = {proj->tl->rect.x, proj->tl->rect.y, PADDING, proj->tl->rect.h};
     set_rend_color(proj->jwin->rend, &tl_bckgrnd);
     SDL_RenderFillRect(proj->jwin->rend, &mask_left_2);
-    SDL_RenderPresent(proj->jwin->rend);
+
 }

@@ -140,6 +140,8 @@ Clip *create_clip(Track *track, uint32_t length, uint32_t absolute_position);
 void destroy_clip(Clip *clip);
 void destroy_track(Track *track);
 void reset_tl_rect(Timeline *tl);
+void select_track_input_menu(void *track_v);
+
 
 
 #endif

@@ -29,7 +29,7 @@
 #include "SDL.h"
 #include "project.h"
 
-#define DEFAULT_WINDOW_FLAGS SDL_WINDOW_ALLOW_HIGHDPI
+#define DEFAULT_WINDOW_FLAGS SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE
 #define DEFAULT_RENDER_FLAGS SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
 
 #define STD_RAD 20
@@ -53,6 +53,7 @@
 #define TRACK_INTERNAL_PADDING (6 * scale_factor)
 #define CURSOR_COUNTDOWN 50
 #define CURSOR_WIDTH (1 * scale_factor)
+#define MAX_TB_LEN 255
 #define MAX_TB_LIST_LEN 100
 #define NUM_FONT_SIZES 11
 #define MAX_ACTIVE_MENUS 8
@@ -86,13 +87,15 @@ typedef struct textbox Textbox;
 
 typedef struct textbox {
     char *value;
+    char display_value[MAX_TB_LEN];
     SDL_Rect container; // populated at creation with values determined by preceding members
     SDL_Rect txt_container;     // populated at creation ''
     TTF_Font *font;
     JDAW_Color *txt_color;  // optional; default if null
     JDAW_Color *border_color;   // optional; default if null
     JDAW_Color *bckgrnd_color;  // optional; default if null
-    void (*onclick)(void *object); // optional; function to run when txt box clicked
+    void (*onclick)(Textbox *self, void *object); // optional; function to run when txt box clicked
+    void *target;
     void (*onhover)(void *object); // optional; function to run when mouse hovers over txt box
     int padding;
     int radius;
@@ -133,7 +136,8 @@ Textbox *create_textbox(
     JDAW_Color *txt_color,
     JDAW_Color *border_color,
     JDAW_Color *bckgrnd_clr,
-    void (*onclick)(void *object),
+    void (*onclick)(Textbox *self, void *object),
+    void *target,
     void (*onhover)(void *object),
     char *tooltip,
     int radius
@@ -147,7 +151,8 @@ TextboxList *create_textbox_list_from_strings(
     JDAW_Color *txt_color,
     JDAW_Color *border_color,
     JDAW_Color *bckgrnd_clr,
-    void (*onclick)(void *object),
+    void (*onclick)(Textbox *self, void *object),
+    void *target,
     void (*onhover)(void *object),
     char *tooltip,
     int radius
@@ -161,9 +166,12 @@ TextboxList *create_menulist(
     TTF_Font *font,
     char **values,
     uint8_t num_values,
-    void (*onclick)(void *object)
+    void (*onclick)(Textbox *self, void *object),
+    void *target
 );
 void destroy_pop_menulist(JDAWWindow *jwin);
 void menulist_hover(JDAWWindow *jwin, SDL_Point *mouse_p);
+bool menulist_triage_click(JDAWWindow *jwin, SDL_Point *mouse_p);
+void reset_textbox_value(Textbox *tb, char *new_val);
 
 #endif

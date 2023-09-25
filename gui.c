@@ -54,22 +54,6 @@ extern JDAW_Color default_textbox_border_color;
 extern JDAW_Color default_textbox_fill_color;
 extern JDAW_Color clear;
 
-
-
-// typedef struct jdaw_window {
-//     SDL_Window *win;
-//     SDL_Renderer *rend;
-//     TTF_Font *fonts[NUM_FONT_SIZES];
-//     TTF_Font *bold_fonts[NUM_FONT_SIZES];
-//     uint8_t scale_factor;
-//     int w;
-//     int h;
-//     TextboxList *active_menus[MAX_ACTIVE_MENUS];
-//     uint8_t num_active_menus;
-//     void *(*run_loop)(JDAWWindow *jwin);
-//     void *(*triage_click)(JDAWWindow *jwin, SDL_Point *mouse_pos);
-// } JDAWWindow;
-
 JDAWWindow *create_jwin(const char *title, int x, int y, int w, int h)
 {
     JDAWWindow *jwin = malloc(sizeof(JDAWWindow));
@@ -180,7 +164,8 @@ Textbox *create_textbox(
     JDAW_Color *txt_color,
     JDAW_Color *border_color,
     JDAW_Color *bckgrnd_clr,
-    void (*onclick)(void *self),
+    void (*onclick)(Textbox *self, void *object),
+    void *target,
     void (*onhover)(void *self),
     char *tooltip,
     int radius
@@ -219,7 +204,10 @@ Textbox *create_textbox(
     if (TTF_SizeUTF8(font, value, &txtw, &txth) == -1) {
         fprintf(stderr, "Error: could not size text. %s\n", TTF_GetError());
     };
+    tb->txt_container.w = txtw;
+    tb->txt_container.h = txth;
     bool test = (fixed_w);
+    strcpy(tb->display_value, tb->value);
     if (fixed_w) {
         tb->container.w = fixed_w;
         /* Truncate text if it doesn't fit in fixed width container (handle draw space overflow) */
@@ -230,7 +218,7 @@ Textbox *create_textbox(
                 sprintf(&(truncated[i]), "%c...", tb->value[i]);
                 TTF_SizeUTF8(font, truncated, &txtw, NULL);
                 if (txtw > fixed_w - 20) {
-                    strcpy(tb->value, truncated);
+                    strcpy(tb->display_value, truncated);
                     break;
                 }
             }
@@ -244,6 +232,8 @@ Textbox *create_textbox(
         tb->container.h = txth + padding * 2;
     }
     tb->mouse_hover = false;
+    tb->target = target;
+    fprintf(stderr, "created tb with val: %s, dis val: %s\n", tb->value, tb->display_value);
     return tb;
 
 }
@@ -263,9 +253,31 @@ void destroy_textbox(Textbox *tb)
     tb = NULL;
 }
 
+void reset_textbox_value(Textbox *tb, char *new_value)
+{
+    tb->value = new_value;
+    int txtw;
+    strcpy(tb->display_value, tb->value);
+    TTF_SizeUTF8(tb->font, tb->value, &txtw, NULL);
+    /* Truncate text if it doesn't fit in fixed width container (handle draw space overflow) */
+    if (txtw > tb->container.w) {
+        int len = strlen(tb->value);
+        char truncated[len];
+        for (int i=0; i<strlen(tb->value); i++) {
+            sprintf(&(truncated[i]), "%c...", tb->value[i]);
+            TTF_SizeUTF8(tb->font, truncated, &txtw, NULL);
+            if (txtw > tb->container.w - 20) {
+                strcpy(tb->display_value, truncated);
+                break;
+            }
+        }
+    }
+}
+
 /* Opens a new event loop to handle textual input. Returns new value */
 char *edit_textbox(Textbox *tb)
 {
+    fprintf(stderr, "Edit textbox\n");
     bool done = false;
     bool shift_down = false;
     while (!done) {
@@ -345,23 +357,26 @@ char *edit_textbox(Textbox *tb)
             }
         } // exit event loop
 
-        int txtw;
-        TTF_SizeUTF8(tb->font, tb->value, &txtw, NULL);
+        reset_textbox_value(tb, tb->value);
+        // int txtw;
+        // TTF_SizeUTF8(tb->font, tb->value, &txtw, NULL);
 
-        /* Truncate text if it doesn't fit in fixed width container (handle draw space overflow) */
-        if (txtw > tb->container.w) {
-            int len = strlen(tb->value);
-            char truncated[len];
-            for (int i=0; i<strlen(tb->value); i++) {
-                sprintf(&(truncated[i]), "%c...", tb->value[i]);
-                TTF_SizeUTF8(tb->font, truncated, &txtw, NULL);
-                if (txtw > tb->container.w - 20) {
-                    strcpy(tb->value, truncated);
-                    break;
-                }
-            }
-        }
+        // /* Truncate text if it doesn't fit in fixed width container (handle draw space overflow) */
+        // if (txtw > tb->container.w) {
+        //     int len = strlen(tb->value);
+        //     char truncated[len];
+        //     for (int i=0; i<strlen(tb->value); i++) {
+        //         sprintf(&(truncated[i]), "%c...", tb->value[i]);
+        //         TTF_SizeUTF8(tb->font, truncated, &txtw, NULL);
+        //         if (txtw > tb->container.w - 20) {
+        //             strcpy(tb->value, truncated);
+        //             break;
+        //         }
+        //     }
+        // }
         draw_project(proj);
+        // draw_jwin_menus(proj->jwin);
+        SDL_RenderPresent(proj->jwin->rend);
         SDL_Delay(1);
     }
     return tb->value;
@@ -376,7 +391,8 @@ TextboxList *create_textbox_list_from_strings(
     JDAW_Color *txt_color,
     JDAW_Color *border_color,
     JDAW_Color *bckgrnd_clr,
-    void (*onclick)(void *object),
+    void (*onclick)(Textbox *self, void *object),
+    void *target,
     void (*onhover)(void *object),
     char *tooltip,
     int radius
@@ -387,7 +403,7 @@ TextboxList *create_textbox_list_from_strings(
     int tw = 0;
     for (uint8_t i=0; i<num_values; i++) {
         list->textboxes[i] = create_textbox(
-            fixed_w, 0, padding, font, values[i], txt_color, &clear, &clear, onclick, onhover, tooltip, radius
+            fixed_w, 0, padding, font, values[i], txt_color, &clear, &clear, onclick, target, onhover, tooltip, radius
         );
         if ((tw = list->textboxes[i]->container.w) > w) {
             w = tw;
@@ -421,7 +437,8 @@ TextboxList *create_menulist(
     TTF_Font *font,
     char **values,
     uint8_t num_values,
-    void (*onclick)(void *object)
+    void (*onclick)(Textbox *self, void *object),
+    void *target
 )
 {
     TextboxList *tbl = create_textbox_list_from_strings(
@@ -434,6 +451,7 @@ TextboxList *create_menulist(
         NULL,
         NULL,
         onclick,
+        target,
         NULL,
         NULL,
         0
@@ -484,4 +502,32 @@ void menulist_hover(JDAWWindow *jwin, SDL_Point *mouse_p)
             }
         }
     }
+}
+
+/* Run this in every JDAWWindow animation loop to ensure active menu click events are run */
+bool menulist_triage_click(JDAWWindow *jwin, SDL_Point *mouse_p)
+{
+    fprintf(stderr, "Mouse click. Active menues: %d\n", jwin->num_active_menus);
+    for (uint8_t i=0; i<jwin->num_active_menus; i++) {
+        fprintf(stderr, "\tmenu %d\n", i);
+
+        TextboxList *menu = jwin->active_menus[i];
+        if (SDL_PointInRect(mouse_p, &(menu->container))) {
+            for (uint8_t j=0; j<menu->num_textboxes; j++) {
+                fprintf(stderr, "\titem %d\n", j);
+
+                Textbox *tb = menu->textboxes[j];
+                if (SDL_PointInRect(mouse_p, &(tb->container))) {
+                    tb->onclick(tb, tb->target);
+                    destroy_pop_menulist(jwin);
+                    return true;
+                    /* Need to have target and some value to pass to the target*/
+                }
+            }
+        }
+    }
+    if (jwin->num_active_menus != 0) {
+        destroy_pop_menulist(jwin);
+    }
+    return false;
 }

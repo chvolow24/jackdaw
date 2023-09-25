@@ -51,8 +51,8 @@ typedef struct audiodevice{
 
 
 void init_audio(void);
-void start_recording(void);
-void stop_recording(Clip *clip);
+void start_recording(AudioDevice *dev);
+void stop_recording(Clip *clip, AudioDevice *dev);
 void start_playback(void);
 void stop_playback(void);
 int query_audio_devices(AudioDevice ***device_list, int iscapture);

@@ -141,6 +141,7 @@ void destroy_clip(Clip *clip);
 void destroy_track(Track *track);
 void reset_tl_rect(Timeline *tl);
 void select_track_input_menu(void *track_v);
+void activate_audio_devices(Project *proj);
 
 
 

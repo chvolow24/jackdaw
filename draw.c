@@ -289,14 +289,14 @@ void draw_textbox(SDL_Renderer *rend, Textbox *tb)
         fill_rounded_rect(rend, &(tb->container), tb->radius);
         //TODO: rounded rect border
     }
-    write_text(rend, &(tb->txt_container), tb->font, tb->txt_color, tb->value, true);
+    write_text(rend, &(tb->txt_container), tb->font, tb->txt_color, tb->display_value, true);
 
     if (tb->show_cursor) {
         if (tb->cursor_countdown == 0) {
             tb->cursor_countdown = CURSOR_COUNTDOWN;
         } else if (tb->cursor_countdown > CURSOR_COUNTDOWN / 2) {
             char newstr[255];
-            strncpy(newstr, tb->value, tb->cursor_pos);
+            strncpy(newstr, tb->display_value, tb->cursor_pos);
             newstr[tb->cursor_pos] = '\0';
             int w;
             TTF_SizeUTF8(tb->font, newstr, &w, NULL);
@@ -474,9 +474,6 @@ void draw_track(Track * track)
     draw_textbox(proj->jwin->rend, track->input_name_box);
     // TODO: fix this 
     SDL_Rect colorbar = (SDL_Rect) {track->rect.x + consolerect.w, track->rect.y, COLOR_BAR_W, track->rect.h};
-    if (track->tl->audio_rect.x < colorbar.x + colorbar.w) {
-        track->tl->audio_rect.x = colorbar.x + colorbar.w;
-    }
     // track->tl->audio_rect = (SDL_Rect) {colorbar.x + colorbar.w, colorbar.y, track->rect.w - consolerect.w, track->rect.h};
     set_rend_color(proj->jwin->rend, track->color);
     SDL_RenderFillRect(proj->jwin->rend, &colorbar);

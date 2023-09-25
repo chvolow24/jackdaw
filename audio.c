@@ -49,7 +49,7 @@ static int write_buffpos = 0;
 static int read_buffpos = 0;
 
 static SDL_AudioDeviceID playback_device;
-static SDL_AudioDeviceID recording_device;
+// static SDL_AudioDeviceID recording_device;
 
 extern Project *proj;
 
@@ -90,25 +90,25 @@ void init_audio()
     desired.channels = 2;
     desired.callback = play_callback;
     playback_device = SDL_OpenAudioDevice(NULL, 0, &desired, &obtained, SDL_AUDIO_ALLOW_ANY_CHANGE);
-    desired.callback = recording_callback;
-    recording_device = SDL_OpenAudioDevice(NULL, 1, &desired, &obtained, SDL_AUDIO_ALLOW_ANY_CHANGE);
+    // desired.callback = recording_callback;
+    // recording_device = SDL_OpenAudioDevice("MacBook Air Microphone", 1, &desired, &obtained, SDL_AUDIO_ALLOW_ANY_CHANGE);
 
     if (!playback_device) {
-        fprintf(stderr, "\nError opening audio device.");
+        fprintf(stderr, "Error opening audio device: %s", SDL_GetError());
         exit(1);
     }
-    if (!recording_device) {
-        fprintf(stderr, "\nError opening recording device.");
-        exit(1);   
-    }
+    // if (!recording_device) {
+    //     fprintf(stderr, "Error opening recording device: %s\n", SDL_GetError());
+    //     exit(1);   
+    // }
 
     SDL_zero(audio_buffer);
 }
 
-void start_recording()
+void start_recording(AudioDevice *dev)
 {
     proj->tl->record_position = proj->tl->play_position;
-    SDL_PauseAudioDevice(recording_device, 0);
+    SDL_PauseAudioDevice(dev->id, 0);
     proj->tl->record_position = proj->tl->play_position;
 }
 
@@ -145,10 +145,10 @@ static void *copy_buff_to_clip(void* arg)
     return NULL;
 }
 
-void stop_recording(Clip *clip)
+void stop_recording(Clip *clip, AudioDevice *dev)
 {
     fprintf(stderr, "Enter stop_recording\n");
-    SDL_PauseAudioDevice(recording_device, 1);
+    SDL_PauseAudioDevice(dev->id, 1);
     pthread_t t;
     pthread_create(&t, NULL, copy_buff_to_clip, clip);
     fprintf(stderr, "\t->exit stop_recording\n");
@@ -171,6 +171,7 @@ int query_audio_devices(AudioDevice ***device_list, int iscapture)
         dev->open = false;
         dev->index = i;
         dev->name = SDL_GetAudioDeviceName(i, iscapture);
+        dev->iscapture = iscapture ;
         SDL_AudioSpec spec;
         if (SDL_GetAudioDeviceSpec(i, iscapture, &spec) != 0) {
             fprintf(stderr, "Error getting device spec: %s\n", SDL_GetError());
@@ -222,9 +223,11 @@ int open_audio_device(AudioDevice *device, uint8_t desired_channels, int desired
     SDL_AudioSpec obtained;
     device->spec.format = AUDIO_S16SYS; // For now, only allow 16bit signed samples in native byte order.
     device->spec.samples = chunk_size;
+    device->spec.freq = desired_sample_rate;
     device->spec.channels = desired_channels;
     device->spec.callback = device->iscapture ? recording_callback : play_callback;
-    if ((device->id = SDL_OpenAudioDevice(device->name, device->iscapture, &(device->spec), &obtained, SDL_AUDIO_ALLOW_ANY_CHANGE))) {
+    fprintf(stderr, "attempting to open device %s iscapture: %d\n", device->name, device->iscapture);
+    if ((device->id = SDL_OpenAudioDevice(device->name, device->iscapture, &(device->spec), &obtained, 0)) > 0) {
         device->spec = obtained;
         device->open = true;
         return 0;

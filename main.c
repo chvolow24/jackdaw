@@ -98,7 +98,6 @@ void set_dpi_scale_factor(JDAWWindow *jwin)
         fprintf(stderr, "Error! Scale factor w != h.\n");
     }
 }
-
 void init_graphics()
 {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -130,16 +129,22 @@ static void get_mouse_state(SDL_Point *mouse_p)
 
 static void triage_mouseclick(SDL_Point *mouse_p)
 {
+    fprintf(stderr, "In main triage mouseclick %d, %d\n", (*mouse_p).x, (*mouse_p).y);
+    fprintf(stderr, "\t-> tlrect: %d %d %d %d\n", proj->tl->rect.x, proj->tl->rect.y, proj->tl->rect.w, proj->tl->rect.h);
+    fprintf(stderr, "\t-> audiorect: %d %d %d %d\n", proj->tl->audio_rect.x, proj->tl->audio_rect.y, proj->tl->audio_rect.w, proj->tl->audio_rect.h);
+
     if (SDL_PointInRect(mouse_p, &(proj->tl->rect))) {
         if (SDL_PointInRect(mouse_p, &(proj->tl->audio_rect))) {
             proj->tl->play_position = get_abs_tl_x(mouse_p->x);
+            fprintf(stderr, "reset pos! %d\n", proj->tl->play_position);
         }
         for (int i=0; i<proj->tl->num_tracks; i++) {
             Track *track;
             if ((track = proj->tl->tracks[i])) {
                 if (SDL_PointInRect(mouse_p, &(track->rect))) {
                     if (SDL_PointInRect(mouse_p, &(track->name_box->container))) {
-                        track->name_box->onclick((void *)track);
+                        fprintf(stderr, "\t-> mouse in namebox\n");
+                        track->name_box->onclick(track->name_box, (void *)track);
                     } else if (SDL_PointInRect(mouse_p, &(track->input_name_box->container))) {
                         select_track_input_menu((void *)track);
                     }
@@ -174,7 +179,7 @@ char *new_project_loop(JDAWWindow *jwin)
         }
     }
     TextboxList *testlist = create_menulist(
-        jwin, 400, 5, jwin->fonts[2], strarray, i+1, NULL
+        jwin, 400, 5, jwin->fonts[2], strarray, i+1, NULL, NULL
     );
     position_textbox_list(testlist, 100, 50);
 
@@ -195,6 +200,7 @@ char *new_project_loop(JDAWWindow *jwin)
         SDL_Delay(1);
     }
     destroy_jwin(jwin);
+    return "";
 }
 
 
@@ -225,7 +231,10 @@ void project_loop()
             } else if (e.type == SDL_MOUSEBUTTONDOWN) {
                 mousebutton_down = true;
                 get_mouse_state(&mouse_p);
-                triage_mouseclick(&mouse_p);
+                if (!menulist_triage_click(proj->jwin, &mouse_p)) {
+                    fprintf(stderr, "! menulist triage click\n");
+                    triage_mouseclick(&mouse_p);
+                }
                 // get_mouse_state(&(mouse_p));
                 // if (SDL_PointInRect(&mouse_p, &(proj->tl->audio_rect))) {
                 //     proj->tl->play_position = get_abs_tl_x(mouse_p.x);
@@ -260,7 +269,7 @@ void project_loop()
                         if (!proj->recording) {
                             proj->recording = true;
                             proj->active_clip = create_clip((proj->tl->tracks)[active_track_i], 0, proj->tl->play_position);
-                            start_recording();
+                            start_recording(active_track->input);
                             if (!proj->playing) {
                                 proj->play_speed = 1; 
                                 playback();
@@ -269,7 +278,7 @@ void project_loop()
                         } else {
                             proj->recording = false;
                             proj->playing = false;
-                            stop_recording(proj->active_clip);
+                            stop_recording(proj->active_clip, active_track->input);
                             proj->play_speed = 0;
                         }
                         break;
@@ -277,7 +286,7 @@ void project_loop()
                         printf("Play!\n");
                         if (proj->recording) {
                             proj->recording = false;
-                            stop_recording(proj->active_clip);
+                            stop_recording(proj->active_clip, active_track->input);
                         }
                         if (k_down) {
                             l_down = true;
@@ -294,7 +303,7 @@ void project_loop()
                         k_down = true;
                         if (proj->recording) {
                             proj->recording = false;
-                            stop_recording(proj->active_clip);
+                            stop_recording(proj->active_clip, active_track->input);
                         }
                         proj->play_speed = 0;
                         stop_playback();
@@ -306,7 +315,7 @@ void project_loop()
                             proj->play_speed = 0;
                             proj->playing = 0;
                             proj->recording = false;
-                            stop_recording(proj->active_clip);
+                            stop_recording(proj->active_clip, active_track->input);
                         }
                         if (k_down) {
                             j_down = true;
@@ -421,7 +430,7 @@ void project_loop()
                         proj->play_speed = 0;
                         if (proj->recording) {
                             proj->recording = false;
-                            stop_recording(proj->active_clip);
+                            stop_recording(proj->active_clip, active_track->input);
                         }
                         Track *track_to_destroy;
                         if ((track_to_destroy = (proj->tl->tracks)[proj->tl->num_tracks - 1])) {
@@ -517,44 +526,8 @@ int main()
     JDAWWindow *new_project = create_jwin("Create a new Jackdaw project", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 600, 400);
     new_project_loop(new_project);
 
-    // create_or_open_project();
     proj = create_project("Untitled");
-    // init_fonts(fonts, OPEN_SANS);
-    // init_fonts(bold_fonts, OPEN_SANS_BOLD);
-    // set_dpi_scale_factor(proj->win, proj->rend);
-    fprintf(stderr, "project scale factor: %d\n", scale_factor);
-    // proj->tl->rect = get_rect(proj->winrect, TL_RECT); // TODO: Why is this here?
-
-
-    AudioDevice **playback_devices = NULL;
-    AudioDevice **record_devices = NULL;
-    int num_playback_devices = query_audio_devices(&playback_devices, 0);
-    int num_record_devices = query_audio_devices(&record_devices, 1);
-    for (int i=0; i<num_playback_devices; i++) {
-        AudioDevice *dev = playback_devices[i];
-        if (open_audio_device(dev, dev->spec.channels, SAMPLE_RATE, CHUNK_SIZE) == 0) {
-            fprintf(stderr, "Opened audio device: %s\n\tchannels: %d\n\tformat: %s\n", dev->name, dev->spec.channels, get_audio_fmt_str(dev->spec.format));
-
-        } else {
-            // fprintf(stderr, "Error: failed to open device %s\n", dev->name);
-        }
-    }
-    for (int i=0; i<num_record_devices; i++) {
-        AudioDevice *dev = record_devices[i];
-        if (open_audio_device(dev, dev->spec.channels, SAMPLE_RATE, CHUNK_SIZE) == 0) {
-            fprintf(stderr, "Opened record device: %s\n\tchannels: %u\n\tformat: %s\n", dev->name, dev->spec.channels, get_audio_fmt_str(dev->spec.format));
-
-        } else {
-            // fprintf(stderr, "Error: failed to open record device %s\n", dev->name);
-        }
-    }
-    proj->record_devices = record_devices;
-    proj->playback_devices = playback_devices;
-    proj->num_record_devices = num_record_devices;
-    proj->num_playback_devices = num_playback_devices;
-    // txt_soft_c = get_color(txt_soft);
-    // txt_main_c = get_color(txt_main);
-
+    activate_audio_devices(proj);
 
     project_loop();
 

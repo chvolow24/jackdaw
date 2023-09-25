@@ -66,7 +66,7 @@ JDAW_Color trck_colors[7] = {
 
 int trck_color_index = 0;
 
-void rename_track(void *track_v)
+void rename_track(Textbox *tb, void *track_v)
 {
     Track *track = (Track *)track_v;
     track->name_box->bckgrnd_color = &white;
@@ -81,9 +81,19 @@ void rename_track(void *track_v)
     track->name_box->show_cursor = false;
 }
 
-void select_track_input(void *track_v)
+void select_track_input(Textbox *tb, void *track_v)
 {
+    fprintf(stderr, "SELECT track input on %p. Clicked value: %s\n", track_v, tb->value);
     Track *track = (Track *)track_v;
+    for (uint8_t i=0; i<proj->num_record_devices; i++) {
+        AudioDevice *rd = proj->record_devices[i];
+        if (strcmp(rd->name, tb->value) == 0) {
+            track->input = rd;
+            fprintf(stderr, "Resetting track input to %s", rd->name);
+            reset_textbox_value(track->input_name_box, (char *) rd->name);
+            return;
+        }
+    }
 }
 
 void select_track_input_menu(void *track_v)
@@ -100,7 +110,8 @@ void select_track_input_menu(void *track_v)
         proj->jwin->fonts[2],
         device_names,
         proj->num_record_devices,
-        select_track_input
+        select_track_input,
+        track
     );
     position_textbox_list(tbl, track->input_name_box->container.x, track->input_name_box->container.y);
 }
@@ -185,8 +196,9 @@ Project *create_project(const char* name)
     proj->jwin = create_jwin(project_window_name, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED-20, 900, 650);
 
     tl->console_width = TRACK_CONSOLE_WIDTH;
-    tl->rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h,}, TL_RECT);    
-    fprintf(stderr, "win w, h: %d, %d; TL: %d, %d, %d, %d", proj->jwin->w, proj->jwin->h, tl->rect.x, tl->rect.y, tl->rect.w, tl->rect.h);
+    tl->rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h,}, TL_RECT);
+    tl->audio_rect = (SDL_Rect) {tl->rect.x + TRACK_CONSOLE_WIDTH + COLOR_BAR_W + PADDING, tl->rect.y, tl->rect.w, tl->rect.h}; // SET x in track
+
     return proj;
 }
 
@@ -231,6 +243,7 @@ Track *create_track(Timeline *tl, bool stereo)
         NULL,
         NULL,
         rename_track,
+        track,
         NULL,
         NULL,
         0
@@ -247,6 +260,7 @@ Track *create_track(Timeline *tl, bool stereo)
         NULL,
         NULL,
         NULL,
+        NULL,
         0
     );
     track->input_name_box = create_textbox(
@@ -259,6 +273,7 @@ Track *create_track(Timeline *tl, bool stereo)
         NULL,
         NULL,
         select_track_input,
+        track,
         NULL,
         NULL,
         5 * scale_factor
@@ -340,6 +355,7 @@ void destroy_track(Track *track)
 void reset_tl_rect(Timeline *tl)
 {
     tl->rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h,}, TL_RECT);
+    tl->audio_rect = (SDL_Rect) {tl->rect.x + TRACK_CONSOLE_WIDTH + COLOR_BAR_W + PADDING, tl->rect.y, tl->rect.w, tl->rect.h}; // SET x in track
     Track *track = NULL;
 
     for (int t=0; t<tl->num_tracks; t++) {
@@ -347,4 +363,28 @@ void reset_tl_rect(Timeline *tl)
         track->rect.w = tl->rect.w;
     }
 
+}
+
+void activate_audio_devices(Project *proj)
+{
+    proj->num_playback_devices = query_audio_devices(&(proj->playback_devices), 0);
+    proj->num_record_devices = query_audio_devices(&(proj->record_devices), 1);
+    for (int i=0; i<proj->num_playback_devices; i++) {
+        AudioDevice *dev = proj->playback_devices[i];
+       if (open_audio_device(dev, 2, SAMPLE_RATE, CHUNK_SIZE) == 0) {
+            fprintf(stderr, "Opened audio device: %s\n\tchannels: %d\n\tformat: %s\n", dev->name, dev->spec.channels, get_audio_fmt_str(dev->spec.format));
+
+        } else {
+            fprintf(stderr, "Error: failed to open device %s\n", dev->name);
+        }
+    }
+    for (int i=0; i<proj->num_record_devices; i++) {
+        AudioDevice *dev = proj->record_devices[i];
+        if (open_audio_device(dev, 2, SAMPLE_RATE, CHUNK_SIZE) == 0) { //TODO: stop forcing mono
+            fprintf(stderr, "Opened record device: %s\n\tchannels: %u\n\tformat: %s\n", dev->name, dev->spec.channels, get_audio_fmt_str(dev->spec.format));
+
+        } else {
+            fprintf(stderr, "Error: failed to open record device %s\n", dev->name);
+        }
+    }
 }

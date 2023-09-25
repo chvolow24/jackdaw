@@ -217,7 +217,7 @@ Textbox *create_textbox(
             for (int i=0; i<strlen(tb->value); i++) {
                 sprintf(&(truncated[i]), "%c...", tb->value[i]);
                 TTF_SizeUTF8(font, truncated, &txtw, NULL);
-                if (txtw > fixed_w - 20) {
+                if (txtw > fixed_w - 30) {
                     strcpy(tb->display_value, truncated);
                     break;
                 }
@@ -399,21 +399,20 @@ TextboxList *create_textbox_list_from_strings(
 )
 {
     TextboxList *list = malloc(sizeof(TextboxList));
-    int w = 0;
-    int tw = 0;
+    int max_text_w = 0;
     for (uint8_t i=0; i<num_values; i++) {
         list->textboxes[i] = create_textbox(
             fixed_w, 0, padding, font, values[i], txt_color, &clear, &clear, onclick, target, onhover, tooltip, radius
         );
-        if ((tw = list->textboxes[i]->container.w) > w) {
-            w = tw;
+        if (list->textboxes[i]->txt_container.w > max_text_w) {
+            max_text_w = list->textboxes[i]->txt_container.w;
         }
     }
     for (uint8_t i=0; i<num_values; i++) {
-        list->textboxes[i]->container.w = w - 2 * padding;
+        list->textboxes[i]->container.w = max_text_w + 4 * padding;
     }
     list->num_textboxes = num_values;
-    list->container = (SDL_Rect) {0, 0, w + padding * 2, (list->textboxes[0]->container.h + padding) * num_values};
+    list->container = (SDL_Rect) {0, 0, max_text_w + 8 * padding, (list->textboxes[0]->container.h + padding) * num_values};
     list->txt_color = txt_color;
     list->border_color = border_color;
     list->bckgrnd_color = bckgrnd_clr;

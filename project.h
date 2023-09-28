@@ -38,8 +38,13 @@
 
 /* Timeline- and clip-related constants */
 #define MAX_TRACKS 100
-#define MAX_NAMELENGTH 25
+#define MAX_NAMELENGTH 255
 #define TL_RECT (Dim) {ABS, 5}, (Dim) {REL, 20}, (Dim) {REL, 100}, (Dim) {REL, 76}
+
+#define MAX_ACTIVE_CLIPS 25
+#define MAX_ACTIVE_TRACKS 25
+#define MAX_TRACK_CLIPS 255
+
 
 typedef struct clip Clip;
 typedef struct timeline Timeline;
@@ -57,8 +62,9 @@ typedef struct track {
     bool record;
     Timeline *tl;
     uint8_t tl_rank;
-    Clip *clips[100];
-    uint16_t num_clips;
+    Clip *clips[MAX_TRACK_CLIPS];
+    uint8_t num_clips;
+    uint8_t num_grabbed_clips;
     AudioDevice *input;
 
     /* 
@@ -79,28 +85,33 @@ typedef struct clip {
     char name[MAX_NAMELENGTH];
     int clip_gain;
     Track *track;
+    uint8_t track_rank;
     uint32_t length; // in samples
-    uint32_t absolute_position; // in samples
+    int32_t absolute_position; // in samples
     int16_t *samples;
     bool done;
+    AudioDevice *input;
 
     /* GUI members */
     SDL_Rect rect;
     void (*onclick)(void);
     void (*onhover)(void);
     Textbox *namebox;
-    Textbox *input_label;
-    Textbox *input;
+    bool grabbed;
 } Clip;
 
 typedef struct timeline {
     uint32_t play_position; // in sample frames
-    uint32_t record_position; // in sample frames
+    // uint32_t record_position; // in sample frames
+    uint32_t record_offset;
+    uint32_t play_offset;
     uint32_t in_mark;
     uint32_t out_mark;
     pthread_mutex_t play_position_lock;
     Track *tracks[MAX_TRACKS];
     uint8_t num_tracks;
+    uint8_t active_track_indices[MAX_ACTIVE_TRACKS];
+    uint8_t num_active_tracks;
     uint16_t tempo;
     bool click_on;
 
@@ -122,7 +133,8 @@ typedef struct project {
     Clip *loose_clips[100];
     uint8_t num_loose_clips;
     JDAWWindow *jwin;
-    Clip *active_clip;
+    Clip *active_clips[MAX_ACTIVE_CLIPS];
+    uint8_t num_active_clips;
     float play_speed;
     bool playing;
     bool recording;
@@ -130,18 +142,42 @@ typedef struct project {
     AudioDevice **playback_devices;
     int num_record_devices;
     int num_playback_devices;
+
+    /* Audio settings */
+    AudioDevice *playback_device;
+    uint8_t channels;
+    int sample_rate; //samples per second
+    SDL_AudioFormat fmt;
+    uint16_t chunk_size; //sample_frames
+
 } Project;
 
 int16_t get_track_sample(Track *track, Timeline *tl, uint32_t start_pos, uint32_t pos_in_chunk);
 int16_t *get_mixdown_chunk(Timeline* tl, uint32_t length, bool from_mark_in);
-Project *create_project(const char* name);
+Project *create_project(const char* name, uint8_t channels, int sample_rate, SDL_AudioFormat fmt, uint16_t chunk_size);
 Track *create_track(Timeline *tl, bool stereo);
 Clip *create_clip(Track *track, uint32_t length, uint32_t absolute_position);
 void destroy_clip(Clip *clip);
 void destroy_track(Track *track);
 void reset_tl_rect(Timeline *tl);
 void select_track_input_menu(void *track_v);
+void activate_or_deactivate_track(uint8_t track_index);
 void activate_audio_devices(Project *proj);
+void reposition_clip(Clip *clip, uint32_t new_pos);
+void add_active_clip(Clip *clip);
+void clear_active_clips();
+void log_project_state();
+
+void grab_clip(Clip *clip);
+void grab_clips(void);
+void ungrab_clips(void);
+uint8_t proj_grabbed_clips(void);
+void translate_grabbed_clips(int32_t translate_by);
+void remove_clip_from_track(Clip *clip);
+void delete_clip(Clip *clip);
+void delete_grabbed_clips();
+void reset_cliprect(Clip* clip);
+
 
 
 

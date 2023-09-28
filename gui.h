@@ -57,6 +57,9 @@
 #define MAX_TB_LIST_LEN 100
 #define NUM_FONT_SIZES 11
 #define MAX_ACTIVE_MENUS 8
+#define CLIP_BORDER_W (2 * scale_factor)
+#define ARROW_TL_STEP (20 * scale_factor)
+#define ARROW_TL_STEP_SMALL (1 * scale_factor)
 
 #define MENU_LIST_R 14
 
@@ -171,7 +174,7 @@ TextboxList *create_menulist(
 );
 void destroy_pop_menulist(JDAWWindow *jwin);
 void menulist_hover(JDAWWindow *jwin, SDL_Point *mouse_p);
-bool menulist_triage_click(JDAWWindow *jwin, SDL_Point *mouse_p);
+bool triage_menulist_mouseclick(JDAWWindow *jwin, SDL_Point *mouse_p);
 void reset_textbox_value(Textbox *tb, char *new_val);
 
 #endif

@@ -24,23 +24,31 @@
 
 *****************************************************************************************************************/
 
-#ifndef JDAW_TIMELINE_H
-#define JDAW_TIMELINE_H
+/*****************************************************************************************************************
+    dot_jdaw.c
 
-#include <stdint.h>
+    * Define the .jdaw file type and provide functions for saving and opening .jdaw files
+ *****************************************************************************************************************/
 
-#define TL_SHIFT_STEP (50 * scale_factor)
-#define TL_SCROLL_STEP_H (10 * scale_factor)
-#define TL_SCROLL_STEP_V (10 * scale_factor)
 
-#define SFPP_STEP 1.2 // Sample Frames Per Pixel
-#define CATCHUP_STEP (600 * scale_factor)
+/**************************** .JDAW FILE SPEC ***********************************
 
-uint32_t get_abs_tl_x(int draw_x);
-int32_t get_tl_abs_w(int draw_w);
-int get_tl_draw_x(uint32_t abs_x);
-int get_tl_draw_w(uint32_t abs_w);
-void translate_tl(int translate_by_x, int translate_by_y);
-void rescale_timeline(double scale_factor, uint32_t center_draw_position);
+=================================================================
+SCTN  POS       TYPE              BYTE ORDER   FIELD NAME
+=================================================================
+HDR   0-3       char[4]                        "JDAW"
+HDR   4-259     char[255]                      project name
+HDR   260       uint8_t                        channels
+HDR   261-264   uint32_t          BE           sample rate
+HDR   265-      uint32_t          BE           
 
-#endif
+
+
+
+
+
+*** AUDIO SETTINGS ***
+HDR 6: channels
+HDR 7: 
+
+*********************************************************************************/

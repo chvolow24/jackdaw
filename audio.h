@@ -46,19 +46,23 @@ typedef struct audiodevice{
     bool iscapture;
     SDL_AudioDeviceID id;
     SDL_AudioSpec spec;
-    void *rec_buffer;
+    int16_t rec_buffer[BUFFLEN];
+    int32_t write_buffpos;
+    bool active;
 } AudioDevice;
 
 
 void init_audio(void);
-void start_recording(AudioDevice *dev);
-void stop_recording(Clip *clip, AudioDevice *dev);
-void start_playback(void);
-void stop_playback(void);
+void start_device_recording(AudioDevice *dev);
+void stop_device_recording(AudioDevice *dev);
+void start_device_playback();
+void stop_device_playback();
 int query_audio_devices(AudioDevice ***device_list, int iscapture);
-int open_audio_device(AudioDevice *device, uint8_t desired_channels, int desired_sample_rate, uint16_t chunk_size);
+int open_audio_device(AudioDevice *device, uint8_t desired_channels);
 const char *get_audio_fmt_str(SDL_AudioFormat fmt);
 void write_mixdown_to_wav();
+
+void *copy_buff_to_clip(void* arg);
 
 
 #endif

@@ -43,6 +43,7 @@
 #include <unistd.h>
 #include <pwd.h>
 #include <dirent.h>
+#include <signal.h>
 /*^^^^^^^^^^^^^^^^^^*/
 
 #include "SDL.h"
@@ -62,20 +63,13 @@
 #define lesser_of(a,b) (a < b ? a : b)
 #define greater_of(a,b) (a > b ? a : b)
 
-#define TL_SHIFT_STEP (50 * scale_factor)
-#define TL_SCROLL_STEP_H (10 * scale_factor)
-#define TL_SCROLL_STEP_V (10 * scale_factor)
-
-#define SFPP_STEP 1.2
-#define CATCHUP_STEP (600 * scale_factor)
-
 /* GLOBALS */
 Project *proj = NULL;
 uint8_t scale_factor = 1;
-// TTF_Font *fonts[11];
-// TTF_Font *bold_fonts[11];
 bool dark_mode = true;
 char *home_dir;
+
+extern int write_buffpos;
 
 extern JDAW_Color bckgrnd_color;
 extern JDAW_Color tl_bckgrnd;
@@ -87,17 +81,31 @@ extern JDAW_Color black;
 extern JDAW_Color white;
 extern JDAW_Color grey;
 
+static int segfault_counter = 0;
 
-void set_dpi_scale_factor(JDAWWindow *jwin)
+void signal_handler()
 {
-    int rw = 0, rh = 0, ww = 0, wh = 0;
-    SDL_GetWindowSize(jwin->win, &ww, &wh);
-    SDL_GetRendererOutputSize(jwin->rend, &rw, &rh);
-    jwin->scale_factor = (float)rw / (float)ww;
-    if (jwin->scale_factor != (float)rh / (float)wh) {
-        fprintf(stderr, "Error! Scale factor w != h.\n");
+    segfault_counter++;
+    if (segfault_counter > 10) {
+        exit(1);
     }
+    fprintf(stderr, "\nSEGMENTATION FAULT\n");
+    log_project_state();
+    exit(1);
 }
+void signal_init(void)
+{
+
+    struct sigaction sigIntHandler;
+
+    sigIntHandler.sa_handler = signal_handler;
+    sigemptyset(&sigIntHandler.sa_mask);
+    sigIntHandler.sa_flags = 0;
+    // sigaction(SIGINT, &sigIntHandler, NULL);
+    sigaction(SIGSEGV, &sigIntHandler, NULL);
+}
+
+/* Initialize SDL Video and TTF */
 void init_graphics()
 {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -111,15 +119,16 @@ void init_graphics()
     }
 }
 
-
+/* Start timeline playback */
 void playback()
 {
-    if (proj->play_speed != 0) {
-        start_playback();
+    if (proj->play_speed != 0 && !(proj->playing)) {
+        start_device_playback();
         proj->playing = true;
     }
 }
 
+/* Get the current mouse position and ensure coordinates are scaled appropriately */
 static void get_mouse_state(SDL_Point *mouse_p) 
 {
     SDL_GetMouseState(&(mouse_p->x), &(mouse_p->y));
@@ -127,7 +136,8 @@ static void get_mouse_state(SDL_Point *mouse_p)
     mouse_p->y *= scale_factor;
 }
 
-static void triage_mouseclick(SDL_Point *mouse_p)
+/* Triage mouseclicks that occur within a Jackdaw Project */
+static void triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down)
 {
     fprintf(stderr, "In main triage mouseclick %d, %d\n", (*mouse_p).x, (*mouse_p).y);
     fprintf(stderr, "\t-> tlrect: %d %d %d %d\n", proj->tl->rect.x, proj->tl->rect.y, proj->tl->rect.w, proj->tl->rect.h);
@@ -147,17 +157,18 @@ static void triage_mouseclick(SDL_Point *mouse_p)
                         track->name_box->onclick(track->name_box, (void *)track);
                     } else if (SDL_PointInRect(mouse_p, &(track->input_name_box->container))) {
                         select_track_input_menu((void *)track);
+                    } else if (cmd_ctrl_down) {
+                        for (uint8_t c=0; c<track->num_clips; c++) {
+                            Clip* clip = track->clips[c];
+                            if (SDL_PointInRect(mouse_p, &clip->rect)) {
+                                grab_clip(clip);
+                            }
+                        }
                     }
                 }
             }
         }
     }
-}
-
-void click_item(void *tb_v)
-{
-    Textbox *tb = (Textbox *)tb_v;
-    tb->value = "New value";
 }
 
 /* Present a window to allow user to create or open a project. Return project name */
@@ -203,11 +214,101 @@ char *new_project_loop(JDAWWindow *jwin)
     return "";
 }
 
+void start_recording()
+{
+    write_buffpos = 0;
+    Track *track = NULL;
+    // AudioDevice *dev_list[proj->tl->num_active_tracks];
+    // uint8_t num_active_devices = 0;
+    fprintf(stderr, "START RECORDING. active tracks: %d\n", proj->tl->num_active_tracks);
+    for (uint8_t i=0; i<proj->tl->num_active_tracks; i++) {
+        track = proj->tl->tracks[proj->tl->active_track_indices[i]];
+        track->input->active = true;
+        fprintf(stderr, "set device %s to active\n", track->input->name);
+        Clip *clip = create_clip(track, 0, proj->tl->play_position);
+        fprintf(stderr, "Creating clip @abspos: %d\n", proj->tl->play_position);
+        add_active_clip(clip);
+        // uint8_t j=0;
+        // while (j < num_active_devices && clip->input != dev_list[j]) {
+        //     j++;
+        // }
+        // if (j == num_active_devices) {
+        //     dev_list[j] = clip->input;
+        //     num_active_devices++;
+        // }
+    }
+    for (uint8_t i=0; i<proj->num_record_devices; i++) {
+        AudioDevice *dev = NULL;
+        if ((dev = proj->record_devices[i]) && dev->active) {
+            fprintf(stderr, "Device: %s, active? %d\n", dev->name, dev->active);
+            start_device_recording(dev);
+        }
+    }
+    proj->play_speed = 1;
+}
+
+void stop_recording()
+{
+    fprintf(stderr, "Enter stop_recording\n");
+    proj->play_speed = 0;
+    Track *track = NULL;
+    for (uint8_t i=0; i<proj->tl->num_active_tracks; i++) {
+        track = proj->tl->tracks[proj->tl->active_track_indices[i]];
+        stop_device_recording(track->input);
+    }
+    // for (uint8_t i=0; i<proj->num_active_clips; i++) {
+    //     // pthread_t t;
+    //     // pthread_create(&t, NULL, copy_buff_to_clip, proj->active_clips[i]);
+    // }
+    Clip *clip = NULL;
+    for (uint8_t i=0; i<proj->num_active_clips; i++) {
+        fprintf(stderr, "Active clip index %d\n", i);
+        if (!(clip = proj->active_clips[i])) {
+            fprintf(stderr, "Error: active clip not found at index %d\n", i);
+            exit(1);
+        }
+        fprintf(stderr, "\t->found clip. Copying buf\n");
+        copy_buff_to_clip(clip);
+        uint32_t abs_pos_saved = clip->absolute_position;
+        reposition_clip(clip, clip->absolute_position - proj->tl->record_offset);
+        fprintf(stderr, "Repoisitioning clip from %d to %d\n", abs_pos_saved, clip->absolute_position);
+        // pthread_t t;
+        // pthread_create(&t, NULL, copy_buff_to_clip, proj->active_clips[i]);
+    }
+    for (uint8_t i=0; i<proj->num_record_devices; i++) {
+        AudioDevice* dev = proj->record_devices[i];
+        if (dev->active) {
+            memset(dev->rec_buffer, '\0', BUFFLEN / 2);
+            dev->write_buffpos = 0;
+            dev->active = false;
+        }
+    }
+    proj->tl->record_offset = 0;
+    fprintf(stderr, "Clearing active clips\n");
+    clear_active_clips();
+}
+    // fprintf(stderr, "Enter stop_recording\n");
+    // SDL_PauseAudioDevice(dev->id, 1);
+    // pthread_t t;
+    // pthread_create(&t, NULL, copy_buff_to_clip, clip);
+    // fprintf(stderr, "\t->exit stop_recording\n");
+
+void start_or_stop_recording()
+{
+    if (proj->recording) {
+        stop_recording();
+        proj->recording = false;
+    } else {
+        start_recording();
+        proj->recording = true;
+    }
+}
+
 
 void project_loop()
 {
-    int active_track_i = 0;
-    Track *active_track = NULL;
+    // int active_track_i = 0;
+    // Track *active_track = NULL;
     bool mousebutton_down = false;
     bool cmd_ctrl_down = false;
     bool shift_down = false;
@@ -231,14 +332,10 @@ void project_loop()
             } else if (e.type == SDL_MOUSEBUTTONDOWN) {
                 mousebutton_down = true;
                 get_mouse_state(&mouse_p);
-                if (!menulist_triage_click(proj->jwin, &mouse_p)) {
-                    fprintf(stderr, "! menulist triage click\n");
-                    triage_mouseclick(&mouse_p);
+                /* Triage mouseclick to GUI menus first. Check project for clickables IFF no GUI item is clicked */
+                if (!triage_menulist_mouseclick(proj->jwin, &mouse_p)) {
+                    triage_project_mouseclick(&mouse_p, cmd_ctrl_down);
                 }
-                // get_mouse_state(&(mouse_p));
-                // if (SDL_PointInRect(&mouse_p, &(proj->tl->audio_rect))) {
-                //     proj->tl->play_position = get_abs_tl_x(mouse_p.x);
-                // }
             } else if (e.type == SDL_MOUSEWHEEL) {
                 get_mouse_state(&(mouse_p));
                 if (SDL_PointInRect(&mouse_p, &(proj->tl->rect))) {
@@ -246,13 +343,11 @@ void project_loop()
                         double scale_factor = pow(SFPP_STEP, e.wheel.y);
                         rescale_timeline(scale_factor, get_abs_tl_x(mouse_p.x));
                     } else {
-
                         translate_tl(TL_SCROLL_STEP_H * e.wheel.x, TL_SCROLL_STEP_V * e.wheel.y);
                     }
                 }
             } else if (e.type == SDL_KEYDOWN) {
                 switch (e.key.keysym.scancode) {
-                    // TODO: when text entry, use SDL_GetKeyName(event->key.keysym.sym) to get value and add to text field
                     case SDL_SCANCODE_LGUI:
                     case SDL_SCANCODE_LCTRL:
                         if (!cmd_ctrl_down) {
@@ -266,28 +361,9 @@ void project_loop()
                         }
                         break;
                     case SDL_SCANCODE_R:
-                        if (!proj->recording) {
-                            proj->recording = true;
-                            proj->active_clip = create_clip((proj->tl->tracks)[active_track_i], 0, proj->tl->play_position);
-                            start_recording(active_track->input);
-                            if (!proj->playing) {
-                                proj->play_speed = 1; 
-                                playback();
-                            }
-
-                        } else {
-                            proj->recording = false;
-                            proj->playing = false;
-                            stop_recording(proj->active_clip, active_track->input);
-                            proj->play_speed = 0;
-                        }
+                        start_or_stop_recording();
                         break;
                     case SDL_SCANCODE_L:
-                        printf("Play!\n");
-                        if (proj->recording) {
-                            proj->recording = false;
-                            stop_recording(proj->active_clip, active_track->input);
-                        }
                         if (k_down) {
                             l_down = true;
                             proj->play_speed = 0.2;
@@ -301,22 +377,11 @@ void project_loop()
                         break;
                     case SDL_SCANCODE_K:
                         k_down = true;
-                        if (proj->recording) {
-                            proj->recording = false;
-                            stop_recording(proj->active_clip, active_track->input);
-                        }
                         proj->play_speed = 0;
-                        stop_playback();
+                        stop_device_playback();
                         proj->playing = false;
                         break;
                     case SDL_SCANCODE_J:
-                        printf("Rewind!\n");
-                        if (proj->recording) {
-                            proj->play_speed = 0;
-                            proj->playing = 0;
-                            proj->recording = false;
-                            stop_recording(proj->active_clip, active_track->input);
-                        }
                         if (k_down) {
                             j_down = true;
                             proj->play_speed = -0.2;
@@ -364,74 +429,45 @@ void project_loop()
                             create_track(proj->tl, false);
                         }
                         break;
-                    case SDL_SCANCODE_1:
-                        if ((active_track = proj->tl->tracks[0])) {
-                            active_track_i = 0;
-                            if (active_track->active) {
-                                active_track->active = false;
-                            } else {
-                                active_track->active = true;
-
-                            }
+                    case SDL_SCANCODE_G: {
+                        fprintf(stderr, "SCANCODE_G\n");
+                        if (proj_grabbed_clips() != 0 && !shift_down) {
+                            ungrab_clips();
+                        } else {
+                            fprintf(stderr, "\tSince no clip found, grabbing\n");
+                            grab_clips();
                         }
+                    }
+                        break;
+                    case SDL_SCANCODE_1:
+                        activate_or_deactivate_track(0);
                         break;
                     case SDL_SCANCODE_2:
-                        if ((active_track = proj->tl->tracks[1])) {
-                            active_track_i = 1;
-                            if (active_track->active) {
-                                active_track->active = false;
-                            } else {
-                                active_track->active = true;
-
-                            }
-                        }
+                        activate_or_deactivate_track(1);
                         break;
                     case SDL_SCANCODE_3:
-                        if ((active_track = proj->tl->tracks[2])) {
-                            active_track_i = 2;
-                            if (active_track->active) {
-                                active_track->active = false;
-                            } else {
-                                active_track->active = true;
-                            }
-                        }
+                        activate_or_deactivate_track(2);
                         break;
                     case SDL_SCANCODE_4:
-                        if ((active_track = proj->tl->tracks[3])) {
-                            active_track_i = 3;
-                            if (active_track->active) {
-                                active_track->active = false;
-                            } else {
-                                active_track->active = true;
-                            }
-                        }
+                        activate_or_deactivate_track(3);
                         break;
                     case SDL_SCANCODE_5:
-                        if ((active_track = proj->tl->tracks[4])) {
-                            active_track_i = 4;
-                            if (active_track->active) {
-                                active_track->active = false;
-                            } else {
-                                active_track->active = true;
-                            }
-                        }
+                        activate_or_deactivate_track(4);
                         break;
                     case SDL_SCANCODE_6:
-                        if ((active_track = proj->tl->tracks[5])) {
-                            active_track_i = 5;
-                            if (active_track->active) {
-                                active_track->active = false;
-                            } else {
-                                active_track->active = true;
-                            }
-                        }
+                        activate_or_deactivate_track(5);
+                        break;
+                    case SDL_SCANCODE_7:
+                        activate_or_deactivate_track(6);
+                        break;
+                    case SDL_SCANCODE_8:
+                        activate_or_deactivate_track(7);
+                        break;
+                    case SDL_SCANCODE_9:
+                        activate_or_deactivate_track(8);
                         break;
                     case SDL_SCANCODE_D:
                         proj->play_speed = 0;
-                        if (proj->recording) {
-                            proj->recording = false;
-                            stop_recording(proj->active_clip, active_track->input);
-                        }
                         Track *track_to_destroy;
                         if ((track_to_destroy = (proj->tl->tracks)[proj->tl->num_tracks - 1])) {
                             destroy_track(track_to_destroy);
@@ -439,14 +475,39 @@ void project_loop()
                             fprintf(stderr, "Error: no track found to destry at index %d\n", proj->tl->num_tracks - 1);
                         }
                         break;
-                    case SDL_SCANCODE_RIGHT:
-                        proj->tl->play_position += 512;
+                    case SDL_SCANCODE_RIGHT: {
+                        int32_t translate_by;
+                        if (cmd_ctrl_down) {
+                            translate_by = get_tl_abs_w(ARROW_TL_STEP_SMALL);
+                        } else {
+                            translate_by = get_tl_abs_w(ARROW_TL_STEP);
+                        }
+                        proj->tl->play_position += translate_by;
+                        translate_grabbed_clips(translate_by);
+                        proj->tl->play_position += get_tl_abs_w(ARROW_TL_STEP);
+                    }
                         break;
-                    case SDL_SCANCODE_LEFT:
-                        proj->tl->play_position -= 512;
+                    case SDL_SCANCODE_LEFT: {
+                        int32_t translate_by;
+                        if (cmd_ctrl_down) {
+                            translate_by = get_tl_abs_w(ARROW_TL_STEP_SMALL) * -1;
+                        } else {
+                            translate_by = get_tl_abs_w(ARROW_TL_STEP) * -1;
+                        }
+                        proj->tl->play_position += translate_by;
+                        translate_grabbed_clips(translate_by);
+                        proj->tl->play_position += get_tl_abs_w(ARROW_TL_STEP);
+                    }
                         break;
                     case SDL_SCANCODE_W:
-                        write_mixdown_to_wav();
+                        if (shift_down) {
+                            write_mixdown_to_wav();
+                        }
+                        break;
+                    case SDL_SCANCODE_BACKSPACE:
+                    case SDL_SCANCODE_DELETE:
+                        fprintf(stderr, "SCANCODE DELETE\n");
+                        delete_grabbed_clips();
                         break;
                     default:
                         break;
@@ -487,10 +548,11 @@ void project_loop()
                 }
             }
         }
-        // if (mousebutton_down && !proj->playing) {
-        //     get_mouse_state(&mouse_p);
-        //     proj->tl->play_position = get_abs_tl_x(mouse_p.x);
-        // }
+
+        if (mousebutton_down && !proj->playing && !proj->recording) {
+            get_mouse_state(&mouse_p);
+            proj->tl->play_position = get_abs_tl_x(mouse_p.x);
+        }
 
         if (proj->play_speed < 0 && proj->tl->offset > proj->tl->play_position) {
             translate_tl(CATCHUP_STEP * -1, 0);
@@ -517,6 +579,7 @@ char *get_home_dir()
 
 int main()
 {
+    signal_init();
     home_dir = get_home_dir();
 
     //TODO: open project creation window if proj==NULL;
@@ -526,7 +589,7 @@ int main()
     JDAWWindow *new_project = create_jwin("Create a new Jackdaw project", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 600, 400);
     new_project_loop(new_project);
 
-    proj = create_project("Untitled");
+    proj = create_project("Untitled", 2, 48000, AUDIO_S16SYS, 512);
     activate_audio_devices(proj);
 
     project_loop();

@@ -72,10 +72,12 @@ void translate_tl(int translate_by_x, int translate_by_y)
     if (abs(translate_by_y) >= abs(translate_by_x)) {
         proj->tl->v_offset += translate_by_y;
         Track *track = NULL;
-        int i = 0;
-        while ((track = proj->tl->tracks[i]) != NULL) {
+        for (int i=0; i<proj->tl->num_tracks; i++) {
+            track = proj->tl->tracks[i];
             track->rect.y += translate_by_y;
-            i++;
+            for (int j=0; j<track->num_clips; j++) {
+                reset_cliprect(track->clips[j]);
+            }
         }
     } else {
         int32_t new_offset = proj->tl->offset + get_tl_abs_w(translate_by_x);
@@ -83,6 +85,13 @@ void translate_tl(int translate_by_x, int translate_by_y)
             proj->tl->offset = 0;
         } else {
             proj->tl->offset = new_offset;
+        }
+        Track *track = NULL;
+        for (int i=0; i<proj->tl->num_tracks; i++) {
+            track = proj->tl->tracks[i];
+            for (int j=0; j<track->num_clips; j++) {
+                reset_cliprect(track->clips[j]);
+            }
         }
     }
 
@@ -109,5 +118,12 @@ void rescale_timeline(double scale_factor, uint32_t center_abs_pos)
         proj->tl->offset = 0;
     } else {
         proj->tl->offset += (get_tl_abs_w(offset_draw_delta));
+    }
+    Track *track = NULL;
+    for (int i=0; i<proj->tl->num_tracks; i++) {
+        track = proj->tl->tracks[i];
+        for (int j=0; j<track->num_clips; j++) {
+            reset_cliprect(track->clips[j]);
+        }
     }
 }

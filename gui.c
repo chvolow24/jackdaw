@@ -73,9 +73,9 @@ JDAWWindow *create_jwin(const char *title, int x, int y, int w, int h)
     SDL_GetWindowSize(jwin->win, &ww, &wh);
     SDL_GetRendererOutputSize(jwin->rend, &rw, &rh);
     jwin->scale_factor = (float)rw / (float)ww;
-    scale_factor = jwin->scale_factor;
+    scale_factor = jwin->scale_factor; // Set global scale factor
     if (jwin->scale_factor != (float)rh / (float)wh) {
-        fprintf(stderr, "Error: scale factor w != h.\n");
+        fprintf(stderr, "Error: scale factor w != h\n");
     }
 
     init_fonts(jwin->fonts, OPEN_SANS);
@@ -412,7 +412,7 @@ TextboxList *create_textbox_list_from_strings(
         list->textboxes[i]->container.w = max_text_w + 4 * padding;
     }
     list->num_textboxes = num_values;
-    list->container = (SDL_Rect) {0, 0, max_text_w + 8 * padding, (list->textboxes[0]->container.h + padding) * num_values};
+    list->container = (SDL_Rect) {0, 0, max_text_w + 8 * padding, (list->textboxes[0]->container.h + padding * 2) * num_values};
     list->txt_color = txt_color;
     list->border_color = border_color;
     list->bckgrnd_color = bckgrnd_clr;
@@ -504,7 +504,7 @@ void menulist_hover(JDAWWindow *jwin, SDL_Point *mouse_p)
 }
 
 /* Run this in every JDAWWindow animation loop to ensure active menu click events are run */
-bool menulist_triage_click(JDAWWindow *jwin, SDL_Point *mouse_p)
+bool triage_menulist_mouseclick(JDAWWindow *jwin, SDL_Point *mouse_p)
 {
     fprintf(stderr, "Mouse click. Active menues: %d\n", jwin->num_active_menus);
     for (uint8_t i=0; i<jwin->num_active_menus; i++) {

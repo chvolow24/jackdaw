@@ -392,51 +392,81 @@ void draw_hamburger(Project * proj)
     // SDL_RenderFillRect(proj->jwin->rend, &hmbrgr_2);
     // SDL_RenderFillRect(proj->jwin->rend, &hmbrgr_3);
 }
-
 void draw_clip(Clip *clip)
 {
-    int clip_x = get_tl_draw_x(clip->absolute_position);
-    int clip_w = get_tl_draw_w(clip->length);
-    SDL_Rect cliprect = {
-        clip_x,
-        clip->track->rect.y + 4, //TODO: fix these
-        clip_w,
-        clip->track->rect.h - 4
-    };
-    int wav_x = cliprect.x;
-    int wav_y = cliprect.y + cliprect.h / 2;
+    // fprintf(stderr, "start draw CLIP\n");
+    // int clip_x = get_tl_draw_x(clip->absolute_position);
+    // if (i<4) {
+    //     fprintf(stderr, "draw clip, abs pos: %d, draw_x: %d\n", clip->absolute_position, clip_x);
+    //     i++;
+    // }
+    // int clip_w = get_tl_draw_w(clip->length);
+    // fprintf(stderr, "\t->retrieved clip dimensions\n");
+
+    // SDL_Rect cliprect = {
+    //     clip_x,
+    //     clip->track->rect.y + 4, //TODO: fix these
+    //     clip_w,
+    //     clip->track->rect.h - 4
+    // };
+    // fprintf(stderr, "\t->set clip rect\n");
+
+    int wav_x = clip->rect.x;
+    int wav_y = clip->rect.y + clip->rect.h / 2;
     set_rend_color(proj->jwin->rend, &lightblue);
-    SDL_RenderFillRect(proj->jwin->rend, &cliprect);
-    SDL_Rect clipnamerect = get_rect(cliprect, CLIP_NAME_RECT);
+    SDL_RenderFillRect(proj->jwin->rend, &(clip->rect));
+    SDL_Rect clipnamerect = get_rect(clip->rect, CLIP_NAME_RECT);
     write_text(proj->jwin->rend, &clipnamerect, proj->jwin->bold_fonts[1], &grey, clip->name, true);
     set_rend_color(proj->jwin->rend, &black);
-    for (int i=0; i<2; i++) {
-        SDL_RenderDrawRect(proj->jwin->rend, &cliprect);
-        cliprect.x += 1;
-        cliprect.y += 1;
-        cliprect.w -= 2;
-        cliprect.h -= 2;
+    // fprintf(stderr, "\t->drawing border\n");
+    SDL_Rect cliprect_temp = clip->rect;
+    for (int i=0; i<CLIP_BORDER_W; i++) {
+        SDL_RenderDrawRect(proj->jwin->rend, &cliprect_temp);
+        cliprect_temp.x += 1;
+        cliprect_temp.y += 1;
+        cliprect_temp.w -= 2;
+        cliprect_temp.h -= 2;
     }
     set_rend_color(proj->jwin->rend, &white);
-    for (int i=0; i<4; i++) {
-        SDL_RenderDrawRect(proj->jwin->rend, &cliprect);
-        cliprect.x += 1;
-        cliprect.y += 1;
-        cliprect.w -= 2;
-        cliprect.h -= 2;
+    for (int i=0; i<CLIP_BORDER_W; i++) {
+        SDL_RenderDrawRect(proj->jwin->rend, &cliprect_temp);
+        cliprect_temp.x += 1;
+        cliprect_temp.y += 1;
+        cliprect_temp.w -= 2;
+        cliprect_temp.h -= 2;
+    }
+    cliprect_temp = clip->rect;
+    cliprect_temp.x -= 2;
+    cliprect_temp.y -= 2;
+    cliprect_temp.w += 4;
+    cliprect_temp.h += 4;
+    // fprintf(stderr, "\t->if grabbed\n");
+
+    if (clip->grabbed) {
+        for (int i=0; i<CLIP_BORDER_W; i++) {
+            SDL_RenderDrawRect(proj->jwin->rend, &cliprect_temp);
+            cliprect_temp.x -= 1;
+            cliprect_temp.y -= 1;
+            cliprect_temp.w += 2;
+            cliprect_temp.h += 2;        
+        }
     }
 
     SDL_SetRenderDrawColor(proj->jwin->rend, 5, 5, 60, 255);
+    // fprintf(stderr, "\t->draw wav\n");
     if (clip->done) {
         int16_t sample = (int)((clip->samples)[0]);
         int16_t next_sample;
         for (int i=0; i<clip->length-1; i+=clip->track->tl->sample_frames_per_pixel) {
+            // fprintf(stderr, "\t\t->Clip %p, sample %d\n", clip, i);
             next_sample = (clip->samples)[i];
             SDL_RenderDrawLine(proj->jwin->rend, wav_x, wav_y + (sample / 50), wav_x + 1, wav_y + (next_sample / 50));
             sample = next_sample;
             wav_x++;
         }
     }
+    // fprintf(stderr, "\t->end draw CLIP\n");
+
 }
 
 void draw_track(Track * track) 
@@ -495,6 +525,7 @@ void draw_jwin_menus(JDAWWindow *jwin)
 void draw_project(Project *proj)
 {
 
+    // fprintf(stderr, "start draw\n");
     // SDL_SetRenderDrawBlendMode(proj->jwin->rend, SDL_BLENDMODE_BLEND);
     const static char *bottom_text = "Jackdaw | by Charlie Volow";
     // SDL_GL_GetDrawableSize(proj->jwin->win, &(proj->jwin->w), &(proj->jwin->h));
@@ -577,5 +608,7 @@ void draw_project(Project *proj)
     SDL_Rect mask_left_2 = {proj->tl->rect.x, proj->tl->rect.y, PADDING, proj->tl->rect.h};
     set_rend_color(proj->jwin->rend, &tl_bckgrnd);
     SDL_RenderFillRect(proj->jwin->rend, &mask_left_2);
+    // fprintf(stderr, "\t->end draw\n");
+
 
 }

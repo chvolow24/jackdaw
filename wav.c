@@ -54,7 +54,9 @@ Positions	Sample Value	    Description
 #include <stdio.h>
 #include <string.h>
 #include "audio.h"
+#include "project.h"
 
+extern Project *proj;
 
 //TODO: Endianness!
 void write_wav_header(FILE *f, uint32_t num_samples, uint16_t bits_per_sample, uint8_t channels)
@@ -71,7 +73,7 @@ void write_wav_header(FILE *f, uint32_t num_samples, uint16_t bits_per_sample, u
     uint32_t fmt_data_len = 16;
     const static uint16_t fmt_type = 1;
     uint16_t num_channels = channels;
-    uint32_t sample_rate = SAMPLE_RATE;
+    uint32_t sample_rate = proj->sample_rate;
     uint32_t bytes_per_sec = (sample_rate * bits_per_sample * num_channels) / 8;
     uint16_t block_align = num_channels * fmt_data_len / 8;
     /* bits per sample goes here */

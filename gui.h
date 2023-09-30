@@ -55,6 +55,7 @@
 #define CURSOR_WIDTH (1 * scale_factor)
 #define MAX_TB_LEN 255
 #define MAX_TB_LIST_LEN 100
+#define MAX_MLI_LABEL_LEN 255
 #define NUM_FONT_SIZES 11
 #define MAX_ACTIVE_MENUS 8
 #define CLIP_BORDER_W (2 * scale_factor)
@@ -107,6 +108,7 @@ typedef struct textbox {
     uint8_t cursor_pos;
     char *tooltip;  // optional
     bool mouse_hover;
+    bool available;
 } Textbox;
 
 /* An array of textboxes, all of which share may share an onclick functions */
@@ -120,6 +122,21 @@ typedef struct textbox_list {
     int padding;
     int radius;
 } TextboxList;
+
+typedef struct menulist_item {
+    char label[MAX_MLI_LABEL_LEN];
+    bool available;
+} MenulistItem;
+
+/* Float-valued slider */
+typedef struct f_slider {
+    float value;
+    float max;
+    float min;
+    SDL_Rect rect;
+    bool orientation_vertical;
+} FSlider;
+
 
 
 
@@ -141,16 +158,17 @@ Textbox *create_textbox(
     JDAW_Color *bckgrnd_clr,
     void (*onclick)(Textbox *self, void *object),
     void *target,
-    void (*onhover)(void *object),
+    void (*onhover)(void *self),
     char *tooltip,
-    int radius
+    int radius,
+    bool available
 );
-TextboxList *create_textbox_list_from_strings(
+TextboxList *create_textbox_list(
     int fixed_w,
     int padding,
     TTF_Font *font,
-    char **values,
-    uint8_t num_values,
+    MenulistItem **items,
+    uint8_t num_items,
     JDAW_Color *txt_color,
     JDAW_Color *border_color,
     JDAW_Color *bckgrnd_clr,
@@ -167,7 +185,7 @@ TextboxList *create_menulist(
     int fixed_w,
     int padding,
     TTF_Font *font,
-    char **values,
+    MenulistItem **items,
     uint8_t num_values,
     void (*onclick)(Textbox *self, void *object),
     void *target

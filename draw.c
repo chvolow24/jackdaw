@@ -70,6 +70,9 @@ JDAW_Color console_bckgrnd_active = {{200, 200, 200, 255}, {200, 200, 200, 255}}
 JDAW_Color clear = {{0, 0, 0, 0}, {0, 0, 0, 0}};
 
 
+JDAW_Color clip_bckgrnd = {{90, 180, 245, 255}, {90, 180, 245, 255}};
+JDAW_Color clip_bckgrnd_grabbed = {{111, 214, 255, 255}, {111, 214, 255, 255}};
+
 JDAW_Color default_textbox_text_color = {{0, 0, 0, 255}, {0, 0, 0, 255}};
 JDAW_Color default_textbox_border_color = {{0, 0, 0, 255}, {0, 0, 0, 255}};
 JDAW_Color default_textbox_fill_color = {{240, 240, 240, 255}, {240, 240, 240, 255}};
@@ -289,7 +292,11 @@ void draw_textbox(SDL_Renderer *rend, Textbox *tb)
         fill_rounded_rect(rend, &(tb->container), tb->radius);
         //TODO: rounded rect border
     }
-    write_text(rend, &(tb->txt_container), tb->font, tb->txt_color, tb->display_value, true);
+    if (tb->available) {
+        write_text(rend, &(tb->txt_container), tb->font, tb->txt_color, tb->display_value, true);
+    } else {
+        write_text(rend, &(tb->txt_container), tb->font, &grey, tb->display_value, true);
+    }
 
     if (tb->show_cursor) {
         if (tb->cursor_countdown == 0) {
@@ -326,7 +333,11 @@ void draw_menu_item(SDL_Renderer *rend, Textbox *tb)
         set_rend_color(rend, &menulist_item_hvr);
         fill_rounded_rect(rend, &tb->container, MENU_LIST_R);
     }
-    write_text(rend, &(tb->txt_container), tb->font, &white, tb->value, true);
+    if (tb->available) {
+        write_text(rend, &(tb->txt_container), tb->font, &white, tb->value, true);
+    } else {
+        write_text(rend, &(tb->txt_container), tb->font, &grey, tb->value, true);
+    }
 
     if (tb->show_cursor) {
         if (tb->cursor_countdown == 0) {
@@ -394,26 +405,13 @@ void draw_hamburger(Project * proj)
 }
 void draw_clip(Clip *clip)
 {
-    // fprintf(stderr, "start draw CLIP\n");
-    // int clip_x = get_tl_draw_x(clip->absolute_position);
-    // if (i<4) {
-    //     fprintf(stderr, "draw clip, abs pos: %d, draw_x: %d\n", clip->absolute_position, clip_x);
-    //     i++;
-    // }
-    // int clip_w = get_tl_draw_w(clip->length);
-    // fprintf(stderr, "\t->retrieved clip dimensions\n");
-
-    // SDL_Rect cliprect = {
-    //     clip_x,
-    //     clip->track->rect.y + 4, //TODO: fix these
-    //     clip_w,
-    //     clip->track->rect.h - 4
-    // };
-    // fprintf(stderr, "\t->set clip rect\n");
-
     int wav_x = clip->rect.x;
     int wav_y = clip->rect.y + clip->rect.h / 2;
-    set_rend_color(proj->jwin->rend, &lightblue);
+    if (clip->grabbed) {
+        set_rend_color(proj->jwin->rend, &clip_bckgrnd_grabbed);
+    } else {
+        set_rend_color(proj->jwin->rend, &clip_bckgrnd);
+    }
     SDL_RenderFillRect(proj->jwin->rend, &(clip->rect));
     SDL_Rect clipnamerect = get_rect(clip->rect, CLIP_NAME_RECT);
     write_text(proj->jwin->rend, &clipnamerect, proj->jwin->bold_fonts[1], &grey, clip->name, true);
@@ -443,7 +441,7 @@ void draw_clip(Clip *clip)
     // fprintf(stderr, "\t->if grabbed\n");
 
     if (clip->grabbed) {
-        for (int i=0; i<CLIP_BORDER_W; i++) {
+        for (int i=0; i<CLIP_BORDER_W / 2; i++) {
             SDL_RenderDrawRect(proj->jwin->rend, &cliprect_temp);
             cliprect_temp.x -= 1;
             cliprect_temp.y -= 1;

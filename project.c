@@ -100,16 +100,20 @@ void select_track_input(Textbox *tb, void *track_v)
 void select_track_input_menu(void *track_v)
 {
     Track *track = (Track *)track_v;
-    char *device_names[proj->num_record_devices];
+    MenulistItem *device_mlitems[proj->num_record_devices];
     for (uint8_t i=0; i<proj->num_record_devices; i++) {
-        device_names[i] = (char *) proj->record_devices[i]->name;
+        device_mlitems[i] = malloc(sizeof(MenulistItem)); //TODO: Danger: memory leak
+        fprintf(stderr, "About to do strcpy\n");
+        strcpy(device_mlitems[i]->label, proj->record_devices[i]->name);
+        fprintf(stderr, "strcpy done\n");
+        device_mlitems[i]->available = proj->record_devices[i]->open;
     }
     TextboxList *tbl = create_menulist(
         proj->jwin,
         0,
         5,
         proj->jwin->fonts[2],
-        device_names,
+        device_mlitems,
         proj->num_record_devices,
         select_track_input,
         track
@@ -177,6 +181,55 @@ int16_t *get_mixdown_chunk(Timeline* tl, uint32_t length, bool from_mark_in)
 /* An active project is required for jackdaw to run. This function creates a project based on various specifications,
 and initalizes a variety of UI "globals." */
 
+
+Project *create_empty_project() 
+{
+    /* Allocate space for project and set name */
+    Project *proj = malloc(sizeof(Project));
+    memset(proj->name, '\0', MAX_NAMELENGTH);
+
+    /* Set audio settings */
+    proj->channels = 0;
+    proj->sample_rate = 0;
+    proj->fmt = 0;
+    proj->chunk_size = 0;
+
+    /* Initialize play/record values */
+    proj->play_speed = 0;
+    proj->playing = false;
+    proj->recording = false;
+    proj->num_active_clips = 0;
+
+    /* Initialize timeline struct */
+    Timeline *tl = (Timeline *)malloc(sizeof(Timeline));
+    tl->num_tracks = 0;
+    tl->play_position = 0;
+    tl->record_offset = 0;
+    tl->play_offset = 0;
+    tl->tempo = 0;
+    tl->click_on = 0;
+    tl->sample_frames_per_pixel = DEFAULT_SFPP * 2;
+    tl->offset = 0; // horizontal offset of timeline in samples
+    tl->v_offset = 0;
+    tl->num_active_tracks = 0;
+    memset(tl->active_track_indices, '\0', MAX_ACTIVE_TRACKS);
+    proj->tl = tl;
+    tl->proj = proj;
+
+    proj->jwin = NULL;
+    // /* Create SDL_Window and accompanying SDL_Renderer */
+    // char project_window_name[MAX_NAMELENGTH + 10];
+    // sprintf(project_window_name, "Jackdaw | %s", name);
+    // proj->jwin = create_jwin(project_window_name, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED-20, 900, 650);
+
+    // tl->console_width = TRACK_CONSOLE_WIDTH;
+    // tl->rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h,}, TL_RECT);
+    // tl->audio_rect = (SDL_Rect) {tl->rect.x + TRACK_CONSOLE_WIDTH + COLOR_BAR_W + PADDING, tl->rect.y, tl->rect.w, tl->rect.h}; // SET x in track
+
+    return proj;
+}
+
+
 Project *create_project(const char* name, uint8_t channels, int sample_rate, SDL_AudioFormat fmt, uint16_t chunk_size)
 {
     /* Allocate space for project and set name */
@@ -209,6 +262,7 @@ Project *create_project(const char* name, uint8_t channels, int sample_rate, SDL
     tl->num_active_tracks = 0;
     memset(tl->active_track_indices, '\0', MAX_ACTIVE_TRACKS);
     proj->tl = tl;
+    tl->proj = proj;
 
 
     /* Create SDL_Window and accompanying SDL_Renderer */
@@ -229,8 +283,10 @@ Track *create_track(Timeline *tl, bool stereo)
     fprintf(stderr, "Enter create_track\n");
     Track *track = malloc(sizeof(Track));
     track->tl = tl;
+    fprintf(stderr, "tl->num tracks %d\n", tl->num_tracks);
     track->tl_rank = tl->num_tracks++;
     sprintf(track->name, "Track %d", track->tl_rank + 1);
+
     track->stereo = stereo;
     track->muted = false;
     track->solo = false;
@@ -239,22 +295,29 @@ Track *create_track(Timeline *tl, bool stereo)
     track->num_clips = 0;
     track->num_grabbed_clips = 0;
     track->rect.h = DEFAULT_TRACK_HEIGHT;
-    track->rect.x = proj->tl->rect.x + PADDING;
-    Track *last_track = track->tl->tracks[track->tl_rank - 1];
+    track->rect.x = tl->rect.x + PADDING;
+
     if (track->tl_rank == 0) {
-        track->rect.y = proj->tl->rect.y + PADDING;
+        track->rect.y = track->tl->rect.y + PADDING;
     } else {
+        Track *last_track = track->tl->tracks[track->tl_rank - 1];
         track->rect.y = last_track->rect.y + last_track->rect.h + TRACK_SPACING;
     }
-    track->rect.w = proj->jwin->w - track->rect.x;
+    track->rect.w = tl->proj->jwin->w - track->rect.x;
     (tl->tracks)[tl->num_tracks - 1] = track;
-
+    fprintf(stderr, "Way down here.\n");
     trck_color_index++;
     trck_color_index %= 7;
     track->color = &(trck_colors[trck_color_index]);
-    if (proj && proj->record_devices[0]) {
+    if (tl->proj && tl->proj->record_devices[0]) {
         track->input = proj->record_devices[0];
     }
+
+    // track->vol_ctrl = malloc(sizeof(FSlider));
+    // track->vol_ctrl->max = 2;
+    // track->vol_ctrl->min = 0;
+    // track->vol_ctrl->value = 1;
+    // track->vol_ctrl->orientation_vertical = false;
 
     track->name_box = create_textbox(
         NAMEBOX_W * proj->tl->console_width / 100, 
@@ -269,7 +332,8 @@ Track *create_track(Timeline *tl, bool stereo)
         track,
         NULL,
         NULL,
-        0
+        0,
+        true
     );
     track->input_label_box = create_textbox(
         0, 
@@ -284,7 +348,8 @@ Track *create_track(Timeline *tl, bool stereo)
         NULL,
         NULL,
         NULL,
-        0
+        0,
+        true
     );
     track->input_name_box = create_textbox(
         TRACK_IN_W * proj->tl->console_width / 100, 
@@ -299,12 +364,11 @@ Track *create_track(Timeline *tl, bool stereo)
         track,
         NULL,
         NULL,
-        5 * scale_factor
+        5 * scale_factor,
+        track->input->open
     );
 
 
-    //TODO: get this out of create track
-    // tl->audio_rect = (SDL_Rect) {tl->rect.x + TRACK_CONSOLE_WIDTH + COLOR_BAR_W, tl->rect.y, tl->rect.w, tl->rect.h};
     fprintf(stderr, "\t->exit create track\n");
     return track;
 }
@@ -331,11 +395,20 @@ Clip *create_clip(Track *track, uint32_t length, uint32_t absolute_position) {
     }
     fprintf(stderr, "Enter create_clip\n");
     Clip *clip = malloc(sizeof(Clip));
+    if (!clip) {
+        fprintf(stderr, "Error: unable to allocate space for clip\n");
+    }
+    fprintf(stderr, "Setting input\n");
     clip->input = track->input;
+    fprintf(stderr, "Setting initial name\n");
     sprintf(clip->name, "%s, take %d", track->name, track->num_clips + 1);
+    fprintf(stderr, "Setting length, pos, and track\n");
+
     clip->length = length;
     clip->absolute_position = absolute_position;
     clip->track = track;
+    fprintf(stderr, "Resetting cliprect\n");
+
     reset_cliprect(clip);
     // clip->rect.x = get_tl_draw_x(clip->absolute_position);
     // clip->rect.y = track->rect.y + 4; //TODO: fix this
@@ -378,30 +451,13 @@ void destroy_track(Track *track)
         track->num_clips--;
     }
 
-
-    // TODO: Reorder tracks when a track that is not the last track is deleted.
-
-    // /* Save rank for timeline renumbering */
-    // int rank = track->tl_rank;
-
-    // /* Renumber subsequent tracks in timeline if not last track */
-    // while (rank <= track->tl->num_tracks) {
-    //     Track* t;
-    //     if ((t = *(track->tl->tracks + rank))) {
-    //         t->tl_rank--;
-    //     } else {
-    //         fprintf(stderr, "Error: track expected at rank %d but not found.\n", rank);
-    //     }
-    //     rank++;
-    // }
-
     if (track->active) {
         track->tl->num_active_tracks--;
     }
     track->tl->tracks[track->tl->num_tracks - 1] = NULL;
     (track->tl->num_tracks)--;
 
-    /* Free track */
+    free(track->vol_ctrl);
     free(track);
 
     fprintf(stderr, "Exit destroy track\n");
@@ -525,8 +581,9 @@ uint8_t proj_grabbed_clips()
     return ret;
 }
 
+/* Remove a selected clip from a track, either to delete or move */
 void remove_clip_from_track(Clip *clip)
-{
+{  
     if (clip->track) {
         for (uint8_t i=clip->track_rank + 1; i<clip->track->num_clips; i++) {
             clip->track->clips[i]->track_rank--;
@@ -543,6 +600,7 @@ void delete_clip(Clip *clip)
     clip = NULL;
 }
 
+/* Delete all currently grabbed clips. */
 void delete_grabbed_clips()
 {
     if (!proj) {
@@ -557,6 +615,7 @@ void delete_grabbed_clips()
             if (clip->grabbed) {
                 fprintf(stderr, "Deleting grabbed clip at track %d, clip %d\n", i, j);
                 delete_clip(clip);
+                j--;
             }
         }
     }
@@ -592,29 +651,41 @@ void activate_audio_devices(Project *proj)
 {
     proj->num_playback_devices = query_audio_devices(&(proj->playback_devices), 0);
     proj->num_record_devices = query_audio_devices(&(proj->record_devices), 1);
-    fprintf(stderr, "OPENING PLAYBACK DEVICES\n");
-    for (int i=0; i<proj->num_playback_devices; i++) {
-        AudioDevice *dev = proj->playback_devices[i];
-       if (open_audio_device(dev, proj->channels) == 0) {
-            fprintf(stderr, "Opened audio device: %s\n\tchannels: %d\n\tformat: %s\n", dev->name, dev->spec.channels, get_audio_fmt_str(dev->spec.format));
+    AudioDevice *dev = proj->playback_devices[0];
+    if (open_audio_device(dev, proj->channels) == 0) {
+        fprintf(stderr, "Opened audio device: %s\n\tchannels: %d\n\tformat: %s\n", dev->name, dev->spec.channels, get_audio_fmt_str(dev->spec.format));
 
-        } else {
-            fprintf(stderr, "Error: failed to open device %s\n", dev->name);
-        }
+    } else {
+        fprintf(stderr, "Error: failed to open device %s\n", dev->name);
     }
-    fprintf(stderr, "OPENING RECORD DEVICES\n");
-    for (int i=0; i<proj->num_record_devices; i++) {
-        AudioDevice *dev = proj->record_devices[i];
-        if (open_audio_device(dev, proj->channels) == 0) { //TODO: stop forcing mono
-            fprintf(stderr, "Opened record device: %s\n\tchannels: %u\n\tformat: %s\n", dev->name, dev->spec.channels, get_audio_fmt_str(dev->spec.format));
 
-        } else {
-            fprintf(stderr, "Error: failed to open record device %s\n", dev->name);
-        }
+    // for (int i=0; i<proj->num_playback_devices; i++) {
+    //     fprintf(stderr, "device index %d, pointer: %p\n", i, proj->playback_devices[i]);
+    //     AudioDevice *dev = proj->playback_devices[i];
+    //     if (open_audio_device(dev, proj->channels) == 0) {
+    //         fprintf(stderr, "Opened audio device: %s\n\tchannels: %d\n\tformat: %s\n", dev->name, dev->spec.channels, get_audio_fmt_str(dev->spec.format));
+
+    //     } else {
+    //         fprintf(stderr, "Error: failed to open device %s\n", dev->name);
+    //     }
+    // }
+    dev = proj->record_devices[0];
+    if (open_audio_device(dev, proj->channels) == 0) { //TODO: stop forcing mono
+        fprintf(stderr, "Opened record device: %s\n\tchannels: %u\n\tformat: %s\n", dev->name, dev->spec.channels, get_audio_fmt_str(dev->spec.format));
+
+    } else {
+        fprintf(stderr, "Error: failed to open record device %s\n", dev->name);
     }
-    fprintf(stderr, "->DONE WITH BOTH\n");
+    // for (int i=0; i<proj->num_record_devices; i++) {
+    //     AudioDevice *dev = proj->record_devices[i];
+    //     if (open_audio_device(dev, proj->channels) == 0) { //TODO: stop forcing mono
+    //         fprintf(stderr, "Opened record device: %s\n\tchannels: %u\n\tformat: %s\n", dev->name, dev->spec.channels, get_audio_fmt_str(dev->spec.format));
+
+    //     } else {
+    //         fprintf(stderr, "Error: failed to open record device %s\n", dev->name);
+    //     }
+    // }
     proj->playback_device = proj->playback_devices[0];
-    fprintf(stderr, "->SET PLAYBACK DEVICEn");
 
 }
 
@@ -645,8 +716,7 @@ void activate_audio_devices(Project *proj)
 
 // } Project;
 /* Debug segaults */
-void log_project_state() {
-    FILE *f = fopen("error.log", "w");
+void log_project_state(FILE *f) {
     if (!proj) {
         fprintf(f, "Project is null. Exiting.\n");
         return;

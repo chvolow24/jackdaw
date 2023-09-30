@@ -168,7 +168,8 @@ Textbox *create_textbox(
     void *target,
     void (*onhover)(void *self),
     char *tooltip,
-    int radius
+    int radius,
+    bool available
 )
 {
     if (font == NULL) {
@@ -182,6 +183,7 @@ Textbox *create_textbox(
     tb->font = font;
     tb->value = value;
     tb->radius = radius;
+    tb->available = available;
     if (txt_color) {
         tb->txt_color = txt_color;
     } else {
@@ -382,12 +384,12 @@ char *edit_textbox(Textbox *tb)
     return tb->value;
 }
 
-TextboxList *create_textbox_list_from_strings(
+TextboxList *create_textbox_list(
     int fixed_w,
     int padding,
     TTF_Font *font,
-    char **values,
-    uint8_t num_values,
+    MenulistItem **items,
+    uint8_t num_items,
     JDAW_Color *txt_color,
     JDAW_Color *border_color,
     JDAW_Color *bckgrnd_clr,
@@ -400,19 +402,19 @@ TextboxList *create_textbox_list_from_strings(
 {
     TextboxList *list = malloc(sizeof(TextboxList));
     int max_text_w = 0;
-    for (uint8_t i=0; i<num_values; i++) {
+    for (uint8_t i=0; i<num_items; i++) {
         list->textboxes[i] = create_textbox(
-            fixed_w, 0, padding, font, values[i], txt_color, &clear, &clear, onclick, target, onhover, tooltip, radius
+            fixed_w, 0, padding, font, items[i]->label, txt_color, &clear, &clear, onclick, target, onhover, tooltip, radius, items[i]->available
         );
         if (list->textboxes[i]->txt_container.w > max_text_w) {
             max_text_w = list->textboxes[i]->txt_container.w;
         }
     }
-    for (uint8_t i=0; i<num_values; i++) {
+    for (uint8_t i=0; i<num_items; i++) {
         list->textboxes[i]->container.w = max_text_w + 4 * padding;
     }
-    list->num_textboxes = num_values;
-    list->container = (SDL_Rect) {0, 0, max_text_w + 8 * padding, (list->textboxes[0]->container.h + padding * 2) * num_values};
+    list->num_textboxes = num_items;
+    list->container = (SDL_Rect) {0, 0, max_text_w + 8 * padding, (list->textboxes[0]->container.h + padding * 2) * num_items};
     list->txt_color = txt_color;
     list->border_color = border_color;
     list->bckgrnd_color = bckgrnd_clr;
@@ -434,17 +436,17 @@ TextboxList *create_menulist(
     int fixed_w,
     int padding,
     TTF_Font *font,
-    char **values,
+    MenulistItem **items,
     uint8_t num_values,
     void (*onclick)(Textbox *self, void *object),
     void *target
 )
 {
-    TextboxList *tbl = create_textbox_list_from_strings(
+    TextboxList *tbl = create_textbox_list(
         fixed_w,
         padding,
         font,
-        values,
+        items,
         num_values,
         NULL,
         NULL,
@@ -516,7 +518,7 @@ bool triage_menulist_mouseclick(JDAWWindow *jwin, SDL_Point *mouse_p)
                 fprintf(stderr, "\titem %d\n", j);
 
                 Textbox *tb = menu->textboxes[j];
-                if (SDL_PointInRect(mouse_p, &(tb->container))) {
+                if (SDL_PointInRect(mouse_p, &(tb->container)) && tb->available) {
                     tb->onclick(tb, tb->target);
                     destroy_pop_menulist(jwin);
                     return true;

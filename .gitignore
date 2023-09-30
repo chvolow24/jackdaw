@@ -6,3 +6,4 @@ jackdaw
 *.wav
 *.jdaw
 .clangd
+*.log

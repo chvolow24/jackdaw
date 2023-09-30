@@ -48,10 +48,12 @@
 
 typedef struct clip Clip;
 typedef struct timeline Timeline;
+typedef struct project Project;
 typedef struct audiodevice AudioDevice;
 typedef struct track Track;
 typedef struct textbox Textbox;
 typedef struct jdaw_window JDAWWindow;
+typedef struct f_slider FSlider;
 
 typedef struct track {
     char name[MAX_NAMELENGTH];
@@ -66,6 +68,7 @@ typedef struct track {
     uint8_t num_clips;
     uint8_t num_grabbed_clips;
     AudioDevice *input;
+    FSlider *vol_ctrl;
 
     /* 
     GUI members
@@ -114,6 +117,7 @@ typedef struct timeline {
     uint8_t num_active_tracks;
     uint16_t tempo;
     bool click_on;
+    Project *proj;
 
     /* GUI members */
     SDL_Rect rect;
@@ -154,6 +158,7 @@ typedef struct project {
 
 int16_t get_track_sample(Track *track, Timeline *tl, uint32_t start_pos, uint32_t pos_in_chunk);
 int16_t *get_mixdown_chunk(Timeline* tl, uint32_t length, bool from_mark_in);
+Project *create_empty_project(void);
 Project *create_project(const char* name, uint8_t channels, int sample_rate, SDL_AudioFormat fmt, uint16_t chunk_size);
 Track *create_track(Timeline *tl, bool stereo);
 Clip *create_clip(Track *track, uint32_t length, uint32_t absolute_position);
@@ -166,7 +171,7 @@ void activate_audio_devices(Project *proj);
 void reposition_clip(Clip *clip, uint32_t new_pos);
 void add_active_clip(Clip *clip);
 void clear_active_clips();
-void log_project_state();
+void log_project_state(FILE *f);
 
 void grab_clip(Clip *clip);
 void grab_clips(void);

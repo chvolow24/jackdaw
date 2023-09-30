@@ -231,14 +231,13 @@ int query_audio_devices(AudioDevice ***device_list, int iscapture)
         exit(1);
     }
     (*device_list)[0] = default_dev;
-    fprintf(stderr, "Created default dev, device list, and set index 0\n");
     for (int i=0,j=1; i<num_devices; i++,j++) {
         AudioDevice *dev = malloc(sizeof(AudioDevice));
         dev->name = SDL_GetAudioDeviceName(i, iscapture);
         if (strcmp(dev->name, default_dev->name) == 0) {
             free(dev);
             j--;
-            break;
+            continue;
         }
         dev->open = false;
         dev->active = false;

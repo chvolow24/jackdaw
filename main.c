@@ -58,6 +58,8 @@
 #include "wav.h"
 #include "draw.h"
 #include "timeline.h"
+#include "dot_jdaw.h"
+
 
 #define abs_min(a,b) (abs(a) < abs(b) ? a : b)
 #define lesser_of(a,b) (a < b ? a : b)
@@ -68,6 +70,7 @@ Project *proj = NULL;
 uint8_t scale_factor = 1;
 bool dark_mode = true;
 char *home_dir;
+bool sys_byteorder_le;
 
 extern int write_buffpos;
 
@@ -81,19 +84,32 @@ extern JDAW_Color black;
 extern JDAW_Color white;
 extern JDAW_Color grey;
 
+static void get_native_byte_order()
+{
+    #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+    sys_byteorder_le = true;
+    #else
+    sys_byteorder_le = false;
+    #endif
+}
+
 static int segfault_counter = 0;
 
-void signal_handler()
+static void signal_handler()
 {
+    FILE *f = fopen("error.log", "w");
     segfault_counter++;
     if (segfault_counter > 10) {
+        fclose(f);
         exit(1);
     }
     fprintf(stderr, "\nSEGMENTATION FAULT\n");
-    log_project_state();
+    log_project_state(f);
+    fclose(f);
     exit(1);
 }
-void signal_init(void)
+
+static void signal_init(void)
 {
 
     struct sigaction sigIntHandler;
@@ -103,10 +119,11 @@ void signal_init(void)
     sigIntHandler.sa_flags = 0;
     // sigaction(SIGINT, &sigIntHandler, NULL);
     sigaction(SIGSEGV, &sigIntHandler, NULL);
+    sigaction(SIGTRAP, &sigIntHandler, NULL);
 }
 
 /* Initialize SDL Video and TTF */
-void init_graphics()
+static void init_graphics()
 {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         fprintf(stderr, "\nError initializing SDL: %s\n", SDL_GetError());
@@ -120,7 +137,7 @@ void init_graphics()
 }
 
 /* Start timeline playback */
-void playback()
+static void playback()
 {
     if (proj->play_speed != 0 && !(proj->playing)) {
         start_device_playback();
@@ -172,26 +189,34 @@ static void triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down)
 }
 
 /* Present a window to allow user to create or open a project. Return project name */
-char *new_project_loop(JDAWWindow *jwin) 
+static char *new_project_loop(JDAWWindow *jwin) 
 {
-    char *strarray[255];
+    fprintf(stderr, "New project loop\n");
+    MenulistItem *mlarray[255];
     DIR *homedir = opendir(home_dir);
     int i=0;
     struct dirent *rdir;
     while ((rdir = readdir(homedir)) != NULL)
     {
-        fprintf(stderr, "%s: %hhu\n", rdir->d_name, rdir->d_type);
+        mlarray[i] = malloc(sizeof(MenulistItem));
+        // fprintf(stderr, "%s: %hhu\n", rdir->d_name, rdir->d_type);
         if (rdir->d_type == DT_DIR && rdir->d_name[0] != '.') {
-            fprintf(stderr, "\tOK\n");
-
-            strarray[i] = malloc(255);
-            strcpy(strarray[i], rdir->d_name);
+            // strcpy(mlarray[i]->label, )
+            // fprintf(stderr, "\tOK\n");
+            // char *mlin = malloc(255);
+            // mlarray[i]->label = mlin;
+            // fprintf(stderr, "Copying %s to mlarray[%d]->label\n", rdir->d_name, i);
+            strcpy(mlarray[i]->label, rdir->d_name);
+            mlarray[i]->available = true;
             i++;
         }
     }
+    fprintf(stderr, "Create menulist\n");
     TextboxList *testlist = create_menulist(
-        jwin, 400, 5, jwin->fonts[2], strarray, i+1, NULL, NULL
+        jwin, 400, 5, jwin->fonts[2], mlarray, i, NULL, NULL
     );
+    fprintf(stderr, "END menulist\n");
+
     position_textbox_list(testlist, 100, 50);
 
     SDL_Point mouse_p;
@@ -210,11 +235,16 @@ char *new_project_loop(JDAWWindow *jwin)
         SDL_RenderPresent(jwin->rend);
         SDL_Delay(1);
     }
+    i--;
+    while (i>0) {
+        free(mlarray[i]);
+        i--;
+    }
     destroy_jwin(jwin);
     return "";
 }
 
-void start_recording()
+static void start_recording()
 {
     write_buffpos = 0;
     Track *track = NULL;
@@ -247,7 +277,7 @@ void start_recording()
     proj->play_speed = 1;
 }
 
-void stop_recording()
+static void stop_recording()
 {
     fprintf(stderr, "Enter stop_recording\n");
     proj->play_speed = 0;
@@ -293,7 +323,7 @@ void stop_recording()
     // pthread_create(&t, NULL, copy_buff_to_clip, clip);
     // fprintf(stderr, "\t->exit stop_recording\n");
 
-void start_or_stop_recording()
+static void start_or_stop_recording()
 {
     if (proj->recording) {
         stop_recording();
@@ -305,7 +335,7 @@ void start_or_stop_recording()
 }
 
 
-void project_loop()
+static void project_loop()
 {
     // int active_track_i = 0;
     // Track *active_track = NULL;
@@ -439,6 +469,12 @@ void project_loop()
                         }
                     }
                         break;
+                    case SDL_SCANCODE_S: {
+                        if (cmd_ctrl_down) {
+                            write_jdaw_file("project.jdaw");
+                            fprintf(stderr, "DONE WRITING FILE!\n");
+                        }
+                    }
                     case SDL_SCANCODE_1:
                         activate_or_deactivate_track(0);
                         break;
@@ -570,7 +606,7 @@ void project_loop()
 }
 
 
-char *get_home_dir()
+static char *get_home_dir()
 {
     uid_t uid = getuid();
     struct passwd *pw = getpwuid(uid);
@@ -579,6 +615,7 @@ char *get_home_dir()
 
 int main()
 {
+    get_native_byte_order();
     signal_init();
     home_dir = get_home_dir();
 
@@ -589,8 +626,14 @@ int main()
     JDAWWindow *new_project = create_jwin("Create a new Jackdaw project", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 600, 400);
     new_project_loop(new_project);
 
-    proj = create_project("Untitled", 2, 48000, AUDIO_S16SYS, 512);
-    activate_audio_devices(proj);
+    // proj = create_project("Untitled", 2, 48000, AUDIO_S16SYS, 512);
+    fprintf(stdout, "Opening project\n");
+    proj = open_jdaw_file("project.jdaw");
+    fprintf(stdout, "Activating audio devices on project\n");
+
+    // activate_audio_devices(proj);
+
+        fprintf(stdout, "Loop starts now\n");
 
     project_loop();
 

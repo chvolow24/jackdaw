@@ -120,6 +120,10 @@ static void signal_init(void)
     // sigaction(SIGINT, &sigIntHandler, NULL);
     sigaction(SIGSEGV, &sigIntHandler, NULL);
     sigaction(SIGTRAP, &sigIntHandler, NULL);
+    sigaction(SIGABRT, &sigIntHandler, NULL);
+    sigaction(SIGBUS, &sigIntHandler, NULL);
+
+
 }
 
 /* Initialize SDL Video and TTF */
@@ -626,12 +630,16 @@ int main()
     JDAWWindow *new_project = create_jwin("Create a new Jackdaw project", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 600, 400);
     new_project_loop(new_project);
 
-    // proj = create_project("Untitled", 2, 48000, AUDIO_S16SYS, 512);
     fprintf(stdout, "Opening project\n");
-    proj = open_jdaw_file("project.jdaw");
+    if ((proj = open_jdaw_file("project.jdaw")) == NULL) {
+        fprintf(stderr, "Creating new project\n");
+        proj = create_project("Untitled", 2, 48000, AUDIO_S16SYS, 512);
+        activate_audio_devices(proj);
+    } else {
+        fprintf(stderr, "Successfully opened project.\n");
+    }
     fprintf(stdout, "Activating audio devices on project\n");
 
-    // activate_audio_devices(proj);
 
         fprintf(stdout, "Loop starts now\n");
 

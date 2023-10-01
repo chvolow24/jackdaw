@@ -309,9 +309,13 @@ Track *create_track(Timeline *tl, bool stereo)
     trck_color_index++;
     trck_color_index %= 7;
     track->color = &(trck_colors[trck_color_index]);
+    fprintf(stderr, "Testing. Tl proj: %p\n", tl->proj);
     if (tl->proj && tl->proj->record_devices[0]) {
+        fprintf(stderr, "Passed test\n");
         track->input = proj->record_devices[0];
     }
+    fprintf(stderr, "Success here.\n");
+
 
     // track->vol_ctrl = malloc(sizeof(FSlider));
     // track->vol_ctrl->max = 2;
@@ -367,6 +371,7 @@ Track *create_track(Timeline *tl, bool stereo)
         5 * scale_factor,
         track->input->open
     );
+
 
 
     fprintf(stderr, "\t->exit create track\n");
@@ -431,12 +436,15 @@ Clip *create_clip(Track *track, uint32_t length, uint32_t absolute_position) {
 
 void destroy_clip(Clip *clip)
 {
+    fprintf(stderr, "Enter destroy clip.\n");
     if (clip->samples) {
         free(clip->samples);
         clip->samples = NULL;
     }
     free(clip);
     clip = NULL;
+    fprintf(stderr, "\t->done destroy clip.\n");
+
 }
 
 void destroy_track(Track *track)
@@ -457,10 +465,10 @@ void destroy_track(Track *track)
     track->tl->tracks[track->tl->num_tracks - 1] = NULL;
     (track->tl->num_tracks)--;
 
-    free(track->vol_ctrl);
+    // free(track->vol_ctrl);
     free(track);
 
-    fprintf(stderr, "Exit destroy track\n");
+    fprintf(stderr, "\t->Exit destroy track\n");
 }
 
 void grab_clip(Clip *clip) 

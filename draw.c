@@ -82,6 +82,10 @@ JDAW_Color menulist_inner_brdr = (JDAW_Color) {{10, 10, 10, 250},{10, 10, 10, 25
 JDAW_Color menulist_outer_brdr = {{130, 130, 130, 250},{130, 130, 130, 250}};
 JDAW_Color menulist_item_hvr = {{12, 107, 249, 250}, {12, 107, 249, 250}};
 
+JDAW_Color fslider_border = {{12, 107, 249, 250}, {12, 107, 249, 250}};
+JDAW_Color fslider_bar = {{12, 107, 249, 250}, {12, 107, 249, 250}};
+JDAW_Color fslider_bckgrnd = {{40, 40, 40, 248},{40, 40, 40, 248}};
+
 
 /* Draw a circle quadrant. Quad 0 = upper right, 1 = upper left, 2 = lower left, 3 = lower right */
 void draw_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad)
@@ -226,7 +230,7 @@ void fill_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r)
     fill_quadrant(rend, ul.x, ul.y, r, 1);
     fill_quadrant(rend, ll.x, ll.y, r, 2);
     fill_quadrant(rend, lr.x, lr.y, r, 3);
-    int d = r<<1;
+    int d = r<<1; // decision criterion
     SDL_Rect top = {left_x, rect->y, rect->w - d, r};
     SDL_Rect bottom = {left_x, lower_y, rect->w - d, r + 1};
     SDL_Rect left = {rect->x, upper_y, r, rect->h - d};
@@ -237,8 +241,6 @@ void fill_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r)
     SDL_RenderFillRect(rend, &right);
     SDL_RenderFillRect(rend, &left);
     SDL_RenderFillRect(rend, &middle);
-    // SDL_Rect rects[] = {ul_sq, ur_sq, ll_sq, lr_sq};
-    // // SDL_RenderFillRects(rend, rects, 4);
 }
 
 /* Set the render color based on project display mode */
@@ -390,7 +392,19 @@ void draw_textbox_list(SDL_Renderer *rend, TextboxList *tbl)
     }
 }
 
-void draw_hamburger(Project * proj)
+
+
+void draw_fslider(JDAWWindow *jwin, FSlider *fslider)
+{
+    set_rend_color(jwin->rend, &fslider_border);
+    SDL_RenderDrawRect(jwin->rend, &(fslider->rect));
+    set_rend_color(jwin->rend, &fslider_bckgrnd);
+    SDL_RenderFillRect(jwin->rend, &(fslider->rect));
+    set_rend_color(jwin->rend, &fslider_bar);
+    SDL_RenderFillRect(jwin->rend, &(fslider->bar_rect));
+}
+
+void draw_hamburger(Project *proj)
 {
     set_rend_color(proj->jwin->rend, &txt_soft);
     SDL_GL_GetDrawableSize(proj->jwin->win, &(proj->jwin->w), &(proj->jwin->h));
@@ -403,6 +417,9 @@ void draw_hamburger(Project * proj)
     // SDL_RenderFillRect(proj->jwin->rend, &hmbrgr_2);
     // SDL_RenderFillRect(proj->jwin->rend, &hmbrgr_3);
 }
+
+
+
 void draw_clip(Clip *clip)
 {
     int wav_x = clip->rect.x;
@@ -413,7 +430,7 @@ void draw_clip(Clip *clip)
         set_rend_color(proj->jwin->rend, &clip_bckgrnd);
     }
     SDL_RenderFillRect(proj->jwin->rend, &(clip->rect));
-    SDL_Rect clipnamerect = get_rect(clip->rect, CLIP_NAME_RECT);
+    SDL_Rect clipnamerect = get_rect(clip->rect, CLIP_NAME_RECT); //TODO: remove this computation from draw
     write_text(proj->jwin->rend, &clipnamerect, proj->jwin->bold_fonts[1], &grey, clip->name, true);
     set_rend_color(proj->jwin->rend, &black);
     // fprintf(stderr, "\t->drawing border\n");
@@ -453,13 +470,19 @@ void draw_clip(Clip *clip)
     SDL_SetRenderDrawColor(proj->jwin->rend, 5, 5, 60, 255);
     // fprintf(stderr, "\t->draw wav\n");
     if (clip->done) {
-        int16_t sample = (int)((clip->samples)[0]);
-        int16_t next_sample;
+        // int16_t sample = (int)((clip->samples)[0]);
+        // int16_t next_sample;
+        int16_t sample = 0;
+        int last_sample_y = wav_y;
+        int sample_y = wav_y;
         for (int i=0; i<clip->length-1; i+=clip->track->tl->sample_frames_per_pixel) {
-            // fprintf(stderr, "\t\t->Clip %p, sample %d\n", clip, i);
-            next_sample = (clip->samples)[i];
-            SDL_RenderDrawLine(proj->jwin->rend, wav_x, wav_y + (sample / 50), wav_x + 1, wav_y + (next_sample / 50));
-            sample = next_sample;
+            if (wav_x > proj->tl->audio_rect.x && wav_x < proj->tl->audio_rect.x + proj->tl->audio_rect.w) {
+                sample = (clip->samples)[i];
+                sample_y = wav_y + sample * clip->rect.h / (2 * INT16_MAX);
+                // SDL_RenderDrawLine(proj->jwin->rend, wav_x, wav_y, wav_x, sample_y);
+                SDL_RenderDrawLine(proj->jwin->rend, wav_x, last_sample_y, wav_x + 1, sample_y);
+                last_sample_y = sample_y;
+            }
             wav_x++;
         }
     }
@@ -483,25 +506,40 @@ void draw_track(Track * track)
         }
     }
 
-    /* Draw the track information console */
-    SDL_Rect consolerect = get_rect(track->rect, TRACK_CONSOLE);
-    consolerect.w = track->tl->console_width;
 
     if (track->active) {
         set_rend_color(proj->jwin->rend, &console_bckgrnd_active);
     } else {
         set_rend_color(proj->jwin->rend, &console_bckgrnd);
     }
-    SDL_RenderFillRect(proj->jwin->rend, &consolerect);
+    SDL_RenderFillRect(proj->jwin->rend, &(track->console_rect));
 
-    position_textbox(track->name_box, consolerect.x + 4, consolerect.y + 4);
+    // position_textbox(track->name_box, consolerect.x + 4, consolerect.y + 4);
     draw_textbox(proj->jwin->rend, track->name_box);
-    position_textbox(track->input_label_box, consolerect.x + TRACK_INTERNAL_PADDING, track->name_box->container.y + track->name_box->container.h + TRACK_INTERNAL_PADDING); //TODO: replace 4 with padding
+    // position_textbox(track->input_label_box, consolerect.x + TRACK_INTERNAL_PADDING, track->name_box->container.y + track->name_box->container.h + TRACK_INTERNAL_PADDING); //TODO: replace 4 with padding
     draw_textbox(proj->jwin->rend, track->input_label_box);
-    position_textbox(track->input_name_box, track->input_label_box->container.x + track->input_label_box->container.w + TRACK_INTERNAL_PADDING, track->input_label_box->container.y);
+    // position_textbox(track->input_name_box, track->input_label_box->container.x + track->input_label_box->container.w + TRACK_INTERNAL_PADDING, track->input_label_box->container.y);
     draw_textbox(proj->jwin->rend, track->input_name_box);
+    draw_textbox(proj->jwin->rend, track->vol_label_box);
+    draw_textbox(proj->jwin->rend, track->pan_label_box);
+    draw_fslider(proj->jwin, track->vol_ctrl);
+
+    /* TEMPORARY */
+    // SDL_SetRenderDrawColor(proj->jwin->rend, 255, 0, 0, 255);
+    // SDL_RenderDrawRect(proj->jwin->rend, &(track->console_rect));
+    // SDL_SetRenderDrawColor(proj->jwin->rend, 0, 255, 0, 255);
+    // SDL_RenderDrawRect(proj->jwin->rend, &(track->name_row_rect));
+    // SDL_SetRenderDrawColor(proj->jwin->rend, 0, 0, 255, 255);
+    // SDL_RenderDrawRect(proj->jwin->rend, &(track->input_row_rect));
+    // SDL_Rect testrect = (SDL_Rect){500, 500, 500, 500};
+    // SDL_RenderDrawRect(proj->jwin->rend, &testrect);
+    // SDL_SetRenderDrawColor(proj->jwin->rend, 255, 0, 0, 255);
+    // SDL_RenderDrawRect(proj->jwin->rend, &(track->vol_row_rect));
+    // SDL_SetRenderDrawColor(proj->jwin->rend, 0, 255, 0, 255);
+    // SDL_RenderDrawRect(proj->jwin->rend, &(track->pan_row_rect));
+    /* END TEMPORARY */
     // TODO: fix this 
-    SDL_Rect colorbar = (SDL_Rect) {track->rect.x + consolerect.w, track->rect.y, COLOR_BAR_W, track->rect.h};
+    SDL_Rect colorbar = (SDL_Rect) {track->rect.x + track->console_rect.w, track->rect.y, COLOR_BAR_W, track->rect.h};
     // track->tl->audio_rect = (SDL_Rect) {colorbar.x + colorbar.w, colorbar.y, track->rect.w - consolerect.w, track->rect.h};
     set_rend_color(proj->jwin->rend, track->color);
     SDL_RenderFillRect(proj->jwin->rend, &colorbar);
@@ -520,22 +558,19 @@ void draw_jwin_menus(JDAWWindow *jwin)
     }
 }
 
+
 void draw_project(Project *proj)
 {
 
-    // fprintf(stderr, "start draw\n");
-    // SDL_SetRenderDrawBlendMode(proj->jwin->rend, SDL_BLENDMODE_BLEND);
     const static char *bottom_text = "Jackdaw | by Charlie Volow";
-    // SDL_GL_GetDrawableSize(proj->jwin->win, &(proj->jwin->w), &(proj->jwin->h));
     set_rend_color(proj->jwin->rend, &bckgrnd_color);
     SDL_RenderClear(proj->jwin->rend);
     draw_hamburger(proj);
+
+
     /* Draw the timeline */
     set_rend_color(proj->jwin->rend, &tl_bckgrnd);
-    // proj->tl->rect = relative_rect(&(proj->winrect), 0.05, 0.1, 0.9, 0.86);
     SDL_RenderFillRect(proj->jwin->rend, &(proj->tl->rect));
-    // draw_rounded_rect(proj->jwin->rend, &(proj->tl->rect), STD_RAD);
-
 
     Track *track;
 

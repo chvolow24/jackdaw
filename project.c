@@ -75,9 +75,6 @@ void rename_track(Textbox *tb, void *track_v)
     track->name_box->cursor_countdown = CURSOR_COUNTDOWN;
     track->name_box->cursor_pos = strlen(track->name);
     edit_textbox(track->name_box);
-    // strcpy(track->name, newname); 
-    // memcpy(track->name, newname, strlen(newname)); // TODO: wtf is strcpy producing a trace trap
-
     track->name_box->bckgrnd_color = &lightergrey;
     track->name_box->show_cursor = false;
 }
@@ -270,7 +267,7 @@ Project *create_project(const char* name, uint8_t channels, int sample_rate, SDL
     sprintf(project_window_name, "Jackdaw | %s", name);
     proj->jwin = create_jwin(project_window_name, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED-20, 900, 650);
 
-    tl->console_width = TRACK_CONSOLE_WIDTH;
+    // tl->console_width = TRACK_CONSOLE_WIDTH;
     tl->rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h,}, TL_RECT);
     tl->audio_rect = (SDL_Rect) {tl->rect.x + TRACK_CONSOLE_WIDTH + COLOR_BAR_W + PADDING, tl->rect.y, tl->rect.w, tl->rect.h}; // SET x in track
 
@@ -283,7 +280,6 @@ Track *create_track(Timeline *tl, bool stereo)
     fprintf(stderr, "Enter create_track\n");
     Track *track = malloc(sizeof(Track));
     track->tl = tl;
-    fprintf(stderr, "tl->num tracks %d\n", tl->num_tracks);
     track->tl_rank = tl->num_tracks++;
     sprintf(track->name, "Track %d", track->tl_rank + 1);
 
@@ -297,6 +293,34 @@ Track *create_track(Timeline *tl, bool stereo)
     track->rect.h = DEFAULT_TRACK_HEIGHT;
     track->rect.x = tl->rect.x + PADDING;
 
+
+    /* TEMPORARY UPDATE */
+    /*
+    SDL_Rect consolerect = get_rect(track->rect, TRACK_CONSOLE); //TODO: Remove this computation from draw
+    consolerect.w = track->tl->console_width;
+
+    if (track->active) {
+        set_rend_color(proj->jwin->rend, &console_bckgrnd_active);
+    } else {
+        set_rend_color(proj->jwin->rend, &console_bckgrnd);
+    }
+    SDL_RenderFillRect(proj->jwin->rend, &consolerect);
+
+    position_textbox(track->name_box, consolerect.x + 4, consolerect.y + 4);
+    draw_textbox(proj->jwin->rend, track->name_box);
+    position_textbox(track->input_label_box, consolerect.x + TRACK_INTERNAL_PADDING, track->name_box->container.y + track->name_box->container.h + TRACK_INTERNAL_PADDING); //TODO: replace 4 with padding
+    draw_textbox(proj->jwin->rend, track->input_label_box);
+    position_textbox(track->input_name_box, track->input_label_box->container.x + track->input_label_box->container.w + TRACK_INTERNAL_PADDING, track->input_label_box->container.y);
+    draw_textbox(proj->jwin->rend, track->input_name_box);
+    */
+
+
+    /* END NEW TEMPORARY UI */
+
+
+
+
+
     if (track->tl_rank == 0) {
         track->rect.y = track->tl->rect.y + PADDING;
     } else {
@@ -304,27 +328,27 @@ Track *create_track(Timeline *tl, bool stereo)
         track->rect.y = last_track->rect.y + last_track->rect.h + TRACK_SPACING;
     }
     track->rect.w = tl->proj->jwin->w - track->rect.x;
+
+
     (tl->tracks)[tl->num_tracks - 1] = track;
-    fprintf(stderr, "Way down here.\n");
     trck_color_index++;
     trck_color_index %= 7;
     track->color = &(trck_colors[trck_color_index]);
-    fprintf(stderr, "Testing. Tl proj: %p\n", tl->proj);
     if (tl->proj && tl->proj->record_devices[0]) {
         fprintf(stderr, "Passed test\n");
         track->input = proj->record_devices[0];
     }
-    fprintf(stderr, "Success here.\n");
 
 
-    // track->vol_ctrl = malloc(sizeof(FSlider));
-    // track->vol_ctrl->max = 2;
-    // track->vol_ctrl->min = 0;
-    // track->vol_ctrl->value = 1;
+    track->vol_ctrl = malloc(sizeof(FSlider));
+    track->vol_ctrl->max = 2;
+    track->vol_ctrl->min = 0;
+    track->vol_ctrl->value = 1;
     // track->vol_ctrl->orientation_vertical = false;
 
     track->name_box = create_textbox(
-        NAMEBOX_W * proj->tl->console_width / 100, 
+        NAMEBOX_W * TRACK_CONSOLE_WIDTH / 100,
+        // NAMEBOX_W * proj->tl->console_width / 100, 
         0, 
         2, 
         proj->jwin->bold_fonts[2],
@@ -356,10 +380,11 @@ Track *create_track(Timeline *tl, bool stereo)
         true
     );
     track->input_name_box = create_textbox(
-        TRACK_IN_W * proj->tl->console_width / 100, 
+        //TRACK_IN_W * proj->tl->console_width / 100, 
+        TRACK_IN_W * TRACK_CONSOLE_WIDTH / 100,
         0, 
         4, 
-        proj->jwin->bold_fonts[1],
+        proj->jwin->fonts[1],
         (char *) track->input->name,
         NULL,
         NULL,
@@ -371,49 +396,92 @@ Track *create_track(Timeline *tl, bool stereo)
         5 * scale_factor,
         track->input->open
     );
-
-
+    track->vol_label_box = create_textbox(
+        0, 
+        0, 
+        2, 
+        proj->jwin->bold_fonts[1],
+        "Vol:",
+        NULL,
+        &clear,
+        &clear,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        0,
+        true
+    );
+    track->pan_label_box = create_textbox(
+        0, 
+        0, 
+        2, 
+        proj->jwin->bold_fonts[1],
+        "Pan:",
+        NULL,
+        &clear,
+        &clear,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        0,
+        true
+    );
+    /* TEMPORARY */
+    reset_track_internal_rects(track);
+    /* END TEMPORARY */
 
     fprintf(stderr, "\t->exit create track\n");
     return track;
 }
 
+void reset_track_internal_rects(Track *track)
+{
+    track->console_rect = get_rect(track->rect, TRACK_CONSOLE_RECT);
+    track->name_row_rect = get_rect(track->console_rect, TRACK_NAME_ROW);
+    track->input_row_rect = get_rect(track->console_rect, TRACK_IN_ROW);
+    track->vol_row_rect = get_rect(track->console_rect, TRACK_VOL_ROW);
+    track->pan_row_rect = get_rect(track->console_rect, TRACK_PAN_ROW);
+    position_textbox(track->name_box, track->name_row_rect.x, track->name_row_rect.y);
+    position_textbox(track->input_label_box, track->input_row_rect.x, track->input_row_rect.y);
+    position_textbox(track->input_name_box, track->input_row_rect.x + track->input_label_box->container.w + PADDING, track->input_row_rect.y);
+    position_textbox(track->vol_label_box, track->vol_row_rect.x, track->vol_row_rect.y);
+    position_textbox(track->pan_label_box, track->pan_row_rect.x, track->pan_row_rect.y);
+    set_fslider_rect(track->vol_ctrl, &(track->vol_row_rect), 4);
+    reset_fslider(track->vol_ctrl); 
+    
+}
+
 /* Reset the clip's container rect for redrawing */
-void reset_cliprect(Clip* clip) 
+void reset_cliprect(Clip *clip) 
 {
     if (!(clip->track)) {
-        fprintf(stderr, "FATAL ERROR: need track to create clip. \n"); //TODO allow loose clip
+        fprintf(stderr, "Fatal Error: need track to create clip. \n"); //TODO allow loose clip
         exit(1);
     }
     clip->rect.x = get_tl_draw_x(clip->absolute_position);
     clip->rect.y = clip->track->rect.y + 4;
     clip->rect.w = get_tl_draw_w(clip->length);
     clip->rect.h = clip->track->rect.h - 8;
-
 }
 
 /* Create a new clip on a specified track. Clips are usually created empty and filled after recording is done. */
 Clip *create_clip(Track *track, uint32_t length, uint32_t absolute_position) {
     if (!track) {
-        fprintf(stderr, "FATAL ERROR: need track to create clip. \n"); //TODO allow loose clip
+        fprintf(stderr, "Fatal Error: need track to create clip. \n"); //TODO allow loose clip
         exit(1);
     }
-    fprintf(stderr, "Enter create_clip\n");
     Clip *clip = malloc(sizeof(Clip));
     if (!clip) {
         fprintf(stderr, "Error: unable to allocate space for clip\n");
     }
-    fprintf(stderr, "Setting input\n");
     clip->input = track->input;
-    fprintf(stderr, "Setting initial name\n");
     sprintf(clip->name, "%s, take %d", track->name, track->num_clips + 1);
-    fprintf(stderr, "Setting length, pos, and track\n");
 
     clip->length = length;
     clip->absolute_position = absolute_position;
     clip->track = track;
-    fprintf(stderr, "Resetting cliprect\n");
-
     reset_cliprect(clip);
     // clip->rect.x = get_tl_draw_x(clip->absolute_position);
     // clip->rect.y = track->rect.y + 4; //TODO: fix this
@@ -465,6 +533,10 @@ void destroy_track(Track *track)
     track->tl->tracks[track->tl->num_tracks - 1] = NULL;
     (track->tl->num_tracks)--;
 
+    destroy_textbox(track->input_label_box);
+    destroy_textbox(track->input_name_box);
+    destroy_textbox(track->vol_label_box);
+    destroy_textbox(track->pan_label_box);
     // free(track->vol_ctrl);
     free(track);
 
@@ -562,6 +634,8 @@ void activate_or_deactivate_track(uint8_t track_index)
     }
 }
 
+
+/* Move grabbed clips forward or back on timeline */
 void translate_grabbed_clips(int32_t translate_by)
 {
     if (!proj) {
@@ -580,6 +654,7 @@ void translate_grabbed_clips(int32_t translate_by)
     }
 }
 
+/* Get count of currently grabbed clips */
 uint8_t proj_grabbed_clips()
 {
     uint8_t ret=0;

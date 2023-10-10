@@ -56,103 +56,112 @@ typedef struct jdaw_window JDAWWindow;
 typedef struct f_slider FSlider;
 
 typedef struct track {
-    char name[MAX_NAMELENGTH];
-    bool active;
-    bool stereo;
-    bool muted;
-    bool solo;
-    bool record;
-    Timeline *tl;
-    uint8_t tl_rank;
-    Clip *clips[MAX_TRACK_CLIPS];
-    uint8_t num_clips;
-    uint8_t num_grabbed_clips;
-    AudioDevice *input;
-    FSlider *vol_ctrl;
+	char name[MAX_NAMELENGTH];
+	bool active;
+	bool stereo;
+	bool muted;
+	bool solo;
+	bool record;
+	Timeline *tl;
+	uint8_t tl_rank;
+	Clip *clips[MAX_TRACK_CLIPS];
+	uint8_t num_clips;
+	uint8_t num_grabbed_clips;
+	AudioDevice *input;
+	FSlider *vol_ctrl;
 
-    /* 
-    GUI members
-    Positions and dimensions are cached to avoid re-calculation on every re-draw. Repositioning and resizing are
-    handled in their own functions
-     */
-    JDAW_Color *color;
-    SDL_Rect rect;
-    Textbox *name_box;
-    Textbox *input_label_box;
-    Textbox *input_name_box;
+	/* 
+	GUI members
+	Positions and dimensions are cached to avoid re-calculation on every re-draw. Repositioning and resizing are
+	handled in their own functions
+		*/
+	JDAW_Color *color;
+
+	SDL_Rect rect;
+	SDL_Rect console_rect;
+	SDL_Rect name_row_rect;
+	SDL_Rect input_row_rect;
+	SDL_Rect vol_row_rect;
+	SDL_Rect pan_row_rect;
+
+	Textbox *name_box;
+	Textbox *input_label_box;
+	Textbox *input_name_box;
+	Textbox *vol_label_box;
+	Textbox *pan_label_box;
 
 
 } Track;
 
 typedef struct clip {
-    char name[MAX_NAMELENGTH];
-    int clip_gain;
-    Track *track;
-    uint8_t track_rank;
-    uint32_t length; // in samples
-    int32_t absolute_position; // in samples
-    int16_t *samples;
-    bool done;
-    AudioDevice *input;
+		char name[MAX_NAMELENGTH];
+		int clip_gain;
+		Track *track;
+		uint8_t track_rank;
+		uint32_t length; // in samples
+		int32_t absolute_position; // in samples
+		int16_t *samples;
+		bool done;
+		AudioDevice *input;
 
-    /* GUI members */
-    SDL_Rect rect;
-    void (*onclick)(void);
-    void (*onhover)(void);
-    Textbox *namebox;
-    bool grabbed;
+		/* GUI members */
+		SDL_Rect rect;
+		void (*onclick)(void);
+		void (*onhover)(void);
+		Textbox *namebox;
+		bool grabbed;
 } Clip;
 
 typedef struct timeline {
-    uint32_t play_position; // in sample frames
-    // uint32_t record_position; // in sample frames
-    uint32_t record_offset;
-    uint32_t play_offset;
-    uint32_t in_mark;
-    uint32_t out_mark;
-    pthread_mutex_t play_position_lock;
-    Track *tracks[MAX_TRACKS];
-    uint8_t num_tracks;
-    uint8_t active_track_indices[MAX_ACTIVE_TRACKS];
-    uint8_t num_active_tracks;
-    uint16_t tempo;
-    bool click_on;
-    Project *proj;
+		uint32_t play_position; // in sample frames
+		// uint32_t record_position; // in sample frames
+		uint32_t record_offset;
+		uint32_t play_offset;
+		uint32_t in_mark;
+		uint32_t out_mark;
+		pthread_mutex_t play_position_lock;
+		Track *tracks[MAX_TRACKS];
+		uint8_t num_tracks;
+		uint8_t active_track_indices[MAX_ACTIVE_TRACKS];
+		uint8_t num_active_tracks;
+		uint16_t tempo;
+		bool click_on;
+		Project *proj;
 
-    /* GUI members */
-    SDL_Rect rect;
-    SDL_Rect audio_rect;
-    uint32_t offset; // in samples frames
-    double sample_frames_per_pixel;
-    int console_width;
-    int v_offset;
+		/* GUI members */
+		SDL_Rect rect;
+		SDL_Rect audio_rect;
+		uint32_t offset; // in samples frames
+		double sample_frames_per_pixel;
+		// int console_width;
+		int v_offset;
 
 } Timeline;
 
 
 typedef struct project {
-    char name[MAX_NAMELENGTH];
-    // bool dark_mode;
-    Timeline *tl;
-    Clip *loose_clips[100];
-    uint8_t num_loose_clips;
-    JDAWWindow *jwin;
-    Clip *active_clips[MAX_ACTIVE_CLIPS];
-    uint8_t num_active_clips;
-    float play_speed;
-    bool playing;
-    bool recording;
-    AudioDevice **record_devices;
-    AudioDevice **playback_devices;
-    int num_record_devices;
-    int num_playback_devices;
+		char name[MAX_NAMELENGTH];
+		// bool dark_mode;
+		Timeline *tl;
+		Clip *loose_clips[100];
+		uint8_t num_loose_clips;
+		JDAWWindow *jwin;
+		Clip *active_clips[MAX_ACTIVE_CLIPS];
+		uint8_t num_active_clips;
+		float play_speed;
+		bool playing;
+		bool recording;
+		AudioDevice **record_devices;
+		AudioDevice **playback_devices;
+		int num_record_devices;
+		int num_playback_devices;
 
-    /* Audio settings */
-    AudioDevice *playback_device;
-    uint8_t channels;
-    int sample_rate; //samples per second
-    SDL_AudioFormat fmt;
-    uint16_t chunk_size; //sample_frames
+		/* Audio settings */
+		AudioDevice *playback_device;
+		uint8_t channels;
+		int sample_rate; //samples per second
+		SDL_AudioFormat fmt;
+		uint16_t chunk_size; //sample_frames
 
 } Project;
 
@@ -182,7 +191,7 @@ void remove_clip_from_track(Clip *clip);
 void delete_clip(Clip *clip);
 void delete_grabbed_clips();
 void reset_cliprect(Clip* clip);
-
+void reset_track_internal_rects(Track *track);
 
 
 

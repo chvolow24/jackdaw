@@ -24,14 +24,21 @@
 
 *****************************************************************************************************************/
 
+/*****************************************************************************************************************
+    timeline.c
+
+    * Translate between draw coordinates and absolute positions (time values) within the timeline
+ *****************************************************************************************************************/
+
+
 #include <stdint.h>
 #include "project.h"
+#include "gui.h"
 
 #define MAX_SFPP 80000
 
 extern Project *proj;
-
-/** TIMELINE OPERATIONS **/
+extern uint8_t scale_factor;
 
 /* Get the timeline position value -- in sample frames -- from a draw x coordinate  */
 uint32_t get_abs_tl_x(int draw_x)
@@ -75,6 +82,14 @@ void translate_tl(int translate_by_x, int translate_by_y)
         for (int i=0; i<proj->tl->num_tracks; i++) {
             track = proj->tl->tracks[i];
             track->rect.y += translate_by_y;
+
+            /* TEMPORARY */
+            reset_track_internal_rects(track);
+            // track->console_rect = get_rect(track->rect, TRACK_CONSOLE);
+            // track->input_row_rect = get_rect(track->console_rect, TRACK_IN_ROW);
+            // track->vol_row_rect = get_rect(track->console_rect, TRACK_IN_ROW);
+            /* END TEMPORARY */
+
             for (int j=0; j<track->num_clips; j++) {
                 reset_cliprect(track->clips[j]);
             }

@@ -532,3 +532,21 @@ bool triage_menulist_mouseclick(JDAWWindow *jwin, SDL_Point *mouse_p)
     }
     return false;
 }
+
+void reset_fslider(FSlider *fslider) 
+{
+    fslider->bar_rect.w = (fslider->rect.w - FSLIDER_PADDING * 2) * fslider->value / (fslider->max - fslider->min);
+}
+
+void set_fslider_rect(FSlider *fslider, SDL_Rect *rect, uint8_t padding)
+{
+    fslider->rect.x = rect->x + padding;
+    fslider->rect.y = rect->y + padding;
+    fslider->rect.w = rect->w - (padding<<1);
+    fslider->rect.h = rect->h - (padding<<1);
+    fslider->bar_rect.x = rect->x + (padding<<1);
+    fslider->bar_rect.y = rect->y + (padding<<1);
+    fslider->bar_rect.w = rect->w - (padding<<2);
+    fslider->bar_rect.h = rect->h - (padding<<2);
+
+}

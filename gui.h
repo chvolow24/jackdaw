@@ -40,14 +40,28 @@
 // #define MAX_SFPP 80000
 #define COLOR_BAR_W (5 * scale_factor)
 
-#define TRACK_CONSOLE_WIDTH (160 * scale_factor)
+// #define TRACK_CONSOLE_WIDTH (160 * scale_factor)
+// #define TRACK_CONSOLE_WIDTH (80 * scale_factor)
+#define TRACK_CONSOLE_WIDTH_UNSCALED 160
+#define TRACK_CONSOLE_WIDTH (TRACK_CONSOLE_WIDTH_UNSCALED * scale_factor)
 
-#define TRACK_CONSOLE (Dim) {ABS, 0}, (Dim) {ABS, 0}, (Dim) {ABS, TRACK_CONSOLE_WIDTH}, (Dim) {REL, 100}
+#define TRACK_CONSOLE_ROW_HEIGHT_UNSCALED 24
+
+#define TRACK_CONSOLE_RECT (Dim) {ABS, 0}, (Dim) {ABS, 0}, (Dim) {ABS, TRACK_CONSOLE_WIDTH_UNSCALED}, (Dim) {REL, 100}
 #define TRACK_NAME_RECT (Dim) {REL, 1}, (Dim) {ABS, 4}, (Dim) {REL, 75}, (Dim) {ABS, 16}
 #define CLIP_NAME_RECT (Dim) {ABS, 5}, (Dim) {REL, 3}, (Dim) {ABS, 50}, (Dim) {ABS, 10}
-#define TRACK_IN_ROW (Dim) {REL, 1}, (Dim) {ABS, 24}, (Dim) {REL, 99}, (Dim) {ABS, 16}
-#define TRACK_IN_LABEL (Dim) {ABS, 4}, (Dim) {ABS, 0}, (Dim) {REL, 20}, (Dim) {REL, 100}
-#define TRACK_IN_NAME (Dim) {ABS, 40}, (Dim) {ABS, 0}, (Dim) {REL, 60}, (Dim) {REL, 100}
+
+#define TRACK_NAME_ROW (Dim) {ABS, 4}, (Dim) {ABS, 4}, (Dim) {REL, 100}, (Dim) {ABS, TRACK_CONSOLE_ROW_HEIGHT_UNSCALED} // child of console
+#define TRACK_IN_ROW (Dim) {ABS, 4}, (Dim) {ABS, 4 + TRACK_CONSOLE_ROW_HEIGHT_UNSCALED}, (Dim) {REL, 100}, (Dim) {ABS, TRACK_CONSOLE_ROW_HEIGHT_UNSCALED} // child of console
+#define TRACK_VOL_ROW (Dim) {ABS, 4}, (Dim) {ABS, 4 + TRACK_CONSOLE_ROW_HEIGHT_UNSCALED * 2}, (Dim) {REL, 100}, (Dim) {ABS, TRACK_CONSOLE_ROW_HEIGHT_UNSCALED} // child of console
+#define TRACK_PAN_ROW (Dim) {ABS, 4}, (Dim) {ABS, 4 + TRACK_CONSOLE_ROW_HEIGHT_UNSCALED * 3}, (Dim) {REL, 100}, (Dim) {ABS, TRACK_CONSOLE_ROW_HEIGHT_UNSCALED} // child of console
+// #define TRACK_IN_LABEL (Dim) {ABS, 4}, (Dim) {ABS, 0}, (Dim) {REL, 20}, (Dim) {REL, 100} // child of track in row
+// #define TRACK_IN_NAME (Dim) {ABS, 40}, (Dim) {ABS, 0}, (Dim) {REL, 60}, (Dim) {REL, 100} // child of track in row 
+
+// #define TRACK_VOL_LABEL (Dim) {ABS, 4}, (Dim) {ABS, 0}, (Dim) {REL, 10}, (Dim) {REL, 100} // child of track vol row
+// #define TRACK_VOL_SLIDER (Dim) {ABS, 40}, (Dim) {ABS, 0}, (Dim) {REL, 70}, (Dim) {REL, 100} // child of track vol row
+
+// #define TRACK_VOL_CTRL (Dim) {ABS, 58} (Dim) {ABS, 24}, (Dim) {} 
 #define NAMEBOX_W 75
 #define TRACK_IN_W 64
 #define TRACK_INTERNAL_PADDING (6 * scale_factor)
@@ -61,6 +75,7 @@
 #define CLIP_BORDER_W (2 * scale_factor)
 #define ARROW_TL_STEP (20 * scale_factor)
 #define ARROW_TL_STEP_SMALL (1 * scale_factor)
+#define FSLIDER_PADDING (2 * scale_factor)
 
 #define MENU_LIST_R 14
 
@@ -134,7 +149,8 @@ typedef struct f_slider {
     float max;
     float min;
     SDL_Rect rect;
-    bool orientation_vertical;
+    SDL_Rect bar_rect;
+    // bool orientation_vertical;
 } FSlider;
 
 
@@ -191,8 +207,12 @@ TextboxList *create_menulist(
     void *target
 );
 void destroy_pop_menulist(JDAWWindow *jwin);
+void destroy_textbox(Textbox *tb);
 void menulist_hover(JDAWWindow *jwin, SDL_Point *mouse_p);
 bool triage_menulist_mouseclick(JDAWWindow *jwin, SDL_Point *mouse_p);
 void reset_textbox_value(Textbox *tb, char *new_val);
+
+void reset_fslider(FSlider *fslider);
+void set_fslider_rect(FSlider *fslider, SDL_Rect *rect, uint8_t padding);
 
 #endif

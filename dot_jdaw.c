@@ -168,27 +168,20 @@ Project *open_jdaw_file(const char *path)
     sprintf(project_window_name, "Jackdaw | %s", proj->name);
 
     proj->jwin = create_jwin(project_window_name, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED-20, 900, 650);
-    proj->tl->console_width = TRACK_CONSOLE_WIDTH;
+
+    //TODO: get this outta here
+    // proj->tl->console_width = TRACK_CONSOLE_WIDTH;
     proj->tl->rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h,}, TL_RECT);
     proj->tl->audio_rect = (SDL_Rect) {proj->tl->rect.x + TRACK_CONSOLE_WIDTH + COLOR_BAR_W + PADDING, proj->tl->rect.y, proj->tl->rect.w, proj->tl->rect.h}; // SET x in track
     activate_audio_devices(proj);
 
 
     while (num_tracks > 0) {
-        // fprintf(stderr, "TRACKS TO DO: %d\n", num_tracks);
-        // sprintf(logfilename, "error%d.log", num_tracks);
-        // FILE *logf = fopen(logfilename, "w");
-        // log_project_state(logf);
         Track *track = create_track(proj->tl, true);
         read_track_from_jdaw(f, track);
         num_tracks--;
-        // fclose(logf);
     }
     fprintf(stderr, "DONE with file read.\n");
-
-    // FILE *final_log = fopen("final.log", "w");
-    // log_project_state(final_log);
-    // fclose(final_log);
     fclose(f);
     return proj;
 }

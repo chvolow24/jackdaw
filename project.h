@@ -194,6 +194,7 @@ void delete_grabbed_clips();
 void reset_cliprect(Clip* clip);
 void reset_track_internal_rects(Track *track);
 bool adjust_track_vol(Track *track, float change_by);
+bool adjust_track_pan(Track *track, float change_by);
 
 
 

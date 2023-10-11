@@ -52,9 +52,9 @@
 #define CLIP_NAME_RECT (Dim) {ABS, 5}, (Dim) {REL, 3}, (Dim) {ABS, 50}, (Dim) {ABS, 10}
 
 #define TRACK_NAME_ROW (Dim) {ABS, 4}, (Dim) {ABS, 4}, (Dim) {REL, 100}, (Dim) {ABS, TRACK_CONSOLE_ROW_HEIGHT_UNSCALED} // child of console
-#define TRACK_IN_ROW (Dim) {ABS, 4}, (Dim) {ABS, 4 + TRACK_CONSOLE_ROW_HEIGHT_UNSCALED}, (Dim) {REL, 100}, (Dim) {ABS, TRACK_CONSOLE_ROW_HEIGHT_UNSCALED} // child of console
-#define TRACK_VOL_ROW (Dim) {ABS, 4}, (Dim) {ABS, 4 + TRACK_CONSOLE_ROW_HEIGHT_UNSCALED * 2}, (Dim) {REL, 100}, (Dim) {ABS, TRACK_CONSOLE_ROW_HEIGHT_UNSCALED} // child of console
-#define TRACK_PAN_ROW (Dim) {ABS, 4}, (Dim) {ABS, 4 + TRACK_CONSOLE_ROW_HEIGHT_UNSCALED * 3}, (Dim) {REL, 100}, (Dim) {ABS, TRACK_CONSOLE_ROW_HEIGHT_UNSCALED} // child of console
+#define TRACK_VOL_ROW (Dim) {ABS, 4}, (Dim) {ABS, 4 + TRACK_CONSOLE_ROW_HEIGHT_UNSCALED}, (Dim) {REL, 100}, (Dim) {ABS, TRACK_CONSOLE_ROW_HEIGHT_UNSCALED} // child of console
+#define TRACK_PAN_ROW (Dim) {ABS, 4}, (Dim) {ABS, 4 + TRACK_CONSOLE_ROW_HEIGHT_UNSCALED * 2}, (Dim) {REL, 100}, (Dim) {ABS, TRACK_CONSOLE_ROW_HEIGHT_UNSCALED} // child of console
+#define TRACK_IN_ROW (Dim) {ABS, 4}, (Dim) {ABS, 4 + TRACK_CONSOLE_ROW_HEIGHT_UNSCALED * 3}, (Dim) {REL, 100}, (Dim) {ABS, TRACK_CONSOLE_ROW_HEIGHT_UNSCALED} // child of console
 // #define TRACK_IN_LABEL (Dim) {ABS, 4}, (Dim) {ABS, 0}, (Dim) {REL, 20}, (Dim) {REL, 100} // child of track in row
 // #define TRACK_IN_NAME (Dim) {ABS, 40}, (Dim) {ABS, 0}, (Dim) {REL, 60}, (Dim) {REL, 100} // child of track in row 
 
@@ -143,6 +143,11 @@ typedef struct menulist_item {
     bool available;
 } MenulistItem;
 
+typedef enum fslider_type {
+    FILL,
+    LINE
+} FSlider_type;
+
 /* Float-valued slider */
 typedef struct f_slider {
     float value;
@@ -150,6 +155,7 @@ typedef struct f_slider {
     float min;
     SDL_Rect rect;
     SDL_Rect bar_rect;
+    FSlider_type type;
     // bool orientation_vertical;
 } FSlider;
 

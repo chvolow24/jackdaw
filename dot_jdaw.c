@@ -202,6 +202,7 @@ void read_track_from_jdaw(FILE *f, Track *track)
     fread(&trck_namelength, 1, 1, f);
     fread(track->name, 1, trck_namelength + 1, f);
     fprintf(stderr, "Track named: '%s'\n", track->name);
+    reset_textbox_value(track->name_box, track->name);
     uint8_t num_clips;
     fread(&num_clips, 1, 1, f);
     while (num_clips > 0) {

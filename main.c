@@ -351,6 +351,8 @@ static void project_loop()
     bool j_down = false;
     bool equals_down = false;
     bool minus_down = false;
+    bool nine_down = false;
+    bool zero_down = false;
     bool quit = false;
     SDL_Point mouse_p;
     while (!quit) {
@@ -507,6 +509,10 @@ static void project_loop()
                         break;
                     case SDL_SCANCODE_9:
                         activate_or_deactivate_track(8);
+                        nine_down = true;
+                        break;
+                    case SDL_SCANCODE_0:
+                        zero_down = true;
                         break;
                     case SDL_SCANCODE_D:
                         proj->play_speed = 0;
@@ -593,30 +599,15 @@ static void project_loop()
                         break;
                     case SDL_SCANCODE_EQUALS:
                         equals_down = false;
-                    //     Track *track = NULL;
-                    //     for (uint8_t i=0; i<proj->tl->num_active_tracks; i++) {
-                    //         track = proj->tl->tracks[proj->tl->active_track_indices[i]];
-                    //         if (!track) {
-                    //             fprintf(stderr, "Fatal error: track not found at active track index.\n");
-                    //             exit(1);
-                    //         }
-                    //         adjust_track_vol(track, 0.04);
-                    //     }
-                    // }
-                    break;
+                        break;
                     case SDL_SCANCODE_MINUS:
                         minus_down = false;
-                    //     Track *track = NULL;
-                    //     for (uint8_t i=0; i<proj->tl->num_active_tracks; i++) {
-                    //         track = proj->tl->tracks[proj->tl->active_track_indices[i]];
-                    //         if (!track) {
-                    //             fprintf(stderr, "Fatal error: track not found at active track index.\n");
-                    //             exit(1);
-                    //         }
-                    //         adjust_track_vol(track, -0.04);
-                    //     }
-                    // }
-                    break;
+                        break;
+                    case SDL_SCANCODE_9:
+                        nine_down = false;
+                        break;
+                    case SDL_SCANCODE_0:
+                        zero_down = false;
                     default:
                         break;
                 }
@@ -640,8 +631,20 @@ static void project_loop()
                     fprintf(stderr, "Fatal error: track not found at active track index.\n");
                     exit(1);
                 }
-                float adjust_by = equals_down ? 0.02 : -0.02;
+                float adjust_by = minus_down ? -0.02 : 0.02;
                 adjust_track_vol(track, adjust_by);
+            }
+        }
+        if (shift_down && (nine_down || zero_down)) {
+            Track *track = NULL;
+            for (uint8_t i=0; i<proj->tl->num_active_tracks; i++) {
+                track = proj->tl->tracks[proj->tl->active_track_indices[i]];
+                if (!track) {
+                    fprintf(stderr, "Fatal error: track not found at active track index.\n");
+                    exit(1);
+                }
+                float adjust_by = nine_down ? -0.02 : 0.02;
+                adjust_track_pan(track, adjust_by);
             }
         }
         get_mouse_state(&mouse_p);

@@ -345,11 +345,13 @@ Track *create_track(Timeline *tl, bool stereo)
     track->vol_ctrl->max = 2;
     track->vol_ctrl->min = 0;
     track->vol_ctrl->value = 1;
+    track->vol_ctrl->type = FILL;
     // track->vol_ctrl->orientation_vertical = false;
     track->pan_ctrl = malloc(sizeof(FSlider));
     track->pan_ctrl->max = 1;
     track->pan_ctrl->min = -1;
     track->pan_ctrl->value = 0;
+    track->pan_ctrl->type = LINE;
 
     track->name_box = create_textbox(
         NAMEBOX_W * TRACK_CONSOLE_WIDTH / 100,
@@ -671,6 +673,7 @@ uint8_t proj_grabbed_clips()
     uint8_t ret=0;
     for (uint8_t i=0; i<proj->tl->num_tracks; i++) {
         ret += proj->tl->tracks[i]->num_grabbed_clips;
+        fprintf(stderr, "Trackm %d has %d grabbed clips\n", i, proj->tl->tracks[i]->num_grabbed_clips);
     }
     return ret;
 }
@@ -679,6 +682,9 @@ uint8_t proj_grabbed_clips()
 void remove_clip_from_track(Clip *clip)
 {  
     if (clip->track) {
+        if (clip->grabbed) {
+            clip->track->num_grabbed_clips--;
+        }
         for (uint8_t i=clip->track_rank + 1; i<clip->track->num_clips; i++) {
             clip->track->clips[i]->track_rank--;
             clip->track->clips[i-1] = clip->track->clips[i];
@@ -690,7 +696,7 @@ void remove_clip_from_track(Clip *clip)
 void delete_clip(Clip *clip)
 {
     remove_clip_from_track(clip);
-    free(clip);
+    destroy_clip(clip);
     clip = NULL;
 }
 
@@ -787,6 +793,12 @@ void activate_audio_devices(Project *proj)
 bool adjust_track_vol(Track *track, float change_by)
 {
     return adjust_fslider(track->vol_ctrl, change_by);
+}
+
+/* Returns true if change was made */
+bool adjust_track_pan(Track *track, float change_by)
+{
+    return adjust_fslider(track->pan_ctrl, change_by);
 }
 
 // typedef struct project {

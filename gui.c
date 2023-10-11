@@ -535,7 +535,7 @@ bool triage_menulist_mouseclick(JDAWWindow *jwin, SDL_Point *mouse_p)
 
 void reset_fslider(FSlider *fslider) 
 {
-    fslider->bar_rect.w = (fslider->rect.w - FSLIDER_PADDING * 2) * fslider->value / (fslider->max - fslider->min);
+    fslider->bar_rect.w = ((fslider->rect.w - FSLIDER_PADDING * 2) * fslider->value / (fslider->max - fslider->min)) - fslider->min;
 }
 
 void set_fslider_rect(FSlider *fslider, SDL_Rect *rect, uint8_t padding)
@@ -549,4 +549,16 @@ void set_fslider_rect(FSlider *fslider, SDL_Rect *rect, uint8_t padding)
     fslider->bar_rect.w = rect->w - (padding<<2);
     fslider->bar_rect.h = rect->h - (padding<<2);
 
+}
+
+/* Returns true if change was made */
+bool adjust_fslider(FSlider *fslider, float change_by)
+{
+    float newval = fslider->value + change_by;
+    if (newval >= fslider->min && newval <= fslider->max) {
+        fslider->value = newval;
+        reset_fslider(fslider);
+        return true;
+    }
+    return false;
 }

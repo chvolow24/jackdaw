@@ -160,9 +160,9 @@ static void get_mouse_state(SDL_Point *mouse_p)
 /* Triage mouseclicks that occur within a Jackdaw Project */
 static void triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down)
 {
-    fprintf(stderr, "In main triage mouseclick %d, %d\n", (*mouse_p).x, (*mouse_p).y);
-    fprintf(stderr, "\t-> tlrect: %d %d %d %d\n", proj->tl->rect.x, proj->tl->rect.y, proj->tl->rect.w, proj->tl->rect.h);
-    fprintf(stderr, "\t-> audiorect: %d %d %d %d\n", proj->tl->audio_rect.x, proj->tl->audio_rect.y, proj->tl->audio_rect.w, proj->tl->audio_rect.h);
+    // fprintf(stderr, "In main triage mouseclick %d, %d\n", (*mouse_p).x, (*mouse_p).y);
+    // fprintf(stderr, "\t-> tlrect: %d %d %d %d\n", proj->tl->rect.x, proj->tl->rect.y, proj->tl->rect.w, proj->tl->rect.h);
+    // fprintf(stderr, "\t-> audiorect: %d %d %d %d\n", proj->tl->audio_rect.x, proj->tl->audio_rect.y, proj->tl->audio_rect.w, proj->tl->audio_rect.h);
 
     if (SDL_PointInRect(mouse_p, &(proj->tl->rect))) {
         if (SDL_PointInRect(mouse_p, &(proj->tl->audio_rect))) {
@@ -349,6 +349,8 @@ static void project_loop()
     bool k_down = false;
     bool l_down = false;
     bool j_down = false;
+    bool equals_down = false;
+    bool minus_down = false;
     bool quit = false;
     SDL_Point mouse_p;
     while (!quit) {
@@ -549,6 +551,12 @@ static void project_loop()
                         fprintf(stderr, "SCANCODE DELETE\n");
                         delete_grabbed_clips();
                         break;
+                    case SDL_SCANCODE_EQUALS:
+                        equals_down = true;
+                        break;
+                    case SDL_SCANCODE_MINUS:
+                        minus_down = true;
+                        break;
                     default:
                         break;
                 }
@@ -583,6 +591,32 @@ static void project_loop()
                             proj->play_speed = 0;
                         }
                         break;
+                    case SDL_SCANCODE_EQUALS:
+                        equals_down = false;
+                    //     Track *track = NULL;
+                    //     for (uint8_t i=0; i<proj->tl->num_active_tracks; i++) {
+                    //         track = proj->tl->tracks[proj->tl->active_track_indices[i]];
+                    //         if (!track) {
+                    //             fprintf(stderr, "Fatal error: track not found at active track index.\n");
+                    //             exit(1);
+                    //         }
+                    //         adjust_track_vol(track, 0.04);
+                    //     }
+                    // }
+                    break;
+                    case SDL_SCANCODE_MINUS:
+                        minus_down = false;
+                    //     Track *track = NULL;
+                    //     for (uint8_t i=0; i<proj->tl->num_active_tracks; i++) {
+                    //         track = proj->tl->tracks[proj->tl->active_track_indices[i]];
+                    //         if (!track) {
+                    //             fprintf(stderr, "Fatal error: track not found at active track index.\n");
+                    //             exit(1);
+                    //         }
+                    //         adjust_track_vol(track, -0.04);
+                    //     }
+                    // }
+                    break;
                     default:
                         break;
                 }
@@ -593,11 +627,22 @@ static void project_loop()
             get_mouse_state(&mouse_p);
             proj->tl->play_position = get_abs_tl_x(mouse_p.x);
         }
-
         if (proj->play_speed < 0 && proj->tl->offset > proj->tl->play_position) {
             translate_tl(CATCHUP_STEP * -1, 0);
         } else if (proj->play_speed > 0 && get_tl_draw_x(proj->tl->play_position) > proj->jwin->w) {
             translate_tl(CATCHUP_STEP, 0);
+        }
+        if (shift_down && (equals_down || minus_down)) {
+            Track *track = NULL;
+            for (uint8_t i=0; i<proj->tl->num_active_tracks; i++) {
+                track = proj->tl->tracks[proj->tl->active_track_indices[i]];
+                if (!track) {
+                    fprintf(stderr, "Fatal error: track not found at active track index.\n");
+                    exit(1);
+                }
+                float adjust_by = equals_down ? 0.02 : -0.02;
+                adjust_track_vol(track, adjust_by);
+            }
         }
         get_mouse_state(&mouse_p);
         menulist_hover(proj->jwin, &mouse_p);

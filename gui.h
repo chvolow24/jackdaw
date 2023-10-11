@@ -214,5 +214,6 @@ void reset_textbox_value(Textbox *tb, char *new_val);
 
 void reset_fslider(FSlider *fslider);
 void set_fslider_rect(FSlider *fslider, SDL_Rect *rect, uint8_t padding);
+bool adjust_fslider(FSlider *fslider, float change_by);
 
 #endif

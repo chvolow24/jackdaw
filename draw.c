@@ -523,6 +523,7 @@ void draw_track(Track * track)
     draw_textbox(proj->jwin->rend, track->vol_label_box);
     draw_textbox(proj->jwin->rend, track->pan_label_box);
     draw_fslider(proj->jwin, track->vol_ctrl);
+    draw_fslider(proj->jwin, track->pan_ctrl);
 
     /* TEMPORARY */
     // SDL_SetRenderDrawColor(proj->jwin->rend, 255, 0, 0, 255);

@@ -40,9 +40,14 @@
 extern Project *proj;
 extern uint8_t scale_factor;
 
+int get_tl_draw_x(uint32_t abs_x);
+
 /* Get the timeline position value -- in sample frames -- from a draw x coordinate  */
 uint32_t get_abs_tl_x(int draw_x)
 {
+    fprintf(stderr, "draw x into audio rect: %d\nsfpp: %f\n", draw_x - proj->tl->audio_rect.x, proj->tl->sample_frames_per_pixel);
+    fprintf(stderr, "Return val: %d\n", (uint32_t) ((draw_x - proj->tl->audio_rect.x) * proj->tl->sample_frames_per_pixel + proj->tl->offset));
+    fprintf(stderr, "Reverse: %d\n", get_tl_draw_x((uint32_t) ((draw_x - proj->tl->audio_rect.x) * proj->tl->sample_frames_per_pixel + proj->tl->offset)) - proj->tl->audio_rect.x);
     return (draw_x - proj->tl->audio_rect.x) * proj->tl->sample_frames_per_pixel + proj->tl->offset; 
 }
 
@@ -50,7 +55,8 @@ uint32_t get_abs_tl_x(int draw_x)
 int get_tl_draw_x(uint32_t abs_x) 
 {
     if (proj->tl->sample_frames_per_pixel != 0) {
-        return proj->tl->audio_rect.x + ((int) abs_x - (int) proj->tl->offset) / (int) proj->tl->sample_frames_per_pixel;
+        float precise = (float) proj->tl->audio_rect.x + ((float) abs_x - (float) proj->tl->offset) / (float) proj->tl->sample_frames_per_pixel;
+        return (int) precise;
     } else {
         fprintf(stderr, "Error: proj tl sfpp value 0\n");
         return 0;
@@ -113,14 +119,14 @@ void translate_tl(int translate_by_x, int translate_by_y)
 
 }
 
-void rescale_timeline(double scale_factor, uint32_t center_abs_pos) 
+void rescale_timeline(double sfpp_scale_factor, uint32_t center_abs_pos) 
 {
-    if (scale_factor == 0) {
+    if (sfpp_scale_factor == 0) {
         fprintf(stderr, "Warning! Scale factor 0 in rescale_timeline\n");
         return;
     }
     int init_draw_pos = get_tl_draw_x(center_abs_pos);
-    double new_sfpp = proj->tl->sample_frames_per_pixel / scale_factor;
+    double new_sfpp = proj->tl->sample_frames_per_pixel / sfpp_scale_factor;
 
     if (new_sfpp < 2 || new_sfpp > MAX_SFPP) {
         return;

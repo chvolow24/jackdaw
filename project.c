@@ -44,7 +44,7 @@
 #include "timeline.h"
 
 #define DEFAULT_TRACK_HEIGHT (100 * scale_factor)
-#define DEFAULT_SFPP 300 // sample frames per pixel
+#define DEFAULT_SFPP 600 // sample frames per pixel
 
 extern Project *proj;
 extern uint8_t scale_factor;
@@ -205,7 +205,7 @@ Project *create_empty_project()
     tl->play_offset = 0;
     tl->tempo = 0;
     tl->click_on = 0;
-    tl->sample_frames_per_pixel = DEFAULT_SFPP * 2;
+    tl->sample_frames_per_pixel = DEFAULT_SFPP;
     tl->offset = 0; // horizontal offset of timeline in samples
     tl->v_offset = 0;
     tl->num_active_tracks = 0;
@@ -253,7 +253,7 @@ Project *create_project(const char* name, uint8_t channels, int sample_rate, SDL
     tl->play_offset = 0;
     tl->tempo = 120;
     tl->click_on = false;
-    tl->sample_frames_per_pixel = DEFAULT_SFPP * channels; // how "zoomed in" the timeline is. Affects display only
+    tl->sample_frames_per_pixel = DEFAULT_SFPP; // how "zoomed in" the timeline is. Affects display only
     tl->offset = 0; // horizontal offset of timeline in samples
     tl->v_offset = 0;
     tl->num_active_tracks = 0;
@@ -269,7 +269,8 @@ Project *create_project(const char* name, uint8_t channels, int sample_rate, SDL
 
     // tl->console_width = TRACK_CONSOLE_WIDTH;
     tl->rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h,}, TL_RECT);
-    tl->audio_rect = (SDL_Rect) {tl->rect.x + TRACK_CONSOLE_WIDTH + COLOR_BAR_W + PADDING, tl->rect.y, tl->rect.w, tl->rect.h}; // SET x in track
+    int audio_rect_x = tl->rect.x + TRACK_CONSOLE_WIDTH + COLOR_BAR_W + PADDING;
+    tl->audio_rect = (SDL_Rect) {audio_rect_x, tl->rect.y, proj->jwin->w - audio_rect_x, tl->rect.h}; // SET x in track
 
     return proj;
 }
@@ -345,6 +346,10 @@ Track *create_track(Timeline *tl, bool stereo)
     track->vol_ctrl->min = 0;
     track->vol_ctrl->value = 1;
     // track->vol_ctrl->orientation_vertical = false;
+    track->pan_ctrl = malloc(sizeof(FSlider));
+    track->pan_ctrl->max = 1;
+    track->pan_ctrl->min = -1;
+    track->pan_ctrl->value = 0;
 
     track->name_box = create_textbox(
         NAMEBOX_W * TRACK_CONSOLE_WIDTH / 100,
@@ -448,9 +453,13 @@ void reset_track_internal_rects(Track *track)
     position_textbox(track->input_name_box, track->input_row_rect.x + track->input_label_box->container.w + PADDING, track->input_row_rect.y);
     position_textbox(track->vol_label_box, track->vol_row_rect.x, track->vol_row_rect.y);
     position_textbox(track->pan_label_box, track->pan_row_rect.x, track->pan_row_rect.y);
-    set_fslider_rect(track->vol_ctrl, &(track->vol_row_rect), 4);
+    SDL_Rect volslider_rect = (SDL_Rect) {track->vol_label_box->container.x + track->vol_label_box->container.w + PADDING, track->vol_label_box->container.y + PADDING, track->vol_row_rect.w - track->vol_label_box->container.w - (PADDING * 4), track->vol_row_rect.h - (PADDING * 2)};
+    set_fslider_rect(track->vol_ctrl, &volslider_rect, 4);
     reset_fslider(track->vol_ctrl); 
-    
+
+    SDL_Rect panslider_rect = (SDL_Rect) {track->pan_label_box->container.x + track->pan_label_box->container.w + PADDING, track->pan_label_box->container.y + PADDING, track->pan_row_rect.w - track->pan_label_box->container.w - (PADDING * 4), track->pan_row_rect.h - (PADDING * 2)};
+    set_fslider_rect(track->pan_ctrl, &panslider_rect, 4);
+    reset_fslider(track->pan_ctrl);
 }
 
 /* Reset the clip's container rect for redrawing */
@@ -537,7 +546,8 @@ void destroy_track(Track *track)
     destroy_textbox(track->input_name_box);
     destroy_textbox(track->vol_label_box);
     destroy_textbox(track->pan_label_box);
-    // free(track->vol_ctrl);
+    free(track->vol_ctrl);
+    free(track->pan_ctrl);
     free(track);
 
     fprintf(stderr, "\t->Exit destroy track\n");
@@ -586,7 +596,8 @@ void ungrab_clips()
 void reset_tl_rect(Timeline *tl)
 {
     tl->rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h,}, TL_RECT);
-    tl->audio_rect = (SDL_Rect) {tl->rect.x + TRACK_CONSOLE_WIDTH + COLOR_BAR_W + PADDING, tl->rect.y, tl->rect.w, tl->rect.h}; // SET x in track
+    int audio_rect_x = tl->rect.x + TRACK_CONSOLE_WIDTH + COLOR_BAR_W + PADDING;
+    tl->audio_rect = (SDL_Rect) {audio_rect_x, tl->rect.y, tl->proj->jwin->w - audio_rect_x, tl->rect.h}; // SET x in track
     Track *track = NULL;
 
     for (int t=0; t<tl->num_tracks; t++) {
@@ -772,6 +783,11 @@ void activate_audio_devices(Project *proj)
 
 }
 
+/* Returns true if change was made */
+bool adjust_track_vol(Track *track, float change_by)
+{
+    return adjust_fslider(track->vol_ctrl, change_by);
+}
 
 // typedef struct project {
 //     char name[MAX_NAMELENGTH];

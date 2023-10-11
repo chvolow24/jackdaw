@@ -43,7 +43,7 @@
 #include "draw.h"
 #include "timeline.h"
 
-#define DEFAULT_TRACK_HEIGHT (100 * scale_factor)
+#define DEFAULT_TRACK_HEIGHT (108 * scale_factor)
 #define DEFAULT_SFPP 600 // sample frames per pixel
 
 extern Project *proj;
@@ -294,34 +294,6 @@ Track *create_track(Timeline *tl, bool stereo)
     track->rect.h = DEFAULT_TRACK_HEIGHT;
     track->rect.x = tl->rect.x + PADDING;
 
-
-    /* TEMPORARY UPDATE */
-    /*
-    SDL_Rect consolerect = get_rect(track->rect, TRACK_CONSOLE); //TODO: Remove this computation from draw
-    consolerect.w = track->tl->console_width;
-
-    if (track->active) {
-        set_rend_color(proj->jwin->rend, &console_bckgrnd_active);
-    } else {
-        set_rend_color(proj->jwin->rend, &console_bckgrnd);
-    }
-    SDL_RenderFillRect(proj->jwin->rend, &consolerect);
-
-    position_textbox(track->name_box, consolerect.x + 4, consolerect.y + 4);
-    draw_textbox(proj->jwin->rend, track->name_box);
-    position_textbox(track->input_label_box, consolerect.x + TRACK_INTERNAL_PADDING, track->name_box->container.y + track->name_box->container.h + TRACK_INTERNAL_PADDING); //TODO: replace 4 with padding
-    draw_textbox(proj->jwin->rend, track->input_label_box);
-    position_textbox(track->input_name_box, track->input_label_box->container.x + track->input_label_box->container.w + TRACK_INTERNAL_PADDING, track->input_label_box->container.y);
-    draw_textbox(proj->jwin->rend, track->input_name_box);
-    */
-
-
-    /* END NEW TEMPORARY UI */
-
-
-
-
-
     if (track->tl_rank == 0) {
         track->rect.y = track->tl->rect.y + PADDING;
     } else {
@@ -555,11 +527,27 @@ void destroy_track(Track *track)
     fprintf(stderr, "\t->Exit destroy track\n");
 }
 
+
 void grab_clip(Clip *clip) 
 {
     clip->grabbed = true;
     clip->track->num_grabbed_clips++;
 }
+
+void ungrab_clip(Clip *clip) 
+{
+    clip->grabbed = false;
+    clip->track->num_grabbed_clips--;
+}
+
+void grab_ungrab_clip(Clip *clip) {
+    if (clip->grabbed) {
+        ungrab_clip(clip);
+    } else {
+        grab_clip(clip);
+    }
+}
+
 void grab_clips()
 {
     for (uint8_t i=0; i<proj->tl->num_active_tracks; i++) {

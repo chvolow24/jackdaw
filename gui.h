@@ -34,14 +34,11 @@
 
 #define STD_RAD 20
 
+#define TL_RECT (Dim) {ABS, 5}, (Dim) {REL, 20}, (Dim) {REL, 100}, (Dim) {REL, 76}
 #define PLAYHEAD_TRI_H (10 * scale_factor)
-#define TRACK_SPACING (5 * scale_factor)
+#define TRACK_SPACING (4 * scale_factor)
 #define PADDING (4 * scale_factor)
-// #define MAX_SFPP 80000
-#define COLOR_BAR_W (5 * scale_factor)
 
-// #define TRACK_CONSOLE_WIDTH (160 * scale_factor)
-// #define TRACK_CONSOLE_WIDTH (80 * scale_factor)
 #define TRACK_CONSOLE_WIDTH_UNSCALED 160
 #define TRACK_CONSOLE_WIDTH (TRACK_CONSOLE_WIDTH_UNSCALED * scale_factor)
 
@@ -55,23 +52,24 @@
 #define TRACK_VOL_ROW (Dim) {ABS, 4}, (Dim) {ABS, 4 + TRACK_CONSOLE_ROW_HEIGHT_UNSCALED}, (Dim) {REL, 100}, (Dim) {ABS, TRACK_CONSOLE_ROW_HEIGHT_UNSCALED} // child of console
 #define TRACK_PAN_ROW (Dim) {ABS, 4}, (Dim) {ABS, 4 + TRACK_CONSOLE_ROW_HEIGHT_UNSCALED * 2}, (Dim) {REL, 100}, (Dim) {ABS, TRACK_CONSOLE_ROW_HEIGHT_UNSCALED} // child of console
 #define TRACK_IN_ROW (Dim) {ABS, 4}, (Dim) {ABS, 4 + TRACK_CONSOLE_ROW_HEIGHT_UNSCALED * 3}, (Dim) {REL, 100}, (Dim) {ABS, TRACK_CONSOLE_ROW_HEIGHT_UNSCALED} // child of console
-// #define TRACK_IN_LABEL (Dim) {ABS, 4}, (Dim) {ABS, 0}, (Dim) {REL, 20}, (Dim) {REL, 100} // child of track in row
-// #define TRACK_IN_NAME (Dim) {ABS, 40}, (Dim) {ABS, 0}, (Dim) {REL, 60}, (Dim) {REL, 100} // child of track in row 
 
-// #define TRACK_VOL_LABEL (Dim) {ABS, 4}, (Dim) {ABS, 0}, (Dim) {REL, 10}, (Dim) {REL, 100} // child of track vol row
-// #define TRACK_VOL_SLIDER (Dim) {ABS, 40}, (Dim) {ABS, 0}, (Dim) {REL, 70}, (Dim) {REL, 100} // child of track vol row
+#define COLOR_BAR_W (5 * scale_factor)
 
-// #define TRACK_VOL_CTRL (Dim) {ABS, 58} (Dim) {ABS, 24}, (Dim) {} 
-#define NAMEBOX_W 75
-#define TRACK_IN_W 64
+#define NAMEBOX_W (37 * scale_factor)
+#define TRACK_IN_W (32 * scale_factor)
 #define TRACK_INTERNAL_PADDING (6 * scale_factor)
+
 #define CURSOR_COUNTDOWN 50
 #define CURSOR_WIDTH (1 * scale_factor)
+
 #define MAX_TB_LEN 255
 #define MAX_TB_LIST_LEN 100
 #define MAX_MLI_LABEL_LEN 255
+
 #define NUM_FONT_SIZES 11
+
 #define MAX_ACTIVE_MENUS 8
+
 #define CLIP_BORDER_W (2 * scale_factor)
 #define ARROW_TL_STEP (20 * scale_factor)
 #define ARROW_TL_STEP_SMALL (1 * scale_factor)

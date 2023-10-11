@@ -39,7 +39,6 @@
 /* Timeline- and clip-related constants */
 #define MAX_TRACKS 100
 #define MAX_NAMELENGTH 255
-#define TL_RECT (Dim) {ABS, 5}, (Dim) {REL, 20}, (Dim) {REL, 100}, (Dim) {REL, 76}
 
 #define MAX_ACTIVE_CLIPS 25
 #define MAX_ACTIVE_TRACKS 25
@@ -55,6 +54,8 @@ typedef struct textbox Textbox;
 typedef struct jdaw_window JDAWWindow;
 typedef struct f_slider FSlider;
 
+
+/* An audio track in the timeline. This object includes handles to various controls and all resident clips */
 typedef struct track {
 	char name[MAX_NAMELENGTH];
 	bool active;
@@ -94,6 +95,7 @@ typedef struct track {
 
 } Track;
 
+/* A chunk of audio, associated with a particular track in the timeline */
 typedef struct clip {
 		char name[MAX_NAMELENGTH];
 		int clip_gain;
@@ -102,7 +104,7 @@ typedef struct clip {
 		uint32_t length; // in samples
 		int32_t absolute_position; // in samples
 		int16_t *samples;
-		bool done;
+		bool done; // true when the clip has finished recording
 		AudioDevice *input;
 
 		/* GUI members */
@@ -113,6 +115,7 @@ typedef struct clip {
 		bool grabbed;
 } Clip;
 
+/* The project timeline organizes included tracks and specifies how they should be displayed */
 typedef struct timeline {
 		uint32_t play_position; // in sample frames
 		// uint32_t record_position; // in sample frames
@@ -139,7 +142,7 @@ typedef struct timeline {
 
 } Timeline;
 
-
+/* A Jackdaw project. Only one can be active at a time. Can persist on disk as a .jdaw file (see dot_jdaw.c, dot_jdaw.h) */
 typedef struct project {
 		char name[MAX_NAMELENGTH];
 		// bool dark_mode;
@@ -184,6 +187,7 @@ void clear_active_clips();
 void log_project_state(FILE *f);
 
 void grab_clip(Clip *clip);
+void grab_ungrab_clip(Clip *clip);
 void grab_clips(void);
 void ungrab_clips(void);
 uint8_t proj_grabbed_clips(void);

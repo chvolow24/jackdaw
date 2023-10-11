@@ -182,7 +182,7 @@ static void triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down)
                         for (uint8_t c=0; c<track->num_clips; c++) {
                             Clip* clip = track->clips[c];
                             if (SDL_PointInRect(mouse_p, &clip->rect)) {
-                                grab_clip(clip);
+                                grab_ungrab_clip(clip);
                             }
                         }
                     }
@@ -508,7 +508,9 @@ static void project_loop()
                         activate_or_deactivate_track(7);
                         break;
                     case SDL_SCANCODE_9:
-                        activate_or_deactivate_track(8);
+                        if (!shift_down) {
+                            activate_or_deactivate_track(8);
+                        }
                         nine_down = true;
                         break;
                     case SDL_SCANCODE_0:

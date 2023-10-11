@@ -83,6 +83,8 @@ int32_t get_tl_abs_w(int draw_w)
 void translate_tl(int translate_by_x, int translate_by_y)
 {
     if (abs(translate_by_y) >= abs(translate_by_x)) {
+        translate_by_y = proj->tl->v_offset + translate_by_y < 0 ? translate_by_y : proj->tl->v_offset * -1;
+
         proj->tl->v_offset += translate_by_y;
         Track *track = NULL;
         for (int i=0; i<proj->tl->num_tracks; i++) {

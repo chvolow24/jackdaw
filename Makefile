@@ -1,13 +1,20 @@
 CC := gcc
-CFLAGS := -Wall -I/opt/homebrew/include/SDL2 `sdl2-config --libs --cflags` -lSDL2 -lSDL2_ttf
-SRCS := audio.c text.c project.c theme.c gui.c wav.c draw.c timeline.c dot_jdaw.c main.c
-HDRS := audio.h text.h project.h theme.h gui.h wav.h draw.h timeline.h dot_jdaw.h
-OBJS := $(SRCS:.c=.o)
+SRC_DIR := src
+BUILD_DIR := build
+INCLUDE_DIR := include
+CFLAGS := -Wall -I/opt/homebrew/include/SDL2 -Iinclude `sdl2-config --libs --cflags` -lSDL2 -lSDL2_ttf
+
+SRCS := $(wildcard $(SRC_DIR)/*.c)
+OBJS := $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(SRCS))
+VPATH = $(SRC_DIR)
 
 EXEC := jackdaw
 
-$(EXEC): $(OBJS) $(HDRS)
-	$(CC) -o $@ $(OBJS) $(CFLAGS)
+$(EXEC): $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+$(BUILD_DIR)/%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(EXEC) $(OBJS)
+	rm -rf $(EXEC) $(BUILD_DIR)

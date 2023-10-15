@@ -59,6 +59,7 @@
 #include "draw.h"
 #include "timeline.h"
 #include "dot_jdaw.h"
+#include "dsp.h"
 
 
 #define abs_min(a,b) (abs(a) < abs(b) ? a : b)
@@ -95,7 +96,7 @@ static void get_native_byte_order()
 
 static int segfault_counter = 0;
 
-static void signal_handler()
+static void mem_err_handler()
 {
     FILE *f = fopen("error.log", "w");
     segfault_counter++;
@@ -109,19 +110,32 @@ static void signal_handler()
     exit(1);
 }
 
+static void sigint_handler()
+{
+    FILE *f = fopen("project_state.log", "w");
+    fprintf(stderr, "SIG INT: logging project state.\n");
+    log_project_state(f);
+    fclose(f);
+    exit(1);
+}
+
 static void signal_init(void)
 {
 
+    struct sigaction memErrHandler;
     struct sigaction sigIntHandler;
-
-    sigIntHandler.sa_handler = signal_handler;
+    memErrHandler.sa_handler = mem_err_handler;
+    sigIntHandler.sa_handler = sigint_handler;
+    sigemptyset(&memErrHandler.sa_mask);
     sigemptyset(&sigIntHandler.sa_mask);
+    memErrHandler.sa_flags = 0;
     sigIntHandler.sa_flags = 0;
     // sigaction(SIGINT, &sigIntHandler, NULL);
-    sigaction(SIGSEGV, &sigIntHandler, NULL);
-    sigaction(SIGTRAP, &sigIntHandler, NULL);
-    sigaction(SIGABRT, &sigIntHandler, NULL);
-    sigaction(SIGBUS, &sigIntHandler, NULL);
+    sigaction(SIGSEGV, &memErrHandler, NULL);
+    sigaction(SIGTRAP, &memErrHandler, NULL);
+    sigaction(SIGABRT, &memErrHandler, NULL);
+    sigaction(SIGBUS, &memErrHandler, NULL);
+    sigaction(SIGINT, &sigIntHandler, NULL);
 
 
 }
@@ -290,10 +304,7 @@ static void stop_recording()
         track = proj->tl->tracks[proj->tl->active_track_indices[i]];
         stop_device_recording(track->input);
     }
-    // for (uint8_t i=0; i<proj->num_active_clips; i++) {
-    //     // pthread_t t;
-    //     // pthread_create(&t, NULL, copy_buff_to_clip, proj->active_clips[i]);
-    // }
+
     Clip *clip = NULL;
     for (uint8_t i=0; i<proj->num_active_clips; i++) {
         fprintf(stderr, "Active clip index %d\n", i);
@@ -302,7 +313,7 @@ static void stop_recording()
             exit(1);
         }
         fprintf(stderr, "\t->found clip. Copying buf\n");
-        copy_buff_to_clip(clip);
+        copy_buff_to_clip(clip); //TODO: consider whether this needs to be multi-threaded.
         uint32_t abs_pos_saved = clip->absolute_position;
         reposition_clip(clip, clip->absolute_position - proj->tl->record_offset);
         fprintf(stderr, "Repoisitioning clip from %d to %d\n", abs_pos_saved, clip->absolute_position);
@@ -601,15 +612,19 @@ static void project_loop()
                         break;
                     case SDL_SCANCODE_EQUALS:
                         equals_down = false;
+                        process_vol_and_pan();
                         break;
                     case SDL_SCANCODE_MINUS:
                         minus_down = false;
+                        process_vol_and_pan();
                         break;
                     case SDL_SCANCODE_9:
                         nine_down = false;
+                        process_vol_and_pan();
                         break;
                     case SDL_SCANCODE_0:
                         zero_down = false;
+                        process_vol_and_pan();
                     default:
                         break;
                 }

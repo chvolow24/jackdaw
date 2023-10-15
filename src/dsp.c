@@ -31,4 +31,47 @@
     * Clip buffers are run through functions here to populate post-proc buffer
  *****************************************************************************************************************/
 
+
+#include "project.h"
+#include "gui.h"
+
+extern Project *proj;
+
  
+void process_track_vol_and_pan(Track *track)
+{
+    fprintf(stderr, "Processing vol and pan for track at %p\n", track);
+    Clip *clip = NULL;
+    float pan, lpan, rpan, panctrlval;
+    panctrlval = track->pan_ctrl->value;
+    lpan = panctrlval < 0 ? 1 : 1 - panctrlval;
+    rpan = panctrlval > 0 ? 1 : 1 + panctrlval;
+    for (uint8_t i=0; i<track->num_clips; i++) {
+        clip = track->clips[i];
+        fprintf(stderr, "\t->clip index %d\n", i);
+        uint8_t k=0;
+        for (uint32_t j=0; j<clip->length; j++) {
+            pan = j%2==0 ? lpan : rpan;
+            if (k<20) {
+                k++;
+                fprintf(stderr, "\t\t->sample %d, pan value: %f\n", j, pan);
+            }
+            clip->post_proc[j] = clip->pre_proc[j] * track->vol_ctrl->value * pan;
+        }
+    }
+    fprintf(stderr, "\t->Done with track vol and pan.\n");
+
+}
+
+void process_vol_and_pan()
+{
+    if (!proj) {
+        fprintf(stderr, "Error: request to process vol and pan for nonexistent project.\n");
+        return;
+    }
+    Track *track = NULL;
+    for (uint8_t i=0; i<proj->tl->num_active_tracks; i++) {
+        track = proj->tl->tracks[proj->tl->active_track_indices[i]];
+        process_track_vol_and_pan(track);
+    }
+}

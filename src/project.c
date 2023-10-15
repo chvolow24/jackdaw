@@ -133,7 +133,7 @@ int16_t get_track_sample(Track *track, Timeline *tl, uint32_t start_pos, uint32_
         }
         int32_t pos_in_clip = start_pos + pos_in_chunk - clip->absolute_position;
         if (pos_in_clip >= 0 && pos_in_clip < clip->length) {
-            sample += (clip->samples)[pos_in_clip];
+            sample += (clip->post_proc)[pos_in_clip];
         }
     }
 
@@ -488,9 +488,13 @@ Clip *create_clip(Track *track, uint32_t length, uint32_t absolute_position) {
 void destroy_clip(Clip *clip)
 {
     fprintf(stderr, "Enter destroy clip.\n");
-    if (clip->samples) {
-        free(clip->samples);
-        clip->samples = NULL;
+    if (clip->pre_proc) {
+        free(clip->pre_proc);
+        clip->pre_proc = NULL;
+    }
+    if (clip->post_proc) {
+        free(clip->post_proc);
+        clip->post_proc = NULL;
     }
     free(clip);
     clip = NULL;
@@ -843,12 +847,34 @@ void log_project_state(FILE *f) {
         fprintf(f, "\t\t\tWrite buffpos: %d:\n", dev->write_buffpos);
     }
     fprintf(f, "TRACKS (%d):\n", proj->tl->num_tracks);
+    Clip *grabbed_clip = NULL;
     for (uint8_t i=0; i<proj->tl->num_tracks; i++) {
         Track *track = proj->tl->tracks[i];
         fprintf(f, "\tTrack at %p\n", track);
         fprintf(f, "\t\tName: %s\n", track->name);
         fprintf(f, "\t\tActive: %d\n", track->active);
         fprintf(f, "\t\tInput: %s\n", track->input->name);
+        fprintf(f, "\t\tVol: %f\n", track->vol_ctrl->value);
+        fprintf(f, "\t\tPan: %f\n", track->pan_ctrl->value);
+        fprintf(f, "\t\tGrabbed clips: %d\n", track->num_grabbed_clips);
+        if (track->num_grabbed_clips > 0) {
+            for (uint8_t j=0; j<track->num_clips; j++) {
+                if (track->clips[j]->grabbed) {
+                    grabbed_clip = track->clips[j];
+                    break;
+                }
+            }
+        }
     }
+    if (grabbed_clip) {
+        fprintf(f, "GRABBED CLIP at %p. Samples in post_proc:\n\n", grabbed_clip);
+        for (uint32_t i=0; i<grabbed_clip->length; i++) {
+            fprintf(f, "%d ", grabbed_clip->post_proc[i]);
+        }
+
+
+    }
+
+
     fclose(f);
 }

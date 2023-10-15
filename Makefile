@@ -17,4 +17,4 @@ $(BUILD_DIR)/%.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -rf $(EXEC) $(BUILD_DIR)
+	rm -rf $(EXEC) $(BUILD_DIR)/*

@@ -477,7 +477,7 @@ void draw_clip(Clip *clip)
         int sample_y = wav_y;
         for (int i=0; i<clip->length-1; i+=clip->track->tl->sample_frames_per_pixel) {
             if (wav_x > proj->tl->audio_rect.x && wav_x < proj->tl->audio_rect.x + proj->tl->audio_rect.w) {
-                sample = (clip->samples)[i];
+                sample = (clip->post_proc)[i];
                 sample_y = wav_y + sample * clip->rect.h / (2 * INT16_MAX);
                 // SDL_RenderDrawLine(proj->jwin->rend, wav_x, wav_y, wav_x, sample_y);
                 SDL_RenderDrawLine(proj->jwin->rend, wav_x, last_sample_y, wav_x + 1, sample_y);

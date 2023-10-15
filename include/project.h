@@ -103,7 +103,8 @@ typedef struct clip {
 		uint8_t track_rank;
 		uint32_t length; // in samples
 		int32_t absolute_position; // in samples
-		int16_t *samples;
+		int16_t *pre_proc;
+		int16_t *post_proc;
 		bool done; // true when the clip has finished recording
 		AudioDevice *input;
 
@@ -185,7 +186,6 @@ void reposition_clip(Clip *clip, uint32_t new_pos);
 void add_active_clip(Clip *clip);
 void clear_active_clips();
 void log_project_state(FILE *f);
-
 void grab_clip(Clip *clip);
 void grab_ungrab_clip(Clip *clip);
 void grab_clips(void);

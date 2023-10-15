@@ -35,6 +35,7 @@
 #include "project.h"
 #include "gui.h"
 #include "audio.h"
+#include "dsp.h"
 
 extern Project *proj;
 extern bool sys_byteorder_le;
@@ -131,7 +132,7 @@ void write_clip_to_jdaw(FILE *f, Clip *clip)
         //TODO: handle big endian
     }
     fwrite(hdr_data, 1, 4, f);
-    fwrite(clip->samples, 2, clip->length, f);
+    fwrite(clip->pre_proc, 2, clip->length, f);
 }
 
 Project *open_jdaw_file(const char *path)
@@ -211,6 +212,8 @@ void read_track_from_jdaw(FILE *f, Track *track)
         read_clip_from_jdaw(f, clip);
         num_clips--;
     }
+    process_track_vol_and_pan(track);
+
     fprintf(stderr, "DONE with track\n");
 }
 
@@ -241,14 +244,15 @@ void read_clip_from_jdaw(FILE *f, Clip *clip)
         // destroy_clip(clip);
         return;
     }
-    clip->samples = malloc(sizeof(int16_t) * clip->length);
-    if (!(clip->samples)) {
+    clip->pre_proc = malloc(sizeof(int16_t) * clip->length);
+    clip->post_proc = malloc(sizeof(int16_t) * clip->length);
+    if (!(clip->pre_proc)) {
         fprintf(stderr, "Error allocating space for clip->samples\n");
         exit(1);
     }
     if (sys_byteorder_le) {
         // size_t t= fread(NULL, 2, clip->length, f);
-        fread(clip->samples, 2, clip->length, f);
+        fread(clip->pre_proc, 2, clip->length, f);
     } else {
         //TODO: handle big endian
     }

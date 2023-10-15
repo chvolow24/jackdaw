@@ -95,10 +95,9 @@ static void recording_callback(void* user_data, uint8_t *stream, int streamLengt
     }
 }
 
+
 static void play_callback(void* user_data, uint8_t* stream, int streamLength)
 {
-    // fprintf(stderr, "PLAY: %d\n", proj->tl->play_position);
-
     int16_t *chunk = get_mixdown_chunk(proj->tl, streamLength / 2, false);
     memcpy(stream, chunk, streamLength);
     free(chunk);
@@ -177,28 +176,27 @@ void stop_device_playback()
     proj->tl->play_offset = 0;
 }
 
-int j=0;
 void *copy_buff_to_clip(void* arg)
 {
     fprintf(stderr, "Enter copy_buff_to_clip\n");
     Clip *clip = (Clip *)arg;
     clip->length = clip->input->write_buffpos;
-    if (j<20) {
-        fprintf(stderr, "Clip length: %d\n", clip->length);
-        j++;
+    clip->pre_proc = malloc(sizeof(int16_t) * clip->input->write_buffpos);
+    clip->post_proc = malloc(sizeof(int16_t) * clip->input->write_buffpos);
+    if (!clip->post_proc || !clip->pre_proc) {
+        fprintf(stderr, "Error: unable to allocate space for clip samples\n");
+        return NULL;
     }
-    clip->samples = malloc(sizeof(int16_t) * clip->input->write_buffpos);
-    // clip->length = clip->input->write_buffpos;
     int16_t sample = clip->input->rec_buffer[0];
-    // int sample = audio_buffer[0];
     int16_t next_sample = 0;
     for (int i=0; i<clip->input->write_buffpos - 1; i++) {
         next_sample = clip->input->rec_buffer[i+1];
         // /* high freq/amp filtering */
         // if (abs(next_sample - sample) < 5000) {
-            sample = next_sample;
+        sample = next_sample;
         // }
-        (clip->samples)[i] = sample;
+        (clip->pre_proc)[i] = sample;
+        (clip->post_proc)[i] = sample; //TODO: consider whether this should go elsewhere.
     }
     clip->done = true;
     fprintf(stderr, "\t->exit copy_buff_to_clip\n");

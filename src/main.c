@@ -314,9 +314,9 @@ static void stop_recording()
         }
         fprintf(stderr, "\t->found clip. Copying buf\n");
         copy_buff_to_clip(clip); //TODO: consider whether this needs to be multi-threaded.
-        uint32_t abs_pos_saved = clip->absolute_position;
-        reposition_clip(clip, clip->absolute_position - proj->tl->record_offset);
-        fprintf(stderr, "Repoisitioning clip from %d to %d\n", abs_pos_saved, clip->absolute_position);
+        uint32_t abs_pos_saved = clip->abs_pos_sframes;
+        reposition_clip(clip, clip->abs_pos_sframes - proj->tl->record_offset);
+        fprintf(stderr, "Repoisitioning clip from %d to %d\n", abs_pos_saved, clip->abs_pos_sframes);
         // pthread_t t;
         // pthread_create(&t, NULL, copy_buff_to_clip, proj->active_clips[i]);
     }
@@ -324,7 +324,7 @@ static void stop_recording()
         AudioDevice* dev = proj->record_devices[i];
         if (dev->active) {
             memset(dev->rec_buffer, '\0', BUFFLEN / 2);
-            dev->write_buffpos = 0;
+            dev->write_buffpos_sframes = 0;
             dev->active = false;
         }
     }

@@ -126,13 +126,13 @@ void write_clip_to_jdaw(FILE *f, Clip *clip)
     fwrite(&clip_namelength, 1, 1, f);
     fwrite(clip->name, 1, clip_namelength + 1, f);
     if (sys_byteorder_le) {
-        fwrite(&(clip->absolute_position), 4, 1, f);
-        fwrite(&(clip->length), 4, 1, f);
+        fwrite(&(clip->abs_pos_sframes), 4, 1, f);
+        fwrite(&(clip->len_sframes), 4, 1, f);
     } else {
         //TODO: handle big endian
     }
     fwrite(hdr_data, 1, 4, f);
-    fwrite(clip->pre_proc, 2, clip->length, f);
+    fwrite(clip->pre_proc, 2, clip->len_sframes * clip->channels, f);
 }
 
 Project *open_jdaw_file(const char *path)
@@ -231,10 +231,12 @@ void read_clip_from_jdaw(FILE *f, Clip *clip)
     fread(&clip_namelength, 1, 1, f);
     fread(clip->name, 1, clip_namelength + 1, f);
     fprintf(stderr, "Clip named: '%s'\n", clip->name);
+    clip->channels = 2; //TODO: make sure this is written in
+
 
     if (sys_byteorder_le) {
-        fread(&(clip->absolute_position), 4, 1, f);
-        fread(&(clip->length), 4, 1, f);
+        fread(&(clip->abs_pos_sframes), 4, 1, f);
+        fread(&(clip->len_sframes), 4, 1, f);
     } else {
         //TODO: handle big endian
     }
@@ -244,15 +246,15 @@ void read_clip_from_jdaw(FILE *f, Clip *clip)
         // destroy_clip(clip);
         return;
     }
-    clip->pre_proc = malloc(sizeof(int16_t) * clip->length);
-    clip->post_proc = malloc(sizeof(int16_t) * clip->length);
+    clip->pre_proc = malloc(sizeof(int16_t) * clip->len_sframes * clip->channels);
+    clip->post_proc = malloc(sizeof(int16_t) * clip->len_sframes * clip->channels);
     if (!(clip->pre_proc)) {
         fprintf(stderr, "Error allocating space for clip->samples\n");
         exit(1);
     }
     if (sys_byteorder_le) {
         // size_t t= fread(NULL, 2, clip->length, f);
-        fread(clip->pre_proc, 2, clip->length, f);
+        fread(clip->pre_proc, 2, clip->len_sframes * clip->channels, f);
     } else {
         //TODO: handle big endian
     }

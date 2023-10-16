@@ -422,8 +422,6 @@ void draw_hamburger(Project *proj)
 
 void draw_clip(Clip *clip)
 {
-    int wav_x = clip->rect.x;
-    int wav_y = clip->rect.y + clip->rect.h / 2;
     if (clip->grabbed) {
         set_rend_color(proj->jwin->rend, &clip_bckgrnd_grabbed);
     } else {
@@ -467,24 +465,86 @@ void draw_clip(Clip *clip)
         }
     }
 
-    SDL_SetRenderDrawColor(proj->jwin->rend, 5, 5, 60, 255);
-    // fprintf(stderr, "\t->draw wav\n");
-    if (clip->done) {
-        // int16_t sample = (int)((clip->samples)[0]);
-        // int16_t next_sample;
-        int16_t sample = 0;
-        int last_sample_y = wav_y;
-        int sample_y = wav_y;
-        for (int i=0; i<clip->length-1; i+=clip->track->tl->sample_frames_per_pixel) {
-            if (wav_x > proj->tl->audio_rect.x && wav_x < proj->tl->audio_rect.x + proj->tl->audio_rect.w) {
-                sample = (clip->post_proc)[i];
-                sample_y = wav_y + sample * clip->rect.h / (2 * INT16_MAX);
-                // SDL_RenderDrawLine(proj->jwin->rend, wav_x, wav_y, wav_x, sample_y);
-                SDL_RenderDrawLine(proj->jwin->rend, wav_x, last_sample_y, wav_x + 1, sample_y);
-                last_sample_y = sample_y;
+
+    /* Draw the waveform */
+    if (clip->channels == 1) {
+        int wav_x = clip->rect.x;
+        int wav_y = clip->rect.y + clip->rect.h / 2;
+        SDL_SetRenderDrawColor(proj->jwin->rend, 5, 5, 60, 255);
+        // fprintf(stderr, "\t->draw wav\n");
+        if (clip->done) {
+            // int16_t sample = (int)((clip->samples)[0]);
+            // int16_t next_sample;
+            int16_t sample = 0;
+            int last_sample_y = wav_y;
+            int sample_y = wav_y;
+            for (int i=0; i<clip->len_sframes-1; i+=clip->track->tl->sample_frames_per_pixel) {
+                if (wav_x > proj->tl->audio_rect.x && wav_x < proj->tl->audio_rect.x + proj->tl->audio_rect.w) {
+                    sample = (clip->post_proc)[i];
+                    sample_y = wav_y + sample * clip->rect.h / (2 * INT16_MAX);
+                    // SDL_RenderDrawLine(proj->jwin->rend, wav_x, wav_y, wav_x, sample_y);
+                    SDL_RenderDrawLine(proj->jwin->rend, wav_x, last_sample_y, wav_x + 1, sample_y);
+                    last_sample_y = sample_y;
+                }
+                wav_x++;
             }
-            wav_x++;
         }
+    } else if (clip->channels == 2) {
+        if (clip->done) {
+            int wav_x = clip->rect.x;
+            int wav_y_l = clip->rect.y + clip->rect.h / 4;
+            int wav_y_r = clip->rect.y + 3 * clip->rect.h / 4;
+            set_rend_color(proj->jwin->rend, &black);
+            // int clip_mid_y = clip->rect.y + clip->rect.h / 2;
+            // SDL_RenderDrawLine(proj->jwin->rend, clip->rect.x, clip_mid_y, clip->rect.x + clip->rect.w, clip_mid_y);
+            // clip_mid_y -= 1;
+            // SDL_RenderDrawLine(proj->jwin->rend, clip->rect.x, clip_mid_y, clip->rect.x + clip->rect.w, clip_mid_y);
+            // clip_mid_y += 2;
+            // SDL_RenderDrawLine(proj->jwin->rend, clip->rect.x, clip_mid_y, clip->rect.x + clip->rect.w, clip_mid_y);
+            SDL_SetRenderDrawColor(proj->jwin->rend, 5, 5, 60, 255);
+            int16_t sample_l = 0;
+            int16_t sample_r = 0;
+            // int last_sample_y_l = wav_y_l;
+            // int last_sample_y_r = wav_y_r;
+            int sample_y_l = wav_y_l;
+            int sample_y_r = wav_y_r;
+
+            int i=0;
+            while (i<clip->len_sframes * clip->channels) {
+            // for (int i=0; i<clip->len_sframes * clip->channels; i+=clip->track->tl->sample_frames_per_pixel * clip->channels) {
+                if (wav_x > proj->tl->audio_rect.x && wav_x < proj->tl->audio_rect.x + proj->tl->audio_rect.w) {
+                    sample_l = (clip->post_proc)[i];
+                    sample_r = (clip->post_proc[i+1]);
+                    int j=0;
+                    while (j<proj->tl->sample_frames_per_pixel) {
+                        if (abs((clip->post_proc)[i]) > abs(sample_l)) {
+                            sample_l = (clip->post_proc)[i];
+                        }
+                        if (abs((clip->post_proc)[i+1]) > abs(sample_l)) {
+                            sample_r = (clip->post_proc)[i+1];
+                        }
+                        i+=2;
+                        j++;
+                    }
+                    sample_y_l = wav_y_l + sample_l * clip->rect.h / (4 * INT16_MAX);
+                    sample_y_r = wav_y_r + sample_r * clip->rect.h / (4 * INT16_MAX);
+                    SDL_RenderDrawLine(proj->jwin->rend, wav_x, wav_y_l, wav_x, sample_y_l);
+                    SDL_RenderDrawLine(proj->jwin->rend, wav_x, wav_y_r, wav_x, sample_y_r);
+                    // SDL_RenderDrawLine(proj->jwin->rend, wav_x, last_sample_y_l, wav_x + 1, sample_y_l);
+                    // SDL_RenderDrawLine(proj->jwin->rend, wav_x, last_sample_y_r, wav_x + 1, sample_y_r);
+                    // last_sample_y_l = sample_y_l;
+                    // last_sample_y_r = sample_y_r;
+                    
+                } else {
+                    i += proj->tl->sample_frames_per_pixel * 2;
+                }
+                wav_x++;
+            }
+        }
+
+
+
+
     }
     // fprintf(stderr, "\t->end draw CLIP\n");
 
@@ -646,5 +706,7 @@ void draw_project(Project *proj)
             o_tri_x1 -= 1;
         }
     }
+    SDL_SetRenderDrawColor(proj->jwin->rend, 255, 0, 0, 255);
+    SDL_RenderDrawRect(proj->jwin->rend, &(proj->tl->audio_rect));
 
 }

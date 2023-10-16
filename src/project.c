@@ -131,8 +131,8 @@ int16_t get_track_sample(Track *track, Timeline *tl, uint32_t start_pos, uint32_
         if (!(clip->done)) {
             break;
         }
-        int32_t pos_in_clip = start_pos + pos_in_chunk - clip->absolute_position;
-        if (pos_in_clip >= 0 && pos_in_clip < clip->length) {
+        int32_t pos_in_clip = start_pos + pos_in_chunk - clip->abs_pos_sframes * clip->channels;
+        if (pos_in_clip >= 0 && pos_in_clip < clip->len_sframes * clip->channels) {
             sample += (clip->post_proc)[pos_in_clip];
         }
     }
@@ -144,9 +144,9 @@ int16_t get_track_sample(Track *track, Timeline *tl, uint32_t start_pos, uint32_
 Sum track samples over a chunk of timeline and return an array of samples. from_mark_in indicates that samples
 should be collected from the in mark rather than from the play head.
 */
-int16_t *get_mixdown_chunk(Timeline* tl, uint32_t length, bool from_mark_in)
+int16_t *get_mixdown_chunk(Timeline* tl, uint32_t len_samples, bool from_mark_in)
 {
-    uint32_t bytelen = sizeof(int16_t) * length;
+    uint32_t bytelen = sizeof(int16_t) * len_samples;
     int16_t *mixdown = malloc(bytelen);
     memset(mixdown, '\0', bytelen);
     if (!mixdown) {
@@ -156,15 +156,15 @@ int16_t *get_mixdown_chunk(Timeline* tl, uint32_t length, bool from_mark_in)
 
     int i=0;
     float j=0;
-    uint32_t start_pos = from_mark_in ? proj->tl->in_mark : proj->tl->play_position;
-    while (i < length) {
+    uint32_t start_pos = from_mark_in ? proj->tl->in_mark * proj->channels : proj->tl->play_position * proj->channels;
+    while (i < len_samples) {
         for (int t=0; t<tl->num_tracks; t++) {
             mixdown[i] += get_track_sample((tl->tracks)[t], tl, start_pos, (int) j);
         }
         j += from_mark_in ? 1 : proj->play_speed;
         i++;
     }
-    proj->tl->play_position += length * proj->play_speed;
+    proj->tl->play_position += len_samples * proj->play_speed / proj->channels;
     // }
     // fprintf(stderr, "\t->exit get_mixdown_chunk\n");
     return mixdown;
@@ -284,7 +284,7 @@ Track *create_track(Timeline *tl, bool stereo)
     track->tl_rank = tl->num_tracks++;
     sprintf(track->name, "Track %d", track->tl_rank + 1);
 
-    track->stereo = stereo;
+    track->channels = 2; // TODO: allow mono tracks
     track->muted = false;
     track->solo = false;
     track->record = false;
@@ -443,14 +443,14 @@ void reset_cliprect(Clip *clip)
         fprintf(stderr, "Fatal Error: need track to create clip. \n"); //TODO allow loose clip
         exit(1);
     }
-    clip->rect.x = get_tl_draw_x(clip->absolute_position);
+    clip->rect.x = get_tl_draw_x(clip->abs_pos_sframes);
     clip->rect.y = clip->track->rect.y + 4;
-    clip->rect.w = get_tl_draw_w(clip->length);
+    clip->rect.w = get_tl_draw_w(clip->len_sframes);
     clip->rect.h = clip->track->rect.h - 8;
 }
 
 /* Create a new clip on a specified track. Clips are usually created empty and filled after recording is done. */
-Clip *create_clip(Track *track, uint32_t length, uint32_t absolute_position) {
+Clip *create_clip(Track *track, uint32_t len_sframes, uint32_t absolute_position) {
     if (!track) {
         fprintf(stderr, "Fatal Error: need track to create clip. \n"); //TODO allow loose clip
         exit(1);
@@ -462,15 +462,12 @@ Clip *create_clip(Track *track, uint32_t length, uint32_t absolute_position) {
     clip->input = track->input;
     sprintf(clip->name, "%s, take %d", track->name, track->num_clips + 1);
 
-    clip->length = length;
-    clip->absolute_position = absolute_position;
+    clip->len_sframes = len_sframes;
+    clip->abs_pos_sframes = absolute_position;
     clip->track = track;
+    clip->channels = track->channels;
     reset_cliprect(clip);
-    // clip->rect.x = get_tl_draw_x(clip->absolute_position);
-    // clip->rect.y = track->rect.y + 4; //TODO: fix this
-    // clip->rect.w = 0;
-    // clip->rect.h = track->rect.h - 8;
-    fprintf(stderr, "In create clip, absolute position is %d", clip->absolute_position);
+    fprintf(stderr, "In create clip, absolute position is %d", clip->abs_pos_sframes);
     // clip->samples = malloc(sizeof(int16_t) * length);
     if (track) {
         clip->track_rank = track->num_clips;
@@ -560,8 +557,8 @@ void grab_clips()
             Clip *clip = track->clips[j];
             if (
                 clip->done 
-                && proj->tl->play_position >= clip->absolute_position 
-                && proj->tl->play_position <= clip->absolute_position + clip->length
+                && proj->tl->play_position >= clip->abs_pos_sframes 
+                && proj->tl->play_position <= clip->abs_pos_sframes + clip->len_sframes
             ) {
                 grab_clip(clip);
             }
@@ -652,7 +649,7 @@ void translate_grabbed_clips(int32_t translate_by)
         for (uint8_t j=0; j<track->num_clips; j++) {
             Clip *clip = track->clips[j];
             if (clip->grabbed) {
-                clip->absolute_position += translate_by;
+                clip->abs_pos_sframes += translate_by;
                 reset_cliprect(clip);
             }
         }
@@ -715,7 +712,7 @@ void delete_grabbed_clips()
 
 void reposition_clip(Clip *clip, uint32_t new_pos)
 {
-    clip->absolute_position = new_pos;
+    clip->abs_pos_sframes = new_pos;
 }
 
 void add_active_clip(Clip *clip)
@@ -834,7 +831,8 @@ void log_project_state(FILE *f) {
         fprintf(f, "\t\t\tId: %d:\n", dev->id);
         fprintf(f, "\t\t\tOpen: %d:\n", dev->open);
         fprintf(f, "\t\t\tChannels: %d:\n", dev->spec.channels);
-        fprintf(f, "\t\t\tWrite buffpos: %d:\n", dev->write_buffpos);
+        fprintf(f, "\t\t\tFormat: %s:\n", get_audio_fmt_str(dev->spec.format));
+        fprintf(f, "\t\t\tWrite buffpos: %d:\n", dev->write_buffpos_sframes);
     }
     fprintf(f, "\tPlayback devices (%d):\n", proj->num_playback_devices);
     for (uint8_t i=0; i<proj->num_playback_devices; i++) {
@@ -844,7 +842,8 @@ void log_project_state(FILE *f) {
         fprintf(f, "\t\t\tId: %d:\n", dev->id);
         fprintf(f, "\t\t\tOpen: %d:\n", dev->open);
         fprintf(f, "\t\t\tChannels: %d:\n", dev->spec.channels);
-        fprintf(f, "\t\t\tWrite buffpos: %d:\n", dev->write_buffpos);
+        fprintf(f, "\t\t\tFormat: %s:\n", get_audio_fmt_str(dev->spec.format));
+        fprintf(f, "\t\t\tWrite buffpos: %d:\n", dev->write_buffpos_sframes);
     }
     fprintf(f, "TRACKS (%d):\n", proj->tl->num_tracks);
     Clip *grabbed_clip = NULL;
@@ -868,7 +867,7 @@ void log_project_state(FILE *f) {
     }
     if (grabbed_clip) {
         fprintf(f, "GRABBED CLIP at %p. Samples in post_proc:\n\n", grabbed_clip);
-        for (uint32_t i=0; i<grabbed_clip->length; i++) {
+        for (uint32_t i=0; i<grabbed_clip->len_sframes; i++) {
             fprintf(f, "%d ", grabbed_clip->post_proc[i]);
         }
 

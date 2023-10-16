@@ -61,35 +61,35 @@ static void recording_callback(void* user_data, uint8_t *stream, int streamLengt
     // fprintf(stderr, "RECORD: %d\n", proj->tl->play_position);
     AudioDevice *dev = (AudioDevice *)user_data;
 
-    if (dev->write_buffpos + (streamLength / 2) < BUFFLEN) {
+    if (dev->write_buffpos_sframes + (streamLength / 2) < BUFFLEN) {
         if (proj->tl->record_offset == 0) {
-            proj->tl->record_offset = proj->tl->play_position + proj->chunk_size * 4 - proj->active_clips[0]->absolute_position;
-            long            ms; // Milliseconds
-            time_t          s;  // Seconds
-            struct timespec spec;
-            clock_gettime(CLOCK_REALTIME, &spec);
-            s  = spec.tv_sec;
-            ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
-            if (ms > 999) {
-                s++;
-                ms = 0;
-            }
-            fprintf(stderr, "RECORD time: %ld: %ld\n", s, ms);
+            proj->tl->record_offset = proj->tl->play_position + proj->chunk_size * 4 - proj->active_clips[0]->abs_pos_sframes;
+            // long            ms; // Milliseconds
+            // time_t          s;  // Seconds
+            // struct timespec spec;
+            // clock_gettime(CLOCK_REALTIME, &spec);
+            // s  = spec.tv_sec;
+            // ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
+            // if (ms > 999) {
+            //     s++;
+            //     ms = 0;
+            // }
+            // fprintf(stderr, "RECORD time: %ld: %ld\n", s, ms);
             // fprintf(stderr, "First recording callback. Record offset: %d. Play position: %d, abspos: %d\n", proj->tl->record_offset, proj->tl->play_position, proj->active_clips[0]->absolute_position);
         }
-        memcpy(dev->rec_buffer + dev->write_buffpos, stream, streamLength);
+        memcpy(dev->rec_buffer + dev->write_buffpos_sframes * dev->spec.channels, stream, streamLength);
     } else {
-        dev->write_buffpos = 0;
+        dev->write_buffpos_sframes = 0;
         stop_device_recording(dev);
         fprintf(stderr, "ERROR: overwriting audio buffer of device: %s\n", dev->name);
     }
 
-    dev->write_buffpos += streamLength / 2;
+    dev->write_buffpos_sframes += streamLength / dev->spec.channels / 2;
     Clip *clip = NULL;
     for (uint8_t i=0; i<proj->num_active_clips; i++) {
         clip = proj->active_clips[i];
         if (clip->input == dev) {
-            clip->length += streamLength / 2;
+            clip->len_sframes += streamLength / clip->channels / 2;
             reset_cliprect(clip);
         }
     }
@@ -99,22 +99,25 @@ static void recording_callback(void* user_data, uint8_t *stream, int streamLengt
 static void play_callback(void* user_data, uint8_t* stream, int streamLength)
 {
     int16_t *chunk = get_mixdown_chunk(proj->tl, streamLength / 2, false);
+    // Printing sample values to confirm that every other sample has value 0
+    // for (uint8_t i = 0; i<200; i++) {
+    //     fprintf(stderr, "%hd ", (int16_t)(chunk[i]));
+    // }
     memcpy(stream, chunk, streamLength);
     free(chunk);
-    if (proj->tl->play_offset == 0) {
-        long            ms; // Milliseconds
-        time_t          s;  // Seconds
-        struct timespec spec;
-        clock_gettime(CLOCK_REALTIME, &spec);
-        s  = spec.tv_sec;
-        ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
-        if (ms > 999) {
-            s++;
-            ms = 0;
-        }
-        fprintf(stderr, "PLAY time: %ld: %ld\n", s, ms);
-        proj->tl->play_offset = ms;
-    }
+    // if (proj->tl->play_offset == 0) {
+    //     long            ms; // Milliseconds
+    //     time_t          s;  // Seconds
+    //     struct timespec spec;
+    //     clock_gettime(CLOCK_REALTIME, &spec);
+    //     s  = spec.tv_sec;
+    //     ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
+    //     if (ms > 999) {
+    //         s++;
+    //         ms = 0;
+    //     }
+    //     // proj->tl->play_offset = ms;
+    // }
 }
 
 void init_audio()
@@ -123,37 +126,12 @@ void init_audio()
         fprintf(stderr, "\nError initializing audio: %s", SDL_GetError());
         exit(1);
     }
-
-    // SDL_AudioSpec desired, obtained;
-    // SDL_zero(desired);
-    // SDL_zero(obtained);
-    // desired.freq = SAMPLE_RATE;
-    // desired.format = AUDIO_S16SYS;
-    // desired.samples = CHUNK_SIZE;
-    // desired.channels = 2;
-    // desired.callback = play_callback;
-    // playback_device = SDL_OpenAudioDevice(NULL, 0, &desired, &obtained, SDL_AUDIO_ALLOW_ANY_CHANGE);
-    // // desired.callback = recording_callback;
-    // // recording_device = SDL_OpenAudioDevice("MacBook Air Microphone", 1, &desired, &obtained, SDL_AUDIO_ALLOW_ANY_CHANGE);
-
-    // if (!playback_device) {
-    //     fprintf(stderr, "Error opening audio device: %s", SDL_GetError());
-    //     exit(1);
-    // }
-    // // if (!recording_device) {
-    // //     fprintf(stderr, "Error opening recording device: %s\n", SDL_GetError());
-    // //     exit(1);   
-    // // }
-
-    // SDL_zero(audio_buffer);
 }
 
 void start_device_recording(AudioDevice *dev)
 {
     fprintf(stderr, "START RECORDING dev: %s\n", dev->name);
-    // proj->tl->record_position = proj->tl->play_position;
     SDL_PauseAudioDevice(dev->id, 0);
-    // proj->tl->record_position = proj->tl->play_position;
 }
 
 void stop_device_recording(AudioDevice *dev)
@@ -180,21 +158,16 @@ void *copy_buff_to_clip(void* arg)
 {
     fprintf(stderr, "Enter copy_buff_to_clip\n");
     Clip *clip = (Clip *)arg;
-    clip->length = clip->input->write_buffpos;
-    clip->pre_proc = malloc(sizeof(int16_t) * clip->input->write_buffpos);
-    clip->post_proc = malloc(sizeof(int16_t) * clip->input->write_buffpos);
+    clip->len_sframes = clip->input->write_buffpos_sframes;
+    clip->pre_proc = malloc(sizeof(int16_t) * clip->len_sframes * clip->channels);
+    clip->post_proc = malloc(sizeof(int16_t) * clip->len_sframes * clip->channels);
     if (!clip->post_proc || !clip->pre_proc) {
         fprintf(stderr, "Error: unable to allocate space for clip samples\n");
         return NULL;
     }
     int16_t sample = clip->input->rec_buffer[0];
-    int16_t next_sample = 0;
-    for (int i=0; i<clip->input->write_buffpos - 1; i++) {
-        next_sample = clip->input->rec_buffer[i+1];
-        // /* high freq/amp filtering */
-        // if (abs(next_sample - sample) < 5000) {
-        sample = next_sample;
-        // }
+    for (int i=0; i<clip->input->write_buffpos_sframes  * clip->channels; i++) {
+        sample = clip->input->rec_buffer[i];
         (clip->pre_proc)[i] = sample;
         (clip->post_proc)[i] = sample; //TODO: consider whether this should go elsewhere.
     }
@@ -218,8 +191,8 @@ int query_audio_devices(AudioDevice ***device_list, int iscapture)
     default_dev->active = false;
     default_dev->index = 0;
     default_dev->iscapture = iscapture;
-    default_dev->write_buffpos = 0;
-    memset(default_dev->rec_buffer, '\0', BUFFLEN / 2);
+    default_dev->write_buffpos_sframes = 0;
+    // memset(default_dev->rec_buffer, '\0', BUFFLEN / 2);
 
 
     int num_devices = SDL_GetNumAudioDevices(iscapture);
@@ -241,8 +214,8 @@ int query_audio_devices(AudioDevice ***device_list, int iscapture)
         dev->active = false;
         dev->index = j;
         dev->iscapture = iscapture ;
-        dev->write_buffpos = 0;
-        memset(dev->rec_buffer, '\0', BUFFLEN / 2);
+        dev->write_buffpos_sframes = 0;
+        // memset(dev->rec_buffer, '\0', BUFFLEN / 2);
         SDL_AudioSpec spec;
         if (SDL_GetAudioDeviceSpec(i, iscapture, &spec) != 0) {
             fprintf(stderr, "Error getting device spec: %s\n", SDL_GetError());
@@ -291,11 +264,22 @@ int open_audio_device(AudioDevice *device, uint8_t desired_channels)
     if ((device->id = SDL_OpenAudioDevice(device->name, device->iscapture, &(device->spec), &(obtained), 0)) > 0) {
         device->spec = obtained;
         device->open = true;
-        return 0;
     } else {
         device->open = false;
         fprintf(stderr, "Error opening audio device %s : %s\n", device->name, SDL_GetError());
         return -1;
+    }
+    device->rec_buffer = malloc(BUFFLEN * device->spec.channels);
+    return 1;
+}
+
+void destroy_audio_device(AudioDevice *device)
+{
+    if (device->rec_buffer) {
+        free(device->rec_buffer);
+        device->rec_buffer = NULL;
+        free(device);
+        device = NULL;
     }
 }
 
@@ -343,7 +327,7 @@ const char *get_audio_fmt_str(SDL_AudioFormat fmt)
 
 void write_mixdown_to_wav()
 {
-    uint32_t num_samples = proj->tl->out_mark - proj->tl->in_mark;
+    uint32_t num_samples = (proj->tl->out_mark - proj->tl->in_mark) * proj->channels;
     int16_t *samples = get_mixdown_chunk(proj->tl, num_samples, true);
     write_wav("wavs/testfile.wav", samples, num_samples, 16, 2);
     free(samples);

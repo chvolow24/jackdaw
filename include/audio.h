@@ -40,14 +40,14 @@
 typedef struct clip Clip;
 
 typedef struct audiodevice{
-    int index;
+    int index; // index in the list created by query_audio_devices
     const char *name;
-    bool open;
-    bool iscapture;
+    bool open; // true if the device has been opened (SDL_OpenAudioDevice)
+    bool iscapture; // true if device is a recording device, not a playback device
     SDL_AudioDeviceID id;
     SDL_AudioSpec spec;
-    int16_t rec_buffer[BUFFLEN];
-    int32_t write_buffpos;
+    int16_t *rec_buffer;
+    int32_t write_buffpos_sframes;
     bool active;
 } AudioDevice;
 
@@ -59,6 +59,7 @@ void start_device_playback();
 void stop_device_playback();
 int query_audio_devices(AudioDevice ***device_list, int iscapture);
 int open_audio_device(AudioDevice *device, uint8_t desired_channels);
+void destroy_audio_device(AudioDevice *device);
 const char *get_audio_fmt_str(SDL_AudioFormat fmt);
 void write_mixdown_to_wav();
 

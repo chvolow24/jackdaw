@@ -59,10 +59,10 @@ typedef struct f_slider FSlider;
 typedef struct track {
 	char name[MAX_NAMELENGTH];
 	bool active;
-	bool stereo;
 	bool muted;
 	bool solo;
 	bool record;
+	uint8_t channels;
 	Timeline *tl;
 	uint8_t tl_rank;
 	Clip *clips[MAX_TRACK_CLIPS];
@@ -98,15 +98,15 @@ typedef struct track {
 /* A chunk of audio, associated with a particular track in the timeline */
 typedef struct clip {
 		char name[MAX_NAMELENGTH];
-		int clip_gain;
-		Track *track;
-		uint8_t track_rank;
-		uint32_t length; // in samples
-		int32_t absolute_position; // in samples
-		int16_t *pre_proc;
-		int16_t *post_proc;
+		Track *track; // parent track
+		uint8_t track_rank; // index of clip in parent track.clips member
+		uint8_t channels; // the number of audio channels represented in the audio sample data
+		uint32_t len_sframes; // length in sample frames
+		int32_t abs_pos_sframes; // timeline position in sample frames
+		int16_t *pre_proc; // the raw clip audio data
+		int16_t *post_proc; // cached audio data after audio processing
 		bool done; // true when the clip has finished recording
-		AudioDevice *input;
+		AudioDevice *input; // the device used to record the clip, if applicable
 
 		/* GUI members */
 		SDL_Rect rect;
@@ -137,7 +137,7 @@ typedef struct timeline {
 		SDL_Rect rect;
 		SDL_Rect audio_rect;
 		uint32_t offset; // in samples frames
-		double sample_frames_per_pixel;
+		int sample_frames_per_pixel;
 		// int console_width;
 		int v_offset;
 

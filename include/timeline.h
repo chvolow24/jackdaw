@@ -43,4 +43,10 @@ int get_tl_draw_w(uint32_t abs_w);
 void translate_tl(int translate_by_x, int translate_by_y);
 void rescale_timeline(double scale_factor, uint32_t center_draw_position);
 
+float get_leftmost_seconds(void);
+int get_second_w(void);
+int first_second_tick_x(void);
+void set_timecode();
+
+
 #endif

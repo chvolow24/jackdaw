@@ -30,7 +30,7 @@
     * Translate between draw coordinates and absolute positions (time values) within the timeline
  *****************************************************************************************************************/
 
-
+#include <stdio.h>
 #include <stdint.h>
 #include "project.h"
 #include "gui.h"
@@ -80,6 +80,9 @@ int32_t get_tl_abs_w(int draw_w)
     return draw_w * proj->tl->sample_frames_per_pixel;
 }
 
+float get_leftmost_seconds();
+int get_second_w();
+
 void translate_tl(int translate_by_x, int translate_by_y)
 {
     if (abs(translate_by_y) >= abs(translate_by_x)) {
@@ -117,8 +120,35 @@ void translate_tl(int translate_by_x, int translate_by_y)
             }
         }
     }
+    fprintf(stderr, "New leftmost seconds: %f\n", get_leftmost_seconds());
+    fprintf(stderr, "Width of one second in pixels: %d\n", get_second_w());
 
+}
 
+float get_leftmost_seconds()
+{
+    if (!proj) {
+        fprintf(stderr, "Error: request to get second w with no active project.\n");
+        exit(1);
+    }
+    return (float) proj->tl->offset / proj->tl->proj->sample_rate;
+}
+
+int get_second_w()
+{
+    if (!proj) {
+        fprintf(stderr, "Error: request to get second w with no active project.\n");
+        exit(1);
+    }
+    int ret = get_tl_draw_w(proj->sample_rate);
+    return ret <= 0 ? 1 : ret;
+}
+
+int first_second_tick_x()
+{
+    float lms = get_leftmost_seconds();
+    float dec = lms - (int)lms;
+    return 1 - (get_second_w() * dec) + proj->tl->audio_rect.x;
 }
 
 void rescale_timeline(double sfpp_scale_factor, uint32_t center_abs_pos) 
@@ -130,10 +160,15 @@ void rescale_timeline(double sfpp_scale_factor, uint32_t center_abs_pos)
     int init_draw_pos = get_tl_draw_x(center_abs_pos);
     double new_sfpp = proj->tl->sample_frames_per_pixel / sfpp_scale_factor;
 
-    if (new_sfpp < 2 || new_sfpp > MAX_SFPP) {
+    if (new_sfpp < 1 || new_sfpp > MAX_SFPP) {
         return;
     }
-    proj->tl->sample_frames_per_pixel = new_sfpp;
+    if ((int)new_sfpp == proj->tl->sample_frames_per_pixel) {
+        proj->tl->sample_frames_per_pixel += sfpp_scale_factor < 0 ? -1 : 1;
+    } else {
+        proj->tl->sample_frames_per_pixel = new_sfpp;
+    }
+    fprintf(stderr, "New sfpp f: %f, int: %d\n", new_sfpp, proj->tl->sample_frames_per_pixel);
 
     int new_draw_pos = get_tl_draw_x(center_abs_pos);
     int offset_draw_delta = new_draw_pos - init_draw_pos;
@@ -149,4 +184,30 @@ void rescale_timeline(double sfpp_scale_factor, uint32_t center_abs_pos)
             reset_cliprect(track->clips[j]);
         }
     }
+}
+
+void set_timecode()
+{
+    if (!proj) {
+        fprintf(stderr, "Error: request to set timecode with no active project.\n");
+        exit(1);
+    }
+
+    uint8_t seconds, minutes, hours;
+    uint32_t frames;
+
+    double total_seconds = (double) proj->tl->play_position / (double) proj->sample_rate;
+    hours = total_seconds / 3600;
+    minutes = (total_seconds - 3600 * hours) / 60;
+    seconds = total_seconds - (3600 * hours) - (60 * minutes);
+    frames = proj->tl->play_position - ((int) total_seconds * proj->sample_rate);
+
+    proj->tl->timecode.hours = hours;
+    proj->tl->timecode.minutes = minutes;
+    proj->tl->timecode.seconds = seconds;
+    proj->tl->timecode.frames = frames;
+    sprintf(proj->tl->timecode.str, "%02d:%02d:%02d:%05d", hours, minutes, seconds, frames);
+    reset_textbox_value(proj->tl->timecode_tb, proj->tl->timecode.str);
+
+
 }

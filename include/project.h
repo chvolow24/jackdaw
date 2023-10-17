@@ -116,6 +116,16 @@ typedef struct clip {
 		bool grabbed;
 } Clip;
 
+
+typedef struct timecode {
+	uint8_t hours;
+	uint8_t minutes;
+	uint8_t seconds;
+	uint8_t milliseconds;
+	uint32_t frames;
+	char str[15]; // e.g. "00:00:00:96000"
+} Timecode;
+
 /* The project timeline organizes included tracks and specifies how they should be displayed */
 typedef struct timeline {
 		uint32_t play_position; // in sample frames
@@ -131,15 +141,20 @@ typedef struct timeline {
 		uint8_t num_active_tracks;
 		uint16_t tempo;
 		bool click_on;
+		Timecode timecode;
 		Project *proj;
 
 		/* GUI members */
 		SDL_Rect rect;
 		SDL_Rect audio_rect;
+		SDL_Rect ruler_tc_container_rect;
+		SDL_Rect ruler_rect;
+		SDL_Rect tc_rect;
 		uint32_t offset; // in samples frames
 		int sample_frames_per_pixel;
 		// int console_width;
 		int v_offset;
+		Textbox *timecode_tb;
 
 } Timeline;
 
@@ -197,6 +212,7 @@ void delete_clip(Clip *clip);
 void delete_grabbed_clips();
 void reset_cliprect(Clip* clip);
 void reset_track_internal_rects(Track *track);
+void reset_tl_rects();
 bool adjust_track_vol(Track *track, float change_by);
 bool adjust_track_pan(Track *track, float change_by);
 

@@ -100,9 +100,7 @@ void select_track_input_menu(void *track_v)
     MenulistItem *device_mlitems[proj->num_record_devices];
     for (uint8_t i=0; i<proj->num_record_devices; i++) {
         device_mlitems[i] = malloc(sizeof(MenulistItem)); //TODO: Danger: memory leak
-        fprintf(stderr, "About to do strcpy\n");
         strcpy(device_mlitems[i]->label, proj->record_devices[i]->name);
-        fprintf(stderr, "strcpy done\n");
         device_mlitems[i]->available = proj->record_devices[i]->open;
     }
     TextboxList *tbl = create_menulist(
@@ -214,13 +212,14 @@ Project *create_empty_project()
     tl->proj = proj;
 
     proj->jwin = NULL;
+
+    
     // /* Create SDL_Window and accompanying SDL_Renderer */
     // char project_window_name[MAX_NAMELENGTH + 10];
     // sprintf(project_window_name, "Jackdaw | %s", name);
     // proj->jwin = create_jwin(project_window_name, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED-20, 900, 650);
 
     // tl->console_width = TRACK_CONSOLE_WIDTH;
-    // tl->rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h,}, TL_RECT);
     // tl->audio_rect = (SDL_Rect) {tl->rect.x + TRACK_CONSOLE_WIDTH + COLOR_BAR_W + PADDING, tl->rect.y, tl->rect.w, tl->rect.h}; // SET x in track
 
     return proj;
@@ -269,8 +268,13 @@ Project *create_project(const char* name, uint8_t channels, int sample_rate, SDL
 
     // tl->console_width = TRACK_CONSOLE_WIDTH;
     tl->rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h,}, TL_RECT);
-    int audio_rect_x = tl->rect.x + TRACK_CONSOLE_WIDTH + COLOR_BAR_W + PADDING;
+    tl->ruler_rect = get_rect(tl->rect, RULER_RECT);
+    tl->tc_rect = get_rect(tl->rect, TC_RECT);
+    int audio_rect_x = tl->rect.x + TRACK_CONSOLE_W + COLOR_BAR_W + PADDING;
     tl->audio_rect = (SDL_Rect) {audio_rect_x, tl->rect.y, proj->jwin->w - audio_rect_x, tl->rect.h}; // SET x in track
+    
+    tl->timecode_tb = create_textbox(tl->tc_rect.w, tl->tc_rect.h, 0, proj->jwin->mono_fonts[3], "00:00:00:00000", &white, NULL, &black, NULL, NULL, NULL, NULL, NULL, true);
+    position_textbox(proj->tl->timecode_tb, proj->tl->tc_rect.x, proj->tl->tc_rect.y);
 
     return proj;
 }
@@ -295,7 +299,7 @@ Track *create_track(Timeline *tl, bool stereo)
     track->rect.x = tl->rect.x + PADDING;
 
     if (track->tl_rank == 0) {
-        track->rect.y = track->tl->rect.y + PADDING;
+        track->rect.y = track->tl->rect.y + PADDING + RULER_HEIGHT + PADDING;
     } else {
         Track *last_track = track->tl->tracks[track->tl_rank - 1];
         track->rect.y = last_track->rect.y + last_track->rect.h + TRACK_SPACING;
@@ -326,7 +330,7 @@ Track *create_track(Timeline *tl, bool stereo)
     track->pan_ctrl->type = LINE;
 
     track->name_box = create_textbox(
-        NAMEBOX_W * TRACK_CONSOLE_WIDTH / 100,
+        NAMEBOX_W * TRACK_CONSOLE_W / 100,
         // NAMEBOX_W * proj->tl->console_width / 100, 
         0, 
         2, 
@@ -360,7 +364,7 @@ Track *create_track(Timeline *tl, bool stereo)
     );
     track->input_name_box = create_textbox(
         //TRACK_IN_W * proj->tl->console_width / 100, 
-        TRACK_IN_W * TRACK_CONSOLE_WIDTH / 100,
+        TRACK_IN_W * TRACK_CONSOLE_W / 100,
         0, 
         4, 
         proj->jwin->fonts[1],
@@ -413,6 +417,37 @@ Track *create_track(Timeline *tl, bool stereo)
 
     fprintf(stderr, "\t->exit create track\n");
     return track;
+}
+
+void reset_tl_rects() 
+{
+    if (!proj) {
+        fprintf(stderr, "Error: request to reset_tl_rects without an active project.\n");
+        exit(1);
+    }
+    proj->tl->rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h,}, TL_RECT);
+    proj->tl->audio_rect = (SDL_Rect) {proj->tl->rect.x + TRACK_CONSOLE_W + COLOR_BAR_W + PADDING, proj->tl->rect.y, proj->tl->rect.w, proj->tl->rect.h}; // SET x in track
+    proj->tl->rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h,}, TL_RECT);
+    proj->tl->ruler_tc_container_rect = get_rect(proj->tl->rect, RULER_TC_CONTAINER);
+    proj->tl->ruler_rect = get_rect(proj->tl->ruler_tc_container_rect, RULER_RECT);
+    proj->tl->tc_rect = get_rect(proj->tl->ruler_tc_container_rect, TC_RECT);
+    Track *track = NULL;
+    for (int t=0; t<proj->tl->num_tracks; t++) {
+        track = proj->tl->tracks[t];
+        track->rect.h = DEFAULT_TRACK_HEIGHT;
+        track->rect.x = proj->tl->rect.x + PADDING;
+
+        if (track->tl_rank == 0) {
+            track->rect.y = track->tl->rect.y + PADDING + RULER_HEIGHT + PADDING;
+        } else {
+            Track *last_track = track->tl->tracks[track->tl_rank - 1];
+            track->rect.y = last_track->rect.y + last_track->rect.h + TRACK_SPACING;
+        }
+        track->rect.w = proj->tl->audio_rect.w;
+        reset_track_internal_rects(track);
+    }
+    position_textbox(proj->tl->timecode_tb, proj->tl->tc_rect.x, proj->tl->tc_rect.y);
+
 }
 
 void reset_track_internal_rects(Track *track)
@@ -587,7 +622,7 @@ void ungrab_clips()
 void reset_tl_rect(Timeline *tl)
 {
     tl->rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h,}, TL_RECT);
-    int audio_rect_x = tl->rect.x + TRACK_CONSOLE_WIDTH + COLOR_BAR_W + PADDING;
+    int audio_rect_x = tl->rect.x + TRACK_CONSOLE_W + COLOR_BAR_W + PADDING;
     tl->audio_rect = (SDL_Rect) {audio_rect_x, tl->rect.y, tl->proj->jwin->w - audio_rect_x, tl->rect.h}; // SET x in track
     Track *track = NULL;
 
@@ -606,7 +641,7 @@ void activate_or_deactivate_track(uint8_t track_index)
         return;
     }
     Track *track = NULL;
-    if ((track = proj->tl->tracks[track_index])) {
+    if (track_index < proj->tl->num_tracks && (track = proj->tl->tracks[track_index])) {
         if (track->active) {
             uint8_t i=0;
             bool reposition = false;

@@ -96,15 +96,27 @@ static void recording_callback(void* user_data, uint8_t *stream, int streamLengt
 }
 
 
-static void play_callback(void* user_data, uint8_t* stream, int streamLength)
+static void play_callback(void* user_data, Uint8* stream, int streamLength)
 {
+    memset(stream, '\0', streamLength);
+    // AudioDevice *pbdev = (AudioDevice *)user_data;
+    // fprintf(stderr, "\n\nPlayback device name: %s\n", pbdev->name);
+    // fprintf(stderr, "Playback channels: %d\n", pbdev->spec.channels);
+    // fprintf(stderr, "Playback format: %s\n", get_audio_fmt_str(pbdev->spec.format));
+    // fprintf(stderr, "Playback freq: %d\n", pbdev->spec.freq);
+
+
     int16_t *chunk = get_mixdown_chunk(proj->tl, streamLength / 2, false);
     // Printing sample values to confirm that every other sample has value 0
     // for (uint8_t i = 0; i<200; i++) {
     //     fprintf(stderr, "%hd ", (int16_t)(chunk[i]));
     // }
     memcpy(stream, chunk, streamLength);
+    // Printing sample values to confirm that every other sample has value 0
     free(chunk);
+    // for (uint8_t i = 0; i<40; i+=2) {
+    //     fprintf(stderr, "%hd ", (int16_t)(stream[i]));
+    // }
     // if (proj->tl->play_offset == 0) {
     //     long            ms; // Milliseconds
     //     time_t          s;  // Seconds
@@ -262,6 +274,7 @@ int open_audio_device(AudioDevice *device, uint8_t desired_channels)
     device->spec.userdata = device;
 
     if ((device->id = SDL_OpenAudioDevice(device->name, device->iscapture, &(device->spec), &(obtained), 0)) > 0) {
+        fprintf(stderr, "Name %s, obtained channels: %d, obtained format: %s, obtained freq: %d\n", device->name, obtained.channels, get_audio_fmt_str(obtained.format), obtained.freq);
         device->spec = obtained;
         device->open = true;
     } else {
@@ -270,7 +283,7 @@ int open_audio_device(AudioDevice *device, uint8_t desired_channels)
         return -1;
     }
     device->rec_buffer = malloc(BUFFLEN * device->spec.channels);
-    return 1;
+    return 0;
 }
 
 void destroy_audio_device(AudioDevice *device)

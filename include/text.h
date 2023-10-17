@@ -36,6 +36,7 @@
 #define OPEN_SANS_BOLD "assets/ttf//OpenSans-Bold.ttf"
 #define OPEN_SANS_VAR "assets/ttf/OpenSans-Variable.ttf"
 #define COURIER_NEW "assets/ttf/CourierNew.ttf"
+#define DROID_SANS_MONO "assets/ttf/DroidSansMono.ttf"
 #define STD_FONT_SIZES {10, 12, 14, 16, 18, 24, 30, 36, 48, 60, 72}
 #define STD_FONT_ARRLEN 11
 

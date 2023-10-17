@@ -374,6 +374,7 @@ static void project_loop()
             } else if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
                 reset_dims(proj->jwin);
                 reset_tl_rect(proj->tl);
+                reset_tl_rects();
             } else if (e.type == SDL_MOUSEBUTTONUP) {
                 if (mousebutton_down) {
                     mousebutton_down = false;
@@ -670,7 +671,8 @@ static void project_loop()
         draw_project(proj);
         draw_jwin_menus(proj->jwin);
         SDL_RenderPresent(proj->jwin->rend);
-        SDL_Delay(1);
+        set_timecode();
+        SDL_Delay(2);
     }
 }
 

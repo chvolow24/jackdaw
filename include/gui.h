@@ -34,17 +34,29 @@
 
 #define STD_RAD 20
 
-#define TL_RECT (Dim) {ABS, 5}, (Dim) {REL, 20}, (Dim) {REL, 100}, (Dim) {REL, 76}
+#define TL_X_PADDING_UNSCALED 5
+#define TL_X_PADDING (5 * scale_factor)
+
+#define TL_Y_PADDING_UNSCALED 20
+#define TL_Y_PADDING (20 * scale_factor)
+
+#define TL_RECT (Dim) {ABS, TL_X_PADDING_UNSCALED}, (Dim) {REL, TL_Y_PADDING_UNSCALED}, (Dim) {REL, 100}, (Dim) {REL, 76}
 #define PLAYHEAD_TRI_H (10 * scale_factor)
 #define TRACK_SPACING (4 * scale_factor)
-#define PADDING (4 * scale_factor)
+#define PADDING_UNSCALED 4
+#define PADDING (PADDING_UNSCALED * scale_factor)
 
-#define TRACK_CONSOLE_WIDTH_UNSCALED 160
-#define TRACK_CONSOLE_WIDTH (TRACK_CONSOLE_WIDTH_UNSCALED * scale_factor)
+#define TRACK_CONSOLE_W_UNSCALED 160
+#define TRACK_CONSOLE_W (TRACK_CONSOLE_W_UNSCALED * scale_factor)
 
 #define TRACK_CONSOLE_ROW_HEIGHT_UNSCALED 24
+#define RULER_HEIGHT_UNSCALED 30
+#define RULER_HEIGHT (RULER_HEIGHT_UNSCALED * scale_factor)
 
-#define TRACK_CONSOLE_RECT (Dim) {ABS, 0}, (Dim) {ABS, 0}, (Dim) {ABS, TRACK_CONSOLE_WIDTH_UNSCALED}, (Dim) {REL, 100}
+#define TC_W_UNSCALED TRACK_CONSOLE_W_UNSCALED - (PADDING_UNSCALED * 2)
+#define TC_H_UNSCALED 20
+
+#define TRACK_CONSOLE_RECT (Dim) {ABS, 0}, (Dim) {ABS, 0}, (Dim) {ABS, TRACK_CONSOLE_W_UNSCALED}, (Dim) {REL, 100}
 #define TRACK_NAME_RECT (Dim) {REL, 1}, (Dim) {ABS, 4}, (Dim) {REL, 75}, (Dim) {ABS, 16}
 #define CLIP_NAME_RECT (Dim) {ABS, 5}, (Dim) {REL, 3}, (Dim) {ABS, 50}, (Dim) {ABS, 10}
 
@@ -53,7 +65,12 @@
 #define TRACK_PAN_ROW (Dim) {ABS, 4}, (Dim) {ABS, 4 + TRACK_CONSOLE_ROW_HEIGHT_UNSCALED * 2}, (Dim) {REL, 100}, (Dim) {ABS, TRACK_CONSOLE_ROW_HEIGHT_UNSCALED} // child of console
 #define TRACK_IN_ROW (Dim) {ABS, 4}, (Dim) {ABS, 4 + TRACK_CONSOLE_ROW_HEIGHT_UNSCALED * 3}, (Dim) {REL, 100}, (Dim) {ABS, TRACK_CONSOLE_ROW_HEIGHT_UNSCALED} // child of console
 
-#define COLOR_BAR_W (5 * scale_factor)
+#define RULER_TC_CONTAINER (Dim) {ABS, 0}, (Dim) {ABS, 0}, (Dim) {REL, 100}, (Dim) {ABS, RULER_HEIGHT_UNSCALED} // child of tl
+#define RULER_RECT (Dim) {ABS, TRACK_CONSOLE_W_UNSCALED + COLOR_BAR_W_UNSCALED + TL_X_PADDING_UNSCALED}, (Dim) {ABS, 0}, (Dim) {REL, 100}, (Dim) {REL, 100}
+#define TC_RECT (Dim) {ABS, 12}, (Dim) {ABS, 5}, (Dim) {ABS, TC_W_UNSCALED}, (Dim) {ABS, TC_H_UNSCALED}
+
+#define COLOR_BAR_W_UNSCALED 5
+#define COLOR_BAR_W (COLOR_BAR_W_UNSCALED * scale_factor)
 
 #define NAMEBOX_W (37 * scale_factor)
 #define TRACK_IN_W (32 * scale_factor)
@@ -77,6 +94,7 @@
 
 #define MENU_LIST_R 14
 
+
 typedef struct textbox_list TextboxList;
 
 /* For convenient initialization of windows and drawing resources */
@@ -85,6 +103,7 @@ typedef struct jdaw_window {
     SDL_Renderer *rend;
     TTF_Font *fonts[NUM_FONT_SIZES];
     TTF_Font *bold_fonts[NUM_FONT_SIZES];
+    TTF_Font *mono_fonts[NUM_FONT_SIZES];
     uint8_t scale_factor;
     int w;
     int h;

@@ -80,6 +80,7 @@ JDAWWindow *create_jwin(const char *title, int x, int y, int w, int h)
 
     init_fonts(jwin->fonts, OPEN_SANS);
     init_fonts(jwin->bold_fonts, OPEN_SANS_BOLD);
+    init_fonts(jwin->mono_fonts, DROID_SANS_MONO);
     SDL_GL_GetDrawableSize(jwin->win, &(jwin->w), &(jwin->h));
 
     return jwin;
@@ -210,7 +211,7 @@ Textbox *create_textbox(
     tb->txt_container.h = txth;
     bool test = (fixed_w);
     strcpy(tb->display_value, tb->value);
-    if (fixed_w) {
+    if (fixed_w != 0) {
         tb->container.w = fixed_w;
         /* Truncate text if it doesn't fit in fixed width container (handle draw space overflow) */
         if (txtw > fixed_w) {

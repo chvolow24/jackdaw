@@ -36,9 +36,12 @@
 #include "gui.h"
 #include "audio.h"
 #include "dsp.h"
+#include "theme.h"
 
 extern Project *proj;
 extern bool sys_byteorder_le;
+extern JDAW_Color black;
+extern JDAW_Color white;
 
 /**************************** .JDAW FILE SPEC ***********************************
 
@@ -169,11 +172,17 @@ Project *open_jdaw_file(const char *path)
     sprintf(project_window_name, "Jackdaw | %s", proj->name);
 
     proj->jwin = create_jwin(project_window_name, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED-20, 900, 650);
-
+        // tl->console_width = TRACK_CONSOLE_WIDTH;
+    proj->tl->rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h,}, TL_RECT);
+    proj->tl->ruler_rect = get_rect(proj->tl->rect, RULER_RECT);
+    proj->tl->tc_rect = get_rect(proj->tl->rect, TC_RECT);
+    int audio_rect_x = proj->tl->rect.x + TRACK_CONSOLE_W + COLOR_BAR_W + PADDING;
+    proj->tl->audio_rect = (SDL_Rect) {audio_rect_x, proj->tl->rect.y, proj->jwin->w - audio_rect_x, proj->tl->rect.h}; // SET x in track
+    proj->tl->timecode_tb = create_textbox(0, proj->tl->tc_rect.h, 0, proj->jwin->mono_fonts[3], "00:00:00:00000", &white, NULL, &black, NULL, NULL, NULL, NULL, NULL, true);
+    position_textbox(proj->tl->timecode_tb, proj->tl->tc_rect.x, proj->tl->tc_rect.y);
     //TODO: get this outta here
     // proj->tl->console_width = TRACK_CONSOLE_WIDTH;
-    proj->tl->rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h,}, TL_RECT);
-    proj->tl->audio_rect = (SDL_Rect) {proj->tl->rect.x + TRACK_CONSOLE_WIDTH + COLOR_BAR_W + PADDING, proj->tl->rect.y, proj->tl->rect.w, proj->tl->rect.h}; // SET x in track
+    reset_tl_rects();
     activate_audio_devices(proj);
 
 

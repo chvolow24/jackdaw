@@ -179,10 +179,9 @@ Project *open_jdaw_file(const char *path)
     int audio_rect_x = proj->tl->rect.x + TRACK_CONSOLE_W + COLOR_BAR_W + PADDING;
     proj->tl->audio_rect = (SDL_Rect) {audio_rect_x, proj->tl->rect.y, proj->jwin->w - audio_rect_x, proj->tl->rect.h}; // SET x in track
     proj->tl->timecode_tb = create_textbox(0, proj->tl->tc_rect.h, 0, proj->jwin->mono_fonts[3], "00:00:00:00000", &white, NULL, &black, NULL, NULL, NULL, NULL, NULL, true);
-    position_textbox(proj->tl->timecode_tb, proj->tl->tc_rect.x, proj->tl->tc_rect.y);
+    // position_textbox(proj->tl->timecode_tb, proj->tl->tc_rect.x, proj->tl->tc_rect.y);
     //TODO: get this outta here
     // proj->tl->console_width = TRACK_CONSOLE_WIDTH;
-    reset_tl_rects();
     activate_audio_devices(proj);
 
 
@@ -191,6 +190,7 @@ Project *open_jdaw_file(const char *path)
         read_track_from_jdaw(f, track);
         num_tracks--;
     }
+    reset_tl_rects(proj);
     fprintf(stderr, "DONE with file read.\n");
     fclose(f);
     return proj;
@@ -211,19 +211,16 @@ void read_track_from_jdaw(FILE *f, Track *track)
     uint8_t trck_namelength = 0;
     fread(&trck_namelength, 1, 1, f);
     fread(track->name, 1, trck_namelength + 1, f);
-    fprintf(stderr, "Track named: '%s'\n", track->name);
     reset_textbox_value(track->name_box, track->name);
     uint8_t num_clips;
     fread(&num_clips, 1, 1, f);
     while (num_clips > 0) {
         Clip *clip = create_clip(track, 0, 0);
-        fprintf(stderr, "Read clip from jdaw\n");
         read_clip_from_jdaw(f, clip);
         num_clips--;
     }
     process_track_vol_and_pan(track);
 
-    fprintf(stderr, "DONE with track\n");
 }
 
 void read_clip_from_jdaw(FILE *f, Clip *clip) 

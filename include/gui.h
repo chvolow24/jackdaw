@@ -94,6 +94,9 @@
 
 #define MENU_LIST_R 14
 
+#define CLIP_NAME_PADDING_Y (4 * scale_factor)
+#define CLIP_NAME_PADDING_X (6 * scale_factor)
+
 
 typedef struct textbox_list TextboxList;
 

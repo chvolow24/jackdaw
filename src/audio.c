@@ -143,12 +143,18 @@ void init_audio()
 void start_device_recording(AudioDevice *dev)
 {
     fprintf(stderr, "START RECORDING dev: %s\n", dev->name);
-    SDL_PauseAudioDevice(dev->id, 0);
+    if (open_audio_device(dev, 2) == 0) {
+        fprintf(stderr, "Opened device\n");
+        SDL_PauseAudioDevice(dev->id, 0);
+    } else {
+        fprintf(stderr, "Failed to open device\n");
+    }
 }
 
 void stop_device_recording(AudioDevice *dev)
 {
     fprintf(stderr, "STOP RECORDING dev: %s\n", dev->name);
+    close_audio_device(dev);
     SDL_PauseAudioDevice(dev->id, 1);
     // dev->active = false;
 }
@@ -192,8 +198,6 @@ void *copy_buff_to_clip(void* arg)
 /* AUDIO DEVICE HANDLING */
 int query_audio_devices(AudioDevice ***device_list, int iscapture)
 {
-    fprintf(stderr, "Querying audio devices. iscapture: %d\n", iscapture);
-
     AudioDevice *default_dev = malloc(sizeof(AudioDevice));
 
     if (SDL_GetDefaultAudioInfo((char**) &((default_dev->name)), &(default_dev->spec), iscapture) != 0) {
@@ -233,6 +237,7 @@ int query_audio_devices(AudioDevice ***device_list, int iscapture)
             fprintf(stderr, "Error getting device spec: %s\n", SDL_GetError());
         };
         dev->spec = spec;
+        dev->rec_buffer = NULL;
         (*device_list)[j] = dev;
         fprintf(stderr, "\tFound device: %s, index: %d\n", dev->name, dev->index);
 
@@ -263,9 +268,11 @@ int open_audio_device(AudioDevice *device, uint8_t desired_channels)
     }
 
     SDL_AudioSpec obtained;
+    SDL_zero(obtained);
+    SDL_zero(device->spec);
 
     /* Project determines high-level audio settings */
-    device->spec.format = proj->fmt;
+    device->spec.format = AUDIO_S16LSB;
     device->spec.samples = proj->chunk_size;
     device->spec.freq = proj->sample_rate;
 
@@ -274,7 +281,6 @@ int open_audio_device(AudioDevice *device, uint8_t desired_channels)
     device->spec.userdata = device;
 
     if ((device->id = SDL_OpenAudioDevice(device->name, device->iscapture, &(device->spec), &(obtained), 0)) > 0) {
-        fprintf(stderr, "Name %s, obtained channels: %d, obtained format: %s, obtained freq: %d\n", device->name, obtained.channels, get_audio_fmt_str(obtained.format), obtained.freq);
         device->spec = obtained;
         device->open = true;
     } else {
@@ -282,8 +288,15 @@ int open_audio_device(AudioDevice *device, uint8_t desired_channels)
         fprintf(stderr, "Error opening audio device %s : %s\n", device->name, SDL_GetError());
         return -1;
     }
-    device->rec_buffer = malloc(BUFFLEN * device->spec.channels);
+    if (!(device->rec_buffer)) {
+        device->rec_buffer = malloc(BUFFLEN * device->spec.channels);
+    }
     return 0;
+}
+
+void close_audio_device(AudioDevice *device)
+{
+    SDL_CloseAudioDevice(device->id);
 }
 
 void destroy_audio_device(AudioDevice *device)

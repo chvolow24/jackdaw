@@ -45,9 +45,6 @@ int get_tl_draw_x(uint32_t abs_x);
 /* Get the timeline position value -- in sample frames -- from a draw x coordinate  */
 uint32_t get_abs_tl_x(int draw_x)
 {
-    fprintf(stderr, "draw x into audio rect: %d\nsfpp: %f\n", draw_x - proj->tl->audio_rect.x, proj->tl->sample_frames_per_pixel);
-    fprintf(stderr, "Return val: %d\n", (uint32_t) ((draw_x - proj->tl->audio_rect.x) * proj->tl->sample_frames_per_pixel + proj->tl->offset));
-    fprintf(stderr, "Reverse: %d\n", get_tl_draw_x((uint32_t) ((draw_x - proj->tl->audio_rect.x) * proj->tl->sample_frames_per_pixel + proj->tl->offset)) - proj->tl->audio_rect.x);
     return (draw_x - proj->tl->audio_rect.x) * proj->tl->sample_frames_per_pixel + proj->tl->offset; 
 }
 
@@ -120,8 +117,6 @@ void translate_tl(int translate_by_x, int translate_by_y)
             }
         }
     }
-    fprintf(stderr, "New leftmost seconds: %f\n", get_leftmost_seconds());
-    fprintf(stderr, "Width of one second in pixels: %d\n", get_second_w());
 
 }
 

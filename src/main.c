@@ -66,12 +66,14 @@
 #define lesser_of(a,b) (a < b ? a : b)
 #define greater_of(a,b) (a > b ? a : b)
 
+
 /* GLOBALS */
 Project *proj = NULL;
 uint8_t scale_factor = 1;
 bool dark_mode = true;
 char *home_dir;
 bool sys_byteorder_le;
+uint8_t animation_delay = 10;
 
 extern int write_buffpos;
 
@@ -177,15 +179,14 @@ static void triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down)
     // fprintf(stderr, "In main triage mouseclick %d, %d\n", (*mouse_p).x, (*mouse_p).y);
     // fprintf(stderr, "\t-> tlrect: %d %d %d %d\n", proj->tl->rect.x, proj->tl->rect.y, proj->tl->rect.w, proj->tl->rect.h);
     // fprintf(stderr, "\t-> audiorect: %d %d %d %d\n", proj->tl->audio_rect.x, proj->tl->audio_rect.y, proj->tl->audio_rect.w, proj->tl->audio_rect.h);
-
     if (SDL_PointInRect(mouse_p, &(proj->tl->rect))) {
         if (SDL_PointInRect(mouse_p, &(proj->tl->audio_rect))) {
             proj->tl->play_position = get_abs_tl_x(mouse_p->x);
-            fprintf(stderr, "reset pos! %d\n", proj->tl->play_position);
         }
         for (int i=0; i<proj->tl->num_tracks; i++) {
             Track *track;
             if ((track = proj->tl->tracks[i])) {
+
                 if (SDL_PointInRect(mouse_p, &(track->rect))) {
                     if (SDL_PointInRect(mouse_p, &(track->name_box->container))) {
                         fprintf(stderr, "\t-> mouse in namebox\n");
@@ -193,11 +194,18 @@ static void triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down)
                     } else if (SDL_PointInRect(mouse_p, &(track->input_name_box->container))) {
                         select_track_input_menu((void *)track);
                     } else if (cmd_ctrl_down) {
+
                         for (uint8_t c=0; c<track->num_clips; c++) {
                             Clip* clip = track->clips[c];
-                            if (SDL_PointInRect(mouse_p, &clip->rect)) {
+
+                            if (SDL_PointInRect(mouse_p, &(clip->namebox->container))) {
+
+                                edit_textbox(clip->namebox);
+                            }
+                            if (SDL_PointInRect(mouse_p, &(clip->rect))) {
                                 grab_ungrab_clip(clip);
                             }
+
                         }
                     }
                 }
@@ -307,18 +315,13 @@ static void stop_recording()
 
     Clip *clip = NULL;
     for (uint8_t i=0; i<proj->num_active_clips; i++) {
-        fprintf(stderr, "Active clip index %d\n", i);
         if (!(clip = proj->active_clips[i])) {
             fprintf(stderr, "Error: active clip not found at index %d\n", i);
             exit(1);
         }
-        fprintf(stderr, "\t->found clip. Copying buf\n");
         copy_buff_to_clip(clip); //TODO: consider whether this needs to be multi-threaded.
         uint32_t abs_pos_saved = clip->abs_pos_sframes;
         reposition_clip(clip, clip->abs_pos_sframes - proj->tl->record_offset);
-        fprintf(stderr, "Repoisitioning clip from %d to %d\n", abs_pos_saved, clip->abs_pos_sframes);
-        // pthread_t t;
-        // pthread_create(&t, NULL, copy_buff_to_clip, proj->active_clips[i]);
     }
     for (uint8_t i=0; i<proj->num_record_devices; i++) {
         AudioDevice* dev = proj->record_devices[i];
@@ -329,7 +332,6 @@ static void stop_recording()
         }
     }
     proj->tl->record_offset = 0;
-    fprintf(stderr, "Clearing active clips\n");
     clear_active_clips();
 }
     // fprintf(stderr, "Enter stop_recording\n");
@@ -373,8 +375,8 @@ static void project_loop()
                 quit = true;
             } else if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
                 reset_dims(proj->jwin);
-                reset_tl_rect(proj->tl);
-                reset_tl_rects();
+                // reset_tl_rect(proj->tl);
+                reset_tl_rects(proj);
             } else if (e.type == SDL_MOUSEBUTTONUP) {
                 if (mousebutton_down) {
                     mousebutton_down = false;
@@ -546,7 +548,6 @@ static void project_loop()
                         }
                         proj->tl->play_position += translate_by;
                         translate_grabbed_clips(translate_by);
-                        proj->tl->play_position += get_tl_abs_w(ARROW_TL_STEP);
                     }
                         break;
                     case SDL_SCANCODE_LEFT: {
@@ -558,7 +559,6 @@ static void project_loop()
                         }
                         proj->tl->play_position += translate_by;
                         translate_grabbed_clips(translate_by);
-                        proj->tl->play_position += get_tl_abs_w(ARROW_TL_STEP);
                     }
                         break;
                     case SDL_SCANCODE_W:
@@ -634,7 +634,9 @@ static void project_loop()
 
         if (mousebutton_down && !proj->playing && !proj->recording) {
             get_mouse_state(&mouse_p);
-            proj->tl->play_position = get_abs_tl_x(mouse_p.x);
+            if (SDL_PointInRect(&mouse_p, &(proj->tl->audio_rect))) {
+                proj->tl->play_position = get_abs_tl_x(mouse_p.x);
+            }
         }
         if (proj->play_speed < 0 && proj->tl->offset > proj->tl->play_position) {
             translate_tl(CATCHUP_STEP * -1, 0);
@@ -672,7 +674,7 @@ static void project_loop()
         draw_jwin_menus(proj->jwin);
         SDL_RenderPresent(proj->jwin->rend);
         set_timecode();
-        SDL_Delay(2);
+        SDL_Delay(animation_delay);
     }
 }
 
@@ -694,21 +696,22 @@ int main()
     init_graphics();
     init_audio();
     init_SDL_ttf();
-    JDAWWindow *new_project = create_jwin("Create a new Jackdaw project", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 600, 400);
-    new_project_loop(new_project);
+    // JDAWWindow *new_project = create_jwin("Create a new Jackdaw project", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 600, 400);
+    // new_project_loop(new_project);
 
     fprintf(stdout, "Opening project\n");
     if ((proj = open_jdaw_file("project.jdaw")) == NULL) {
         fprintf(stderr, "Creating new project\n");
         proj = create_project("Untitled", 2, 48000, AUDIO_S16SYS, 512);
         activate_audio_devices(proj);
+        create_track(proj->tl, true);
     } else {
         fprintf(stderr, "Successfully opened project.\n");
     }
     fprintf(stdout, "Activating audio devices on project\n");
 
 
-        fprintf(stdout, "Loop starts now\n");
+    fprintf(stdout, "Loop starts now\n");
 
     project_loop();
 

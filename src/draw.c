@@ -86,6 +86,8 @@ JDAW_Color fslider_border = {{12, 107, 249, 250}, {12, 107, 249, 250}};
 JDAW_Color fslider_bar = {{12, 107, 249, 250}, {12, 107, 249, 250}};
 JDAW_Color fslider_bckgrnd = {{40, 40, 40, 248},{40, 40, 40, 248}};
 
+JDAW_Color marked_bckgrnd = {{90, 180, 245, 80}, {90, 180, 245, 80}};
+
 
 /* Draw a circle quadrant. Quad 0 = upper right, 1 = upper left, 2 = lower left, 3 = lower right */
 void draw_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad)
@@ -429,7 +431,10 @@ void draw_waveform(Clip *clip)
         int last_sample_y = wav_y;
         int sample_y = wav_y;
         for (int i=0; i<clip->len_sframes-1; i+=clip->track->tl->sample_frames_per_pixel) {
-            if (wav_x > proj->tl->audio_rect.x && wav_x < proj->tl->audio_rect.x + proj->tl->audio_rect.w) {
+            if (wav_x > proj->tl->audio_rect.x) {
+                if (wav_x >= proj->tl->audio_rect.x + proj->tl->audio_rect.w) {
+                    break;
+                }
                 sample = (clip->post_proc)[i];
                 sample_y = wav_y + sample * clip->rect.h / (2 * INT16_MAX);
                 // SDL_RenderDrawLine(proj->jwin->rend, wav_x, wav_y, wav_x, sample_y);
@@ -500,8 +505,9 @@ void draw_clip(Clip *clip)
         set_rend_color(proj->jwin->rend, &clip_bckgrnd);
     }
     SDL_RenderFillRect(proj->jwin->rend, &(clip->rect));
-    SDL_Rect clipnamerect = get_rect(clip->rect, CLIP_NAME_RECT); //TODO: remove this computation from draw
-    write_text(proj->jwin->rend, &clipnamerect, proj->jwin->bold_fonts[1], &grey, clip->name, true);
+    // SDL_Rect clipnamerect = get_rect(clip->rect, CLIP_NAME_RECT); //TODO: remove this computation from draw
+    draw_textbox(proj->jwin->rend, clip->namebox);
+    // write_text(proj->jwin->rend, &clipnamerect, proj->jwin->bold_fonts[1], &grey, clip->name, true);
     set_rend_color(proj->jwin->rend, &black);
     // fprintf(stderr, "\t->drawing border\n");
     SDL_Rect cliprect_temp = clip->rect;
@@ -689,8 +695,9 @@ void draw_project(Project *proj)
 
 
     /* draw mark in */
-    if (proj->tl->in_mark >= proj->tl->offset) {
-        int in_x = get_tl_draw_x(proj->tl->in_mark);
+    int in_x, out_x = -1;
+    if (proj->tl->in_mark >= proj->tl->offset && proj->tl->in_mark < proj->tl->offset + get_tl_abs_w(proj->tl->audio_rect.w)) {
+        in_x = get_tl_draw_x(proj->tl->in_mark);
         int i_tri_x2 = in_x;
         tri_y = proj->tl->rect.y;
         for (int i=0; i<PLAYHEAD_TRI_H; i++) {
@@ -698,11 +705,13 @@ void draw_project(Project *proj)
             tri_y -= 1;
             i_tri_x2 += 1;    
         }            
+    } else if (proj->tl->in_mark < proj->tl->offset) {
+        in_x = proj->tl->audio_rect.x;
     }
 
     /* draw mark out */
-    if (proj->tl->out_mark > proj->tl->offset) {
-        int out_x = get_tl_draw_x(proj->tl->out_mark);
+    if (proj->tl->out_mark > proj->tl->offset && proj->tl->out_mark < proj->tl->offset + get_tl_abs_w(proj->tl->audio_rect.w)) {
+        out_x = get_tl_draw_x(proj->tl->out_mark);
         int o_tri_x1 = out_x;
         tri_y = proj->tl->rect.y;
         for (int i=0; i<PLAYHEAD_TRI_H; i++) {
@@ -710,6 +719,13 @@ void draw_project(Project *proj)
             tri_y -= 1;
             o_tri_x1 -= 1;
         }
+    } else if (proj->tl->out_mark > proj->tl->offset + get_tl_abs_w(proj->tl->audio_rect.w)) {
+        out_x = proj->tl->audio_rect.x + proj->tl->audio_rect.w;
+    }
+    if (in_x < out_x && out_x != 0) {
+        SDL_Rect in_out = (SDL_Rect) {in_x, proj->tl->audio_rect.y, out_x - in_x, proj->tl->audio_rect.h};
+        set_rend_color(proj->jwin->rend, &marked_bckgrnd);
+        SDL_RenderFillRect(proj->jwin->rend, &(in_out));
     }
 
 }

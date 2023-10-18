@@ -59,6 +59,7 @@ void start_device_playback();
 void stop_device_playback();
 int query_audio_devices(AudioDevice ***device_list, int iscapture);
 int open_audio_device(AudioDevice *device, uint8_t desired_channels);
+void close_audio_device(AudioDevice *device);
 void destroy_audio_device(AudioDevice *device);
 const char *get_audio_fmt_str(SDL_AudioFormat fmt);
 void write_mixdown_to_wav();

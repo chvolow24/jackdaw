@@ -173,12 +173,13 @@ Project *open_jdaw_file(const char *path)
 
     proj->jwin = create_jwin(project_window_name, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED-20, 900, 650);
         // tl->console_width = TRACK_CONSOLE_WIDTH;
-    proj->tl->rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h,}, TL_RECT);
-    proj->tl->ruler_rect = get_rect(proj->tl->rect, RULER_RECT);
-    proj->tl->tc_rect = get_rect(proj->tl->rect, TC_RECT);
-    int audio_rect_x = proj->tl->rect.x + TRACK_CONSOLE_W + COLOR_BAR_W + PADDING;
-    proj->tl->audio_rect = (SDL_Rect) {audio_rect_x, proj->tl->rect.y, proj->jwin->w - audio_rect_x, proj->tl->rect.h}; // SET x in track
+    // proj->tl->rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h,}, TL_RECT);
+    // proj->tl->ruler_rect = get_rect(proj->tl->rect, RULER_RECT);
+    // proj->tl->tc_rect = get_rect(proj->tl->rect, TC_RECT);
+    // int audio_rect_x = proj->tl->rect.x + TRACK_CONSOLE_W + COLOR_BAR_W + PADDING;
+    // proj->tl->audio_rect = (SDL_Rect) {audio_rect_x, proj->tl->rect.y, proj->jwin->w - audio_rect_x, proj->tl->rect.h}; // SET x in track
     proj->tl->timecode_tb = create_textbox(0, proj->tl->tc_rect.h, 0, proj->jwin->mono_fonts[3], "00:00:00:00000", &white, NULL, &black, NULL, NULL, NULL, NULL, NULL, true);
+    reset_tl_rects(proj);
     // position_textbox(proj->tl->timecode_tb, proj->tl->tc_rect.x, proj->tl->tc_rect.y);
     //TODO: get this outta here
     // proj->tl->console_width = TRACK_CONSOLE_WIDTH;

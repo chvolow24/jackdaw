@@ -72,8 +72,8 @@
 #define COLOR_BAR_W_UNSCALED 5
 #define COLOR_BAR_W (COLOR_BAR_W_UNSCALED * scale_factor)
 
-#define NAMEBOX_W (37 * scale_factor)
-#define TRACK_IN_W (32 * scale_factor)
+#define NAMEBOX_W (120 * scale_factor)
+#define TRACK_IN_W (100 * scale_factor)
 #define TRACK_INTERNAL_PADDING (6 * scale_factor)
 
 #define CURSOR_COUNTDOWN 50

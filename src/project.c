@@ -323,7 +323,7 @@ Track *create_track(Timeline *tl, bool stereo)
         track->input = proj->record_devices[0];
     }
 
-
+    //TODO: create_fslider() function (safer)
     track->vol_ctrl = malloc(sizeof(FSlider));
     track->vol_ctrl->max = 2;
     track->vol_ctrl->min = 0;
@@ -337,7 +337,7 @@ Track *create_track(Timeline *tl, bool stereo)
     track->pan_ctrl->type = LINE;
 
     track->name_box = create_textbox(
-        NAMEBOX_W * TRACK_CONSOLE_W / 100,
+        NAMEBOX_W,
         // NAMEBOX_W * proj->tl->console_width / 100, 
         0, 
         2, 
@@ -371,7 +371,7 @@ Track *create_track(Timeline *tl, bool stereo)
     );
     track->input_name_box = create_textbox(
         //TRACK_IN_W * proj->tl->console_width / 100, 
-        TRACK_IN_W * TRACK_CONSOLE_W / 100,
+        TRACK_IN_W,
         0, 
         4, 
         proj->jwin->fonts[1],

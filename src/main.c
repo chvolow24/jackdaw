@@ -668,8 +668,8 @@ static void project_loop()
             }
         }
         get_mouse_state(&mouse_p);
-        menulist_hover(proj->jwin, &mouse_p);
-        playback();
+	    menulist_hover(proj->jwin, &mouse_p);
+	    playback();
         draw_project(proj);
         draw_jwin_menus(proj->jwin);
         SDL_RenderPresent(proj->jwin->rend);

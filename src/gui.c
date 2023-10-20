@@ -77,7 +77,7 @@ JDAWWindow *create_jwin(const char *title, int x, int y, int w, int h)
     if (jwin->scale_factor != (float)rh / (float)wh) {
         fprintf(stderr, "Error: scale factor w != h\n");
     }
-
+    jwin->num_active_menus = 0;
     init_fonts(jwin->fonts, OPEN_SANS);
     init_fonts(jwin->bold_fonts, OPEN_SANS_BOLD);
     init_fonts(jwin->mono_fonts, DROID_SANS_MONO);
@@ -493,12 +493,12 @@ void menulist_hover(JDAWWindow *jwin, SDL_Point *mouse_p)
 {   
     for (uint8_t i=0; i<jwin->num_active_menus; i++) {
         TextboxList *menu = jwin->active_menus[i];
-        if (SDL_PointInRect(mouse_p, &(menu->container))) {
+        if (menu && SDL_PointInRect(mouse_p, &(menu->container))) {
             for (uint8_t j=0; j<menu->num_textboxes; j++) {
                 Textbox *tb = menu->textboxes[j];
-                if (SDL_PointInRect(mouse_p, &(tb->container))) {
+                if (tb && SDL_PointInRect(mouse_p, &(tb->container))) {
                     tb->mouse_hover = true;
-                } else {
+                } else if (tb) {
                     tb->mouse_hover = false;
                 }
             }

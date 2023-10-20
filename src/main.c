@@ -320,7 +320,6 @@ static void stop_recording()
             exit(1);
         }
         copy_buff_to_clip(clip); //TODO: consider whether this needs to be multi-threaded.
-        uint32_t abs_pos_saved = clip->abs_pos_sframes;
         reposition_clip(clip, clip->abs_pos_sframes - proj->tl->record_offset);
     }
     for (uint8_t i=0; i<proj->num_record_devices; i++) {

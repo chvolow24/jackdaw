@@ -140,7 +140,9 @@ void write_clip_to_jdaw(FILE *f, Clip *clip)
 
 Project *open_jdaw_file(const char *path)
 {
-    proj = create_empty_project();
+// Project *create_project(const char* name, uint8_t channels, int sample_rate, SDL_AudioFormat fmt, uint16_t chunk_size)
+
+    // proj = create_empty_project();
     FILE *f = fopen(path, "r");
     if (!f) {
         fprintf(stderr, "Error: could not find project file at path %s\n", path);
@@ -155,16 +157,24 @@ Project *open_jdaw_file(const char *path)
         return NULL;
     }
     uint8_t proj_namelength = 0;
+    const char *project_name;
+    uint8_t channels;
+    int sample_rate;
+    SDL_AudioFormat fmt;
+    uint16_t chunk_size;
+
     fread(&proj_namelength, 1, 1, f);
-    fread(proj->name, 1, proj_namelength + 1, f);
-    fread(&(proj->channels), 1, 1, f);
+    fread((void *)project_name, 1, proj_namelength + 1, f);
+    fread(&(channels), 1, 1, f);
     if (sys_byteorder_le) {
-        fread(&(proj->sample_rate), 4, 1, f);
-        fread(&(proj->chunk_size), 2, 1, f);
+        fread(&(sample_rate), 4, 1, f);
+        fread(&(chunk_size), 2, 1, f);
     } else {
         //TODO: handle big endian
     }
-    fread(&(proj->fmt), 2, 1, f);
+    fread(&(fmt), 2, 1, f);
+
+    proj = create_project(project_name, channels, sample_rate, fmt, chunk_size);
     uint8_t num_tracks = 0;
     fread(&num_tracks, 1, 1, f);
 
@@ -178,7 +188,7 @@ Project *open_jdaw_file(const char *path)
     // proj->tl->tc_rect = get_rect(proj->tl->rect, TC_RECT);
     // int audio_rect_x = proj->tl->rect.x + TRACK_CONSOLE_W + COLOR_BAR_W + PADDING;
     // proj->tl->audio_rect = (SDL_Rect) {audio_rect_x, proj->tl->rect.y, proj->jwin->w - audio_rect_x, proj->tl->rect.h}; // SET x in track
-    proj->tl->timecode_tb = create_textbox(0, proj->tl->tc_rect.h, 0, proj->jwin->mono_fonts[3], "00:00:00:00000", &white, NULL, &black, NULL, NULL, NULL, NULL, NULL, true);
+    // proj->tl->timecode_tb = create_textbox(0, proj->tl->tc_rect.h, 0, proj->jwin->mono_fonts[3], "00:00:00:00000", &white, NULL, &black, NULL, NULL, NULL, NULL, NULL, true);
     reset_tl_rects(proj);
     // position_textbox(proj->tl->timecode_tb, proj->tl->tc_rect.x, proj->tl->tc_rect.y);
     //TODO: get this outta here

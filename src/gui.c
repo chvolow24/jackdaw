@@ -229,14 +229,13 @@ Textbox *create_textbox(
     } else {
         tb->container.w = txtw + padding * 2;
     }
-    if (fixed_h) {
+    if (fixed_h != 0) {
         tb->container.h = fixed_h;
     } else {
         tb->container.h = txth + padding * 2;
     }
     tb->mouse_hover = false;
     tb->target = target;
-    fprintf(stderr, "created tb with val: %s, dis val: %s\n", tb->value, tb->display_value);
     return tb;
 
 }
@@ -554,15 +553,15 @@ void reset_fslider(FSlider *fslider)
 
 void set_fslider_rect(FSlider *fslider, SDL_Rect *rect, uint8_t padding)
 {
+    padding = padding * scale_factor;
     fslider->rect.x = rect->x + padding;
     fslider->rect.y = rect->y + padding;
-    fslider->rect.w = rect->w - (padding<<1);
-    fslider->rect.h = rect->h - (padding<<1);
-    fslider->bar_rect.x = rect->x + (padding<<1);
-    fslider->bar_rect.y = rect->y + (padding<<1);
-    fslider->bar_rect.w = rect->w - (padding<<2);
-    fslider->bar_rect.h = rect->h - (padding<<2);
-
+    fslider->rect.w = rect->w - (padding * 2);
+    fslider->rect.h = rect->h - (padding * 2);
+    fslider->bar_rect.x = rect->x + (padding * 2);
+    fslider->bar_rect.y = rect->y + (padding * 2);
+    fslider->bar_rect.w = rect->w - (padding * 4);
+    fslider->bar_rect.h = rect->h - (padding * 4);
 }
 
 /* Returns true if change was made */

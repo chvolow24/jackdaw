@@ -114,7 +114,6 @@ void select_track_input_menu(void *track_v)
         select_track_input,
         track
     );
-    Textbox * tb = NULL;
     position_textbox_list(tbl, track->input_name_box->container.x, track->input_name_box->container.y);
 }
 
@@ -164,71 +163,12 @@ int16_t *get_mixdown_chunk(Timeline* tl, uint32_t len_samples, bool from_mark_in
         i++;
     }
     proj->tl->play_position += len_samples * proj->play_speed / proj->channels;
-    // }
-    // fprintf(stderr, "\t->exit get_mixdown_chunk\n");
     return mixdown;
 }
 
-/* Reset the cached size of the window. Called whenever the window is resized (see event loop in main.c) */
-// void reset_winrect(Project *proj) {
-//     SDL_GL_GetDrawableSize(proj->win, &((proj->winrect).w), &((proj->winrect).h));
-// }
 
 /* An active project is required for jackdaw to run. This function creates a project based on various specifications,
 and initalizes a variety of UI "globals." */
-
-
-Project *create_empty_project() 
-{
-    /* Allocate space for project and set name */
-    Project *proj = malloc(sizeof(Project));
-    memset(proj->name, '\0', MAX_NAMELENGTH);
-
-    /* Set audio settings */
-    proj->channels = 0;
-    proj->sample_rate = 0;
-    proj->fmt = 0;
-    proj->chunk_size = 0;
-
-    /* Initialize play/record values */
-    proj->play_speed = 0;
-    proj->playing = false;
-    proj->recording = false;
-    proj->num_active_clips = 0;
-
-    /* Initialize timeline struct */
-    Timeline *tl = (Timeline *)malloc(sizeof(Timeline));
-    tl->num_tracks = 0;
-    tl->play_position = 0;
-    tl->in_mark = 0;
-    tl->out_mark = 0;
-    tl->record_offset = 0;
-    tl->play_offset = 0;
-    tl->tempo = 0;
-    tl->click_on = 0;
-    tl->sample_frames_per_pixel = DEFAULT_SFPP;
-    tl->offset = 0; // horizontal offset of timeline in samples
-    tl->v_offset = 0;
-    tl->num_active_tracks = 0;
-    memset(tl->active_track_indices, '\0', MAX_ACTIVE_TRACKS);
-    proj->tl = tl;
-    tl->proj = proj;
-
-    proj->jwin = NULL;
-
-    
-    // /* Create SDL_Window and accompanying SDL_Renderer */
-    // char project_window_name[MAX_NAMELENGTH + 10];
-    // sprintf(project_window_name, "Jackdaw | %s", name);
-    // proj->jwin = create_jwin(project_window_name, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED-20, 900, 650);
-
-    // tl->console_width = TRACK_CONSOLE_WIDTH;
-    // tl->audio_rect = (SDL_Rect) {tl->rect.x + TRACK_CONSOLE_WIDTH + COLOR_BAR_W + PADDING, tl->rect.y, tl->rect.w, tl->rect.h}; // SET x in track
-
-    return proj;
-}
-
-
 Project *create_project(const char* name, uint8_t channels, int sample_rate, SDL_AudioFormat fmt, uint16_t chunk_size)
 {
     /* Allocate space for project and set name */
@@ -271,16 +211,8 @@ Project *create_project(const char* name, uint8_t channels, int sample_rate, SDL
     sprintf(project_window_name, "Jackdaw | %s", name);
     proj->jwin = create_jwin(project_window_name, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED-20, 900, 650);
 
-    // tl->console_width = TRACK_CONSOLE_WIDTH;
-    // tl->rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h,}, TL_RECT);
-    // tl->ruler_rect = get_rect(tl->rect, RULER_RECT);
-    // tl->tc_rect = get_rect(tl->rect, TC_RECT);
-    // int audio_rect_x = tl->rect.x + TRACK_CONSOLE_W + COLOR_BAR_W + PADDING;
-    // tl->audio_rect = (SDL_Rect) {audio_rect_x, tl->rect.y, proj->jwin->w - audio_rect_x, tl->rect.h}; // SET x in track
-    
-    tl->timecode_tb = create_textbox(tl->tc_rect.w, tl->tc_rect.h, 0, proj->jwin->mono_fonts[3], "00:00:00:00000", &white, NULL, &black, NULL, NULL, NULL, NULL, NULL, true);
-    // position_textbox(proj->tl->timecode_tb, proj->tl->tc_rect.x, proj->tl->tc_rect.y);
-    // create_track(tl, true);
+    tl->timecode_tb = create_textbox(0, 0, 0, proj->jwin->mono_fonts[3], "00:00:00:00000", &white, NULL, &black, NULL, NULL, NULL, NULL, 0, true);
+
     reset_tl_rects(proj);
 
     return proj;
@@ -329,7 +261,6 @@ Track *create_track(Timeline *tl, bool stereo)
     track->vol_ctrl->min = 0;
     track->vol_ctrl->value = 1;
     track->vol_ctrl->type = FILL;
-    // track->vol_ctrl->orientation_vertical = false;
     track->pan_ctrl = malloc(sizeof(FSlider));
     track->pan_ctrl->max = 1;
     track->pan_ctrl->min = -1;
@@ -338,7 +269,6 @@ Track *create_track(Timeline *tl, bool stereo)
 
     track->name_box = create_textbox(
         NAMEBOX_W,
-        // NAMEBOX_W * proj->tl->console_width / 100, 
         0, 
         2, 
         proj->jwin->bold_fonts[2],
@@ -433,7 +363,9 @@ void reset_tl_rects(Project *proj)
     proj->tl->audio_rect = (SDL_Rect) {proj->tl->rect.x + TRACK_CONSOLE_W + COLOR_BAR_W + PADDING, proj->tl->rect.y, proj->tl->rect.w, proj->tl->rect.h}; // SET x in track
     proj->tl->rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h,}, TL_RECT);
     proj->tl->ruler_tc_container_rect = get_rect(proj->tl->rect, RULER_TC_CONTAINER);
+
     proj->tl->ruler_rect = get_rect(proj->tl->ruler_tc_container_rect, RULER_RECT);
+
     proj->tl->tc_rect = get_rect(proj->tl->ruler_tc_container_rect, TC_RECT);
     Track *track = NULL;
     for (int t=0; t<proj->tl->num_tracks; t++) {
@@ -467,11 +399,11 @@ void reset_track_internal_rects(Track *track)
     position_textbox(track->vol_label_box, track->vol_row_rect.x, track->vol_row_rect.y);
     position_textbox(track->pan_label_box, track->pan_row_rect.x, track->pan_row_rect.y);
     SDL_Rect volslider_rect = (SDL_Rect) {track->vol_label_box->container.x + track->vol_label_box->container.w + PADDING, track->vol_label_box->container.y + PADDING, track->vol_row_rect.w - track->vol_label_box->container.w - (PADDING * 4), track->vol_row_rect.h - (PADDING * 2)};
-    set_fslider_rect(track->vol_ctrl, &volslider_rect, 4);
+    set_fslider_rect(track->vol_ctrl, &volslider_rect, 2);
     reset_fslider(track->vol_ctrl); 
 
     SDL_Rect panslider_rect = (SDL_Rect) {track->pan_label_box->container.x + track->pan_label_box->container.w + PADDING, track->pan_label_box->container.y + PADDING, track->pan_row_rect.w - track->pan_label_box->container.w - (PADDING * 4), track->pan_row_rect.h - (PADDING * 2)};
-    set_fslider_rect(track->pan_ctrl, &panslider_rect, 4);
+    set_fslider_rect(track->pan_ctrl, &panslider_rect, 2);
     reset_fslider(track->pan_ctrl);
 }
 

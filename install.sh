@@ -1,13 +1,13 @@
 #! /bin/bash
-echo "\n\nJackdaw depends on the SDL2 and SDL2 TTF libraries."
+install_dir=$(pwd)
+echo -e "\n\nJackdaw depends on the SDL2 and SDL2 TTF libraries."
 echo "More information about SDL can be found at https://www.libsdl.org/"
 echo "More information about SDL TTF can be found at https://github.com/libsdl-org/SDL_ttf"
 
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    echo "Installing for GNU/Linux..."
-    package_list=("libsdl2-ttf-2.0-0" "libsdl2-ttf-dev")
+    echo -e "Installing for GNU/Linux..."
     path=$(eval echo "~/repos")
-    echo "\nBy default, SDL2 source code will be cloned at $path. If this is ok, type "y". Otherwise, enter the desired path:"
+    echo -e "\nBy default, SDL2 source code will be cloned at $path. If this is ok, type "y". Otherwise, enter the desired path:"
     read conf
     if [[ $conf != y ]]; then
         conf=$(eval echo "$conf")
@@ -39,14 +39,14 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     sudo apt-get install libsdl2-ttf-dev
 elif [[ "$OSTYPE" == "darwin"* ]]; then
     echo "Installing for MacOS..."
-    package_list=("sdl2" "sdl2_image" "sdl2_ttf")
     brew install sdl2
     brew install sdl2_ttf
 else  echo "Operating system not recognized. Exiting."; exit;
 fi
 
-echo "\n\nDone installing dependencies. Building project..."
+echo -e "\n\nDone installing dependencies. Building project..."
+cd $install_dir
 make
-echo "Installing executable at /usr/local/bin/jackdaw..."
+echo -e "\n\nInstalling executable at /usr/local/bin/jackdaw..."
 sudo mv jackdaw /usr/local/bin/jackdaw
-echo "Done! Run the program by typing "jackdaw" on the command line."
+echo -e "\n\nDone! Run the program by typing 'jackdaw' on the command line."

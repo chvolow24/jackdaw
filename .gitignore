@@ -1,5 +1,4 @@
 .DS_Store
-*.txt
 *.o
 jackdaw
 .vscode/
@@ -7,3 +6,4 @@ jackdaw
 *.jdaw
 .clangd
 *.log
+todo.txt

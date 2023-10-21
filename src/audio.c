@@ -355,6 +355,6 @@ void write_mixdown_to_wav()
 {
     uint32_t num_samples = (proj->tl->out_mark - proj->tl->in_mark) * proj->channels;
     int16_t *samples = get_mixdown_chunk(proj->tl, num_samples, true);
-    write_wav("wavs/testfile.wav", samples, num_samples, 16, 2);
+    write_wav("testfile.wav", samples, num_samples, 16, 2);
     free(samples);
 }

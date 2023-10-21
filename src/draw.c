@@ -469,16 +469,16 @@ void draw_waveform(Clip *clip)
                 sample_l = (clip->post_proc)[i];
                 sample_r = (clip->post_proc[i+1]);
                 int j=0;
-                while (j<proj->tl->sample_frames_per_pixel) {
-                    if (abs((clip->post_proc)[i]) > abs(sample_l)) {
-                        sample_l = (clip->post_proc)[i];
-                    }
-                    if (abs((clip->post_proc)[i+1]) > abs(sample_l)) {
-                        sample_r = (clip->post_proc)[i+1];
-                    }
-                    i+=2;
-                    j++;
-                }
+                // while (j<proj->tl->sample_frames_per_pixel) {
+                //     if (abs((clip->post_proc)[i]) > abs(sample_l) && (clip->post_proc)[i] / abs((clip->post_proc)[i]) == sample_l < 0 ? -1 : 1) {
+                //         sample_l = (clip->post_proc)[i];
+                //     }
+                //     if (abs((clip->post_proc)[i+1]) > abs(sample_l)) {
+                //         sample_r = (clip->post_proc)[i+1];
+                //     }
+                //     i+=2;
+                //     j++;
+                // }
                 sample_y_l = wav_y_l + sample_l * clip->rect.h / (4 * INT16_MAX);
                 sample_y_r = wav_y_r + sample_r * clip->rect.h / (4 * INT16_MAX);
                 // SDL_RenderDrawLine(proj->jwin->rend, wav_x, wav_y_l, wav_x, sample_y_l);
@@ -488,6 +488,7 @@ void draw_waveform(Clip *clip)
 
                 last_sample_y_l = sample_y_l;
                 last_sample_y_r = sample_y_r;
+                i+= proj->tl->sample_frames_per_pixel * 2;
                 
             } else {
                 i += proj->tl->sample_frames_per_pixel * 2;

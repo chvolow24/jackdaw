@@ -66,7 +66,6 @@
 #define lesser_of(a,b) (a < b ? a : b)
 #define greater_of(a,b) (a > b ? a : b)
 
-
 /* GLOBALS */
 Project *proj = NULL;
 uint8_t scale_factor = 1;
@@ -496,6 +495,7 @@ static void project_loop()
                             fprintf(stderr, "DONE WRITING FILE!\n");
                         }
                     }
+                    break;
                     case SDL_SCANCODE_1:
                         activate_or_deactivate_track(0);
                         break;

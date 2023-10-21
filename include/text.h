@@ -31,12 +31,17 @@
 #include "SDL_ttf.h"
 #include "theme.h"
 
-#define FREE_SANS "assets/ttf/free_sans.ttf"
-#define OPEN_SANS "assets/ttf/OpenSans-Regular.ttf"
-#define OPEN_SANS_BOLD "assets/ttf//OpenSans-Bold.ttf"
-#define OPEN_SANS_VAR "assets/ttf/OpenSans-Variable.ttf"
-#define COURIER_NEW "assets/ttf/CourierNew.ttf"
-#define DROID_SANS_MONO "assets/ttf/DroidSansMono.ttf"
+
+#ifndef INSTALL_DIR
+#define INSTALL_DIR ""
+#endif
+
+#define FREE_SANS INSTALL_DIR "/assets/ttf/free_sans.ttf"
+#define OPEN_SANS INSTALL_DIR "/assets/ttf/OpenSans-Regular.ttf"
+#define OPEN_SANS_BOLD INSTALL_DIR "/assets/ttf//OpenSans-Bold.ttf"
+#define OPEN_SANS_VAR INSTALL_DIR "/assets/ttf/OpenSans-Variable.ttf"
+#define COURIER_NEW INSTALL_DIR "/assets/ttf/CourierNew.ttf"
+#define DROID_SANS_MONO INSTALL_DIR "/assets/ttf/DroidSansMono.ttf"
 #define STD_FONT_SIZES {10, 12, 14, 16, 18, 24, 30, 36, 48, 60, 72}
 #define STD_FONT_ARRLEN 11
 

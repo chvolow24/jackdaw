@@ -183,6 +183,16 @@ typedef struct project {
 		SDL_AudioFormat fmt;
 		uint16_t chunk_size; //sample_frames
 
+		/* GUI Members */
+		SDL_Rect ctrl_rect;
+
+		SDL_Rect ctrl_rect_col_a;
+		SDL_Rect audio_out_row;
+		Textbox *audio_out_label;
+		Textbox *audio_out;
+
+		SDL_Rect ctrl_rect_col_b;
+
 } Project;
 
 int16_t get_track_sample(Track *track, Timeline *tl, uint32_t start_pos, uint32_t pos_in_chunk);
@@ -195,7 +205,10 @@ void destroy_clip(Clip *clip);
 void destroy_track(Track *track);
 void reset_tl_rect(Timeline *tl);
 void select_track_input_menu(void *track_v);
+void select_audio_out_menu(void *proj_v);
+
 void activate_or_deactivate_track(uint8_t track_index);
+void destroy_audio_devices(Project *proj);
 void activate_audio_devices(Project *proj);
 void reposition_clip(Clip *clip, uint32_t new_pos);
 void add_active_clip(Clip *clip);
@@ -213,6 +226,7 @@ void delete_grabbed_clips();
 void reset_cliprect(Clip* clip);
 void reset_track_internal_rects(Track *track);
 void reset_tl_rects(Project *proj);
+void reset_ctrl_rects(Project *proj);
 bool adjust_track_vol(Track *track, float change_by);
 bool adjust_track_pan(Track *track, float change_by);
 

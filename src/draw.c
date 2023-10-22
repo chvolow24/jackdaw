@@ -364,7 +364,8 @@ void draw_menu_item(SDL_Renderer *rend, Textbox *tb)
 }
 void draw_menu_list(SDL_Renderer *rend, TextboxList *tbl)
 {
-    SDL_Rect innerrect = (SDL_Rect) {tbl->container.x + 1, tbl->container.y + 1, tbl->container.w - 2, tbl->container.h - 2};
+    int padding = 3 * scale_factor;
+    SDL_Rect innerrect = (SDL_Rect) {tbl->container.x + padding, tbl->container.y + padding, tbl->container.w - padding * 2, tbl->container.h - padding * 2};
     set_rend_color(rend, &menulist_bckgrnd);
     fill_rounded_rect(rend, &(tbl->container), MENU_LIST_R);
     set_rend_color(rend, &menulist_outer_brdr);
@@ -673,6 +674,13 @@ void draw_project(Project *proj)
     set_rend_color(proj->jwin->rend, &tl_bckgrnd);
     SDL_RenderFillRect(proj->jwin->rend, &mask_left_2);
     // fprintf(stderr, "\t->end draw\n");
+
+    // SDL_SetRenderDrawColor(proj->jwin->rend, 255, 0, 0, 255);
+    // SDL_RenderDrawRect(proj->jwin->rend, &(proj->ctrl_rect));
+    // SDL_SetRenderDrawColor(proj->jwin->rend, 0, 255, 0, 255);
+    // SDL_RenderDrawRect(proj->jwin->rend, &(proj->ctrl_rect_col_a));
+    draw_textbox(proj->jwin->rend, proj->audio_out_label);
+    draw_textbox(proj->jwin->rend, proj->audio_out);
 
     set_rend_color(proj->jwin->rend, &white);
 

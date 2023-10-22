@@ -143,7 +143,7 @@ void init_audio()
 void start_device_recording(AudioDevice *dev)
 {
     fprintf(stderr, "START RECORDING dev: %s\n", dev->name);
-    if (open_audio_device(dev, 2) == 0) {
+    if (open_audio_device(proj, dev, 2) == 0) {
         fprintf(stderr, "Opened device\n");
         SDL_PauseAudioDevice(dev->id, 0);
     } else {
@@ -260,13 +260,8 @@ void*               | userdata  | a pointer that is passed to callback (otherwis
 ==========================================================================*/
 
 /* Open an audio device and store info in the returned AudioDevice struct. */
-int open_audio_device(AudioDevice *device, uint8_t desired_channels)
+int open_audio_device(Project *proj, AudioDevice *device, uint8_t desired_channels)
 {
-    if (!proj) {
-        fprintf(stderr, "Error: opening audio device without an active Project is forbidden.\n");
-        exit(1);
-    }
-
     SDL_AudioSpec obtained;
     SDL_zero(obtained);
     SDL_zero(device->spec);

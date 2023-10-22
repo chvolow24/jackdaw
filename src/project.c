@@ -102,12 +102,13 @@ void select_track_input_menu(void *track_v)
     for (uint8_t i=0; i<proj->num_record_devices; i++) {
         device_mlitems[i] = malloc(sizeof(MenulistItem)); //TODO: Danger: memory leak
         strcpy(device_mlitems[i]->label, proj->record_devices[i]->name);
-        device_mlitems[i]->available = proj->record_devices[i]->open;
+        // device_mlitems[i]->available = proj->record_devices[i]->open;
+        device_mlitems[i]->available = true;
     }
     TextboxList *tbl = create_menulist(
         proj->jwin,
         0,
-        5,
+        7,
         proj->jwin->fonts[2],
         device_mlitems,
         proj->num_record_devices,
@@ -115,6 +116,45 @@ void select_track_input_menu(void *track_v)
         track
     );
     position_textbox_list(tbl, track->input_name_box->container.x, track->input_name_box->container.y);
+}
+
+void stop_playback();
+void select_audio_out(Textbox *tb, void *proj_v)
+{
+    stop_playback();
+    Project *proj = (Project *)proj_v;
+    for (uint8_t i=0; i<proj->num_playback_devices; i++) {
+        AudioDevice *pd = proj->playback_devices[i];
+        if (strcmp(pd->name, tb->value) == 0) {
+            proj->playback_device = pd;
+            fprintf(stderr, "Resetting audio out to %s\n", pd->name);
+            reset_textbox_value(proj->audio_out, (char *) pd->name);
+            return;
+        }
+    }
+}
+
+void select_audio_out_menu(void *proj_v)
+{
+    Project *proj = (Project *)proj_v;
+    MenulistItem *device_mlitems[proj->num_playback_devices];
+    for (uint8_t i=0; i<proj->num_playback_devices; i++) {
+        device_mlitems[i] = malloc(sizeof(MenulistItem)); //TODO: Danger: memory leak
+        strcpy(device_mlitems[i]->label, proj->playback_devices[i]->name);
+        // device_mlitems[i]->available = proj->playback_devices[i]->open;
+        device_mlitems[i]->available = true;
+    }
+    TextboxList *tbl = create_menulist(
+        proj->jwin,
+        0,
+        7,
+        proj->jwin->fonts[2],
+        device_mlitems,
+        proj->num_playback_devices,
+        select_audio_out,
+        proj
+    );
+    position_textbox_list(tbl, proj->audio_out->container.x, proj->audio_out->container.y);
 }
 
 /* Query track clips and return audio sample representing a given point in the timeline. */
@@ -166,7 +206,6 @@ int16_t *get_mixdown_chunk(Timeline* tl, uint32_t len_samples, bool from_mark_in
     return mixdown;
 }
 
-
 /* An active project is required for jackdaw to run. This function creates a project based on various specifications,
 and initalizes a variety of UI "globals." */
 Project *create_project(const char* name, uint8_t channels, int sample_rate, SDL_AudioFormat fmt, uint16_t chunk_size)
@@ -211,9 +250,50 @@ Project *create_project(const char* name, uint8_t channels, int sample_rate, SDL
     sprintf(project_window_name, "Jackdaw | %s", name);
     proj->jwin = create_jwin(project_window_name, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED-20, 900, 650);
 
-    tl->timecode_tb = create_textbox(0, 0, 0, proj->jwin->mono_fonts[3], "00:00:00:00000", &white, NULL, &black, NULL, NULL, NULL, NULL, 0, true);
+    tl->timecode_tb = create_textbox(0, 0, 0, proj->jwin->mono_fonts[3], "00:00:00:00000", &white, NULL, &black, NULL, NULL, NULL, NULL, 0, true, false);
+
+    proj->audio_out = NULL;
+    activate_audio_devices(proj);
+
+    proj->audio_out_label = create_textbox(
+        0, 
+        0, 
+        2, 
+        proj->jwin->bold_fonts[1],
+        "Default output device:  ",
+        &white,
+        &clear,
+        &clear,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        0,
+        true,
+        false
+    );
+    proj->audio_out = create_textbox(
+        //TRACK_IN_W * proj->tl->console_width / 100, 
+        AUDIO_OUT_W,
+        0, 
+        4, 
+        proj->jwin->fonts[1],
+        (char *) (proj->playback_device->name),
+        NULL,
+        NULL,
+        NULL,
+        select_audio_out,
+        proj,
+        NULL,
+        NULL,
+        5 * scale_factor,
+        true,
+        true
+    );
+    fprintf(stderr, "Created textboxes.\n");
 
     reset_tl_rects(proj);
+    reset_ctrl_rects(proj);
 
     return proj;
 }
@@ -281,6 +361,7 @@ Track *create_track(Timeline *tl, bool stereo)
         NULL,
         NULL,
         0,
+        true,
         true
     );
     track->input_label_box = create_textbox(
@@ -297,7 +378,8 @@ Track *create_track(Timeline *tl, bool stereo)
         NULL,
         NULL,
         0,
-        true
+        true,
+        false
     );
     track->input_name_box = create_textbox(
         //TRACK_IN_W * proj->tl->console_width / 100, 
@@ -314,7 +396,8 @@ Track *create_track(Timeline *tl, bool stereo)
         NULL,
         NULL,
         5 * scale_factor,
-        track->input->open
+        true,
+        true
     );
     track->vol_label_box = create_textbox(
         0, 
@@ -330,7 +413,8 @@ Track *create_track(Timeline *tl, bool stereo)
         NULL,
         NULL,
         0,
-        true
+        true,
+        false
     );
     track->pan_label_box = create_textbox(
         0, 
@@ -346,7 +430,8 @@ Track *create_track(Timeline *tl, bool stereo)
         NULL,
         NULL,
         0,
-        true
+        true,
+        false
     );
     /* TEMPORARY */
     reset_track_internal_rects(track);
@@ -354,6 +439,15 @@ Track *create_track(Timeline *tl, bool stereo)
 
     fprintf(stderr, "\t->exit create track\n");
     return track;
+}
+
+void reset_ctrl_rects(Project *proj)
+{
+    proj->ctrl_rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h}, CTRL_RECT);
+    proj->ctrl_rect_col_a = get_rect(proj->ctrl_rect, CTRL_RECT_COL_A);
+    proj->audio_out_row = get_rect(proj->ctrl_rect_col_a, AUDIO_OUT_ROW);
+    position_textbox(proj->audio_out_label, proj->audio_out_row.x, proj->audio_out_row.y);
+    position_textbox(proj->audio_out, proj->audio_out_row.x + proj->audio_out_label->container.w + PADDING, proj->audio_out_row.y);
 }
 
 void reset_tl_rects(Project *proj) 
@@ -451,7 +545,7 @@ Clip *create_clip(Track *track, uint32_t len_sframes, uint32_t absolute_position
     clip->done = false;
     clip->grabbed = false;
 
-    clip->namebox = create_textbox(0, 0, 0, proj->jwin->bold_fonts[1], clip->name, &grey, &clear, &clear, NULL, NULL, NULL, NULL, 0, true);
+    clip->namebox = create_textbox(0, 0, 0, proj->jwin->bold_fonts[1], clip->name, &grey, &clear, &clear, NULL, NULL, NULL, NULL, 0, true, true);
     reset_cliprect(clip);
     fprintf(stderr, "\t->exit create_clip\n");
     return clip;
@@ -710,6 +804,29 @@ void clear_active_clips()
 {
     proj->num_active_clips = 0;
 }
+void destroy_audio_devices(Project *proj)
+{
+    AudioDevice *dev = NULL;
+    for (uint8_t i=0; i<proj->num_record_devices; i++) {
+        dev = proj->record_devices[i];
+        if (dev->open) {
+            close_audio_device(dev);
+        }
+        destroy_audio_device(dev);
+    }
+    for (uint8_t i=0; i<proj->num_playback_devices; i++) {
+        dev = proj->playback_devices[i];
+        if (dev->open) {
+            close_audio_device(dev);
+        }
+        destroy_audio_device(dev);
+    }
+    free(proj->record_devices);
+    free(proj->playback_devices);
+    proj->record_devices = NULL;
+    proj->playback_devices = NULL;
+
+}
 
 void activate_audio_devices(Project *proj)
 {
@@ -717,7 +834,7 @@ void activate_audio_devices(Project *proj)
     proj->num_playback_devices = query_audio_devices(&(proj->playback_devices), 0);
     proj->num_record_devices = query_audio_devices(&(proj->record_devices), 1);
     AudioDevice *dev = proj->playback_devices[0];
-    if (open_audio_device(dev, proj->channels) == 0) {
+    if (open_audio_device(proj, dev, proj->channels) == 0) {
         fprintf(stderr, "Opened audio device: %s\n\tchannels: %d\n\tformat: %s\n", dev->name, dev->spec.channels, get_audio_fmt_str(dev->spec.format));
 
     } else {
@@ -727,7 +844,7 @@ void activate_audio_devices(Project *proj)
     for (int i=1; i<proj->num_playback_devices; i++) {
         fprintf(stderr, "device index %d, pointer: %p\n", i, proj->playback_devices[i]);
         AudioDevice *dev = proj->playback_devices[i];
-        if (open_audio_device(dev, proj->channels) == 0) {
+        if (open_audio_device(proj, dev, proj->channels) == 0) {
             fprintf(stderr, "Opened audio device: %s\n\tchannels: %d\n\tformat: %s\n", dev->name, dev->spec.channels, get_audio_fmt_str(dev->spec.format));
 
         } else {
@@ -747,7 +864,18 @@ void activate_audio_devices(Project *proj)
         dev->open = true;
     }
     proj->playback_device = proj->playback_devices[0];
+    fprintf(stderr, "CHECKING AUDIO_OUT\n");
+    if (proj->audio_out) {
+        fprintf(stderr, "OK, it was found.\n");
+        reset_textbox_value(proj->audio_out, (char *)proj->playback_device->name);
+    }
+    fprintf(stderr, "Not found\n");
 
+    for (uint8_t i=0; i<proj->tl->num_tracks; i++) {
+        Track *track = proj->tl->tracks[i];
+        track->input = proj->record_devices[0];
+        reset_textbox_value(track->input_name_box, (char *)track->input->name);
+    }
     // for (uint8_t i=0; i<proj->num_playback_devices; i++) {
     //     AudioDevice *dev = proj->playback_devices[i];
     //     fprintf(stderr, P)

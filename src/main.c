@@ -164,6 +164,13 @@ static void playback()
     }
 }
 
+void stop_playback()
+{
+    proj->play_speed = 0;
+    proj->playing = false;
+    stop_device_playback();
+}
+
 /* Get the current mouse position and ensure coordinates are scaled appropriately */
 static void get_mouse_state(SDL_Point *mouse_p) 
 {
@@ -175,10 +182,17 @@ static void get_mouse_state(SDL_Point *mouse_p)
 /* Triage mouseclicks that occur within a Jackdaw Project */
 static void triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down)
 {
-    // fprintf(stderr, "In main triage mouseclick %d, %d\n", (*mouse_p).x, (*mouse_p).y);
-    // fprintf(stderr, "\t-> tlrect: %d %d %d %d\n", proj->tl->rect.x, proj->tl->rect.y, proj->tl->rect.w, proj->tl->rect.h);
-    // fprintf(stderr, "\t-> audiorect: %d %d %d %d\n", proj->tl->audio_rect.x, proj->tl->audio_rect.y, proj->tl->audio_rect.w, proj->tl->audio_rect.h);
-    if (SDL_PointInRect(mouse_p, &(proj->tl->rect))) {
+    /* DNE! */
+    //fprintf(stderr, "Mouse xy: %d,%d. audio out cont xrange: %d, %d, yrange %d, %d\n", mouse_p->x, mouse_p->y, proj->audio_out->container.x, proj->audio_out->container.x + proj->audio_out->container.w, proj->audio_out->container.y, proj->audio_out->container.y + proj->audio_out->container.w);
+
+    if (SDL_PointInRect(mouse_p, &(proj->ctrl_rect))) {
+    
+        if (SDL_PointInRect(mouse_p, &(proj->audio_out->container))) {
+            fprintf(stderr, "IN THE CONTAINER!\n");
+            select_audio_out_menu((void *)proj);
+        }
+    } else if (SDL_PointInRect(mouse_p, &(proj->tl->rect))) {
+
         if (SDL_PointInRect(mouse_p, &(proj->tl->audio_rect))) {
             proj->tl->play_position = get_abs_tl_x(mouse_p->x);
         }
@@ -375,6 +389,7 @@ static void project_loop()
                 reset_dims(proj->jwin);
                 // reset_tl_rect(proj->tl);
                 reset_tl_rects(proj);
+                reset_ctrl_rects(proj);
             } else if (e.type == SDL_MOUSEBUTTONUP) {
                 if (mousebutton_down) {
                     mousebutton_down = false;
@@ -576,6 +591,13 @@ static void project_loop()
                     case SDL_SCANCODE_MINUS:
                         minus_down = true;
                         break;
+                    case SDL_SCANCODE_Q:
+                        if (proj && cmd_ctrl_down) {
+                            stop_playback();
+                            destroy_audio_devices(proj);
+                            activate_audio_devices(proj);
+                        }
+                        break;
                     default:
                         break;
                 }
@@ -702,7 +724,6 @@ int main()
     if ((proj = open_jdaw_file("project.jdaw")) == NULL) {
         fprintf(stderr, "Creating new project\n");
         proj = create_project("Untitled", 2, 48000, AUDIO_S16SYS, 512);
-        activate_audio_devices(proj);
         create_track(proj->tl, true);
     } else {
         fprintf(stderr, "Successfully opened project.\n");

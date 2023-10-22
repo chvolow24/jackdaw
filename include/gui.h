@@ -34,17 +34,24 @@
 
 #define STD_RAD 20
 
+#define TB_TRUNC_THRESHOLD (12 * scale_factor)
+
 #define TL_X_PADDING_UNSCALED 5
 #define TL_X_PADDING (5 * scale_factor)
 
-#define TL_Y_PADDING_UNSCALED 20
-#define TL_Y_PADDING (20 * scale_factor)
+#define TL_Y_UNSCALED 150
+// #define TL_Y_PADDING (20 * scale_factor)
 
-#define TL_RECT (Dim) {ABS, TL_X_PADDING_UNSCALED}, (Dim) {REL, TL_Y_PADDING_UNSCALED}, (Dim) {REL, 100}, (Dim) {REL, 76}
+#define CTRL_X_PADDING_UNSCALED 14
+#define CTRL_Y_PADDING_UNSCALED 20
+#define CTRL_RECT_COL_W_UNSCALED 350
+
 #define PLAYHEAD_TRI_H (10 * scale_factor)
 #define TRACK_SPACING (4 * scale_factor)
 #define PADDING_UNSCALED 4
 #define PADDING (PADDING_UNSCALED * scale_factor)
+
+#define TL_RECT (Dim) {ABS, TL_X_PADDING_UNSCALED}, (Dim) {ABS, TL_Y_UNSCALED}, (Dim) {REL, 100}, (Dim) {REL, 76}
 
 #define TRACK_CONSOLE_W_UNSCALED 160
 #define TRACK_CONSOLE_W (TRACK_CONSOLE_W_UNSCALED * scale_factor)
@@ -68,6 +75,11 @@
 #define RULER_TC_CONTAINER (Dim) {ABS, 0}, (Dim) {ABS, 0}, (Dim) {REL, 100}, (Dim) {ABS, RULER_HEIGHT_UNSCALED} // child of tl
 #define RULER_RECT (Dim) {ABS, TRACK_CONSOLE_W_UNSCALED + COLOR_BAR_W_UNSCALED + TL_X_PADDING_UNSCALED}, (Dim) {ABS, 0}, (Dim) {REL, 100}, (Dim) {REL, 100}
 #define TC_RECT (Dim) {ABS, 12}, (Dim) {ABS, 5}, (Dim) {ABS, TC_W_UNSCALED}, (Dim) {ABS, TC_H_UNSCALED}
+
+#define CTRL_RECT (Dim) {ABS, CTRL_X_PADDING_UNSCALED}, (Dim) {REL, 4}, (Dim) {REL, 100}, (Dim) {ABS, TL_Y_UNSCALED - RULER_HEIGHT_UNSCALED}
+#define CTRL_RECT_COL_A (Dim) {ABS, 0}, (Dim) {ABS, 0}, (Dim) {ABS, CTRL_RECT_COL_W_UNSCALED}, (Dim) {REL, 100}
+#define AUDIO_OUT_ROW (Dim) {ABS, 4}, (Dim) {ABS, 4}, (Dim) {REL, 100}, (Dim) {ABS, TRACK_CONSOLE_ROW_HEIGHT_UNSCALED}
+#define AUDIO_OUT_W (120 * scale_factor)
 
 #define COLOR_BAR_W_UNSCALED 5
 #define COLOR_BAR_W (COLOR_BAR_W_UNSCALED * scale_factor)
@@ -144,6 +156,7 @@ typedef struct textbox {
     char *tooltip;  // optional
     bool mouse_hover;
     bool available;
+    bool allow_truncate;
 } Textbox;
 
 /* An array of textboxes, all of which share may share an onclick functions */
@@ -203,7 +216,8 @@ Textbox *create_textbox(
     void (*onhover)(void *self),
     char *tooltip,
     int radius,
-    bool available
+    bool available,
+    bool allow_truncate
 );
 TextboxList *create_textbox_list(
     int fixed_w,

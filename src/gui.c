@@ -170,7 +170,8 @@ Textbox *create_textbox(
     void (*onhover)(void *self),
     char *tooltip,
     int radius,
-    bool available
+    bool available,
+    bool allow_truncate
 )
 {
     if (font == NULL) {
@@ -185,6 +186,7 @@ Textbox *create_textbox(
     tb->value = value;
     tb->radius = radius;
     tb->available = available;
+    tb->allow_truncate = allow_truncate;
     if (txt_color) {
         tb->txt_color = txt_color;
     } else {
@@ -214,13 +216,13 @@ Textbox *create_textbox(
     if (fixed_w != 0) {
         tb->container.w = fixed_w;
         /* Truncate text if it doesn't fit in fixed width container (handle draw space overflow) */
-        if (txtw > fixed_w) {
+        if (tb->allow_truncate && txtw > fixed_w - TB_TRUNC_THRESHOLD) {
             int len = strlen(tb->value);
             char truncated[len];
             for (int i=0; i<strlen(tb->value); i++) {
                 sprintf(&(truncated[i]), "%c...", tb->value[i]);
                 TTF_SizeUTF8(font, truncated, &txtw, NULL);
-                if (txtw > fixed_w - 30) {
+                if (txtw > fixed_w - TB_TRUNC_THRESHOLD) {
                     strcpy(tb->display_value, truncated);
                     break;
                 }
@@ -262,13 +264,14 @@ void reset_textbox_value(Textbox *tb, char *new_value)
     strcpy(tb->display_value, tb->value);
     TTF_SizeUTF8(tb->font, tb->value, &txtw, NULL);
     /* Truncate text if it doesn't fit in fixed width container (handle draw space overflow) */
-    if (txtw > tb->container.w) {
+    if (tb->allow_truncate && txtw > tb->container.w - TB_TRUNC_THRESHOLD) {
         int len = strlen(tb->value);
         char truncated[len];
         for (int i=0; i<strlen(tb->value); i++) {
             sprintf(&(truncated[i]), "%c...", tb->value[i]);
             TTF_SizeUTF8(tb->font, truncated, &txtw, NULL);
-            if (txtw > tb->container.w - 20) {
+
+            if (txtw > tb->container.w - TB_TRUNC_THRESHOLD) {
                 strcpy(tb->display_value, truncated);
                 break;
             }
@@ -404,7 +407,7 @@ TextboxList *create_textbox_list(
     int max_text_w = 0;
     for (uint8_t i=0; i<num_items; i++) {
         list->textboxes[i] = create_textbox(
-            fixed_w, 0, padding, font, items[i]->label, txt_color, &clear, &clear, onclick, target, onhover, tooltip, radius, items[i]->available
+            fixed_w, 0, padding, font, items[i]->label, txt_color, &clear, &clear, onclick, target, onhover, tooltip, radius, items[i]->available, true
         );
         if (list->textboxes[i]->txt_container.w > max_text_w) {
             max_text_w = list->textboxes[i]->txt_container.w;

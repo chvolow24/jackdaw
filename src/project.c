@@ -499,6 +499,9 @@ void reset_track_internal_rects(Track *track)
     SDL_Rect panslider_rect = (SDL_Rect) {track->pan_label_box->container.x + track->pan_label_box->container.w + PADDING, track->pan_label_box->container.y + PADDING, track->pan_row_rect.w - track->pan_label_box->container.w - (PADDING * 4), track->pan_row_rect.h - (PADDING * 2)};
     set_fslider_rect(track->pan_ctrl, &panslider_rect, 2);
     reset_fslider(track->pan_ctrl);
+    for (uint8_t i=0; i<track->num_clips; i++) {
+        reset_cliprect(track->clips[i]);
+    }
 }
 
 /* Reset the clip's container rect for redrawing */

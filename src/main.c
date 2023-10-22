@@ -598,6 +598,10 @@ static void project_loop()
                             activate_audio_devices(proj);
                         }
                         break;
+                    case SDL_SCANCODE_BACKSLASH:
+                        if (proj) {
+                            // add_transition();
+                        }
                     default:
                         break;
                 }

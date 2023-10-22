@@ -78,9 +78,9 @@ JDAW_Color default_textbox_border_color = {{0, 0, 0, 255}, {0, 0, 0, 255}};
 JDAW_Color default_textbox_fill_color = {{240, 240, 240, 255}, {240, 240, 240, 255}};
 
 JDAW_Color menulist_bckgrnd = (JDAW_Color) {{40, 40, 40, 248},{40, 40, 40, 248}};
-JDAW_Color menulist_inner_brdr = (JDAW_Color) {{10, 10, 10, 250},{10, 10, 10, 250}};
-JDAW_Color menulist_outer_brdr = {{130, 130, 130, 250},{130, 130, 130, 250}};
-JDAW_Color menulist_item_hvr = {{12, 107, 249, 250}, {12, 107, 249, 250}};
+JDAW_Color menulist_inner_brdr = (JDAW_Color) {{130, 130, 130, 250},{130, 130, 130, 250}};
+JDAW_Color menulist_outer_brdr = {{10, 10, 10, 220},{10, 10, 10, 220}};
+JDAW_Color menulist_item_hvr = {{12, 107, 249, 220}, {12, 107, 249, 220}};
 
 JDAW_Color fslider_border = {{12, 107, 249, 250}, {12, 107, 249, 250}};
 JDAW_Color fslider_bar = {{12, 107, 249, 250}, {12, 107, 249, 250}};
@@ -364,8 +364,8 @@ void draw_menu_item(SDL_Renderer *rend, Textbox *tb)
 }
 void draw_menu_list(SDL_Renderer *rend, TextboxList *tbl)
 {
-    int padding = 3 * scale_factor;
-    SDL_Rect innerrect = (SDL_Rect) {tbl->container.x + padding, tbl->container.y + padding, tbl->container.w - padding * 2, tbl->container.h - padding * 2};
+    // int padding = 3 * scale_factor;
+    SDL_Rect innerrect = (SDL_Rect) {tbl->container.x + 1, tbl->container.y + 1, tbl->container.w - 2, tbl->container.h - 2};
     set_rend_color(rend, &menulist_bckgrnd);
     fill_rounded_rect(rend, &(tbl->container), MENU_LIST_R);
     set_rend_color(rend, &menulist_outer_brdr);

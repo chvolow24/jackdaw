@@ -36,7 +36,7 @@ shift + w ..........................save mixdown from mark in -> mark out as wav
 
 g ..................................grab clip 
 
-cmd + q ............................re-query audio device list***
+q ............................re-query audio device list***
 
 * project will be saved as "project.jdaw" in the current directory. 
     Right now, invoking 'jackdaw' from the command line opens "project.jdaw" if

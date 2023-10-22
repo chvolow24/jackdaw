@@ -592,7 +592,7 @@ static void project_loop()
                         minus_down = true;
                         break;
                     case SDL_SCANCODE_Q:
-                        if (proj && cmd_ctrl_down) {
+                        if (proj) {
                             stop_playback();
                             destroy_audio_devices(proj);
                             activate_audio_devices(proj);

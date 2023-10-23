@@ -234,7 +234,7 @@ TextboxList *create_textbox_list(
     char *tooltip,
     int radius
 );
-char *edit_textbox(Textbox *tb);
+char *edit_textbox(Textbox *tb, void *(*draw_fn)(void *arg), void *arg);
 void position_textbox_list(TextboxList *tbl, int x, int y);
 TextboxList *create_menulist(
     JDAWWindow *jwin,

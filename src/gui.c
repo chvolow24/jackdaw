@@ -280,7 +280,7 @@ void reset_textbox_value(Textbox *tb, char *new_value)
 }
 
 /* Opens a new event loop to handle textual input. Returns new value */
-char *edit_textbox(Textbox *tb)
+char *edit_textbox(Textbox *tb, void *(*draw_fn)(void *arg), void *arg)
 {
     fprintf(stderr, "Edit textbox\n");
     bool done = false;
@@ -379,7 +379,8 @@ char *edit_textbox(Textbox *tb)
         //         }
         //     }
         // }
-        draw_project(proj);
+        draw_fn(arg);
+        // draw_project(proj);
         // draw_jwin_menus(proj->jwin);
         SDL_RenderPresent(proj->jwin->rend);
         SDL_Delay(1);

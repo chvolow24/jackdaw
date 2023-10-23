@@ -60,7 +60,7 @@
 #include "timeline.h"
 #include "dot_jdaw.h"
 #include "dsp.h"
-
+#include "transition.h"
 
 #define abs_min(a,b) (abs(a) < abs(b) ? a : b)
 #define lesser_of(a,b) (a < b ? a : b)
@@ -213,7 +213,7 @@ static void triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down)
 
                             if (SDL_PointInRect(mouse_p, &(clip->namebox->container))) {
 
-                                edit_textbox(clip->namebox);
+                                edit_textbox(clip->namebox, draw_project, proj);
                             }
                             if (SDL_PointInRect(mouse_p, &(clip->rect))) {
                                 grab_ungrab_clip(clip);
@@ -600,7 +600,7 @@ static void project_loop()
                         break;
                     case SDL_SCANCODE_BACKSLASH:
                         if (proj) {
-                            // add_transition();
+                            add_transition();
                         }
                     default:
                         break;

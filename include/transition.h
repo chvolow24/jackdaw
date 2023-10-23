@@ -24,28 +24,9 @@
 
 *****************************************************************************************************************/
 
+#ifndef JDAW_TRANSITION_H
+#define JDAW_TRANSITION_H
 
-#ifndef JDAW_DRAW_H
-#define JDAW_DRAW_H
+void add_transition(void);
 
-#include "SDL.h"
-#include "project.h"
-#include "gui.h"
-#include "theme.h"
-
-/* Draw a project window, incl timeline, tracks, clips, etc. Does not include GUI menus */
-void draw_project(Project *proj);
-// void set_rend_color(SDL_Renderer *rend, JDAW_Color *color);
-// void draw_textbox_list(SDL_Renderer *rend, TextboxList *tbl);
-// void draw_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad);
-// void draw_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r);
-// void fill_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r);
-// void draw_menu_list(SDL_Renderer *rend, TextboxList* tbl);
-
-/* At the beginning of the draw loop */
-void draw_jwin_background(JDAWWindow *jwin);
-/* Has to go at the end of the draw loop */
-void draw_jwin_menus(JDAWWindow *jwin);
-
-void draw_textbox(SDL_Renderer *rend, Textbox *tb);
 #endif

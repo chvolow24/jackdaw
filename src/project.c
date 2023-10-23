@@ -75,7 +75,7 @@ void rename_track(Textbox *tb, void *track_v)
     track->name_box->show_cursor = true;
     track->name_box->cursor_countdown = CURSOR_COUNTDOWN;
     track->name_box->cursor_pos = strlen(track->name);
-    edit_textbox(track->name_box);
+    edit_textbox(track->name_box, draw_project, proj);
     track->name_box->bckgrnd_color = &lightergrey;
     track->name_box->show_cursor = false;
 }

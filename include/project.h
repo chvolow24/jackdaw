@@ -108,6 +108,9 @@ typedef struct clip {
 		bool done; // true when the clip has finished recording
 		AudioDevice *input; // the device used to record the clip, if applicable
 
+		uint32_t start_ramp_len; // length of linear fade in in sample frames
+		uint32_t end_ramp_len; // length of linear fade out in sample frames
+
 		/* GUI members */
 		SDL_Rect rect;
 		void (*onclick)(void);

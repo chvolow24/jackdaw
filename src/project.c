@@ -54,6 +54,7 @@ extern JDAW_Color white;
 extern JDAW_Color lightergrey;
 extern JDAW_Color black;
 extern JDAW_Color grey;
+extern JDAW_Color tl_bckgrnd;
 
 /* Alternating bright colors to easily distinguish tracks */
 JDAW_Color trck_colors[7] = {
@@ -369,7 +370,7 @@ Track *create_track(Timeline *tl, bool stereo)
         0, 
         2, 
         proj->jwin->bold_fonts[1],
-        "Input:",
+        "Input:  ",
         NULL,
         &clear,
         &clear,
@@ -389,7 +390,7 @@ Track *create_track(Timeline *tl, bool stereo)
         proj->jwin->fonts[1],
         (char *) track->input->name,
         NULL,
-        NULL,
+        &tl_bckgrnd,
         NULL,
         select_track_input,
         track,
@@ -547,6 +548,8 @@ Clip *create_clip(Track *track, uint32_t len_sframes, uint32_t absolute_position
     }
     clip->done = false;
     clip->grabbed = false;
+    clip->start_ramp_len = 0;
+    clip->end_ramp_len = 0;
 
     clip->namebox = create_textbox(0, 0, 0, proj->jwin->bold_fonts[1], clip->name, &grey, &clear, &clear, NULL, NULL, NULL, NULL, 0, true, true);
     reset_cliprect(clip);

@@ -137,6 +137,7 @@ void add_transition()
 {
     ClipBoundary **boundaries = malloc(sizeof(ClipBoundary*) * MAX_BOUNDARIES);
     uint8_t num_boundaries = get_clip_boundaries(boundaries);
+    uint32_t boundary_length_sframes;
     double transition_loop_length = 0;
     if (num_boundaries > 0) {
         fprintf(stderr, "Found %d boundaries.\n", num_boundaries);
@@ -158,12 +159,19 @@ void add_transition()
         struct transition_loop_arg arg = {boundaries, num_boundaries, entry};
         edit_textbox(entry, transition_loop, (void *)(&arg));
         // transition_loop_length = get_transition_length_loop(boundaries, num_boundaries);
-    }
-
+        boundary_length_sframes = atof(entry->value) * proj->sample_rate;
+        if (boundary_length_sframes == 0) {
+            fprintf(stderr, "Unable to get float value from boundary length entry.\n");
+            //TODO: actual error handling
+        }
+     }
 
 
     for (uint8_t i=0; i<num_boundaries; i++) {
-        free(boundaries[i]);
+        ClipBoundary *boundary = boundaries[i];
+        uint32_t *ramp_ptr = boundary->left ? &(boundary->clip->start_ramp_len) : &(boundary->clip->end_ramp_len);
+        *ramp_ptr = boundary_length_sframes;
+        free(boundary);
     }
     free(boundaries);
 }

@@ -294,7 +294,8 @@ void draw_textbox(SDL_Renderer *rend, Textbox *tb)
         SDL_RenderDrawRect(rend, &(tb->container));
     } else {
         fill_rounded_rect(rend, &(tb->container), tb->radius);
-        //TODO: rounded rect border
+        set_rend_color(rend, tb->border_color);
+        draw_rounded_rect(rend, &(tb->container), tb->radius);
     }
     if (tb->available) {
         write_text(rend, &(tb->txt_container), tb->font, tb->txt_color, tb->display_value, true);
@@ -499,6 +500,17 @@ void draw_waveform(Clip *clip)
     }
 }
 
+void draw_clip_ramps(Clip *clip)
+{
+    int start_w = get_tl_draw_w(clip->start_ramp_len);
+    int end_w = get_tl_draw_w(clip->end_ramp_len);
+    set_rend_color(proj->jwin->rend, &white);
+    /* draw start ramp */
+    SDL_RenderDrawLine(proj->jwin->rend, clip->rect.x, clip->rect.y + clip->rect.h, clip->rect.x + start_w, clip->rect.y);
+    /* draw end ramp */
+    SDL_RenderDrawLine(proj->jwin->rend, clip->rect.x + clip->rect.w - end_w, clip->rect.y, clip->rect.x + clip->rect.w, clip->rect.y + clip->rect.h);
+}
+
 void draw_clip(Clip *clip)
 {
     if (clip->grabbed) {
@@ -546,6 +558,7 @@ void draw_clip(Clip *clip)
     }
 
     if (clip->done) {
+        draw_clip_ramps(clip);
         draw_waveform(clip);
     }
 }

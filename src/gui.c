@@ -345,7 +345,11 @@ char *edit_textbox(Textbox *tb, void *(*draw_fn)(void *arg), void *arg)
                             tb->value[tb->cursor_pos + 1] = '\0';
                             tb->cursor_pos++;
                             tb->cursor_countdown = CURSOR_COUNTDOWN;
-
+                        } else {
+                            tb->value[tb->cursor_pos] = key[0];
+                            tb->value[tb->cursor_pos + 1] = '\0';
+                            tb->cursor_pos++;
+                            tb->cursor_countdown = CURSOR_COUNTDOWN;
                         }
                     }
                 }

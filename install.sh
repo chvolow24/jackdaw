@@ -46,6 +46,9 @@ fi
 
 echo -e "\n\nDone installing dependencies. Building project..."
 cd $install_dir
+if [[ ! -d "build" ]]; then
+    mkdir build
+fi
 make
 echo -e "\n\nInstalling executable at /usr/local/bin/jackdaw..."
 sudo mv jackdaw /usr/local/bin/jackdaw

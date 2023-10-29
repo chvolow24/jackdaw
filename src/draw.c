@@ -88,6 +88,8 @@ JDAW_Color fslider_bckgrnd = {{40, 40, 40, 248},{40, 40, 40, 248}};
 
 JDAW_Color marked_bckgrnd = {{90, 180, 245, 80}, {90, 180, 245, 80}};
 
+JDAW_Color muted_bckgrnd = {{255, 0, 0, 200}, {255, 0, 0, 200}};
+
 
 /* Draw a circle quadrant. Quad 0 = upper right, 1 = upper left, 2 = lower left, 3 = lower right */
 void draw_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad)
@@ -362,7 +364,7 @@ void draw_menu_item(SDL_Renderer *rend, Textbox *tb)
         tb->cursor_countdown -= 1;
     }
 }
-void draw_menu_list(SDL_Renderer *rend, TextboxList *tbl)
+static void draw_menu_list(SDL_Renderer *rend, TextboxList *tbl)
 {
     // int padding = 3 * scale_factor;
     SDL_Rect innerrect = (SDL_Rect) {tbl->container.x + 1, tbl->container.y + 1, tbl->container.w - 2, tbl->container.h - 2};
@@ -377,7 +379,7 @@ void draw_menu_list(SDL_Renderer *rend, TextboxList *tbl)
     }
 }
 
-void draw_textbox_list(SDL_Renderer *rend, TextboxList *tbl)
+static void draw_textbox_list(SDL_Renderer *rend, TextboxList *tbl)
 {
     // fprintf(stderr, "container: %d, %d, %d, %d\n", tbl->container.x, tbl->container.y, tbl->container.w, tbl->container.h);
     set_rend_color(rend, tbl->bckgrnd_color);
@@ -397,7 +399,7 @@ void draw_textbox_list(SDL_Renderer *rend, TextboxList *tbl)
 
 
 
-void draw_fslider(JDAWWindow *jwin, FSlider *fslider)
+static void draw_fslider(JDAWWindow *jwin, FSlider *fslider)
 {
     set_rend_color(jwin->rend, &fslider_border);
     SDL_RenderDrawRect(jwin->rend, &(fslider->rect));
@@ -499,7 +501,7 @@ void draw_waveform(Clip *clip)
     }
 }
 
-void draw_clip(Clip *clip)
+static void draw_clip(Clip *clip)
 {
     if (clip->grabbed) {
         set_rend_color(proj->jwin->rend, &clip_bckgrnd_grabbed);
@@ -550,7 +552,7 @@ void draw_clip(Clip *clip)
     }
 }
 
-void draw_track(Track * track) 
+static void draw_track(Track * track) 
 {    
     if (track->active) {
         set_rend_color(proj->jwin->rend, &track_bckgrnd_active);
@@ -578,6 +580,8 @@ void draw_track(Track * track)
     draw_textbox(proj->jwin->rend, track->input_name_box);
     draw_textbox(proj->jwin->rend, track->vol_label_box);
     draw_textbox(proj->jwin->rend, track->pan_label_box);
+    draw_textbox(proj->jwin->rend, track->mute_button_box);
+    draw_textbox(proj->jwin->rend, track->solo_button_box);
     draw_fslider(proj->jwin, track->vol_ctrl);
     draw_fslider(proj->jwin, track->pan_ctrl);
 

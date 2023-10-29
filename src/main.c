@@ -512,7 +512,11 @@ static void project_loop()
                         }
                         break;
                     case SDL_SCANCODE_GRAVE:
-                        deactivate_all_tracks();
+                        if (shift_down) {
+                            activate_all_tracks();
+                        } else {
+                            deactivate_all_tracks();
+                        }
                         break;
                     case SDL_SCANCODE_1:
                         activate_or_deactivate_track(0);
@@ -543,6 +547,9 @@ static void project_loop()
                             activate_or_deactivate_track(8);
                         }
                         nine_down = true;
+                        break;
+                    case SDL_SCANCODE_M:
+                        mute_unmute();
                         break;
                     case SDL_SCANCODE_0:
                         zero_down = true;

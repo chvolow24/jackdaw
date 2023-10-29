@@ -54,6 +54,7 @@ extern JDAW_Color white;
 extern JDAW_Color lightergrey;
 extern JDAW_Color black;
 extern JDAW_Color grey;
+extern JDAW_Color muted_bckgrnd;
 
 /* Alternating bright colors to easily distinguish tracks */
 JDAW_Color trck_colors[7] = {
@@ -433,6 +434,41 @@ Track *create_track(Timeline *tl, bool stereo)
         true,
         false
     );
+
+    track->mute_button_box = create_textbox(
+        MUTE_SOLO_W,
+        MUTE_SOLO_W,
+        2,
+        proj->jwin->bold_fonts[2],
+        "M",
+        NULL,
+        &clear,
+        &clear,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        4,
+        true,
+        false
+    );
+    track->solo_button_box = create_textbox(
+        MUTE_SOLO_W,
+        MUTE_SOLO_W,
+        2,
+        proj->jwin->bold_fonts[2],
+        "S",
+        NULL,
+        &clear,
+        &clear,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        4,
+        true,
+        false
+    );
     /* TEMPORARY */
     reset_track_internal_rects(track);
     /* END TEMPORARY */
@@ -492,6 +528,8 @@ void reset_track_internal_rects(Track *track)
     position_textbox(track->input_name_box, track->input_row_rect.x + track->input_label_box->container.w + PADDING, track->input_row_rect.y);
     position_textbox(track->vol_label_box, track->vol_row_rect.x, track->vol_row_rect.y);
     position_textbox(track->pan_label_box, track->pan_row_rect.x, track->pan_row_rect.y);
+    position_textbox(track->mute_button_box, track->name_row_rect.x + NAMEBOX_W + PADDING, track->name_row_rect.y);
+    position_textbox(track->solo_button_box, track->mute_button_box->container.x + track->mute_button_box->container.w + PADDING * 2, track->name_row_rect.y);
     SDL_Rect volslider_rect = (SDL_Rect) {track->vol_label_box->container.x + track->vol_label_box->container.w + PADDING, track->vol_label_box->container.y + PADDING, track->vol_row_rect.w - track->vol_label_box->container.w - (PADDING * 4), track->vol_row_rect.h - (PADDING * 2)};
     set_fslider_rect(track->vol_ctrl, &volslider_rect, 2);
     reset_fslider(track->vol_ctrl); 
@@ -720,6 +758,75 @@ void deactivate_all_tracks()
         track->active = false;
     }
     proj->tl->num_active_tracks = 0;
+
+}
+
+void activate_all_tracks()
+{
+    if (!proj) {
+        fprintf(stderr, "Error: call to activate all tracks without an active project.\n");
+        return;
+    }
+    Track *track = NULL;
+    for (uint8_t i=0; i<proj->tl->num_tracks; i++) {
+        track = proj->tl->tracks[i];
+        if (!(track->active)) {
+            activate_or_deactivate_track(i);
+        }
+    }
+}
+
+static void mute_track(Track *track)
+{
+    track->muted = true;
+    track->mute_button_box->bckgrnd_color = &muted_bckgrnd;
+}
+
+static void unmute_track(Track *track)
+{
+    track->muted = false;
+    track->mute_button_box->bckgrnd_color = &clear;
+}
+
+// static void solo_unsolo_track(Track *track)
+// {
+//     if (track->solo) {
+//         track->solo = false;
+//     } else {
+//         track->solo = true;
+//     }
+// }
+
+
+void mute_unmute()
+{
+    if (!proj) {
+        fprintf(stderr, "Error: request to mute/unmute with no active project.\n");
+        return;
+    }
+    Track *track = NULL;
+    bool all_muted = true;
+    for (uint8_t i=0; i<proj->tl->num_active_tracks; i++) {
+        track = proj->tl->tracks[proj->tl->active_track_indices[i]];
+        if (!(track->muted)) {
+            mute_track(track);
+            all_muted = false;
+        }
+    }
+    if (all_muted) {
+        for (uint8_t i=0; i<proj->tl->num_active_tracks; i++) {
+            track = proj->tl->tracks[proj->tl->active_track_indices[i]];
+            unmute_track(track);
+        }
+    }
+}
+
+void solo_unsolo()
+{
+    if (!proj) {
+        fprintf(stderr, "Error: request to solo/unsolo with no active project.\n");
+        return;
+    }
 
 }
 

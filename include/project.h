@@ -91,6 +91,8 @@ typedef struct track {
 	Textbox *input_name_box;
 	Textbox *vol_label_box;
 	Textbox *pan_label_box;
+	Textbox *mute_button_box;
+	Textbox *solo_button_box;
 
 
 } Track;
@@ -209,8 +211,14 @@ void select_audio_out_menu(void *proj_v);
 
 void activate_or_deactivate_track(uint8_t track_index);
 void deactivate_all_tracks(void);
+void activate_all_tracks(void);
+
+void mute_unmute(void);
+void solo_unsolo(void);
+
 void destroy_audio_devices(Project *proj);
 void activate_audio_devices(Project *proj);
+
 void reposition_clip(Clip *clip, uint32_t new_pos);
 void add_active_clip(Clip *clip);
 void clear_active_clips();

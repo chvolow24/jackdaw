@@ -673,7 +673,6 @@ void reset_tl_rect(Timeline *tl)
 
 void activate_or_deactivate_track(uint8_t track_index)
 {
-    fprintf(stderr, "Call to activate or deactivate track. Num active: %d\n", proj->tl->num_active_tracks);
     if (!proj) {
         fprintf(stderr, "Error: no project!\n");
         return;
@@ -709,6 +708,20 @@ void activate_or_deactivate_track(uint8_t track_index)
     }
 }
 
+void deactivate_all_tracks()
+{
+    if (!proj) {
+        fprintf(stderr, "Error: call to deactivate all tracks without an active project.\n");
+        return;
+    }
+    Track *track = NULL;
+    for (uint8_t i=0; i<proj->tl->num_active_tracks; i++) {
+        track = proj->tl->tracks[proj->tl->active_track_indices[i]];
+        track->active = false;
+    }
+    proj->tl->num_active_tracks = 0;
+
+}
 
 /* Move grabbed clips forward or back on timeline */
 void translate_grabbed_clips(int32_t translate_by)

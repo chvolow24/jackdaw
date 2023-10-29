@@ -208,6 +208,7 @@ void select_track_input_menu(void *track_v);
 void select_audio_out_menu(void *proj_v);
 
 void activate_or_deactivate_track(uint8_t track_index);
+void deactivate_all_tracks(void);
 void destroy_audio_devices(Project *proj);
 void activate_audio_devices(Project *proj);
 void reposition_clip(Clip *clip, uint32_t new_pos);

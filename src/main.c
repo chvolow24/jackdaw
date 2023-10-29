@@ -505,12 +505,15 @@ static void project_loop()
                     }
                         break;
                     case SDL_SCANCODE_S: {
-                        if (cmd_ctrl_down) {
-                            write_jdaw_file("project.jdaw");
-                            fprintf(stderr, "DONE WRITING FILE!\n");
+                            if (cmd_ctrl_down) {
+                                write_jdaw_file("project.jdaw");
+                                fprintf(stderr, "DONE WRITING FILE!\n");
+                            }
                         }
-                    }
-                    break;
+                        break;
+                    case SDL_SCANCODE_GRAVE:
+                        deactivate_all_tracks();
+                        break;
                     case SDL_SCANCODE_1:
                         activate_or_deactivate_track(0);
                         break;

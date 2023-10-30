@@ -55,6 +55,7 @@ extern JDAW_Color lightergrey;
 extern JDAW_Color black;
 extern JDAW_Color grey;
 extern JDAW_Color muted_bckgrnd;
+extern JDAW_Color unmuted_bckgrnd;
 
 /* Alternating bright colors to easily distinguish tracks */
 JDAW_Color trck_colors[7] = {
@@ -442,13 +443,13 @@ Track *create_track(Timeline *tl, bool stereo)
         proj->jwin->bold_fonts[2],
         "M",
         NULL,
-        &clear,
-        &clear,
+        &black,
+        &unmuted_bckgrnd,
         NULL,
         NULL,
         NULL,
         NULL,
-        4,
+        5 * scale_factor,
         true,
         false
     );
@@ -459,13 +460,13 @@ Track *create_track(Timeline *tl, bool stereo)
         proj->jwin->bold_fonts[2],
         "S",
         NULL,
-        &clear,
-        &clear,
+        &black,
+        &unmuted_bckgrnd,
         NULL,
         NULL,
         NULL,
         NULL,
-        4,
+        5 * scale_factor,
         true,
         false
     );
@@ -785,7 +786,7 @@ static void mute_track(Track *track)
 static void unmute_track(Track *track)
 {
     track->muted = false;
-    track->mute_button_box->bckgrnd_color = &clear;
+    track->mute_button_box->bckgrnd_color = &unmuted_bckgrnd;
 }
 
 // static void solo_unsolo_track(Track *track)

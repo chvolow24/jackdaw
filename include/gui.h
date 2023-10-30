@@ -84,7 +84,7 @@
 #define COLOR_BAR_W_UNSCALED 5
 #define COLOR_BAR_W (COLOR_BAR_W_UNSCALED * scale_factor)
 
-#define NAMEBOX_W (96 * scale_factor)
+#define TRACK_NAMEBOX_W (100 * scale_factor)
 #define TRACK_IN_W (100 * scale_factor)
 #define TRACK_INTERNAL_PADDING (6 * scale_factor)
 
@@ -138,6 +138,15 @@ typedef struct dim {
 
 typedef struct textbox Textbox;
 
+typedef enum textalign {
+    CENTER,
+    TOP_LEFT,
+    TOP_RIGHT,
+    BOTTOM_LEFT,
+    BOTTOM_RIGHT,
+    CENTER_LEFT
+} TextAlign;
+
 typedef struct textbox {
     char *value;
     char display_value[MAX_TB_LEN];
@@ -150,7 +159,8 @@ typedef struct textbox {
     void (*onclick)(Textbox *self, void *object); // optional; function to run when txt box clicked
     void *target;
     void (*onhover)(void *object); // optional; function to run when mouse hovers over txt box
-    int padding;
+    int h_padding;
+    int v_padding;
     int radius;
     bool show_cursor;
     uint8_t cursor_countdown;
@@ -159,6 +169,7 @@ typedef struct textbox {
     bool mouse_hover;
     bool available;
     bool allow_truncate;
+    TextAlign text_align;
 } Textbox;
 
 /* An array of textboxes, all of which share may share an onclick functions */
@@ -207,7 +218,8 @@ void position_textbox(Textbox *tb, int x, int y);
 Textbox *create_textbox(
     int fixed_w, 
     int fixed_h, 
-    int padding, 
+    int h_padding,
+    int v_padding,
     TTF_Font *font, 
     char *value,
     JDAW_Color *txt_color,
@@ -219,7 +231,8 @@ Textbox *create_textbox(
     char *tooltip,
     int radius,
     bool available,
-    bool allow_truncate
+    bool allow_truncate,
+    TextAlign text_align
 );
 TextboxList *create_textbox_list(
     int fixed_w,

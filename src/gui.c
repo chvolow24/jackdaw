@@ -159,7 +159,8 @@ SDL_Rect get_rect(SDL_Rect parent_rect, Dim x, Dim y, Dim w, Dim h) {
 Textbox *create_textbox(
     int fixed_w, 
     int fixed_h, 
-    int padding, 
+    int h_padding, 
+    int v_padding,
     TTF_Font *font, 
     char *value,
     JDAW_Color *txt_color,
@@ -171,7 +172,8 @@ Textbox *create_textbox(
     char *tooltip,
     int radius,
     bool available,
-    bool allow_truncate
+    bool allow_truncate,
+    TextAlign text_align
 )
 {
     if (font == NULL) {
@@ -181,7 +183,8 @@ Textbox *create_textbox(
     Textbox *tb = malloc(sizeof(Textbox));
     tb->container.x = 0;
     tb->container.y = 0;
-    tb->padding = padding;
+    tb->h_padding = h_padding;
+    tb->v_padding = v_padding;
     tb->font = font;
     tb->value = value;
     tb->radius = radius;
@@ -229,26 +232,51 @@ Textbox *create_textbox(
             }
         }
     } else {
-        tb->container.w = txtw + padding * 2;
+        tb->container.w = txtw + h_padding * 2;
     }
     if (fixed_h != 0) {
         tb->container.h = fixed_h;
     } else {
-        tb->container.h = txth + padding * 2;
+        tb->container.h = txth + v_padding * 2;
     }
     tb->mouse_hover = false;
     tb->target = target;
+    tb->text_align = text_align;
     return tb;
 
 }
+
 
 /* Reposition a textbox */
 void position_textbox(Textbox *tb, int x, int y)
 {
     tb->container.x = x;
     tb->container.y = y;
-    tb->txt_container.x = x + tb->padding * scale_factor;
-    tb->txt_container.y = y + tb->padding * scale_factor;
+    switch (tb->text_align) {
+        case CENTER:
+            tb->txt_container.x = x + (tb->container.w - tb->txt_container.w) / 2;
+            tb->txt_container.y = y + (tb->container.h - tb->txt_container.h) / 2;
+            break;
+        case TOP_LEFT:
+            tb->txt_container.x = x + tb->h_padding * scale_factor;
+            tb->txt_container.y = y + tb->v_padding * scale_factor;
+            break;
+        case TOP_RIGHT:
+            tb->txt_container.x = x + tb->container.w - tb->h_padding * scale_factor;
+            tb->txt_container.y = y + tb->v_padding * scale_factor;
+            break;
+        case BOTTOM_LEFT:
+            tb->txt_container.x = x + tb->h_padding * scale_factor;
+            tb->txt_container.y = y + tb->container.h - tb->txt_container.h - tb->v_padding * scale_factor;
+            break;
+        case BOTTOM_RIGHT:
+            tb->txt_container.x = x + tb->container.w - tb->h_padding * scale_factor;
+            tb->txt_container.y = y + tb->container.h - tb->txt_container.h - tb->v_padding * scale_factor;
+            break;
+        case CENTER_LEFT:
+            tb->txt_container.x = x + tb->h_padding * scale_factor;
+            tb->txt_container.y = y + (tb->container.h - tb->txt_container.h) / 2;
+    }
 }
 
 void destroy_textbox(Textbox *tb)
@@ -407,7 +435,7 @@ TextboxList *create_textbox_list(
     int max_text_w = 0;
     for (uint8_t i=0; i<num_items; i++) {
         list->textboxes[i] = create_textbox(
-            fixed_w, 0, padding, font, items[i]->label, txt_color, &clear, &clear, onclick, target, onhover, tooltip, radius, items[i]->available, true
+            fixed_w, 0, padding, padding, font, items[i]->label, txt_color, &clear, &clear, onclick, target, onhover, tooltip, radius, items[i]->available, true, CENTER_LEFT
         );
         if (list->textboxes[i]->txt_container.w > max_text_w) {
             max_text_w = list->textboxes[i]->txt_container.w;

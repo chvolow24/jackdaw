@@ -88,9 +88,9 @@ JDAW_Color fslider_bckgrnd = {{40, 40, 40, 248},{40, 40, 40, 248}};
 
 JDAW_Color marked_bckgrnd = {{90, 180, 245, 80}, {90, 180, 245, 80}};
 
-JDAW_Color muted_bckgrnd = {{255, 0, 0, 200}, {255, 0, 0, 200}};
+JDAW_Color muted_bckgrnd = {{255, 0, 0, 100}, {255, 0, 0, 100}};
 JDAW_Color unmuted_bckgrnd = {{200, 200, 200, 100}, {200, 200, 200, 100}};
-
+JDAW_Color solo_bckgrnd = {{255, 255, 0, 100}, {255, 255, 0, 100}};
 
 /* Draw a circle quadrant. Quad 0 = upper right, 1 = upper left, 2 = lower left, 3 = lower right */
 void draw_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad)
@@ -742,10 +742,4 @@ void draw_project(Project *proj)
         set_rend_color(proj->jwin->rend, &marked_bckgrnd);
         SDL_RenderFillRect(proj->jwin->rend, &(in_out));
     }
-
-    SDL_Rect testrect = (SDL_Rect) {100, 100, 800, 800};
-    JDAW_Color whiteclear = {{255, 255, 255, 180}, {255, 255, 255, 180}};
-    set_rend_color(proj->jwin->rend, &whiteclear);
-    fill_rounded_rect(proj->jwin->rend, &testrect, 200);
-
 }

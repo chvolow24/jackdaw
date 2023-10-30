@@ -210,8 +210,8 @@ void select_track_input_menu(void *track_v);
 void select_audio_out_menu(void *proj_v);
 
 void activate_or_deactivate_track(uint8_t track_index);
-void deactivate_all_tracks(void);
-void activate_all_tracks(void);
+// void deactivate_all_tracks(void);
+void activate_deactivate_all_tracks(void);
 
 void mute_unmute(void);
 void solo_unsolo(void);

@@ -512,11 +512,7 @@ static void project_loop()
                         }
                         break;
                     case SDL_SCANCODE_GRAVE:
-                        if (shift_down) {
-                            activate_all_tracks();
-                        } else {
-                            deactivate_all_tracks();
-                        }
+                        activate_deactivate_all_tracks();
                         break;
                     case SDL_SCANCODE_1:
                         activate_or_deactivate_track(0);

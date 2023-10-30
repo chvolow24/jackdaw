@@ -90,7 +90,7 @@ JDAW_Color marked_bckgrnd = {{90, 180, 245, 80}, {90, 180, 245, 80}};
 
 JDAW_Color muted_bckgrnd = {{255, 0, 0, 100}, {255, 0, 0, 100}};
 JDAW_Color unmuted_bckgrnd = {{200, 200, 200, 100}, {200, 200, 200, 100}};
-JDAW_Color solo_bckgrnd = {{255, 255, 0, 100}, {255, 255, 0, 100}};
+JDAW_Color solo_bckgrnd = {{255, 200, 0, 130}, {255, 200, 0, 130}};
 
 /* Draw a circle quadrant. Quad 0 = upper right, 1 = upper left, 2 = lower left, 3 = lower right */
 void draw_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad)

@@ -32,6 +32,7 @@
 
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "project.h"
 #include "gui.h"
 #include "audio.h"
@@ -43,7 +44,7 @@ extern bool sys_byteorder_le;
 extern JDAW_Color black;
 extern JDAW_Color white;
 
-/**************************** .JDAW FILE SPEC ***********************************
+/**************************** .JDAW VERSION 00.00 FILE SPEC ***********************************
 
 ===========================================================================================================
 SCTN          LEN IN BYTES      TYPE                      BYTE ORDER   FIELD NAME OR VALUE
@@ -71,15 +72,51 @@ CLP_DATA      0-?               [int16_t arr]             [LE]         CLIP SAMP
 *********************************************************************************/
 
 
+/**************************** .JDAW VERSION 00.01 FILE SPEC ***********************************
+
+===========================================================================================================
+SCTN          LEN IN BYTES      TYPE                      BYTE ORDER   FIELD NAME OR VALUE
+===========================================================================================================
+HDR           4                 char[4]                                "JDAW"
+HDR           8                 char[8]                                " VERSION"
+HDR           5                 char[5]                                file spec version (e.g. "00.01")
+HDR           1                 uint8_t                                project name length
+HDR           0-255             char[]                                 project name
+HDR           1                 uint8_t                                channels
+HDR           4                 uint32_t                  LE           sample rate
+HDR           2                 uint16_t                  LE           chunk size (power of 2)
+HDR           2                 SDL_AudioFormat (16bit)                SDL Audio Format
+HDR           1                 uint8_t                                num tracks
+TRK_HDR       4                 char[4]                                "TRCK"
+TRK_HDR       1                 uint8_t                                track name length
+TRK_HDR       0-255             char[]                                 track name
+TRK_HDR       10                char[16] (from float)                  vol ctrl value
+TRK_HDR       10                char[16] (from float)                  pan ctrl value
+TRK_HDR       1                 bool                                   muted
+TRK_HDR       1                 bool                                   soloed
+TRK_HDR       1                 uint8_t                                num_clips
+CLP_HDR       4                 char[4]                                "CLIP"
+CLP_HDR       1                 uint8_t                                clip name length
+CLP_HDR       0-255             char[]                                 clip name
+CLP_HDR       4                 int32_t                   LE           absolute position (in timeline)
+CLP_HDR       4                 uint32_t                  LE           length (samples)
+CLP_HDR       4                 char[4]                                "data"
+CLP_DATA      0-?               [int16_t arr]             [LE]         CLIP SAMPLE DATA     
+
+*********************************************************************************/
+
 const static char hdr_jdaw[] = {'J', 'D', 'A', 'W'};
+const static char hdr_version[] = {' ', 'V', 'E', 'R', 'S', 'I', 'O', 'N'};
 const static char hdr_trk[] = {'T', 'R', 'C', 'K'};
 const static char hdr_clp[] = {'C', 'L', 'I', 'P'};
 const static char hdr_data[] = {'d', 'a', 't', 'a'};
 
-void write_clip_to_jdaw(FILE *f, Clip *clip);
-void write_track_to_jdaw(FILE *f, Track *track);
-void read_clip_from_jdaw(FILE *f, Clip *track);
-void read_track_from_jdaw(FILE *f, Track *track);
+const static char current_file_spec_version[] = {'0', '0', '.', '0', '1'};
+
+static void write_clip_to_jdaw(FILE *f, Clip *clip);
+static void write_track_to_jdaw(FILE *f, Track *track);
+static void read_clip_from_jdaw(FILE *f, float file_spec_version, Clip *track);
+static void read_track_from_jdaw(FILE *f, float file_spec_version, Track *track);
 
 extern uint8_t scale_factor;
 
@@ -92,15 +129,20 @@ void write_jdaw_file(const char *path)
     FILE* f = fopen(path, "wb");
 
     fwrite(hdr_jdaw, 1, 4, f);
+    fwrite(hdr_version, 1, 8, f);
+    fwrite(current_file_spec_version, 1, 5, f);
     uint8_t namelength = strlen(proj->name);
     fwrite(&namelength, 1, 1, f);
-    fwrite(proj->name, 1, namelength + 1, f);
+    fwrite(proj->name, 1, namelength, f);
+    char null = '\0';
+    fwrite(&null, 1, 1, f);
     fwrite(&(proj->channels), 1, 1, f);
     if (sys_byteorder_le) {
         fwrite(&(proj->sample_rate), 4, 1, f);
         fwrite(&(proj->chunk_size), 2, 1, f);
     } else {
         //TODO: handle big endian
+        exit(1);
     }
     fwrite(&(proj->fmt), 2, 1, f);
     fwrite(&(proj->tl->num_tracks), 1, 1, f);
@@ -116,6 +158,19 @@ void write_track_to_jdaw(FILE *f, Track *track)
     uint8_t trck_namelength = strlen(track->name);
     fwrite(&trck_namelength, 1, 1, f);
     fwrite(track->name, 1, trck_namelength + 1, f);
+
+    /* Write vol and pan values */
+    char float_value_buffer[16];
+    snprintf(float_value_buffer, 16, "%f", track->vol_ctrl->value);
+    fwrite(float_value_buffer, 1, 16, f);
+    snprintf(float_value_buffer, 16, "%f", track->pan_ctrl->value);
+    fwrite(float_value_buffer, 1, 16, f);
+
+    /* Write mute and solo values */
+    fwrite(&(track->muted), 1, 1, f);
+    fwrite(&(track->solo), 1, 1, f);
+
+
     fwrite(&(track->num_clips), 1, 1, f);
     for (uint8_t i=0; i<track->num_clips; i++) {
         write_clip_to_jdaw(f, track->clips[i]);
@@ -133,6 +188,7 @@ void write_clip_to_jdaw(FILE *f, Clip *clip)
         fwrite(&(clip->len_sframes), 4, 1, f);
     } else {
         //TODO: handle big endian
+        exit(1);
     }
     fwrite(hdr_data, 1, 4, f);
     fwrite(clip->pre_proc, 2, clip->len_sframes * clip->channels, f);
@@ -140,15 +196,12 @@ void write_clip_to_jdaw(FILE *f, Clip *clip)
 
 Project *open_jdaw_file(const char *path)
 {
-// Project *create_project(const char* name, uint8_t channels, int sample_rate, SDL_AudioFormat fmt, uint16_t chunk_size)
-
-    // proj = create_empty_project();
     FILE *f = fopen(path, "r");
     if (!f) {
         fprintf(stderr, "Error: could not find project file at path %s\n", path);
         return NULL;
     }
-    char hdr_buffer[5];
+    char hdr_buffer[9];
     fread(hdr_buffer, 1, 4, f);
     hdr_buffer[4] = '\0';
     if (strcmp(hdr_buffer, "JDAW") != 0) {
@@ -156,8 +209,25 @@ Project *open_jdaw_file(const char *path)
         free(proj);
         return NULL;
     }
-    uint8_t proj_namelength = 0;
-    const char *project_name;
+
+    /* Check whether " VERSION" specifier exists to get the file spec version. If not, reset buffer position */
+    fpos_t version_split_pos;
+    fgetpos(f, &version_split_pos);
+    fread(hdr_buffer, 1, 8, f);
+    hdr_buffer[8] = '\0';
+    float file_spec_version = 0.0;
+    if (strcmp(hdr_buffer, " VERSION") == 0) {
+        fread(hdr_buffer, 1, 5, f);
+        hdr_buffer[5] = '\0';
+        file_spec_version = atof(hdr_buffer);
+    } else {
+        fsetpos(f, &version_split_pos);
+    }
+
+    fprintf(stderr, "JDAW FILE SPEC VERSION: %f\n", file_spec_version);
+
+    uint8_t proj_namelength;
+    char project_name[MAX_NAMELENGTH];
     uint8_t channels;
     int sample_rate;
     SDL_AudioFormat fmt;
@@ -165,12 +235,17 @@ Project *open_jdaw_file(const char *path)
 
     fread(&proj_namelength, 1, 1, f);
     fread((void *)project_name, 1, proj_namelength + 1, f);
+
+    // The file should contain a null terminator, but do this to be sure.
+    project_name[proj_namelength] = '\0';
+
     fread(&(channels), 1, 1, f);
     if (sys_byteorder_le) {
         fread(&(sample_rate), 4, 1, f);
         fread(&(chunk_size), 2, 1, f);
     } else {
         //TODO: handle big endian
+        exit(1);
     }
     fread(&(fmt), 2, 1, f);
 
@@ -180,25 +255,13 @@ Project *open_jdaw_file(const char *path)
 
     char project_window_name[MAX_NAMELENGTH + 10];
     sprintf(project_window_name, "Jackdaw | %s", proj->name);
-
-    proj->jwin = create_jwin(project_window_name, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED-20, 900, 650);
-        // tl->console_width = TRACK_CONSOLE_WIDTH;
-    // proj->tl->rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h,}, TL_RECT);
-    // proj->tl->ruler_rect = get_rect(proj->tl->rect, RULER_RECT);
-    // proj->tl->tc_rect = get_rect(proj->tl->rect, TC_RECT);
-    // int audio_rect_x = proj->tl->rect.x + TRACK_CONSOLE_W + COLOR_BAR_W + PADDING;
-    // proj->tl->audio_rect = (SDL_Rect) {audio_rect_x, proj->tl->rect.y, proj->jwin->w - audio_rect_x, proj->tl->rect.h}; // SET x in track
-    // proj->tl->timecode_tb = create_textbox(0, proj->tl->tc_rect.h, 0, proj->jwin->mono_fonts[3], "00:00:00:00000", &white, NULL, &black, NULL, NULL, NULL, NULL, NULL, true);
     reset_tl_rects(proj);
-    // position_textbox(proj->tl->timecode_tb, proj->tl->tc_rect.x, proj->tl->tc_rect.y);
-    //TODO: get this outta here
-    // proj->tl->console_width = TRACK_CONSOLE_WIDTH;
     activate_audio_devices(proj);
 
-
+    fprintf(stderr, "Sample rate: %d, num_tracks: %d, fmt: %s, chunk size: %d\n", sample_rate, num_tracks, get_audio_fmt_str(fmt), chunk_size);
     while (num_tracks > 0) {
         Track *track = create_track(proj->tl, true);
-        read_track_from_jdaw(f, track);
+        read_track_from_jdaw(f, file_spec_version, track);
         num_tracks--;
     }
     reset_tl_rects(proj);
@@ -207,14 +270,21 @@ Project *open_jdaw_file(const char *path)
     return proj;
 }
 
-void read_track_from_jdaw(FILE *f, Track *track)
+
+
+// TRK_HDR       4                 char[4]                                "TRCK"
+// TRK_HDR       1                 uint8_t                                track name length
+// TRK_HDR       0-255             char[]                                 track name
+// TRK_HDR       10                char[16] (from float)                  vol ctrl value
+// TRK_HDR       10                char[16] (from float)                  pan ctrl value
+// TRK_HDR       1                 bool                                   muted
+static void read_track_from_jdaw(FILE *f, float file_spec_version, Track *track)
 {
     char hdr_buffer[5];
     fread(hdr_buffer, 1, 4, f);
     hdr_buffer[4] = '\0';
     if (strcmp(hdr_buffer, "TRCK") != 0) {
         fprintf(stderr, "Error: unable to read file. 'TRCK' specifier not found where expected. Found '%s'\n", hdr_buffer);
-        fprintf(stderr, "%c %c %c %c\n", hdr_buffer[0], hdr_buffer[1], hdr_buffer[2], hdr_buffer[3]);
         // free(proj);
         // destroy_track(track);
         return;
@@ -223,18 +293,41 @@ void read_track_from_jdaw(FILE *f, Track *track)
     fread(&trck_namelength, 1, 1, f);
     fread(track->name, 1, trck_namelength + 1, f);
     reset_textbox_value(track->name_box, track->name);
+
+
+    if (file_spec_version > 0) {
+        char float_value_buffer[16];
+        fread(float_value_buffer, 1, 16, f);
+        track->vol_ctrl->value = atof(float_value_buffer);
+        fread(float_value_buffer, 1, 16, f);
+        track->pan_ctrl->value = atof(float_value_buffer);
+        reset_fslider(track->vol_ctrl);
+        reset_fslider(track->pan_ctrl);
+        bool muted = false;
+        bool solo = false;
+        fread(&muted, 1, 1, f);
+        fread(&solo, 1, 1, f);
+        if (muted) {
+            mute_track(track);
+        }
+        if (solo) {
+            solo_track(track);
+        }
+    }
+
+
     uint8_t num_clips;
     fread(&num_clips, 1, 1, f);
     while (num_clips > 0) {
         Clip *clip = create_clip(track, 0, 0);
-        read_clip_from_jdaw(f, clip);
+        read_clip_from_jdaw(f, file_spec_version, clip);
         num_clips--;
     }
     process_track_vol_and_pan(track);
 
 }
 
-void read_clip_from_jdaw(FILE *f, Clip *clip) 
+static void read_clip_from_jdaw(FILE *f, float file_spec_version, Clip *clip) 
 {
     char hdr_buffer[5];
     fread(hdr_buffer, 1, 4, f);
@@ -256,6 +349,7 @@ void read_clip_from_jdaw(FILE *f, Clip *clip)
         fread(&(clip->len_sframes), 4, 1, f);
     } else {
         //TODO: handle big endian
+        exit(1);
     }
     fread(hdr_buffer, 1, 4, f);
     if (strcmp(hdr_buffer, "data") != 0) {
@@ -274,6 +368,7 @@ void read_clip_from_jdaw(FILE *f, Clip *clip)
         fread(clip->pre_proc, 2, clip->len_sframes * clip->channels, f);
     } else {
         //TODO: handle big endian
+        exit(1);
     }
     clip->done = true;
     reset_cliprect(clip);

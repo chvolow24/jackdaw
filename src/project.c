@@ -800,7 +800,7 @@ void activate_deactivate_all_tracks()
     }
 }
 
-static void mute_track(Track *track)
+void mute_track(Track *track)
 {
     track->muted = true;
     track->mute_button_box->bckgrnd_color = &muted_bckgrnd;
@@ -812,7 +812,7 @@ static void unmute_track(Track *track)
     track->mute_button_box->bckgrnd_color = &unmuted_bckgrnd;
 }
 
-static void solo_track(Track *track)
+void solo_track(Track *track)
 {
     track->solo = true;
     track->solo_button_box->bckgrnd_color = &solo_bckgrnd;

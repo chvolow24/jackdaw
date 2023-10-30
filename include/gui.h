@@ -39,7 +39,7 @@
 #define TL_X_PADDING_UNSCALED 5
 #define TL_X_PADDING (5 * scale_factor)
 
-#define TL_Y_UNSCALED 150
+#define TL_Y_UNSCALED 90
 // #define TL_Y_PADDING (20 * scale_factor)
 
 #define CTRL_X_PADDING_UNSCALED 14
@@ -51,7 +51,7 @@
 #define PADDING_UNSCALED 4
 #define PADDING (PADDING_UNSCALED * scale_factor)
 
-#define TL_RECT (Dim) {ABS, TL_X_PADDING_UNSCALED}, (Dim) {ABS, TL_Y_UNSCALED}, (Dim) {REL, 100}, (Dim) {REL, 76}
+#define TL_RECT (Dim) {ABS, TL_X_PADDING_UNSCALED}, (Dim) {ABS, TL_Y_UNSCALED}, (Dim) {REL, 100}, (Dim) {REL, 90}
 
 #define TRACK_CONSOLE_W_UNSCALED 160
 #define TRACK_CONSOLE_W (TRACK_CONSOLE_W_UNSCALED * scale_factor)

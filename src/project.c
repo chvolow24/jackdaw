@@ -295,7 +295,7 @@ Project *create_project(const char* name, uint8_t channels, int sample_rate, SDL
         5 * scale_factor,
         true,
         true,
-        BOTTOM_LEFT
+        CENTER_LEFT
     );
 
     reset_tl_rects(proj);

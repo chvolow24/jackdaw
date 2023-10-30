@@ -56,6 +56,7 @@ extern JDAW_Color black;
 extern JDAW_Color grey;
 extern JDAW_Color muted_bckgrnd;
 extern JDAW_Color unmuted_bckgrnd;
+extern JDAW_Color solo_bckgrnd;
 
 /* Alternating bright colors to easily distinguish tracks */
 JDAW_Color trck_colors[7] = {
@@ -811,6 +812,17 @@ static void unmute_track(Track *track)
     track->mute_button_box->bckgrnd_color = &unmuted_bckgrnd;
 }
 
+static void solo_track(Track *track)
+{
+    track->solo = true;
+    track->solo_button_box->bckgrnd_color = &solo_bckgrnd;
+}
+
+static void unsolo_track(Track *track)
+{
+    track->solo = false;
+    track->solo_button_box->bckgrnd_color = &unmuted_bckgrnd;
+}
 // static void solo_unsolo_track(Track *track)
 // {
 //     if (track->solo) {
@@ -849,6 +861,21 @@ void solo_unsolo()
     if (!proj) {
         fprintf(stderr, "Error: request to solo/unsolo with no active project.\n");
         return;
+    }
+    Track *track = NULL;
+    bool all_soloed = true;
+    for (uint8_t i=0; i<proj->tl->num_active_tracks; i++) {
+        track = proj->tl->tracks[proj->tl->active_track_indices[i]];
+        if (!(track->solo)) {
+            solo_track(track);
+            all_soloed = false;
+        }
+    }
+    if (all_soloed) {
+        for (uint8_t i=0; i<proj->tl->num_active_tracks; i++) {
+            track = proj->tl->tracks[proj->tl->active_track_indices[i]];
+            unsolo_track(track);
+        }
     }
 
 }

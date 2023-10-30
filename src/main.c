@@ -508,6 +508,8 @@ static void project_loop()
                             if (cmd_ctrl_down) {
                                 write_jdaw_file("project.jdaw");
                                 fprintf(stderr, "DONE WRITING FILE!\n");
+                            } else {
+                                solo_unsolo();
                             }
                         }
                         break;

@@ -39,7 +39,7 @@
 #define TL_X_PADDING_UNSCALED 5
 #define TL_X_PADDING (5 * scale_factor)
 
-#define TL_Y_UNSCALED 150
+#define TL_Y_UNSCALED 90
 // #define TL_Y_PADDING (20 * scale_factor)
 
 #define CTRL_X_PADDING_UNSCALED 14
@@ -51,7 +51,7 @@
 #define PADDING_UNSCALED 4
 #define PADDING (PADDING_UNSCALED * scale_factor)
 
-#define TL_RECT (Dim) {ABS, TL_X_PADDING_UNSCALED}, (Dim) {ABS, TL_Y_UNSCALED}, (Dim) {REL, 100}, (Dim) {REL, 76}
+#define TL_RECT (Dim) {ABS, TL_X_PADDING_UNSCALED}, (Dim) {ABS, TL_Y_UNSCALED}, (Dim) {REL, 100}, (Dim) {REL, 90}
 
 #define TRACK_CONSOLE_W_UNSCALED 160
 #define TRACK_CONSOLE_W (TRACK_CONSOLE_W_UNSCALED * scale_factor)
@@ -84,9 +84,11 @@
 #define COLOR_BAR_W_UNSCALED 5
 #define COLOR_BAR_W (COLOR_BAR_W_UNSCALED * scale_factor)
 
-#define NAMEBOX_W (120 * scale_factor)
+#define TRACK_NAMEBOX_W (100 * scale_factor)
 #define TRACK_IN_W (100 * scale_factor)
 #define TRACK_INTERNAL_PADDING (6 * scale_factor)
+
+#define MUTE_SOLO_W (20 * scale_factor)
 
 #define CURSOR_COUNTDOWN 50
 #define CURSOR_WIDTH (1 * scale_factor)
@@ -136,6 +138,15 @@ typedef struct dim {
 
 typedef struct textbox Textbox;
 
+typedef enum textalign {
+    CENTER,
+    TOP_LEFT,
+    TOP_RIGHT,
+    BOTTOM_LEFT,
+    BOTTOM_RIGHT,
+    CENTER_LEFT
+} TextAlign;
+
 typedef struct textbox {
     char *value;
     char display_value[MAX_TB_LEN];
@@ -148,7 +159,8 @@ typedef struct textbox {
     void (*onclick)(Textbox *self, void *object); // optional; function to run when txt box clicked
     void *target;
     void (*onhover)(void *object); // optional; function to run when mouse hovers over txt box
-    int padding;
+    int h_padding;
+    int v_padding;
     int radius;
     bool show_cursor;
     uint8_t cursor_countdown;
@@ -157,6 +169,7 @@ typedef struct textbox {
     bool mouse_hover;
     bool available;
     bool allow_truncate;
+    TextAlign text_align;
 } Textbox;
 
 /* An array of textboxes, all of which share may share an onclick functions */
@@ -205,7 +218,8 @@ void position_textbox(Textbox *tb, int x, int y);
 Textbox *create_textbox(
     int fixed_w, 
     int fixed_h, 
-    int padding, 
+    int h_padding,
+    int v_padding,
     TTF_Font *font, 
     char *value,
     JDAW_Color *txt_color,
@@ -217,7 +231,8 @@ Textbox *create_textbox(
     char *tooltip,
     int radius,
     bool available,
-    bool allow_truncate
+    bool allow_truncate,
+    TextAlign text_align
 );
 TextboxList *create_textbox_list(
     int fixed_w,

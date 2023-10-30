@@ -88,6 +88,9 @@ JDAW_Color fslider_bckgrnd = {{40, 40, 40, 248},{40, 40, 40, 248}};
 
 JDAW_Color marked_bckgrnd = {{90, 180, 245, 80}, {90, 180, 245, 80}};
 
+JDAW_Color muted_bckgrnd = {{255, 0, 0, 100}, {255, 0, 0, 100}};
+JDAW_Color unmuted_bckgrnd = {{200, 200, 200, 100}, {200, 200, 200, 100}};
+JDAW_Color solo_bckgrnd = {{255, 200, 0, 130}, {255, 200, 0, 130}};
 
 /* Draw a circle quadrant. Quad 0 = upper right, 1 = upper left, 2 = lower left, 3 = lower right */
 void draw_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad)
@@ -134,25 +137,25 @@ void fill_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const regist
     int fill_x = 0;
 
     while (x <= y) {
-        switch(quad) {
-            case 0:
-                SDL_RenderDrawLine(rend, xinit, yinit - y, xinit + x, yinit - y);
-                SDL_RenderDrawLine(rend, xinit + y, yinit, xinit + y, yinit  - x);
-                break;
-            case 1:
-                SDL_RenderDrawLine(rend, xinit, yinit - y, xinit - x, yinit - y);
-                SDL_RenderDrawLine(rend, xinit - y, yinit, xinit - y, yinit - x);
-                break;
-            case 2:
-                SDL_RenderDrawLine(rend, xinit, yinit + y, xinit - x, yinit + y);
-                SDL_RenderDrawLine(rend, xinit - y, yinit, xinit - y, yinit + x);
-                break;
-            case 3:
-                SDL_RenderDrawLine(rend, xinit, yinit + y, xinit + x, yinit + y);
-                SDL_RenderDrawLine(rend, xinit + y, yinit, xinit + y, yinit + x);
-                break;
-        }
         if (d>0) {
+            switch(quad) {
+                case 0:
+                    SDL_RenderDrawLine(rend, xinit, yinit - y, xinit + x, yinit - y);
+                    SDL_RenderDrawLine(rend, xinit + y, yinit, xinit + y, yinit  - x);
+                    break;
+                case 1:
+                    SDL_RenderDrawLine(rend, xinit, yinit - y, xinit - x, yinit - y);
+                    SDL_RenderDrawLine(rend, xinit - y, yinit, xinit - y, yinit - x);
+                    break;
+                case 2:
+                    SDL_RenderDrawLine(rend, xinit, yinit + y, xinit - x, yinit + y);
+                    SDL_RenderDrawLine(rend, xinit - y, yinit, xinit - y, yinit + x);
+                    break;
+                case 3:
+                    SDL_RenderDrawLine(rend, xinit, yinit + y, xinit + x, yinit + y);
+                    SDL_RenderDrawLine(rend, xinit + y, yinit, xinit + y, yinit + x);
+                    break;
+            }
             /* Select SE coordinate */
             d += (x<<1) - (y<<1) + 5;
             y--;
@@ -221,7 +224,7 @@ void draw_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r)
 void fill_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r)
 {
     int left_x = rect->x + r;
-    int right_x = rect->x + rect->w -r;
+    int right_x = rect->x + rect->w - r;
     int upper_y = rect->y + r;
     int lower_y = rect->y + rect->h - r;
     SDL_Point ul = {left_x, upper_y};
@@ -233,10 +236,10 @@ void fill_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r)
     fill_quadrant(rend, ll.x, ll.y, r, 2);
     fill_quadrant(rend, lr.x, lr.y, r, 3);
     int d = r<<1; // decision criterion
-    SDL_Rect top = {left_x, rect->y, rect->w - d, r};
-    SDL_Rect bottom = {left_x, lower_y, rect->w - d, r + 1};
-    SDL_Rect left = {rect->x, upper_y, r, rect->h - d};
-    SDL_Rect right = {right_x, upper_y, r + 1, rect->h -d};
+    SDL_Rect top = {left_x + 1, rect->y, rect->w - d - 1, r};
+    SDL_Rect bottom = {left_x + 1, lower_y, rect->w - d - 1, r + 1};
+    SDL_Rect left = {rect->x, upper_y + 1, r, rect->h - d - 1};
+    SDL_Rect right = {right_x, upper_y + 1, r + 1, rect->h - d - 1};
     SDL_Rect middle = {left_x, upper_y, rect->w - d, rect->h - d};
     SDL_RenderFillRect(rend, &top);
     SDL_RenderFillRect(rend, &bottom);
@@ -294,6 +297,8 @@ void draw_textbox(SDL_Renderer *rend, Textbox *tb)
         SDL_RenderDrawRect(rend, &(tb->container));
     } else {
         fill_rounded_rect(rend, &(tb->container), tb->radius);
+        set_rend_color(rend, tb->border_color);
+        draw_rounded_rect(rend, &(tb->container), tb->radius);
         set_rend_color(rend, tb->border_color);
         draw_rounded_rect(rend, &(tb->container), tb->radius);
     }
@@ -363,7 +368,7 @@ void draw_menu_item(SDL_Renderer *rend, Textbox *tb)
         tb->cursor_countdown -= 1;
     }
 }
-void draw_menu_list(SDL_Renderer *rend, TextboxList *tbl)
+static void draw_menu_list(SDL_Renderer *rend, TextboxList *tbl)
 {
     // int padding = 3 * scale_factor;
     SDL_Rect innerrect = (SDL_Rect) {tbl->container.x + 1, tbl->container.y + 1, tbl->container.w - 2, tbl->container.h - 2};
@@ -378,7 +383,7 @@ void draw_menu_list(SDL_Renderer *rend, TextboxList *tbl)
     }
 }
 
-void draw_textbox_list(SDL_Renderer *rend, TextboxList *tbl)
+static void draw_textbox_list(SDL_Renderer *rend, TextboxList *tbl)
 {
     // fprintf(stderr, "container: %d, %d, %d, %d\n", tbl->container.x, tbl->container.y, tbl->container.w, tbl->container.h);
     set_rend_color(rend, tbl->bckgrnd_color);
@@ -398,7 +403,7 @@ void draw_textbox_list(SDL_Renderer *rend, TextboxList *tbl)
 
 
 
-void draw_fslider(JDAWWindow *jwin, FSlider *fslider)
+static void draw_fslider(JDAWWindow *jwin, FSlider *fslider)
 {
     set_rend_color(jwin->rend, &fslider_border);
     SDL_RenderDrawRect(jwin->rend, &(fslider->rect));
@@ -563,7 +568,7 @@ void draw_clip(Clip *clip)
     }
 }
 
-void draw_track(Track * track) 
+static void draw_track(Track * track) 
 {    
     if (track->active) {
         set_rend_color(proj->jwin->rend, &track_bckgrnd_active);
@@ -591,6 +596,8 @@ void draw_track(Track * track)
     draw_textbox(proj->jwin->rend, track->input_name_box);
     draw_textbox(proj->jwin->rend, track->vol_label_box);
     draw_textbox(proj->jwin->rend, track->pan_label_box);
+    draw_textbox(proj->jwin->rend, track->mute_button_box);
+    draw_textbox(proj->jwin->rend, track->solo_button_box);
     draw_fslider(proj->jwin, track->vol_ctrl);
     draw_fslider(proj->jwin, track->pan_ctrl);
 
@@ -749,5 +756,4 @@ void draw_project(Project *proj)
         set_rend_color(proj->jwin->rend, &marked_bckgrnd);
         SDL_RenderFillRect(proj->jwin->rend, &(in_out));
     }
-
 }

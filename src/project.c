@@ -174,8 +174,27 @@ int16_t get_track_sample(Track *track, Timeline *tl, uint32_t start_pos, uint32_
             break;
         }
         int32_t pos_in_clip = start_pos + pos_in_chunk - clip->abs_pos_sframes * clip->channels;
+        int32_t pos_in_clip_sframes = pos_in_clip / clip->channels;
         if (pos_in_clip >= 0 && pos_in_clip < clip->len_sframes * clip->channels) {
-            sample += (clip->post_proc)[pos_in_clip];
+            if (pos_in_clip_sframes < clip->start_ramp_len) {
+                double ramp_value = (double) pos_in_clip_sframes / clip->start_ramp_len;
+                // ramp_value *= ramp_value;
+                // ramp_value *= ramp_value;
+                // ramp_value *= ramp_value;
+                // fprintf(stderr, "(START RAMP) Pos in clip: %d; scale: %f\n", pos_in_clip, ramp_value);
+                // fprintf(stderr, "\t Sample pre & post: %d, %d\n", (clip->post_proc)[pos_in_clip], (int16_t) ((clip->post_proc)[pos_in_clip] * ramp_value));
+                sample += (int16_t) ((clip->post_proc)[pos_in_clip] * ramp_value);
+            } else if (pos_in_clip_sframes > clip->len_sframes - clip->end_ramp_len) {
+                double ramp_value = (double) (clip->len_sframes - pos_in_clip_sframes) / clip->end_ramp_len;
+                // ramp_value *= ramp_value;
+                // ramp_value *= ramp_value;
+                // ramp_value *= ramp_value;
+                // fprintf(stderr, "(END RAMP) Pos in clip: %d; scale: %f\n", pos_in_clip, ramp_value);
+                // fprintf(stderr, "\t Sample pre & post: %d, %d\n", (clip->post_proc)[pos_in_clip], (int16_t) ((clip->post_proc)[pos_in_clip] * ramp_value));
+                sample += (int16_t) ((clip->post_proc)[pos_in_clip] * ramp_value);
+            } else {
+                sample += (clip->post_proc)[pos_in_clip];
+            }
         }
     }
 

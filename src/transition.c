@@ -107,8 +107,8 @@ static void *transition_loop(void *arg)
     // bool quit = false;
     char explain_text[50];
     sprintf(explain_text, "Add transition to %d clip boundaries.", num_boundaries);
-    Textbox *explain = create_textbox(0, 0, 10, proj->jwin->bold_fonts[3], explain_text, &white, &clear, &clear, NULL, NULL, NULL, NULL, 0, true, false);
-    Textbox *entry_label = create_textbox(0, 0, 10, proj->jwin->bold_fonts[3], "Enter length in seconds:\t", &white, &clear, &clear, NULL, NULL, NULL, NULL, 0, true, false);
+    Textbox *explain = create_textbox(0, 0, 10, 10, proj->jwin->bold_fonts[3], explain_text, &white, &clear, &clear, NULL, NULL, NULL, NULL, 0, true, false, BOTTOM_LEFT);
+    Textbox *entry_label = create_textbox(0, 0, 10, 10, proj->jwin->bold_fonts[3], "Enter length in seconds:\t", &white, &clear, &clear, NULL, NULL, NULL, NULL, 0, true, false, BOTTOM_LEFT);
     // Textbox *entry = create_textbox(0, 0, 10, proj->jwin->bold_fonts[3], "0", &white, &clear, &clear, NULL, NULL, NULL, NULL, 0, true, false);
     position_textbox(explain, 100 * scale_factor, 200 * scale_factor);
     position_textbox(entry_label, explain->container.x, explain->container.y + explain->container.h + PADDING);
@@ -146,16 +146,9 @@ void add_transition()
         }
 
         double transition_length = 0;
-        // char explain_text[50];
-        // sprintf(explain_text, "Add transition to %d clip boundaries.", num_boundaries);
-        // Textbox *explain = create_textbox(0, 0, 10, proj->jwin->bold_fonts[3], explain_text, &white, &clear, &clear, NULL, NULL, NULL, NULL, 0, true, false);
-        // Textbox *entry_label = create_textbox(0, 0, 10, proj->jwin->bold_fonts[3], "Enter the length of the transition in seconds:\t", &white, &clear, &clear, NULL, NULL, NULL, NULL, 0, true, false);
         char value_str[50];
-        Textbox *entry = create_textbox(0, 0, 10, proj->jwin->bold_fonts[3], value_str, &white, &clear, &clear, NULL, NULL, NULL, NULL, 0, true, false);
-        // position_textbox(explain, 100 * scale_factor, 200 * scale_factor);
-        // position_textbox(entry_label, explain->container.x, explain->container.y + explain->container.h + PADDING);
-        // position_textbox(entry, entry_label->container.x + entry_label->container.w, entry_label->container.y);
-        
+        value_str[0] = '\0';
+        Textbox *entry = create_textbox(0, 0, 10, 10, proj->jwin->bold_fonts[3], value_str, &white, &clear, &clear, NULL, NULL, NULL, NULL, 0, true, false, BOTTOM_LEFT);
         struct transition_loop_arg arg = {boundaries, num_boundaries, entry};
         edit_textbox(entry, transition_loop, (void *)(&arg));
         // transition_loop_length = get_transition_length_loop(boundaries, num_boundaries);

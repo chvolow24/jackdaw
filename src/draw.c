@@ -524,6 +524,10 @@ void draw_clip(Clip *clip)
         set_rend_color(proj->jwin->rend, &clip_bckgrnd);
     }
     SDL_RenderFillRect(proj->jwin->rend, &(clip->rect));
+    if (clip->done) {
+        draw_clip_ramps(clip);
+        draw_waveform(clip);
+    }
     // SDL_Rect clipnamerect = get_rect(clip->rect, CLIP_NAME_RECT); //TODO: remove this computation from draw
     draw_textbox(proj->jwin->rend, clip->namebox);
     // write_text(proj->jwin->rend, &clipnamerect, proj->jwin->bold_fonts[1], &grey, clip->name, true);
@@ -560,11 +564,6 @@ void draw_clip(Clip *clip)
             cliprect_temp.w += 2;
             cliprect_temp.h += 2;        
         }
-    }
-
-    if (clip->done) {
-        draw_clip_ramps(clip);
-        draw_waveform(clip);
     }
 }
 

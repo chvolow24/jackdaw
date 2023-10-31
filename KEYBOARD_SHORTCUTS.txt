@@ -34,6 +34,7 @@ g ..................................grab or ungrab clips in selected tracks, int
 shift + g ..........................same as g, but no ungrab
 [right arrow], [left arrow] ........move playhead and grabbed clips left or right
 cmd + [right arrow], [left arrow] ..nudge playhead and grabbed clips left or right
+\ ..................................add fade in/out (applies only to selected tracks with clip boundaries immediately adjacent to the play head)
 
 cmd + s ............................save project*
 shift + w ..........................save mixdown from mark in -> mark out as wav file**

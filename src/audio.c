@@ -201,6 +201,8 @@ int query_audio_devices(AudioDevice ***device_list, int iscapture)
     AudioDevice *default_dev = malloc(sizeof(AudioDevice));
 
     if (SDL_GetDefaultAudioInfo((char**) &((default_dev->name)), &(default_dev->spec), iscapture) != 0) {
+        default_dev->iscapture = iscapture;
+        default_dev->name = "(no device found)";
         fprintf(stderr, "Error: unable to retrieve default %s device info. %s\n", iscapture ? "input" : "output", SDL_GetError());
     }
     default_dev->open = false;

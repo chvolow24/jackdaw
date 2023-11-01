@@ -858,15 +858,6 @@ static void unsolo_track(Track *track)
     track->solo_muted = false;
     track->solo_button_box->bckgrnd_color = &unmuted_bckgrnd;
 }
-// static void solo_unsolo_track(Track *track)
-// {
-//     if (track->solo) {
-//         track->solo = false;
-//     } else {
-//         track->solo = true;
-//     }
-// }
-
 
 void mute_unmute()
 {

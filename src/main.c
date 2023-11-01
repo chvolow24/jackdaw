@@ -610,6 +610,11 @@ static void project_loop()
                         if (proj) {
                             add_transition();
                         }
+                    case SDL_SCANCODE_C:
+                        if (shift_down) {
+                            cut_clips();
+                        }
+                        break;
                     default:
                         break;
                 }

@@ -39,7 +39,8 @@ cmd + [right arrow], [left arrow] ..nudge playhead and grabbed clips left or rig
 cmd + s ............................save project*
 shift + w ..........................save mixdown from mark in -> mark out as wav file**
 
-g ..................................grab clip 
+g ..................................grab clip
+shift + c ..........................cut clips (on active tracks, at playhead)
 
 q ............................re-query audio device list***
 

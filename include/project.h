@@ -235,6 +235,7 @@ void grab_ungrab_clip(Clip *clip);
 void grab_clips(void);
 void ungrab_clips(void);
 uint8_t proj_grabbed_clips(void);
+void cut_clips();
 void translate_grabbed_clips(int32_t translate_by);
 void remove_clip_from_track(Clip *clip);
 void delete_clip(Clip *clip);

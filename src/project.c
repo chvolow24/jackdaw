@@ -1086,11 +1086,41 @@ void activate_audio_devices(Project *proj)
         track->input = proj->record_devices[0];
         reset_textbox_value(track->input_name_box, (char *)track->input->name);
     }
-    // for (uint8_t i=0; i<proj->num_playback_devices; i++) {
-    //     AudioDevice *dev = proj->playback_devices[i];
-    //     fprintf(stderr, P)
-    // }
+}
 
+static void cut_clip(Clip *clip, int32_t offset_sframes)
+{
+    Clip *new_clip = create_clip(clip->track, clip->len_sframes - offset_sframes, clip->abs_pos_sframes + offset_sframes);
+    new_clip->len_sframes = clip->len_sframes - offset_sframes;
+    uint32_t new_buff_bytelen = new_clip->len_sframes * new_clip->channels * sizeof(int16_t);
+    new_clip->pre_proc = malloc(new_buff_bytelen);
+    new_clip->post_proc = malloc(new_buff_bytelen);
+    memcpy(new_clip->post_proc, clip->post_proc + offset_sframes * clip->channels, new_clip->len_sframes * clip->channels * sizeof(int16_t));
+    memcpy(new_clip->pre_proc, clip->pre_proc + offset_sframes * clip->channels, new_clip->len_sframes * clip->channels * sizeof(int16_t));
+    clip->len_sframes = offset_sframes;
+    new_buff_bytelen = clip->len_sframes * clip->channels * sizeof(int16_t);
+    clip->pre_proc = realloc(clip->pre_proc, new_buff_bytelen);
+    clip->post_proc = realloc(clip->post_proc, new_buff_bytelen);
+    new_clip->end_ramp_len = clip->end_ramp_len;
+    clip->end_ramp_len = 0;
+    new_clip->done = true;
+    reset_cliprect(clip);
+}
+
+void cut_clips()
+{
+    Track *track = NULL;
+    Clip *clip = NULL;
+    for (uint8_t i=0; i<proj->tl->num_active_tracks; i++) {
+        track = proj->tl->tracks[proj->tl->active_track_indices[i]];
+        for (uint8_t j=0; j<track->num_clips; j++) {
+            clip = track->clips[j];
+            int32_t offset_sframes = proj->tl->play_position - clip->abs_pos_sframes;
+            if (clip->done && offset_sframes > 0 && offset_sframes < clip->len_sframes) {
+                cut_clip(clip, offset_sframes);
+            }
+        }
+    }
 }
 
 /* Returns true if change was made */
@@ -1105,31 +1135,6 @@ bool adjust_track_pan(Track *track, float change_by)
     return adjust_fslider(track->pan_ctrl, change_by);
 }
 
-// typedef struct project {
-//     char name[MAX_NAMELENGTH];
-//     // bool dark_mode;
-//     Timeline *tl;
-//     Clip *loose_clips[100];
-//     uint8_t num_loose_clips;
-//     JDAWWindow *jwin;
-//     Clip *active_clips[MAX_ACTIVE_CLIPS];
-//     uint8_t num_active_clips;
-//     float play_speed;
-//     bool playing;
-//     bool recording;
-//     AudioDevice **record_devices;
-//     AudioDevice **playback_devices;
-//     int num_record_devices;
-//     int num_playback_devices;
-
-//     /* Audio settings */
-//     AudioDevice *playback_device;
-//     uint8_t channels;
-//     int sample_rate; //samples per second
-//     SDL_AudioFormat fmt;
-//     uint16_t chunk_size; //sample_frames
-
-// } Project;
 /* Debug segaults */
 void log_project_state(FILE *f) {
     if (!proj) {

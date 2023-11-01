@@ -186,7 +186,11 @@ Textbox *create_textbox(
     tb->h_padding = h_padding;
     tb->v_padding = v_padding;
     tb->font = font;
-    tb->value = value;
+    if (value) {
+        tb->value = value;
+    } else {
+        tb->value = "(none)";
+    }
     tb->radius = radius;
     tb->available = available;
     tb->allow_truncate = allow_truncate;

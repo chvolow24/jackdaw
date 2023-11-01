@@ -61,6 +61,7 @@ typedef struct track {
 	bool active;
 	bool muted;
 	bool solo;
+	bool solo_muted; // set if another track is muted
 	bool record;
 	uint8_t channels;
 	Timeline *tl;

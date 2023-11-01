@@ -164,7 +164,7 @@ void select_audio_out_menu(void *proj_v)
 /* Query track clips and return audio sample representing a given point in the timeline. */
 int16_t get_track_sample(Track *track, Timeline *tl, uint32_t start_pos, uint32_t pos_in_chunk)
 {
-    if (track->muted) {
+    if (track->muted || track->solo_muted) {
         return 0;
     }
     int16_t sample = 0;
@@ -837,12 +837,25 @@ static void unmute_track(Track *track)
 void solo_track(Track *track)
 {
     track->solo = true;
+    track->solo_muted = false;
     track->solo_button_box->bckgrnd_color = &solo_bckgrnd;
+    if (track->muted) {
+        unmute_track(track);
+    }
+}
+
+static void solo_mute_track(Track *track)
+{
+    track->solo = false;
+    track->solo_muted = true;
+    track->solo_button_box->bckgrnd_color = &muted_bckgrnd;
+
 }
 
 static void unsolo_track(Track *track)
 {
     track->solo = false;
+    track->solo_muted = false;
     track->solo_button_box->bckgrnd_color = &unmuted_bckgrnd;
 }
 // static void solo_unsolo_track(Track *track)
@@ -885,21 +898,32 @@ void solo_unsolo()
         return;
     }
     Track *track = NULL;
-    bool all_soloed = true;
-    for (uint8_t i=0; i<proj->tl->num_active_tracks; i++) {
-        track = proj->tl->tracks[proj->tl->active_track_indices[i]];
+    bool all_active_soloed = true;
+    bool some_inactive_soloed = false;
+    for (uint8_t i=0; i<proj->tl->num_tracks; i++) {
+        track = proj->tl->tracks[i];
         if (!(track->solo)) {
-            solo_track(track);
-            all_soloed = false;
+            if (track->active) {
+                solo_track(track);
+                all_active_soloed = false;
+            } else {
+                solo_mute_track(track);
+            }
+        } else if (!(track->active)) {
+            some_inactive_soloed = true;
         }
     }
-    if (all_soloed) {
+    if (some_inactive_soloed && all_active_soloed) {
         for (uint8_t i=0; i<proj->tl->num_active_tracks; i++) {
             track = proj->tl->tracks[proj->tl->active_track_indices[i]];
+            solo_mute_track(track);
+        }
+    } else if (all_active_soloed) {
+        for (uint8_t i=0; i<proj->tl->num_tracks; i++) {
+            track = proj->tl->tracks[i];
             unsolo_track(track);
         }
     }
-
 }
 
 /* Move grabbed clips forward or back on timeline */

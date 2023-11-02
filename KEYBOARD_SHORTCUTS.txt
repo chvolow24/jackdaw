@@ -2,6 +2,7 @@
 ========================== JACKDAW KEYBOARD SHORTCUTS ===========================
 =================================================================================
 
+
 j, k, l ............................rewind, pause, play
 j, l (multiple taps)................rewind or play faster
 h, [semicolon] .....................move view left or right

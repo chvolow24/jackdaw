@@ -677,16 +677,8 @@ void draw_project(Project *proj)
     SDL_RenderFillRect(proj->jwin->rend, &(proj->tl->ruler_tc_container_rect));
     draw_ruler();
     draw_tc();
-    int title_w = 0;
-    int title_h = 0;
-    TTF_SizeUTF8(proj->jwin->fonts[1], bottom_text, &title_w, &title_h);
-    set_rend_color(proj->jwin->rend, &bckgrnd_color);
-    SDL_Rect title_rect = {0, proj->jwin->h - 24 * scale_factor, proj->jwin->w, 24 * scale_factor};
-    SDL_RenderFillRect(proj->jwin->rend, &title_rect);
     SDL_Rect top_mask = {0, 0, proj->jwin->w, proj->tl->rect.y};
     SDL_RenderFillRect(proj->jwin->rend, &top_mask);
-    SDL_Rect title_text_rect = {(proj->jwin->w - title_w) / 2, title_rect.y, title_w, title_h};
-    write_text(proj->jwin->rend, &title_text_rect, proj->jwin->fonts[1], &txt_soft, bottom_text, true);
     SDL_Rect mask_left = {0, 0, proj->tl->rect.x, proj->jwin->h};
     SDL_RenderFillRect(proj->jwin->rend, &mask_left);
     SDL_Rect mask_left_2 = {proj->tl->rect.x, proj->tl->rect.y, PADDING, proj->tl->rect.h};
@@ -755,4 +747,14 @@ void draw_project(Project *proj)
         set_rend_color(proj->jwin->rend, &marked_bckgrnd);
         SDL_RenderFillRect(proj->jwin->rend, &(in_out));
     }
+
+    /* Draw title */
+    int title_w = 0;
+    int title_h = 0;
+    set_rend_color(proj->jwin->rend, &bckgrnd_color);
+    SDL_Rect title_rect = {0, proj->jwin->h - 24 * scale_factor, proj->jwin->w, 24 * scale_factor};
+    SDL_RenderFillRect(proj->jwin->rend, &title_rect);
+    SDL_Rect title_text_rect = {(proj->jwin->w - title_w) / 2, title_rect.y, title_w, title_h};
+    write_text(proj->jwin->rend, &title_text_rect, proj->jwin->fonts[1], &txt_soft, bottom_text, true);
+    TTF_SizeUTF8(proj->jwin->fonts[1], bottom_text, &title_w, &title_h);
 }

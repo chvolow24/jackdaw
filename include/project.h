@@ -220,6 +220,7 @@ void activate_deactivate_all_tracks(void);
 
 void mute_track(Track *track);
 void solo_track(Track *track);
+void solo_mute_track(Track *track);
 void mute_unmute(void);
 void solo_unsolo(void);
 

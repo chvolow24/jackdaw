@@ -695,7 +695,15 @@ void draw_project(Project *proj)
 
     set_rend_color(proj->jwin->rend, &white);
 
+    /* Draw t=0 */
+    if (proj->tl->offset < 0) {
+        set_rend_color(proj->jwin->rend, &black);
+        int zero_x = get_tl_draw_x(0);
+        SDL_RenderDrawLine(proj->jwin->rend, zero_x, proj->tl->audio_rect.y, zero_x, proj->tl->audio_rect.y + proj->tl->audio_rect.h);
+    }
+
     /* Draw play head line */
+    set_rend_color(proj->jwin->rend, &white);
     int tri_y = proj->tl->rect.y;
     if (proj->tl->play_position >= proj->tl->offset) {
         int play_head_x = get_tl_draw_x(proj->tl->play_position);

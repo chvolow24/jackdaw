@@ -105,13 +105,47 @@ CLP_DATA      0-?               [int16_t arr]             [LE]         CLIP SAMP
 
 *********************************************************************************/
 
+/**************************** .JDAW VERSION 00.02 FILE SPEC ***********************************
+
+===========================================================================================================
+SCTN          LEN IN BYTES      TYPE                      BYTE ORDER   FIELD NAME OR VALUE
+===========================================================================================================
+HDR           4                 char[4]                                "JDAW"
+HDR           8                 char[8]                                " VERSION"
+HDR           5                 char[5]                                file spec version (e.g. "00.01")
+HDR           1                 uint8_t                                project name length
+HDR           0-255             char[]                                 project name
+HDR           1                 uint8_t                                channels
+HDR           4                 uint32_t                  LE           sample rate
+HDR           2                 uint16_t                  LE           chunk size (power of 2)
+HDR           2                 SDL_AudioFormat (16bit)                SDL Audio Format
+HDR           1                 uint8_t                                num tracks
+TRK_HDR       4                 char[4]                                "TRCK"
+TRK_HDR       1                 uint8_t                                track name length
+TRK_HDR       0-255             char[]                                 track name
+TRK_HDR       10                char[16] (from float)                  vol ctrl value
+TRK_HDR       10                char[16] (from float)                  pan ctrl value
+TRK_HDR       1                 bool                                   muted
+TRK_HDR       1                 bool                                   soloed
+TRK_HDR       1                 bool                                   solo muted
+TRK_HDR       1                 uint8_t                                num_clips
+CLP_HDR       4                 char[4]                                "CLIP"
+CLP_HDR       1                 uint8_t                                clip name length
+CLP_HDR       0-255             char[]                                 clip name
+CLP_HDR       4                 int32_t                   LE           absolute position (in timeline)
+CLP_HDR       4                 uint32_t                  LE           length (samples)
+CLP_HDR       4                 char[4]                                "data"
+CLP_DATA      0-?               [int16_t arr]             [LE]         CLIP SAMPLE DATA     
+
+*********************************************************************************/
+
 const static char hdr_jdaw[] = {'J', 'D', 'A', 'W'};
 const static char hdr_version[] = {' ', 'V', 'E', 'R', 'S', 'I', 'O', 'N'};
 const static char hdr_trk[] = {'T', 'R', 'C', 'K'};
 const static char hdr_clp[] = {'C', 'L', 'I', 'P'};
 const static char hdr_data[] = {'d', 'a', 't', 'a'};
 
-const static char current_file_spec_version[] = {'0', '0', '.', '0', '1'};
+const static char current_file_spec_version[] = {'0', '0', '.', '0', '2'};
 
 static void write_clip_to_jdaw(FILE *f, Clip *clip);
 static void write_track_to_jdaw(FILE *f, Track *track);
@@ -169,6 +203,7 @@ void write_track_to_jdaw(FILE *f, Track *track)
     /* Write mute and solo values */
     fwrite(&(track->muted), 1, 1, f);
     fwrite(&(track->solo), 1, 1, f);
+    fwrite(&(track->solo_muted), 1, 1, f);
 
 
     fwrite(&(track->num_clips), 1, 1, f);
@@ -312,6 +347,13 @@ static void read_track_from_jdaw(FILE *f, float file_spec_version, Track *track)
         }
         if (solo) {
             solo_track(track);
+        }
+        if (file_spec_version > 0.01) {
+            bool solo_muted = false;
+            fread(&solo_muted, 1, 1, f);
+            if (solo_muted) {
+                solo_mute_track(track);
+            }
         }
     }
 

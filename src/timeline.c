@@ -168,11 +168,12 @@ void rescale_timeline(double sfpp_scale_factor, int32_t center_abs_pos)
 
     int new_draw_pos = get_tl_draw_x(center_abs_pos);
     int offset_draw_delta = new_draw_pos - init_draw_pos;
-    if (offset_draw_delta < (-1 * get_tl_draw_w(proj->tl->offset))) {
-        proj->tl->offset = 0;
-    } else {
-        proj->tl->offset += (get_tl_abs_w(offset_draw_delta));
-    }
+    proj->tl->offset += (get_tl_abs_w(offset_draw_delta));
+    // if (offset_draw_delta < (-1 * get_tl_draw_w(proj->tl->offset))) {
+    //     proj->tl->offset = 0;
+    // } else {
+    //     proj->tl->offset += (get_tl_abs_w(offset_draw_delta));
+    // }
     Track *track = NULL;
     for (int i=0; i<proj->tl->num_tracks; i++) {
         track = proj->tl->tracks[i];

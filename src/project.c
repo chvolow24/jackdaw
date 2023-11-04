@@ -845,7 +845,7 @@ void solo_track(Track *track)
     }
 }
 
-static void solo_mute_track(Track *track)
+void solo_mute_track(Track *track)
 {
     track->solo = false;
     track->solo_muted = true;

@@ -189,7 +189,6 @@ void set_timecode()
         exit(1);
     }
 
-
     char sign = proj->tl->play_position < 0 ? '-' : '+';
     uint32_t abs_play_pos = abs(proj->tl->play_position);
     uint8_t seconds, minutes, hours;

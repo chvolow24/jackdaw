@@ -36,12 +36,12 @@
 #define SFPP_STEP 1.2 // Sample Frames Per Pixel
 #define CATCHUP_STEP (600 * scale_factor)
 
-uint32_t get_abs_tl_x(int draw_x);
+int32_t get_abs_tl_x(int draw_x);
 int32_t get_tl_abs_w(int draw_w);
-int get_tl_draw_x(uint32_t abs_x);
-int get_tl_draw_w(uint32_t abs_w);
+int get_tl_draw_x(int32_t abs_x);
+int get_tl_draw_w(int32_t abs_w);
 void translate_tl(int translate_by_x, int translate_by_y);
-void rescale_timeline(double scale_factor, uint32_t center_draw_position);
+void rescale_timeline(double scale_factor, int32_t center_draw_position);
 
 float get_leftmost_seconds(void);
 int get_second_w(void);

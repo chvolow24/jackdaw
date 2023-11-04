@@ -273,7 +273,7 @@ Project *create_project(const char* name, uint8_t channels, int sample_rate, SDL
     sprintf(project_window_name, "Jackdaw | %s", name);
     proj->jwin = create_jwin(project_window_name, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED-20, 900, 650);
 
-    tl->timecode_tb = create_textbox(0, 0, 0, 0, proj->jwin->mono_fonts[3], "00:00:00:00000", &white, NULL, &black, NULL, NULL, NULL, NULL, 0, true, false, CENTER);
+    tl->timecode_tb = create_textbox(0, 0, 0, 0, proj->jwin->mono_fonts[3], "+00:00:00:00000", &white, NULL, &black, NULL, NULL, NULL, NULL, 0, true, false, CENTER);
 
     proj->audio_out = NULL;
     activate_audio_devices(proj);
@@ -588,6 +588,7 @@ void reset_cliprect(Clip *clip)
         fprintf(stderr, "Fatal Error: need track to create clip. \n"); //TODO allow loose clip
         exit(1);
     }
+    // fprintf(stderr, "Clip Rect: %d, %d, %d, %d\n", clip->rect.x, clip->rect.y, clip->rect.w, clip->rect.h);
     clip->rect.x = get_tl_draw_x(clip->abs_pos_sframes);
     clip->rect.y = clip->track->rect.y + 4;
     clip->rect.w = get_tl_draw_w(clip->len_sframes);

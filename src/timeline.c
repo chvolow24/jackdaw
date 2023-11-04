@@ -40,19 +40,19 @@
 extern Project *proj;
 extern uint8_t scale_factor;
 
-int get_tl_draw_x(uint32_t abs_x);
+int get_tl_draw_x(int32_t abs_x);
 
 /* Get the timeline position value -- in sample frames -- from a draw x coordinate  */
-uint32_t get_abs_tl_x(int draw_x)
+int32_t get_abs_tl_x(int draw_x)
 {
     return (draw_x - proj->tl->audio_rect.x) * proj->tl->sample_frames_per_pixel + proj->tl->offset; 
 }
 
 /* Get the current draw x coordinate for a given timeline offset value (sample frames) */
-int get_tl_draw_x(uint32_t abs_x) 
+int get_tl_draw_x(int32_t abs_x) 
 {
     if (proj->tl->sample_frames_per_pixel != 0) {
-        float precise = (float) proj->tl->audio_rect.x + ((float) abs_x - (float) proj->tl->offset) / (float) proj->tl->sample_frames_per_pixel;
+        float precise = (float)proj->tl->audio_rect.x + ((float)abs_x - (float)proj->tl->offset) / (float)proj->tl->sample_frames_per_pixel;
         return (int) precise;
     } else {
         fprintf(stderr, "Error: proj tl sfpp value 0\n");
@@ -61,7 +61,7 @@ int get_tl_draw_x(uint32_t abs_x)
 }
 
 /* Get a draw width from a given length in sample frames */
-int get_tl_draw_w(uint32_t abs_w) 
+int get_tl_draw_w(int32_t abs_w) 
 {
     if (proj->tl->sample_frames_per_pixel != 0) {
         return abs_w / proj->tl->sample_frames_per_pixel;
@@ -104,11 +104,13 @@ void translate_tl(int translate_by_x, int translate_by_y)
         }
     } else {
         int32_t new_offset = proj->tl->offset + get_tl_abs_w(translate_by_x);
-        if (new_offset < 0) {
-            proj->tl->offset = 0;
-        } else {
-            proj->tl->offset = new_offset;
-        }
+        proj->tl->offset = new_offset;
+        // if (new_offset < 0) {
+        //     proj->tl->offset = 0;
+        // } else {
+        //     proj->tl->offset = new_offset;
+        // }
+        // fprintf(stderr, "Offset by: %d, new offset: %d\n", translate_by_x, new_offset);
         Track *track = NULL;
         for (int i=0; i<proj->tl->num_tracks; i++) {
             track = proj->tl->tracks[i];
@@ -146,7 +148,7 @@ int first_second_tick_x()
     return 1 - (get_second_w() * dec) + proj->tl->audio_rect.x;
 }
 
-void rescale_timeline(double sfpp_scale_factor, uint32_t center_abs_pos) 
+void rescale_timeline(double sfpp_scale_factor, int32_t center_abs_pos) 
 {
     if (sfpp_scale_factor == 0) {
         fprintf(stderr, "Warning! Scale factor 0 in rescale_timeline\n");
@@ -163,7 +165,6 @@ void rescale_timeline(double sfpp_scale_factor, uint32_t center_abs_pos)
     } else {
         proj->tl->sample_frames_per_pixel = new_sfpp;
     }
-    fprintf(stderr, "New sfpp f: %f, int: %d\n", new_sfpp, proj->tl->sample_frames_per_pixel);
 
     int new_draw_pos = get_tl_draw_x(center_abs_pos);
     int offset_draw_delta = new_draw_pos - init_draw_pos;
@@ -188,20 +189,23 @@ void set_timecode()
         exit(1);
     }
 
+
+    char sign = proj->tl->play_position < 0 ? '-' : '+';
+    uint32_t abs_play_pos = abs(proj->tl->play_position);
     uint8_t seconds, minutes, hours;
     uint32_t frames;
 
-    double total_seconds = (double) proj->tl->play_position / (double) proj->sample_rate;
+    double total_seconds = (double) abs_play_pos / (double) proj->sample_rate;
     hours = total_seconds / 3600;
     minutes = (total_seconds - 3600 * hours) / 60;
     seconds = total_seconds - (3600 * hours) - (60 * minutes);
-    frames = proj->tl->play_position - ((int) total_seconds * proj->sample_rate);
+    frames = abs_play_pos - ((int) total_seconds * proj->sample_rate);
 
     proj->tl->timecode.hours = hours;
     proj->tl->timecode.minutes = minutes;
     proj->tl->timecode.seconds = seconds;
     proj->tl->timecode.frames = frames;
-    sprintf(proj->tl->timecode.str, "%02d:%02d:%02d:%05d", hours, minutes, seconds, frames);
+    sprintf(proj->tl->timecode.str, "%c%02d:%02d:%02d:%05d", sign, hours, minutes, seconds, frames);
     reset_textbox_value(proj->tl->timecode_tb, proj->tl->timecode.str);
 
 

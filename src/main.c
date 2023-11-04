@@ -162,6 +162,9 @@ static void playback()
         start_device_playback();
         proj->playing = true;
     }
+    if (proj->play_speed != 0) {
+        set_timecode();
+    }
 }
 
 void stop_playback()
@@ -192,27 +195,22 @@ static void triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down)
             select_audio_out_menu((void *)proj);
         }
     } else if (SDL_PointInRect(mouse_p, &(proj->tl->rect))) {
-
         if (SDL_PointInRect(mouse_p, &(proj->tl->audio_rect))) {
             proj->tl->play_position = get_abs_tl_x(mouse_p->x);
+            set_timecode();
         }
         for (int i=0; i<proj->tl->num_tracks; i++) {
             Track *track;
             if ((track = proj->tl->tracks[i])) {
-
                 if (SDL_PointInRect(mouse_p, &(track->rect))) {
                     if (SDL_PointInRect(mouse_p, &(track->name_box->container))) {
-                        fprintf(stderr, "\t-> mouse in namebox\n");
                         track->name_box->onclick(track->name_box, (void *)track);
                     } else if (SDL_PointInRect(mouse_p, &(track->input_name_box->container))) {
                         select_track_input_menu((void *)track);
                     } else if (cmd_ctrl_down) {
-
                         for (uint8_t c=0; c<track->num_clips; c++) {
                             Clip* clip = track->clips[c];
-
                             if (SDL_PointInRect(mouse_p, &(clip->namebox->container))) {
-
                                 edit_textbox(clip->namebox, draw_project, proj);
                             }
                             if (SDL_PointInRect(mouse_p, &(clip->rect))) {
@@ -580,6 +578,9 @@ static void project_loop()
                             translate_by = get_tl_abs_w(ARROW_TL_STEP) * -1;
                         }
                         proj->tl->play_position += translate_by;
+                        if (proj->tl->play_position < 0) { //TODO: allow space for negative tl pos in all modules.
+                            proj->tl->play_position = 0;
+                        }
                         translate_grabbed_clips(translate_by);
                     }
                         break;
@@ -711,7 +712,6 @@ static void project_loop()
         draw_project(proj);
         draw_jwin_menus(proj->jwin);
         SDL_RenderPresent(proj->jwin->rend);
-        set_timecode();
         SDL_Delay(animation_delay);
     }
 }

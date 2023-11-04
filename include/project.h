@@ -129,17 +129,17 @@ typedef struct timecode {
 	uint8_t seconds;
 	uint8_t milliseconds;
 	uint32_t frames;
-	char str[15]; // e.g. "00:00:00:96000"
+	char str[16]; // e.g. "+00:00:00:96000"
 } Timecode;
 
 /* The project timeline organizes included tracks and specifies how they should be displayed */
 typedef struct timeline {
-		uint32_t play_position; // in sample frames
+		int32_t play_position; // in sample frames
 		// uint32_t record_position; // in sample frames
-		uint32_t record_offset;
-		uint32_t play_offset;
-		uint32_t in_mark;
-		uint32_t out_mark;
+		int32_t record_offset;
+		int32_t play_offset;
+		int32_t in_mark;
+		int32_t out_mark;
 		pthread_mutex_t play_position_lock;
 		Track *tracks[MAX_TRACKS];
 		uint8_t num_tracks;
@@ -156,7 +156,7 @@ typedef struct timeline {
 		SDL_Rect ruler_tc_container_rect;
 		SDL_Rect ruler_rect;
 		SDL_Rect tc_rect;
-		uint32_t offset; // in samples frames
+		int32_t offset; // in samples frames
 		int sample_frames_per_pixel;
 		// int console_width;
 		int v_offset;

@@ -41,7 +41,7 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
     echo "Installing for MacOS..."
     brew install sdl2
     brew install sdl2_ttf
-else  echo "Operating system not recognized. Exiting."; exit;
+else  echo "Jackdaw is currently available for MacOS and GNU Linux only."; exit;
 fi
 
 echo -e "\n\nDone installing dependencies. Building project..."

@@ -64,7 +64,7 @@ void destroy_audio_device(AudioDevice *device);
 const char *get_audio_fmt_str(SDL_AudioFormat fmt);
 void write_mixdown_to_wav();
 
-void *copy_buff_to_clip(void* arg);
+void *copy_device_buff_to_clip(void* arg);
 
 
 #endif

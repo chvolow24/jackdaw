@@ -330,7 +330,7 @@ static void stop_recording()
             fprintf(stderr, "Error: active clip not found at index %d\n", i);
             exit(1);
         }
-        copy_buff_to_clip(clip); //TODO: consider whether this needs to be multi-threaded.
+        copy_device_buff_to_clip(clip); //TODO: consider whether this needs to be multi-threaded.
         reposition_clip(clip, clip->abs_pos_sframes - proj->tl->record_offset);
     }
     for (uint8_t i=0; i<proj->num_record_devices; i++) {
@@ -749,7 +749,7 @@ int main()
 
 
     fprintf(stdout, "Loop starts now\n");
-
+    load_wav_to_track(proj->tl->tracks[0], "tce.wav");
     project_loop();
 
     SDL_Quit();

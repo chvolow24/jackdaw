@@ -654,8 +654,9 @@ void draw_project(Project *proj)
     const static char *bottom_text = "Jackdaw | by Charlie Volow";
     set_rend_color(proj->jwin->rend, &bckgrnd_color);
     SDL_RenderClear(proj->jwin->rend);
-    draw_hamburger(proj);
 
+
+    draw_hamburger(proj);
 
     /* Draw the timeline */
     set_rend_color(proj->jwin->rend, &tl_bckgrnd);
@@ -677,6 +678,7 @@ void draw_project(Project *proj)
     SDL_RenderFillRect(proj->jwin->rend, &(proj->tl->ruler_tc_container_rect));
     draw_ruler();
     draw_tc();
+    set_rend_color(proj->jwin->rend, &bckgrnd_color);
     SDL_Rect top_mask = {0, 0, proj->jwin->w, proj->tl->rect.y};
     SDL_RenderFillRect(proj->jwin->rend, &top_mask);
     SDL_Rect mask_left = {0, 0, proj->tl->rect.x, proj->jwin->h};
@@ -760,9 +762,9 @@ void draw_project(Project *proj)
     int title_w = 0;
     int title_h = 0;
     set_rend_color(proj->jwin->rend, &bckgrnd_color);
+    TTF_SizeUTF8(proj->jwin->fonts[1], bottom_text, &title_w, &title_h);
     SDL_Rect title_rect = {0, proj->jwin->h - 24 * scale_factor, proj->jwin->w, 24 * scale_factor};
     SDL_RenderFillRect(proj->jwin->rend, &title_rect);
-    SDL_Rect title_text_rect = {(proj->jwin->w - title_w) / 2, title_rect.y, title_w, title_h};
+    SDL_Rect title_text_rect = {proj->jwin->w / 2 - (title_w / 2), title_rect.y, title_w, title_h};
     write_text(proj->jwin->rend, &title_text_rect, proj->jwin->fonts[1], &txt_soft, bottom_text, true);
-    TTF_SizeUTF8(proj->jwin->fonts[1], bottom_text, &title_w, &title_h);
 }

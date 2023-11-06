@@ -548,14 +548,11 @@ void menulist_hover(JDAWWindow *jwin, SDL_Point *mouse_p)
 /* Run this in every JDAWWindow animation loop to ensure active menu click events are run */
 bool triage_menulist_mouseclick(JDAWWindow *jwin, SDL_Point *mouse_p)
 {
-    fprintf(stderr, "Mouse click. Active menues: %d\n", jwin->num_active_menus);
     for (uint8_t i=0; i<jwin->num_active_menus; i++) {
-        fprintf(stderr, "\tmenu %d\n", i);
 
         TextboxList *menu = jwin->active_menus[i];
         if (SDL_PointInRect(mouse_p, &(menu->container))) {
             for (uint8_t j=0; j<menu->num_textboxes; j++) {
-                fprintf(stderr, "\titem %d\n", j);
 
                 Textbox *tb = menu->textboxes[j];
                 if (SDL_PointInRect(mouse_p, &(tb->container)) && tb->available) {

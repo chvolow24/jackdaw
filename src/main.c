@@ -203,10 +203,15 @@ static void triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down)
             Track *track;
             if ((track = proj->tl->tracks[i])) {
                 if (SDL_PointInRect(mouse_p, &(track->rect))) {
-                    if (SDL_PointInRect(mouse_p, &(track->name_box->container))) {
-                        track->name_box->onclick(track->name_box, (void *)track);
-                    } else if (SDL_PointInRect(mouse_p, &(track->input_name_box->container))) {
-                        select_track_input_menu((void *)track);
+                    Textbox *tb = NULL;
+                    if (SDL_PointInRect(mouse_p, &((tb = track->name_box)->container))) {
+                        tb->onclick(tb, tb->target);
+                    } else if (SDL_PointInRect(mouse_p, &((tb = track->input_name_box)->container))) {
+                        tb->onclick(tb, tb->target);
+                    } else if (SDL_PointInRect(mouse_p, &((tb = track->mute_button_box)->container))) {
+                        tb->onclick(tb, tb->target);
+                    } else if (SDL_PointInRect(mouse_p, &((tb = track->solo_button_box)->container))) {
+                        tb->onclick(tb, tb->target);
                     } else if (cmd_ctrl_down) {
                         for (uint8_t c=0; c<track->num_clips; c++) {
                             Clip* clip = track->clips[c];

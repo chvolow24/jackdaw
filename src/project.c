@@ -324,6 +324,9 @@ Project *create_project(const char* name, uint8_t channels, int sample_rate, SDL
     return proj;
 }
 
+
+static void click_mute_unmute_track(Textbox *tb, void *track_v);
+static void click_solo_unsolo_track(Textbox *tb, void *track_v);
 /* Create a new track, initialize some UI members */
 Track *create_track(Timeline *tl, bool stereo)
 {
@@ -481,8 +484,8 @@ Track *create_track(Timeline *tl, bool stereo)
         NULL,
         &black,
         &unmuted_bckgrnd,
-        NULL,
-        NULL,
+        click_mute_unmute_track,
+        track,
         NULL,
         NULL,
         5 * scale_factor,
@@ -500,8 +503,8 @@ Track *create_track(Timeline *tl, bool stereo)
         NULL,
         &black,
         &unmuted_bckgrnd,
-        NULL,
-        NULL,
+        click_solo_unsolo_track,
+        track,
         NULL,
         NULL,
         5 * scale_factor,
@@ -859,6 +862,50 @@ static void unsolo_track(Track *track)
     track->solo = false;
     track->solo_muted = false;
     track->solo_button_box->bckgrnd_color = &unmuted_bckgrnd;
+}
+
+static void click_mute_unmute_track(Textbox *tb, void *track_v)
+{
+
+    Track *track = (Track *)track_v;
+    if (track->muted) {
+        unmute_track(track);
+    } else {
+        mute_track(track);
+    }
+}
+static void click_solo_unsolo_track(Textbox *tb, void *track_v)
+{
+    Track *track = (Track *)track_v;
+    bool some_solo = false;
+    if (!(track->solo)) {
+        unmute_track(track);
+        solo_track(track);
+        some_solo = true;
+    } else {
+        unsolo_track(track);
+        for (uint8_t i=0; i<proj->tl->num_tracks; i++) {
+            if (proj->tl->tracks[i]->solo) {
+                some_solo = true;
+                break;
+            }
+        }
+    }
+    if (some_solo) {
+        for (uint8_t i=0; i<proj->tl->num_tracks; i++) {
+            Track *track = proj->tl->tracks[i];
+            if (!(track->solo)) {
+                solo_mute_track(track);
+            }
+        }
+    } else {
+        for (uint8_t i=0; i<proj->tl->num_tracks; i++) {
+            Track *track = proj->tl->tracks[i];
+            if (!(track->solo)) {
+                unsolo_track(track);
+            }
+        } 
+    }
 }
 
 void mute_unmute()

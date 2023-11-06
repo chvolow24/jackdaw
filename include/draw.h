@@ -34,7 +34,7 @@
 #include "theme.h"
 
 /* Draw a project window, incl timeline, tracks, clips, etc. Does not include GUI menus */
-void draw_project(Project *proj);
+void *draw_project(void *proj_v);
 // void set_rend_color(SDL_Renderer *rend, JDAW_Color *color);
 // void draw_textbox_list(SDL_Renderer *rend, TextboxList *tbl);
 // void draw_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad);

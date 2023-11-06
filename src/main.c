@@ -188,10 +188,12 @@ static void triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down)
     /* DNE! */
     //fprintf(stderr, "Mouse xy: %d,%d. audio out cont xrange: %d, %d, yrange %d, %d\n", mouse_p->x, mouse_p->y, proj->audio_out->container.x, proj->audio_out->container.x + proj->audio_out->container.w, proj->audio_out->container.y, proj->audio_out->container.y + proj->audio_out->container.w);
 
+    Textbox *tb = NULL;
     if (SDL_PointInRect(mouse_p, &(proj->ctrl_rect))) {
     
-        if (SDL_PointInRect(mouse_p, &(proj->audio_out->container))) {
-            select_audio_out_menu((void *)proj);
+        if (SDL_PointInRect(mouse_p, &((tb = proj->audio_out)->container))) {
+            tb->onclick(tb, tb->target);
+            // select_audio_out_menu((void *)proj);
         }
     } else if (SDL_PointInRect(mouse_p, &(proj->tl->rect))) {
         if (SDL_PointInRect(mouse_p, &(proj->tl->audio_rect))) {
@@ -202,7 +204,7 @@ static void triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down)
             Track *track;
             if ((track = proj->tl->tracks[i])) {
                 if (SDL_PointInRect(mouse_p, &(track->rect))) {
-                    Textbox *tb = NULL;
+                    // Textbox *tb = NULL;
                     if (SDL_PointInRect(mouse_p, &((tb = track->name_box)->container))) {
                         tb->onclick(tb, tb->target);
                     } else if (SDL_PointInRect(mouse_p, &((tb = track->input_name_box)->container))) {
@@ -215,13 +217,11 @@ static void triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down)
                         for (uint8_t c=0; c<track->num_clips; c++) {
                             Clip* clip = track->clips[c];
                             if (SDL_PointInRect(mouse_p, &(clip->namebox->container))) {
-                                
                                 edit_textbox(clip->namebox, draw_project, proj);
                             }
                             if (SDL_PointInRect(mouse_p, &(clip->rect))) {
                                 grab_ungrab_clip(clip);
                             }
-
                         }
                     }
                 }

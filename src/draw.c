@@ -648,9 +648,9 @@ void draw_ruler()
     }    
 }
 
-void draw_project(Project *proj)
+void *draw_project(void *proj_v)
 {
-
+    Project *proj = (Project *)proj_v;
     const static char *bottom_text = "Jackdaw | by Charlie Volow";
     set_rend_color(proj->jwin->rend, &bckgrnd_color);
     SDL_RenderClear(proj->jwin->rend);
@@ -767,4 +767,5 @@ void draw_project(Project *proj)
     SDL_RenderFillRect(proj->jwin->rend, &title_rect);
     SDL_Rect title_text_rect = {proj->jwin->w / 2 - (title_w / 2), title_rect.y, title_w, title_h};
     write_text(proj->jwin->rend, &title_text_rect, proj->jwin->fonts[1], &txt_soft, bottom_text, true);
+    return NULL;
 }

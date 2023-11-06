@@ -99,7 +99,7 @@ static void select_track_input(Textbox *tb, void *track_v)
     }
 }
 
-void select_track_input_menu(Textbox *tb, void *track_v)
+static void select_track_input_menu(Textbox *tb, void *track_v)
 {
     Track *track = (Track *)track_v;
     MenulistItem *device_mlitems[proj->num_record_devices];
@@ -138,7 +138,7 @@ void select_audio_out(Textbox *tb, void *proj_v)
     }
 }
 
-void select_audio_out_menu(void *proj_v)
+static void select_audio_out_menu(Textbox *tb, void *proj_v)
 {
     Project *proj = (Project *)proj_v;
     MenulistItem *device_mlitems[proj->num_playback_devices];
@@ -308,7 +308,7 @@ Project *create_project(const char* name, uint8_t channels, int sample_rate, SDL
         NULL,
         NULL,
         NULL,
-        select_audio_out,
+        select_audio_out_menu,
         proj,
         NULL,
         NULL,

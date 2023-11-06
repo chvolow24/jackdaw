@@ -112,9 +112,6 @@ void write_wav(const char *fname, int16_t *samples, uint32_t num_samples, uint16
 }
 
 void load_wav_to_track(Track *track, const char *filename) {
-    SDL_AudioFormat dst_fmt = proj->fmt;
-    SDL_AudioFormat src_fmt;
-
     SDL_AudioSpec wav_spec;
     uint8_t* audio_buf = NULL;
     uint32_t audio_len_bytes = 0;

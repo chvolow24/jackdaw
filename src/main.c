@@ -191,7 +191,6 @@ static void triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down)
     if (SDL_PointInRect(mouse_p, &(proj->ctrl_rect))) {
     
         if (SDL_PointInRect(mouse_p, &(proj->audio_out->container))) {
-            fprintf(stderr, "IN THE CONTAINER!\n");
             select_audio_out_menu((void *)proj);
         }
     } else if (SDL_PointInRect(mouse_p, &(proj->tl->rect))) {
@@ -216,6 +215,7 @@ static void triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down)
                         for (uint8_t c=0; c<track->num_clips; c++) {
                             Clip* clip = track->clips[c];
                             if (SDL_PointInRect(mouse_p, &(clip->namebox->container))) {
+                                
                                 edit_textbox(clip->namebox, draw_project, proj);
                             }
                             if (SDL_PointInRect(mouse_p, &(clip->rect))) {

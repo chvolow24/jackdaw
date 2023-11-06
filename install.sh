@@ -1,4 +1,5 @@
 #! /bin/bash
+# set -e
 install_dir=$(pwd)
 echo -e "\n\nJackdaw depends on the SDL2 and SDL2 TTF libraries."
 echo "More information about SDL can be found at https://www.libsdl.org/"
@@ -39,6 +40,10 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     sudo apt-get install libsdl2-ttf-dev
 elif [[ "$OSTYPE" == "darwin"* ]]; then
     echo "Installing for MacOS..."
+    if ! command -v brew; then
+        echo "Installing homebrew..."
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    fi
     brew install sdl2
     brew install sdl2_ttf
 else  echo "Jackdaw is currently available for MacOS and GNU Linux only."; exit;
@@ -50,6 +55,10 @@ if [[ ! -d "build" ]]; then
     mkdir build
 fi
 make
+if [[ $? != 0 ]]; then
+    echo -e "\nError building project. Try 'git pull' and then run this script again.\n"
+    exit 1
+fi
 echo -e "\n\nInstalling executable at /usr/local/bin/jackdaw..."
 if [[ ! -d "/usr/local/bin" ]]; then
     sudo mkdir -p /usr/local/bin
@@ -57,6 +66,10 @@ fi
 
 sudo mv jackdaw /usr/local/bin
 
+if [[ $? != 0 ]]; then
+    echo -e "\nError moving the 'jackdaw' executable to /usr/local/bin.\n"
+    exit 1
+fi
 if ! grep -q 'export PATH="/usr/local/bin:$PATH"' ~/.bashrc; then
     echo -e "Adding install dir to PATH in ~/.bashrc..."
     echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.bashrc

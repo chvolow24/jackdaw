@@ -98,7 +98,7 @@ typedef struct transition_loop_arg {
 static void *transition_loop(void *arg)
 {
     TransitionLoopArg *arg2 = (TransitionLoopArg *)arg;
-    ClipBoundary **boundaries = arg2->boundaries;
+    // ClipBoundary **boundaries = arg2->boundaries;
     uint8_t num_boundaries = arg2->num_boundaries;
     Textbox *entry = arg2->entry;
 
@@ -131,6 +131,7 @@ static void *transition_loop(void *arg)
     draw_textbox(proj->jwin->rend, entry);
     // SDL_RenderPresent(proj->jwin->rend);
     // }
+    return NULL;
 }
 
 void add_transition()
@@ -138,14 +139,11 @@ void add_transition()
     ClipBoundary **boundaries = malloc(sizeof(ClipBoundary*) * MAX_BOUNDARIES);
     uint8_t num_boundaries = get_clip_boundaries(boundaries);
     uint32_t boundary_length_sframes;
-    double transition_loop_length = 0;
     if (num_boundaries > 0) {
         fprintf(stderr, "Found %d boundaries.\n", num_boundaries);
         for (uint8_t i=0; i<num_boundaries; i++) {
             fprintf(stderr, "\tClip named %s --- left? %d\n", boundaries[i]->clip->name, boundaries[i]->left);
         }
-
-        double transition_length = 0;
         char value_str[50];
         value_str[0] = '\0';
         Textbox *entry = create_textbox(0, 0, 10, 10, proj->jwin->bold_fonts[3], value_str, &white, &clear, &clear, NULL, NULL, NULL, NULL, 0, true, false, BOTTOM_LEFT);

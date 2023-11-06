@@ -383,23 +383,23 @@ static void draw_menu_list(SDL_Renderer *rend, TextboxList *tbl)
     }
 }
 
-static void draw_textbox_list(SDL_Renderer *rend, TextboxList *tbl)
-{
-    // fprintf(stderr, "container: %d, %d, %d, %d\n", tbl->container.x, tbl->container.y, tbl->container.w, tbl->container.h);
-    set_rend_color(rend, tbl->bckgrnd_color);
-    if (tbl->radius == 0) {
-        SDL_RenderFillRect(rend, &(tbl->container));
-        set_rend_color(rend, tbl->border_color);
-        SDL_RenderDrawRect(rend, &(tbl->container));
-        // fprintf(stderr, "Container I'm drawing: %d, %d, %d, %d", tbl->container.x, tbl->container.y, tbl->container.w, tbl->container.h);
-    } else {
-        fill_rounded_rect(rend, &(tbl->container), tbl->radius);
-        //TODO: Empty rounded rect border
-    }
-    for (uint8_t i=0; i<tbl->num_textboxes; i++) {
-        draw_textbox(rend, tbl->textboxes[i]);
-    }
-}
+// static void draw_textbox_list(SDL_Renderer *rend, TextboxList *tbl)
+// {
+//     // fprintf(stderr, "container: %d, %d, %d, %d\n", tbl->container.x, tbl->container.y, tbl->container.w, tbl->container.h);
+//     set_rend_color(rend, tbl->bckgrnd_color);
+//     if (tbl->radius == 0) {
+//         SDL_RenderFillRect(rend, &(tbl->container));
+//         set_rend_color(rend, tbl->border_color);
+//         SDL_RenderDrawRect(rend, &(tbl->container));
+//         // fprintf(stderr, "Container I'm drawing: %d, %d, %d, %d", tbl->container.x, tbl->container.y, tbl->container.w, tbl->container.h);
+//     } else {
+//         fill_rounded_rect(rend, &(tbl->container), tbl->radius);
+//         //TODO: Empty rounded rect border
+//     }
+//     for (uint8_t i=0; i<tbl->num_textboxes; i++) {
+//         draw_textbox(rend, tbl->textboxes[i]);
+//     }
+// }
 
 
 
@@ -475,7 +475,7 @@ void draw_waveform(Clip *clip)
             if (wav_x > proj->tl->audio_rect.x && wav_x < proj->tl->audio_rect.x + proj->tl->audio_rect.w) {
                 sample_l = (clip->post_proc)[i];
                 sample_r = (clip->post_proc[i+1]);
-                int j=0;
+                // int j=0;
                 // while (j<proj->tl->sample_frames_per_pixel) {
                 //     if (abs((clip->post_proc)[i]) > abs(sample_l) && (clip->post_proc)[i] / abs((clip->post_proc)[i]) == sample_l < 0 ? -1 : 1) {
                 //         sample_l = (clip->post_proc)[i];

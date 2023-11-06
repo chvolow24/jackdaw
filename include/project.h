@@ -210,7 +210,6 @@ Clip *create_clip(Track *track, uint32_t len_sframes, uint32_t absolute_position
 void destroy_clip(Clip *clip);
 void destroy_track(Track *track);
 void reset_tl_rect(Timeline *tl);
-void select_track_input_menu(void *track_v);
 void select_audio_out_menu(void *proj_v);
 
 void activate_or_deactivate_track(uint8_t track_index);

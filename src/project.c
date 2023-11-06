@@ -84,7 +84,7 @@ void rename_track(Textbox *tb, void *track_v)
     track->name_box->show_cursor = false;
 }
 
-void select_track_input(Textbox *tb, void *track_v)
+static void select_track_input(Textbox *tb, void *track_v)
 {
     fprintf(stderr, "SELECT track input on %p. Clicked value: %s\n", track_v, tb->value);
     Track *track = (Track *)track_v;
@@ -99,7 +99,7 @@ void select_track_input(Textbox *tb, void *track_v)
     }
 }
 
-void select_track_input_menu(void *track_v)
+void select_track_input_menu(Textbox *tb, void *track_v)
 {
     Track *track = (Track *)track_v;
     MenulistItem *device_mlitems[proj->num_record_devices];
@@ -426,7 +426,7 @@ Track *create_track(Timeline *tl, bool stereo)
         NULL,
         &tl_bckgrnd,
         NULL,
-        select_track_input,
+        select_track_input_menu,
         track,
         NULL,
         NULL,

@@ -13,8 +13,7 @@ cmd + t ............................create new track
 d ..................................delete last track
 
 1, 2...9 ...........................select or deselect track
-` ..................................deactivate all tracks
-~ ..................................activate all tracks
+` ..................................activate or deactivate all tracks
 m ..................................mute or unmute selected tracks
 s ..................................solo or unsolo selected tracks
 

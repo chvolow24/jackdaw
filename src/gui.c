@@ -218,7 +218,7 @@ Textbox *create_textbox(
     };
     tb->txt_container.w = txtw;
     tb->txt_container.h = txth;
-    bool test = (fixed_w);
+    // bool test = (fixed_w);
     strcpy(tb->display_value, tb->value);
     if (fixed_w != 0) {
         tb->container.w = fixed_w;

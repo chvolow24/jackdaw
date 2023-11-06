@@ -330,7 +330,7 @@ static void stop_recording()
             fprintf(stderr, "Error: active clip not found at index %d\n", i);
             exit(1);
         }
-        copy_buff_to_clip(clip); //TODO: consider whether this needs to be multi-threaded.
+        copy_device_buff_to_clip(clip); //TODO: consider whether this needs to be multi-threaded.
         reposition_clip(clip, clip->abs_pos_sframes - proj->tl->record_offset);
     }
     for (uint8_t i=0; i<proj->num_record_devices; i++) {
@@ -724,8 +724,25 @@ static char *get_home_dir()
     return pw->pw_dir;
 }
 
-int main()
+int main(int argc, char **argv)
 {
+    char *file_to_open = NULL;
+    bool invoke_open_wav_file = false;
+    bool invoke_open_jdaw_file = false;
+    if (argc > 2) {
+        exit(1);
+    } else if (argc == 2) {
+        file_to_open = argv[1];
+        int dotpos = strcspn(file_to_open, ".");
+        char *ext = file_to_open + dotpos + 1;
+        if (strcmp("wav", ext) * strcmp("WAV", ext) == 0) {
+            fprintf(stderr, "Passed WAV file.\n");
+            invoke_open_wav_file = true;
+        } else if (strcmp("jdaw", ext) * strcmp("JDAW", ext) == 0) {
+            fprintf(stderr, "Passed JDAW file.\n");
+            invoke_open_jdaw_file = true;
+        }
+    }
     get_native_byte_order();
     signal_init();
     home_dir = get_home_dir();
@@ -738,6 +755,7 @@ int main()
     // new_project_loop(new_project);
 
     fprintf(stdout, "Opening project\n");
+
     if ((proj = open_jdaw_file("project.jdaw")) == NULL) {
         fprintf(stderr, "Creating new project\n");
         proj = create_project("Untitled", 2, 48000, AUDIO_S16SYS, 512);
@@ -749,7 +767,9 @@ int main()
 
 
     fprintf(stdout, "Loop starts now\n");
-
+    if (invoke_open_wav_file) {
+        load_wav_to_track(proj->tl->tracks[0], file_to_open);
+    }
     project_loop();
 
     SDL_Quit();

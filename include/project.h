@@ -206,7 +206,7 @@ int16_t *get_mixdown_chunk(Timeline* tl, uint32_t length, bool from_mark_in);
 Project *create_empty_project(void);
 Project *create_project(const char* name, uint8_t channels, int sample_rate, SDL_AudioFormat fmt, uint16_t chunk_size);
 Track *create_track(Timeline *tl, bool stereo);
-Clip *create_clip(Track *track, uint32_t length, uint32_t absolute_position);
+Clip *create_clip(Track *track, uint32_t len_sframes, uint32_t absolute_position);
 void destroy_clip(Clip *clip);
 void destroy_track(Track *track);
 void reset_tl_rect(Timeline *tl);

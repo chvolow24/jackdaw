@@ -172,7 +172,7 @@ void stop_device_playback()
     proj->tl->play_offset = 0;
 }
 
-void *copy_buff_to_clip(void* arg)
+void *copy_device_buff_to_clip(void* arg)
 {
     fprintf(stderr, "Enter copy_buff_to_clip\n");
     Clip *clip = (Clip *)arg;

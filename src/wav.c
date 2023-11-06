@@ -53,6 +53,7 @@ Positions	Sample Value	    Description
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include "SDL.h"
 #include "audio.h"
 #include "project.h"
 
@@ -108,5 +109,73 @@ void write_wav(const char *fname, int16_t *samples, uint32_t num_samples, uint16
         fwrite(samples, bits_per_sample / 8, num_samples, f);
     }
     fprintf(stderr, "/t-> Done writing wav.\n");
+}
 
+void load_wav_to_track(Track *track, const char *filename) {
+    SDL_AudioFormat dst_fmt = proj->fmt;
+    SDL_AudioFormat src_fmt;
+
+    SDL_AudioSpec wav_spec;
+    uint8_t* audio_buf = NULL;
+    uint32_t audio_len_bytes = 0;
+
+    // SDL_AudioSpec* SDL_LoadWAV(const char*    file,
+    //                        SDL_AudioSpec* spec,
+    //                        Uint8**        audio_buf,
+    //                        Uint32*        audio_len)
+
+    if (!(SDL_LoadWAV(filename, &wav_spec, &audio_buf, &audio_len_bytes))) {
+        fprintf(stderr, "Error loading wav %s: %s", filename, SDL_GetError());
+        return;
+    }
+    fprintf(stderr, "Success loading wav %s\n", filename);
+    fprintf(stderr, "Format = %s\n", get_audio_fmt_str(wav_spec.format));
+
+    // int SDL_BuildAudioCVT(SDL_AudioCVT * cvt,
+    //                   SDL_AudioFormat src_format,
+    //                   Uint8 src_channels,
+    //                   int src_rate,
+    //                   SDL_AudioFormat dst_format,
+    //                   Uint8 dst_channels,
+    //                   int dst_rate);
+
+    SDL_AudioCVT wav_cvt;
+    int ret = SDL_BuildAudioCVT(&wav_cvt, wav_spec.format, wav_spec.channels, wav_spec.freq, proj->fmt, proj->channels, proj->sample_rate);
+    if (ret < 0) {
+        fprintf(stderr, "Error: unable to build SDL_AudioCVT. %s\n", SDL_GetError());
+        return;
+    } else if (ret == 1) { // Needs converstion
+        fprintf(stderr, "Converting. Len mult: %d\n", wav_cvt.len_mult);
+        wav_cvt.needed = 1;
+        wav_cvt.len = audio_len_bytes;
+        wav_cvt.buf = malloc(audio_len_bytes * wav_cvt.len_mult);
+        memcpy(wav_cvt.buf, audio_buf, audio_len_bytes);
+        if (SDL_ConvertAudio(&wav_cvt) < 0) {
+            fprintf(stderr, "Error: Unable to convert audio. %s\n", SDL_GetError());
+            return;
+        }
+        audio_len_bytes *= wav_cvt.len_ratio;
+    } else if (ret == 0) { // No converstion needed
+        fprintf(stderr, "No conversion needed. copying directly to track.\n");
+        wav_cvt.buf = malloc(audio_len_bytes);
+        memcpy(wav_cvt.buf, audio_buf, audio_len_bytes);
+    } else {
+        fprintf(stderr, "Error: unexpected return value for SDL_BuildAudioCVT.\n");
+        return;
+    }
+
+    Clip *clip = create_clip(track, audio_len_bytes / 2 / track->channels, proj->tl->play_position);
+    // clip->len_sframes = audio_len_bytes / 2 / track->channels;
+
+    clip->pre_proc = malloc(sizeof(int16_t) * clip->len_sframes * clip->channels);
+    clip->post_proc = malloc(sizeof(int16_t) * clip->len_sframes * clip->channels);
+    if (!clip->post_proc || !clip->pre_proc) {
+        fprintf(stderr, "Error: unable to allocate space for clip samples\n");
+        return;
+    }
+
+    fprintf(stderr, "memcpying %d bytes to clip.\n", audio_len_bytes);
+    memcpy(clip->pre_proc, wav_cvt.buf, audio_len_bytes);
+    memcpy(clip->post_proc, wav_cvt.buf, audio_len_bytes);
+    clip->done = true;
 }

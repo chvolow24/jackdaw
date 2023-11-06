@@ -49,7 +49,7 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
 else  echo "Jackdaw is currently available for MacOS and GNU Linux only."; exit;
 fi
 
-echo -e "\n\nDone installing dependencies. Building project..."
+echo -e "\nDone installing dependencies. Building project..."
 cd $install_dir
 if [[ ! -d "build" ]]; then
     mkdir build
@@ -59,9 +59,13 @@ if [[ $? != 0 ]]; then
     echo -e "\nError building project. Try 'git pull' and then run this script again.\n"
     exit 1
 fi
-echo -e "\n\nInstalling executable at /usr/local/bin/jackdaw..."
+echo -e "\nInstalling executable at /usr/local/bin/jackdaw..."
 if [[ ! -d "/usr/local/bin" ]]; then
     sudo mkdir -p /usr/local/bin
+    if [[ $? != 0 ]]; then
+        echo -e "\nError creating /usr/local/bin directory.\n"
+        exit 1
+    fi
 fi
 
 sudo mv jackdaw /usr/local/bin
@@ -82,4 +86,4 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 fi
 export PATH="/usr/local/bin:$PATH"
 
-echo -e "\n\nDone! Run the program by typing 'jackdaw' on the command line in a bash or zsh terminal."
+echo -e "\nDone! Run the program by typing 'jackdaw' on the command line in a bash or zsh terminal.\n"

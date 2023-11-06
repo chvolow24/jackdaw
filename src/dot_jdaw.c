@@ -139,13 +139,49 @@ CLP_DATA      0-?               [int16_t arr]             [LE]         CLIP SAMP
 
 *********************************************************************************/
 
+/**************************** .JDAW VERSION 00.03 FILE SPEC ***********************************
+
+===========================================================================================================
+SCTN          LEN IN BYTES      TYPE                      BYTE ORDER   FIELD NAME OR VALUE
+===========================================================================================================
+HDR           4                 char[4]                                "JDAW"
+HDR           8                 char[8]                                " VERSION"
+HDR           5                 char[5]                                file spec version (e.g. "00.01")
+HDR           1                 uint8_t                                project name length
+HDR           0-255             char[]                                 project name
+HDR           1                 uint8_t                                channels
+HDR           4                 uint32_t                  LE           sample rate
+HDR           2                 uint16_t                  LE           chunk size (power of 2)
+HDR           2                 SDL_AudioFormat (16bit)                SDL Audio Format
+HDR           1                 uint8_t                                num tracks
+TRK_HDR       4                 char[4]                                "TRCK"
+TRK_HDR       1                 uint8_t                                track name length
+TRK_HDR       0-255             char[]                                 track name
+TRK_HDR       10                char[16] (from float)                  vol ctrl value
+TRK_HDR       10                char[16] (from float)                  pan ctrl value
+TRK_HDR       1                 bool                                   muted
+TRK_HDR       1                 bool                                   soloed
+TRK_HDR       1                 bool                                   solo muted
+TRK_HDR       1                 uint8_t                                num_clips
+CLP_HDR       4                 char[4]                                "CLIP"
+CLP_HDR       1                 uint8_t                                clip name length
+CLP_HDR       0-255             char[]                                 clip name
+CLP_HDR       4                 int32_t                   LE           absolute position (in timeline)
+CLP_HDR       4                 uint32_t                  LE           length (sframes)
+CLP_HDR      4                 uint32_t                  LE           clip start ramp len (sframes)
+CLP_HDR      4                 uint32_t                  LE           clip end ramp len (sframes)
+CLP_HDR       4                 char[4]                                "data"
+CLP_DATA      0-?               [int16_t arr]             [LE]         CLIP SAMPLE DATA     
+
+*********************************************************************************/
+
 const static char hdr_jdaw[] = {'J', 'D', 'A', 'W'};
 const static char hdr_version[] = {' ', 'V', 'E', 'R', 'S', 'I', 'O', 'N'};
 const static char hdr_trk[] = {'T', 'R', 'C', 'K'};
 const static char hdr_clp[] = {'C', 'L', 'I', 'P'};
 const static char hdr_data[] = {'d', 'a', 't', 'a'};
 
-const static char current_file_spec_version[] = {'0', '0', '.', '0', '2'};
+const static char current_file_spec_version[] = {'0', '0', '.', '0', '3'};
 
 static void write_clip_to_jdaw(FILE *f, Clip *clip);
 static void write_track_to_jdaw(FILE *f, Track *track);
@@ -221,6 +257,8 @@ void write_clip_to_jdaw(FILE *f, Clip *clip)
     if (sys_byteorder_le) {
         fwrite(&(clip->abs_pos_sframes), 4, 1, f);
         fwrite(&(clip->len_sframes), 4, 1, f);
+        fwrite(&(clip->start_ramp_len), 4, 1, f);
+        fwrite(&(clip->end_ramp_len), 4, 1, f);
     } else {
         //TODO: handle big endian
         exit(1);
@@ -392,6 +430,16 @@ static void read_clip_from_jdaw(FILE *f, float file_spec_version, Clip *clip)
     } else {
         //TODO: handle big endian
         exit(1);
+    }
+
+    if (file_spec_version > 0.02) {
+        if (sys_byteorder_le) {
+            fread(&(clip->start_ramp_len), 4, 1, f);
+            fread(&(clip->end_ramp_len), 4, 1, f);
+        } else {
+            //TODO: handle big endian
+            exit(1);
+        }
     }
     fread(hdr_buffer, 1, 4, f);
     if (strcmp(hdr_buffer, "data") != 0) {

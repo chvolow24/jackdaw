@@ -1,18 +1,37 @@
 #!/bin/bash
-echo "Getting latest files and updating application..."
-git pull
+if [[ $1 != "recurse" ]]; then
+    echo "Getting latest files and updating application..."
+    git pull
+    bash update.sh recurse
+    exit 0
+fi
+
 echo -e "Building project..."
 if [[ ! -d "build" ]]; then
     mkdir build
 fi
+
 make
-echo -e "\n\nInstalling executable at /usr/local/bin/jackdaw..."
+
+if [[ $? != 0 ]]; then
+    echo -e "\nError building project.\n"
+    exit 1
+fi
+echo -e "\nInstalling executable at /usr/local/bin/jackdaw..."
 if [[ ! -d "/usr/local/bin" ]]; then
     sudo mkdir -p /usr/local/bin
+    if [[ $? != 0 ]]; then
+        echo -e "\nError creating /usr/local/bin directory.\n"
+        exit 1
+    fi
 fi
 
 sudo mv jackdaw /usr/local/bin
 
+if [[ $? != 0 ]]; then
+    echo -e "\nError moving the 'jackdaw' executable to /usr/local/bin.\n"
+    exit 1
+fi
 if ! grep -q 'export PATH="/usr/local/bin:$PATH"' ~/.bashrc; then
     echo -e "Adding install dir to PATH in ~/.bashrc..."
     echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.bashrc
@@ -25,4 +44,4 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 fi
 export PATH="/usr/local/bin:$PATH"
 
-echo -e "\n\nDone! Run the program by typing 'jackdaw' on the command line in a bash or zsh terminal."
+echo -e "\nDone! Run the program by typing 'jackdaw' on the command line in a bash or zsh terminal.\n"

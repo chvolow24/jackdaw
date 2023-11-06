@@ -246,6 +246,9 @@ Textbox *create_textbox(
     tb->mouse_hover = false;
     tb->target = target;
     tb->text_align = text_align;
+    tb->show_cursor = false;
+    tb->cursor_pos = 0;
+    tb->cursor_countdown = 0;
     return tb;
 
 }

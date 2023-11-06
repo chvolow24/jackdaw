@@ -336,6 +336,7 @@ Track *create_track(Timeline *tl, bool stereo)
     track->channels = 2; // TODO: allow mono tracks
     track->muted = false;
     track->solo = false;
+    track->solo_muted = false;
     track->record = false;
     track->active = false;
     track->num_clips = 0;
@@ -1174,6 +1175,10 @@ void log_project_state(FILE *f) {
         fprintf(f, "\t\tName: %s\n", track->name);
         fprintf(f, "\t\tActive: %d\n", track->active);
         fprintf(f, "\t\tInput: %s\n", track->input->name);
+        fprintf(f, "\t\tMuted: %d\n", track->muted);
+        fprintf(f, "\t\tSolo: %d\n", track->solo);
+        fprintf(f, "\t\tSolo muted: %d\n", track->solo_muted);
+
         fprintf(f, "\t\tVol: %f\n", track->vol_ctrl->value);
         fprintf(f, "\t\tPan: %f\n", track->pan_ctrl->value);
         fprintf(f, "\t\tGrabbed clips: %d\n", track->num_grabbed_clips);

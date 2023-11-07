@@ -43,6 +43,7 @@
 #include "audio.h"
 #include "gui.h"
 #include "timeline.h"
+#include "transition.h"
 
 extern Project *proj;
 extern uint8_t scale_factor;
@@ -93,7 +94,7 @@ JDAW_Color unmuted_bckgrnd = {{200, 200, 200, 100}, {200, 200, 200, 100}};
 JDAW_Color solo_bckgrnd = {{255, 200, 0, 130}, {255, 200, 0, 130}};
 
 /* Draw a circle quadrant. Quad 0 = upper right, 1 = upper left, 2 = lower left, 3 = lower right */
-void draw_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad)
+static void draw_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad)
 {
     int x = 0;
     int y = r;
@@ -129,7 +130,7 @@ void draw_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const regist
 }
 
 /* Draw and fill a quadrant. quad 0 = upper right, 1 = upper left, 2 = lower left, 3 = lower right*/
-void fill_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad)
+static void fill_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad)
 {
     int x = 0;
     int y = r;
@@ -186,7 +187,7 @@ void fill_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const regist
     SDL_RenderFillRect(rend, &fill);
 }
 
-void draw_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r)
+static void draw_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r)
 {
     int left_x = rect->x + r;
     int right_x = rect->x + rect->w -r;
@@ -221,7 +222,7 @@ void draw_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r)
     // SDL_RenderFillRect(rend, &middle);    
 }
 
-void fill_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r)
+static void fill_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r)
 {
     int left_x = rect->x + r;
     int right_x = rect->x + rect->w - r;
@@ -249,7 +250,7 @@ void fill_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r)
 }
 
 /* Set the render color based on project display mode */
-void set_rend_color(SDL_Renderer *rend, JDAW_Color *color_class) 
+static void set_rend_color(SDL_Renderer *rend, JDAW_Color *color_class) 
 {
     SDL_Color color;
     if (dark_mode) {
@@ -262,7 +263,7 @@ void set_rend_color(SDL_Renderer *rend, JDAW_Color *color_class)
 
 
 /* Draw an empty circle */
-void draw_circle(SDL_Renderer *rend, int xinit, int yinit, int r)
+static void draw_circle(SDL_Renderer *rend, int xinit, int yinit, int r)
 {
     int x = 0;
     int y = r;
@@ -288,7 +289,8 @@ void draw_circle(SDL_Renderer *rend, int xinit, int yinit, int r)
     }
 }
 
-void draw_textbox(SDL_Renderer *rend, Textbox *tb)
+
+static void draw_textbox(SDL_Renderer *rend, Textbox *tb)
 {
     set_rend_color(rend, tb->bckgrnd_color);
     if (tb->radius == 0) {
@@ -328,7 +330,7 @@ void draw_textbox(SDL_Renderer *rend, Textbox *tb)
     }
 }
 
-void draw_menu_item(SDL_Renderer *rend, Textbox *tb)
+static void draw_menu_item(SDL_Renderer *rend, Textbox *tb)
 {
     // set_rend_color(rend, tb->bckgrnd_color);
     // if (tb->radius == 0) {
@@ -368,6 +370,7 @@ void draw_menu_item(SDL_Renderer *rend, Textbox *tb)
         tb->cursor_countdown -= 1;
     }
 }
+
 static void draw_menu_list(SDL_Renderer *rend, TextboxList *tbl)
 {
     // int padding = 3 * scale_factor;
@@ -413,7 +416,7 @@ static void draw_fslider(JDAWWindow *jwin, FSlider *fslider)
     SDL_RenderFillRect(jwin->rend, &(fslider->bar_rect));
 }
 
-void draw_hamburger(Project *proj)
+static void draw_hamburger(Project *proj)
 {
     set_rend_color(proj->jwin->rend, &txt_soft);
     SDL_GL_GetDrawableSize(proj->jwin->win, &(proj->jwin->w), &(proj->jwin->h));
@@ -428,7 +431,7 @@ void draw_hamburger(Project *proj)
 }
 
 
-void draw_waveform(Clip *clip)
+static void draw_waveform(Clip *clip)
 {
     if (clip->channels == 1) {
         int wav_x = clip->rect.x;
@@ -505,7 +508,7 @@ void draw_waveform(Clip *clip)
     }
 }
 
-void draw_clip_ramps(Clip *clip)
+static void draw_clip_ramps(Clip *clip)
 {
     int start_w = get_tl_draw_w(clip->start_ramp_len);
     int end_w = get_tl_draw_w(clip->end_ramp_len);
@@ -516,7 +519,7 @@ void draw_clip_ramps(Clip *clip)
     SDL_RenderDrawLine(proj->jwin->rend, clip->rect.x + clip->rect.w - end_w, clip->rect.y, clip->rect.x + clip->rect.w, clip->rect.y + clip->rect.h);
 }
 
-void draw_clip(Clip *clip)
+static void draw_clip(Clip *clip)
 {
     if (clip->grabbed) {
         set_rend_color(proj->jwin->rend, &clip_bckgrnd_grabbed);
@@ -618,13 +621,13 @@ void draw_jwin_menus(JDAWWindow *jwin)
     }
 }
 
-void draw_tc()
+static void draw_tc()
 {
     draw_textbox(proj->jwin->rend, proj->tl->timecode_tb);
 
 }
 
-void draw_ruler()
+static void draw_ruler()
 {
     if (!proj) {
         fprintf(stderr, "Error: request to draw ruler with no active project.\n");
@@ -767,5 +770,50 @@ void *draw_project(void *proj_v)
     SDL_RenderFillRect(proj->jwin->rend, &title_rect);
     SDL_Rect title_text_rect = {proj->jwin->w / 2 - (title_w / 2), title_rect.y, title_w, title_h};
     write_text(proj->jwin->rend, &title_text_rect, proj->jwin->fonts[1], &txt_soft, bottom_text, true);
+    return NULL;
+}
+
+typedef struct transition_loop_arg {
+    ClipBoundary **boundaries;
+    uint8_t num_boundaries;
+    Textbox *entry;
+} TransitionLoopArg;
+
+void *draw_transition_modal(void *arg)
+{
+    TransitionLoopArg *arg2 = (TransitionLoopArg *)arg;
+    // ClipBoundary **boundaries = arg2->boundaries;
+    uint8_t num_boundaries = arg2->num_boundaries;
+    Textbox *entry = arg2->entry;
+
+
+    // // double transition_length = 0;
+    // bool quit = false;
+    char explain_text[50];
+    sprintf(explain_text, "Add transition to %d clip boundaries.", num_boundaries);
+    Textbox *explain = create_textbox(0, 0, 10, 10, proj->jwin->bold_fonts[3], explain_text, &white, &clear, &clear, NULL, NULL, NULL, NULL, 0, true, false, BOTTOM_LEFT);
+    Textbox *entry_label = create_textbox(0, 0, 10, 10, proj->jwin->bold_fonts[3], "Enter length in seconds:\t", &white, &clear, &clear, NULL, NULL, NULL, NULL, 0, true, false, BOTTOM_LEFT);
+    // Textbox *entry = create_textbox(0, 0, 10, proj->jwin->bold_fonts[3], "0", &white, &clear, &clear, NULL, NULL, NULL, NULL, 0, true, false);
+    position_textbox(explain, 100 * scale_factor, 200 * scale_factor);
+    position_textbox(entry_label, explain->container.x, explain->container.y + explain->container.h + PADDING);
+    position_textbox(entry, entry_label->container.x + entry_label->container.w, entry_label->container.y);
+    
+    // while (!quit) {
+    //     SDL_Event e;
+    //     while (SDL_PollEvent(&e)) {
+    //         if (e.type == SDL_QUIT || (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_CLOSE)) {
+    //             quit = true;
+    //         }
+    //     }
+    // SDL_RenderClear(proj->jwin->rend);
+    draw_project(proj);
+    SDL_Rect bckgrnd = {0, 0, proj->jwin->w, proj->jwin->h};
+    SDL_SetRenderDrawColor(proj->jwin->rend, 20, 20, 20, 232);
+    SDL_RenderFillRect(proj->jwin->rend, &bckgrnd);
+    draw_textbox(proj->jwin->rend, explain);
+    draw_textbox(proj->jwin->rend, entry_label);
+    draw_textbox(proj->jwin->rend, entry);
+    // SDL_RenderPresent(proj->jwin->rend);
+    // }
     return NULL;
 }

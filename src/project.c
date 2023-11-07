@@ -129,10 +129,11 @@ static void menu_activate_or_deactivate_track(Textbox *tb, void *track_v)
     activate_or_deactivate_track(track->tl_rank);
 }
 
-static void menu_destroy_track(Textbox *tb, void *track_v)
+void delete_track(Track *track);
+static void menu_delete_track(Textbox *tb, void *track_v)
 {
-    Track *track = (Track *)track;
-    destroy_track(track);
+    Track *track = (Track *)track_v;
+    delete_track(track);
 }
 
 void track_actions_menu(Track *track, SDL_Point *mouse_p)
@@ -156,7 +157,7 @@ void track_actions_menu(Track *track, SDL_Point *mouse_p)
     }
 
     /* Action 1: Delete track */
-    mlitems[1]->onclick = menu_destroy_track;
+    mlitems[1]->onclick = menu_delete_track;
     strcpy(mlitems[1]->label, "Delete track (permanent)");
 
     TextboxList *tbl = create_menulist(
@@ -705,6 +706,34 @@ void destroy_clip(Clip *clip)
     clip = NULL;
     fprintf(stderr, "\t->done destroy clip.\n");
 
+}
+
+void delete_track(Track *track)
+{
+    fprintf(stderr, "Enter delete track. Index: %d\n", track->tl_rank);
+    if (track->active) {
+        activate_or_deactivate_track(track->tl_rank);
+    }
+    int index = track->tl_rank;
+    Track *track_iter = NULL;
+    for (uint8_t i=0; i<proj->tl->num_tracks; i++) {
+        track_iter = proj->tl->tracks[i];
+        if (i > index) {
+            proj->tl->tracks[i - 1] = track_iter;
+            track_iter->tl_rank--;
+            track_iter->rect.y -= track->rect.h + PADDING;
+            reset_track_internal_rects(track_iter);
+        }
+    }
+    for (uint8_t i=0; i<proj->tl->num_active_tracks; i++) {
+        int active_track_index = proj->tl->active_track_indices[i];
+        if (active_track_index > index) {
+            active_track_index--;
+        }
+    }
+
+    destroy_track(track);
+    fprintf(stderr, "\t->exit delete track\n");
 }
 
 void destroy_track(Track *track)

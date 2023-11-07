@@ -27,6 +27,13 @@
 #ifndef JDAW_TRANSITION_H
 #define JDAW_TRANSITION_H
 
+#include "project.h"
+
+typedef struct clip_boundary {
+    Clip *clip;
+    bool left;
+} ClipBoundary;
+
 void add_transition(void);
 
 #endif

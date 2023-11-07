@@ -30,6 +30,7 @@
 #include "timeline.h"
 #include "gui.h"
 #include "draw.h"
+#include "transition.h"
 // #include "theme.h"
 
 extern uint8_t scale_factor;
@@ -42,11 +43,6 @@ extern Project *proj;
 extern JDAW_Color white;
 extern JDAW_Color black;
 extern JDAW_Color clear;
-
-typedef struct clip_boundary {
-    Clip *clip;
-    bool left;
-} ClipBoundary;
 
 struct p {
     int lesser_distance;
@@ -88,52 +84,12 @@ static uint8_t get_clip_boundaries(ClipBoundary **boundaries)
     return num_boundaries;
 
 }
+
 typedef struct transition_loop_arg {
     ClipBoundary **boundaries;
     uint8_t num_boundaries;
     Textbox *entry;
 } TransitionLoopArg;
-
-
-static void *transition_loop(void *arg)
-{
-    TransitionLoopArg *arg2 = (TransitionLoopArg *)arg;
-    // ClipBoundary **boundaries = arg2->boundaries;
-    uint8_t num_boundaries = arg2->num_boundaries;
-    Textbox *entry = arg2->entry;
-
-
-    // // double transition_length = 0;
-    // bool quit = false;
-    char explain_text[50];
-    sprintf(explain_text, "Add transition to %d clip boundaries.", num_boundaries);
-    Textbox *explain = create_textbox(0, 0, 10, 10, proj->jwin->bold_fonts[3], explain_text, &white, &clear, &clear, NULL, NULL, NULL, NULL, 0, true, false, BOTTOM_LEFT);
-    Textbox *entry_label = create_textbox(0, 0, 10, 10, proj->jwin->bold_fonts[3], "Enter length in seconds:\t", &white, &clear, &clear, NULL, NULL, NULL, NULL, 0, true, false, BOTTOM_LEFT);
-    // Textbox *entry = create_textbox(0, 0, 10, proj->jwin->bold_fonts[3], "0", &white, &clear, &clear, NULL, NULL, NULL, NULL, 0, true, false);
-    position_textbox(explain, 100 * scale_factor, 200 * scale_factor);
-    position_textbox(entry_label, explain->container.x, explain->container.y + explain->container.h + PADDING);
-    position_textbox(entry, entry_label->container.x + entry_label->container.w, entry_label->container.y);
-    
-    // while (!quit) {
-    //     SDL_Event e;
-    //     while (SDL_PollEvent(&e)) {
-    //         if (e.type == SDL_QUIT || (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_CLOSE)) {
-    //             quit = true;
-    //         }
-    //     }
-    // SDL_RenderClear(proj->jwin->rend);
-    draw_project(proj);
-    SDL_Rect bckgrnd = {0, 0, proj->jwin->w, proj->jwin->h};
-    SDL_SetRenderDrawColor(proj->jwin->rend, 20, 20, 20, 232);
-    SDL_RenderFillRect(proj->jwin->rend, &bckgrnd);
-    draw_textbox(proj->jwin->rend, explain);
-    draw_textbox(proj->jwin->rend, entry_label);
-    draw_textbox(proj->jwin->rend, entry);
-    // SDL_RenderPresent(proj->jwin->rend);
-    // }
-    return NULL;
-}
-
 void add_transition()
 {
     ClipBoundary **boundaries = malloc(sizeof(ClipBoundary*) * MAX_BOUNDARIES);
@@ -148,7 +104,7 @@ void add_transition()
         value_str[0] = '\0';
         Textbox *entry = create_textbox(0, 0, 10, 10, proj->jwin->bold_fonts[3], value_str, &white, &clear, &clear, NULL, NULL, NULL, NULL, 0, true, false, BOTTOM_LEFT);
         struct transition_loop_arg arg = {boundaries, num_boundaries, entry};
-        edit_textbox(entry, transition_loop, (void *)(&arg));
+        edit_textbox(entry, draw_transition_modal, (void *)(&arg));
         // transition_loop_length = get_transition_length_loop(boundaries, num_boundaries);
         boundary_length_sframes = atof(entry->value) * proj->sample_rate;
         if (boundary_length_sframes == 0) {

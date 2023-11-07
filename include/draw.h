@@ -35,17 +35,13 @@
 
 /* Draw a project window, incl timeline, tracks, clips, etc. Does not include GUI menus */
 void *draw_project(void *proj_v);
-// void set_rend_color(SDL_Renderer *rend, JDAW_Color *color);
-// void draw_textbox_list(SDL_Renderer *rend, TextboxList *tbl);
-// void draw_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad);
-// void draw_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r);
-// void fill_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r);
-// void draw_menu_list(SDL_Renderer *rend, TextboxList* tbl);
 
-/* At the beginning of the draw loop */
+/* Required at the beginning of any draw loop. Draws the window background. */
 void draw_jwin_background(JDAWWindow *jwin);
+
 /* Has to go at the end of the draw loop */
 void draw_jwin_menus(JDAWWindow *jwin);
 
 void draw_textbox(SDL_Renderer *rend, Textbox *tb);
+void *draw_transition_modal(void *arg);
 #endif

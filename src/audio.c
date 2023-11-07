@@ -27,7 +27,8 @@
 /*****************************************************************************************************************
     audio.c
 
-    * High-level system audio controls; device settings, callbacks, etc.
+    * System audio controls; callbacks, etc.
+    * Audio device handling
     * Signal processing is handled in dsp.c
  *****************************************************************************************************************/
 

@@ -172,16 +172,15 @@ void stop_device_playback()
     proj->tl->play_offset = 0;
 }
 
-void *copy_device_buff_to_clip(void* arg)
+void copy_device_buff_to_clip(Clip *clip)
 {
     fprintf(stderr, "Enter copy_buff_to_clip\n");
-    Clip *clip = (Clip *)arg;
     clip->len_sframes = clip->input->write_buffpos_sframes;
     clip->pre_proc = malloc(sizeof(int16_t) * clip->len_sframes * clip->channels);
     clip->post_proc = malloc(sizeof(int16_t) * clip->len_sframes * clip->channels);
     if (!clip->post_proc || !clip->pre_proc) {
         fprintf(stderr, "Error: unable to allocate space for clip samples\n");
-        return NULL;
+        return;
     }
     int16_t sample = clip->input->rec_buffer[0];
     for (int i=0; i<clip->input->write_buffpos_sframes  * clip->channels; i++) {
@@ -191,11 +190,10 @@ void *copy_device_buff_to_clip(void* arg)
     }
     clip->done = true;
     fprintf(stderr, "\t->exit copy_buff_to_clip\n");
-    return NULL;
+    return;
 }
 
 
-/* AUDIO DEVICE HANDLING */
 int query_audio_devices(AudioDevice ***device_list, int iscapture)
 {
     AudioDevice *default_dev = malloc(sizeof(AudioDevice));
@@ -231,7 +229,7 @@ int query_audio_devices(AudioDevice ***device_list, int iscapture)
         dev->open = false;
         dev->active = false;
         dev->index = j;
-        dev->iscapture = iscapture ;
+        dev->iscapture = iscapture;
         dev->write_buffpos_sframes = 0;
         // memset(dev->rec_buffer, '\0', BUFFLEN / 2);
         SDL_AudioSpec spec;
@@ -261,7 +259,6 @@ void*               | userdata  | a pointer that is passed to callback (otherwis
 
 ==========================================================================*/
 
-/* Open an audio device and store info in the returned AudioDevice struct. */
 int open_audio_device(Project *proj, AudioDevice *device, uint8_t desired_channels)
 {
     SDL_AudioSpec obtained;
@@ -348,10 +345,10 @@ const char *get_audio_fmt_str(SDL_AudioFormat fmt)
 }
 
 
-void write_mixdown_to_wav()
+void write_mixdown_to_wav(char *filepath)
 {
     uint32_t num_samples = (proj->tl->out_mark - proj->tl->in_mark) * proj->channels;
     int16_t *samples = get_mixdown_chunk(proj->tl, num_samples, true);
-    write_wav("testfile.wav", samples, num_samples, 16, 2);
+    write_wav(filepath, samples, num_samples, 16, 2);
     free(samples);
 }

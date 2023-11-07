@@ -122,6 +122,56 @@ static void select_track_input_menu(Textbox *tb, void *track_v)
     position_textbox_list(tbl, track->input_name_box->container.x, track->input_name_box->container.y);
 }
 
+
+static void menu_activate_or_deactivate_track(Textbox *tb, void *track_v)
+{
+    Track *track = (Track *)track_v;
+    activate_or_deactivate_track(track->tl_rank);
+}
+
+static void menu_destroy_track(Textbox *tb, void *track_v)
+{
+    Track *track = (Track *)track;
+    destroy_track(track);
+}
+
+void track_actions_menu(Track *track, SDL_Point *mouse_p)
+{
+    int num_track_actions = 2;
+
+    // Track *track = (Track *)track_v;
+    MenulistItem *mlitems[num_track_actions];
+    for (uint8_t i=0; i<num_track_actions; i++) {
+        mlitems[i] = malloc(sizeof(MenulistItem));
+        mlitems[i]->available = true;
+        mlitems[i]->target = track;
+    }
+
+    /* Action 0: Activate or deactivate track */
+    mlitems[0]->onclick = menu_activate_or_deactivate_track;
+    if (track->active) {
+        strcpy(mlitems[0]->label, "Deactivate track");
+    } else {
+        strcpy(mlitems[0]->label, "Activate track");
+    }
+
+    /* Action 1: Delete track */
+    mlitems[1]->onclick = menu_destroy_track;
+    strcpy(mlitems[1]->label, "Delete track (permanent)");
+
+    TextboxList *tbl = create_menulist(
+        proj->jwin,
+        0,
+        7,
+        proj->jwin->fonts[1],
+        mlitems,
+        num_track_actions,
+        NULL,
+        NULL
+    );
+    position_textbox_list(tbl, mouse_p->x, mouse_p->y);
+}
+
 void stop_playback();
 void select_audio_out(Textbox *tb, void *proj_v)
 {
@@ -160,6 +210,7 @@ static void select_audio_out_menu(Textbox *tb, void *proj_v)
     );
     position_textbox_list(tbl, proj->audio_out->container.x, proj->audio_out->container.y);
 }
+
 
 /* Query track clips and return audio sample representing a given point in the timeline. */
 int16_t get_track_sample(Track *track, Timeline *tl, uint32_t start_pos, uint32_t pos_in_chunk)

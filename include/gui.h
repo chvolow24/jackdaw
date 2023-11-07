@@ -187,6 +187,8 @@ typedef struct textbox_list {
 typedef struct menulist_item {
     char label[MAX_MLI_LABEL_LEN];
     bool available;
+    void (*onclick)(Textbox *tb, void *target);
+    void *target;
 } MenulistItem;
 
 typedef enum fslider_type {

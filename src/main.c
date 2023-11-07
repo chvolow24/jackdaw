@@ -190,7 +190,6 @@ static void triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down)
 
     Textbox *tb = NULL;
     if (SDL_PointInRect(mouse_p, &(proj->ctrl_rect))) {
-    
         if (SDL_PointInRect(mouse_p, &((tb = proj->audio_out)->container))) {
             tb->onclick(tb, tb->target);
             // select_audio_out_menu((void *)proj);
@@ -224,6 +223,23 @@ static void triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down)
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+
+static void triage_project_rightclick(SDL_Point *mouse_p)
+{
+    if (SDL_PointInRect(mouse_p, &(proj->ctrl_rect))) {
+
+    } else if (SDL_PointInRect(mouse_p, &(proj->tl->rect))) {
+        for (int i=0; i<proj->tl->num_tracks; i++) {
+            Track *track;
+            if ((track = proj->tl->tracks[i])) {
+                if (SDL_PointInRect(mouse_p, &(track->rect))) {
+                    track_actions_menu(track, mouse_p);
                 }
             }
         }
@@ -372,6 +388,7 @@ static void project_loop()
     // int active_track_i = 0;
     // Track *active_track = NULL;
     bool mousebutton_down = false;
+    bool mousebutton_right_down = false;
     bool cmd_ctrl_down = false;
     bool shift_down = false;
     bool k_down = false;
@@ -395,14 +412,23 @@ static void project_loop()
                 reset_ctrl_rects(proj);
             } else if (e.type == SDL_MOUSEBUTTONUP) {
                 if (mousebutton_down) {
-                    mousebutton_down = false;
+                    if (e.button.button == SDL_BUTTON_LEFT) {
+                        mousebutton_down = false;
+                    } else if (e.button.button == SDL_BUTTON_RIGHT) {
+                        mousebutton_right_down = false;
+                    }
                 }
             } else if (e.type == SDL_MOUSEBUTTONDOWN) {
-                mousebutton_down = true;
                 get_mouse_state(&mouse_p);
-                /* Triage mouseclick to GUI menus first. Check project for clickables IFF no GUI item is clicked */
-                if (!triage_menulist_mouseclick(proj->jwin, &mouse_p)) {
-                    triage_project_mouseclick(&mouse_p, cmd_ctrl_down);
+                if (e.button.button == SDL_BUTTON_LEFT) {
+                    /* Triage mouseclick to GUI menus first. Check project for clickables IFF no GUI item is clicked */
+                    if (!triage_menulist_mouseclick(proj->jwin, &mouse_p)) {
+                        triage_project_mouseclick(&mouse_p, cmd_ctrl_down);
+                    }
+                    mousebutton_down = true;
+                } else if (e.button.button == SDL_BUTTON_RIGHT) {
+                    triage_project_rightclick(&mouse_p);
+                    mousebutton_right_down = true;
                 }
             } else if (e.type == SDL_MOUSEWHEEL) {
                 get_mouse_state(&(mouse_p));
@@ -591,7 +617,7 @@ static void project_loop()
                         break;
                     case SDL_SCANCODE_W:
                         if (shift_down) {
-                            write_mixdown_to_wav();
+                            write_mixdown_to_wav("testfile.wav");
                         }
                         break;
                     case SDL_SCANCODE_BACKSPACE:

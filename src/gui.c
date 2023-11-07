@@ -443,11 +443,23 @@ TextboxList *create_textbox_list(
     int radius
 )
 {
+    void (*onclick_v)(Textbox *self, void *object) = NULL;
+    void *target_v = NULL;
     TextboxList *list = malloc(sizeof(TextboxList));
     int max_text_w = 0;
     for (uint8_t i=0; i<num_items; i++) {
+        if (!onclick) {
+            onclick_v = items[i]->onclick;
+        } else {
+            onclick_v = onclick;
+        }
+        if (!target) {
+            target_v = items[i]->target;
+        } else {
+            target_v = target;
+        }
         list->textboxes[i] = create_textbox(
-            fixed_w, 0, padding, padding, font, items[i]->label, txt_color, &clear, &clear, onclick, target, onhover, tooltip, radius, items[i]->available, true, CENTER_LEFT
+            fixed_w, 0, padding, padding, font, items[i]->label, txt_color, &clear, &clear, onclick_v, target_v, onhover, tooltip, radius, items[i]->available, true, CENTER_LEFT
         );
         if (list->textboxes[i]->txt_container.w > max_text_w) {
             max_text_w = list->textboxes[i]->txt_container.w;
@@ -562,7 +574,6 @@ bool triage_menulist_mouseclick(JDAWWindow *jwin, SDL_Point *mouse_p)
                     tb->onclick(tb, tb->target);
                     destroy_pop_menulist(jwin);
                     return true;
-                    /* Need to have target and some value to pass to the target*/
                 }
             }
         }

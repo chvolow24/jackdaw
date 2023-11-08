@@ -162,9 +162,6 @@ static void playback()
         start_device_playback();
         proj->playing = true;
     }
-    if (proj->play_speed != 0) {
-        set_timecode();
-    }
 }
 
 void stop_playback()
@@ -175,7 +172,7 @@ void stop_playback()
 }
 
 /* Get the current mouse position and ensure coordinates are scaled appropriately */
-static void get_mouse_state(SDL_Point *mouse_p) 
+static void get_mouse_position(SDL_Point *mouse_p) 
 {
     SDL_GetMouseState(&(mouse_p->x), &(mouse_p->y));
     mouse_p->x *= scale_factor;
@@ -183,7 +180,7 @@ static void get_mouse_state(SDL_Point *mouse_p)
 }
 
 /* Triage mouseclicks that occur within a Jackdaw Project */
-static void triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down)
+static void triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down, bool *click_origin_grabbed_clip)
 {
     /* DNE! */
     //fprintf(stderr, "Mouse xy: %d,%d. audio out cont xrange: %d, %d, yrange %d, %d\n", mouse_p->x, mouse_p->y, proj->audio_out->container.x, proj->audio_out->container.x + proj->audio_out->container.w, proj->audio_out->container.y, proj->audio_out->container.y + proj->audio_out->container.w);
@@ -196,8 +193,9 @@ static void triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down)
         }
     } else if (SDL_PointInRect(mouse_p, &(proj->tl->rect))) {
         if (SDL_PointInRect(mouse_p, &(proj->tl->audio_rect))) {
-            proj->tl->play_position = get_abs_tl_x(mouse_p->x);
-            set_timecode();
+            // set_play_position(get_abs_tl_x(mouse_p->x));
+            // proj->tl->play_position = get_abs_tl_x(mouse_p->x);
+            // set_timecode();
         }
         for (int i=0; i<proj->tl->num_tracks; i++) {
             Track *track;
@@ -212,17 +210,33 @@ static void triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down)
                         tb->onclick(tb, tb->target);
                     } else if (SDL_PointInRect(mouse_p, &((tb = track->solo_button_box)->container))) {
                         tb->onclick(tb, tb->target);
-                    } else if (cmd_ctrl_down) {
+                    } else {
                         for (uint8_t c=0; c<track->num_clips; c++) {
                             Clip* clip = track->clips[c];
-                            if (SDL_PointInRect(mouse_p, &(clip->namebox->container))) {
-                                edit_textbox(clip->namebox, draw_project, proj);
-                            }
+                            // if (SDL_PointInRect(mouse_p, &(clip->namebox->container))) { // TODO: Right click action
+                            //     edit_textbox(clip->namebox, draw_project, proj);
+                            // }
                             if (SDL_PointInRect(mouse_p, &(clip->rect))) {
-                                grab_ungrab_clip(clip);
+                                if (cmd_ctrl_down) {
+                                    grab_ungrab_clip(clip);
+                                }
+                                if (clip->grabbed) {
+                                    *click_origin_grabbed_clip = true;
+                                }
                             }
                         }
                     }
+                    // } else if (cmd_ctrl_down) {
+                    //     for (uint8_t c=0; c<track->num_clips; c++) {
+                    //         Clip* clip = track->clips[c];
+                    //         if (SDL_PointInRect(mouse_p, &(clip->namebox->container))) {
+                    //             edit_textbox(clip->namebox, draw_project, proj);
+                    //         }
+                    //         if (SDL_PointInRect(mouse_p, &(clip->rect))) {
+                    //             grab_ungrab_clip(clip);
+                    //         }
+                    //     }
+                    // }
                 }
             }
         }
@@ -286,7 +300,6 @@ static char *new_project_loop(JDAWWindow *jwin)
                 quit = true;
             }
         }
-        get_mouse_state(&mouse_p);
         menulist_hover(jwin, &mouse_p);
         draw_jwin_background(jwin);
         draw_jwin_menus(jwin);
@@ -398,9 +411,12 @@ static void project_loop()
     bool minus_down = false;
     bool nine_down = false;
     bool zero_down = false;
+    bool click_origin_grabbed_clip = false;
     bool quit = false;
     SDL_Point mouse_p;
+    SDL_Point mouse_p_click;
     while (!quit) {
+        // get_mouse_state(&mouse_p); // TODO: 
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT || (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_CLOSE)) {
@@ -410,6 +426,9 @@ static void project_loop()
                 // reset_tl_rect(proj->tl);
                 reset_tl_rects(proj);
                 reset_ctrl_rects(proj);
+            } else if (e.type == SDL_MOUSEMOTION) {
+                mouse_p.x = e.motion.x * scale_factor;
+                mouse_p.y = e.motion.y * scale_factor;
             } else if (e.type == SDL_MOUSEBUTTONUP) {
                 if (mousebutton_down) {
                     if (e.button.button == SDL_BUTTON_LEFT) {
@@ -419,11 +438,12 @@ static void project_loop()
                     }
                 }
             } else if (e.type == SDL_MOUSEBUTTONDOWN) {
-                get_mouse_state(&mouse_p);
+                click_origin_grabbed_clip = false;
+                get_mouse_position(&mouse_p_click);
                 if (e.button.button == SDL_BUTTON_LEFT) {
                     /* Triage mouseclick to GUI menus first. Check project for clickables IFF no GUI item is clicked */
                     if (!triage_menulist_mouseclick(proj->jwin, &mouse_p)) {
-                        triage_project_mouseclick(&mouse_p, cmd_ctrl_down);
+                        triage_project_mouseclick(&mouse_p, cmd_ctrl_down, &click_origin_grabbed_clip);
                     }
                     mousebutton_down = true;
                 } else if (e.button.button == SDL_BUTTON_RIGHT) {
@@ -433,7 +453,6 @@ static void project_loop()
                     mousebutton_right_down = true;
                 }
             } else if (e.type == SDL_MOUSEWHEEL) {
-                get_mouse_state(&(mouse_p));
                 if (SDL_PointInRect(&mouse_p, &(proj->tl->rect))) {
                     if (cmd_ctrl_down) {
                         double scale_factor = pow(SFPP_STEP, e.wheel.y);
@@ -507,14 +526,16 @@ static void project_loop()
                     }
                     case SDL_SCANCODE_I:
                         if (cmd_ctrl_down) {
-                            proj->tl->play_position = proj->tl->in_mark;
+                            set_play_position(proj->tl->in_mark);
+                            // proj->tl->play_position = proj->tl->in_mark;
                         } else {
                             proj->tl->in_mark = proj->tl->play_position;
                         }
                         break;
                     case SDL_SCANCODE_O:
                         if (cmd_ctrl_down) {
-                            proj->tl->play_position = proj->tl->out_mark;
+                            set_play_position(proj->tl->out_mark);
+                            // proj->tl->play_position = proj->tl->out_mark;
                         } else {
                             proj->tl->out_mark = proj->tl->play_position;
                         }
@@ -527,7 +548,7 @@ static void project_loop()
                         break;
                     case SDL_SCANCODE_G: {
                         fprintf(stderr, "SCANCODE_G\n");
-                        if (proj_grabbed_clips() != 0 && !shift_down) {
+                        if (num_grabbed_clips() > 0 && !shift_down) {
                             ungrab_clips();
                         } else {
                             fprintf(stderr, "\tSince no clip found, grabbing\n");
@@ -599,7 +620,8 @@ static void project_loop()
                         } else {
                             translate_by = get_tl_abs_w(ARROW_TL_STEP);
                         }
-                        proj->tl->play_position += translate_by;
+                        set_play_position(translate_by);
+                        // proj->tl->play_position += translate_by;
                         translate_grabbed_clips(translate_by);
                     }
                         break;
@@ -611,9 +633,11 @@ static void project_loop()
                             translate_by = get_tl_abs_w(ARROW_TL_STEP) * -1;
                         }
                         proj->tl->play_position += translate_by;
-                        if (proj->tl->play_position < 0) { //TODO: allow space for negative tl pos in all modules.
-                            proj->tl->play_position = 0;
-                        }
+                        move_play_position(translate_by);
+                        // if (proj->tl->play_position < 0) { //TODO: allow space for negative tl pos in all modules.
+                        //     set_play_position(0);
+                        //     // proj->tl->play_position = 0;
+                        // }
                         translate_grabbed_clips(translate_by);
                     }
                         break;
@@ -703,11 +727,35 @@ static void project_loop()
                 }
             }
         }
-
         if (mousebutton_down && !proj->playing && !proj->recording) {
-            get_mouse_state(&mouse_p);
             if (SDL_PointInRect(&mouse_p, &(proj->tl->audio_rect))) {
-                proj->tl->play_position = get_abs_tl_x(mouse_p.x);
+                int move_by = mouse_p.x - mouse_p_click.x;
+                bool clip_moved = false;
+                if (click_origin_grabbed_clip && move_by != 0) {
+                    if (num_grabbed_clips() > 0) {
+                        for (uint8_t i=0; i<proj->tl->num_tracks; i++) {
+                            Track *track = proj->tl->tracks[i];
+                            if (track->num_grabbed_clips > 0) {
+                                for (uint8_t j=0; j<track->num_clips; j++) {
+                                    Clip *clip = track->clips[j];
+                                    if (clip->grabbed) {
+                                        clip->abs_pos_sframes += get_tl_abs_w(move_by);
+                                        reset_cliprect(clip);
+                                        clip_moved = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if (clip_moved) {
+                    mouse_p_click.x = mouse_p.x;
+                }
+                if (!click_origin_grabbed_clip) {
+                    set_play_position(get_abs_tl_x(mouse_p.x));
+                }
+                // proj->tl->play_position = get_abs_tl_x(mouse_p.x);
+                // set_timecode();
             }
         }
         if (proj->play_speed < 0 && proj->tl->offset > proj->tl->play_position) {
@@ -739,7 +787,6 @@ static void project_loop()
                 adjust_track_pan(track, adjust_by);
             }
         }
-        get_mouse_state(&mouse_p);
 	    menulist_hover(proj->jwin, &mouse_p);
 	    playback();
         draw_project(proj);

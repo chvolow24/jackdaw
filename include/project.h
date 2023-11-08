@@ -233,7 +233,7 @@ void grab_clip(Clip *clip);
 void grab_ungrab_clip(Clip *clip);
 void grab_clips(void);
 void ungrab_clips(void);
-uint8_t proj_grabbed_clips(void);
+uint8_t num_grabbed_clips(void);
 void cut_clips();
 void translate_grabbed_clips(int32_t translate_by);
 void remove_clip_from_track(Clip *clip);
@@ -245,6 +245,9 @@ void reset_tl_rects(Project *proj);
 void reset_ctrl_rects(Project *proj);
 bool adjust_track_vol(Track *track, float change_by);
 bool adjust_track_pan(Track *track, float change_by);
+
+
+
 
 
 

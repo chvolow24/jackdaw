@@ -183,7 +183,7 @@ void rescale_timeline(double sfpp_scale_factor, int32_t center_abs_pos)
     }
 }
 
-void set_timecode()
+static void set_timecode()
 {
     if (!proj) {
         fprintf(stderr, "Error: request to set timecode with no active project.\n");
@@ -207,6 +207,16 @@ void set_timecode()
     proj->tl->timecode.frames = frames;
     sprintf(proj->tl->timecode.str, "%c%02d:%02d:%02d:%05d", sign, hours, minutes, seconds, frames);
     reset_textbox_value(proj->tl->timecode_tb, proj->tl->timecode.str);
+}
 
+void set_play_position(int32_t abs_pos_sframes)
+{
+    proj->tl->play_position = abs_pos_sframes;
+    set_timecode();
+}
 
+void move_play_position(int32_t move_by_sframes)
+{
+    proj->tl->play_position += move_by_sframes;
+    set_timecode();
 }

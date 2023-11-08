@@ -332,7 +332,8 @@ int16_t *get_mixdown_chunk(Timeline* tl, uint32_t len_samples, bool from_mark_in
         j += from_mark_in ? 1 : proj->play_speed;
         i++;
     }
-    proj->tl->play_position += len_samples * proj->play_speed / proj->channels;
+    move_play_position(len_samples * proj->play_speed / proj->channels);
+    // proj->tl->play_position += len_samples * proj->play_speed / proj->channels;
     return mixdown;
 }
 
@@ -430,7 +431,6 @@ Project *create_project(const char* name, uint8_t channels, int sample_rate, SDL
 
     return proj;
 }
-
 
 static void click_mute_unmute_track(Textbox *tb, void *track_v);
 static void click_solo_unsolo_track(Textbox *tb, void *track_v);
@@ -1121,12 +1121,11 @@ void translate_grabbed_clips(int32_t translate_by)
 }
 
 /* Get count of currently grabbed clips */
-uint8_t proj_grabbed_clips()
+uint8_t num_grabbed_clips()
 {
     uint8_t ret=0;
     for (uint8_t i=0; i<proj->tl->num_tracks; i++) {
         ret += proj->tl->tracks[i]->num_grabbed_clips;
-        fprintf(stderr, "Trackm %d has %d grabbed clips\n", i, proj->tl->tracks[i]->num_grabbed_clips);
     }
     return ret;
 }

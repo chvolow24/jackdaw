@@ -36,6 +36,12 @@
 #define SFPP_STEP 1.2 // Sample Frames Per Pixel
 #define CATCHUP_STEP (600 * scale_factor)
 
+
+/* Set the play head position (and reset timecode) */
+void set_play_position(int32_t abs_pos);
+void move_play_position(int32_t move_by);
+
+
 int32_t get_abs_tl_x(int draw_x);
 int32_t get_tl_abs_w(int draw_w);
 int get_tl_draw_x(int32_t abs_x);
@@ -46,7 +52,7 @@ void rescale_timeline(double scale_factor, int32_t center_draw_position);
 float get_leftmost_seconds(void);
 int get_second_w(void);
 int first_second_tick_x(void);
-void set_timecode();
+// void set_timecode();
 
 
 #endif

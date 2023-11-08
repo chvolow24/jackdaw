@@ -427,7 +427,9 @@ static void project_loop()
                     }
                     mousebutton_down = true;
                 } else if (e.button.button == SDL_BUTTON_RIGHT) {
-                    triage_project_rightclick(&mouse_p);
+                    if (!triage_menulist_mouseclick(proj->jwin, &mouse_p)) {
+                        triage_project_rightclick(&mouse_p);
+                    }
                     mousebutton_right_down = true;
                 }
             } else if (e.type == SDL_MOUSEWHEEL) {
@@ -640,7 +642,7 @@ static void project_loop()
                         break;
                     case SDL_SCANCODE_BACKSLASH:
                         if (proj) {
-                            add_transition();
+                            add_transition_from_tl();
                         }
                     case SDL_SCANCODE_C:
                         if (shift_down) {

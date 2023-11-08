@@ -187,9 +187,12 @@ Textbox *create_textbox(
     tb->v_padding = v_padding;
     tb->font = font;
     if (value) {
-        tb->value = value;
+        tb->value = malloc(strlen(value) + 1);
+        strcpy(tb->value, value);
+        // tb->value = value;
     } else {
-        tb->value = "(none)";
+        tb->value = malloc(7);
+        strcpy(tb->value, "(none)");
     }
     tb->radius = radius;
     tb->available = available;
@@ -288,6 +291,7 @@ void position_textbox(Textbox *tb, int x, int y)
 
 void destroy_textbox(Textbox *tb)
 {
+    free(tb->value);
     free(tb);
     tb = NULL;
 }
@@ -320,6 +324,7 @@ char *edit_textbox(Textbox *tb, void *(*draw_fn)(void *arg), void *arg)
     fprintf(stderr, "Edit textbox\n");
     bool done = false;
     bool shift_down = false;
+    tb->show_cursor = true;
     while (!done) {
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
@@ -424,6 +429,7 @@ char *edit_textbox(Textbox *tb, void *(*draw_fn)(void *arg), void *arg)
         SDL_RenderPresent(proj->jwin->rend);
         SDL_Delay(1);
     }
+    tb->show_cursor = false;
     return tb->value;
 }
 
@@ -464,6 +470,7 @@ TextboxList *create_textbox_list(
         if (list->textboxes[i]->txt_container.w > max_text_w) {
             max_text_w = list->textboxes[i]->txt_container.w;
         }
+        free(items[i]);
     }
     for (uint8_t i=0; i<num_items; i++) {
         list->textboxes[i]->container.w = max_text_w + 4 * padding;

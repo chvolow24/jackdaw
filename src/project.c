@@ -42,6 +42,7 @@
 #include "audio.h"
 #include "draw.h"
 #include "timeline.h"
+#include "transition.h"
 
 #define DEFAULT_TRACK_HEIGHT (108 * scale_factor)
 #define DEFAULT_SFPP 600 // sample frames per pixel
@@ -135,17 +136,55 @@ static void menu_delete_track(Textbox *tb, void *track_v)
     Track *track = (Track *)track_v;
     delete_track(track);
 }
-
+static void menu_grab_clip(Textbox *tb, void *clip_v)
+{
+    Clip *clip = (Clip *)clip_v;
+    grab_ungrab_clip(clip);
+}
+static void menu_delete_clip(Textbox *tb, void *clip_v)
+{
+    Clip *clip = (Clip *)clip_v;
+    delete_clip(clip);
+}
+static void menu_adjust_clip_start_ramp(Textbox *tb, void *clip_v)
+{
+    Clip *clip = (Clip *)clip_v;
+    add_clip_transition(clip, true);
+    
+}
+static void menu_adjust_clip_end_ramp(Textbox *tb, void *clip_v)
+{
+    Clip *clip = (Clip *)clip_v;
+    add_clip_transition(clip, false);
+    
+}
 void track_actions_menu(Track *track, SDL_Point *mouse_p)
 {
-    int num_track_actions = 2;
+    static const int num_track_actions = 2;
+    static const int num_clip_actions = 4;
+    int num_actions = num_track_actions;
 
+    Clip *clip = NULL;
+    for (uint8_t i=0; i<track->num_clips; i++) {
+        clip = track->clips[i];
+        if (SDL_PointInRect(mouse_p, &(clip->rect))) {
+            break;
+        }
+        clip = NULL;
+    }
+    if (clip) {
+        num_actions += num_clip_actions;
+    }
     // Track *track = (Track *)track_v;
-    MenulistItem *mlitems[num_track_actions];
-    for (uint8_t i=0; i<num_track_actions; i++) {
+    MenulistItem *mlitems[num_actions];
+    for (uint8_t i=0; i<num_actions; i++) {
         mlitems[i] = malloc(sizeof(MenulistItem));
         mlitems[i]->available = true;
-        mlitems[i]->target = track;
+        if (i < num_track_actions) {
+            mlitems[i]->target = track;
+        } else {
+            mlitems[i]->target = clip;
+        }
     }
 
     /* Action 0: Activate or deactivate track */
@@ -160,13 +199,29 @@ void track_actions_menu(Track *track, SDL_Point *mouse_p)
     mlitems[1]->onclick = menu_delete_track;
     strcpy(mlitems[1]->label, "Delete track (permanent)");
 
+    if (clip) {
+
+        mlitems[2]->onclick = menu_grab_clip;
+        if (clip->grabbed) {
+
+            strcpy(mlitems[2]->label, "Un-grab clip");
+        } else {
+            strcpy(mlitems[2]->label, "Grab clip");
+        }
+        mlitems[3]->onclick = menu_delete_clip;
+        strcpy(mlitems[3]->label, "Delete clip (permanent)");
+        mlitems[4]->onclick = menu_adjust_clip_start_ramp;
+        strcpy(mlitems[4]->label, "Adjust clip start ramp");
+        mlitems[5]->onclick = menu_adjust_clip_end_ramp;
+        strcpy(mlitems[5]->label, "Adjust clip end ramp");
+    }
     TextboxList *tbl = create_menulist(
         proj->jwin,
         0,
         7,
         proj->jwin->fonts[1],
         mlitems,
-        num_track_actions,
+        num_actions,
         NULL,
         NULL
     );

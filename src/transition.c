@@ -90,7 +90,8 @@ typedef struct transition_loop_arg {
     uint8_t num_boundaries;
     Textbox *entry;
 } TransitionLoopArg;
-void add_transition()
+
+void add_transition_from_tl()
 {
     ClipBoundary **boundaries = malloc(sizeof(ClipBoundary*) * MAX_BOUNDARIES);
     uint8_t num_boundaries = get_clip_boundaries(boundaries);
@@ -122,5 +123,29 @@ void add_transition()
     }
     free(boundaries);
 }
+
+void add_clip_transition(Clip *clip, bool left)
+{
+    ClipBoundary *boundary = malloc(sizeof(ClipBoundary));
+    boundary->left = left;
+    boundary->clip = clip;
+    uint32_t boundary_length_sframes;
+    char value_str[50];
+    value_str[0] = '\0';
+    Textbox *entry = create_textbox(0, 0, 10, 10, proj->jwin->bold_fonts[3], value_str, &white, &clear, &clear, NULL, NULL, NULL, NULL, 0, true, false, BOTTOM_LEFT);
+    struct transition_loop_arg arg = {&boundary, 1, entry};
+    edit_textbox(entry, draw_transition_modal, (void *)(&arg));
+    // transition_loop_length = get_transition_length_loop(boundaries, num_boundaries);
+    boundary_length_sframes = atof(entry->value) * proj->sample_rate;
+    if (boundary_length_sframes == 0) {
+        fprintf(stderr, "Unable to get float value from boundary length entry.\n");
+        //TODO: actual error handling
+    }
+
+    uint32_t *ramp_ptr = boundary->left ? &(boundary->clip->start_ramp_len) : &(boundary->clip->end_ramp_len);
+    *ramp_ptr = boundary_length_sframes;
+    free(boundary);
+}
+
 
 

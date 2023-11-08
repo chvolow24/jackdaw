@@ -34,6 +34,7 @@ typedef struct clip_boundary {
     bool left;
 } ClipBoundary;
 
-void add_transition(void);
+void add_transition_from_tl(void);
+void add_clip_transition(Clip *clip, bool left);
 
 #endif

@@ -319,7 +319,7 @@ static void draw_textbox(SDL_Renderer *rend, Textbox *tb)
             newstr[tb->cursor_pos] = '\0';
             int w;
             TTF_SizeUTF8(tb->font, newstr, &w, NULL);
-            set_rend_color(rend, &bckgrnd_color);
+            set_rend_color(rend, tb->txt_color);
             int x = tb->txt_container.x + w;
             for (int i=0; i<CURSOR_WIDTH; i++) {
                 SDL_RenderDrawLine(rend, x, tb->txt_container.y, x, tb->txt_container.y + tb->txt_container.h);

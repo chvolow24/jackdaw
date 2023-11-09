@@ -729,27 +729,67 @@ static void project_loop()
         }
         if (mousebutton_down && !proj->playing && !proj->recording) {
             if (SDL_PointInRect(&mouse_p, &(proj->tl->audio_rect))) {
-                int move_by = mouse_p.x - mouse_p_click.x;
-                bool clip_moved = false;
-                if (click_origin_grabbed_clip && move_by != 0) {
-                    if (num_grabbed_clips() > 0) {
-                        for (uint8_t i=0; i<proj->tl->num_tracks; i++) {
-                            Track *track = proj->tl->tracks[i];
-                            if (track->num_grabbed_clips > 0) {
-                                for (uint8_t j=0; j<track->num_clips; j++) {
-                                    Clip *clip = track->clips[j];
-                                    if (clip->grabbed) {
-                                        clip->abs_pos_sframes += get_tl_abs_w(move_by);
-                                        reset_cliprect(clip);
-                                        clip_moved = true;
+                int move_by_x = mouse_p.x - mouse_p_click.x;
+                int move_by_y = mouse_p.y - mouse_p_click.y;
+                bool clip_moved_x = false;
+                bool clip_changed_track = false;
+                if (click_origin_grabbed_clip) {
+                    if (move_by_x != 0) {
+                        if (num_grabbed_clips() > 0) {
+                            for (uint8_t i=0; i<proj->tl->num_tracks; i++) {
+                                Track *track = proj->tl->tracks[i];
+                                if (track->num_grabbed_clips > 0) {
+                                    for (uint8_t j=0; j<track->num_clips; j++) {
+                                        Clip *clip = track->clips[j];
+                                        if (clip->grabbed) {
+                                            clip->abs_pos_sframes += get_tl_abs_w(move_by_x);
+                                            reset_cliprect(clip);
+                                            clip_moved_x = true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    int track_height = proj->tl->tracks[0]->rect.h; // TODO: Fix this. 
+                    if (abs(move_by_y) >= track_height) {
+                        if (num_grabbed_clips() > 0) {
+                            for (uint8_t i=0; i<proj->tl->num_tracks; i++) {
+                                Track *track = proj->tl->tracks[i];
+                                if (track->num_grabbed_clips > 0) {
+                                    for (uint8_t j=0; j<track->num_clips; j++) {
+                                        Clip *clip = track->clips[j];
+                                        if (clip->grabbed) {
+                                            int move_by_tracks = move_by_y > 0 ? 1 : -1;
+                                            fprintf(stderr, "ATTEMPTING MOVE FROM: %d to %d\n", track->tl_rank, track->tl_rank + move_by_tracks);
+                                            if (track->tl_rank + move_by_tracks >= 0 && track->tl_rank + move_by_tracks < proj->tl->num_tracks) {
+                                                fprintf(stderr, "\t->allowed\n");
+                                                remove_clip_from_track(clip);
+                                                Track *new_track = proj->tl->tracks[track->tl_rank+move_by_tracks];
+                                                add_clip_to_track(clip, new_track);
+                                                reset_cliprect(clip);
+                                                clip_changed_track = true;
+                                                // new_track->clips[new_track->num_clips] = clip;
+                                                // new_track->num_clips++;
+                                                // clip_changed_track = true;
+                                                // reset_cliprect(clip);
+
+                                            }
+                                        }
+                                    }
+                                    if (clip_changed_track) {
+                                        break;
                                     }
                                 }
                             }
                         }
                     }
                 }
-                if (clip_moved) {
+                if (clip_moved_x) {
                     mouse_p_click.x = mouse_p.x;
+                }
+                if (clip_changed_track) {
+                    mouse_p_click.y = mouse_p.y;
                 }
                 if (!click_origin_grabbed_clip) {
                     set_play_position(get_abs_tl_x(mouse_p.x));

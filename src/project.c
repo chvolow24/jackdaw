@@ -1145,6 +1145,20 @@ void remove_clip_from_track(Clip *clip)
     }
 }
 
+void add_clip_to_track(Clip *clip, Track *track)
+{
+    fprintf(stderr, "Adding clip %p to track %p.\n", clip, track);
+    track->clips[track->num_clips] = clip;
+    track->num_clips++;
+    clip->track_rank = track->num_clips;
+    clip->track = track;
+    if (clip->grabbed) {
+        track->num_grabbed_clips++;
+    }
+    fprintf(stderr, "\t->done adding clip to track\n");
+
+}
+
 void delete_clip(Clip *clip)
 {
     remove_clip_from_track(clip);

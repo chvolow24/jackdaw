@@ -237,6 +237,7 @@ uint8_t num_grabbed_clips(void);
 void cut_clips();
 void translate_grabbed_clips(int32_t translate_by);
 void remove_clip_from_track(Clip *clip);
+void add_clip_to_track(Clip *clip, Track *track);
 void delete_clip(Clip *clip);
 void delete_grabbed_clips();
 void reset_cliprect(Clip* clip);

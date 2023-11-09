@@ -179,13 +179,19 @@ static void get_mouse_position(SDL_Point *mouse_p)
     mouse_p->y *= scale_factor;
 }
 
-/* Triage mouseclicks that occur within a Jackdaw Project */
-static void triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down, bool *click_origin_grabbed_clip)
+/* Triage mouseclicks that occur within a Jackdaw Project
+Return values:
+    0: Nothing
+    1: track clicked
+    2: clip clicked
+*/
+static int triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down, Track **clicked_track, Clip **clicked_clip)
 {
     /* DNE! */
     //fprintf(stderr, "Mouse xy: %d,%d. audio out cont xrange: %d, %d, yrange %d, %d\n", mouse_p->x, mouse_p->y, proj->audio_out->container.x, proj->audio_out->container.x + proj->audio_out->container.w, proj->audio_out->container.y, proj->audio_out->container.y + proj->audio_out->container.w);
 
     Textbox *tb = NULL;
+    int ret = 0;
     if (SDL_PointInRect(mouse_p, &(proj->ctrl_rect))) {
         if (SDL_PointInRect(mouse_p, &((tb = proj->audio_out)->container))) {
             tb->onclick(tb, tb->target);
@@ -201,6 +207,8 @@ static void triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down, bo
             Track *track;
             if ((track = proj->tl->tracks[i])) {
                 if (SDL_PointInRect(mouse_p, &(track->rect))) {
+                    *clicked_track = track;
+                    ret = 1;
                     // Textbox *tb = NULL;
                     if (SDL_PointInRect(mouse_p, &((tb = track->name_box)->container))) {
                         tb->onclick(tb, tb->target);
@@ -213,15 +221,14 @@ static void triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down, bo
                     } else {
                         for (uint8_t c=0; c<track->num_clips; c++) {
                             Clip* clip = track->clips[c];
+                            ret = 2;
                             // if (SDL_PointInRect(mouse_p, &(clip->namebox->container))) { // TODO: Right click action
                             //     edit_textbox(clip->namebox, draw_project, proj);
                             // }
                             if (SDL_PointInRect(mouse_p, &(clip->rect))) {
+                                *clicked_clip = clip;
                                 if (cmd_ctrl_down) {
                                     grab_ungrab_clip(clip);
-                                }
-                                if (clip->grabbed) {
-                                    *click_origin_grabbed_clip = true;
                                 }
                             }
                         }
@@ -241,6 +248,7 @@ static void triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down, bo
             }
         }
     }
+    return ret;
 }
 
 
@@ -352,6 +360,8 @@ static void stop_recording()
 {
     fprintf(stderr, "Enter stop_recording\n");
     proj->play_speed = 0;
+    proj->recording = false;
+    proj->playing = false;
     Track *track = NULL;
     for (uint8_t i=0; i<proj->tl->num_active_tracks; i++) {
         track = proj->tl->tracks[proj->tl->active_track_indices[i]];
@@ -411,12 +421,19 @@ static void project_loop()
     bool minus_down = false;
     bool nine_down = false;
     bool zero_down = false;
-    bool click_origin_grabbed_clip = false;
     bool quit = false;
+
+    bool reprocess_on_mouse_up = false;
     SDL_Point mouse_p;
     SDL_Point mouse_p_click;
+    Track *clicked_track = NULL;
+
+    Clip *clicked_clip = NULL;
+    Track *mouse_track = NULL;
+    int dynamic_clicked_track_rank = -1;
     while (!quit) {
         // get_mouse_state(&mouse_p); // TODO: 
+
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT || (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_CLOSE)) {
@@ -430,20 +447,27 @@ static void project_loop()
                 mouse_p.x = e.motion.x * scale_factor;
                 mouse_p.y = e.motion.y * scale_factor;
             } else if (e.type == SDL_MOUSEBUTTONUP) {
-                if (mousebutton_down) {
-                    if (e.button.button == SDL_BUTTON_LEFT) {
-                        mousebutton_down = false;
-                    } else if (e.button.button == SDL_BUTTON_RIGHT) {
-                        mousebutton_right_down = false;
-                    }
+                clicked_track = NULL;
+                clicked_clip = NULL;
+                dynamic_clicked_track_rank = -1;
+                if (reprocess_on_mouse_up) {
+                    process_vol_and_pan();
+                    reprocess_on_mouse_up = false;
+                }
+                if (e.button.button == SDL_BUTTON_LEFT) {
+                    mousebutton_down = false;
+                } else if (e.button.button == SDL_BUTTON_RIGHT) {
+                    mousebutton_right_down = false;
                 }
             } else if (e.type == SDL_MOUSEBUTTONDOWN) {
-                click_origin_grabbed_clip = false;
                 get_mouse_position(&mouse_p_click);
                 if (e.button.button == SDL_BUTTON_LEFT) {
                     /* Triage mouseclick to GUI menus first. Check project for clickables IFF no GUI item is clicked */
                     if (!triage_menulist_mouseclick(proj->jwin, &mouse_p)) {
-                        triage_project_mouseclick(&mouse_p, cmd_ctrl_down, &click_origin_grabbed_clip);
+                        int t = triage_project_mouseclick(&mouse_p, cmd_ctrl_down, &clicked_track, &clicked_clip);
+                        if (clicked_track) {
+                            dynamic_clicked_track_rank = clicked_track->tl_rank;
+                        }
                     }
                     mousebutton_down = true;
                 } else if (e.button.button == SDL_BUTTON_RIGHT) {
@@ -547,11 +571,9 @@ static void project_loop()
                         }
                         break;
                     case SDL_SCANCODE_G: {
-                        fprintf(stderr, "SCANCODE_G\n");
                         if (num_grabbed_clips() > 0 && !shift_down) {
                             ungrab_clips();
                         } else {
-                            fprintf(stderr, "\tSince no clip found, grabbing\n");
                             grab_clips();
                         }
                     }
@@ -648,7 +670,6 @@ static void project_loop()
                         break;
                     case SDL_SCANCODE_BACKSPACE:
                     case SDL_SCANCODE_DELETE:
-                        fprintf(stderr, "SCANCODE DELETE\n");
                         delete_grabbed_clips();
                         break;
                     case SDL_SCANCODE_EQUALS:
@@ -729,11 +750,19 @@ static void project_loop()
         }
         if (mousebutton_down && !proj->playing && !proj->recording) {
             if (SDL_PointInRect(&mouse_p, &(proj->tl->audio_rect))) {
+                for (uint8_t i=0; i<proj->tl->num_tracks; i++) {
+                    Track *track = proj->tl->tracks[i];
+                    if (SDL_PointInRect(&mouse_p, &(track->rect)) && track != mouse_track) {
+                        mouse_track = track;
+                        fprintf(stderr, "\n\nMouse track moved to rank: %d\n", mouse_track->tl_rank);
+                        break;
+                    }
+                }
                 int move_by_x = mouse_p.x - mouse_p_click.x;
-                int move_by_y = mouse_p.y - mouse_p_click.y;
+                // int move_by_y = mouse_p.y - mouse_p_click.y;
                 bool clip_moved_x = false;
                 bool clip_changed_track = false;
-                if (click_origin_grabbed_clip) {
+                if (clicked_clip && clicked_clip->grabbed) {
                     if (move_by_x != 0) {
                         if (num_grabbed_clips() > 0) {
                             for (uint8_t i=0; i<proj->tl->num_tracks; i++) {
@@ -751,35 +780,42 @@ static void project_loop()
                             }
                         }
                     }
-                    int track_height = proj->tl->tracks[0]->rect.h; // TODO: Fix this. 
-                    if (abs(move_by_y) >= track_height) {
-                        if (num_grabbed_clips() > 0) {
+
+                    // int track_height = proj->tl->tracks[0]->rect.h; // TODO: Fix this. 
+                    if (mouse_track && mouse_track->tl_rank != dynamic_clicked_track_rank) {
+                        int move_by_tracks = mouse_track->tl_rank - dynamic_clicked_track_rank;
+                    // if (abs(move_by_y) >= track_height) {
+                        if (move_by_tracks != 0) {
                             for (uint8_t i=0; i<proj->tl->num_tracks; i++) {
                                 Track *track = proj->tl->tracks[i];
                                 if (track->num_grabbed_clips > 0) {
+                                    // fprintf(stderr, "\nTrack %d:\n", i);
+                                    Clip *clips_to_move[track->num_grabbed_clips];
+                                    uint8_t clips_added = 0;
                                     for (uint8_t j=0; j<track->num_clips; j++) {
                                         Clip *clip = track->clips[j];
-                                        if (clip->grabbed) {
-                                            int move_by_tracks = move_by_y > 0 ? 1 : -1;
-                                            fprintf(stderr, "ATTEMPTING MOVE FROM: %d to %d\n", track->tl_rank, track->tl_rank + move_by_tracks);
+                                        if (clip->grabbed && !(clip->changed_track)) {
+                                            // fprintf(stderr, "\t->Candidate clip %p\n", clip);
                                             if (track->tl_rank + move_by_tracks >= 0 && track->tl_rank + move_by_tracks < proj->tl->num_tracks) {
-                                                fprintf(stderr, "\t->allowed\n");
-                                                remove_clip_from_track(clip);
-                                                Track *new_track = proj->tl->tracks[track->tl_rank+move_by_tracks];
-                                                add_clip_to_track(clip, new_track);
-                                                reset_cliprect(clip);
-                                                clip_changed_track = true;
-                                                // new_track->clips[new_track->num_clips] = clip;
-                                                // new_track->num_clips++;
-                                                // clip_changed_track = true;
-                                                // reset_cliprect(clip);
-
+                                                // fprintf(stderr, "\t\t->allowed\n");
+                                                clips_to_move[clips_added] = clip;
+                                                clips_added++;
+                                            } else {
+                                                // fprintf(stderr, "\t\t->CANNOT MOVE!\n");
                                             }
                                         }
                                     }
-                                    if (clip_changed_track) {
-                                        break;
+                                    // fprintf(stderr, "\tMOVING %d clips\n", clips_added);
+                                    for (uint8_t i=0; i<clips_added; i++) {
+                                        Clip *clip = clips_to_move[i];
+                                        Track *new_track = proj->tl->tracks[clip->track->tl_rank + move_by_tracks];
+                                        remove_clip_from_track(clip);
+                                        add_clip_to_track(clip, new_track);
+                                        reset_cliprect(clip);
+                                        clip_changed_track = true;
+                                        clip->changed_track = true;
                                     }
+        
                                 }
                             }
                         }
@@ -789,9 +825,19 @@ static void project_loop()
                     mouse_p_click.x = mouse_p.x;
                 }
                 if (clip_changed_track) {
-                    mouse_p_click.y = mouse_p.y;
+                    reprocess_on_mouse_up = true;
+                    dynamic_clicked_track_rank = mouse_track->tl_rank;
+                    for (uint8_t i = 0; i<proj->tl->num_tracks; i++) {
+                        Track *track = proj->tl->tracks[i];
+                        for (uint8_t j = 0; j<track->num_clips; j++) {
+                            Clip *clip = track->clips[j];
+                            if (clip->changed_track) {
+                                clip->changed_track = false;
+                            }
+                        }
+                    }
                 }
-                if (!click_origin_grabbed_clip) {
+                if (!clicked_clip || (clicked_clip && !(clicked_clip->grabbed))) {
                     set_play_position(get_abs_tl_x(mouse_p.x));
                 }
                 // proj->tl->play_position = get_abs_tl_x(mouse_p.x);

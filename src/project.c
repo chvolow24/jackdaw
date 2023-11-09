@@ -736,6 +736,7 @@ Clip *create_clip(Track *track, uint32_t len_sframes, uint32_t absolute_position
     }
     clip->done = false;
     clip->grabbed = false;
+    clip->changed_track = false;
     clip->start_ramp_len = 0;
     clip->end_ramp_len = 0;
 
@@ -1149,8 +1150,8 @@ void add_clip_to_track(Clip *clip, Track *track)
 {
     fprintf(stderr, "Adding clip %p to track %p.\n", clip, track);
     track->clips[track->num_clips] = clip;
-    track->num_clips++;
     clip->track_rank = track->num_clips;
+    track->num_clips++;
     clip->track = track;
     if (clip->grabbed) {
         track->num_grabbed_clips++;
@@ -1376,23 +1377,16 @@ void log_project_state(FILE *f) {
 
         fprintf(f, "\t\tVol: %f\n", track->vol_ctrl->value);
         fprintf(f, "\t\tPan: %f\n", track->pan_ctrl->value);
+        fprintf(f, "\t\tClips: %d\n", track->num_clips);
         fprintf(f, "\t\tGrabbed clips: %d\n", track->num_grabbed_clips);
-        if (track->num_grabbed_clips > 0) {
+        if (track->num_clips > 0) {
+            fprintf(f, "\t\tCLIPS:\n");
             for (uint8_t j=0; j<track->num_clips; j++) {
-                if (track->clips[j]->grabbed) {
-                    grabbed_clip = track->clips[j];
-                    break;
-                }
+                Clip *clip = track->clips[j];
+                fprintf(f, "\t\t\tClip at %p\n", clip);
+                fprintf(f, "\t\t\t\tGrabbed: %d\n", clip->grabbed);
             }
         }
-    }
-    if (grabbed_clip) {
-        fprintf(f, "GRABBED CLIP at %p. Samples in post_proc:\n\n", grabbed_clip);
-        for (uint32_t i=0; i<grabbed_clip->len_sframes; i++) {
-            fprintf(f, "%d ", grabbed_clip->post_proc[i]);
-        }
-
-
     }
 
 

@@ -71,8 +71,8 @@ void process_vol_and_pan()
         return;
     }
     Track *track = NULL;
-    for (uint8_t i=0; i<proj->tl->num_active_tracks; i++) {
-        track = proj->tl->tracks[proj->tl->active_track_indices[i]];
+    for (uint8_t i=0; i<proj->tl->num_tracks; i++) {
+        track = proj->tl->tracks[i];
         process_track_vol_and_pan(track);
     }
 }

@@ -120,6 +120,7 @@ typedef struct clip {
 		void (*onhover)(void);
 		Textbox *namebox;
 		bool grabbed;
+		bool changed_track; // true if a mouse drag event is occurring, and the clip has already changed track
 } Clip;
 
 

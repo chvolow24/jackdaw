@@ -371,6 +371,8 @@ Project *create_project(const char* name, uint8_t channels, int sample_rate, SDL
     tl->offset = 0; // horizontal offset of timeline in samples
     tl->v_offset = 0;
     tl->num_active_tracks = 0;
+    tl->num_clipboard_clips = 0;
+    tl->leftmost_clipboard_clip_pos = 0;
     memset(tl->active_track_indices, '\0', MAX_ACTIVE_TRACKS);
     proj->tl = tl;
     tl->proj = proj;
@@ -699,14 +701,22 @@ void reset_cliprect(Clip *clip)
         fprintf(stderr, "Fatal Error: need track to create clip. \n"); //TODO allow loose clip
         exit(1);
     }
+    fprintf(stderr, "Clip rect, abs pos, track: %p, %d, %p\n", &(clip->rect), clip->abs_pos_sframes, clip->track);
     // fprintf(stderr, "Clip Rect: %d, %d, %d, %d\n", clip->rect.x, clip->rect.y, clip->rect.w, clip->rect.h);
     clip->rect.x = get_tl_draw_x(clip->abs_pos_sframes);
     clip->rect.y = clip->track->rect.y + 4;
+    fprintf(stderr, "X Y done\n");
+
     clip->rect.w = get_tl_draw_w(clip->len_sframes);
     clip->rect.h = clip->track->rect.h - 8;
+    fprintf(stderr, "W H done\n");
+
     if (clip->namebox) {
+        fprintf(stderr, "Is there a fuckin problem? clip->namebox: %p\n", clip->namebox);
         position_textbox(clip->namebox, clip->rect.x + CLIP_NAME_PADDING_X, clip->rect.y + CLIP_NAME_PADDING_Y);
     }
+    fprintf(stderr, "NAMEbox done. Returning.\n");
+
 }
 
 /* Create a new clip on a specified track. Clips are usually created empty and filled after recording is done. */
@@ -726,7 +736,6 @@ Clip *create_clip(Track *track, uint32_t len_sframes, uint32_t absolute_position
     clip->abs_pos_sframes = absolute_position;
     clip->track = track;
     clip->channels = track->channels;
-    fprintf(stderr, "In create clip, absolute position is %d", clip->abs_pos_sframes);
     // clip->samples = malloc(sizeof(int16_t) * length);
     if (track) {
         clip->track_rank = track->num_clips;
@@ -1212,6 +1221,60 @@ void clear_active_clips()
 {
     proj->num_active_clips = 0;
 }
+
+
+void copy_clips_to_clipboard()
+{
+    proj->tl->num_clipboard_clips = 0;
+    int32_t leftmost_pos = 0;
+    for (uint8_t i=0; i<proj->tl->num_tracks; i++) {
+        Track *track = proj->tl->tracks[i];
+        bool first_clip = true;
+        for (uint8_t j=0; j<track->num_clips; j++) {
+            Clip *clip = track->clips[j];
+            if (clip->grabbed && proj->tl->num_clipboard_clips < MAX_CLIPBOARD_CLIPS) {
+                proj->tl->clip_clipboard[proj->tl->num_clipboard_clips] = clip;
+                proj->tl->num_clipboard_clips++;
+                if (first_clip || clip->abs_pos_sframes < leftmost_pos) {
+                    leftmost_pos = clip->abs_pos_sframes;
+                    first_clip = false;
+                }
+            }
+        }
+    }
+    proj->tl->leftmost_clipboard_clip_pos = leftmost_pos;
+}
+
+
+static Clip *copy_clip(Clip *clip_to_copy)
+{
+    Clip *new_clip = create_clip(clip_to_copy->track, clip_to_copy->len_sframes, clip_to_copy->abs_pos_sframes);
+    uint32_t buf_len_bytes = clip_to_copy->len_sframes * clip_to_copy->channels * sizeof(int16_t);
+    new_clip->pre_proc = malloc(buf_len_bytes);
+    new_clip->post_proc = malloc(buf_len_bytes);
+    memcpy(new_clip->pre_proc, clip_to_copy->pre_proc, buf_len_bytes);
+    memcpy(new_clip->post_proc, clip_to_copy->post_proc, buf_len_bytes);
+    fprintf(stderr, "In Cpy, new clip namebox: %p\n", new_clip->namebox);
+    return new_clip;
+}
+
+void paste_clips()
+{
+    fprintf(stderr, "Paste clips\n");
+    int32_t pos_offset = proj->tl->play_position - proj->tl->leftmost_clipboard_clip_pos;
+    for (uint8_t i=0; i<proj->tl->num_clipboard_clips; i++) {
+        Clip *clip_to_copy = proj->tl->clip_clipboard[i];
+        Clip *new_clip = copy_clip(clip_to_copy);
+        fprintf(stderr, "After Cpy, new clip namebox: %p\n", new_clip->namebox);
+        new_clip->abs_pos_sframes += pos_offset;
+        new_clip->done = true;
+        fprintf(stderr, "Right before resetting cliprect, namebox: %p\n", new_clip->namebox);
+        reset_cliprect(new_clip);
+    }
+    fprintf(stderr, "\t->done pasting\n");
+
+}
+
 void destroy_audio_devices(Project *proj)
 {
     AudioDevice *dev = NULL;

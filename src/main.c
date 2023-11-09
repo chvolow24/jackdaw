@@ -168,6 +168,7 @@ void stop_playback()
 {
     proj->play_speed = 0;
     proj->playing = false;
+    proj->recording = false;
     stop_device_playback();
 }
 
@@ -198,11 +199,6 @@ static int triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down, Tra
             // select_audio_out_menu((void *)proj);
         }
     } else if (SDL_PointInRect(mouse_p, &(proj->tl->rect))) {
-        if (SDL_PointInRect(mouse_p, &(proj->tl->audio_rect))) {
-            // set_play_position(get_abs_tl_x(mouse_p->x));
-            // proj->tl->play_position = get_abs_tl_x(mouse_p->x);
-            // set_timecode();
-        }
         for (int i=0; i<proj->tl->num_tracks; i++) {
             Track *track;
             if ((track = proj->tl->tracks[i])) {
@@ -233,19 +229,11 @@ static int triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down, Tra
                             }
                         }
                     }
-                    // } else if (cmd_ctrl_down) {
-                    //     for (uint8_t c=0; c<track->num_clips; c++) {
-                    //         Clip* clip = track->clips[c];
-                    //         if (SDL_PointInRect(mouse_p, &(clip->namebox->container))) {
-                    //             edit_textbox(clip->namebox, draw_project, proj);
-                    //         }
-                    //         if (SDL_PointInRect(mouse_p, &(clip->rect))) {
-                    //             grab_ungrab_clip(clip);
-                    //         }
-                    //     }
-                    // }
                 }
             }
+        }
+        if (cmd_ctrl_down && !(*clicked_clip)) {
+            ungrab_clips();
         }
     }
     return ret;
@@ -354,6 +342,7 @@ static void start_recording()
         }
     }
     proj->play_speed = 1;
+    proj->recording = true;
 }
 
 static void stop_recording()
@@ -398,10 +387,8 @@ static void start_or_stop_recording()
 {
     if (proj->recording) {
         stop_recording();
-        proj->recording = false;
     } else {
         start_recording();
-        proj->recording = true;
     }
 }
 
@@ -516,9 +503,15 @@ static void project_loop()
                         break;
                     case SDL_SCANCODE_K:
                         k_down = true;
-                        proj->play_speed = 0;
-                        stop_device_playback();
-                        proj->playing = false;
+                        // proj->play_speed = 0;
+                        // stop_playback();
+                        if (proj->recording) {
+                            stop_recording();
+                        } else {
+                            stop_playback();
+                        }
+                        // stop_device_playback();
+                        // proj->playing = false;
                         break;
                     case SDL_SCANCODE_J:
                         if (k_down) {
@@ -692,6 +685,13 @@ static void project_loop()
                     case SDL_SCANCODE_C:
                         if (shift_down) {
                             cut_clips();
+                        } else if (cmd_ctrl_down) {
+                            copy_clips_to_clipboard();
+                        }
+                        break;
+                    case SDL_SCANCODE_V:
+                        if (cmd_ctrl_down) {
+                            paste_clips();
                         }
                         break;
                     default:

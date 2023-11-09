@@ -43,6 +43,7 @@
 #define MAX_ACTIVE_CLIPS 25
 #define MAX_ACTIVE_TRACKS 25
 #define MAX_TRACK_CLIPS 255
+#define MAX_CLIPBOARD_CLIPS 25
 
 
 typedef struct clip Clip;
@@ -151,6 +152,10 @@ typedef struct timeline {
 		Timecode timecode;
 		Project *proj;
 
+		Clip *clip_clipboard[MAX_CLIPBOARD_CLIPS];
+		uint8_t num_clipboard_clips;
+		int32_t leftmost_clipboard_clip_pos;
+
 		/* GUI members */
 		SDL_Rect rect;
 		SDL_Rect audio_rect;
@@ -170,8 +175,6 @@ typedef struct project {
 		char name[MAX_NAMELENGTH];
 		// bool dark_mode;
 		Timeline *tl;
-		Clip *loose_clips[100];
-		uint8_t num_loose_clips;
 		JDAWWindow *jwin;
 		Clip *active_clips[MAX_ACTIVE_CLIPS];
 		uint8_t num_active_clips;
@@ -247,6 +250,9 @@ void reset_tl_rects(Project *proj);
 void reset_ctrl_rects(Project *proj);
 bool adjust_track_vol(Track *track, float change_by);
 bool adjust_track_pan(Track *track, float change_by);
+
+void copy_clips_to_clipboard();
+void paste_clips();
 
 
 

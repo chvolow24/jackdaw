@@ -701,21 +701,16 @@ void reset_cliprect(Clip *clip)
         fprintf(stderr, "Fatal Error: need track to create clip. \n"); //TODO allow loose clip
         exit(1);
     }
-    fprintf(stderr, "Clip rect, abs pos, track: %p, %d, %p\n", &(clip->rect), clip->abs_pos_sframes, clip->track);
     // fprintf(stderr, "Clip Rect: %d, %d, %d, %d\n", clip->rect.x, clip->rect.y, clip->rect.w, clip->rect.h);
     clip->rect.x = get_tl_draw_x(clip->abs_pos_sframes);
     clip->rect.y = clip->track->rect.y + 4;
-    fprintf(stderr, "X Y done\n");
 
     clip->rect.w = get_tl_draw_w(clip->len_sframes);
     clip->rect.h = clip->track->rect.h - 8;
-    fprintf(stderr, "W H done\n");
 
     if (clip->namebox) {
-        fprintf(stderr, "Is there a fuckin problem? clip->namebox: %p\n", clip->namebox);
         position_textbox(clip->namebox, clip->rect.x + CLIP_NAME_PADDING_X, clip->rect.y + CLIP_NAME_PADDING_Y);
     }
-    fprintf(stderr, "NAMEbox done. Returning.\n");
 
 }
 
@@ -1254,24 +1249,19 @@ static Clip *copy_clip(Clip *clip_to_copy)
     new_clip->post_proc = malloc(buf_len_bytes);
     memcpy(new_clip->pre_proc, clip_to_copy->pre_proc, buf_len_bytes);
     memcpy(new_clip->post_proc, clip_to_copy->post_proc, buf_len_bytes);
-    fprintf(stderr, "In Cpy, new clip namebox: %p\n", new_clip->namebox);
     return new_clip;
 }
 
 void paste_clips()
 {
-    fprintf(stderr, "Paste clips\n");
     int32_t pos_offset = proj->tl->play_position - proj->tl->leftmost_clipboard_clip_pos;
     for (uint8_t i=0; i<proj->tl->num_clipboard_clips; i++) {
         Clip *clip_to_copy = proj->tl->clip_clipboard[i];
         Clip *new_clip = copy_clip(clip_to_copy);
-        fprintf(stderr, "After Cpy, new clip namebox: %p\n", new_clip->namebox);
         new_clip->abs_pos_sframes += pos_offset;
         new_clip->done = true;
-        fprintf(stderr, "Right before resetting cliprect, namebox: %p\n", new_clip->namebox);
         reset_cliprect(new_clip);
     }
-    fprintf(stderr, "\t->done pasting\n");
 
 }
 

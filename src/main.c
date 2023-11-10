@@ -410,7 +410,7 @@ static void project_loop()
     bool zero_down = false;
     bool quit = false;
 
-    bool reprocess_on_mouse_up = false;
+    // bool reprocess_on_mouse_up = false;
     SDL_Point mouse_p;
     SDL_Point mouse_p_click;
     Track *clicked_track = NULL;
@@ -437,10 +437,10 @@ static void project_loop()
                 clicked_track = NULL;
                 clicked_clip = NULL;
                 dynamic_clicked_track_rank = -1;
-                if (reprocess_on_mouse_up) {
-                    process_vol_and_pan();
-                    reprocess_on_mouse_up = false;
-                }
+                // if (reprocess_on_mouse_up) {
+                //     process_vol_and_pan();
+                //     reprocess_on_mouse_up = false;
+                // }
                 if (e.button.button == SDL_BUTTON_LEFT) {
                     mousebutton_down = false;
                 } else if (e.button.button == SDL_BUTTON_RIGHT) {
@@ -748,7 +748,7 @@ static void project_loop()
                 }
             }
         }
-        if (mousebutton_down && !proj->playing && !proj->recording) {
+        if (mousebutton_down) {
             if (SDL_PointInRect(&mouse_p, &(proj->tl->audio_rect))) {
                 for (uint8_t i=0; i<proj->tl->num_tracks; i++) {
                     Track *track = proj->tl->tracks[i];
@@ -762,7 +762,7 @@ static void project_loop()
                 // int move_by_y = mouse_p.y - mouse_p_click.y;
                 bool clip_moved_x = false;
                 bool clip_changed_track = false;
-                if (clicked_clip && clicked_clip->grabbed) {
+                if (clicked_clip && clicked_clip->grabbed && !proj->playing && !proj->recording) {
                     if (move_by_x != 0) {
                         if (num_grabbed_clips() > 0) {
                             for (uint8_t i=0; i<proj->tl->num_tracks; i++) {
@@ -825,13 +825,14 @@ static void project_loop()
                     mouse_p_click.x = mouse_p.x;
                 }
                 if (clip_changed_track) {
-                    reprocess_on_mouse_up = true;
+                    // reprocess_on_mouse_up = true;
                     dynamic_clicked_track_rank = mouse_track->tl_rank;
                     for (uint8_t i = 0; i<proj->tl->num_tracks; i++) {
                         Track *track = proj->tl->tracks[i];
                         for (uint8_t j = 0; j<track->num_clips; j++) {
                             Clip *clip = track->clips[j];
                             if (clip->changed_track) {
+                                process_clip_vol_and_pan(clip);
                                 clip->changed_track = false;
                             }
                         }

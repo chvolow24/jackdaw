@@ -37,18 +37,14 @@
 
 extern Project *proj;
 
- 
-void process_track_vol_and_pan(Track *track)
+
+void process_clip_vol_and_pan(Clip *clip)
 {
-    fprintf(stderr, "Processing vol and pan for track at %p\n", track);
-    Clip *clip = NULL;
-    float lpan, rpan, panctrlval;
-    panctrlval = track->pan_ctrl->value;
-    lpan = panctrlval < 0 ? 1 : 1 - panctrlval;
-    rpan = panctrlval > 0 ? 1 : 1 + panctrlval;
-    for (uint8_t i=0; i<track->num_clips; i++) {
-        clip = track->clips[i];
-        fprintf(stderr, "\t->clip index %d\n", i);
+        Track *track = clip->track;
+        float lpan, rpan, panctrlval;
+        panctrlval = track->pan_ctrl->value;
+        lpan = panctrlval < 0 ? 1 : 1 - panctrlval;
+        rpan = panctrlval > 0 ? 1 : 1 + panctrlval;
         // uint8_t k=0;
         for (uint32_t j=0; j<clip->len_sframes * clip->channels; j+=2) {
             // pan = j%2==0 ? lpan : rpan;
@@ -59,8 +55,29 @@ void process_track_vol_and_pan(Track *track)
             clip->post_proc[j] = clip->pre_proc[j] * track->vol_ctrl->value * lpan;
             clip->post_proc[j+1] = clip->pre_proc[j+1] * track->vol_ctrl->value * rpan;
         }
+}
+ 
+void process_track_vol_and_pan(Track *track)
+{
+    // Clip *clip = NULL;
+    // float lpan, rpan, panctrlval;
+    // panctrlval = track->pan_ctrl->value;
+    // lpan = panctrlval < 0 ? 1 : 1 - panctrlval;
+    // rpan = panctrlval > 0 ? 1 : 1 + panctrlval;
+    for (uint8_t i=0; i<track->num_clips; i++) {
+        Clip *clip = track->clips[i];
+        process_clip_vol_and_pan(clip);
+        // uint8_t k=0;
+        // for (uint32_t j=0; j<clip->len_sframes * clip->channels; j+=2) {
+        //     // pan = j%2==0 ? lpan : rpan;
+        //     // if (k<20) {
+        //     //     k++;
+        //     //     fprintf(stderr, "\t\t->sample %d, pan value: %f\n", j, pan);
+        //     // }
+        //     clip->post_proc[j] = clip->pre_proc[j] * track->vol_ctrl->value * lpan;
+        //     clip->post_proc[j+1] = clip->pre_proc[j+1] * track->vol_ctrl->value * rpan;
+        // }
     }
-    fprintf(stderr, "\t->Done with track vol and pan.\n");
 
 }
 

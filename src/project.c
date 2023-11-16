@@ -43,6 +43,7 @@
 #include "draw.h"
 #include "timeline.h"
 #include "transition.h"
+#include "dsp.h"
 
 #define DEFAULT_TRACK_HEIGHT (108 * scale_factor)
 #define DEFAULT_SFPP 600 // sample frames per pixel
@@ -316,6 +317,7 @@ int16_t *get_mixdown_chunk(Timeline* tl, uint32_t len_samples, bool from_mark_in
 {
     uint32_t bytelen = sizeof(int16_t) * len_samples;
     int16_t *mixdown = malloc(bytelen);
+    double *fourier_mixdown = malloc(sizeof(double) * len_samples);
     memset(mixdown, '\0', bytelen);
     if (!mixdown) {
         fprintf(stderr, "\nError: could not allocate mixdown chunk.");
@@ -333,8 +335,24 @@ int16_t *get_mixdown_chunk(Timeline* tl, uint32_t len_samples, bool from_mark_in
         i++;
     }
     move_play_position(len_samples * proj->play_speed / proj->channels);
-    // proj->tl->play_position += len_samples * proj->play_speed / proj->channels;
     return mixdown;
+}
+
+complex double *get_fourier_chunk(Timeline *tl, uint32_t len_samples)
+{
+    double *fourier_mixdown = malloc(sizeof(double) * len_samples);
+    int i=0;
+    float j=0;
+    uint32_t start_pos = proj->tl->play_position * proj->channels;
+    while (i < len_samples) {
+        for (int t=0; t<tl->num_tracks; t++) {
+            fourier_mixdown[i] += (double) get_track_sample((tl->tracks)[t], tl, start_pos, (int) j);
+        }
+        j += proj->play_speed;
+        i++;
+    }
+    complex double *B = FFT(fourier_mixdown, len_samples);
+    return B;
 }
 
 /* An active project is required for jackdaw to run. This function creates a project based on various specifications,

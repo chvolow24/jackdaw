@@ -32,8 +32,18 @@
  *****************************************************************************************************************/
 
 
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <stdbool.h>
+#include <string.h>
+#include <complex.h>
 #include "project.h"
 #include "gui.h"
+
+#define TAU (6.283185307179586476925286766559)
+
 
 extern Project *proj;
 
@@ -59,24 +69,9 @@ void process_clip_vol_and_pan(Clip *clip)
  
 void process_track_vol_and_pan(Track *track)
 {
-    // Clip *clip = NULL;
-    // float lpan, rpan, panctrlval;
-    // panctrlval = track->pan_ctrl->value;
-    // lpan = panctrlval < 0 ? 1 : 1 - panctrlval;
-    // rpan = panctrlval > 0 ? 1 : 1 + panctrlval;
     for (uint8_t i=0; i<track->num_clips; i++) {
         Clip *clip = track->clips[i];
         process_clip_vol_and_pan(clip);
-        // uint8_t k=0;
-        // for (uint32_t j=0; j<clip->len_sframes * clip->channels; j+=2) {
-        //     // pan = j%2==0 ? lpan : rpan;
-        //     // if (k<20) {
-        //     //     k++;
-        //     //     fprintf(stderr, "\t\t->sample %d, pan value: %f\n", j, pan);
-        //     // }
-        //     clip->post_proc[j] = clip->pre_proc[j] * track->vol_ctrl->value * lpan;
-        //     clip->post_proc[j+1] = clip->pre_proc[j+1] * track->vol_ctrl->value * rpan;
-        // }
     }
 
 }
@@ -93,3 +88,39 @@ void process_vol_and_pan()
         process_track_vol_and_pan(track);
     }
 }
+
+static double complex *gen_FFT_X(int n)
+{
+    double complex *X = malloc(sizeof(double complex) * n);
+    double theta_increment = TAU / n;
+    double theta = 0;
+    for (int i=0; i<n; i++) {
+        X[i] = (cos(theta) + I * (sin(theta)));
+        theta += theta_increment;
+    }
+    return X;
+}
+
+static double complex FFTk(double *A, double complex *X, int orig_n, int n, int k, int offset, int increment, int depth)
+{
+    if (n == 1) {
+        return A[offset] + 0 * I;
+    } else {
+        int new_inc = increment * 2;
+        int halfn = n / 2;
+        int newk = (k*2) % orig_n;
+        return FFTk(A, X, orig_n, halfn, newk, offset, new_inc, depth) + conj(X[k]) * FFTk(A, X, orig_n, halfn, newk, offset + increment, new_inc, depth);
+    }
+}
+
+double complex *FFT(double *A, int n)
+{
+    double complex *X = gen_FFT_X(n); // TODO: do this only once
+    double complex *B = malloc(sizeof(double complex) * n);
+    for (int k=0; k<n/2; k++) {
+        B[k] = FFTk(A, X, n, n, k, 0, 1, 0) * 2 / n;
+    }
+    free(X);
+    return B;
+}
+

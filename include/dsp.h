@@ -27,10 +27,12 @@
 #ifndef JDAW_DSP_H
 #define JDAW_DSP_H
 
+#include <complex.h>
 #include "project.h"
 
 void process_clip_vol_and_pan(Clip *clip);
 void process_track_vol_and_pan(Track *track);
 void process_vol_and_pan(void);
+double complex *FFT(double *A, int n);
 
 #endif

@@ -32,6 +32,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#include <complex.h>
 #include "SDL.h"
 #include "SDL_ttf.h"
 #include "theme.h"
@@ -207,6 +208,7 @@ typedef struct project {
 
 int16_t get_track_sample(Track *track, Timeline *tl, uint32_t start_pos, uint32_t pos_in_chunk);
 int16_t *get_mixdown_chunk(Timeline* tl, uint32_t length, bool from_mark_in);
+complex double *get_fourier_chunk(Timeline *tl, uint32_t len_samples);
 Project *create_empty_project(void);
 Project *create_project(const char* name, uint8_t channels, int sample_rate, SDL_AudioFormat fmt, uint16_t chunk_size);
 Track *create_track(Timeline *tl, bool stereo);

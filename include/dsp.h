@@ -30,6 +30,8 @@
 #include <complex.h>
 #include "project.h"
 
+void init_dsp();
+
 void process_clip_vol_and_pan(Clip *clip);
 void process_track_vol_and_pan(Track *track);
 void process_vol_and_pan(void);

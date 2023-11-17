@@ -43,9 +43,11 @@
 #include "gui.h"
 
 #define TAU (6.283185307179586476925286766559)
-
+#define ROU_MAX_DEGREE 20
 
 extern Project *proj;
+
+complex double *roots_of_unity[ROU_MAX_DEGREE];
 
 
 void process_clip_vol_and_pan(Clip *clip)
@@ -89,6 +91,22 @@ void process_vol_and_pan()
     }
 }
 
+
+
+
+
+
+/* Fourier Transform (FFT) */
+
+
+static void init_roots_of_unity(void);
+
+void init_dsp()
+{
+    init_roots_of_unity();
+}
+
+
 static double complex *gen_FFT_X(int n)
 {
     double complex *X = malloc(sizeof(double complex) * n);
@@ -99,6 +117,14 @@ static double complex *gen_FFT_X(int n)
         theta += theta_increment;
     }
     return X;
+}
+static void init_roots_of_unity()
+{
+    fprintf(stderr, "Calculating roots of unity...\n");
+    for (uint8_t i=0; i<ROU_MAX_DEGREE; i++) {
+        fprintf(stderr, "\t -> degree %d / %d\n", i, ROU_MAX_DEGREE);
+        roots_of_unity[i] = gen_FFT_X(pow(2, i));
+    }
 }
 
 static double complex FFTk(double *A, double complex *X, int orig_n, int n, int k, int offset, int increment, int depth)
@@ -115,12 +141,14 @@ static double complex FFTk(double *A, double complex *X, int orig_n, int n, int 
 
 double complex *FFT(double *A, int n)
 {
-    double complex *X = gen_FFT_X(n); // TODO: do this only once
+    int degree = log2(n);
+    double complex *X = roots_of_unity[degree];
+    // double complex *X = gen_FFT_X(n);
     double complex *B = malloc(sizeof(double complex) * n);
     for (int k=0; k<n/2; k++) {
         B[k] = FFTk(A, X, n, n, k, 0, 1, 0) * 2 / n;
     }
-    free(X);
+    // free(X);
     return B;
 }
 

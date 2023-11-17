@@ -772,18 +772,20 @@ void *draw_project(void *proj_v)
     SDL_Rect title_text_rect = {proj->jwin->w / 2 - (title_w / 2), title_rect.y, title_w, title_h};
     write_text(proj->jwin->rend, &title_text_rect, proj->jwin->fonts[1], &txt_soft, bottom_text, true);
 
-    complex double *B = get_fourier_chunk(proj->tl, 1028);
-    SDL_Rect fourier_rect = (SDL_Rect) {400, 300, 1028 / 2, 600};
+    int fourier_len = 1024;
+
+    complex double *B = get_fourier_chunk(proj->tl, fourier_len);
+    SDL_Rect fourier_rect = (SDL_Rect) {400, 300, fourier_len, 600};
     JDAW_Color clrblk = {{0, 0, 0, 200},{0, 0, 0, 200}};
     set_rend_color(proj->jwin->rend, &clrblk);
     SDL_RenderFillRect(proj->jwin->rend, &fourier_rect);
     set_rend_color(proj->jwin->rend, &white);
     int draw_x = fourier_rect.x;
-    int mid_y = 600;
-    for (uint16_t i=0; i<1028 / 16; i++) {
-        for (int j=0; j<8; j++) {
-            int y_mag = cabs(B[i]) * 10000 / INT16_MAX;
-            if (y_mag > 500) {
+    int mid_y = 800;
+    for (uint16_t i=0; i<fourier_len / 2; i++) {
+        for (int j=0; j<2; j++) {
+            int y_mag = cabs(B[i]) * 600 / INT16_MAX;
+            if (y_mag > 20000) {
                 y_mag = 0;
             }
             SDL_RenderDrawLine(proj->jwin->rend, draw_x, mid_y, draw_x, mid_y - y_mag);

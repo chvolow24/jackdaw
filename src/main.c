@@ -918,6 +918,7 @@ int main(int argc, char **argv)
     init_graphics();
     init_audio();
     init_SDL_ttf();
+    init_dsp();
     // JDAWWindow *new_project = create_jwin("Create a new Jackdaw project", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 600, 400);
     // new_project_loop(new_project);
 
@@ -925,7 +926,7 @@ int main(int argc, char **argv)
 
     if ((proj = open_jdaw_file("project.jdaw")) == NULL) {
         fprintf(stderr, "Creating new project\n");
-        proj = create_project("Untitled", 2, 48000, AUDIO_S16SYS, 512);
+        proj = create_project("Untitled", 2, 44100, AUDIO_S16SYS, 512);
         create_track(proj->tl, true);
     } else {
         fprintf(stderr, "Successfully opened project.\n");

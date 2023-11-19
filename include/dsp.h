@@ -36,5 +36,7 @@ void process_clip_vol_and_pan(Clip *clip);
 void process_track_vol_and_pan(Track *track);
 void process_vol_and_pan(void);
 double complex *FFT(double *A, int n);
+double complex *IFFT(double complex *B, int n);
+double complex *FFT_int16(int16_t *A, int n);
 
 #endif

@@ -476,6 +476,8 @@ static void project_loop()
                 switch (e.key.keysym.scancode) {
                     case SDL_SCANCODE_LGUI:
                     case SDL_SCANCODE_LCTRL:
+                    case SDL_SCANCODE_RCTRL:
+                    case SDL_SCANCODE_RGUI:
                         if (!cmd_ctrl_down) {
                             cmd_ctrl_down = true;
                         }
@@ -701,6 +703,8 @@ static void project_loop()
                 switch (e.key.keysym.scancode) {
                     case SDL_SCANCODE_LGUI:
                     case SDL_SCANCODE_LCTRL:
+                    case SDL_SCANCODE_RCTRL:
+                    case SDL_SCANCODE_RGUI:
                         if (cmd_ctrl_down) {
                             cmd_ctrl_down = false;
                         }

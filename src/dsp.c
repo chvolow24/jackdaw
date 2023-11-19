@@ -101,12 +101,13 @@ void process_vol_and_pan()
 
 static void init_roots_of_unity(void);
 
+/* Public function to initialize FFT components */
 void init_dsp()
 {
     init_roots_of_unity();
 }
 
-
+/* Generate the log2(n)th roots of unity */
 static double complex *gen_FFT_X(int n)
 {
     double complex *X = malloc(sizeof(double complex) * n);
@@ -118,6 +119,8 @@ static double complex *gen_FFT_X(int n)
     }
     return X;
 }
+
+/* Generate the roots of unity to be used in FFT evaluation */
 static void init_roots_of_unity()
 {
     fprintf(stderr, "Calculating roots of unity...\n");
@@ -127,28 +130,63 @@ static void init_roots_of_unity()
     }
 }
 
-static double complex FFTk(double *A, double complex *X, int orig_n, int n, int k, int offset, int increment, int depth)
+/* Get the kth element of the FFT on arrray A */
+static double complex FFTk(double *A, double complex *X, int orig_n, int n, int k, int offset, int increment)
 {
     if (n == 1) {
         return A[offset] + 0 * I;
     } else {
         int new_inc = increment * 2;
-        int halfn = n / 2;
-        int newk = (k*2) % orig_n;
-        return FFTk(A, X, orig_n, halfn, newk, offset, new_inc, depth) + conj(X[k]) * FFTk(A, X, orig_n, halfn, newk, offset + increment, new_inc, depth);
+        int halfn = n >> 1;
+        int newk = (k << 1) % orig_n;
+        return FFTk(A, X, orig_n, halfn, newk, offset, new_inc) + conj(X[k]) * FFTk(A, X, orig_n, halfn, newk, offset + increment, new_inc);
     }
 }
 
+/* Evaluate the FFT on an array of doubles */
 double complex *FFT(double *A, int n)
 {
     int degree = log2(n);
     double complex *X = roots_of_unity[degree];
-    // double complex *X = gen_FFT_X(n);
     double complex *B = malloc(sizeof(double complex) * n);
-    for (int k=0; k<n/2; k++) {
-        B[k] = FFTk(A, X, n, n, k, 0, 1, 0) * 2 / n;
+    for (int k=0; k<n; k++) {
+        B[k] = FFTk(A, X, n, n, k, 0, 1) / n;
     }
-    // free(X);
     return B;
 }
 
+/* Evaluate the FFT on an array of signed 16-bit integers */
+double complex *FFT_int16(int16_t *A, int n)
+{
+    double converted[n];
+    for (int i=0; i<n; i++) {
+        converted[i] = (double) A[i];
+    }
+    double complex *B = FFT(converted, n);
+    return B;
+}
+
+/* Get the kth element of the IFFT on complex array B */
+static double complex IFFTk(double complex *B, double complex *X, int orig_n, int n, int k, int offset, int increment)
+{
+    if (n == 1) {
+        return B[offset] + 0 * I;
+    } else {
+        int new_inc = increment * 2;
+        int halfn = n / 2;
+        int newk = (k*2) % orig_n;
+        return IFFTk(B, X, orig_n, halfn, newk, offset, new_inc) + X[k] * IFFTk(B, X, orig_n, halfn, newk, offset + increment, new_inc);
+    }
+}
+
+/* Evaluate the IFFT on complex array B */
+double complex *IFFT(double complex *B, int n)
+{
+    int degree = log2(n);
+    double complex *X = roots_of_unity[degree];
+    double complex *A = malloc(sizeof(double complex) * n);
+    for (int k=0; k<n; k++) {
+        A[k] = IFFTk(B, X, n, n, k, 0, 1);
+    }
+    return A;
+}

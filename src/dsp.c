@@ -131,41 +131,22 @@ static void init_roots_of_unity()
     }
 }
 
-/* Get the kth element of the FFT on arrray A */
-static double complex FFTk(double *A, double complex *X, int orig_n, int n, int k, int offset, int increment)
-{
-    test_alg ++;
-    if (n == 1) {
-        return A[offset] + 0 * I;
-    } else {
-        int new_inc = increment * 2;
-        int halfn = n >> 1;
-        int newk = (k << 1) % orig_n;
-        return FFTk(A, X, orig_n, halfn, newk, offset, new_inc) + conj(X[k]) * FFTk(A, X, orig_n, halfn, newk, offset + increment, new_inc);
-    }
-}
 
-double complex *FFT_inner(double *A, int n)
+double complex *FFT_inner(double *A, int n, int offset, int increment)
 {
 
-    double complex *B = malloc(sizeof(double complex) * n);
+    complex double *B = malloc(sizeof(complex double) * n);
 
     if (n==1) {
-        B[0] = A[0] + 0 * I;
+        B[0] = A[offset] + 0 * I;
         return B;
     }
     int halfn = n>>1;
     int degree = log2(n);
     double complex *X = roots_of_unity[degree];
-    double *Aeven = malloc(sizeof(double) * halfn);
-    double *Aodd = malloc(sizeof(double) * halfn);
-    /* Partition A */
-    for (int i=0; i<halfn; i++) {
-        Aeven[i] = A[i * 2];
-        Aodd[i] = A[i * 2 + 1];
-    }
-    double complex *Beven = FFT_inner(Aeven, halfn);
-    double complex *Bodd = FFT_inner(Aodd, halfn);
+    int doubleinc = increment << 1;
+    complex double *Beven = FFT_inner(A, halfn, offset, doubleinc);
+    complex double *Bodd = FFT_inner(A, halfn, offset + increment, doubleinc);
     for (int k=0; k<halfn; k++) {
         double complex odd_part_by_x = Bodd[k] * conj(X[k]);
         B[k] = Beven[k] + odd_part_by_x;
@@ -173,8 +154,6 @@ double complex *FFT_inner(double *A, int n)
     }
     free(Beven);
     free(Bodd);
-    free(Aeven);
-    free(Aodd);
     return B;
 
 }
@@ -182,35 +161,27 @@ double complex *FFT_inner(double *A, int n)
 double complex *FFT(double *A, int n)
 {
 
-    double complex *B = FFT_inner(A, n);
+    complex double *B = FFT_inner(A, n, 0, 1);
     for (int k=0; k<n; k++) {
         B[k]/=n;
     }
     return B;
 }
 
-double complex *IFFT(double complex *A, int n)
+double complex *IFFT_inner(double complex *A, int n, int offset, int increment)
 {
-
-    double complex *B = malloc(sizeof(double complex) * n);
+    complex double *B = malloc(sizeof(complex double) * n);
 
     if (n==1) {
-        B[0] = A[0] + 0 * I;
+        B[0] = A[offset] + 0 * I;
         return B;
     }
     int halfn = n>>1;
     int degree = log2(n);
     double complex *X = roots_of_unity[degree];
-    double complex *Aeven = malloc(sizeof(double complex) * halfn);
-    double complex *Aodd = malloc(sizeof(double complex) * halfn);
-
-    /* Partition A */
-    for (int i=0; i<halfn; i++) {
-        Aeven[i] = A[i * 2];
-        Aodd[i] = A[i * 2 + 1];
-    }
-    double complex *Beven = IFFT(Aeven, halfn);
-    double complex *Bodd = IFFT(Aodd, halfn);
+    int doubleinc = increment << 1;
+    complex double *Beven = IFFT_inner(A, halfn, offset, doubleinc);
+    complex double *Bodd = IFFT_inner(A, halfn, offset + increment, doubleinc);
     for (int k=0; k<halfn; k++) {
         double complex odd_part_by_x = Bodd[k] * X[k];
         B[k] = Beven[k] + odd_part_by_x;
@@ -218,25 +189,16 @@ double complex *IFFT(double complex *A, int n)
     }
     free(Beven);
     free(Bodd);
-    free(Aeven);
-    free(Aodd);
     return B;
+
 }
 
-
-/* Evaluate the FFT on an array of doubles */
-double complex *FFT_old(double *A, int n)
+double complex *IFFT(double complex *A, int n)
 {
-    test_alg = 0;
-    int degree = log2(n);
-    double complex *X = roots_of_unity[degree];
-    double complex *B = malloc(sizeof(double complex) * n);
-    for (int k=0; k<n; k++) {
-        B[k] = FFTk(A, X, n, n, k, 0, 1) / n;
-    }
-    fprintf(stderr, "Iterations: %d, for n: %d\n", test_alg, n);
-    return B;
+
+    return IFFT_inner(A, n, 0, 1);
 }
+
 
 /* Evaluate the FFT on an array of signed 16-bit integers */
 double complex *FFT_int16(int16_t *A, int n)
@@ -247,29 +209,4 @@ double complex *FFT_int16(int16_t *A, int n)
     }
     double complex *B = FFT(converted, n);
     return B;
-}
-
-/* Get the kth element of the IFFT on complex array B */
-static double complex IFFTk(double complex *B, double complex *X, int orig_n, int n, int k, int offset, int increment)
-{
-    if (n == 1) {
-        return B[offset] + 0 * I;
-    } else {
-        int new_inc = increment * 2;
-        int halfn = n / 2;
-        int newk = (k*2) % orig_n;
-        return IFFTk(B, X, orig_n, halfn, newk, offset, new_inc) + X[k] * IFFTk(B, X, orig_n, halfn, newk, offset + increment, new_inc);
-    }
-}
-
-/* Evaluate the IFFT on complex array B */
-double complex *IFFT_old(double complex *B, int n)
-{
-    int degree = log2(n);
-    double complex *X = roots_of_unity[degree];
-    double complex *A = malloc(sizeof(double complex) * n);
-    for (int k=0; k<n; k++) {
-        A[k] = IFFTk(B, X, n, n, k, 0, 1);
-    }
-    return A;
 }

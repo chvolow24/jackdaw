@@ -1278,6 +1278,11 @@ static Clip *copy_clip(Clip *clip_to_copy)
         }
         // complex double *fourier_chunk = FFT_int16(clip_to_copy->post_proc + i * fourier_len, fourier_len);
         complex double *fourier_chunk = FFT(chunk_to_transform, fourier_len);
+        for (int i=0; i<fourier_len; i++) {
+            if (i > fourier_len / 15 && i < fourier_len / 2) {
+                fourier_chunk[i] *= ((double) fourier_len / 2 - i) / fourier_len / 2;
+            }
+        }
         complex double *inverse_fourier_chunk = IFFT(fourier_chunk, fourier_len);
         for (int j=0; j<fourier_len; j++) {
             inverse_fourier_int16s[j] = (int16_t) creal(inverse_fourier_chunk[j]);

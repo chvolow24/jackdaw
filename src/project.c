@@ -335,6 +335,7 @@ int16_t *get_mixdown_chunk(Timeline* tl, uint32_t len_samples, bool from_mark_in
         j += from_mark_in ? 1 : proj->play_speed;
         i++;
     }
+    band_pass_run(mixdown, len_samples, proj->tl->filter_freq->value, proj->tl->filter_q->value);
     move_play_position(len_samples * proj->play_speed / proj->channels);
     return mixdown;
 }
@@ -392,6 +393,10 @@ Project *create_project(const char* name, uint8_t channels, int sample_rate, SDL
     tl->num_active_tracks = 0;
     tl->num_clipboard_clips = 0;
     tl->leftmost_clipboard_clip_pos = 0;
+    fprintf(stderr, "CREATING FSLIDERS\n");
+    tl->filter_freq = create_fslider(1024, 0, 500, LINE);
+    tl->filter_q = create_fslider(0.1, 0, 0.01, LINE);
+    fprintf(stderr, "DONE CREATING FSLIDERS\n");
     memset(tl->active_track_indices, '\0', MAX_ACTIVE_TRACKS);
     proj->tl = tl;
     tl->proj = proj;

@@ -772,16 +772,33 @@ void *draw_project(void *proj_v)
     SDL_Rect title_text_rect = {proj->jwin->w / 2 - (title_w / 2), title_rect.y, title_w, title_h};
     write_text(proj->jwin->rend, &title_text_rect, proj->jwin->fonts[1], &txt_soft, bottom_text, true);
 
+
+
+    /******************************************* FOURIER ***********************************************/
+    
+    
     int fourier_len = 1024;
 
     complex double *B = get_fourier_chunk(proj->tl, fourier_len);
     SDL_Rect fourier_rect = (SDL_Rect) {400, 300, fourier_len, 600};
+    SDL_Rect filter_freq_rect = get_rect(fourier_rect, (Dim) {ABS, 0}, (Dim) {ABS, 0}, (Dim) {ABS, 200}, (Dim) {ABS, 20});
+    SDL_Rect filter_q_rect = get_rect(fourier_rect, (Dim) {ABS, 0}, (Dim) {ABS, 50}, (Dim) {ABS, 200}, (Dim) {ABS, 20});
+    set_fslider_rect(proj->tl->filter_freq, &filter_freq_rect, 5);
+    set_fslider_rect(proj->tl->filter_q, &filter_q_rect, 5);
+    // reset_fslider(proj->tl->filter_freq);
+    // reset_fslider(proj->tl->filter_q);
+
     JDAW_Color clrblk = {{0, 0, 0, 200},{0, 0, 0, 200}};
+
     set_rend_color(proj->jwin->rend, &clrblk);
+
     SDL_RenderFillRect(proj->jwin->rend, &fourier_rect);
+
     set_rend_color(proj->jwin->rend, &white);
+
     int draw_x = fourier_rect.x;
     int mid_y = 800;
+
     for (uint16_t i=0; i<fourier_len / 2; i++) {
         for (int j=0; j<2; j++) {
             int y_mag = cabs(B[i]) * 600 / INT16_MAX;
@@ -793,6 +810,22 @@ void *draw_project(void *proj_v)
 
         }
     }
+
+    for (int i=fourier_rect.x; i<fourier_rect.x + fourier_rect.w; i++) {
+
+        int raise_y = (mid_y - fourier_rect.y) * exp(-1 * proj->tl->filter_q->value * pow((i-proj->tl->filter_freq->value),2));
+        SDL_RenderDrawPoint(proj->jwin->rend, i, mid_y - raise_y);
+    }
+
+    SDL_SetRenderDrawColor(proj->jwin->rend, 255, 0, 0, 255);
+    SDL_RenderDrawRect(proj->jwin->rend, &(proj->tl->filter_freq->rect));
+    SDL_RenderDrawRect(proj->jwin->rend, &filter_q_rect);
+    draw_fslider(proj->jwin, proj->tl->filter_freq);
+    draw_fslider(proj->jwin, proj->tl->filter_q);
+
+
+    /*************************************** END FOURIER **********************************************/
+
     return NULL;
 }
 

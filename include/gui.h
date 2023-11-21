@@ -216,6 +216,10 @@ void destroy_jwin(JDAWWindow *jwin);
 void reset_dims(JDAWWindow *jwin);
 SDL_Rect get_rect(SDL_Rect parent_rect, Dim x, Dim y, Dim w, Dim h);
 SDL_Rect relative_rect(SDL_Rect *win_rect, float x_rel, float y_rel, float w_rel, float h_rel);
+
+
+FSlider *create_fslider(float max, float min, float init_val, FSlider_type type);
+
 void position_textbox(Textbox *tb, int x, int y);
 Textbox *create_textbox(
     int fixed_w, 

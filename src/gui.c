@@ -155,6 +155,18 @@ SDL_Rect get_rect(SDL_Rect parent_rect, Dim x, Dim y, Dim w, Dim h) {
     return ret;
 }
 
+FSlider *create_fslider(float max, float min, float init_val, FSlider_type type)
+{
+    FSlider *fslider = malloc(sizeof(FSlider));
+    // fslider->rect = (SDL_Rect) {0, 0, 0, 0};
+    // fslider->bar_rect = (SDL_Rect) {0, 0, 0, 0};
+    fslider->max = max;
+    fslider->min = min;
+    fslider->value = init_val;
+    fslider->type = type;
+    return fslider;
+}
+
 /* Create a new textbox struct, default position at the origin */
 Textbox *create_textbox(
     int fixed_w, 
@@ -603,6 +615,7 @@ void reset_fslider(FSlider *fslider)
         case LINE:
             fslider->bar_rect.x = draw_pos - PADDING;
             fslider->bar_rect.w = PADDING;
+            fprintf(stderr, "\t\t\tHere we are. brw: %d, brh: %d\n", fslider->bar_rect.w, fslider->bar_rect.h);
             break;
         default:
             break;
@@ -616,10 +629,15 @@ void set_fslider_rect(FSlider *fslider, SDL_Rect *rect, uint8_t padding)
     fslider->rect.y = rect->y + padding;
     fslider->rect.w = rect->w - (padding * 2);
     fslider->rect.h = rect->h - (padding * 2);
-    fslider->bar_rect.x = rect->x + (padding * 2);
+    // fslider->bar_rect.x = rect->x + (padding * 2);
     fslider->bar_rect.y = rect->y + (padding * 2);
-    fslider->bar_rect.w = rect->w - (padding * 4);
-    fslider->bar_rect.h = rect->h - (padding * 4);
+    if (fslider->type == LINE) {
+        fslider->bar_rect.w = 2;
+    }
+    // fslider->bar_rect.w = rect->w - (padding * 4);
+    if ((fslider->bar_rect.h = rect->h - (padding * 4)) == 0) {
+        fslider->bar_rect.h = fslider->rect.h;
+    }
 }
 
 /* Returns true if change was made */

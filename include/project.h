@@ -169,6 +169,9 @@ typedef struct timeline {
 		int v_offset;
 		Textbox *timecode_tb;
 
+		FSlider *filter_q;
+		FSlider *filter_freq;
+
 } Timeline;
 
 /* A Jackdaw project. Only one can be active at a time. Can persist on disk as a .jdaw file (see dot_jdaw.c, dot_jdaw.h) */

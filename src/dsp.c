@@ -210,3 +210,39 @@ double complex *FFT_int16(int16_t *A, int n)
     double complex *B = FFT(converted, n);
     return B;
 }
+
+void band_pass(double complex *A, int n, double center_freq, double q)
+{
+    for (int i=0; i<n; i++) {
+        A[i] *= exp(-q * pow((i - center_freq),2));
+    }
+}
+
+void band_pass_run(int16_t *samples, int n, double center_freq, double q)
+{
+    int fourier_len = 1024;
+    int chunks = n / fourier_len;
+
+
+    for (int i=0; i<chunks; i++) {
+        double audio_double_chunk[fourier_len];
+        for (int j=0; j<fourier_len; j++) {
+            int c;
+            if ((c = fourier_len * i + j) < n) {
+                audio_double_chunk[j] = (double) samples[fourier_len * i + j];
+                
+            } else {
+                audio_double_chunk[j] = 0;
+            }
+
+        }
+        double complex *fourier_chunk = FFT(audio_double_chunk, fourier_len);
+        band_pass(fourier_chunk, fourier_len, center_freq, q);
+        double complex *inverse = IFFT(fourier_chunk, fourier_len);
+        for (int j=0; j<fourier_len; j++) {
+            samples[i * fourier_len + j] = (int16_t) creal(inverse[j]);
+        }
+        free(fourier_chunk);
+        free(inverse);
+    }
+}

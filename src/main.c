@@ -696,6 +696,33 @@ static void project_loop()
                             paste_clips();
                         }
                         break;
+                    case SDL_SCANCODE_E:
+                    fprintf(stderr, "F1. shfit down: %d\n", shift_down);
+                        if (shift_down) {
+                            if (adjust_fslider(proj->tl->filter_freq, -1)) {
+
+                                fprintf(stderr, "FREQ: %f / %f\n", proj->tl->filter_freq->value, proj->tl->filter_freq->max);
+                            } else {
+                                fprintf(stderr, "Could not adjust fslider\n");
+
+                            }
+                        } else if (cmd_ctrl_down) {
+                            adjust_fslider(proj->tl->filter_q, -0.001);
+
+                        }
+                        break;
+                    case SDL_SCANCODE_Y:
+                        if (shift_down) {
+                            if (adjust_fslider(proj->tl->filter_freq, 1)) {
+                                fprintf(stderr, "FREQ: %f / %f\n", proj->tl->filter_freq->value, proj->tl->filter_freq->max);
+                            } else {
+                                fprintf(stderr, "Could not adjust fslider\n");
+                            }
+                        } else if (cmd_ctrl_down) {
+                            adjust_fslider(proj->tl->filter_q, 0.001);
+                        }
+                        break;
+
                     default:
                         break;
                 }

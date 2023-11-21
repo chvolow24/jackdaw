@@ -1272,10 +1272,7 @@ static Clip *copy_clip(Clip *clip_to_copy)
     int chunks = clip_to_copy->len_sframes * clip_to_copy->channels / fourier_len;
     double chunk_to_transform[fourier_len];
     int16_t inverse_fourier_int16s[fourier_len];
-    FILE *plot = fopen("fourier_plot.csv", "w");
-    fprintf(plot, "chunk,orig,double,FFT_mag,FFT_real,IFFT,IFFT_int16\n");
     for (int i=0; i<chunks; i++) {
-        fprintf(stderr, "Chunk %d / %d .......... clip pos %d / %d\n", i, chunks, i * fourier_len, new_clip->len_sframes * new_clip->channels);
         for (int j=0; j<fourier_len; j++) {
             chunk_to_transform[j] = (double) clip_to_copy->post_proc[i * fourier_len + j];
         }
@@ -1286,11 +1283,6 @@ static Clip *copy_clip(Clip *clip_to_copy)
             inverse_fourier_int16s[j] = (int16_t) creal(inverse_fourier_chunk[j]);
             new_clip->pre_proc[i * fourier_len + j] = inverse_fourier_int16s[j];
             new_clip->post_proc[i * fourier_len + j] = inverse_fourier_int16s[j];
-
-            if (i<10) {
-                fprintf(plot, "%d,%d,%f,%f,%f,%f,%d\n", i,clip_to_copy->post_proc[i * fourier_len + j], chunk_to_transform[j], cabs(fourier_chunk[j]), creal(fourier_chunk[j]), creal(inverse_fourier_chunk[j]), inverse_fourier_int16s[j]);
-
-            }
         }
 
         // memcpy(new_clip->pre_proc + i * fourier_len, inverse_fourier_int16s, fourier_len * sizeof(int16_t));
@@ -1299,7 +1291,6 @@ static Clip *copy_clip(Clip *clip_to_copy)
         free(inverse_fourier_chunk);
         
     }
-    fclose(plot);
 
     // memcpy(new_clip->pre_proc, clip_to_copy->pre_proc, buf_len_bytes);
     // memcpy(new_clip->post_proc, clip_to_copy->post_proc, buf_len_bytes);

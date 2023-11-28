@@ -61,7 +61,8 @@ static void recording_callback(void* user_data, uint8_t *stream, int streamLengt
 {
     fprintf(stderr, "RECORD: %d\n", proj->tl->play_position);
     AudioDevice *dev = (AudioDevice *)user_data;
-
+    fprintf(stderr, "RECORD Cp 0.5. Device: %p\n", dev);
+    fprintf(stderr, "Device name: %s\n", dev->name);
     if (dev->write_buffpos_sframes + (streamLength / 2) < BUFFLEN) {
         if (proj->tl->record_offset == 0) {
             proj->tl->record_offset = proj->tl->play_position + proj->chunk_size * 4 - proj->active_clips[0]->abs_pos_sframes;

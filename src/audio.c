@@ -278,6 +278,7 @@ int open_audio_device(Project *proj, AudioDevice *device, uint8_t desired_channe
     if ((device->id = SDL_OpenAudioDevice(device->name, device->iscapture, &(device->spec), &(obtained), 0)) > 0) {
         device->spec = obtained;
         device->open = true;
+        fprintf(stderr, "Successfully opened device %s, with id: %d\n", device->name, device->id);
     } else {
         device->open = false;
         fprintf(stderr, "Error opening audio device %s : %s\n", device->name, SDL_GetError());

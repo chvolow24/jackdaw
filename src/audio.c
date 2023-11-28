@@ -59,12 +59,7 @@ extern Project *proj;
 
 static void recording_callback(void* user_data, uint8_t *stream, int streamLength)
 {
-    fprintf(stderr, "RECORD: %d\n", proj->tl->play_position);
     AudioDevice *dev = (AudioDevice *)user_data;
-    fprintf(stderr, "RECORD Cp 0.5. Device: %p\n", dev);
-    fprintf(stderr, "Device name: %s\n", dev->name);
-    fprintf(stderr, "Device write buffpos sframes: %d\n", dev->write_buffpos_sframes);
-    fprintf(stderr, "Device rec buffer: %p\n", dev->rec_buffer);
 
     if (dev->write_buffpos_sframes + (streamLength / 2) < BUFFLEN) {
         if (proj->tl->record_offset == 0) {
@@ -89,12 +84,10 @@ static void recording_callback(void* user_data, uint8_t *stream, int streamLengt
         fprintf(stderr, "ERROR: overwriting audio buffer of device: %s\n", dev->name);
     }
 
-        fprintf(stderr, "RECORD CP1: %d\n", proj->tl->play_position);
 
 
     dev->write_buffpos_sframes += streamLength / dev->spec.channels / 2;
     Clip *clip = NULL;
-        fprintf(stderr, "RECORD CP2: %d\n", proj->tl->play_position);
 
     for (uint8_t i=0; i<proj->num_active_clips; i++) {
         clip = proj->active_clips[i];
@@ -103,7 +96,6 @@ static void recording_callback(void* user_data, uint8_t *stream, int streamLengt
             reset_cliprect(clip);
         }
     }
-    fprintf(stderr, "EXIT record\n");
 }
 
 

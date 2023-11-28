@@ -124,9 +124,7 @@ static double complex *gen_FFT_X(int n)
 /* Generate the roots of unity to be used in FFT evaluation */
 static void init_roots_of_unity()
 {
-    fprintf(stderr, "Calculating roots of unity...\n");
     for (uint8_t i=0; i<ROU_MAX_DEGREE; i++) {
-        fprintf(stderr, "\t -> degree %d / %d\n", i, ROU_MAX_DEGREE);
         roots_of_unity[i] = gen_FFT_X(pow(2, i));
     }
 }
@@ -211,11 +209,16 @@ double complex *FFT_int16(int16_t *A, int n)
     return B;
 }
 
-void band_pass(double complex *A, int n, double center_freq, double q)
+void band_pass(double complex *A, int n, double center_freq, double q, double g)
 {
     for (int i=0; i<n; i++) {
-        A[i] *= exp(-q * pow((i - center_freq),2));
+        A[i] *= (g + exp(-q * pow((i - center_freq),2))) / (1 + g);
     }
+}
+
+double hann(double x, double N)
+{
+    return 0.5 * (1-cos(TAU * x / N));
 }
 
 void band_pass_run(int16_t *samples, int n, double center_freq, double q)
@@ -223,21 +226,20 @@ void band_pass_run(int16_t *samples, int n, double center_freq, double q)
     int fourier_len = 1024;
     int chunks = n / fourier_len;
 
-
     for (int i=0; i<chunks; i++) {
         double audio_double_chunk[fourier_len];
         for (int j=0; j<fourier_len; j++) {
             int c;
             if ((c = fourier_len * i + j) < n) {
-                audio_double_chunk[j] = (double) samples[fourier_len * i + j];
-                
+                audio_double_chunk[j] = (double) samples[fourier_len * i + j]; //* hann(j, fourier_len);
+
             } else {
                 audio_double_chunk[j] = 0;
             }
 
         }
         double complex *fourier_chunk = FFT(audio_double_chunk, fourier_len);
-        band_pass(fourier_chunk, fourier_len, center_freq, q);
+        band_pass(fourier_chunk, fourier_len, center_freq, q, 0);
         double complex *inverse = IFFT(fourier_chunk, fourier_len);
         for (int j=0; j<fourier_len; j++) {
             samples[i * fourier_len + j] = (int16_t) creal(inverse[j]);

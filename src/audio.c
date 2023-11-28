@@ -59,7 +59,7 @@ extern Project *proj;
 
 static void recording_callback(void* user_data, uint8_t *stream, int streamLength)
 {
-    // fprintf(stderr, "RECORD: %d\n", proj->tl->play_position);
+    fprintf(stderr, "RECORD: %d\n", proj->tl->play_position);
     AudioDevice *dev = (AudioDevice *)user_data;
 
     if (dev->write_buffpos_sframes + (streamLength / 2) < BUFFLEN) {
@@ -94,6 +94,7 @@ static void recording_callback(void* user_data, uint8_t *stream, int streamLengt
             reset_cliprect(clip);
         }
     }
+    fprintf(stderr, "EXIT record\n");
 }
 
 

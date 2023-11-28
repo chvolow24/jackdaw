@@ -85,8 +85,13 @@ static void recording_callback(void* user_data, uint8_t *stream, int streamLengt
         fprintf(stderr, "ERROR: overwriting audio buffer of device: %s\n", dev->name);
     }
 
+        fprintf(stderr, "RECORD CP1: %d\n", proj->tl->play_position);
+
+
     dev->write_buffpos_sframes += streamLength / dev->spec.channels / 2;
     Clip *clip = NULL;
+        fprintf(stderr, "RECORD CP2: %d\n", proj->tl->play_position);
+
     for (uint8_t i=0; i<proj->num_active_clips; i++) {
         clip = proj->active_clips[i];
         if (clip->input == dev) {

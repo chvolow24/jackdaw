@@ -219,6 +219,7 @@ int query_audio_devices(AudioDevice ***device_list, int iscapture)
     default_dev->index = 0;
     default_dev->iscapture = iscapture;
     default_dev->write_buffpos_sframes = 0;
+    default_dev->rec_buffer = NULL;
     // memset(default_dev->rec_buffer, '\0', BUFFLEN / 2);
 
 

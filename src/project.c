@@ -316,9 +316,16 @@ should be collected from the in mark rather than from the play head.
 */
 int16_t *get_mixdown_chunk(Timeline* tl, uint32_t len_samples, bool from_mark_in)
 {
+    if (from_mark_in) {
+        uint32_t twopow = 2;
+        while (twopow < len_samples) {
+            twopow *= 2;
+        }
+        len_samples = twopow / 2;
+    }
     uint32_t bytelen = sizeof(int16_t) * len_samples;
     int16_t *mixdown = malloc(bytelen);
-    double *fourier_mixdown = malloc(sizeof(double) * len_samples);
+    // double *fourier_mixdown = malloc(sizeof(double) * len_samples);
     memset(mixdown, '\0', bytelen);
     if (!mixdown) {
         fprintf(stderr, "\nError: could not allocate mixdown chunk.");
@@ -335,8 +342,28 @@ int16_t *get_mixdown_chunk(Timeline* tl, uint32_t len_samples, bool from_mark_in
         j += from_mark_in ? 1 : proj->play_speed;
         i++;
     }
-    band_pass_run(mixdown, len_samples, proj->tl->filter_freq->value, proj->tl->filter_q->value);
+    // band_pass_run(mixdown, len_samples, proj->tl->filter_freq->value, proj->tl->filter_q->value);
+    // IIR(mixdown, len_samples, 0.3);
+    double *double_chunk = malloc(sizeof(double) * len_samples);
+    for (uint32_t i=0; i<len_samples; i++) {
+        double_chunk[i] = (double)(mixdown[i]);
+    }
+    double complex *fourier_chunk = FFT(double_chunk, len_samples);
+    int shift_pitch_by = len_samples / 500;
+    uint32_t usable_len = len_samples - shift_pitch_by;
+    memcpy(fourier_chunk + shift_pitch_by, fourier_chunk, usable_len * sizeof(double complex));
+    for (uint32_t i=0; i<shift_pitch_by; i++) {
+        fourier_chunk[i] = 0 + 0 * I;
+    }
+    double complex *inverse_fourier_chunk = IFFT(fourier_chunk, len_samples);
+    for (uint32_t i=0; i<len_samples; i++) {
+        mixdown[i] = creal(inverse_fourier_chunk[i]);
+    }
+
     move_play_position(len_samples * proj->play_speed / proj->channels);
+    free(double_chunk);
+    free(fourier_chunk);
+    free(inverse_fourier_chunk);
     return mixdown;
 }
 

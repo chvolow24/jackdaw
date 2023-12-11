@@ -697,8 +697,9 @@ static void project_loop()
                         }
                         break;
                     case SDL_SCANCODE_E:
-                    fprintf(stderr, "F1. shfit down: %d\n", shift_down);
-                        if (shift_down) {
+                        if (shift_down && cmd_ctrl_down) {
+                            apply_band_pass_to_track(proj->tl->tracks[0], proj->tl->filter_freq->value, proj->tl->filter_q->value);
+                        } else if (shift_down) {
                             if (adjust_fslider(proj->tl->filter_freq, -1)) {
 
                                 fprintf(stderr, "FREQ: %f / %f\n", proj->tl->filter_freq->value, proj->tl->filter_freq->max);
@@ -708,7 +709,6 @@ static void project_loop()
                             }
                         } else if (cmd_ctrl_down) {
                             adjust_fslider(proj->tl->filter_q, -0.001);
-
                         }
                         break;
                     case SDL_SCANCODE_Y:

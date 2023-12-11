@@ -43,7 +43,7 @@
 #include "gui.h"
 
 #define TAU (6.283185307179586476925286766559)
-#define ROU_MAX_DEGREE 20
+#define ROU_MAX_DEGREE 25
 
 extern Project *proj;
 
@@ -133,10 +133,15 @@ static void init_roots_of_unity()
 double complex *FFT_inner(double *A, int n, int offset, int increment)
 {
 
+    // fprintf(stderr, "FFT inner size %d, offset %d incremenet %d\n", n, offset, increment);
+
     complex double *B = malloc(sizeof(complex double) * n);
 
     if (n==1) {
+        // fprintf(stderr, "A at offset %d/%d\n", offset, n);
         B[0] = A[offset] + 0 * I;
+            // fprintf(stderr, "\t\t->done\n");
+
         return B;
     }
     int halfn = n>>1;
@@ -158,11 +163,12 @@ double complex *FFT_inner(double *A, int n, int offset, int increment)
 
 double complex *FFT(double *A, int n)
 {
-
     complex double *B = FFT_inner(A, n, 0, 1);
+
     for (int k=0; k<n; k++) {
         B[k]/=n;
     }
+
     return B;
 }
 
@@ -247,4 +253,63 @@ void band_pass_run(int16_t *samples, int n, double center_freq, double q)
         free(fourier_chunk);
         free(inverse);
     }
+}
+
+void apply_band_pass_to_clip(Clip *clip, double center_freq, double q)
+{
+    fprintf(stderr, "\tApplying band pass to clip: %s\n", clip->name);
+
+    int clip_len_samples = clip->len_sframes * clip->channels;
+    int fourier_len = 2;
+    while (fourier_len < clip_len_samples) {
+        fourier_len *= 2;
+    }
+    fprintf(stderr, "\tfirst bit done. Fourier_len: %d\n", fourier_len);
+
+    double *audio_double_chunk = malloc(sizeof(double) * fourier_len);
+    fprintf(stderr, "\tdouble audio chunk on stack %s\n", clip->name);
+
+    for (int j=0; j<fourier_len; j++) {
+        // fprintf(stderr, "\t\tsample %d / %d\n", j, fourier_len);
+        if (j < clip_len_samples) {
+            audio_double_chunk[j] = (double) clip->pre_proc[j]; //* hann(j, fourier_len);
+
+        } else {
+            audio_double_chunk[j] = 0;
+        }
+
+    }
+    fprintf(stderr, "done iter samples\n");
+    double complex *fourier_chunk = FFT(audio_double_chunk, fourier_len);
+    fprintf(stderr, "done FFT \n");
+
+    band_pass(fourier_chunk, fourier_len, center_freq, q, 0);
+    fprintf(stderr, "done band pass \n");
+
+    double complex *inverse = IFFT(fourier_chunk, fourier_len);
+    fprintf(stderr, "done inverse \n");
+
+    for (int j=0; j<clip_len_samples; j++) {
+        clip->post_proc[j] = (int16_t) creal(inverse[j]);
+    }
+    fprintf(stderr, "set int16s \n");
+
+    free(audio_double_chunk);
+    free(fourier_chunk);
+    free(inverse);
+}
+
+void apply_band_pass_to_track(Track *track, double center_freq, double q)
+{
+    fprintf(stderr, "Applying band pass to track: %s\n", track->name);
+    for (int i=0; i<track->num_clips; i++) {
+        Clip *clip = track->clips[i];
+        apply_band_pass_to_clip(clip, center_freq, q);
+    }
+}
+
+// double complex *FFT(double *A, int n)
+
+void block_FFT(int16_t *samples, uint32_t len, int chk_len) {
+    int chunks = len / chk_len;
 }

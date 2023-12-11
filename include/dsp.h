@@ -39,5 +39,7 @@ double complex *FFT(double *A, int n);
 double complex *IFFT(double complex *B, int n);
 double complex *FFT_int16(int16_t *A, int n);
 void band_pass_run(int16_t *samples, int n, double center_freq, double q);
+void apply_band_pass_to_track(Track *track, double center_freq, double q);
+void IIR(int16_t *buffer, uint32_t len, double coeff);
 
 #endif

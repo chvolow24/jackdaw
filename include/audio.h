@@ -44,8 +44,8 @@
 /* Define some low-level audio constants */
 #define SAMPLE_RATE 96000
 #define CHUNK_SIZE 512
-#define BUFFLEN_SECONDS 3600
-#define BUFFLEN SAMPLE_RATE * BUFFLEN_SECONDS
+#define DEVICE_BUFFLEN_SECONDS 3600
+// #define DEVICE_BUFFLEN_SFRAMES SAMPLE_RATE * BUFFLEN_SECONDS
 
 typedef struct clip Clip;
 
@@ -58,7 +58,8 @@ typedef struct audiodevice{
     SDL_AudioDeviceID id;
     SDL_AudioSpec spec;
     int16_t *rec_buffer;
-    int32_t write_buffpos_sframes;
+    uint32_t rec_buf_len_samples;
+    int32_t write_buffpos_samples;
     bool active;
 } AudioDevice;
 
@@ -94,9 +95,6 @@ void destroy_audio_device(AudioDevice *device);
 
 /* Get a string describing an SDL_AudioFormat (equivalent to the macro name of the format) */
 const char *get_audio_fmt_str(SDL_AudioFormat fmt);
-
-/* Gets a mixdown chunk and calls functions in wav.c to create a wav file */
-void write_mixdown_to_wav(char *filepath);
 
 /* Copy an audio device's record buffer to a clip. */
 void copy_device_buff_to_clip(Clip *clip);

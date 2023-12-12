@@ -24,6 +24,25 @@
 
 *****************************************************************************************************************/
 
+/*****************************************************************************************************************
+    project.h
+
+    * Define DAW-specific data structures
+	* All structs can be accessed through a single Project struct
+ *****************************************************************************************************************/
+
+
+
+/*
+	Type rules:
+		* All sample or sframe (sample fram) elengths in uint32_t
+		* All sample or sframe positions in int32_t
+			-> Timeline includes negative positions
+			-> In positive range at 96000 (maximum) sample rate, room for 372.827 minutes or 6.2138 hours
+		* List lengths in smallest unsigned int type that will fit maximum lengths (usually uint8_t)
+		* Draw coordinates are regular "int"s
+*/
+
 #ifndef JDAW_PROJECT_H
 #define JDAW_PROJECT_H
 
@@ -39,7 +58,6 @@
 /* Timeline- and clip-related constants */
 #define MAX_TRACKS 100
 #define MAX_NAMELENGTH 255
-
 #define MAX_ACTIVE_CLIPS 25
 #define MAX_ACTIVE_TRACKS 25
 #define MAX_TRACK_CLIPS 255
@@ -62,15 +80,17 @@ typedef struct track {
 	bool active;
 	bool muted;
 	bool solo;
-	bool solo_muted; // set if another track is muted
-	bool record;
+	bool solo_muted; // true if any other track is soloed
+	// uint8_t channels; // Tracks can either be stereo or mono
+	// bool record; // 
 	uint8_t channels;
-	Timeline *tl;
-	uint8_t tl_rank;
+	Timeline *tl; // Parent timeline
+	uint8_t tl_rank; // Index in timeline, e.g. 0 for track 1, 1 for track 2, etc.
 	Clip *clips[MAX_TRACK_CLIPS];
 	uint8_t num_clips;
 	uint8_t num_grabbed_clips;
 	AudioDevice *input;
+	AudioDevice *output;
 	FSlider *vol_ctrl;
 	FSlider *pan_ctrl;
 
@@ -96,22 +116,23 @@ typedef struct track {
 	Textbox *mute_button_box;
 	Textbox *solo_button_box;
 
-
 } Track;
 
 /* A chunk of audio, associated with a particular track in the timeline */
 typedef struct clip {
 		char name[MAX_NAMELENGTH];
 		Track *track; // parent track
-		uint8_t track_rank; // index of clip in parent track.clips member
-		uint8_t channels; // the number of audio channels represented in the audio sample data
+		uint8_t track_rank; // index of clip in parent track
+		uint8_t channels;
+		// bool stereo;
 		uint32_t len_sframes; // length in sample frames
 		int32_t abs_pos_sframes; // timeline position in sample frames
-		int16_t *pre_proc; // the raw clip audio data
-		int16_t *post_proc; // cached audio data after audio processing
+		double *L; // Left channel audio data
+		double *R; // Right channel audio data
+		// int16_t *pre_proc; // the raw clip audio data
+		// int16_t *post_proc; // cached audio data after audio processing
 		bool done; // true when the clip has finished recording
 		AudioDevice *input; // the device used to record the clip, if applicable
-
 		uint32_t start_ramp_len; // length of linear fade in in sample frames
 		uint32_t end_ramp_len; // length of linear fade out in sample frames
 
@@ -136,21 +157,21 @@ typedef struct timecode {
 
 /* The project timeline organizes included tracks and specifies how they should be displayed */
 typedef struct timeline {
-		int32_t play_position; // in sample frames
+		int32_t play_pos_sframes; // in sample frames
 		// uint32_t record_position; // in sample frames
-		int32_t record_offset;
-		int32_t play_offset;
-		int32_t in_mark;
-		int32_t out_mark;
-		pthread_mutex_t play_position_lock;
+		// int32_t record_offset;
+		// int32_t play_offset;
+		int32_t in_mark_sframes;
+		int32_t out_mark_sframes;
+		// pthread_mutex_t play_position_lock;
 		Track *tracks[MAX_TRACKS];
 		uint8_t num_tracks;
 		uint8_t active_track_indices[MAX_ACTIVE_TRACKS];
 		uint8_t num_active_tracks;
-		uint16_t tempo;
-		bool click_on;
+		// uint16_t tempo;
+		// bool click_on;
 		Timecode timecode;
-		Project *proj;
+		Project *proj; // parent project
 
 		Clip *clip_clipboard[MAX_CLIPBOARD_CLIPS];
 		uint8_t num_clipboard_clips;
@@ -162,10 +183,9 @@ typedef struct timeline {
 		SDL_Rect ruler_tc_container_rect;
 		SDL_Rect ruler_rect;
 		SDL_Rect tc_rect;
-		int32_t offset; // in samples frames
+		int32_t display_offset_sframes; // in samples frames
 		int sample_frames_per_pixel;
-		// int console_width;
-		int v_offset;
+		int display_v_offset;
 		Textbox *timecode_tb;
 
 } Timeline;
@@ -182,20 +202,19 @@ typedef struct project {
 		bool playing;
 		bool recording;
 		AudioDevice **record_devices;
+		uint8_t num_record_devices;
 		AudioDevice **playback_devices;
-		int num_record_devices;
-		int num_playback_devices;
+		uint8_t num_playback_devices;
 
 		/* Audio settings */
 		AudioDevice *playback_device;
 		uint8_t channels;
-		int sample_rate; //samples per second
+		uint32_t sample_rate; //samples per second
 		SDL_AudioFormat fmt;
-		uint16_t chunk_size; //sample_frames
+		uint16_t chunk_size_sframes; //sample_frames
 
 		/* GUI Members */
 		SDL_Rect ctrl_rect;
-
 		SDL_Rect ctrl_rect_col_a;
 		SDL_Rect audio_out_row;
 		Textbox *audio_out_label;
@@ -205,12 +224,26 @@ typedef struct project {
 
 } Project;
 
-int16_t get_track_sample(Track *track, Timeline *tl, uint32_t start_pos, uint32_t pos_in_chunk);
-int16_t *get_mixdown_chunk(Timeline* tl, uint32_t length, bool from_mark_in);
+// int16_t get_track_sample(Track *track, Timeline *tl, uint32_t start_pos, uint32_t pos_in_chunk);
+// int16_t *get_mixdown_chunk(Timeline* tl, uint32_t length, bool from_mark_in);
+
+/* Create an empty project */
 Project *create_empty_project(void);
-Project *create_project(const char* name, uint8_t channels, int sample_rate, SDL_AudioFormat fmt, uint16_t chunk_size);
+
+/* Create a project from some parameters. Fmt should always be AUDIO_S16SYS */
+Project *create_project(const char* name, uint8_t channels, uint32_t sample_rate, SDL_AudioFormat fmt, uint16_t chunk_size);
+//TODO: lock in AUDIO_S16SYS format
+
+/* Create track on an existing timeline */
 Track *create_track(Timeline *tl, bool stereo);
+
+/* Create a clip on an existing tracl */
 Clip *create_clip(Track *track, uint32_t len_sframes, uint32_t absolute_position);
+
+/* If the clip buffers do not exist, create them at appropriate length */
+void create_clip_buffers(Clip *clip, uint32_t buf_len_sframes);
+
+
 void destroy_clip(Clip *clip);
 void destroy_track(Track *track);
 void reset_tl_rect(Timeline *tl);
@@ -226,10 +259,11 @@ void solo_mute_track(Track *track);
 void mute_unmute(void);
 void solo_unsolo(void);
 
+
 void destroy_audio_devices(Project *proj);
 void activate_audio_devices(Project *proj);
 void track_actions_menu(Track *track, SDL_Point *mouse_p);
-void reposition_clip(Clip *clip, uint32_t new_pos);
+void reposition_clip(Clip *clip, int32_t new_pos);
 void add_active_clip(Clip *clip);
 void clear_active_clips();
 void log_project_state(FILE *f);

@@ -98,7 +98,7 @@ void write_wav_header(FILE *f, uint32_t num_samples, uint16_t bits_per_sample, u
     fwrite(&chunk_size, 4, 1, f);
 }
 
-void write_wav(const char *fname, int16_t *samples, uint32_t num_samples, uint16_t bits_per_sample, uint8_t channels)
+static void write_wav(const char *fname, int16_t *samples, uint32_t num_samples, uint16_t bits_per_sample, uint8_t channels)
 {
     fprintf(stderr, "Write wav, num_samples: %d, chanels: %d, bitspsamle: %d\n", num_samples, channels, bits_per_sample);
     FILE* f = fopen(fname, "wb");
@@ -110,6 +110,15 @@ void write_wav(const char *fname, int16_t *samples, uint32_t num_samples, uint16
     }
     fprintf(stderr, "/t-> Done writing wav.\n");
 }
+
+void write_mixdown_to_wav(char *filepath)
+{
+    uint32_t num_samples = (proj->tl->out_mark - proj->tl->in_mark) * proj->channels;
+    int16_t *samples = get_mixdown_chunk(proj->tl, num_samples, true);
+    write_wav(filepath, samples, num_samples, 16, 2);
+    free(samples);
+}
+
 
 void load_wav_to_track(Track *track, const char *filename) {
     SDL_AudioSpec wav_spec;

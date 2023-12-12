@@ -268,78 +268,9 @@ static void select_audio_out_menu(Textbox *tb, void *proj_v)
 }
 
 
-/* Query track clips and return audio sample representing a given point in the timeline. */
-int16_t get_track_sample(Track *track, Timeline *tl, uint32_t start_pos, uint32_t pos_in_chunk)
-{
-    if (track->muted || track->solo_muted) {
-        return 0;
-    }
-    int16_t sample = 0;
-    for (int i=0; i < track->num_clips; i++) {
-        Clip *clip = (track->clips)[i];
-        if (!(clip->done)) {
-            break;
-        }
-        int32_t pos_in_clip = start_pos + pos_in_chunk - clip->abs_pos_sframes * clip->channels;
-        int32_t pos_in_clip_sframes = pos_in_clip / clip->channels;
-        if (pos_in_clip >= 0 && pos_in_clip < clip->len_sframes * clip->channels) {
-            if (pos_in_clip_sframes < clip->start_ramp_len) {
-                double ramp_value = (double) pos_in_clip_sframes / clip->start_ramp_len;
-                // ramp_value *= ramp_value;
-                // ramp_value *= ramp_value;
-                // ramp_value *= ramp_value;
-                // fprintf(stderr, "(START RAMP) Pos in clip: %d; scale: %f\n", pos_in_clip, ramp_value);
-                // fprintf(stderr, "\t Sample pre & post: %d, %d\n", (clip->post_proc)[pos_in_clip], (int16_t) ((clip->post_proc)[pos_in_clip] * ramp_value));
-                sample += (int16_t) ((clip->post_proc)[pos_in_clip] * ramp_value);
-            } else if (pos_in_clip_sframes > clip->len_sframes - clip->end_ramp_len) {
-                double ramp_value = (double) (clip->len_sframes - pos_in_clip_sframes) / clip->end_ramp_len;
-                // ramp_value *= ramp_value;
-                // ramp_value *= ramp_value;
-                // ramp_value *= ramp_value;
-                // fprintf(stderr, "(END RAMP) Pos in clip: %d; scale: %f\n", pos_in_clip, ramp_value);
-                // fprintf(stderr, "\t Sample pre & post: %d, %d\n", (clip->post_proc)[pos_in_clip], (int16_t) ((clip->post_proc)[pos_in_clip] * ramp_value));
-                sample += (int16_t) ((clip->post_proc)[pos_in_clip] * ramp_value);
-            } else {
-                sample += (clip->post_proc)[pos_in_clip];
-            }
-        }
-    }
-
-    return sample;
-}
-
-/* 
-Sum track samples over a chunk of timeline and return an array of samples. from_mark_in indicates that samples
-should be collected from the in mark rather than from the play head.
-*/
-int16_t *get_mixdown_chunk(Timeline* tl, uint32_t len_samples, bool from_mark_in)
-{
-    uint32_t bytelen = sizeof(int16_t) * len_samples;
-    int16_t *mixdown = malloc(bytelen);
-    memset(mixdown, '\0', bytelen);
-    if (!mixdown) {
-        fprintf(stderr, "\nError: could not allocate mixdown chunk.");
-        exit(1);
-    }
-
-    int i=0;
-    float j=0;
-    uint32_t start_pos = from_mark_in ? proj->tl->in_mark * proj->channels : proj->tl->play_position * proj->channels;
-    while (i < len_samples) {
-        for (int t=0; t<tl->num_tracks; t++) {
-            mixdown[i] += get_track_sample((tl->tracks)[t], tl, start_pos, (int) j);
-        }
-        j += from_mark_in ? 1 : proj->play_speed;
-        i++;
-    }
-    move_play_position(len_samples * proj->play_speed / proj->channels);
-    // proj->tl->play_position += len_samples * proj->play_speed / proj->channels;
-    return mixdown;
-}
-
 /* An active project is required for jackdaw to run. This function creates a project based on various specifications,
 and initalizes a variety of UI "globals." */
-Project *create_project(const char* name, uint8_t channels, int sample_rate, SDL_AudioFormat fmt, uint16_t chunk_size)
+Project *create_project(const char* name, uint8_t channels, uint32_t sample_rate, SDL_AudioFormat fmt, uint16_t chunk_size_sframes)
 {
     /* Allocate space for project and set name */
     Project *proj = malloc(sizeof(Project));
@@ -349,7 +280,7 @@ Project *create_project(const char* name, uint8_t channels, int sample_rate, SDL
     proj->channels = channels;
     proj->sample_rate = sample_rate;
     proj->fmt = fmt;
-    proj->chunk_size = chunk_size;
+    proj->chunk_size_sframes = chunk_size_sframes;
 
     /* Initialize play/record values */
     proj->play_speed = 0;
@@ -360,16 +291,16 @@ Project *create_project(const char* name, uint8_t channels, int sample_rate, SDL
     /* Initialize timeline struct */
     Timeline *tl = (Timeline *)malloc(sizeof(Timeline));
     tl->num_tracks = 0;
-    tl->play_position = 0;
-    tl->in_mark = 0;
-    tl->out_mark = 0;
-    tl->record_offset = 0;
-    tl->play_offset = 0;
-    tl->tempo = 120;
-    tl->click_on = false;
+    tl->play_pos_sframes = 0;
+    tl->in_mark_sframes = 0;
+    tl->out_mark_sframes = 0;
+    // tl->record_offset_sframes = 0;
+    // tl->play_offset = 0;
+    // tl->tempo = 120;
+    // tl->click_on = false;
     tl->sample_frames_per_pixel = DEFAULT_SFPP; // how "zoomed in" the timeline is. Affects display only
-    tl->offset = 0; // horizontal offset of timeline in samples
-    tl->v_offset = 0;
+    tl->display_offset_sframes = 0; // horizontal offset of timeline in samples
+    tl->display_v_offset = 0;
     tl->num_active_tracks = 0;
     tl->num_clipboard_clips = 0;
     tl->leftmost_clipboard_clip_pos = 0;
@@ -449,7 +380,7 @@ Track *create_track(Timeline *tl, bool stereo)
     track->muted = false;
     track->solo = false;
     track->solo_muted = false;
-    track->record = false;
+    // track->record = false;
     track->active = false;
     track->num_clips = 0;
     track->num_grabbed_clips = 0;
@@ -729,14 +660,22 @@ Clip *create_clip(Track *track, uint32_t len_sframes, uint32_t absolute_position
 
     clip->len_sframes = len_sframes;
     clip->abs_pos_sframes = absolute_position;
-    clip->track = track;
-    clip->channels = track->channels;
-    // clip->samples = malloc(sizeof(int16_t) * length);
     if (track) {
+        clip->track = track;
+        clip->channels = track->channels;
         clip->track_rank = track->num_clips;
         track->clips[track->num_clips] = clip;
         track->num_clips++;
         // clip->track = track;
+    }
+    if (len_sframes != 0) {
+        clip->L = malloc(sizeof(double) * len_sframes);
+        if (clip->channels == 2) {
+            clip->R = malloc(sizeof(double) * len_sframes);
+        }
+    } else {
+        clip->L = NULL;
+        clip->R = NULL;
     }
     clip->done = false;
     clip->grabbed = false;
@@ -754,18 +693,31 @@ Clip *create_clip(Track *track, uint32_t len_sframes, uint32_t absolute_position
 void destroy_clip(Clip *clip)
 {
     fprintf(stderr, "Enter destroy clip.\n");
-    if (clip->pre_proc) {
-        free(clip->pre_proc);
-        clip->pre_proc = NULL;
+    if (clip->L) {
+        free(clip->L);
+        clip->L = NULL;
     }
-    if (clip->post_proc) {
-        free(clip->post_proc);
-        clip->post_proc = NULL;
+    if (clip->R) {
+        free(clip->R);
+        clip->R = NULL;
     }
     free(clip);
     clip = NULL;
     fprintf(stderr, "\t->done destroy clip.\n");
 
+}
+
+void create_clip_buffers(Clip *clip, uint32_t buf_len_sframes)
+{
+    if (clip->L != NULL) {
+        fprintf(stderr, "Error: clip '%s' already has a buffer allocated.\n", clip->name);
+        return;
+    }
+    uint32_t buf_len_bytes = sizeof(double) * buf_len_sframes;
+    clip->L = malloc(buf_len_bytes);
+    if (clip->channels == 2) {
+        clip->R = malloc(buf_len_bytes);
+    }
 }
 
 void delete_track(Track *track)
@@ -854,8 +806,8 @@ void grab_clips()
             Clip *clip = track->clips[j];
             if (
                 clip->done 
-                && proj->tl->play_position >= clip->abs_pos_sframes 
-                && proj->tl->play_position <= clip->abs_pos_sframes + clip->len_sframes
+                && proj->tl->play_pos_sframes >= clip->abs_pos_sframes 
+                && proj->tl->play_pos_sframes <= clip->abs_pos_sframes + clip->len_sframes
             ) {
                 grab_clip(clip);
             }
@@ -1192,7 +1144,7 @@ void delete_grabbed_clips()
     }
 }
 
-void reposition_clip(Clip *clip, uint32_t new_pos)
+void reposition_clip(Clip *clip, int32_t new_pos)
 {
     clip->abs_pos_sframes = new_pos;
 }
@@ -1244,17 +1196,24 @@ void copy_clips_to_clipboard()
 static Clip *copy_clip(Clip *clip_to_copy)
 {
     Clip *new_clip = create_clip(clip_to_copy->track, clip_to_copy->len_sframes, clip_to_copy->abs_pos_sframes);
-    uint32_t buf_len_bytes = clip_to_copy->len_sframes * clip_to_copy->channels * sizeof(int16_t);
-    new_clip->pre_proc = malloc(buf_len_bytes);
-    new_clip->post_proc = malloc(buf_len_bytes);
-    memcpy(new_clip->pre_proc, clip_to_copy->pre_proc, buf_len_bytes);
-    memcpy(new_clip->post_proc, clip_to_copy->post_proc, buf_len_bytes);
+    // create_clip_buffers(new_clip, clip_to_copy->len_sframes);
+    uint32_t buf_len_bytes = clip_to_copy->len_sframes * sizeof(double);
+    // new_clip->L = malloc(buf_len_bytes);
+    // if (new_clip->channels == 2) {
+    //     new_clip->R = malloc(buf_len_bytes);
+    // }
+    // new_clip->pre_proc = malloc(buf_len_bytes);
+    // new_clip->post_proc = malloc(buf_len_bytes);
+    memcpy(new_clip->L, clip_to_copy->L, buf_len_bytes);
+    if (new_clip->channels == 2) {
+        memcpy(new_clip->L, clip_to_copy->R, buf_len_bytes);
+    }
     return new_clip;
 }
 
 void paste_clips()
 {
-    int32_t pos_offset = proj->tl->play_position - proj->tl->leftmost_clipboard_clip_pos;
+    int32_t pos_offset = proj->tl->play_pos_sframes - proj->tl->leftmost_clipboard_clip_pos;
     for (uint8_t i=0; i<proj->tl->num_clipboard_clips; i++) {
         Clip *clip_to_copy = proj->tl->clip_clipboard[i];
         Clip *new_clip = copy_clip(clip_to_copy);
@@ -1342,16 +1301,23 @@ void activate_audio_devices(Project *proj)
 static void cut_clip(Clip *clip, int32_t offset_sframes)
 {
     Clip *new_clip = create_clip(clip->track, clip->len_sframes - offset_sframes, clip->abs_pos_sframes + offset_sframes);
-    new_clip->len_sframes = clip->len_sframes - offset_sframes;
-    uint32_t new_buff_bytelen = new_clip->len_sframes * new_clip->channels * sizeof(int16_t);
-    new_clip->pre_proc = malloc(new_buff_bytelen);
-    new_clip->post_proc = malloc(new_buff_bytelen);
-    memcpy(new_clip->post_proc, clip->post_proc + offset_sframes * clip->channels, new_clip->len_sframes * clip->channels * sizeof(int16_t));
-    memcpy(new_clip->pre_proc, clip->pre_proc + offset_sframes * clip->channels, new_clip->len_sframes * clip->channels * sizeof(int16_t));
+    // new_clip->len_sframes = clip->len_sframes - offset_sframes;
+    // uint32_t new_buff_bytelen = new_clip->len_sframes * sizeof(double);
+
+    // new_clip->L = malloc(sizeof(double) * );
+    // new_clip->post_proc = malloc(new_buff_bytelen);
+    uint32_t new_clip_buf_len_bytes = (clip->len_sframes - offset_sframes) * sizeof(double);
+    memcpy(new_clip->L, clip->L + offset_sframes, new_clip_buf_len_bytes);
+    if (new_clip->channels == 2) {
+        memcpy(new_clip->R, clip->R + offset_sframes, new_clip_buf_len_bytes);
+    }
+    // memcpy(new_clip->pre_proc, clip->pre_proc + offset_sframes * clip->channels, new_clip->len_sframes * clip->channels * sizeof(int16_t));
     clip->len_sframes = offset_sframes;
-    new_buff_bytelen = clip->len_sframes * clip->channels * sizeof(int16_t);
-    clip->pre_proc = realloc(clip->pre_proc, new_buff_bytelen);
-    clip->post_proc = realloc(clip->post_proc, new_buff_bytelen);
+    uint32_t old_clip_new_buf_len_bytes = clip->len_sframes * sizeof(double);
+    clip->L = realloc(clip->L, old_clip_new_buf_len_bytes);
+    if (clip->channels == 2) {
+        clip->R = realloc(clip->R, old_clip_new_buf_len_bytes);
+    }
     new_clip->end_ramp_len = clip->end_ramp_len;
     clip->end_ramp_len = 0;
     new_clip->done = true;
@@ -1366,7 +1332,7 @@ void cut_clips()
         track = proj->tl->tracks[proj->tl->active_track_indices[i]];
         for (uint8_t j=0; j<track->num_clips; j++) {
             clip = track->clips[j];
-            int32_t offset_sframes = proj->tl->play_position - clip->abs_pos_sframes;
+            int32_t offset_sframes = proj->tl->play_pos_sframes - clip->abs_pos_sframes;
             if (clip->done && offset_sframes > 0 && offset_sframes < clip->len_sframes) {
                 cut_clip(clip, offset_sframes);
             }
@@ -1403,7 +1369,7 @@ void log_project_state(FILE *f) {
         fprintf(f, "\t\t\tOpen: %d:\n", dev->open);
         fprintf(f, "\t\t\tChannels: %d:\n", dev->spec.channels);
         fprintf(f, "\t\t\tFormat: %s:\n", get_audio_fmt_str(dev->spec.format));
-        fprintf(f, "\t\t\tWrite buffpos: %d:\n", dev->write_buffpos_sframes);
+        fprintf(f, "\t\t\tWrite buffpos: %d:\n", dev->write_buffpos_samples);
     }
     fprintf(f, "\tPlayback devices (%d):\n", proj->num_playback_devices);
     for (uint8_t i=0; i<proj->num_playback_devices; i++) {
@@ -1414,7 +1380,7 @@ void log_project_state(FILE *f) {
         fprintf(f, "\t\t\tOpen: %d:\n", dev->open);
         fprintf(f, "\t\t\tChannels: %d:\n", dev->spec.channels);
         fprintf(f, "\t\t\tFormat: %s:\n", get_audio_fmt_str(dev->spec.format));
-        fprintf(f, "\t\t\tWrite buffpos: %d:\n", dev->write_buffpos_sframes);
+        fprintf(f, "\t\t\tWrite buffpos: %d:\n", dev->write_buffpos_samples);
     }
     fprintf(f, "TRACKS (%d):\n", proj->tl->num_tracks);
     Clip *grabbed_clip = NULL;

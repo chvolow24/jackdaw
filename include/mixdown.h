@@ -24,17 +24,13 @@
 
 *****************************************************************************************************************/
 
-#ifndef JDAW_WAV_H
-#define JDAW_WAV_H
+/*****************************************************************************************************************
+    mixdown.h
 
-#include <stdint.h>
+    * Get sampels from tracks/clips for playback or export
+ *****************************************************************************************************************/
+
+
 #include "project.h"
 
-
-/* Gets a mixdown chunk and calls functions in wav.c to create a wav file */
-void write_mixdown_to_wav(char *filepath);
-
-// void write_wav(const char *fname, int16_t *samples, uint32_t num_samples, uint16_t bits_per_sample, uint8_t channels);
-void load_wav_to_track(Track *track, const char *filename);
-
-#endif
+double *get_mixdown_chunk(Timeline* tl, uint8_t channel, uint32_t len_sframes, bool from_mark_in);

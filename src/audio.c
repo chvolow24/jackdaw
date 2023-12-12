@@ -38,8 +38,9 @@
 #include "SDL.h"
 #include "SDL_audio.h"
 
-#include "project.h"
 #include "audio.h"
+#include "mixdown.h"
+#include "project.h"
 #include "wav.h"
 
 
@@ -48,7 +49,7 @@
 // static Sint16 audio_buffer[BUFFLEN];
 
 /* TODO: get rid of this nonsense */
-int write_buffpos = 0;
+// int write_buffpos = 0;
 // static int read_buffpos = 0;
 
 // SDL_AudioDeviceID playback_device;
@@ -60,39 +61,22 @@ extern Project *proj;
 static void recording_callback(void* user_data, uint8_t *stream, int streamLength)
 {
     AudioDevice *dev = (AudioDevice *)user_data;
+    uint32_t stream_len_samples = streamLength / sizeof(int16_t);
 
-    if (dev->write_buffpos_sframes + (streamLength / 2) < BUFFLEN) {
-        if (proj->tl->record_offset == 0) {
-            proj->tl->record_offset = proj->tl->play_position + proj->chunk_size * 4 - proj->active_clips[0]->abs_pos_sframes;
-            // long            ms; // Milliseconds
-            // time_t          s;  // Seconds
-            // struct timespec spec;
-            // clock_gettime(CLOCK_REALTIME, &spec);
-            // s  = spec.tv_sec;
-            // ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
-            // if (ms > 999) {
-            //     s++;
-            //     ms = 0;
-            // }
-            // fprintf(stderr, "RECORD time: %ld: %ld\n", s, ms);
-            // fprintf(stderr, "First recording callback. Record offset: %d. Play position: %d, abspos: %d\n", proj->tl->record_offset, proj->tl->play_position, proj->active_clips[0]->absolute_position);
-        }
-        memcpy(dev->rec_buffer + dev->write_buffpos_sframes * dev->spec.channels, stream, streamLength);
+    if (dev->write_buffpos_samples + stream_len_samples < dev->rec_buf_len_samples) {
+        memcpy(dev->rec_buffer + dev->write_buffpos_samples, stream, streamLength);
     } else {
-        dev->write_buffpos_sframes = 0;
+        dev->write_buffpos_samples = 0;
         stop_device_recording(dev);
         fprintf(stderr, "ERROR: overwriting audio buffer of device: %s\n", dev->name);
     }
 
-
-
-    dev->write_buffpos_sframes += streamLength / dev->spec.channels / 2;
-    Clip *clip = NULL;
+    dev->write_buffpos_samples += stream_len_samples;
 
     for (uint8_t i=0; i<proj->num_active_clips; i++) {
-        clip = proj->active_clips[i];
+        Clip *clip = proj->active_clips[i];
         if (clip->input == dev) {
-            clip->len_sframes += streamLength / clip->channels / 2;
+            clip->len_sframes += stream_len_samples / clip->channels;
             reset_cliprect(clip);
         }
     }
@@ -107,16 +91,25 @@ static void play_callback(void* user_data, Uint8* stream, int streamLength)
     // fprintf(stderr, "Playback channels: %d\n", pbdev->spec.channels);
     // fprintf(stderr, "Playback format: %s\n", get_audio_fmt_str(pbdev->spec.format));
     // fprintf(stderr, "Playback freq: %d\n", pbdev->spec.freq);
+    uint32_t stream_len_samples = streamLength / sizeof(int16_t);
 
-
-    int16_t *chunk = get_mixdown_chunk(proj->tl, streamLength / 2, false);
+    double *chunk_L = get_mixdown_chunk(proj->tl, 0, stream_len_samples / proj->channels, false);
+    double *chunk_R = get_mixdown_chunk(proj->tl, 1, stream_len_samples / proj->channels, false);
     // Printing sample values to confirm that every other sample has value 0
     // for (uint8_t i = 0; i<200; i++) {
     //     fprintf(stderr, "%hd ", (int16_t)(chunk[i]));
     // }
-    memcpy(stream, chunk, streamLength);
+
+    int16_t *stream_fmt = (int16_t *)stream;
+    for (uint32_t i=0; i<stream_len_samples; i+=2)
+    {
+        stream_fmt[i] = (int16_t) (chunk_L[i] * INT16_MAX);
+        stream_fmt[i+1] = (int16_t) (chunk_R[i] * INT16_MAX);
+    }
+    // memcpy(stream, chunk, streamLength);
     // Printing sample values to confirm that every other sample has value 0
-    free(chunk);
+    free(chunk_L);
+    free(chunk_R);
     // for (uint8_t i = 0; i<40; i+=2) {
     //     fprintf(stderr, "%hd ", (int16_t)(stream[i]));
     // }
@@ -172,24 +165,28 @@ void stop_device_playback()
 {
     SDL_PauseAudioDevice(proj->playback_device->id, 1);
     proj->playback_device->active = false;
-    proj->tl->play_offset = 0;
+    // proj->tl->play_offset = 0;
 }
 
 void copy_device_buff_to_clip(Clip *clip)
 {
     fprintf(stderr, "Enter copy_buff_to_clip\n");
-    clip->len_sframes = clip->input->write_buffpos_sframes;
-    clip->pre_proc = malloc(sizeof(int16_t) * clip->len_sframes * clip->channels);
-    clip->post_proc = malloc(sizeof(int16_t) * clip->len_sframes * clip->channels);
-    if (!clip->post_proc || !clip->pre_proc) {
-        fprintf(stderr, "Error: unable to allocate space for clip samples\n");
-        return;
-    }
-    int16_t sample = clip->input->rec_buffer[0];
-    for (int i=0; i<clip->input->write_buffpos_sframes  * clip->channels; i++) {
-        sample = clip->input->rec_buffer[i];
-        (clip->pre_proc)[i] = sample;
-        (clip->post_proc)[i] = sample; //TODO: consider whether this should go elsewhere.
+    clip->len_sframes = clip->input->write_buffpos_samples / clip->channels;
+    create_clip_buffers(clip, clip->len_sframes);
+    // clip->pre_proc = malloc(sizeof(int16_t) * clip->len_sframes * clip->channels);
+    // clip->post_proc = malloc(sizeof(int16_t) * clip->len_sframes * clip->channels);
+    // if (!clip->post_proc || !clip->pre_proc) {
+    //     fprintf(stderr, "Error: unable to allocate space for clip samples\n");
+    //     return;
+    // }
+    // int16_t sample = clip->input->rec_buffer[0];
+    for (int i=0; i<clip->input->write_buffpos_samples; i+= clip->channels) {
+        double sample_L = (double) clip->input->rec_buffer[i] / INT16_MAX;
+        double sample_R = (double) clip->input->rec_buffer[i+1] / INT16_MAX;
+        clip->L[i*2] = sample_L;
+        clip->R[i*2] = sample_R;
+        // (clip->pre_proc)[i] = sample;
+        // (clip->post_proc)[i] = sample;
     }
     clip->done = true;
     fprintf(stderr, "\t->exit copy_buff_to_clip\n");
@@ -210,7 +207,7 @@ int query_audio_devices(AudioDevice ***device_list, int iscapture)
     default_dev->active = false;
     default_dev->index = 0;
     default_dev->iscapture = iscapture;
-    default_dev->write_buffpos_sframes = 0;
+    default_dev->write_buffpos_samples = 0;
     default_dev->rec_buffer = NULL;
     // memset(default_dev->rec_buffer, '\0', BUFFLEN / 2);
 
@@ -234,7 +231,7 @@ int query_audio_devices(AudioDevice ***device_list, int iscapture)
         dev->active = false;
         dev->index = j;
         dev->iscapture = iscapture;
-        dev->write_buffpos_sframes = 0;
+        dev->write_buffpos_samples = 0;
         // memset(dev->rec_buffer, '\0', BUFFLEN / 2);
         SDL_AudioSpec spec;
         if (SDL_GetAudioDeviceSpec(i, iscapture, &spec) != 0) {
@@ -271,7 +268,7 @@ int open_audio_device(Project *proj, AudioDevice *device, uint8_t desired_channe
 
     /* Project determines high-level audio settings */
     device->spec.format = AUDIO_S16LSB;
-    device->spec.samples = proj->chunk_size;
+    device->spec.samples = proj->chunk_size_sframes;
     device->spec.freq = proj->sample_rate;
 
     device->spec.channels = desired_channels;
@@ -288,7 +285,11 @@ int open_audio_device(Project *proj, AudioDevice *device, uint8_t desired_channe
         return -1;
     }
     if (!(device->rec_buffer)) {
-        device->rec_buffer = malloc(BUFFLEN * device->spec.channels);
+        uint32_t device_buf_len_bytes = proj->sample_rate * DEVICE_BUFFLEN_SECONDS * device->spec.channels * sizeof(int16_t);
+        device->rec_buffer = malloc(device_buf_len_bytes);
+        if (!(device->rec_buffer)) {
+            fprintf(stderr, "Error: unable to allocate space for device buffer.\n");
+        }
     }
     return 0;
 }
@@ -347,13 +348,4 @@ const char *get_audio_fmt_str(SDL_AudioFormat fmt)
             break;
     }
     return fmt_str;
-}
-
-
-void write_mixdown_to_wav(char *filepath)
-{
-    uint32_t num_samples = (proj->tl->out_mark - proj->tl->in_mark) * proj->channels;
-    int16_t *samples = get_mixdown_chunk(proj->tl, num_samples, true);
-    write_wav(filepath, samples, num_samples, 16, 2);
-    free(samples);
 }

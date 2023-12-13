@@ -138,16 +138,16 @@ void init_audio()
     }
 }
 
-void start_device_recording(AudioDevice *dev)
-{
-    fprintf(stderr, "START RECORDING dev: %s\n", dev->name);
-    if (open_audio_device(proj, dev, 2) == 0) {
-        fprintf(stderr, "Opened device\n");
-        SDL_PauseAudioDevice(dev->id, 0);
-    } else {
-        fprintf(stderr, "Failed to open device\n");
-    }
-}
+// void start_device_recording(AudioDevice *dev)
+// {
+//     fprintf(stderr, "START RECORDING dev: %s\n", dev->name);
+//     if (open_audio_device(proj, dev, 2) == 0) {
+//         fprintf(stderr, "Opened device\n");
+//         SDL_PauseAudioDevice(dev->id, 0);
+//     } else {
+//         fprintf(stderr, "Failed to open device\n");
+//     }
+// }
 
 void stop_device_recording(AudioDevice *dev)
 {

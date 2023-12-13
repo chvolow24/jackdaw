@@ -104,7 +104,7 @@ double *get_mixdown_chunk(Timeline* tl, uint8_t channel, uint32_t len_sframes, b
     uint32_t start_pos_sframes = from_mark_in ? proj->tl->in_mark_sframes : proj->tl->play_pos_sframes;
     while (i < len_sframes) {
         for (int t=0; t<tl->num_tracks; t++) {
-            mixdown[i] += get_track_sample((tl->tracks)[t], channel, start_pos_sframes + (uint32_t)j);
+            mixdown[i] += get_track_sample((tl->tracks)[t], channel, start_pos_sframes + (int32_t)j);
         }
         j += from_mark_in ? 1 : proj->play_speed;
         i++;

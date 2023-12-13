@@ -320,8 +320,22 @@ static void start_recording()
     fprintf(stderr, "START RECORDING. active tracks: %d\n", proj->tl->num_active_tracks);
     for (uint8_t i=0; i<proj->tl->num_active_tracks; i++) {
         track = proj->tl->tracks[proj->tl->active_track_indices[i]];
-        track->input->active = true;
-        fprintf(stderr, "set device %s to active\n", track->input->name);
+        if (track->input->active == false) {
+            track->input->active = true;
+            if (open_audio_device(proj, track->input, 2) != 0) {
+                fprintf(stderr, "Unable to open device: %s\n", track->input->name);
+            }
+        }
+// void start_device_recording(AudioDevice *dev)
+// {
+//     fprintf(stderr, "START RECORDING dev: %s\n", dev->name);
+//     if () {
+//         fprintf(stderr, "Opened device\n");
+//         SDL_PauseAudioDevice(dev->id, 0);
+//     } else {
+//         fprintf(stderr, "Failed to open device\n");
+//     }
+// }
         Clip *clip = create_clip(track, 0, proj->tl->play_pos_sframes);
         fprintf(stderr, "Creating clip @abspos: %d\n", proj->tl->play_pos_sframes);
         add_active_clip(clip);
@@ -338,7 +352,8 @@ static void start_recording()
         AudioDevice *dev = NULL;
         if ((dev = proj->record_devices[i]) && dev->active) {
             fprintf(stderr, "Device: %s, active? %d\n", dev->name, dev->active);
-            start_device_recording(dev);
+            // start_device_recording(dev);
+            SDL_PauseAudioDevice(dev->id, 0);
         }
     }
     proj->play_speed = 1;

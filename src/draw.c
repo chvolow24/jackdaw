@@ -437,7 +437,7 @@ static void draw_waveform(Clip *clip)
         int wav_x = clip->rect.x;
         int wav_y = clip->rect.y + clip->rect.h / 2;
         SDL_SetRenderDrawColor(proj->jwin->rend, 5, 5, 60, 255);
-        double sample = 0;
+        float sample = 0;
         int last_sample_y = wav_y;
         int sample_y = wav_y;
         for (int i=0; i<clip->len_sframes-1; i+=clip->track->tl->sample_frames_per_pixel) {
@@ -465,8 +465,8 @@ static void draw_waveform(Clip *clip)
         // clip_mid_y += 2;
         // SDL_RenderDrawLine(proj->jwin->rend, clip->rect.x, clip_mid_y, clip->rect.x + clip->rect.w, clip_mid_y);
         SDL_SetRenderDrawColor(proj->jwin->rend, 5, 5, 60, 255);
-        double sample_l = 0;
-        double sample_r = 0;
+        float sample_l = 0;
+        float sample_r = 0;
         int last_sample_y_l = wav_y_l;
         int last_sample_y_r = wav_y_r;
         int sample_y_l = wav_y_l;

@@ -669,9 +669,9 @@ Clip *create_clip(Track *track, uint32_t len_sframes, uint32_t absolute_position
         // clip->track = track;
     }
     if (len_sframes != 0) {
-        clip->L = malloc(sizeof(double) * len_sframes);
+        clip->L = malloc(sizeof(float) * len_sframes);
         if (clip->channels == 2) {
-            clip->R = malloc(sizeof(double) * len_sframes);
+            clip->R = malloc(sizeof(float) * len_sframes);
         }
     } else {
         clip->L = NULL;
@@ -713,7 +713,7 @@ void create_clip_buffers(Clip *clip, uint32_t buf_len_sframes)
         fprintf(stderr, "Error: clip '%s' already has a buffer allocated.\n", clip->name);
         return;
     }
-    uint32_t buf_len_bytes = sizeof(double) * buf_len_sframes;
+    uint32_t buf_len_bytes = sizeof(float) * buf_len_sframes;
     clip->L = malloc(buf_len_bytes);
     if (clip->channels == 2) {
         clip->R = malloc(buf_len_bytes);
@@ -1197,7 +1197,7 @@ static Clip *copy_clip(Clip *clip_to_copy)
 {
     Clip *new_clip = create_clip(clip_to_copy->track, clip_to_copy->len_sframes, clip_to_copy->abs_pos_sframes);
     // create_clip_buffers(new_clip, clip_to_copy->len_sframes);
-    uint32_t buf_len_bytes = clip_to_copy->len_sframes * sizeof(double);
+    uint32_t buf_len_bytes = clip_to_copy->len_sframes * sizeof(float);
     // new_clip->L = malloc(buf_len_bytes);
     // if (new_clip->channels == 2) {
     //     new_clip->R = malloc(buf_len_bytes);
@@ -1306,14 +1306,14 @@ static void cut_clip(Clip *clip, int32_t offset_sframes)
 
     // new_clip->L = malloc(sizeof(double) * );
     // new_clip->post_proc = malloc(new_buff_bytelen);
-    uint32_t new_clip_buf_len_bytes = (clip->len_sframes - offset_sframes) * sizeof(double);
+    uint32_t new_clip_buf_len_bytes = (clip->len_sframes - offset_sframes) * sizeof(float);
     memcpy(new_clip->L, clip->L + offset_sframes, new_clip_buf_len_bytes);
     if (new_clip->channels == 2) {
         memcpy(new_clip->R, clip->R + offset_sframes, new_clip_buf_len_bytes);
     }
     // memcpy(new_clip->pre_proc, clip->pre_proc + offset_sframes * clip->channels, new_clip->len_sframes * clip->channels * sizeof(int16_t));
     clip->len_sframes = offset_sframes;
-    uint32_t old_clip_new_buf_len_bytes = clip->len_sframes * sizeof(double);
+    uint32_t old_clip_new_buf_len_bytes = clip->len_sframes * sizeof(float);
     clip->L = realloc(clip->L, old_clip_new_buf_len_bytes);
     if (clip->channels == 2) {
         clip->R = realloc(clip->R, old_clip_new_buf_len_bytes);

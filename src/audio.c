@@ -94,8 +94,8 @@ static void play_callback(void* user_data, Uint8* stream, int streamLength)
     // fprintf(stderr, "Playback freq: %d\n", pbdev->spec.freq);
     uint32_t stream_len_samples = streamLength / sizeof(int16_t);
 
-    double *chunk_L = get_mixdown_chunk(proj->tl, 0, stream_len_samples / proj->channels, false);
-    double *chunk_R = get_mixdown_chunk(proj->tl, 1, stream_len_samples / proj->channels, false);
+    float *chunk_L = get_mixdown_chunk(proj->tl, 0, stream_len_samples / proj->channels, false);
+    float *chunk_R = get_mixdown_chunk(proj->tl, 1, stream_len_samples / proj->channels, false);
     // Printing sample values to confirm that every other sample has value 0
     // for (uint8_t i = 0; i<200; i++) {
     //     fprintf(stderr, "%hd ", (int16_t)(chunk[i]));
@@ -183,8 +183,8 @@ void copy_device_buff_to_clip(Clip *clip)
     // }
     // int16_t sample = clip->input->rec_buffer[0];
     for (int i=0; i<clip->input->write_buffpos_samples; i+= clip->channels) {
-        double sample_L = (double) clip->input->rec_buffer[i] / INT16_MAX;
-        double sample_R = (double) clip->input->rec_buffer[i+1] / INT16_MAX;
+        float sample_L = (float) clip->input->rec_buffer[i] / INT16_MAX;
+        float sample_R = (float) clip->input->rec_buffer[i+1] / INT16_MAX;
         // fprintf(stderr, "Copying samples to clip %d: %f, %d: %f\n", i, sample_L, i+1, sample_R);
         clip->L[i/clip->channels] = sample_L;
         clip->R[i/clip->channels] = sample_R;

@@ -175,6 +175,43 @@ CLP_DATA      0-?               [int16_t arr]             [LE]         CLIP SAMP
 
 *********************************************************************************/
 
+/**************************** .JDAW VERSION 00.04 FILE SPEC ***********************************
+
+===========================================================================================================
+SCTN          LEN IN BYTES      TYPE                      BYTE ORDER   FIELD NAME OR VALUE
+===========================================================================================================
+HDR           4                 char[4]                                "JDAW"
+HDR           8                 char[8]                                " VERSION"
+HDR           5                 char[5]                                file spec version (e.g. "00.01")
+HDR           1                 uint8_t                                project name length
+HDR           0-255             char[]                                 project name
+HDR           1                 uint8_t                                channels
+HDR           4                 uint32_t                  LE           sample rate
+HDR           2                 uint16_t                  LE           chunk size (power of 2)
+HDR           2                 SDL_AudioFormat (16bit)                SDL Audio Format
+HDR           1                 uint8_t                                num tracks
+TRK_HDR       4                 char[4]                                "TRCK"
+TRK_HDR       1                 uint8_t                                track name length
+TRK_HDR       0-255             char[]                                 track name
+TRK_HDR       10                char[16] (from float)                  vol ctrl value
+TRK_HDR       10                char[16] (from float)                  pan ctrl value
+TRK_HDR       1                 bool                                   muted
+TRK_HDR       1                 bool                                   soloed
+TRK_HDR       1                 bool                                   solo muted
+TRK_HDR       1                 uint8_t                                num_clips
+CLP_HDR       4                 char[4]                                "CLIP"
+CLP_HDR       1                 uint8_t                                clip name length
+CLP_HDR       0-255             char[]                                 clip name
+CLP_HDR       4                 int32_t                   LE           absolute position (in timeline)
+CLP_HDR       4                 uint32_t                  LE           length (sframes)
+CLP_HDR       1                 uint8_t                                channels
+CLP_HDR       4                 uint32_t                  LE           clip start ramp len (sframes)
+CLP_HDR       4                 uint32_t                  LE           clip end ramp len (sframes)
+CLP_HDR       4                 char[4]                                "data"
+CLP_DATA      0-?               [int16_t arr]             [LE]         CLIP SAMPLE DATA     
+
+*********************************************************************************/
+
 const static char hdr_jdaw[] = {'J', 'D', 'A', 'W'};
 const static char hdr_version[] = {' ', 'V', 'E', 'R', 'S', 'I', 'O', 'N'};
 const static char hdr_trk[] = {'T', 'R', 'C', 'K'};
@@ -257,6 +294,7 @@ void write_clip_to_jdaw(FILE *f, Clip *clip)
     if (sys_byteorder_le) {
         fwrite(&(clip->abs_pos_sframes), 4, 1, f);
         fwrite(&(clip->len_sframes), 4, 1, f);
+        fwrite(&(clip->channels), 1, 1, f); // Added in 00.04
         fwrite(&(clip->start_ramp_len), 4, 1, f);
         fwrite(&(clip->end_ramp_len), 4, 1, f);
     } else {
@@ -265,7 +303,20 @@ void write_clip_to_jdaw(FILE *f, Clip *clip)
     }
     fwrite(hdr_data, 1, 4, f);
     //TODO: WRITE CLIP DATA
-    // fwrite(clip->pre_proc, 2, clip->len_sframes * clip->channels, f);
+    uint32_t len_samples = clip->len_sframes * clip->channels;
+    int16_t clip_samples[len_samples];
+    if (clip->channels == 2) {
+        for (uint32_t i=0; i<len_samples; i+=2) {
+            clip_samples[i] = (int16_t)(clip->L[i/2] * INT16_MAX);
+            clip_samples[i+1] = (int16_t)(clip->R[i/2] * INT16_MAX);
+        }
+    } else if (clip->channels == 1) {
+        for (uint32_t i=0; i<len_samples; i++) {
+            clip_samples[i] = (int16_t)(clip->L[i] * INT16_MAX);
+        }
+    }
+
+    fwrite(clip_samples, 2, clip->len_sframes * clip->channels, f);
 }
 
 Project *open_jdaw_file(const char *path)
@@ -422,12 +473,19 @@ static void read_clip_from_jdaw(FILE *f, float file_spec_version, Clip *clip)
     fread(&clip_namelength, 1, 1, f);
     fread(clip->name, 1, clip_namelength + 1, f);
     fprintf(stderr, "Clip named: '%s'\n", clip->name);
-    clip->channels = 2; //TODO: make sure this is written in
+    // clip->channels = 2; //TODO: make sure this is written in
 
 
     if (sys_byteorder_le) {
         fread(&(clip->abs_pos_sframes), 4, 1, f);
         fread(&(clip->len_sframes), 4, 1, f);
+        if (file_spec_version > 0.04) {
+            fread(&(clip->channels), 1, 1, f);
+            fprintf(stderr, "Reading clip channels from file: %d\n", clip->channels);
+        } else {
+            clip->channels = 2;
+            fprintf(stderr, "Setting default value for clip channels: %d\n", clip->channels);
+        }
     } else {
         //TODO: handle big endian
         exit(1);
@@ -454,6 +512,28 @@ static void read_clip_from_jdaw(FILE *f, float file_spec_version, Clip *clip)
 
 
     /* TODO: everything commented below. */
+
+    create_clip_buffers(clip, clip->len_sframes);
+    fprintf(stderr, "Creeated clip buffers\n");
+    uint32_t clip_len_samples = clip->len_sframes * clip->channels;
+    fprintf(stderr, "Clip len samples: %d\n", clip_len_samples);
+
+    int16_t *interleaved_clip_samples = malloc(sizeof(int16_t) * clip_len_samples);
+    fread(interleaved_clip_samples, 2, clip_len_samples, f);
+    fprintf(stderr, "Read into interleaved samples array\n");
+
+    if (clip->channels == 2) {
+        for (uint32_t i=0; i<clip_len_samples; i+=2) {
+            clip->L[i/2] = (float)interleaved_clip_samples[i] / INT16_MAX;
+            clip->R[i/2] = (float)interleaved_clip_samples[i+1] / INT16_MAX;
+        }
+    } else {
+        for (uint32_t i=0; i<clip_len_samples; i++) {
+            clip->L[i] = (float)interleaved_clip_samples[i] / INT16_MAX;
+        }     
+    }
+    free(interleaved_clip_samples);
+    fprintf(stderr, "Finished creating samples array\n");
 
 
     // clip->pre_proc = malloc(sizeof(int16_t) * clip->len_sframes * clip->channels);

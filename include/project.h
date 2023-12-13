@@ -127,8 +127,8 @@ typedef struct clip {
 		// bool stereo;
 		uint32_t len_sframes; // length in sample frames
 		int32_t abs_pos_sframes; // timeline position in sample frames
-		double *L; // Left channel audio data
-		double *R; // Right channel audio data
+		float *L; // Left channel audio data
+		float *R; // Right channel audio data
 		// int16_t *pre_proc; // the raw clip audio data
 		// int16_t *post_proc; // cached audio data after audio processing
 		bool done; // true when the clip has finished recording

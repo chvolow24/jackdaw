@@ -35,13 +35,13 @@
 extern Project *proj;
 /* Query track clips and return audio sample representing a given point in the timeline. 
 channel is 0 for left or mono, 1 for right */
-static double get_track_sample(Track *track, uint8_t channel, int32_t tl_pos_sframes)
+static float get_track_sample(Track *track, uint8_t channel, int32_t tl_pos_sframes)
 {
     if (track->muted || track->solo_muted) {
         return 0;
     }
 
-    double sample = 0;
+    float sample = 0;
 
 
     for (int i=0; i < track->num_clips; i++) {
@@ -49,12 +49,12 @@ static double get_track_sample(Track *track, uint8_t channel, int32_t tl_pos_sfr
         if (!(clip->done)) {
             continue;
         }
-        double *clip_buf = (channel == 0) ? clip->L : clip->R;
+        float *clip_buf = (channel == 0) ? clip->L : clip->R;
         int32_t pos_in_clip_sframes = tl_pos_sframes - clip->abs_pos_sframes;
         // fprintf(stderr, "Pos in clip: %d\n", pos_in_clip_sframes);
         if (pos_in_clip_sframes >= 0 && pos_in_clip_sframes < clip->len_sframes) {
             if (pos_in_clip_sframes < clip->start_ramp_len) {
-                double ramp_value = (double) pos_in_clip_sframes / clip->start_ramp_len;
+                float ramp_value = (float) pos_in_clip_sframes / clip->start_ramp_len;
                 // ramp_value *= ramp_value;
                 // ramp_value *= ramp_value;
                 // ramp_value *= ramp_value;
@@ -62,7 +62,7 @@ static double get_track_sample(Track *track, uint8_t channel, int32_t tl_pos_sfr
                 // fprintf(stderr, "\t Sample pre & post: %d, %d\n", (clip->post_proc)[pos_in_clip], (int16_t) ((clip->post_proc)[pos_in_clip] * ramp_value));
                 sample += ramp_value * clip_buf[pos_in_clip_sframes];
             } else if (pos_in_clip_sframes > clip->len_sframes - clip->end_ramp_len) {
-                double ramp_value = (double) (clip->len_sframes - pos_in_clip_sframes) / clip->end_ramp_len;
+                float ramp_value = (float) (clip->len_sframes - pos_in_clip_sframes) / clip->end_ramp_len;
                 // ramp_value *= ramp_value;
                 // ramp_value *= ramp_value;
                 // ramp_value *= ramp_value;
@@ -89,10 +89,10 @@ static double get_track_sample(Track *track, uint8_t channel, int32_t tl_pos_sfr
 Sum track samples over a chunk of timeline and return an array of samples. from_mark_in indicates that samples
 should be collected from the in mark rather than from the play head.
 */
-double *get_mixdown_chunk(Timeline* tl, uint8_t channel, uint32_t len_sframes, bool from_mark_in)
+float *get_mixdown_chunk(Timeline* tl, uint8_t channel, uint32_t len_sframes, bool from_mark_in)
 {
-    uint32_t chunk_len_bytes = sizeof(double) * len_sframes;
-    double *mixdown = malloc(chunk_len_bytes);
+    uint32_t chunk_len_bytes = sizeof(float) * len_sframes;
+    float *mixdown = malloc(chunk_len_bytes);
     memset(mixdown, '\0', chunk_len_bytes);
     if (!mixdown) {
         fprintf(stderr, "\nError: could not allocate mixdown chunk.");

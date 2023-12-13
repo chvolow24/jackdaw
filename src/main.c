@@ -74,7 +74,7 @@ char *home_dir;
 bool sys_byteorder_le;
 uint8_t animation_delay = 10;
 
-extern int write_buffpos;
+// extern int write_buffpos;
 
 extern JDAW_Color bckgrnd_color;
 extern JDAW_Color tl_bckgrnd;
@@ -313,7 +313,7 @@ static char *new_project_loop(JDAWWindow *jwin)
 
 static void start_recording()
 {
-    write_buffpos = 0;
+    // write_buffpos = 0;
     Track *track = NULL;
     // AudioDevice *dev_list[proj->tl->num_active_tracks];
     // uint8_t num_active_devices = 0;
@@ -322,8 +322,8 @@ static void start_recording()
         track = proj->tl->tracks[proj->tl->active_track_indices[i]];
         track->input->active = true;
         fprintf(stderr, "set device %s to active\n", track->input->name);
-        Clip *clip = create_clip(track, 0, proj->tl->play_position);
-        fprintf(stderr, "Creating clip @abspos: %d\n", proj->tl->play_position);
+        Clip *clip = create_clip(track, 0, proj->tl->play_pos_sframes);
+        fprintf(stderr, "Creating clip @abspos: %d\n", proj->tl->play_pos_sframes);
         add_active_clip(clip);
         // uint8_t j=0;
         // while (j < num_active_devices && clip->input != dev_list[j]) {
@@ -364,17 +364,20 @@ static void stop_recording()
             exit(1);
         }
         copy_device_buff_to_clip(clip); //TODO: consider whether this needs to be multi-threaded.
-        reposition_clip(clip, clip->abs_pos_sframes - proj->tl->record_offset);
+
+        //TODO: reposition clip after recording
+
+        // reposition_clip(clip, clip->abs_pos_sframes - proj->tl->record_offset);
     }
     for (uint8_t i=0; i<proj->num_record_devices; i++) {
         AudioDevice* dev = proj->record_devices[i];
         if (dev->active) {
-            memset(dev->rec_buffer, '\0', BUFFLEN / 2);
-            dev->write_buffpos_sframes = 0;
+            memset(dev->rec_buffer, '\0', dev->rec_buf_len_samples * sizeof(int16_t));
+            dev->write_buffpos_samples = 0;
             dev->active = false;
         }
     }
-    proj->tl->record_offset = 0;
+    // proj->tl->record_offset = 0;
     clear_active_clips();
 }
     // fprintf(stderr, "Enter stop_recording\n");
@@ -387,6 +390,7 @@ static void start_or_stop_recording()
 {
     if (proj->recording) {
         stop_recording();
+        stop_playback();
     } else {
         start_recording();
     }
@@ -533,28 +537,28 @@ static void project_loop()
                         break;
                     case SDL_SCANCODE_COMMA: {
                         double scale_factor = 1 / SFPP_STEP;
-                        rescale_timeline(scale_factor, proj->tl->play_position);
+                        rescale_timeline(scale_factor, proj->tl->play_pos_sframes);
                         break;
                     }
                     case SDL_SCANCODE_PERIOD: {
                         double scale_factor = SFPP_STEP;
-                        rescale_timeline(scale_factor, proj->tl->play_position);
+                        rescale_timeline(scale_factor, proj->tl->play_pos_sframes);
                         break;
                     }
                     case SDL_SCANCODE_I:
                         if (cmd_ctrl_down) {
-                            set_play_position(proj->tl->in_mark);
-                            // proj->tl->play_position = proj->tl->in_mark;
+                            set_play_position(proj->tl->in_mark_sframes);
+                            // proj->tl->play_position = proj->tl->in_mark_sframes;
                         } else {
-                            proj->tl->in_mark = proj->tl->play_position;
+                            proj->tl->in_mark_sframes = proj->tl->play_pos_sframes;
                         }
                         break;
                     case SDL_SCANCODE_O:
                         if (cmd_ctrl_down) {
-                            set_play_position(proj->tl->out_mark);
-                            // proj->tl->play_position = proj->tl->out_mark;
+                            set_play_position(proj->tl->out_mark_sframes);
+                            // proj->tl->play_position = proj->tl->out_mark_sframes;
                         } else {
-                            proj->tl->out_mark = proj->tl->play_position;
+                            proj->tl->out_mark_sframes = proj->tl->play_pos_sframes;
                         }
                         break;
                     case SDL_SCANCODE_T:
@@ -647,7 +651,7 @@ static void project_loop()
                         } else {
                             translate_by = get_tl_abs_w(ARROW_TL_STEP) * -1;
                         }
-                        proj->tl->play_position += translate_by;
+                        // proj->tl->play_position_sframes += translate_by;
                         move_play_position(translate_by);
                         // if (proj->tl->play_position < 0) { //TODO: allow space for negative tl pos in all modules.
                         //     set_play_position(0);
@@ -845,9 +849,9 @@ static void project_loop()
                 // set_timecode();
             }
         }
-        if (proj->play_speed < 0 && proj->tl->offset > proj->tl->play_position) {
+        if (proj->play_speed < 0 && proj->tl->display_offset_sframes > proj->tl->play_pos_sframes) {
             translate_tl(CATCHUP_STEP * -1, 0);
-        } else if (proj->play_speed > 0 && get_tl_draw_x(proj->tl->play_position) > proj->jwin->w) {
+        } else if (proj->play_speed > 0 && get_tl_draw_x(proj->tl->play_pos_sframes) > proj->jwin->w) {
             translate_tl(CATCHUP_STEP, 0);
         }
         if (shift_down && (equals_down || minus_down)) {

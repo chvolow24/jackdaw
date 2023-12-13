@@ -56,7 +56,7 @@ Positions	Sample Value	    Description
 #include "SDL.h"
 #include "audio.h"
 #include "project.h"
-
+#include "mixdown.h"
 extern Project *proj;
 
 //TODO: Endianness!
@@ -113,9 +113,18 @@ static void write_wav(const char *fname, int16_t *samples, uint32_t num_samples,
 
 void write_mixdown_to_wav(char *filepath)
 {
-    uint32_t num_samples = (proj->tl->out_mark - proj->tl->in_mark) * proj->channels;
-    int16_t *samples = get_mixdown_chunk(proj->tl, num_samples, true);
-    write_wav(filepath, samples, num_samples, 16, 2);
+    uint32_t len_sframes = proj->tl->out_mark_sframes - proj->tl->in_mark_sframes;
+    double *samples_L = get_mixdown_chunk(proj->tl, 0, len_sframes, true);
+    double *samples_R = get_mixdown_chunk(proj->tl, 1, len_sframes, true);
+
+    int16_t *samples = malloc(sizeof(int16_t) * len_sframes);
+    for (uint32_t i=0; i<len_sframes; i+=2) {
+        samples[i] = samples_L[i/2] * INT16_MAX;
+        samples[i+1] = samples_R[i/2] * INT16_MAX;
+    }
+    free(samples_L);
+    free(samples_R);
+    write_wav(filepath, samples, len_sframes * 2, 16, 2);
     free(samples);
 }
 
@@ -170,18 +179,26 @@ void load_wav_to_track(Track *track, const char *filename) {
         return;
     }
 
-    Clip *clip = create_clip(track, audio_len_bytes / 2 / track->channels, proj->tl->play_position);
+    uint32_t buf_len_samples = audio_len_bytes / sizeof(int16_t);
+    Clip *clip = create_clip(track, buf_len_samples / track->channels, proj->tl->play_pos_sframes);
     // clip->len_sframes = audio_len_bytes / 2 / track->channels;
 
-    clip->pre_proc = malloc(sizeof(int16_t) * clip->len_sframes * clip->channels);
-    clip->post_proc = malloc(sizeof(int16_t) * clip->len_sframes * clip->channels);
-    if (!clip->post_proc || !clip->pre_proc) {
-        fprintf(stderr, "Error: unable to allocate space for clip samples\n");
-        return;
-    }
+    // clip->pre_proc = malloc(sizeof(int16_t) * clip->len_sframes * clip->channels);
+    // clip->post_proc = malloc(sizeof(int16_t) * clip->len_sframes * clip->channels);
+    // if (!clip->post_proc || !clip->pre_proc) {
+    //     fprintf(stderr, "Error: unable to allocate space for clip samples\n");
+    //     return;
+    // }
 
-    fprintf(stderr, "memcpying %d bytes to clip.\n", audio_len_bytes);
-    memcpy(clip->pre_proc, wav_cvt.buf, audio_len_bytes);
-    memcpy(clip->post_proc, wav_cvt.buf, audio_len_bytes);
+    // fprintf(stderr, "memcpying %d bytes to clip.\n", audio_len_bytes);
+
+    int16_t *src_buf = (int16_t *)wav_cvt.buf;
+
+    for (uint32_t i=0; i<buf_len_samples; i+=2) {
+        clip->L[i] = (double) src_buf[i] / INT16_MAX;
+        clip->R[i] = (double) src_buf[i+1] / INT16_MAX;
+    }
+    memcpy(clip->L, wav_cvt.buf, audio_len_bytes);
+    memcpy(clip->R, wav_cvt.buf, audio_len_bytes);
     clip->done = true;
 }

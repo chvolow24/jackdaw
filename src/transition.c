@@ -58,7 +58,7 @@ static uint8_t get_clip_boundaries(ClipBoundary **boundaries)
         return 0;
     }
 
-    int playhead_x = get_tl_draw_x(proj->tl->play_position);
+    int playhead_x = get_tl_draw_x(proj->tl->play_pos_sframes);
     Track *track = NULL;
     for (uint8_t i=0; i<proj->tl->num_active_tracks; i++) {
         track = proj->tl->tracks[proj->tl->active_track_indices[i]];

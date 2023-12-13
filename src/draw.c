@@ -437,7 +437,7 @@ static void draw_waveform(Clip *clip)
         int wav_x = clip->rect.x;
         int wav_y = clip->rect.y + clip->rect.h / 2;
         SDL_SetRenderDrawColor(proj->jwin->rend, 5, 5, 60, 255);
-        int16_t sample = 0;
+        double sample = 0;
         int last_sample_y = wav_y;
         int sample_y = wav_y;
         for (int i=0; i<clip->len_sframes-1; i+=clip->track->tl->sample_frames_per_pixel) {
@@ -445,8 +445,8 @@ static void draw_waveform(Clip *clip)
                 if (wav_x >= proj->tl->audio_rect.x + proj->tl->audio_rect.w) {
                     break;
                 }
-                sample = (clip->post_proc)[i];
-                sample_y = wav_y + sample * clip->rect.h / (2 * INT16_MAX);
+                sample = clip->L[i];
+                sample_y = wav_y - sample * clip->rect.h / 2;
                 // SDL_RenderDrawLine(proj->jwin->rend, wav_x, wav_y, wav_x, sample_y);
                 SDL_RenderDrawLine(proj->jwin->rend, wav_x, last_sample_y, wav_x + 1, sample_y);
                 last_sample_y = sample_y;
@@ -465,19 +465,19 @@ static void draw_waveform(Clip *clip)
         // clip_mid_y += 2;
         // SDL_RenderDrawLine(proj->jwin->rend, clip->rect.x, clip_mid_y, clip->rect.x + clip->rect.w, clip_mid_y);
         SDL_SetRenderDrawColor(proj->jwin->rend, 5, 5, 60, 255);
-        int16_t sample_l = 0;
-        int16_t sample_r = 0;
+        double sample_l = 0;
+        double sample_r = 0;
         int last_sample_y_l = wav_y_l;
         int last_sample_y_r = wav_y_r;
         int sample_y_l = wav_y_l;
         int sample_y_r = wav_y_r;
 
         int i=0;
-        while (i<clip->len_sframes * clip->channels) {
+        while (i<clip->len_sframes) {
         // for (int i=0; i<clip->len_sframes * clip->channels; i+=clip->track->tl->sample_frames_per_pixel * clip->channels) {
             if (wav_x > proj->tl->audio_rect.x && wav_x < proj->tl->audio_rect.x + proj->tl->audio_rect.w) {
-                sample_l = (clip->post_proc)[i];
-                sample_r = (clip->post_proc[i+1]);
+                sample_l = clip->L[i];
+                sample_r = clip->R[i];
                 // int j=0;
                 // while (j<proj->tl->sample_frames_per_pixel) {
                 //     if (abs((clip->post_proc)[i]) > abs(sample_l) && (clip->post_proc)[i] / abs((clip->post_proc)[i]) == sample_l < 0 ? -1 : 1) {
@@ -489,8 +489,8 @@ static void draw_waveform(Clip *clip)
                 //     i+=2;
                 //     j++;
                 // }
-                sample_y_l = wav_y_l + sample_l * clip->rect.h / (4 * INT16_MAX);
-                sample_y_r = wav_y_r + sample_r * clip->rect.h / (4 * INT16_MAX);
+                sample_y_l = wav_y_l + sample_l * clip->rect.h / 4;
+                sample_y_r = wav_y_r + sample_r * clip->rect.h / 4;
                 // SDL_RenderDrawLine(proj->jwin->rend, wav_x, wav_y_l, wav_x, sample_y_l);
                 // SDL_RenderDrawLine(proj->jwin->rend, wav_x, wav_y_r, wav_x, sample_y_r);
                 SDL_RenderDrawLine(proj->jwin->rend, wav_x, last_sample_y_l, wav_x + 1, sample_y_l);
@@ -498,10 +498,10 @@ static void draw_waveform(Clip *clip)
 
                 last_sample_y_l = sample_y_l;
                 last_sample_y_r = sample_y_r;
-                i+= proj->tl->sample_frames_per_pixel * 2;
+                i+= proj->tl->sample_frames_per_pixel;
                 
             } else {
-                i += proj->tl->sample_frames_per_pixel * 2;
+                i += proj->tl->sample_frames_per_pixel;
             }
             wav_x++;
         }
@@ -701,7 +701,7 @@ void *draw_project(void *proj_v)
     set_rend_color(proj->jwin->rend, &white);
 
     /* Draw t=0 */
-    if (proj->tl->offset < 0) {
+    if (proj->tl->display_offset_sframes< 0) {
         set_rend_color(proj->jwin->rend, &black);
         int zero_x = get_tl_draw_x(0);
         SDL_RenderDrawLine(proj->jwin->rend, zero_x, proj->tl->audio_rect.y, zero_x, proj->tl->audio_rect.y + proj->tl->audio_rect.h);
@@ -710,8 +710,8 @@ void *draw_project(void *proj_v)
     /* Draw play head line */
     set_rend_color(proj->jwin->rend, &white);
     int tri_y = proj->tl->rect.y;
-    if (proj->tl->play_position >= proj->tl->offset) {
-        int play_head_x = get_tl_draw_x(proj->tl->play_position);
+    if (proj->tl->play_pos_sframes >= proj->tl->display_offset_sframes) {
+        int play_head_x = get_tl_draw_x(proj->tl->play_pos_sframes);
         SDL_RenderDrawLine(proj->jwin->rend, play_head_x, proj->tl->rect.y, play_head_x, proj->tl->rect.y + proj->tl->rect.h);
 
         /* Draw play head triangle */
@@ -729,8 +729,8 @@ void *draw_project(void *proj_v)
 
     /* draw mark in */
     int in_x, out_x = -1;
-    if (proj->tl->in_mark >= proj->tl->offset && proj->tl->in_mark < proj->tl->offset + get_tl_abs_w(proj->tl->audio_rect.w)) {
-        in_x = get_tl_draw_x(proj->tl->in_mark);
+    if (proj->tl->in_mark_sframes >= proj->tl->display_offset_sframes && proj->tl->in_mark_sframes < proj->tl->display_offset_sframes + get_tl_abs_w(proj->tl->audio_rect.w)) {
+        in_x = get_tl_draw_x(proj->tl->in_mark_sframes);
         int i_tri_x2 = in_x;
         tri_y = proj->tl->rect.y;
         for (int i=0; i<PLAYHEAD_TRI_H; i++) {
@@ -738,13 +738,13 @@ void *draw_project(void *proj_v)
             tri_y -= 1;
             i_tri_x2 += 1;    
         }            
-    } else if (proj->tl->in_mark < proj->tl->offset) {
+    } else if (proj->tl->in_mark_sframes < proj->tl->display_offset_sframes) {
         in_x = proj->tl->audio_rect.x;
     }
 
     /* draw mark out */
-    if (proj->tl->out_mark > proj->tl->offset && proj->tl->out_mark < proj->tl->offset + get_tl_abs_w(proj->tl->audio_rect.w)) {
-        out_x = get_tl_draw_x(proj->tl->out_mark);
+    if (proj->tl->out_mark_sframes > proj->tl->display_offset_sframes && proj->tl->out_mark_sframes < proj->tl->display_offset_sframes + get_tl_abs_w(proj->tl->audio_rect.w)) {
+        out_x = get_tl_draw_x(proj->tl->out_mark_sframes);
         int o_tri_x1 = out_x;
         tri_y = proj->tl->rect.y;
         for (int i=0; i<PLAYHEAD_TRI_H; i++) {
@@ -752,7 +752,7 @@ void *draw_project(void *proj_v)
             tri_y -= 1;
             o_tri_x1 -= 1;
         }
-    } else if (proj->tl->out_mark > proj->tl->offset + get_tl_abs_w(proj->tl->audio_rect.w)) {
+    } else if (proj->tl->out_mark_sframes > proj->tl->display_offset_sframes + get_tl_abs_w(proj->tl->audio_rect.w)) {
         out_x = proj->tl->audio_rect.x + proj->tl->audio_rect.w;
     }
     if (in_x < out_x && out_x != 0) {

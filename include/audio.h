@@ -42,7 +42,7 @@
 #include "SDL_audio.h"
 
 /* Define some low-level audio constants */
-#define SAMPLE_RATE 96000
+#define SAMPLE_RATE 44100
 #define CHUNK_SIZE 512
 #define DEVICE_BUFFLEN_SECONDS 3600
 // #define DEVICE_BUFFLEN_SFRAMES SAMPLE_RATE * BUFFLEN_SECONDS

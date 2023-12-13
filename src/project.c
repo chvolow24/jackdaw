@@ -1206,7 +1206,7 @@ static Clip *copy_clip(Clip *clip_to_copy)
     // new_clip->post_proc = malloc(buf_len_bytes);
     memcpy(new_clip->L, clip_to_copy->L, buf_len_bytes);
     if (new_clip->channels == 2) {
-        memcpy(new_clip->L, clip_to_copy->R, buf_len_bytes);
+        memcpy(new_clip->R, clip_to_copy->R, buf_len_bytes);
     }
     return new_clip;
 }

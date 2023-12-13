@@ -51,6 +51,7 @@ static double get_track_sample(Track *track, uint8_t channel, int32_t tl_pos_sfr
         }
         double *clip_buf = (channel == 0) ? clip->L : clip->R;
         int32_t pos_in_clip_sframes = tl_pos_sframes - clip->abs_pos_sframes;
+        // fprintf(stderr, "Pos in clip: %d\n", pos_in_clip_sframes);
         if (pos_in_clip_sframes >= 0 && pos_in_clip_sframes < clip->len_sframes) {
             if (pos_in_clip_sframes < clip->start_ramp_len) {
                 double ramp_value = (double) pos_in_clip_sframes / clip->start_ramp_len;
@@ -70,6 +71,12 @@ static double get_track_sample(Track *track, uint8_t channel, int32_t tl_pos_sfr
                 // sample += (int16_t) ((clip->post_proc)[pos_in_clip] * ramp_value);
                 sample += ramp_value * clip_buf[pos_in_clip_sframes];
             } else {
+                // if (clip->L == clip_buf) {
+                //     fprintf(stderr, "Getting track L sample at %d: %f\n", pos_in_clip_sframes, clip_buf[pos_in_clip_sframes]);
+                // } else {
+                //     fprintf(stderr, "Getting track R sample at %d: %f\n", pos_in_clip_sframes, clip_buf[pos_in_clip_sframes]);
+
+                // }
                 sample += clip_buf[pos_in_clip_sframes];
             }
         }
@@ -97,7 +104,7 @@ double *get_mixdown_chunk(Timeline* tl, uint8_t channel, uint32_t len_sframes, b
     uint32_t start_pos_sframes = from_mark_in ? proj->tl->in_mark_sframes : proj->tl->play_pos_sframes;
     while (i < len_sframes) {
         for (int t=0; t<tl->num_tracks; t++) {
-            mixdown[i] += get_track_sample((tl->tracks)[t], channel, (uint32_t)j);
+            mixdown[i] += get_track_sample((tl->tracks)[t], channel, start_pos_sframes + (uint32_t)j);
         }
         j += from_mark_in ? 1 : proj->play_speed;
         i++;

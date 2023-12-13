@@ -209,7 +209,7 @@ void write_jdaw_file(const char *path)
     fwrite(&(proj->channels), 1, 1, f);
     if (sys_byteorder_le) {
         fwrite(&(proj->sample_rate), 4, 1, f);
-        fwrite(&(proj->chunk_size), 2, 1, f);
+        fwrite(&(proj->chunk_size_sframes), 2, 1, f);
     } else {
         //TODO: handle big endian
         exit(1);
@@ -264,7 +264,8 @@ void write_clip_to_jdaw(FILE *f, Clip *clip)
         exit(1);
     }
     fwrite(hdr_data, 1, 4, f);
-    fwrite(clip->pre_proc, 2, clip->len_sframes * clip->channels, f);
+    //TODO: WRITE CLIP DATA
+    // fwrite(clip->pre_proc, 2, clip->len_sframes * clip->channels, f);
 }
 
 Project *open_jdaw_file(const char *path)
@@ -447,19 +448,28 @@ static void read_clip_from_jdaw(FILE *f, float file_spec_version, Clip *clip)
         // destroy_clip(clip);
         return;
     }
-    clip->pre_proc = malloc(sizeof(int16_t) * clip->len_sframes * clip->channels);
-    clip->post_proc = malloc(sizeof(int16_t) * clip->len_sframes * clip->channels);
-    if (!(clip->pre_proc)) {
-        fprintf(stderr, "Error allocating space for clip->samples\n");
-        exit(1);
-    }
-    if (sys_byteorder_le) {
-        // size_t t= fread(NULL, 2, clip->length, f);
-        fread(clip->pre_proc, 2, clip->len_sframes * clip->channels, f);
-    } else {
-        //TODO: handle big endian
-        exit(1);
-    }
+
+    //TODO
+
+
+
+    /* TODO: everything commented below. */
+
+
+    // clip->pre_proc = malloc(sizeof(int16_t) * clip->len_sframes * clip->channels);
+    // clip->post_proc = malloc(sizeof(int16_t) * clip->len_sframes * clip->channels);
+    // if (!(clip->pre_proc)) {
+    //     fprintf(stderr, "Error allocating space for clip->samples\n");
+    //     exit(1);
+    // }
+    // if (sys_byteorder_le) {
+    //     // size_t t= fread(NULL, 2, clip->length, f);
+    //     fread(clip->pre_proc, 2, clip->len_sframes * clip->channels, f);
+    // } else {
+    //     //TODO: handle big endian
+    //     exit(1);
+    // }
+    
     clip->done = true;
     reset_cliprect(clip);
 }

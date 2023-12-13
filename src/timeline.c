@@ -45,14 +45,14 @@ int get_tl_draw_x(int32_t abs_x);
 /* Get the timeline position value -- in sample frames -- from a draw x coordinate  */
 int32_t get_abs_tl_x(int draw_x)
 {
-    return (draw_x - proj->tl->audio_rect.x) * proj->tl->sample_frames_per_pixel + proj->tl->offset; 
+    return (draw_x - proj->tl->audio_rect.x) * proj->tl->sample_frames_per_pixel + proj->tl->display_offset_sframes; 
 }
 
 /* Get the current draw x coordinate for a given timeline offset value (sample frames) */
 int get_tl_draw_x(int32_t abs_x) 
 {
     if (proj->tl->sample_frames_per_pixel != 0) {
-        float precise = (float)proj->tl->audio_rect.x + ((float)abs_x - (float)proj->tl->offset) / (float)proj->tl->sample_frames_per_pixel;
+        float precise = (float)proj->tl->audio_rect.x + ((float)abs_x - (float)proj->tl->display_offset_sframes) / (float)proj->tl->sample_frames_per_pixel;
         return (int) precise;
     } else {
         fprintf(stderr, "Error: proj tl sfpp value 0\n");
@@ -83,9 +83,9 @@ int get_second_w();
 void translate_tl(int translate_by_x, int translate_by_y)
 {
     if (abs(translate_by_y) >= abs(translate_by_x)) {
-        translate_by_y = proj->tl->v_offset + translate_by_y < 0 ? translate_by_y : proj->tl->v_offset * -1;
+        translate_by_y = proj->tl->display_v_offset + translate_by_y < 0 ? translate_by_y : proj->tl->display_v_offset * -1;
 
-        proj->tl->v_offset += translate_by_y;
+        proj->tl->display_v_offset += translate_by_y;
         Track *track = NULL;
         for (int i=0; i<proj->tl->num_tracks; i++) {
             track = proj->tl->tracks[i];
@@ -103,8 +103,8 @@ void translate_tl(int translate_by_x, int translate_by_y)
             }
         }
     } else {
-        int32_t new_offset = proj->tl->offset + get_tl_abs_w(translate_by_x);
-        proj->tl->offset = new_offset;
+        int32_t new_offset = proj->tl->display_offset_sframes + get_tl_abs_w(translate_by_x);
+        proj->tl->display_offset_sframes = new_offset;
         // if (new_offset < 0) {
         //     proj->tl->offset = 0;
         // } else {
@@ -128,7 +128,7 @@ float get_leftmost_seconds()
         fprintf(stderr, "Error: request to get second w with no active project.\n");
         exit(1);
     }
-    return (float) proj->tl->offset / proj->tl->proj->sample_rate;
+    return (float) proj->tl->display_offset_sframes / proj->tl->proj->sample_rate;
 }
 
 int get_second_w()
@@ -168,7 +168,7 @@ void rescale_timeline(double sfpp_scale_factor, int32_t center_abs_pos)
 
     int new_draw_pos = get_tl_draw_x(center_abs_pos);
     int offset_draw_delta = new_draw_pos - init_draw_pos;
-    proj->tl->offset += (get_tl_abs_w(offset_draw_delta));
+    proj->tl->display_offset_sframes += (get_tl_abs_w(offset_draw_delta));
     // if (offset_draw_delta < (-1 * get_tl_draw_w(proj->tl->offset))) {
     //     proj->tl->offset = 0;
     // } else {
@@ -190,8 +190,8 @@ static void set_timecode()
         exit(1);
     }
 
-    char sign = proj->tl->play_position < 0 ? '-' : '+';
-    uint32_t abs_play_pos = abs(proj->tl->play_position);
+    char sign = proj->tl->play_pos_sframes < 0 ? '-' : '+';
+    uint32_t abs_play_pos = abs(proj->tl->play_pos_sframes);
     uint8_t seconds, minutes, hours;
     uint32_t frames;
 
@@ -211,12 +211,12 @@ static void set_timecode()
 
 void set_play_position(int32_t abs_pos_sframes)
 {
-    proj->tl->play_position = abs_pos_sframes;
+    proj->tl->play_pos_sframes = abs_pos_sframes;
     set_timecode();
 }
 
 void move_play_position(int32_t move_by_sframes)
 {
-    proj->tl->play_position += move_by_sframes;
+    proj->tl->play_pos_sframes += move_by_sframes;
     set_timecode();
 }

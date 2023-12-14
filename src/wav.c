@@ -114,17 +114,18 @@ static void write_wav(const char *fname, int16_t *samples, uint32_t num_samples,
 void write_mixdown_to_wav(char *filepath)
 {
     uint32_t len_sframes = proj->tl->out_mark_sframes - proj->tl->in_mark_sframes;
+    uint32_t len_samples = proj->channels * len_sframes;
     float *samples_L = get_mixdown_chunk(proj->tl, 0, len_sframes, true);
     float *samples_R = get_mixdown_chunk(proj->tl, 1, len_sframes, true);
 
-    int16_t *samples = malloc(sizeof(int16_t) * len_sframes);
-    for (uint32_t i=0; i<len_sframes; i+=2) {
+    int16_t *samples = malloc(sizeof(int16_t) * len_samples);
+    for (uint32_t i=0; i<len_samples; i+=2) {
         samples[i] = samples_L[i/2] * INT16_MAX;
         samples[i+1] = samples_R[i/2] * INT16_MAX;
     }
     free(samples_L);
     free(samples_R);
-    write_wav(filepath, samples, len_sframes * 2, 16, 2);
+    write_wav(filepath, samples, len_samples, 16, 2);
     free(samples);
 }
 

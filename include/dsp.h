@@ -27,7 +27,40 @@
 #ifndef JDAW_DSP_H
 #define JDAW_DSP_H
 
+#include <stdio.h>
+#include <complex.h>
 #include "project.h"
+
+/* vv make shitty clangd work on charlie's computer vv */
+#include "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/complex.h"
+/* ^^                                              ^^ */
+
+
+
+typedef enum filter_type {
+    LOWPASS, HIGHPASS, BANDPASS, BANDCUT
+} FilterType;
+
+typedef struct fir_filter {
+    FilterType type;
+    double cutoff_freq; // 0 < cutoff_freq < 0.5
+    double bandwidth;
+    double *impulse_response;
+    double complex *frequency_response;
+    uint16_t impulse_response_len;
+    uint16_t frequency_response_len;
+}FIRFilter;
+
+/* Initialize the dsp subsystem. All this does currently is to populate the nth roots of unity for n < ROU_MAX_DEGREE */
+void init_dsp();
+
+/* Create an empty FIR filter and allocate space for its buffers. MUST be initialized with 'set_filter_params'*/
+FIRFilter *create_FIR_filter(FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len);
+
+/* Bandwidth param only required for band-pass and band-cut filters */
+void set_FIR_filter_params(FIRFilter *filter, double cutoff, double bandwidth);
+
+
 
 void process_clip_vol_and_pan(Clip *clip);
 void process_track_vol_and_pan(Track *track);

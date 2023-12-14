@@ -218,7 +218,7 @@ const static char hdr_trk[] = {'T', 'R', 'C', 'K'};
 const static char hdr_clp[] = {'C', 'L', 'I', 'P'};
 const static char hdr_data[] = {'d', 'a', 't', 'a'};
 
-const static char current_file_spec_version[] = {'0', '0', '.', '0', '3'};
+const static char current_file_spec_version[] = {'0', '0', '.', '0', '4'};
 
 static void write_clip_to_jdaw(FILE *f, Clip *clip);
 static void write_track_to_jdaw(FILE *f, Track *track);
@@ -479,7 +479,7 @@ static void read_clip_from_jdaw(FILE *f, float file_spec_version, Clip *clip)
     if (sys_byteorder_le) {
         fread(&(clip->abs_pos_sframes), 4, 1, f);
         fread(&(clip->len_sframes), 4, 1, f);
-        if (file_spec_version > 0.04) {
+        if (file_spec_version > 0.03) {
             fread(&(clip->channels), 1, 1, f);
             fprintf(stderr, "Reading clip channels from file: %d\n", clip->channels);
         } else {

@@ -499,3 +499,63 @@ void apply_filter(FIRFilter *filter, uint8_t channel, uint16_t chunk_size, float
         }
     }
 }
+
+
+void apply_track_filters(Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array) 
+{
+    if (track->num_filters == 0) {
+        return;
+    }
+
+    double *overlap_buffer = channel == 0 ? track->overlap_buffer_L : track->overlap_buffer_R;
+
+    if (!overlap_buffer) {
+        overlap_buffer = malloc(sizeof(double) *track->overlap_len);
+        memset(overlap_buffer, '\0', sizeof(double) * track->overlap_len);
+        if (channel == 0) {
+            track->overlap_buffer_L = overlap_buffer;
+        } else {
+            track->overlap_buffer_R = overlap_buffer;
+        }
+    }
+    
+    uint16_t padded_len = proj->chunk_size_sframes * 2;
+    double *padded_chunk = malloc(sizeof(double) * padded_len);
+    for (uint16_t i=0; i<padded_len; i++) {
+        if (i<chunk_size) {
+            padded_chunk[i] = sample_array[i];
+        } else {
+            padded_chunk[i] = 0.0;
+        }
+
+    }
+    double complex *freq_domain = FFT(padded_chunk, padded_len);
+    free(padded_chunk);
+
+    double complex *freq_response_sum = malloc(sizeof(double complex) * padded_len);
+    memset(freq_response_sum, '\0', sizeof(double complex) * padded_len);
+    for (uint8_t f=0; f<track->num_filters; f++) {
+        FIRFilter *filter = track->filters[f];
+        for (uint16_t i=0; i<filter->frequency_response_len; i++) {
+            freq_response_sum[i] += filter->frequency_response[i];
+        }
+    }
+    for (uint16_t i=0; i<padded_len; i++) {
+        freq_domain[i] *= freq_response_sum[i];
+    }
+    complex double *time_domain = IFFT(freq_domain, padded_len);
+    free(freq_domain);
+    double *real = get_real_component(time_domain, padded_len);
+    free(time_domain);
+
+    for (uint16_t i=0; i<chunk_size + track->overlap_len; i++) {
+        if (i<chunk_size) {
+            sample_array[i] = real[i];
+            if (i<track->overlap_len) {
+                sample_array[i] += overlap_buffer[i];
+            }
+        } else {
+            overlap_buffer[i-chunk_size] = real[i];
+        }
+    }
+}

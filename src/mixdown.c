@@ -143,9 +143,10 @@ float *get_mixdown_chunk(Timeline* tl, uint8_t channel, uint32_t len_sframes, bo
     for (uint8_t t=0; t<tl->num_tracks; t++) {
         Track *track = proj->tl->tracks[t];
         float *track_chunk = get_track_channel_chunk(track, channel, start_pos_sframes, len_sframes, step);
-        for (uint8_t i=0; i<track->num_filters; i++) {
-            apply_filter(track->filters[0], channel, len_sframes, track_chunk);
-        }
+        apply_track_filters(track, channel, len_sframes, track_chunk);
+        // for (uint8_t i=0; i<track->num_filters; i++) {
+        //     apply_filter(track->filters[0], channel, len_sframes, track_chunk);
+        // }
         for (uint32_t i=0; i<len_sframes; i++) {
             mixdown[i] += track_chunk[i];
         }

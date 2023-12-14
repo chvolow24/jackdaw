@@ -385,6 +385,12 @@ Track *create_track(Timeline *tl, bool stereo)
     track->num_grabbed_clips = 0;
 
     track->num_filters = 0;
+	track->filter_freq_response = NULL;
+	track->freq_response_len = DEFAULT_FILTER_LEN;
+    track->overlap_buffer_L = NULL;
+    track->overlap_buffer_R = NULL;
+    track->overlap_len = DEFAULT_FILTER_LEN - 1;
+
 
     track->rect.h = DEFAULT_TRACK_HEIGHT;
     track->rect.x = tl->rect.x + PADDING;
@@ -403,7 +409,6 @@ Track *create_track(Timeline *tl, bool stereo)
     trck_color_index %= 7;
     track->color = &(trck_colors[trck_color_index]);
     if (tl->proj && tl->proj->record_devices[0]) {
-        fprintf(stderr, "Passed test\n");
         track->input = proj->record_devices[0];
     }
 

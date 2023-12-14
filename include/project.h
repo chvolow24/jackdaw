@@ -46,6 +46,12 @@
 #ifndef JDAW_PROJECT_H
 #define JDAW_PROJECT_H
 
+/* vv make shitty clangd work on charlie's computer vv */
+#include "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/complex.h"
+/* ^^                                              ^^ */
+
+
+// #include <complex.h>
 #include <stdio.h>
 #include <pthread.h>
 #include <stdbool.h>
@@ -101,7 +107,11 @@ typedef struct track {
 	/* DSP/effects */
 	FIRFilter *filters[MAX_TRACK_FILTERS];
 	uint8_t num_filters;
-
+	double complex *filter_freq_response;
+	uint16_t freq_response_len;
+	double *overlap_buffer_L;
+	double *overlap_buffer_R;
+	uint16_t overlap_len;
 	/* 
 	GUI members
 	Positions and dimensions are cached to avoid re-calculation on every re-draw. Repositioning and resizing are

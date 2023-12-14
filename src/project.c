@@ -34,10 +34,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "SDL_events.h"
-#include "SDL_video.h"
-#include "project.h"
+#include "dsp.h"
 #include "gui.h"
+#include "project.h"
 #include "theme.h"
 #include "audio.h"
 #include "draw.h"
@@ -384,6 +383,9 @@ Track *create_track(Timeline *tl, bool stereo)
     track->active = false;
     track->num_clips = 0;
     track->num_grabbed_clips = 0;
+
+    track->num_filters = 0;
+
     track->rect.h = DEFAULT_TRACK_HEIGHT;
     track->rect.x = tl->rect.x + PADDING;
 
@@ -765,6 +767,10 @@ void destroy_track(Track *track)
     }
     track->tl->tracks[track->tl->num_tracks - 1] = NULL;
     (track->tl->num_tracks)--;
+
+    for (uint8_t i=0; i<track->num_filters; i++) {
+        destroy_filter(track->filters[i]);
+    }
 
     destroy_textbox(track->input_label_box);
     destroy_textbox(track->input_name_box);
@@ -1350,6 +1356,13 @@ bool adjust_track_vol(Track *track, float change_by)
 bool adjust_track_pan(Track *track, float change_by)
 {
     return adjust_fslider(track->pan_ctrl, change_by);
+}
+
+void add_filter_to_track(Track *track, FilterType type, uint16_t impulse_response_len) 
+{
+    FIRFilter *filter = create_FIR_filter(type, impulse_response_len, proj->chunk_size_sframes * 2);
+    track->filters[track->num_filters] = filter;
+    track->num_filters++;
 }
 
 /* Debug segaults */

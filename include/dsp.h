@@ -37,9 +37,9 @@
 
 
 
-typedef enum filter_type {
-    LOWPASS, HIGHPASS, BANDPASS, BANDCUT
-} FilterType;
+// typedef enum filter_type {
+//     LOWPASS, HIGHPASS, BANDPASS, BANDCUT
+// } FilterType;
 
 typedef struct fir_filter {
     FilterType type;
@@ -60,7 +60,10 @@ FIRFilter *create_FIR_filter(FilterType type, uint16_t impulse_response_len, uin
 /* Bandwidth param only required for band-pass and band-cut filters */
 void set_FIR_filter_params(FIRFilter *filter, double cutoff, double bandwidth);
 
+/* Destry a FIRFilter and associated memory */
+void destroy_filter(FIRFilter *filter);
 
+void apply_filter(FIRFilter *filter, uint16_t chunk_size, float *sample_array);
 
 void process_clip_vol_and_pan(Clip *clip);
 void process_track_vol_and_pan(Track *track);

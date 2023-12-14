@@ -95,51 +95,51 @@ static void get_native_byte_order()
     #endif
 }
 
-static int segfault_counter = 0;
+// static int segfault_counter = 0;
 
-static void mem_err_handler()
-{
-    FILE *f = fopen("error.log", "w");
-    segfault_counter++;
-    if (segfault_counter > 10) {
-        fclose(f);
-        exit(1);
-    }
-    fprintf(stderr, "\nSEGMENTATION FAULT\n");
-    log_project_state(f);
-    fclose(f);
-    exit(1);
-}
+// static void mem_err_handler()
+// {
+//     FILE *f = fopen("error.log", "w");
+//     segfault_counter++;
+//     if (segfault_counter > 10) {
+//         fclose(f);
+//         exit(1);
+//     }
+//     fprintf(stderr, "\nSEGMENTATION FAULT\n");
+//     log_project_state(f);
+//     fclose(f);
+//     exit(1);
+// }
 
-static void sigint_handler()
-{
-    FILE *f = fopen("project_state.log", "w");
-    fprintf(stderr, "SIG INT: logging project state.\n");
-    log_project_state(f);
-    fclose(f);
-    exit(1);
-}
+// static void sigint_handler()
+// {
+//     FILE *f = fopen("project_state.log", "w");
+//     fprintf(stderr, "SIG INT: logging project state.\n");
+//     log_project_state(f);
+//     fclose(f);
+//     exit(1);
+// }
 
-static void signal_init(void)
-{
+// static void signal_init(void)
+// {
 
-    struct sigaction memErrHandler;
-    struct sigaction sigIntHandler;
-    memErrHandler.sa_handler = mem_err_handler;
-    sigIntHandler.sa_handler = sigint_handler;
-    sigemptyset(&memErrHandler.sa_mask);
-    sigemptyset(&sigIntHandler.sa_mask);
-    memErrHandler.sa_flags = 0;
-    sigIntHandler.sa_flags = 0;
-    // sigaction(SIGINT, &sigIntHandler, NULL);
-    sigaction(SIGSEGV, &memErrHandler, NULL);
-    sigaction(SIGTRAP, &memErrHandler, NULL);
-    sigaction(SIGABRT, &memErrHandler, NULL);
-    sigaction(SIGBUS, &memErrHandler, NULL);
-    sigaction(SIGINT, &sigIntHandler, NULL);
+//     struct sigaction memErrHandler;
+//     struct sigaction sigIntHandler;
+//     memErrHandler.sa_handler = mem_err_handler;
+//     sigIntHandler.sa_handler = sigint_handler;
+//     sigemptyset(&memErrHandler.sa_mask);
+//     sigemptyset(&sigIntHandler.sa_mask);
+//     memErrHandler.sa_flags = 0;
+//     sigIntHandler.sa_flags = 0;
+//     // sigaction(SIGINT, &sigIntHandler, NULL);
+//     sigaction(SIGSEGV, &memErrHandler, NULL);
+//     sigaction(SIGTRAP, &memErrHandler, NULL);
+//     sigaction(SIGABRT, &memErrHandler, NULL);
+//     sigaction(SIGBUS, &memErrHandler, NULL);
+//     sigaction(SIGINT, &sigIntHandler, NULL);
 
 
-}
+// }
 
 /* Initialize SDL Video and TTF */
 static void init_graphics()
@@ -930,13 +930,14 @@ int main(int argc, char **argv)
         }
     }
     get_native_byte_order();
-    signal_init();
+    // signal_init();
     home_dir = get_home_dir();
 
     //TODO: open project creation window if proj==NULL;
     init_graphics();
     init_audio();
     init_SDL_ttf();
+    init_dsp();
     // JDAWWindow *new_project = create_jwin("Create a new Jackdaw project", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 600, 400);
     // new_project_loop(new_project);
 
@@ -951,6 +952,11 @@ int main(int argc, char **argv)
     }
     fprintf(stdout, "Activating audio devices on project\n");
 
+    fprintf(stderr, "Adding filter to track\n");
+    add_filter_to_track(proj->tl->tracks[0], LOWPASS, 128);
+
+    fprintf(stderr, "Setting filter params\n");
+    set_FIR_filter_params(proj->tl->tracks[0]->filters[0], 0.02, 0);
 
     fprintf(stdout, "Loop starts now\n");
     if (invoke_open_wav_file) {

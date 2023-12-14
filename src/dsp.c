@@ -112,6 +112,11 @@ void process_vol_and_pan()
 
 
 
+/*****************************************************************************************************************
+    FFT and helper functions
+ *****************************************************************************************************************/
+
+
 static double complex *gen_FFT_X(int n)
 {
     double complex *X = (double complex *)malloc(sizeof(double complex) * n);
@@ -132,9 +137,7 @@ static void init_roots_of_unity()
     }
 }
 
-
-
-double complex *FFT_inner(double *A, int n, int offset, int increment)
+static double complex *FFT_inner(double *A, int n, int offset, int increment)
 {
     double complex *B = (double complex *)malloc(sizeof(double complex) * n);
 
@@ -150,8 +153,35 @@ double complex *FFT_inner(double *A, int n, int offset, int increment)
     double complex *Beven = FFT_inner(A, halfn, offset, doubleinc);
     double complex *Bodd = FFT_inner(A, halfn, offset + increment, doubleinc);
     for (int k=0; k<halfn; k++) {
-        double complex some = Bodd[k];
-        some = X[k];
+        double complex odd_part_by_x = Bodd[k] * conj(X[k]);
+        B[k] = Beven[k] + odd_part_by_x;
+
+        B[k + halfn] = Beven[k] - odd_part_by_x;
+
+    }
+
+    free(Beven);
+    free(Bodd);
+    return B;
+
+}
+
+static double complex *FFT_float_inner(float *A, int n, int offset, int increment)
+{
+    double complex *B = (double complex *)malloc(sizeof(double complex) * n);
+
+    if (n==1) {
+        B[0] = A[offset] + 0 * I;
+        return B;
+    }
+
+    int halfn = n>>1;
+    int degree = log2(n);
+    double complex *X = roots_of_unity[degree];
+    int doubleinc = increment << 1;
+    double complex *Beven = FFT_float_inner(A, halfn, offset, doubleinc);
+    double complex *Bodd = FFT_float_inner(A, halfn, offset + increment, doubleinc);
+    for (int k=0; k<halfn; k++) {
 
         double complex odd_part_by_x = Bodd[k] * conj(X[k]);
         B[k] = Beven[k] + odd_part_by_x;
@@ -172,25 +202,33 @@ double complex *FFT(double *A, int n)
     double complex *B = FFT_inner(A, n, 0, 1);
 
     for (int k=0; k<n; k++) {
-    // if (logbool) {
-    //     fprintf(stderr, "Input at %d: %f, unscaled output: %f, scaled output: %f\n", k, A[k], std::abs(B[k]), std::abs(B[k]) / n);
-    // }
         B[k]/=n;
     }
-    // if (logbool) {
-    //     exit(1);
-    // }
-
     return B;
 }
 
-double complex *FFT_unscaled(double *A, int n) 
+double complex *FFT_float(float *A, int n)
+{
+
+    double complex *B = FFT_float_inner(A, n, 0, 1);
+
+    for (int k=0; k<n; k++) {
+        B[k]/=n;
+    }
+    return B;
+}
+
+
+/* I'm not sure why using an "unscaled" version of the FFT appears to work when getting the frequency response
+for the FIR filters defined below (e.g. "bandpass_IR()"). The normal, scaled version produces values that are
+too small */
+static double complex *FFT_unscaled(double *A, int n) 
 {
     double complex *B = FFT_inner(A, n, 0, 1);
     return B;
 }
 
-double complex *IFFT_inner(double complex *A, int n, int offset, int increment)
+static double complex *IFFT_inner(double complex *A, int n, int offset, int increment)
 {
     double complex *B = (double complex *)malloc(sizeof(double complex) * n);
 
@@ -240,6 +278,7 @@ double *get_magnitude(double complex *A, int len)
     return B;
 }
 
+/* Take a complex array and return a new, dynamically allocated array with only the real component */
 double *get_real_component(double complex *A, int len)
 {
     double *B = (double *)malloc(sizeof(double) * len);
@@ -250,9 +289,7 @@ double *get_real_component(double complex *A, int len)
     return B;
 }
 
-
-
-
+/* Hamming window function */
 double hamming(int x, int lenw)
 {
     return 0.54 - 0.46 * cos(TAU * x / lenw);
@@ -261,11 +298,15 @@ double hamming(int x, int lenw)
 
 
 
-/* IMPULSE RESPONSE FUNCTIONS 
-The below functions create sinc or sinc-like curves representing
-time-domain impulse responses. Pad with zeroes and FFT to get 
-the frequency response of the filters.
-*/
+/*****************************************************************************************************************
+   Impulse response functions
+
+   Create sinc or sinc-like curves representing time-domain impulse responses. Pad with zeroes and FFT to get 
+    the frequency response of the filters.
+ *****************************************************************************************************************/
+
+
+
 double lowpass_IR(int x, int offset, double cutoff)
 {
     cutoff *= TAU;
@@ -322,19 +363,11 @@ double bandcut_IR(int x, int offset, double center_freq, double bandwidth)
     // }
 }
 
+/*****************************************************************************************************************
+   Public filter creation / modification
+ *****************************************************************************************************************/
 
-// typedef struct fir_filter {
-//     FilterType type;
-//     double cutoff_freq; // 0 < cutoff_freq < 0.5
-//     double bandwidth;
-//     double *impulse_response;
-//     double complex *frequency_response;
-//     uint16_t impulse_response_len;
-//     uint16_t frequency_response_len;
-// }FIRFilter;
 
-// /* Initialize the dsp subsystem. All this does currently is to populate the nth roots of unity for n < ROU_MAX_DEGREE */
-// void init_dsp();
 
 /* Create an empty FIR filter and allocate space for its buffers. MUST be initialized with 'set_filter_params'*/
 FIRFilter *create_FIR_filter(FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len) 
@@ -348,8 +381,8 @@ FIRFilter *create_FIR_filter(FilterType type, uint16_t impulse_response_len, uin
     filter->impulse_response_len = impulse_response_len;
     filter->frequency_response_len = frequency_response_len;
     filter->impulse_response = malloc(sizeof(double) * impulse_response_len);
-    filter->frequency_response = malloc(sizeof(complex double) * frequency_response_len);
-
+    filter->frequency_response = NULL;
+    return filter;
 }
 
 /* Bandwidth param only required for band-pass and band-cut filters */
@@ -362,7 +395,7 @@ void set_FIR_filter_params(FIRFilter *filter, double cutoff, double bandwidth)
     uint16_t offset = len/2;
     switch (filter->type) {
         case LOWPASS:
-            for (uint32_t i=0; i<len; i++) {
+            for (uint16_t i=0; i<len; i++) {
                 ir[i] = lowpass_IR(i, offset, cutoff) * hamming(i, len);
             } 
             break;
@@ -381,5 +414,57 @@ void set_FIR_filter_params(FIRFilter *filter, double cutoff, double bandwidth)
                 ir[i] = bandcut_IR(i, offset, cutoff, bandwidth) * hamming(i, len);
             } 
             break;
+    }
+
+    double *IR_zero_padded = malloc(sizeof(double) * filter->frequency_response_len);
+    for (uint16_t i=0; i<filter->frequency_response_len; i++) {
+        if (i<len) {
+            IR_zero_padded[i] = ir[i];
+        } else {
+            IR_zero_padded[i] = 0;
+        }
+    }
+    filter->frequency_response = FFT_unscaled(IR_zero_padded, filter->frequency_response_len);
+    free(IR_zero_padded);
+
+}
+
+void destroy_filter(FIRFilter *filter) 
+{
+    if (filter->frequency_response) {
+        free(filter->frequency_response);
+        filter->frequency_response = NULL;
+    }
+    if (filter->impulse_response) {
+        free(filter->impulse_response);
+        filter->impulse_response = NULL;
+    }
+    free(filter);
+}
+
+/* Destructive; replaces values in sample_array */
+void apply_filter(FIRFilter *filter, uint16_t chunk_size, float *sample_array)
+{
+    uint16_t padded_len = filter->frequency_response_len;
+    double *padded_chunk = malloc(sizeof(double) * padded_len);
+    for (uint16_t i=0; i<padded_len; i++) {
+        if (i<chunk_size) {
+            padded_chunk[i] = sample_array[i];
+        } else {
+            padded_chunk[i] = 0.0;
+        }
+    }
+    double complex *freq_domain = FFT(padded_chunk, padded_len);
+    free(padded_chunk);
+    for (uint32_t i=0; i<padded_len; i++) {
+        freq_domain[i] *= filter->frequency_response[i];
+    }
+    complex double *time_domain = IFFT(freq_domain, padded_len);
+    free(freq_domain);
+    double *real = get_real_component(time_domain, chunk_size);
+    free(time_domain);
+
+    for (uint16_t i=0; i<chunk_size; i++) {
+        sample_array[i] = real[i];
     }
 }

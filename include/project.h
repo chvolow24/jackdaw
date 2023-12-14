@@ -61,8 +61,8 @@
 #define MAX_ACTIVE_CLIPS 25
 #define MAX_ACTIVE_TRACKS 25
 #define MAX_TRACK_CLIPS 255
+#define MAX_TRACK_FILTERS 25
 #define MAX_CLIPBOARD_CLIPS 25
-
 
 typedef struct clip Clip;
 typedef struct timeline Timeline;
@@ -72,7 +72,11 @@ typedef struct track Track;
 typedef struct textbox Textbox;
 typedef struct jdaw_window JDAWWindow;
 typedef struct f_slider FSlider;
+typedef struct fir_filter FIRFilter;
 
+typedef enum filter_type {
+    LOWPASS, HIGHPASS, BANDPASS, BANDCUT
+} FilterType;
 
 /* An audio track in the timeline. This object includes handles to various controls and all resident clips */
 typedef struct track {
@@ -93,6 +97,10 @@ typedef struct track {
 	AudioDevice *output;
 	FSlider *vol_ctrl;
 	FSlider *pan_ctrl;
+
+	/* DSP/effects */
+	FIRFilter *filters[MAX_TRACK_FILTERS];
+	uint8_t num_filters;
 
 	/* 
 	GUI members
@@ -288,6 +296,7 @@ bool adjust_track_pan(Track *track, float change_by);
 void copy_clips_to_clipboard();
 void paste_clips();
 
+void add_filter_to_track(Track *track, FilterType type, uint16_t impulse_response_len);
 
 
 

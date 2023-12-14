@@ -47,8 +47,11 @@ typedef struct fir_filter {
     double bandwidth;
     double *impulse_response;
     double complex *frequency_response;
+    double *overlap_buffer_L;
+    double *overlap_buffer_R;
     uint16_t impulse_response_len;
     uint16_t frequency_response_len;
+    uint16_t overlap_len;
 }FIRFilter;
 
 /* Initialize the dsp subsystem. All this does currently is to populate the nth roots of unity for n < ROU_MAX_DEGREE */
@@ -63,7 +66,7 @@ void set_FIR_filter_params(FIRFilter *filter, double cutoff, double bandwidth);
 /* Destry a FIRFilter and associated memory */
 void destroy_filter(FIRFilter *filter);
 
-void apply_filter(FIRFilter *filter, uint16_t chunk_size, float *sample_array);
+void apply_filter(FIRFilter *filter, uint8_t channel, uint16_t chunk_size, float *sample_array);
 
 void process_clip_vol_and_pan(Clip *clip);
 void process_track_vol_and_pan(Track *track);

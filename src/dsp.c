@@ -166,35 +166,35 @@ static double complex *FFT_inner(double *A, int n, int offset, int increment)
 
 }
 
-static double complex *FFT_float_inner(float *A, int n, int offset, int increment)
-{
-    double complex *B = (double complex *)malloc(sizeof(double complex) * n);
+// static double complex *FFT_float_inner(float *A, int n, int offset, int increment)
+// {
+//     double complex *B = (double complex *)malloc(sizeof(double complex) * n);
 
-    if (n==1) {
-        B[0] = A[offset] + 0 * I;
-        return B;
-    }
+//     if (n==1) {
+//         B[0] = A[offset] + 0 * I;
+//         return B;
+//     }
 
-    int halfn = n>>1;
-    int degree = log2(n);
-    double complex *X = roots_of_unity[degree];
-    int doubleinc = increment << 1;
-    double complex *Beven = FFT_float_inner(A, halfn, offset, doubleinc);
-    double complex *Bodd = FFT_float_inner(A, halfn, offset + increment, doubleinc);
-    for (int k=0; k<halfn; k++) {
+//     int halfn = n>>1;
+//     int degree = log2(n);
+//     double complex *X = roots_of_unity[degree];
+//     int doubleinc = increment << 1;
+//     double complex *Beven = FFT_float_inner(A, halfn, offset, doubleinc);
+//     double complex *Bodd = FFT_float_inner(A, halfn, offset + increment, doubleinc);
+//     for (int k=0; k<halfn; k++) {
 
-        double complex odd_part_by_x = Bodd[k] * conj(X[k]);
-        B[k] = Beven[k] + odd_part_by_x;
+//         double complex odd_part_by_x = Bodd[k] * conj(X[k]);
+//         B[k] = Beven[k] + odd_part_by_x;
 
-        B[k + halfn] = Beven[k] - odd_part_by_x;
+//         B[k + halfn] = Beven[k] - odd_part_by_x;
 
-    }
+//     }
 
-    free(Beven);
-    free(Bodd);
-    return B;
+//     free(Beven);
+//     free(Bodd);
+//     return B;
 
-}
+// }
 
 double complex *FFT(double *A, int n)
 {
@@ -207,16 +207,16 @@ double complex *FFT(double *A, int n)
     return B;
 }
 
-double complex *FFT_float(float *A, int n)
-{
+// double complex *FFT_float(float *A, int n)
+// {
 
-    double complex *B = FFT_float_inner(A, n, 0, 1);
+//     double complex *B = FFT_float_inner(A, n, 0, 1);
 
-    for (int k=0; k<n; k++) {
-        B[k]/=n;
-    }
-    return B;
-}
+//     for (int k=0; k<n; k++) {
+//         B[k]/=n;
+//     }
+//     return B;
+// }
 
 
 /* I'm not sure why using an "unscaled" version of the FFT appears to work when getting the frequency response
@@ -382,6 +382,9 @@ FIRFilter *create_FIR_filter(FilterType type, uint16_t impulse_response_len, uin
     filter->frequency_response_len = frequency_response_len;
     filter->impulse_response = malloc(sizeof(double) * impulse_response_len);
     filter->frequency_response = NULL;
+    filter->overlap_buffer_L = NULL;
+    filter->overlap_buffer_R = NULL;
+    filter->overlap_len = impulse_response_len - 1;
     return filter;
 }
 
@@ -426,7 +429,6 @@ void set_FIR_filter_params(FIRFilter *filter, double cutoff, double bandwidth)
     }
     filter->frequency_response = FFT_unscaled(IR_zero_padded, filter->frequency_response_len);
     free(IR_zero_padded);
-
 }
 
 void destroy_filter(FIRFilter *filter) 
@@ -442,9 +444,30 @@ void destroy_filter(FIRFilter *filter)
     free(filter);
 }
 
+
+
+
 /* Destructive; replaces values in sample_array */
-void apply_filter(FIRFilter *filter, uint16_t chunk_size, float *sample_array)
+void apply_filter(FIRFilter *filter, uint8_t channel, uint16_t chunk_size, float *sample_array)
 {
+
+    double *overlap_buffer = channel == 0 ? filter->overlap_buffer_L : filter->overlap_buffer_R;
+    if (filter->overlap_len != filter->impulse_response_len - 1) {
+        filter->overlap_len = filter->impulse_response_len - 1;
+        if (overlap_buffer) {
+            free(overlap_buffer);
+        }
+    }
+    if (!overlap_buffer) {
+        overlap_buffer = malloc(sizeof(double) * filter->overlap_len);
+        memset(overlap_buffer, '\0', sizeof(double) * filter->overlap_len);
+        if (channel == 0) {
+            filter->overlap_buffer_L = overlap_buffer;
+        } else {
+            filter->overlap_buffer_R = overlap_buffer;
+        }
+    }
+    
     uint16_t padded_len = filter->frequency_response_len;
     double *padded_chunk = malloc(sizeof(double) * padded_len);
     for (uint16_t i=0; i<padded_len; i++) {
@@ -453,18 +476,26 @@ void apply_filter(FIRFilter *filter, uint16_t chunk_size, float *sample_array)
         } else {
             padded_chunk[i] = 0.0;
         }
+
     }
     double complex *freq_domain = FFT(padded_chunk, padded_len);
     free(padded_chunk);
-    for (uint32_t i=0; i<padded_len; i++) {
+    for (uint16_t i=0; i<padded_len; i++) {
         freq_domain[i] *= filter->frequency_response[i];
     }
     complex double *time_domain = IFFT(freq_domain, padded_len);
     free(freq_domain);
-    double *real = get_real_component(time_domain, chunk_size);
+    double *real = get_real_component(time_domain, padded_len);
     free(time_domain);
 
-    for (uint16_t i=0; i<chunk_size; i++) {
-        sample_array[i] = real[i];
+    for (uint16_t i=0; i<chunk_size + filter->overlap_len; i++) {
+        if (i<chunk_size) {
+            sample_array[i] = real[i];
+            if (i<filter->overlap_len) {
+                sample_array[i] += overlap_buffer[i];
+            }
+        } else {
+            overlap_buffer[i-chunk_size] = real[i];
+        }
     }
 }

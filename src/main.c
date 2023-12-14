@@ -956,7 +956,14 @@ int main(int argc, char **argv)
     add_filter_to_track(proj->tl->tracks[0], LOWPASS, 128);
 
     fprintf(stderr, "Setting filter params\n");
-    set_FIR_filter_params(proj->tl->tracks[0]->filters[0], 0.02, 0);
+    set_FIR_filter_params(proj->tl->tracks[0]->filters[0], 0.005, 0);
+
+
+    // fprintf(stderr, "Adding filter to track\n");
+    // add_filter_to_track(proj->tl->tracks[0], LOWPASS, 128);
+
+    // fprintf(stderr, "Setting filter params\n");
+    // set_FIR_filter_params(proj->tl->tracks[0]->filters[1], 0.08, 0);
 
     fprintf(stdout, "Loop starts now\n");
     if (invoke_open_wav_file) {

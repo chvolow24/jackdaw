@@ -196,10 +196,10 @@ void load_wav_to_track(Track *track, const char *filename) {
     int16_t *src_buf = (int16_t *)wav_cvt.buf;
 
     for (uint32_t i=0; i<buf_len_samples; i+=2) {
-        clip->L[i] = (float) src_buf[i] / INT16_MAX;
-        clip->R[i] = (float) src_buf[i+1] / INT16_MAX;
+        clip->L[i/2] = (float) src_buf[i] / INT16_MAX;
+        clip->R[i/2] = (float) src_buf[i+1] / INT16_MAX;
     }
-    memcpy(clip->L, wav_cvt.buf, audio_len_bytes);
-    memcpy(clip->R, wav_cvt.buf, audio_len_bytes);
+    // memcpy(clip->L, wav_cvt.buf, audio_len_bytes);
+    // memcpy(clip->R, wav_cvt.buf, audio_len_bytes);
     clip->done = true;
 }

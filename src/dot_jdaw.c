@@ -304,19 +304,26 @@ void write_clip_to_jdaw(FILE *f, Clip *clip)
     fwrite(hdr_data, 1, 4, f);
     //TODO: WRITE CLIP DATA
     uint32_t len_samples = clip->len_sframes * clip->channels;
-    int16_t clip_samples[len_samples];
+    int16_t *clip_samples = malloc(sizeof(int16_t) * len_samples);
+    if (!clip_samples) {
+        fprintf(stderr, "Error: unable to allocate space for clip_samples\n");
+        exit(1);
+    }
     if (clip->channels == 2) {
         for (uint32_t i=0; i<len_samples; i+=2) {
             clip_samples[i] = (int16_t)(clip->L[i/2] * INT16_MAX);
             clip_samples[i+1] = (int16_t)(clip->R[i/2] * INT16_MAX);
         }
     } else if (clip->channels == 1) {
+
         for (uint32_t i=0; i<len_samples; i++) {
             clip_samples[i] = (int16_t)(clip->L[i] * INT16_MAX);
         }
     }
 
     fwrite(clip_samples, 2, clip->len_sframes * clip->channels, f);
+    free(clip_samples);
+
 }
 
 Project *open_jdaw_file(const char *path)

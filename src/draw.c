@@ -838,10 +838,11 @@ void *draw_project(void *proj_v)
     SDL_RenderFillRect(rend, &output_rect_L);
     SDL_RenderFillRect(rend, &output_rect_R);
 
-    SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
     draw_array_to_fit(rend, &wht, proj->output_L, proj->output_len, &output_rect_L);
     draw_array_to_fit(rend, &wht, proj->output_R, proj->output_len, &output_rect_R);
-
+    SDL_SetRenderDrawColor(rend, 100, 200, 220, 255);
+    SDL_RenderDrawRect(rend, &output_rect_L);
+    SDL_RenderDrawRect(rend, &output_rect_R);
 
     return NULL;
 }

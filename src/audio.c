@@ -104,8 +104,12 @@ static void play_callback(void* user_data, Uint8* stream, int streamLength)
     int16_t *stream_fmt = (int16_t *)stream;
     for (uint32_t i=0; i<stream_len_samples; i+=2)
     {
-        stream_fmt[i] = (int16_t) (chunk_L[i/2] * INT16_MAX);
-        stream_fmt[i+1] = (int16_t) (chunk_R[i/2] * INT16_MAX);
+        float val_L = chunk_L[i/2];
+        float val_R = chunk_R[i/2];
+        proj->output_L[i/2] = val_L;
+        proj->output_R[i/2] = val_R;
+        stream_fmt[i] = (int16_t) (val_L * INT16_MAX);
+        stream_fmt[i+1] = (int16_t) (val_R * INT16_MAX);
     }
     // memcpy(stream, chunk, streamLength);
     // Printing sample values to confirm that every other sample has value 0

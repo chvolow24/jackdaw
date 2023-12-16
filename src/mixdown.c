@@ -32,6 +32,8 @@
 
 #include "project.h"
 #include "dsp.h"
+#include "gui.h"
+
 
 extern Project *proj;
 /* Query track clips and return audio sample representing a given point in the timeline. 
@@ -140,15 +142,21 @@ float *get_mixdown_chunk(Timeline* tl, uint8_t channel, uint32_t len_sframes, bo
     uint32_t start_pos_sframes = from_mark_in ? proj->tl->in_mark_sframes : proj->tl->play_pos_sframes;
     float step = from_mark_in ? 1 : proj->play_speed;
 
+
     for (uint8_t t=0; t<tl->num_tracks; t++) {
         Track *track = proj->tl->tracks[t];
+        double panctrlval = track->pan_ctrl->value;
+        double lpan = track->pan_ctrl->value < 0 ? 1 : 1 - panctrlval;
+        double rpan = track->pan_ctrl->value > 0 ? 1 : 1 + panctrlval;
+        double pan = channel == 0 ? lpan : rpan;
         float *track_chunk = get_track_channel_chunk(track, channel, start_pos_sframes, len_sframes, step);
         apply_track_filters(track, channel, len_sframes, track_chunk);
+
         // for (uint8_t i=0; i<track->num_filters; i++) {
         //     apply_filter(track->filters[0], channel, len_sframes, track_chunk);
         // }
         for (uint32_t i=0; i<len_sframes; i++) {
-            mixdown[i] += track_chunk[i];
+            mixdown[i] += track_chunk[i] * pan * track->vol_ctrl->value;
         }
         free(track_chunk);
     }

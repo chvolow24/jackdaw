@@ -749,19 +749,19 @@ static void project_loop()
                         break;
                     case SDL_SCANCODE_EQUALS:
                         equals_down = false;
-                        process_vol_and_pan();
+                        // process_vol_and_pan();
                         break;
                     case SDL_SCANCODE_MINUS:
                         minus_down = false;
-                        process_vol_and_pan();
+                        // process_vol_and_pan();
                         break;
                     case SDL_SCANCODE_9:
                         nine_down = false;
-                        process_vol_and_pan();
+                        // process_vol_and_pan();
                         break;
                     case SDL_SCANCODE_0:
                         zero_down = false;
-                        process_vol_and_pan();
+                        // process_vol_and_pan();
                     default:
                         break;
                 }
@@ -851,7 +851,7 @@ static void project_loop()
                         for (uint8_t j = 0; j<track->num_clips; j++) {
                             Clip *clip = track->clips[j];
                             if (clip->changed_track) {
-                                process_clip_vol_and_pan(clip);
+                                // process_clip_vol_and_pan(clip);
                                 clip->changed_track = false;
                             }
                         }
@@ -953,20 +953,20 @@ int main(int argc, char **argv)
     fprintf(stdout, "Activating audio devices on project\n");
 
     fprintf(stderr, "Adding filter to track\n");
-    add_filter_to_track(proj->tl->tracks[0], BANDPASS, 128);
-    fprintf(stderr, "Setting filter params\n");
-    set_FIR_filter_params(proj->tl->tracks[0]->filters[0], 0.07, 0.01);
-
-    fprintf(stderr, "Adding filter to track\n");
-    add_filter_to_track(proj->tl->tracks[0], BANDPASS, 128);
-    fprintf(stderr, "Setting filter params\n");
-    set_FIR_filter_params(proj->tl->tracks[0]->filters[1], 0.22, 0.01);
-
-
-    fprintf(stderr, "Adding filter to track\n");
     add_filter_to_track(proj->tl->tracks[0], LOWPASS, 128);
     fprintf(stderr, "Setting filter params\n");
-    set_FIR_filter_params(proj->tl->tracks[0]->filters[2], 0.009, 0);
+    set_FIR_filter_params(proj->tl->tracks[0]->filters[0], 0.04, 0);
+
+    // fprintf(stderr, "Adding filter to track\n");
+    // add_filter_to_track(proj->tl->tracks[0], BANDPASS, 128);
+    // fprintf(stderr, "Setting filter params\n");
+    // set_FIR_filter_params(proj->tl->tracks[0]->filters[1], 0.22, 0.01);
+
+
+    // fprintf(stderr, "Adding filter to track\n");
+    // add_filter_to_track(proj->tl->tracks[0], LOWPASS, 128);
+    // fprintf(stderr, "Setting filter params\n");
+    // set_FIR_filter_params(proj->tl->tracks[0]->filters[2], 0.009, 0);
 
     fprintf(stdout, "Loop starts now\n");
     if (invoke_open_wav_file) {

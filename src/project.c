@@ -287,6 +287,11 @@ Project *create_project(const char* name, uint8_t channels, uint32_t sample_rate
     proj->recording = false;
     proj->num_active_clips = 0;
 
+    /* Initialize output */
+    proj->output_len = chunk_size_sframes;
+    proj->output_L = malloc(sizeof(float) * chunk_size_sframes);
+    proj->output_R = malloc(sizeof(float) * chunk_size_sframes);
+
     /* Initialize timeline struct */
     Timeline *tl = (Timeline *)malloc(sizeof(Timeline));
     tl->num_tracks = 0;

@@ -231,6 +231,12 @@ typedef struct project {
 		SDL_AudioFormat fmt;
 		uint16_t chunk_size_sframes; //sample_frames
 
+
+		/* Audio output */
+		float *output_L;
+		float *output_R;
+		uint16_t output_len;
+
 		/* GUI Members */
 		SDL_Rect ctrl_rect;
 		SDL_Rect ctrl_rect_col_a;

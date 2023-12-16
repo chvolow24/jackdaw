@@ -455,7 +455,7 @@ static void read_track_from_jdaw(FILE *f, float file_spec_version, Track *track)
         read_clip_from_jdaw(f, file_spec_version, clip);
         num_clips--;
     }
-    process_track_vol_and_pan(track);
+    // process_track_vol_and_pan(track);
 
 }
 

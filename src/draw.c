@@ -289,6 +289,63 @@ static void draw_circle(SDL_Renderer *rend, int xinit, int yinit, int r)
     }
 }
 
+static void draw_array_to_fit(SDL_Renderer *rend, SDL_Color *color, float *array, uint32_t array_len, SDL_Rect *dst)
+{
+    SDL_SetRenderDrawColor(rend, color->r, color->g, color->b, color->a);
+
+    if (array_len == 0) {
+        return;
+    }
+
+    int mid_y = dst->y + (dst->h / 2);
+    int last_y = mid_y;
+    int half_h = dst->h / 2;
+    double samples_per_pixel = (double) array_len / dst->w;
+    double i = 0;
+    // bool some_y = fals
+    for (int x=0; x<dst->w; x++) {
+
+        i+= samples_per_pixel;
+
+        if (i >= array_len) {
+            return;
+        }
+        float sample = array[(int)i];
+
+        if (fabs(sample) > 1.5) {
+            SDL_SetRenderDrawColor(rend, 255, 0, 0, 255);
+            SDL_RenderDrawLine(rend, x + dst->x, last_y, x + dst->x, mid_y);
+            SDL_SetRenderDrawColor(rend, color->r, color->g, color->b, color->a);
+            continue;
+        }
+
+        int y = mid_y - sample * half_h;
+
+        if (x == 0) {
+            last_y = y;
+        }
+        SDL_RenderDrawLine(rend, dst->x + x, last_y, dst->x + x + 1, y);
+        last_y = y;
+    }
+
+    // int x_label_y = y() + h() + 2;
+    // int x_label_x1 = x();
+    // int x_label_x2 = x() + w() / 2;
+    // int x_label_x3 = x() + w();
+
+    // fprintf(stderr, "\t\tCK%d\n", check);
+    // check++;
+
+    // win->set_clr_black();
+    // win->text_writer->write(std::to_string(0), x_label_x1, x_label_y);
+    // win->text_writer->write(std::to_string(length / 2), x_label_x2, x_label_y);
+    // win->text_writer->write(std::to_string(length), x_label_x3, x_label_y);
+
+    // win->text_writer->write(this->label, x_label_x1, this->y() - 30);
+
+
+}
+
 
 static void draw_textbox(SDL_Renderer *rend, Textbox *tb)
 {
@@ -654,16 +711,17 @@ static void draw_ruler()
 void *draw_project(void *proj_v)
 {
     Project *proj = (Project *)proj_v;
+    SDL_Renderer *rend = proj->jwin->rend;
     const static char *bottom_text = "Jackdaw | by Charlie Volow";
-    set_rend_color(proj->jwin->rend, &bckgrnd_color);
-    SDL_RenderClear(proj->jwin->rend);
+    set_rend_color(rend, &bckgrnd_color);
+    SDL_RenderClear(rend);
 
 
     draw_hamburger(proj);
 
     /* Draw the timeline */
-    set_rend_color(proj->jwin->rend, &tl_bckgrnd);
-    SDL_RenderFillRect(proj->jwin->rend, &(proj->tl->rect));
+    set_rend_color(rend, &tl_bckgrnd);
+    SDL_RenderFillRect(rend, &(proj->tl->rect));
 
     Track *track;
 
@@ -677,49 +735,49 @@ void *draw_project(void *proj_v)
         }
     }
 
-    set_rend_color(proj->jwin->rend, &tl_bckgrnd);
-    SDL_RenderFillRect(proj->jwin->rend, &(proj->tl->ruler_tc_container_rect));
+    set_rend_color(rend, &tl_bckgrnd);
+    SDL_RenderFillRect(rend, &(proj->tl->ruler_tc_container_rect));
     draw_ruler();
     draw_tc();
-    set_rend_color(proj->jwin->rend, &bckgrnd_color);
+    set_rend_color(rend, &bckgrnd_color);
     SDL_Rect top_mask = {0, 0, proj->jwin->w, proj->tl->rect.y};
-    SDL_RenderFillRect(proj->jwin->rend, &top_mask);
+    SDL_RenderFillRect(rend, &top_mask);
     SDL_Rect mask_left = {0, 0, proj->tl->rect.x, proj->jwin->h};
-    SDL_RenderFillRect(proj->jwin->rend, &mask_left);
+    SDL_RenderFillRect(rend, &mask_left);
     SDL_Rect mask_left_2 = {proj->tl->rect.x, proj->tl->rect.y, PADDING, proj->tl->rect.h};
-    set_rend_color(proj->jwin->rend, &tl_bckgrnd);
-    SDL_RenderFillRect(proj->jwin->rend, &mask_left_2);
+    set_rend_color(rend, &tl_bckgrnd);
+    SDL_RenderFillRect(rend, &mask_left_2);
     // fprintf(stderr, "\t->end draw\n");
 
-    // SDL_SetRenderDrawColor(proj->jwin->rend, 255, 0, 0, 255);
-    // SDL_RenderDrawRect(proj->jwin->rend, &(proj->ctrl_rect));
-    // SDL_SetRenderDrawColor(proj->jwin->rend, 0, 255, 0, 255);
-    // SDL_RenderDrawRect(proj->jwin->rend, &(proj->ctrl_rect_col_a));
-    draw_textbox(proj->jwin->rend, proj->audio_out_label);
-    draw_textbox(proj->jwin->rend, proj->audio_out);
+    // SDL_SetRenderDrawColor(rend, 255, 0, 0, 255);
+    // SDL_RenderDrawRect(rend, &(proj->ctrl_rect));
+    // SDL_SetRenderDrawColor(rend, 0, 255, 0, 255);
+    // SDL_RenderDrawRect(rend, &(proj->ctrl_rect_col_a));
+    draw_textbox(rend, proj->audio_out_label);
+    draw_textbox(rend, proj->audio_out);
 
-    set_rend_color(proj->jwin->rend, &white);
+    set_rend_color(rend, &white);
 
     /* Draw t=0 */
     if (proj->tl->display_offset_sframes< 0) {
-        set_rend_color(proj->jwin->rend, &black);
+        set_rend_color(rend, &black);
         int zero_x = get_tl_draw_x(0);
-        SDL_RenderDrawLine(proj->jwin->rend, zero_x, proj->tl->audio_rect.y, zero_x, proj->tl->audio_rect.y + proj->tl->audio_rect.h);
+        SDL_RenderDrawLine(rend, zero_x, proj->tl->audio_rect.y, zero_x, proj->tl->audio_rect.y + proj->tl->audio_rect.h);
     }
 
     /* Draw play head line */
-    set_rend_color(proj->jwin->rend, &white);
+    set_rend_color(rend, &white);
     int tri_y = proj->tl->rect.y;
     if (proj->tl->play_pos_sframes >= proj->tl->display_offset_sframes) {
         int play_head_x = get_tl_draw_x(proj->tl->play_pos_sframes);
-        SDL_RenderDrawLine(proj->jwin->rend, play_head_x, proj->tl->rect.y, play_head_x, proj->tl->rect.y + proj->tl->rect.h);
+        SDL_RenderDrawLine(rend, play_head_x, proj->tl->rect.y, play_head_x, proj->tl->rect.y + proj->tl->rect.h);
 
         /* Draw play head triangle */
         int tri_x1 = play_head_x;
         int tri_x2 = play_head_x;
         int tri_y = proj->tl->rect.y;
         for (int i=0; i<PLAYHEAD_TRI_H; i++) {
-            SDL_RenderDrawLine(proj->jwin->rend, tri_x1, tri_y, tri_x2, tri_y);
+            SDL_RenderDrawLine(rend, tri_x1, tri_y, tri_x2, tri_y);
             tri_y -= 1;
             tri_x2 += 1;
             tri_x1 -= 1;
@@ -734,7 +792,7 @@ void *draw_project(void *proj_v)
         int i_tri_x2 = in_x;
         tri_y = proj->tl->rect.y;
         for (int i=0; i<PLAYHEAD_TRI_H; i++) {
-            SDL_RenderDrawLine(proj->jwin->rend, in_x, tri_y, i_tri_x2, tri_y);
+            SDL_RenderDrawLine(rend, in_x, tri_y, i_tri_x2, tri_y);
             tri_y -= 1;
             i_tri_x2 += 1;    
         }            
@@ -748,7 +806,7 @@ void *draw_project(void *proj_v)
         int o_tri_x1 = out_x;
         tri_y = proj->tl->rect.y;
         for (int i=0; i<PLAYHEAD_TRI_H; i++) {
-            SDL_RenderDrawLine(proj->jwin->rend, o_tri_x1, tri_y, out_x, tri_y);
+            SDL_RenderDrawLine(rend, o_tri_x1, tri_y, out_x, tri_y);
             tri_y -= 1;
             o_tri_x1 -= 1;
         }
@@ -757,19 +815,34 @@ void *draw_project(void *proj_v)
     }
     if (in_x < out_x && out_x != 0) {
         SDL_Rect in_out = (SDL_Rect) {in_x, proj->tl->audio_rect.y, out_x - in_x, proj->tl->audio_rect.h};
-        set_rend_color(proj->jwin->rend, &marked_bckgrnd);
-        SDL_RenderFillRect(proj->jwin->rend, &(in_out));
+        set_rend_color(rend, &marked_bckgrnd);
+        SDL_RenderFillRect(rend, &(in_out));
     }
 
     /* Draw title */
     int title_w = 0;
     int title_h = 0;
-    set_rend_color(proj->jwin->rend, &bckgrnd_color);
+    set_rend_color(rend, &bckgrnd_color);
     TTF_SizeUTF8(proj->jwin->fonts[1], bottom_text, &title_w, &title_h);
     SDL_Rect title_rect = {0, proj->jwin->h - 24 * scale_factor, proj->jwin->w, 24 * scale_factor};
-    SDL_RenderFillRect(proj->jwin->rend, &title_rect);
+    SDL_RenderFillRect(rend, &title_rect);
     SDL_Rect title_text_rect = {proj->jwin->w / 2 - (title_w / 2), title_rect.y, title_w, title_h};
-    write_text(proj->jwin->rend, &title_text_rect, proj->jwin->fonts[1], &txt_soft, bottom_text, true);
+    write_text(rend, &title_text_rect, proj->jwin->fonts[1], &txt_soft, bottom_text, true);
+
+
+    SDL_Color wht = {255, 255, 255, 255};
+    SDL_Color blk = {0, 0, 0, 255};
+    SDL_Rect output_rect_L = (SDL_Rect) {900, proj->ctrl_rect.y, 150, 100};
+    SDL_Rect output_rect_R = (SDL_Rect) {1150, proj->ctrl_rect.y, 150, 100};
+    SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
+    SDL_RenderFillRect(rend, &output_rect_L);
+    SDL_RenderFillRect(rend, &output_rect_R);
+
+    SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
+    draw_array_to_fit(rend, &wht, proj->output_L, proj->output_len, &output_rect_L);
+    draw_array_to_fit(rend, &wht, proj->output_R, proj->output_len, &output_rect_R);
+
+
     return NULL;
 }
 

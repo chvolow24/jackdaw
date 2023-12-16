@@ -46,12 +46,7 @@
 #ifndef JDAW_PROJECT_H
 #define JDAW_PROJECT_H
 
-/* vv make shitty clangd work on charlie's computer vv */
-#include "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/complex.h"
-/* ^^                                              ^^ */
-
-
-// #include <complex.h>
+#include <complex.h>
 #include <stdio.h>
 #include <pthread.h>
 #include <stdbool.h>

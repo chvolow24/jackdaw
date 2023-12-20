@@ -111,20 +111,39 @@ static void write_wav(const char *fname, int16_t *samples, uint32_t num_samples,
     fprintf(stderr, "/t-> Done writing wav.\n");
 }
 
+static void reset_overlap_buffers()
+{
+    for (uint8_t t=0; t<proj->tl->num_tracks; t++) {
+        Track *track = proj->tl->tracks[t];
+        if (track->overlap_buffer_L) {
+            memset(track->overlap_buffer_L, '\0', track->overlap_len * sizeof(double));
+        }
+        if (track->overlap_buffer_R) {
+            memset(track->overlap_buffer_R, '\0', track->overlap_len * sizeof(double));
+        }
+    }
+}
+
 void write_mixdown_to_wav(char *filepath)
 {
+    reset_overlap_buffers();
+    uint16_t chunk_len_sframes = proj->chunk_size_sframes;
+    uint16_t chunk_len_samples = chunk_len_sframes * proj->channels;
     uint32_t len_sframes = proj->tl->out_mark_sframes - proj->tl->in_mark_sframes;
     uint32_t len_samples = proj->channels * len_sframes;
-    float *samples_L = get_mixdown_chunk(proj->tl, 0, len_sframes, true);
-    float *samples_R = get_mixdown_chunk(proj->tl, 1, len_sframes, true);
-
+    uint16_t chunks = len_sframes / proj->chunk_size_sframes;
     int16_t *samples = malloc(sizeof(int16_t) * len_samples);
-    for (uint32_t i=0; i<len_samples; i+=2) {
-        samples[i] = samples_L[i/2] * INT16_MAX;
-        samples[i+1] = samples_R[i/2] * INT16_MAX;
+
+    for (int c=0; c<chunks; c++) {
+        float *samples_L = get_mixdown_chunk(proj->tl, 0, chunk_len_sframes, proj->tl->in_mark_sframes + (c * chunk_len_sframes), 1);
+        float *samples_R = get_mixdown_chunk(proj->tl, 1, chunk_len_sframes, proj->tl->in_mark_sframes + (c * chunk_len_sframes), 1);
+        for (uint32_t i=0; i<chunk_len_samples; i+=2) {
+            samples[c * chunk_len_samples + i] = samples_L[i/2] * INT16_MAX;
+            samples[c * chunk_len_samples + i + 1] = samples_R[i/2] * INT16_MAX;
+        }
+        free(samples_L);
+        free(samples_R);
     }
-    free(samples_L);
-    free(samples_R);
     write_wav(filepath, samples, len_samples, 16, 2);
     free(samples);
 }
@@ -182,24 +201,11 @@ void load_wav_to_track(Track *track, const char *filename) {
 
     uint32_t buf_len_samples = audio_len_bytes / sizeof(int16_t);
     Clip *clip = create_clip(track, buf_len_samples / track->channels, proj->tl->play_pos_sframes);
-    // clip->len_sframes = audio_len_bytes / 2 / track->channels;
-
-    // clip->pre_proc = malloc(sizeof(int16_t) * clip->len_sframes * clip->channels);
-    // clip->post_proc = malloc(sizeof(int16_t) * clip->len_sframes * clip->channels);
-    // if (!clip->post_proc || !clip->pre_proc) {
-    //     fprintf(stderr, "Error: unable to allocate space for clip samples\n");
-    //     return;
-    // }
-
-    // fprintf(stderr, "memcpying %d bytes to clip.\n", audio_len_bytes);
-
     int16_t *src_buf = (int16_t *)wav_cvt.buf;
 
     for (uint32_t i=0; i<buf_len_samples; i+=2) {
         clip->L[i/2] = (float) src_buf[i] / INT16_MAX;
         clip->R[i/2] = (float) src_buf[i+1] / INT16_MAX;
     }
-    // memcpy(clip->L, wav_cvt.buf, audio_len_bytes);
-    // memcpy(clip->R, wav_cvt.buf, audio_len_bytes);
     clip->done = true;
 }

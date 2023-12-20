@@ -54,63 +54,6 @@ void init_dsp()
     init_roots_of_unity();
 }
 
-// void process_clip_vol_and_pan(Clip *clip)
-// {
-// //         Track *track = clip->track;
-// //         float lpan, rpan, panctrlval;
-// //         panctrlval = track->pan_ctrl->value;
-// //         lpan = panctrlval < 0 ? 1 : 1 - panctrlval;
-// //         rpan = panctrlval > 0 ? 1 : 1 + panctrlval;
-// //         // uint8_t k=0;
-// //         for (uint32_t j=0; j<clip->len_sframes * clip->channels; j+=2) {
-// //             // pan = j%2==0 ? lpan : rpan;
-// //             // if (k<20) {
-// //             //     k++;
-// //             //     fprintf(stderr, "\t\t->sample %d, pan value: %f\n", j, pan);
-// //             // }
-// //             clip->post_proc[j] = clip->pre_proc[j] * track->vol_ctrl->value * lpan;
-// //             clip->post_proc[j+1] = clip->pre_proc[j+1] * track->vol_ctrl->value * rpan;
-// //         }
-// }
- 
-// void process_track_vol_and_pan(Track *track)
-// {
-//     // Clip *clip = NULL;
-//     // float lpan, rpan, panctrlval;
-//     // panctrlval = track->pan_ctrl->value;
-//     // lpan = panctrlval < 0 ? 1 : 1 - panctrlval;
-//     // rpan = panctrlval > 0 ? 1 : 1 + panctrlval;
-//     for (uint8_t i=0; i<track->num_clips; i++) {
-//         Clip *clip = track->clips[i];
-//         process_clip_vol_and_pan(clip);
-//         // uint8_t k=0;
-//         // for (uint32_t j=0; j<clip->len_sframes * clip->channels; j+=2) {
-//         //     // pan = j%2==0 ? lpan : rpan;
-//         //     // if (k<20) {
-//         //     //     k++;
-//         //     //     fprintf(stderr, "\t\t->sample %d, pan value: %f\n", j, pan);
-//         //     // }
-//         //     clip->post_proc[j] = clip->pre_proc[j] * track->vol_ctrl->value * lpan;
-//         //     clip->post_proc[j+1] = clip->pre_proc[j+1] * track->vol_ctrl->value * rpan;
-//         // }
-//     }
-
-// }
-
-// void process_vol_and_pan()
-// {
-//     if (!proj) {
-//         fprintf(stderr, "Error: request to process vol and pan for nonexistent project.\n");
-//         return;
-//     }
-//     Track *track = NULL;
-//     for (uint8_t i=0; i<proj->tl->num_tracks; i++) {
-//         track = proj->tl->tracks[i];
-//         process_track_vol_and_pan(track);
-//     }
-// }
-
-
 
 /*****************************************************************************************************************
     FFT and helper functions
@@ -166,36 +109,6 @@ static double complex *FFT_inner(double *A, int n, int offset, int increment)
 
 }
 
-// static double complex *FFT_float_inner(float *A, int n, int offset, int increment)
-// {
-//     double complex *B = (double complex *)malloc(sizeof(double complex) * n);
-
-//     if (n==1) {
-//         B[0] = A[offset] + 0 * I;
-//         return B;
-//     }
-
-//     int halfn = n>>1;
-//     int degree = log2(n);
-//     double complex *X = roots_of_unity[degree];
-//     int doubleinc = increment << 1;
-//     double complex *Beven = FFT_float_inner(A, halfn, offset, doubleinc);
-//     double complex *Bodd = FFT_float_inner(A, halfn, offset + increment, doubleinc);
-//     for (int k=0; k<halfn; k++) {
-
-//         double complex odd_part_by_x = Bodd[k] * conj(X[k]);
-//         B[k] = Beven[k] + odd_part_by_x;
-
-//         B[k + halfn] = Beven[k] - odd_part_by_x;
-
-//     }
-
-//     free(Beven);
-//     free(Bodd);
-//     return B;
-
-// }
-
 double complex *FFT(double *A, int n)
 {
 
@@ -207,21 +120,10 @@ double complex *FFT(double *A, int n)
     return B;
 }
 
-// double complex *FFT_float(float *A, int n)
-// {
-
-//     double complex *B = FFT_float_inner(A, n, 0, 1);
-
-//     for (int k=0; k<n; k++) {
-//         B[k]/=n;
-//     }
-//     return B;
-// }
-
 
 /* I'm not sure why using an "unscaled" version of the FFT appears to work when getting the frequency response
 for the FIR filters defined below (e.g. "bandpass_IR()"). The normal, scaled version produces values that are
-too small */
+too small. */
 static double complex *FFT_unscaled(double *A, int n) 
 {
     double complex *B = FFT_inner(A, n, 0, 1);
@@ -510,7 +412,7 @@ void apply_track_filters(Track *track, uint8_t channel, uint16_t chunk_size, flo
     double *overlap_buffer = channel == 0 ? track->overlap_buffer_L : track->overlap_buffer_R;
 
     if (!overlap_buffer) {
-        overlap_buffer = malloc(sizeof(double) *track->overlap_len);
+        overlap_buffer = malloc(sizeof(double) * track->overlap_len);
         memset(overlap_buffer, '\0', sizeof(double) * track->overlap_len);
         if (channel == 0) {
             track->overlap_buffer_L = overlap_buffer;

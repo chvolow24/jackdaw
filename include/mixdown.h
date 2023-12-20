@@ -33,4 +33,4 @@
 
 #include "project.h"
 
-float *get_mixdown_chunk(Timeline* tl, uint8_t channel, uint32_t len_sframes, bool from_mark_in);
+float *get_mixdown_chunk(Timeline* tl, uint8_t channel, uint32_t len_sframes, int32_t start_pos_sframes, float step);

@@ -94,8 +94,8 @@ static void play_callback(void* user_data, Uint8* stream, int streamLength)
     // fprintf(stderr, "Playback freq: %d\n", pbdev->spec.freq);
     uint32_t stream_len_samples = streamLength / sizeof(int16_t);
 
-    float *chunk_L = get_mixdown_chunk(proj->tl, 0, stream_len_samples / proj->channels, false);
-    float *chunk_R = get_mixdown_chunk(proj->tl, 1, stream_len_samples / proj->channels, false);
+    float *chunk_L = get_mixdown_chunk(proj->tl, 0, stream_len_samples / proj->channels, proj->tl->play_pos_sframes, proj->play_speed);
+    float *chunk_R = get_mixdown_chunk(proj->tl, 1, stream_len_samples / proj->channels, proj->tl->play_pos_sframes, proj->play_speed);
     // Printing sample values to confirm that every other sample has value 0
     // for (uint8_t i = 0; i<200; i++) {
     //     fprintf(stderr, "%hd ", (int16_t)(chunk[i]));

@@ -95,52 +95,6 @@ static void get_native_byte_order()
     #endif
 }
 
-// static int segfault_counter = 0;
-
-// static void mem_err_handler()
-// {
-//     FILE *f = fopen("error.log", "w");
-//     segfault_counter++;
-//     if (segfault_counter > 10) {
-//         fclose(f);
-//         exit(1);
-//     }
-//     fprintf(stderr, "\nSEGMENTATION FAULT\n");
-//     log_project_state(f);
-//     fclose(f);
-//     exit(1);
-// }
-
-// static void sigint_handler()
-// {
-//     FILE *f = fopen("project_state.log", "w");
-//     fprintf(stderr, "SIG INT: logging project state.\n");
-//     log_project_state(f);
-//     fclose(f);
-//     exit(1);
-// }
-
-// static void signal_init(void)
-// {
-
-//     struct sigaction memErrHandler;
-//     struct sigaction sigIntHandler;
-//     memErrHandler.sa_handler = mem_err_handler;
-//     sigIntHandler.sa_handler = sigint_handler;
-//     sigemptyset(&memErrHandler.sa_mask);
-//     sigemptyset(&sigIntHandler.sa_mask);
-//     memErrHandler.sa_flags = 0;
-//     sigIntHandler.sa_flags = 0;
-//     // sigaction(SIGINT, &sigIntHandler, NULL);
-//     sigaction(SIGSEGV, &memErrHandler, NULL);
-//     sigaction(SIGTRAP, &memErrHandler, NULL);
-//     sigaction(SIGABRT, &memErrHandler, NULL);
-//     sigaction(SIGBUS, &memErrHandler, NULL);
-//     sigaction(SIGINT, &sigIntHandler, NULL);
-
-
-// }
-
 /* Initialize SDL Video and TTF */
 static void init_graphics()
 {
@@ -326,16 +280,7 @@ static void start_recording()
                 fprintf(stderr, "Unable to open device: %s\n", track->input->name);
             }
         }
-// void start_device_recording(AudioDevice *dev)
-// {
-//     fprintf(stderr, "START RECORDING dev: %s\n", dev->name);
-//     if () {
-//         fprintf(stderr, "Opened device\n");
-//         SDL_PauseAudioDevice(dev->id, 0);
-//     } else {
-//         fprintf(stderr, "Failed to open device\n");
-//     }
-// }
+
         Clip *clip = create_clip(track, 0, proj->tl->play_pos_sframes);
         fprintf(stderr, "Creating clip @abspos: %d\n", proj->tl->play_pos_sframes);
         add_active_clip(clip);
@@ -702,7 +647,12 @@ static void project_loop()
                             add_transition_from_tl();
                         }
                     case SDL_SCANCODE_C:
-                        if (shift_down) {
+                        if (shift_down && cmd_ctrl_down) {
+                            FILE *f = fopen("project_state.log", "w");
+                            fprintf(stderr, "Logging project state.\n");
+                            log_project_state(f);
+                            fclose(f);
+                        } else if (shift_down) {
                             cut_clips();
                         } else if (cmd_ctrl_down) {
                             copy_clips_to_clipboard();
@@ -952,21 +902,21 @@ int main(int argc, char **argv)
     }
     fprintf(stdout, "Activating audio devices on project\n");
 
-    fprintf(stderr, "Adding filter to track\n");
-    add_filter_to_track(proj->tl->tracks[0], LOWPASS, 128);
-    fprintf(stderr, "Setting filter params\n");
-    set_FIR_filter_params(proj->tl->tracks[0]->filters[0], 0.04, 0);
-
-    // fprintf(stderr, "Adding filter to track\n");
-    // add_filter_to_track(proj->tl->tracks[0], BANDPASS, 128);
-    // fprintf(stderr, "Setting filter params\n");
-    // set_FIR_filter_params(proj->tl->tracks[0]->filters[1], 0.22, 0.01);
-
-
     // fprintf(stderr, "Adding filter to track\n");
     // add_filter_to_track(proj->tl->tracks[0], LOWPASS, 128);
     // fprintf(stderr, "Setting filter params\n");
-    // set_FIR_filter_params(proj->tl->tracks[0]->filters[2], 0.009, 0);
+    // set_FIR_filter_params(proj->tl->tracks[0]->filters[0], 0.04, 0);
+
+    // // fprintf(stderr, "Adding filter to track\n");
+    // // add_filter_to_track(proj->tl->tracks[0], BANDPASS, 128);
+    // // fprintf(stderr, "Setting filter params\n");
+    // // set_FIR_filter_params(proj->tl->tracks[0]->filters[1], 0.22, 0.01);
+
+
+    // // fprintf(stderr, "Adding filter to track\n");
+    // // add_filter_to_track(proj->tl->tracks[0], LOWPASS, 128);
+    // // fprintf(stderr, "Setting filter params\n");
+    // // set_FIR_filter_params(proj->tl->tracks[0]->filters[2], 0.009, 0);
 
     fprintf(stdout, "Loop starts now\n");
     if (invoke_open_wav_file) {

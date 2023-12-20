@@ -39,7 +39,7 @@
 #define TL_X_PADDING_UNSCALED 5
 #define TL_X_PADDING (5 * scale_factor)
 
-#define TL_Y_UNSCALED 90
+#define TL_Y_UNSCALED 140
 // #define TL_Y_PADDING (20 * scale_factor)
 
 #define CTRL_X_PADDING_UNSCALED 14

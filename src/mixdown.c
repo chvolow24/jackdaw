@@ -129,7 +129,7 @@ float *get_track_channel_chunk(Track *track, uint8_t channel, int32_t start_pos_
 Sum track samples over a chunk of timeline and return an array of samples. from_mark_in indicates that samples
 should be collected from the in mark rather than from the play head.
 */
-float *get_mixdown_chunk(Timeline* tl, uint8_t channel, uint32_t len_sframes, bool from_mark_in)
+float *get_mixdown_chunk(Timeline* tl, uint8_t channel, uint32_t len_sframes, int32_t start_pos_sframes, float step)
 {
     uint32_t chunk_len_bytes = sizeof(float) * len_sframes;
     float *mixdown = malloc(chunk_len_bytes);
@@ -139,8 +139,8 @@ float *get_mixdown_chunk(Timeline* tl, uint8_t channel, uint32_t len_sframes, bo
         exit(1);
     }
 
-    uint32_t start_pos_sframes = from_mark_in ? proj->tl->in_mark_sframes : proj->tl->play_pos_sframes;
-    float step = from_mark_in ? 1 : proj->play_speed;
+    // uint32_t start_pos_sframes = from_mark_in ? proj->tl->in_mark_sframes : proj->tl->play_pos_sframes;
+    // float step = from_mark_in ? 1 : proj->play_speed;
 
 
     for (uint8_t t=0; t<tl->num_tracks; t++) {

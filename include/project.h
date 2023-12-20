@@ -236,6 +236,8 @@ typedef struct project {
 		SDL_Rect ctrl_rect;
 		SDL_Rect ctrl_rect_col_a;
 		SDL_Rect audio_out_row;
+		// SDL_Rect out_buffer_L;
+		// SDL_Rect out_buffer_R;
 		Textbox *audio_out_label;
 		Textbox *audio_out;
 
@@ -247,7 +249,7 @@ typedef struct project {
 // int16_t *get_mixdown_chunk(Timeline* tl, uint32_t length, bool from_mark_in);
 
 /* Create an empty project */
-Project *create_empty_project(void);
+// Project *create_empty_project(void);
 
 /* Create a project from some parameters. Fmt should always be AUDIO_S16SYS */
 Project *create_project(const char* name, uint8_t channels, uint32_t sample_rate, SDL_AudioFormat fmt, uint16_t chunk_size);

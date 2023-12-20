@@ -568,7 +568,7 @@ Track *create_track(Timeline *tl, bool stereo)
     reset_track_internal_rects(track);
     /* END TEMPORARY */
 
-    fprintf(stderr, "\t->exit create track\n");
+    // fprintf(stderr, "\t->exit create track\n");
     return track;
 }
 
@@ -697,14 +697,14 @@ Clip *create_clip(Track *track, uint32_t len_sframes, uint32_t absolute_position
 
     clip->namebox = create_textbox(0, 0, 2, 2, proj->jwin->bold_fonts[1], clip->name, &grey, &clear, &clear, NULL, NULL, NULL, NULL, 0, true, true, BOTTOM_LEFT);
     reset_cliprect(clip);
-    fprintf(stderr, "\t->exit create_clip\n");
+    // fprintf(stderr, "\t->exit create_clip\n");
     return clip;
 
 }
 
 void destroy_clip(Clip *clip)
 {
-    fprintf(stderr, "Enter destroy clip.\n");
+    // fprintf(stderr, "Enter destroy clip.\n");
     if (clip->L) {
         free(clip->L);
         clip->L = NULL;
@@ -715,7 +715,7 @@ void destroy_clip(Clip *clip)
     }
     free(clip);
     clip = NULL;
-    fprintf(stderr, "\t->done destroy clip.\n");
+    // fprintf(stderr, "\t->done destroy clip.\n");
 
 }
 
@@ -734,7 +734,7 @@ void create_clip_buffers(Clip *clip, uint32_t buf_len_sframes)
 
 void delete_track(Track *track)
 {
-    fprintf(stderr, "Enter delete track. Index: %d\n", track->tl_rank);
+    // fprintf(stderr, "Enter delete track. Index: %d\n", track->tl_rank);
     if (track->active) {
         activate_or_deactivate_track(track->tl_rank);
     }
@@ -757,12 +757,12 @@ void delete_track(Track *track)
     }
 
     destroy_track(track);
-    fprintf(stderr, "\t->exit delete track\n");
+    // fprintf(stderr, "\t->exit delete track\n");
 }
 
 void destroy_track(Track *track)
 {
-    fprintf(stderr, "Enter destroy track. Destroy @ %p\n", track);
+    // fprintf(stderr, "Enter destroy track. Destroy @ %p\n", track);
 
     /* Destroy track clips */
     while (track->num_clips > 0) {
@@ -790,7 +790,7 @@ void destroy_track(Track *track)
     free(track->pan_ctrl);
     free(track);
 
-    fprintf(stderr, "\t->Exit destroy track\n");
+    // fprintf(stderr, "\t->Exit destroy track\n");
 }
 
 
@@ -833,7 +833,7 @@ void grab_clips()
 
 void ungrab_clips()
 {
-    fprintf(stderr, "Ungrab clips\n");
+    // fprintf(stderr, "Ungrab clips\n");
     for (uint8_t i=0; i<proj->tl->num_tracks; i++) {
         Track *track = proj->tl->tracks[i];
         fprintf(stderr, "\t->track %p\n", track);
@@ -845,7 +845,7 @@ void ungrab_clips()
         }
         track->num_grabbed_clips = 0;
     } 
-    fprintf(stderr, "\t->Exit ungrab clips\n");
+    // fprintf(stderr, "\t->Exit ungrab clips\n");
 
 }
 
@@ -1120,7 +1120,7 @@ void remove_clip_from_track(Clip *clip)
 
 void add_clip_to_track(Clip *clip, Track *track)
 {
-    fprintf(stderr, "Adding clip %p to track %p.\n", clip, track);
+    // fprintf(stderr, "Adding clip %p to track %p.\n", clip, track);
     track->clips[track->num_clips] = clip;
     clip->track_rank = track->num_clips;
     track->num_clips++;
@@ -1128,7 +1128,7 @@ void add_clip_to_track(Clip *clip, Track *track)
     if (clip->grabbed) {
         track->num_grabbed_clips++;
     }
-    fprintf(stderr, "\t->done adding clip to track\n");
+    // fprintf(stderr, "\t->done adding clip to track\n");
 
 }
 
@@ -1146,7 +1146,7 @@ void delete_grabbed_clips()
         fprintf(stderr, "Error: request to delete clips with no project.\n");
         return;
     }
-    fprintf(stderr, "Enter delete grabbed clips\n");
+    // fprintf(stderr, "Enter delete grabbed clips\n");
     for (uint8_t i=0; i<proj->tl->num_tracks; i++) {
         Track *track = proj->tl->tracks[i];
         for (uint8_t j=0; j<track->num_clips; j++) {
@@ -1167,7 +1167,7 @@ void reposition_clip(Clip *clip, int32_t new_pos)
 
 void add_active_clip(Clip *clip)
 {
-    fprintf(stderr, "Add active clip\n");
+    // fprintf(stderr, "Add active clip\n");
     if (!proj) {
         fprintf(stderr, "Error: no project!\n");
         return;
@@ -1426,7 +1426,16 @@ void log_project_state(FILE *f) {
             for (uint8_t j=0; j<track->num_clips; j++) {
                 Clip *clip = track->clips[j];
                 fprintf(f, "\t\t\tClip at %p\n", clip);
+                fprintf(f, "\t\t\t\tName: %s\n", clip->name);
+                fprintf(f, "\t\t\t\tLen sframes: %d\n", clip->len_sframes);
+                fprintf(f, "\t\t\t\tAbs pos: %d\n", clip->abs_pos_sframes);
+
+
+
                 fprintf(f, "\t\t\t\tGrabbed: %d\n", clip->grabbed);
+                fprintf(f, "\t\t\t\tStart ramp len: %d\n", clip->start_ramp_len);
+                fprintf(f, "\t\t\t\tEnd ramp len: %d\n", clip->end_ramp_len);
+
             }
         }
     }

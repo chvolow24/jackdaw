@@ -830,19 +830,23 @@ void *draw_project(void *proj_v)
     write_text(rend, &title_text_rect, proj->jwin->fonts[1], &txt_soft, bottom_text, true);
 
 
+
+
+    /* TEMPORARY: DRAW OUTPUT */
+    
     SDL_Color wht = {255, 255, 255, 255};
     SDL_Color blk = {0, 0, 0, 255};
-    SDL_Rect output_rect_L = (SDL_Rect) {900, proj->ctrl_rect.y, 150, 100};
-    SDL_Rect output_rect_R = (SDL_Rect) {1150, proj->ctrl_rect.y, 150, 100};
+    SDL_Rect output_rect_L = (SDL_Rect) {35 * scale_factor, proj->ctrl_rect.y + 40 * scale_factor, 60 * scale_factor, 50 * scale_factor};
+    SDL_Rect output_rect_R = (SDL_Rect) {110 * scale_factor, proj->ctrl_rect.y + 40 * scale_factor, 60 * scale_factor, 50 * scale_factor};
     SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
     SDL_RenderFillRect(rend, &output_rect_L);
     SDL_RenderFillRect(rend, &output_rect_R);
 
     draw_array_to_fit(rend, &wht, proj->output_L, proj->output_len, &output_rect_L);
     draw_array_to_fit(rend, &wht, proj->output_R, proj->output_len, &output_rect_R);
-    SDL_SetRenderDrawColor(rend, 100, 200, 220, 255);
-    SDL_RenderDrawRect(rend, &output_rect_L);
-    SDL_RenderDrawRect(rend, &output_rect_R);
+
+    /* End TEMPORARY: DRAW OUTPUT */
+
 
     return NULL;
 }

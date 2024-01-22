@@ -140,7 +140,7 @@ Return values:
     1: track clicked
     2: clip clicked
 */
-static int triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down, Track **clicked_track, Clip **clicked_clip)
+static int triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down, bool shift_down, Track **clicked_track, Clip **clicked_clip)
 {
     /* DNE! */
     //fprintf(stderr, "Mouse xy: %d,%d. audio out cont xrange: %d, %d, yrange %d, %d\n", mouse_p->x, mouse_p->y, proj->audio_out->container.x, proj->audio_out->container.x + proj->audio_out->container.w, proj->audio_out->container.y, proj->audio_out->container.y + proj->audio_out->container.w);
@@ -178,7 +178,12 @@ static int triage_project_mouseclick(SDL_Point *mouse_p, bool cmd_ctrl_down, Tra
                             if (SDL_PointInRect(mouse_p, &(clip->rect))) {
                                 *clicked_clip = clip;
                                 if (cmd_ctrl_down) {
-                                    grab_ungrab_clip(clip);
+                                    if (shift_down) {
+                                        grab_ungrab_clip(clip);
+                                    } else {
+                                        ungrab_clips();
+                                        grab_ungrab_clip(clip);
+                                    }
                                 }
                             }
                         }
@@ -415,7 +420,7 @@ static void project_loop()
                 if (e.button.button == SDL_BUTTON_LEFT) {
                     /* Triage mouseclick to GUI menus first. Check project for clickables IFF no GUI item is clicked */
                     if (!triage_menulist_mouseclick(proj->jwin, &mouse_p)) {
-                        int t = triage_project_mouseclick(&mouse_p, cmd_ctrl_down, &clicked_track, &clicked_clip);
+                        int t = triage_project_mouseclick(&mouse_p, cmd_ctrl_down, shift_down, &clicked_track, &clicked_clip);
                         if (clicked_track) {
                             dynamic_clicked_track_rank = clicked_track->tl_rank;
                         }

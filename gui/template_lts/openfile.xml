@@ -1,0 +1,36 @@
+<Layout name="openfile" display="false">
+    <x>ABS 0</x>
+    <y>ABS 0</y>
+    <w>ABS 2396</w>
+    <h>ABS 1328</h>
+    <index>0</index>
+    <children>
+        <Layout name="container" display="true">
+            <x>SCALE 0.340826</x>
+            <y>SCALE 0.412161</y>
+            <w>REL 598</w>
+            <h>REL 191</h>
+            <index>0</index>
+            <children>
+                <Layout name="label" display="true">
+                    <x>REL 34</x>
+                    <y>REL 52</y>
+                    <w>ABS 198</w>
+                    <h>ABS 72</h>
+                    <index>0</index>
+                    <children>
+                    </children>
+                </Layout>
+                <Layout name="filepath" display="true">
+                    <x>REL 266</x>
+                    <y>REL 52</y>
+                    <w>ABS 300</w>
+                    <h>ABS 70</h>
+                    <index>1</index>
+                    <children>
+                    </children>
+                </Layout>
+            </children>
+        </Layout>
+    </children>
+</Layout>

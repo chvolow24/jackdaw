@@ -8,3 +8,5 @@ jackdaw
 *.log
 todo.txt
 
+*.xml
+!gui/template_lts/*.xml

@@ -2,11 +2,8 @@
 #include "text.h"
 #include "layout.h"
 
-#define CURSOR_WIDTH 4
-
 extern Layout *main_layout;
 extern Window *main_win;
-// extern TTF_Font *open_sans;
 
 static Text *create_empty_text(
     SDL_Rect *container, 
@@ -18,6 +15,7 @@ static Text *create_empty_text(
 )
 {
     Text *txt = malloc(sizeof(Text));
+    txt->align = align;
     txt->value_handle = NULL;
     txt->len = 0;
     txt->max_len = 0;
@@ -25,7 +23,7 @@ static Text *create_empty_text(
 
     txt->font = font;
     txt->color = txt_clr;
-    txt->truncate = false;
+    txt->truncate = truncate;
 
     txt->cursor_countdown = 0;
     txt->cursor_end_pos = 0;
@@ -40,13 +38,15 @@ static Text *create_empty_text(
 
 void reset_text_drawable(Text *txt) 
 {
+    if (txt->len == 0) { 
+        return;
+    }
     if (txt->surface) {
         SDL_FreeSurface(txt->surface);
     }
     if (txt->texture) {
         SDL_DestroyTexture(txt->texture);
     }
-    fprintf(stderr, "\tCreating surface from disp val %s\n", txt->display_value);
     txt->surface = TTF_RenderUTF8_Blended(txt->font, txt->display_value, txt->color);
     if (!txt->surface) {
         fprintf(stderr, "\nError: TTF_RenderText_Blended failed: %s", TTF_GetError());
@@ -57,14 +57,12 @@ void reset_text_drawable(Text *txt)
         fprintf(stderr, "\nError: SDL_CreateTextureFromSurface failed: %s", TTF_GetError());
         return;
     }
-    fprintf(stderr, "txt rect before: %d, %d, %d, %d\n", txt->text_rect.x, txt->text_rect.y, txt->text_rect.w, txt->text_rect.h);
-    fprintf(stderr, "txt container: %d %d %d %d\n", txt->container->x, txt->container->y, txt->container->w, txt->container->h);
     SDL_QueryTexture(txt->texture, NULL, NULL, &(txt->text_rect.w), &(txt->text_rect.h));
 
     switch (txt->align) {
         case CENTER:
-            txt->text_rect.x = (int)((float) txt->container->w / 2.0 - (float) txt->text_rect.w / 2.0) + txt->container->x;
-            txt->text_rect.y = (int)((float) txt->container->h / 2.0 - (float) txt->text_rect.w / 2.0) + txt->container->y;
+            txt->text_rect.y = txt->container->y + (int) round((float)txt->container->w / 2.0 - (float) txt->text_rect.w / 2.0);
+            txt->text_rect.y = txt->container->y + (int) round((float)txt->container->h / 2.0 - (float) txt->text_rect.h / 2.0);
             break;
         case TOP_LEFT:
             txt->text_rect.x = txt->container->x;
@@ -84,28 +82,21 @@ void reset_text_drawable(Text *txt)
             break;
         case CENTER_LEFT:
             txt->text_rect.x = txt->container->x;
-            txt->text_rect.y = (int)((float) txt->container->h / 2.0 - (float) txt->text_rect.w / 2.0) + txt->container->y;
+            txt->text_rect.y = txt->container->y + (int) round((float)txt->container->h / 2.0 - (float) txt->text_rect.h / 2.0);
             break;
     }
-    fprintf(stderr, "txt rect after: %d, %d, %d, %d\n", txt->text_rect.x, txt->text_rect.y, txt->text_rect.w, txt->text_rect.h);
 
 }
-// Text *create_text_from_str(char *value, uint8_t max_len, int x, int y, SDL_Color txt_clr);
-void set_text_value(Text *txt, char *set_str)
-{
-    fprintf(stderr, "Set text value from %s to %s\n", txt->display_value, set_str);
-    txt->value_handle = set_str;
-    txt->len = strlen(set_str);
 
+void reset_text_display_value(Text *txt) 
+{
     int txtw, txth;
 
     TTF_SizeUTF8(txt->font, txt->value_handle, &txtw, &txth);
 
-    if (txt->truncate && txt->text_rect.w > txt->container->w) {
+    if (txt->truncate && txtw > txt->container->w) {
 
         int approx_allowable_chars = (int) ((float) txt->len * txt->container->w / txtw);
-        // int ellipsisw;
-        // TTF_SizeUTF8(txt->font, "...", &ellipsisw, NULL);
         for (int i=0; i<approx_allowable_chars - 3; i++) {
             txt->display_value[i] = txt->value_handle[i];
         }
@@ -116,8 +107,21 @@ void set_text_value(Text *txt, char *set_str)
     } else {
         strcpy(txt->display_value, txt->value_handle);
     }
-
     reset_text_drawable(txt);
+
+}
+void set_text_value_handle(Text *txt, char *set_str)
+{
+    txt->value_handle = set_str;
+    txt->len = strlen(set_str);
+    reset_text_display_value(txt);
+
+}
+void set_text_value(Text *txt, char *set_str)
+{
+    strcpy(txt->value_handle, set_str);
+    txt->len = strlen(set_str);
+    reset_text_display_value(txt);
 }
 
 Text *create_text_from_str(
@@ -131,15 +135,12 @@ Text *create_text_from_str(
     SDL_Renderer *rend
 )
 {
-    fprintf(stderr, "Create text from string\n");
     Text *txt = create_empty_text(container, font, txt_clr, align, truncate, rend);
-    fprintf(stderr, "Created empty text\n");
 
     txt->max_len = max_len;
     if (set_str) {
-        set_text_value(txt, set_str);
+        set_text_value_handle(txt, set_str);
     }
-    fprintf(stderr, "\t-> done Create text from string\n");
 
     return txt;
 
@@ -157,106 +158,78 @@ static void cursor_left(Text *txt)
 
 static void cursor_right(Text *txt)
 {
-    if (txt->cursor_start_pos < txt->len) {
-        txt->cursor_start_pos++;
+    if (txt->cursor_end_pos < txt->len) {
+        txt->cursor_end_pos++;
     }
-    txt->cursor_end_pos = txt->cursor_start_pos;  
+    txt->cursor_start_pos = txt->cursor_end_pos;  
     txt->cursor_countdown = CURSOR_COUNTDOWN_MAX;
 
 
 }
-
+static void handle_backspace(Text *txt);
 static int handle_char(Text *txt, char input)
 {
-    fprintf(stderr, "Handle char %c; cursor %d-%d, txt before: %s, ", input, txt->cursor_start_pos, txt->cursor_end_pos, txt->display_value);
-    char *val = txt->display_value;
-    int displace;
-    // fprintf(stderr, "cursor_end: %d, txt len: %d, max len: %d, last char: %c\n", txt->cursor_end_pos, txt->len, txt->max_len, txt->value[txt->len]);
-    if ((displace = 1 - (txt->cursor_end_pos - txt->cursor_start_pos)) + txt->len < txt->max_len) {
-        if (displace == 1) {
-            for (int i = txt->len + 1; i > txt->cursor_end_pos; i--) {
-                val[i] = val[i-1];
-            }
-            val[txt->cursor_end_pos] = input;
-            txt->cursor_start_pos++;
-            txt->cursor_end_pos = txt->cursor_start_pos;
-            txt->len++;
-        } else if (displace < 0) {
-            for (int i = txt->cursor_end_pos; i > txt->len + 1; i++) {
-                val[i - displace] = val[i];
-            }
-            val[txt->cursor_start_pos] = input;
-            txt->cursor_start_pos++;
-            txt->cursor_end_pos = txt->cursor_start_pos;
-            txt->len+=displace;
-            //TODO
-        } else {
-            val[txt->cursor_start_pos] = input;
-            txt->cursor_start_pos++;
-        }
-        // print_tb(tb);
-    } else return -1;
+    if (txt->len == txt->max_len) {
+        return 0;
+    }
+    if (txt->cursor_start_pos != txt->cursor_end_pos) {
+        handle_backspace(txt);
+    }
+    for (int i=txt->len; i>txt->cursor_end_pos - 1; i--) {
+        txt->display_value[i+1] = txt->display_value[i];
+    }
+    txt->display_value[txt->cursor_end_pos] = input;
+    txt->cursor_end_pos++;
+    txt->cursor_start_pos = txt->cursor_end_pos;
+    txt->len++;
     txt->cursor_countdown = CURSOR_COUNTDOWN_MAX;
-    fprintf(stderr, "txt after: %s\n", txt->display_value);
     return 1;
 }
 
 static void handle_backspace(Text *txt) 
 {
-    char *val = txt->display_value;
-    int displace = -1 * (txt->cursor_end_pos - txt->cursor_start_pos);
-    if (displace == 0) {
-        displace = -1;
-    }
-    fprintf(stderr, "Handle backspace, orig value \"%s\", displace = %d", txt->display_value, displace);
-
-    for (int i=txt->cursor_start_pos; i<txt->len + displace + 1; i++) {
-        val[i] = val[i - displace];
-    }
-    txt->len += displace;
-    if (displace == -1) {
-        txt->cursor_start_pos--;
+    // char *val = txt->display_value;
+    int displace = txt->cursor_end_pos - txt->cursor_start_pos;
+    int i = txt->cursor_start_pos;
+    if (displace > 0) {
+        while (i + displace <= txt->len) {
+            txt->display_value[i] = txt->display_value[i + displace];
+            char c = txt->display_value[i+displace];
+            fprintf(stderr, "Transferring char %c\n", c=='\0'?'0':c);
+            i++;
+        }
+        txt->len -= displace;
+    } else {
+        if (txt->cursor_end_pos == 0) {
+            return;
+        }
+        while (i <= txt->len) {
+            txt->display_value[i-1] = txt->display_value[i];
+            i++;
+        }
+        txt->len--;
+        txt->cursor_end_pos--;
+        txt->cursor_start_pos = txt->cursor_end_pos;
     }
     txt->cursor_end_pos = txt->cursor_start_pos;
-    fprintf(stderr, " new value \"%s\"\n", txt->display_value);
-
-    //  if (txt->cursor_end_pos > txt->cursor_start_pos) {
-    //     txt->display_value[txt->cursor_start_pos] = '\0';
-    //     txt->len -= (txt->cursor_end_pos - txt->cursor_start_pos);
-    //     txt->cursor_end_pos = txt->len;
-    //     txt->cursor_start_pos = txt->len;
-    // } else if (txt->cursor_end_pos > 0) {
-    //     while (txt->cursor_end_pos < txt->len + 1) {
-    //         txt->value_handle[txt->cursor_end_pos - 1] = txt->value_handle[txt->cursor_end_pos];
-    //         txt->cursor_end_pos++;
-
-    //     }
-
-    //     txt->cursor_start_pos--;
-    //     txt->cursor_end_pos = txt->cursor_start_pos;
-    //     txt->len--;
-    // }
+    txt->display_value[txt->len] = '\0';
     txt->cursor_countdown = CURSOR_COUNTDOWN_MAX;
-    // print_tb(tb);
-
 }
 
 void edit_text(Text *txt)
 {
-    fprintf(stderr, "Edit txt %p\n", txt);
     bool save_truncate = txt->truncate;
     txt->truncate = false;
-    fprintf(stderr, "EDIT Setting value from %s to %s\n", txt->display_value, txt->value_handle);
-    set_text_value(txt, txt->value_handle);
+    reset_text_display_value(txt);
     txt->show_cursor = true;
     txt->cursor_start_pos = 0;
     txt->cursor_end_pos = txt->len;
-    bool exit = false;
+    bool done = false;
     // bool mousedown = false;
-    // bool cmdctrldown = false;
+    bool cmdctrldown = false;
     bool shiftdown = false;
     SDL_StartTextInput();
-    while (!exit) {
+    while (!done) {
         // get_mousep(main_win, &mousep);
 
         SDL_Event e;
@@ -265,7 +238,7 @@ void edit_text(Text *txt)
             if (e.type == SDL_QUIT 
                 || (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_CLOSE) 
                 || e.type == SDL_MOUSEBUTTONDOWN) {
-                exit = true;
+                done = true;
                 /* Push the event back to the main event stack, so it can be handled in main.c */
                 SDL_PushEvent(&e);
             } else if (e.type == SDL_TEXTINPUT) {
@@ -276,11 +249,17 @@ void edit_text(Text *txt)
                 switch (e.key.keysym.scancode) {
                     case SDL_SCANCODE_RETURN:
                     case SDL_SCANCODE_KP_ENTER:
-                        exit = true;
+                        done = true;
                         break;
                     case SDL_SCANCODE_LSHIFT:
                     case SDL_SCANCODE_RSHIFT:
                         shiftdown = true;
+                        break;
+                    case SDL_SCANCODE_LGUI:
+                    case SDL_SCANCODE_RGUI:
+                    case SDL_SCANCODE_LCTRL:
+                    case SDL_SCANCODE_RCTRL:
+                        cmdctrldown = true;
                         break;
                     case SDL_SCANCODE_LEFT:
                         cursor_left(txt);
@@ -290,6 +269,7 @@ void edit_text(Text *txt)
                         break;
                     case SDL_SCANCODE_BACKSPACE:
                         handle_backspace(txt);
+                        // set_text_value(txt, txt->display_value);
                         reset_text_drawable(txt);
                         // set_text_value(txt, txt->display_value);
                         break;
@@ -297,6 +277,12 @@ void edit_text(Text *txt)
                         handle_char(txt, ' ');
                         reset_text_drawable(txt);
                         // set_text_value(txt, txt->display_value);
+                        break;
+                    case SDL_SCANCODE_A:
+                        if (cmdctrldown) {
+                            txt->cursor_start_pos = 0;
+                            txt->cursor_end_pos = strlen(txt->display_value);
+                        }
                         break;
                     default: {
                         break;
@@ -308,6 +294,12 @@ void edit_text(Text *txt)
                     case SDL_SCANCODE_LSHIFT:
                     case SDL_SCANCODE_RSHIFT:
                         shiftdown = false;
+                        break;
+                    case SDL_SCANCODE_LGUI:
+                    case SDL_SCANCODE_RGUI:
+                    case SDL_SCANCODE_LCTRL:
+                    case SDL_SCANCODE_RCTRL:
+                        cmdctrldown = false;
                         break;
                     default: 
                         break;
@@ -328,7 +320,9 @@ void edit_text(Text *txt)
     SDL_StopTextInput();
     txt->show_cursor = false;
     txt->truncate = save_truncate;
+    fprintf(stderr, "\t->About to set txt value to disp val, trunc: %d\n", save_truncate);
     set_text_value(txt, txt->display_value);
+
     // draw_main();
 }
 

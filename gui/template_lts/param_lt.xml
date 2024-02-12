@@ -1,18 +1,18 @@
-<Layout name="param_lt" display="true">
+<Layout name="param_lt" display="true" internal="true">
     <x>SCALE 0.263333</x>
     <y>SCALE 0.187779</y>
     <w>SCALE 0.458333</w>
     <h>SCALE 0.665425</h>
     <index>0</index>
     <children>
-        <Layout name="name_row" display="true">
+        <Layout name="name_row" display="false" internal="true">
             <x>SCALE 0.090909</x>
             <y>SCALE 0.067189</y>
             <w>ABS 834</w>
             <h>ABS 113</h>
             <index>0</index>
             <children>
-                <Layout name="name_label" display="true">
+                <Layout name="name_label" display="false" internal="true">
                     <x>REL 0</x>
                     <y>REL 44</y>
                     <w>ABS 232</w>
@@ -21,7 +21,7 @@
                     <children>
                     </children>
                 </Layout>
-                <Layout name="name_value" display="true">
+                <Layout name="name_value" display="false" internal="true">
                     <x>REL 254</x>
                     <y>REL 44</y>
                     <w>ABS 238</w>
@@ -32,14 +32,14 @@
                 </Layout>
             </children>
         </Layout>
-        <Layout name="x_row" display="true">
+        <Layout name="x_row" display="false" internal="true">
             <x>SCALE 0.090909</x>
             <y>SCALE 0.245241</y>
             <w>ABS 834</w>
             <h>ABS 108</h>
             <index>1</index>
             <children>
-                <Layout name="x_label" display="true">
+                <Layout name="x_label" display="false" internal="true">
                     <x>REL 0</x>
                     <y>REL 34</y>
                     <w>ABS 232</w>
@@ -48,7 +48,7 @@
                     <children>
                     </children>
                 </Layout>
-                <Layout name="x_type" display="true">
+                <Layout name="x_type" display="false" internal="true">
                     <x>REL 254</x>
                     <y>REL 34</y>
                     <w>ABS 238</w>
@@ -57,7 +57,7 @@
                     <children>
                     </children>
                 </Layout>
-                <Layout name="x_value" display="true">
+                <Layout name="x_value" display="false" internal="true">
                     <x>REL 524</x>
                     <y>REL 32</y>
                     <w>ABS 277</w>
@@ -68,14 +68,14 @@
                 </Layout>
             </children>
         </Layout>
-        <Layout name="y_row" display="true">
-            <x>SCALE 0.088152</x>
+        <Layout name="y_row" display="false" internal="true">
+            <x>SCALE 0.090909</x>
             <y>SCALE 0.426487</y>
             <w>ABS 834</w>
             <h>ABS 106</h>
             <index>2</index>
             <children>
-                <Layout name="y_label" display="true">
+                <Layout name="y_label" display="false" internal="true">
                     <x>REL 0</x>
                     <y>REL 34</y>
                     <w>ABS 232</w>
@@ -84,7 +84,7 @@
                     <children>
                     </children>
                 </Layout>
-                <Layout name="y_type" display="true">
+                <Layout name="y_type" display="false" internal="true">
                     <x>REL 254</x>
                     <y>REL 34</y>
                     <w>ABS 238</w>
@@ -93,7 +93,7 @@
                     <children>
                     </children>
                 </Layout>
-                <Layout name="y_value" display="true">
+                <Layout name="y_value" display="false" internal="true">
                     <x>REL 526</x>
                     <y>REL 34</y>
                     <w>ABS 277</w>
@@ -104,14 +104,14 @@
                 </Layout>
             </children>
         </Layout>
-        <Layout name="w_row" display="true">
-            <x>SCALE 0.090047</x>
+        <Layout name="w_row" display="false" internal="true">
+            <x>SCALE 0.090909</x>
             <y>SCALE 0.584736</y>
             <w>ABS 834</w>
             <h>ABS 112</h>
             <index>3</index>
             <children>
-                <Layout name="w_label" display="true">
+                <Layout name="w_label" display="false" internal="true">
                     <x>REL 0</x>
                     <y>REL 46</y>
                     <w>ABS 232</w>
@@ -120,7 +120,7 @@
                     <children>
                     </children>
                 </Layout>
-                <Layout name="w_type" display="true">
+                <Layout name="w_type" display="false" internal="true">
                     <x>REL 254</x>
                     <y>REL 46</y>
                     <w>ABS 238</w>
@@ -129,7 +129,7 @@
                     <children>
                     </children>
                 </Layout>
-                <Layout name="w_value" display="true">
+                <Layout name="w_value" display="false" internal="true">
                     <x>REL 524</x>
                     <y>REL 46</y>
                     <w>ABS 277</w>
@@ -140,14 +140,14 @@
                 </Layout>
             </children>
         </Layout>
-        <Layout name="h_row" display="true">
+        <Layout name="h_row" display="false" internal="true">
             <x>SCALE 0.090909</x>
             <y>SCALE 0.771557</y>
             <w>ABS 834</w>
             <h>ABS 112</h>
             <index>4</index>
             <children>
-                <Layout name="h_label" display="true">
+                <Layout name="h_label" display="false" internal="true">
                     <x>REL 0</x>
                     <y>REL 48</y>
                     <w>ABS 232</w>
@@ -156,7 +156,7 @@
                     <children>
                     </children>
                 </Layout>
-                <Layout name="h_type" display="true">
+                <Layout name="h_type" display="false" internal="true">
                     <x>REL 254</x>
                     <y>REL 48</y>
                     <w>ABS 238</w>
@@ -165,7 +165,7 @@
                     <children>
                     </children>
                 </Layout>
-                <Layout name="h_value" display="true">
+                <Layout name="h_value" display="false" internal="true">
                     <x>REL 524</x>
                     <y>REL 48</y>
                     <w>ABS 277</w>

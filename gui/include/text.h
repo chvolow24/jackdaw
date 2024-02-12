@@ -7,6 +7,7 @@
 #include "SDL_ttf.h"
 #include "window.h"
 
+#define CURSOR_WIDTH 4
 #define CURSOR_COUNTDOWN_MAX 100
 #define TEXT_BUFLEN 256
 
@@ -49,6 +50,10 @@ void edit_text(Text *txt);
 void print_text(Text *txt);
 void draw_text(Text *txt);
 void set_text_value(Text *txt, char *new_value);
+void set_text_value_handle(Text *txt, char *set_str);
+
+void reset_text_display_value(Text *txt);
+
 TTF_Font *open_font(const char* path, int size, Window *win);
 
 #endif

@@ -4,10 +4,11 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "SDL.h"
+#include "text.h"
 #include "window.h"
 
 #define MAX_CHILDREN 255
-#define MAX_LT_NAMELEN 32
+#define MAX_LT_NAMELEN 64
 
 /* Specifies an edge of a rectangle */
 typedef enum edge {
@@ -64,8 +65,10 @@ typedef struct layout {
     uint8_t num_children;
     uint8_t index;
     SDL_Rect label_rect;
+    Text *namelabel;
     bool selected;
     bool display;
+    bool internal;
 } Layout;
 
 

@@ -1,12 +1,14 @@
 #include "layout.h"
+#include "text.h"
 #include "window.h"
 
 #define TXT_H 40
 #define SNAP_TOLERANCE 7
 
 extern Layout *main_lt;
-
-
+extern SDL_Color white;
+extern TTF_Font *open_sans;
+extern Window *main_win;
 const char *get_dimtype_str(DimType dt)
 {
     switch (dt) {
@@ -260,6 +262,9 @@ static int check_snap_y_recursive(Layout *main, int check_y, int *distance)
 {
     int temp_dist, ret_y;
     bool result_found = false;
+    if (main->internal || !(main->display)) {
+        return -1;
+    }
     int compare_y = get_edge_value(main, TOP);
     if ((temp_dist = abs(compare_y - check_y)) < *distance && temp_dist != 0) {
         *distance = temp_dist;
@@ -389,6 +394,7 @@ void reset_layout(Layout *lt)
         lt->rect.h = get_rect_dim_val_from_dim(lt->h, parent_rect.y, parent_rect.h);
     }
     lt->label_rect = (SDL_Rect) {lt->rect.x, lt->rect.y - TXT_H, 0, 0};
+    reset_text_display_value(lt->namelabel);
 
     for (uint8_t i=0; i<lt->num_children; i++) {
         Layout *child = lt->children[i];
@@ -406,9 +412,11 @@ Layout *create_layout()
     lt->name[2] = '\0';
     lt->selected = false;
     lt->display = true;
+    lt->internal = false;
     lt->parent = NULL;
     lt->rect = (SDL_Rect) {0,0,0,0};
     lt->label_rect = (SDL_Rect) {0,0,0,0};
+    lt->namelabel = create_text_from_str(lt->name, MAX_LT_NAMELEN, &(lt->label_rect), open_sans, white, CENTER_LEFT, false, main_win->rend);
     return lt;
 }
 
@@ -526,6 +534,7 @@ Layout *get_child_recursive(Layout *lt, const char *name)
 
 void toggle_dimension(Dimension *dim, RectMem rm, SDL_Rect *rect, SDL_Rect *parent_rect)
 {
+    // fprintf(stderr, "ENTER TOGGLE\n");
     if (!parent_rect) {
         return;
     }
@@ -585,5 +594,4 @@ void toggle_dimension(Dimension *dim, RectMem rm, SDL_Rect *rect, SDL_Rect *pare
             }
             break;             
     }
-
 }

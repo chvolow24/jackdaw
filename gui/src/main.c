@@ -16,7 +16,7 @@
 
 Layout *main_lt;
 Layout *clicked_lt;
-Layout *param_lt;
+Layout *param_lt = NULL;
 Layout *openfile_lt;
 LTParams *lt_params = NULL;
 OpenFile *openfile = NULL;
@@ -105,6 +105,9 @@ int point_dist_from_rect(SDL_Point p, SDL_Rect r, Edge *edge_arg)
 
 void get_clicked_layout(SDL_Point p, Layout *top_level, int *distance, Layout **ret, Edge *edge, Corner *corner)
 {
+    if (top_level->internal) {
+        return;
+    }
     if (*corner != NONECRNR) {
         return;
     }
@@ -169,27 +172,10 @@ int main(int argc, char** argv)
         }
         main_lt = read_layout_from_xml(argv[1]);
         main_lt->display = true;
-        // fprintf(stderr, "Types: %s,%s\n", get_dimtype_str(main_lt->w.type), get_dimtype_str(main_lt->h.type));
         set_window_size_to_lt();
-        // if (main_lt->w.type != SCALE && main_lt->h.type != SCALE) {
-        //     fprintf(stderr, "Not scale!\n");
-        //     resize_window(main_win, main_lt->w.value.intval, main_lt->h.value.intval);
-        // } else {
-        //     main_lt->rect.w = main_win->w;
-        //     main_lt->rect.h = main_win->h;
-        // }
-        // fprintf(stderr, "Main lt dims: %d x %d\n", main_lt->rect.w, main_lt->rect.h);
-
     } else {
         main_lt = create_layout_from_window(main_win);
     }
-    // exit(0);
-
-    // char tbvalue[255];
-    // strcpy(tbvalue, "This is a string.");
-    // fprintf(stderr, "Tbcalue: %s\n", tbvalue);
-    // tb_test = create_textbox(tbvalue, 255, (SDL_Rect){10,10,200,200});
-    // edit_textbox(tb_test);
 
     SDL_StopTextInput();
     bool quit = false;
@@ -310,10 +296,12 @@ int main(int argc, char** argv)
                         break;
                     case SDL_SCANCODE_L:
                         if (show_layout_params) {
-                            delete_layout(param_lt);
+                            // delete_layout(param_lt);
                             show_layout_params = false;
                         } else {
-                            param_lt = read_layout_from_xml("template_lts/param_lt.xml");
+                            if (!param_lt) {
+                                param_lt = read_layout_from_xml("template_lts/param_lt.xml");
+                            }
                             reparent(param_lt, main_lt);
                             show_layout_params = true;
                             if (clicked_lt && layout_clicked) {
@@ -321,39 +309,51 @@ int main(int argc, char** argv)
                             } else {
                                 edit_lt_loop(main_lt);
                             }
-                            delete_layout(param_lt);
+                            // delete_layout(param_lt);
                             show_layout_params = false;
                         }
                         break;
                     case SDL_SCANCODE_O:
                         if (show_openfile) {
-                            delete_layout(openfile_lt);
+                            // delete_layout(openfile_lt);
                             show_openfile = false;
                         } else {
-                            openfile_lt = read_layout_from_xml("template_lts/openfile.xml");
-                            reparent(openfile_lt, main_lt);
                             show_openfile = true;
-                            if (clicked_lt && layout_clicked) {
-                                clicked_lt = openfile_loop(clicked_lt);
-                            } else {
-                                main_lt = openfile_loop(main_lt);
-                                fprintf(stderr, "set main lt\n");
-                                set_window_size_to_lt();
-                                reset_layout_from_window(main_lt, main_win);
+                            if (!openfile_lt) {
+                                openfile_lt = read_layout_from_xml("template_lts/openfile.xml");
+                                reparent(openfile_lt, main_lt);
                             }
-                            // if (clicked_lt && layout_clicked) {
-                            //     // edit_lt_loop(clicked_lt);
-                            //     // set_lt_params(clicked_lt);
-                            // } else {
-                            //     edit_lt_loop(main_lt);
-                            //     delete_layout(param_lt);
-                            //     show_layout_params = false;
-                            // }
+                            if (clicked_lt && layout_clicked) {
+                                fprintf(stderr, "A layout is clicked! \"%s\" at %p", clicked_lt->name, clicked_lt);
+                                openfile_loop(clicked_lt);
+                            } else {
+                                show_openfile = true;
+                                fprintf(stderr, "NO layout is clicked! \"%s\" at %p", main_lt->name, clicked_lt);
+                                openfile_loop(main_lt);
+
+                                // main_lt = openfile_loop(main_lt);
+                                // set_window_size_to_lt();
+                                // reset_layout_from_window(main_lt, main_win);
+                            }
                         }
                         break;
+                    case SDL_SCANCODE_P:
+                        if (layout_clicked && clicked_lt && clicked_lt->parent) {
+                            clicked_lt->selected = false;
+                            clicked_lt = clicked_lt->parent;
+                            clicked_lt->selected = true;
+                        }
+                        break;
+                    case SDL_SCANCODE_LEFTBRACKET:
+                        if (layout_clicked && clicked_lt && clicked_lt->num_children > 0) {
+                            clicked_lt->selected = false;
+                            clicked_lt = clicked_lt->children[0];
+                            clicked_lt->selected = true;
+                        }
+                        break;    
                     case SDL_SCANCODE_DELETE:
                     case SDL_SCANCODE_BACKSPACE:
-                        if (clicked_lt) {
+                        if (clicked_lt && clicked_lt != main_lt) {
                             delete_layout(clicked_lt);
                             clicked_lt = main_lt;
                         }
@@ -377,10 +377,7 @@ int main(int argc, char** argv)
                 }
             }
         }
-        // SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 0);
-        // SDL_RenderClear(main_win->rend);
         draw_main();
-        // SDL_RenderPresent(main_win->rend);
         SDL_Delay(1);
     }
 

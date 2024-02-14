@@ -1,18 +1,18 @@
-<Layout name="openfile" display="false" internal="true">
+<Layout name="openfile" type="PRGRM_INTERNAL">
     <x>ABS 0</x>
     <y>ABS 0</y>
     <w>ABS 2396</w>
     <h>ABS 1328</h>
     <index>0</index>
     <children>
-        <Layout name="container" display="false" internal="true">
+        <Layout name="container" type="PRGRM_INTERNAL">
             <x>SCALE 0.340568</x>
             <y>SCALE 0.410392</y>
             <w>REL 566</w>
             <h>REL 133</h>
             <index>0</index>
             <children>
-                <Layout name="label" display="false" internal="true">
+                <Layout name="label" type="PRGRM_INTERNAL">
                     <x>REL 16</x>
                     <y>REL 24</y>
                     <w>ABS 198</w>
@@ -21,7 +21,7 @@
                     <children>
                     </children>
                 </Layout>
-                <Layout name="filepath" display="false" internal="true">
+                <Layout name="filepath" type="PRGRM_INTERNAL">
                     <x>REL 230</x>
                     <y>REL 24</y>
                     <w>ABS 300</w>

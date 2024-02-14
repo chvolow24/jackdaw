@@ -14,8 +14,7 @@ extern Layout *main_lt;
 
 static void make_editable(Layout *lt) 
 {
-    lt->display = true;
-    lt->internal = false;
+    lt->type = NORMAL;
     for (int i=0; i<lt->num_children; i++) {
         make_editable(lt->children[i]);
     }

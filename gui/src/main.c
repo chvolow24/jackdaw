@@ -105,7 +105,7 @@ int point_dist_from_rect(SDL_Point p, SDL_Rect r, Edge *edge_arg)
 
 void get_clicked_layout(SDL_Point p, Layout *top_level, int *distance, Layout **ret, Edge *edge, Corner *corner)
 {
-    if (top_level->internal) {
+    if (top_level->type == PRGRM_INTERNAL || top_level->type == ITERATION) {
         return;
     }
     if (*corner != NONECRNR) {
@@ -171,7 +171,7 @@ int main(int argc, char** argv)
             exit(1);
         }
         main_lt = read_layout_from_xml(argv[1]);
-        main_lt->display = true;
+        main_lt->type = NORMAL;
         set_window_size_to_lt();
     } else {
         main_lt = create_layout_from_window(main_win);
@@ -282,6 +282,10 @@ int main(int argc, char** argv)
                         break;
                     case SDL_SCANCODE_C:
                         if (cmdctrldown) {
+                            if (layout_clicked && clicked_lt) {
+                                copy_layout(clicked_lt, clicked_lt->parent);
+                            }
+                        } else if (shiftdown) {
                             Layout *new_child;
                             if (layout_clicked) {
                                 new_child = add_child(clicked_lt);
@@ -292,7 +296,13 @@ int main(int argc, char** argv)
                             }
                             set_default_dims(new_child);
                             reset_layout(new_child);
-                        } 
+                        }
+                        break;
+                    case SDL_SCANCODE_I:
+                        if (clicked_lt && layout_clicked) {
+                            LayoutIterator *iter = create_iterator_from_template(clicked_lt, VERTICAL, 3);
+                            fprintf(stderr, "Confirmed created iterator at %p\n", iter);
+                        }
                         break;
                     case SDL_SCANCODE_L:
                         if (show_layout_params) {

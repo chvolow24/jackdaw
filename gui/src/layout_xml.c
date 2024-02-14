@@ -25,6 +25,24 @@ static const char *get_bool_str(bool b)
     return b ? "true" : "false";
 }
 
+static const char *get_lt_type_str(LayoutType tp)
+{
+    switch (tp){
+        case NORMAL:
+            return "NORMAL";
+            break;
+        case PRGRM_INTERNAL:
+            return "PRGRM_INTERNAL";
+            break;
+        case TEMPLATE:
+            return "TEMPLATE";
+            break;
+        case ITERATION:
+            return "ITERATION";
+            break;
+    }
+}
+
 bool read_bool_str(char *bstr)
 {
     if (strncmp(bstr, "true", 4) == 0) {
@@ -37,10 +55,12 @@ bool read_bool_str(char *bstr)
 
 void write_layout(FILE *f, Layout *lt, int indent)
 {
-    if (lt->internal) {
+    if (lt->type == PRGRM_INTERNAL) {
         return;
     }
-    fprintf(f, "%*s<Layout name=\"%s\" display=\"%s\" internal=\"%s\">\n", indent, "", lt->name, get_bool_str(lt->display), get_bool_str(lt->internal));
+    fprintf(f, "%*s<Layout name=\"%s\" type =\"%s\">\n", indent, "", lt->name, get_lt_type_str(lt->type));
+
+    // fprintf(f, "%*s<Layout name=\"%s\" display=\"%s\" internal=\"%s\">\n", indent, "", lt->name, get_bool_str(lt->display), get_bool_str(lt->internal));
     // fprintf(f, "%*s<name>%s</name>\n", indent + TABSPACES, "", lt->name);
     write_dimension(f, &(lt->x), 'x', indent + TABSPACES);
     write_dimension(f, &(lt->y), 'y', indent + TABSPACES);
@@ -101,6 +121,22 @@ static void read_dimension(char *dimstr, Dimension *dim)
 //     return i + 1;
 // }
 
+LayoutType read_lt_type_str(char *lt_type_str)
+{
+    if (strcmp(lt_type_str, "NORMAL") == 0) {
+        return NORMAL;
+    } else if (strcmp(lt_type_str, "PRGRM_INTERNAL") == 0) {
+        return PRGRM_INTERNAL;
+    } else if (strcmp(lt_type_str, "TEMPLATE") == 0) {
+        return TEMPLATE;
+    } else if (strcmp(lt_type_str, "ITERATION") == 0) {
+        return ITERATION;
+    } else {
+        fprintf(stderr, "Error: unable to read lt type string: \"%s\"\n", lt_type_str);
+        return NORMAL;
+    }
+}
+
 static Layout *get_layout_from_tag(Tag *lt_tag)
 {
     Layout *lt = create_layout();
@@ -108,11 +144,14 @@ static Layout *get_layout_from_tag(Tag *lt_tag)
         Attr *attr = lt_tag->attrs[i];
         if (strcmp(attr->name, "name") == 0) {
             strcpy(lt->name, attr->value);
-        } else if (strcmp(attr->name, "display") == 0) {
-            lt->display = read_bool_str(attr->value);
-        } else if (strcmp(attr->name, "internal") == 0) {
-            lt->internal = read_bool_str(attr->value);
+        } else if (strcmp(attr->name, "type") == 0) {
+            lt->type = read_lt_type_str(attr->value);
         }
+        // } else if (strcmp(attr->name, "display") == 0) {
+        //     lt->display = read_bool_str(attr->value);
+        // } else if (strcmp(attr->name, "internal") == 0) {
+        //     lt->internal = read_bool_str(attr->value);
+        // }
     }
     for (int i=0; i<lt_tag->num_children; i++) {
         Tag *childtag = lt_tag->children[i];

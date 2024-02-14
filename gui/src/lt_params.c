@@ -111,6 +111,7 @@ void edit_lt_loop(Layout *lt)
                         break;
                     case SDL_SCANCODE_N:
                         edit_text(lt_params->name_value);
+                        reset_text_display_value(lt->namelabel);
                         // set_lt_params(lt);
                         break;
                     case SDL_SCANCODE_X: {

@@ -52,7 +52,15 @@ typedef struct dimension {
     DimVal value;
 } Dimension;
 
+typedef enum layout_type {
+    PRGRM_INTERNAL, /* Used for program operation. Not part of editable layout hierarchy */
+    TEMPLATE, /* Used as a template for an iterator. Not part of editable layout hierarchy */
+    ITERATION, /* A child of an iterator */
+    NORMAL
+} LayoutType;
+
 typedef struct layout Layout;
+typedef struct layout_iterator LayoutIterator;
 typedef struct layout {
     SDL_Rect rect;
     Dimension x;
@@ -67,10 +75,24 @@ typedef struct layout {
     SDL_Rect label_rect;
     Text *namelabel;
     bool selected;
-    bool display;
-    bool internal;
+    LayoutType type;
+    LayoutIterator *iterator; /* If the layout type == TEMPLATE, this is not null */
+    // bool display;
+    // bool internal;
 } Layout;
 
+
+typedef enum iterator_type {
+    VERTICAL,
+    HORIZONTAL
+} IteratorType;
+
+typedef struct layout_iterator {
+    Layout *template;
+    IteratorType type;
+    uint8_t num_iterations;
+    Layout *iterations[MAX_CHILDREN];
+} LayoutIterator;
 
 // int get_rect_val_from_dim(Dimension dim, int parent_rect_coord);
 
@@ -88,6 +110,7 @@ void resize_layout(Layout *lt, int resize_w, int resize_h, bool block_snap);
 void set_default_dims(Layout *lt);
 void reparent(Layout *child, Layout *parent);
 // Layout *read_layout(FILE *f, long endrange);
+Layout *copy_layout(Layout *to_copy, Layout *parent);
 
 Layout *get_child(Layout *lt, const char *name);
 Layout *get_child_recursive(Layout *lt, const char *name);
@@ -101,5 +124,7 @@ void set_edge(Layout *lt, Edge edge, int set_to, bool block_snap);
 void set_corner(Layout *lt, Corner crnr, int x, int y, bool block_snap);
 void set_position(Layout *lt, int x, int y, bool block_snap) ;
 void move_position(Layout *lt, int move_by_x, int move_by_y, bool block_snap);
+
+LayoutIterator *create_iterator_from_template(Layout *template, IteratorType type, int num_iterations);
 
 #endif

@@ -31,7 +31,7 @@ extern OpenFile *openfile;
 SDL_Color white = {255, 255, 255, 255};
 SDL_Color clr_white = {255, 255, 255, 127};
 SDL_Color highlight = {0, 0, 255, 255};
-
+SDL_Color iter_clr = {0, 100, 100, 200};
 
 SDL_Color rect_clrs[2] = {
     {255, 0, 0, 255},
@@ -136,10 +136,15 @@ void draw_openfile_dialogue()
 
 void draw_layout(Window *win, Layout *lt)
 {
-    if (lt->display == false || lt->internal) {
+    if (lt->type == PRGRM_INTERNAL) {
         return;
     }
-    SDL_Color picked_clr = lt->selected ? rect_clrs[1] : rect_clrs[0];
+    SDL_Color picked_clr;
+    if (lt->type == ITERATION) {
+        picked_clr = iter_clr;
+    } else {
+        picked_clr = lt->selected ? rect_clrs[1] : rect_clrs[0];
+    }
     SDL_Color dotted_clr = lt->selected ? rect_clrs_dttd[1] : rect_clrs_dttd[0];
     SDL_SetRenderDrawColor(win->rend, picked_clr.r, picked_clr.g, picked_clr.b, picked_clr.a);
     if (lt->selected) {
@@ -148,15 +153,29 @@ void draw_layout(Window *win, Layout *lt)
     }
     SDL_RenderDrawRect(win->rend, &(lt->rect));
 
-    SDL_SetRenderDrawColor(win->rend, dotted_clr.r, dotted_clr.g, dotted_clr.b, dotted_clr.a);
-    draw_dotted_horizontal(win->rend, 0, win->w, lt->rect.y);
-    draw_dotted_horizontal(win->rend, 0, win->w, lt->rect.y + lt->rect.h);
-    draw_dotted_vertical(win->rend, lt->rect.x, 0, win->h);
-    draw_dotted_vertical(win->rend, lt->rect.x + lt->rect.w, 0, win->h);
+    if (lt->type != ITERATION) {
+        SDL_SetRenderDrawColor(win->rend, dotted_clr.r, dotted_clr.g, dotted_clr.b, dotted_clr.a);
+        draw_dotted_horizontal(win->rend, 0, win->w, lt->rect.y);
+        draw_dotted_horizontal(win->rend, 0, win->w, lt->rect.y + lt->rect.h);
+        draw_dotted_vertical(win->rend, lt->rect.x, 0, win->h);
+        draw_dotted_vertical(win->rend, lt->rect.x + lt->rect.w, 0, win->h);
+    }
 
 
     for (uint8_t i=0; i<lt->num_children; i++) {
         draw_layout(win, lt->children[i]);
+    }
+
+
+    if (lt->type == TEMPLATE) {
+        for (int i=0; i<lt->iterator->num_iterations; i++) {
+            draw_layout(win, lt->iterator->iterations[i]);
+        }
+        // SDL_SetRenderDrawColor(win->rend, )
+        // for (int i=0; i<lt->iterator->num_iterations; i++) {
+        //     SDL_Rect *iteration = lt->iterator->iterations[i];
+        //     SDL_RenderDrawRect()
+        // }
     }
 }
 

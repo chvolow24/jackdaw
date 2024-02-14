@@ -231,6 +231,9 @@ static int check_snap_x_recursive(Layout *main, int check_x, int *distance)
 {
     int temp_dist, ret_x;
     bool result_found = false;
+    if (main->type != NORMAL) {
+        return -1;
+    }
     int compare_x = get_edge_value(main, LEFT);
     if ((temp_dist = abs(compare_x - check_x)) < *distance && temp_dist != 0) {
         *distance = temp_dist;
@@ -262,7 +265,7 @@ static int check_snap_y_recursive(Layout *main, int check_y, int *distance)
 {
     int temp_dist, ret_y;
     bool result_found = false;
-    if (main->internal || !(main->display)) {
+    if (main->type != NORMAL) {
         return -1;
     }
     int compare_y = get_edge_value(main, TOP);
@@ -384,6 +387,7 @@ void move_position(Layout *lt, int move_by_x, int move_by_y, bool block_snap)
     reset_layout(lt);
 }
 
+void reset_iterations(LayoutIterator *iter);
 void reset_layout(Layout *lt)
 {
     if (lt->parent) {
@@ -400,6 +404,13 @@ void reset_layout(Layout *lt)
         Layout *child = lt->children[i];
         reset_layout(child);
     }
+
+    if (lt->type == TEMPLATE) {
+        reset_iterations(lt->iterator);
+        for (int i=0; i<lt->iterator->num_iterations; i++) {
+            reset_layout(lt->iterator->iterations[i]);
+        }
+    }
 }
 
 Layout *create_layout()
@@ -411,8 +422,10 @@ Layout *create_layout()
     lt->name[1] = 't';
     lt->name[2] = '\0';
     lt->selected = false;
-    lt->display = true;
-    lt->internal = false;
+    lt->type = NORMAL;
+    lt->iterator = NULL;
+    // lt->display = true;
+    // lt->internal = false;
     lt->parent = NULL;
     lt->rect = (SDL_Rect) {0,0,0,0};
     lt->label_rect = (SDL_Rect) {0,0,0,0};
@@ -420,8 +433,10 @@ Layout *create_layout()
     return lt;
 }
 
+void delete_iterator(LayoutIterator *iter);
 void delete_layout(Layout *lt)
 {
+    fprintf(stderr, "\t\t->Delete layout at %p\n", lt);
     if (lt->parent) {
         for (uint8_t i=lt->index; i<lt->parent->num_children - 1; i++) {
             lt->parent->children[i] = lt->parent->children[i + 1];
@@ -429,10 +444,17 @@ void delete_layout(Layout *lt)
         }
         lt->parent->num_children--;
     }
+    if (lt->type == TEMPLATE && lt->iterator) {
+        delete_iterator(lt->iterator);
+    }
     for (uint8_t i=0; i<lt->num_children; i++) {
         delete_layout(lt->children[i]);
     }
+    fprintf(stderr, "\t\t->ABOUT to free %p\n", lt);
+
     free(lt);
+    fprintf(stderr, "\t\t->Freed%p\n", lt);
+
 }
 
 Layout *create_layout_from_window(Window *win)
@@ -483,16 +505,11 @@ Layout *add_child(Layout *parent)
 
 void reparent(Layout *child, Layout *parent)
 {
-    // fprintf(stderr, "Add child to %s\n", parent->name);
     child->parent = parent;
     parent->children[parent->num_children] = child;
     child->index = parent->num_children;
     parent->num_children++;
     reset_layout(child);
-
-    // snprintf(child->name, 32, "%s_child%d", parent->name, parent->num_children);
-    // fprintf(stderr, "\t->done add child\n");
-    // return child;
 }
 
 void set_default_dims(Layout *lt)
@@ -594,4 +611,172 @@ void toggle_dimension(Dimension *dim, RectMem rm, SDL_Rect *rect, SDL_Rect *pare
             }
             break;             
     }
+}
+
+    Layout *template;
+    IteratorType type;
+    uint8_t num_iterations;
+    Layout *iterations;
+LayoutIterator *create_iterator() 
+{
+    LayoutIterator *iter = malloc(sizeof(LayoutIterator));
+    iter->type = VERTICAL;
+    iter->template = NULL;
+    iter->num_iterations = 0;
+    return iter;
+}
+
+// void reset_iteration_rects(LayoutIterator *iter)
+// {
+// // static int get_rect_coord_val_from_dim(Dimension dim, int parent_rect_coord, int parent_rect_dim)
+
+//     int x = iter->template->rect.x;
+//     int y = iter->template->rect.x;
+//     int w = iter->template->rect.x;
+//     int h = iter->template->rect.x;
+
+//     int x_dist_from_parent = x - iter->template->parent->rect.x;
+//     int y_dist_from_parent = y - iter->template->parent->rect.y;
+
+//     // Dimension x = iter->template->x;
+//     // Dimension y = iter->template->y;
+//     // Dimension w = iter->template->w;
+//     // Dimension h = iter->template->h;
+//     for (int i=0; i<iter->num_iterations; i++) {
+//         SDL_Rect *iteration = iter->iterations[i];
+//         iteration->x = x;
+//         iteration->y = y;
+//         iteration->w = w;
+//         iteration->h = h;
+//         switch (iter->type) {
+//             case VERTICAL:
+//                 y += h + y_dist_from_parent;
+//             break;
+//             case HORIZONTAL:    
+//                 x += w + x_dist_from_parent;
+//             break;
+//         }
+
+//     }
+// }
+
+// typedef struct layout {
+//     SDL_Rect rect;
+//     Dimension x;
+//     Dimension y;
+//     Dimension w;
+//     Dimension h;
+//     char name[MAX_LT_NAMELEN];
+//     Layout *parent;
+//     Layout *children[MAX_CHILDREN];
+//     uint8_t num_children;
+//     uint8_t index;
+//     SDL_Rect label_rect;
+//     Text *namelabel;
+//     bool selected;
+//     LayoutType type;
+//     LayoutIterator *iterator; /* If the layout type == TEMPLATE, this is not null */
+//     // bool display;
+//     // bool internal;
+Layout *copy_layout(Layout *to_copy, Layout *parent)
+{
+    Layout *copy = create_layout();
+    strcpy(copy->name, to_copy->name);
+    copy->rect = to_copy->rect;
+    copy->x = to_copy->x;
+    copy->y = to_copy->y;
+    copy->w = to_copy->w;
+    copy->h = to_copy->h;
+    copy->type = to_copy->type;
+
+    reparent(copy, parent);
+    for (int i=0; i<to_copy->num_children; i++) {
+        copy_layout(to_copy->children[i], copy);
+        // reparent(child_copy, copy);
+    }
+
+    return copy;
+
+}
+
+static Layout *copy_layout_as_iteration(Layout *to_copy, Layout *parent) 
+{
+    Layout *copy = create_layout();
+    copy->type = ITERATION;
+    strcpy(copy->name, to_copy->name);
+    copy->rect = to_copy->rect;
+    copy->x = to_copy->x;
+    copy->y = to_copy->y;
+    copy->w = to_copy->w;
+    copy->h = to_copy->h;
+    // copy->type = to_copy->type;
+    copy->iterator = NULL;
+
+    reparent(copy, parent);
+    for (int i=0; i<to_copy->num_children; i++) {
+        copy_layout_as_iteration(to_copy->children[i], copy);
+        // reparent(child_copy, copy);
+    }
+    fprintf(stderr, "Returning copy iteration of type %d\n", copy->type);
+    return copy;
+}
+
+
+void add_iteration(LayoutIterator *iter)
+{
+    Layout *iteration = copy_layout_as_iteration(iter->template, iter->template->parent);
+
+    iter->iterations[iter->num_iterations] = iteration;
+    iter->num_iterations++;
+    iteration->type = ITERATION;
+    // reset_iteration_rects(iter);
+}
+void reset_iterations(LayoutIterator *iter)
+{
+
+    int x = iter->template->rect.x;
+    int y = iter->template->rect.y;
+    int w = iter->template->rect.w;
+    int h = iter->template->rect.h;
+    int x_dist_from_parent = x - iter->template->parent->rect.x;
+    int y_dist_from_parent = y - iter->template->parent->rect.y;
+    for (int i=0; i<iter->num_iterations; i++) {
+        Layout *iteration = iter->iterations[i];
+        iteration->rect.x = x;
+        iteration->rect.y = y;
+        iteration->rect.w = w;
+        iteration->rect.h = h;
+        set_values_from_rect(iteration);
+        switch (iter->type) {
+            case VERTICAL:
+                y += h + y_dist_from_parent;
+                break;
+            case HORIZONTAL:
+                x += w + x_dist_from_parent;
+                break;
+        }
+    }
+}
+
+
+LayoutIterator *create_iterator_from_template(Layout *template, IteratorType type, int num_iterations) 
+{
+    template->type = TEMPLATE;
+    LayoutIterator *iter = create_iterator();
+    template->iterator = iter;
+    iter->template = template;
+    // iter->num_iterations = num_iterations;
+    for (int i=0; i<num_iterations; i++) {
+        add_iteration(iter);
+    }
+    reset_iterations(iter);
+    return iter;
+}
+
+void delete_iterator(LayoutIterator *iter)
+{
+    for (int i=0; i<iter->num_iterations; i++) {
+        delete_layout(iter->iterations[i]);
+    }
+    free(iter);
 }

@@ -30,7 +30,6 @@ void get_val_str(Dimension *dim, char *dst, int maxlen)
             break;
         case SCALE:
             snprintf(dst, maxlen - 1, "%f", dim->value.floatval);
-
     }
 }
 
@@ -231,7 +230,7 @@ static int check_snap_x_recursive(Layout *main, int check_x, int *distance)
 {
     int temp_dist, ret_x;
     bool result_found = false;
-    if (main->type != NORMAL) {
+    if (main->type == PRGRM_INTERNAL || main->type == ITERATION) {
         return -1;
     }
     int compare_x = get_edge_value(main, LEFT);
@@ -265,7 +264,7 @@ static int check_snap_y_recursive(Layout *main, int check_y, int *distance)
 {
     int temp_dist, ret_y;
     bool result_found = false;
-    if (main->type != NORMAL) {
+    if (main->type == PRGRM_INTERNAL || main->type == ITERATION) {
         return -1;
     }
     int compare_y = get_edge_value(main, TOP);
@@ -450,11 +449,7 @@ void delete_layout(Layout *lt)
     for (uint8_t i=0; i<lt->num_children; i++) {
         delete_layout(lt->children[i]);
     }
-    fprintf(stderr, "\t\t->ABOUT to free %p\n", lt);
-
     free(lt);
-    fprintf(stderr, "\t\t->Freed%p\n", lt);
-
 }
 
 Layout *create_layout_from_window(Window *win)

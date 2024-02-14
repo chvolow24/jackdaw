@@ -166,9 +166,8 @@ void draw_layout(Window *win, Layout *lt)
         draw_layout(win, lt->children[i]);
     }
 
-
     if (lt->type == TEMPLATE) {
-        for (int i=0; i<lt->iterator->num_iterations; i++) {
+        for (int i=1; i<lt->iterator->num_iterations; i++) {
             draw_layout(win, lt->iterator->iterations[i]);
         }
         // SDL_SetRenderDrawColor(win->rend, )

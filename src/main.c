@@ -896,16 +896,22 @@ int main(int argc, char **argv)
     // JDAWWindow *new_project = create_jwin("Create a new Jackdaw project", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 600, 400);
     // new_project_loop(new_project);
 
-    fprintf(stdout, "Opening project\n");
 
-    if ((proj = open_jdaw_file("project.jdaw")) == NULL) {
+    if (invoke_open_jdaw_file) {
+        fprintf(stderr, "Opening project file at %s\n", file_to_open);
+        proj = open_jdaw_file(file_to_open);
+        if (!proj) {
+            fprintf(stderr, "Unable to read project file at %s\n. Exiting.\n", file_to_open);
+            exit(1);
+        }
+    } else {
         fprintf(stderr, "Creating new project\n");
+
         proj = create_project("Untitled", 2, 48000, AUDIO_S16SYS, 512);
         create_track(proj->tl, true);
-    } else {
-        fprintf(stderr, "Successfully opened project.\n");
     }
-    fprintf(stdout, "Activating audio devices on project\n");
+
+    // fprintf(stdout, "Activating audio devices on project\n");
 
     // fprintf(stderr, "Adding filter to track\n");
     // add_filter_to_track(proj->tl->tracks[0], LOWPASS, 128);

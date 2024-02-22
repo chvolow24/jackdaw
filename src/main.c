@@ -379,6 +379,7 @@ static void project_loop()
     bool zero_down = false;
     bool quit = false;
 
+    
     // bool reprocess_on_mouse_up = false;
     SDL_Point mouse_p;
     SDL_Point mouse_p_click;

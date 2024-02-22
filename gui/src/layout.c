@@ -9,6 +9,7 @@ extern Layout *main_lt;
 extern SDL_Color white;
 extern TTF_Font *open_sans;
 extern Window *main_win;
+
 const char *get_dimtype_str(DimType dt)
 {
     switch (dt) {
@@ -18,6 +19,18 @@ const char *get_dimtype_str(DimType dt)
             return "ABS";
         case SCALE:
             return "SCALE";
+        case COMPLEMENT:
+            return "COMPLEMENT";
+    }
+}
+
+const char *get_itertype_str(IteratorType iter_type) 
+{
+    switch (iter_type) {
+        case HORIZONTAL:
+            return "HORIZONTAL";
+        case VERTICAL:
+            return "VERTICAL";
     }
 }
 
@@ -25,37 +38,45 @@ void get_val_str(Dimension *dim, char *dst, int maxlen)
 {
     switch (dim->type) {
         case ABS:
+        case COMPLEMENT:
         case REL:
             snprintf(dst, maxlen - 1, "%d", dim->value.intval);
             break;
         case SCALE:
             snprintf(dst, maxlen - 1, "%f", dim->value.floatval);
+        
     }
 }
 
-static int get_rect_dim_val_from_dim(Dimension dim, int parent_rect_coord, int parent_rect_dim)
-{
-    switch (dim.type) {
-        case ABS:
-            return dim.value.intval;
-        case REL:
-            return dim.value.intval;
-        case SCALE:
-            return dim.value.floatval * parent_rect_dim;
-    }
-}
+// /* "dim" means w or h */
+// static int get_rect_dim_val_from_dim(Dimension dim, int parent_rect_coord, int parent_rect_dim)
+// {
+//     switch (dim.type) {
+//         case ABS:
+//             return dim.value.intval;
+//         case REL:
+//             return dim.value.intval;
+//         case SCALE:
+//             return dim.value.floatval * parent_rect_dim;
+//         case COMPLEMENT:
+//             Layout *last_sibling = 
+//     }
+// }
 
-static int get_rect_coord_val_from_dim(Dimension dim, int parent_rect_coord, int parent_rect_dim)
-{
-    switch (dim.type) {
-        case ABS:
-            return dim.value.intval;
-        case REL:
-            return dim.value.intval + parent_rect_coord;
-        case SCALE:
-            return parent_rect_coord + dim.value.floatval * parent_rect_dim;
-    }
-}
+// /* "coord" means x or y */
+// static int get_rect_coord_val_from_dim(Dimension dim, int parent_rect_coord, int parent_rect_dim)
+// {
+//     switch (dim.type) {
+//         case ABS:
+//             return dim.value.intval;
+//         case REL:
+//             return dim.value.intval + parent_rect_coord;
+//         case SCALE:
+//             return parent_rect_coord + dim.value.floatval * parent_rect_dim;
+//         default:
+//             return 0;
+//     }
+// }
 
 // static void set_dimval_from_draw_coord(Dimension *dim, RectMem rm, int draw_coord)
 // {
@@ -78,7 +99,7 @@ static int get_rect_coord_val_from_dim(Dimension dim, int parent_rect_coord, int
 //     }
 // }
 
-static int get_edge_value(Layout *lt, Edge edge)
+static int get_edge_value_pixels(Layout *lt, Edge edge)
 {
     switch (edge) {
         case TOP:
@@ -94,80 +115,98 @@ static int get_edge_value(Layout *lt, Edge edge)
     }
 }
 
+static SDL_Rect get_logical_rect(SDL_Rect *pixels_p)
+{
+    SDL_Rect logical;
+    SDL_Rect pixels = *pixels_p;
+    logical.x = pixels.x / main_win->dpi_scale_factor;
+    logical.y = pixels.y / main_win->dpi_scale_factor;
+    logical.w = pixels.w / main_win->dpi_scale_factor;
+    logical.h = pixels.h / main_win->dpi_scale_factor;
+    return logical;
+}
+
+
 static void set_values_from_rect(Layout *lt)
 {
+    // fprintf(stderr, "Set values from rect\n");
     switch (lt->x.type) {
         case ABS:
-            lt->x.value.intval = lt->rect.x;
+            lt->x.value.intval = round((float) lt->rect.x / main_win->dpi_scale_factor);
             break;
         case REL:
             if (lt->parent) {
-                lt->x.value.intval = lt->rect.x - lt->parent->rect.x;
+                lt->x.value.intval = round((float) (lt->rect.x - lt->parent->rect.x) / main_win->dpi_scale_factor) ;
             } else {
-                lt->x.value.intval = lt->rect.x;
+                lt->x.value.intval = round((float) lt->rect.x / main_win->dpi_scale_factor);
             }
             break;
         case SCALE:
             if (lt->parent) {
                 if (lt->parent->rect.w != 0) {
-                    lt->x.value.floatval = ((double)lt->rect.x - lt->parent->rect.x)/lt->parent->rect.w;
+                    lt->x.value.floatval = ((float)lt->rect.x - lt->parent->rect.x) / lt->parent->rect.w;
                 }
             }
-            //TODO: need else here?
             break;
     }
     switch (lt->y.type) {
         case ABS:
-            lt->y.value.intval = lt->rect.y;
+            lt->y.value.intval = round((float)lt->rect.y / main_win->dpi_scale_factor);
             break;
         case REL:
             if (lt->parent) {
-                lt->y.value.intval = lt->rect.y - lt->parent->rect.y;
+                lt->y.value.intval = round(((float) lt->rect.y - lt->parent->rect.y)/main_win->dpi_scale_factor);
             } else {
-                lt->y.value.intval = lt->rect.y;
+                lt->y.value.intval = round((float) lt->rect.y / main_win->dpi_scale_factor);
             }
             break;
         case SCALE:
             if (lt->parent) {
                 if (lt->parent->rect.h != 0) {
-                    lt->y.value.floatval = ((double)lt->rect.y - lt->parent->rect.y)/lt->parent->rect.h;
+                    lt->y.value.floatval = ((float)lt->rect.y - lt->parent->rect.y) / lt->parent->rect.h;
                 }
+            } else {
+                fprintf(stderr, "Error: attempting to set scaled dimension values on layout with no parent.\n");
+                // exit(1);
             }
-            //TODO: need else here?
             break;
     }
 
     switch (lt->w.type) {
         case ABS:
-            lt->w.value.intval = lt->rect.w;
+            lt->w.value.intval = round((float)lt->rect.w / main_win->dpi_scale_factor);
             break;
         case REL:
-            lt->w.value.intval = lt->rect.w;
+            lt->w.value.intval = round((float) lt->rect.w / main_win->dpi_scale_factor);
             break;
         case SCALE:
             if (lt->parent) {
                 if (lt->parent->rect.w != 0) {
-                    lt->w.value.floatval = (double)lt->rect.w / lt->parent->rect.w;
+                    lt->w.value.floatval = (float) lt->rect.w / lt->parent->rect.w;
                 }
+            } else {
+                fprintf(stderr, "Error: attempting to set scaled dimension values on layout with no parent.\n");
+                // exit(1);
             }
-            //TODO: need else here?
             break;
     }
 
     switch (lt->h.type) {
         case ABS:
-            lt->h.value.intval = lt->rect.h;
+            lt->h.value.intval = round( (float)lt->rect.h / main_win->dpi_scale_factor);
             break;
         case REL:
-            lt->h.value.intval = lt->rect.h;
+            lt->h.value.intval = round((float)lt->rect.h / main_win->dpi_scale_factor);
             break;
         case SCALE:
             if (lt->parent) {
                 if (lt->parent->rect.h != 0) {
-                    lt->h.value.floatval = (double)lt->rect.h / lt->parent->rect.h;
+                    lt->h.value.floatval = (float) lt->rect.h / lt->parent->rect.h;
                 }
+            } else {
+                fprintf(stderr, "Error: attempting to set scaled dimension values on layout with no parent.\n");
+                // exit(1);
             }
-            //TODO: need else here?
             break;
     }
 
@@ -202,6 +241,30 @@ void set_edge(Layout *lt, Edge edge, int set_to, bool block_snap)
 
 }
 
+void handle_scroll(Layout *lt, SDL_Point *mousep, int scroll_x, int scroll_y)
+{
+    if (lt->type == "PRGRM_INTERNAL") {
+        return;
+    } else if (
+        lt->type == "TEMPLATE"
+        && lt->iterator->scrollable
+        && SDL_PointInRect(mousep, &(lt->parent->rect))
+    ) {
+        switch(lt->iterator->type) {
+            case VERTICAL:
+                lt->iterator->scroll_momentum += scroll_y;
+                break;
+            case HORIZONTAL:
+                lt->iterator->scroll_momentum += scroll_x;
+                break;
+        }
+    } else {
+        for (int i=0; i<lt->num_children; i++) {
+            handle_scroll(lt->children[i], mousep, scroll_x, scroll_y);
+        }
+    }
+}
+
 void set_corner(Layout *lt, Corner crnr, int x, int y, bool block_snap)
 {
     switch (crnr) {
@@ -233,13 +296,13 @@ static int check_snap_x_recursive(Layout *main, int check_x, int *distance)
     if (main->type == PRGRM_INTERNAL || main->type == ITERATION) {
         return -1;
     }
-    int compare_x = get_edge_value(main, LEFT);
+    int compare_x = get_edge_value_pixels(main, LEFT);
     if ((temp_dist = abs(compare_x - check_x)) < *distance && temp_dist != 0) {
         *distance = temp_dist;
         result_found = true;
         ret_x = compare_x;
     }
-    compare_x = get_edge_value(main, RIGHT);
+    compare_x = get_edge_value_pixels(main, RIGHT);
     if ((temp_dist = abs(compare_x - check_x)) < *distance && temp_dist != 0) {
         *distance = temp_dist;
         result_found = true;
@@ -267,13 +330,13 @@ static int check_snap_y_recursive(Layout *main, int check_y, int *distance)
     if (main->type == PRGRM_INTERNAL || main->type == ITERATION) {
         return -1;
     }
-    int compare_y = get_edge_value(main, TOP);
+    int compare_y = get_edge_value_pixels(main, TOP);
     if ((temp_dist = abs(compare_y - check_y)) < *distance && temp_dist != 0) {
         *distance = temp_dist;
         ret_y = compare_y;
         result_found = true;
     }
-    compare_y = get_edge_value(main, BOTTOM);
+    compare_y = get_edge_value_pixels(main, BOTTOM);
     if ((temp_dist = abs(compare_y - check_y)) < *distance && temp_dist != 0) {
         *distance = temp_dist;
         ret_y = compare_y;
@@ -312,7 +375,7 @@ void do_snap(Layout *lt, Layout *main, Edge check_edge)
     switch (check_edge) {
         case TOP:
         case BOTTOM: {
-            int check_y = get_edge_value(lt, check_edge);
+            int check_y = get_edge_value_pixels(lt, check_edge);
             int y_snap = check_snap_y(main, check_y);
             if (y_snap > 0) {
                 set_edge(lt, check_edge, y_snap, true);
@@ -321,7 +384,7 @@ void do_snap(Layout *lt, Layout *main, Edge check_edge)
         }
         case LEFT:
         case RIGHT: {
-            int check_x = get_edge_value(lt, check_edge);
+            int check_x = get_edge_value_pixels(lt, check_edge);
             int x_snap = check_snap_x(main, check_x);
             if (x_snap > 0) {
                 set_edge(lt, check_edge, x_snap, true);
@@ -335,36 +398,37 @@ void do_snap(Layout *lt, Layout *main, Edge check_edge)
 
 void do_snap_translate(Layout *lt, Layout *main)
 {
-    int check_val = get_edge_value(lt, LEFT);
+    int check_val = get_edge_value_pixels(lt, LEFT);
     int snap = check_snap_x(main, check_val);
     if (snap > 0) {
-        set_position(lt, snap, lt->rect.y, true);
+        set_position_pixels(lt, snap, lt->rect.y, true);
         goto verticals;
         // return;
     }
-    check_val = get_edge_value(lt, RIGHT);
+    check_val = get_edge_value_pixels(lt, RIGHT);
     snap = check_snap_x(main, check_val);
     if (snap > 0) {
-        set_position(lt, snap - lt->rect.w, lt->rect.y, true);
+        set_position_pixels(lt, snap - lt->rect.w, lt->rect.y, true);
         // return;
     }
     verticals:
-    check_val = get_edge_value(lt, TOP);
+    check_val = get_edge_value_pixels(lt, TOP);
     snap = check_snap_y(main, check_val);
     if (snap > 0) {
-        set_position(lt, lt->rect.x, snap, true);
+        set_position_pixels(lt, lt->rect.x, snap, true);
         // return;
     }
-    check_val = get_edge_value(lt, BOTTOM);
+    check_val = get_edge_value_pixels(lt, BOTTOM);
     snap = check_snap_y(main, check_val);
     if (snap > 0) {
-        set_position(lt, lt->rect.x, snap - lt->rect.h, true);
+        set_position_pixels(lt, lt->rect.x, snap - lt->rect.h, true);
         // return;
     }
 }
 
-void set_position(Layout *lt, int x, int y, bool block_snap) 
+void set_position_pixels(Layout *lt, int x, int y, bool block_snap) 
 {
+    fprintf(stderr, "Settting position to %d, %d\n", x, y);
     lt->rect.x = x;
     lt->rect.y = y;
     if (!block_snap) {
@@ -372,6 +436,8 @@ void set_position(Layout *lt, int x, int y, bool block_snap)
     }
     set_values_from_rect(lt);
     reset_layout(lt);
+    fprintf(stderr, "New position: %d, %d\n", lt->rect.x, lt->rect.y);
+
 }
 
 void move_position(Layout *lt, int move_by_x, int move_by_y, bool block_snap)
@@ -386,15 +452,97 @@ void move_position(Layout *lt, int move_by_x, int move_by_y, bool block_snap)
     reset_layout(lt);
 }
 
+int set_rect_xy(Layout *lt)
+{
+    switch (lt->x.type) {
+        case ABS:
+            lt->rect.x = lt->x.value.intval * main_win->dpi_scale_factor;
+            break;
+        case REL:
+            lt->rect.x = lt->parent->rect.x + lt->x.value.intval * main_win->dpi_scale_factor;
+            break;
+        case SCALE:
+            lt->rect.x = lt->parent->rect.x + lt->parent->rect.w * lt->x.value.floatval;
+            break;
+        case COMPLEMENT:
+            return 0;
+            break;
+    }
+    switch (lt->y.type) {
+        case ABS:
+            lt->rect.y = lt->y.value.intval * main_win->dpi_scale_factor;
+            break;
+        case REL:
+            // fprintf(stderr, "Y is rel. ")
+            lt->rect.y = lt->parent->rect.y + lt->y.value.intval * main_win->dpi_scale_factor;
+            break;
+        case SCALE:
+            lt->rect.y = lt->parent->rect.y + lt->parent->rect.h * lt->y.value.floatval;
+            break;
+        case COMPLEMENT:
+            return 0;
+            break;
+    }
+    return 1;
+
+}
+
+int set_rect_wh(Layout *lt)
+{
+    switch (lt->w.type) {
+        case ABS:
+        case REL:
+            lt->rect.w = lt->w.value.intval * main_win->dpi_scale_factor;
+            break;
+        case SCALE:
+            lt->rect.w = round(((float) lt->parent->rect.w) * lt->w.value.floatval);
+            break;
+        case COMPLEMENT: {
+            Layout *last_sibling = lt->parent->children[lt->index - 1];
+            if (!last_sibling) {
+                fprintf(stderr, "Error: layout %s has type dim COMPLEMENT but no last sibling\n", lt->name);
+                return 0;
+            }
+            lt->rect.w = (lt->parent->rect.w - last_sibling->rect.w) * main_win->dpi_scale_factor;
+            break;
+        }
+    }
+    switch (lt->h.type) {
+        case ABS:
+        case REL:
+            lt->rect.h = lt->h.value.intval * main_win->dpi_scale_factor;
+            break;
+        case SCALE:
+            lt->rect.h = round(((float) lt->parent->rect.h) * lt->h.value.floatval);
+            break;
+        case COMPLEMENT: {
+            Layout *last_sibling = lt->parent->children[lt->index - 1];
+            if (!last_sibling) {
+                fprintf(stderr, "Error: layout %s has type dim COMPLEMENT but no last sibling\n", lt->name);
+                return 0;
+            }
+            lt->rect.h = (lt->parent->rect.h - last_sibling->rect.h) * main_win->dpi_scale_factor;
+            break;
+        }
+    }
+    return 1;
+}
+
 void reset_iterations(LayoutIterator *iter);
 void reset_layout(Layout *lt)
 {
     if (lt->parent) {
-        SDL_Rect parent_rect = lt->parent->rect;
-        lt->rect.x = get_rect_coord_val_from_dim(lt->x, parent_rect.x, parent_rect.w);
-        lt->rect.y = get_rect_coord_val_from_dim(lt->y, parent_rect.y, parent_rect.h);
-        lt->rect.w = get_rect_dim_val_from_dim(lt->w, parent_rect.x, parent_rect.w);
-        lt->rect.h = get_rect_dim_val_from_dim(lt->h, parent_rect.y, parent_rect.h);
+        if (!set_rect_wh(lt)) {
+            fprintf(stderr, "Error: failed to set wh on %s\n", lt->name);
+        }
+        if (!(set_rect_xy(lt))) {
+            fprintf(stderr, "Error: failed to set xy on %s\n", lt->name);
+        }
+        // SDL_Rect parent_rect = lt->parent->rect;
+        // lt->rect.x = get_rect_coord_val_from_dim(lt->x, parent_rect.x, parent_rect.w);
+        // lt->rect.y = get_rect_coord_val_from_dim(lt->y, parent_rect.y, parent_rect.h);
+        // lt->rect.w = get_rect_dim_val_from_dim(lt->w, parent_rect.x, parent_rect.w);
+        // lt->rect.h = get_rect_dim_val_from_dim(lt->h, parent_rect.y, parent_rect.h);
     }
     lt->label_rect = (SDL_Rect) {lt->rect.x, lt->rect.y - TXT_H, 0, 0};
     reset_text_display_value(lt->namelabel);
@@ -405,6 +553,7 @@ void reset_layout(Layout *lt)
     }
 
     if (lt->type == TEMPLATE) {
+        fprintf(stderr, "resetting iterations on template %s\n", lt->name);
         reset_iterations(lt->iterator);
         for (int i=0; i<lt->iterator->num_iterations; i++) {
             reset_layout(lt->iterator->iterations[i]);
@@ -510,13 +659,21 @@ void reparent(Layout *child, Layout *parent)
 void set_default_dims(Layout *lt)
 {
     DimVal dv;
-    dv.intval = 100;
-    lt->x = (Dimension) {REL, dv};
-    lt->y = (Dimension) {REL, dv};
-    lt->w = (Dimension) {ABS, dv};
-    lt->h = (Dimension) {ABS, dv};
-}
 
+    if (lt->parent) {
+	SDL_Rect parent_logical = get_logical_rect(&(lt->parent->rect));
+	lt->x = (Dimension) {REL, parent_logical.w / 4};
+	lt->y = (Dimension) {REL, parent_logical.h / 4};
+	lt->w = (Dimension) {REL, parent_logical.w / 2};
+	lt->h = (Dimension) {REL, parent_logical.h / 2};
+    } else {   
+	dv.intval = 20;
+	lt->x = (Dimension) {REL, dv};
+	lt->y = (Dimension) {REL, dv};
+	lt->w = (Dimension) {ABS, dv};
+	lt->h = (Dimension) {ABS, dv};
+    }
+}
 Layout *get_child(Layout *lt, const char *name)
 {
     for (uint8_t i=0; i<lt->num_children; i++) {
@@ -544,7 +701,15 @@ Layout *get_child_recursive(Layout *lt, const char *name)
     return ret;
 }
 
-void toggle_dimension(Dimension *dim, RectMem rm, SDL_Rect *rect, SDL_Rect *parent_rect)
+void set_layout_type_recursive(Layout *lt, LayoutType type)
+{
+    lt->type = type;
+    for (int i=0; i<lt->num_children; i++) {
+        set_layout_type_recursive(lt->children[i], type);
+    }
+}
+
+void toggle_dimension(Layout *lt, Dimension *dim, RectMem rm, SDL_Rect *rect, SDL_Rect *parent_rect)
 {
     // fprintf(stderr, "ENTER TOGGLE\n");
     if (!parent_rect) {
@@ -552,60 +717,61 @@ void toggle_dimension(Dimension *dim, RectMem rm, SDL_Rect *rect, SDL_Rect *pare
     }
     dim->type++;
     dim->type %= 3;
-    switch(rm) {
-        case X:
-            switch(dim->type) {
-                case ABS:
-                    dim->value.intval = rect->x;
-                    break;
-                case REL:
-                    dim->value.intval = rect->x - parent_rect->x;
-                    break;
-                case SCALE:
-                    dim->value.floatval = ((float)rect->x - parent_rect->x) / parent_rect->w;
-                    break;
-            }
-            break;
-        case Y:
-            switch(dim->type) {
-                case ABS:
-                    dim->value.intval = rect->y;
-                    break;
-                case REL:
-                    dim->value.intval = rect->y - parent_rect->y;
-                    break;
-                case SCALE:
-                    dim->value.floatval = ((float)rect->y - parent_rect->y) / parent_rect->h;
-                    break;
-            }
-            break;
-        case W:
-            switch(dim->type) {
-                case ABS:
-                    dim->value.intval = rect->w;
-                    break;
-                case REL:
-                    dim->value.intval = rect->w;
-                    break;
-                case SCALE:
-                    dim->value.floatval = (float)rect->w / parent_rect->w;
-                    break;
-            }
-            break;
-        case H:
-            switch(dim->type) {
-                case ABS:
-                    dim->value.intval = rect->h;
-                    break;
-                case REL:
-                    dim->value.intval = rect->h;
-                    break;
-                case SCALE:
-                    dim->value.floatval = (float)rect->h / parent_rect->h;
-                    break;
-            }
-            break;             
-    }
+    set_values_from_rect(lt);
+    // switch(rm) {
+    //     case X:
+    //         switch(dim->type) {
+    //             case ABS:
+    //                 dim->value.intval = rect->x;
+    //                 break;
+    //             case REL:
+    //                 dim->value.intval = rect->x - parent_rect->x;
+    //                 break;
+    //             case SCALE:
+    //                 dim->value.floatval = ((float)rect->x - parent_rect->x) / parent_rect->w;
+    //                 break;
+    //         }
+    //         break;
+    //     case Y:
+    //         switch(dim->type) {
+    //             case ABS:
+    //                 dim->value.intval = rect->y;
+    //                 break;
+    //             case REL:
+    //                 dim->value.intval = rect->y - parent_rect->y;
+    //                 break;
+    //             case SCALE:
+    //                 dim->value.floatval = ((float)rect->y - parent_rect->y) / parent_rect->h;
+    //                 break;
+    //         }
+    //         break;
+    //     case W:
+    //         switch(dim->type) {
+    //             case ABS:
+    //                 dim->value.intval = rect->w;
+    //                 break;
+    //             case REL:
+    //                 dim->value.intval = rect->w;
+    //                 break;
+    //             case SCALE:
+    //                 dim->value.floatval = (float)rect->w / parent_rect->w;
+    //                 break;
+    //         }
+    //         break;
+    //     case H:
+    //         switch(dim->type) {
+    //             case ABS:
+    //                 dim->value.intval = rect->h;
+    //                 break;
+    //             case REL:
+    //                 dim->value.intval = rect->h;
+    //                 break;
+    //             case SCALE:
+    //                 dim->value.floatval = (float)rect->h / parent_rect->h;
+    //                 break;
+    //         }
+    //         break;             
+    // }
 }
 
     Layout *template;
@@ -618,6 +784,9 @@ LayoutIterator *create_iterator()
     iter->type = VERTICAL;
     iter->template = NULL;
     iter->num_iterations = 0;
+    iter->scrollable = false;
+    iter->scroll_offset = 0;
+    iter->scroll_momentum = 0;
     return iter;
 }
 
@@ -707,25 +876,61 @@ static Layout *copy_layout_as_iteration(Layout *to_copy, Layout *parent)
     // copy->type = to_copy->type;
     copy->iterator = NULL;
 
-    reparent(copy, parent);
+    if (parent) {
+        reparent(copy, parent);
+
+    }
     for (int i=0; i<to_copy->num_children; i++) {
         copy_layout_as_iteration(to_copy->children[i], copy);
         // reparent(child_copy, copy);
     }
-    fprintf(stderr, "Returning copy iteration of type %d\n", copy->type);
     return copy;
 }
 
 
-void add_iteration(LayoutIterator *iter)
+static void add_iteration(LayoutIterator *iter)
 {
-    Layout *iteration = copy_layout_as_iteration(iter->template, iter->template->parent);
+    Layout *iteration = copy_layout_as_iteration(iter->template, NULL);/*iter->template->parent*/
 
     iter->iterations[iter->num_iterations] = iteration;
     iter->num_iterations++;
     iteration->type = ITERATION;
     // reset_iteration_rects(iter);
 }
+
+static void remove_iteration(LayoutIterator *iter) 
+{
+    if (iter->num_iterations > 0) {
+        delete_layout(iter->iterations[iter->num_iterations - 1]);
+    }
+    iter->num_iterations--;
+}
+
+void add_iteration_to_layout(Layout *lt, IteratorType type, bool scrollable)
+{
+    if (lt->type != TEMPLATE) {
+        create_iterator_from_template(lt, type, 1, scrollable);
+    } else {
+        add_iteration(lt->iterator);
+    }
+    reset_layout(lt);
+}
+
+void remove_iteration_from_layout(Layout *lt)
+{
+    if (lt->type != TEMPLATE || !(lt->iterator)) {
+        return;
+    }
+    if (lt->iterator->num_iterations == 1) {
+        delete_iterator(lt->iterator);
+        set_layout_type_recursive(lt, NORMAL);
+        // lt->type = NORMAL;
+    } else {
+        remove_iteration(lt->iterator);
+    }
+    reset_layout(lt);
+}
+
 void reset_iterations(LayoutIterator *iter)
 {
 
@@ -733,6 +938,10 @@ void reset_iterations(LayoutIterator *iter)
     int y = iter->template->rect.y;
     int w = iter->template->rect.w;
     int h = iter->template->rect.h;
+    if (!iter->template->parent) {
+        fprintf(stderr, "Error: iterator template has no parent\n");
+        exit(1);
+    }
     int x_dist_from_parent = x - iter->template->parent->rect.x;
     int y_dist_from_parent = y - iter->template->parent->rect.y;
     for (int i=0; i<iter->num_iterations; i++) {
@@ -754,17 +963,26 @@ void reset_iterations(LayoutIterator *iter)
 }
 
 
-LayoutIterator *create_iterator_from_template(Layout *template, IteratorType type, int num_iterations) 
+LayoutIterator *create_iterator_from_template(Layout *template, IteratorType type, int num_iterations, bool scrollable) 
 {
     template->type = TEMPLATE;
     LayoutIterator *iter = create_iterator();
+
     template->iterator = iter;
+
     iter->template = template;
+    iter->type = type;
+    iter->scrollable = scrollable;
+
     // iter->num_iterations = num_iterations;
     for (int i=0; i<num_iterations; i++) {
         add_iteration(iter);
     }
-    reset_iterations(iter);
+
+    if (iter->template->parent) { /* During xml read, iteration template won't yet have parent */
+        reset_iterations(iter);
+    }
+
     return iter;
 }
 

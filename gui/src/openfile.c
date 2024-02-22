@@ -37,7 +37,7 @@ Layout *openfile_loop(Layout *lt)
 
 
     fprintf(stderr, "RETURNED layout \"%s\" at %p\n", ret->name, ret);
-    if (ret != main_lt) make_editable(ret);
+    if (ret != main_lt && ret->type == PRGRM_INTERNAL) make_editable(ret);
     fprintf(stderr, "RETURNED layout \"%s\" at %p\n", ret->name, ret);
 
     // delete_layout(openfile_lt);

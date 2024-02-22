@@ -20,6 +20,7 @@ static void write_dimension(FILE *f, Dimension *dim, char dimchar, int indent)
     }
 }
 
+
 static const char *get_bool_str(bool b)
 {
     return b ? "true" : "false";
@@ -58,7 +59,7 @@ void write_layout(FILE *f, Layout *lt, int indent)
     if (lt->type == PRGRM_INTERNAL) {
         return;
     }
-    fprintf(f, "%*s<Layout name=\"%s\" type =\"%s\">\n", indent, "", lt->name, get_lt_type_str(lt->type));
+    fprintf(f, "%*s<Layout name=\"%s\" type=\"%s\">\n", indent, "", lt->name, get_lt_type_str(lt->type));
 
     // fprintf(f, "%*s<Layout name=\"%s\" display=\"%s\" internal=\"%s\">\n", indent, "", lt->name, get_bool_str(lt->display), get_bool_str(lt->internal));
     // fprintf(f, "%*s<name>%s</name>\n", indent + TABSPACES, "", lt->name);
@@ -74,7 +75,9 @@ void write_layout(FILE *f, Layout *lt, int indent)
         write_layout(f, lt->children[i], indent + TABSPACES * 2);
     }
     fprintf(f, "%*s</children>\n", indent + TABSPACES, "");
-
+    if (lt->type == TEMPLATE) {
+        fprintf(f, "%*s<iterator>%s %d</iterator>\n", indent + TABSPACES, "", get_itertype_str(lt->iterator->type), lt->iterator->num_iterations);
+    }
     fprintf(f, "%*s</Layout>\n", indent, "");
 }
 
@@ -102,6 +105,21 @@ static void read_dimension(char *dimstr, Dimension *dim)
             dim->value.floatval = atof(dimstr + val_i);
             break;
     }
+}
+
+static void read_iterator(char *iterstr, IteratorType *type, int *num_iterations)
+{
+    int val_i = 0;
+    if (strncmp(iterstr, "VERTICAL", 8) == 0) {
+        *type = VERTICAL;
+        val_i = 9;
+    } else if (strncmp(iterstr, "HORIZONTAL", 10) == 0) {
+        *type = HORIZONTAL;
+        val_i = 11;
+    }
+    *num_iterations = atoi(iterstr + val_i);
+    fprintf(stderr, "\t->done read iterator\n");
+
 }
 
 
@@ -170,6 +188,14 @@ static Layout *get_layout_from_tag(Tag *lt_tag)
                 // fprintf(stderr, "NUM CHILDREN: %d/%d\n", j, childtag->num_children);
                 reparent(child_lt, lt);
             }
+        } else if (strcmp(childtag->tagname, "iterator") == 0) {
+            IteratorType iter_type;
+            int num_iterations;
+            read_iterator(childtag->inner_text, &iter_type, &num_iterations);
+            fprintf(stderr, "Create iterator from template %s, type %s, num %d\n", lt->name, get_itertype_str(iter_type), num_iterations);
+            create_iterator_from_template(lt, iter_type, num_iterations, false);
+            fprintf(stderr, "END READ ITERATOR\n");
+        
         }
     }
     return lt;

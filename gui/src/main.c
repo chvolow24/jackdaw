@@ -261,6 +261,8 @@ int main(int argc, char** argv)
                 // layout_clicked = false;
                 layout_corner_clicked = false;
                 // clicked_lt->selected = false;
+            } else if (e.type == SDL_MOUSEWHEEL) {
+                // fprintf(stderr, "SCROLL Y: %d\n", e.wheel.y);
             } else if (e.type == SDL_KEYDOWN) {
                 switch (e.key.keysym.scancode) {
                     case SDL_SCANCODE_LGUI:
@@ -300,13 +302,15 @@ int main(int argc, char** argv)
                         break;
                     case SDL_SCANCODE_I:
                         if (clicked_lt && layout_clicked) {
-                            LayoutIterator *iter = create_iterator_from_template(clicked_lt, VERTICAL, 3);
-                            fprintf(stderr, "Confirmed created iterator at %p\n", iter);
+                            if (shiftdown) {
+                                remove_iteration_from_layout(clicked_lt);
+                            } else {
+                                add_iteration_to_layout(clicked_lt, VERTICAL, true);
+                            }
                         }
                         break;
                     case SDL_SCANCODE_L:
                         if (show_layout_params) {
-                            // delete_layout(param_lt);
                             show_layout_params = false;
                         } else {
                             if (!param_lt) {
@@ -319,13 +323,11 @@ int main(int argc, char** argv)
                             } else {
                                 edit_lt_loop(main_lt);
                             }
-                            // delete_layout(param_lt);
                             show_layout_params = false;
                         }
                         break;
                     case SDL_SCANCODE_O:
                         if (show_openfile) {
-                            // delete_layout(openfile_lt);
                             show_openfile = false;
                         } else {
                             show_openfile = true;

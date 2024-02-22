@@ -32,7 +32,8 @@ typedef enum corner {
 typedef enum dimtype {
     REL, /* x or y relative to parent */
     ABS, /* relative to Window only */
-    SCALE /* x, y, w, or h as proportion of parent (e.g. w = 0.5 => width is half of parent) */
+    SCALE, /* x, y, w, or h as proportion of parent (e.g. w = 0.5 => width is half of parent) */
+    COMPLEMENT
 } DimType;
 
 typedef enum rect_mem {
@@ -77,6 +78,7 @@ typedef struct layout {
     bool selected;
     LayoutType type;
     LayoutIterator *iterator; /* If the layout type == TEMPLATE, this is not null */
+    // Layout *complement;
     // bool display;
     // bool internal;
 } Layout;
@@ -92,6 +94,9 @@ typedef struct layout_iterator {
     IteratorType type;
     uint8_t num_iterations;
     Layout *iterations[MAX_CHILDREN];
+    bool scrollable;
+    int scroll_offset;
+    int scroll_momentum;
 } LayoutIterator;
 
 // int get_rect_val_from_dim(Dimension dim, int parent_rect_coord);
@@ -114,17 +119,24 @@ Layout *copy_layout(Layout *to_copy, Layout *parent);
 
 Layout *get_child(Layout *lt, const char *name);
 Layout *get_child_recursive(Layout *lt, const char *name);
+void set_layout_type_recursive(Layout *lt, LayoutType type);
 const char *get_dimtype_str(DimType dt);
+const char *get_itertype_str(IteratorType iter_type);
 
-void toggle_dimension(Dimension *dim, RectMem rm, SDL_Rect *rect, SDL_Rect *parent_rect);
+
+void toggle_dimension(Layout *lt, Dimension *dim, RectMem rm, SDL_Rect *rect, SDL_Rect *parent_rect);
 void get_val_str(Dimension *dim, char *dst, int maxlen);
 
 
 void set_edge(Layout *lt, Edge edge, int set_to, bool block_snap);
 void set_corner(Layout *lt, Corner crnr, int x, int y, bool block_snap);
-void set_position(Layout *lt, int x, int y, bool block_snap) ;
+void set_position_pixels(Layout *lt, int x, int y, bool block_snap) ;
 void move_position(Layout *lt, int move_by_x, int move_by_y, bool block_snap);
 
-LayoutIterator *create_iterator_from_template(Layout *template, IteratorType type, int num_iterations);
+LayoutIterator *create_iterator_from_template(Layout *template, IteratorType type, int num_iterations, bool scrollable);
+
+
+void add_iteration_to_layout(Layout *lt, IteratorType type, bool scrollable);
+void remove_iteration_from_layout(Layout *lt);
 
 #endif

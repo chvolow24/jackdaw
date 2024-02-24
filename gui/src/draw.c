@@ -31,7 +31,7 @@ extern OpenFile *openfile;
 SDL_Color white = {255, 255, 255, 255};
 SDL_Color clr_white = {255, 255, 255, 127};
 SDL_Color highlight = {0, 0, 255, 255};
-SDL_Color iter_clr = {0, 100, 100, 200};
+SDL_Color iter_clr = {0, 100, 100, 255};
 
 SDL_Color rect_clrs[2] = {
     {255, 0, 0, 255},
@@ -166,7 +166,7 @@ void draw_layout(Window *win, Layout *lt)
         draw_layout(win, lt->children[i]);
     }
 
-    if (lt->type == TEMPLATE) {
+    if (lt->type == TEMPLATE || lt->iterator) {
         for (int i=1; i<lt->iterator->num_iterations; i++) {
             draw_layout(win, lt->iterator->iterations[i]);
         }

@@ -151,6 +151,17 @@ void set_window_size_to_lt()
     main_lt->y.value.intval = 0;
 }
 
+static void reset_clicked_lt(Layout *to)
+{
+    if (clicked_lt != to) {
+	if (clicked_lt) {
+	    clicked_lt->selected = false;
+	}
+	clicked_lt = to;
+	clicked_lt->selected = true;
+    }
+}
+
 int main(int argc, char** argv) 
 {
     if (argc > 2) {
@@ -300,12 +311,25 @@ int main(int argc, char** argv)
                             reset_layout(new_child);
                         }
                         break;
+		    case SDL_SCANCODE_Q:
+			if (layout_clicked && clicked_lt) {
+			    Layout *new_child = add_complementary_child(clicked_lt, H);
+			    fprintf(stderr, "Successfully created complementary child\n");
+			    reset_layout(clicked_lt);
+			    fprintf(stderr, "Reset layout\n");
+			}
+			break;
                     case SDL_SCANCODE_I:
                         if (clicked_lt && layout_clicked) {
                             if (shiftdown) {
                                 remove_iteration_from_layout(clicked_lt);
                             } else {
-                                add_iteration_to_layout(clicked_lt, VERTICAL, true);
+				if (cmdctrldown) {
+				    
+				    add_iteration_to_layout(clicked_lt, HORIZONTAL, true);
+				} else {
+				    add_iteration_to_layout(clicked_lt, VERTICAL, true);
+				}
                             }
                         }
                         break;
@@ -350,26 +374,29 @@ int main(int argc, char** argv)
                         }
                         break;
                     case SDL_SCANCODE_P:
-                        if (layout_clicked && clicked_lt && clicked_lt->parent) {
-                            clicked_lt->selected = false;
-                            clicked_lt = clicked_lt->parent;
-                            clicked_lt->selected = true;
-                        }
+			reset_clicked_lt(get_parent(clicked_lt));
+                        /* if (layout_clicked && clicked_lt && clicked_lt->parent) { */
+                        /*     clicked_lt->selected = false; */
+                        /*     clicked_lt = clicked_lt->parent; */
+                        /*     clicked_lt->selected = true; */
+                        /* } */
                         break;
                     case SDL_SCANCODE_LEFTBRACKET:
-                        if (layout_clicked && clicked_lt && clicked_lt->num_children > 0) {
-                            clicked_lt->selected = false;
-                            clicked_lt = clicked_lt->children[0];
-                            clicked_lt->selected = true;
-                        }
-                        break;    
-                    case SDL_SCANCODE_DELETE:
-                    case SDL_SCANCODE_BACKSPACE:
-                        if (clicked_lt && clicked_lt != main_lt) {
-                            delete_layout(clicked_lt);
-                            clicked_lt = main_lt;
-                        }
+			reset_clicked_lt(iterate_siblings(clicked_lt, -1));
+			break;
+		    case SDL_SCANCODE_RIGHTBRACKET:
+			reset_clicked_lt(iterate_siblings(clicked_lt, 1));
                         break;
+		    case SDL_SCANCODE_BACKSLASH:
+			reset_clicked_lt(get_first_child(clicked_lt));
+			break;
+		    case SDL_SCANCODE_DELETE:
+		    case SDL_SCANCODE_BACKSPACE:
+			if (clicked_lt) {
+			    delete_layout(clicked_lt);
+			    reset_layout(main_lt);
+			}
+			break;
                     default:
                         break;
                 }

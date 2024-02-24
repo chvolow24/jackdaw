@@ -48,56 +48,40 @@ void get_val_str(Dimension *dim, char *dst, int maxlen)
     }
 }
 
-// /* "dim" means w or h */
-// static int get_rect_dim_val_from_dim(Dimension dim, int parent_rect_coord, int parent_rect_dim)
-// {
-//     switch (dim.type) {
-//         case ABS:
-//             return dim.value.intval;
-//         case REL:
-//             return dim.value.intval;
-//         case SCALE:
-//             return dim.value.floatval * parent_rect_dim;
-//         case COMPLEMENT:
-//             Layout *last_sibling = 
-//     }
-// }
+/**********************************************************************/
+/* These functions TRY to get sibling, parent, first child, of
+   subject layout but return the subject layout if not found. */
 
-// /* "coord" means x or y */
-// static int get_rect_coord_val_from_dim(Dimension dim, int parent_rect_coord, int parent_rect_dim)
-// {
-//     switch (dim.type) {
-//         case ABS:
-//             return dim.value.intval;
-//         case REL:
-//             return dim.value.intval + parent_rect_coord;
-//         case SCALE:
-//             return parent_rect_coord + dim.value.floatval * parent_rect_dim;
-//         default:
-//             return 0;
-//     }
-// }
+Layout *iterate_siblings(Layout *from, int direction)
+{
+    if (direction == 1) {
+	if (from->parent && from->index < from->parent->num_children - 1) {
+	    return from->parent->children[from->index + 1];
+	}
+    } else if (direction == -1) {
+	if (from->parent && from->index > 0) {
+	    return from->parent->children[from->index - 1];
+	}
+    }
+    return from;
+}
 
-// static void set_dimval_from_draw_coord(Dimension *dim, RectMem rm, int draw_coord)
-// {
-//     switch (rm) {
-//         case X:
-//         case Y: {
-//             switch (dim->type) {
-//                 case ABS:
-//                     dim->value.intval = draw_coord;
-//                     break;
-//                 case REL:
-//                     dim->value.intval = draw_coord - dim
-
-//             }
-//         }
-//             break;
-//         case W:
-//         case H:
-//             break;
-//     }
-// }
+Layout *get_first_child(Layout *parent)
+{
+    if (parent->num_children > 0) {
+	return parent->children[0];
+    }
+    return parent;
+}
+	    
+Layout *get_parent(Layout *child)
+{
+    if (child->parent) {
+	return child->parent;
+    }
+    return child;
+}
+/**********************************************************************/
 
 static int get_edge_value_pixels(Layout *lt, Edge edge)
 {
@@ -243,10 +227,10 @@ void set_edge(Layout *lt, Edge edge, int set_to, bool block_snap)
 
 void handle_scroll(Layout *lt, SDL_Point *mousep, int scroll_x, int scroll_y)
 {
-    if (lt->type == "PRGRM_INTERNAL") {
+    if (lt->type == PRGRM_INTERNAL) {
         return;
     } else if (
-        lt->type == "TEMPLATE"
+        lt->type == TEMPLATE
         && lt->iterator->scrollable
         && SDL_PointInRect(mousep, &(lt->parent->rect))
     ) {
@@ -428,7 +412,6 @@ void do_snap_translate(Layout *lt, Layout *main)
 
 void set_position_pixels(Layout *lt, int x, int y, bool block_snap) 
 {
-    fprintf(stderr, "Settting position to %d, %d\n", x, y);
     lt->rect.x = x;
     lt->rect.y = y;
     if (!block_snap) {
@@ -436,7 +419,6 @@ void set_position_pixels(Layout *lt, int x, int y, bool block_snap)
     }
     set_values_from_rect(lt);
     reset_layout(lt);
-    fprintf(stderr, "New position: %d, %d\n", lt->rect.x, lt->rect.y);
 
 }
 
@@ -538,11 +520,6 @@ void reset_layout(Layout *lt)
         if (!(set_rect_xy(lt))) {
             fprintf(stderr, "Error: failed to set xy on %s\n", lt->name);
         }
-        // SDL_Rect parent_rect = lt->parent->rect;
-        // lt->rect.x = get_rect_coord_val_from_dim(lt->x, parent_rect.x, parent_rect.w);
-        // lt->rect.y = get_rect_coord_val_from_dim(lt->y, parent_rect.y, parent_rect.h);
-        // lt->rect.w = get_rect_dim_val_from_dim(lt->w, parent_rect.x, parent_rect.w);
-        // lt->rect.h = get_rect_dim_val_from_dim(lt->h, parent_rect.y, parent_rect.h);
     }
     lt->label_rect = (SDL_Rect) {lt->rect.x, lt->rect.y - TXT_H, 0, 0};
     reset_text_display_value(lt->namelabel);
@@ -552,8 +529,7 @@ void reset_layout(Layout *lt)
         reset_layout(child);
     }
 
-    if (lt->type == TEMPLATE) {
-        fprintf(stderr, "resetting iterations on template %s\n", lt->name);
+    if (lt->type == TEMPLATE && lt->iterator) {
         reset_iterations(lt->iterator);
         for (int i=0; i<lt->iterator->num_iterations; i++) {
             reset_layout(lt->iterator->iterations[i]);
@@ -584,7 +560,6 @@ Layout *create_layout()
 void delete_iterator(LayoutIterator *iter);
 void delete_layout(Layout *lt)
 {
-    fprintf(stderr, "\t\t->Delete layout at %p\n", lt);
     if (lt->parent) {
         for (uint8_t i=lt->index; i<lt->parent->num_children - 1; i++) {
             lt->parent->children[i] = lt->parent->children[i + 1];
@@ -644,7 +619,24 @@ Layout *add_child(Layout *parent)
     snprintf(child->name, 32, "%s_child%d", parent->name, parent->num_children);
     // fprintf(stderr, "\t->done add child\n");
     return child;
+}
 
+Layout *add_complementary_child(Layout *parent, RectMem comp_rm)
+{
+    Layout *new_child = add_child(parent);
+    set_default_dims(new_child);
+    switch (comp_rm) {
+    case X:
+	new_child->x.type = COMPLEMENT;
+	break;
+    case Y:
+	new_child->y.type = COMPLEMENT;
+    case W:
+	new_child->w.type = COMPLEMENT;
+    case H:
+	new_child->h.type = COMPLEMENT;
+    }
+    
 }
 
 void reparent(Layout *child, Layout *parent)
@@ -662,10 +654,10 @@ void set_default_dims(Layout *lt)
 
     if (lt->parent) {
 	SDL_Rect parent_logical = get_logical_rect(&(lt->parent->rect));
-	lt->x = (Dimension) {REL, parent_logical.w / 4};
-	lt->y = (Dimension) {REL, parent_logical.h / 4};
-	lt->w = (Dimension) {REL, parent_logical.w / 2};
-	lt->h = (Dimension) {REL, parent_logical.h / 2};
+	lt->x = (Dimension) {REL, {parent_logical.w / 4}};
+	lt->y = (Dimension) {REL, {parent_logical.h / 4}};
+	lt->w = (Dimension) {REL, {parent_logical.w / 2}};
+	lt->h = (Dimension) {REL, {parent_logical.h / 2}};
     } else {   
 	dv.intval = 20;
 	lt->x = (Dimension) {REL, dv};
@@ -842,22 +834,47 @@ LayoutIterator *create_iterator()
 //     LayoutIterator *iterator; /* If the layout type == TEMPLATE, this is not null */
 //     // bool display;
 //     // bool internal;
+
+LayoutIterator *copy_iterator(LayoutIterator *to_copy)
+{
+    LayoutIterator *copy = create_iterator();
+    copy->template = to_copy->template;
+    copy->type = to_copy->type;
+    copy->num_iterations = to_copy->num_iterations;
+    copy->scrollable = to_copy->scrollable;
+    /* TODO: copy the iterations! */
+    for (int i=0; i<to_copy->num_iterations; i++) {
+	Layout *iter_copy = copy_layout(to_copy->iterations[i], NULL);
+	copy->iterations[i] = iter_copy;
+    }
+    return copy;
+}
+    
 Layout *copy_layout(Layout *to_copy, Layout *parent)
 {
     Layout *copy = create_layout();
     strcpy(copy->name, to_copy->name);
+    fprintf(stderr, "\t->Copied name\n");
     copy->rect = to_copy->rect;
     copy->x = to_copy->x;
     copy->y = to_copy->y;
     copy->w = to_copy->w;
     copy->h = to_copy->h;
     copy->type = to_copy->type;
+    /* TODO: make sure to copy iterator templates correctly! */
 
-    reparent(copy, parent);
+    if (parent) {
+	reparent(copy, parent);
+    }
     for (int i=0; i<to_copy->num_children; i++) {
         copy_layout(to_copy->children[i], copy);
-        // reparent(child_copy, copy);
     }
+
+    if (to_copy->type == TEMPLATE && to_copy->iterator) {
+	copy->iterator = copy_iterator(to_copy->iterator);
+	copy->iterator->template = copy;
+    }
+    fprintf(stderr, "\t->done copy layout\n");
 
     return copy;
 
@@ -878,7 +895,8 @@ static Layout *copy_layout_as_iteration(Layout *to_copy, Layout *parent)
 
     if (parent) {
         reparent(copy, parent);
-
+    } else {
+	copy->parent = NULL;
     }
     for (int i=0; i<to_copy->num_children; i++) {
         copy_layout_as_iteration(to_copy->children[i], copy);
@@ -933,7 +951,6 @@ void remove_iteration_from_layout(Layout *lt)
 
 void reset_iterations(LayoutIterator *iter)
 {
-
     int x = iter->template->rect.x;
     int y = iter->template->rect.y;
     int w = iter->template->rect.w;

@@ -110,6 +110,7 @@ void reset_layout_from_window(Layout *lt, Window *win);
 Layout *create_layout_from_window(Window *win);
 void delete_layout(Layout *lt);
 Layout *add_child(Layout *parent);
+Layout *add_complementary_child(Layout *parent, RectMem comp_rm);
 void translate_layout(Layout *lt, int translate_x, int translate_y, bool block_snap);
 void resize_layout(Layout *lt, int resize_w, int resize_h, bool block_snap);
 void set_default_dims(Layout *lt);
@@ -123,7 +124,9 @@ void set_layout_type_recursive(Layout *lt, LayoutType type);
 const char *get_dimtype_str(DimType dt);
 const char *get_itertype_str(IteratorType iter_type);
 
-
+Layout *iterate_siblings(Layout *from, int direction);
+Layout *get_first_child(Layout *parent);
+Layout *get_parent(Layout *child);
 void toggle_dimension(Layout *lt, Dimension *dim, RectMem rm, SDL_Rect *rect, SDL_Rect *parent_rect);
 void get_val_str(Dimension *dim, char *dst, int maxlen);
 

@@ -93,6 +93,9 @@ static void read_dimension(char *dimstr, Dimension *dim)
     } else if (strncmp(dimstr, "SCALE", 5) == 0) {
         dim->type = SCALE;
         val_i = 6;
+    } else if (strncmp(dimstr, "COMPLEMENT", 10) == 0) {
+	dim->type = COMPLEMENT;
+	val_i = 11;
     }
     switch (dim->type) {
         case ABS:
@@ -101,6 +104,9 @@ static void read_dimension(char *dimstr, Dimension *dim)
         case REL:
             dim->value.intval = atoi(dimstr + val_i);
             break;
+        case COMPLEMENT:
+	    dim->value.intval = atoi(dimstr + val_i);
+	    break;
         case SCALE:
             dim->value.floatval = atof(dimstr + val_i);
             break;

@@ -26,7 +26,7 @@ Layout *openfile_loop(Layout *lt)
     static char filepath_buffer[255];
     if (!openfile) {
         openfile = malloc(sizeof(OpenFile));
-        Layout *label_lt = get_child_recursive(openfile_lt, "label");
+        /* Layout *label_lt = get_child_recursive(openfile_lt, "label"); */
         openfile->label = create_text_from_str("Open file at:", 14, &(get_child_recursive(openfile_lt, "label")->rect), open_sans, white, CENTER_LEFT, true, main_win->rend);
         openfile->filepath = create_text_from_str(filepath_buffer, 254, &(get_child_recursive(openfile_lt, "filepath")->rect), open_sans, white, CENTER_LEFT, true, main_win->rend);
     }
@@ -36,9 +36,7 @@ Layout *openfile_loop(Layout *lt)
     Layout *ret = read_xml_to_lt(lt, openfile->filepath->display_value);
 
 
-    fprintf(stderr, "RETURNED layout \"%s\" at %p\n", ret->name, ret);
     if (ret != main_lt && ret->type == PRGRM_INTERNAL) make_editable(ret);
-    fprintf(stderr, "RETURNED layout \"%s\" at %p\n", ret->name, ret);
 
     // delete_layout(openfile_lt);
     show_openfile = false;

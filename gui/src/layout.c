@@ -132,6 +132,8 @@ static void set_values_from_rect(Layout *lt)
                 }
             }
             break;
+        case COMPLEMENT:
+	    break;
     }
     switch (lt->y.type) {
         case ABS:
@@ -154,6 +156,8 @@ static void set_values_from_rect(Layout *lt)
                 // exit(1);
             }
             break;
+        case COMPLEMENT:
+	    break;
     }
 
     switch (lt->w.type) {
@@ -170,9 +174,14 @@ static void set_values_from_rect(Layout *lt)
                 }
             } else {
                 fprintf(stderr, "Error: attempting to set scaled dimension values on layout with no parent.\n");
+		return;
                 // exit(1);
             }
             break;
+        case COMPLEMENT:
+	    break; /* Vales are irrelevant for COMPLEMENT */
+	    
+		
     }
 
     switch (lt->h.type) {
@@ -192,6 +201,9 @@ static void set_values_from_rect(Layout *lt)
                 // exit(1);
             }
             break;
+        case COMPLEMENT:
+	    break;
+	
     }
 
 }
@@ -485,7 +497,7 @@ int set_rect_wh(Layout *lt)
                 fprintf(stderr, "Error: layout %s has type dim COMPLEMENT but no last sibling\n", lt->name);
                 return 0;
             }
-            lt->rect.w = (lt->parent->rect.w - last_sibling->rect.w) * main_win->dpi_scale_factor;
+            lt->rect.w = lt->parent->rect.w - last_sibling->rect.w;
             break;
         }
     }
@@ -503,7 +515,7 @@ int set_rect_wh(Layout *lt)
                 fprintf(stderr, "Error: layout %s has type dim COMPLEMENT but no last sibling\n", lt->name);
                 return 0;
             }
-            lt->rect.h = (lt->parent->rect.h - last_sibling->rect.h) * main_win->dpi_scale_factor;
+            lt->rect.h = lt->parent->rect.h - last_sibling->rect.h;
             break;
         }
     }
@@ -531,9 +543,9 @@ void reset_layout(Layout *lt)
 
     if (lt->iterator) {
         reset_iterations(lt->iterator);
-        for (int i=0; i<lt->iterator->num_iterations; i++) {
-            reset_layout(lt->iterator->iterations[i]);
-        }
+        /* for (int i=0; i<lt->iterator->num_iterations; i++) { */
+        /*     reset_layout(lt->iterator->iterations[i]); */
+        /* } */
     }
 }
 
@@ -560,6 +572,7 @@ Layout *create_layout()
 void delete_iterator(LayoutIterator *iter);
 void delete_layout(Layout *lt)
 {
+    fprintf(stderr, "Delete layout %s. Parent? %p\n", lt->name, lt->parent);
     if (lt->parent) {
         for (uint8_t i=lt->index; i<lt->parent->num_children - 1; i++) {
             lt->parent->children[i] = lt->parent->children[i + 1];
@@ -569,6 +582,7 @@ void delete_layout(Layout *lt)
     }
     if (lt->type == TEMPLATE && lt->iterator) {
         delete_iterator(lt->iterator);
+	lt->iterator = NULL;
     }
     for (uint8_t i=0; i<lt->num_children; i++) {
         delete_layout(lt->children[i]);
@@ -631,11 +645,15 @@ Layout *add_complementary_child(Layout *parent, RectMem comp_rm)
 	break;
     case Y:
 	new_child->y.type = COMPLEMENT;
+	break;
     case W:
 	new_child->w.type = COMPLEMENT;
+	break;
     case H:
 	new_child->h.type = COMPLEMENT;
+	break;
     }
+    return new_child;
     
 }
 
@@ -700,6 +718,23 @@ void set_layout_type_recursive(Layout *lt, LayoutType type)
         set_layout_type_recursive(lt->children[i], type);
     }
 }
+
+
+Layout *deepest_layout_at_point(Layout *search, SDL_Point *point)
+{
+    if (!(SDL_PointInRect(point, &(search->rect)))) {
+	return NULL;
+    }
+    Layout *selected = search;
+    Layout *test = NULL;
+    for (int i=0; i<search->num_children; i++) {
+	if ((test = deepest_layout_at_point(search->children[i], point))) {
+	    selected = test;
+	}
+    }
+    return selected;
+}
+	
 
 void toggle_dimension(Layout *lt, Dimension *dim, RectMem rm, SDL_Rect *rect, SDL_Rect *parent_rect)
 {
@@ -787,13 +822,18 @@ static Layout *copy_layout_as_iteration(Layout *to_copy, Layout *parent)
     copy->iterator = NULL;
 
     if (parent) {
-        reparent(copy, parent);
+	copy->parent = parent;
+	// reparent(copy, parent);
     } else {
+	/* fprintf(stderr, "Setting null parent on layout named %s\n", to_copy->name); */
+	/* exit(1); */
 	copy->parent = NULL;
+//	copy->parent = parent;
     }
     for (int i=0; i<to_copy->num_children; i++) {
         Layout *copied_child = copy_layout(to_copy->children[i], copy);
 	copied_child->type = ITERATION;
+	copied_child->parent = copy;
         // reparent(child_copy, copy);
     }
     /* if (to_copy->iterator) { */
@@ -817,10 +857,12 @@ static void add_iteration(LayoutIterator *iter)
 
 static void remove_iteration(LayoutIterator *iter) 
 {
+    fprintf(stderr, "Remove iteration from %s\n", iter->template->name);
     if (iter->num_iterations > 0) {
+	fprintf(stderr, "->deleting %p, not %p\n", iter->iterations[iter->num_iterations-1], iter->template);
         delete_layout(iter->iterations[iter->num_iterations - 1]);
+	iter->num_iterations--;
     }
-    iter->num_iterations--;
 }
 
 void add_iteration_to_layout(Layout *lt, IteratorType type, bool scrollable)
@@ -835,11 +877,12 @@ void add_iteration_to_layout(Layout *lt, IteratorType type, bool scrollable)
 
 void remove_iteration_from_layout(Layout *lt)
 {
-    if (lt->type != TEMPLATE || !(lt->iterator)) {
+    if (!(lt->iterator)) {
         return;
     }
     if (lt->iterator->num_iterations == 1) {
         delete_iterator(lt->iterator);
+	lt->iterator = NULL;
         set_layout_type_recursive(lt, NORMAL);
         // lt->type = NORMAL;
     } else {
@@ -866,7 +909,7 @@ void reset_iterations(LayoutIterator *iter)
         iteration->rect.y = y;
         iteration->rect.w = w;
         iteration->rect.h = h;
-        set_values_from_rect(iteration);
+//        set_values_from_rect(iteration);
         switch (iter->type) {
             case VERTICAL:
                 y += h + y_dist_from_parent;
@@ -875,6 +918,9 @@ void reset_iterations(LayoutIterator *iter)
                 x += w + x_dist_from_parent;
                 break;
         }
+	for (int i=0; i<iteration->num_children; i++) {
+	    reset_layout(iteration->children[i]);
+	}
     }
 }
 

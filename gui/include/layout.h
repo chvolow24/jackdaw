@@ -121,6 +121,7 @@ Layout *copy_layout(Layout *to_copy, Layout *parent);
 Layout *get_child(Layout *lt, const char *name);
 Layout *get_child_recursive(Layout *lt, const char *name);
 void set_layout_type_recursive(Layout *lt, LayoutType type);
+Layout *deepest_layout_at_point(Layout *search, SDL_Point *point);
 const char *get_dimtype_str(DimType dt);
 const char *get_itertype_str(IteratorType iter_type);
 

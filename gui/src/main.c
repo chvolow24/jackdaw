@@ -313,8 +313,14 @@ int main(int argc, char** argv)
                         break;
 		    case SDL_SCANCODE_Q:
 			if (layout_clicked && clicked_lt) {
-			    Layout *new_child = add_complementary_child(clicked_lt, H);
+			    Layout *new_child;
+			    if (shiftdown) {
+				new_child = add_complementary_child(clicked_lt, W);
+			    } else {
+			        new_child = add_complementary_child(clicked_lt, H);
+			    }
 			    fprintf(stderr, "Successfully created complementary child\n");
+			    fprintf(stderr, "X: %s, Y: %s, W: %s, H: %s\n", get_dimtype_str(new_child->x.type), get_dimtype_str(new_child->y.type), get_dimtype_str(new_child->w.type), get_dimtype_str(new_child->h.type));
 			    reset_layout(clicked_lt);
 			    fprintf(stderr, "Reset layout\n");
 			}

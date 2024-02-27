@@ -170,11 +170,6 @@ void draw_layout(Window *win, Layout *lt)
         for (int i=1; i<lt->iterator->num_iterations; i++) {
             draw_layout(win, lt->iterator->iterations[i]);
         }
-        // SDL_SetRenderDrawColor(win->rend, )
-        // for (int i=0; i<lt->iterator->num_iterations; i++) {
-        //     SDL_Rect *iteration = lt->iterator->iterations[i];
-        //     SDL_RenderDrawRect()
-        // }
     }
 }
 

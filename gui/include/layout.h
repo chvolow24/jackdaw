@@ -139,6 +139,8 @@ void move_position(Layout *lt, int move_by_x, int move_by_y, bool block_snap);
 
 LayoutIterator *create_iterator_from_template(Layout *template, IteratorType type, int num_iterations, bool scrollable);
 
+Layout *handle_scroll(Layout *main_lt, SDL_Point *mousep, int scroll_x, int scroll_y);
+void scroll_step(Layout *lt);
 
 void add_iteration_to_layout(Layout *lt, IteratorType type, bool scrollable);
 void remove_iteration_from_layout(Layout *lt);

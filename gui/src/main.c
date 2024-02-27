@@ -25,7 +25,6 @@ bool show_layout_params = false;
 bool show_openfile = false;
 
 
-
 TTF_Font *open_sans;
 
 void init_SDL()
@@ -199,6 +198,9 @@ int main(int argc, char** argv)
     bool layout_corner_clicked = false;
     Edge ed = NONEEDGE;
     Corner crnr = NONECRNR;
+
+    Layout *scrolling = NULL;
+    
     while (!quit) {
         get_mousep(main_win, &mousep);
         SDL_Event e;
@@ -273,6 +275,7 @@ int main(int argc, char** argv)
                 layout_corner_clicked = false;
                 // clicked_lt->selected = false;
             } else if (e.type == SDL_MOUSEWHEEL) {
+		scrolling = handle_scroll(main_lt, &mousep, e.wheel.x, e.wheel.y);
                 // fprintf(stderr, "SCROLL Y: %d\n", e.wheel.y);
             } else if (e.type == SDL_KEYDOWN) {
                 switch (e.key.keysym.scancode) {
@@ -422,6 +425,9 @@ int main(int argc, char** argv)
                 }
             }
         }
+	if (scrolling) {
+	    scroll_step(scrolling);
+	}
         draw_main();
         SDL_Delay(1);
     }

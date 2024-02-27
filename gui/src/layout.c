@@ -1,3 +1,4 @@
+
 #include "layout.h"
 #include "text.h"
 #include "window.h"
@@ -234,32 +235,68 @@ void set_edge(Layout *lt, Edge edge, int set_to, bool block_snap)
     }
     set_values_from_rect(lt);
     reset_layout(lt);
-
 }
 
-void handle_scroll(Layout *lt, SDL_Point *mousep, int scroll_x, int scroll_y)
+/* Get the outermost scrollable layout at the mouse point. If none, return null. */
+static Layout *get_scrollable_layout_at_point(Layout *lt, SDL_Point *mousep)
 {
-    if (lt->type == PRGRM_INTERNAL) {
-        return;
-    } else if (
-        lt->type == TEMPLATE
-        && lt->iterator->scrollable
-        && SDL_PointInRect(mousep, &(lt->parent->rect))
-    ) {
-        switch(lt->iterator->type) {
-            case VERTICAL:
-                lt->iterator->scroll_momentum += scroll_y;
-                break;
-            case HORIZONTAL:
-                lt->iterator->scroll_momentum += scroll_x;
-                break;
-        }
-    } else {
-        for (int i=0; i<lt->num_children; i++) {
-            handle_scroll(lt->children[i], mousep, scroll_x, scroll_y);
-        }
+    Layout *ret = NULL;
+
+    if (!lt->parent && SDL_PointInRect(mousep, &(lt->rect))) {
+	for (int i=0; !ret && i<lt->num_children; i++) {
+	    ret = get_scrollable_layout_at_point(lt->children[i], mousep);
+	}
+    } else if (lt->iterator && lt->iterator->scrollable) {
+	return lt;
+    } else if (SDL_PointInRect(mousep, &(lt->rect))) {
+	for (int i=0; !ret && i<lt->num_children; i++) {
+	    ret = get_scrollable_layout_at_point(lt->children[i], mousep);
+	}
+    }
+    return ret;
+}
+	    	    
+
+/* Assumes the correct scrollable layout has been found (see 'get_scrollable_layout_at_point') */
+static void handle_scroll_internal(Layout *lt, int scroll_x, int scroll_y)
+{
+
+    switch(lt->iterator->type) {
+	case VERTICAL:
+	    lt->iterator->scroll_momentum += scroll_y;
+	    break;
+	case HORIZONTAL:
+	    lt->iterator->scroll_momentum += scroll_x;
+	    break;
     }
 }
+
+Layout *handle_scroll(Layout *main_lt, SDL_Point *mousep, int scroll_x, int scroll_y)
+{
+    Layout *scrollable = get_scrollable_layout_at_point(main_lt, mousep);
+    if (!scrollable) return NULL;
+
+    handle_scroll_internal(scrollable, scroll_x, scroll_y);
+    return scrollable;
+}
+
+
+void reset_iterations(LayoutIterator *iter);
+/* Run every frame on scrollable layout to reset scroll offset and momentum */
+void scroll_step(Layout *lt)
+{
+    if (!lt->iterator || !lt->iterator->scrollable || lt->iterator->scroll_momentum == 0) return;
+    
+    lt->iterator->scroll_momentum += (lt->iterator->scroll_momentum < 0 ? 1 : -1);
+    if (lt->iterator->scroll_offset + lt->iterator->scroll_momentum < 0) {
+	lt->iterator->scroll_offset = 0;
+	lt->iterator->scroll_momentum = 0;
+    } else {
+	lt->iterator->scroll_offset += lt->iterator->scroll_momentum;
+    }
+    reset_iterations(lt->iterator);
+}
+				      
 
 void set_corner(Layout *lt, Corner crnr, int x, int y, bool block_snap)
 {
@@ -903,6 +940,7 @@ void reset_iterations(LayoutIterator *iter)
     }
     int x_dist_from_parent = x - iter->template->parent->rect.x;
     int y_dist_from_parent = y - iter->template->parent->rect.y;
+    int scroll_offset = iter->scrollable ? iter->scroll_offset : 0;
     for (int i=0; i<iter->num_iterations; i++) {
         Layout *iteration = iter->iterations[i];
         iteration->rect.x = x;
@@ -912,10 +950,12 @@ void reset_iterations(LayoutIterator *iter)
 //        set_values_from_rect(iteration);
         switch (iter->type) {
             case VERTICAL:
+		iteration->rect.y += scroll_offset;
                 y += h + y_dist_from_parent;
                 break;
             case HORIZONTAL:
-                x += w + x_dist_from_parent;
+		iteration->rect.x += scroll_offset;
+                x += w + x_dist_from_parent + scroll_offset;
                 break;
         }
 	for (int i=0; i<iteration->num_children; i++) {

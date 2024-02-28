@@ -1,0 +1,118 @@
+<Layout name="jackdaw_main_layout" type="NORMAL">
+    <x>ABS 0</x>
+    <y>ABS 0</y>
+    <w>ABS 2400</w>
+    <h>ABS 1350</h>
+    <index>0</index>
+    <children>
+        <Layout name="control_bar" type="NORMAL">
+            <x>REL 0</x>
+            <y>REL 0</y>
+            <w>SCALE 1.000000</w>
+            <h>REL 156</h>
+            <index>0</index>
+            <children>
+            </children>
+        </Layout>
+        <Layout name="timeline" type="NORMAL">
+            <x>REL 0</x>
+            <y>REL 156</y>
+            <w>SCALE 1.000000</w>
+            <h>COMPLEMENT 315</h>
+            <index>1</index>
+            <children>
+                <Layout name="ruler_tc" type="NORMAL">
+                    <x>REL 0</x>
+                    <y>REL 0</y>
+                    <w>SCALE 1.000000</w>
+                    <h>REL 38</h>
+                    <index>0</index>
+                    <children>
+                        <Layout name="timecode" type="NORMAL">
+                            <x>REL 4</x>
+                            <y>REL 0</y>
+                            <w>REL 190</w>
+                            <h>SCALE 1.000000</h>
+                            <index>0</index>
+                            <children>
+                            </children>
+                        </Layout>
+                    </children>
+                </Layout>
+                <Layout name="tracks_area" type="NORMAL">
+                    <x>REL 0</x>
+                    <y>REL 38</y>
+                    <w>SCALE 1.000000</w>
+                    <h>COMPLEMENT 231</h>
+                    <index>1</index>
+                    <children>
+                        <Layout name="track_container" type="TEMPLATE">
+                            <x>REL 0</x>
+                            <y>REL 0</y>
+                            <w>SCALE 1.000000</w>
+                            <h>REL 114</h>
+                            <index>0</index>
+                            <children>
+                                <Layout name="track_top_pad" type="NORMAL">
+                                    <x>REL 0</x>
+                                    <y>REL 0</y>
+                                    <w>SCALE 1.000000</w>
+                                    <h>REL 4</h>
+                                    <index>0</index>
+                                    <children>
+                                    </children>
+                                </Layout>
+                                <Layout name="track_padded_top" type="NORMAL">
+                                    <x>REL 0</x>
+                                    <y>REL 4</y>
+                                    <w>SCALE 1.000000</w>
+                                    <h>COMPLEMENT 57</h>
+                                    <index>1</index>
+                                    <children>
+                                        <Layout name="track_left_pad" type="NORMAL">
+                                            <x>REL 0</x>
+                                            <y>REL 0</y>
+                                            <w>REL 4</w>
+                                            <h>SCALE 1.000000</h>
+                                            <index>0</index>
+                                            <children>
+                                            </children>
+                                        </Layout>
+                                        <Layout name="track_padded" type="NORMAL">
+                                            <x>REL 4</x>
+                                            <y>REL 0</y>
+                                            <w>COMPLEMENT 600</w>
+                                            <h>SCALE 1.000000</h>
+                                            <index>1</index>
+                                            <children>
+                                                <Layout name="track_console" type="NORMAL">
+                                                    <x>REL 0</x>
+                                                    <y>REL 0</y>
+                                                    <w>REL 190</w>
+                                                    <h>REL 110</h>
+                                                    <index>0</index>
+                                                    <children>
+                                                        <Layout name="colorbar" type="NORMAL">
+                                                            <x>REL 180</x>
+                                                            <y>REL 0</y>
+                                                            <w>REL 10</w>
+                                                            <h>REL 110</h>
+                                                            <index>0</index>
+                                                            <children>
+                                                            </children>
+                                                        </Layout>
+                                                    </children>
+                                                </Layout>
+                                            </children>
+                                        </Layout>
+                                    </children>
+                                </Layout>
+                            </children>
+                            <iterator>VERTICAL 4</iterator>
+                        </Layout>
+                    </children>
+                </Layout>
+            </children>
+        </Layout>
+    </children>
+</Layout>

@@ -335,11 +335,10 @@ int main(int argc, char** argv)
                         break;
 		    case SDL_SCANCODE_Q:
 			if (layout_clicked && clicked_lt) {
-			    Layout *new_child;
 			    if (shiftdown) {
-				new_child = add_complementary_child(clicked_lt, W);
+				add_complementary_child(clicked_lt, W);
 			    } else {
-			        new_child = add_complementary_child(clicked_lt, H);
+			        add_complementary_child(clicked_lt, H);
 			    }
 			    reset_layout(clicked_lt);
 			}
@@ -442,7 +441,6 @@ int main(int argc, char** argv)
             }
         }
 	if (scrolling && !fingerdown) {
-	    fprintf(stderr, "Scroll step\n");
 	    if (scroll_step(scrolling) == 0) {
 		scrolling = NULL;
 	    }

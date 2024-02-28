@@ -98,6 +98,8 @@ static void set_lt_dim_from_param_str(Layout *lt, RectMem rm)
                 case SCALE:
                     lt->x.value.floatval = atof(lt_params->x_value_str);
                     break;
+	    case COMPLEMENT:
+		break;
             }
             break;
         case Y:
@@ -109,6 +111,8 @@ static void set_lt_dim_from_param_str(Layout *lt, RectMem rm)
                 case SCALE:
                     lt->y.value.floatval = atof(lt_params->y_value_str);
                     break;
+	    case COMPLEMENT:
+		break;
             }
             break;
         case W:
@@ -120,6 +124,8 @@ static void set_lt_dim_from_param_str(Layout *lt, RectMem rm)
                 case SCALE:
                     lt->w.value.floatval = atof(lt_params->w_value_str);
                     break;
+	    case COMPLEMENT:
+		break;
             }
             break;
         case H:
@@ -131,6 +137,8 @@ static void set_lt_dim_from_param_str(Layout *lt, RectMem rm)
                 case SCALE:
                     lt->h.value.floatval = atof(lt_params->h_value_str);
                     break;
+	    case COMPLEMENT:
+		break;
             }
             break;
     }

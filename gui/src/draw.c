@@ -139,19 +139,22 @@ void draw_layout(Window *win, Layout *lt)
     if (lt->type == PRGRM_INTERNAL) {
         return;
     }
+
+    if (lt->iterator) {
+        for (int i=0; i<lt->iterator->num_iterations; i++) {
+            draw_layout(win, lt->iterator->iterations[i]);
+        }
+    }
+    
     SDL_Color picked_clr;
     if (lt->type == ITERATION) {
         picked_clr = iter_clr;
     } else {
         picked_clr = lt->selected ? rect_clrs[1] : rect_clrs[0];
     }
-    SDL_Color dotted_clr = lt->selected ? rect_clrs_dttd[1] : rect_clrs_dttd[0];
-    if (lt->type == TEMPLATE || lt->iterator) {
-        for (int i=0; i<lt->iterator->num_iterations; i++) {
-            draw_layout(win, lt->iterator->iterations[i]);
-        }
-    }
+
     SDL_SetRenderDrawColor(win->rend, picked_clr.r, picked_clr.g, picked_clr.b, picked_clr.a);
+
     if (lt->selected) {
         draw_text(lt->namelabel);
         SDL_RenderDrawRect(win->rend, &(lt->label_rect));
@@ -159,6 +162,7 @@ void draw_layout(Window *win, Layout *lt)
     SDL_RenderDrawRect(win->rend, &(lt->rect));
 
     if (lt->type != ITERATION) {
+	SDL_Color dotted_clr = lt->selected ? rect_clrs_dttd[1] : rect_clrs_dttd[0];
         SDL_SetRenderDrawColor(win->rend, dotted_clr.r, dotted_clr.g, dotted_clr.b, dotted_clr.a);
         draw_dotted_horizontal(win->rend, 0, win->w, lt->rect.y);
         draw_dotted_horizontal(win->rend, 0, win->w, lt->rect.y + lt->rect.h);

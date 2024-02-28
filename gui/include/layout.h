@@ -95,8 +95,10 @@ typedef struct layout_iterator {
     uint8_t num_iterations;
     Layout *iterations[MAX_CHILDREN];
     bool scrollable;
-    int scroll_offset;
-    int scroll_momentum;
+    float scroll_offset;
+    float scroll_momentum;
+    
+    
 } LayoutIterator;
 
 // int get_rect_val_from_dim(Dimension dim, int parent_rect_coord);
@@ -139,8 +141,8 @@ void move_position(Layout *lt, int move_by_x, int move_by_y, bool block_snap);
 
 LayoutIterator *create_iterator_from_template(Layout *template, IteratorType type, int num_iterations, bool scrollable);
 
-Layout *handle_scroll(Layout *main_lt, SDL_Point *mousep, int scroll_x, int scroll_y);
-void scroll_step(Layout *lt);
+Layout *handle_scroll(Layout *main_lt, SDL_Point *mousep, float scroll_x, float scroll_y);
+int scroll_step(Layout *lt);
 
 void add_iteration_to_layout(Layout *lt, IteratorType type, bool scrollable);
 void remove_iteration_from_layout(Layout *lt);

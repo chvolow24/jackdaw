@@ -14,6 +14,8 @@
 #define CLICK_EDGE_DIST_TOLERANCE 10
 #define MAX_LTS 255
 
+#define SCROLL_SCALAR 15
+
 Layout *main_lt;
 Layout *clicked_lt;
 Layout *param_lt = NULL;
@@ -33,6 +35,9 @@ void init_SDL()
         fprintf(stderr, "\nError initializing SDL: %s\n", SDL_GetError());
         exit(1);
     }
+    SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "1");
+
+
 }
 
 void init_SDL_ttf()
@@ -41,6 +46,7 @@ void init_SDL_ttf()
         fprintf(stderr, "\nError: TTF_Init failed: %s", TTF_GetError());
         exit(1);
     }
+
 }
 
 void get_mousep(Window *win, SDL_Point *mousep) {
@@ -192,6 +198,8 @@ int main(int argc, char** argv)
     bool mousedown = false;
     bool cmdctrldown = false;
     bool shiftdown  = false;
+    bool fingerdown = false;
+
     SDL_Point mousep;
     clicked_lt = NULL;
     bool layout_clicked = false;
@@ -274,8 +282,22 @@ int main(int argc, char** argv)
                 // layout_clicked = false;
                 layout_corner_clicked = false;
                 // clicked_lt->selected = false;
+
+		/* TODO: Get this to work. cf https://discourse.libsdl.org/t/trackpad-events/49461 */
+	    } else if (e.type == SDL_FINGERUP) {
+		fingerdown = false;
+
+	    } else if (e.type == SDL_FINGERDOWN) {
+
+		fingerdown = true;
+	    } else if (e.type == SDL_FINGERMOTION) {
+
+
+
+		
             } else if (e.type == SDL_MOUSEWHEEL) {
-		scrolling = handle_scroll(main_lt, &mousep, e.wheel.x, e.wheel.y);
+	        scrolling = handle_scroll(main_lt, &mousep, e.wheel.x * SCROLL_SCALAR * 1, e.wheel.y * SCROLL_SCALAR * -1);
+		/* scrolling = handle_scroll(main_lt, &mousep, e.wheel.x, e.wheel.y * -1); */
                 // fprintf(stderr, "SCROLL Y: %d\n", e.wheel.y);
             } else if (e.type == SDL_KEYDOWN) {
                 switch (e.key.keysym.scancode) {
@@ -322,10 +344,7 @@ int main(int argc, char** argv)
 			    } else {
 			        new_child = add_complementary_child(clicked_lt, H);
 			    }
-			    fprintf(stderr, "Successfully created complementary child\n");
-			    fprintf(stderr, "X: %s, Y: %s, W: %s, H: %s\n", get_dimtype_str(new_child->x.type), get_dimtype_str(new_child->y.type), get_dimtype_str(new_child->w.type), get_dimtype_str(new_child->h.type));
 			    reset_layout(clicked_lt);
-			    fprintf(stderr, "Reset layout\n");
 			}
 			break;
                     case SDL_SCANCODE_I:
@@ -425,8 +444,10 @@ int main(int argc, char** argv)
                 }
             }
         }
-	if (scrolling) {
-	    scroll_step(scrolling);
+	if (scrolling && !fingerdown) {
+	    if (scroll_step(scrolling) == 0) {
+		scrolling = NULL;
+	    }
 	}
         draw_main();
         SDL_Delay(1);

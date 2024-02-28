@@ -257,21 +257,32 @@ static Layout *get_scrollable_layout_at_point(Layout *lt, SDL_Point *mousep)
 }
 	    	    
 
+void reset_iterations(LayoutIterator *iter);
 /* Assumes the correct scrollable layout has been found (see 'get_scrollable_layout_at_point') */
-static void handle_scroll_internal(Layout *lt, int scroll_x, int scroll_y)
+static void handle_scroll_internal(Layout *lt, float scroll_x, float scroll_y)
 {
 
-    switch(lt->iterator->type) {
-	case VERTICAL:
-	    lt->iterator->scroll_momentum += scroll_y;
-	    break;
-	case HORIZONTAL:
-	    lt->iterator->scroll_momentum += scroll_x;
-	    break;
+    float offset_increment = lt->iterator->type == VERTICAL ? scroll_y : scroll_x;
+    float new_offset = offset_increment + lt->iterator->scroll_offset;
+    int iter_dim = lt->iterator->type == VERTICAL ?
+	lt->iterator->num_iterations * (lt->rect.h + lt->rect.y - lt->parent->rect.y) :
+	lt->iterator->num_iterations * (lt->rect.w + lt->rect.x - lt->parent->rect.x);
+
+    fprintf(stderr, "New offset: %f, iter_dim %d\n", new_offset, iter_dim);
+    if (new_offset < 0) {
+	lt->iterator->scroll_offset = 0;
+	return;
+    } else if (new_offset > iter_dim) {
+	lt->iterator->scroll_offset = iter_dim;
+	return;
     }
+	   
+    lt->iterator->scroll_offset = new_offset;
+    lt->iterator->scroll_momentum = new_offset;
+    reset_iterations(lt->iterator);
 }
 
-Layout *handle_scroll(Layout *main_lt, SDL_Point *mousep, int scroll_x, int scroll_y)
+Layout *handle_scroll(Layout *main_lt, SDL_Point *mousep, float scroll_x, float scroll_y)
 {
     Layout *scrollable = get_scrollable_layout_at_point(main_lt, mousep);
     if (!scrollable) return NULL;
@@ -282,19 +293,22 @@ Layout *handle_scroll(Layout *main_lt, SDL_Point *mousep, int scroll_x, int scro
 
 
 void reset_iterations(LayoutIterator *iter);
-/* Run every frame on scrollable layout to reset scroll offset and momentum */
-void scroll_step(Layout *lt)
+/* Run every frame on scrollable layout to reset scroll offset and momentum. Return 1 if scroll should continue, 0 if it's done */
+int scroll_step(Layout *lt)
 {
-    if (!lt->iterator || !lt->iterator->scrollable || lt->iterator->scroll_momentum == 0) return;
+    if (!lt->iterator || !lt->iterator->scrollable || lt->iterator->scroll_momentum == 0) return 0;
     
     lt->iterator->scroll_momentum += (lt->iterator->scroll_momentum < 0 ? 1 : -1);
     if (lt->iterator->scroll_offset + lt->iterator->scroll_momentum < 0) {
 	lt->iterator->scroll_offset = 0;
 	lt->iterator->scroll_momentum = 0;
+	reset_iterations(lt->iterator);
+	return 0;
     } else {
 	lt->iterator->scroll_offset += lt->iterator->scroll_momentum;
+	reset_iterations(lt->iterator);
+	return 1;
     }
-    reset_iterations(lt->iterator);
 }
 				      
 
@@ -609,7 +623,6 @@ Layout *create_layout()
 void delete_iterator(LayoutIterator *iter);
 void delete_layout(Layout *lt)
 {
-    fprintf(stderr, "Delete layout %s. Parent? %p\n", lt->name, lt->parent);
     if (lt->parent) {
         for (uint8_t i=lt->index; i<lt->parent->num_children - 1; i++) {
             lt->parent->children[i] = lt->parent->children[i + 1];
@@ -950,12 +963,12 @@ void reset_iterations(LayoutIterator *iter)
 //        set_values_from_rect(iteration);
         switch (iter->type) {
             case VERTICAL:
-		iteration->rect.y += scroll_offset;
+		iteration->rect.y -= scroll_offset;
                 y += h + y_dist_from_parent;
                 break;
             case HORIZONTAL:
-		iteration->rect.x += scroll_offset;
-                x += w + x_dist_from_parent + scroll_offset;
+		iteration->rect.x -= scroll_offset;
+                x += w + x_dist_from_parent;
                 break;
         }
 	for (int i=0; i<iteration->num_children; i++) {

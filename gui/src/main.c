@@ -14,7 +14,7 @@
 #define CLICK_EDGE_DIST_TOLERANCE 10
 #define MAX_LTS 255
 
-#define SCROLL_SCALAR 15
+#define SCROLL_SCALAR 8
 
 Layout *main_lt;
 Layout *clicked_lt;
@@ -286,7 +286,6 @@ int main(int argc, char** argv)
 		/* TODO: Get this to work. cf https://discourse.libsdl.org/t/trackpad-events/49461 */
 	    } else if (e.type == SDL_FINGERUP) {
 		fingerdown = false;
-
 	    } else if (e.type == SDL_FINGERDOWN) {
 
 		fingerdown = true;
@@ -296,9 +295,7 @@ int main(int argc, char** argv)
 
 		
             } else if (e.type == SDL_MOUSEWHEEL) {
-	        scrolling = handle_scroll(main_lt, &mousep, e.wheel.x * SCROLL_SCALAR * 1, e.wheel.y * SCROLL_SCALAR * -1);
-		/* scrolling = handle_scroll(main_lt, &mousep, e.wheel.x, e.wheel.y * -1); */
-                // fprintf(stderr, "SCROLL Y: %d\n", e.wheel.y);
+	        scrolling = handle_scroll(main_lt, &mousep, e.wheel.preciseX * SCROLL_SCALAR * 1, e.wheel.preciseY * SCROLL_SCALAR * -1);
             } else if (e.type == SDL_KEYDOWN) {
                 switch (e.key.keysym.scancode) {
                     case SDL_SCANCODE_LGUI:
@@ -445,6 +442,7 @@ int main(int argc, char** argv)
             }
         }
 	if (scrolling && !fingerdown) {
+	    fprintf(stderr, "Scroll step\n");
 	    if (scroll_step(scrolling) == 0) {
 		scrolling = NULL;
 	    }

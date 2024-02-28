@@ -264,21 +264,20 @@ static void handle_scroll_internal(Layout *lt, float scroll_x, float scroll_y)
 
     float offset_increment = lt->iterator->type == VERTICAL ? scroll_y : scroll_x;
     float new_offset = offset_increment + lt->iterator->scroll_offset;
-    int iter_dim = lt->iterator->type == VERTICAL ?
-	lt->iterator->num_iterations * (lt->rect.h + lt->rect.y - lt->parent->rect.y) :
-	lt->iterator->num_iterations * (lt->rect.w + lt->rect.x - lt->parent->rect.x);
+    int iter_dim = lt->iterator->type == VERTICAL ? lt->iterator->total_height_pixels : lt->iterator->total_width_pixels;
 
-    fprintf(stderr, "New offset: %f, iter_dim %d\n", new_offset, iter_dim);
     if (new_offset < 0) {
+	lt->iterator->scroll_momentum = 0;
 	lt->iterator->scroll_offset = 0;
 	return;
     } else if (new_offset > iter_dim) {
+	lt->iterator->scroll_momentum = 0;
 	lt->iterator->scroll_offset = iter_dim;
 	return;
     }
 	   
     lt->iterator->scroll_offset = new_offset;
-    lt->iterator->scroll_momentum = new_offset;
+    lt->iterator->scroll_momentum = offset_increment;
     reset_iterations(lt->iterator);
 }
 
@@ -297,12 +296,22 @@ void reset_iterations(LayoutIterator *iter);
 int scroll_step(Layout *lt)
 {
     if (!lt->iterator || !lt->iterator->scrollable || lt->iterator->scroll_momentum == 0) return 0;
+
+    int iter_dim = lt->iterator->type == VERTICAL ? lt->iterator->total_height_pixels : lt->iterator->total_width_pixels;
     
     lt->iterator->scroll_momentum += (lt->iterator->scroll_momentum < 0 ? 1 : -1);
+    if (fabs(lt->iterator->scroll_momentum) < 1) {
+	lt->iterator->scroll_momentum = 0;
+	return 0;
+    }
     if (lt->iterator->scroll_offset + lt->iterator->scroll_momentum < 0) {
 	lt->iterator->scroll_offset = 0;
 	lt->iterator->scroll_momentum = 0;
 	reset_iterations(lt->iterator);
+	return 0;
+    } else if (lt->iterator->scroll_offset + lt->iterator->scroll_momentum > iter_dim) {
+	lt->iterator->scroll_offset = iter_dim;
+	lt->iterator->scroll_momentum = 0;
 	return 0;
     } else {
 	lt->iterator->scroll_offset += lt->iterator->scroll_momentum;
@@ -810,6 +819,7 @@ LayoutIterator *create_iterator()
     iter->scrollable = false;
     iter->scroll_offset = 0;
     iter->scroll_momentum = 0;
+    iter->total_height_pixels = 0;
     return iter;
 }
 
@@ -953,6 +963,8 @@ void reset_iterations(LayoutIterator *iter)
     }
     int x_dist_from_parent = x - iter->template->parent->rect.x;
     int y_dist_from_parent = y - iter->template->parent->rect.y;
+    iter->total_width_pixels = (w + x_dist_from_parent) * iter->num_iterations;
+    iter->total_height_pixels = (h + y_dist_from_parent) * iter->num_iterations; 
     int scroll_offset = iter->scrollable ? iter->scroll_offset : 0;
     for (int i=0; i<iter->num_iterations; i++) {
         Layout *iteration = iter->iterations[i];

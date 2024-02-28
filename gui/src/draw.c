@@ -146,6 +146,11 @@ void draw_layout(Window *win, Layout *lt)
         picked_clr = lt->selected ? rect_clrs[1] : rect_clrs[0];
     }
     SDL_Color dotted_clr = lt->selected ? rect_clrs_dttd[1] : rect_clrs_dttd[0];
+    if (lt->type == TEMPLATE || lt->iterator) {
+        for (int i=0; i<lt->iterator->num_iterations; i++) {
+            draw_layout(win, lt->iterator->iterations[i]);
+        }
+    }
     SDL_SetRenderDrawColor(win->rend, picked_clr.r, picked_clr.g, picked_clr.b, picked_clr.a);
     if (lt->selected) {
         draw_text(lt->namelabel);
@@ -166,11 +171,6 @@ void draw_layout(Window *win, Layout *lt)
         draw_layout(win, lt->children[i]);
     }
 
-    if (lt->type == TEMPLATE || lt->iterator) {
-        for (int i=1; i<lt->iterator->num_iterations; i++) {
-            draw_layout(win, lt->iterator->iterations[i]);
-        }
-    }
 }
 
 void draw_main()

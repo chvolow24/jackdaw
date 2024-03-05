@@ -1,3 +1,29 @@
+/*****************************************************************************************************************
+  Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation | built on SDL (https://libsdl.org/)
+******************************************************************************************************************
+
+  Copyright (C) 2023 Charlie Volow
+  
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+  
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+  
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+
+*****************************************************************************************************************/
+
 #include <stdio.h>
 #include <stdbool.h>
 #include "SDL.h"
@@ -10,6 +36,8 @@
 #include "window.h"
 #include "parse_xml.h"
 #include "layout_xml.h"
+
+#define OPEN_SANS_PATH "../assets/ttf/OpenSans-Regular.ttf"
 
 #define CLICK_EDGE_DIST_TOLERANCE 10
 #define MAX_LTS 255
@@ -27,7 +55,28 @@ bool show_layout_params = false;
 bool show_openfile = false;
 
 
-TTF_Font *open_sans;
+//TTF_Font *open_sans;
+
+
+/********* Screenshot ********/
+
+int screenshot_index = 0;
+
+/* Takes a bmp screenshot and saves to the 'images' subdirectory, with index i included in filename. */
+void screenshot(int i, SDL_Renderer* rend)
+{
+  char filename[30];
+  sprintf(filename, "gifframes/screenshot%3d.bmp", i);
+  printf("\nSaved %s", filename);
+  SDL_Surface *sshot = SDL_CreateRGBSurface(0, main_win->w, main_win->h, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
+  SDL_RenderReadPixels(rend, NULL, SDL_PIXELFORMAT_ARGB8888, sshot->pixels, sshot->pitch);
+  SDL_SaveBMP(sshot, filename);
+  SDL_FreeSurface(sshot);
+}
+
+/******************************/
+
+
 
 void init_SDL()
 {
@@ -177,8 +226,9 @@ int main(int argc, char** argv)
     init_SDL_ttf();
 
     main_win = create_window(1200, 900, "Layout editor");
+    assign_std_font(main_win, OPEN_SANS_PATH);
 
-    open_sans = open_font("../assets/ttf/OpenSans-Regular.ttf", 12, main_win);
+    //  open_sans = open_font("../assets/ttf/OpenSans-Regular.ttf", 12, main_win);
 
     if (argc == 2) {
         FILE *f = fopen(argv[1], "r");
@@ -199,6 +249,8 @@ int main(int argc, char** argv)
     bool cmdctrldown = false;
     bool shiftdown  = false;
     bool fingerdown = false;
+
+    bool screen_record = false;
 
     SDL_Point mousep;
     clicked_lt = NULL;
@@ -421,6 +473,9 @@ int main(int argc, char** argv)
 			    reset_layout(main_lt);
 			}
 			break;
+		    case SDL_SCANCODE_0:
+		        screen_record = screen_record ? false : true;
+		        break;
                     default:
                         break;
                 }
@@ -447,6 +502,11 @@ int main(int argc, char** argv)
 	}
         draw_main();
         SDL_Delay(1);
+
+	if (screen_record) {
+	    screenshot_index++;
+	    screenshot(screenshot_index, main_win->rend);
+	}
     }
 
 }

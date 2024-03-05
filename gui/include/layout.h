@@ -43,15 +43,18 @@ typedef enum rect_mem {
     H
 } RectMem;
 
+/* floatval is reserved for the SCALE dimtype */
 typedef union dimval {
     int intval;
     float floatval;
 } DimVal;
 
+/* Used to describe X, Y, W, and H of a Layout */
 typedef struct dimension {
     DimType type;
     DimVal value;
 } Dimension;
+
 
 typedef enum layout_type {
     PRGRM_INTERNAL, /* Used for program operation. Not part of editable layout hierarchy */
@@ -84,11 +87,13 @@ typedef struct layout {
 } Layout;
 
 
+/* If VERTICAL, iterations will appear below previous iterations. if HORIZONTAL, to the right. */
 typedef enum iterator_type {
     VERTICAL,
     HORIZONTAL
 } IteratorType;
 
+/* A member of a TEMPLATE layout that describes how iterations are constructed from that template */
 typedef struct layout_iterator {
     Layout *template;
     IteratorType type;
@@ -98,22 +103,32 @@ typedef struct layout_iterator {
     float scroll_offset;
     float scroll_momentum;
     int total_height_pixels;
-    int total_width_pixels;
-    
-    
+    int total_width_pixels;    
 } LayoutIterator;
 
-// int get_rect_val_from_dim(Dimension dim, int parent_rect_coord);
 
-void center_layout_x(Layout *lt);
-void center_layout_y(Layout *lt);
+/* void center_layout_x(Layout *lt); */
+/* void center_layout_y(Layout *lt); */
 
+/* Create an empty layout */
 Layout *create_layout();
+
+/* Reset a layout's rect and rects of all child layouts */
 void reset_layout(Layout *lt);
+
+/* Resize main layout in response to changed window size */
 void reset_layout_from_window(Layout *lt, Window *win);
+
+/* Special purpose function to create a main layout */
 Layout *create_layout_from_window(Window *win);
+
+/* Permanent deletion. Includes all children. */
 void delete_layout(Layout *lt);
+
+/* Add a new child with default name to layout */
 Layout *add_child(Layout *parent);
+
+/* Add a child with a complementary dimension */
 Layout *add_complementary_child(Layout *parent, RectMem comp_rm);
 void translate_layout(Layout *lt, int translate_x, int translate_y, bool block_snap);
 void resize_layout(Layout *lt, int resize_w, int resize_h, bool block_snap);

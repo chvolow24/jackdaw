@@ -1,3 +1,30 @@
+/*****************************************************************************************************************
+  Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation | built on SDL (https://libsdl.org/)
+******************************************************************************************************************
+
+  Copyright (C) 2023 Charlie Volow
+  
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+  
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+  
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+
+*****************************************************************************************************************/
+
+
 #include "draw.h"
 #include "text.h"
 #include "layout.h"
@@ -352,3 +379,37 @@ void destroy_font(TTF_Font *font)
 {
     free(font);
 }
+
+Font *init_font(const char *path, Window *win)
+{
+    Font *font = malloc(sizeof(Font));
+    int sizes[] = STD_FONT_SIZES;
+    font->path = path;
+    if (!font) {
+	fprintf(stderr, "Error: unable to allocate space for Font. Exiting.\n");
+	exit(1);
+    }
+    for (int i=0; i<STD_FONT_ARRLEN; i++) {;
+	font->ttf_array[i] = open_font(path, sizes[i], win);
+    }
+    return font;
+}
+
+TTF_Font *get_ttf_at_size(Font *font, int size)
+{
+    int i = 0;
+    int sizes[] = STD_FONT_SIZES;
+    while (i<STD_FONT_ARRLEN) {
+	if (size == sizes[i]) {
+	    if (font->ttf_array[i]) {
+		return font->ttf_array[i];
+	    } else {
+		fprintf(stderr, "Error: ttf_array at index %d (size %d) is null.\n", i, size);
+		exit(1);
+	    }
+	}
+	i++;
+    }
+    return NULL;
+}
+	

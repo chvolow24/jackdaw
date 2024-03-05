@@ -52,7 +52,7 @@
 // } Textbox;
 
 void init_SDL_ttf();
-TTF_Font* open_font(const char* path, int size);
+TTF_Font* open_font_(const char* path, int size);
 void init_fonts(TTF_Font **font_array, const char *path);
 void close_fonts(TTF_Font **font_array);
 void write_text(

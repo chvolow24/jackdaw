@@ -47,7 +47,9 @@
 #define DEFAULT_SFPP 600 // sample frames per pixel
 
 extern Project *proj;
-extern uint8_t scale_factor;
+extern Layout *main_lt;
+extern Window *main_win;
+//extern uint8_t scale_factor;
 
 extern JDAW_Color clear;
 extern JDAW_Color white;
@@ -273,6 +275,10 @@ Project *create_project(const char* name, uint8_t channels, uint32_t sample_rate
 {
     /* Allocate space for project and set name */
     Project *proj = malloc(sizeof(Project));
+    if (!proj) {
+	fprintf(stderr, "Error: unable to allocate space for Project. Exiting.\n");
+	exit(1);
+    }
     strcpy(proj->name, name);
 
     /* Set audio settings */
@@ -301,6 +307,9 @@ Project *create_project(const char* name, uint8_t channels, uint32_t sample_rate
     tl->play_pos_sframes = 0;
     tl->in_mark_sframes = 0;
     tl->out_mark_sframes = 0;
+
+    /* Initialize the timecode */
+    set_timecode(tl->timecode);
     // tl->record_offset_sframes = 0;
     // tl->play_offset = 0;
     // tl->tempo = 120;
@@ -312,17 +321,22 @@ Project *create_project(const char* name, uint8_t channels, uint32_t sample_rate
     tl->num_clipboard_clips = 0;
     tl->leftmost_clipboard_clip_pos = 0;
     memset(tl->active_track_indices, '\0', MAX_ACTIVE_TRACKS);
+
+    /* Mutual references between Project and Timeline */
     proj->tl = tl;
     tl->proj = proj;
-
+    
 
     /* Create SDL_Window and accompanying SDL_Renderer */
     char project_window_name[MAX_NAMELENGTH + 10];
     sprintf(project_window_name, "Jackdaw | %s", name);
-    proj->jwin = create_jwin(project_window_name, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED-20, 900, 650);
+    /* proj->jwin = create_jwin(project_window_name, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED-20, 900, 650); */
+    proj->win = create_window(900, 650, project_window_name);
 
-    tl->timecode_tb = create_textbox(0, 0, 0, 0, proj->jwin->mono_fonts[3], "+00:00:00:00000", &white, NULL, &black, NULL, NULL, NULL, NULL, 0, true, false, CENTER);
+    /* tl->timecode_tb = create_textbox(0, 0, 0, 0, proj->jwin->mono_fonts[3], "+00:00:00:00000", &white, NULL, &black, NULL, NULL, NULL, NULL, 0, true, false, CENTER); */
 
+    SDL_Rect *timecode_rect = get_child_recursive(main_lt, "timecode");
+    tl->timecode_txt = create_text_from_str(tl->timecode.str, 15, timecode_rect, TTF_FONT*font, SDL_COLOR_TXT_COLOR, TEXTALIGN_ALIGN, BOOL_TRUNCATE, SDL_REND_REND);
     proj->audio_out = NULL;
     activate_audio_devices(proj);
 

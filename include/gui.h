@@ -26,8 +26,13 @@
 
 #ifndef JDAW_GUI_H
 #define JDAW_GUI_H
+
 #include "SDL.h"
 #include "project.h"
+
+#include "layout.h"
+#include "layout_xml.h"
+#include "text.h"
 
 #define DEFAULT_WINDOW_FLAGS SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI
 #define DEFAULT_RENDER_FLAGS SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC

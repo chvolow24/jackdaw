@@ -51,7 +51,7 @@ void init_SDL_ttf()
     }
 }
 
-TTF_Font *open_font(const char* path, int size)
+TTF_Font *open_font_(const char* path, int size)
 {
     TTF_Font *font = TTF_OpenFont(path, size);
     if (!font) {
@@ -69,7 +69,7 @@ void init_fonts(TTF_Font **font_array, const char *path)
         int size = standard_sizes[i];
         /* Account for high DPI scaling using global scale_factor */
         size *= scale_factor;
-        font_array[i] = open_font(path, size);
+        font_array[i] = open_font_(path, size);
     }
 }
 

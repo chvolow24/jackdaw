@@ -38,7 +38,7 @@
 #define JDAW_AUDIO_H
 
 #include <stdbool.h>
-#include "project.h"
+/* #include "project.h" */
 #include "SDL_audio.h"
 
 /* Define some low-level audio constants */
@@ -48,6 +48,7 @@
 // #define DEVICE_BUFFLEN_SFRAMES SAMPLE_RATE * BUFFLEN_SECONDS
 
 typedef struct clip Clip;
+typedef struct project Project;
 
 /* Struct to contain information related to an audio device, including the SDL_AudioDeviceID. */
 typedef struct audiodevice{

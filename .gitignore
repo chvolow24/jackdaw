@@ -12,6 +12,7 @@ todo.txt
 *~
 *#
 .#*
+*.#*
 TAGS
 gui/complete.gif
 gui/gifframes

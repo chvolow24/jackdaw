@@ -32,7 +32,7 @@
 #define DEFAULT_RENDER_FLAGS SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
 
 /* Create a window struct and initialize all members */
-Window *create_window(int w, int h, const char *name) 
+Window *window_create(int w, int h, const char *name) 
 {
 
     Window *window = malloc(sizeof(Window));
@@ -70,16 +70,16 @@ Window *create_window(int w, int h, const char *name)
     return window;
 }
 
-void assign_std_font(Window *win, const char *font_path)
+void window_assign_std_font(Window *win, const char *font_path)
 {
-    win->std_font = init_font(font_path, win);
+    win->std_font = ttf_init_font(font_path, win);
     if (win->std_font == NULL) {
 	fprintf(stderr, "Error: Unable to initialize font at %s.\n", font_path);
     }
 }
 
 /* Reset the w and h members of a window struct (usually in response to a resize event) */
-void auto_resize_window(Window *win)
+void window_auto_resize(Window *win)
 {
     SDL_GetWindowSize(win->win, &(win->w), &(win->h));
     win->w *= win->dpi_scale_factor;
@@ -87,7 +87,7 @@ void auto_resize_window(Window *win)
 }
 
 
-void resize_window(Window *win, int w, int h)
+void window_resize(Window *win, int w, int h)
 {
     SDL_SetWindowSize(win->win, (double)w / win->dpi_scale_factor, (double)h / win->dpi_scale_factor);
     win->w = w;

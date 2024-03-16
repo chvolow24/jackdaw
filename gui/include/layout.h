@@ -24,6 +24,7 @@ typedef enum corner {
     TPLFT,
     TPRT,
     BTTMLFT,
+
     BTTMRT,
     NONECRNR
 } Corner;
@@ -111,57 +112,63 @@ typedef struct layout_iterator {
 /* void center_layout_y(Layout *lt); */
 
 /* Create an empty layout */
-Layout *create_layout();
+Layout *layout_create();
 
 /* Reset a layout's rect and rects of all child layouts */
-void reset_layout(Layout *lt);
+void layout_reset(Layout *lt);
 
 /* Resize main layout in response to changed window size */
-void reset_layout_from_window(Layout *lt, Window *win);
+void layout_reset_from_window(Layout *lt, Window *win);
 
 /* Special purpose function to create a main layout */
-Layout *create_layout_from_window(Window *win);
+Layout *layout_create_from_window(Window *win);
 
 /* Permanent deletion. Includes all children. */
-void delete_layout(Layout *lt);
+void layout_destroy(Layout *lt);
 
 /* Add a new child with default name to layout */
-Layout *add_child(Layout *parent);
+Layout *layout_add_child(Layout *parent);
+
+void layout_set_name(Layout *lt, char *new_name);
 
 /* Add a child with a complementary dimension */
-Layout *add_complementary_child(Layout *parent, RectMem comp_rm);
-void translate_layout(Layout *lt, int translate_x, int translate_y, bool block_snap);
-void resize_layout(Layout *lt, int resize_w, int resize_h, bool block_snap);
-void set_default_dims(Layout *lt);
-void reparent(Layout *child, Layout *parent);
+Layout *layout_add_complementary_child(Layout *parent, RectMem comp_rm);
+void layout_translate(Layout *lt, int translate_x, int translate_y, bool block_snap);
+void layout_resize(Layout *lt, int resize_w, int resize_h, bool block_snap);
+void layout_set_default_dims(Layout *lt);
+void layout_reparent(Layout *child, Layout *parent);
 // Layout *read_layout(FILE *f, long endrange);
-Layout *copy_layout(Layout *to_copy, Layout *parent);
+Layout *layout_copy(Layout *to_copy, Layout *parent);
 
-Layout *get_child(Layout *lt, const char *name);
-Layout *get_child_recursive(Layout *lt, const char *name);
-void set_layout_type_recursive(Layout *lt, LayoutType type);
-Layout *deepest_layout_at_point(Layout *search, SDL_Point *point);
-const char *get_dimtype_str(DimType dt);
-const char *get_itertype_str(IteratorType iter_type);
+Layout *layout_get_child_by_name(Layout *lt, const char *name);
+Layout *layout_get_child_by_name_recursive(Layout *lt, const char *name);
+void layout_set_type_recursive(Layout *lt, LayoutType type);
+Layout *layout_deepest_at_point(Layout *search, SDL_Point *point);
+const char *layout_get_dimtype_str(DimType dt);
+const char *layout_get_itertype_str(IteratorType iter_type);
 
-Layout *iterate_siblings(Layout *from, int direction);
-Layout *get_first_child(Layout *parent);
-Layout *get_parent(Layout *child);
-void toggle_dimension(Layout *lt, Dimension *dim, RectMem rm, SDL_Rect *rect, SDL_Rect *parent_rect);
-void get_val_str(Dimension *dim, char *dst, int maxlen);
+Layout *layout_iterate_siblings(Layout *from, int direction);
+Layout *layout_get_first_child(Layout *parent);
+Layout *layout_get_parent(Layout *child);
+void layout_toggle_dimension(Layout *lt, Dimension *dim, RectMem rm, SDL_Rect *rect, SDL_Rect *parent_rect);
+void layout_get_dimval_str(Dimension *dim, char *dst, int maxlen);
 
 
-void set_edge(Layout *lt, Edge edge, int set_to, bool block_snap);
-void set_corner(Layout *lt, Corner crnr, int x, int y, bool block_snap);
-void set_position_pixels(Layout *lt, int x, int y, bool block_snap) ;
-void move_position(Layout *lt, int move_by_x, int move_by_y, bool block_snap);
+void layout_set_edge(Layout *lt, Edge edge, int set_to, bool block_snap);
+void layout_set_corner(Layout *lt, Corner crnr, int x, int y, bool block_snap);
+void layout_set_position_pixels(Layout *lt, int x, int y, bool block_snap) ;
+void layout_move_position(Layout *lt, int move_by_x, int move_by_y, bool block_snap);
 
-LayoutIterator *create_iterator_from_template(Layout *template, IteratorType type, int num_iterations, bool scrollable);
+LayoutIterator *layout_create_iter_from_template(Layout *template, IteratorType type, int num_iterations, bool scrollable);
 
-Layout *handle_scroll(Layout *main_lt, SDL_Point *mousep, float scroll_x, float scroll_y);
-int scroll_step(Layout *lt);
+Layout *layout_handle_scroll(Layout *main_lt, SDL_Point *mousep, float scroll_x, float scroll_y);
+int layout_scroll_step(Layout *lt);
 
-void add_iteration_to_layout(Layout *lt, IteratorType type, bool scrollable);
-void remove_iteration_from_layout(Layout *lt);
+void layout_add_iter(Layout *lt, IteratorType type, bool scrollable);
+void layout_remove_iter(Layout *lt);
+
+void layout_set_values_from_rect(Layout *lt);
+
+void layout_fprint(FILE *f, Layout *lt);
 
 #endif

@@ -40,9 +40,9 @@ extern Layout *main_lt;
 static void write_dimension(FILE *f, Dimension *dim, char dimchar, int indent)
 {
     if (dim->type == SCALE) {
-        fprintf(f, "%*s<%c>%s %f</%c>\n", indent, "", dimchar, get_dimtype_str(dim->type), dim->value.floatval, dimchar);
+        fprintf(f, "%*s<%c>%s %f</%c>\n", indent, "", dimchar, layout_get_dimtype_str(dim->type), dim->value.floatval, dimchar);
     } else {
-        fprintf(f, "%*s<%c>%s %d</%c>\n", indent, "", dimchar, get_dimtype_str(dim->type), dim->value.intval, dimchar);
+        fprintf(f, "%*s<%c>%s %d</%c>\n", indent, "", dimchar, layout_get_dimtype_str(dim->type), dim->value.intval, dimchar);
     }
 }
 
@@ -96,7 +96,7 @@ void write_layout(FILE *f, Layout *lt, int indent)
 
     fprintf(f, "%*s<index>%d</index>\n", indent + TABSPACES, "", lt->index);
     if (lt->type == TEMPLATE) {
-        fprintf(f, "%*s<iterator>%s %d</iterator>\n", indent + TABSPACES, "", get_itertype_str(lt->iterator->type), lt->iterator->num_iterations);
+        fprintf(f, "%*s<iterator>%s %d</iterator>\n", indent + TABSPACES, "", layout_get_itertype_str(lt->iterator->type), lt->iterator->num_iterations);
     }
     fprintf(f, "%*s<children>\n", indent + TABSPACES, "");
 
@@ -189,7 +189,7 @@ LayoutType read_lt_type_str(char *lt_type_str)
 
 static Layout *get_layout_from_tag(Tag *lt_tag)
 {
-    Layout *lt = create_layout();
+    Layout *lt = layout_create();
     for (int i=0; i<lt_tag->num_attrs; i++) {
         Attr *attr = lt_tag->attrs[i];
         if (strcmp(attr->name, "name") == 0) {
@@ -218,14 +218,14 @@ static Layout *get_layout_from_tag(Tag *lt_tag)
                 Tag *child_lt_tag = childtag->children[j];
                 Layout *child_lt = get_layout_from_tag(child_lt_tag);
                 // fprintf(stderr, "NUM CHILDREN: %d/%d\n", j, childtag->num_children);
-                reparent(child_lt, lt);
+                layout_reparent(child_lt, lt);
             }
         } else if (strcmp(childtag->tagname, "iterator") == 0) {
             IteratorType iter_type;
             int num_iterations;
             read_iterator(childtag->inner_text, &iter_type, &num_iterations);
-            fprintf(stderr, "Create iterator from template %s, type %s, num %d\n", lt->name, get_itertype_str(iter_type), num_iterations);
-            create_iterator_from_template(lt, iter_type, num_iterations, false);
+            fprintf(stderr, "Create iterator from template %s, type %s, num %d\n", lt->name, layout_get_itertype_str(iter_type), num_iterations);
+            layout_create_iter_from_template(lt, iter_type, num_iterations, false);
             fprintf(stderr, "END READ ITERATOR\n");
         
         }
@@ -235,7 +235,7 @@ static Layout *get_layout_from_tag(Tag *lt_tag)
 
 static Layout *read_layout(FILE *f, long endrange)
 {
-    Tag *lt_tag = store_next_tag(f, -1);
+    Tag *lt_tag = xml_store_next_tag(f, -1);
     if (strcmp(lt_tag->tagname, "Layout") != 0) {
         fprintf(stderr, "Error reading xml file: root tag is not a 'Layout' tag.");
         return NULL;
@@ -243,7 +243,7 @@ static Layout *read_layout(FILE *f, long endrange)
 
     Layout *lt = get_layout_from_tag(lt_tag);
 
-    destroy_tag(lt_tag);
+    xml_destroy_tag(lt_tag);
     return lt;
 }
 
@@ -266,7 +266,7 @@ Layout *read_xml_to_lt(Layout *dst, const char *filename)
         return dst;
     }
 
-    reparent(opened, dst);
+    layout_reparent(opened, dst);
     fprintf(stderr, "\"%s\" now a child of \"%s\"\n", opened->name, opened->parent->name);
     // if (dst->parent) {
     //     reparent(opened, dst->parent);
@@ -281,7 +281,7 @@ Layout *read_xml_to_lt(Layout *dst, const char *filename)
     // dst->num_children = 0;
     // opened->display = true;
     // delete_layout(dst);
-    reset_layout(opened);
+    layout_reset(opened);
     return opened;
 }
 

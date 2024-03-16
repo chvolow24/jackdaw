@@ -1,0 +1,180 @@
+<Layout name="param_lt" type="PRGRM_INTERNAL">
+    <x>SCALE 0.263333</x>
+    <y>SCALE 0.187779</y>
+    <w>SCALE 0.458333</w>
+    <h>SCALE 0.665425</h>
+    <index>0</index>
+    <children>
+        <Layout name="name_row" type="PRGRM_INTERNAL">
+            <x>SCALE 0.090909</x>
+            <y>SCALE 0.067189</y>
+            <w>ABS 834</w>
+            <h>ABS 113</h>
+            <index>0</index>
+            <children>
+                <Layout name="name_label" type="PRGRM_INTERNAL">
+                    <x>REL 0</x>
+                    <y>REL 44</y>
+                    <w>ABS 232</w>
+                    <h>ABS 69</h>
+                    <index>0</index>
+                    <children>
+                    </children>
+                </Layout>
+                <Layout name="name_value" type="PRGRM_INTERNAL">
+                    <x>REL 254</x>
+                    <y>REL 44</y>
+                    <w>ABS 238</w>
+                    <h>ABS 69</h>
+                    <index>1</index>
+                    <children>
+                    </children>
+                </Layout>
+            </children>
+        </Layout>
+        <Layout name="x_row" type="PRGRM_INTERNAL">
+            <x>SCALE 0.090909</x>
+            <y>SCALE 0.245241</y>
+            <w>ABS 834</w>
+            <h>ABS 108</h>
+            <index>1</index>
+            <children>
+                <Layout name="x_label" type="PRGRM_INTERNAL">
+                    <x>REL 0</x>
+                    <y>REL 34</y>
+                    <w>ABS 232</w>
+                    <h>ABS 74</h>
+                    <index>0</index>
+                    <children>
+                    </children>
+                </Layout>
+                <Layout name="x_type" type="PRGRM_INTERNAL">
+                    <x>REL 254</x>
+                    <y>REL 34</y>
+                    <w>ABS 238</w>
+                    <h>ABS 74</h>
+                    <index>1</index>
+                    <children>
+                    </children>
+                </Layout>
+                <Layout name="x_value" type="PRGRM_INTERNAL">
+                    <x>REL 524</x>
+                    <y>REL 32</y>
+                    <w>ABS 277</w>
+                    <h>ABS 76</h>
+                    <index>2</index>
+                    <children>
+                    </children>
+                </Layout>
+            </children>
+        </Layout>
+        <Layout name="y_row" type="PRGRM_INTERNAL">
+            <x>SCALE 0.090909</x>
+            <y>SCALE 0.426487</y>
+            <w>ABS 834</w>
+            <h>ABS 106</h>
+            <index>2</index>
+            <children>
+                <Layout name="y_label" type="PRGRM_INTERNAL">
+                    <x>REL 0</x>
+                    <y>REL 34</y>
+                    <w>ABS 232</w>
+                    <h>ABS 72</h>
+                    <index>0</index>
+                    <children>
+                    </children>
+                </Layout>
+                <Layout name="y_type" type="PRGRM_INTERNAL">
+                    <x>REL 254</x>
+                    <y>REL 34</y>
+                    <w>ABS 238</w>
+                    <h>ABS 72</h>
+                    <index>1</index>
+                    <children>
+                    </children>
+                </Layout>
+                <Layout name="y_value" type="PRGRM_INTERNAL">
+                    <x>REL 526</x>
+                    <y>REL 34</y>
+                    <w>ABS 277</w>
+                    <h>ABS 72</h>
+                    <index>2</index>
+                    <children>
+                    </children>
+                </Layout>
+            </children>
+        </Layout>
+        <Layout name="w_row" type="PRGRM_INTERNAL">
+            <x>SCALE 0.090909</x>
+            <y>SCALE 0.584736</y>
+            <w>ABS 834</w>
+            <h>ABS 112</h>
+            <index>3</index>
+            <children>
+                <Layout name="w_label" type="PRGRM_INTERNAL">
+                    <x>REL 0</x>
+                    <y>REL 46</y>
+                    <w>ABS 232</w>
+                    <h>ABS 66</h>
+                    <index>0</index>
+                    <children>
+                    </children>
+                </Layout>
+                <Layout name="w_type" type="PRGRM_INTERNAL">
+                    <x>REL 254</x>
+                    <y>REL 46</y>
+                    <w>ABS 238</w>
+                    <h>ABS 66</h>
+                    <index>1</index>
+                    <children>
+                    </children>
+                </Layout>
+                <Layout name="w_value" type="PRGRM_INTERNAL">
+                    <x>REL 524</x>
+                    <y>REL 46</y>
+                    <w>ABS 277</w>
+                    <h>ABS 66</h>
+                    <index>2</index>
+                    <children>
+                    </children>
+                </Layout>
+            </children>
+        </Layout>
+        <Layout name="h_row" type="PRGRM_INTERNAL">
+            <x>SCALE 0.090909</x>
+            <y>SCALE 0.771557</y>
+            <w>ABS 834</w>
+            <h>ABS 112</h>
+            <index>4</index>
+            <children>
+                <Layout name="h_label" type="PRGRM_INTERNAL">
+                    <x>REL 0</x>
+                    <y>REL 48</y>
+                    <w>ABS 232</w>
+                    <h>ABS 64</h>
+                    <index>0</index>
+                    <children>
+                    </children>
+                </Layout>
+                <Layout name="h_type" type="PRGRM_INTERNAL">
+                    <x>REL 254</x>
+                    <y>REL 48</y>
+                    <w>ABS 238</w>
+                    <h>ABS 64</h>
+                    <index>1</index>
+                    <children>
+                    </children>
+                </Layout>
+                <Layout name="h_value" type="PRGRM_INTERNAL">
+                    <x>REL 524</x>
+                    <y>REL 48</y>
+                    <w>ABS 277</w>
+                    <h>ABS 64</h>
+                    <index>2</index>
+                    <children>
+                    </children>
+                </Layout>
+            </children>
+        </Layout>
+    </children>
+</Layout>

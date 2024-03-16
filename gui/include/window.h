@@ -15,16 +15,16 @@ typedef struct window {
 } Window;
 
 /* Create a new Window struct and initialize all members */
-Window *create_window(int w, int h, const char *name);
+Window *window_create(int w, int h, const char *name);
 
 /* Create a Font object, open TTF Fonts, and assign to window */
-void assign_std_font(Window *win, const char *font_path);
+void window_assign_std_font(Window *win, const char *font_path);
 
 /* Reset the values of the w and h members of a Window struct based on current window dimensions */
-void auto_resize_window(Window *window);
+void window_auto_resize(Window *window);
 
 /* Force resize a window */
-void resize_window(Window *win, int w, int h);
+void window_resize(Window *win, int w, int h);
 
 #endif
 

@@ -55,6 +55,7 @@
 #include "SDL.h"
 #include "SDL_ttf.h"
 #include "theme.h"
+#include "gui.h"
 
 /* Timeline- and clip-related constants */
 #define MAX_TRACKS 100
@@ -136,9 +137,8 @@ typedef struct track {
 	Text pan_label_txt;
 	Text mute_button_txt;
 	Text solo_button_txt;
-
 } Track;
-3
+
 /* A chunk of audio, associated with a particular track in the timeline */
 typedef struct clip {
     char name[MAX_NAMELENGTH];
@@ -161,7 +161,7 @@ typedef struct clip {
     bool changed_track; // true if a mouse drag event is occurring, and the clip has already changed track
 
     /* GUI members */
-    Layout *layout;
+    SDL_Rect rect;
     Text name_txt;
 } Clip;
 
@@ -238,7 +238,7 @@ typedef struct project {
     uint16_t output_len;
 
     /* GUI Members */
-    Window *win
+    Window *win;
     Layout *layout;
     Text audio_out_label_txt;
     Text audio_out_name_txt;

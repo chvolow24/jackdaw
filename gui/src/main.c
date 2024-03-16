@@ -36,6 +36,7 @@
 #include "window.h"
 #include "parse_xml.h"
 #include "layout_xml.h"
+#include "test.h"
 
 #define OPEN_SANS_PATH "../assets/ttf/OpenSans-Regular.ttf"
 
@@ -194,7 +195,7 @@ void get_clicked_layout(SDL_Point p, Layout *top_level, int *distance, Layout **
 void set_window_size_to_lt()
 {
     if (main_lt->w.type != SCALE && main_lt->h.type != SCALE) {
-        resize_window(main_win, main_lt->w.value.intval, main_lt->h.value.intval);
+        window_resize(main_win, main_lt->w.value.intval, main_lt->h.value.intval);
     } else {
         main_lt->rect.w = main_win->w;
         main_lt->rect.h = main_win->h;
@@ -225,8 +226,16 @@ int main(int argc, char** argv)
     init_SDL();
     init_SDL_ttf();
 
-    main_win = create_window(1200, 900, "Layout editor");
-    assign_std_font(main_win, OPEN_SANS_PATH);
+    if (argc == 2 && strcmp(argv[1], "test") == 0) {
+	fprintf(stderr, "Running tests\n");
+        run_tests();
+	exit(0);
+    }
+    
+
+
+    main_win = window_create(1200, 900, "Layout editor");
+    window_assign_std_font(main_win, OPEN_SANS_PATH);
 
     //  open_sans = open_font("../assets/ttf/OpenSans-Regular.ttf", 12, main_win);
 
@@ -240,7 +249,7 @@ int main(int argc, char** argv)
         main_lt->type = NORMAL;
         set_window_size_to_lt();
     } else {
-        main_lt = create_layout_from_window(main_win);
+        main_lt = layout_create_from_window(main_win);
     }
 
     SDL_StopTextInput();
@@ -269,9 +278,9 @@ int main(int argc, char** argv)
                 quit = true;
             } else if (e.type == SDL_WINDOWEVENT) {
                 if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
-                    auto_resize_window(main_win);
-                    reset_layout_from_window(main_lt, main_win);
-                    reset_layout(main_lt);
+                    window_auto_resize(main_win);
+                    layout_reset_from_window(main_lt, main_win);
+                    layout_reset(main_lt);
 
                 }
             } else if (e.type == SDL_MOUSEBUTTONDOWN) {
@@ -297,22 +306,22 @@ int main(int argc, char** argv)
                         if (cmdctrldown) {
                             switch (ed) {
                                 case TOP:
-                                    set_edge(clicked_lt, ed, mousep.y, shiftdown);
+                                    layout_set_edge(clicked_lt, ed, mousep.y, shiftdown);
                                     break;
                                 case RIGHT:
-                                    set_edge(clicked_lt, ed, mousep.x, shiftdown);
+                                    layout_set_edge(clicked_lt, ed, mousep.x, shiftdown);
                                     break;
                                 case BOTTOM:
-                                    set_edge(clicked_lt, ed, mousep.y, shiftdown);
+                                    layout_set_edge(clicked_lt, ed, mousep.y, shiftdown);
                                     break;
                                 case LEFT:
-                                    set_edge(clicked_lt, ed, mousep.x, shiftdown);
+                                    layout_set_edge(clicked_lt, ed, mousep.x, shiftdown);
                                     break;
                                 case NONEEDGE:
                                     break;
                             }
                         } else {
-                            move_position(clicked_lt, e.motion.xrel * main_win->dpi_scale_factor, e.motion.yrel * main_win->dpi_scale_factor, shiftdown);
+                            layout_move_position(clicked_lt, e.motion.xrel * main_win->dpi_scale_factor, e.motion.yrel * main_win->dpi_scale_factor, shiftdown);
                         }
                         // set_position(clicked_lt, mousep.x, mousep.y);
                         // translate_layout(clicked_lt, e.motion.xrel * main_win->dpi_scale_factor, e.motion.yrel * main_win->dpi_scale_factor, shiftdown);
@@ -321,7 +330,7 @@ int main(int argc, char** argv)
                             set_lt_params(clicked_lt);
                         }
                     } else if (layout_corner_clicked) {
-                        set_corner(clicked_lt, crnr, mousep.x, mousep.y, shiftdown);
+                        layout_set_corner(clicked_lt, crnr, mousep.x, mousep.y, shiftdown);
                         // resize_layout(clicked_lt, e.motion.xrel * main_win->dpi_scale_factor, e.motion.yrel * main_win->dpi_scale_factor, shiftdown);
                         // reset_layout(clicked_lt);
                         if (show_layout_params) {
@@ -347,7 +356,7 @@ int main(int argc, char** argv)
 
 		
             } else if (e.type == SDL_MOUSEWHEEL) {
-	        scrolling = handle_scroll(main_lt, &mousep, e.wheel.preciseX * SCROLL_SCALAR * 1, e.wheel.preciseY * SCROLL_SCALAR * -1);
+	        scrolling = layout_handle_scroll(main_lt, &mousep, e.wheel.preciseX * SCROLL_SCALAR * 1, e.wheel.preciseY * SCROLL_SCALAR * -1);
             } else if (e.type == SDL_KEYDOWN) {
                 switch (e.key.keysym.scancode) {
                     case SDL_SCANCODE_LGUI:
@@ -370,41 +379,41 @@ int main(int argc, char** argv)
                     case SDL_SCANCODE_C:
                         if (cmdctrldown) {
                             if (layout_clicked && clicked_lt) {
-                                copy_layout(clicked_lt, clicked_lt->parent);
+                                layout_copy(clicked_lt, clicked_lt->parent);
                             }
                         } else if (shiftdown) {
                             Layout *new_child;
                             if (layout_clicked) {
-                                new_child = add_child(clicked_lt);
-                                set_default_dims(new_child);
-                                reset_layout(new_child);
+                                new_child = layout_add_child(clicked_lt);
+                                layout_set_default_dims(new_child);
+                                layout_reset(new_child);
                             } else {
-                                new_child = add_child(main_lt);
+                                new_child = layout_add_child(main_lt);
                             }
-                            set_default_dims(new_child);
-                            reset_layout(new_child);
+                            layout_set_default_dims(new_child);
+                            layout_reset(new_child);
                         }
                         break;
 		    case SDL_SCANCODE_Q:
 			if (layout_clicked && clicked_lt) {
 			    if (shiftdown) {
-				add_complementary_child(clicked_lt, W);
+				layout_add_complementary_child(clicked_lt, W);
 			    } else {
-			        add_complementary_child(clicked_lt, H);
+			        layout_add_complementary_child(clicked_lt, H);
 			    }
-			    reset_layout(clicked_lt);
+			    layout_reset(clicked_lt);
 			}
 			break;
                     case SDL_SCANCODE_I:
                         if (clicked_lt && layout_clicked) {
                             if (shiftdown) {
-                                remove_iteration_from_layout(clicked_lt);
+                                layout_remove_iter(clicked_lt);
                             } else {
 				if (cmdctrldown) {
 				    
-				    add_iteration_to_layout(clicked_lt, HORIZONTAL, true);
+				    layout_add_iter(clicked_lt, HORIZONTAL, true);
 				} else {
-				    add_iteration_to_layout(clicked_lt, VERTICAL, true);
+				    layout_add_iter(clicked_lt, VERTICAL, true);
 				}
                             }
                         }
@@ -416,7 +425,7 @@ int main(int argc, char** argv)
                             if (!param_lt) {
                                 param_lt = read_layout_from_xml("template_lts/param_lt.xml");
                             }
-                            reparent(param_lt, main_lt);
+                            layout_reparent(param_lt, main_lt);
                             show_layout_params = true;
                             if (clicked_lt && layout_clicked) {
                                 edit_lt_loop(clicked_lt);
@@ -433,7 +442,7 @@ int main(int argc, char** argv)
                             show_openfile = true;
                             if (!openfile_lt) {
                                 openfile_lt = read_layout_from_xml("template_lts/openfile.xml");
-                                reparent(openfile_lt, main_lt);
+                                layout_reparent(openfile_lt, main_lt);
                             }
                             if (clicked_lt && layout_clicked) {
                                 fprintf(stderr, "A layout is clicked! \"%s\" at %p", clicked_lt->name, clicked_lt);
@@ -450,7 +459,7 @@ int main(int argc, char** argv)
                         }
                         break;
                     case SDL_SCANCODE_P:
-			reset_clicked_lt(get_parent(clicked_lt));
+			reset_clicked_lt(layout_get_parent(clicked_lt));
                         /* if (layout_clicked && clicked_lt && clicked_lt->parent) { */
                         /*     clicked_lt->selected = false; */
                         /*     clicked_lt = clicked_lt->parent; */
@@ -458,19 +467,19 @@ int main(int argc, char** argv)
                         /* } */
                         break;
                     case SDL_SCANCODE_LEFTBRACKET:
-			reset_clicked_lt(iterate_siblings(clicked_lt, -1));
+			reset_clicked_lt(layout_iterate_siblings(clicked_lt, -1));
 			break;
 		    case SDL_SCANCODE_RIGHTBRACKET:
-			reset_clicked_lt(iterate_siblings(clicked_lt, 1));
+			reset_clicked_lt(layout_iterate_siblings(clicked_lt, 1));
                         break;
 		    case SDL_SCANCODE_BACKSLASH:
-			reset_clicked_lt(get_first_child(clicked_lt));
+			reset_clicked_lt(layout_get_first_child(clicked_lt));
 			break;
 		    case SDL_SCANCODE_DELETE:
 		    case SDL_SCANCODE_BACKSPACE:
 			if (clicked_lt) {
-			    delete_layout(clicked_lt);
-			    reset_layout(main_lt);
+			    layout_destroy(clicked_lt);
+			    layout_reset(main_lt);
 			}
 			break;
 		    case SDL_SCANCODE_0:
@@ -496,11 +505,11 @@ int main(int argc, char** argv)
             }
         }
 	if (scrolling && !fingerdown) {
-	    if (scroll_step(scrolling) == 0) {
+	    if (layout_scroll_step(scrolling) == 0) {
 		scrolling = NULL;
 	    }
 	}
-        draw_main();
+        layout_draw_main();
         SDL_Delay(1);
 
 	if (screen_record) {

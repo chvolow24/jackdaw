@@ -45,17 +45,6 @@
 #include "wav.h"
 
 
-
-/* The main playback buffer, which is an array of 16-bit unsigned integer samples */
-// static Sint16 audio_buffer[BUFFLEN];
-
-/* TODO: get rid of this nonsense */
-// int write_buffpos = 0;
-// static int read_buffpos = 0;
-
-// SDL_AudioDeviceID playback_device;
-// static SDL_AudioDeviceID recording_device;
-
 extern Project *proj;
 
 
@@ -87,19 +76,11 @@ static void recording_callback(void* user_data, uint8_t *stream, int streamLengt
 static void play_callback(void* user_data, Uint8* stream, int streamLength)
 {
     memset(stream, '\0', streamLength);
-    // AudioDevice *pbdev = (AudioDevice *)user_data;
-    // fprintf(stderr, "\n\nPlayback device name: %s\n", pbdev->name);
-    // fprintf(stderr, "Playback channels: %d\n", pbdev->spec.channels);
-    // fprintf(stderr, "Playback format: %s\n", get_audio_fmt_str(pbdev->spec.format));
-    // fprintf(stderr, "Playback freq: %d\n", pbdev->spec.freq);
+
     uint32_t stream_len_samples = streamLength / sizeof(int16_t);
 
     float *chunk_L = get_mixdown_chunk(proj->tl, 0, stream_len_samples / proj->channels, proj->tl->play_pos_sframes, proj->play_speed);
     float *chunk_R = get_mixdown_chunk(proj->tl, 1, stream_len_samples / proj->channels, proj->tl->play_pos_sframes, proj->play_speed);
-    // Printing sample values to confirm that every other sample has value 0
-    // for (uint8_t i = 0; i<200; i++) {
-    //     fprintf(stderr, "%hd ", (int16_t)(chunk[i]));
-    // }
 
     int16_t *stream_fmt = (int16_t *)stream;
     for (uint32_t i=0; i<stream_len_samples; i+=2)
@@ -111,8 +92,7 @@ static void play_callback(void* user_data, Uint8* stream, int streamLength)
         stream_fmt[i] = (int16_t) (val_L * INT16_MAX);
         stream_fmt[i+1] = (int16_t) (val_R * INT16_MAX);
     }
-    // memcpy(stream, chunk, streamLength);
-    // Printing sample values to confirm that every other sample has value 0
+
     free(chunk_L);
     free(chunk_R);
     // for (uint8_t i = 0; i<40; i+=2) {

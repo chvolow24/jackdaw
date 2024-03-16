@@ -86,8 +86,11 @@ void draw_dotted_vertical(SDL_Renderer *rend, int x, int y1, int y2)
     }
 }
 
-void draw_text(Text *txt)
+void txt_draw(Text *txt)
 {
+    if (txt->display_value[0] == '\0' || !txt->texture) {
+	return;
+    }
     if (txt->show_cursor) {
         if (txt->cursor_end_pos > txt->cursor_start_pos) {
             char leftstr[255];
@@ -136,28 +139,28 @@ void draw_layout_params()
     SDL_SetRenderDrawColor(main_win->rend, MASK_CLR);
     SDL_RenderFillRect(main_win->rend, &(param_lt->rect));  
 
-    draw_text(lt_params->name_label);
-    draw_text(lt_params->x_type_label);
-    draw_text(lt_params->y_type_label);
-    draw_text(lt_params->w_type_label);
-    draw_text(lt_params->h_type_label);
-    draw_text(lt_params->name_value);
-    draw_text(lt_params->x_type_value);
-    draw_text(lt_params->y_type_value);
-    draw_text(lt_params->w_type_value);
-    draw_text(lt_params->h_type_value);
-    draw_text(lt_params->x_value);
-    draw_text(lt_params->y_value);
-    draw_text(lt_params->w_value);
-    draw_text(lt_params->h_value);
+    txt_draw(lt_params->name_label);
+    txt_draw(lt_params->x_type_label);
+    txt_draw(lt_params->y_type_label);
+    txt_draw(lt_params->w_type_label);
+    txt_draw(lt_params->h_type_label);
+    txt_draw(lt_params->name_value);
+    txt_draw(lt_params->x_type_value);
+    txt_draw(lt_params->y_type_value);
+    txt_draw(lt_params->w_type_value);
+    txt_draw(lt_params->h_type_value);
+    txt_draw(lt_params->x_value);
+    txt_draw(lt_params->y_value);
+    txt_draw(lt_params->w_value);
+    txt_draw(lt_params->h_value);
 }
 
 void draw_openfile_dialogue() 
 {
     SDL_SetRenderDrawColor(main_win->rend, MASK_CLR);
-    SDL_RenderFillRect(main_win->rend, &(get_child(openfile_lt, "container")->rect));
-    draw_text(openfile->label);
-    draw_text(openfile->filepath);
+    SDL_RenderFillRect(main_win->rend, &(layout_get_child_by_name(openfile_lt, "container")->rect));
+    txt_draw(openfile->label);
+    txt_draw(openfile->filepath);
 }
 
 void draw_layout(Window *win, Layout *lt)
@@ -182,7 +185,7 @@ void draw_layout(Window *win, Layout *lt)
     SDL_SetRenderDrawColor(win->rend, picked_clr.r, picked_clr.g, picked_clr.b, picked_clr.a);
 
     if (lt->selected) {
-        draw_text(lt->namelabel);
+        txt_draw(lt->namelabel);
         SDL_RenderDrawRect(win->rend, &(lt->label_rect));
     }
     SDL_RenderDrawRect(win->rend, &(lt->rect));
@@ -203,7 +206,7 @@ void draw_layout(Window *win, Layout *lt)
 
 }
 
-void draw_main()
+void layout_draw_main()
 {
     SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 0);
     SDL_RenderClear(main_win->rend);

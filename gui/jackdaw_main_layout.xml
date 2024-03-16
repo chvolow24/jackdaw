@@ -2,7 +2,7 @@
     <x>ABS 0</x>
     <y>ABS 0</y>
     <w>ABS 2480</w>
-    <h>ABS 1350</h>
+    <h>ABS 1346</h>
     <index>0</index>
     <children>
         <Layout name="control_bar" type="NORMAL">
@@ -162,6 +162,15 @@
                                                                     <children>
                                                                     </children>
                                                                 </Layout>
+                                                                <Layout name="vol_slider" type="NORMAL">
+                                                                    <x>REL 36</x>
+                                                                    <y>REL 0</y>
+                                                                    <w>REL 144</w>
+                                                                    <h>REL 28</h>
+                                                                    <index>1</index>
+                                                                    <children>
+                                                                    </children>
+                                                                </Layout>
                                                             </children>
                                                         </Layout>
                                                         <Layout name="pan_row" type="NORMAL">
@@ -180,9 +189,18 @@
                                                                     <children>
                                                                     </children>
                                                                 </Layout>
+                                                                <Layout name="pan_slider" type="NORMAL">
+                                                                    <x>REL 36</x>
+                                                                    <y>REL 0</y>
+                                                                    <w>REL 144</w>
+                                                                    <h>REL 28</h>
+                                                                    <index>1</index>
+                                                                    <children>
+                                                                    </children>
+                                                                </Layout>
                                                             </children>
                                                         </Layout>
-                                                        <Layout name="pan_row" type="NORMAL">
+                                                        <Layout name="in_row" type="NORMAL">
                                                             <x>REL 0</x>
                                                             <y>SCALE 0.750000</y>
                                                             <w>REL 180</w>
@@ -195,6 +213,15 @@
                                                                     <w>REL 36</w>
                                                                     <h>SCALE 1.000000</h>
                                                                     <index>0</index>
+                                                                    <children>
+                                                                    </children>
+                                                                </Layout>
+                                                                <Layout name="in_value" type="NORMAL">
+                                                                    <x>REL 36</x>
+                                                                    <y>REL 0</y>
+                                                                    <w>REL 144</w>
+                                                                    <h>REL 28</h>
+                                                                    <index>1</index>
                                                                     <children>
                                                                     </children>
                                                                 </Layout>

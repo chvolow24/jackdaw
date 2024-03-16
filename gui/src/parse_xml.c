@@ -39,7 +39,7 @@ static void clear_whitespace(FILE *f)
     ungetc(c, f);
 }
 
-static long get_tag_endrange(FILE *f, char *tagname);
+static long xml_get_tag_endrange(FILE *f, char *tagname);
 
 /*  get_next_tag:
 
@@ -53,7 +53,7 @@ static long get_tag_endrange(FILE *f, char *tagname);
         1 if a tag is found
         -1 if there's an error or no tag found.
  */
-int get_next_tag(FILE *f, char *buf, int maxlen, long *startrange, long *endrange)
+int xml_get_next_tag(FILE *f, char *buf, int maxlen, long *startrange, long *endrange)
 {
 
     char c;
@@ -87,12 +87,12 @@ int get_next_tag(FILE *f, char *buf, int maxlen, long *startrange, long *endrang
 
     fseek(f, saved_pos, 0);
     if (endrange) {
-        *endrange = get_tag_endrange(f, buf);
+        *endrange = xml_get_tag_endrange(f, buf);
     }
     return 1;
 }
 
-static long get_tag_endrange(FILE *f, char *tagname) 
+static long xml_get_tag_endrange(FILE *f, char *tagname) 
 {
     long saved_pos = ftell(f);
     long offset_end = -1;
@@ -102,7 +102,7 @@ static long get_tag_endrange(FILE *f, char *tagname)
     char buf[255];
     int tagsum = 1;
     while (tagsum > 0) {
-        int t = get_next_tag(f, buf, 255, &offset_end, NULL);
+        int t = xml_get_next_tag(f, buf, 255, &offset_end, NULL);
         if (t > 0) {
             if (strcmp(buf, tagname) == 0) {
                 tagsum++;
@@ -132,7 +132,7 @@ static long get_tag_endrange(FILE *f, char *tagname)
         1 if an attribute is found
         -1 on error or no additional attributes (closing brace found).
 */
-int get_tag_attribute(FILE *f, char *attr_name_buf, char *attr_value_buf, int maxlen)
+int xml_get_tag_attr(FILE *f, char *attr_name_buf, char *attr_value_buf, int maxlen)
 {
     char c;
     int i=0;
@@ -168,7 +168,7 @@ int get_tag_attribute(FILE *f, char *attr_name_buf, char *attr_value_buf, int ma
 
 /* Tag structure */
 
-Tag *create_tag(void)
+Tag *xml_create_tag(void)
 {
     Tag *tag = malloc(sizeof(Tag));
     tag->num_attrs = 0;
@@ -178,7 +178,7 @@ Tag *create_tag(void)
     return tag;
 }
 
-Attr *create_attribute(void)
+Attr *xml_create_attr(void)
 {
     Attr *attr = malloc(sizeof(Attr));
     attr->name = NULL;
@@ -186,25 +186,25 @@ Attr *create_attribute(void)
     return attr;
 }
 
-Tag *store_next_tag(FILE *f, long endrange)
+Tag *xml_store_next_tag(FILE *f, long endrange)
 {
     char *buf = malloc(256);
     char *buf2 = malloc(256);
     long start,end;
-    if (get_next_tag(f, buf, 256, &start, &end) == -1 || (start > endrange && endrange != -1) || end - start < 0) {
+    if (xml_get_next_tag(f, buf, 256, &start, &end) == -1 || (start > endrange && endrange != -1) || end - start < 0) {
         free(buf);
         free(buf2);
         fseek(f, start, 0);
         return NULL;
     } 
-    Tag *ret = create_tag();
+    Tag *ret = xml_create_tag();
     strncpy(ret->tagname, buf, 32);
 
-    while (get_tag_attribute(f, buf, buf2, 256) > 0) {
+    while (xml_get_tag_attr(f, buf, buf2, 256) > 0) {
         if (buf[0] == '/') {
             continue;
         }
-        Attr *new_attr = create_attribute();
+        Attr *new_attr = xml_create_attr();
         new_attr->name = malloc(strlen(buf) + 1);
         new_attr->value = malloc(strlen(buf2) + 1);
         strcpy(new_attr->name, buf);
@@ -227,7 +227,7 @@ Tag *store_next_tag(FILE *f, long endrange)
     fseek(f, saved_pos, 0);
     Tag *child = NULL;
 
-    while ((child = store_next_tag(f, end)) != NULL) {
+    while ((child = xml_store_next_tag(f, end)) != NULL) {
         ret->children[ret->num_children] = child;
         ret->num_children++;
     }
@@ -236,7 +236,7 @@ Tag *store_next_tag(FILE *f, long endrange)
     return ret;
 }
 
-void destroy_attr(Attr *attr)
+void xml_destroy_attr(Attr *attr)
 {
     if (attr->name) {
         free(attr->name);
@@ -246,17 +246,17 @@ void destroy_attr(Attr *attr)
     }
     free(attr);
 }
-void destroy_tag(Tag *tag)
+void xml_destroy_tag(Tag *tag)
 {
     for (int i=0; i<tag->num_children; i++) {
-        destroy_tag(tag->children[i]);
+        xml_destroy_tag(tag->children[i]);
     }
     for (int i=0; i<tag->num_attrs; i++) {
-        destroy_attr(tag->attrs[i]);
+        xml_destroy_attr(tag->attrs[i]);
     }
 }
 
-void fprint_tag_recursive(FILE *f, Tag *tag, int indent)
+void xml_fprint_tag_recursive(FILE *f, Tag *tag, int indent)
 {
     fprintf(f, "%*c<%s", indent * TABSPACES, ' ', tag->tagname);
     for (int i=0; i<tag->num_attrs; i++) {
@@ -267,7 +267,7 @@ void fprint_tag_recursive(FILE *f, Tag *tag, int indent)
     } else {
         fprintf(f, ">\n");
         for (int i=0; i<tag->num_children; i++) {
-            fprint_tag_recursive(f, tag->children[i], indent+1);
+            xml_fprint_tag_recursive(f, tag->children[i], indent+1);
         }
         fprintf(f, "%*c</%s>\n", indent * TABSPACES, ' ', tag->tagname);
     }

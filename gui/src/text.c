@@ -32,7 +32,9 @@
 extern Layout *main_layout;
 extern Window *main_win;
 
-static Text *create_empty_text(
+
+static void init_empty_text(
+    Text *txt,
     SDL_Rect *container, 
     TTF_Font *font, 
     SDL_Color txt_clr, 
@@ -41,7 +43,6 @@ static Text *create_empty_text(
     SDL_Renderer *rend
 )
 {
-    Text *txt = malloc(sizeof(Text));
     txt->align = align;
     txt->value_handle = NULL;
     txt->len = 0;
@@ -60,12 +61,27 @@ static Text *create_empty_text(
     txt->rend = rend;
     txt->surface = NULL;
     txt->texture = NULL;
+}
+
+static Text *create_empty_text(
+    SDL_Rect *container, 
+    TTF_Font *font, 
+    SDL_Color txt_clr, 
+    TextAlign align,
+    bool truncate,
+    SDL_Renderer *rend
+)
+{
+    Text *txt = malloc(sizeof(Text));
+    init_empty_text(txt, container, font, txt_clr, align, truncate, rend);
     return txt;
 }
 
+
 void reset_text_drawable(Text *txt) 
 {
-    if (txt->len == 0) { 
+    
+    if (txt->len == 0 || txt->display_value[0] == '\0') { 
         return;
     }
     if (txt->surface) {
@@ -76,19 +92,18 @@ void reset_text_drawable(Text *txt)
     }
     txt->surface = TTF_RenderUTF8_Blended(txt->font, txt->display_value, txt->color);
     if (!txt->surface) {
-        fprintf(stderr, "\nError: TTF_RenderText_Blended failed: %s", TTF_GetError());
+        fprintf(stderr, "Error: TTF_RenderText_Blended failed: %s\n", TTF_GetError());
         return;
     }
     txt->texture = SDL_CreateTextureFromSurface(txt->rend, txt->surface);
     if (!txt->texture) {
-        fprintf(stderr, "\nError: SDL_CreateTextureFromSurface failed: %s", TTF_GetError());
+        fprintf(stderr, "Error: SDL_CreateTextureFromSurface failed: %s\n", TTF_GetError());
         return;
     }
     SDL_QueryTexture(txt->texture, NULL, NULL, &(txt->text_rect.w), &(txt->text_rect.h));
-
     switch (txt->align) {
         case CENTER:
-            txt->text_rect.y = txt->container->y + (int) round((float)txt->container->w / 2.0 - (float) txt->text_rect.w / 2.0);
+            txt->text_rect.x = txt->container->x + (int) round((float)txt->container->w / 2.0 - (float) txt->text_rect.w / 2.0);
             txt->text_rect.y = txt->container->y + (int) round((float)txt->container->h / 2.0 - (float) txt->text_rect.h / 2.0);
             break;
         case TOP_LEFT:
@@ -115,43 +130,48 @@ void reset_text_drawable(Text *txt)
 
 }
 
-void reset_text_display_value(Text *txt) 
+void txt_reset_display_value(Text *txt) 
 {
     int txtw, txth;
 
     TTF_SizeUTF8(txt->font, txt->value_handle, &txtw, &txth);
 
+    /* fprintf(stdout, "Checked size of text: %s\n", txt->value_handle); */
+    /* fprintf(stdout, "Container w: %d\n", txt->container->w); */
     if (txt->truncate && txtw > txt->container->w) {
-
         int approx_allowable_chars = (int) ((float) txt->len * txt->container->w / txtw);
         for (int i=0; i<approx_allowable_chars - 3; i++) {
             txt->display_value[i] = txt->value_handle[i];
         }
-        for (int i=approx_allowable_chars - 3; i<approx_allowable_chars; i++) {
+
+        for (int i=approx_allowable_chars - 3; i<approx_allowable_chars && i > 0; i++) {
             txt->display_value[i] = '.';
+	   
         }
-        txt->display_value[approx_allowable_chars] = '\0';
+	txt->display_value[approx_allowable_chars] = '\0';
     } else {
         strcpy(txt->display_value, txt->value_handle);
     }
     reset_text_drawable(txt);
 
-}
-void set_text_value_handle(Text *txt, char *set_str)
-{
-    txt->value_handle = set_str;
-    txt->len = strlen(set_str);
-    reset_text_display_value(txt);
 
 }
-void set_text_value(Text *txt, char *set_str)
+void txt_set_value_handle(Text *txt, char *set_str)
+{
+    fprintf(stderr, "setting text value handle to %s\n", set_str);
+    txt->value_handle = set_str;
+    txt->len = strlen(set_str);
+    txt_reset_display_value(txt);
+
+}
+void txt_set_value(Text *txt, char *set_str)
 {
     strcpy(txt->value_handle, set_str);
     txt->len = strlen(set_str);
-    reset_text_display_value(txt);
+    txt_reset_display_value(txt);
 }
 
-Text *create_text_from_str(
+Text *txt_create_from_str(
     char *set_str,
     int max_len,
     SDL_Rect *container,
@@ -166,11 +186,30 @@ Text *create_text_from_str(
 
     txt->max_len = max_len;
     if (set_str) {
-        set_text_value_handle(txt, set_str);
+        txt_set_value_handle(txt, set_str);
     }
 
     return txt;
+}
 
+
+void txt_init_from_str(
+    Text *txt,
+    char *set_str,
+    int max_len,
+    SDL_Rect *container,
+    TTF_Font *font,
+    SDL_Color txt_clr,
+    TextAlign align,
+    bool truncate,
+    SDL_Renderer *rend
+    )
+{
+    init_empty_text(txt, container, font, txt_clr, align, truncate, rend);
+    txt->max_len = max_len;
+    if (set_str) {
+        txt_set_value_handle(txt, set_str);
+    }
 }
 
 static void cursor_left(Text *txt)
@@ -243,11 +282,11 @@ static void handle_backspace(Text *txt)
     txt->cursor_countdown = CURSOR_COUNTDOWN_MAX;
 }
 
-void edit_text(Text *txt)
+void txt_edit(Text *txt)
 {
     bool save_truncate = txt->truncate;
     txt->truncate = false;
-    reset_text_display_value(txt);
+    txt_reset_display_value(txt);
     txt->show_cursor = true;
     txt->cursor_start_pos = 0;
     txt->cursor_end_pos = txt->len;
@@ -334,7 +373,7 @@ void edit_text(Text *txt)
             }
         }
         // fprintf(stderr, "About to call draw %p %p\n", main_win, txt);
-        draw_main();
+        layout_draw_main();
         if (txt->cursor_countdown == 0) {
             txt->cursor_countdown = CURSOR_COUNTDOWN_MAX;
         } else {
@@ -348,12 +387,12 @@ void edit_text(Text *txt)
     txt->show_cursor = false;
     txt->truncate = save_truncate;
     fprintf(stderr, "\t->About to set txt value to disp val, trunc: %d\n", save_truncate);
-    set_text_value(txt, txt->display_value);
+    txt_set_value(txt, txt->display_value);
 
     // draw_main();
 }
 
-void destroy_text(Text *txt)
+void txt_destroy(Text *txt)
 {
     if (txt->surface) {
         free(txt->surface);
@@ -364,7 +403,7 @@ void destroy_text(Text *txt)
     free(txt);
 }
 
-TTF_Font *open_font(const char* path, int size, Window *win)
+TTF_Font *ttf_open_font(const char* path, int size, Window *win)
 {
     size *= win->dpi_scale_factor;
     TTF_Font *font = TTF_OpenFont(path, size);
@@ -380,7 +419,7 @@ void destroy_font(TTF_Font *font)
     free(font);
 }
 
-Font *init_font(const char *path, Window *win)
+Font *ttf_init_font(const char *path, Window *win)
 {
     Font *font = malloc(sizeof(Font));
     int sizes[] = STD_FONT_SIZES;
@@ -390,12 +429,12 @@ Font *init_font(const char *path, Window *win)
 	exit(1);
     }
     for (int i=0; i<STD_FONT_ARRLEN; i++) {;
-	font->ttf_array[i] = open_font(path, sizes[i], win);
+	font->ttf_array[i] = ttf_open_font(path, sizes[i], win);
     }
     return font;
 }
 
-TTF_Font *get_ttf_at_size(Font *font, int size)
+TTF_Font *ttf_get_font_at_size(Font *font, int size)
 {
     int i = 0;
     int sizes[] = STD_FONT_SIZES;

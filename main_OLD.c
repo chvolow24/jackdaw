@@ -47,18 +47,10 @@
 /*^^^^^^^^^^^^^^^^^^*/
 
 #include "SDL.h"
+#include "SDL_events.h"
+#include "SDL_scancode.h"
 #include "SDL_ttf.h"
-
 #include "audio.h"
-#include "dot_jdaw.h"
-#include "draw.h"
-#include "dsp.h"
-#include "gui.h"
-#include "project.h"
-#include "theme.h"
-#include "timeline.h"
-#include "transition.h"
-
 #include "theme.h"
 //#include "text.h"
 #include "project.h"
@@ -76,9 +68,7 @@
 
 /* GLOBALS */
 Project *proj = NULL;
-Layout *main_lt = NULL;
-
-//uint8_t scale_factor = 1;
+uint8_t scale_factor = 1;
 bool dark_mode = true;
 char *home_dir;
 bool sys_byteorder_le;
@@ -106,7 +96,7 @@ static void get_native_byte_order()
 }
 
 /* Initialize SDL Video and TTF */
-static void init_SDL()
+static void init_graphics()
 {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         fprintf(stderr, "\nError initializing SDL: %s\n", SDL_GetError());
@@ -117,7 +107,6 @@ static void init_SDL()
         fprintf(stderr, "\nError initializing SDL_ttf: %s", SDL_GetError());
         exit(1);
     }
-    SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "1");
 }
 
 /* Start timeline playback */
@@ -897,11 +886,17 @@ int main(int argc, char **argv)
         }
     }
     get_native_byte_order();
+    // signal_init();
     home_dir = get_home_dir();
 
-    init_SDL();
+    //TODO: open project creation window if proj==NULL;
+    init_graphics();
     init_audio();
+    init_SDL_ttf();
     init_dsp();
+    // JDAWWindow *new_project = create_jwin("Create a new Jackdaw project", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 600, 400);
+    // new_project_loop(new_project);
+
 
     if (invoke_open_jdaw_file) {
         fprintf(stderr, "Opening project file at %s\n", file_to_open);
@@ -917,12 +912,28 @@ int main(int argc, char **argv)
         create_track(proj->tl, true);
     }
 
+    // fprintf(stdout, "Activating audio devices on project\n");
+
+    // fprintf(stderr, "Adding filter to track\n");
+    // add_filter_to_track(proj->tl->tracks[0], LOWPASS, 128);
+    // fprintf(stderr, "Setting filter params\n");
+    // set_FIR_filter_params(proj->tl->tracks[0]->filters[0], 0.04, 0);
+
+    // // fprintf(stderr, "Adding filter to track\n");
+    // // add_filter_to_track(proj->tl->tracks[0], BANDPASS, 128);
+    // // fprintf(stderr, "Setting filter params\n");
+    // // set_FIR_filter_params(proj->tl->tracks[0]->filters[1], 0.22, 0.01);
+
+
+    // // fprintf(stderr, "Adding filter to track\n");
+    // // add_filter_to_track(proj->tl->tracks[0], LOWPASS, 128);
+    // // fprintf(stderr, "Setting filter params\n");
+    // // set_FIR_filter_params(proj->tl->tracks[0]->filters[2], 0.009, 0);
+
     fprintf(stdout, "Loop starts now\n");
-    
     if (invoke_open_wav_file) {
         load_wav_to_track(proj->tl->tracks[0], file_to_open);
     }
-    
     project_loop();
 
     SDL_Quit();

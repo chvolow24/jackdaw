@@ -38,7 +38,7 @@ typedef struct tag {
         1 if a tag is found
         -1 if there's an error or no tag found.
  */
-int get_next_tag(FILE *f, char *tagname_buf, int maxlen, long *startrange, long *endrange);
+int xml_get_next_tag(FILE *f, char *tagname_buf, int maxlen, long *startrange, long *endrange);
 
 
 /*  get_tag_attribute:
@@ -48,11 +48,11 @@ int get_next_tag(FILE *f, char *tagname_buf, int maxlen, long *startrange, long 
         1 if an attribute is found
         -1 on error or no additional attributes (closing brace found).
 */
-int get_tag_attribute(FILE *f, char *attr_name_buf, char *attr_value_buf, int maxlen);
+int xml_get_tag_attr(FILE *f, char *attr_name_buf, char *attr_value_buf, int maxlen);
 
 
-Tag *store_next_tag(FILE *f, long endrange);
-void destroy_tag(Tag *tag);
-void fprint_tag_recursive(FILE *f, Tag *tag, int indent);
+Tag *xml_store_next_tag(FILE *f, long endrange);
+void xml_destroy_tag(Tag *tag);
+void xml_fprint_tag_recursive(FILE *f, Tag *tag, int indent);
 
 #endif

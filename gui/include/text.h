@@ -57,35 +57,49 @@ typedef struct font {
 // Text *create_empty_text(SDL_Rect *container, TTF_Font *font, SDL_Color txt_clr, TextAlign align, bool truncate, SDL_Renderer *rend);
 
 /* Create a Text from an existing string. If the string is a pointer to a const char *, Text cannot be edited. */
-Text *create_text_from_str(char *set_str, int max_len, SDL_Rect *container, TTF_Font *font, SDL_Color txt_clr, TextAlign align, bool truncate, SDL_Renderer *rend);
+Text *txt_create_from_str(char *set_str, int max_len, SDL_Rect *container, TTF_Font *font, SDL_Color txt_clr, TextAlign align, bool truncate, SDL_Renderer *rend);
 
-void destroy_text(Text *txt);
+
+/* Initialize an existing text from an existing string. Use instead of create_text_from_str for pre-allocated Text */
+void txt_init_from_str(
+    Text *txt,
+    char *set_str,
+    int max_len,
+    SDL_Rect *container,
+    TTF_Font *font,
+    SDL_Color txt_clr,
+    TextAlign align,
+    bool truncate,
+    SDL_Renderer *rend
+    );
+
+void txt_destroy(Text *txt);
 
 /* Enter an event loop to edit a text. Once done, string pointed to by value_handle is modified */
-void edit_text(Text *txt);
+void txt_edit(Text *txt);
 
 
 /* void print_text(Text *txt); */
 
 /* Draw the text to the screen */
-void draw_text(Text *txt);
+void txt_draw(Text *txt);
 
 /* Overwrite data the text display handle points to with a new string */
-void set_text_value(Text *txt, char *new_value);
+void txt_set_value(Text *txt, char *new_value);
 
 /* Change the value handle pointer, and reset the text display accordingly */
-void set_text_value_handle(Text *txt, char *set_str);
+void txt_set_value_handle(Text *txt, char *set_str);
 
 /* Set the text display value from the value handle and truncate as needed */
-void reset_text_display_value(Text *txt);
+void txt_reset_display_value(Text *txt);
 
 /* Open a TTF font at a specified size, accounting for dpi scaling */ 
-TTF_Font *open_font(const char* path, int size, Window *win);
+TTF_Font *ttf_open_font(const char* path, int size, Window *win);
 
 /* Initialze an array of TTF fonts at standard font sizes */
-Font *init_font(const char *path, Window *win);
+Font *ttf_init_font(const char *path, Window *win);
 
 /* Given an existing Font object, get the actual TTF_Font at a given size */
-TTF_Font *get_ttf_at_size(Font *font, int size);
+TTF_Font *ttf_get_font_at_size(Font *font, int size);
 
 #endif

@@ -36,12 +36,16 @@
 #include <string.h>
 #include "dsp.h"
 #include "gui.h"
+//#include "gui.h"
 #include "project.h"
 #include "theme.h"
 #include "audio.h"
 #include "draw.h"
 #include "timeline.h"
 #include "transition.h"
+
+#include "layout.h"
+#include "text.h"
 
 #define DEFAULT_TRACK_HEIGHT (108 * scale_factor)
 #define DEFAULT_SFPP 600 // sample frames per pixel
@@ -74,19 +78,21 @@ JDAW_Color trck_colors[7] = {
 
 int trck_color_index = 0;
 
-void rename_track(Textbox *tb, void *track_v)
+void rename_track(Text *txt, void *track_v)
 {
     Track *track = (Track *)track_v;
-    track->name_box->bckgrnd_color = &white;
-    track->name_box->show_cursor = true;
-    track->name_box->cursor_countdown = CURSOR_COUNTDOWN;
-    track->name_box->cursor_pos = strlen(track->name);
-    edit_textbox(track->name_box, draw_project, proj);
-    track->name_box->bckgrnd_color = &lightergrey;
-    track->name_box->show_cursor = false;
+    txt_edit(txt);
+    
+    /* track->name_box->bckgrnd_color = &white; */
+    /* track->name_box->show_cursor = true; */
+    /* track->name_box->cursor_countdown = CURSOR_COUNTDOWN; */
+    /* track->name_box->cursor_pos = strlen(track->name); */
+    /* edit_textbox(track->name_box, draw_project, proj); */
+    /* track->name_box->bckgrnd_color = &lightergrey; */
+    /* track->name_box->show_cursor = false; */
 }
 
-static void select_track_input(Textbox *tb, void *track_v)
+static void select_track_input(Text *txt, void *track_v)
 {
     fprintf(stderr, "SELECT track input on %p. Clicked value: %s\n", track_v, tb->value);
     Track *track = (Track *)track_v;
@@ -331,11 +337,11 @@ Project *create_project(const char* name, uint8_t channels, uint32_t sample_rate
     char project_window_name[MAX_NAMELENGTH + 10];
     sprintf(project_window_name, "Jackdaw | %s", name);
     /* proj->jwin = create_jwin(project_window_name, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED-20, 900, 650); */
-    proj->win = create_window(900, 650, project_window_name);
+    proj->win = window_create(900, 650, project_window_name);
 
     /* tl->timecode_tb = create_textbox(0, 0, 0, 0, proj->jwin->mono_fonts[3], "+00:00:00:00000", &white, NULL, &black, NULL, NULL, NULL, NULL, 0, true, false, CENTER); */
 
-    SDL_Rect *timecode_rect = get_child_recursive(main_lt, "timecode");
+    SDL_Rect *timecode_rect = layout_get_child_by_name_recursive(main_lt, "timecode");
     tl->timecode_txt = create_text_from_str(tl->timecode.str, 15, timecode_rect, TTF_FONT*font, SDL_COLOR_TXT_COLOR, TEXTALIGN_ALIGN, BOOL_TRUNCATE, SDL_REND_REND);
     proj->audio_out = NULL;
     activate_audio_devices(proj);
@@ -432,6 +438,9 @@ Track *create_track(Timeline *tl, bool stereo)
     track->color = &(trck_colors[trck_color_index]);
     if (tl->proj && tl->proj->record_devices[0]) {
         track->input = proj->record_devices[0];
+    } else {
+	fprintf(stderr, "No input device found.\n");
+	exit(1);
     }
 
     //TODO: create_fslider() function (safer)
@@ -446,213 +455,361 @@ Track *create_track(Timeline *tl, bool stereo)
     track->pan_ctrl->value = 0;
     track->pan_ctrl->type = LINE;
 
-    track->name_box = create_textbox(
-        TRACK_NAMEBOX_W,
-        0, 
-        3,
-        2,
-        proj->jwin->bold_fonts[2],
-        track->name,
-        &black,
-        NULL,
-        NULL,
-        rename_track,
-        track,
-        NULL,
-        NULL,
-        0,
-        true,
-        true,
-        BOTTOM_LEFT
-    );
-    track->input_label_box = create_textbox(
-        0, 
-        0, 
-        2,
-        1,
-        proj->jwin->bold_fonts[1],
-        "Input:  ",
-        NULL,
-        &clear,
-        &clear,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        0,
-        true,
-        false,
-        BOTTOM_LEFT
-    );
-    track->input_name_box = create_textbox(
-        //TRACK_IN_W * proj->tl->console_width / 100, 
-        TRACK_IN_W,
-        0, 
-        4,
-        3, 
-        proj->jwin->fonts[1],
-        (char *) track->input->name,
-        NULL,
-        &tl_bckgrnd,
-        NULL,
-        select_track_input_menu,
-        track,
-        NULL,
-        NULL,
-        5 * scale_factor,
-        true,
-        true,
-        CENTER_LEFT
-    );
-    track->vol_label_box = create_textbox(
-        0, 
-        0, 
-        2,
-        1, 
-        proj->jwin->bold_fonts[1],
-        "Vol:",
-        NULL,
-        &clear,
-        &clear,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        0,
-        true,
-        false,
-        BOTTOM_LEFT
-    );
-    track->pan_label_box = create_textbox(
-        0, 
-        0, 
-        2,
-        1, 
-        proj->jwin->bold_fonts[1],
-        "Pan:",
-        NULL,
-        &clear,
-        &clear,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        0,
-        true,
-        false,
-        BOTTOM_LEFT
-    );
 
-    track->mute_button_box = create_textbox(
-        MUTE_SOLO_W,
-        MUTE_SOLO_W,
-        0,
-        0,
-        proj->jwin->bold_fonts[2],
-        "M",
-        NULL,
-        &black,
-        &unmuted_bckgrnd,
-        click_mute_unmute_track,
-        track,
-        NULL,
-        NULL,
-        5 * scale_factor,
-        true,
-        false,
-        CENTER
-    );
-    track->solo_button_box = create_textbox(
-        MUTE_SOLO_W,
-        MUTE_SOLO_W,
-        0,
-        0,
-        proj->jwin->bold_fonts[2],
-        "S",
-        NULL,
-        &black,
-        &unmuted_bckgrnd,
-        click_solo_unsolo_track,
-        track,
-        NULL,
-        NULL,
-        5 * scale_factor,
-        true,
-        false,
-        CENTER
-    );
+    Layout *template = layout_get_child_by_name_recursive(tl->layout, "track_container");
+    add_iteration_to_layout(Layout *lt, VERTICAL, true);
+    track->layout = template->iterator->iterations[track->tl_rank];
+
+    /* void init_text_from_str( */
+    /* Text *txt; */
+    /* char *set_str, */
+    /* int max_len, */
+    /* SDL_Rect *container, */
+    /* TTF_Font *font, */
+    /* SDL_Color txt_clr, */
+    /* TextAlign align, */
+    /* bool truncate, */
+    /* SDL_Renderer *rend */
+    /* ) */
+
+    TTF_Font *open_sans_14 = ttf_get_font_at_size(main_win->std_font, 14);
+    TTF_Font *open_sans_16 = ttf_get_font_at_size(main_win->st_font, 16);
+
+    Layout *track_name_lt = layout_get_child_by_name_recursive(track->layout, "track_name");
+    if (!track_name_lt)
+    {
+	fprintf(stderr, "Layout error: \"track_name\" not found in track layout.\n");
+	exit(1);
+    }
+    txt_init_from_str(
+	&track->name_txt,
+	track->name,
+	MAX_NAMELENGTH,
+        &track_name_lt->rect,
+        open_sans_14,
+	&black,
+	CENTER,
+	true,
+	main_win->rend
+	);
+
+    Layout *track_input_label_lt = layout_get_child_by_name_recursive(track->layout, "in_label");
+    if (!track_input_label_lt)
+    {
+	fprintf(stderr, "Layout error: \"in_label\" not found in track layout.\n");
+	exit(1);
+    }
+    txt_init_from_str(
+	&track->input_label_txt,
+	"IN:",
+	4,
+	&track_input_label_lt->rect,
+	open_sans_14,
+	&black,
+	CENTER,
+	true,
+	main_win->rend
+	);
+    
+    Layout *track_input_name_lt = layout_get_child_by_name_recursive(track->layout, "input");
+    if (!track_input_name_lt)
+    {
+	fprintf(stderr, "Layout error: \"input\" not found in track layout.\n");
+	exit(1);
+    }
+    txt_init_from_str(
+	&track->input_name_txt,
+	track->input->name,
+	MAX_NAMELENGTH,
+	&track_input_name_lt->rect,
+	open_sans_14,
+	&black,
+	CENTER,
+	true,
+	main_win->rend
+	);
+
+    Layout *track_vol_label_lt = layout_get_child_by_name_recursive(track->layout, "vol_label");
+    if (!track_vol_label_lt) {
+	fprintf(stderr, "Layout error: \"vol_label\" not found in track layout.\n");
+	exit(1);
+    }
+    init_text_from_str(
+	&track->vol_label_txt,
+	"Vol:",
+	5,
+	&track_vol_lable_lt->rect,
+	open_sans_14,
+	&black,
+	CENTER,
+	true,
+	main_win-rend
+	);
+
+    Layout *track_pan_label_lt = layout_get_child_by_name_recursive(track->layout, "pan_label");
+    if (!track_pan_label_lt) {
+	fprintf(stderr, "Layout error: \"pan_label\" not found in track layout.\n");
+	exit(1);
+    }
+    init_text_from_str(
+	&track->pan_label_txt,
+	"Pan:",
+	5,
+	&track_pan_label_lt->rect,
+	open_sans_14,
+	&black,
+	CENTER,
+	true,
+	main_win-rend
+	);
+
+
+    Layout *mute_button_lt = layout_get_child_by_name_recursive(track->layout, "mute");
+    if (!mute_button_lt) {
+	fprintf(stderr, "Layout error: \"pan_label\" not found in track layout.\n");
+	exit(1);
+    }
+    init_text_from_str(
+	&track->mute_button_txt,
+	"M",
+	2,
+	&mute_button_lt->rect,
+	open_sans_16,
+	&black,
+	CENTER,
+	true,
+	main_win-rend
+	);
+
+
+    Layout *solo_button_lt = layout_get_child_by_name_recursive(track->layout, "solo");
+    if (!solo_button_lt) {
+	fprintf(stderr, "Layout error: \"pan_label\" not found in track layout.\n");
+	exit(1);
+    }
+    init_text_from_str(
+	&track->solo_button_txt,
+	"M",
+	2,
+	&solo_button_lt->rect,
+	open_sans_16,
+	&black,
+	CENTER,
+	true,
+	main_win-rend
+	);
+	
+	
+	
+	
+
+    /* track->name_box = create_textbox( */
+    /*     TRACK_NAMEBOX_W, */
+    /*     0,  */
+    /*     3, */
+    /*     2, */
+    /*     proj->jwin->bold_fonts[2], */
+    /*     track->name, */
+    /*     &black, */
+    /*     NULL, */
+    /*     NULL, */
+    /*     rename_track, */
+    /*     track, */
+    /*     NULL, */
+    /*     NULL, */
+    /*     0, */
+    /*     true, */
+    /*     true, */
+    /*     BOTTOM_LEFT */
+    /* ); */
+    /* track->input_label_box = create_textbox( */
+    /*     0,  */
+    /*     0,  */
+    /*     2, */
+    /*     1, */
+    /*     proj->jwin->bold_fonts[1], */
+    /*     "Input:  ", */
+    /*     NULL, */
+    /*     &clear, */
+    /*     &clear, */
+    /*     NULL, */
+    /*     NULL, */
+    /*     NULL, */
+    /*     NULL, */
+    /*     0, */
+    /*     true, */
+    /*     false, */
+    /*     BOTTOM_LEFT */
+    /* ); */
+    /* track->input_name_box = create_textbox( */
+    /*     //TRACK_IN_W * proj->tl->console_width / 100,  */
+    /*     TRACK_IN_W, */
+    /*     0,  */
+    /*     4, */
+    /*     3,  */
+    /*     proj->jwin->fonts[1], */
+    /*     (char *) track->input->name, */
+    /*     NULL, */
+    /*     &tl_bckgrnd, */
+    /*     NULL, */
+    /*     select_track_input_menu, */
+    /*     track, */
+    /*     NULL, */
+    /*     NULL, */
+    /*     5 * scale_factor, */
+    /*     true, */
+    /*     true, */
+    /*     CENTER_LEFT */
+    /* ); */
+    /* track->vol_label_box = create_textbox( */
+    /*     0,  */
+    /*     0,  */
+    /*     2, */
+    /*     1,  */
+    /*     proj->jwin->bold_fonts[1], */
+    /*     "Vol:", */
+    /*     NULL, */
+    /*     &clear, */
+    /*     &clear, */
+    /*     NULL, */
+    /*     NULL, */
+    /*     NULL, */
+    /*     NULL, */
+    /*     0, */
+    /*     true, */
+    /*     false, */
+    /*     BOTTOM_LEFT */
+    /* ); */
+    /* track->pan_label_box = create_textbox( */
+    /*     0,  */
+    /*     0,  */
+    /*     2, */
+    /*     1,  */
+    /*     proj->jwin->bold_fonts[1], */
+    /*     "Pan:", */
+    /*     NULL, */
+    /*     &clear, */
+    /*     &clear, */
+    /*     NULL, */
+    /*     NULL, */
+    /*     NULL, */
+    /*     NULL, */
+    /*     0, */
+    /*     true, */
+    /*     false, */
+    /*     BOTTOM_LEFT */
+    /* ); */
+
+    /* track->mute_button_box = create_textbox( */
+    /*     MUTE_SOLO_W, */
+    /*     MUTE_SOLO_W, */
+    /*     0, */
+    /*     0, */
+    /*     proj->jwin->bold_fonts[2], */
+    /*     "M", */
+    /*     NULL, */
+    /*     &black, */
+    /*     &unmuted_bckgrnd, */
+    /*     click_mute_unmute_track, */
+    /*     track, */
+    /*     NULL, */
+    /*     NULL, */
+    /*     5 * scale_factor, */
+    /*     true, */
+    /*     false, */
+    /*     CENTER */
+    /* ); */
+    /* track->solo_button_box = create_textbox( */
+    /*     MUTE_SOLO_W, */
+    /*     MUTE_SOLO_W, */
+    /*     0, */
+    /*     0, */
+    /*     proj->jwin->bold_fonts[2], */
+    /*     "S", */
+    /*     NULL, */
+    /*     &black, */
+    /*     &unmuted_bckgrnd, */
+    /*     click_solo_unsolo_track, */
+    /*     track, */
+    /*     NULL, */
+    /*     NULL, */
+    /*     5 * scale_factor, */
+    /*     true, */
+    /*     false, */
+    /*     CENTER */
+    /* ); */
     /* TEMPORARY */
-    reset_track_internal_rects(track);
+    //  reset_track_internal_rects(track);
     /* END TEMPORARY */
 
     // fprintf(stderr, "\t->exit create track\n");
     return track;
 }
 
-void reset_ctrl_rects(Project *proj)
-{
-    proj->ctrl_rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h}, CTRL_RECT);
-    proj->ctrl_rect_col_a = get_rect(proj->ctrl_rect, CTRL_RECT_COL_A);
-    proj->audio_out_row = get_rect(proj->ctrl_rect_col_a, AUDIO_OUT_ROW);
-    position_textbox(proj->audio_out_label, proj->audio_out_row.x, proj->audio_out_row.y);
-    position_textbox(proj->audio_out, proj->audio_out_row.x + proj->audio_out_label->container.w + PADDING, proj->audio_out_row.y);
-}
+/* void reset_ctrl_rects(Project *proj) */
+/* { */
+/*     proj->ctrl_rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h}, CTRL_RECT); */
+/*     proj->ctrl_rect_col_a = get_rect(proj->ctrl_rect, CTRL_RECT_COL_A); */
+/*     proj->audio_out_row = get_rect(proj->ctrl_rect_col_a, AUDIO_OUT_ROW); */
+/*     position_textbox(proj->audio_out_label, proj->audio_out_row.x, proj->audio_out_row.y); */
+/*     position_textbox(proj->audio_out, proj->audio_out_row.x + proj->audio_out_label->container.w + PADDING, proj->audio_out_row.y); */
+/* } */
 
-void reset_tl_rects(Project *proj) 
-{
+/* void reset_tl_rects(Project *proj)  */
+/* { */
 
-    proj->tl->rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h,}, TL_RECT);
-    proj->tl->audio_rect = (SDL_Rect) {proj->tl->rect.x + TRACK_CONSOLE_W + COLOR_BAR_W + PADDING, proj->tl->rect.y, proj->tl->rect.w, proj->tl->rect.h}; // SET x in track
-    proj->tl->rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h,}, TL_RECT);
-    proj->tl->ruler_tc_container_rect = get_rect(proj->tl->rect, RULER_TC_CONTAINER);
+/*     proj->tl->rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h,}, TL_RECT); */
+/*     proj->tl->audio_rect = (SDL_Rect) {proj->tl->rect.x + TRACK_CONSOLE_W + COLOR_BAR_W + PADDING, proj->tl->rect.y, proj->tl->rect.w, proj->tl->rect.h}; // SET x in track */
+/*     proj->tl->rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h,}, TL_RECT); */
+/*     proj->tl->ruler_tc_container_rect = get_rect(proj->tl->rect, RULER_TC_CONTAINER); */
 
-    proj->tl->ruler_rect = get_rect(proj->tl->ruler_tc_container_rect, RULER_RECT);
+/*     proj->tl->ruler_rect = get_rect(proj->tl->ruler_tc_container_rect, RULER_RECT); */
 
-    proj->tl->tc_rect = get_rect(proj->tl->ruler_tc_container_rect, TC_RECT);
-    Track *track = NULL;
-    for (int t=0; t<proj->tl->num_tracks; t++) {
-        track = proj->tl->tracks[t];
-        track->rect.h = DEFAULT_TRACK_HEIGHT;
-        track->rect.x = proj->tl->rect.x + PADDING;
+/*     proj->tl->tc_rect = get_rect(proj->tl->ruler_tc_container_rect, TC_RECT); */
+/*     Track *track = NULL; */
+/*     for (int t=0; t<proj->tl->num_tracks; t++) { */
+/*         track = proj->tl->tracks[t]; */
+/*         track->rect.h = DEFAULT_TRACK_HEIGHT; */
+/*         track->rect.x = proj->tl->rect.x + PADDING; */
 
-        if (track->tl_rank == 0) {
-            track->rect.y = track->tl->rect.y + RULER_HEIGHT;
-        } else {
-            Track *last_track = track->tl->tracks[track->tl_rank - 1];
-            track->rect.y = last_track->rect.y + last_track->rect.h + TRACK_SPACING;
-        }
-        track->rect.w = proj->tl->audio_rect.w;
-        reset_track_internal_rects(track);
-    }
-    position_textbox(proj->tl->timecode_tb, proj->tl->tc_rect.x, proj->tl->tc_rect.y);
+/*         if (track->tl_rank == 0) { */
+/*             track->rect.y = track->tl->rect.y + RULER_HEIGHT; */
+/*         } else { */
+/*             Track *last_track = track->tl->tracks[track->tl_rank - 1]; */
+/*             track->rect.y = last_track->rect.y + last_track->rect.h + TRACK_SPACING; */
+/*         } */
+/*         track->rect.w = proj->tl->audio_rect.w; */
+/*         reset_track_internal_rects(track); */
+/*     } */
+/*     position_textbox(proj->tl->timecode_tb, proj->tl->tc_rect.x, proj->tl->tc_rect.y); */
 
-}
+/* } */
 
-void reset_track_internal_rects(Track *track)
-{
-    track->console_rect = get_rect(track->rect, TRACK_CONSOLE_RECT);
-    track->name_row_rect = get_rect(track->console_rect, TRACK_NAME_ROW);
-    track->input_row_rect = get_rect(track->console_rect, TRACK_IN_ROW);
-    track->vol_row_rect = get_rect(track->console_rect, TRACK_VOL_ROW);
-    track->pan_row_rect = get_rect(track->console_rect, TRACK_PAN_ROW);
-    position_textbox(track->name_box, track->name_row_rect.x, track->name_row_rect.y);
-    position_textbox(track->input_label_box, track->input_row_rect.x, track->input_row_rect.y);
-    position_textbox(track->input_name_box, track->input_row_rect.x + track->input_label_box->container.w + PADDING, track->input_row_rect.y);
-    position_textbox(track->vol_label_box, track->vol_row_rect.x, track->vol_row_rect.y);
-    position_textbox(track->pan_label_box, track->pan_row_rect.x, track->pan_row_rect.y);
-    position_textbox(track->mute_button_box, track->name_row_rect.x + TRACK_NAMEBOX_W + PADDING, track->name_row_rect.y);
-    position_textbox(track->solo_button_box, track->mute_button_box->container.x + track->mute_button_box->container.w + PADDING, track->name_row_rect.y);
-    SDL_Rect volslider_rect = (SDL_Rect) {track->vol_label_box->container.x + track->vol_label_box->container.w + PADDING, track->vol_label_box->container.y + PADDING, track->vol_row_rect.w - track->vol_label_box->container.w - (PADDING * 4), track->vol_row_rect.h - (PADDING * 2)};
-    set_fslider_rect(track->vol_ctrl, &volslider_rect, 2);
-    reset_fslider(track->vol_ctrl); 
+/* void reset_track_internal_rects(Track *track) */
+/* { */
+/*     track->console_rect = get_rect(track->rect, TRACK_CONSOLE_RECT); */
+/*     track->name_row_rect = get_rect(track->console_rect, TRACK_NAME_ROW); */
+/*     track->input_row_rect = get_rect(track->console_rect, TRACK_IN_ROW); */
+/*     track->vol_row_rect = get_rect(track->console_rect, TRACK_VOL_ROW); */
+/*     track->pan_row_rect = get_rect(track->console_rect, TRACK_PAN_ROW); */
+/*     position_textbox(track->name_box, track->name_row_rect.x, track->name_row_rect.y); */
+/*     position_textbox(track->input_label_box, track->input_row_rect.x, track->input_row_rect.y); */
+/*     position_textbox(track->input_name_box, track->input_row_rect.x + track->input_label_box->container.w + PADDING, track->input_row_rect.y); */
+/*     position_textbox(track->vol_label_box, track->vol_row_rect.x, track->vol_row_rect.y); */
+/*     position_textbox(track->pan_label_box, track->pan_row_rect.x, track->pan_row_rect.y); */
+/*     position_textbox(track->mute_button_box, track->name_row_rect.x + TRACK_NAMEBOX_W + PADDING, track->name_row_rect.y); */
+/*     position_textbox(track->solo_button_box, track->mute_button_box->container.x + track->mute_button_box->container.w + PADDING, track->name_row_rect.y); */
+/*     SDL_Rect volslider_rect = (SDL_Rect) {track->vol_label_box->container.x + track->vol_label_box->container.w + PADDING, track->vol_label_box->container.y + PADDING, track->vol_row_rect.w - track->vol_label_box->container.w - (PADDING * 4), track->vol_row_rect.h - (PADDING * 2)}; */
+/*     set_fslider_rect(track->vol_ctrl, &volslider_rect, 2); */
+/*     reset_fslider(track->vol_ctrl);  */
 
-    SDL_Rect panslider_rect = (SDL_Rect) {track->pan_label_box->container.x + track->pan_label_box->container.w + PADDING, track->pan_label_box->container.y + PADDING, track->pan_row_rect.w - track->pan_label_box->container.w - (PADDING * 4), track->pan_row_rect.h - (PADDING * 2)};
-    set_fslider_rect(track->pan_ctrl, &panslider_rect, 2);
-    reset_fslider(track->pan_ctrl);
-    for (uint8_t i=0; i<track->num_clips; i++) {
-        reset_cliprect(track->clips[i]);
-    }
-}
+/*     SDL_Rect panslider_rect = (SDL_Rect) {track->pan_label_box->container.x + track->pan_label_box->container.w + PADDING, track->pan_label_box->container.y + PADDING, track->pan_row_rect.w - track->pan_label_box->container.w - (PADDING * 4), track->pan_row_rect.h - (PADDING * 2)}; */
+/*     set_fslider_rect(track->pan_ctrl, &panslider_rect, 2); */
+/*     reset_fslider(track->pan_ctrl); */
+/*     for (uint8_t i=0; i<track->num_clips; i++) { */
+/*         reset_cliprect(track->clips[i]); */
+/*     } */
+/* } */
 
 /* Reset the clip's container rect for redrawing */
 void reset_cliprect(Clip *clip) 
@@ -695,7 +852,6 @@ Clip *create_clip(Track *track, uint32_t len_sframes, uint32_t absolute_position
         clip->track_rank = track->num_clips;
         track->clips[track->num_clips] = clip;
         track->num_clips++;
-        // clip->track = track;
     }
     if (len_sframes != 0) {
         clip->L = malloc(sizeof(float) * len_sframes);
@@ -712,7 +868,26 @@ Clip *create_clip(Track *track, uint32_t len_sframes, uint32_t absolute_position
     clip->start_ramp_len = 0;
     clip->end_ramp_len = 0;
 
-    clip->namebox = create_textbox(0, 0, 2, 2, proj->jwin->bold_fonts[1], clip->name, &grey, &clear, &clear, NULL, NULL, NULL, NULL, 0, true, true, BOTTOM_LEFT);
+    /* clip->namebox = create_textbox(0, 0, 2, 2, proj->jwin->bold_fonts[1], clip->name, &grey, &clear, &clear, NULL, NULL, NULL, NULL, 0, true, true, BOTTOM_LEFT); */
+    init_text_from_str(
+	&clip->name_txt,
+	clip->name,
+
+	/* TODO CP */
+	/*
+
+	  - See how the clip name box is getting updated (reset_cliprect)
+	  - Consider making a layout for clips.
+	
+
+
+
+	 */
+	
+	
+
+
+    
     reset_cliprect(clip);
     // fprintf(stderr, "\t->exit create_clip\n");
     return clip;
@@ -862,23 +1037,21 @@ void ungrab_clips()
         }
         track->num_grabbed_clips = 0;
     } 
-    // fprintf(stderr, "\t->Exit ungrab clips\n");
-
 }
 
-void reset_tl_rect(Timeline *tl)
-{
-    tl->rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h,}, TL_RECT);
-    int audio_rect_x = tl->rect.x + TRACK_CONSOLE_W + COLOR_BAR_W + PADDING;
-    tl->audio_rect = (SDL_Rect) {audio_rect_x, tl->rect.y, tl->proj->jwin->w - audio_rect_x, tl->rect.h}; // SET x in track
-    Track *track = NULL;
+/* void reset_tl_rect(Timeline *tl) */
+/* { */
+/*     tl->rect = get_rect((SDL_Rect){0, 0, proj->jwin->w, proj->jwin->h,}, TL_RECT); */
+/*     int audio_rect_x = tl->rect.x + TRACK_CONSOLE_W + COLOR_BAR_W + PADDING; */
+/*     tl->audio_rect = (SDL_Rect) {audio_rect_x, tl->rect.y, tl->proj->jwin->w - audio_rect_x, tl->rect.h}; // SET x in track */
+/*     Track *track = NULL; */
 
-    for (int t=0; t<tl->num_tracks; t++) {
-        track = tl->tracks[t];
-        track->rect.w = tl->rect.w;
-    }
+/*     for (int t=0; t<tl->num_tracks; t++) { */
+/*         track = tl->tracks[t]; */
+/*         track->rect.w = tl->rect.w; */
+/*     } */
 
-}
+/* } */
 
 void activate_or_deactivate_track(uint8_t track_index)
 {

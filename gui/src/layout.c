@@ -538,6 +538,7 @@ void layout_move_position(Layout *lt, int move_by_x, int move_by_y, bool block_s
 
     }
     layout_set_values_from_rect(lt);
+    layout_reset(lt);
 
 }
 

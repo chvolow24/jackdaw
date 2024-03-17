@@ -92,3 +92,7 @@ void textbox_draw(Textbox *tb)
     SDL_SetRenderDrawColor(rend, txtclr->r, txtclr->g, txtclr->b, txtclr->a);
     txt_draw(tb->text);
 }
+
+
+
+

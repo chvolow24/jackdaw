@@ -39,11 +39,16 @@ extern Layout *main_lt;
 
 static void write_dimension(FILE *f, Dimension *dim, char dimchar, int indent)
 {
+    fprintf(stdout, "WRITE DIMENSION\n");
     if (dim->type == SCALE) {
+	fprintf(stdout, "\ttry scale\n");
         fprintf(f, "%*s<%c>%s %f</%c>\n", indent, "", dimchar, layout_get_dimtype_str(dim->type), dim->value.floatval, dimchar);
     } else {
+	fprintf(stdout, "\ttry other. dt str?\n");
+	fprintf(stdout, "\t%s\n", layout_get_dimtype_str(dim->type));
         fprintf(f, "%*s<%c>%s %d</%c>\n", indent, "", dimchar, layout_get_dimtype_str(dim->type), dim->value.intval, dimchar);
     }
+    fprintf(stdout, "END write dimension\n");
 }
 
 
@@ -80,19 +85,24 @@ bool read_bool_str(char *bstr)
 }
 
 
-void write_layout(FILE *f, Layout *lt, int indent)
+void layout_write(FILE *f, Layout *lt, int indent)
 {
     if (lt->type == PRGRM_INTERNAL) {
         return;
     }
+    fprintf(stdout, "Writing layout name\n");
     fprintf(f, "%*s<Layout name=\"%s\" type=\"%s\">\n", indent, "", lt->name, get_lt_type_str(lt->type));
 
     // fprintf(f, "%*s<Layout name=\"%s\" display=\"%s\" internal=\"%s\">\n", indent, "", lt->name, get_bool_str(lt->display), get_bool_str(lt->internal));
     // fprintf(f, "%*s<name>%s</name>\n", indent + TABSPACES, "", lt->name);
+    fprintf(stdout, "Writing dims\n");
+
     write_dimension(f, &(lt->x), 'x', indent + TABSPACES);
     write_dimension(f, &(lt->y), 'y', indent + TABSPACES);
     write_dimension(f, &(lt->w), 'w', indent + TABSPACES);
     write_dimension(f, &(lt->h), 'h', indent + TABSPACES);
+
+        fprintf(stdout, "Written dims\n");
 
     fprintf(f, "%*s<index>%d</index>\n", indent + TABSPACES, "", lt->index);
     if (lt->type == TEMPLATE) {
@@ -100,8 +110,9 @@ void write_layout(FILE *f, Layout *lt, int indent)
     }
     fprintf(f, "%*s<children>\n", indent + TABSPACES, "");
 
+            fprintf(stdout, "Writing children\n");
     for (uint8_t i=0; i<lt->num_children; i++) {
-        write_layout(f, lt->children[i], indent + TABSPACES * 2);
+        layout_write(f, lt->children[i], indent + TABSPACES * 2);
     }
     fprintf(f, "%*s</children>\n", indent + TABSPACES, "");
     fprintf(f, "%*s</Layout>\n", indent, "");
@@ -247,7 +258,7 @@ static Layout *read_layout(FILE *f, long endrange)
     return lt;
 }
 
-Layout *read_layout_from_xml(const char *filename)
+Layout *layout_read_from_xml(const char *filename)
 {
     FILE *f = fopen(filename, "r");
     if (!f) {
@@ -257,9 +268,9 @@ Layout *read_layout_from_xml(const char *filename)
     return read_layout(f, 0);
 }
 
-Layout *read_xml_to_lt(Layout *dst, const char *filename)
+Layout *layout_read_xml_to_lt(Layout *dst, const char *filename)
 {
-    Layout *opened = read_layout_from_xml(filename);
+    Layout *opened = layout_read_from_xml(filename);
     if (!opened) {
         fprintf(stderr, "NOFILE: returning layout \"%s\" at %p\n", dst->name, dst);
         fprintf(stderr, "Main layout is at %p\n", main_lt);
@@ -291,7 +302,7 @@ Layout *read_xml_to_lt(Layout *dst, const char *filename)
 //     resize_layout(opened, dst->w, dst->h);
 // }
 
-void write_layout_to_file(Layout *lt)
+void layout_write_to_file(Layout *lt)
 {
     char filename[MAX_LT_NAMELEN + 4];
     strcpy(filename, lt->name);
@@ -302,6 +313,6 @@ void write_layout_to_file(Layout *lt)
         fprintf(stderr, "Unable to write file at %s\n", filename);
         return;
     }
-    write_layout(f, lt, 0);
+    layout_write(f, lt, 0);
     fclose(f);
 }

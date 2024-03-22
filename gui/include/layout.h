@@ -131,7 +131,7 @@ Layout *layout_add_child(Layout *parent);
 
 void layout_set_name(Layout *lt, char *new_name);
 
-/* Add a child with a complementary dimension */
+/* Add a child with a complementary dimension. comp_rm should be one of W or H */
 Layout *layout_add_complementary_child(Layout *parent, RectMem comp_rm);
 void layout_translate(Layout *lt, int translate_x, int translate_y, bool block_snap);
 void layout_resize(Layout *lt, int resize_w, int resize_h, bool block_snap);
@@ -167,6 +167,7 @@ int layout_scroll_step(Layout *lt);
 void layout_add_iter(Layout *lt, IteratorType type, bool scrollable);
 void layout_remove_iter(Layout *lt);
 
+void layout_set_wh_from_rect(Layout *lt);
 void layout_set_values_from_rect(Layout *lt);
 
 void layout_fprint(FILE *f, Layout *lt);

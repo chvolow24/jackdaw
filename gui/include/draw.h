@@ -6,7 +6,7 @@
 #include "window.h"
 
 /* Main drawing function */
-void layout_draw_main(void);
+void layout_draw_main(Layout *clicked_lt);
 
 void draw_layout(Window *win, Layout *lt);
 

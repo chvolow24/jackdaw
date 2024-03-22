@@ -88,10 +88,12 @@ void draw_dotted_vertical(SDL_Renderer *rend, int x, int y1, int y2)
 
 void txt_draw(Text *txt)
 {
+    /* fprintf(stderr, "DRAW txt %p, disp: %s\n", txt, txt->display_value); */
     if (txt->display_value[0] == '\0' || !txt->texture) {
 	return;
     }
     if (txt->show_cursor) {
+	/* fprintf(stderr, "Showing cursor\n"); */
         if (txt->cursor_end_pos > txt->cursor_start_pos) {
             char leftstr[255];
             strncpy(leftstr, txt->display_value, txt->cursor_start_pos);
@@ -111,8 +113,6 @@ void txt_draw(Text *txt)
 
             };
             SDL_RenderFillRect(main_win->rend, &highlight);
-
-
         } else if (txt->cursor_countdown > CURSOR_COUNTDOWN_MAX / 2) {
             char newstr[255];
             strncpy(newstr, txt->display_value, txt->cursor_start_pos);
@@ -123,13 +123,19 @@ void txt_draw(Text *txt)
             // set_rend_color(main_win->rend, txt->txt_color);
             int x = txt->text_rect.x + w;
             for (int i=0; i<CURSOR_WIDTH; i++) {
+
                 SDL_RenderDrawLine(main_win->rend, x, txt->text_rect.y, x, txt->text_rect.y + txt->text_rect.h);
                 x++;
             }
+	    
         }
     }
     if (txt->len > 0) {
-        SDL_RenderCopy(txt->rend, txt->texture, NULL, &(txt->text_rect));
+        if (SDL_RenderCopy(txt->win->rend, txt->texture, NULL, &(txt->text_rect)) != 0) {
+	    fprintf(stderr, "Error: Render Copy failed in txt_draw. %s\n", SDL_GetError());
+	    exit(1);
+	}
+	/* fprintf(stderr, "Copied rend over to %p!\n", txt->rend); */
     }
 
 }
@@ -164,7 +170,7 @@ void draw_openfile_dialogue()
 }
 
 void draw_layout(Window *win, Layout *lt)
-{
+{   
     if (lt->type == PRGRM_INTERNAL) {
         return;
     }
@@ -206,11 +212,16 @@ void draw_layout(Window *win, Layout *lt)
 
 }
 
-void layout_draw_main()
+void layout_draw_main(Layout *clicked_lt)
 {
     SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 0);
     SDL_RenderClear(main_win->rend);
     draw_layout(main_win, main_lt);
+
+    if (clicked_lt) {
+	SDL_SetRenderDrawColor(main_win->rend, 0, 255, 0, 255);
+	SDL_RenderDrawRect(main_win->rend, &clicked_lt->rect);
+    }
     if (show_layout_params) {
         draw_layout_params();
     }

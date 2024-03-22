@@ -56,6 +56,9 @@ const char *layout_get_dimtype_str(DimType dt)
             return "SCALE";
         case COMPLEMENT:
             return "COMPLEMENT";
+    default:
+	fprintf(stderr, "Error: DimType has value %d, which is not a member of enum.\n", dt);
+	exit(1);
     }
 }
 
@@ -145,6 +148,54 @@ static SDL_Rect get_logical_rect(SDL_Rect *pixels_p)
     return logical;
 }
 
+void layout_set_wh_from_rect(Layout *lt)
+{
+    switch (lt->w.type) {
+        case ABS:
+            lt->w.value.intval = round((float)lt->rect.w / main_win->dpi_scale_factor);
+            break;
+        case REL:
+            lt->w.value.intval = round((float) lt->rect.w / main_win->dpi_scale_factor);
+            break;
+        case SCALE:
+            if (lt->parent) {
+                if (lt->parent->rect.w != 0) {
+                    lt->w.value.floatval = (float) lt->rect.w / lt->parent->rect.w;
+                }
+            } else {
+                fprintf(stderr, "Error: attempting to set scaled dimension values on layout with no parent.\n");
+		return;
+                // exit(1);
+            }
+            break;
+        case COMPLEMENT:
+	    break; /* Vales are irrelevant for COMPLEMENT */
+	    
+		
+    }
+
+    switch (lt->h.type) {
+        case ABS:
+            lt->h.value.intval = round( (float)lt->rect.h / main_win->dpi_scale_factor);
+            break;
+        case REL:
+            lt->h.value.intval = round((float)lt->rect.h / main_win->dpi_scale_factor);
+            break;
+        case SCALE:
+            if (lt->parent) {
+                if (lt->parent->rect.h != 0) {
+                    lt->h.value.floatval = (float) lt->rect.h / lt->parent->rect.h;
+                }
+            } else {
+                fprintf(stderr, "Error: attempting to set scaled dimension values on layout with no parent.\n");
+                // exit(1);
+            }
+            break;
+        case COMPLEMENT:
+	    break;
+	
+    }
+}  
 
 void layout_set_values_from_rect(Layout *lt)
 {
@@ -195,51 +246,52 @@ void layout_set_values_from_rect(Layout *lt)
 	    break;
     }
 
-    switch (lt->w.type) {
-        case ABS:
-            lt->w.value.intval = round((float)lt->rect.w / main_win->dpi_scale_factor);
-            break;
-        case REL:
-            lt->w.value.intval = round((float) lt->rect.w / main_win->dpi_scale_factor);
-            break;
-        case SCALE:
-            if (lt->parent) {
-                if (lt->parent->rect.w != 0) {
-                    lt->w.value.floatval = (float) lt->rect.w / lt->parent->rect.w;
-                }
-            } else {
-                fprintf(stderr, "Error: attempting to set scaled dimension values on layout with no parent.\n");
-		return;
-                // exit(1);
-            }
-            break;
-        case COMPLEMENT:
-	    break; /* Vales are irrelevant for COMPLEMENT */
+    layout_set_wh_from_rect(lt);
+    /* switch (lt->w.type) { */
+    /*     case ABS: */
+    /*         lt->w.value.intval = round((float)lt->rect.w / main_win->dpi_scale_factor); */
+    /*         break; */
+    /*     case REL: */
+    /*         lt->w.value.intval = round((float) lt->rect.w / main_win->dpi_scale_factor); */
+    /*         break; */
+    /*     case SCALE: */
+    /*         if (lt->parent) { */
+    /*             if (lt->parent->rect.w != 0) { */
+    /*                 lt->w.value.floatval = (float) lt->rect.w / lt->parent->rect.w; */
+    /*             } */
+    /*         } else { */
+    /*             fprintf(stderr, "Error: attempting to set scaled dimension values on layout with no parent.\n"); */
+    /* 		return; */
+    /*             // exit(1); */
+    /*         } */
+    /*         break; */
+    /*     case COMPLEMENT: */
+    /* 	    break; /\* Vales are irrelevant for COMPLEMENT *\/ */
 	    
 		
-    }
+    /* } */
 
-    switch (lt->h.type) {
-        case ABS:
-            lt->h.value.intval = round( (float)lt->rect.h / main_win->dpi_scale_factor);
-            break;
-        case REL:
-            lt->h.value.intval = round((float)lt->rect.h / main_win->dpi_scale_factor);
-            break;
-        case SCALE:
-            if (lt->parent) {
-                if (lt->parent->rect.h != 0) {
-                    lt->h.value.floatval = (float) lt->rect.h / lt->parent->rect.h;
-                }
-            } else {
-                fprintf(stderr, "Error: attempting to set scaled dimension values on layout with no parent.\n");
-                // exit(1);
-            }
-            break;
-        case COMPLEMENT:
-	    break;
+    /* switch (lt->h.type) { */
+    /*     case ABS: */
+    /*         lt->h.value.intval = round( (float)lt->rect.h / main_win->dpi_scale_factor); */
+    /*         break; */
+    /*     case REL: */
+    /*         lt->h.value.intval = round((float)lt->rect.h / main_win->dpi_scale_factor); */
+    /*         break; */
+    /*     case SCALE: */
+    /*         if (lt->parent) { */
+    /*             if (lt->parent->rect.h != 0) { */
+    /*                 lt->h.value.floatval = (float) lt->rect.h / lt->parent->rect.h; */
+    /*             } */
+    /*         } else { */
+    /*             fprintf(stderr, "Error: attempting to set scaled dimension values on layout with no parent.\n"); */
+    /*             // exit(1); */
+    /*         } */
+    /*         break; */
+    /*     case COMPLEMENT: */
+    /* 	    break; */
 	
-    }
+    /* } */
 
 }
 
@@ -662,12 +714,21 @@ Layout *layout_create()
     lt->selected = false;
     lt->type = NORMAL;
     lt->iterator = NULL;
+
+    lt->x.type = REL;
+    lt->y.type = REL;
+    lt->w.type = ABS;
+    lt->h.type = ABS;
+    lt->x.value.intval = 0;
+    lt->y.value.intval = 0;
+    lt->w.value.intval = 0;
+    lt->h.value.intval = 0;
     // lt->display = true;
     // lt->internal = false;
     lt->parent = NULL;
     lt->rect = (SDL_Rect) {0,0,0,0};
     lt->label_rect = (SDL_Rect) {0,0,0,0};
-    lt->namelabel = txt_create_from_str(lt->name, MAX_LT_NAMELEN, &(lt->label_rect), open_sans_12, white, CENTER_LEFT, false, main_win->rend);
+    lt->namelabel = txt_create_from_str(lt->name, MAX_LT_NAMELEN, &(lt->label_rect), open_sans_12, white, CENTER_LEFT, false, main_win);
     return lt;
 }
 

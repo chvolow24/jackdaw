@@ -233,7 +233,6 @@ int main(int argc, char** argv)
     }
     
 
-
     main_win = window_create(1200, 900, "Layout editor");
     window_assign_std_font(main_win, OPEN_SANS_PATH);
 
@@ -245,7 +244,7 @@ int main(int argc, char** argv)
             fprintf(stderr, "Unable to open layout file at %s\n", argv[1]);
             exit(1);
         }
-        main_lt = read_layout_from_xml(argv[1]);
+        main_lt = layout_read_from_xml(argv[1]);
         main_lt->type = NORMAL;
         set_window_size_to_lt();
     } else {
@@ -371,9 +370,9 @@ int main(int argc, char** argv)
                         break;
                     case SDL_SCANCODE_S:
                         if (clicked_lt && layout_clicked && cmdctrldown) {
-                            write_layout_to_file(clicked_lt);
+                            layout_write_to_file(clicked_lt);
                         } else if (cmdctrldown) {
-                            write_layout_to_file(main_lt);
+                            layout_write_to_file(main_lt);
                         }
                         break;
                     case SDL_SCANCODE_C:
@@ -423,7 +422,7 @@ int main(int argc, char** argv)
                             show_layout_params = false;
                         } else {
                             if (!param_lt) {
-                                param_lt = read_layout_from_xml("template_lts/param_lt.xml");
+                                param_lt = layout_read_from_xml("template_lts/param_lt.xml");
                             }
                             layout_reparent(param_lt, main_lt);
                             show_layout_params = true;
@@ -441,7 +440,7 @@ int main(int argc, char** argv)
                         } else {
                             show_openfile = true;
                             if (!openfile_lt) {
-                                openfile_lt = read_layout_from_xml("template_lts/openfile.xml");
+                                openfile_lt = layout_read_from_xml("template_lts/openfile.xml");
                                 layout_reparent(openfile_lt, main_lt);
                             }
                             if (clicked_lt && layout_clicked) {
@@ -509,7 +508,7 @@ int main(int argc, char** argv)
 		scrolling = NULL;
 	    }
 	}
-        layout_draw_main();
+        layout_draw_main(clicked_lt);
         SDL_Delay(1);
 
 	if (screen_record) {

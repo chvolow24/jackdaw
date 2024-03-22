@@ -3,11 +3,11 @@
 
 #include "layout.h"
 
-Layout *read_layout_from_xml(const char *filename);
+Layout *layout_read_from_xml(const char *filename);
 
-void write_layout(FILE *f, Layout *lt, int indent);
-void write_layout_to_file(Layout *lt);
-void write_layout_to_file(Layout *lt);
-Layout *read_xml_to_lt(Layout *dst, char *filepath);
+void layout_write(FILE *f, Layout *lt, int indent);
+void layout_write_to_file(Layout *lt);
+
+Layout *layout_read_xml_to_lt(Layout *dst, char *filepath);
 
 #endif

@@ -24,6 +24,7 @@
 
 *****************************************************************************************************************/
 
+#include "draw.h"
 #include "layout.h"
 #include "openfile.h"
 #include "parse_xml.h"
@@ -58,9 +59,9 @@ Layout *openfile_loop(Layout *lt)
         openfile->filepath = txt_create_from_str(filepath_buffer, 254, &(layout_get_child_by_name_recursive(openfile_lt, "filepath")->rect), open_sans_12, white, CENTER_LEFT, true, main_win->rend);
     }
 
-    txt_edit (openfile->filepath);
+    txt_edit (openfile->filepath, layout_draw_main);
 
-    Layout *ret = read_xml_to_lt(lt, openfile->filepath->display_value);
+    Layout *ret = layout_read_xml_to_lt(lt, openfile->filepath->display_value);
 
 
     if (ret != main_lt && ret->type == PRGRM_INTERNAL) make_editable(ret);

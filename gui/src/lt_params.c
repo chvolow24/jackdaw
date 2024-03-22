@@ -70,23 +70,23 @@ void set_lt_params(Layout *lt)
         // exit(0);
         SDL_Color txt_color = {255, 255, 255, 255};
 	TTF_Font *open_sans_12 = ttf_get_font_at_size(main_win->std_font, 12);
-        lt_params->name_label = txt_create_from_str("Name: ", 7, name_label_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win->rend);
-        lt_params->x_type_label = txt_create_from_str("X Type: ", 9, x_label_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win->rend);
-        lt_params->y_type_label = txt_create_from_str("Y Type: ", 9, y_label_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win->rend);
-        lt_params->w_type_label = txt_create_from_str("W Type: ", 9, w_label_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win->rend);
-        lt_params->h_type_label = txt_create_from_str("H Type", 9, h_label_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win->rend);
+        lt_params->name_label = txt_create_from_str("Name: ", 7, name_label_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win);
+        lt_params->x_type_label = txt_create_from_str("X Type: ", 9, x_label_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win);
+        lt_params->y_type_label = txt_create_from_str("Y Type: ", 9, y_label_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win);
+        lt_params->w_type_label = txt_create_from_str("W Type: ", 9, w_label_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win);
+        lt_params->h_type_label = txt_create_from_str("H Type", 9, h_label_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win);
         // fprintf(stderr, "Done a bunch text from string\n");
         
-        lt_params->name_value = txt_create_from_str(NULL, MAX_LT_NAMELEN - 1, name_val_rect, open_sans_12, txt_color, CENTER_LEFT, true, main_win->rend);
-        lt_params->x_type_value = txt_create_from_str(NULL, 5, x_typeval_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win->rend);
-        lt_params->y_type_value = txt_create_from_str(NULL, 5, y_typeval_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win->rend);
-        lt_params->w_type_value = txt_create_from_str(NULL, 5, w_typeval_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win->rend);
-        lt_params->h_type_value = txt_create_from_str(NULL, 5, h_typeval_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win->rend);
+        lt_params->name_value = txt_create_from_str(NULL, MAX_LT_NAMELEN - 1, name_val_rect, open_sans_12, txt_color, CENTER_LEFT, true, main_win);
+        lt_params->x_type_value = txt_create_from_str(NULL, 5, x_typeval_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win);
+        lt_params->y_type_value = txt_create_from_str(NULL, 5, y_typeval_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win);
+        lt_params->w_type_value = txt_create_from_str(NULL, 5, w_typeval_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win);
+        lt_params->h_type_value = txt_create_from_str(NULL, 5, h_typeval_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win);
 
-        lt_params->x_value = txt_create_from_str(NULL, 10, x_value_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win->rend);
-        lt_params->y_value = txt_create_from_str(NULL, 10, y_value_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win->rend);
-        lt_params->w_value = txt_create_from_str(NULL, 10, w_value_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win->rend);
-        lt_params->h_value = txt_create_from_str(NULL, 10, h_value_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win->rend);
+        lt_params->x_value = txt_create_from_str(NULL, 10, x_value_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win);
+        lt_params->y_value = txt_create_from_str(NULL, 10, y_value_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win);
+        lt_params->w_value = txt_create_from_str(NULL, 10, w_value_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win);
+        lt_params->h_value = txt_create_from_str(NULL, 10, h_value_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win);
 
         lt_params->x_value_str = malloc(10);
         lt_params->y_value_str = malloc(10);
@@ -192,13 +192,13 @@ void edit_lt_loop(Layout *lt)
                         exit = true;
                         break;
                     case SDL_SCANCODE_N:
-                        txt_edit(lt_params->name_value);
+                        txt_edit(lt_params->name_value, layout_draw_main);
                         txt_reset_display_value(lt->namelabel);
                         // set_lt_params(lt);
                         break;
                     case SDL_SCANCODE_X: {
                         if (shiftdown) {
-                            txt_edit(lt_params->x_value);
+                            txt_edit(lt_params->x_value, layout_draw_main);
                             set_lt_dim_from_param_str(lt, X);
                         } else {
                             layout_toggle_dimension(lt, &(lt->x), X, &(lt->rect), &(lt->parent->rect));
@@ -209,7 +209,7 @@ void edit_lt_loop(Layout *lt)
                     }
                     case SDL_SCANCODE_Y:
                         if (shiftdown) {
-                            txt_edit(lt_params->y_value);
+                            txt_edit(lt_params->y_value, layout_draw_main);
                             set_lt_dim_from_param_str(lt, Y);
                         } else {
                             layout_toggle_dimension(lt, &(lt->y), Y, &(lt->rect), &(lt->parent->rect));
@@ -219,7 +219,7 @@ void edit_lt_loop(Layout *lt)
                         break;
                     case SDL_SCANCODE_W:
                         if (shiftdown) {
-                            txt_edit(lt_params->w_value);
+                            txt_edit(lt_params->w_value, layout_draw_main);
                             set_lt_dim_from_param_str(lt, W);
                         } else {
                             layout_toggle_dimension(lt, &(lt->w), W, &(lt->rect), &(lt->parent->rect));
@@ -229,7 +229,7 @@ void edit_lt_loop(Layout *lt)
                         break;
                     case SDL_SCANCODE_H:
                         if (shiftdown) {
-                            txt_edit(lt_params->h_value);
+                            txt_edit(lt_params->h_value, layout_draw_main);
                             set_lt_dim_from_param_str(lt, H);
                         } else {
                             layout_toggle_dimension(lt, &(lt->h), H, &(lt->rect), &(lt->parent->rect));
@@ -249,7 +249,7 @@ void edit_lt_loop(Layout *lt)
                     shiftdown = false;
                 }
             }
-            layout_draw_main();
+            layout_draw_main(NULL);
             SDL_Delay(1);
         }
         

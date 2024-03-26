@@ -31,6 +31,8 @@
 #define TXT_H 40
 #define SNAP_TOLERANCE 7
 
+#define SCROLL_STOP_THRESHOLD 5
+
 extern Layout *main_lt;
 extern SDL_Color white;
 //extern TTF_Font *open_sans;
@@ -348,6 +350,7 @@ void reset_iterations(LayoutIterator *iter);
 static void handle_scroll_internal(Layout *lt, float scroll_x, float scroll_y)
 {
 
+    lt->iterator->scroll_stop_count = 0;
     float offset_increment = lt->iterator->type == VERTICAL ? scroll_y : scroll_x;
     float new_offset = offset_increment + lt->iterator->scroll_offset;
     int iter_dim = lt->iterator->type == VERTICAL ? lt->iterator->total_height_pixels : lt->iterator->total_width_pixels;
@@ -371,7 +374,7 @@ Layout *layout_handle_scroll(Layout *main_lt, SDL_Point *mousep, float scroll_x,
 {
     Layout *scrollable = get_scrollable_layout_at_point(main_lt, mousep);
     if (!scrollable) return NULL;
-
+    
     handle_scroll_internal(scrollable, scroll_x, scroll_y);
     return scrollable;
 }
@@ -386,23 +389,38 @@ int layout_scroll_step(Layout *lt)
     int iter_dim = lt->iterator->type == VERTICAL ? lt->iterator->total_height_pixels : lt->iterator->total_width_pixels;
     
     lt->iterator->scroll_momentum += (lt->iterator->scroll_momentum < 0 ? 1 : -1);
-    if (fabs(lt->iterator->scroll_momentum) < 1) {
+    if (lt->iterator->scroll_stop_count > SCROLL_STOP_THRESHOLD) {
+	lt->iterator->scroll_momentum = 0;
+	return 0;
+    }
+    else if (fabs(lt->iterator->scroll_momentum) < 1) {
+	fprintf(stderr, "STOP NATURAL. momentum %f\n", lt->iterator->scroll_momentum);
 	lt->iterator->scroll_momentum = 0;
 	return 0;
     }
     if (lt->iterator->scroll_offset + lt->iterator->scroll_momentum < 0) {
+	fprintf(stderr, "STOP TOP. momentum %f\n", lt->iterator->scroll_momentum);
 	lt->iterator->scroll_offset = 0;
 	lt->iterator->scroll_momentum = 0;
 	reset_iterations(lt->iterator);
 	return 0;
     } else if (lt->iterator->scroll_offset + lt->iterator->scroll_momentum > iter_dim) {
+	fprintf(stderr, "STOP BOTTOM. momentum %f\n", lt->iterator->scroll_momentum);
 	lt->iterator->scroll_offset = iter_dim;
 	lt->iterator->scroll_momentum = 0;
 	return 0;
     } else {
+	fprintf(stderr, "GO! momentum%f\n", lt->iterator->scroll_momentum);
 	lt->iterator->scroll_offset += lt->iterator->scroll_momentum;
 	reset_iterations(lt->iterator);
 	return 1;
+    }
+}
+
+void layout_stop_scroll(Layout *lt)
+{
+    if (lt->iterator) {
+	lt->iterator->scroll_momentum = 0;
     }
 }
 				      
@@ -1095,6 +1113,7 @@ void reset_iterations(LayoutIterator *iter)
 
 LayoutIterator *layout_create_iter_from_template(Layout *template, IteratorType type, int num_iterations, bool scrollable) 
 {
+    fprintf(stderr, "layout create iter from template\n");
     template->type = TEMPLATE;
     LayoutIterator *iter = create_iterator();
 

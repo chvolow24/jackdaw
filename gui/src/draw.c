@@ -212,10 +212,12 @@ void draw_layout(Window *win, Layout *lt)
 
 }
 
+SDL_Color empty_color = (SDL_Color) {0, 0, 0, 0};
 void layout_draw_main(Layout *clicked_lt)
 {
-    SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 0);
-    SDL_RenderClear(main_win->rend);
+    window_start_draw(main_win, &empty_color);
+    /* SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 0); */
+    /* SDL_RenderClear(main_win->rend); */
     draw_layout(main_win, main_lt);
 
     if (clicked_lt) {
@@ -228,5 +230,6 @@ void layout_draw_main(Layout *clicked_lt)
     if (show_openfile) {
         draw_openfile_dialogue();
     }
-    SDL_RenderPresent(main_win->rend);
+    window_end_draw(main_win);
+    /* SDL_RenderPresent(main_win->rend); */
 }

@@ -103,6 +103,7 @@ typedef struct layout_iterator {
     bool scrollable;
     float scroll_offset;
     float scroll_momentum;
+    int scroll_stop_count;
     int total_height_pixels;
     int total_width_pixels;    
 } LayoutIterator;

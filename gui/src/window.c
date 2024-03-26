@@ -26,10 +26,14 @@
 
 #include <stdio.h>
 #include "SDL.h"
+#include "SDL_render.h"
+#include "color.h"
 #include "window.h"
 
 #define DEFAULT_WINDOW_FLAGS SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI
 #define DEFAULT_RENDER_FLAGS SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
+
+#define ZOOM_GLOBAL_SCALE 4.0f
 
 /* Create a window struct and initialize all members */
 Window *window_create(int w, int h, const char *name) 
@@ -63,6 +67,20 @@ Window *window_create(int w, int h, const char *name)
     window->w = w * window->dpi_scale_factor;
     window->h = h * window->dpi_scale_factor;
 
+    window->zoom_scale_factor = 1.0f;
+    window->canvas_src.x = 0;
+    window->canvas_src.y = 0;
+    window->canvas_src.w = window->w;
+    window->canvas_src.h = window->h;
+
+    /* Initialize canvas texture. All rendering will be done to this texture, then copied to the screen. */
+    window->canvas = SDL_CreateTexture(rend, 0, SDL_TEXTUREACCESS_TARGET, window->w * window->dpi_scale_factor, window->h * window->dpi_scale_factor);
+    if (!window->canvas) {
+	fprintf(stderr, "Error: failed to create canvas texture. %s\n", SDL_GetError());
+	exit(1);
+    }
+    
+
     window->std_font = NULL;
     
     SDL_SetRenderDrawBlendMode(window->rend, SDL_BLENDMODE_BLEND);
@@ -84,12 +102,78 @@ void window_auto_resize(Window *win)
     SDL_GetWindowSize(win->win, &(win->w), &(win->h));
     win->w *= win->dpi_scale_factor;
     win->h *= win->dpi_scale_factor;
+    win->canvas_src.w = win->w;
+    win->canvas_src.h = win->h;
 }
-
 
 void window_resize(Window *win, int w, int h)
 {
-    SDL_SetWindowSize(win->win, (double)w / win->dpi_scale_factor, (double)h / win->dpi_scale_factor);
-    win->w = w;
-    win->h = h;
+
+    SDL_SetWindowSize(win->win, w, h);
+    win->w = w * win->dpi_scale_factor;
+    win->h = h * win->dpi_scale_factor;
+    win->canvas_src.w = win->w;
+    win->canvas_src.h = win->h;
+}
+
+void window_set_mouse_point(Window *win, int logical_x, int logical_y)
+{
+    win->mousep_screen.x = logical_x * win->dpi_scale_factor;
+    win->mousep_screen.y = logical_y * win->dpi_scale_factor;
+    win->mousep.x = win->mousep_screen.x;
+    win->mousep.y = win->mousep_screen.y;
+
+    
+    if (win->zoom_scale_factor != 1.0f && win->zoom_scale_factor != 0) {
+	double new_x = (double) win->mousep.x / win->zoom_scale_factor;
+	double new_y = (double) win->mousep.y / win->zoom_scale_factor;
+	win->mousep.x = (int) round(new_x);
+	win->mousep.y = (int) round(new_y);
+	win->mousep.x += win->canvas_src.x;
+	win->mousep.y += win->canvas_src.y;
+    }
+}
+
+void window_zoom(Window *win, float zoom_by)
+{
+    fprintf(stderr, "WARNING: window_zoom doesn't work well and should not be used until fixed.\n");
+    win->zoom_scale_factor += zoom_by * win->zoom_scale_factor * ZOOM_GLOBAL_SCALE;
+    if (win->zoom_scale_factor < 1.0f) {
+	win->zoom_scale_factor = 1.0f;
+    }
+    double new_w, new_h;
+    new_w = (double) win->w / win->zoom_scale_factor;
+    new_h = (double) win->h / win->zoom_scale_factor;
+    win->canvas_src = (SDL_Rect){
+	round(win->mousep_screen.x - new_w / 2.0f),
+	round(win->mousep_screen.y - new_h / 2.0f),
+        /* diff_w / 2 - win->mousep.x / 2, */
+	/* diff_h / 2 - win->mousep.y / 2, */
+	round(new_w),
+	round(new_h)
+    };
+    if (win->canvas_src.x < 0) {
+	win->canvas_src.x = 0;
+    }
+    if (win->canvas_src.y < 0) {
+	win->canvas_src.y = 0;
+    }
+}
+
+
+void window_start_draw(Window *win, SDL_Color *bckgrnd_color)
+{
+    SDL_SetRenderTarget(win->rend, win->canvas);
+    if (bckgrnd_color) {
+	SDL_SetRenderDrawColor(win->rend, sdl_colorp_expand(bckgrnd_color));
+	SDL_RenderClear(win->rend);
+    }
+}
+
+
+void window_end_draw(Window *win)
+{
+    SDL_SetRenderTarget(win->rend, NULL);
+    SDL_RenderCopy(win->rend, win->canvas, &win->canvas_src, NULL);
+    SDL_RenderPresent(win->rend);
 }

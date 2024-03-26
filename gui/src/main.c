@@ -256,7 +256,7 @@ int main(int argc, char** argv)
     bool mousedown = false;
     bool cmdctrldown = false;
     bool shiftdown  = false;
-    bool fingerdown = false;
+    int fingersdown = 0;
 
     bool screen_record = false;
 
@@ -288,15 +288,19 @@ int main(int argc, char** argv)
                 int dist = 5000;
                 get_clicked_layout(mousep, main_lt, &dist, &(clicked_lt), &ed, &crnr);
                 if (crnr != NONECRNR) {
+		    fprintf(stderr, "Lt corner clicked~!\n:");
+
                     layout_clicked = true;
                     layout_corner_clicked = true;
                     clicked_lt->selected = true;
                 } else if (dist < CLICK_EDGE_DIST_TOLERANCE) {
+		    fprintf(stderr, "Lt clicked~!\n:");
                     layout_clicked = true;
                     clicked_lt->selected = true;
                 } else {
                     // fprintf(stderr, "Falsifying layout clicked\n");
                     clicked_lt->selected = false;
+		    clicked_lt = NULL;
                     layout_clicked = false;
                 }
             } else if (e.type == SDL_MOUSEMOTION) {
@@ -345,15 +349,13 @@ int main(int argc, char** argv)
 
 		/* TODO: Get this to work. cf https://discourse.libsdl.org/t/trackpad-events/49461 */
 	    } else if (e.type == SDL_FINGERUP) {
-		fingerdown = false;
+		fingersdown -= 1;
 	    } else if (e.type == SDL_FINGERDOWN) {
-
-		fingerdown = true;
-	    } else if (e.type == SDL_FINGERMOTION) {
-
-
-
-		
+		fingersdown += 1;
+		if (scrolling && fingersdown > 1) {
+		    scrolling->iterator->scroll_momentum = 0;
+		    scrolling = NULL;
+		}
             } else if (e.type == SDL_MOUSEWHEEL) {
 	        scrolling = layout_handle_scroll(main_lt, &mousep, e.wheel.preciseX * SCROLL_SCALAR * 1, e.wheel.preciseY * SCROLL_SCALAR * -1);
             } else if (e.type == SDL_KEYDOWN) {
@@ -404,14 +406,15 @@ int main(int argc, char** argv)
 			}
 			break;
                     case SDL_SCANCODE_I:
+			fprintf(stderr, "Scancode I clicked check: %p %d\n", clicked_lt, layout_clicked);
                         if (clicked_lt && layout_clicked) {
                             if (shiftdown) {
                                 layout_remove_iter(clicked_lt);
                             } else {
 				if (cmdctrldown) {
-				    
 				    layout_add_iter(clicked_lt, HORIZONTAL, true);
 				} else {
+				    fprintf(stderr, "Layout add iter\n");
 				    layout_add_iter(clicked_lt, VERTICAL, true);
 				}
                             }
@@ -459,7 +462,7 @@ int main(int argc, char** argv)
                         break;
                     case SDL_SCANCODE_P:
 			reset_clicked_lt(layout_get_parent(clicked_lt));
-                        /* if (layout_clicked && clicked_lt && clicked_lt->parent) { */
+                        /* if (layout_ && clicked_lt && clicked_lt->parent) { */
                         /*     clicked_lt->selected = false; */
                         /*     clicked_lt = clicked_lt->parent; */
                         /*     clicked_lt->selected = true; */
@@ -503,13 +506,14 @@ int main(int argc, char** argv)
                 }
             }
         }
-	if (scrolling && !fingerdown) {
+	if (scrolling) {
 	    if (layout_scroll_step(scrolling) == 0) {
 		scrolling = NULL;
 	    }
 	}
         layout_draw_main(clicked_lt);
         SDL_Delay(1);
+	/* fprintf(stderr, "Layout clicked: %d (%p)\n", layout_clicked, clicked_lt); */
 
 	if (screen_record) {
 	    screenshot_index++;

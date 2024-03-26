@@ -1,3 +1,4 @@
+#include "color.h"
 #include "geometry.h"
 #include "draw.h"
 #include "menu.h"
@@ -12,9 +13,6 @@
 #define MENU_STD_COLUMN_PAD 8
 
 #define MENU_STD_CORNER_RAD 10
-
-
-#define sdl_color_expand(color) color.r, color.g, color.b, color.a
 
 SDL_Color CLR_CLR = (SDL_Color) {0, 0, 0, 0};
 
@@ -295,7 +293,7 @@ void triage_mouse_menu(Menu *menu, SDL_Point *mousep, bool click)
 	    for (int i=0; i<sctn->num_items; i++) {
 		MenuItem *item = sctn->items[i];
 		if (SDL_PointInRect(mousep, &item->layout->rect)) {
-		    /* Layout *lt = layout_deepest_at_point(menu->layout, mousep); */
+		    /* Layout *lt = layout_deepest_at_point(mmenu->layout, mousep); */
 		    /* fprintf(stdout, "Deepest at point: %s\n", lt->name); */
 		    hovering = item;
 		    item->hovering = true;
@@ -311,6 +309,43 @@ void triage_mouse_menu(Menu *menu, SDL_Point *mousep, bool click)
     }
 }
 
+
+MenuItem *menu_item_at_index(Menu *menu, int index)
+{
+    int c, s, i;
+    c = s = i = 0;
+    MenuColumn *col = menu->columns[c];
+    MenuSection *sctn = col->sections[s];
+    MenuItem *item = NULL;
+    while (index >= sctn->num_items) {
+	if (s < col->num_sections - 1) {
+	    index -= sctn->num_items;
+	    s++;
+	    sctn = col->sections[s];
+	} else {
+	    if (c < menu->num_columns - 1) {
+		index -= sctn->num_items;
+		s = 0;
+		c++;
+		col = menu->columns[c];
+		sctn = col->sections[s];
+	    } else {
+		return NULL;
+	    }
+	}
+    }
+    item = sctn->items[index];
+    return item;
+}
+
+void menu_translate(Menu *menu, int translate_x, int translate_y)
+{
+    menu->layout->rect.x += translate_x * menu->window->dpi_scale_factor;
+    menu->layout->rect.y += translate_y * menu->window->dpi_scale_factor;
+    layout_set_values_from_rect(menu->layout);
+    layout_reset(menu->layout);
+    menu_reset_textboxes(menu);
+}
 
 void menu_draw(Menu *menu)
 {
@@ -358,3 +393,5 @@ void menu_draw(Menu *menu)
 	}
     }
 }
+
+

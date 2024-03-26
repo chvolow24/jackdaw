@@ -61,6 +61,8 @@ void menu_destroy(Menu *menu);
 void menu_draw(Menu *menu);
 void triage_mouse_menu(Menu *menu, SDL_Point *mousep, bool click);
 
+MenuItem *menu_item_at_index(Menu *menu, int index);
+void menu_translate(Menu *menu, int translate_x, int translate_y);
 #endif
 
 

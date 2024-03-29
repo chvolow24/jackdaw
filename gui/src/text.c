@@ -3,7 +3,7 @@
 ******************************************************************************************************************
 
   Copyright (C) 2023 Charlie Volow
-  
+3  
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
   in the Software without restriction, including without limitation the rights
@@ -24,14 +24,20 @@
 
 *****************************************************************************************************************/
 
+#include <string.h>
 
 #include "draw.h"
 #include "text.h"
 #include "layout.h"
 #include "window.h"
 
+#define TXT_AREA_W_MIN 50
+#define TXT_AREA_DEFAULT_LINE_SPACING 2
+
 extern Layout *main_layout;
 extern Window *main_win;
+
+SDL_Color highlight = {0, 0, 255, 255};
 
 
 static void init_empty_text(
@@ -63,7 +69,6 @@ static void init_empty_text(
     txt->v_pad = 0;
     
     txt->win = win;
-    txt->surface = NULL;
     txt->texture = NULL;
 }
 
@@ -85,29 +90,28 @@ static Text *create_empty_text(
 
 void txt_reset_drawable(Text *txt) 
 {
+
    
     if (txt->len == 0 || txt->display_value[0] == '\0') { 
         return;
     }
-    if (txt->surface) {
-        SDL_FreeSurface(txt->surface);
-	txt->surface = NULL;
-    }
+
     if (txt->texture) {
         SDL_DestroyTexture(txt->texture);
 	txt->texture = NULL;
     }
 
-    txt->surface = TTF_RenderUTF8_Blended(txt->font, txt->display_value, txt->color);
-    if (!txt->surface) {
+    SDL_Surface *surface = TTF_RenderUTF8_Blended(txt->font, txt->display_value, txt->color);
+    if (!surface) {
         fprintf(stderr, "Error: TTF_RenderText_Blended failed: %s\n", TTF_GetError());
         return;
     }
-    txt->texture = SDL_CreateTextureFromSurface(txt->win->rend, txt->surface);
+    txt->texture = SDL_CreateTextureFromSurface(txt->win->rend, surface);
     if (!txt->texture) {
         fprintf(stderr, "Error: SDL_CreateTextureFromSurface failed: %s\n", TTF_GetError());
         return;
     }
+    SDL_FreeSurface(surface);
     SDL_QueryTexture(txt->texture, NULL, NULL, &(txt->text_rect.w), &(txt->text_rect.h));
     switch (txt->align) {
     case CENTER:
@@ -272,7 +276,6 @@ static void handle_backspace(Text *txt)
     if (displace > 0) {
         while (i + displace <= txt->len) {
             txt->display_value[i] = txt->display_value[i + displace];
-            char c = txt->display_value[i+displace];
             i++;
         }
         txt->len -= displace;
@@ -404,11 +407,8 @@ void txt_edit(Text *txt, void (draw_fn) (void))
 
 void txt_destroy(Text *txt)
 {
-    if (txt->surface) {
-        free(txt->surface);
-    }
     if (txt->texture) {
-        free(txt->texture);
+        SDL_DestroyTexture(txt->texture);
     }
     free(txt);
 }
@@ -472,4 +472,241 @@ void txt_set_pad(Text *txt, int h_pad, int v_pad)
 {
     txt->h_pad = h_pad;
     txt->v_pad = v_pad;
+}
+
+static void txt_area_make_line(TextArea *txtarea, char *line_start)
+{
+    if (strlen(line_start) == 0) {
+	return;
+    }
+    SDL_Surface *surface = TTF_RenderText_Blended(txtarea->font,  line_start, txtarea->color);
+    if (!surface) {
+	fprintf(stderr, "Error creating line surface in text area. %s\n", SDL_GetError());
+	exit(1);
+    }
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(txtarea->win->rend, surface);
+    if (!texture) {
+	fprintf(stderr, "Error creating line texture from surface. %s\n", SDL_GetError());
+    }
+    SDL_FreeSurface(surface);
+    int line_w, line_h;
+
+    TTF_SizeUTF8(txtarea->font, line_start, &line_w, &line_h);
+    if (txtarea->text_h == 0) {
+	txtarea->text_h = line_h;
+    }
+    txtarea->line_widths[txtarea->num_lines] = line_w;
+    txtarea->line_heights[txtarea->num_lines] = line_h;
+    txtarea->line_textures[txtarea->num_lines] = texture;
+    txtarea->num_lines++;
+}
+
+
+/* Return 0 for completed last line; 1 for completed line; -1 for error */
+static int txt_area_create_line(TextArea *txtarea, char **line_start, int w)
+{
+    char *cursor = *line_start;
+    char *last_word_boundary = *line_start;
+    char save_word_end;
+    char save_last_word_end;
+    int line_w = 0;
+    int line_h = 0;
+    /* int ret = 0; */
+    /* SDL_Surface *surface; */
+    /* SDL_Texture *texture; */
+
+    /* Run loop until line is done */
+    while (1) {
+	/* Iterate cursor through the end of the a word */
+	while (*cursor != ' ' && *cursor != '\n' && *cursor != '-' && *cursor != '\0') {
+	    cursor++;
+	}
+        save_word_end = *cursor;
+	
+	switch (save_word_end) {
+	case '\0':
+	case '\n':
+	    *cursor = '\0';
+	    if (cursor - *line_start != 0)  {
+		txt_area_make_line(txtarea, *line_start);
+		/* surface = TTF_RenderText_Blended(txtarea->font,  *line_start, txtarea->color); */
+		/* if (!surface) { */
+		/*     fprintf(stderr, "Error creating line surface in text area. %s\n", SDL_GetError()); */
+		/*     exit(1); */
+		/* } */
+		/* texture = SDL_CreateTextureFromSurface(txtarea->win->rend, surface); */
+		/* if (!texture) { */
+		/*     fprintf(stderr, "Error creating line texture from surface. %s\n", SDL_GetError()); */
+		/* } */
+		/* txtarea->line_widths[txtarea->num_lines] = line_w; */
+		/* txtarea->line_textures[txtarea->num_lines] = texture; */
+		/* txtarea->num_lines++; */
+	    }
+	    *cursor = save_word_end;
+	    *line_start = cursor + 1;
+	    if (save_word_end == '\n') {
+		return 1;
+	    } else {
+		return 0;
+	    }
+
+        default:
+	    *cursor = '\0';
+	    TTF_SizeUTF8(txtarea->font, *line_start, &line_w, &line_h);
+	    if (line_w > w) {
+		save_last_word_end = *last_word_boundary;
+		*last_word_boundary = '\0';
+		if (cursor - *line_start != 0)  {
+		    txt_area_make_line(txtarea, *line_start);
+		    /* surface = TTF_RenderText_Blended(txtarea->font,  *line_start, txtarea->color); */
+		    /* if (!surface) { */
+		    /* 	fprintf(stderr, "Error creating line surface in text area. %s\n", SDL_GetError()); */
+		    /* 	exit(1); */
+		    /* } */
+		    /* texture = SDL_CreateTextureFromSurface(txtarea->win->rend, surface); */
+		    /* if (!texture) { */
+		    /* 	fprintf(stderr, "Error creating line texture from surface. %s\n", SDL_GetError()); */
+		    /* } */
+		    /* txtarea->line_widths[txtarea->num_lines] = line_w; */
+		    /* txtarea->line_textures[txtarea->num_lines] = texture; */
+		    /* txtarea->num_lines++; */
+		}
+		*last_word_boundary = save_last_word_end;
+		last_word_boundary = cursor;
+		*cursor = save_word_end;
+		*line_start = cursor + 1;
+		return 1;
+	    }
+	    last_word_boundary = cursor;
+	    *cursor = save_word_end;
+	    
+	    cursor++;
+	    break;
+	    
+	}
+    }  
+    return 0;
+}
+
+void txt_area_create_lines(TextArea *txtarea)
+{
+    /* Clear old values if present */
+    for (int i=0; i<txtarea->num_lines; i++) {
+	SDL_DestroyTexture(txtarea->line_textures[i]);
+    }
+    txtarea->num_lines = 0;
+    if (txtarea->layout->num_children > 0) {
+	layout_destroy(txtarea->layout->children[0]);
+    }
+
+    
+    char *value_copy = strdup(txtarea->value_handle);
+    int w = txtarea->layout->rect.w;
+
+    w = w < TXT_AREA_W_MIN ? TXT_AREA_W_MIN : w;
+    char *line_start = value_copy;
+    while (txt_area_create_line(txtarea, &line_start, w) > 0) {
+    }
+    free(value_copy);
+
+    if (txtarea->text_h == 0) {
+	int line_w, line_h;
+	TTF_SizeUTF8(txtarea->font, txtarea->value_handle, &line_w, &line_h);
+	txtarea->text_h = line_h;
+    }
+    Layout *line_template = layout_add_child(txtarea->layout);
+    line_template->y.value.intval = txtarea->line_spacing;
+    line_template->h.value.intval = txtarea->text_h / txtarea->win->dpi_scale_factor;
+    for (int i=0; i<txtarea->num_lines; i++) {
+	layout_add_iter(line_template, VERTICAL, false);
+    }
+
+ 
+}
+
+
+TextArea *txt_area_create(const char *value, Layout *layout, TTF_Font *font, SDL_Color color, Window *win)
+{
+    TextArea *txtarea = malloc(sizeof(TextArea));
+    txtarea->layout = layout;
+    txtarea->font = font;
+    txtarea->value_handle = value;
+    txtarea->num_lines = 0;
+    txtarea->color = color;
+    txtarea->win = win;
+    txtarea->text_h = 0;
+
+    txtarea->line_spacing = TXT_AREA_DEFAULT_LINE_SPACING;
+    txt_area_create_lines(txtarea);
+    
+    return txtarea;
+}
+
+void txt_draw(Text *txt)
+{
+    /* fprintf(stderr, "DRAW txt %p, disp: %s\n", txt, txt->display_value); */
+    if (txt->display_value[0] == '\0' || !txt->texture) {
+	return;
+    }
+    if (txt->show_cursor) {
+	/* fprintf(stderr, "Showing cursor\n"); */
+        if (txt->cursor_end_pos > txt->cursor_start_pos) {
+            char leftstr[255];
+            strncpy(leftstr, txt->display_value, txt->cursor_start_pos);
+            leftstr[txt->cursor_start_pos] = '\0';
+            char rightstr[255];
+            strncpy(rightstr, txt->display_value, txt->cursor_end_pos);
+            rightstr[txt->cursor_end_pos] = '\0';
+            int wl, wr;
+            TTF_SizeUTF8(txt->font, leftstr, &wl, NULL);
+            TTF_SizeUTF8(txt->font, rightstr, &wr, NULL);
+            SDL_SetRenderDrawColor(main_win->rend, highlight.r, highlight.g, highlight.b, highlight.a);
+            SDL_Rect highlight = (SDL_Rect) {
+                txt->text_rect.x + wl,
+                txt->text_rect.y,
+                wr - wl,
+                txt->text_rect.h
+
+            };
+            SDL_RenderFillRect(main_win->rend, &highlight);
+        } else if (txt->cursor_countdown > CURSOR_COUNTDOWN_MAX / 2) {
+            char newstr[255];
+            strncpy(newstr, txt->display_value, txt->cursor_start_pos);
+            newstr[txt->cursor_start_pos] = '\0';
+            int w;
+            TTF_SizeUTF8(txt->font, newstr, &w, NULL);
+            SDL_SetRenderDrawColor(main_win->rend, txt->color.r, txt->color.g, txt->color.b, txt->color.a);
+            // set_rend_color(main_win->rend, txt->txt_color);
+            int x = txt->text_rect.x + w;
+            for (int i=0; i<CURSOR_WIDTH; i++) {
+
+                SDL_RenderDrawLine(main_win->rend, x, txt->text_rect.y, x, txt->text_rect.y + txt->text_rect.h);
+                x++;
+            }
+	    
+        }
+    }
+    if (txt->len > 0) {
+        if (SDL_RenderCopy(txt->win->rend, txt->texture, NULL, &(txt->text_rect)) != 0) {
+	    fprintf(stderr, "Error: Render Copy failed in txt_draw. %s\n", SDL_GetError());
+	    exit(1);
+	}
+	/* fprintf(stderr, "Copied rend over to %p!\n", txt->rend); */
+    }
+
+}
+    
+
+
+void txt_area_draw(TextArea *txtarea)
+{
+    for (int i=0; i<txtarea->num_lines; i++) {
+	Layout *line_lt = txtarea->layout->children[0]->iterator->iterations[i];
+	line_lt->rect.w = txtarea->line_widths[i];
+	line_lt->rect.h = txtarea->line_heights[i];
+	if (SDL_RenderCopy(txtarea->win->rend, txtarea->line_textures[i], NULL, &(line_lt->rect)) != 0) {
+	    fprintf(stderr, "Error: Render Copy failed in txt_draw. %s\n", SDL_GetError());
+	    exit(1);
+	}
+    }
 }

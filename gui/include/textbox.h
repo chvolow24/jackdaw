@@ -15,6 +15,7 @@
 typedef struct textbox {
     Text *text;
     Layout *layout;
+    bool wrap;
     SDL_Color *bckgrnd_clr;
     SDL_Color *border_clr;
     int border_thickness;

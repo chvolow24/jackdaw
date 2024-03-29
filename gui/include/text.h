@@ -9,10 +9,12 @@
 
 #define CURSOR_WIDTH 4
 #define CURSOR_COUNTDOWN_MAX 100
-#define TEXT_BUFLEN 256
+#define TEXT_BUFLEN 255
 
 #define STD_FONT_SIZES {10, 12, 14, 16, 18, 24, 30, 36, 48, 60, 72}
 #define STD_FONT_ARRLEN 11
+
+#define TXTAREA_MAX_LINES 255
 
 typedef struct window Window;
 
@@ -26,6 +28,26 @@ typedef enum textalign {
     CENTER_RIGHT
 } TextAlign;
 
+
+typedef struct layout Layout;
+
+/* Cannot be modified. Includes line wrapping. */ 
+typedef struct text_area {
+    const char *value_handle;
+    int num_lines;
+    int text_h;
+    int line_spacing;
+    Layout *layout;
+    unsigned *line_break_indices;
+    SDL_Texture *line_textures[TXTAREA_MAX_LINES];
+    int line_widths[TXTAREA_MAX_LINES];
+    int line_heights[TXTAREA_MAX_LINES];
+    TTF_Font *font;
+    SDL_Color color;
+    Window *win;
+} TextArea;
+    
+    
 typedef struct text {
     char *value_handle;
     char display_value[TEXT_BUFLEN];
@@ -46,9 +68,9 @@ typedef struct text {
     bool truncate;
 
     Window *win;
-    SDL_Surface *surface;
     SDL_Texture *texture;
 } Text;
+
 
 typedef struct font {
     const char *path;
@@ -117,3 +139,9 @@ void txt_set_pad(Text *txt, int h_pad, int v_pad);
 
 #endif
 
+
+TextArea *txt_area_create(const char *value, Layout *layout, TTF_Font *font, SDL_Color color, Window *win);
+
+void txt_area_draw(TextArea *txtarea);
+
+void txt_area_create_lines(TextArea *txtarea);

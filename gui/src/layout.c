@@ -394,23 +394,19 @@ int layout_scroll_step(Layout *lt)
 	return 0;
     }
     else if (fabs(lt->iterator->scroll_momentum) < 1) {
-	fprintf(stderr, "STOP NATURAL. momentum %f\n", lt->iterator->scroll_momentum);
 	lt->iterator->scroll_momentum = 0;
 	return 0;
     }
     if (lt->iterator->scroll_offset + lt->iterator->scroll_momentum < 0) {
-	fprintf(stderr, "STOP TOP. momentum %f\n", lt->iterator->scroll_momentum);
 	lt->iterator->scroll_offset = 0;
 	lt->iterator->scroll_momentum = 0;
 	reset_iterations(lt->iterator);
 	return 0;
     } else if (lt->iterator->scroll_offset + lt->iterator->scroll_momentum > iter_dim) {
-	fprintf(stderr, "STOP BOTTOM. momentum %f\n", lt->iterator->scroll_momentum);
 	lt->iterator->scroll_offset = iter_dim;
 	lt->iterator->scroll_momentum = 0;
 	return 0;
     } else {
-	fprintf(stderr, "GO! momentum%f\n", lt->iterator->scroll_momentum);
 	lt->iterator->scroll_offset += lt->iterator->scroll_momentum;
 	reset_iterations(lt->iterator);
 	return 1;
@@ -767,6 +763,7 @@ void layout_destroy(Layout *lt)
     for (uint8_t i=0; i<lt->num_children; i++) {
         layout_destroy(lt->children[i]);
     }
+    txt_destroy(lt->namelabel);
     free(lt);
 }
 
@@ -1113,7 +1110,6 @@ void reset_iterations(LayoutIterator *iter)
 
 LayoutIterator *layout_create_iter_from_template(Layout *template, IteratorType type, int num_iterations, bool scrollable) 
 {
-    fprintf(stderr, "layout create iter from template\n");
     template->type = TEMPLATE;
     LayoutIterator *iter = create_iterator();
 

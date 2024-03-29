@@ -6,6 +6,7 @@
 #include "layout.h"
 #include "layout_xml.h"
 #include "menu.h"
+#include "screenrecord.h"
 #include "text.h"
 #include "textbox.h"
 #include "window.h"
@@ -18,6 +19,7 @@ Menu *main_menu;
 Textbox *tb;
 Textbox *tb2;
 Layout *some_lt;
+TextArea *lorem_ipsum;
 
 SDL_Texture *target;
 
@@ -33,35 +35,44 @@ enum testmode {
 };
 
 
+int menu_x_dir = -1;
+int menu_y_dir = 1;
+int lorem_dir = -5;
+
 SDL_Color bckgrnd_color = (SDL_Color) {200, 200, 200, 255};
 void layout_test_draw_main()
 {
+    menu_translate(main_menu, menu_x_dir, menu_y_dir);
+
+    SDL_Rect *menurect = &main_menu->layout->rect;
+    if ((menurect->x <= 0 && menu_x_dir < 0) || (menurect->x + menurect->w > main_win->w && menu_x_dir > 0)) {
+	menu_x_dir *= -1;
+    }
+    if ((menurect->y <= 0 && menu_y_dir < 0)|| (menurect->y + menurect->h > main_win->h && menu_y_dir > 0)) {
+	menu_y_dir *= -1;
+    }
+
+
+    if (lorem_dir < 0 && lorem_ipsum->layout->rect.w < 75) {
+	lorem_dir *= -1;
+    } else if (lorem_dir > 0 && lorem_ipsum->layout->rect.w > 1500) {
+	lorem_dir *= -1;
+    }
+    lorem_ipsum->layout->rect.w += lorem_dir;
+    layout_set_values_from_rect(lorem_ipsum->layout);
+    txt_area_create_lines(lorem_ipsum);
+  
 
     window_start_draw(main_win, &bckgrnd_color);
     textbox_draw(tb);
     textbox_draw(tb2);
-
+    txt_area_draw(lorem_ipsum);
     if (main_menu) {   
 	menu_draw(main_menu);
     } 
 
-    int halfdim = main_win->w / 2;
-    int len = 50;
-    SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255);
-    SDL_RenderDrawLine(main_win->rend, halfdim - len / 2, halfdim, halfdim + len / 2, halfdim);
-    SDL_RenderDrawLine(main_win->rend, halfdim, halfdim - len / 2, halfdim, halfdim + len/2);
-
-    SDL_Rect src = (SDL_Rect) {0, 0, 1000, 1000};
-    SDL_Rect dst = (SDL_Rect) {0, 0, 1000, 1000};
-
-    SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255);
-    SDL_RenderDrawRect(main_win->rend, &dst);
 
     window_end_draw(main_win);
-    /* SDL_SetRenderTarget(main_win->rend, NULL); */
-    /* /\* SDL_RenderClear(main_win->rend); *\/ */
-    /* SDL_RenderCopy(main_win->rend, target, NULL, NULL); */
-    /* SDL_RenderPresent(main_win->rend); */
 }
 
 void change_tb_color(Textbox *this, void *target)
@@ -75,26 +86,35 @@ void change_tb_color(Textbox *this, void *target)
     textbox_set_text_color(to_change, &clr);
 }
 
+void change_clr(Textbox *this, void *target)
+{
+    SDL_Color *clr = (SDL_Color *)target;
+    clr->r = rand() % 255;
+    clr->g = rand() % 255;
+    clr->b = rand() % 255;
+    clr->a = 255;
+}
+
 void run_tests()
 {
-
-    /* bitfield_test(); */
-    /* exit(0); */
-    /* char *filepath = "jackdaw_main_layout.xml"; */
 
     main_win = window_create(500, 500, "Test window");
     window_assign_std_font(main_win, "../assets/ttf/OpenSans-Regular.ttf");
 
-    target = SDL_CreateTexture(main_win->rend, 0, SDL_TEXTUREACCESS_TARGET, 500 * main_win->dpi_scale_factor, 500 * main_win->dpi_scale_factor);
-    if (!target) {
-	fprintf(stderr, "ERROR: no target. %s\n", SDL_GetError());
-	exit(1);
-    }
     SDL_SetRenderTarget(main_win->rend, target);
 
     some_lt = layout_create_from_window(main_win);
     Layout *child = layout_add_child(some_lt);
     Layout *menu_lt = layout_add_child(some_lt);
+
+    Layout *textarea_lt = layout_add_child(some_lt);
+    layout_set_default_dims(textarea_lt);
+    layout_reset(textarea_lt);
+    const char *par = "Lorem.\nipsum.\ndolor.\nsit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum";
+    lorem_ipsum = txt_area_create(par, textarea_lt, ttf_get_font_at_size(main_win->std_font, 12), (SDL_Color) {0, 0, 0, 0}, main_win);
+
+					
+    /* target = SDL_CreateTexture(main_win->rend, 0, SDL_TEXTUREACCESS_TARGET, 500 * main_win->dpi_scale_factor, 500 * main_win->dpi_scale_factor); */
     menu_lt->x.value.intval = 100;
     menu_lt->y.value.intval = 100;
     layout_set_default_dims(child);
@@ -110,7 +130,7 @@ void run_tests()
 
 
     Layout *child2 = layout_add_child(some_lt);
-    child2->rect.x = 230;
+    child2->rect.x = 530;
     child2->rect.y = 30;
     layout_set_values_from_rect(child2);
     
@@ -157,10 +177,10 @@ void run_tests()
     MenuSection *b1 = menu_section_add(col_b, "B1");
 
     fprintf(stderr, "About to create first item\n");
-    menu_item_add(a1, "Something!", "C-s", change_tb_color, tb);
+    menu_item_add(a1, "Something!", "C-s", change_clr, &bckgrnd_color);
     fprintf(stderr, "Created first item\n");
-    menu_item_add(a1, "Something else", "C-e", change_tb_color, tb2);
-    menu_item_add(a1, "Third thing", "C-t", NULL, NULL);
+    menu_item_add(a1, "Something else", "C-e", change_clr, tb2->bckgrnd_clr);
+    menu_item_add(a1, "Third thing", "C-t", change_clr, tb->bckgrnd_clr);
     menu_item_add(a2, "Section two item", NULL, NULL, NULL);
     menu_item_add(b1, "Columns two item", NULL, NULL, NULL);
 
@@ -175,10 +195,8 @@ void run_tests()
 
     SDL_StartTextInput();
 
-
-    int menu_x_dir = -1;
-    int menu_y_dir = 1;
-    
+    bool screenrecord = false;
+    int screenshot_index = 0;
     uint16_t e_state = 0;
     while (!(e_state & E_STATE_QUIT)) {
 	SDL_Event e;
@@ -231,6 +249,9 @@ void run_tests()
 		    clr.b = rand() % 255;
 		    textbox_set_text_color(tb, &clr);
 		 }
+		    break;
+	        case SDL_SCANCODE_Q:
+		    screenrecord = !screenrecord;
 		    break;
 		default:
 		    break;
@@ -295,21 +316,11 @@ void run_tests()
 
 	}
 
-
+	if (screenrecord) {
+	    screenshot(screenshot_index, main_win->rend);
+	    screenshot_index++;
+	}
 	layout_test_draw_main();
-
-
-	int xnew = (e_state & E_STATE_MOUSE_L) ? menu_x_dir * 10 : menu_x_dir;
-	int ynew = (e_state & E_STATE_MOUSE_L) ? menu_y_dir * 10 : menu_y_dir;
-	menu_translate(main_menu, xnew, ynew);
-
-	SDL_Rect *menurect = &main_menu->layout->rect;
-	if ((menurect->x <= 0 && menu_x_dir < 0) || (menurect->x + menurect->w > main_win->w && menu_x_dir > 0)) {
-	    menu_x_dir *= -1;
-	}
-	if ((menurect->y <= 0 && menu_y_dir < 0)|| (menurect->y + menurect->h > main_win->h && menu_y_dir > 0)) {
-	    menu_y_dir *= -1;
-	}
 
 	SDL_Delay(1);
     }

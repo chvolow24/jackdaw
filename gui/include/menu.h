@@ -27,7 +27,7 @@ typedef struct menu_section {
     uint8_t num_items;
     Layout *layout;
 } MenuSection;
-    
+ 
 typedef struct menu_column {
     Menu *menu;
     char *label;
@@ -38,6 +38,8 @@ typedef struct menu_column {
 
 typedef struct menu {
     MenuColumn  *columns[MAX_MENU_COLUMNS];
+    char *title;
+    char *description;
     uint8_t num_columns;
     Layout *layout;
     Window *window;

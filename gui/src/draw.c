@@ -56,7 +56,6 @@ extern OpenFile *openfile;
 
 SDL_Color white = {255, 255, 255, 255};
 SDL_Color clr_white = {255, 255, 255, 127};
-SDL_Color highlight = {0, 0, 255, 255};
 SDL_Color iter_clr = {0, 100, 100, 255};
 
 SDL_Color rect_clrs[2] = {
@@ -84,60 +83,6 @@ void draw_dotted_vertical(SDL_Renderer *rend, int x, int y1, int y2)
         SDL_RenderDrawLine(rend, x, y1, x, y1 + DTTD_LN_LEN);
         y1 += DTTD_LN_LEN * 2;
     }
-}
-
-void txt_draw(Text *txt)
-{
-    /* fprintf(stderr, "DRAW txt %p, disp: %s\n", txt, txt->display_value); */
-    if (txt->display_value[0] == '\0' || !txt->texture) {
-	return;
-    }
-    if (txt->show_cursor) {
-	/* fprintf(stderr, "Showing cursor\n"); */
-        if (txt->cursor_end_pos > txt->cursor_start_pos) {
-            char leftstr[255];
-            strncpy(leftstr, txt->display_value, txt->cursor_start_pos);
-            leftstr[txt->cursor_start_pos] = '\0';
-            char rightstr[255];
-            strncpy(rightstr, txt->display_value, txt->cursor_end_pos);
-            rightstr[txt->cursor_end_pos] = '\0';
-            int wl, wr;
-            TTF_SizeUTF8(txt->font, leftstr, &wl, NULL);
-            TTF_SizeUTF8(txt->font, rightstr, &wr, NULL);
-            SDL_SetRenderDrawColor(main_win->rend, highlight.r, highlight.g, highlight.b, highlight.a);
-            SDL_Rect highlight = (SDL_Rect) {
-                txt->text_rect.x + wl,
-                txt->text_rect.y,
-                wr - wl,
-                txt->text_rect.h
-
-            };
-            SDL_RenderFillRect(main_win->rend, &highlight);
-        } else if (txt->cursor_countdown > CURSOR_COUNTDOWN_MAX / 2) {
-            char newstr[255];
-            strncpy(newstr, txt->display_value, txt->cursor_start_pos);
-            newstr[txt->cursor_start_pos] = '\0';
-            int w;
-            TTF_SizeUTF8(txt->font, newstr, &w, NULL);
-            SDL_SetRenderDrawColor(main_win->rend, txt->color.r, txt->color.g, txt->color.b, txt->color.a);
-            // set_rend_color(main_win->rend, txt->txt_color);
-            int x = txt->text_rect.x + w;
-            for (int i=0; i<CURSOR_WIDTH; i++) {
-
-                SDL_RenderDrawLine(main_win->rend, x, txt->text_rect.y, x, txt->text_rect.y + txt->text_rect.h);
-                x++;
-            }
-	    
-        }
-    }
-    if (txt->len > 0) {
-        if (SDL_RenderCopy(txt->win->rend, txt->texture, NULL, &(txt->text_rect)) != 0) {
-	    fprintf(stderr, "Error: Render Copy failed in txt_draw. %s\n", SDL_GetError());
-	    exit(1);
-	}
-	/* fprintf(stderr, "Copied rend over to %p!\n", txt->rend); */
-    }
-
 }
 
 void draw_layout_params()

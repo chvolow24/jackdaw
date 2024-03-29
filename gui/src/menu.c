@@ -18,12 +18,12 @@ SDL_Color CLR_CLR = (SDL_Color) {0, 0, 0, 0};
 
 SDL_Color menu_std_clr_inner_border = (SDL_Color) {130, 130, 130, 250};
 SDL_Color menu_std_clr_outer_border = (SDL_Color) {10, 10, 10, 220};
-SDL_Color menu_std_clr_bckgrnd = (SDL_Color) {50, 50, 50, 248};
+SDL_Color menu_std_clr_bckgrnd = (SDL_Color) {40, 40, 40, 238};
 
 SDL_Color menu_std_clr_txt = (SDL_Color) {255, 255, 255, 255};
 SDL_Color menu_std_clr_annot_txt = (SDL_Color) {200, 200, 200, 250};
 SDL_Color menu_std_clr_highlight = (SDL_Color) {50, 50, 255, 250};
-/* SDL_Color menu_std_clr_tb_bckgrnd = (SDL_Color) {0, 0, 0, 0}; */
+/* SDL_Color menu_std_clr_tb_bckgrnd0 = (SDL_Color) {0, 0, 0, 0}; */
 
 SDL_Color menu_std_clr_sctn_div = (SDL_Color) {200, 200, 200, 250};
 
@@ -93,6 +93,8 @@ Menu *menu_create(Layout *layout, Window *window)
     menu->num_columns = 0;
     menu->layout = layout;
     menu->window = window;
+    menu->title = NULL;
+    menu->description = NULL;
     return menu;
 }
 
@@ -252,6 +254,12 @@ void menu_item_destroy(MenuItem *item)
 
 void menu_destroy(Menu *menu)
 {
+    if (menu->title) {
+	free(menu->title);
+    }
+    if (menu->description) {
+	free(menu->description);
+    }
     for (int c=0; c<menu->num_columns; c++) {
 	MenuColumn *column = menu->columns[c];
 	for (int s=0; s < column->num_sections; s++) {

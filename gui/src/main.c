@@ -36,6 +36,7 @@
 #include "window.h"
 #include "parse_xml.h"
 #include "layout_xml.h"
+#include "screenrecord.h"
 #include "test.h"
 
 #define OPEN_SANS_PATH "../assets/ttf/OpenSans-Regular.ttf"
@@ -54,29 +55,6 @@ OpenFile *openfile = NULL;
 Window *main_win;
 bool show_layout_params = false;
 bool show_openfile = false;
-
-
-//TTF_Font *open_sans;
-
-
-/********* Screenshot ********/
-
-int screenshot_index = 0;
-
-/* Takes a bmp screenshot and saves to the 'images' subdirectory, with index i included in filename. */
-void screenshot(int i, SDL_Renderer* rend)
-{
-  char filename[30];
-  sprintf(filename, "gifframes/screenshot%3d.bmp", i);
-  printf("\nSaved %s", filename);
-  SDL_Surface *sshot = SDL_CreateRGBSurface(0, main_win->w, main_win->h, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
-  SDL_RenderReadPixels(rend, NULL, SDL_PIXELFORMAT_ARGB8888, sshot->pixels, sshot->pitch);
-  SDL_SaveBMP(sshot, filename);
-  SDL_FreeSurface(sshot);
-}
-
-/******************************/
-
 
 
 void init_SDL()
@@ -259,6 +237,8 @@ int main(int argc, char** argv)
     int fingersdown = 0;
 
     bool screen_record = false;
+    int screenshot_index = 0;
+    int i=0;
 
     SDL_Point mousep;
     clicked_lt = NULL;
@@ -516,8 +496,13 @@ int main(int argc, char** argv)
 	/* fprintf(stderr, "Layout clicked: %d (%p)\n", layout_clicked, clicked_lt); */
 
 	if (screen_record) {
-	    screenshot_index++;
-	    screenshot(screenshot_index, main_win->rend);
+	    if (i % 12 == 0) {
+		screenshot_index++;
+		screenshot(screenshot_index, main_win->rend);
+		SDL_Delay(10);
+	    }
+	    i++;
+	    
 	}
     }
 

@@ -34,7 +34,6 @@ Textbox *textbox_create_from_str(
 	true,
 	win
 	);
-
 	
     return tb;
 }

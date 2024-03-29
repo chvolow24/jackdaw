@@ -40,8 +40,10 @@ typedef struct menu {
     MenuColumn  *columns[MAX_MENU_COLUMNS];
     char *title;
     char *description;
+    TextArea *header;
     uint8_t num_columns;
     Layout *layout;
+    TTF_Font *font;
     Window *window;
 } Menu;
 
@@ -65,6 +67,7 @@ void triage_mouse_menu(Menu *menu, SDL_Point *mousep, bool click);
 
 MenuItem *menu_item_at_index(Menu *menu, int index);
 void menu_translate(Menu *menu, int translate_x, int translate_y);
+void menu_add_header(Menu *menu, char *title, char *description);
 #endif
 
 

@@ -16,6 +16,7 @@
 
 Window *main_win;
 Menu *main_menu;
+Menu *second_menu;
 Textbox *tb;
 Textbox *tb2;
 Layout *some_lt;
@@ -106,6 +107,8 @@ void run_tests()
     some_lt = layout_create_from_window(main_win);
     Layout *child = layout_add_child(some_lt);
     Layout *menu_lt = layout_add_child(some_lt);
+    Layout *menu_lt2 = layout_add_child(some_lt);
+    
 
     Layout *textarea_lt = layout_add_child(some_lt);
     layout_set_default_dims(textarea_lt);
@@ -117,6 +120,8 @@ void run_tests()
     /* target = SDL_CreateTexture(main_win->rend, 0, SDL_TEXTUREACCESS_TARGET, 500 * main_win->dpi_scale_factor, 500 * main_win->dpi_scale_factor); */
     menu_lt->x.value.intval = 100;
     menu_lt->y.value.intval = 100;
+    menu_lt2->x.value.intval = 400;
+    menu_lt2->y.value.intval = 20;
     layout_set_default_dims(child);
     layout_fprint(stdout, child);
     
@@ -135,12 +140,12 @@ void run_tests()
     layout_set_values_from_rect(child2);
     
     char hello_world[12];
-    snprintf(hello_world, 12, "hello world");
-    hello_world[11] = '\0';
+    snprintf(hello_world, 12, "hello");
+    hello_world[5] = '\0';
 
     char hell_world[12];
-    snprintf(hell_world, 11, "hell world");
-    hello_world[10] = '\0';
+    snprintf(hell_world, 11, "world");
+    hello_world[5] = '\0';
 
     tb = textbox_create_from_str(
 	hello_world,
@@ -175,16 +180,15 @@ void run_tests()
     MenuSection *a1 = menu_section_add(col_a, "A1");
     MenuSection *a2 = menu_section_add(col_a, "A2");
     MenuSection *b1 = menu_section_add(col_b, "B1");
-
-    fprintf(stderr, "About to create first item\n");
     menu_item_add(a1, "Something!", "C-s", change_clr, &bckgrnd_color);
-    fprintf(stderr, "Created first item\n");
     menu_item_add(a1, "Something else", "C-e", change_clr, tb2->bckgrnd_clr);
     menu_item_add(a1, "Third thing", "C-t", change_clr, tb->bckgrnd_clr);
     menu_item_add(a2, "Section two item", NULL, NULL, NULL);
     menu_item_add(b1, "Columns two item", NULL, NULL, NULL);
 
+    menu_add_header(main_menu, "Some Title", "This is a description of this menu. Within this description you will find information about how to use this menu, what its things do, how thing do.");
 
+    second_menu = menu_create(menu_lt2, main_win);
 
     int menu_selector = 0;
     MenuItem *item=NULL;

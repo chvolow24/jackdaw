@@ -617,7 +617,9 @@ void txt_area_create_lines(TextArea *txtarea)
     Layout *line_template = layout_add_child(txtarea->layout);
     line_template->y.value.intval = txtarea->line_spacing;
     line_template->h.value.intval = txtarea->text_h / txtarea->win->dpi_scale_factor;
+    
     for (int i=0; i<txtarea->num_lines; i++) {
+	txtarea->layout->h.value.intval += (txtarea->text_h / txtarea->win->dpi_scale_factor) + txtarea->line_spacing;
 	layout_add_iter(line_template, VERTICAL, false);
     }
 

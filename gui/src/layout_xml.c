@@ -36,16 +36,11 @@
 
 static void write_dimension(FILE *f, Dimension *dim, char dimchar, int indent)
 {
-    fprintf(stdout, "WRITE DIMENSION\n");
     if (dim->type == SCALE) {
-	fprintf(stdout, "\ttry scale\n");
         fprintf(f, "%*s<%c>%s %f</%c>\n", indent, "", dimchar, layout_get_dimtype_str(dim->type), dim->value.floatval, dimchar);
     } else {
-	fprintf(stdout, "\ttry other. dt str?\n");
-	fprintf(stdout, "\t%s\n", layout_get_dimtype_str(dim->type));
         fprintf(f, "%*s<%c>%s %d</%c>\n", indent, "", dimchar, layout_get_dimtype_str(dim->type), dim->value.intval, dimchar);
     }
-    fprintf(stdout, "END write dimension\n");
 }
 
 
@@ -87,19 +82,16 @@ void layout_write(FILE *f, Layout *lt, int indent)
     if (lt->type == PRGRM_INTERNAL) {
         return;
     }
-    fprintf(stdout, "Writing layout name\n");
     fprintf(f, "%*s<Layout name=\"%s\" type=\"%s\">\n", indent, "", lt->name, get_lt_type_str(lt->type));
 
     // fprintf(f, "%*s<Layout name=\"%s\" display=\"%s\" internal=\"%s\">\n", indent, "", lt->name, get_bool_str(lt->display), get_bool_str(lt->internal));
     // fprintf(f, "%*s<name>%s</name>\n", indent + TABSPACES, "", lt->name);
-    fprintf(stdout, "Writing dims\n");
 
     write_dimension(f, &(lt->x), 'x', indent + TABSPACES);
     write_dimension(f, &(lt->y), 'y', indent + TABSPACES);
     write_dimension(f, &(lt->w), 'w', indent + TABSPACES);
     write_dimension(f, &(lt->h), 'h', indent + TABSPACES);
 
-        fprintf(stdout, "Written dims\n");
 
     fprintf(f, "%*s<index>%d</index>\n", indent + TABSPACES, "", lt->index);
     if (lt->type == TEMPLATE) {
@@ -107,7 +99,6 @@ void layout_write(FILE *f, Layout *lt, int indent)
     }
     fprintf(f, "%*s<children>\n", indent + TABSPACES, "");
 
-            fprintf(stdout, "Writing children\n");
     for (uint8_t i=0; i<lt->num_children; i++) {
         layout_write(f, lt->children[i], indent + TABSPACES * 2);
     }
@@ -158,7 +149,6 @@ static void read_iterator(char *iterstr, IteratorType *type, int *num_iterations
         val_i = 11;
     }
     *num_iterations = atoi(iterstr + val_i);
-    fprintf(stderr, "\t->done read iterator\n");
 
 }
 

@@ -31,7 +31,7 @@
 #include "layout.h"
 #include "window.h"
 
-#define TXT_AREA_W_MIN 50
+#define TXT_AREA_W_MIN 10
 #define TXT_AREA_DEFAULT_LINE_SPACING 2
 
 extern Layout *main_layout;
@@ -574,9 +574,9 @@ static int txt_area_create_line(TextArea *txtarea, char **line_start, int w)
 		    /* txtarea->num_lines++; */
 		}
 		*last_word_boundary = save_last_word_end;
+		*line_start = last_word_boundary + 1;
 		last_word_boundary = cursor;
 		*cursor = save_word_end;
-		*line_start = cursor + 1;
 		return 1;
 	    }
 	    last_word_boundary = cursor;
@@ -597,8 +597,10 @@ void txt_area_create_lines(TextArea *txtarea)
 	SDL_DestroyTexture(txtarea->line_textures[i]);
     }
     txtarea->num_lines = 0;
-    if (txtarea->layout->num_children > 0) {
+    if (txtarea->layout->num_children == 1) {
 	layout_destroy(txtarea->layout->children[0]);
+    } else if (txtarea->layout->num_children > 1) {
+	fprintf(stderr, "Error: potential memory leak. txtarea layout has more than one child\n");
     }
 
     
@@ -606,6 +608,7 @@ void txt_area_create_lines(TextArea *txtarea)
     int w = txtarea->layout->rect.w;
 
     w = w < TXT_AREA_W_MIN ? TXT_AREA_W_MIN : w;
+    fprintf(stdout, "CREATING HEADER w fixed w %d\n", w);
     char *line_start = value_copy;
     while (txt_area_create_line(txtarea, &line_start, w) > 0) {
     }

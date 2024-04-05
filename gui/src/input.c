@@ -1,15 +1,15 @@
 #include <string.h>
 #include <stdbool.h>
 #include "input.h"
+#include "menu.h"
 #include "userfn.h"
-
-
 
 #define not_whitespace_char(c) (c != ' ' && c != '\n' && c != '\t')
 #define is_whitespace_char(c) (c == ' ' || c == '\n' || c == '\t')
 
 Mode *modes[NUM_INPUT_MODES];
 KeybNode *input_hash_table[INPUT_HASH_SIZE];
+extern Window *main_win;
 
 const char *input_mode_str(InputMode im)
 {
@@ -22,7 +22,7 @@ const char *input_mode_str(InputMode im)
 	return "project";
     default:
 	fprintf(stderr, "ERROR: [no mode string for value %d]\n", im);
-	return NULL;
+	return "[no mode]";
     }
 }
 
@@ -43,6 +43,7 @@ static Mode *mode_create(InputMode im)
 {
     Mode *mode = malloc(sizeof(Mode));
     mode->name = input_mode_str(GLOBAL);
+    mode->num_subcats = 0;
     modes[im] = mode;	
     return mode;
 }
@@ -50,6 +51,14 @@ static Mode *mode_create(InputMode im)
 static ModeSubcat *mode_add_subcat(Mode *mode, const char *name)
 {
     ModeSubcat *sc = malloc(sizeof(ModeSubcat));
+    if (!sc) {
+	fprintf(stderr, "Error: failed to allocate memory\n");
+	exit(1);
+    }
+    if (mode->num_subcats == MAX_MODE_SUBCATS) {
+	fprintf(stderr, "Mode already has maximum number of subcats (%d)\n", mode->num_subcats);
+	return NULL;
+    }
     mode->subcats[mode->num_subcats] = sc;
     mode->num_subcats++;
     sc->name = name;
@@ -80,8 +89,11 @@ static void mode_load_global()
 {
     Mode *mode = mode_create(GLOBAL);
     ModeSubcat *mc = mode_add_subcat(mode, "");
+    if (!mc) {
+	return;
+    }
 
-    fprintf(stdout, "Global mode subcategories: %d\n", mode->num_subcats);
+    
     /* exit(0); */
     
     UserFn *fn;
@@ -173,7 +185,6 @@ static void mode_load_project()
 {
     Mode *mode = mode_create(PROJECT);
     ModeSubcat *mc = mode_add_subcat(mode, "");
-    fprintf(stdout, "project subcat %p\n", mc);
 }
 
 void input_init_mode_load_all()
@@ -193,12 +204,6 @@ static int input_hash(uint16_t i_state, SDL_Keycode key)
 {
     return (7 * i_state + 13 * key) % INPUT_HASH_SIZE;
 }
-
-/* static int input_fn_hash(char *fn_id) */
-/* { */
-/*     //TODO: */
-/*     return 0; */
-/* } */
 
 UserFn *input_get(uint16_t i_state, SDL_Keycode keycode, InputMode mode)
 {
@@ -344,7 +349,6 @@ UserFn *input_get_fn_by_id(char *id, InputMode im)
 void input_bind_fn(UserFn *fn, uint16_t i_state, SDL_Keycode keycode, InputMode mode)
 {
     int hash = input_hash(i_state, keycode);
-    fprintf(stdout, "SET %d\n", hash);
     KeybNode *keyb_node = input_hash_table[hash];
     KeybNode *last = NULL;
     Keybinding *kb = NULL;
@@ -357,6 +361,7 @@ void input_bind_fn(UserFn *fn, uint16_t i_state, SDL_Keycode keycode, InputMode 
 	kb->i_state = i_state;
 	kb->keycode = keycode;
 	kb->keycmd_str = input_get_keycmd_str(i_state, keycode);
+	fn->annotation = kb->keycmd_str;
 	keyb_node->next = NULL;
 	input_hash_table[hash] = keyb_node;
     } else {
@@ -390,9 +395,44 @@ static int check_next_line_indent(FILE *f)
 	ret++;
     }
     ungetc(c, f);
-    /* fprintf(stdout, "\t\t->Returning %d\n", ret); */
     return ret;
     
+}
+
+static Layout *create_menu_layout()
+{
+    Layout *menu_lt = layout_add_child(main_win->layout);
+    layout_set_default_dims(menu_lt);
+    menu_lt->w.value.intval = 1200;
+    layout_reset(menu_lt);
+    return menu_lt;
+}
+    
+
+Menu *input_create_menu_from_mode(InputMode im)
+{
+    Mode *mode = modes[im];
+    if (!mode) {
+	fprintf(stderr, "Error: mode %s not initialized\n", input_mode_str(im));
+	exit(1);
+    }
+    Layout *m_layout = create_menu_layout();
+    if (!m_layout) {
+	fprintf(stderr, "Error: Unable to create menu layout\n");
+	exit(1);
+    }
+    Menu *m = menu_create(m_layout, main_win);
+    MenuColumn *c = menu_column_add(m, "");
+    for (int i=0; i<mode->num_subcats; i++) {
+	ModeSubcat *sc = mode->subcats[i];
+	MenuSection *sctn = menu_section_add(c, sc->name);
+	for (int j=0; j<sc->num_fns; j++) {
+	    UserFn *fn = sc->fns[j];
+	    menu_item_add(sctn, fn->fn_display_name, fn->annotation, fn->do_fn, NULL);
+	}
+    }
+    menu_add_header(m, mode->name, "Here are functions available to you in aforementioned mode.");
+    return m;
 }
 
 void input_load_keybinding_config(const char *filepath)
@@ -431,15 +471,14 @@ void input_load_keybinding_config(const char *filepath)
 	buf[i] = '\0';
 	
 	InputMode mode = input_mode_from_str(buf);
-	fprintf(stdout, "done input mode from str\n");
 	if (mode == -1) {
-	    fprintf(stdout, "Error: no mode under name %s\n", buf);
+	    fprintf(stderr, "Error: no mode under name %s\n", buf);
 	    exit(1);
 	}
 	
 
 	bool more_bindings = true;
-	fprintf(stdout, "bindings\n");
+
 	while (more_bindings) {
 	    
 	    uint16_t i_state = 0;
@@ -490,7 +529,6 @@ void input_load_keybinding_config(const char *filepath)
 	    } else {
 		fprintf(stderr, "Error: no function found with id %s\n", buf);
 	    }
-	    /* fprintf(stdout, ", fn %s\n", buf); */
 	}
 
     }

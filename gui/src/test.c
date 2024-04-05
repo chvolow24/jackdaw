@@ -45,7 +45,9 @@ int lorem_dir = -5;
 SDL_Color bckgrnd_color = (SDL_Color) {200, 200, 200, 255};
 void layout_test_draw_main()
 {
-    menu_translate(main_menu, menu_x_dir, menu_y_dir);
+    fprintf(stdout, "Start draw\n");
+    /* fprintf(stdout, "\ttranslate\n"); */
+    //  menu_translate(main_menu, menu_x_dir, menu_y_dir);
 
     SDL_Rect *menurect = &main_menu->layout->rect;
     if ((menurect->x <= 0 && menu_x_dir < 0) || (menurect->x + menurect->w > main_win->w && menu_x_dir > 0)) {
@@ -56,14 +58,14 @@ void layout_test_draw_main()
     }
 
 
-    if (lorem_dir < 0 && lorem_ipsum->layout->rect.w < 75) {
-	lorem_dir *= -1;
-    } else if (lorem_dir > 0 && lorem_ipsum->layout->rect.w > 1500) {
-	lorem_dir *= -1;
-    }
-    lorem_ipsum->layout->rect.w += lorem_dir;
-    layout_set_values_from_rect(lorem_ipsum->layout);
-    txt_area_create_lines(lorem_ipsum);
+    /* if (lorem_dir < 0 && lorem_ipsum->layout->rect.w < 75) { */
+    /* 	lorem_dir *= -1; */
+    /* } else if (lorem_dir > 0 && lorem_ipsum->layout->rect.w > 1500) { */
+    /* 	lorem_dir *= -1; */
+    /* } */
+    /* lorem_ipsum->layout->rect.w += lorem_dir; */
+    /* layout_set_values_from_rect(lorem_ipsum->layout); */
+    /* txt_area_create_lines(lorem_ipsum); */
   
 
     window_start_draw(main_win, &bckgrnd_color);
@@ -74,7 +76,7 @@ void layout_test_draw_main()
 	menu_draw(main_menu);
     } 
 
-
+    fprintf(stdout, "End draw\n");
     window_end_draw(main_win);
 }
 
@@ -117,14 +119,13 @@ void user_func_print_bullshit()
 
 void user_func_change_mode()
 {
-    if (active_mode < 3) {
+    if (active_mode < 2) {
 	(active_mode)++;
     } else {
 	active_mode = 0;
     }
     fprintf(stdout, "Changed mode to %s...\n", input_mode_str(active_mode));
 }
-
 
 
 void run_tests()
@@ -139,7 +140,8 @@ void run_tests()
 
     SDL_SetRenderTarget(main_win->rend, target);
 
-    some_lt = layout_create_from_window(main_win);
+    window_set_layout(main_win, layout_create_from_window(main_win));
+    some_lt = main_win->layout;
     Layout *child = layout_add_child(some_lt);
     Layout *menu_lt = layout_add_child(some_lt);
     Layout *menu_lt2 = layout_add_child(some_lt);
@@ -242,10 +244,12 @@ void run_tests()
     /* input_bind_func(user_func_print_bullshit, input_state, SDLK_b, MENU_NAV); */
     SDL_StartTextInput();
 
+
     bool screenrecord = false;
     int screenshot_index = 0;
     uint16_t i_state = 0;
     while (!(i_state & I_STATE_QUIT)) {
+	fprintf(stdout, "Start frame\n");
 	SDL_Event e;
 	while (SDL_PollEvent(&e)) {
 	    if (e.type == SDL_QUIT) {
@@ -262,7 +266,6 @@ void run_tests()
 		/* TEST HASHING HERE */
 		UserFn *thing_to_do = input_get(i_state, e.key.keysym.sym, active_mode);
 		if (thing_to_do) {
-		    fprintf(stdout, "Doing function %s\n", thing_to_do->fn_display_name);
 		    thing_to_do->do_fn();
 		} else {
 		    fprintf(stdout, "Unbound!\n");
@@ -286,6 +289,13 @@ void run_tests()
 
 		case SDL_SCANCODE_M:
 		    user_func_change_mode();
+		    menu_destroy(main_menu);
+		    fprintf(stdout, "Menu destroyed\n");
+		    main_menu = input_create_menu_from_mode(active_mode);
+		    fprintf(stdout, "Successfully recreated main menu\n");
+		    break;
+		case SDL_SCANCODE_L:
+		    layout_write(stdout, main_menu->layout, 0);
 		/* case SDL_SCANCODE_E: */
 		/*     txt_edit(tb->text, layout_test_draw_main); */
 		/*     i_state = 0; */
@@ -368,8 +378,11 @@ void run_tests()
 		    break;
 		}
 	    } else if (e.type == SDL_MOUSEMOTION) {
+		fprintf(stdout, "Mousemotion\n");
 		window_set_mouse_point(main_win, e.motion.x, e.motion.y);
+		fprintf(stdout, "\t->triage mouse menu\n");
 		triage_mouse_menu(main_menu, &main_win->mousep, false);
+		fprintf(stdout, "\t->DONe triage mmouse mneu\n");
 	    }
 	    /* } else if (e.type == SDL_MULTIGESTURE) { */
 	    /*     window_zoom(main_win, e.mgesture.dDist); */
@@ -378,13 +391,16 @@ void run_tests()
 
 
 	}
+	fprintf(stdout, "End event handling\n");
 
 	if (screenrecord) {
 	    screenshot(screenshot_index, main_win->rend);
 	    screenshot_index++;
 	}
+	/* fprintf(stdout, "INIT DRAW\n"); */
 	layout_test_draw_main();
 
+	/* fprintf(stdout, "EXIT DRAW\n"); */
 	SDL_Delay(1);
     }
     fprintf(stdout, "EXITING TESTS\n");

@@ -98,6 +98,7 @@ Menu *menu_create(Layout *layout, Window *window)
     menu->layout = layout;
     layout_add_child(layout);
     layout_add_complementary_child(layout, H);
+    
     menu->window = window;
     menu->font = ttf_get_font_at_size(window->std_font, MENU_TXT_SIZE);
     menu->title = NULL;
@@ -106,7 +107,14 @@ Menu *menu_create(Layout *layout, Window *window)
     return menu;
 }
 
-void menu_add_header(Menu *menu, char *title, char *description)
+
+void menu_reset_layout(Menu *menu)
+{
+    layout_reset(menu->layout);
+    menu_reset_textboxes(menu);
+}
+
+void menu_add_header(Menu *menu, const char *title, const char *description)
 {
     menu->title = title;
     menu->description = description;
@@ -116,7 +124,7 @@ void menu_add_header(Menu *menu, char *title, char *description)
     header_lt->w.type = REL;
     header_lt->w.value.intval = menu->layout->w.value.intval - 2 * header_lt->x.value.intval;
     layout_reset(header_lt);
-    TextArea *header = txt_area_create(description, menu->layout->children[0], menu->font, menu_std_clr_annot_txt, menu->window);
+    TextArea *header = txt_area_create(description, header_lt, menu->font, menu_std_clr_annot_txt, menu->window);
     menu->header = header;
     int header_h = header->layout->h.value.intval;
 
@@ -124,10 +132,10 @@ void menu_add_header(Menu *menu, char *title, char *description)
     menu->layout->children[1]->y.value.intval = header_h + MENU_STD_HEADER_PAD;
     menu->layout->h.value.intval += menu->layout->children[1]->y.value.intval;
     
-    layout_reset(menu->layout);
+    menu_reset_layout(menu);
 }
 
-MenuColumn *menu_column_add(Menu *menu, char *label)
+MenuColumn *menu_column_add(Menu *menu, const char *label)
 {
     Layout *content_lt = menu->layout->children[1];
     MenuColumn *col = malloc(sizeof(MenuColumn));
@@ -146,7 +154,7 @@ MenuColumn *menu_column_add(Menu *menu, char *label)
     return col;
 }
 
-MenuSection *menu_section_add(MenuColumn *col, char *label)
+MenuSection *menu_section_add(MenuColumn *col, const char *label)
 {
     MenuSection *sctn = malloc(sizeof(MenuSection));
     sctn->num_items = 0;
@@ -173,6 +181,7 @@ MenuItem *menu_item_add(
     void *target
 )
 {
+    fprintf(stdout, "ADD item label: \"%s\", annot: \"%s\"\n", label, annotation);
     MenuItem *item = malloc(sizeof(MenuItem));
     item->annot_tb = NULL;
     item->label = label;
@@ -249,6 +258,7 @@ MenuItem *menu_item_add(
     int w_logical = item->tb->layout->w.value.intval + annot_pad + 2 * MENU_STD_ITEM_PAD_H;
     int h_logical = item->tb->layout->h.value.intval + MENU_STD_ITEM_PAD_V;    
 
+    item->layout->x.value.intval = 0;
     item->layout->y.value.intval = (h_logical + MENU_STD_ITEM_V_SPACING) * (sctn->num_items - 1);
     item->layout->h.value.intval = h_logical;
     item->layout->w.value.floatval = 1.0;
@@ -259,6 +269,7 @@ MenuItem *menu_item_add(
     sctn->layout->h.value.intval += h_logical + MENU_STD_ITEM_V_SPACING;
     
     if (w_logical > col->layout->w.value.intval) {
+	fprintf(stdout, "Setting col w to %d\n", w_logical);
 	col->layout->w.value.intval = w_logical;
     }
     col->layout->h.value.intval += h_logical + MENU_STD_ITEM_V_SPACING;
@@ -272,7 +283,7 @@ MenuItem *menu_item_add(
 	txt_reset_display_value(item->annot_tb->text);
     }
 
-    menu_reset_textboxes(col->menu);
+    menu_reset_layout(col->menu);
 
     fprintf(stderr, "End create item\n");
     return item;
@@ -284,31 +295,43 @@ void menu_item_destroy(MenuItem *item)
     free(item);
 }
 
+MenuItem *hovering = NULL;
 void menu_destroy(Menu *menu)
 {
-    if (menu->title) {
-	free(menu->title);
-    }
-    if (menu->description) {
-	free(menu->description);
-    }
+    fprintf(stdout, "\t->menu destroy\n");
+    /* if (menu->title) { */
+    /* 	free(menu->title); */
+    /* } */
+    /* fprintf(stdout, "\t->successfully destroyed the title\n"); */
+    /* if (menu->description) { */
+    /* 	free(menu->description); */
+    /* } */
+    fprintf(stdout, "\t->successfully destroyed the desc\n");
+    fprintf(stdout, "\t->prelim destroy\n");
     for (int c=0; c<menu->num_columns; c++) {
 	MenuColumn *column = menu->columns[c];
 	for (int s=0; s < column->num_sections; s++) {
 	    MenuSection *sctn = column->sections[s];
 	    for (int i=0; i<sctn->num_items; i++) {
 		MenuItem *item = sctn->items[i];
+		fprintf(stdout, "\t->menu item destry\n");
+		/* TODO: get rid of global hovering. */
+		if  (hovering == item) {
+		    
+		}
 		menu_item_destroy(item);
 	    }
 	    free(sctn);
+	    fprintf(stdout, "Freed section\n");
 	}
 	free(column);
+	fprintf(stdout, "Freed column\n");
     }
     free(menu);
+    fprintf(stdout, "Freed menu\n");
 }
 
 
-MenuItem *hovering = NULL;
 void triage_mouse_menu(Menu *menu, SDL_Point *mousep, bool click)
 {
     if (hovering && !SDL_PointInRect(mousep, &hovering->layout->rect)) {
@@ -383,8 +406,7 @@ void menu_translate(Menu *menu, int translate_x, int translate_y)
     menu->layout->rect.x += translate_x * menu->window->dpi_scale_factor;
     menu->layout->rect.y += translate_y * menu->window->dpi_scale_factor;
     layout_set_values_from_rect(menu->layout);
-    layout_reset(menu->layout);
-    menu_reset_textboxes(menu);
+    menu_reset_layout(menu);
 }
 
 void menu_draw(Menu *menu)

@@ -49,7 +49,7 @@ extern Layout *openfile_lt;
 
 extern Window *main_win;
 extern bool show_layout_params;
-bool show_openfile;
+extern bool show_openfile;
 //extern TTF_Font *open_sans;
 extern LTParams *lt_params;
 extern OpenFile *openfile;

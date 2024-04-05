@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include "SDL.h"
 
+#include "menu.h"
+
 #define INPUT_HASH_SIZE 1024
 
 #define NUM_INPUT_MODES 3
@@ -85,5 +87,7 @@ void input_load_keybinding_config(const char *filepath);
 /* Must be run at start time to initialize all modes and user fns */
 void input_init_mode_load_all();
 
+/* Create a GUI menu from a mode */
+Menu *input_create_menu_from_mode(InputMode im);
 
 #endif

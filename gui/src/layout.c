@@ -870,7 +870,6 @@ void layout_reset_from_window(Layout *lt, Window *win)
 
 Layout *layout_add_child(Layout *parent)
 {
-    // fprintf(stderr, "Add child to %s\n", parent->name);
     Layout *child = layout_create();
     child->parent = parent;
     parent->children[parent->num_children] = child;
@@ -884,7 +883,7 @@ Layout *layout_add_child(Layout *parent)
 Layout *layout_add_complementary_child(Layout *parent, RectMem comp_rm)
 {
     Layout *new_child = layout_add_child(parent);
-    layout_set_default_dims(new_child);
+    /* layout_set_default_dims(new_child); */
     switch (comp_rm) {
     case X:
 	new_child->x.type = COMPLEMENT;

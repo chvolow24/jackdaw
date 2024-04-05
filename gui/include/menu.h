@@ -11,8 +11,8 @@ typedef struct menu_item {
     Textbox *tb;
     Textbox *annot_tb;
     MenuSection *section;
-    char *label;
-    char *annotation;
+    const char *label;
+    const char *annotation;
     bool available;
     void (*onclick)(Textbox *tb, void *target);
     void *target;
@@ -22,7 +22,7 @@ typedef struct menu_item {
 
 typedef struct menu_section {
     MenuColumn *column;
-    char *label;
+    const char *label;
     MenuItem *items[MAX_MENU_SCTN_LEN];
     uint8_t num_items;
     Layout *layout;
@@ -30,7 +30,7 @@ typedef struct menu_section {
  
 typedef struct menu_column {
     Menu *menu;
-    char *label;
+    const char *label;
     MenuSection *sections[MAX_MENU_SECTIONS];
     uint8_t num_sections;
     Layout *layout;
@@ -38,8 +38,8 @@ typedef struct menu_column {
 
 typedef struct menu {
     MenuColumn  *columns[MAX_MENU_COLUMNS];
-    char *title;
-    char *description;
+    const char *title;
+    const char *description;
     TextArea *header;
     uint8_t num_columns;
     Layout *layout;
@@ -49,8 +49,8 @@ typedef struct menu {
 
 
 Menu *menu_create(Layout *layout, Window *window);
-MenuColumn *menu_column_add(Menu *menu, char *label);
-MenuSection *menu_section_add(MenuColumn *column, char *label);
+MenuColumn *menu_column_add(Menu *menu, const char *label);
+MenuSection *menu_section_add(MenuColumn *column, const char *label);
 MenuItem *menu_item_add(
     MenuSection *sctn,
     char *label,
@@ -67,7 +67,7 @@ void triage_mouse_menu(Menu *menu, SDL_Point *mousep, bool click);
 
 MenuItem *menu_item_at_index(Menu *menu, int index);
 void menu_translate(Menu *menu, int translate_x, int translate_y);
-void menu_add_header(Menu *menu, char *title, char *description);
+void menu_add_header(Menu *menu, const char *title, const char *description);
 #endif
 
 

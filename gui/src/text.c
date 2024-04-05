@@ -307,7 +307,6 @@ void txt_edit(Text *txt, void (draw_fn) (void))
     bool done = false;
     // bool mousedown = false;
     bool cmdctrldown = false;
-    bool shiftdown = false;
     SDL_StartTextInput();
     while (!done) {
         // get_mousep(main_win, &mousep);
@@ -329,10 +328,6 @@ void txt_edit(Text *txt, void (draw_fn) (void))
                     case SDL_SCANCODE_RETURN:
                     case SDL_SCANCODE_KP_ENTER:
                         done = true;
-                        break;
-                    case SDL_SCANCODE_LSHIFT:
-                    case SDL_SCANCODE_RSHIFT:
-                        shiftdown = true;
                         break;
                     case SDL_SCANCODE_LGUI:
                     case SDL_SCANCODE_RGUI:
@@ -370,10 +365,6 @@ void txt_edit(Text *txt, void (draw_fn) (void))
                 }
             } else if (e.type == SDL_KEYUP) {
                 switch (e.key.keysym.scancode) {
-                    case SDL_SCANCODE_LSHIFT:
-                    case SDL_SCANCODE_RSHIFT:
-                        shiftdown = false;
-                        break;
                     case SDL_SCANCODE_LGUI:
                     case SDL_SCANCODE_RGUI:
                     case SDL_SCANCODE_LCTRL:

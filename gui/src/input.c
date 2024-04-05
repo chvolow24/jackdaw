@@ -173,6 +173,7 @@ static void mode_load_project()
 {
     Mode *mode = mode_create(PROJECT);
     ModeSubcat *mc = mode_add_subcat(mode, "");
+    fprintf(stdout, "project subcat %p\n", mc);
 }
 
 void input_init_mode_load_all()
@@ -193,11 +194,11 @@ static int input_hash(uint16_t i_state, SDL_Keycode key)
     return (7 * i_state + 13 * key) % INPUT_HASH_SIZE;
 }
 
-static int input_fn_hash(char *fn_id)
-{
-    //TODO:
-    return 0;
-}
+/* static int input_fn_hash(char *fn_id) */
+/* { */
+/*     //TODO: */
+/*     return 0; */
+/* } */
 
 UserFn *input_get(uint16_t i_state, SDL_Keycode keycode, InputMode mode)
 {
@@ -347,7 +348,7 @@ void input_bind_fn(UserFn *fn, uint16_t i_state, SDL_Keycode keycode, InputMode 
     KeybNode *keyb_node = input_hash_table[hash];
     KeybNode *last = NULL;
     Keybinding *kb = NULL;
-    UserFn *user_fn = NULL;
+    /* UserFn *user_fn = NULL; */
     if (!keyb_node) {
 	keyb_node = malloc(sizeof(KeybNode));
         kb = malloc(sizeof(Keybinding));

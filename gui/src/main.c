@@ -527,7 +527,7 @@ int main(int argc, char** argv)
 		scrolling = NULL;
 	    }
 	}
-        layout_draw_main(clicked_lt);
+        layout_draw_main();
         SDL_Delay(1);
 	/* fprintf(stderr, "Layout clicked: %d (%p)\n", layout_clicked, clicked_lt); */
 

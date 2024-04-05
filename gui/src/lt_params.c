@@ -251,7 +251,7 @@ void edit_lt_loop(Layout *lt)
                     shiftdown = false;
                 }
             }
-            layout_draw_main(NULL);
+            layout_draw_main();
             SDL_Delay(1);
         }
         

@@ -46,6 +46,7 @@ extern Layout *main_lt;
 extern Layout *clicked_lt;
 extern Layout *param_lt;
 extern Layout *openfile_lt;
+
 extern Window *main_win;
 extern bool show_layout_params;
 bool show_openfile;
@@ -91,7 +92,7 @@ void draw_openfile_dialogue()
 }
 
 
-void layout_draw_main(Layout *clicked_lt)
+void layout_draw_main()
 {
     window_start_draw(main_win, &color_global_clear);
     /* SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 0); */

@@ -424,10 +424,10 @@ TTF_Font *ttf_open_font(const char* path, int size, Window *win)
     return font;
 }
 
-void destroy_font(TTF_Font *font)
-{
-    free(font);
-}
+/* void destroy_font(TTF_Font *font) */
+/* { */
+/*     TTF_CloseFont(font); */
+/* } */
 
 Font *ttf_init_font(const char *path, Window *win)
 {
@@ -443,6 +443,17 @@ Font *ttf_init_font(const char *path, Window *win)
     }
     return font;
 }
+
+void ttf_destroy_font(Font *font)
+{
+    for (int i=0; i<STD_FONT_ARRLEN; i++) {
+	if (font->ttf_array[i]) {
+	    TTF_CloseFont(font->ttf_array[i]);
+	}
+    }
+    free(font);
+}
+    
 
 TTF_Font *ttf_get_font_at_size(Font *font, int size)
 {

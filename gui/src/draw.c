@@ -36,7 +36,6 @@
 #include "window.h"
 
 #define CURSOR_WIDTH 4
-#define DTTD_LN_LEN 20
 #define MASK_CLR 20, 20, 20, 230
 
 #define NAMERECT_H 24
@@ -54,36 +53,13 @@ bool show_openfile;
 extern LTParams *lt_params;
 extern OpenFile *openfile;
 
-SDL_Color white = {255, 255, 255, 255};
-SDL_Color clr_white = {255, 255, 255, 127};
-SDL_Color iter_clr = {0, 100, 100, 255};
 
-SDL_Color rect_clrs[2] = {
-    {255, 0, 0, 255},
-    {0, 255, 0, 255}
-};
 
-SDL_Color rect_clrs_dttd[2] = {
-    {255, 0, 0, 100},
-    {0, 255, 0, 100}
-};
+extern SDL_Color color_global_clear;
+
+
 
 //int SDL_RenderDrawLine(SDL_Renderer *renderer, int x1, int y1, int x2, int y2)
-void draw_dotted_horizontal(SDL_Renderer *rend, int x1, int x2, int y)
-{
-    while (x1 < x2) {
-        SDL_RenderDrawLine(rend, x1, y, x1 + DTTD_LN_LEN, y);
-        x1 += DTTD_LN_LEN * 2;
-    }
-}
-
-void draw_dotted_vertical(SDL_Renderer *rend, int x, int y1, int y2)
-{
-    while (y1 < y2) {
-        SDL_RenderDrawLine(rend, x, y1, x, y1 + DTTD_LN_LEN);
-        y1 += DTTD_LN_LEN * 2;
-    }
-}
 
 void draw_layout_params()
 {
@@ -114,56 +90,13 @@ void draw_openfile_dialogue()
     txt_draw(openfile->filepath);
 }
 
-void draw_layout(Window *win, Layout *lt)
-{   
-    if (lt->type == PRGRM_INTERNAL) {
-        return;
-    }
 
-    if (lt->iterator) {
-        for (int i=0; i<lt->iterator->num_iterations; i++) {
-            draw_layout(win, lt->iterator->iterations[i]);
-        }
-    }
-    
-    SDL_Color picked_clr;
-    if (lt->type == ITERATION) {
-        picked_clr = iter_clr;
-    } else {
-        picked_clr = lt->selected ? rect_clrs[1] : rect_clrs[0];
-    }
-
-    SDL_SetRenderDrawColor(win->rend, picked_clr.r, picked_clr.g, picked_clr.b, picked_clr.a);
-
-    if (lt->selected) {
-        txt_draw(lt->namelabel);
-        SDL_RenderDrawRect(win->rend, &(lt->label_rect));
-    }
-    SDL_RenderDrawRect(win->rend, &(lt->rect));
-
-    if (lt->type != ITERATION) {
-	SDL_Color dotted_clr = lt->selected ? rect_clrs_dttd[1] : rect_clrs_dttd[0];
-        SDL_SetRenderDrawColor(win->rend, dotted_clr.r, dotted_clr.g, dotted_clr.b, dotted_clr.a);
-        draw_dotted_horizontal(win->rend, 0, win->w, lt->rect.y);
-        draw_dotted_horizontal(win->rend, 0, win->w, lt->rect.y + lt->rect.h);
-        draw_dotted_vertical(win->rend, lt->rect.x, 0, win->h);
-        draw_dotted_vertical(win->rend, lt->rect.x + lt->rect.w, 0, win->h);
-    }
-
-
-    for (uint8_t i=0; i<lt->num_children; i++) {
-        draw_layout(win, lt->children[i]);
-    }
-
-}
-
-SDL_Color empty_color = (SDL_Color) {0, 0, 0, 0};
 void layout_draw_main(Layout *clicked_lt)
 {
-    window_start_draw(main_win, &empty_color);
+    window_start_draw(main_win, &color_global_clear);
     /* SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 0); */
     /* SDL_RenderClear(main_win->rend); */
-    draw_layout(main_win, main_lt);
+    layout_draw(main_win, main_lt);
 
     if (clicked_lt) {
 	SDL_SetRenderDrawColor(main_win->rend, 0, 255, 0, 255);

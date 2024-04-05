@@ -8,6 +8,6 @@
 /* Main drawing function */
 void layout_draw_main(Layout *clicked_lt);
 
-void draw_layout(Window *win, Layout *lt);
+void layout_draw(Window *win, Layout *lt);
 
 #endif

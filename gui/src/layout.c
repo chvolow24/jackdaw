@@ -33,9 +33,12 @@
 
 #define SCROLL_STOP_THRESHOLD 5
 
-extern Layout *main_lt;
-extern SDL_Color white;
+/* extern Layout *main_lt; */
+/* extern SDL_Color white; */
 //extern TTF_Font *open_sans;
+
+extern SDL_Color color_global_white;
+
 extern Window *main_win;
 
 void layout_set_name(Layout *lt, char *new_name)
@@ -297,6 +300,15 @@ void layout_set_values_from_rect(Layout *lt)
 
 }
 
+static Layout *layout_top_parent(Layout *lt)
+{
+    while (lt->parent) {
+	lt = lt->parent;
+    }
+    return lt;
+
+}
+
 void do_snap(Layout *lt, Layout *main, Edge edge);
 void layout_set_edge(Layout *lt, Edge edge, int set_to, bool block_snap) 
 {
@@ -319,7 +331,7 @@ void layout_set_edge(Layout *lt, Edge edge, int set_to, bool block_snap)
             break;
     }
     if (!block_snap) {
-        do_snap(lt, main_lt, edge);
+        do_snap(lt, layout_top_parent(lt), edge);
     }
     layout_set_values_from_rect(lt);
     layout_reset(lt);
@@ -329,7 +341,6 @@ void layout_set_edge(Layout *lt, Edge edge, int set_to, bool block_snap)
 static Layout *get_scrollable_layout_at_point(Layout *lt, SDL_Point *mousep)
 {
     Layout *ret = NULL;
-
     if (!lt->parent && SDL_PointInRect(mousep, &(lt->rect))) {
 	for (int i=0; !ret && i<lt->num_children; i++) {
 	    ret = get_scrollable_layout_at_point(lt->children[i], mousep);
@@ -347,7 +358,7 @@ static Layout *get_scrollable_layout_at_point(Layout *lt, SDL_Point *mousep)
 
 void reset_iterations(LayoutIterator *iter);
 /* Assumes the correct scrollable layout has been found (see 'get_scrollable_layout_at_point') */
-static void handle_scroll_internal(Layout *lt, float scroll_x, float scroll_y)
+static void handle_scroll_internal(Layout *lt, float scroll_x, float scroll_y, bool dynamic)
 {
 
     lt->iterator->scroll_stop_count = 0;
@@ -366,16 +377,18 @@ static void handle_scroll_internal(Layout *lt, float scroll_x, float scroll_y)
     }
 	   
     lt->iterator->scroll_offset = new_offset;
-    lt->iterator->scroll_momentum = offset_increment;
+    if (dynamic) {
+	lt->iterator->scroll_momentum = offset_increment;
+    }
     reset_iterations(lt->iterator);
 }
 
-Layout *layout_handle_scroll(Layout *main_lt, SDL_Point *mousep, float scroll_x, float scroll_y)
+Layout *layout_handle_scroll(Layout *main_lt, SDL_Point *mousep, float scroll_x, float scroll_y, bool dynamic)
 {
     Layout *scrollable = get_scrollable_layout_at_point(main_lt, mousep);
     if (!scrollable) return NULL;
     
-    handle_scroll_internal(scrollable, scroll_x, scroll_y);
+    handle_scroll_internal(scrollable, scroll_x, scroll_y, dynamic);
     return scrollable;
 }
 
@@ -587,7 +600,7 @@ void layout_set_position_pixels(Layout *lt, int x, int y, bool block_snap)
     lt->rect.x = x;
     lt->rect.y = y;
     if (!block_snap) {
-        do_snap_translate(lt, main_lt);
+        do_snap_translate(lt, layout_top_parent(lt));
     }
     layout_set_values_from_rect(lt);
     layout_reset(lt);
@@ -600,7 +613,7 @@ void layout_move_position(Layout *lt, int move_by_x, int move_by_y, bool block_s
     lt->rect.x += move_by_x;
     lt->rect.y += move_by_y;
     if (!block_snap) {
-        do_snap_translate(lt, main_lt);
+        do_snap_translate(lt, layout_top_parent(lt));
 
     }
     layout_set_values_from_rect(lt);
@@ -685,7 +698,55 @@ int set_rect_wh(Layout *lt)
 }
 
 void reset_iterations(LayoutIterator *iter);
+
+
+/* New iterative implementation */
 void layout_reset(Layout *lt)
+{
+    Layout *top_parent = lt;
+    
+    while (lt) {
+	/* DO CALCS */
+	if (lt->parent) {
+	    if (!set_rect_wh(lt)) {
+		fprintf(stderr, "Error: failed to set wh on %s\n", lt->name);
+	    }
+	    if (!(set_rect_xy(lt))) {
+		fprintf(stderr, "Error: failed to set xy on %s\n", lt->name);
+	    }
+	}
+	if (lt->namelabel) {
+	    lt->label_rect = (SDL_Rect) {lt->rect.x, lt->rect.y - TXT_H, 0, 0};
+	    txt_reset_display_value(lt->namelabel);
+	}
+	if (lt->iterator) {
+	    reset_iterations(lt->iterator);
+	}
+
+
+	/* TRAVERSE TREE */
+
+	if (lt->num_children > 0) {
+	    lt = lt->children[0];
+	} else if (lt->parent) {
+	    while (lt != top_parent && lt->parent->num_children == lt->index + 1) { /* Is last sibling */
+		lt = lt->parent; /* locally update lt pointer, but do no calcs */
+	    }
+	    if (lt == top_parent) {
+		return;
+	    } else {
+		lt = lt->parent->children[lt->index + 1]; /* Next sibling */
+	    }
+	} else {
+	    lt = NULL;
+	}
+	    
+    }
+    
+}
+
+/* Old recursive implementation */
+void layout_reset_OLD(Layout *lt)
 {
     if (lt->parent) {
         if (!set_rect_wh(lt)) {
@@ -696,11 +757,13 @@ void layout_reset(Layout *lt)
         }
     }
     lt->label_rect = (SDL_Rect) {lt->rect.x, lt->rect.y - TXT_H, 0, 0};
-    txt_reset_display_value(lt->namelabel);
+    if (lt->namelabel) {	
+	txt_reset_display_value(lt->namelabel);
+    }
 
     for (uint8_t i=0; i<lt->num_children; i++) {
         Layout *child = lt->children[i];
-        layout_reset(child);
+        layout_reset_OLD(child);
     }
 
     if (lt->iterator) {
@@ -742,7 +805,11 @@ Layout *layout_create()
     lt->parent = NULL;
     lt->rect = (SDL_Rect) {0,0,0,0};
     lt->label_rect = (SDL_Rect) {0,0,0,0};
-    lt->namelabel = txt_create_from_str(lt->name, MAX_LT_NAMELEN, &(lt->label_rect), open_sans_12, white, CENTER_LEFT, false, main_win);
+    if (LT_DEV_MODE) {
+	lt->namelabel = txt_create_from_str(lt->name, MAX_LT_NAMELEN, &(lt->label_rect), open_sans_12, color_global_white, CENTER_LEFT, false, main_win);
+    } else {
+	lt->namelabel = NULL;
+    }
     return lt;
 }
 
@@ -763,7 +830,9 @@ void layout_destroy(Layout *lt)
     for (uint8_t i=0; i<lt->num_children; i++) {
         layout_destroy(lt->children[i]);
     }
-    txt_destroy(lt->namelabel);
+    if (lt->namelabel) {
+	txt_destroy(lt->namelabel);
+    }
     free(lt);
 }
 
@@ -1158,4 +1227,83 @@ void layout_fprint(FILE *f, Layout *lt)
 	    hval
 	);
 }
+
+
+/***************************************************/
+/******************** DRAW CODE ********************/
+/***************************************************/
+SDL_Color iter_clr = {0, 100, 100, 255};
+SDL_Color rect_clrs[2] = {
+    {255, 0, 0, 255},
+    {0, 255, 0, 255}
+};
+SDL_Color rect_clrs_dttd[2] = {
+    {255, 0, 0, 100},
+    {0, 255, 0, 100}
+};
+
+#define DTTD_LN_LEN 20
+
+static void draw_dotted_horizontal(SDL_Renderer *rend, int x1, int x2, int y)
+{
+    while (x1 < x2) {
+        SDL_RenderDrawLine(rend, x1, y, x1 + DTTD_LN_LEN, y);
+        x1 += DTTD_LN_LEN * 2;
+    }
+}
+
+static void draw_dotted_vertical(SDL_Renderer *rend, int x, int y1, int y2)
+{
+    while (y1 < y2) {
+        SDL_RenderDrawLine(rend, x, y1, x, y1 + DTTD_LN_LEN);
+        y1 += DTTD_LN_LEN * 2;
+    }
+}
+
+
+void layout_draw(Window *win, Layout *lt)
+{   
+    if (lt->type == PRGRM_INTERNAL) {
+        return;
+    }
+
+    if (lt->iterator) {
+        for (int i=0; i<lt->iterator->num_iterations; i++) {
+            layout_draw(win, lt->iterator->iterations[i]);
+        }
+    }
     
+    SDL_Color picked_clr;
+    if (lt->type == ITERATION) {
+        picked_clr = iter_clr;
+    } else {
+        picked_clr = lt->selected ? rect_clrs[1] : rect_clrs[0];
+    }
+
+    SDL_SetRenderDrawColor(win->rend, picked_clr.r, picked_clr.g, picked_clr.b, picked_clr.a);
+
+    if (lt->selected) {
+	if (lt->namelabel) {
+	    txt_draw(lt->namelabel);
+	}
+	    
+        SDL_RenderDrawRect(win->rend, &(lt->label_rect));
+    }
+    SDL_RenderDrawRect(win->rend, &(lt->rect));
+
+    if (lt->type != ITERATION) {
+	SDL_Color dotted_clr = lt->selected ? rect_clrs_dttd[1] : rect_clrs_dttd[0];
+        SDL_SetRenderDrawColor(win->rend, dotted_clr.r, dotted_clr.g, dotted_clr.b, dotted_clr.a);
+        draw_dotted_horizontal(win->rend, 0, win->w, lt->rect.y);
+        draw_dotted_horizontal(win->rend, 0, win->w, lt->rect.y + lt->rect.h);
+        draw_dotted_vertical(win->rend, lt->rect.x, 0, win->h);
+        draw_dotted_vertical(win->rend, lt->rect.x + lt->rect.w, 0, win->h);
+    }
+
+
+    for (uint8_t i=0; i<lt->num_children; i++) {
+        layout_draw(win, lt->children[i]);
+    }
+
+}
+

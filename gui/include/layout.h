@@ -10,6 +10,8 @@
 #define MAX_CHILDREN 255
 #define MAX_LT_NAMELEN 64
 
+#define LAYOUT_SCROLL_SCALAR 8
+
 /* Specifies an edge of a rectangle */
 typedef enum edge {
     LEFT,
@@ -162,7 +164,7 @@ void layout_move_position(Layout *lt, int move_by_x, int move_by_y, bool block_s
 
 LayoutIterator *layout_create_iter_from_template(Layout *template, IteratorType type, int num_iterations, bool scrollable);
 
-Layout *layout_handle_scroll(Layout *main_lt, SDL_Point *mousep, float scroll_x, float scroll_y);
+Layout *layout_handle_scroll(Layout *main_lt, SDL_Point *mousep, float scroll_x, float scroll_y, bool dynamic);
 int layout_scroll_step(Layout *lt);
 
 void layout_add_iter(Layout *lt, IteratorType type, bool scrollable);
@@ -172,5 +174,7 @@ void layout_set_wh_from_rect(Layout *lt);
 void layout_set_values_from_rect(Layout *lt);
 
 void layout_fprint(FILE *f, Layout *lt);
+
+void layout_draw(Window *win, Layout *lt);
 
 #endif

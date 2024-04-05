@@ -15,7 +15,7 @@
 
 #define MENU_STD_CORNER_RAD 10
 
-SDL_Color CLR_CLR = (SDL_Color) {0, 0, 0, 0};
+extern SDL_Color color_global_clear;
 
 SDL_Color menu_std_clr_inner_border = (SDL_Color) {130, 130, 130, 250};
 SDL_Color menu_std_clr_outer_border = (SDL_Color) {10, 10, 10, 220};
@@ -212,8 +212,8 @@ MenuItem *menu_item_add(
     item->tb->text->align = CENTER_LEFT;
     textbox_set_trunc(item->tb, false);
     textbox_set_text_color(item->tb, &menu_std_clr_txt);
-    textbox_set_background_color(item->tb, &CLR_CLR);
-    textbox_set_border_color(item->tb, &CLR_CLR);
+    textbox_set_background_color(item->tb, &color_global_clear);
+    textbox_set_border_color(item->tb, &color_global_clear);
     
 
     /* Create and initialize annotation tb */
@@ -228,8 +228,8 @@ MenuItem *menu_item_add(
 	item->annot_tb->text->align = CENTER_RIGHT;
 	textbox_set_trunc(item->annot_tb, false);
 	textbox_set_text_color(item->annot_tb, &menu_std_clr_annot_txt);
-	textbox_set_background_color(item->annot_tb, &CLR_CLR);
-	textbox_set_border_color(item->annot_tb, &CLR_CLR);
+	textbox_set_background_color(item->annot_tb, &color_global_clear);
+	textbox_set_border_color(item->annot_tb, &color_global_clear);
     }
 
 

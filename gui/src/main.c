@@ -26,6 +26,7 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include <time.h>
 #include "SDL.h"
 #include "draw.h"
 #include "layout.h"
@@ -39,12 +40,11 @@
 #include "screenrecord.h"
 #include "test.h"
 
+
 #define OPEN_SANS_PATH "../assets/ttf/OpenSans-Regular.ttf"
 
 #define CLICK_EDGE_DIST_TOLERANCE 10
 #define MAX_LTS 255
-
-#define SCROLL_SCALAR 8
 
 Layout *main_lt;
 Layout *clicked_lt;
@@ -56,6 +56,8 @@ Window *main_win;
 bool show_layout_params = false;
 bool show_openfile = false;
 
+
+long long unsigned funcalls = 0;
 
 void init_SDL()
 {
@@ -172,8 +174,11 @@ void get_clicked_layout(SDL_Point p, Layout *top_level, int *distance, Layout **
 
 void set_window_size_to_lt()
 {
+    fprintf(stdout, "Ok, sizes are %d and %d\n", main_lt->w.value.intval, main_lt->h.value.intval);
     if (main_lt->w.type != SCALE && main_lt->h.type != SCALE) {
+	fprintf(stdout, "Window resize in not scale cond. %d, %d\n", main_lt->w.value.intval, main_lt->h.value.intval);
         window_resize(main_win, main_lt->w.value.intval, main_lt->h.value.intval);
+	fprintf(stdout, "Ok done\n");
     } else {
         main_lt->rect.w = main_win->w;
         main_lt->rect.h = main_win->h;
@@ -193,6 +198,37 @@ static void reset_clicked_lt(Layout *to)
 	clicked_lt = to;
 	clicked_lt->selected = true;
     }
+}
+
+static void time_layout_reset(Layout *lt, int runs)
+{
+       /* TIMING */
+    
+    void layout_reset_OLD(Layout *lt);
+    clock_t start, end;
+    double cpu_time;
+
+    funcalls = 0;
+    start = clock();
+    for (int i=0; i<runs; i++) {
+	layout_reset(main_lt);
+    }
+    end = clock();
+    cpu_time = (double) (end - start) / CLOCKS_PER_SEC;
+
+    fprintf(stdout, "NEW: %f, funcalls: %llu\n", cpu_time, funcalls);
+
+    funcalls = 0;
+    start = clock();
+    for (int i=0; i<runs; i++) {
+	layout_reset_OLD(main_lt);
+    }
+    end = clock();
+    cpu_time = (double) (end - start) / CLOCKS_PER_SEC;
+
+    fprintf(stdout, "OLD: %f, funcalls: %llu\n", cpu_time, funcalls);
+
+    exit(0);
 }
 
 int main(int argc, char** argv) 
@@ -228,6 +264,8 @@ int main(int argc, char** argv)
     } else {
         main_lt = layout_create_from_window(main_win);
     }
+
+    time_layout_reset(main_lt, 99999);
 
     SDL_StopTextInput();
     bool quit = false;
@@ -268,13 +306,10 @@ int main(int argc, char** argv)
                 int dist = 5000;
                 get_clicked_layout(mousep, main_lt, &dist, &(clicked_lt), &ed, &crnr);
                 if (crnr != NONECRNR) {
-		    fprintf(stderr, "Lt corner clicked~!\n:");
-
                     layout_clicked = true;
                     layout_corner_clicked = true;
                     clicked_lt->selected = true;
                 } else if (dist < CLICK_EDGE_DIST_TOLERANCE) {
-		    fprintf(stderr, "Lt clicked~!\n:");
                     layout_clicked = true;
                     clicked_lt->selected = true;
                 } else {
@@ -337,7 +372,7 @@ int main(int argc, char** argv)
 		    scrolling = NULL;
 		}
             } else if (e.type == SDL_MOUSEWHEEL) {
-	        scrolling = layout_handle_scroll(main_lt, &mousep, e.wheel.preciseX * SCROLL_SCALAR * 1, e.wheel.preciseY * SCROLL_SCALAR * -1);
+	        scrolling = layout_handle_scroll(main_lt, &mousep, e.wheel.preciseX * LAYOUT_SCROLL_SCALAR * 1, e.wheel.preciseY * LAYOUT_SCROLL_SCALAR * -1, fingersdown);
             } else if (e.type == SDL_KEYDOWN) {
                 switch (e.key.keysym.scancode) {
                     case SDL_SCANCODE_LGUI:
@@ -462,6 +497,7 @@ int main(int argc, char** argv)
 			if (clicked_lt) {
 			    layout_destroy(clicked_lt);
 			    layout_reset(main_lt);
+			    clicked_lt = NULL;
 			}
 			break;
 		    case SDL_SCANCODE_0:

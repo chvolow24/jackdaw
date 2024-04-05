@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "SDL_rect.h"
 #include "SDL_render.h"
-#include "event_state.h"
+#include "input.h"
 #include "draw.h"
 #include "layout.h"
 #include "layout_xml.h"
@@ -13,6 +13,7 @@
 
 #include "SDL.h"
 
+#define INPUT_HASH_SIZE 1024
 
 Window *main_win;
 Menu *main_menu;
@@ -24,6 +25,7 @@ TextArea *lorem_ipsum;
 
 SDL_Texture *target;
 
+InputMode active_mode;
 
 extern SDL_Color menu_std_clr_highlight;
 extern SDL_Color menu_std_clr_tb_bckgrnd;
@@ -96,9 +98,42 @@ void change_clr(Textbox *this, void *target)
     clr->a = 255;
 }
 
+void user_func_change_bckgrnd_color()
+{
+    change_clr(NULL, &bckgrnd_color);
+    fprintf(stdout, "Called user func, change bckgrnd\n");
+}
+
+void user_func_change_tb_color()
+{
+    change_tb_color(NULL, &tb);
+    fprintf(stdout, "Called user func, change tb\n");
+}
+
+void user_func_print_bullshit()
+{
+    fprintf(stdout, "Called user func, print some bullshit\n");
+}
+
+void user_func_change_mode()
+{
+    if (active_mode < 3) {
+	(active_mode)++;
+    } else {
+	active_mode = 0;
+    }
+    fprintf(stdout, "Changed mode to %s...\n", input_mode_str(active_mode));
+}
+
+
+
 void run_tests()
 {
-
+    
+    input_init_hash_table();
+    input_init_mode_load_all();
+    input_load_keybinding_config("../assets/key_bindings/default.yaml");
+    /* exit(0); */
     main_win = window_create(500, 500, "Test window");
     window_assign_std_font(main_win, "../assets/ttf/OpenSans-Regular.ttf");
 
@@ -167,11 +202,7 @@ void run_tests()
     textbox_size_to_fit(tb, 5, 20);
     textbox_size_to_fit(tb2, 5, 5);
 
-    /* SDL_Rect *cont = tb->text->container; */
-    /* fprintf(stdout, "text rect: %d, %d, %d, %d\n", cont->x, cont->y, cont->w, cont->h); */
 
-    /* exit(0); */
-    
     main_menu = menu_create(menu_lt, main_win);
     fprintf(stderr, "menu win: %p\n", main_menu->window);
     MenuColumn *col_a = menu_column_add(main_menu, "Column A");
@@ -186,7 +217,7 @@ void run_tests()
     menu_item_add(a2, "Section two item", NULL, NULL, NULL);
     menu_item_add(b1, "Columns two item", NULL, NULL, NULL);
 
-    menu_add_header(main_menu, "Some Title", "This is a description of this menu. Within this description you will find information about how to use this menu, what its things do, how thing do.");
+    menu_add_header(main_menu, "Some Title", "This is a description of this menu. Within this description you will find information about how to use this menu, what its things do, how thing do.\n\nYou can also treat this as a text area only, and not add any items.\n\n\tI don't think there's anything wrong with that.");
 
     second_menu = menu_create(menu_lt2, main_win);
 
@@ -197,16 +228,28 @@ void run_tests()
 	menu_selector++;
     }
 
+
+
+
+    /* FUNCTION BINDING */
+
+    /* InputMode mode = GLOBAL; */
+    /* input_bind_func(user_func_change_mode, input_state, SDLK_m, mode); */
+    /* mode = MENU_NAV; */
+    /* input_state |= I_STATE_CMDCTRL; */
+    /* input_bind_func(user_func_change_bckgrnd_color, input_state, SDLK_b, mode); */
+    /* input_bind_func(user_func_change_tb_color, input_state, SDLK_g, mode); */
+    /* input_bind_func(user_func_print_bullshit, input_state, SDLK_b, MENU_NAV); */
     SDL_StartTextInput();
 
     bool screenrecord = false;
     int screenshot_index = 0;
-    uint16_t e_state = 0;
-    while (!(e_state & E_STATE_QUIT)) {
+    uint16_t i_state = 0;
+    while (!(i_state & I_STATE_QUIT)) {
 	SDL_Event e;
 	while (SDL_PollEvent(&e)) {
 	    if (e.type == SDL_QUIT) {
-	        e_state |= E_STATE_QUIT;
+	        i_state |= I_STATE_QUIT;
 	    } else if (e.type == SDL_WINDOWEVENT) {
 		if (e.window.event == SDL_WINDOWEVENT_RESIZED) {
 		    window_resize(main_win, e.window.data1, e.window.data2);
@@ -214,49 +257,61 @@ void run_tests()
 		}
 		    /* window_auto_resize(main_win); */
 	    } else if (e.type == SDL_KEYDOWN) {
+
+
+		/* TEST HASHING HERE */
+		UserFn *thing_to_do = input_get(i_state, e.key.keysym.sym, active_mode);
+		if (thing_to_do) {
+		    fprintf(stdout, "Doing function %s\n", thing_to_do->fn_display_name);
+		    thing_to_do->do_fn();
+		} else {
+		    fprintf(stdout, "Unbound!\n");
+		}
+
 	        switch (e.key.keysym.scancode) {
-		/* case SDL_SCANCODE_D: */
-		/*     if (main_menu) { */
-		/* 	menu_destroy(main_menu); */
-		/* 	main_menu = NULL; */
-		/*     } */
-		/*     break; */
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LCTRL:
 		case SDL_SCANCODE_RCTRL:
-		    e_state |= E_STATE_CMDCTRL;
+		    i_state |= I_STATE_CMDCTRL;
 		    break;
 		case SDL_SCANCODE_LSHIFT:
 		case SDL_SCANCODE_RSHIFT:
-		    e_state |= E_STATE_SHIFT;
+		    i_state |= I_STATE_SHIFT;
 		    break;
-		case SDL_SCANCODE_E:
-		    txt_edit(tb->text, layout_test_draw_main);
-		    e_state = 0;
-		    textbox_size_to_fit(tb, 5, 5);
-		    /* menu_item_add(a1, tb->text->value_handle, "", NULL, NULL); */
+		case SDL_SCANCODE_RALT:
+		case SDL_SCANCODE_LALT:
+		    i_state |= I_STATE_META;
 		    break;
-		case SDL_SCANCODE_R:
-		    txt_edit(tb2->text, layout_test_draw_main);
-		    e_state = 0;
-		    textbox_size_to_fit(tb2, 10, 10);
-		    menu_item_add(a1, tb->text->value_handle, tb2->text->value_handle, NULL, NULL);
-		    break;
-		case SDL_SCANCODE_T:
-		    textbox_set_trunc(tb, !(tb->text->truncate));
-		    break;
-		case SDL_SCANCODE_C: {
-		    SDL_Color clr;
-		    clr.r = rand() % 255;
-		    clr.g = rand() % 255;
-		    clr.b = rand() % 255;
-		    textbox_set_text_color(tb, &clr);
-		 }
-		    break;
-	        case SDL_SCANCODE_Q:
-		    screenrecord = !screenrecord;
-		    break;
+
+		case SDL_SCANCODE_M:
+		    user_func_change_mode();
+		/* case SDL_SCANCODE_E: */
+		/*     txt_edit(tb->text, layout_test_draw_main); */
+		/*     i_state = 0; */
+		/*     textbox_size_to_fit(tb, 5, 5); */
+		/*     /\* menu_item_add(a1, tb->text->value_handle, "", NULL, NULL); *\/ */
+		/*     break; */
+		/* case SDL_SCANCODE_R: */
+		/*     txt_edit(tb2->text, layout_test_draw_main); */
+		/*     i_state = 0; */
+		/*     textbox_size_to_fit(tb2, 10, 10); */
+		/*     menu_item_add(a1, tb->text->value_handle, tb2->text->value_handle, NULL, NULL); */
+		/*     break; */
+		/* case SDL_SCANCODE_T: */
+		/*     textbox_set_trunc(tb, !(tb->text->truncate)); */
+		/*     break; */
+		/* case SDL_SCANCODE_C: { */
+		/*     SDL_Color clr; */
+		/*     clr.r = rand() % 255; */
+		/*     clr.g = rand() % 255; */
+		/*     clr.b = rand() % 255; */
+		/*     textbox_set_text_color(tb, &clr); */
+		/*  } */
+		/*     break; */
+	        /* case SDL_SCANCODE_Q: */
+		/*     /\* screenrecord = !screenrecord; *\/ */
+		/*     break; */
 		default:
 		    break;
 		}
@@ -266,11 +321,15 @@ void run_tests()
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LCTRL:
 		case SDL_SCANCODE_RCTRL:
-		    e_state &= ~E_STATE_CMDCTRL;
+		    i_state &= ~I_STATE_CMDCTRL;
 		    break;
 		case SDL_SCANCODE_LSHIFT:
 		case SDL_SCANCODE_RSHIFT:
-		    e_state &= ~E_STATE_SHIFT;
+		    i_state &= ~I_STATE_SHIFT;
+		    break;
+		case SDL_SCANCODE_RALT:
+		case SDL_SCANCODE_LALT:
+		    i_state &= ~I_STATE_META;
 		    break;
 		default:
 		    break;
@@ -279,13 +338,13 @@ void run_tests()
 	    } else if (e.type == SDL_MOUSEBUTTONDOWN) {
 		switch (e.button.button) {
 		case SDL_BUTTON_LEFT:
-		    e_state |= E_STATE_MOUSE_L;
+		    i_state |= I_STATE_MOUSE_L;
 		    break;
 		case SDL_BUTTON_RIGHT:
-		    e_state |= E_STATE_MOUSE_R;
+		    i_state |= I_STATE_MOUSE_R;
 		    break;
 		case SDL_BUTTON_MIDDLE:
-		    e_state |= E_STATE_MOUSE_M;
+		    i_state |= I_STATE_MOUSE_M;
 		    break;
 		default:
 		    break;
@@ -297,13 +356,13 @@ void run_tests()
 	    } else if (e.type == SDL_MOUSEBUTTONUP) {
 		switch (e.button.button) {
 		case SDL_BUTTON_LEFT:
-		    e_state &= ~E_STATE_MOUSE_L;
+		    i_state &= ~I_STATE_MOUSE_L;
 		    break;
 		case SDL_BUTTON_RIGHT:
-		    e_state &= ~E_STATE_MOUSE_R;
+		    i_state &= ~I_STATE_MOUSE_R;
 		    break;
 		case SDL_BUTTON_MIDDLE:
-		    e_state &= ~E_STATE_MOUSE_M;
+		    i_state &= ~I_STATE_MOUSE_M;
 		    break;
 		default:
 		    break;

@@ -28,6 +28,7 @@
 #include "SDL.h"
 #include "SDL_render.h"
 #include "color.h"
+#include "layout.h"
 #include "window.h"
 
 #define DEFAULT_WINDOW_FLAGS SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI
@@ -80,9 +81,8 @@ Window *window_create(int w, int h, const char *name)
 	exit(1);
     }
     
-
     window->std_font = NULL;
-    
+    window->layout = NULL;
     SDL_SetRenderDrawBlendMode(window->rend, SDL_BLENDMODE_BLEND);
 
     return window;
@@ -91,7 +91,7 @@ Window *window_create(int w, int h, const char *name)
 void window_assign_std_font(Window *win, const char *font_path)
 {
     win->std_font = ttf_init_font(font_path, win);
-    if (win->std_font == NULL) {
+    if (!win->std_font) {
 	fprintf(stderr, "Error: Unable to initialize font at %s.\n", font_path);
     }
 }
@@ -104,6 +104,14 @@ void window_auto_resize(Window *win)
     win->h *= win->dpi_scale_factor;
     win->canvas_src.w = win->w;
     win->canvas_src.h = win->h;
+    if (win->canvas) {
+	SDL_DestroyTexture(win->canvas);
+	win->canvas = SDL_CreateTexture(win->rend, 0, SDL_TEXTUREACCESS_TARGET, win->w * win->dpi_scale_factor, win->h * win->dpi_scale_factor);
+	if (!win->canvas) {
+	    fprintf(stderr, "Error: failed to create canvas texture. %s\n", SDL_GetError());
+	    //exit(1);
+	}
+    }
 }
 
 void window_resize(Window *win, int w, int h)
@@ -114,6 +122,18 @@ void window_resize(Window *win, int w, int h)
     win->h = h * win->dpi_scale_factor;
     win->canvas_src.w = win->w;
     win->canvas_src.h = win->h;
+    if (win->canvas) {
+	SDL_DestroyTexture(win->canvas);
+	win->canvas = SDL_CreateTexture(win->rend, 0, SDL_TEXTUREACCESS_TARGET, win->w, win->h);
+	if (!win->canvas) {
+	    fprintf(stderr, "Error: failed to create canvas texture. %s\n", SDL_GetError());
+	    // exit(1);
+	}
+    }
+    if (win->layout) {
+	layout_reset_from_window(win->layout, win);
+    }
+    
 }
 
 void window_set_mouse_point(Window *win, int logical_x, int logical_y)
@@ -176,4 +196,39 @@ void window_end_draw(Window *win)
     SDL_SetRenderTarget(win->rend, NULL);
     SDL_RenderCopy(win->rend, win->canvas, &win->canvas_src, NULL);
     SDL_RenderPresent(win->rend);
+}
+
+void window_set_layout(Window *win, Layout *layout)
+{
+    win->layout = layout;
+}
+
+Layout *layout_create_from_window(Window *win);
+
+/* Create a window, intialize font and layout */
+/* Window *window_init(int w, int h, const char *name, const char *font_path) */
+/* { */
+/*     Window *win = window_create(w, h, name); */
+/*     window_assign_std_font(win, font_path); */
+/*     fprintf(stderr, "Assigned standard font\n"); */
+/*     window_set_layout(win, layout_create_from_window(win)); */
+/*     return win; */
+/* } */
+
+void layout_destroy(Layout *lt);
+void window_destroy(Window *win)
+{
+    if (win->std_font) {
+	ttf_destroy_font(win->std_font);
+    }
+    if (win->rend) {
+	SDL_DestroyRenderer(win->rend);
+    }
+    if (win->canvas) {
+	SDL_DestroyTexture(win->canvas);
+    }
+    if (win->layout) {
+	layout_destroy(win->layout);
+    }
+    free(win);    
 }

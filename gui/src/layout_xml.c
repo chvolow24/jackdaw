@@ -33,9 +33,6 @@
 #define MAX_TOKLEN 255
 #define LT_TAGNAME "Layout"
 
-/*temporary*/
-extern Layout *main_lt;
-/*^^^^temporary*/
 
 static void write_dimension(FILE *f, Dimension *dim, char dimchar, int indent)
 {
@@ -235,9 +232,7 @@ static Layout *get_layout_from_tag(Tag *lt_tag)
             IteratorType iter_type;
             int num_iterations;
             read_iterator(childtag->inner_text, &iter_type, &num_iterations);
-            fprintf(stderr, "Create iterator from template %s, type %s, num %d\n", lt->name, layout_get_itertype_str(iter_type), num_iterations);
-            layout_create_iter_from_template(lt, iter_type, num_iterations, false);
-            fprintf(stderr, "END READ ITERATOR\n");
+            layout_create_iter_from_template(lt, iter_type, num_iterations, true);
         
         }
     }
@@ -272,8 +267,6 @@ Layout *layout_read_xml_to_lt(Layout *dst, const char *filename)
 {
     Layout *opened = layout_read_from_xml(filename);
     if (!opened) {
-        fprintf(stderr, "NOFILE: returning layout \"%s\" at %p\n", dst->name, dst);
-        fprintf(stderr, "Main layout is at %p\n", main_lt);
         return dst;
     }
 

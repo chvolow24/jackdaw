@@ -130,14 +130,11 @@ Font *ttf_init_font(const char *path, Window *win);
 /* Given an existing Font object, get the actual TTF_Font at a given size */
 TTF_Font *ttf_get_font_at_size(Font *font, int size);
 
-
 /* Set a text color and refresh the drawable elements */
 void txt_set_color(Text *txt, SDL_Color *clr);
 
 /* Set text pad values and refresh drawable elements */
 void txt_set_pad(Text *txt, int h_pad, int v_pad);
-
-#endif
 
 
 TextArea *txt_area_create(const char *value, Layout *layout, TTF_Font *font, SDL_Color color, Window *win);
@@ -145,3 +142,8 @@ TextArea *txt_area_create(const char *value, Layout *layout, TTF_Font *font, SDL
 void txt_area_draw(TextArea *txtarea);
 
 void txt_area_create_lines(TextArea *txtarea);
+
+/* Destroy the font array and free the Font */
+void ttf_destroy_font(Font *font);
+
+#endif

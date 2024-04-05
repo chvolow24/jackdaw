@@ -16,7 +16,7 @@ typedef struct menu_item {
     bool available;
     void (*onclick)(Textbox *tb, void *target);
     void *target;
-    bool hovering;
+    bool selected;
     Layout *layout;
 } MenuItem;
 
@@ -25,6 +25,7 @@ typedef struct menu_section {
     const char *label;
     MenuItem *items[MAX_MENU_SCTN_LEN];
     uint8_t num_items;
+    uint8_t sel_item;
     Layout *layout;
 } MenuSection;
  
@@ -33,15 +34,18 @@ typedef struct menu_column {
     const char *label;
     MenuSection *sections[MAX_MENU_SECTIONS];
     uint8_t num_sections;
+    uint8_t sel_sctn;
     Layout *layout;
 } MenuColumn;
 
 typedef struct menu {
-    MenuColumn  *columns[MAX_MENU_COLUMNS];
     const char *title;
     const char *description;
     TextArea *header;
+    MenuColumn  *columns[MAX_MENU_COLUMNS];
     uint8_t num_columns;
+    MenuItem *selected;
+    uint8_t sel_col;
     Layout *layout;
     TTF_Font *font;
     Window *window;

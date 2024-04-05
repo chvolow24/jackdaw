@@ -96,6 +96,8 @@ Menu *menu_create(Layout *layout, Window *window)
     Menu *menu = malloc(sizeof(Menu));
     menu->num_columns = 0;
     menu->layout = layout;
+    menu->selected = NULL;
+    menu->sel_col = 255;
     layout_add_child(layout);
     layout_add_complementary_child(layout, H);
     
@@ -140,6 +142,7 @@ MenuColumn *menu_column_add(Menu *menu, const char *label)
     Layout *content_lt = menu->layout->children[1];
     MenuColumn *col = malloc(sizeof(MenuColumn));
     col->num_sections = 0;
+    col->sel_sctn = 255;
     col->label = label;
     col->menu = menu;
     col->layout = layout_add_child(content_lt);
@@ -158,6 +161,7 @@ MenuSection *menu_section_add(MenuColumn *col, const char *label)
 {
     MenuSection *sctn = malloc(sizeof(MenuSection));
     sctn->num_items = 0;
+    sctn->sel_item = 255;
     sctn->label = label;
     sctn->column = col;
     sctn->layout = layout_add_child(col->layout);
@@ -190,7 +194,7 @@ MenuItem *menu_item_add(
     item->onclick = onclick;
     item->target = target;
     item->section = sctn;
-    item->hovering = false;
+    item->selected = false;
     item->layout = layout_add_child(sctn->layout);
     char item_name[8];
     snprintf(item_name, 8, "item_%02d", sctn->num_items);
@@ -295,7 +299,6 @@ void menu_item_destroy(MenuItem *item)
     free(item);
 }
 
-MenuItem *hovering = NULL;
 void menu_destroy(Menu *menu)
 {
     fprintf(stdout, "\t->menu destroy\n");
@@ -316,9 +319,6 @@ void menu_destroy(Menu *menu)
 		MenuItem *item = sctn->items[i];
 		fprintf(stdout, "\t->menu item destry\n");
 		/* TODO: get rid of global hovering. */
-		if  (hovering == item) {
-		    
-		}
 		menu_item_destroy(item);
 	    }
 	    free(sctn);
@@ -334,10 +334,11 @@ void menu_destroy(Menu *menu)
 
 void triage_mouse_menu(Menu *menu, SDL_Point *mousep, bool click)
 {
-    if (hovering && !SDL_PointInRect(mousep, &hovering->layout->rect)) {
-	hovering->hovering = false;
+    fprintf(stdout, "Triage mouse menu\n");
+    if (menu->selected && !SDL_PointInRect(mousep, &menu->selected->layout->rect)) {
+	menu->selected->selected = false;
 	/* textbox_set_background_color(hovering->tb, &menu_std_clr_tb_bckgrnd); */
-	hovering = NULL;
+	menu->selected = NULL;
     }
     if (!SDL_PointInRect(mousep, &menu->layout->rect)) {
 	return;
@@ -358,8 +359,12 @@ void triage_mouse_menu(Menu *menu, SDL_Point *mousep, bool click)
 		if (SDL_PointInRect(mousep, &item->layout->rect)) {
 		    /* Layout *lt = layout_deepest_at_point(mmenu->layout, mousep); */
 		    /* fprintf(stdout, "Deepest at point: %s\n", lt->name); */
-		    hovering = item;
-		    item->hovering = true;
+		    menu->selected = item; /* TODO: eliminate */
+		    item->selected = true;
+		    
+		    menu->sel_col = c;
+		    col->sel_sctn = s;
+		    sctn->sel_item = i;
 		    if (click && item->onclick) {
 			item->onclick(item->tb, item->target);
 		    }
@@ -443,7 +448,8 @@ void menu_draw(Menu *menu)
 		    itemh_pixels= item->layout->rect.h;
 		}
 		/* draw_layout(menu->window, item->annot_tb->layout); */
-		if (item->hovering) {
+		/* if (item->selected) { */
+		if (i == menu->sel_col && j == col->sel_sctn && k == sctn->sel_item) {
 		    SDL_SetRenderDrawColor(menu->window->rend, sdl_color_expand(menu_std_clr_highlight));
 		    geom_fill_rounded_rect(menu->window->rend, &item->layout->rect, MENU_STD_CORNER_RAD);
 		}

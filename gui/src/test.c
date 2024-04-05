@@ -45,7 +45,7 @@ int lorem_dir = -5;
 SDL_Color bckgrnd_color = (SDL_Color) {200, 200, 200, 255};
 void layout_test_draw_main()
 {
-    fprintf(stdout, "Start draw\n");
+    /* fprintf(stdout, "Start draw\n"); */
     /* fprintf(stdout, "\ttranslate\n"); */
     //  menu_translate(main_menu, menu_x_dir, menu_y_dir);
 
@@ -76,7 +76,7 @@ void layout_test_draw_main()
 	menu_draw(main_menu);
     } 
 
-    fprintf(stdout, "End draw\n");
+    /* fprintf(stdout, "End draw\n"); */
     window_end_draw(main_win);
 }
 
@@ -249,7 +249,7 @@ void run_tests()
     int screenshot_index = 0;
     uint16_t i_state = 0;
     while (!(i_state & I_STATE_QUIT)) {
-	fprintf(stdout, "Start frame\n");
+	/* fprintf(stdout, "Start frame\n"); */
 	SDL_Event e;
 	while (SDL_PollEvent(&e)) {
 	    if (e.type == SDL_QUIT) {
@@ -378,11 +378,11 @@ void run_tests()
 		    break;
 		}
 	    } else if (e.type == SDL_MOUSEMOTION) {
-		fprintf(stdout, "Mousemotion\n");
+		/* fprintf(stdout, "Mousemotion\n"); */
 		window_set_mouse_point(main_win, e.motion.x, e.motion.y);
-		fprintf(stdout, "\t->triage mouse menu\n");
+		/* fprintf(stdout, "\t->triage mouse menu\n"); */
 		triage_mouse_menu(main_menu, &main_win->mousep, false);
-		fprintf(stdout, "\t->DONe triage mmouse mneu\n");
+		/* fprintf(stdout, "\t->DONe triage mmouse mneu\n"); */
 	    }
 	    /* } else if (e.type == SDL_MULTIGESTURE) { */
 	    /*     window_zoom(main_win, e.mgesture.dDist); */
@@ -391,7 +391,7 @@ void run_tests()
 
 
 	}
-	fprintf(stdout, "End event handling\n");
+	/* fprintf(stdout, "End event handling\n"); */
 
 	if (screenrecord) {
 	    screenshot(screenshot_index, main_win->rend);

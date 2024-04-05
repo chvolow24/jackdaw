@@ -81,6 +81,7 @@ static void mode_load_global()
     Mode *mode = mode_create(GLOBAL);
     ModeSubcat *mc = mode_add_subcat(mode, "");
 
+    fprintf(stdout, "Global mode subcategories: %d\n", mode->num_subcats);
     /* exit(0); */
     
     UserFn *fn;

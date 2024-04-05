@@ -2,7 +2,7 @@ CC := gcc
 SRC_DIR := src
 BUILD_DIR := build
 INCLUDE_DIR := include
-CFLAGS := -g -Wall -Iinclude -I/usr/include/SDL2 `sdl2-config --libs --cflags` -lSDL2 -lSDL2_ttf -lpthread -lm -DINSTALL_DIR=\"`pwd`\" -DSDL_MOUSE_TOUCH_EVENTS=1 -DLT_DEV_MODE=1 -02
+CFLAGS := -g -Wall -Iinclude -I/usr/include/SDL2 `sdl2-config --libs --cflags` -lSDL2 -lSDL2_ttf -lpthread -lm -DINSTALL_DIR=\"`pwd`\" -DSDL_MOUSE_TOUCH_EVENTS=1 -DLT_DEV_MODE=1 -O2
 
 SRCS := $(wildcard $(SRC_DIR)/*.c)
 INCLUDES := $(wildcard $(INCLUDE_DIR)/*.h)

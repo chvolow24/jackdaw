@@ -334,7 +334,6 @@ void menu_destroy(Menu *menu)
 
 void triage_mouse_menu(Menu *menu, SDL_Point *mousep, bool click)
 {
-    fprintf(stdout, "Triage mouse menu\n");
     if (menu->selected && !SDL_PointInRect(mousep, &menu->selected->layout->rect)) {
 	menu->selected->selected = false;
 	/* textbox_set_background_color(hovering->tb, &menu_std_clr_tb_bckgrnd); */

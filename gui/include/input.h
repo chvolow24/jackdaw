@@ -65,7 +65,6 @@ typedef struct keybinding_node {
     Keybinding *kb;
     KeybNode *next;
 } KeybNode;
-
 /* Get an input mode str from enum value */
 const char *input_mode_str(InputMode mode);
 
@@ -89,5 +88,7 @@ void input_init_mode_load_all();
 
 /* Create a GUI menu from a mode */
 Menu *input_create_menu_from_mode(InputMode im);
+
+Menu *input_create_master_menu();
 
 #endif

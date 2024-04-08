@@ -11,6 +11,7 @@ Mode *modes[NUM_INPUT_MODES];
 KeybNode *input_hash_table[INPUT_HASH_SIZE];
 extern Window *main_win;
 
+
 const char *input_mode_str(InputMode im)
 {
     switch (im) {
@@ -74,13 +75,12 @@ static void mode_subcat_add_fn(ModeSubcat *ms, UserFn *fn)
 static UserFn *create_user_fn(
     const char *fn_id,
     const char *fn_display_name,
-    const char *fn_annot,
     void (*do_fn) (void))
 {
     UserFn *fn = malloc(sizeof(UserFn));
     fn->fn_id = fn_id;
+    fn->annotation = NULL;
     fn->fn_display_name = fn_display_name;
-    fn->annotation = fn_annot;
     fn->do_fn = do_fn;
     return fn;
 }
@@ -100,7 +100,6 @@ static void mode_load_global()
     fn = create_user_fn(
 	"expose_help",
 	"Expose help",
-	"[annot]",
 	user_global_expose_help
 	);
     mode_subcat_add_fn(mc, fn);
@@ -108,7 +107,6 @@ static void mode_load_global()
     fn = create_user_fn(
 	"quit",
 	"Quit",
-	"[annot]",
 	user_global_quit
 	);
     mode_subcat_add_fn(mc, fn);
@@ -116,7 +114,6 @@ static void mode_load_global()
     fn = create_user_fn(
 	"undo",
 	"Undo",
-	"[annot]",
 	user_global_undo
 	);
 
@@ -125,9 +122,9 @@ static void mode_load_global()
     fn = create_user_fn(
 	"redo",
 	"Redo",
-	"[annot]",
 	user_global_redo
 	);
+
     mode_subcat_add_fn(mc, fn);   
 }
 
@@ -141,7 +138,6 @@ static void mode_load_menu_nav()
     fn = create_user_fn(
 	"menu_next_item",
 	"Next item",
-	"[annot]",
 	user_menu_nav_next_item
 	);
     mode_subcat_add_fn(mc, fn);
@@ -149,7 +145,6 @@ static void mode_load_menu_nav()
     fn = create_user_fn(
 	"menu_previous_item",
 	"Previous item",
-	"[annot]",
 	user_menu_nav_prev_item
 	);
     mode_subcat_add_fn(mc, fn);
@@ -157,7 +152,7 @@ static void mode_load_menu_nav()
     fn = create_user_fn(
 	"menu_next_section",
 	"Next section",
-	"[annot]",
+
 	user_menu_nav_next_sctn
 	);
 
@@ -166,7 +161,6 @@ static void mode_load_menu_nav()
     fn = create_user_fn(
 	"menu_previous_section",
 	"Previous section",
-	"[annot]",
 	user_menu_nav_prev_sctn
 	);
     mode_subcat_add_fn(mc, fn);
@@ -175,16 +169,125 @@ static void mode_load_menu_nav()
     fn = create_user_fn(
 	"menu_choose_item",
 	"Choose item",
-	"[annot]",
 	user_menu_nav_choose_item
 	);
     mode_subcat_add_fn(mc, fn);
+
+        fn = create_user_fn(
+	"menu_column_right",
+	"Column right",
+	user_menu_nav_column_right
+	);
+    mode_subcat_add_fn(mc, fn);
+
+    fn = create_user_fn(
+	"menu_column_left",
+	"Column left",
+	user_menu_nav_column_left
+	);
+    mode_subcat_add_fn(mc, fn);
+
+
+    fn = create_user_fn(
+	"menu_translate_up",
+	"Move menu up",
+	user_menu_translate_up
+	);
+    mode_subcat_add_fn(mc, fn);
+
+        fn = create_user_fn(
+	"menu_translate_left",
+	"Move menu left",
+	user_menu_translate_left
+	);
+    mode_subcat_add_fn(mc, fn);
+
+      mode_subcat_add_fn(mc, fn);
+
+      fn = create_user_fn(
+	"menu_translate_down",
+	"Move menu down",
+	user_menu_translate_down
+	);
+    mode_subcat_add_fn(mc, fn);
+    
+      fn = create_user_fn(
+	"menu_translate_right",
+	"Move menu right",
+	user_menu_translate_right
+	);
+    mode_subcat_add_fn(mc, fn);
+
 }
 
 static void mode_load_project()
 {
     Mode *mode = mode_create(PROJECT);
-    ModeSubcat *mc = mode_add_subcat(mode, "");
+    ModeSubcat *sc= mode_add_subcat(mode, "Timeline Navigation");
+    UserFn *fn;
+
+    fn = create_user_fn(
+	"tl_play",
+	"Play",
+	user_tl_play
+	);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"tl_pause",
+	"Pause",
+	user_tl_pause
+	);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"tl_rewind",
+	"Rewind",
+	user_tl_rewind
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    sc = mode_add_subcat(mode, "Marks");
+    fn = create_user_fn(
+	"tl_set_in_mark",
+	"Set In",
+	user_tl_set_mark_in
+	);
+    mode_subcat_add_fn(sc, fn);
+    
+    fn = create_user_fn(
+	"tl_set_out_mark",
+	"Set Out",
+	user_tl_set_mark_out
+	);
+    mode_subcat_add_fn(sc, fn);
+
+
+
+    /*
+  - k		: tl_pause
+  - j		: tl_rewind
+  - ;		: tl_move_right
+  - h		: tl_move_left
+  - ,		: tl_zoom_out
+  - .		: tl_zoom_in
+  - i		: tl_set_in_mark
+  - o		: tl_set_out_mark
+  - C-i		: tl_go_to_in_mark
+  - C-o		: tl_go_to_out_mark
+  - C-t		: tl_track_add
+  - 1		: tl_track_select_1
+  - 2		: tl_track_select_2
+  - 3		: tl_track_select_3
+  - 4		: tl_track_select_4
+  - 5		: tl_track_select_5
+  - 6		: tl_track_select_6
+  - 7		: tl_track_select_7
+  - 8		: tl_track_select_8
+  - 9		: tl_track_select_9
+  - r		: tl_start_stop_record
+  - g		: tl_grab_clips_at_point
+  - m		: tl_mute_unmute
+  - s		: tl_solo_unsolo
+    */
 }
 
 void input_init_mode_load_all()
@@ -213,6 +316,8 @@ UserFn *input_get(uint16_t i_state, SDL_Keycode keycode, InputMode mode)
 	return NULL;
     }
     while (1) {
+	fprintf(stdout, "Testing keycode %c against %c\n", keycode, node->kb->keycode);
+	fprintf(stdout, "mode %d, %d; i_state %d, %d\n", mode, node->kb->mode, i_state, node->kb->i_state);
 	if ((node->kb->mode == mode || node->kb->mode == GLOBAL) && node->kb->i_state == i_state && node->kb->keycode == keycode) {
 	    return node->kb->fn;
 	} else if (node->next) {
@@ -277,6 +382,9 @@ static char *input_get_keycmd_str(uint16_t i_state, SDL_Keycode keycode)
     memset(buf, '\0', 32);
     const char *mod;
     switch (i_state) {
+    case (0):
+	mod = "";
+	break;
     case (I_STATE_CMDCTRL):
 	mod = "C-";
 	break;
@@ -324,9 +432,13 @@ static char *input_get_keycmd_str(uint16_t i_state, SDL_Keycode keycode)
     case SDLK_RIGHT:
 	sprintf(buf, "%s<right>", mod);
 	break;
+    default:
+	sprintf(buf, "%s%c", mod, keycode);
     }
 
     char *ret = malloc(strlen(buf));
+    strcpy(ret, buf);
+    fprintf(stdout, "\t->keycmd str %s (%s)\n", ret, buf);
     return ret;
 }
 
@@ -351,30 +463,39 @@ void input_bind_fn(UserFn *fn, uint16_t i_state, SDL_Keycode keycode, InputMode 
     int hash = input_hash(i_state, keycode);
     KeybNode *keyb_node = input_hash_table[hash];
     KeybNode *last = NULL;
-    Keybinding *kb = NULL;
+    Keybinding *kb = malloc(sizeof(Keybinding));
     /* UserFn *user_fn = NULL; */
     if (!keyb_node) {
 	keyb_node = malloc(sizeof(KeybNode));
-        kb = malloc(sizeof(Keybinding));
 	keyb_node->kb = kb;
-	kb->mode = mode;
-	kb->i_state = i_state;
-	kb->keycode = keycode;
-	kb->keycmd_str = input_get_keycmd_str(i_state, keycode);
-	fn->annotation = kb->keycmd_str;
 	keyb_node->next = NULL;
 	input_hash_table[hash] = keyb_node;
+	fprintf(stdout, "Bound fn id %s to %s (keycode %c)\n", fn->fn_id, kb->keycmd_str, keycode);
+
     } else {
 	while (keyb_node->kb->mode != mode || keyb_node->kb->i_state != i_state || keyb_node->kb->keycode != keycode) {
 	    if (keyb_node->next) {
 		last = keyb_node;
 		keyb_node = keyb_node->next;
-		kb = keyb_node->kb;
 	    } else {
-		fprintf(stderr, "Error: entry in hash table has no next pointer.\n");
-		return;
+		keyb_node->next = malloc(sizeof(KeybNode));
+		keyb_node = keyb_node->next;
+		kb = malloc(sizeof(Keybinding));
+		keyb_node->kb = kb;
+		keyb_node->next = NULL;
+		fprintf(stdout, "Bound fn id %s to %s (keycode %c)\n", fn->fn_id, kb->keycmd_str, keycode);
+		break;
+
 	    }   
 	}
+    }
+    kb->mode = mode;
+    kb->i_state = i_state;
+    kb->keycode = keycode;
+    kb->keycmd_str = input_get_keycmd_str(i_state, keycode);
+    if (!fn->annotation) {
+	fprintf(stdout, "binding fn to %s\n", kb->keycmd_str);
+	fn->annotation = kb->keycmd_str;
     }
     kb->fn = fn;
     if (last) {
@@ -432,6 +553,44 @@ Menu *input_create_menu_from_mode(InputMode im)
 	}
     }
     menu_add_header(m, mode->name, "Here are functions available to you in aforementioned mode.");
+    return m;
+}
+
+
+Menu *input_create_master_menu()
+{
+    InputMode im = GLOBAL;
+
+    Layout *m_layout = create_menu_layout();
+    if (!m_layout) {
+	fprintf(stderr, "Error: Unable to create menu layout\n");
+	exit(1);
+    }
+    Menu *m = menu_create(m_layout, main_win);
+    while (im < NUM_INPUT_MODES) {
+	Mode *mode = modes[im];
+	if (!mode) {
+	    fprintf(stderr, "Error: mode %s not initialized\n", input_mode_str(im));
+	    exit(1);
+	}
+	Layout *m_layout = create_menu_layout();
+	if (!m_layout) {
+	    fprintf(stderr, "Error: Unable to create menu layout\n");
+	    exit(1);
+	}
+	MenuColumn *c = menu_column_add(m, mode->name);
+	for (int i=0; i<mode->num_subcats; i++) {
+	    ModeSubcat *sc = mode->subcats[i];
+	    MenuSection *sctn = menu_section_add(c, sc->name);
+	    for (int j=0; j<sc->num_fns; j++) {
+		UserFn *fn = sc->fns[j];
+		menu_item_add(sctn, fn->fn_display_name, fn->annotation, fn->do_fn, NULL);
+	    }
+	}
+	im++;
+    }
+
+    menu_add_header(m, "ALL", "Here are functions available to you in aforementioned mode.");
     return m;
 }
 

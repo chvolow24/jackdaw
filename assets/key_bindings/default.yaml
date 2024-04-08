@@ -39,12 +39,18 @@
   - <del>     	: menu_cancel
   - C-n	      	: menu_next_section
   - C-p	      	: menu_previous_section
-  - C-<down>  	: menu_next_section
-  - C-<up>    	: menu_previous_section
-  - C-r	      	: menu_column_right
-  - C-l	      	: menu_column_left
+  - i		: menu_previous_item
+  - k		: menu_next_item
+  - C-<up>  	: menu_next_section
+  - C-<down>   	: menu_previous_section
+  - l	      	: menu_column_right
+  - j	      	: menu_column_left
   - <right>   	: menu_column_right
   - <left>    	: menu_column_left
+  - w		: menu_translate_up
+  - a		: menu_translate_left
+  - s		: menu_translate_down
+  - d		: menu_translate_right
 - project:
   - l		: tl_play
   - k		: tl_pause

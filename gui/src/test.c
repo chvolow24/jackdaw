@@ -288,14 +288,16 @@ void run_tests()
 		    break;
 
 		case SDL_SCANCODE_M:
-		    user_func_change_mode();
+		    /* user_func_change_mode(); */
+		    active_mode = MENU_NAV;
 		    menu_destroy(main_menu);
 		    fprintf(stdout, "Menu destroyed\n");
-		    main_menu = input_create_menu_from_mode(active_mode);
+		    /* main_menu = input_create_menu_from_mode(active_mode); */
+		    main_menu = input_create_master_menu();
 		    fprintf(stdout, "Successfully recreated main menu\n");
 		    break;
 		case SDL_SCANCODE_L:
-		    layout_write(stdout, main_menu->layout, 0);
+		    /* layout_write(stdout, main_menu->layout, 0); */
 		/* case SDL_SCANCODE_E: */
 		/*     txt_edit(tb->text, layout_test_draw_main); */
 		/*     i_state = 0; */

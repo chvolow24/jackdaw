@@ -23,12 +23,12 @@
   SOFTWARE.
 
 *****************************************************************************************************************/
-
 #include <stdio.h>
 #include "SDL.h"
 #include "SDL_render.h"
 #include "color.h"
 #include "layout.h"
+#include "menu.h"
 #include "window.h"
 
 #define DEFAULT_WINDOW_FLAGS SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI
@@ -83,6 +83,7 @@ Window *window_create(int w, int h, const char *name)
     
     window->std_font = NULL;
     window->layout = NULL;
+    window->num_menus = 0;
     SDL_SetRenderDrawBlendMode(window->rend, SDL_BLENDMODE_BLEND);
 
     return window;
@@ -231,4 +232,40 @@ void window_destroy(Window *win)
 	layout_destroy(win->layout);
     }
     free(win);    
+}
+
+void window_pop_menu(Window *win)
+{
+    if (win->num_menus > 0) {
+	menu_destroy(win->menus[win->num_menus - 1]);
+	win->num_menus--;
+	
+    }
+}
+
+void window_add_menu(Window *win, Menu *menu)
+{
+    if (win->num_menus < MAX_WINDOW_MENUS) {
+	win->menus[win->num_menus] = menu;
+	win->num_menus++;
+    } else {
+	fprintf(stderr, "Error: window already has maximum number of menus (%d)\n", win->num_menus);
+    }
+}
+
+Menu *window_top_menu(Window *win)
+{
+    if (win->num_menus > 0) {
+	return win->menus[win->num_menus - 1];
+    } else {
+	return NULL;
+    }
+}
+
+void window_draw_menus(Window *win)
+{
+
+    for (uint8_t i=0; i<win->num_menus; i++) {
+	menu_draw(win->menus[i]);
+    }
 }

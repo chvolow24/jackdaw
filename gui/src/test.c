@@ -16,7 +16,6 @@
 #define INPUT_HASH_SIZE 1024
 
 Window *main_win;
-Menu *main_menu;
 Menu *second_menu;
 Textbox *tb;
 Textbox *tb2;
@@ -47,9 +46,9 @@ void layout_test_draw_main()
 {
     /* fprintf(stdout, "Start draw\n"); */
     /* fprintf(stdout, "\ttranslate\n"); */
-    //  menu_translate(main_menu, menu_x_dir, menu_y_dir);
 
-    SDL_Rect *menurect = &main_menu->layout->rect;
+
+    SDL_Rect *menurect = &window_top_menu(main_win)->layout->rect;
     if ((menurect->x <= 0 && menu_x_dir < 0) || (menurect->x + menurect->w > main_win->w && menu_x_dir > 0)) {
 	menu_x_dir *= -1;
     }
@@ -72,9 +71,10 @@ void layout_test_draw_main()
     textbox_draw(tb);
     textbox_draw(tb2);
     txt_area_draw(lorem_ipsum);
-    if (main_menu) {   
-	menu_draw(main_menu);
-    } 
+    window_draw_menus(main_win);
+    /* if (window_top_menu(main_win)) {    */
+    /* 	menu_draw(window_top_menu(main_win)); */
+    /* }  */
 
     /* fprintf(stdout, "End draw\n"); */
     window_end_draw(main_win);
@@ -205,10 +205,11 @@ void run_tests()
     textbox_size_to_fit(tb2, 5, 5);
 
 
-    main_menu = menu_create(menu_lt, main_win);
+    Menu *main_menu = menu_create(menu_lt, main_win);
+    window_add_menu(main_win, main_menu);
     fprintf(stderr, "menu win: %p\n", main_menu->window);
-    MenuColumn *col_a = menu_column_add(main_menu, "Column A");
-    MenuColumn *col_b = menu_column_add(main_menu, "Column B");
+    MenuColumn *col_a = menu_column_add(window_top_menu(main_win), "Column A");
+    MenuColumn *col_b = menu_column_add(window_top_menu(main_win), "Column B");
 
     MenuSection *a1 = menu_section_add(col_a, "A1");
     MenuSection *a2 = menu_section_add(col_a, "A2");
@@ -219,13 +220,13 @@ void run_tests()
     menu_item_add(a2, "Section two item", NULL, NULL, NULL);
     menu_item_add(b1, "Columns two item", NULL, NULL, NULL);
 
-    menu_add_header(main_menu, "Some Title", "This is a description of this menu. Within this description you will find information about how to use this menu, what its things do, how thing do.\n\nYou can also treat this as a text area only, and not add any items.\n\n\tI don't think there's anything wrong with that.");
+    menu_add_header(window_top_menu(main_win), "Some Title", "This is a description of this menu. Within this description you will find information about how to use this menu, what its things do, how thing do.\n\nYou can also treat this as a text area only, and not add any items.\n\n\tI don't think there's anything wrong with that.");
 
     second_menu = menu_create(menu_lt2, main_win);
 
     int menu_selector = 0;
     MenuItem *item=NULL;
-    while ((item = menu_item_at_index(main_menu, menu_selector))) {
+    while ((item = menu_item_at_index(window_top_menu(main_win), menu_selector))) {
 	fprintf(stderr, "Item at %d: %s\n", menu_selector, item->label);
 	menu_selector++;
     }
@@ -290,10 +291,12 @@ void run_tests()
 		case SDL_SCANCODE_M:
 		    /* user_func_change_mode(); */
 		    active_mode = MENU_NAV;
-		    menu_destroy(main_menu);
+		    /* menu_destroy(window_top_menu(main_win)); */
+		    
 		    fprintf(stdout, "Menu destroyed\n");
-		    /* main_menu = input_create_menu_from_mode(active_mode); */
+		    /* window_top_menu(main_win) = input_create_menu_from_mode(active_mode); */
 		    main_menu = input_create_master_menu();
+		    window_add_menu(main_win, main_menu);
 		    fprintf(stdout, "Successfully recreated main menu\n");
 		    break;
 		case SDL_SCANCODE_L:
@@ -362,7 +365,7 @@ void run_tests()
 		    break;
 		}
 			
-		triage_mouse_menu(main_menu, &main_win->mousep, true);
+		triage_mouse_menu(window_top_menu(main_win), &main_win->mousep, true);
 	        /* textbox_set_fixed_w(tb, 300); */
 
 	    } else if (e.type == SDL_MOUSEBUTTONUP) {
@@ -383,7 +386,7 @@ void run_tests()
 		/* fprintf(stdout, "Mousemotion\n"); */
 		window_set_mouse_point(main_win, e.motion.x, e.motion.y);
 		/* fprintf(stdout, "\t->triage mouse menu\n"); */
-		triage_mouse_menu(main_menu, &main_win->mousep, false);
+		triage_mouse_menu(window_top_menu(main_win), &main_win->mousep, false);
 		/* fprintf(stdout, "\t->DONe triage mmouse mneu\n"); */
 	    }
 	    /* } else if (e.type == SDL_MULTIGESTURE) { */

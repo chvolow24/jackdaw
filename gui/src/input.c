@@ -470,7 +470,6 @@ void input_bind_fn(UserFn *fn, uint16_t i_state, SDL_Keycode keycode, InputMode 
 	keyb_node->kb = kb;
 	keyb_node->next = NULL;
 	input_hash_table[hash] = keyb_node;
-	fprintf(stdout, "Bound fn id %s to %s (keycode %c)\n", fn->fn_id, kb->keycmd_str, keycode);
 
     } else {
 	while (keyb_node->kb->mode != mode || keyb_node->kb->i_state != i_state || keyb_node->kb->keycode != keycode) {
@@ -483,7 +482,6 @@ void input_bind_fn(UserFn *fn, uint16_t i_state, SDL_Keycode keycode, InputMode 
 		kb = malloc(sizeof(Keybinding));
 		keyb_node->kb = kb;
 		keyb_node->next = NULL;
-		fprintf(stdout, "Bound fn id %s to %s (keycode %c)\n", fn->fn_id, kb->keycmd_str, keycode);
 		break;
 
 	    }   

@@ -1,9 +1,12 @@
 #ifndef JDAW_GUI_WINDOW_H
 #define JDAW_GUI_WINDOW_H
 
+#define MAX_WINDOW_MENUS 8
+
 #include "SDL.h"
 #include "text.h"
 
+typedef struct menu Menu;
 
 typedef struct window {
     SDL_Window *win;
@@ -18,6 +21,9 @@ typedef struct window {
     SDL_Rect canvas_src;
     Font *std_font;
     Layout *layout;
+
+    Menu *menus[MAX_WINDOW_MENUS];
+    uint8_t num_menus;
 } Window;
 
 /* Create a new Window struct and initialize all members */
@@ -51,7 +57,11 @@ void window_end_draw(Window *win);
 void window_set_layout(Window *win, Layout *layout);
 
 /* Window *window_init(int w, int h, const char *name, const char *font_path); */
+void window_pop_menu(Window *win);
+void window_add_menu(Window *win, Menu *menu);
 
+Menu *window_top_menu(Window *win);
+void window_draw_menus(Window *win);
 
 #endif
 

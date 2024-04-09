@@ -265,7 +265,7 @@ int main(int argc, char** argv)
         main_lt = layout_create_from_window(main_win);
     }
 
-    time_layout_reset(main_lt, 99999);
+    /* time_layout_reset(main_lt, 99999); */
 
     SDL_StopTextInput();
     bool quit = false;

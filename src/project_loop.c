@@ -28,26 +28,18 @@ void change_mode()
     fprintf(stdout, "Active mode: %s\n", input_mode_str(active_mode));
 }
 
-void bind_funcs()
-{
-    input_bind_func(add_track, I_STATE_CMDCTRL, SDLK_t, PROJECT);
-    input_bind_func(change_mode, 0, SDLK_m, GLOBAL);
-}
-
 
 void loop_project_main()
 {
 
     Layout *temp_scrolling_lt = NULL;
     Layout *scrolling_lt = NULL;
-    UserInput *input = NULL;
+    UserFn *input_fn = NULL;
     
     uint16_t i_state = 0;
     SDL_Event e;
     uint8_t fingersdown = 0;
     uint8_t fingerdown_timer = 0;
-
-    bind_funcs();
     
 
     while (!(i_state & I_STATE_QUIT)) {
@@ -83,9 +75,9 @@ void loop_project_main()
 		    break;
 		default:
 		    /* i_state = triage_keydown(i_state, e.key.keysym.scancode); */
-		    input = input_get(i_state, e.key.keysym.sym, active_mode);
-		    if (input && input->func) {
-			input->func();
+		    input_fn = input_get(i_state, e.key.keysym.sym, active_mode);
+		    if (input_fn && input_fn->do_fn) {
+			input_fn->do_fn();
 		    }
 		    break;
 		}

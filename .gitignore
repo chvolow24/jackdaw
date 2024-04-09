@@ -16,3 +16,7 @@ todo.txt
 TAGS
 gui/complete.gif
 gui/gifframes
+*._c
+*._h
+layout
+jackdaw

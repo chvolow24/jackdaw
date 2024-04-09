@@ -132,6 +132,7 @@ typedef struct clip {
 
     Layout *layout;
     Textbox *tb_name;
+    SDL_Scancode t;
     
 } Clip;
 

@@ -29,9 +29,6 @@
 #define not_whitespace_char(c) (c != ' ' && c != '\n' && c != '\t')
 #define is_whitespace_char(c) (c == ' ' || c == '\n' || c == '\t')
 
-#define not_whitespace_char(c) (c != ' ' && c != '\n' && c != '\t')
-#define is_whitespace_char(c) (c == ' ' || c == '\n' || c == '\t')
-
 static void clear_whitespace(FILE *f) 
 {
     char c;

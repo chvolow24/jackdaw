@@ -44,7 +44,7 @@
 #define WINDOW_DEFAULT_H 800
 #define OPEN_SANS_PATH INSTALL_DIR "/assets/ttf/OpenSans-Regular.ttf"
 #define MAIN_LT_PATH INSTALL_DIR "/gui/jackdaw_main_layout.xml"
-
+#define DEFAULT_KEYBIND_CFG_PATH INSTALL_DIR "/assets/key_bindings/default.yaml"
 
 bool sys_byteorder_le = false;
 
@@ -85,6 +85,7 @@ static void init()
     get_native_byte_order();
     input_init_hash_table();
     input_init_mode_load_all();
+    input_load_keybinding_config(DEFAULT_KEYBIND_CFG_PATH);
 }
 
 static void quit()

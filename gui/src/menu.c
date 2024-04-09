@@ -102,7 +102,9 @@ Menu *menu_create(Layout *layout, Window *window)
     layout_add_complementary_child(layout, H);
     
     menu->window = window;
-    menu->font = ttf_get_font_at_size(window->std_font, MENU_TXT_SIZE);
+    /* menu->font = ttf_get_font_at_size(window->std_font, MENU_TXT_SIZE); */
+    menu->font = window->std_font;
+    /* menu->text_size = MENU_TXT_SIZE; */
     menu->title = NULL;
     menu->description = NULL;
     menu->header = NULL;
@@ -126,7 +128,7 @@ void menu_add_header(Menu *menu, const char *title, const char *description)
     header_lt->w.type = REL;
     header_lt->w.value.intval = menu->layout->w.value.intval - 2 * header_lt->x.value.intval;
     layout_reset(header_lt);
-    TextArea *header = txt_area_create(description, header_lt, menu->font, menu_std_clr_annot_txt, menu->window);
+    TextArea *header = txt_area_create(description, header_lt, menu->font, MENU_TXT_SIZE, menu_std_clr_annot_txt, menu->window);
     menu->header = header;
     int header_h = header->layout->h.value.intval;
 
@@ -211,7 +213,8 @@ MenuItem *menu_item_add(
     /* annot_lt->h.value.floatval = 1.0; */
 
     Window *win = sctn->column->menu->window;
-    TTF_Font *font = sctn->column->menu->font;
+    /* TTF_Font *font = sctn->column->menu->font; */
+    Font *font = sctn->column->menu->font;
 
 
 
@@ -220,6 +223,7 @@ MenuItem *menu_item_add(
 	label,
 	tb_lt,
 	font,
+	MENU_TXT_SIZE,
 	win
 	);
     item->tb->text->align = CENTER_LEFT;
@@ -236,6 +240,7 @@ MenuItem *menu_item_add(
 	    annotation,
 	    annot_lt,
 	    font,
+	    MENU_TXT_SIZE,
 	    win
 	    );
 	item->annot_tb->text->align = CENTER_RIGHT;

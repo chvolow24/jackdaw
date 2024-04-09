@@ -30,6 +30,7 @@ typedef enum textalign {
 
 
 typedef struct layout Layout;
+typedef struct font Font;
 
 /* Cannot be modified. Includes line wrapping. */ 
 typedef struct text_area {
@@ -42,7 +43,9 @@ typedef struct text_area {
     SDL_Texture *line_textures[TXTAREA_MAX_LINES];
     int line_widths[TXTAREA_MAX_LINES];
     int line_heights[TXTAREA_MAX_LINES];
-    TTF_Font *font;
+    Font *font;
+    uint8_t text_size;
+    /* TTF_Font *font; */
     SDL_Color color;
     Window *win;
 } TextArea;
@@ -63,7 +66,9 @@ typedef struct text {
     SDL_Rect *container;
     SDL_Rect text_rect;
     SDL_Color color;
-    TTF_Font *font;
+    /* TTF_Font *font; */
+    Font *font;
+    uint8_t text_size;
     TextAlign align;
     bool truncate;
 
@@ -82,7 +87,18 @@ typedef struct font {
 // Text *create_empty_text(SDL_Rect *container, TTF_Font *font, SDL_Color txt_clr, TextAlign align, bool truncate, SDL_Renderer *rend);
 
 /* Create a Text from an existing string. If the string is a pointer to a const char *, Text cannot be edited. */
-Text *txt_create_from_str(char *set_str, int max_len, SDL_Rect *container, TTF_Font *font, SDL_Color txt_clr, TextAlign align, bool truncate, Window *win);
+Text *txt_create_from_str(
+    char *set_str,
+    int max_len,
+    SDL_Rect *container,
+    /* TTF_Font *font, */
+    Font *font,
+    uint8_t text_size,
+    SDL_Color txt_clr,
+    TextAlign align,
+    bool truncate,
+    Window *win
+    );
 
 
 /* Initialize an existing text from an existing string. Use instead of create_text_from_str for pre-allocated Text */
@@ -91,7 +107,9 @@ void txt_init_from_str(
     char *set_str,
     int max_len,
     SDL_Rect *container,
-    TTF_Font *font,
+    Font *font,
+    uint8_t text_size,
+    /* TTF_Font *font, */
     SDL_Color txt_clr,
     TextAlign align,
     bool truncate,
@@ -127,6 +145,9 @@ TTF_Font *ttf_open_font(const char* path, int size, Window *win);
 /* Initialze an array of TTF fonts at standard font sizes */
 Font *ttf_init_font(const char *path, Window *win);
 
+/* Re-initialize a font (if the DPI scale factor has changed) */
+void ttf_reset_dpi_scale_factor(Font *font);
+
 /* Given an existing Font object, get the actual TTF_Font at a given size */
 TTF_Font *ttf_get_font_at_size(Font *font, int size);
 
@@ -137,7 +158,7 @@ void txt_set_color(Text *txt, SDL_Color *clr);
 void txt_set_pad(Text *txt, int h_pad, int v_pad);
 
 
-TextArea *txt_area_create(const char *value, Layout *layout, TTF_Font *font, SDL_Color color, Window *win);
+TextArea *txt_area_create(const char *value, Layout *layout, Font *font, uint8_t text_size, SDL_Color color, Window *win);
 
 void txt_area_draw(TextArea *txtarea);
 

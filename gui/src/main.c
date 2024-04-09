@@ -299,7 +299,9 @@ int main(int argc, char** argv)
                     layout_reset_from_window(main_lt, main_win);
                     layout_reset(main_lt);
 
-                }
+                } else if (e.window.event == SDL_WINDOWEVENT_MOVED) {
+		    window_check_monitor_dpi(main_win);
+		}
             } else if (e.type == SDL_MOUSEBUTTONDOWN) {
                 crnr = NONECRNR;
                 mousedown = true;

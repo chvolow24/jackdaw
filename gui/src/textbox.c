@@ -14,7 +14,9 @@ int textbox_default_radius = 0;
 Textbox *textbox_create_from_str(
     char *set_str,
     Layout *lt,
-    TTF_Font *font,
+    Font *font,
+    uint8_t text_size,
+    /* TTF_Font *font, */
     Window *win
     )
 {
@@ -29,6 +31,7 @@ Textbox *textbox_create_from_str(
 	TXTBX_DEFAULT_MAXLEN,
 	&(lt->rect),
 	font,
+	text_size,
 	textbox_default_txt_clr,
 	CENTER,
 	true,

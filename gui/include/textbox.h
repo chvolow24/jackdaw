@@ -28,7 +28,9 @@ void textbox_destroy(Textbox *);
 Textbox *textbox_create_from_str(
     char *set_str,
     Layout *lt,
-    TTF_Font *font,
+    /* TTF_Font *font, */
+    Font *font,
+    uint8_t text_size,
     Window *win
     );
 

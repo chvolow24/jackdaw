@@ -3,7 +3,7 @@
 
 extern Window *main_win;
 
-#define MENU_MOVE_BY 20
+#define MENU_MOVE_BY 40
 
 void user_global_expose_help()
 {
@@ -135,23 +135,19 @@ void user_menu_nav_choose_item()
 	fprintf(stderr, "No menu on main window\n");	
 	exit(1);
     }
-    if (m->sel_col == 255) {
-	m->sel_col = 0;
+    if (m->sel_col < m->num_columns) {
+	MenuColumn *col = m->columns[m->sel_col];
+	if (col->sel_sctn < col->num_sections) {
+	    MenuSection *sctn = col->sections[col->sel_sctn];
+	    if (sctn->sel_item < sctn->num_items) {
+		MenuItem *item = sctn->items[sctn->sel_item];
+		if (item->onclick != user_menu_nav_choose_item) {
+		    item->onclick(NULL, NULL);
+		    window_pop_menu(main_win);
+		}
+	    }
+	}
     }
-    MenuColumn *c = m->columns[m->sel_col];
-    if (c->sel_sctn == 255) {
-	c->sel_sctn = 0;
-    }
-    MenuSection *s = c->sections[c->sel_sctn];
-    if (s->sel_item == 255) {
-	s->sel_item = 0;
-    } else if (s->sel_item > 0) {
-	/* s->items[s->sel_item]->selected = false; */
-	s->sel_item--;
-	/* s->items[s->sel_item]->selected = true; */
-    }
-    
-    fprintf(stdout, "user_menu_nav_prev_item\n");
 }
 
 void user_menu_translate_up()

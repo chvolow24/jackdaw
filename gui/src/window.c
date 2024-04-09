@@ -29,6 +29,7 @@
 #include "color.h"
 #include "layout.h"
 #include "menu.h"
+#include "text.h"
 #include "window.h"
 
 #define DEFAULT_WINDOW_FLAGS SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI
@@ -87,6 +88,30 @@ Window *window_create(int w, int h, const char *name)
     SDL_SetRenderDrawBlendMode(window->rend, SDL_BLENDMODE_BLEND);
 
     return window;
+}
+
+
+void window_check_monitor_dpi(Window *win)
+{
+
+    win->dpi_scale_factor = 0;
+    int rw = 0, rh = 0, ww = 0, wh = 0;
+    SDL_GetWindowSize(win->win, &ww, &wh);
+    SDL_GetRendererOutputSize(win->rend, &rw, &rh);
+
+    win->dpi_scale_factor = (double) rw / ww;
+    
+    if (win->dpi_scale_factor == 0 || win->dpi_scale_factor != (double) rh / wh) {
+        fprintf(stderr, "Error setting scale factor: %s", SDL_GetError());
+        exit(1);
+    }
+
+    /* ttf_destroy_font(win->std_font); */
+    fprintf(stdout, "Ok, font destroyed\n");
+    /* window_assign_std_font(win, win->std_font->path); */
+    fprintf(stdout, "Ok, font assigned\n");
+    ttf_reset_dpi_scale_factor(win->std_font);
+
 }
 
 void window_assign_std_font(Window *win, const char *font_path)

@@ -47,7 +47,8 @@ typedef struct menu {
     MenuItem *selected;
     uint8_t sel_col;
     Layout *layout;
-    TTF_Font *font;
+    Font *font;
+    /* TTF_Font *font; */
     Window *window;
 } Menu;
 

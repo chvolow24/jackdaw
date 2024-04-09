@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "SDL_rect.h"
 #include "SDL_render.h"
+#include "SDL_video.h"
 #include "input.h"
 #include "draw.h"
 #include "layout.h"
@@ -151,7 +152,7 @@ void run_tests()
     layout_set_default_dims(textarea_lt);
     layout_reset(textarea_lt);
     const char *par = "Lorem.\nipsum.\ndolor.\nsit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum";
-    lorem_ipsum = txt_area_create(par, textarea_lt, ttf_get_font_at_size(main_win->std_font, 12), (SDL_Color) {0, 0, 0, 0}, main_win);
+    lorem_ipsum = txt_area_create(par, textarea_lt, main_win->std_font, 12, (SDL_Color) {0, 0, 0, 0}, main_win);
 
 					
     /* target = SDL_CreateTexture(main_win->rend, 0, SDL_TEXTUREACCESS_TARGET, 500 * main_win->dpi_scale_factor, 500 * main_win->dpi_scale_factor); */
@@ -187,14 +188,17 @@ void run_tests()
     tb = textbox_create_from_str(
 	hello_world,
 	child,
-	ttf_get_font_at_size(main_win->std_font, 16),
+	main_win->std_font,
+	16,
 	main_win
     );
 
     tb2 = textbox_create_from_str(
 	hell_world,
 	child2,
-	ttf_get_font_at_size(main_win->std_font, 16),
+	/* ttf_get_font_at_size(main_win->std_font, 16), */
+	main_win->std_font,
+	16,
 	main_win);
     tb2->corner_radius = 10;
 	
@@ -259,6 +263,9 @@ void run_tests()
 		if (e.window.event == SDL_WINDOWEVENT_RESIZED) {
 		    window_resize(main_win, e.window.data1, e.window.data2);
 
+		} else if (e.window.event == SDL_WINDOWEVENT_MOVED) {
+		    fprintf(stdout, "Window moved\n");
+		    window_check_monitor_dpi(main_win);
 		}
 		    /* window_auto_resize(main_win); */
 	    } else if (e.type == SDL_KEYDOWN) {

@@ -28,6 +28,10 @@
 #include "text.h"
 #include "window.h"
 
+#ifndef LT_DEV_MODE
+#define LT_DEV_MODE 1
+#endif
+
 #define TXT_H 40
 #define SNAP_TOLERANCE 7
 
@@ -781,7 +785,7 @@ Layout *layout_create()
 	exit(1);
     }
 	
-    TTF_Font *open_sans_12 = ttf_get_font_at_size(main_win->std_font, 12);
+    /* TTF_Font *open_sans_12 = ttf_get_font_at_size(main_win->std_font, 12); */
     Layout *lt = malloc(sizeof(Layout));
     lt->num_children = 0;
     lt->index = 0;
@@ -806,7 +810,7 @@ Layout *layout_create()
     lt->rect = (SDL_Rect) {0,0,0,0};
     lt->label_rect = (SDL_Rect) {0,0,0,0};
     if (LT_DEV_MODE) {
-	lt->namelabel = txt_create_from_str(lt->name, MAX_LT_NAMELEN, &(lt->label_rect), open_sans_12, color_global_white, CENTER_LEFT, false, main_win);
+	lt->namelabel = txt_create_from_str(lt->name, MAX_LT_NAMELEN, &(lt->label_rect), main_win->std_font, 12, color_global_white, CENTER_LEFT, false, main_win);
     } else {
 	lt->namelabel = NULL;
     }

@@ -29,6 +29,9 @@ typedef struct window {
 /* Create a new Window struct and initialize all members */
 Window *window_create(int w, int h, const char *name);
 
+/* When window is moved, run check to ensure that dpi scale factor is reset */
+void window_check_monitor_dpi(Window *win);
+
 /* Destroy a Window, its renderer and canvas, its std_font, and its main layout */
 void window_destroy(Window *win);
 

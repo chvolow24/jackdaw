@@ -69,24 +69,24 @@ void set_lt_params(Layout *lt)
         // fprintf(stderr, "Rect addrs: %p, %p, %p, %p, %p, %p, %p, %p, %p, %p, %p, %p, %p, %p", name_label_rect, name_val_rect, x_label_rect, y_label_rect, w_label_rect, h_label_rect, x_typeval_rect, y_typeval_rect, w_typeval_rect, h_typeval_rect, x_value_rect, y_value_rect, w_value_rect, h_value_rect);
         // exit(0);
         SDL_Color txt_color = {255, 255, 255, 255};
-	TTF_Font *open_sans_12 = ttf_get_font_at_size(main_win->std_font, 12);
-        lt_params->name_label = txt_create_from_str("Name: ", 7, name_label_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win);
-        lt_params->x_type_label = txt_create_from_str("X Type: ", 9, x_label_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win);
-        lt_params->y_type_label = txt_create_from_str("Y Type: ", 9, y_label_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win);
-        lt_params->w_type_label = txt_create_from_str("W Type: ", 9, w_label_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win);
-        lt_params->h_type_label = txt_create_from_str("H Type", 9, h_label_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win);
+	/* TTF_Font *open_sans_12 = ttf_get_font_at_size(main_win->std_font, 12); */
+        lt_params->name_label = txt_create_from_str("Name: ", 7, name_label_rect, main_win->std_font, 12, txt_color, CENTER_LEFT, false, main_win);
+        lt_params->x_type_label = txt_create_from_str("X Type: ", 9, x_label_rect, main_win->std_font, 12, txt_color, CENTER_LEFT, false, main_win);
+        lt_params->y_type_label = txt_create_from_str("Y Type: ", 9, y_label_rect, main_win->std_font, 12, txt_color, CENTER_LEFT, false, main_win);
+        lt_params->w_type_label = txt_create_from_str("W Type: ", 9, w_label_rect, main_win->std_font, 12, txt_color, CENTER_LEFT, false, main_win);
+        lt_params->h_type_label = txt_create_from_str("H Type", 9, h_label_rect, main_win->std_font, 12, txt_color, CENTER_LEFT, false, main_win);
         // fprintf(stderr, "Done a bunch text from string\n");
         
-        lt_params->name_value = txt_create_from_str(NULL, MAX_LT_NAMELEN - 1, name_val_rect, open_sans_12, txt_color, CENTER_LEFT, true, main_win);
-        lt_params->x_type_value = txt_create_from_str(NULL, 5, x_typeval_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win);
-        lt_params->y_type_value = txt_create_from_str(NULL, 5, y_typeval_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win);
-        lt_params->w_type_value = txt_create_from_str(NULL, 5, w_typeval_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win);
-        lt_params->h_type_value = txt_create_from_str(NULL, 5, h_typeval_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win);
+        lt_params->name_value = txt_create_from_str(NULL, MAX_LT_NAMELEN - 1, name_val_rect, main_win->std_font, 12, txt_color, CENTER_LEFT, true, main_win);
+        lt_params->x_type_value = txt_create_from_str(NULL, 5, x_typeval_rect, main_win->std_font, 12, txt_color, CENTER_LEFT, false, main_win);
+        lt_params->y_type_value = txt_create_from_str(NULL, 5, y_typeval_rect, main_win->std_font, 12, txt_color, CENTER_LEFT, false, main_win);
+        lt_params->w_type_value = txt_create_from_str(NULL, 5, w_typeval_rect, main_win->std_font, 12, txt_color, CENTER_LEFT, false, main_win);
+        lt_params->h_type_value = txt_create_from_str(NULL, 5, h_typeval_rect, main_win->std_font, 12, txt_color, CENTER_LEFT, false, main_win);
 
-        lt_params->x_value = txt_create_from_str(NULL, 10, x_value_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win);
-        lt_params->y_value = txt_create_from_str(NULL, 10, y_value_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win);
-        lt_params->w_value = txt_create_from_str(NULL, 10, w_value_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win);
-        lt_params->h_value = txt_create_from_str(NULL, 10, h_value_rect, open_sans_12, txt_color, CENTER_LEFT, false, main_win);
+        lt_params->x_value = txt_create_from_str(NULL, 10, x_value_rect, main_win->std_font, 12, txt_color, CENTER_LEFT, false, main_win);
+        lt_params->y_value = txt_create_from_str(NULL, 10, y_value_rect, main_win->std_font, 12, txt_color, CENTER_LEFT, false, main_win);
+        lt_params->w_value = txt_create_from_str(NULL, 10, w_value_rect, main_win->std_font, 12, txt_color, CENTER_LEFT, false, main_win);
+        lt_params->h_value = txt_create_from_str(NULL, 10, h_value_rect, main_win->std_font, 12, txt_color, CENTER_LEFT, false, main_win);
 
         lt_params->x_value_str = malloc(10);
         lt_params->y_value_str = malloc(10);

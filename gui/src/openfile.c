@@ -50,13 +50,13 @@ static void make_editable(Layout *lt)
 
 Layout *openfile_loop(Layout *lt) 
 {
-    TTF_Font *open_sans_12 = ttf_get_font_at_size(main_win->std_font, 12);
+    /* TTF_Font *open_sans_12 = ttf_get_font_at_size(main_win->std_font, 12); */
     static char filepath_buffer[255];
     if (!openfile) {
         openfile = malloc(sizeof(OpenFile));
         /* Layout *label_lt = layout_get_child_by_name_recursive(openfile_lt, "label"); */
-        openfile->label = txt_create_from_str("Open file at:", 14, &(layout_get_child_by_name_recursive(openfile_lt, "label")->rect), open_sans_12, color_global_white, CENTER_LEFT, true, main_win);
-        openfile->filepath = txt_create_from_str(filepath_buffer, 254, &(layout_get_child_by_name_recursive(openfile_lt, "filepath")->rect), open_sans_12, color_global_white, CENTER_LEFT, true, main_win);
+        openfile->label = txt_create_from_str("Open file at:", 14, &(layout_get_child_by_name_recursive(openfile_lt, "label")->rect), main_win->std_font, 12, color_global_white, CENTER_LEFT, true, main_win);
+        openfile->filepath = txt_create_from_str(filepath_buffer, 254, &(layout_get_child_by_name_recursive(openfile_lt, "filepath")->rect), main_win->std_font, 12, color_global_white, CENTER_LEFT, true, main_win);
     }
 
     txt_edit (openfile->filepath, layout_draw_main);

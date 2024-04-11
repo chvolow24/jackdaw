@@ -34,6 +34,9 @@
 #include "project.h"
 #include "window.h"
 
+
+#include "audio_device.h"
+
 #define JACKDAW_VERSION "0.2.0"
 
 #ifndef INSTALL_DIR
@@ -45,6 +48,9 @@
 #define OPEN_SANS_PATH INSTALL_DIR "/assets/ttf/OpenSans-Regular.ttf"
 #define MAIN_LT_PATH INSTALL_DIR "/gui/jackdaw_main_layout.xml"
 #define DEFAULT_KEYBIND_CFG_PATH INSTALL_DIR "/assets/key_bindings/default.yaml"
+
+#define DEFAULT_PROJ_AUDIO_SETTINGS 2, 48000, AUDIO_S16SYS, 512
+
 
 bool sys_byteorder_le = false;
 
@@ -130,7 +136,19 @@ int main(int argc, char **argv)
     window_set_layout(main_win, layout_create_from_window(main_win));
 
     layout_read_xml_to_lt(main_win->layout, MAIN_LT_PATH);
-    
+
+    /* Create project here */
+    proj = project_create("New Project", DEFAULT_PROJ_AUDIO_SETTINGS);
+
+    for (int i=0; i<proj->num_playback_devices; i++) {
+	fprintf(stdout, "Playback device %d: %s\n", i, proj->playback_devices[i]->name);
+    }
+
+    /* timeline_add_track(proj->timelines[0]); */
+    /* timeline_add_track(proj->timelines[0]); */
+    /* timeline_add_track(proj->timelines[0]); */
+
+
     loop_project_main();
     
     quit();

@@ -60,6 +60,7 @@
 #define MAX_CLIP_REFS 255
 #define MAX_CLIPBOARD_CLIPS 255
 #define MAX_PROJ_TIMELINES 255
+#define MAX_PROJ_AUDIO_DEVICES 255
 
 
 typedef struct project Project;
@@ -147,6 +148,8 @@ typedef struct timecode {
 
 /* The project timeline organizes included tracks and specifies how they should be displayed */
 typedef struct timeline {
+    char name[MAX_NAMELENGTH];
+    
     int32_t play_pos_sframes;
     int32_t in_mark_sframes;
     int32_t out_mark_sframes;
@@ -170,7 +173,6 @@ typedef struct timeline {
     int sample_frames_per_pixel;
     int display_v_offset;
     Textbox *tb_timecode;
-
 } Timeline;
 
 
@@ -183,11 +185,10 @@ typedef struct project {
     uint8_t active_tl_index;
     
     float play_speed;
-    
 
-    AudioDevice **record_devices;
+    AudioDevice *record_devices[MAX_PROJ_AUDIO_DEVICES];
     uint8_t num_record_devices;
-    AudioDevice **playback_devices;
+    AudioDevice *playback_devices[MAX_PROJ_AUDIO_DEVICES];
     uint8_t num_playback_devices;
 
     /* Audio settings */
@@ -209,5 +210,14 @@ typedef struct project {
     Textbox *tb_audio_out_name;
 } Project;
 
+Project *project_create(
+    char *name,
+    uint8_t channels,
+    uint32_t sample_rate,
+    SDL_AudioFormat fmt,
+    uint16_t chunk_size_sframes
+    );
+
+void timeline_add_track(Timeline *tl);
 
 #endif

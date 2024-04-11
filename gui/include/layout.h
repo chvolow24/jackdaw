@@ -167,7 +167,7 @@ LayoutIterator *layout_create_iter_from_template(Layout *template, IteratorType 
 Layout *layout_handle_scroll(Layout *main_lt, SDL_Point *mousep, float scroll_x, float scroll_y, bool dynamic);
 int layout_scroll_step(Layout *lt);
 
-void layout_add_iter(Layout *lt, IteratorType type, bool scrollable);
+Layout *layout_add_iter(Layout *lt, IteratorType type, bool scrollable);
 void layout_remove_iter(Layout *lt);
 
 void layout_set_wh_from_rect(Layout *lt);

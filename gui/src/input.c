@@ -316,8 +316,8 @@ UserFn *input_get(uint16_t i_state, SDL_Keycode keycode, InputMode mode)
 	return NULL;
     }
     while (1) {
-	fprintf(stdout, "Testing keycode %c against %c\n", keycode, node->kb->keycode);
-	fprintf(stdout, "mode %d, %d; i_state %d, %d\n", mode, node->kb->mode, i_state, node->kb->i_state);
+	/* fprintf(stdout, "Testing keycode %c against %c\n", keycode, node->kb->keycode); */
+	/* fprintf(stdout, "mode %d, %d; i_state %d, %d\n", mode, node->kb->mode, i_state, node->kb->i_state); */
 	if ((node->kb->mode == mode || node->kb->mode == GLOBAL) && node->kb->i_state == i_state && node->kb->keycode == keycode) {
 	    return node->kb->fn;
 	} else if (node->next) {
@@ -438,7 +438,7 @@ static char *input_get_keycmd_str(uint16_t i_state, SDL_Keycode keycode)
 
     char *ret = malloc(strlen(buf));
     strcpy(ret, buf);
-    fprintf(stdout, "\t->keycmd str %s (%s)\n", ret, buf);
+    /* fprintf(stdout, "\t->keycmd str %s (%s)\n", ret, buf); */
     return ret;
 }
 
@@ -492,7 +492,7 @@ void input_bind_fn(UserFn *fn, uint16_t i_state, SDL_Keycode keycode, InputMode 
     kb->keycode = keycode;
     kb->keycmd_str = input_get_keycmd_str(i_state, keycode);
     if (!fn->annotation) {
-	fprintf(stdout, "binding fn to %s\n", kb->keycmd_str);
+	/* fprintf(stdout, "binding fn to %s\n", kb->keycmd_str); */
 	fn->annotation = kb->keycmd_str;
     }
     kb->fn = fn;

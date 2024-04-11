@@ -1095,11 +1095,15 @@ static Layout *copy_layout_as_iteration(Layout *to_copy, Layout *parent)
 }
 
 
+void layout_write(FILE *f, Layout *lt, int indent);
 static void add_iteration(LayoutIterator *iter)
 {
     Layout *iteration = copy_layout_as_iteration(iter->template, NULL);/*iter->template->parent*/
 
+    /* layout_write(stdout, iter->template, 0); */
     iter->iterations[iter->num_iterations] = iteration;
+    /* layout_write(stdout, iteration, 0); */
+    /* exit(0); */
     iter->num_iterations++;
     iteration->type = ITERATION;
     // reset_iteration_rects(iter);
@@ -1115,7 +1119,7 @@ static void remove_iteration(LayoutIterator *iter)
     }
 }
 
-void layout_add_iter(Layout *lt, IteratorType type, bool scrollable)
+Layout *layout_add_iter(Layout *lt, IteratorType type, bool scrollable)
 {
     if (!(lt->iterator)) {
         layout_create_iter_from_template(lt, type, 1, scrollable);
@@ -1123,6 +1127,7 @@ void layout_add_iter(Layout *lt, IteratorType type, bool scrollable)
         add_iteration(lt->iterator);
     }
     layout_reset(lt);
+    return lt->iterator->iterations[lt->iterator->num_iterations - 1];
 }
 
 void layout_remove_iter(Layout *lt)

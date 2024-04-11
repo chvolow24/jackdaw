@@ -61,7 +61,6 @@
                             <w>SCALE 1.000000</w>
                             <h>REL 114</h>
                             <index>0</index>
-                            <iterator>VERTICAL 1</iterator>
                             <children>
                                 <Layout name="track_top_pad" type="NORMAL">
                                     <x>REL 0</x>

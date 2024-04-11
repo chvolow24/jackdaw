@@ -8,26 +8,9 @@
 extern Window *main_win;
 extern SDL_Color color_global_black;
 
-InputMode active_mode = GLOBAL;
+#define MAX_MODES 8
 
 Project *proj;
-
-
-void add_track()
-{
-    layout_add_iter(layout_get_child_by_name_recursive(main_win->layout, "track_container"), VERTICAL, true);
-}
-
-void change_mode()
-{
-    if (active_mode < NUM_INPUT_MODES - 1) {
-	active_mode++;
-    } else {
-	active_mode = 0;
-    }
-    fprintf(stdout, "Active mode: %s\n", input_mode_str(active_mode));
-}
-
 
 void loop_project_main()
 {
@@ -40,7 +23,9 @@ void loop_project_main()
     SDL_Event e;
     uint8_t fingersdown = 0;
     uint8_t fingerdown_timer = 0;
-    
+
+    window_push_mode(main_win, GLOBAL);
+    window_push_mode(main_win, PROJECT);
 
     while (!(i_state & I_STATE_QUIT)) {
 	while (SDL_PollEvent(&e)) {
@@ -75,7 +60,9 @@ void loop_project_main()
 		    break;
 		default:
 		    /* i_state = triage_keydown(i_state, e.key.keysym.scancode); */
-		    input_fn = input_get(i_state, e.key.keysym.sym, active_mode);
+		    for (int i=0; i<main_win->num_modes; i++) {
+			input_fn = input_get(i_state, e.key.keysym.sym, main_win->modes[i]);
+		    }
 		    if (input_fn && input_fn->do_fn) {
 			input_fn->do_fn();
 		    }
@@ -141,6 +128,7 @@ void loop_project_main()
 	layout_draw(main_win, main_win->layout);
 	/**********************/
 
+	window_draw_menus(main_win);
 
 	
 	window_end_draw(main_win);

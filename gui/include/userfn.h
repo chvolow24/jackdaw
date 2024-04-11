@@ -25,7 +25,7 @@ void user_tl_pause();
 void user_tl_rewind();
 void user_tl_set_mark_out();
 void user_tl_set_mark_in();
-
+void user_tl_add_track();
 
 
 #endif

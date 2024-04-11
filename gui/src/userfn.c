@@ -1,13 +1,21 @@
 #include <stdio.h>
+
+#include "input.h"
 #include "menu.h"
+#include "project.h"
 
 extern Window *main_win;
+extern Project *proj;
 
 #define MENU_MOVE_BY 40
 
 void user_global_expose_help()
 {
     fprintf(stdout, "user_global_expose_help\n");
+    Menu *new = input_create_master_menu();
+    window_add_menu(main_win, new);
+    window_push_mode(main_win, MENU_NAV);
+    
 }
 
 void user_global_quit()
@@ -144,6 +152,7 @@ void user_menu_nav_choose_item()
 		if (item->onclick != user_menu_nav_choose_item) {
 		    item->onclick(NULL, NULL);
 		    window_pop_menu(main_win);
+		    window_pop_mode(main_win);
 		}
 	    }
 	}
@@ -215,4 +224,17 @@ void user_tl_set_mark_in()
     fprintf(stdout, "user_tl_set_mark_in\n");
 }
 
+
+void user_tl_add_track()
+{
+    fprintf(stdout, "user_tl_add_track\n");
+    if (!proj) {
+	fprintf(stderr, "Error: user call to add track w/o global project\n");
+	exit(1);
+    }
+    Timeline *tl = proj->timelines[0]; // TODO: get active timeline;
+
+    timeline_add_track(tl);
+    
+}
 

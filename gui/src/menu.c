@@ -322,18 +322,17 @@ void menu_destroy(Menu *menu)
 	    MenuSection *sctn = column->sections[s];
 	    for (int i=0; i<sctn->num_items; i++) {
 		MenuItem *item = sctn->items[i];
-		fprintf(stdout, "\t->menu item destry\n");
 		/* TODO: get rid of global hovering. */
 		menu_item_destroy(item);
 	    }
 	    free(sctn);
-	    fprintf(stdout, "Freed section\n");
 	}
 	free(column);
-	fprintf(stdout, "Freed column\n");
+    }
+    if (menu->layout) {
+	layout_destroy(menu->layout);
     }
     free(menu);
-    fprintf(stdout, "Freed menu\n");
 }
 
 

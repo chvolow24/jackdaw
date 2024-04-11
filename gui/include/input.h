@@ -23,7 +23,7 @@
 #define I_STATE_C_X 0x80
 
 
-typedef enum input_mode {
+typedef enum input_mode : uint8_t {
     GLOBAL,
     MENU_NAV,
     PROJECT

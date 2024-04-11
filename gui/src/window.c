@@ -294,3 +294,20 @@ void window_draw_menus(Window *win)
 	menu_draw(win->menus[i]);
     }
 }
+
+
+void window_push_mode(Window *win, InputMode im)
+{
+
+    if (win->num_modes < MAX_MODES) {
+	win->modes[win->num_modes] = im;
+	win->num_modes++;
+    }
+}
+
+void window_pop_mode(Window *win)
+{
+    if (win->num_modes > 0) {
+	win->num_modes--;
+    }
+}

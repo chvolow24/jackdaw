@@ -261,6 +261,14 @@ static void mode_load_project()
     mode_subcat_add_fn(sc, fn);
 
 
+    sc= mode_add_subcat(mode, "Tracks");  
+    fn = create_user_fn(
+	"tl_track_add",
+	"Add Track",
+        user_tl_add_track
+	);
+    mode_subcat_add_fn(sc, fn);
+
 
     /*
   - k		: tl_pause
@@ -571,11 +579,11 @@ Menu *input_create_master_menu()
 	    fprintf(stderr, "Error: mode %s not initialized\n", input_mode_str(im));
 	    exit(1);
 	}
-	Layout *m_layout = create_menu_layout();
-	if (!m_layout) {
-	    fprintf(stderr, "Error: Unable to create menu layout\n");
-	    exit(1);
-	}
+	/* Layout *m_layout = create_menu_layout(); */
+	/* if (!m_layout) { */
+	/*     fprintf(stderr, "Error: Unable to create menu layout\n"); */
+	/*     exit(1); */
+	/* } */
 	MenuColumn *c = menu_column_add(m, mode->name);
 	for (int i=0; i<mode->num_subcats; i++) {
 	    ModeSubcat *sc = mode->subcats[i];

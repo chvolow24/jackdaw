@@ -6,8 +6,12 @@
 #include "SDL.h"
 #include "text.h"
 
+
+#define MAX_MODES 8
+
 typedef struct menu Menu;
 
+typedef enum input_mode : uint8_t InputMode;
 typedef struct window {
     SDL_Window *win;
     SDL_Renderer *rend;
@@ -24,6 +28,9 @@ typedef struct window {
 
     Menu *menus[MAX_WINDOW_MENUS];
     uint8_t num_menus;
+
+    InputMode modes[MAX_MODES];
+    uint8_t num_modes;
 } Window;
 
 /* Create a new Window struct and initialize all members */
@@ -65,6 +72,10 @@ void window_add_menu(Window *win, Menu *menu);
 
 Menu *window_top_menu(Window *win);
 void window_draw_menus(Window *win);
+
+void window_push_mode(Window *win, InputMode im);
+void window_pop_mode(Window *win);
+
 
 #endif
 

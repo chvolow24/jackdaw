@@ -157,3 +157,18 @@ void geom_fill_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r)
 }
 
 
+void geom_draw_rect_thick(SDL_Renderer *rend, SDL_Rect *rect, int r, double dpi_scale_factor)
+{
+    r *= dpi_scale_factor;
+    SDL_Rect temprect = *rect;
+    for (int i=0; i<r; i++) {
+
+	SDL_RenderDrawRect(rend, &temprect);
+	temprect.x += 1;
+	temprect.y += 1;
+	temprect.w -= 2;
+	temprect.h -= 2;
+    }
+    
+}
+

@@ -39,6 +39,8 @@
 
 #define JACKDAW_VERSION "0.2.0"
 
+#define LT_DEV_MODE 0
+
 #ifndef INSTALL_DIR
 #define INSTALL_DIR ""
 #endif

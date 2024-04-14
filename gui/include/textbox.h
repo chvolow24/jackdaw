@@ -44,4 +44,6 @@ void textbox_set_trunc(Textbox *tb, bool trunc);
 void textbox_set_text_color(Textbox *tb, SDL_Color *clr);
 void textbox_set_background_color(Textbox *tb, SDL_Color *clr);
 void textbox_set_border_color(Textbox *tb, SDL_Color *clr);
+
+void textbox_reset(Textbox *tb);
 #endif

@@ -27,5 +27,18 @@ void user_tl_set_mark_out();
 void user_tl_set_mark_in();
 void user_tl_add_track();
 
+void user_tl_track_select_1();
+void user_tl_track_select_2();
+void user_tl_track_select_3();
+void user_tl_track_select_4();
+void user_tl_track_select_5();
+void user_tl_track_select_6();
+void user_tl_track_select_7();
+void user_tl_track_select_8();
+void user_tl_track_select_9();
+void user_tl_track_activate_all();
+void user_tl_track_selector_up();
+void user_tl_track_selector_down();
+void user_tl_track_activate_selected();
 
 #endif

@@ -1,4 +1,5 @@
 #include "geometry.h"
+#include "text.h"
 #include "textbox.h"
 #include "layout.h"
 
@@ -149,3 +150,8 @@ void textbox_set_border_color(Textbox *tb, SDL_Color *clr)
     tb->border_clr = clr;
 }
 
+
+void textbox_reset(Textbox *tb)
+{
+    txt_reset_drawable(tb->text);
+}

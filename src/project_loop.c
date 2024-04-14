@@ -92,6 +92,7 @@ void loop_project_main()
 		    e.wheel.preciseX * LAYOUT_SCROLL_SCALAR,
 		    e.wheel.preciseY * LAYOUT_SCROLL_SCALAR * -1,
 		    fingersdown);
+		timeline_reset(proj->timelines[proj->active_tl_index]);
 		break;
 	    case SDL_FINGERDOWN:
 	        fingersdown = SDL_GetNumTouchFingers(-1);
@@ -117,6 +118,7 @@ void loop_project_main()
 		scrolling_lt->iterator->scroll_momentum = 0;
 		scrolling_lt = NULL;
 	    }
+	    timeline_reset(proj->timelines[proj->active_tl_index]);
 	}
 	
 	
@@ -125,17 +127,21 @@ void loop_project_main()
 	window_start_draw(main_win, &color_global_black);
 
 	/***** Debug only *****/
-	layout_draw(main_win, main_win->layout);
+//	layout_draw(main_win, main_win->layout);
 	/**********************/
 
-	window_draw_menus(main_win);
 
+	for (int i=0; i<proj->timelines[0]->num_tracks; i++) {
+	    track_draw(proj->timelines[0]->tracks[i]);
+	}
+	window_draw_menus(main_win);
+	
 	
 	window_end_draw(main_win);
 	/**********************************************/
 
 	
-	SDL_Delay(10);
+	SDL_Delay(1);
 
     }
 }

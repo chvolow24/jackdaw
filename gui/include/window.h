@@ -4,6 +4,7 @@
 #define MAX_WINDOW_MENUS 8
 
 #include "SDL.h"
+#include "input_mode.h"
 #include "text.h"
 
 
@@ -11,7 +12,8 @@
 
 typedef struct menu Menu;
 
-typedef enum input_mode : uint8_t InputMode;
+
+/* typedef enum input_mode : uint8_t InputMode; */
 typedef struct window {
     SDL_Window *win;
     SDL_Renderer *rend;

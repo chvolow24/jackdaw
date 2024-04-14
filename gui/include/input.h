@@ -5,6 +5,7 @@
 #include "SDL.h"
 
 #include "menu.h"
+#include "input_mode.h"
 
 #define INPUT_HASH_SIZE 1024
 
@@ -22,12 +23,6 @@
 #define I_STATE_MOUSE_M 0x40
 #define I_STATE_C_X 0x80
 
-
-typedef enum input_mode : uint8_t {
-    GLOBAL,
-    MENU_NAV,
-    PROJECT
-} InputMode;
 
 typedef struct user_fn {
     const char *fn_id;

@@ -79,6 +79,7 @@ bool read_bool_str(char *bstr)
 
 void layout_write(FILE *f, Layout *lt, int indent)
 {
+    fprintf(stdout, "Layout write (%s)\n", lt->name);
     if (lt->type == PRGRM_INTERNAL) {
         return;
     }
@@ -296,6 +297,7 @@ void layout_write_to_file(Layout *lt)
         fprintf(stderr, "Unable to write file at %s\n", filename);
         return;
     }
+    fprintf(stdout, "Arguments to lt write: %p, %p\n", f, lt);
     layout_write(f, lt, 0);
     fclose(f);
 }

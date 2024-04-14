@@ -40,8 +40,11 @@
 #include "screenrecord.h"
 #include "test.h"
 
+#define LT_DEV_MODE 1
 
-#define OPEN_SANS_PATH "../assets/ttf/OpenSans-Regular.ttf"
+#define OPEN_SANS_PATH INSTALL_DIR "/assets/ttf/OpenSans-Regular.ttf"
+#define PARAM_LT_PATH INSTALL_DIR "/gui/template_lts/param_lt.xml"
+#define OPENFILE_LT_PATH INSTALL_DIR "/gui/template_lts/openfile.xml"
 
 #define CLICK_EDGE_DIST_TOLERANCE 10
 #define MAX_LTS 255
@@ -57,7 +60,7 @@ bool show_layout_params = false;
 bool show_openfile = false;
 
 
-long long unsigned funcalls = 0;
+//long long unsigned funcalls = 0;
 
 void init_SDL()
 {
@@ -200,36 +203,36 @@ static void reset_clicked_lt(Layout *to)
     }
 }
 
-static void time_layout_reset(Layout *lt, int runs)
-{
-       /* TIMING */
+/* static void time_layout_reset(Layout *lt, int runs) */
+/* { */
+/*        /\* TIMING *\/ */
     
-    void layout_reset_OLD(Layout *lt);
-    clock_t start, end;
-    double cpu_time;
+/*     void layout_reset_OLD(Layout *lt); */
+/*     clock_t start, end; */
+/*     double cpu_time; */
 
-    funcalls = 0;
-    start = clock();
-    for (int i=0; i<runs; i++) {
-	layout_reset(main_lt);
-    }
-    end = clock();
-    cpu_time = (double) (end - start) / CLOCKS_PER_SEC;
+/*     funcalls = 0; */
+/*     start = clock(); */
+/*     for (int i=0; i<runs; i++) { */
+/* 	layout_reset(main_lt); */
+/*     } */
+/*     end = clock(); */
+/*     cpu_time = (double) (end - start) / CLOCKS_PER_SEC; */
 
-    fprintf(stdout, "NEW: %f, funcalls: %llu\n", cpu_time, funcalls);
+/*     fprintf(stdout, "NEW: %f, funcalls: %llu\n", cpu_time, funcalls); */
 
-    funcalls = 0;
-    start = clock();
-    for (int i=0; i<runs; i++) {
-	layout_reset_OLD(main_lt);
-    }
-    end = clock();
-    cpu_time = (double) (end - start) / CLOCKS_PER_SEC;
+/*     funcalls = 0; */
+/*     start = clock(); */
+/*     for (int i=0; i<runs; i++) { */
+/* 	layout_reset_OLD(main_lt); */
+/*     } */
+/*     end = clock(); */
+/*     cpu_time = (double) (end - start) / CLOCKS_PER_SEC; */
 
-    fprintf(stdout, "OLD: %f, funcalls: %llu\n", cpu_time, funcalls);
+/*     fprintf(stdout, "OLD: %f, funcalls: %llu\n", cpu_time, funcalls); */
 
-    exit(0);
-}
+/*     exit(0); */
+/* } */
 
 int main(int argc, char** argv) 
 {
@@ -442,7 +445,7 @@ int main(int argc, char** argv)
                             show_layout_params = false;
                         } else {
                             if (!param_lt) {
-                                param_lt = layout_read_from_xml("template_lts/param_lt.xml");
+                                param_lt = layout_read_from_xml(PARAM_LT_PATH);
                             }
                             layout_reparent(param_lt, main_lt);
                             show_layout_params = true;
@@ -460,7 +463,7 @@ int main(int argc, char** argv)
                         } else {
                             show_openfile = true;
                             if (!openfile_lt) {
-                                openfile_lt = layout_read_from_xml("template_lts/openfile.xml");
+                                openfile_lt = layout_read_from_xml(OPENFILE_LT_PATH);
                                 layout_reparent(openfile_lt, main_lt);
                             }
                             if (clicked_lt && layout_clicked) {

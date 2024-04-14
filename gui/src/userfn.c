@@ -52,6 +52,10 @@ void user_menu_nav_next_item()
 	s->items[s->sel_item]->selected = false;
 	s->sel_item++;
 	s->items[s->sel_item]->selected = true;
+    } else if (c->sel_sctn < c->num_sections - 1) {
+	c->sel_sctn++;
+	s = c->sections[c->sel_sctn];
+	s->sel_item = 0;
     }
     
     fprintf(stdout, "user_menu_nav_next_item\n");
@@ -78,6 +82,9 @@ void user_menu_nav_prev_item()
 	/* s->items[s->sel_item]->selected = false; */
 	s->sel_item--;
 	/* s->items[s->sel_item]->selected = true; */
+    } else if (c->sel_sctn > 0) {
+	c->sel_sctn--;
+	
     }
     
     fprintf(stdout, "user_menu_nav_prev_item\n");
@@ -234,7 +241,124 @@ void user_tl_add_track()
     }
     Timeline *tl = proj->timelines[0]; // TODO: get active timeline;
 
-    timeline_add_track(tl);
+    timeline_add_track(tl);   
+}
+
+static void track_select_n(int n)
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    if (tl->num_tracks <= n) {
+	return;
+    }
+    bool *active = &(tl->tracks[n]->active);
+    *active = !(*active);
+
+}
+
+void user_tl_track_select_1()
+{
+    track_select_n(0);
+
+}
+void user_tl_track_select_2()
+{
+    track_select_n(1);
+}
+
+void user_tl_track_select_3()
+{
+    track_select_n(2);
+}
+
+void user_tl_track_select_4()
+{
+    track_select_n(3);
+}
+
+void user_tl_track_select_5()
+{
+    track_select_n(4);
+}
+
+void user_tl_track_select_6()
+{
+    track_select_n(5);
+}
+
+
+void user_tl_track_select_7()
+{
+    track_select_n(6);
+}
+
+
+void user_tl_track_select_8()
+{
+    track_select_n(7);
+}
+
+void user_tl_track_select_9()
+{
+    track_select_n(8);
+}
+
+/* Returns true if and only if all tracks were already active */
+static bool activate_all_tracks(Timeline *tl)
+{
+    bool ret = true;
+    Track *track;
+    for (uint8_t i=0; i<tl->num_tracks; i++) {
+	track = tl->tracks[i];
+	if (!track->active) {
+	    track->active = true;
+	    ret = false;
+	}
+	
+    }
+    return ret;
+
+}
+
+static void deactivate_all_tracks(Timeline *tl)
+{
+    Track *track;
+    for (uint8_t i=0; i<tl->num_tracks; i++) {
+	tl->tracks[i]->active = false;
+    }	
+
+}
+
+void user_tl_track_activate_all()
+{
+
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    if (activate_all_tracks(tl)) {
+	deactivate_all_tracks(tl);
+    }
+}
+
+
+void user_tl_track_selector_up()
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    if (tl->track_selector > 0) {
+	tl->track_selector--;
+    }
     
 }
+
+void user_tl_track_selector_down()
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    if (tl->track_selector < tl->num_tracks -1) {
+	tl->track_selector++;
+    }
+}
+
+void user_tl_track_activate_selected()
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    track_select_n(tl->track_selector);
+}
+
 

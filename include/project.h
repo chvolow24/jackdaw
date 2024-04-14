@@ -99,6 +99,12 @@ typedef struct track {
     Textbox *tb_pan_label;
     Textbox *tb_mute_button;
     Textbox *tb_solo_button;
+
+    SDL_Rect *console_rect;
+    SDL_Rect *colorbar;
+    // SDL_Rect *vol_bar;
+    // SDL_Rect *pan_bar;
+    // SDL_Rect *in_bar;
 } Track;
 
 typedef struct clip_ref {
@@ -157,8 +163,10 @@ typedef struct timeline {
     Track *tracks[MAX_TRACKS];
     
     uint8_t num_tracks;
-    uint8_t active_track_indices[MAX_ACTIVE_TRACKS];
-    uint8_t num_active_tracks;
+    // uint8_t active_track_indices[MAX_ACTIVE_TRACKS];
+    // uint8_t num_active_tracks;
+
+    uint8_t track_selector;    
 
     Timecode timecode;
     Project *proj;
@@ -173,6 +181,7 @@ typedef struct timeline {
     int sample_frames_per_pixel;
     int display_v_offset;
     Textbox *tb_timecode;
+    
 } Timeline;
 
 
@@ -208,6 +217,8 @@ typedef struct project {
     Layout *layout;
     Textbox *tb_audio_out_label;
     Textbox *tb_audio_out_name;
+
+    SDL_Rect *audio_rect;
 } Project;
 
 Project *project_create(
@@ -218,6 +229,10 @@ Project *project_create(
     uint16_t chunk_size_sframes
     );
 
+
+
 void timeline_add_track(Timeline *tl);
+void track_draw(Track *track);
+void timeline_reset(Timeline *tl);
 
 #endif

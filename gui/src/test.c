@@ -16,6 +16,9 @@
 
 #define INPUT_HASH_SIZE 1024
 
+#define DEFAULT_KEYB_PATH INSTALL_DIR "/assets/key_bindings/default.yaml"
+#define OPEN_SANS_PATH INSTALL_DIR "/assets/ttf/OpenSans-Regular.ttf"
+
 Window *main_win;
 Menu *second_menu;
 Textbox *tb;
@@ -134,10 +137,10 @@ void run_tests()
     
     input_init_hash_table();
     input_init_mode_load_all();
-    input_load_keybinding_config("../assets/key_bindings/default.yaml");
+    input_load_keybinding_config(DEFAULT_KEYB_PATH);
     /* exit(0); */
     main_win = window_create(500, 500, "Test window");
-    window_assign_std_font(main_win, "../assets/ttf/OpenSans-Regular.ttf");
+    window_assign_std_font(main_win, OPEN_SANS_PATH);
 
     SDL_SetRenderTarget(main_win->rend, target);
 

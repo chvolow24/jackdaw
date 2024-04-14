@@ -1,8 +1,8 @@
 <Layout name="jackdaw_main_layout2" type="NORMAL">
     <x>ABS 0</x>
     <y>ABS 0</y>
-    <w>ABS 4960</w>
-    <h>ABS 1340</h>
+    <w>SCALE 1.0</w>
+    <h>SCALE 1.0</h>
     <index>0</index>
     <children>
         <Layout name="control_bar" type="NORMAL">
@@ -31,14 +31,14 @@
                         <Layout name="timecode" type="NORMAL">
                             <x>REL 4</x>
                             <y>REL 0</y>
-                            <w>REL 190</w>
+                            <w>REL 171</w>
                             <h>SCALE 1.000000</h>
                             <index>0</index>
                             <children>
                             </children>
                         </Layout>
                         <Layout name="ruler" type="NORMAL">
-                            <x>REL 194</x>
+                            <x>REL 175</x>
                             <y>REL 0</y>
                             <w>COMPLEMENT 600</w>
                             <h>SCALE 1.000000</h>
@@ -55,9 +55,9 @@
                     <h>COMPLEMENT 231</h>
                     <index>1</index>
                     <children>
-                        <Layout name="track_container" type="TEMPLATE">
+                        <Layout name="track_container" type="NORMAL">
                             <x>REL 0</x>
-                            <y>REL 0</y>
+                            <y>REL 7</y>
                             <w>SCALE 1.000000</w>
                             <h>REL 114</h>
                             <index>0</index>
@@ -97,12 +97,12 @@
                                                 <Layout name="track_console" type="NORMAL">
                                                     <x>REL 0</x>
                                                     <y>REL 0</y>
-                                                    <w>REL 190</w>
-                                                    <h>REL 110</h>
+                                                    <w>REL 161</w>
+                                                    <h>REL 98</h>
                                                     <index>0</index>
                                                     <children>
                                                         <Layout name="colorbar" type="NORMAL">
-                                                            <x>REL 180</x>
+                                                            <x>REL 161</x>
                                                             <y>REL 0</y>
                                                             <w>REL 10</w>
                                                             <h>REL 110</h>
@@ -113,33 +113,33 @@
                                                         <Layout name="name_row" type="NORMAL">
                                                             <x>REL 0</x>
                                                             <y>REL 0</y>
-                                                            <w>REL 180</w>
+                                                            <w>REL 161</w>
                                                             <h>SCALE 0.250000</h>
                                                             <index>1</index>
                                                             <children>
                                                                 <Layout name="track_name" type="NORMAL">
                                                                     <x>REL 0</x>
                                                                     <y>REL 0</y>
-                                                                    <w>REL 117</w>
+                                                                    <w>REL 113</w>
                                                                     <h>SCALE 1.000000</h>
                                                                     <index>0</index>
                                                                     <children>
                                                                     </children>
                                                                 </Layout>
-                                                                <Layout name="mute" type="NORMAL">
-                                                                    <x>REL 117</x>
-                                                                    <y>REL 0</y>
-                                                                    <w>REL 30</w>
-                                                                    <h>SCALE 1.000000</h>
+                                                                <Layout name="solo" type="NORMAL">
+                                                                    <x>REL 139</x>
+                                                                    <y>REL 3</y>
+                                                                    <w>REL 18</w>
+                                                                    <h>SCALE 0.775510</h>
                                                                     <index>1</index>
                                                                     <children>
                                                                     </children>
                                                                 </Layout>
-                                                                <Layout name="solo" type="NORMAL">
-                                                                    <x>REL 150</x>
-                                                                    <y>REL 0</y>
-                                                                    <w>REL 30</w>
-                                                                    <h>SCALE 1.000000</h>
+                                                                <Layout name="mute" type="NORMAL">
+                                                                    <x>REL 117</x>
+                                                                    <y>REL 3</y>
+                                                                    <w>REL 18</w>
+                                                                    <h>SCALE 0.775510</h>
                                                                     <index>2</index>
                                                                     <children>
                                                                     </children>
@@ -149,7 +149,7 @@
                                                         <Layout name="vol_row" type="NORMAL">
                                                             <x>REL 0</x>
                                                             <y>SCALE 0.250000</y>
-                                                            <w>REL 180</w>
+                                                            <w>REL 161</w>
                                                             <h>SCALE 0.250000</h>
                                                             <index>2</index>
                                                             <children>
@@ -165,8 +165,8 @@
                                                                 <Layout name="vol_slider" type="NORMAL">
                                                                     <x>REL 36</x>
                                                                     <y>REL 0</y>
-                                                                    <w>REL 144</w>
-                                                                    <h>REL 28</h>
+                                                                    <w>REL 125</w>
+                                                                    <h>REL 25</h>
                                                                     <index>1</index>
                                                                     <children>
                                                                     </children>
@@ -176,7 +176,7 @@
                                                         <Layout name="pan_row" type="NORMAL">
                                                             <x>REL 0</x>
                                                             <y>SCALE 0.500000</y>
-                                                            <w>REL 180</w>
+                                                            <w>REL 161</w>
                                                             <h>SCALE 0.250000</h>
                                                             <index>3</index>
                                                             <children>
@@ -192,8 +192,8 @@
                                                                 <Layout name="pan_slider" type="NORMAL">
                                                                     <x>REL 36</x>
                                                                     <y>REL 0</y>
-                                                                    <w>REL 144</w>
-                                                                    <h>REL 28</h>
+                                                                    <w>REL 125</w>
+                                                                    <h>REL 24</h>
                                                                     <index>1</index>
                                                                     <children>
                                                                     </children>
@@ -203,7 +203,7 @@
                                                         <Layout name="in_row" type="NORMAL">
                                                             <x>REL 0</x>
                                                             <y>SCALE 0.750000</y>
-                                                            <w>REL 180</w>
+                                                            <w>REL 161</w>
                                                             <h>SCALE 0.250000</h>
                                                             <index>4</index>
                                                             <children>
@@ -219,8 +219,8 @@
                                                                 <Layout name="in_value" type="NORMAL">
                                                                     <x>REL 36</x>
                                                                     <y>REL 0</y>
-                                                                    <w>REL 144</w>
-                                                                    <h>REL 28</h>
+                                                                    <w>REL 125</w>
+                                                                    <h>REL 24</h>
                                                                     <index>1</index>
                                                                     <children>
                                                                     </children>
@@ -233,6 +233,24 @@
                                         </Layout>
                                     </children>
                                 </Layout>
+                            </children>
+                        </Layout>
+                        <Layout name="audio_rect_pad" type="NORMAL">
+                            <x>REL 0</x>
+                            <y>REL 0</y>
+                            <w>REL 175</w>
+                            <h>SCALE 1.000000</h>
+                            <index>1</index>
+                            <children>
+                            </children>
+                        </Layout>
+                        <Layout name="audio_rect" type="NORMAL">
+                            <x>REL 175</x>
+                            <y>REL 0</y>
+                            <w>COMPLEMENT 0</w>
+                            <h>SCALE 1.0</h>
+                            <index>4</index>
+                            <children>
                             </children>
                         </Layout>
                     </children>

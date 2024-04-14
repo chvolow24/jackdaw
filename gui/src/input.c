@@ -269,6 +269,104 @@ static void mode_load_project()
 	);
     mode_subcat_add_fn(sc, fn);
 
+    fn = create_user_fn(
+	"tl_track_add",
+	"Add Track",
+        user_tl_add_track
+	);
+    mode_subcat_add_fn(sc, fn);
+
+        fn = create_user_fn(
+	"tl_track_select_1",
+	"Select track n",
+        user_tl_track_select_1
+	);
+    mode_subcat_add_fn(sc, fn);
+
+        fn = create_user_fn(
+	"tl_track_select_2",
+	"Select track n",
+        user_tl_track_select_2
+	);
+    mode_subcat_add_fn(sc, fn);
+
+        fn = create_user_fn(
+	"tl_track_select_3",
+	"Select track n",
+        user_tl_track_select_3
+	);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"tl_track_select_4",
+	"Select track n",
+        user_tl_track_select_4
+	);
+    mode_subcat_add_fn(sc, fn);
+
+        fn = create_user_fn(
+	"tl_track_select_5",
+	"Select track n",
+        user_tl_track_select_5
+	);
+    mode_subcat_add_fn(sc, fn);
+
+        fn = create_user_fn(
+	"tl_track_select_6",
+	"Select track n",
+        user_tl_track_select_6
+	);
+    mode_subcat_add_fn(sc, fn);
+
+        fn = create_user_fn(
+	"tl_track_select_7",
+	"Select track n",
+        user_tl_track_select_7
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_track_select_8",
+	"Select track n",
+        user_tl_track_select_8
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_track_select_9",
+	"Select track n",
+        user_tl_track_select_9
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_track_activate_all",
+	"Activate or deactivate all tracks",
+        user_tl_track_activate_all
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_track_selector_up",
+	"Move track selector up",
+        user_tl_track_selector_up
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_track_selector_down",
+	"Move track selector down",
+        user_tl_track_selector_down
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_track_activate_selected",
+	"Activate or deactivate all tracks",
+        user_tl_track_activate_selected
+	);
+    mode_subcat_add_fn(sc, fn);
+
+
 
     /*
   - k		: tl_pause

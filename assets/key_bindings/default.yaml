@@ -73,6 +73,12 @@
   - 7		: tl_track_select_7
   - 8		: tl_track_select_8
   - 9		: tl_track_select_9
+  - `		: tl_track_activate_all
+  - p		: tl_track_selector_up
+  - n		: tl_track_selector_down
+  - w		: tl_track_selector_up
+  - s		: tl_track_selector_down
+  - <ret>	: tl_track_activate_selected
   - r		: tl_start_stop_record
   - g		: tl_grab_clips_at_point
   - m		: tl_mute_unmute

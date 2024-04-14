@@ -10,7 +10,7 @@ extern SDL_Color color_global_black;
 
 #define MAX_MODES 8
 
-Project *proj;
+extern Project *proj;
 
 void loop_project_main()
 {

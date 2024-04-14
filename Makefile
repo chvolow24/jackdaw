@@ -8,7 +8,7 @@ GUI_BUILD_DIR := gui/build
 CFLAGS := -Wall -I$(INCLUDE_DIR) -I$(GUI_INCLUDE_DIR) -I/usr/include/SDL2 `sdl2-config --libs --cflags` -lSDL2 -lSDL2_ttf -lpthread -lm -DINSTALL_DIR=\"`pwd`\" #-DLT_DEV_MODE=0
 
 
-LAYOUT_PROGRAM_SRCS := gui/src/openfile.c gui/src/lt_params.c gui/src/draw.c gui/src/main.c
+LAYOUT_PROGRAM_SRCS := gui/src/openfile.c gui/src/lt_params.c gui/src/draw.c gui/src/main.c gui/src/test.c
 JACKDAW_ONLY_SRCS := src/main.c
 SRCS := $(wildcard $(SRC_DIR)/*.c)
 GUI_SRCS_ALL := $(wildcard $(GUI_SRC_DIR)/*.c)

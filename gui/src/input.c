@@ -43,8 +43,9 @@ InputMode input_mode_from_str(char *str)
 static Mode *mode_create(InputMode im)
 {
     Mode *mode = malloc(sizeof(Mode));
-    mode->name = input_mode_str(GLOBAL);
+    mode->name = input_mode_str(im);
     mode->num_subcats = 0;
+    fprintf(stdout, "Inserting mode %s at index %d\n", mode->name, im);
     modes[im] = mode;	
     return mode;
 }
@@ -63,6 +64,7 @@ static ModeSubcat *mode_add_subcat(Mode *mode, const char *name)
     mode->subcats[mode->num_subcats] = sc;
     mode->num_subcats++;
     sc->name = name;
+    sc->num_fns = 0;
     return sc;
 }
 
@@ -551,11 +553,13 @@ static char *input_get_keycmd_str(uint16_t i_state, SDL_Keycode keycode)
 /* Returns null if no function found by that id */
 UserFn *input_get_fn_by_id(char *id, InputMode im)
 {
+    fprintf(stdout, "GETTING mode value %d\n", im);
     Mode *mode = modes[im];
     for (uint8_t s=0; s<mode->num_subcats; s++) {
 	ModeSubcat *sc = mode->subcats[s];
 	for (uint8_t f=0; f<sc->num_fns; f++) {
 	    UserFn *fn = sc->fns[f];
+	    fprintf(stdout, "Comparig %s to %s\n", id, fn->fn_id);
 	    if (strcmp(id, fn->fn_id) == 0) {
 		return fn;
 	    }
@@ -784,7 +788,7 @@ void input_load_keybinding_config(const char *filepath)
 	    }
 	    buf[i] = '\0';
 	    ungetc(c, f);
-
+	    fprintf(stderr, "terminated buf at %d, str: \"%s\"\n", i, buf);
 	    fn = input_get_fn_by_id(buf, mode);
 
 	    if (fn) {

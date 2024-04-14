@@ -3,9 +3,9 @@
 
 typedef enum input_mode {
 /* typedef enum input_mode : uint8_t { */
-    GLOBAL,
-    MENU_NAV,
-    PROJECT
+    GLOBAL=0,
+    MENU_NAV=1,
+    PROJECT=2
 } InputMode;
 
 

@@ -25,6 +25,7 @@ Textbox *textbox_create_from_str(
     tb->layout = lt;
     tb->bckgrnd_clr = &textbox_default_bckgrnd_clr;
     tb->border_clr = &textbox_default_border_clr;
+    tb->border_thickness = 0;
     tb->corner_radius = textbox_default_radius * win->dpi_scale_factor;
     tb->window = win;
     tb->text = txt_create_from_str(

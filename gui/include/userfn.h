@@ -19,6 +19,8 @@ void user_menu_translate_up();
 void user_menu_translate_down();
 void user_menu_translate_left();
 void user_menu_translate_right();
+void user_menu_dismiss();
+
 
 void user_tl_play();
 void user_tl_pause();

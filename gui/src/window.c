@@ -85,6 +85,7 @@ Window *window_create(int w, int h, const char *name)
     window->std_font = NULL;
     window->layout = NULL;
     window->num_menus = 0;
+    window->num_modes = 0;
     SDL_SetRenderDrawBlendMode(window->rend, SDL_BLENDMODE_BLEND);
 
     return window;

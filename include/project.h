@@ -169,6 +169,8 @@ typedef struct timeline {
     uint8_t track_selector;    
 
     Timecode timecode;
+    Textbox *timecode_tb;
+    
     Project *proj;
 
     Clip *clip_clipboard[MAX_CLIPBOARD_CLIPS];

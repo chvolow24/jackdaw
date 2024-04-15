@@ -167,6 +167,10 @@ void timeline_add_track(Timeline *tl)
 }
 
 
+void clip_reset(Clip *clip)
+{
+    fprintf(stdout, "Clip reset\n");
+}
 
 void track_reset(Track *track)
 {

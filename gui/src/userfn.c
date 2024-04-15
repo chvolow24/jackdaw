@@ -21,6 +21,7 @@ void user_global_expose_help()
 void user_global_quit()
 {
     fprintf(stdout, "user_global_quit\n");
+    exit(0); //TODO: add the i_state to window (or proj?) to quit naturally.
 }
 
 void user_global_undo()
@@ -158,8 +159,7 @@ void user_menu_nav_choose_item()
 		MenuItem *item = sctn->items[sctn->sel_item];
 		if (item->onclick != user_menu_nav_choose_item) {
 		    item->onclick(NULL, NULL);
-		    window_pop_menu(main_win);
-		    window_pop_mode(main_win);
+		    /* window_pop_menu(main_win); */
 		}
 	    }
 	}
@@ -205,6 +205,12 @@ void user_menu_translate_right()
 	exit(1);
     }
     menu_translate(m, MENU_MOVE_BY, 0);
+}
+
+void user_menu_dismiss()
+{
+    window_pop_menu(main_win);
+    window_pop_mode(main_win);
 }
 
 void user_tl_play()
@@ -360,5 +366,6 @@ void user_tl_track_activate_selected()
     Timeline *tl = proj->timelines[proj->active_tl_index];
     track_select_n(tl->track_selector);
 }
+
 
 

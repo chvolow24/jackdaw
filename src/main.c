@@ -57,7 +57,7 @@
 bool sys_byteorder_le = false;
 
 Window *main_win;
-Project *proj;
+extern Project *proj;
 
 static void get_native_byte_order()
 {

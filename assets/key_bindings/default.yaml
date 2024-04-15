@@ -51,6 +51,7 @@
   - a		: menu_translate_left
   - s		: menu_translate_down
   - d		: menu_translate_right
+  - h		: menu_dismiss
 - project:
   - l		: tl_play
   - k		: tl_pause

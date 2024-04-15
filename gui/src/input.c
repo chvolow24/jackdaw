@@ -220,6 +220,13 @@ static void mode_load_menu_nav()
 	);
     mode_subcat_add_fn(mc, fn);
 
+    fn = create_user_fn(
+	"menu_dismiss",
+	"Dismiss menu",
+	user_menu_dismiss
+	);
+    mode_subcat_add_fn(mc, fn);
+
 }
 
 static void mode_load_project()
@@ -280,62 +287,62 @@ static void mode_load_project()
 
         fn = create_user_fn(
 	"tl_track_select_1",
-	"Select track n",
+	"Select track 1",
         user_tl_track_select_1
 	);
     mode_subcat_add_fn(sc, fn);
 
         fn = create_user_fn(
 	"tl_track_select_2",
-	"Select track n",
+	"Select track 2",
         user_tl_track_select_2
 	);
     mode_subcat_add_fn(sc, fn);
 
         fn = create_user_fn(
 	"tl_track_select_3",
-	"Select track n",
+	"Select track 3",
         user_tl_track_select_3
 	);
     mode_subcat_add_fn(sc, fn);
     fn = create_user_fn(
 	"tl_track_select_4",
-	"Select track n",
+	"Select track 4",
         user_tl_track_select_4
 	);
     mode_subcat_add_fn(sc, fn);
 
         fn = create_user_fn(
 	"tl_track_select_5",
-	"Select track n",
+	"Select track 5",
         user_tl_track_select_5
 	);
     mode_subcat_add_fn(sc, fn);
 
         fn = create_user_fn(
 	"tl_track_select_6",
-	"Select track n",
+	"Select track 6",
         user_tl_track_select_6
 	);
     mode_subcat_add_fn(sc, fn);
 
         fn = create_user_fn(
 	"tl_track_select_7",
-	"Select track n",
+	"Select track 7",
         user_tl_track_select_7
 	);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"tl_track_select_8",
-	"Select track n",
+	"Select track 8",
         user_tl_track_select_8
 	);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"tl_track_select_9",
-	"Select track n",
+	"Select track 9",
         user_tl_track_select_9
 	);
     mode_subcat_add_fn(sc, fn);
@@ -363,7 +370,7 @@ static void mode_load_project()
 
     fn = create_user_fn(
 	"tl_track_activate_selected",
-	"Activate or deactivate all tracks",
+	"Activate selected track",
         user_tl_track_activate_selected
 	);
     mode_subcat_add_fn(sc, fn);
@@ -553,13 +560,11 @@ static char *input_get_keycmd_str(uint16_t i_state, SDL_Keycode keycode)
 /* Returns null if no function found by that id */
 UserFn *input_get_fn_by_id(char *id, InputMode im)
 {
-    fprintf(stdout, "GETTING mode value %d\n", im);
     Mode *mode = modes[im];
     for (uint8_t s=0; s<mode->num_subcats; s++) {
 	ModeSubcat *sc = mode->subcats[s];
 	for (uint8_t f=0; f<sc->num_fns; f++) {
 	    UserFn *fn = sc->fns[f];
-	    fprintf(stdout, "Comparig %s to %s\n", id, fn->fn_id);
 	    if (strcmp(id, fn->fn_id) == 0) {
 		return fn;
 	    }
@@ -800,4 +805,3 @@ void input_load_keybinding_config(const char *filepath)
 
     }
 }
-

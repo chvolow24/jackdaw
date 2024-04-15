@@ -10,7 +10,7 @@ extern SDL_Color color_global_black;
 
 #define MAX_MODES 8
 
-extern Project *proj;
+Project *proj;
 
 void loop_project_main()
 {
@@ -24,9 +24,8 @@ void loop_project_main()
     uint8_t fingersdown = 0;
     uint8_t fingerdown_timer = 0;
 
-    window_push_mode(main_win, GLOBAL);
     window_push_mode(main_win, PROJECT);
-
+   
     while (!(i_state & I_STATE_QUIT)) {
 	while (SDL_PollEvent(&e)) {
 	    switch (e.type) {
@@ -60,8 +59,14 @@ void loop_project_main()
 		    break;
 		default:
 		    /* i_state = triage_keydown(i_state, e.key.keysym.scancode); */
-		    for (int i=0; i<main_win->num_modes; i++) {
-			input_fn = input_get(i_state, e.key.keysym.sym, main_win->modes[i]);
+		    input_fn  = input_get(i_state, e.key.keysym.sym, GLOBAL);
+		    if (!input_fn) {
+			for (int i=main_win->num_modes - 1; i>=0; i--) {
+			    input_fn = input_get(i_state, e.key.keysym.sym, main_win->modes[i]);
+			    if (input_fn) {
+				break;
+			    }
+			}
 		    }
 		    if (input_fn && input_fn->do_fn) {
 			input_fn->do_fn();

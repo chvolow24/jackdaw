@@ -237,6 +237,7 @@ static Layout *read_layout(FILE *f, long endrange)
     Tag *lt_tag = xml_store_next_tag(f, -1);
     if (strcmp(lt_tag->tagname, "Layout") != 0) {
         fprintf(stderr, "Error reading xml file: root tag is not a 'Layout' tag.");
+	xml_destroy_tag(lt_tag);
         return NULL;
     }
 

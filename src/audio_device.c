@@ -124,8 +124,8 @@ int device_open(Project *proj, AudioDevice *device)
     }
 
     if (device->iscapture) {
-	fprintf(stdout, "Dev %s\n:ch %d, freq %d, format %d (== %d)\n", device->name, obtained.channels, obtained.freq, obtained.format, AUDIO_S16LSB);
-	exit(1);
+	/* fprintf(stdout, "Dev %s\n:ch %d, freq %d, format %d (== %d)\n", device->name, obtained.channels, obtained.freq, obtained.format, AUDIO_S16LSB); */
+	/* exit(1); */
 	device->rec_buf_len_samples = proj->sample_rate * DEVICE_BUFLEN_SECONDS * device->spec.channels;
 	uint32_t device_buf_len_bytes = device->rec_buf_len_samples * sizeof(int16_t);
 	device->rec_buffer = malloc(device_buf_len_bytes);

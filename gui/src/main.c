@@ -38,11 +38,14 @@
 #include "parse_xml.h"
 #include "layout_xml.h"
 #include "screenrecord.h"
-#include "test.h"
+#include "text.h"
 
 #define LT_DEV_MODE 1
 
-#define OPEN_SANS_PATH INSTALL_DIR "/assets/ttf/OpenSans-Regular.ttf"
+#ifndef INSTALL_DIR
+#define INSTALL_DIR "."
+#endif
+
 #define PARAM_LT_PATH INSTALL_DIR "/gui/template_lts/param_lt.xml"
 #define OPENFILE_LT_PATH INSTALL_DIR "/gui/template_lts/openfile.xml"
 
@@ -251,7 +254,8 @@ int main(int argc, char** argv)
     
 
     main_win = window_create(1200, 900, "Layout editor");
-    window_assign_std_font(main_win, OPEN_SANS_PATH);
+    window_assign_font(main_win, OPEN_SANS_PATH, REG);
+    window_assign_font(main_win, OPEN_SANS_BOLD_PATH, BOLD);
 
     //  open_sans = open_font("../assets/ttf/OpenSans-Regular.ttf", 12, main_win);
 

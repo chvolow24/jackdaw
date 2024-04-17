@@ -174,7 +174,7 @@ void timeline_add_track(Timeline *tl)
     track->tb_name = textbox_create_from_str(
 	track->name,
 	name,
-	main_win->std_font,
+	main_win->bold_font,
 	16,
 	main_win);
 
@@ -188,14 +188,14 @@ void timeline_add_track(Timeline *tl)
     track->tb_mute_button = textbox_create_from_str(
 	"M",
 	mute,
-	main_win->std_font,
+	main_win->bold_font,
 	16,
 	main_win);
 
     track->tb_solo_button = textbox_create_from_str(
 	"S",
 	solo,
-	main_win->std_font,
+	main_win->bold_font,
 	16,
 	main_win);
 

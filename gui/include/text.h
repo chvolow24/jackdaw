@@ -7,6 +7,10 @@
 #include "SDL_ttf.h"
 /* #include "window.h" */
 
+#define OPEN_SANS_PATH INSTALL_DIR "/assets/ttf/OpenSans-Regular.ttf"
+#define OPEN_SANS_BOLD_PATH INSTALL_DIR "/assets/ttf/OpenSans-Bold.ttf"
+
+
 #define CURSOR_WIDTH 4
 #define CURSOR_COUNTDOWN_MAX 100
 #define TEXT_BUFLEN 255
@@ -27,6 +31,11 @@ typedef enum textalign {
     CENTER_LEFT,
     CENTER_RIGHT
 } TextAlign;
+
+typedef enum font_type {
+    REG,
+    BOLD
+} FontType;
 
 
 typedef struct layout Layout;

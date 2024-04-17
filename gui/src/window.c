@@ -83,6 +83,7 @@ Window *window_create(int w, int h, const char *name)
     }
     
     window->std_font = NULL;
+    window->bold_font = NULL;
     window->layout = NULL;
     window->num_menus = 0;
     window->num_modes = 0;
@@ -115,11 +116,19 @@ void window_check_monitor_dpi(Window *win)
 
 }
 
-void window_assign_std_font(Window *win, const char *font_path)
+void window_assign_font(Window *win, const char *font_path, FontType type)
 {
-    win->std_font = ttf_init_font(font_path, win);
-    if (!win->std_font) {
-	fprintf(stderr, "Error: Unable to initialize font at %s.\n", font_path);
+    switch (type) {
+    case REG:
+	win->std_font = ttf_init_font(font_path, win);
+	if (!win->std_font) {
+	    fprintf(stderr, "Error: Unable to initialize font at %s.\n", font_path);
+	}
+    case BOLD:
+	win->bold_font = ttf_init_font(font_path, win);
+	if (!win->bold_font) {
+	    fprintf(stderr, "Error: Unable to initialize font at %s.\n", font_path);
+	}
     }
 }
 

@@ -13,6 +13,7 @@
 typedef struct menu Menu;
 
 
+
 /* typedef enum input_mode : uint8_t InputMode; */
 typedef struct window {
     SDL_Window *win;
@@ -26,6 +27,7 @@ typedef struct window {
     double zoom_scale_factor;
     SDL_Rect canvas_src;
     Font *std_font;
+    Font *bold_font;
     Layout *layout;
 
     Menu *menus[MAX_WINDOW_MENUS];
@@ -45,7 +47,8 @@ void window_check_monitor_dpi(Window *win);
 void window_destroy(Window *win);
 
 /* Create a Font object, open TTF Fonts, and assign to window */
-void window_assign_std_font(Window *win, const char *font_path);
+void window_assign_font(Window *win, const char *font_path, FontType type);
+
 
 /* Reset the values of the w and h members of a Window struct based on current window dimensions */
 void window_auto_resize(Window *window);

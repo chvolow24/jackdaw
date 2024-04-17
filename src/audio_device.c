@@ -35,7 +35,10 @@
 #include "audio_device.h"
 #include "project.h"
 
+
 #define DEVICE_BUFLEN_SECONDS 60 /* TODO: reduce, and write to clip during recording */
+
+extern Project *proj;
 
 int query_audio_devices(Project *proj, int iscapture)
 {
@@ -91,11 +94,11 @@ int query_audio_devices(Project *proj, int iscapture)
     }
     return num_devices;
 }
+void transport_playback_callback(void *user_data, uint8_t *stream, int len);
+void transport_record_callback(void *user_data, uint8_t *stream, int len);
 
-
-void play_callback(void *user_data, uint8_t *buf, int buflen) {}
-void record_callback(void *user_data, uint8_t *buf, int buflen) {}
-int audio_device_open(Project *proj, AudioDevice *device)
+/* Returns 0 if device opened successfully, 1 on error */
+int device_open(Project *proj, AudioDevice *device)
 {
     SDL_AudioSpec obtained;
     SDL_zero(obtained);
@@ -107,7 +110,7 @@ int audio_device_open(Project *proj, AudioDevice *device)
     device->spec.freq = proj->sample_rate;
 
     device->spec.channels = proj->channels;
-    device->spec.callback = device->iscapture ? record_callback : play_callback;
+    device->spec.callback = device->iscapture ? transport_record_callback : transport_playback_callback;
     device->spec.userdata = device;
 
     if ((device->id = SDL_OpenAudioDevice(device->name, device->iscapture, &(device->spec), &(obtained), 0)) > 0) {
@@ -117,9 +120,12 @@ int audio_device_open(Project *proj, AudioDevice *device)
     } else {
         device->open = false;
         fprintf(stderr, "Error opening audio device %s : %s\n", device->name, SDL_GetError());
-        return -1;
+        return 1;
     }
+
     if (device->iscapture) {
+	fprintf(stdout, "Dev %s\n:ch %d, freq %d, format %d (== %d)\n", device->name, obtained.channels, obtained.freq, obtained.format, AUDIO_S16LSB);
+	exit(1);
 	device->rec_buf_len_samples = proj->sample_rate * DEVICE_BUFLEN_SECONDS * device->spec.channels;
 	uint32_t device_buf_len_bytes = device->rec_buf_len_samples * sizeof(int16_t);
 	device->rec_buffer = malloc(device_buf_len_bytes);
@@ -129,4 +135,40 @@ int audio_device_open(Project *proj, AudioDevice *device)
 	}
     }
     return 0;
+}
+
+static void device_destroy(AudioDevice *device)
+{
+    if (device->rec_buffer) {
+        free(device->rec_buffer);
+        free(device);
+    }
+}
+
+
+static void device_close(AudioDevice *device)
+{
+    SDL_CloseAudioDevice(device->id);
+}
+
+void device_start_playback(AudioDevice *dev)
+{
+    SDL_PauseAudioDevice(dev->id, 0);
+}
+
+void device_stop_playback(AudioDevice *dev)
+{
+    SDL_PauseAudioDevice(dev->id, 1);
+}
+
+void device_stop_recording(AudioDevice *dev)
+{
+    SDL_PauseAudioDevice(dev->id, 1);
+    device_close(dev);
+}
+
+void device_start_recording(AudioDevice *dev)
+{
+    device_open(proj, dev);
+    SDL_PauseAudioDevice(dev->id, 0);
 }

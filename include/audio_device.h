@@ -28,7 +28,8 @@
 /*****************************************************************************************************************
     audio_device.h
 
-    * 
+    * Query available audio devices
+    * Open, pause/unpause, and otherwise
  *****************************************************************************************************************/
 
 
@@ -40,6 +41,7 @@
 /* #include "project.h" */
 
 typedef struct project Project;
+typedef struct clip Clip;
 
 /* Struct to contain information related to an audio device, including the SDL_AudioDeviceID. */
 typedef struct audio_device{
@@ -53,9 +55,20 @@ typedef struct audio_device{
     uint32_t rec_buf_len_samples;
     int32_t write_buffpos_samples;
     bool active;
+
+    Clip *current_clip; /* The clip currently being recorded, if applicable */
 } AudioDevice;
 
 int query_audio_devices(Project *proj, int iscapture);
-int audio_device_open(Project *proj, AudioDevice *device);
+int device_open(Project *proj, AudioDevice *device);
+
+
+void device_start_playback(AudioDevice *dev);
+void device_stop_playback(AudioDevice *dev);
+
+/* Pause the device, and then close it. Record devices remain closed. */
+void device_stop_recording(AudioDevice *dev);
+
+void device_start_recording(AudioDevice *dev);
 
 #endif

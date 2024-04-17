@@ -84,3 +84,4 @@
   - g		: tl_grab_clips_at_point
   - m		: tl_mute_unmute
   - s		: tl_solo_unsolo
+  - r		: tl_record

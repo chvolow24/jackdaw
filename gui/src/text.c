@@ -163,8 +163,6 @@ void txt_reset_display_value(Text *txt)
     TTF_Font *font = ttf_get_font_at_size(txt->font, txt->text_size);
     TTF_SizeUTF8(font, txt->value_handle, &txtw, &txth);
 
-    /* fprintf(stdout, "Checked size of text: %s\n", txt->value_handle); */
-    /* fprintf(stdout, "Container w: %d\n", txt->container->w); */
     if (txt->truncate && txtw > txt->container->w) {
         int approx_allowable_chars = (int) ((float) txt->len * txt->container->w / txtw);
         for (int i=0; i<approx_allowable_chars - 3; i++) {
@@ -180,8 +178,6 @@ void txt_reset_display_value(Text *txt)
         strcpy(txt->display_value, txt->value_handle);
     }
     txt_reset_drawable(txt);
-
-
 }
 void txt_set_value_handle(Text *txt, char *set_str)
 {

@@ -1,8 +1,10 @@
 #include <stdio.h>
 
+#include "audio_device.h"
 #include "input.h"
 #include "menu.h"
 #include "project.h"
+#include "transport.h"
 
 extern Window *main_win;
 extern Project *proj;
@@ -215,16 +217,30 @@ void user_menu_dismiss()
 
 void user_tl_play()
 {
+    if (proj->play_speed <= 0.0f) {
+	proj->play_speed = 1.0f;
+	transport_start_playback();
+    } else {
+	proj->play_speed *= 2.0f;
+    }
     fprintf(stdout, "user_tl_play\n");
 }
 
 void user_tl_pause()
 {
+    proj->play_speed = 0;
+    transport_stop_playback();
     fprintf(stdout, "user_tl_pause\n");
 }
 
 void user_tl_rewind()
 {
+    if (proj->play_speed >= 0.0f) {
+	proj->play_speed = -1.0f;
+	transport_start_playback();
+    } else {
+	proj->play_speed *= 2.0f;
+    }
     fprintf(stdout, "user_tl_rewind\n");
 }
 
@@ -256,8 +272,12 @@ static void track_select_n(int n)
     if (tl->num_tracks <= n) {
 	return;
     }
-    bool *active = &(tl->tracks[n]->active);
+    Track *track = tl->tracks[n];
+    bool *active = &(track->active);
     *active = !(*active);
+    /* track->input->active = *active; */
+    /* fprintf(stdout, "SETTING %s to %d\n", track->input->name, track->input->active); */
+
 
 }
 
@@ -327,7 +347,6 @@ static bool activate_all_tracks(Timeline *tl)
 
 static void deactivate_all_tracks(Timeline *tl)
 {
-    Track *track;
     for (uint8_t i=0; i<tl->num_tracks; i++) {
 	tl->tracks[i]->active = false;
     }	
@@ -367,5 +386,17 @@ void user_tl_track_activate_selected()
     track_select_n(tl->track_selector);
 }
 
+
+void user_tl_record()
+{
+    /* Timeline *tl = pro
+       j->timelines[proj->active_tl_index]; */
+    fprintf(stdout, "user_tl_record\n");
+    if (proj->recording) {
+	transport_stop_recording();
+    } else {
+	transport_start_recording();
+    }
+}
 
 

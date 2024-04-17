@@ -45,5 +45,8 @@ void textbox_set_text_color(Textbox *tb, SDL_Color *clr);
 void textbox_set_background_color(Textbox *tb, SDL_Color *clr);
 void textbox_set_border_color(Textbox *tb, SDL_Color *clr);
 
+/* Reset drawable only. For full reset, use textbox_reset_full */
 void textbox_reset(Textbox *tb);
+/* Include resetting of display value */
+void textbox_reset_full(Textbox *tb);
 #endif

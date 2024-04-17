@@ -57,9 +57,9 @@
                     <children>
                         <Layout name="track_container" type="NORMAL">
                             <x>REL 0</x>
-                            <y>REL 7</y>
+                            <y>REL 8</y>
                             <w>SCALE 1.000000</w>
-                            <h>REL 114</h>
+                            <h>REL 102</h>
                             <index>0</index>
                             <children>
                                 <Layout name="track_top_pad" type="NORMAL">
@@ -105,7 +105,7 @@
                                                             <x>REL 161</x>
                                                             <y>REL 0</y>
                                                             <w>REL 10</w>
-                                                            <h>REL 110</h>
+                                                            <h>REL 98</h>
                                                             <index>0</index>
                                                             <children>
                                                             </children>
@@ -248,8 +248,8 @@
                             <x>REL 175</x>
                             <y>REL 0</y>
                             <w>COMPLEMENT 0</w>
-                            <h>SCALE 1.0</h>
-                            <index>4</index>
+                            <h>SCALE 1.000000</h>
+                            <index>2</index>
                             <children>
                             </children>
                         </Layout>

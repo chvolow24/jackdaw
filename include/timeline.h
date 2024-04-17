@@ -48,4 +48,6 @@ void timeline_rescale(double sfpp_scale_factor, int32_t center_abs_pos);
 void timeline_set_play_position(int32_t abs_pos_sframes);
 void timeline_move_play_position(int32_t move_by_sframes);
 
+void timeline_set_timecode();
+
 #endif

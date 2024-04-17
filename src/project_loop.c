@@ -3,6 +3,8 @@
 #include "input.h"
 #include "layout.h"
 #include "project.h"
+#include "project_draw.h"
+#include "timeline.h"
 #include "window.h"
 
 extern Window *main_win;
@@ -58,7 +60,7 @@ void loop_project_main()
 		    }
 		    break;
 		default:
-		    /* i_state = triage_keydown(i_state, e.key.keysym.scancode); */
+		    /* i_state = triage_keypdown(i_state, e.key.keysym.scancode); */
 		    input_fn  = input_get(i_state, e.key.keysym.sym, GLOBAL);
 		    if (!input_fn) {
 			for (int i=main_win->num_modes - 1; i>=0; i--) {
@@ -70,6 +72,7 @@ void loop_project_main()
 		    }
 		    if (input_fn && input_fn->do_fn) {
 			input_fn->do_fn();
+			timeline_reset(proj->timelines[proj->active_tl_index]);
 		    }
 		    break;
 		}
@@ -126,7 +129,11 @@ void loop_project_main()
 	    timeline_reset(proj->timelines[proj->active_tl_index]);
 	}
 	
-	
+
+	if (proj->play_speed != 0) {
+
+	    timeline_set_timecode();
+	}
 
 	/******************** DRAW ********************/
 	window_start_draw(main_win, &color_global_black);
@@ -135,10 +142,11 @@ void loop_project_main()
 //	layout_draw(main_win, main_win->layout);
 	/**********************/
 
+	/* if (proj->play_speed != 0) { */
+	/*     timeline_move_play_position((int32_t) 500 * proj->play_speed); */
+	/* } */
 
-	for (int i=0; i<proj->timelines[0]->num_tracks; i++) {
-	    track_draw(proj->timelines[0]->tracks[i]);
-	}
+	project_draw(proj);
 	window_draw_menus(main_win);
 	
 	

@@ -43,4 +43,6 @@ void user_tl_track_selector_up();
 void user_tl_track_selector_down();
 void user_tl_track_activate_selected();
 
+void user_tl_record();
+
 #endif

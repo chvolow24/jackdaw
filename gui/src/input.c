@@ -375,6 +375,16 @@ static void mode_load_project()
 	);
     mode_subcat_add_fn(sc, fn);
 
+    sc= mode_add_subcat(mode, "Transport");
+
+    fn = create_user_fn(
+	"tl_record",
+	"Record (start or stop)",
+	user_tl_record
+	);
+    mode_subcat_add_fn(sc, fn);
+    /* sc = menu */
+
 
 
     /*
@@ -551,7 +561,7 @@ static char *input_get_keycmd_str(uint16_t i_state, SDL_Keycode keycode)
 	sprintf(buf, "%s%c", mod, keycode);
     }
 
-    char *ret = malloc(strlen(buf));
+    char *ret = malloc(strlen(buf) + 1);
     strcpy(ret, buf);
     /* fprintf(stdout, "\t->keycmd str %s (%s)\n", ret, buf); */
     return ret;

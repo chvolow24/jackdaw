@@ -142,10 +142,6 @@ int main(int argc, char **argv)
     /* Create project here */
     proj = project_create("New Project", DEFAULT_PROJ_AUDIO_SETTINGS);
 
-    for (int i=0; i<proj->num_playback_devices; i++) {
-	fprintf(stdout, "Playback device %d: %s\n", i, proj->playback_devices[i]->name);
-    }
-
     /* timeline_add_track(proj->timelines[0]); */
     /* timeline_add_track(proj->timelines[0]); */
     /* timeline_add_track(proj->timelines[0]); */

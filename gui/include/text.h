@@ -74,6 +74,8 @@ typedef struct text {
 
     Window *win;
     SDL_Texture *texture;
+
+    pthread_mutex_t draw_lock;
 } Text;
 
 

@@ -44,10 +44,12 @@ static void write_dimension(FILE *f, Dimension *dim, char dimchar, int indent)
 }
 
 
-static const char *get_bool_str(bool b)
-{
-    return b ? "true" : "false";
-}
+/* Unused at the moment ? */
+
+/* static const char *get_bool_str(bool b) */
+/* { */
+/*     return b ? "true" : "false"; */
+/* } */
 
 static const char *get_lt_type_str(LayoutType tp)
 {

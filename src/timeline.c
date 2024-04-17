@@ -45,7 +45,7 @@ int timeline_get_draw_x(int32_t abs_x);
 int32_t timeline_get_abspos_sfrmaes(int draw_x)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
-    return (draw_x - proj->audio_rect->x) * proj->timelines[proj->active_tl_index]->sample_frames_per_pixel + proj->timelines[proj->active_tl_index]->display_offset_sframes;
+    return (draw_x - proj->audio_rect->x) * tl->sample_frames_per_pixel + tl->display_offset_sframes;
 }
 
 /* Get the current draw x coordinate for a given timeline offset value (sample frames) */
@@ -153,7 +153,7 @@ void timeline_rescale(double sfpp_scale_factor, int32_t center_abs_pos)
     /* } */
 }
 
-static void timeline_set_timecode()
+void timeline_set_timecode()
 {
     if (!proj) {
         fprintf(stderr, "Error: request to set timecode with no active project.\n");
@@ -177,20 +177,27 @@ static void timeline_set_timecode()
     tl->timecode.seconds = seconds;
     tl->timecode.frames = frames;
     sprintf(tl->timecode.str, "%c%02d:%02d:%02d:%05d", sign, hours, minutes, seconds, frames);
-    textbox_reset(tl->timecode_tb);
+    if (tl->timecode_tb) {
+	/* fprintf(stdout, "Resetting tb\n"); */
+	textbox_reset_full(tl->timecode_tb);
+	/* fprintf(stdout, "TC content? \"%s\"\n", tl->timecode_tb->text->value_handle); */
+	/* fprintf(stdout, "TC disp val? \"%s\"\n", tl->timecode_tb->text->display_value); */
+	/* fprintf(stdout, "Lt w? %d\n", tl->timecode_tb->layout->rect.w); */
+    }
 }
 
 void timeline_set_play_position(int32_t abs_pos_sframes)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     tl->play_pos_sframes = abs_pos_sframes;
-    timeline_set_timecode();
+    /* timeline_set_timecode(); */
 }
+
+
 
 void timeline_move_play_position(int32_t move_by_sframes)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     tl->play_pos_sframes += move_by_sframes;
-    timeline_set_timecode();
+    /* timeline_set_timecode(); */
 }
-

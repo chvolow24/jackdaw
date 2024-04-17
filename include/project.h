@@ -61,6 +61,7 @@
 #define MAX_CLIPBOARD_CLIPS 255
 #define MAX_PROJ_TIMELINES 255
 #define MAX_PROJ_AUDIO_DEVICES 255
+#define MAX_PROJ_CLIPS 512
 
 
 typedef struct project Project;
@@ -84,6 +85,8 @@ typedef struct track {
     ClipRef *clips[MAX_TRACK_CLIPS];
     uint8_t num_clips;
     uint8_t num_grabbed_clips;
+
+    uint8_t num_takes;
 
     AudioDevice *input;
     AudioDevice *output;
@@ -110,12 +113,17 @@ typedef struct track {
 typedef struct clip_ref {
     char name[MAX_NAMELENGTH];
     bool deleted;
-    int32_t track_pos_sframes;
+    int32_t pos_sframes;
     uint32_t in_mark_sframes;
     uint32_t out_mark_sframes;
+    uint32_t start_ramp_len;
+    uint32_t end_ramp_len;
     Clip *clip;
     Track *track;
     bool home;
+    bool grabbed;
+
+    SDL_Rect rect;
 } ClipRef;
     
 typedef struct clip {
@@ -128,18 +136,19 @@ typedef struct clip {
     float *L;
     float *R;
 
+    /* Recording in */
+    Track *target;
     bool recording;
-
     AudioDevice *recorded_from;
+
+    /* Xfade */
     uint32_t start_ramp_len_sframes;
     uint32_t end_ramp_len_sframes;
 
-    bool grabbed;
+    /* TL navigation */
+    /* bool grabbed; */
     /* bool changed_track; */
-
-    Layout *layout;
-    Textbox *tb_name;
-    SDL_Scancode t;
+    
     
 } Clip;
 
@@ -159,6 +168,7 @@ typedef struct timeline {
     int32_t play_pos_sframes;
     int32_t in_mark_sframes;
     int32_t out_mark_sframes;
+    int32_t record_from_sframes;
     
     Track *tracks[MAX_TRACKS];
     
@@ -182,7 +192,6 @@ typedef struct timeline {
     int32_t display_offset_sframes; // in samples frames
     int sample_frames_per_pixel;
     int display_v_offset;
-    Textbox *tb_timecode;
     
 } Timeline;
 
@@ -196,6 +205,7 @@ typedef struct project {
     uint8_t active_tl_index;
     
     float play_speed;
+    bool recording;
 
     AudioDevice *record_devices[MAX_PROJ_AUDIO_DEVICES];
     uint8_t num_record_devices;
@@ -209,6 +219,11 @@ typedef struct project {
     SDL_AudioFormat fmt;
     uint16_t chunk_size_sframes; //sample_frames
 
+    /* Clips */
+    Clip *clips[MAX_PROJ_CLIPS];
+    uint16_t num_clips;
+    uint16_t active_clip_index;
+    
 
     /* Audio output */
     float *output_L;
@@ -221,6 +236,8 @@ typedef struct project {
     Textbox *tb_audio_out_name;
 
     SDL_Rect *audio_rect;
+    SDL_Rect *control_bar_rect;
+    SDL_Rect *ruler_rect;
 } Project;
 
 Project *project_create(
@@ -234,7 +251,10 @@ Project *project_create(
 
 
 void timeline_add_track(Timeline *tl);
-void track_draw(Track *track);
 void timeline_reset(Timeline *tl);
+Clip *project_add_clip(AudioDevice *dev, Track *target);
+ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sframes, bool home);
+
+void clipref_reset(ClipRef *cr);
 
 #endif

@@ -152,7 +152,14 @@ void textbox_set_border_color(Textbox *tb, SDL_Color *clr)
 }
 
 
+void textbox_reset_full(Textbox *tb)
+{
+    txt_reset_display_value(tb->text);
+}
+
 void textbox_reset(Textbox *tb)
 {
+
+    /* txt_reset_display_value(tb->text); */
     txt_reset_drawable(tb->text);
 }

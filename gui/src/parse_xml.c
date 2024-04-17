@@ -251,6 +251,7 @@ void xml_destroy_tag(Tag *tag)
     for (int i=0; i<tag->num_attrs; i++) {
         xml_destroy_attr(tag->attrs[i]);
     }
+    free(tag);
 }
 
 void xml_fprint_tag_recursive(FILE *f, Tag *tag, int indent)

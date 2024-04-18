@@ -9,7 +9,7 @@
 #include "timeline.h"
 
 #define MENU_MOVE_BY 40
-#define TL_DEFAULT_XSCROLL 40
+#define TL_DEFAULT_XSCROLL 60
 
 extern Window *main_win;
 extern Project *proj;
@@ -475,9 +475,9 @@ void user_tl_load_clip_at_point_to_src()
 	proj->src_in_sframes = 0;
 	proj->src_play_pos_sframes = 0;
 	proj->src_out_sframes = 0;
+	fprintf(stdout, "Src clip name? %s\n", proj->src_clip->name);
+	txt_set_value_handle(proj->source_name_tb->text, proj->src_clip->name);
     }
-    fprintf(stdout, "Src clip name? %s\n", proj->src_clip->name);
-    txt_set_value_handle(proj->source_name_tb->text, proj->src_clip->name);
 }
 
 void user_tl_activate_source_mode()

@@ -21,6 +21,8 @@ SDL_Color ruler_bckgrnd = {10, 10, 10, 255};
 SDL_Color control_bar_bckgrnd = {20, 20, 20, 255};
 SDL_Color track_selector_color = {100, 190, 255, 255};
 
+SDL_Color grey_mask = {100, 100, 100, 100};
+
 SDL_Color clip_ref_bckgrnd = {20, 200, 120, 200};
 SDL_Color clip_ref_grabbed_bckgrnd = {50, 230, 150, 230};
 SDL_Color clip_ref_home_bckgrnd = {90, 180, 245, 200};
@@ -331,6 +333,12 @@ static void timeline_draw(Timeline *tl)
         SDL_Rect in_out = (SDL_Rect) {in_x, proj->audio_rect->y, out_x - in_x, proj->audio_rect->h};
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(timeline_marked_bckgrnd));
         SDL_RenderFillRect(main_win->rend, &(in_out));
+    }
+
+    if (proj->source_mode) {
+
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(grey_mask));
+	SDL_RenderFillRect(main_win->rend, &tl->layout->rect);
     }
     
 }

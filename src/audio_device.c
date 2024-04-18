@@ -128,7 +128,9 @@ int device_open(Project *proj, AudioDevice *device)
 	/* exit(1); */
 	device->rec_buf_len_samples = proj->sample_rate * DEVICE_BUFLEN_SECONDS * device->spec.channels;
 	uint32_t device_buf_len_bytes = device->rec_buf_len_samples * sizeof(int16_t);
-	device->rec_buffer = malloc(device_buf_len_bytes);
+	if (!device->rec_buffer) {
+	    device->rec_buffer = malloc(device_buf_len_bytes);
+	}
 	device->write_buffpos_samples = 0;
 	if (!(device->rec_buffer)) {
 	    fprintf(stderr, "Error: unable to allocate space for device buffer.\n");

@@ -87,6 +87,7 @@
   - r		: tl_record
   - C-l		: tl_load_clip_at_point_to_source
   - S-1		: tl_activate_source_mode
+  - b		: tl_drop_from_source
 - source:
   - l		: source_play
   - k		: source_pause

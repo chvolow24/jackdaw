@@ -4,12 +4,15 @@
 #include "input.h"
 #include "menu.h"
 #include "project.h"
+#include "textbox.h"
 #include "transport.h"
+#include "timeline.h"
+
+#define MENU_MOVE_BY 40
+#define TL_DEFAULT_XSCROLL 40
 
 extern Window *main_win;
 extern Project *proj;
-
-#define MENU_MOVE_BY 40
 
 void user_global_expose_help()
 {
@@ -244,6 +247,26 @@ void user_tl_rewind()
     fprintf(stdout, "user_tl_rewind\n");
 }
 
+void user_tl_move_right()
+{
+    timeline_scroll_horiz(TL_DEFAULT_XSCROLL);
+}
+
+void user_tl_move_left()
+{
+    timeline_scroll_horiz(TL_DEFAULT_XSCROLL * -1);
+}
+
+void user_tl_zoom_in()
+{
+    timeline_rescale(1.2, false);
+}
+
+void user_tl_zoom_out()
+{
+    timeline_rescale(0.8, false);
+}
+
 void user_tl_set_mark_out()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
@@ -293,8 +316,6 @@ static void track_select_n(int n)
     *active = !(*active);
     /* track->input->active = *active; */
     /* fprintf(stdout, "SETTING %s to %d\n", track->input->name, track->input->active); */
-
-
 }
 
 void user_tl_track_select_1()
@@ -451,9 +472,13 @@ void user_tl_load_clip_at_point_to_src()
     ClipRef *cr = clip_at_point();
     if (cr) {
 	proj->src_clip = cr->clip;
+	proj->src_in_sframes = 0;
+	proj->src_play_pos_sframes = 0;
+	proj->src_out_sframes = 0;
     }
+    fprintf(stdout, "Src clip name? %s\n", proj->src_clip->name);
+    txt_set_value_handle(proj->source_name_tb->text, proj->src_clip->name);
 }
-
 
 void user_tl_activate_source_mode()
 {
@@ -466,27 +491,68 @@ void user_tl_activate_source_mode()
     }
 }
 
+void user_tl_drop_from_source()
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Track *track = tl->tracks[tl->track_selector];
+    ClipRef *cr = track_create_clip_ref(track, proj->src_clip, tl->play_pos_sframes, false);
+    cr->in_mark_sframes = proj->src_in_sframes;
+    cr->out_mark_sframes = proj->src_out_sframes;
+    clipref_reset(cr);
+}
+
 /* source mode */
 
 void user_source_play()
 {
+    if (proj->src_play_speed <= 0.0f) {
+	proj->src_play_speed = 1.0f;
+	transport_start_playback();
+    } else {
+	proj->src_play_speed *= 2.0f;
+    }
+
     fprintf(stdout, "SOURCE PLAY\n");
 }
 
 void user_source_pause()
 {
+    proj->src_play_speed = 0;
+    transport_stop_playback();
     fprintf(stdout, "SOURCE PAUSE\n");
 }
 
 void user_source_rewind()
 {
+    if (proj->src_play_speed >= 0.0f) {
+	proj->src_play_speed = -1.0f;
+	transport_start_playback();
+    } else {
+	proj->src_play_speed *= 2.0f;
+    }
+
     fprintf(stdout, "SOURCE REWIND\n");
 }
 
 void user_source_set_in_mark()
 {
+    transport_set_mark(NULL, true);
 }
 
 void user_source_set_out_mark()
 {
+    transport_set_mark(NULL, false);
 }
+
+
+
+/*
+}
+
+void user_tl_pause()
+{
+
+
+void user_tl_rewind()
+{
+*/

@@ -95,30 +95,15 @@ float *get_track_channel_chunk(Track *track, uint8_t channel, int32_t start_pos_
         for (uint8_t clip_i=0; clip_i<track->num_clips; clip_i++) {
             ClipRef *cr = (track->clips)[clip_i];
 
-	    /* TODO: reinstate this!!! VVVV */
-
-
 	    if (cr->clip->recording) {
 		continue;
 	    }
-            /* if (!(clip->done)) { */
-            /*     continue; */
-            /* } */
-
-
+	    int32_t cr_len = clip_ref_len(cr);
 	    
             float *clip_buf = (channel == 0) ? cr->clip->L : cr->clip->R;
             int32_t pos_in_clip_sframes = i * step + start_pos_sframes - cr->pos_sframes;
-            if (pos_in_clip_sframes >= 0 && pos_in_clip_sframes < cr->clip->len_sframes) {
-                if (pos_in_clip_sframes < cr->start_ramp_len) {
-                    float ramp_value = (float) pos_in_clip_sframes / cr->start_ramp_len;
-                    chunk[i] += ramp_value * clip_buf[pos_in_clip_sframes];
-                } else if (pos_in_clip_sframes > cr->clip->len_sframes - cr->end_ramp_len) {
-                    float ramp_value = (float) (cr->clip->len_sframes - pos_in_clip_sframes) / cr->end_ramp_len;
-                    chunk[i] += ramp_value * clip_buf[pos_in_clip_sframes];
-                } else {
-                    chunk[i] += clip_buf[pos_in_clip_sframes];
-                }
+            if (pos_in_clip_sframes >= 0 && pos_in_clip_sframes < cr_len) {
+		chunk[i] += clip_buf[pos_in_clip_sframes + cr->in_mark_sframes];
             }
         }
     }
@@ -139,10 +124,6 @@ float *get_mixdown_chunk(Timeline* tl, uint8_t channel, uint32_t len_sframes, in
         fprintf(stderr, "\nError: could not allocate mixdown chunk.");
         exit(1);
     }
-
-    // uint32_t start_pos_sframes = from_mark_in ? proj->tl->in_mark_sframes : proj->tl->play_pos_sframes;
-    // float step = from_mark_in ? 1 : proj->play_speed;
-
 
     for (uint8_t t=0; t<tl->num_tracks; t++) {
         Track *track = tl->tracks[t];

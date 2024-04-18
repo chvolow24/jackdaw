@@ -85,12 +85,10 @@ int timeline_get_second_w();
 
 void timeline_scroll_horiz(int scroll_by)
 {
-
     Timeline *tl = proj->timelines[proj->active_tl_index];
     int32_t new_offset = tl->display_offset_sframes + timeline_get_abs_w_sframes(scroll_by);
     tl->display_offset_sframes = new_offset;
     timeline_reset(tl);
-
 }
 
 float timeline_get_leftmost_seconds()
@@ -120,9 +118,13 @@ int timeline_first_second_tick_x()
     return 1 - (timeline_get_second_w() * dec) + proj->audio_rect->x;
 }
 
-void timeline_rescale(double sfpp_scale_factor, int32_t center_abs_pos)
+void timeline_rescale(double sfpp_scale_factor, bool on_mouse)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
+    int32_t center_abs_pos = 0;
+    if (!on_mouse) {
+	center_abs_pos = tl->play_pos_sframes;
+    }
     if (sfpp_scale_factor == 0) {
         fprintf(stderr, "Warning! Scale factor 0 in rescale_timeline\n");
         return;
@@ -202,12 +204,4 @@ void timeline_move_play_position(int32_t move_by_sframes)
     /* timeline_set_timecode(); */
 }
 
-static int32_t cr_len(ClipRef *cr)
-{
-    if (cr->out_mark_sframes <= cr->in_mark_sframes) {
-	return cr->clip->len_sframes;
-    } else {
-	return cr->out_mark_sframes - cr->in_mark_sframes;
-    }
-}
 

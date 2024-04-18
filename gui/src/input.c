@@ -262,6 +262,36 @@ static void mode_load_timeline()
 	);
     mode_subcat_add_fn(sc, fn);
 
+    fn = create_user_fn(
+	"tl_move_right",
+	"Move right",
+	user_tl_move_right
+	);
+    mode_subcat_add_fn(sc,fn);
+
+    fn = create_user_fn(
+	"tl_move_left",
+	"Move left",
+	user_tl_move_left
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_zoom_out",
+	"Move left",
+	user_tl_zoom_out
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_zoom_in",
+	"Move left",
+	user_tl_zoom_in
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    
+
     sc = mode_add_subcat(mode, "Marks");
     fn = create_user_fn(
 	"tl_set_in_mark",
@@ -425,6 +455,13 @@ static void mode_load_timeline()
 	);
     mode_subcat_add_fn(sc, fn);
 
+    fn = create_user_fn(
+	"tl_drop_from_source",
+	"Drop from source",
+	user_tl_drop_from_source
+	);
+    mode_subcat_add_fn(sc, fn);
+
 }
 
 static void mode_load_source()
@@ -497,14 +534,14 @@ UserFn *input_get(uint16_t i_state, SDL_Keycode keycode, InputMode mode)
 	return NULL;
     }
     while (1) {
-	fprintf(stdout, "Testing keycode %c against %c\n", keycode, node->kb->keycode);
-	fprintf(stdout, "\tmode %s, (found %s); i_state %d, %d\n", input_mode_str(mode), input_mode_str(node->kb->mode), i_state, node->kb->i_state);
+	/* fprintf(stdout, "Testing keycode %c against %c\n", keycode, node->kb->keycode); */
+	/* fprintf(stdout, "\tmode %s, (found %s); i_state %d, %d\n", input_mode_str(mode), input_mode_str(node->kb->mode), i_state, node->kb->i_state); */
 	if ((node->kb->mode == mode || node->kb->mode == GLOBAL) && node->kb->i_state == i_state && node->kb->keycode == keycode) {
 	    return node->kb->fn;
 	} else if (node->next) {
 	    node = node->next;
 	} else {
-	    fprintf(stdout, "NOT FOUND\n");
+	    /* fprintf(stdout, "NOT FOUND\n"); */
 	    return NULL;
 	}
     }

@@ -28,6 +28,7 @@
 #define JDAW_TIMELINE_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #define TL_SHIFT_STEP (50 * scale_factor)
 #define TL_SCROLL_STEP_H (10 * scale_factor)
@@ -44,7 +45,7 @@ void timeline_scroll_horiz(int scroll_by);
 float timeline_get_leftmost_seconds();
 int timeline_get_second_w();
 int timeline_first_second_tick_x();
-void timeline_rescale(double sfpp_scale_factor, int32_t center_abs_pos);
+void timeline_rescale(double sfpp_scale_factor, bool on_mouse);
 void timeline_set_play_position(int32_t abs_pos_sframes);
 void timeline_move_play_position(int32_t move_by_sframes);
 

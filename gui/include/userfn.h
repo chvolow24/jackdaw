@@ -25,6 +25,10 @@ void user_menu_dismiss();
 void user_tl_play();
 void user_tl_pause();
 void user_tl_rewind();
+void user_tl_move_right();
+void user_tl_move_left();
+void user_tl_zoom_in();
+void user_tl_zoom_out();
 void user_tl_set_mark_out();
 void user_tl_set_mark_in();
 void user_tl_goto_mark_out();
@@ -49,8 +53,7 @@ void user_tl_record();
 void user_tl_clipref_grab_ungrab();
 void user_tl_load_clip_at_point_to_src();
 void user_tl_activate_source_mode();
-
-
+void user_tl_drop_from_source();
 
 void user_source_play();
 void user_source_pause();

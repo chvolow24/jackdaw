@@ -229,8 +229,10 @@ typedef struct project {
     /* Src */
     bool source_mode;
     Clip *src_clip;
-    int16_t src_in_sframes;
-    int16_t src_out_sframes;
+    int32_t src_play_pos_sframes;
+    int32_t src_in_sframes;
+    int32_t src_out_sframes;
+    float src_play_speed;
 
     /* Audio output */
     float *output_L;
@@ -247,7 +249,7 @@ typedef struct project {
     SDL_Rect *ruler_rect;
     SDL_Rect *source_rect;
     SDL_Rect *source_clip_rect;
-    SDL_Rect *source_name_rect;
+    Textbox *source_name_tb;
 } Project;
 
 Project *project_create(
@@ -264,7 +266,7 @@ void timeline_add_track(Timeline *tl);
 void timeline_reset(Timeline *tl);
 Clip *project_add_clip(AudioDevice *dev, Track *target);
 ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sframes, bool home);
-
+int32_t clip_ref_len(ClipRef *cr);
 void clipref_reset(ClipRef *cr);
 
 #endif

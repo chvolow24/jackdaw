@@ -23,23 +23,23 @@
                 </Layout>
                 <Layout name="source_area" type="NORMAL">
                     <x>REL 287</x>
-                    <y>REL 0</y>
-                    <w>COMPLEMENTARY 0</w>
-                    <h>SCALE 1.000000</h>
+                    <y>REL 8</y>
+                    <w>REL 436</w>
+                    <h>REL 137</h>
                     <index>1</index>
                     <children>
                         <Layout name="source_clip" type="NORMAL">
-                            <x>REL 29</x>
-                            <y>REL 61</y>
+                            <x>REL 15</x>
+                            <y>REL 59</y>
                             <w>REL 400</w>
-                            <h>REL 81</h>
+                            <h>REL 68</h>
                             <index>0</index>
                             <children>
                             </children>
                         </Layout>
                         <Layout name="source_clip_name" type="NORMAL">
-                            <x>REL 29</x>
-                            <y>REL 30</y>
+                            <x>REL 15</x>
+                            <y>REL 12</y>
                             <w>REL 400</w>
                             <h>REL 20</h>
                             <index>1</index>

@@ -42,19 +42,10 @@ extern Project *proj;
 
 void transport_record_callback(void* user_data, uint8_t *stream, int len)
 {
-    FILE *log = fopen("stream.log", "w");
-    for (int i=0; i<len; i++) {
-	fprintf(log, "%d ", stream[i]);
-    }
-    fclose(log);
+
     AudioDevice *dev = (AudioDevice *)user_data;
     uint32_t stream_len_samples = len / sizeof(int16_t);
 
-    /* for (int i=0; i<100; i++) { */
-    /* 	fprintf(stdout, "%d, ", ((int16_t *)stream)[i]); */
-    /* } */
-
-    fprintf(stdout, "\nStream samples 100, device %s\n", dev->name);
     if (dev->write_buffpos_samples + stream_len_samples < dev->rec_buf_len_samples) {
         memcpy(dev->rec_buffer + dev->write_buffpos_samples, stream, len);
     } else {
@@ -75,26 +66,42 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
 	    clipref_reset(cr);
 	}
     }
-    /* for (uint8_t i=0; i<proj->num_active_clips; i++) { */
-    /*     Clip *clip = proj->active_clips[i]; */
-    /*     if (clip->input == dev) { */
-    /*         clip->len_sframes += stream_len_samples / clip->channels; */
-    /*         reset_cliprect(clip); */
-    /*     } */
-    /* } */
-
 }
 
+static float *get_source_mode_chunk(uint8_t channel, uint32_t len_sframes, int32_t start_pos_sframes, float step)
+{
+    float *chunk = malloc(sizeof(float) * len_sframes);
+    if (!chunk) {
+	fprintf(stderr, "Error: unable to allocate chunk from source clip\n");
+    }
+    float *src_buffer = channel == 0 ? proj->src_clip->L : proj->src_clip->R;
+    
+
+    for (uint32_t i=0; i<len_sframes; i++) {
+	if (i + start_pos_sframes < proj->src_clip->len_sframes) {
+	    chunk[i] = src_buffer[i + start_pos_sframes];
+	} else {
+	    chunk[i] = 0;
+	}
+    }
+    return chunk;
+}
 
 void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 {
     memset(stream, '\0', len);
 
-    Timeline *tl = proj->timelines[proj->active_tl_index];
     uint32_t stream_len_samples = len / sizeof(int16_t);
 
-    float *chunk_L = get_mixdown_chunk(tl, 0, stream_len_samples / proj->channels, tl->play_pos_sframes, proj->play_speed);
-    float *chunk_R = get_mixdown_chunk(tl, 1, stream_len_samples / proj->channels, tl->play_pos_sframes, proj->play_speed);
+    float *chunk_L, *chunk_R;
+    if (proj->source_mode) {
+	chunk_L = get_source_mode_chunk(0, stream_len_samples / proj->channels, proj->src_play_pos_sframes, proj->src_play_speed);
+	chunk_R = get_source_mode_chunk(1, stream_len_samples / proj->channels, proj->src_play_pos_sframes, proj->src_play_speed);
+    } else {
+	Timeline *tl = proj->timelines[proj->active_tl_index];
+	chunk_L = get_mixdown_chunk(tl, 0, stream_len_samples / proj->channels, tl->play_pos_sframes, proj->play_speed);
+	chunk_R = get_mixdown_chunk(tl, 1, stream_len_samples / proj->channels, tl->play_pos_sframes, proj->play_speed);
+    }
 
     int16_t *stream_fmt = (int16_t *)stream;
     for (uint32_t i=0; i<stream_len_samples; i+=2)
@@ -125,8 +132,11 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     //     }
     //     // proj->tl->play_offset = ms;
     // }
-    timeline_move_play_position(proj->play_speed * stream_len_samples / proj->channels);
-
+    if (proj->source_mode) {
+	proj->src_play_pos_sframes += proj->src_play_speed * stream_len_samples / proj->channels;
+    } else {
+	timeline_move_play_position(proj->play_speed * stream_len_samples / proj->channels);
+    }
 }
 
 
@@ -138,6 +148,7 @@ void transport_start_playback()
 
 void transport_stop_playback()
 {
+    proj->src_play_speed = 0.0f;
     proj->play_speed = 0.0f;
     device_stop_playback(proj->playback_device);
 }
@@ -253,10 +264,19 @@ void transport_stop_recording()
 
 void transport_set_mark(Timeline *tl, bool in)
 {
-    if (in) {
-	tl->in_mark_sframes = tl->play_pos_sframes;
-    } else {
-	tl->out_mark_sframes = tl->play_pos_sframes;
+    if (tl) {
+	if (in) {
+	    tl->in_mark_sframes = tl->play_pos_sframes;
+	} else {
+	    tl->out_mark_sframes = tl->play_pos_sframes;
+	}
+    } else if (proj->source_mode) {
+	if (in) {
+	    proj->src_in_sframes = proj->src_play_pos_sframes;
+	} else {
+	    proj->src_out_sframes = proj->src_play_pos_sframes;
+	}
+		
     }
 }
 

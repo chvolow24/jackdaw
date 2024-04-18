@@ -40,19 +40,20 @@ extern Window *main_win;
 extern Project *proj;
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;
+extern SDL_Color color_global_clear;
 
 
-/* /\* Alternating bright colors to easily distinguish tracks *\/ */
-/* uint8_t track_color_index = 0; */
-/* SDL_Color track_colors[7] = { */
-/*     {180, 40, 40, 155}, */
-/*     {226, 151, 0, 155}, */
-/*     {15, 228, 0, 155}, */
-/*     {0, 226, 219, 155}, */
-/*     {0, 98, 226, 155}, */
-/*     {128, 0, 226, 155}, */
-/*     {226, 100, 226, 155} */
-/* }; */
+/* Alternating bright colors to easily distinguish tracks */
+uint8_t track_color_index = 0;
+SDL_Color track_colors[7] = {
+    {38, 125, 255, 255},
+    {250, 190, 50, 255},
+    {171, 38, 38, 255},
+    {250, 132, 222, 255},
+    {224, 142, 74, 255},
+    {5, 100, 115, 255},
+    {245, 240, 206, 255}
+};
 
 void project_add_timeline(Project *proj, char *name)
 {
@@ -121,9 +122,20 @@ Project *project_create(
     Layout *source_lt = layout_get_child_by_name_recursive(proj->layout, "source_area");
     proj->source_rect = &source_lt->rect;
     proj->source_clip_rect = &(layout_get_child_by_name_recursive(source_lt, "source_clip")->rect);
-    proj->source_name_rect = &(layout_get_child_by_name_recursive(source_lt, "source_clip_name")->rect);
-    project_add_timeline(proj, "Main");
+    Layout *src_name_lt = layout_get_child_by_name_recursive(source_lt, "source_clip_name");
+    proj->source_name_tb = textbox_create_from_str(
+	"(no source clip)",
+	src_name_lt,
+	main_win->std_font,
+	14,
+	main_win
+	);
 
+    textbox_set_align(proj->source_name_tb, CENTER_LEFT);
+    textbox_set_background_color(proj->source_name_tb, &color_global_clear);
+    textbox_set_text_color(proj->source_name_tb, &color_global_white);
+
+    project_add_timeline(proj, "Main");
     /* Initialize output */
     proj->output_len = chunk_size_sframes;
     proj->output_L = malloc(sizeof(float) * chunk_size_sframes);
@@ -161,16 +173,17 @@ void timeline_add_track(Timeline *tl)
 
     track->input = tl->proj->record_devices[0];
 
-    track->color.r = rand() % 255;
-    track->color.g = rand() % 255;
-    track->color.b = rand() % 255;
-    track->color.a = 255;
-    /* track_color_index++; */
-    /* if (track_color_index < NUM_TRACK_COLORS -1) { */
-    /* 	track_color_index++; */
-    /* } else { */
-    /* 	track_color_index = 0; */
-    /* } */
+    /* track->color.r = rand() % 255; */
+    /* track->color.g = rand() % 255; */
+    /* track->color.b = rand() % 255; */
+    /* track->color.a = 255; */
+    track->color = track_colors[track_color_index];
+    if (track_color_index < NUM_TRACK_COLORS -1) {
+	track_color_index++;
+    } else {
+	track_color_index = 0;
+    }
+    
     /* track->muted = false; */
     /* track->solo = false; */
     /* track->solo_muted = false; */
@@ -275,10 +288,20 @@ Clip *project_add_clip(AudioDevice *dev, Track *target)
     return clip;
 }
 
+int32_t clip_ref_len(ClipRef *cr)
+{
+    if (cr->out_mark_sframes <= cr->in_mark_sframes) {
+	return cr->clip->len_sframes;
+    } else {
+	return cr->out_mark_sframes - cr->in_mark_sframes;
+    }
+}
+
+
 void clipref_reset(ClipRef *cr)
 {
     cr->rect.x = timeline_get_draw_x(cr->pos_sframes);
-    uint32_t cr_len = cr->out_mark_sframes >= cr->in_mark_sframes
+    uint32_t cr_len = cr->in_mark_sframes >= cr->out_mark_sframes
 	? cr->clip->len_sframes
 	: cr->out_mark_sframes - cr->in_mark_sframes;
     cr->rect.w = timeline_get_draw_w(cr_len);

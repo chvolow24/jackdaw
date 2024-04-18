@@ -10,6 +10,7 @@
 
 #define MENU_MOVE_BY 40
 #define TL_DEFAULT_XSCROLL 60
+#define SLOW_PLAYBACK_SPEED 0.2f
 
 extern Window *main_win;
 extern Project *proj;
@@ -245,6 +246,18 @@ void user_tl_rewind()
 	proj->play_speed *= 2.0f;
     }
     fprintf(stdout, "user_tl_rewind\n");
+}
+
+void user_tl_play_slow()
+{
+    proj->play_speed = SLOW_PLAYBACK_SPEED;
+    transport_start_playback();
+}
+
+void user_tl_rewind_slow()
+{
+    proj->play_speed = -1 * SLOW_PLAYBACK_SPEED;
+    transport_start_playback();
 }
 
 void user_tl_move_right()
@@ -511,15 +524,12 @@ void user_source_play()
     } else {
 	proj->src_play_speed *= 2.0f;
     }
-
-    fprintf(stdout, "SOURCE PLAY\n");
 }
 
 void user_source_pause()
 {
     proj->src_play_speed = 0;
     transport_stop_playback();
-    fprintf(stdout, "SOURCE PAUSE\n");
 }
 
 void user_source_rewind()
@@ -530,8 +540,18 @@ void user_source_rewind()
     } else {
 	proj->src_play_speed *= 2.0f;
     }
+}
 
-    fprintf(stdout, "SOURCE REWIND\n");
+void user_source_play_slow()
+{
+    proj->src_play_speed = SLOW_PLAYBACK_SPEED;
+    transport_start_playback();
+}
+
+void user_source_rewind_slow()
+{
+    proj->src_play_speed = -1 * SLOW_PLAYBACK_SPEED;
+    transport_start_playback();
 }
 
 void user_source_set_in_mark()
@@ -543,6 +563,7 @@ void user_source_set_out_mark()
 {
     transport_set_mark(NULL, false);
 }
+
 
 
 

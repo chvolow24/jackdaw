@@ -262,6 +262,20 @@ static void mode_load_timeline()
 	);
     mode_subcat_add_fn(sc, fn);
 
+    fn=create_user_fn(
+	"tl_play_slow",
+	"Play slow",
+	user_tl_play_slow
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_rewind_slow",
+	"Rewind slow",
+	user_tl_rewind_slow
+	);
+    mode_subcat_add_fn(sc, fn);
+
     fn = create_user_fn(
 	"tl_move_right",
 	"Move right",
@@ -489,6 +503,20 @@ static void mode_load_source()
 	"source_rewind",
 	"Rewind (source)",
         user_source_rewind
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"source_play_slow",
+	"Play slow (source)",
+	user_source_play_slow
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"source_rewind_slow",
+	"Rewind slow (source",
+	user_source_rewind_slow
 	);
     mode_subcat_add_fn(sc, fn);
     

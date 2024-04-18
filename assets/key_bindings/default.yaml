@@ -56,12 +56,17 @@
   - l		: tl_play
   - k		: tl_pause
   - j		: tl_rewind
+  - S-l		: tl_play_slow
+  - S-j		: tl_rewind_slow
+  - S-k		: tl_pause
   - ;		: tl_move_right
   - h		: tl_move_left
   - ,		: tl_zoom_out
   - .		: tl_zoom_in
   - i		: tl_set_in_mark
   - o		: tl_set_out_mark
+  - S-i		: tl_set_in_mark
+  - S-o		: tl_set_out_mark
   - C-i		: tl_goto_in_mark
   - C-o		: tl_goto_out_mark
   - C-t		: tl_track_add
@@ -92,5 +97,10 @@
   - l		: source_play
   - k		: source_pause
   - j		: source_rewind
+  - S-l		: source_play_slow
+  - S-j		: source_rewind_slow
+  - S-k		: source_pause
   - i		: source_set_in_mark
   - o		: source_set_out_mark
+  - S-i		: source_set_in_mark
+  - S-o		: source_set_out_mark

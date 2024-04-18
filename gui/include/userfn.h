@@ -25,6 +25,8 @@ void user_menu_dismiss();
 void user_tl_play();
 void user_tl_pause();
 void user_tl_rewind();
+void user_tl_play_slow();
+void user_tl_rewind_slow();
 void user_tl_move_right();
 void user_tl_move_left();
 void user_tl_zoom_in();
@@ -58,6 +60,8 @@ void user_tl_drop_from_source();
 void user_source_play();
 void user_source_pause();
 void user_source_rewind();
+void user_source_play_slow();
+void user_source_rewind_slow();
 void user_source_set_in_mark();
 void user_source_set_out_mark();
 #endif

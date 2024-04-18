@@ -164,7 +164,6 @@ void loop_project_main()
 	window_end_draw(main_win);
 	/**********************************************/
 
-	
 	SDL_Delay(1);
 
     }

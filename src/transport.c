@@ -78,8 +78,9 @@ static float *get_source_mode_chunk(uint8_t channel, uint32_t len_sframes, int32
     
 
     for (uint32_t i=0; i<len_sframes; i++) {
-	if (i + start_pos_sframes < proj->src_clip->len_sframes) {
-	    chunk[i] = src_buffer[i + start_pos_sframes];
+	if (i * step + start_pos_sframes < proj->src_clip->len_sframes) {
+	    int sample_i = (int) (i * step + start_pos_sframes);
+	    chunk[i] = src_buffer[sample_i];
 	} else {
 	    chunk[i] = 0;
 	}

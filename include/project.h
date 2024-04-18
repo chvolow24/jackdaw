@@ -126,6 +126,8 @@ typedef struct clip_ref {
     bool grabbed;
 
     SDL_Rect rect;
+
+    SDL_mutex *lock;
 } ClipRef;
     
 typedef struct clip {

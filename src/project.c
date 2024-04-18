@@ -324,7 +324,10 @@ static void track_reset(Track *track)
 ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sframes, bool home)
 {
     ClipRef *cr = calloc(1, sizeof(ClipRef));
+    
     sprintf(cr->name, "%s ref%d", clip->name, track->num_clips);
+    cr->lock = SDL_CreateMutex();
+    SDL_LockMutex(cr->lock);
     track->clips[track->num_clips] = cr;
     track->num_clips++;
     cr->pos_sframes = record_from_sframes;
@@ -333,6 +336,7 @@ ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sfr
     cr->home = home;
     clip->refs[clip->num_refs] = cr;
     clip->num_refs++;
+    SDL_UnlockMutex(cr->lock);
     return cr;
 }
 

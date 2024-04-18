@@ -95,6 +95,7 @@ float *get_track_channel_chunk(Track *track, uint8_t channel, int32_t start_pos_
         for (uint8_t clip_i=0; clip_i<track->num_clips; clip_i++) {
             ClipRef *cr = (track->clips)[clip_i];
 
+	    SDL_LockMutex(cr->lock);
 	    if (cr->clip->recording) {
 		continue;
 	    }
@@ -105,6 +106,7 @@ float *get_track_channel_chunk(Track *track, uint8_t channel, int32_t start_pos_
             if (pos_in_clip_sframes >= 0 && pos_in_clip_sframes < cr_len) {
 		chunk[i] += clip_buf[pos_in_clip_sframes + cr->in_mark_sframes];
             }
+	    SDL_UnlockMutex(cr->lock);
         }
     }
 

@@ -9,7 +9,7 @@
 
 #define INPUT_HASH_SIZE 1024
 
-#define NUM_INPUT_MODES 3
+#define NUM_INPUT_MODES 4
 #define MAX_MODE_SUBCATS 10
 #define MAX_MODE_SUBCAT_FNS 64
 

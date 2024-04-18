@@ -44,9 +44,15 @@ void textbox_set_trunc(Textbox *tb, bool trunc);
 void textbox_set_text_color(Textbox *tb, SDL_Color *clr);
 void textbox_set_background_color(Textbox *tb, SDL_Color *clr);
 void textbox_set_border_color(Textbox *tb, SDL_Color *clr);
+void textbox_set_border(Textbox *tb, SDL_Color *color, int thickness);
+void textbox_set_align(Textbox *tb, TextAlign align);
 
 /* Reset drawable only. For full reset, use textbox_reset_full */
 void textbox_reset(Textbox *tb);
 /* Include resetting of display value */
 void textbox_reset_full(Textbox *tb);
+
+void textbox_set_pad(Textbox *tb, int h_pad, int v_pad);
+
+
 #endif

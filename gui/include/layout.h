@@ -120,6 +120,9 @@ Layout *layout_create();
 /* Reset a layout's rect and rects of all child layouts */
 void layout_reset(Layout *lt);
 
+/* Does not check that layout intersects with window in order to reset children */
+void layout_force_reset(Layout *lt);
+
 /* Resize main layout in response to changed window size */
 void layout_reset_from_window(Layout *lt, Window *win);
 

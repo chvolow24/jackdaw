@@ -246,11 +246,27 @@ void user_tl_rewind()
 
 void user_tl_set_mark_out()
 {
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    transport_set_mark(tl, false);
     fprintf(stdout, "user_tl_set_mark_out\n");
 }
 void user_tl_set_mark_in()
 {
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    transport_set_mark(tl, true);
     fprintf(stdout, "user_tl_set_mark_in\n");
+}
+
+void user_tl_goto_mark_out()
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    transport_goto_mark(tl, false);
+}
+
+void user_tl_goto_mark_in()
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    transport_goto_mark(tl, true);
 }
 
 
@@ -399,4 +415,78 @@ void user_tl_record()
     }
 }
 
+static int32_t cr_len(ClipRef *cr)
+{
+    if (cr->out_mark_sframes <= cr->in_mark_sframes) {
+	return cr->clip->len_sframes;
+    } else {
+	return cr->out_mark_sframes - cr->in_mark_sframes;
+    }
+}
 
+static ClipRef *clip_at_point()
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Track *track = tl->tracks[tl->track_selector];
+    for (int i=track->num_clips -1; i>=0; i--) {
+	ClipRef *cr = track->clips[i];
+	if (cr->pos_sframes <= tl->play_pos_sframes && cr->pos_sframes + cr_len(cr) >= tl->play_pos_sframes) {
+	    return cr;
+	}
+    }
+    return NULL;
+}
+
+void user_tl_clipref_grab_ungrab()
+{
+    ClipRef *cr = clip_at_point();
+    if (cr) {
+	cr->grabbed = !cr->grabbed;
+    }
+}
+
+
+void user_tl_load_clip_at_point_to_src()
+{
+    ClipRef *cr = clip_at_point();
+    if (cr) {
+	proj->src_clip = cr->clip;
+    }
+}
+
+
+void user_tl_activate_source_mode()
+{
+    if (!proj->source_mode) {
+	proj->source_mode = true;
+	window_push_mode(main_win, SOURCE);
+    } else {
+	proj->source_mode = false;
+	window_pop_mode(main_win);
+    }
+}
+
+/* source mode */
+
+void user_source_play()
+{
+    fprintf(stdout, "SOURCE PLAY\n");
+}
+
+void user_source_pause()
+{
+    fprintf(stdout, "SOURCE PAUSE\n");
+}
+
+void user_source_rewind()
+{
+    fprintf(stdout, "SOURCE REWIND\n");
+}
+
+void user_source_set_in_mark()
+{
+}
+
+void user_source_set_out_mark()
+{
+}

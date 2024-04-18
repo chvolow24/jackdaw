@@ -151,6 +151,19 @@ void textbox_set_border_color(Textbox *tb, SDL_Color *clr)
     tb->border_clr = clr;
 }
 
+void textbox_set_border(Textbox *tb, SDL_Color *color, int thickness)
+{
+    if (color) {
+	tb->border_clr = color;
+    }
+    tb->border_thickness = thickness;
+}
+
+void textbox_set_align(Textbox *tb, TextAlign align)
+{
+    tb->text->align = align;
+}
+
 
 void textbox_reset_full(Textbox *tb)
 {
@@ -162,4 +175,9 @@ void textbox_reset(Textbox *tb)
 
     /* txt_reset_display_value(tb->text); */
     txt_reset_drawable(tb->text);
+}
+
+void textbox_set_pad(Textbox *tb, int h_pad, int v_pad)
+{
+    txt_set_pad(tb->text, h_pad, v_pad);
 }

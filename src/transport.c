@@ -133,14 +133,13 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 
 void transport_start_playback()
 {
-    /* fprintf(stdout, "start playback device %p\n", proj->playback_device); */
     device_start_playback(proj->playback_device);
 }
 
 void transport_stop_playback()
 {
+    proj->play_speed = 0.0f;
     device_stop_playback(proj->playback_device);
-
 }
 void transport_start_recording()
 {
@@ -249,4 +248,23 @@ void transport_stop_recording()
 	proj->active_clip_index++;
     }
     
+}
+
+
+void transport_set_mark(Timeline *tl, bool in)
+{
+    if (in) {
+	tl->in_mark_sframes = tl->play_pos_sframes;
+    } else {
+	tl->out_mark_sframes = tl->play_pos_sframes;
+    }
+}
+
+void transport_goto_mark(Timeline *tl, bool in)
+{
+    if (in) {
+	tl->play_pos_sframes = tl->in_mark_sframes;
+    } else {
+	tl->play_pos_sframes = tl->out_mark_sframes;
+    }
 }

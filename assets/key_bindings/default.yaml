@@ -52,7 +52,7 @@
   - s		: menu_translate_down
   - d		: menu_translate_right
   - h		: menu_dismiss
-- project:
+- timeline:
   - l		: tl_play
   - k		: tl_pause
   - j		: tl_rewind
@@ -62,8 +62,8 @@
   - .		: tl_zoom_in
   - i		: tl_set_in_mark
   - o		: tl_set_out_mark
-  - C-i		: tl_go_to_in_mark
-  - C-o		: tl_go_to_out_mark
+  - C-i		: tl_goto_in_mark
+  - C-o		: tl_goto_out_mark
   - C-t		: tl_track_add
   - 1		: tl_track_select_1
   - 2		: tl_track_select_2
@@ -85,3 +85,11 @@
   - m		: tl_mute_unmute
   - s		: tl_solo_unsolo
   - r		: tl_record
+  - C-l		: tl_load_clip_at_point_to_source
+  - S-1		: tl_activate_source_mode
+- source:
+  - l		: source_play
+  - k		: source_pause
+  - j		: source_rewind
+  - i		: source_set_in_mark
+  - o		: source_set_out_mark

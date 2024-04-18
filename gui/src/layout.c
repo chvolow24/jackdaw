@@ -373,14 +373,15 @@ static void handle_scroll_internal(Layout *lt, float scroll_x, float scroll_y, b
     if (new_offset < 0) {
 	lt->iterator->scroll_momentum = 0;
 	lt->iterator->scroll_offset = 0;
-	return;
+	/* return; */
     } else if (new_offset > iter_dim) {
 	lt->iterator->scroll_momentum = 0;
 	lt->iterator->scroll_offset = iter_dim;
-	return;
+	/* return; */
+    } else {
+	lt->iterator->scroll_offset = new_offset;
     }
 	   
-    lt->iterator->scroll_offset = new_offset;
     if (dynamic) {
 	lt->iterator->scroll_momentum = offset_increment;
     }
@@ -705,7 +706,7 @@ void reset_iterations(LayoutIterator *iter);
 
 
 /* New iterative implementation */
-void layout_reset(Layout *lt)
+void layout_force_reset(Layout *lt)
 {
     Layout *top_parent = lt;
     
@@ -750,7 +751,7 @@ void layout_reset(Layout *lt)
 }
 
 /* Old recursive implementation */
-void layout_reset_OLD(Layout *lt)
+void layout_reset(Layout *lt)
 {
     if (lt->parent) {
         if (!set_rect_wh(lt)) {
@@ -765,16 +766,15 @@ void layout_reset_OLD(Layout *lt)
 	txt_reset_display_value(lt->namelabel);
     }
 
-    for (uint8_t i=0; i<lt->num_children; i++) {
-        Layout *child = lt->children[i];
-        layout_reset_OLD(child);
-    }
+    if (SDL_HasIntersection(&lt->rect, &main_win->layout->rect)) {
+	for (uint8_t i=0; i<lt->num_children; i++) {
+	    Layout *child = lt->children[i];
+	    layout_reset(child);
+	}
 
-    if (lt->iterator) {
-        reset_iterations(lt->iterator);
-        /* for (int i=0; i<lt->iterator->num_iterations; i++) { */
-        /*     reset_layout(lt->iterator->iterations[i]); */
-        /* } */
+	if (lt->iterator) {
+	    reset_iterations(lt->iterator);
+	}
     }
 }
 

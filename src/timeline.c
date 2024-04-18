@@ -201,3 +201,13 @@ void timeline_move_play_position(int32_t move_by_sframes)
     tl->play_pos_sframes += move_by_sframes;
     /* timeline_set_timecode(); */
 }
+
+static int32_t cr_len(ClipRef *cr)
+{
+    if (cr->out_mark_sframes <= cr->in_mark_sframes) {
+	return cr->clip->len_sframes;
+    } else {
+	return cr->out_mark_sframes - cr->in_mark_sframes;
+    }
+}
+

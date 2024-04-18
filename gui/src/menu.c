@@ -114,7 +114,7 @@ Menu *menu_create(Layout *layout, Window *window)
 
 void menu_reset_layout(Menu *menu)
 {
-    layout_reset(menu->layout);
+    layout_force_reset(menu->layout);
     menu_reset_textboxes(menu);
 }
 

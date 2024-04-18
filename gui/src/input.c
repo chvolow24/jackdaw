@@ -19,8 +19,10 @@ const char *input_mode_str(InputMode im)
 	return "global";
     case MENU_NAV:
 	return "menu_nav";
-    case PROJECT:
-	return "project";
+    case TIMELINE:
+	return "timeline";
+    case SOURCE:
+	return "source";
     default:
 	fprintf(stderr, "ERROR: [no mode string for value %d]\n", im);
 	return "[no mode]";
@@ -33,8 +35,10 @@ InputMode input_mode_from_str(char *str)
 	return GLOBAL;
     } else if (strcmp(str, "menu_nav") == 0) {
 	return MENU_NAV;
-    } else if (strcmp(str, "project") == 0) {
-	return PROJECT;
+    } else if (strcmp(str, "timeline") == 0) {
+	return TIMELINE;
+    } else if (strcmp(str, "source") == 0) {
+	return SOURCE;
     } else {
 	return -1;
     }
@@ -204,16 +208,16 @@ static void mode_load_menu_nav()
 	);
     mode_subcat_add_fn(mc, fn);
 
-      mode_subcat_add_fn(mc, fn);
+    mode_subcat_add_fn(mc, fn);
 
-      fn = create_user_fn(
+    fn = create_user_fn(
 	"menu_translate_down",
 	"Move menu down",
 	user_menu_translate_down
 	);
     mode_subcat_add_fn(mc, fn);
     
-      fn = create_user_fn(
+    fn = create_user_fn(
 	"menu_translate_right",
 	"Move menu right",
 	user_menu_translate_right
@@ -229,12 +233,16 @@ static void mode_load_menu_nav()
 
 }
 
-static void mode_load_project()
+static void mode_load_timeline()
 {
-    Mode *mode = mode_create(PROJECT);
-    ModeSubcat *sc= mode_add_subcat(mode, "Timeline Navigation");
+    Mode *mode = mode_create(TIMELINE);
+    /* ModeSubcat *sc= mode_add_subcat(mode, "Timeline Navigation"); */
     UserFn *fn;
 
+
+    ModeSubcat *sc= mode_add_subcat(mode, "Transport");
+
+    
     fn = create_user_fn(
 	"tl_play",
 	"Play",
@@ -269,7 +277,27 @@ static void mode_load_project()
 	);
     mode_subcat_add_fn(sc, fn);
 
+    fn = create_user_fn(
+	"tl_goto_in_mark",
+	"Go to In",
+	user_tl_goto_mark_in
+	);
+    mode_subcat_add_fn(sc, fn);
 
+    fn = create_user_fn(
+	"tl_goto_out_mark",
+	"Go to Out",
+	user_tl_goto_mark_out
+	);
+    mode_subcat_add_fn(sc, fn);
+
+
+    fn = create_user_fn(
+	"tl_record",
+	"Record (start or stop)",
+	user_tl_record
+	);
+    mode_subcat_add_fn(sc, fn);
     sc= mode_add_subcat(mode, "Tracks");  
     fn = create_user_fn(
 	"tl_track_add",
@@ -277,6 +305,7 @@ static void mode_load_project()
         user_tl_add_track
 	);
     mode_subcat_add_fn(sc, fn);
+
 
     fn = create_user_fn(
 	"tl_track_add",
@@ -375,57 +404,84 @@ static void mode_load_project()
 	);
     mode_subcat_add_fn(sc, fn);
 
-    sc= mode_add_subcat(mode, "Transport");
-
     fn = create_user_fn(
-	"tl_record",
-	"Record (start or stop)",
-	user_tl_record
+	"tl_grab_clips_at_point",
+	"Grab clip at point",
+	user_tl_clipref_grab_ungrab
 	);
     mode_subcat_add_fn(sc, fn);
-    /* sc = menu */
 
+    fn = create_user_fn(
+	"tl_load_clip_at_point_to_source",
+	"Load clip at point to source",
+        user_tl_load_clip_at_point_to_src
+	);
+    mode_subcat_add_fn(sc, fn);
 
+    fn = create_user_fn(
+	"tl_activate_source_mode",
+	"Activate Source Mode",
+	user_tl_activate_source_mode
+	);
+    mode_subcat_add_fn(sc, fn);
 
-    /*
-  - k		: tl_pause
-  - j		: tl_rewind
-  - ;		: tl_move_right
-  - h		: tl_move_left
-  - ,		: tl_zoom_out
-  - .		: tl_zoom_in
-  - i		: tl_set_in_mark
-  - o		: tl_set_out_mark
-  - C-i		: tl_go_to_in_mark
-  - C-o		: tl_go_to_out_mark
-  - C-t		: tl_track_add
-  - 1		: tl_track_select_1
-  - 2		: tl_track_select_2
-  - 3		: tl_track_select_3
-  - 4		: tl_track_select_4
-  - 5		: tl_track_select_5
-  - 6		: tl_track_select_6
-  - 7		: tl_track_select_7
-  - 8		: tl_track_select_8
-  - 9		: tl_track_select_9
-  - r		: tl_start_stop_record
-  - g		: tl_grab_clips_at_point
-  - m		: tl_mute_unmute
-  - s		: tl_solo_unsolo
-    */
 }
+
+static void mode_load_source()
+{
+    Mode *mode = mode_create(SOURCE);
+    ModeSubcat *sc= mode_add_subcat(mode, "");
+    UserFn *fn;
+
+    fn = create_user_fn(
+	"source_play",
+	"Play (source)",
+        user_source_play
+	);
+    mode_subcat_add_fn(sc, fn);
+
+
+    fn = create_user_fn(
+	"source_pause",
+	"Pause (source)",
+        user_source_pause
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"source_rewind",
+	"Rewind (source)",
+        user_source_rewind
+	);
+    mode_subcat_add_fn(sc, fn);
+    
+    fn = create_user_fn(
+	"source_set_in_mark",
+	"Set In Mark (source)",
+        user_source_set_in_mark
+	);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"source_set_out_mark",
+	"Set Out Mark (source)",
+        user_source_set_out_mark
+	);
+    mode_subcat_add_fn(sc, fn);
+
+}
+
 
 void input_init_mode_load_all()
 {
     mode_load_global();
     mode_load_menu_nav();
-    mode_load_project();
+    mode_load_timeline();
+    mode_load_source();
 }
 
 void input_init_hash_table()
 {
     memset(input_hash_table, '\0', INPUT_HASH_SIZE * sizeof(KeybNode*));
-
 }
 
 static int input_hash(uint16_t i_state, SDL_Keycode key)
@@ -441,13 +497,14 @@ UserFn *input_get(uint16_t i_state, SDL_Keycode keycode, InputMode mode)
 	return NULL;
     }
     while (1) {
-	/* fprintf(stdout, "Testing keycode %c against %c\n", keycode, node->kb->keycode); */
-	/* fprintf(stdout, "mode %d, %d; i_state %d, %d\n", mode, node->kb->mode, i_state, node->kb->i_state); */
+	fprintf(stdout, "Testing keycode %c against %c\n", keycode, node->kb->keycode);
+	fprintf(stdout, "\tmode %s, (found %s); i_state %d, %d\n", input_mode_str(mode), input_mode_str(node->kb->mode), i_state, node->kb->i_state);
 	if ((node->kb->mode == mode || node->kb->mode == GLOBAL) && node->kb->i_state == i_state && node->kb->keycode == keycode) {
 	    return node->kb->fn;
 	} else if (node->next) {
 	    node = node->next;
 	} else {
+	    fprintf(stdout, "NOT FOUND\n");
 	    return NULL;
 	}
     }
@@ -586,24 +643,27 @@ UserFn *input_get_fn_by_id(char *id, InputMode im)
 void input_bind_fn(UserFn *fn, uint16_t i_state, SDL_Keycode keycode, InputMode mode)
 {
     int hash = input_hash(i_state, keycode);
+    /* fprintf(stdout, "Binding input %s in mode %s. Root: %p\n", input_get_keycmd_str(i_state, keycode), input_mode_str(mode), &input_hash_table[hash]); */
     KeybNode *keyb_node = input_hash_table[hash];
-    KeybNode *last = NULL;
+    /* KeybNode *last = NULL; */
     Keybinding *kb = malloc(sizeof(Keybinding));
     /* UserFn *user_fn = NULL; */
     if (!keyb_node) {
+	/* fprintf(stdout, "\t->first slot empty\n"); */
 	keyb_node = malloc(sizeof(KeybNode));
 	keyb_node->kb = kb;
 	keyb_node->next = NULL;
 	input_hash_table[hash] = keyb_node;
-
     } else {
 	while (keyb_node->kb->mode != mode || keyb_node->kb->i_state != i_state || keyb_node->kb->keycode != keycode) {
 	    if (keyb_node->next) {
-		last = keyb_node;
+		/* fprintf(stdout, "\t->slot %p taken, next...\n", &keyb_node); */
+		/* last = keyb_node; */
 		keyb_node = keyb_node->next;
 	    } else {
 		keyb_node->next = malloc(sizeof(KeybNode));
 		keyb_node = keyb_node->next;
+		/* fprintf(stdout, "\t->inserting at %p\n", &keyb_node); */
 		kb = malloc(sizeof(Keybinding));
 		keyb_node->kb = kb;
 		keyb_node->next = NULL;
@@ -621,9 +681,9 @@ void input_bind_fn(UserFn *fn, uint16_t i_state, SDL_Keycode keycode, InputMode 
 	fn->annotation = kb->keycmd_str;
     }
     kb->fn = fn;
-    if (last) {
-	last->next = keyb_node;
-    } 
+    /* if (last) { */
+    /* 	last->next = keyb_node; */
+    /* }  */
 }
 
 
@@ -803,7 +863,6 @@ void input_load_keybinding_config(const char *filepath)
 	    }
 	    buf[i] = '\0';
 	    ungetc(c, f);
-	    fprintf(stderr, "terminated buf at %d, str: \"%s\"\n", i, buf);
 	    fn = input_get_fn_by_id(buf, mode);
 
 	    if (fn) {

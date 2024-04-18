@@ -62,6 +62,7 @@
 #define MAX_PROJ_TIMELINES 255
 #define MAX_PROJ_AUDIO_DEVICES 255
 #define MAX_PROJ_CLIPS 512
+#define MAX_GRABBED_CLIPS 255
 
 
 typedef struct project Project;
@@ -105,6 +106,7 @@ typedef struct track {
 
     SDL_Rect *console_rect;
     SDL_Rect *colorbar;
+    SDL_Color color;
     // SDL_Rect *vol_bar;
     // SDL_Rect *pan_bar;
     // SDL_Rect *in_bar;
@@ -183,9 +185,9 @@ typedef struct timeline {
     
     Project *proj;
 
-    Clip *clip_clipboard[MAX_CLIPBOARD_CLIPS];
-    uint8_t num_clipboard_clips;
-    int32_t leftmost_clipboard_clip_pos;
+    /* Clip *clip_clipboard[MAX_CLIPBOARD_CLIPS]; */
+    /* uint8_t num_clipboard_clips; */
+    /* int32_t leftmost_clipboard_clip_pos; */
 
     /* GUI members */
     Layout *layout;
@@ -223,7 +225,12 @@ typedef struct project {
     Clip *clips[MAX_PROJ_CLIPS];
     uint16_t num_clips;
     uint16_t active_clip_index;
-    
+
+    /* Src */
+    bool source_mode;
+    Clip *src_clip;
+    int16_t src_in_sframes;
+    int16_t src_out_sframes;
 
     /* Audio output */
     float *output_L;
@@ -238,6 +245,9 @@ typedef struct project {
     SDL_Rect *audio_rect;
     SDL_Rect *control_bar_rect;
     SDL_Rect *ruler_rect;
+    SDL_Rect *source_rect;
+    SDL_Rect *source_clip_rect;
+    SDL_Rect *source_name_rect;
 } Project;
 
 Project *project_create(

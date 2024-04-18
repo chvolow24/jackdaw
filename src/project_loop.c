@@ -26,7 +26,9 @@ void loop_project_main()
     uint8_t fingersdown = 0;
     uint8_t fingerdown_timer = 0;
 
-    window_push_mode(main_win, PROJECT);
+    uint8_t animate_step = 0;
+
+    window_push_mode(main_win, TIMELINE);
    
     while (!(i_state & I_STATE_QUIT)) {
 	while (SDL_PollEvent(&e)) {
@@ -118,29 +120,33 @@ void loop_project_main()
 		
 	}
 	if (scrolling_lt) {
-	    /* fingersdown = SDL_GetNumTouchFingers(-1); */
-	    if (layout_scroll_step(scrolling_lt) == 0) {
-		scrolling_lt->iterator->scroll_momentum = 0;
-		scrolling_lt = NULL;
-	    } else if (fingersdown > 0) {
-		scrolling_lt->iterator->scroll_momentum = 0;
-		scrolling_lt = NULL;
+	    if (animate_step % 1 == 0) {
+		/* fingersdown = SDL_GetNumTouchFingers(-1); */
+		if (layout_scroll_step(scrolling_lt) == 0) {
+		    scrolling_lt->iterator->scroll_momentum = 0;
+		    scrolling_lt = NULL;
+		} else if (fingersdown > 0) {
+		    scrolling_lt->iterator->scroll_momentum = 0;
+		    scrolling_lt = NULL;
+		}
+		timeline_reset(proj->timelines[proj->active_tl_index]);
 	    }
-	    timeline_reset(proj->timelines[proj->active_tl_index]);
 	}
 	
 
 	if (proj->play_speed != 0) {
-
 	    timeline_set_timecode();
+	}
+
+	if (animate_step == 255) {
+	    animate_step = 0;
+	} else {
+	    animate_step++;
 	}
 
 	/******************** DRAW ********************/
 	window_start_draw(main_win, &color_global_black);
 
-	/***** Debug only *****/
-//	layout_draw(main_win, main_win->layout);
-	/**********************/
 
 	/* if (proj->play_speed != 0) { */
 	/*     timeline_move_play_position((int32_t) 500 * proj->play_speed); */
@@ -149,6 +155,11 @@ void loop_project_main()
 	project_draw(proj);
 	window_draw_menus(main_win);
 	
+	/***** Debug only *****/
+	/* layout_draw(main_win, main_win->layout); */
+	/**********************/
+
+
 	
 	window_end_draw(main_win);
 	/**********************************************/

@@ -33,11 +33,26 @@
 #include "window.h"
 
 #define DEFAULT_SFPP 600
+#define CR_RECT_V_PAD (8 * main_win->dpi_scale_factor)
+#define NUM_TRACK_COLORS 7
 
 extern Window *main_win;
 extern Project *proj;
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;
+
+
+/* /\* Alternating bright colors to easily distinguish tracks *\/ */
+/* uint8_t track_color_index = 0; */
+/* SDL_Color track_colors[7] = { */
+/*     {180, 40, 40, 155}, */
+/*     {226, 151, 0, 155}, */
+/*     {15, 228, 0, 155}, */
+/*     {0, 226, 219, 155}, */
+/*     {0, 98, 226, 155}, */
+/*     {128, 0, 226, 155}, */
+/*     {226, 100, 226, 155} */
+/* }; */
 
 void project_add_timeline(Project *proj, char *name)
 {
@@ -68,6 +83,7 @@ void project_add_timeline(Project *proj, char *name)
     textbox_set_background_color(new_tl->timecode_tb, &color_global_black);
     textbox_set_text_color(new_tl->timecode_tb, &color_global_white);
     textbox_set_trunc(new_tl->timecode_tb, false);
+    /* textbox_size_to_fit(new_tl->timecode_tb, 0, 0); */
     
     /* new_tl->track_selector = 0; */
     
@@ -102,6 +118,10 @@ Project *project_create(
     proj->audio_rect = &(layout_get_child_by_name_recursive(proj->layout, "audio_rect")->rect);
     proj->control_bar_rect = &(layout_get_child_by_name_recursive(proj->layout, "control_bar")->rect);
     proj->ruler_rect = &(layout_get_child_by_name_recursive(proj->layout, "ruler")->rect);
+    Layout *source_lt = layout_get_child_by_name_recursive(proj->layout, "source_area");
+    proj->source_rect = &source_lt->rect;
+    proj->source_clip_rect = &(layout_get_child_by_name_recursive(source_lt, "source_clip")->rect);
+    proj->source_name_rect = &(layout_get_child_by_name_recursive(source_lt, "source_clip_name")->rect);
     project_add_timeline(proj, "Main");
 
     /* Initialize output */
@@ -140,6 +160,17 @@ void timeline_add_track(Timeline *tl)
     track->channels = tl->proj->channels;
 
     track->input = tl->proj->record_devices[0];
+
+    track->color.r = rand() % 255;
+    track->color.g = rand() % 255;
+    track->color.b = rand() % 255;
+    track->color.a = 255;
+    /* track_color_index++; */
+    /* if (track_color_index < NUM_TRACK_COLORS -1) { */
+    /* 	track_color_index++; */
+    /* } else { */
+    /* 	track_color_index = 0; */
+    /* } */
     /* track->muted = false; */
     /* track->solo = false; */
     /* track->solo_muted = false; */
@@ -178,6 +209,10 @@ void timeline_add_track(Timeline *tl)
 	16,
 	main_win);
 
+    textbox_set_align(track->tb_name, CENTER_LEFT);
+    textbox_set_pad(track->tb_name, 4, 0);
+    textbox_set_border(track->tb_name, &color_global_black, 1);
+
     track->tb_input_label = textbox_create_from_str(
 	"In: ",
 	in_label,
@@ -191,6 +226,8 @@ void timeline_add_track(Timeline *tl)
 	main_win->bold_font,
 	16,
 	main_win);
+    track->tb_mute_button->corner_radius = 4;
+    textbox_set_border(track->tb_mute_button, &color_global_black, 1);
 
     track->tb_solo_button = textbox_create_from_str(
 	"S",
@@ -198,9 +235,11 @@ void timeline_add_track(Timeline *tl)
 	main_win->bold_font,
 	16,
 	main_win);
+    track->tb_solo_button->corner_radius = 4;
+    textbox_set_border(track->tb_solo_button, &color_global_black, 1);
 
     track->console_rect = &(layout_get_child_by_name_recursive(track->layout, "track_console")->rect);
-
+    track->colorbar = &(layout_get_child_by_name_recursive(track->layout, "colorbar")->rect);
 }
 
 void project_clear_active_clips()
@@ -243,9 +282,8 @@ void clipref_reset(ClipRef *cr)
 	? cr->clip->len_sframes
 	: cr->out_mark_sframes - cr->in_mark_sframes;
     cr->rect.w = timeline_get_draw_w(cr_len);
-    cr->rect.y = cr->track->layout->rect.y;
-    cr->rect.h = cr->track->layout->rect.h;
-
+    cr->rect.y = cr->track->layout->rect.y + CR_RECT_V_PAD;
+    cr->rect.h = cr->track->layout->rect.h - 2 * CR_RECT_V_PAD;
 }
 
 

@@ -5,6 +5,7 @@
 #include "project.h"
 #include "project_draw.h"
 #include "timeline.h"
+#include "transport.h"
 #include "window.h"
 
 extern Window *main_win;
@@ -27,6 +28,7 @@ void loop_project_main()
     uint8_t fingerdown_timer = 0;
 
     uint8_t animate_step = 0;
+    bool set_i_state_k = false;
 
     window_push_mode(main_win, TIMELINE);
    
@@ -37,7 +39,11 @@ void loop_project_main()
 		i_state |= I_STATE_QUIT;
 		break;
 	    case SDL_WINDOWEVENT:
+		fprintf(stdout, "Window event occurring\n");
 		if (e.window.event == SDL_WINDOWEVENT_RESIZED) {
+
+
+		    fprintf(stdout, "resized\n");
 		    window_resize(main_win, e.window.data1, e.window.data2);
 		}
 		break;
@@ -61,6 +67,13 @@ void loop_project_main()
 			i_state |= I_STATE_C_X;
 		    }
 		    break;
+	        case SDL_SCANCODE_K:
+		    if (i_state & I_STATE_K) {
+			break;
+		    } else {
+			set_i_state_k = true;
+		    }
+		    /* No break */
 		default:
 		    /* i_state = triage_keypdown(i_state, e.key.keysym.scancode); */
 		    input_fn  = input_get(i_state, e.key.keysym.sym, GLOBAL);
@@ -91,6 +104,20 @@ void loop_project_main()
 		case SDL_SCANCODE_RSHIFT:
 		    i_state &= ~I_STATE_SHIFT;
 		    break;
+		case SDL_SCANCODE_K:
+		    i_state &= ~I_STATE_K;
+		    proj->play_speed = 0;
+		    proj->src_play_speed = 0;
+		    transport_stop_playback();
+		    break;
+		case SDL_SCANCODE_J:
+		case SDL_SCANCODE_L:
+		    if (i_state & I_STATE_K) {
+			proj->play_speed = 0;
+			proj->src_play_speed = 0;
+			transport_stop_playback();
+		    }
+		    break;
 		default:
 		    break;
 		}
@@ -117,8 +144,12 @@ void loop_project_main()
 	    default:
 		break;
 	    }
+	    if (set_i_state_k) {
+		i_state |= I_STATE_K;
+		set_i_state_k = false;
+	    }
 		
-	}
+	} /* End event handling */
 	if (scrolling_lt) {
 	    if (animate_step % 1 == 0) {
 		/* fingersdown = SDL_GetNumTouchFingers(-1); */
@@ -146,7 +177,6 @@ void loop_project_main()
 
 	/******************** DRAW ********************/
 	window_start_draw(main_win, &color_global_black);
-
 
 	/* if (proj->play_speed != 0) { */
 	/*     timeline_move_play_position((int32_t) 500 * proj->play_speed); */

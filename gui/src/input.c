@@ -9,6 +9,7 @@
 
 Mode *modes[NUM_INPUT_MODES];
 KeybNode *input_hash_table[INPUT_HASH_SIZE];
+KeybNode *input_keyup_hash_table[INPUT_KEYUP_HASH_SIZE];
 extern Window *main_win;
 
 
@@ -449,6 +450,14 @@ static void mode_load_timeline()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
+	"tl_mute",
+	"Mute selected_track",
+	user_tl_mute
+	);
+    mode_subcat_add_fn(sc, fn);
+
+
+    fn = create_user_fn(
 	"tl_grab_clips_at_point",
 	"Grab clip at point",
 	user_tl_clipref_grab_ungrab
@@ -547,6 +556,7 @@ void input_init_mode_load_all()
 void input_init_hash_table()
 {
     memset(input_hash_table, '\0', INPUT_HASH_SIZE * sizeof(KeybNode*));
+    memset(input_keyup_hash_table, '\0', INPUT_KEYUP_HASH_SIZE * sizeof(KeybNode*));
 }
 
 static int input_hash(uint16_t i_state, SDL_Keycode key)
@@ -554,8 +564,11 @@ static int input_hash(uint16_t i_state, SDL_Keycode key)
     return (7 * i_state + 13 * key) % INPUT_HASH_SIZE;
 }
 
+static char *input_get_keycmd_str(uint16_t i_state, SDL_Keycode keycode);
+
 UserFn *input_get(uint16_t i_state, SDL_Keycode keycode, InputMode mode)
 {
+    /* fprintf(stdout, "KEYCMD STR: %s\n", input_get_keycmd_str(i_state, keycode)); */
     int hash = input_hash(i_state, keycode);
     KeybNode *node = input_hash_table[hash];
     if (!node) {
@@ -596,6 +609,9 @@ static void input_read_keycmd(char *keycmd, uint16_t *i_state, SDL_Keycode *key)
 	keycmd += 2;
     } else if (strncmp("A-", keycmd, 2) == 0) {
 	*i_state =  I_STATE_META;
+	keycmd += 2;
+    } else if (strncmp("K-", keycmd, 2) == 0) {
+	*i_state = I_STATE_K;
 	keycmd += 2;
     } else {
 	*i_state =  0;
@@ -649,6 +665,9 @@ static char *input_get_keycmd_str(uint16_t i_state, SDL_Keycode keycode)
 	break;
     case (I_STATE_META | I_STATE_CMDCTRL):
 	mod = "C-A-";
+	break;
+    case (I_STATE_K):
+	mod = "K-";
 	break;
     default:
 	break;
@@ -733,7 +752,6 @@ void input_bind_fn(UserFn *fn, uint16_t i_state, SDL_Keycode keycode, InputMode 
 		keyb_node->kb = kb;
 		keyb_node->next = NULL;
 		break;
-
 	    }   
 	}
     }

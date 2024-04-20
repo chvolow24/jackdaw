@@ -17,11 +17,9 @@ extern Project *proj;
 
 void user_global_expose_help()
 {
-    fprintf(stdout, "user_global_expose_help\n");
     Menu *new = input_create_master_menu();
     window_add_menu(main_win, new);
-    window_push_mode(main_win, MENU_NAV);
-    
+    window_push_mode(main_win, MENU_NAV);   
 }
 
 void user_global_quit()
@@ -436,6 +434,35 @@ void user_tl_track_activate_selected()
     track_select_n(tl->track_selector);
 }
 
+SDL_Color mute_red = {255, 0, 0, 100};
+SDL_Color solo_yellow = {255, 200, 0, 130};
+extern SDL_Color textbox_default_bckgrnd_clr;
+
+void user_tl_mute()
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Track *track = tl->tracks[tl->track_selector];
+    track->muted = !track->muted;
+    if (track->muted) {
+	textbox_set_background_color(track->tb_mute_button, &mute_red);
+    } else {
+	textbox_set_background_color(track->tb_mute_button, &textbox_default_bckgrnd_clr);
+    }
+}
+
+void user_tl_solo()
+{
+    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
+    /* Track *track = tl->tracks[tl->track_selector]; */
+    /* track->solo = !track->muted; */
+    /* if (track->muted) { */
+    /* 	textbox_set_background_color(track->tb_mute_button, &mute_red); */
+    /* } else { */
+    /* 	textbox_set_background_color(track->tb_mute_button, &textbox_default_bckgrnd_clr); */
+    /* } */
+
+}
+
 
 void user_tl_record()
 {
@@ -496,8 +523,10 @@ void user_tl_load_clip_at_point_to_src()
 void user_tl_activate_source_mode()
 {
     if (!proj->source_mode) {
-	proj->source_mode = true;
-	window_push_mode(main_win, SOURCE);
+	if (proj->src_clip) {
+	    proj->source_mode = true;
+	    window_push_mode(main_win, SOURCE);
+	}
     } else {
 	proj->source_mode = false;
 	window_pop_mode(main_win);

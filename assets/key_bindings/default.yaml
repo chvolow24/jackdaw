@@ -59,6 +59,8 @@
   - S-l		: tl_play_slow
   - S-j		: tl_rewind_slow
   - S-k		: tl_pause
+  - K-l		: tl_play_slow
+  - K-j		: tl_rewind_slow
   - ;		: tl_move_right
   - h		: tl_move_left
   - ,		: tl_zoom_out
@@ -85,6 +87,8 @@
   - w		: tl_track_selector_up
   - s		: tl_track_selector_down
   - <ret>	: tl_track_activate_selected
+  - m		: tl_mute
+  - s		: tl_solo
   - r		: tl_start_stop_record
   - g		: tl_grab_clips_at_point
   - m		: tl_mute_unmute
@@ -100,6 +104,8 @@
   - S-l		: source_play_slow
   - S-j		: source_rewind_slow
   - S-k		: source_pause
+  - K-l		: source_play_slow
+  - K-j		: source_rewind_slow
   - i		: source_set_in_mark
   - o		: source_set_out_mark
   - S-i		: source_set_in_mark

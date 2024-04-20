@@ -209,9 +209,9 @@ static void track_draw(Track *track)
 
     if (track->tl->track_selector == track->tl_rank) {
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
-	geom_draw_rect_thick(main_win->rend, &track->layout->rect, 5, main_win->dpi_scale_factor);
-	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(track_selector_color));
 	geom_draw_rect_thick(main_win->rend, &track->layout->rect, 3, main_win->dpi_scale_factor);
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(track_selector_color));
+	geom_draw_rect_thick(main_win->rend, &track->layout->rect, 1, main_win->dpi_scale_factor);
 
     }
 

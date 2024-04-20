@@ -80,35 +80,74 @@ extern Project *proj;
 /*     return sample; */
 /* } */
 
+int ijk=0;
 
 float *get_track_channel_chunk(Track *track, uint8_t channel, int32_t start_pos_sframes, uint32_t len_sframes, float step)
 {
-    // fprintf(stderr, "Start get track buf\n");
+    /* fprintf(stderr, "Start get track buf %d\n", i++); */
     uint32_t chunk_bytelen = sizeof(float) * len_sframes;
-    float *chunk = malloc(chunk_bytelen);
-    memset(chunk, '\0', chunk_bytelen);
+    float *chunk = calloc(1, chunk_bytelen);
+    /* memset(chunk, '\0', chunk_bytelen); */
     if (track->muted || track->solo_muted) {
         return chunk;
     }
     // uint32_t end_pos_sframes = start_pos_sframes + len_sframes;
-    for (uint32_t i=0; i<len_sframes; i++) {
-        for (uint8_t clip_i=0; clip_i<track->num_clips; clip_i++) {
-            ClipRef *cr = (track->clips)[clip_i];
-
-	    SDL_LockMutex(cr->lock);
-	    if (cr->clip->recording) {
-		continue;
-	    }
-	    int32_t cr_len = clip_ref_len(cr);
-	    
-            float *clip_buf = (channel == 0) ? cr->clip->L : cr->clip->R;
-            int32_t pos_in_clip_sframes = i * step + start_pos_sframes - cr->pos_sframes;
-            if (pos_in_clip_sframes >= 0 && pos_in_clip_sframes < cr_len) {
-		chunk[i] += clip_buf[pos_in_clip_sframes + cr->in_mark_sframes];
-            }
+    for (uint8_t i=0; i<track->num_clips; i++) {
+	ClipRef *cr = track->clips[i];
+	if (!cr) {
+	    continue;
+	}
+	SDL_LockMutex(cr->lock);
+	if (cr->clip->recording) {
 	    SDL_UnlockMutex(cr->lock);
-        }
+	    continue;
+	}
+	int32_t pos_in_clip_sframes = start_pos_sframes - cr->pos_sframes;
+	int32_t end_pos = pos_in_clip_sframes + (step * len_sframes);
+	int32_t min, max;
+	if (end_pos >= pos_in_clip_sframes) {
+	    min = pos_in_clip_sframes;
+	    max = end_pos;
+	} else {
+	    min = end_pos;
+	    max = pos_in_clip_sframes;
+	}
+	int32_t cr_len = clip_ref_len(cr);
+	if (max < 0 || min > cr_len) {
+	    SDL_UnlockMutex(cr->lock);
+	    continue;
+	}
+	float *clip_buf = (channel == 0) ? cr->clip->L : cr->clip->R;
+	int16_t chunk_i = 0;
+	while (chunk_i < len_sframes) {
+	    if (pos_in_clip_sframes >= 0 && pos_in_clip_sframes < cr_len) {
+		chunk[chunk_i] += clip_buf[pos_in_clip_sframes + cr->in_mark_sframes];
+	    }
+	    pos_in_clip_sframes += step;
+	    chunk_i++;
+	}
+	
+	
+	SDL_UnlockMutex(cr->lock);
     }
+    /* for (uint32_t i=0; i<len_sframes; i++) { */
+    /*     for (uint8_t clip_i=0; clip_i<track->num_clips; clip_i++) { */
+    /*         ClipRef *cr = (track->clips)[clip_i]; */
+
+    /* 	    SDL_LockMutex(cr->lock); */
+    /* 	    if (cr->clip->recording) { */
+    /* 		continue; */
+    /* 	    } */
+    /* 	    int32_t cr_len = clip_ref_len(cr); */
+	    
+    /*         float *clip_buf = (channel == 0) ? cr->clip->L : cr->clip->R; */
+    /*         int32_t pos_in_clip_sframes = i * step + start_pos_sframes - cr->pos_sframes; */
+    /*         if (pos_in_clip_sframes >= 0 && pos_in_clip_sframes < cr_len) { */
+    /* 		chunk[i] += clip_buf[pos_in_clip_sframes + cr->in_mark_sframes]; */
+    /*         } */
+    /* 	    SDL_UnlockMutex(cr->lock); */
+    /*     } */
+    /* } */
 
     return chunk;
 }

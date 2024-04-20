@@ -237,7 +237,7 @@ void timeline_add_track(Timeline *tl)
 	"M",
 	mute,
 	main_win->bold_font,
-	16,
+	14,
 	main_win);
     track->tb_mute_button->corner_radius = 4;
     textbox_set_border(track->tb_mute_button, &color_global_black, 1);
@@ -246,7 +246,7 @@ void timeline_add_track(Timeline *tl)
 	"S",
 	solo,
 	main_win->bold_font,
-	16,
+	14,
 	main_win);
     track->tb_solo_button->corner_radius = 4;
     textbox_set_border(track->tb_solo_button, &color_global_black, 1);

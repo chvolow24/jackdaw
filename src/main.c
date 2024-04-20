@@ -46,7 +46,7 @@
 #define INSTALL_DIR ""
 #endif
 
-#define WINDOW_DEFAULT_W 1200
+#define WINDOW_DEFAULT_W 900
 #define WINDOW_DEFAULT_H 800
 /* #define OPEN_SANS_PATH INSTALL_DIR "/assets/ttf/OpenSans-Regular.ttf" */
 #define MAIN_LT_PATH INSTALL_DIR "/gui/jackdaw_main_layout.xml"

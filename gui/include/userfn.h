@@ -44,13 +44,16 @@ void user_tl_track_select_4();
 void user_tl_track_select_5();
 void user_tl_track_select_6();
 void user_tl_track_select_7();
-
 void user_tl_track_select_8();
 void user_tl_track_select_9();
 void user_tl_track_activate_all();
 void user_tl_track_selector_up();
 void user_tl_track_selector_down();
 void user_tl_track_activate_selected();
+void user_tl_mute();
+void user_tl_solo();
+
+
 void user_tl_record();
 void user_tl_clipref_grab_ungrab();
 void user_tl_load_clip_at_point_to_src();

@@ -78,8 +78,8 @@ static float *get_source_mode_chunk(uint8_t channel, uint32_t len_sframes, int32
     
 
     for (uint32_t i=0; i<len_sframes; i++) {
-	if (i * step + start_pos_sframes < proj->src_clip->len_sframes) {
-	    int sample_i = (int) (i * step + start_pos_sframes);
+        int sample_i = (int) (i * step + start_pos_sframes);
+	if (sample_i < proj->src_clip->len_sframes && sample_i > 0) {
 	    chunk[i] = src_buffer[sample_i];
 	} else {
 	    chunk[i] = 0;
@@ -135,6 +135,9 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     // }
     if (proj->source_mode) {
 	proj->src_play_pos_sframes += proj->src_play_speed * stream_len_samples / proj->channels;
+	if (proj->src_play_pos_sframes < 0 || proj->src_play_pos_sframes > proj->src_clip->len_sframes) {
+	    proj->src_play_pos_sframes = 0;
+	}
     } else {
 	timeline_move_play_position(proj->play_speed * stream_len_samples / proj->channels);
     }

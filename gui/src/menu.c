@@ -187,7 +187,7 @@ MenuItem *menu_item_add(
     void *target
 )
 {
-    fprintf(stdout, "ADD item label: \"%s\", annot: \"%s\"\n", label, annotation);
+    /* fprintf(stdout, "ADD item label: \"%s\", annot: \"%s\"\n", label, annotation); */
     MenuItem *item = malloc(sizeof(MenuItem));
     item->annot_tb = NULL;
     item->label = label;
@@ -278,7 +278,7 @@ MenuItem *menu_item_add(
     sctn->layout->h.value.intval += h_logical + MENU_STD_ITEM_V_SPACING;
     
     if (w_logical > col->layout->w.value.intval) {
-	fprintf(stdout, "Setting col w to %d\n", w_logical);
+	/* fprintf(stdout, "Setting col w to %d\n", w_logical); */
 	col->layout->w.value.intval = w_logical;
     }
     col->layout->h.value.intval += h_logical + MENU_STD_ITEM_V_SPACING;
@@ -293,8 +293,6 @@ MenuItem *menu_item_add(
     }
 
     menu_reset_layout(col->menu);
-
-    fprintf(stderr, "End create item\n");
     return item;
 }
 
@@ -306,7 +304,7 @@ void menu_item_destroy(MenuItem *item)
 
 void menu_destroy(Menu *menu)
 {
-    fprintf(stdout, "\t->menu destroy\n");
+    /* fprintf(stdout, "\t->menu destroy\n"); */
     /* if (menu->title) { */
     /* 	free(menu->title); */
     /* } */
@@ -314,8 +312,8 @@ void menu_destroy(Menu *menu)
     /* if (menu->description) { */
     /* 	free(menu->description); */
     /* } */
-    fprintf(stdout, "\t->successfully destroyed the desc\n");
-    fprintf(stdout, "\t->prelim destroy\n");
+    /* fprintf(stdout, "\t->successfully destroyed the desc\n"); */
+    /* fprintf(stdout, "\t->prelim destroy\n"); */
     for (int c=0; c<menu->num_columns; c++) {
 	MenuColumn *column = menu->columns[c];
 	for (int s=0; s < column->num_sections; s++) {

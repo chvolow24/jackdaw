@@ -1,4 +1,5 @@
 #include "SDL.h"
+#include <time.h>
 #include "draw.h"
 #include "input.h"
 #include "layout.h"
@@ -17,6 +18,10 @@ Project *proj;
 
 void loop_project_main()
 {
+
+    clock_t start, end;
+    uint8_t frame_ctr = 0;
+    float fps = 0;
 
     Layout *temp_scrolling_lt = NULL;
     Layout *scrolling_lt = NULL;
@@ -39,11 +44,7 @@ void loop_project_main()
 		i_state |= I_STATE_QUIT;
 		break;
 	    case SDL_WINDOWEVENT:
-		fprintf(stdout, "Window event occurring\n");
 		if (e.window.event == SDL_WINDOWEVENT_RESIZED) {
-
-
-		    fprintf(stdout, "resized\n");
 		    window_resize(main_win, e.window.data1, e.window.data2);
 		}
 		break;
@@ -195,6 +196,18 @@ void loop_project_main()
 	/**********************************************/
 
 	SDL_Delay(1);
+
+
+        end = clock();
+	fps += (float)CLOCKS_PER_SEC / (end - start);
+	start = end;
+	if (frame_ctr > 100) {
+	    fps /= 100;
+	    fprintf(stdout, "FPS: %f\n", fps);
+	    frame_ctr = 0;
+	} else {
+	    frame_ctr++;
+	}
 
     }
 }

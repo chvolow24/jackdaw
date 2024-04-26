@@ -150,6 +150,8 @@ static void device_destroy(AudioDevice *device)
 
 static void device_close(AudioDevice *device)
 {
+    fprintf(stdout, "CLOSING device %s, id: %d\n",device->name, device->id);
+
     SDL_CloseAudioDevice(device->id);
 }
 
@@ -171,6 +173,8 @@ void device_stop_recording(AudioDevice *dev)
 
 void device_start_recording(AudioDevice *dev)
 {
-    device_open(proj, dev);
+    if (!dev->open) {
+	device_open(proj, dev);
+    }
     SDL_PauseAudioDevice(dev->id, 0);
 }

@@ -13,21 +13,33 @@ KeybNode *input_keyup_hash_table[INPUT_KEYUP_HASH_SIZE];
 extern Window *main_win;
 
 
+static const char *input_mode_strs[] = {
+    "global",
+    "menu_nav",
+    "timeline",
+    "source"
+};
+
 const char *input_mode_str(InputMode im)
 {
-    switch (im) {
-    case GLOBAL:
-	return "global";
-    case MENU_NAV:
-	return "menu_nav";
-    case TIMELINE:
-	return "timeline";
-    case SOURCE:
-	return "source";
-    default:
-	fprintf(stderr, "ERROR: [no mode string for value %d]\n", im);
+    if (im < NUM_INPUT_MODES) {
+	return input_mode_strs[im];
+    } else {
 	return "[no mode]";
     }
+    /* switch (im) { */
+    /* case GLOBAL: */
+    /* 	return "global"; */
+    /* case MENU_NAV: */
+    /* 	return "menu_nav"; */
+    /* case TIMELINE: */
+    /* 	return "timeline"; */
+    /* case SOURCE: */
+    /* 	return "source"; */
+    /* default: */
+    /* 	fprintf(stderr, "ERROR: [no mode string for value %d]\n", im); */
+    /* 	return "[no mode]"; */
+    /* } */
 }
 
 InputMode input_mode_from_str(char *str)

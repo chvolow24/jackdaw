@@ -215,7 +215,11 @@ static void track_draw(Track *track)
 
     }
 
-    
+    /* fslider_reset(track->vol_ctrl); */
+    fslider_draw(track->vol_ctrl);
+    /* fslider_reset(track->pan_ctrl); */
+
+    fslider_draw(track->pan_ctrl);
     
     
 }
@@ -423,7 +427,16 @@ void project_draw(Project *proj)
     timeline_draw(proj->timelines[proj->active_tl_index]);
     control_bar_draw(proj);
 
-    /* layout_draw(main_win, proj->timelines[proj->active_tl_index]->timecode_tb->layout); */
+
+    /* for (int i=0; i<proj->timelines[proj->active_tl_index]->num_tracks; i++) { */
+    /* 	Track *track = proj->timelines[proj->active_tl_index]->tracks[i]; */
+    /* 	if (track->vol > 0) { */
+    /* 	    track->vol -= 0.01; */
+    /* 	    fslider_reset(track->vol_ctrl); */
+    /* 	} */
+    /* } */
+
+    /* layout_draw(main_win, proj->timelines[proj->active_tl_index]->layout); */
 }
 
 

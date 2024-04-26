@@ -36,6 +36,11 @@
 #define CR_RECT_V_PAD (8 * main_win->dpi_scale_factor)
 #define NUM_TRACK_COLORS 7
 
+#define TRACK_NAME_H_PAD 3
+#define TRACK_NAME_V_PAD 3
+#define TRACK_CTRL_SLIDER_H_PAD 7
+#define TRACK_CTRL_SLIDER_V_PAD 5
+
 extern Window *main_win;
 extern Project *proj;
 extern SDL_Color color_global_black;
@@ -204,7 +209,9 @@ void timeline_add_track(Timeline *tl)
 
     Layout *name, *mute, *solo, *vol_label, *pan_label, *in_label, *in_value;
 
-    name = layout_get_child_by_name_recursive(track->layout, "track_name");
+    Layout *track_name_row = layout_get_child_by_name_recursive(track->layout, "track_name");
+    name = layout_add_child(track_name_row);
+    layout_pad(name, TRACK_NAME_H_PAD, TRACK_NAME_V_PAD);
     mute = layout_get_child_by_name_recursive(track->layout, "mute");
     solo = layout_get_child_by_name_recursive(track->layout, "solo");
     vol_label = layout_get_child_by_name_recursive(track->layout, "vol_label");
@@ -250,6 +257,37 @@ void timeline_add_track(Timeline *tl)
 	main_win);
     track->tb_solo_button->corner_radius = 4;
     textbox_set_border(track->tb_solo_button, &color_global_black, 1);
+
+
+    Layout *vol_ctrl_row = layout_get_child_by_name_recursive(track->layout, "vol_slider");
+    Layout *vol_ctrl_lt = layout_add_child(vol_ctrl_row);
+
+    layout_pad(vol_ctrl_lt, TRACK_CTRL_SLIDER_H_PAD, TRACK_CTRL_SLIDER_V_PAD);
+    /* vol_ctrl_lt->x.value.intval = TRACK_CTRL_SLIDER_H_PAD; */
+    /* vol_ctrl_lt->y.value.intval = TRACK_CTRL_SLIDER_V_PAD; */
+    /* vol_ctrl_lt->w.value.intval = vol_ctrl_row->w.value.intval - TRACK_CTRL_SLIDER_H_PAD * 2; */
+    /* vol_ctrl_lt->h.value.intval = vol_ctrl_row->h.value.intval - TRACK_CTRL_SLIDER_V_PAD * 2; */
+    /* layout_set_values_from_rect(vol_ctrl_lt); */
+    
+    track->vol = 1.0f;
+    track->vol_ctrl = fslider_create(&track->vol, vol_ctrl_lt, SLIDER_HORIZONTAL, SLIDER_FILL);
+
+    Layout *pan_ctrl_row = layout_get_child_by_name_recursive(track->layout, "pan_slider");
+    Layout *pan_ctrl_lt = layout_add_child(pan_ctrl_row);
+
+    layout_pad(pan_ctrl_lt, TRACK_CTRL_SLIDER_H_PAD, TRACK_CTRL_SLIDER_V_PAD);
+    /* pan_ctrl_lt->x.value.intval = TRACK_CTRL_SLIDER_H_PAD; */
+    /* pan_ctrl_lt->y.value.intval = TRACK_CTRL_SLIDER_V_PAD; */
+    /* pan_ctrl_lt->w.value.intval = pan_ctrl_row->w.value.intval - TRACK_CTRL_SLIDER_H_PAD * 2; */
+    /* pan_ctrl_lt->h.value.intval = pan_ctrl_row->h.value.intval - TRACK_CTRL_SLIDER_V_PAD * 2; */
+    /* /\* layout_set_values_from_rect(pan_ctrl_lt); *\/ */
+    
+    track->pan = 0.5f;
+    track->pan_ctrl = fslider_create(&track->pan, pan_ctrl_lt, SLIDER_HORIZONTAL, SLIDER_TICK);
+
+    fslider_reset(track->vol_ctrl);
+    fslider_reset(track->pan_ctrl);
+    
 
     track->console_rect = &(layout_get_child_by_name_recursive(track->layout, "track_console")->rect);
     track->colorbar = &(layout_get_child_by_name_recursive(track->layout, "colorbar")->rect);

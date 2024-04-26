@@ -968,6 +968,23 @@ void layout_set_type_recursive(Layout *lt, LayoutType type)
     }
 }
 
+void layout_pad(Layout *lt, int h_pad, int v_pad)
+{
+    Layout *parent = lt->parent;
+    if (!parent) {
+	return;
+    }
+    int h_pix_pad = h_pad * (main_win->dpi_scale_factor);
+    int v_pix_pad = v_pad * (main_win->dpi_scale_factor);
+    lt->rect.x = parent->rect.x + h_pix_pad;
+    lt->rect.y = parent->rect.y + v_pix_pad;
+    lt->rect.w = parent->rect.w - 2 * h_pix_pad;
+    lt->rect.h = parent->rect.h - 2 * v_pix_pad;
+    layout_set_values_from_rect(lt);
+
+}
+
+
 
 Layout *layout_deepest_at_point(Layout *search, SDL_Point *point)
 {

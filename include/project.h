@@ -51,6 +51,7 @@
 #include <stdint.h>
 
 #include "textbox.h"
+#include "slider.h"
 
 #define MAX_TRACKS 255
 #define MAX_NAMELENGTH 255
@@ -91,6 +92,11 @@ typedef struct track {
 
     AudioDevice *input;
     AudioDevice *output;
+
+    float vol; /* 0.0 - 1.0 attenuation only */
+    float pan; /* 0.0 pan left; 0.5 center; 1.0 pan right */
+    FSlider *vol_ctrl;
+    FSlider *pan_ctrl;
     
     /* FSLIDER *vol_ctrl */
     /* FSlider *pan_ctrl */

@@ -600,13 +600,15 @@ void user_tl_drop_from_source()
 
 void user_tl_add_new_timeline()
 {
-    proj->active_tl_index = project_add_timeline(proj, "New Timeline");   
+    proj->active_tl_index = project_add_timeline(proj, "New Timeline");
+    project_reset_tl_label(proj);
 }
 
 void user_tl_previous_timeline()
 {
     if (proj->active_tl_index > 0) {
 	proj->active_tl_index--;
+	project_reset_tl_label(proj);
     }
 }
 
@@ -614,6 +616,7 @@ void user_tl_next_timeline()
 {
     if (proj->active_tl_index < proj->num_timelines - 1) {
 	proj->active_tl_index++;
+	project_reset_tl_label(proj);
     }
 }
 

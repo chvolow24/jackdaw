@@ -65,6 +65,7 @@
 #define MAX_PROJ_CLIPS 512
 #define MAX_GRABBED_CLIPS 255
 
+#define PROJ_TL_LABEL_BUFLEN 50
 
 typedef struct project Project;
 typedef struct timeline Timeline;
@@ -213,6 +214,8 @@ typedef struct project {
     Timeline *timelines[MAX_PROJ_TIMELINES];
     uint8_t num_timelines;
     uint8_t active_tl_index;
+    char timeline_label_str[PROJ_TL_LABEL_BUFLEN];
+    Textbox *timeline_label;
     
     float play_speed;
     bool recording;
@@ -278,6 +281,7 @@ Project *project_create(
 
 /* Return the index of a timeline to switch to (new one if success) */
 uint8_t project_add_timeline(Project *proj, char *name);
+void project_reset_tl_label(Project *proj);
 void timeline_add_track(Timeline *tl);
 void timeline_reset(Timeline *tl);
 Clip *project_add_clip(AudioDevice *dev, Track *target);

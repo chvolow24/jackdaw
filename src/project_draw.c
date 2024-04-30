@@ -426,6 +426,7 @@ void project_draw(Project *proj)
 {
     timeline_draw(proj->timelines[proj->active_tl_index]);
     control_bar_draw(proj);
+    textbox_draw(proj->timeline_label);
 
 
     /* for (int i=0; i<proj->timelines[proj->active_tl_index]->num_tracks; i++) { */

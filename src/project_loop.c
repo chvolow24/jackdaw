@@ -55,8 +55,6 @@ static void stop_update_track_vol_pan()
     }
     proj->vol_changing = false;
     proj->pan_changing = false;
-    
-
 }
 
 

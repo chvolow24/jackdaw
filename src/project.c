@@ -51,6 +51,8 @@ extern SDL_Color color_global_white;
 extern SDL_Color color_global_clear;
 
 
+SDL_Color timeline_label_txt_color = {0, 200, 100, 255};
+
 /* Alternating bright colors to easily distinguish tracks */
 uint8_t track_color_index = 0;
 SDL_Color track_colors[7] = {
@@ -101,6 +103,14 @@ uint8_t project_add_timeline(Project *proj, char *name)
     proj->num_timelines++;
     return proj->num_timelines - 1; /* Return the new timeline index */
 }
+
+void project_reset_tl_label(Project *proj)
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    snprintf(proj->timeline_label_str, PROJ_TL_LABEL_BUFLEN, "Timeline %d: %s\n", proj->active_tl_index + 1, tl->name);
+    textbox_reset_full(proj->timeline_label);
+}
+
 void project_init_audio_devices(Project *proj);
 Project *project_create(
     char *name,
@@ -146,6 +156,19 @@ Project *project_create(
     textbox_set_text_color(proj->source_name_tb, &color_global_white);
 
     project_add_timeline(proj, "Main");
+    Layout *timeline_label_lt = layout_get_child_by_name_recursive(proj->layout, "timeline_label");
+    strcpy(proj->timeline_label_str, "Timeline 1: Main");
+    proj->timeline_label = textbox_create_from_str(
+	proj->timeline_label_str,
+	timeline_label_lt,
+	main_win->bold_font,
+	12,
+	main_win
+	);
+    textbox_set_text_color(proj->timeline_label, &timeline_label_txt_color);
+    textbox_set_background_color(proj->timeline_label, &color_global_clear);
+    textbox_set_align(proj->timeline_label, CENTER_LEFT);
+    project_reset_tl_label(proj);
     /* Initialize output */
     proj->output_len = chunk_size_sframes;
     proj->output_L = malloc(sizeof(float) * chunk_size_sframes);

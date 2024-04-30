@@ -3,7 +3,13 @@
 
 
 #include "layout.h"
+#include "textbox.h"
 
+#define SLIDER_LABEL_STRBUFLEN 8
+
+
+typedef void (SliderStrFn)(char *dst, size_t dstsize, float value);
+ 
 typedef enum slider_orientation {
     SLIDER_HORIZONTAL,
     SLIDER_VERTICAL
@@ -23,9 +29,18 @@ typedef struct f_slider {
     DimVal *val_dim;
     SDL_Rect *bar_rect;
     bool editing;
+    Textbox *label;
+    char label_str[SLIDER_LABEL_STRBUFLEN];
+    SliderStrFn *create_label;
 } FSlider;
 
-FSlider *fslider_create(float *value, Layout *layout, SliderOrientation orientation, SliderType type);
+FSlider *fslider_create(
+    float *value,
+    Layout *layout,
+    SliderOrientation orientation,
+    SliderType type,
+    SliderStrFn *fn);
+void fslider_set_range(FSlider *fs, float min, float max);
 void fslider_reset(FSlider *fs);
 void fslider_draw(FSlider *fs);
 

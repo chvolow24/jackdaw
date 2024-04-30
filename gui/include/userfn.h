@@ -50,8 +50,15 @@ void user_tl_track_activate_all();
 void user_tl_track_selector_up();
 void user_tl_track_selector_down();
 void user_tl_track_activate_selected();
+
 void user_tl_mute();
 void user_tl_solo();
+void user_tl_track_vol_up();
+/* void user_tl_track_vol_up_toggle(); */
+void user_tl_track_vol_down();
+
+void user_tl_track_pan_left();
+void user_tl_track_pan_right();
 
 
 void user_tl_record();
@@ -59,6 +66,10 @@ void user_tl_clipref_grab_ungrab();
 void user_tl_load_clip_at_point_to_src();
 void user_tl_activate_source_mode();
 void user_tl_drop_from_source();
+
+void user_tl_add_new_timeline();
+void user_tl_previous_timeline();
+void user_tl_next_timeline();
 
 void user_source_play();
 void user_source_pause();

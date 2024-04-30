@@ -14,10 +14,18 @@
 
 extern Window *main_win;
 extern Project *proj;
+extern Mode **modes;
 
 void user_global_expose_help()
 {
-    Menu *new = input_create_master_menu();
+    if (main_win->num_modes <= 0) {
+	fprintf(stderr, "Error: no modes active in user_global_expose_help\n");
+	return;
+    }
+    InputMode current_mode = main_win->modes[main_win->num_modes - 1];
+    
+    /* Menu *new = input_create_master_menu(); */
+    Menu *new = input_create_menu_from_mode(current_mode);
     window_add_menu(main_win, new);
     window_push_mode(main_win, MENU_NAV);   
 }
@@ -311,8 +319,7 @@ void user_tl_add_track()
 	fprintf(stderr, "Error: user call to add track w/o global project\n");
 	exit(1);
     }
-    Timeline *tl = proj->timelines[0]; // TODO: get active timeline;
-
+    Timeline *tl = proj->timelines[proj->active_tl_index]; // TODO: get active timeline;
     timeline_add_track(tl);   
 }
 
@@ -450,6 +457,53 @@ void user_tl_mute()
     }
 }
 
+/* void user_tl_track_vol_up_toggle() */
+/* { */
+/*     fprintf(stdout, "vol up toggle\n"); */
+/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
+/*     if (proj->vol_changing) { */
+/* 	proj->vol_changing = NULL; */
+/*     } else { */
+/*         proj->vol_changing = tl->tracks[tl->track_selector]; */
+/* 	proj->vol_up = true; */
+/*     } */
+/* } */
+
+
+void user_tl_track_vol_up()
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    /* proj->vol_changing = tl->tracks[tl->track_selector]; */
+    proj->vol_changing = true;
+    proj->vol_up = true;
+    
+}
+
+void user_tl_track_vol_down()
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    /* proj->vol_changing = tl->tracks[tl->track_selector]; */
+    proj->vol_changing = true;
+    proj->vol_up = false;
+
+}
+
+void user_tl_track_pan_left()
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    proj->pan_changing = tl->tracks[tl->track_selector];
+    proj->pan_right = false;
+
+}
+
+void user_tl_track_pan_right()
+{
+   Timeline *tl = proj->timelines[proj->active_tl_index];
+    proj->pan_changing = tl->tracks[tl->track_selector];
+    proj->pan_right = true;
+}
+
+
 void user_tl_solo()
 {
     /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
@@ -541,6 +595,26 @@ void user_tl_drop_from_source()
     cr->in_mark_sframes = proj->src_in_sframes;
     cr->out_mark_sframes = proj->src_out_sframes;
     clipref_reset(cr);
+}
+
+
+void user_tl_add_new_timeline()
+{
+    proj->active_tl_index = project_add_timeline(proj, "New Timeline");   
+}
+
+void user_tl_previous_timeline()
+{
+    if (proj->active_tl_index > 0) {
+	proj->active_tl_index--;
+    }
+}
+
+void user_tl_next_timeline()
+{
+    if (proj->active_tl_index < proj->num_timelines - 1) {
+	proj->active_tl_index++;
+    }
 }
 
 /* source mode */

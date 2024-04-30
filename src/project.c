@@ -28,6 +28,7 @@
 #include "audio_device.h"
 #include "layout.h"
 #include "project.h"
+#include "slider.h"
 #include "textbox.h"
 #include "timeline.h"
 #include "window.h"
@@ -41,6 +42,8 @@
 #define TRACK_CTRL_SLIDER_H_PAD 7
 #define TRACK_CTRL_SLIDER_V_PAD 5
 
+#define TRACK_VOL_STEP 0.03
+#define TRACK_PAN_STEP 0.01
 extern Window *main_win;
 extern Project *proj;
 extern SDL_Color color_global_black;
@@ -60,10 +63,11 @@ SDL_Color track_colors[7] = {
     {245, 240, 206, 255}
 };
 
-void project_add_timeline(Project *proj, char *name)
+uint8_t project_add_timeline(Project *proj, char *name)
 {
     if (proj->num_timelines == MAX_PROJ_TIMELINES) {
 	fprintf(stdout, "Error: project has max num timlines\n:");
+	return proj->active_tl_index;
     }
     Timeline *new_tl = calloc(1, sizeof(Timeline));
     if (!new_tl) {
@@ -95,6 +99,7 @@ void project_add_timeline(Project *proj, char *name)
     
     proj->timelines[proj->num_timelines] = new_tl;
     proj->num_timelines++;
+    return proj->num_timelines - 1; /* Return the new timeline index */
 }
 void project_init_audio_devices(Project *proj);
 Project *project_create(
@@ -165,6 +170,31 @@ void project_init_audio_devices(Project *proj)
 	fprintf(stderr, "Error: failed to open default audio device \"%s\". More info: %s\n", proj->playback_device->name, SDL_GetError());
     }
 }
+
+
+static float amp_to_db(float amp)
+{
+    return (20.0f * log10(amp));
+}
+
+static void slider_label_amp_to_dbstr(char *dst, size_t dstsize, float amp)
+{
+    int max_float_chars = dstsize - 2;
+    if (max_float_chars < 1) {
+	fprintf(stderr, "Error: no room for dbstr\n");
+	dst[0] = '\0';
+	return;
+    }
+    snprintf(dst, max_float_chars, "%f", amp_to_db(amp));
+    strcat(dst, " dB");
+}
+
+static void slider_label_plain_str(char *dst, size_t dstsize, float value)
+{
+    snprintf(dst, dstsize, "%f", value);
+
+}
+
 
 void timeline_add_track(Timeline *tl)
 {
@@ -270,7 +300,13 @@ void timeline_add_track(Timeline *tl)
     /* layout_set_values_from_rect(vol_ctrl_lt); */
     
     track->vol = 1.0f;
-    track->vol_ctrl = fslider_create(&track->vol, vol_ctrl_lt, SLIDER_HORIZONTAL, SLIDER_FILL);
+    track->vol_ctrl = fslider_create(
+	&track->vol,
+	vol_ctrl_lt,
+	SLIDER_HORIZONTAL,
+	SLIDER_FILL,
+	slider_label_amp_to_dbstr);
+    fslider_set_range(track->vol_ctrl, 0.0f, 3.0f);
 
     Layout *pan_ctrl_row = layout_get_child_by_name_recursive(track->layout, "pan_slider");
     Layout *pan_ctrl_lt = layout_add_child(pan_ctrl_row);
@@ -283,7 +319,12 @@ void timeline_add_track(Timeline *tl)
     /* /\* layout_set_values_from_rect(pan_ctrl_lt); *\/ */
     
     track->pan = 0.5f;
-    track->pan_ctrl = fslider_create(&track->pan, pan_ctrl_lt, SLIDER_HORIZONTAL, SLIDER_TICK);
+    track->pan_ctrl = fslider_create(
+	&track->pan,
+	pan_ctrl_lt,
+	SLIDER_HORIZONTAL,
+	SLIDER_TICK,
+	slider_label_plain_str);
 
     fslider_reset(track->vol_ctrl);
     fslider_reset(track->pan_ctrl);
@@ -383,4 +424,39 @@ void timeline_reset(Timeline *tl)
     for (int i=0; i<tl->num_tracks; i++) {
 	track_reset(tl->tracks[i]);
     }
+}
+
+void track_increment_vol(Track *track)
+{
+    track->vol += TRACK_VOL_STEP;
+    if (track->vol > track->vol_ctrl->max) {
+	track->vol = track->vol_ctrl->max;
+    }
+    fslider_reset(track->vol_ctrl);
+}
+void track_decrement_vol(Track *track)
+{
+    track->vol -= TRACK_VOL_STEP;
+    if (track->vol < 0.0f) {
+	track->vol = 0.0f;
+    }
+    fslider_reset(track->vol_ctrl);
+}
+
+void track_increment_pan(Track *track)
+{
+    track->pan += TRACK_PAN_STEP;
+    if (track->pan > 1.0f) {
+	track->pan = 1.0f;
+    }
+    fslider_reset(track->pan_ctrl);
+}
+
+void track_decrement_pan(Track *track)
+{
+    track->pan -= TRACK_PAN_STEP;
+    if (track->pan < 0.0f) {
+	track->pan = 0.0f;
+    }
+    fslider_reset(track->pan_ctrl);
 }

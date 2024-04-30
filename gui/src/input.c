@@ -100,8 +100,14 @@ static UserFn *create_user_fn(
     fn->fn_id = fn_id;
     fn->annotation = NULL;
     fn->fn_display_name = fn_display_name;
+    fn->is_toggle = false;
     fn->do_fn = do_fn;
     return fn;
+}
+
+static void set_user_fn_toggle(UserFn *fn)
+{
+    fn->is_toggle = true;
 }
 
 static void mode_load_global()
@@ -462,14 +468,6 @@ static void mode_load_timeline()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
-	"tl_mute",
-	"Mute selected_track",
-	user_tl_mute
-	);
-    mode_subcat_add_fn(sc, fn);
-
-
-    fn = create_user_fn(
 	"tl_grab_clips_at_point",
 	"Grab clip at point",
 	user_tl_clipref_grab_ungrab
@@ -497,6 +495,74 @@ static void mode_load_timeline()
 	);
     mode_subcat_add_fn(sc, fn);
 
+    
+    sc = mode_add_subcat(mode, "Track settings");
+
+
+    fn = create_user_fn(
+	"tl_mute",
+	"Mute selected_track",
+	user_tl_mute
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_track_vol_up",
+	"Track volume up",
+	user_tl_track_vol_up
+	);
+    /* set_user_fn_toggle(fn); */
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_track_vol_down",
+	"Track volume down",
+	user_tl_track_vol_down
+	);
+    mode_subcat_add_fn(sc, fn);
+
+
+    /* fn = create_user_fn( */
+    /* 	"tl_track_vol_down_toggle", */
+    /* 	"Track volume down", */
+    /* 	user_tl_track_vol_down_toggle */
+    /* 	); */
+    /* mode_subcat_add_fn(sc, fn); */
+
+    fn = create_user_fn(
+	"tl_track_pan_left",
+	"Track pan left",
+	user_tl_track_pan_left
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_track_pan_right",
+	"Track pan right",
+	user_tl_track_pan_right
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_add_new_timeline",
+	"Add new timeline",
+	user_tl_add_new_timeline
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_previous_timeline",
+	"Previous timeline",
+	user_tl_previous_timeline
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_next_timeline",
+	"Next timeline",
+	user_tl_next_timeline
+	);
+    mode_subcat_add_fn(sc, fn);
 }
 
 static void mode_load_source()
@@ -576,7 +642,7 @@ static int input_hash(uint16_t i_state, SDL_Keycode key)
     return (7 * i_state + 13 * key) % INPUT_HASH_SIZE;
 }
 
-static char *input_get_keycmd_str(uint16_t i_state, SDL_Keycode keycode);
+char *input_get_keycmd_str(uint16_t i_state, SDL_Keycode keycode);
 
 UserFn *input_get(uint16_t i_state, SDL_Keycode keycode, InputMode mode)
 {
@@ -599,6 +665,13 @@ UserFn *input_get(uint16_t i_state, SDL_Keycode keycode, InputMode mode)
 	}
     }
 }
+
+/* char *input_state_str(uint16_t i_state) */
+/* { */
+    
+
+/* } */
+
 
 static void input_read_keycmd(char *keycmd, uint16_t *i_state, SDL_Keycode *key)
 {
@@ -651,7 +724,7 @@ static void input_read_keycmd(char *keycmd, uint16_t *i_state, SDL_Keycode *key)
     
 }
 
-static char *input_get_keycmd_str(uint16_t i_state, SDL_Keycode keycode)
+char *input_get_keycmd_str(uint16_t i_state, SDL_Keycode keycode)
 {
     char buf[32];
     memset(buf, '\0', 32);
@@ -821,10 +894,10 @@ Menu *input_create_menu_from_mode(InputMode im)
 	exit(1);
     }
     Menu *m = menu_create(m_layout, main_win);
-    MenuColumn *c = menu_column_add(m, "");
     for (int i=0; i<mode->num_subcats; i++) {
 	ModeSubcat *sc = mode->subcats[i];
-	MenuSection *sctn = menu_section_add(c, sc->name);
+	MenuColumn *c = menu_column_add(m, sc->name);
+	MenuSection *sctn = menu_section_add(c, "");
 	for (int j=0; j<sc->num_fns; j++) {
 	    UserFn *fn = sc->fns[j];
 	    menu_item_add(sctn, fn->fn_display_name, fn->annotation, fn->do_fn, NULL);
@@ -942,6 +1015,7 @@ void input_load_keybinding_config(const char *filepath)
 	    } while (c != ':' && c != ' ' && c != '\t');
 	    buf[i] = '\0';
 	    input_read_keycmd(buf, &i_state, &key);
+	    /* fprintf(stdout, "BUF: %s\n", buf); */
 	    while ((c = fgetc(f)) == ' ' || c == '\t' || c == ':') {}
 
 	    /* Get fn id*/

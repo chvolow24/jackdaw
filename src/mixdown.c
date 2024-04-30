@@ -102,7 +102,7 @@ float *get_track_channel_chunk(Track *track, uint8_t channel, int32_t start_pos_
 	    SDL_UnlockMutex(cr->lock);
 	    continue;
 	}
-	int32_t pos_in_clip_sframes = start_pos_sframes - cr->pos_sframes;
+	double pos_in_clip_sframes = start_pos_sframes - cr->pos_sframes;
 	int32_t end_pos = pos_in_clip_sframes + (step * len_sframes);
 	int32_t min, max;
 	if (end_pos >= pos_in_clip_sframes) {
@@ -119,9 +119,14 @@ float *get_track_channel_chunk(Track *track, uint8_t channel, int32_t start_pos_
 	}
 	float *clip_buf = (channel == 0) ? cr->clip->L : cr->clip->R;
 	int16_t chunk_i = 0;
+	/* float pan_scale = (channel == 0) ? (track->pan - 0.5) * 2 : track->pan * 2; */
+	double pan_scale = channel == 0 ?
+	    track->pan <= 0.5 ? 1 : (1.0f - track->pan) * 2
+	    : track->pan >= 0.5 ? 1 : track->pan * 2;
+	/* double rpan = track->pan < */
 	while (chunk_i < len_sframes) {
 	    if (pos_in_clip_sframes >= 0 && pos_in_clip_sframes < cr_len) {
-		chunk[chunk_i] += clip_buf[pos_in_clip_sframes + cr->in_mark_sframes];
+		chunk[chunk_i] += clip_buf[(int32_t)pos_in_clip_sframes + cr->in_mark_sframes] * track->vol * pan_scale;
 	    }
 	    pos_in_clip_sframes += step;
 	    chunk_i++;

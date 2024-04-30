@@ -30,6 +30,7 @@ typedef struct user_fn {
     const char *fn_id;
     const char *fn_display_name;
     const char *annotation;
+    bool is_toggle;
     void (*do_fn)(void);
 } UserFn;
 
@@ -87,5 +88,8 @@ void input_init_mode_load_all();
 Menu *input_create_menu_from_mode(InputMode im);
 
 Menu *input_create_master_menu();
+
+/* Public for debugging only */
+char *input_get_keycmd_str(uint16_t i_state, SDL_Keycode keycode);
 
 #endif

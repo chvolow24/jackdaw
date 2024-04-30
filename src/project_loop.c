@@ -13,8 +13,107 @@ extern Window *main_win;
 extern SDL_Color color_global_black;
 
 #define MAX_MODES 8
+#define STICK_DELAY_MS 500
 
 Project *proj;
+
+
+
+/* static int timed_stop_update_track_vol_pan(void *data) */
+/* { */
+/*     fprintf(stdout, "OK.......\n"); */
+/*     /\* int delay_ms = *((int *)data); *\/ */
+/*     SDL_Delay(STICK_DELAY_MS); */
+/*     fprintf(stdout, "Done!\n"); */
+/*     stop_update_track_vol_pan(); */
+/*     return 0; */
+/* } */
+
+static int timed_hide_slider_label(void *data)
+{
+    FSlider *fs = (FSlider *)data;
+    SDL_Delay(STICK_DELAY_MS);
+    fs->editing = false;
+}
+
+static void hide_slider_label(FSlider *fs)
+{
+    SDL_CreateThread(timed_hide_slider_label, "hide_slider_label", fs);
+}
+
+
+static void stop_update_track_vol_pan()
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Track *trk = NULL;
+    for (int i=0; i<tl->num_tracks; i++) {
+	trk = tl->tracks[i];
+	hide_slider_label(trk->vol_ctrl);
+	hide_slider_label(trk->pan_ctrl);
+        /* trk->vol_ctrl->editing = false; */
+	/* trk->pan_ctrl->editing = false; */
+    }
+    proj->vol_changing = false;
+    proj->pan_changing = false;
+    
+
+}
+
+
+static void update_track_vol_pan()
+{
+    /* fprintf(stdout, "%p, %p\n", proj->vol_changing, proj->pan_changing); */
+    if (!proj->vol_changing && !proj->pan_changing) {
+	return;
+    }
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    bool had_active_track = false;
+    Track *selected_track = tl->tracks[tl->track_selector];
+    /* if (proj->vol_changing) { */
+    for (int i=0; i<tl->num_tracks; i++) {
+	Track *trk = tl->tracks[i];
+	if (trk->active) {
+	    had_active_track = true;
+	    if (proj->vol_changing) {
+		/* hide_slider_label(trk->vol_ctrl); */
+		trk->vol_ctrl->editing = true;
+		if (proj->vol_up) {
+		    track_increment_vol(trk);
+		} else {
+		    track_decrement_vol(trk);
+		}
+	    }
+	    if (proj->pan_changing) {
+		/* hide_slider_label */
+		trk->pan_ctrl->editing = true;
+		if (proj->pan_right) {
+		    track_increment_pan(trk);
+		} else {
+		    track_decrement_pan(trk);
+		}
+	    }
+	}
+    }
+    if (!had_active_track) {
+	if (proj->vol_changing) {
+	    if (proj->vol_up) {
+		track_increment_vol(selected_track);
+	    } else {
+		track_decrement_vol(selected_track);
+	    }
+	    selected_track->vol_ctrl->editing = true;
+	}
+	if (proj->pan_changing) {
+	    if (proj->pan_right) {
+		track_increment_pan(selected_track);
+	    } else {
+		track_decrement_pan(selected_track);
+	    }
+	    selected_track->pan_ctrl->editing = true;
+	}
+    }
+}
+
 
 void loop_project_main()
 {
@@ -52,6 +151,7 @@ void loop_project_main()
 		window_set_mouse_point(main_win, e.motion.x, e.motion.y);
 		break;
 	    case SDL_KEYDOWN:
+		fprintf(stdout, "Keycmd: \"%s\"\n", input_get_keycmd_str(i_state, e.key.keysym.sym));
 		switch (e.key.keysym.scancode) {
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
@@ -62,6 +162,10 @@ void loop_project_main()
 		case SDL_SCANCODE_LSHIFT:
 		case SDL_SCANCODE_RSHIFT:
 		    i_state |= I_STATE_SHIFT;
+		    break;
+		case SDL_SCANCODE_LALT:
+		case SDL_SCANCODE_RALT:
+		    i_state |= I_STATE_META;
 		    break;
 		case SDL_SCANCODE_X:
 		    if (i_state & I_STATE_CMDCTRL) {
@@ -105,6 +209,9 @@ void loop_project_main()
 		case SDL_SCANCODE_RSHIFT:
 		    i_state &= ~I_STATE_SHIFT;
 		    break;
+		case SDL_SCANCODE_LALT:
+		case SDL_SCANCODE_RALT:
+		    i_state &= ~I_STATE_META;
 		case SDL_SCANCODE_K:
 		    i_state &= ~I_STATE_K;
 		    proj->play_speed = 0;
@@ -120,6 +227,30 @@ void loop_project_main()
 		    }
 		    break;
 		default:
+		    
+		    /* SDL_CreateThread(timed_stop_update_track_vol_pan, "stop_vol_pan", NULL); */
+		    stop_update_track_vol_pan();
+		    /* if (proj->vol_changing) { */
+		    /* 	proj->vol_changing = false; */
+		    /* } */
+		    /* if (proj->pan_changing) { */
+		    /* 	proj->pan_changing = NULL; */
+		    /* } */
+
+		    /* input_fn  = input_get(i_state, e.key.keysym.sym, GLOBAL); */
+		    /* if (!input_fn) { */
+		    /* 	for (int i=main_win->num_modes - 1; i>=0; i--) { */
+		    /* 	    input_fn = input_get(i_state, e.key.keysym.sym, main_win->modes[i]); */
+		    /* 	    if (input_fn) { */
+		    /* 		break; */
+		    /* 	    } */
+		    /* 	} */
+		    /* } */
+		    /* if (input_fn && input_fn->do_fn && input_fn->is_toggle) { */
+		    /* 	input_fn->do_fn(); */
+		    /* 	timeline_reset(proj->timelines[proj->active_tl_index]); */
+		    /* } */
+
 		    break;
 		}
 		break;
@@ -176,6 +307,9 @@ void loop_project_main()
 	    animate_step++;
 	}
 
+	update_track_vol_pan();
+	/* update_track_vol_and_pan(); */
+	
 	/******************** DRAW ********************/
 	window_start_draw(main_win, &color_global_black);
 

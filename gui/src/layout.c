@@ -37,6 +37,8 @@
 
 #define SCROLL_STOP_THRESHOLD 5
 
+#define WINDOW_PAD 50
+
 /* extern Layout *main_lt; */
 /* extern SDL_Color white; */
 //extern TTF_Font *open_sans;
@@ -765,6 +767,11 @@ void layout_reset(Layout *lt)
     if (lt->namelabel) {	
 	txt_reset_display_value(lt->namelabel);
     }
+    SDL_Rect padded_win = main_win->layout->rect;
+    padded_win.x -= WINDOW_PAD;
+    padded_win.y -= WINDOW_PAD;
+    padded_win.w += WINDOW_PAD * 2;
+    padded_win.h += WINDOW_PAD * 2;
 
     if (SDL_HasIntersection(&lt->rect, &main_win->layout->rect)) {
 	for (uint8_t i=0; i<lt->num_children; i++) {

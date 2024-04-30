@@ -97,6 +97,13 @@
   - C-l		: tl_load_clip_at_point_to_source
   - S-1		: tl_activate_source_mode
   - b		: tl_drop_from_source
+  - S-=		: tl_track_vol_up
+  - S--		: tl_track_vol_down
+  - S-9		: tl_track_pan_left
+  - S-0		: tl_track_pan_right
+  - A-t		: tl_add_new_timeline
+  - A-h		: tl_previous_timeline
+  - A-;		: tl_next_timeline
 - source:
   - l		: source_play
   - k		: source_pause

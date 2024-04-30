@@ -17,9 +17,9 @@
 
 extern SDL_Color color_global_clear;
 
-SDL_Color menu_std_clr_inner_border = (SDL_Color) {130, 130, 130, 250};
+SDL_Color menu_std_clr_inner_border = (SDL_Color) {200, 200, 200, 200};
 SDL_Color menu_std_clr_outer_border = (SDL_Color) {10, 10, 10, 220};
-SDL_Color menu_std_clr_bckgrnd = (SDL_Color) {40, 40, 40, 238};
+SDL_Color menu_std_clr_bckgrnd = (SDL_Color) {40, 40, 40, 245};
 
 SDL_Color menu_std_clr_txt = (SDL_Color) {255, 255, 255, 255};
 SDL_Color menu_std_clr_annot_txt = (SDL_Color) {200, 200, 200, 250};
@@ -419,6 +419,9 @@ void menu_draw(Menu *menu)
 {
     int itemh_pixels = 0;
     SDL_Renderer *rend = menu->window->rend;
+    
+    SDL_SetRenderDrawColor(rend, sdl_color_expand(menu_std_clr_bckgrnd));
+    geom_fill_rounded_rect(rend, &menu->layout->rect, menu_std_border_rad); 
 
     SDL_Rect border = menu->layout->rect;
     SDL_SetRenderDrawColor(rend, sdl_color_expand(menu_std_clr_outer_border));
@@ -429,9 +432,6 @@ void menu_draw(Menu *menu)
     border.h -= 2;
     SDL_SetRenderDrawColor(rend, sdl_color_expand(menu_std_clr_inner_border));
     geom_draw_rounded_rect(rend, &border, menu_std_border_rad - 1);
-    
-    SDL_SetRenderDrawColor(rend, sdl_color_expand(menu_std_clr_bckgrnd));
-    geom_fill_rounded_rect(rend, &menu->layout->rect, menu_std_border_rad); 
     for (int i=0; i<menu->num_columns; i++) {
 	MenuColumn *col = menu->columns[i];
 	for (int j=0; j<col->num_sections; j++) {

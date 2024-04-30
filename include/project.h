@@ -247,6 +247,14 @@ typedef struct project {
     float *output_R;
     uint16_t output_len;
 
+
+    /* In progress */
+    /* Track *vol_changing; */
+    bool vol_changing;
+    bool vol_up;
+    bool pan_changing;
+    bool pan_right;
+
     /* GUI Members */
     Layout *layout;
     Textbox *tb_audio_out_label;
@@ -268,13 +276,18 @@ Project *project_create(
     uint16_t chunk_size_sframes
     );
 
-
-
+/* Return the index of a timeline to switch to (new one if success) */
+uint8_t project_add_timeline(Project *proj, char *name);
 void timeline_add_track(Timeline *tl);
 void timeline_reset(Timeline *tl);
 Clip *project_add_clip(AudioDevice *dev, Track *target);
 ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sframes, bool home);
 int32_t clip_ref_len(ClipRef *cr);
 void clipref_reset(ClipRef *cr);
+
+void track_increment_vol(Track *track);
+void track_decrement_vol(Track *track);
+void track_increment_pan(Track *track);
+void track_decrement_pan(Track *track);
 
 #endif

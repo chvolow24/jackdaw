@@ -39,6 +39,7 @@
 #include "layout_xml.h"
 #include "screenrecord.h"
 #include "text.h"
+#include "test.h"
 
 #define LT_DEV_MODE 1
 
@@ -272,6 +273,7 @@ int main(int argc, char** argv)
         main_lt = layout_create_from_window(main_win);
     }
 
+    main_win->layout = main_lt;
     /* time_layout_reset(main_lt, 99999); */
 
     SDL_StopTextInput();

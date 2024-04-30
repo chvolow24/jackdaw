@@ -204,6 +204,9 @@ static void track_draw(Track *track)
     
     textbox_draw(track->tb_name);
     textbox_draw(track->tb_input_label);
+    textbox_draw(track->tb_vol_label);
+    textbox_draw(track->tb_pan_label);
+    textbox_draw(track->tb_input_name);
     textbox_draw(track->tb_mute_button);
     textbox_draw(track->tb_solo_button);
 
@@ -422,11 +425,14 @@ static void control_bar_draw(Project *proj)
     }
 }
 
-void project_draw(Project *proj)
+void project_draw()
 {
+    window_start_draw(main_win, &color_global_black);
     timeline_draw(proj->timelines[proj->active_tl_index]);
     control_bar_draw(proj);
     textbox_draw(proj->timeline_label);
+    window_draw_menus(main_win);
+    window_end_draw(main_win);
 
 
     /* for (int i=0; i<proj->timelines[proj->active_tl_index]->num_tracks; i++) { */

@@ -81,6 +81,8 @@ Window *window_create(int w, int h, const char *name)
 	fprintf(stderr, "Error: failed to create canvas texture. %s\n", SDL_GetError());
 	exit(1);
     }
+
+    window->i_state = 0;
     
     window->std_font = NULL;
     window->bold_font = NULL;

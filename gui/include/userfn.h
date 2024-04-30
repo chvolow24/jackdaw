@@ -50,6 +50,7 @@ void user_tl_track_activate_all();
 void user_tl_track_selector_up();
 void user_tl_track_selector_down();
 void user_tl_track_activate_selected();
+void user_tl_track_rename();
 
 void user_tl_mute();
 void user_tl_solo();

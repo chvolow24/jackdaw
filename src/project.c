@@ -107,7 +107,7 @@ uint8_t project_add_timeline(Project *proj, char *name)
 void project_reset_tl_label(Project *proj)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
-    snprintf(proj->timeline_label_str, PROJ_TL_LABEL_BUFLEN, "Timeline %d: %s\n", proj->active_tl_index + 1, tl->name);
+    snprintf(proj->timeline_label_str, PROJ_TL_LABEL_BUFLEN, "Timeline %d: \"%s\"\n", proj->active_tl_index + 1, tl->name);
     textbox_reset_full(proj->timeline_label);
 }
 
@@ -157,7 +157,7 @@ Project *project_create(
 
     project_add_timeline(proj, "Main");
     Layout *timeline_label_lt = layout_get_child_by_name_recursive(proj->layout, "timeline_label");
-    strcpy(proj->timeline_label_str, "Timeline 1: Main");
+    strcpy(proj->timeline_label_str, "Timeline 1: \"Main\"");
     proj->timeline_label = textbox_create_from_str(
 	proj->timeline_label_str,
 	timeline_label_lt,
@@ -275,6 +275,22 @@ void timeline_add_track(Timeline *tl)
     /* textbox_create_from_str(char *set_str, Layout *lt, Font *font, uint8_t text_size, Window *win) -> Textbox *
      */
 
+    track->tb_vol_label = textbox_create_from_str(
+	"Vol:",
+	vol_label,
+	main_win->bold_font,
+	12,
+	main_win);
+    textbox_set_background_color(track->tb_vol_label, &color_global_clear);
+
+    track->tb_pan_label = textbox_create_from_str(
+	"Pan:",
+	pan_label,
+	main_win->bold_font,
+	12,
+	main_win);
+    textbox_set_background_color(track->tb_pan_label, &color_global_clear);
+
     track->tb_name = textbox_create_from_str(
 	track->name,
 	name,
@@ -289,10 +305,25 @@ void timeline_add_track(Timeline *tl)
     track->tb_input_label = textbox_create_from_str(
 	"In: ",
 	in_label,
+	main_win->bold_font,
+	12,
+	main_win);
+    textbox_set_background_color(track->tb_input_label, &color_global_clear);
+
+    track->tb_input_name = textbox_create_from_str(
+	(char *)track->input->name,
+	in_value,
 	main_win->std_font,
 	12,
 	main_win);
+    track->tb_input_name->corner_radius = 6;
+    /* textbox_set_align(track->tb_input_name, CENTER); */
+    int saved_w = track->tb_input_name->layout->rect.w / main_win->dpi_scale_factor;
+    textbox_size_to_fit(track->tb_input_name, 2, 1);
+    textbox_set_fixed_w(track->tb_input_name, saved_w - 10);
+    textbox_set_border(track->tb_input_name, &color_global_black, 1);
 
+    
     track->tb_mute_button = textbox_create_from_str(
 	"M",
 	mute,

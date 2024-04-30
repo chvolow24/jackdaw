@@ -87,7 +87,7 @@ typedef struct track {
 
     ClipRef *clips[MAX_TRACK_CLIPS];
     uint8_t num_clips;
-    uint8_t num_grabbed_clips;
+    /* uint8_t num_grabbed_clips; */
 
     uint8_t num_takes;
 
@@ -193,6 +193,9 @@ typedef struct timeline {
     Textbox *timecode_tb;
     
     Project *proj;
+
+    ClipRef *grabbed_clips[MAX_GRABBED_CLIPS];
+    uint8_t num_grabbed_clips;
 
     /* Clip *clip_clipboard[MAX_CLIPBOARD_CLIPS]; */
     /* uint8_t num_clipboard_clips; */

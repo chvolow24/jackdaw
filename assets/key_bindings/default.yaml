@@ -87,6 +87,7 @@
   - w		: tl_track_selector_up
   - s		: tl_track_selector_down
   - <ret>	: tl_track_activate_selected
+  - C-r		: tl_track_rename
   - m		: tl_mute
   - s		: tl_solo
   - r		: tl_start_stop_record
@@ -102,8 +103,8 @@
   - S-9		: tl_track_pan_left
   - S-0		: tl_track_pan_right
   - A-t		: tl_add_new_timeline
-  - A-h		: tl_previous_timeline
-  - A-;		: tl_next_timeline
+  - A-j		: tl_previous_timeline
+  - A-l		: tl_next_timeline
 - source:
   - l		: source_play
   - k		: source_pause

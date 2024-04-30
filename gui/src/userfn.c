@@ -170,7 +170,7 @@ void user_menu_nav_choose_item()
 	    if (sctn->sel_item < sctn->num_items) {
 		MenuItem *item = sctn->items[sctn->sel_item];
 		if (item->onclick != user_menu_nav_choose_item) {
-		    item->onclick(NULL, NULL);
+		    item->onclick();
 		    /* window_pop_menu(main_win); */
 		}
 	    }
@@ -441,6 +441,20 @@ void user_tl_track_activate_selected()
     track_select_n(tl->track_selector);
 }
 
+void project_draw();
+void user_tl_track_rename()
+{
+    /* window_pop_menu(main_win); */
+    /* window_pop_mode(main_win); */
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Track *track = tl->tracks[tl->track_selector];
+    if (track) {
+	txt_edit(track->tb_name->text, project_draw);
+    }
+    main_win->i_state = 0;
+    /* fprintf(stdout, "DONE track edit\n"); */
+}
+
 SDL_Color mute_red = {255, 0, 0, 100};
 SDL_Color solo_yellow = {255, 200, 0, 130};
 extern SDL_Color textbox_default_bckgrnd_clr;
@@ -539,6 +553,17 @@ static int32_t cr_len(ClipRef *cr)
     }
 }
 
+static ClipRef *clip_at_point_in_track(Track *track)
+{
+    for (int i=track->num_clips-1; i>=0; i--) {
+	ClipRef *cr = track->clips[i];
+	if (cr->pos_sframes <= track->tl->play_pos_sframes && cr->pos_sframes + cr_len(cr) >= track->tl->play_pos_sframes) {
+	    return cr;
+	}
+    }
+    return NULL;
+}
+
 static ClipRef *clip_at_point()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
@@ -554,10 +579,45 @@ static ClipRef *clip_at_point()
 
 void user_tl_clipref_grab_ungrab()
 {
-    ClipRef *cr = clip_at_point();
-    if (cr) {
-	cr->grabbed = !cr->grabbed;
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Track *track = NULL;
+    ClipRef *cr =  NULL;
+    ClipRef *crs[MAX_GRABBED_CLIPS];
+    uint8_t num_clips = 0;
+    bool clip_grabbed = false;
+    bool had_active_track = false;
+    for (uint8_t i=0; i<tl->num_tracks; i++) {
+	track = tl->tracks[i];
+	if (track->active) {
+	    had_active_track = true;
+	    cr = clip_at_point_in_track(track);
+	    if (cr && !cr->grabbed) {
+		tl->grabbed_clips[tl->num_grabbed_clips] = cr;
+		tl->num_grabbed_clips++;
+		cr->grabbed = true;
+		clip_grabbed = true;
+		
+	    }
+	}
     }
+    if (!had_active_track) {
+	track = tl->tracks[tl->track_selector];
+	cr = clip_at_point_in_track(track);
+	if (cr && !cr->grabbed) {
+	    tl->grabbed_clips[tl->num_grabbed_clips] = cr;
+	    tl->num_grabbed_clips++;
+	    cr->grabbed = true;
+	    clip_grabbed = true;
+	}
+    }
+    if (!clip_grabbed) {
+	for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
+	    cr = tl->grabbed_clips[i];
+	    cr->grabbed = false;
+	}
+	tl->num_grabbed_clips = 0;
+    }
+    
 }
 
 

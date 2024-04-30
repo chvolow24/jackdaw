@@ -30,6 +30,8 @@ typedef struct window {
     Font *bold_font;
     Layout *layout;
 
+    uint16_t i_state;
+
     Menu *menus[MAX_WINDOW_MENUS];
     uint8_t num_menus;
 

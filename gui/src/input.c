@@ -468,6 +468,13 @@ static void mode_load_timeline()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
+	"tl_track_rename",
+	"Rename selected track",
+	user_tl_track_rename
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
 	"tl_grab_clips_at_point",
 	"Grab clip at point",
 	user_tl_clipref_grab_ungrab
@@ -900,7 +907,7 @@ Menu *input_create_menu_from_mode(InputMode im)
 	MenuSection *sctn = menu_section_add(c, "");
 	for (int j=0; j<sc->num_fns; j++) {
 	    UserFn *fn = sc->fns[j];
-	    menu_item_add(sctn, fn->fn_display_name, fn->annotation, fn->do_fn, NULL);
+	    menu_item_add(sctn, fn->fn_display_name, fn->annotation, fn->do_fn);
 	}
     }
     menu_add_header(m, mode->name, "Here are functions available to you in aforementioned mode.");
@@ -935,7 +942,7 @@ Menu *input_create_master_menu()
 	    MenuSection *sctn = menu_section_add(c, sc->name);
 	    for (int j=0; j<sc->num_fns; j++) {
 		UserFn *fn = sc->fns[j];
-		menu_item_add(sctn, fn->fn_display_name, fn->annotation, fn->do_fn, NULL);
+		menu_item_add(sctn, (char *)fn->fn_display_name, (char *)fn->annotation, fn->do_fn);
 	    }
 	}
 	im++;

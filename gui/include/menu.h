@@ -14,8 +14,8 @@ typedef struct menu_item {
     const char *label;
     const char *annotation;
     bool available;
-    void (*onclick)(Textbox *tb, void *target);
-    void *target;
+    void (*onclick)(void);
+    /* void *target; */
     bool selected;
     Layout *layout;
 } MenuItem;
@@ -60,8 +60,8 @@ MenuItem *menu_item_add(
     MenuSection *sctn,
     char *label,
     char *annotation,
-    void (*onclick)(Textbox *tb, void *target),
-    void *target);
+    void (*onclick)(void));
+    /* void *target); */
 
 /* void menu_item_destroy(MenuItem *item); */
 /* void menu_section_destroy(MenuSection *section); */

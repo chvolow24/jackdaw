@@ -124,7 +124,7 @@ void loop_project_main()
     Layout *scrolling_lt = NULL;
     UserFn *input_fn = NULL;
     
-    uint16_t i_state = 0;
+    /* uint16_t i_state = 0; */
     SDL_Event e;
     uint8_t fingersdown = 0;
     uint8_t fingerdown_timer = 0;
@@ -134,11 +134,11 @@ void loop_project_main()
 
     window_push_mode(main_win, TIMELINE);
    
-    while (!(i_state & I_STATE_QUIT)) {
+    while (!(main_win->i_state & I_STATE_QUIT)) {
 	while (SDL_PollEvent(&e)) {
 	    switch (e.type) {
 	    case SDL_QUIT:
-		i_state |= I_STATE_QUIT;
+		main_win->i_state |= I_STATE_QUIT;
 		break;
 	    case SDL_WINDOWEVENT:
 		if (e.window.event == SDL_WINDOWEVENT_RESIZED) {
@@ -149,29 +149,30 @@ void loop_project_main()
 		window_set_mouse_point(main_win, e.motion.x, e.motion.y);
 		break;
 	    case SDL_KEYDOWN:
-		fprintf(stdout, "Keycmd: \"%s\"\n", input_get_keycmd_str(i_state, e.key.keysym.sym));
+		fprintf(stdout, "Top mode: %s\n", input_mode_str(main_win->modes[main_win->num_modes - 1]));
+		fprintf(stdout, "Keycmd: \"%s\"\n", input_get_keycmd_str(main_win->i_state, e.key.keysym.sym));
 		switch (e.key.keysym.scancode) {
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LCTRL:
 		case SDL_SCANCODE_RCTRL:
-		    i_state |= I_STATE_CMDCTRL;
+		    main_win->i_state |= I_STATE_CMDCTRL;
 		    break;
 		case SDL_SCANCODE_LSHIFT:
 		case SDL_SCANCODE_RSHIFT:
-		    i_state |= I_STATE_SHIFT;
+		    main_win->i_state |= I_STATE_SHIFT;
 		    break;
 		case SDL_SCANCODE_LALT:
 		case SDL_SCANCODE_RALT:
-		    i_state |= I_STATE_META;
+		    main_win->i_state |= I_STATE_META;
 		    break;
 		case SDL_SCANCODE_X:
-		    if (i_state & I_STATE_CMDCTRL) {
-			i_state |= I_STATE_C_X;
+		    if (main_win->i_state & I_STATE_CMDCTRL) {
+			main_win->i_state |= I_STATE_C_X;
 		    }
 		    break;
 	        case SDL_SCANCODE_K:
-		    if (i_state & I_STATE_K) {
+		    if (main_win->i_state & I_STATE_K) {
 			break;
 		    } else {
 			set_i_state_k = true;
@@ -179,10 +180,10 @@ void loop_project_main()
 		    /* No break */
 		default:
 		    /* i_state = triage_keypdown(i_state, e.key.keysym.scancode); */
-		    input_fn  = input_get(i_state, e.key.keysym.sym, GLOBAL);
+		    input_fn  = input_get(main_win->i_state, e.key.keysym.sym, GLOBAL);
 		    if (!input_fn) {
 			for (int i=main_win->num_modes - 1; i>=0; i--) {
-			    input_fn = input_get(i_state, e.key.keysym.sym, main_win->modes[i]);
+			    input_fn = input_get(main_win->i_state, e.key.keysym.sym, main_win->modes[i]);
 			    if (input_fn) {
 				break;
 			    }
@@ -201,24 +202,24 @@ void loop_project_main()
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LCTRL:
 		case SDL_SCANCODE_RCTRL:
-		    i_state &= ~I_STATE_CMDCTRL;
+		    main_win->i_state &= ~I_STATE_CMDCTRL;
 		    break;
 		case SDL_SCANCODE_LSHIFT:
 		case SDL_SCANCODE_RSHIFT:
-		    i_state &= ~I_STATE_SHIFT;
+		    main_win->i_state &= ~I_STATE_SHIFT;
 		    break;
 		case SDL_SCANCODE_LALT:
 		case SDL_SCANCODE_RALT:
-		    i_state &= ~I_STATE_META;
+		    main_win->i_state &= ~I_STATE_META;
 		case SDL_SCANCODE_K:
-		    i_state &= ~I_STATE_K;
+		    main_win->i_state &= ~I_STATE_K;
 		    proj->play_speed = 0;
 		    proj->src_play_speed = 0;
 		    transport_stop_playback();
 		    break;
 		case SDL_SCANCODE_J:
 		case SDL_SCANCODE_L:
-		    if (i_state & I_STATE_K) {
+		    if (main_win->i_state & I_STATE_K) {
 			proj->play_speed = 0;
 			proj->src_play_speed = 0;
 			transport_stop_playback();
@@ -275,7 +276,7 @@ void loop_project_main()
 		break;
 	    }
 	    if (set_i_state_k) {
-		i_state |= I_STATE_K;
+		main_win->i_state |= I_STATE_K;
 		set_i_state_k = false;
 	    }
 		
@@ -309,14 +310,14 @@ void loop_project_main()
 	/* update_track_vol_and_pan(); */
 	
 	/******************** DRAW ********************/
-	window_start_draw(main_win, &color_global_black);
+	/* window_start_draw(main_win, &color_global_black); */
 
 	/* if (proj->play_speed != 0) { */
 	/*     timeline_move_play_position((int32_t) 500 * proj->play_speed); */
 	/* } */
 
 	project_draw(proj);
-	window_draw_menus(main_win);
+	/* window_draw_menus(main_win); */
 	
 	/***** Debug only *****/
 	/* layout_draw(main_win, main_win->layout); */
@@ -324,7 +325,7 @@ void loop_project_main()
 
 
 	
-	window_end_draw(main_win);
+	/* window_end_draw(main_win); */
 	/**********************************************/
 
 	SDL_Delay(1);

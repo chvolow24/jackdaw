@@ -183,8 +183,8 @@ MenuItem *menu_item_add(
     MenuSection *sctn,
     char *label,
     char *annotation,
-    void (*onclick)(Textbox *tb, void *target),
-    void *target
+    void (*onclick)(void)
+    /* void *target */
 )
 {
     /* fprintf(stdout, "ADD item label: \"%s\", annot: \"%s\"\n", label, annotation); */
@@ -194,7 +194,7 @@ MenuItem *menu_item_add(
     item->annotation = annotation;
     item->available = true;
     item->onclick = onclick;
-    item->target = target;
+    /* item->target = target; */
     item->section = sctn;
     item->selected = false;
     item->layout = layout_add_child(sctn->layout);
@@ -367,7 +367,7 @@ void triage_mouse_menu(Menu *menu, SDL_Point *mousep, bool click)
 		    col->sel_sctn = s;
 		    sctn->sel_item = i;
 		    if (click && item->onclick) {
-			item->onclick(item->tb, item->target);
+			item->onclick();
 		    }
 		    
 		    /* textbox_set_background_color(item->tb, &menu_std_clr_highlight); */

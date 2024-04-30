@@ -2,7 +2,7 @@
 #define JDAW_PROJECT_DRAW_H
 
 #include "project.h"
-void project_draw(Project *proj);
+void project_draw();
 
 
 #endif

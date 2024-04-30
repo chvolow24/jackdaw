@@ -307,7 +307,7 @@ static void handle_backspace(Text *txt)
     txt->cursor_countdown = CURSOR_COUNTDOWN_MAX;
 }
 
-void txt_edit(Text *txt, void (draw_fn) (void))
+void txt_edit(Text *txt, void (*draw_fn) (void))
 {
     bool save_truncate = txt->truncate;
     txt->truncate = false;
@@ -321,7 +321,6 @@ void txt_edit(Text *txt, void (draw_fn) (void))
     SDL_StartTextInput();
     while (!done) {
         // get_mousep(main_win, &mousep);
-
         SDL_Event e;
 
         while (SDL_PollEvent(&e)) {
@@ -389,7 +388,9 @@ void txt_edit(Text *txt, void (draw_fn) (void))
         }
         // fprintf(stderr, "About to call draw %p %p\n", main_win, txt);
         /* layout_draw_main(); */
+	/* window_start_draw(main_win, &color_global_black); */
 	draw_fn();
+	/* window_end_draw(main_win); */
         if (txt->cursor_countdown == 0) {
             txt->cursor_countdown = CURSOR_COUNTDOWN_MAX;
         } else {

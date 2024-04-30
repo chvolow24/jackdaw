@@ -130,7 +130,7 @@ void txt_init_from_str(
 void txt_destroy(Text *txt);
 
 /* Enter an event loop to edit a text. Once done, string pointed to by value_handle is modified */
-void txt_edit(Text *txt, void (draw_fn)(void));
+void txt_edit(Text *txt, void (*draw_fn)(void));
 
 
 /* void print_text(Text *txt); */

@@ -111,7 +111,7 @@
                                     <x>REL 0</x>
                                     <y>REL 0</y>
                                     <w>REL 161</w>
-                                    <h>REL 98</h>
+                                    <h>REL 102</h>
                                     <index>0</index>
                                     <children>
                                         <Layout name="colorbar" type="NORMAL">

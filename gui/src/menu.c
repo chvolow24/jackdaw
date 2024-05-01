@@ -16,6 +16,7 @@
 #define MENU_STD_CORNER_RAD 10
 
 extern SDL_Color color_global_clear;
+extern Window *main_win;
 
 SDL_Color menu_std_clr_inner_border = (SDL_Color) {200, 200, 200, 200};
 SDL_Color menu_std_clr_outer_border = (SDL_Color) {10, 10, 10, 220};
@@ -112,6 +113,23 @@ Menu *menu_create(Layout *layout, Window *window)
 }
 
 
+void layout_write(FILE *out, Layout *lt, int indent);
+Menu *menu_create_at_point(int x_pix, int y_pix)
+{
+    Layout *lt = layout_add_child(main_win->layout);
+    /* layout_set_default_dims(lt); */
+    lt->x.value.intval = x_pix / main_win->dpi_scale_factor;
+    lt->y.value.intval = y_pix / main_win->dpi_scale_factor;
+    /* lt->w.value.intval = 1200; */
+    /* lt->h.value.intval = 900; */
+    layout_reset(lt);
+    layout_write(stdout, lt, 0);
+    Menu *menu = menu_create(lt, main_win);
+    return menu;
+
+}
+
+
 void menu_reset_layout(Menu *menu)
 {
     layout_force_reset(menu->layout);
@@ -181,10 +199,10 @@ MenuSection *menu_section_add(MenuColumn *col, const char *label)
 
 MenuItem *menu_item_add(
     MenuSection *sctn,
-    char *label,
-    char *annotation,
-    void (*onclick)(void)
-    /* void *target */
+    const char *label,
+    const char *annotation,
+    void (*onclick)(void *target),
+    void *target
 )
 {
     /* fprintf(stdout, "ADD item label: \"%s\", annot: \"%s\"\n", label, annotation); */
@@ -194,7 +212,7 @@ MenuItem *menu_item_add(
     item->annotation = annotation;
     item->available = true;
     item->onclick = onclick;
-    /* item->target = target; */
+    item->target = target;
     item->section = sctn;
     item->selected = false;
     item->layout = layout_add_child(sctn->layout);
@@ -237,7 +255,7 @@ MenuItem *menu_item_add(
     if (annotation) {
 	
 	item->annot_tb = textbox_create_from_str(
-	    annotation,
+	    (char *)annotation,
 	    annot_lt,
 	    font,
 	    MENU_TXT_SIZE,
@@ -367,7 +385,7 @@ void triage_mouse_menu(Menu *menu, SDL_Point *mousep, bool click)
 		    col->sel_sctn = s;
 		    sctn->sel_item = i;
 		    if (click && item->onclick) {
-			item->onclick();
+			item->onclick(item->target);
 		    }
 		    
 		    /* textbox_set_background_color(item->tb, &menu_std_clr_highlight); */

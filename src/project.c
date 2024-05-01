@@ -295,7 +295,7 @@ void timeline_add_track(Timeline *tl)
 	track->name,
 	name,
 	main_win->bold_font,
-	16,
+	14,
 	main_win);
 
     textbox_set_align(track->tb_name, CENTER_LEFT);
@@ -449,6 +449,10 @@ static void track_reset(Track *track)
     textbox_reset(track->tb_input_label);
     textbox_reset(track->tb_mute_button);
     textbox_reset(track->tb_solo_button);
+    textbox_reset(track->tb_vol_label);
+    textbox_reset(track->tb_pan_label);
+    textbox_reset(track->tb_input_label);
+    textbox_reset(track->tb_input_name);
     for (uint8_t i=0; i<track->num_clips; i++) {
 	clipref_reset(track->clips[i]);
     }

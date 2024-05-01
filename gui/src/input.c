@@ -259,6 +259,10 @@ static void mode_load_timeline()
     UserFn *fn;
 
 
+
+
+
+    /********** TRANSPORT **********/
     ModeSubcat *sc= mode_add_subcat(mode, "Transport");
 
     
@@ -323,8 +327,15 @@ static void mode_load_timeline()
 	);
     mode_subcat_add_fn(sc, fn);
 
-    
+    fn = create_user_fn(
+	"tl_record",
+	"Record (start or stop)",
+	user_tl_record
+	);
+    mode_subcat_add_fn(sc, fn);
 
+    
+    /********** MARKS **********/
     sc = mode_add_subcat(mode, "Marks");
     fn = create_user_fn(
 	"tl_set_in_mark",
@@ -355,13 +366,8 @@ static void mode_load_timeline()
     mode_subcat_add_fn(sc, fn);
 
 
-    fn = create_user_fn(
-	"tl_record",
-	"Record (start or stop)",
-	user_tl_record
-	);
-    mode_subcat_add_fn(sc, fn);
-    sc= mode_add_subcat(mode, "Tracks");  
+    /********** TRACK NAV **********/
+    sc= mode_add_subcat(mode, "Track nav");  
     fn = create_user_fn(
 	"tl_track_add",
 	"Add Track",
@@ -467,46 +473,13 @@ static void mode_load_timeline()
 	);
     mode_subcat_add_fn(sc, fn);
 
-    fn = create_user_fn(
-	"tl_track_rename",
-	"Rename selected track",
-	user_tl_track_rename
-	);
-    mode_subcat_add_fn(sc, fn);
 
-    fn = create_user_fn(
-	"tl_grab_clips_at_point",
-	"Grab clip at point",
-	user_tl_clipref_grab_ungrab
-	);
-    mode_subcat_add_fn(sc, fn);
 
-    fn = create_user_fn(
-	"tl_load_clip_at_point_to_source",
-	"Load clip at point to source",
-        user_tl_load_clip_at_point_to_src
-	);
-    mode_subcat_add_fn(sc, fn);
-
-    fn = create_user_fn(
-	"tl_activate_source_mode",
-	"Activate Source Mode",
-	user_tl_activate_source_mode
-	);
-    mode_subcat_add_fn(sc, fn);
-
-    fn = create_user_fn(
-	"tl_drop_from_source",
-	"Drop from source",
-	user_tl_drop_from_source
-	);
-    mode_subcat_add_fn(sc, fn);
-
-    
+    /********** TRACK SETTINGS **********/
     sc = mode_add_subcat(mode, "Track settings");
 
 
-    fn = create_user_fn(
+       fn = create_user_fn(
 	"tl_mute",
 	"Mute selected_track",
 	user_tl_mute
@@ -549,6 +522,54 @@ static void mode_load_timeline()
 	user_tl_track_pan_right
 	);
     mode_subcat_add_fn(sc, fn);
+    
+    fn = create_user_fn(
+	"tl_track_rename",
+	"Rename selected track",
+	user_tl_track_rename
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_track_toggle_in",
+	"Toggle track input",
+	user_tl_track_set_in
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    /********** CLIPS **********/
+    sc = mode_add_subcat(mode, "Clips");
+
+    fn = create_user_fn(
+	"tl_grab_clips_at_point",
+	"Grab clip at point",
+	user_tl_clipref_grab_ungrab
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_load_clip_at_point_to_source",
+	"Load clip at point to source",
+        user_tl_load_clip_at_point_to_src
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_activate_source_mode",
+	"Activate Source Mode",
+	user_tl_activate_source_mode
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_drop_from_source",
+	"Drop from source",
+	user_tl_drop_from_source
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    
+    sc = mode_add_subcat(mode, "Timeline navigation");
 
     fn = create_user_fn(
 	"tl_add_new_timeline",
@@ -886,7 +907,6 @@ static Layout *create_menu_layout()
     layout_reset(menu_lt);
     return menu_lt;
 }
-    
 
 Menu *input_create_menu_from_mode(InputMode im)
 {
@@ -907,7 +927,7 @@ Menu *input_create_menu_from_mode(InputMode im)
 	MenuSection *sctn = menu_section_add(c, "");
 	for (int j=0; j<sc->num_fns; j++) {
 	    UserFn *fn = sc->fns[j];
-	    menu_item_add(sctn, fn->fn_display_name, fn->annotation, fn->do_fn);
+	    menu_item_add(sctn, fn->fn_display_name, fn->annotation, fn->do_fn, NULL);
 	}
     }
     menu_add_header(m, mode->name, "Here are functions available to you in aforementioned mode.");
@@ -942,7 +962,7 @@ Menu *input_create_master_menu()
 	    MenuSection *sctn = menu_section_add(c, sc->name);
 	    for (int j=0; j<sc->num_fns; j++) {
 		UserFn *fn = sc->fns[j];
-		menu_item_add(sctn, (char *)fn->fn_display_name, (char *)fn->annotation, fn->do_fn);
+		menu_item_add(sctn, fn->fn_display_name, fn->annotation, fn->do_fn, NULL);
 	    }
 	}
 	im++;

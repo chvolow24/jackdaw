@@ -53,6 +53,7 @@ void textbox_reset(Textbox *tb);
 void textbox_reset_full(Textbox *tb);
 
 void textbox_set_pad(Textbox *tb, int h_pad, int v_pad);
+void textbox_set_value_handle(Textbox *tb, const char *new_value);
 
 
 #endif

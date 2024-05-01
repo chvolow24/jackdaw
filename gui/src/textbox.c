@@ -181,3 +181,8 @@ void textbox_set_pad(Textbox *tb, int h_pad, int v_pad)
 {
     txt_set_pad(tb->text, h_pad, v_pad);
 }
+
+void textbox_set_value_handle(Textbox *tb, const char *new_value)
+{
+    txt_set_value_handle(tb->text, (char *) new_value);
+}

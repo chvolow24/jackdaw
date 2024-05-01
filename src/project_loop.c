@@ -307,6 +307,9 @@ void loop_project_main()
 	}
 
 	update_track_vol_pan();
+	if (proj->recording) {
+	    transport_recording_update_cliprects();
+	}
 	/* update_track_vol_and_pan(); */
 	
 	/******************** DRAW ********************/

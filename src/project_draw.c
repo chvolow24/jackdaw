@@ -6,15 +6,19 @@
 
 #define PLAYHEAD_TRI_H (10 * main_win->dpi_scale_factor)
 
+/* #define BACKGROUND_ACTIVE */
+
 extern Window *main_win;
 extern Project *proj;
 
-
 SDL_Color track_bckgrnd = {120, 130, 150, 255};
 SDL_Color source_mode_bckgrnd = {0, 20, 40, 255};
-SDL_Color track_bckgrnd_active = {170, 180, 200, 255};
+SDL_Color track_bckgrnd_active = {170, 200, 200, 255};
+/* SDL_Color track_bckgrnd_active = {220, 210, 170, 255}; */
 SDL_Color console_bckgrnd = {140, 140, 140, 255};
-SDL_Color console_bckgrnd_selector = {150, 150, 150, 255};
+/* SDL_Color console_bckgrnd_selector = {210, 180, 100, 255}; */
+/* SDL_Color console_bckgrnd_selector = {230, 190, 100, 255}; */
+SDL_Color console_bckgrnd_selector = {210, 190, 140, 255};
 SDL_Color timeline_bckgrnd =  {50, 52, 55, 255};
 SDL_Color timeline_marked_bckgrnd = {255, 255, 255, 30};
 SDL_Color ruler_bckgrnd = {10, 10, 10, 255};

@@ -170,7 +170,7 @@ void user_menu_nav_choose_item()
 	    if (sctn->sel_item < sctn->num_items) {
 		MenuItem *item = sctn->items[sctn->sel_item];
 		if (item->onclick != user_menu_nav_choose_item) {
-		    item->onclick();
+		    item->onclick(item->target);
 		    /* window_pop_menu(main_win); */
 		}
 	    }
@@ -453,6 +453,79 @@ void user_tl_track_rename()
     }
     main_win->i_state = 0;
     /* fprintf(stdout, "DONE track edit\n"); */
+}
+
+
+/* /\* Helper struct and fn *\/ */
+/* struct select_dev_onclick_arg { */
+/*     Track *track; */
+/*     AudioDevice *new_in; */
+/* }; */
+static void select_in_onclick(void *arg)
+{
+    /* struct select_dev_onclick_arg *carg = (struct select_dev_onclick_arg *)arg; */
+    /* Track *track = carg->track; */
+    /* AudioDevice *dev = carg->new_in; */
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Track *track = tl->tracks[tl->track_selector];
+    int index = *((int *)arg);
+    track->input = proj->record_devices[index];
+    textbox_set_value_handle(track->tb_input_name, track->input->name);
+    window_pop_menu(main_win);
+    window_pop_mode(main_win);
+}
+void user_tl_track_set_in()
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Track *track = tl->tracks[tl->track_selector];
+    SDL_Rect *rect = &(track->tb_input_name->layout->rect);
+    Menu *menu = menu_create_at_point(rect->x, rect->y);
+    MenuColumn *c = menu_column_add(menu, "");
+    MenuSection *sc = menu_section_add(c, "");
+    for (int i=0; i<proj->num_record_devices; i++) {
+	AudioDevice *dev = proj->record_devices[i];
+	/* struct select_dev_onclick_arg *arg = malloc(sizeof (struct select_dev_onclick_arg)); */
+	/* arg->track = track; */
+	/* arg->new_in = dev; */
+	menu_item_add(
+	    sc,
+	    dev->name,
+	    " ",
+	    select_in_onclick,
+	    &(dev->index));
+    }
+    menu_add_header(menu,"", "Select audio input for track.\n\n'n' to select next item; 'p' to select previous item.");
+    /* menu_reset_layout(menu); */
+    window_add_menu(main_win, menu);
+    window_push_mode(main_win, MENU_NAV);
+
+}
+void user_tl_track_toggle_in()
+{
+    /* fprintf(stdout, "toggle in\n"); */
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Track *track = tl->tracks[tl->track_selector];
+    if (track) {
+	int index = track->input->index;
+	fprintf(stdout, "CURRENT INDEX: %d\n", index);
+	if (index < proj->num_record_devices - 1) {
+	    AudioDevice *next = proj->record_devices[index + 1];
+	    if (next) {
+		track->input = next;
+		textbox_set_value_handle(track->tb_input_name, track->input->name);
+	    } else {
+		fprintf(stderr, "Error: no record device at index %d\n", index + 1);
+	    }
+	} else {
+	    AudioDevice *next = proj->record_devices[0];
+	    if (next) {
+		track->input = next;
+		textbox_set_value_handle(track->tb_input_name, track->input->name);
+	    } else {
+		fprintf(stderr, "Error: no record device at index 0\n");
+	    }
+	}
+    }
 }
 
 SDL_Color mute_red = {255, 0, 0, 100};

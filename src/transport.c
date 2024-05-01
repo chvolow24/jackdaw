@@ -56,16 +56,6 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
 
     dev->write_buffpos_samples += stream_len_samples;
 
-
-    for (uint8_t i=proj->active_clip_index; i<proj->num_clips; i++) {
-	Clip *clip = proj->clips[i];
-	clip->len_sframes += stream_len_samples / clip->channels;
-	for (uint8_t j=0; j<clip->num_refs; j++) {
-	    ClipRef *cr = clip->refs[j];
-	    cr->out_mark_sframes = clip->len_sframes;
-	    clipref_reset(cr);
-	}
-    }
 }
 
 static float *get_source_mode_chunk(uint8_t channel, uint32_t len_sframes, int32_t start_pos_sframes, float step)
@@ -201,7 +191,15 @@ void transport_start_recording()
 
     for (uint8_t i=0; i<num_devices_to_activate; i++) {
 	dev = devices_to_activate[i];
+	if (!dev->open) {
+	    device_open(proj, dev);
+	}
 	/* device_open(proj, dev); */
+	/* device_start_recording(dev); */
+    }
+    fprintf(stdout, "OPENED ALL DEVICES TO RECORD\n");
+    for (uint8_t i=0; i<num_devices_to_activate; i++) {
+	dev = devices_to_activate[i];
 	device_start_recording(dev);
     }
     transport_start_playback();
@@ -290,5 +288,19 @@ void transport_goto_mark(Timeline *tl, bool in)
 	tl->play_pos_sframes = tl->in_mark_sframes;
     } else {
 	tl->play_pos_sframes = tl->out_mark_sframes;
+    }
+}
+
+void transport_recording_update_cliprects()
+{
+    for (uint8_t i=proj->active_clip_index; i<proj->num_clips; i++) {
+	Clip *clip = proj->clips[i];
+	
+	clip->len_sframes = clip->recorded_from->write_buffpos_samples / clip->channels;
+	for (uint8_t j=0; j<clip->num_refs; j++) {
+	    ClipRef *cr = clip->refs[j];
+	    cr->out_mark_sframes = clip->len_sframes;
+	    clipref_reset(cr);
+	}
     }
 }

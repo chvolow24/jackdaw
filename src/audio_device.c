@@ -171,10 +171,12 @@ void device_stop_recording(AudioDevice *dev)
     device_close(dev);
 }
 
+
+
 void device_start_recording(AudioDevice *dev)
 {
-    if (!dev->open) {
-	device_open(proj, dev);
-    }
+    /* if (!dev->open) { */
+    /* 	device_open(proj, dev); */
+    /* } */
     SDL_PauseAudioDevice(dev->id, 0);
 }

@@ -726,8 +726,8 @@ void txt_draw(Text *txt)
     }
     if (txt->len > 0) {
         if (SDL_RenderCopy(txt->win->rend, txt->texture, NULL, &(txt->text_rect)) != 0) {
-	    fprintf(stderr, "Error: Render Copy failed in txt_draw. %s\n", SDL_GetError());
-	    exit(1);
+	    fprintf(stderr, "Error: Render Copy failed in txt_draw, on text: \"%s\". %s\n", txt->display_value, SDL_GetError());
+	    /* exit(1); */
 	}
 	/* fprintf(stderr, "Copied rend over to %p!\n", txt->rend); */
     }

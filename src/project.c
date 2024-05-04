@@ -34,7 +34,7 @@
 #include "window.h"
 
 #define DEFAULT_SFPP 600
-#define CR_RECT_V_PAD (8 * main_win->dpi_scale_factor)
+#define CR_RECT_V_PAD (4 * main_win->dpi_scale_factor)
 #define NUM_TRACK_COLORS 7
 
 #define TRACK_NAME_H_PAD 3
@@ -56,13 +56,13 @@ SDL_Color timeline_label_txt_color = {0, 200, 100, 255};
 /* Alternating bright colors to easily distinguish tracks */
 uint8_t track_color_index = 0;
 SDL_Color track_colors[7] = {
-    {38, 125, 255, 255},
-    {250, 190, 50, 255},
-    {171, 38, 38, 255},
-    {250, 132, 222, 255},
-    {224, 142, 74, 255},
     {5, 100, 115, 255},
-    {245, 240, 206, 255}
+    {38, 125, 240, 255},
+    {70, 30, 130, 255},
+    {171, 38, 38, 255},
+    {224, 142, 74, 255},
+    {250, 110, 100, 255},
+    {60, 200, 150, 255}
 };
 
 uint8_t project_add_timeline(Project *proj, char *name)
@@ -230,11 +230,6 @@ void timeline_add_track(Timeline *tl)
     track->channels = tl->proj->channels;
 
     track->input = tl->proj->record_devices[0];
-
-    /* track->color.r = rand() % 255; */
-    /* track->color.g = rand() % 255; */
-    /* track->color.b = rand() % 255; */
-    /* track->color.a = 255; */
     track->color = track_colors[track_color_index];
     if (track_color_index < NUM_TRACK_COLORS -1) {
 	track_color_index++;
@@ -242,14 +237,6 @@ void timeline_add_track(Timeline *tl)
 	track_color_index = 0;
     }
     
-    /* track->muted = false; */
-    /* track->solo = false; */
-    /* track->solo_muted = false; */
-    /* track->active = false; */
-    /* track->num_clips = 0; */
-    /* track->num_grabbed_clips = 0; */
-    /* track-> */
-
     Layout *track_template = layout_get_child_by_name_recursive(tl->layout, "track_container");
     if (!track_template) {
 	fprintf(stderr, "Error: unable to find layout with name \"track_container\"\n");
@@ -258,7 +245,6 @@ void timeline_add_track(Timeline *tl)
 
     Layout *iteration = layout_add_iter(track_template, VERTICAL, true);
     track->layout = track_template->iterator->iterations[track->tl_rank];
-
 
     Layout *name, *mute, *solo, *vol_label, *pan_label, *in_label, *in_value;
 

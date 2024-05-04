@@ -394,10 +394,8 @@ static bool activate_all_tracks(Timeline *tl)
 	    track->active = true;
 	    ret = false;
 	}
-	
     }
     return ret;
-
 }
 
 static void deactivate_all_tracks(Timeline *tl)
@@ -410,7 +408,6 @@ static void deactivate_all_tracks(Timeline *tl)
 
 void user_tl_track_activate_all()
 {
-
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (activate_all_tracks(tl)) {
 	deactivate_all_tracks(tl);
@@ -424,7 +421,24 @@ void user_tl_track_selector_up()
     if (tl->track_selector > 0) {
 	tl->track_selector--;
     }
-    
+    Track *selected = tl->tracks[tl->track_selector];
+    /* fprintf(stdout, "Selected x: %d\n", selected->layout->rect.y); */
+    if (selected->layout->rect.y < tl->layout->rect.y) {
+	Layout *template = NULL;
+	LayoutIterator *iter = NULL;
+	if ((template = selected->layout->parent) && (iter = template->iterator)) {
+	    /* LayoutIterator *iter = selected->layout->parent->iterator; */
+	    iter->scroll_offset = (template->rect.h + template->rect.y - proj->audio_rect->y) * selected->tl_rank;
+	    if (iter->scroll_offset < 0) {
+		iter->scroll_offset = 0;
+	    }
+	    layout_reset(tl->layout);
+	    /* layout_force_reset(tl->layout); */
+	    timeline_reset(tl);
+        } else {
+	   fprintf(stderr, "Error: no iterator on layout: %s\n", selected->layout->parent->name);
+	}	    
+    }
 }
 
 void user_tl_track_selector_down()
@@ -432,6 +446,23 @@ void user_tl_track_selector_down()
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (tl->track_selector < tl->num_tracks -1) {
 	tl->track_selector++;
+    }
+    Track *selected = tl->tracks[tl->track_selector];
+    if (selected->layout->rect.y + selected->layout->rect.h > main_win->layout->rect.h) {
+	Layout *template = NULL;
+	LayoutIterator *iter = NULL;
+	if ((template = selected->layout->parent) && (iter = template->iterator)) {
+	    /* LayoutIterator *iter = selected->layout->parent->iterator; */
+	    iter->scroll_offset = (template->rect.h + template->rect.y - proj->audio_rect->y) * (selected->tl_rank - 3);
+	    if (iter->scroll_offset < 0) {
+		iter->scroll_offset = 0;
+	    }
+	    layout_reset(tl->layout);
+	    /* layout_force_reset(tl->layout); */
+	    timeline_reset(tl);
+	} else {
+	    fprintf(stderr, "Error: no iterator on layout: %s\n", selected->layout->parent->name);
+	}	    
     }
 }
 
@@ -604,11 +635,8 @@ void user_tl_solo()
 
 }
 
-
 void user_tl_record()
 {
-    /* Timeline *tl = pro
-       j->timelines[proj->active_tl_index]; */
     fprintf(stdout, "user_tl_record\n");
     if (proj->recording) {
 	transport_stop_recording();
@@ -668,8 +696,7 @@ void user_tl_clipref_grab_ungrab()
 		tl->grabbed_clips[tl->num_grabbed_clips] = cr;
 		tl->num_grabbed_clips++;
 		cr->grabbed = true;
-		clip_grabbed = true;
-		
+		clip_grabbed = true;		
 	    }
 	}
     }
@@ -689,8 +716,24 @@ void user_tl_clipref_grab_ungrab()
 	    cr->grabbed = false;
 	}
 	tl->num_grabbed_clips = 0;
-    }
-    
+    }    
+}
+
+void user_tl_play_drag()
+{
+    proj->dragging = true;
+    user_tl_play();
+}
+void user_tl_rewind_drag()
+{
+    proj->dragging = true;
+    user_tl_rewind();
+}
+
+void user_tl_pause_drag()
+{
+    proj->dragging = false;
+    user_tl_pause();
 }
 
 

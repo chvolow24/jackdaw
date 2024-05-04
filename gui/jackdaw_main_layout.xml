@@ -1,8 +1,8 @@
 <Layout name="jackdaw_main_layout2" type="NORMAL">
     <x>ABS 0</x>
     <y>ABS 0</y>
-    <w>ABS 4800</w>
-    <h>ABS 1346</h>
+    <w>SCALE 1.0</w>
+    <h>SCALE 1.0</h>
     <index>0</index>
     <children>
         <Layout name="control_bar" type="NORMAL">
@@ -117,7 +117,7 @@
                                         <Layout name="colorbar" type="NORMAL">
                                             <x>REL 161</x>
                                             <y>REL 0</y>
-                                            <w>REL 4</w>
+                                            <w>REL 7</w>
                                             <h>REL 102</h>
                                             <index>0</index>
                                             <children>

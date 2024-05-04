@@ -36,6 +36,8 @@
 
 #define MAX_SFPP 80000
 
+#define TIMELINE_CATCHUP_W (main_win->dpi_scale_factor * 150)
+
 extern Project *proj;
 extern Window *main_win;
 
@@ -201,7 +203,28 @@ void timeline_move_play_position(int32_t move_by_sframes)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     tl->play_pos_sframes += move_by_sframes;
+
+    if (proj->dragging) {
+	for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
+	    ClipRef *cr = tl->grabbed_clips[i];
+	    cr->pos_sframes += move_by_sframes;
+	    clipref_reset(cr);
+	}
+    }
+    
     /* timeline_set_timecode(); */
 }
 
+
+void timeline_catchup()
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    int tl_draw_x;
+    if ((tl_draw_x = timeline_get_draw_x(tl->play_pos_sframes)) > proj->audio_rect->x + proj->audio_rect->w) {
+	tl->display_offset_sframes = tl->play_pos_sframes - timeline_get_abs_w_sframes(proj->audio_rect->w - TIMELINE_CATCHUP_W);
+    } else if (tl_draw_x < proj->audio_rect->x) {
+	tl->display_offset_sframes = tl->play_pos_sframes - timeline_get_abs_w_sframes(TIMELINE_CATCHUP_W);
+    }
+    timeline_reset(tl);
+}
 

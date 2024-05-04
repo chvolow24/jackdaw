@@ -300,6 +300,27 @@ static void mode_load_timeline()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
+	"tl_play_drag",
+	"Play and drag grabbed clips",
+	user_tl_play_drag
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_rewind_drag",
+	"Rewind and drag grabbed clips",
+	user_tl_rewind_drag
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_pause_drag",
+	"Pause and stop dragging clips",
+	user_tl_pause_drag
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
 	"tl_move_right",
 	"Move right",
 	user_tl_move_right

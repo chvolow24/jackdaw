@@ -221,6 +221,7 @@ typedef struct project {
     Textbox *timeline_label;
     
     float play_speed;
+    bool dragging;
     bool recording;
 
     AudioDevice *record_devices[MAX_PROJ_AUDIO_DEVICES];

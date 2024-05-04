@@ -97,6 +97,9 @@ float *get_track_channel_chunk(Track *track, uint8_t channel, int32_t start_pos_
 	if (!cr) {
 	    continue;
 	}
+	if (proj->dragging && cr->grabbed) {
+	    continue;
+	}
 	SDL_LockMutex(cr->lock);
 	if (cr->clip->recording) {
 	    SDL_UnlockMutex(cr->lock);

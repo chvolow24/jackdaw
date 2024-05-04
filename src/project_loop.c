@@ -296,8 +296,10 @@ void loop_project_main()
 	}
 	
 
-	if (proj->play_speed != 0) {
+	if (proj->play_speed != 0 && !proj->source_mode) {
+	    timeline_catchup();
 	    timeline_set_timecode();
+	    
 	}
 
 	if (animate_step == 255) {
@@ -319,7 +321,7 @@ void loop_project_main()
 	/*     timeline_move_play_position((int32_t) 500 * proj->play_speed); */
 	/* } */
 
-	project_draw(proj);
+	project_draw();
 	/* window_draw_menus(main_win); */
 	
 	/***** Debug only *****/

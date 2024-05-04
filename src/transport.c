@@ -129,6 +129,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	    proj->src_play_pos_sframes = 0;
 	}
     } else {
+	/* fprintf(stdout, "Move pos: %d\n", (int)proj->play_speed * stream_len_samples / proj->channels); */
 	timeline_move_play_position(proj->play_speed * stream_len_samples / proj->channels);
     }
 }
@@ -148,7 +149,6 @@ void transport_stop_playback()
 }
 void transport_start_recording()
 {
-    proj->recording = true;
     AudioDevice *devices_to_activate[MAX_PROJ_AUDIO_DEVICES];
     uint8_t num_devices_to_activate = 0;
     Timeline *tl = proj->timelines[proj->active_tl_index];
@@ -202,8 +202,9 @@ void transport_start_recording()
 	dev = devices_to_activate[i];
 	device_start_recording(dev);
     }
-    transport_start_playback();
+    proj->recording = true;
     proj->play_speed = 1.0f;
+    transport_start_playback();
    
 }
 

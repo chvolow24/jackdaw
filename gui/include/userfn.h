@@ -35,6 +35,10 @@ void user_tl_set_mark_out();
 void user_tl_set_mark_in();
 void user_tl_goto_mark_out();
 void user_tl_goto_mark_in();
+void user_tl_play_drag();
+void user_tl_rewind_drag();
+void user_tl_pause_drag();
+
 void user_tl_add_track();
 
 void user_tl_track_select_1();
@@ -66,6 +70,8 @@ void user_tl_track_pan_right();
 
 void user_tl_record();
 void user_tl_clipref_grab_ungrab();
+
+
 void user_tl_load_clip_at_point_to_src();
 void user_tl_activate_source_mode();
 void user_tl_drop_from_source();

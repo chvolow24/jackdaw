@@ -37,7 +37,7 @@
 
 #define SCROLL_STOP_THRESHOLD 5
 
-#define WINDOW_PAD 50
+#define WINDOW_PAD 100
 
 /* extern Layout *main_lt; */
 /* extern SDL_Color white; */
@@ -767,13 +767,16 @@ void layout_reset(Layout *lt)
     if (lt->namelabel) {	
 	txt_reset_display_value(lt->namelabel);
     }
+    if (!main_win || !main_win->layout) {
+	return;
+    }
     SDL_Rect padded_win = main_win->layout->rect;
     padded_win.x -= WINDOW_PAD;
     padded_win.y -= WINDOW_PAD;
     padded_win.w += WINDOW_PAD * 2;
     padded_win.h += WINDOW_PAD * 2;
 
-    if (SDL_HasIntersection(&lt->rect, &main_win->layout->rect)) {
+    if (SDL_HasIntersection(&lt->rect, &padded_win)) {
 	for (uint8_t i=0; i<lt->num_children; i++) {
 	    Layout *child = lt->children[i];
 	    layout_reset(child);
@@ -827,7 +830,7 @@ Layout *layout_create()
 void delete_iterator(LayoutIterator *iter);
 void layout_destroy(Layout *lt)
 {
-    if (lt->parent) {
+    if (lt->parent && lt->type != ITERATION) {
         for (uint8_t i=lt->index; i<lt->parent->num_children - 1; i++) {
             lt->parent->children[i] = lt->parent->children[i + 1];
             lt->parent->children[i]->index--;
@@ -1123,7 +1126,7 @@ void layout_write(FILE *f, Layout *lt, int indent);
 static void add_iteration(LayoutIterator *iter)
 {
     Layout *iteration = copy_layout_as_iteration(iter->template, NULL);/*iter->template->parent*/
-
+    iteration->parent = iter->template;
     /* layout_write(stdout, iter->template, 0); */
     iter->iterations[iter->num_iterations] = iteration;
     /* layout_write(stdout, iteration, 0); */

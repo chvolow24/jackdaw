@@ -13,7 +13,8 @@ extern Project *proj;
 
 SDL_Color track_bckgrnd = {120, 130, 150, 255};
 SDL_Color source_mode_bckgrnd = {0, 20, 40, 255};
-SDL_Color track_bckgrnd_active = {170, 200, 200, 255};
+/* SDL_Color track_bckgrnd_active = {170, 130, 130, 255}; */
+SDL_Color track_bckgrnd_active = {190, 190, 180, 255};
 /* SDL_Color track_bckgrnd_active = {220, 210, 170, 255}; */
 SDL_Color console_bckgrnd = {140, 140, 140, 255};
 /* SDL_Color console_bckgrnd_selector = {210, 180, 100, 255}; */
@@ -33,7 +34,8 @@ SDL_Color clip_ref_home_bckgrnd = {90, 180, 245, 200};
 SDL_Color clip_ref_home_grabbed_bckgrnd = {120, 210, 255, 230};
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;
-
+extern SDL_Color color_global_grey;
+extern SDL_Color color_global_yellow;
 /* SDL_Color track_vol_bar_clr = (SDL_Color) {200, 100, 100, 255}; */
 /* SDL_Color track_pan_bar_clr = (SDL_Color) {100, 200, 100, 255}; */
 /* SDL_Color track_in_bar_clr = (SDL_Color) {100, 100, 200, 255}; */
@@ -161,14 +163,12 @@ static void clipref_draw(ClipRef *cr)
 	draw_waveform(cr);
     }
 
-    int border = cr->grabbed ? 6 : 2;
+    int border = cr->grabbed ? 3 : 2;
 	
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
     geom_draw_rect_thick(main_win->rend, &cr->rect, border, main_win->dpi_scale_factor);
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_white));    
-    geom_draw_rect_thick(main_win->rend, &cr->rect, border / 2, main_win->dpi_scale_factor);
-
-    
+    geom_draw_rect_thick(main_win->rend, &cr->rect, border / 2, main_win->dpi_scale_factor); 
 }
 
 
@@ -177,7 +177,7 @@ static void track_draw(Track *track)
     if (track->deleted) {
 	return;
     }
-    if (track->layout->rect.y < 0 || track->layout->rect.y > main_win->layout->rect.h) {
+    if (track->layout->rect.y + track->layout->rect.h < proj->audio_rect->y || track->layout->rect.y > main_win->layout->rect.h) {
 	return;
     }
 
@@ -226,9 +226,7 @@ static void track_draw(Track *track)
     fslider_draw(track->vol_ctrl);
     /* fslider_reset(track->pan_ctrl); */
 
-    fslider_draw(track->pan_ctrl);
-    
-    
+    fslider_draw(track->pan_ctrl);        
 }
 
 static void ruler_draw(Timeline *tl)
@@ -238,12 +236,8 @@ static void ruler_draw(Timeline *tl)
     
 }
 
-
-
-
 static void timeline_draw(Timeline *tl)
 {
-    
     /* Draw the timeline background */
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(timeline_bckgrnd));
     SDL_RenderFillRect(main_win->rend, &tl->layout->rect);
@@ -251,8 +245,6 @@ static void timeline_draw(Timeline *tl)
     /* set_rend_color(rend, &bckgrnd_color); */
     /* SDL_Rect top_mask = {0, 0, proj->jwin->w, proj->tl->rect.y}; */
     /* SDL_RenderFillRect(rend, &top_mask); */
-
-    
     /* SDL_Rect mask_left = {0, 0, proj->tl->rect.x, proj->jwin->h}; */
     /* SDL_RenderFillRect(rend, &mask_left); */
     /* SDL_Rect mask_left_2 = {proj->tl->rect.x, proj->tl->rect.y, PADDING, proj->tl->rect.h}; */
@@ -269,15 +261,6 @@ static void timeline_draw(Timeline *tl)
 
     /* set_rend_color(rend, &white); */
 
-    /* /\* Draw t=0 *\/ */
-    /* if (proj->tl->display_offset_sframes< 0) { */
-    /*     set_rend_color(rend, &black); */
-    /*     int zero_x = get_tl_draw_x(0); */
-    /*     SDL_RenderDrawLine(rend, zero_x, proj->tl->audio_rect.y, zero_x, proj->tl->audio_rect.y + proj->tl->audio_rect.h); */
-    /* } */
-
-
-
     /* Draw tracks */
     for (int i=0; i<tl->num_tracks; i++) {
 	track_draw(tl->tracks[i]);
@@ -286,6 +269,12 @@ static void timeline_draw(Timeline *tl)
     ruler_draw(tl);
     if (tl->timecode_tb) {
 	textbox_draw(tl->timecode_tb);
+    }
+    /* Draw t=0 */
+    if (tl->display_offset_sframes < 0) {
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
+        int zero_x = timeline_get_draw_x(0);
+        SDL_RenderDrawLine(main_win->rend, zero_x, proj->audio_rect->y, zero_x, proj->audio_rect->y + proj->audio_rect->h);
     }
 
     /* Draw play head line */
@@ -308,7 +297,6 @@ static void timeline_draw(Timeline *tl)
             tri_x1 -= 1;
         }
     }
-
 
     /* draw mark in */
     int in_x, out_x = -1;
@@ -347,11 +335,9 @@ static void timeline_draw(Timeline *tl)
     }
 
     if (proj->source_mode) {
-
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(grey_mask));
 	SDL_RenderFillRect(main_win->rend, &tl->layout->rect);
     }
-    
 }
 
 
@@ -394,10 +380,8 @@ static void control_bar_draw(Project *proj)
 	    tri_x1 -= 1;
 	}
 
-
 	/* draw mark in */
 	int in_x, out_x = -1;
-
 
 	in_x = proj->source_clip_rect->x + proj->source_clip_rect->w * proj->src_in_sframes / proj->src_clip->len_sframes;
 	int i_tri_x2 = in_x;
@@ -407,7 +391,6 @@ static void control_bar_draw(Project *proj)
 	    ph_y -= 1;
 	    i_tri_x2 += 1;
 	}
-
 
 	/* draw mark out */
 
@@ -437,17 +420,6 @@ void project_draw()
     textbox_draw(proj->timeline_label);
     window_draw_menus(main_win);
     window_end_draw(main_win);
-
-
-    /* for (int i=0; i<proj->timelines[proj->active_tl_index]->num_tracks; i++) { */
-    /* 	Track *track = proj->timelines[proj->active_tl_index]->tracks[i]; */
-    /* 	if (track->vol > 0) { */
-    /* 	    track->vol -= 0.01; */
-    /* 	    fslider_reset(track->vol_ctrl); */
-    /* 	} */
-    /* } */
-
-    /* layout_draw(main_win, proj->timelines[proj->active_tl_index]->layout); */
 }
 
 

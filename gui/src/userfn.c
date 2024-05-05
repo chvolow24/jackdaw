@@ -311,6 +311,13 @@ void user_tl_goto_mark_in()
     transport_goto_mark(tl, true);
 }
 
+void user_tl_goto_zero()
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    tl->play_pos_sframes = 0;
+    tl->display_offset_sframes = 0;
+}
+
 
 void user_tl_add_track()
 {
@@ -439,6 +446,13 @@ void user_tl_track_selector_up()
 	   fprintf(stderr, "Error: no iterator on layout: %s\n", selected->layout->parent->name);
 	}	    
     }
+    if (proj->dragging) {
+	for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
+	    ClipRef *cr = tl->grabbed_clips[i];
+	    clipref_displace(cr, -1);
+	}
+    }
+    
 }
 
 void user_tl_track_selector_down()
@@ -464,7 +478,14 @@ void user_tl_track_selector_down()
 	    fprintf(stderr, "Error: no iterator on layout: %s\n", selected->layout->parent->name);
 	}	    
     }
+    if (proj->dragging) {
+	for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
+	    ClipRef *cr = tl->grabbed_clips[i];
+	    clipref_displace(cr, 1);
+	}
+    }
 }
+
 
 void user_tl_track_activate_selected()
 {
@@ -719,23 +740,26 @@ void user_tl_clipref_grab_ungrab()
     }    
 }
 
-void user_tl_play_drag()
-{
-    proj->dragging = true;
-    user_tl_play();
-}
-void user_tl_rewind_drag()
-{
-    proj->dragging = true;
-    user_tl_rewind();
-}
+/* void user_tl_play_drag() */
+/* { */
+/*     proj->dragging = true; */
+/*     user_tl_play(); */
+/* } */
+/* void user_tl_rewind_drag() */
+/* { */
+/*     proj->dragging = true; */
+/*     user_tl_rewind(); */
+/* } */
 
-void user_tl_pause_drag()
+/* void user_tl_pause_drag() */
+/* { */
+/*     proj->dragging = false; */
+/*     user_tl_pause(); */
+/* } */
+void user_tl_toggle_drag()
 {
-    proj->dragging = false;
-    user_tl_pause();
+    proj->dragging = !proj->dragging;
 }
-
 
 void user_tl_load_clip_at_point_to_src()
 {
@@ -767,10 +791,12 @@ void user_tl_drop_from_source()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     Track *track = tl->tracks[tl->track_selector];
-    ClipRef *cr = track_create_clip_ref(track, proj->src_clip, tl->play_pos_sframes, false);
-    cr->in_mark_sframes = proj->src_in_sframes;
-    cr->out_mark_sframes = proj->src_out_sframes;
-    clipref_reset(cr);
+    if (proj->src_clip) {
+	ClipRef *cr = track_create_clip_ref(track, proj->src_clip, tl->play_pos_sframes, false);
+	cr->in_mark_sframes = proj->src_in_sframes;
+	cr->out_mark_sframes = proj->src_out_sframes;
+	clipref_reset(cr);
+    }
 }
 
 

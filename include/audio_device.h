@@ -53,7 +53,7 @@ typedef struct audio_device{
     SDL_AudioSpec spec;
     int16_t *rec_buffer;
     uint32_t rec_buf_len_samples;
-    int32_t write_buffpos_samples;
+    int32_t write_bufpos_samples;
     bool active;
 
     Clip *current_clip; /* The clip currently being recorded, if applicable */

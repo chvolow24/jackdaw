@@ -35,10 +35,11 @@ void user_tl_set_mark_out();
 void user_tl_set_mark_in();
 void user_tl_goto_mark_out();
 void user_tl_goto_mark_in();
-void user_tl_play_drag();
-void user_tl_rewind_drag();
-void user_tl_pause_drag();
-
+void user_tl_goto_zero();
+/* void user_tl_play_drag(); */
+/* void user_tl_rewind_drag(); */
+/* void user_tl_pause_drag(); */
+void user_tl_toggle_drag();
 void user_tl_add_track();
 
 void user_tl_track_select_1();

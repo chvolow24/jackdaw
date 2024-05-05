@@ -39,22 +39,27 @@
 
 extern Project *proj;
 
-
+static void copy_device_buf_to_clip(Clip *clip);
 void transport_record_callback(void* user_data, uint8_t *stream, int len)
 {
 
     AudioDevice *dev = (AudioDevice *)user_data;
     uint32_t stream_len_samples = len / sizeof(int16_t);
 
-    if (dev->write_buffpos_samples + stream_len_samples < dev->rec_buf_len_samples) {
-        memcpy(dev->rec_buffer + dev->write_buffpos_samples, stream, len);
+    if (dev->write_bufpos_samples + stream_len_samples < dev->rec_buf_len_samples) {
+        memcpy(dev->rec_buffer + dev->write_bufpos_samples, stream, len);
     } else {
-        dev->write_buffpos_samples = 0;
-        device_stop_recording(dev);
-        fprintf(stderr, "ERROR: overwriting audio buffer of device: %s\n", dev->name);
+	for (int i=proj->active_clip_index; i< proj->num_clips; i++) {
+	    Clip *clip = proj->clips[proj->active_clip_index];
+	    copy_device_buf_to_clip(clip);
+	    clip->write_bufpos_sframes += dev->write_bufpos_samples / clip->channels;
+	}
+        dev->write_bufpos_samples = 0;
+        /* device_stop_recording(dev); */
+        /* fprintf(stderr, "ERROR: overwriting audio buffer of device: %s\n", dev->name); */
     }
 
-    dev->write_buffpos_samples += stream_len_samples;
+    dev->write_bufpos_samples += stream_len_samples;
 
 }
 
@@ -210,14 +215,24 @@ void transport_start_recording()
 
 static void create_clip_buffers(Clip *clip, uint32_t len_sframes)
 {
-    if (clip->L != NULL) {
-	fprintf(stderr, "Error: clip %s already has a buffer allocated\n", clip->name);
-	exit(1);
-    }
+    /* if (clip->L != NULL) { */
+	
+    /* 	fprintf(stderr, "Error: clip %s already has a buffer allocated\n", clip->name); */
+    /* 	exit(1); */
+    /* } */
     uint32_t buf_len_bytes = sizeof(float) * len_sframes;
-    clip->L = malloc(buf_len_bytes);
+    if (!clip->L) {
+	clip->L = malloc(buf_len_bytes);
+    } else {
+	fprintf(stdout, "REALLOCATING L %lu\n", buf_len_bytes);
+	clip->L = realloc(clip->L, buf_len_bytes);
+    }
     if (clip->channels == 2) {
-	clip->R = malloc(buf_len_bytes);
+	if (!clip->R) {
+	    clip->R = malloc(buf_len_bytes);
+	} else {
+	    clip->R = realloc(clip->R, buf_len_bytes);
+	}
     }
     if (!clip->R || !clip->L) {
 	fprintf(stderr, "Error: failed to allocate space for clip buffer\n");
@@ -227,14 +242,15 @@ static void create_clip_buffers(Clip *clip, uint32_t len_sframes)
 
 static void copy_device_buf_to_clip(Clip *clip) {
     fprintf(stderr, "Enter copy_buff_to_clip\n");
-    clip->len_sframes = clip->recorded_from->write_buffpos_samples / clip->channels;
+    fprintf(stdout, "\n\nRESETTING clip len to clip write buffpos (%ld) + recorded from bufpos (%d)\n", clip->write_bufpos_sframes, clip->recorded_from->write_bufpos_samples);
+    clip->len_sframes = clip->write_bufpos_sframes + clip->recorded_from->write_bufpos_samples / clip->channels;
     create_clip_buffers(clip, clip->len_sframes);
-    for (int i=0; i<clip->recorded_from->write_buffpos_samples; i+= clip->channels) {
+    for (int i=0; i<clip->recorded_from->write_bufpos_samples; i+=clip->channels) {
         float sample_L = (float) clip->recorded_from->rec_buffer[i] / INT16_MAX;
         float sample_R = (float) clip->recorded_from->rec_buffer[i+1] / INT16_MAX;
         // fprintf(stderr, "Copying samples to clip %d: %f, %d: %f\n", i, sample_L, i+1, sample_R);
-        clip->L[i/clip->channels] = sample_L;
-        clip->R[i/clip->channels] = sample_R;
+        clip->L[clip->write_bufpos_sframes + i/clip->channels] = sample_L;
+        clip->R[clip->write_bufpos_sframes + i/clip->channels] = sample_R;
         // (clip->pre_proc)[i] = sample;
         // (clip->post_proc)[i] = sample;
     }
@@ -297,7 +313,7 @@ void transport_recording_update_cliprects()
     for (uint8_t i=proj->active_clip_index; i<proj->num_clips; i++) {
 	Clip *clip = proj->clips[i];
 	
-	clip->len_sframes = clip->recorded_from->write_buffpos_samples / clip->channels;
+	clip->len_sframes = clip->recorded_from->write_bufpos_samples / clip->channels + clip->write_bufpos_sframes;
 	for (uint8_t j=0; j<clip->num_refs; j++) {
 	    ClipRef *cr = clip->refs[j];
 	    cr->out_mark_sframes = clip->len_sframes;

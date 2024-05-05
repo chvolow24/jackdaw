@@ -146,7 +146,7 @@ typedef struct clip {
     uint8_t num_refs;
     float *L;
     float *R;
-
+    uint32_t write_bufpos_sframes;
     /* Recording in */
     Track *target;
     bool recording;
@@ -292,6 +292,8 @@ Clip *project_add_clip(AudioDevice *dev, Track *target);
 ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sframes, bool home);
 int32_t clip_ref_len(ClipRef *cr);
 void clipref_reset(ClipRef *cr);
+
+void clipref_displace(ClipRef *cr, int displace_by);
 
 void track_increment_vol(Track *track);
 void track_decrement_vol(Track *track);

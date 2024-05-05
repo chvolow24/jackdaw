@@ -36,7 +36,7 @@
 #include "project.h"
 
 
-#define DEVICE_BUFLEN_SECONDS 60 /* TODO: reduce, and write to clip during recording */
+#define DEVICE_BUFLEN_SECONDS 2 /* TODO: reduce, and write to clip during recording */
 
 extern Project *proj;
 
@@ -60,7 +60,7 @@ int query_audio_devices(Project *proj, int iscapture)
     default_dev->active = false;
     default_dev->index = 0;
     default_dev->iscapture = iscapture;
-    default_dev->write_buffpos_samples = 0;
+    default_dev->write_bufpos_samples = 0;
     default_dev->rec_buffer = NULL;
     // memset(default_dev->rec_buffer, '\0', BUFFLEN / 2);
 
@@ -80,7 +80,7 @@ int query_audio_devices(Project *proj, int iscapture)
         dev->active = false;
         dev->index = j;
         dev->iscapture = iscapture;
-        dev->write_buffpos_samples = 0;
+        dev->write_bufpos_samples = 0;
         // memset(dev->rec_buffer, '\0', BUFFLEN / 2);
         SDL_AudioSpec spec;
         if (SDL_GetAudioDeviceSpec(i, iscapture, &spec) != 0) {
@@ -131,7 +131,7 @@ int device_open(Project *proj, AudioDevice *device)
 	if (!device->rec_buffer) {
 	    device->rec_buffer = malloc(device_buf_len_bytes);
 	}
-	device->write_buffpos_samples = 0;
+	device->write_bufpos_samples = 0;
 	if (!(device->rec_buffer)) {
 	    fprintf(stderr, "Error: unable to allocate space for device buffer.\n");
 	}

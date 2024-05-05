@@ -428,6 +428,38 @@ void clipref_reset(ClipRef *cr)
     cr->rect.h = cr->track->layout->rect.h - 2 * CR_RECT_V_PAD;
 }
 
+static void clipref_remove_from_track(ClipRef *cr)
+{
+    bool displace = false;
+    Track *track = cr->track;
+    for (uint8_t i=0; i<track->num_clips; i++) {
+	ClipRef *test = track->clips[i];
+	if (test == cr) {
+	    displace = true;
+	} else if (displace && i > 0) {
+	    track->clips[i - 1] = test;
+	    
+	}
+    }
+    track->num_clips--;
+}
+
+void clipref_displace(ClipRef *cr, int displace_by)
+{
+    Track *track = cr->track;
+    Timeline *tl = track->tl;
+    int new_rank = track->tl_rank + displace_by;
+    if (new_rank >= 0 && new_rank < tl->num_tracks) {
+	Track *new_track = tl->tracks[new_rank];
+	clipref_remove_from_track(cr);
+	new_track->clips[new_track->num_clips] = cr;
+	new_track->num_clips++;
+	cr->track = new_track;
+	fprintf(stdout, "ADD CLIP TO TRACK %s, which has %d clips now\n", new_track->name, new_track->num_clips);
+	
+    }
+}
+
 
 static void track_reset(Track *track)
 {

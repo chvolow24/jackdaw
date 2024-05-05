@@ -299,27 +299,34 @@ static void mode_load_timeline()
 	);
     mode_subcat_add_fn(sc, fn);
 
-    fn = create_user_fn(
-	"tl_play_drag",
-	"Play and drag grabbed clips",
-	user_tl_play_drag
-	);
-    mode_subcat_add_fn(sc, fn);
+    /* fn = create_user_fn( */
+    /* 	"tl_play_drag", */
+    /* 	"Play and drag grabbed clips", */
+    /* 	user_tl_play_drag */
+    /* 	); */
+    /* mode_subcat_add_fn(sc, fn); */
+
+    /* fn = create_user_fn( */
+    /* 	"tl_rewind_drag", */
+    /* 	"Rewind and drag grabbed clips", */
+    /* 	user_tl_rewind_drag */
+    /* 	); */
+    /* mode_subcat_add_fn(sc, fn); */
+
+    /* fn = create_user_fn( */
+    /* 	"tl_pause_drag", */
+    /* 	"Pause and stop dragging clips", */
+    /* 	user_tl_pause_drag */
+    /* 	); */
+    /* mode_subcat_add_fn(sc, fn); */
 
     fn = create_user_fn(
-	"tl_rewind_drag",
-	"Rewind and drag grabbed clips",
-	user_tl_rewind_drag
+	"tl_toggle_drag",
+	"Start or stop dragging clips",
+	user_tl_toggle_drag
 	);
     mode_subcat_add_fn(sc, fn);
-
-    fn = create_user_fn(
-	"tl_pause_drag",
-	"Pause and stop dragging clips",
-	user_tl_pause_drag
-	);
-    mode_subcat_add_fn(sc, fn);
-
+    
     fn = create_user_fn(
 	"tl_move_right",
 	"Move right",
@@ -383,6 +390,13 @@ static void mode_load_timeline()
 	"tl_goto_out_mark",
 	"Go to Out",
 	user_tl_goto_mark_out
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_goto_zero",
+	"Go to t=0",
+	user_tl_goto_zero
 	);
     mode_subcat_add_fn(sc, fn);
 
@@ -755,6 +769,8 @@ static void input_read_keycmd(char *keycmd, uint16_t *i_state, SDL_Keycode *key)
 	*key = SDLK_RETURN;
     } else if (strcmp(keycmd, "<esc>") == 0) {
 	*key = SDLK_ESCAPE;
+    } else if (strcmp(keycmd, "<spc>") == 0) {
+	*key = SDLK_SPACE;
     } else if (strcmp(keycmd, "<del>") == 0) {
 	*key = SDLK_BACKSPACE;
     } else if (strcmp(keycmd, "<tab>") == 0) {
@@ -810,6 +826,9 @@ char *input_get_keycmd_str(uint16_t i_state, SDL_Keycode keycode)
     switch (keycode) {
     case SDLK_RETURN:
 	sprintf(buf, "%s<ret>", mod);
+	break;
+    case SDLK_SPACE:
+	sprintf(buf, "%s<spc>", mod);
 	break;
     case SDLK_ESCAPE:
 	sprintf(buf, "%s<esc>", mod);

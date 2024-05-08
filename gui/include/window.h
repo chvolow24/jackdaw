@@ -58,6 +58,9 @@ void window_auto_resize(Window *window);
 /* Force resize a window */
 void window_resize(Window *win, int w, int h);
 
+/* Passively resize a window, in response to system-driven resize */
+void window_resize_passive(Window *win, int w, int h);
+
 /* Set the mouse position, accounting for scaling of canvas. */
 void window_set_mouse_point(Window *win, int logical_x, int logical_y);
 

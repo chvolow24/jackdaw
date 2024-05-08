@@ -171,7 +171,26 @@ void window_resize(Window *win, int w, int h)
     if (win->layout) {
 	layout_reset_from_window(win->layout, win);
     }
-    
+}
+
+void window_resize_passive(Window *win, int w, int h)
+{
+    win->w = w * win->dpi_scale_factor;
+    win->h = h * win->dpi_scale_factor;
+    win->canvas_src.w = win->w;
+    win->canvas_src.h = win->h;
+    if (win->canvas) {
+	SDL_DestroyTexture(win->canvas);
+	win->canvas = SDL_CreateTexture(win->rend, 0, SDL_TEXTUREACCESS_TARGET, win->w, win->h);
+	if (!win->canvas) {
+	    fprintf(stderr, "Error: failed to create canvas texture. %s\n", SDL_GetError());
+	    // exit(1);
+	}
+    }
+    if (win->layout) {
+	layout_reset_from_window(win->layout, win);
+    }
+ 
 }
 
 void window_set_mouse_point(Window *win, int logical_x, int logical_y)

@@ -113,9 +113,22 @@ static void update_track_vol_pan()
 }
 
 
+/* Declare a function to be passed to SDL_AddEventWatch */
+static int SDLCALL special_event_callback(void *userdata, SDL_Event *event)
+{
+    if (event->type == SDL_WINDOWEVENT && event->window.event == SDL_WINDOWEVENT_EXPOSED) {
+	/* Handle event here */
+    }
+    return 0;
+}
+
+
 void loop_project_main()
 {
 
+    /* void SDL_AddEventWatch(SDL_EventFilter filter, */
+    /*                    void *userdata); */
+    SDL_AddEventWatch(special_event_callback, NULL);
     clock_t start, end;
     uint8_t frame_ctr = 0;
     float fps = 0;
@@ -135,14 +148,16 @@ void loop_project_main()
     window_push_mode(main_win, TIMELINE);
    
     while (!(main_win->i_state & I_STATE_QUIT)) {
+	/* fprintf(stdout, "About to poll...\n"); */
 	while (SDL_PollEvent(&e)) {
+	    /* fprintf(stdout, "Polled!\n"); */
 	    switch (e.type) {
 	    case SDL_QUIT:
 		main_win->i_state |= I_STATE_QUIT;
 		break;
 	    case SDL_WINDOWEVENT:
 		if (e.window.event == SDL_WINDOWEVENT_RESIZED) {
-		    window_resize(main_win, e.window.data1, e.window.data2);
+		    window_resize_passive(main_win, e.window.data1, e.window.data2);
 		}
 		break;
 	    case SDL_MOUSEMOTION:

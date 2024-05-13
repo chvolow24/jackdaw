@@ -1,0 +1,61 @@
+/**************************** .JDAW VERSION 00.10 FILE SPEC ***********************************
+
+===========================================================================================================
+SCTN          LEN IN BYTES      TYPE                      BYTE ORDER   FIELD NAME OR VALUE
+===========================================================================================================
+[SINGLE]
+HDR           4                 char[4]                                "JDAW"
+HDR           8                 char[8]                                " VERSION"
+
+[SINGLE]
+PROJ          5                 char[5]                                file spec version (e.g. "00.01")
+PROJ          1                 uint8_t                                project name length
+PROJ          0-255             char[]                                 project name
+PROJ          1                 uint8_t                                channels
+PROJ          4                 uint32_t                  LE           sample rate
+PROJ          2                 uint16_t                  LE           chunk size (power of 2)
+PROJ          2                 SDL_AudioFormat (16bit)                SDL Audio Format
+PROJ	      1			uint8_t				       number of clips
+PROJ	      1			uint8_t				       number of timelines
+
+[MULTIPLE PER PROJECT]
+CLIP	      4			char[4]				       "CLIP"
+CLIP	      1			uint8_t				       clip name length
+CLIP	      0-255		char[]				       clip name
+CLIP	      1			uint8_t				       clip index
+CLIP	      1			uint8_t				       num channels
+CLIP	      4			uint32_t	          LE	       length (sample frames)
+CLIP	      4			char[4]			  	       "data"
+CLIP_DATA     ?			int16_t[]		  LE	       CLIP SAMPLE DATA
+
+[MULTIPLE PER PROJECT]
+TL	      8			char[8]				       "TIMELINE"
+TL	      1			uint8_t				       timeline name length
+TL	      0-255		char[]				       timeline name
+TL	      1			uint8_t				       num tracks
+
+[MULTIPLE PER TIMELINE]
+TRCK   	      4                 char[4]                                "TRCK"
+TRCK  	      1                 uint8_t                                track name length
+TRCK	      0-255             char[]                                 track name
+TRCK	      4			uint8_t[4] (AKA SDL_COLOR)	       color			       
+TRCK	      10                char[16] (from float)                  vol
+TRCK          10                char[16] (from float)                  pan
+TRCK	      1                 bool                                   muted
+TRCK	      1                 bool                                   soloed
+TRCK 	      1                 bool                                   solo muted
+TRCK   	      1                 uint8_t                                num cliprefs
+
+[MULTIPLE PER TRACK]
+CLIP_REF      7                 char[7]                                "CLIPREF"
+CLIP_REF      1                 uint8_t                                clipref name length
+CLIP_REF      0-255             char[]                                 clipref name
+CLIP_REF      1			bool				       is 'home'
+CLIP_REF      1			uint8_t				       source clip index
+CLIP_REF      4                 int32_t                   LE           position in timeline (sample frames)
+CLIP_REF      4                 uint32_t                  LE           in mark (sframes)
+CLIP_REF      4			uint32_t		  LE	       out mark (sframes)
+CLIP_REF      4                 uint32_t                  LE           clipref start ramp len (sframes)
+CLIP_REF      4                 uint32_t                  LE           clipref end ramp len (sframes)
+
+*********************************************************************************/

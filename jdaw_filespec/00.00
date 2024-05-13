@@ -1,0 +1,26 @@
+/**************************** .JDAW VERSION 00.00 FILE SPEC ***********************************
+
+===========================================================================================================
+SCTN          LEN IN BYTES      TYPE                      BYTE ORDER   FIELD NAME OR VALUE
+===========================================================================================================
+HDR           4                 char[4]                                "JDAW"
+HDR           1                 uint8_t                                project name length
+HDR           0-255             char[]                                 project name
+HDR           1                 uint8_t                                channels
+HDR           4                 uint32_t                  LE           sample rate
+HDR           4                 uint16_t                  LE           chunk size (power of 2)
+HDR           2                 SDL_AudioFormat (16bit)                SDL Audio Format
+HDR           1                 uint8_t                                num tracks
+TRK_HDR       4                 char[4]                                "TRCK"
+TRK_HDR       1                 uint8_t                                track name length
+TRK_HDR       0-255             char[]                                 track name
+TRK_HDR       1                 uint8_t                                num_clips
+CLP_HDR       4                 char[4]                                "CLIP"
+CLP_HDR       1                 uint8_t                                clip name length
+CLP_HDR       0-255             char[]                                 clip name
+CLP_HDR       4                 int32_t                   LE           absolute position (in timeline)
+CLP_HDR       4                 uint32_t                  LE           length (samples)
+CLP_HDR       4                 char[4]                                "data"
+CLP_DATA      0-?               [int16_t arr]             [LE]         CLIP SAMPLE DATA     
+
+*********************************************************************************/

@@ -15,7 +15,7 @@ extern SDL_Color color_global_black;
 #define MAX_MODES 8
 #define STICK_DELAY_MS 500
 
-Project *proj;
+extern Project *proj;
 
 
 
@@ -129,9 +129,9 @@ void loop_project_main()
     /* void SDL_AddEventWatch(SDL_EventFilter filter, */
     /*                    void *userdata); */
     SDL_AddEventWatch(special_event_callback, NULL);
-    clock_t start, end;
-    uint8_t frame_ctr = 0;
-    float fps = 0;
+    /* clock_t start, end; */
+    /* uint8_t frame_ctr = 0; */
+    /* float fps = 0; */
 
     Layout *temp_scrolling_lt = NULL;
     Layout *scrolling_lt = NULL;
@@ -351,16 +351,16 @@ void loop_project_main()
 	SDL_Delay(1);
 
 
-        end = clock();
-	fps += (float)CLOCKS_PER_SEC / (end - start);
-	start = end;
-	if (frame_ctr > 100) {
-	    fps /= 100;
-	    fprintf(stdout, "FPS: %f\n", fps);
-	    frame_ctr = 0;
-	} else {
-	    frame_ctr++;
-	}
+        /* end = clock(); */
+	/* fps += (float)CLOCKS_PER_SEC / (end - start); */
+	/* start = end; */
+	/* if (frame_ctr > 100) { */
+	/*     fps /= 100; */
+	/*     fprintf(stdout, "FPS: %f\n", fps); */
+	/*     frame_ctr = 0; */
+	/* } else { */
+	/*     frame_ctr++; */
+	/* } */
 
     }
 }

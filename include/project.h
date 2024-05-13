@@ -287,6 +287,7 @@ Project *project_create(
 uint8_t project_add_timeline(Project *proj, char *name);
 void project_reset_tl_label(Project *proj);
 void timeline_add_track(Timeline *tl);
+void timeline_reset_full(Timeline *tl);
 void timeline_reset(Timeline *tl);
 Clip *project_add_clip(AudioDevice *dev, Track *target);
 ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sframes, bool home);

@@ -27,7 +27,7 @@
   - C-q		: quit
   - C-z		: undo
   - C-y		: redo
-  - C-s		: save_current_project
+  - C-s		: save_project
   - C-S-s	: save_current_project_as
   - C-o		: open_file
 - menu_nav:

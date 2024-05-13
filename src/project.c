@@ -8,7 +8,7 @@
   of this software and associated documentation files (the "Software"), to deal
   in the Software without restriction, including without limitation the rights
   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  copies of the Software, and to permit persons to whom the Software is
+  copies of the Software, and to permit persons to whom the Software iso
   furnished to do so, subject to the following conditions:
   
   The above copyright notice and this permission notice shall be included in all
@@ -460,9 +460,27 @@ void clipref_displace(ClipRef *cr, int displace_by)
     }
 }
 
+static void track_reset_full(Track *track)
+{
+    textbox_reset_full(track->tb_name);
+    textbox_reset_full(track->tb_input_label);
+    textbox_reset_full(track->tb_mute_button);
+    textbox_reset_full(track->tb_solo_button);
+    textbox_reset_full(track->tb_vol_label);
+    textbox_reset_full(track->tb_pan_label);
+    textbox_reset_full(track->tb_input_label);
+    textbox_reset_full(track->tb_input_name);
+    for (uint8_t i=0; i<track->num_clips; i++) {
+	clipref_reset(track->clips[i]);
+    }
+    fslider_reset(track->vol_ctrl);
+    fslider_reset(track->pan_ctrl);
+}
+    
 
 static void track_reset(Track *track)
 {
+
     textbox_reset(track->tb_name);
     textbox_reset(track->tb_input_label);
     textbox_reset(track->tb_mute_button);
@@ -493,6 +511,13 @@ ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sfr
     clip->num_refs++;
     SDL_UnlockMutex(cr->lock);
     return cr;
+}
+
+void timeline_reset_full(Timeline *tl)
+{
+    for (int i=0; i<tl->num_tracks; i++) {
+	track_reset_full(tl->tracks[i]);
+    }
 }
 
 void timeline_reset(Timeline *tl)

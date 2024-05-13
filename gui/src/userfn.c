@@ -47,6 +47,13 @@ void user_global_redo()
 }
 
 
+void jdaw_write_project(const char *path);
+void user_global_save_project()
+{
+    fprintf(stdout, "user_global_save\n");
+    jdaw_write_project("project_v.jdaw");
+}
+
 
 void user_menu_nav_next_item()
 {

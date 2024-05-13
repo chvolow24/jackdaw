@@ -47,19 +47,23 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
     uint32_t stream_len_samples = len / sizeof(int16_t);
 
     if (dev->write_bufpos_samples + stream_len_samples < dev->rec_buf_len_samples) {
+	/* fprintf(stdout, "Fits! bufpos: %d\n", dev->write_bufpos_samples); */
         memcpy(dev->rec_buffer + dev->write_bufpos_samples, stream, len);
+	dev->write_bufpos_samples += stream_len_samples;
     } else {
+	/* fprintf(stdout, "Leftover: %d\n", dev->rec_buf_len_samples - (dev->write_bufpos_samples + stream_len_samples)); */
 	for (int i=proj->active_clip_index; i< proj->num_clips; i++) {
 	    Clip *clip = proj->clips[proj->active_clip_index];
 	    copy_device_buf_to_clip(clip);
-	    clip->write_bufpos_sframes += dev->write_bufpos_samples / clip->channels;
+	    memcpy(dev->rec_buffer, stream, len);
+	    dev->write_bufpos_samples = stream_len_samples;
+	    /* clip->write_bufpos_sframes += dev->write_bufpos_samples / clip->channels; */
 	}
-        dev->write_bufpos_samples = 0;
+        /* dev->write_bufpos_samples = 0; */
         /* device_stop_recording(dev); */
         /* fprintf(stderr, "ERROR: overwriting audio buffer of device: %s\n", dev->name); */
     }
 
-    dev->write_bufpos_samples += stream_len_samples;
 
 }
 
@@ -199,6 +203,7 @@ void transport_start_recording()
 	if (!dev->open) {
 	    device_open(proj, dev);
 	}
+	dev->write_bufpos_samples = 0;
 	/* device_open(proj, dev); */
 	/* device_start_recording(dev); */
     }
@@ -213,7 +218,7 @@ void transport_start_recording()
    
 }
 
-static void create_clip_buffers(Clip *clip, uint32_t len_sframes)
+void create_clip_buffers(Clip *clip, uint32_t len_sframes)
 {
     /* if (clip->L != NULL) { */
 	
@@ -224,7 +229,6 @@ static void create_clip_buffers(Clip *clip, uint32_t len_sframes)
     if (!clip->L) {
 	clip->L = malloc(buf_len_bytes);
     } else {
-	fprintf(stdout, "REALLOCATING L %lu\n", buf_len_bytes);
 	clip->L = realloc(clip->L, buf_len_bytes);
     }
     if (clip->channels == 2) {
@@ -241,8 +245,8 @@ static void create_clip_buffers(Clip *clip, uint32_t len_sframes)
 }
 
 static void copy_device_buf_to_clip(Clip *clip) {
-    fprintf(stderr, "Enter copy_buff_to_clip\n");
-    fprintf(stdout, "\n\nRESETTING clip len to clip write buffpos (%ld) + recorded from bufpos (%d)\n", clip->write_bufpos_sframes, clip->recorded_from->write_bufpos_samples);
+    /* fprintf(stderr, "Enter copy_buff_to_clip\n"); */
+    /* fprintf(stdout, "\n\nRESETTING clip len to clip write buffpos (%ld) + recorded from bufpos (%d)\n", clip->write_bufpos_sframes, clip->recorded_from->write_bufpos_samples); */
     clip->len_sframes = clip->write_bufpos_sframes + clip->recorded_from->write_bufpos_samples / clip->channels;
     create_clip_buffers(clip, clip->len_sframes);
     for (int i=0; i<clip->recorded_from->write_bufpos_samples; i+=clip->channels) {
@@ -254,6 +258,8 @@ static void copy_device_buf_to_clip(Clip *clip) {
         // (clip->pre_proc)[i] = sample;
         // (clip->post_proc)[i] = sample;
     }
+    clip->write_bufpos_sframes = clip->len_sframes;
+    /* clip->recorded_from->write_bufpos_samples = 0; */
     /* clip->recording = false; */
     return;
 }

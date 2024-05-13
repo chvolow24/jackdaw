@@ -39,7 +39,7 @@
 
 #include "audio_device.h"
 
-#define JACKDAW_VERSION "0.2.0"
+/* #define JACKDAW_VERSION "0.2.0" */
 
 #define LT_DEV_MODE 0
 
@@ -55,11 +55,12 @@
 
 #define DEFAULT_PROJ_AUDIO_SETTINGS 2, 48000, AUDIO_S16SYS, 512
 
+const char *JACKDAW_VERSION = "0.2.0";
 
 bool sys_byteorder_le = false;
 
 Window *main_win;
-extern Project *proj;
+Project *proj = NULL;
 
 static void get_native_byte_order()
 {
@@ -107,7 +108,7 @@ static void quit()
 }
 
 void loop_project_main();
-
+Project *jdaw_read_file(const char *path);
 int main(int argc, char **argv)
 {
     fprintf(stdout, "\n\nJACKDAW (version %s)\nby Charlie Volow\n\n", JACKDAW_VERSION);
@@ -142,8 +143,23 @@ int main(int argc, char **argv)
 
     layout_read_xml_to_lt(main_win->layout, MAIN_LT_PATH);
 
+
+    
+    
     /* Create project here */
-    proj = project_create("New Project", DEFAULT_PROJ_AUDIO_SETTINGS);
+
+    if (invoke_open_jdaw_file) {
+	proj = jdaw_read_file(argv[1]);
+	for (int i=0; i<proj->num_timelines; i++) {
+	    timeline_reset_full(proj->timelines[i]);
+	}
+    } else if (invoke_open_wav_file) {
+
+    }
+    
+    if (!proj) {
+	proj = project_create("New Project", DEFAULT_PROJ_AUDIO_SETTINGS);
+    }
 
     /* timeline_add_track(proj->timelines[0]); */
     /* timeline_add_track(proj->timelines[0]); */

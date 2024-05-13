@@ -6,6 +6,7 @@ void user_global_expose_help();
 void user_global_quit();
 void user_global_undo();
 void user_global_redo();
+void user_global_save_project();
 void user_menu_nav_next_item();
 void user_menu_nav_prev_item();
 void user_menu_nav_next_sctn();

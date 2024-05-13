@@ -15,4 +15,6 @@ void transport_goto_mark(Timeline *tl, bool in);
 
 void transport_grab_ungrab_at_point();
 void transport_recording_update_cliprects();
+
+void create_clip_buffers(Clip *clip, uint32_t len_sframes);
 #endif

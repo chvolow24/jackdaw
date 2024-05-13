@@ -149,8 +149,14 @@ static void mode_load_global()
 	"Redo",
 	user_global_redo
 	);
+    mode_subcat_add_fn(mc, fn);
 
-    mode_subcat_add_fn(mc, fn);   
+    fn = create_user_fn(
+	"save_project",
+	"Save Project",
+	user_global_save_project
+	);
+    mode_subcat_add_fn(mc, fn);
 }
 
 

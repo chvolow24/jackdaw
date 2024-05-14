@@ -42,33 +42,65 @@
 
 typedef struct project Project;
 typedef struct clip Clip;
+typedef struct audio_device AudioDevice;
 
 /* Struct to contain information related to an audio device, including the SDL_AudioDeviceID. */
 typedef struct audio_device{
-    int index; /* index in the list created by query_audio_devices */
-    const char *name;
-    bool open; /* true if the device has been opened (SDL_OpenAudioDevice) */
-    bool iscapture; /* true if device is a recording device, not a playback device */
+    /* int index; /\* index in the list created by query_audio_devices *\/ */
+    /* const char *name; */
+    /* bool open; /\* true if the device has been opened (SDL_OpenAudioDevice) *\/ */
+    /* bool iscapture; /\* true if device is a recording device, not a playback device *\/ */
     SDL_AudioDeviceID id;
     SDL_AudioSpec spec;
     int16_t *rec_buffer;
     uint32_t rec_buf_len_samples;
     int32_t write_bufpos_samples;
-    bool active;
-
-    Clip *current_clip; /* The clip currently being recorded, if applicable */
+    /* bool active; */
 } AudioDevice;
 
-int query_audio_devices(Project *proj, int iscapture);
-int device_open(Project *proj, AudioDevice *device);
+typedef struct pd_conn {
+    int placeholder;
+} pdConn;
+
+enum audio_conn_type {
+    DEVICE,
+    PURE_DATA
+};
+union audio_conn_substruct {
+    /* int index; */
+    /* const char *name; */
+    /* bool open; */
+    /* bool iscapture; */
+    AudioDevice device;
+    
+};
+typedef struct audio_conn {
+    bool iscapture;
+    int index;
+    const char *name;
+    bool open;
+    bool active;
+    Clip *current_clip; /* The clip currently being recorded, if applicable */
+    enum audio_conn_type type;
+    union audio_conn_substruct c;
+} AudioConn;
 
 
-void device_start_playback(AudioDevice *dev);
-void device_stop_playback(AudioDevice *dev);
+/* int query_audio_conns(Project *proj, int iscapture); */
+int query_audio_connections(Project *proj, int iscapture);
+int audioconn_open(Project *proj, AudioConn *conn);
+void audioconn_start_playback(AudioConn *conn);
+void audioconn_stop_playback(AudioConn *conn);
+void audioconn_start_recording(AudioConn *conn);
+void audioconn_stop_recording(AudioConn *conn);
 
-/* Pause the device, and then close it. Record devices remain closed. */
-void device_stop_recording(AudioDevice *dev);
 
-void device_start_recording(AudioDevice *dev);
+/* int query_audio_devices(Project *proj, int iscapture); */
+/* int device_open(Project *proj, AudioDevice *device); */
+/* void device_start_playback(AudioDevice *dev); */
+/* void device_stop_playback(AudioDevice *dev); */
+/* /\* Pause the device, and then close it. Record devices remain closed. *\/ */
+/* void device_stop_recording(AudioDevice *dev); */
+/* void device_start_recording(AudioDevice *dev); */
 
 #endif

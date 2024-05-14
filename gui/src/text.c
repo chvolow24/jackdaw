@@ -39,7 +39,7 @@
 extern Layout *main_layout;
 extern Window *main_win;
 
-SDL_Color highlight = {0, 0, 255, 255};
+SDL_Color highlight = {0, 0, 255, 80};
 
 
 static void init_empty_text(
@@ -162,7 +162,7 @@ void txt_reset_display_value(Text *txt)
 
     TTF_Font *font = ttf_get_font_at_size(txt->font, txt->text_size);
     TTF_SizeUTF8(font, txt->value_handle, &txtw, &txth);
-
+    txt->len = strlen(txt->value_handle);
     if (txt->truncate && txtw > txt->container->w) {
         int approx_allowable_chars = (int) ((float) txt->len * txt->container->w / txtw);
         for (int i=0; i<approx_allowable_chars - 3; i++) {

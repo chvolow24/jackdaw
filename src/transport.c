@@ -147,26 +147,26 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 
 void transport_start_playback()
 {
-    device_start_playback(proj->playback_device);
+    audioconn_start_playback(proj->playback_conn);
 }
 
 void transport_stop_playback()
 {
     proj->src_play_speed = 0.0f;
     proj->play_speed = 0.0f;
-    device_stop_playback(proj->playback_device);
+    audioconn_stop_playback(proj->playback_conn);
 }
 void transport_start_recording()
 {
-    AudioDevice *devices_to_activate[MAX_PROJ_AUDIO_DEVICES];
-    uint8_t num_devices_to_activate = 0;
+    AudioConn *conns_to_activate[MAX_PROJ_AUDIO_CONNS];
+    uint8_t num_conns_to_activate = 0;
     Timeline *tl = proj->timelines[proj->active_tl_index];
     tl->record_from_sframes = tl->play_pos_sframes;
-    AudioDevice *dev;
-    /* for (int i=0; i<proj->num_record_devices; i++) { */
-    /* 	if ((dev = proj->record_devices[i]) && dev->active) { */
-    /* 	    device_open(proj, dev); */
-    /* 	    SDL_PauseAudioDevice(dev->id, 0); */
+    AudioConn *conn;
+    /* for (int i=0; i<proj->num_record_conns; i++) { */
+    /* 	if ((dev = proj->record_conns[i]) && dev->active) { */
+    /* 	    conn_open(proj, dev); */
+    /* 	    SDL_PauseAudioConn(dev->id, 0); */
     /* 	    Clip *clip = project_add_clip(dev); */
     /* 	    clip->recording = true; */
     /* 	} */
@@ -176,21 +176,21 @@ void transport_start_recording()
 	Clip *clip = NULL;
 	bool home = false;
 	if (track->active) {
-	    dev = track->input;
-	    if (!(dev->active)) {
-		dev->active = true;
-		devices_to_activate[num_devices_to_activate] = dev;
-		num_devices_to_activate++;
-		if (device_open(proj, dev) != 0) {
+	    conn = track->input;
+	    if (!(conn->active)) {
+		conn->active = true;
+		conns_to_activate[num_conns_to_activate] = conn;
+		num_conns_to_activate++;
+		if (audioconn_open(proj, conn) != 0) {
 		    fprintf(stderr, "Error opening audio device to record\n");
 		    exit(1);
 		}
-		clip = project_add_clip(dev, track);
+		clip = project_add_clip(conn, track);
 		clip->recording = true;
 		home = true;
-		dev->current_clip = clip;
+		conn->current_clip = clip;
 	    } else {
-		clip = dev->current_clip;
+		clip = conn->current_clip;
 	    }
 	    /* Clip ref is created as "home", meaning clip data itself is associated with this ref */
 	    track_create_clip_ref(track, clip, tl->record_from_sframes, home);
@@ -198,19 +198,19 @@ void transport_start_recording()
 	
     }
 
-    for (uint8_t i=0; i<num_devices_to_activate; i++) {
-	dev = devices_to_activate[i];
-	if (!dev->open) {
-	    device_open(proj, dev);
+    for (uint8_t i=0; i<num_conns_to_activate; i++) {
+	conn = conns_to_activate[i];
+	if (!conn->open) {
+	    audioconn_open(proj, conn);
 	}
-	dev->write_bufpos_samples = 0;
+	conn->c.device.write_bufpos_samples = 0;
 	/* device_open(proj, dev); */
 	/* device_start_recording(dev); */
     }
     fprintf(stdout, "OPENED ALL DEVICES TO RECORD\n");
-    for (uint8_t i=0; i<num_devices_to_activate; i++) {
-	dev = devices_to_activate[i];
-	device_start_recording(dev);
+    for (uint8_t i=0; i<num_conns_to_activate; i++) {
+	conn = conns_to_activate[i];
+	audioconn_start_recording(conn);
     }
     proj->recording = true;
     proj->play_speed = 1.0f;
@@ -247,11 +247,11 @@ void create_clip_buffers(Clip *clip, uint32_t len_sframes)
 static void copy_device_buf_to_clip(Clip *clip) {
     /* fprintf(stderr, "Enter copy_buff_to_clip\n"); */
     /* fprintf(stdout, "\n\nRESETTING clip len to clip write buffpos (%ld) + recorded from bufpos (%d)\n", clip->write_bufpos_sframes, clip->recorded_from->write_bufpos_samples); */
-    clip->len_sframes = clip->write_bufpos_sframes + clip->recorded_from->write_bufpos_samples / clip->channels;
+    clip->len_sframes = clip->write_bufpos_sframes + clip->recorded_from->c.device.write_bufpos_samples / clip->channels;
     create_clip_buffers(clip, clip->len_sframes);
-    for (int i=0; i<clip->recorded_from->write_bufpos_samples; i+=clip->channels) {
-        float sample_L = (float) clip->recorded_from->rec_buffer[i] / INT16_MAX;
-        float sample_R = (float) clip->recorded_from->rec_buffer[i+1] / INT16_MAX;
+    for (int i=0; i<clip->recorded_from->c.device.write_bufpos_samples; i+=clip->channels) {
+        float sample_L = (float) clip->recorded_from->c.device.rec_buffer[i] / INT16_MAX;
+        float sample_R = (float) clip->recorded_from->c.device.rec_buffer[i+1] / INT16_MAX;
         // fprintf(stderr, "Copying samples to clip %d: %f, %d: %f\n", i, sample_L, i+1, sample_R);
         clip->L[clip->write_bufpos_sframes + i/clip->channels] = sample_L;
         clip->R[clip->write_bufpos_sframes + i/clip->channels] = sample_R;
@@ -267,11 +267,11 @@ static void copy_device_buf_to_clip(Clip *clip) {
 
 void transport_stop_recording()
 {
-    AudioDevice *dev;
-    for (int i=0; i<proj->num_record_devices; i++) {
-	if ((dev = proj->record_devices[i]) && dev->active) {
-	    device_stop_recording(dev);
-	    dev->active = false;
+    AudioConn *conn;
+    for (int i=0; i<proj->num_record_conns; i++) {
+	if ((conn = proj->record_conns[i]) && conn->active) {
+	    audioconn_stop_recording(conn);
+	    conn->active = false;
 	}
     }
     proj->recording = false;
@@ -319,7 +319,7 @@ void transport_recording_update_cliprects()
     for (uint8_t i=proj->active_clip_index; i<proj->num_clips; i++) {
 	Clip *clip = proj->clips[i];
 	
-	clip->len_sframes = clip->recorded_from->write_bufpos_samples / clip->channels + clip->write_bufpos_sframes;
+	clip->len_sframes = clip->recorded_from->c.device.write_bufpos_samples / clip->channels + clip->write_bufpos_sframes;
 	for (uint8_t j=0; j<clip->num_refs; j++) {
 	    ClipRef *cr = clip->refs[j];
 	    cr->out_mark_sframes = clip->len_sframes;

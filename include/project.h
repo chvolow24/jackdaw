@@ -61,7 +61,7 @@
 #define MAX_CLIP_REFS 255
 #define MAX_CLIPBOARD_CLIPS 255
 #define MAX_PROJ_TIMELINES 255
-#define MAX_PROJ_AUDIO_DEVICES 255
+#define MAX_PROJ_AUDIO_CONNS 255
 #define MAX_PROJ_CLIPS 512
 #define MAX_GRABBED_CLIPS 255
 
@@ -69,7 +69,8 @@
 
 typedef struct project Project;
 typedef struct timeline Timeline;
-typedef struct audio_device AudioDevice;
+/* typedef struct audio_device AudioDevice; */
+typedef struct audio_conn AudioConn;
 typedef struct clip Clip;
 typedef struct clip_ref ClipRef;
 
@@ -91,8 +92,8 @@ typedef struct track {
 
     uint8_t num_takes;
 
-    AudioDevice *input;
-    AudioDevice *output;
+    AudioConn *input;
+    AudioConn *output;
 
     float vol; /* 0.0 - 1.0 attenuation only */
     float pan; /* 0.0 pan left; 0.5 center; 1.0 pan right */
@@ -150,7 +151,7 @@ typedef struct clip {
     /* Recording in */
     Track *target;
     bool recording;
-    AudioDevice *recorded_from;
+    AudioConn *recorded_from;
 
     /* Xfade */
     uint32_t start_ramp_len_sframes;
@@ -224,13 +225,13 @@ typedef struct project {
     bool dragging;
     bool recording;
 
-    AudioDevice *record_devices[MAX_PROJ_AUDIO_DEVICES];
-    uint8_t num_record_devices;
-    AudioDevice *playback_devices[MAX_PROJ_AUDIO_DEVICES];
-    uint8_t num_playback_devices;
+    AudioConn *record_conns[MAX_PROJ_AUDIO_CONNS];
+    uint8_t num_record_conns;
+    AudioConn *playback_conns[MAX_PROJ_AUDIO_CONNS];
+    uint8_t num_playback_conns;
 
     /* Audio settings */
-    AudioDevice *playback_device;
+    AudioConn *playback_conn;
     uint8_t channels;
     uint32_t sample_rate; //samples per second
     SDL_AudioFormat fmt;
@@ -289,7 +290,7 @@ void project_reset_tl_label(Project *proj);
 void timeline_add_track(Timeline *tl);
 void timeline_reset_full(Timeline *tl);
 void timeline_reset(Timeline *tl);
-Clip *project_add_clip(AudioDevice *dev, Track *target);
+Clip *project_add_clip(AudioConn *dev, Track *target);
 ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sframes, bool home);
 int32_t clip_ref_len(ClipRef *cr);
 void clipref_reset(ClipRef *cr);

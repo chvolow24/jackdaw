@@ -111,7 +111,7 @@ void project_reset_tl_label(Project *proj)
     textbox_reset_full(proj->timeline_label);
 }
 
-void project_init_audio_devices(Project *proj);
+void project_init_audio_conns(Project *proj);
 Project *project_create(
     char *name,
     uint8_t channels,
@@ -177,20 +177,20 @@ Project *project_create(
     memset(proj->output_R, '\0', sizeof(float) * chunk_size_sframes);
 
 
-    project_init_audio_devices(proj);
+    project_init_audio_conns(proj);
     
     return proj;
 }
 
 
-int device_open(Project *proj, AudioDevice *dev);
-void project_init_audio_devices(Project *proj)
+int audioconn_open(Project *proj, AudioConn *dev);
+void project_init_audio_conns(Project *proj)
 {
-    proj->num_playback_devices = query_audio_devices(proj, 0);
-    proj->num_record_devices = query_audio_devices(proj, 1);
-    proj->playback_device = proj->playback_devices[0];
-    if (device_open(proj, proj->playback_device) != 0) {
-	fprintf(stderr, "Error: failed to open default audio device \"%s\". More info: %s\n", proj->playback_device->name, SDL_GetError());
+    proj->num_playback_conns = query_audio_connections(proj, 0);
+    proj->num_record_conns = query_audio_connections(proj, 1);
+    proj->playback_conn = proj->playback_conns[0];
+    if (audioconn_open(proj, proj->playback_conn) != 0) {
+	fprintf(stderr, "Error: failed to open default audio conn \"%s\". More info: %s\n", proj->playback_conn->name, SDL_GetError());
     }
 }
 
@@ -229,7 +229,7 @@ void timeline_add_track(Timeline *tl)
 
     track->channels = tl->proj->channels;
 
-    track->input = tl->proj->record_devices[0];
+    track->input = tl->proj->record_conns[0];
     track->color = track_colors[track_color_index];
     if (track_color_index < NUM_TRACK_COLORS -1) {
 	track_color_index++;
@@ -379,22 +379,22 @@ void project_clear_active_clips()
     proj->active_clip_index = proj->num_clips;
 }
 
-Clip *project_add_clip(AudioDevice *dev, Track *target)
+Clip *project_add_clip(AudioConn *conn, Track *target)
 {
     if (proj->num_clips == MAX_PROJ_CLIPS) {
 	return NULL;
     }
     Clip *clip = calloc(1, sizeof(Clip));
 
-    if (dev) {
-	clip->recorded_from = dev;
+    if (conn) {
+	clip->recorded_from = conn;
     }
     if (target) {
 	clip->target = target;
     }
     
-    if (!target && dev) {
-	sprintf(clip->name, "%s_rec_%d", dev->name, proj->num_clips); /* TODO: Fix this */
+    if (!target && conn) {
+	sprintf(clip->name, "%s_rec_%d", conn->name, proj->num_clips); /* TODO: Fix this */
     } else if (target) {
 	sprintf(clip->name, "%s take %d", target->name, target->num_takes);
 	target->num_takes++;

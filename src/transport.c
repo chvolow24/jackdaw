@@ -156,6 +156,7 @@ void transport_stop_playback()
     proj->play_speed = 0.0f;
     audioconn_stop_playback(proj->playback_conn);
 }
+
 void transport_start_recording()
 {
     AudioConn *conns_to_activate[MAX_PROJ_AUDIO_CONNS];
@@ -171,11 +172,13 @@ void transport_start_recording()
     /* 	    clip->recording = true; */
     /* 	} */
     /* } */
+    bool no_tracks_active = true;
     for (uint8_t i=0; i<tl->num_tracks; i++) {
 	Track *track = tl->tracks[i];
 	Clip *clip = NULL;
 	bool home = false;
 	if (track->active) {
+	    no_tracks_active = false;
 	    conn = track->input;
 	    if (!(conn->active)) {
 		conn->active = true;
@@ -195,7 +198,29 @@ void transport_start_recording()
 	    /* Clip ref is created as "home", meaning clip data itself is associated with this ref */
 	    track_create_clip_ref(track, clip, tl->record_from_sframes, home);
 	}
-	
+    }
+    if (no_tracks_active) {
+	Track *track = tl->tracks[tl->track_selector];
+	Clip *clip = NULL;
+	bool home = false;
+	conn = track->input;
+	if (!(conn->active)) {
+	    conn->active = true;
+	    conns_to_activate[num_conns_to_activate] = conn;
+	    num_conns_to_activate++;
+	    if (audioconn_open(proj, conn) != 0) {
+		fprintf(stderr, "Error opening audio device to record\n");
+		exit(1);
+	    }
+	    clip = project_add_clip(conn, track);
+	    clip->recording = true;
+	    home = true;
+	    conn->current_clip = clip;
+	} else {
+	    clip = conn->current_clip;
+	}
+	/* Clip ref is created as "home", meaning clip data itself is associated with this ref */
+	track_create_clip_ref(track, clip, tl->record_from_sframes, home);
     }
 
     for (uint8_t i=0; i<num_conns_to_activate; i++) {

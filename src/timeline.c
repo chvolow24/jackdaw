@@ -220,10 +220,18 @@ void timeline_catchup()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     int tl_draw_x;
+    uint32_t move_by_sframes;
+    int catchup_w = TIMELINE_CATCHUP_W;
+    if (proj->audio_rect->w <= 0) {
+	return;
+    }
+    while (catchup_w > proj->audio_rect->w / 2) {
+	catchup_w /= 2;
+    }
     if ((tl_draw_x = timeline_get_draw_x(tl->play_pos_sframes)) > proj->audio_rect->x + proj->audio_rect->w) {
-	tl->display_offset_sframes = tl->play_pos_sframes - timeline_get_abs_w_sframes(proj->audio_rect->w - TIMELINE_CATCHUP_W);
+	tl->display_offset_sframes = tl->play_pos_sframes - timeline_get_abs_w_sframes(proj->audio_rect->w - catchup_w);
     } else if (tl_draw_x < proj->audio_rect->x) {
-	tl->display_offset_sframes = tl->play_pos_sframes - timeline_get_abs_w_sframes(TIMELINE_CATCHUP_W);
+	tl->display_offset_sframes = tl->play_pos_sframes - timeline_get_abs_w_sframes(catchup_w);
     }
     timeline_reset(tl);
 }

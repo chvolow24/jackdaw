@@ -340,9 +340,7 @@ void user_tl_add_track()
 static void track_select_n(int n)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
-    if (tl->num_tracks <= n) {
-	return;
-    }
+    if (tl->num_tracks <= n) return;
     Track *track = tl->tracks[n];
     bool *active = &(track->active);
     *active = !(*active);
@@ -436,6 +434,9 @@ void user_tl_track_selector_up()
 	tl->track_selector--;
     }
     Track *selected = tl->tracks[tl->track_selector];
+    if (!selected) {
+	return;
+    }
     /* fprintf(stdout, "Selected x: %d\n", selected->layout->rect.y); */
     if (selected->layout->rect.y < tl->layout->rect.y) {
 	Layout *template = NULL;
@@ -469,6 +470,9 @@ void user_tl_track_selector_down()
 	tl->track_selector++;
     }
     Track *selected = tl->tracks[tl->track_selector];
+    if (!selected) {
+	return;
+    }
     if (selected->layout->rect.y + selected->layout->rect.h > main_win->layout->rect.h) {
 	Layout *template = NULL;
 	LayoutIterator *iter = NULL;
@@ -509,8 +513,8 @@ void user_tl_track_rename()
     Track *track = tl->tracks[tl->track_selector];
     if (track) {
 	txt_edit(track->tb_name->text, project_draw);
+	main_win->i_state = 0;
     }
-    main_win->i_state = 0;
     /* fprintf(stdout, "DONE track edit\n"); */
 }
 
@@ -537,6 +541,9 @@ void user_tl_track_set_in()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     Track *track = tl->tracks[tl->track_selector];
+    if (!track) {
+	return;
+    }
     SDL_Rect *rect = &(track->tb_input_name->layout->rect);
     Menu *menu = menu_create_at_point(rect->x, rect->y);
     MenuColumn *c = menu_column_add(menu, "");
@@ -568,25 +575,25 @@ void user_tl_track_toggle_in()
     /* fprintf(stdout, "toggle in\n"); */
     Timeline *tl = proj->timelines[proj->active_tl_index];
     Track *track = tl->tracks[tl->track_selector];
-    if (track) {
-	int index = track->input->index;
-	fprintf(stdout, "CURRENT INDEX: %d\n", index);
-	if (index < proj->num_record_conns - 1) {
-	    AudioConn *next = proj->record_conns[index + 1];
-	    if (next) {
-		track->input = next;
-		textbox_set_value_handle(track->tb_input_name, track->input->name);
-	    } else {
-		fprintf(stderr, "Error: no record conn at index %d\n", index + 1);
-	    }
+    if (!track) return;
+
+    int index = track->input->index;
+    fprintf(stdout, "CURRENT INDEX: %d\n", index);
+    if (index < proj->num_record_conns - 1) {
+	AudioConn *next = proj->record_conns[index + 1];
+	if (next) {
+	    track->input = next;
+	    textbox_set_value_handle(track->tb_input_name, track->input->name);
 	} else {
-	    AudioConn *next = proj->record_conns[0];
-	    if (next) {
-		track->input = next;
-		textbox_set_value_handle(track->tb_input_name, track->input->name);
-	    } else {
-		fprintf(stderr, "Error: no record conn at index 0\n");
-	    }
+	    fprintf(stderr, "Error: no record conn at index %d\n", index + 1);
+	}
+    } else {
+	AudioConn *next = proj->record_conns[0];
+	if (next) {
+	    track->input = next;
+	    textbox_set_value_handle(track->tb_input_name, track->input->name);
+	} else {
+	    fprintf(stderr, "Error: no record conn at index 0\n");
 	}
     }
 }
@@ -596,6 +603,7 @@ void user_tl_track_toggle_in()
 void user_tl_mute()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
+    if (tl->num_tracks == 0) return;
     bool has_active_track = false;
     bool all_muted = true;
     Track *track;
@@ -626,6 +634,7 @@ void user_tl_mute()
 void user_tl_solo()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
+    if (tl->num_tracks == 0) return;
     bool has_active_track = false;
     bool all_solo = true;
     int solo_count = 0;
@@ -685,6 +694,7 @@ void user_tl_solo()
 void user_tl_track_vol_up()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
+    if (tl->num_tracks == 0) return;
     /* proj->vol_changing = tl->tracks[tl->track_selector]; */
     proj->vol_changing = true;
     proj->vol_up = true;
@@ -694,6 +704,7 @@ void user_tl_track_vol_up()
 void user_tl_track_vol_down()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
+    if (tl->num_tracks == 0) return;
     /* proj->vol_changing = tl->tracks[tl->track_selector]; */
     proj->vol_changing = true;
     proj->vol_up = false;
@@ -703,6 +714,7 @@ void user_tl_track_vol_down()
 void user_tl_track_pan_left()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
+    if (tl->num_tracks ==0) return;
     proj->pan_changing = tl->tracks[tl->track_selector];
     proj->pan_right = false;
 
@@ -710,7 +722,8 @@ void user_tl_track_pan_left()
 
 void user_tl_track_pan_right()
 {
-   Timeline *tl = proj->timelines[proj->active_tl_index];
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    if (tl->num_tracks == 0) return;
     proj->pan_changing = tl->tracks[tl->track_selector];
     proj->pan_right = true;
 }
@@ -750,6 +763,7 @@ static ClipRef *clip_at_point()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     Track *track = tl->tracks[tl->track_selector];
+    if (!track) return NULL;
     for (int i=track->num_clips -1; i>=0; i--) {
 	ClipRef *cr = track->clips[i];
 	if (cr->pos_sframes <= tl->play_pos_sframes && cr->pos_sframes + cr_len(cr) >= tl->play_pos_sframes) {
@@ -762,6 +776,7 @@ static ClipRef *clip_at_point()
 void user_tl_clipref_grab_ungrab()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
+    if (tl->num_tracks == 0) return;
     Track *track = NULL;
     ClipRef *cr =  NULL;
     ClipRef *crs[MAX_GRABBED_CLIPS];
@@ -781,7 +796,7 @@ void user_tl_clipref_grab_ungrab()
 	    }
 	}
     }
-    if (!had_active_track) {
+    if (!had_active_track && tl->num_tracks > 0) {
 	track = tl->tracks[tl->track_selector];
 	cr = clip_at_point_in_track(track);
 	if (cr && !cr->grabbed) {
@@ -850,6 +865,7 @@ void user_tl_activate_source_mode()
 void user_tl_drop_from_source()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
+    if (tl->num_tracks == 0) return;
     Track *track = tl->tracks[tl->track_selector];
     if (proj->src_clip) {
 	ClipRef *cr = track_create_clip_ref(track, proj->src_clip, tl->play_pos_sframes, false);

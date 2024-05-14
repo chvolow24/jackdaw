@@ -133,7 +133,6 @@ void timeline_rescale(double sfpp_scale_factor, bool on_mouse)
     }
     int init_draw_pos = timeline_get_draw_x(center_abs_pos);
     double new_sfpp = tl->sample_frames_per_pixel / sfpp_scale_factor;
-
     if (new_sfpp < 1 || new_sfpp > MAX_SFPP) {
         return;
     }
@@ -148,6 +147,7 @@ void timeline_rescale(double sfpp_scale_factor, bool on_mouse)
     tl->display_offset_sframes += (timeline_get_abs_w_sframes(offset_draw_delta));
 
     timeline_reset(tl);
+    fprintf(stdout, "Sample frames per pixel: %d\n", tl->sample_frames_per_pixel);
     /* Track *track = NULL; */
     /* for (int i=0; i<tl->num_tracks; i++) { */
     /*     track = tl->tracks[i]; */

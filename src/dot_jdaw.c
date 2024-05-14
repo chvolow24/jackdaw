@@ -190,8 +190,8 @@ static void jdaw_write_track(FILE *f, Track *track)
     /* Write mute and solo values */
     fwrite(&track->muted, 1, 1, f);
     fwrite(&track->solo, 1, 1, f);
-    fwrite(&track->solo_muted, 1, 1, f);
 
+    fwrite(&track->solo_muted, 1, 1, f);
     fwrite(&track->num_clips, 1, 1, f);
     for (uint8_t i=0; i<track->num_clips; i++) {
 	jdaw_write_clipref(f, track->clips[i]);
@@ -443,13 +443,26 @@ static void jdaw_read_track(FILE *f, Timeline *tl)
     fread(floatvals, 1, 16, f);
     track->pan = atof(floatvals);
 
-    fread(&track->muted, 1, 1, f);
-    fread(&track->solo, 1, 1, f);
-    fread(&track->solo_muted, 1, 1, f);
+    bool muted, solo, solo_muted;
+    
+    fread(&muted, 1, 1, f);
+    fread(&solo, 1, 1, f);
+    fread(&solo_muted, 1, 1, f);
+    if (muted) {
+	track_mute(track);
+    }
+    if (solo) {
+	track_solo(track);
+    }
+    if (solo_muted) {
+	track_solomute(track);
+    }
+
+    
 
     uint8_t num_cliprefs;
     fread(&num_cliprefs, 1, 1, f);
-    fprintf(stdout, "Num cliprefs in track \"%s\": %d\n", track->name, num_cliprefs);
+
     while (num_cliprefs > 0) {
 	jdaw_read_clipref(f, track);
 	num_cliprefs--;

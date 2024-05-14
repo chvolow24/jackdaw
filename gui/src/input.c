@@ -520,10 +520,17 @@ static void mode_load_timeline()
     sc = mode_add_subcat(mode, "Track settings");
 
 
-       fn = create_user_fn(
+    fn = create_user_fn(
 	"tl_mute",
-	"Mute selected_track",
+	"Mute or unmute selected track(s)",
 	user_tl_mute
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_solo",
+	"Solo or unsolo selected track(s)",
+	user_tl_solo
 	);
     mode_subcat_add_fn(sc, fn);
 

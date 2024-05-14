@@ -248,16 +248,17 @@ void timeline_add_track(Timeline *tl)
 
     Layout *name, *mute, *solo, *vol_label, *pan_label, *in_label, *in_value;
 
-    Layout *track_name_row = layout_get_child_by_name_recursive(track->layout, "track_name");
+    Layout *track_name_row = layout_get_child_by_name_recursive(track->layout, "name_value");
     name = layout_add_child(track_name_row);
     layout_pad(name, TRACK_NAME_H_PAD, TRACK_NAME_V_PAD);
-    mute = layout_get_child_by_name_recursive(track->layout, "mute");
-    solo = layout_get_child_by_name_recursive(track->layout, "solo");
+    mute = layout_get_child_by_name_recursive(track->layout, "mute_button");
+    solo = layout_get_child_by_name_recursive(track->layout, "solo_button");
     vol_label = layout_get_child_by_name_recursive(track->layout, "vol_label");
     pan_label = layout_get_child_by_name_recursive(track->layout, "pan_label");
     in_label = layout_get_child_by_name_recursive(track->layout, "in_label");
     in_value = layout_get_child_by_name_recursive(track->layout, "in_value");
 
+    /* fprintf(stdout, "Addrs: %p, %p, %p, %p, %p, %p, %p\n", name, mute, solo, vol_label, pan_label, in_label, in_value); */
     /* textbox_create_from_str(char *set_str, Layout *lt, Font *font, uint8_t text_size, Window *win) -> Textbox *
      */
 
@@ -284,6 +285,7 @@ void timeline_add_track(Timeline *tl)
 	14,
 	main_win);
 
+    
     textbox_set_align(track->tb_name, CENTER_LEFT);
     textbox_set_pad(track->tb_name, 4, 0);
     textbox_set_border(track->tb_name, &color_global_black, 1);
@@ -560,4 +562,49 @@ void track_decrement_pan(Track *track)
 	track->pan = 0.0f;
     }
     fslider_reset(track->pan_ctrl);
+}
+
+SDL_Color mute_red = {255, 0, 0, 100};
+SDL_Color solo_yellow = {255, 200, 0, 130};
+extern SDL_Color textbox_default_bckgrnd_clr;
+
+
+
+bool track_mute(Track *track)
+{
+    track->muted = !track->muted;
+    if (track->muted) {
+	textbox_set_background_color(track->tb_mute_button, &mute_red);
+    } else {
+	textbox_set_background_color(track->tb_mute_button, &textbox_default_bckgrnd_clr);
+    }
+    return track->muted;
+}
+
+bool track_solo(Track *track)
+{
+    track->solo = !track->solo;
+    if (track->solo) {
+	if (track->muted) {
+	    track->muted = false;
+	    textbox_set_background_color(track->tb_mute_button, &textbox_default_bckgrnd_clr);
+	}
+	track->solo_muted = false;
+	textbox_set_background_color(track->tb_solo_button, &solo_yellow);
+    } else {
+	textbox_set_background_color(track->tb_solo_button, &textbox_default_bckgrnd_clr);
+
+    }
+    return track->solo;
+}
+
+void track_solomute(Track *track)
+{
+    track->solo_muted = true;
+    textbox_set_background_color(track->tb_solo_button, &mute_red);
+}
+void track_unsolomute(Track *track)
+{
+    track->solo_muted = false;
+    textbox_set_background_color(track->tb_solo_button, &textbox_default_bckgrnd_clr);
 }

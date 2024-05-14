@@ -130,7 +130,7 @@
                                             <h>SCALE 0.250000</h>
                                             <index>1</index>
                                             <children>
-                                                <Layout name="track_name" type="NORMAL">
+                                                <Layout name="name_value" type="NORMAL">
                                                     <x>REL 0</x>
                                                     <y>REL 0</y>
                                                     <w>REL 113</w>
@@ -139,7 +139,7 @@
                                                     <children>
                                                     </children>
                                                 </Layout>
-                                                <Layout name="solo" type="NORMAL">
+                                                <Layout name="solo_button" type="NORMAL">
                                                     <x>REL 139</x>
                                                     <y>REL 3</y>
                                                     <w>REL 18</w>
@@ -148,7 +148,7 @@
                                                     <children>
                                                     </children>
                                                 </Layout>
-                                                <Layout name="mute" type="NORMAL">
+                                                <Layout name="mute_button" type="NORMAL">
                                                     <x>REL 117</x>
                                                     <y>REL 3</y>
                                                     <w>REL 18</w>

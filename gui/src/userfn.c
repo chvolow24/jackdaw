@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include "audio_device.h"
+#include "audio_connection.h"
 #include "input.h"
 #include "menu.h"
 #include "project.h"
@@ -591,34 +591,96 @@ void user_tl_track_toggle_in()
     }
 }
 
-SDL_Color mute_red = {255, 0, 0, 100};
-SDL_Color solo_yellow = {255, 200, 0, 130};
-extern SDL_Color textbox_default_bckgrnd_clr;
+
 
 void user_tl_mute()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
-    Track *track = tl->tracks[tl->track_selector];
-    track->muted = !track->muted;
-    if (track->muted) {
-	textbox_set_background_color(track->tb_mute_button, &mute_red);
-    } else {
-	textbox_set_background_color(track->tb_mute_button, &textbox_default_bckgrnd_clr);
+    bool has_active_track = false;
+    bool all_muted = true;
+    Track *track;
+    for (uint8_t i=0; i<tl->num_tracks; i++) {
+	track = tl->tracks[i];
+	if (track->active) {
+	    has_active_track = true;
+	    if (!track->muted) {
+		has_active_track = true;
+		all_muted = false;
+		track_mute(track);	
+	    }
+	}
+    }
+    if (!has_active_track) {
+	track = tl->tracks[tl->track_selector];
+	track_mute(track);
+    } else if (all_muted) {
+	for (uint8_t i=0; i<tl->num_tracks; i++) {
+	    track = tl->tracks[i];
+	    if (track->active) {
+		track_mute(track); /* unmute */
+	    }
+	}
     }
 }
 
-/* void user_tl_track_vol_up_toggle() */
-/* { */
-/*     fprintf(stdout, "vol up toggle\n"); */
-/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
-/*     if (proj->vol_changing) { */
-/* 	proj->vol_changing = NULL; */
-/*     } else { */
-/*         proj->vol_changing = tl->tracks[tl->track_selector]; */
-/* 	proj->vol_up = true; */
-/*     } */
-/* } */
-
+void user_tl_solo()
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    bool has_active_track = false;
+    bool all_solo = true;
+    int solo_count = 0;
+    Track *track;
+    for (uint8_t i=0; i<tl->num_tracks; i++) {
+	track = tl->tracks[i];
+	if (track->solo) {
+	    solo_count++;
+	}
+	if (track->active) {
+	    fprintf(stdout, "Track %d is active\n");
+	    has_active_track = true;
+	    if (!track->solo) {
+		has_active_track = true;
+		all_solo = false;
+		track_solo(track);
+		solo_count++;
+	    }
+	}
+    }
+    if (!has_active_track) {
+	fprintf(stdout, "no active track. soloe count : %d\n", solo_count);
+	track = tl->tracks[tl->track_selector];
+	if (track_solo(track)) {
+	    solo_count++;
+	} else {
+	    solo_count--;
+	}
+    } else if (all_solo) {
+	for (uint8_t i=0; i<tl->num_tracks; i++) {
+	    track = tl->tracks[i];
+	    if (track->active) {
+		track_solo(track); /* unsolo */
+		solo_count--;
+		
+	    }
+	}
+    }
+    fprintf(stdout, "Some solo? %d\n", solo_count);
+    if (solo_count > 0) {
+	for (uint8_t i=0; i<tl->num_tracks; i++) {
+	    track = tl->tracks[i];
+	    if (!track->solo) {
+		track_solomute(track);
+	    }
+	}
+    } else {
+	for (uint8_t i=0; i<tl->num_tracks; i++) {
+	    track = tl->tracks[i];
+	    if (!track->solo) {
+		track_unsolomute(track);
+	    }
+	}
+    }
+}
 
 void user_tl_track_vol_up()
 {
@@ -653,19 +715,6 @@ void user_tl_track_pan_right()
     proj->pan_right = true;
 }
 
-
-void user_tl_solo()
-{
-    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
-    /* Track *track = tl->tracks[tl->track_selector]; */
-    /* track->solo = !track->muted; */
-    /* if (track->muted) { */
-    /* 	textbox_set_background_color(track->tb_mute_button, &mute_red); */
-    /* } else { */
-    /* 	textbox_set_background_color(track->tb_mute_button, &textbox_default_bckgrnd_clr); */
-    /* } */
-
-}
 
 void user_tl_record()
 {

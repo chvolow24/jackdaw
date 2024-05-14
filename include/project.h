@@ -301,5 +301,9 @@ void track_increment_vol(Track *track);
 void track_decrement_vol(Track *track);
 void track_increment_pan(Track *track);
 void track_decrement_pan(Track *track);
+bool track_mute(Track *track);
+bool track_solo(Track *track);
+void track_solomute(Track *track);
+void track_unsolomute(Track *track);
 
 #endif

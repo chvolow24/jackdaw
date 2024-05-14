@@ -1,0 +1,127 @@
+/*****************************************************************************************************************
+  Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation | built on SDL (https://libsdl.org/)
+******************************************************************************************************************
+
+  Copyright (C) 2023 Charlie Volow
+  
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software iso
+  furnished to do so, subject to the following conditions:
+  
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+  
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+
+*****************************************************************************************************************/
+
+
+/*****************************************************************************************************************
+    waveform.c
+
+    * algorithm to draw waveforms inside rectangles
+    * incl. multi-channel audio
+ *****************************************************************************************************************/
+
+
+#include "window.h"
+
+#define SFPP_THRESHOLD 15
+
+/* extern Project *proj; */
+extern Window *main_win;
+
+static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, int w, int amp_h_max, int center_y)
+{
+    float sfpp = (double) buflen / w;
+
+    if (sfpp <= 0) {
+	fprintf(stderr, "Error in waveform_draw_channel: sfpp<=0\n");
+	return;
+    }
+
+    if (sfpp > SFPP_THRESHOLD) {
+	float avg_amp = 0;
+	int x = start_x;
+	int amp_y = center_y;
+	float sample_i = 0.0f;
+	while (x < start_x + w && sample_i < buflen) {
+	    /* Early exit conditions (offscreen) */
+	    if (x < 0) {
+		sample_i+=sfpp*(0-x);
+		x=0;
+		continue;
+	    } else if (x > main_win->w) {
+		break;
+	    }
+	    
+	    /* Get avg amplitude value */
+	    for (int i=0; i<(int)sfpp; i++) {
+		if (sample_i + i >= buflen) {
+		    break;
+		}
+		avg_amp += fabs(channel[(int)sample_i + i]);
+	    }
+	    avg_amp /= sfpp;
+	    int y_offset = avg_amp * amp_h_max;
+	    SDL_RenderDrawLine(main_win->rend, x, center_y - y_offset, x, center_y + y_offset);
+		    
+	    sample_i+=sfpp;
+	    x++;
+	}
+    } else {
+	float avg_amp = 0;
+	int x = start_x;
+	int sample_y = center_y;
+	int last_sample_y = center_y;
+	float sample_i = 0.0f;
+	while (x < start_x + w && sample_i < buflen) {
+	    avg_amp = 0;
+	    if (x < 0) {
+		sample_i+=sfpp;
+		x++;
+		continue;
+	    } else if (x > main_win->w) {
+		break;
+	    }
+	    for (int i=0; i<(int)sfpp; i++) {
+		if (sample_i + i >= buflen) {
+		    break;
+		}
+		avg_amp += channel[(int)sample_i + i];
+		/* fprintf(stdout, "\t->avg amp + %f\n", channel[(int)(sample_i) + i]); */
+	    }
+	    avg_amp /= sfpp;
+
+	    int sample_y = center_y + avg_amp * amp_h_max;
+	    SDL_RenderDrawLine(main_win->rend, x-1, last_sample_y, x, sample_y);
+	    last_sample_y = sample_y;
+	    sample_i+=sfpp;
+	    x++;
+	}
+	
+    }
+    
+
+}
+
+void waveform_draw_all_channels(float **channels, uint8_t num_channels, uint32_t buflen, SDL_Rect *rect)
+{
+    int channel_h = rect->h / num_channels;
+    int center_y = rect->y + channel_h / 2;
+    for (uint8_t i=0; i<num_channels; i++) {
+	/* fprintf(stdout, "Drawing channel w %d, x %d, buflen %ul\n", rect->w, rect->x, buflen); */
+	waveform_draw_channel(channels[i], buflen, rect->x, rect->w, channel_h / 2, center_y);
+	center_y += channel_h;
+    }
+
+}

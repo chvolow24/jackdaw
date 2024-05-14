@@ -32,7 +32,7 @@
  *****************************************************************************************************************/
 
 
-#include "audio_device.h"
+#include "audio_connection.h"
 #include "project.h"
 
 
@@ -155,6 +155,7 @@ int query_audio_connections(Project *proj, int iscapture)
     /* Check for pure data */
     if (iscapture) {
 	AudioConn *pd = calloc(sizeof(AudioConn), 1);
+	pd->type = PURE_DATA;
 	pd->name = "pure data";
 	pd->index = num_devices;
 	pd->iscapture = iscapture;

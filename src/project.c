@@ -25,7 +25,7 @@
 *****************************************************************************************************************/
 #include <string.h>
 
-#include "audio_device.h"
+#include "audio_connection.h"
 #include "layout.h"
 #include "project.h"
 #include "slider.h"

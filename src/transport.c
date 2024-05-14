@@ -31,7 +31,7 @@
     * Playback and recording
  *****************************************************************************************************************/
 #include <pthread.h>
-#include "audio_device.h"
+#include "audio_connection.h"
 #include "mixdown.h"
 #include "project.h"
 #include "timeline.h"

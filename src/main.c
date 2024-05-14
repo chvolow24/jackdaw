@@ -37,7 +37,7 @@
 #include "window.h"
 
 
-#include "audio_device.h"
+#include "audio_connection.h"
 
 /* #define JACKDAW_VERSION "0.2.0" */
 

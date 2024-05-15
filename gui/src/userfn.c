@@ -325,6 +325,43 @@ void user_tl_goto_zero()
     tl->display_offset_sframes = 0;
 }
 
+static void select_out_onclick(void *arg)
+{
+    /* struct select_dev_onclick_arg *carg = (struct select_dev_onclick_arg *)arg; */
+    /* Track *track = carg->track; */
+    /* AudioConn *dev = carg->new_in; */
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    int index = *((int *)arg);
+    audioconn_close(proj->playback_conn);
+    proj->playback_conn = proj->playback_conns[index];
+    if (audioconn_open(proj, proj->playback_conn) != 0) {
+	fprintf(stderr, "Error: failed to open default audio conn \"%s\". More info: %s\n", proj->playback_conn->name, SDL_GetError());
+    }
+    textbox_set_value_handle(proj->tb_out_value, proj->playback_conn->name);
+    window_pop_menu(main_win);
+    window_pop_mode(main_win);
+}
+
+void user_tl_set_default_out() {
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    SDL_Rect *rect = &(proj->tb_out_value->layout->rect);
+    Menu *menu = menu_create_at_point(rect->x, rect->y);
+    MenuColumn *c = menu_column_add(menu, "");
+    MenuSection *sc = menu_section_add(c, "");
+    for (int i=0; i<proj->num_playback_conns; i++) {
+	AudioConn *conn = proj->playback_conns[i];
+	menu_item_add(
+	    sc,
+	    conn->name,
+	    " ",
+	    select_out_onclick,
+	    &(conn->index));
+    }
+    menu_add_header(menu,"", "Select the default audio output.\n\n'n' to select next item; 'p' to select previous item.");
+    /* menu_reset_layout(menu); */
+    window_add_menu(main_win, menu);
+    window_push_mode(main_win, MENU_NAV);
+}
 
 void user_tl_add_track()
 {
@@ -548,15 +585,8 @@ void user_tl_track_set_in()
     Menu *menu = menu_create_at_point(rect->x, rect->y);
     MenuColumn *c = menu_column_add(menu, "");
     MenuSection *sc = menu_section_add(c, "");
-    fprintf(stdout, "NUM RECORD CONNS: %d\n", proj->num_record_conns);
     for (int i=0; i<proj->num_record_conns; i++) {
 	AudioConn *conn = proj->record_conns[i];
-	fprintf(stdout, "Conn %d: %p\n", i, conn);
-	fprintf(stdout, "\t->name: %s\n", conn->name);
-	
-	/* struct select_dev_onclick_arg *arg = malloc(sizeof (struct select_dev_onclick_arg)); */
-	/* arg->track = track; */
-	/* arg->new_in = dev; */
 	menu_item_add(
 	    sc,
 	    conn->name,
@@ -568,7 +598,6 @@ void user_tl_track_set_in()
     /* menu_reset_layout(menu); */
     window_add_menu(main_win, menu);
     window_push_mode(main_win, MENU_NAV);
-
 }
 void user_tl_track_toggle_in()
 {

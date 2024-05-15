@@ -89,6 +89,7 @@ typedef struct audio_conn {
 /* int query_audio_conns(Project *proj, int iscapture); */
 int query_audio_connections(Project *proj, int iscapture);
 int audioconn_open(Project *proj, AudioConn *conn);
+void audioconn_close(AudioConn *conn);
 void audioconn_start_playback(AudioConn *conn);
 void audioconn_stop_playback(AudioConn *conn);
 void audioconn_start_recording(AudioConn *conn);

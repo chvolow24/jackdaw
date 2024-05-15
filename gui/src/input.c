@@ -407,6 +407,13 @@ static void mode_load_timeline()
     mode_subcat_add_fn(sc, fn);
 
 
+    fn = create_user_fn(
+	"tl_set_default_out",
+	"Set default audio output",
+	user_tl_set_default_out
+	);
+    mode_subcat_add_fn(sc, fn);
+    
     /********** TRACK NAV **********/
     sc= mode_add_subcat(mode, "Track nav");  
     fn = create_user_fn(
@@ -579,8 +586,8 @@ static void mode_load_timeline()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
-	"tl_track_toggle_in",
-	"Toggle track input",
+	"tl_track_set_in",
+	"Set track input",
 	user_tl_track_set_in
 	);
     mode_subcat_add_fn(sc, fn);

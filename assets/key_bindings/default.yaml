@@ -73,6 +73,7 @@
   - C-i		: tl_goto_in_mark
   - C-o		: tl_goto_out_mark
   - C-u		: tl_goto_zero
+  - C-S-o	: tl_set_default_out
   - C-t		: tl_track_add
   - 1		: tl_track_select_1
   - 2		: tl_track_select_2
@@ -89,7 +90,7 @@
   - <spc>	: tl_track_activate_selected
   - <ret>	: tl_track_activate_selected
   - C-r		: tl_track_rename
-  - C-S-i	: tl_track_toggle_in
+  - C-S-i	: tl_track_set_in
   - m		: tl_mute
   - s		: tl_solo
   - r		: tl_start_stop_record

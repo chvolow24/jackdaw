@@ -264,8 +264,6 @@ int audioconn_open(Project *proj, AudioConn *conn)
     return 0;
 }
 
-
-
 /* int audioconn_open(Project *proj, AudioConn *conn) { */
 /*     int ret = 0; */
 /*     switch (conn->type) { */
@@ -295,8 +293,9 @@ static void device_close(AudioDevice *device)
     SDL_CloseAudioDevice(device->id);
 }
 
-static void audioconn_close(AudioConn *conn)
+void audioconn_close(AudioConn *conn)
 {
+    conn->open = false;
     switch (conn->type) {
     case DEVICE:
 	device_close(&conn->c.device);

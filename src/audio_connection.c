@@ -344,6 +344,7 @@ void audioconn_stop_playback(AudioConn *conn)
 static void device_stop_recording(AudioDevice *dev)
 {
     SDL_PauseAudioDevice(dev->id, 1);
+    /* dev->write_bufpos_samples = 0; */
     device_close(dev);
 }
 

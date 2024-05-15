@@ -54,7 +54,7 @@ static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, 
 	int x = start_x;
 	/* int amp_y = center_y; */
 	float sample_i = 0.0f;
-	while (x < start_x + w && sample_i < buflen) {
+	while (x < start_x + w && sample_i + sfpp < buflen) {
 	    /* Early exit conditions (offscreen) */
 	    if (x < 0) {
 		sample_i+=sfpp*(0-x);
@@ -74,8 +74,13 @@ static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, 
 	    }
 	    avg_amp /= sfpp;
 	    int y_offset = avg_amp * amp_h_max;
-	    SDL_RenderDrawLine(main_win->rend, x, center_y - y_offset, x, center_y + y_offset);
-		    
+	    if (fabs(avg_amp) > 1.0f) {
+		SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255);
+		SDL_RenderDrawLine(main_win->rend, x, center_y - amp_h_max, x, center_y + amp_h_max);
+		SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
+	    } else {
+		SDL_RenderDrawLine(main_win->rend, x, center_y - y_offset, x, center_y + y_offset);
+	    }
 	    sample_i+=sfpp;
 	    x++;
 	}
@@ -85,7 +90,7 @@ static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, 
 	/* int sample_y = center_y; */
 	int last_sample_y = center_y;
 	float sample_i = 0.0f;
-	while (x < start_x + w && sample_i < buflen) {
+	while (x < start_x + w && sample_i + sfpp < buflen) {
 	    avg_amp = 0;
 	    if (x < 0) {
 		sample_i+=sfpp;
@@ -103,7 +108,7 @@ static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, 
 	    }
 	    avg_amp /= sfpp;
 	    int sample_y = center_y + avg_amp * amp_h_max;
-	    if (avg_amp > 1.0f) {
+	    if (fabs(avg_amp) > 1.0f) {
 		SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255);
 		SDL_RenderDrawLine(main_win->rend, x-1, center_y - amp_h_max, x-1, center_y + amp_h_max);
 		SDL_RenderDrawLine(main_win->rend, x, center_y - amp_h_max, x, center_y + amp_h_max);

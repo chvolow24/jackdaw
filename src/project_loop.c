@@ -112,23 +112,21 @@ static void update_track_vol_pan()
     }
 }
 
-/* SDL bug workaround */
+/* TODO: SDL bug workaround. I haven't been able to get this to work reliably cross-platform. */
 /* https://discourse.libsdl.org/t/window-event-at-initiation-of-window-resize/50963/3 */
-static int SDLCALL window_resize_callback(void *userdata, SDL_Event *event)
-{
-    if (event->type == SDL_WINDOWEVENT && event->window.event == SDL_WINDOWEVENT_EXPOSED) {
-	window_resize_passive(main_win, event->window.data1, event->window.data2);
-	project_draw();
-    }
-    return 0;
-}
+/* static int SDLCALL window_resize_callback(void *userdata, SDL_Event *event) */
+/* { */
+/*     if (event->type == SDL_WINDOWEVENT && event->window.event == SDL_WINDOWEVENT_EXPOSED) { */
+/* 	window_resize_passive(main_win, event->window.data1, event->window.data2); */
+/* 	project_draw(); */
+/*     } */
+/*     return 0; */
+/* } */
 
 
 void loop_project_main()
 {
 
-    /* void SDL_AddEventWatch(SDL_EventFilter filter, */
-    /*                    void *userdata); */
     /* clock_t start, end; */
     /* uint8_t frame_ctr = 0; */
     /* float fps = 0; */
@@ -147,8 +145,8 @@ void loop_project_main()
 
     window_push_mode(main_win, TIMELINE);
 
-    SDL_AddEventWatch(window_resize_callback, NULL);
-    window_resize_passive(main_win, main_win->w, main_win->h);
+    /* SDL_AddEventWatch(window_resize_callback, NULL); */
+    /* window_resize_passive(main_win, main_win->w, main_win->h); */
     while (!(main_win->i_state & I_STATE_QUIT)) {
 	/* fprintf(stdout, "About to poll...\n"); */
 	while (SDL_PollEvent(&e)) {

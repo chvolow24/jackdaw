@@ -55,10 +55,10 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
 	for (int i=proj->active_clip_index; i< proj->num_clips; i++) {
 	    Clip *clip = proj->clips[proj->active_clip_index];
 	    copy_device_buf_to_clip(clip);
-	    memcpy(dev->rec_buffer, stream, len);
-	    dev->write_bufpos_samples = stream_len_samples;
 	    /* clip->write_bufpos_sframes += dev->write_bufpos_samples / clip->channels; */
 	}
+	memcpy(dev->rec_buffer, stream, len);
+	dev->write_bufpos_samples = stream_len_samples;
         /* dev->write_bufpos_samples = 0; */
         /* device_stop_recording(dev); */
         /* fprintf(stderr, "ERROR: overwriting audio buffer of device: %s\n", dev->name); */

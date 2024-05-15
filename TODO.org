@@ -11,7 +11,7 @@ Global TODO list
 **** TODO rename track
 **** TODO vol and pan ((NOT PARITY))
 *** TODO Select Out
-*** TODO Show output wavs
+*** DONE Show output wavs
 *** TODO Save wav file
 *** TODO Open wav file
 *** TODO Cut clip

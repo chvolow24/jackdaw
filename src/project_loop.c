@@ -148,7 +148,7 @@ void loop_project_main()
     window_push_mode(main_win, TIMELINE);
 
     SDL_AddEventWatch(window_resize_callback, NULL);
-   
+    window_resize_passive(main_win, main_win->w, main_win->h);
     while (!(main_win->i_state & I_STATE_QUIT)) {
 	/* fprintf(stdout, "About to poll...\n"); */
 	while (SDL_PollEvent(&e)) {

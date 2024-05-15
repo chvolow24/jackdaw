@@ -274,6 +274,11 @@ typedef struct project {
     SDL_Rect *source_rect;
     SDL_Rect *source_clip_rect;
     Textbox *source_name_tb;
+
+    Textbox *tb_out_label;
+    Textbox *tb_out_value;
+    SDL_Rect *outwav_l_rect;
+    SDL_Rect *outwav_r_rect;
 } Project;
 
 Project *project_create(

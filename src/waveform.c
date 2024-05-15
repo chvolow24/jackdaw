@@ -32,12 +32,12 @@
     * incl. multi-channel audio
  *****************************************************************************************************************/
 
-
 #include "window.h"
+#include "project.h"
 
 #define SFPP_THRESHOLD 15
 
-/* extern Project *proj; */
+extern Project *proj;
 extern Window *main_win;
 
 static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, int w, int amp_h_max, int center_y)
@@ -52,7 +52,7 @@ static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, 
     if (sfpp > SFPP_THRESHOLD) {
 	float avg_amp = 0;
 	int x = start_x;
-	int amp_y = center_y;
+	/* int amp_y = center_y; */
 	float sample_i = 0.0f;
 	while (x < start_x + w && sample_i < buflen) {
 	    /* Early exit conditions (offscreen) */
@@ -65,6 +65,7 @@ static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, 
 	    }
 	    
 	    /* Get avg amplitude value */
+	    avg_amp = 0;
 	    for (int i=0; i<(int)sfpp; i++) {
 		if (sample_i + i >= buflen) {
 		    break;
@@ -81,7 +82,7 @@ static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, 
     } else {
 	float avg_amp = 0;
 	int x = start_x;
-	int sample_y = center_y;
+	/* int sample_y = center_y; */
 	int last_sample_y = center_y;
 	float sample_i = 0.0f;
 	while (x < start_x + w && sample_i < buflen) {
@@ -101,9 +102,18 @@ static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, 
 		/* fprintf(stdout, "\t->avg amp + %f\n", channel[(int)(sample_i) + i]); */
 	    }
 	    avg_amp /= sfpp;
-
 	    int sample_y = center_y + avg_amp * amp_h_max;
-	    SDL_RenderDrawLine(main_win->rend, x-1, last_sample_y, x, sample_y);
+	    if (avg_amp > 1.0f) {
+		SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255);
+		SDL_RenderDrawLine(main_win->rend, x-1, center_y - amp_h_max, x-1, center_y + amp_h_max);
+		SDL_RenderDrawLine(main_win->rend, x, center_y - amp_h_max, x, center_y + amp_h_max);
+		SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
+	    } else {
+		/* if (channel == proj->output_L && sample_i < 10) { */
+		/*     fprintf(stdout, "\t->sfpp: %f, avgamp: %f, y_off: %d\n", sfpp, avg_amp, (int)(avg_amp * amp_h_max)); */
+		/* } */
+		SDL_RenderDrawLine(main_win->rend, x-1, last_sample_y, x, sample_y);
+	    }
 	    last_sample_y = sample_y;
 	    sample_i+=sfpp;
 	    x++;
@@ -121,6 +131,9 @@ void waveform_draw_all_channels(float **channels, uint8_t num_channels, uint32_t
     for (uint8_t i=0; i<num_channels; i++) {
 	/* fprintf(stdout, "Drawing channel w %d, x %d, buflen %ul\n", rect->w, rect->x, buflen); */
 	waveform_draw_channel(channels[i], buflen, rect->x, rect->w, channel_h / 2, center_y);
+	/* if (proj && channels == &proj->output_L) { */
+	/*     fprintf(stdout, "rect h? %d, maxamp h? %d\n", rect->h, channel_h / 2); */
+	/* } */
 	center_y += channel_h;
     }
 

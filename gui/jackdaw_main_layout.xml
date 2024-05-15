@@ -9,7 +9,7 @@
             <x>REL 0</x>
             <y>REL 0</y>
             <w>SCALE 1.000000</w>
-            <h>REL 156</h>
+            <h>REL 130</h>
             <index>0</index>
             <children>
                 <Layout name="input_area" type="NORMAL">
@@ -23,16 +23,16 @@
                 </Layout>
                 <Layout name="source_area" type="NORMAL">
                     <x>REL 287</x>
-                    <y>REL 8</y>
-                    <w>REL 436</w>
-                    <h>REL 137</h>
+                    <y>REL 12</y>
+                    <w>REL 364</w>
+                    <h>REL 113</h>
                     <index>1</index>
                     <children>
                         <Layout name="source_clip" type="NORMAL">
                             <x>REL 15</x>
-                            <y>REL 59</y>
-                            <w>REL 400</w>
-                            <h>REL 68</h>
+                            <y>REL 41</y>
+                            <w>REL 333</w>
+                            <h>REL 45</h>
                             <index>0</index>
                             <children>
                             </children>
@@ -40,7 +40,7 @@
                         <Layout name="source_clip_name" type="NORMAL">
                             <x>REL 15</x>
                             <y>REL 12</y>
-                            <w>REL 400</w>
+                            <w>REL 333</w>
                             <h>REL 20</h>
                             <index>1</index>
                             <children>
@@ -50,7 +50,7 @@
                 </Layout>
                 <Layout name="timeline_label" type="NORMAL">
                     <x>REL 10</x>
-                    <y>REL 130</y>
+                    <y>REL 103</y>
                     <w>REL 180</w>
                     <h>REL 21</h>
                     <index>2</index>
@@ -61,7 +61,7 @@
         </Layout>
         <Layout name="timeline" type="NORMAL">
             <x>REL 0</x>
-            <y>REL 156</y>
+            <y>REL 130</y>
             <w>SCALE 1.000000</w>
             <h>COMPLEMENT 315</h>
             <index>1</index>
@@ -264,6 +264,51 @@
                         </Layout>
                     </children>
                 </Layout>
+            </children>
+        </Layout>
+        <Layout name="default_out" type="NORMAL">
+            <x>REL 10</x>
+            <y>REL 24</y>
+            <w>REL 200</w>
+            <h>REL 20</h>
+            <index>2</index>
+            <children>
+                <Layout name="default_out_label" type="NORMAL">
+                    <x>REL 0</x>
+                    <y>REL 0</y>
+                    <w>REL 80</w>
+                    <h>SCALE 1.000000</h>
+                    <index>0</index>
+                    <children>
+                    </children>
+                </Layout>
+                <Layout name="default_out_value" type="NORMAL">
+                    <x>REL 80</x>
+                    <y>REL 0</y>
+                    <w>COMPLEMENT 0</w>
+                    <h>SCALE 1.000000</h>
+                    <index>1</index>
+                    <children>
+                    </children>
+                </Layout>
+            </children>
+        </Layout>
+        <Layout name="out_waveform_right" type="NORMAL">
+            <x>REL 128</x>
+            <y>REL 53</y>
+            <w>REL 110</w>
+            <h>REL 45</h>
+            <index>3</index>
+            <children>
+            </children>
+        </Layout>
+        <Layout name="out_waveform_left" type="NORMAL">
+            <x>REL 10</x>
+            <y>REL 53</y>
+            <w>REL 110</w>
+            <h>REL 45</h>
+            <index>4</index>
+            <children>
             </children>
         </Layout>
     </children>

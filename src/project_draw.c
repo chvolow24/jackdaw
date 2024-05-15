@@ -376,6 +376,20 @@ static void control_bar_draw(Project *proj)
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
     SDL_RenderFillRect(main_win->rend, proj->control_bar_rect);
 
+    textbox_draw(proj->tb_out_label);
+    textbox_draw(proj->tb_out_value);
+
+    /* DRAW THE OUTPUT WAVEFORMS */
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
+    SDL_RenderFillRect(main_win->rend, proj->outwav_l_rect);
+    SDL_RenderFillRect(main_win->rend, proj->outwav_r_rect);
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_white));
+    waveform_draw_all_channels(&proj->output_L, 1, proj->output_len, proj->outwav_l_rect);
+    waveform_draw_all_channels(&proj->output_R, 1, proj->output_len, proj->outwav_r_rect);
+    
+
+
+    /* SOURCE MODE */
     if (proj->source_mode) {
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(source_mode_bckgrnd));
 	SDL_RenderFillRect(main_win->rend, proj->source_rect);

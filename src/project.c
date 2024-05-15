@@ -178,7 +178,41 @@ Project *project_create(
 
 
     project_init_audio_conns(proj);
+
+    Layout *out_label_lt, *out_value_lt;
+    out_label_lt = layout_get_child_by_name_recursive(proj->layout, "default_out_label");
+    out_value_lt = layout_get_child_by_name_recursive(proj->layout, "default_out_value");
+    proj->tb_out_label = textbox_create_from_str(
+	"Default Out:",
+	out_label_lt,
+	main_win->bold_font,
+	12,
+	main_win);
+    textbox_set_align(proj->tb_out_label, CENTER_LEFT);
+    textbox_set_background_color(proj->tb_out_label, &color_global_clear);
+    textbox_set_text_color(proj->tb_out_label, &color_global_white);
     
+    proj->tb_out_value = textbox_create_from_str(
+	(char *)proj->playback_conn->name,
+	out_value_lt,
+	main_win->std_font,
+	12,
+	main_win);
+    textbox_set_align(proj->tb_out_value, CENTER_LEFT);
+    proj->tb_out_value->corner_radius = 6;
+    /* textbox_set_align(proj->tb_out_value, CENTER); */
+    int saved_w = proj->tb_out_value->layout->rect.w / main_win->dpi_scale_factor;
+    textbox_size_to_fit(proj->tb_out_value, 2, 1);
+    textbox_set_fixed_w(proj->tb_out_value, saved_w - 10);
+    textbox_set_border(proj->tb_out_value, &color_global_black, 1);
+
+    Layout *output_l_lt, *output_r_lt;
+    output_l_lt = layout_get_child_by_name_recursive(proj->layout, "out_waveform_left");
+    output_r_lt = layout_get_child_by_name_recursive(proj->layout, "out_waveform_right");
+
+    proj->outwav_l_rect = &output_l_lt->rect;
+    proj->outwav_r_rect = &output_r_lt->rect;
+	
     return proj;
 }
 
@@ -285,7 +319,6 @@ void timeline_add_track(Timeline *tl)
 	14,
 	main_win);
 
-    
     textbox_set_align(track->tb_name, CENTER_LEFT);
     textbox_set_pad(track->tb_name, 4, 0);
     textbox_set_border(track->tb_name, &color_global_black, 1);
@@ -297,6 +330,7 @@ void timeline_add_track(Timeline *tl)
 	12,
 	main_win);
     textbox_set_background_color(track->tb_input_label, &color_global_clear);
+    
 
     track->tb_input_name = textbox_create_from_str(
 	(char *)track->input->name,

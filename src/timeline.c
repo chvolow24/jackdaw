@@ -225,7 +225,7 @@ void timeline_catchup()
     if (proj->audio_rect->w <= 0) {
 	return;
     }
-    while (catchup_w > proj->audio_rect->w / 2) {
+    while (catchup_w > proj->audio_rect->w / 2 && catchup_w > 10) {
 	catchup_w /= 2;
     }
     if ((tl_draw_x = timeline_get_draw_x(tl->play_pos_sframes)) > proj->audio_rect->x + proj->audio_rect->w) {

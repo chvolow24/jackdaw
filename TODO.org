@@ -1,0 +1,28 @@
+Global TODO list
+
+* TODO Merge layout into main
+** TODO Feature parity w/ old version
+*** TODO mouse functions
+**** TODO mute and solo
+**** TODO select track in
+**** TODO set playhead pos
+**** TODO grab clips
+**** TODO drag clips
+**** TODO rename track
+**** TODO vol and pan ((NOT PARITY))
+*** TODO Select Out
+*** TODO Show output wavs
+*** TODO Save wav file
+*** TODO Open wav file
+*** TODO Cut clip
+*** TODO Copy clip (?)
+** TODO Presentability
+*** TODO update readme
+*** TODO generate keybd shortcut ref
+*** TODO Modal for saving files
+*** TODO demo video
+** TODO Version branches
+* TODO adjust clipref bounds
+* TODO Pd bridge
+* TODO Timeline ref
+* TODO Track effects

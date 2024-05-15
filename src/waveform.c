@@ -113,13 +113,14 @@ static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, 
 		SDL_RenderDrawLine(main_win->rend, x-1, center_y - amp_h_max, x-1, center_y + amp_h_max);
 		SDL_RenderDrawLine(main_win->rend, x, center_y - amp_h_max, x, center_y + amp_h_max);
 		SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
+		last_sample_y = avg_amp > 0 ? center_y + amp_h_max : center_y - amp_h_max;
 	    } else {
 		/* if (channel == proj->output_L && sample_i < 10) { */
 		/*     fprintf(stdout, "\t->sfpp: %f, avgamp: %f, y_off: %d\n", sfpp, avg_amp, (int)(avg_amp * amp_h_max)); */
 		/* } */
 		SDL_RenderDrawLine(main_win->rend, x-1, last_sample_y, x, sample_y);
+		last_sample_y = sample_y;
 	    }
-	    last_sample_y = sample_y;
 	    sample_i+=sfpp;
 	    x++;
 	}

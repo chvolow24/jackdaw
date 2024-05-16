@@ -37,6 +37,8 @@ typedef struct window {
 
     InputMode modes[MAX_MODES];
     uint8_t num_modes;
+
+    bool screenrecording;
 } Window;
 
 /* Create a new Window struct and initialize all members */

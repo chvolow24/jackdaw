@@ -54,6 +54,12 @@ void user_global_save_project()
     jdaw_write_project("project_v.jdaw");
 }
 
+void user_global_start_or_stop_screenrecording()
+{
+    main_win->screenrecording = !main_win->screenrecording;
+
+}
+
 
 void user_menu_nav_next_item()
 {

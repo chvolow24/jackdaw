@@ -5,6 +5,7 @@
 #include "layout.h"
 #include "project.h"
 #include "project_draw.h"
+#include "screenrecord.h"
 #include "timeline.h"
 #include "transport.h"
 #include "window.h"
@@ -181,11 +182,11 @@ void loop_project_main()
 		case SDL_SCANCODE_RALT:
 		    main_win->i_state |= I_STATE_META;
 		    break;
-		case SDL_SCANCODE_X:
-		    if (main_win->i_state & I_STATE_CMDCTRL) {
-			main_win->i_state |= I_STATE_C_X;
-		    }
-		    break;
+		/* case SDL_SCANCODE_X: */
+		/*     if (main_win->i_state & I_STATE_CMDCTRL) { */
+		/* 	main_win->i_state |= I_STATE_C_X; */
+		/*     } */
+		/*     break; */
 	        case SDL_SCANCODE_K:
 		    if (main_win->i_state & I_STATE_K) {
 			break;
@@ -268,14 +269,27 @@ void loop_project_main()
 		    break;
 		}
 		break;
-	    case SDL_MOUSEWHEEL:
-		temp_scrolling_lt = layout_handle_scroll(
-		    main_win->layout,
-		    &main_win->mousep,
-		    e.wheel.preciseX * LAYOUT_SCROLL_SCALAR,
-		    e.wheel.preciseY * LAYOUT_SCROLL_SCALAR * -1,
-		    fingersdown);
-		timeline_reset(proj->timelines[proj->active_tl_index]);
+	    case SDL_MOUSEWHEEL: {
+		bool allow_scroll = true;
+		if (SDL_PointInRect(&main_win->mousep, proj->audio_rect)) {
+                    if (main_win->i_state & I_STATE_CMDCTRL) {
+                        double scale_factor = pow(SFPP_STEP, e.wheel.y);
+                        timeline_rescale(scale_factor, true);
+			allow_scroll = false;
+                    } else {
+			timeline_scroll_horiz(TL_SCROLL_STEP_H * e.wheel.x);
+                    }
+                }
+		if (allow_scroll) {
+		    temp_scrolling_lt = layout_handle_scroll(
+			main_win->layout,
+			&main_win->mousep,
+			e.wheel.preciseX * LAYOUT_SCROLL_SCALAR,
+			e.wheel.preciseY * LAYOUT_SCROLL_SCALAR * -1,
+			fingersdown);
+		    timeline_reset(proj->timelines[proj->active_tl_index]);
+		}
+	    }
 		break;
 	    case SDL_FINGERDOWN:
 	        fingersdown = SDL_GetNumTouchFingers(-1);
@@ -337,6 +351,11 @@ void loop_project_main()
 	/* } */
 
 	project_draw();
+
+
+	if (main_win->screenrecording) {
+	    screenshot_loop();
+	}
 	/* window_draw_menus(main_win); */
 	
 	/***** Debug only *****/

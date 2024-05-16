@@ -50,7 +50,7 @@ static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, 
     }
 
     if (sfpp > SFPP_THRESHOLD) {
-	float avg_amp = 0;
+	float avg_amp_neg, avg_amp_pos;
 	int x = start_x;
 	/* int amp_y = center_y; */
 	float sample_i = 0.0f;
@@ -65,21 +65,30 @@ static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, 
 	    }
 	    
 	    /* Get avg amplitude value */
-	    avg_amp = 0;
+	    avg_amp_neg = 0;
+	    avg_amp_pos = 0;
 	    for (int i=0; i<(int)sfpp; i++) {
 		if (sample_i + i >= buflen) {
 		    break;
 		}
-		avg_amp += fabs(channel[(int)sample_i + i]);
+		float sample;
+		if ((sample = channel[(int)sample_i + i]) < 0) {
+		    avg_amp_neg += sample;
+		} else {
+		    avg_amp_pos += sample;
+		}
+		/* avg_amp += fabs(channel[(int)sample_i + i]); */
 	    }
-	    avg_amp /= sfpp;
-	    int y_offset = avg_amp * amp_h_max;
-	    if (fabs(avg_amp) > 1.0f) {
+	    avg_amp_neg /= sfpp;
+	    avg_amp_pos /= sfpp;
+	    if (avg_amp_neg < -1.0f || avg_amp_pos > 1.0f) {
 		SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255);
 		SDL_RenderDrawLine(main_win->rend, x, center_y - amp_h_max, x, center_y + amp_h_max);
 		SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
 	    } else {
-		SDL_RenderDrawLine(main_win->rend, x, center_y - y_offset, x, center_y + y_offset);
+		int y_offset_pos = avg_amp_pos * amp_h_max;
+		int y_offset_neg = avg_amp_neg * amp_h_max;
+		SDL_RenderDrawLine(main_win->rend, x, center_y + y_offset_neg, x, center_y + y_offset_pos);
 	    }
 	    sample_i+=sfpp;
 	    x++;

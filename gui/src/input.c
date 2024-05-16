@@ -157,6 +157,13 @@ static void mode_load_global()
 	user_global_save_project
 	);
     mode_subcat_add_fn(mc, fn);
+
+    fn = create_user_fn(
+	"start_or_stop_screenrecording",
+	"Start or stop screenrecording",
+	user_global_start_or_stop_screenrecording
+	);
+    mode_subcat_add_fn(mc, fn);
 }
 
 

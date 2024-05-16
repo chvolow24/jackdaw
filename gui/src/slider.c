@@ -11,9 +11,13 @@ extern Window *main_win;
 #define SLIDER_LABEL_H_PAD 4
 #define SLIDER_LABEL_V_PAD 2
 
+/* SDL_Color fslider_bckgrnd = {60, 60, 60, 255}; */
+/* SDL_Color fslider_bar_container_bckgrnd =  {190, 190, 190, 255}; */
+/* SDL_Color fslider_bar_color = {20, 20, 120, 255}; */
+
 SDL_Color fslider_bckgrnd = {60, 60, 60, 255};
-SDL_Color fslider_bar_container_bckgrnd =  {190, 190, 190, 255};
-SDL_Color fslider_bar_color = {20, 20, 120, 255};
+SDL_Color fslider_bar_container_bckgrnd =  {40, 40, 40, 248};
+SDL_Color fslider_bar_color = {12, 107, 249, 250};
 
 extern SDL_Color color_global_black;
 

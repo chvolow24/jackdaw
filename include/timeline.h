@@ -30,21 +30,21 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define TL_SHIFT_STEP (50 * scale_factor)
-#define TL_SCROLL_STEP_H (10 * scale_factor)
-#define TL_SCROLL_STEP_V (10 * scale_factor)
+#define TL_SHIFT_STEP (50 * main_win->dpi_scale_factor)
+#define TL_SCROLL_STEP_H (10 * main_win->dpi_scale_factor)
+#define TL_SCROLL_STEP_V (10 * main_win->dpi_scale_factor)
 
 #define SFPP_STEP 1.2 // Sample Frames Per Pixel
 #define CATCHUP_STEP (600 * scale_factor)
 
-int32_t timeline_get_abspos_sfrmaes(int draw_x);
+int32_t timeline_get_abspos_sframes(int draw_x);
 int timeline_get_draw_x(int32_t abs_x);
 int timeline_get_draw_w(int32_t abs_w);
 int32_t timeline_get_abs_w_sframes(int draw_w);
 void timeline_scroll_horiz(int scroll_by);
 float timeline_get_leftmost_seconds();
-int timeline_get_second_w();
-int timeline_first_second_tick_x();
+float timeline_get_second_w();
+float timeline_first_second_tick_x(int *first_second);
 void timeline_rescale(double sfpp_scale_factor, bool on_mouse);
 void timeline_set_play_position(int32_t abs_pos_sframes);
 void timeline_move_play_position(int32_t move_by_sframes);

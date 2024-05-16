@@ -1,5 +1,7 @@
 Global TODO list
 
+* TODO Bugs
+** TODO Realignment of TL on 'n' and 'p' fails after window size changes
 * TODO Merge layout into main
 ** TODO Feature parity w/ old version
 *** TODO mouse functions
@@ -10,8 +12,9 @@ Global TODO list
 **** TODO drag clips
 **** TODO rename track
 **** TODO vol and pan ((NOT PARITY))
-*** TODO Select Out
+*** DONE Select Out
 *** DONE Show output wavs
+*** DONE Draw ruler
 *** TODO Save wav file
 *** TODO Open wav file
 *** TODO Cut clip

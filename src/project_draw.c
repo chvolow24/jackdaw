@@ -73,6 +73,8 @@ extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;
 extern SDL_Color color_global_grey;
 extern SDL_Color color_global_yellow;
+
+extern SDL_Color timeline_label_txt_color;
 /* SDL_Color track_vol_bar_clr = (SDL_Color) {200, 100, 100, 255}; */
 /* SDL_Color track_pan_bar_clr = (SDL_Color) {100, 200, 100, 255}; */
 /* SDL_Color track_in_bar_clr = (SDL_Color) {100, 100, 200, 255}; */
@@ -263,6 +265,35 @@ static void ruler_draw(Timeline *tl)
 {
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(ruler_bckgrnd));
     SDL_RenderFillRect(main_win->rend, tl->proj->ruler_rect);
+
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_white));
+
+    int second;
+    float x = tl->proj->ruler_rect->x + timeline_first_second_tick_x(&second);
+    float sw = timeline_get_second_w();
+    int line_len;
+    while (x < tl->layout->rect.x + tl->layout->rect.w) {
+        if (x > proj->audio_rect->x) {
+	    if (second % 60 == 0) {
+		line_len = 40;
+	    } else if (second % 30 == 0) {
+		line_len = 30;
+	    } else if (second % 15 == 0) {
+		line_len = 20;
+	    } else if (second % 5 == 0) {
+		line_len = 10;
+	    } else {
+		line_len = 5;
+	    }
+            SDL_RenderDrawLine(main_win->rend, x, tl->layout->rect.y, x, tl->layout->rect.y + line_len);
+        }
+        x += sw;
+	second++;
+        if (x > proj->audio_rect->x + proj->audio_rect->w) {
+            break;
+        }
+    }    
+
     
 }
 
@@ -396,7 +427,7 @@ static void control_bar_draw(Project *proj)
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_white));
 	SDL_RenderDrawRect(main_win->rend, proj->source_rect);
     }
-
+    /* fprintf(stdout, "Drawing source name tb: \"%s\"\n", proj->source_name_tb->text->display_value); */
     textbox_draw(proj->source_name_tb);
 
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_home_bckgrnd));

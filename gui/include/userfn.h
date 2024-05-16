@@ -7,6 +7,7 @@ void user_global_quit();
 void user_global_undo();
 void user_global_redo();
 void user_global_save_project();
+void user_global_start_or_stop_screenrecording();
 void user_menu_nav_next_item();
 void user_menu_nav_prev_item();
 void user_menu_nav_next_sctn();

@@ -30,6 +30,7 @@
   - C-s		: save_project
   - C-S-s	: save_current_project_as
   - C-o		: open_file
+  - A-S-p	: start_or_stop_screenrecording
 - menu_nav:
   - n		: menu_next_item
   - p		: menu_previous_item

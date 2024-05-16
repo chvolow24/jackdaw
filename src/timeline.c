@@ -44,7 +44,7 @@ extern Window *main_win;
 int timeline_get_draw_x(int32_t abs_x);
 
 /* Get the timeline position value -- in sample frames -- from a draw x coordinate  */
-int32_t timeline_get_abspos_sfrmaes(int draw_x)
+int32_t timeline_get_abspos_sframes(int draw_x)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     return (draw_x - proj->audio_rect->x) * tl->sample_frames_per_pixel + tl->display_offset_sframes;
@@ -75,6 +75,14 @@ int timeline_get_draw_w(int32_t abs_w)
     }
 }
 
+float timeline_get_draw_w_precise(int32_t abs_w)
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    if (tl->sample_frames_per_pixel != 0) {
+	return (float) abs_w / tl->sample_frames_per_pixel;
+    }
+}
+ 
 /* Get a length in sample frames from a given draw width */
 int32_t timeline_get_abs_w_sframes(int draw_w)
 {
@@ -83,7 +91,7 @@ int32_t timeline_get_abs_w_sframes(int draw_w)
 }
 
 float timeline_get_leftmost_seconds();
-int timeline_get_second_w();
+float timeline_get_second_w();
 
 void timeline_scroll_horiz(int scroll_by)
 {
@@ -95,36 +103,32 @@ void timeline_scroll_horiz(int scroll_by)
 
 float timeline_get_leftmost_seconds()
 {
-    if (!proj) {
-        fprintf(stderr, "Error: request to get second w with no active project.\n");
-        exit(1);
-    }
     Timeline *tl = proj->timelines[proj->active_tl_index];
     return (float) tl->display_offset_sframes / tl->proj->sample_rate;
 }
 
-int timeline_get_second_w()
+float timeline_get_second_w()
 {
-    if (!proj) {
-        fprintf(stderr, "Error: request to get second w with no active project.\n");
-        exit(1);
-    }
-    int ret = timeline_get_draw_w(proj->sample_rate);
-    return ret <= 0 ? 1 : ret;
+    return timeline_get_draw_w_precise(proj->sample_rate);
+    /* return ret <= 0 ? 1 : ret; */
 }
 
-int timeline_first_second_tick_x()
+float timeline_first_second_tick_x(int *first_second)
 {
     float lms = timeline_get_leftmost_seconds();
-    float dec = lms - (int)lms;
-    return 1 - (timeline_get_second_w() * dec) + proj->audio_rect->x;
+    float dec = lms - floor(lms);
+    *first_second = (int)floor(lms) + 1;
+    return timeline_get_second_w() * (1 - dec);
+    /* return 1 - (timeline_get_second_w() * dec) + proj->audio_rect->x; */
 }
 
 void timeline_rescale(double sfpp_scale_factor, bool on_mouse)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     int32_t center_abs_pos = 0;
-    if (!on_mouse) {
+    if (on_mouse) {
+	center_abs_pos = timeline_get_abspos_sframes(main_win->mousep.x);
+    } else {
 	center_abs_pos = tl->play_pos_sframes;
     }
     if (sfpp_scale_factor == 0) {

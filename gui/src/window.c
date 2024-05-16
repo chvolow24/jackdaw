@@ -91,6 +91,8 @@ Window *window_create(int w, int h, const char *name)
     window->num_modes = 0;
     SDL_SetRenderDrawBlendMode(window->rend, SDL_BLENDMODE_BLEND);
 
+    window->screenrecording = false;
+
     return window;
 }
 

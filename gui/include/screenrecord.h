@@ -3,6 +3,7 @@
 
 #include "SDL.h"
 
+void screenshot_loop();
 void screenshot(int i, SDL_Renderer* rend);
 
 #endif

@@ -1,7 +1,8 @@
 Global TODO list
 
-* TODO Bugs
+* Bugs
 ** TODO Realignment of TL on 'n' and 'p' fails after window size changes
+** TODO Text edit bounds checking (pass max len at set time)
 * TODO Merge layout into main
 ** TODO Feature parity w/ old version
 *** TODO mouse functions
@@ -9,7 +10,7 @@ Global TODO list
 **** TODO select track in
 **** TODO set playhead pos
 **** TODO grab clips
-**** TODO drag clips
++**** TODO drag clips+
 **** TODO rename track
 **** TODO vol and pan ((NOT PARITY))
 *** DONE Select Out
@@ -27,5 +28,12 @@ Global TODO list
 ** TODO Version branches
 * TODO adjust clipref bounds
 * TODO Pd bridge
+** TODO Pd input
+** TODO Pd output
++ adding track-level output and real-time input would allow audio effects to be exported to Pd
 * TODO Timeline ref
++ Parallel to clipref
++ has a mixdown buffer
++ buffer is populated on other thread in response to edits to ref'd TL
++ OR, no buffer; realtime mixdown
 * TODO Track effects

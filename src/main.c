@@ -24,6 +24,13 @@
 
 *****************************************************************************************************************/
 
+/*****************************************************************************************************************
+    main.c
+
+    * initialize resources
+    * call project_loop
+ *****************************************************************************************************************/
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <time.h>
@@ -33,6 +40,7 @@
 #include "layout.h"
 #include "layout_xml.h"
 #include "project.h"
+#include "pure_data.h"
 #include "text.h"
 #include "window.h"
 
@@ -97,6 +105,7 @@ static void init()
     input_init_hash_table();
     input_init_mode_load_all();
     input_load_keybinding_config(DEFAULT_KEYBIND_CFG_PATH);
+    pd_jackdaw_shm_init();
 }
 
 static void quit()
@@ -115,23 +124,27 @@ int main(int argc, char **argv)
     
     init();
 
+    /* pd_open_shared_memory(); */
+
     char *file_to_open = NULL;
     bool invoke_open_wav_file = false;
     bool invoke_open_jdaw_file = false;
     if (argc > 2) {
         exit(1);
     } else if (argc == 2) {
-        file_to_open = argv[1];
-        int dotpos = strcspn(file_to_open, ".");
-        char *ext = file_to_open + dotpos + 1;
-        if (strcmp("wav", ext) * strcmp("WAV", ext) == 0) {
-            fprintf(stderr, "Passed WAV file.\n");
-            invoke_open_wav_file = true;
-        } else if (strcmp("jdaw", ext) * strcmp("JDAW", ext) == 0) {
-            fprintf(stderr, "Passed JDAW file.\n");
-            invoke_open_jdaw_file = true;
-        } else {
+
+	file_to_open = argv[1];
+	int dotpos = strcspn(file_to_open, ".");
+	char *ext = file_to_open + dotpos + 1;
+	if (strcmp("wav", ext) * strcmp("WAV", ext) == 0) {
+	    fprintf(stderr, "Passed WAV file.\n");
+	    invoke_open_wav_file = true;
+	} else if (strcmp("jdaw", ext) * strcmp("JDAW", ext) == 0) {
+	    fprintf(stderr, "Passed JDAW file.\n");
+	    invoke_open_jdaw_file = true;
+	} else {
 	    fprintf(stderr, "Error: argument \"%s\" not recognized. Pass a .jdaw or .wav file to open that file.\n", argv[1]);
+	    exit(1);
 	}
     }
 

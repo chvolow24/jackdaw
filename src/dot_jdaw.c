@@ -119,8 +119,8 @@ static void jdaw_write_clip(FILE *f, Clip *clip, int index)
     fwrite(hdr_clip, 1, 4, f);
     uint8_t namelen = strlen(clip->name);
     fwrite(&namelen, 1, 1, f);
-    fwrite(&nullterm, 1, 1, f);
     fwrite(&clip->name, 1, namelen, f);
+    fwrite(&nullterm, 1, 1, f);
     fwrite(&index, 1, 1, f);
     fwrite(&clip->channels, 1, 1, f);
     if (sys_byteorder_le) {

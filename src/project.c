@@ -50,7 +50,6 @@ extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;
 extern SDL_Color color_global_clear;
 
-
 SDL_Color timeline_label_txt_color = {0, 200, 100, 255};
 
 /* Alternating bright colors to easily distinguish tracks */
@@ -393,7 +392,6 @@ void timeline_add_track(Timeline *tl)
     /* pan_ctrl_lt->w.value.intval = pan_ctrl_row->w.value.intval - TRACK_CTRL_SLIDER_H_PAD * 2; */
     /* pan_ctrl_lt->h.value.intval = pan_ctrl_row->h.value.intval - TRACK_CTRL_SLIDER_V_PAD * 2; */
     /* /\* layout_set_values_from_rect(pan_ctrl_lt); *\/ */
-    
     track->pan = 0.5f;
     track->pan_ctrl = fslider_create(
 	&track->pan,

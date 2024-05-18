@@ -25,10 +25,10 @@
 *****************************************************************************************************************/
 
 /*****************************************************************************************************************
-    audio_device.c
+    audio_connection.c
 
-    * Query for available audio devices
-    * Open and close individual audio devices
+    * Query for available audio connections
+    * Open and close individual audio connections
  *****************************************************************************************************************/
 
 

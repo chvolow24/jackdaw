@@ -72,6 +72,7 @@ static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, 
 		    break;
 		}
 		float sample;
+		/* fprintf(stdout, "wav i=%d\n", i); */
 		if ((sample = channel[(int)sample_i + i]) < 0) {
 		    avg_amp_neg += sample;
 		} else {
@@ -144,6 +145,7 @@ void waveform_draw_all_channels(float **channels, uint8_t num_channels, uint32_t
     int channel_h = rect->h / num_channels;
     int center_y = rect->y + channel_h / 2;
     for (uint8_t i=0; i<num_channels; i++) {
+	/* fprintf(stdout, "DRAW ALL CHANNELS: channels? %p, %p\n", channels[0], channels[1]); */
 	/* fprintf(stdout, "Drawing channel w %d, x %d, buflen %ul\n", rect->w, rect->x, buflen); */
 	waveform_draw_channel(channels[i], buflen, rect->x, rect->w, channel_h / 2, center_y);
 	/* if (proj && channels == &proj->output_L) { */

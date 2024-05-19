@@ -118,6 +118,8 @@ static void quit()
 
 void loop_project_main();
 Project *jdaw_read_file(const char *path);
+
+extern bool connection_open;
 int main(int argc, char **argv)
 {
     fprintf(stdout, "\n\nJACKDAW (version %s)\nby Charlie Volow\n\n", JACKDAW_VERSION);
@@ -132,7 +134,15 @@ int main(int argc, char **argv)
     if (argc > 2) {
         exit(1);
     } else if (argc == 2) {
-
+	if (strcmp(argv[1], "pd_test") == 0) {
+	    /* while (!connection_open) { */
+	    /* 	fprintf(stdout, "connection not open\n"); */
+	    /* 	SDL_Delay(500); */
+	    /* } */
+	    /* fprintf(stdout, "REC GET BLOCK\n"); */
+	    /* /\* pd_jackdaw_record_get_block(); *\/ */
+	    exit(0);
+	}
 	file_to_open = argv[1];
 	int dotpos = strcspn(file_to_open, ".");
 	char *ext = file_to_open + dotpos + 1;

@@ -100,6 +100,9 @@ static void draw_waveform(ClipRef *cr)
     uint8_t num_channels = cr->clip->channels;
     float *channels[num_channels];
     uint32_t cr_len_sframes = clip_ref_len(cr);
+    if (!cr->clip->L) {
+	return;
+    }
     channels[0] = cr->clip->L + cr->in_mark_sframes;
     if (num_channels > 1) {
 	channels[1] = cr->clip->R + cr->in_mark_sframes;

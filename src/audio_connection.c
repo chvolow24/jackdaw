@@ -32,12 +32,16 @@
  *****************************************************************************************************************/
 
 
+#include <pthread.h>
 #include "audio_connection.h"
 #include "project.h"
+#include "pure_data.h"
 
 
 /* #define DEVICE_BUFLEN_SECONDS 2 /\* TODO: reduce, and write to clip during recording *\/ */
 #define DEVICE_BUFLEN_CHUNKS 1024
+
+#define PD_BUFLEN_CHUNKS 1024
 
 extern Project *proj;
 
@@ -257,8 +261,24 @@ int audioconn_open(Project *proj, AudioConn *conn)
 	    }
 	}
     }
+	break;
     case PURE_DATA:
-	fprintf(stdout, "TODO: pure data\n");
+	fprintf(stdout, "Opening pd\n");
+	PdConn *pdconn = &conn->c.pd;
+	if (conn->iscapture) {
+	    if (!pdconn->rec_buffer_L) {
+		pdconn->rec_buf_len_sframes = PD_BUFLEN_CHUNKS * proj->chunk_size_sframes;
+		pdconn->rec_buffer_L = malloc(sizeof(float) * pdconn->rec_buf_len_sframes);
+		pdconn->rec_buffer_R = malloc(sizeof(float) * pdconn->rec_buf_len_sframes);
+		fprintf(stdout, "allocated %d samples in buf\n", pdconn->rec_buf_len_sframes);
+		pdconn->write_bufpos_sframes = 0;
+		if (pdconn->rec_buffer_L == NULL || pdconn->rec_buffer_R == NULL) {
+		    fprintf(stderr, "Error: unable to allocate space for pd buffers\n");
+		}
+	    }
+	}
+	fprintf(stdout, "Successfully opened pd conn\n");
+	conn->open = true;
 	break;
     }
     return 0;
@@ -374,7 +394,10 @@ void audioconn_start_recording(AudioConn *conn)
     case DEVICE:
 	device_start_recording(&conn->c.device);
 	break;
-    case PURE_DATA:
+    case PURE_DATA: {
+	pthread_t pd_thread;
+	pthread_create(&pd_thread, NULL, pd_jackdaw_record_on_thread, conn);
+    }
 	break;
     }
 

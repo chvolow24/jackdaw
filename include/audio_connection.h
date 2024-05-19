@@ -59,19 +59,24 @@ typedef struct audio_device{
 } AudioDevice;
 
 typedef struct pd_conn {
-    int placeholder;
-} pdConn;
+    float *rec_buffer_L;
+    float *rec_buffer_R;
+    uint32_t rec_buf_len_sframes;
+    int32_t write_bufpos_sframes;
+} PdConn;
 
 enum audio_conn_type {
     DEVICE,
     PURE_DATA
 };
+
 union audio_conn_substruct {
     /* int index; */
     /* const char *name; */
     /* bool open; */
     /* bool iscapture; */
     AudioDevice device;
+    PdConn pd;
     
 };
 typedef struct audio_conn {

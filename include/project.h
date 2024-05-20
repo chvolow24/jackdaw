@@ -310,5 +310,6 @@ bool track_mute(Track *track);
 bool track_solo(Track *track);
 void track_solomute(Track *track);
 void track_unsolomute(Track *track);
+void track_set_input(Track *track);
 
 #endif

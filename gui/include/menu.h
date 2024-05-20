@@ -16,6 +16,7 @@ typedef struct menu_item {
     bool available;
     void (*onclick)(void *);
     void *target;
+    bool free_target_on_destroy;
     bool selected;
     Layout *layout;
 } MenuItem;

@@ -29,6 +29,8 @@ struct pd_jackdaw_shm_pids {
     pid_t pd_pid;
 };
 
+pid_t pd_pid;
+
 typedef struct pd_input {
     char secret[255];
     uint8_t secret_len;
@@ -89,6 +91,7 @@ static void complete_handshake()
        3. send another SIGUSR1 to indicate main shm complete
        4. destroy PID shm
     */
+    
     kill(pids->pd_pid, SIGUSR2);
 
     shm_unlink(PD_JACKDAW_SHM_NAME); /* Don't care about errors */
@@ -140,6 +143,7 @@ static void complete_handshake()
     fprintf(stdout, "Sent signal 1 to pd; pd can now open main shm and sems\n");
 
     /* Unlink PIDS shared memory object; no more signals will be passed. */
+    pd_pid = pids->pd_pid;
     shm_unlink(PD_JACKDAW_SHM_PIDS_NAME);
     connection_open = true;
 }
@@ -148,7 +152,9 @@ static void complete_handshake()
 static void handle_signal1_from_pd(int signo)
 {
     if (connection_open) {
-
+	fprintf(stdout, "Pure data seems to have closed. Closing connection.\n");
+	connection_open = false;
+	handshake_done = false;
     } else {
 	fprintf(stdout, "Completing handshake. jackdaw started first and received sig1 from pd\n");
 	complete_handshake();
@@ -259,7 +265,7 @@ void *pd_jackdaw_record_on_thread(void *arg)
 	/* fprintf(stdout, "about to write to buffers\n"); */
 	memcpy(pdconn->rec_buffer_L + pdconn->write_bufpos_sframes, pd_shm->L, pd_blocksize * sizeof(float));
 	memcpy(pdconn->rec_buffer_R + pdconn->write_bufpos_sframes, pd_shm->R, pd_blocksize * sizeof(float));
-	sem_post(audio_buffers_write_sem);
+	/* sem_post(audio_buffers_write_sem); */
 	pdconn->write_bufpos_sframes += pd_blocksize;
 	/* fprintf(stdout, "pdconn writebufpos: %d\n", pdconn->write_bufpos_sframes); */
 	/* fprintf(stdout, "wrote to bufs!\n"); */
@@ -273,4 +279,3 @@ void *pd_jackdaw_record_on_thread(void *arg)
     return NULL;
 
 }
-

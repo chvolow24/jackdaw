@@ -30,22 +30,44 @@
     * Functions related to mouse clicks
  *****************************************************************************************************************/
 
-
+#include "menu.h"
 #include "project.h"
+#include "userfn.h"
 
 extern Window *main_win;
 extern Project *proj;
 
 //SDL_BUTTON_LEFT | SDL_BUTTON_RIGHT
 
+
+
+
+static void mouse_triage_click_track(uint8_t button, Track *track)
+{
+    if (SDL_PointInRect(&main_win->mousep, track->console_rect)) {
+	if (SDL_PointInRect(&main_win->mousep, &track->tb_input_name->layout->rect)) {
+	    track_set_input(track);
+	}
+    }
+
+}
 static void mouse_triage_click_timeline(uint8_t button)
 {
-
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    for (uint8_t i=0; i<tl->num_tracks; i++) {
+	Track *track = tl->tracks[i];
+	if (SDL_PointInRect(&main_win->mousep, &track->layout->rect)) {
+	    mouse_triage_click_track(button, track);
+	}
+    }
+    
 }
 
 static void mouse_triage_click_control_bar(uint8_t button)
 {
-
+    if (SDL_PointInRect(&main_win->mousep, &proj->tb_out_value->layout->rect)) {
+	user_tl_set_default_out();
+    }
 
 }
 
@@ -59,6 +81,26 @@ void mouse_triage_click_project(uint8_t button)
     } else if (SDL_PointInRect(&main_win->mousep, proj->control_bar_rect)) {
 	mouse_triage_click_control_bar(button);
     }
-    
+}
 
+void mouse_triage_motion_timeline()
+{
+    
+}
+
+
+void mouse_triage_motion_menu()
+{
+    Menu *top_menu = main_win->menus[main_win->num_menus - 1];
+    if (top_menu) {
+	triage_mouse_menu(top_menu, &main_win->mousep, false);
+    }
+}
+
+void mouse_triage_click_menu(uint8_t button)
+{
+    Menu *top_menu = main_win->menus[main_win->num_menus -1];
+    if (top_menu) {
+	triage_mouse_menu(top_menu, &main_win->mousep, true);
+    }
 }

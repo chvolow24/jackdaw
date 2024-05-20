@@ -84,6 +84,8 @@ void user_tl_add_new_timeline();
 void user_tl_previous_timeline();
 void user_tl_next_timeline();
 
+void user_tl_write_mixdown_to_wav();
+
 void user_source_play();
 void user_source_pause();
 void user_source_rewind();

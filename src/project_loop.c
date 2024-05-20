@@ -37,6 +37,7 @@
 #include "draw.h"
 #include "input.h"
 #include "layout.h"
+#include "mouse.h"
 #include "project.h"
 #include "project_draw.h"
 #include "screenrecord.h"
@@ -49,6 +50,8 @@ extern SDL_Color color_global_black;
 
 #define MAX_MODES 8
 #define STICK_DELAY_MS 500
+
+#define TOP_MODE (main_win->modes[main_win->num_modes - 1])
 
 extern Project *proj;
 
@@ -195,12 +198,21 @@ void loop_project_main()
 		    window_resize_passive(main_win, e.window.data1, e.window.data2);
 		}
 		break;
-	    case SDL_MOUSEMOTION:
+	    case SDL_MOUSEMOTION: {
+		switch (TOP_MODE) {
+		case MENU_NAV:
+		    mouse_triage_motion_menu();
+		    break;
+		case TIMELINE:
+		    mouse_triage_motion_timeline();
+		default:
+		    break;
+		}
 		window_set_mouse_point(main_win, e.motion.x, e.motion.y);
 		break;
+	    }
 	    case SDL_KEYDOWN:
-		fprintf(stdout, "Top mode: %s\n", input_mode_str(main_win->modes[main_win->num_modes - 1]));
-		fprintf(stdout, "Keycmd: \"%s\"\n", input_get_keycmd_str(main_win->i_state, e.key.keysym.sym));
+		fprintf(stdout, "Top mode: %s, Keycmd: \"%s\"\n", input_mode_str(main_win->modes[main_win->num_modes - 1]), input_get_keycmd_str(main_win->i_state, e.key.keysym.sym));
 		switch (e.key.keysym.scancode) {
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
@@ -325,6 +337,18 @@ void loop_project_main()
 		}
 	    }
 		break;
+	    case SDL_MOUSEBUTTONDOWN:
+		switch(TOP_MODE) {
+		case TIMELINE:
+		    fprintf(stdout, "top mode tl\n");
+		    mouse_triage_click_project(e.button.button);
+		    break;
+		case MENU_NAV:
+		    mouse_triage_click_menu(e.button.button);
+		    break;
+		default:
+		    break;
+		}
 	    case SDL_FINGERDOWN:
 	        fingersdown = SDL_GetNumTouchFingers(-1);
 		break;

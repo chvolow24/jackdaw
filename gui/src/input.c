@@ -653,6 +653,13 @@ static void mode_load_timeline()
 	user_tl_next_timeline
 	);
     mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_write_mixdown_to_wav",
+	"Write mixdown to .wav file",
+	user_tl_write_mixdown_to_wav
+	);
+    mode_subcat_add_fn(sc, fn);
 }
 
 static void mode_load_source()

@@ -256,7 +256,7 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
      /* 	fprintf(stderr, "Error: clip %s already has a buffer allocated\n", clip->name); */
      /* 	exit(1); */
      /* } */
-     fprintf(stdout, "CREATING CLIP BUFFERS %d\n", len_sframes);
+     /* fprintf(stdout, "CREATING CLIP BUFFERS %d\n", len_sframes); */
      uint32_t buf_len_bytes = sizeof(float) * len_sframes;
      if (!clip->L) {
 	 clip->L = malloc(buf_len_bytes);

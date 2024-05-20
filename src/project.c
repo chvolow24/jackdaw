@@ -27,6 +27,7 @@
 
 #include "audio_connection.h"
 #include "layout.h"
+#include "menu.h"
 #include "project.h"
 #include "slider.h"
 #include "textbox.h"
@@ -639,4 +640,49 @@ void track_unsolomute(Track *track)
 {
     track->solo_muted = false;
     textbox_set_background_color(track->tb_solo_button, &textbox_default_bckgrnd_clr);
+}
+
+
+
+struct track_in_arg {
+    Track *track;
+    AudioConn *conn;
+};
+static void track_set_in_onclick(void *void_arg)
+{
+    /* struct select_dev_onclick_arg *carg = (struct select_dev_onclick_arg *)arg; */
+    /* Track *track = carg->track; */
+    /* AudioConn *dev = carg->new_in; */
+    struct track_in_arg *arg = (struct track_in_arg *)void_arg;
+    arg->track->input = arg->conn;
+    textbox_set_value_handle(arg->track->tb_input_name, arg->track->input->name);
+
+    window_pop_menu(main_win);
+    window_pop_mode(main_win);
+}
+
+void track_set_input(Track *track)
+{
+    SDL_Rect *rect = &(track->tb_input_name->layout->rect);
+    Menu *menu = menu_create_at_point(rect->x, rect->y);
+    MenuColumn *c = menu_column_add(menu, "");
+    MenuSection *sc = menu_section_add(c, "");
+    
+    for (int i=0; i<proj->num_record_conns; i++) {
+	struct track_in_arg *arg = malloc(sizeof(struct track_in_arg));
+	arg->track = track;
+	arg->conn = proj->record_conns[i];
+	MenuItem *item = menu_item_add(
+	    sc,
+	    arg->conn->name,
+	    " ",
+	    track_set_in_onclick,
+	    arg);
+	item->free_target_on_destroy = true;
+    }
+    
+    menu_add_header(menu,"", "Select audio input for track.\n\n'n' to select next item; 'p' to select previous item.");
+    /* menu_reset_layout(menu); */
+    window_add_menu(main_win, menu);
+    window_push_mode(main_win, MENU_NAV);
 }

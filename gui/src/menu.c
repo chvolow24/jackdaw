@@ -213,6 +213,7 @@ MenuItem *menu_item_add(
     item->available = true;
     item->onclick = onclick;
     item->target = target;
+    item->free_target_on_destroy = false;
     item->section = sctn;
     item->selected = false;
     item->layout = layout_add_child(sctn->layout);
@@ -316,6 +317,9 @@ MenuItem *menu_item_add(
 
 void menu_item_destroy(MenuItem *item)
 {
+    if (item->target && item->free_target_on_destroy) {
+	free(item->target);
+    }
     textbox_destroy(item->tb);
     free(item);
 }

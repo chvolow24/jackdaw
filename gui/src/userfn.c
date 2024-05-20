@@ -7,6 +7,7 @@
 #include "textbox.h"
 #include "transport.h"
 #include "timeline.h"
+#include "wav.h"
 
 #define MENU_MOVE_BY 40
 #define TL_DEFAULT_XSCROLL 60
@@ -587,23 +588,7 @@ void user_tl_track_set_in()
     if (!track) {
 	return;
     }
-    SDL_Rect *rect = &(track->tb_input_name->layout->rect);
-    Menu *menu = menu_create_at_point(rect->x, rect->y);
-    MenuColumn *c = menu_column_add(menu, "");
-    MenuSection *sc = menu_section_add(c, "");
-    for (int i=0; i<proj->num_record_conns; i++) {
-	AudioConn *conn = proj->record_conns[i];
-	menu_item_add(
-	    sc,
-	    conn->name,
-	    " ",
-	    select_in_onclick,
-	    &(conn->index));
-    }
-    menu_add_header(menu,"", "Select audio input for track.\n\n'n' to select next item; 'p' to select previous item.");
-    /* menu_reset_layout(menu); */
-    window_add_menu(main_win, menu);
-    window_push_mode(main_win, MENU_NAV);
+    track_set_input(track);
 }
 void user_tl_track_toggle_in()
 {
@@ -931,6 +916,12 @@ void user_tl_next_timeline()
 	proj->active_tl_index++;
 	project_reset_tl_label(proj);
     }
+}
+
+void user_tl_write_mixdown_to_wav()
+{
+    const char *filepath = "testfile.wav";
+    wav_write_mixdown(filepath);
 }
 
 /* source mode */

@@ -16,10 +16,10 @@ Global TODO list
 *** DONE Select Out
 *** DONE Show output wavs
 *** DONE Draw ruler
-*** TODO Save wav file
+*** DONE Save wav file
 *** TODO Open wav file
-*** TODO Cut clip
-*** TODO Copy clip (?)
++*** TODO Cut clip+
++*** TODO Copy clip (?)+
 ** TODO Presentability
 *** TODO update readme
 *** TODO generate keybd shortcut ref
@@ -27,9 +27,9 @@ Global TODO list
 *** TODO demo video
 ** TODO Version branches
 * TODO adjust clipref bounds
-* TODO Pd bridge
-** TODO Pd input
-** TODO Pd output
+* DONE Pd bridge
++** TODO Pd input+
+** DONE Pd output
 + adding track-level output and real-time input would allow audio effects to be exported to Pd
 * TODO Timeline ref
 + Parallel to clipref
@@ -37,3 +37,7 @@ Global TODO list
 + buffer is populated on other thread in response to edits to ref'd TL
 + OR, no buffer; realtime mixdown
 * TODO Track effects
+* TODO ClipRef management
+** TODO adjust clipref bounds
+** TODO copy clipref
+** TODO Cut (split) clipref

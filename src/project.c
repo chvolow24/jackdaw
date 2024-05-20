@@ -597,11 +597,12 @@ void track_decrement_pan(Track *track)
     fslider_reset(track->pan_ctrl);
 }
 
-SDL_Color mute_red = {255, 0, 0, 100};
-SDL_Color solo_yellow = {255, 200, 0, 130};
+/* SDL_Color mute_red = {255, 0, 0, 100}; */
+/* SDL_Color solo_yellow = {255, 200, 0, 130}; */
+
+SDL_Color mute_red = {255, 0, 0, 180};
+SDL_Color solo_yellow = {255, 200, 0, 180};
 extern SDL_Color textbox_default_bckgrnd_clr;
-
-
 
 bool track_mute(Track *track)
 {
@@ -642,7 +643,68 @@ void track_unsolomute(Track *track)
     textbox_set_background_color(track->tb_solo_button, &textbox_default_bckgrnd_clr);
 }
 
+void track_or_tracks_solo(Timeline *tl, Track *opt_track)
+{
+    if (tl->num_tracks == 0) return;
+    bool has_active_track = false;
+    bool all_solo = true;
+    int solo_count = 0;
+    Track *track;
+    for (uint8_t i=0; i<tl->num_tracks; i++) {
+	track = tl->tracks[i];
+	if (track->solo) {
+	    solo_count++;
+	}
+	if (track->active) {
+	    has_active_track = true;
+	    if (!opt_track && !track->solo) {
+		has_active_track = true;
+		all_solo = false;
+		track_solo(track);
+		solo_count++;
+	    }
+	}
+    }
+    if (!has_active_track || opt_track) {
+	track = opt_track ? opt_track : tl->tracks[tl->track_selector];
+	if (track_solo(track)) {
+	    all_solo = false;
+	    solo_count++;
+	} else {
+	    solo_count--;
+	}
+    } else if (all_solo) {
+	for (uint8_t i=0; i<tl->num_tracks; i++) {
+	    track = tl->tracks[i];
+	    if (track->active) {
+		track_solo(track); /* unsolo */
+		solo_count--;
+		
+	    }
+	}
+    }
+    if (solo_count > 0) {
+	for (uint8_t i=0; i<tl->num_tracks; i++) {
+	    track = tl->tracks[i];
+	    if (!track->solo) {
+		track_solomute(track);
+	    }
+	}
+    } else {
+	for (uint8_t i=0; i<tl->num_tracks; i++) {
+	    track = tl->tracks[i];
+	    if (!track->solo) {
+		track_unsolomute(track);
+	    }
+	}
+    }
 
+}
+
+void track_or_tracks_mute(Timeline *tl, Track *track)
+{
+
+}
 
 struct track_in_arg {
     Track *track;
@@ -664,6 +726,7 @@ static void track_set_in_onclick(void *void_arg)
 void track_set_input(Track *track)
 {
     SDL_Rect *rect = &(track->tb_input_name->layout->rect);
+    int y = rect->y;
     Menu *menu = menu_create_at_point(rect->x, rect->y);
     MenuColumn *c = menu_column_add(menu, "");
     MenuSection *sc = menu_section_add(c, "");
@@ -680,9 +743,19 @@ void track_set_input(Track *track)
 	    arg);
 	item->free_target_on_destroy = true;
     }
-    
     menu_add_header(menu,"", "Select audio input for track.\n\n'n' to select next item; 'p' to select previous item.");
     /* menu_reset_layout(menu); */
-    window_add_menu(main_win, menu);
     window_push_mode(main_win, MENU_NAV);
+    window_add_menu(main_win, menu);
+    int move_by_y = 0;
+    if ((move_by_y = y + menu->layout->rect.h - main_win->layout->rect.h) > 0) {
+	menu_translate(menu, 0, -1 * move_by_y / main_win->dpi_scale_factor);
+    }
+}
+
+void project_draw();
+void track_rename(Track *track)
+{
+    txt_edit(track->tb_name->text, project_draw);
+    main_win->i_state = 0;
 }

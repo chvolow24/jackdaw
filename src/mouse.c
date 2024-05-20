@@ -47,6 +47,9 @@ static void mouse_triage_click_track(uint8_t button, Track *track)
     if (SDL_PointInRect(&main_win->mousep, track->console_rect)) {
 	if (SDL_PointInRect(&main_win->mousep, &track->tb_input_name->layout->rect)) {
 	    track_set_input(track);
+	} else {
+	    Layout *solo = layout_get_child_by_name_recursive(track->layout, "solo");
+	    track_or_tracks_solo(track->tl, track);
 	}
     }
 
@@ -74,8 +77,6 @@ static void mouse_triage_click_control_bar(uint8_t button)
 void mouse_triage_click_project(uint8_t button)
 {
     Layout *tl_lt = layout_get_child_by_name_recursive(proj->layout, "timeline");
-    
-    SDL_Point mousep = main_win->mousep;
     if (SDL_PointInRect(&main_win->mousep, &tl_lt->rect)) {
 	mouse_triage_click_timeline(button);
     } else if (SDL_PointInRect(&main_win->mousep, proj->control_bar_rect)) {

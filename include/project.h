@@ -311,5 +311,8 @@ bool track_solo(Track *track);
 void track_solomute(Track *track);
 void track_unsolomute(Track *track);
 void track_set_input(Track *track);
+void track_rename(Track *track);
+
+void track_or_tracks_solo(Timeline *tl, Track *opt_track);
 
 #endif

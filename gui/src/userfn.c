@@ -337,7 +337,7 @@ static void select_out_onclick(void *arg)
     /* struct select_dev_onclick_arg *carg = (struct select_dev_onclick_arg *)arg; */
     /* Track *track = carg->track; */
     /* AudioConn *dev = carg->new_in; */
-    Timeline *tl = proj->timelines[proj->active_tl_index];
+    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
     int index = *((int *)arg);
     audioconn_close(proj->playback_conn);
     proj->playback_conn = proj->playback_conns[index];
@@ -350,7 +350,7 @@ static void select_out_onclick(void *arg)
 }
 
 void user_tl_set_default_out() {
-    Timeline *tl = proj->timelines[proj->active_tl_index];
+    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
     SDL_Rect *rect = &(proj->tb_out_value->layout->rect);
     Menu *menu = menu_create_at_point(rect->x, rect->y);
     MenuColumn *c = menu_column_add(menu, "");
@@ -556,8 +556,7 @@ void user_tl_track_rename()
     Timeline *tl = proj->timelines[proj->active_tl_index];
     Track *track = tl->tracks[tl->track_selector];
     if (track) {
-	txt_edit(track->tb_name->text, project_draw);
-	main_win->i_state = 0;
+	track_rename(track);
     }
     /* fprintf(stdout, "DONE track edit\n"); */
 }
@@ -568,19 +567,19 @@ void user_tl_track_rename()
 /*     Track *track; */
 /*     AudioConn *new_in; */
 /* }; */
-static void select_in_onclick(void *arg)
-{
-    /* struct select_dev_onclick_arg *carg = (struct select_dev_onclick_arg *)arg; */
-    /* Track *track = carg->track; */
-    /* AudioConn *dev = carg->new_in; */
-    Timeline *tl = proj->timelines[proj->active_tl_index];
-    Track *track = tl->tracks[tl->track_selector];
-    int index = *((int *)arg);
-    track->input = proj->record_conns[index];
-    textbox_set_value_handle(track->tb_input_name, track->input->name);
-    window_pop_menu(main_win);
-    window_pop_mode(main_win);
-}
+/* static void select_in_onclick(void *arg) */
+/* { */
+/*     /\* struct select_dev_onclick_arg *carg = (struct select_dev_onclick_arg *)arg; *\/ */
+/*     /\* Track *track = carg->track; *\/ */
+/*     /\* AudioConn *dev = carg->new_in; *\/ */
+/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
+/*     Track *track = tl->tracks[tl->track_selector]; */
+/*     int index = *((int *)arg); */
+/*     track->input = proj->record_conns[index]; */
+/*     textbox_set_value_handle(track->tb_input_name, track->input->name); */
+/*     window_pop_menu(main_win); */
+/*     window_pop_mode(main_win); */
+/* } */
 void user_tl_track_set_in()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
@@ -654,61 +653,7 @@ void user_tl_mute()
 void user_tl_solo()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
-    if (tl->num_tracks == 0) return;
-    bool has_active_track = false;
-    bool all_solo = true;
-    int solo_count = 0;
-    Track *track;
-    for (uint8_t i=0; i<tl->num_tracks; i++) {
-	track = tl->tracks[i];
-	if (track->solo) {
-	    solo_count++;
-	}
-	if (track->active) {
-	    fprintf(stdout, "Track %d is active\n");
-	    has_active_track = true;
-	    if (!track->solo) {
-		has_active_track = true;
-		all_solo = false;
-		track_solo(track);
-		solo_count++;
-	    }
-	}
-    }
-    if (!has_active_track) {
-	fprintf(stdout, "no active track. soloe count : %d\n", solo_count);
-	track = tl->tracks[tl->track_selector];
-	if (track_solo(track)) {
-	    solo_count++;
-	} else {
-	    solo_count--;
-	}
-    } else if (all_solo) {
-	for (uint8_t i=0; i<tl->num_tracks; i++) {
-	    track = tl->tracks[i];
-	    if (track->active) {
-		track_solo(track); /* unsolo */
-		solo_count--;
-		
-	    }
-	}
-    }
-    fprintf(stdout, "Some solo? %d\n", solo_count);
-    if (solo_count > 0) {
-	for (uint8_t i=0; i<tl->num_tracks; i++) {
-	    track = tl->tracks[i];
-	    if (!track->solo) {
-		track_solomute(track);
-	    }
-	}
-    } else {
-	for (uint8_t i=0; i<tl->num_tracks; i++) {
-	    track = tl->tracks[i];
-	    if (!track->solo) {
-		track_unsolomute(track);
-	    }
-	}
-    }
+    track_or_tracks_solo(tl, NULL);
 }
 
 void user_tl_track_vol_up()
@@ -799,8 +744,8 @@ void user_tl_clipref_grab_ungrab()
     if (tl->num_tracks == 0) return;
     Track *track = NULL;
     ClipRef *cr =  NULL;
-    ClipRef *crs[MAX_GRABBED_CLIPS];
-    uint8_t num_clips = 0;
+    /* ClipRef *crs[MAX_GRABBED_CLIPS]; */
+    /* uint8_t num_clips = 0; */
     bool clip_grabbed = false;
     bool had_active_track = false;
     for (uint8_t i=0; i<tl->num_tracks; i++) {

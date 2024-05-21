@@ -97,7 +97,22 @@ void fslider_set_range(FSlider *fs, float min, float max)
 
 }
 
+float fslider_val_from_coord(FSlider *fs, int coord_pix)
+{
+    float ret;
+    switch (fs->orientation) {
+    case SLIDER_VERTICAL:
+	ret = ((float)coord_pix - fs->layout->rect.y) / fs->layout->rect.h;
+	break;
+    case SLIDER_HORIZONTAL:
+	ret = ((float)coord_pix - fs->layout->rect.x) / fs->layout->rect.w;
+	break;
+    }
 
+    ret = (ret * (fs->max - fs->min)) + fs->min;
+    return ret;
+
+}
 
 void layout_write(FILE *f, Layout *lt, int indent);
 void fslider_reset(FSlider *fs)

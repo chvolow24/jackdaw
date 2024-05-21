@@ -338,6 +338,11 @@ void loop_project_main()
 	    }
 		break;
 	    case SDL_MOUSEBUTTONDOWN:
+		if (e.button.button == SDL_BUTTON_LEFT) {
+		    main_win->i_state |= I_STATE_MOUSE_L;
+		} else if (e.button.button == SDL_BUTTON_RIGHT) {
+		    main_win->i_state |= I_STATE_MOUSE_R;
+		}
 		switch(TOP_MODE) {
 		case TIMELINE:
 		    fprintf(stdout, "top mode tl\n");
@@ -349,6 +354,14 @@ void loop_project_main()
 		default:
 		    break;
 		}
+		break;
+	    case SDL_MOUSEBUTTONUP:
+		if (e.button.button == SDL_BUTTON_LEFT) {
+		    main_win->i_state &= ~I_STATE_MOUSE_L;
+		} else if (e.button.button == SDL_BUTTON_RIGHT) {
+		    main_win->i_state &= ~I_STATE_MOUSE_R;
+		}
+		break;
 	    case SDL_FINGERDOWN:
 	        fingersdown = SDL_GetNumTouchFingers(-1);
 		break;

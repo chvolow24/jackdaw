@@ -43,6 +43,7 @@ FSlider *fslider_create(
 void fslider_set_range(FSlider *fs, float min, float max);
 void fslider_reset(FSlider *fs);
 void fslider_draw(FSlider *fs);
+float fslider_val_from_coord(FSlider *fs, int coord_pix);
 
 
 #endif

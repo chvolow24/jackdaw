@@ -30,8 +30,10 @@
     * Functions related to mouse clicks
  *****************************************************************************************************************/
 
+#include "input.h"
 #include "menu.h"
 #include "project.h"
+#include "timeline.h"
 #include "userfn.h"
 
 extern Window *main_win;
@@ -41,29 +43,100 @@ extern Project *proj;
 
 
 
+static void mouse_triage_motion_track(Track *track)
+{
+    if (main_win->i_state & I_STATE_MOUSE_L && SDL_PointInRect(&main_win->mousep, track->console_rect)) {
+	if (SDL_PointInRect(&main_win->mousep, &track->vol_ctrl->layout->rect)) {
+	    float newval = fslider_val_from_coord(track->vol_ctrl, main_win->mousep.x);
+	    track->vol = newval;
+	    fslider_reset(track->vol_ctrl);
+	    /* proj->vol_changing = true; */
+	    return;
+	}
+	if (SDL_PointInRect(&main_win->mousep, &track->pan_ctrl->layout->rect)) {
+	    float newval = fslider_val_from_coord(track->pan_ctrl, main_win->mousep.x);
+	    track->pan = newval;
+	    fslider_reset(track->pan_ctrl);
+	    /* proj->pan_changing = true; */
+	    return;
+	}
+    }
+
+}
+
 
 static void mouse_triage_click_track(uint8_t button, Track *track)
 {
     if (SDL_PointInRect(&main_win->mousep, track->console_rect)) {
 	if (SDL_PointInRect(&main_win->mousep, &track->tb_input_name->layout->rect)) {
 	    track_set_input(track);
-	} else {
-	    Layout *solo = layout_get_child_by_name_recursive(track->layout, "solo");
+	    return;
+	}
+	Layout *solo = layout_get_child_by_name_recursive(track->layout, "solo_button");
+	if (SDL_PointInRect(&main_win->mousep, &solo->rect)) {
 	    track_or_tracks_solo(track->tl, track);
+	    return;
+	}
+	Layout *mute = layout_get_child_by_name_recursive(track->layout, "mute_button");
+	if (SDL_PointInRect(&main_win->mousep, &mute->rect)) {
+	    track_mute(track);
+	    return;
+	}
+	if (SDL_PointInRect(&main_win->mousep, &track->tb_name->layout->rect)) {
+	    track_rename(track);
+	    return;
+	}
+	if (SDL_PointInRect(&main_win->mousep, &track->vol_ctrl->layout->rect)) {
+	    float newval = fslider_val_from_coord(track->vol_ctrl, main_win->mousep.x);
+	    track->vol = newval;
+	    fslider_reset(track->vol_ctrl);
+	    return;
+	}
+	if (SDL_PointInRect(&main_win->mousep, &track->pan_ctrl->layout->rect)) {
+	    float newval = fslider_val_from_coord(track->pan_ctrl, main_win->mousep.x);
+	    track->pan = newval;
+	    fslider_reset(track->pan_ctrl);
 	}
     }
 
 }
+
+static void mouse_triage_click_audiorect(Timeline *tl, uint8_t button)
+{
+    switch (button) {
+    case SDL_BUTTON_LEFT: {
+	int32_t abs_pos = timeline_get_abspos_sframes(main_win->mousep.x);
+	timeline_set_play_position(abs_pos);
+    }
+	break;
+    default:
+	break;
+    }
+}
+
+static void mouse_triage_motion_audiorect(Timeline *tl)
+{
+
+    if (main_win->i_state & I_STATE_MOUSE_L) {
+	int32_t abs_pos = timeline_get_abspos_sframes(main_win->mousep.x);
+	timeline_set_play_position(abs_pos);
+    }
+}
+
+
 static void mouse_triage_click_timeline(uint8_t button)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
+    if (SDL_PointInRect(&main_win->mousep, proj->audio_rect)) {
+	mouse_triage_click_audiorect(tl, button);
+	return;
+    }
     for (uint8_t i=0; i<tl->num_tracks; i++) {
 	Track *track = tl->tracks[i];
 	if (SDL_PointInRect(&main_win->mousep, &track->layout->rect)) {
 	    mouse_triage_click_track(button, track);
 	}
     }
-    
 }
 
 static void mouse_triage_click_control_bar(uint8_t button)
@@ -86,7 +159,17 @@ void mouse_triage_click_project(uint8_t button)
 
 void mouse_triage_motion_timeline()
 {
-    
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    if (SDL_PointInRect(&main_win->mousep, proj->audio_rect)) {
+	mouse_triage_motion_audiorect(tl);
+	return;
+    }
+    for (uint8_t i=0; i<tl->num_tracks; i++) {
+	Track *track = tl->tracks[i];
+	if (SDL_PointInRect(&main_win->mousep, &track->layout->rect)) {
+	    mouse_triage_motion_track(track);
+	}
+    }
 }
 
 

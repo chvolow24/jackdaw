@@ -278,13 +278,13 @@ static void ruler_draw(Timeline *tl)
     while (x < tl->layout->rect.x + tl->layout->rect.w) {
         if (x > proj->audio_rect->x) {
 	    if (second % 60 == 0) {
-		line_len = 40;
+		line_len = 20 * main_win->dpi_scale_factor;
 	    } else if (second % 30 == 0) {
-		line_len = 30;
+		line_len = 15 * main_win->dpi_scale_factor;
 	    } else if (second % 15 == 0) {
-		line_len = 20;
+		line_len = 10  * main_win->dpi_scale_factor;
 	    } else if (second % 5 == 0) {
-		line_len = 10;
+		line_len = 5 * main_win->dpi_scale_factor;
 	    } else {
 		line_len = 5;
 	    }

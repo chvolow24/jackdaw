@@ -107,10 +107,24 @@ static void mouse_triage_click_audiorect(Timeline *tl, uint8_t button)
     case SDL_BUTTON_LEFT: {
 	int32_t abs_pos = timeline_get_abspos_sframes(main_win->mousep.x);
 	timeline_set_play_position(abs_pos);
+	break;
     }
 	break;
     default:
 	break;
+    }
+    if (main_win->i_state & I_STATE_CMDCTRL) {
+	for (uint8_t i=0; i<tl->num_tracks; i++) {
+	    Track *track = tl->tracks[i];
+	    if (SDL_PointInRect(&main_win->mousep, &track->layout->rect)) {
+		ClipRef *cr = clipref_at_point_in_track(track);
+		if (cr->grabbed) {
+		    timeline_ungrab_all_cliprefs(tl);
+		} else {
+		    clipref_grab(cr);
+		}
+	    }
+	}
     }
 }
 

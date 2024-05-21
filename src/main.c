@@ -42,6 +42,7 @@
 #include "project.h"
 #include "pure_data.h"
 #include "text.h"
+#include "wav.h"
 #include "window.h"
 
 
@@ -176,14 +177,20 @@ int main(int argc, char **argv)
 	for (int i=0; i<proj->num_timelines; i++) {
 	    timeline_reset_full(proj->timelines[i]);
 	}
-    } else if (invoke_open_wav_file) {
-
-    }
-    
-    if (!proj) {
+    } else {
 	proj = project_create("New Project", DEFAULT_PROJ_AUDIO_SETTINGS);
     }
 
+    
+    if (!proj) {
+	fprintf(stderr, "Error: unable to open or create project.\n");
+    }
+
+    if (invoke_open_wav_file) {
+	Track *track = timeline_add_track(proj->timelines[0]);
+	wav_load_to_track(track, file_to_open);
+
+    }
     /* timeline_add_track(proj->timelines[0]); */
     /* timeline_add_track(proj->timelines[0]); */
     /* timeline_add_track(proj->timelines[0]); */

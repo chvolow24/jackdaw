@@ -704,40 +704,6 @@ void user_tl_record()
     }
 }
 
-static int32_t cr_len(ClipRef *cr)
-{
-    if (cr->out_mark_sframes <= cr->in_mark_sframes) {
-	return cr->clip->len_sframes;
-    } else {
-	return cr->out_mark_sframes - cr->in_mark_sframes;
-    }
-}
-
-static ClipRef *clip_at_point_in_track(Track *track)
-{
-    for (int i=track->num_clips-1; i>=0; i--) {
-	ClipRef *cr = track->clips[i];
-	if (cr->pos_sframes <= track->tl->play_pos_sframes && cr->pos_sframes + cr_len(cr) >= track->tl->play_pos_sframes) {
-	    return cr;
-	}
-    }
-    return NULL;
-}
-
-static ClipRef *clip_at_point()
-{
-    Timeline *tl = proj->timelines[proj->active_tl_index];
-    Track *track = tl->tracks[tl->track_selector];
-    if (!track) return NULL;
-    for (int i=track->num_clips -1; i>=0; i--) {
-	ClipRef *cr = track->clips[i];
-	if (cr->pos_sframes <= tl->play_pos_sframes && cr->pos_sframes + cr_len(cr) >= tl->play_pos_sframes) {
-	    return cr;
-	}
-    }
-    return NULL;
-}
-
 void user_tl_clipref_grab_ungrab()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
@@ -752,23 +718,27 @@ void user_tl_clipref_grab_ungrab()
 	track = tl->tracks[i];
 	if (track->active) {
 	    had_active_track = true;
-	    cr = clip_at_point_in_track(track);
+	    cr = clipref_at_point_in_track(track);
 	    if (cr && !cr->grabbed) {
-		tl->grabbed_clips[tl->num_grabbed_clips] = cr;
-		tl->num_grabbed_clips++;
-		cr->grabbed = true;
-		clip_grabbed = true;		
+		clipref_grab(cr);
+		clip_grabbed = true;
+		/* tl->grabbed_clips[tl->num_grabbed_clips] = cr; */
+		/* tl->num_grabbed_clips++; */
+		/* cr->grabbed = true; */
+		/* clip_grabbed = true;	 */	
 	    }
 	}
     }
     if (!had_active_track && tl->num_tracks > 0) {
 	track = tl->tracks[tl->track_selector];
-	cr = clip_at_point_in_track(track);
+	cr = clipref_at_point_in_track(track);
 	if (cr && !cr->grabbed) {
-	    tl->grabbed_clips[tl->num_grabbed_clips] = cr;
-	    tl->num_grabbed_clips++;
-	    cr->grabbed = true;
+	    clipref_grab(cr);
 	    clip_grabbed = true;
+	    /* tl->grabbed_clips[tl->num_grabbed_clips] = cr; */
+	    /* tl->num_grabbed_clips++; */
+	    /* cr->grabbed = true; */
+	    /* clip_grabbed = true; */
 	}
     }
     if (!clip_grabbed) {
@@ -803,7 +773,7 @@ void user_tl_toggle_drag()
 
 void user_tl_load_clip_at_point_to_src()
 {
-    ClipRef *cr = clip_at_point();
+    ClipRef *cr = clipref_at_point();
     if (cr) {
 	proj->src_clip = cr->clip;
 	proj->src_in_sframes = 0;

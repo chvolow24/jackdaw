@@ -389,9 +389,6 @@ void txt_edit(Text *txt, void (*draw_fn) (void))
 		window_set_mouse_point(main_win, e.motion.x, e.motion.y);
 	    }
         }
-        // fprintf(stderr, "About to call draw %p %p\n", main_win, txt);
-        /* layout_draw_main(); */
-	/* window_start_draw(main_win, &color_global_black); */
 	draw_fn();
 	/* window_end_draw(main_win); */
         if (txt->cursor_countdown == 0) {

@@ -56,6 +56,7 @@ Positions	Sample Value	    Description
 #include "SDL.h"
 #include "project.h"
 #include "mixdown.h"
+#include "transport.h"
 extern Project *proj;
 
 //TODO: Endianness!
@@ -188,13 +189,20 @@ void wav_load_to_track(Track *track, const char *filename) {
         return;
     }
 
-    /* uint32_t buf_len_samples = audio_len_bytes / sizeof(int16_t); */
-    /* Clip *clip = create_clip(track, buf_len_samples / track->channels, tl->play_pos_sframes); */
-    /* int16_t *src_buf = (int16_t *)wav_cvt.buf; */
 
-    /* for (uint32_t i=0; i<buf_len_samples; i+=2) { */
-    /*     clip->L[i/2] = (float) src_buf[i] / INT16_MAX; */
-    /*     clip->R[i/2] = (float) src_buf[i+1] / INT16_MAX; */
-    /* } */
-    /* clip->done = true; */
+    uint32_t buf_len_samples = audio_len_bytes / sizeof(int16_t);
+    Clip *clip = project_add_clip(NULL, track);
+    proj->active_clip_index++;
+    
+    clip->len_sframes = buf_len_samples / track->channels;
+    create_clip_buffers(clip, clip->len_sframes);
+
+    int16_t *src_buf = (int16_t *)wav_cvt.buf;
+
+    for (uint32_t i=0; i<buf_len_samples; i+=2) {
+        clip->L[i/2] = (float) src_buf[i] / INT16_MAX;
+        clip->R[i/2] = (float) src_buf[i+1] / INT16_MAX;
+    }
+    ClipRef *cr = track_create_clip_ref(track, clip, 0, true);
+    timeline_reset(track->tl);
 }

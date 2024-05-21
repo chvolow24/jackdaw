@@ -5,11 +5,11 @@ Global TODO list
 ** TODO Text edit bounds checking (pass max len at set time)
 * TODO Merge layout into main
 ** TODO Feature parity w/ old version
-*** TODO mouse functions
+*** DONE mouse functions
 **** DONE mute and solo
 **** DONE select track in
 **** DONE set playhead pos
-**** TODO grab clips
+**** DONE grab clips
 +**** TODO drag clips+
 **** DONE rename track
 **** DONE vol and pan ((NOT PARITY))
@@ -17,7 +17,7 @@ Global TODO list
 *** DONE Show output wavs
 *** DONE Draw ruler
 *** DONE Save wav file
-*** TODO Open wav file
+*** DONE Open wav file
 +*** TODO Cut clip+
 +*** TODO Copy clip (?)+
 ** TODO Presentability

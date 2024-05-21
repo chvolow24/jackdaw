@@ -262,7 +262,7 @@ static void slider_label_plain_str(char *dst, size_t dstsize, float value)
 }
 
 
-void timeline_add_track(Timeline *tl)
+Track *timeline_add_track(Timeline *tl)
 {
     Track *track = calloc(1, sizeof(Track));
     tl->tracks[tl->num_tracks] = track;
@@ -416,6 +416,7 @@ void timeline_add_track(Timeline *tl)
 
     track->console_rect = &(layout_get_child_by_name_recursive(track->layout, "track_console")->rect);
     track->colorbar = &(layout_get_child_by_name_recursive(track->layout, "colorbar")->rect);
+    return track;
 }
 
 void project_clear_active_clips()
@@ -768,3 +769,55 @@ void track_rename(Track *track)
     txt_edit(track->tb_name->text, project_draw);
     main_win->i_state = 0;
 }
+
+static int32_t clipref_len(ClipRef *cr)
+{
+    if (cr->out_mark_sframes <= cr->in_mark_sframes) {
+	return cr->clip->len_sframes;
+    } else {
+	return cr->out_mark_sframes - cr->in_mark_sframes;
+    }
+}
+
+ClipRef *clipref_at_point_in_track(Track *track)
+{
+    for (int i=track->num_clips-1; i>=0; i--) {
+	ClipRef *cr = track->clips[i];
+	if (cr->pos_sframes <= track->tl->play_pos_sframes && cr->pos_sframes + clipref_len(cr) >= track->tl->play_pos_sframes) {
+	    return cr;
+	}
+    }
+    return NULL;
+}
+
+ClipRef *clipref_at_point()
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Track *track = tl->tracks[tl->track_selector];
+    if (!track) return NULL;
+    for (int i=track->num_clips -1; i>=0; i--) {
+	ClipRef *cr = track->clips[i];
+	if (cr->pos_sframes <= tl->play_pos_sframes && cr->pos_sframes + clipref_len (cr) >= tl->play_pos_sframes) {
+	    return cr;
+	}
+    }
+    return NULL;
+}
+
+void clipref_grab(ClipRef *cr)
+{
+    Timeline *tl = cr->track->tl;
+    tl->grabbed_clips[tl->num_grabbed_clips] = cr;
+    tl->num_grabbed_clips++;
+    cr->grabbed = true;
+}
+
+void timeline_ungrab_all_cliprefs(Timeline *tl)
+{
+    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
+	tl->grabbed_clips[i]->grabbed = false;
+    }
+    tl->num_grabbed_clips = 0;
+
+}
+

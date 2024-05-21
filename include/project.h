@@ -292,7 +292,7 @@ Project *project_create(
 /* Return the index of a timeline to switch to (new one if success) */
 uint8_t project_add_timeline(Project *proj, char *name);
 void project_reset_tl_label(Project *proj);
-void timeline_add_track(Timeline *tl);
+Track *timeline_add_track(Timeline *tl);
 void timeline_reset_full(Timeline *tl);
 void timeline_reset(Timeline *tl);
 Clip *project_add_clip(AudioConn *dev, Track *target);
@@ -314,5 +314,10 @@ void track_set_input(Track *track);
 void track_rename(Track *track);
 
 void track_or_tracks_solo(Timeline *tl, Track *opt_track);
+
+ClipRef *clipref_at_point();
+ClipRef *clipref_at_point_in_track(Track *track);
+void timeline_ungrab_all_cliprefs(Timeline *tl);
+void clipref_grab(ClipRef *cr);
 
 #endif

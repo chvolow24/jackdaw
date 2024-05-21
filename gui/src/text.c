@@ -384,7 +384,10 @@ void txt_edit(Text *txt, void (*draw_fn) (void))
                     default: 
                         break;
                 }
-            }
+	    } else if (e.type == SDL_MOUSEMOTION) {
+
+		window_set_mouse_point(main_win, e.motion.x, e.motion.y);
+	    }
         }
         // fprintf(stderr, "About to call draw %p %p\n", main_win, txt);
         /* layout_draw_main(); */

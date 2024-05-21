@@ -109,14 +109,18 @@ static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, 
 	    } else if (x > main_win->w) {
 		break;
 	    }
-	    for (int i=0; i<(int)sfpp; i++) {
-		if (sample_i + i >= buflen) {
-		    break;
+	    if (sfpp > 1) {
+		for (int i=0; i<(int)sfpp; i++) {
+		    if (sample_i + i >= buflen) {
+			break;
+		    }
+		    avg_amp += channel[(int)sample_i + i];
+		    /* fprintf(stdout, "\t->avg amp + %f\n", channel[(int)(sample_i) + i]); */
 		}
-		avg_amp += channel[(int)sample_i + i];
-		/* fprintf(stdout, "\t->avg amp + %f\n", channel[(int)(sample_i) + i]); */
+		avg_amp /= sfpp;
+	    } else {
+		avg_amp = channel[(int)sample_i];
 	    }
-	    avg_amp /= sfpp;
 	    int sample_y = center_y + avg_amp * amp_h_max;
 	    if (fabs(avg_amp) > 1.0f) {
 		SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255);

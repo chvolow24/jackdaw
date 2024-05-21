@@ -23,6 +23,15 @@
   SOFTWARE.
 
 *****************************************************************************************************************/
+
+
+/*****************************************************************************************************************
+    project.c
+
+    * functions modifying project-related structures that do not belong elsewhere
+    * timeline.c contains operations related to visualizing time onscreen
+ *****************************************************************************************************************/
+
 #include <string.h>
 
 #include "audio_connection.h"

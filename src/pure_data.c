@@ -148,13 +148,14 @@ static void complete_handshake()
     connection_open = true;
 }
 
-
+int pd_jackdaw_shm_init();
 static void handle_signal1_from_pd(int signo)
 {
     if (connection_open) {
 	fprintf(stdout, "Pure data seems to have closed. Closing connection.\n");
 	connection_open = false;
 	handshake_done = false;
+	pd_jackdaw_shm_init();
     } else {
 	fprintf(stdout, "Completing handshake. jackdaw started first and received sig1 from pd\n");
 	complete_handshake();
@@ -177,9 +178,10 @@ static void initiate_handshake()
 
 int pd_jackdaw_shm_init()
 {
-    signal(SIGUSR1, handle_signal1_from_pd);
-    signal(SIGUSR2, handle_signal2_from_pd);
-
+    /* if (!restart) { */
+	signal(SIGUSR1, handle_signal1_from_pd);
+	signal(SIGUSR2, handle_signal2_from_pd);
+    /* } */
     int fd = shm_open(PD_JACKDAW_SHM_PIDS_NAME, O_CREAT | O_RDWR, 0666);
     if (fd == -1) {
 	perror("Error opening pids shm (shm_open)");
@@ -249,23 +251,30 @@ void *pd_jackdaw_record_on_thread(void *arg)
 	if (!proj->recording) {
 	    break;
 	}
+	while (sem_trywait(audio_buffers_write_sem) == 0) {};
+	sem_post(audio_buffers_write_sem);
+
 	/* fprintf(stdout, "done check proj rec\n"); */
 	pd_shm->recording = true;
+	
 	/* sem_post(audio_params_sem); */
 	/* sem_post(audio_buffers_write_sem); */
-	sem_wait(audio_buffers_read_sem);
 
 	/* fprintf(stdout, "pd conn? %p, at pos %d/%d\n", pdconn, pdconn->write_bufpos_sframes, pdconn->rec_buf_len_sframes); */
 	if (pdconn->write_bufpos_sframes + pd_blocksize >= pdconn->rec_buf_len_sframes) {
-	    fprintf(stdout, "UHOH writing pdconn buffer to clip\n");
 	    Clip *clip = conn->current_clip;
 	    copy_pd_buf_to_clip(clip);
 	    pdconn->write_bufpos_sframes = 0;
 	}
-	/* fprintf(stdout, "about to write to buffers\n"); */
+	int i=0;
+	/* while (sem_trywait(audio_buffers_read_sem) == 0) {if (i !=0 ) {fprintf(stdout, "decr %d\n", i);} i++;}; */
+	/* fprintf(stdout, "about to write to buffers %d\n", i); */
+	i++;
+	i%= 10;
+
+	sem_wait(audio_buffers_read_sem);
 	memcpy(pdconn->rec_buffer_L + pdconn->write_bufpos_sframes, pd_shm->L, pd_blocksize * sizeof(float));
 	memcpy(pdconn->rec_buffer_R + pdconn->write_bufpos_sframes, pd_shm->R, pd_blocksize * sizeof(float));
-	/* sem_post(audio_buffers_write_sem); */
 	pdconn->write_bufpos_sframes += pd_blocksize;
 	/* fprintf(stdout, "pdconn writebufpos: %d\n", pdconn->write_bufpos_sframes); */
 	/* fprintf(stdout, "wrote to bufs!\n"); */

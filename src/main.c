@@ -61,7 +61,7 @@
 #define MAIN_LT_PATH INSTALL_DIR "/gui/jackdaw_main_layout.xml"
 #define DEFAULT_KEYBIND_CFG_PATH INSTALL_DIR "/assets/key_bindings/default.yaml"
 
-#define DEFAULT_PROJ_AUDIO_SETTINGS 2, 48000, AUDIO_S16SYS, 512
+#define DEFAULT_PROJ_AUDIO_SETTINGS 2, 48000, AUDIO_S16SYS, 64
 
 const char *JACKDAW_VERSION = "0.2.0";
 

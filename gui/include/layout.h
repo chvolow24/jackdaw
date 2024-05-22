@@ -173,6 +173,7 @@ int layout_scroll_step(Layout *lt);
 
 Layout *layout_add_iter(Layout *lt, IteratorType type, bool scrollable);
 void layout_remove_iter(Layout *lt);
+void layout_remove_iter_at(LayoutIterator *iter, uint8_t at);
 
 void layout_set_wh_from_rect(Layout *lt);
 void layout_set_values_from_rect(Layout *lt);

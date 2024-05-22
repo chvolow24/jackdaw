@@ -570,6 +570,7 @@ void timeline_reset(Timeline *tl)
     for (int i=0; i<tl->num_tracks; i++) {
 	track_reset(tl->tracks[i]);
     }
+    layout_reset(tl->layout);
 }
 
 void track_increment_vol(Track *track)
@@ -770,6 +771,79 @@ void track_rename(Track *track)
     main_win->i_state = 0;
 }
 
+void clipref_destroy(ClipRef *cr);
+void clipref_destroy_no_displace(ClipRef *cr);
+void clip_destroy(Clip *clip);
+
+void track_destroy(Track *track)
+{
+    for (uint8_t i=0; i<track->num_clips; i++) {
+	ClipRef *cr = track->clips[i];
+	if (cr) {
+	    clipref_destroy_no_displace(track->clips[i]);
+	}
+    }
+    fslider_destroy(track->vol_ctrl);
+    fslider_destroy(track->pan_ctrl);
+    textbox_destroy(track->tb_name);
+    textbox_destroy(track->tb_input_label);
+    textbox_destroy(track->tb_input_name);
+    textbox_destroy(track->tb_vol_label);
+    textbox_destroy(track->tb_pan_label);
+    textbox_destroy(track->tb_mute_button);
+    textbox_destroy(track->tb_solo_button);
+    Timeline *tl = track->tl;
+    bool displace = false;
+    for (uint8_t i=track->tl_rank + 1; i<tl->num_tracks; i++) {
+	Track *t = tl->tracks[i];
+	tl->tracks[i-1] = t;
+	t->tl_rank--;
+	/* t->layout = t->layout->parent->iterator->iterations[t->tl_rank]; */
+    }
+    layout_remove_iter_at(track->layout->parent->iterator, track->tl_rank);
+    tl->tracks[tl->num_tracks - 1] = NULL;
+    /* track->layout->parent->iterator->num_iterations--; */
+    tl->num_tracks--;
+    free(track);
+    timeline_reset(tl);
+}
+
+void clipref_destroy(ClipRef *cr)
+{
+    SDL_DestroyMutex(cr->lock);
+    if (cr->home) {
+	clip_destroy(cr->clip);
+    } else {
+	free(cr);
+	Track *track = cr->track;
+	bool displace = false;
+	for (uint8_t i=0; i<track->num_clips; i++) {
+	    if (cr->track->clips[i] == cr) {
+		displace = true;
+	    } else if (displace && i>0) {
+		track->clips[i-1] = track->clips[i];
+	    }
+	}
+	track->num_clips--;
+    }   
+}
+void clipref_destroy_no_displace(ClipRef *cr)
+{
+    SDL_DestroyMutex(cr->lock);
+    free(cr);
+}
+
+
+void clip_destroy(Clip *clip)
+{
+    for (uint8_t i=0; i<clip->num_refs; i++) {
+	ClipRef *cr = clip->refs[i];
+	clipref_destroy(cr);
+    }
+    if (clip->L) free(clip->L);
+    if (clip->R) free(clip->R);
+    
+}
 static int32_t clipref_len(ClipRef *cr)
 {
     if (cr->out_mark_sframes <= cr->in_mark_sframes) {

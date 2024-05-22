@@ -528,6 +528,12 @@ static void mode_load_timeline()
 	);
     mode_subcat_add_fn(sc, fn);
 
+    fn = create_user_fn(
+	"tl_track_destroy",
+	"Destroy selected track (permanent)",
+	user_tl_track_destroy
+	);
+    mode_subcat_add_fn(sc, fn);
 
 
     /********** TRACK SETTINGS **********/

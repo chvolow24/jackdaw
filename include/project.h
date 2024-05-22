@@ -134,7 +134,6 @@ typedef struct clip_ref {
     bool grabbed;
 
     SDL_Rect rect;
-
     SDL_mutex *lock;
 } ClipRef;
     
@@ -312,6 +311,7 @@ void track_solomute(Track *track);
 void track_unsolomute(Track *track);
 void track_set_input(Track *track);
 void track_rename(Track *track);
+void track_destroy(Track *track);
 
 void track_or_tracks_solo(Timeline *tl, Track *opt_track);
 
@@ -319,5 +319,7 @@ ClipRef *clipref_at_point();
 ClipRef *clipref_at_point_in_track(Track *track);
 void timeline_ungrab_all_cliprefs(Timeline *tl);
 void clipref_grab(ClipRef *cr);
+void clipref_destroy(ClipRef *cr);
+void clip_destroy(Clip *clip);
 
 #endif

@@ -167,6 +167,12 @@ void fslider_draw(FSlider *fs)
     if (fs->editing) {
 	textbox_draw(fs->label);
     }
+}
 
+void fslider_destroy(FSlider *fs)
+{
+    textbox_destroy(fs->label);
+    layout_destroy(fs->layout);
+    free(fs);
 }
 

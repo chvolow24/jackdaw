@@ -1146,6 +1146,16 @@ static void remove_iteration(LayoutIterator *iter)
     }
 }
 
+void layout_remove_iter_at(LayoutIterator *iter, uint8_t at)
+{
+    layout_destroy(iter->iterations[at]);
+    for (uint8_t i=at + 1; i<iter->num_iterations; i++) {
+	iter->iterations[i-1] = iter->iterations[i];
+    }
+    iter->num_iterations--;
+
+}
+
 Layout *layout_add_iter(Layout *lt, IteratorType type, bool scrollable)
 {
     if (!(lt->iterator)) {

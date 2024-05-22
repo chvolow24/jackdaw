@@ -459,7 +459,6 @@ static void deactivate_all_tracks(Timeline *tl)
     for (uint8_t i=0; i<tl->num_tracks; i++) {
 	tl->tracks[i]->active = false;
     }	
-
 }
 
 void user_tl_track_activate_all()
@@ -469,7 +468,6 @@ void user_tl_track_activate_all()
 	deactivate_all_tracks(tl);
     }
 }
-
 
 void user_tl_track_selector_up()
 {
@@ -617,7 +615,14 @@ void user_tl_track_toggle_in()
     }
 }
 
-
+void user_tl_track_destroy()
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    if (tl->num_tracks > 0) {
+	Track *track = tl->tracks[tl->track_selector];
+	track_destroy(track);
+    }
+}
 
 void user_tl_mute()
 {

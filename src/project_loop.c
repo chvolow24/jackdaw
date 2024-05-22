@@ -70,8 +70,10 @@ extern Project *proj;
 static int timed_hide_slider_label(void *data)
 {
     FSlider *fs = (FSlider *)data;
-    SDL_Delay(STICK_DELAY_MS);
-    fs->editing = false;
+    if (fs->editing) {
+	SDL_Delay(STICK_DELAY_MS);
+	fs->editing = false;
+    }
 }
 
 static void hide_slider_label(FSlider *fs)

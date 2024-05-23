@@ -91,7 +91,11 @@ uint8_t project_add_timeline(Project *proj, char *name)
     }
     strcpy(new_tl->name, name);
     new_tl->proj = proj;
-    new_tl->layout = layout_get_child_by_name_recursive(proj->layout, "timeline");
+    Layout *tl_lt = layout_get_child_by_name_recursive(proj->layout, "timeline");
+    Layout *cpy = layout_copy(tl_lt, tl_lt->parent);
+    new_tl->layout = cpy;
+    layout_reset(new_tl->layout);
+    /* new_tl->layout = layout_get_child_by_name_recursive(proj->layout, "timeline"); */
     new_tl->sample_frames_per_pixel = DEFAULT_SFPP;
     strcpy(new_tl->timecode.str, "+00:00:00:00000");
     Layout *tc_lt = layout_get_child_by_name_recursive(proj->layout, "timecode");
@@ -525,7 +529,6 @@ static void track_reset_full(Track *track)
 
 static void track_reset(Track *track)
 {
-
     textbox_reset(track->tb_name);
     textbox_reset(track->tb_input_label);
     textbox_reset(track->tb_mute_button);
@@ -777,12 +780,25 @@ void clip_destroy(Clip *clip);
 
 void track_destroy(Track *track)
 {
+    Clip *clips_to_destroy[MAX_PROJ_CLIPS];
+    uint8_t num_clips_to_destroy = 0;
     for (uint8_t i=0; i<track->num_clips; i++) {
 	ClipRef *cr = track->clips[i];
 	if (cr) {
+	    if (cr->home) {
+		clips_to_destroy[num_clips_to_destroy] = cr->clip;
+		num_clips_to_destroy++;
+	    }
 	    clipref_destroy_no_displace(track->clips[i]);
 	}
     }
+    fprintf(stdout, "OK deleted all crs, now clips\n");
+    while (num_clips_to_destroy > 0) {
+	fprintf(stdout, "Deleting clip\n");
+	clip_destroy(clips_to_destroy[num_clips_to_destroy - 1]);
+	num_clips_to_destroy--;
+    }
+    fprintf(stdout, "Ok deleted all clips\n");
     fslider_destroy(track->vol_ctrl);
     fslider_destroy(track->pan_ctrl);
     textbox_destroy(track->tb_name);
@@ -810,25 +826,33 @@ void track_destroy(Track *track)
 
 void clipref_destroy(ClipRef *cr)
 {
-    SDL_DestroyMutex(cr->lock);
-    if (cr->home) {
-	clip_destroy(cr->clip);
-    } else {
-	free(cr);
-	Track *track = cr->track;
-	bool displace = false;
-	for (uint8_t i=0; i<track->num_clips; i++) {
-	    if (cr->track->clips[i] == cr) {
-		displace = true;
-	    } else if (displace && i>0) {
-		track->clips[i-1] = track->clips[i];
-	    }
+    fprintf(stdout, "CR DESTROY %s num clips %d\n", cr->track->name, cr->track->num_clips);
+    Track *track = cr->track;
+    bool displace = false;
+    for (uint8_t i=0; i<track->num_clips; i++) {
+	if (track->clips[i] == cr) {
+	    displace = true;
+	} else if (displace && i>0) {
+	    track->clips[i-1] = track->clips[i];
 	}
-	track->num_clips--;
-    }   
+    }
+    track->num_clips--;
+    SDL_DestroyMutex(cr->lock);
+    free(cr);
 }
 void clipref_destroy_no_displace(ClipRef *cr)
 {
+    fprintf(stdout, "Clipref destroy no displace %s\n", cr->name);
+    bool displace = false;
+    for (uint8_t i=0; i<cr->clip->num_refs; i++) {
+	ClipRef *test = cr->clip->refs[i];
+	if (test == cr) {
+	    displace = true;
+	} else if (displace && i-1 >= 0) {
+	    cr->clip->refs[i-1] = cr->clip->refs[i];
+	}
+    }
+    cr->clip->num_refs--;
     SDL_DestroyMutex(cr->lock);
     free(cr);
 }
@@ -836,9 +860,14 @@ void clipref_destroy_no_displace(ClipRef *cr)
 
 void clip_destroy(Clip *clip)
 {
+    fprintf(stdout, "CLIP DESTROY %s, num refs: %d\n", clip->name,  clip->num_refs);
     for (uint8_t i=0; i<clip->num_refs; i++) {
+	fprintf(stdout, "About to destroy clipref\n");
 	ClipRef *cr = clip->refs[i];
 	clipref_destroy(cr);
+    }
+    if (clip == proj->src_clip) {
+	proj->src_clip = NULL;
     }
     if (clip->L) free(clip->L);
     if (clip->R) free(clip->R);
@@ -892,6 +921,5 @@ void timeline_ungrab_all_cliprefs(Timeline *tl)
 	tl->grabbed_clips[i]->grabbed = false;
     }
     tl->num_grabbed_clips = 0;
-
 }
 

@@ -306,25 +306,6 @@ static void timeline_draw(Timeline *tl)
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(timeline_bckgrnd));
     SDL_RenderFillRect(main_win->rend, &tl->layout->rect);
     
-    /* set_rend_color(rend, &bckgrnd_color); */
-    /* SDL_Rect top_mask = {0, 0, proj->jwin->w, proj->tl->rect.y}; */
-    /* SDL_RenderFillRect(rend, &top_mask); */
-    /* SDL_Rect mask_left = {0, 0, proj->tl->rect.x, proj->jwin->h}; */
-    /* SDL_RenderFillRect(rend, &mask_left); */
-    /* SDL_Rect mask_left_2 = {proj->tl->rect.x, proj->tl->rect.y, PADDING, proj->tl->rect.h}; */
-    /* set_rend_color(rend, &tl_bckgrnd); */
-    /* SDL_RenderFillRect(rend, &mask_left_2); */
-    /* // fprintf(stderr, "\t->end draw\n"); */
-
-    /* // SDL_SetRenderDrawColor(rend, 255, 0, 0, 255); */
-    /* // SDL_RenderDrawRect(rend, &(proj->ctrl_rect)); */
-    /* // SDL_SetRenderDrawColor(rend, 0, 255, 0, 255); */
-    /* // SDL_RenderDrawRect(rend, &(proj->ctrl_rect_col_a)); */
-    /* draw_textbox(rend, proj->audio_out_label); */
-    /* draw_textbox(rend, proj->audio_out); */
-
-    /* set_rend_color(rend, &white); */
-
     /* Draw tracks */
     for (int i=0; i<tl->num_tracks; i++) {
 	track_draw(tl->tracks[i]);

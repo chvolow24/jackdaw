@@ -116,58 +116,62 @@ void set_lt_params(Layout *lt)
 static void set_lt_dim_from_param_str(Layout *lt, RectMem rm)
 {
     switch (rm) {
-        case X: 
-            switch (lt->x.type) {
-                case ABS:
-                case REL:
-                    lt->x.value.intval = atoi(lt_params->x_value_str);
-                    break;
-                case SCALE:
-                    lt->x.value.floatval = atof(lt_params->x_value_str);
-                    break;
-	    case COMPLEMENT:
-		break;
-            }
-            break;
-        case Y:
-            switch (lt->y.type) {
-                case ABS:
-                case REL:
-                    lt->y.value.intval = atoi(lt_params->y_value_str);
-                    break;
-                case SCALE:
-                    lt->y.value.floatval = atof(lt_params->y_value_str);
-                    break;
-	    case COMPLEMENT:
-		break;
-            }
-            break;
-        case W:
-            switch (lt->w.type) {
-                case ABS:
-                case REL:
-                    lt->w.value.intval = atoi(lt_params->w_value_str);
-                    break;
-                case SCALE:
-                    lt->w.value.floatval = atof(lt_params->w_value_str);
-                    break;
-	    case COMPLEMENT:
-		break;
-            }
-            break;
-        case H:
-            switch (lt->h.type) {
-                case ABS:
-                case REL:
-                    lt->h.value.intval = atoi(lt_params->h_value_str);
-                    break;
-                case SCALE:
-                    lt->h.value.floatval = atof(lt_params->h_value_str);
-                    break;
-	    case COMPLEMENT:
-		break;
-            }
-            break;
+    case X: 
+	switch (lt->x.type) {
+	case ABS:
+	case REL:
+	case STACK:
+	    lt->x.value.intval = atoi(lt_params->x_value_str);
+	    break;
+	case SCALE:
+	    lt->x.value.floatval = atof(lt_params->x_value_str);
+	    break;
+	case COMPLEMENT:
+	    break;
+	}
+	break;
+    case Y:
+	switch (lt->y.type) {
+	case ABS:
+	case REL:
+	case STACK:
+	    lt->y.value.intval = atoi(lt_params->y_value_str);
+	    break;
+	case SCALE:
+	    lt->y.value.floatval = atof(lt_params->y_value_str);
+	    break;
+	case COMPLEMENT:
+	    break;
+	}
+	break;
+    case W:
+	switch (lt->w.type) {
+	case ABS:
+	case REL:
+	case STACK:
+	    lt->w.value.intval = atoi(lt_params->w_value_str);
+	    break;
+	case SCALE:
+	    lt->w.value.floatval = atof(lt_params->w_value_str);
+	    break;
+	case COMPLEMENT:
+	    break;
+	}
+	break;
+    case H:
+	switch (lt->h.type) {
+	case ABS:
+	case REL:
+	case STACK:
+	    lt->h.value.intval = atoi(lt_params->h_value_str);
+	    break;
+	case SCALE:
+	    lt->h.value.floatval = atof(lt_params->h_value_str);
+	    break;
+	case COMPLEMENT:
+	    break;
+	}
+	break;
     }
     layout_reset(lt);
 }
@@ -187,64 +191,64 @@ void edit_lt_loop(Layout *lt)
                 SDL_PushEvent(&e);
             } else if (e.type == SDL_KEYDOWN) {
                 switch (e.key.keysym.scancode) {
-                    case SDL_SCANCODE_RETURN:
-                    case SDL_SCANCODE_L:
-                        exit = true;
-                        break;
-                    case SDL_SCANCODE_N:
-                        txt_edit(lt_params->name_value, layout_draw_main);
-			if (lt->namelabel) {
-			    txt_reset_display_value(lt->namelabel);
-			}
-                        // set_lt_params(lt);
-                        break;
-                    case SDL_SCANCODE_X: {
-                        if (shiftdown) {
-                            txt_edit(lt_params->x_value, layout_draw_main);
-                            set_lt_dim_from_param_str(lt, X);
-                        } else {
-                            layout_toggle_dimension(lt, &(lt->x), X, &(lt->rect), &(lt->parent->rect));
-                            set_lt_params(lt);
-                            layout_reset(lt);
-                        }
-                        break;
-                    }
-                    case SDL_SCANCODE_Y:
-                        if (shiftdown) {
-                            txt_edit(lt_params->y_value, layout_draw_main);
-                            set_lt_dim_from_param_str(lt, Y);
-                        } else {
-                            layout_toggle_dimension(lt, &(lt->y), Y, &(lt->rect), &(lt->parent->rect));
-                            set_lt_params(lt);
-                            layout_reset(lt);
-                        }
-                        break;
-                    case SDL_SCANCODE_W:
-                        if (shiftdown) {
-                            txt_edit(lt_params->w_value, layout_draw_main);
-                            set_lt_dim_from_param_str(lt, W);
-                        } else {
-                            layout_toggle_dimension(lt, &(lt->w), W, &(lt->rect), &(lt->parent->rect));
-                            set_lt_params(lt);
-                            layout_reset(lt);
-                        }
-                        break;
-                    case SDL_SCANCODE_H:
-                        if (shiftdown) {
-                            txt_edit(lt_params->h_value, layout_draw_main);
-                            set_lt_dim_from_param_str(lt, H);
-                        } else {
-                            layout_toggle_dimension(lt, &(lt->h), H, &(lt->rect), &(lt->parent->rect));
-                            set_lt_params(lt);
-                            layout_reset(lt);
-                        }
-                        break;
-                    case SDL_SCANCODE_LSHIFT:
-                    case SDL_SCANCODE_RSHIFT:
-                        shiftdown = true;
-                        break;
-                    default:
-                        break;
+		case SDL_SCANCODE_RETURN:
+		case SDL_SCANCODE_L:
+		    exit = true;
+		    break;
+		case SDL_SCANCODE_N:
+		    txt_edit(lt_params->name_value, layout_draw_main);
+		    if (lt->namelabel) {
+			txt_reset_display_value(lt->namelabel);
+		    }
+		    // set_lt_params(lt);
+		    break;
+		case SDL_SCANCODE_X: {
+		    if (shiftdown) {
+			txt_edit(lt_params->x_value, layout_draw_main);
+			set_lt_dim_from_param_str(lt, X);
+		    } else {
+			layout_toggle_dimension(lt, &(lt->x), X, &(lt->rect), &(lt->parent->rect));
+			set_lt_params(lt);
+			layout_reset(lt);
+		    }
+		    break;
+		}
+		case SDL_SCANCODE_Y:
+		    if (shiftdown) {
+			txt_edit(lt_params->y_value, layout_draw_main);
+			set_lt_dim_from_param_str(lt, Y);
+		    } else {
+			layout_toggle_dimension(lt, &(lt->y), Y, &(lt->rect), &(lt->parent->rect));
+			set_lt_params(lt);
+			layout_reset(lt);
+		    }
+		    break;
+		case SDL_SCANCODE_W:
+		    if (shiftdown) {
+			txt_edit(lt_params->w_value, layout_draw_main);
+			set_lt_dim_from_param_str(lt, W);
+		    } else {
+			layout_toggle_dimension(lt, &(lt->w), W, &(lt->rect), &(lt->parent->rect));
+			set_lt_params(lt);
+			layout_reset(lt);
+		    }
+		    break;
+		case SDL_SCANCODE_H:
+		    if (shiftdown) {
+			txt_edit(lt_params->h_value, layout_draw_main);
+			set_lt_dim_from_param_str(lt, H);
+		    } else {
+			layout_toggle_dimension(lt, &(lt->h), H, &(lt->rect), &(lt->parent->rect));
+			set_lt_params(lt);
+			layout_reset(lt);
+		    }
+		    break;
+		case SDL_SCANCODE_LSHIFT:
+		case SDL_SCANCODE_RSHIFT:
+		    shiftdown = true;
+		    break;
+		default:
+		    break;
                 } 
             } else if (e.type == SDL_KEYUP) {
                 if (e.key.keysym.scancode == SDL_SCANCODE_LSHIFT || e.key.keysym.scancode == SDL_SCANCODE_RSHIFT) {

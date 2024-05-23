@@ -9,11 +9,11 @@ CFLAGS := -Wall -g -I$(INCLUDE_DIR) -I$(GUI_INCLUDE_DIR) -I/usr/include/SDL2 `sd
 
 
 LAYOUT_PROGRAM_SRCS := gui/src/openfile.c gui/src/lt_params.c gui/src/draw.c gui/src/main.c gui/src/test.c
-JACKDAW_ONLY_SRCS := src/main.c
+JACKDAW_ONLY_SRCS := src/main.c gui/src/userfn.c gui/src/input.c gui/src/test.c
 SRCS := $(wildcard $(SRC_DIR)/*.c)
 GUI_SRCS_ALL := $(wildcard $(GUI_SRC_DIR)/*.c)
 GUI_SRCS := $(filter-out $(LAYOUT_PROGRAM_SRCS), $(GUI_SRCS_ALL))
-LT_SRCS_ALL := $(filter-out $(JACKDAW_ONLY_SRCS), $(SRCS) $(GUI_SRCS_ALL))
+LT_SRCS_ALL := $(filter-out $(JACKDAW_ONLY_SRCS), $(GUI_SRCS_ALL))
 
 OBJS := $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(SRCS))
 GUI_OBJS := $(patsubst $(GUI_SRC_DIR)/%.c, $(GUI_BUILD_DIR)/%.o, $(GUI_SRCS))

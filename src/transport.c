@@ -191,7 +191,7 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
 		 num_conns_to_activate++;
 		 if (audioconn_open(proj, conn) != 0) {
 		     fprintf(stderr, "Error opening audio device to record\n");
-		     exit(1);
+		     return;
 		 }
 		 clip = project_add_clip(conn, track);
 		 clip->recording = true;

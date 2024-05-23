@@ -39,6 +39,8 @@
 
 #define WINDOW_PAD 100
 
+#define NUM_LT_TYPES 5
+
 /* extern Layout *main_lt; */
 /* extern SDL_Color white; */
 //extern TTF_Font *open_sans;
@@ -59,14 +61,16 @@ void layout_set_name(Layout *lt, char *new_name)
 const char *layout_get_dimtype_str(DimType dt)
 {
     switch (dt) {
-        case REL:
-            return "REL";
-        case ABS:
-            return "ABS";
-        case SCALE:
-            return "SCALE";
-        case COMPLEMENT:
-            return "COMPLEMENT";
+    case REL:
+	return "REL";
+    case ABS:
+	return "ABS";
+    case SCALE:
+	return "SCALE";
+    case COMPLEMENT:
+	return "COMPLEMENT";
+    case STACK:
+	return "STACK";
     default:
 	fprintf(stderr, "Error: DimType has value %d, which is not a member of enum.\n", dt);
 	exit(1);
@@ -76,30 +80,41 @@ const char *layout_get_dimtype_str(DimType dt)
 const char *layout_get_itertype_str(IteratorType iter_type) 
 {
     switch (iter_type) {
-        case HORIZONTAL:
-            return "HORIZONTAL";
-        case VERTICAL:
-            return "VERTICAL";
+    case HORIZONTAL:
+	return "HORIZONTAL";
+    case VERTICAL:
+	return "VERTICAL";
     }
 }
 
 void layout_get_dimval_str(Dimension *dim, char *dst, int maxlen)
 {
     switch (dim->type) {
-        case ABS:
-        case COMPLEMENT:
-        case REL:
-            snprintf(dst, maxlen - 1, "%d", dim->value.intval);
-            break;
-        case SCALE:
-            snprintf(dst, maxlen - 1, "%f", dim->value.floatval);
-        
+    case ABS:
+    case COMPLEMENT:
+    case STACK:
+    case REL:
+	snprintf(dst, maxlen - 1, "%d", dim->value.intval);
+	break;
+    case SCALE:
+	snprintf(dst, maxlen - 1, "%f", dim->value.floatval);
+	break;
     }
 }
 
 /**********************************************************************/
 /* These functions TRY to get sibling, parent, first child, of
    subject layout but return the subject layout if not found. */
+
+
+static Layout *get_last_sibling(Layout *lt)
+{
+    Layout *ret = NULL;
+    if (lt->parent && lt->index > 0) {
+	return lt->parent->children[lt->index - 1];
+    }
+    return ret;
+}
 
 Layout *layout_iterate_siblings(Layout *from, int direction)
 {
@@ -162,99 +177,121 @@ static SDL_Rect get_logical_rect(SDL_Rect *pixels_p)
 void layout_set_wh_from_rect(Layout *lt)
 {
     switch (lt->w.type) {
-        case ABS:
-            lt->w.value.intval = round((float)lt->rect.w / main_win->dpi_scale_factor);
-            break;
-        case REL:
-            lt->w.value.intval = round((float) lt->rect.w / main_win->dpi_scale_factor);
-            break;
-        case SCALE:
-            if (lt->parent) {
-                if (lt->parent->rect.w != 0) {
-                    lt->w.value.floatval = (float) lt->rect.w / lt->parent->rect.w;
-                }
-            } else {
-                fprintf(stderr, "Error: attempting to set scaled dimension values on layout with no parent.\n");
-		return;
-                // exit(1);
-            }
-            break;
-        case COMPLEMENT:
-	    break; /* Vales are irrelevant for COMPLEMENT */
+    case ABS:
+	lt->w.value.intval = round((float)lt->rect.w / main_win->dpi_scale_factor);
+	break;
+    case REL:
+	lt->w.value.intval = round((float) lt->rect.w / main_win->dpi_scale_factor);
+	break;
+    case SCALE:
+	if (lt->parent) {
+	    if (lt->parent->rect.w != 0) {
+		lt->w.value.floatval = (float) lt->rect.w / lt->parent->rect.w;
+	    }
+	} else {
+	    fprintf(stderr, "Error: attempting to set scaled dimension values on layout with no parent.\n");
+	    return;
+	}
+	break;
+    case COMPLEMENT:
+	break; /* Vales are irrelevant for COMPLEMENT */
+    case STACK:
+	break;
 	    
 		
     }
 
     switch (lt->h.type) {
-        case ABS:
-            lt->h.value.intval = round( (float)lt->rect.h / main_win->dpi_scale_factor);
-            break;
-        case REL:
-            lt->h.value.intval = round((float)lt->rect.h / main_win->dpi_scale_factor);
-            break;
-        case SCALE:
-            if (lt->parent) {
-                if (lt->parent->rect.h != 0) {
-                    lt->h.value.floatval = (float) lt->rect.h / lt->parent->rect.h;
-                }
-            } else {
-                fprintf(stderr, "Error: attempting to set scaled dimension values on layout with no parent.\n");
-                // exit(1);
-            }
-            break;
-        case COMPLEMENT:
-	    break;
+    case ABS:
+	lt->h.value.intval = round( (float)lt->rect.h / main_win->dpi_scale_factor);
+	break;
+    case REL:
+	lt->h.value.intval = round((float)lt->rect.h / main_win->dpi_scale_factor);
+	break;
+    case SCALE:
+	if (lt->parent) {
+	    if (lt->parent->rect.h != 0) {
+		lt->h.value.floatval = (float) lt->rect.h / lt->parent->rect.h;
+	    }
+	} else {
+	    fprintf(stderr, "Error: attempting to set scaled dimension values on layout with no parent.\n");
+	    // exit(1);
+	}
+	break;
+    case COMPLEMENT:
+	break;
+    case STACK:
+	break;
 	
     }
 }  
 
 void layout_set_values_from_rect(Layout *lt)
 {
-    // fprintf(stderr, "Set values from rect\n");
     switch (lt->x.type) {
-        case ABS:
-            lt->x.value.intval = round((float) lt->rect.x / main_win->dpi_scale_factor);
-            break;
-        case REL:
-            if (lt->parent) {
-                lt->x.value.intval = round((float) (lt->rect.x - lt->parent->rect.x) / main_win->dpi_scale_factor) ;
-            } else {
-                lt->x.value.intval = round((float) lt->rect.x / main_win->dpi_scale_factor);
-            }
-            break;
-        case SCALE:
-            if (lt->parent) {
-                if (lt->parent->rect.w != 0) {
-                    lt->x.value.floatval = ((float)lt->rect.x - lt->parent->rect.x) / lt->parent->rect.w;
-                }
-            }
-            break;
-        case COMPLEMENT:
-	    break;
+    case ABS:
+	lt->x.value.intval = round((float) lt->rect.x / main_win->dpi_scale_factor);
+	break;
+    case REL:
+	if (lt->parent) {
+	    lt->x.value.intval = round((float) (lt->rect.x - lt->parent->rect.x) / main_win->dpi_scale_factor) ;
+	} else {
+	    lt->x.value.intval = round((float) lt->rect.x / main_win->dpi_scale_factor);
+	}
+	break;
+    case SCALE:
+	if (lt->parent) {
+	    if (lt->parent->rect.w != 0) {
+		lt->x.value.floatval = ((float)lt->rect.x - lt->parent->rect.x) / lt->parent->rect.w;
+	    }
+	}
+	break;
+    case COMPLEMENT:
+	break;
+    case STACK: {
+	if (lt->parent) {
+	    Layout *last_sibling = get_last_sibling(lt);
+	    if (last_sibling) {
+		lt->x.value.intval = round((float)(lt->rect.x - last_sibling->rect.x - last_sibling->rect.w) / main_win->dpi_scale_factor);
+	    } else {
+		lt->x.value.intval = round((float)(lt->rect.x - lt->parent->rect.x) / main_win->dpi_scale_factor);
+	    }
+	}
+	break;
+    }
     }
     switch (lt->y.type) {
-        case ABS:
-            lt->y.value.intval = round((float)lt->rect.y / main_win->dpi_scale_factor);
-            break;
-        case REL:
-            if (lt->parent) {
-                lt->y.value.intval = round(((float) lt->rect.y - lt->parent->rect.y)/main_win->dpi_scale_factor);
-            } else {
-                lt->y.value.intval = round((float) lt->rect.y / main_win->dpi_scale_factor);
-            }
-            break;
-        case SCALE:
-            if (lt->parent) {
-                if (lt->parent->rect.h != 0) {
-                    lt->y.value.floatval = ((float)lt->rect.y - lt->parent->rect.y) / lt->parent->rect.h;
-                }
-            } else {
-                fprintf(stderr, "Error: attempting to set scaled dimension values on layout with no parent.\n");
-                // exit(1);
-            }
-            break;
-        case COMPLEMENT:
-	    break;
+    case ABS:
+	lt->y.value.intval = round((float)lt->rect.y / main_win->dpi_scale_factor);
+	break;
+    case REL:
+	if (lt->parent) {
+	    lt->y.value.intval = round(((float) lt->rect.y - lt->parent->rect.y)/main_win->dpi_scale_factor);
+	} else {
+	    lt->y.value.intval = round((float) lt->rect.y / main_win->dpi_scale_factor);
+	}
+	break;
+    case SCALE:
+	if (lt->parent) {
+	    if (lt->parent->rect.h != 0) {
+		lt->y.value.floatval = ((float)lt->rect.y - lt->parent->rect.y) / lt->parent->rect.h;
+	    }
+	} else {
+	    fprintf(stderr, "Error: attempting to set scaled dimension values on layout with no parent.\n");
+	    // exit(1);
+	}
+	break;
+    case COMPLEMENT:
+	break;
+    case STACK: {
+	Layout *last_sibling = get_last_sibling(lt);
+	if (last_sibling) {
+	    lt->y.value.intval = (lt->rect.y - last_sibling->rect.y - last_sibling->rect.h) / main_win->dpi_scale_factor;
+	} else {
+	    lt->y.value.intval = (lt->rect.y - lt->parent->rect.y) / main_win->dpi_scale_factor;
+	}
+    }
+	break;
     }
 
     layout_set_wh_from_rect(lt);
@@ -319,22 +356,22 @@ void do_snap(Layout *lt, Layout *main, Edge edge);
 void layout_set_edge(Layout *lt, Edge edge, int set_to, bool block_snap) 
 {
     switch (edge) {
-        case TOP:
-            lt->rect.h = lt->rect.y + lt->rect.h - set_to;
-            lt->rect.y = set_to;
-            break;
-        case BOTTOM:
-            lt->rect.h = set_to - lt->rect.y;
-            break;
-        case LEFT:
-            lt->rect.w = lt->rect.x + lt->rect.w - set_to;
-            lt->rect.x = set_to;
-            break;
-        case RIGHT:
-            lt->rect.w = set_to - lt->rect.x;
-            break;
-        case NONEEDGE:
-            break;
+    case TOP:
+	lt->rect.h = lt->rect.y + lt->rect.h - set_to;
+	lt->rect.y = set_to;
+	break;
+    case BOTTOM:
+	lt->rect.h = set_to - lt->rect.y;
+	break;
+    case LEFT:
+	lt->rect.w = lt->rect.x + lt->rect.w - set_to;
+	lt->rect.x = set_to;
+	break;
+    case RIGHT:
+	lt->rect.w = set_to - lt->rect.x;
+	break;
+    case NONEEDGE:
+	break;
     }
     if (!block_snap) {
         do_snap(lt, layout_top_parent(lt), edge);
@@ -444,24 +481,24 @@ void layout_stop_scroll(Layout *lt)
 void layout_set_corner(Layout *lt, Corner crnr, int x, int y, bool block_snap)
 {
     switch (crnr) {
-        case TPLFT:
-            layout_set_edge(lt, LEFT, x, block_snap);
-            layout_set_edge(lt, TOP, y, block_snap);
-            break;
-        case BTTMLFT:
-            layout_set_edge(lt, LEFT, x, block_snap);
-            layout_set_edge(lt, BOTTOM, y, block_snap);
-            break;
-        case BTTMRT:
-            layout_set_edge(lt, BOTTOM, y, block_snap);
-            layout_set_edge(lt, RIGHT, x, block_snap);
-            break;
-        case TPRT:
-            layout_set_edge(lt, RIGHT, x, block_snap);
-            layout_set_edge(lt, TOP, y, block_snap);
-            break;
-        case NONECRNR:
-            break;
+    case TPLFT:
+	layout_set_edge(lt, LEFT, x, block_snap);
+	layout_set_edge(lt, TOP, y, block_snap);
+	break;
+    case BTTMLFT:
+	layout_set_edge(lt, LEFT, x, block_snap);
+	layout_set_edge(lt, BOTTOM, y, block_snap);
+	break;
+    case BTTMRT:
+	layout_set_edge(lt, BOTTOM, y, block_snap);
+	layout_set_edge(lt, RIGHT, x, block_snap);
+	break;
+    case TPRT:
+	layout_set_edge(lt, RIGHT, x, block_snap);
+	layout_set_edge(lt, TOP, y, block_snap);
+	break;
+    case NONECRNR:
+	break;
     }
 }
 
@@ -549,26 +586,26 @@ int check_snap_y(Layout *main, int check_y)
 void do_snap(Layout *lt, Layout *main, Edge check_edge)
 {
     switch (check_edge) {
-        case TOP:
-        case BOTTOM: {
-            int check_y = get_edge_value_pixels(lt, check_edge);
-            int y_snap = check_snap_y(main, check_y);
-            if (y_snap > 0) {
-                layout_set_edge(lt, check_edge, y_snap, true);
-            }
-            break;
-        }
-        case LEFT:
-        case RIGHT: {
-            int check_x = get_edge_value_pixels(lt, check_edge);
-            int x_snap = check_snap_x(main, check_x);
-            if (x_snap > 0) {
-                layout_set_edge(lt, check_edge, x_snap, true);
-            }
-            break;
-        }
-        case NONEEDGE:
-            return;
+    case TOP:
+    case BOTTOM: {
+	int check_y = get_edge_value_pixels(lt, check_edge);
+	int y_snap = check_snap_y(main, check_y);
+	if (y_snap > 0) {
+	    layout_set_edge(lt, check_edge, y_snap, true);
+	}
+	break;
+    }
+    case LEFT:
+    case RIGHT: {
+	int check_x = get_edge_value_pixels(lt, check_edge);
+	int x_snap = check_snap_x(main, check_x);
+	if (x_snap > 0) {
+	    layout_set_edge(lt, check_edge, x_snap, true);
+	}
+	break;
+    }
+    case NONEEDGE:
+	return;
     }
 }
 
@@ -631,75 +668,103 @@ void layout_move_position(Layout *lt, int move_by_x, int move_by_y, bool block_s
 int set_rect_xy(Layout *lt)
 {
     switch (lt->x.type) {
-        case ABS:
-            lt->rect.x = lt->x.value.intval * main_win->dpi_scale_factor;
-            break;
-        case REL:
-            lt->rect.x = lt->parent->rect.x + lt->x.value.intval * main_win->dpi_scale_factor;
-            break;
-        case SCALE:
-            lt->rect.x = lt->parent->rect.x + lt->parent->rect.w * lt->x.value.floatval;
-            break;
-        case COMPLEMENT:
-            return 0;
-            break;
+    case ABS:
+	lt->rect.x = lt->x.value.intval * main_win->dpi_scale_factor;
+	break;
+    case REL:
+	lt->rect.x = lt->parent->rect.x + lt->x.value.intval * main_win->dpi_scale_factor;
+	break;
+    case SCALE:
+	lt->rect.x = lt->parent->rect.x + lt->parent->rect.w * lt->x.value.floatval;
+	break;
+    case COMPLEMENT:
+	return 0;
+	break;
+    case STACK: {
+	Layout *last_sibling = get_last_sibling(lt);
+	if (last_sibling) {
+	    lt->rect.x = last_sibling->rect.x + last_sibling->rect.w + lt->x.value.intval * main_win->dpi_scale_factor;
+	} else {
+	    lt->rect.x = lt->parent->rect.x + lt->x.value.intval * main_win->dpi_scale_factor;
+	}
+	break;
+    }
     }
     switch (lt->y.type) {
-        case ABS:
-            lt->rect.y = lt->y.value.intval * main_win->dpi_scale_factor;
-            break;
-        case REL:
-            // fprintf(stderr, "Y is rel. ")
-            lt->rect.y = lt->parent->rect.y + lt->y.value.intval * main_win->dpi_scale_factor;
-            break;
-        case SCALE:
-            lt->rect.y = lt->parent->rect.y + lt->parent->rect.h * lt->y.value.floatval;
-            break;
-        case COMPLEMENT:
-            return 0;
-            break;
+    case ABS:
+	lt->rect.y = lt->y.value.intval * main_win->dpi_scale_factor;
+	break;
+    case REL:
+	// fprintf(stderr, "Y is rel. ")
+	lt->rect.y = lt->parent->rect.y + lt->y.value.intval * main_win->dpi_scale_factor;
+	break;
+    case SCALE:
+	lt->rect.y = lt->parent->rect.y + lt->parent->rect.h * lt->y.value.floatval;
+	break;
+    case COMPLEMENT:
+	return 0;
+	break;
+    case STACK: {
+	Layout *last_sibling = get_last_sibling(lt);
+	if (last_sibling) {
+	    lt->rect.y = last_sibling->rect.y + last_sibling->rect.h + lt->y.value.intval * main_win->dpi_scale_factor;
+	} else {
+	    lt->rect.y = lt->parent->rect.y + lt->y.value.intval * main_win->dpi_scale_factor;
+	}
+	break;
+    }
     }
     return 1;
-
 }
 
 int set_rect_wh(Layout *lt)
 {
     switch (lt->w.type) {
-        case ABS:
-        case REL:
-            lt->rect.w = lt->w.value.intval * main_win->dpi_scale_factor;
-            break;
-        case SCALE:
-            lt->rect.w = round(((float) lt->parent->rect.w) * lt->w.value.floatval);
-            break;
-        case COMPLEMENT: {
-            Layout *last_sibling = lt->parent->children[lt->index - 1];
-            if (!last_sibling) {
-                fprintf(stderr, "Error: layout %s has type dim COMPLEMENT but no last sibling\n", lt->name);
-                return 0;
-            }
-            lt->rect.w = lt->parent->rect.w - last_sibling->rect.w;
-            break;
-        }
+    case ABS:
+    case REL:
+	lt->rect.w = lt->w.value.intval * main_win->dpi_scale_factor;
+	break;
+    case SCALE:
+	lt->rect.w = round(((float) lt->parent->rect.w) * lt->w.value.floatval);
+	break;
+    case COMPLEMENT: {
+	Layout *last_sibling = lt->parent->children[lt->index - 1];
+	while (last_sibling && last_sibling->w.type == COMPLEMENT && last_sibling->index > 0) {
+	    last_sibling = last_sibling->parent->children[last_sibling->index - 1];
+	}
+	if (!last_sibling) {
+	    fprintf(stderr, "Error: layout %s has type dim COMPLEMENT but no last sibling\n", lt->name);
+	    return 0;
+	}
+	lt->rect.w = lt->parent->rect.w - last_sibling->rect.w;
+	break;
+    }
+    case STACK:
+	break;
     }
     switch (lt->h.type) {
-        case ABS:
-        case REL:
-            lt->rect.h = lt->h.value.intval * main_win->dpi_scale_factor;
-            break;
-        case SCALE:
-            lt->rect.h = round(((float) lt->parent->rect.h) * lt->h.value.floatval);
-            break;
-        case COMPLEMENT: {
-            Layout *last_sibling = lt->parent->children[lt->index - 1];
-            if (!last_sibling) {
-                fprintf(stderr, "Error: layout %s has type dim COMPLEMENT but no last sibling\n", lt->name);
-                return 0;
-            }
-            lt->rect.h = lt->parent->rect.h - last_sibling->rect.h;
-            break;
-        }
+    case ABS:
+    case REL:
+	lt->rect.h = lt->h.value.intval * main_win->dpi_scale_factor;
+	break;
+    case SCALE:
+	lt->rect.h = round(((float) lt->parent->rect.h) * lt->h.value.floatval);
+	break;
+    case COMPLEMENT: {
+	Layout *last_sibling = lt->parent->children[lt->index - 1];
+	while (last_sibling && last_sibling->h.type == COMPLEMENT && last_sibling->index > 0) {
+	    last_sibling = last_sibling->parent->children[last_sibling->index - 1];
+	}
+
+	if (!last_sibling) {
+	    fprintf(stderr, "Error: layout %s has type dim COMPLEMENT but no last sibling\n", lt->name);
+	    return 0;
+	}
+	lt->rect.h = lt->parent->rect.h - last_sibling->rect.h;
+	break;
+    }
+    case STACK:
+	break;
     }
     return 1;
 }
@@ -710,6 +775,9 @@ void reset_iterations(LayoutIterator *iter);
 /* New iterative implementation */
 void layout_force_reset(Layout *lt)
 {
+    if (lt->hidden) {
+	return;
+    }
     Layout *top_parent = lt;
     
     while (lt) {
@@ -755,6 +823,9 @@ void layout_force_reset(Layout *lt)
 /* Old recursive implementation */
 void layout_reset(Layout *lt)
 {
+    if (lt->hidden) {
+	return;
+    }
     if (lt->parent) {
         if (!set_rect_wh(lt)) {
             fprintf(stderr, "Error: failed to set wh on %s\n", lt->name);
@@ -824,6 +895,7 @@ Layout *layout_create()
     } else {
 	lt->namelabel = NULL;
     }
+    lt->hidden = false;
     return lt;
 }
 
@@ -1019,7 +1091,7 @@ void layout_toggle_dimension(Layout *lt, Dimension *dim, RectMem rm, SDL_Rect *r
         return;
     }
     dim->type++;
-    dim->type %= 3;
+    dim->type %= NUM_LT_TYPES;
     layout_set_values_from_rect(lt);
 }
 
@@ -1351,4 +1423,5 @@ void layout_draw(Window *win, Layout *lt)
     }
 
 }
+
 

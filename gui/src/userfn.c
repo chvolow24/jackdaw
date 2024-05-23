@@ -617,10 +617,18 @@ void user_tl_track_toggle_in()
 
 void user_tl_track_destroy()
 {
+    user_tl_pause();
+    if (proj->recording) {
+	transport_stop_recording();
+    }
+
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (tl->num_tracks > 0) {
 	Track *track = tl->tracks[tl->track_selector];
 	track_destroy(track);
+	if (tl->track_selector > tl->num_tracks - 1) {
+	    tl->track_selector = tl->num_tracks == 0 ? 0 : tl->num_tracks - 1;
+	}
     }
 }
 
@@ -818,6 +826,7 @@ void user_tl_drop_from_source()
 
 void user_tl_add_new_timeline()
 {
+    proj->timelines[proj->active_tl_index]->layout->hidden = true;
     proj->active_tl_index = project_add_timeline(proj, "New Timeline");
     project_reset_tl_label(proj);
 }
@@ -825,7 +834,9 @@ void user_tl_add_new_timeline()
 void user_tl_previous_timeline()
 {
     if (proj->active_tl_index > 0) {
+	proj->timelines[proj->active_tl_index]->layout->hidden = true;
 	proj->active_tl_index--;
+	proj->timelines[proj->active_tl_index]->layout->hidden = false;
 	project_reset_tl_label(proj);
     }
 }
@@ -833,7 +844,9 @@ void user_tl_previous_timeline()
 void user_tl_next_timeline()
 {
     if (proj->active_tl_index < proj->num_timelines - 1) {
+	proj->timelines[proj->active_tl_index]->layout->hidden = true;
 	proj->active_tl_index++;
+	proj->timelines[proj->active_tl_index]->layout->hidden = false;
 	project_reset_tl_label(proj);
     }
 }

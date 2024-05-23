@@ -111,11 +111,6 @@ void window_check_monitor_dpi(Window *win)
         fprintf(stderr, "Error setting scale factor: %s", SDL_GetError());
         exit(1);
     }
-
-    /* ttf_destroy_font(win->std_font); */
-    fprintf(stdout, "Ok, font destroyed\n");
-    /* window_assign_std_font(win, win->std_font->path); */
-    fprintf(stdout, "Ok, font assigned\n");
     ttf_reset_dpi_scale_factor(win->std_font);
 
 }

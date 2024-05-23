@@ -26,7 +26,6 @@ typedef enum corner {
     TPLFT,
     TPRT,
     BTTMLFT,
-
     BTTMRT,
     NONECRNR
 } Corner;
@@ -36,7 +35,8 @@ typedef enum dimtype {
     REL, /* x or y relative to parent */
     ABS, /* relative to Window only */
     SCALE, /* x, y, w, or h as proportion of parent (e.g. w = 0.5 => width is half of parent) */
-    COMPLEMENT
+    COMPLEMENT,
+    STACK
 } DimType;
 
 typedef enum rect_mem {
@@ -84,6 +84,7 @@ typedef struct layout {
     bool selected;
     LayoutType type;
     LayoutIterator *iterator; /* If the layout type == TEMPLATE, this is not null */
+    bool hidden;
     // Layout *complement;
     // bool display;
     // bool internal;

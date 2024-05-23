@@ -20,6 +20,8 @@ Global TODO list
 *** DONE Open wav file
 +*** TODO Cut clip+
 +*** TODO Copy clip (?)+
+*** TODO track delete (primitive)
+*** TODO clipref delete (primitive)
 ** TODO Presentability
 *** TODO update readme
 *** TODO generate keybd shortcut ref

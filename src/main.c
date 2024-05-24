@@ -125,7 +125,7 @@ extern bool connection_open;
 void dir_tests();
 int main(int argc, char **argv)
 {
-    dir_tests();
+    /* dir_tests(); */
     /* exit(0); */
     fprintf(stdout, "\n\nJACKDAW (version %s)\nby Charlie Volow\n\n", JACKDAW_VERSION);
     

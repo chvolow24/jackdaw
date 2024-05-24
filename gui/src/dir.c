@@ -9,10 +9,16 @@
 #include "dir.h"
 #include "textbox.h"
 
+
+#define DIRNAV_LINE_SPACING 3
+#define DIRNAV_HEIGHT 200
 extern Window *main_win;
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;
+extern SDL_Color color_global_clear;
 
+SDL_Color color_dir = (SDL_Color) {10, 255, 100, 255};
+SDL_Color color_file = (SDL_Color) {10, 100, 255, 255};
 
 /* static char *dir_get_homepath() */
 /* { */
@@ -81,18 +87,30 @@ static int path_updir_name(char *pathname)
 }
 
 
-/* static char *path_get_tail(char *pathname) */
-/* { */
-/*     char *tail; */
-/*     tail = strtok(pathname, "/"); */
-/*     while ((tail = strtok(NULL, "/"))) {} */
-/*     return tail; */
-/* } */
+static char *path_get_tail(char *pathname)
+{
+    char *mov = pathname;
+    char *slash = pathname;
+    while (*mov != '\0') {
+	if (*mov == '/') {
+	    slash = mov + 1;
+	}
+	mov++;
+    }
+    return slash;
+    /* char *tail; */
+    /* tail = strtok(pathname, "/"); */
+    /* while ((tail = strtok(NULL, "/"))) { */
+    /* 	fprintf(stdout, "Tail: %s\n", tail);} */
+    /* fprintf(stdout, "Tail out of loop: %s\n", tail); */
+    /* return tail; */
+}
 
 static DirPath *dirpath_create(const char *dirpath)
 {
     DirPath *dp = calloc(1, sizeof(DirPath));
     strncpy(dp->path, dirpath, MAX_PATHLEN);
+    fprintf(stdout, "CREATING %p w %s\n", dp, dirpath);
     return dp;
 }
 
@@ -109,11 +127,8 @@ static void filepath_destroy(FilePath *fp)
 }
 static void dirpath_destroy(DirPath *dp)
 {
-    for (uint8_t i=0; i<dp->num_dirs; i++) {
-	dirpath_destroy(dp->dirs[i]);
-    }
-    for (uint8_t i=0; i<dp->num_files; i++) {
-	filepath_destroy(dp->files[i]);
+    for (uint8_t i=0; i<dp->num_entries; i++) {
+	dirpath_destroy(dp->entries[i]);
     }
     free(dp);
 }
@@ -130,14 +145,12 @@ DirPath *dirpath_open(const char *dirpath)
     }
     struct dirent *t_dir;
     while ((t_dir = readdir(dir))) {
-	if (t_dir->d_type == DT_DIR) {
-	    snprintf(buf, sizeof(buf), "%s/%s", dirpath, t_dir->d_name);
-	    dp->dirs[dp->num_dirs] = dirpath_create(buf);
-	    dp->num_dirs++;
-	} else if (t_dir->d_type == DT_REG) {
-	    snprintf(buf, sizeof(buf), "%s/%s", dirpath, t_dir->d_name);
-	    dp->files[dp->num_files] = filepath_create(buf);
-	    dp->num_files++;
+	snprintf(buf, sizeof(buf), "%s/%s", dirpath, t_dir->d_name);
+	DirPath *subdir = dirpath_create(buf);
+	if (subdir) {
+	    dp->entries[dp->num_entries] = subdir;
+	    subdir->type = t_dir->d_type;
+	    dp->num_entries++;
 	}
     }
     closedir(dir);
@@ -146,15 +159,16 @@ DirPath *dirpath_open(const char *dirpath)
 
 DirPath *dir_down(DirPath *dp, uint8_t index)
 {
-    if (index > dp->num_dirs - 1) {
+    if (index > dp->num_entries - 1) {
 	return NULL;
     }
     DirPath *to_free = dp;
-    dp = dirpath_open(dp->dirs[index]->path);
+    dp = dirpath_open(dp->entries[index]->path);
     if (dp) {
 	free(to_free);
 	return dp;
     }
+    return NULL;
 }
 
 DirPath *dir_up(DirPath *dp)
@@ -171,10 +185,51 @@ DirPath *dir_up(DirPath *dp)
     return NULL;
 }
 
-
-static TLinesItem *create_tlitem_from_dir(void *dir_v)
+static TLinesItem *dir_to_tline(void ***current_item_v, Layout *container, void *dn_v)
 {
+    DirNav *dn = (DirNav *)dn_v;
+    DirPath ***dps_loc = (DirPath ***)current_item_v;
+    DirPath **dps = *dps_loc;
+    DirPath *dp = dps[0];
+    if (!dp) {
+	fprintf(stderr, "ERROR: null at addr %p\n",*current_item_v);
+	(*dps_loc)++;
+	return NULL;
+	
+    }
 
+    if ((!dn->show_dirs && dp->type == DT_DIR) || (!dn->show_files && dp->type != DT_DIR)) {
+	/* dn->lines->num_items++; */
+	fprintf(stdout, "Skipping\n");
+	/* dn->num_lines++; */
+	(*dps_loc)++;
+	return NULL;
+    }
+    TLinesItem *item = calloc(1, sizeof(TLinesItem));
+    item->obj = (void *)dp;
+    Layout *lt = layout_add_child(container);
+    lt->y.type = STACK;
+    lt->y.value.intval = DIRNAV_LINE_SPACING;
+    lt->h.value.intval = 50;
+    lt->w.value.intval = 500;
+    
+    item->tb = textbox_create_from_str(path_get_tail(dp->path), lt, main_win->bold_font, 12, main_win);
+    /* textbox_set_pad(item->tb, 0, 4); */
+    textbox_size_to_fit(item->tb, 0, 0);
+    textbox_reset_full(item->tb);
+    SDL_Color *txt_clr = dp->type == DT_DIR ? &color_dir : &color_file;
+    textbox_set_text_color(item->tb, txt_clr);
+    textbox_set_background_color(item->tb, &color_global_clear);
+    dn->num_lines++;
+    /* dn->lines->num_items++; */
+    (*dps_loc)++;
+    return item;
+}
+
+bool dir_to_tline_filter(void *item, void *x_arg)
+{
+    DirPath *dp = (DirPath *)item;
+    DirNav *dn = (DirNav *)x_arg;
 
 }
 
@@ -185,33 +240,39 @@ DirNav *dirnav_create(const char *dir_name, Layout *lt, bool show_dirs, bool sho
 	return NULL;
     }
     DirNav *dn = calloc(1, sizeof(DirNav));
+    dn->dirpath = dp;
     dn->layout = lt;
+    Layout *inner = layout_add_child(lt);
+    inner->x.value.intval = 5;
+    inner->y.value.intval = 4;
+    inner->w.type = PAD;
+    inner->h.type = PAD;
     dn->show_dirs = show_dirs;
     dn->show_files = show_files;
-    if (show_dirs) {
-	for (uint8_t i=0; i<dp->num_dirs; i++) {
-	    strcat(dn->line_text, dp->dirs[i]->path);
-	    strcat(dn->line_text, "\n");
-	}
-    }
-    if (show_files) {
-	for (uint8_t i=0; i<dp->num_files; i++) {
-	    strcat(dn->line_text, dp->files[i]->path);
-	    strcat(dn->line_text, "\n");
-	}
-    }
-    /* dn->lines = txt_area_create(dn->line_text, dn->layout, main_win->std_font, 14, color_global_white, main_win); */
-    /* dn->lines->layout->children[0]->iterator->scrollable = true; */
+    lt->h.value.intval = DIRNAV_HEIGHT;
+    layout_reset(lt);
+    dn->lines = textlines_create((void **)dn->dirpath->entries, num_items, dir_to_tline, inner, (void *)dn);
+    dn->lines->num_items = dn->num_lines;
     return dn;
 }
 
+extern SDL_Color control_bar_bckgrnd;
 void dirnav_draw(DirNav *dn)
 {
-    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
     SDL_RenderFillRect(main_win->rend, &dn->layout->rect);
-    txt_area_draw(dn->lines);
+    SDL_RenderSetClipRect(main_win->rend, &dn->lines->container->rect);
+    for (uint8_t i=0; i<dn->lines->num_items; i++) {
+	/* fprintf(stdout, "Dn draw %s, %s\n", dn->lines->items[i]->tb->text->value_handle, dn->lines->items[i]->tb->text->display_value); */
+	textbox_reset_full(dn->lines->items[i]->tb);
+	textbox_draw(dn->lines->items[i]->tb);
+    }
+    SDL_RenderSetClipRect(main_win->rend, &main_win->layout->rect);
+/*     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black)); */
+/*     SDL_RenderFillRect(main_win->rend, &dn->layout->rect); */
+/*     txt_area_draw(dn->lines); */
 
-}
+/* } */
 /* void print_dir_contents(const char *dir_name, int indent) { */
 /*     if (indent > 3) { */
 /*         return; */
@@ -235,7 +296,7 @@ void dirnav_draw(DirNav *dn)
 /*     } */
 
 /*     closedir(dir); */
-/* } */
+}
 
 
 void dir_tests()
@@ -243,22 +304,20 @@ void dir_tests()
     DirPath *dp = dirpath_open("/Users/charlievolow/Documents/c/jackdaw/gui/src");
     int i=0;
     DirPath *last = NULL;
-    while (i<6 && (dp = dir_up(dp))) {
+    while (i<4 && (dp = dir_up(dp))) {
 	last = dp;
 	i++;
     }
-    while (i<10 && (dp = dir_down(dp, 2))) {
+    while (i<4 && (dp = dir_down(dp, 2))) {
 	fprintf(stdout, "Down: %s\n", dp->path);
 	last = dp;
 	i++;
     }
     dp = last;
+    fprintf(stdout, "DP num entries: %d\n", dp->num_entries);
     if (dp) {
-	for (uint8_t i=0; i<dp->num_dirs; i++) {
-	    fprintf(stdout, "Dir: %s\n", dp->dirs[i]->path);
-	}
-	for (uint8_t i=0; i<dp->num_files; i++) {
-	    fprintf(stdout, "File: %s\n", dp->files[i]->path);
+	for (uint8_t i=0; i<dp->num_entries; i++) {
+	    fprintf(stdout, "Dir: %s, type: %s\n", dp->entries[i]->path, filetype(dp->entries[i]->type));
 	}
     }
 }

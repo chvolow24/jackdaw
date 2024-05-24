@@ -65,7 +65,6 @@ extern SDL_Color color_global_white;
 extern Project *proj;
 
 
-
 /* static int timed_stop_update_track_vol_pan(void *data) */
 /* { */
 /*     fprintf(stdout, "OK.......\n"); */
@@ -204,12 +203,12 @@ void loop_project_main()
     layout_set_default_dims(mod_lt);
     test_modal = modal_create(mod_lt);
     modal_add_header(test_modal, "Hello world!", &color_global_black, 1);
+    modal_add_dirnav(test_modal, INSTALL_DIR, false, true);
     modal_add_header(test_modal, "Subtitle", &color_global_black, 3);
     modal_add_p(test_modal, modal_p, &color_global_black);
     modal_add_header(test_modal, "Another thing...", &color_global_black, 2);
     modal_add_header(test_modal, "AND", &color_global_black, 1);
     modal_add_p(test_modal, "This is also a paragraph.", &color_global_black);
-    modal_add_dirnav(test_modal, INSTALL_DIR, true, true);
     /* layout_force_reset(test_modal->layout); */
     modal_reset(test_modal);
     /* END TEST */

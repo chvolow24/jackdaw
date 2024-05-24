@@ -17,15 +17,16 @@ typedef struct dirpath DirPath;
 typedef struct filepath FilePath;
 
 typedef struct dirnav {
-    DirPath *dp;
+    DirPath *dirpath;
     Layout *layout;
     bool show_dirs;
     bool show_files;
     Textbox *instruction;
     Textbox *tb_current_path;
-    char line_text[32768];
+    /* char line_text[32768]; */
     /* TextArea *lines; */
     TextLines *lines;
+    uint16_t num_lines;
     /* Menu *entries; */
     /* TextArea *lines; */
     /* uint8_t num_lines; */
@@ -34,10 +35,13 @@ typedef struct dirnav {
 
 typedef struct dirpath {
     char path[MAX_PATHLEN];
-    DirPath *dirs[MAX_DIRS];
-    uint8_t num_dirs;
-    FilePath *files[MAX_FILES];
-    uint8_t num_files;
+    uint8_t type; /* E.g. DT_DIR, DT_REG */
+    DirPath *entries[MAX_DIRS];
+    uint8_t num_entries;
+    /* uint8_t num_files; */
+    /* uint8_t num_dirs; */
+    /* FilePath *files[MAX_FILES]; */
+    /* uint8_t num_files; */
 } DirPath;
 
 typedef struct filepath {

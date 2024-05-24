@@ -66,7 +66,12 @@ void textbox_reset_full(Textbox *tb);
 void textbox_set_pad(Textbox *tb, int h_pad, int v_pad);
 void textbox_set_value_handle(Textbox *tb, const char *new_value);
 
-TextLines *textlines_create(void *items, uint16_t num_items, TLinesItem *(*create_item)(void **curent_item), Layout *container);
+TextLines *textlines_create(
+    void **items,
+    uint16_t num_items,
+    TLinesItem *(*create_item)(void ***curent_item, Layout *container, void *x_arg),
+    Layout *container,
+    void *x_arg);
 void textlines_draw(TextLines *tlines);
 
 #endif

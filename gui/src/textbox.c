@@ -188,15 +188,21 @@ void textbox_set_value_handle(Textbox *tb, const char *new_value)
     txt_set_value_handle(tb->text, (char *) new_value);
 }
 
+#include "dir.h"
 
-TextLines *textlines_create(void *items, uint16_t num_items, TLinesItem *(*create_item)(void **curent_item), Layout *container)
+TextLines *textlines_create(void **items, uint16_t num_items, TLinesItem *(*create_item)(void ***curent_item, Layout *container, void *x_arg), Layout *container, void *x_arg)
 {
+    fprintf(stdout, "CREATE LINES w first item path: %s\n", ((DirPath **)items)[0]->path);
     TextLines *tlines = calloc(1, sizeof(TextLines));
     tlines->items = calloc(num_items, sizeof(TLinesItem *));
     tlines->container = container;
 
     for (uint16_t i=0; i<num_items; i++) {
-	tlines->items[i] = create_item(&items);
+	TLinesItem *item = create_item(&items, container, x_arg);
+	if (item) {
+	    tlines->items[i] = create_item(&items, container, x_arg);
+	    /* i++; */
+	}
     }
     return tlines;
 }

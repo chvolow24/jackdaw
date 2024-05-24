@@ -21,23 +21,14 @@ extern Window *main_win;
 SDL_Color menu_std_clr_inner_border = (SDL_Color) {200, 200, 200, 200};
 SDL_Color menu_std_clr_outer_border = (SDL_Color) {10, 10, 10, 220};
 SDL_Color menu_std_clr_bckgrnd = (SDL_Color) {40, 40, 40, 245};
-
 SDL_Color menu_std_clr_txt = (SDL_Color) {255, 255, 255, 255};
 SDL_Color menu_std_clr_annot_txt = (SDL_Color) {200, 200, 200, 250};
 SDL_Color menu_std_clr_highlight = (SDL_Color) {50, 50, 255, 250};
-/* SDL_Color menu_std_clr_tb_bckgrnd0 = (SDL_Color) {0, 0, 0, 0}; */
-
 SDL_Color menu_std_clr_sctn_div = (SDL_Color) {200, 200, 200, 250};
 
 SDL_Color color_clear = (SDL_Color) {0, 0, 0, 0};
 
 int menu_std_border_rad = 24;
-
-
-/* JDAW_Color menulist_bckgrnd = (JDAW_Color) {,{40, 40, 40, 248}}; */
-/* JDAW_Color menulist_inner_brdr = (JDAW_Color) {,}; */
-/* JDAW_Color menulist_outer_brdr = {,{10, 10, 10, 220}}; */
-
 
 	
 static void menu_reset_textboxes(Menu *menu)

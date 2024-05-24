@@ -20,7 +20,8 @@ enum mod_s_type {
     MODAL_EL_MENU,
     MODAL_EL_TEXTENTRY,
     MODAL_EL_TEXTAREA,
-    MODAL_EL_TEXT
+    MODAL_EL_TEXT,
+    MODAL_EL_DIRNAV
 };
 
 /* union mod_s { */
@@ -44,6 +45,7 @@ typedef struct modal {
 Modal *modal_create(Layout *lt);
 ModalEl *modal_add_header(Modal *modal, const char *text, SDL_Color *color, int level);
 ModalEl *modal_add_p(Modal *modal, const char *text, SDL_Color *color);
+ModalEl *modal_add_dirnav(Modal *modal, const char *dirpath, bool show_dirs, bool show_files);
 void modal_reset(Modal *modal);
 void modal_draw(Modal *modal);
 

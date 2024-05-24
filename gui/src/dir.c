@@ -6,37 +6,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifndef INSTALL_DIR
-#define INSTALL_DIR "."
-#endif
+#include "dir.h"
 
-#define MAX_DIRS 255
-#define MAX_FILES 255
-#define MAX_PATHLEN 255
-
-typedef struct dirpath DirPath;
-typedef struct filepath FilePath;
-
-typedef struct dirpath {
-    char path[MAX_PATHLEN];
-    DirPath *dirs[MAX_DIRS];
-    uint8_t num_dirs;
-    FilePath *files[MAX_FILES];
-    uint8_t num_files;
-} DirPath;
-
-typedef struct filepath {
-    char path[MAX_PATHLEN];
-    
-} FilePath;
+extern Window *main_win;
+extern SDL_Color color_global_black;
+extern SDL_Color color_global_white;
 
 
-char *dir_get_homepath()
-{
-    uid_t uid = getuid();
-    struct passwd *pw = getpwuid(uid);
-    return pw->pw_dir;
-}
+/* static char *dir_get_homepath() */
+/* { */
+/*     uid_t uid = getuid(); */
+/*     struct passwd *pw = getpwuid(uid); */
+/*     return pw->pw_dir; */
+/* } */
 
 char *filetype(uint8_t t)
 {
@@ -60,7 +42,7 @@ char *filetype(uint8_t t)
     case (DT_WHT):
 	return "DT_WHT";
     };
-
+    return 0;
 }
 
 /* void print_dir_contents(char *dir_name, int indent) */
@@ -79,7 +61,7 @@ char *filetype(uint8_t t)
 /* } */
 
 
-int path_updir_name(char *pathname)
+static int path_updir_name(char *pathname)
 {
     int ret = 0;
     char *current = NULL;
@@ -98,13 +80,13 @@ int path_updir_name(char *pathname)
 }
 
 
-char *path_get_tail(char *pathname)
-{
-    char *tail;
-    tail = strtok(pathname, "/");
-    while ((tail = strtok(NULL, "/"))) {}
-    return tail;
-}
+/* static char *path_get_tail(char *pathname) */
+/* { */
+/*     char *tail; */
+/*     tail = strtok(pathname, "/"); */
+/*     while ((tail = strtok(NULL, "/"))) {} */
+/*     return tail; */
+/* } */
 
 static DirPath *dirpath_create(const char *dirpath)
 {
@@ -141,6 +123,7 @@ DirPath *dirpath_open(const char *dirpath)
     DirPath *dp = dirpath_create(dirpath);
     DIR *dir = opendir(dirpath);
     if (!dir) {
+	dirpath_destroy(dp);
 	perror("Failed to open dir");
 	return NULL;
     }
@@ -156,6 +139,7 @@ DirPath *dirpath_open(const char *dirpath)
 	    dp->num_files++;
 	}
     }
+    closedir(dir);
     return dp;
 }
 
@@ -184,46 +168,69 @@ DirPath *dir_up(DirPath *dp)
 	return dp;
     }
     return NULL;
-    /* if (dp) { */
-    /* 	dirpath_destroy(to_free); */
-    /* 	return dp; */
-    /* } else { */
-    /* 	return NULL; */
-    /* } */
-	
-    /* for (uint8_t i=0; i<dp->num_dirs; i++) { */
-    /* 	if (strncmp(path_get_tail(dp->dirs[i]->path), "..", 2) == 0) { */
-    /* 	    dp = dirpath_open(dp->dirs[i]->path); */
-    /* 	    dirpath_destroy(to_free); */
-    /* 	    return dp; */
-    /* 	} */
-    /* } */
 }
 
-void print_dir_contents(const char *dir_name, int indent) {
-    if (indent > 3) {
-        return;
+
+DirNav *dirnav_create(const char *dir_name, Layout *lt, bool show_dirs, bool show_files)
+{
+    DirPath *dp = dirpath_open(dir_name);
+    if (!dp) {
+	return NULL;
     }
-
-    DIR *dir = opendir(dir_name);
-    if (!dir) {
-        perror("opendir");
-        return;
+    DirNav *dn = calloc(1, sizeof(DirNav));
+    dn->layout = lt;
+    dn->show_dirs = show_dirs;
+    dn->show_files = show_files;
+    if (show_dirs) {
+	for (uint8_t i=0; i<dp->num_dirs; i++) {
+	    strcat(dn->line_text, dp->dirs[i]->path);
+	    strcat(dn->line_text, "\n");
+	}
     }
-
-    struct dirent *tdir;
-    while ((tdir = readdir(dir))) {
-        fprintf(stdout, "%*sName: %s\n", indent * 2, "", tdir->d_name);
-
-        if (tdir->d_type == DT_DIR && strcmp(tdir->d_name, ".") != 0 && strcmp(tdir->d_name, "..") != 0 && strncmp(tdir->d_name, ".", 1) != 0) {
-            char path[1024];
-            snprintf(path, sizeof(path), "%s/%s", dir_name, tdir->d_name);
-            print_dir_contents(path, indent + 1);
-        }
+    if (show_files) {
+	for (uint8_t i=0; i<dp->num_files; i++) {
+	    strcat(dn->line_text, dp->files[i]->path);
+	    strcat(dn->line_text, "\n");
+	}
     }
-
-    closedir(dir);
+    dn->lines = txt_area_create(dn->line_text, dn->layout, main_win->std_font, 14, color_global_white, main_win);
+    dn->lines->layout->children[0]->iterator->scrollable = true;
+    return dn;
 }
+
+void dirnav_draw(DirNav *dn)
+{
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
+    SDL_RenderFillRect(main_win->rend, &dn->layout->rect);
+    txt_area_draw(dn->lines);
+
+}
+/* void print_dir_contents(const char *dir_name, int indent) { */
+/*     if (indent > 3) { */
+/*         return; */
+/*     } */
+
+/*     DIR *dir = opendir(dir_name); */
+/*     if (!dir) { */
+/*         perror("opendir"); */
+/*         return; */
+/*     } */
+
+/*     struct dirent *tdir; */
+/*     while ((tdir = readdir(dir))) { */
+/*         fprintf(stdout, "%*sName: %s\n", indent * 2, "", tdir->d_name); */
+
+/*         if (tdir->d_type == DT_DIR && strcmp(tdir->d_name, ".") != 0 && strcmp(tdir->d_name, "..") != 0 && strncmp(tdir->d_name, ".", 1) != 0) { */
+/*             char path[1024]; */
+/*             snprintf(path, sizeof(path), "%s/%s", dir_name, tdir->d_name); */
+/*             print_dir_contents(path, indent + 1); */
+/*         } */
+/*     } */
+
+/*     closedir(dir); */
+/* } */
+
+
 void dir_tests()
 {
     DirPath *dp = dirpath_open("/Users/charlievolow/Documents/c/jackdaw/gui/src");
@@ -247,16 +254,4 @@ void dir_tests()
 	    fprintf(stdout, "File: %s\n", dp->files[i]->path);
 	}
     }
-    /* fprintf(stdout, "Home dir : %s\n", dir_get_homepath()); */
-    /* print_dir_contents(INSTALL_DIR, 0); */
-    
-    /* DIR *homedir = opendir(dir_get_homepath()); */
-    /* struct dirent *tdir; */
-    /* while ((tdir = readdir(homedir))) { */
-    /* 	fprintf(stdout, "Name: %s, type: %s\n", tdir->d_name, filetype(tdir->d_type)); */
-    /* 	if (tdir->d_type == DT_DIR) { */
-    /* 	    dir_tests() */
-    /* 	} */
-    /* } */
-
 }

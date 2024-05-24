@@ -738,6 +738,7 @@ void txt_draw(Text *txt)
 
 void txt_area_draw(TextArea *txtarea)
 {
+    SDL_RenderSetClipRect(main_win->rend, (const SDL_Rect *)(&txtarea->layout->rect));
     for (int i=0; i<txtarea->num_lines; i++) {
 	Layout *line_lt = txtarea->layout->children[0]->iterator->iterations[i];
 	line_lt->rect.w = txtarea->line_widths[i];
@@ -747,4 +748,5 @@ void txt_area_draw(TextArea *txtarea)
 	    exit(1);
 	}
     }
+    SDL_RenderSetClipRect(main_win->rend, (const SDL_Rect *)(&main_win->layout->rect));
 }

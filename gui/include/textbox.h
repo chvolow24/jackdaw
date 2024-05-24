@@ -7,7 +7,6 @@
 #define MAX_MENU_SCTN_LEN 64
 #define MAX_MENU_SECTIONS 16
 #define MAX_MENU_COLUMNS 8
-
 /*
   Textbox layout must have "text" target
   and "box" target
@@ -22,6 +21,13 @@ typedef struct textbox {
     int corner_radius;
     Window *window;
 } Textbox;
+
+typedef struct text_lines {
+    Textbox **tbs;
+    uint16_t num_tbs;
+    Layout *container;
+    Layout *line_template;
+} TextLines;
 
 Textbox *textbox_create();
 void textbox_destroy(Textbox *);

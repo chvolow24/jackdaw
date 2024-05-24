@@ -1,6 +1,5 @@
-#include "color.h"
+#include "dir.h"
 #include "modal.h"
-#include "textbox.h"
 
 #define MODAL_V_PADDING 5
 #define MODAL_FONTSIZE_H1 36
@@ -129,6 +128,20 @@ ModalEl *modal_add_p(Modal *modal, const char *text, SDL_Color *color)
     return el;
 }
 
+ModalEl *modal_add_dirnav(Modal *modal, const char *dirpath, bool show_dirs, bool show_files)
+{
+    ModalEl *el = modal_add_el(modal);
+    el->layout->x.type = REL;
+    el->layout->x.value.intval = MODAL_V_PADDING * 2;
+    el->layout->w.type = PAD;
+    layout_reset(el->layout);
+    el->type = MODAL_EL_DIRNAV;
+    DirNav *dn = dirnav_create(dirpath, el->layout, show_dirs, show_files);
+    el->obj = (void *)dn;
+    return el;
+
+}
+
 static void modal_el_reset(ModalEl *el)
 {
     /* fprintf(stdout, "Resetting el... \n"); */
@@ -150,6 +163,7 @@ static void modal_el_reset(ModalEl *el)
 	/* fprintf(stdout, "Reset Textbox %s to lt %d %d %d %d\n", ((Textbox *)el->obj)->text->value_handle, ((Textbox *)el->obj)->layout->rect.x, ((Textbox *)el->obj)->layout->rect.y, ((Textbox *)el->obj)->layout->rect.w, ((Textbox *)el->obj)->layout->rect.h); */
 	/* fprintf(stdout, "Reset Textbox %s to lt y: %d %d %d %d\n", ((Textbox *)el->obj)->text->value_handle, ((Textbox *)el->obj)->layout->rect.y); */
 	/* layout_force_reset(el->layout); */
+    case MODAL_EL_DIRNAV:
 	break;
     }
 }
@@ -181,6 +195,8 @@ static void modal_el_draw(ModalEl *el)
     case MODAL_EL_TEXT:
 	textbox_draw((Textbox *)el->obj);
 	break;
+    case MODAL_EL_DIRNAV:
+	dirnav_draw((DirNav *)el->obj);
     }
 }
 

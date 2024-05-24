@@ -126,7 +126,7 @@ void dir_tests();
 int main(int argc, char **argv)
 {
     dir_tests();
-    exit(0);
+    /* exit(0); */
     fprintf(stdout, "\n\nJACKDAW (version %s)\nby Charlie Volow\n\n", JACKDAW_VERSION);
     
     init();

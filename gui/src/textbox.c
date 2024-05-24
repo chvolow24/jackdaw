@@ -190,18 +190,33 @@ void textbox_set_value_handle(Textbox *tb, const char *new_value)
 
 #include "dir.h"
 
-TextLines *textlines_create(void **items, uint16_t num_items, TLinesItem *(*create_item)(void ***curent_item, Layout *container, void *x_arg), Layout *container, void *x_arg)
+TextLines *textlines_create(
+    void **items,
+    uint16_t num_items,
+    bool (*filter)(void *item, void *x_arg),
+    TLinesItem *(*create_item)(void ***curent_item, Layout *container, void *x_arg, bool (*filter)(void *item, void *x_arg)),
+    Layout *container, void *x_arg)
 {
+    uint16_t num_items_after_filter = 0;
+    for (uint16_t i=0; i<num_items; i++) {
+	if (filter(items[i], x_arg)) num_items_after_filter++;
+    }
     fprintf(stdout, "CREATE LINES w first item path: %s\n", ((DirPath **)items)[0]->path);
     TextLines *tlines = calloc(1, sizeof(TextLines));
-    tlines->items = calloc(num_items, sizeof(TLinesItem *));
+    tlines->items = calloc(num_items_after_filter, sizeof(TLinesItem *));
+    tlines->num_items = num_items_after_filter;
     tlines->container = container;
 
+    uint16_t line_i = 0;
     for (uint16_t i=0; i<num_items; i++) {
-	TLinesItem *item = create_item(&items, container, x_arg);
+	TLinesItem *item = create_item(&items, container, x_arg, filter);
 	if (item) {
-	    tlines->items[i] = create_item(&items, container, x_arg);
+	    tlines->items[line_i] = item;
+	    fprintf(stdout, "Item %d = %s\n", i, ((DirPath *)tlines->items[line_i]->obj)->path);
+	    line_i++;
 	    /* i++; */
+	} else {
+	    fprintf(stdout, "ERROR: no item at index %d\n", i);
 	}
     }
     return tlines;

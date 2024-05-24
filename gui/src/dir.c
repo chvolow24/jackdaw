@@ -185,26 +185,34 @@ DirPath *dir_up(DirPath *dp)
     return NULL;
 }
 
-static TLinesItem *dir_to_tline(void ***current_item_v, Layout *container, void *dn_v)
+int i=0;
+static TLinesItem *dir_to_tline(void ***current_item_v, Layout *container, void *dn_v, bool (*filter)(void *item, void *x_arg))
 {
+    fprintf(stdout, "Call %d to dir_to_tline\n", i);
+    i++;
     DirNav *dn = (DirNav *)dn_v;
     DirPath ***dps_loc = (DirPath ***)current_item_v;
     DirPath **dps = *dps_loc;
     DirPath *dp = dps[0];
+    fprintf(stdout, "\tDp: %p\n", dp);
     if (!dp) {
 	fprintf(stderr, "ERROR: null at addr %p\n",*current_item_v);
 	(*dps_loc)++;
-	return NULL;
-	
+	return NULL;	
     }
-
-    if ((!dn->show_dirs && dp->type == DT_DIR) || (!dn->show_files && dp->type != DT_DIR)) {
-	/* dn->lines->num_items++; */
-	fprintf(stdout, "Skipping\n");
-	/* dn->num_lines++; */
+    if (!filter(dp, dn_v)) {
+	fprintf(stdout, "Item did not match filter\n");
 	(*dps_loc)++;
 	return NULL;
     }
+
+    /* if ((!dn->show_dirs && dp->type == DT_DIR) || (!dn->show_files && dp->type != DT_DIR)) { */
+    /* 	/\* dn->lines->num_items++; *\/ */
+    /* 	fprintf(stdout, "Skipping\n"); */
+    /* 	/\* dn->num_lines++; *\/ */
+    /* 	(*dps_loc)++; */
+    /* 	return NULL; */
+    /* } */
     TLinesItem *item = calloc(1, sizeof(TLinesItem));
     item->obj = (void *)dp;
     Layout *lt = layout_add_child(container);
@@ -230,7 +238,13 @@ bool dir_to_tline_filter(void *item, void *x_arg)
 {
     DirPath *dp = (DirPath *)item;
     DirNav *dn = (DirNav *)x_arg;
-
+    if (!dn->show_dirs && dp->type == DT_DIR) {
+	return false;
+    }
+    if (!dn->show_files && dp->type != DT_DIR) {
+	return false;
+    }
+    return true;
 }
 
 DirNav *dirnav_create(const char *dir_name, Layout *lt, bool show_dirs, bool show_files)
@@ -239,6 +253,13 @@ DirNav *dirnav_create(const char *dir_name, Layout *lt, bool show_dirs, bool sho
     if (!dp) {
 	return NULL;
     }
+    fprintf(stdout, "Dirpath open\n");
+    fprintf(stdout, "Dirpath num items? %d\n", dp->num_entries);
+    for (uint16_t i=0; i<dp->num_entries; i++) {
+	fprintf(stdout, "Entry %d/%d: %s\n", i, dp->num_entries, dp->entries[i]->path);
+    }
+    /* exit(0); */
+
     DirNav *dn = calloc(1, sizeof(DirNav));
     dn->dirpath = dp;
     dn->layout = lt;
@@ -251,7 +272,7 @@ DirNav *dirnav_create(const char *dir_name, Layout *lt, bool show_dirs, bool sho
     dn->show_files = show_files;
     lt->h.value.intval = DIRNAV_HEIGHT;
     layout_reset(lt);
-    dn->lines = textlines_create((void **)dn->dirpath->entries, num_items, dir_to_tline, inner, (void *)dn);
+    dn->lines = textlines_create((void **)dn->dirpath->entries, dp->num_entries, dir_to_tline_filter, dir_to_tline, inner, (void *)dn);
     dn->lines->num_items = dn->num_lines;
     return dn;
 }
@@ -259,11 +280,16 @@ DirNav *dirnav_create(const char *dir_name, Layout *lt, bool show_dirs, bool sho
 extern SDL_Color control_bar_bckgrnd;
 void dirnav_draw(DirNav *dn)
 {
+
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
     SDL_RenderFillRect(main_win->rend, &dn->layout->rect);
     SDL_RenderSetClipRect(main_win->rend, &dn->lines->container->rect);
     for (uint8_t i=0; i<dn->lines->num_items; i++) {
+	TLinesItem *tli = NULL;
 	/* fprintf(stdout, "Dn draw %s, %s\n", dn->lines->items[i]->tb->text->value_handle, dn->lines->items[i]->tb->text->display_value); */
+	if ((tli = dn->lines->items[i]) == NULL || tli->tb == NULL) {
+	    continue;
+	}
 	textbox_reset_full(dn->lines->items[i]->tb);
 	textbox_draw(dn->lines->items[i]->tb);
     }

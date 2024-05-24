@@ -25,7 +25,7 @@
 *****************************************************************************************************************/
 
 /*****************************************************************************************************************
-    project_loop.c
+    project_loop.cyes
 
     * main project animation loop
     * in-progress animations and updates
@@ -203,7 +203,7 @@ void loop_project_main()
     layout_set_default_dims(mod_lt);
     test_modal = modal_create(mod_lt);
     modal_add_header(test_modal, "Hello world!", &color_global_black, 1);
-    modal_add_dirnav(test_modal, INSTALL_DIR, false, true);
+    modal_add_dirnav(test_modal, INSTALL_DIR, true, false);
     modal_add_header(test_modal, "Subtitle", &color_global_black, 3);
     modal_add_p(test_modal, modal_p, &color_global_black);
     modal_add_header(test_modal, "Another thing...", &color_global_black, 2);

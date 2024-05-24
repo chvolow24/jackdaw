@@ -81,7 +81,6 @@ bool read_bool_str(char *bstr)
 
 void layout_write(FILE *f, Layout *lt, int indent)
 {
-    fprintf(stdout, "Layout write (%s)\n", lt->name);
     if (lt->type == PRGRM_INTERNAL) {
         return;
     }

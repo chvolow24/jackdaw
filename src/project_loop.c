@@ -37,6 +37,7 @@
 #include "draw.h"
 #include "input.h"
 #include "layout.h"
+#include "modal.h"
 #include "mouse.h"
 #include "project.h"
 #include "project_draw.h"
@@ -47,6 +48,7 @@
 
 extern Window *main_win;
 extern SDL_Color color_global_black;
+extern SDL_Color color_global_white;
 
 #define MAX_MODES 8
 #define STICK_DELAY_MS 500
@@ -163,7 +165,9 @@ static void update_track_vol_pan()
 /*     return 0; */
 /* } */
 
+Modal *test_modal;
 
+void layout_write(FILE *f, Layout *lt, int indent);
 void loop_project_main()
 {
 
@@ -185,6 +189,26 @@ void loop_project_main()
 
     window_push_mode(main_win, TIMELINE);
 
+
+
+    /* TESTING */
+    const char *modal_p = "Hello. My name is charlie volow. I am here to test this modal thing I am implementing. It is very unlikely that I will be happy with how it works; however, I think it is necessary, and good, and this is the best I can do to get what I want. I will say that it is better than other code I have written";
+    Layout *mod_lt = layout_add_child(proj->layout);
+    layout_set_default_dims(mod_lt);
+    test_modal = modal_create(mod_lt);
+    modal_add_header(test_modal, "Hello world!", &color_global_black, 1);
+    modal_add_header(test_modal, "Subtitle", &color_global_black, 3);
+    modal_add_p(test_modal, modal_p, &color_global_black);
+    modal_add_header(test_modal, "Another thing...", &color_global_black, 2);
+    modal_add_header(test_modal, "AND", &color_global_black, 1);
+    modal_add_p(test_modal, "This is also a paragraph.", &color_global_black);
+    /* layout_force_reset(test_modal->layout); */
+    modal_reset(test_modal);
+    /* END TEST */
+
+
+    
+    /* layout_write(stdout, main_win->layout, 0); */
     /* SDL_AddEventWatch(window_resize_callback, NULL); */
     /* window_resize_passive(main_win, main_win->w, main_win->h); */
     while (!(main_win->i_state & I_STATE_QUIT)) {
@@ -220,6 +244,8 @@ void loop_project_main()
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LCTRL:
 		case SDL_SCANCODE_RCTRL:
+		    modal_reset(test_modal);
+		    /* layout_reset(main_win->layout); */
 		    main_win->i_state |= I_STATE_CMDCTRL;
 		    break;
 		case SDL_SCANCODE_LSHIFT:

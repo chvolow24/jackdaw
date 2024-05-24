@@ -39,7 +39,7 @@
 
 #define WINDOW_PAD 100
 
-#define NUM_LT_TYPES 5
+#define NUM_LT_TYPES 6
 
 /* extern Layout *main_lt; */
 /* extern SDL_Color white; */
@@ -71,6 +71,8 @@ const char *layout_get_dimtype_str(DimType dt)
 	return "COMPLEMENT";
     case STACK:
 	return "STACK";
+    case PAD:
+	return "PAD";
     default:
 	fprintf(stderr, "Error: DimType has value %d, which is not a member of enum.\n", dt);
 	exit(1);
@@ -93,6 +95,7 @@ void layout_get_dimval_str(Dimension *dim, char *dst, int maxlen)
     case ABS:
     case COMPLEMENT:
     case STACK:
+    case PAD:
     case REL:
 	snprintf(dst, maxlen - 1, "%d", dim->value.intval);
 	break;
@@ -197,6 +200,8 @@ void layout_set_wh_from_rect(Layout *lt)
 	break; /* Vales are irrelevant for COMPLEMENT */
     case STACK:
 	break;
+    case PAD:
+	break;
 	    
 		
     }
@@ -221,6 +226,8 @@ void layout_set_wh_from_rect(Layout *lt)
     case COMPLEMENT:
 	break;
     case STACK:
+	break;
+    case PAD:
 	break;
 	
     }
@@ -259,6 +266,8 @@ void layout_set_values_from_rect(Layout *lt)
 	}
 	break;
     }
+    case PAD:
+	break;
     }
     switch (lt->y.type) {
     case ABS:
@@ -291,6 +300,8 @@ void layout_set_values_from_rect(Layout *lt)
 	    lt->y.value.intval = (lt->rect.y - lt->parent->rect.y) / main_win->dpi_scale_factor;
 	}
     }
+	break;
+    case PAD:
 	break;
     }
 
@@ -384,7 +395,9 @@ void layout_set_edge(Layout *lt, Edge edge, int set_to, bool block_snap)
 static Layout *get_scrollable_layout_at_point(Layout *lt, SDL_Point *mousep)
 {
     Layout *ret = NULL;
-    if (!lt->parent && SDL_PointInRect(mousep, &(lt->rect))) {
+    if (lt->hidden) {
+	ret = NULL;
+    } else if (!lt->parent && SDL_PointInRect(mousep, &(lt->rect))) {
 	for (int i=0; !ret && i<lt->num_children; i++) {
 	    ret = get_scrollable_layout_at_point(lt->children[i], mousep);
 	}
@@ -689,6 +702,8 @@ int set_rect_xy(Layout *lt)
 	}
 	break;
     }
+    case PAD:
+	break;
     }
     switch (lt->y.type) {
     case ABS:
@@ -713,6 +728,8 @@ int set_rect_xy(Layout *lt)
 	}
 	break;
     }
+    case PAD:
+	break;
     }
     return 1;
 }
@@ -741,6 +758,14 @@ int set_rect_wh(Layout *lt)
     }
     case STACK:
 	break;
+    case PAD:
+	if (!lt->parent) {
+	    break;
+	}
+	set_rect_xy(lt);
+	lt->rect.w = lt->parent->rect.w - 2 * (lt->rect.x - lt->parent->rect.x);
+	break;
+
     }
     switch (lt->h.type) {
     case ABS:
@@ -764,6 +789,13 @@ int set_rect_wh(Layout *lt)
 	break;
     }
     case STACK:
+	break;
+    case PAD:
+	if (!lt->parent) {
+	    break;
+	}
+	set_rect_xy(lt);
+	lt->rect.h = lt->parent->rect.h - 2 * (lt->rect.y - lt->parent->rect.y);
 	break;
     }
     return 1;
@@ -997,6 +1029,34 @@ void layout_reparent(Layout *child, Layout *parent)
     layout_reset(child);
 }
 
+void layout_center_agnostic(Layout *lt, bool horizontal, bool vertical)
+{
+    if (horizontal) lt->rect.x = lt->parent->rect.x + lt->parent->rect.w / 2 - lt->rect.w / 2;
+    if (vertical) lt->rect.y = lt->parent->rect.y + lt->parent->rect.h / 2 - lt->rect.h / 2;
+    layout_set_values_from_rect(lt);
+}
+
+void layout_center_relative(Layout *lt, bool horizontal, bool vertical)
+{
+    if (!lt->parent) {
+	return;
+    }
+    if (horizontal) lt->x.type = REL;
+    if (vertical) lt->y.type = REL;
+    layout_center_agnostic(lt, horizontal, vertical);
+
+}
+
+void layout_center_scale(Layout *lt, bool horizontal, bool vertical)
+{
+    if (!lt->parent) {
+	return;
+    }
+    if (horizontal) lt->x.type = SCALE;
+    if (vertical) lt->y.type = SCALE;
+    layout_center_agnostic(lt, horizontal, vertical);
+}
+
 void layout_set_default_dims(Layout *lt)
 {
     DimVal dv;
@@ -1095,10 +1155,35 @@ void layout_toggle_dimension(Layout *lt, Dimension *dim, RectMem rm, SDL_Rect *r
     layout_set_values_from_rect(lt);
 }
 
-    Layout *template;
-    IteratorType type;
-    uint8_t num_iterations;
-    Layout *iterations;
+void layout_size_to_fit_children(Layout *lt, bool fixed_origin, int padding)
+{
+    int min_x = main_win->layout->rect.w;
+    int max_x = 0;
+    int min_y = main_win->layout->rect.h;
+    int max_y = 0;
+    int right, bottom;
+    for (uint8_t i=0; i<lt->num_children; i++) {
+	Layout *child = lt->children[i];
+	if (child->rect.x < min_x) min_x = child->rect.x;
+	if (child->rect.y < min_y) min_y = child->rect.y;
+	if ((right = child->rect.x + child->rect.w) > max_x) max_x = right;
+	if ((bottom = child->rect.y + child->rect.h) > max_y) max_y = bottom;
+    }
+    if (!fixed_origin) {
+	lt->rect.x = min_x - padding * main_win->dpi_scale_factor;
+	lt->rect.y = min_y - padding * main_win->dpi_scale_factor;
+    }
+    lt->rect.w = max_x - lt->rect.x + padding * main_win->dpi_scale_factor;
+    lt->rect.h = max_y - lt->rect.y + padding * main_win->dpi_scale_factor;
+    layout_set_values_from_rect(lt);
+}
+
+
+
+/* Layout *template; */
+/* IteratorType type; */
+/* uint8_t num_iterations; */
+/* Layout *iterations; */
 LayoutIterator *create_iterator() 
 {
     LayoutIterator *iter = malloc(sizeof(LayoutIterator));

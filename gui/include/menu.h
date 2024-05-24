@@ -68,7 +68,7 @@ MenuItem *menu_item_add(
 /* void menu_item_destroy(MenuItem *item); */
 /* void menu_section_destroy(MenuSection *section); */
 void menu_destroy(Menu *menu);
-
+void menu_reset_layout(Menu *menu);
 void menu_draw(Menu *menu);
 void triage_mouse_menu(Menu *menu, SDL_Point *mousep, bool click);
 

@@ -615,8 +615,6 @@ static int txt_area_create_line(TextArea *txtarea, char **line_start, int w)
 
 void txt_area_create_lines(TextArea *txtarea)
 {
-
-
     TTF_Font *font = ttf_get_font_at_size(txtarea->font, txtarea->text_size);
 
 /* Clear old values if present */
@@ -637,7 +635,7 @@ void txt_area_create_lines(TextArea *txtarea)
     int w = txtarea->layout->rect.w;
 
     w = w < TXT_AREA_W_MIN ? TXT_AREA_W_MIN : w;
-    fprintf(stdout, "CREATING HEADER w fixed w %d\n", w);
+    /* fprintf(stdout, "CREATING HEADER w fixed w %d\n", w); */
     char *line_start = value_copy;
     while (txt_area_create_line(txtarea, &line_start, w) > 0) {
     }
@@ -651,11 +649,13 @@ void txt_area_create_lines(TextArea *txtarea)
     Layout *line_template = layout_add_child(txtarea->layout);
     line_template->y.value.intval = txtarea->line_spacing;
     line_template->h.value.intval = txtarea->text_h / txtarea->win->dpi_scale_factor;
-    
+
+    txtarea->layout->h.value.intval = 0;
     for (int i=0; i<txtarea->num_lines; i++) {
 	txtarea->layout->h.value.intval += (txtarea->text_h / txtarea->win->dpi_scale_factor) + txtarea->line_spacing;
 	layout_add_iter(line_template, VERTICAL, false);
     }
+    layout_force_reset(txtarea->layout);
 
  
 }

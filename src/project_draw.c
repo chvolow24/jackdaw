@@ -35,6 +35,7 @@
 
 #include "color.h"
 #include "geometry.h"
+#include "modal.h"
 #include "project.h"
 #include "textbox.h"
 #include "timeline.h"
@@ -299,7 +300,6 @@ static void ruler_draw(Timeline *tl)
 
     
 }
-
 static void timeline_draw(Timeline *tl)
 {
     /* Draw the timeline background */
@@ -480,6 +480,7 @@ static void control_bar_draw(Project *proj)
     }
 }
 
+extern Modal *test_modal;
 void project_draw()
 {
     window_start_draw(main_win, &color_global_black);
@@ -487,6 +488,7 @@ void project_draw()
     control_bar_draw(proj);
     textbox_draw(proj->timeline_label);
     window_draw_menus(main_win);
+    modal_draw(test_modal);
     window_end_draw(main_win);
 }
 

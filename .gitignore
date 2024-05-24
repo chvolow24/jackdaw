@@ -20,3 +20,6 @@ gui/gifframes
 *._h
 layout
 jackdaw
+animation.gif
+gifframes
+*.dSYM

@@ -35,8 +35,9 @@ typedef enum dimtype {
     REL, /* x or y relative to parent */
     ABS, /* relative to Window only */
     SCALE, /* x, y, w, or h as proportion of parent (e.g. w = 0.5 => width is half of parent) */
-    COMPLEMENT,
-    STACK
+    COMPLEMENT, /* fill the space in parent left by last sibling */
+    STACK, /* start where last sibling ended */
+    PAD /* applies to w or h; set right bound equal to x bound */
 } DimType;
 
 typedef enum rect_mem {
@@ -65,6 +66,7 @@ typedef enum layout_type {
     ITERATION, /* A child of an iterator */
     NORMAL
 } LayoutType;
+
 
 typedef struct layout Layout;
 typedef struct layout_iterator LayoutIterator;
@@ -147,11 +149,16 @@ void layout_reparent(Layout *child, Layout *parent);
 // Layout *read_layout(FILE *f, long endrange);
 Layout *layout_copy(Layout *to_copy, Layout *parent);
 
+void layout_center_agnostic(Layout *lt, bool horizontal, bool vertical);
+void layout_center_scale(Layout *lt, bool horizontal, bool vertical);
+void layout_center_relative(Layout *lt, bool horizontal, bool vertical);
+
 Layout *layout_get_child_by_name(Layout *lt, const char *name);
 Layout *layout_get_child_by_name_recursive(Layout *lt, const char *name);
 void layout_set_type_recursive(Layout *lt, LayoutType type);
 void layout_pad(Layout *lt, int h_pad, int v_pad);
 Layout *layout_deepest_at_point(Layout *search, SDL_Point *point);
+void layout_size_to_fit_children(Layout *lt, bool fixed_origin, int padding);
 const char *layout_get_dimtype_str(DimType dt);
 const char *layout_get_itertype_str(IteratorType iter_type);
 

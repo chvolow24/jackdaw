@@ -923,7 +923,9 @@ Layout *layout_create()
     lt->rect = (SDL_Rect) {0,0,0,0};
     lt->label_rect = (SDL_Rect) {0,0,0,0};
     if (LT_DEV_MODE) {
-	lt->namelabel = txt_create_from_str(lt->name, MAX_LT_NAMELEN, &(lt->label_rect), main_win->std_font, 12, color_global_white, CENTER_LEFT, false, main_win);
+	/* lt->label_layout_add_child( */
+	lt->namelabel = NULL;
+	/* lt->namelabel = txt_create_from_str(lt->name, MAX_LT_NAMELEN, &(lt->label_rect), main_win->std_font, 12, color_global_white, CENTER_LEFT, false, main_win); */
     } else {
 	lt->namelabel = NULL;
     }

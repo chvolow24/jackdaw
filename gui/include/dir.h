@@ -24,7 +24,8 @@ typedef struct dirnav {
     Textbox *instruction;
     Textbox *tb_current_path;
     char line_text[32768];
-    TextArea *lines;
+    /* TextArea *lines; */
+    TextLines *lines;
     /* Menu *entries; */
     /* TextArea *lines; */
     /* uint8_t num_lines; */

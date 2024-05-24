@@ -139,19 +139,19 @@ ModalEl *modal_add_dirnav(Modal *modal, const char *dirpath, bool show_dirs, boo
     DirNav *dn = dirnav_create(dirpath, el->layout, show_dirs, show_files);
     el->obj = (void *)dn;
     return el;
-
 }
 
 static void modal_el_reset(ModalEl *el)
 {
     /* fprintf(stdout, "Resetting el... \n"); */
     /* SDL_Delay(1000); */
+    /* layout_force_reset(el->layout); */
     switch (el->type) {
     case MODAL_EL_MENU:
 	menu_reset_layout((Menu *)el->obj);
 	break;
     case MODAL_EL_TEXTENTRY:
-	textbox_reset_full((Textbox *)el->obj);
+	/* textbox_reset_full((Textbox *)el->obj); */
 	break;
     case MODAL_EL_TEXTAREA:
 	/* txt_area_create_lines((TextArea *)el->obj); */

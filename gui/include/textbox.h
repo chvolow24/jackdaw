@@ -22,11 +22,16 @@ typedef struct textbox {
     Window *window;
 } Textbox;
 
+typedef struct text_lines_item {
+    Textbox *tb;
+    void *obj;
+    void *(*action)(void *self, void *target);
+} TLinesItem;
+
 typedef struct text_lines {
-    Textbox **tbs;
-    uint16_t num_tbs;
+    TLinesItem **items;
+    uint16_t num_items;
     Layout *container;
-    Layout *line_template;
 } TextLines;
 
 Textbox *textbox_create();
@@ -61,5 +66,7 @@ void textbox_reset_full(Textbox *tb);
 void textbox_set_pad(Textbox *tb, int h_pad, int v_pad);
 void textbox_set_value_handle(Textbox *tb, const char *new_value);
 
+TextLines *textlines_create(void *items, uint16_t num_items, TLinesItem *(*create_item)(void **curent_item), Layout *container);
+void textlines_draw(TextLines *tlines);
 
 #endif

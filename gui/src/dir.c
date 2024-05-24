@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "dir.h"
+#include "textbox.h"
 
 extern Window *main_win;
 extern SDL_Color color_global_black;
@@ -171,6 +172,12 @@ DirPath *dir_up(DirPath *dp)
 }
 
 
+static TLinesItem *create_tlitem_from_dir(void *dir_v)
+{
+
+
+}
+
 DirNav *dirnav_create(const char *dir_name, Layout *lt, bool show_dirs, bool show_files)
 {
     DirPath *dp = dirpath_open(dir_name);
@@ -193,8 +200,8 @@ DirNav *dirnav_create(const char *dir_name, Layout *lt, bool show_dirs, bool sho
 	    strcat(dn->line_text, "\n");
 	}
     }
-    dn->lines = txt_area_create(dn->line_text, dn->layout, main_win->std_font, 14, color_global_white, main_win);
-    dn->lines->layout->children[0]->iterator->scrollable = true;
+    /* dn->lines = txt_area_create(dn->line_text, dn->layout, main_win->std_font, 14, color_global_white, main_win); */
+    /* dn->lines->layout->children[0]->iterator->scrollable = true; */
     return dn;
 }
 

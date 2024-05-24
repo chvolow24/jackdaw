@@ -44,8 +44,9 @@ SDL_Color highlight = {0, 0, 255, 80};
 
 static void init_empty_text(
     Text *txt,
-    SDL_Rect *container, 
+    /* SDL_Rect *container,  */
     /* TTF_Font *font,  */
+    Layout *container,
     Font *font,
     uint8_t text_size,
     SDL_Color txt_clr, 
@@ -59,6 +60,7 @@ static void init_empty_text(
     txt->len = 0;
     txt->max_len = 0;
     txt->container = container;
+    txt->text_lt = layout_add_child(container);
 
     /* txt->font = font; */
     txt->font = font;
@@ -79,7 +81,8 @@ static void init_empty_text(
 }
 
 static Text *create_empty_text(
-    SDL_Rect *container,
+    /* SDL_Rect *container, */
+    Layout *container,
     Font *font,
     uint8_t text_size,
     /* TTF_Font *font,  */
@@ -122,37 +125,38 @@ void txt_reset_drawable(Text *txt)
         return;
     }
     SDL_FreeSurface(surface);
-    SDL_QueryTexture(txt->texture, NULL, NULL, &(txt->text_rect.w), &(txt->text_rect.h));
+    SDL_QueryTexture(txt->texture, NULL, NULL, &(txt->text_lt->rect.w), &(txt->text_lt->rect.h));
     switch (txt->align) {
     case CENTER:
-	txt->text_rect.x = txt->container->x + (int) round((float)txt->container->w / 2.0 - (float) txt->text_rect.w / 2.0);
-	txt->text_rect.y = txt->container->y + (int) round((float)txt->container->h / 2.0 - (float) txt->text_rect.h / 2.0);
+	txt->text_lt->rect.x = txt->container->rect.x + (int) round((float)txt->container->rect.w / 2.0 - (float) txt->text_lt->rect.w / 2.0);
+	txt->text_lt->rect.y = txt->container->rect.y + (int) round((float)txt->container->rect.h / 2.0 - (float) txt->text_lt->rect.h / 2.0);
 	break;
     case TOP_LEFT:
-	txt->text_rect.x = txt->container->x + txt->h_pad * txt->win->dpi_scale_factor;
-	txt->text_rect.y = txt->container->y;
+	txt->text_lt->rect.x = txt->container->rect.x + txt->h_pad * txt->win->dpi_scale_factor;
+	txt->text_lt->rect.y = txt->container->rect.y;
 	break;
     case TOP_RIGHT:
-	txt->text_rect.x = txt->container->x + txt->container->w - txt->text_rect.w;
-	txt->text_rect.y = txt->container->y + txt->v_pad * txt->win->dpi_scale_factor;
+	txt->text_lt->rect.x = txt->container->rect.x + txt->container->rect.w - txt->text_lt->rect.w;
+	txt->text_lt->rect.y = txt->container->rect.y + txt->v_pad * txt->win->dpi_scale_factor;
 	break;
     case BOTTOM_LEFT:
-	txt->text_rect.x = txt->container->x + txt->h_pad * txt->win->dpi_scale_factor;
-	txt->text_rect.y = txt->container->y + txt->container->h - txt->text_rect.h - txt->v_pad * txt->win->dpi_scale_factor;
+	txt->text_lt->rect.x = txt->container->rect.x + txt->h_pad * txt->win->dpi_scale_factor;
+	txt->text_lt->rect.y = txt->container->rect.y + txt->container->rect.h - txt->text_lt->rect.h - txt->v_pad * txt->win->dpi_scale_factor;
 	break;
     case BOTTOM_RIGHT:
-	txt->text_rect.x = txt->container->x + txt->container->w - txt->text_rect.w - txt->h_pad * txt->win->dpi_scale_factor;
-	txt->text_rect.y = txt->container->y + txt->container->h - txt->text_rect.h - txt->v_pad * txt->win->dpi_scale_factor;
+	txt->text_lt->rect.x = txt->container->rect.x + txt->container->rect.w - txt->text_lt->rect.w - txt->h_pad * txt->win->dpi_scale_factor;
+	txt->text_lt->rect.y = txt->container->rect.y + txt->container->rect.h - txt->text_lt->rect.h - txt->v_pad * txt->win->dpi_scale_factor;
 	break;
     case CENTER_LEFT:
-	txt->text_rect.x = txt->container->x + txt->h_pad * txt->win->dpi_scale_factor;
-	txt->text_rect.y = txt->container->y + (int) round((float)txt->container->h / 2.0 - (float) txt->text_rect.h / 2.0);
+	txt->text_lt->rect.x = txt->container->rect.x + txt->h_pad * txt->win->dpi_scale_factor;
+	txt->text_lt->rect.y = txt->container->rect.y + (int) round((float)txt->container->rect.h / 2.0 - (float) txt->text_lt->rect.h / 2.0);
 	break;
     case CENTER_RIGHT:
-	txt->text_rect.x = txt->container->x + txt->container->w - txt->text_rect.w - txt->h_pad * txt->win->dpi_scale_factor;
-	txt->text_rect.y = txt->container->y + (int) round((float)txt->container->h / 2.0 - (float) txt->text_rect.h / 2.0);
+	txt->text_lt->rect.x = txt->container->rect.x + txt->container->rect.w - txt->text_lt->rect.w - txt->h_pad * txt->win->dpi_scale_factor;
+	txt->text_lt->rect.y = txt->container->rect.y + (int) round((float)txt->container->rect.h / 2.0 - (float) txt->text_lt->rect.h / 2.0);
 
     }
+    layout_set_values_from_rect(txt->text_lt);
 
 }
 
@@ -163,8 +167,8 @@ void txt_reset_display_value(Text *txt)
     TTF_Font *font = ttf_get_font_at_size(txt->font, txt->text_size);
     TTF_SizeUTF8(font, txt->value_handle, &txtw, &txth);
     txt->len = strlen(txt->value_handle);
-    if (txt->truncate && txtw > txt->container->w) {
-        int approx_allowable_chars = (int) ((float) txt->len * txt->container->w / txtw);
+    if (txt->truncate && txtw > txt->container->rect.w) {
+        int approx_allowable_chars = (int) ((float) txt->len * txt->container->rect.w / txtw);
         for (int i=0; i<approx_allowable_chars - 3; i++) {
             txt->display_value[i] = txt->value_handle[i];
         }
@@ -197,7 +201,8 @@ void txt_set_value(Text *txt, char *set_str)
 Text *txt_create_from_str(
     char *set_str,
     int max_len,
-    SDL_Rect *container,
+    Layout *container,
+    /* SDL_Rect *container, */
     /* TTF_Font *font, */
     Font *font,
     uint8_t text_size,
@@ -222,7 +227,8 @@ void txt_init_from_str(
     Text *txt,
     char *set_str,
     int max_len,
-    SDL_Rect *container,
+    /* SDL_Rect *container, */
+    Layout *container,
     /* TTF_Font *font, */
     Font *font,
     uint8_t text_size,
@@ -412,6 +418,9 @@ void txt_destroy(Text *txt)
 {
     if (txt->texture) {
         SDL_DestroyTexture(txt->texture);
+    }
+    if (txt->text_lt) {
+	layout_destroy(txt->text_lt);
     }
     free(txt);
 }
@@ -615,6 +624,8 @@ static int txt_area_create_line(TextArea *txtarea, char **line_start, int w)
 
 void txt_area_create_lines(TextArea *txtarea)
 {
+
+
     TTF_Font *font = ttf_get_font_at_size(txtarea->font, txtarea->text_size);
 
 /* Clear old values if present */
@@ -635,7 +646,7 @@ void txt_area_create_lines(TextArea *txtarea)
     int w = txtarea->layout->rect.w;
 
     w = w < TXT_AREA_W_MIN ? TXT_AREA_W_MIN : w;
-    /* fprintf(stdout, "CREATING HEADER w fixed w %d\n", w); */
+    fprintf(stdout, "CREATING HEADER w fixed w %d\n", w);
     char *line_start = value_copy;
     while (txt_area_create_line(txtarea, &line_start, w) > 0) {
     }
@@ -649,13 +660,11 @@ void txt_area_create_lines(TextArea *txtarea)
     Layout *line_template = layout_add_child(txtarea->layout);
     line_template->y.value.intval = txtarea->line_spacing;
     line_template->h.value.intval = txtarea->text_h / txtarea->win->dpi_scale_factor;
-
-    txtarea->layout->h.value.intval = 0;
+    
     for (int i=0; i<txtarea->num_lines; i++) {
 	txtarea->layout->h.value.intval += (txtarea->text_h / txtarea->win->dpi_scale_factor) + txtarea->line_spacing;
 	layout_add_iter(line_template, VERTICAL, false);
     }
-    layout_force_reset(txtarea->layout);
 
  
 }
@@ -700,10 +709,10 @@ void txt_draw(Text *txt)
             TTF_SizeUTF8(font, rightstr, &wr, NULL);
             SDL_SetRenderDrawColor(main_win->rend, highlight.r, highlight.g, highlight.b, highlight.a);
             SDL_Rect highlight = (SDL_Rect) {
-                txt->text_rect.x + wl,
-                txt->text_rect.y,
+                txt->text_lt->rect.x + wl,
+                txt->text_lt->rect.y,
                 wr - wl,
-                txt->text_rect.h
+                txt->text_lt->rect.h
 
             };
             SDL_RenderFillRect(main_win->rend, &highlight);
@@ -715,17 +724,17 @@ void txt_draw(Text *txt)
             TTF_SizeUTF8(font, newstr, &w, NULL);
             SDL_SetRenderDrawColor(main_win->rend, txt->color.r, txt->color.g, txt->color.b, txt->color.a);
             // set_rend_color(main_win->rend, txt->txt_color);
-            int x = txt->text_rect.x + w;
+            int x = txt->text_lt->rect.x + w;
             for (int i=0; i<CURSOR_WIDTH; i++) {
 
-                SDL_RenderDrawLine(main_win->rend, x, txt->text_rect.y, x, txt->text_rect.y + txt->text_rect.h);
+                SDL_RenderDrawLine(main_win->rend, x, txt->text_lt->rect.y, x, txt->text_lt->rect.y + txt->text_lt->rect.h);
                 x++;
             }
 	    
         }
     }
     if (txt->len > 0) {
-        if (SDL_RenderCopy(txt->win->rend, txt->texture, NULL, &(txt->text_rect)) != 0) {
+        if (SDL_RenderCopy(txt->win->rend, txt->texture, NULL, &(txt->text_lt->rect)) != 0) {
 	    fprintf(stderr, "Error: Render Copy failed in txt_draw, on text: \"%s\". %s\n", txt->display_value, SDL_GetError());
 	    /* exit(1); */
 	}
@@ -738,7 +747,7 @@ void txt_draw(Text *txt)
 
 void txt_area_draw(TextArea *txtarea)
 {
-    SDL_RenderSetClipRect(main_win->rend, (const SDL_Rect *)(&txtarea->layout->rect));
+    SDL_RenderSetClipRect(main_win->rend, &txtarea->layout->rect);
     for (int i=0; i<txtarea->num_lines; i++) {
 	Layout *line_lt = txtarea->layout->children[0]->iterator->iterations[i];
 	line_lt->rect.w = txtarea->line_widths[i];
@@ -748,5 +757,5 @@ void txt_area_draw(TextArea *txtarea)
 	    exit(1);
 	}
     }
-    SDL_RenderSetClipRect(main_win->rend, (const SDL_Rect *)(&main_win->layout->rect));
+    SDL_RenderSetClipRect(main_win->rend, &main_win->layout->rect);
 }

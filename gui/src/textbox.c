@@ -31,7 +31,7 @@ Textbox *textbox_create_from_str(
     tb->text = txt_create_from_str(
 	set_str,
 	TXTBX_DEFAULT_MAXLEN,
-	&(lt->rect),
+	lt,
 	font,
 	text_size,
 	textbox_default_txt_clr,
@@ -47,7 +47,7 @@ void textbox_size_to_fit(Textbox *tb, int h_pad, int v_pad)
 {
     h_pad *= tb->window->dpi_scale_factor;
     v_pad *= tb->window->dpi_scale_factor;
-    SDL_Rect *text_rect = &tb->text->text_rect;
+    SDL_Rect *text_rect = &tb->text->text_lt->rect;
     SDL_Rect *layout_rect = &tb->layout->rect;
     bool save_trunc = tb->text->truncate;
     
@@ -70,7 +70,7 @@ void textbox_size_to_fit(Textbox *tb, int h_pad, int v_pad)
 void textbox_pad(Textbox *tb, int pad)
 {
     SDL_Rect *lt_rect = &tb->layout->rect;
-    SDL_Rect *txt_rect = &tb->text->text_rect;
+    SDL_Rect *txt_rect = &tb->text->text_lt->rect;
     lt_rect->w = txt_rect->w + (2 * pad);
     lt_rect->h = txt_rect->h + (2 * pad);
     layout_set_values_from_rect(tb->layout);
@@ -170,11 +170,12 @@ void textbox_reset_full(Textbox *tb)
     txt_reset_display_value(tb->text);
 }
 
+
+/* TODO: remove all calls to textbox_reset. It is no longer relevant */
 void textbox_reset(Textbox *tb)
 {
-
     /* txt_reset_display_value(tb->text); */
-    txt_reset_drawable(tb->text);
+    /* txt_reset_drawable(tb->text); */
 }
 
 void textbox_set_pad(Textbox *tb, int h_pad, int v_pad)
@@ -185,4 +186,25 @@ void textbox_set_pad(Textbox *tb, int h_pad, int v_pad)
 void textbox_set_value_handle(Textbox *tb, const char *new_value)
 {
     txt_set_value_handle(tb->text, (char *) new_value);
+}
+
+
+TextLines *textlines_create(void *items, uint16_t num_items, TLinesItem *(*create_item)(void **curent_item), Layout *container)
+{
+    TextLines *tlines = calloc(1, sizeof(TextLines));
+    tlines->items = calloc(num_items, sizeof(TLinesItem *));
+    tlines->container = container;
+
+    for (uint16_t i=0; i<num_items; i++) {
+	tlines->items[i] = create_item(&items);
+    }
+    return tlines;
+}
+
+void textlines_draw(TextLines *tlines)
+{
+    for (uint16_t i=0; i<tlines->num_items; i++) {
+	textbox_draw(tlines->items[i]->tb);
+    }
+
 }

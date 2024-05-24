@@ -81,6 +81,7 @@ typedef struct layout {
     Layout *children[MAX_CHILDREN];
     uint8_t num_children;
     uint8_t index;
+    /* Layout *label_lt; */
     SDL_Rect label_rect;
     Text *namelabel;
     bool selected;

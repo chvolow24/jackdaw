@@ -72,8 +72,10 @@ typedef struct text {
     int h_pad;
     int v_pad;
     bool show_cursor;
-    SDL_Rect *container;
-    SDL_Rect text_rect;
+    /* SDL_Rect *container; */
+    Layout *container;
+    /* SDL_Rect text_rect; */
+    Layout *text_lt;
     SDL_Color color;
     /* TTF_Font *font; */
     Font *font;
@@ -101,7 +103,8 @@ typedef struct font {
 Text *txt_create_from_str(
     char *set_str,
     int max_len,
-    SDL_Rect *container,
+    Layout *container,
+    /* SDL_Rect *container, */
     /* TTF_Font *font, */
     Font *font,
     uint8_t text_size,
@@ -117,7 +120,8 @@ void txt_init_from_str(
     Text *txt,
     char *set_str,
     int max_len,
-    SDL_Rect *container,
+    Layout *container,
+    /* SDL_Rect *container, */
     Font *font,
     uint8_t text_size,
     /* TTF_Font *font, */

@@ -340,6 +340,9 @@ void menu_destroy(Menu *menu)
 	}
 	free(column);
     }
+    if (menu->header) {
+	txt_area_destroy(menu->header);
+    }
     if (menu->layout) {
 	layout_destroy(menu->layout);
     }

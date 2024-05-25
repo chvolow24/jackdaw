@@ -29,6 +29,7 @@
 #include "color.h"
 #include "layout.h"
 #include "menu.h"
+#include "modal.h"
 #include "text.h"
 #include "window.h"
 
@@ -89,6 +90,7 @@ Window *window_create(int w, int h, const char *name)
     window->layout = NULL;
     window->num_menus = 0;
     window->num_modes = 0;
+    window->num_modals = 0;
     SDL_SetRenderDrawBlendMode(window->rend, SDL_BLENDMODE_BLEND);
 
     window->screenrecording = false;
@@ -315,21 +317,14 @@ Menu *window_top_menu(Window *win)
     }
 }
 
-void window_draw_menus(Window *win)
-{
-
-    for (uint8_t i=0; i<win->num_menus; i++) {
-	menu_draw(win->menus[i]);
-    }
-}
-
 
 void window_push_mode(Window *win, InputMode im)
 {
-
-    if (win->num_modes < MAX_MODES) {
+    if (win->num_modes < WINDOW_MAX_MODES) {
 	win->modes[win->num_modes] = im;
 	win->num_modes++;
+    } else {
+	fprintf(stderr, "Error: window already has maximum number of modes\n");
     }
 }
 
@@ -337,5 +332,38 @@ void window_pop_mode(Window *win)
 {
     if (win->num_modes > 0) {
 	win->num_modes--;
+    }
+}
+
+void window_push_modal(Window *win, Modal *modal)
+{
+    if (win->num_modals < WINDOW_MAX_MODALS) {
+	win->modals[win->num_modals] = modal;
+	win->num_modals++;
+    } else {
+	fprintf(stderr, "Error: window already has maximum number of modals\n");
+    }
+}
+
+void window_pop_modal(Window *win)
+{
+    if (win->num_modals > 0) {
+	modal_destroy(win->modals[win->num_modals - 1]);
+    }
+    win->num_modals--;
+}
+
+
+void window_draw_menus(Window *win)
+{
+    for (uint8_t i=0; i<win->num_menus; i++) {
+	menu_draw(win->menus[i]);
+    }
+}
+
+void window_draw_modals(Window *win)
+{
+    for (uint8_t i=0; i<win->num_modals; i++) {
+	modal_draw(win->modals[i]);
     }
 }

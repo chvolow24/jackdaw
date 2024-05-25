@@ -48,7 +48,7 @@ typedef struct text_area {
     int text_h;
     int line_spacing;
     Layout *layout;
-    unsigned *line_break_indices;
+    /* unsigned *line_break_indices; */
     SDL_Texture *line_textures[TXTAREA_MAX_LINES];
     int line_widths[TXTAREA_MAX_LINES];
     int line_heights[TXTAREA_MAX_LINES];
@@ -178,6 +178,9 @@ TextArea *txt_area_create(const char *value, Layout *layout, Font *font, uint8_t
 void txt_area_draw(TextArea *txtarea);
 
 void txt_area_create_lines(TextArea *txtarea);
+
+/* Free all line textures and the textarea itself. Destroy its layout. */
+void txt_area_destroy(TextArea *ta);
 
 /* Destroy the font array and free the Font */
 void ttf_destroy_font(Font *font);

@@ -480,15 +480,16 @@ static void control_bar_draw(Project *proj)
     }
 }
 
-extern Modal *test_modal;
+/* extern Modal *test_modal; */
 void project_draw()
 {
     window_start_draw(main_win, &color_global_black);
     timeline_draw(proj->timelines[proj->active_tl_index]);
     control_bar_draw(proj);
     textbox_draw(proj->timeline_label);
+    window_draw_modals(main_win);
     window_draw_menus(main_win);
-    modal_draw(test_modal);
+    /* modal_draw(test_modal); */
     window_end_draw(main_win);
 }
 

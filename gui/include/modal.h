@@ -43,6 +43,7 @@ typedef struct modal {
 } Modal;
 
 Modal *modal_create(Layout *lt);
+void modal_destroy(Modal *modal);
 ModalEl *modal_add_header(Modal *modal, const char *text, SDL_Color *color, int level);
 ModalEl *modal_add_p(Modal *modal, const char *text, SDL_Color *color);
 ModalEl *modal_add_dirnav(Modal *modal, const char *dirpath, bool show_dirs, bool show_files);

@@ -277,6 +277,24 @@ DirNav *dirnav_create(const char *dir_name, Layout *lt, bool show_dirs, bool sho
     return dn;
 }
 
+void dirnav_destroy(DirNav *dn)
+{
+    dirpath_destroy(dn->dirpath);
+    if (dn->instruction) {
+	textbox_destroy(dn->instruction);
+    }
+    if(dn->current_path) {
+	textbox_destroy(dn->current_path);
+    }
+    if (dn->lines) {
+	textlines_destroy(dn->lines);
+    }
+    if (dn->layout) {
+	layout_destroy(dn->layout);
+    }
+    free(dn);
+}
+
 extern SDL_Color control_bar_bckgrnd;
 void dirnav_draw(DirNav *dn)
 {

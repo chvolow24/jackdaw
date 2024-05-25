@@ -335,6 +335,7 @@ Track *timeline_add_track(Timeline *tl)
     textbox_set_align(track->tb_name, CENTER_LEFT);
     textbox_set_pad(track->tb_name, 4, 0);
     textbox_set_border(track->tb_name, &color_global_black, 1);
+    textbox_reset_full(track->tb_name);
 
     track->tb_input_label = textbox_create_from_str(
 	"In: ",
@@ -352,7 +353,7 @@ Track *timeline_add_track(Timeline *tl)
 	12,
 	main_win);
     track->tb_input_name->corner_radius = 6;
-    /* textbox_set_align(track->tb_input_name, CENTER); */
+    /* textbox_set_align(track->tb_input_name, CENTER_LEFT); */
     int saved_w = track->tb_input_name->layout->rect.w / main_win->dpi_scale_factor;
     textbox_size_to_fit(track->tb_input_name, 2, 1);
     textbox_set_fixed_w(track->tb_input_name, saved_w - 10);
@@ -367,6 +368,7 @@ Track *timeline_add_track(Timeline *tl)
 	main_win);
     track->tb_mute_button->corner_radius = 4;
     textbox_set_border(track->tb_mute_button, &color_global_black, 1);
+    textbox_reset_full(track->tb_mute_button);
 
     track->tb_solo_button = textbox_create_from_str(
 	"S",
@@ -376,6 +378,7 @@ Track *timeline_add_track(Timeline *tl)
 	main_win);
     track->tb_solo_button->corner_radius = 4;
     textbox_set_border(track->tb_solo_button, &color_global_black, 1);
+    textbox_reset_full(track->tb_solo_button);
 
 
     Layout *vol_ctrl_row = layout_get_child_by_name_recursive(track->layout, "vol_slider");
@@ -420,6 +423,7 @@ Track *timeline_add_track(Timeline *tl)
 
     track->console_rect = &(layout_get_child_by_name_recursive(track->layout, "track_console")->rect);
     track->colorbar = &(layout_get_child_by_name_recursive(track->layout, "colorbar")->rect);
+    /* textbox_reset_full(track->tb_name); */
     return track;
 }
 

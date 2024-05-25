@@ -43,3 +43,7 @@ Global TODO list
 ** TODO adjust clipref bounds
 ** TODO copy clipref
 ** TODO Cut (split) clipref
+* TODO Modals
+** TODO window-level modal stack
+** TODO modal mode
+** TODO dirnav

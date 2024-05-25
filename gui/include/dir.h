@@ -22,7 +22,7 @@ typedef struct dirnav {
     bool show_dirs;
     bool show_files;
     Textbox *instruction;
-    Textbox *tb_current_path;
+    Textbox *current_path;
     /* char line_text[32768]; */
     /* TextArea *lines; */
     TextLines *lines;
@@ -51,5 +51,6 @@ typedef struct filepath {
 
 DirNav *dirnav_create(const char *dir_name, Layout *lt, bool show_dirs, bool show_files);
 void dirnav_draw(DirNav *dn);
+void dirnav_destroy(DirNav *dn);
 
 #endif

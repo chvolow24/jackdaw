@@ -39,6 +39,7 @@ Textbox *textbox_create_from_str(
 	true,
 	win
 	);
+    /* textbox_reset_full(tb); */
 	
     return tb;
 }
@@ -162,6 +163,7 @@ void textbox_set_border(Textbox *tb, SDL_Color *color, int thickness)
 void textbox_set_align(Textbox *tb, TextAlign align)
 {
     tb->text->align = align;
+    /* textbox_reset_full(tb); */
 }
 
 
@@ -181,6 +183,7 @@ void textbox_reset(Textbox *tb)
 void textbox_set_pad(Textbox *tb, int h_pad, int v_pad)
 {
     txt_set_pad(tb->text, h_pad, v_pad);
+    /* textbox_reset_full(tb); */
 }
 
 void textbox_set_value_handle(Textbox *tb, const char *new_value)
@@ -188,7 +191,7 @@ void textbox_set_value_handle(Textbox *tb, const char *new_value)
     txt_set_value_handle(tb->text, (char *) new_value);
 }
 
-#include "dir.h"
+/* #include "dir.h" */
 
 TextLines *textlines_create(
     void **items,
@@ -201,7 +204,7 @@ TextLines *textlines_create(
     for (uint16_t i=0; i<num_items; i++) {
 	if (filter(items[i], x_arg)) num_items_after_filter++;
     }
-    fprintf(stdout, "CREATE LINES w first item path: %s\n", ((DirPath **)items)[0]->path);
+    /* fprintf(stdout, "CREATE LINES w first item path: %s\n", ((DirPath **)items)[0]->path); */
     TextLines *tlines = calloc(1, sizeof(TextLines));
     tlines->items = calloc(num_items_after_filter, sizeof(TLinesItem *));
     tlines->num_items = num_items_after_filter;
@@ -212,7 +215,7 @@ TextLines *textlines_create(
 	TLinesItem *item = create_item(&items, container, x_arg, filter);
 	if (item) {
 	    tlines->items[line_i] = item;
-	    fprintf(stdout, "Item %d = %s\n", i, ((DirPath *)tlines->items[line_i]->obj)->path);
+	    /* fprintf(stdout, "Item %d = %s\n", i, ((DirPath *)tlines->items[line_i]->obj)->path); */
 	    line_i++;
 	    /* i++; */
 	} else {
@@ -222,10 +225,29 @@ TextLines *textlines_create(
     return tlines;
 }
 
+static void textlines_el_destroy(TLinesItem *el)
+{
+    if (el->tb) {
+	textbox_destroy(el->tb);
+    }
+    free(el);
+}
+
+void textlines_destroy(TextLines *tlines)
+{
+    for (uint16_t i=0; i<tlines->num_items; i++) {
+	TLinesItem *item = NULL;
+	if ((item = tlines->items[i])) {
+	    textlines_el_destroy(item);
+	}
+    }
+}
+
 void textlines_draw(TextLines *tlines)
 {
     for (uint16_t i=0; i<tlines->num_items; i++) {
 	textbox_draw(tlines->items[i]->tb);
     }
+    layout_destroy(tlines->container);
 
 }

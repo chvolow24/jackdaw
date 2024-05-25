@@ -30,6 +30,38 @@ Modal *modal_create(Layout *lt)
     return modal;
 }
 
+static void modal_el_destroy(ModalEl *el)
+{
+    if (el->obj) {
+	switch (el->type) {
+	case MODAL_EL_MENU:
+	    menu_destroy((Menu *)el->obj);
+	    break;
+	case MODAL_EL_TEXTENTRY:
+	    textbox_destroy((Textbox *)el->obj);
+	case MODAL_EL_TEXTAREA:
+	    txt_area_destroy((TextArea *)el->obj);
+	    break;
+	case MODAL_EL_TEXT:
+	    textbox_destroy((Textbox *)el->obj);
+	    break;
+	case MODAL_EL_DIRNAV:
+	    dirnav_destroy((DirNav *)el->obj);
+	    break;
+    }
+    }
+    free (el);
+}
+void modal_destroy(Modal *modal)
+{
+    for (uint8_t i=0; i<modal->num_els; i++) {
+	modal_el_destroy(modal->els[i]);
+    }
+    layout_destroy(modal->layout);
+    free(modal);
+
+}
+
 static ModalEl *modal_add_el(Modal *modal)
 {
     Layout *lt = layout_add_child(modal->layout);
@@ -189,7 +221,7 @@ static void modal_el_draw(ModalEl *el)
 	textbox_draw((Textbox *)el->obj);
 	break;
     case MODAL_EL_TEXTAREA:
-	layout_draw(main_win, el->layout);
+	/* layout_draw(main_win, el->layout); */
 	txt_area_draw((TextArea *)el->obj);
 	break;
     case MODAL_EL_TEXT:
@@ -212,7 +244,7 @@ void modal_draw(Modal *modal)
     /* layout_force_reset(modal->layout); */
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(modal_color_background));
     SDL_RenderFillRect(main_win->rend, &modal->layout->rect);
-    layout_draw(main_win, modal->layout);
+    /* layout_draw(main_win, modal->layout); */
     for (uint8_t i=0; i<modal->num_els; i++) {
 	/* fprintf(stdout, "drawing el\n"); */
 	modal_el_draw(modal->els[i]);

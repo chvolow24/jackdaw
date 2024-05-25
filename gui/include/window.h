@@ -8,10 +8,11 @@
 #include "text.h"
 
 
-#define MAX_MODES 8
+#define WINDOW_MAX_MODES 8
+#define WINDOW_MAX_MODALS 8
 
 typedef struct menu Menu;
-
+typedef struct modal Modal;
 
 
 /* typedef enum input_mode : uint8_t InputMode; */
@@ -35,8 +36,11 @@ typedef struct window {
     Menu *menus[MAX_WINDOW_MENUS];
     uint8_t num_menus;
 
-    InputMode modes[MAX_MODES];
+    InputMode modes[WINDOW_MAX_MODES];
     uint8_t num_modes;
+
+    Modal *modals[WINDOW_MAX_MODALS];
+    uint8_t num_modals;
 
     bool screenrecording;
 } Window;
@@ -87,6 +91,10 @@ void window_draw_menus(Window *win);
 
 void window_push_mode(Window *win, InputMode im);
 void window_pop_mode(Window *win);
+
+void window_push_modal(Window *win, Modal *modal);
+void window_pop_modal(Window *win);
+void window_draw_modals(Window *win);
 
 
 #endif

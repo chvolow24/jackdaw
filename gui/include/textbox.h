@@ -74,5 +74,6 @@ TextLines *textlines_create(
     Layout *container,
     void *x_arg);
 void textlines_draw(TextLines *tlines);
+void textlines_destroy(TextLines *tlines);
 
 #endif

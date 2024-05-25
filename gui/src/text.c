@@ -624,13 +624,9 @@ static int txt_area_create_line(TextArea *txtarea, char **line_start, int w)
 
 void txt_area_create_lines(TextArea *txtarea)
 {
-
-
     TTF_Font *font = ttf_get_font_at_size(txtarea->font, txtarea->text_size);
 
-/* Clear old values if present */
-
-    
+    /* Clear old values if present */
     for (int i=0; i<txtarea->num_lines; i++) {
 	SDL_DestroyTexture(txtarea->line_textures[i]);
     }
@@ -686,6 +682,16 @@ TextArea *txt_area_create(const char *value, Layout *layout, Font *font, uint8_t
     txt_area_create_lines(txtarea);
     
     return txtarea;
+}
+
+void txt_area_destroy(TextArea *ta)
+{
+    for (uint8_t i=0; i<ta->num_lines; i++) {
+	SDL_DestroyTexture(ta->line_textures[i]);
+    }
+    layout_destroy(ta->layout);
+    free(ta);
+
 }
 
 void txt_draw(Text *txt)

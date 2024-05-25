@@ -85,7 +85,7 @@ void input_load_keybinding_config(const char *filepath);
 void input_init_mode_load_all();
 
 /* Create a GUI menu from a mode */
-Menu *input_create_menu_from_mode(InputMode im);
+void input_create_menu_from_mode(InputMode im);
 
 Menu *input_create_master_menu();
 

@@ -11,10 +11,10 @@ typedef struct text_entry {
     int (*completion)(void *arg);
 } TextEntry;
 
-typedef struct button {
-    Textbox *tb;
-    void *(*completion)(void *arg);	
-} Button;
+/* typedef struct button { */
+/*     Textbox *tb; */
+/*     void *(*completion)(void *arg);	 */
+/* } Button; */
 
 enum mod_s_type {
     MODAL_EL_MENU,
@@ -24,14 +24,9 @@ enum mod_s_type {
     MODAL_EL_DIRNAV
 };
 
-/* union mod_s { */
-/*     Menu *menu; */
-/*     Textbox *tb; /\* editable *\/ */
-/*     TextArea *textarea; /\* not editable *\/ */
-/* }; */
-
 typedef struct ModalEl {
     enum mod_s_type type;
+    bool selectable;
     void *obj;
     Layout *layout;
 } ModalEl;
@@ -40,6 +35,7 @@ typedef struct modal {
     Layout *layout; /* Children in same order as modal elements */
     uint8_t num_els;
     ModalEl *els[MAX_MODAL_ELEMENTS];
+    uint8_t selectable_indices[MAX_MODAL_ELEMENTS];
 } Modal;
 
 Modal *modal_create(Layout *lt);

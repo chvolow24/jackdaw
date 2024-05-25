@@ -988,31 +988,74 @@ static Layout *create_menu_layout()
     return menu_lt;
 }
 
-Menu *input_create_menu_from_mode(InputMode im)
+static void create_menu_from_mode_subcat(void *sc_v)
+{
+    ModeSubcat *sc = (ModeSubcat *)sc_v;
+    Layout *m_layout = create_menu_layout();
+    Menu *m = menu_create(m_layout, main_win);
+    MenuColumn *c = menu_column_add(m, sc->name);
+    MenuSection *sctn = menu_section_add(c, "");
+    for (uint8_t i=0; i<sc->num_fns; i++) {
+	UserFn *fn = sc->fns[i];
+	menu_item_add(sctn, fn->fn_display_name, fn->annotation, fn->do_fn, NULL);
+    }
+    menu_add_header(m, sc->name, "n  -  next item\np  -  previous item\nh  -  dismiss menu\n<ret>  -  select item");
+    window_add_menu(main_win, m);
+    window_push_mode(main_win, MENU_NAV);
+}
+
+void input_create_menu_from_mode(InputMode im)
 {
     Mode *mode = modes[im];
     if (!mode) {
 	fprintf(stderr, "Error: mode %s not initialized\n", input_mode_str(im));
-	exit(1);
     }
-    Layout *m_layout = create_menu_layout();
-    if (!m_layout) {
-	fprintf(stderr, "Error: Unable to create menu layout\n");
-	exit(1);
-    }
-    Menu *m = menu_create(m_layout, main_win);
-    for (int i=0; i<mode->num_subcats; i++) {
-	ModeSubcat *sc = mode->subcats[i];
-	MenuColumn *c = menu_column_add(m, sc->name);
+    if (mode->num_subcats == 1) {
+	create_menu_from_mode_subcat(mode->subcats[0]);
+    } else {
+	Layout *m_layout = create_menu_layout();
+	Menu *m = menu_create(m_layout, main_win);
+	MenuColumn *c = menu_column_add(m, "");
 	MenuSection *sctn = menu_section_add(c, "");
-	for (int j=0; j<sc->num_fns; j++) {
-	    UserFn *fn = sc->fns[j];
-	    menu_item_add(sctn, fn->fn_display_name, fn->annotation, fn->do_fn, NULL);
+	for (uint8_t i=0; i<mode->num_subcats; i++) {
+	    ModeSubcat *sc = mode->subcats[i];
+	    MenuItem *item = menu_item_add(sctn, sc->name, ">", create_menu_from_mode_subcat, sc);
 	}
+	menu_add_header(m, "", "n  -  next item\np  -  previous item\nh  -  dismiss menu\n<ret>  -  select item");
+	window_add_menu(main_win, m);
+	window_push_mode(main_win, MENU_NAV);
     }
-    menu_add_header(m, mode->name, "Here are functions available to you in aforementioned mode.");
-    return m;
+    /* return NULL; */
 }
+
+
+
+
+/* Menu *input_create_menu_from_mode(InputMode im) */
+/* { */
+/*     Mode *mode = modes[im]; */
+/*     if (!mode) { */
+/* 	fprintf(stderr, "Error: mode %s not initialized\n", input_mode_str(im)); */
+/* 	exit(1); */
+/*     } */
+/*     Layout *m_layout = create_menu_layout(); */
+/*     if (!m_layout) { */
+/* 	fprintf(stderr, "Error: Unable to create menu layout\n"); */
+/* 	exit(1); */
+/*     } */
+/*     Menu *m = menu_create(m_layout, main_win); */
+/*     for (int i=0; i<mode->num_subcats; i++) { */
+/* 	ModeSubcat *sc = mode->subcats[i]; */
+/* 	MenuColumn *c = menu_column_add(m, sc->name); */
+/* 	MenuSection *sctn = menu_section_add(c, ""); */
+/* 	for (int j=0; j<sc->num_fns; j++) { */
+/* 	    UserFn *fn = sc->fns[j]; */
+/* 	    menu_item_add(sctn, fn->fn_display_name, fn->annotation, fn->do_fn, NULL); */
+/* 	} */
+/*     } */
+/*     menu_add_header(m, mode->name, "Here are functions available to you in aforementioned mode."); */
+/*     return m; */
+/* } */
 
 
 Menu *input_create_master_menu()

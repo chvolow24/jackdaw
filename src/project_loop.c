@@ -321,30 +321,7 @@ void loop_project_main()
 		    }
 		    break;
 		default:
-		    
-		    /* SDL_CreateThread(timed_stop_update_track_vol_pan, "stop_vol_pan", NULL); */
 		    stop_update_track_vol_pan();
-		    /* if (proj->vol_changing) { */
-		    /* 	proj->vol_changing = false; */
-		    /* } */
-		    /* if (proj->pan_changing) { */
-		    /* 	proj->pan_changing = NULL; */
-		    /* } */
-
-		    /* input_fn  = input_get(i_state, e.key.keysym.sym, GLOBAL); */
-		    /* if (!input_fn) { */
-		    /* 	for (int i=main_win->num_modes - 1; i>=0; i--) { */
-		    /* 	    input_fn = input_get(i_state, e.key.keysym.sym, main_win->modes[i]); */
-		    /* 	    if (input_fn) { */
-		    /* 		break; */
-		    /* 	    } */
-		    /* 	} */
-		    /* } */
-		    /* if (input_fn && input_fn->do_fn && input_fn->is_toggle) { */
-		    /* 	input_fn->do_fn(); */
-		    /* 	timeline_reset(proj->timelines[proj->active_tl_index]); */
-		    /* } */
-
 		    break;
 		}
 		break;

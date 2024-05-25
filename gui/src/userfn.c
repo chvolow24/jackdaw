@@ -26,9 +26,9 @@ void user_global_expose_help()
     InputMode current_mode = main_win->modes[main_win->num_modes - 1];
     
     /* Menu *new = input_create_master_menu(); */
-    Menu *new = input_create_menu_from_mode(current_mode);
-    window_add_menu(main_win, new);
-    window_push_mode(main_win, MENU_NAV);   
+    input_create_menu_from_mode(current_mode);
+    /* window_add_menu(main_win, new); */
+    /* window_push_mode(main_win, MENU_NAV);  */  
 }
 
 void user_global_quit()

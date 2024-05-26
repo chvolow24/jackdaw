@@ -360,6 +360,9 @@ void window_pop_modal(Window *win)
 	modal_destroy(win->modals[win->num_modals - 1]);
     }
     win->num_modals--;
+    if (win->num_modals == 0) {
+	window_pop_mode(win);
+    }
 }
 
 

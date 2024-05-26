@@ -98,4 +98,5 @@ void user_source_set_out_mark();
 void user_modal_next();
 void user_modal_previous();
 void user_modal_select();
+void user_modal_dismiss();
 #endif

@@ -755,6 +755,12 @@ static void mode_load_modal()
 	user_modal_select);
     mode_subcat_add_fn(sc, fn);
 
+    fn = create_user_fn(
+	"modal_dismiss",
+	"Dismiss modal window",
+	user_modal_dismiss);
+    mode_subcat_add_fn(sc, fn);
+
 }
 
 

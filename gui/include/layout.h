@@ -88,6 +88,8 @@ typedef struct layout {
     LayoutType type;
     LayoutIterator *iterator; /* If the layout type == TEMPLATE, this is not null */
     bool hidden;
+    int scroll_offset_v;
+    int scroll_offset_h;
     // Layout *complement;
     // bool display;
     // bool internal;

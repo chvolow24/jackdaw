@@ -5,13 +5,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 #include "dir.h"
 #include "textbox.h"
 
 
 #define DIRNAV_LINE_SPACING 3
-#define DIRNAV_HEIGHT 200
+/* #define DIRNAV_HEIGHT 240 */
+#define DIRNAV_TLINES_HEIGHT 200
 extern Window *main_win;
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;
@@ -23,6 +25,7 @@ SDL_Color color_dir_selected = (SDL_Color) {100, 255, 190, 255};
 SDL_Color color_file_selected = (SDL_Color) {60, 150, 255, 255};
 SDL_Color color_highlighted_bckgrnd = (SDL_Color) {255, 255, 255, 20};
 
+int errno_saved = 0;
 /* static char *dir_get_homepath() */
 /* { */
 /*     uid_t uid = getuid(); */
@@ -82,9 +85,14 @@ static int path_updir_name(char *pathname)
 	}
 	mov++;
     }
-    if (current && current-1 != pathname) {
-	*(current-1) = '\0';
-	ret = 1;
+    if (current) {
+	if (current-1 != pathname) {
+	    *(current-1) = '\0';
+	    ret = 1;
+	} else {
+	    *(current) = '\0';
+	    ret = 1;
+	}
     }
     return ret;
 }
@@ -117,17 +125,17 @@ static DirPath *dirpath_create(const char *dirpath)
     return dp;
 }
 
-static FilePath *filepath_create(const char *filepath)
-{
-    FilePath *fp = calloc(1, sizeof(FilePath));
-    strncpy(fp->path, filepath, MAX_PATHLEN);
-    return fp;
-}
+/* static FilePath *filepath_create(const char *filepath) */
+/* { */
+/*     FilePath *fp = calloc(1, sizeof(FilePath)); */
+/*     strncpy(fp->path, filepath, MAX_PATHLEN); */
+/*     return fp; */
+/* } */
 
-static void filepath_destroy(FilePath *fp)
-{
-    free(fp);
-}
+/* static void filepath_destroy(FilePath *fp) */
+/* { */
+/*     free(fp); */
+/* } */
 static void dirpath_destroy(DirPath *dp)
 {
     for (uint8_t i=0; i<dp->num_entries; i++) {
@@ -144,12 +152,17 @@ DirPath *dirpath_open(const char *dirpath)
     DIR *dir = opendir(dirpath);
     if (!dir) {
 	dirpath_destroy(dp);
+	errno_saved = errno;
 	perror("Failed to open dir");
 	return NULL;
     }
     struct dirent *t_dir;
     while ((t_dir = readdir(dir))) {
-	snprintf(buf, sizeof(buf), "%s/%s", dirpath, t_dir->d_name);
+	if (strlen(dirpath) == 1 && dirpath[0] == '/') {
+	    snprintf(buf, sizeof(buf), "/%s", t_dir->d_name);
+	} else {
+	    snprintf(buf, sizeof(buf), "%s/%s", dirpath, t_dir->d_name);
+	}
 	DirPath *subdir = dirpath_create(buf);
 	if (subdir) {
 	    char *tail = path_get_tail((char *)subdir->path);
@@ -186,10 +199,15 @@ DirPath *dir_up(DirPath *dp)
     char buf[MAX_PATHLEN];
     strncpy(buf, dp->path, sizeof(buf));
     if (path_updir_name(buf)) {
-	fprintf(stdout, "Success updir name: %s\n", buf);
+	/* fprintf(stdout, "Success updir name: %s\n", buf); */
 	dirpath_destroy(to_free);
-	dp = dirpath_open(buf);
-	return dp;
+	DirPath *new = dirpath_open(buf);
+	return new;
+	/* if (new) { */
+	/*     return new; */
+	/* } else { */
+	/*     return dp; */
+	/* } */
     }
     return NULL;
 }
@@ -197,14 +215,20 @@ DirPath *dir_select(DirPath *dp, DirPath *new)
 {
     if (strncmp(path_get_tail(new->path), "..", 2) == 0) {
 	new = dir_up(dp);
-	if (!new) {
-	    return dp;
-	}
-	return new;
-    }
+	/* if (!new) { */
+	/*     return NULL; */
+	/* } */
 
-    new = dirpath_open(new->path);
-    dirpath_destroy(dp);
+    } else {
+	new = dirpath_open(new->path);
+	if (new) {
+	    dirpath_destroy(dp);
+	}
+    }
+    /* if (!new) { */
+    /* 	return dp; */
+    /* } */
+
     return new;
 }
 
@@ -265,18 +289,15 @@ static bool dir_to_tline_filter(void *item, void *x_arg)
 {
     DirPath *dp = (DirPath *)item;
     DirNav *dn = (DirNav *)x_arg;
-    if (!dn->show_dirs && dp->type == DT_DIR) {
-	return false;
-    }
-    if (!dn->show_files && dp->type != DT_DIR) {
-	return false;
-    }
-    if (dp->hidden) {
-	return false;
-    }
+    if (!dn->show_dirs && dp->type == DT_DIR) return false;
+    if (!dn->show_files && dp->type != DT_DIR) return false;
+    if (dp->hidden) return false;
+    if (*(path_get_tail(dp->path)) - '.' < 0) return false;
+
     return true;
 }
 
+void layout_write(FILE *f, Layout *lt, int indent);
 DirNav *dirnav_create(const char *dir_name, Layout *lt, bool show_dirs, bool show_files)
 {
     DirPath *dp = dirpath_open(dir_name);
@@ -293,24 +314,54 @@ DirNav *dirnav_create(const char *dir_name, Layout *lt, bool show_dirs, bool sho
     DirNav *dn = calloc(1, sizeof(DirNav));
     dn->dirpath = dp;
     dn->layout = lt;
+    strcpy(lt->name, "dirnav_lt");
     Layout *inner = layout_add_child(lt);
+    strcpy(inner->name, "dirnav_lines_container");
     inner->x.value.intval = 5;
-    inner->y.value.intval = 4;
+    inner->y.value.intval = 5;
     inner->w.type = PAD;
-    inner->h.type = PAD;
+    inner->h.type = ABS;
+    inner->h.value.intval = DIRNAV_TLINES_HEIGHT;
     dn->show_dirs = show_dirs;
     dn->show_files = show_files;
-    lt->h.value.intval = DIRNAV_HEIGHT;
+    lt->h.value.intval = DIRNAV_TLINES_HEIGHT;
     layout_reset(lt);
-    dn->lines = textlines_create((void **)dn->dirpath->entries, dp->num_entries, dir_to_tline_filter, dir_to_tline, inner, (void *)dn);
+    Layout *lines_container = layout_add_child(inner);
+    lines_container->w.value.floatval = 1.0;
+    lines_container->h.value.floatval = 1.0;
+    lines_container->w.type = SCALE;
+    lines_container->h.type = SCALE;
+    dn->lines = textlines_create((void **)dn->dirpath->entries, dp->num_entries, dir_to_tline_filter, dir_to_tline, lines_container, (void *)dn);
     dn->lines->num_items = dn->num_lines;
+
     TLinesItem *sel = dn->lines->items[dn->current_line];
     SDL_Color sel_clr = (((DirPath *)sel->obj)->type == DT_DIR) ? color_dir_selected : color_file_selected;
     /* sel_clr = (SDL_Color) {255, 255, 255, 255}; */
     textbox_set_text_color(dn->lines->items[dn->current_line]->tb, &sel_clr);
     textbox_set_background_color(sel->tb, &color_highlighted_bckgrnd);
-
     textbox_reset_full(sel->tb);
+
+    Layout *pathname_lt = layout_add_child(dn->layout);
+    dn->current_path_tb = textbox_create_from_str((char *)dir_name, pathname_lt, main_win->bold_font, 12, main_win);
+    textbox_set_align(dn->current_path_tb, CENTER_LEFT);
+    textbox_set_background_color(dn->current_path_tb, &color_global_clear);
+    textbox_set_text_color(dn->current_path_tb, &color_global_white);
+    textbox_size_to_fit_v(dn->current_path_tb, 0);
+    /* lt->h.value.intval += pathname_lt->h.value.intval; */
+    pathname_lt->x.value.intval = 5;
+    /* pathname_lt->rect.y = dn->layout->rect.y + dn->layout->rect.y - inner->rect.h - inner->rect.y; */
+    pathname_lt->y.type = STACK;
+    pathname_lt->y.value.intval = 5;
+    pathname_lt->w.type = PAD;
+    /* pathname_lt->rect.h = dn->layout->rect.h - inner->rect.h - inner->rect.y; */
+    pathname_lt->w.value.intval = DIRNAV_LINE_SPACING;
+    /* laoyut */
+    /* pathname_lt->rect.y = dn->layout->rect.y + dn->layout->rect.h - pathname_lt->rect.h; */
+    /* layout_set_values_from_rect(pathname_lt); */
+    textbox_reset_full(dn->current_path_tb);
+    layout_size_to_fit_children(dn->layout, true, 30);
+    layout_reset(dn->layout);
+    layout_write(stdout, pathname_lt, 0);
     /* layout_reset(dn->layout); */
     return dn;
 }
@@ -321,8 +372,8 @@ void dirnav_destroy(DirNav *dn)
     if (dn->instruction) {
 	textbox_destroy(dn->instruction);
     }
-    if(dn->current_path) {
-	textbox_destroy(dn->current_path);
+    if(dn->current_path_tb) {
+	textbox_destroy(dn->current_path_tb);
     }
     if (dn->lines) {
 	textlines_destroy(dn->lines);
@@ -339,7 +390,10 @@ void dirnav_draw(DirNav *dn)
     /* layout_reset(dn->layout); */
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
     SDL_RenderFillRect(main_win->rend, &dn->layout->rect);
-    SDL_RenderSetClipRect(main_win->rend, &dn->lines->container->rect);
+    /* SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255); */
+    /* SDL_RenderDrawRect(main_win->rend, &dn->lines->container->rect); */
+    Layout *inner = layout_get_child_by_name_recursive(dn->layout, "dirnav_lines_container");
+    SDL_RenderSetClipRect(main_win->rend, &inner->rect);
     for (uint8_t i=0; i<dn->lines->num_items; i++) {
 	TLinesItem *tli = NULL;
 	/* fprintf(stdout, "Dn draw %s, %s\n", dn->lines->items[i]->tb->text->value_handle, dn->lines->items[i]->tb->text->display_value); */
@@ -350,11 +404,20 @@ void dirnav_draw(DirNav *dn)
 	textbox_draw(tli->tb);
     }
     SDL_RenderSetClipRect(main_win->rend, &main_win->layout->rect);
+    if (dn->current_path_tb) {
+	textbox_draw(dn->current_path_tb);
+    }
+    /* SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255); */
+    /* SDL_RenderDrawRect(main_win->rend, &dn->layout->rect); */
+    /* SDL_RenderDrawRect(main_win->rend, &inner->rect); */
+    
     /* layout_draw(main_win, dn->layout); */
 }
 
+/* void layout_write(FILE *f, Layout *lt, int indent); */
 void dirnav_next(DirNav *dn)
 {
+    /* layout_write(stdout, dn->layout, 0); */
     /* fprintf(stdout, "Dn line %d/%d\n", dn->current_line, dn->num_lines); */
     if (dn->num_lines != 0 && dn->current_line < dn->num_lines - 1) {
 	TLinesItem *current = dn->lines->items[dn->current_line];
@@ -368,7 +431,17 @@ void dirnav_next(DirNav *dn)
 	textbox_set_background_color(current->tb, &color_highlighted_bckgrnd);
 	txt_color = ((DirPath *)current->obj)->type == DT_DIR ? color_dir_selected : color_file_selected;
 	textbox_set_text_color(current->tb, &txt_color);
-	textbox_reset_full(current->tb);
+	/* textbox_reset_full(current->tb); */
+	/* dn->layout->children[0]->scroll_offset_ -= 10; */
+	textbox_set_value_handle(dn->current_path_tb, ((DirPath *)current->obj)->path);
+	layout_reset(dn->layout);
+
+	Layout *inner = layout_get_child_by_name_recursive(dn->layout, "dirnav_lines_container");
+	if (current->tb->layout->rect.y + current->tb->layout->rect.h > inner->rect.y + inner->rect.h) {
+	    dn->lines->container->scroll_offset_v -= current->tb->layout->rect.h;
+	    fprintf(stdout, "met condition new offset: %d\n", dn->lines->container->scroll_offset_v);
+	    layout_force_reset(dn->layout);
+	}
     }
 }
 
@@ -386,7 +459,15 @@ void dirnav_previous(DirNav *dn)
 	textbox_set_background_color(current->tb, &color_highlighted_bckgrnd);
 	txt_color = ((DirPath *)current->obj)->type == DT_DIR ? color_dir_selected : color_file_selected;
 	textbox_set_text_color(current->tb, &txt_color);
-	textbox_reset_full(current->tb);
+	/* textbox_reset_full(current->tb); */
+	textbox_set_value_handle(dn->current_path_tb, ((DirPath *)current->obj)->path);
+	
+	Layout *inner = layout_get_child_by_name_recursive(dn->layout, "dirnav_lines_container");
+	if (current->tb->layout->rect.y < inner->rect.y) {
+	    dn->lines->container->scroll_offset_v += current->tb->layout->rect.h;
+	    layout_reset(dn->layout);
+	}
+
     }
 }
 
@@ -401,36 +482,47 @@ void dirnav_select(DirNav *dn)
 {
     DirPath *selected = (DirPath *)dn->lines->items[dn->current_line]->obj;
     if (selected->type == DT_DIR) {
-	dn->dirpath = dir_select(dn->dirpath, selected);
+	DirPath *new = dir_select(dn->dirpath, selected);
+	if (!new) {
+	    textbox_set_value_handle(dn->current_path_tb, strerror(errno_saved));
+	    return;
+	}
+	dn->dirpath = new;
+	Layout *lines_container = dn->lines->container;
 	textlines_destroy(dn->lines);
 	dn->num_lines = 0;
 	dn->current_line = 0;
-	for (uint8_t i = 0; i<dn->layout->num_children; i++) {
-	    layout_destroy(dn->layout->children[i]);
-	}
-	Layout *inner = layout_add_child(dn->layout);
-	inner->x.value.intval = 5;
-	inner->y.value.intval = 4;
-	inner->w.type = PAD;
-	inner->h.type = PAD;
-	layout_reset(inner);
-
-	/* Layout *inner = dn->layout->children[0]; */
-	/* for (uint8_t i=0; i<inner->num_children; i++) { */
-	/* 	fprintf(stdout, "destroy!\n"); */
-	/* 	layout_destroy(inner->children[i]); */
+	/* for (uint8_t i = 0; i<dn->layout->num_children; i++) { */
+	/*     layout_destroy(dn->layout->children[i]); */
 	/* } */
-	dn->lines = textlines_create((void **)dn->dirpath->entries, dn->dirpath->num_entries, dir_to_tline_filter, dir_to_tline, inner, (void *)dn);
+	/* Layout *inner = layout_get_child_by_name_recursive(dn->layout, "dirnav_lines_container"); */
+	for (uint8_t i=0; i<lines_container->num_children; i++) {
+	    layout_destroy(lines_container->children[i]);
+	}
+	/* Layout *inner = layout_add_child(dn->layout); */
+	/* inner->x.value.intval = 5; */
+	/* inner->y.value.intval = 5; */
+	/* inner->w.type = PAD; */
+	/* inner->h.type = PAD; */
+	lines_container->scroll_offset_v = 0;
+	/* layout_reset(lines_container); */
+
+	/* Layout *lines_container = dn->layout->children[0]; */
+	/* for (uint8_t i=0; i<lines_container->num_children; i++) { */
+	/* 	fprintf(stdout, "destroy!\n"); */
+	/* 	layout_destroy(lines_container->children[i]); */
+	/* } */
+	dn->lines = textlines_create((void **)dn->dirpath->entries, dn->dirpath->num_entries, dir_to_tline_filter, dir_to_tline, lines_container, (void *)dn);
 	qsort(dn->lines->items, dn->lines->num_items, sizeof(TLinesItem *), qsort_dirnav_cmp);
 	TLinesItem *tli = NULL;
 	for (uint16_t i=0; i<dn->lines->num_items; i++) {
 	    tli = dn->lines->items[i];
-	    tli->tb->layout = inner->children[i];
+	    tli->tb->layout = lines_container->children[i];
 	    tli->tb->text->container = tli->tb->layout;
 	    tli->tb->text->text_lt = tli->tb->layout->children[0];
 	    textbox_reset_full(tli->tb);
 	}
-	layout_reset(inner);
+	layout_reset(lines_container);
 	/* if (!dn->lines) { */
 	/* 	fprintf(stderr, "FATAL ERROR: could not create tlines\n"); */
 	/* 	exit(1); */
@@ -444,6 +536,7 @@ void dirnav_select(DirNav *dn)
 	textbox_set_text_color(dn->lines->items[dn->current_line]->tb, &sel_clr);
 	textbox_set_background_color(sel->tb, &color_highlighted_bckgrnd);
 	textbox_reset_full(sel->tb);
+	textbox_set_value_handle(dn->current_path_tb, new->path);
 	layout_reset(dn->layout);
     }
 }

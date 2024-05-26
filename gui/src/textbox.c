@@ -67,6 +67,25 @@ void textbox_size_to_fit(Textbox *tb, int h_pad, int v_pad)
     layout_reset(tb->layout);
 }
 
+void textbox_size_to_fit_v(Textbox *tb, int v_pad)
+{
+    v_pad *= tb->window->dpi_scale_factor;
+    SDL_Rect *text_rect = &tb->text->text_lt->rect;
+    SDL_Rect *layout_rect = &tb->layout->rect;
+    bool save_trunc = tb->text->truncate;
+    
+    tb->text->truncate = false;
+    txt_set_pad(tb->text, 0, v_pad);
+    txt_reset_display_value(tb->text);
+    layout_rect->w = text_rect->w;
+    layout_rect->h = text_rect->h + v_pad * 2;
+    /* fprintf(stderr, "Textbox rect x: %d, layout rect x: %d\n", text_rect->x, layout_rect->x); */
+    text_rect->y = layout_rect->y + v_pad;
+    tb->text->truncate = save_trunc;
+    layout_set_wh_from_rect(tb->layout);
+    layout_reset(tb->layout);
+
+}
 /* Pad a textbox on all sides. Modifies the dimensions of the layout */
 void textbox_pad(Textbox *tb, int pad)
 {

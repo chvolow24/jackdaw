@@ -49,6 +49,7 @@ Textbox *textbox_create_from_str(
 void textbox_pad(Textbox *tb, int pad);
 void textbox_draw(Textbox *tb);
 void textbox_size_to_fit(Textbox *tb, int w_pad, int v_pad);
+void textbox_size_to_fit_v(Textbox *tb, int v_pad);
 void textbox_set_fixed_w(Textbox *tb, int fixed_w);
 void textbox_set_text_color(Textbox *tb, SDL_Color *clr);
 void textbox_set_trunc(Textbox *tb, bool trunc);

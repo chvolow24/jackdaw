@@ -731,6 +731,8 @@ int set_rect_xy(Layout *lt)
     case PAD:
 	break;
     }
+    lt->rect.x += lt->scroll_offset_h * main_win->dpi_scale_factor;
+    lt->rect.y += lt->scroll_offset_v * main_win->dpi_scale_factor;
     return 1;
 }
 
@@ -930,6 +932,9 @@ Layout *layout_create()
 	lt->namelabel = NULL;
     }
     lt->hidden = false;
+
+    lt->scroll_offset_v = 0;
+    lt->scroll_offset_h = 0;
     return lt;
 }
 

@@ -22,7 +22,8 @@ typedef struct dirnav {
     bool show_dirs;
     bool show_files;
     Textbox *instruction;
-    Textbox *current_path;
+    Textbox *current_path_tb;
+    char current_path_str[MAX_PATHLEN];
     /* char line_text[32768]; */
     /* TextArea *lines; */
     TextLines *lines;

@@ -935,6 +935,11 @@ void user_modal_select()
     modal_select(modal);
 }
 
+void user_modal_dismiss()
+{
+    window_pop_modal(main_win);
+}
+
 /*
 }
 

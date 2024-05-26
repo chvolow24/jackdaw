@@ -378,7 +378,7 @@ void transport_recording_update_cliprects()
 
 	switch(clip->recorded_from->type) {
 	case DEVICE:
-	    clip->len_sframes = clip->recorded_from->c.device.write_bupos_samples / clip->channels + clip->write_bufpos_sframes;
+	    clip->len_sframes = clip->recorded_from->c.device.write_bufpos_samples / clip->channels + clip->write_bufpos_sframes;
 	    break;
 	case PURE_DATA:
 	    clip->len_sframes = clip->recorded_from->c.pd.write_bufpos_sframes + clip->write_bufpos_sframes;

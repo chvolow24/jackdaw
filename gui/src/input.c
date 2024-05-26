@@ -128,44 +128,44 @@ static void mode_load_global()
     fn = create_user_fn(
 	"expose_help",
 	"Expose help",
-	user_global_expose_help
-	);
+	user_global_expose_help);
     mode_subcat_add_fn(mc, fn);
     
     fn = create_user_fn(
 	"quit",
 	"Quit",
-	user_global_quit
-	);
+	user_global_quit);
     mode_subcat_add_fn(mc, fn);
 
     fn = create_user_fn(
 	"undo",
 	"Undo",
-	user_global_undo
-	);
+	user_global_undo);
 
     mode_subcat_add_fn(mc, fn);
 
     fn = create_user_fn(
 	"redo",
 	"Redo",
-	user_global_redo
-	);
+	user_global_redo);
     mode_subcat_add_fn(mc, fn);
 
     fn = create_user_fn(
 	"save_project",
 	"Save Project",
-	user_global_save_project
-	);
+	user_global_save_project);
+    mode_subcat_add_fn(mc, fn);
+
+    fn = create_user_fn(
+	"open_file",
+	"Open File (.wav or .jdaw)",
+	user_global_open_file);
     mode_subcat_add_fn(mc, fn);
 
     fn = create_user_fn(
 	"start_or_stop_screenrecording",
 	"Start or stop screenrecording",
-	user_global_start_or_stop_screenrecording
-	);
+	user_global_start_or_stop_screenrecording);
     mode_subcat_add_fn(mc, fn);
 }
 
@@ -179,68 +179,59 @@ static void mode_load_menu_nav()
     fn = create_user_fn(
 	"menu_next_item",
 	"Next item",
-	user_menu_nav_next_item
-	);
+	user_menu_nav_next_item);
     mode_subcat_add_fn(mc, fn);
     
     fn = create_user_fn(
 	"menu_previous_item",
 	"Previous item",
-	user_menu_nav_prev_item
-	);
+	user_menu_nav_prev_item);
     mode_subcat_add_fn(mc, fn);
 
     fn = create_user_fn(
 	"menu_next_section",
 	"Next section",
 
-	user_menu_nav_next_sctn
-	);
+	user_menu_nav_next_sctn);
 
     mode_subcat_add_fn(mc, fn);
 
     fn = create_user_fn(
 	"menu_previous_section",
 	"Previous section",
-	user_menu_nav_prev_sctn
-	);
+	user_menu_nav_prev_sctn);
     mode_subcat_add_fn(mc, fn);
 
     
     fn = create_user_fn(
 	"menu_choose_item",
 	"Choose item",
-	user_menu_nav_choose_item
-	);
+	user_menu_nav_choose_item);
     mode_subcat_add_fn(mc, fn);
 
         fn = create_user_fn(
 	"menu_column_right",
 	"Column right",
-	user_menu_nav_column_right
-	);
+	user_menu_nav_column_right);
     mode_subcat_add_fn(mc, fn);
 
     fn = create_user_fn(
 	"menu_column_left",
 	"Column left",
-	user_menu_nav_column_left
-	);
+	user_menu_nav_column_left);
     mode_subcat_add_fn(mc, fn);
 
 
     fn = create_user_fn(
 	"menu_translate_up",
 	"Move menu up",
-	user_menu_translate_up
-	);
+	user_menu_translate_up);
     mode_subcat_add_fn(mc, fn);
 
         fn = create_user_fn(
 	"menu_translate_left",
 	"Move menu left",
-	user_menu_translate_left
-	);
+	user_menu_translate_left);
     mode_subcat_add_fn(mc, fn);
 
     mode_subcat_add_fn(mc, fn);
@@ -248,22 +239,19 @@ static void mode_load_menu_nav()
     fn = create_user_fn(
 	"menu_translate_down",
 	"Move menu down",
-	user_menu_translate_down
-	);
+	user_menu_translate_down);
     mode_subcat_add_fn(mc, fn);
     
     fn = create_user_fn(
 	"menu_translate_right",
 	"Move menu right",
-	user_menu_translate_right
-	);
+	user_menu_translate_right);
     mode_subcat_add_fn(mc, fn);
 
     fn = create_user_fn(
 	"menu_dismiss",
 	"go back (dismiss)",
-	user_menu_dismiss
-	);
+	user_menu_dismiss);
     mode_subcat_add_fn(mc, fn);
 
 }
@@ -285,34 +273,29 @@ static void mode_load_timeline()
     fn = create_user_fn(
 	"tl_play",
 	"Play",
-	user_tl_play
-	);
+	user_tl_play);
     mode_subcat_add_fn(sc, fn);
     fn = create_user_fn(
 	"tl_pause",
 	"Pause",
-	user_tl_pause
-	);
+	user_tl_pause);
     mode_subcat_add_fn(sc, fn);
     fn = create_user_fn(
 	"tl_rewind",
 	"Rewind",
-	user_tl_rewind
-	);
+	user_tl_rewind);
     mode_subcat_add_fn(sc, fn);
 
     fn=create_user_fn(
 	"tl_play_slow",
 	"Play slow",
-	user_tl_play_slow
-	);
+	user_tl_play_slow);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"tl_rewind_slow",
 	"Rewind slow",
-	user_tl_rewind_slow
-	);
+	user_tl_rewind_slow);
     mode_subcat_add_fn(sc, fn);
 
     /* fn = create_user_fn( */
@@ -339,43 +322,37 @@ static void mode_load_timeline()
     fn = create_user_fn(
 	"tl_toggle_drag",
 	"Start or stop dragging clips",
-	user_tl_toggle_drag
-	);
+	user_tl_toggle_drag);
     mode_subcat_add_fn(sc, fn);
     
     fn = create_user_fn(
 	"tl_move_right",
 	"Move right",
-	user_tl_move_right
-	);
+	user_tl_move_right);
     mode_subcat_add_fn(sc,fn);
 
     fn = create_user_fn(
 	"tl_move_left",
 	"Move left",
-	user_tl_move_left
-	);
+	user_tl_move_left);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"tl_zoom_out",
 	"Move left",
-	user_tl_zoom_out
-	);
+	user_tl_zoom_out);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"tl_zoom_in",
 	"Move left",
-	user_tl_zoom_in
-	);
+	user_tl_zoom_in);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"tl_record",
 	"Record (start or stop)",
-	user_tl_record
-	);
+	user_tl_record);
     mode_subcat_add_fn(sc, fn);
 
     
@@ -384,44 +361,38 @@ static void mode_load_timeline()
     fn = create_user_fn(
 	"tl_set_in_mark",
 	"Set In",
-	user_tl_set_mark_in
-	);
+	user_tl_set_mark_in);
     mode_subcat_add_fn(sc, fn);
     
     fn = create_user_fn(
 	"tl_set_out_mark",
 	"Set Out",
-	user_tl_set_mark_out
-	);
+	user_tl_set_mark_out);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"tl_goto_in_mark",
 	"Go to In",
-	user_tl_goto_mark_in
-	);
+	user_tl_goto_mark_in);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"tl_goto_out_mark",
 	"Go to Out",
-	user_tl_goto_mark_out
-	);
+	user_tl_goto_mark_out);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"tl_goto_zero",
 	"Go to t=0",
-	user_tl_goto_zero
-	);
+	user_tl_goto_zero);
     mode_subcat_add_fn(sc, fn);
 
 
     fn = create_user_fn(
 	"tl_set_default_out",
 	"Set default audio output",
-	user_tl_set_default_out
-	);
+	user_tl_set_default_out);
     mode_subcat_add_fn(sc, fn);
     
     /********** TRACK NAV **********/
@@ -429,113 +400,97 @@ static void mode_load_timeline()
     fn = create_user_fn(
 	"tl_track_add",
 	"Add Track",
-        user_tl_add_track
-	);
+        user_tl_add_track);
     mode_subcat_add_fn(sc, fn);
 
 
     fn = create_user_fn(
 	"tl_track_add",
 	"Add Track",
-        user_tl_add_track
-	);
+        user_tl_add_track);
     mode_subcat_add_fn(sc, fn);
 
         fn = create_user_fn(
 	"tl_track_select_1",
 	"Select track 1",
-        user_tl_track_select_1
-	);
+        user_tl_track_select_1);
     mode_subcat_add_fn(sc, fn);
 
         fn = create_user_fn(
 	"tl_track_select_2",
 	"Select track 2",
-        user_tl_track_select_2
-	);
+        user_tl_track_select_2);
     mode_subcat_add_fn(sc, fn);
 
         fn = create_user_fn(
 	"tl_track_select_3",
 	"Select track 3",
-        user_tl_track_select_3
-	);
+        user_tl_track_select_3);
     mode_subcat_add_fn(sc, fn);
     fn = create_user_fn(
 	"tl_track_select_4",
 	"Select track 4",
-        user_tl_track_select_4
-	);
+        user_tl_track_select_4);
     mode_subcat_add_fn(sc, fn);
 
         fn = create_user_fn(
 	"tl_track_select_5",
 	"Select track 5",
-        user_tl_track_select_5
-	);
+        user_tl_track_select_5);
     mode_subcat_add_fn(sc, fn);
 
         fn = create_user_fn(
 	"tl_track_select_6",
 	"Select track 6",
-        user_tl_track_select_6
-	);
+        user_tl_track_select_6);
     mode_subcat_add_fn(sc, fn);
 
         fn = create_user_fn(
 	"tl_track_select_7",
 	"Select track 7",
-        user_tl_track_select_7
-	);
+        user_tl_track_select_7);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"tl_track_select_8",
 	"Select track 8",
-        user_tl_track_select_8
-	);
+        user_tl_track_select_8);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"tl_track_select_9",
 	"Select track 9",
-        user_tl_track_select_9
-	);
+        user_tl_track_select_9);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"tl_track_activate_all",
 	"Activate or deactivate all tracks",
-        user_tl_track_activate_all
-	);
+        user_tl_track_activate_all);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"tl_track_selector_up",
 	"Move track selector up",
-        user_tl_track_selector_up
-	);
+        user_tl_track_selector_up);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"tl_track_selector_down",
 	"Move track selector down",
-        user_tl_track_selector_down
-	);
+        user_tl_track_selector_down);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"tl_track_activate_selected",
 	"Activate selected track",
-        user_tl_track_activate_selected
-	);
+        user_tl_track_activate_selected);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"tl_track_destroy",
 	"Destroy selected track (permanent)",
-	user_tl_track_destroy
-	);
+	user_tl_track_destroy);
     mode_subcat_add_fn(sc, fn);
 
 
@@ -546,30 +501,26 @@ static void mode_load_timeline()
     fn = create_user_fn(
 	"tl_mute",
 	"Mute or unmute selected track(s)",
-	user_tl_mute
-	);
+	user_tl_mute);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"tl_solo",
 	"Solo or unsolo selected track(s)",
-	user_tl_solo
-	);
+	user_tl_solo);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"tl_track_vol_up",
 	"Track volume up",
-	user_tl_track_vol_up
-	);
+	user_tl_track_vol_up);
     /* set_user_fn_toggle(fn); */
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"tl_track_vol_down",
 	"Track volume down",
-	user_tl_track_vol_down
-	);
+	user_tl_track_vol_down);
     mode_subcat_add_fn(sc, fn);
 
 
@@ -583,29 +534,25 @@ static void mode_load_timeline()
     fn = create_user_fn(
 	"tl_track_pan_left",
 	"Track pan left",
-	user_tl_track_pan_left
-	);
+	user_tl_track_pan_left);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"tl_track_pan_right",
 	"Track pan right",
-	user_tl_track_pan_right
-	);
+	user_tl_track_pan_right);
     mode_subcat_add_fn(sc, fn);
     
     fn = create_user_fn(
 	"tl_track_rename",
 	"Rename selected track",
-	user_tl_track_rename
-	);
+	user_tl_track_rename);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"tl_track_set_in",
 	"Set track input",
-	user_tl_track_set_in
-	);
+	user_tl_track_set_in);
     mode_subcat_add_fn(sc, fn);
 
     /********** CLIPS **********/
@@ -614,29 +561,25 @@ static void mode_load_timeline()
     fn = create_user_fn(
 	"tl_grab_clips_at_point",
 	"Grab clip at point",
-	user_tl_clipref_grab_ungrab
-	);
+	user_tl_clipref_grab_ungrab);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"tl_load_clip_at_point_to_source",
 	"Load clip at point to source",
-        user_tl_load_clip_at_point_to_src
-	);
+        user_tl_load_clip_at_point_to_src);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"tl_activate_source_mode",
 	"Activate Source Mode",
-	user_tl_activate_source_mode
-	);
+	user_tl_activate_source_mode);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"tl_drop_from_source",
 	"Drop from source",
-	user_tl_drop_from_source
-	);
+	user_tl_drop_from_source);
     mode_subcat_add_fn(sc, fn);
 
     
@@ -645,29 +588,25 @@ static void mode_load_timeline()
     fn = create_user_fn(
 	"tl_add_new_timeline",
 	"Add new timeline",
-	user_tl_add_new_timeline
-	);
+	user_tl_add_new_timeline);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"tl_previous_timeline",
 	"Previous timeline",
-	user_tl_previous_timeline
-	);
+	user_tl_previous_timeline);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"tl_next_timeline",
 	"Next timeline",
-	user_tl_next_timeline
-	);
+	user_tl_next_timeline);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"tl_write_mixdown_to_wav",
 	"Write mixdown to .wav file",
-	user_tl_write_mixdown_to_wav
-	);
+	user_tl_write_mixdown_to_wav);
     mode_subcat_add_fn(sc, fn);
 }
 
@@ -680,45 +619,40 @@ static void mode_load_source()
     fn = create_user_fn(
 	"source_play",
 	"Play (source)",
-        user_source_play
-	);
+        user_source_play);
     mode_subcat_add_fn(sc, fn);
 
 
     fn = create_user_fn(
 	"source_pause",
 	"Pause (source)",
-        user_source_pause
-	);
+        user_source_pause);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"source_rewind",
 	"Rewind (source)",
-        user_source_rewind
-	);
+        user_source_rewind);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"source_play_slow",
 	"Play slow (source)",
-	user_source_play_slow
-	);
+	user_source_play_slow);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"source_rewind_slow",
 	"Rewind slow (source",
-	user_source_rewind_slow
-	);
+	user_source_rewind_slow);
     mode_subcat_add_fn(sc, fn);
     
     fn = create_user_fn(
 	"source_set_in_mark",
 	"Set In Mark (source)",
-        user_source_set_in_mark
-	);
+        user_source_set_in_mark);
     mode_subcat_add_fn(sc, fn);
+    
     fn = create_user_fn(
 	"source_set_out_mark",
 	"Set Out Mark (source)",
@@ -738,15 +672,25 @@ static void mode_load_modal()
     fn = create_user_fn(
 	"modal_next",
 	"Go to next item",
-	user_modal_next
-	);
+	user_modal_next);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"modal_previous",
 	"Go to previous item",
-	user_modal_previous
-	);
+	user_modal_previous);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"modal_next_escape",
+	"Go to next item (escape DirNav)",
+	user_modal_next_escape);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"modal_previous_escape",
+	"Go to previous item (escape DirNav)",
+	user_modal_previous_escape);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
@@ -761,8 +705,12 @@ static void mode_load_modal()
 	user_modal_dismiss);
     mode_subcat_add_fn(sc, fn);
 
+    fn = create_user_fn(
+	"modal_submit_form",
+	"Submit form",
+	user_modal_submit_form);
+    mode_subcat_add_fn(sc, fn);
 }
-
 
 void input_init_mode_load_all()
 {

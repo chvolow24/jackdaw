@@ -577,6 +577,7 @@ void timeline_reset(Timeline *tl)
     for (int i=0; i<tl->num_tracks; i++) {
 	track_reset(tl->tracks[i]);
     }
+    fprintf(stdout, "TL reset\n");
     layout_reset(tl->layout);
 }
 

@@ -247,7 +247,7 @@ Project *jdaw_read_file(const char *path)
     hdr_buffer[4] = '\0';
     if (strncmp(hdr_buffer, hdr_jdaw, 4) != 0) {
         fprintf(stderr, "Error: unable to read file. 'JDAW' specifier missing %s\n", path);
-        free(proj);
+        /* free(proj); */
         return NULL;
     }
 
@@ -265,7 +265,7 @@ Project *jdaw_read_file(const char *path)
     float file_spec_version = atof(hdr_buffer);
     if (file_spec_version < current_file_spec_version_f) {
 	fprintf(stderr, "Error: .jdaw file version %s is not compatible with the current jackdaw version (%s). You may need to downgrade to open this file.\n", hdr_buffer, JACKDAW_VERSION);
-        free(proj);
+        /* free(proj); */
 	return NULL;
     }
 

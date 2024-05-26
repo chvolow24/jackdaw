@@ -37,6 +37,7 @@ typedef struct modal {
     uint8_t selectable_indices[MAX_MODAL_ELEMENTS];
     uint8_t num_selectable;
     uint8_t selected_i;
+    void *(*submit_form)(void *self);
 } Modal;
 
 Modal *modal_create(Layout *lt);
@@ -44,11 +45,17 @@ void modal_destroy(Modal *modal);
 ModalEl *modal_add_header(Modal *modal, const char *text, SDL_Color *color, int level);
 ModalEl *modal_add_p(Modal *modal, const char *text, SDL_Color *color);
 ModalEl *modal_add_dirnav(Modal *modal, const char *dirpath, bool show_dirs, bool show_files);
+ModalEl *modal_add_textentry(Modal *modal, char *init_val);
 void modal_reset(Modal *modal);
 void modal_draw(Modal *modal);
 
 void modal_next(Modal *modal);
 void modal_previous(Modal *modal);
+void modal_next_escape(Modal *modal);
+void modal_previous_escape(Modal *modal);
 void modal_select(Modal *modal);
+
+void modal_submit_form(Modal *modal);
+
 
 #endif

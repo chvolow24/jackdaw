@@ -244,6 +244,8 @@ TextLines *textlines_create(
 	    /* i++; */
 	}
     }
+    layout_force_reset(tlines->container);
+    layout_size_to_fit_children(tlines->container, true, 0);
     return tlines;
 }
 
@@ -271,5 +273,4 @@ void textlines_draw(TextLines *tlines)
 	textbox_draw(tlines->items[i]->tb);
     }
     layout_destroy(tlines->container);
-
 }

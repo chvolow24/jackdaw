@@ -149,8 +149,8 @@ int main(int argc, char **argv)
 	    exit(0);
 	}
 	file_to_open = argv[1];
-	int dotpos = strcspn(file_to_open, ".");
-	char *ext = file_to_open + dotpos + 1;
+	char *dotpos = strrchr(file_to_open, '.');
+	char *ext = dotpos + 1;
 	if (strcmp("wav", ext) * strcmp("WAV", ext) == 0) {
 	    fprintf(stderr, "Passed WAV file.\n");
 	    invoke_open_wav_file = true;
@@ -182,7 +182,7 @@ int main(int argc, char **argv)
 	    timeline_reset_full(proj->timelines[i]);
 	}
     } else {
-	proj = project_create("New Project", DEFAULT_PROJ_AUDIO_SETTINGS);
+	proj = project_create("project.jdaw", DEFAULT_PROJ_AUDIO_SETTINGS);
     }
 
     

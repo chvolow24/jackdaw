@@ -237,6 +237,6 @@ void timeline_catchup()
     } else if (tl_draw_x < proj->audio_rect->x) {
 	tl->display_offset_sframes = tl->play_pos_sframes - timeline_get_abs_w_sframes(catchup_w);
     }
-    timeline_reset(tl);
+    /* timeline_reset(tl); */
 }
 

@@ -12,8 +12,11 @@
 
 
 #define DIRNAV_LINE_SPACING 3
-/* #define DIRNAV_HEIGHT 240 */
 #define DIRNAV_TLINES_HEIGHT 200
+#define SCROLL_TRIGGER_PAD (25 * main_win->dpi_scale_factor)
+#define SCROLL_PAD (50 * main_win->dpi_scale_factor)
+
+
 extern Window *main_win;
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;
@@ -74,7 +77,7 @@ char *filetype(uint8_t t)
 /* } */
 
 
-static int path_updir_name(char *pathname)
+int path_updir_name(char *pathname)
 {
     int ret = 0;
     char *current = NULL;
@@ -334,6 +337,7 @@ DirNav *dirnav_create(const char *dir_name, Layout *lt, bool show_dirs, bool sho
     dn->lines = textlines_create((void **)dn->dirpath->entries, dp->num_entries, dir_to_tline_filter, dir_to_tline, lines_container, (void *)dn);
     dn->lines->num_items = dn->num_lines;
 
+
     TLinesItem *sel = dn->lines->items[dn->current_line];
     SDL_Color sel_clr = (((DirPath *)sel->obj)->type == DT_DIR) ? color_dir_selected : color_file_selected;
     /* sel_clr = (SDL_Color) {255, 255, 255, 255}; */
@@ -361,7 +365,7 @@ DirNav *dirnav_create(const char *dir_name, Layout *lt, bool show_dirs, bool sho
     textbox_reset_full(dn->current_path_tb);
     layout_size_to_fit_children(dn->layout, true, 30);
     layout_reset(dn->layout);
-    layout_write(stdout, pathname_lt, 0);
+    /* layout_write(stdout, pathname_lt, 0); */
     /* layout_reset(dn->layout); */
     return dn;
 }
@@ -408,10 +412,12 @@ void dirnav_draw(DirNav *dn)
 	textbox_draw(dn->current_path_tb);
     }
     /* SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255); */
+    /* SDL_RenderDrawRect(main_win->rend, &dn->lines->container->rect); */
     /* SDL_RenderDrawRect(main_win->rend, &dn->layout->rect); */
     /* SDL_RenderDrawRect(main_win->rend, &inner->rect); */
     
     /* layout_draw(main_win, dn->layout); */
+    /* layout_draw(main_win, dn->lines->container); */
 }
 
 /* void layout_write(FILE *f, Layout *lt, int indent); */
@@ -433,14 +439,14 @@ void dirnav_next(DirNav *dn)
 	textbox_set_text_color(current->tb, &txt_color);
 	/* textbox_reset_full(current->tb); */
 	/* dn->layout->children[0]->scroll_offset_ -= 10; */
-	textbox_set_value_handle(dn->current_path_tb, ((DirPath *)current->obj)->path);
+	/* textbox_set_value_handle(dn->current_path_tb, ((DirPath *)current->obj)->path); */
 	layout_reset(dn->layout);
 
 	Layout *inner = layout_get_child_by_name_recursive(dn->layout, "dirnav_lines_container");
-	if (current->tb->layout->rect.y + current->tb->layout->rect.h > inner->rect.y + inner->rect.h) {
-	    dn->lines->container->scroll_offset_v -= current->tb->layout->rect.h;
-	    fprintf(stdout, "met condition new offset: %d\n", dn->lines->container->scroll_offset_v);
-	    layout_force_reset(dn->layout);
+	if (current->tb->layout->rect.y + current->tb->layout->rect.h > inner->rect.y + inner->rect.h - SCROLL_TRIGGER_PAD) {
+	    int item_abs_y = current->tb->layout->rect.y;
+	    int item_desired_y = inner->rect.y + inner->rect.h - SCROLL_PAD;
+	    dn->lines->container->scroll_offset_v -= item_abs_y - item_desired_y;
 	}
     }
 }
@@ -460,13 +466,17 @@ void dirnav_previous(DirNav *dn)
 	txt_color = ((DirPath *)current->obj)->type == DT_DIR ? color_dir_selected : color_file_selected;
 	textbox_set_text_color(current->tb, &txt_color);
 	/* textbox_reset_full(current->tb); */
-	textbox_set_value_handle(dn->current_path_tb, ((DirPath *)current->obj)->path);
+	/* textbox_set_value_handle(dn->current_path_tb, ((DirPath *)current->obj)->path); */
 	
 	Layout *inner = layout_get_child_by_name_recursive(dn->layout, "dirnav_lines_container");
-	if (current->tb->layout->rect.y < inner->rect.y) {
-	    dn->lines->container->scroll_offset_v += current->tb->layout->rect.h;
-	    layout_reset(dn->layout);
+	if (current->tb->layout->rect.y < inner->rect.y + SCROLL_TRIGGER_PAD && dn->lines->container->scroll_offset_v < 0) {
+	    int item_abs_y = current->tb->layout->rect.y;
+	    int item_desired_y = inner->rect.y + SCROLL_PAD;
+	    dn->lines->container->scroll_offset_v -= item_abs_y - item_desired_y;
+	    if (dn->lines->container->scroll_offset_v > 0) dn->lines->container->scroll_offset_v = 0;
+	    layout_reset(dn->lines->container);
 	}
+
 
     }
 }
@@ -522,13 +532,6 @@ void dirnav_select(DirNav *dn)
 	    tli->tb->text->text_lt = tli->tb->layout->children[0];
 	    textbox_reset_full(tli->tb);
 	}
-	layout_reset(lines_container);
-	/* if (!dn->lines) { */
-	/* 	fprintf(stderr, "FATAL ERROR: could not create tlines\n"); */
-	/* 	exit(1); */
-	/* } else { */
-	/* 	fprintf(stdout, "Successfully created tlines w %d items and current %d\n", dn->lines->num_items, dn->current_line); */
-	/* } */
 
 	TLinesItem *sel = dn->lines->items[dn->current_line];
 	SDL_Color sel_clr = (((DirPath *)sel->obj)->type == DT_DIR) ? color_dir_selected : color_file_selected;
@@ -538,6 +541,8 @@ void dirnav_select(DirNav *dn)
 	textbox_reset_full(sel->tb);
 	textbox_set_value_handle(dn->current_path_tb, new->path);
 	layout_reset(dn->layout);
+    } else if (selected->type == DT_REG && dn->file_select_action) {
+	dn->file_select_action(dn, selected);
     }
 }
 

@@ -809,6 +809,7 @@ void reset_iterations(LayoutIterator *iter);
 /* New iterative implementation */
 void layout_force_reset(Layout *lt)
 {
+    /* fprintf(stdout, "\t\tLT FORCE RESET\n"); */
     if (lt->hidden) {
 	return;
     }
@@ -857,6 +858,7 @@ void layout_force_reset(Layout *lt)
 /* Old recursive implementation */
 void layout_reset(Layout *lt)
 {
+    /* fprintf(stdout, "\t\tLT RESET\n"); */
     if (lt->hidden) {
 	return;
     }

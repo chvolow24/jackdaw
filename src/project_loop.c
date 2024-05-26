@@ -197,21 +197,21 @@ void loop_project_main()
 
 
 
-    /* TESTING */
-    const char *modal_p = "Hello. My name is charlie volow. I am here to test this modal thing I am implementing. It is very unlikely that I will be happy with how it works; however, I think it is necessary, and good, and this is the best I can do to get what I want. I will say that it is better than other code I have written";
-    Layout *mod_lt = layout_add_child(proj->layout);
-    layout_set_default_dims(mod_lt);
-    Modal *test_modal = modal_create(mod_lt);
-    modal_add_header(test_modal, "Hello world!", &color_global_black, 1);
-    modal_add_dirnav(test_modal, INSTALL_DIR "/assets", true, true);
-    modal_add_header(test_modal, "Subtitle", &color_global_black, 3);
-    modal_add_p(test_modal, modal_p, &color_global_black);
-    modal_add_header(test_modal, "Another thing...", &color_global_black, 2);
-    modal_add_header(test_modal, "AND", &color_global_black, 1);
-    modal_add_p(test_modal, "This is also a paragraph.", &color_global_black);
-    /* layout_force_reset(test_modal->layout); */
-    modal_reset(test_modal);
-    window_push_modal(main_win, test_modal);
+    /* /\* TESTING *\/ */
+    /* const char *modal_p = "Hello. My name is charlie volow. I am here to test this modal thing I am implementing. It is very unlikely that I will be happy with how it works; however, I think it is necessary, and good, and this is the best I can do to get what I want. I will say that it is better than other code I have written"; */
+    /* Layout *mod_lt = layout_add_child(proj->layout); */
+    /* layout_set_default_dims(mod_lt); */
+    /* Modal *test_modal = modal_create(mod_lt); */
+    /* modal_add_header(test_modal, "Hello world!", &color_global_black, 1); */
+    /* modal_add_dirnav(test_modal, INSTALL_DIR "/assets", true, true); */
+    /* modal_add_header(test_modal, "Subtitle", &color_global_black, 3); */
+    /* modal_add_p(test_modal, modal_p, &color_global_black); */
+    /* modal_add_header(test_modal, "Another thing...", &color_global_black, 2); */
+    /* modal_add_header(test_modal, "AND", &color_global_black, 1); */
+    /* modal_add_p(test_modal, "This is also a paragraph.", &color_global_black); */
+    /* /\* layout_force_reset(test_modal->layout); *\/ */
+    /* modal_reset(test_modal); */
+    /* window_push_modal(main_win, test_modal); */
     /* END TEST */
     
     /* layout_write(stdout, main_win->layout, 0); */
@@ -284,9 +284,10 @@ void loop_project_main()
 			    }
 			}
 		    }
+		    /* fprintf(stdout, "Input fn? %p, do fn? %p\n", input_fn, input_fn->do_fn); */
 		    if (input_fn && input_fn->do_fn) {
 			input_fn->do_fn();
-			timeline_reset(proj->timelines[proj->active_tl_index]);
+			/* timeline_reset(proj->timelines[proj->active_tl_index]); */
 		    }
 		    break;
 		}

@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 #include "audio_connection.h"
+#include "dir.h"
 #include "input.h"
 #include "menu.h"
 #include "modal.h"
@@ -17,6 +18,12 @@
 extern Window *main_win;
 extern Project *proj;
 extern Mode **modes;
+
+extern SDL_Color color_global_black;
+extern SDL_Color color_global_grey;
+extern SDL_Color color_global_white;
+extern SDL_Color control_bar_bckgrnd;
+void jdaw_write_project(const char *path);
 
 void user_global_expose_help()
 {
@@ -48,20 +55,96 @@ void user_global_redo()
     fprintf(stdout, "user_global_redo\n");
 }
 
+int path_updir_name(char *pathname);
+static void *submit_save_as_form(void *mod_v)
+{
+    Modal *modal = (Modal *)mod_v;
+    char *name;
+    char *dirpath;
+    ModalEl *el;
+    for (uint8_t i=0; i<modal->num_els; i++) {
+	switch ((el = modal->els[i])->type) {
+	case MODAL_EL_TEXTENTRY:
+	    name = ((Textbox *)el->obj)->text->value_handle;
+	    break;
+	case MODAL_EL_DIRNAV: {
+	    DirNav *dn = (DirNav *)el->obj;
+	    /* DirPath *dir = (DirPath *)dn->lines->items[dn->current_line]->obj; */
+	    dirpath = dn->current_path_tb->text->value_handle;
+	    break;
+	}
+	default:
+	    break;
+	}
+    }
+    char buf[255];
+    memset(buf, '\0', sizeof(buf));
+    strcat(buf, dirpath);
+    strcat(buf, "/");
+    strcat(buf, name);
+    fprintf(stdout, "SAVE AS: %s\n", buf);
+    jdaw_write_project(buf);				  
+    window_pop_modal(main_win);
+    return NULL;
+    
+}
 
-void jdaw_write_project(const char *path);
 void user_global_save_project()
 {
     fprintf(stdout, "user_global_save\n");
-    jdaw_write_project("project_v.jdaw");
+    Layout *mod_lt = layout_add_child(main_win->layout);
+    layout_set_default_dims(mod_lt);
+    Modal *save_as = modal_create(mod_lt);
+    modal_add_header(save_as, "Save as:", &control_bar_bckgrnd, 3);
+    modal_add_header(save_as, "Project name:", &control_bar_bckgrnd, 5);
+    modal_add_textentry(save_as, proj->name);
+    modal_add_p(save_as, "\t\t\t^\t\tS-p (S-d)\t\t\t\tv\t\tS-n (S-d)", &color_global_black);
+    modal_add_header(save_as, "Project location:", &control_bar_bckgrnd, 5);
+    modal_add_dirnav(save_as, INSTALL_DIR, true, false);
+    save_as->submit_form = submit_save_as_form;
+    window_push_modal(main_win, save_as);
+    modal_reset(save_as);
+}
+
+Project *jdaw_read_file(char *path);
+static void openfile_file_select_action(DirNav *dn, DirPath *dp)
+{
+    char *dotpos = strrchr(dp->path, '.');
+    char *ext = dotpos + 1;
+    /* fprintf(stdout, "ext char : %c\n", *ext); */
+    if (strcmp("wav", ext) * strcmp("WAV", ext) == 0) {
+	fprintf(stdout, "Wav file selected\n");
+    } else if (strcmp("jdaw", ext) * strcmp("JDAW", ext) == 0) {
+	fprintf(stdout, "Jdaw file selected\n");
+	proj = jdaw_read_file(dp->path);
+	timeline_reset_full(proj->timelines[0]);
+    }
+    window_pop_modal(main_win);
+}
+
+void user_global_open_file()
+{
+    /* fprintf(stdout, "user_global_open\n"); */
+    Layout *mod_lt = layout_add_child(main_win->layout);
+    layout_set_default_dims(mod_lt);
+    Modal *openfile = modal_create(mod_lt);
+    modal_add_header(openfile, "Open file:", &color_global_white, 3);
+    /* modal_add_header(openfile, "Project name:", &control_bar_bckgrnd, 5); */
+    /* modal_add_textentry(openfile, proj->name); */
+    /* modal_add_p(openfile, "\t\t\t^\t\tS-p (S-d)\t\t\t\tv\t\tS-n (S-d)", &color_global_black); */
+    /* modal_add_header(openfile, "Project location:", &control_bar_bckgrnd, 5); */
+    ModalEl *dirnav_el = modal_add_dirnav(openfile, INSTALL_DIR, true, true);
+    DirNav *dn = (DirNav *)dirnav_el->obj;
+    dn->file_select_action = openfile_file_select_action;
+    /* openfile->submit_form = submit_openfile_form; */
+    window_push_modal(main_win, openfile);
+    modal_reset(openfile);
 }
 
 void user_global_start_or_stop_screenrecording()
 {
     main_win->screenrecording = !main_win->screenrecording;
-
 }
-
 
 void user_menu_nav_next_item()
 {
@@ -926,6 +1009,25 @@ void user_modal_previous()
     modal_previous(modal);
 }
 
+void user_modal_next_escape()
+{
+    if (main_win->num_modals == 0) {
+	return;
+    }
+    Modal *modal = main_win->modals[main_win->num_modals - 1];
+    modal_next_escape(modal);
+}
+
+void user_modal_previous_escape()
+{
+    if (main_win->num_modals == 0) {
+	return;
+    }
+    Modal *modal = main_win->modals[main_win->num_modals - 1];
+    modal_previous_escape(modal);
+
+}
+
 void user_modal_select()
 {
     if (main_win->num_modals == 0) {
@@ -940,6 +1042,15 @@ void user_modal_dismiss()
     window_pop_modal(main_win);
 }
 
+void user_modal_submit_form()
+{
+    fprintf(stdout, "submit form\n");
+    if (main_win->num_modals == 0) {
+	return;
+    }
+    Modal *modal = main_win->modals[main_win->num_modals - 1];
+    modal_submit_form(modal);
+}
 /*
 }
 

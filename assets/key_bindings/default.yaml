@@ -133,6 +133,11 @@
   - p		: modal_previous
   - f		: modal_next
   - d		: modal_previous
+  - S-n		: modal_next_escape
+  - S-p		: modal_previous_escape
+  - S-f		: modal_next_escape
+  - S-d		: modal_previous_escape
   - <ret>	: modal_select
   - <spc>	: modal_select
   - h		: modal_dismiss
+  - C-<ret>	: modal_submit_form

@@ -7,6 +7,7 @@ void user_global_quit();
 void user_global_undo();
 void user_global_redo();
 void user_global_save_project();
+void user_global_open_file();
 void user_global_start_or_stop_screenrecording();
 void user_menu_nav_next_item();
 void user_menu_nav_prev_item();
@@ -97,6 +98,9 @@ void user_source_set_out_mark();
 
 void user_modal_next();
 void user_modal_previous();
+void user_modal_next_escape();
+void user_modal_previous_escape();
 void user_modal_select();
 void user_modal_dismiss();
+void user_modal_submit_form();
 #endif

@@ -15,7 +15,7 @@
 
 typedef struct dirpath DirPath;
 typedef struct filepath FilePath;
-
+typedef struct dirnav DirNav;
 typedef struct dirnav {
     DirPath *dirpath;
     Layout *layout;
@@ -32,6 +32,7 @@ typedef struct dirnav {
     /* TextArea *lines; */
     /* uint8_t num_lines; */
     uint16_t current_line;
+    void (*file_select_action)(DirNav *self, DirPath *dp);
 } DirNav;
 
 typedef struct dirpath {

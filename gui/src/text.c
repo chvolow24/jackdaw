@@ -411,6 +411,8 @@ void txt_edit(Text *txt, void (*draw_fn) (void))
     txt->truncate = save_truncate;
     txt_set_value(txt, txt->display_value);
 
+    main_win->i_state = 0;
+
     // draw_main();
 }
 

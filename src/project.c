@@ -617,7 +617,7 @@ static void track_reset(Track *track)
 
 ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sframes, bool home)
 {
-    fprintf(stdout, "track %s create clipref\n", track->name);
+    /* fprintf(stdout, "track %s create clipref\n", track->name); */
     ClipRef *cr = calloc(1, sizeof(ClipRef));
     
     sprintf(cr->name, "%s ref%d", clip->name, track->num_clips);
@@ -629,7 +629,7 @@ ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sfr
     cr->clip = clip;
     cr->track = track;
     cr->home = home;
-    fprintf(stdout, "Clip num refs: %d\n", clip->num_refs);
+    /* fprintf(stdout, "Clip num refs: %d\n", clip->num_refs); */
     clip->refs[clip->num_refs] = cr;
     clip->num_refs++;
     SDL_UnlockMutex(cr->lock);
@@ -924,7 +924,7 @@ void clipref_destroy(ClipRef *cr)
 }
 void clipref_destroy_no_displace(ClipRef *cr)
 {
-    fprintf(stdout, "Clipref destroy no displace %s\n", cr->name);
+    /* fprintf(stdout, "Clipref destroy no displace %s\n", cr->name); */
     bool displace = false;
     for (uint8_t i=0; i<cr->clip->num_refs; i++) {
 	ClipRef *test = cr->clip->refs[i];

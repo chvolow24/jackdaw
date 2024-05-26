@@ -59,7 +59,6 @@
 #define WINDOW_DEFAULT_W 900
 #define WINDOW_DEFAULT_H 800
 /* #define OPEN_SANS_PATH INSTALL_DIR "/assets/ttf/OpenSans-Regular.ttf" */
-#define MAIN_LT_PATH INSTALL_DIR "/gui/jackdaw_main_layout.xml"
 #define DEFAULT_KEYBIND_CFG_PATH INSTALL_DIR "/assets/key_bindings/default.yaml"
 
 #define DEFAULT_PROJ_AUDIO_SETTINGS 2, 48000, AUDIO_S16SYS, 64
@@ -167,9 +166,6 @@ int main(int argc, char **argv)
     main_win = window_create(WINDOW_DEFAULT_W, WINDOW_DEFAULT_H, "Jackdaw");
     window_assign_font(main_win, OPEN_SANS_PATH, REG);
     window_assign_font(main_win, OPEN_SANS_BOLD_PATH, BOLD);
-    window_set_layout(main_win, layout_create_from_window(main_win));
-
-    layout_read_xml_to_lt(main_win->layout, MAIN_LT_PATH);
 
 
     

@@ -264,8 +264,8 @@ typedef struct project {
 
     /* GUI Members */
     Layout *layout;
-    Textbox *tb_audio_out_label;
-    Textbox *tb_audio_out_name;
+    /* Textbox *tb_audio_out_label; */
+    /* Textbox *tb_audio_out_name; */
 
     SDL_Rect *audio_rect;
     SDL_Rect *control_bar_rect;
@@ -321,5 +321,7 @@ void timeline_ungrab_all_cliprefs(Timeline *tl);
 void clipref_grab(ClipRef *cr);
 void clipref_destroy(ClipRef *cr);
 void clip_destroy(Clip *clip);
+
+void project_destroy(Project *proj);
 
 #endif

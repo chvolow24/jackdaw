@@ -42,7 +42,8 @@ void user_global_expose_help()
 void user_global_quit()
 {
     fprintf(stdout, "user_global_quit\n");
-    exit(0); //TODO: add the i_state to window (or proj?) to quit naturally.
+    main_win->i_state |= I_STATE_QUIT;
+    /* exit(0); //TODO: add the i_state to window (or proj?) to quit naturally. */
 }
 
 void user_global_undo()
@@ -116,7 +117,14 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 	fprintf(stdout, "Wav file selected\n");
     } else if (strcmp("jdaw", ext) * strcmp("JDAW", ext) == 0) {
 	fprintf(stdout, "Jdaw file selected\n");
-	proj = jdaw_read_file(dp->path);
+	Project *new_proj = jdaw_read_file(dp->path);
+	if (new_proj) {
+	    project_destroy(proj);
+	    proj = new_proj;
+	} else {
+	    
+	    // TODO: Project Destroy
+	}
 	timeline_reset_full(proj->timelines[0]);
     }
     window_pop_modal(main_win);

@@ -36,12 +36,15 @@
 
 #include "audio_connection.h"
 #include "layout.h"
+#include "layout_xml.h"
 #include "menu.h"
 #include "project.h"
 #include "slider.h"
 #include "textbox.h"
 #include "timeline.h"
 #include "window.h"
+
+#define MAIN_LT_PATH INSTALL_DIR "/gui/jackdaw_main_layout.xml"
 
 #define DEFAULT_SFPP 600
 #define CR_RECT_V_PAD (4 * main_win->dpi_scale_factor)
@@ -117,6 +120,43 @@ uint8_t project_add_timeline(Project *proj, char *name)
     return proj->num_timelines - 1; /* Return the new timeline index */
 }
 
+void timeline_destroy(Timeline *tl)
+{
+    for (uint8_t i=0; i<tl->num_tracks; i++) {
+	track_destroy(tl->tracks[i]);
+    }
+    layout_destroy(tl->layout);
+    free(tl);
+
+}
+
+void project_destroy(Project *proj)
+{
+    fprintf(stdout, "PROJECT_DESTROY\n");
+    for (uint8_t i=0; i<proj->num_timelines; i++) {
+	timeline_destroy(proj->timelines[i]);
+    }
+    textbox_destroy(proj->timeline_label);
+    for (uint8_t i=0; i<proj->num_record_conns; i++) {
+	//TODO: audioconn destroy
+    }
+    for (uint8_t i=0; i<proj->num_playback_conns; i++) {
+	//TODO: audioconn destroy
+    }
+    for (uint8_t i=0; i<proj->num_clips; i++) {
+	clip_destroy(proj->clips[i]);
+    }
+    free(proj->output_L);
+    free(proj->output_R);
+    /* fprintf(stdout, "Tbs? %p %p\n", */
+    /* 	    proj->tb_out_label, */
+    /* 	    proj->tb_out_value); */
+    textbox_destroy(proj->tb_out_label);
+    textbox_destroy(proj->tb_out_value);
+    textbox_destroy(proj->source_name_tb);
+    free(proj);
+}
+
 void project_reset_tl_label(Project *proj)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
@@ -142,6 +182,9 @@ Project *project_create(
 	fprintf(stderr, "Error: project name exceeds max len (%d)\n", MAX_NAMELENGTH);
 	exit(1);
     }
+    window_set_layout(main_win, layout_create_from_window(main_win));
+    layout_read_xml_to_lt(main_win->layout, MAIN_LT_PATH);
+
     
     strcpy(proj->name, name);
     proj->channels = channels;
@@ -201,6 +244,7 @@ Project *project_create(
 	main_win->bold_font,
 	12,
 	main_win);
+    fprintf(stdout, "PROJ %p out label %p\n", proj, proj->tb_out_label);
     textbox_set_align(proj->tb_out_label, CENTER_LEFT);
     textbox_set_background_color(proj->tb_out_label, &color_global_clear);
     textbox_set_text_color(proj->tb_out_label, &color_global_white);
@@ -574,6 +618,7 @@ void timeline_reset_full(Timeline *tl)
 
 void timeline_reset(Timeline *tl)
 {
+    layout_reset(tl->layout);
     for (int i=0; i<tl->num_tracks; i++) {
 	track_reset(tl->tracks[i]);
     }
@@ -816,7 +861,6 @@ void track_destroy(Track *track)
     textbox_destroy(track->tb_mute_button);
     textbox_destroy(track->tb_solo_button);
     Timeline *tl = track->tl;
-    bool displace = false;
     for (uint8_t i=track->tl_rank + 1; i<tl->num_tracks; i++) {
 	Track *t = tl->tracks[i];
 	tl->tracks[i-1] = t;
@@ -829,6 +873,8 @@ void track_destroy(Track *track)
     tl->num_tracks--;
     free(track);
     timeline_reset(tl);
+    /* timeline_reset(tl); */
+    /* layout_reset(tl->layout); */
 }
 
 void clipref_destroy(ClipRef *cr)
@@ -876,8 +922,17 @@ void clip_destroy(Clip *clip)
     if (clip == proj->src_clip) {
 	proj->src_clip = NULL;
     }
+    bool displace = false;
+    for (uint8_t i=0; i<proj->num_clips; i++) {
+	if (proj->clips[i] == clip) displace=true;
+	if (displace && i > 0) {
+	    proj->clips[i-1] = proj->clips[i];
+	}
+    }
+    proj->num_clips--;
     if (clip->L) free(clip->L);
     if (clip->R) free(clip->R);
+    free(clip);
     
 }
 static int32_t clipref_len(ClipRef *cr)

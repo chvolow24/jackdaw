@@ -464,4 +464,5 @@ void loop_project_main()
 	/* } */
 
     }
+    project_destroy(proj);
 }

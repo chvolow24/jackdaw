@@ -717,7 +717,7 @@ void user_tl_track_destroy()
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (tl->num_tracks > 0) {
 	Track *track = tl->tracks[tl->track_selector];
-	track_destroy(track);
+	track_destroy(track, true);
 	if (tl->track_selector > tl->num_tracks - 1) {
 	    tl->track_selector = tl->num_tracks == 0 ? 0 : tl->num_tracks - 1;
 	}

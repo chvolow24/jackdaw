@@ -59,6 +59,9 @@
   - l		: tl_play
   - k		: tl_pause
   - j		: tl_rewind
+  - e		: tl_play
+  - w		: tl_pause
+  - q		: tl_rewind
   - S-l		: tl_play_slow
   - S-j		: tl_rewind_slow
   - S-k		: tl_pause

@@ -44,6 +44,10 @@
 #include "timeline.h"
 #include "window.h"
 
+#ifndef INSTALL_DIR
+#define INSTALL_DIR "."
+#endif
+
 #define MAIN_LT_PATH INSTALL_DIR "/gui/jackdaw_main_layout.xml"
 
 #define DEFAULT_SFPP 600
@@ -80,7 +84,7 @@ SDL_Color track_colors[7] = {
 uint8_t project_add_timeline(Project *proj, char *name)
 {
     if (proj->num_timelines == MAX_PROJ_TIMELINES) {
-	fprintf(stdout, "Error: project has max num timlines\n:");
+	fprintf(stderr, "Error: project has max num timlines\n:");
 	return proj->active_tl_index;
     }
     Timeline *new_tl = calloc(1, sizeof(Timeline));
@@ -123,19 +127,31 @@ uint8_t project_add_timeline(Project *proj, char *name)
 void timeline_destroy(Timeline *tl)
 {
     for (uint8_t i=0; i<tl->num_tracks; i++) {
-	track_destroy(tl->tracks[i]);
+	/* fprintf(stdout, "DESTROYING track %d/%d\n", i, tl->num_tracks); */
+	track_destroy(tl->tracks[i], false);
     }
     layout_destroy(tl->layout);
+    /* tl->proj->num_timelines--; */
+    bool displace = false;
+    for (uint8_t i=0; i<proj->num_timelines; i++) {
+	Timeline *test = proj->timelines[i];
+	if (test == tl) displace = true;
+	else if (displace && i > 0) {
+	    proj->timelines[i - 1] = proj->timelines[i];
+	}
+	proj->num_timelines--;
+    }
     free(tl);
 
 }
-
+static void clip_destroy_no_displace(Clip *clip);
 void project_destroy(Project *proj)
 {
-    fprintf(stdout, "PROJECT_DESTROY\n");
+    /* fprintf(stdout, "PROJECT_DESTROY num tracks: %d\n", proj->timelines[0]->num_tracks); */
     for (uint8_t i=0; i<proj->num_timelines; i++) {
 	timeline_destroy(proj->timelines[i]);
     }
+    /* fprintf(stdout, "Proj num timelines? %d\n", proj->num_timelines); */
     textbox_destroy(proj->timeline_label);
     for (uint8_t i=0; i<proj->num_record_conns; i++) {
 	//TODO: audioconn destroy
@@ -143,8 +159,10 @@ void project_destroy(Project *proj)
     for (uint8_t i=0; i<proj->num_playback_conns; i++) {
 	//TODO: audioconn destroy
     }
+    /* fprintf(stdout, "Proj %d clips remaining\n", proj->num_clips); */
+    /* exit(1); */
     for (uint8_t i=0; i<proj->num_clips; i++) {
-	clip_destroy(proj->clips[i]);
+	clip_destroy_no_displace(proj->clips[i]);
     }
     free(proj->output_L);
     free(proj->output_R);
@@ -182,11 +200,16 @@ Project *project_create(
 	fprintf(stderr, "Error: project name exceeds max len (%d)\n", MAX_NAMELENGTH);
 	exit(1);
     }
+    
     window_set_layout(main_win, layout_create_from_window(main_win));
     layout_read_xml_to_lt(main_win->layout, MAIN_LT_PATH);
-
     
     strcpy(proj->name, name);
+    char win_title_buf[MAX_NAMELENGTH];
+    snprintf(win_title_buf, MAX_NAMELENGTH, "Jackdaw - %s", proj->name);
+    
+    SDL_SetWindowTitle(main_win->win, win_title_buf);
+
     proj->channels = channels;
     proj->sample_rate = sample_rate;
     proj->fmt = fmt;
@@ -244,7 +267,7 @@ Project *project_create(
 	main_win->bold_font,
 	12,
 	main_win);
-    fprintf(stdout, "PROJ %p out label %p\n", proj, proj->tb_out_label);
+    /* fprintf(stdout, "PROJ %p out label %p\n", proj, proj->tb_out_label); */
     textbox_set_align(proj->tb_out_label, CENTER_LEFT);
     textbox_set_background_color(proj->tb_out_label, &color_global_clear);
     textbox_set_text_color(proj->tb_out_label, &color_global_white);
@@ -552,7 +575,7 @@ void clipref_displace(ClipRef *cr, int displace_by)
 	new_track->clips[new_track->num_clips] = cr;
 	new_track->num_clips++;
 	cr->track = new_track;
-	fprintf(stdout, "ADD CLIP TO TRACK %s, which has %d clips now\n", new_track->name, new_track->num_clips);
+	/* fprintf(stdout, "ADD CLIP TO TRACK %s, which has %d clips now\n", new_track->name, new_track->num_clips); */
 	
     }
 }
@@ -622,7 +645,7 @@ void timeline_reset(Timeline *tl)
     for (int i=0; i<tl->num_tracks; i++) {
 	track_reset(tl->tracks[i]);
     }
-    fprintf(stdout, "TL reset\n");
+    /* fprintf(stdout, "TL reset\n"); */
     layout_reset(tl->layout);
 }
 
@@ -830,7 +853,7 @@ void clipref_destroy(ClipRef *cr);
 void clipref_destroy_no_displace(ClipRef *cr);
 void clip_destroy(Clip *clip);
 
-void track_destroy(Track *track)
+void track_destroy(Track *track, bool displace)
 {
     Clip *clips_to_destroy[MAX_PROJ_CLIPS];
     uint8_t num_clips_to_destroy = 0;
@@ -844,13 +867,13 @@ void track_destroy(Track *track)
 	    clipref_destroy_no_displace(track->clips[i]);
 	}
     }
-    fprintf(stdout, "OK deleted all crs, now clips\n");
+    /* fprintf(stdout, "OK deleted all crs, now clips\n"); */
     while (num_clips_to_destroy > 0) {
-	fprintf(stdout, "Deleting clip\n");
+	/* fprintf(stdout, "Deleting clip\n"); */
 	clip_destroy(clips_to_destroy[num_clips_to_destroy - 1]);
 	num_clips_to_destroy--;
     }
-    fprintf(stdout, "Ok deleted all clips\n");
+    /* fprintf(stdout, "Ok deleted all clips\n"); */
     fslider_destroy(track->vol_ctrl);
     fslider_destroy(track->pan_ctrl);
     textbox_destroy(track->tb_name);
@@ -860,26 +883,28 @@ void track_destroy(Track *track)
     textbox_destroy(track->tb_pan_label);
     textbox_destroy(track->tb_mute_button);
     textbox_destroy(track->tb_solo_button);
-    Timeline *tl = track->tl;
-    for (uint8_t i=track->tl_rank + 1; i<tl->num_tracks; i++) {
-	Track *t = tl->tracks[i];
-	tl->tracks[i-1] = t;
-	t->tl_rank--;
-	/* t->layout = t->layout->parent->iterator->iterations[t->tl_rank]; */
+    if (displace) {
+	Timeline *tl = track->tl;
+	for (uint8_t i=track->tl_rank + 1; i<tl->num_tracks; i++) {
+	    Track *t = tl->tracks[i];
+	    tl->tracks[i-1] = t;
+	    t->tl_rank--;
+	    /* t->layout = t->layout->parent->iterator->iterations[t->tl_rank]; */
+	}
+	layout_remove_iter_at(track->layout->parent->iterator, track->tl_rank);
+	tl->tracks[tl->num_tracks - 1] = NULL;
+	/* track->layout->parent->iterator->num_iterations--; */
+	tl->num_tracks--;
+	timeline_reset(tl);
+	/* timeline_reset(tl); */
+	/* layout_reset(tl->layout); */
     }
-    layout_remove_iter_at(track->layout->parent->iterator, track->tl_rank);
-    tl->tracks[tl->num_tracks - 1] = NULL;
-    /* track->layout->parent->iterator->num_iterations--; */
-    tl->num_tracks--;
     free(track);
-    timeline_reset(tl);
-    /* timeline_reset(tl); */
-    /* layout_reset(tl->layout); */
 }
 
 void clipref_destroy(ClipRef *cr)
 {
-    fprintf(stdout, "CR DESTROY %s num clips %d\n", cr->track->name, cr->track->num_clips);
+    /* fprintf(stdout, "CR DESTROY %s num clips %d\n", cr->track->name, cr->track->num_clips); */
     Track *track = cr->track;
     bool displace = false;
     for (uint8_t i=0; i<track->num_clips; i++) {
@@ -910,12 +935,27 @@ void clipref_destroy_no_displace(ClipRef *cr)
     free(cr);
 }
 
+static void clip_destroy_no_displace(Clip *clip)
+{
+    for (uint8_t i=0; i<clip->num_refs; i++) {
+	ClipRef *cr = clip->refs[i];
+	clipref_destroy(cr);
+    }
+    if (clip == proj->src_clip) {
+	proj->src_clip = NULL;
+    }
+    
+    if (clip->L) free(clip->L);
+    if (clip->R) free(clip->R);
+    free(clip);
+}
 
 void clip_destroy(Clip *clip)
 {
-    fprintf(stdout, "CLIP DESTROY %s, num refs: %d\n", clip->name,  clip->num_refs);
+    /* fprintf(stdout, "CLIP DESTROY %s, num refs: %d\n", clip->name,  clip->num_refs); */
+    /* fprintf(stdout, "DESTROYING CLIP %p, num: %d\n", clip, proj->num_clips); */
     for (uint8_t i=0; i<clip->num_refs; i++) {
-	fprintf(stdout, "About to destroy clipref\n");
+	/* fprintf(stdout, "About to destroy clipref\n"); */
 	ClipRef *cr = clip->refs[i];
 	clipref_destroy(cr);
     }
@@ -923,12 +963,15 @@ void clip_destroy(Clip *clip)
 	proj->src_clip = NULL;
     }
     bool displace = false;
+    /* int num_displaced = 0; */
     for (uint8_t i=0; i<proj->num_clips; i++) {
 	if (proj->clips[i] == clip) displace=true;
 	if (displace && i > 0) {
 	    proj->clips[i-1] = proj->clips[i];
+	    /* num_displaced++; */
 	}
     }
+    /* fprintf(stdout, "\t->num displaced: %d\n", num_displaced); */
     proj->num_clips--;
     if (clip->L) free(clip->L);
     if (clip->R) free(clip->R);

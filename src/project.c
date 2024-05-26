@@ -501,6 +501,7 @@ void project_clear_active_clips()
 
 Clip *project_add_clip(AudioConn *conn, Track *target)
 {
+    fprintf(stdout, "\tnum clips? %d\n", proj->num_clips);
     if (proj->num_clips == MAX_PROJ_CLIPS) {
 	return NULL;
     }
@@ -510,6 +511,7 @@ Clip *project_add_clip(AudioConn *conn, Track *target)
 	clip->recorded_from = conn;
     }
     if (target) {
+	/* fprintf(stdout, "\t->target? %p\n", clip->target); */
 	clip->target = target;
     }
     
@@ -615,6 +617,7 @@ static void track_reset(Track *track)
 
 ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sframes, bool home)
 {
+    fprintf(stdout, "track %s create clipref\n", track->name);
     ClipRef *cr = calloc(1, sizeof(ClipRef));
     
     sprintf(cr->name, "%s ref%d", clip->name, track->num_clips);
@@ -626,6 +629,7 @@ ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sfr
     cr->clip = clip;
     cr->track = track;
     cr->home = home;
+    fprintf(stdout, "Clip num refs: %d\n", clip->num_refs);
     clip->refs[clip->num_refs] = cr;
     clip->num_refs++;
     SDL_UnlockMutex(cr->lock);
@@ -965,7 +969,9 @@ void clip_destroy(Clip *clip)
     bool displace = false;
     /* int num_displaced = 0; */
     for (uint8_t i=0; i<proj->num_clips; i++) {
-	if (proj->clips[i] == clip) displace=true;
+	if (proj->clips[i] == clip) {
+	    displace=true;
+	}
 	if (displace && i > 0) {
 	    proj->clips[i-1] = proj->clips[i];
 	    /* num_displaced++; */
@@ -973,6 +979,7 @@ void clip_destroy(Clip *clip)
     }
     /* fprintf(stdout, "\t->num displaced: %d\n", num_displaced); */
     proj->num_clips--;
+    proj->active_clip_index = proj->num_clips;
     if (clip->L) free(clip->L);
     if (clip->R) free(clip->R);
     free(clip);

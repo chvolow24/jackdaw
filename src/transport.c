@@ -206,6 +206,9 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
      }
      if (no_tracks_active) {
 	 Track *track = tl->tracks[tl->track_selector];
+	 if (!track) {
+	     return;
+	 }
 	 Clip *clip = NULL;
 	 bool home = false;
 	 conn = track->input;
@@ -217,6 +220,7 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
 		 fprintf(stderr, "Error opening audio device to record\n");
 		 exit(1);
 	     }
+	     fprintf(stdout, "\n\nProject add clip!\n");
 	     clip = project_add_clip(conn, track);
 	     clip->recording = true;
 	     home = true;
@@ -367,7 +371,9 @@ void transport_goto_mark(Timeline *tl, bool in)
 
 void transport_recording_update_cliprects()
 {
+    /* fprintf(stdout, "update clip rects...\n"); */
     for (uint8_t i=proj->active_clip_index; i<proj->num_clips; i++) {
+	/* fprintf(stdout, "updating %d/%d\n", i, proj->num_clips); */
 	Clip *clip = proj->clips[i];
 
 	switch(clip->recorded_from->type) {

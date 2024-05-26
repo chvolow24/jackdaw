@@ -30,7 +30,7 @@ typedef struct dirnav {
     /* Menu *entries; */
     /* TextArea *lines; */
     /* uint8_t num_lines; */
-    uint8_t current_line;
+    uint16_t current_line;
 } DirNav;
 
 typedef struct dirpath {
@@ -38,10 +38,11 @@ typedef struct dirpath {
     uint8_t type; /* E.g. DT_DIR, DT_REG */
     DirPath *entries[MAX_DIRS];
     uint8_t num_entries;
+    bool hidden;
     /* uint8_t num_files; */
     /* uint8_t num_dirs; */
     /* FilePath *files[MAX_FILES]; */
-    /* uint8_t num_files; */
+    /* uint8_t num_files; [[*/
 } DirPath;
 
 typedef struct filepath {
@@ -52,5 +53,8 @@ typedef struct filepath {
 DirNav *dirnav_create(const char *dir_name, Layout *lt, bool show_dirs, bool show_files);
 void dirnav_draw(DirNav *dn);
 void dirnav_destroy(DirNav *dn);
+void dirnav_next(DirNav *dn);
+void dirnav_previous(DirNav *dn);
+void dirnav_select(DirNav *dn);
 
 #endif

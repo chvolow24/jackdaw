@@ -94,4 +94,8 @@ void user_source_play_slow();
 void user_source_rewind_slow();
 void user_source_set_in_mark();
 void user_source_set_out_mark();
+
+void user_modal_next();
+void user_modal_previous();
+void user_modal_select();
 #endif

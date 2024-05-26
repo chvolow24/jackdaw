@@ -1,4 +1,5 @@
 #include "dir.h"
+#include "geometry.h"
 #include "modal.h"
 
 #define MODAL_V_PADDING 5
@@ -17,6 +18,7 @@ extern SDL_Color color_global_clear;
 extern SDL_Color color_global_white;
 
 SDL_Color modal_color_background = (SDL_Color){255, 200, 100, 255};
+SDL_Color modal_color_border_selected = (SDL_Color) {10, 10, 155, 255};
 
 Modal *modal_create(Layout *lt)
 {
@@ -81,6 +83,7 @@ static ModalEl *modal_add_text(Modal *modal, Font *font, int font_size, SDL_Colo
 {
     ModalEl *el = modal_add_el(modal);
     el->type = MODAL_EL_TEXT;
+    /* el->selectable = false; */
     Textbox *tb = textbox_create_from_str(text, el->layout, font, font_size, main_win);
     textbox_set_border(tb, &color_global_clear, 0);
     textbox_set_background_color(tb, &color_global_clear);
@@ -130,6 +133,9 @@ ModalEl *modal_add_header(Modal *modal, const char *text, SDL_Color *color, int 
     
     }
     el = modal_add_text(modal, main_win->bold_font, fontsize, color, (char *)text, CENTER, false);
+    modal->selectable_indices[modal->num_selectable] = modal->num_els -1;
+    modal->num_selectable++;
+
     layout_size_to_fit_text_v(el);
     layout_force_reset(modal->layout);
     /* layout_size_to_fit_children(el->layout, true, MODAL_V_PADDING); */
@@ -163,6 +169,8 @@ ModalEl *modal_add_p(Modal *modal, const char *text, SDL_Color *color)
 ModalEl *modal_add_dirnav(Modal *modal, const char *dirpath, bool show_dirs, bool show_files)
 {
     ModalEl *el = modal_add_el(modal);
+    modal->selectable_indices[modal->num_selectable] = modal->num_els -1;
+    modal->num_selectable++;
     el->layout->x.type = REL;
     el->layout->x.value.intval = MODAL_V_PADDING * 2;
     el->layout->w.type = PAD;
@@ -238,18 +246,50 @@ static void modal_el_draw(ModalEl *el)
 void layout_write(FILE *f, Layout *lt, int indent);
 void modal_draw(Modal *modal)
 {
-    /* layout_reset(modal->layout); */
-    /* modal_reset(modal); */
-    /* layout_force_reset(modal->layout); */
-    /* layout_force_reset(modal->layout); */
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(modal_color_background));
     SDL_RenderFillRect(main_win->rend, &modal->layout->rect);
-    /* layout_draw(main_win, modal->layout); */
     for (uint8_t i=0; i<modal->num_els; i++) {
 	/* fprintf(stdout, "drawing el\n"); */
 	modal_el_draw(modal->els[i]);
     }
+    if (modal->num_selectable > 0) {
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(modal_color_border_selected));
+	geom_draw_rect_thick(main_win->rend, &modal->els[modal->selectable_indices[modal->selected_i]]->layout->rect, 4, main_win->dpi_scale_factor);
+	SDL_Rect r = modal->els[modal->selectable_indices[modal->selected_i]]->layout->rect;
+	/* fprintf(stdout, "R: %d %d %d %d\n", r.x, r.y, r.w, r.h); */
+    }
     /* layout_write(stdout, modal->layout, 0); */
+}
+
+void modal_next(Modal *modal)
+{
+    int num_selectable = modal->num_selectable;
+    ModalEl *el = modal->els[modal->selectable_indices[modal->selected_i]];
+    if (el->type == MODAL_EL_DIRNAV) {
+	dirnav_next((DirNav *)el->obj);
+    } else if (modal->selected_i < num_selectable - 1) modal->selected_i++;
+
+}
+
+void modal_previous(Modal *modal)
+{
+    ModalEl *el = modal->els[modal->selectable_indices[modal->selected_i]];
+    if (el->type == MODAL_EL_DIRNAV) {
+	dirnav_previous((DirNav *)el->obj);
+    } else if (modal->selected_i > 0) modal->selected_i--;
+}
+
+void modal_select(Modal *modal)
+{
+    ModalEl *current_el = modal->els[modal->selected_i];
+    switch (current_el->type) {
+    case MODAL_EL_DIRNAV:
+	dirnav_select(current_el->obj);
+	break;
+    default:
+	break;
+    }
+
 }
 
 

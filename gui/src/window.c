@@ -294,15 +294,21 @@ void window_pop_menu(Window *win)
     if (win->num_menus > 0) {
 	menu_destroy(win->menus[win->num_menus - 1]);
 	win->num_menus--;
-	
+    }
+    if (win->num_menus == 0 && win->modes[win->num_modes - 1] == MENU_NAV)  {
+	window_pop_mode(win);
     }
 }
 
+/* extern Window *main_win; */
 void window_add_menu(Window *win, Menu *menu)
 {
     if (win->num_menus < MAX_WINDOW_MENUS) {
 	win->menus[win->num_menus] = menu;
 	win->num_menus++;
+	if (win->modes[win->num_modes - 1] != MENU_NAV) {
+	    window_push_mode(win, MENU_NAV);
+	}
     } else {
 	fprintf(stderr, "Error: window already has maximum number of menus (%d)\n", win->num_menus);
     }
@@ -340,6 +346,9 @@ void window_push_modal(Window *win, Modal *modal)
     if (win->num_modals < WINDOW_MAX_MODALS) {
 	win->modals[win->num_modals] = modal;
 	win->num_modals++;
+	if (win->modes[win->num_modes - 1] != MODAL) {
+	    window_push_mode(win, MODAL);
+	}
     } else {
 	fprintf(stderr, "Error: window already has maximum number of modals\n");
     }

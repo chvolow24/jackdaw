@@ -3,6 +3,7 @@
 #include "audio_connection.h"
 #include "input.h"
 #include "menu.h"
+#include "modal.h"
 #include "project.h"
 #include "textbox.h"
 #include "transport.h"
@@ -236,7 +237,7 @@ void user_menu_translate_right()
 void user_menu_dismiss()
 {
     window_pop_menu(main_win);
-    window_pop_mode(main_win);
+    /* window_pop_mode(main_win); */
 }
 
 void user_tl_play()
@@ -367,7 +368,7 @@ void user_tl_set_default_out() {
     menu_add_header(menu,"", "Select the default audio output.\n\n'n' to select next item; 'p' to select previous item.");
     /* menu_reset_layout(menu); */
     window_add_menu(main_win, menu);
-    window_push_mode(main_win, MENU_NAV);
+    /* window_push_mode(main_win, MENU_NAV); */
 }
 
 void user_tl_add_track()
@@ -907,8 +908,32 @@ void user_source_set_out_mark()
     transport_set_mark(NULL, false);
 }
 
+void user_modal_next()
+{
+    if (main_win->num_modals == 0) {
+	return;
+    }
+    Modal *modal = main_win->modals[main_win->num_modals - 1];
+    modal_next(modal);
+}
 
+void user_modal_previous()
+{
+    if (main_win->num_modals == 0) {
+	return;
+    }
+    Modal *modal = main_win->modals[main_win->num_modals - 1];
+    modal_previous(modal);
+}
 
+void user_modal_select()
+{
+    if (main_win->num_modals == 0) {
+	return;
+    }
+    Modal *modal = main_win->modals[main_win->num_modals - 1];
+    modal_select(modal);
+}
 
 /*
 }

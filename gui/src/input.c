@@ -17,7 +17,8 @@ static const char *input_mode_strs[] = {
     "global",
     "menu_nav",
     "timeline",
-    "source"
+    "source",
+    "modal"
 };
 
 const char *input_mode_str(InputMode im)
@@ -52,6 +53,8 @@ InputMode input_mode_from_str(char *str)
 	return TIMELINE;
     } else if (strcmp(str, "source") == 0) {
 	return SOURCE;
+    } else if (strcmp(str, "modal") == 0) {
+	return MODAL;
     } else {
 	return -1;
     }
@@ -258,7 +261,7 @@ static void mode_load_menu_nav()
 
     fn = create_user_fn(
 	"menu_dismiss",
-	"Dismiss menu",
+	"go back (dismiss)",
 	user_menu_dismiss
 	);
     mode_subcat_add_fn(mc, fn);
@@ -725,6 +728,35 @@ static void mode_load_source()
 
 }
 
+static void mode_load_modal()
+{
+    Mode *mode = mode_create(MODAL);
+    ModeSubcat *sc= mode_add_subcat(mode, "");
+    UserFn *fn;   
+
+
+    fn = create_user_fn(
+	"modal_next",
+	"Go to next item",
+	user_modal_next
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"modal_previous",
+	"Go to previous item",
+	user_modal_previous
+	);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"modal_select",
+	"Select item",
+	user_modal_select);
+    mode_subcat_add_fn(sc, fn);
+
+}
+
 
 void input_init_mode_load_all()
 {
@@ -732,6 +764,7 @@ void input_init_mode_load_all()
     mode_load_menu_nav();
     mode_load_timeline();
     mode_load_source();
+    mode_load_modal();
 }
 
 void input_init_hash_table()
@@ -999,9 +1032,11 @@ static void create_menu_from_mode_subcat(void *sc_v)
 	UserFn *fn = sc->fns[i];
 	menu_item_add(sctn, fn->fn_display_name, fn->annotation, fn->do_fn, NULL);
     }
-    menu_add_header(m, sc->name, "n  -  next item\np  -  previous item\nh  -  dismiss menu\n<ret>  -  select item");
+    menu_add_header(m, sc->name, "n  -  next item\np  -  previous item\nh  -  go back (dismiss)\n<ret>  -  select item");
     window_add_menu(main_win, m);
-    window_push_mode(main_win, MENU_NAV);
+    /* if (main_win->modes[main_win->num_modes - 1] != MENU_NAV) { */
+    /* 	window_push_mode(main_win, MENU_NAV); */
+    /* } */
 }
 
 void input_create_menu_from_mode(InputMode im)
@@ -1019,11 +1054,13 @@ void input_create_menu_from_mode(InputMode im)
 	MenuSection *sctn = menu_section_add(c, "");
 	for (uint8_t i=0; i<mode->num_subcats; i++) {
 	    ModeSubcat *sc = mode->subcats[i];
-	    MenuItem *item = menu_item_add(sctn, sc->name, ">", create_menu_from_mode_subcat, sc);
+	    menu_item_add(sctn, sc->name, ">", create_menu_from_mode_subcat, sc);
 	}
-	menu_add_header(m, "", "n  -  next item\np  -  previous item\nh  -  dismiss menu\n<ret>  -  select item");
+	menu_add_header(m, "", "n  -  next item\np  -  previous item\nh  -  go back (dismiss)\n<ret>  -  select item");
 	window_add_menu(main_win, m);
-	window_push_mode(main_win, MENU_NAV);
+	/* if (main_win->modes[main_win->num_modes - 1] != MENU_NAV) { */
+	/*     window_push_mode(main_win, MENU_NAV); */
+	/* } */
     }
     /* return NULL; */
 }

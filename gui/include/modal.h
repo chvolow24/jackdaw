@@ -26,7 +26,6 @@ enum mod_s_type {
 
 typedef struct ModalEl {
     enum mod_s_type type;
-    bool selectable;
     void *obj;
     Layout *layout;
 } ModalEl;
@@ -36,6 +35,8 @@ typedef struct modal {
     uint8_t num_els;
     ModalEl *els[MAX_MODAL_ELEMENTS];
     uint8_t selectable_indices[MAX_MODAL_ELEMENTS];
+    uint8_t num_selectable;
+    uint8_t selected_i;
 } Modal;
 
 Modal *modal_create(Layout *lt);
@@ -45,5 +46,9 @@ ModalEl *modal_add_p(Modal *modal, const char *text, SDL_Color *color);
 ModalEl *modal_add_dirnav(Modal *modal, const char *dirpath, bool show_dirs, bool show_files);
 void modal_reset(Modal *modal);
 void modal_draw(Modal *modal);
+
+void modal_next(Modal *modal);
+void modal_previous(Modal *modal);
+void modal_select(Modal *modal);
 
 #endif

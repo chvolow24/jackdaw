@@ -126,3 +126,7 @@
   - o		: source_set_out_mark
   - S-i		: source_set_in_mark
   - S-o		: source_set_out_mark
+- modal:
+  - n		: modal_next
+  - p		: modal_previous
+  - <ret>	: modal_select

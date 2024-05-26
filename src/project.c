@@ -738,7 +738,7 @@ static void track_set_in_onclick(void *void_arg)
     textbox_set_value_handle(arg->track->tb_input_name, arg->track->input->name);
 
     window_pop_menu(main_win);
-    window_pop_mode(main_win);
+    /* window_pop_mode(main_win); */
 }
 
 void track_set_input(Track *track)
@@ -763,7 +763,9 @@ void track_set_input(Track *track)
     }
     menu_add_header(menu,"", "Select audio input for track.\n\n'n' to select next item; 'p' to select previous item.");
     /* menu_reset_layout(menu); */
-    window_push_mode(main_win, MENU_NAV);
+    /* if (main_win->modes[main_win->num_modes - 1] != MENU_NAV) { */
+    /* 	window_push_mode(main_win, MENU_NAV); */
+    /* } */
     window_add_menu(main_win, menu);
     int move_by_y = 0;
     if ((move_by_y = y + menu->layout->rect.h - main_win->layout->rect.h) > 0) {

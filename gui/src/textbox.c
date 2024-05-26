@@ -87,7 +87,12 @@ void textbox_set_fixed_w(Textbox *tb, int fixed_w)
 
 void textbox_destroy(Textbox *tb)
 {
-    txt_destroy(tb->text);
+    if (tb->text) {
+	txt_destroy(tb->text);
+    }
+    if (tb->layout) {
+	layout_destroy(tb->layout);
+    }
     free(tb);
 }
 
@@ -218,8 +223,6 @@ TextLines *textlines_create(
 	    /* fprintf(stdout, "Item %d = %s\n", i, ((DirPath *)tlines->items[line_i]->obj)->path); */
 	    line_i++;
 	    /* i++; */
-	} else {
-	    fprintf(stdout, "ERROR: no item at index %d\n", i);
 	}
     }
     return tlines;

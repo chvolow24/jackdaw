@@ -360,7 +360,7 @@ void triage_mouse_menu(Menu *menu, SDL_Point *mousep, bool click)
     if (!SDL_PointInRect(mousep, &menu->layout->rect)) {
 	if (click) {
 	    window_pop_menu(main_win);
-	    window_pop_mode(main_win);
+	    /* window_pop_mode(main_win); */
 	}
 	return;
     }

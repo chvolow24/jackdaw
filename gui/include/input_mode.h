@@ -6,7 +6,8 @@ typedef enum input_mode {
     GLOBAL=0,
     MENU_NAV=1,
     TIMELINE=2,
-    SOURCE=3
+    SOURCE=3,
+    MODAL=4
 } InputMode;
 
 

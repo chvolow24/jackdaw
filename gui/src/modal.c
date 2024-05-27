@@ -316,9 +316,10 @@ void modal_next(Modal *modal)
 }
 
 void modal_next_escape(Modal *modal);
-static void modal_move_onto(Modal *modal)
+void modal_move_onto(Modal *modal)
 {
     ModalEl *el = modal->els[modal->selectable_indices[modal->selected_i]];
+    fprintf(stdout, "El: %p\n", el);
     switch (el->type) {
     case MODAL_EL_TEXTENTRY:
 	txt_edit(((Textbox *)el->obj)->text, project_draw);

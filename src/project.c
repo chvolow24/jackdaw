@@ -956,6 +956,7 @@ static void clip_destroy_no_displace(Clip *clip)
 
 void clip_destroy(Clip *clip)
 {
+    
     /* fprintf(stdout, "CLIP DESTROY %s, num refs: %d\n", clip->name,  clip->num_refs); */
     /* fprintf(stdout, "DESTROYING CLIP %p, num: %d\n", clip, proj->num_clips); */
     for (uint8_t i=0; i<clip->num_refs; i++) {
@@ -970,9 +971,10 @@ void clip_destroy(Clip *clip)
     /* int num_displaced = 0; */
     for (uint8_t i=0; i<proj->num_clips; i++) {
 	if (proj->clips[i] == clip) {
+	    /* fprintf(stdout, "\tFOUND clip at pos %d\n", i); */
 	    displace=true;
-	}
-	if (displace && i > 0) {
+	} else if (displace && i > 0) {
+	    /* fprintf(stdout, "\tmoving clip %p from pos %d to %d\n", proj->clips[i], i, i-1); */
 	    proj->clips[i-1] = proj->clips[i];
 	    /* num_displaced++; */
 	}

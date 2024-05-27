@@ -244,6 +244,20 @@ void loop_project_main()
 		break;
 	    }
 	    case SDL_KEYDOWN:
+		/* for (uint8_t i=0; i<proj->num_clips; i++) { */
+		/*     Clip *clip = proj->clips[i]; */
+		/*     fprintf(stdout, "\n\nClip: %p\n", clip); */
+		/*     for (uint8_t t=0; t<proj->timelines[0]->num_tracks; t++) { */
+		/* 	Track *trk = proj->timelines[0]->tracks[t]; */
+		/* 	for (uint8_t c=0;c<trk->num_clips; c++) { */
+		/* 	    ClipRef *cr= trk->clips[c]; */
+		/* 	    fprintf(stdout, "\t\t testing clip %p in trk %d\n", cr->clip, t); */
+		/* 	    if (cr->clip == clip) { */
+		/* 		fprintf(stdout, "\tFound in track %d\n", t); */
+		/* 	    } */
+		/* 	} */
+		/*     } */
+		/* } */
 		switch (e.key.keysym.scancode) {
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:

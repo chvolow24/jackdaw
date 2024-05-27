@@ -105,12 +105,18 @@ void user_global_save_project()
     save_as->submit_form = submit_save_as_form;
     window_push_modal(main_win, save_as);
     modal_reset(save_as);
+    /* fprintf(stdout, "about to call move onto\n"); */
+    modal_move_onto(save_as);
 }
 
 Project *jdaw_read_file(char *path);
 static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 {
     char *dotpos = strrchr(dp->path, '.');
+    if (!dotpos) {
+	fprintf(stderr, "Cannot open file without a .jdaw or .wav extension\n");
+	return;
+    }
     char *ext = dotpos + 1;
     /* fprintf(stdout, "ext char : %c\n", *ext); */
     if (strcmp("wav", ext) * strcmp("WAV", ext) == 0) {
@@ -438,7 +444,7 @@ static void select_out_onclick(void *arg)
     }
     textbox_set_value_handle(proj->tb_out_value, proj->playback_conn->name);
     window_pop_menu(main_win);
-    window_pop_mode(main_win);
+    /* window_pop_mode(main_win); */
 }
 
 void user_tl_set_default_out() {

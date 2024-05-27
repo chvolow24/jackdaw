@@ -580,6 +580,7 @@ void clipref_displace(ClipRef *cr, int displace_by)
 	/* fprintf(stdout, "ADD CLIP TO TRACK %s, which has %d clips now\n", new_track->name, new_track->num_clips); */
 	
     }
+    timeline_reset(tl);
 }
 
 static void track_reset_full(Track *track)

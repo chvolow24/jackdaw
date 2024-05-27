@@ -168,6 +168,7 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 	Track *track = tl->tracks[tl->track_selector];
 	if (!track) {
 	    fprintf(stderr, "Error: at least one track must exist to load a wav file\n");
+	    return;
 	}
 	wav_load_to_track(track, dp->path, tl->play_pos_sframes);
     } else if (strcmp("jdaw", ext) * strcmp("JDAW", ext) == 0) {
@@ -652,6 +653,7 @@ void user_tl_track_selector_up()
 	for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
 	    ClipRef *cr = tl->grabbed_clips[i];
 	    clipref_displace(cr, -1);
+	    timeline_reset(tl);
 	}
     }
     

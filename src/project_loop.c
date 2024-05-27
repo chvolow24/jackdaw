@@ -48,6 +48,9 @@
 
 #define MAX_MODES 8
 #define STICK_DELAY_MS 500
+#define PLAYSPEED_ADJUST_SCALAR_LARGE 0.1f
+#define PLAYSPEED_ADJUST_SCALAR_SMALL 0.015f
+
 
 #define TOP_MODE (main_win->modes[main_win->num_modes - 1])
 
@@ -321,6 +324,7 @@ void loop_project_main()
 		case SDL_SCANCODE_LALT:
 		case SDL_SCANCODE_RALT:
 		    main_win->i_state &= ~I_STATE_META;
+		    break;
 		case SDL_SCANCODE_K:
 		    main_win->i_state &= ~I_STATE_K;
 		    proj->play_speed = 0;
@@ -341,24 +345,32 @@ void loop_project_main()
 		}
 		break;
 	    case SDL_MOUSEWHEEL: {
-		bool allow_scroll = true;
-		if (SDL_PointInRect(&main_win->mousep, proj->audio_rect)) {
-                    if (main_win->i_state & I_STATE_CMDCTRL) {
-                        double scale_factor = pow(SFPP_STEP, e.wheel.y);
-                        timeline_rescale(scale_factor, true);
-			allow_scroll = false;
-                    } else {
-			timeline_scroll_horiz(TL_SCROLL_STEP_H * e.wheel.x);
-                    }
-                }
-		if (allow_scroll) {
-		    temp_scrolling_lt = layout_handle_scroll(
-			main_win->layout,
-			&main_win->mousep,
-			e.wheel.preciseX * LAYOUT_SCROLL_SCALAR,
-			e.wheel.preciseY * LAYOUT_SCROLL_SCALAR * -1,
-			fingersdown);
-		    timeline_reset(proj->timelines[proj->active_tl_index]);
+		if (main_win->i_state & I_STATE_SHIFT && main_win->i_state & I_STATE_CMDCTRL) {
+		    if (main_win->i_state & I_STATE_META)
+		    proj->play_speed += e.wheel.y * PLAYSPEED_ADJUST_SCALAR_LARGE;
+		    else {
+			proj->play_speed += e.wheel.y * PLAYSPEED_ADJUST_SCALAR_SMALL;
+		    }
+		} else {
+		    bool allow_scroll = true;
+		    if (SDL_PointInRect(&main_win->mousep, proj->audio_rect)) {
+			if (main_win->i_state & I_STATE_CMDCTRL) {
+			    double scale_factor = pow(SFPP_STEP, e.wheel.y);
+			    timeline_rescale(scale_factor, true);
+			    allow_scroll = false;
+			} else {
+			    timeline_scroll_horiz(TL_SCROLL_STEP_H * e.wheel.x);
+			}
+		    }
+		    if (allow_scroll) {
+			temp_scrolling_lt = layout_handle_scroll(
+			    main_win->layout,
+			    &main_win->mousep,
+			    e.wheel.preciseX * LAYOUT_SCROLL_SCALAR,
+			    e.wheel.preciseY * LAYOUT_SCROLL_SCALAR * -1,
+			    fingersdown);
+			timeline_reset(proj->timelines[proj->active_tl_index]);
+		    }
 		}
 	    }
 		break;

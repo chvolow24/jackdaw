@@ -139,7 +139,7 @@ void wav_write_mixdown(const char *filepath)
 }
 
 
-void wav_load_to_track(Track *track, const char *filename) {
+void wav_load_to_track(Track *track, const char *filename, int32_t start_pos) {
     SDL_AudioSpec wav_spec;
     uint8_t* audio_buf = NULL;
     uint32_t audio_len_bytes = 0;
@@ -203,6 +203,6 @@ void wav_load_to_track(Track *track, const char *filename) {
         clip->L[i/2] = (float) src_buf[i] / INT16_MAX;
         clip->R[i/2] = (float) src_buf[i+1] / INT16_MAX;
     }
-    ClipRef *cr = track_create_clip_ref(track, clip, 0, true);
+    ClipRef *cr = track_create_clip_ref(track, clip, start_pos, true);
     timeline_reset(track->tl);
 }

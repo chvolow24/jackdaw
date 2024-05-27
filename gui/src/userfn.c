@@ -86,7 +86,12 @@ static void *submit_save_as_form(void *mod_v)
     strcat(buf, "/");
     strcat(buf, name);
     fprintf(stdout, "SAVE AS: %s\n", buf);
-    jdaw_write_project(buf);				  
+    jdaw_write_project(buf);
+    char *last_slash_pos = strrchr(buf, '/');
+    if (last_slash_pos) {
+	*last_slash_pos = '\0';
+	realpath(dirpath, SAVED_PROJ_DIRPATH);
+    }
     window_pop_modal(main_win);
     return NULL;
 }
@@ -158,6 +163,13 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
     /* fprintf(stdout, "ext char : %c\n", *ext); */
     if (strcmp("wav", ext) * strcmp("WAV", ext) == 0) {
 	fprintf(stdout, "Wav file selected\n");
+	Timeline *tl = proj->timelines[proj->active_tl_index];
+	if (!tl) return;
+	Track *track = tl->tracks[tl->track_selector];
+	if (!track) {
+	    fprintf(stderr, "Error: at least one track must exist to load a wav file\n");
+	}
+	wav_load_to_track(track, dp->path, tl->play_pos_sframes);
     } else if (strcmp("jdaw", ext) * strcmp("JDAW", ext) == 0) {
 	fprintf(stdout, "Jdaw file selected\n");
 	Project *new_proj = jdaw_read_file(dp->path);
@@ -169,6 +181,11 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 	    // TODO: Project Destroy
 	}
 	timeline_reset_full(proj->timelines[0]);
+    }
+    char *last_slash_pos = strrchr(dp->path, '/');
+    if (last_slash_pos) {
+	*last_slash_pos = '\0';
+	realpath(dp->path, SAVED_PROJ_DIRPATH);
     }
     window_pop_modal(main_win);
 }

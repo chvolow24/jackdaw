@@ -109,7 +109,7 @@ static void init()
     input_init_mode_load_all();
     input_load_keybinding_config(DEFAULT_KEYBIND_CFG_PATH);
     pd_jackdaw_shm_init();
-    strcpy(SAVED_PROJ_DIRPATH, ".");
+    realpath(".", SAVED_PROJ_DIRPATH);
 }
 
 static void quit()
@@ -185,7 +185,7 @@ int main(int argc, char **argv)
 		*last_slash_pos = '\0';
 		fprintf(stdout, "SAVED PROJ DIRPATH: %s\n", SAVED_PROJ_DIRPATH);
 	    } else {
-		strcpy(SAVED_PROJ_DIRPATH, ".");
+	        realpath(".", SAVED_PROJ_DIRPATH);
 		fprintf(stderr, "Error: no slash in saved proj dir");
 	    }
 	    for (int i=0; i<proj->num_timelines; i++) {
@@ -206,7 +206,7 @@ int main(int argc, char **argv)
 
     if (invoke_open_wav_file) {
 	Track *track = timeline_add_track(proj->timelines[0]);
-	wav_load_to_track(track, file_to_open);
+	wav_load_to_track(track, file_to_open, 0);
 
     }
     /* timeline_add_track(proj->timelines[0]); */

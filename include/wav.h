@@ -35,6 +35,6 @@
 void wav_write_mixdown(const char *filepath);
 
 // void write_wav(const char *fname, int16_t *samples, uint32_t num_samples, uint16_t bits_per_sample, uint8_t channels);
-void wav_load_to_track(Track *track, const char *filename);
+void wav_load_to_track(Track *track, const char *filename, int32_t startpos);
 
 #endif

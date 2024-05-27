@@ -608,6 +608,18 @@ static void mode_load_timeline()
 	"Write mixdown to .wav file",
 	user_tl_write_mixdown_to_wav);
     mode_subcat_add_fn(sc, fn);
+
+    /* fn = create_user_fn( */
+    /* 	"tl_cliprefs_destroy", */
+    /* 	"Delete selected clip(s)", */
+    /* 	user_tl_cliprefs_destroy); */
+    /* mode_subcat_add_fn(sc, fn); */
+    fn = create_user_fn(
+	"tl_cliprefs_destroy",
+	"Delete selected clip(s)",
+	user_tl_cliprefs_destroy);
+    mode_subcat_add_fn(sc, fn);
+    
 }
 
 static void mode_load_source()

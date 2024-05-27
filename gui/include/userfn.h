@@ -76,6 +76,7 @@ void user_tl_track_pan_right();
 
 void user_tl_record();
 void user_tl_clipref_grab_ungrab();
+void user_tl_cliprefs_destroy();
 
 
 void user_tl_load_clip_at_point_to_src();

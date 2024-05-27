@@ -20,12 +20,12 @@ Global TODO list
 *** DONE Open wav file
 +*** TODO Cut clip+
 +*** TODO Copy clip (?)+
-*** TODO track delete (primitive)
-*** TODO clipref delete (primitive)
+*** DONE track delete (primitive)
+*** DONE clipref delete (primitive)
 ** TODO Presentability
 *** TODO update readme
 *** TODO generate keybd shortcut ref
-*** TODO Modal for saving files
+*** DONE Modal for saving files
 *** TODO demo video
 ** TODO Version branches
 * TODO adjust clipref bounds
@@ -43,7 +43,7 @@ Global TODO list
 ** TODO adjust clipref bounds
 ** TODO copy clipref
 ** TODO Cut (split) clipref
-* TODO Modals
-** TODO window-level modal stack
-** TODO modal mode
-** TODO dirnav
+* DONE Modals
+** DONE window-level modal stack
+** DONE modal mode
+** DONE dirnav

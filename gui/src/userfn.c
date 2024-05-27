@@ -653,7 +653,6 @@ void user_tl_track_selector_up()
 	for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
 	    ClipRef *cr = tl->grabbed_clips[i];
 	    clipref_displace(cr, -1);
-	    timeline_reset(tl);
 	}
     }
     
@@ -1009,6 +1008,14 @@ void user_tl_write_mixdown_to_wav()
 {
     const char *filepath = "testfile.wav";
     wav_write_mixdown(filepath);
+}
+
+void user_tl_cliprefs_destroy()
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    if (tl) {
+	timeline_destroy_grabbed_cliprefs(tl);
+    }
 }
 
 /* source mode */

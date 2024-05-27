@@ -319,8 +319,9 @@ ClipRef *clipref_at_point();
 ClipRef *clipref_at_point_in_track(Track *track);
 void timeline_ungrab_all_cliprefs(Timeline *tl);
 void clipref_grab(ClipRef *cr);
-void clipref_destroy(ClipRef *cr);
+/* void clipref_destroy(ClipRef *cr); */
 void clip_destroy(Clip *clip);
+void timeline_destroy_grabbed_cliprefs(Timeline *tl);
 
 void project_destroy(Project *proj);
 

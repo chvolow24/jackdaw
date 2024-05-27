@@ -199,7 +199,7 @@ void wav_load_to_track(Track *track, const char *filename, int32_t start_pos) {
 
     int16_t *src_buf = (int16_t *)wav_cvt.buf;
 
-    for (uint32_t i=0; i<buf_len_samples; i+=2) {
+    for (uint32_t i=0; i<buf_len_samples - 1; i+=2) {
         clip->L[i/2] = (float) src_buf[i] / INT16_MAX;
         clip->R[i/2] = (float) src_buf[i+1] / INT16_MAX;
     }

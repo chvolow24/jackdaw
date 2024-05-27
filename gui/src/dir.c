@@ -1,12 +1,3 @@
-#include <dirent.h>
-#include <pwd.h>
-#include <unistd.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-
 #include "dir.h"
 #include "textbox.h"
 
@@ -16,6 +7,7 @@
 #define SCROLL_TRIGGER_PAD (25 * main_win->dpi_scale_factor)
 #define SCROLL_PAD (50 * main_win->dpi_scale_factor)
 
+char SAVED_PROJ_DIRPATH[MAX_PATHLEN];
 
 extern Window *main_win;
 extern SDL_Color color_global_black;
@@ -235,6 +227,27 @@ DirPath *dir_select(DirPath *dp, DirPath *new)
     return new;
 }
 
+static int qsort_dirnav_cmp(const void *tl1_v, const void*tl2_v)
+{
+    TLinesItem *tl1 = *((TLinesItem **)tl1_v);
+    TLinesItem *tl2 = *((TLinesItem **)tl2_v);
+    return strcmp(((DirPath *)tl1->obj)->path, ((DirPath *)tl2->obj)->path);
+}
+
+void sort_dn_lines(DirNav *dn)
+{
+    qsort(dn->lines->items, dn->lines->num_items, sizeof(TLinesItem *), qsort_dirnav_cmp);
+    Layout *lines_container = dn->lines->container;
+    TLinesItem *tli = NULL;
+    for (uint16_t i=0; i<dn->lines->num_items; i++) {
+	tli = dn->lines->items[i];
+	tli->tb->layout = lines_container->children[i];
+	tli->tb->text->container = tli->tb->layout;
+	tli->tb->text->text_lt = tli->tb->layout->children[0];
+	textbox_reset_full(tli->tb);
+    }
+}
+
 
 /* int i=0; */
 static TLinesItem *dir_to_tline(void ***current_item_v, Layout *container, void *dn_v, bool (*filter)(void *item, void *x_arg))
@@ -288,20 +301,20 @@ static TLinesItem *dir_to_tline(void ***current_item_v, Layout *container, void 
     return item;
 }
 
-static bool dir_to_tline_filter(void *item, void *x_arg)
-{
-    DirPath *dp = (DirPath *)item;
-    DirNav *dn = (DirNav *)x_arg;
-    if (!dn->show_dirs && dp->type == DT_DIR) return false;
-    if (!dn->show_files && dp->type != DT_DIR) return false;
-    if (dp->hidden) return false;
-    if (*(path_get_tail(dp->path)) - '.' < 0) return false;
+/* static bool dir_to_tline_filter(void *item, void *x_arg) */
+/* { */
+/*     DirPath *dp = (DirPath *)item; */
+/*     DirNav *dn = (DirNav *)x_arg; */
+/*     if (!dn->show_dirs && dp->type == DT_DIR) return false; */
+/*     if (!dn->show_files && dp->type != DT_DIR) return false; */
+/*     if (dp->hidden) return false; */
+/*     if (*(path_get_tail(dp->path)) - '.' < 0) return false; */
 
-    return true;
-}
+/*     return true; */
+/* } */
 
 void layout_write(FILE *f, Layout *lt, int indent);
-DirNav *dirnav_create(const char *dir_name, Layout *lt, bool show_dirs, bool show_files)
+DirNav *dirnav_create(const char *dir_name, Layout *lt, bool (*dir_to_tline_filter)(void *item, void *x_arg))
 {
     DirPath *dp = dirpath_open(dir_name);
     if (!dp) {
@@ -316,6 +329,7 @@ DirNav *dirnav_create(const char *dir_name, Layout *lt, bool show_dirs, bool sho
 
     DirNav *dn = calloc(1, sizeof(DirNav));
     dn->dirpath = dp;
+    dn->dir_to_tline_filter = dir_to_tline_filter;
     dn->layout = lt;
     strcpy(lt->name, "dirnav_lt");
     Layout *inner = layout_add_child(lt);
@@ -325,8 +339,8 @@ DirNav *dirnav_create(const char *dir_name, Layout *lt, bool show_dirs, bool sho
     inner->w.type = PAD;
     inner->h.type = ABS;
     inner->h.value.intval = DIRNAV_TLINES_HEIGHT;
-    dn->show_dirs = show_dirs;
-    dn->show_files = show_files;
+    /* dn->show_dirs = show_dirs; */
+    /* dn->show_files = show_files; */
     lt->h.value.intval = DIRNAV_TLINES_HEIGHT;
     layout_reset(lt);
     Layout *lines_container = layout_add_child(inner);
@@ -336,6 +350,8 @@ DirNav *dirnav_create(const char *dir_name, Layout *lt, bool show_dirs, bool sho
     lines_container->h.type = SCALE;
     dn->lines = textlines_create((void **)dn->dirpath->entries, dp->num_entries, dir_to_tline_filter, dir_to_tline, lines_container, (void *)dn);
     dn->lines->num_items = dn->num_lines;
+    sort_dn_lines(dn);
+    /* qsort(dn->lines->items, dn->lines->num_items, sizeof(TLinesItem *), qsort_dirnav_cmp); */
 
 
     TLinesItem *sel = dn->lines->items[dn->current_line];
@@ -476,17 +492,9 @@ void dirnav_previous(DirNav *dn)
 	    if (dn->lines->container->scroll_offset_v > 0) dn->lines->container->scroll_offset_v = 0;
 	    layout_reset(dn->lines->container);
 	}
-
-
     }
 }
 
-static int qsort_dirnav_cmp(const void *tl1_v, const void*tl2_v)
-{
-    TLinesItem *tl1 = *((TLinesItem **)tl1_v);
-    TLinesItem *tl2 = *((TLinesItem **)tl2_v);
-    return strcmp(((DirPath *)tl1->obj)->path, ((DirPath *)tl2->obj)->path);
-}
 
 void dirnav_select(DirNav *dn)
 {
@@ -522,17 +530,8 @@ void dirnav_select(DirNav *dn)
 	/* 	fprintf(stdout, "destroy!\n"); */
 	/* 	layout_destroy(lines_container->children[i]); */
 	/* } */
-	dn->lines = textlines_create((void **)dn->dirpath->entries, dn->dirpath->num_entries, dir_to_tline_filter, dir_to_tline, lines_container, (void *)dn);
-	qsort(dn->lines->items, dn->lines->num_items, sizeof(TLinesItem *), qsort_dirnav_cmp);
-	TLinesItem *tli = NULL;
-	for (uint16_t i=0; i<dn->lines->num_items; i++) {
-	    tli = dn->lines->items[i];
-	    tli->tb->layout = lines_container->children[i];
-	    tli->tb->text->container = tli->tb->layout;
-	    tli->tb->text->text_lt = tli->tb->layout->children[0];
-	    textbox_reset_full(tli->tb);
-	}
-
+	dn->lines = textlines_create((void **)dn->dirpath->entries, dn->dirpath->num_entries, dn->dir_to_tline_filter, dir_to_tline, lines_container, (void *)dn);
+	sort_dn_lines(dn);
 	TLinesItem *sel = dn->lines->items[dn->current_line];
 	SDL_Color sel_clr = (((DirPath *)sel->obj)->type == DT_DIR) ? color_dir_selected : color_file_selected;
 	/* sel_clr = (SDL_Color) {255, 255, 255, 255}; */

@@ -1,6 +1,16 @@
 #ifndef JDAW_GUI_DIR
 #define JDAW_GUI_DIR
 
+#include <dirent.h>
+#include <pwd.h>
+#include <unistd.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+
+
 #include "color.h"
 #include "textbox.h"
 
@@ -19,19 +29,15 @@ typedef struct dirnav DirNav;
 typedef struct dirnav {
     DirPath *dirpath;
     Layout *layout;
-    bool show_dirs;
-    bool show_files;
+    /* bool show_dirs; */
+    /* bool show_files; */
     Textbox *instruction;
     Textbox *current_path_tb;
     char current_path_str[MAX_PATHLEN];
-    /* char line_text[32768]; */
-    /* TextArea *lines; */
     TextLines *lines;
     uint16_t num_lines;
-    /* Menu *entries; */
-    /* TextArea *lines; */
-    /* uint8_t num_lines; */
     uint16_t current_line;
+    bool (*dir_to_tline_filter)(void *item, void *x_arg);
     void (*file_select_action)(DirNav *self, DirPath *dp);
 } DirNav;
 
@@ -52,7 +58,7 @@ typedef struct filepath {
 } FilePath;
 
 
-DirNav *dirnav_create(const char *dir_name, Layout *lt, bool show_dirs, bool show_files);
+DirNav *dirnav_create(const char *dir_name, Layout *lt, bool (*dir_to_tline_filter)(void *dp_v, void *dn_v));
 void dirnav_draw(DirNav *dn);
 void dirnav_destroy(DirNav *dn);
 void dirnav_next(DirNav *dn);

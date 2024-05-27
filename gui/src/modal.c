@@ -180,7 +180,7 @@ ModalEl *modal_add_p(Modal *modal, const char *text, SDL_Color *color)
     return el;
 }
 
-ModalEl *modal_add_dirnav(Modal *modal, const char *dirpath, bool show_dirs, bool show_files)
+ModalEl *modal_add_dirnav(Modal *modal, const char *dirpath, bool (*dir_to_tline_filter)(void *dp_v, void *dn_v))
 {
     /* modal_add_header(modal, "- DirNav -", &color_global_black, 4); */
     /* modal_add_p(modal, "n (f) - next item\np (d) - previous item\n<ret> (<spc>) - drill down\nS-n (S-f) - escape DirNav next\nS-p (S-d) - escape DirNav previous", &color_global_black); */
@@ -193,7 +193,7 @@ ModalEl *modal_add_dirnav(Modal *modal, const char *dirpath, bool show_dirs, boo
     el->layout->w.type = PAD;
     layout_reset(el->layout);
     el->type = MODAL_EL_DIRNAV;
-    DirNav *dn = dirnav_create(dirpath, el->layout, show_dirs, show_files);
+    DirNav *dn = dirnav_create(dirpath, el->layout, dir_to_tline_filter);
     el->obj = (void *)dn;
     return el;
 }

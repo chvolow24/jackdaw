@@ -19,6 +19,8 @@ extern Window *main_win;
 extern Project *proj;
 extern Mode **modes;
 
+extern char SAVED_PROJ_DIRPATH[MAX_PATHLEN];
+
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_grey;
 extern SDL_Color color_global_white;
@@ -87,6 +89,41 @@ static void *submit_save_as_form(void *mod_v)
     jdaw_write_project(buf);				  
     window_pop_modal(main_win);
     return NULL;
+}
+
+static bool dir_to_tline_filter_save(void *dp_v, void *dn_v)
+{
+    DirPath *dp = (DirPath *)dp_v;
+    if (dp->type != DT_DIR) return false;
+    if (strcmp(dp->path, ".") == 0) return false;
+    if (dp->hidden) return false;
+    return true;
+}
+
+static bool dir_to_tline_filter_open(void *dp_v, void *dn_v)
+{
+    DirPath *dp = (DirPath *)dp_v;
+    if (dp->type != DT_DIR) {
+	char *dotpos = strrchr(dp->path, '.');
+	if (!dotpos) {
+	    return false;
+	}
+	char *ext = dotpos + 1;
+	if (
+	    strncmp("wav", ext, 3) != 0 &&
+	    strncmp("jdaw", ext, 4) != 0 &&
+	    strncmp("WAV", ext, 3) != 0 &&
+	    strncmp("JDAW", ext, 4) != 0)
+	    return false;
+    } else {
+	if (strcmp(dp->path, ".") == 0) {
+	    return false;
+	}
+    }
+    if (dp->hidden) {
+	return false;
+    }
+    return true;
     
 }
 
@@ -101,7 +138,7 @@ void user_global_save_project()
     modal_add_textentry(save_as, proj->name);
     modal_add_p(save_as, "\t\t\t^\t\tS-p (S-d)\t\t\t\tv\t\tS-n (S-d)", &color_global_black);
     modal_add_header(save_as, "Project location:", &control_bar_bckgrnd, 5);
-    modal_add_dirnav(save_as, INSTALL_DIR, true, false);
+    modal_add_dirnav(save_as, SAVED_PROJ_DIRPATH, dir_to_tline_filter_save);
     save_as->submit_form = submit_save_as_form;
     window_push_modal(main_win, save_as);
     modal_reset(save_as);
@@ -147,7 +184,7 @@ void user_global_open_file()
     /* modal_add_textentry(openfile, proj->name); */
     /* modal_add_p(openfile, "\t\t\t^\t\tS-p (S-d)\t\t\t\tv\t\tS-n (S-d)", &color_global_black); */
     /* modal_add_header(openfile, "Project location:", &control_bar_bckgrnd, 5); */
-    ModalEl *dirnav_el = modal_add_dirnav(openfile, INSTALL_DIR, true, true);
+    ModalEl *dirnav_el = modal_add_dirnav(openfile, SAVED_PROJ_DIRPATH, dir_to_tline_filter_open);
     DirNav *dn = (DirNav *)dirnav_el->obj;
     dn->file_select_action = openfile_file_select_action;
     /* openfile->submit_form = submit_openfile_form; */

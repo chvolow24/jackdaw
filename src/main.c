@@ -36,6 +36,7 @@
 #include <time.h>
 #include "SDL.h"
 #include "SDL_ttf.h"
+#include "dir.h"
 #include "input.h"
 #include "layout.h"
 #include "layout_xml.h"
@@ -64,11 +65,13 @@
 #define DEFAULT_PROJ_AUDIO_SETTINGS 2, 48000, AUDIO_S16SYS, 64
 
 const char *JACKDAW_VERSION = "0.2.0";
+extern char SAVED_PROJ_DIRPATH[MAX_PATHLEN];
 
 bool sys_byteorder_le = false;
 
 Window *main_win;
 Project *proj = NULL;
+/* char *saved_proj_path = NULL; */
 
 static void get_native_byte_order()
 {
@@ -106,6 +109,7 @@ static void init()
     input_init_mode_load_all();
     input_load_keybinding_config(DEFAULT_KEYBIND_CFG_PATH);
     pd_jackdaw_shm_init();
+    strcpy(SAVED_PROJ_DIRPATH, ".");
 }
 
 static void quit()
@@ -173,17 +177,31 @@ int main(int argc, char **argv)
     /* Create project here */
 
     if (invoke_open_jdaw_file) {
-	proj = jdaw_read_file(argv[1]);
-	for (int i=0; i<proj->num_timelines; i++) {
-	    timeline_reset_full(proj->timelines[i]);
+	proj = jdaw_read_file(file_to_open);
+	if (proj) {
+	    realpath(file_to_open, SAVED_PROJ_DIRPATH);
+	    char *last_slash_pos = strrchr(SAVED_PROJ_DIRPATH, '/');
+	    if (last_slash_pos) {
+		*last_slash_pos = '\0';
+		fprintf(stdout, "SAVED PROJ DIRPATH: %s\n", SAVED_PROJ_DIRPATH);
+	    } else {
+		strcpy(SAVED_PROJ_DIRPATH, ".");
+		fprintf(stderr, "Error: no slash in saved proj dir");
+	    }
+	    for (int i=0; i<proj->num_timelines; i++) {
+		timeline_reset_full(proj->timelines[i]);
+	    }
 	}
     } else {
 	proj = project_create("project.jdaw", DEFAULT_PROJ_AUDIO_SETTINGS);
     }
 
     
-    if (!proj) {
-	fprintf(stderr, "Error: unable to open or create project.\n");
+    if (!proj && invoke_open_jdaw_file) {
+	fprintf(stderr, "Error: unable to open project \"%s\".\n", file_to_open);
+	exit(1);
+    } else if (!proj) {
+	fprintf(stderr, "Critical error: unable to create project\n");
     }
 
     if (invoke_open_wav_file) {

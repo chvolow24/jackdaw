@@ -1,5 +1,5 @@
 # Jackdaw (WIP)
-gA stripped-down, keyboard-focused digital audio workstation (DAW) taking some design cues from non-linear video editors like Avid. Built on SDL (https://libsdl.org/).
+A stripped-down, keyboard-focused digital audio workstation (DAW) taking some design cues from non-linear video editors like Avid. Built on SDL (https://libsdl.org/).
 
 ![image](assets/readme_imgs/jdaw.png)
 

@@ -43,6 +43,7 @@
 #include "project.h"
 #include "pure_data.h"
 #include "text.h"
+#include "transport.h"
 #include "wav.h"
 #include "window.h"
 
@@ -113,6 +114,11 @@ static void init()
 
 static void quit()
 {
+    if (proj->recording) {
+	transport_stop_recording();
+    }
+    transport_stop_playback();
+
     project_destroy(proj);
     if (main_win) {
 	window_destroy(main_win);

@@ -1,17 +1,18 @@
 # Jackdaw (WIP)
-A stripped-down, keyboard-focused digital audio workstation (DAW) taking some design cues from non-linear video editors like Avid. Built on SDL (https://libsdl.org/).
+gA stripped-down, keyboard-focused digital audio workstation (DAW) taking some design cues from non-linear video editors like Avid. Built on SDL (https://libsdl.org/).
 
 ![image](assets/readme_imgs/jdaw.png)
 
 ## Table of Contents
 1. [Disclaimer](#disclaimer)
-2. [Intallation](#installation)
+2. [Installation](#installation)
     1. [Compatibility](#compatibility)
 	2. [Dependencies](#dependencies)
     3. [Bash scripts](#bash-scripts)
     4. [Manual installation](#manual-installation)
 3. [Keyboard command syntax](#keyboard-command-syntax)
-4. [Getting started](#getting-started)
+4. [Basics (getting comfortable)](#basics-getting-comfortable)
+5. [Manual](#manual)
 
 ## Disclaimer
 
@@ -26,7 +27,7 @@ $ git clone https://github.com/chvolow24/jackdaw.git
 
 ```
 
-### Compatibiilty
+### Compatibility
 
 Jackdaw is compatibile with macOS and Linux.
 
@@ -52,7 +53,7 @@ If you don't want to use my scripts, you'll need to manually install the depende
 
 Detailed instructions for installing SDL can be found [here](https://wiki.libsdl.org/SDL2/Installation). 
 
-#### macOS
+##### macOS
 
 [Homebrew](https://brew.sh/) should work just fine: 
 ```console
@@ -60,7 +61,7 @@ $ brew install sdl2
 $ brew install sdl2_ttf
 ```
 
-#### linux
+##### linux
 
 You may want to build SDL from source by default instead of using `apt-get`; I found that the version of SDL provided by `apt-get` on ubuntu was too old.
 
@@ -93,12 +94,12 @@ $ ./jackdaw
 
 Jackdaw is a keyboard-based application; it uses the mouse and GUI buttons very sparingly. Here are some examples of keyboard commands you'll see written in the application and in this documentation:
 
-`n`...........................press the 'n' key<br>
-`p`...........................press the 'p' key<br>
-`C-s`........................hold down 'command' OR 'ctrl', and press the 's' key<br>
-`A-t`........................hold down 'alt' OR 'option' and press the 't' key<br>
-`C-S-o`....................hold down 'command' OR 'ctrl', AND 'shift', and press the 'o' key<br>
-`S-<ret>`.................hold down 'shift' and press the 'return' or 'enter' key<br>
+`n`......................................press the 'n' key<br>
+`p`......................................press the 'p' key<br>
+`C-s`...................................hold down 'command' OR 'ctrl', and press the 's' key<br>
+`A-t`...................................hold down 'alt' OR 'option' and press the 't' key<br>
+`C-S-o`...............................hold down 'command' OR 'ctrl', AND 'shift', and press the 'o' key<br>
+`S-<ret>`...........................hold down 'shift' and press the 'return' or 'enter' key<br>
 
 When a hyphen is present (as in `C-s`) it means you need to hold down one or more modifier key before striking the final key to invoke the command.
 
@@ -119,7 +120,11 @@ Most of the final keys are named by a letter or number, except for these:<br>
 This will all be familiar to emacs users, and hopefully not too painful for everyone else.
 
 
-## Getting started
+## Basics (getting comfortable)
+
+# Manual
+
+
 
 ...
 

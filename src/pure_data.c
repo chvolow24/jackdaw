@@ -263,14 +263,16 @@ void *pd_jackdaw_record_on_thread(void *arg)
 	/* fprintf(stdout, "pd conn? %p, at pos %d/%d\n", pdconn, pdconn->write_bufpos_sframes, pdconn->rec_buf_len_sframes); */
 	if (pdconn->write_bufpos_sframes + pd_blocksize >= pdconn->rec_buf_len_sframes) {
 	    Clip *clip = conn->current_clip;
-	    copy_pd_buf_to_clip(clip);
-	    pdconn->write_bufpos_sframes = 0;
+	    if (clip) {
+		copy_pd_buf_to_clip(clip);
+		pdconn->write_bufpos_sframes = 0;
+	    }
 	}
-	int i=0;
-	/* while (sem_trywait(audio_buffers_read_sem) == 0) {if (i !=0 ) {fprintf(stdout, "decr %d\n", i);} i++;}; */
-	/* fprintf(stdout, "about to write to buffers %d\n", i); */
-	i++;
-	i%= 10;
+	/* int i=0; */
+	/* /\* while (sem_trywait(audio_buffers_read_sem) == 0) {if (i !=0 ) {fprintf(stdout, "decr %d\n", i);} i++;}; *\/ */
+	/* /\* fprintf(stdout, "about to write to buffers %d\n", i); *\/ */
+	/* i++; */
+	/* i%= 10; */
 
 	sem_wait(audio_buffers_read_sem);
 	memcpy(pdconn->rec_buffer_L + pdconn->write_bufpos_sframes, pd_shm->L, pd_blocksize * sizeof(float));

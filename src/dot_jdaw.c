@@ -84,6 +84,9 @@ void jdaw_write_project(const char *path)
     }
     FILE* f = fopen(path, "wb");
 
+    if (!f) {
+	fprintf(stderr, "Error: unable to write to file at path %s: file could not be found\n", path);
+    }
     fwrite(hdr_jdaw, 1, 4, f);
     fwrite(hdr_version, 1, 8, f);
     fwrite(current_file_spec_version, 1, 5, f);

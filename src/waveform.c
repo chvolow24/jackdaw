@@ -36,6 +36,7 @@
 #include "project.h"
 
 #define SFPP_THRESHOLD 15
+#define SFPP_SAFE 200
 
 extern Project *proj;
 extern Window *main_win;
@@ -43,7 +44,7 @@ extern Window *main_win;
 static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, int w, int amp_h_max, int center_y)
 {
     float sfpp = (double) buflen / w;
-
+    
     if (sfpp <= 0) {
 	fprintf(stderr, "Error in waveform_draw_channel: sfpp<=0\n");
 	return;
@@ -67,21 +68,35 @@ static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, 
 	    /* Get avg amplitude value */
 	    avg_amp_neg = 0;
 	    avg_amp_pos = 0;
-	    for (int i=0; i<(int)sfpp; i++) {
+	    int sfpp_safe = (int)sfpp < SFPP_SAFE ? (int)sfpp : SFPP_SAFE;
+	    for (int i=0; i<sfpp_safe; i++) {
 		if (sample_i + i >= buflen) {
 		    break;
 		}
 		float sample;
-		/* fprintf(stdout, "wav i=%d\n", i); */
 		if ((sample = channel[(int)sample_i + i]) < 0) {
 		    avg_amp_neg += sample;
 		} else {
 		    avg_amp_pos += sample;
 		}
-		/* avg_amp += fabs(channel[(int)sample_i + i]); */
 	    }
-	    avg_amp_neg /= sfpp;
-	    avg_amp_pos /= sfpp;
+	    avg_amp_neg /= sfpp_safe;
+	    avg_amp_pos /= sfpp_safe;
+	    /* for (int i=0; i<(int)sfpp; i++) { */
+	    /* 	if (sample_i + i >= buflen) { */
+	    /* 	    break; */
+	    /* 	} */
+	    /* 	float sample; */
+	    /* 	/\* fprintf(stdout, "wav i=%d\n", i); *\/ */
+	    /* 	if ((sample = channel[(int)sample_i + i]) < 0) { */
+	    /* 	    avg_amp_neg += sample; */
+	    /* 	} else { */
+	    /* 	    avg_amp_pos += sample; */
+	    /* 	} */
+	    /* 	/\* avg_amp += fabs(channel[(int)sample_i + i]); *\/ */
+	    /* } */
+	    /* avg_amp_neg /= sfpp; */
+	    /* avg_amp_pos /= sfpp; */
 	    if (avg_amp_neg < -1.0f || avg_amp_pos > 1.0f) {
 		SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255);
 		SDL_RenderDrawLine(main_win->rend, x, center_y - amp_h_max, x, center_y + amp_h_max);

@@ -181,9 +181,9 @@ void layout_write(FILE *f, Layout *lt, int indent);
 void loop_project_main()
 {
 
-    /* clock_t start, end; */
-    /* uint8_t frame_ctr = 0; */
-    /* float fps = 0; */
+    clock_t start, end;
+    uint8_t frame_ctr = 0;
+    float fps = 0;
 
     Layout *temp_scrolling_lt = NULL;
     Layout *scrolling_lt = NULL;
@@ -489,16 +489,16 @@ void loop_project_main()
 	SDL_Delay(1);
 
 
-        /* end = clock(); */
-	/* fps += (float)CLOCKS_PER_SEC / (end - start); */
-	/* start = end; */
-	/* if (frame_ctr > 100) { */
-	/*     fps /= 100; */
-	/*     fprintf(stdout, "FPS: %f\n", fps); */
-	/*     frame_ctr = 0; */
-	/* } else { */
-	/*     frame_ctr++; */
-	/* } */
+        end = clock();
+	fps += (float)CLOCKS_PER_SEC / (end - start);
+	start = end;
+	if (frame_ctr > 100) {
+	    fps /= 100;
+	    fprintf(stdout, "FPS: %f\n", fps);
+	    frame_ctr = 0;
+	} else {
+	    frame_ctr++;
+	}
 
     }
 }

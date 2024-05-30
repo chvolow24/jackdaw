@@ -1,5 +1,5 @@
 # Jackdaw (WIP)
-#### A stripped-down, keyboard-focused digital audio workstation (DAW) taking some design cues from non-linear video editors like Avid. Built on SDL (https://libsdl.org/).
+A stripped-down, keyboard-focused digital audio workstation (DAW) taking some design cues from non-linear video editors like Avid. Built on SDL (https://libsdl.org/).
 
 ![image](assets/readme_imgs/jdaw.png)
 
@@ -10,8 +10,8 @@
 	2. [Dependencies](#dependencies)
     3. [Bash scripts](#bash-scripts)
     4. [Manual installation](#manual-installation)
-3. [Getting started](#getting-started)
-    1. [Keyboard command syntax](#keyboard-command-syntax)
+3. [Keyboard command syntax](#keyboard-command-syntax)
+4. [Getting started](#getting-started)
 
 ## Disclaimer
 
@@ -89,9 +89,7 @@ If `make` executed successfully, there should be an executable named `jackdaw` i
 $ ./jackdaw
 ```
 
-## Getting started
-
-### Keyboard command syntax
+## Keyboard command syntax
 
 Jackdaw is a keyboard-based application; it uses the mouse and GUI buttons very sparingly. Here are some examples of keyboard commands you'll see written in the application and in this documentation:
 
@@ -102,7 +100,8 @@ Jackdaw is a keyboard-based application; it uses the mouse and GUI buttons very 
 `C-S-o`....................hold down 'command' OR 'ctrl', AND 'shift', and press the 'o' key<br>
 `S-<ret>`.................hold down 'shift' and press the 'return' or 'enter' key<br>
 
-When a hyphen is present (as in `C-s`) it means you need to hold down one or more modifier key before striking the final key to invoke the command.<br>
+When a hyphen is present (as in `C-s`) it means you need to hold down one or more modifier key before striking the final key to invoke the command.
+
 Capital `C` stands for the "Command" OR "Control" key. Jackdaw does not distinguish between these two keys.<br>
 Capital `S` stands for the "Shift" key.<br>
 Capital `A` stands for the "Alt" or "Option" key. (Again, no distinction is made)<br>
@@ -119,6 +118,8 @@ Most of the final keys are named by a letter or number, except for these:<br>
 
 This will all be familiar to emacs users, and hopefully not too painful for everyone else.
 
+
+## Getting started
 
 ...
 

@@ -34,6 +34,7 @@
 
 #include <time.h>
 #include "SDL.h"
+#include "audio_connection.h"
 #include "draw.h"
 #include "input.h"
 #include "layout.h"
@@ -220,6 +221,7 @@ void loop_project_main()
     /* layout_write(stdout, main_win->layout, 0); */
     /* SDL_AddEventWatch(window_resize_callback, NULL); */
     /* window_resize_passive(main_win, main_win->w, main_win->h); */
+    bool first_frame = true;
     while (!(main_win->i_state & I_STATE_QUIT)) {
 	/* fprintf(stdout, "About to poll...\n"); */
 	while (SDL_PollEvent(&e)) {
@@ -231,6 +233,15 @@ void loop_project_main()
 	    case SDL_WINDOWEVENT:
 		if (e.window.event == SDL_WINDOWEVENT_RESIZED) {
 		    window_resize_passive(main_win, e.window.data1, e.window.data2);
+		}
+		break;
+	    case SDL_AUDIODEVICEADDED:
+	    case SDL_AUDIODEVICEREMOVED:
+		fprintf(stdout, "%s iscapture: %d, %d\n", e.type == SDL_AUDIODEVICEADDED ? "ADDED device" : "REMOVED device", e.adevice.iscapture, e.adevice.which);
+		if (!first_frame) {
+		    if (proj->recording) transport_stop_recording();
+		    transport_stop_playback();
+		    audioconn_handle_connection_event(e.adevice.which, e.adevice.iscapture, e.adevice.type);
 		}
 		break;
 	    case SDL_MOUSEMOTION: {
@@ -432,7 +443,7 @@ void loop_project_main()
 	    }
 	}
 	
-
+	first_frame = false;
 	if (proj->play_speed != 0 && !proj->source_mode) {
 	    timeline_catchup();
 	    timeline_set_timecode();
@@ -490,5 +501,4 @@ void loop_project_main()
 	/* } */
 
     }
-    project_destroy(proj);
 }

@@ -46,7 +46,6 @@
 #include "wav.h"
 #include "window.h"
 
-
 #include "audio_connection.h"
 
 /* #define JACKDAW_VERSION "0.2.0" */
@@ -114,6 +113,7 @@ static void init()
 
 static void quit()
 {
+    project_destroy(proj);
     if (main_win) {
 	window_destroy(main_win);
     }

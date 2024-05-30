@@ -154,10 +154,10 @@ void project_destroy(Project *proj)
     /* fprintf(stdout, "Proj num timelines? %d\n", proj->num_timelines); */
     textbox_destroy(proj->timeline_label);
     for (uint8_t i=0; i<proj->num_record_conns; i++) {
-	//TODO: audioconn destroy
+	audioconn_destroy(proj->record_conns[i]);
     }
     for (uint8_t i=0; i<proj->num_playback_conns; i++) {
-	//TODO: audioconn destroy
+	audioconn_destroy(proj->playback_conns[i]);
     }
     /* fprintf(stdout, "Proj %d clips remaining\n", proj->num_clips); */
     /* exit(1); */
@@ -827,13 +827,15 @@ void track_set_input(Track *track)
 	struct track_in_arg *arg = malloc(sizeof(struct track_in_arg));
 	arg->track = track;
 	arg->conn = proj->record_conns[i];
-	MenuItem *item = menu_item_add(
-	    sc,
-	    arg->conn->name,
-	    " ",
-	    track_set_in_onclick,
-	    arg);
-	item->free_target_on_destroy = true;
+	if (arg->conn->available) {
+	    MenuItem *item = menu_item_add(
+		sc,
+		arg->conn->name,
+		" ",
+		track_set_in_onclick,
+		arg);
+	    item->free_target_on_destroy = true;
+	}
     }
     menu_add_header(menu,"", "Select audio input for track.\n\n'n' to select next item; 'p' to select previous item.");
     /* menu_reset_layout(menu); */

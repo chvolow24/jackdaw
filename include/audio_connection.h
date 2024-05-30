@@ -38,6 +38,9 @@
 
 #include <stdbool.h>
 #include "SDL.h"
+
+
+#define MAX_CONN_NAMELENGTH 64
 /* #include "project.h" */
 
 typedef struct project Project;
@@ -71,10 +74,6 @@ enum audio_conn_type {
 };
 
 union audio_conn_substruct {
-    /* int index; */
-    /* const char *name; */
-    /* bool open; */
-    /* bool iscapture; */
     AudioDevice device;
     PdConn pd;
     
@@ -82,9 +81,11 @@ union audio_conn_substruct {
 typedef struct audio_conn {
     bool iscapture;
     int index;
-    const char *name;
+    /* const char *name; */
+    char name[MAX_CONN_NAMELENGTH];
     bool open;
     bool active;
+    bool available;
     Clip *current_clip; /* The clip currently being recorded, if applicable */
     enum audio_conn_type type;
     union audio_conn_substruct c;
@@ -100,7 +101,9 @@ void audioconn_stop_playback(AudioConn *conn);
 void audioconn_start_recording(AudioConn *conn);
 void audioconn_stop_recording(AudioConn *conn);
 
+void audioconn_handle_connection_event(int index, int iscapture, int event_type);
 
+void audioconn_destroy(AudioConn *conn);
 /* int query_audio_devices(Project *proj, int iscapture); */
 /* int device_open(Project *proj, AudioDevice *device); */
 /* void device_start_playback(AudioDevice *dev); */

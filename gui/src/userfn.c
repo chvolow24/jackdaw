@@ -141,7 +141,8 @@ void user_global_save_project()
     modal_add_header(save_as, "Save as:", &control_bar_bckgrnd, 3);
     modal_add_header(save_as, "Project name:", &control_bar_bckgrnd, 5);
     modal_add_textentry(save_as, proj->name);
-    modal_add_p(save_as, "\t\t\t^\t\tS-p (S-d)\t\t\t\tv\t\tS-n (S-d)", &color_global_black);
+    modal_add_p(save_as, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-p\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &color_global_black);
+    /* modal_add_op(save_as, "\t\t(type <ret> to accept name)", &control_bar_bckgrnd); */
     modal_add_header(save_as, "Project location:", &control_bar_bckgrnd, 5);
     modal_add_dirnav(save_as, SAVED_PROJ_DIRPATH, dir_to_tline_filter_save);
     save_as->submit_form = submit_save_as_form;
@@ -197,7 +198,7 @@ void user_global_open_file()
     Layout *mod_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(mod_lt);
     Modal *openfile = modal_create(mod_lt);
-    modal_add_header(openfile, "Open file:", &color_global_white, 3);
+    modal_add_header(openfile, "Open file:", &control_bar_bckgrnd, 3);
     /* modal_add_header(openfile, "Project name:", &control_bar_bckgrnd, 5); */
     /* modal_add_textentry(openfile, proj->name); */
     /* modal_add_p(openfile, "\t\t\t^\t\tS-p (S-d)\t\t\t\tv\t\tS-n (S-d)", &color_global_black); */
@@ -483,6 +484,7 @@ void user_tl_goto_zero()
     Timeline *tl = proj->timelines[proj->active_tl_index];
     tl->play_pos_sframes = 0;
     tl->display_offset_sframes = 0;
+    timeline_reset(tl);
 }
 
 static void select_out_onclick(void *arg)
@@ -510,12 +512,15 @@ void user_tl_set_default_out() {
     MenuSection *sc = menu_section_add(c, "");
     for (int i=0; i<proj->num_playback_conns; i++) {
 	AudioConn *conn = proj->playback_conns[i];
-	menu_item_add(
-	    sc,
-	    conn->name,
-	    " ",
-	    select_out_onclick,
-	    &(conn->index));
+	/* fprintf(stdout, "Conn index: %d\n", conn->index); */
+	if (conn->available) {
+	    menu_item_add(
+		sc,
+		conn->name,
+		" ",
+		select_out_onclick,
+		&(conn->index));
+	}
     }
     menu_add_header(menu,"", "Select the default audio output.\n\n'n' to select next item; 'p' to select previous item.");
     /* menu_reset_layout(menu); */
@@ -668,12 +673,11 @@ void user_tl_track_selector_down()
     if (!selected) {
 	return;
     }
-    if (selected->layout->rect.y + selected->layout->rect.h > main_win->layout->rect.h) {
+    if (selected->layout->rect.y + selected->layout->rect.h > main_win->layout->rect.h || selected->layout->rect.y < proj->audio_rect->y) {
 	Layout *template = NULL;
 	LayoutIterator *iter = NULL;
 	if ((template = selected->layout->parent) && (iter = template->iterator)) {
-	    /* LayoutIterator *iter = selected->layout->parent->iterator; */
-	    iter->scroll_offset = (template->rect.h + template->rect.y - proj->audio_rect->y) * (selected->tl_rank - 3);
+	    iter->scroll_offset = (template->rect.h + template->rect.y - proj->audio_rect->y) * selected->tl_rank - (proj->audio_rect->h - template->rect.h - 10);
 	    if (iter->scroll_offset < 0) {
 		iter->scroll_offset = 0;
 	    }

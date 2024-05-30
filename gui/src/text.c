@@ -341,42 +341,43 @@ void txt_edit(Text *txt, void (*draw_fn) (void))
                 txt_reset_drawable(txt);
             } else if (e.type == SDL_KEYDOWN) {
                 switch (e.key.keysym.scancode) {
-                    case SDL_SCANCODE_RETURN:
-                    case SDL_SCANCODE_KP_ENTER:
-                        done = true;
-                        break;
-                    case SDL_SCANCODE_LGUI:
-                    case SDL_SCANCODE_RGUI:
-                    case SDL_SCANCODE_LCTRL:
-                    case SDL_SCANCODE_RCTRL:
-                        cmdctrldown = true;
-                        break;
-                    case SDL_SCANCODE_LEFT:
-                        cursor_left(txt);
-                        break;
-                    case SDL_SCANCODE_RIGHT:
-                        cursor_right(txt);
-                        break;
-                    case SDL_SCANCODE_BACKSPACE:
-                        handle_backspace(txt);
-                        // set_text_value(txt, txt->display_value);
-                        txt_reset_drawable(txt);
-                        // set_text_value(txt, txt->display_value);
-                        break;
-                    case SDL_SCANCODE_SPACE:
-                        handle_char(txt, ' ');
-                        txt_reset_drawable(txt);
-                        // set_text_value(txt, txt->display_value);
-                        break;
-                    case SDL_SCANCODE_A:
-                        if (cmdctrldown) {
-                            txt->cursor_start_pos = 0;
-                            txt->cursor_end_pos = strlen(txt->display_value);
-                        }
-                        break;
-                    default: {
-                        break;
-                    }
+		case SDL_SCANCODE_RETURN:
+		case SDL_SCANCODE_KP_ENTER:
+		case SDL_SCANCODE_TAB:
+		    done = true;
+		    break;
+		case SDL_SCANCODE_LGUI:
+		case SDL_SCANCODE_RGUI:
+		case SDL_SCANCODE_LCTRL:
+		case SDL_SCANCODE_RCTRL:
+		    cmdctrldown = true;
+		    break;
+		case SDL_SCANCODE_LEFT:
+		    cursor_left(txt);
+		    break;
+		case SDL_SCANCODE_RIGHT:
+		    cursor_right(txt);
+		    break;
+		case SDL_SCANCODE_BACKSPACE:
+		    handle_backspace(txt);
+		    // set_text_value(txt, txt->display_value);
+		    txt_reset_drawable(txt);
+		    // set_text_value(txt, txt->display_value);
+		    break;
+		case SDL_SCANCODE_SPACE:
+		    handle_char(txt, ' ');
+		    txt_reset_drawable(txt);
+		    // set_text_value(txt, txt->display_value);
+		    break;
+		case SDL_SCANCODE_A:
+		    if (cmdctrldown) {
+			txt->cursor_start_pos = 0;
+			txt->cursor_end_pos = strlen(txt->display_value);
+		    }
+		    break;
+		default: {
+		    break;
+		}
 
                 }
             } else if (e.type == SDL_KEYUP) {

@@ -7,9 +7,11 @@
 1. [Disclaimer](#disclaimer)
 2. [Intallation](#installation)
     1. [Compatibility](#compatibility)
-    2. [Bash scripts](#bash-scripts)
-    3. [Manual installation](#manual-installation)
+	2. [Dependencies](#dependencies)
+    3. [Bash scripts](#bash-scripts)
+    4. [Manual installation](#manual-installation)
 3. [Getting started](#getting-started)
+    1. [Keyboard command syntax](#keyboard-command-syntax)
 
 ## Disclaimer
 
@@ -28,7 +30,7 @@ $ git clone https://github.com/chvolow24/jackdaw.git
 
 Jackdaw is compatibile with macOS and Linux.
 
-### Dependency
+### Dependencies
 
 Jackdaw is dependent on the [SDL2](https://libsdl.org/) library, and related [SDL2_ttf](https://wiki.libsdl.org/SDL2_ttf/FrontPage) library.
 
@@ -36,11 +38,11 @@ Jackdaw is dependent on the [SDL2](https://libsdl.org/) library, and related [SD
 
 Two scripts are provided in this repository to make installation and updating easier: `install.sh` and `update.sh`. I don't want to actively encourage their use, because I don't want to encourage you to run bash scripts written by strangers on your machine. But I use them, and they're there if you want them.
 
-Executing `install.sh` will attempt to install Jackdaw's dependencies ([SDL2](https://www.libsdl.org/) and [SDL2_ttf](https://wiki.libsdl.org/SDL2_ttf/FrontPage)) on your system. It will then build the `jackdaw` executable, and move it to `/usr/local/bin`, so that you can run it from the command line in any directory.
+Executing `install.sh` will attempt to install Jackdaw's dependencies ([SDL2](https://www.libsdl.org/) and [SDL2_ttf](https://wiki.libsdl.org/SDL2_ttf/FrontPage)) on your system. In order to do so, it will also install homebrew on macos if not already installed. It will then build the `jackdaw` executable, and move it to `/usr/local/bin`, so that you can run it from the command line in any directory.
 
-`update.sh` pulls any avilable updates from the remote repository, re-executes itself*, and then moves the executable to `/usr/local/bin`.
+`update.sh` pulls any available updates from the remote repository, re-executes itself*, and then moves the executable to `/usr/local/bin`.
 
-*This is basically to make it so that you don't have to `git pull` yourself, and so that any updates made to `update.sh` remotely are reflected when you run it locally. But it would also be a great way for me to run malicious code on your computer! Please be careful!
+*This is basically to make it so that you don't have to `git pull` in order to run the latest version of `update.sh`. But it would also be a great way for me to run malicious code on your computer! Proceed with caution (or trust). 
 
 ### Manual Installation
 
@@ -88,6 +90,35 @@ $ ./jackdaw
 ```
 
 ## Getting started
+
+### Keyboard command syntax
+
+Jackdaw is a keyboard-based application; it uses the mouse and GUI buttons very sparingly. Here are some examples of keyboard commands you'll see written in the application and in this documentation:
+
+`n`...........................press the 'n' key<br>
+`p`...........................press the 'p' key<br>
+`C-s`........................hold down 'command' OR 'ctrl', and press the 's' key<br>
+`A-t`........................hold down 'alt' OR 'option' and press the 't' key<br>
+`C-S-o`....................hold down 'command' OR 'ctrl', AND 'shift', and press the 'o' key<br>
+`S-<ret>`.................hold down 'shift' and press the 'return' or 'enter' key<br>
+
+When a hyphen is present (as in `C-s`) it means you need to hold down one or more modifier key before striking the final key to invoke the command.<br>
+Capital `C` stands for the "Command" OR "Control" key. Jackdaw does not distinguish between these two keys.<br>
+Capital `S` stands for the "Shift" key.<br>
+Capital `A` stands for the "Alt" or "Option" key. (Again, no distinction is made)<br>
+Capital `K` indicates that you must hold down the 'K' key, which is used as a modifier in very specific circumstances.
+
+So, `C-S-o` means hold down the control (or command) key and the shift key, and then press 'o'.
+
+Most of the final keys are named by a letter or number, except for these:<br>
+`<ret>` means 'return' or 'enter'<br>
+`<tab>` means 'tab'<br>
+`<spc>` is the spacebar<br>
+`<del>` is the 'delete' or 'backspace' key (no distinction)<br>
+`<up>`, `<down>`, `<left>`, and `<right>` are the arrow keys<br>
+
+This will all be familiar to emacs users, and hopefully not too painful for everyone else.
+
 
 ...
 

@@ -584,8 +584,26 @@ static void mode_load_timeline()
 
     fn = create_user_fn(
 	"tl_drop_from_source",
-	"Drop from source",
+	"Drop clip from source",
 	user_tl_drop_from_source);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_drop_saved1_from_source",
+	"Drop previously dropped clip (1)",
+	user_tl_drop_saved1_from_source);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_drop_saved2_from_source",
+	"Drop previously dropped clip (2)",
+	user_tl_drop_saved2_from_source);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_drop_saved3_from_source",
+	"Drop previously dropped clip (3)",
+	user_tl_drop_saved3_from_source);
     mode_subcat_add_fn(sc, fn);
 
     

@@ -957,7 +957,7 @@ void user_tl_load_clip_at_point_to_src()
 	proj->src_in_sframes = cr->in_mark_sframes;
 	proj->src_play_pos_sframes = 0;
 	proj->src_out_sframes = cr->out_mark_sframes;
-	fprintf(stdout, "Src clip name? %s\n", proj->src_clip->name);
+	/* fprintf(stdout, "Src clip name? %s\n", proj->src_clip->name); */
 	txt_set_value_handle(proj->source_name_tb->text, proj->src_clip->name);
     }
 }
@@ -975,18 +975,73 @@ void user_tl_activate_source_mode()
     }
 }
 
+
+struct drop_save {
+    Clip *clip;
+    int32_t in;
+    int32_t out;
+};
+
+uint8_t num_dropped = 0;
+struct drop_save dropped[4];
+
 void user_tl_drop_from_source()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (tl->num_tracks == 0) return;
     Track *track = tl->tracks[tl->track_selector];
     if (proj->src_clip) {
-	ClipRef *cr = track_create_clip_ref(track, proj->src_clip, tl->play_pos_sframes, false);
+	int32_t drop_pos = tl->play_pos_sframes - proj->play_speed * 2 * proj->chunk_size_sframes;
+	ClipRef *cr = track_create_clip_ref(track, proj->src_clip, drop_pos, false);
 	cr->in_mark_sframes = proj->src_in_sframes;
 	cr->out_mark_sframes = proj->src_out_sframes;
 	clipref_reset(cr);
+	struct drop_save current_drop = (struct drop_save){cr->clip, cr->in_mark_sframes, cr->out_mark_sframes};
+	struct drop_save drop_zero =  dropped[0];
+	fprintf(stdout, "Current: %p, %d, %d\nzero: %p, %d, %d\n", current_drop.clip, current_drop.in, current_drop.out, drop_zero.clip, drop_zero.in, drop_zero.out);
+	if (num_dropped == 0 || memcmp(&current_drop, &(dropped[0]), sizeof(struct drop_save)) != 0) {
+	    for (int i=3; i>0; i--) {
+		dropped[i] = dropped[i-1];
+	    }
+	    /* memcpy(dropped + 1, dropped, 3 * sizeof(struct drop_save)); */
+	    dropped[0] = (struct drop_save){cr->clip, cr->in_mark_sframes, cr->out_mark_sframes};
+	    if (num_dropped <= 4) num_dropped++;
+	    fprintf(stdout, "MET condition, num dropped: %d\n", num_dropped);
+	}
     }
 }
+
+static void user_tl_drop_savedn_from_source(int n)
+{
+    if (n < num_dropped) {
+	fprintf(stdout, "N: %d, num dropped: %d\n", n, num_dropped);
+	Timeline *tl = proj->timelines[proj->active_tl_index];
+	if (tl->num_tracks == 0) return;
+	Track *track = tl->tracks[tl->track_selector];
+	struct drop_save drop = dropped[n];
+	int32_t drop_pos = tl->play_pos_sframes - proj->play_speed * 2 * proj->chunk_size_sframes;
+	ClipRef *cr = track_create_clip_ref(track, drop.clip, drop_pos, false);
+	cr->in_mark_sframes = drop.in;
+	cr->out_mark_sframes = drop.out;
+	clipref_reset(cr);
+
+	/* ClipRef *cr = track_create_clip_ref(track, drop.cr->clip,  */
+    }
+}
+
+void user_tl_drop_saved1_from_source()
+{
+    user_tl_drop_savedn_from_source(1);
+}
+void user_tl_drop_saved2_from_source()
+{
+    user_tl_drop_savedn_from_source(2);
+}
+void user_tl_drop_saved3_from_source()
+{
+    user_tl_drop_savedn_from_source(3);
+}
+
 
 
 void user_tl_add_new_timeline()

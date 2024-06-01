@@ -84,6 +84,10 @@ void user_tl_load_clip_at_point_to_src();
 void user_tl_activate_source_mode();
 void user_tl_drop_from_source();
 
+void user_tl_drop_saved1_from_source();
+void user_tl_drop_saved2_from_source();
+void user_tl_drop_saved3_from_source();
+
 void user_tl_add_new_timeline();
 void user_tl_previous_timeline();
 void user_tl_next_timeline();

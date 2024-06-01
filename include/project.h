@@ -322,7 +322,9 @@ void clipref_grab(ClipRef *cr);
 /* void clipref_destroy(ClipRef *cr); */
 void clip_destroy(Clip *clip);
 void timeline_destroy_grabbed_cliprefs(Timeline *tl);
+void timeline_cut_clipref_at_point(Timeline *tl);
 
 void project_destroy(Project *proj);
+
 
 #endif

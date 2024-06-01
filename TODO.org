@@ -49,3 +49,8 @@ Global TODO list
 ** DONE window-level modal stack
 ** DONE modal mode
 ** DONE dirnav
+* Source mode improvements
+** TODO Load clipref to src
+*** TODO Src clip start/end distinct from in/o
+** TODO Multiple source clips (use z, x, c, v, b keys)
+

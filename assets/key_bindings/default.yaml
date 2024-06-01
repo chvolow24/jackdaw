@@ -68,6 +68,7 @@
   - K-l		: tl_play_slow
   - K-j		: tl_rewind_slow
   - C-k		: tl_toggle_drag
+  - S-c		: tl_cut_clipref
   - ;		: tl_move_right
   - h		: tl_move_left
   - ,		: tl_zoom_out

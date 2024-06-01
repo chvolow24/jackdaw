@@ -324,6 +324,12 @@ static void mode_load_timeline()
 	"Start or stop dragging clips",
 	user_tl_toggle_drag);
     mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_cut_clipref",
+	"Cut clipref at point",
+	user_tl_cut_clipref);
+    mode_subcat_add_fn(sc, fn);
     
     fn = create_user_fn(
 	"tl_move_right",

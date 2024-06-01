@@ -237,10 +237,10 @@ void loop_project_main()
 		break;
 	    case SDL_AUDIODEVICEADDED:
 	    case SDL_AUDIODEVICEREMOVED:
-		fprintf(stdout, "%s iscapture: %d, %d\n", e.type == SDL_AUDIODEVICEADDED ? "ADDED device" : "REMOVED device", e.adevice.iscapture, e.adevice.which);
+		/* fprintf(stdout, "%s iscapture: %d, %d\n", e.type == SDL_AUDIODEVICEADDED ? "ADDED device" : "REMOVED device", e.adevice.iscapture, e.adevice.which); */
 		if (!first_frame) {
 		    if (proj->recording) transport_stop_recording();
-		    transport_stop_playback();
+		    /* transport_stop_playback(); */
 		    audioconn_handle_connection_event(e.adevice.which, e.adevice.iscapture, e.adevice.type);
 		}
 		break;
@@ -492,8 +492,8 @@ void loop_project_main()
         end = clock();
 	fps += (float)CLOCKS_PER_SEC / (end - start);
 	start = end;
-	if (frame_ctr > 100) {
-	    fps /= 100;
+	if (frame_ctr > 250) {
+	    fps /= 250;
 	    fprintf(stdout, "FPS: %f\n", fps);
 	    frame_ctr = 0;
 	} else {

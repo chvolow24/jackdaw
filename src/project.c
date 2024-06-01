@@ -1073,3 +1073,28 @@ void timeline_ungrab_all_cliprefs(Timeline *tl)
     tl->num_grabbed_clips = 0;
 }
 
+static ClipRef *clipref_cut(ClipRef *cr, int32_t cut_pos_rel)
+{
+    fprintf(stdout, "Starting new cr at %d (not %d)\n", cr->pos_sframes + cut_pos_rel, cr->pos_sframes);
+    ClipRef *new = track_create_clip_ref(cr->track, cr->clip, cr->pos_sframes + cut_pos_rel, false);
+    new->in_mark_sframes = cr->in_mark_sframes + cut_pos_rel;
+    new->out_mark_sframes = cr->out_mark_sframes == 0 ? clipref_len(cr): cr->out_mark_sframes;
+    cr->out_mark_sframes = cr->out_mark_sframes == 0 ? cut_pos_rel : cr->out_mark_sframes - (clipref_len(cr) - cut_pos_rel);
+    track_reset(cr->track);
+    return new;
+}
+
+void timeline_cut_clipref_at_point(Timeline *tl)
+{
+    Track *track = tl->tracks[tl->track_selector];
+    if (!track) return;
+    for (uint8_t i=0; i<track->num_clips; i++) {
+	ClipRef *cr = track->clips[i];
+	fprintf(stdout, "CLIPREF OLD LEN: %d\n", clipref_len(cr));
+	if (cr->pos_sframes < tl->play_pos_sframes && cr->pos_sframes + clipref_len(cr) > tl->play_pos_sframes) {
+	    ClipRef *new = clipref_cut(cr, tl->play_pos_sframes - cr->pos_sframes);
+	    fprintf(stdout, "New Lens: %d, %d\n", clipref_len(cr), clipref_len(new));
+	    return;
+	}
+    }
+}

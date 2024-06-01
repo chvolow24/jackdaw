@@ -43,6 +43,7 @@ void user_tl_goto_zero();
 /* void user_tl_rewind_drag(); */
 /* void user_tl_pause_drag(); */
 void user_tl_toggle_drag();
+void user_tl_cut_clipref();
 void user_tl_set_default_out();
 void user_tl_add_track();
 

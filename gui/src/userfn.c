@@ -90,7 +90,9 @@ static void *submit_save_as_form(void *mod_v)
     char *last_slash_pos = strrchr(buf, '/');
     if (last_slash_pos) {
 	*last_slash_pos = '\0';
+	fprintf(stdout, "Real path of %s:\n", dirpath);
 	realpath(dirpath, SAVED_PROJ_DIRPATH);
+	fprintf(stdout, " is %s\n", SAVED_PROJ_DIRPATH);
     }
     window_pop_modal(main_win);
     return NULL;
@@ -941,14 +943,20 @@ void user_tl_toggle_drag()
     proj->dragging = !proj->dragging;
 }
 
+void user_tl_cut_clipref()
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    timeline_cut_clipref_at_point(tl);
+}
+
 void user_tl_load_clip_at_point_to_src()
 {
     ClipRef *cr = clipref_at_point();
     if (cr) {
 	proj->src_clip = cr->clip;
-	proj->src_in_sframes = 0;
+	proj->src_in_sframes = cr->in_mark_sframes;
 	proj->src_play_pos_sframes = 0;
-	proj->src_out_sframes = 0;
+	proj->src_out_sframes = cr->out_mark_sframes;
 	fprintf(stdout, "Src clip name? %s\n", proj->src_clip->name);
 	txt_set_value_handle(proj->source_name_tb->text, proj->src_clip->name);
     }

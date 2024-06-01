@@ -186,10 +186,21 @@ float *get_mixdown_chunk(Timeline* tl, uint8_t channel, uint32_t len_sframes, in
         for (uint32_t i=0; i<len_sframes; i++) {
             /* mixdown[i] += track_chunk[i] * pan * track->vol_ctrl->value; */
 	    mixdown[i] += track_chunk[i];
+	    if (t == tl->num_tracks - 1) {
+		if (mixdown[i] > 1.0f) {
+		    mixdown[i] = 1.0f;
+		    /* fprintf(stdout, "Clip up mixdown\n"); */
+		} else if (mixdown[i] < -1.0f) {
+		    mixdown[i] = -1.0f;
+		    /* fprintf(stdout, "Clip down mixdown\n"); */
+		}
+	    }
         }
+
 	
         free(track_chunk);
     }
-    
+
+
     return mixdown;
 }

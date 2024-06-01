@@ -150,6 +150,7 @@ int query_audio_connections(Project *proj, int iscapture)
     default_conn->iscapture = iscapture;
     default_dev->write_bufpos_samples = 0;
     default_dev->rec_buffer = NULL;
+    default_dev->id = 0;
     // memset(default_dev->rec_buffer, '\0', BUFFLEN / 2);
     /* fprintf(stdout, "Default device %s at index %d\n", default_conn->name, default_conn->index); */
 
@@ -180,6 +181,7 @@ int query_audio_connections(Project *proj, int iscapture)
         };
         dev->spec = spec;
         dev->rec_buffer = NULL;
+	dev->id = 0;
         conn_list[j] = conn;
 	/* fprintf(stdout, "Connection %s at index %d\n", conn->name, conn->index); */
         /* fprintf(stderr, "\tFound device: %s, index: %d\n", dev->name, dev->index); */
@@ -271,7 +273,9 @@ int audioconn_open(Project *proj, AudioConn *conn)
 	device->spec.callback = conn->iscapture ? transport_record_callback : transport_playback_callback;
 	device->spec.userdata = device;
 
+	/* for (int i=0; i<10; i++) { */
 	if ((device->id = SDL_OpenAudioDevice(conn->name, conn->iscapture, &(device->spec), &(obtained), 0)) > 0) {
+	    fprintf(stdout, "ID: %d\n", device->id);
 	    device->spec = obtained;
 	    conn->open = true;
 	    fprintf(stderr, "Successfully opened device %s, with id: %d\n", conn->name, device->id);
@@ -279,7 +283,9 @@ int audioconn_open(Project *proj, AudioConn *conn)
 	    conn->open = false;
 	    fprintf(stderr, "Error opening audio device %s : %s\n", conn->name, SDL_GetError());
 	    return 1;
+	/* } */
 	}
+	/* exit(1); */
 
 	if (conn->iscapture) {
 	    /* fprintf(stdout, "Dev %s\n:ch %d, freq %d, format %d (== %d)\n", device->name, obtained.channels, obtained.freq, obtained.format, AUDIO_S16LSB); */
@@ -344,6 +350,7 @@ int audioconn_open(Project *proj, AudioConn *conn)
 
 void audioconn_destroy(AudioConn *conn)
 {
+    /* audioconn_close(conn); */
     /* fprintf(stdout, "Destroying %s\n", conn->name); */
     float *buf;
     int16_t *intbuf;
@@ -366,6 +373,7 @@ static void device_close(AudioDevice *device)
 {
     /* fprintf(stdout, "CLOSING device %s, id: %d\n",device->name, device->id); */
     SDL_CloseAudioDevice(device->id);
+    device->id = 0;
 }
 
 void audioconn_close(AudioConn *conn)
@@ -459,39 +467,65 @@ void audioconn_start_recording(AudioConn *conn)
 
 void audioconn_handle_connection_event(int index_or_id, int iscapture, int event_type)
 {
+    fprintf(stdout, "\n\nEvent: %s device %s with id %d\n", iscapture ? "recording" : "playback", event_type == SDL_AUDIODEVICEREMOVED ? "removed" : "added", index_or_id);
+    fprintf(stdout, "\n\tCurrent project playback devices:\n");
+    for (uint8_t i=0; i<proj->num_playback_conns; i++) {
+	fprintf(stdout, "\t\tID %d: %s\n", proj->playback_conns[i]->c.device.id, proj->playback_conns[i]->name);
+    }
+    fprintf(stdout, "\n\tCurrent project record devices:\n");
+    for (uint8_t i=0; i<proj->num_record_conns; i++) {
+	fprintf(stdout, "\t\tID %d: %s\n", proj->record_conns[i]->c.device.id, proj->record_conns[i]->name);
+    }
+
+    /* fprintf(stdout,src/ "current playback device id: %d\n", proj->playback_conn->c.device.id); */
     AudioConn **arr = iscapture ? proj->record_conns : proj->playback_conns;
     uint8_t *num_previous = iscapture ? &proj->num_record_conns : &proj->num_playback_conns;
     if (event_type == SDL_AUDIODEVICEREMOVED) {
 	AudioConn *removed_conn = NULL;
 	uint8_t remove_at = 0;
 	int num_new = SDL_GetNumAudioDevices(iscapture);
-	const char **names = malloc(sizeof(char *) * num_new);
-	for (uint8_t i=0; i<num_new; i++) {
-	    names[i] = SDL_GetAudioDeviceName(i, iscapture);
-	}
+	/* const char **names = malloc(sizeof(char *) * num_new); */
+	/* for (uint8_t i=0; i<num_new; i++) { */
+	/*     names[i] = SDL_GetAudioDeviceName(i, iscapture); */
+	/* } */
 
-	for (int i=0; i<*num_previous; i++) {
-	    AudioConn *check = arr[i];
-	    if (check->type != DEVICE) continue;
-	    bool found = false;
-	    for (int j=0; j<num_new; j++) {
-		if (strcmp(names[j], check->name) == 0) {
-		    found = true;
+	if (index_or_id) {
+	    SDL_PauseAudioDevice(index_or_id, 1);
+	    /* SDL_CloseAudioDevice(index_or_id); */
+	    for (int i=0; i<*num_previous; i++) {
+		if (arr[i]->c.device.id == index_or_id) {
+		    removed_conn = arr[i];
+		    remove_at = i;
+		    fprintf(stdout, "Found id %d w/ name %s\n", arr[i]->c.device.id, arr[i]->name);
+		    break;
+		}
+		/* SDL_PauseAudioDevice( */
+	    }
+	} else {
+	    for (int i=0; i<*num_previous; i++) {
+		AudioConn *check = arr[i];
+		if (check->type != DEVICE) continue;
+		bool found = false;
+		for (int j=0; j<num_new; j++) {
+		    if (strcmp(SDL_GetAudioDeviceName(j, iscapture), check->name) == 0) {
+			found = true;
+			break;
+		    }
+		}
+		if (!found) {
+		    removed_conn = check;
+		    remove_at = i;
 		    break;
 		}
 	    }
-	    if (!found) {
-		removed_conn = check;
-		remove_at = i;
-		break;
-	    }
 	}
 	
-	free(names);	
+	/* free(names);	 */
 	if (!removed_conn) {
 	    fprintf(stderr, "Fatal error: removed audio connection could not be found\n");
 	    exit(1);
 	}
+	/* audioconn_close(removed_conn); */
 	fprintf(stdout, "%s device %s removed\n", iscapture ? "Recording" : "Playback", removed_conn->name);
 	for (uint8_t i=remove_at + 1; i<*num_previous; i++) {
 	    arr[i - 1] = arr[i];
@@ -558,6 +592,7 @@ void audioconn_handle_connection_event(int index_or_id, int iscapture, int event
 
 	
     }
+    fprintf(stdout, "\t\t\tEXIT handle device event\n");
 }
 
 void ___audioconn_handle_connection_event(int id, int iscapture, int event_type)

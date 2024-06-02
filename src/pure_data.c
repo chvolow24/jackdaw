@@ -144,7 +144,7 @@ static void complete_handshake()
 
     /* Unlink PIDS shared memory object; no more signals will be passed. */
     pd_pid = pids->pd_pid;
-    shm_unlink(PD_JACKDAW_SHM_PIDS_NAME);
+    /* shm_unlink(PD_JACKDAW_SHM_PIDS_NAME); */
     connection_open = true;
 }
 
@@ -173,14 +173,23 @@ static void initiate_handshake()
      if (pids->pd_pid != 0 && validate_pid(pids->pd_pid, "pd")) {
 	fprintf(stdout, "Identified pd PID and validated. Sending signal...\n");
 	kill(pids->pd_pid, SIGUSR1);
+     } else {
+	 fprintf(stderr, "Could not validate pd PID\n");
      }
+}
+
+void pd_signal_termination_of_jackdaw()
+{
+    if (pd_pid != 0) {
+	kill(pd_pid, SIGUSR1);
+    }
 }
 
 int pd_jackdaw_shm_init()
 {
     /* if (!restart) { */
-	signal(SIGUSR1, handle_signal1_from_pd);
-	signal(SIGUSR2, handle_signal2_from_pd);
+    signal(SIGUSR1, handle_signal1_from_pd);
+    signal(SIGUSR2, handle_signal2_from_pd);
     /* } */
     int fd = shm_open(PD_JACKDAW_SHM_PIDS_NAME, O_CREAT | O_RDWR, 0666);
     if (fd == -1) {

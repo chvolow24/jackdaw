@@ -114,6 +114,7 @@ static void init()
 
 static void quit()
 {
+    pd_signal_termination_of_jackdaw();
     if (proj->recording) {
 	transport_stop_recording();
     }

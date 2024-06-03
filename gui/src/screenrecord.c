@@ -5,7 +5,7 @@ extern Window *main_win;
 
 /********* Screenshot ********/
 #define PREFERRED_PIXELFORMAT SDL_PIXELFORMAT_RGBA32
-#define SCREENSHOT_MODULUS 2
+#define SCREENSHOT_MODULUS 1
 
 
 
@@ -39,6 +39,6 @@ void screenshot_loop()
 /*
 gif incantation:
 
-convert -delay 4 -loop 0 -resize 80% gifframes/*.bmp animation.gif
+convert -delay 16 -loop 0 -resize 80% gifframes/*.bmp animation.gif
    
 */

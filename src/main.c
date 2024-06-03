@@ -65,7 +65,9 @@
 #define DEFAULT_PROJ_AUDIO_SETTINGS 2, 48000, AUDIO_S16SYS, 64
 
 const char *JACKDAW_VERSION = "0.2.0";
-extern char SAVED_PROJ_DIRPATH[MAX_PATHLEN];
+char DIRPATH_SAVED_PROJ[MAX_PATHLEN];
+char DIRPATH_OPEN_FILE[MAX_PATHLEN];
+char DIRPATH_EXPORT[MAX_PATHLEN];
 
 bool sys_byteorder_le = false;
 
@@ -109,7 +111,9 @@ static void init()
     input_init_mode_load_all();
     input_load_keybinding_config(DEFAULT_KEYBIND_CFG_PATH);
     pd_jackdaw_shm_init();
-    realpath(".", SAVED_PROJ_DIRPATH);
+    realpath(".", DIRPATH_SAVED_PROJ);
+    strcpy(DIRPATH_OPEN_FILE, DIRPATH_SAVED_PROJ);
+    strcpy(DIRPATH_EXPORT, DIRPATH_SAVED_PROJ);
 }
 
 static void quit()
@@ -186,13 +190,13 @@ int main(int argc, char **argv)
     if (invoke_open_jdaw_file) {
 	proj = jdaw_read_file(file_to_open);
 	if (proj) {
-	    realpath(file_to_open, SAVED_PROJ_DIRPATH);
-	    char *last_slash_pos = strrchr(SAVED_PROJ_DIRPATH, '/');
+	    realpath(file_to_open, DIRPATH_SAVED_PROJ);
+	    char *last_slash_pos = strrchr(DIRPATH_SAVED_PROJ, '/');
 	    if (last_slash_pos) {
 		*last_slash_pos = '\0';
-		fprintf(stdout, "SAVED PROJ DIRPATH: %s\n", SAVED_PROJ_DIRPATH);
+		fprintf(stdout, "SAVED PROJ DIRPATH: %s\n", DIRPATH_SAVED_PROJ);
 	    } else {
-	        realpath(".", SAVED_PROJ_DIRPATH);
+	        realpath(".", DIRPATH_SAVED_PROJ);
 		fprintf(stderr, "Error: no slash in saved proj dir");
 	    }
 	    for (int i=0; i<proj->num_timelines; i++) {

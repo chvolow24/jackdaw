@@ -19,7 +19,9 @@ extern Window *main_win;
 extern Project *proj;
 extern Mode **modes;
 
-extern char SAVED_PROJ_DIRPATH[MAX_PATHLEN];
+extern char DIRPATH_SAVED_PROJ[];
+extern char DIRPATH_OPEN_FILE[];
+extern char DIRPATH_EXPORT[];
 
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_grey;
@@ -91,23 +93,38 @@ static void *submit_save_as_form(void *mod_v)
     if (last_slash_pos) {
 	*last_slash_pos = '\0';
 	fprintf(stdout, "Real path of %s:\n", dirpath);
-	realpath(dirpath, SAVED_PROJ_DIRPATH);
-	fprintf(stdout, " is %s\n", SAVED_PROJ_DIRPATH);
+	realpath(dirpath, DIRPATH_SAVED_PROJ);
+	fprintf(stdout, " is %s\n", DIRPATH_SAVED_PROJ);
     }
     window_pop_modal(main_win);
     return NULL;
 }
 
-static bool dir_to_tline_filter_save(void *dp_v, void *dn_v)
+static int dir_to_tline_filter_save(void *dp_v, void *dn_v)
 {
     DirPath *dp = (DirPath *)dp_v;
-    if (dp->type != DT_DIR) return false;
-    if (strcmp(dp->path, ".") == 0) return false;
-    if (dp->hidden) return false;
+    if (strcmp(dp->path, ".") == 0) return 0;
+    if (dp->hidden) return 0;
+    if (dp->type != DT_DIR) {
+	char *dotpos = strrchr(dp->path, '.');
+	if (!dotpos) {
+	    return 0;
+	}
+	char *ext = dotpos + 1;
+	if (strcmp(ext, "wav") == 0 ||
+	    strcmp(ext, "jdaw") == 0 ||
+	    strcmp(ext, "WAV") == 0 ||
+	    strcmp(ext, "JDAW") == 0) {
+	    return -1;
+	} else {
+	    return 0;
+	}
+
+    }
     return true;
 }
 
-static bool dir_to_tline_filter_open(void *dp_v, void *dn_v)
+static int dir_to_tline_filter_open(void *dp_v, void *dn_v)
 {
     DirPath *dp = (DirPath *)dp_v;
     if (dp->type != DT_DIR) {
@@ -146,7 +163,7 @@ void user_global_save_project()
     modal_add_p(save_as, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-p\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &color_global_black);
     /* modal_add_op(save_as, "\t\t(type <ret> to accept name)", &control_bar_bckgrnd); */
     modal_add_header(save_as, "Project location:", &control_bar_bckgrnd, 5);
-    modal_add_dirnav(save_as, SAVED_PROJ_DIRPATH, dir_to_tline_filter_save);
+    modal_add_dirnav(save_as, DIRPATH_SAVED_PROJ, dir_to_tline_filter_save);
     save_as->submit_form = submit_save_as_form;
     window_push_modal(main_win, save_as);
     modal_reset(save_as);
@@ -189,7 +206,7 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
     char *last_slash_pos = strrchr(dp->path, '/');
     if (last_slash_pos) {
 	*last_slash_pos = '\0';
-	realpath(dp->path, SAVED_PROJ_DIRPATH);
+	realpath(dp->path, DIRPATH_OPEN_FILE);
     }
     window_pop_modal(main_win);
 }
@@ -205,7 +222,7 @@ void user_global_open_file()
     /* modal_add_textentry(openfile, proj->name); */
     /* modal_add_p(openfile, "\t\t\t^\t\tS-p (S-d)\t\t\t\tv\t\tS-n (S-d)", &color_global_black); */
     /* modal_add_header(openfile, "Project location:", &control_bar_bckgrnd, 5); */
-    ModalEl *dirnav_el = modal_add_dirnav(openfile, SAVED_PROJ_DIRPATH, dir_to_tline_filter_open);
+    ModalEl *dirnav_el = modal_add_dirnav(openfile, DIRPATH_OPEN_FILE, dir_to_tline_filter_open);
     DirNav *dn = (DirNav *)dirnav_el->obj;
     dn->file_select_action = openfile_file_select_action;
     /* openfile->submit_form = submit_openfile_form; */
@@ -1071,10 +1088,96 @@ void user_tl_next_timeline()
     }
 }
 
+
+void _____user_global_save_project()
+{
+    fprintf(stdout, "user_global_save\n");
+    Layout *mod_lt = layout_add_child(main_win->layout);
+    layout_set_default_dims(mod_lt);
+    Modal *save_as = modal_create(mod_lt);
+    modal_add_header(save_as, "Save as:", &control_bar_bckgrnd, 3);
+    modal_add_header(save_as, "Project name:", &control_bar_bckgrnd, 5);
+    modal_add_textentry(save_as, proj->name);
+    modal_add_p(save_as, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-p\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &color_global_black);
+    /* modal_add_op(save_as, "\t\t(type <ret> to accept name)", &control_bar_bckgrnd); */
+    modal_add_header(save_as, "Project location:", &control_bar_bckgrnd, 5);
+    modal_add_dirnav(save_as, DIRPATH_SAVED_PROJ, dir_to_tline_filter_save);
+    save_as->submit_form = submit_save_as_form;
+    window_push_modal(main_win, save_as);
+    modal_reset(save_as);
+    /* fprintf(stdout, "about to call move onto\n"); */
+    modal_move_onto(save_as);
+}
+
+static void *submit_save_wav_form(void *mod_v)
+{
+    Modal *modal = (Modal *)mod_v;
+    char *name;
+    char *dirpath;
+    ModalEl *el;
+    for (uint8_t i=0; i<modal->num_els; i++) {
+	switch ((el = modal->els[i])->type) {
+	case MODAL_EL_TEXTENTRY:
+	    name = ((Textbox *)el->obj)->text->value_handle;
+	    break;
+	case MODAL_EL_DIRNAV: {
+	    DirNav *dn = (DirNav *)el->obj;
+	    /* DirPath *dir = (DirPath *)dn->lines->items[dn->current_line]->obj; */
+	    dirpath = dn->current_path_tb->text->value_handle;
+	    break;
+	}
+	default:
+	    break;
+	}
+    }
+    char buf[255];
+    memset(buf, '\0', sizeof(buf));
+    strcat(buf, dirpath);
+    strcat(buf, "/");
+    strcat(buf, name);
+    fprintf(stdout, "SAVE WAV: %s\n", buf);
+    wav_write_mixdown(buf);
+    /* jdaw_write_project(buf); */
+    char *last_slash_pos = strrchr(buf, '/');
+    if (last_slash_pos) {
+	*last_slash_pos = '\0';
+	/* fprintf(stdout, "Real path of %s:\n", dirpath); */
+	realpath(dirpath, DIRPATH_EXPORT);
+	/* fprintf(stdout, " is %s\n", DIRPATH_SAVED_PROJ); */
+    }
+    window_pop_modal(main_win);
+    return NULL;
+}
+
 void user_tl_write_mixdown_to_wav()
 {
-    const char *filepath = "testfile.wav";
-    wav_write_mixdown(filepath);
+    Layout *mod_lt = layout_add_child(main_win->layout);
+    layout_set_default_dims(mod_lt);
+    Modal *save_wav = modal_create(mod_lt);
+    modal_add_header(save_wav, "Export WAV", &control_bar_bckgrnd, 3);
+    modal_add_p(save_wav, "Export a mixdown of the current timeline, from the in-mark to the out-mark, in .wav format.", &control_bar_bckgrnd);
+    modal_add_header(save_wav, "Filename:", &control_bar_bckgrnd, 5);
+    char *wavfilename = malloc(sizeof(char) * 255);
+    int i=0;
+    char c;
+    while ((c = proj->name[i]) != '.' && c != '\0') {
+	wavfilename[i] = c;
+	i++;
+    }
+    wavfilename[i] = '\0';
+    strcat(wavfilename, ".wav");
+    modal_add_textentry(save_wav, wavfilename);
+    
+    modal_add_p(save_wav, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-p\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &color_global_black);
+    /* modal_add_op(save_wav, "\t\t(type <ret> to accept name)", &control_bar_bckgrnd); */
+    modal_add_header(save_wav, "Location:", &control_bar_bckgrnd, 5);
+    modal_add_dirnav(save_wav, DIRPATH_EXPORT, dir_to_tline_filter_save);
+    save_wav->submit_form = submit_save_wav_form;
+    window_push_modal(main_win, save_wav);
+    modal_reset(save_wav);
+    /* fprintf(stdout, "about to call move onto\n"); */
+    modal_move_onto(save_wav);
+
 }
 
 void user_tl_cliprefs_destroy()

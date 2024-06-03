@@ -44,7 +44,7 @@ Modal *modal_create(Layout *lt);
 void modal_destroy(Modal *modal);
 ModalEl *modal_add_header(Modal *modal, const char *text, SDL_Color *color, int level);
 ModalEl *modal_add_p(Modal *modal, const char *text, SDL_Color *color);
-ModalEl *modal_add_dirnav(Modal *modal, const char *dirpath, bool (*dir_to_tline_filter)(void *dp_v, void *dn_v));
+ModalEl *modal_add_dirnav(Modal *modal, const char *dirpath, int (*dir_to_tline_filter)(void *dp_v, void *dn_v));
 ModalEl *modal_add_textentry(Modal *modal, char *init_val);
 void modal_reset(Modal *modal);
 void modal_draw(Modal *modal);

@@ -16,6 +16,8 @@ extern SDL_Color color_global_clear;
 
 SDL_Color color_dir = (SDL_Color) {10, 255, 100, 255};
 SDL_Color color_file = (SDL_Color) {10, 100, 255, 255};
+SDL_Color color_dir_unavailable = (SDL_Color) {10, 255, 100, 150};
+SDL_Color color_file_unavailable = (SDL_Color) {10, 100, 255, 150};
 SDL_Color color_dir_selected = (SDL_Color) {100, 255, 190, 255};
 SDL_Color color_file_selected = (SDL_Color) {60, 150, 255, 255};
 SDL_Color color_highlighted_bckgrnd = (SDL_Color) {255, 255, 255, 20};
@@ -250,7 +252,7 @@ void sort_dn_lines(DirNav *dn)
 
 
 /* int i=0; */
-static TLinesItem *dir_to_tline(void ***current_item_v, Layout *container, void *dn_v, bool (*filter)(void *item, void *x_arg))
+static TLinesItem *dir_to_tline(void ***current_item_v, Layout *container, void *dn_v, int (*filter)(void *item, void *x_arg))
 {
     /* fprintf(stdout, "Call %d to dir_to_tline\n", i); */
     /* i++; */
@@ -258,13 +260,13 @@ static TLinesItem *dir_to_tline(void ***current_item_v, Layout *container, void 
     DirPath ***dps_loc = (DirPath ***)current_item_v;
     DirPath **dps = *dps_loc;
     DirPath *dp = dps[0];
-    /* fprintf(stdout, "\tDp: %p\n", dp); */
+    int filter_val;
     if (!dp) {
 	fprintf(stderr, "ERROR: null at addr %p\n",*current_item_v);
 	(*dps_loc)++;
 	return NULL;	
     }
-    if (!filter(dp, dn_v)) {
+    if ((filter_val = filter(dp, dn_v)) == 0) {
 	/* fprintf(stdout, "Item did not match filter\n"); */
 	(*dps_loc)++;
 	return NULL;
@@ -292,7 +294,10 @@ static TLinesItem *dir_to_tline(void ***current_item_v, Layout *container, void 
     item->tb->layout->w.value.floatval = 1.0;
     item->tb->layout->w.type = SCALE;
     textbox_reset_full(item->tb);
-    SDL_Color *txt_clr = dp->type == DT_DIR ? &color_dir : &color_file;
+    SDL_Color *txt_clr =
+	filter_val == -1 ?
+	dp->type == DT_DIR ? &color_dir_unavailable : &color_file_unavailable :
+	dp->type == DT_DIR ? &color_dir : &color_file;
     textbox_set_text_color(item->tb, txt_clr);
     textbox_set_background_color(item->tb, &color_global_clear);
     dn->num_lines++;
@@ -444,15 +449,15 @@ void dirnav_next(DirNav *dn)
     if (dn->num_lines != 0 && dn->current_line < dn->num_lines - 1) {
 	TLinesItem *current = dn->lines->items[dn->current_line];
 	textbox_set_background_color(current->tb, &color_global_clear);
-	SDL_Color txt_color = ((DirPath *)current->obj)->type == DT_DIR ? color_dir : color_file;
-	textbox_set_text_color(current->tb, &txt_color);
+	/* SDL_Color txt_color = ((DirPath *)current->obj)->type == DT_DIR ? color_dir : color_file; */
+	/* textbox_set_text_color(current->tb, &txt_color); */
 	textbox_reset_full(current->tb);
 	
 	dn->current_line++;
 	current = dn->lines->items[dn->current_line];
 	textbox_set_background_color(current->tb, &color_highlighted_bckgrnd);
-	txt_color = ((DirPath *)current->obj)->type == DT_DIR ? color_dir_selected : color_file_selected;
-	textbox_set_text_color(current->tb, &txt_color);
+	/* txt_color = ((DirPath *)current->obj)->type == DT_DIR ? color_dir_selected : color_file_selected; */
+	/* textbox_set_text_color(current->tb, &txt_color); */
 	/* textbox_reset_full(current->tb); */
 	/* dn->layout->children[0]->scroll_offset_ -= 10; */
 	/* textbox_set_value_handle(dn->current_path_tb, ((DirPath *)current->obj)->path); */
@@ -472,15 +477,15 @@ void dirnav_previous(DirNav *dn)
     if (dn->current_line > 0) {
 	TLinesItem *current = dn->lines->items[dn->current_line];
 	textbox_set_background_color(current->tb, &color_global_clear);
-	SDL_Color txt_color = ((DirPath *)current->obj)->type == DT_DIR ? color_dir : color_file;
-	textbox_set_text_color(current->tb, &txt_color);
+	/* SDL_Color txt_color = ((DirPath *)current->obj)->type == DT_DIR ? color_dir : color_file; */
+	/* textbox_set_text_color(current->tb, &txt_color); */
 	textbox_reset_full(current->tb);
 	
 	dn->current_line--;
 	current = dn->lines->items[dn->current_line];
 	textbox_set_background_color(current->tb, &color_highlighted_bckgrnd);
-	txt_color = ((DirPath *)current->obj)->type == DT_DIR ? color_dir_selected : color_file_selected;
-	textbox_set_text_color(current->tb, &txt_color);
+	/* txt_color = ((DirPath *)current->obj)->type == DT_DIR ? color_dir_selected : color_file_selected; */
+	/* textbox_set_text_color(current->tb, &txt_color); */
 	/* textbox_reset_full(current->tb); */
 	/* textbox_set_value_handle(dn->current_path_tb, ((DirPath *)current->obj)->path); */
 	

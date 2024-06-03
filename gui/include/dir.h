@@ -37,7 +37,7 @@ typedef struct dirnav {
     TextLines *lines;
     uint16_t num_lines;
     uint16_t current_line;
-    bool (*dir_to_tline_filter)(void *item, void *x_arg);
+    int (*dir_to_tline_filter)(void *item, void *x_arg);
     void (*file_select_action)(DirNav *self, DirPath *dp);
 } DirNav;
 

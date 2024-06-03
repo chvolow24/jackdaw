@@ -33,6 +33,7 @@ typedef enum corner {
 /* Defines how a rect origin coordinate or dimension (x, y, w, or h) is determined from its parent */
 typedef enum dimtype {
     REL, /* x or y relative to parent */
+    REVREL, /* Equivalent to REL but starts from bottom or right instead of top or left */
     ABS, /* relative to Window only */
     SCALE, /* x, y, w, or h as proportion of parent (e.g. w = 0.5 => width is half of parent) */
     COMPLEMENT, /* fill the space in parent left by last sibling */

@@ -121,6 +121,8 @@ static void set_lt_dim_from_param_str(Layout *lt, RectMem rm)
 	case ABS:
 	case REL:
 	case STACK:
+	case REVREL:
+	case PAD:
 	    lt->x.value.intval = atoi(lt_params->x_value_str);
 	    break;
 	case SCALE:
@@ -135,6 +137,8 @@ static void set_lt_dim_from_param_str(Layout *lt, RectMem rm)
 	case ABS:
 	case REL:
 	case STACK:
+	case PAD:
+	case REVREL:
 	    lt->y.value.intval = atoi(lt_params->y_value_str);
 	    break;
 	case SCALE:
@@ -149,6 +153,8 @@ static void set_lt_dim_from_param_str(Layout *lt, RectMem rm)
 	case ABS:
 	case REL:
 	case STACK:
+	case PAD:
+	case REVREL:
 	    lt->w.value.intval = atoi(lt_params->w_value_str);
 	    break;
 	case SCALE:
@@ -163,6 +169,8 @@ static void set_lt_dim_from_param_str(Layout *lt, RectMem rm)
 	case ABS:
 	case REL:
 	case STACK:
+	case PAD:
+	case REVREL:
 	    lt->h.value.intval = atoi(lt_params->h_value_str);
 	    break;
 	case SCALE:

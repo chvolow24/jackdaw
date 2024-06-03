@@ -39,7 +39,7 @@
 
 #define WINDOW_PAD 100
 
-#define NUM_LT_TYPES 6
+#define NUM_LT_TYPES 7
 
 /* extern Layout *main_lt; */
 /* extern SDL_Color white; */
@@ -73,6 +73,8 @@ const char *layout_get_dimtype_str(DimType dt)
 	return "STACK";
     case PAD:
 	return "PAD";
+    case REVREL:
+	return "REVREL";
     default:
 	fprintf(stderr, "Error: DimType has value %d, which is not a member of enum.\n", dt);
 	exit(1);
@@ -97,6 +99,7 @@ void layout_get_dimval_str(Dimension *dim, char *dst, int maxlen)
     case STACK:
     case PAD:
     case REL:
+    case REVREL:
 	snprintf(dst, maxlen - 1, "%d", dim->value.intval);
 	break;
     case SCALE:
@@ -181,10 +184,9 @@ void layout_set_wh_from_rect(Layout *lt)
 {
     switch (lt->w.type) {
     case ABS:
-	lt->w.value.intval = round((float)lt->rect.w / main_win->dpi_scale_factor);
-	break;
     case REL:
-	lt->w.value.intval = round((float) lt->rect.w / main_win->dpi_scale_factor);
+    case REVREL:
+	lt->w.value.intval = round((float)lt->rect.w / main_win->dpi_scale_factor);
 	break;
     case SCALE:
 	if (lt->parent) {
@@ -202,16 +204,14 @@ void layout_set_wh_from_rect(Layout *lt)
 	break;
     case PAD:
 	break;
-	    
 		
     }
 
     switch (lt->h.type) {
     case ABS:
-	lt->h.value.intval = round( (float)lt->rect.h / main_win->dpi_scale_factor);
-	break;
     case REL:
-	lt->h.value.intval = round((float)lt->rect.h / main_win->dpi_scale_factor);
+    case REVREL:
+	lt->h.value.intval = round( (float)lt->rect.h / main_win->dpi_scale_factor);
 	break;
     case SCALE:
 	if (lt->parent) {
@@ -246,6 +246,13 @@ void layout_set_values_from_rect(Layout *lt)
 	    lt->x.value.intval = round((float) lt->rect.x / main_win->dpi_scale_factor);
 	}
 	break;
+    case REVREL:
+	if (lt->parent) {
+	    lt->x.value.intval = round((float)(lt->parent->rect.x + lt->parent->rect.w - lt->rect.x - lt->rect.w) / main_win->dpi_scale_factor);
+	} else {
+	    lt->x.value.intval = round((float) lt->rect.x / main_win->dpi_scale_factor);
+	}
+	break;
     case SCALE:
 	if (lt->parent) {
 	    if (lt->parent->rect.w != 0) {
@@ -276,6 +283,13 @@ void layout_set_values_from_rect(Layout *lt)
     case REL:
 	if (lt->parent) {
 	    lt->y.value.intval = round(((float) lt->rect.y - lt->parent->rect.y)/main_win->dpi_scale_factor);
+	} else {
+	    lt->y.value.intval = round((float) lt->rect.y / main_win->dpi_scale_factor);
+	}
+	break;
+    case REVREL:
+	if (lt->parent) {
+	    lt->y.value.intval = round((float)(lt->parent->rect.y + lt->parent->rect.h - lt->rect.y - lt->rect.h) / main_win->dpi_scale_factor);
 	} else {
 	    lt->y.value.intval = round((float) lt->rect.y / main_win->dpi_scale_factor);
 	}
@@ -687,6 +701,9 @@ int set_rect_xy(Layout *lt)
     case REL:
 	lt->rect.x = lt->parent->rect.x + lt->x.value.intval * main_win->dpi_scale_factor;
 	break;
+    case REVREL:
+	lt->rect.x = lt->parent->rect.x + lt->parent->rect.w - lt->rect.w - (lt->x.value.intval * main_win->dpi_scale_factor);
+	break;
     case SCALE:
 	lt->rect.x = lt->parent->rect.x + lt->parent->rect.w * lt->x.value.floatval;
 	break;
@@ -712,6 +729,9 @@ int set_rect_xy(Layout *lt)
     case REL:
 	// fprintf(stderr, "Y is rel. ")
 	lt->rect.y = lt->parent->rect.y + lt->y.value.intval * main_win->dpi_scale_factor;
+	break;
+    case REVREL:
+	lt->rect.y = lt->parent->rect.y + lt->parent->rect.h - lt->rect.h - (lt->y.value.intval * main_win->dpi_scale_factor);
 	break;
     case SCALE:
 	lt->rect.y = lt->parent->rect.y + lt->parent->rect.h * lt->y.value.floatval;
@@ -741,6 +761,7 @@ int set_rect_wh(Layout *lt)
     switch (lt->w.type) {
     case ABS:
     case REL:
+    case REVREL:
 	lt->rect.w = lt->w.value.intval * main_win->dpi_scale_factor;
 	break;
     case SCALE:
@@ -772,6 +793,7 @@ int set_rect_wh(Layout *lt)
     switch (lt->h.type) {
     case ABS:
     case REL:
+    case REVREL:
 	lt->rect.h = lt->h.value.intval * main_win->dpi_scale_factor;
 	break;
     case SCALE:

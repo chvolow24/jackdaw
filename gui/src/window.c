@@ -29,9 +29,9 @@
 #include "color.h"
 #include "layout.h"
 #include "menu.h"
-#include "modal.h"
 #include "text.h"
 #include "window.h"
+#include "modal.h"
 
 #define DEFAULT_WINDOW_FLAGS SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI
 #define DEFAULT_RENDER_FLAGS SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
@@ -341,6 +341,8 @@ void window_pop_mode(Window *win)
     }
 }
 
+#ifndef LAYOUT_BUILD
+
 void window_push_modal(Window *win, Modal *modal)
 {
     if (win->num_modals < WINDOW_MAX_MODALS) {
@@ -383,3 +385,5 @@ void window_draw_modals(Window *win)
 	modal_draw(win->modals[i]);
     }
 }
+
+#endif

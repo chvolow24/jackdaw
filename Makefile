@@ -7,11 +7,11 @@ GUI_INCLUDE_DIR := gui/include
 GUI_BUILD_DIR := gui/build
 CFLAGS := -Wall -g -I$(INCLUDE_DIR) -I$(GUI_INCLUDE_DIR) -I/usr/include/SDL2 `sdl2-config --libs --cflags` -lSDL2 -lSDL2_ttf -lpthread -lm -DINSTALL_DIR=\"`pwd`\" -fsanitize=address # -O2 #-DLT_DEV_MODE=0
 CFLAGS_JDAW_ONLY := -DLT_DEV_MODE=0
-CFLAGS_LT_ONLY := -DLT_DEV_MODE=1
+CFLAGS_LT_ONLY := -DLT_DEV_MODE=1 -DLAYOUT_BUILD=1
 CFLAGS_ADDTL =
 
 LAYOUT_PROGRAM_SRCS := gui/src/openfile.c gui/src/lt_params.c gui/src/draw.c gui/src/main.c gui/src/test.c
-JACKDAW_ONLY_SRCS := src/main.c gui/src/userfn.c gui/src/input.c gui/src/test.c
+JACKDAW_ONLY_SRCS :=  src/main.c gui/src/userfn.c gui/src/input.c gui/src/test.c gui/src/modal.c gui/src/dir.c
 SRCS := $(wildcard $(SRC_DIR)/*.c)
 GUI_SRCS_ALL := $(wildcard $(GUI_SRC_DIR)/*.c)
 GUI_SRCS := $(filter-out $(LAYOUT_PROGRAM_SRCS), $(GUI_SRCS_ALL))
@@ -32,7 +32,7 @@ $(EXEC): $(OBJS) $(GUI_OBJS)
 
 $(LT_EXEC): CFLAGS_ADDTL := $(CFLAGS_LT_ONLY)
 $(LT_EXEC): $(LT_OBJS)
-	$(CC) -o $@ $^ $(CFLAGS) $(CFLAGS_LT_ONLY)
+	$(CC) -o $@ $^ $(CFLAGS) $(CFLAGS_ADDTL)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) $(CFLAGS) $(CFLAGS_ADDTL) -c $< -o $@

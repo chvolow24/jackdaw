@@ -55,8 +55,8 @@ Layout *openfile_loop(Layout *lt)
     if (!openfile) {
         openfile = malloc(sizeof(OpenFile));
         /* Layout *label_lt = layout_get_child_by_name_recursive(openfile_lt, "label"); */
-        openfile->label = txt_create_from_str("Open file at:", 14, &(layout_get_child_by_name_recursive(openfile_lt, "label")->rect), main_win->std_font, 12, color_global_white, CENTER_LEFT, true, main_win);
-        openfile->filepath = txt_create_from_str(filepath_buffer, 254, &(layout_get_child_by_name_recursive(openfile_lt, "filepath")->rect), main_win->std_font, 12, color_global_white, CENTER_LEFT, true, main_win);
+        openfile->label = txt_create_from_str("Open file at:", 14, layout_get_child_by_name_recursive(openfile_lt, "label"), main_win->std_font, 12, color_global_white, CENTER_LEFT, true, main_win);
+        openfile->filepath = txt_create_from_str(filepath_buffer, 254, layout_get_child_by_name_recursive(openfile_lt, "filepath"), main_win->std_font, 12, color_global_white, CENTER_LEFT, true, main_win);
     }
 
     txt_edit (openfile->filepath, layout_draw_main);

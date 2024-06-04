@@ -97,25 +97,25 @@ Jackdaw is a keyboard-based application; it uses the mouse and GUI buttons very 
 <kbd>n</kbd>......................................press the 'n' key<br>
 <kbd>p</kbd>......................................press the 'p' key<br>
 <kbd>C-s</kbd>...................................hold down 'command' OR 'ctrl', and press the 's' key<br>
-`A-t`...................................hold down 'alt' OR 'option' and press the 't' key<br>
-`C-S-o`...............................hold down 'command' OR 'ctrl', AND 'shift', and press the 'o' key<br>
-`S-<ret>`...........................hold down 'shift' and press the 'return' or 'enter' key<br>
+<kbd>A-t</kbd>...................................hold down 'alt' OR 'option' and press the 't' key<br>
+<kbd>C-S-o</kbd>...............................hold down 'command' OR 'ctrl', AND 'shift', and press the 'o' key<br>
+<kbd>S-\<ret\></kbd>...........................hold down 'shift' and press the 'return' or 'enter' key<br>
 
-When a hyphen is present (as in `C-s`) it means you need to hold down one or more modifier key before striking the final key to invoke the command.
+When a hyphen is present (as in <kbd>C-s</kbd>) it means you need to hold down one or more modifier key before striking the final key to invoke the command.
 
-Capital `C` stands for the "Command" OR "Control" key. Jackdaw does not distinguish between these two keys.<br>
-Capital `S` stands for the "Shift" key.<br>
-Capital `A` stands for the "Alt" or "Option" key. (Again, no distinction is made)<br>
-Capital `K` indicates that you must hold down the 'K' key, which is used as a modifier in very specific circumstances.
+Capital <kbd>C</kbd> stands for the "Command" OR "Control" key. Jackdaw does not distinguish between these two keys.<br>
+Capital <kbd>S</kbd> stands for the "Shift" key.<br>
+Capital <kbd>A</kbd> stands for the "Alt" or "Option" key. (Again, no distinction is made)<br>
+Capital <kbd>K</kbd> indicates that you must hold down the 'K' key, which is used as a modifier in very specific circumstances.
 
-So, `C-S-o` means hold down the control (or command) key and the shift key, and then press 'o'.
+So, <kbd>C-S-o</kbd> means hold down the control (or command) key and the shift key, and then press 'o'.
 
 Most of the final keys are named by a letter or number, except for these:<br>
-`<ret>` means 'return' or 'enter'<br>
-`<tab>` means 'tab'<br>
-`<spc>` is the spacebar<br>
-`<del>` is the 'delete' or 'backspace' key (no distinction)<br>
-`<up>`, `<down>`, `<left>`, and `<right>` are the arrow keys<br>
+<kbd>\<ret\></kbd> means 'return' or 'enter'<br>
+<kbd>\<tab\></kbd> means 'tab'<br>
+<kbd>\<spc\></kbd> is the spacebar<br>
+<kbd>\<del\></kbd> is the 'delete' or 'backspace' key (no distinction)<br>
+<kbd>\<up\></kbd>, <kbd>\<down\></kbd>, <kbd>\<left\></kbd>, and <kbd>\<right\></kbd> are the arrow keys<br>
 
 This will all be familiar to emacs users, and hopefully not too painful for everyone else.
 
@@ -125,7 +125,7 @@ This will all be familiar to emacs users, and hopefully not too painful for ever
 The first thing you'll probably want to do upon opening jackdaw is to **add a track** or two. You can do this with<br>
 <kbd>C-t</kbd>
 
-(Hold down `cmd` or `ctrl` and hit `t`).
+(Hold down <kbd>cmd</kbd> or <kbd>ctrl</kbd> and hit <kbd>t</kbd>).
 <!-- ![add_track.gif](assets/readme_imgs/add_track.gif) -->
 <img src="assets/readme_imgs/add_track.gif" width="80%" />
 
@@ -135,7 +135,7 @@ Once you have selected an appropriate audio input device, you can **start record
 
 <img src="assets/readme_imgs/set_in_and_record.gif" width="80%" />
 
-You should now see a clip on your timeline, with an audio waveform representing the audio you just recorded. You can rewind over the clip, pause, and play it back with the `j` (rewind) `k` (pause) and `l` (play) keys.
+You should now see a clip on your timeline, with an audio waveform representing the audio you just recorded. You can rewind over the clip, pause, and play it back with the <kbd>j</kbd> (rewind) <kbd>k</kbd> (pause) and <kbd>l</kbd> (play) keys.
 <br><br>
 #### `J K L   :   (Rewind | Pause | Play)`
 <br><br>
@@ -146,12 +146,9 @@ The clip you recorded landed on the first track by default. You can again use th
 <!-- <img src="assets/readme_imgs/record_other_track.gif" width="80%"> -->
 Now that you've created some multi-track audio, you might want to export it to a wav file to show your friends. First you'll need to place in and out marks on your timeline with <kbd>i</kbd> and <kbd>o</kbd>. Once you have placed them such that some portion of the timeline is marked, you can export to a wav file with <kbd>S-w</kbd>.
 
-You will first be prompted to entire a file name. Hit <kbd>tab</kbd> or <kbd>\<ret\></kbd> to apply the current name, and then <kbd>n</kbd> and <kbd>p</kbd> to navigate through the filesystem and pick the directory where you want to save the file. Finally, hit `C-s` to save the file.
+You will first be prompted to entire a file name. Hit <kbd>tab</kbd> or <kbd>\<ret\></kbd> to apply the current name, and then <kbd>n</kbd> and <kbd>p</kbd> to navigate through the filesystem and pick the directory where you want to save the file. Finally, hit <kbd>C-s</kbd> to save the file.
 
 <img src="assets/readme_imgs/export.gif" width="80%" />
-
-Keyboard looks like this: <kbd>Ctrl</kbd>
-or like this <kbd><kbd>Ctrl</kbd>+<kbd>c</kbd></kbd>
 
 # Manual
 

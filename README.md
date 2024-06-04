@@ -94,9 +94,9 @@ $ ./jackdaw
 
 Jackdaw is a keyboard-based application; it uses the mouse and GUI buttons very sparingly. Here are some examples of keyboard commands you'll see written in the application and in this documentation:
 
-`n`......................................press the 'n' key<br>
-`p`......................................press the 'p' key<br>
-`C-s`...................................hold down 'command' OR 'ctrl', and press the 's' key<br>
+<kbd>n</kbd>......................................press the 'n' key<br>
+<kbd>p</kbd>......................................press the 'p' key<br>
+<kbd>C-s</kbd>...................................hold down 'command' OR 'ctrl', and press the 's' key<br>
 `A-t`...................................hold down 'alt' OR 'option' and press the 't' key<br>
 `C-S-o`...............................hold down 'command' OR 'ctrl', AND 'shift', and press the 'o' key<br>
 `S-<ret>`...........................hold down 'shift' and press the 'return' or 'enter' key<br>

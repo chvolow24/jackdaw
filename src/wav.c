@@ -105,6 +105,7 @@ static void write_wav(const char *fname, int16_t *samples, uint32_t num_samples,
     if (!f) {
         fprintf(stderr, "Error: failed to open file at %s\n", fname);
     } else {
+	fprintf(stderr, "Writing %lu samples (or %f minutes) to wav\n", (long unsigned) num_samples, (double)num_samples / 2.0f / 2.0f / proj->sample_rate);
         write_wav_header(f, num_samples, bits_per_sample, channels);
         fwrite(samples, bits_per_sample / 8, num_samples, f);
     }
@@ -134,7 +135,7 @@ void wav_write_mixdown(const char *filepath)
         free(samples_L);
         free(samples_R);
     }
-    write_wav(filepath, samples, len_samples, 16, 2);
+    write_wav(filepath, samples, len_samples, 16, proj->channels);
     free(samples);
 }
 

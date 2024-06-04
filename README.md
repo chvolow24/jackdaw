@@ -146,7 +146,7 @@ The clip you recorded landed on the first track by default. You can again use th
 <!-- <img src="assets/readme_imgs/record_other_track.gif" width="80%"> -->
 Now that you've created some multi-track audio, you might want to export it to a wav file to show your friends. First you'll need to place in and out marks on your timeline with <kbd>i</kbd> and <kbd>o</kbd>. Once you have placed them such that some portion of the timeline is marked, you can export to a wav file with <kbd>S-w</kbd>.
 
-You will first be prompted to entire a file name. Hit <kbd>tab</kbd> or <kbd>`<ret>`</kbd> to apply the current name, and then <kbd>n</kbd> and <kbd>p</kbd> to navigate through the filesystem and pick the directory where you want to save the file. Finally, hit `C-s` to save the file.
+You will first be prompted to entire a file name. Hit <kbd>tab</kbd> or <kbd>\<ret\></kbd> to apply the current name, and then <kbd>n</kbd> and <kbd>p</kbd> to navigate through the filesystem and pick the directory where you want to save the file. Finally, hit `C-s` to save the file.
 
 <img src="assets/readme_imgs/export.gif" width="80%" />
 

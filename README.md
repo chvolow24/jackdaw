@@ -152,6 +152,42 @@ You will first be prompted to entire a file name. Hit <kbd>tab</kbd> or <kbd>\<r
 
 # Manual
 
+## Timeline navigation
+
+Timeline navigation functions are all within easy reach of your right hand:
+
+### Transport
+<kbd>j</kbd> : **rewind** (multiple taps to rewind fast)
+<kbd>k</kbd> : **pause**
+<kbd>l</kbd> : **play** (multiple taps to play fast)
+
+### Translate / zoom
+<kbd>h</kbd> : **move view left**
+<kbd>;</kbd> : **move view right**
+<kbd>,</kbd> : **zoom out**
+<kbd>.</kbd> : **zoom in**
+
+These zoom functions will center on the current playhead position. Another way to zoom is to hold <kbd>Cmd</kbd> or <kbd>Ctrl</kbd> and scroll up or down while the mouse is over the timeline. In this case, zoom will center on the mouse position. 
+
+### Track selector
+
+The *track selector* is how you indicate which track your are doing things to. The track console (left side) is highlighted in orange if the track is currently selected.
+
+<kbd>n</kbd> : **move selector down** (next track)
+<kbd>p</kbd> : **move selector up** (previous track)
+<kbd>\<ret\></kbd> : **activate/deactivate current track**
+
+**Activating*** tracks (as opposed to merely *selecting* them) is merely a way to do things that might normally be done to only one track to multiple tracks at once. For example, if you activate tracks 1, 2, and 3, and then hit <kbd>r</kbd> to record, you will wind up with *three* clips -- one on each track -- instead of one. The numerical keys (<kbd>1</kbd>, <kbd>2</kbd>, <kbd>3</kbd> etc.) can be used to quickly activate or deactivate tracks 1-9 without using the track selector.
+
+### "Point"
+
+The "point" (as in "[do thing] at point" is the location in the currently active timeline, under the current playhead position, on the currently selected track. So, *"grab clip at point"* means "grab the top clip on the currently selected track that intersects with the current playhead position."
+
+### Marks
+
+
+
+
 # Function reference
 
 ### global mode

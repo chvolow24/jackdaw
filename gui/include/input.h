@@ -95,5 +95,8 @@ char *input_get_keycmd_str(uint16_t i_state, SDL_Keycode keycode);
 /* Free memory related to input subsystem */
 void input_quit();
 
+/* Write a markdown function describing available modes and functions */
+void input_create_function_reference();
+
 #endif
 

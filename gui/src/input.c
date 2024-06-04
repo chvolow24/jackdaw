@@ -7,6 +7,8 @@
 #define not_whitespace_char(c) (c != ' ' && c != '\n' && c != '\t')
 #define is_whitespace_char(c) (c == ' ' || c == '\n' || c == '\t')
 
+#define FN_REFERENCE_FILENAME "fn_reference.md"
+
 Mode *modes[NUM_INPUT_MODES];
 KeybNode *input_hash_table[INPUT_HASH_SIZE];
 /* KeybNode *input_keyup_hash_table[INPUT_KEYUP_HASH_SIZE]; */
@@ -1242,4 +1244,30 @@ void input_quit()
 	}
 	free(mode);
     }
+}
+
+void input_create_function_reference()
+{
+    fprintf(stdout, "Creating function reference at %s\n", FN_REFERENCE_FILENAME);
+    FILE *f = fopen(FN_REFERENCE_FILENAME, "w");
+    if (!f) {
+	fprintf(stderr, "Error: unable to open file %s\n", FN_REFERENCE_FILENAME);
+    }
+    for (uint8_t i=0; i<NUM_INPUT_MODES; i++) {
+	Mode *mode = modes[i];
+	fprintf(f, "### %s mode\n", mode->name);
+	for (uint8_t j=0; j<mode->num_subcats; j++) {
+	    ModeSubcat *sc = mode->subcats[j];
+	    if (mode->num_subcats > 1) {
+		fprintf(f, "#### %s\n", sc->name);
+	    }
+	    for (uint8_t k=0; k<sc->num_fns; k++) {
+		UserFn *fn = sc->fns[k];
+		fprintf(f, "- %s\n", fn->fn_display_name);
+		fprintf(f, "     - <kbd>%s</kbd>\n", fn->annotation);
+	    }
+	}
+    }
+
+    fclose(f);
 }

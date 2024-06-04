@@ -162,6 +162,9 @@ int main(int argc, char **argv)
 	    /* fprintf(stdout, "REC GET BLOCK\n"); */
 	    /* /\* pd_jackdaw_record_get_block(); *\/ */
 	    exit(0);
+	} else if (strcmp(argv[1], "fn_ref") == 0) {
+	    input_create_function_reference();
+	    exit(0);
 	}
 	file_to_open = argv[1];
 	char *dotpos = strrchr(file_to_open, '.');

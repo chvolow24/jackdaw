@@ -6,14 +6,20 @@ A stripped-down, keyboard-focused digital audio workstation (DAW) taking some de
 ## Table of Contents
 1. [Disclaimer](#disclaimer)
 2. [Installation](#installation)
-    1. [Compatibility](#compatibility)
+    1. [Compatibility](#os-compatibility)
 	2. [Dependencies](#dependencies)
     3. [Bash scripts](#bash-scripts)
     4. [Manual installation](#manual-installation)
 3. [Keyboard command syntax](#keyboard-command-syntax)
 4. [Basics (getting comfortable)](#basics-getting-comfortable)
-5. [Manual](#manual)
-6. [Function Reference](#function-reference)
+    1. [Adding tracks and setting input](#1-adding-tracks-and-setting-input)
+    2. [Recording some audio](#2-recording-some-audio)
+    3. [Playback](#3-playback)
+    4. [Multi-track audio](#4-multi-track-audio)
+    5. [Exporting a .wav file](#5-exporting-a-.wav-file)
+    6. [Saving your project](#6-saving-your-project)
+5. [User manual](#manual)
+6. [Function reference](#function-reference)
 
 ## Disclaimer
 
@@ -28,7 +34,7 @@ $ git clone https://github.com/chvolow24/jackdaw.git
 
 ```
 
-### Compatibility
+### OS compatibility
 
 Jackdaw is compatibile with macOS and Linux.
 
@@ -46,7 +52,7 @@ Executing `install.sh` will attempt to install Jackdaw's dependencies ([SDL2](ht
 
 *This is basically to make it so that you don't have to `git pull` in order to run the latest version of `update.sh`. But it would also be a great way for me to run malicious code on your computer! Proceed with caution (or trust). 
 
-### Manual Installation
+### Manual installation
 
 If you don't want to use my scripts, you'll need to manually install the dependencies, build the project, and then do whatever you want with the executable.
 
@@ -123,6 +129,8 @@ This will all be familiar to emacs users, and hopefully not too painful for ever
 
 ## Basics (getting comfortable)
 
+### 1. Adding tracks and setting input
+
 The first thing you'll probably want to do upon opening jackdaw is to **add a track** or two. You can do this with<br>
 <kbd>C-t</kbd>
 
@@ -132,9 +140,14 @@ The first thing you'll probably want to do upon opening jackdaw is to **add a tr
 
 The track input will be set to the default system audio input device, but you can **change the current track input** if you like with <kbd>C-S-i</kbd>. A list of available input devices will appear. Use <kbd>n</kbd> (for 'next') to go to the next item in the list, and <kbd>p</kbd> (for 'previous') to go to the previous. (These keys will be used a lot). Hit <kbd>\<ret\></kbd> to choose the currently-highlighted device.
 
+### 2. Recording some audio
+
 Once you have selected an appropriate audio input device, you can **start recording audio** into jackdaw with <kbd>r</kbd>. After making some noise at your computer or microphone, **stop recording** with <kbd>r</kbd>.
 
 <img src="assets/readme_imgs/set_in_and_record.gif" width="80%" />
+
+
+### 3. Playback
 
 You should now see a clip on your timeline, with an audio waveform representing the audio you just recorded. You can rewind over the clip, pause, and play it back with the <kbd>j</kbd> (rewind) <kbd>k</kbd> (pause) and <kbd>l</kbd> (play) keys.
 <br><br>
@@ -142,15 +155,26 @@ You should now see a clip on your timeline, with an audio waveform representing 
 <br><br>
 If you tap <kbd>l</kbd> or <kbd>j</kbd> multiple times, the playback speed will double.
 
+
+### 4. Multi-track audio
+
 The clip you recorded landed on the first track by default. You can again use the <kbd>n</kbd> and <kbd>p</kbd> keys to **move the track selector** up and down. Try rewinding back to the beginning of the recording you made, selecting a different track, and recording some new audio.
+
+### 5. Exporting a .wav file
 
 Now that you've created some multi-track audio, you might want to export it to a wav file to show your friends. First you'll need to place in and out marks on your timeline with <kbd>i</kbd> and <kbd>o</kbd>. Once you have placed them such that some portion of the timeline is marked, you can export to a wav file with <kbd>S-w</kbd>.
 
-You will first be prompted to entire a file name. Hit <kbd>tab</kbd> or <kbd>\<ret\></kbd> to apply the current name, and then <kbd>n</kbd> and <kbd>p</kbd> to navigate through the filesystem and pick the directory where you want to save the file. Finally, hit <kbd>C-s</kbd> to save the file.
+You will first be prompted to entire a file name. Hit <kbd>tab</kbd> or <kbd>\<ret\></kbd> to apply the current name, and then <kbd>n</kbd> and <kbd>p</kbd> to navigate through the filesystem and pick the directory where you want to save the file. Finally, <kbd>C-\<ret\></kbd> to "submit the form" and save the file.
 
 <img src="assets/readme_imgs/export.gif" width="80%" />
 
-# Manual
+### 6. Saving your project
+
+If you want to revisit this project later, you can save a project file (`.jdaw`) with `C-s`.
+
+You will be prompted to enter a project name (which MUST include the `.jdaw` extension), and can then hit <kbd>\<ret\></kbd> or <kbd>\<tab\></kbd> to move down to the directory navigation pane, where you can navigate to the location at which you want to save the project with <kbd>n</kbd> and <kbd>p</kbd>.
+
+# User manual
 
 ## Timeline navigation
 

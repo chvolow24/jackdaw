@@ -122,6 +122,35 @@ This will all be familiar to emacs users, and hopefully not too painful for ever
 
 ## Basics (getting comfortable)
 
+The first thing you'll probably want to do upon opening jackdaw is to **add a track** or two. You can do this with<br>
+**`C-t`**
+
+(Hold down `cmd` or `ctrl` and hit `t`).
+<!-- ![add_track.gif](assets/readme_imgs/add_track.gif) -->
+<img src="assets/readme_imgs/add_track.gif" width="80%">
+
+The track input will be set to the default system audio input device, but you can **change the current track input** if you like with **`C-S-i`**. A list of available input devices will appear. Use **`n`** (for 'next') to go to the next item in the list, and **`p`** (for 'previous') to go to the previous. (These keys will be used a lot). Hit **`<ret>`** to choose the currently-highlighted device.
+
+Once you have selected an appropriate audio input device, you can **start recording audio** into jackdaw with **`r`**. After making some noise at your computer or microphone, **stop recording** with **`r`**.
+
+<img src="assets/readme_imgs/set_in_and_record.gif" width="80%">
+
+You should now see a clip on your timeline, with an audio waveform representing the audio you just recorded. You can rewind over the clip, pause, and play it back with the `j` (rewind) `k` (pause) and `l` (play) keys.
+<br><br>
+#### `J K L   :   (Rewind | Pause | Play)`
+<br><br>
+If you tap **`l`** or **`j`** multiple times, the playback speed will double.
+
+The clip you recorded landed on the first track by default. You can again use the **`n`** and **`p`** keys to **move the track selector** up and down. Try rewinding back to the beginning of the recording you made, selecting a different track, and recording some new audio.
+
+<!-- <img src="assets/readme_imgs/record_other_track.gif" width="80%"> -->
+Now that you've created some multi-track audio, you might want to export it to a wav file to show your friends. First you'll need to place in and out marks on your timeline with **`i`** and **`o`**. Once you have placed them such that some portion of the timeline is marked, you can export to a wav file with **`S-w`**.
+
+You will first be prompted to entire a file name. Hit **`tab`** or **`<ret>`** to apply the current name, and then **`n`** and **`p`** to navigate through the filesystem and pick the directory where you want to save the file. Finally, hit `C-s` to save the file.
+
+<img src="assets/readme_imgs/export.gif" width="80%">
+
+
 # Manual
 
 

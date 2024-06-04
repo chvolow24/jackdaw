@@ -1283,7 +1283,7 @@ void input_create_function_reference()
 			/*     strncpy(buf + i, ", <kbd>", 5); */
 			/*     i+=5; */
 			/* } */
-			strncpy(buf + i, "<\\kbd>, <kbd>", 13);
+			strncpy(buf + i, "</kbd>, <kbd>", 13);
 			i+=13;
 			/* had_multiple = true; */
 			c+=2;

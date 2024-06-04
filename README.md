@@ -18,7 +18,7 @@ A stripped-down, keyboard-focused digital audio workstation (DAW) taking some de
     4. [Multi-track audio](#4-multi-track-audio)
     5. [Exporting a .wav file](#5-exporting-a-.wav-file)
     6. [Saving your project](#6-saving-your-project)
-5. [User manual](#manual)
+5. [User manual](#user-manual)
 6. [Function reference](#function-reference)
 
 ## Disclaimer
@@ -164,7 +164,7 @@ The clip you recorded landed on the first track by default. You can again use th
 
 Now that you've created some multi-track audio, you might want to export it to a wav file to show your friends. First you'll need to place in and out marks on your timeline with <kbd>i</kbd> and <kbd>o</kbd>. Once you have placed them such that some portion of the timeline is marked, you can export to a wav file with <kbd>S-w</kbd>.
 
-You will first be prompted to entire a file name. Hit <kbd>tab</kbd> or <kbd>\<ret\></kbd> to apply the current name, and then <kbd>n</kbd> and <kbd>p</kbd> to navigate through the filesystem and pick the directory where you want to save the file. Finally, <kbd>C-\<ret\></kbd> to "submit the form" and save the file.
+You will first be prompted to entire a file name. Hit <kbd>tab</kbd> or <kbd>\<ret\></kbd> to apply the current name, and move down to the directory navigation pane. Then, use <kbd>n</kbd> and <kbd>p</kbd> to navigate through the filesystem to the directory where you want to save the file. Finally, use <kbd>C-\<ret\></kbd> to "submit the form" and save the file.
 
 <img src="assets/readme_imgs/export.gif" width="80%" />
 
@@ -172,7 +172,7 @@ You will first be prompted to entire a file name. Hit <kbd>tab</kbd> or <kbd>\<r
 
 If you want to revisit this project later, you can save a project file (`.jdaw`) with `C-s`.
 
-You will be prompted to enter a project name (which MUST include the `.jdaw` extension), and can then hit <kbd>\<ret\></kbd> or <kbd>\<tab\></kbd> to move down to the directory navigation pane, where you can navigate to the location at which you want to save the project with <kbd>n</kbd> and <kbd>p</kbd>.
+You will be prompted to enter a project name (which MUST include the `.jdaw` extension), and can then hit <kbd>\<ret\></kbd> or <kbd>\<tab\></kbd> to move down to the directory navigation pane. Navigate to the location at which you want to save the project (with <kbd>n</kbd> and <kbd>p</kbd>), and submit the form with <kbd>C-\<ret\></kbd> to complete saving.
 
 # User manual
 
@@ -201,7 +201,7 @@ The *track selector* is how you indicate which track your are doing things to. T
 <kbd>p</kbd> : **move selector up** (previous track)<br>
 <kbd>\<ret\></kbd> : **activate/deactivate current track**<br>
 
-**Activating*** tracks (as opposed to merely *selecting* them) is merely a way to do things that might normally be done to only one track to multiple tracks at once. For example, if you activate tracks 1, 2, and 3, and then hit <kbd>r</kbd> to record, you will wind up with *three* clips -- one on each track -- instead of one. The numerical keys (<kbd>1</kbd>, <kbd>2</kbd>, <kbd>3</kbd> etc.) can be used to quickly activate or deactivate tracks 1-9 without using the track selector.
+**Activating** tracks (as opposed to merely *selecting* them) is a way to do things that might normally be done to only one track to multiple tracks at once. For example, if you activate tracks 1, 2, and 3, and then hit <kbd>r</kbd> to record, you will wind up with *three* clips (more accurately, clip references) -- one on each track -- instead of one. The numerical keys (<kbd>1</kbd>, <kbd>2</kbd>, <kbd>3</kbd> etc.) can be used to quickly activate or deactivate tracks 1-9 without using the track selector.
 
 ### "Point"
 

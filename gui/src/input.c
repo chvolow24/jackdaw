@@ -9,7 +9,7 @@
 
 Mode *modes[NUM_INPUT_MODES];
 KeybNode *input_hash_table[INPUT_HASH_SIZE];
-KeybNode *input_keyup_hash_table[INPUT_KEYUP_HASH_SIZE];
+/* KeybNode *input_keyup_hash_table[INPUT_KEYUP_HASH_SIZE]; */
 extern Window *main_win;
 
 
@@ -191,9 +191,7 @@ static void mode_load_menu_nav()
     fn = create_user_fn(
 	"menu_next_section",
 	"Next section",
-
 	user_menu_nav_next_sctn);
-
     mode_subcat_add_fn(mc, fn);
 
     fn = create_user_fn(
@@ -209,7 +207,7 @@ static void mode_load_menu_nav()
 	user_menu_nav_choose_item);
     mode_subcat_add_fn(mc, fn);
 
-        fn = create_user_fn(
+    fn = create_user_fn(
 	"menu_column_right",
 	"Column right",
 	user_menu_nav_column_right);
@@ -226,14 +224,6 @@ static void mode_load_menu_nav()
 	"menu_translate_up",
 	"Move menu up",
 	user_menu_translate_up);
-    mode_subcat_add_fn(mc, fn);
-
-        fn = create_user_fn(
-	"menu_translate_left",
-	"Move menu left",
-	user_menu_translate_left);
-    mode_subcat_add_fn(mc, fn);
-
     mode_subcat_add_fn(mc, fn);
 
     fn = create_user_fn(
@@ -261,9 +251,6 @@ static void mode_load_timeline()
     Mode *mode = mode_create(TIMELINE);
     /* ModeSubcat *sc= mode_add_subcat(mode, "Timeline Navigation"); */
     UserFn *fn;
-
-
-
 
 
     /********** TRANSPORT **********/
@@ -345,13 +332,13 @@ static void mode_load_timeline()
 
     fn = create_user_fn(
 	"tl_zoom_out",
-	"Move left",
+	"Zoom out",
 	user_tl_zoom_out);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"tl_zoom_in",
-	"Move left",
+	"Zoom in",
 	user_tl_zoom_in);
     mode_subcat_add_fn(sc, fn);
 
@@ -760,7 +747,7 @@ void input_init_mode_load_all()
 void input_init_hash_table()
 {
     memset(input_hash_table, '\0', INPUT_HASH_SIZE * sizeof(KeybNode*));
-    memset(input_keyup_hash_table, '\0', INPUT_KEYUP_HASH_SIZE * sizeof(KeybNode*));
+    /* memset(input_keyup_hash_table, '\0', INPUT_KEYUP_HASH_SIZE * sizeof(KeybNode*)); */
 }
 
 static int input_hash(uint16_t i_state, SDL_Keycode key)
@@ -1218,5 +1205,41 @@ void input_load_keybinding_config(const char *filepath)
 	    }
 	}
 
+    }
+}
+
+
+void input_quit()
+{
+    KeybNode *node = NULL;
+    for (int i=0; i<INPUT_HASH_SIZE; i++) {
+	node = input_hash_table[i];
+	KeybNode *nodes[64];
+	uint8_t num_nodes = 0;
+	while (node) {
+	    nodes[num_nodes] = node;
+	    num_nodes++;
+	    node = node->next;
+	}
+	while (num_nodes > 0) {
+	    node = nodes[num_nodes - 1];
+	    free(node->kb->keycmd_str);
+	    free(node->kb);
+	    free(node);
+	    num_nodes--;
+	}
+	
+    }
+    for (uint8_t i=0; i<NUM_INPUT_MODES; i++) {
+	Mode *mode = modes[i];
+	for (uint8_t j=0; j<mode->num_subcats; j++) {
+	    ModeSubcat *sc = mode->subcats[j];
+	    for (uint8_t k=0; k<sc->num_fns; k++) {
+		UserFn *fn = sc->fns[k];
+		free(fn);
+	    }
+	    free(sc);
+	}
+	free(mode);
     }
 }

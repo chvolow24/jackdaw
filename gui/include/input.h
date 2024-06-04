@@ -92,4 +92,8 @@ Menu *input_create_master_menu();
 /* Public for debugging only */
 char *input_get_keycmd_str(uint16_t i_state, SDL_Keycode keycode);
 
+/* Free memory related to input subsystem */
+void input_quit();
+
 #endif
+

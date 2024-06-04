@@ -128,6 +128,7 @@ static void quit()
     if (main_win) {
 	window_destroy(main_win);
     }
+    input_quit();
     SDL_Quit();
 }
 

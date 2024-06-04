@@ -23,8 +23,8 @@
 - Play : <kbd>l</kbd>, <kbd>e</kbd>
 - Pause : <kbd>k</kbd>, <kbd>w</kbd>, <kbd>S-k</kbd>
 - Rewind : <kbd>j</kbd>, <kbd>q</kbd>
-- Play slow : <kbd>S-l</kbd>, <kbd>K-l</kbd>
-- Rewind slow : <kbd>S-j</kbd>, <kbd>K-j</kbd>
+- Play slow : <kbd>K-l</kbd>, <kbd>S-l</kbd>
+- Rewind slow : <kbd>K-j</kbd>, <kbd>S-j</kbd>
 - Start or stop dragging clips : <kbd>C-k</kbd>
 - Cut clipref at point : <kbd>S-c</kbd>
 - Move right : <kbd>;</kbd>
@@ -33,11 +33,11 @@
 - Zoom in : <kbd>.</kbd>
 - Record (start or stop) : <kbd>r</kbd>
 #### Marks
-- Set In : <kbd>i</kbd>, <kbd>i</kbd>
-- Set Out : <kbd>o</kbd>, <kbd>o</kbd>
+- Set In : <kbd>i</kbd>
+- Set Out : <kbd>o</kbd>
 - Go to In : <kbd>S-i</kbd>
 - Go to Out : <kbd>S-o</kbd>
-- Go to t=0 : <kbd>C-u</kbd>
+- Go to t=0 : <kbd>S-u</kbd>
 - Set default audio output : <kbd>C-S-o</kbd>
 #### Track nav
 - Add Track : <kbd>C-t</kbd>

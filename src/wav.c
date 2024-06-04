@@ -205,6 +205,7 @@ void wav_load_to_track(Track *track, const char *filename, int32_t start_pos) {
         clip->L[i/2] = (float) src_buf[i] / INT16_MAX;
         clip->R[i/2] = (float) src_buf[i+1] / INT16_MAX;
     }
-    ClipRef *cr = track_create_clip_ref(track, clip, start_pos, true);
+    free(wav_cvt.buf);
+    track_create_clip_ref(track, clip, start_pos, true);
     timeline_reset(track->tl);
 }

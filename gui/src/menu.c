@@ -312,6 +312,7 @@ void menu_item_destroy(MenuItem *item)
 	free(item->target);
     }
     textbox_destroy(item->tb);
+    if (item->annot_tb) textbox_destroy(item->annot_tb);
     free(item);
 }
 

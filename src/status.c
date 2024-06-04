@@ -36,7 +36,7 @@
 
 #define ERR_TIMER_MAX 100
 #define CALL_TIMER_MAX 100
-#define STAT_TIMER_MAX 100
+#define STAT_TIMER_MAX 50
 
 extern Project *proj;
 extern SDL_Color color_global_red;

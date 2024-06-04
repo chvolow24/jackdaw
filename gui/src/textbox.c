@@ -265,6 +265,7 @@ void textlines_destroy(TextLines *tlines)
 	    textlines_el_destroy(item);
 	}
     }
+    free(tlines);
 }
 
 void textlines_draw(TextLines *tlines)

@@ -127,13 +127,13 @@ The first thing you'll probably want to do upon opening jackdaw is to **add a tr
 
 (Hold down `cmd` or `ctrl` and hit `t`).
 <!-- ![add_track.gif](assets/readme_imgs/add_track.gif) -->
-<img src="assets/readme_imgs/add_track.gif" width="80%">
+<img src="assets/readme_imgs/add_track.gif" width="80%" />
 
 The track input will be set to the default system audio input device, but you can **change the current track input** if you like with **`C-S-i`**. A list of available input devices will appear. Use **`n`** (for 'next') to go to the next item in the list, and **`p`** (for 'previous') to go to the previous. (These keys will be used a lot). Hit **`<ret>`** to choose the currently-highlighted device.
 
 Once you have selected an appropriate audio input device, you can **start recording audio** into jackdaw with **`r`**. After making some noise at your computer or microphone, **stop recording** with **`r`**.
 
-<img src="assets/readme_imgs/set_in_and_record.gif" width="80%">
+<img src="assets/readme_imgs/set_in_and_record.gif" width="80%" />
 
 You should now see a clip on your timeline, with an audio waveform representing the audio you just recorded. You can rewind over the clip, pause, and play it back with the `j` (rewind) `k` (pause) and `l` (play) keys.
 <br><br>
@@ -148,7 +148,7 @@ Now that you've created some multi-track audio, you might want to export it to a
 
 You will first be prompted to entire a file name. Hit **`tab`** or **`<ret>`** to apply the current name, and then **`n`** and **`p`** to navigate through the filesystem and pick the directory where you want to save the file. Finally, hit `C-s` to save the file.
 
-<img src="assets/readme_imgs/export.gif" width="80%">
+<img src="assets/readme_imgs/export.gif" width="80%" />
 
 
 # Manual

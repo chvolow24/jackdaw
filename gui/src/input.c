@@ -1286,12 +1286,21 @@ void input_create_function_reference()
 			strncpy(buf + i, "</kbd>, <kbd>", 13);
 			i+=13;
 			/* had_multiple = true; */
-			c+=2;
+			c+=3;
+		    } else if (*c == '<') {
+			strncpy(buf + i, "\\<", 2);
+			i+=2;
+			c++;
+		    } else if (*c == '>') {
+			strncpy(buf + i, "\\>", 2);
+			i+=2;
+			c++;
 		    } else {
 			strncpy(buf + i, c, 1);
+			c++;
+			i++;
 		    }
-		    c++;
-		    i++;
+	
 		}
 		buf[i] = '\0';
 		fprintf(f, "- %s : %s</kbd>\n", fn->fn_display_name, buf);

@@ -13,6 +13,7 @@ A stripped-down, keyboard-focused digital audio workstation (DAW) taking some de
 3. [Keyboard command syntax](#keyboard-command-syntax)
 4. [Basics (getting comfortable)](#basics-getting-comfortable)
 5. [Manual](#manual)
+6. [Function Reference](#function-reference)
 
 ## Disclaimer
 
@@ -162,24 +163,24 @@ You will first be prompted to entire a file name. Hit <kbd>tab</kbd> or <kbd>\<r
 - Open File (.wav or .jdaw) : <kbd>C-o</kbd>
 - Start or stop screenrecording : <kbd>A-S-p</kbd>
 ### menu_nav mode
-- Next item : <kbd>n</kbd>, <kbd></kbd>
-- Previous item : <kbd>p</kbd>, <kbd></kbd>
-- Next section : <kbd>C-n</kbd>, <kbd><C-<up></kbd>
-- Previous section : <kbd>C-p</kbd>, <kbd><C-<down></kbd>
-- Choose item : <kbd><ret></kbd>, <kbd>-<spc></kbd>
-- Column right : <kbd>l</kbd>, <kbd>k<right></kbd>
-- Column left : <kbd>j</kbd>, <kbd>k<left></kbd>
+- Next item : <kbd>n</kbd>, <kbd>f</kbd>, <kbd>\<up\></kbd>, <kbd>k</kbd>
+- Previous item : <kbd>p</kbd>, <kbd>d</kbd>, <kbd>\<down\></kbd>, <kbd>i</kbd>
+- Next section : <kbd>C-n</kbd>, <kbd>C-\<up\></kbd>
+- Previous section : <kbd>C-p</kbd>, <kbd>C-\<down\></kbd>
+- Choose item : <kbd>\<ret\></kbd>, <kbd>\<spc\></kbd>
+- Column right : <kbd>l</kbd>, <kbd>\<right\></kbd>
+- Column left : <kbd>j</kbd>, <kbd>\<left\></kbd>
 - Move menu up : <kbd>w</kbd>
 - Move menu down : <kbd>s</kbd>
 - Move menu right : <kbd></kbd>
 - go back (dismiss) : <kbd>h</kbd>
 ### timeline mode
 #### Transport
-- Play : <kbd>l</kbd>, <kbd>ke</kbd>
-- Pause : <kbd>k</kbd>, <kbd>kw</kbd>, <kbd></kbd>
-- Rewind : <kbd>j</kbd>, <kbd>kq</kbd>
-- Play slow : <kbd>S-l</kbd>, <kbd></kbd>
-- Rewind slow : <kbd>S-j</kbd>, <kbd></kbd>
+- Play : <kbd>l</kbd>, <kbd>e</kbd>
+- Pause : <kbd>k</kbd>, <kbd>w</kbd>, <kbd>S-k</kbd>
+- Rewind : <kbd>j</kbd>, <kbd>q</kbd>
+- Play slow : <kbd>S-l</kbd>, <kbd>K-l</kbd>
+- Rewind slow : <kbd>S-j</kbd>, <kbd>K-j</kbd>
 - Start or stop dragging clips : <kbd>C-k</kbd>
 - Cut clipref at point : <kbd>S-c</kbd>
 - Move right : <kbd>;</kbd>
@@ -188,8 +189,8 @@ You will first be prompted to entire a file name. Hit <kbd>tab</kbd> or <kbd>\<r
 - Zoom in : <kbd>.</kbd>
 - Record (start or stop) : <kbd>r</kbd>
 #### Marks
-- Set In : <kbd>i</kbd>, <kbd>di</kbd>
-- Set Out : <kbd>o</kbd>, <kbd>do</kbd>
+- Set In : <kbd>i</kbd>, <kbd>i</kbd>
+- Set Out : <kbd>o</kbd>, <kbd>o</kbd>
 - Go to In : <kbd>S-i</kbd>
 - Go to Out : <kbd>S-o</kbd>
 - Go to t=0 : <kbd>C-u</kbd>
@@ -207,10 +208,10 @@ You will first be prompted to entire a file name. Hit <kbd>tab</kbd> or <kbd>\<r
 - Select track 8 : <kbd>8</kbd>
 - Select track 9 : <kbd>9</kbd>
 - Activate or deactivate all tracks : <kbd>`</kbd>
-- Move track selector up : <kbd>p</kbd>, <kbd>dd</kbd>
-- Move track selector down : <kbd>n</kbd>, <kbd>df</kbd>
-- Activate selected track : <kbd><spc></kbd>, <kbd>-<ret></kbd>
-- Destroy selected track (permanent) : <kbd>C-<del></kbd>
+- Move track selector up : <kbd>p</kbd>, <kbd>d</kbd>
+- Move track selector down : <kbd>n</kbd>, <kbd>f</kbd>
+- Activate selected track : <kbd>\<spc\></kbd>, <kbd>\<ret\></kbd>
+- Destroy selected track (permanent) : <kbd>C-\<del\></kbd>
 #### Track settings
 - Mute or unmute selected track(s) : <kbd>m</kbd>
 - Solo or unsolo selected track(s) : <kbd>s</kbd>
@@ -233,23 +234,23 @@ You will first be prompted to entire a file name. Hit <kbd>tab</kbd> or <kbd>\<r
 - Previous timeline : <kbd>A-j</kbd>
 - Next timeline : <kbd>A-l</kbd>
 - Write mixdown to .wav file : <kbd>S-w</kbd>
-- Delete selected clip(s) : <kbd><del></kbd>
+- Delete selected clip(s) : <kbd>\<del\></kbd>
 ### source mode
 - Play (source) : <kbd>l</kbd>
-- Pause (source) : <kbd>k</kbd>, <kbd>kS-k</kbd>
+- Pause (source) : <kbd>k</kbd>, <kbd>S-k</kbd>
 - Rewind (source) : <kbd>j</kbd>
-- Play slow (source) : <kbd>S-l</kbd>, <kbd>-K-l</kbd>
-- Rewind slow (source : <kbd>S-j</kbd>, <kbd>-K-j</kbd>
-- Set In Mark (source) : <kbd>i</kbd>, <kbd>dS-i</kbd>
-- Set Out Mark (source) : <kbd>o</kbd>, <kbd>dS-o</kbd>
+- Play slow (source) : <kbd>S-l</kbd>, <kbd>K-l</kbd>
+- Rewind slow (source : <kbd>S-j</kbd>, <kbd>K-j</kbd>
+- Set In Mark (source) : <kbd>i</kbd>, <kbd>S-i</kbd>
+- Set Out Mark (source) : <kbd>o</kbd>, <kbd>S-o</kbd>
 ### modal mode
-- Go to next item : <kbd>n</kbd>, <kbd>df</kbd>
-- Go to previous item : <kbd>p</kbd>, <kbd>dd</kbd>
-- Go to next item (escape DirNav) : <kbd>S-n</kbd>, <kbd></kbd>
-- Go to previous item (escape DirNav) : <kbd>S-p</kbd>, <kbd></kbd>
-- Select item : <kbd><ret></kbd>, <kbd>-<spc></kbd>
+- Go to next item : <kbd>n</kbd>, <kbd>f</kbd>
+- Go to previous item : <kbd>p</kbd>, <kbd>d</kbd>
+- Go to next item (escape DirNav) : <kbd>S-n</kbd>, <kbd>S-f</kbd>
+- Go to previous item (escape DirNav) : <kbd>S-p</kbd>, <kbd>S-d</kbd>
+- Select item : <kbd>\<ret\></kbd>, <kbd>\<spc\></kbd>
 - Dismiss modal window : <kbd>h</kbd>
-- Submit form : <kbd>C-<ret></kbd>
+- Submit form : <kbd>C-\<ret\></kbd>
 
 
 ...

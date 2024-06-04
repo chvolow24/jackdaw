@@ -366,6 +366,7 @@ void loop_project_main()
 		    else {
 			proj->play_speed += e.wheel.y * PLAYSPEED_ADJUST_SCALAR_SMALL;
 		    }
+		    status_stat_playspeed();
 		} else {
 		    bool allow_scroll = true;
 		    if (SDL_PointInRect(&main_win->mousep, proj->audio_rect)) {

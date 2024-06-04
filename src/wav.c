@@ -105,7 +105,7 @@ static void write_wav(const char *fname, int16_t *samples, uint32_t num_samples,
     if (!f) {
         fprintf(stderr, "Error: failed to open file at %s\n", fname);
     } else {
-	fprintf(stderr, "Writing %lu samples (or %f minutes) to wav\n", (long unsigned) num_samples, (double)num_samples / 2.0f / 2.0f / proj->sample_rate);
+	fprintf(stderr, "Writing %lu samples (or %f minutes) to wav\n", (long unsigned) num_samples, (double)num_samples / 2.0f / 2.0f / proj->sample_rate / 60.0f);
         write_wav_header(f, num_samples, bits_per_sample, channels);
         fwrite(samples, bits_per_sample / 8, num_samples, f);
     }
@@ -118,14 +118,15 @@ void wav_write_mixdown(const char *filepath)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     /* reset_overlap_buffers(); */
+    fprintf(stdout, "Chunk size sframes: %d, chan: %d, sr: %d\n", proj->chunk_size_sframes, proj->channels, proj->sample_rate);
     uint16_t chunk_len_sframes = proj->chunk_size_sframes;
     uint16_t chunk_len_samples = chunk_len_sframes * proj->channels;
     uint32_t len_sframes = tl->out_mark_sframes - tl->in_mark_sframes;
     uint32_t len_samples = proj->channels * len_sframes;
-    uint16_t chunks = len_sframes / proj->chunk_size_sframes;
+    uint32_t chunks = len_sframes / proj->chunk_size_sframes;
     int16_t *samples = malloc(sizeof(int16_t) * len_samples);
 
-    for (int c=0; c<chunks; c++) {
+    for (uint32_t c=0; c<chunks; c++) {
         float *samples_L = get_mixdown_chunk(tl, 0, chunk_len_sframes, tl->in_mark_sframes + (c * chunk_len_sframes), 1);
         float *samples_R = get_mixdown_chunk(tl, 1, chunk_len_sframes, tl->in_mark_sframes + (c * chunk_len_sframes), 1);
         for (uint32_t i=0; i<chunk_len_samples; i+=2) {

@@ -36,13 +36,21 @@
 
 #define ERR_TIMER_MAX 100
 #define CALL_TIMER_MAX 100
+#define STAT_TIMER_MAX 100
 
 extern Project *proj;
 extern SDL_Color color_global_red;
 extern SDL_Color color_global_light_grey;
+extern SDL_Color color_global_white;
 
 void status_frame()
 {
+
+    if (proj->status_bar.stat_timer > 0) {
+	proj->status_bar.stat_timer--;
+	return;
+    }
+    
     uint8_t *alpha = &(proj->status_bar.error->text->color.a);
     if (proj->status_bar.err_timer > 0) {
 	proj->status_bar.err_timer--;
@@ -65,7 +73,7 @@ void status_frame()
 void status_set_errstr(const char *errstr)
 {
     strcpy(proj->status_bar.errstr, errstr);
-    textbox_set_text_color(proj->status_bar.error, &color_global_red);
+    /* textbox_set_text_color(proj->status_bar.error, &color_global_red); */
     textbox_size_to_fit(proj->status_bar.error, 0, 0);
     layout_center_agnostic(proj->status_bar.error->layout, false, true);
 
@@ -76,20 +84,24 @@ void status_set_errstr(const char *errstr)
 
 void status_set_statstr(const char *statstr)
 {
-    strcpy(proj->status_bar.errstr, statstr);
-    textbox_set_text_color(proj->status_bar.error, &color_global_light_grey);
-    /* textbox_size_to_status);fit(proj->status_bar.error, 0, 0); */
-    textbox_reset_full(proj->status_bar.error);
-    proj->status_bar.err_timer = ERR_TIMER_MAX;
-    proj->status_bar.error->text->color.a = 255;
+    strcpy(proj->status_bar.callstr, statstr);
+    textbox_set_text_color(proj->status_bar.call, &color_global_white);
+    /* textbox_size_to_status);fit(proj->status_bar.callor, 0, 0); */
+    textbox_reset_full(proj->status_bar.call);
+    proj->status_bar.stat_timer = STAT_TIMER_MAX;
+    proj->status_bar.call->text->color.a = 255;
 
 }
 
 void status_set_callstr(const char *callstr)
 {
+    if (proj->status_bar.stat_timer > 0) {
+	return;
+    }
     layout_force_reset(proj->status_bar.layout);
     strcpy(proj->status_bar.callstr, callstr);
     textbox_size_to_fit(proj->status_bar.call, 0, 0);
+    textbox_set_text_color(proj->status_bar.call, &color_global_light_grey);
     layout_center_agnostic(proj->status_bar.call->layout, false, true);
     /* textbox_set_pad(proj->status_bar.call, 2, 2); */
     textbox_reset_full(proj->status_bar.call);
@@ -101,6 +113,9 @@ void status_set_callstr(const char *callstr)
 
 void status_cat_callstr(const char *catstr)
 {
+    if (proj->status_bar.stat_timer > 0) {
+	return;
+    }
     strcat(proj->status_bar.callstr, catstr);
     textbox_size_to_fit(proj->status_bar.call, 0, 0);
     layout_center_agnostic(proj->status_bar.call->layout, false, true);
@@ -111,3 +126,15 @@ void status_cat_callstr(const char *catstr)
     /* layout_size_to_fit_children(proj->status_bar.call->layout, false, 0); */
     /* layout_force_reset(proj->status_bar.layout); */
 }
+
+
+void status_stat_playspeed()
+{
+    /* fprintf(stdout, "stat playspeed\n"); */
+    char buf[64];
+    snprintf(buf, sizeof(buf), "Play speed: %f", proj->play_speed);
+    status_set_statstr(buf);
+}
+
+
+    

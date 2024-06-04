@@ -423,6 +423,7 @@ void user_tl_play()
 	transport_start_playback();
     } else {
 	proj->play_speed *= 2.0f;
+	status_stat_playspeed();
     }
     fprintf(stdout, "user_tl_play\n");
 }
@@ -441,6 +442,7 @@ void user_tl_rewind()
 	transport_start_playback();
     } else {
 	proj->play_speed *= 2.0f;
+	status_stat_playspeed();
     }
     fprintf(stdout, "user_tl_rewind\n");
 }
@@ -448,12 +450,14 @@ void user_tl_rewind()
 void user_tl_play_slow()
 {
     proj->play_speed = SLOW_PLAYBACK_SPEED;
+    status_stat_playspeed();
     transport_start_playback();
 }
 
 void user_tl_rewind_slow()
 {
     proj->play_speed = -1 * SLOW_PLAYBACK_SPEED;
+    status_stat_playspeed();
     transport_start_playback();
 }
 
@@ -1205,6 +1209,7 @@ void user_source_play()
 	transport_start_playback();
     } else {
 	proj->src_play_speed *= 2.0f;
+	status_stat_playspeed();
     }
 }
 
@@ -1221,18 +1226,21 @@ void user_source_rewind()
 	transport_start_playback();
     } else {
 	proj->src_play_speed *= 2.0f;
+	status_stat_playspeed();
     }
 }
 
 void user_source_play_slow()
 {
     proj->src_play_speed = SLOW_PLAYBACK_SPEED;
+    status_stat_playspeed();
     transport_start_playback();
 }
 
 void user_source_rewind_slow()
 {
     proj->src_play_speed = -1 * SLOW_PLAYBACK_SPEED;
+    status_stat_playspeed();
     transport_start_playback();
 }
 

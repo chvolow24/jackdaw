@@ -331,12 +331,14 @@ Project *project_create(
     /* strcpy(proj->status_bar.errstr, "Uh oh! this is an call!\n"); */
     /* strcpy(proj->status_bar.errorstr, "Ok error str\n"); */
     proj->status_bar.call = textbox_create_from_str(proj->status_bar.callstr, calllt, main_win->mono_bold_font, 14, main_win);
+    textbox_set_trunc(proj->status_bar.call, false);
     textbox_set_text_color(proj->status_bar.call, &color_global_light_grey);
     textbox_set_background_color(proj->status_bar.call, &color_global_clear);
     textbox_set_align(proj->status_bar.call, CENTER_LEFT);
     
     
     proj->status_bar.error = textbox_create_from_str(proj->status_bar.errstr, errlt, main_win->mono_bold_font, 14, main_win);
+    textbox_set_trunc(proj->status_bar.error, false);
     textbox_set_text_color(proj->status_bar.error, &color_global_red);
     textbox_set_background_color(proj->status_bar.error, &color_global_clear);
     textbox_set_align(proj->status_bar.error, CENTER_LEFT);

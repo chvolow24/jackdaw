@@ -217,6 +217,7 @@ struct status_bar {
     char callstr[MAX_STATUS_STRLEN];
     Textbox *error;
     Textbox *call;
+    int stat_timer;
     int call_timer;
     int err_timer;
 };

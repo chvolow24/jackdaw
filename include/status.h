@@ -38,3 +38,4 @@ void status_set_statstr(const char *statstr);
 void status_set_errstr(const char *errstr);
 void status_set_callstr(const char *callstr);
 void status_cat_callstr(const char *catstr);
+void status_stat_playspeed();

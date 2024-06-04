@@ -29,6 +29,8 @@ typedef struct window {
     SDL_Rect canvas_src;
     Font *std_font;
     Font *bold_font;
+    Font *mono_font;
+    Font *mono_bold_font;
     Layout *layout;
 
     uint16_t i_state;

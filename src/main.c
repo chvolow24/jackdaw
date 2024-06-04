@@ -181,6 +181,8 @@ int main(int argc, char **argv)
     main_win = window_create(WINDOW_DEFAULT_W, WINDOW_DEFAULT_H, "Jackdaw");
     window_assign_font(main_win, OPEN_SANS_PATH, REG);
     window_assign_font(main_win, OPEN_SANS_BOLD_PATH, BOLD);
+    window_assign_font(main_win, LTSUPERIOR_PATH, MONO);
+    window_assign_font(main_win, LTSUPERIOR_BOLD_PATH, MONO_BOLD);
 
 
     

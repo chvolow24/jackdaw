@@ -13,7 +13,7 @@
 #define MENU_STD_COLUMN_PAD 8
 #define MENU_STD_HEADER_PAD 20
 
-#define MENU_STD_CORNER_RAD 10
+#define MENU_STD_CORNER_RAD STD_CORNER_RAD
 
 extern SDL_Color color_global_clear;
 extern Window *main_win;
@@ -28,7 +28,7 @@ SDL_Color menu_std_clr_sctn_div = (SDL_Color) {200, 200, 200, 250};
 
 SDL_Color color_clear = (SDL_Color) {0, 0, 0, 0};
 
-int menu_std_border_rad = 24;
+/* int menu_std_border_rad = 24; */
 
 	
 static void menu_reset_textboxes(Menu *menu)
@@ -230,7 +230,7 @@ MenuItem *menu_item_add(
 
     /* Create and initialize main tb */
     item->tb = textbox_create_from_str(
-	label,
+	(char *)label,
 	tb_lt,
 	font,
 	MENU_TXT_SIZE,
@@ -441,17 +441,17 @@ void menu_draw(Menu *menu)
     SDL_Renderer *rend = menu->window->rend;
     
     SDL_SetRenderDrawColor(rend, sdl_color_expand(menu_std_clr_bckgrnd));
-    geom_fill_rounded_rect(rend, &menu->layout->rect, menu_std_border_rad); 
+    geom_fill_rounded_rect(rend, &menu->layout->rect, MENU_STD_CORNER_RAD); 
 
     SDL_Rect border = menu->layout->rect;
     SDL_SetRenderDrawColor(rend, sdl_color_expand(menu_std_clr_outer_border));
-    geom_draw_rounded_rect(rend, &border, menu_std_border_rad);
+    geom_draw_rounded_rect(rend, &border, MENU_STD_CORNER_RAD);
     border.x++;
     border.y++;
     border.w -= 2;
     border.h -= 2;
     SDL_SetRenderDrawColor(rend, sdl_color_expand(menu_std_clr_inner_border));
-    geom_draw_rounded_rect(rend, &border, menu_std_border_rad - 1);
+    geom_draw_rounded_rect(rend, &border, MENU_STD_CORNER_RAD - 1);
     for (int i=0; i<menu->num_columns; i++) {
 	MenuColumn *col = menu->columns[i];
 	for (int j=0; j<col->num_sections; j++) {

@@ -64,6 +64,7 @@
 #define MAX_PROJ_AUDIO_CONNS 255
 #define MAX_PROJ_CLIPS 512
 #define MAX_GRABBED_CLIPS 255
+#define MAX_STATUS_STRLEN 255
 
 #define PROJ_TL_LABEL_BUFLEN 50
 
@@ -210,6 +211,15 @@ typedef struct timeline {
 } Timeline;
 
 
+struct status_bar {
+    Layout *layout;
+    char errstr[MAX_STATUS_STRLEN];
+    char callstr[MAX_STATUS_STRLEN];
+    Textbox *error;
+    Textbox *call;
+    int call_timer;
+    int err_timer;
+};
 
 /* A Jackdaw project. Only one can be active at a time. Can persist on disk as a .jdaw file (see dot_jdaw.c, dot_jdaw.h) */
 typedef struct project {
@@ -278,6 +288,7 @@ typedef struct project {
     Textbox *tb_out_value;
     SDL_Rect *outwav_l_rect;
     SDL_Rect *outwav_r_rect;
+    struct status_bar status_bar;
 } Project;
 
 Project *project_create(

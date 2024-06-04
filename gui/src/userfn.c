@@ -6,6 +6,7 @@
 #include "menu.h"
 #include "modal.h"
 #include "project.h"
+#include "status.h"
 #include "textbox.h"
 #include "transport.h"
 #include "timeline.h"
@@ -32,6 +33,7 @@ void jdaw_write_project(const char *path);
 void user_global_expose_help()
 {
     if (main_win->num_modes <= 0) {
+	status_set_errstr("Error: no modes active in user_global_expose_help");
 	fprintf(stderr, "Error: no modes active in user_global_expose_help\n");
 	return;
     }
@@ -176,6 +178,7 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 {
     char *dotpos = strrchr(dp->path, '.');
     if (!dotpos) {
+	status_set_errstr("Cannot open file without a .jdaw or .wav extension");
 	fprintf(stderr, "Cannot open file without a .jdaw or .wav extension\n");
 	return;
     }
@@ -187,6 +190,7 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 	if (!tl) return;
 	Track *track = tl->tracks[tl->track_selector];
 	if (!track) {
+	    status_set_errstr("Error: at least one track must exist to load a wav file");
 	    fprintf(stderr, "Error: at least one track must exist to load a wav file\n");
 	    return;
 	}
@@ -517,6 +521,7 @@ static void select_out_onclick(void *arg)
     proj->playback_conn = proj->playback_conns[index];
     if (audioconn_open(proj, proj->playback_conn) != 0) {
 	fprintf(stderr, "Error: failed to open default audio conn \"%s\". More info: %s\n", proj->playback_conn->name, SDL_GetError());
+	status_set_errstr("Error: failed to open default audio conn \"%s\"");
     }
     textbox_set_value_handle(proj->tb_out_value, proj->playback_conn->name);
     window_pop_menu(main_win);
@@ -779,6 +784,7 @@ void user_tl_track_toggle_in()
 	    textbox_set_value_handle(track->tb_input_name, track->input->name);
 	} else {
 	    fprintf(stderr, "Error: no record conn at index %d\n", index + 1);
+	    
 	}
     } else {
 	AudioConn *next = proj->record_conns[0];
@@ -805,6 +811,8 @@ void user_tl_track_destroy()
 	if (tl->track_selector > tl->num_tracks - 1) {
 	    tl->track_selector = tl->num_tracks == 0 ? 0 : tl->num_tracks - 1;
 	}
+    } else {
+	status_set_errstr("Error: no track to delete");
     }
 }
 

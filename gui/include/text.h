@@ -9,7 +9,10 @@
 
 #define OPEN_SANS_PATH INSTALL_DIR "/assets/ttf/OpenSans-Regular.ttf"
 #define OPEN_SANS_BOLD_PATH INSTALL_DIR "/assets/ttf/OpenSans-Bold.ttf"
-
+#define LTSUPERIOR_PATH INSTALL_DIR "/assets/ttf/LTSuperiorMono-Regular.otf"
+#define LTSUPERIOR_BOLD_PATH INSTALL_DIR "/assets/ttf/LTSuperiorMono-Bold.otf"
+/* #define OPEN_SANS_BOLD_PATH INSTALL_DIR "/assets/ttf/Iosevka-Bold.ttf" */
+#define TTF_SPEC_ADJUST 1
 
 #define CURSOR_WIDTH 4
 #define CURSOR_COUNTDOWN_MAX 100
@@ -19,6 +22,7 @@
 #define STD_FONT_ARRLEN 11
 
 #define TXTAREA_MAX_LINES 255
+
 
 typedef struct window Window;
 
@@ -34,7 +38,9 @@ typedef enum textalign {
 
 typedef enum font_type {
     REG,
-    BOLD
+    BOLD,
+    MONO,
+    MONO_BOLD
 } FontType;
 
 

@@ -59,6 +59,9 @@
 #define TRACK_CTRL_SLIDER_H_PAD 7
 #define TRACK_CTRL_SLIDER_V_PAD 5
 
+#define STATUS_BAR_H (14 * main_win->dpi_scale_factor)
+#define STATUS_BAR_H_PAD (10 * main_win->dpi_scale_factor);
+
 #define TRACK_VOL_STEP 0.03
 #define TRACK_PAN_STEP 0.01
 extern Window *main_win;
@@ -66,6 +69,8 @@ extern Project *proj;
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;
 extern SDL_Color color_global_clear;
+extern SDL_Color color_global_red;
+extern SDL_Color color_global_light_grey;
 
 SDL_Color timeline_label_txt_color = {0, 200, 100, 255};
 
@@ -292,6 +297,53 @@ Project *project_create(
 
     proj->outwav_l_rect = &output_l_lt->rect;
     proj->outwav_r_rect = &output_r_lt->rect;
+
+    Layout *status_bar_lt = layout_add_child(proj->layout);
+    layout_set_name(status_bar_lt, "status_bar");
+    Layout *calllt = layout_add_child(status_bar_lt);
+    Layout *errlt = layout_add_child(status_bar_lt);
+    /* calllt->w.type = SCALE; */
+    /* errlt->w.type = SCALE; */
+    /* calllt->w.value.floatval = 1.0; */
+    /* errlt->w.value.floatval = 1.0f; */
+
+   
+    status_bar_lt->y.type = REVREL;
+    status_bar_lt->w.type = SCALE;
+    status_bar_lt->w.value.floatval = 1.0;
+    status_bar_lt->h.value.intval = STATUS_BAR_H;
+    proj->status_bar.layout = status_bar_lt;
+
+    calllt->h.type = SCALE;
+    calllt->h.value.floatval = 1.0;
+    calllt->y.value.intval = 0;
+    calllt->x.type = REL;
+    calllt->x.value.intval = STATUS_BAR_H_PAD;
+    calllt->w.value.intval = 500;
+
+    errlt->h.type = SCALE;
+    errlt->h.value.floatval = 1.0;
+    errlt->y.value.intval = 0;
+    errlt->x.type = REVREL;
+    errlt->x.value.intval = STATUS_BAR_H_PAD;
+    errlt->w.value.intval = 500;
+
+    /* strcpy(proj->status_bar.errstr, "Uh oh! this is an call!\n"); */
+    /* strcpy(proj->status_bar.errorstr, "Ok error str\n"); */
+    proj->status_bar.call = textbox_create_from_str(proj->status_bar.callstr, calllt, main_win->mono_bold_font, 14, main_win);
+    textbox_set_text_color(proj->status_bar.call, &color_global_light_grey);
+    textbox_set_background_color(proj->status_bar.call, &color_global_clear);
+    textbox_set_align(proj->status_bar.call, CENTER_LEFT);
+    
+    
+    proj->status_bar.error = textbox_create_from_str(proj->status_bar.errstr, errlt, main_win->mono_bold_font, 14, main_win);
+    textbox_set_text_color(proj->status_bar.error, &color_global_red);
+    textbox_set_background_color(proj->status_bar.error, &color_global_clear);
+    textbox_set_align(proj->status_bar.error, CENTER_LEFT);
+    /* textbox_size_to_fit(proj->status_bar.call, 0, 0); */
+    /* textbox_size_to_fit(proj->status_bar.error, 0, 0); */
+    textbox_reset_full(proj->status_bar.error);
+    textbox_reset_full(proj->status_bar.call);
 	
     return proj;
 }
@@ -692,8 +744,8 @@ void track_decrement_pan(Track *track)
 /* SDL_Color mute_red = {255, 0, 0, 100}; */
 /* SDL_Color solo_yellow = {255, 200, 0, 130}; */
 
-SDL_Color mute_red = {255, 0, 0, 180};
-SDL_Color solo_yellow = {255, 200, 0, 180};
+SDL_Color mute_red = {255, 0, 0, 130};
+SDL_Color solo_yellow = {255, 200, 0, 130};
 extern SDL_Color textbox_default_bckgrnd_clr;
 
 bool track_mute(Track *track)
@@ -1098,3 +1150,5 @@ void timeline_cut_clipref_at_point(Timeline *tl)
 	}
     }
 }
+
+/* Iosevka */

@@ -487,6 +487,14 @@ void project_draw()
     timeline_draw(proj->timelines[proj->active_tl_index]);
     control_bar_draw(proj);
     textbox_draw(proj->timeline_label);
+
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
+    SDL_RenderFillRect(main_win->rend, &proj->status_bar.layout->rect);
+    textbox_draw(proj->status_bar.error);
+    textbox_draw(proj->status_bar.call);
+
+    /* Layout *status = layout_get_child_by_name_recursive(proj->layout, "status_bar"); */
+    /* layout_draw(main_win, status); */
     window_draw_modals(main_win);
     window_draw_menus(main_win);
     /* modal_draw(test_modal); */

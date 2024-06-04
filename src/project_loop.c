@@ -43,6 +43,7 @@
 #include "project.h"
 #include "project_draw.h"
 #include "screenrecord.h"
+#include "status.h"
 #include "timeline.h"
 #include "transport.h"
 #include "window.h"
@@ -301,7 +302,7 @@ void loop_project_main()
 			set_i_state_k = true;
 		    }
 		    /* No break */
-		default:
+		default: 
 		    /* i_state = triage_keypdown(i_state, e.key.keysym.scancode); */
 		    input_fn  = input_get(main_win->i_state, e.key.keysym.sym, GLOBAL);
 		    if (!input_fn) {
@@ -315,6 +316,9 @@ void loop_project_main()
 		    /* fprintf(stdout, "Input fn? %p, do fn? %p\n", input_fn, input_fn->do_fn); */
 		    if (input_fn && input_fn->do_fn) {
 			input_fn->do_fn();
+			status_set_callstr(input_get_keycmd_str(main_win->i_state, e.key.keysym.sym));
+			status_cat_callstr(" : ");
+			status_cat_callstr(input_fn->fn_display_name);
 			/* timeline_reset(proj->timelines[proj->active_tl_index]); */
 		    }
 		    break;
@@ -447,7 +451,6 @@ void loop_project_main()
 	if (proj->play_speed != 0 && !proj->source_mode) {
 	    timeline_catchup();
 	    timeline_set_timecode();
-	    
 	}
 
 	if (animate_step == 255) {
@@ -460,6 +463,8 @@ void loop_project_main()
 	if (proj->recording) {
 	    transport_recording_update_cliprects();
 	}
+	
+	status_frame();
 	/* update_track_vol_and_pan(); */
 	
 	/******************** DRAW ********************/

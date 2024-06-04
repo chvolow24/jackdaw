@@ -119,18 +119,27 @@ void window_check_monitor_dpi(Window *win)
 
 void window_assign_font(Window *win, const char *font_path, FontType type)
 {
+    Font **font_to_init;
     switch (type) {
     case REG:
-	win->std_font = ttf_init_font(font_path, win);
-	if (!win->std_font) {
-	    fprintf(stderr, "Error: Unable to initialize font at %s.\n", font_path);
-	}
+	font_to_init = &win->std_font;
+	break;
     case BOLD:
-	win->bold_font = ttf_init_font(font_path, win);
-	if (!win->bold_font) {
-	    fprintf(stderr, "Error: Unable to initialize font at %s.\n", font_path);
-	}
+	font_to_init = &win->bold_font;
+	break;
+    case MONO:
+        font_to_init = &win->mono_font;
+	break;
+    case MONO_BOLD:
+	font_to_init = &win->mono_bold_font;
+	break;
     }
+    *font_to_init = ttf_init_font(font_path, win);
+    if (!(*font_to_init)) {
+	fprintf(stderr, "Failed to initialize font at %s\n", font_path);
+	exit(1);
+    }
+	    
 }
 
 /* Reset the w and h members of a window struct (usually in response to a resize event) */

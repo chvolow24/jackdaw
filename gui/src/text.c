@@ -364,11 +364,11 @@ void txt_edit(Text *txt, void (*draw_fn) (void))
 		    txt_reset_drawable(txt);
 		    // set_text_value(txt, txt->display_value);
 		    break;
-		case SDL_SCANCODE_SPACE:
-		    handle_char(txt, ' ');
-		    txt_reset_drawable(txt);
-		    // set_text_value(txt, txt->display_value);
-		    break;
+		/* case SDL_SCANCODE_SPACE: */
+		/*     /\* handle_char(txt, ' '); *\/ */
+		/*     txt_reset_drawable(txt); */
+		/*     // set_text_value(txt, txt->display_value); */
+		/*     break; */
 		case SDL_SCANCODE_A:
 		    if (cmdctrldown) {
 			txt->cursor_start_pos = 0;
@@ -431,6 +431,7 @@ void txt_destroy(Text *txt)
 TTF_Font *ttf_open_font(const char* path, int size, Window *win)
 {
     size *= win->dpi_scale_factor;
+    size *= TTF_SPEC_ADJUST;
     TTF_Font *font = TTF_OpenFont(path, size * GLOBAL_TEXT_SCALE);
     if (!font) {
         fprintf(stderr, "\nError: failed to open font: %s", TTF_GetError());

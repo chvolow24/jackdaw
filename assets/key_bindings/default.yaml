@@ -75,10 +75,10 @@
   - .		: tl_zoom_in
   - i		: tl_set_in_mark
   - o		: tl_set_out_mark
-  - S-i		: tl_set_in_mark
-  - S-o		: tl_set_out_mark
-  - C-i		: tl_goto_in_mark
-  - C-o		: tl_goto_out_mark
+  - i		: tl_set_in_mark
+  - o		: tl_set_out_mark
+  - S-i		: tl_goto_in_mark
+  - S-o		: tl_goto_out_mark
   - C-u		: tl_goto_zero
   - C-S-o	: tl_set_default_out
   - C-t		: tl_track_add

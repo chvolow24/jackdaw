@@ -319,7 +319,7 @@ static TLinesItem *dir_to_tline(void ***current_item_v, Layout *container, void 
 /* } */
 
 void layout_write(FILE *f, Layout *lt, int indent);
-DirNav *dirnav_create(const char *dir_name, Layout *lt, bool (*dir_to_tline_filter)(void *item, void *x_arg))
+DirNav *dirnav_create(const char *dir_name, Layout *lt, int (*dir_to_tline_filter)(void *item, void *x_arg))
 {
     DirPath *dp = dirpath_open(dir_name);
     if (!dp) {

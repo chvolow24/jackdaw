@@ -4,6 +4,7 @@
 
 #define MODAL_V_PADDING 5
 #define MODAL_V_PADDING_TIGHT 0
+#define MODAL_BOTTOM_PAD 12
 #define MODAL_FONTSIZE_H1 36
 #define MODAL_FONTSIZE_H2 24
 #define MODAL_FONTSIZE_H3 18
@@ -14,6 +15,12 @@
 #define TEXTENTRY_V_PAD 6
 #define TEXTENTRY_H_PAD 4
 
+#define MODAL_STD_CORNER_RAD STD_CORNER_RAD
+
+/* #define modal_color_background (menu_std_clr_bckgrnd) */
+/* #define modal_color_border (menu_std_clr_inner_border) */
+/* #define modal_textentry_text_color (menu_std_clr_txt) */
+
 
 extern Window *main_win;
 
@@ -22,11 +29,25 @@ extern SDL_Color color_global_clear;
 extern SDL_Color color_global_white;
 extern SDL_Color control_bar_bckgrnd;
 
+extern SDL_Color menu_std_clr_inner_border;
+extern SDL_Color menu_std_clr_outer_border;
+extern SDL_Color menu_std_clr_bckgrnd;
+extern SDL_Color menu_std_clr_txt;
+extern SDL_Color menu_std_clr_annot_txt;
+extern SDL_Color menu_std_clr_highlight;
+extern SDL_Color menu_std_clr_sctn_div;
+
+
 /* SDL_Color modal_color_background = (SDL_Color){255, 200, 100, 255}; */
-SDL_Color modal_color_background = (SDL_Color){220, 160, 0, 255};
 /* SDL_Color modal_color_background = (SDL_Color){10, 40, 30, 255}; */
 /* SDL_Color modal_color_background = (SDL_Color){110, 70, 40, 255}; */
+/* SDL_Color modal_color_background = (SDL_Color){220, 200, 150, 255}; */
+
+
+
+SDL_Color modal_color_background = (SDL_Color){220, 160, 0, 245};
 SDL_Color modal_color_border = (SDL_Color){200, 200, 200, 255};
+SDL_Color modal_color_border_outer = (SDL_Color){10, 10, 10, 255};
 SDL_Color modal_color_border_selected = (SDL_Color) {10, 10, 155, 255};
 SDL_Color modal_textentry_background = (SDL_Color) {200, 200, 200, 255};
 SDL_Color modal_textentry_text_color = (SDL_Color) {10, 30, 100, 255};
@@ -258,6 +279,8 @@ void modal_reset(Modal *modal)
 	/* layout_force_reset(modal->layout); */
     }
     layout_size_to_fit_children(modal->layout, true, MODAL_V_PADDING);
+    modal->layout->h.value.intval += MODAL_BOTTOM_PAD;
+    layout_reset(modal->layout);
 
 }
 
@@ -288,10 +311,21 @@ static void modal_el_draw(ModalEl *el)
 void layout_write(FILE *f, Layout *lt, int indent);
 void modal_draw(Modal *modal)
 {
+   
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(modal_color_background));
-    SDL_RenderFillRect(main_win->rend, &modal->layout->rect);
-    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(modal_color_border));
-    SDL_RenderDrawRect(main_win->rend, &modal->layout->rect);
+    geom_fill_rounded_rect(main_win->rend, &modal->layout->rect, MODAL_STD_CORNER_RAD);
+
+    SDL_Rect border = modal->layout->rect;
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(menu_std_clr_outer_border));
+    geom_draw_rounded_rect(main_win->rend, &border, MODAL_STD_CORNER_RAD);
+    border.x++;
+    border.y++;
+    border.w -= 2;
+    border.h -= 2;
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(menu_std_clr_inner_border));
+    geom_draw_rounded_rect(main_win->rend, &border, MODAL_STD_CORNER_RAD - 1);
+    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(modal_color_border_outer)); */
+    /* geom_draw_rounded_rect(main_win->rend, &modal->layout->rect, MODAL_STD_CORNER_RAD); */
     for (uint8_t i=0; i<modal->num_els; i++) {
 	/* fprintf(stdout, "drawing el\n"); */
 	modal_el_draw(modal->els[i]);
@@ -385,5 +419,4 @@ void modal_submit_form(Modal *modal)
 	modal->submit_form(modal);
     }
 }
-
 

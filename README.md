@@ -150,6 +150,8 @@ You will first be prompted to entire a file name. Hit **`tab`** or **`<ret>`** t
 
 <img src="assets/readme_imgs/export.gif" width="80%" />
 
+Keyboard looks like this: <kbd>Ctrl</kbd>
+or like this <kbd><kbd>Ctrl</kbd>+<kbd>c</kbd></kbd>
 
 # Manual
 
@@ -157,6 +159,6 @@ You will first be prompted to entire a file name. Hit **`tab`** or **`<ret>`** t
 
 ...
 
-[ README IN PROGRESS -- LAST UPDATE 2024-05-30 THURSDAY ]
+[ README IN PROGRESS -- LAST UPDATE 2024-06-04 TUESDAY ]
 
 ...

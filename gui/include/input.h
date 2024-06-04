@@ -9,6 +9,7 @@
 
 #define INPUT_HASH_SIZE 1024
 #define INPUT_KEYUP_HASH_SIZE 128
+#define MAX_ANNOT_STRLEN 255
 
 #define NUM_INPUT_MODES 5
 #define MAX_MODE_SUBCATS 10
@@ -29,7 +30,7 @@
 typedef struct user_fn {
     const char *fn_id;
     const char *fn_display_name;
-    const char *annotation;
+    char annotation[MAX_ANNOT_STRLEN];
     bool is_toggle;
     void (*do_fn)(void);
 } UserFn;

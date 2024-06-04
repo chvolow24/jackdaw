@@ -101,9 +101,9 @@ static UserFn *create_user_fn(
     const char *fn_display_name,
     void (*do_fn) (void))
 {
-    UserFn *fn = malloc(sizeof(UserFn));
+    UserFn *fn = calloc(1, sizeof(UserFn));
     fn->fn_id = fn_id;
-    fn->annotation = NULL;
+    /* fn->annotation = NULL; */
     fn->fn_display_name = fn_display_name;
     fn->is_toggle = false;
     fn->do_fn = do_fn;
@@ -964,10 +964,18 @@ void input_bind_fn(UserFn *fn, uint16_t i_state, SDL_Keycode keycode, InputMode 
     kb->i_state = i_state;
     kb->keycode = keycode;
     kb->keycmd_str = input_get_keycmd_str(i_state, keycode);
-    if (!fn->annotation) {
-	/* fprintf(stdout, "binding fn to %s\n", kb->keycmd_str); */
-	fn->annotation = kb->keycmd_str;
+    if (fn->annotation[0] == '\0') {
+	strcat(fn->annotation, kb->keycmd_str);
+    } else {
+	strcat(fn->annotation, "\t/\t");
+	strcat(fn->annotation, kb->keycmd_str);
     }
+    /* if (!fn->annotation) { */
+    /* 	/\* fprintf(stdout, "binding fn to %s\n", kb->keycmd_str); *\/ */
+    /* 	fn->annotation = kb->keycmd_str; */
+    /* } else { */
+    /* 	strcat((char *)fn->annotation, kb->keycmd_str); */
+    /* } */
     kb->fn = fn;
     /* if (last) { */
     /* 	last->next = keyb_node; */
@@ -1263,8 +1271,31 @@ void input_create_function_reference()
 	    }
 	    for (uint8_t k=0; k<sc->num_fns; k++) {
 		UserFn *fn = sc->fns[k];
-		fprintf(f, "- %s\n", fn->fn_display_name);
-		fprintf(f, "     - <kbd>%s</kbd>\n", fn->annotation);
+		char buf[255];
+		char *c = fn->annotation;
+		int i=0;
+		/* bool had_multiple = false; */
+		strncpy(buf, "<kbd>", 5);
+		i += 5;
+		while (*c != '\0') {
+		    if (*c == '\t') {
+			/* if (had_multiple) { */
+			/*     strncpy(buf + i, ", <kbd>", 5); */
+			/*     i+=5; */
+			/* } */
+			strncpy(buf + i, "<\\kbd>, <kbd>", 13);
+			i+=13;
+			/* had_multiple = true; */
+			c+=2;
+		    } else {
+			strncpy(buf + i, c, 1);
+		    }
+		    c++;
+		    i++;
+		}
+		buf[i] = '\0';
+		fprintf(f, "- %s : %s</kbd>\n", fn->fn_display_name, buf);
+		/* fprintf(f, "     - <kbd>%s</kbd>\n", fn->annotation); */
 	    }
 	}
     }

@@ -213,7 +213,6 @@ The "point" (as in "[do thing] at point" is the location in the currently active
 
 
 # Function reference
-
 ### global mode
 - Expose help : <kbd>C-h</kbd>
 - Quit : <kbd>C-q</kbd>
@@ -311,7 +310,6 @@ The "point" (as in "[do thing] at point" is the location in the currently active
 - Select item : <kbd>\<ret\></kbd>, <kbd>\<spc\></kbd>
 - Dismiss modal window : <kbd>h</kbd>
 - Submit form : <kbd>C-\<ret\></kbd>
-
 
 ...
 

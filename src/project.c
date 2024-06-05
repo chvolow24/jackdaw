@@ -72,6 +72,8 @@ extern SDL_Color color_global_clear;
 extern SDL_Color color_global_red;
 extern SDL_Color color_global_light_grey;
 
+SDL_Color color_mute_solo_grey = {210, 210, 210, 255};
+
 SDL_Color timeline_label_txt_color = {0, 200, 100, 255};
 
 /* Alternating bright colors to easily distinguish tracks */
@@ -498,7 +500,7 @@ Track *timeline_add_track(Timeline *tl)
 	main_win);
     track->tb_mute_button->corner_radius = 4;
     textbox_set_border(track->tb_mute_button, &color_global_black, 1);
-    
+    textbox_set_background_color(track->tb_mute_button, &color_mute_solo_grey);
     textbox_reset_full(track->tb_mute_button);
 
     track->tb_solo_button = textbox_create_from_str(
@@ -509,6 +511,7 @@ Track *timeline_add_track(Timeline *tl)
 	main_win);
     track->tb_solo_button->corner_radius = 4;
     textbox_set_border(track->tb_solo_button, &color_global_black, 1);
+    textbox_set_background_color(track->tb_solo_button, &color_mute_solo_grey);
     textbox_reset_full(track->tb_solo_button);
 
 
@@ -766,7 +769,7 @@ bool track_mute(Track *track)
     if (track->muted) {
 	textbox_set_background_color(track->tb_mute_button, &mute_red);
     } else {
-	textbox_set_background_color(track->tb_mute_button, &textbox_default_bckgrnd_clr);
+	textbox_set_background_color(track->tb_mute_button, &color_mute_solo_grey);
     }
     return track->muted;
 }
@@ -777,12 +780,12 @@ bool track_solo(Track *track)
     if (track->solo) {
 	if (track->muted) {
 	    track->muted = false;
-	    textbox_set_background_color(track->tb_mute_button, &textbox_default_bckgrnd_clr);
+	    textbox_set_background_color(track->tb_mute_button, &color_mute_solo_grey);
 	}
 	track->solo_muted = false;
 	textbox_set_background_color(track->tb_solo_button, &solo_yellow);
     } else {
-	textbox_set_background_color(track->tb_solo_button, &textbox_default_bckgrnd_clr);
+	textbox_set_background_color(track->tb_solo_button, &color_mute_solo_grey);
 
     }
     return track->solo;
@@ -796,7 +799,7 @@ void track_solomute(Track *track)
 void track_unsolomute(Track *track)
 {
     track->solo_muted = false;
-    textbox_set_background_color(track->tb_solo_button, &textbox_default_bckgrnd_clr);
+    textbox_set_background_color(track->tb_solo_button, &color_mute_solo_grey);
 }
 
 void track_or_tracks_solo(Timeline *tl, Track *opt_track)

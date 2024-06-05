@@ -92,61 +92,63 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
      return chunk;
  }
 
- void transport_playback_callback(void* user_data, uint8_t* stream, int len)
- {
-     memset(stream, '\0', len);
+void transport_recording_update_cliprects();
+void transport_playback_callback(void* user_data, uint8_t* stream, int len)
+{
+    memset(stream, '\0', len);
 
-     uint32_t stream_len_samples = len / sizeof(int16_t);
+    uint32_t stream_len_samples = len / sizeof(int16_t);
 
-     float *chunk_L, *chunk_R;
-     if (proj->source_mode) {
-	 chunk_L = get_source_mode_chunk(0, stream_len_samples / proj->channels, proj->src_play_pos_sframes, proj->src_play_speed);
-	 chunk_R = get_source_mode_chunk(1, stream_len_samples / proj->channels, proj->src_play_pos_sframes, proj->src_play_speed);
-     } else {
-	 Timeline *tl = proj->timelines[proj->active_tl_index];
-	 chunk_L = get_mixdown_chunk(tl, 0, stream_len_samples / proj->channels, tl->play_pos_sframes, proj->play_speed);
-	 chunk_R = get_mixdown_chunk(tl, 1, stream_len_samples / proj->channels, tl->play_pos_sframes, proj->play_speed);
-     }
+    float *chunk_L, *chunk_R;
+    if (proj->source_mode) {
+	chunk_L = get_source_mode_chunk(0, stream_len_samples / proj->channels, proj->src_play_pos_sframes, proj->src_play_speed);
+	chunk_R = get_source_mode_chunk(1, stream_len_samples / proj->channels, proj->src_play_pos_sframes, proj->src_play_speed);
+    } else {
+	Timeline *tl = proj->timelines[proj->active_tl_index];
+	chunk_L = get_mixdown_chunk(tl, 0, stream_len_samples / proj->channels, tl->play_pos_sframes, proj->play_speed);
+	chunk_R = get_mixdown_chunk(tl, 1, stream_len_samples / proj->channels, tl->play_pos_sframes, proj->play_speed);
+    }
 
-     int16_t *stream_fmt = (int16_t *)stream;
-     for (uint32_t i=0; i<stream_len_samples; i+=2)
-     {
-	 float val_L = chunk_L[i/2];
-	 float val_R = chunk_R[i/2];
-	 proj->output_L[i/2] = val_L;
-	 proj->output_R[i/2] = val_R;
-	 stream_fmt[i] = (int16_t) (val_L * INT16_MAX);
-	 stream_fmt[i+1] = (int16_t) (val_R * INT16_MAX);
-     }
+    int16_t *stream_fmt = (int16_t *)stream;
+    for (uint32_t i=0; i<stream_len_samples; i+=2)
+    {
+	float val_L = chunk_L[i/2];
+	float val_R = chunk_R[i/2];
+	proj->output_L[i/2] = val_L;
+	proj->output_R[i/2] = val_R;
+	stream_fmt[i] = (int16_t) (val_L * INT16_MAX);
+	stream_fmt[i+1] = (int16_t) (val_R * INT16_MAX);
+    }
 
-     free(chunk_L);
-     free(chunk_R);
-     // for (uint8_t i = 0; i<40; i+=2) {
-     //     fprintf(stderr, "%hd ", (int16_t)(stream[i]));
-     // }
-     // if (proj->tl->play_offset == 0) {
-     //     long            ms; // Milliseconds
-     //     time_t          s;  // Seconds
-     //     struct timespec spec;
-     //     clock_gettime(CLOCK_REALTIME, &spec);
-     //     s  = spec.tv_sec;
-     //     ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
-     //     if (ms > 999) {
-     //         s++;
-     //         ms = 0;
-     //     }
-     //     // proj->tl->play_offset = ms;
-     // }
-     if (proj->source_mode) {
-	 proj->src_play_pos_sframes += proj->src_play_speed * stream_len_samples / proj->channels;
-	 if (proj->src_play_pos_sframes < 0 || proj->src_play_pos_sframes > proj->src_clip->len_sframes) {
-	     proj->src_play_pos_sframes = 0;
-	 }
-     } else {
-	 /* fprintf(stdout, "Move pos: %d\n", (int)proj->play_speed * stream_len_samples / proj->channels); */
-	 timeline_move_play_position(proj->play_speed * stream_len_samples / proj->channels);
-     }
- }
+    free(chunk_L);
+    free(chunk_R);
+    // for (uint8_t i = 0; i<40; i+=2) {
+    //     fprintf(stderr, "%hd ", (int16_t)(stream[i]));
+    // }
+    // if (proj->tl->play_offset == 0) {
+    //     long            ms; // Milliseconds
+    //     time_t          s;  // Seconds
+    //     struct timespec spec;
+    //     clock_gettime(CLOCK_REALTIME, &spec);
+    //     s  = spec.tv_sec;
+    //     ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
+    //     if (ms > 999) {
+    //         s++;
+    //         ms = 0;
+    //     }
+    //     // proj->tl->play_offset = ms;
+    // }
+    if (proj->source_mode) {
+	proj->src_play_pos_sframes += proj->src_play_speed * stream_len_samples / proj->channels;
+	if (proj->src_play_pos_sframes < 0 || proj->src_play_pos_sframes > proj->src_clip->len_sframes) {
+	    proj->src_play_pos_sframes = 0;
+	}
+    } else {
+	/* fprintf(stdout, "Move pos: %d\n", (int)proj->play_speed * stream_len_samples / proj->channels); */
+	timeline_move_play_position(proj->play_speed * stream_len_samples / proj->channels);
+	transport_recording_update_cliprects();
+    }
+}
 
 
 

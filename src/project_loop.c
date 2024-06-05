@@ -463,9 +463,9 @@ void loop_project_main()
 	}
 
 	update_track_vol_pan();
-	if (proj->recording) {
-	    transport_recording_update_cliprects();
-	}
+	/* if (proj->recording) { */
+	/*     transport_recording_update_cliprects(); */
+	/* } */
 	
 	status_frame();
 	/* update_track_vol_and_pan(); */

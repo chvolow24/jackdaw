@@ -221,6 +221,7 @@ Project *project_create(
     proj->chunk_size_sframes = chunk_size_sframes;
     proj->layout = main_win->layout;
     proj->audio_rect = &(layout_get_child_by_name_recursive(proj->layout, "audio_rect")->rect);
+    proj->console_column_rect = &(layout_get_child_by_name_recursive(proj->layout, "audio_rect_pad")->rect);
     proj->control_bar_rect = &(layout_get_child_by_name_recursive(proj->layout, "control_bar")->rect);
     proj->ruler_rect = &(layout_get_child_by_name_recursive(proj->layout, "ruler")->rect);
     Layout *source_lt = layout_get_child_by_name_recursive(proj->layout, "source_area");

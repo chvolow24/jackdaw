@@ -58,6 +58,7 @@ SDL_Color console_bckgrnd = {140, 140, 140, 255};
 /* SDL_Color console_bckgrnd_selector = {230, 190, 100, 255}; */
 SDL_Color console_bckgrnd_selector = {210, 190, 140, 255};
 SDL_Color timeline_bckgrnd =  {50, 52, 55, 255};
+SDL_Color console_column_bckgrnd = {45, 50, 55, 255};
 SDL_Color timeline_marked_bckgrnd = {255, 255, 255, 30};
 SDL_Color ruler_bckgrnd = {10, 10, 10, 255};
 /* SDL_Color control_bar_bckgrnd = {20, 20, 20, 255}; */
@@ -224,10 +225,11 @@ static void track_draw(Track *track)
     }
     SDL_RenderFillRect(main_win->rend, &track->layout->rect);
 
-    
+    SDL_RenderSetClipRect(main_win->rend, proj->audio_rect);
     for (uint8_t i=0; i<track->num_clips; i++) {
 	clipref_draw(track->clips[i]);
     }
+    SDL_RenderSetClipRect(main_win->rend, &main_win->layout->rect);
 
     if (track->tl->track_selector == track->tl_rank) {
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(console_bckgrnd_selector));
@@ -308,7 +310,9 @@ static void timeline_draw(Timeline *tl)
     /* Draw the timeline background */
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(timeline_bckgrnd));
     SDL_RenderFillRect(main_win->rend, &tl->layout->rect);
-    
+
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(console_column_bckgrnd));
+    SDL_RenderFillRect(main_win->rend, proj->console_column_rect);
     /* Draw tracks */
     for (int i=0; i<tl->num_tracks; i++) {
 	track_draw(tl->tracks[i]);

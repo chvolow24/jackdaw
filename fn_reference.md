@@ -1,5 +1,5 @@
 ### global mode
-- Expose help : <kbd>C-h</kbd>
+- Summon menu : <kbd>C-m</kbd>
 - Quit : <kbd>C-q</kbd>
 - Undo : <kbd>C-z</kbd>
 - Redo : <kbd>C-y</kbd>
@@ -7,17 +7,17 @@
 - Open File (.wav or .jdaw) : <kbd>C-o</kbd>
 - Start or stop screenrecording : <kbd>A-S-p</kbd>
 ### menu_nav mode
-- Next item : <kbd>n</kbd>, <kbd>f</kbd>, <kbd>\<up\></kbd>, <kbd>k</kbd>
-- Previous item : <kbd>p</kbd>, <kbd>d</kbd>, <kbd>\<down\></kbd>, <kbd>i</kbd>
+- Next item : <kbd>n</kbd>, <kbd>f</kbd>
+- Previous item : <kbd>p</kbd>, <kbd>d</kbd>
 - Next section : <kbd>C-n</kbd>, <kbd>C-\<up\></kbd>
 - Previous section : <kbd>C-p</kbd>, <kbd>C-\<down\></kbd>
-- Choose item : <kbd>\<ret\></kbd>, <kbd>\<spc\></kbd>
-- Column right : <kbd>l</kbd>, <kbd>\<right\></kbd>
-- Column left : <kbd>j</kbd>, <kbd>\<left\></kbd>
-- Move menu up : <kbd>w</kbd>
-- Move menu down : <kbd>s</kbd>
-- Move menu right : <kbd></kbd>
-- go back (dismiss) : <kbd>h</kbd>
+- Choose item : <kbd>\<ret\></kbd>, <kbd>\<spc\></kbd>, <kbd>k</kbd>
+- Column right : <kbd>l</kbd>
+- Column left : <kbd>j</kbd>
+- Move menu up : <kbd>\<up\></kbd>
+- Move menu down : <kbd>\<down\></kbd>
+- Move menu right : <kbd>\<right\></kbd>
+- go back (dismiss) : <kbd>m</kbd>, <kbd>h</kbd>
 ### timeline mode
 #### Transport
 - Play : <kbd>l</kbd>, <kbd>e</kbd>
@@ -93,5 +93,5 @@
 - Go to next item (escape DirNav) : <kbd>S-n</kbd>, <kbd>S-f</kbd>
 - Go to previous item (escape DirNav) : <kbd>S-p</kbd>, <kbd>S-d</kbd>
 - Select item : <kbd>\<ret\></kbd>, <kbd>\<spc\></kbd>
-- Dismiss modal window : <kbd>h</kbd>
+- Dismiss modal window : <kbd>m</kbd>, <kbd>h</kbd>
 - Submit form : <kbd>C-\<ret\></kbd>

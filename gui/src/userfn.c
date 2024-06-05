@@ -30,7 +30,7 @@ extern SDL_Color color_global_white;
 extern SDL_Color control_bar_bckgrnd;
 void jdaw_write_project(const char *path);
 
-void user_global_expose_help()
+void user_global_menu()
 {
     if (main_win->num_modes <= 0) {
 	status_set_errstr("Error: no modes active in user_global_expose_help");

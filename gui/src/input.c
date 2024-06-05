@@ -128,9 +128,9 @@ static void mode_load_global()
     
     UserFn *fn;
     fn = create_user_fn(
-	"expose_help",
-	"Expose help",
-	user_global_expose_help);
+	"menu",
+	"Summon menu",
+	user_global_menu);
     mode_subcat_add_fn(mc, fn);
     
     fn = create_user_fn(

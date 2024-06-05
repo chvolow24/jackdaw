@@ -176,6 +176,12 @@ You will be prompted to enter a project name (which MUST include the `.jdaw` ext
 
 # User manual
 
+## Menus
+
+**At any* time,** (*except when editing a text field), you can summon a menu with a list of available actions (and keyboard shortcuts) with <kbd>C-m</kbd>. The menu will display the functions available in the current mode (see "Input modes" below). Navigate with <kbd>n</kbd>, <kbd>p</kbd>, and <kbd>/<ret/></kbd> to select. 
+
+Summoning these menus when in doubt might be the best way to learn the available keyboard shortcuts. 
+
 ## Timeline navigation
 
 Timeline navigation functions are all within easy reach of your right hand:
@@ -209,7 +215,21 @@ The "point" (as in "[do thing] at point" is the location in the currently active
 
 ### Marks
 
+In and out marks must be set to export a mixdown to .wav, and can also be used as handy jump-to points.
 
+You can also jump to the start of the timeline (t=00:00:00000) with <kbd>S-u</kbd>, which can be helpful if you get lost. 
+
+<kbd>i</kbd> : **mark in**
+<kbd>o</kbd> : **mark out**
+<kbd>S-i</kbd> : **jump to in mark**
+<kbd>S-o</kbd> : **jump to out mark**
+<kbd>S-u</kbd> : **jump to t=0**
+
+### Scrolling
+
+When you move the track selector with <kbd>n</kbd> and <kbd>p</kbd>, the timeline will automatically refocus such that the selected track is visible. You can also scroll through tracks with a mouse or trackpad. Scrolling horizontally translates the timeline in the manner of <kbd>h</kbd> and <kbd>;</kbd>.
+
+Holding <kbd>Cmd</kbd> or <kbd>Ctrl</kbd> and scrolling on the timeline will zoom in or out.
 
 
 # Function reference

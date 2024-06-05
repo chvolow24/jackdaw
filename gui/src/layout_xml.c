@@ -123,20 +123,26 @@ static void read_dimension(char *dimstr, Dimension *dim)
     } else if (strncmp(dimstr, "COMPLEMENT", 10) == 0) {
 	dim->type = COMPLEMENT;
 	val_i = 11;
+    } else if (strncmp(dimstr, "STACK", 5) == 0) {
+	dim->type = STACK;
+	val_i = 6;
+    } else if (strncmp(dimstr, "PAD", 3) == 0) {
+	val_i = 4;
+    } else if (strncmp(dimstr, "REVREL", 6) == 0) {
+	val_i = 7;
     }
     switch (dim->type) {
-        case ABS:
-            dim->value.intval = atoi(dimstr + val_i);
-            break;
-        case REL:
-            dim->value.intval = atoi(dimstr + val_i);
-            break;
-        case COMPLEMENT:
-	    dim->value.intval = atoi(dimstr + val_i);
-	    break;
-        case SCALE:
-            dim->value.floatval = atof(dimstr + val_i);
-            break;
+    case ABS:
+    case REL:
+    case COMPLEMENT:
+    case STACK:
+    case PAD:
+    case REVREL:
+	dim->value.intval = atoi(dimstr + val_i);
+	break;
+    case SCALE:
+	dim->value.floatval = atof(dimstr + val_i);
+	break;
     }
 }
 

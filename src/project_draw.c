@@ -231,11 +231,13 @@ static void track_draw(Track *track)
 
     if (track->tl->track_selector == track->tl_rank) {
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(console_bckgrnd_selector));
+	SDL_RenderFillRect(main_win->rend, track->console_rect);
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
+	SDL_RenderDrawRect(main_win->rend, track->console_rect);
     } else {
-	
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(console_bckgrnd));
+	SDL_RenderFillRect(main_win->rend, track->console_rect);
     }
-    SDL_RenderFillRect(main_win->rend, track->console_rect);
 
 
     /* Draw the colorbar */
@@ -276,7 +278,8 @@ static void ruler_draw(Timeline *tl)
     float x = tl->proj->ruler_rect->x + timeline_first_second_tick_x(&second);
     float sw = timeline_get_second_w();
     int line_len;
-    while (x < tl->layout->rect.x + tl->layout->rect.w) {
+    while (x < proj->audio_rect->x + proj->audio_rect->w) {
+    /* while (x < tl->layout->rect.x + tl->layout->rect.w) { */
         if (x > proj->audio_rect->x) {
 	    if (second % 60 == 0) {
 		line_len = 20 * main_win->dpi_scale_factor;

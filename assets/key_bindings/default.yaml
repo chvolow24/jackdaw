@@ -23,7 +23,7 @@
 
 ---
 - global:
-  - C-h		: expose_help
+  - C-m		: menu
   - C-q		: quit
   - C-z		: undo
   - C-y		: redo
@@ -36,24 +36,21 @@
   - p		: menu_previous_item
   - f		: menu_next_item
   - d		: menu_previous_item
-  - <up>	: menu_next_item
-  - <down>	: menu_previous_item
+  - <up>	: menu_translate_up
+  - <down>	: menu_translate_down
+  - <left>	: menu_translate_left
+  - <right>	: menu_translate_right
   - <ret>     	: menu_choose_item
   - <spc>	: menu_choose_item
+  - k		: menu_choose_item
   - <del>     	: menu_cancel
   - C-n	      	: menu_next_section
   - C-p	      	: menu_previous_section
-  - i		: menu_previous_item
-  - k		: menu_next_item
   - C-<up>  	: menu_next_section
   - C-<down>   	: menu_previous_section
   - l	      	: menu_column_right
   - j	      	: menu_column_left
-  - <right>   	: menu_column_right
-  - <left>    	: menu_column_left
-  - w		: menu_translate_up
-  - a		: menu_translate_left
-  - s		: menu_translate_down
+  - m		: menu_dismiss
   - h		: menu_dismiss
 - timeline:
   - l		: tl_play
@@ -145,5 +142,6 @@
   - S-d		: modal_previous_escape
   - <ret>	: modal_select
   - <spc>	: modal_select
+  - m		: modal_dismiss
   - h		: modal_dismiss
   - C-<ret>	: modal_submit_form

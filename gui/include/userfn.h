@@ -2,7 +2,7 @@
 #define JDAW_GUI_USERFN_H
 
 
-void user_global_expose_help();
+void user_global_menu();
 void user_global_quit();
 void user_global_undo();
 void user_global_redo();

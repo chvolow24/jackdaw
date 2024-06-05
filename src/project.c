@@ -55,7 +55,7 @@
 #define NUM_TRACK_COLORS 7
 
 #define TRACK_NAME_H_PAD 3
-#define TRACK_NAME_V_PAD 3
+#define TRACK_NAME_V_PAD 1
 #define TRACK_CTRL_SLIDER_H_PAD 7
 #define TRACK_CTRL_SLIDER_V_PAD 5
 
@@ -425,7 +425,8 @@ Track *timeline_add_track(Timeline *tl)
     pan_label = layout_get_child_by_name_recursive(track->layout, "pan_label");
     in_label = layout_get_child_by_name_recursive(track->layout, "in_label");
     in_value = layout_get_child_by_name_recursive(track->layout, "in_value");
-
+    /* layout_pad(in_value, TRACK_NAME_H_PAD, TRACK_NAME_V_PAD); */
+    /* layout_force_reset(in_value); */
     /* fprintf(stdout, "Addrs: %p, %p, %p, %p, %p, %p, %p\n", name, mute, solo, vol_label, pan_label, in_label, in_value); */
     /* textbox_create_from_str(char *set_str, Layout *lt, Font *font, uint8_t text_size, Window *win) -> Textbox *
      */
@@ -437,6 +438,8 @@ Track *timeline_add_track(Timeline *tl)
 	12,
 	main_win);
     textbox_set_background_color(track->tb_vol_label, &color_global_clear);
+    textbox_set_align(track->tb_vol_label, CENTER_LEFT);
+    textbox_set_pad(track->tb_vol_label, TRACK_NAME_H_PAD, 0);
 
     track->tb_pan_label = textbox_create_from_str(
 	"Pan:",
@@ -445,6 +448,9 @@ Track *timeline_add_track(Timeline *tl)
 	12,
 	main_win);
     textbox_set_background_color(track->tb_pan_label, &color_global_clear);
+    textbox_set_align(track->tb_pan_label, CENTER_LEFT);
+    textbox_set_pad(track->tb_pan_label, TRACK_NAME_H_PAD, 0);
+
 
     track->tb_name = textbox_create_from_str(
 	track->name,
@@ -465,7 +471,9 @@ Track *timeline_add_track(Timeline *tl)
 	12,
 	main_win);
     textbox_set_background_color(track->tb_input_label, &color_global_clear);
-    
+    textbox_set_align(track->tb_input_label, CENTER_LEFT);
+    textbox_set_pad(track->tb_input_label, TRACK_NAME_H_PAD, 0);
+
 
     track->tb_input_name = textbox_create_from_str(
 	(char *)track->input->name,
@@ -475,11 +483,11 @@ Track *timeline_add_track(Timeline *tl)
 	main_win);
     track->tb_input_name->corner_radius = 6;
     /* textbox_set_align(track->tb_input_name, CENTER_LEFT); */
-    int saved_w = track->tb_input_name->layout->rect.w / main_win->dpi_scale_factor;
-    textbox_size_to_fit(track->tb_input_name, 2, 1);
-    textbox_set_fixed_w(track->tb_input_name, saved_w - 10);
+    /* int saved_w = track->tb_input_name->layout->rect.w / main_win->dpi_scale_factor; */
+    /* textbox_size_to_fit(track->tb_input_name, 10, 0); */
+    /* textbox_set_trunc(track->tb_input_name, true); */
+    /* textbox_set_fixed_w(track->tb_input_name, saved_w); */
     textbox_set_border(track->tb_input_name, &color_global_black, 1);
-
     
     track->tb_mute_button = textbox_create_from_str(
 	"M",
@@ -489,6 +497,7 @@ Track *timeline_add_track(Timeline *tl)
 	main_win);
     track->tb_mute_button->corner_radius = 4;
     textbox_set_border(track->tb_mute_button, &color_global_black, 1);
+    
     textbox_reset_full(track->tb_mute_button);
 
     track->tb_solo_button = textbox_create_from_str(

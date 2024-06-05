@@ -70,7 +70,8 @@ typedef struct pd_conn {
 
 enum audio_conn_type {
     DEVICE,
-    PURE_DATA
+    PURE_DATA,
+    JACKDAW
 };
 
 union audio_conn_substruct {
@@ -104,6 +105,8 @@ void audioconn_stop_recording(AudioConn *conn);
 void audioconn_handle_connection_event(int index, int iscapture, int event_type);
 
 void audioconn_destroy(AudioConn *conn);
+
+void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type);
 /* int query_audio_devices(Project *proj, int iscapture); */
 /* int device_open(Project *proj, AudioDevice *device); */
 /* void device_start_playback(AudioDevice *dev); */

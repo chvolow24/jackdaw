@@ -42,7 +42,7 @@
 
 extern Project *proj;
 
-static void copy_device_buf_to_clip(Clip *clip);
+void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type);
 void transport_record_callback(void* user_data, uint8_t *stream, int len)
 {
 
@@ -58,7 +58,7 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
 	for (int i=proj->active_clip_index; i<proj->num_clips; i++) {
 	    Clip *clip = proj->clips[i];
 	    if (clip->recorded_from->type == DEVICE && &clip->recorded_from->c.device == dev) {	
-		copy_device_buf_to_clip(clip);
+		copy_conn_buf_to_clip(clip, DEVICE);
 	    }
 	     /* clip->write_bufpos_sframes += dev->write_bufpos_samples / clip->channels; */
 	 }
@@ -147,6 +147,13 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	/* fprintf(stdout, "Move pos: %d\n", (int)proj->play_speed * stream_len_samples / proj->channels); */
 	timeline_move_play_position(proj->play_speed * stream_len_samples / proj->channels);
 	transport_recording_update_cliprects();
+	for (uint8_t i=proj->active_clip_index; i<proj->num_clips; i++) {
+	    Clip *clip = proj->clips[i];
+	    if (clip->recorded_from->type == JACKDAW) {
+		fprintf(stdout, "COPY CONN BUF TO CLIP\n");
+		copy_conn_buf_to_clip(clip, JACKDAW);
+	    }
+	}
     }
 }
 
@@ -282,28 +289,50 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
      }
  }
 
-void copy_pd_buf_to_clip(Clip *clip)
+/* void copy_pd_buf_to_clip(Clip *clip) */
+/* { */
+/*     clip->len_sframes = clip->write_bufpos_sframes + clip->recorded_from->c.pd.write_bufpos_sframes; */
+/*     create_clip_buffers(clip, clip->len_sframes); */
+/*     memcpy(clip->L + clip->write_bufpos_sframes, clip->recorded_from->c.pd.rec_buffer_L, clip->recorded_from->c.pd.write_bufpos_sframes * sizeof(float)); */
+/*     memcpy(clip->R + clip->write_bufpos_sframes, clip->recorded_from->c.pd.rec_buffer_R, clip->recorded_from->c.pd.write_bufpos_sframes * sizeof(float)); */
+/*     clip->write_bufpos_sframes = clip->len_sframes; */
+/* } */
+void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type)
 {
-    clip->len_sframes = clip->write_bufpos_sframes + clip->recorded_from->c.pd.write_bufpos_sframes;
-    create_clip_buffers(clip, clip->len_sframes);
-    memcpy(clip->L + clip->write_bufpos_sframes, clip->recorded_from->c.pd.rec_buffer_L, clip->recorded_from->c.pd.write_bufpos_sframes * sizeof(float));
-    memcpy(clip->R + clip->write_bufpos_sframes, clip->recorded_from->c.pd.rec_buffer_R, clip->recorded_from->c.pd.write_bufpos_sframes * sizeof(float));
-    clip->write_bufpos_sframes = clip->len_sframes;
-}
-void copy_device_buf_to_clip(Clip *clip)
-{
-     clip->len_sframes = clip->write_bufpos_sframes + clip->recorded_from->c.device.write_bufpos_samples / clip->channels;
-     create_clip_buffers(clip, clip->len_sframes);
-     for (int i=0; i<clip->recorded_from->c.device.write_bufpos_samples; i+=clip->channels) {
-	 float sample_L = (float) clip->recorded_from->c.device.rec_buffer[i] / INT16_MAX;
-	 float sample_R = (float) clip->recorded_from->c.device.rec_buffer[i+1] / INT16_MAX;
-	 clip->L[clip->write_bufpos_sframes + i/clip->channels] = sample_L;
-	 clip->R[clip->write_bufpos_sframes + i/clip->channels] = sample_R;;
-     }
-     clip->write_bufpos_sframes = clip->len_sframes;
+    switch (type) {
+    case DEVICE:
+	clip->len_sframes = clip->write_bufpos_sframes + clip->recorded_from->c.device.write_bufpos_samples / clip->channels;
+	create_clip_buffers(clip, clip->len_sframes);
+	for (int i=0; i<clip->recorded_from->c.device.write_bufpos_samples; i+=clip->channels) {
+	    float sample_L = (float) clip->recorded_from->c.device.rec_buffer[i] / INT16_MAX;
+	    float sample_R = (float) clip->recorded_from->c.device.rec_buffer[i+1] / INT16_MAX;
+	    clip->L[clip->write_bufpos_sframes + i/clip->channels] = sample_L;
+	    clip->R[clip->write_bufpos_sframes + i/clip->channels] = sample_R;;
+	}
+	clip->write_bufpos_sframes = clip->len_sframes;
+
+	break;
+    case PURE_DATA:
+	clip->len_sframes = clip->write_bufpos_sframes + clip->recorded_from->c.pd.write_bufpos_sframes;
+	create_clip_buffers(clip, clip->len_sframes);
+	memcpy(clip->L + clip->write_bufpos_sframes, clip->recorded_from->c.pd.rec_buffer_L, clip->recorded_from->c.pd.write_bufpos_sframes * sizeof(float));
+	memcpy(clip->R + clip->write_bufpos_sframes, clip->recorded_from->c.pd.rec_buffer_R, clip->recorded_from->c.pd.write_bufpos_sframes * sizeof(float));
+	clip->write_bufpos_sframes = clip->len_sframes;
+	break;
+    case JACKDAW:
+	clip->len_sframes += proj->chunk_size_sframes;
+	create_clip_buffers(clip, clip->len_sframes);
+	memcpy(clip->L + clip->write_bufpos_sframes, proj->output_L, sizeof(float) * proj->chunk_size_sframes);
+	memcpy(clip->R + clip->write_bufpos_sframes, proj->output_R, sizeof(float) * proj->chunk_size_sframes);
+	clip->write_bufpos_sframes = clip->len_sframes;
+	/* clip->len_sframes = clip->write_bufpos_sframes; */
+	break;
+    default:
+	break;
+    }
      /* clip->recorded_from->write_bufpos_samples = 0; */
      /* clip->recording = false; */
- }
+}
 
  /* static void complete_pd_clip(Clip *clip) */
  /* { */
@@ -330,10 +359,10 @@ void transport_stop_recording()
 	/* exit(0); */
 	switch (clip->recorded_from->type) {
 	case DEVICE:
-	    copy_device_buf_to_clip(clip);
+	    copy_conn_buf_to_clip(clip, DEVICE);
 	    break;
 	case PURE_DATA:
-	    copy_pd_buf_to_clip(clip);
+	    copy_conn_buf_to_clip(clip, PURE_DATA);
 	    /* complete_pd_clip(clip); */
 	    break;
 	}
@@ -384,6 +413,8 @@ void transport_recording_update_cliprects()
 	    break;
 	case PURE_DATA:
 	    clip->len_sframes = clip->recorded_from->c.pd.write_bufpos_sframes + clip->write_bufpos_sframes;
+	    break;
+	case JACKDAW:
 	    break;
 	}
 

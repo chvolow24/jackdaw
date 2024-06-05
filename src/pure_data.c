@@ -273,7 +273,7 @@ void *pd_jackdaw_record_on_thread(void *arg)
 	if (pdconn->write_bufpos_sframes + pd_blocksize >= pdconn->rec_buf_len_sframes) {
 	    Clip *clip = conn->current_clip;
 	    if (clip) {
-		copy_pd_buf_to_clip(clip);
+		copy_conn_buf_to_clip(clip, PURE_DATA);
 		pdconn->write_bufpos_sframes = 0;
 	    }
 	}

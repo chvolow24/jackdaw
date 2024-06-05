@@ -45,80 +45,7 @@
 
 extern Project *proj;
 
-/* static int query_audio_devices(Project *proj, int iscapture) */
-/* { */
-    /* AudioDevice **device_list; */
-    /* if (iscapture) { */
-    /* 	device_list = proj->record_devices; */
-    /* } else { */
-    /* 	device_list = proj->playback_devices; */
-    /* } */
-    
-    /* AudioDevice *default_dev = malloc(sizeof(AudioDevice)); */
 
-    /* if (SDL_GetDefaultAudioInfo((char**) &((default_dev->name)), &(default_dev->spec), iscapture) != 0) { */
-    /*     default_dev->iscapture = iscapture; */
-    /*     default_dev->name = "(no device found)"; */
-    /*     fprintf(stderr, "Error: unable to retrieve default %s device info. %s\n", iscapture ? "input" : "output", SDL_GetError()); */
-    /* } */
-    /* default_dev->open = false; */
-    /* default_dev->active = false; */
-    /* default_dev->index = 0; */
-    /* default_dev->iscapture = iscapture; */
-    /* default_dev->write_bufpos_samples = 0; */
-    /* default_dev->rec_buffer = NULL; */
-    /* // memset(default_dev->rec_buffer, '\0', BUFFLEN / 2); */
-
-
-    /* int num_devices = SDL_GetNumAudioDevices(iscapture); */
-
-    /* device_list[0] = default_dev; */
-    /* for (int i=0,j=1; i<num_devices; i++,j++) { */
-    /*     AudioDevice *dev = malloc(sizeof(AudioDevice)); */
-    /*     dev->name = SDL_GetAudioDeviceName(i, iscapture); */
-    /*     if (strcmp(dev->name, default_dev->name) == 0) { */
-    /*         free(dev); */
-    /*         j--; */
-    /*         continue; */
-    /*     } */
-    /*     dev->open = false; */
-    /*     dev->active = false; */
-    /*     dev->index = j; */
-    /*     dev->iscapture = iscapture; */
-    /*     dev->write_bufpos_samples = 0; */
-    /*     // memset(dev->rec_buffer, '\0', BUFFLEN / 2); */
-    /*     SDL_AudioSpec spec; */
-    /*     if (SDL_GetAudioDeviceSpec(i, iscapture, &spec) != 0) { */
-    /*         fprintf(stderr, "Error getting device spec: %s\n", SDL_GetError()); */
-    /*     }; */
-    /*     dev->spec = spec; */
-    /*     dev->rec_buffer = NULL; */
-    /*     device_list[j] = dev; */
-    /*     /\* fprintf(stderr, "\tFound device: %s, index: %d\n", dev->name, dev->index); *\/ */
-
-    /* } */
-    /* return num_devices; */
-/* } */
-
-/* AudioConn *audio_conn_create_device(int index, int iscapture) */
-/* { */
-/* 	AudioConn *conn = calloc(sizeof(AudioConn), 1); */
-/*         AudioDevice *dev = &conn->c.device; */
-/*         conn->open = false; */
-/*         conn->active = false; */
-/* 	conn->available = true; */
-/*         conn->index = index; */
-/*         conn->iscapture = iscapture; */
-/*         dev->write_bufpos_samples = 0; */
-/*         // memset(dev->rec_buffer, '\0', BUFFLEN / 2); */
-/*         SDL_AudioSpec spec; */
-/*         if (SDL_GetAudioDeviceSpec(index, iscapture, &spec) != 0) { */
-/*             fprintf(stderr, "Error getting device spec: %s\n", SDL_GetError()); */
-/*         }; */
-/*         dev->spec = spec; */
-/*         dev->rec_buffer = NULL; */
-/*         return conn; */
-/* } */
 
 int query_audio_connections(Project *proj, int iscapture)
 {
@@ -200,6 +127,15 @@ int query_audio_connections(Project *proj, int iscapture)
 	pd->available = true;
 	conn_list[num_conns] = pd;
 	num_conns++;
+
+	AudioConn *jdaw = calloc(sizeof(AudioConn), 1);
+	jdaw->type = JACKDAW;
+	strcpy(jdaw->name, "jackdaw output");
+	jdaw->index = num_devices;
+	jdaw->iscapture = iscapture;
+	jdaw->available = true;
+	conn_list[num_conns] = jdaw;
+	num_conns++;
     }
     if (!iscapture) {
 	fprintf(stdout, "PLAYBACK CONNS: %d\n", num_conns);
@@ -211,49 +147,6 @@ int query_audio_connections(Project *proj, int iscapture)
 
 void transport_playback_callback(void *user_data, uint8_t *stream, int len);
 void transport_record_callback(void *user_data, uint8_t *stream, int len);
-
-/* /\* Returns 0 if device opened successfully, 1 on error *\/ */
-/* static int device_open(Project *proj, AudioDevice *device) */
-/* { */
-/*     SDL_AudioSpec obtained; */
-/*     SDL_zero(obtained); */
-/*     SDL_zero(device->spec); */
-
-/*     /\* Project determines high-level audio settings *\/ */
-/*     device->spec.format = AUDIO_S16LSB; */
-/*     device->spec.samples = proj->chunk_size_sframes; */
-/*     device->spec.freq = proj->sample_rate; */
-
-/*     device->spec.channels = proj->channels; */
-/*     device->spec.callback = device->iscapture ? transport_record_callback : transport_playback_callback; */
-/*     device->spec.userdata = device; */
-
-/*     if ((device->id = SDL_OpenAudioDevice(device->name, device->iscapture, &(device->spec), &(obtained), 0)) > 0) { */
-/*         device->spec = obtained; */
-/*         device->open = true; */
-/*         fprintf(stderr, "Successfully opened device %s, with id: %d\n", device->name, device->id); */
-/*     } else { */
-/*         device->open = false; */
-/*         fprintf(stderr, "Error opening audio device %s : %s\n", device->name, SDL_GetError()); */
-/*         return 1; */
-/*     } */
-
-/*     if (device->iscapture) { */
-/* 	/\* fprintf(stdout, "Dev %s\n:ch %d, freq %d, format %d (== %d)\n", device->name, obtained.channels, obtained.freq, obtained.format, AUDIO_S16LSB); *\/ */
-/* 	/\* exit(1); *\/ */
-/* 	/\* device->rec_buf_len_samples = proj->sample_rate * DEVICE_BUFLEN_SECONDS * device->spec.channels; *\/ */
-/* 	device->rec_buf_len_samples = DEVICE_BUFLEN_CHUNKS * proj->chunk_size_sframes * proj->channels; */
-/* 	uint32_t device_buf_len_bytes = device->rec_buf_len_samples * sizeof(int16_t); */
-/* 	if (!device->rec_buffer) { */
-/* 	    device->rec_buffer = malloc(device_buf_len_bytes); */
-/* 	} */
-/* 	device->write_bufpos_samples = 0; */
-/* 	if (!(device->rec_buffer)) { */
-/* 	    fprintf(stderr, "Error: unable to allocate space for device buffer.\n"); */
-/* 	} */
-/*     } */
-/*     return 0; */
-/* } */
 
 int audioconn_open(Project *proj, AudioConn *conn)
 {
@@ -322,6 +215,8 @@ int audioconn_open(Project *proj, AudioConn *conn)
 	/* conn->index = -1; */
 	conn->open = true;
 	break;
+    case JACKDAW:
+	break;
     }
     return 0;
 }
@@ -365,6 +260,8 @@ void audioconn_destroy(AudioConn *conn)
 	if ((intbuf= conn->c.device.rec_buffer))
 	    free(intbuf);
 	break;
+    case JACKDAW:
+	break;
     }
     free(conn);
 }
@@ -385,6 +282,8 @@ void audioconn_close(AudioConn *conn)
 	break;
     case PURE_DATA:
 	break;
+    case JACKDAW:
+	break;
     }
     
 }
@@ -403,6 +302,8 @@ void audioconn_start_playback(AudioConn *conn)
 	break;
     case PURE_DATA:
 	break;
+    case JACKDAW:
+	break;
     }
 }
 
@@ -419,6 +320,8 @@ void audioconn_stop_playback(AudioConn *conn)
 	device_stop_playback(&conn->c.device);
 	break;
     case PURE_DATA:
+	break;
+    case JACKDAW:
 	break;
     }
 }
@@ -437,6 +340,8 @@ void audioconn_stop_recording(AudioConn *conn)
 	device_stop_recording(&conn->c.device);
 	break;
     case PURE_DATA:
+	break;
+    case JACKDAW:
 	break;
     }
 }
@@ -461,6 +366,8 @@ void audioconn_start_recording(AudioConn *conn)
 	pthread_t pd_thread;
 	pthread_create(&pd_thread, NULL, pd_jackdaw_record_on_thread, conn);
     }
+	break;
+    case JACKDAW:
 	break;
     }
 }

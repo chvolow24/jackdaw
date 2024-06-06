@@ -120,7 +120,7 @@ int query_audio_connections(Project *proj, int iscapture)
     if (iscapture) {
 	AudioConn *pd = calloc(sizeof(AudioConn), 1);
 	pd->type = PURE_DATA;
-	strcpy(pd->name, "pure data");
+	strcpy(pd->name, "Pure data");
 	/* pd->name = "pure data"; */
 	pd->index = num_devices;
 	pd->iscapture = iscapture;
@@ -130,7 +130,7 @@ int query_audio_connections(Project *proj, int iscapture)
 
 	AudioConn *jdaw = calloc(sizeof(AudioConn), 1);
 	jdaw->type = JACKDAW;
-	strcpy(jdaw->name, "jackdaw output");
+	strcpy(jdaw->name, "Jackdaw (ouroboros)");
 	jdaw->index = num_devices;
 	jdaw->iscapture = iscapture;
 	jdaw->available = true;
@@ -202,8 +202,8 @@ int audioconn_open(Project *proj, AudioConn *conn)
 	if (conn->iscapture) {
 	    if (!pdconn->rec_buffer_L) {
 		pdconn->rec_buf_len_sframes = PD_BUFLEN_CHUNKS * proj->chunk_size_sframes;
-		pdconn->rec_buffer_L = malloc(sizeof(float) * pdconn->rec_buf_len_sframes);
-		pdconn->rec_buffer_R = malloc(sizeof(float) * pdconn->rec_buf_len_sframes);
+		if (!pdconn->rec_buffer_L) pdconn->rec_buffer_L = malloc(sizeof(float) * pdconn->rec_buf_len_sframes);
+		if (!pdconn->rec_buffer_R) pdconn->rec_buffer_R = malloc(sizeof(float) * pdconn->rec_buf_len_sframes);
 		fprintf(stdout, "allocated %d samples in buf\n", pdconn->rec_buf_len_sframes);
 		pdconn->write_bufpos_sframes = 0;
 		if (pdconn->rec_buffer_L == NULL || pdconn->rec_buffer_R == NULL) {
@@ -216,6 +216,11 @@ int audioconn_open(Project *proj, AudioConn *conn)
 	conn->open = true;
 	break;
     case JACKDAW:
+	if (conn->iscapture) {
+	    conn->c.jdaw.rec_buf_len_sframes = PD_BUFLEN_CHUNKS * proj->chunk_size_sframes;
+	    if (!conn->c.jdaw.rec_buffer_L) conn->c.jdaw.rec_buffer_L = malloc(sizeof(float) * conn->c.jdaw.rec_buf_len_sframes);
+	    if (!conn->c.jdaw.rec_buffer_R) conn->c.jdaw.rec_buffer_R = malloc(sizeof(float) * conn->c.jdaw.rec_buf_len_sframes);
+	}
 	break;
     }
     return 0;
@@ -254,13 +259,17 @@ void audioconn_destroy(AudioConn *conn)
 	if ((buf = conn->c.pd.rec_buffer_L))
 	    free(buf);
 	if ((buf = conn->c.pd.rec_buffer_R))
-	    free (buf);
+	    free(buf);
 	break;
     case DEVICE:
 	if ((intbuf= conn->c.device.rec_buffer))
 	    free(intbuf);
 	break;
     case JACKDAW:
+	if ((buf = conn->c.jdaw.rec_buffer_L))
+	    free(buf);
+	if ((buf = conn->c.jdaw.rec_buffer_R))
+	    free(buf);
 	break;
     }
     free(conn);
@@ -268,6 +277,10 @@ void audioconn_destroy(AudioConn *conn)
 
 static void device_close(AudioDevice *device)
 {
+    if (device->rec_buffer) {
+	free(device->rec_buffer);
+	device->rec_buffer = NULL;
+    }
     /* fprintf(stdout, "CLOSING device %s, id: %d\n",device->name, device->id); */
     SDL_CloseAudioDevice(device->id);
     device->id = 0;
@@ -275,14 +288,31 @@ static void device_close(AudioDevice *device)
 
 void audioconn_close(AudioConn *conn)
 {
+    float **buf;
     conn->open = false;
     switch (conn->type) {
     case DEVICE:
 	device_close(&conn->c.device);
 	break;
     case PURE_DATA:
+	if ((buf = &conn->c.pd.rec_buffer_L)) {
+	    free(*buf);
+	    *buf = NULL;
+	}
+	if ((buf = &conn->c.pd.rec_buffer_R)) {
+	    free(*buf);
+	    *buf = NULL;
+	}
 	break;
     case JACKDAW:
+	if ((buf = &conn->c.pd.rec_buffer_L)) {
+	    free(*buf);
+	    *buf = NULL;
+	}
+	if ((buf = &conn->c.pd.rec_buffer_R)) {
+	    free(*buf);
+	    *buf = NULL;
+	}
 	break;
     }
     
@@ -330,7 +360,7 @@ static void device_stop_recording(AudioDevice *dev)
 {
     SDL_PauseAudioDevice(dev->id, 1);
     /* dev->write_bufpos_samples = 0; */
-    device_close(dev);
+    /* device_close(dev); */
 }
 
 void audioconn_stop_recording(AudioConn *conn)

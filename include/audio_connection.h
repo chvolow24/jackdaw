@@ -68,6 +68,13 @@ typedef struct pd_conn {
     int32_t write_bufpos_sframes;
 } PdConn;
 
+typedef struct jdaw_conn {
+    float *rec_buffer_L;
+    float *rec_buffer_R;
+    uint32_t rec_buf_len_sframes;
+    int32_t write_bufpos_sframes;
+} JDAWConn;
+
 enum audio_conn_type {
     DEVICE,
     PURE_DATA,
@@ -77,6 +84,7 @@ enum audio_conn_type {
 union audio_conn_substruct {
     AudioDevice device;
     PdConn pd;
+    JDAWConn jdaw;
     
 };
 typedef struct audio_conn {

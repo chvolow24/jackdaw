@@ -327,7 +327,6 @@ void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type)
 	clip->write_bufpos_sframes = clip->len_sframes;
 	break;
     case JACKDAW:
-	fprintf(stdout, "Copying dev buf to clip at %d\n", clip->write_bufpos_sframes);
 	clip->len_sframes = clip->write_bufpos_sframes + clip->recorded_from->c.jdaw.write_bufpos_sframes;
 	create_clip_buffers(clip, clip->len_sframes);
 	memcpy(clip->L + clip->write_bufpos_sframes, clip->recorded_from->c.jdaw.rec_buffer_L, clip->recorded_from->c.jdaw.write_bufpos_sframes * sizeof(float));
@@ -354,6 +353,18 @@ void transport_stop_recording()
 {
 
     transport_stop_playback();
+    AudioConn *conn;
+    AudioConn *conns_to_close[64];
+    uint8_t num_conns_to_close = 0;
+    for (int i=0; i<proj->num_record_conns; i++) {
+	if ((conn = proj->record_conns[i]) && conn->active) {
+	    audioconn_stop_recording(conn);
+	    conns_to_close[num_conns_to_close] = conn;
+	    /* audioconn_close(conn); */
+	    conn->active = false;
+	}
+    }
+    proj->recording = false;
 
     while (proj->active_clip_index < proj->num_clips) {
 	Clip *clip = proj->clips[proj->active_clip_index];
@@ -375,15 +386,11 @@ void transport_stop_recording()
 	clip->recording = false;
 	proj->active_clip_index++;
     }
-    AudioConn *conn;
-    for (int i=0; i<proj->num_record_conns; i++) {
-	if ((conn = proj->record_conns[i]) && conn->active) {
-	    audioconn_stop_recording(conn);
-	    audioconn_close(conn);
-	    conn->active = false;
-	}
+
+    while (num_conns_to_close > 0) {
+	audioconn_close(conns_to_close[--num_conns_to_close]);
     }
-    proj->recording = false;
+
     
 }
 

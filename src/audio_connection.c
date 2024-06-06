@@ -130,7 +130,7 @@ int query_audio_connections(Project *proj, int iscapture)
 
 	AudioConn *jdaw = calloc(sizeof(AudioConn), 1);
 	jdaw->type = JACKDAW;
-	strcpy(jdaw->name, "Jackdaw (ouroboros)");
+	strcpy(jdaw->name, "Jackdaw out");
 	jdaw->index = num_devices;
 	jdaw->iscapture = iscapture;
 	jdaw->available = true;

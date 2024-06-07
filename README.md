@@ -22,7 +22,7 @@ A stripped-down, keyboard-focused digital audio workstation (DAW) taking some de
     1. [Menus](#menus)
 	2. [Timeline navigation and playback](#timeline-navigation-and-playback)
 	     1. [Transport](#transport)
-		 2. [Translate / zoom](#translate-zoom)
+		 2. [Translate / zoom](#translate-/-zoom)
 		 3. [Track selector](#track-selector)
 		 4. ["Point"](#point)
 		 5. [Marks and jump-to](#marks-and-jump-to)

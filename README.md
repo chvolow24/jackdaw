@@ -160,7 +160,7 @@ The first thing you'll probably want to do upon opening jackdaw is to **add a tr
 
 (Hold down <kbd>cmd</kbd> or <kbd>ctrl</kbd> and hit <kbd>t</kbd>).
 <!-- ![add_track.gif](assets/readme_imgs/add_track.gif) -->
-<img src="assets/readme_imgs/add_track2.gif" width="80%" />
+<img src="assets/readme_imgs/add_track2.gif" width="60%" />
 
 The track input will be set to the default system audio input device, but you can **change the current track input** if you like with <kbd>C-S-i</kbd>. A list of available input devices will appear. Use <kbd>n</kbd> (for 'next') to go to the next item in the list, and <kbd>p</kbd> (for 'previous') to go to the previous. (These keys will be used a lot). Hit <kbd>\<ret\></kbd> to choose the currently-highlighted device.
 
@@ -168,7 +168,7 @@ The track input will be set to the default system audio input device, but you ca
 
 Once you have selected an appropriate audio input device, you can **start recording audio** into jackdaw with <kbd>r</kbd>. After making some noise at your computer or microphone, **stop recording** with <kbd>r</kbd>.
 
-<img src="assets/readme_imgs/record2.gif" width="80%" />
+<img src="assets/readme_imgs/record2.gif" width="60%" />
 
 
 ### 3. Playback
@@ -184,7 +184,7 @@ If you tap <kbd>l</kbd> or <kbd>j</kbd> multiple times, the playback speed will 
 
 The clip you recorded landed on the first track by default. You can again use the <kbd>n</kbd> and <kbd>p</kbd> keys to **move the track selector** up and down. Try rewinding back to the beginning of the recording you made, selecting a different track, and recording some new audio.
 
-<img src="assets/readme_imgs/record_other_track2.gif" width="80%" />
+<img src="assets/readme_imgs/record_other_track2.gif" width="60%" />
 
 ### 5. Exporting a .wav file
 
@@ -192,7 +192,7 @@ Now that you've created some multi-track audio, you might want to export it to a
 
 You will first be prompted to entire a file name. Hit <kbd>tab</kbd> or <kbd>\<ret\></kbd> to apply the current name, and move down to the directory navigation pane. Then, use <kbd>n</kbd> and <kbd>p</kbd> to navigate through the filesystem to the directory where you want to save the file. Finally, use <kbd>C-\<ret\></kbd> to "submit the form" and save the file.
 
-<img src="assets/readme_imgs/export_wav2.gif" width="80%" />
+<img src="assets/readme_imgs/export_wav2.gif" width="60%" />
 
 ### 6. Saving your project
 
@@ -445,7 +445,7 @@ A clip can also be "grabbed" with <kbd>C-\<click\></kbd>.
 
 If clip dragging is enabled, an indiciation will appear in the status bar at the bottom of the screen indicating how many clips are currently grabbed.
 
-<img src="assets/readme_imgs/drag_clips.gif" width="80%" />
+<img src="assets/readme_imgs/drag_clips.gif" width="60%" />
 
 Moving the track selector will pull all currently-dragging clips along with it.
 
@@ -455,7 +455,7 @@ Moving the track selector will pull all currently-dragging clips along with it.
 
 This will cut any clips on the currently selected track at the current playhead position in two, so that you can independently move or otherwise modify each part.
 
-<img src="assets/readme_imgs/cut_clip.gif" width="80%" />
+<img src="assets/readme_imgs/cut_clip.gif" width="60%" />
 
 ## Sample mode / Source mode
 

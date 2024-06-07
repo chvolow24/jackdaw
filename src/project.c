@@ -70,6 +70,7 @@ extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;
 extern SDL_Color color_global_clear;
 extern SDL_Color color_global_red;
+extern SDL_Color color_global_green;
 extern SDL_Color color_global_light_grey;
 
 SDL_Color color_mute_solo_grey = {210, 210, 210, 255};
@@ -303,6 +304,7 @@ Project *project_create(
 
     Layout *status_bar_lt = layout_add_child(proj->layout);
     layout_set_name(status_bar_lt, "status_bar");
+    Layout *draglt = layout_add_child(status_bar_lt);
     Layout *calllt = layout_add_child(status_bar_lt);
     Layout *errlt = layout_add_child(status_bar_lt);
     /* calllt->w.type = SCALE; */
@@ -317,12 +319,20 @@ Project *project_create(
     status_bar_lt->h.value.intval = STATUS_BAR_H;
     proj->status_bar.layout = status_bar_lt;
 
+    draglt->h.type = SCALE;
+    draglt->h.value.floatval = 1.0;
+    draglt->y.value.intval = 0;
+    draglt->x.type = REL;
+    draglt->x.value.intval = STATUS_BAR_H_PAD;
+    draglt->w.value.intval = 0;
+
     calllt->h.type = SCALE;
     calllt->h.value.floatval = 1.0;
     calllt->y.value.intval = 0;
-    calllt->x.type = REL;
+    calllt->x.type = STACK;
     calllt->x.value.intval = STATUS_BAR_H_PAD;
     calllt->w.value.intval = 500;
+
 
     errlt->h.type = SCALE;
     errlt->h.value.floatval = 1.0;
@@ -338,7 +348,12 @@ Project *project_create(
     textbox_set_text_color(proj->status_bar.call, &color_global_light_grey);
     textbox_set_background_color(proj->status_bar.call, &color_global_clear);
     textbox_set_align(proj->status_bar.call, CENTER_LEFT);
-    
+
+    proj->status_bar.dragstat = textbox_create_from_str(proj->status_bar.dragstr, draglt, main_win->mono_bold_font, 14, main_win);
+    textbox_set_trunc(proj->status_bar.dragstat, false);
+    textbox_set_text_color(proj->status_bar.dragstat, &color_global_green);
+    textbox_set_background_color(proj->status_bar.dragstat, &color_global_clear);
+    textbox_set_align(proj->status_bar.dragstat, CENTER_LEFT);
     
     proj->status_bar.error = textbox_create_from_str(proj->status_bar.errstr, errlt, main_win->mono_bold_font, 14, main_win);
     textbox_set_trunc(proj->status_bar.error, false);
@@ -348,6 +363,7 @@ Project *project_create(
     /* textbox_size_to_fit(proj->status_bar.call, 0, 0); */
     /* textbox_size_to_fit(proj->status_bar.error, 0, 0); */
     textbox_reset_full(proj->status_bar.error);
+    textbox_reset_full(proj->status_bar.dragstat);
     textbox_reset_full(proj->status_bar.call);
 	
     return proj;

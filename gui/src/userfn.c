@@ -807,9 +807,16 @@ void user_tl_track_destroy()
     if (proj->recording) {
 	transport_stop_recording();
     }
+    
 
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (tl->num_tracks > 0) {
+	
+	/* Temporary (?) bug fix: */
+	timeline_ungrab_all_cliprefs(tl);
+	status_stat_drag();
+	/* End temporary (?) bug fix */
+	
 	Track *track = tl->tracks[tl->track_selector];
 	track_destroy(track, true);
 	if (tl->track_selector > tl->num_tracks - 1) {
@@ -948,7 +955,10 @@ void user_tl_clipref_grab_ungrab()
 	    cr->grabbed = false;
 	}
 	tl->num_grabbed_clips = 0;
-    }    
+    }
+    if (proj->dragging) {
+	status_stat_drag();
+    }
 }
 
 /* void user_tl_play_drag() */
@@ -970,6 +980,7 @@ void user_tl_clipref_grab_ungrab()
 void user_tl_toggle_drag()
 {
     proj->dragging = !proj->dragging;
+    status_stat_drag();
 }
 
 void user_tl_cut_clipref()
@@ -1197,6 +1208,9 @@ void user_tl_cliprefs_destroy()
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (tl) {
 	timeline_destroy_grabbed_cliprefs(tl);
+    }
+    if (proj->dragging) {
+	status_stat_drag();
     }
 }
 

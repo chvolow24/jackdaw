@@ -125,6 +125,7 @@ int query_audio_connections(Project *proj, int iscapture)
 	pd->index = num_devices;
 	pd->iscapture = iscapture;
 	pd->available = true;
+	/* pd->c.pd.buf_lock = SDL_CreateMutex(); */
 	conn_list[num_conns] = pd;
 	num_conns++;
 
@@ -211,6 +212,7 @@ int audioconn_open(Project *proj, AudioConn *conn)
 		}
 	    }
 	}
+	/* SDL_UnlockMutex(pdconn->buf_lock); */
 	fprintf(stdout, "Successfully opened pd conn\n");
 	/* conn->index = -1; */
 	conn->open = true;
@@ -295,14 +297,15 @@ void audioconn_close(AudioConn *conn)
 	device_close(&conn->c.device);
 	break;
     case PURE_DATA:
-	if ((buf = &conn->c.pd.rec_buffer_L)) {
-	    free(*buf);
-	    *buf = NULL;
-	}
-	if ((buf = &conn->c.pd.rec_buffer_R)) {
-	    free(*buf);
-	    *buf = NULL;
-	}
+	/* SDL_TryLockMutex(conn->c.pd.buf_lock); */
+	/* if ((buf = &conn->c.pd.rec_buffer_L)) { */
+	/*     free(*buf); */
+	/*     *buf = NULL; */
+	/* } */
+	/* if ((buf = &conn->c.pd.rec_buffer_R)) { */
+	/*     free(*buf); */
+	/*     *buf = NULL; */
+	/* } */
 	break;
     case JACKDAW:
 	if ((buf = &conn->c.pd.rec_buffer_L)) {

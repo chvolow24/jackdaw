@@ -180,11 +180,13 @@ You will be prompted to enter a project name (which MUST include the `.jdaw` ext
 
 ## Menus
 
-**At any* time,** (*except when editing a text field), you can summon a menu with a list of available actions (and keyboard shortcuts) with <kbd>C-m</kbd>. The menu will display the functions available in the current mode (see "Input modes" below). Navigate with <kbd>n</kbd>, <kbd>p</kbd>, and <kbd>/<ret/></kbd> to select. 
+**At any* time**, you can summon a menu with a list of available actions (and keyboard shortcuts) with <kbd>C-m</kbd>. The menu will display the functions available in the current mode (see "Input modes" below). Navigate with <kbd>n</kbd>, <kbd>p</kbd>, and <kbd>/<ret/></kbd> to select. 
 
 Summoning these menus when in doubt might be the best way to learn the available keyboard shortcuts. 
 
-## Timeline navigation
+*except when editing a text field. I intend to fix this and other problems related to text entry soon. 
+
+## Timeline navigation and playback
 
 Timeline navigation functions are all within easy reach of your right hand:
 
@@ -192,6 +194,7 @@ Timeline navigation functions are all within easy reach of your right hand:
 <kbd>j</kbd> : **rewind** (multiple taps to rewind fast)<br>
 <kbd>k</kbd> : **pause**<br>
 <kbd>l</kbd> : **play** (multiple taps to play fast)<br>
+
 
 ### Translate / zoom
 <kbd>h</kbd> : **move view left**<br>
@@ -215,17 +218,17 @@ The *track selector* is how you indicate which track your are doing things to. T
 
 The "point" (as in "[do thing] at point" is the location in the currently active timeline, under the current playhead position, on the currently selected track. So, *"grab clip at point"* means "grab the top clip on the currently selected track that intersects with the current playhead position."
 
-### Marks
+### Marks & jump-to
 
 In and out marks must be set to export a mixdown to .wav, and can also be used as handy jump-to points.
 
 You can also jump to the start of the timeline (t=00:00:00000) with <kbd>S-u</kbd>, which can be helpful if you get lost. 
 
-<kbd>i</kbd> : **mark in**
-<kbd>o</kbd> : **mark out**
-<kbd>S-i</kbd> : **jump to in mark**
-<kbd>S-o</kbd> : **jump to out mark**
-<kbd>S-u</kbd> : **jump to t=0**
+<kbd>i</kbd> : **mark in**<br>
+<kbd>o</kbd> : **mark out**<br>
+<kbd>S-i</kbd> : **jump to in mark**<br>
+<kbd>S-o</kbd> : **jump to out mark**<br>
+<kbd>S-u</kbd> : **jump to t=0**<br>
 
 ### Scrolling
 
@@ -233,9 +236,95 @@ When you move the track selector with <kbd>n</kbd> and <kbd>p</kbd>, the timelin
 
 Holding <kbd>Cmd</kbd> or <kbd>Ctrl</kbd> and scrolling on the timeline will zoom in or out.
 
+## Recording
+
+<kbd>r</kbd> : **start or stop recording**<br>
+
+When you hit <kbd>r</kbd>, audio recording will begin on all activated tracks -- or, if no tracks are activated, on the currently selected track. Clips are created on each of these tracks beginning at the current playhead position. When you stop recording, these clips will be populated with the audio data you just recorded.
+
+You can record from multiple audio devices at once, simply by setting different inputs on different tracks, activating each of those tracks, and hitting <kbd>r</kbd>.
+
+## Tracks
+
+<kbd>C-t</kbd> : **add a track**<br>
+<kbd>C-\<del\></kbd> : **delete the currently selected track**<br>
+
+> [!CAUTION]
+> In the current jackdaw version (v0.2.0), deleting a track will permanently delete all of its data, as well as any audio clip data native to that track and all references to those clips.
+
+### Activating / deactivating tracks
+
+If you are only ever doing things to one track at a time, you will never need to activate a track; you simply need to move the track selector (with <kbd>n</kbd> and <kbd>p</kbd>) to select your target track. However, if you would like to do things to multiple tracks at once, you can activate multiple tracks. Here are things you can do to multiple tracks at once:
+-  adjust volume
+-  adjust pan
+-  record audio
+-  grab clips
+
+<kbd>\<ret\></kbd> : **Activate or deactivate the currently-selected track**<br>
+<kbd>`</kbd> : **Activate or deactivate all tracks**<br>
+<kbd>1</kbd> : **Activate or deactivate track 1**<br>
+<kbd>2</kbd> : **Activate or deactivate track 2**<br>
+...<br>
+<kbd>9</kbd> : **Activate or deactivate track 9**<br>
+
+### Muting / soloing
+
+Muted tracks will not be read during playback, or when exporting a `.wav` file.
+
+If any track on the timeline is soloed, only tracks that have been soloed will be read. The `S` button will be red on any un-soloed tracks to indicate that they are effectively muted.
+
+<kbd>m</kbd> : **Mute currently selected track (or active tracks)**<br>
+<kbd>s</kbd> : **Solo currently selected track (or active tracks)**<br>
+
+### Adjust volume / pan
+
+Track volume can be attenuated or boosted. Stereo tracks can be panned to the left or right. The pan implementation is fairly primitive; panning to either side will simply attenuate the opposite channel by an amount proportional to the pan amount.
+
+> [!TIP]
+> These key combinations can be held down for continuous adjustment.
+
+<kbd>S--</kbd> : **Volume down (selected or active tracks)**<br>
+<kbd>S-=</kbd> : **Volume up (selected or active tracks)**<br>
+<kbd>S-9</kbd> : **Pan left (selected or active tracks)**<br>
+<kbd>S-0</kbd> : **Pan right (selected or active tracks)**<br>
+
+### Set track input
+
+The track input can be set to any of the available system audio devices (e.g. built-in laptop microphone, extern microphone) or one of two special inputs, which are described below.
+
+<kbd>C-S-i</kbd> : **Set track input**<br>
+
+## Clips
+
+### Technical note: "Clips" vs. "Clip references"
+
+In general, this document and the application itself merely refer to any chunks of audio data present on the timeline as "clips." You may, however, notice that some clips are green, while others are blue. Why?
+
+Under the hood, a "clip" is a chunk of audio data that is associated with a project, but is not directly associated with a timeline or track. A "clip reference" (or "clipref") is the data object that represents that association. It specifies which track it appears on, which clip it references, and the start and end positions within that clip that describe the boundaries as represented on the timeline.
+
+A given clip can have many clip references. The actual audio data associated with the clip is not duplicated; therefore, when copying clips or portions of clips using Source Mode, you are not actually copying any audio data; you are merely creating additional references to the clip.
+
+### "Grabbing" and moving clips
+
+Clips that have been "grabbed" can be deleted or moved around on the timeline.
+
+<kbd>g</kbd> : **Grab clips at point(s)**<br>
+
+Using this function will grab any clips that intersect the playhead position on the currently selected track OR all active tracks. If all interesecting clips are already grabbed, the function will un-grab all clips.
+
+A clip can also be "grabbed" with <kbd>C-\<click\></kbd>.
+
+<kbd>C-k</kbd> : **Toggle drag clips**<br>
+
+
+
+
+
+
 ...
 
-[ README IN PROGRESS -- LAST UPDATE 2024-06-04 TUESDAY ]
+
+[ README IN PROGRESS -- LAST UPDATE 2024-06-07 FRIDAY ]
 
 ...
 

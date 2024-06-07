@@ -66,6 +66,7 @@ typedef struct pd_conn {
     float *rec_buffer_R;
     uint32_t rec_buf_len_sframes;
     int32_t write_bufpos_sframes;
+    /* SDL_mutex *buf_lock; */
 } PdConn;
 
 typedef struct jdaw_conn {

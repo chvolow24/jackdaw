@@ -284,7 +284,17 @@ void *pd_jackdaw_record_on_thread(void *arg)
 	/* i%= 10; */
 
 	sem_wait(audio_buffers_read_sem);
+	
+	/* if (SDL_TryLockMutex(pdconn->buf_lock) == SDL_MUTEX_TIMEDOUT) { */
+	/*     /\* SDL_UnlockMutex(pdconn->buf_lock); *\/ */
+	/*     break; */
+	/* } */
 	memcpy(pdconn->rec_buffer_L + pdconn->write_bufpos_sframes, pd_shm->L, pd_blocksize * sizeof(float));
+	/* if (SDL_TryLockMutex(pdconn->buf_lock) == SDL_MUTEX_TIMEDOUT) { */
+	/*     /\* SDL_UnlockMutex(pdconn->buf_lock); *\/ */
+	/*     break; */
+	/* } */
+
 	memcpy(pdconn->rec_buffer_R + pdconn->write_bufpos_sframes, pd_shm->R, pd_blocksize * sizeof(float));
 	pdconn->write_bufpos_sframes += pd_blocksize;
 	/* fprintf(stdout, "pdconn writebufpos: %d\n", pdconn->write_bufpos_sframes); */

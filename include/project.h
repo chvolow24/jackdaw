@@ -215,8 +215,10 @@ struct status_bar {
     Layout *layout;
     char errstr[MAX_STATUS_STRLEN];
     char callstr[MAX_STATUS_STRLEN];
+    char dragstr[MAX_STATUS_STRLEN];
     Textbox *error;
     Textbox *call;
+    Textbox *dragstat;
     int stat_timer;
     int call_timer;
     int err_timer;

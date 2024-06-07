@@ -322,7 +322,15 @@ void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type)
     case PURE_DATA:
 	clip->len_sframes = clip->write_bufpos_sframes + clip->recorded_from->c.pd.write_bufpos_sframes;
 	create_clip_buffers(clip, clip->len_sframes);
+	/* if (SDL_TryLockMutex(clip->recorded_from->c.pd.buf_lock) == SDL_MUTEX_TIMEDOUT) { */
+	/*     /\* SDL_UnlockMutex(clip->recorded_from->c.pd.buf_lock); *\/ */
+	/*     return; */
+	/* } */
 	memcpy(clip->L + clip->write_bufpos_sframes, clip->recorded_from->c.pd.rec_buffer_L, clip->recorded_from->c.pd.write_bufpos_sframes * sizeof(float));
+	/* if (SDL_TryLockMutex(clip->recorded_from->c.pd.buf_lock) == SDL_MUTEX_TIMEDOUT) { */
+	/*     /\* SDL_UnlockMutex(clip->recorded_from->c.pd.buf_lock); *\/ */
+	/*     return; */
+	/* } */
 	memcpy(clip->R + clip->write_bufpos_sframes, clip->recorded_from->c.pd.rec_buffer_R, clip->recorded_from->c.pd.write_bufpos_sframes * sizeof(float));
 	clip->write_bufpos_sframes = clip->len_sframes;
 	break;
@@ -360,6 +368,7 @@ void transport_stop_recording()
 	if ((conn = proj->record_conns[i]) && conn->active) {
 	    audioconn_stop_recording(conn);
 	    conns_to_close[num_conns_to_close] = conn;
+	    num_conns_to_close++;
 	    /* audioconn_close(conn); */
 	    conn->active = false;
 	}

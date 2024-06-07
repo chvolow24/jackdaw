@@ -498,6 +498,9 @@ void project_draw()
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
     SDL_RenderFillRect(main_win->rend, &proj->status_bar.layout->rect);
     textbox_draw(proj->status_bar.error);
+    if (proj->dragging) {
+	textbox_draw(proj->status_bar.dragstat);
+    }
     textbox_draw(proj->status_bar.call);
 
     /* Layout *status = layout_get_child_by_name_recursive(proj->layout, "status_bar"); */

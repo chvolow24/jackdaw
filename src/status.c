@@ -127,6 +127,17 @@ void status_cat_callstr(const char *catstr)
     /* layout_force_reset(proj->status_bar.layout); */
 }
 
+static void status_set_dragstr(char *dragstr)
+{
+    strcpy(proj->status_bar.dragstr, dragstr);
+    textbox_size_to_fit(proj->status_bar.dragstat, 0, 0);
+    layout_center_agnostic(proj->status_bar.dragstat->layout, false, true);
+    /* layout_center_agnostic(proj->status_bar.dragstat->layout, false, true); */
+    textbox_reset_full(proj->status_bar.dragstat);
+    layout_reset(proj->status_bar.layout);
+    fprintf(stdout, "w: %d\n", proj->status_bar.dragstat->layout->rect.w);
+}
+
 
 void status_stat_playspeed()
 {
@@ -136,5 +147,17 @@ void status_stat_playspeed()
     status_set_statstr(buf);
 }
 
+void status_stat_drag()
+{
+    if (!proj->dragging) {
+        proj->status_bar.dragstat->layout->w.value.intval = 0;
+	layout_reset(proj->status_bar.layout);
+	return;
+    }
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    char buf[64];
+    snprintf(buf, sizeof(buf), "Dragging %d clips\n", tl->num_grabbed_clips);
+    status_set_dragstr(buf);
+}
 
     

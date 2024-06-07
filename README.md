@@ -316,9 +316,23 @@ A clip can also be "grabbed" with <kbd>C-\<click\></kbd>.
 
 <kbd>C-k</kbd> : **Toggle drag clips**<br>
 
+If clip dragging is enabled, an indiciation will appear in the status bar at the bottom of the screen indicating how many clips are currently grabbed.
 
+<img src="assets/readme_imgs/drag_clips.gif" width="80%" />
 
+Moving the track selector will pull all currently-dragging clips along with it.
 
+### Cutting clips
+
+<kbd>S-c</kbd> : **Cut clips at point**<br>
+
+This will cut any clips on the currently selected track at the current playhead position in two, so that you can independently move or otherwise modify each part.
+
+<img src="assets/readme_imgs/cut_clip.gif" width="80%" />
+
+## Sample mode / Source mode
+
+Jackdaw provides an interface for extracting samples from an audio clip, and dropping [references](#technical-note-clips-vs-clip-references) to those samples in your timeline.
 
 
 ...
@@ -353,43 +367,42 @@ A clip can also be "grabbed" with <kbd>C-\<click\></kbd>.
 - Move menu right : <kbd>\<right\></kbd>
 - go back (dismiss) : <kbd>m</kbd>, <kbd>h</kbd>
 ### timeline mode
-#### Transport
+#### Playback / Record
 - Play : <kbd>l</kbd>, <kbd>e</kbd>
 - Pause : <kbd>k</kbd>, <kbd>w</kbd>, <kbd>S-k</kbd>
 - Rewind : <kbd>j</kbd>, <kbd>q</kbd>
 - Play slow : <kbd>K-l</kbd>, <kbd>S-l</kbd>
 - Rewind slow : <kbd>K-j</kbd>, <kbd>S-j</kbd>
-- Start or stop dragging clips : <kbd>C-k</kbd>
-- Cut clipref at point : <kbd>S-c</kbd>
-- Move right : <kbd>;</kbd>
-- Move left : <kbd>h</kbd>
+- Record (start or stop) : <kbd>r</kbd>
+#### Timeline navigation
+- Move track selector up : <kbd>p</kbd>, <kbd>d</kbd>
+- Move track selector down : <kbd>n</kbd>, <kbd>f</kbd>
+- Move view right : <kbd>;</kbd>
+- Move view left : <kbd>h</kbd>
 - Zoom out : <kbd>,</kbd>
 - Zoom in : <kbd>.</kbd>
-- Record (start or stop) : <kbd>r</kbd>
 #### Marks
 - Set In : <kbd>i</kbd>
 - Set Out : <kbd>o</kbd>
 - Go to In : <kbd>S-i</kbd>
 - Go to Out : <kbd>S-o</kbd>
 - Go to t=0 : <kbd>S-u</kbd>
+#### Output
 - Set default audio output : <kbd>C-S-o</kbd>
-#### Track nav
+#### Tracks
 - Add Track : <kbd>C-t</kbd>
-- Add Track : <kbd></kbd>
-- Select track 1 : <kbd>1</kbd>
-- Select track 2 : <kbd>2</kbd>
-- Select track 3 : <kbd>3</kbd>
-- Select track 4 : <kbd>4</kbd>
-- Select track 5 : <kbd>5</kbd>
-- Select track 6 : <kbd>6</kbd>
-- Select track 7 : <kbd>7</kbd>
-- Select track 8 : <kbd>8</kbd>
-- Select track 9 : <kbd>9</kbd>
-- Activate or deactivate all tracks : <kbd>`</kbd>
-- Move track selector up : <kbd>p</kbd>, <kbd>d</kbd>
-- Move track selector down : <kbd>n</kbd>, <kbd>f</kbd>
-- Activate selected track : <kbd>\<spc\></kbd>, <kbd>\<ret\></kbd>
+- Activate/deactivate selected track : <kbd>\<spc\></kbd>, <kbd>\<ret\></kbd>
+- Activate/deactivate all tracks : <kbd>`</kbd>
 - Destroy selected track (permanent) : <kbd>C-\<del\></kbd>
+- Select track 1 : <kbd>1</kbd>
+- Activate track 2 : <kbd>2</kbd>
+- Activate track 3 : <kbd>3</kbd>
+- Activate track 4 : <kbd>4</kbd>
+- Activate track 5 : <kbd>5</kbd>
+- Activate track 6 : <kbd>6</kbd>
+- Activate track 7 : <kbd>7</kbd>
+- Activate track 8 : <kbd>8</kbd>
+- Activate track 9 : <kbd>9</kbd>
 #### Track settings
 - Mute or unmute selected track(s) : <kbd>m</kbd>
 - Solo or unsolo selected track(s) : <kbd>s</kbd>
@@ -401,18 +414,22 @@ A clip can also be "grabbed" with <kbd>C-\<click\></kbd>.
 - Set track input : <kbd>C-S-i</kbd>
 #### Clips
 - Grab clip at point : <kbd>g</kbd>
+- Start or stop dragging clips : <kbd>C-k</kbd>
+- Cut clip at point : <kbd>S-c</kbd>
+- Delete selected clip(s) : <kbd>\<del\></kbd>
+#### Sample mode
 - Load clip at point to source : <kbd>C-1</kbd>
 - Activate Source Mode : <kbd>S-1</kbd>
 - Drop clip from source : <kbd>b</kbd>
 - Drop previously dropped clip (1) : <kbd>v</kbd>
 - Drop previously dropped clip (2) : <kbd>c</kbd>
 - Drop previously dropped clip (3) : <kbd>x</kbd>
-#### Timeline navigation
+#### Project navigation
 - Add new timeline : <kbd>A-t</kbd>
 - Previous timeline : <kbd>A-j</kbd>
 - Next timeline : <kbd>A-l</kbd>
+#### Export
 - Write mixdown to .wav file : <kbd>S-w</kbd>
-- Delete selected clip(s) : <kbd>\<del\></kbd>
 ### source mode
 - Play (source) : <kbd>l</kbd>
 - Pause (source) : <kbd>k</kbd>, <kbd>S-k</kbd>

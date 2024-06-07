@@ -19,6 +19,17 @@ A stripped-down, keyboard-focused digital audio workstation (DAW) taking some de
     5. [Exporting a .wav file](#5-exporting-a-.wav-file)
     6. [Saving your project](#6-saving-your-project)
 5. [User manual](#user-manual)
+    1. [Menus](#menus)
+	2. [Timeline navigation and playback](#timeline-navigation-and-playback)
+	     1. [Transport](#transport)
+		 2. [Translate / zoom](#translate-zoom)
+		 3. [Track selector](#track-selector)
+		 4. ["Point"](#point)
+		 5. [Marks and jump-to](#marks-and-jump-to)
+		 6. [Scrolling](#scrolling)
+	3. [Recording](#recording)
+	4. [Tracks](#tracks)
+		 1. [Activating / deactivating tracks](#activating-deactivating-tracks)
 6. [Function reference](#function-reference)
 
 ## Disclaimer
@@ -218,7 +229,7 @@ The *track selector* is how you indicate which track your are doing things to. T
 
 The "point" (as in "[do thing] at point" is the location in the currently active timeline, under the current playhead position, on the currently selected track. So, *"grab clip at point"* means "grab the top clip on the currently selected track that intersects with the current playhead position."
 
-### Marks & jump-to
+### Marks and jump-to
 
 In and out marks must be set to export a mixdown to .wav, and can also be used as handy jump-to points.
 
@@ -334,6 +345,14 @@ This will cut any clips on the currently selected track at the current playhead 
 
 Jackdaw provides an interface for extracting samples from an audio clip, and dropping [references](#technical-note-clips-vs-clip-references) to those samples in your timeline.
 
+
+<kbd>C-1</kbd> : **Load clip at point to source**<br>
+
+If there is a clip at point, this function will load that clip to the source area near the top of the window. 
+
+## Project navigation / multiple timelines
+
+## Opening and Saving files
 
 ...
 

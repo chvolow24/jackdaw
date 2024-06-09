@@ -389,6 +389,7 @@ void triage_mouse_menu(Menu *menu, SDL_Point *mousep, bool click)
 		    sctn->sel_item = i;
 		    if (click && item->onclick) {
 			item->onclick(item->target);
+			/* window_pop_menu(main_win); */
 		    }
 		    
 		    /* textbox_set_background_color(item->tb, &menu_std_clr_highlight); */

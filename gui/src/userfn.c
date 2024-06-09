@@ -166,6 +166,7 @@ void user_global_save_project()
     /* modal_add_op(save_as, "\t\t(type <ret> to accept name)", &control_bar_bckgrnd); */
     modal_add_header(save_as, "Project location:", &control_bar_bckgrnd, 5);
     modal_add_dirnav(save_as, DIRPATH_SAVED_PROJ, dir_to_tline_filter_save);
+    modal_add_button(save_as, "Save", submit_save_as_form);
     save_as->submit_form = submit_save_as_form;
     window_push_modal(main_win, save_as);
     modal_reset(save_as);
@@ -1083,12 +1084,36 @@ void user_tl_drop_saved3_from_source()
 }
 
 
+static void *new_tl_submit_form(void *mod_v)
+{
+    Modal *mod = (Modal *)mod_v;
+    for (uint8_t i=0; i<mod->num_els; i++) {
+	ModalEl *el = mod->els[i];
+	if (el->type == MODAL_EL_TEXTENTRY) {
+	    project_reset_tl_label(proj);
+	    break;
+	}
+    }
+    window_pop_modal(main_win);
+    return NULL;
+}
 
 void user_tl_add_new_timeline()
 {
     proj->timelines[proj->active_tl_index]->layout->hidden = true;
     proj->active_tl_index = project_add_timeline(proj, "New Timeline");
     project_reset_tl_label(proj);
+
+    Layout *mod_lt = layout_add_child(main_win->layout);
+    layout_set_default_dims(mod_lt);
+    Modal *mod = modal_create(mod_lt);
+    modal_add_header(mod, "Create new timeline:", &color_global_black, 5);
+    modal_add_textentry(mod, proj->timelines[proj->active_tl_index]->name);
+    modal_add_button(mod, "Create", new_tl_submit_form);
+    mod->submit_form = new_tl_submit_form;
+    window_push_modal(main_win, mod);
+    modal_reset(mod);
+    modal_move_onto(mod);
 }
 
 void user_tl_previous_timeline()

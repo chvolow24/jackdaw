@@ -1,6 +1,7 @@
 #include "dir.h"
 #include "geometry.h"
 #include "modal.h"
+#include "textbox.h"
 
 #define MODAL_V_PADDING 5
 #define MODAL_V_PADDING_TIGHT 0
@@ -51,6 +52,7 @@ SDL_Color modal_color_border_outer = (SDL_Color){10, 10, 10, 255};
 SDL_Color modal_color_border_selected = (SDL_Color) {10, 10, 155, 255};
 SDL_Color modal_textentry_background = (SDL_Color) {200, 200, 200, 255};
 SDL_Color modal_textentry_text_color = (SDL_Color) {10, 30, 100, 255};
+SDL_Color modal_button_color = (SDL_Color) {200, 200, 200, 255};
 
 Modal *modal_create(Layout *lt)
 {
@@ -104,6 +106,10 @@ static ModalEl *modal_add_el(Modal *modal)
     lt->y.value.intval = MODAL_V_PADDING;
     lt->w.type = SCALE;
     lt->w.value.floatval = 1.0;
+
+    lt->x.type = REL;
+    lt->x.value.intval = MODAL_V_PADDING * 2;
+    lt->w.type = PAD;
     layout_reset(lt);
     ModalEl *new_el = calloc(1, sizeof(ModalEl));
     new_el->layout = lt;
@@ -182,10 +188,7 @@ ModalEl *modal_add_header(Modal *modal, const char *text, SDL_Color *color, int 
 ModalEl *modal_add_p(Modal *modal, const char *text, SDL_Color *color)
 {
     ModalEl *el = modal_add_el(modal);
-    el->layout->x.type = REL;
-    el->layout->x.value.intval = MODAL_V_PADDING * 2;
-    el->layout->w.type = PAD;
-    layout_reset(el->layout);
+
     el->type = MODAL_EL_TEXTAREA;
     TextArea *ta = txt_area_create(text, el->layout, main_win->std_font, MODAL_P_FONTSIZE, *color, main_win);
     /* fprintf(stdout, "AFTER creation, TA y and height: %d, %d\n", el->layout->rect.y,  el->layout->rect.h); */
@@ -209,13 +212,33 @@ ModalEl *modal_add_dirnav(Modal *modal, const char *dirpath, int (*dir_to_tline_
     el->layout->y.value.intval = MODAL_V_PADDING_TIGHT;
     modal->selectable_indices[modal->num_selectable] = modal->num_els -1;
     modal->num_selectable++;
-    el->layout->x.type = REL;
-    el->layout->x.value.intval = MODAL_V_PADDING * 2;
-    el->layout->w.type = PAD;
-    layout_reset(el->layout);
+    /* el->layout->x.type = REL; */
+    /* el->layout->x.value.intval = MODAL_V_PADDING * 2; */
+    /* el->layout->w.type = PAD; */
+    /* layout_reset(el->layout); */
     el->type = MODAL_EL_DIRNAV;
     DirNav *dn = dirnav_create(dirpath, el->layout, dir_to_tline_filter);
     el->obj = (void *)dn;
+    return el;
+}
+
+ModalEl *modal_add_button(Modal *modal, char *text, void *(*action)(void *arg))
+{
+    ModalEl *el = modal_add_el(modal);
+    el->type = MODAL_EL_BUTTON;
+    modal->selectable_indices[modal->num_selectable] = modal->num_els - 1;
+    modal->num_selectable++;
+    el->layout->w.type = ABS;
+    Button *button = calloc(1, sizeof(Button));
+    button->action = action;
+    button->tb = textbox_create_from_str(text, el->layout, main_win->bold_font, 12, main_win);
+    button->tb->corner_radius = BUTTON_CORNER_RADIUS;
+    textbox_set_border(button->tb, &color_global_black, 1);
+    textbox_set_background_color(button->tb, &modal_button_color);
+    textbox_size_to_fit(button->tb, 16, 2);
+    layout_center_agnostic(el->layout, true, false);
+    textbox_reset_full(button->tb);
+    el->obj = (void *)button;
     return el;
 }
 
@@ -227,10 +250,10 @@ ModalEl *modal_add_textentry(Modal *modal, char *init_val)
     el->layout->y.value.intval = MODAL_V_PADDING_TIGHT;
     modal->selectable_indices[modal->num_selectable] = modal->num_els - 1;
     modal->num_selectable++;
-    el->layout->x.type = REL;
-    el->layout->x.value.intval = MODAL_V_PADDING * 2;
-    el->layout->w.type = PAD;
-    layout_reset(el->layout);
+    /* el->layout->x.type = REL; */
+    /* el->layout->x.value.intval = MODAL_V_PADDING * 2; */
+    /* el->layout->w.type = PAD; */
+    /* layout_reset(el->layout); */
     el->type = MODAL_EL_TEXTENTRY;
     Textbox *tb = textbox_create_from_str(init_val, el->layout, main_win->bold_font, 12, main_win);
     textbox_set_text_color(tb, &modal_textentry_text_color);
@@ -252,20 +275,14 @@ static void modal_el_reset(ModalEl *el)
     case MODAL_EL_MENU:
 	menu_reset_layout((Menu *)el->obj);
 	break;
-    case MODAL_EL_TEXTENTRY:
-	/* textbox_reset_full((Textbox *)el->obj); */
-	break;
-    case MODAL_EL_TEXTAREA:
-	/* txt_area_create_lines((TextArea *)el->obj); */
-	break;
     case MODAL_EL_TEXT:
 	/* textbox_size_to_fit((Textbox *)el->obj, 0, MODAL_V_PADDING); */
 	/* fprintf(stdout, "Reseting Textbox %s to lt %d %d %d %d\n", ((Textbox *)el->obj)->text->value_handle, ((Textbox *)el->obj)->layout->rect.x, ((Textbox *)el->obj)->layout->rect.y, ((Textbox *)el->obj)->layout->rect.w, ((Textbox *)el->obj)->layout->rect.h); */
 	textbox_reset_full((Textbox *)el->obj);
-	/* fprintf(stdout, "Reset Textbox %s to lt %d %d %d %d\n", ((Textbox *)el->obj)->text->value_handle, ((Textbox *)el->obj)->layout->rect.x, ((Textbox *)el->obj)->layout->rect.y, ((Textbox *)el->obj)->layout->rect.w, ((Textbox *)el->obj)->layout->rect.h); */
-	/* fprintf(stdout, "Reset Textbox %s to lt y: %d %d %d %d\n", ((Textbox *)el->obj)->text->value_handle, ((Textbox *)el->obj)->layout->rect.y); */
-	/* layout_force_reset(el->layout); */
+    case MODAL_EL_TEXTENTRY:
+    case MODAL_EL_TEXTAREA:
     case MODAL_EL_DIRNAV:
+    case MODAL_EL_BUTTON:
 	break;
     }
 }
@@ -280,6 +297,7 @@ void modal_reset(Modal *modal)
     }
     layout_size_to_fit_children(modal->layout, true, MODAL_V_PADDING);
     modal->layout->h.value.intval += MODAL_BOTTOM_PAD;
+    layout_center_agnostic(modal->layout, true, true);
     layout_reset(modal->layout);
 
 }
@@ -302,6 +320,10 @@ static void modal_el_draw(ModalEl *el)
 	break;
     case MODAL_EL_DIRNAV:
 	dirnav_draw((DirNav *)el->obj);
+	break;
+    case MODAL_EL_BUTTON:
+	textbox_draw(((Button *)el->obj)->tb);
+	break;
     }
 }
 
@@ -406,6 +428,8 @@ void modal_select(Modal *modal)
 	txt_edit(((Textbox *)current_el->obj)->text, project_draw);
 	modal_next_escape(modal);
 	break;
+    case MODAL_EL_BUTTON:
+	((Button *)(current_el->obj))->action(modal);
     default:
 	break;
     }

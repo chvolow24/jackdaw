@@ -136,6 +136,8 @@
   - p		: modal_previous
   - f		: modal_next
   - d		: modal_previous
+  - <tab>	: modal_next_escape
+  - S-<tab>	: modal_previous_escape
   - S-n		: modal_next_escape
   - S-p		: modal_previous_escape
   - S-f		: modal_next_escape

@@ -4,6 +4,7 @@
 #include "menu.h"
 
 #define MAX_MODAL_ELEMENTS 255
+#define BUTTON_CORNER_RADIUS 4
 
 typedef struct text_entry {
     Textbox *tb;
@@ -11,17 +12,18 @@ typedef struct text_entry {
     int (*completion)(void *arg);
 } TextEntry;
 
-/* typedef struct button { */
-/*     Textbox *tb; */
-/*     void *(*completion)(void *arg);	 */
-/* } Button; */
+typedef struct button {
+    Textbox *tb;
+    void *(*action)(void *arg);
+} Button;
 
 enum mod_s_type {
     MODAL_EL_MENU,
     MODAL_EL_TEXTENTRY,
     MODAL_EL_TEXTAREA,
     MODAL_EL_TEXT,
-    MODAL_EL_DIRNAV
+    MODAL_EL_DIRNAV,
+    MODAL_EL_BUTTON
 };
 
 typedef struct ModalEl {
@@ -46,6 +48,7 @@ ModalEl *modal_add_header(Modal *modal, const char *text, SDL_Color *color, int 
 ModalEl *modal_add_p(Modal *modal, const char *text, SDL_Color *color);
 ModalEl *modal_add_dirnav(Modal *modal, const char *dirpath, int (*dir_to_tline_filter)(void *dp_v, void *dn_v));
 ModalEl *modal_add_textentry(Modal *modal, char *init_val);
+ModalEl *modal_add_button(Modal *modal, char *text, void *(*action)(void *arg));
 void modal_reset(Modal *modal);
 void modal_draw(Modal *modal);
 
@@ -55,7 +58,6 @@ void modal_next_escape(Modal *modal);
 void modal_previous_escape(Modal *modal);
 void modal_select(Modal *modal);
 void modal_move_onto(Modal *modal);
-
 void modal_submit_form(Modal *modal);
 
 

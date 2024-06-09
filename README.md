@@ -1,7 +1,7 @@
 # Jackdaw (WIP)
 A stripped-down, keyboard-focused digital audio workstation (DAW) taking some design cues from non-linear video editors like Avid. Built on SDL (https://libsdl.org/).
 
-![image](assets/readme_imgs/jdaw.png)
+<img src="assets/readme_imgs/main.gif" width="60%" />
 
 ## Table of Contents
 1. [Disclaimer](#disclaimer)
@@ -11,13 +11,14 @@ A stripped-down, keyboard-focused digital audio workstation (DAW) taking some de
     3. [Bash scripts](#bash-scripts)
     4. [Manual installation](#manual-installation)
 3. [Keyboard command syntax](#keyboard-command-syntax)
-4. [Quickstart (getting comfortable)](#quickstart-getting-comfortable)
+4. [Quickstart (getting comfortable)](#quickstart-getting-comfortable) 
+<!---
     1. [Adding tracks and setting input](#1-adding-tracks-and-setting-input)
     2. [Recording some audio](#2-recording-some-audio)
     3. [Playback](#3-playback)
     4. [Multi-track audio](#4-multi-track-audio)
     5. [Exporting a .wav file](#5-exporting-a-.wav-file)
-    6. [Saving your project](#6-saving-your-project)
+    6. [Saving your project](#6-saving-your-project)-->
 5. [Function reference](#function-reference)
 6. [User manual](#user-manual)
     1. [Menus](#menus)
@@ -468,7 +469,17 @@ If there is a clip at point, this function will load that clip to the source are
 
 ## Project navigation / multiple timelines
 
+Jackdaw provides a way to use multiple workspaces in a single project. Each of these is a "timeline," which is just a collection of tracks with associated clips. 
+
+<kbd>A-t</kbd> : **Create new timeline**<br>
+<kbd>A-l</kbd> : **Go to next timeline**<br>
+<kbd>A-k</kbd> : **Go to previous timeline**<br>
+
+In the current version of jackdaw, the timelines are unconnected to one another, but all will be saved along with a project. In a future version, I intend to introduce a "timeline reference;" this will look like a clip, but the associated audio data will be a mixdown of another timeline in the same project, from some start position to some end position.
+
 ## Opening and Saving files
+
+
 
 ...
 

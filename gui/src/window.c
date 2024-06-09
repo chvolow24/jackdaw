@@ -357,6 +357,7 @@ void window_push_modal(Window *win, Modal *modal)
     if (win->num_modals < WINDOW_MAX_MODALS) {
 	win->modals[win->num_modals] = modal;
 	win->num_modals++;
+	/* layout_center_agnostic(modal->layout, true, true); */
 	if (win->modes[win->num_modes - 1] != MODAL) {
 	    window_push_mode(win, MODAL);
 	}

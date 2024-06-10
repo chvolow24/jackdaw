@@ -1052,6 +1052,13 @@ static void clip_destroy_no_displace(Clip *clip)
     
     if (clip->L) free(clip->L);
     if (clip->R) free(clip->R);
+
+    for (uint8_t i=0; i<proj->num_dropped; i++) {
+	Clip **dropped_clip = &(proj->saved_drops[i].clip);
+	if (*dropped_clip == clip) {
+	    *dropped_clip = NULL;
+	}
+    }
     free(clip);
 }
 
@@ -1085,6 +1092,14 @@ void clip_destroy(Clip *clip)
     proj->active_clip_index = proj->num_clips;
     if (clip->L) free(clip->L);
     if (clip->R) free(clip->R);
+
+    for (uint8_t i=0; i<proj->num_dropped; i++) {
+	Clip **dropped_clip = &(proj->saved_drops[i].clip);
+	if (*dropped_clip == clip) {
+	    *dropped_clip = NULL;
+	}
+    }
+
     free(clip);
 }
 

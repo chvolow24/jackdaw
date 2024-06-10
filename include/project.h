@@ -224,6 +224,14 @@ struct status_bar {
     int err_timer;
 };
 
+
+/* for sample mode */
+struct drop_save {
+    Clip *clip;
+    int32_t in;
+    int32_t out;
+};
+
 /* A Jackdaw project. Only one can be active at a time. Can persist on disk as a .jdaw file (see dot_jdaw.c, dot_jdaw.h) */
 typedef struct project {
     char name[MAX_NAMELENGTH];
@@ -293,6 +301,9 @@ typedef struct project {
     SDL_Rect *outwav_l_rect;
     SDL_Rect *outwav_r_rect;
     struct status_bar status_bar;
+
+    struct drop_save saved_drops[5];
+    uint8_t num_dropped;
 } Project;
 
 Project *project_create(

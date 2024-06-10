@@ -462,10 +462,24 @@ This will cut any clips on the currently selected track at the current playhead 
 
 Jackdaw provides an interface for extracting samples from an audio clip, and dropping [references](#technical-note-clips-vs-clip-references) to those samples in your timeline.
 
-
 <kbd>C-1</kbd> : **Load clip at point to source**<br>
 
-If there is a clip at point, this function will load that clip to the source area near the top of the window. 
+If there is a clip at point, this function will load that clip to the source area near the top of the window.
+
+<kbd>S-1</kbd> : **Activate or deactivate source mode**<br>
+
+In source, you can play back, scrub through, and set marks in the clip that has been loaded into the source area. The marks you set here will determine which portion of the clip is dropped into your timeline when you:
+
+<kbd>b</kbd> : **Drop clip from source**<br>
+
+This creates a new clip reference on your timeline, at the current playhead position, on the currently-selected track.
+
+<kbd>v</kbd> : **Drop previous clip from source (1)**<br>
+<kbd>c</kbd> : **Drop previous clip from source (2)**<br>
+<kbd>x</kbd> : **Drop previous clip from source (3)**<br>
+<kbd>z</kbd> : **Drop previous clip from source (4)**<br>
+
+Every time you drop a clip into a timeline from the source area, jackdaw will save information about that drop. If you then drop a *different* clip into your timeline with <kbd>b</kbd>, you will be able to once again drop the previous clip with <kbd>c</kbd>. Another new drop will move the clip stored at <kbd>v</kbd> to <kbd>c</kbd>, so that you have unique clips that you can drop into your timeline with any of those three keys. And etc. with x and z. 
 
 ## Project navigation / multiple timelines
 

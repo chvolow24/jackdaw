@@ -110,6 +110,7 @@
   - v		: tl_drop_saved1_from_source
   - c		: tl_drop_saved2_from_source
   - x		: tl_drop_saved3_from_source
+  - z		: tl_drop_saved4_from_source
   - S-=		: tl_track_vol_up
   - S--		: tl_track_vol_down
   - S-9		: tl_track_pan_left

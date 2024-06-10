@@ -609,6 +609,12 @@ static void mode_load_timeline()
 	user_tl_drop_saved3_from_source);
     mode_subcat_add_fn(sc, fn);
 
+    fn = create_user_fn(
+	"tl_drop_saved4_from_source",
+	"Drop previous dropped clip (4)",
+	user_tl_drop_saved4_from_source);
+    mode_subcat_add_fn(sc, fn);
+
 
     /* Project navigation */
     sc = mode_add_subcat(mode, "Project navigation");

@@ -34,9 +34,9 @@
 #define DEFAULT_FILTER_LEN 128
 
 
-// typedef enum filter_type {
-//     LOWPASS, HIGHPASS, BANDPASS, BANDCUT
-// } FilterType;
+typedef enum filter_type {
+    LOWPASS, HIGHPASS, BANDPASS, BANDCUT
+} FilterType;
 
 typedef struct fir_filter {
     FilterType type;

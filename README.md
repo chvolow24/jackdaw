@@ -473,7 +473,9 @@ Jackdaw provides a way to use multiple workspaces in a single project. Each of t
 
 <kbd>A-t</kbd> : **Create new timeline**<br>
 <kbd>A-l</kbd> : **Go to next timeline**<br>
-<kbd>A-k</kbd> : **Go to previous timeline**<br>
+<kbd>A-j</kbd> : **Go to previous timeline**<br>
+
+When creating a new timeline, you will be prompted to enter a name. Type the name, hit <kbd>\<tab\></kbd>, and then <kbd>\<ret\></kbd> to complete naming the timeline.
 
 In the current version of jackdaw, the timelines are unconnected to one another, but all will be saved along with a project. In a future version, I intend to introduce a "timeline reference;" this will look like a clip, but the associated audio data will be a mixdown of another timeline in the same project, from some start position to some end position.
 

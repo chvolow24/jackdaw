@@ -4,7 +4,7 @@ Global TODO list
 ** DONE Realignment of TL on 'n' and 'p' fails after window size changes
 ** TODO Text edit bounds checking (pass max len at set time)
 ** TODO put appearance/disappearance of textboxes on the main thread
-* TODO Merge layout into main
+* DONE Merge layout into main
 ** DONE Feature parity w/ old version
 *** DONE mouse functions
 **** DONE mute and solo
@@ -26,10 +26,10 @@ Global TODO list
 *** DONE query audio devices
 ** TODO Presentability
 *** TODO update readme
-*** TODO generate keybd shortcut ref
+*** DONE generate keybd shortcut ref
 *** DONE Modal for saving files
 *** TODO demo video
-** TODO Version branches
+** DONE Version branches
 * TODO adjust clipref bounds
 * DONE Pd bridge
 ** DONE Pd input
@@ -44,7 +44,7 @@ Global TODO list
 * TODO ClipRef management
 ** TODO adjust clipref bounds
 ** TODO copy clipref
-** TODO Cut (split) clipref
+** DONE Cut (split) clipref
 * DONE Modals
 ** DONE window-level modal stack
 ** DONE modal mode
@@ -52,5 +52,12 @@ Global TODO list
 * Source mode improvements
 ** TODO Load clipref to src
 *** TODO Src clip start/end distinct from in/o
-** TODO Multiple source clips (use z, x, c, v, b keys)
+** DONE Multiple source clips (use z, x, c, v, b keys)
+
+* Expressions
+E.g., sample-wise transformations
+** TODO expression syntax
+** TODO translate into function
+** TODO expression gui (modal)
+** TODO handle clipref edits
 

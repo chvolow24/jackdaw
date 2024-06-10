@@ -31,8 +31,10 @@
     * call project_loop
  *****************************************************************************************************************/
 
+/* #include <sys/param.h> */
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 #include "SDL.h"
 #include "SDL_ttf.h"
@@ -111,7 +113,13 @@ static void init()
     input_init_mode_load_all();
     input_load_keybinding_config(DEFAULT_KEYBIND_CFG_PATH);
     pd_jackdaw_shm_init();
-    realpath(".", DIRPATH_SAVED_PROJ);
+    char *realpath_ret;
+    if (!(realpath_ret = realpath(".", NULL))) {
+	perror("Error in realpath");
+    } else {
+	strncpy(DIRPATH_SAVED_PROJ, realpath_ret, MAX_PATHLEN);
+	free(realpath_ret);
+    }
     strcpy(DIRPATH_OPEN_FILE, DIRPATH_SAVED_PROJ);
     strcpy(DIRPATH_EXPORT, DIRPATH_SAVED_PROJ);
 }
@@ -196,14 +204,16 @@ int main(int argc, char **argv)
     if (invoke_open_jdaw_file) {
 	proj = jdaw_read_file(file_to_open);
 	if (proj) {
-	    realpath(file_to_open, DIRPATH_SAVED_PROJ);
-	    char *last_slash_pos = strrchr(DIRPATH_SAVED_PROJ, '/');
-	    if (last_slash_pos) {
-		*last_slash_pos = '\0';
-		fprintf(stdout, "SAVED PROJ DIRPATH: %s\n", DIRPATH_SAVED_PROJ);
+	    char *realpath_ret;
+	    if (!(realpath_ret = realpath(file_to_open, NULL))) {
+		perror("Error in realpath");
 	    } else {
-	        realpath(".", DIRPATH_SAVED_PROJ);
-		fprintf(stderr, "Error: no slash in saved proj dir");
+		char *last_slash_pos = strrchr(realpath_ret, '/');
+		if (last_slash_pos) {
+		    *last_slash_pos = '\0';
+		    strncpy(DIRPATH_SAVED_PROJ, realpath_ret, MAX_PATHLEN);
+		}
+		free(realpath_ret);
 	    }
 	    for (int i=0; i<proj->num_timelines; i++) {
 		timeline_reset_full(proj->timelines[i]);
@@ -224,6 +234,21 @@ int main(int argc, char **argv)
     if (invoke_open_wav_file) {
 	Track *track = timeline_add_track(proj->timelines[0]);
 	wav_load_to_track(track, file_to_open, 0);
+	char *filepath = realpath(file_to_open, NULL);
+	if (!filepath) {
+	    perror("Error in realpath");
+	} else {
+	    char *last_slash_pos = strrchr(filepath, '/');
+	    if (last_slash_pos) {
+		*last_slash_pos = '\0';
+		strncpy(DIRPATH_OPEN_FILE, filepath, MAX_PATHLEN);
+	    } else {
+		fprintf(stderr, "Error: no slash in real path of opened file\n");
+	    }
+	    free(filepath);
+
+	}
+	
 
     }
     /* timeline_add_track(proj->timelines[0]); */

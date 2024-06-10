@@ -1,5 +1,5 @@
 #include <stdio.h>
-
+#include <sys/param.h>
 #include "audio_connection.h"
 #include "dir.h"
 #include "input.h"
@@ -20,9 +20,9 @@ extern Window *main_win;
 extern Project *proj;
 extern Mode **modes;
 
-extern char DIRPATH_SAVED_PROJ[];
-extern char DIRPATH_OPEN_FILE[];
-extern char DIRPATH_EXPORT[];
+extern char DIRPATH_SAVED_PROJ[MAX_PATHLEN];
+extern char DIRPATH_OPEN_FILE[MAX_PATHLEN];
+extern char DIRPATH_EXPORT[MAX_PATHLEN];
 
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_grey;
@@ -94,9 +94,16 @@ static void *submit_save_as_form(void *mod_v)
     char *last_slash_pos = strrchr(buf, '/');
     if (last_slash_pos) {
 	*last_slash_pos = '\0';
-	fprintf(stdout, "Real path of %s:\n", dirpath);
-	realpath(dirpath, DIRPATH_SAVED_PROJ);
-	fprintf(stdout, " is %s\n", DIRPATH_SAVED_PROJ);
+	char *realpath_ret;
+	fprintf(stdout, "Real path of \"%s\" called on %p, w current val: %s\n", dirpath, DIRPATH_SAVED_PROJ, DIRPATH_SAVED_PROJ);
+	if (!(realpath_ret = realpath(dirpath, NULL))) {
+	    perror("Error in realpath:");
+	} else {
+	    fprintf(stdout, "Realpath returned: %s\n", realpath_ret);
+	    strncpy(DIRPATH_SAVED_PROJ, realpath_ret, MAX_PATHLEN);
+	    free(realpath_ret);
+	}
+	fprintf(stdout, "Resolved path: %s\n", DIRPATH_SAVED_PROJ);
     }
     window_pop_modal(main_win);
     return NULL;
@@ -211,7 +218,13 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
     char *last_slash_pos = strrchr(dp->path, '/');
     if (last_slash_pos) {
 	*last_slash_pos = '\0';
-	realpath(dp->path, DIRPATH_OPEN_FILE);
+	char *realpath_ret;
+	if (!(realpath_ret = realpath(dp->path, NULL))) {
+	    perror("Error in realpath");
+	} else {
+	    strncpy(DIRPATH_OPEN_FILE, realpath_ret, MAX_PATHLEN);
+	    free(realpath_ret);
+	}
     }
     window_pop_modal(main_win);
 }
@@ -1190,7 +1203,14 @@ static void *submit_save_wav_form(void *mod_v)
     if (last_slash_pos) {
 	*last_slash_pos = '\0';
 	/* fprintf(stdout, "Real path of %s:\n", dirpath); */
-	realpath(dirpath, DIRPATH_EXPORT);
+	char *realpath_ret;
+	if (!(realpath_ret = realpath(dirpath, DIRPATH_EXPORT))) {
+	    perror("Error in realpath");
+	} else {
+	    strncpy(DIRPATH_EXPORT, realpath_ret, MAX_PATHLEN);
+	    free(realpath_ret);
+	}
+
 	/* fprintf(stdout, " is %s\n", DIRPATH_SAVED_PROJ); */
     }
     window_pop_modal(main_win);

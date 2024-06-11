@@ -17,7 +17,7 @@
 - Move menu up : <kbd>\<up\></kbd>
 - Move menu down : <kbd>\<down\></kbd>
 - Move menu right : <kbd>\<right\></kbd>
-- go back (dismiss) : <kbd>m</kbd>, <kbd>h</kbd>
+- go back (dismiss) : <kbd>m</kbd>, <kbd>h</kbd>, <kbd>\<esc\></kbd>
 ### timeline mode
 #### Playback / Record
 - Play : <kbd>l</kbd>, <kbd>e</kbd>
@@ -76,6 +76,7 @@
 - Drop previously dropped clip (1) : <kbd>v</kbd>
 - Drop previously dropped clip (2) : <kbd>c</kbd>
 - Drop previously dropped clip (3) : <kbd>x</kbd>
+- Drop previously dropped clip (4) : <kbd>z</kbd>
 #### Project navigation
 - Add new timeline : <kbd>A-t</kbd>
 - Previous timeline : <kbd>A-j</kbd>
@@ -93,8 +94,8 @@
 ### modal mode
 - Go to next item : <kbd>n</kbd>, <kbd>f</kbd>
 - Go to previous item : <kbd>p</kbd>, <kbd>d</kbd>
-- Go to next item (escape DirNav) : <kbd>S-n</kbd>, <kbd>S-f</kbd>
-- Go to previous item (escape DirNav) : <kbd>S-p</kbd>, <kbd>S-d</kbd>
+- Go to next item (escape DirNav) : <kbd>\<tab\></kbd>, <kbd>S-n</kbd>, <kbd>S-f</kbd>
+- Go to previous item (escape DirNav) : <kbd>S-\<tab\></kbd>, <kbd>S-p</kbd>, <kbd>S-d</kbd>
 - Select item : <kbd>\<ret\></kbd>, <kbd>\<spc\></kbd>
-- Dismiss modal window : <kbd>m</kbd>, <kbd>h</kbd>
+- Dismiss modal window : <kbd>m</kbd>, <kbd>h</kbd>, <kbd>\<esc\></kbd>
 - Submit form : <kbd>C-\<ret\></kbd>

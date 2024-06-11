@@ -42,6 +42,9 @@ A stripped-down, keyboard-focused digital audio workstation (DAW) taking some de
 	6. [Sample mode / Source mode](#sample-mode--source-mode)
 	7. [Project navigation / multiple timelines](#project-navigation--multiple-timelines)
 	8. [Opening and saving files](#opening-and-saving-files)
+	9. [Special audio inputs](#special-audio-inputs)
+		 1. [Jackdaw out](#jackdaw-out)
+		 2. [Pure data](#pure-data)
 	
 
 ## Disclaimer
@@ -222,7 +225,7 @@ You will be prompted to enter a project name (which MUST include the `.jdaw` ext
 - Move menu up : <kbd>\<up\></kbd>
 - Move menu down : <kbd>\<down\></kbd>
 - Move menu right : <kbd>\<right\></kbd>
-- go back (dismiss) : <kbd>m</kbd>, <kbd>h</kbd>
+- go back (dismiss) : <kbd>m</kbd>, <kbd>h</kbd>, <kbd>\<esc\></kbd>
 ### timeline mode
 #### Playback / Record
 - Play : <kbd>l</kbd>, <kbd>e</kbd>
@@ -281,6 +284,7 @@ You will be prompted to enter a project name (which MUST include the `.jdaw` ext
 - Drop previously dropped clip (1) : <kbd>v</kbd>
 - Drop previously dropped clip (2) : <kbd>c</kbd>
 - Drop previously dropped clip (3) : <kbd>x</kbd>
+- Drop previously dropped clip (4) : <kbd>z</kbd>
 #### Project navigation
 - Add new timeline : <kbd>A-t</kbd>
 - Previous timeline : <kbd>A-j</kbd>
@@ -298,17 +302,17 @@ You will be prompted to enter a project name (which MUST include the `.jdaw` ext
 ### modal mode
 - Go to next item : <kbd>n</kbd>, <kbd>f</kbd>
 - Go to previous item : <kbd>p</kbd>, <kbd>d</kbd>
-- Go to next item (escape DirNav) : <kbd>S-n</kbd>, <kbd>S-f</kbd>
-- Go to previous item (escape DirNav) : <kbd>S-p</kbd>, <kbd>S-d</kbd>
+- Go to next item (escape DirNav) : <kbd>\<tab\></kbd>, <kbd>S-n</kbd>, <kbd>S-f</kbd>
+- Go to previous item (escape DirNav) : <kbd>S-\<tab\></kbd>, <kbd>S-p</kbd>, <kbd>S-d</kbd>
 - Select item : <kbd>\<ret\></kbd>, <kbd>\<spc\></kbd>
-- Dismiss modal window : <kbd>m</kbd>, <kbd>h</kbd>
+- Dismiss modal window : <kbd>m</kbd>, <kbd>h</kbd>, <kbd>\<esc\></kbd>
 - Submit form : <kbd>C-\<ret\></kbd>
 
 # User manual
 
 ## Menus
 
-**At any* time**, you can summon a menu with a list of available actions (and keyboard shortcuts) with <kbd>C-m</kbd>. The menu will display the functions available in the current mode (see "Input modes" below). Navigate with <kbd>n</kbd>, <kbd>p</kbd>, and <kbd>/<ret/></kbd> to select. 
+**At any* time**, you can summon a menu with a list of available actions (and keyboard shortcuts) with <kbd>C-m</kbd>. The menu will display the functions available in the current mode (see "Input modes" below). Navigate with <kbd>n</kbd>, <kbd>p</kbd>, and <kbd>\<ret\></kbd> to select. Use <kbd>m</kbd> (or <kbd>h</kbd> or <kbd>\<esc\></kbd> to dismiss the menu.
 
 Summoning these menus when in doubt might be the best way to learn the available keyboard shortcuts. 
 

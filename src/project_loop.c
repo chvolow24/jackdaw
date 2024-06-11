@@ -362,8 +362,8 @@ void loop_project_main()
 		}
 		break;
 	    case SDL_MOUSEWHEEL: {
-		if (main_win->i_state & I_STATE_SHIFT && main_win->i_state & I_STATE_CMDCTRL) {
-		    if (main_win->i_state & I_STATE_META)
+		if (main_win->i_state & I_STATE_SHIFT) {
+		    if (main_win->i_state & I_STATE_CMDCTRL)
 		    proj->play_speed += e.wheel.y * PLAYSPEED_ADJUST_SCALAR_LARGE;
 		    else {
 			proj->play_speed += e.wheel.y * PLAYSPEED_ADJUST_SCALAR_SMALL;

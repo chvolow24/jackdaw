@@ -611,7 +611,7 @@ static void mode_load_timeline()
 
     fn = create_user_fn(
 	"tl_drop_saved4_from_source",
-	"Drop previous dropped clip (4)",
+	"Drop previously dropped clip (4)",
 	user_tl_drop_saved4_from_source);
     mode_subcat_add_fn(sc, fn);
 

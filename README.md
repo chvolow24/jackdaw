@@ -23,7 +23,7 @@ A stripped-down, keyboard-focused digital audio workstation (DAW) taking some de
 6. [User manual](#user-manual)
     1. [Menus](#menus)
 	2. [Timeline navigation and playback](#timeline-navigation-and-playback)
-	     1. [Transport](#transport)
+	     1. [Playback](#playback)
 		 2. [Translate / zoom](#translate--zoom)
 		 3. [Track selector](#track-selector)
 		 4. ["Point"](#point)
@@ -318,10 +318,17 @@ Summoning these menus when in doubt might be the best way to learn the available
 
 Timeline navigation functions are all within easy reach of your right hand:
 
-### Transport
+### Playback
 <kbd>j</kbd> : **rewind** (multiple taps to rewind fast)<br>
 <kbd>k</kbd> : **pause**<br>
 <kbd>l</kbd> : **play** (multiple taps to play fast)<br>
+
+#### Dynamic playback speed adjustment
+
+In addition to the keyboard functions listed above, you can also adjust the playback speed dynamically (if already playing back) with the mousewheel or trackpad:
+
+<kbd>S-\<scroll\></kbd> : **adjust speed (fine)**<br>
+<kbd>C-S-\<scroll\></kbd> : **adjust speed (coarse)**<br>
 
 
 ### Translate / zoom
@@ -330,7 +337,9 @@ Timeline navigation functions are all within easy reach of your right hand:
 <kbd>,</kbd> : **zoom out**<br>
 <kbd>.</kbd> : **zoom in**<br>
 
-These zoom functions will center on the current playhead position. Another way to zoom is to hold <kbd>Cmd</kbd> or <kbd>Ctrl</kbd> and scroll up or down while the mouse is over the timeline. In this case, zoom will center on the mouse position. 
+<kbd>C-\<scroll\></kbd> : **zoom in or out**<br>
+
+These zoom functions will center on the current playhead position. Using the mousewheel/trackpad to zoom will center the zoom on the current mouse position. 
 
 ### Track selector
 
@@ -474,12 +483,12 @@ In source, you can play back, scrub through, and set marks in the clip that has 
 
 This creates a new clip reference on your timeline, at the current playhead position, on the currently-selected track.
 
+Every time you drop a clip into a timeline from the source area, jackdaw will save information about that drop. If you then drop a *different* clip into your timeline with <kbd>b</kbd>, you will be able to once again drop the previously-dropped clip with <kbd>v</kbd>. Another new drop will move the clip stored at <kbd>v</kbd> to <kbd>c</kbd>, so that you have unique clips that you can drop into your timeline with any of those three keys. Etc. for subsequent drops and <kbd>x</kbd> and <kbd>z</kbd>.
+
 <kbd>v</kbd> : **Drop previous clip from source (1)**<br>
 <kbd>c</kbd> : **Drop previous clip from source (2)**<br>
 <kbd>x</kbd> : **Drop previous clip from source (3)**<br>
 <kbd>z</kbd> : **Drop previous clip from source (4)**<br>
-
-Every time you drop a clip into a timeline from the source area, jackdaw will save information about that drop. If you then drop a *different* clip into your timeline with <kbd>b</kbd>, you will be able to once again drop the previous clip with <kbd>c</kbd>. Another new drop will move the clip stored at <kbd>v</kbd> to <kbd>c</kbd>, so that you have unique clips that you can drop into your timeline with any of those three keys. And etc. with x and z. 
 
 ## Project navigation / multiple timelines
 
@@ -495,11 +504,61 @@ In the current version of jackdaw, the timelines are unconnected to one another,
 
 ## Opening and Saving files
 
+### Opening files
+
+Jackdaw is capable of opening two types of files: `.wav` and `.jdaw` (project) files. This can be done at launch time on the command line:
+
+```console
+$ jackdaw PATH_TO_FILE
+```
+
+It can also be done during runtime.
+
+<kbd>C-o</kbd> : **Open a file**<br>
+
+If a `.wav` file is opened, it will be loaded as a clip to the currently-selected track, starting at the current playhead position. If a `.jdaw` file is opened, the current project will be closed and replaced with the project saved in the `.jdaw` file.
+
+<img src="assets/readme_imgs/openwav.gif" width="60%" />
+
+### Saving a project
+
+The `.jdaw` format (current version described in `jdaw_filespec/00.10) stores a jackdaw project, including all of its timelines, tracks, clips, etc.
+
+<kbd>C-s</kbd> : **Save project as**<br>
+
+You will be prompted first to edit the current project file name. Please note that the file extension **must** be `.jdaw` or `.JDAW` and the program will not fix this for you. (I will fix this in a later version). Hit <kbd>\<tab\></kbd> or <kbd>\<ret\></kbd> to finish editing the name. Now, the directory navigation pane will be active, and you can use <kbd>n</kbd>, <kbd>p</kbd>, and <kbd>\<ret\></kbd> to navigate through the filesystem to the directory where you would like to save the file. When satisfied, type <kbd>\<tab\></kbd> and then <kbd>\<ret\></kbd> (or just <kbd>C-\<ret\></kbd> to save.
+
+<img src="assets/readme_imgs/save_project.gif" width="60%" />
+
+
+## Special audio inputs
+
+Jackdaw will have access to all of the audio devices (speakers, microphones, etc.) that your system knows about. In addition, there are two special audio inputs that you can use to record audio onto a track.
+
+### Jackdaw out
+
+Jackdaw is capable of using its own audio output as an audio input. This makes it very easy to create mixdowns on-the-go, or to record some of the fun sounds you can make by scrubbing through your timeline and [dynamically adjusting the playback speed](#dynamic-playback-speed-adjustment).
+
+### Pure data
+
+> [!NOTE]
+> This is an experimental feature.
+
+<img src="assets/readme_imgs/pd_jackdaw.png"/>
+
+[Pure data](https://puredata.info/) (often "Pd") is a graphical audio programming environment developed by Miller Puckette. It is very similar to Max, which was also developed by Puckette, but, unlike Max, is free to download and use. Pure data can be used to create things like synthesizers and drum machines, as well as sound production programs that are too unusual to be designated as such.
+
+Pd also provides a method for writing your own objects (called "externals") for use in the program. Jackdaw is capable of communicating with (and receiving audio from) Pd by means of an external called `pd_jackdaw~`. This external needs to be built and loaded into Pd. 
+
+I have provided the source code for `pd_jackdaw~` here (`pd_jackdaw/pd_jackdaw.c`), but have not yet provided the means to build it or load it into Pd. If you are so inclined, you may figure out how to do this using [pd-lib-builder](https://github.com/pure-data/pd-lib-builder).
+
+The `pd_jackdaw~` objects inlets are for the left and right channels of audio. If jackdaw is open and a `pd_jackdaw~` object is created, the two programs will do a handshake (exchange a series of signals) before setting up a block of shared memory, which they use to exchange audio data. If DSP is enabled in Pd and a track input is set to "Pure data" in jackdaw, you should be able to record audio directly from Pd just as you would from a microphone.
+
 
 
 ...
 
 
-[ README IN PROGRESS -- LAST UPDATE 2024-06-07 FRIDAY ]
+[ README IN PROGRESS -- LAST UPDATE 2024-06-11 TUESDAY ]
 
 ...

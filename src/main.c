@@ -124,7 +124,7 @@ static void init()
     strcpy(DIRPATH_OPEN_FILE, DIRPATH_SAVED_PROJ);
     strcpy(DIRPATH_EXPORT, DIRPATH_SAVED_PROJ);
     /* fprintf(stdout, "Initializing dsp...\n"); */
-    init_dsp();
+    /* init_dsp(); */
 }
 
 static void quit()

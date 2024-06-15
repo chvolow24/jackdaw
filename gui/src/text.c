@@ -311,9 +311,62 @@ static void handle_backspace(Text *txt)
     txt->cursor_end_pos = txt->cursor_start_pos;
     txt->display_value[txt->len] = '\0';
     txt->cursor_countdown = CURSOR_COUNTDOWN_MAX;
+    txt_reset_drawable(txt);
 }
 
 void txt_edit(Text *txt, void (*draw_fn) (void))
+{
+    /* txt->truncate = false; */
+    /* txt_reset_display_value(txt); */
+    txt->show_cursor = true;
+    txt->cursor_start_pos = 0;
+    txt->cursor_end_pos = txt->len;
+    window_push_mode(main_win, TEXT_EDIT);
+    main_win->txt_editing = txt;
+    SDL_StartTextInput();
+}
+
+void txt_stop_editing(Text *txt)
+{
+
+    txt->show_cursor = false;
+    /* txt->truncate = save_truncate; */
+    txt_set_value(txt, txt->display_value);
+    main_win->txt_editing = NULL;
+    SDL_StopTextInput();
+    window_pop_mode(main_win);
+}
+
+
+void txt_input_event_handler(Text *txt, SDL_Event *e)
+{
+    /* if (e->type == SDL_TEXTINPUT) { */
+    handle_char(txt, e->text.text[0]);
+    txt_reset_drawable(txt);
+    /* } */
+}
+
+void txt_edit_backspace(Text *txt)
+{
+    handle_backspace(txt);
+}
+
+void txt_edit_move_cursor(Text *txt, bool left)
+{
+    if (left) {
+	cursor_left(txt);
+    } else {
+	cursor_right(txt);
+    }
+}
+
+void txt_edit_select_all(Text *txt)
+{
+    txt->cursor_start_pos = 0;
+    txt->cursor_end_pos = strlen(txt->display_value);
+}
+
+void __txt_edit(Text *txt, void (*draw_fn) (void))
 {
     bool save_truncate = txt->truncate;
     txt->truncate = false;
@@ -330,71 +383,6 @@ void txt_edit(Text *txt, void (*draw_fn) (void))
         SDL_Event e;
 
         while (SDL_PollEvent(&e)) {
-            if (e.type == SDL_QUIT 
-                || (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_CLOSE) 
-                || e.type == SDL_MOUSEBUTTONDOWN) {
-                done = true;
-                /* Push the event back to the main event stack, so it can be handled in main.c */
-                SDL_PushEvent(&e);
-            } else if (e.type == SDL_TEXTINPUT) {
-                handle_char(txt, e.text.text[0]);
-                txt_reset_drawable(txt);
-            } else if (e.type == SDL_KEYDOWN) {
-                switch (e.key.keysym.scancode) {
-		case SDL_SCANCODE_RETURN:
-		case SDL_SCANCODE_KP_ENTER:
-		case SDL_SCANCODE_TAB:
-		    done = true;
-		    break;
-		case SDL_SCANCODE_LGUI:
-		case SDL_SCANCODE_RGUI:
-		case SDL_SCANCODE_LCTRL:
-		case SDL_SCANCODE_RCTRL:
-		    cmdctrldown = true;
-		    break;
-		case SDL_SCANCODE_LEFT:
-		    cursor_left(txt);
-		    break;
-		case SDL_SCANCODE_RIGHT:
-		    cursor_right(txt);
-		    break;
-		case SDL_SCANCODE_BACKSPACE:
-		    handle_backspace(txt);
-		    // set_text_value(txt, txt->display_value);
-		    txt_reset_drawable(txt);
-		    // set_text_value(txt, txt->display_value);
-		    break;
-		/* case SDL_SCANCODE_SPACE: */
-		/*     /\* handle_char(txt, ' '); *\/ */
-		/*     txt_reset_drawable(txt); */
-		/*     // set_text_value(txt, txt->display_value); */
-		/*     break; */
-		case SDL_SCANCODE_A:
-		    if (cmdctrldown) {
-			txt->cursor_start_pos = 0;
-			txt->cursor_end_pos = strlen(txt->display_value);
-		    }
-		    break;
-		default: {
-		    break;
-		}
-
-                }
-            } else if (e.type == SDL_KEYUP) {
-                switch (e.key.keysym.scancode) {
-                    case SDL_SCANCODE_LGUI:
-                    case SDL_SCANCODE_RGUI:
-                    case SDL_SCANCODE_LCTRL:
-                    case SDL_SCANCODE_RCTRL:
-                        cmdctrldown = false;
-                        break;
-                    default: 
-                        break;
-                }
-	    } else if (e.type == SDL_MOUSEMOTION) {
-
-		window_set_mouse_point(main_win, e.motion.x, e.motion.y);
-	    }
         }
 	draw_fn();
 	/* window_end_draw(main_win); */

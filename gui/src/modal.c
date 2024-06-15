@@ -396,6 +396,7 @@ void modal_previous(Modal *modal)
 	modal->selected_i--;
 	modal_move_onto(modal);
     }
+    /* fprintf(stdout, "Prev, selected i: %d\n", modal->selected_i); */
 }
 
 void modal_next_escape(Modal *modal)
@@ -412,6 +413,7 @@ void modal_previous_escape(Modal *modal)
 {
     if (modal->selected_i > 0) {
 	modal->selected_i--;
+        /* fprintf(stdout, "Prev, selected i: %d\n", modal->selected_i); */
 	modal_move_onto(modal);
     }
 }
@@ -429,6 +431,7 @@ void modal_select(Modal *modal)
 	modal_next_escape(modal);
 	break;
     case MODAL_EL_BUTTON:
+	fprintf(stdout, "SELECTED button, doing action\n");
 	((Button *)(current_el->obj))->action(modal);
     default:
 	break;
@@ -444,3 +447,89 @@ void modal_submit_form(Modal *modal)
     }
 }
 
+/* static void modal_el_triage_mouse(ModalEl *el, SDL_Point *mousep, bool click) */
+/* { */
+    
+/* } */
+
+void modal_triage_mouse(Modal *modal, SDL_Point *mousep, bool click)
+{
+    if (!SDL_PointInRect(mousep, &modal->layout->rect)) {
+	if (click) {
+	    window_pop_modal(main_win);
+	}
+	return;
+    }
+    ModalEl *el;
+    uint8_t i;
+    bool found = false;
+    for (i=0; i<modal->num_els; i++) {
+	el = modal->els[i];
+	if (SDL_PointInRect(mousep, &el->layout->rect)) {
+	    found = true;
+	    break;
+	}
+    }
+    if (found) {
+	/* Already selected */
+	if (click) {
+	    /* fprintf(stdout, "Selected i: %d\n", modal->selected_i); */
+	    if (el == modal->els[modal->selectable_indices[modal->selected_i]]) {
+		/* fprintf(stdout, "El alreadyx selected\n"); */
+		switch (el->type) {
+		case MODAL_EL_BUTTON:
+		    ((Button *)(el->obj))->action(modal);
+		    break;
+		case MODAL_EL_DIRNAV:
+		    dirnav_triage_click(el->obj, mousep);
+		    break;
+		default:
+		    break;
+		
+		}
+	    } else {
+		for (uint8_t j=0; j<modal->num_selectable; j++) {
+		    /* fprintf(stdout, "Selecting new el\n"); */
+		    if (modal->selectable_indices[j] == i) {
+			modal->selected_i = j;
+			modal_select(modal);
+			break;
+		    }
+		}
+	    }
+	} else if (el->type == MODAL_EL_DIRNAV) {
+	    DirNav *dn = (DirNav *)(el->obj);
+	    /* fprintf(stdout, "motion in dirnav!\n"); */
+	    for (uint16_t i=0; i<dn->lines->num_items; i++) {
+		TLinesItem *item = dn->lines->items[i];
+		if (SDL_PointInRect(mousep, &item->tb->layout->rect)) {
+		    dirnav_select_item(dn, i);
+		    /* dn->current_line = i; */
+		}
+	    }
+	}
+    }    
+}
+
+
+void modal_triage_wheel(Modal *modal, SDL_Point *mousep, int x, int y)
+{
+    ModalEl *el;
+    for (uint8_t i=0; i<modal->num_els; i++) {
+	el = modal->els[i];
+	if (el->type == MODAL_EL_DIRNAV) {
+	    /* fprintf(stdout, "Found dirnav\n"); */
+	    if (SDL_PointInRect(mousep, &el->layout->rect)) {
+		int *scroll_offset = &((DirNav *)el->obj)->lines->container->scroll_offset_v;
+		*scroll_offset += y;
+		if (*scroll_offset > 0) *scroll_offset = 0;
+		layout_reset(el->layout);
+		
+		
+	    }
+	    break;
+	}
+    }
+
+
+}

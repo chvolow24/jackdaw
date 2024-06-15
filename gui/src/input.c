@@ -20,7 +20,8 @@ static const char *input_mode_strs[] = {
     "menu_nav",
     "timeline",
     "source",
-    "modal"
+    "modal",
+    "text_edit"
 };
 
 const char *input_mode_str(InputMode im)
@@ -57,6 +58,8 @@ InputMode input_mode_from_str(char *str)
 	return SOURCE;
     } else if (strcmp(str, "modal") == 0) {
 	return MODAL;
+    } else if (strcmp(str, "text_edit") == 0) {
+	return TEXT_EDIT;
     } else {
 	return -1;
     }
@@ -122,7 +125,6 @@ static void mode_load_global()
     if (!mc) {
 	return;
     }
-
     
     /* exit(0); */
     
@@ -758,6 +760,43 @@ static void mode_load_modal()
     mode_subcat_add_fn(sc, fn);
 }
 
+void mode_load_text_edit()
+{
+    Mode *mode = mode_create(TEXT_EDIT);
+    modes[TEXT_EDIT] = mode;
+
+    ModeSubcat *sc = mode_add_subcat(mode, "");
+    UserFn *fn = create_user_fn(
+	"text_edit_escape",
+	"Escape text edit",
+	user_text_edit_escape);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"text_edit_backspace",
+	"Backspace",
+	user_text_edit_backspace);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"text_edit_cursor_right",
+	"Move cursor right",
+	user_text_edit_cursor_right);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"text_edit_cursor_left",
+	"Move cursor left",
+	user_text_edit_cursor_left);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"text_edit_select_all",
+	"Select all",
+	user_text_edit_select_all);
+    mode_subcat_add_fn(sc, fn);
+}
+
 void input_init_mode_load_all()
 {
     mode_load_global();
@@ -765,6 +804,7 @@ void input_init_mode_load_all()
     mode_load_timeline();
     mode_load_source();
     mode_load_modal();
+    mode_load_text_edit();
 }
 
 void input_init_hash_table()
@@ -780,26 +820,38 @@ static int input_hash(uint16_t i_state, SDL_Keycode key)
 
 char *input_get_keycmd_str(uint16_t i_state, SDL_Keycode keycode);
 
-UserFn *input_get(uint16_t i_state, SDL_Keycode keycode, InputMode mode)
+UserFn *input_get(uint16_t i_state, SDL_Keycode keycode)
 {
     /* fprintf(stdout, "KEYCMD STR: %s\n", input_get_keycmd_str(i_state, keycode)); */
     int hash = input_hash(i_state, keycode);
-    KeybNode *node = input_hash_table[hash];
-    if (!node) {
-	return NULL;
-    }
-    while (1) {
-	/* fprintf(stdout, "Testing keycode %c against %c\n", keycode, node->kb->keycode); */
-	/* fprintf(stdout, "\tmode %s, (found %s); i_state %d, %d\n", input_mode_str(mode), input_mode_str(node->kb->mode), i_state, node->kb->i_state); */
-	if ((node->kb->mode == mode || node->kb->mode == GLOBAL) && node->kb->i_state == i_state && node->kb->keycode == keycode) {
-	    return node->kb->fn;
-	} else if (node->next) {
-	    node = node->next;
-	} else {
-	    /* fprintf(stdout, "NOT FOUND\n"); */
+
+    int win_mode_i = main_win->num_modes - 1;
+    InputMode mode = main_win->modes[win_mode_i];
+    while (win_mode_i >= 0) {
+	/* fprintf(stdout, "TESTING MODE: %s\n", input_mode_strs[mode]); */
+	KeybNode *node = input_hash_table[hash];
+	/* char *keycmd_str = input_get_keycmd_str(i_state, keycode); */
+	/* fprintf(stdout, "KEYCMD: %s\n", keycmd_str); */
+	/* free(keycmd_str); */
+	if (!node) {
 	    return NULL;
 	}
+	while (1) {
+	    /* fprintf(stdout, "Modes: %d, %d; i_state: %d, %d; key: %d, %d\n", mode, node->kb->mode, i_state, node->kb->i_state, keycode, node->kb->keycode); */
+	    if ((node->kb->mode == mode || node->kb->mode == GLOBAL) && node->kb->i_state == i_state && node->kb->keycode == keycode) {
+		/* fprintf(stdout, "\t->Good!\n"); */
+		return node->kb->fn;
+	    } else if (node->next) {
+		node = node->next;
+	    } else {
+		break;
+	    }
+	}
+	if (mode == TEXT_EDIT) return NULL;
+	win_mode_i--;
+	mode = main_win->modes[win_mode_i];
     }
+    return NULL;
 }
 
 /* char *input_state_str(uint16_t i_state) */
@@ -853,6 +905,8 @@ static void input_read_keycmd(char *keycmd, uint16_t *i_state, SDL_Keycode *key)
     } else if (strcmp(keycmd, "<down>") == 0) {
         *key = SDLK_DOWN;
     } else if (strcmp(keycmd, "<left>") == 0) {
+	/* fprintf(stdout, "SETTING KEY TO %d\n", SDLK_LEFT); */
+	/* exit(0); */
 	*key = SDLK_LEFT;
     } else if (strcmp(keycmd, "<right>") == 0) {
 	*key = SDLK_RIGHT;

@@ -50,6 +50,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+/* #include "dsp.h" */
 #include "textbox.h"
 #include "slider.h"
 
@@ -65,6 +66,7 @@
 #define MAX_PROJ_CLIPS 512
 #define MAX_GRABBED_CLIPS 255
 #define MAX_STATUS_STRLEN 255
+#define MAX_TRACK_FILTERS 4
 
 #define PROJ_TL_LABEL_BUFLEN 50
 
@@ -100,6 +102,10 @@ typedef struct track {
     float pan; /* 0.0 pan left; 0.5 center; 1.0 pan right */
     FSlider *vol_ctrl;
     FSlider *pan_ctrl;
+
+    /* FIRFilter *fir_filters[MAX_TRACK_FILTERS]; */
+    /* uint8_t num_filters; */
+    
     
     /* FSLIDER *vol_ctrl */
     /* FSlider *pan_ctrl */

@@ -142,6 +142,12 @@ void txt_destroy(Text *txt);
 /* Enter an event loop to edit a text. Once done, string pointed to by value_handle is modified */
 void txt_edit(Text *txt, void (*draw_fn)(void));
 
+void txt_input_event_handler(Text *txt, SDL_Event *e);
+void txt_stop_editing(Text *txt);
+
+void txt_edit_backspace(Text *txt);
+void txt_edit_move_cursor(Text *txt, bool left);
+void txt_edit_select_all(Text *txt);
 
 /* void print_text(Text *txt); */
 
@@ -190,5 +196,6 @@ void txt_area_destroy(TextArea *ta);
 
 /* Destroy the font array and free the Font */
 void ttf_destroy_font(Font *font);
+
 
 #endif

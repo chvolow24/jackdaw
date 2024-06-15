@@ -115,18 +115,7 @@ void geom_draw_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r)
     /* left */
     SDL_RenderDrawLine(rend, rect->x, upper_y, rect->x, lower_y);
     /* right */
-    SDL_RenderDrawLine(rend, right_x + r, upper_y, right_x + r, lower_y);
-    // int d = r<<1;
-    // SDL_Rect top = {left_x, rect->y, rect->w - d, r};
-    // SDL_Rect bottom = {left_x, lower_y, rect->w - d, r + 1};
-    // SDL_Rect left = {rect->x, upper_y, r, rect->h - d};
-    // SDL_Rect right = {right_x, upper_y, r + 1, rect->h -d};
-    // SDL_Rect middle = {left_x, upper_y, rect->w - d, rect->h - d};
-    // SDL_RenderFillRect(rend, &top);
-    // SDL_RenderFillRect(rend, &bottom);
-    // SDL_RenderFillRect(rend, &right);
-    // SDL_RenderFillRect(rend, &left);
-    // SDL_RenderFillRect(rend, &middle);    
+    SDL_RenderDrawLine(rend, right_x + r, upper_y, right_x + r, lower_y);  
 }
 
 void geom_fill_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r)

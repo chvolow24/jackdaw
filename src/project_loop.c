@@ -200,28 +200,6 @@ void loop_project_main()
 
     window_push_mode(main_win, TIMELINE);
 
-
-
-    /* /\* TESTING *\/ */
-    /* const char *modal_p = "Hello. My name is charlie volow. I am here to test this modal thing I am implementing. It is very unlikely that I will be happy with how it works; however, I think it is necessary, and good, and this is the best I can do to get what I want. I will say that it is better than other code I have written"; */
-    /* Layout *mod_lt = layout_add_child(proj->layout); */
-    /* layout_set_default_dims(mod_lt); */
-    /* Modal *test_modal = modal_create(mod_lt); */
-    /* modal_add_header(test_modal, "Hello world!", &color_global_black, 1); */
-    /* modal_add_dirnav(test_modal, INSTALL_DIR "/assets", true, true); */
-    /* modal_add_header(test_modal, "Subtitle", &color_global_black, 3); */
-    /* modal_add_p(test_modal, modal_p, &color_global_black); */
-    /* modal_add_header(test_modal, "Another thing...", &color_global_black, 2); */
-    /* modal_add_header(test_modal, "AND", &color_global_black, 1); */
-    /* modal_add_p(test_modal, "This is also a paragraph.", &color_global_black); */
-    /* /\* layout_force_reset(test_modal->layout); *\/ */
-    /* modal_reset(test_modal); */
-    /* window_push_modal(main_win, test_modal); */
-    /* END TEST */
-    
-    /* layout_write(stdout, main_win->layout, 0); */
-    /* SDL_AddEventWatch(window_resize_callback, NULL); */
-    /* window_resize_passive(main_win, main_win->w, main_win->h); */
     bool first_frame = true;
     while (!(main_win->i_state & I_STATE_QUIT)) {
 	/* fprintf(stdout, "About to poll...\n"); */
@@ -246,7 +224,11 @@ void loop_project_main()
 		}
 		break;
 	    case SDL_MOUSEMOTION: {
+		window_set_mouse_point(main_win, e.motion.x, e.motion.y);
 		switch (TOP_MODE) {
+		case MODAL:
+		    mouse_triage_motion_modal();
+		    break;
 		case MENU_NAV:
 		    mouse_triage_motion_menu();
 		    break;
@@ -255,9 +237,13 @@ void loop_project_main()
 		default:
 		    break;
 		}
-		window_set_mouse_point(main_win, e.motion.x, e.motion.y);
 		break;
 	    }
+	    case SDL_TEXTINPUT:
+		if (main_win->txt_editing) {
+		    txt_input_event_handler(main_win->txt_editing, &e);
+		}
+		break;
 	    case SDL_KEYDOWN:
 		/* for (uint8_t i=0; i<proj->num_clips; i++) { */
 		/*     Clip *clip = proj->clips[i]; */
@@ -302,17 +288,19 @@ void loop_project_main()
 			set_i_state_k = true;
 		    }
 		    /* No break */
-		default: 
+		default:
+		    /* fprintf(stdout, "== SDLK_ */
 		    /* i_state = triage_keypdown(i_state, e.key.keysym.scancode); */
-		    input_fn  = input_get(main_win->i_state, e.key.keysym.sym, GLOBAL);
-		    if (!input_fn) {
-			for (int i=main_win->num_modes - 1; i>=0; i--) {
-			    input_fn = input_get(main_win->i_state, e.key.keysym.sym, main_win->modes[i]);
-			    if (input_fn) {
-				break;
-			    }
-			}
-		    }
+		    input_fn  = input_get(main_win->i_state, e.key.keysym.sym);
+		    /* if (main_win->modes[main_win->num_modes - 1] == TEXT_EDIT) break; /\* Text Edit mode blocks all other modes *\/ */
+		    /* if (!input_fn) { */
+		    /* 	for (int i=main_win->num_modes - 1; i>=0; i--) { */
+		    /* 	    input_fn = input_get(main_win->i_state, e.key.keysym.sym); */
+		    /* 	    if (input_fn) { */
+		    /* 		break; */
+		    /* 	    } */
+		    /* 	} */
+		    /* } */
 		    /* fprintf(stdout, "Input fn? %p, do fn? %p\n", input_fn, input_fn->do_fn); */
 		    if (input_fn && input_fn->do_fn) {
 			input_fn->do_fn();
@@ -362,32 +350,43 @@ void loop_project_main()
 		}
 		break;
 	    case SDL_MOUSEWHEEL: {
-		if (main_win->i_state & I_STATE_SHIFT) {
-		    if (main_win->i_state & I_STATE_CMDCTRL)
-		    proj->play_speed += e.wheel.y * PLAYSPEED_ADJUST_SCALAR_LARGE;
-		    else {
-			proj->play_speed += e.wheel.y * PLAYSPEED_ADJUST_SCALAR_SMALL;
-		    }
-		    status_stat_playspeed();
-		} else {
-		    bool allow_scroll = true;
-		    if (SDL_PointInRect(&main_win->mousep, proj->audio_rect)) {
-			if (main_win->i_state & I_STATE_CMDCTRL) {
-			    double scale_factor = pow(SFPP_STEP, e.wheel.y);
-			    timeline_rescale(scale_factor, true);
-			    allow_scroll = false;
-			} else {
-			    timeline_scroll_horiz(TL_SCROLL_STEP_H * e.wheel.x);
+		mouse_triage_wheel(e.wheel.x * TL_SCROLL_STEP_H, e.wheel.y * TL_SCROLL_STEP_V);
+		if (main_win->modes[main_win->num_modes - 1] == TIMELINE) {
+		    if (main_win->i_state & I_STATE_SHIFT) {
+			if (main_win->i_state & I_STATE_CMDCTRL)
+			    proj->play_speed += e.wheel.y * PLAYSPEED_ADJUST_SCALAR_LARGE;
+			else {
+			    proj->play_speed += e.wheel.y * PLAYSPEED_ADJUST_SCALAR_SMALL;
 			}
-		    }
-		    if (allow_scroll) {
-			temp_scrolling_lt = layout_handle_scroll(
-			    main_win->layout,
-			    &main_win->mousep,
-			    e.wheel.preciseX * LAYOUT_SCROLL_SCALAR,
-			    e.wheel.preciseY * LAYOUT_SCROLL_SCALAR * -1,
-			    fingersdown);
-			timeline_reset(proj->timelines[proj->active_tl_index]);
+			status_stat_playspeed();
+		    } else {
+			bool allow_scroll = true;
+			double scroll_x = e.wheel.preciseX * LAYOUT_SCROLL_SCALAR;
+			double scroll_y = e.wheel.preciseY * LAYOUT_SCROLL_SCALAR * -1;
+			if (SDL_PointInRect(&main_win->mousep, proj->audio_rect)) {
+			    if (main_win->i_state & I_STATE_CMDCTRL) {
+				double scale_factor = pow(SFPP_STEP, e.wheel.y);
+				timeline_rescale(scale_factor, true);
+				allow_scroll = false;
+			    } else if (fabs(scroll_x) > fabs(scroll_y)) {
+				timeline_scroll_horiz(TL_SCROLL_STEP_H * e.wheel.x);
+			    }
+			}
+			if (allow_scroll) {
+			    if (fabs(scroll_x) > fabs(scroll_y)) {
+				scroll_y = 0;
+			    } else {
+				scroll_x = 0;
+			    }
+			    
+			    temp_scrolling_lt = layout_handle_scroll(
+				main_win->layout,
+				&main_win->mousep,
+				scroll_x,
+				scroll_y,
+				fingersdown);
+			    timeline_reset(proj->timelines[proj->active_tl_index]);
+			}
 		    }
 		}
 	    }
@@ -400,11 +399,17 @@ void loop_project_main()
 		}
 		switch(TOP_MODE) {
 		case TIMELINE:
-		    fprintf(stdout, "top mode tl\n");
+		    /* fprintf(stdout, "top mode tl\n"); */
 		    mouse_triage_click_project(e.button.button);
 		    break;
 		case MENU_NAV:
 		    mouse_triage_click_menu(e.button.button);
+		    break;
+		case MODAL:
+		    mouse_triage_click_modal(e.button.button);
+		    break;
+		case TEXT_EDIT:
+		    mouse_triage_click_text_edit(e.button.button);
 		    break;
 		default:
 		    break;
@@ -463,22 +468,21 @@ void loop_project_main()
 	}
 
 	update_track_vol_pan();
+
+	if (main_win->txt_editing) {
+	    if (main_win->txt_editing->cursor_countdown == 0) {
+		main_win->txt_editing->cursor_countdown = CURSOR_COUNTDOWN_MAX;
+	    } else {
+		main_win->txt_editing->cursor_countdown--;
+	    }
+	}
 	/* if (proj->recording) { */
 	/*     transport_recording_update_cliprects(); */
 	/* } */
 	
 	status_frame();
-	/* update_track_vol_and_pan(); */
 	
-	/******************** DRAW ********************/
-	/* window_start_draw(main_win, &color_global_black); */
-
-	/* if (proj->play_speed != 0) { */
-	/*     timeline_move_play_position((int32_t) 500 * proj->play_speed); */
-	/* } */
-
 	project_draw();
-
 
 	if (main_win->screenrecording) {
 	    screenshot_loop();

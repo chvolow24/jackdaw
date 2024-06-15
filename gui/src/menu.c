@@ -351,7 +351,7 @@ void menu_destroy(Menu *menu)
 }
 
 
-void triage_mouse_menu(Menu *menu, SDL_Point *mousep, bool click)
+void menu_triage_mouse(Menu *menu, SDL_Point *mousep, bool click)
 {
     if (menu->selected && !SDL_PointInRect(mousep, &menu->selected->layout->rect)) {
 	menu->selected->selected = false;

@@ -94,7 +94,7 @@ Window *window_create(int w, int h, const char *name)
     SDL_SetRenderDrawBlendMode(window->rend, SDL_BLENDMODE_BLEND);
 
     window->screenrecording = false;
-
+    window->txt_editing = NULL;
     return window;
 }
 
@@ -335,6 +335,8 @@ Menu *window_top_menu(Window *win)
 
 void window_push_mode(Window *win, InputMode im)
 {
+    /* if (im == TEXT_EDIT) */
+    /* 	SDL_StartTextInput(); */
     if (win->num_modes < WINDOW_MAX_MODES) {
 	win->modes[win->num_modes] = im;
 	win->num_modes++;
@@ -345,6 +347,8 @@ void window_push_mode(Window *win, InputMode im)
 
 void window_pop_mode(Window *win)
 {
+    /* if (win->modes[win->num_modes] == TEXT_EDIT) */
+    /* 	SDL_StopTextInput(); */
     if (win->num_modes > 0) {
 	win->num_modes--;
     }

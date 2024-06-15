@@ -45,6 +45,8 @@ typedef struct window {
     uint8_t num_modals;
 
     bool screenrecording;
+
+    Text *txt_editing;
 } Window;
 
 /* Create a new Window struct and initialize all members */

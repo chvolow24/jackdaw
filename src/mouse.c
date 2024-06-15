@@ -32,6 +32,7 @@
 
 #include "input.h"
 #include "menu.h"
+#include "modal.h"
 #include "project.h"
 #include "timeline.h"
 #include "userfn.h"
@@ -189,16 +190,58 @@ void mouse_triage_motion_timeline()
 
 void mouse_triage_motion_menu()
 {
+    if (main_win->num_menus == 0) return;
     Menu *top_menu = main_win->menus[main_win->num_menus - 1];
     if (top_menu) {
-	triage_mouse_menu(top_menu, &main_win->mousep, false);
+	menu_triage_mouse(top_menu, &main_win->mousep, false);
     }
+}
+
+void mouse_triage_motion_modal()
+{
+    if (main_win->num_modals == 0) return;
+    Modal *top_modal = main_win->modals[main_win->num_modals - 1];
+    if (top_modal) {
+	modal_triage_mouse(top_modal, &main_win->mousep, false);
+    }
+
 }
 
 void mouse_triage_click_menu(uint8_t button)
 {
+    if (main_win->num_menus == 0) return;
     Menu *top_menu = main_win->menus[main_win->num_menus -1];
     if (top_menu) {
-	triage_mouse_menu(top_menu, &main_win->mousep, true);
+	menu_triage_mouse(top_menu, &main_win->mousep, true);
     }
 }
+
+void mouse_triage_click_modal(uint8_t button)
+{
+    if (main_win->num_modals == 0) return;
+    Modal *top_modal = main_win->modals[main_win->num_modals -1];
+    if (top_modal) {
+	modal_triage_mouse(top_modal, &main_win->mousep, true);
+    }
+}
+
+void mouse_triage_wheel(int x, int y)
+{
+    if (main_win->num_modals == 0) return;
+    Modal *top_modal = main_win->modals[main_win->num_modals -1];
+    if (top_modal) {
+	modal_triage_wheel(top_modal, &main_win->mousep, x, y);
+    }
+}
+
+void mouse_triage_click_text_edit(uint8_t button)
+{
+    Text *txt = main_win->txt_editing;
+    if (!txt) return;
+    if (!SDL_PointInRect(&main_win->mousep, &txt->container->rect))
+    {
+	txt_stop_editing(txt);
+    }
+
+}
+

@@ -551,9 +551,16 @@ The `pd_jackdaw~` objects inlets are for the left and right channels of audio. I
 - Select item : <kbd>\<ret\></kbd>, <kbd>\<spc\></kbd>
 - Dismiss modal window : <kbd>m</kbd>, <kbd>h</kbd>, <kbd>\<esc\></kbd>
 - Submit form : <kbd>C-\<ret\></kbd>
+### text_edit mode
+- Escape text edit : <kbd>\<ret\></kbd>, <kbd>\<tab\></kbd>
+- Backspace : <kbd>\<del\></kbd>
+- Move cursor right : <kbd>\<right\></kbd>, <kbd>C-f</kbd>
+- Move cursor left : <kbd>\<left\></kbd>, <kbd>C-d</kbd>, <kbd>C-b</kbd>
+- Select all : <kbd>C-a</kbd>
+
 ...
 
 
-[ README IN PROGRESS -- LAST UPDATE 2024-06-11 TUESDAY ]
+[ LAST UPDATED 2024-06-15 SATURDAY ]
 
 ...

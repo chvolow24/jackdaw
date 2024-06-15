@@ -11,7 +11,7 @@
 #define INPUT_KEYUP_HASH_SIZE 128
 #define MAX_ANNOT_STRLEN 255
 
-#define NUM_INPUT_MODES 5
+#define NUM_INPUT_MODES 6
 #define MAX_MODE_SUBCATS 10
 #define MAX_MODE_SUBCAT_FNS 64
 
@@ -52,7 +52,7 @@ typedef struct keybinding {
     /* Key binding information */
     InputMode mode;
     uint16_t i_state;
-    char keycode;
+    SDL_Keycode keycode;
     char *keycmd_str; /* E.g. "C-t", "C-S-3" */
 
     /* Modifiable pointer to UserFn struct */
@@ -71,7 +71,7 @@ const char *input_mode_str(InputMode mode);
 void input_init_hash_table();
 
 /* Get the UserInput struct for the given key inputs */
-UserFn *input_get(uint16_t i_state, SDL_Keycode keycode, InputMode mode);
+UserFn *input_get(uint16_t i_state, SDL_Keycode keycode);
 
 /* Bind a function. This does NOT check if function is bound to another key cmd */
 void input_bind_fn(UserFn *fn, uint16_t i_state, SDL_Keycode keycode, InputMode mode);

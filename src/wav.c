@@ -57,6 +57,7 @@ Positions	Sample Value	    Description
 #include "project.h"
 #include "mixdown.h"
 #include "transport.h"
+#include "status.h"
 extern Project *proj;
 
 //TODO: Endianness!
@@ -193,6 +194,11 @@ void wav_load_to_track(Track *track, const char *filename, int32_t start_pos) {
 
 
     uint32_t buf_len_samples = audio_len_bytes / sizeof(int16_t);
+    if (buf_len_samples < 3) {
+	fprintf(stderr, "Error: cannot read wav file.\n");
+	status_set_errstr("Error reading wav file.");
+	return;
+    }
     Clip *clip = project_add_clip(NULL, track);
     proj->active_clip_index++;
     

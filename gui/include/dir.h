@@ -61,8 +61,10 @@ typedef struct filepath {
 DirNav *dirnav_create(const char *dir_name, Layout *lt, int (*dir_to_tline_filter)(void *dp_v, void *dn_v));
 void dirnav_draw(DirNav *dn);
 void dirnav_destroy(DirNav *dn);
+TLinesItem *dirnav_select_item(DirNav *dn, uint16_t i);
 void dirnav_next(DirNav *dn);
 void dirnav_previous(DirNav *dn);
 void dirnav_select(DirNav *dn);
+void dirnav_triage_click(DirNav *dn, SDL_Point *mousep);
 
 #endif

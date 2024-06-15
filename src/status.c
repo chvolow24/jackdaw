@@ -135,7 +135,7 @@ static void status_set_dragstr(char *dragstr)
     /* layout_center_agnostic(proj->status_bar.dragstat->layout, false, true); */
     textbox_reset_full(proj->status_bar.dragstat);
     layout_reset(proj->status_bar.layout);
-    fprintf(stdout, "w: %d\n", proj->status_bar.dragstat->layout->rect.w);
+    /* fprintf(stdout, "w: %d\n", proj->status_bar.dragstat->layout->rect.w); */
 }
 
 

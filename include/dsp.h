@@ -63,11 +63,10 @@ void set_FIR_filter_params(FIRFilter *filter, double cutoff, double bandwidth);
 /* Destry a FIRFilter and associated memory */
 void destroy_filter(FIRFilter *filter);
 
-// void apply_filter(FIRFilter *filter, uint8_t channel, uint16_t chunk_size, float *sample_array);
 void apply_track_filters(Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array);
 
 // void process_clip_vol_and_pan(Clip *clip);
-void process_track_vol_and_pan(Track *track);
-void process_vol_and_pan(void);
+/* void process_track_vol_and_pan(Track *track); */
+/* void process_vol_and_pan(void); */
 
 #endif

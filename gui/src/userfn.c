@@ -1144,25 +1144,25 @@ void user_tl_next_timeline()
 }
 
 
-void _____user_global_save_project()
-{
-    fprintf(stdout, "user_global_save\n");
-    Layout *mod_lt = layout_add_child(main_win->layout);
-    layout_set_default_dims(mod_lt);
-    Modal *save_as = modal_create(mod_lt);
-    modal_add_header(save_as, "Save as:", &control_bar_bckgrnd, 3);
-    modal_add_header(save_as, "Project name:", &control_bar_bckgrnd, 5);
-    modal_add_textentry(save_as, proj->name);
-    modal_add_p(save_as, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-p\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &color_global_black);
-    /* modal_add_op(save_as, "\t\t(type <ret> to accept name)", &control_bar_bckgrnd); */
-    modal_add_header(save_as, "Project location:", &control_bar_bckgrnd, 5);
-    modal_add_dirnav(save_as, DIRPATH_SAVED_PROJ, dir_to_tline_filter_save);
-    save_as->submit_form = submit_save_as_form;
-    window_push_modal(main_win, save_as);
-    modal_reset(save_as);
-    /* fprintf(stdout, "about to call move onto\n"); */
-    modal_move_onto(save_as);
-}
+/* void _____user_global_save_project() */
+/* { */
+/*     fprintf(stdout, "user_global_save\n"); */
+/*     Layout *mod_lt = layout_add_child(main_win->layout); */
+/*     layout_set_default_dims(mod_lt); */
+/*     Modal *save_as = modal_create(mod_lt); */
+/*     modal_add_header(save_as, "Save as:", &control_bar_bckgrnd, 3); */
+/*     modal_add_header(save_as, "Project name:", &control_bar_bckgrnd, 5); */
+/*     modal_add_textentry(save_as, proj->name); */
+/*     modal_add_p(save_as, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-p\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &color_global_black); */
+/*     /\* modal_add_op(save_as, "\t\t(type <ret> to accept name)", &control_bar_bckgrnd); *\/ */
+/*     modal_add_header(save_as, "Project location:", &control_bar_bckgrnd, 5); */
+/*     modal_add_dirnav(save_as, DIRPATH_SAVED_PROJ, dir_to_tline_filter_save); */
+/*     save_as->submit_form = submit_save_as_form; */
+/*     window_push_modal(main_win, save_as); */
+/*     modal_reset(save_as); */
+/*     /\* fprintf(stdout, "about to call move onto\n"); *\/ */
+/*     modal_move_onto(save_as); */
+/* } */
 
 static void *submit_save_wav_form(void *mod_v)
 {
@@ -1367,6 +1367,45 @@ void user_modal_submit_form()
     Modal *modal = main_win->modals[main_win->num_modals - 1];
     modal_submit_form(modal);
 }
+
+void user_text_edit_escape()
+{
+    if (main_win->txt_editing) {
+	txt_stop_editing(main_win->txt_editing);
+    }
+}
+
+void user_text_edit_backspace()
+{
+    if (main_win->txt_editing) {
+	txt_edit_backspace(main_win->txt_editing);
+    }
+}
+
+void user_text_edit_cursor_left()
+{
+    if (main_win->txt_editing) {
+	txt_edit_move_cursor(main_win->txt_editing, true);
+    }
+
+}
+
+void user_text_edit_cursor_right()
+{
+    if (main_win->txt_editing) {
+	txt_edit_move_cursor(main_win->txt_editing, false);
+    }
+}
+
+
+void user_text_edit_select_all()
+{
+    if (main_win->txt_editing) {
+	txt_edit_select_all(main_win->txt_editing);
+    }
+}
+
+
 /*
 }
 

@@ -110,4 +110,11 @@ void user_modal_previous_escape();
 void user_modal_select();
 void user_modal_dismiss();
 void user_modal_submit_form();
+
+
+void user_text_edit_escape();
+void user_text_edit_backspace();
+void user_text_edit_cursor_right();
+void user_text_edit_cursor_left();
+void user_text_edit_select_all();
 #endif

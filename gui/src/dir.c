@@ -442,28 +442,37 @@ void dirnav_draw(DirNav *dn)
 }
 
 /* void layout_write(FILE *f, Layout *lt, int indent); */
-void dirnav_next(DirNav *dn)
+
+
+TLinesItem *dirnav_select_item(DirNav *dn, uint16_t i)
 {
-    /* layout_write(stdout, dn->layout, 0); */
-    /* fprintf(stdout, "Dn line %d/%d\n", dn->current_line, dn->num_lines); */
-    if (dn->num_lines != 0 && dn->current_line < dn->num_lines - 1) {
+    if (i<dn->num_lines && i>= 0) {
 	TLinesItem *current = dn->lines->items[dn->current_line];
 	textbox_set_background_color(current->tb, &color_global_clear);
-	/* SDL_Color txt_color = ((DirPath *)current->obj)->type == DT_DIR ? color_dir : color_file; */
-	/* textbox_set_text_color(current->tb, &txt_color); */
 	textbox_reset_full(current->tb);
-	
-	dn->current_line++;
+	dn->current_line = i;
 	current = dn->lines->items[dn->current_line];
 	textbox_set_background_color(current->tb, &color_highlighted_bckgrnd);
-	/* txt_color = ((DirPath *)current->obj)->type == DT_DIR ? color_dir_selected : color_file_selected; */
-	/* textbox_set_text_color(current->tb, &txt_color); */
-	/* textbox_reset_full(current->tb); */
-	/* dn->layout->children[0]->scroll_offset_ -= 10; */
-	/* textbox_set_value_handle(dn->current_path_tb, ((DirPath *)current->obj)->path); */
 	layout_reset(dn->layout);
+	return current;
 
+	/* Layout *inner = layout_get_child_by_name_recursive(dn->layout, "dirnav_lines_container"); */
+	/* if (current->tb->layout->rect.y + current->tb->layout->rect.h > inner->rect.y + inner->rect.h - SCROLL_TRIGGER_PAD) { */
+	/*     int item_abs_y = current->tb->layout->rect.y; */
+	/*     int item_desired_y = inner->rect.y + inner->rect.h - SCROLL_PAD; */
+	/*     dn->lines->container->scroll_offset_v -= item_abs_y - item_desired_y; */
+	/* } */
+    }
+    return NULL;
+
+}
+
+void dirnav_next(DirNav *dn)
+{
+    TLinesItem *current = dirnav_select_item(dn, dn->current_line + 1);
+    if (current) {
 	Layout *inner = layout_get_child_by_name_recursive(dn->layout, "dirnav_lines_container");
+	/* TLinesItem *current = dn->lines-> */
 	if (current->tb->layout->rect.y + current->tb->layout->rect.h > inner->rect.y + inner->rect.h - SCROLL_TRIGGER_PAD) {
 	    int item_abs_y = current->tb->layout->rect.y;
 	    int item_desired_y = inner->rect.y + inner->rect.h - SCROLL_PAD;
@@ -474,21 +483,8 @@ void dirnav_next(DirNav *dn)
 
 void dirnav_previous(DirNav *dn)
 {
-    if (dn->current_line > 0) {
-	TLinesItem *current = dn->lines->items[dn->current_line];
-	textbox_set_background_color(current->tb, &color_global_clear);
-	/* SDL_Color txt_color = ((DirPath *)current->obj)->type == DT_DIR ? color_dir : color_file; */
-	/* textbox_set_text_color(current->tb, &txt_color); */
-	textbox_reset_full(current->tb);
-	
-	dn->current_line--;
-	current = dn->lines->items[dn->current_line];
-	textbox_set_background_color(current->tb, &color_highlighted_bckgrnd);
-	/* txt_color = ((DirPath *)current->obj)->type == DT_DIR ? color_dir_selected : color_file_selected; */
-	/* textbox_set_text_color(current->tb, &txt_color); */
-	/* textbox_reset_full(current->tb); */
-	/* textbox_set_value_handle(dn->current_path_tb, ((DirPath *)current->obj)->path); */
-	
+    TLinesItem *current = dirnav_select_item(dn, dn->current_line - 1);
+    if (current) {
 	Layout *inner = layout_get_child_by_name_recursive(dn->layout, "dirnav_lines_container");
 	if (current->tb->layout->rect.y < inner->rect.y + SCROLL_TRIGGER_PAD && dn->lines->container->scroll_offset_v < 0) {
 	    int item_abs_y = current->tb->layout->rect.y;
@@ -499,7 +495,6 @@ void dirnav_previous(DirNav *dn)
 	}
     }
 }
-
 
 void dirnav_select(DirNav *dn)
 {
@@ -547,6 +542,19 @@ void dirnav_select(DirNav *dn)
 	layout_reset(dn->layout);
     } else if (selected->type == DT_REG && dn->file_select_action) {
 	dn->file_select_action(dn, selected);
+    }
+}
+
+void dirnav_triage_click(DirNav *dn, SDL_Point *mousep)
+{
+    for (uint16_t i=0; i<dn->num_lines; i++) {
+	TLinesItem *line = dn->lines->items[i];
+	if (SDL_PointInRect(mousep, &line->tb->layout->rect)) {
+	    dn->current_line = i;
+	    dirnav_select(dn);
+	    break;
+	}
+	
     }
 }
 

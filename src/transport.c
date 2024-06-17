@@ -72,12 +72,12 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
 
  }
 
- static float *get_source_mode_chunk(uint8_t channel, uint32_t len_sframes, int32_t start_pos_sframes, float step)
+static float *get_source_mode_chunk(uint8_t channel, float *chunk, uint32_t len_sframes, int32_t start_pos_sframes, float step)
  {
-     float *chunk = malloc(sizeof(float) * len_sframes);
-     if (!chunk) {
-	 fprintf(stderr, "Error: unable to allocate chunk from source clip\n");
-     }
+     /* float *chunk = malloc(sizeof(float) * len_sframes); */
+     /* if (!chunk) { */
+     /* 	 fprintf(stderr, "Error: unable to allocate chunk from source clip\n"); */
+     /* } */
      float *src_buffer = channel == 0 ? proj->src_clip->L : proj->src_clip->R;
 
 
@@ -97,16 +97,22 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 {
     memset(stream, '\0', len);
 
+    /* fprintf(stdout, "PLAyback callbac\n"); */
     uint32_t stream_len_samples = len / sizeof(int16_t);
-
-    float *chunk_L, *chunk_R;
+    uint32_t len_sframes = stream_len_samples / proj->channels;
+    float chunk_L[len_sframes];
+    float chunk_R[len_sframes];
     if (proj->source_mode) {
-	chunk_L = get_source_mode_chunk(0, stream_len_samples / proj->channels, proj->src_play_pos_sframes, proj->src_play_speed);
-	chunk_R = get_source_mode_chunk(1, stream_len_samples / proj->channels, proj->src_play_pos_sframes, proj->src_play_speed);
+	/* chunk_L = get_source_mode_chunk(0, len_sframes, proj->src_play_pos_sframes, proj->src_play_speed); */
+	/* chunk_R = get_source_mode_chunk(1, len_sframes, proj->src_play_pos_sframes, proj->src_play_speed); */
+	get_source_mode_chunk(0, chunk_L, len_sframes, proj->src_play_pos_sframes, proj->src_play_speed);
+	get_source_mode_chunk(1, chunk_R, len_sframes, proj->src_play_pos_sframes, proj->src_play_speed);
     } else {
 	Timeline *tl = proj->timelines[proj->active_tl_index];
-	chunk_L = get_mixdown_chunk(tl, 0, stream_len_samples / proj->channels, tl->play_pos_sframes, proj->play_speed);
-	chunk_R = get_mixdown_chunk(tl, 1, stream_len_samples / proj->channels, tl->play_pos_sframes, proj->play_speed);
+	/* fprintf(stdout, "Getting mixdown...\n"); */
+	get_mixdown_chunk(tl, chunk_L, 0, len_sframes, tl->play_pos_sframes, proj->play_speed);
+	get_mixdown_chunk(tl, chunk_R, 1, len_sframes, tl->play_pos_sframes, proj->play_speed);
+	/* fprintf(stdout, "Done.\n"); */
     }
 
     int16_t *stream_fmt = (int16_t *)stream;
@@ -120,8 +126,9 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	stream_fmt[i+1] = (int16_t) (val_R * INT16_MAX);
     }
 
-    free(chunk_L);
-    free(chunk_R);
+    /* free(chunk_L); */
+    /* free(chunk_R); */
+
     // for (uint8_t i = 0; i<40; i+=2) {
     //     fprintf(stderr, "%hd ", (int16_t)(stream[i]));
     // }

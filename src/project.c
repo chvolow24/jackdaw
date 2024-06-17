@@ -35,6 +35,7 @@
 #include <string.h>
 
 #include "audio_connection.h"
+#include "dsp.h"
 #include "layout.h"
 #include "layout_xml.h"
 #include "menu.h"
@@ -126,6 +127,9 @@ uint8_t project_add_timeline(Project *proj, char *name)
     /* textbox_size_to_fit(new_tl->timecode_tb, 0, 0); */
     
     /* new_tl->track_selector = 0; */
+    /* new_tl->mixdown_L = malloc(sizeof(float) * proj->chunk_size_sframes); */
+    /* new_tl->mixdown_R = malloc(sizeof(float) * proj->chunk_size_sframes); */
+
     
     proj->timelines[proj->num_timelines] = new_tl;
     proj->num_timelines++;
@@ -149,6 +153,12 @@ void timeline_destroy(Timeline *tl)
 	}
 	proj->num_timelines--;
     }
+    /* if (tl->mixdown_L) { */
+    /* 	free(tl->mixdown_L); */
+    /* } */
+    /* if (tl->mixdown_R) { */
+    /* 	free(tl->mixdown_R); */
+    /* } */
     free(tl);
 
 }
@@ -574,6 +584,20 @@ Track *timeline_add_track(Timeline *tl)
     track->console_rect = &(layout_get_child_by_name_recursive(track->layout, "track_console")->rect);
     track->colorbar = &(layout_get_child_by_name_recursive(track->layout, "colorbar")->rect);
     /* textbox_reset_full(track->tb_name); */
+
+
+
+    /* FILTER TESTS */
+
+    track->fir_filters[0] = create_FIR_filter(LOWPASS, 32, 1024);
+    track->num_filters++;
+    set_FIR_filter_params(track->fir_filters[0], 0.002, 0);
+
+
+    /* END FILTER TESTS */
+
+
+    
     return track;
 }
 

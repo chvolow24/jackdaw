@@ -76,7 +76,7 @@ typedef struct timeline Timeline;
 typedef struct audio_conn AudioConn;
 typedef struct clip Clip;
 typedef struct clip_ref ClipRef;
-
+typedef struct fir_filter FIRFilter;
 
 typedef struct track {
     char name[MAX_NAMELENGTH];
@@ -103,8 +103,8 @@ typedef struct track {
     FSlider *vol_ctrl;
     FSlider *pan_ctrl;
 
-    /* FIRFilter *fir_filters[MAX_TRACK_FILTERS]; */
-    /* uint8_t num_filters; */
+    FIRFilter *fir_filters[MAX_TRACK_FILTERS];
+    uint8_t num_filters;
     
     
     /* FSLIDER *vol_ctrl */

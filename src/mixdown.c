@@ -30,6 +30,7 @@
     * Get sampels from tracks/clips for playback or export
  *****************************************************************************************************************/
 
+#include "dsp.h"
 #include "project.h"
 
 
@@ -80,14 +81,14 @@ extern Project *proj;
 /*     return sample; */
 /* } */
 
-int ijk=0;
+/* int ijk=0; */
 
-float *get_track_channel_chunk(Track *track, uint8_t channel, int32_t start_pos_sframes, uint32_t len_sframes, float step)
+float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32_t start_pos_sframes, uint32_t len_sframes, float step)
 {
     /* fprintf(stderr, "Start get track buf %d\n", i++); */
     uint32_t chunk_bytelen = sizeof(float) * len_sframes;
-    float *chunk = calloc(1, chunk_bytelen);
-    /* memset(chunk, '\0', chunk_bytelen); */
+    /* float *chunk = calloc(1, chunk_bytelen); */
+    memset(chunk, '\0', chunk_bytelen);
     if (track->muted || track->solo_muted) {
         return chunk;
     }
@@ -132,6 +133,7 @@ float *get_track_channel_chunk(Track *track, uint8_t channel, int32_t start_pos_
 		chunk[chunk_i] += clip_buf[(int32_t)pos_in_clip_sframes + cr->in_mark_sframes] * track->vol * pan_scale;
 	    }
 	    pos_in_clip_sframes += step;
+	    /* fprintf(stdout, "Chunk %d: %f\n", chunk_i, chunk[chunk_i]); */
 	    chunk_i++;
 	}
 	
@@ -164,10 +166,10 @@ float *get_track_channel_chunk(Track *track, uint8_t channel, int32_t start_pos_
 Sum track samples over a chunk of timeline and return an array of samples. from_mark_in indicates that samples
 should be collected from the in mark rather than from the play head.
 */
-float *get_mixdown_chunk(Timeline* tl, uint8_t channel, uint32_t len_sframes, int32_t start_pos_sframes, float step)
+float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t len_sframes, int32_t start_pos_sframes, float step)
 {
     uint32_t chunk_len_bytes = sizeof(float) * len_sframes;
-    float *mixdown = malloc(chunk_len_bytes);
+    /* float *mixdown = malloc(chunk_len_bytes); */
     memset(mixdown, '\0', chunk_len_bytes);
     if (!mixdown) {
         fprintf(stderr, "\nError: could not allocate mixdown chunk.");
@@ -180,12 +182,14 @@ float *get_mixdown_chunk(Timeline* tl, uint8_t channel, uint32_t len_sframes, in
         /* double lpan = track->pan_ctrl->value < 0 ? 1 : 1 - panctrlval; */
         /* double rpan = track->pan_ctrl->value > 0 ? 1 : 1 + panctrlval; */
         /* double pan = channel == 0 ? lpan : rpan; */
-        float *track_chunk = get_track_channel_chunk(track, channel, start_pos_sframes, len_sframes, step);
-        /* apply_track_filters(track, channel, len_sframes, track_chunk); */
-
+	float track_chunk[len_sframes];
+        get_track_channel_chunk(track, track_chunk, channel, start_pos_sframes, len_sframes, step);
+        apply_track_filters(track, channel, len_sframes, track_chunk);
+	/* apply_filter(track->fir_filters[0], channel, len_sframes, track_chunk); */
         for (uint32_t i=0; i<len_sframes; i++) {
             /* mixdown[i] += track_chunk[i] * pan * track->vol_ctrl->value; */
 	    mixdown[i] += track_chunk[i];
+	    /* fprintf(stdout, "Track chunk %d: %f\n", i, track_chunk[i]); */
 	    if (t == tl->num_tracks - 1) {
 		if (mixdown[i] > 1.0f) {
 		    mixdown[i] = 1.0f;
@@ -198,7 +202,7 @@ float *get_mixdown_chunk(Timeline* tl, uint8_t channel, uint32_t len_sframes, in
         }
 
 	
-        free(track_chunk);
+        /* free(track_chunk); */
     }
 
 

@@ -36,6 +36,7 @@
 #include "SDL.h"
 #include "audio_connection.h"
 #include "draw.h"
+#include "dsp.h"
 #include "input.h"
 #include "layout.h"
 #include "modal.h"
@@ -244,7 +245,20 @@ void loop_project_main()
 		    txt_input_event_handler(main_win->txt_editing, &e);
 		}
 		break;
-	    case SDL_KEYDOWN:
+	    case SDL_KEYDOWN: {
+		Timeline *tl = NULL;
+		if ((tl = proj->timelines[0])) {
+		    Track *track = NULL;
+		    if ((track = tl->tracks[0])) {
+			double *filter_cutoff = &(track->fir_filters[0]->cutoff_freq);
+			*filter_cutoff += 0.01f;
+			if (*filter_cutoff >= 1.0f) {
+			    *filter_cutoff = 0.0f;
+			}
+			set_FIR_filter_params(track->fir_filters[0], *filter_cutoff, 0);
+		    }
+		    
+		}
 		/* for (uint8_t i=0; i<proj->num_clips; i++) { */
 		/*     Clip *clip = proj->clips[i]; */
 		/*     fprintf(stdout, "\n\nClip: %p\n", clip); */
@@ -391,6 +405,7 @@ void loop_project_main()
 		}
 	    }
 		break;
+	    }
 	    case SDL_MOUSEBUTTONDOWN:
 		if (e.button.button == SDL_BUTTON_LEFT) {
 		    main_win->i_state |= I_STATE_MOUSE_L;

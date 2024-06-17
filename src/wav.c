@@ -128,8 +128,10 @@ void wav_write_mixdown(const char *filepath)
     int16_t *samples = malloc(sizeof(int16_t) * len_samples);
 
     for (uint32_t c=0; c<chunks; c++) {
-        float *samples_L = get_mixdown_chunk(tl, 0, chunk_len_sframes, tl->in_mark_sframes + (c * chunk_len_sframes), 1);
-        float *samples_R = get_mixdown_chunk(tl, 1, chunk_len_sframes, tl->in_mark_sframes + (c * chunk_len_sframes), 1);
+        float *samples_L = malloc(sizeof(float) * chunk_len_sframes);
+	float *samples_R = malloc(sizeof(float) * chunk_len_sframes);
+	get_mixdown_chunk(tl, samples_L, 0, chunk_len_sframes, tl->in_mark_sframes + (c * chunk_len_sframes), 1);
+        get_mixdown_chunk(tl, samples_R, 1, chunk_len_sframes, tl->in_mark_sframes + (c * chunk_len_sframes), 1);
         for (uint32_t i=0; i<chunk_len_samples; i+=2) {
             samples[c * chunk_len_samples + i] = samples_L[i/2] * INT16_MAX;
             samples[c * chunk_len_samples + i + 1] = samples_R[i/2] * INT16_MAX;

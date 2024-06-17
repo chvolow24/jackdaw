@@ -1198,7 +1198,7 @@ static void *submit_save_wav_form(void *mod_v)
 	*last_slash_pos = '\0';
 	/* fprintf(stdout, "Real path of %s:\n", dirpath); */
 	char *realpath_ret;
-	if (!(realpath_ret = realpath(dirpath, DIRPATH_EXPORT))) {
+	if (!(realpath_ret = realpath(dirpath, NULL))) {
 	    perror("Error in realpath");
 	} else {
 	    strncpy(DIRPATH_EXPORT, realpath_ret, MAX_PATHLEN);

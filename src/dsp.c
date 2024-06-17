@@ -118,7 +118,7 @@ static void FFT_inner(double *A, double complex *B, int n, int offset, int incre
 
 }
 
-static void FFT(double *A, complex double *B, int n)
+static void FFT(double *A, double complex *B, int n)
 {
 
     FFT_inner(A, B, n, 0, 1);
@@ -132,7 +132,7 @@ static void FFT(double *A, complex double *B, int n)
 /* I'm not sure why using an "unscaled" version of the FFT appears to work when getting the frequency response
 for the FIR filters defined below (e.g. "bandpass_IR()"). The normal, scaled version produces values that are
 too small. */
-static void FFT_unscaled(double *A, complex double *B, int n) 
+static void FFT_unscaled(double *A, double complex *B, int n) 
 {
     FFT_inner(A, B, n, 0, 1);
 }
@@ -396,7 +396,7 @@ void apply_filter(FIRFilter *filter, uint8_t channel, uint16_t chunk_size, float
     for (uint16_t i=0; i<padded_len; i++) {
         freq_domain[i] *= filter->frequency_response[i];
     }
-    complex double time_domain[padded_len];
+    double complex time_domain[padded_len];
     IFFT(freq_domain, time_domain, padded_len);
     /* free(freq_domain); */
     double real[padded_len];
@@ -422,8 +422,7 @@ void apply_track_filters(Track *track, uint8_t channel, uint16_t chunk_size, flo
         return;
     }
     uint16_t padded_len = proj->chunk_size_sframes * 2;
-    double complex freq_response_sum[padded_len];
-    memset(freq_response_sum, '\0', sizeof(double complex) * padded_len);
+
     double padded_chunk[padded_len];
     for (uint16_t i=0; i<padded_len; i++) {
 	if (i<chunk_size) {
@@ -439,27 +438,31 @@ void apply_track_filters(Track *track, uint8_t channel, uint16_t chunk_size, flo
 
     for (uint8_t f=0; f<track->num_filters; f++) {
 	FIRFilter *filter = track->fir_filters[f];
+	double complex freq_response_sum[filter->frequency_response_len];
+	
+	memset(freq_response_sum, '\0', sizeof(double complex) * filter->frequency_response_len);
+
 	double *overlap_buffer = channel == 0 ? filter->overlap_buffer_L : filter->overlap_buffer_R;
 
-	if (!overlap_buffer) {
-	    overlap_buffer = malloc(sizeof(double) * filter->overlap_len);
-	    memset(overlap_buffer, '\0', sizeof(double) * filter->overlap_len);
-	    if (channel == 0) {
-		filter->overlap_buffer_L = overlap_buffer;
-	    } else {
-		filter->overlap_buffer_R = overlap_buffer;
-	    }
-	}
+	/* if (!overlap_buffer) { */
+	/*     overlap_buffer = malloc(sizeof(double) * filter->overlap_len); */
+	/*     memset(overlap_buffer, '\0', sizeof(double) * filter->overlap_len); */
+	/*     if (channel == 0) { */
+	/* 	filter->overlap_buffer_L = overlap_buffer; */
+	/*     } else { */
+	/* 	filter->overlap_buffer_R = overlap_buffer; */
+	/*     } */
+	/* } */
     
 
 
         for (uint16_t i=0; i<filter->frequency_response_len; i++) {
             freq_response_sum[i] += filter->frequency_response[i];
         }
-	for (uint16_t i=0; i<padded_len; i++) {
+	for (uint16_t i=0; i<filter->frequency_response_len; i++) {
 	    freq_domain[i] *= freq_response_sum[i];
 	}
-	complex double time_domain[padded_len];
+	double complex time_domain[padded_len];
 	IFFT(freq_domain, time_domain, padded_len);
 	/* free(freq_domain); */
 	double real[padded_len];

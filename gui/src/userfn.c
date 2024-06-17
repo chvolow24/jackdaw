@@ -1201,8 +1201,10 @@ static void *submit_save_wav_form(void *mod_v)
 	if (!(realpath_ret = realpath(dirpath, DIRPATH_EXPORT))) {
 	    perror("Error in realpath");
 	} else {
+	    /* if (DIRPATH_EXPORT != realpath_ret) { */
 	    strncpy(DIRPATH_EXPORT, realpath_ret, MAX_PATHLEN);
 	    free(realpath_ret);
+	    /* } */
 	}
 
 	/* fprintf(stdout, " is %s\n", DIRPATH_SAVED_PROJ); */

@@ -250,12 +250,14 @@ void loop_project_main()
 		if ((tl = proj->timelines[0])) {
 		    Track *track = NULL;
 		    if ((track = tl->tracks[0])) {
-			double *filter_cutoff = &(track->fir_filters[0]->cutoff_freq);
-			*filter_cutoff += 0.01f;
-			if (*filter_cutoff >= 1.0f) {
-			    *filter_cutoff = 0.0f;
+			if (track->num_filters > 0) {
+			    double *filter_cutoff = &(track->fir_filters[0]->cutoff_freq);
+			    *filter_cutoff += 0.01f;
+			    if (*filter_cutoff >= 1.0f) {
+				*filter_cutoff = 0.0f;
+			    }
+			    set_FIR_filter_params(track->fir_filters[0], *filter_cutoff, 0);
 			}
-			set_FIR_filter_params(track->fir_filters[0], *filter_cutoff, 0);
 		    }
 		    
 		}

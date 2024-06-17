@@ -304,6 +304,7 @@ Project *jdaw_read_file(const char *path)
     if (sys_byteorder_le) {
         fread(&sample_rate, 4, 1, f);
         fread(&chunk_size, 2, 1, f);
+	/* fprintf(stdout, "CHUNK SIZE: %d\n", chunk_size); */
     } else {
 	BYTEORDER_FATAL
         exit(1);
@@ -319,7 +320,8 @@ Project *jdaw_read_file(const char *path)
 	fmt,
 	chunk_size
 	);
-
+    /* proj = proj_loc; */
+    
     proj->num_timelines = 0;
 
     while (num_clips > 0) {

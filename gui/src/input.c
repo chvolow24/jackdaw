@@ -1232,7 +1232,8 @@ void input_load_keybinding_config(const char *filepath)
 	InputMode mode = input_mode_from_str(buf);
 	if (mode == -1) {
 	    fprintf(stderr, "Error: no mode under name %s\n", buf);
-	    exit(1);
+	    return;
+	    /* exit(1); */
 	}
 	
 

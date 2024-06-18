@@ -1234,6 +1234,8 @@ void user_tl_write_mixdown_to_wav()
     /* modal_add_op(save_wav, "\t\t(type <ret> to accept name)", &control_bar_bckgrnd); */
     modal_add_header(save_wav, "Location:", &control_bar_bckgrnd, 5);
     modal_add_dirnav(save_wav, DIRPATH_EXPORT, dir_to_tline_filter_save);
+    modal_add_button(save_wav, "Save .wav file", submit_save_wav_form);
+    /* save_as->submit_form = submit_save_as_form; */
     save_wav->submit_form = submit_save_wav_form;
     window_push_modal(main_win, save_wav);
     modal_reset(save_wav);

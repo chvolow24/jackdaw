@@ -6,10 +6,11 @@
 #define MAX_MODAL_ELEMENTS 255
 #define BUTTON_CORNER_RADIUS 4
 
+typedef struct text_entry TextEntry;
 typedef struct text_entry {
     Textbox *tb;
-    int (*validation)(char *to_test, const char *msg);
-    int (*completion)(void *arg);
+    /* void (*validation)(TextEntry *self, void *xarg); */
+    void (*completion)(TextEntry *self, void *xarg);
 } TextEntry;
 
 typedef struct button {
@@ -47,7 +48,7 @@ void modal_destroy(Modal *modal);
 ModalEl *modal_add_header(Modal *modal, const char *text, SDL_Color *color, int level);
 ModalEl *modal_add_p(Modal *modal, const char *text, SDL_Color *color);
 ModalEl *modal_add_dirnav(Modal *modal, const char *dirpath, int (*dir_to_tline_filter)(void *dp_v, void *dn_v));
-ModalEl *modal_add_textentry(Modal *modal, char *init_val);
+ModalEl *modal_add_textentry(Modal *modal, char *init_val, int (*validation)(Text *txt, char input), int (*completion)(Text *txt));
 ModalEl *modal_add_button(Modal *modal, char *text, void *(*action)(void *arg));
 void modal_reset(Modal *modal);
 void modal_draw(Modal *modal);

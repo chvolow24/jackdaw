@@ -482,6 +482,7 @@ Track *timeline_add_track(Timeline *tl)
     textbox_set_pad(track->tb_name, 4, 0);
     textbox_set_border(track->tb_name, &color_global_black, 1);
     textbox_reset_full(track->tb_name);
+    track->tb_name->text->validation = txt_name_validation;
 
     track->tb_input_label = textbox_create_from_str(
 	"In: ",

@@ -55,7 +55,7 @@
 #include "slider.h"
 
 #define MAX_TRACKS 255
-#define MAX_NAMELENGTH 255
+#define MAX_NAMELENGTH 64
 #define MAX_TRACK_CLIPS 255
 #define MAX_ACTIVE_CLIPS 255
 #define MAX_ACTIVE_TRACKS 255

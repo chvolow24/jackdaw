@@ -72,7 +72,7 @@ static void *submit_save_as_form(void *mod_v)
     for (uint8_t i=0; i<modal->num_els; i++) {
 	switch ((el = modal->els[i])->type) {
 	case MODAL_EL_TEXTENTRY:
-	    name = ((Textbox *)el->obj)->text->value_handle;
+	    name = ((TextEntry *)el->obj)->tb->text->value_handle;
 	    break;
 	case MODAL_EL_DIRNAV: {
 	    DirNav *dn = (DirNav *)el->obj;
@@ -160,6 +160,49 @@ static int dir_to_tline_filter_open(void *dp_v, void *dn_v)
     
 }
 
+static int file_ext_completion_wav(Text *txt)
+{
+    char *dotpos = strrchr(txt->display_value, '.');
+    int retval = 0;
+    /* fprintf(stdout, "COMPLETION %s\n", dotpos); */
+    if (!dotpos) {
+	strcat(txt->display_value, ".wav");
+	txt->len = strlen(txt->display_value);
+	txt->cursor_end_pos = txt->len;
+	txt_reset_drawable(txt);
+	retval = 0;
+    } else if (strcmp(dotpos, ".wav") != 0 && (strcmp(dotpos, ".wav") != 0)) {
+	retval = 1;
+    }
+    if (retval == 1) {
+	txt->cursor_start_pos = dotpos + 1 - txt->display_value;
+	txt->cursor_end_pos = txt->len;
+	status_set_errstr("Export file must have \".wav\" extension");
+    }
+    return retval;
+}
+
+static int file_ext_completion_jdaw(Text *txt)
+{
+    char *dotpos = strrchr(txt->display_value, '.');
+    int retval = 0;
+    /* fprintf(stdout, "COMPLETION %s\n", dotpos); */
+    if (!dotpos) {
+	strcat(txt->display_value, ".jdaw");
+	txt->len = strlen(txt->display_value);
+	txt->cursor_end_pos = txt->len;
+	txt_reset_drawable(txt);
+	retval = 0;
+    } else if (strcmp(dotpos, ".jdaw") != 0 && (strcmp(dotpos, ".JDAW") != 0)) {
+	retval = 1;
+    }
+    if (retval == 1) {
+	txt->cursor_start_pos = dotpos + 1 - txt->display_value;
+	txt->cursor_end_pos = txt->len;
+	status_set_errstr("Project file must have \".jdaw\" extension");
+    }
+    return retval;
+}
 void user_global_save_project()
 {
     fprintf(stdout, "user_global_save\n");
@@ -168,9 +211,8 @@ void user_global_save_project()
     Modal *save_as = modal_create(mod_lt);
     modal_add_header(save_as, "Save as:", &control_bar_bckgrnd, 3);
     modal_add_header(save_as, "Project name:", &control_bar_bckgrnd, 5);
-    modal_add_textentry(save_as, proj->name);
+    modal_add_textentry(save_as, proj->name, txt_name_validation, file_ext_completion_jdaw);
     modal_add_p(save_as, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-p\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &color_global_black);
-    /* modal_add_op(save_as, "\t\t(type <ret> to accept name)", &control_bar_bckgrnd); */
     modal_add_header(save_as, "Project location:", &control_bar_bckgrnd, 5);
     modal_add_dirnav(save_as, DIRPATH_SAVED_PROJ, dir_to_tline_filter_save);
     modal_add_button(save_as, "Save", submit_save_as_form);
@@ -1115,7 +1157,7 @@ void user_tl_add_new_timeline()
     layout_set_default_dims(mod_lt);
     Modal *mod = modal_create(mod_lt);
     modal_add_header(mod, "Create new timeline:", &color_global_black, 5);
-    modal_add_textentry(mod, proj->timelines[proj->active_tl_index]->name);
+    modal_add_textentry(mod, proj->timelines[proj->active_tl_index]->name, txt_name_validation, NULL);
     modal_add_button(mod, "Create", new_tl_submit_form);
     mod->submit_form = new_tl_submit_form;
     window_push_modal(main_win, mod);
@@ -1173,7 +1215,7 @@ static void *submit_save_wav_form(void *mod_v)
     for (uint8_t i=0; i<modal->num_els; i++) {
 	switch ((el = modal->els[i])->type) {
 	case MODAL_EL_TEXTENTRY:
-	    name = ((Textbox *)el->obj)->text->value_handle;
+	    name = ((TextEntry *)el->obj)->tb->text->value_handle;
 	    break;
 	case MODAL_EL_DIRNAV: {
 	    DirNav *dn = (DirNav *)el->obj;
@@ -1228,7 +1270,7 @@ void user_tl_write_mixdown_to_wav()
     }
     wavfilename[i] = '\0';
     strcat(wavfilename, ".wav");
-    modal_add_textentry(save_wav, wavfilename);
+    modal_add_textentry(save_wav, wavfilename, txt_name_validation, file_ext_completion_wav);
     
     modal_add_p(save_wav, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-p\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &color_global_black);
     /* modal_add_op(save_wav, "\t\t(type <ret> to accept name)", &control_bar_bckgrnd); */
@@ -1241,7 +1283,6 @@ void user_tl_write_mixdown_to_wav()
     modal_reset(save_wav);
     /* fprintf(stdout, "about to call move onto\n"); */
     modal_move_onto(save_wav);
-
 }
 
 void user_tl_cliprefs_destroy()

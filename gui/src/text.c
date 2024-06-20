@@ -29,6 +29,8 @@
 #include "draw.h"
 #include "text.h"
 #include "layout.h"
+#include "project.h"
+#include "status.h"
 #include "window.h"
 
 #define TXT_AREA_W_MIN 10
@@ -78,6 +80,8 @@ static void init_empty_text(
     
     txt->win = win;
     txt->texture = NULL;
+    txt->validation = NULL;
+    txt->completion = NULL;
 }
 
 static Text *create_empty_text(
@@ -198,6 +202,16 @@ void txt_set_value(Text *txt, char *set_str)
     txt_reset_display_value(txt);
 }
 
+/* static int test_validation(Text *self, char input, void *xarg) */
+/* { */
+/*     if (input == '0') { */
+/* 	fprintf(stdout, "Txt input validation failure \a\n"); */
+/* 	return 1; */
+/*     } */
+/*     return 0; */
+/* } */
+
+
 Text *txt_create_from_str(
     char *set_str,
     int max_len,
@@ -218,6 +232,7 @@ Text *txt_create_from_str(
     if (set_str) {
         txt_set_value_handle(txt, set_str);
     }
+    /* txt->validation = test_validation; */
 
     return txt;
 }
@@ -328,7 +343,9 @@ void txt_edit(Text *txt, void (*draw_fn) (void))
 
 void txt_stop_editing(Text *txt)
 {
-
+    if (txt->completion && txt->completion(txt) != 0) {
+	return;
+    }
     txt->show_cursor = false;
     /* txt->truncate = save_truncate; */
     txt_set_value(txt, txt->display_value);
@@ -340,10 +357,13 @@ void txt_stop_editing(Text *txt)
 
 void txt_input_event_handler(Text *txt, SDL_Event *e)
 {
-    /* if (e->type == SDL_TEXTINPUT) { */
-    handle_char(txt, e->text.text[0]);
-    txt_reset_drawable(txt);
-    /* } */
+    char input = e->text.text[0];
+    if (txt->validation && txt->validation(txt, input) != 0) {
+	/* fprintf(stdout, "\a\n"); */
+    } else {
+	handle_char(txt, input);
+	txt_reset_drawable(txt);
+    }
 }
 
 void txt_edit_backspace(Text *txt)
@@ -757,3 +777,17 @@ void txt_area_draw(TextArea *txtarea)
     }
     SDL_RenderSetClipRect(main_win->rend, &main_win->layout->rect);
 }
+
+
+int txt_name_validation(Text *txt, char input)
+{
+    if (strlen(txt->display_value) > MAX_NAMELENGTH - 1) {
+	char buf[255];
+	sprintf(buf, "Name cannot exceed %d characters", MAX_NAMELENGTH - 1);
+	status_set_errstr(buf);
+	return 1;
+    } else {
+	return 0;
+    }
+}
+

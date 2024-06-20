@@ -64,8 +64,8 @@ typedef struct text_area {
     SDL_Color color;
     Window *win;
 } TextArea;
-    
-    
+
+typedef struct text Text;
 typedef struct text {
     char *value_handle;
     char display_value[TEXT_BUFLEN];
@@ -92,7 +92,10 @@ typedef struct text {
     Window *win;
     SDL_Texture *texture;
 
-    pthread_mutex_t draw_lock;
+    int (*validation)(Text *self, char input);
+    int (*completion)(Text *self);
+    /* int (*submit_validation)(Text *self); */
+    /* pthread_mutex_t draw_lock; */
 } Text;
 
 
@@ -197,5 +200,6 @@ void txt_area_destroy(TextArea *ta);
 /* Destroy the font array and free the Font */
 void ttf_destroy_font(Font *font);
 
+int txt_name_validation(Text *txt, char input);
 
 #endif

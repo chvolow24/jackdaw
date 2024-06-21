@@ -590,12 +590,12 @@ Track *timeline_add_track(Timeline *tl)
 
     /* FILTER TESTS */
 
-    int ir_len = track->tl->proj->chunk_size_sframes / 32;
-    if (ir_len < 32) ir_len = 32;
-    fprintf(stdout, "CREATE AT %d, %d\n", proj->chunk_size_sframes, ir_len);
-    track->fir_filters[0] = create_FIR_filter(LOWPASS, ir_len, track->tl->proj->chunk_size_sframes * 2);
-    track->num_filters++;
-    set_FIR_filter_params(track->fir_filters[0], 0.01, 0);
+    /* int ir_len = track->tl->proj->chunk_size_sframes / 32; */
+    /* if (ir_len < 32) ir_len = 32; */
+    /* fprintf(stdout, "CREATE AT %d, %d\n", proj->chunk_size_sframes, ir_len); */
+    /* track->fir_filters[0] = create_FIR_filter(LOWPASS, ir_len, track->tl->proj->chunk_size_sframes * 2); */
+    /* track->num_filters++; */
+    /* set_FIR_filter_params(track->fir_filters[0], 0.01, 0); */
     /* END FILTER TESTS */
 
 

@@ -187,6 +187,9 @@ ModalEl *modal_add_header(Modal *modal, const char *text, SDL_Color *color, int 
     /* modal->selectable_indices[modal->num_selectable] = modal->num_els -1; */
     /* modal->num_selectable++; */
     layout_size_to_fit_text_v(el);
+    if (level == 5) {
+	el->layout->x.value.intval = 0;
+    }
     layout_force_reset(modal->layout);
     /* layout_size_to_fit_children(el->layout, true, MODAL_V_PADDING); */
     /* modal_reset(modal); */
@@ -267,8 +270,7 @@ ModalEl *modal_add_textentry(Modal *modal, char *init_val, int (*validation)(Tex
 
     TextEntry *te = calloc(1, sizeof(TextEntry));
     te->tb = textbox_create_from_str(init_val, el->layout, main_win->bold_font, 12, main_win);
-    /* fprintf(stdout, "Textbox init val: %s\n", te->tb->text->value_handle); */
-    /* exit(0); */
+    
     textbox_set_text_color(te->tb, &modal_textentry_text_color);
     textbox_set_background_color(te->tb, &modal_textentry_background);
     textbox_set_align(te->tb, CENTER_LEFT);
@@ -333,6 +335,7 @@ static void modal_el_draw(ModalEl *el)
 	break;
     case MODAL_EL_TEXT:
 	textbox_draw((Textbox *)el->obj);
+	/* layout_draw(main_win, el->layout); */
 	break;
     case MODAL_EL_DIRNAV:
 	dirnav_draw((DirNav *)el->obj);
@@ -540,13 +543,9 @@ void modal_triage_wheel(Modal *modal, SDL_Point *mousep, int x, int y)
 		int *scroll_offset = &((DirNav *)el->obj)->lines->container->scroll_offset_v;
 		*scroll_offset += y;
 		if (*scroll_offset > 0) *scroll_offset = 0;
-		layout_reset(el->layout);
-		
-		
+		layout_reset(el->layout);		
 	    }
 	    break;
 	}
     }
-
-
 }

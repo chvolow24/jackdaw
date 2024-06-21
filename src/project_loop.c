@@ -246,35 +246,6 @@ void loop_project_main()
 		}
 		break;
 	    case SDL_KEYDOWN: {
-		Timeline *tl = NULL;
-		if ((tl = proj->timelines[0])) {
-		    Track *track = NULL;
-		    if ((track = tl->tracks[0])) {
-			if (track->num_filters > 0) {
-			    double *filter_cutoff = &(track->fir_filters[0]->cutoff_freq);
-			    *filter_cutoff += 0.01f;
-			    if (*filter_cutoff >= 1.0f) {
-				*filter_cutoff = 0.0f;
-			    }
-			    set_FIR_filter_params(track->fir_filters[0], *filter_cutoff, 0);
-			}
-		    }
-		    
-		}
-		/* for (uint8_t i=0; i<proj->num_clips; i++) { */
-		/*     Clip *clip = proj->clips[i]; */
-		/*     fprintf(stdout, "\n\nClip: %p\n", clip); */
-		/*     for (uint8_t t=0; t<proj->timelines[0]->num_tracks; t++) { */
-		/* 	Track *trk = proj->timelines[0]->tracks[t]; */
-		/* 	for (uint8_t c=0;c<trk->num_clips; c++) { */
-		/* 	    ClipRef *cr= trk->clips[c]; */
-		/* 	    fprintf(stdout, "\t\t testing clip %p in trk %d\n", cr->clip, t); */
-		/* 	    if (cr->clip == clip) { */
-		/* 		fprintf(stdout, "\tFound in track %d\n", t); */
-		/* 	    } */
-		/* 	} */
-		/*     } */
-		/* } */
 		switch (e.key.keysym.scancode) {
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:

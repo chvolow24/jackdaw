@@ -828,6 +828,25 @@ void user_tl_track_set_in()
     }
     track_set_input(track);
 }
+
+void user_tl_track_add_filter()
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Track *track = tl->tracks[tl->track_selector];
+    if (!track) {
+	status_set_errstr("No track is selected");
+	return;
+    }
+    Layout *lt = layout_add_child(main_win->layout);
+    layout_set_default_dims(lt);
+    Modal *m = modal_create(lt);
+    char buf[255];
+    snprintf(buf, 255, "Add filter to track \"%s\"", track->name);
+    modal_add_header(m, buf, &color_global_black, 4);
+    window_push_modal(main_win, m);
+    modal_reset(m);
+
+}
 void user_tl_track_toggle_in()
 {
     /* fprintf(stdout, "toggle in\n"); */

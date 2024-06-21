@@ -9,6 +9,7 @@
 typedef struct text_entry TextEntry;
 typedef struct text_entry {
     Textbox *tb;
+    Textbox *label;
     /* void (*validation)(TextEntry *self, void *xarg); */
     void (*completion)(TextEntry *self, void *xarg);
 } TextEntry;

@@ -96,6 +96,7 @@
   - <ret>	: tl_track_activate_selected
   - C-r		: tl_track_rename
   - C-S-i	: tl_track_set_in
+  - C-S-f	: tl_track_add_filter
   - C-<del>	: tl_track_destroy
   - <del>	: tl_cliprefs_destroy
   - m		: tl_mute
@@ -153,6 +154,7 @@
 - text_edit:
   - <ret>	: text_edit_escape
   - <tab>	: text_edit_escape
+  - <esc>	: text_edit_escape
   - <del>	: text_edit_backspace
   - <left>	: text_edit_cursor_left
   - <right>	: text_edit_cursor_right

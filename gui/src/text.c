@@ -779,6 +779,7 @@ void txt_area_draw(TextArea *txtarea)
 }
 
 
+#ifndef LAYOUT_BUILD
 int txt_name_validation(Text *txt, char input)
 {
     if (strlen(txt->display_value) > MAX_NAMELENGTH - 1) {
@@ -791,3 +792,4 @@ int txt_name_validation(Text *txt, char input)
     }
 }
 
+#endif

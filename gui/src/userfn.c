@@ -848,33 +848,35 @@ void user_tl_track_add_filter(void *nullarg)
 
 }
 
-{
-    /* fprintf(stdout, "toggle in\n"); */
-    Timeline *tl = proj->timelines[proj->active_tl_index];
-    Track *track = tl->tracks[tl->track_selector];
-    if (!track) return;
+/* void user_tl_track_toggle_in(void *nullarg) */
+/* >>>>>>> main */
+/* { */
+/*     /\* fprintf(stdout, "toggle in\n"); *\/ */
+/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
+/*     Track *track = tl->tracks[tl->track_selector]; */
+/*     if (!track) return; */
 
-    int index = track->input->index;
-    fprintf(stdout, "CURRENT INDEX: %d\n", index);
-    if (index < proj->num_record_conns - 1) {
-	AudioConn *next = proj->record_conns[index + 1];
-	if (next) {
-	    track->input = next;
-	    textbox_set_value_handle(track->tb_input_name, track->input->name);
-	} else {
-	    fprintf(stderr, "Error: no record conn at index %d\n", index + 1);
+/*     int index = track->input->index; */
+/*     fprintf(stdout, "CURRENT INDEX: %d\n", index); */
+/*     if (index < proj->num_record_conns - 1) { */
+/* 	AudioConn *next = proj->record_conns[index + 1]; */
+/* 	if (next) { */
+/* 	    track->input = next; */
+/* 	    textbox_set_value_handle(track->tb_input_name, track->input->name); */
+/* 	} else { */
+/* 	    fprintf(stderr, "Error: no record conn at index %d\n", index + 1); */
 	    
-	}
-    } else {
-	AudioConn *next = proj->record_conns[0];
-	if (next) {
-	    track->input = next;
-	    textbox_set_value_handle(track->tb_input_name, track->input->name);
-	} else {
-	    fprintf(stderr, "Error: no record conn at index 0\n");
-	}
-    }
-}
+/* 	} */
+/*     } else { */
+/* 	AudioConn *next = proj->record_conns[0]; */
+/* 	if (next) { */
+/* 	    track->input = next; */
+/* 	    textbox_set_value_handle(track->tb_input_name, track->input->name); */
+/* 	} else { */
+/* 	    fprintf(stderr, "Error: no record conn at index 0\n"); */
+/* 	} */
+/*     } */
+/* } */
 
 void user_tl_track_destroy(void *nullarg)
 {

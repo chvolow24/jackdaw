@@ -358,6 +358,12 @@ void window_pop_mode(Window *win)
 
 void window_push_modal(Window *win, Modal *modal)
 {
+    while (win->num_menus > 0) {
+	window_pop_menu(win);
+    }
+    if (win->modes[win->num_modes - 1] == MENU_NAV) {
+	window_pop_mode(win);
+    }
     if (win->num_modals < WINDOW_MAX_MODALS) {
 	win->modals[win->num_modals] = modal;
 	win->num_modals++;

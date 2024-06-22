@@ -54,6 +54,11 @@ cd $install_dir
 if [[ ! -d "build" ]]; then
     mkdir build
 fi
+cd gui
+if [[ ! -d "build" ]]; then
+    mkdir build
+fi
+cd ..
 make
 if [[ $? != 0 ]]; then
     echo -e "\nError building project. Try 'git pull' and then run this script again.\n"

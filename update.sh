@@ -10,6 +10,11 @@ echo -e "Building project..."
 if [[ ! -d "build" ]]; then
     mkdir build
 fi
+cd gui
+if [[ ! -d "build" ]]; then
+    mkdir build
+fi
+cd ..
 
 make
 

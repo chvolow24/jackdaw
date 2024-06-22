@@ -953,6 +953,7 @@ char *input_get_keycmd_str(uint16_t i_state, SDL_Keycode keycode)
 	mod = "K-";
 	break;
     default:
+	mod = "";
 	break;
     }
 

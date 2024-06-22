@@ -396,7 +396,7 @@ void __txt_edit(Text *txt, void (*draw_fn) (void))
     txt->cursor_end_pos = txt->len;
     bool done = false;
     // bool mousedown = false;
-    bool cmdctrldown = false;
+    /* bool cmdctrldown = false; */
     SDL_StartTextInput();
     while (!done) {
         // get_mousep(main_win, &mousep);
@@ -782,9 +782,9 @@ void txt_area_draw(TextArea *txtarea)
 #ifndef LAYOUT_BUILD
 int txt_name_validation(Text *txt, char input)
 {
-    if (strlen(txt->display_value) > MAX_NAMELENGTH - 1) {
+    if (strlen(txt->display_value) >= MAX_NAMELENGTH - 1) {
 	char buf[255];
-	sprintf(buf, "Name cannot exceed %d characters", MAX_NAMELENGTH - 1);
+	snprintf(buf, 255, "Name cannot exceed %d characters", MAX_NAMELENGTH - 1);
 	status_set_errstr(buf);
 	return 1;
     } else {

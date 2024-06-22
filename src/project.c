@@ -43,6 +43,7 @@
 #include "slider.h"
 #include "textbox.h"
 #include "timeline.h"
+#include "transport.h"
 #include "window.h"
 
 #ifndef INSTALL_DIR
@@ -165,6 +166,11 @@ void timeline_destroy(Timeline *tl)
 static void clip_destroy_no_displace(Clip *clip);
 void project_destroy(Project *proj)
 {
+    if (proj->recording) {
+	transport_stop_recording();
+    } else {
+	transport_stop_playback();
+    }
     /* fprintf(stdout, "PROJECT_DESTROY num tracks: %d\n", proj->timelines[0]->num_tracks); */
     for (uint8_t i=0; i<proj->num_timelines; i++) {
 	timeline_destroy(proj->timelines[i]);
@@ -422,7 +428,7 @@ Track *timeline_add_track(Timeline *tl)
     tl->tracks[tl->num_tracks] = track;
     track->tl_rank = tl->num_tracks++;
     track->tl = tl;
-    sprintf(track->name, "Track %d", track->tl_rank + 1);
+    snprintf(track->name, sizeof(track->name), "Track %d", track->tl_rank + 1);
 
     track->channels = tl->proj->channels;
 
@@ -441,8 +447,8 @@ Track *timeline_add_track(Timeline *tl)
     }
 
     Layout *iteration = layout_add_iter(track_template, VERTICAL, true);
-    track->layout = track_template->iterator->iterations[track->tl_rank];
-
+    /* track->layout = track_template->iterator->iterations[track->tl_rank]; */
+    track->layout = iteration;
     Layout *name, *mute, *solo, *vol_label, *pan_label, *in_label, *in_value;
 
     Layout *track_name_row = layout_get_child_by_name_recursive(track->layout, "name_value");
@@ -625,12 +631,12 @@ Clip *project_add_clip(AudioConn *conn, Track *target)
     }
     
     if (!target && conn) {
-	sprintf(clip->name, "%s_rec_%d", conn->name, proj->num_clips); /* TODO: Fix this */
+	snprintf(clip->name, sizeof(clip->name), "%s_rec_%d", conn->name, proj->num_clips); /* TODO: Fix this */
     } else if (target) {
-	sprintf(clip->name, "%s take %d", target->name, target->num_takes);
+	snprintf(clip->name, sizeof(clip->name), "%s take %d", target->name, target->num_takes);
 	target->num_takes++;
     } else {
-	sprintf(clip->name, "anonymous");
+	snprintf(clip->name, sizeof(clip->name), "anonymous");
     }
     clip->channels = proj->channels;
     proj->clips[proj->num_clips] = clip;
@@ -730,7 +736,7 @@ ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sfr
     /* fprintf(stdout, "track %s create clipref\n", track->name); */
     ClipRef *cr = calloc(1, sizeof(ClipRef));
     
-    sprintf(cr->name, "%s ref%d", clip->name, track->num_clips);
+    snprintf(cr->name, MAX_NAMELENGTH, "%s ref%d", clip->name, track->num_clips);
     cr->lock = SDL_CreateMutex();
     SDL_LockMutex(cr->lock);
     track->clips[track->num_clips] = cr;

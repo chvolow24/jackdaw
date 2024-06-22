@@ -134,7 +134,6 @@ static void quit()
 	transport_stop_recording();
     }
     transport_stop_playback();
-
     project_destroy(proj);
     if (main_win) {
 	window_destroy(main_win);

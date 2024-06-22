@@ -57,7 +57,7 @@ SDL_Color modal_button_color = (SDL_Color) {200, 200, 200, 255};
 Modal *modal_create(Layout *lt)
 {
     Modal *modal = calloc(1, sizeof(Modal));
-    /* Layout *padded = layout_add_child(lt);
+    /* Layout *padded = layout_add_child(lt); */
     /* padded->x.value.intval = MODAL_V_PADDING; */
     /* padded->y.value.intval = MODAL_V_PADDING; */
     /* padded->w.type = PAD; */
@@ -374,7 +374,7 @@ void modal_draw(Modal *modal)
     if (modal->num_selectable > 0) {
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(modal_color_border_selected));
 	geom_draw_rect_thick(main_win->rend, &modal->els[modal->selectable_indices[modal->selected_i]]->layout->rect, 2, main_win->dpi_scale_factor);
-	SDL_Rect r = modal->els[modal->selectable_indices[modal->selected_i]]->layout->rect;
+	/* SDL_Rect r = modal->els[modal->selectable_indices[modal->selected_i]]->layout->rect; */
 	/* fprintf(stdout, "R: %d %d %d %d\n", r.x, r.y, r.w, r.h); */
     }
     /* layout_write(stdout, modal->layout, 0); */

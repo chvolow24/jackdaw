@@ -30,7 +30,7 @@ extern SDL_Color color_global_white;
 extern SDL_Color control_bar_bckgrnd;
 void jdaw_write_project(const char *path);
 
-void user_global_menu()
+void user_global_menu(void *nullarg)
 {
     if (main_win->num_modes <= 0) {
 	status_set_errstr("Error: no modes active in user_global_expose_help");
@@ -39,25 +39,25 @@ void user_global_menu()
     }
     InputMode current_mode = main_win->modes[main_win->num_modes - 1];
     
-    /* Menu *new = input_create_master_menu(); */
+    /* Menu *new = input_create_master_menu(void *nullarg); */
     input_create_menu_from_mode(current_mode);
     /* window_add_menu(main_win, new); */
     /* window_push_mode(main_win, MENU_NAV);  */  
 }
 
-void user_global_quit()
+void user_global_quit(void *nullarg)
 {
     fprintf(stdout, "user_global_quit\n");
     main_win->i_state |= I_STATE_QUIT;
     /* exit(0); //TODO: add the i_state to window (or proj?) to quit naturally. */
 }
 
-void user_global_undo()
+void user_global_undo(void *nullarg)
 {
     fprintf(stdout, "user_global_undo\n");
 }
 
-void user_global_redo()
+void user_global_redo(void *nullarg)
 {
     fprintf(stdout, "user_global_redo\n");
 }
@@ -203,7 +203,7 @@ static int file_ext_completion_jdaw(Text *txt)
     }
     return retval;
 }
-void user_global_save_project()
+void user_global_save_project(void *nullarg)
 {
     fprintf(stdout, "user_global_save\n");
     Layout *mod_lt = layout_add_child(main_win->layout);
@@ -271,7 +271,7 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
     window_pop_modal(main_win);
 }
 
-void user_global_open_file()
+void user_global_open_file(void *nullarg)
 {
     /* fprintf(stdout, "user_global_open\n"); */
     Layout *mod_lt = layout_add_child(main_win->layout);
@@ -290,12 +290,12 @@ void user_global_open_file()
     modal_reset(openfile);
 }
 
-void user_global_start_or_stop_screenrecording()
+void user_global_start_or_stop_screenrecording(void *nullarg)
 {
     main_win->screenrecording = !main_win->screenrecording;
 }
 
-void user_menu_nav_next_item()
+void user_menu_nav_next_item(void *nullarg)
 {
     Menu *m = window_top_menu(main_win);
     if (m->sel_col == 255) {
@@ -321,7 +321,7 @@ void user_menu_nav_next_item()
     fprintf(stdout, "user_menu_nav_next_item\n");
 }
 
-void user_menu_nav_prev_item()
+void user_menu_nav_prev_item(void *nullarg)
 {
     Menu *m = window_top_menu(main_win);
     if (!m) {
@@ -351,18 +351,18 @@ void user_menu_nav_prev_item()
 }
 
 
-void user_menu_nav_next_sctn()
+void user_menu_nav_next_sctn(void *nullarg)
 {
     fprintf(stdout, "user_menu_nav_next_sctn\n");
 }
 
-void user_menu_nav_prev_sctn()
+void user_menu_nav_prev_sctn(void *nullarg)
 {
 
     fprintf(stdout, "user_menu_nav_prev_sctn\n");
 }
 
-void user_menu_nav_column_right()
+void user_menu_nav_column_right(void *nullarg)
 {
     Menu *m = window_top_menu(main_win);
     if (!m) {
@@ -386,7 +386,7 @@ void user_menu_nav_column_right()
     fprintf(stdout, "user_menu_nav_column_right\n");
 }
 
-void user_menu_nav_column_left()
+void user_menu_nav_column_left(void *nullarg)
 {
     Menu *m = window_top_menu(main_win);
     if (!m) {
@@ -402,7 +402,7 @@ void user_menu_nav_column_left()
     fprintf(stdout, "user_menu_nav_column_left\n");
 }
 
-void user_menu_nav_choose_item()
+void user_menu_nav_choose_item(void *nullarg)
 {
     fprintf(stdout, "user_menu_nav_choose_item\n");
     Menu *m = window_top_menu(main_win);
@@ -425,7 +425,7 @@ void user_menu_nav_choose_item()
     }
 }
 
-void user_menu_translate_up()
+void user_menu_translate_up(void *nullarg)
 {
     Menu *m = window_top_menu(main_win);
     if (!m) {
@@ -435,7 +435,7 @@ void user_menu_translate_up()
     menu_translate(m, 0, -1 * MENU_MOVE_BY);
 }
 
-void user_menu_translate_down()
+void user_menu_translate_down(void *nullarg)
 {
     Menu *m = window_top_menu(main_win);
     if (!m) {
@@ -446,7 +446,7 @@ void user_menu_translate_down()
 
 }
 
-void user_menu_translate_left()
+void user_menu_translate_left(void *nullarg)
 {
     Menu *m = window_top_menu(main_win);
     if (!m) {
@@ -456,7 +456,7 @@ void user_menu_translate_left()
     menu_translate(m, -1 * MENU_MOVE_BY, 0);
 }
 
-void user_menu_translate_right()
+void user_menu_translate_right(void *nullarg)
 {
     Menu *m = window_top_menu(main_win);
     if (!m) {
@@ -466,13 +466,13 @@ void user_menu_translate_right()
     menu_translate(m, MENU_MOVE_BY, 0);
 }
 
-void user_menu_dismiss()
+void user_menu_dismiss(void *nullarg)
 {
     window_pop_menu(main_win);
     /* window_pop_mode(main_win); */
 }
 
-void user_tl_play()
+void user_tl_play(void *nullarg)
 {
     if (proj->play_speed <= 0.0f) {
 	proj->play_speed = 1.0f;
@@ -484,14 +484,14 @@ void user_tl_play()
     fprintf(stdout, "user_tl_play\n");
 }
 
-void user_tl_pause()
+void user_tl_pause(void *nullarg)
 {
     proj->play_speed = 0;
     transport_stop_playback();
     fprintf(stdout, "user_tl_pause\n");
 }
 
-void user_tl_rewind()
+void user_tl_rewind(void *nullarg)
 {
     if (proj->play_speed >= 0.0f) {
 	proj->play_speed = -1.0f;
@@ -503,66 +503,66 @@ void user_tl_rewind()
     fprintf(stdout, "user_tl_rewind\n");
 }
 
-void user_tl_play_slow()
+void user_tl_play_slow(void *nullarg)
 {
     proj->play_speed = SLOW_PLAYBACK_SPEED;
     status_stat_playspeed();
     transport_start_playback();
 }
 
-void user_tl_rewind_slow()
+void user_tl_rewind_slow(void *nullarg)
 {
     proj->play_speed = -1 * SLOW_PLAYBACK_SPEED;
     status_stat_playspeed();
     transport_start_playback();
 }
 
-void user_tl_move_right()
+void user_tl_move_right(void *nullarg)
 {
     timeline_scroll_horiz(TL_DEFAULT_XSCROLL);
 }
 
-void user_tl_move_left()
+void user_tl_move_left(void *nullarg)
 {
     timeline_scroll_horiz(TL_DEFAULT_XSCROLL * -1);
 }
 
-void user_tl_zoom_in()
+void user_tl_zoom_in(void *nullarg)
 {
     timeline_rescale(1.2, false);
 }
 
-void user_tl_zoom_out()
+void user_tl_zoom_out(void *nullarg)
 {
     timeline_rescale(0.8, false);
 }
 
-void user_tl_set_mark_out()
+void user_tl_set_mark_out(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     transport_set_mark(tl, false);
     fprintf(stdout, "user_tl_set_mark_out\n");
 }
-void user_tl_set_mark_in()
+void user_tl_set_mark_in(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     transport_set_mark(tl, true);
     fprintf(stdout, "user_tl_set_mark_in\n");
 }
 
-void user_tl_goto_mark_out()
+void user_tl_goto_mark_out(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     transport_goto_mark(tl, false);
 }
 
-void user_tl_goto_mark_in()
+void user_tl_goto_mark_in(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     transport_goto_mark(tl, true);
 }
 
-void user_tl_goto_zero()
+void user_tl_goto_zero(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     tl->play_pos_sframes = 0;
@@ -588,7 +588,7 @@ static void select_out_onclick(void *arg)
     /* window_pop_mode(main_win); */
 }
 
-void user_tl_set_default_out() {
+void user_tl_set_default_out(void *nullarg) {
     /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
     SDL_Rect *rect = &(proj->tb_out_value->layout->rect);
     Menu *menu = menu_create_at_point(rect->x, rect->y);
@@ -612,7 +612,7 @@ void user_tl_set_default_out() {
     /* window_push_mode(main_win, MENU_NAV); */
 }
 
-void user_tl_add_track()
+void user_tl_add_track(void *nullarg)
 {
     fprintf(stdout, "user_tl_add_track\n");
     if (!proj) {
@@ -634,49 +634,49 @@ static void track_select_n(int n)
     /* fprintf(stdout, "SETTING %s to %d\n", track->input->name, track->input->active); */
 }
 
-void user_tl_track_select_1()
+void user_tl_track_select_1(void *nullarg)
 {
     track_select_n(0);
 
 }
-void user_tl_track_select_2()
+void user_tl_track_select_2(void *nullarg)
 {
     track_select_n(1);
 }
 
-void user_tl_track_select_3()
+void user_tl_track_select_3(void *nullarg)
 {
     track_select_n(2);
 }
 
-void user_tl_track_select_4()
+void user_tl_track_select_4(void *nullarg)
 {
     track_select_n(3);
 }
 
-void user_tl_track_select_5()
+void user_tl_track_select_5(void *nullarg)
 {
     track_select_n(4);
 }
 
-void user_tl_track_select_6()
+void user_tl_track_select_6(void *nullarg)
 {
     track_select_n(5);
 }
 
 
-void user_tl_track_select_7()
+void user_tl_track_select_7(void *nullarg)
 {
     track_select_n(6);
 }
 
 
-void user_tl_track_select_8()
+void user_tl_track_select_8(void *nullarg)
 {
     track_select_n(7);
 }
 
-void user_tl_track_select_9()
+void user_tl_track_select_9(void *nullarg)
 {
     track_select_n(8);
 }
@@ -703,7 +703,7 @@ static void deactivate_all_tracks(Timeline *tl)
     }	
 }
 
-void user_tl_track_activate_all()
+void user_tl_track_activate_all(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (activate_all_tracks(tl)) {
@@ -711,7 +711,7 @@ void user_tl_track_activate_all()
     }
 }
 
-void user_tl_track_selector_up()
+void user_tl_track_selector_up(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (tl->track_selector > 0) {
@@ -747,7 +747,7 @@ void user_tl_track_selector_up()
     
 }
 
-void user_tl_track_selector_down()
+void user_tl_track_selector_down(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (tl->track_selector < tl->num_tracks -1) {
@@ -781,14 +781,14 @@ void user_tl_track_selector_down()
 }
 
 
-void user_tl_track_activate_selected()
+void user_tl_track_activate_selected(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     track_select_n(tl->track_selector);
 }
 
-void project_draw();
-void user_tl_track_rename()
+void project_draw(void *nullarg);
+void user_tl_track_rename(void *nullarg)
 {
     /* window_pop_menu(main_win); */
     /* window_pop_mode(main_win); */
@@ -819,7 +819,7 @@ void user_tl_track_rename()
 /*     window_pop_menu(main_win); */
 /*     window_pop_mode(main_win); */
 /* } */
-void user_tl_track_set_in()
+void user_tl_track_set_in(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     Track *track = tl->tracks[tl->track_selector];
@@ -829,7 +829,7 @@ void user_tl_track_set_in()
     track_set_input(track);
 }
 
-void user_tl_track_add_filter()
+void user_tl_track_add_filter(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     Track *track = tl->tracks[tl->track_selector];
@@ -847,7 +847,7 @@ void user_tl_track_add_filter()
     modal_reset(m);
 
 }
-void user_tl_track_toggle_in()
+
 {
     /* fprintf(stdout, "toggle in\n"); */
     Timeline *tl = proj->timelines[proj->active_tl_index];
@@ -876,9 +876,9 @@ void user_tl_track_toggle_in()
     }
 }
 
-void user_tl_track_destroy()
+void user_tl_track_destroy(void *nullarg)
 {
-    user_tl_pause();
+    user_tl_pause(NULL);
     if (proj->recording) {
 	transport_stop_recording();
     }
@@ -902,7 +902,7 @@ void user_tl_track_destroy()
     }
 }
 
-void user_tl_mute()
+void user_tl_mute(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (tl->num_tracks == 0) return;
@@ -933,13 +933,13 @@ void user_tl_mute()
     }
 }
 
-void user_tl_solo()
+void user_tl_solo(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     track_or_tracks_solo(tl, NULL);
 }
 
-void user_tl_track_vol_up()
+void user_tl_track_vol_up(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (tl->num_tracks == 0) return;
@@ -949,7 +949,7 @@ void user_tl_track_vol_up()
     
 }
 
-void user_tl_track_vol_down()
+void user_tl_track_vol_down(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (tl->num_tracks == 0) return;
@@ -959,7 +959,7 @@ void user_tl_track_vol_down()
 
 }
 
-void user_tl_track_pan_left()
+void user_tl_track_pan_left(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (tl->num_tracks ==0) return;
@@ -968,7 +968,7 @@ void user_tl_track_pan_left()
 
 }
 
-void user_tl_track_pan_right()
+void user_tl_track_pan_right(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (tl->num_tracks == 0) return;
@@ -977,7 +977,7 @@ void user_tl_track_pan_right()
 }
 
 
-void user_tl_record()
+void user_tl_record(void *nullarg)
 {
     fprintf(stdout, "user_tl_record\n");
     if (proj->recording) {
@@ -1052,19 +1052,19 @@ void user_tl_clipref_grab_ungrab()
 /*     proj->dragging = false; */
 /*     user_tl_pause(); */
 /* } */
-void user_tl_toggle_drag()
+void user_tl_toggle_drag(void *nullarg)
 {
     proj->dragging = !proj->dragging;
     status_stat_drag();
 }
 
-void user_tl_cut_clipref()
+void user_tl_cut_clipref(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     timeline_cut_clipref_at_point(tl);
 }
 
-void user_tl_load_clip_at_point_to_src()
+void user_tl_load_clip_at_point_to_src(void *nullarg)
 {
     ClipRef *cr = clipref_at_point();
     if (cr) {
@@ -1077,7 +1077,7 @@ void user_tl_load_clip_at_point_to_src()
     }
 }
 
-void user_tl_activate_source_mode()
+void user_tl_activate_source_mode(void *nullarg)
 {
     if (!proj->source_mode) {
 	if (proj->src_clip) {
@@ -1090,7 +1090,7 @@ void user_tl_activate_source_mode()
     }
 }
 
-void user_tl_drop_from_source()
+void user_tl_drop_from_source(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (tl->num_tracks == 0) return;
@@ -1135,19 +1135,19 @@ static void user_tl_drop_savedn_from_source(int n)
     }
 }
 
-void user_tl_drop_saved1_from_source()
+void user_tl_drop_saved1_from_source(void *nullarg)
 {
     user_tl_drop_savedn_from_source(1);
 }
-void user_tl_drop_saved2_from_source()
+void user_tl_drop_saved2_from_source(void *nullarg)
 {
     user_tl_drop_savedn_from_source(2);
 }
-void user_tl_drop_saved3_from_source()
+void user_tl_drop_saved3_from_source(void *nullarg)
 {
     user_tl_drop_savedn_from_source(3);
 }
-void user_tl_drop_saved4_from_source()
+void user_tl_drop_saved4_from_source(void *nullarg)
 {
     user_tl_drop_savedn_from_source(4);
 }
@@ -1166,7 +1166,7 @@ static void *new_tl_submit_form(void *mod_v)
     return NULL;
 }
 
-void user_tl_add_new_timeline()
+void user_tl_add_new_timeline(void *nullarg)
 {
     proj->timelines[proj->active_tl_index]->layout->hidden = true;
     proj->active_tl_index = project_add_timeline(proj, "New Timeline");
@@ -1184,7 +1184,7 @@ void user_tl_add_new_timeline()
     modal_move_onto(mod);
 }
 
-void user_tl_previous_timeline()
+void user_tl_previous_timeline(void *nullarg)
 {
     if (proj->active_tl_index > 0) {
 	proj->timelines[proj->active_tl_index]->layout->hidden = true;
@@ -1192,9 +1192,10 @@ void user_tl_previous_timeline()
 	proj->timelines[proj->active_tl_index]->layout->hidden = false;
 	project_reset_tl_label(proj);
     }
+    timeline_reset_full(proj->timelines[proj->active_tl_index]);
 }
 
-void user_tl_next_timeline()
+void user_tl_next_timeline(void *nullarg)
 {
     if (proj->active_tl_index < proj->num_timelines - 1) {
 	proj->timelines[proj->active_tl_index]->layout->hidden = true;
@@ -1202,10 +1203,11 @@ void user_tl_next_timeline()
 	proj->timelines[proj->active_tl_index]->layout->hidden = false;
 	project_reset_tl_label(proj);
     }
+    timeline_reset_full(proj->timelines[proj->active_tl_index]);
 }
 
 
-/* void _____user_global_save_project() */
+/* void _____user_global_save_project(void *) */
 /* { */
 /*     fprintf(stdout, "user_global_save\n"); */
 /*     Layout *mod_lt = layout_add_child(main_win->layout); */
@@ -1274,7 +1276,7 @@ static void *submit_save_wav_form(void *mod_v)
     return NULL;
 }
 
-void user_tl_write_mixdown_to_wav()
+void user_tl_write_mixdown_to_wav(void *nullarg)
 {
     Layout *mod_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(mod_lt);
@@ -1306,7 +1308,7 @@ void user_tl_write_mixdown_to_wav()
     modal_move_onto(save_wav);
 }
 
-void user_tl_cliprefs_destroy()
+void user_tl_cliprefs_destroy(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (tl) {
@@ -1319,7 +1321,7 @@ void user_tl_cliprefs_destroy()
 
 /* source mode */
 
-void user_source_play()
+void user_source_play(void *nullarg)
 {
     if (proj->src_play_speed <= 0.0f) {
 	proj->src_play_speed = 1.0f;
@@ -1330,13 +1332,13 @@ void user_source_play()
     }
 }
 
-void user_source_pause()
+void user_source_pause(void *nullarg)
 {
     proj->src_play_speed = 0;
     transport_stop_playback();
 }
 
-void user_source_rewind()
+void user_source_rewind(void *nullarg)
 {
     if (proj->src_play_speed >= 0.0f) {
 	proj->src_play_speed = -1.0f;
@@ -1347,31 +1349,31 @@ void user_source_rewind()
     }
 }
 
-void user_source_play_slow()
+void user_source_play_slow(void *nullarg)
 {
     proj->src_play_speed = SLOW_PLAYBACK_SPEED;
     status_stat_playspeed();
     transport_start_playback();
 }
 
-void user_source_rewind_slow()
+void user_source_rewind_slow(void *nullarg)
 {
     proj->src_play_speed = -1 * SLOW_PLAYBACK_SPEED;
     status_stat_playspeed();
     transport_start_playback();
 }
 
-void user_source_set_in_mark()
+void user_source_set_in_mark(void *nullarg)
 {
     transport_set_mark(NULL, true);
 }
 
-void user_source_set_out_mark()
+void user_source_set_out_mark(void *nullarg)
 {
     transport_set_mark(NULL, false);
 }
 
-void user_modal_next()
+void user_modal_next(void *nullarg)
 {
     if (main_win->num_modals == 0) {
 	return;
@@ -1380,7 +1382,7 @@ void user_modal_next()
     modal_next(modal);
 }
 
-void user_modal_previous()
+void user_modal_previous(void *nullarg)
 {
     if (main_win->num_modals == 0) {
 	return;
@@ -1389,7 +1391,7 @@ void user_modal_previous()
     modal_previous(modal);
 }
 
-void user_modal_next_escape()
+void user_modal_next_escape(void *nullarg)
 {
     if (main_win->num_modals == 0) {
 	return;
@@ -1398,7 +1400,7 @@ void user_modal_next_escape()
     modal_next_escape(modal);
 }
 
-void user_modal_previous_escape()
+void user_modal_previous_escape(void *nullarg)
 {
     if (main_win->num_modals == 0) {
 	return;
@@ -1408,7 +1410,7 @@ void user_modal_previous_escape()
 
 }
 
-void user_modal_select()
+void user_modal_select(void *nullarg)
 {
     if (main_win->num_modals == 0) {
 	return;
@@ -1417,12 +1419,12 @@ void user_modal_select()
     modal_select(modal);
 }
 
-void user_modal_dismiss()
+void user_modal_dismiss(void *nullarg)
 {
     window_pop_modal(main_win);
 }
 
-void user_modal_submit_form()
+void user_modal_submit_form(void *nullarg)
 {
     fprintf(stdout, "submit form\n");
     if (main_win->num_modals == 0) {
@@ -1432,21 +1434,21 @@ void user_modal_submit_form()
     modal_submit_form(modal);
 }
 
-void user_text_edit_escape()
+void user_text_edit_escape(void *nullarg)
 {
     if (main_win->txt_editing) {
 	txt_stop_editing(main_win->txt_editing);
     }
 }
 
-void user_text_edit_backspace()
+void user_text_edit_backspace(void *nullarg)
 {
     if (main_win->txt_editing) {
 	txt_edit_backspace(main_win->txt_editing);
     }
 }
 
-void user_text_edit_cursor_left()
+void user_text_edit_cursor_left(void *nullarg)
 {
     if (main_win->txt_editing) {
 	txt_edit_move_cursor(main_win->txt_editing, true);
@@ -1454,7 +1456,7 @@ void user_text_edit_cursor_left()
 
 }
 
-void user_text_edit_cursor_right()
+void user_text_edit_cursor_right(void *nullarg)
 {
     if (main_win->txt_editing) {
 	txt_edit_move_cursor(main_win->txt_editing, false);
@@ -1462,7 +1464,7 @@ void user_text_edit_cursor_right()
 }
 
 
-void user_text_edit_select_all()
+void user_text_edit_select_all(void *nullarg)
 {
     if (main_win->txt_editing) {
 	txt_edit_select_all(main_win->txt_editing);

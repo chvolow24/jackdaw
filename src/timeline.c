@@ -81,6 +81,7 @@ float timeline_get_draw_w_precise(int32_t abs_w)
     if (tl->sample_frames_per_pixel != 0) {
 	return (float) abs_w / tl->sample_frames_per_pixel;
     }
+    return 0.0f;
 }
  
 /* Get a length in sample frames from a given draw width */
@@ -184,7 +185,7 @@ void timeline_set_timecode()
     tl->timecode.minutes = minutes;
     tl->timecode.seconds = seconds;
     tl->timecode.frames = frames;
-    sprintf(tl->timecode.str, "%c%02d:%02d:%02d:%05d", sign, hours, minutes, seconds, frames);
+    snprintf(tl->timecode.str, sizeof(tl->timecode.str), "%c%02d:%02d:%02d:%05d", sign, hours, minutes, seconds, frames);
     if (tl->timecode_tb) {
 	/* fprintf(stdout, "Resetting tb\n"); */
 	textbox_reset_full(tl->timecode_tb);
@@ -224,7 +225,7 @@ void timeline_catchup()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     int tl_draw_x;
-    uint32_t move_by_sframes;
+    /* uint32_t move_by_sframes; */
     int catchup_w = TIMELINE_CATCHUP_W;
     if (proj->audio_rect->w <= 0) {
 	return;

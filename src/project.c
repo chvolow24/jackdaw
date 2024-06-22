@@ -35,12 +35,13 @@
 #include <string.h>
 
 #include "audio_connection.h"
+#include "components.h"
 #include "dsp.h"
 #include "layout.h"
 #include "layout_xml.h"
 #include "menu.h"
 #include "project.h"
-#include "slider.h"
+/* #include "slider.h" */
 #include "textbox.h"
 #include "timeline.h"
 #include "transport.h"

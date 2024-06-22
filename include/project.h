@@ -51,8 +51,9 @@
 #include <stdint.h>
 
 /* #include "dsp.h" */
+#include "components.h"
 #include "textbox.h"
-#include "slider.h"
+
 
 #define MAX_TRACKS 255
 #define MAX_NAMELENGTH 64

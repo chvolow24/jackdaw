@@ -1,10 +1,10 @@
 #ifndef JDAW_GUI_MODAL
 #define JDAW_GUI_MODAL
 
+#include "components.h"
 #include "menu.h"
 
 #define MAX_MODAL_ELEMENTS 255
-#define BUTTON_CORNER_RADIUS 4
 
 typedef struct text_entry TextEntry;
 typedef struct text_entry {
@@ -13,11 +13,6 @@ typedef struct text_entry {
     /* void (*validation)(TextEntry *self, void *xarg); */
     void (*completion)(TextEntry *self, void *xarg);
 } TextEntry;
-
-typedef struct button {
-    Textbox *tb;
-    void *(*action)(void *arg);
-} Button;
 
 enum mod_s_type {
     MODAL_EL_MENU,

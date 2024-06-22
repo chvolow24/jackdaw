@@ -70,8 +70,8 @@ void textbox_set_value_handle(Textbox *tb, const char *new_value);
 TextLines *textlines_create(
     void **items,
     uint16_t num_items,
-    bool (*filter)(void *item, void *x_arg),
-    TLinesItem *(*create_item)(void ***curent_item, Layout *container, void *x_arg, bool (*filter)(void *item, void *x_arg)),
+    int (*filter)(void *item, void *x_arg),
+    TLinesItem *(*create_item)(void ***curent_item, Layout *container, void *x_arg, int (*filter)(void *item, void *x_arg)),
     Layout *container,
     void *x_arg);
 void textlines_draw(TextLines *tlines);

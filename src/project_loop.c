@@ -87,6 +87,7 @@ static int timed_hide_slider_label(void *data)
 	SDL_Delay(STICK_DELAY_MS);
 	fs->editing = false;
     }
+    return 0;
 }
 
 static void hide_slider_label(FSlider *fs)
@@ -193,7 +194,7 @@ void loop_project_main()
     /* uint16_t i_state = 0; */
     SDL_Event e;
     uint8_t fingersdown = 0;
-    uint8_t fingerdown_timer = 0;
+    /* uint8_t fingerdown_timer = 0; */
 
     uint8_t animate_step = 0;
     bool set_i_state_k = false;
@@ -303,7 +304,7 @@ void loop_project_main()
 		    /* } */
 		    /* fprintf(stdout, "Input fn? %p, do fn? %p\n", input_fn, input_fn->do_fn); */
 		    if (input_fn && input_fn->do_fn) {
-			input_fn->do_fn();
+			input_fn->do_fn(NULL);
 			char *keycmd_str = input_get_keycmd_str(main_win->i_state, e.key.keysym.sym);
 			status_set_callstr(keycmd_str);
 			free(keycmd_str);

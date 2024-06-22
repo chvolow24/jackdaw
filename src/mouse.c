@@ -157,7 +157,7 @@ static void mouse_triage_click_timeline(uint8_t button)
 static void mouse_triage_click_control_bar(uint8_t button)
 {
     if (SDL_PointInRect(&main_win->mousep, &proj->tb_out_value->layout->rect)) {
-	user_tl_set_default_out();
+	user_tl_set_default_out(NULL);
     }
 
 }

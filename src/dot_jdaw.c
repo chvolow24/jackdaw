@@ -410,11 +410,11 @@ static void jdaw_read_timeline(FILE *f, Project *proj)
     }
     uint8_t tl_namelen;
     fread(&tl_namelen, 1, 1, f);
-
+    fprintf(stdout, "NAME LEN? %d\n", tl_namelen);
     /* Timeline *tl = calloc(sizeof(Timeline), 1); */
     /* proj->timelines[proj->num_timelines] = tl; */
     /* proj->num_timelines++; */
-    char tl_name[MAX_NAMELENGTH];
+    char tl_name[MAX_NAMELENGTH + 1];
     fread(tl_name, 1, tl_namelen + 1, f);
     tl_name[tl_namelen] = '\0';
     uint8_t index = project_add_timeline(proj, tl_name);

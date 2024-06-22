@@ -32,7 +32,7 @@ typedef struct user_fn {
     const char *fn_display_name;
     char annotation[MAX_ANNOT_STRLEN];
     bool is_toggle;
-    void (*do_fn)(void);
+    void (*do_fn)(void *arg);
 } UserFn;
 
 typedef struct mode_subcat {

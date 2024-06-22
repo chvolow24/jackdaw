@@ -13,7 +13,7 @@ extern Window *main_win;
 void screenshot(int i, SDL_Renderer* rend)
 {
   char filename[30];
-  sprintf(filename, "gifframes/screenshot%3d.bmp", i);
+  snprintf(filename, 30, "gifframes/screenshot%3d.bmp", i);
   SDL_Surface *sshot = SDL_CreateRGBSurfaceWithFormat(0, main_win->w, main_win->h, 32, PREFERRED_PIXELFORMAT);
   SDL_RenderReadPixels(rend, NULL, PREFERRED_PIXELFORMAT, sshot->pixels, sshot->pitch);
   SDL_SaveBMP(sshot, filename);
@@ -36,9 +36,9 @@ void screenshot_loop()
 
 }
 
-/*
-gif incantation:
 
-convert -delay 16 -loop 0 -resize 80% gifframes/*.bmp animation.gif
+// gif incantation:
+
+// convert -delay 16 -loop 0 -resize 80% gifframes/*.bmp animation.gif
    
-*/
+

@@ -999,7 +999,7 @@ Layout *layout_create_from_window(Window *win)
     lt->rect = (SDL_Rect) {0, 0, win->w, win->h};
     lt->label_rect = (SDL_Rect) {lt->rect.x, lt->rect.y - TXT_H, 0, 0};
     lt->index = 0;
-    sprintf(lt->name, "main");
+    snprintf(lt->name, 5, "main");
     return lt;
 }
 

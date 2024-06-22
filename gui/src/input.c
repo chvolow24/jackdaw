@@ -102,7 +102,7 @@ static void mode_subcat_add_fn(ModeSubcat *ms, UserFn *fn)
 static UserFn *create_user_fn(
     const char *fn_id,
     const char *fn_display_name,
-    void (*do_fn) (void))
+    void (*do_fn)(void *arg))
 {
     UserFn *fn = calloc(1, sizeof(UserFn));
     fn->fn_id = fn_id;
@@ -113,10 +113,10 @@ static UserFn *create_user_fn(
     return fn;
 }
 
-static void set_user_fn_toggle(UserFn *fn)
-{
-    fn->is_toggle = true;
-}
+/* static void set_user_fn_toggle(UserFn *fn) */
+/* { */
+/*     fn->is_toggle = true; */
+/* } */
 
 static void mode_load_global()
 {
@@ -952,34 +952,34 @@ char *input_get_keycmd_str(uint16_t i_state, SDL_Keycode keycode)
 
     switch (keycode) {
     case SDLK_RETURN:
-	sprintf(buf, "%s<ret>", mod);
+	snprintf(buf, sizeof(buf),"%s<ret>", mod);
 	break;
     case SDLK_SPACE:
-	sprintf(buf, "%s<spc>", mod);
+	snprintf(buf, sizeof(buf), "%s<spc>", mod);
 	break;
     case SDLK_ESCAPE:
-	sprintf(buf, "%s<esc>", mod);
+	snprintf(buf, sizeof(buf), "%s<esc>", mod);
 	break;
     case SDLK_BACKSPACE:
-	sprintf(buf, "%s<del>", mod);
+	snprintf(buf, sizeof(buf), "%s<del>", mod);
 	break;
     case SDLK_TAB:
-	sprintf(buf, "%s<tab>", mod);
+	snprintf(buf, sizeof(buf), "%s<tab>", mod);
 	break;
     case SDLK_UP:
-	sprintf(buf, "%s<up>", mod);
+	snprintf(buf, sizeof(buf), "%s<up>", mod);
 	break;
     case SDLK_DOWN:
-	sprintf(buf, "%s<down>", mod);
+	snprintf(buf, sizeof(buf), "%s<down>", mod);
 	break;
     case SDLK_LEFT:
-	sprintf(buf, "%s<left>", mod);
+	snprintf(buf, sizeof(buf), "%s<left>", mod);
 	break;
     case SDLK_RIGHT:
-	sprintf(buf, "%s<right>", mod);
+	snprintf(buf, sizeof(buf), "%s<right>", mod);
 	break;
     default:
-	sprintf(buf, "%s%c", mod, keycode);
+	snprintf(buf, sizeof(buf), "%s%c", mod, keycode);
     }
 
     char *ret = malloc(strlen(buf) + 1);

@@ -42,6 +42,7 @@
 #include "slider.h"
 #include "textbox.h"
 #include "timeline.h"
+#include "transport.h"
 #include "window.h"
 
 #ifndef INSTALL_DIR
@@ -155,6 +156,11 @@ void timeline_destroy(Timeline *tl)
 static void clip_destroy_no_displace(Clip *clip);
 void project_destroy(Project *proj)
 {
+    if (proj->recording) {
+	transport_stop_recording();
+    } else {
+	transport_stop_playback();
+    }
     /* fprintf(stdout, "PROJECT_DESTROY num tracks: %d\n", proj->timelines[0]->num_tracks); */
     for (uint8_t i=0; i<proj->num_timelines; i++) {
 	timeline_destroy(proj->timelines[i]);

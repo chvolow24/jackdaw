@@ -512,6 +512,5 @@ void loop_project_main()
 	} else {
 	    frame_ctr++;
 	}
-
     }
 }

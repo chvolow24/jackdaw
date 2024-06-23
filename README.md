@@ -187,7 +187,7 @@ The clip you recorded landed on the first track by default. You can again use th
 
 Now that you've created some multi-track audio, you might want to export it to a wav file to show your friends. First you'll need to place in and out marks on your timeline with <kbd>i</kbd> and <kbd>o</kbd>. Once you have placed them such that some portion of the timeline is marked, you can export to a wav file with <kbd>S-w</kbd>.
 
-You will first be prompted to entire a file name. Hit <kbd>tab</kbd> or <kbd>\<ret\></kbd> to apply the current name, and move down to the directory navigation pane. Then, use <kbd>n</kbd> and <kbd>p</kbd> to navigate through the filesystem to the directory where you want to save the file. Finally, use <kbd>C-\<ret\></kbd> to "submit the form" and save the file.
+You will first be prompted to enter a file name. Hit <kbd>tab</kbd> or <kbd>\<ret\></kbd> to apply the current name, and move down to the directory navigation pane. Then, use <kbd>n</kbd> and <kbd>p</kbd> to navigate through the filesystem to the directory where you want to save the file. Finally, use <kbd>\<tab\></kbd> to move down to the "Save" button, and then <kbd>\<ret\></kbd> to save the file with the current name, in the currently open directory. (Or, use <kbd>C-\<ret\></kbd> to "submit the form" and save the file.)
 
 <img src="assets/readme_imgs/export_wav2.gif" width="60%" />
 
@@ -195,7 +195,7 @@ You will first be prompted to entire a file name. Hit <kbd>tab</kbd> or <kbd>\<r
 
 If you want to revisit this project later, you can save a project file (`.jdaw`) with `C-s`.
 
-You will be prompted to enter a project name (which MUST include the `.jdaw` extension), and can then hit <kbd>\<ret\></kbd> or <kbd>\<tab\></kbd> to move down to the directory navigation pane. Navigate to the location at which you want to save the project (with <kbd>n</kbd> and <kbd>p</kbd>), and submit the form with <kbd>C-\<ret\></kbd> to complete saving.
+You will be prompted to enter a project name (which MUST include the `.jdaw` extension), and can then hit <kbd>\<ret\></kbd> or <kbd>\<tab\></kbd> to move down to the directory navigation pane. Navigate to the location at which you want to save the project (with <kbd>n</kbd> and <kbd>p</kbd>), and submit the form with <kbd>\<tab\></kbd> and then <kbd>\<ret\></kbd>to complete saving.
 
 # User manual
 
@@ -236,7 +236,7 @@ These zoom functions will center on the current playhead position. Using the mou
 
 ### Track selector
 
-The *track selector* is how you indicate which track your are doing things to. The track console (left side) is highlighted in orange if the track is currently selected.
+The *track selector* is how you indicate which track you are doing things to. The track console (left side) is highlighted in orange if the track is currently selected.
 
 <kbd>n</kbd> : **move selector down** (next track)<br>
 <kbd>p</kbd> : **move selector up** (previous track)<br>
@@ -334,6 +334,8 @@ Under the hood, a "clip" is a chunk of audio data that is associated with a proj
 
 A given clip can have many clip references. The actual audio data associated with the clip is not duplicated; therefore, when copying clips or portions of clips using Source Mode, you are not actually copying any audio data; you are merely creating additional references to the clip.
 
+Clip references that appear blue in the timeline are "anchored" to then clip itself; if you delete a blue clip reference, the source *clip* and all of its associated references will be deleted as well. Green clip references are *just references*, and deleting them will not delete any associated audio data.
+
 ### "Grabbing" and moving clips
 
 Clips that have been "grabbed" can be deleted or moved around on the timeline.
@@ -346,7 +348,7 @@ A clip can also be "grabbed" with <kbd>C-\<click\></kbd>.
 
 <kbd>C-k</kbd> : **Toggle drag clips**<br>
 
-If clip dragging is enabled, an indiciation will appear in the status bar at the bottom of the screen indicating how many clips are currently grabbed.
+If clip dragging is enabled, an indication will appear in the status bar at the bottom of the screen indicating how many clips are currently grabbed.
 
 <img src="assets/readme_imgs/drag_clips.gif" width="60%" />
 
@@ -419,7 +421,7 @@ The `.jdaw` format (current version described in `jdaw_filespec/00.10) stores a 
 
 <kbd>C-s</kbd> : **Save project as**<br>
 
-You will be prompted first to edit the current project file name. Please note that the file extension **must** be `.jdaw` or `.JDAW` and the program will not fix this for you. (I will fix this in a later version). Hit <kbd>\<tab\></kbd> or <kbd>\<ret\></kbd> to finish editing the name. Now, the directory navigation pane will be active, and you can use <kbd>n</kbd>, <kbd>p</kbd>, and <kbd>\<ret\></kbd> to navigate through the filesystem to the directory where you would like to save the file. When satisfied, type <kbd>\<tab\></kbd> and then <kbd>\<ret\></kbd> (or just <kbd>C-\<ret\></kbd> to save.
+You will be prompted first to edit the current project file name. Please note that the file extension **must** be `.jdaw` or `.JDAW` and the program will not fix this for you. (I will fix this in a later version). Hit <kbd>\<tab\></kbd> or <kbd>\<ret\></kbd> to finish editing the name. Now, the directory navigation pane will be active, and you can use <kbd>n</kbd>, <kbd>p</kbd>, and <kbd>\<ret\></kbd> to navigate through the filesystem to the directory where you would like to save the file. When satisfied, type <kbd>\<tab\></kbd> and then <kbd>\<ret\></kbd> (or just <kbd>C-\<ret\></kbd> to save.)
 
 <img src="assets/readme_imgs/save_project.gif" width="60%" />
 
@@ -516,6 +518,7 @@ The `pd_jackdaw~` objects inlets are for the left and right channels of audio. I
 - Track pan right : <kbd>S-0</kbd>
 - Rename selected track : <kbd>C-r</kbd>
 - Set track input : <kbd>C-S-i</kbd>
+- Add filter to track : <kbd>C-S-f</kbd>
 #### Clips
 - Grab clip at point : <kbd>g</kbd>
 - Start or stop dragging clips : <kbd>C-k</kbd>
@@ -534,7 +537,7 @@ The `pd_jackdaw~` objects inlets are for the left and right channels of audio. I
 - Previous timeline : <kbd>A-j</kbd>
 - Next timeline : <kbd>A-l</kbd>
 #### Export
-- Write mixdown to .wav file : <kbd>S-w</kbd>
+- Write mixdown to .wav file : <kbd>C-e</kbd>, <kbd>S-w</kbd>
 ### source mode
 - Play (source) : <kbd>l</kbd>
 - Pause (source) : <kbd>k</kbd>, <kbd>S-k</kbd>
@@ -552,15 +555,16 @@ The `pd_jackdaw~` objects inlets are for the left and right channels of audio. I
 - Dismiss modal window : <kbd>m</kbd>, <kbd>h</kbd>, <kbd>\<esc\></kbd>
 - Submit form : <kbd>C-\<ret\></kbd>
 ### text_edit mode
-- Escape text edit : <kbd>\<ret\></kbd>, <kbd>\<tab\></kbd>
+- Escape text edit : <kbd>\<ret\></kbd>, <kbd>\<tab\></kbd>, <kbd>\<esc\></kbd>
 - Backspace : <kbd>\<del\></kbd>
 - Move cursor right : <kbd>\<right\></kbd>, <kbd>C-f</kbd>
 - Move cursor left : <kbd>\<left\></kbd>, <kbd>C-d</kbd>, <kbd>C-b</kbd>
 - Select all : <kbd>C-a</kbd>
 
+
 ...
 
 
-[ LAST UPDATED 2024-06-15 SATURDAY ]
+[ LAST UPDATED 2024-06-23 SUNDAY ]
 
 ...

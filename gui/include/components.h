@@ -49,6 +49,16 @@ typedef struct f_slider {
     SliderStrFn *create_label;
 } FSlider;
 
+
+typedef struct radio_button {
+    Layout *lt;
+    TextLines *items;
+    uint8_t num_items;
+    uint8_t current_item;
+} RadioButton;
+
+
+/* FSlider */
 FSlider *fslider_create(
     float *value,
     Layout *layout,
@@ -60,5 +70,16 @@ void fslider_reset(FSlider *fs);
 void fslider_draw(FSlider *fs);
 float fslider_val_from_coord(FSlider *fs, int coord_pix);
 void fslider_destroy(FSlider *fs);
+
+
+/* Button */
+Button *button_create(Layout *lt, char *text, void *(*action)(void *arg), SDL_Color *text_color, SDL_Color *background_color);
+void button_draw(Button *button);
+void button_destroy(Button *button);
+
+/* Radio button */
+RadioButton *radio_button_create(
+    Layout *lt,
+    int (*item_to_tline_filter)(void *item, void *x_arg));
 
 #endif

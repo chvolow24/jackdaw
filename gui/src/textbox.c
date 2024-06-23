@@ -236,7 +236,7 @@ TextLines *textlines_create(
     for (uint16_t i=0; i<num_items; i++) {
 	if (filter(items[i], x_arg)) num_items_after_filter++;
     }
-    /* fprintf(stdout, "CREATE LINES w first item path: %s\n", ((DirPath **)items)[0]->path); */
+
     TextLines *tlines = calloc(1, sizeof(TextLines));
     tlines->items = calloc(num_items_after_filter, sizeof(TLinesItem *));
     tlines->num_items = num_items_after_filter;

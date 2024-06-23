@@ -175,3 +175,30 @@ void fslider_destroy(FSlider *fs)
     layout_destroy(fs->layout);
     free(fs);
 }
+
+
+/* Button */
+
+
+Button *button_create(Layout *lt, char *text, void *(*action)(void *arg), SDL_Color *text_color, SDL_Color *background_color)
+{
+    Button *button = calloc(1, sizeof(Button));
+    button->action = action;
+    button->tb = textbox_create_from_str(text, lt, main_win->bold_font, 12, main_win);
+    button->tb->corner_radius = BUTTON_CORNER_RADIUS;
+    textbox_set_border(button->tb, text_color, 1);
+    textbox_set_background_color(button->tb, background_color);
+    textbox_size_to_fit(button->tb, 16, 2);
+    return button;
+}
+
+void button_draw(Button *button)
+{
+    textbox_draw(button->tb);
+}
+
+void button_destroy(Button *button)
+{
+    textbox_destroy(button->tb);
+    free(button);
+}

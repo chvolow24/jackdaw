@@ -64,6 +64,7 @@
 - Track pan right : <kbd>S-0</kbd>
 - Rename selected track : <kbd>C-r</kbd>
 - Set track input : <kbd>C-S-i</kbd>
+- Add filter to track : <kbd>C-S-f</kbd>
 #### Clips
 - Grab clip at point : <kbd>g</kbd>
 - Start or stop dragging clips : <kbd>C-k</kbd>
@@ -82,7 +83,7 @@
 - Previous timeline : <kbd>A-j</kbd>
 - Next timeline : <kbd>A-l</kbd>
 #### Export
-- Write mixdown to .wav file : <kbd>S-w</kbd>
+- Write mixdown to .wav file : <kbd>C-e</kbd>, <kbd>S-w</kbd>
 ### source mode
 - Play (source) : <kbd>l</kbd>
 - Pause (source) : <kbd>k</kbd>, <kbd>S-k</kbd>
@@ -100,7 +101,7 @@
 - Dismiss modal window : <kbd>m</kbd>, <kbd>h</kbd>, <kbd>\<esc\></kbd>
 - Submit form : <kbd>C-\<ret\></kbd>
 ### text_edit mode
-- Escape text edit : <kbd>\<ret\></kbd>, <kbd>\<tab\></kbd>
+- Escape text edit : <kbd>\<ret\></kbd>, <kbd>\<tab\></kbd>, <kbd>\<esc\></kbd>
 - Backspace : <kbd>\<del\></kbd>
 - Move cursor right : <kbd>\<right\></kbd>, <kbd>C-f</kbd>
 - Move cursor left : <kbd>\<left\></kbd>, <kbd>C-d</kbd>, <kbd>C-b</kbd>

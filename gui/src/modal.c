@@ -91,7 +91,8 @@ static void modal_el_destroy(ModalEl *el)
 	    dirnav_destroy((DirNav *)el->obj);
 	    break;
 	case MODAL_EL_BUTTON:
-	    free((Button *)el->obj);
+	    button_destroy((Button *)el->obj);
+	    /* free((Button *)el->obj); */
 	    break;
 	    
 	}
@@ -241,13 +242,7 @@ ModalEl *modal_add_button(Modal *modal, char *text, void *(*action)(void *arg))
     modal->selectable_indices[modal->num_selectable] = modal->num_els - 1;
     modal->num_selectable++;
     el->layout->w.type = ABS;
-    Button *button = calloc(1, sizeof(Button));
-    button->action = action;
-    button->tb = textbox_create_from_str(text, el->layout, main_win->bold_font, 12, main_win);
-    button->tb->corner_radius = BUTTON_CORNER_RADIUS;
-    textbox_set_border(button->tb, &color_global_black, 1);
-    textbox_set_background_color(button->tb, &modal_button_color);
-    textbox_size_to_fit(button->tb, 16, 2);
+    Button *button = button_create(el->layout, text, action, &color_global_black, &modal_button_color);
     layout_center_agnostic(el->layout, true, false);
     textbox_reset_full(button->tb);
     el->obj = (void *)button;
@@ -341,7 +336,8 @@ static void modal_el_draw(ModalEl *el)
 	dirnav_draw((DirNav *)el->obj);
 	break;
     case MODAL_EL_BUTTON:
-	textbox_draw(((Button *)el->obj)->tb);
+	button_draw((Button *)el->obj);
+	/* textbox_draw(((Button *)el->obj)->tb); */
 	break;
     }
 }
@@ -446,12 +442,10 @@ void modal_select(Modal *modal)
 	dirnav_select(current_el->obj);
 	break;
     case MODAL_EL_TEXTENTRY:
-	fprintf(stdout, "OK EDIT TEXT %p\n", ((Textbox *)current_el->obj)->text);
 	txt_edit(((TextEntry *)current_el->obj)->tb->text, project_draw);
 	modal_next_escape(modal);
 	break;
     case MODAL_EL_BUTTON:
-	fprintf(stdout, "SELECTED button, doing action\n");
 	((Button *)(current_el->obj))->action(modal);
     default:
 	break;

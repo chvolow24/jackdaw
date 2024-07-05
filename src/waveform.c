@@ -32,6 +32,8 @@
     * incl. multi-channel audio
  *****************************************************************************************************************/
 
+#include "waveform.h"
+#include "SDL_render.h"
 #include "window.h"
 #include "project.h"
 
@@ -40,6 +42,42 @@
 
 extern Project *proj;
 extern Window *main_win;
+
+void waveform_update_logscale(struct logscale_array *la, double *array, int num_items, SDL_Rect *container)
+{
+    la->container = container;
+    la->array = array;
+    la->num_items = num_items;
+    if (la->x_pos_cache) free(la->x_pos_cache);
+    la->x_pos_cache = malloc(sizeof(int) * num_items);
+    for (int i=0; i<la->num_items; i++) {
+	double x = i==0? 0 : la->container->w * log(i) / log(num_items);
+	/* fprintf(stdout, "X %d: %f\n", i, x); */
+	la->x_pos_cache[i] = (int)round(x) + container->x;
+    }
+    
+}
+
+struct logscale_array *waveform_create_logscale(double *array, int num_items, SDL_Rect *container)
+{
+    struct logscale_array *la = calloc(1, sizeof(struct logscale_array));
+    waveform_update_logscale(la, array, num_items, container);
+    return la;
+}
+
+/* Draw an array of floats (e.g. frequencies) on a log scale */
+void waveform_draw_logscale(struct logscale_array *la)
+{
+    double btm_y = la->container->y + (double)la->container->h;
+    double last_y = btm_y;
+    double current_y = btm_y;
+    for (int i=0; i<la->num_items; i++) {
+	int last_x = i==0 ? la->x_pos_cache[0] : la->x_pos_cache[i-1];
+	current_y = btm_y - (la->array[i] * la->container->h) * 4;
+	SDL_RenderDrawLine(main_win->rend, last_x, last_y, la->x_pos_cache[i], current_y);
+	last_y = current_y;
+    }
+}
 
 static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, int w, int amp_h_max, int center_y)
 {

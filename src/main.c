@@ -48,6 +48,7 @@
 #include "text.h"
 #include "transport.h"
 #include "wav.h"
+#include "waveform.h"
 #include "window.h"
 
 #include "audio_connection.h"
@@ -150,7 +151,11 @@ extern bool connection_open;
 void dir_tests();
 int main(int argc, char **argv)
 {
-    /* dir_tests(); */
+
+    /* SDL_Rect test = {0, 0, 1000, 1000}; */
+    /* struct logscale_array *la = waveform_create_logscale(NULL, 512, &test); */
+    /* fprintf(stdout, "Interval : %f\n", la->interval); */
+    /* /\* dir_tests(); *\/ */
     /* exit(0); */
     fprintf(stdout, "\n\nJACKDAW (version %s)\nby Charlie Volow\n\n", JACKDAW_VERSION);
     

@@ -34,6 +34,7 @@
 #include <pthread.h>
 #include <string.h>
 #include "audio_connection.h"
+#include "dsp.h"
 #include "mixdown.h"
 #include "project.h"
 #include "pure_data.h"
@@ -116,17 +117,24 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     }
 
     int16_t *stream_fmt = (int16_t *)stream;
+    double *output_l = malloc(sizeof(double) * proj->chunk_size_sframes);
     for (uint32_t i=0; i<stream_len_samples; i+=2)
     {
 	float val_L = chunk_L[i/2];
 	float val_R = chunk_R[i/2];
 	proj->output_L[i/2] = val_L;
 	proj->output_R[i/2] = val_R;
+	output_l[i/2] = val_L;
 	stream_fmt[i] = (int16_t) (val_L * INT16_MAX);
 	stream_fmt[i+1] = (int16_t) (val_R * INT16_MAX);
     }
 
-    /* free(chunk_L); */
+    double complex  *lfreq = malloc(sizeof(double complex) * proj->chunk_size_sframes);
+    FFT(output_l, lfreq, proj->chunk_size_sframes);
+    /* double *ok = malloc(sizeof(double) * proj->chunk_size_sframes); */
+    get_magnitude(lfreq, proj->output_L_freq, proj->chunk_size_sframes);
+    
+	    /* free(chunk_L); */
     /* free(chunk_R); */
 
     // for (uint8_t i = 0; i<40; i+=2) {

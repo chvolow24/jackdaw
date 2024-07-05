@@ -191,6 +191,8 @@ void project_destroy(Project *proj)
     }
     free(proj->output_L);
     free(proj->output_R);
+    free(proj->output_L_freq);
+    free(proj->output_R_freq);
     /* fprintf(stdout, "Tbs? %p %p\n", */
     /* 	    proj->tb_out_label, */
     /* 	    proj->tb_out_value); */
@@ -278,6 +280,8 @@ Project *project_create(
     proj->output_len = chunk_size_sframes;
     proj->output_L = malloc(sizeof(float) * chunk_size_sframes);
     proj->output_R = malloc(sizeof(float) * chunk_size_sframes);
+    proj->output_L_freq = malloc(sizeof(double) * chunk_size_sframes);
+    proj->output_R_freq  = malloc(sizeof(double) * chunk_size_sframes);
     memset(proj->output_L, '\0', sizeof(float) * chunk_size_sframes);
     memset(proj->output_R, '\0', sizeof(float) * chunk_size_sframes);
 

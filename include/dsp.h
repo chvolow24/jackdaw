@@ -69,4 +69,7 @@ void apply_filter(FIRFilter *filter, uint8_t channel, uint16_t chunk_size, float
 /* void process_track_vol_and_pan(Track *track); */
 /* void process_vol_and_pan(void); */
 
+void FFT(double *A, double complex *B, int n);
+void get_real_component(double complex *A, double *B, int n);
+void get_magnitude(double complex *A, double *B, int len);
 #endif

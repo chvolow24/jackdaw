@@ -118,7 +118,7 @@ static void FFT_inner(double *A, double complex *B, int n, int offset, int incre
 
 }
 
-static void FFT(double *A, double complex *B, int n)
+void FFT(double *A, double complex *B, int n)
 {
 
     FFT_inner(A, B, n, 0, 1);
@@ -179,16 +179,15 @@ static void IFFT_real_input(double *A_real, double complex *B, int n)
 }
 
 
-static double *get_magnitude(double complex *A, int len) 
+void get_magnitude(double complex *A, double *B, int len) 
 {
-    double *B = (double *)malloc(sizeof(double) * len);
+    /* double *B = (double *)malloc(sizeof(double) * len); */
     for (int i=0; i<len; i++) {
         B[i] = cabs(A[i]);
     }
-    return B;
 }
 
-static void get_real_component(double complex *A, double *B, int len)
+void get_real_component(double complex *A, double *B, int len)
 {
     /* double *B = (double *)malloc(sizeof(double) * len); */
     for (int i=0; i<len; i++) {

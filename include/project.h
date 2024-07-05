@@ -282,6 +282,10 @@ typedef struct project {
     float *output_R;
     uint16_t output_len;
 
+    double *output_L_freq;
+    double *output_R_freq;
+
+
 
     /* In progress */
     /* Track *vol_changing; */

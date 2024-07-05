@@ -508,6 +508,16 @@ void project_draw()
     window_draw_modals(main_win);
     window_draw_menus(main_win);
     /* modal_draw(test_modal); */
+
+    SDL_Rect ok = {30, 400, 1400, 500};
+    SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 200);
+    SDL_RenderFillRect(main_win->rend, &ok);
+    struct logscale_array *la = waveform_create_logscale(proj->output_L_freq, proj->chunk_size_sframes / 2, &ok);
+    SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255);
+    waveform_draw_logscale(la);
+    free(la);
+
+    
     window_end_draw(main_win);
 }
 

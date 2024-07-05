@@ -26,10 +26,9 @@
 
 
 /*****************************************************************************************************************
-    audio_device.h
+    audio_connection.h
 
-    * Query available audio devices
-    * Open, pause/unpause, and otherwise
+    * Typedef structs for audio connections (e.g. devices)
  *****************************************************************************************************************/
 
 
@@ -114,6 +113,8 @@ void audioconn_stop_recording(AudioConn *conn);
 void audioconn_handle_connection_event(int index, int iscapture, int event_type);
 
 void audioconn_destroy(AudioConn *conn);
+
+void audioconn_reset_chunk_size(AudioConn *conn, uint16_t new_chunk_size);
 
 void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type);
 /* int query_audio_devices(Project *proj, int iscapture); */

@@ -43,7 +43,7 @@
 extern Project *proj;
 extern Window *main_win;
 
-void waveform_update_logscale(struct logscale_array *la, double *array, int num_items, SDL_Rect *container)
+void waveform_update_logscale(struct logscale *la, double *array, int num_items, SDL_Rect *container)
 {
     la->container = container;
     la->array = array;
@@ -58,15 +58,21 @@ void waveform_update_logscale(struct logscale_array *la, double *array, int num_
     
 }
 
-struct logscale_array *waveform_create_logscale(double *array, int num_items, SDL_Rect *container)
+struct logscale *waveform_create_logscale(double *array, int num_items, SDL_Rect *container)
 {
-    struct logscale_array *la = calloc(1, sizeof(struct logscale_array));
+    struct logscale *la = calloc(1, sizeof(struct logscale));
     waveform_update_logscale(la, array, num_items, container);
     return la;
 }
 
+void waveform_destroy_logscale(struct logscale *la)
+{
+    if (la->x_pos_cache) free(la->x_pos_cache);
+    free(la);
+}
+
 /* Draw an array of floats (e.g. frequencies) on a log scale */
-void waveform_draw_logscale(struct logscale_array *la)
+void waveform_draw_freq_domain(struct logscale *la)
 {
     double btm_y = la->container->y + (double)la->container->h;
     double last_y = btm_y;

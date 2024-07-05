@@ -248,6 +248,11 @@ void loop_project_main()
 		break;
 	    case SDL_KEYDOWN: {
 		switch (e.key.keysym.scancode) {
+		case SDL_SCANCODE_7:
+		    fprintf(stdout, "Ck size before: %d\n", proj->chunk_size_sframes);
+		    project_set_chunk_size(1024);
+		    fprintf(stdout, "DONE! new chunk size: %d\n", proj->chunk_size_sframes);
+		    break;
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LCTRL:
@@ -472,6 +477,7 @@ void loop_project_main()
 	status_frame();
 	
 	project_draw();
+
 
 	if (main_win->screenrecording) {
 	    screenshot_loop();

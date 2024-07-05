@@ -38,7 +38,7 @@
 
 #include "window.h"
 
-struct logscale_array {
+struct logscale {
     double *array;
     int num_items;
     SDL_Rect *container;
@@ -46,7 +46,8 @@ struct logscale_array {
 };
 
 void waveform_draw_all_channels(float **channels, uint8_t num_channels, uint32_t buflen, SDL_Rect *rect);
-void waveform_draw_logscale(struct logscale_array *la);
-struct logscale_array *waveform_create_logscale(double *array, int num_items, SDL_Rect *container);
+void waveform_draw_freq_domain(struct logscale *la);
+struct logscale *waveform_create_logscale(double *array, int num_items, SDL_Rect *container);
+void waveform_destroy_logscale(struct logscale *la);
 
 #endif

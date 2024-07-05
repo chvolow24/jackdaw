@@ -285,6 +285,8 @@ typedef struct project {
     double *output_L_freq;
     double *output_R_freq;
 
+    struct logscale *output_logscale_L;
+    struct logscale *output_logscale_R;
 
 
     /* In progress */
@@ -328,6 +330,7 @@ Project *project_create(
 /* Return the index of a timeline to switch to (new one if success) */
 uint8_t project_add_timeline(Project *proj, char *name);
 void project_reset_tl_label(Project *proj);
+void project_set_chunk_size(uint16_t new_chunk_size);
 Track *timeline_add_track(Timeline *tl);
 void timeline_reset_full(Timeline *tl);
 void timeline_reset(Timeline *tl);

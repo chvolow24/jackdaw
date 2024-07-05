@@ -535,6 +535,20 @@ void audioconn_handle_connection_event(int index_or_id, int iscapture, int event
     fprintf(stdout, "\t\t\tEXIT handle device event\n");
 }
 
+void audioconn_reset_chunk_size(AudioConn *c, uint16_t new_chunk_size)
+{
+    if (c->open) {
+	audioconn_close(c);
+    }
+    switch (c->type) {
+    case DEVICE:
+	c->c.device.spec.size = new_chunk_size;
+	break;
+    default:
+	break;
+    }
+
+}
 void ___audioconn_handle_connection_event(int id, int iscapture, int event_type)
 {
     /* if (!proj) { */

@@ -62,6 +62,12 @@ void user_global_redo(void *nullarg)
     fprintf(stdout, "user_global_redo\n");
 }
 
+void user_global_show_output_freq_domain(void *nullarg)
+{
+    proj->show_output_freq_domain = !proj->show_output_freq_domain;
+}
+
+
 int path_updir_name(char *pathname);
 static void *submit_save_as_form(void *mod_v)
 {

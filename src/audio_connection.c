@@ -538,10 +538,12 @@ void audioconn_handle_connection_event(int index_or_id, int iscapture, int event
 void audioconn_reset_chunk_size(AudioConn *c, uint16_t new_chunk_size)
 {
     if (c->open) {
+	fprintf(stdout, "closing \"%s\"\n", c->name);
 	audioconn_close(c);
     }
     switch (c->type) {
     case DEVICE:
+	fprintf(stdout, "resetting ck size of \"%s\"\n", c->name);
 	c->c.device.spec.size = new_chunk_size;
 	break;
     default:

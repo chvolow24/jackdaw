@@ -123,8 +123,12 @@ void FFT(double *A, double complex *B, int n)
 
     FFT_inner(A, B, n, 0, 1);
 
+    double max = 0.0f;
+    double test;
     for (int k=0; k<n; k++) {
         B[k]/=n;
+	if ((test = B[k]) > max) max = test;
+	/* fprintf(stdout, "mag %d: %f\n", k, cabs(B[k])); */
     }
 }
 

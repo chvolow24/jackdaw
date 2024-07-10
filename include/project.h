@@ -47,6 +47,8 @@
 #define JDAW_PROJECT_H
 
 
+#include <complex.h>
+#include <semaphore.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -104,9 +106,16 @@ typedef struct track {
     FSlider *vol_ctrl;
     FSlider *pan_ctrl;
 
+    double *buf_L;
+    double *buf_R;
+    uint16_t buf_read_pos;
+    sem_t *buf_sem;
+
+    double *buf_L_freq_mag;
+    double *buf_R_freq_mag;
+
     FIRFilter *fir_filters[MAX_TRACK_FILTERS];
     uint8_t num_filters;
-    
     
     /* FSLIDER *vol_ctrl */
     /* FSlider *pan_ctrl */
@@ -163,11 +172,6 @@ typedef struct clip {
     /* Xfade */
     uint32_t start_ramp_len_sframes;
     uint32_t end_ramp_len_sframes;
-
-    /* TL navigation */
-    /* bool grabbed; */
-    /* bool changed_track; */
-    
     
 } Clip;
 
@@ -188,6 +192,16 @@ typedef struct timeline {
     int32_t in_mark_sframes;
     int32_t out_mark_sframes;
     int32_t record_from_sframes;
+
+    /*
+    - Channel buffers allocated at fourier len (e.g. 1024) * 2
+    - writer calls sem_post for every chunk (chunk_size, e.g. 64) available
+    - reader calls sem_wait for every chunk requested (in audio thread)
+    */
+    double *buf_L;
+    double *buf_R;
+    uint16_t buf_read_pos;
+    sem_t *buf_sem;
     
     Track *tracks[MAX_TRACKS];
     
@@ -263,6 +277,7 @@ typedef struct project {
     uint32_t sample_rate; //samples per second
     SDL_AudioFormat fmt;
     uint16_t chunk_size_sframes; //sample_frames
+    uint16_t fourier_len_sframes;
 
     /* Clips */
     Clip *clips[MAX_PROJ_CLIPS];
@@ -285,9 +300,10 @@ typedef struct project {
     double *output_L_freq;
     double *output_R_freq;
 
-    struct logscale *output_logscale_L;
-    struct logscale *output_logscale_R;
+    /* struct logscale *output_logscale_L; */
+    /* struct logscale *output_logscale_R; */
 
+    struct freq_plot *freq_domain_plot;
 
     /* In progress */
     /* Track *vol_changing; */
@@ -295,6 +311,7 @@ typedef struct project {
     bool vol_up;
     bool pan_changing;
     bool pan_right;
+    bool show_output_freq_domain;
 
     /* GUI Members */
     Layout *layout;

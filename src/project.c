@@ -45,6 +45,7 @@
 #include "textbox.h"
 #include "timeline.h"
 #include "transport.h"
+#include "waveform.h"
 #include "window.h"
 
 #ifndef INSTALL_DIR
@@ -79,6 +80,10 @@ extern SDL_Color color_global_light_grey;
 SDL_Color color_mute_solo_grey = {210, 210, 210, 255};
 
 SDL_Color timeline_label_txt_color = {0, 200, 100, 255};
+
+SDL_Color freq_L_color = {130, 255, 255, 255};
+SDL_Color freq_R_color = {255, 255, 130, 220};
+
 
 /* Alternating bright colors to easily distinguish tracks */
 uint8_t track_color_index = 0;
@@ -1236,6 +1241,11 @@ void timeline_cut_clipref_at_point(Timeline *tl)
 
 void project_set_chunk_size(uint16_t new_chunk_size)
 {
+    if (proj->recording) {
+	transport_stop_recording();
+    }
+    transport_stop_playback();
+    proj->chunk_size_sframes = new_chunk_size;
     if (proj->output_L) free(proj->output_L);
     if (proj->output_R) free(proj->output_R);
     proj->output_L = calloc(1, sizeof(float) * new_chunk_size);
@@ -1244,6 +1254,7 @@ void project_set_chunk_size(uint16_t new_chunk_size)
     if (proj->output_R_freq) free(proj->output_R_freq);
     proj->output_L_freq = calloc(1, sizeof(double) * new_chunk_size);
     proj->output_R_freq = calloc(1, sizeof(double) * new_chunk_size);
+    proj->output_len = new_chunk_size;
     /* for (uint8_t i=0; i<proj->num_timelines; i++) { */
     /* 	Timeline *tl = proj->timelines[i]; */
     /* 	if (tl->mixdown_L) free(tl->mixdown_L); */
@@ -1261,7 +1272,10 @@ void project_set_chunk_size(uint16_t new_chunk_size)
     for (uint8_t i=0; i<proj->num_playback_conns; i++) {
 	audioconn_reset_chunk_size(proj->playback_conns[i], new_chunk_size);
     }
-    proj->chunk_size_sframes = new_chunk_size;
-    proj->output_len = proj->chunk_size_sframes;
+    audioconn_open(proj, proj->playback_conn);
+    if (proj->freq_domain_plot) {
+	waveform_destroy_freq_plot(proj->freq_domain_plot);
+	proj->freq_domain_plot = NULL;
+    }
 
 }

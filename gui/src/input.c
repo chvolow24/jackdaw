@@ -155,6 +155,12 @@ static void mode_load_global()
     mode_subcat_add_fn(mc, fn);
 
     fn = create_user_fn(
+	"show_output_freq_domain",
+	"Show output spectrum",
+	user_global_show_output_freq_domain);
+    mode_subcat_add_fn(mc, fn);
+
+    fn = create_user_fn(
 	"save_project",
 	"Save Project",
 	user_global_save_project);

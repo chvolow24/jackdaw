@@ -6,9 +6,13 @@ void user_global_menu(void *nullarg);
 void user_global_quit(void *nullarg);
 void user_global_undo(void *nullarg);
 void user_global_redo(void *nullarg);
+void user_global_show_output_freq_domain(void *nullarg);
 void user_global_save_project(void *nullarg);
 void user_global_open_file(void *nullarg);
 void user_global_start_or_stop_screenrecording(void *nullarg);
+
+
+
 void user_menu_nav_next_item(void *nullarg);
 void user_menu_nav_prev_item(void *nullarg);
 void user_menu_nav_next_sctn(void *nullarg);

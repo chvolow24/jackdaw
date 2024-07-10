@@ -32,6 +32,8 @@
     * incl. multi-channel audio
  *****************************************************************************************************************/
 
+#include "color.h"
+#include "textbox.h"
 #include "waveform.h"
 #include "SDL_render.h"
 #include "window.h"
@@ -40,8 +42,13 @@
 #define SFPP_THRESHOLD 15
 #define SFPP_SAFE 200
 
+#define FREQ_PLOT_MAX_TICS 255
+
 extern Project *proj;
 extern Window *main_win;
+
+extern SDL_Color color_global_black;
+extern SDL_Color color_global_white;
 
 void waveform_update_logscale(struct logscale *la, double *array, int num_items, SDL_Rect *container)
 {
@@ -50,17 +57,19 @@ void waveform_update_logscale(struct logscale *la, double *array, int num_items,
     la->num_items = num_items;
     if (la->x_pos_cache) free(la->x_pos_cache);
     la->x_pos_cache = malloc(sizeof(int) * num_items);
+    double lognsub1 = log(num_items - 1);
     for (int i=0; i<la->num_items; i++) {
-	double x = i==0? 0 : la->container->w * log(i) / log(num_items);
+	double x = i==0? 0 : la->container->w * log(i) / lognsub1;
 	/* fprintf(stdout, "X %d: %f\n", i, x); */
 	la->x_pos_cache[i] = (int)round(x) + container->x;
     }
-    
 }
 
-struct logscale *waveform_create_logscale(double *array, int num_items, SDL_Rect *container)
+
+struct logscale *waveform_create_logscale(double *array, int num_items, SDL_Rect *container, SDL_Color *color)
 {
     struct logscale *la = calloc(1, sizeof(struct logscale));
+    la->color = color;
     waveform_update_logscale(la, array, num_items, container);
     return la;
 }
@@ -74,16 +83,132 @@ void waveform_destroy_logscale(struct logscale *la)
 /* Draw an array of floats (e.g. frequencies) on a log scale */
 void waveform_draw_freq_domain(struct logscale *la)
 {
+    if (la->color) {
+	SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(la->color));
+    }
+    /* static double epsilon = 1e-12; */
+    /* double min_db = 20.0f * log10(epsilon); */
+    /* double max_db = 20.0f * log10(1.0f); */
+    /* double db_range = max_db - min_db; */
+    double scale = 1.0f / log(2.0f);
     double btm_y = la->container->y + (double)la->container->h;
-    double last_y = btm_y;
+    /* double db = 20.0f * log10(epsilon + la->array[1]); */
+    /* double last_y = btm_y - ((db - min_db) / db_range) * la->container->h; */
+    double last_y = btm_y - log(1 + la->array[1]) * scale * la->container->h;
     double current_y = btm_y;
-    for (int i=0; i<la->num_items; i++) {
-	int last_x = i==0 ? la->x_pos_cache[0] : la->x_pos_cache[i-1];
-	current_y = btm_y - (la->array[i] * la->container->h) * 4;
+    for (int i=2; i<la->num_items; i++) {
+	int last_x = la->x_pos_cache[i-1];
+	/* db = 20.0f * log10(epsilon + la->array[i]); */
+	/* current_y = btm_y - ((db - min_db) / db_range) * la->container->h; */
+	current_y = btm_y - log(1 + la->array[i]) * scale * la->container->h;
 	SDL_RenderDrawLine(main_win->rend, last_x, last_y, la->x_pos_cache[i], current_y);
 	last_y = current_y;
     }
 }
+
+struct freq_plot *waveform_create_freq_plot(double **arrays, int num_plots, SDL_Color **colors, int num_items, Layout *container)
+{
+    struct freq_plot *fp = calloc(1, sizeof(struct freq_plot));
+    fp->container = container;
+    fp->num_plots = num_plots;
+    fp->plots = malloc(sizeof(struct logscale *) * num_plots);
+    for (int i=0; i<num_plots; i++) {
+	fp->plots[i] = waveform_create_logscale(arrays[i], num_items, &container->rect, colors[i]);
+    }
+    int tics[FREQ_PLOT_MAX_TICS];
+    int num_tics = 0;
+    double nyquist = (double)proj->sample_rate / 2;
+    double lognyq  = log(nyquist);
+    int left_x = container->rect.x;
+    int w = container->rect.w;
+    double lognsub1 = log(num_items - 1);
+    double omega = 50.0f;
+    static const char *freq_labels[] = {
+	"60 Hz",
+	"100 Hz",
+	"200 Hz",
+	"1 KHz",
+	"2 KHz",
+	"10 KHz"
+    };
+    while (1) {
+
+	tics[num_tics] = left_x + w * (1.0f + (log(omega) - lognyq) / lognsub1);
+	if (omega == 60 || omega == 100 || omega == 200 || omega == 1000 || omega == 2000 || omega == 10000) {
+	    Layout *tb_lt = layout_add_child(fp->container);
+	    layout_set_default_dims(tb_lt);
+	    layout_reset(tb_lt);
+	    /* fprintf(stdout, "OK %d %d %d %d\n", tb_lt->rect.x, tb_lt->rect.y, tb_lt->rect.w, tb_lt->rect.h); */
+	    const char *str = freq_labels[omega == 60 ? 0 : omega == 100 ? 1 : omega == 200 ? 2 : omega == 1000 ? 3 : omega == 2000 ? 4 : 5];
+	    Textbox *tb = textbox_create_from_str((char *)str, tb_lt, main_win->mono_font, 14, main_win);
+	    fp->labels[fp->num_labels] = tb;
+	    fp->num_labels++;
+	    /* textbox_reset_full(fp->labels[fp->num_labels]); */
+	    textbox_pad(tb, 0);
+	    tb_lt->rect.x = tics[num_tics] - tb_lt->rect.w / 2;
+	    tb_lt->rect.y = fp->container->rect.y;
+	    layout_set_values_from_rect(tb_lt);
+	    textbox_set_background_color(tb, &color_global_black);
+	    textbox_set_text_color(tb, &color_global_white);
+	    textbox_reset_full(tb);
+	}
+	num_tics++;
+	fprintf(stdout, "omega : %f\n", omega);
+	if (omega < 100) {
+	    omega += 10;
+	} else if (omega < 1000) {
+	    omega += 100;
+	} else if (omega < 10000) {
+	    omega += 1000;
+	} else if (omega + 10000 < nyquist) {
+	    omega += 10000;
+	} else {
+	    break;
+	}	
+    }
+    fp->tic_cache = malloc(sizeof(int) * num_tics);
+    memcpy(fp->tic_cache, tics, sizeof(int) * num_tics);
+    fp->num_tics = num_tics;
+    return fp;
+}
+
+void waveform_destroy_freq_plot(struct freq_plot *fp)
+{
+    if (fp->tic_cache) {
+	free(fp->tic_cache);
+    }
+    for (int i=0; i<fp->num_plots; i++) {
+	waveform_destroy_logscale(fp->plots[i]);
+    }
+    for (int i=0; i<fp->num_labels; i++) {
+	textbox_destroy(fp->labels[i]);
+    }
+    free(fp);
+}
+
+void waveform_draw_freq_plot(struct freq_plot *fp)
+{
+    SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
+    SDL_RenderFillRect(main_win->rend, &fp->container->rect);
+    
+    for (int i=0; i<fp->num_plots; i++) {
+	waveform_draw_freq_domain(fp->plots[i]);
+    }
+
+    SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 70);
+    int top_y = fp->container->rect.y;
+    int btm_y = top_y + fp->container->rect.h;
+    for (int i=0; i<fp->num_tics; i++) {
+	SDL_RenderDrawLine(main_win->rend, fp->tic_cache[i], top_y, fp->tic_cache[i], btm_y);
+    }
+    for (int i=0; i<fp->num_labels; i++) {
+	/* fprintf(stdout, "TB draw %d\n", i); */
+	SDL_Rect r= fp->labels[i]->layout->rect;
+	/* fprintf(stdout, "%d %d %d %d\n", r.x, r.y, r.w, r.h);  */
+	textbox_draw(fp->labels[i]);
+    }
+}
+
 
 static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, int w, int amp_h_max, int center_y)
 {

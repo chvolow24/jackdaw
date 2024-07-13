@@ -68,6 +68,11 @@
 
 #define TRACK_VOL_STEP 0.03
 #define TRACK_PAN_STEP 0.01
+
+#define SEM_NAME_UNPAUSE "/tl_%d_unpause_sem"
+#define SEM_NAME_WRITABLE_CHUNKS "/tl_%d_writable_chunks"
+#define SEM_NAME_READABLE_CHUNKS "/tl_%d_readable_chunks"
+
 extern Window *main_win;
 extern Project *proj;
 extern SDL_Color color_global_black;
@@ -114,6 +119,7 @@ uint8_t project_add_timeline(Project *proj, char *name)
     }
     strcpy(new_tl->name, name);
     new_tl->proj = proj;
+    new_tl->index = proj->num_timelines;
     Layout *tl_lt = layout_get_child_by_name_recursive(proj->layout, "timeline");
     Layout *cpy = layout_copy(tl_lt, tl_lt->parent);
     new_tl->layout = cpy;
@@ -137,13 +143,67 @@ uint8_t project_add_timeline(Project *proj, char *name)
     /* new_tl->mixdown_L = malloc(sizeof(float) * proj->chunk_size_sframes); */
     /* new_tl->mixdown_R = malloc(sizeof(float) * proj->chunk_size_sframes); */
 
+
+    new_tl->buf_L = malloc(sizeof(float) * proj->fourier_len_sframes * 2);
+    new_tl->buf_R = malloc(sizeof(float) * proj->fourier_len_sframes * 2);
+    new_tl->buf_write_pos = 0;
+    new_tl->buf_read_pos = 0;
+    char buf[128];
+    snprintf(buf, 128, SEM_NAME_UNPAUSE, new_tl->index);
+    bool retry = false;
+retry1:
+    if ((new_tl->unpause_sem = sem_open(buf, O_CREAT | O_EXCL, 0666, 0)) == SEM_FAILED) {
+	sem_unlink(buf);
+	perror("Error opening unpause sem");
+	if (!retry) {
+	    goto retry1;
+	    retry = true;
+	} else {
+	    fprintf(stderr, "Fatal error: retry failed\n");
+	    exit(1);
+	}
+	/* exit(1); */
+	
+    }
+retry2:
+    snprintf(buf, 128, SEM_NAME_READABLE_CHUNKS, new_tl->index);
+    if ((new_tl->readable_chunks = sem_open(buf, O_CREAT | O_EXCL, 0666, 0)) == SEM_FAILED) {
+	sem_unlink(buf);
+	perror("Error opening readable chunks sem");
+	if (!retry) {
+	    goto retry2;
+	    retry = true;
+	} else {
+	    fprintf(stderr, "Fatal error: retry failed\n");
+	    exit(1);
+	}
+
+	/* exit(1); */
+    }
+retry3:
+    snprintf(buf, 128, SEM_NAME_WRITABLE_CHUNKS, new_tl->index);
+    int init_writable_chunks = proj->fourier_len_sframes / proj->chunk_size_sframes;
+    if ((new_tl->writable_chunks = sem_open(buf, O_CREAT | O_EXCL, 0666, init_writable_chunks)) == SEM_FAILED) {
+	sem_unlink(buf);
+	perror("Error opening writable chunks sem");
+	if (!retry) {
+	    goto retry3;
+	    retry = true;
+	} else {
+	    fprintf(stderr, "Fatal error: retry failed\n");
+	    exit(1);
+	}
+	/* exit(1); */
+    }
     
+    
+    fprintf(stdout, "SEM ADDRS: (tl: %p) %p, %p, %p\n", new_tl, new_tl->writable_chunks, new_tl->readable_chunks, new_tl->unpause_sem);
     proj->timelines[proj->num_timelines] = new_tl;
     proj->num_timelines++;
     return proj->num_timelines - 1; /* Return the new timeline index */
 }
 
-void timeline_destroy(Timeline *tl)
+static void timeline_destroy(Timeline *tl, bool displace_in_proj)
 {
     for (uint8_t i=0; i<tl->num_tracks; i++) {
 	/* fprintf(stdout, "DESTROYING track %d/%d\n", i, tl->num_tracks); */
@@ -151,15 +211,39 @@ void timeline_destroy(Timeline *tl)
     }
     layout_destroy(tl->layout);
     /* tl->proj->num_timelines--; */
-    bool displace = false;
-    for (uint8_t i=0; i<proj->num_timelines; i++) {
-	Timeline *test = proj->timelines[i];
-	if (test == tl) displace = true;
-	else if (displace && i > 0) {
-	    proj->timelines[i - 1] = proj->timelines[i];
+    if (displace_in_proj) {
+	bool displace = false;
+	for (uint8_t i=0; i<proj->num_timelines; i++) {
+	    Timeline *test = proj->timelines[i];
+	    if (test == tl) displace = true;
+	    else if (displace && i > 0) {
+		proj->timelines[i - 1] = proj->timelines[i];
+	    }
+	    proj->num_timelines--;
 	}
-	proj->num_timelines--;
     }
+    if (tl->buf_L) free(tl->buf_L);
+    if (tl->buf_R) free(tl->buf_R);
+
+    if (sem_close(tl->unpause_sem) != 0) perror("Sem close");
+    if (sem_close(tl->writable_chunks) != 0) perror("Sem close");
+    if (sem_close(tl->readable_chunks) != 0) perror("Sem close");
+
+    char buf[128];
+    snprintf(buf, 128, SEM_NAME_UNPAUSE, tl->index);
+    if (sem_unlink(buf) != 0) {
+	perror("Error in sem unlink");
+    }
+    snprintf(buf, 128, SEM_NAME_WRITABLE_CHUNKS, tl->index);
+    if (sem_unlink(buf) != 0) {
+	perror("Error in sem unlink");
+    }
+    snprintf(buf, 128, SEM_NAME_READABLE_CHUNKS, tl->index);
+    if (sem_unlink(buf) != 0) {
+	perror("Error in sem unlink");
+    }
+
+
     /* if (tl->mixdown_L) { */
     /* 	free(tl->mixdown_L); */
     /* } */
@@ -179,7 +263,7 @@ void project_destroy(Project *proj)
     }
     /* fprintf(stdout, "PROJECT_DESTROY num tracks: %d\n", proj->timelines[0]->num_tracks); */
     for (uint8_t i=0; i<proj->num_timelines; i++) {
-	timeline_destroy(proj->timelines[i]);
+	timeline_destroy(proj->timelines[i], false);
     }
     /* fprintf(stdout, "Proj num timelines? %d\n", proj->num_timelines); */
     textbox_destroy(proj->timeline_label);
@@ -220,7 +304,8 @@ Project *project_create(
     uint8_t channels,
     uint32_t sample_rate,
     SDL_AudioFormat fmt,
-    uint16_t chunk_size_sframes
+    uint16_t chunk_size_sframes,
+    uint16_t fourier_len_sframes
     )
 {
     Project *proj = calloc(1, sizeof(Project));
@@ -246,6 +331,7 @@ Project *project_create(
     proj->sample_rate = sample_rate;
     proj->fmt = fmt;
     proj->chunk_size_sframes = chunk_size_sframes;
+    proj->fourier_len_sframes = fourier_len_sframes;
     proj->layout = main_win->layout;
     proj->audio_rect = &(layout_get_child_by_name_recursive(proj->layout, "audio_rect")->rect);
     proj->console_column_rect = &(layout_get_child_by_name_recursive(proj->layout, "audio_rect_pad")->rect);
@@ -282,13 +368,13 @@ Project *project_create(
     textbox_set_align(proj->timeline_label, CENTER_LEFT);
     project_reset_tl_label(proj);
     /* Initialize output */
-    proj->output_len = chunk_size_sframes;
-    proj->output_L = malloc(sizeof(float) * chunk_size_sframes);
-    proj->output_R = malloc(sizeof(float) * chunk_size_sframes);
-    proj->output_L_freq = malloc(sizeof(double) * chunk_size_sframes);
-    proj->output_R_freq  = malloc(sizeof(double) * chunk_size_sframes);
-    memset(proj->output_L, '\0', sizeof(float) * chunk_size_sframes);
-    memset(proj->output_R, '\0', sizeof(float) * chunk_size_sframes);
+    /* proj->output_len = chunk_size_sframes; */
+    proj->output_L = malloc(sizeof(float) * fourier_len_sframes);
+    proj->output_R = malloc(sizeof(float) * fourier_len_sframes);
+    proj->output_L_freq = malloc(sizeof(double) * fourier_len_sframes);
+    proj->output_R_freq  = malloc(sizeof(double) * fourier_len_sframes);
+    memset(proj->output_L, '\0', sizeof(float) * fourier_len_sframes);
+    memset(proj->output_R, '\0', sizeof(float) * fourier_len_sframes);
 
 
     project_init_audio_conns(proj);
@@ -1246,15 +1332,21 @@ void project_set_chunk_size(uint16_t new_chunk_size)
     }
     transport_stop_playback();
     proj->chunk_size_sframes = new_chunk_size;
-    if (proj->output_L) free(proj->output_L);
-    if (proj->output_R) free(proj->output_R);
-    proj->output_L = calloc(1, sizeof(float) * new_chunk_size);
-    proj->output_R = calloc(1, sizeof(float) * new_chunk_size);
-    if (proj->output_L_freq) free(proj->output_L_freq);
-    if (proj->output_R_freq) free(proj->output_R_freq);
-    proj->output_L_freq = calloc(1, sizeof(double) * new_chunk_size);
-    proj->output_R_freq = calloc(1, sizeof(double) * new_chunk_size);
-    proj->output_len = new_chunk_size;
+
+    
+    /* if (proj->output_L) free(proj->output_L); */
+    /* if (proj->output_R) free(proj->output_R); */
+    /* proj->output_L = calloc(1, sizeof(float) * new_chunk_size); */
+    /* proj->output_R = calloc(1, sizeof(float) * new_chunk_size); */
+    /* if (proj->output_L_freq) free(proj->output_L_freq); */
+    /* if (proj->output_R_freq) free(proj->output_R_freq); */
+    /* proj->output_L_freq = calloc(1, sizeof(double) * new_chunk_size); */
+    /* proj->output_R_freq = calloc(1, sizeof(double) * new_chunk_size); */
+
+
+
+
+/* proj->output_len = new_chunk_size; */
     /* for (uint8_t i=0; i<proj->num_timelines; i++) { */
     /* 	Timeline *tl = proj->timelines[i]; */
     /* 	if (tl->mixdown_L) free(tl->mixdown_L); */

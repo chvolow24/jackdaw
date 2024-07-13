@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "project.h"
+#include "transport.h"
 
 #define MAX_SFPP 80000
 
@@ -198,8 +199,19 @@ void timeline_set_timecode()
 void timeline_set_play_position(int32_t abs_pos_sframes)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
+    /* float saved_speed = proj->play_speed; */
+    /* bool restart = false; */
+    /* if (proj->playing) { */
+    /* 	transport_stop_playback(); */
+    /* 	restart = true; */
+    /* } */
     tl->play_pos_sframes = abs_pos_sframes;
-    /* timeline_set_timecode(); */
+    tl->read_pos_sframes = abs_pos_sframes;
+    /* if (restart) { */
+    /* 	proj->play_speed = saved_speed; */
+    /* 	transport_start_playback(); */
+    /* } */
+    timeline_set_timecode();
 }
 
 

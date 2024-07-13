@@ -66,7 +66,7 @@
 /* #define OPEN_SANS_PATH INSTALL_DIR "/assets/ttf/OpenSans-Regular.ttf" */
 #define DEFAULT_KEYBIND_CFG_PATH INSTALL_DIR "/assets/key_bindings/default.yaml"
 
-#define DEFAULT_PROJ_AUDIO_SETTINGS 2, 48000, AUDIO_S16SYS, 1024
+#define DEFAULT_PROJ_AUDIO_SETTINGS 2, 48000, AUDIO_S16SYS, 64, 1024
 
 const char *JACKDAW_VERSION = "0.2.0";
 char DIRPATH_SAVED_PROJ[MAX_PATHLEN];

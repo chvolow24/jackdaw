@@ -106,10 +106,12 @@ typedef struct track {
     FSlider *vol_ctrl;
     FSlider *pan_ctrl;
 
-    double *buf_L;
-    double *buf_R;
-    uint16_t buf_read_pos;
-    sem_t *buf_sem;
+    /* double *buf_L; */
+    /* double *buf_R; */
+    /* uint16_t buf_len; */
+    /* uint16_t buf_read_pos; */
+    /* uint16_t buf_write_pos; */
+    /* sem_t *buf_sem; */
 
     double *buf_L_freq_mag;
     double *buf_R_freq_mag;
@@ -187,8 +189,9 @@ typedef struct timecode {
 /* The project timeline organizes included tracks and specifies how they should be displayed */
 typedef struct timeline {
     char name[MAX_NAMELENGTH];
-    
+    uint8_t index;
     int32_t play_pos_sframes;
+    int32_t read_pos_sframes;
     int32_t in_mark_sframes;
     int32_t out_mark_sframes;
     int32_t record_from_sframes;
@@ -198,10 +201,14 @@ typedef struct timeline {
     - writer calls sem_post for every chunk (chunk_size, e.g. 64) available
     - reader calls sem_wait for every chunk requested (in audio thread)
     */
-    double *buf_L;
-    double *buf_R;
+    float *buf_L;
+    float *buf_R;
     uint16_t buf_read_pos;
-    sem_t *buf_sem;
+    uint16_t buf_write_pos;
+    sem_t *readable_chunks;
+    sem_t *writable_chunks;
+    sem_t *unpause_sem;
+    pthread_t mixdown_thread;
     
     Track *tracks[MAX_TRACKS];
     
@@ -265,6 +272,7 @@ typedef struct project {
     float play_speed;
     bool dragging;
     bool recording;
+    bool playing;
 
     AudioConn *record_conns[MAX_PROJ_AUDIO_CONNS];
     uint8_t num_record_conns;
@@ -295,14 +303,17 @@ typedef struct project {
     /* Audio output */
     float *output_L;
     float *output_R;
-    uint16_t output_len;
+    /* uint16_t output_len; */
 
     double *output_L_freq;
     double *output_R_freq;
 
+
+    /* DSP thread */
+    pthread_t dsp_thread;
+
     /* struct logscale *output_logscale_L; */
     /* struct logscale *output_logscale_R; */
-
     struct freq_plot *freq_domain_plot;
 
     /* In progress */
@@ -341,7 +352,8 @@ Project *project_create(
     uint8_t channels,
     uint32_t sample_rate,
     SDL_AudioFormat fmt,
-    uint16_t chunk_size_sframes
+    uint16_t chunk_size_sframes,
+    uint16_t fourier_len_sframes
     );
 
 /* Return the index of a timeline to switch to (new one if success) */

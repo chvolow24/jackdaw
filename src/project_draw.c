@@ -370,6 +370,8 @@ static void timeline_draw(Timeline *tl)
         }
     } else if (tl->in_mark_sframes < tl->display_offset_sframes) {
         in_x = proj->audio_rect->x;
+    } else {
+	in_x = tl->layout->rect.w;
     }
 
     /* draw mark out */
@@ -385,7 +387,9 @@ static void timeline_draw(Timeline *tl)
     } else if (tl->out_mark_sframes > tl->display_offset_sframes + timeline_get_abs_w_sframes(proj->audio_rect->w)) {
         out_x = proj->audio_rect->x + proj->audio_rect->w;
     }
-    if (in_x < out_x && out_x != 0) {
+
+    /* draw marked region */
+    if (in_x < out_x && out_x > 0 && in_x < tl->layout->rect.w) {
         SDL_Rect in_out = (SDL_Rect) {in_x, proj->audio_rect->y, out_x - in_x, proj->audio_rect->h};
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(timeline_marked_bckgrnd));
         SDL_RenderFillRect(main_win->rend, &(in_out));
@@ -411,8 +415,8 @@ static void control_bar_draw(Project *proj)
     SDL_RenderFillRect(main_win->rend, proj->outwav_l_rect);
     SDL_RenderFillRect(main_win->rend, proj->outwav_r_rect);
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_white));
-    waveform_draw_all_channels(&proj->output_L, 1, proj->output_len, proj->outwav_l_rect);
-    waveform_draw_all_channels(&proj->output_R, 1, proj->output_len, proj->outwav_r_rect);
+    waveform_draw_all_channels(&proj->output_L, 1, proj->fourier_len_sframes, proj->outwav_l_rect);
+    waveform_draw_all_channels(&proj->output_R, 1, proj->fourier_len_sframes, proj->outwav_r_rect);
     
 
 

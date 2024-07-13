@@ -153,7 +153,7 @@ struct freq_plot *waveform_create_freq_plot(double **arrays, int num_plots, SDL_
 	    textbox_reset_full(tb);
 	}
 	num_tics++;
-	fprintf(stdout, "omega : %f\n", omega);
+	/* fprintf(stdout, "omega : %f\n", omega); */
 	if (omega < 100) {
 	    omega += 10;
 	} else if (omega < 1000) {

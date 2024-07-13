@@ -571,7 +571,7 @@ void user_tl_goto_mark_in(void *nullarg)
 void user_tl_goto_zero(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
-    tl->play_pos_sframes = 0;
+    timeline_set_play_position(0);
     tl->display_offset_sframes = 0;
     timeline_reset(tl);
 }

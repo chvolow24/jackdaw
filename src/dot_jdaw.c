@@ -318,7 +318,8 @@ Project *jdaw_read_file(const char *path)
 	channels,
 	sample_rate,
 	fmt,
-	chunk_size
+	chunk_size,
+	1024 // TODO: variable fourier len
 	);
     /* proj = proj_loc; */
     

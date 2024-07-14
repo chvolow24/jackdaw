@@ -409,6 +409,8 @@ void transport_stop_playback()
 
 void transport_start_recording()
 {
+    proj->play_speed = 1.0f;
+    transport_start_playback();
     AudioConn *conns_to_activate[MAX_PROJ_AUDIO_CONNS];
     uint8_t num_conns_to_activate = 0;
     Timeline *tl = proj->timelines[proj->active_tl_index];
@@ -492,8 +494,7 @@ void transport_start_recording()
 	audioconn_start_recording(conn);
     }
     proj->recording = true;
-    proj->play_speed = 1.0f;
-    transport_start_playback();
+
     /* pd_jackdaw_record_get_block(); */
 
 }

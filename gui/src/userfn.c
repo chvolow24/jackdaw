@@ -523,6 +523,43 @@ void user_tl_rewind_slow(void *nullarg)
     transport_start_playback();
 }
 
+void user_tl_nudge_left(void *nullarg)
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    timeline_set_play_position(tl->play_pos_sframes - 500);
+}
+
+void user_tl_nudge_right(void *nullarg)
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    timeline_set_play_position(tl->play_pos_sframes + 500);
+}
+
+void user_tl_small_nudge_left(void *nullarg)
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    timeline_set_play_position(tl->play_pos_sframes - 100);
+}
+
+void user_tl_small_nudge_right(void *nullarg)
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    timeline_set_play_position(tl->play_pos_sframes + 100);
+}
+
+void user_tl_one_sample_left(void *nullarg)
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    timeline_set_play_position(tl->play_pos_sframes - 1);
+}
+
+void user_tl_one_sample_right(void *nullarg)
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    timeline_set_play_position(tl->play_pos_sframes + 1);
+
+}
+
 void user_tl_move_right(void *nullarg)
 {
     timeline_scroll_horiz(TL_DEFAULT_XSCROLL);

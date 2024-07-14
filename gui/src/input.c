@@ -295,7 +295,42 @@ static void mode_load_timeline()
 	user_tl_rewind_slow);
     mode_subcat_add_fn(sc, fn);
 
+    fn = create_user_fn(
+	"tl_nudge_left",
+	"Nudge play position left (500 samples)",
+	user_tl_nudge_left);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_nudge_right",
+	"Nudge play position right (500 samples)",
+	user_tl_nudge_right);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_small_nudge_left",
+	"Nudge play position left (100 samples)",
+	user_tl_small_nudge_left);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_small_nudge_right",
+	"Nudge play position right (100 samples)",
+	user_tl_small_nudge_right);
+    mode_subcat_add_fn(sc, fn);
     
+    fn = create_user_fn(
+	"tl_one_sample_left",
+	"Move one sample left",
+	user_tl_one_sample_left);
+    mode_subcat_add_fn(sc, fn);
+
+        fn = create_user_fn(
+	"tl_one_sample_right",
+	"Move one sample right",
+	user_tl_one_sample_right);
+    mode_subcat_add_fn(sc, fn);
+
     fn = create_user_fn(
 	"tl_record",
 	"Record (start or stop)",

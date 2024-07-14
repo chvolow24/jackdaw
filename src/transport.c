@@ -289,35 +289,59 @@ static void *transport_dsp_thread_fn(void *arg)
 	perror("pthread set cancel state");
 	exit(1);
     }
-    /* pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL); */
-    float buf_L[proj->fourier_len_sframes];
-    float buf_R[proj->fourier_len_sframes];
 
-    int N = proj->fourier_len_sframes / proj->chunk_size_sframes;
+    int len = proj->fourier_len_sframes;
+    /* pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL); */
+    float buf_L[len];
+    float buf_R[len];
+
+    int N = len / proj->chunk_size_sframes;
     bool init = true;
     while (1) {
 	pthread_testcancel();
 	float play_speed = proj->play_speed;
-	get_mixdown_chunk(tl, buf_L, 0, proj->fourier_len_sframes, tl->read_pos_sframes, proj->play_speed);
-	get_mixdown_chunk(tl, buf_R, 1, proj->fourier_len_sframes, tl->read_pos_sframes, proj->play_speed);
 
-	tl->read_pos_sframes += proj->fourier_len_sframes * play_speed;
+	/* GET MIXDOWN */
+	get_mixdown_chunk(tl, buf_L, 0, len, tl->read_pos_sframes, proj->play_speed);
+	get_mixdown_chunk(tl, buf_R, 1, len, tl->read_pos_sframes, proj->play_speed);
+
+
+	/* DSP */
+
+	double dL[len];
+	double dR[len];
+	for (int i=0; i<len; i++) {
+	    dL[i] = (double)buf_L[i];
+	    dR[i] = (double)buf_R[i];
+	}
+	double complex  lfreq[len];
+	double complex rfreq[len];
+	FFT(dL, lfreq, len);
+	FFT(dR, rfreq, len);
+    /* double *ok = malloc(sizeof(double) * proj->chunk_size_sframes); */
+	get_magnitude(lfreq, proj->output_L_freq, len);
+	get_magnitude(rfreq, proj->output_R_freq, len);
+
+
+
+	/* Copy buffer */
+	tl->read_pos_sframes += len * play_speed;
 	for (int i=0; i<N; i++) {
 	    sem_wait(tl->writable_chunks);
 	}
-	memcpy(tl->buf_L + tl->buf_write_pos, buf_L, sizeof(float) * proj->fourier_len_sframes);
-	memcpy(tl->buf_R + tl->buf_write_pos, buf_R, sizeof(float) * proj->fourier_len_sframes);
-	memcpy(proj->output_L, buf_L, sizeof(float) * proj->fourier_len_sframes);
-	memcpy(proj->output_R, buf_R, sizeof(float) * proj->fourier_len_sframes);
+	memcpy(tl->buf_L + tl->buf_write_pos, buf_L, sizeof(float) * len);
+	memcpy(tl->buf_R + tl->buf_write_pos, buf_R, sizeof(float) * len);
+	memcpy(proj->output_L, buf_L, sizeof(float) * len);
+	memcpy(proj->output_R, buf_R, sizeof(float) * len);
 
 	for (uint8_t i=proj->active_clip_index; i<proj->num_clips; i++) {
 	    Clip *clip = proj->clips[i];
 	    AudioConn *conn = clip->recorded_from;
 	    if (conn->type == JACKDAW) {
-		if (conn->c.jdaw.write_bufpos_sframes + proj->fourier_len_sframes < conn->c.jdaw.rec_buf_len_sframes) {
-		    memcpy(conn->c.jdaw.rec_buffer_L + conn->c.jdaw.write_bufpos_sframes, proj->output_L, sizeof(float) * proj->fourier_len_sframes);
-		    memcpy(conn->c.jdaw.rec_buffer_R + conn->c.jdaw.write_bufpos_sframes, proj->output_R, sizeof(float) * proj->fourier_len_sframes);
-		    conn->c.jdaw.write_bufpos_sframes += proj->fourier_len_sframes;
+		if (conn->c.jdaw.write_bufpos_sframes + len < conn->c.jdaw.rec_buf_len_sframes) {
+		    memcpy(conn->c.jdaw.rec_buffer_L + conn->c.jdaw.write_bufpos_sframes, proj->output_L, sizeof(float) * len);
+		    memcpy(conn->c.jdaw.rec_buffer_R + conn->c.jdaw.write_bufpos_sframes, proj->output_R, sizeof(float) * len);
+		    conn->c.jdaw.write_bufpos_sframes += len;
 		} else {
 		    copy_conn_buf_to_clip(clip, JACKDAW);
 		}
@@ -326,8 +350,8 @@ static void *transport_dsp_thread_fn(void *arg)
 	}
 
 	
-	tl->buf_write_pos += proj->fourier_len_sframes;
-	if (tl->buf_write_pos >= proj->fourier_len_sframes * 2) {
+	tl->buf_write_pos += len;
+	if (tl->buf_write_pos >= len * 2) {
 	    tl->buf_write_pos = 0;
 	}
 	for (int i=0; i<N; i++) {
@@ -358,13 +382,11 @@ void transport_start_playback()
 
 void transport_stop_playback()
 {
-    fprintf(stdout, "stop playback\n");
     Timeline *tl = proj->timelines[proj->active_tl_index];
     for (int i=0; i<512; i++) {
 	sem_post(tl->writable_chunks);
 	sem_post(tl->readable_chunks);
     }
-    fprintf(stdout, "CANCEL DSP THREAD\n");
     pthread_cancel(proj->dsp_thread);
     audioconn_stop_playback(proj->playback_conn);
     /* fprintf(stdout, "RESETTING SEMS from tl %p\n", tl); */
@@ -382,7 +404,6 @@ void transport_stop_playback()
     /* fprintf(stdout, "Cancelled!\n"); */
     proj->src_play_speed = 0.0f;
     proj->play_speed = 0.0f;
-    fprintf(stdout, "Exit transport stop playback\n");
 
 }
 

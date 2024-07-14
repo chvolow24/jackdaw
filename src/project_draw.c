@@ -536,7 +536,7 @@ void project_draw()
 	
 	double *arrays[] = {proj->output_L_freq, proj->output_R_freq};
 	SDL_Color *colors[] = {&freq_L_color, &freq_R_color};
-	proj->freq_domain_plot = waveform_create_freq_plot(arrays, 2, colors, proj->chunk_size_sframes / 2, freq_lt);
+	proj->freq_domain_plot = waveform_create_freq_plot(arrays, 2, colors, proj->fourier_len_sframes / 2, freq_lt);
     }
     if (proj->show_output_freq_domain) {
 	waveform_draw_freq_plot(proj->freq_domain_plot);

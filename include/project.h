@@ -209,7 +209,6 @@ typedef struct timeline {
     sem_t *writable_chunks;
     sem_t *unpause_sem;
     pthread_t mixdown_thread;
-    
     Track *tracks[MAX_TRACKS];
     
     uint8_t num_tracks;

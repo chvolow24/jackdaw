@@ -36,6 +36,7 @@
 #define JDAW_AUDIO_DEVICE_H
 
 #include <stdbool.h>
+#include <time.h>
 #include "SDL.h"
 
 
@@ -88,8 +89,8 @@ union audio_conn_substruct {
     
 };
 
-struct realtime_clock {
-    clock_t clock;
+struct realtime_tick {
+    struct timespec ts;
     int32_t timeline_pos;
 };
 typedef struct audio_conn {
@@ -102,7 +103,7 @@ typedef struct audio_conn {
     bool available;
     Clip *current_clip; /* The clip currently being recorded, if applicable */
     bool current_clip_repositioned;
-    struct realtime_clock callback_clock;
+    struct realtime_tick callback_time;
     enum audio_conn_type type;
     union audio_conn_substruct c;
 } AudioConn;

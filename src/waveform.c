@@ -203,7 +203,7 @@ void waveform_draw_freq_plot(struct freq_plot *fp)
     }
     for (int i=0; i<fp->num_labels; i++) {
 	/* fprintf(stdout, "TB draw %d\n", i); */
-	SDL_Rect r= fp->labels[i]->layout->rect;
+	/* SDL_Rect r= fp->labels[i]->layout->rect; */
 	/* fprintf(stdout, "%d %d %d %d\n", r.x, r.y, r.w, r.h);  */
 	textbox_draw(fp->labels[i]);
     }
@@ -306,6 +306,7 @@ static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, 
 		avg_amp = channel[(int)sample_i];
 	    }
 	    int sample_y = center_y + avg_amp * amp_h_max;
+	    if (x == start_x) {last_sample_y = sample_y;}
 	    if (fabs(avg_amp) > 1.0f) {
 		SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255);
 		SDL_RenderDrawLine(main_win->rend, x-1, center_y - amp_h_max, x-1, center_y + amp_h_max);

@@ -521,8 +521,8 @@ void project_draw()
     /* SDL_Rect ok = {30, 800, 1400, 500}; */
     if (!proj->freq_domain_plot) {
 	Layout *freq_lt = layout_add_child(proj->layout);
-	freq_lt->rect.w = 1200;
-	freq_lt->rect.h = 600;
+	freq_lt->rect.w = 600 * main_win->dpi_scale_factor;
+	freq_lt->rect.h = 300 * main_win->dpi_scale_factor;
 	layout_set_values_from_rect(freq_lt);
 	freq_lt->y.type = REVREL;
 	freq_lt->y.value.intval = 0;

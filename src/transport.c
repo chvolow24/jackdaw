@@ -72,7 +72,7 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
 	clock_gettime(CLOCK_MONOTONIC, &now);
 
 	double record_latency_ms = (double)1000.0f * proj->chunk_size_sframes / proj->sample_rate;
-	double playback_latency_ms = 91.0f * record_latency_ms;
+	double playback_latency_ms = 70.0f * record_latency_ms;
 
 	struct realtime_tick pb_cb_tick = proj->playback_conn->callback_time;
 	double elapsed_pb_chunk_ms = TIMESPEC_DIFF_MS(now, pb_cb_tick.ts) - playback_latency_ms;
@@ -80,12 +80,9 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
 	int32_t tl_pos_now = pb_cb_tick.timeline_pos + (int32_t)(elapsed_pb_chunk_ms * proj->sample_rate / 1000.0f);
 	int32_t tl_pos_rec_chunk = tl_pos_now - (record_latency_ms * proj->sample_rate / 1000);
 	
-	/* fprintf(stdout, "TL POS REC CHUNK: %d\n", tl_pos_rec_chunk); */
 	for (uint8_t i=0; i<conn->current_clip->num_refs; i++) {
 	    ClipRef *cr = conn->current_clip->refs[i];
-	    /* fprintf(stdout, "DELTA %d\n", pos - cr->pos_sframes); */
 	    cr->pos_sframes = tl_pos_rec_chunk;
-	    /* cr->pos_sframes = pos - 5072; */
 	}
 	conn->current_clip_repositioned = true;
     }
@@ -233,7 +230,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     Timeline *tl = proj->timelines[proj->active_tl_index];
     AudioConn *conn = (AudioConn *)user_data;
     clock_gettime(CLOCK_MONOTONIC, &(conn->callback_time.ts));
-    conn->callback_time.timeline_pos = tl->play_pos_sframes + tl->buf_read_pos;
+    conn->callback_time.timeline_pos = tl->play_pos_sframes + (tl->buf_read_pos % (proj->fourier_len_sframes / proj->chunk_size_sframes));
 
     memset(stream, '\0', len);
     /* fprintf(stdout, "PLAyback callbac\n"); */

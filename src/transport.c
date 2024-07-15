@@ -43,11 +43,53 @@
 
 extern Project *proj;
 
+
 void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type);
 void transport_record_callback(void* user_data, uint8_t *stream, int len)
 {
+    AudioConn *conn = (AudioConn *)user_data;
+    AudioDevice *dev = &conn->c.device;
 
-    AudioDevice *dev = (AudioDevice *)user_data;
+    /* double time_diff = 1000.0f * ((double)conn->callback_clock.clock - proj->playback_conn->callback_clock.clock) / CLOCKS_PER_SEC; */
+    /* fprintf(stdout, "TIME DIFF ms: %f\n", time_diff); */
+
+
+    
+    /* fprintf(stdout, "Playback: %ld, %d; Record: %ld, %d\n", */
+    /* 	    proj->playback_conn->callback_clock.clock, */
+    /* 	    proj->playback_conn->callback_clock.timeline_pos, */
+    /* 	    conn->callback_clock.clock, */
+    /* 	    conn->callback_clock.timeline_pos); */
+	    
+
+    if (!conn->current_clip_repositioned) {
+	Timeline *tl = proj->timelines[proj->active_tl_index];
+	conn->callback_clock.clock = clock();
+	conn->callback_clock.timeline_pos = tl->play_pos_sframes;
+
+	clock_t record_latency = CLOCKS_PER_SEC * proj->chunk_size_sframes / proj->sample_rate;
+	clock_t playback_latency = 77.5f * record_latency;
+	clock_t playback_clock = proj->playback_conn->callback_clock.clock;
+	/* fprintf(stdout, "latencies and pb_clock vs current: %ld %ld %ld %ld\n", record_latency, playback_latency, playback_clock, conn->callback_clock.clock); */
+	int32_t elapsed_pb_chunk = conn->callback_clock.clock - playback_clock - playback_latency;
+	/* fprintf(stdout, "Elapsed pb chunk: %d\n", elapsed_pb_chunk); */
+	int32_t playback_cb_tl_pos = proj->playback_conn->callback_clock.timeline_pos;
+	/* fprintf(stdout, "Double elapsed pb chunk: %f, double clockspsec: %f\n", (double)elapsed_pb_chunk, (double)CLOCKS_PER_SEC); */
+	double elapsed_pb_chunk_seconds = (double)elapsed_pb_chunk / CLOCKS_PER_SEC;
+	/* fprintf(stdout, "Elapsed pb chunk seconds: %f\n", elapsed_pb_chunk_seconds); */
+	int32_t tl_pos_now = playback_cb_tl_pos + (int32_t)(elapsed_pb_chunk_seconds * proj->sample_rate);
+	/* fprintf(stdout, "playback cb tl pos: %d, tl_pos_now: %d\n", playback_cb_tl_pos, tl_pos_now); */
+	int32_t tl_pos_rec_chunk = tl_pos_now - (int32_t)((double)record_latency * proj->sample_rate / CLOCKS_PER_SEC);
+	/* fprintf(stdout, "TL POS REC CHUNK: %d\n", tl_pos_rec_chunk); */
+	for (uint8_t i=0; i<conn->current_clip->num_refs; i++) {
+	    ClipRef *cr = conn->current_clip->refs[i];
+	    /* fprintf(stdout, "DELTA %d\n", pos - cr->pos_sframes); */
+	    cr->pos_sframes = tl_pos_rec_chunk;
+	    /* cr->pos_sframes = pos - 5072; */
+	}
+	conn->current_clip_repositioned = true;
+    }
+    
     uint32_t stream_len_samples = len / sizeof(int16_t);
 
     if (dev->write_bufpos_samples + stream_len_samples < dev->rec_buf_len_samples) {
@@ -166,7 +208,7 @@ void ____transport_playback_callback(void* user_data, uint8_t* stream, int len)
     } else {
 	/* fprintf(stdout, "Move pos: %d\n", (int)proj->play_speed * stream_len_samples / proj->channels); */
 	timeline_move_play_position(proj->play_speed * stream_len_samples / proj->channels);
-	transport_recording_update_cliprects();
+	/* transport_recording_update_cliprects(); */
 	for (uint8_t i=proj->active_clip_index; i<proj->num_clips; i++) {
 	    Clip *clip = proj->clips[i];
 	    AudioConn *conn = clip->recorded_from;
@@ -187,8 +229,13 @@ void ____transport_playback_callback(void* user_data, uint8_t* stream, int len)
 void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 {
     /* fprintf(stdout, "Start cb\n"); */
-    memset(stream, '\0', len);
+    
     Timeline *tl = proj->timelines[proj->active_tl_index];
+    AudioConn *conn = (AudioConn *)user_data;
+    conn->callback_clock.clock = clock();
+    conn->callback_clock.timeline_pos = tl->play_pos_sframes;
+
+    memset(stream, '\0', len);
     /* fprintf(stdout, "PLAyback callbac\n"); */
     uint32_t stream_len_samples = len / sizeof(int16_t);
     uint32_t len_sframes = stream_len_samples / proj->channels;
@@ -263,7 +310,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     } else {
 	/* fprintf(stdout, "Move pos: %d\n", (int)proj->play_speed * stream_len_samples / proj->channels); */
 	timeline_move_play_position(proj->play_speed * stream_len_samples / proj->channels);
-	transport_recording_update_cliprects();
+	/* transport_recording_update_cliprects(); */
 	/* for (uint8_t i=proj->active_clip_index; i<proj->num_clips; i++) { */
 	/*     Clip *clip = proj->clips[i]; */
 	/*     AudioConn *conn = clip->recorded_from; */
@@ -409,6 +456,7 @@ void transport_stop_playback()
 
 void transport_start_recording()
 {
+    transport_stop_playback();
     proj->play_speed = 1.0f;
     transport_start_playback();
     AudioConn *conns_to_activate[MAX_PROJ_AUDIO_CONNS];
@@ -444,8 +492,10 @@ void transport_start_recording()
 		clip->recording = true;
 		home = true;
 		conn->current_clip = clip;
+		conn->current_clip_repositioned = false;
 	    } else {
 		clip = conn->current_clip;
+		conn->current_clip_repositioned = false;
 	    }
 	    /* Clip ref is created as "home", meaning clip data itself is associated with this ref */
 	    track_create_clip_ref(track, clip, tl->record_from_sframes, home);
@@ -472,8 +522,10 @@ void transport_start_recording()
 	    clip->recording = true;
 	    home = true;
 	    conn->current_clip = clip;
+	    conn->current_clip_repositioned = false;
 	} else {
 	    clip = conn->current_clip;
+	    conn->current_clip_repositioned = false;
 	}
 	/* Clip ref is created as "home", meaning clip data itself is associated with this ref */
 	track_create_clip_ref(track, clip, tl->record_from_sframes, home);

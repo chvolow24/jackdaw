@@ -87,6 +87,11 @@ union audio_conn_substruct {
     JDAWConn jdaw;
     
 };
+
+struct realtime_clock {
+    clock_t clock;
+    int32_t timeline_pos;
+};
 typedef struct audio_conn {
     bool iscapture;
     int index;
@@ -96,6 +101,8 @@ typedef struct audio_conn {
     bool active;
     bool available;
     Clip *current_clip; /* The clip currently being recorded, if applicable */
+    bool current_clip_repositioned;
+    struct realtime_clock callback_clock;
     enum audio_conn_type type;
     union audio_conn_substruct c;
 } AudioConn;

@@ -473,7 +473,10 @@ void loop_project_main()
 	/* if (proj->recording) { */
 	/*     transport_recording_update_cliprects(); */
 	/* } */
-	
+
+	if (proj->recording) {
+	    transport_recording_update_cliprects();
+	}
 	status_frame();
 	
 	project_draw();

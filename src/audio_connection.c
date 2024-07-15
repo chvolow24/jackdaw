@@ -165,7 +165,7 @@ int audioconn_open(Project *proj, AudioConn *conn)
 
 	device->spec.channels = proj->channels;
 	device->spec.callback = conn->iscapture ? transport_record_callback : transport_playback_callback;
-	device->spec.userdata = device;
+	device->spec.userdata = conn;
 
 	/* for (int i=0; i<10; i++) { */
 	if ((device->id = SDL_OpenAudioDevice(conn->name, conn->iscapture, &(device->spec), &(obtained), 0)) > 0) {

@@ -33,7 +33,8 @@
  *****************************************************************************************************************/
 
 #include <string.h>
-
+#include <semaphore.h>
+#include <fcntl.h>
 #include "audio_connection.h"
 #include "components.h"
 #include "dsp.h"

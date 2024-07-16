@@ -254,6 +254,9 @@ void audioconn_destroy(AudioConn *conn)
 {
     /* audioconn_close(conn); */
     /* fprintf(stdout, "Destroying %s\n", conn->name); */
+    if (conn->open) {
+	audioconn_close(conn);
+    }
     float *buf;
     int16_t *intbuf;
     switch (conn->type) {

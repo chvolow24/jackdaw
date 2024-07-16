@@ -224,7 +224,7 @@ void ____transport_playback_callback(void* user_data, uint8_t* stream, int len)
 
 void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 {
-    /* fprintf(stdout, "Start cb\n"); */
+    /* fprintf(stdout, "\nSTART cb\n"); */
     
     Timeline *tl = proj->timelines[proj->active_tl_index];
     AudioConn *conn = (AudioConn *)user_data;
@@ -322,10 +322,12 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	/*     } */
 	/* } */
     }
+    /* fprintf(stdout, "\t->END cb\n"); */
 }
 
 static void *transport_dsp_thread_fn(void *arg)
 {
+    /* fprintf(stdout, "\t\tSTART dsp thread\n"); */
     Timeline *tl = (Timeline *)arg;
     
     if (pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL) != 0) {
@@ -341,6 +343,7 @@ static void *transport_dsp_thread_fn(void *arg)
     int N = len / proj->chunk_size_sframes;
     bool init = true;
     while (1) {
+	/* fprintf(stdout, "START DSP thread iter\n"); */
 	pthread_testcancel();
 	float play_speed = proj->play_speed;
 
@@ -404,6 +407,7 @@ static void *transport_dsp_thread_fn(void *arg)
 	    sem_post(tl->unpause_sem);
 	    init = false;
 	}
+	/* fprintf(stdout, "END DSP THREAD iter\n"); */
     }
     return NULL;
 }
@@ -561,11 +565,18 @@ void create_clip_buffers(Clip *clip, uint32_t len_sframes)
     } else {
 	clip->L = realloc(clip->L, buf_len_bytes);
     }
+    if (!clip->L) {
+	fprintf(stderr, "Fatal error: clip buffer allocation failed\n");
+	exit(1);
+    }
     if (clip->channels == 2) {
 	if (!clip->R) {
 	    clip->R = malloc(buf_len_bytes);
 	} else {
 	    clip->R = realloc(clip->R, buf_len_bytes);
+	}
+	if (!clip->R) {
+	    fprintf(stderr, "Fatal error: clip buffer allocation failed\n");
 	}
     }
     if (!clip->R || !clip->L) {

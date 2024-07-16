@@ -120,11 +120,11 @@ void wav_write_mixdown(const char *filepath)
     Timeline *tl = proj->timelines[proj->active_tl_index];
     /* reset_overlap_buffers(); */
     fprintf(stdout, "Chunk size sframes: %d, chan: %d, sr: %d\n", proj->chunk_size_sframes, proj->channels, proj->sample_rate);
-    uint16_t chunk_len_sframes = proj->chunk_size_sframes;
+    uint16_t chunk_len_sframes = proj->fourier_len_sframes;
     uint16_t chunk_len_samples = chunk_len_sframes * proj->channels;
     uint32_t len_sframes = tl->out_mark_sframes - tl->in_mark_sframes;
     uint32_t len_samples = proj->channels * len_sframes;
-    uint32_t chunks = len_sframes / proj->chunk_size_sframes;
+    uint32_t chunks = len_sframes / chunk_len_sframes;
     int16_t *samples = malloc(sizeof(int16_t) * len_samples);
 
     for (uint32_t c=0; c<chunks; c++) {

@@ -116,8 +116,9 @@ typedef struct track {
     double *buf_L_freq_mag;
     double *buf_R_freq_mag;
 
-    FIRFilter *fir_filters[MAX_TRACK_FILTERS];
-    uint8_t num_filters;
+    FIRFilter *fir_filter;
+    bool fir_filter_active;
+    /* uint8_t num_filters; */
     
     /* FSLIDER *vol_ctrl */
     /* FSlider *pan_ctrl */

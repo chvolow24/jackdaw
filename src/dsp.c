@@ -419,9 +419,9 @@ void apply_filter(FIRFilter *filter, uint8_t channel, uint16_t chunk_size, float
 }
 
 
-void apply_track_filters(Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array) 
+void apply_track_filter(Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array) 
 {
-    if (track->num_filters == 0) {
+    if (!track->fir_filter_active == 0) {
         return;
     }
     uint16_t padded_len = proj->chunk_size_sframes * 2;
@@ -439,48 +439,46 @@ void apply_track_filters(Track *track, uint8_t channel, uint16_t chunk_size, flo
     FFT(padded_chunk, freq_domain, padded_len);
     /* free(padded_chunk); */
 
-    for (uint8_t f=0; f<track->num_filters; f++) {
-	FIRFilter *filter = track->fir_filters[f];
-	double complex freq_response_sum[filter->frequency_response_len];
+    FIRFilter *filter = track->fir_filter;
+    double complex freq_response_sum[filter->frequency_response_len];
 	
-	memset(freq_response_sum, '\0', sizeof(double complex) * filter->frequency_response_len);
+    memset(freq_response_sum, '\0', sizeof(double complex) * filter->frequency_response_len);
 
-	double *overlap_buffer = channel == 0 ? filter->overlap_buffer_L : filter->overlap_buffer_R;
+    double *overlap_buffer = channel == 0 ? filter->overlap_buffer_L : filter->overlap_buffer_R;
 
-	/* if (!overlap_buffer) { */
-	/*     overlap_buffer = malloc(sizeof(double) * filter->overlap_len); */
-	/*     memset(overlap_buffer, '\0', sizeof(double) * filter->overlap_len); */
-	/*     if (channel == 0) { */
-	/* 	filter->overlap_buffer_L = overlap_buffer; */
-	/*     } else { */
-	/* 	filter->overlap_buffer_R = overlap_buffer; */
-	/*     } */
-	/* } */
+    /* if (!overlap_buffer) { */
+    /*     overlap_buffer = malloc(sizeof(double) * filter->overlap_len); */
+    /*     memset(overlap_buffer, '\0', sizeof(double) * filter->overlap_len); */
+    /*     if (channel == 0) { */
+    /* 	filter->overlap_buffer_L = overlap_buffer; */
+    /*     } else { */
+    /* 	filter->overlap_buffer_R = overlap_buffer; */
+    /*     } */
+    /* } */
     
 
 
-        for (uint16_t i=0; i<filter->frequency_response_len; i++) {
-            freq_response_sum[i] += filter->frequency_response[i];
-        }
-	for (uint16_t i=0; i<filter->frequency_response_len; i++) {
-	    freq_domain[i] *= freq_response_sum[i];
-	}
-	double complex time_domain[padded_len];
-	IFFT(freq_domain, time_domain, padded_len);
-	/* free(freq_domain); */
-	double real[padded_len];
-	get_real_component(time_domain, real, padded_len);
-	/* free(time_domain); */
+    for (uint16_t i=0; i<filter->frequency_response_len; i++) {
+	freq_response_sum[i] += filter->frequency_response[i];
+    }
+    for (uint16_t i=0; i<filter->frequency_response_len; i++) {
+	freq_domain[i] *= freq_response_sum[i];
+    }
+    double complex time_domain[padded_len];
+    IFFT(freq_domain, time_domain, padded_len);
+    /* free(freq_domain); */
+    double real[padded_len];
+    get_real_component(time_domain, real, padded_len);
+    /* free(time_domain); */
 
-	for (uint16_t i=0; i<chunk_size + filter->overlap_len; i++) {
-	    if (i<chunk_size) {
-		sample_array[i] = real[i];
-		if (i<filter->overlap_len) {
-		    sample_array[i] += overlap_buffer[i];
-		}
-	    } else {
-		overlap_buffer[i-chunk_size] = real[i];
+    for (uint16_t i=0; i<chunk_size + filter->overlap_len; i++) {
+	if (i<chunk_size) {
+	    sample_array[i] = real[i];
+	    if (i<filter->overlap_len) {
+		sample_array[i] += overlap_buffer[i];
 	    }
+	} else {
+	    overlap_buffer[i-chunk_size] = real[i];
 	}
     }
     /* for (uint8_t f=0; f<track->num_filters; f++) { */

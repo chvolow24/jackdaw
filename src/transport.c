@@ -67,7 +67,6 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
 	    
 
     if (!conn->current_clip_repositioned) {
-	Timeline *tl = proj->timelines[proj->active_tl_index];
         struct timespec now;
 	clock_gettime(CLOCK_MONOTONIC, &now);
 
@@ -358,7 +357,7 @@ static void *transport_dsp_thread_fn(void *arg)
 	    dL[i] = (double)buf_L[i];
 	    dR[i] = (double)buf_R[i];
 	}
-	double complex  lfreq[len];
+	double complex lfreq[len];
 	double complex rfreq[len];
 	FFT(dL, lfreq, len);
 	FFT(dR, rfreq, len);
@@ -382,11 +381,11 @@ static void *transport_dsp_thread_fn(void *arg)
 	    Clip *clip = proj->clips[i];
 	    AudioConn *conn = clip->recorded_from;
 	    if (conn->type == JACKDAW) {
-		if (conn->c.jdaw.write_bufpos_sframes + len < conn->c.jdaw.rec_buf_len_sframes) {
-		    memcpy(conn->c.jdaw.rec_buffer_L + conn->c.jdaw.write_bufpos_sframes, proj->output_L, sizeof(float) * len);
-		    memcpy(conn->c.jdaw.rec_buffer_R + conn->c.jdaw.write_bufpos_sframes, proj->output_R, sizeof(float) * len);
-		    conn->c.jdaw.write_bufpos_sframes += len;
-		} else {
+		/* if (conn->c.jdaw.write_bufpos_sframes + len < conn->c.jdaw.rec_buf_len_sframes) { */
+		memcpy(conn->c.jdaw.rec_buffer_L + conn->c.jdaw.write_bufpos_sframes, buf_L, sizeof(float) * len);
+		memcpy(conn->c.jdaw.rec_buffer_R + conn->c.jdaw.write_bufpos_sframes, buf_R, sizeof(float) * len);
+		conn->c.jdaw.write_bufpos_sframes += len;
+		if (conn->c.jdaw.write_bufpos_sframes + 2 * len >= conn->c.jdaw.rec_buf_len_sframes) {
 		    copy_conn_buf_to_clip(clip, JACKDAW);
 		}
 		break;
@@ -615,6 +614,7 @@ void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type)
 	break;
     case JACKDAW:
 	/* OUROBOROS */
+	/* fprintf(stdout, "JDAW COPY BUF TO CLIP\n"); */
 	clip->len_sframes = clip->write_bufpos_sframes + clip->recorded_from->c.jdaw.write_bufpos_sframes;
 	create_clip_buffers(clip, clip->len_sframes);
 	memcpy(clip->L + clip->write_bufpos_sframes, clip->recorded_from->c.jdaw.rec_buffer_L, clip->recorded_from->c.jdaw.write_bufpos_sframes * sizeof(float));

@@ -184,8 +184,9 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
         /* double pan = channel == 0 ? lpan : rpan; */
 	float track_chunk[len_sframes];
         get_track_channel_chunk(track, track_chunk, channel, start_pos_sframes, len_sframes, step);
-        apply_track_filters(track, channel, len_sframes, track_chunk);
-	/* apply_filter(track->fir_filters[0], channel, len_sframes, track_chunk); */
+	if (track->fir_filter_active) {
+	    apply_filter(track->fir_filter, channel, len_sframes, track_chunk);
+	}
         for (uint32_t i=0; i<len_sframes; i++) {
             /* mixdown[i] += track_chunk[i] * pan * track->vol_ctrl->value; */
 	    mixdown[i] += track_chunk[i];

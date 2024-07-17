@@ -42,6 +42,7 @@
 struct logscale {
     double *array;
     int num_items;
+    int step;
     SDL_Rect *container;
     int *x_pos_cache;
     SDL_Color *color;
@@ -59,11 +60,11 @@ struct freq_plot {
 
 void waveform_draw_all_channels(float **channels, uint8_t num_channels, uint32_t buflen, SDL_Rect *rect);
 void waveform_draw_freq_domain(struct logscale *la);
-struct logscale *waveform_create_logscale(double *array, int num_items, SDL_Rect *container, SDL_Color *color);
-void waveform_destroy_logscale(struct logscale *la);
+/* struct logscale *waveform_create_logscale(double *array, int num_items, SDL_Rect *container, SDL_Color *color); */
+/* void waveform_destroy_logscale(struct logscale *la); */
 
 
-struct freq_plot *waveform_create_freq_plot(double **arrays, int num_arrays, SDL_Color **colors, int num_items, Layout *container);
+struct freq_plot *waveform_create_freq_plot(double **arrays, int num_arrays, SDL_Color **colors, int *steps, int num_items, Layout *container);
 void waveform_destroy_freq_plot(struct freq_plot *fp);
 void waveform_draw_freq_plot(struct freq_plot *fp);
 

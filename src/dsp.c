@@ -293,6 +293,7 @@ FIRFilter *create_FIR_filter(FilterType type, uint16_t impulse_response_len, uin
     filter->frequency_response_len = frequency_response_len;
     filter->impulse_response = malloc(sizeof(double) * impulse_response_len);
     filter->frequency_response = malloc(sizeof(double complex) * filter->frequency_response_len);
+    filter->frequency_response_mag = malloc(sizeof(double) * filter->frequency_response_len);
     filter->overlap_len = impulse_response_len - 1;
     filter->overlap_buffer_L = malloc(sizeof(double) * filter->overlap_len);
     filter->overlap_buffer_R = malloc(sizeof(double) * filter->overlap_len);
@@ -300,8 +301,10 @@ FIRFilter *create_FIR_filter(FilterType type, uint16_t impulse_response_len, uin
 }
 
 /* Bandwidth param only required for band-pass and band-cut filters */
-void set_FIR_filter_params(FIRFilter *filter, double cutoff, double bandwidth)
+void set_FIR_filter_params(FIRFilter *filter, FilterType type, double cutoff, double bandwidth)
 {
+    fprintf(stdout, "SET FILTER PARAMS\n");
+    filter->type = type;
     filter->cutoff_freq = cutoff;
     filter->bandwidth = bandwidth;
     double *ir = filter->impulse_response;
@@ -344,7 +347,15 @@ void set_FIR_filter_params(FIRFilter *filter, double cutoff, double bandwidth)
     /* 	filter->frequency_response = malloc(sizeof(double complex) * filter->frequency_response_len); */
     /* } */
     FFT_unscaled(IR_zero_padded, filter->frequency_response, filter->frequency_response_len);
+    get_magnitude(filter->frequency_response, filter->frequency_response_mag, filter->frequency_response_len);
     /* free(IR_zero_padded); */
+}
+
+void set_FIR_filter_params_h(FIRFilter *filter, FilterType type, double cutoff_hz, double bandwidth_hz)
+{
+    double cutoff = cutoff_hz / (double)proj->sample_rate;
+    double bandwidth = bandwidth_hz / (double)proj->sample_rate;;
+    set_FIR_filter_params(filter, type, cutoff, bandwidth);
 }
 
 void destroy_filter(FIRFilter *filter) 
@@ -440,9 +451,9 @@ void apply_track_filter(Track *track, uint8_t channel, uint16_t chunk_size, floa
     /* free(padded_chunk); */
 
     FIRFilter *filter = track->fir_filter;
-    double complex freq_response_sum[filter->frequency_response_len];
+    /* double complex freq_response_sum[filter->frequency_response_len]; */
 	
-    memset(freq_response_sum, '\0', sizeof(double complex) * filter->frequency_response_len);
+    /* memset(freq_response_sum, '\0', sizeof(double complex) * filter->frequency_response_len); */
 
     double *overlap_buffer = channel == 0 ? filter->overlap_buffer_L : filter->overlap_buffer_R;
 
@@ -458,11 +469,11 @@ void apply_track_filter(Track *track, uint8_t channel, uint16_t chunk_size, floa
     
 
 
+    /* for (uint16_t i=0; i<filter->frequency_response_len; i++) { */
+    /* 	freq_response_sum[i] += filter->frequency_response[i]; */
+    /* } */
     for (uint16_t i=0; i<filter->frequency_response_len; i++) {
-	freq_response_sum[i] += filter->frequency_response[i];
-    }
-    for (uint16_t i=0; i<filter->frequency_response_len; i++) {
-	freq_domain[i] *= freq_response_sum[i];
+	freq_domain[i] *= filter->frequency_response[i];
     }
     double complex time_domain[padded_len];
     IFFT(freq_domain, time_domain, padded_len);

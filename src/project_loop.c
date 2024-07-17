@@ -248,10 +248,26 @@ void loop_project_main()
 		break;
 	    case SDL_KEYDOWN: {
 		switch (e.key.keysym.scancode) {
-		case SDL_SCANCODE_7:
+		case SDL_SCANCODE_6:
 		    fprintf(stdout, "Ck size before: %d\n", proj->chunk_size_sframes);
 		    project_set_chunk_size(1024);
 		    fprintf(stdout, "DONE! new chunk size: %d\n", proj->chunk_size_sframes);
+		    break;
+		case SDL_SCANCODE_7: {
+		    Timeline *tl = proj->timelines[0];
+		    Track *track = tl->tracks[0];
+		    double current_cutoff = track->fir_filter->cutoff_freq;
+		    set_FIR_filter_params(track->fir_filter, LOWPASS, current_cutoff - 0.004, 0.05);
+
+		}
+		    break;
+		case SDL_SCANCODE_8: {
+		    Timeline *tl = proj->timelines[0];
+		    Track *track = tl->tracks[0];
+		    double current_cutoff = track->fir_filter->cutoff_freq;
+		    set_FIR_filter_params(track->fir_filter, LOWPASS, current_cutoff + 0.004, 0.05);
+		    
+		}
 		    break;
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:

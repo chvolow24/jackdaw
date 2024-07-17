@@ -34,6 +34,7 @@
 
 
 #include "color.h"
+#include "dsp.h"
 #include "geometry.h"
 #include "layout.h"
 #include "modal.h"
@@ -519,7 +520,7 @@ void project_draw()
     /* modal_draw(test_modal); */
 
     /* SDL_Rect ok = {30, 800, 1400, 500}; */
-    if (!proj->freq_domain_plot) {
+    if (!proj->freq_domain_plot && proj->timelines[0]->num_tracks != 0) {
 	Layout *freq_lt = layout_add_child(proj->layout);
 	freq_lt->rect.w = 600 * main_win->dpi_scale_factor;
 	freq_lt->rect.h = 300 * main_win->dpi_scale_factor;
@@ -534,9 +535,10 @@ void project_draw()
 	/* freq_lt->rect.h = 500; */
 	/* layout_set_values_from_rect(freq_lt); */
 	
-	double *arrays[] = {proj->output_L_freq, proj->output_R_freq};
-	SDL_Color *colors[] = {&freq_L_color, &freq_R_color};
-	proj->freq_domain_plot = waveform_create_freq_plot(arrays, 2, colors, proj->fourier_len_sframes / 2, freq_lt);
+	double *arrays[] = {proj->output_L_freq, proj->output_R_freq, proj->timelines[0]->tracks[0]->fir_filter->frequency_response_mag};
+	SDL_Color *colors[] = {&freq_L_color, &freq_R_color, &color_global_white};
+	int steps[] = {1, 1, 2};
+	proj->freq_domain_plot = waveform_create_freq_plot(arrays, 3, colors, steps, proj->fourier_len_sframes / 2, freq_lt);
     }
     if (proj->show_output_freq_domain) {
 	waveform_draw_freq_plot(proj->freq_domain_plot);
@@ -554,7 +556,7 @@ void project_draw()
     /* waveform_draw_freq_domain(proj->output_logscale_L); */
     /* SDL_SetRenderDrawColor(main_win->rend, 255, 255, 128, 200); */
     /* waveform_draw_freq_domain(proj->output_logscale_R); */
-    /* /\* waveform_destroy_logscale(la); *\/ */
+    /* /\* waveform_destroy_logscale(la); \/ */
 
     /* layout_destroy(freq_lt); */
     window_end_draw(main_win);

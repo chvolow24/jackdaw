@@ -44,6 +44,7 @@ typedef struct fir_filter {
     double bandwidth;
     double *impulse_response;
     double complex *frequency_response;
+    double *frequency_response_mag;
     double *overlap_buffer_L;
     double *overlap_buffer_R;
     uint16_t impulse_response_len;
@@ -58,7 +59,8 @@ void init_dsp();
 FIRFilter *create_FIR_filter(FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len);
 
 /* Bandwidth param only required for band-pass and band-cut filters */
-void set_FIR_filter_params(FIRFilter *filter, double cutoff, double bandwidth);
+void set_FIR_filter_params(FIRFilter *filter, FilterType type,  double cutoff, double bandwidth);
+void set_FIR_filter_params_h(FIRFilter *filter, FilterType type, double cutoff_hz, double bandwidth_hz);
 
 /* Destry a FIRFilter and associated memory */
 void destroy_filter(FIRFilter *filter);

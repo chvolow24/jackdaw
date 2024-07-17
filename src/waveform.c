@@ -50,11 +50,12 @@ extern Window *main_win;
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;
 
-void waveform_update_logscale(struct logscale *la, double *array, int num_items, SDL_Rect *container)
+void waveform_update_logscale(struct logscale *la, double *array, int num_items, int step, SDL_Rect *container)
 {
     la->container = container;
     la->array = array;
     la->num_items = num_items;
+    la->step = step;
     if (la->x_pos_cache) free(la->x_pos_cache);
     la->x_pos_cache = malloc(sizeof(int) * num_items);
     double lognsub1 = log(num_items - 1);
@@ -66,11 +67,11 @@ void waveform_update_logscale(struct logscale *la, double *array, int num_items,
 }
 
 
-struct logscale *waveform_create_logscale(double *array, int num_items, SDL_Rect *container, SDL_Color *color)
+static struct logscale *waveform_create_logscale(double *array, int num_items, SDL_Rect *container, SDL_Color *color, int step)
 {
     struct logscale *la = calloc(1, sizeof(struct logscale));
     la->color = color;
-    waveform_update_logscale(la, array, num_items, container);
+    waveform_update_logscale(la, array, num_items, step, container);
     return la;
 }
 
@@ -96,24 +97,24 @@ void waveform_draw_freq_domain(struct logscale *la)
     /* double last_y = btm_y - ((db - min_db) / db_range) * la->container->h; */
     double last_y = btm_y - log(1 + la->array[1]) * scale * la->container->h;
     double current_y = btm_y;
-    for (int i=2; i<la->num_items; i++) {
-	int last_x = la->x_pos_cache[i-1];
+    for (int i=2; i<la->num_items; i+=la->step) {
+	int last_x = la->x_pos_cache[i/la->step-1];
 	/* db = 20.0f * log10(epsilon + la->array[i]); */
 	/* current_y = btm_y - ((db - min_db) / db_range) * la->container->h; */
 	current_y = btm_y - log(1 + la->array[i]) * scale * la->container->h;
-	SDL_RenderDrawLine(main_win->rend, last_x, last_y, la->x_pos_cache[i], current_y);
+	SDL_RenderDrawLine(main_win->rend, last_x, last_y, la->x_pos_cache[i/la->step], current_y);
 	last_y = current_y;
     }
 }
 
-struct freq_plot *waveform_create_freq_plot(double **arrays, int num_plots, SDL_Color **colors, int num_items, Layout *container)
+struct freq_plot *waveform_create_freq_plot(double **arrays, int num_plots, SDL_Color **colors, int *steps, int num_items, Layout *container)
 {
     struct freq_plot *fp = calloc(1, sizeof(struct freq_plot));
     fp->container = container;
     fp->num_plots = num_plots;
     fp->plots = malloc(sizeof(struct logscale *) * num_plots);
     for (int i=0; i<num_plots; i++) {
-	fp->plots[i] = waveform_create_logscale(arrays[i], num_items, &container->rect, colors[i]);
+	fp->plots[i] = waveform_create_logscale(arrays[i], num_items, &container->rect, colors[i], steps[i]);
     }
     int tics[FREQ_PLOT_MAX_TICS];
     int num_tics = 0;

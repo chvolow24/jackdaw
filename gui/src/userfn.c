@@ -1135,13 +1135,25 @@ void user_tl_activate_source_mode(void *nullarg)
     }
 }
 
+static int32_t get_drop_pos()
+{
+    double latency_est_ms = 44.0f;
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    struct realtime_tick pb = proj->playback_conn->callback_time;
+    double elapsed_pb_chunk_ms = TIMESPEC_DIFF_MS(now, pb.ts);
+    int32_t tl_pos_now = pb.timeline_pos + (int32_t)((elapsed_pb_chunk_ms - latency_est_ms) * proj->sample_rate * proj->play_speed / 1000.0f);
+    return tl_pos_now;
+}
+
 void user_tl_drop_from_source(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (tl->num_tracks == 0) return;
     Track *track = tl->tracks[tl->track_selector];
     if (proj->src_clip) {
-	int32_t drop_pos = tl->play_pos_sframes - proj->play_speed * 2 * proj->chunk_size_sframes;
+	/* int32_t drop_pos = tl->play_pos_sframes - proj->play_speed * 2 * proj->chunk_size_sframes; */
+	int32_t drop_pos = get_drop_pos();
 	ClipRef *cr = track_create_clip_ref(track, proj->src_clip, drop_pos, false);
 	cr->in_mark_sframes = proj->src_in_sframes;
 	cr->out_mark_sframes = proj->src_out_sframes;
@@ -1170,7 +1182,8 @@ static void user_tl_drop_savedn_from_source(int n)
 	Track *track = tl->tracks[tl->track_selector];
 	struct drop_save drop = proj->saved_drops[n];
 	if (!drop.clip) return;
-	int32_t drop_pos = tl->play_pos_sframes - proj->play_speed * 2 * proj->chunk_size_sframes;
+	/* int32_t drop_pos = tl->play_pos_sframes - proj->play_speed * 2 * proj->chunk_size_sframes; */
+	int32_t drop_pos = get_drop_pos();
 	ClipRef *cr = track_create_clip_ref(track, drop.clip, drop_pos, false);
 	cr->in_mark_sframes = drop.in;
 	cr->out_mark_sframes = drop.out;

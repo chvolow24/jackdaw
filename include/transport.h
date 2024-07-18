@@ -1,8 +1,14 @@
 #ifndef JDAW_TRANSPORT_H
 #define JDAW_TRANSPORT_H
 
+
 #include <stdint.h>
 #include "project.h"
+
+#define RING_BUF_LEN_FFT_CHUNKS 2
+#define TIMESPEC_TO_MS(ts) ((double)ts.tv_sec * 1000.0f + (double)ts.tv_nsec / 1000000.0f)
+#define TIMESPEC_DIFF_MS(ts_end, ts_start) (((double)(ts_end.tv_sec - ts_start.tv_sec) * 1000.0f) + ((double)(ts_end.tv_nsec - ts_start.tv_nsec) / 1000000.0f))
+
 void transport_record_callback(void* user_data, uint8_t *stream, int len);
 void transport_playback_callback(void* user_data, uint8_t* stream, int len);
 void transport_start_playback();

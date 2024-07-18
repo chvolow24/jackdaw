@@ -74,6 +74,8 @@
 #define SEM_NAME_WRITABLE_CHUNKS "/tl_%d_writable_chunks"
 #define SEM_NAME_READABLE_CHUNKS "/tl_%d_readable_chunks"
 
+
+
 extern Window *main_win;
 extern Project *proj;
 extern SDL_Color color_global_black;
@@ -145,8 +147,8 @@ uint8_t project_add_timeline(Project *proj, char *name)
     /* new_tl->mixdown_R = malloc(sizeof(float) * proj->chunk_size_sframes); */
 
 
-    new_tl->buf_L = malloc(sizeof(float) * proj->fourier_len_sframes * 2);
-    new_tl->buf_R = malloc(sizeof(float) * proj->fourier_len_sframes * 2);
+    new_tl->buf_L = calloc(1, sizeof(float) * proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS);
+    new_tl->buf_R = calloc(1, sizeof(float) * proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS);
     new_tl->buf_write_pos = 0;
     new_tl->buf_read_pos = 0;
     char buf[128];
@@ -183,7 +185,7 @@ retry2:
     }
 retry3:
     snprintf(buf, 128, SEM_NAME_WRITABLE_CHUNKS, new_tl->index);
-    int init_writable_chunks = proj->fourier_len_sframes / proj->chunk_size_sframes;
+    int init_writable_chunks = proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS / proj->chunk_size_sframes;
     if ((new_tl->writable_chunks = sem_open(buf, O_CREAT | O_EXCL, 0666, init_writable_chunks)) == SEM_FAILED) {
 	sem_unlink(buf);
 	perror("Error opening writable chunks sem");
@@ -692,16 +694,10 @@ Track *timeline_add_track(Timeline *tl)
 
 
     /* FILTER TESTS */
-    /* int ir_len = track->tl->proj->chunk_size_sframes / 32; */
-    /* if (ir_len < 32) ir_len = 32; */
-    /* fprintf(stdout, "CREATE AT %d, %d\n", proj->chunk_size_sframes, ir_len); */
-    /* track->num_filters++; */
-    /* if (tl->num_tracks == 1){ */
-	int ir_len = proj->fourier_len_sframes / 4;
+	int ir_len = proj->fourier_len_sframes;
 	track->fir_filter = create_FIR_filter(LOWPASS, ir_len, track->tl->proj->fourier_len_sframes * 2);
 	set_FIR_filter_params_h(track->fir_filter, LOWPASS, 1000, 1000);
 	track->fir_filter_active = true;
-    /* } */
     /* END FILTER TESTS */
 
 

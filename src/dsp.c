@@ -123,11 +123,11 @@ void FFT(double *A, double complex *B, int n)
 
     FFT_inner(A, B, n, 0, 1);
 
-    double max = 0.0f;
-    double test;
+    /* double max = 0.0f; */
+    /* double test; */
     for (int k=0; k<n; k++) {
         B[k]/=n;
-	if ((test = B[k]) > max) max = test;
+	/* if ((test = B[k]) > max) max = test; */
 	/* fprintf(stdout, "mag %d: %f\n", k, cabs(B[k])); */
     }
 }
@@ -303,7 +303,6 @@ FIRFilter *create_FIR_filter(FilterType type, uint16_t impulse_response_len, uin
 /* Bandwidth param only required for band-pass and band-cut filters */
 void set_FIR_filter_params(FIRFilter *filter, FilterType type, double cutoff, double bandwidth)
 {
-    fprintf(stdout, "SET FILTER PARAMS\n");
     filter->type = type;
     filter->cutoff_freq = cutoff;
     filter->bandwidth = bandwidth;

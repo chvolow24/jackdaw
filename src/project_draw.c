@@ -519,7 +519,7 @@ void project_draw()
     window_draw_menus(main_win);
     /* modal_draw(test_modal); */
 
-    /* SDL_Rect ok = {30, 800, 1400, 500}; */
+    SDL_Rect ok = {30, 800, 1400, 500};
     if (!proj->freq_domain_plot && proj->timelines[0]->num_tracks != 0) {
 	Layout *freq_lt = layout_add_child(proj->layout);
 	freq_lt->rect.w = 600 * main_win->dpi_scale_factor;
@@ -544,8 +544,8 @@ void project_draw()
 	waveform_draw_freq_plot(proj->freq_domain_plot);
     }
     
-    /* /\* SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 245); *\/ */
-    /* /\* SDL_RenderFillRect(main_win->rend, &ok); *\/ */
+    /* SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 245); */
+    /* SDL_RenderFillRect(main_win->rend, &ok); */
     /* if (!proj->output_logscale_L || proj->output_logscale_L->num_items != proj->chunk_size_sframes / 2) { */
     /* 	/\* fprintf(stdout, "CREATING LOGSCALE\n"); *\/ */
     /* 	proj->output_logscale_L = waveform_create_logscale(proj->output_L_freq, proj->chunk_size_sframes / 2, &ok); */
@@ -556,7 +556,7 @@ void project_draw()
     /* waveform_draw_freq_domain(proj->output_logscale_L); */
     /* SDL_SetRenderDrawColor(main_win->rend, 255, 255, 128, 200); */
     /* waveform_draw_freq_domain(proj->output_logscale_R); */
-    /* /\* waveform_destroy_logscale(la); \/ */
+    /* waveform_destroy_logscale(la); \/
 
     /* layout_destroy(freq_lt); */
     window_end_draw(main_win);

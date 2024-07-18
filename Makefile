@@ -5,7 +5,7 @@ INCLUDE_DIR := include
 GUI_SRC_DIR := gui/src
 GUI_INCLUDE_DIR := gui/include
 GUI_BUILD_DIR := gui/build
-CFLAGS := -Wall -g -I$(INCLUDE_DIR) -I$(GUI_INCLUDE_DIR) -I/usr/include/SDL2 `sdl2-config --libs --cflags` -lSDL2 -lSDL2_ttf -lpthread -lm -DINSTALL_DIR=\"`pwd`\" -fsanitize=address # -O2 #-DLT_DEV_MODE=0
+CFLAGS := -Wall -g -I$(INCLUDE_DIR) -I$(GUI_INCLUDE_DIR) -I/usr/include/SDL2 `sdl2-config --libs --cflags` -lSDL2 -lSDL2_ttf -lpthread -lm -DINSTALL_DIR=\"`pwd`\" -fsanitize=address -O3 # -O2 #-DLT_DEV_MODE=0
 CFLAGS_JDAW_ONLY := -DLT_DEV_MODE=0
 CFLAGS_LT_ONLY := -DLT_DEV_MODE=1 -DLAYOUT_BUILD=1
 CFLAGS_ADDTL =

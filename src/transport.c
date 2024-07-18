@@ -39,13 +39,11 @@
 #include "project.h"
 #include "pure_data.h"
 #include "timeline.h"
+#include "transport.h"
 #include "wav.h"
 
-#define TIMESPEC_TO_MS(ts) ((double)ts.tv_sec * 1000.0f + (double)ts.tv_nsec / 1000000.0f)
-#define TIMESPEC_DIFF_MS(ts_end, ts_start) (((double)(ts_end.tv_sec - ts_start.tv_sec) * 1000.0f) + ((double)(ts_end.tv_nsec - ts_start.tv_nsec) / 1000000.0f))
 
 extern Project *proj;
-
 
 
 void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type);
@@ -70,8 +68,9 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
         struct timespec now;
 	clock_gettime(CLOCK_MONOTONIC, &now);
 
+	double est_latency_mult = 60.0f;
 	double record_latency_ms = (double)1000.0f * proj->chunk_size_sframes / proj->sample_rate;
-	double playback_latency_ms = 70.0f * record_latency_ms;
+	double playback_latency_ms = est_latency_mult * record_latency_ms;
 
 	struct realtime_tick pb_cb_tick = proj->playback_conn->callback_time;
 	double elapsed_pb_chunk_ms = TIMESPEC_DIFF_MS(now, pb_cb_tick.ts) - playback_latency_ms;
@@ -251,7 +250,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	memcpy(chunk_R, tl->buf_R + tl->buf_read_pos, sizeof(float) * len_sframes);
 	sem_post(tl->writable_chunks);
 	tl->buf_read_pos += len_sframes;
-	if (tl->buf_read_pos >= proj->fourier_len_sframes * 2) {
+	if (tl->buf_read_pos >= proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS) {
 	    tl->buf_read_pos = 0;
 	}
     }
@@ -397,7 +396,7 @@ static void *transport_dsp_thread_fn(void *arg)
 
 	
 	tl->buf_write_pos += len;
-	if (tl->buf_write_pos >= len * 2) {
+	if (tl->buf_write_pos >= len * RING_BUF_LEN_FFT_CHUNKS) {
 	    tl->buf_write_pos = 0;
 	}
 	for (int i=0; i<N; i++) {
@@ -440,7 +439,7 @@ void transport_stop_playback()
     while (sem_trywait(tl->unpause_sem) == 0) {};
     while (sem_trywait(tl->writable_chunks) == 0) {};
     while (sem_trywait(tl->readable_chunks) == 0) {};
-    for (int i=0; i<proj->fourier_len_sframes * 2 / proj->chunk_size_sframes; i++) {
+    for (int i=0; i<proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS / proj->chunk_size_sframes; i++) {
 	/* fprintf(stdout, "\t->reinitiailizing writable chunks\n"); */
 	sem_post(tl->writable_chunks);
     }

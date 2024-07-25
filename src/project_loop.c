@@ -83,7 +83,7 @@ extern Project *proj;
 
 static int timed_hide_slider_label(void *data)
 {
-    FSlider *fs = (FSlider *)data;
+    Slider *fs = (Slider *)data;
     if (fs->editing) {
 	SDL_Delay(STICK_DELAY_MS);
 	fs->editing = false;
@@ -91,7 +91,7 @@ static int timed_hide_slider_label(void *data)
     return 0;
 }
 
-static void hide_slider_label(FSlider *fs)
+static void hide_slider_label(Slider *fs)
 {
     SDL_CreateThread(timed_hide_slider_label, "hide_slider_label", fs);
 }
@@ -257,7 +257,7 @@ void loop_project_main()
 		    Timeline *tl = proj->timelines[0];
 		    Track *track = tl->tracks[0];
 		    double current_cutoff = track->fir_filter->cutoff_freq;
-		    set_FIR_filter_params(track->fir_filter, LOWPASS, current_cutoff - 0.004, 0.05);
+		    set_FIR_filter_params(track->fir_filter, BANDPASS, current_cutoff - 0.004, 0.05);
 
 		}
 		    break;
@@ -265,7 +265,7 @@ void loop_project_main()
 		    Timeline *tl = proj->timelines[0];
 		    Track *track = tl->tracks[0];
 		    double current_cutoff = track->fir_filter->cutoff_freq;
-		    set_FIR_filter_params(track->fir_filter, LOWPASS, current_cutoff + 0.004, 0.05);
+		    set_FIR_filter_params(track->fir_filter, BANDPASS, current_cutoff + 0.004, 0.05);
 		    
 		}
 		    break;

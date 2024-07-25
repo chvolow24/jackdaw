@@ -502,8 +502,9 @@ static float amp_to_db(float amp)
     return (20.0f * log10(amp));
 }
 
-static void slider_label_amp_to_dbstr(char *dst, size_t dstsize, float amp)
+static void slider_label_amp_to_dbstr(char *dst, size_t dstsize, void *value, ValType type)
 {
+    double amp = type == JDAW_DOUBLE ? *(double *)value : *(float *)value;
     int max_float_chars = dstsize - 2;
     if (max_float_chars < 1) {
 	fprintf(stderr, "Error: no room for dbstr\n");
@@ -514,9 +515,10 @@ static void slider_label_amp_to_dbstr(char *dst, size_t dstsize, float amp)
     strcat(dst, " dB");
 }
 
-static void slider_label_plain_str(char *dst, size_t dstsize, float value)
+static void slider_label_plain_str(char *dst, size_t dstsize, void *value, ValType type)
 {
-    snprintf(dst, dstsize, "%f", value);
+    double value_d = type == JDAW_DOUBLE ? *(double *)value : *(float *)value;
+    snprintf(dst, dstsize, "%f", value_d);
 
 }
 
@@ -658,13 +660,18 @@ Track *timeline_add_track(Timeline *tl)
     /* layout_set_values_from_rect(vol_ctrl_lt); */
     
     track->vol = 1.0f;
-    track->vol_ctrl = fslider_create(
-	&track->vol,
+    track->vol_ctrl = slider_create(
 	vol_ctrl_lt,
+	(void *)(&track->vol),
+	JDAW_FLOAT,
 	SLIDER_HORIZONTAL,
 	SLIDER_FILL,
-	slider_label_amp_to_dbstr);
-    fslider_set_range(track->vol_ctrl, 0.0f, 3.0f);
+	&slider_label_amp_to_dbstr);
+    SliderStrFn t;
+    Value min, max;
+    min.float_v = 0.0f;
+    max.float_v = 3.0f;
+    slider_set_range(track->vol_ctrl, min, max);
 
     Layout *pan_ctrl_row = layout_get_child_by_name_recursive(track->layout, "pan_slider");
     Layout *pan_ctrl_lt = layout_add_child(pan_ctrl_row);
@@ -676,15 +683,16 @@ Track *timeline_add_track(Timeline *tl)
     /* pan_ctrl_lt->h.value.intval = pan_ctrl_row->h.value.intval - TRACK_CTRL_SLIDER_V_PAD * 2; */
     /* /\* layout_set_values_from_rect(pan_ctrl_lt); *\/ */
     track->pan = 0.5f;
-    track->pan_ctrl = fslider_create(
-	&track->pan,
+    track->pan_ctrl = slider_create(
 	pan_ctrl_lt,
+	&track->pan,
+	JDAW_FLOAT,
 	SLIDER_HORIZONTAL,
 	SLIDER_TICK,
 	slider_label_plain_str);
 
-    fslider_reset(track->vol_ctrl);
-    fslider_reset(track->pan_ctrl);
+    slider_reset(track->vol_ctrl);
+    slider_reset(track->pan_ctrl);
     
 
     track->console_rect = &(layout_get_child_by_name_recursive(track->layout, "track_console")->rect);
@@ -694,7 +702,7 @@ Track *timeline_add_track(Timeline *tl)
 
 
     /* FILTER TESTS */
-	int ir_len = proj->fourier_len_sframes;
+	int ir_len = proj->fourier_len_sframes / 20;
 	track->fir_filter = create_FIR_filter(LOWPASS, ir_len, track->tl->proj->fourier_len_sframes * 2);
 	set_FIR_filter_params_h(track->fir_filter, LOWPASS, 1000, 1000);
 	track->fir_filter_active = true;
@@ -807,8 +815,8 @@ static void track_reset_full(Track *track)
     for (uint8_t i=0; i<track->num_clips; i++) {
 	clipref_reset(track->clips[i]);
     }
-    fslider_reset(track->vol_ctrl);
-    fslider_reset(track->pan_ctrl);
+    slider_reset(track->vol_ctrl);
+    slider_reset(track->pan_ctrl);
 }
     
 
@@ -868,10 +876,10 @@ void timeline_reset(Timeline *tl)
 void track_increment_vol(Track *track)
 {
     track->vol += TRACK_VOL_STEP;
-    if (track->vol > track->vol_ctrl->max) {
-	track->vol = track->vol_ctrl->max;
+    if (track->vol > track->vol_ctrl->max.float_v) {
+	track->vol = track->vol_ctrl->max.float_v;
     }
-    fslider_reset(track->vol_ctrl);
+    slider_reset(track->vol_ctrl);
 }
 void track_decrement_vol(Track *track)
 {
@@ -879,7 +887,7 @@ void track_decrement_vol(Track *track)
     if (track->vol < 0.0f) {
 	track->vol = 0.0f;
     }
-    fslider_reset(track->vol_ctrl);
+    slider_reset(track->vol_ctrl);
 }
 
 void track_increment_pan(Track *track)
@@ -888,7 +896,7 @@ void track_increment_pan(Track *track)
     if (track->pan > 1.0f) {
 	track->pan = 1.0f;
     }
-    fslider_reset(track->pan_ctrl);
+    slider_reset(track->pan_ctrl);
 }
 
 void track_decrement_pan(Track *track)
@@ -897,7 +905,7 @@ void track_decrement_pan(Track *track)
     if (track->pan < 0.0f) {
 	track->pan = 0.0f;
     }
-    fslider_reset(track->pan_ctrl);
+    slider_reset(track->pan_ctrl);
 }
 
 /* SDL_Color mute_red = {255, 0, 0, 100}; */
@@ -1092,8 +1100,8 @@ void track_destroy(Track *track, bool displace)
 	num_clips_to_destroy--;
     }
     /* fprintf(stdout, "Ok deleted all clips\n"); */
-    fslider_destroy(track->vol_ctrl);
-    fslider_destroy(track->pan_ctrl);
+    slider_destroy(track->vol_ctrl);
+    slider_destroy(track->pan_ctrl);
     textbox_destroy(track->tb_name);
     textbox_destroy(track->tb_input_label);
     textbox_destroy(track->tb_input_name);

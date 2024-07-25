@@ -268,11 +268,11 @@ static void track_draw(Track *track)
 
     }
 
-    /* fslider_reset(track->vol_ctrl); */
-    fslider_draw(track->vol_ctrl);
-    /* fslider_reset(track->pan_ctrl); */
+    /* slider_reset(track->vol_ctrl); */
+    slider_draw(track->vol_ctrl);
+    /* slider_reset(track->pan_ctrl); */
 
-    fslider_draw(track->pan_ctrl);        
+    slider_draw(track->pan_ctrl);        
 }
 
 static void ruler_draw(Timeline *tl)

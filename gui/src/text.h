@@ -188,7 +188,13 @@ void txt_set_color(Text *txt, SDL_Color *clr);
 void txt_set_pad(Text *txt, int h_pad, int v_pad);
 
 
-TextArea *txt_area_create(const char *value, Layout *layout, Font *font, uint8_t text_size, SDL_Color color, Window *win);
+TextArea *txt_area_create(
+    const char *value,
+    Layout *layout,
+    Font *font,
+    uint8_t text_size,
+    SDL_Color color,
+    Window *win);
 
 void txt_area_draw(TextArea *txtarea);
 

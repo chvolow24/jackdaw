@@ -14,6 +14,10 @@ typedef struct button {
     void *(*action)(void *arg);
 } Button;
 
+typedef struct toggle {
+    bool *value;
+    Layout *layout;
+} Toggle;
 
 typedef struct text_entry TextEntry;
 typedef struct text_entry {
@@ -59,20 +63,6 @@ typedef struct radio_button {
 } RadioButton;
 
 
-/* /\* FSlider *\/ */
-/* FSlider *fslider_create( */
-/*     float *value, */
-/*     Layout *layout, */
-/*     SliderOrientation orientation, */
-/*     SliderType type, */
-/*     SliderStrFn *fn); */
-/* void fslider_set_range(FSlider *fs, float min, float max); */
-/* void fslider_reset(FSlider *fs); */
-/* void fslider_draw(FSlider *fs); */
-/* float fslider_val_from_coord(FSlider *fs, int coord_pix); */
-/* void fslider_destroy(FSlider *fs); */
-
-
 /* Slider */
 typedef struct slider {
     Layout *layout;
@@ -81,6 +71,7 @@ typedef struct slider {
     Value min, max;
     enum slider_orientation orientation;
     enum slider_style style;
+    Layout *bar_layout;
     SDL_Rect *bar_rect;
     DimVal *val_dim;
     bool editing;
@@ -120,5 +111,16 @@ RadioButton *radio_button_create(
     Layout *lt,
     int (*item_to_tline_filter)(void *item, void *x_arg));
 
+
+/* Toggle */
+
+Toggle *toggle_create(Layout *lt, bool *value);
+void toggle_destroy(Toggle *toggle);
+/* Returns the new value of the toggle */
+bool toggle_toggle(Toggle *toggle);
+void toggle_draw(Toggle *toggle);
+
+bool slider_mouse_motion(Slider *slider, Window *win);
+bool toggle_mouse_click(Toggle *toggle, Window *win);
 
 #endif

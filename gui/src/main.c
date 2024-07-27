@@ -181,19 +181,17 @@ void get_clicked_layout(SDL_Point p, Layout *top_level, int *distance, Layout **
 
 void set_window_size_to_lt()
 {
-    fprintf(stdout, "Ok, sizes are %d and %d\n", main_lt->w.value.intval, main_lt->h.value.intval);
     if (main_lt->w.type != SCALE && main_lt->h.type != SCALE) {
-	fprintf(stdout, "Window resize in not scale cond. %d, %d\n", main_lt->w.value.intval, main_lt->h.value.intval);
         window_resize(main_win, main_lt->w.value.intval, main_lt->h.value.intval);
-	fprintf(stdout, "Ok done\n");
     } else {
-        main_lt->rect.w = main_win->w;
-        main_lt->rect.h = main_win->h;
+        main_lt->rect.w = main_win->w_pix;
+        main_lt->rect.h = main_win->h_pix;
+	layout_set_values_from_rect(main_lt);
     }
-    main_lt->x.type = ABS;
-    main_lt->y.type = ABS;
-    main_lt->x.value.intval = 0;
-    main_lt->y.value.intval = 0;
+    /* main_lt->x.type = ABS; */
+    /* main_lt->y.type = ABS; */
+    /* main_lt->x.value.intval = 0; */
+    /* main_lt->y.value.intval = 0; */
 }
 
 static void reset_clicked_lt(Layout *to)
@@ -305,7 +303,7 @@ int main(int argc, char** argv)
             } else if (e.type == SDL_WINDOWEVENT) {
                 if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
                     window_auto_resize(main_win);
-                    layout_reset_from_window(main_lt, main_win);
+                    /* layout_reset_from_window(main_lt, main_win); */
                     layout_reset(main_lt);
 
                 } else if (e.window.event == SDL_WINDOWEVENT_MOVED) {

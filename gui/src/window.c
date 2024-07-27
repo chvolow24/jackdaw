@@ -67,17 +67,17 @@ Window *window_create(int w, int h, const char *name)
     }
     window->win = win;
     window->rend = rend;
-    window->w = w * window->dpi_scale_factor;
-    window->h = h * window->dpi_scale_factor;
+    window->w_pix = w * window->dpi_scale_factor;
+    window->h_pix = h * window->dpi_scale_factor;
 
     window->zoom_scale_factor = 1.0f;
     window->canvas_src.x = 0;
     window->canvas_src.y = 0;
-    window->canvas_src.w = window->w;
-    window->canvas_src.h = window->h;
+    window->canvas_src.w = window->w_pix;
+    window->canvas_src.h = window->h_pix;
 
     /* Initialize canvas texture. All rendering will be done to this texture, then copied to the screen. */
-    window->canvas = SDL_CreateTexture(rend, 0, SDL_TEXTUREACCESS_TARGET, window->w * window->dpi_scale_factor, window->h * window->dpi_scale_factor);
+    window->canvas = SDL_CreateTexture(rend, 0, SDL_TEXTUREACCESS_TARGET, window->w_pix * window->dpi_scale_factor, window->h_pix * window->dpi_scale_factor);
     if (!window->canvas) {
 	fprintf(stderr, "Error: failed to create canvas texture. %s\n", SDL_GetError());
 	exit(1);
@@ -91,6 +91,9 @@ Window *window_create(int w, int h, const char *name)
     window->num_menus = 0;
     window->num_modes = 0;
     window->num_modals = 0;
+    window->active_tab_view = NULL;
+    window->active_page = NULL;
+    
     SDL_SetRenderDrawBlendMode(window->rend, SDL_BLENDMODE_BLEND);
 
     window->screenrecording = false;
@@ -145,32 +148,37 @@ void window_assign_font(Window *win, const char *font_path, FontType type)
 /* Reset the w and h members of a window struct (usually in response to a resize event) */
 void window_auto_resize(Window *win)
 {
-    SDL_GetWindowSize(win->win, &(win->w), &(win->h));
-    win->w *= win->dpi_scale_factor;
-    win->h *= win->dpi_scale_factor;
-    win->canvas_src.w = win->w;
-    win->canvas_src.h = win->h;
+    SDL_GetWindowSize(win->win, &(win->w_pix), &(win->h_pix));
+    /* win->layout->w.value.intval = win->w; */
+    /* win->layout->h.value.intval = win->h; */
+    /* layout_reset(win->layout); */
+    win->w_pix *= win->dpi_scale_factor;
+    win->h_pix *= win->dpi_scale_factor;
+    win->canvas_src.w = win->w_pix;
+    win->canvas_src.h = win->h_pix;
     if (win->canvas) {
 	SDL_DestroyTexture(win->canvas);
-	win->canvas = SDL_CreateTexture(win->rend, 0, SDL_TEXTUREACCESS_TARGET, win->w * win->dpi_scale_factor, win->h * win->dpi_scale_factor);
+	win->canvas = SDL_CreateTexture(win->rend, 0, SDL_TEXTUREACCESS_TARGET, win->w_pix * win->dpi_scale_factor, win->h_pix * win->dpi_scale_factor);
 	if (!win->canvas) {
 	    fprintf(stderr, "Error: failed to create canvas texture. %s\n", SDL_GetError());
 	    //exit(1);
 	}
     }
+    layout_reset_from_window(win->layout, win);
+
 }
 
 void window_resize(Window *win, int w, int h)
 {
 
     SDL_SetWindowSize(win->win, w, h);
-    win->w = w * win->dpi_scale_factor;
-    win->h = h * win->dpi_scale_factor;
-    win->canvas_src.w = win->w;
-    win->canvas_src.h = win->h;
+    win->w_pix = w * win->dpi_scale_factor;
+    win->h_pix = h * win->dpi_scale_factor;
+    win->canvas_src.w = win->w_pix;
+    win->canvas_src.h = win->h_pix;
     if (win->canvas) {
 	SDL_DestroyTexture(win->canvas);
-	win->canvas = SDL_CreateTexture(win->rend, 0, SDL_TEXTUREACCESS_TARGET, win->w, win->h);
+	win->canvas = SDL_CreateTexture(win->rend, 0, SDL_TEXTUREACCESS_TARGET, win->w_pix, win->h_pix);
 	if (!win->canvas) {
 	    fprintf(stderr, "Error: failed to create canvas texture. %s\n", SDL_GetError());
 	    // exit(1);
@@ -183,13 +191,13 @@ void window_resize(Window *win, int w, int h)
 
 void window_resize_passive(Window *win, int w, int h)
 {
-    win->w = w * win->dpi_scale_factor;
-    win->h = h * win->dpi_scale_factor;
-    win->canvas_src.w = win->w;
-    win->canvas_src.h = win->h;
+    win->w_pix = w * win->dpi_scale_factor;
+    win->h_pix = h * win->dpi_scale_factor;
+    win->canvas_src.w = win->w_pix;
+    win->canvas_src.h = win->h_pix;
     if (win->canvas) {
 	SDL_DestroyTexture(win->canvas);
-	win->canvas = SDL_CreateTexture(win->rend, 0, SDL_TEXTUREACCESS_TARGET, win->w, win->h);
+	win->canvas = SDL_CreateTexture(win->rend, 0, SDL_TEXTUREACCESS_TARGET, win->w_pix, win->h_pix);
 	if (!win->canvas) {
 	    fprintf(stderr, "Error: failed to create canvas texture. %s\n", SDL_GetError());
 	    // exit(1);
@@ -227,8 +235,8 @@ void window_zoom(Window *win, float zoom_by)
 	win->zoom_scale_factor = 1.0f;
     }
     double new_w, new_h;
-    new_w = (double) win->w / win->zoom_scale_factor;
-    new_h = (double) win->h / win->zoom_scale_factor;
+    new_w = (double) win->w_pix / win->zoom_scale_factor;
+    new_h = (double) win->h_pix / win->zoom_scale_factor;
     win->canvas_src = (SDL_Rect){
 	round(win->mousep_screen.x - new_w / 2.0f),
 	round(win->mousep_screen.y - new_h / 2.0f),
@@ -265,6 +273,11 @@ void window_end_draw(Window *win)
 
 void window_set_layout(Window *win, Layout *layout)
 {
+    layout->x.value.intval = 0;
+    layout->y.value.intval = 0;
+    layout->w.value.intval = win->w_pix;
+    layout->h.value.intval = win->h_pix;
+    layout_reset(layout);
     win->layout = layout;
 }
 

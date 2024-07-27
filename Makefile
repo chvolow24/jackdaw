@@ -45,4 +45,4 @@ $(GUI_BUILD_DIR)/%.o: $(GUI_SRC_DIR)/%.c
 
 
 clean:
-	rm -rf $(EXEC) $(BUILD_DIR)/* $(GUI_BUILD_DIR)/*
+	rm -rf $(EXEC) $(LT_EXEC) $(BUILD_DIR)/* $(GUI_BUILD_DIR)/*

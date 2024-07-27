@@ -38,6 +38,7 @@
 #include "geometry.h"
 #include "layout.h"
 #include "modal.h"
+#include "page.h"
 #include "project.h"
 #include "textbox.h"
 #include "timeline.h"
@@ -184,7 +185,7 @@ static void clipref_draw(ClipRef *cr)
     }
 
     /* Only check horizontal out-of-bounds; track handles vertical */
-    if (cr->rect.x > main_win->w || cr->rect.x + cr->rect.w < 0) {
+    if (cr->rect.x > main_win->w_pix || cr->rect.x + cr->rect.w < 0) {
 	return;
     }
 
@@ -501,17 +502,23 @@ static void control_bar_draw(Project *proj)
 void project_draw()
 {
     window_start_draw(main_win, &color_global_black);
-    timeline_draw(proj->timelines[proj->active_tl_index]);
-    control_bar_draw(proj);
-    textbox_draw(proj->timeline_label);
+    if (main_win->active_tab_view) {
+	tab_view_draw(main_win->active_tab_view);
+    } else if (main_win->active_page) {
+	page_draw(main_win->active_page);
+    } else {
+	timeline_draw(proj->timelines[proj->active_tl_index]);
+	control_bar_draw(proj);
+	textbox_draw(proj->timeline_label);
 
-    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
-    SDL_RenderFillRect(main_win->rend, &proj->status_bar.layout->rect);
-    textbox_draw(proj->status_bar.error);
-    if (proj->dragging) {
-	textbox_draw(proj->status_bar.dragstat);
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
+	SDL_RenderFillRect(main_win->rend, &proj->status_bar.layout->rect);
+	textbox_draw(proj->status_bar.error);
+	if (proj->dragging) {
+	    textbox_draw(proj->status_bar.dragstat);
+	}
+	textbox_draw(proj->status_bar.call);
     }
-    textbox_draw(proj->status_bar.call);
 
     /* Layout *status = layout_get_child_by_name_recursive(proj->layout, "status_bar"); */
     /* layout_draw(main_win, status); */
@@ -559,6 +566,9 @@ void project_draw()
     /* waveform_destroy_logscale(la); \/
 
     /* layout_destroy(freq_lt); */
+    SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255);
+    SDL_RenderDrawRect(main_win->rend, &main_win->layout->rect);
+    /* layout_draw(main_win, main_win->layout); */
     window_end_draw(main_win);
 }
 

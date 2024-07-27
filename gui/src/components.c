@@ -20,6 +20,8 @@ SDL_Color slider_bckgrnd = {60, 60, 60, 255};
 SDL_Color slider_bar_container_bckgrnd =  {40, 40, 40, 248};
 SDL_Color slider_bar_color = {12, 107, 249, 250};
 
+SDL_Color tgl_bckgrnd = {110, 110, 110, 255};
+
 extern SDL_Color color_global_black;
 
 /* Slider fslider_create(Layout *layout, SliderOrientation orientation, SliderType type, SliderStrFn *fn) */
@@ -41,7 +43,9 @@ Slider *slider_create(
     label->rect.x = layout->rect.x + layout->rect.w;
     label->rect.y = layout->rect.y;
     layout_set_values_from_rect(label);
-    fn(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, value, val_type);
+    if (fn) {
+	fn(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, value, val_type);
+    }
     /* amp_to_dbstr(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, *value); */
 
     /* snprintf(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, "%f", *value); */
@@ -55,6 +59,7 @@ Slider *slider_create(
     /* bar_container->h.value.intval = (layout->rect.h - (SLIDER_INNER_PAD * main_win->dpi_scale_factor * 2)) / main_win->dpi_scale_factor; */
     layout_pad(bar_container, SLIDER_INNER_PAD, SLIDER_INNER_PAD);
     Layout *bar = layout_add_child(bar_container);
+    s->bar_layout = bar;
     layout_set_name(bar, "bar");
     s->bar_rect = &bar->rect;
     switch (orientation) {
@@ -82,11 +87,12 @@ Slider *slider_create(
 	switch (style) {
 	case SLIDER_FILL:
 	    bar->h.type = SCALE;
+	    bar->y.type = SCALE;
 	    s->val_dim = &bar->h.value;
 	    break;
 	case SLIDER_TICK:
-	    bar->x.type = SCALE;
-	    s->val_dim = &bar->x.value;
+	    bar->y.type = SCALE;
+	    s->val_dim = &bar->y.value;
 	    break;   
 	}
     }
@@ -128,6 +134,7 @@ void slider_reset(Slider *s)
 {
     Value range = jdaw_val_sub(s->max, s->min, s->val_type);
     Value slider_val;
+    /* Value slider_val = jdaw_val_from_ptr(&slider_val, s->val_type); */
     jdaw_val_set(&slider_val, s->val_type, s->value);
     Value filled = jdaw_val_sub(slider_val, s->min, s->val_type);
     double filled_prop = jdaw_val_div_double(filled, range, s->val_type);
@@ -138,7 +145,9 @@ void slider_reset(Slider *s)
 	    s->val_dim->floatval = filled_prop;
 	    break;
 	case SLIDER_VERTICAL:
-	    s->val_dim->floatval = 1 - filled_prop;
+	    s->bar_layout->y.value.floatval = 1.0 - filled_prop;
+	    s->val_dim->floatval = filled_prop;
+	    break;
 	}
 	break;
     case SLIDER_TICK:
@@ -147,6 +156,8 @@ void slider_reset(Slider *s)
 	    s->val_dim->floatval = filled_prop;
 	    break;
 	case SLIDER_VERTICAL:
+	    
+	    /* layout_reset(s->layout->children[0]); */
 	    s->val_dim->floatval = 1 - filled_prop;
 	    break;
 	}
@@ -214,4 +225,66 @@ void button_destroy(Button *button)
 {
     textbox_destroy(button->tb);
     free(button);
+}
+
+
+/* Toggle */
+
+Toggle *toggle_create(Layout *lt, bool *value)
+{
+    Layout *inner = layout_add_child(lt);
+    inner->w.type = SCALE;
+    inner->h.type = SCALE;
+    inner->w.value.floatval = 0.90;
+    inner->h.value.floatval = 0.90;
+
+    /* Layout *outer = layout_add_child(lt); */
+    /* outer->w.type = SCALE; */
+    /* outer->h.type = SCALE; */
+    /* outer->w.value.floatval = 0.9; */
+    /* outer->h.value.floatval = 0.9; */
+    layout_force_reset(lt);
+    layout_center_agnostic(inner, true, true);
+    /* layout_center_agnostic(outer, true, true); */
+    Toggle *tgl = calloc(1, sizeof(Toggle));
+    tgl->value = value;
+    tgl->layout = lt;
+    return tgl;
+}
+
+void toggle_destroy(Toggle *tgl)
+{
+    layout_destroy(tgl->layout);
+    free(tgl);
+}
+
+void toggle_draw(Toggle *tgl)
+{
+    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(tgl_bckgrnd)); */
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(slider_bckgrnd));
+    SDL_RenderFillRect(main_win->rend, &tgl->layout->rect);
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(slider_bar_container_bckgrnd));
+    SDL_RenderFillRect(main_win->rend, &tgl->layout->children[0]->rect);
+    if (*(tgl->value)) {
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(slider_bar_color));
+	SDL_RenderFillRect(main_win->rend, &(tgl->layout->children[0]->rect));
+    }
+}
+
+
+
+
+
+/* Mouse functions */
+bool slider_mouse_motion(Slider *slider, Window *win)
+{
+    if (SDL_PointInRect(&main_win->mousep, &slider->layout->rect)) {
+	Value newval = slider_val_from_coord(slider, main_win->mousep.x);
+	jdaw_val_set_ptr(slider->value, slider->val_type, newval);
+	/* track->vol = newval.float_v; */
+	slider_reset(slider);
+	/* proj->vol_changing = true; */
+	return true;
+    }
+    return false;
 }

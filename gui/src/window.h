@@ -13,7 +13,8 @@
 
 typedef struct menu Menu;
 typedef struct modal Modal;
-
+typedef struct page Page;
+typedef struct tab_view TabView;
 
 /* typedef enum input_mode : uint8_t InputMode; */
 typedef struct window {
@@ -21,8 +22,8 @@ typedef struct window {
     SDL_Renderer *rend;
     SDL_Texture *canvas;
     double dpi_scale_factor;
-    int w;
-    int h;
+    int w_pix;
+    int h_pix;
     SDL_Point mousep;
     SDL_Point mousep_screen;
     double zoom_scale_factor;
@@ -43,6 +44,9 @@ typedef struct window {
 
     Modal *modals[WINDOW_MAX_MODALS];
     uint8_t num_modals;
+
+    Page *active_page;
+    TabView *active_tab_view;
 
     bool screenrecording;
 

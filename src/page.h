@@ -33,6 +33,7 @@ typedef struct page {
     uint8_t num_elements;
     Layout *layout;
     SDL_Color *background_color;
+    Window *win;
 } Page;
 
 typedef struct tab_view {
@@ -42,10 +43,10 @@ typedef struct tab_view {
     uint8_t num_tabs;
     uint8_t current_tab;
     Layout *layout;
+    Window *win;
 } TabView;
 
 struct slider_params {
-    Layout *layout;
     void *value;
     ValType val_type;
     enum slider_orientation orientation;
@@ -54,7 +55,6 @@ struct slider_params {
 };
 
 struct textbox_params {
-    Layout *layout;
     char *set_str;
     Font *font;
     uint8_t text_size;
@@ -62,16 +62,14 @@ struct textbox_params {
 };
 
 struct textarea_params {
-    Layout *layout;
     const char *value;
     Font *font;
     uint8_t text_size;
     SDL_Color color;
-    Window *win;
+    Window *win;   
 };
 
 struct textentry_params {
-    Layout *lt;
     char *init_val;
     Font *font;
     uint8_t text_size;
@@ -80,7 +78,6 @@ struct textentry_params {
 };
 
 struct freqplot_params {
-    Layout *layout;
     double **arrays;
     int num_arrays;
     SDL_Color **colors;
@@ -89,12 +86,15 @@ struct freqplot_params {
 };
 
 struct button_params {
-    Layout *layout;
     char *set_str;
     Font *font;
     uint8_t text_size;
-    Window *win;
     void *(*action)(void *arg);
+    Window *win;
+};
+
+struct toggle_params {
+    bool *value;
 };
 
 typedef union page_el_params {
@@ -104,13 +104,14 @@ typedef union page_el_params {
     struct textentry_params textentry_p;
     struct freqplot_params freqplot_p;
     struct button_params button_p;
+    struct toggle_params toggle_p;
 } PageElParams;
 
 
 
 /* TabView methods */
 
-TabView *tab_view_create(const char *title, Layout *parent_lt);
+TabView *tab_view_create(const char *title, Layout *parent_lt, Window *win);
 void tab_view_destroy(TabView *tv);
 
 
@@ -119,7 +120,9 @@ void tab_view_destroy(TabView *tv);
 Page *page_create(
     const char *title,
     const char *layout_filepath,
-    SDL_Color *background_color);
+    Layout *parent_lt,
+    SDL_Color *background_color,
+    Window *win);
 
 void page_destroy(Page *page);
 void page_el_set_params(PageEl *el, PageElParams params);
@@ -132,14 +135,17 @@ PageEl *page_add_el(
 
 /* Reset functions */
 
-void page_el_reset(PageEl *el);
 void page_reset(Page *page);
 void tab_view_reset(TabView *tv);
 
 /* Draw functions */
 
-void page_el_draw(PageEl *el);
 void page_draw(Page *page);
 void tab_view_draw(TabView *tv);
+
+void page_activate(Page *page);
+void page_close(Page *page);
+void tab_view_activate(TabView *tv);
+void tab_view_close(TabView *tv);
 
 #endif

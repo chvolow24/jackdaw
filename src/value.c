@@ -38,6 +38,44 @@ void jdaw_val_set(Value *vp, ValType vt, void *valptr)
     }
 }
 
+void jdaw_val_set_ptr(void *valptr, ValType vt, Value new_value)
+{
+     switch (vt) {
+    case JDAW_FLOAT:
+	*((float *)valptr) = new_value.float_v;
+	break;
+    case JDAW_DOUBLE:
+	*((double *)valptr) = new_value.double_v;
+	break;
+    case JDAW_INT:
+	*((int *)valptr) = new_value.int_v;
+	break;
+    case JDAW_UINT8:
+	*((uint8_t *)valptr) = new_value.uint8_v;
+	break;
+    case JDAW_UINT16:
+	*((uint16_t *)valptr) = new_value.uint16_v;
+	break;
+    case JDAW_UINT32:
+	*((uint32_t *)valptr) = new_value.uint32_v;
+	break;
+    case JDAW_INT8:
+	*((int8_t *)valptr) = new_value.int8_v;
+	break;
+    case JDAW_INT16:
+        *((int16_t *)valptr) = new_value.int16_v;
+	break;
+    case JDAW_INT32:
+        *((int32_t *)valptr) = new_value.int32_v;
+    case JDAW_BOOL:
+	*((bool *)valptr) = new_value.bool_v;
+	break;
+    default:
+	break;
+    }
+   
+}
+
 Value jdaw_val_from_ptr(void *valptr, ValType vt)
 {
     Value ret;

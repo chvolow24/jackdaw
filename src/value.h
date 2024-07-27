@@ -59,6 +59,7 @@ typedef union value {
 } Value;
 
 Value jdaw_val_from_ptr(void *ptr, ValType vt);
+void jdaw_val_set_ptr(void *valptr, ValType vt, Value new_value);
 void jdaw_val_set(Value *vp, ValType vt, void *valptr);
 void jdaw_val_set_min(Value *vp, ValType vt);
 void jdaw_val_set_max(Value *vp, ValType vt);

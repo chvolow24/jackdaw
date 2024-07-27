@@ -231,7 +231,7 @@ static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, 
 		sample_i+=sfpp*(0-x);
 		x=0;
 		continue;
-	    } else if (x > main_win->w) {
+	    } else if (x > main_win->w_pix) {
 		break;
 	    }
 	    
@@ -291,7 +291,7 @@ static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, 
 		sample_i+=sfpp;
 		x++;
 		continue;
-	    } else if (x > main_win->w) {
+	    } else if (x > main_win->w_pix) {
 		break;
 	    }
 	    if (sfpp > 1) {

@@ -41,6 +41,7 @@
 #include "layout.h"
 #include "modal.h"
 #include "mouse.h"
+#include "page.h"
 #include "project.h"
 #include "project_draw.h"
 #include "screenrecord.h"
@@ -180,7 +181,75 @@ static void update_track_vol_pan()
 
 /* Modal *test_modal; */
 
-void layout_write(FILE *f, Layout *lt, int indent);
+extern SDL_Color color_global_grey;
+
+double globdub = 0.5;
+double globdub2 = 0.0;
+
+//typedef void (SliderStrFn)(char *dst, size_t dstsize, void *value, ValType type);
+Slider *globslid = NULL;
+Slider *globslid2 = NULL;
+bool globbool = false;
+static void test_page_create()
+{
+    globdub = 0;
+    globdub2 = 0.2;
+    if (main_win->active_page) {
+	page_close(main_win->active_page);
+	globslid = NULL;
+	return;
+    }
+    Layout *page_layout = layout_add_child(main_win->layout);
+    /* layout_set_default_dims(page_layout); */
+    page_layout->w.type = SCALE;
+    page_layout->h.type = SCALE;
+    page_layout->x.type = REL;
+    page_layout->y.type = REL;
+    page_layout->w.value.floatval = 0.8;
+    page_layout->h.value.floatval = 0.8;
+    layout_center_agnostic(page_layout, true, true);
+    Page *page = page_create(
+	"This is a page",
+	INSTALL_DIR "/assets/layouts/some_name.xml",
+	page_layout,
+	&color_global_grey,
+	main_win);
+    PageElParams p;
+    p.textbox_p.font = main_win->std_font;
+    p.textbox_p.text_size = 12;
+    p.textbox_p.set_str = "Hello world";
+    p.textbox_p.win = main_win;
+    page_add_el(page, EL_TEXTBOX, p, "tb1");
+
+    p.textbox_p.font = main_win->std_font;
+    p.textbox_p.text_size = 24;
+    p.textbox_p.set_str = "I AM LARGE";
+    p.textbox_p.win = main_win;
+    PageEl* el = page_add_el(page, EL_TEXTBOX, p, "tb2");
+
+    textbox_set_border((Textbox *)el->component, &color_global_black, 5);
+    textbox_size_to_fit((Textbox *)el->component, 0, 0);
+    textbox_reset_full((Textbox *)el->component);
+    p.slider_p.fn = NULL;
+    p.slider_p.style = SLIDER_FILL;
+    p.slider_p.orientation = SLIDER_HORIZONTAL;
+    p.slider_p.value = (void *)&globdub;
+    p.slider_p.val_type = JDAW_DOUBLE;
+		       el = page_add_el(page, EL_SLIDER, p, "hslider1");
+    globslid = (Slider *)el->component;
+
+    p.slider_p.orientation = SLIDER_VERTICAL;
+    p.slider_p.value = (void *)&globdub2;
+    el = page_add_el(page, EL_SLIDER, p, "vslider1");
+    globslid2 = (Slider *)el->component;
+
+    p.toggle_p.value = &globbool;
+    el = page_add_el(page, EL_TOGGLE, p, "toggle1");
+    
+    page_activate(page);
+    
+}
+
 void loop_project_main()
 {
 
@@ -204,6 +273,12 @@ void loop_project_main()
 
     bool first_frame = true;
     while (!(main_win->i_state & I_STATE_QUIT)) {
+	if (globslid) {
+	    globdub += 0.001;
+	    globdub2 += 0.0008;
+	    slider_reset(globslid);
+	    slider_reset(globslid2);
+	}
 	/* fprintf(stdout, "About to poll...\n"); */
 	while (SDL_PollEvent(&e)) {
 	    /* fprintf(stdout, "Polled!\n"); */
@@ -248,10 +323,14 @@ void loop_project_main()
 		break;
 	    case SDL_KEYDOWN: {
 		switch (e.key.keysym.scancode) {
+		case SDL_SCANCODE_5:
+		    globbool = !globbool;
+		    break;
 		case SDL_SCANCODE_6:
-		    fprintf(stdout, "Ck size before: %d\n", proj->chunk_size_sframes);
-		    project_set_chunk_size(512);
-		    fprintf(stdout, "DONE! new chunk size: %d\n", proj->chunk_size_sframes);
+		    test_page_create();
+		    /* fprintf(stdout, "Ck size before: %d\n", proj->chunk_size_sframes); */
+		    /* project_set_chunk_size(512); */
+		    /* fprintf(stdout, "DONE! new chunk size: %d\n", proj->chunk_size_sframes); */
 		    break;
 		case SDL_SCANCODE_7: {
 		    Timeline *tl = proj->timelines[0];

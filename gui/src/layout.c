@@ -699,18 +699,22 @@ int set_rect_xy(Layout *lt)
 	lt->rect.x = lt->x.value.intval * main_win->dpi_scale_factor;
 	break;
     case REL:
+	if (!lt->parent) break;
 	lt->rect.x = lt->parent->rect.x + lt->x.value.intval * main_win->dpi_scale_factor;
 	break;
     case REVREL:
+	if (!lt->parent) break;
 	lt->rect.x = lt->parent->rect.x + lt->parent->rect.w - lt->rect.w - (lt->x.value.intval * main_win->dpi_scale_factor);
 	break;
     case SCALE:
+	if (!lt->parent) break;
 	lt->rect.x = lt->parent->rect.x + lt->parent->rect.w * lt->x.value.floatval;
 	break;
     case COMPLEMENT:
 	return 0;
 	break;
     case STACK: {
+	if (!lt->parent) break;
 	Layout *last_sibling = get_last_sibling(lt);
 	if (last_sibling) {
 	    lt->rect.x = last_sibling->rect.x + last_sibling->rect.w + lt->x.value.intval * main_win->dpi_scale_factor;
@@ -727,19 +731,23 @@ int set_rect_xy(Layout *lt)
 	lt->rect.y = lt->y.value.intval * main_win->dpi_scale_factor;
 	break;
     case REL:
+	if (!lt->parent) break;
 	// fprintf(stderr, "Y is rel. ")
 	lt->rect.y = lt->parent->rect.y + lt->y.value.intval * main_win->dpi_scale_factor;
 	break;
     case REVREL:
+	if (!lt->parent) break;
 	lt->rect.y = lt->parent->rect.y + lt->parent->rect.h - lt->rect.h - (lt->y.value.intval * main_win->dpi_scale_factor);
 	break;
     case SCALE:
+	if (!lt->parent) break;
 	lt->rect.y = lt->parent->rect.y + lt->parent->rect.h * lt->y.value.floatval;
 	break;
     case COMPLEMENT:
 	return 0;
 	break;
     case STACK: {
+	if (!lt->parent) break;
 	Layout *last_sibling = get_last_sibling(lt);
 	if (last_sibling) {
 	    lt->rect.y = last_sibling->rect.y + last_sibling->rect.h + lt->y.value.intval * main_win->dpi_scale_factor;
@@ -765,9 +773,11 @@ int set_rect_wh(Layout *lt)
 	lt->rect.w = lt->w.value.intval * main_win->dpi_scale_factor;
 	break;
     case SCALE:
+	if (!lt->parent) break;
 	lt->rect.w = round(((float) lt->parent->rect.w) * lt->w.value.floatval);
 	break;
     case COMPLEMENT: {
+	if (!lt->parent) break;
 	Layout *last_sibling = lt->parent->children[lt->index - 1];
 	while (last_sibling && last_sibling->w.type == COMPLEMENT && last_sibling->index > 0) {
 	    last_sibling = last_sibling->parent->children[last_sibling->index - 1];
@@ -782,9 +792,7 @@ int set_rect_wh(Layout *lt)
     case STACK:
 	break;
     case PAD:
-	if (!lt->parent) {
-	    break;
-	}
+	if (!lt->parent) break;
 	set_rect_xy(lt);
 	lt->rect.w = lt->parent->rect.w - 2 * (lt->rect.x - lt->parent->rect.x);
 	break;
@@ -797,9 +805,11 @@ int set_rect_wh(Layout *lt)
 	lt->rect.h = lt->h.value.intval * main_win->dpi_scale_factor;
 	break;
     case SCALE:
+	if (!lt->parent) break;
 	lt->rect.h = round(((float) lt->parent->rect.h) * lt->h.value.floatval);
 	break;
     case COMPLEMENT: {
+	if (!lt->parent) break;
 	Layout *last_sibling = lt->parent->children[lt->index - 1];
 	while (last_sibling && last_sibling->h.type == COMPLEMENT && last_sibling->index > 0) {
 	    last_sibling = last_sibling->parent->children[last_sibling->index - 1];
@@ -815,9 +825,7 @@ int set_rect_wh(Layout *lt)
     case STACK:
 	break;
     case PAD:
-	if (!lt->parent) {
-	    break;
-	}
+	if (!lt->parent) break;
 	set_rect_xy(lt);
 	lt->rect.h = lt->parent->rect.h - 2 * (lt->rect.y - lt->parent->rect.y);
 	break;
@@ -839,14 +847,14 @@ void layout_force_reset(Layout *lt)
     
     while (lt) {
 	/* DO CALCS */
-	if (lt->parent) {
-	    if (!set_rect_wh(lt)) {
-		fprintf(stderr, "Error: failed to set wh on %s\n", lt->name);
-	    }
-	    if (!(set_rect_xy(lt))) {
-		fprintf(stderr, "Error: failed to set xy on %s\n", lt->name);
-	    }
+
+	if (!set_rect_wh(lt)) {
+	    fprintf(stderr, "Error: failed to set wh on %s\n", lt->name);
 	}
+	if (!(set_rect_xy(lt))) {
+	    fprintf(stderr, "Error: failed to set xy on %s\n", lt->name);
+	}
+
 	if (lt->namelabel) {
 	    lt->label_rect = (SDL_Rect) {lt->rect.x, lt->rect.y - TXT_H, 0, 0};
 	    txt_reset_display_value(lt->namelabel);
@@ -992,11 +1000,11 @@ Layout *layout_create_from_window(Window *win)
     dv.intval = 0;
     lt->x = (Dimension) {ABS, dv};
     lt->y = (Dimension) {ABS, dv};
-    dv.intval = win->w;
+    dv.intval = win->w_pix;
     lt->w = (Dimension) {ABS, dv};
-    dv.intval = win->h;
+    dv.intval = win->h_pix;
     lt->h = (Dimension) {ABS, dv};
-    lt->rect = (SDL_Rect) {0, 0, win->w, win->h};
+    lt->rect = (SDL_Rect) {0, 0, win->w_pix, win->h_pix};
     lt->label_rect = (SDL_Rect) {lt->rect.x, lt->rect.y - TXT_H, 0, 0};
     lt->index = 0;
     snprintf(lt->name, 5, "main");
@@ -1006,15 +1014,23 @@ Layout *layout_create_from_window(Window *win)
 void layout_reset_from_window(Layout *lt, Window *win)
 {
     DimVal dv;
-    dv.intval = win->w;
-    lt->w = (Dimension) {ABS, dv};
-    dv.intval = win->h;
-    lt->h = (Dimension) {ABS, dv};
-    lt->rect.x = 0;
-    lt->rect.y = 0;
-    lt->rect.w = win->w;
-    lt->rect.h = win->h;
-    layout_reset(lt);
+    if (lt->w.type == SCALE ) {
+	lt->rect.w = win->w_pix;
+	lt->rect.h = win->h_pix;
+    } else {
+	dv.intval = win->w_pix / win->dpi_scale_factor;
+	lt->w = (Dimension) {ABS, dv};
+    }
+    if (lt->h.type == SCALE) {
+	lt->rect.w = win->w_pix;
+	lt->rect.h = win->h_pix;
+    } else {
+	dv.intval = win->h_pix / win->dpi_scale_factor;
+	lt->h = (Dimension) {ABS, dv};
+
+    }
+    layout_force_reset(lt);
+    /* fprintf(stdout, "NEW LT: %d, %d, %d %d, rect: %d %d %d %d\n", lt->x.value.intval, lt->y.value.intval, lt->w.value.intval, lt->h.value.intval, lt->rect.x, lt->rect.y, lt->rect.w, lt->rect.h); */
 }
 
 Layout *layout_add_child(Layout *parent)
@@ -1062,6 +1078,7 @@ void layout_reparent(Layout *child, Layout *parent)
 
 void layout_center_agnostic(Layout *lt, bool horizontal, bool vertical)
 {
+    layout_force_reset(lt);
     if (horizontal) lt->rect.x = lt->parent->rect.x + lt->parent->rect.w / 2 - lt->rect.w / 2;
     if (vertical) lt->rect.y = lt->parent->rect.y + lt->parent->rect.h / 2 - lt->rect.h / 2;
     layout_set_values_from_rect(lt);
@@ -1527,10 +1544,10 @@ void layout_draw(Window *win, Layout *lt)
     if (lt->type != ITERATION) {
 	SDL_Color dotted_clr = lt->selected ? rect_clrs_dttd[1] : rect_clrs_dttd[0];
         SDL_SetRenderDrawColor(win->rend, dotted_clr.r, dotted_clr.g, dotted_clr.b, dotted_clr.a);
-        draw_dotted_horizontal(win->rend, 0, win->w, lt->rect.y);
-        draw_dotted_horizontal(win->rend, 0, win->w, lt->rect.y + lt->rect.h);
-        draw_dotted_vertical(win->rend, lt->rect.x, 0, win->h);
-        draw_dotted_vertical(win->rend, lt->rect.x + lt->rect.w, 0, win->h);
+        draw_dotted_horizontal(win->rend, 0, win->w_pix, lt->rect.y);
+        draw_dotted_horizontal(win->rend, 0, win->w_pix, lt->rect.y + lt->rect.h);
+        draw_dotted_vertical(win->rend, lt->rect.x, 0, win->h_pix);
+        draw_dotted_vertical(win->rend, lt->rect.x + lt->rect.w, 0, win->h_pix);
     }
 
 

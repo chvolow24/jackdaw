@@ -47,20 +47,22 @@ extern Project *proj;
 static void mouse_triage_motion_track(Track *track)
 {
     if (main_win->i_state & I_STATE_MOUSE_L && SDL_PointInRect(&main_win->mousep, track->console_rect)) {
-	if (SDL_PointInRect(&main_win->mousep, &track->vol_ctrl->layout->rect)) {
-	    Value newval = slider_val_from_coord(track->vol_ctrl, main_win->mousep.x);
-	    track->vol = newval.float_v;
-	    slider_reset(track->vol_ctrl);
-	    /* proj->vol_changing = true; */
-	    return;
-	}
-	if (SDL_PointInRect(&main_win->mousep, &track->pan_ctrl->layout->rect)) {
-	    Value newval = slider_val_from_coord(track->pan_ctrl, main_win->mousep.x);
-	    track->pan = newval.float_v;
-	    slider_reset(track->pan_ctrl);
-	    /* proj->pan_changing = true; */
-	    return;
-	}
+	if (slider_mouse_motion(track->vol_ctrl, main_win)) return;
+	/* if (SDL_PointInRect(&main_win->mousep, &track->vol_ctrl->layout->rect)) { */
+	/*     Value newval = slider_val_from_coord(track->vol_ctrl, main_win->mousep.x); */
+	/*     track->vol = newval.float_v; */
+	/*     slider_reset(track->vol_ctrl); */
+	/*     /\* proj->vol_changing = true; *\/ */
+	/*     return; */
+	/* } */
+	if (slider_mouse_motion(track->pan_ctrl, main_win)) return;
+	/* if (SDL_PointInRect(&main_win->mousep, &track->pan_ctrl->layout->rect)) { */
+	/*     Value newval = slider_val_from_coord(track->pan_ctrl, main_win->mousep.x); */
+	/*     track->pan = newval.float_v; */
+	/*     slider_reset(track->pan_ctrl); */
+	/*     /\* proj->pan_changing = true; *\/ */
+	/*     return; */
+	/* } */
     }
 
 }

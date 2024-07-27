@@ -1,0 +1,54 @@
+<Layout name="some_name" type="NORMAL">
+    <x>REL 0</x>
+    <y>REL 0</y>
+    <w>SCALE 1.0</w>
+    <h>SCALE 1.0</h>
+    <index>0</index>
+    <children>
+        <Layout name="hslider1" type="NORMAL">
+            <x>SCALE 0.082500</x>
+            <y>SCALE 0.075556</y>
+            <w>SCALE 0.345000</w>
+            <h>SCALE 0.078519</h>
+            <index>0</index>
+            <children>
+            </children>
+        </Layout>
+        <Layout name="tb1" type="NORMAL">
+            <x>REL 59</x>
+            <y>REL 150</y>
+            <w>ABS 112</w>
+            <h>ABS 359</h>
+            <index>1</index>
+            <children>
+            </children>
+        </Layout>
+        <Layout name="tb2" type="NORMAL">
+            <x>SCALE 0.258333</x>
+            <y>REL 273</y>
+            <w>SCALE 0.345000</w>
+            <h>SCALE 0.361481</h>
+            <index>2</index>
+            <children>
+            </children>
+        </Layout>
+        <Layout name="vslider1" type="NORMAL">
+            <x>SCALE 0.209583</x>
+            <y>SCALE 0.240000</y>
+            <w>SCALE 0.020833</w>
+            <h>SCALE 0.499259</h>
+            <index>3</index>
+            <children>
+            </children>
+        </Layout>
+        <Layout name="toggle1" type="NORMAL">
+            <x>REL 300</x>
+            <y>REL 168</y>
+            <w>REL 50</w>
+            <h>REL 50</h>
+            <index>4</index>
+            <children>
+            </children>
+        </Layout>
+    </children>
+</Layout>

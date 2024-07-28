@@ -33,6 +33,7 @@
 #include "input.h"
 #include "menu.h"
 #include "modal.h"
+#include "page.h"
 #include "project.h"
 #include "timeline.h"
 #include "userfn.h"
@@ -247,3 +248,19 @@ void mouse_triage_click_text_edit(uint8_t button)
 
 }
 
+
+void mouse_triage_motion_page()
+{
+    Page *page;
+    if ((page = main_win->active_page)) {
+	page_mouse_motion(page, main_win);
+    }
+}
+
+void mouse_triage_click_page()
+{
+    Page *page;
+    if ((page = main_win->active_page)) {
+	page_mouse_click(page, main_win);
+    }
+}

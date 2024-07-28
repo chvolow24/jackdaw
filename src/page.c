@@ -4,7 +4,31 @@
 #include "layout_xml.h"
 #include "textbox.h"
 #include "waveform.h"
+/*
 
+      switch (el->type) {
+    case EL_TEXTAREA:
+	break;
+    case EL_TEXTBOX:
+	break;
+    case EL_TEXTENTRY:
+	break;
+    case EL_SLIDER:
+	break;
+    case EL_RADIO:
+	break;
+    case EL_TOGGLE:
+	break;
+    case EL_PLOT:
+	break;
+    case EL_FREQ_PLOT:
+	break;
+    case EL_BUTTON:
+	break;
+    default:
+	break;
+    }
+*/
 TabView *tab_view_create(const char *title, Layout *parent_lt, Window *win)
 {
     TabView *tv = calloc(1, sizeof(Page));
@@ -178,6 +202,91 @@ static void page_el_reset(PageEl *el)
 void page_reset(Page *page)
 {
     layout_reset(page->layout);
+}
+
+static bool page_element_mouse_motion(PageEl *el, Window *win)
+{
+    switch (el->type) {
+    case EL_TEXTAREA:
+	break;
+    case EL_TEXTBOX:
+	break;
+    case EL_TEXTENTRY:
+	break;
+    case EL_SLIDER:
+	return slider_mouse_motion((Slider *)el->component, win);
+	break;
+    case EL_RADIO:
+	break;
+    case EL_TOGGLE:
+	break;
+    case EL_PLOT:
+	break;
+    case EL_FREQ_PLOT:
+	break;
+    case EL_BUTTON:
+	break;
+    default:
+	break;
+    }
+    return false;
+}
+
+static bool page_element_mouse_click(PageEl *el, Window *win)
+{
+    if (!SDL_PointInRect(&win->mousep, &el->layout->rect)) {
+	return false;
+    }
+    switch (el->type) {
+    case EL_TEXTAREA:
+	break;
+    case EL_TEXTBOX:
+	break;
+    case EL_TEXTENTRY:
+	break;
+    case EL_SLIDER:
+	return slider_mouse_motion((Slider *)el->component, win);
+	break;
+    case EL_RADIO:
+	break;
+    case EL_TOGGLE:
+	toggle_toggle((Toggle *)el->component);
+	break;
+    case EL_PLOT:
+	break;
+    case EL_FREQ_PLOT:
+	break;
+    case EL_BUTTON:
+	break;
+    default:
+	break;
+    }
+    return false;
+}
+
+bool page_mouse_motion(Page *page, Window *win)
+{
+    if (SDL_PointInRect(&win->mousep, &page->layout->rect)) {
+	for (uint8_t i=0; i<page->num_elements; i++) {
+	    if (page_element_mouse_motion(page->elements[i], win)) {
+		return true;
+	    }
+	}
+    }
+    return false;
+}
+
+bool page_mouse_click(Page *page, Window *win)
+{
+    if (SDL_PointInRect(&win->mousep, &page->layout->rect)) {
+	for (uint8_t i=0; i<page->num_elements; i++) {
+	    if (page_element_mouse_click(page->elements[i], win)) {
+		return true;
+	    }
+	}
+    }
+    return false;
+
 }
 
 void tab_view_reset(TabView *tv)

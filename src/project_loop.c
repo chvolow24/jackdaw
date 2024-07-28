@@ -310,6 +310,7 @@ void loop_project_main()
 		    mouse_triage_motion_menu();
 		    break;
 		case TIMELINE:
+		    mouse_triage_motion_page();
 		    mouse_triage_motion_timeline();
 		default:
 		    break;
@@ -489,6 +490,7 @@ void loop_project_main()
 		switch(TOP_MODE) {
 		case TIMELINE:
 		    /* fprintf(stdout, "top mode tl\n"); */
+		    mouse_triage_click_page();
 		    mouse_triage_click_project(e.button.button);
 		    break;
 		case MENU_NAV:

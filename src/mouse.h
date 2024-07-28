@@ -43,6 +43,8 @@ void mouse_triage_motion_modal();
 void mouse_triage_click_modal(uint8_t button);
 void mouse_triage_wheel(int x, int y);
 void mouse_triage_click_text_edit(uint8_t button);
+void mouse_triage_motion_page();
+void mouse_triage_click_page();
 
 
 #endif

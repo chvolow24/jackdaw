@@ -131,7 +131,8 @@ PageEl *page_add_el(
     PageElType type,
     PageElParams params,
     const char *layout_name);
-
+bool page_mouse_motion(Page *page, Window *win);
+bool page_mouse_click(Page *page, Window *win);
 
 /* Reset functions */
 

@@ -1,5 +1,6 @@
 #include "color.h"
 #include "components.h"
+#include "input.h"
 #include "layout.h"
 #include "text.h"
 #include "textbox.h"
@@ -117,17 +118,19 @@ Value slider_val_from_coord(Slider *s, int coord_pix)
     double proportion;
     switch (s->orientation) {
     case SLIDER_VERTICAL:
-	proportion = ((double)coord_pix - s->layout->rect.y) / s->layout->rect.h;
+	proportion = ((double)s->layout->rect.y + s->layout->rect.h - coord_pix) / s->layout->rect.h;
 	break;
     case SLIDER_HORIZONTAL:
 	proportion = ((double)coord_pix - s->layout->rect.x) / s->layout->rect.w;
 	break;
     }
+    fprintf(stdout, "Proportion: %f\n", proportion);
     Value range = jdaw_val_sub(s->max, s->min, s->val_type);
     Value val_proportion = jdaw_val_scale(range, proportion, s->val_type);
     return jdaw_val_add(val_proportion, s->min, s->val_type);
 
 }
+
 
 void layout_write(FILE *f, Layout *lt, int indent);
 void slider_reset(Slider *s)
@@ -272,14 +275,20 @@ void toggle_draw(Toggle *tgl)
 }
 
 
-
-
+bool toggle_toggle(Toggle *toggle)
+{
+    *(toggle->value) = !(*toggle->value);
+    return toggle->value;
+}
 
 /* Mouse functions */
 bool slider_mouse_motion(Slider *slider, Window *win)
 {
-    if (SDL_PointInRect(&main_win->mousep, &slider->layout->rect)) {
-	Value newval = slider_val_from_coord(slider, main_win->mousep.x);
+    if (SDL_PointInRect(&main_win->mousep, &slider->layout->rect) && win->i_state & I_STATE_MOUSE_L) {
+	int dim = slider->orientation == SLIDER_VERTICAL ? main_win->mousep.y : main_win->mousep.x;
+	fprintf(stdout, "\n\nDim: %d\n", dim);
+	Value newval = slider_val_from_coord(slider, dim);
+	fprintf(stdout, "NEWVAL: %f\n", newval.double_v);
 	jdaw_val_set_ptr(slider->value, slider->val_type, newval);
 	/* track->vol = newval.float_v; */
 	slider_reset(slider);

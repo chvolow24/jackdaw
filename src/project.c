@@ -702,10 +702,12 @@ Track *timeline_add_track(Timeline *tl)
 
 
     /* FILTER TESTS */
+    if (track->tl_rank == 0) {
 	int ir_len = proj->fourier_len_sframes / 2;
 	track->fir_filter = create_FIR_filter(LOWPASS, ir_len, track->tl->proj->fourier_len_sframes * 2);
 	set_FIR_filter_params_h(track->fir_filter, LOWPASS, 1000, 1000);
 	track->fir_filter_active = true;
+    }
     /* END FILTER TESTS */
 
 

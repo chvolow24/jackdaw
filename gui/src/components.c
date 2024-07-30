@@ -1,5 +1,6 @@
 #include "color.h"
 #include "components.h"
+#include "geometry.h"
 #include "input.h"
 #include "layout.h"
 #include "text.h"
@@ -12,6 +13,7 @@ extern Window *main_win;
 
 #define SLIDER_LABEL_H_PAD 4
 #define SLIDER_LABEL_V_PAD 2
+#define RADIO_BUTTON_LEFT_COL_W 10
 
 /* SDL_Color fslider_bckgrnd = {60, 60, 60, 255}; */
 /* SDL_Color fslider_bar_container_bckgrnd =  {190, 190, 190, 255}; */
@@ -24,6 +26,7 @@ SDL_Color slider_bar_color = {12, 107, 249, 250};
 SDL_Color tgl_bckgrnd = {110, 110, 110, 255};
 
 extern SDL_Color color_global_black;
+extern SDL_Color color_global_clear;
 
 /* Slider fslider_create(Layout *layout, SliderOrientation orientation, SliderType type, SliderStrFn *fn) */
 Slider *slider_create(
@@ -124,7 +127,7 @@ Value slider_val_from_coord(Slider *s, int coord_pix)
 	proportion = ((double)coord_pix - s->layout->rect.x) / s->layout->rect.w;
 	break;
     }
-    fprintf(stdout, "Proportion: %f\n", proportion);
+    /* fprintf(stdout, "Proportion: %f\n", proportion); */
     Value range = jdaw_val_sub(s->max, s->min, s->val_type);
     Value val_proportion = jdaw_val_scale(range, proportion, s->val_type);
     return jdaw_val_add(val_proportion, s->min, s->val_type);
@@ -281,14 +284,91 @@ bool toggle_toggle(Toggle *toggle)
     return toggle->value;
 }
 
+/* Radio Button */
+RadioButton *radio_button_create(
+    Layout *lt,
+    int text_size,
+    SDL_Color *text_color,
+    void *target_enum,
+    void (*external_action)(void *target_enum),
+    const char **item_names,
+    uint8_t num_items
+    )
+{
+    RadioButton *rb = calloc(1, sizeof(RadioButton));
+    rb->external_action = external_action;
+    rb->target_enum = target_enum;
+    rb->num_items = num_items;
+    rb->lt = lt;
+    /* Layout manipulation */
+    for (uint8_t i=0; i<num_items; i++) {
+	Layout *item_lt, *l, *r;
+	if (i==0) {
+	    item_lt = layout_add_child(lt);
+	    item_lt->h.value.intval = RADIO_BUTTON_ITEM_H;
+	    item_lt->w.type = SCALE;
+	    item_lt->w.value.floatval = 1.0f;
+	    item_lt->y.type = STACK;
+	    l = layout_add_child(item_lt);
+	    r = layout_add_child(item_lt);
+	    l->h.type = SCALE;
+	    l->h.value.floatval = 1.0f;
+	    r->h.type = SCALE;
+	    r->h.value.floatval = 1.0f;
+	    l->w.value.intval = RADIO_BUTTON_LEFT_W;
+	    r->x.type = STACK;
+	    r->w.type = COMPLEMENT;
+	} else {
+	    item_lt = layout_copy(lt->children[0], lt);
+	    l = item_lt->children[0];
+	    r = item_lt->children[1];
+	}
+	layout_force_reset(item_lt);
+	Textbox *label = textbox_create_from_str((char *)item_names[i], r, main_win->std_font, 14, main_win);
+	textbox_set_align(label, CENTER_LEFT);
+	textbox_set_pad(label, 4, 0);
+	textbox_set_background_color(label, &color_global_clear);
+	textbox_reset_full(label);
+	rb->items[i] = label;
+    }
+    /* Layout *left_col = layout_add_child(lt); */
+    /* left_col->h.type = SCALE; */
+    /* left_col->h.value.floatval = 1.0f; */
+    /* left_col->w.value.intval = RADIO_BUTTON_LEFT_COL_W; */
+
+    /* Layout *item_container = layout_add_child(lt); */
+    /* item_container->h.type = SCALE; */
+    /* item_container->h.value.floatval = 1.0f; */
+    /* item_container->x.type = STACK; */
+    /* item_container->w.type = COMPLEMENT; */
+
+    /* layout_force_reset(lt); */
+    
+    return rb;
+}
+
+
+void radio_button_draw(RadioButton *rb)
+{
+    /* layout_draw(main_win, rb->lt); */
+    for (uint8_t i=0; i<rb->num_items; i++) {
+	textbox_draw(rb->items[i]);
+	Layout *circle_container = rb->lt->children[i]->children[0];
+	int r = (circle_container->rect.w >> 1) - RADIO_BUTTON_R_SUB;
+	SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
+	geom_fill_circle(main_win->rend, circle_container->rect.x, circle_container->rect.y, r);
+    }
+}
+
+
 /* Mouse functions */
+
+
 bool slider_mouse_motion(Slider *slider, Window *win)
 {
     if (SDL_PointInRect(&main_win->mousep, &slider->layout->rect) && win->i_state & I_STATE_MOUSE_L) {
 	int dim = slider->orientation == SLIDER_VERTICAL ? main_win->mousep.y : main_win->mousep.x;
-	fprintf(stdout, "\n\nDim: %d\n", dim);
 	Value newval = slider_val_from_coord(slider, dim);
-	fprintf(stdout, "NEWVAL: %f\n", newval.double_v);
 	jdaw_val_set_ptr(slider->value, slider->val_type, newval);
 	/* track->vol = newval.float_v; */
 	slider_reset(slider);

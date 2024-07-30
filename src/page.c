@@ -142,6 +142,14 @@ void page_el_set_params(PageEl *el, PageElParams params)
 	    params.slider_p.fn);
 	break;
     case EL_RADIO:
+	el->component = (void *)radio_button_create(
+	    el->layout,
+	    params.radio_p.text_size,
+	    params.radio_p.text_color,
+	    params.radio_p.target_enum,
+	    params.radio_p.external_action,
+	    params.radio_p.item_names,
+	    params.radio_p.num_items);
 	break;
     case EL_TOGGLE:
 	el->component = (void *)toggle_create(
@@ -309,6 +317,7 @@ static void page_el_draw(PageEl *el)
 	slider_draw((Slider *)el->component);
 	break;
     case EL_RADIO:
+	radio_button_draw((RadioButton *)el->component);
 	break;
     case EL_TOGGLE:
 	toggle_draw((Toggle *)el->component);

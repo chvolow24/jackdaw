@@ -94,6 +94,24 @@ static void fill_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const
     SDL_RenderFillRect(rend, &fill);
 }
 
+void geom_draw_circle(SDL_Renderer *rend, int orig_x, int orig_y, int r)
+{
+    draw_quadrant(rend, orig_x + r, orig_y + r, r, 1);
+    draw_quadrant(rend, orig_x + r, orig_y + r, r, 0);
+    draw_quadrant(rend, orig_x, orig_y + r, r, 2);
+    draw_quadrant(rend, orig_x + r, orig_y + r, r, 3);
+}
+
+void geom_fill_circle(SDL_Renderer *rend , int orig_x, int orig_y, int r)
+{
+    int center_x = orig_x + r;
+    int center_y = orig_y + r;
+    fill_quadrant(rend, center_x, center_y, r, 1);
+    fill_quadrant(rend, center_x, center_y, r, 0);
+    fill_quadrant(rend, center_x, center_y, r, 2);
+    fill_quadrant(rend, center_x, center_y, r, 3);
+}
+
 void geom_draw_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r)
 {
     int left_x = rect->x + r;

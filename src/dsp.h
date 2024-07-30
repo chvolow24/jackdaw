@@ -35,7 +35,7 @@
 
 
 typedef enum filter_type {
-    LOWPASS, HIGHPASS, BANDPASS, BANDCUT
+    LOWPASS=0, HIGHPASS=1, BANDPASS=2, BANDCUT=3
 } FilterType;
 
 typedef struct fir_filter {

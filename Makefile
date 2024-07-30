@@ -9,7 +9,7 @@ CFLAGS_LT_ONLY := -DLT_DEV_MODE=1 -DLAYOUT_BUILD=1
 CFLAGS_ADDTL =
 
 LAYOUT_PROGRAM_SRCS := gui/src/openfile.c gui/src/lt_params.c gui/src/draw.c gui/src/main.c gui/src/test.c
-JACKDAW_ONLY_SRCS :=  src/main.c gui/src/userfn.c gui/src/input.c gui/src/test.c gui/src/modal.c gui/src/dir.c
+JACKDAW_ONLY_SRCS :=  src/main.c gui/src/userfn.c gui/src/input.c gui/src/test.c gui/src/modal.c gui/src/dir.c gui/src/components.c
 SRCS := $(wildcard $(SRC_DIR)/*.c)
 GUI_SRCS_ALL := $(wildcard $(GUI_SRC_DIR)/*.c)
 GUI_SRCS := $(filter-out $(LAYOUT_PROGRAM_SRCS), $(GUI_SRCS_ALL))

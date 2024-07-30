@@ -501,12 +501,14 @@ static void control_bar_draw(Project *proj)
 /* extern Modal *test_modal; */
 void project_draw()
 {
-    window_start_draw(main_win, &color_global_black);
     if (main_win->active_tab_view) {
+	window_start_draw(main_win, NULL);
 	tab_view_draw(main_win->active_tab_view);
     } else if (main_win->active_page) {
+	window_start_draw(main_win, NULL);
 	page_draw(main_win->active_page);
     } else {
+	window_start_draw(main_win, NULL);
 	timeline_draw(proj->timelines[proj->active_tl_index]);
 	control_bar_draw(proj);
 	textbox_draw(proj->timeline_label);

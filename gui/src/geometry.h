@@ -6,6 +6,10 @@
 
 #define STD_CORNER_RAD (10 * main_win->dpi_scale_factor)
 
+void geom_draw_circle(SDL_Renderer *rend, int orig_x, int orig_y, int r);
+
+void geom_fill_circle(SDL_Renderer *rend, int orig_x, int orig_y, int r);
+
 void geom_draw_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r);
 
 void geom_fill_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r);

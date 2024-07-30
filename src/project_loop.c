@@ -235,18 +235,47 @@ static void test_page_create()
     p.slider_p.orientation = SLIDER_HORIZONTAL;
     p.slider_p.value = (void *)&globdub;
     p.slider_p.val_type = JDAW_DOUBLE;
-		       el = page_add_el(page, EL_SLIDER, p, "hslider1");
+    el = page_add_el(page, EL_SLIDER, p, "hslider1");
     globslid = (Slider *)el->component;
-
     p.slider_p.orientation = SLIDER_VERTICAL;
     p.slider_p.value = (void *)&globdub2;
     el = page_add_el(page, EL_SLIDER, p, "vslider1");
+    
     globslid2 = (Slider *)el->component;
-
     p.toggle_p.value = &globbool;
     el = page_add_el(page, EL_TOGGLE, p, "toggle1");
+
+    /* struct radio_params { */
+    /* 	int text_size; */
+    /* 	SDL_Color *text_color; */
+    /* 	void *target_enum; */
+    /* 	void (*external_action)(void *); */
+    /* 	const char **item_names; */
+    /* 	uint8_t num_items; */
+    /* }; */
+    
+
+    static const char * item_names[] = {
+	"This is item 1",
+	"This is item 2",
+	"Some other name"
+
+    };
+
+    p.radio_p.text_size = 14;
+    p.radio_p.text_color = &color_global_black;
+    p.radio_p.target_enum = NULL;
+    p.radio_p.external_action = NULL;
+    p.radio_p.item_names = item_names;
+    p.radio_p.num_items = 3;
+    
+    el = page_add_el(page, EL_RADIO, p, "radio1");
+
     
     page_activate(page);
+
+
+    
     
 }
 
@@ -336,16 +365,30 @@ void loop_project_main()
 		case SDL_SCANCODE_7: {
 		    Timeline *tl = proj->timelines[0];
 		    Track *track = tl->tracks[0];
-		    double current_cutoff = track->fir_filter->cutoff_freq;
-		    set_FIR_filter_params(track->fir_filter, BANDPASS, current_cutoff - 0.004, 0.05);
+		    FilterType type = track->fir_filter->type;
+		    double cutoff = track->fir_filter->cutoff_freq;
+		    type++;
+		    type %= 4;
+		    /* double current_cutoff = track->fir_filter->cutoff_freq; */
+		    set_FIR_filter_params(track->fir_filter, type, cutoff, 0.05);
 
 		}
 		    break;
 		case SDL_SCANCODE_8: {
-		    Timeline *tl = proj->timelines[0];
+
+		    		    Timeline *tl = proj->timelines[0];
 		    Track *track = tl->tracks[0];
-		    double current_cutoff = track->fir_filter->cutoff_freq;
-		    set_FIR_filter_params(track->fir_filter, BANDPASS, current_cutoff + 0.004, 0.05);
+		    FilterType type = track->fir_filter->type;
+		    double cutoff = track->fir_filter->cutoff_freq;
+		    type--;
+		    type %= 4;
+		    /* double current_cutoff = track->fir_filter->cutoff_freq; */
+		    set_FIR_filter_params(track->fir_filter, type, cutoff, 0.05);
+
+		    /* Timeline *tl = proj->timelines[0]; */
+		    /* Track *track = tl->tracks[0]; */
+		    /* double current_cutoff = track->fir_filter->cutoff_freq; */
+		    /* set_FIR_filter_params(track->fir_filter, LOWPASS, current_cutoff + 0.001, 0.05); */
 		    
 		}
 		    break;
@@ -443,10 +486,18 @@ void loop_project_main()
 		if (main_win->modes[main_win->num_modes - 1] == TIMELINE) {
 		    if (main_win->i_state & I_STATE_SHIFT) {
 			if (main_win->i_state & I_STATE_CMDCTRL)
-			    proj->play_speed += e.wheel.y * PLAYSPEED_ADJUST_SCALAR_LARGE;
-			else {
+			    if (main_win->i_state & I_STATE_META) {
+				Timeline *tl = proj->timelines[0];
+				Track *track = tl->tracks[0];
+				double current_cutoff = track->fir_filter->cutoff_freq;
+				FilterType type = track->fir_filter->type;
+				double filter_adj = 0.001;
+				set_FIR_filter_params(track->fir_filter, type, current_cutoff + filter_adj * e.wheel.y, 0.05);
+			    } else 
+				proj->play_speed += e.wheel.y * PLAYSPEED_ADJUST_SCALAR_LARGE;
+			else 
 			    proj->play_speed += e.wheel.y * PLAYSPEED_ADJUST_SCALAR_SMALL;
-			}
+			
 			status_stat_playspeed();
 		    } else {
 			bool allow_scroll = true;

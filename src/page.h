@@ -93,6 +93,15 @@ struct button_params {
     Window *win;
 };
 
+struct radio_params {
+    int text_size;
+    SDL_Color *text_color;
+    void *target_enum;
+    void (*external_action)(void *);
+    const char **item_names;
+    uint8_t num_items;
+};
+
 struct toggle_params {
     bool *value;
 };
@@ -105,6 +114,7 @@ typedef union page_el_params {
     struct freqplot_params freqplot_p;
     struct button_params button_p;
     struct toggle_params toggle_p;
+    struct radio_params radio_p;
 } PageElParams;
 
 

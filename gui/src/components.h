@@ -10,7 +10,7 @@
 #define RADIO_BUTTON_MAX_ITEMS 64
 #define RADIO_BUTTON_ITEM_H 24
 #define RADIO_BUTTON_LEFT_W 24
-#define RADIO_BUTTON_R_SUB (4 * main_win->dpi_scale_factor);
+#define RADIO_BUTTON_RAD_PAD (3 * main_win->dpi_scale_factor);
 
 typedef struct button {
     Textbox *tb;
@@ -59,10 +59,10 @@ enum slider_style {
 
 
 typedef struct radio_button {
-    Layout *lt;
+    Layout *layout;
     Textbox *items[RADIO_BUTTON_MAX_ITEMS];
-    void *target_enum;
-    void (*external_action)(void *target_enum);
+    void *target;
+    void (*external_action)(int selected_i, void *target);
     uint8_t num_items;
     uint8_t selected_item;
     SDL_Color *text_color; 
@@ -117,13 +117,14 @@ RadioButton *radio_button_create(
     Layout *lt,
     int text_size,
     SDL_Color *text_color,
-    void *target_enum,
-    void (*external_action)(void *target_enum),
+    void *target,
+    void (*external_action)(int selected_i, void *target),
     const char **item_names,
     uint8_t num_items
     );
 
 void radio_button_draw(RadioButton *rb);
+bool radio_click(RadioButton *rb, Window *Win);
 
 /* Toggle */
 

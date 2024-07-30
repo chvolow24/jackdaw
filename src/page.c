@@ -256,6 +256,7 @@ static bool page_element_mouse_click(PageEl *el, Window *win)
 	return slider_mouse_motion((Slider *)el->component, win);
 	break;
     case EL_RADIO:
+	return radio_click((RadioButton *)el->component, win);
 	break;
     case EL_TOGGLE:
 	toggle_toggle((Toggle *)el->component);

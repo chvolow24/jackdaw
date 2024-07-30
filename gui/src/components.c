@@ -289,17 +289,17 @@ RadioButton *radio_button_create(
     Layout *lt,
     int text_size,
     SDL_Color *text_color,
-    void *target_enum,
-    void (*external_action)(void *target_enum),
+    void *target,
+    void (*external_action)(int selected_i, void *target),
     const char **item_names,
     uint8_t num_items
     )
 {
     RadioButton *rb = calloc(1, sizeof(RadioButton));
     rb->external_action = external_action;
-    rb->target_enum = target_enum;
+    rb->target = target;
     rb->num_items = num_items;
-    rb->lt = lt;
+    rb->layout = lt;
     /* Layout manipulation */
     for (uint8_t i=0; i<num_items; i++) {
 	Layout *item_lt, *l, *r;
@@ -350,19 +350,27 @@ RadioButton *radio_button_create(
 
 void radio_button_draw(RadioButton *rb)
 {
-    /* layout_draw(main_win, rb->lt); */
     for (uint8_t i=0; i<rb->num_items; i++) {
 	textbox_draw(rb->items[i]);
-	Layout *circle_container = rb->lt->children[i]->children[0];
-	int r = (circle_container->rect.w >> 1) - RADIO_BUTTON_R_SUB;
-	SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
-	geom_fill_circle(main_win->rend, circle_container->rect.x, circle_container->rect.y, r);
+	Layout *circle_container = rb->layout->children[i]->children[0];
+	int r = (circle_container->rect.w >> 1) - RADIO_BUTTON_RAD_PAD;
+	int orig_x = circle_container->rect.x + RADIO_BUTTON_RAD_PAD;
+	int orig_y = circle_container->rect.y + RADIO_BUTTON_RAD_PAD;
+	
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(slider_bar_container_bckgrnd));
+	geom_fill_circle(main_win->rend, orig_x, orig_y, r);
+	if (i==rb->selected_item) {
+	    r -= RADIO_BUTTON_RAD_PAD;
+	    orig_x += RADIO_BUTTON_RAD_PAD;
+	    orig_y += RADIO_BUTTON_RAD_PAD;
+	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(slider_bar_color));
+	    geom_fill_circle(main_win->rend, orig_x, orig_y, r);
+	}
     }
 }
 
 
 /* Mouse functions */
-
 
 bool slider_mouse_motion(Slider *slider, Window *win)
 {
@@ -374,6 +382,22 @@ bool slider_mouse_motion(Slider *slider, Window *win)
 	slider_reset(slider);
 	/* proj->vol_changing = true; */
 	return true;
+    }
+    return false;
+}
+
+bool radio_click(RadioButton *rb, Window *Win)
+{
+    if (SDL_PointInRect(&main_win->mousep, &rb->layout->rect)) {
+	for (uint8_t i = 0; i<rb->num_items; i++) {
+	    if (SDL_PointInRect(&main_win->mousep, &(rb->layout->children[i]->rect))) {
+		rb->selected_item = i;
+		if (rb->external_action) {
+		    rb->external_action(i, rb->target);
+		}
+		return true;
+	    }
+	}
     }
     return false;
 }

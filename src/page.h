@@ -96,8 +96,8 @@ struct button_params {
 struct radio_params {
     int text_size;
     SDL_Color *text_color;
-    void *target_enum;
-    void (*external_action)(void *);
+    void *target;
+    void (*external_action)(int, void *);
     const char **item_names;
     uint8_t num_items;
 };

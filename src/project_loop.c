@@ -190,6 +190,17 @@ double globdub2 = 0.0;
 Slider *globslid = NULL;
 Slider *globslid2 = NULL;
 bool globbool = false;
+
+
+
+static void rb_target_action(int selected_i, void *target)
+{
+    FIRFilter *f = (FIRFilter *)target;
+    double cutoff = f->cutoff_freq;
+    FilterType t = (FilterType)selected_i;
+    set_FIR_filter_params(f, t, cutoff, 0.05);
+    
+}
 static void test_page_create()
 {
     globdub = 0;
@@ -256,18 +267,19 @@ static void test_page_create()
     
 
     static const char * item_names[] = {
-	"This is item 1",
-	"This is item 2",
-	"Some other name"
+	"Highpass",
+	"Lowpass",
+	"Bandpass"
 
     };
 
     p.radio_p.text_size = 14;
     p.radio_p.text_color = &color_global_black;
-    p.radio_p.target_enum = NULL;
-    p.radio_p.external_action = NULL;
+    /* p.radio_p.target_enum = NULL; */
+    p.radio_p.external_action = rb_target_action;
     p.radio_p.item_names = item_names;
     p.radio_p.num_items = 3;
+    p.radio_p.target = proj->timelines[0]->tracks[0]->fir_filter;
     
     el = page_add_el(page, EL_RADIO, p, "radio1");
 

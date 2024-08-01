@@ -5,56 +5,65 @@
     <h>SCALE 1.000000</h>
     <index>0</index>
     <children>
-        <Layout name="hslider1" type="NORMAL">
-            <x>SCALE 0.082500</x>
-            <y>SCALE 0.075556</y>
-            <w>SCALE 0.345000</w>
-            <h>SCALE 0.078519</h>
+        <Layout name="cutoff_label" type="NORMAL">
+            <x>REL 60</x>
+            <y>REL 53</y>
+            <w>REL 198</w>
+            <h>REL 24</h>
             <index>0</index>
             <children>
             </children>
         </Layout>
-        <Layout name="tb1" type="NORMAL">
-            <x>REL 59</x>
-            <y>REL 150</y>
-            <w>ABS 112</w>
-            <h>ABS 359</h>
+        <Layout name="bandwidth_label" type="NORMAL">
+            <x>REL 60</x>
+            <y>REL 212</y>
+            <w>REL 198</w>
+            <h>REL 24</h>
             <index>1</index>
             <children>
             </children>
         </Layout>
-        <Layout name="radio1" type="NORMAL">
-            <x>SCALE 0.316667</x>
-            <y>REL 168</y>
-            <w>SCALE 0.322083</w>
-            <h>SCALE 0.361813</h>
+        <Layout name="slider_ir_len" type="NORMAL">
+            <x>REL 60</x>
+            <y>REL 236</y>
+            <w>REL 410</w>
+            <h>REL 33</h>
             <index>2</index>
             <children>
             </children>
         </Layout>
-        <Layout name="vslider1" type="NORMAL">
-            <x>SCALE 0.209583</x>
-            <y>SCALE 0.240000</y>
-            <w>SCALE 0.020833</w>
-            <h>SCALE 0.499259</h>
+        <Layout name="cutoff_slider" type="NORMAL">
+            <x>REL 60</x>
+            <y>REL 77</y>
+            <w>REL 410</w>
+            <h>REL 33</h>
             <index>3</index>
             <children>
             </children>
         </Layout>
-        <Layout name="toggle1" type="NORMAL">
-            <x>REL 300</x>
-            <y>REL 168</y>
-            <w>REL 50</w>
-            <h>REL 50</h>
+        <Layout name="radio1" type="NORMAL">
+            <x>REL 501</x>
+            <y>REL 53</y>
+            <w>REL 295</w>
+            <h>REL 159</h>
             <index>4</index>
             <children>
             </children>
         </Layout>
-        <Layout name="tb2" type="NORMAL">
-            <x>REL 320</x>
-            <y>REL 424</y>
-            <w>REL 286</w>
-            <h>REL 162</h>
+        <Layout name="bandwidth_label" type="NORMAL">
+            <x>REL 60</x>
+            <y>REL 121</y>
+            <w>REL 198</w>
+            <h>REL 24</h>
+            <index>5</index>
+            <children>
+            </children>
+        </Layout>
+        <Layout name="bandwidth_slider" type="NORMAL">
+            <x>REL 60</x>
+            <y>REL 145</y>
+            <w>REL 410</w>
+            <h>REL 33</h>
             <index>6</index>
             <children>
             </children>

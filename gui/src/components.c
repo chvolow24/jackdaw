@@ -35,11 +35,15 @@ Slider *slider_create(
     ValType val_type,
     enum slider_orientation orientation,
     enum slider_style style,
-    SliderStrFn *fn)
+    SliderStrFn *create_label_fn,
+    ComponentFn action,
+    void *target)
 
 {
     Slider *s = calloc(1, sizeof(Slider));
-    s->create_label = fn;
+    s->create_label = create_label_fn;
+    s->action = action;
+    s->target = target;
     s->layout = layout;
     Layout *bar_container = layout_add_child(layout);
     layout_set_name(bar_container, "bar_container");
@@ -47,8 +51,8 @@ Slider *slider_create(
     label->rect.x = layout->rect.x + layout->rect.w;
     label->rect.y = layout->rect.y;
     layout_set_values_from_rect(label);
-    if (fn) {
-	fn(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, value, val_type);
+    if (create_label_fn) {
+	create_label_fn(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, value, val_type);
     }
     /* amp_to_dbstr(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, *value); */
 
@@ -210,7 +214,7 @@ void slider_destroy(Slider *s)
 /* Button */
 
 
-Button *button_create(Layout *lt, char *text, void *(*action)(void *arg), SDL_Color *text_color, SDL_Color *background_color)
+Button *button_create(Layout *lt, char *text, ComponentFn action, SDL_Color *text_color, SDL_Color *background_color)
 {
     Button *button = calloc(1, sizeof(Button));
     button->action = action;
@@ -290,13 +294,13 @@ RadioButton *radio_button_create(
     int text_size,
     SDL_Color *text_color,
     void *target,
-    void (*external_action)(int selected_i, void *target),
+    ComponentFn action,
     const char **item_names,
     uint8_t num_items
     )
 {
     RadioButton *rb = calloc(1, sizeof(RadioButton));
-    rb->external_action = external_action;
+    rb->action = action;
     rb->target = target;
     rb->num_items = num_items;
     rb->layout = lt;
@@ -378,6 +382,8 @@ bool slider_mouse_motion(Slider *slider, Window *win)
 	int dim = slider->orientation == SLIDER_VERTICAL ? main_win->mousep.y : main_win->mousep.x;
 	Value newval = slider_val_from_coord(slider, dim);
 	jdaw_val_set_ptr(slider->value, slider->val_type, newval);
+	if (slider->action)
+		slider->action((void *)slider, slider->target);
 	/* track->vol = newval.float_v; */
 	slider_reset(slider);
 	/* proj->vol_changing = true; */
@@ -392,12 +398,23 @@ bool radio_click(RadioButton *rb, Window *Win)
 	for (uint8_t i = 0; i<rb->num_items; i++) {
 	    if (SDL_PointInRect(&main_win->mousep, &(rb->layout->children[i]->rect))) {
 		rb->selected_item = i;
-		if (rb->external_action) {
-		    rb->external_action(i, rb->target);
+		if (rb->action) {
+		    rb->action((void *)rb, rb->target);
 		}
 		return true;
 	    }
 	}
     }
     return false;
+}
+
+
+void radio_destroy(RadioButton *rb)
+{
+    for (uint8_t i=0; i<rb->num_items; i++) {
+	textbox_destroy(rb->items[i]);
+    }
+    layout_destroy(rb->layout);
+    free(rb);
+
 }

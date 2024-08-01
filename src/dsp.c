@@ -281,9 +281,24 @@ static double bandcut_IR(int x, int offset, double center_freq, double bandwidth
 
 
 /* Create an empty FIR filter and allocate space for its buffers. MUST be initialized with 'set_filter_params'*/
+static void FIR_filter_alloc_buffers(FIRFilter *filter)
+{
+    SDL_LockMutex(filter->lock);
+    if (filter->impulse_response) free(filter->impulse_response);
+    filter->impulse_response = malloc(sizeof(double) * filter->impulse_response_len);
+    if (filter->frequency_response) free(filter->frequency_response);
+    filter->frequency_response = malloc(sizeof(double complex) * filter->frequency_response_len);
+    if (filter->frequency_response_mag) free(filter->frequency_response_mag);
+    filter->frequency_response_mag = malloc(sizeof(double) * filter->frequency_response_len);
+    filter->overlap_len = filter->impulse_response_len - 1;
+    filter->overlap_buffer_L = malloc(sizeof(double) * filter->overlap_len);
+    filter->overlap_buffer_R = malloc(sizeof(double) * filter->overlap_len);
+    SDL_UnlockMutex(filter->lock);
+
+}
 FIRFilter *create_FIR_filter(FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len) 
 {
-    FIRFilter *filter = malloc(sizeof(FIRFilter));
+    FIRFilter *filter = calloc(1, sizeof(FIRFilter));
     if (!filter) {
         fprintf(stderr, "Error: unable to allocate space for FIR Filter\n");
         return NULL;
@@ -291,12 +306,8 @@ FIRFilter *create_FIR_filter(FilterType type, uint16_t impulse_response_len, uin
     filter->type = type;
     filter->impulse_response_len = impulse_response_len;
     filter->frequency_response_len = frequency_response_len;
-    filter->impulse_response = malloc(sizeof(double) * impulse_response_len);
-    filter->frequency_response = malloc(sizeof(double complex) * filter->frequency_response_len);
-    filter->frequency_response_mag = malloc(sizeof(double) * filter->frequency_response_len);
-    filter->overlap_len = impulse_response_len - 1;
-    filter->overlap_buffer_L = malloc(sizeof(double) * filter->overlap_len);
-    filter->overlap_buffer_R = malloc(sizeof(double) * filter->overlap_len);
+    FIR_filter_alloc_buffers(filter);
+    filter->lock = SDL_CreateMutex();
     return filter;
 }
 
@@ -347,6 +358,8 @@ void set_FIR_filter_params(FIRFilter *filter, FilterType type, double cutoff, do
     /* } */
     FFT_unscaled(IR_zero_padded, filter->frequency_response, filter->frequency_response_len);
     get_magnitude(filter->frequency_response, filter->frequency_response_mag, filter->frequency_response_len);
+
+
     /* free(IR_zero_padded); */
 }
 
@@ -355,6 +368,44 @@ void set_FIR_filter_params_h(FIRFilter *filter, FilterType type, double cutoff_h
     double cutoff = cutoff_hz / (double)proj->sample_rate;
     double bandwidth = bandwidth_hz / (double)proj->sample_rate;;
     set_FIR_filter_params(filter, type, cutoff, bandwidth);
+}
+
+void set_FIR_filter_cutoff(FIRFilter *f, double cutoff)
+{
+    FilterType t = f->type;
+    double bandwidth = f->bandwidth;
+    set_FIR_filter_params(f, t, cutoff, bandwidth);
+
+}
+void set_FIR_filter_cutoff_h(FIRFilter *f, double cutoff_hz)
+{
+    FilterType t = f->type;
+    double bandwidth = f->bandwidth;
+    double cutoff = cutoff_hz / (double)proj->sample_rate;
+    set_FIR_filter_params(f, t, cutoff, bandwidth);
+}
+void set_FIR_filter_bandwidth(FIRFilter *f, double bandwidth)
+{
+    FilterType t = f->type;
+    double cutoff = f->cutoff_freq;
+    set_FIR_filter_params(f, t, cutoff, bandwidth);
+}
+void set_FIR_filter_bandwidth_h(FIRFilter *f, double bandwidth_h)
+{
+    FilterType t = f->type;
+    double bandwidth = bandwidth_h / proj->sample_rate;
+    double cutoff = f->cutoff_freq;
+    set_FIR_filter_params(f, t, cutoff, bandwidth);
+}
+
+void set_FIR_filter_impulse_response_len(FIRFilter *f, int new_len)
+{
+    f->impulse_response_len = new_len;
+    FIR_filter_alloc_buffers(f);
+    double cutoff = f->cutoff_freq;
+    double bandwidth = f->bandwidth;
+    FilterType t = f->type;
+    set_FIR_filter_params(f, t, cutoff, bandwidth);
 }
 
 void destroy_filter(FIRFilter *filter) 
@@ -376,6 +427,7 @@ void destroy_filter(FIRFilter *filter)
 /* Destructive; replaces values in sample_array */
 void apply_filter(FIRFilter *filter, uint8_t channel, uint16_t chunk_size, float *sample_array)
 {
+    SDL_LockMutex(filter->lock);
     double *overlap_buffer = channel == 0 ? filter->overlap_buffer_L : filter->overlap_buffer_R;
     /* if (filter->overlap_len != filter->impulse_response_len - 1) { */
     /*     filter->overlap_len = filter->impulse_response_len - 1; */
@@ -426,10 +478,11 @@ void apply_filter(FIRFilter *filter, uint8_t channel, uint16_t chunk_size, float
             overlap_buffer[i-chunk_size] = real[i];
         }
     }
+    SDL_UnlockMutex(filter->lock);
 }
 
 
-void apply_track_filter(Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array) 
+void ___apply_track_filter(Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array) 
 {
     if (!track->fir_filter_active == 0) {
         return;
@@ -450,6 +503,7 @@ void apply_track_filter(Track *track, uint8_t channel, uint16_t chunk_size, floa
     /* free(padded_chunk); */
 
     FIRFilter *filter = track->fir_filter;
+    SDL_LockMutex(filter->lock);
     /* double complex freq_response_sum[filter->frequency_response_len]; */
 	
     /* memset(freq_response_sum, '\0', sizeof(double complex) * filter->frequency_response_len); */
@@ -474,6 +528,7 @@ void apply_track_filter(Track *track, uint8_t channel, uint16_t chunk_size, floa
     for (uint16_t i=0; i<filter->frequency_response_len; i++) {
 	freq_domain[i] *= filter->frequency_response[i];
     }
+    SDL_UnlockMutex(filter->lock);
     double complex time_domain[padded_len];
     IFFT(freq_domain, time_domain, padded_len);
     /* free(freq_domain); */

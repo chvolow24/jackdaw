@@ -51,7 +51,9 @@ struct slider_params {
     ValType val_type;
     enum slider_orientation orientation;
     enum slider_style style;
-    SliderStrFn *fn;
+    SliderStrFn *create_label_fn;
+    ComponentFn action;
+    void *target;
 };
 
 struct textbox_params {
@@ -74,7 +76,7 @@ struct textentry_params {
     Font *font;
     uint8_t text_size;
     int (*validation)(Text *txt, char input);
-    int (*completion)(Text *txt);
+    ComponentFn completion;
 };
 
 struct freqplot_params {
@@ -97,7 +99,7 @@ struct radio_params {
     int text_size;
     SDL_Color *text_color;
     void *target;
-    void (*external_action)(int, void *);
+    ComponentFn action;
     const char **item_names;
     uint8_t num_items;
 };

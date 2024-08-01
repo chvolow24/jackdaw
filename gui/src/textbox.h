@@ -34,6 +34,11 @@ typedef struct text_lines {
     Layout *container;
 } TextLines;
 
+enum textbox_style {
+    BLANK,
+    NUMBOX
+};
+
 Textbox *textbox_create();
 void textbox_destroy(Textbox *);
 Textbox *textbox_create_from_str(
@@ -66,6 +71,8 @@ void textbox_reset_full(Textbox *tb);
 
 void textbox_set_pad(Textbox *tb, int h_pad, int v_pad);
 void textbox_set_value_handle(Textbox *tb, const char *new_value);
+
+void textbox_set_style(Textbox *tb, enum textbox_style style);
 
 TextLines *textlines_create(
     void **items,

@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <complex.h>
 #include "project.h"
+#include "SDL.h"
 
 #define DEFAULT_FILTER_LEN 128
 
@@ -50,6 +51,7 @@ typedef struct fir_filter {
     uint16_t impulse_response_len;
     uint16_t frequency_response_len;
     uint16_t overlap_len;
+    SDL_mutex *lock;
 } FIRFilter;
 
 /* Initialize the dsp subsystem. All this does currently is to populate the nth roots of unity for n < ROU_MAX_DEGREE */
@@ -61,6 +63,13 @@ FIRFilter *create_FIR_filter(FilterType type, uint16_t impulse_response_len, uin
 /* Bandwidth param only required for band-pass and band-cut filters */
 void set_FIR_filter_params(FIRFilter *filter, FilterType type,  double cutoff, double bandwidth);
 void set_FIR_filter_params_h(FIRFilter *filter, FilterType type, double cutoff_hz, double bandwidth_hz);
+
+void set_FIR_filter_cutoff(FIRFilter *filter, double cutoff);
+void set_FIR_filter_cutoff_h(FIRFilter *filter, double cutoff);
+void set_FIR_filter_bandwidth(FIRFilter *filter, double cutoff);
+void set_FIR_filter_bandwidth_h(FIRFilter *filter, double cutoff);
+
+void set_FIR_filter_impulse_response_len(FIRFilter *f, int new_len);
 
 /* Destry a FIRFilter and associated memory */
 void destroy_filter(FIRFilter *filter);

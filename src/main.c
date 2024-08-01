@@ -136,7 +136,7 @@ static void quit()
     }
     transport_stop_playback();
     /* Sleep to allow DSP thread to exit */
-    SDL_Delay(200);
+    SDL_Delay(100);
     project_destroy(proj);
     if (main_win) {
 	window_destroy(main_win);

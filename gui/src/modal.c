@@ -235,7 +235,7 @@ ModalEl *modal_add_dirnav(Modal *modal, const char *dirpath, int (*dir_to_tline_
     return el;
 }
 
-ModalEl *modal_add_button(Modal *modal, char *text, void *(*action)(void *arg))
+ModalEl *modal_add_button(Modal *modal, char *text, ComponentFn action)
 {
     ModalEl *el = modal_add_el(modal);
     el->type = MODAL_EL_BUTTON;
@@ -251,7 +251,7 @@ ModalEl *modal_add_button(Modal *modal, char *text, void *(*action)(void *arg))
 
 
 
-ModalEl *modal_add_textentry(Modal *modal, char *init_val, int (*validation)(Text *txt, char input), int (*completion)(Text *self))
+ModalEl *modal_add_textentry(Modal *modal, char *init_val, int (*validation)(Text *txt, char input), int (*completion)(Text *))
 {
     ModalEl *el = modal_add_el(modal);
     el->layout->y.value.intval = MODAL_V_PADDING_TIGHT;
@@ -446,7 +446,7 @@ void modal_select(Modal *modal)
 	modal_next_escape(modal);
 	break;
     case MODAL_EL_BUTTON:
-	((Button *)(current_el->obj))->action(modal);
+	((Button *)(current_el->obj))->action(modal, NULL);
     default:
 	break;
     }
@@ -457,7 +457,7 @@ void modal_submit_form(Modal *modal)
     fprintf(stdout, "modal submit form\n");
     if (modal->submit_form) {
 	fprintf(stdout, "has fn\n");
-	modal->submit_form(modal);
+	modal->submit_form((void *)modal, NULL);
     }
 }
 
@@ -492,7 +492,7 @@ void modal_triage_mouse(Modal *modal, SDL_Point *mousep, bool click)
 		/* fprintf(stdout, "El alreadyx selected\n"); */
 		switch (el->type) {
 		case MODAL_EL_BUTTON:
-		    ((Button *)(el->obj))->action(modal);
+		    ((Button *)(el->obj))->action(modal, NULL);
 		    break;
 		case MODAL_EL_DIRNAV:
 		    dirnav_triage_click(el->obj, mousep);

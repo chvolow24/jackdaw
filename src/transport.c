@@ -71,6 +71,7 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
 	double est_latency_mult = 60.0f;
 	double record_latency_ms = (double)1000.0f * proj->chunk_size_sframes / proj->sample_rate;
 	double playback_latency_ms = est_latency_mult * record_latency_ms;
+	fprintf(stdout, "Playback latency ms: %f\n", playback_latency_ms);
 
 	struct realtime_tick pb_cb_tick = proj->playback_conn->callback_time;
 	double elapsed_pb_chunk_ms = TIMESPEC_DIFF_MS(now, pb_cb_tick.ts) - playback_latency_ms;
@@ -224,7 +225,8 @@ void ____transport_playback_callback(void* user_data, uint8_t* stream, int len)
 void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 {
     /* fprintf(stdout, "\nSTART cb\n"); */
-    
+    /* clock_t a,b; */
+    /* a = clock(); */
     Timeline *tl = proj->timelines[proj->active_tl_index];
     AudioConn *conn = (AudioConn *)user_data;
     clock_gettime(CLOCK_MONOTONIC, &(conn->callback_time.ts));
@@ -242,8 +244,12 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	get_source_mode_chunk(0, chunk_L, len_sframes, proj->src_play_pos_sframes, proj->src_play_speed);
 	get_source_mode_chunk(1, chunk_R, len_sframes, proj->src_play_pos_sframes, proj->src_play_speed);
     } else {
-	/* fprintf(stdout, "wait readable...\n"); */
+	/* /\* fprintf(stdout, "wait readable...\n"); *\/ */
+	/* clock_t s_a, s_b; */
+	/* s_a = clock(); */
 	sem_wait(tl->readable_chunks);
+	/* s_b = clock(); */
+	/* fprintf(stdout, "\tsem: %lu\n", s_b - s_a); */
 	/* fprintf(stdout, "done!\n"); */
 	/* fprintf(stdout, "READ. buf read pos: %d. src: %p\n", tl->buf_read_pos, tl->buf_L + tl->buf_read_pos); */
 	memcpy(chunk_L, tl->buf_L + tl->buf_read_pos, sizeof(float) * len_sframes);
@@ -321,6 +327,8 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	/*     } */
 	/* } */
     }
+    /* b = clock(); */
+    /* fprintf(stdout, "DEL: %lu\n", b-a); */
     /* fprintf(stdout, "\t->END cb\n"); */
 }
 
@@ -342,14 +350,21 @@ static void *transport_dsp_thread_fn(void *arg)
     int N = len / proj->chunk_size_sframes;
     bool init = true;
     while (1) {
+	/* clock_t a,b; */
+	/* a = clock(); */
+
 	/* fprintf(stdout, "START DSP thread iter\n"); */
 	pthread_testcancel();
 	float play_speed = proj->play_speed;
 
 	/* GET MIXDOWN */
+	/* fprintf(stdout, "MIXDOWN:  */
+	/* clock_t am, bm; */
+	/* am = clock(); */
 	get_mixdown_chunk(tl, buf_L, 0, len, tl->read_pos_sframes, proj->play_speed);
 	get_mixdown_chunk(tl, buf_R, 1, len, tl->read_pos_sframes, proj->play_speed);
-
+	/* bm = clock(); */
+	/* fprintf(stdout, "\tmixdown: %lu\n", bm-am); */
 
 	/* DSP */
 
@@ -407,6 +422,8 @@ static void *transport_dsp_thread_fn(void *arg)
 	    init = false;
 	}
 	/* fprintf(stdout, "END DSP THREAD iter\n"); */
+	/* b = clock(); */
+	/* fprintf(stdout, "DSP time: %lu\n", b-a); */
     }
     return NULL;
 }
@@ -421,7 +438,29 @@ void transport_start_playback()
     proj->playing = true;
     Timeline *tl = proj->timelines[proj->active_tl_index];
     tl->read_pos_sframes = tl->play_pos_sframes;
-    pthread_create(&proj->dsp_thread, NULL, transport_dsp_thread_fn, (void *)tl); 
+
+
+
+    
+    int priority_min = sched_get_priority_min(SCHED_RR);
+    int priority_max = sched_get_priority_max(SCHED_RR);
+    fprintf(stdout, "priority range: %d-%d\n", priority_min, priority_max);
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    
+    /* struct sched_param sched_hm; */
+    /* pthread_attr_getschedparam(&attr, &sched_hm); */
+    /* fprintf(stdout, "Current thread pri? %d\n", sched_hm.sched_priority); */
+    /* int current_pri = sched_hm.sched_priority; */
+
+    struct sched_param dsp_sched;
+    dsp_sched.sched_priority = priority_max;
+    /* dsp_sched.sched_priority = current_pri; */
+    pthread_attr_setschedparam(&attr, &dsp_sched);
+    
+    /* pthread_create(&proj->dsp_thread, &attr, transport_dsp_thread_fn, (void *)tl); */
+    pthread_create(&proj->dsp_thread, NULL, transport_dsp_thread_fn, (void *)tl);
+    
     sem_wait(tl->unpause_sem);
     audioconn_start_playback(proj->playback_conn);
 }

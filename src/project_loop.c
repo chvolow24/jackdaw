@@ -35,6 +35,7 @@
 #include <time.h>
 #include "SDL.h"
 #include "audio_connection.h"
+#include "components.h"
 #include "draw.h"
 #include "dsp.h"
 #include "input.h"
@@ -48,6 +49,7 @@
 #include "status.h"
 #include "timeline.h"
 #include "transport.h"
+#include "waveform.h"
 #include "window.h"
 
 #define MAX_MODES 8
@@ -183,31 +185,81 @@ static void update_track_vol_pan()
 
 extern SDL_Color color_global_grey;
 
-double globdub = 0.5;
-double globdub2 = 0.0;
-
 //typedef void (SliderStrFn)(char *dst, size_t dstsize, void *value, ValType type);
-Slider *globslid = NULL;
-Slider *globslid2 = NULL;
-bool globbool = false;
 
-
-
-static void rb_target_action(int selected_i, void *target)
+static int rb_target_action(void *self_v, void *target)
 {
+    RadioButton *self = (RadioButton *)self_v;
     FIRFilter *f = (FIRFilter *)target;
     double cutoff = f->cutoff_freq;
-    FilterType t = (FilterType)selected_i;
+    FilterType t = (FilterType)(self->selected_item);
+    /* fprintf(stdout, "SET FIR FILTER PARAMS %p\n", f); */
     set_FIR_filter_params(f, t, cutoff, 0.05);
+    return 0;
     
 }
+
+static int slider_target_action(void *self_v, void *target)
+{
+    Slider *self = (Slider *)self_v;
+    FIRFilter *f = (FIRFilter *)target;
+    /* double cutoff = f->cutoff_freq; */
+    double cutoff_unscaled = *(double *)(self->value);
+    /* double cutoff_scaled = log(1.0 + cutoff_unscaled) / log(2.0f); */
+    double cutoff_h = pow(10.0, log10((double)proj->sample_rate / 2) * cutoff_unscaled);
+    /* /\* double cutoff_h = log(0.0001 + cutoff_unscaled) / log(1.0001f) * proj->sample_rate / 2; *\/ */
+    /* fprintf(stdout, "unscaled: %f, %d\n", cutoff_unscaled, (int)cutoff_h); */
+    /* FilterType t = f->type; */
+    /* set_FIR_filter_params_h(f, t, cutoff_h, 500); */
+    set_FIR_filter_cutoff_h(f, cutoff_h);
+    return 0;
+}
+
+static int slider_bandwidth_target_action(void *self_v, void *target)
+{
+    Slider *self = (Slider *)self_v;
+    FIRFilter *f = (FIRFilter *)target;
+    double bandwidth_unscaled = *(double *)(self->value);
+    double bandwidth_h = pow(10.0, log10((double)proj->sample_rate / 2) * bandwidth_unscaled);
+    /* /\* double cutoff_h = log(0.0001 + cutoff_unscaled) / log(1.0001f) * proj->sample_rate / 2; *\/ */
+    /* fprintf(stdout, "unscaled: %f, %d\n", cutoff_unscaled, (int)cutoff_h); */
+    /* FilterType t = f->type; */
+    /* set_FIR_filter_params_h(f, t, cutoff_h, 500); */
+    set_FIR_filter_bandwidth_h(f, bandwidth_h);
+    return 0;
+}
+
+static int slider_irlen_target_action(void *self_v, void *target)
+{
+    Slider *self = (Slider *)self_v;
+    FIRFilter *f = (FIRFilter *)target;
+    int val = *(int *)self->value;
+    set_FIR_filter_impulse_response_len(f, val);
+
+    if (proj->freq_domain_plot) waveform_destroy_freq_plot(proj->freq_domain_plot);
+
+    Layout *freq_lt = layout_add_child(proj->layout);
+    freq_lt->rect.w = 600 * main_win->dpi_scale_factor;
+    freq_lt->rect.h = 300 * main_win->dpi_scale_factor;
+    layout_set_values_from_rect(freq_lt);
+    freq_lt->y.type = REVREL;
+    freq_lt->y.value.intval = 0;
+    layout_reset(freq_lt);
+    layout_center_agnostic(freq_lt, true, false);
+
+    double *arrays[] = {proj->output_L_freq, proj->output_R_freq, proj->timelines[0]->tracks[0]->fir_filter->frequency_response_mag};
+    SDL_Color *colors[] = {&color_global_white, &color_global_white, &color_global_white};
+    int steps[] = {1, 1, 2};
+    proj->freq_domain_plot = waveform_create_freq_plot(arrays, 3, colors, steps, proj->fourier_len_sframes / 2, freq_lt);
+
+    /* proj->freq_domain_plot->plots[2] = proj->timelines[0]->tracks[0]->fir_filter->frequency_response_mag; */
+    return 0;
+}
+
 static void test_page_create()
 {
-    globdub = 0;
-    globdub2 = 0.2;
     if (main_win->active_page) {
 	page_close(main_win->active_page);
-	globslid = NULL;
 	return;
     }
     Layout *page_layout = layout_add_child(main_win->layout);
@@ -225,38 +277,52 @@ static void test_page_create()
 	page_layout,
 	&color_global_grey,
 	main_win);
+
+    
     PageElParams p;
     p.textbox_p.font = main_win->std_font;
     p.textbox_p.text_size = 12;
-    p.textbox_p.set_str = "Hello world";
+    p.textbox_p.set_str = "Bandwidth:";
     p.textbox_p.win = main_win;
-    page_add_el(page, EL_TEXTBOX, p, "tb1");
+    page_add_el(page, EL_TEXTBOX, p, "bandwidth_label");
 
-    p.textbox_p.font = main_win->std_font;
-    p.textbox_p.text_size = 24;
-    p.textbox_p.set_str = "I AM LARGE";
+    p.textbox_p.set_str = "Cutoff frequency:";
     p.textbox_p.win = main_win;
-    PageEl* el = page_add_el(page, EL_TEXTBOX, p, "tb2");
+    PageEl* el = page_add_el(page, EL_TEXTBOX, p, "cutoff_label");
 
-    textbox_set_border((Textbox *)el->component, &color_global_black, 5);
-    textbox_size_to_fit((Textbox *)el->component, 0, 0);
-    textbox_reset_full((Textbox *)el->component);
-    p.slider_p.fn = NULL;
+
+    
+    static double freq_unscaled = 0;
+    p.slider_p.create_label_fn = NULL;
     p.slider_p.style = SLIDER_FILL;
     p.slider_p.orientation = SLIDER_HORIZONTAL;
-    p.slider_p.value = (void *)&globdub;
+    p.slider_p.value = &freq_unscaled;
     p.slider_p.val_type = JDAW_DOUBLE;
-    el = page_add_el(page, EL_SLIDER, p, "hslider1");
-    globslid = (Slider *)el->component;
-    p.slider_p.orientation = SLIDER_VERTICAL;
-    p.slider_p.value = (void *)&globdub2;
-    el = page_add_el(page, EL_SLIDER, p, "vslider1");
-    
-    globslid2 = (Slider *)el->component;
-    p.toggle_p.value = &globbool;
-    el = page_add_el(page, EL_TOGGLE, p, "toggle1");
+    p.slider_p.action = slider_target_action;
+    p.slider_p.target = (void *)(proj->timelines[0]->tracks[0]->fir_filter);
+    el = page_add_el(page, EL_SLIDER, p, "cutoff_slider");
 
-    /* struct radio_params { */
+
+    static double bandwidth_unscaled = 0;
+    p.slider_p.action = slider_bandwidth_target_action;
+    p.slider_p.target = (void *)(proj->timelines[0]->tracks[0]->fir_filter);
+    p.slider_p.value = &bandwidth_unscaled;
+    el = page_add_el(page, EL_SLIDER, p, "bandwidth_slider");
+
+    static int ir_len = 20;
+    p.slider_p.action = slider_irlen_target_action;
+    p.slider_p.target = (void *)(proj->timelines[0]->tracks[0]->fir_filter);
+    p.slider_p.value = &ir_len;
+    p.slider_p.val_type = JDAW_INT;
+    el = page_add_el(page, EL_SLIDER, p, "slider_ir_len");
+
+    Slider *sl = (Slider *)el->component;
+    Value min, max;
+    min.int_v = 4;
+    max.int_v = proj->fourier_len_sframes;
+    slider_set_range(sl, min, max);
+    
+
     /* 	int text_size; */
     /* 	SDL_Color *text_color; */
     /* 	void *target_enum; */
@@ -267,18 +333,19 @@ static void test_page_create()
     
 
     static const char * item_names[] = {
-	"Highpass",
 	"Lowpass",
-	"Bandpass"
+	"Highpass",
+	"Bandpass",
+	"Bandcut"
 
     };
 
     p.radio_p.text_size = 14;
     p.radio_p.text_color = &color_global_black;
     /* p.radio_p.target_enum = NULL; */
-    p.radio_p.external_action = rb_target_action;
+    p.radio_p.action = rb_target_action;
     p.radio_p.item_names = item_names;
-    p.radio_p.num_items = 3;
+    p.radio_p.num_items = 4;
     p.radio_p.target = proj->timelines[0]->tracks[0]->fir_filter;
     
     el = page_add_el(page, EL_RADIO, p, "radio1");
@@ -314,12 +381,6 @@ void loop_project_main()
 
     bool first_frame = true;
     while (!(main_win->i_state & I_STATE_QUIT)) {
-	if (globslid) {
-	    globdub += 0.001;
-	    globdub2 += 0.0008;
-	    slider_reset(globslid);
-	    slider_reset(globslid2);
-	}
 	/* fprintf(stdout, "About to poll...\n"); */
 	while (SDL_PollEvent(&e)) {
 	    /* fprintf(stdout, "Polled!\n"); */
@@ -351,8 +412,9 @@ void loop_project_main()
 		    mouse_triage_motion_menu();
 		    break;
 		case TIMELINE:
-		    mouse_triage_motion_page();
-		    mouse_triage_motion_timeline();
+		    if (!mouse_triage_motion_page()) {
+			mouse_triage_motion_timeline();
+		    }
 		default:
 		    break;
 		}
@@ -365,9 +427,6 @@ void loop_project_main()
 		break;
 	    case SDL_KEYDOWN: {
 		switch (e.key.keysym.scancode) {
-		case SDL_SCANCODE_5:
-		    globbool = !globbool;
-		    break;
 		case SDL_SCANCODE_6:
 		    test_page_create();
 		    /* fprintf(stdout, "Ck size before: %d\n", proj->chunk_size_sframes); */
@@ -553,8 +612,8 @@ void loop_project_main()
 		switch(TOP_MODE) {
 		case TIMELINE:
 		    /* fprintf(stdout, "top mode tl\n"); */
-		    mouse_triage_click_page();
-		    mouse_triage_click_project(e.button.button);
+		    if (!mouse_triage_click_page())
+			mouse_triage_click_project(e.button.button);
 		    break;
 		case MENU_NAV:
 		    mouse_triage_click_menu(e.button.button);

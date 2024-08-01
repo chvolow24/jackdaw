@@ -508,7 +508,7 @@ void project_draw()
 	window_start_draw(main_win, NULL);
 	page_draw(main_win->active_page);
     } else {
-	window_start_draw(main_win, NULL);
+	window_start_draw(main_win, &color_global_black);
 	timeline_draw(proj->timelines[proj->active_tl_index]);
 	control_bar_draw(proj);
 	textbox_draw(proj->timeline_label);
@@ -528,8 +528,9 @@ void project_draw()
     window_draw_menus(main_win);
     /* modal_draw(test_modal); */
 
-    SDL_Rect ok = {30, 800, 1400, 500};
-    if (!proj->freq_domain_plot && proj->timelines[0]->num_tracks != 0) {
+
+    /* TESTING Freq plot */
+    if (!proj->freq_domain_plot && proj->timelines[0]->num_tracks != 0 && proj->timelines[0]->tracks[0]->fir_filter) {
 	Layout *freq_lt = layout_add_child(proj->layout);
 	freq_lt->rect.w = 600 * main_win->dpi_scale_factor;
 	freq_lt->rect.h = 300 * main_win->dpi_scale_factor;

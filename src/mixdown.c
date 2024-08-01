@@ -176,6 +176,8 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
         exit(1);
     }
 
+    /* long unsigned track_mixdown_time = 0; */
+    /* long unsigned track_filter_time = 0; */
     for (uint8_t t=0; t<tl->num_tracks; t++) {
         Track *track = tl->tracks[t];
         /* double panctrlval = track->pan_ctrl->value; */
@@ -183,9 +185,16 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
         /* double rpan = track->pan_ctrl->value > 0 ? 1 : 1 + panctrlval; */
         /* double pan = channel == 0 ? lpan : rpan; */
 	float track_chunk[len_sframes];
+	/* clock_t a, b; */
+	/* a=clock(); */
         get_track_channel_chunk(track, track_chunk, channel, start_pos_sframes, len_sframes, step);
+	/* b=clock(); */
+	/* track_mixdown_time+=(b-a); */
 	if (track->fir_filter_active) {
+	    /* a = clock(); */
 	    apply_filter(track->fir_filter, channel, len_sframes, track_chunk);
+	    /* b= clock(); */
+	    /* track_filter_time = (b-a); */
 	}
         for (uint32_t i=0; i<len_sframes; i++) {
             /* mixdown[i] += track_chunk[i] * pan * track->vol_ctrl->value; */
@@ -205,6 +214,7 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 	
         /* free(track_chunk); */
     }
+    /* fprintf(stdout, "\tMixdown: %lu\n\tFilter: %lu\n", track_mixdown_time, track_filter_time); */
 
 
     return mixdown;

@@ -86,8 +86,10 @@ static void page_el_destroy(PageEl *el)
 	slider_destroy((Slider *)el->component);
 	break;
     case EL_RADIO:
+	radio_destroy((RadioButton *)el->component);
 	break;
     case EL_TOGGLE:
+	toggle_destroy((Toggle *)el->component);
 	break;
     case EL_PLOT:
 	break;
@@ -105,6 +107,7 @@ void page_destroy(Page *page)
     for (uint8_t i=0; i<page->num_elements; i++) {
 	page_el_destroy(page->elements[i]);
     }
+    free(page);
 }
 
 void page_el_set_params(PageEl *el, PageElParams params)
@@ -139,15 +142,17 @@ void page_el_set_params(PageEl *el, PageElParams params)
 	    params.slider_p.val_type,
 	    params.slider_p.orientation,
 	    params.slider_p.style,
-	    params.slider_p.fn);
+	    params.slider_p.create_label_fn,
+	    params.slider_p.action,
+	    params.slider_p.target);
 	break;
     case EL_RADIO:
 	el->component = (void *)radio_button_create(
 	    el->layout,
 	    params.radio_p.text_size,
 	    params.radio_p.text_color,
-	    params.radio_p.target_enum,
-	    params.radio_p.external_action,
+	    params.radio_p.target,
+	    params.radio_p.action,
 	    params.radio_p.item_names,
 	    params.radio_p.num_items);
 	break;
@@ -176,6 +181,9 @@ PageEl *page_add_el(
     PageEl *el = calloc(1, sizeof(PageEl));
     el->type = type;
     el->layout = layout_get_child_by_name_recursive(page->layout, layout_name);
+    if (!el->layout) {
+	fprintf(stdout, "Error in layout at %s; unable to find child named %s\n", page->layout->name, layout_name);
+    }
     page_el_set_params(el, params);
     page->elements[page->num_elements] = el;
     page->num_elements++;

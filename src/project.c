@@ -199,8 +199,6 @@ retry3:
 	/* exit(1); */
     }
     
-    
-    fprintf(stdout, "SEM ADDRS: (tl: %p) %p, %p, %p\n", new_tl, new_tl->writable_chunks, new_tl->readable_chunks, new_tl->unpause_sem);
     proj->timelines[proj->num_timelines] = new_tl;
     proj->num_timelines++;
     return proj->num_timelines - 1; /* Return the new timeline index */
@@ -666,7 +664,9 @@ Track *timeline_add_track(Timeline *tl)
 	JDAW_FLOAT,
 	SLIDER_HORIZONTAL,
 	SLIDER_FILL,
-	&slider_label_amp_to_dbstr);
+	&slider_label_amp_to_dbstr,
+	NULL,
+	NULL);
     SliderStrFn t;
     Value min, max;
     min.float_v = 0.0f;
@@ -689,7 +689,9 @@ Track *timeline_add_track(Timeline *tl)
 	JDAW_FLOAT,
 	SLIDER_HORIZONTAL,
 	SLIDER_TICK,
-	slider_label_plain_str);
+	slider_label_plain_str,
+	NULL,
+	NULL);
 
     slider_reset(track->vol_ctrl);
     slider_reset(track->pan_ctrl);
@@ -702,8 +704,8 @@ Track *timeline_add_track(Timeline *tl)
 
 
     /* FILTER TESTS */
-    if (track->tl_rank == 0) {
-	int ir_len = proj->fourier_len_sframes / 2;
+    if (proj) {
+	int ir_len = proj->fourier_len_sframes/4;
 	track->fir_filter = create_FIR_filter(LOWPASS, ir_len, track->tl->proj->fourier_len_sframes * 2);
 	set_FIR_filter_params_h(track->fir_filter, LOWPASS, 1000, 1000);
 	track->fir_filter_active = true;

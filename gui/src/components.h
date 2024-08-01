@@ -12,9 +12,12 @@
 #define RADIO_BUTTON_LEFT_W 24
 #define RADIO_BUTTON_RAD_PAD (3 * main_win->dpi_scale_factor);
 
+typedef int (*ComponentFn)(void *self, void *target);
+
 typedef struct button {
     Textbox *tb;
-    void *(*action)(void *arg);
+    ComponentFn action;
+    /* void *(*action)(void *arg); */
 } Button;
 
 typedef struct toggle {
@@ -27,7 +30,8 @@ typedef struct text_entry {
     Textbox *tb;
     Textbox *label;
     /* void (*validation)(TextEntry *self, void *xarg); */
-    void (*completion)(TextEntry *self, void *xarg);
+    /* void (*completion)(TextEntry *self, void *xarg); */
+    ComponentFn action;
 } TextEntry;
 
 
@@ -62,7 +66,8 @@ typedef struct radio_button {
     Layout *layout;
     Textbox *items[RADIO_BUTTON_MAX_ITEMS];
     void *target;
-    void (*external_action)(int selected_i, void *target);
+    ComponentFn action;
+    /* void (*external_action)(int selected_i, void *target); */
     uint8_t num_items;
     uint8_t selected_item;
     SDL_Color *text_color; 
@@ -83,7 +88,9 @@ typedef struct slider {
     bool editing;
     Textbox *label;
     char label_str[SLIDER_LABEL_STRBUFLEN];
-    SliderStrFn *create_label; 
+    SliderStrFn *create_label;
+    ComponentFn action;
+    void *target;
 } Slider;
 Slider *slider_create(
     Layout *layout,
@@ -91,7 +98,9 @@ Slider *slider_create(
     ValType val_type,
     enum slider_orientation orientation,
     enum slider_style style,
-    SliderStrFn *fn);
+    SliderStrFn *create_label_fn,
+    ComponentFn action,
+    void *target);
 /*     Layout *layout, */
 /*     SliderOrientation orientation, */
 /*     SliderType type, */
@@ -108,7 +117,7 @@ Value slider_val_from_coord(Slider *s, int coord_pix);
 void slider_destroy(Slider *s);
 
 /* Button */
-Button *button_create(Layout *lt, char *text, void *(*action)(void *arg), SDL_Color *text_color, SDL_Color *background_color);
+Button *button_create(Layout *lt, char *text, ComponentFn action, SDL_Color *text_color, SDL_Color *background_color);
 void button_draw(Button *button);
 void button_destroy(Button *button);
 
@@ -118,13 +127,15 @@ RadioButton *radio_button_create(
     int text_size,
     SDL_Color *text_color,
     void *target,
-    void (*external_action)(int selected_i, void *target),
+    ComponentFn action,
+    /* void (*external_action)(int selected_i, void *target), */
     const char **item_names,
     uint8_t num_items
     );
 
 void radio_button_draw(RadioButton *rb);
 bool radio_click(RadioButton *rb, Window *Win);
+void radio_destroy(RadioButton *rb);
 
 /* Toggle */
 

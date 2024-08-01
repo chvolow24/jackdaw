@@ -9,6 +9,10 @@
 SDL_Color textbox_default_bckgrnd_clr = (SDL_Color) {240, 240, 240, 255};
 SDL_Color textbox_default_txt_clr = (SDL_Color) {0, 0, 0, 255};
 SDL_Color textbox_default_border_clr = (SDL_Color) {100, 100, 100, 255};
+extern SDL_Color color_global_clear;
+extern SDL_Color color_global_black;
+extern SDL_Color color_global_green;
+extern SDL_Color color_global_grey;
 int textbox_default_radius = 0;
 
 /*txt_create_from_str(char *set_str, int max_len, SDL_Rect *container, TTF_Font *font, SDL_Color txt_clr, TextAlign align, bool truncate, SDL_Renderer *rend) -> Text **/
@@ -221,6 +225,23 @@ void textbox_set_pad(Textbox *tb, int h_pad, int v_pad)
 void textbox_set_value_handle(Textbox *tb, const char *new_value)
 {
     txt_set_value_handle(tb->text, (char *) new_value);
+}
+
+void textbox_set_style(Textbox *tb, enum textbox_style style)
+{
+    switch (style) {
+    case BLANK:
+	textbox_set_background_color(tb, &color_global_clear);
+	textbox_set_border(tb, &color_global_clear, 0);
+	break;
+    case NUMBOX:
+	textbox_set_background_color(tb, &color_global_black);
+	textbox_set_text_color(tb, &color_global_green);
+	textbox_set_border(tb, &color_global_grey, 2);
+	tb->text->font = tb->text->win->mono_bold_font;
+	break;
+    }
+
 }
 
 /* #include "dir.h" */

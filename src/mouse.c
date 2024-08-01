@@ -249,18 +249,20 @@ void mouse_triage_click_text_edit(uint8_t button)
 }
 
 
-void mouse_triage_motion_page()
+bool mouse_triage_motion_page()
 {
     Page *page;
     if ((page = main_win->active_page)) {
-	page_mouse_motion(page, main_win);
+	return page_mouse_motion(page, main_win);
     }
+    return false;
 }
 
-void mouse_triage_click_page()
+bool mouse_triage_click_page()
 {
     Page *page;
     if ((page = main_win->active_page)) {
-	page_mouse_click(page, main_win);
+	return page_mouse_click(page, main_win);
     }
+    return false;
 }

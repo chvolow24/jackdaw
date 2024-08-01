@@ -69,7 +69,7 @@ void user_global_show_output_freq_domain(void *nullarg)
 
 
 int path_updir_name(char *pathname);
-static void *submit_save_as_form(void *mod_v)
+static int submit_save_as_form(void *mod_v, void *target)
 {
     Modal *modal = (Modal *)mod_v;
     char *name;
@@ -112,7 +112,7 @@ static void *submit_save_as_form(void *mod_v)
 	fprintf(stdout, "Resolved path: %s\n", DIRPATH_SAVED_PROJ);
     }
     window_pop_modal(main_win);
-    return NULL;
+    return 0;
 }
 
 static int dir_to_tline_filter_save(void *dp_v, void *dn_v)
@@ -258,8 +258,7 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 	    project_destroy(proj);
 	    proj = new_proj;
 	} else {
-	    
-	    // TODO: Project Destroy
+	    status_set_errstr("Error opening jdaw project");
 	}
 	timeline_reset_full(proj->timelines[0]);
     }
@@ -1210,7 +1209,7 @@ void user_tl_drop_saved4_from_source(void *nullarg)
     user_tl_drop_savedn_from_source(4);
 }
 
-static void *new_tl_submit_form(void *mod_v)
+static int new_tl_submit_form(void *mod_v, void *target)
 {
     Modal *mod = (Modal *)mod_v;
     for (uint8_t i=0; i<mod->num_els; i++) {
@@ -1221,7 +1220,7 @@ static void *new_tl_submit_form(void *mod_v)
 	}
     }
     window_pop_modal(main_win);
-    return NULL;
+    return 0;
 }
 
 void user_tl_add_new_timeline(void *nullarg)
@@ -1285,7 +1284,7 @@ void user_tl_next_timeline(void *nullarg)
 /*     modal_move_onto(save_as); */
 /* } */
 
-static void *submit_save_wav_form(void *mod_v)
+static int submit_save_wav_form(void *mod_v, void *target)
 {
     Modal *modal = (Modal *)mod_v;
     char *name;
@@ -1331,7 +1330,7 @@ static void *submit_save_wav_form(void *mod_v)
 	/* fprintf(stdout, " is %s\n", DIRPATH_SAVED_PROJ); */
     }
     window_pop_modal(main_win);
-    return NULL;
+    return 0;
 }
 
 void user_tl_write_mixdown_to_wav(void *nullarg)

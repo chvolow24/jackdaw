@@ -64,7 +64,13 @@ void waveform_draw_freq_domain(struct logscale *la);
 /* void waveform_destroy_logscale(struct logscale *la); */
 
 
-struct freq_plot *waveform_create_freq_plot(double **arrays, int num_arrays, SDL_Color **colors, int *steps, int num_items, Layout *container);
+struct freq_plot *waveform_create_freq_plot(
+    double **arrays,
+    int num_arrays,
+    SDL_Color **colors,
+    int *steps,
+    int num_items,
+    Layout *container);
 void waveform_destroy_freq_plot(struct freq_plot *fp);
 void waveform_draw_freq_plot(struct freq_plot *fp);
 

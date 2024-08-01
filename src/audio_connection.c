@@ -172,7 +172,7 @@ int audioconn_open(Project *proj, AudioConn *conn)
 	    fprintf(stdout, "ID: %d\n", device->id);
 	    device->spec = obtained;
 	    conn->open = true;
-	    fprintf(stderr, "Successfully opened device %s, with id: %d\n", conn->name, device->id);
+	    fprintf(stderr, "Successfully opened device %s, with id: %d, chunk size %d\n", conn->name, device->id, obtained.samples);
 	} else {
 	    conn->open = false;
 	    fprintf(stderr, "Error opening audio device %s : %s\n", conn->name, SDL_GetError());
@@ -547,7 +547,7 @@ void audioconn_reset_chunk_size(AudioConn *c, uint16_t new_chunk_size)
     switch (c->type) {
     case DEVICE:
 	fprintf(stdout, "resetting ck size of \"%s\"\n", c->name);
-	c->c.device.spec.size = new_chunk_size;
+	c->c.device.spec.samples = new_chunk_size;
 	break;
     default:
 	break;

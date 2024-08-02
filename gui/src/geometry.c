@@ -201,7 +201,7 @@ void geom_draw_circle(SDL_Renderer *rend, int orig_x, int orig_y, int r)
 }
 
 void geom_fill_circle(SDL_Renderer *rend , int orig_x, int orig_y, int r)
-{
+{   
     int center_x = orig_x + r;
     int center_y = orig_y + r;
     fill_quadrant(rend, center_x, center_y, r, 1);

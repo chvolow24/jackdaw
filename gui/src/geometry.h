@@ -15,6 +15,7 @@ void geom_draw_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r);
 void geom_fill_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r);
 
 void geom_draw_rect_thick(SDL_Renderer *rend, SDL_Rect *rect, int r, double dpi_scale_factor);
+void geom_draw_rounded_rect_thick(SDL_Renderer *rend, SDL_Rect *rect, int thickness, int r, double dpi_scale_factor);
 
 void geom_draw_tab(SDL_Renderer *rend, SDL_Rect *rect, int r, double dpi_scale_factor);
 void geom_fill_tab(SDL_Renderer *rend, SDL_Rect *rect, int r, double dpi_scale_factor);

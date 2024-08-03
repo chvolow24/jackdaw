@@ -9,6 +9,11 @@
 #define MAX_ELEMENTS 255
 #define MAX_TABS 16
 
+#define TAB_H 32
+#define PAGE_R 14
+#define TAB_R PAGE_R
+#define TAB_H_SPACING 0
+
 typedef enum page_el_type {
     EL_TEXTAREA,
     EL_TEXTBOX,
@@ -125,6 +130,16 @@ typedef union page_el_params {
 
 TabView *tab_view_create(const char *title, Layout *parent_lt, Window *win);
 void tab_view_destroy(TabView *tv);
+void tab_view_activate(TabView *tv);
+void tab_view_close(TabView *tv);
+Page *tab_view_add_page(
+    TabView *tv,
+    const char *page_title,
+    const char *layout_filepath,
+    SDL_Color *background_color,
+    Window *win);
+
+bool tab_view_mouse_click(TabView *tv);
 
 
 /* Page methods */
@@ -158,7 +173,5 @@ void tab_view_draw(TabView *tv);
 
 void page_activate(Page *page);
 void page_close(Page *page);
-void tab_view_activate(TabView *tv);
-void tab_view_close(TabView *tv);
 
 #endif

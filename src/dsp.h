@@ -68,6 +68,7 @@ void set_FIR_filter_cutoff(FIRFilter *filter, double cutoff);
 void set_FIR_filter_cutoff_h(FIRFilter *filter, double cutoff);
 void set_FIR_filter_bandwidth(FIRFilter *filter, double cutoff);
 void set_FIR_filter_bandwidth_h(FIRFilter *filter, double cutoff);
+void set_FIR_filter_type(FIRFilter *filter, FilterType t);
 
 void set_FIR_filter_impulse_response_len(FIRFilter *f, int new_len);
 

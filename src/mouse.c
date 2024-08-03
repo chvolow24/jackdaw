@@ -266,3 +266,11 @@ bool mouse_triage_click_page()
     }
     return false;
 }
+bool mouse_triage_click_tabview()
+{
+    TabView *tv;
+    if ((tv = main_win->active_tab_view)) {
+	return tab_view_mouse_click(tv);
+    }
+    return false;
+}

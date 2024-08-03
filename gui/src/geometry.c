@@ -23,7 +23,7 @@ static void draw_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const
     int x = 0;
     int y = r;
     int d = 1-r;
-    while (x < y) {
+    while (x <= y) {
         switch(quad) {
             case 0:
                 SDL_RenderDrawPoint(rend, xinit + x, yinit - y);
@@ -54,7 +54,7 @@ static void draw_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const
 }
 
 /* Draw and fill a quadrant. quad 0 = upper right, 1 = upper left, 2 = lower left, 3 = lower right*/
-void fill_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad)
+static void fill_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad)
 {
     r--;
     switch (quad) {
@@ -76,7 +76,7 @@ void fill_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const regist
     int d = 1 - r;
     int fill_x = 0;
     /* fprintf(stdout, "\n\n"); */
-    while (x < y) {
+    while (x <= y) {
 	/* fprintf(stdout, "X & y: %d, %d, (quad %d)\n", x, y, quad); */
         if (d>0) {
             switch(quad) {
@@ -126,7 +126,7 @@ void fill_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const regist
     SDL_RenderFillRect(rend, &fill);
 }
 
-void fill_quadrant_complement(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad)
+static void fill_quadrant_complement(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad)
 {
 
     r--;
@@ -264,11 +264,11 @@ void geom_fill_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r)
 }
 
 
-void geom_draw_rect_thick(SDL_Renderer *rend, SDL_Rect *rect, int r, double dpi_scale_factor)
+void geom_draw_rect_thick(SDL_Renderer *rend, SDL_Rect *rect, int thickness, double dpi_scale_factor)
 {
-    r *= dpi_scale_factor;
+    thickness *= dpi_scale_factor;
     SDL_Rect temprect = *rect;
-    for (int i=0; i<r; i++) {
+    for (int i=0; i<thickness; i++) {
 
 	SDL_RenderDrawRect(rend, &temprect);
 	temprect.x += 1;
@@ -276,6 +276,21 @@ void geom_draw_rect_thick(SDL_Renderer *rend, SDL_Rect *rect, int r, double dpi_
 	temprect.w -= 2;
 	temprect.h -= 2;
     }
+}
+
+void geom_draw_rounded_rect_thick(SDL_Renderer *rend, SDL_Rect *rect, int thickness, int r, double dpi_scale_factor)
+{
+    thickness *= dpi_scale_factor;
+    SDL_Rect temprect = *rect;
+    for (int i=0; i<thickness; i++) {
+	geom_draw_rounded_rect(rend, &temprect, r);
+	temprect.x += 1;
+	temprect.y += 1;
+	temprect.w -= 2;
+	temprect.h -= 2;
+    }
+
+
 }
 
 

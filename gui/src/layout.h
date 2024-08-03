@@ -194,4 +194,6 @@ void layout_fprint(FILE *f, Layout *lt);
 
 void layout_draw(Window *win, Layout *lt);
 
+
+void layout_write(FILE *f, Layout *lt, int indent);
 #endif

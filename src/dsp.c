@@ -408,6 +408,13 @@ void set_FIR_filter_impulse_response_len(FIRFilter *f, int new_len)
     set_FIR_filter_params(f, t, cutoff, bandwidth);
 }
 
+void set_FIR_filter_type(FIRFilter *f, FilterType t)
+{
+    double cutoff = f->cutoff_freq;
+    double bandwidth = f->bandwidth;
+    set_FIR_filter_params(f, t, cutoff, bandwidth);
+}
+
 void destroy_filter(FIRFilter *filter) 
 {
     if (filter->frequency_response) {

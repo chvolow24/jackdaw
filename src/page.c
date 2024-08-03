@@ -1,4 +1,6 @@
 #include "color.h"
+#include "geometry.h"
+#include "input.h"
 #include "page.h"
 #include "layout.h"
 #include "layout_xml.h"
@@ -29,6 +31,10 @@
 	break;
     }
 */
+
+extern SDL_Color color_global_clear;
+extern SDL_Color color_global_white;
+extern SDL_Color color_global_black;
 TabView *tab_view_create(const char *title, Layout *parent_lt, Window *win)
 {
     TabView *tv = calloc(1, sizeof(Page));
@@ -38,14 +44,67 @@ TabView *tab_view_create(const char *title, Layout *parent_lt, Window *win)
     tv_lt->h.type = SCALE;
     tv_lt->x.type = SCALE;
     tv_lt->y.type = SCALE;
-    tv_lt->x.value.floatval = 0.05;
-    tv_lt->y.value.floatval = 0.05;
-    tv_lt->w.value.floatval = 0.9;
-    tv_lt->h.value.floatval = 0.9;
+    /* tv_lt->x.value.floatval = 0.01; */
+    /* tv_lt->y.value.floatval = 0.01; */
+    /* tv_lt->w.value.floatval = 0.98; */
+    /* tv_lt->h.value.floatval = 0.98; */
+    tv_lt->x.value.floatval = 0.1;
+    tv_lt->y.value.floatval = 0.1;
+    tv_lt->w.value.floatval = 0.8;
+    tv_lt->h.value.floatval = 0.8;
+
     tv->layout = tv_lt;
     tv->win = win;
+    Layout *tabs_container = layout_add_child(tv_lt);
+    Layout *page_container = layout_add_child(tv_lt);
+    tabs_container->w.type = SCALE;
+    page_container->w.type = SCALE;
+    tabs_container->w.value.floatval = 1.0f;
+    page_container->w.value.floatval = 1.0f;
+    tabs_container->h.value.intval = TAB_H;
+    page_container->y.value.intval = TAB_H;
+    page_container->h.type = COMPLEMENT;
     return tv;
 }
+
+Page *tab_view_add_page(
+    TabView *tv,
+    const char *page_title,
+    const char *layout_filepath,
+    SDL_Color *background_color,
+    Window *win)
+{
+    /* Second child of tab view layout is page container */
+    Layout *page_lt = layout_add_child(tv->layout->children[1]);
+    page_lt->w.type = SCALE;
+    page_lt->h.type = SCALE;
+    page_lt->w.value.floatval = 1.0f;
+    page_lt->h.value.floatval = 1.0f;
+
+    Page *page = page_create(page_title, layout_filepath, tv->layout->children[1], background_color, win);
+    tv->tabs[tv->num_tabs] = page;
+    Layout *tab_lt = layout_add_child(tv->layout->children[0]);
+    tab_lt->x.type = STACK;
+    tab_lt->y.value.intval = 0;
+    if (tv->num_tabs == 0) {
+	tab_lt->x.value.intval = TAB_H_SPACING + 20;
+    } else {
+	tab_lt->x.value.intval = TAB_H_SPACING;
+    }
+    tab_lt->h.type = SCALE;
+    tab_lt->h.value.floatval = 1.0f;
+    layout_force_reset(tv->layout);
+    Textbox *tab_tb = textbox_create_from_str((char *)page_title, tab_lt, tv->win->mono_bold_font, 14, tv->win);
+    textbox_set_background_color(tab_tb, &color_global_clear);
+    textbox_set_text_color(tab_tb, &color_global_white);
+    textbox_size_to_fit_h(tab_tb, 20);
+    textbox_reset_full(tab_tb);
+    tv->labels[tv->num_tabs] = tab_tb;
+    tv->num_tabs++;
+    return page;
+
+}
+
 
 void tab_view_destroy(TabView *tv)
 {
@@ -289,6 +348,7 @@ bool page_mouse_motion(Page *page, Window *win)
 		return true;
 	    }
 	}
+	if (win->i_state & I_STATE_MOUSE_L) return true;
     }
     return false;
 }
@@ -309,6 +369,24 @@ bool page_mouse_click(Page *page, Window *win)
 void tab_view_reset(TabView *tv)
 {
     layout_reset(tv->layout);
+}
+
+bool tab_view_mouse_click(TabView *tv)
+{
+    if (SDL_PointInRect(&tv->win->mousep, &tv->layout->children[0]->rect)) {
+	for (uint8_t i=0; i<tv->num_tabs; i++) {
+	    Textbox *tb = tv->labels[i];
+	    if (SDL_PointInRect(&tv->win->mousep, &tb->layout->rect)) {
+		tv->current_tab = i;
+		tab_view_reset(tv);
+		return true;
+	    }
+	}
+    } else if (SDL_PointInRect(&tv->win->mousep, &tv->layout->children[1]->rect)) {
+	return page_mouse_click(tv->tabs[tv->current_tab], tv->win);
+    }
+    return false;
+	    
 }
 
 static void page_el_draw(PageEl *el)
@@ -348,19 +426,61 @@ void page_draw(Page *page)
     /* fprintf(stdout, "page lt rect %d %d %d %d\n", page->layout->rect.x, page->layout->rect.y, page->layout->rect.w, page->layout->rect.h); */
     /* fprintf(stdout, "Page dims: %d %d %f %f\n", page->layout->x.value.intval, page->layout->y.value.intval, page->layout->w.value.floatval, page->layout->h.value.floatval); */
     SDL_SetRenderDrawColor(page->win->rend, sdl_colorp_expand(page->background_color));
-    SDL_RenderFillRect(page->win->rend, &page->layout->rect);
+    SDL_Rect temp = page->layout->rect;
+    int r = PAGE_R * page->win->dpi_scale_factor;
+    geom_fill_rounded_rect(page->win->rend, &temp, r);
+
+    int brdr = 9 * page->win->dpi_scale_factor;
+    int brdrtt = 2 * brdr;
+    temp.x += brdr;
+    temp.y += brdr;
+    temp.w -= brdrtt;
+    temp.h -= brdrtt;
+    static SDL_Color brdrclr = {25, 25, 25, 255};
+    SDL_SetRenderDrawColor(page->win->rend, sdl_color_expand(color_global_black));
+    geom_draw_rounded_rect_thick(page->win->rend, &temp, 12, TAB_R * page->win->dpi_scale_factor, page->win->dpi_scale_factor);
     for (uint8_t i=0; i<page->num_elements; i++) {
 	page_el_draw(page->elements[i]);
     }
+
     /* layout_draw(page->win, page->layout); */
+}
+
+int test(int some_other) {
+    return some_other + 2;
+}
+
+static inline void tab_view_draw_inner(TabView *tv, uint8_t i)
+{
+    Page *page = tv->tabs[i];
+    Textbox *tb = tv->labels[i];
+    SDL_SetRenderDrawColor(tv->win->rend, sdl_colorp_expand(page->background_color));
+    geom_fill_tab(tv->win->rend, &tb->layout->rect, TAB_R, tv->win->dpi_scale_factor);
+    textbox_draw(tb);
 }
 
 void tab_view_draw(TabView *tv)
 {
+    for (uint8_t i=tv->num_tabs - 1; i>tv->current_tab; i--) {
+        tab_view_draw_inner(tv, i);
 
+    }
+    for (uint8_t i=0; i<=tv->current_tab; i++) {
+	tab_view_draw_inner(tv, i);
+	if (i == tv->current_tab) {
+	    page_draw(tv->tabs[i]);
+	}
+    }
+
+    /* page = tv->tabs[tv->current_tab]; */
+    /* tb = tv->labels[tv->current_tab]; */
+    /* SDL_SetRenderDrawColor(tv->win->rend, sdl_colorp_expand(page->background_color)); */
+    /* geom_fill_tab(tv->win->rend, &tb->layout->rect, TAB_R, tv->win->dpi_scale_factor); */
+    /* textbox_draw(tb); */
+    /* page_draw(page); */
 }
 
-
+/* page_create(const char *title, const char *layout_filepath, Layout *parent_lt, SDL_Color *background_color, Window *win) -> Page * */
 
 void page_activate(Page *page)
 {

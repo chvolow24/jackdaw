@@ -312,6 +312,9 @@ static void ruler_draw(Timeline *tl)
 
     
 }
+
+void fill_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad);
+void fill_quadrant_complement(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad);
 static void timeline_draw(Timeline *tl)
 {
     /* Draw the timeline background */
@@ -401,7 +404,9 @@ static void timeline_draw(Timeline *tl)
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(grey_mask));
 	SDL_RenderFillRect(main_win->rend, &tl->layout->rect);
     }
+
 }
+
 
 
 static void control_bar_draw(Project *proj)
@@ -512,15 +517,15 @@ void project_draw()
 	timeline_draw(proj->timelines[proj->active_tl_index]);
 	control_bar_draw(proj);
 	textbox_draw(proj->timeline_label);
-
-	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
-	SDL_RenderFillRect(main_win->rend, &proj->status_bar.layout->rect);
-	textbox_draw(proj->status_bar.error);
-	if (proj->dragging) {
-	    textbox_draw(proj->status_bar.dragstat);
-	}
-	textbox_draw(proj->status_bar.call);
     }
+
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
+    SDL_RenderFillRect(main_win->rend, &proj->status_bar.layout->rect);
+    textbox_draw(proj->status_bar.error);
+    if (proj->dragging) {
+	textbox_draw(proj->status_bar.dragstat);
+    }
+    textbox_draw(proj->status_bar.call);
 
     /* Layout *status = layout_get_child_by_name_recursive(proj->layout, "status_bar"); */
     /* layout_draw(main_win, status); */
@@ -569,8 +574,8 @@ void project_draw()
     /* waveform_destroy_logscale(la); \/
 
     /* layout_destroy(freq_lt); */
-    SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255);
-    SDL_RenderDrawRect(main_win->rend, &main_win->layout->rect);
+    /* SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255); */
+    /* SDL_RenderDrawRect(main_win->rend, &main_win->layout->rect); */
     /* layout_draw(main_win, main_win->layout); */
     window_end_draw(main_win);
 }

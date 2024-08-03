@@ -15,6 +15,9 @@ extern SDL_Color color_global_green;
 extern SDL_Color color_global_grey;
 int textbox_default_radius = 0;
 
+void do2_fn() {
+    printf("Doing 2 fn\n");
+}
 /*txt_create_from_str(char *set_str, int max_len, SDL_Rect *container, TTF_Font *font, SDL_Color txt_clr, TextAlign align, bool truncate, SDL_Renderer *rend) -> Text **/
 Textbox *textbox_create_from_str(
     char *set_str,
@@ -25,6 +28,7 @@ Textbox *textbox_create_from_str(
     Window *win
     )
 {
+    if (strcmp("Track FIR Filter", set_str) == 0) do2_fn();
     Textbox *tb = malloc(sizeof(Textbox));
     tb->layout = lt;
     tb->bckgrnd_clr = &textbox_default_bckgrnd_clr;
@@ -89,10 +93,30 @@ void textbox_size_to_fit_v(Textbox *tb, int v_pad)
     tb->text->truncate = false;
     txt_set_pad(tb->text, 0, v_pad);
     txt_reset_display_value(tb->text);
-    layout_rect->w = text_rect->w;
+    /* layout_rect->w = text_rect->w; */
     layout_rect->h = text_rect->h + v_pad * 2;
     /* fprintf(stderr, "Textbox rect x: %d, layout rect x: %d\n", text_rect->x, layout_rect->x); */
     text_rect->y = layout_rect->y + v_pad;
+    tb->text->truncate = save_trunc;
+    layout_set_wh_from_rect(tb->layout);
+    layout_reset(tb->layout);
+
+}
+
+void textbox_size_to_fit_h(Textbox *tb, int h_pad)
+{
+    h_pad *= tb->window->dpi_scale_factor;
+    SDL_Rect *text_rect = &tb->text->text_lt->rect;
+    SDL_Rect *layout_rect = &tb->layout->rect;
+    bool save_trunc = tb->text->truncate;
+    
+    tb->text->truncate = false;
+    txt_set_pad(tb->text, 0, h_pad);
+    txt_reset_display_value(tb->text);
+    /* layout_rect->h = text_rect->h; */
+    layout_rect->w = text_rect->w + h_pad * 2;
+    /* fprintf(stderr, "Textbox rect x: %d, layout rect x: %d\n", text_rect->x, layout_rect->x); */
+    text_rect->y = layout_rect->y + h_pad;
     tb->text->truncate = save_trunc;
     layout_set_wh_from_rect(tb->layout);
     layout_reset(tb->layout);

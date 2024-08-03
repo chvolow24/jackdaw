@@ -63,7 +63,8 @@ static void init_empty_text(
     txt->max_len = 0;
     txt->container = container;
     txt->text_lt = layout_add_child(container);
-
+    layout_set_name(txt->text_lt, "txt_layout");
+    
     /* txt->font = font; */
     txt->font = font;
     txt->text_size = text_size;

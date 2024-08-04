@@ -168,6 +168,7 @@ static void update_track_vol_pan()
 	    selected_track->pan_ctrl->editing = true;
 	}
     }
+    tl->needs_redraw = true;
 }
 
 /* TODO: SDL bug workaround. I haven't been able to get this to work reliably cross-platform. */

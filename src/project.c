@@ -198,7 +198,7 @@ retry3:
 	}
 	/* exit(1); */
     }
-    
+    new_tl->needs_redraw = true;
     proj->timelines[proj->num_timelines] = new_tl;
     proj->num_timelines++;
     return proj->num_timelines - 1; /* Return the new timeline index */
@@ -876,6 +876,7 @@ void timeline_reset(Timeline *tl)
     }
     /* fprintf(stdout, "TL reset\n"); */
     layout_reset(tl->layout);
+    tl->needs_redraw = true;
 }
 
 void track_increment_vol(Track *track)
@@ -1036,6 +1037,8 @@ static void track_set_in_onclick(void *void_arg)
     textbox_set_value_handle(arg->track->tb_input_name, arg->track->input->name);
 
     window_pop_menu(main_win);
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    tl->needs_redraw = true;
     /* window_pop_mode(main_win); */
 }
 

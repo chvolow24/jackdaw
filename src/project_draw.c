@@ -317,6 +317,15 @@ void fill_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const regist
 void fill_quadrant_complement(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad);
 static void timeline_draw(Timeline *tl)
 {
+    /* Only redraw the timeline if necessary */
+    if (!tl->needs_redraw && !proj->playing && !proj->recording && !main_win->txt_editing) {
+	return;
+    }
+    /* static int i=0; */
+    /* fprintf(stdout, "TL draw %d\n", i); */
+    /* i++; */
+    /* i%=200; */
+    
     /* Draw the timeline background */
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(timeline_bckgrnd));
     SDL_RenderFillRect(main_win->rend, &tl->layout->rect);
@@ -404,6 +413,7 @@ static void timeline_draw(Timeline *tl)
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(grey_mask));
 	SDL_RenderFillRect(main_win->rend, &tl->layout->rect);
     }
+    tl->needs_redraw = false;
 
 }
 
@@ -513,7 +523,7 @@ void project_draw()
 	window_start_draw(main_win, NULL);
 	page_draw(main_win->active_page);
     } else {
-	window_start_draw(main_win, &color_global_black);
+	window_start_draw(main_win, NULL);
 	timeline_draw(proj->timelines[proj->active_tl_index]);
 	control_bar_draw(proj);
 	textbox_draw(proj->timeline_label);

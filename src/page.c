@@ -87,7 +87,7 @@ Page *tab_view_add_page(
     tab_lt->x.type = STACK;
     tab_lt->y.value.intval = 0;
     if (tv->num_tabs == 0) {
-	tab_lt->x.value.intval = TAB_H_SPACING + 20;
+	tab_lt->x.value.intval = TAB_H_SPACING + TAB_R * 2;
     } else {
 	tab_lt->x.value.intval = TAB_H_SPACING;
     }
@@ -457,6 +457,14 @@ static inline void tab_view_draw_inner(TabView *tv, uint8_t i)
     SDL_SetRenderDrawColor(tv->win->rend, sdl_colorp_expand(page->background_color));
     geom_fill_tab(tv->win->rend, &tb->layout->rect, TAB_R, tv->win->dpi_scale_factor);
     textbox_draw(tb);
+    SDL_SetRenderDrawColor(tv->win->rend, 255, 255, 255, 255);
+    geom_draw_rounded_rect(tv->win->rend, &page->layout->rect, TAB_R * tv->win->dpi_scale_factor);
+    geom_draw_tab(tv->win->rend, &tb->layout->rect, TAB_R, tv->win->dpi_scale_factor);
+    SDL_SetRenderDrawColor(tv->win->rend, sdl_colorp_expand(page->background_color));
+    int left_x = tb->layout->rect.x - TAB_R * tv->win->dpi_scale_factor;
+    int right_x = left_x + tb->layout->rect.w + 2 * TAB_R * tv->win->dpi_scale_factor;
+    int y = tb->layout->rect.y + tb->layout->rect.h;
+    SDL_RenderDrawLine(tv->win->rend, left_x, y, right_x, y);
 }
 
 void tab_view_draw(TabView *tv)
@@ -466,10 +474,11 @@ void tab_view_draw(TabView *tv)
 
     }
     for (uint8_t i=0; i<=tv->current_tab; i++) {
-	tab_view_draw_inner(tv, i);
 	if (i == tv->current_tab) {
 	    page_draw(tv->tabs[i]);
 	}
+	tab_view_draw_inner(tv, i);
+
     }
 
     /* page = tv->tabs[tv->current_tab]; */

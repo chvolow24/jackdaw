@@ -318,7 +318,7 @@ void fill_quadrant_complement(SDL_Renderer *rend, int xinit, int yinit, int r, c
 static void timeline_draw(Timeline *tl)
 {
     /* Only redraw the timeline if necessary */
-    if (!tl->needs_redraw && !proj->playing && !proj->recording && !main_win->txt_editing) {
+    if (!tl->needs_redraw && !proj->recording && !main_win->txt_editing) {
 	return;
     }
     /* static int i=0; */

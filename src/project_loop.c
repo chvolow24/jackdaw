@@ -504,6 +504,7 @@ void loop_project_main()
 	    case SDL_WINDOWEVENT:
 		if (e.window.event == SDL_WINDOWEVENT_RESIZED) {
 		    window_resize_passive(main_win, e.window.data1, e.window.data2);
+		    proj->timelines[proj->active_tl_index]->needs_redraw = true;
 		}
 		break;
 	    case SDL_AUDIODEVICEADDED:

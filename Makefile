@@ -1,4 +1,4 @@
-CC := gcc
+CC := clang
 SRC_DIR := src
 BUILD_DIR := build
 GUI_SRC_DIR := gui/src

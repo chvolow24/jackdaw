@@ -1401,6 +1401,7 @@ void user_tl_cliprefs_destroy(void *nullarg)
     if (proj->dragging) {
 	status_stat_drag();
     }
+    tl->needs_redraw = true;
 }
 
 /* source mode */

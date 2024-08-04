@@ -413,7 +413,7 @@ static void timeline_draw(Timeline *tl)
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(grey_mask));
 	SDL_RenderFillRect(main_win->rend, &tl->layout->rect);
     }
-    tl->needs_redraw = false;
+    /* tl->needs_redraw = false; */
 
 }
 
@@ -516,34 +516,34 @@ static void control_bar_draw(Project *proj)
 /* extern Modal *test_modal; */
 void project_draw()
 {
-    if (main_win->active_tab_view) {
-	window_start_draw(main_win, NULL);
-	tab_view_draw(main_win->active_tab_view);
-    } else if (main_win->active_page) {
-	window_start_draw(main_win, NULL);
-	page_draw(main_win->active_page);
-    } else {
-	window_start_draw(main_win, NULL);
-	timeline_draw(proj->timelines[proj->active_tl_index]);
+    window_start_draw(main_win, NULL);
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    timeline_draw(tl);
+    if (tl->needs_redraw) {
 	control_bar_draw(proj);
 	textbox_draw(proj->timeline_label);
     }
-
-    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
-    SDL_RenderFillRect(main_win->rend, &proj->status_bar.layout->rect);
-    textbox_draw(proj->status_bar.error);
-    if (proj->dragging) {
-	textbox_draw(proj->status_bar.dragstat);
+    if (main_win->active_tab_view) {
+	tab_view_draw(main_win->active_tab_view);
     }
-    textbox_draw(proj->status_bar.call);
-
+	/* page_draw(main_win->active_page); */
+    /* if (proj->status_bar.stat_timer > 0 || proj->status_bar.err_timer > 0 || proj->status_bar.call_timer > 0) { */
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
+	SDL_RenderFillRect(main_win->rend, &proj->status_bar.layout->rect);
+	textbox_draw(proj->status_bar.error);
+	if (proj->dragging) {
+	    textbox_draw(proj->status_bar.dragstat);
+	}
+	textbox_draw(proj->status_bar.call);
+    /* } */
     /* Layout *status = layout_get_child_by_name_recursive(proj->layout, "status_bar"); */
     /* layout_draw(main_win, status); */
     window_draw_modals(main_win);
     window_draw_menus(main_win);
     /* modal_draw(test_modal); */
 
-
+    proj->timelines[proj->active_tl_index]->needs_redraw = false;
+    
     /* TESTING Freq plot */
     if (!proj->freq_domain_plot && proj->timelines[0]->num_tracks != 0 && proj->timelines[0]->tracks[0]->fir_filter) {
 	Layout *freq_lt = layout_add_child(proj->layout);

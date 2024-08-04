@@ -492,9 +492,11 @@ void loop_project_main()
     window_push_mode(main_win, TIMELINE);
 
     bool first_frame = true;
+
     while (!(main_win->i_state & I_STATE_QUIT)) {
 	/* fprintf(stdout, "About to poll...\n"); */
-	while (SDL_PollEvent(&e)) {
+	/* while (SDL_PollEvent(&e)) { */
+	while (0) {
 	    /* fprintf(stdout, "Polled!\n"); */
 	    switch (e.type) {
 	    case SDL_QUIT:
@@ -766,8 +768,14 @@ void loop_project_main()
 		set_i_state_k = false;
 	    }
 		
-	} /* End event handling */
+	}
+        /* End event handling */
+
+
+
+	
 	if (scrolling_lt) {
+	    fprintf(stdout, "MEM scrolling lt\n");
 	    if (animate_step % 1 == 0) {
 		/* fingersdown = SDL_GetNumTouchFingers(-1); */
 		if (layout_scroll_step(scrolling_lt) == 0) {
@@ -782,20 +790,25 @@ void loop_project_main()
 	}
 	
 	first_frame = false;
-	if (proj->play_speed != 0 && !proj->source_mode) {
+	if (fabs(proj->play_speed) > 1e-6  && !proj->source_mode) {
+	    fprintf(stdout, "%f == %f? %d\n", proj->play_speed, 0.0, proj->play_speed == 0.0);
+	    fprintf(stdout, "MEM tl catchup play speed %f\n", proj->play_speed);
 	    timeline_catchup();
 	    timeline_set_timecode();
 	}
 
-	if (animate_step == 255) {
-	    animate_step = 0;
-	} else {
-	    animate_step++;
+	if (scrolling_lt) {
+	    if (animate_step == 255) {
+		animate_step = 0;
+	    } else {
+		animate_step++;
+	    }
 	}
 
-	update_track_vol_pan();
+	/* update_track_vol_pan(); */
 
 	if (main_win->txt_editing) {
+	    fprintf(stdout, "MEM txt editing\n");
 	    if (main_win->txt_editing->cursor_countdown == 0) {
 		main_win->txt_editing->cursor_countdown = CURSOR_COUNTDOWN_MAX;
 	    } else {
@@ -807,14 +820,16 @@ void loop_project_main()
 	/* } */
 
 	if (proj->recording) {
+	    fprintf(stdout, "MEM recording update cliprects\n");
 	    transport_recording_update_cliprects();
 	}
-	status_frame();
+	/* status_frame(); */
 	
-	project_draw();
+	/* project_draw(); */
 
 
 	if (main_win->screenrecording) {
+	    fprintf(stdout, "MEM screenrecording\n");
 	    screenshot_loop();
 	}
 	/* window_draw_menus(main_win); */
@@ -828,18 +843,18 @@ void loop_project_main()
 	/* window_end_draw(main_win); */
 	/**********************************************/
 
-	SDL_Delay(1);
+	/* SDL_Delay(1); */
 
 
-        end = clock();
-	fps += (float)CLOCKS_PER_SEC / (end - start);
-	start = end;
-	if (frame_ctr > 250) {
-	    fps /= 250;
-	    fprintf(stdout, "FPS: %f\n", fps);
-	    frame_ctr = 0;
-	} else {
-	    frame_ctr++;
-	}
+        /* end = clock(); */
+	/* fps += (float)CLOCKS_PER_SEC / (end - start); */
+	/* start = end; */
+	/* if (frame_ctr > 250) { */
+	/*     fps /= 250; */
+	/*     fprintf(stdout, "FPS: %f\n", fps); */
+	/*     frame_ctr = 0; */
+	/* } else { */
+	/*     frame_ctr++; */
+	/* } */
     }
 }

@@ -114,7 +114,7 @@ static void init()
     input_init_hash_table();
     input_init_mode_load_all();
     input_load_keybinding_config(DEFAULT_KEYBIND_CFG_PATH);
-    pd_jackdaw_shm_init();
+    /* pd_jackdaw_shm_init(); */
     char *realpath_ret;
     if (!(realpath_ret = realpath(".", NULL))) {
 	perror("Error in realpath");
@@ -127,7 +127,13 @@ static void init()
     /* fprintf(stdout, "Initializing dsp...\n"); */
     init_dsp();
 }
-
+static void take_time()
+{
+    for (int i=0; i<10000000; i++) {
+	printf("i: %d\n", i);
+    }
+    
+}
 static void quit()
 {
     pd_signal_termination_of_jackdaw();
@@ -142,6 +148,7 @@ static void quit()
 	window_destroy(main_win);
     }
     input_quit();
+    take_time();
     SDL_Quit();
 }
 
@@ -163,6 +170,16 @@ int main(int argc, char **argv)
     
     init();
 
+/*     SDL_version compiled; */
+/* SDL_version linked; */
+
+/* SDL_VERSION(&compiled); */
+/* SDL_GetVersion(&linked); */
+/* SDL_Log("We compiled against SDL version %u.%u.%u ...\n", */
+/*        compiled.major, compiled.minor, compiled.patch); */
+/* SDL_Log("But we are linking against SDL version %u.%u.%u.\n", */
+/*        linked.major, linked.minor, linked.patch); */
+/* exit(0); */
     /* pd_open_shared_memory(); */
 
     char *file_to_open = NULL;

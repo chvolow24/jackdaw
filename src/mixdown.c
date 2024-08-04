@@ -136,8 +136,7 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
 	    /* fprintf(stdout, "Chunk %d: %f\n", chunk_i, chunk[chunk_i]); */
 	    chunk_i++;
 	}
-	
-	
+	/* cr->needs_redraw = true; */
 	SDL_UnlockMutex(cr->lock);
     }
     /* for (uint32_t i=0; i<len_sframes; i++) { */

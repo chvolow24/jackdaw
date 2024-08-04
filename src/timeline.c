@@ -212,6 +212,7 @@ void timeline_set_play_position(int32_t abs_pos_sframes)
     /* 	transport_start_playback(); */
     /* } */
     timeline_set_timecode();
+    tl->needs_redraw = true;
 }
 
 
@@ -228,7 +229,7 @@ void timeline_move_play_position(int32_t move_by_sframes)
 	    clipref_reset(cr);
 	}
     }
-    
+    tl->needs_redraw = true;
     /* timeline_set_timecode(); */
 }
 

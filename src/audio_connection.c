@@ -161,13 +161,11 @@ int audioconn_open(Project *proj, AudioConn *conn)
 	/* Project determines high-level audio settings */
 	device->spec.format = AUDIO_S16LSB;
 	device->spec.samples = proj->chunk_size_sframes;
-	device->spec.freq = proj->sample_rate;
+ 	device->spec.freq = proj->sample_rate;
 
 	device->spec.channels = proj->channels;
 	device->spec.callback = conn->iscapture ? transport_record_callback : transport_playback_callback;
 	device->spec.userdata = conn;
-
-	/* for (int i=0; i<10; i++) { */
 	if ((device->id = SDL_OpenAudioDevice(conn->name, conn->iscapture, &(device->spec), &(obtained), 0)) > 0) {
 	    fprintf(stdout, "ID: %d\n", device->id);
 	    device->spec = obtained;
@@ -177,8 +175,9 @@ int audioconn_open(Project *proj, AudioConn *conn)
 	    conn->open = false;
 	    fprintf(stderr, "Error opening audio device %s : %s\n", conn->name, SDL_GetError());
 	    return 1;
-	/* } */
 	}
+
+	/* SDL_CloseAudioDevice(device->id); */
 	/* exit(1); */
 
 	if (conn->iscapture) {

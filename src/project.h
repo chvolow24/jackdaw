@@ -155,6 +155,8 @@ typedef struct clip_ref {
 
     SDL_Rect rect;
     SDL_mutex *lock;
+
+    bool needs_redraw;
 } ClipRef;
     
 typedef struct clip {
@@ -235,6 +237,7 @@ typedef struct timeline {
     int32_t display_offset_sframes; // in samples frames
     int sample_frames_per_pixel;
     int display_v_offset;
+    bool needs_redraw;
     
 } Timeline;
 

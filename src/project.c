@@ -198,7 +198,7 @@ retry3:
 	}
 	/* exit(1); */
     }
-    
+    new_tl->needs_redraw = true;
     proj->timelines[proj->num_timelines] = new_tl;
     proj->num_timelines++;
     return proj->num_timelines - 1; /* Return the new timeline index */
@@ -393,9 +393,10 @@ Project *project_create(
     textbox_set_align(proj->tb_out_label, CENTER_LEFT);
     textbox_set_background_color(proj->tb_out_label, &color_global_clear);
     textbox_set_text_color(proj->tb_out_label, &color_global_white);
-    
+
+    char *default_out_name = proj->playback_conn ? proj->playback_conn->name : "(none)";
     proj->tb_out_value = textbox_create_from_str(
-	(char *)proj->playback_conn->name,
+	default_out_name,
 	out_value_lt,
 	main_win->std_font,
 	12,
@@ -702,8 +703,8 @@ Track *timeline_add_track(Timeline *tl)
     /* textbox_reset_full(track->tb_name); */
 
 
-
-    /* FILTER TESTS */
+    tl->needs_redraw = true;
+    /* /\* FILTER TESTS *\/ */
     if (proj) {
 	int ir_len = proj->fourier_len_sframes/4;
 	track->fir_filter = create_FIR_filter(LOWPASS, ir_len, track->tl->proj->fourier_len_sframes * 2);
@@ -711,7 +712,6 @@ Track *timeline_add_track(Timeline *tl)
 	track->fir_filter_active = true;
     }
     /* END FILTER TESTS */
-
 
     
     return track;
@@ -772,6 +772,7 @@ void clipref_reset(ClipRef *cr)
     cr->rect.w = timeline_get_draw_w(cr_len);
     cr->rect.y = cr->track->layout->rect.y + CR_RECT_V_PAD;
     cr->rect.h = cr->track->layout->rect.h - 2 * CR_RECT_V_PAD;
+    cr->needs_redraw = true;
 }
 
 static void clipref_remove_from_track(ClipRef *cr)
@@ -858,6 +859,7 @@ ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sfr
     clip->refs[clip->num_refs] = cr;
     clip->num_refs++;
     SDL_UnlockMutex(cr->lock);
+    track->tl->needs_redraw = true;
     return cr;
 }
 
@@ -876,6 +878,7 @@ void timeline_reset(Timeline *tl)
     }
     /* fprintf(stdout, "TL reset\n"); */
     layout_reset(tl->layout);
+    tl->needs_redraw = true;
 }
 
 void track_increment_vol(Track *track)

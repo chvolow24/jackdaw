@@ -185,10 +185,10 @@ static void clipref_draw(ClipRef *cr)
     }
 
     /* Only check horizontal out-of-bounds; track handles vertical */
-    if (cr->rect.x > main_win->w_pix || cr->rect.x + cr->rect.w < 0) {
+    SDL_Rect *audio_rect = cr->track->tl->proj->audio_rect;
+    if (cr->rect.x > audio_rect->x + audio_rect->w || cr->rect.x + cr->rect.w < audio_rect->x) {
 	return;
     }
-
     if (cr->home) {
 	if (cr->grabbed) {
 	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_home_grabbed_bckgrnd));
@@ -204,15 +204,25 @@ static void clipref_draw(ClipRef *cr)
     }
     SDL_RenderFillRect(main_win->rend, &cr->rect);
     if (!cr->clip->recording) {
-	draw_waveform(cr);
+	/* SDL_LockMutex(cr->lock); */
+	/* if (cr->needs_redraw) { */
+	    draw_waveform(cr);
+	/*     cr->needs_redraw = false; */
+	/* } */
+	/* SDL_UnlockMutex(cr->lock); */
     }
+    /* cr->needs_redraw = false; */
+    /* int playhead_pos = timeline_get_draw_x(cr->track->tl->play_pos_sframes); */
+    /* if (cr->rect.x <= playhead_pos && playhead_pos <= cr->rect.x + cr->rect.w) { */
+    /* 	cr->needs_redraw = true; */
+    /* } */
 
     int border = cr->grabbed ? 3 : 2;
 	
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
     geom_draw_rect_thick(main_win->rend, &cr->rect, border, main_win->dpi_scale_factor);
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_white));    
-    geom_draw_rect_thick(main_win->rend, &cr->rect, border / 2, main_win->dpi_scale_factor); 
+    geom_draw_rect_thick(main_win->rend, &cr->rect, border / 2, main_win->dpi_scale_factor);
 }
 
 
@@ -317,12 +327,19 @@ void fill_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const regist
 void fill_quadrant_complement(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad);
 static void timeline_draw(Timeline *tl)
 {
+
     /* Draw the timeline background */
+
+    if (!tl->needs_redraw && !proj->playing && !proj->recording && !main_win->txt_editing) {
+	return;
+    }
+    fprintf(stdout, "Time redraw\n");
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(timeline_bckgrnd));
     SDL_RenderFillRect(main_win->rend, &tl->layout->rect);
 
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(console_column_bckgrnd));
     SDL_RenderFillRect(main_win->rend, proj->console_column_rect);
+
     /* Draw tracks */
     for (int i=0; i<tl->num_tracks; i++) {
 	track_draw(tl->tracks[i]);
@@ -404,6 +421,8 @@ static void timeline_draw(Timeline *tl)
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(grey_mask));
 	SDL_RenderFillRect(main_win->rend, &tl->layout->rect);
     }
+
+    tl->needs_redraw = false;
 
 }
 
@@ -513,7 +532,7 @@ void project_draw()
 	window_start_draw(main_win, NULL);
 	page_draw(main_win->active_page);
     } else {
-	window_start_draw(main_win, &color_global_black);
+	window_start_draw(main_win, NULL);
 	timeline_draw(proj->timelines[proj->active_tl_index]);
 	control_bar_draw(proj);
 	textbox_draw(proj->timeline_label);

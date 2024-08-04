@@ -3,10 +3,14 @@ SRC_DIR := src
 BUILD_DIR := build
 GUI_SRC_DIR := gui/src
 GUI_BUILD_DIR := gui/build
-CFLAGS := -Wall -Wno-unused-command-line-argument -g -I$(SRC_DIR) -I$(GUI_SRC_DIR)  -I/usr/include/SDL2 `sdl2-config --libs --cflags` -lSDL2 -lSDL2_ttf -lpthread -lm -DINSTALL_DIR=\"`pwd`\" -fsanitize=address #-O3 # -O2 #-DLT_DEV_MODE=0
+SDL_TEST_BUILD_INCLUDE :=-I/Users/charlievolow/repos/SDL/include -I/opt/homebrew/include/SDL2
+SDL_TEST_BUILD_LIB := -L/Users/charlievolow/repos/SDL/build -Wl,-rpath,/Users/charlievolow/repos/SDL/build -L/opt/homebrew/lib
+
+CFLAGS := -Wall -Wno-unused-command-line-argument -g -I$(SRC_DIR) -I$(GUI_SRC_DIR) $(SDL_TEST_BUILD_INCLUDE) $(SDL_TEST_BUILD_LIB) -lSDL2-2.0d -lSDL2_ttf -lpthread -lm -DINSTALL_DIR=\"`pwd`\" -fsanitize=address #-O3 # -O2 #-DLT_DEV_MODE=0
 CFLAGS_JDAW_ONLY := -DLT_DEV_MODE=0
 CFLAGS_LT_ONLY := -DLT_DEV_MODE=1 -DLAYOUT_BUILD=1
 CFLAGS_ADDTL =
+
 
 LAYOUT_PROGRAM_SRCS := gui/src/openfile.c gui/src/lt_params.c gui/src/draw.c gui/src/main.c gui/src/test.c
 JACKDAW_ONLY_SRCS :=  src/main.c gui/src/userfn.c gui/src/input.c gui/src/test.c gui/src/modal.c gui/src/dir.c gui/src/components.c

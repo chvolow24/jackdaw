@@ -740,6 +740,7 @@ void transport_set_mark(Timeline *tl, bool in)
 	} else {
 	    tl->out_mark_sframes = tl->play_pos_sframes;
 	}
+	tl->needs_redraw = true;
     } else if (proj->source_mode) {
 	if (in) {
 	    proj->src_in_sframes = proj->src_play_pos_sframes;
@@ -757,6 +758,7 @@ void transport_goto_mark(Timeline *tl, bool in)
     } else {
 	timeline_set_play_position(tl->out_mark_sframes);
     }
+    
 }
 
 void transport_recording_update_cliprects()

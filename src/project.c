@@ -269,7 +269,7 @@ void project_destroy(Project *proj)
 	timeline_destroy(proj->timelines[i], false);
     }
     /* fprintf(stdout, "Proj num timelines? %d\n", proj->num_timelines); */
-    textbox_destroy(proj->timeline_label);
+    /* textbox_destroy(proj->timeline_label); */
     for (uint8_t i=0; i<proj->num_record_conns; i++) {
 	audioconn_destroy(proj->record_conns[i]);
     }
@@ -291,6 +291,10 @@ void project_destroy(Project *proj)
     textbox_destroy(proj->tb_out_label);
     textbox_destroy(proj->tb_out_value);
     textbox_destroy(proj->source_name_tb);
+    textbox_destroy(proj->timeline_label);
+    if (proj->status_bar.call) textbox_destroy(proj->status_bar.call);
+    if (proj->status_bar.dragstat) textbox_destroy(proj->status_bar.dragstat);
+    if (proj->status_bar.error) textbox_destroy(proj->status_bar.error);
     free(proj);
 }
 

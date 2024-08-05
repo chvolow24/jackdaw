@@ -52,6 +52,7 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
     AudioConn *conn = (AudioConn *)user_data;
     AudioDevice *dev = &conn->c.device;
 
+    fprintf(stdout, "RECORD CB\n");
     /* double time_diff = 1000.0f * ((double)conn->callback_clock.clock - proj->playback_conn->callback_clock.clock) / CLOCKS_PER_SEC; */
     /* fprintf(stdout, "TIME DIFF ms: %f\n", time_diff); */
 
@@ -224,6 +225,7 @@ void ____transport_playback_callback(void* user_data, uint8_t* stream, int len)
 
 void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 {
+    fprintf(stdout, "PB CALLBACK\n");
     /* fprintf(stdout, "\nSTART cb\n"); */
     /* clock_t a,b; */
     /* a = clock(); */

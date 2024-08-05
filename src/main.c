@@ -66,7 +66,7 @@
 /* #define OPEN_SANS_PATH INSTALL_DIR "/assets/ttf/OpenSans-Regular.ttf" */
 #define DEFAULT_KEYBIND_CFG_PATH INSTALL_DIR "/assets/key_bindings/default.yaml"
 
-#define DEFAULT_PROJ_AUDIO_SETTINGS 2, 48000, AUDIO_S16SYS, 64, 1024
+#define DEFAULT_PROJ_AUDIO_SETTINGS 2, 48000, AUDIO_S16SYS, 512, 4096
 
 const char *JACKDAW_VERSION = "0.2.0";
 char DIRPATH_SAVED_PROJ[MAX_PATHLEN];
@@ -91,10 +91,10 @@ static void get_native_byte_order()
 /* Initialize SDL Video and TTF */
 static void init_SDL()
 {
-    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-        fprintf(stderr, "Error initializing SDL: %s\n", SDL_GetError());
-        exit(1);
-    }
+    /* if (SDL_Init(SDL_INIT_VIDEO) != 0) { */
+    /*     fprintf(stderr, "Error initializing SDL: %s\n", SDL_GetError()); */
+    /*     exit(1); */
+    /* } */
     if (SDL_Init(SDL_INIT_AUDIO) != 0) {
         fprintf(stderr, "Error initializing audio: %s\n", SDL_GetError());
         exit(1);
@@ -103,29 +103,37 @@ static void init_SDL()
         fprintf(stderr, "Error initializing SDL_ttf: %s\n", SDL_GetError());
         exit(1);
     }
-    SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "1");
-    SDL_StopTextInput();
+
+    /* int numDrivers = SDL_GetNumAudioDrivers(); */
+    /* fprintf(stdout, "Number of drivers found: %d", numDrivers); */
+    /* for(int i = 0 ; i < numDrivers; i ++) */
+    /* { */
+    /* 	SDL_Log(" Index value: %d = %s", i, SDL_GetAudioDriver(i)); */
+    /* } */
+    /* SDL_AudioInit("dummy"); */
+    /* SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "1"); */
+    /* SDL_StopTextInput(); */
 }
 
 static void init()
 {
     init_SDL();
-    get_native_byte_order();
-    input_init_hash_table();
-    input_init_mode_load_all();
-    input_load_keybinding_config(DEFAULT_KEYBIND_CFG_PATH);
+    /* get_native_byte_order(); */
+    /* input_init_hash_table(); */
+    /* input_init_mode_load_all(); */
+    /* input_load_keybinding_config(DEFAULT_KEYBIND_CFG_PATH); */
     /* pd_jackdaw_shm_init(); */
-    char *realpath_ret;
-    if (!(realpath_ret = realpath(".", NULL))) {
-	perror("Error in realpath");
-    } else {
-	strncpy(DIRPATH_SAVED_PROJ, realpath_ret, MAX_PATHLEN);
-	free(realpath_ret);
-    }
-    strcpy(DIRPATH_OPEN_FILE, DIRPATH_SAVED_PROJ);
-    strcpy(DIRPATH_EXPORT, DIRPATH_SAVED_PROJ);
-    /* fprintf(stdout, "Initializing dsp...\n"); */
-    init_dsp();
+    /* char *realpath_ret; */
+    /* if (!(realpath_ret = realpath(".", NULL))) { */
+    /* 	perror("Error in realpath"); */
+    /* } else { */
+    /* 	strncpy(DIRPATH_SAVED_PROJ, realpath_ret, MAX_PATHLEN); */
+    /* 	free(realpath_ret); */
+    /* } */
+    /* strcpy(DIRPATH_OPEN_FILE, DIRPATH_SAVED_PROJ); */
+    /* strcpy(DIRPATH_EXPORT, DIRPATH_SAVED_PROJ); */
+    /* /\* fprintf(stdout, "Initializing dsp...\n"); *\/ */
+    /* init_dsp(); */
 }
 static void take_time()
 {
@@ -161,126 +169,15 @@ void dir_tests();
 int main(int argc, char **argv)
 {
 
-    /* SDL_Rect test = {0, 0, 1000, 1000}; */
-    /* struct logscale_array *la = waveform_create_logscale(NULL, 512, &test); */
-    /* fprintf(stdout, "Interval : %f\n", la->interval); */
-    /* /\* dir_tests(); *\/ */
-    /* exit(0); */
     fprintf(stdout, "\n\nJACKDAW (version %s)\nby Charlie Volow\n\n", JACKDAW_VERSION);
     
     init();
 
-/*     SDL_version compiled; */
-/* SDL_version linked; */
-
-/* SDL_VERSION(&compiled); */
-/* SDL_GetVersion(&linked); */
-/* SDL_Log("We compiled against SDL version %u.%u.%u ...\n", */
-/*        compiled.major, compiled.minor, compiled.patch); */
-/* SDL_Log("But we are linking against SDL version %u.%u.%u.\n", */
-/*        linked.major, linked.minor, linked.patch); */
-/* exit(0); */
-    /* pd_open_shared_memory(); */
-
-    char *file_to_open = NULL;
-    bool invoke_open_wav_file = false;
-    bool invoke_open_jdaw_file = false;
-    if (argc > 2) {
-        exit(1);
-    } else if (argc == 2) {
-	if (strcmp(argv[1], "pd_test") == 0) {
-	    /* while (!connection_open) { */
-	    /* 	fprintf(stdout, "connection not open\n"); */
-	    /* 	SDL_Delay(500); */
-	    /* } */
-	    /* fprintf(stdout, "REC GET BLOCK\n"); */
-	    /* /\* pd_jackdaw_record_get_block(); *\/ */
-	    exit(0);
-	} else if (strcmp(argv[1], "fn_ref") == 0) {
-	    input_create_function_reference();
-	    exit(0);
-	}
-	file_to_open = argv[1];
-	char *dotpos = strrchr(file_to_open, '.');
-	char *ext = dotpos + 1;
-	if (strcmp("wav", ext) * strcmp("WAV", ext) == 0) {
-	    fprintf(stderr, "Passed WAV file.\n");
-	    invoke_open_wav_file = true;
-	} else if (strcmp("jdaw", ext) * strcmp("JDAW", ext) == 0) {
-	    fprintf(stderr, "Passed JDAW file.\n");
-	    invoke_open_jdaw_file = true;
-	} else {
-	    fprintf(stderr, "Error: argument \"%s\" not recognized. Pass a .jdaw or .wav file to open that file.\n", argv[1]);
-	    exit(1);
-	}
-    }
-
     /* Create a window, assign a std_font, and set a main layout */
-    main_win = window_create(WINDOW_DEFAULT_W, WINDOW_DEFAULT_H, "Jackdaw");
-    window_assign_font(main_win, OPEN_SANS_PATH, REG);
-    window_assign_font(main_win, OPEN_SANS_BOLD_PATH, BOLD);
-    window_assign_font(main_win, LTSUPERIOR_PATH, MONO);
-    window_assign_font(main_win, LTSUPERIOR_BOLD_PATH, MONO_BOLD);
+    /* main_win = window_create(WINDOW_DEFAULT_W, WINDOW_DEFAULT_H, "Jackdaw"); */
+    /* window_assign_font(main_win, OPEN_SANS_PATH, REG);  */
 
-
-    
-    
-    /* Create project here */
-
-    if (invoke_open_jdaw_file) {
-	proj = jdaw_read_file(file_to_open);
-	if (proj) {
-	    char *realpath_ret;
-	    if (!(realpath_ret = realpath(file_to_open, NULL))) {
-		perror("Error in realpath");
-	    } else {
-		char *last_slash_pos = strrchr(realpath_ret, '/');
-		if (last_slash_pos) {
-		    *last_slash_pos = '\0';
-		    strncpy(DIRPATH_SAVED_PROJ, realpath_ret, MAX_PATHLEN);
-		}
-		free(realpath_ret);
-	    }
-	    for (int i=0; i<proj->num_timelines; i++) {
-		timeline_reset_full(proj->timelines[i]);
-	    }
-	}
-    } else {
-	proj = project_create("project.jdaw", DEFAULT_PROJ_AUDIO_SETTINGS);
-    }
-
-    
-    if (!proj && invoke_open_jdaw_file) {
-	fprintf(stderr, "Error: unable to open project \"%s\".\n", file_to_open);
-	exit(1);
-    } else if (!proj) {
-	fprintf(stderr, "Critical error: unable to create project\n");
-    }
-
-    if (invoke_open_wav_file) {
-	Track *track = timeline_add_track(proj->timelines[0]);
-	wav_load_to_track(track, file_to_open, 0);
-	char *filepath = realpath(file_to_open, NULL);
-	if (!filepath) {
-	    perror("Error in realpath");
-	} else {
-	    char *last_slash_pos = strrchr(filepath, '/');
-	    if (last_slash_pos) {
-		*last_slash_pos = '\0';
-		strncpy(DIRPATH_OPEN_FILE, filepath, MAX_PATHLEN);
-	    } else {
-		fprintf(stderr, "Error: no slash in real path of opened file\n");
-	    }
-	    free(filepath);
-
-	}
-	
-
-    }
-    /* timeline_add_track(proj->timelines[0]); */
-    /* timeline_add_track(proj->timelines[0]); */
-    /* timeline_add_track(proj->timelines[0]); */
-
+    proj = project_create("project.jdaw", DEFAULT_PROJ_AUDIO_SETTINGS);
 
     loop_project_main();
     

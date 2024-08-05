@@ -971,6 +971,21 @@ Layout *layout_create()
 }
 
 void delete_iterator(LayoutIterator *iter);
+
+static void layout_destroy_inner(Layout *lt)
+{
+    if (lt->type == TEMPLATE && lt->iterator) {
+        delete_iterator(lt->iterator);
+	lt->iterator = NULL;
+    }
+    for (uint8_t i=0; i<lt->num_children; i++) {
+        layout_destroy_inner(lt->children[i]);
+    }
+    if (lt->namelabel) {
+	txt_destroy(lt->namelabel);
+    }
+    free(lt); 
+}
 void layout_destroy(Layout *lt)
 {
     if (lt->parent && lt->type != ITERATION) {
@@ -980,17 +995,7 @@ void layout_destroy(Layout *lt)
         }
         lt->parent->num_children--;
     }
-    if (lt->type == TEMPLATE && lt->iterator) {
-        delete_iterator(lt->iterator);
-	lt->iterator = NULL;
-    }
-    for (uint8_t i=0; i<lt->num_children; i++) {
-        layout_destroy(lt->children[i]);
-    }
-    if (lt->namelabel) {
-	txt_destroy(lt->namelabel);
-    }
-    free(lt);
+    layout_destroy_inner(lt);
 }
 
 Layout *layout_create_from_window(Window *win)

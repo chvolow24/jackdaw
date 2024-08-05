@@ -1076,7 +1076,7 @@ void input_bind_fn(UserFn *fn, uint16_t i_state, SDL_Keycode keycode, InputMode 
 		keyb_node->next = malloc(sizeof(KeybNode));
 		keyb_node = keyb_node->next;
 		/* fprintf(stdout, "\t->inserting at %p\n", &keyb_node); */
-		kb = malloc(sizeof(Keybinding));
+		/* kb = malloc(sizeof(Keybinding)); */
 		keyb_node->kb = kb;
 		keyb_node->next = NULL;
 		break;

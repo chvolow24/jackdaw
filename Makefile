@@ -7,7 +7,7 @@ SDL_TEST_BUILD_INCLUDE :=-I/Users/charlievolow/repos/SDL/include -I/opt/homebrew
 SDL_TEST_BUILD_LIB := -L/Users/charlievolow/repos/SDL/build -Wl,-rpath,/Users/charlievolow/repos/SDL/build -L/opt/homebrew/lib
 
 #CFLAGS := -Wall -Wno-unused-command-line-argument -g -I$(SRC_DIR) -I$(GUI_SRC_DIR) $(SDL_TEST_BUILD_INCLUDE) $(SDL_TEST_BUILD_LIB) -lSDL2-2.0d -lSDL2_ttf -lpthread -lm -DINSTALL_DIR=\"`pwd`\" -fsanitize=address #-O3 # -O2 #-DLT_DEV_MODE=0
-CFLAGS := -Wall -Wno-unused-command-line-argument -g -I$(SRC_DIR)  `sdl2-config --cflags --libs`  -lSDL2 -fsanitize=address #-DINSTALL_DIR=\"`pwd`\"  #-O3 # -O2 #-DLT_DEV_MODE=0
+CFLAGS := -Wall -Wno-unused-command-line-argument -g -I$(SRC_DIR)  $(SDL_TEST_BUILD_INCLUDE) $(SDL_TEST_BUILD_LIB)  -lSDL2-2.0d -fsanitize=address #-DINSTALL_DIR=\"`pwd`\"  #-O3 # -O2 #-DLT_DEV_MODE=0
 # CFLAGS_JDAW_ONLY := -DLT_DEV_MODE=0
 # CFLAGS_LT_ONLY := -DLT_DEV_MODE=1 -DLAYOUT_BUILD=1
 # CFLAGS_ADDTL =

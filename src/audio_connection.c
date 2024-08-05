@@ -51,6 +51,7 @@ int query_audio_connections(Project *proj, int iscapture)
 {
     AudioConn **conn_list;
     if (iscapture) {
+	return 0;
 	conn_list = proj->record_conns;
     } else {
 	conn_list = proj->playback_conns;
@@ -60,88 +61,21 @@ int query_audio_connections(Project *proj, int iscapture)
     AudioConn *default_conn = calloc(sizeof(AudioConn), 1);
     AudioDevice *default_dev = &default_conn->c.device;
     char *name;
-    if (SDL_GetDefaultAudioInfo(&name, &(default_dev->spec), iscapture) != 0) {
-        default_conn->iscapture = iscapture;
-        /* default_conn->name = "(no device found)"; */
-	strcpy(default_conn->name, "(no device found)");
-        fprintf(stderr, "Error: unable to retrieve default %s device info. %s\n", iscapture ? "input" : "output", SDL_GetError());
-    }
+    default_conn->iscapture = iscapture;
+    name = "MacBook Air Speakers";
     strncpy(default_conn->name, name, MAX_CONN_NAMELENGTH);
     default_conn->name[MAX_CONN_NAMELENGTH - 1] = '\0';
-    fprintf(stdout, "FOUND default device, name %s\n", default_conn->name);
-    /* exit(0); */
-    default_conn->open = false;
-    default_conn->active = false;
-    default_conn->available = true;
-    default_conn->index = 0;
+    /* fprintf(stdout, "FOUND default device, name %s\n", default_conn->name); */
+    /* default_conn->open = false; */
+    /* default_conn->active = false; */
+    /* default_conn->available = true; */
+    /* /\* default_conn->index = 0; *\/ */
     default_conn->iscapture = iscapture;
-    default_dev->write_bufpos_samples = 0;
-    default_dev->rec_buffer = NULL;
-    default_dev->id = 0;
-    // memset(default_dev->rec_buffer, '\0', BUFFLEN / 2);
-    /* fprintf(stdout, "Default device %s at index %d\n", default_conn->name, default_conn->index); */
-
-    int num_devices = SDL_GetNumAudioDevices(iscapture);
+    /* default_dev->write_bufpos_samples = 0; */
+    /* default_dev->rec_buffer = NULL; */
+    /* default_dev->id = 0;x */
     conn_list[0] = default_conn;
-    for (int i=0,j=1; i<num_devices; i++,j++) {
-	AudioConn *conn = calloc(sizeof(AudioConn), 1);
-        AudioDevice *dev = &conn->c.device;
-	const char *name = SDL_GetAudioDeviceName(i, iscapture);
-        strncpy(conn->name, name, MAX_CONN_NAMELENGTH);
-	conn->name[MAX_CONN_NAMELENGTH - 1] = '\0';
-        if (strcmp(conn->name, default_conn->name) == 0) {
-	    /* default_conn->index = j; */
-            free(conn);
-            j--;
-            continue;
-        }
-        /* conn->open = false; */
-        /* conn->active = false; */
-	conn->available = true;
-        conn->index = j;
-        conn->iscapture = iscapture;
-        /* dev->write_bufpos_samples = 0; */
-        // memset(dev->rec_buffer, '\0', BUFFLEN / 2);
-        SDL_AudioSpec spec;
-        if (SDL_GetAudioDeviceSpec(i, iscapture, &spec) != 0) {
-            fprintf(stderr, "Error getting device spec: %s\n", SDL_GetError());
-        };
-        dev->spec = spec;
-        dev->rec_buffer = NULL;
-	dev->id = 0;
-        conn_list[j] = conn;
-	/* fprintf(stdout, "Connection %s at index %d\n", conn->name, conn->index); */
-        /* fprintf(stderr, "\tFound device: %s, index: %d\n", dev->name, dev->index); */
-
-    }
-
-    int num_conns = num_devices;
-    /* Check for pure data */
-    if (iscapture) {
-	AudioConn *pd = calloc(sizeof(AudioConn), 1);
-	pd->type = PURE_DATA;
-	strcpy(pd->name, "Pure data");
-	/* pd->name = "pure data"; */
-	pd->index = num_devices;
-	pd->iscapture = iscapture;
-	pd->available = true;
-	/* pd->c.pd.buf_lock = SDL_CreateMutex(); */
-	conn_list[num_conns] = pd;
-	num_conns++;
-
-	AudioConn *jdaw = calloc(sizeof(AudioConn), 1);
-	jdaw->type = JACKDAW;
-	strcpy(jdaw->name, "Jackdaw out");
-	jdaw->index = num_devices;
-	jdaw->iscapture = iscapture;
-	jdaw->available = true;
-	conn_list[num_conns] = jdaw;
-	num_conns++;
-    }
-    if (!iscapture) {
-	fprintf(stdout, "PLAYBACK CONNS: %d\n", num_conns);
-    }
-    return num_conns;
+    return 1;
 
 }
 
@@ -151,80 +85,50 @@ void transport_record_callback(void *user_data, uint8_t *stream, int len);
 
 int audioconn_open(Project *proj, AudioConn *conn)
 {
-    switch (conn->type) {
-    case DEVICE: {
-	AudioDevice *device = &conn->c.device;
-	SDL_AudioSpec obtained;
-	SDL_zero(obtained);
-	SDL_zero(device->spec);
 
-	/* Project determines high-level audio settings */
-	device->spec.format = AUDIO_S16LSB;
-	device->spec.samples = proj->chunk_size_sframes;
- 	device->spec.freq = proj->sample_rate;
+    AudioDevice *device = &conn->c.device;
+    SDL_AudioSpec obtained;
+    SDL_zero(obtained);
+    SDL_zero(device->spec);
 
-	device->spec.channels = proj->channels;
-	device->spec.callback = conn->iscapture ? transport_record_callback : transport_playback_callback;
-	device->spec.userdata = conn;
-	if ((device->id = SDL_OpenAudioDevice(conn->name, conn->iscapture, &(device->spec), &(obtained), 0)) > 0) {
-	    fprintf(stdout, "ID: %d\n", device->id);
-	    device->spec = obtained;
-	    conn->open = true;
-	    fprintf(stderr, "Successfully opened device %s, with id: %d, chunk size %d\n", conn->name, device->id, obtained.samples);
-	} else {
-	    conn->open = false;
-	    fprintf(stderr, "Error opening audio device %s : %s\n", conn->name, SDL_GetError());
-	    return 1;
-	}
+    /* Project determines high-level audio settings */
+    device->spec.format = AUDIO_S16LSB;
+    device->spec.samples = proj->chunk_size_sframes;
+    device->spec.freq = proj->sample_rate;
 
-	/* SDL_CloseAudioDevice(device->id); */
-	/* exit(1); */
-
-	if (conn->iscapture) {
-	    /* fprintf(stdout, "Dev %s\n:ch %d, freq %d, format %d (== %d)\n", device->name, obtained.channels, obtained.freq, obtained.format, AUDIO_S16LSB); */
-	    /* exit(1); */
-	    /* device->rec_buf_len_samples = proj->sample_rate * DEVICE_BUFLEN_SECONDS * device->spec.channels; */
-	    device->rec_buf_len_samples = DEVICE_BUFLEN_CHUNKS * proj->chunk_size_sframes * proj->channels;
-	    uint32_t device_buf_len_bytes = device->rec_buf_len_samples * sizeof(int16_t);
-	    if (!device->rec_buffer) {
-		device->rec_buffer = malloc(device_buf_len_bytes);
-	    }
-	    device->write_bufpos_samples = 0;
-	    if (!(device->rec_buffer)) {
-		fprintf(stderr, "Error: unable to allocate space for device buffer.\n");
-	    }
-	}
-    }
-	break;
-    case PURE_DATA:
-	fprintf(stdout, "Opening pd\n");
-	PdConn *pdconn = &conn->c.pd;
-	if (conn->iscapture) {
-	    if (!pdconn->rec_buffer_L) {
-		pdconn->rec_buf_len_sframes = PD_BUFLEN_CHUNKS * proj->chunk_size_sframes;
-		if (!pdconn->rec_buffer_L) pdconn->rec_buffer_L = malloc(sizeof(float) * pdconn->rec_buf_len_sframes);
-		if (!pdconn->rec_buffer_R) pdconn->rec_buffer_R = malloc(sizeof(float) * pdconn->rec_buf_len_sframes);
-		fprintf(stdout, "allocated %d samples in buf\n", pdconn->rec_buf_len_sframes);
-		pdconn->write_bufpos_sframes = 0;
-		if (pdconn->rec_buffer_L == NULL || pdconn->rec_buffer_R == NULL) {
-		    fprintf(stderr, "Error: unable to allocate space for pd buffers\n");
-		}
-	    }
-	}
-	/* SDL_UnlockMutex(pdconn->buf_lock); */
-	fprintf(stdout, "Successfully opened pd conn\n");
-	/* conn->index = -1; */
+    device->spec.channels = proj->channels;
+    device->spec.callback = conn->iscapture ? transport_record_callback : transport_playback_callback;
+    device->spec.userdata = conn;
+    if ((device->id = SDL_OpenAudioDevice(conn->name, conn->iscapture, &(device->spec), &(obtained), 0)) > 0) {
+	fprintf(stdout, "ID: %d\n", device->id);
+	device->spec = obtained;
 	conn->open = true;
-	break;
-    case JACKDAW:
-	if (conn->iscapture) {
-	    conn->c.jdaw.rec_buf_len_sframes = PD_BUFLEN_CHUNKS * proj->chunk_size_sframes;
-	    if (!conn->c.jdaw.rec_buffer_L) conn->c.jdaw.rec_buffer_L = malloc(sizeof(float) * conn->c.jdaw.rec_buf_len_sframes);
-	    if (!conn->c.jdaw.rec_buffer_R) conn->c.jdaw.rec_buffer_R = malloc(sizeof(float) * conn->c.jdaw.rec_buf_len_sframes);
+	fprintf(stderr, "Successfully opened device %s, with id: %d, chunk size %d\n", conn->name, device->id, obtained.samples);
+    } else {
+	conn->open = false;
+	fprintf(stderr, "Error opening audio device %s : %s\n", conn->name, SDL_GetError());
+	return 1;
+    }
+
+    /* SDL_CloseAudioDevice(device->id); */
+    /* exit(1); */
+
+    if (conn->iscapture) {
+	/* fprintf(stdout, "Dev %s\n:ch %d, freq %d, format %d (== %d)\n", device->name, obtained.channels, obtained.freq, obtained.format, AUDIO_S16LSB); */
+	/* exit(1); */
+	/* device->rec_buf_len_samples = proj->sample_rate * DEVICE_BUFLEN_SECONDS * device->spec.channels; */
+	device->rec_buf_len_samples = DEVICE_BUFLEN_CHUNKS * proj->chunk_size_sframes * proj->channels;
+	uint32_t device_buf_len_bytes = device->rec_buf_len_samples * sizeof(int16_t);
+	if (!device->rec_buffer) {
+	    device->rec_buffer = malloc(device_buf_len_bytes);
 	}
-	break;
+	device->write_bufpos_samples = 0;
+	if (!(device->rec_buffer)) {
+	    fprintf(stderr, "Error: unable to allocate space for device buffer.\n");
+	}
     }
     return 0;
+
 }
 
 /* int audioconn_open(Project *proj, AudioConn *conn) { */

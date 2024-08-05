@@ -37,21 +37,21 @@
 #include <stdlib.h>
 #include <time.h>
 #include "SDL.h"
-#include "SDL_ttf.h"
-#include "dir.h"
-#include "dsp.h"
-#include "input.h"
-#include "layout.h"
-#include "layout_xml.h"
-#include "project.h"
-#include "pure_data.h"
-#include "text.h"
-#include "transport.h"
-#include "wav.h"
-#include "waveform.h"
-#include "window.h"
+/* #include "SDL_ttf.h" */
+/* #include "dir.h" */
+/* #include "dsp.h" */
+/* #include "input.h" */
+/* #include "layout.h" */
+/* #include "layout_xml.h" */
+/* #include "project.h" */
+/* #include "pure_data.h" */
+/* #include "text.h" */
+/* #include "transport.h" */
+/* #include "wav.h" */
+/* #include "waveform.h" */
+/* #include "window.h" */
 
-#include "audio_connection.h"
+/* #include "audio_connection.h" */
 
 /* #define JACKDAW_VERSION "0.2.0" */
 
@@ -68,25 +68,25 @@
 
 #define DEFAULT_PROJ_AUDIO_SETTINGS 2, 48000, AUDIO_S16SYS, 512, 4096
 
-const char *JACKDAW_VERSION = "0.2.0";
-char DIRPATH_SAVED_PROJ[MAX_PATHLEN];
-char DIRPATH_OPEN_FILE[MAX_PATHLEN];
-char DIRPATH_EXPORT[MAX_PATHLEN];
+/* const char *JACKDAW_VERSION = "0.2.0"; */
+/* char DIRPATH_SAVED_PROJ[MAX_PATHLEN]; */
+/* char DIRPATH_OPEN_FILE[MAX_PATHLEN]; */
+/* char DIRPATH_EXPORT[MAX_PATHLEN]; */
 
-bool sys_byteorder_le = false;
+/* bool sys_byteorder_le = false; */
 
-Window *main_win;
-Project *proj = NULL;
+/* Window *main_win; */
+/* Project *proj = NULL; */
 /* char *saved_proj_path = NULL; */
 
-static void get_native_byte_order()
-{
-    #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    sys_byteorder_le = true;
-    #else
-    sys_byteorder_le = false;
-    #endif
-}
+/* static void get_native_byte_order() */
+/* { */
+/*     #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__ */
+/*     sys_byteorder_le = true; */
+/*     #else */
+/*     sys_byteorder_le = false; */
+/*     #endif */
+/* } */
 
 /* Initialize SDL Video and TTF */
 static void init_SDL()
@@ -99,10 +99,10 @@ static void init_SDL()
         fprintf(stderr, "Error initializing audio: %s\n", SDL_GetError());
         exit(1);
     }
-    if (TTF_Init() != 0) {
-        fprintf(stderr, "Error initializing SDL_ttf: %s\n", SDL_GetError());
-        exit(1);
-    }
+    /* if (TTF_Init() != 0) { */
+    /*     fprintf(stderr, "Error initializing SDL_ttf: %s\n", SDL_GetError()); */
+    /*     exit(1); */
+    /* } */
 
     /* int numDrivers = SDL_GetNumAudioDrivers(); */
     /* fprintf(stdout, "Number of drivers found: %d", numDrivers); */
@@ -142,34 +142,40 @@ static void take_time()
     }
     
 }
-static void quit()
+/* static void quit() */
+/* { */
+/*     pd_signal_termination_of_jackdaw(); */
+/*     if (proj->recording) { */
+/* 	transport_stop_recording(); */
+/*     } */
+/*     transport_stop_playback(); */
+/*     /\* Sleep to allow DSP thread to exit *\/ */
+/*     SDL_Delay(100); */
+/*     project_destroy(proj); */
+/*     if (main_win) { */
+/* 	window_destroy(main_win); */
+/*     } */
+/*     input_quit(); */
+/*     take_time(); */
+/*     SDL_Quit(); */
+/* } */
+
+/* void loop_project_main(); */
+/* Project *jdaw_read_file(const char *path); */
+
+/* extern bool connection_open; */
+
+/* void dir_tests(); */
+
+static void throwaway_callback(void *userdata, Uint8 *stream, int len)
 {
-    pd_signal_termination_of_jackdaw();
-    if (proj->recording) {
-	transport_stop_recording();
-    }
-    transport_stop_playback();
-    /* Sleep to allow DSP thread to exit */
-    SDL_Delay(100);
-    project_destroy(proj);
-    if (main_win) {
-	window_destroy(main_win);
-    }
-    input_quit();
-    take_time();
-    SDL_Quit();
+    
 }
 
-void loop_project_main();
-Project *jdaw_read_file(const char *path);
-
-extern bool connection_open;
-
-void dir_tests();
 int main(int argc, char **argv)
 {
 
-    fprintf(stdout, "\n\nJACKDAW (version %s)\nby Charlie Volow\n\n", JACKDAW_VERSION);
+    /* fprintf(stdout, "\n\nJACKDAW (version %s)\nby Charlie Volow\n\n", JACKDAW_VERSION); */
     
     init();
 
@@ -177,10 +183,43 @@ int main(int argc, char **argv)
     /* main_win = window_create(WINDOW_DEFAULT_W, WINDOW_DEFAULT_H, "Jackdaw"); */
     /* window_assign_font(main_win, OPEN_SANS_PATH, REG);  */
 
-    proj = project_create("project.jdaw", DEFAULT_PROJ_AUDIO_SETTINGS);
+    /* proj = project_create("project.jdaw", DEFAULT_PROJ_AUDIO_SETTINGS); */
 
-    loop_project_main();
+    /* proj = calloc(1, sizeof( */
+
+    SDL_AudioSpec desired, obtained;
+
+    desired.freq = 48000;
+    desired.samples = 8;
+    desired.format = AUDIO_S16LSB;
+    desired.channels = 2;
+    /* desired.callback = transport_playback_callback; */
+    desired.callback = throwaway_callback;
+    desired.userdata = NULL;
+    SDL_AudioSpec throwaway;
+    char *name;
+    SDL_GetDefaultAudioInfo(&name, &throwaway, 0);
+    SDL_AudioDeviceID id = SDL_OpenAudioDevice(name, 0, &desired, &obtained, 0);
+    if (id) {
+	fprintf(stdout, "ID: %d\n", id);
+	fprintf(stderr, "Successfully opened device %s, with id: %d, chunk size %d, freq %d\n", name, id, obtained.samples, obtained.freq);
+    } else {
+	fprintf(stderr, "Error opening audio device %s : %s\n", name, SDL_GetError());
+
+    }
+       /* audioconn_close(proj->playback_conn); */
+    SDL_Event e;
+    while (1) {
+	while (SDL_PollEvent(&e)) {
+	    switch (e.type) {
+	    case SDL_QUIT:
+		exit(0);
+	    }
+	}
+    }
+
+    /* loop_project_main(); */
     
-    quit();
+    /* quit(); */
     
 }

@@ -430,7 +430,7 @@ void page_draw(Page *page)
     int r = PAGE_R * page->win->dpi_scale_factor;
     geom_fill_rounded_rect(page->win->rend, &temp, r);
 
-    int brdr = 9 * page->win->dpi_scale_factor;
+    int brdr = 7 * page->win->dpi_scale_factor;
     int brdrtt = 2 * brdr;
     temp.x += brdr;
     temp.y += brdr;
@@ -438,7 +438,7 @@ void page_draw(Page *page)
     temp.h -= brdrtt;
     static SDL_Color brdrclr = {25, 25, 25, 255};
     SDL_SetRenderDrawColor(page->win->rend, sdl_color_expand(color_global_black));
-    geom_draw_rounded_rect_thick(page->win->rend, &temp, 12, TAB_R * page->win->dpi_scale_factor, page->win->dpi_scale_factor);
+    geom_draw_rounded_rect_thick(page->win->rend, &temp, 7, TAB_R * page->win->dpi_scale_factor, page->win->dpi_scale_factor);
     for (uint8_t i=0; i<page->num_elements; i++) {
 	page_el_draw(page->elements[i]);
     }
@@ -457,14 +457,14 @@ static inline void tab_view_draw_inner(TabView *tv, uint8_t i)
     SDL_SetRenderDrawColor(tv->win->rend, sdl_colorp_expand(page->background_color));
     geom_fill_tab(tv->win->rend, &tb->layout->rect, TAB_R, tv->win->dpi_scale_factor);
     textbox_draw(tb);
-    SDL_SetRenderDrawColor(tv->win->rend, 255, 255, 255, 255);
+    SDL_SetRenderDrawColor(tv->win->rend, 160, 160, 160, 255);
     geom_draw_rounded_rect(tv->win->rend, &page->layout->rect, TAB_R * tv->win->dpi_scale_factor);
     geom_draw_tab(tv->win->rend, &tb->layout->rect, TAB_R, tv->win->dpi_scale_factor);
     SDL_SetRenderDrawColor(tv->win->rend, sdl_colorp_expand(page->background_color));
     int left_x = tb->layout->rect.x - TAB_R * tv->win->dpi_scale_factor;
     int right_x = left_x + tb->layout->rect.w + 2 * TAB_R * tv->win->dpi_scale_factor;
     int y = tb->layout->rect.y + tb->layout->rect.h;
-    SDL_RenderDrawLine(tv->win->rend, left_x, y, right_x, y);
+    SDL_RenderDrawLine(tv->win->rend, left_x, y, right_x - 1, y);
 }
 
 void tab_view_draw(TabView *tv)

@@ -318,6 +318,7 @@ void textlines_destroy(TextLines *tlines)
 	    textlines_el_destroy(item);
 	}
     }
+    free(tlines->items);
     free(tlines);
 }
 

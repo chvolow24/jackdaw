@@ -130,7 +130,7 @@ uint8_t project_add_timeline(Project *proj, char *name)
     /* new_tl->layout = layout_get_child_by_name_recursive(proj->layout, "timeline"); */
     new_tl->sample_frames_per_pixel = DEFAULT_SFPP;
     strcpy(new_tl->timecode.str, "+00:00:00:00000");
-    Layout *tc_lt = layout_get_child_by_name_recursive(proj->layout, "timecode");
+    Layout *tc_lt = layout_get_child_by_name_recursive(new_tl->layout, "timecode");
     new_tl->timecode_tb = textbox_create_from_str(
 	new_tl->timecode.str,
 	tc_lt,
@@ -210,7 +210,6 @@ static void timeline_destroy(Timeline *tl, bool displace_in_proj)
 	/* fprintf(stdout, "DESTROYING track %d/%d\n", i, tl->num_tracks); */
 	track_destroy(tl->tracks[i], false);
     }
-    layout_destroy(tl->layout);
     /* tl->proj->num_timelines--; */
     if (displace_in_proj) {
 	bool displace = false;
@@ -225,6 +224,8 @@ static void timeline_destroy(Timeline *tl, bool displace_in_proj)
     }
     if (tl->buf_L) free(tl->buf_L);
     if (tl->buf_R) free(tl->buf_R);
+
+    if (tl->timecode_tb) textbox_destroy(tl->timecode_tb);
 
     if (sem_close(tl->unpause_sem) != 0) perror("Sem close");
     if (sem_close(tl->writable_chunks) != 0) perror("Sem close");
@@ -251,6 +252,7 @@ static void timeline_destroy(Timeline *tl, bool displace_in_proj)
     /* if (tl->mixdown_R) { */
     /* 	free(tl->mixdown_R); */
     /* } */
+    layout_destroy(tl->layout);
     free(tl);
 
 }

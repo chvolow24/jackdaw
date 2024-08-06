@@ -195,7 +195,7 @@ static int rb_target_action(void *self_v, void *target)
     /* double cutoff = f->cutoff_freq; */
     FilterType t = (FilterType)(self->selected_item);
     /* fprintf(stdout, "SET FIR FILTER PARAMS %p\n", f); */
-    set_FIR_filter_type(f, t);
+    filter_set_type(f, t);
     return 0;
     
 }
@@ -211,8 +211,8 @@ static int slider_target_action(void *self_v, void *target)
     /* /\* double cutoff_h = log(0.0001 + cutoff_unscaled) / log(1.0001f) * proj->sample_rate / 2; *\/ */
     /* fprintf(stdout, "unscaled: %f, %d\n", cutoff_unscaled, (int)cutoff_h); */
     /* FilterType t = f->type; */
-    /* set_FIR_filter_params_h(f, t, cutoff_h, 500); */
-    set_FIR_filter_cutoff_h(f, cutoff_h);
+    /* filter_set_params_h(f, t, cutoff_h, 500); */
+    filter_set_cutoff_hz(f, cutoff_h);
     return 0;
 }
 
@@ -225,8 +225,8 @@ static int slider_bandwidth_target_action(void *self_v, void *target)
     /* /\* double cutoff_h = log(0.0001 + cutoff_unscaled) / log(1.0001f) * proj->sample_rate / 2; *\/ */
     /* fprintf(stdout, "unscaled: %f, %d\n", cutoff_unscaled, (int)cutoff_h); */
     /* FilterType t = f->type; */
-    /* set_FIR_filter_params_h(f, t, cutoff_h, 500); */
-    set_FIR_filter_bandwidth_h(f, bandwidth_h);
+    /* filter_set_params_hz(f, t, cutoff_hz, 500); */
+    filter_set_bandwidth_hz(f, bandwidth_h);
     return 0;
 }
 
@@ -235,7 +235,7 @@ static int slider_irlen_target_action(void *self_v, void *target)
     Slider *self = (Slider *)self_v;
     FIRFilter *f = (FIRFilter *)target;
     int val = *(int *)self->value;
-    set_FIR_filter_impulse_response_len(f, val);
+    filter_set_impulse_response_len(f, val);
 
     if (proj->freq_domain_plot) waveform_destroy_freq_plot(proj->freq_domain_plot);
 
@@ -526,7 +526,7 @@ void loop_project_main()
 		    mouse_triage_motion_menu();
 		    break;
 		case TIMELINE:
-		    if (!mouse_triage_motion_page()) {
+		    if (!mouse_triage_motion_page() && !mouse_triage_motion_tabview()) {
 			mouse_triage_motion_timeline();
 		    }
 		default:
@@ -556,7 +556,7 @@ void loop_project_main()
 		    type++;
 		    type %= 4;
 		    /* double current_cutoff = track->fir_filter->cutoff_freq; */
-		    set_FIR_filter_params(track->fir_filter, type, cutoff, 0.05);
+		    filter_set_params(track->fir_filter, type, cutoff, 0.05);
 
 		}
 		    break;
@@ -569,12 +569,12 @@ void loop_project_main()
 		    type--;
 		    type %= 4;
 		    /* double current_cutoff = track->fir_filter->cutoff_freq; */
-		    set_FIR_filter_params(track->fir_filter, type, cutoff, 0.05);
+		    filter_set_params(track->fir_filter, type, cutoff, 0.05);
 
 		    /* Timeline *tl = proj->timelines[0]; */
 		    /* Track *track = tl->tracks[0]; */
 		    /* double current_cutoff = track->fir_filter->cutoff_freq; */
-		    /* set_FIR_filter_params(track->fir_filter, LOWPASS, current_cutoff + 0.001, 0.05); */
+		    /* filter_set_params(track->fir_filter, LOWPASS, current_cutoff + 0.001, 0.05); */
 		    
 		}
 		    break;
@@ -678,7 +678,7 @@ void loop_project_main()
 				double current_cutoff = track->fir_filter->cutoff_freq;
 				FilterType type = track->fir_filter->type;
 				double filter_adj = 0.001;
-				set_FIR_filter_params(track->fir_filter, type, current_cutoff + filter_adj * e.wheel.y, 0.05);
+				filter_set_params(track->fir_filter, type, current_cutoff + filter_adj * e.wheel.y, 0.05);
 			    } else 
 				proj->play_speed += e.wheel.y * PLAYSPEED_ADJUST_SCALAR_LARGE;
 			else 

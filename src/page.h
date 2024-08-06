@@ -140,6 +140,7 @@ Page *tab_view_add_page(
     Window *win);
 
 bool tab_view_mouse_click(TabView *tv);
+bool tab_view_mouse_motion(TabView *tv);
 
 
 /* Page methods */

@@ -385,9 +385,19 @@ bool tab_view_mouse_click(TabView *tv)
     } else if (SDL_PointInRect(&tv->win->mousep, &tv->layout->children[1]->rect)) {
 	return page_mouse_click(tv->tabs[tv->current_tab], tv->win);
     }
-    return false;
-	    
+    return false;	    
 }
+
+bool tab_view_mouse_motion(TabView *tv)
+{
+    /* if (SDL_PointInRect(&tv->win->mousep, &tv->layout->children[1]->rect)) { */
+    if (SDL_PointInRect(&tv->win->mousep, &tv->layout->children[1]->rect)) {
+	return page_mouse_motion(tv->tabs[tv->current_tab], tv->win);
+    }
+    /* } */
+    return false;    
+}
+
 
 static void page_el_draw(PageEl *el)
 {

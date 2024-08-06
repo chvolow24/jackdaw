@@ -47,6 +47,7 @@ void mouse_triage_click_text_edit(uint8_t button);
 bool mouse_triage_motion_page();
 bool mouse_triage_click_page();
 bool mouse_triage_click_tabview();
+bool mouse_triage_motion_tabview();
 
 
 #endif

@@ -296,7 +296,7 @@ static void FIR_filter_alloc_buffers(FIRFilter *filter)
     SDL_UnlockMutex(filter->lock);
 
 }
-FIRFilter *create_FIR_filter(FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len) 
+FIRFilter *filter_create(FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len) 
 {
     FIRFilter *filter = calloc(1, sizeof(FIRFilter));
     if (!filter) {
@@ -312,7 +312,7 @@ FIRFilter *create_FIR_filter(FilterType type, uint16_t impulse_response_len, uin
 }
 
 /* Bandwidth param only required for band-pass and band-cut filters */
-void set_FIR_filter_params(FIRFilter *filter, FilterType type, double cutoff, double bandwidth)
+void filter_set_params(FIRFilter *filter, FilterType type, double cutoff, double bandwidth)
 {
     filter->type = type;
     filter->cutoff_freq = cutoff;
@@ -363,59 +363,59 @@ void set_FIR_filter_params(FIRFilter *filter, FilterType type, double cutoff, do
     /* free(IR_zero_padded); */
 }
 
-void set_FIR_filter_params_h(FIRFilter *filter, FilterType type, double cutoff_hz, double bandwidth_hz)
+void filter_set_params_hz(FIRFilter *filter, FilterType type, double cutoff_hz, double bandwidth_hz)
 {
     double cutoff = cutoff_hz / (double)proj->sample_rate;
     double bandwidth = bandwidth_hz / (double)proj->sample_rate;;
-    set_FIR_filter_params(filter, type, cutoff, bandwidth);
+    filter_set_params(filter, type, cutoff, bandwidth);
 }
 
-void set_FIR_filter_cutoff(FIRFilter *f, double cutoff)
+void filter_set_cutoff(FIRFilter *f, double cutoff)
 {
     FilterType t = f->type;
     double bandwidth = f->bandwidth;
-    set_FIR_filter_params(f, t, cutoff, bandwidth);
+    filter_set_params(f, t, cutoff, bandwidth);
 
 }
-void set_FIR_filter_cutoff_h(FIRFilter *f, double cutoff_hz)
+void filter_set_cutoff_hz(FIRFilter *f, double cutoff_hz)
 {
     FilterType t = f->type;
     double bandwidth = f->bandwidth;
     double cutoff = cutoff_hz / (double)proj->sample_rate;
-    set_FIR_filter_params(f, t, cutoff, bandwidth);
+    filter_set_params(f, t, cutoff, bandwidth);
 }
-void set_FIR_filter_bandwidth(FIRFilter *f, double bandwidth)
+void filter_set_bandwidth(FIRFilter *f, double bandwidth)
 {
     FilterType t = f->type;
     double cutoff = f->cutoff_freq;
-    set_FIR_filter_params(f, t, cutoff, bandwidth);
+    filter_set_params(f, t, cutoff, bandwidth);
 }
-void set_FIR_filter_bandwidth_h(FIRFilter *f, double bandwidth_h)
+void filter_set_bandwidth_hz(FIRFilter *f, double bandwidth_h)
 {
     FilterType t = f->type;
     double bandwidth = bandwidth_h / proj->sample_rate;
     double cutoff = f->cutoff_freq;
-    set_FIR_filter_params(f, t, cutoff, bandwidth);
+    filter_set_params(f, t, cutoff, bandwidth);
 }
 
-void set_FIR_filter_impulse_response_len(FIRFilter *f, int new_len)
+void filter_set_impulse_response_len(FIRFilter *f, int new_len)
 {
     f->impulse_response_len = new_len;
     FIR_filter_alloc_buffers(f);
     double cutoff = f->cutoff_freq;
     double bandwidth = f->bandwidth;
     FilterType t = f->type;
-    set_FIR_filter_params(f, t, cutoff, bandwidth);
+    filter_set_params(f, t, cutoff, bandwidth);
 }
 
-void set_FIR_filter_type(FIRFilter *f, FilterType t)
+void filter_set_type(FIRFilter *f, FilterType t)
 {
     double cutoff = f->cutoff_freq;
     double bandwidth = f->bandwidth;
-    set_FIR_filter_params(f, t, cutoff, bandwidth);
+    filter_set_params(f, t, cutoff, bandwidth);
 }
 
-void destroy_filter(FIRFilter *filter) 
+void filter_destroy(FIRFilter *filter) 
 {
     if (filter->frequency_response) {
         free(filter->frequency_response);

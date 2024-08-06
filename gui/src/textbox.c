@@ -160,11 +160,13 @@ void textbox_draw(Textbox *tb)
     SDL_Color *txtclr = &tb->text->color;
     SDL_Color *brdrclr = tb->border_clr;
     SDL_Rect tb_rect = tb->layout->rect;
-    SDL_SetRenderDrawColor(rend, bckgrnd->r, bckgrnd->g, bckgrnd->b, bckgrnd->a);
+    if (bckgrnd)
+	SDL_SetRenderDrawColor(rend, bckgrnd->r, bckgrnd->g, bckgrnd->b, bckgrnd->a);
     if (rad > 0) {
 	int halfdim = tb_rect.w < tb_rect.h ? tb_rect.w >> 1 : tb_rect.h >>1;
 	rad = halfdim < rad ? halfdim : rad;
-	geom_fill_rounded_rect(rend, &tb_rect, rad);
+	if (bckgrnd)
+	    geom_fill_rounded_rect(rend, &tb_rect, rad);
 	SDL_SetRenderDrawColor(rend, brdrclr->r, brdrclr->g, brdrclr->b, brdrclr->a);
 	for (int i=0; i<tb->border_thickness; i++) {	    
 	    geom_draw_rounded_rect(rend, &tb_rect, rad);
@@ -176,7 +178,8 @@ void textbox_draw(Textbox *tb)
 	}
 	    
     } else {
-	SDL_RenderFillRect(rend, &tb_rect);
+	if (bckgrnd)
+	    SDL_RenderFillRect(rend, &tb_rect);
 	SDL_SetRenderDrawColor(rend, brdrclr->r, brdrclr->g, brdrclr->b, brdrclr->a);
 	for (int i=0; i<tb->border_thickness; i++) {
 	    SDL_RenderDrawRect(rend, &tb_rect);

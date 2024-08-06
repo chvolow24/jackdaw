@@ -272,11 +272,13 @@ static void test_tabview()
 	{70, 40, 70, 255},
 	{40, 40, 80, 255}
     };
+    /* static SDL_Color lightgrey = {220, 220, 220, 255}; */
     Page *page = tab_view_add_page(
 	tv,
 	"Track FIR Filter",
 	INSTALL_DIR "/assets/layouts/some_name.xml",
 	page_colors,
+	&color_global_white,
 	main_win);
 
     tab_view_add_page(
@@ -284,12 +286,14 @@ static void test_tabview()
 	"EQ",
 	INSTALL_DIR "/assets/layouts/some_name.xml",
 	page_colors + 1,
+	&color_global_white,
 	main_win);
     tab_view_add_page(
 	tv,
 	"This is another tab",
 	INSTALL_DIR "/assets/layouts/some_name.xml",
 	page_colors + 2,
+	&color_global_white,
 	main_win);
 
         
@@ -355,7 +359,7 @@ static void test_tabview()
     };
 
     p.radio_p.text_size = 14;
-    p.radio_p.text_color = &color_global_black;
+    p.radio_p.text_color = &color_global_white;
     /* p.radio_p.target_enum = NULL; */
     p.radio_p.action = rb_target_action;
     p.radio_p.item_names = item_names;
@@ -371,105 +375,7 @@ static void test_tabview()
     fclose(f);
 }
 
-static void test_page_create()
-{
-    if (main_win->active_page) {
-	page_close(main_win->active_page);
-	return;
-    }
 
-    Layout *page_layout = layout_add_child(main_win->layout);
-    /* layout_set_default_dims(page_layout); */
-    page_layout->w.type = SCALE;
-    page_layout->h.type = SCALE;
-    page_layout->x.type = REL;
-    page_layout->y.type = REL;
-    page_layout->w.value.floatval = 0.8;
-    page_layout->h.value.floatval = 0.8;
-    layout_center_agnostic(page_layout, true, true);
-    Page *page = page_create(
-	"This is a page",
-	INSTALL_DIR "/assets/layouts/some_name.xml",
-	page_layout,
-	&color_global_grey,
-	main_win);
-
-    
-    PageElParams p;
-    p.textbox_p.font = main_win->std_font;
-    p.textbox_p.text_size = 12;
-    p.textbox_p.set_str = "Bandwidth:";
-    p.textbox_p.win = main_win;
-    page_add_el(page, EL_TEXTBOX, p, "bandwidth_label");
-
-    p.textbox_p.set_str = "Cutoff frequency:";
-    p.textbox_p.win = main_win;
-    PageEl* el = page_add_el(page, EL_TEXTBOX, p, "cutoff_label");
-
-
-    
-    static double freq_unscaled = 0;
-    p.slider_p.create_label_fn = NULL;
-    p.slider_p.style = SLIDER_FILL;
-    p.slider_p.orientation = SLIDER_HORIZONTAL;
-    p.slider_p.value = &freq_unscaled;
-    p.slider_p.val_type = JDAW_DOUBLE;
-    p.slider_p.action = slider_target_action;
-    p.slider_p.target = (void *)(proj->timelines[0]->tracks[0]->fir_filter);
-    el = page_add_el(page, EL_SLIDER, p, "cutoff_slider");
-
-
-    static double bandwidth_unscaled = 0;
-    p.slider_p.action = slider_bandwidth_target_action;
-    p.slider_p.target = (void *)(proj->timelines[0]->tracks[0]->fir_filter);
-    p.slider_p.value = &bandwidth_unscaled;
-    el = page_add_el(page, EL_SLIDER, p, "bandwidth_slider");
-
-    static int ir_len = 20;
-    p.slider_p.action = slider_irlen_target_action;
-    p.slider_p.target = (void *)(proj->timelines[0]->tracks[0]->fir_filter);
-    p.slider_p.value = &ir_len;
-    p.slider_p.val_type = JDAW_INT;
-    el = page_add_el(page, EL_SLIDER, p, "slider_ir_len");
-
-    Slider *sl = (Slider *)el->component;
-    Value min, max;
-    min.int_v = 4;
-    max.int_v = proj->fourier_len_sframes;
-    slider_set_range(sl, min, max);
-    
-
-    /* 	int text_size; */
-    /* 	SDL_Color *text_color; */
-    /* 	void *target_enum; */
-    /* 	void (*external_action)(void *); */
-    /* 	const char **item_names; */
-    /* 	uint8_t num_items; */
-    /* }; */
-    
-
-    static const char * item_names[] = {
-	"Lowpass",
-	"Highpass",
-	"Bandpass",
-	"Bandcut"
-
-    };
-
-    p.radio_p.text_size = 14;
-    p.radio_p.text_color = &color_global_black;
-    /* p.radio_p.target_enum = NULL; */
-    p.radio_p.action = rb_target_action;
-    p.radio_p.item_names = item_names;
-    p.radio_p.num_items = 4;
-    p.radio_p.target = proj->timelines[0]->tracks[0]->fir_filter;
-    
-    el = page_add_el(page, EL_RADIO, p, "radio1");
-
-    
-    page_activate(page);
-    
-}
 
 void loop_project_main()
 {

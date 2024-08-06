@@ -72,6 +72,7 @@ Page *tab_view_add_page(
     const char *page_title,
     const char *layout_filepath,
     SDL_Color *background_color,
+    SDL_Color *text_color,
     Window *win)
 {
     /* Second child of tab view layout is page container */
@@ -81,7 +82,13 @@ Page *tab_view_add_page(
     page_lt->w.value.floatval = 1.0f;
     page_lt->h.value.floatval = 1.0f;
 
-    Page *page = page_create(page_title, layout_filepath, tv->layout->children[1], background_color, win);
+    Page *page = page_create(
+	page_title,
+	layout_filepath,
+	tv->layout->children[1],
+	background_color,
+	text_color,
+	win);
     tv->tabs[tv->num_tabs] = page;
     Layout *tab_lt = layout_add_child(tv->layout->children[0]);
     tab_lt->x.type = STACK;
@@ -96,7 +103,7 @@ Page *tab_view_add_page(
     layout_force_reset(tv->layout);
     Textbox *tab_tb = textbox_create_from_str((char *)page_title, tab_lt, tv->win->mono_bold_font, 14, tv->win);
     textbox_set_background_color(tab_tb, &color_global_clear);
-    textbox_set_text_color(tab_tb, &color_global_white);
+    textbox_set_text_color(tab_tb, text_color);
     textbox_size_to_fit_h(tab_tb, 20);
     textbox_reset_full(tab_tb);
     tv->labels[tv->num_tabs] = tab_tb;
@@ -116,11 +123,18 @@ void tab_view_destroy(TabView *tv)
 }
 /* void layout_write(FILE *f, Layout *lt); */
 
-Page *page_create(const char *title, const char *layout_filepath, Layout *parent_lt, SDL_Color *background_color, Window *win)
+Page *page_create(
+    const char *title,
+    const char *layout_filepath,
+    Layout *parent_lt,
+    SDL_Color *background_color,
+    SDL_Color *text_color,
+    Window *win)
 {
     Page *page = calloc(1, sizeof(Page));
     page->title = title;
     page->background_color = background_color;
+    page->text_color = text_color;
     Layout *page_lt = layout_read_from_xml(layout_filepath);
     page->layout = page_lt;
     layout_reparent(page_lt, parent_lt);
@@ -169,7 +183,7 @@ void page_destroy(Page *page)
     free(page);
 }
 
-void page_el_set_params(PageEl *el, PageElParams params)
+void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 {
     if (el->component) {
 	free(el->component);
@@ -184,14 +198,19 @@ void page_el_set_params(PageEl *el, PageElParams params)
 	    params.textarea_p.color,
 	    params.textarea_p.win);
 	break;
-    case EL_TEXTBOX:
-	el->component = (void *)textbox_create_from_str(
+    case EL_TEXTBOX: {
+	Textbox *tb = textbox_create_from_str(
 	    params.textbox_p.set_str,
 	    el->layout,
 	    params.textbox_p.font,
 	    params.textbox_p.text_size,
 	    params.textbox_p.win);
+	textbox_set_background_color(tb, NULL);
+	textbox_set_text_color(tb, page->text_color);
+	el->component = (void *)tb;
+	    }
 	break;
+	
     case EL_TEXTENTRY:
 	break;
     case EL_SLIDER:
@@ -243,7 +262,7 @@ PageEl *page_add_el(
     if (!el->layout) {
 	fprintf(stdout, "Error in layout at %s; unable to find child named %s\n", page->layout->name, layout_name);
     }
-    page_el_set_params(el, params);
+    page_el_set_params(el, params, page);
     page->elements[page->num_elements] = el;
     page->num_elements++;
     return el;

@@ -32,17 +32,17 @@ $(LT_EXEC): CFLAGS_ADDTL := $(CFLAGS_LT_ONLY)
 $(LT_EXEC): $(LT_OBJS)
 	$(CC) -o $@ $^ $(CFLAGS) $(CFLAGS_ADDTL)
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(BUILD_DIR) 
 	$(CC) $(CFLAGS) $(CFLAGS_ADDTL) -c $< -o $@
 
-$(GUI_BUILD_DIR)/%.o: $(GUI_SRC_DIR)/%.c
+$(GUI_BUILD_DIR)/%.o: $(GUI_SRC_DIR)/%.c $(GUI_BUILD_DIR) 
 	$(CC) $(CFLAGS) $(CFLAGS_ADDTL) -c $< -o $@
 
+$(BUILD_DIR):
+	mkdir $(BUILD_DIR)
 
-# .SECONDEXPANSION:
-# $(EXEC): CFLAGS_ADDTL := $(CFLAGS_JDAW_ONLY)
-# $(LT_EXEC): CFLAGS_ADDTL := $(CFLAGS_LT_ONLY)
-
+$(GUI_BUILD_DIR):
+	mkdir $(GUI_BUILD_DIR)
 
 clean:
-	rm -rf $(EXEC) $(LT_EXEC) $(BUILD_DIR)/* $(GUI_BUILD_DIR)/*
+	rm -rf $(EXEC) $(LT_EXEC) $(BUILD_DIR) $(GUI_BUILD_DIR)

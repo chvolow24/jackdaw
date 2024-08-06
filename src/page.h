@@ -38,6 +38,7 @@ typedef struct page {
     uint8_t num_elements;
     Layout *layout;
     SDL_Color *background_color;
+    SDL_Color *text_color;
     Window *win;
 } Page;
 
@@ -137,6 +138,7 @@ Page *tab_view_add_page(
     const char *page_title,
     const char *layout_filepath,
     SDL_Color *background_color,
+    SDL_Color *text_color,
     Window *win);
 
 bool tab_view_mouse_click(TabView *tv);
@@ -150,10 +152,11 @@ Page *page_create(
     const char *layout_filepath,
     Layout *parent_lt,
     SDL_Color *background_color,
+    SDL_Color *text_color,
     Window *win);
 
 void page_destroy(Page *page);
-void page_el_set_params(PageEl *el, PageElParams params);
+void page_el_set_params(PageEl *el, PageElParams params, Page *page);
 PageEl *page_add_el(
     Page *page,
     PageElType type,

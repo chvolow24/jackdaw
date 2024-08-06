@@ -331,7 +331,8 @@ RadioButton *radio_button_create(
 	Textbox *label = textbox_create_from_str((char *)item_names[i], r, main_win->std_font, 14, main_win);
 	textbox_set_align(label, CENTER_LEFT);
 	textbox_set_pad(label, 4, 0);
-	textbox_set_background_color(label, &color_global_clear);
+	textbox_set_text_color(label, text_color);
+	textbox_set_background_color(label, NULL);
 	textbox_reset_full(label);
 	rb->items[i] = label;
     }

@@ -242,6 +242,13 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
     case EL_PLOT:
 	break;
     case EL_FREQ_PLOT:
+	el->component = (void *)waveform_create_freq_plot(
+	    params.freqplot_p.arrays,
+	    params.freqplot_p.num_arrays,
+	    params.freqplot_p.colors,
+	    params.freqplot_p.steps,
+	    params.freqplot_p.num_items,
+	    el->layout);
 	break;
     case EL_BUTTON:
 	break;

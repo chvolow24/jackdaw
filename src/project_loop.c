@@ -70,6 +70,8 @@ extern Window *main_win;
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;
 
+extern SDL_Color freq_L_color;
+extern SDL_Color freq_R_color;
 
 extern Project *proj;
 
@@ -230,30 +232,29 @@ static int slider_bandwidth_target_action(void *self_v, void *target)
     return 0;
 }
 
+struct slider_irlen_target {
+    FIRFilter *f;
+    struct freq_plot *fp;
+};
 static int slider_irlen_target_action(void *self_v, void *target)
 {
     Slider *self = (Slider *)self_v;
-    FIRFilter *f = (FIRFilter *)target;
+    struct slider_irlen_target *sit = (struct slider_irlen_target *)target;
+    FIRFilter *f = sit->f;
+    struct freq_plot *fp = sit->fp;
     int val = *(int *)self->value;
     filter_set_impulse_response_len(f, val);
+    fp->arrays[2] = f->frequency_response_mag;
+    waveform_reset_freq_plot(fp);
+    /* if (proj->freq_domain_plot) waveform_destroy_freq_plot(proj->freq_domain_plot); */
 
-    if (proj->freq_domain_plot) waveform_destroy_freq_plot(proj->freq_domain_plot);
 
-    Layout *freq_lt = layout_add_child(proj->layout);
-    freq_lt->rect.w = 600 * main_win->dpi_scale_factor;
-    freq_lt->rect.h = 300 * main_win->dpi_scale_factor;
-    layout_set_values_from_rect(freq_lt);
-    freq_lt->y.type = REVREL;
-    freq_lt->y.value.intval = 0;
-    layout_reset(freq_lt);
-    layout_center_agnostic(freq_lt, true, false);
-
-    double *arrays[] = {proj->output_L_freq, proj->output_R_freq, proj->timelines[0]->tracks[0]->fir_filter->frequency_response_mag};
-    SDL_Color *colors[] = {&color_global_white, &color_global_white, &color_global_white};
-    int steps[] = {1, 1, 2};
-    proj->freq_domain_plot = waveform_create_freq_plot(arrays, 3, colors, steps, proj->fourier_len_sframes / 2, freq_lt);
-
+    /* double *arrays[] = {proj->output_L_freq, proj->output_R_freq, proj->timelines[0]->tracks[0]->fir_filter->frequency_response_mag}; */
+    /* SDL_Color *colors[] = {&color_global_white, &color_global_white, &color_global_white}; */
+    /* int steps[] = {1, 1, 2}; */
+    /* proj->freq_domain_plot = waveform_create_freq_plot(arrays, 3, colors, steps, proj->fourier_len_sframes / 2, freq_lt); */
     /* proj->freq_domain_plot->plots[2] = proj->timelines[0]->tracks[0]->fir_filter->frequency_response_mag; */
+    
     return 0;
 }
 
@@ -327,19 +328,6 @@ static void test_tabview()
     p.slider_p.value = &bandwidth_unscaled;
     el = page_add_el(page, EL_SLIDER, p, "bandwidth_slider");
 
-    static int ir_len = 20;
-    p.slider_p.action = slider_irlen_target_action;
-    p.slider_p.target = (void *)(proj->timelines[0]->tracks[0]->fir_filter);
-    p.slider_p.value = &ir_len;
-    p.slider_p.val_type = JDAW_INT;
-    el = page_add_el(page, EL_SLIDER, p, "slider_ir_len");
-
-    Slider *sl = (Slider *)el->component;
-    Value min, max;
-    min.int_v = 4;
-    max.int_v = proj->fourier_len_sframes;
-    slider_set_range(sl, min, max);
-    
 
     /* 	int text_size; */
     /* 	SDL_Color *text_color; */
@@ -368,11 +356,49 @@ static void test_tabview()
     
     el = page_add_el(page, EL_RADIO, p, "radio1");
 
+    FIRFilter *f = proj->timelines[proj->active_tl_index]->tracks[0]->fir_filter;
+    double *arrays[3] = {
+	proj->output_L_freq,
+	proj->output_R_freq,
+	f->frequency_response_mag
+    };
+	
+    int steps[] = {1, 1, 2};
+    SDL_Color *colors[] = {&freq_L_color, &freq_R_color, &color_global_white};
+    p.freqplot_p.arrays = arrays;
+    p.freqplot_p.colors =  colors;
+    p.freqplot_p.steps = steps;
+    p.freqplot_p.num_items = proj->fourier_len_sframes / 2;
+    p.freqplot_p.num_arrays = 3;
+    /* p.freqplot_p. */
+    el = page_add_el(page, EL_FREQ_PLOT, p, "freq_plot");
+
+
+    struct slider_irlen_target *sit = malloc(sizeof(struct slider_irlen_target));
+    sit->f = proj->timelines[0]->tracks[0]->fir_filter;
+    sit->fp = (struct freq_plot *)el->component;
+    static int ir_len = 20;
+    p.slider_p.action = slider_irlen_target_action;
+    /* p.slider_p.target = */
+    p.slider_p.target = (void *)(sit);
+    p.slider_p.value = &ir_len;
+    p.slider_p.val_type = JDAW_INT;
+    p.slider_p.create_label_fn = NULL;
+    p.slider_p.orientation = SLIDER_HORIZONTAL;
+    el = page_add_el(page, EL_SLIDER, p, "slider_ir_len");
+
+    Slider *sl = (Slider *)el->component;
+    Value min, max;
+    min.int_v = 4;
+    max.int_v = proj->fourier_len_sframes;
+    slider_set_range(sl, min, max);
+    
+
     layout_force_reset(tv->layout);
     tab_view_activate(tv);
-    FILE *f = fopen("test.xml", "w");
-    layout_write(f, tv->layout, 0);
-    fclose(f);
+    /* FILE *f = fopen("test.xml", "w"); */
+    /* layout_write(f, tv->layout, 0); */
+    /* fclose(f); */
 }
 
 

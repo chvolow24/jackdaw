@@ -82,8 +82,6 @@ extern SDL_Color color_global_yellow;
 extern SDL_Color timeline_label_txt_color;
 
 
-extern SDL_Color freq_L_color;
-extern SDL_Color freq_R_color;
 /* SDL_Color track_vol_bar_clr = (SDL_Color) {200, 100, 100, 255}; */
 /* SDL_Color track_pan_bar_clr = (SDL_Color) {100, 200, 100, 255}; */
 /* SDL_Color track_in_bar_clr = (SDL_Color) {100, 100, 200, 255}; */
@@ -109,6 +107,7 @@ static void draw_waveform(ClipRef *cr)
     uint8_t num_channels = cr->clip->channels;
     float *channels[num_channels];
     uint32_t cr_len_sframes = clip_ref_len(cr);
+
     if (!cr->clip->L) {
 	return;
     }
@@ -544,30 +543,36 @@ void project_draw()
 
     proj->timelines[proj->active_tl_index]->needs_redraw = false;
     
-    /* TESTING Freq plot */
-    if (!proj->freq_domain_plot && proj->timelines[0]->num_tracks != 0 && proj->timelines[0]->tracks[0]->fir_filter) {
-	Layout *freq_lt = layout_add_child(proj->layout);
-	freq_lt->rect.w = 600 * main_win->dpi_scale_factor;
-	freq_lt->rect.h = 300 * main_win->dpi_scale_factor;
-	layout_set_values_from_rect(freq_lt);
-	freq_lt->y.type = REVREL;
-	freq_lt->y.value.intval = 0;
-	layout_reset(freq_lt);
-	layout_center_agnostic(freq_lt, true, false);
-	/* freq_lt->rect.x = 30; */
-	/* freq_lt->rect.y = 800; */
-	/* freq_lt->rect.w = 1400; */
-	/* freq_lt->rect.h = 500; */
-	/* layout_set_values_from_rect(freq_lt); */
+    /* /\* TESTING Freq plot *\/ */
+    
+    /* if (!proj->freq_domain_plot && proj->timelines[0]->num_tracks != 0 && proj->timelines[0]->tracks[0]->fir_filter) { */
+    /* 	Layout *freq_lt = layout_add_child(proj->layout); */
+    /* 	freq_lt->rect.w = 600 * main_win->dpi_scale_factor; */
+    /* 	freq_lt->rect.h = 300 * main_win->dpi_scale_factor; */
+    /* 	layout_set_values_from_rect(freq_lt); */
+    /* 	freq_lt->y.type = REVREL; */
+    /* 	freq_lt->y.value.intval = 0; */
+    /* 	layout_reset(freq_lt); */
+    /* 	layout_center_agnostic(freq_lt, true, false); */
+    /* 	/\* freq_lt->rect.x = 30; *\/ */
+    /* 	/\* freq_lt->rect.y = 800; *\/ */
+    /* 	/\* freq_lt->rect.w = 1400; *\/ */
+    /* 	/\* freq_lt->rect.h = 500; *\/ */
+    /* 	/\* layout_set_values_from_rect(freq_lt); *\/ */
 	
-	double *arrays[] = {proj->output_L_freq, proj->output_R_freq, proj->timelines[0]->tracks[0]->fir_filter->frequency_response_mag};
-	SDL_Color *colors[] = {&freq_L_color, &freq_R_color, &color_global_white};
-	int steps[] = {1, 1, 2};
-	proj->freq_domain_plot = waveform_create_freq_plot(arrays, 3, colors, steps, proj->fourier_len_sframes / 2, freq_lt);
-    }
-    if (proj->show_output_freq_domain) {
-	waveform_draw_freq_plot(proj->freq_domain_plot);
-    }
+    /* 	double *arrays[] = {proj->output_L_freq, proj->output_R_freq, proj->timelines[0]->tracks[0]->fir_filter->frequency_response_mag}; */
+
+    /* 	int steps[] = {1, 1, 2}; */
+    /* 	proj->freq_domain_plot = waveform_create_freq_plot(arrays, 3, colors, steps, proj->fourier_len_sframes / 2, freq_lt); */
+    /* } */
+    /* if (proj->show_output_freq_domain) { */
+    /* 	waveform_draw_freq_plot(proj->freq_domain_plot); */
+    /* } */
+
+
+
+
+    
     
     /* SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 245); */
     /* SDL_RenderFillRect(main_win->rend, &ok); */

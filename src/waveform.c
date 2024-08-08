@@ -107,22 +107,22 @@ void waveform_draw_freq_domain(struct logscale *la)
     }
 }
 
-struct freq_plot *waveform_create_freq_plot(double **arrays, int num_plots, SDL_Color **colors, int *steps, int num_items, Layout *container)
+
+void waveform_reset_freq_plot(struct freq_plot *fp)
 {
-    struct freq_plot *fp = calloc(1, sizeof(struct freq_plot));
-    fp->container = container;
-    fp->num_plots = num_plots;
-    fp->plots = malloc(sizeof(struct logscale *) * num_plots);
-    for (int i=0; i<num_plots; i++) {
-	fp->plots[i] = waveform_create_logscale(arrays[i], num_items, &container->rect, colors[i], steps[i]);
+
+    for (int i=0; i<fp->num_plots; i++) {
+	struct logscale *ls;
+	if ((ls = fp->plots[i])) waveform_destroy_logscale(ls);
+	fp->plots[i] = waveform_create_logscale(fp->arrays[i], fp->num_items, &fp->container->rect, fp->colors[i], fp->steps[i]);
     }
     int tics[FREQ_PLOT_MAX_TICS];
     int num_tics = 0;
     double nyquist = (double)proj->sample_rate / 2;
     double lognyq  = log(nyquist);
-    int left_x = container->rect.x;
-    int w = container->rect.w;
-    double lognsub1 = log(num_items - 1);
+    int left_x = fp->container->rect.x;
+    int w = fp->container->rect.w;
+    double lognsub1 = log(fp->num_items - 1);
     double omega = 50.0f;
     static const char *freq_labels[] = {
 	"60 Hz",
@@ -132,6 +132,7 @@ struct freq_plot *waveform_create_freq_plot(double **arrays, int num_plots, SDL_
 	"2 KHz",
 	"10 KHz"
     };
+    fp->num_labels = 0;
     while (1) {
 
 	tics[num_tics] = left_x + w * (1.0f + (log(omega) - lognyq) / lognsub1);
@@ -170,6 +171,23 @@ struct freq_plot *waveform_create_freq_plot(double **arrays, int num_plots, SDL_
     fp->tic_cache = malloc(sizeof(int) * num_tics);
     memcpy(fp->tic_cache, tics, sizeof(int) * num_tics);
     fp->num_tics = num_tics;
+
+}
+
+struct freq_plot *waveform_create_freq_plot(double **arrays, int num_plots, SDL_Color **colors, int *steps, int num_items, Layout *container)
+{
+    struct freq_plot *fp = calloc(1, sizeof(struct freq_plot));
+    fp->container = container;
+    fp->arrays = calloc(num_plots, sizeof(double *));
+    fp->colors = calloc(num_plots, sizeof(SDL_Color *));
+    fp->steps = calloc(num_plots, sizeof(int));
+    memcpy(fp->arrays, arrays, num_plots * sizeof(double *));
+    memcpy(fp->colors, colors, num_plots * sizeof(SDL_Color *));
+    memcpy(fp->steps, steps, num_plots * sizeof(int));
+    fp->num_plots = num_plots;
+    fp->num_items = num_items;
+    fp->plots = calloc(num_plots, sizeof(struct logscale *));
+    waveform_reset_freq_plot(fp);
     return fp;
 }
 
@@ -180,10 +198,14 @@ void waveform_destroy_freq_plot(struct freq_plot *fp)
     }
     for (int i=0; i<fp->num_plots; i++) {
 	waveform_destroy_logscale(fp->plots[i]);
+	free(fp->arrays);
+	free(fp->colors);
+	free(fp->steps);
     }
     for (int i=0; i<fp->num_labels; i++) {
 	textbox_destroy(fp->labels[i]);
     }
+    layout_destroy(fp->container);
     free(fp);
 }
 

@@ -50,7 +50,11 @@ struct logscale {
 
 struct freq_plot {
     struct logscale **plots;
+    double **arrays;
+    SDL_Color **colors;
+    int *steps;
     int num_plots;
+    int num_items;
     Layout *container;
     int num_tics;
     int *tic_cache;
@@ -71,6 +75,7 @@ struct freq_plot *waveform_create_freq_plot(
     int *steps,
     int num_items,
     Layout *container);
+void waveform_reset_freq_plot(struct freq_plot *fp);
 void waveform_destroy_freq_plot(struct freq_plot *fp);
 void waveform_draw_freq_plot(struct freq_plot *fp);
 

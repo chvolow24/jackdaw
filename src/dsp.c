@@ -406,6 +406,9 @@ void filter_set_impulse_response_len(FIRFilter *f, int new_len)
     double bandwidth = f->bandwidth;
     FilterType t = f->type;
     filter_set_params(f, t, cutoff, bandwidth);
+    memset(f->overlap_buffer_L, '\0', f->overlap_len * sizeof(double));
+    memset(f->overlap_buffer_R, '\0', f->overlap_len * sizeof(double));
+	      
 }
 
 void filter_set_type(FIRFilter *f, FilterType t)

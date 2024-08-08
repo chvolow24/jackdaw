@@ -68,5 +68,14 @@
             <children>
             </children>
         </Layout>
+        <Layout name="freq_plot" type="NORMAL">
+            <x>REL 60</x>
+            <y>REL 300</y>
+            <w>REL 536</w>
+            <h>REL 150</h>
+            <index>7</index>
+            <children>
+            </children>
+        </Layout>
     </children>
 </Layout>

@@ -246,6 +246,7 @@ static int slider_irlen_target_action(void *self_v, void *target)
     filter_set_impulse_response_len(f, val);
     fp->arrays[2] = f->frequency_response_mag;
     waveform_reset_freq_plot(fp);
+    slider_reset(self);
     /* if (proj->freq_domain_plot) waveform_destroy_freq_plot(proj->freq_domain_plot); */
 
 
@@ -303,28 +304,40 @@ static void test_tabview()
     p.textbox_p.text_size = 12;
     p.textbox_p.set_str = "Bandwidth:";
     p.textbox_p.win = main_win;
-    page_add_el(page, EL_TEXTBOX, p, "bandwidth_label");
+    PageEl *el = page_add_el(page, EL_TEXTBOX, p, "bandwidth_label");
 
+    Textbox *tb = el->component;
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+    
     p.textbox_p.set_str = "Cutoff frequency:";
     p.textbox_p.win = main_win;
-    PageEl* el = page_add_el(page, EL_TEXTBOX, p, "cutoff_label");
+    el = page_add_el(page, EL_TEXTBOX, p, "cutoff_label");
+    tb = el->component;
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+    p.textbox_p.set_str = "Impulse response length (\"sharpness\")";
+    el = page_add_el(page, EL_TEXTBOX, p, "irlen_label");
+    tb=el->component;
+    textbox_set_trunc(tb, false);
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
 
-
-    
-    static double freq_unscaled = 0;
+    Track *track = proj->timelines[0]->tracks[0];
+    static double freq_unscaled = 0.5;
     p.slider_p.create_label_fn = NULL;
-    p.slider_p.style = SLIDER_FILL;
+    p.slider_p.style = SLIDER_TICK;
     p.slider_p.orientation = SLIDER_HORIZONTAL;
     p.slider_p.value = &freq_unscaled;
     p.slider_p.val_type = JDAW_DOUBLE;
     p.slider_p.action = slider_target_action;
-    p.slider_p.target = (void *)(proj->timelines[0]->tracks[0]->fir_filter);
+    p.slider_p.target = (void *)(track->fir_filter);
     el = page_add_el(page, EL_SLIDER, p, "cutoff_slider");
 
 
-    static double bandwidth_unscaled = 0;
+    static double bandwidth_unscaled = 0.5;
     p.slider_p.action = slider_bandwidth_target_action;
-    p.slider_p.target = (void *)(proj->timelines[0]->tracks[0]->fir_filter);
+    p.slider_p.target = (void *)(track->fir_filter);
     p.slider_p.value = &bandwidth_unscaled;
     el = page_add_el(page, EL_SLIDER, p, "bandwidth_slider");
 
@@ -357,13 +370,24 @@ static void test_tabview()
     el = page_add_el(page, EL_RADIO, p, "radio1");
 
     FIRFilter *f = proj->timelines[proj->active_tl_index]->tracks[0]->fir_filter;
+    double **track_l, **track_r;
+    track_l = &track->buf_L_freq_mag;
+    track_r = &track->buf_R_freq_mag;
+    if (!*track_l) {
+	*track_l = malloc(f->frequency_response_len * 2 * sizeof(double));
+    }
+    if (!(*track_r)) {
+	*track_r = malloc(f->frequency_response_len * 2 * sizeof(double));
+    }
     double *arrays[3] = {
-	proj->output_L_freq,
-	proj->output_R_freq,
+	track->buf_L_freq_mag,
+	track->buf_R_freq_mag,
+	/* proj->output_L_freq, */
+	/* proj->output_R_freq, */
 	f->frequency_response_mag
     };
 	
-    int steps[] = {1, 1, 2};
+    int steps[] = {2, 2, 2};
     SDL_Color *colors[] = {&freq_L_color, &freq_R_color, &color_global_white};
     p.freqplot_p.arrays = arrays;
     p.freqplot_p.colors =  colors;
@@ -379,6 +403,7 @@ static void test_tabview()
     sit->fp = (struct freq_plot *)el->component;
     static int ir_len = 20;
     p.slider_p.action = slider_irlen_target_action;
+    p.slider_p.style = SLIDER_TICK;
     /* p.slider_p.target = */
     p.slider_p.target = (void *)(sit);
     p.slider_p.value = &ir_len;
@@ -392,6 +417,7 @@ static void test_tabview()
     min.int_v = 4;
     max.int_v = proj->fourier_len_sframes;
     slider_set_range(sl, min, max);
+    slider_reset(sl);
     
 
     layout_force_reset(tv->layout);
@@ -402,7 +428,7 @@ static void test_tabview()
 }
 
 
-
+void user_tl_track_open_settings(void *nullarg);
 void loop_project_main()
 {
 
@@ -474,7 +500,8 @@ void loop_project_main()
 	    case SDL_KEYDOWN: {
 		switch (e.key.keysym.scancode) {
 		case SDL_SCANCODE_6:
-		    test_tabview();
+		    user_tl_track_open_settings(NULL);
+		    /* test_tabview(); */
 		    /* test_page_create(); */
 		    /* fprintf(stdout, "Ck size before: %d\n", proj->chunk_size_sframes); */
 		    /* project_set_chunk_size(512); */

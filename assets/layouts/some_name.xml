@@ -14,7 +14,7 @@
             <children>
             </children>
         </Layout>
-        <Layout name="bandwidth_label" type="NORMAL">
+        <Layout name="irlen_label" type="NORMAL">
             <x>REL 60</x>
             <y>REL 212</y>
             <w>REL 198</w>

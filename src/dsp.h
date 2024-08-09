@@ -75,8 +75,8 @@ void filter_set_impulse_response_len(FIRFilter *f, int new_len);
 /* Destry a FIRFilter and associated memory */
 void filter_destroy(FIRFilter *filter);
 
-void apply_track_filter(Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array);
-void apply_filter(FIRFilter *filter, uint8_t channel, uint16_t chunk_size, float *sample_array);
+/* void apply_track_filter(Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array); */
+void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array);
 // void process_clip_vol_and_pan(Clip *clip);
 /* void process_track_vol_and_pan(Track *track); */
 /* void process_vol_and_pan(void); */

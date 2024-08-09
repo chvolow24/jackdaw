@@ -6,6 +6,7 @@
 #include "menu.h"
 #include "modal.h"
 #include "project.h"
+#include "settings.h"
 #include "status.h"
 #include "textbox.h"
 #include "transport.h"
@@ -798,6 +799,12 @@ void user_tl_track_selector_up(void *nullarg)
 	    clipref_displace(cr, -1);
 	}
     }
+    TabView *tv;
+    if ((tv = main_win->active_tab_view)) {
+	if (strcmp(tv->title, "Track Settings") == 0) {
+	    settings_track_tabview_set_track(tv, tl->tracks[tl->track_selector]);
+	}
+    }
     tl->needs_redraw = true;
     
 }
@@ -831,6 +838,12 @@ void user_tl_track_selector_down(void *nullarg)
 	for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
 	    ClipRef *cr = tl->grabbed_clips[i];
 	    clipref_displace(cr, 1);
+	}
+    }
+    TabView *tv;
+    if ((tv = main_win->active_tab_view)) {
+	if (strcmp(tv->title, "Track Settings") == 0) {
+	    settings_track_tabview_set_track(tv, tl->tracks[tl->track_selector]);
 	}
     }
     tl->needs_redraw = true;
@@ -1041,6 +1054,20 @@ void user_tl_track_pan_right(void *nullarg)
     tl->needs_redraw = true;
 }
 
+void user_tl_track_open_settings(void *nullarg)
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    if (main_win->active_tab_view) {
+	tab_view_close(main_win->active_tab_view);
+	tl->needs_redraw = true;
+	return;
+    }
+    if (tl->num_tracks == 0) return;
+    TabView *tv = settings_track_tabview_create(tl->tracks[tl->track_selector]);
+    tab_view_activate(tv);
+    tl->needs_redraw = true;
+}
+
 
 void user_tl_record(void *nullarg)
 {
@@ -1247,11 +1274,14 @@ static int new_tl_submit_form(void *mod_v, void *target)
 	}
     }
     window_pop_modal(main_win);
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    tl->needs_redraw = true;
     return 0;
 }
 
 void user_tl_add_new_timeline(void *nullarg)
 {
+        if (proj->recording) transport_stop_recording(); else  transport_stop_playback();
     proj->timelines[proj->active_tl_index]->layout->hidden = true;
     proj->active_tl_index = project_add_timeline(proj, "New Timeline");
     project_reset_tl_label(proj);
@@ -1266,10 +1296,12 @@ void user_tl_add_new_timeline(void *nullarg)
     window_push_modal(main_win, mod);
     modal_reset(mod);
     modal_move_onto(mod);
+    proj->timelines[proj->active_tl_index]->needs_redraw = true;
 }
 
 void user_tl_previous_timeline(void *nullarg)
 {
+    if (proj->recording) transport_stop_recording(); else  transport_stop_playback();
     if (proj->active_tl_index > 0) {
 	proj->timelines[proj->active_tl_index]->layout->hidden = true;
 	proj->active_tl_index--;
@@ -1277,10 +1309,12 @@ void user_tl_previous_timeline(void *nullarg)
 	project_reset_tl_label(proj);
     }
     timeline_reset_full(proj->timelines[proj->active_tl_index]);
+    proj->timelines[proj->active_tl_index]->needs_redraw = true;
 }
 
 void user_tl_next_timeline(void *nullarg)
 {
+    if (proj->recording) transport_stop_recording(); else  transport_stop_playback();
     if (proj->active_tl_index < proj->num_timelines - 1) {
 	proj->timelines[proj->active_tl_index]->layout->hidden = true;
 	proj->active_tl_index++;
@@ -1288,6 +1322,7 @@ void user_tl_next_timeline(void *nullarg)
 	project_reset_tl_label(proj);
     }
     timeline_reset_full(proj->timelines[proj->active_tl_index]);
+    proj->timelines[proj->active_tl_index]->needs_redraw = true;
 }
 
 

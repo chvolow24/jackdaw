@@ -192,7 +192,7 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 	/* track_mixdown_time+=(b-a); */
 	if (track->fir_filter_active) {
 	    /* a = clock(); */
-	    apply_filter(track->fir_filter, channel, len_sframes, track_chunk);
+	    apply_filter(track->fir_filter, track, channel, len_sframes, track_chunk);
 	    /* b= clock(); */
 	    /* track_filter_time = (b-a); */
 	}

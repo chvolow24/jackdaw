@@ -285,14 +285,14 @@ static void FIR_filter_alloc_buffers(FIRFilter *filter)
 {
     SDL_LockMutex(filter->lock);
     if (filter->impulse_response) free(filter->impulse_response);
-    filter->impulse_response = malloc(sizeof(double) * filter->impulse_response_len);
+    filter->impulse_response = calloc(1, sizeof(double) * filter->impulse_response_len);
     if (filter->frequency_response) free(filter->frequency_response);
-    filter->frequency_response = malloc(sizeof(double complex) * filter->frequency_response_len);
+    filter->frequency_response = calloc(1, sizeof(double complex) * filter->frequency_response_len);
     if (filter->frequency_response_mag) free(filter->frequency_response_mag);
-    filter->frequency_response_mag = malloc(sizeof(double) * filter->frequency_response_len);
+    filter->frequency_response_mag = calloc(1, sizeof(double) * filter->frequency_response_len);
     filter->overlap_len = filter->impulse_response_len - 1;
-    filter->overlap_buffer_L = malloc(sizeof(double) * filter->overlap_len);
-    filter->overlap_buffer_R = malloc(sizeof(double) * filter->overlap_len);
+    filter->overlap_buffer_L = calloc(1, sizeof(double) * filter->overlap_len);
+    filter->overlap_buffer_R = calloc(1, sizeof(double) * filter->overlap_len);
     SDL_UnlockMutex(filter->lock);
 
 }
@@ -435,7 +435,7 @@ void filter_destroy(FIRFilter *filter)
 
 
 /* Destructive; replaces values in sample_array */
-void apply_filter(FIRFilter *filter, uint8_t channel, uint16_t chunk_size, float *sample_array)
+void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array)
 {
     SDL_LockMutex(filter->lock);
     double *overlap_buffer = channel == 0 ? filter->overlap_buffer_L : filter->overlap_buffer_R;
@@ -471,6 +471,11 @@ void apply_filter(FIRFilter *filter, uint8_t channel, uint16_t chunk_size, float
     for (uint16_t i=0; i<padded_len; i++) {
         freq_domain[i] *= filter->frequency_response[i];
     }
+    double **freq_mag_ptr = channel == 0 ? &track->buf_L_freq_mag : &track->buf_R_freq_mag;
+    if (!(*freq_mag_ptr)) {
+	*freq_mag_ptr = calloc(padded_len, sizeof(double));
+    }
+    get_magnitude(freq_domain, *freq_mag_ptr, padded_len);
     double complex time_domain[padded_len];
     IFFT(freq_domain, time_domain, padded_len);
     /* free(freq_domain); */

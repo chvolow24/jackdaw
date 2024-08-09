@@ -183,6 +183,33 @@ void page_destroy(Page *page)
     free(page);
 }
 
+static void page_el_reset(PageEl *el)
+{
+    switch (el->type) {
+    case EL_TEXTAREA:
+	break;
+    case EL_TEXTBOX:
+	break;
+    case EL_TEXTENTRY:
+	break;
+    case EL_SLIDER:
+	slider_reset(el->component);
+	break;
+    case EL_RADIO:
+	break;
+    case EL_TOGGLE:
+	break;
+    case EL_PLOT:
+	break;
+    case EL_FREQ_PLOT:
+	break;
+    case EL_BUTTON:
+	break;
+    default:
+	break;
+    }
+}
+
 void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 {
     if (el->component) {
@@ -255,6 +282,7 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
     default:
 	break;
     }
+    page_el_reset(el);
 }
 
 PageEl *page_add_el(
@@ -275,31 +303,7 @@ PageEl *page_add_el(
     return el;
 }
 
-static void page_el_reset(PageEl *el)
-{
-    switch (el->type) {
-    case EL_TEXTAREA:
-	break;
-    case EL_TEXTBOX:
-	break;
-    case EL_TEXTENTRY:
-	break;
-    case EL_SLIDER:
-	break;
-    case EL_RADIO:
-	break;
-    case EL_TOGGLE:
-	break;
-    case EL_PLOT:
-	break;
-    case EL_FREQ_PLOT:
-	break;
-    case EL_BUTTON:
-	break;
-    default:
-	break;
-    }
-}
+
 void page_reset(Page *page)
 {
     layout_reset(page->layout);

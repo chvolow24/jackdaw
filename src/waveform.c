@@ -59,10 +59,10 @@ void waveform_update_logscale(struct logscale *la, double *array, int num_items,
     if (la->x_pos_cache) free(la->x_pos_cache);
     la->x_pos_cache = malloc(sizeof(int) * num_items);
     double lognsub1 = log(num_items - 1);
-    for (int i=0; i<la->num_items; i++) {
+    for (int i=0; i<la->num_items; i+=step) {
 	double x = i==0? 0 : la->container->w * log(i) / lognsub1;
 	/* fprintf(stdout, "X %d: %f\n", i, x); */
-	la->x_pos_cache[i] = (int)round(x) + container->x;
+	la->x_pos_cache[i/step] = (int)round(x) + container->x;
     }
 }
 
@@ -103,6 +103,7 @@ void waveform_draw_freq_domain(struct logscale *la)
 	/* current_y = btm_y - ((db - min_db) / db_range) * la->container->h; */
 	current_y = btm_y - log(1 + la->array[i]) * scale * la->container->h;
 	SDL_RenderDrawLine(main_win->rend, last_x, last_y, la->x_pos_cache[i/la->step], current_y);
+	/* fprintf(stdout, "Draw %d %f %d %f\n", last_x, last_y, la->x_pos_cache[i/la->step], current_y); */
 	last_y = current_y;
     }
 }

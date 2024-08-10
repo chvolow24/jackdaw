@@ -532,7 +532,7 @@ static void slider_label_plain_str(char *dst, size_t dstsize, void *value, ValTy
 
 }
 
-
+/* static void do_fn2() {} */
 Track *timeline_add_track(Timeline *tl)
 {
     Track *track = calloc(1, sizeof(Track));
@@ -722,8 +722,12 @@ Track *timeline_add_track(Timeline *tl)
 	filter_set_params_hz(track->fir_filter, LOWPASS, 1000, 1000);
 	track->fir_filter_active = false;
     }
-    /* END FILTER TESTS */
 
+    delay_line_set_params(&track->delay_line, 0.6, 10000);
+    /* delay_line_set_params(&track->delay_line_R, 0.8, 5000); */
+    /* END FILTER TESTS */
+    
+    /* do_fn2(); */
 
     
     return track;
@@ -1344,10 +1348,8 @@ void timeline_cut_clipref_at_point(Timeline *tl)
     if (!track) return;
     for (uint8_t i=0; i<track->num_clips; i++) {
 	ClipRef *cr = track->clips[i];
-	fprintf(stdout, "CLIPREF OLD LEN: %d\n", clipref_len(cr));
 	if (cr->pos_sframes < tl->play_pos_sframes && cr->pos_sframes + clipref_len(cr) > tl->play_pos_sframes) {
 	    ClipRef *new = clipref_cut(cr, tl->play_pos_sframes - cr->pos_sframes);
-	    fprintf(stdout, "New Lens: %d, %d\n", clipref_len(cr), clipref_len(new));
 	    return;
 	}
     }

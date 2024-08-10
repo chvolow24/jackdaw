@@ -52,7 +52,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-/* #include "dsp.h" */
+#include "dsp.h"
 #include "components.h"
 #include "textbox.h"
 
@@ -79,7 +79,8 @@ typedef struct timeline Timeline;
 typedef struct audio_conn AudioConn;
 typedef struct clip Clip;
 typedef struct clip_ref ClipRef;
-typedef struct fir_filter FIRFilter;
+/* typedef struct fir_filter FIRFilter; */
+/* typedef struct delay_line DelayLine; */
 
 typedef struct track {
     char name[MAX_NAMELENGTH];
@@ -118,6 +119,9 @@ typedef struct track {
 
     FIRFilter *fir_filter;
     bool fir_filter_active;
+    
+    DelayLine delay_line;
+    bool delay_line_active;
     /* uint8_t num_filters; */
     
     /* FSLIDER *vol_ctrl */

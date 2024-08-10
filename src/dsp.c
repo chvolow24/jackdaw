@@ -33,7 +33,8 @@
 
 
 #include <complex.h>
-/* #include "project.h" */
+#include <stdint.h>
+#include "project.h"
 #include "dsp.h"
 
 
@@ -566,4 +567,46 @@ void ___apply_track_filter(Track *track, uint8_t channel, uint16_t chunk_size, f
 
     /* } */
 
+}
+
+
+/*****************************************************************************************************************
+   Delay lines
+ *****************************************************************************************************************/
+
+
+void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
+{
+    if (dl->buf_L) {
+	int32_t diff = dl->len - len;
+	dl->buf_L = realloc(dl->buf_L, sizeof(double) * len);
+	dl->pos_L = 0;
+	if (diff > 0) {
+	    memset(dl->buf_L + dl->len, '\0', len * sizeof(double));
+	}
+    } else {
+	dl->pos_L = 0;
+	dl->buf_L = calloc(len, sizeof(double));
+    }
+    
+    if (dl->buf_R) {
+	int32_t diff = dl->len - len;
+	dl->buf_R = realloc(dl->buf_R, sizeof(double) * len);
+	dl->pos_R = 0;
+	if (diff > 0) {
+	    memset(dl->buf_R + dl->len, '\0', len * sizeof(double));
+	}
+    } else {
+	dl->pos_R = 0;
+	dl->buf_R = calloc(len, sizeof(double));
+    }
+
+    dl->len = len;
+    dl->amp = amp;
+}
+
+void delay_line_clear(DelayLine *dl)
+{
+    memset(dl->buf_L, '\0', dl->len * sizeof(double));
+    memset(dl->buf_R, '\0', dl->len * sizeof(double));
 }

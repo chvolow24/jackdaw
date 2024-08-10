@@ -85,6 +85,7 @@ extern Project *proj;
 
 float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32_t start_pos_sframes, uint32_t len_sframes, float step)
 {
+   
     /* fprintf(stderr, "Start get track buf %d\n", i++); */
     uint32_t chunk_bytelen = sizeof(float) * len_sframes;
     /* float *chunk = calloc(1, chunk_bytelen); */
@@ -136,10 +137,12 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
 	    /* fprintf(stdout, "Chunk %d: %f\n", chunk_i, chunk[chunk_i]); */
 	    chunk_i++;
 	}
+
 	
 	
 	SDL_UnlockMutex(cr->lock);
     }
+
     /* for (uint32_t i=0; i<len_sframes; i++) { */
     /*     for (uint8_t clip_i=0; clip_i<track->num_clips; clip_i++) { */
     /*         ClipRef *cr = (track->clips)[clip_i]; */
@@ -162,12 +165,23 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
     return chunk;
 }
 
+
+/* /\* DELAY TESTS *\/ */
+/* double *del_line_l = NULL; */
+/* double *del_line_r = NULL; */
+/* int32_t del_line_len; */
+/* int32_t del_line_pos_l = 0; */
+/* int32_t del_line_pos_r = 0; */
+/* double del_line_amp = 0.8; */
+/* /\* END TESTS *\/ */
+
 /* 
 Sum track samples over a chunk of timeline and return an array of samples. from_mark_in indicates that samples
 should be collected from the in mark rather than from the play head.
 */
 float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t len_sframes, int32_t start_pos_sframes, float step)
 {
+
     uint32_t chunk_len_bytes = sizeof(float) * len_sframes;
     /* float *mixdown = malloc(chunk_len_bytes); */
     memset(mixdown, '\0', chunk_len_bytes);
@@ -196,6 +210,31 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 	    /* b= clock(); */
 	    /* track_filter_time = (b-a); */
 	}
+	if (track->tl_rank == 0) {
+	    DelayLine *dl = &track->delay_line;
+	    double *del_line = channel == 0 ? dl->buf_L : dl->buf_R;
+	    int32_t *del_line_pos = channel == 0 ? &dl->pos_L : &dl->pos_R;
+	    /* do_fn2(); */
+	    /* int32_t *del_line_pos = channel==0 ? &track->delay_line_L.pos : &track->delay_line_R.pos; */
+	    for (int16_t i=0; i<len_sframes; i++) {
+		/* fprintf(stdout, "Writing %f pos %d\n", del_line[del_line_pos], del_line_pos); */
+		double track_sample = track_chunk[i];
+		track_chunk[i] += del_line[*del_line_pos];
+		del_line[*del_line_pos] += track_sample;
+		del_line[*del_line_pos] *= dl->amp;
+		/* fprintf(stdout, "Del pos vs len? %d %d\n", *del_line_pos, dl.len); */
+		if (*del_line_pos + 1 >= dl->len) {
+		    /* fprintf(stdout, "\tSETTING zero\n"); */
+		    *del_line_pos = 0;
+		} else {
+		    /* fprintf(stdout, "\tinc %d->", *del_line_pos); */
+		    (*del_line_pos)++;
+		    /* fprintf(stdout, "%d\n", *del_line_pos); */
+		}
+		/* fprintf(stdout, "del line pos: %d\n", *del_line_pos); */
+	    }
+	}
+
         for (uint32_t i=0; i<len_sframes; i++) {
             /* mixdown[i] += track_chunk[i] * pan * track->vol_ctrl->value; */
 	    mixdown[i] += track_chunk[i];

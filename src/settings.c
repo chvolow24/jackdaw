@@ -43,6 +43,7 @@
 
 #define LAYOUT_DIR INSTALL_DIR "/assets/layouts/"
 #define FIR_FILTER_LT_PATH LAYOUT_DIR "track_settings_fir_filter.xml"
+#define DELAY_LINE_LT_PATH LAYOUT_DIR "track_settings_delay_line.xml"
 
 extern Project *proj;
 extern Window *main_win;
@@ -120,8 +121,8 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     
     static SDL_Color page_colors[] = {
 	{30, 80, 80, 255},
-	{70, 40, 70, 255},
-	{40, 40, 80, 255}
+	{40, 40, 80, 255},
+	{70, 40, 70, 255}
     };
     
    Page *page = tab_view_add_page(
@@ -131,6 +132,8 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 	page_colors,
 	&color_global_white,
 	main_win);
+
+
 
     /* tab_view_add_page( */
     /* 	tv, */
@@ -267,9 +270,9 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     };
 	
     int steps[] = {1, 1, 1};
-    SDL_Color *colors[] = {&freq_L_color, &freq_R_color, &color_global_white};
+    SDL_Color *plot_colors[] = {&freq_L_color, &freq_R_color, &color_global_white};
     p.freqplot_p.arrays = arrays;
-    p.freqplot_p.colors =  colors;
+    p.freqplot_p.colors =  plot_colors;
     p.freqplot_p.steps = steps;
     p.freqplot_p.num_items = f->frequency_response_len / 2;
     p.freqplot_p.num_arrays = 3;
@@ -283,6 +286,38 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
        response buffer is reallocated. Find a better way to do this
        than storing in a global var, maybe. */
     current_fp = el->component;
+
+
+
+    page = tab_view_add_page(
+	tv,
+	"Delay line",
+	DELAY_LINE_LT_PATH,
+	page_colors + 1,
+	&color_global_white,
+	main_win);
+
+/* ; */
+/*     /\* freq_unscaled = unscale_freq(f->cutoff_freq); *\/ */
+/*     p.slider_p.create_label_fn = NULL; */
+/*     p.slider_p.style = SLIDER_TICK; */
+/*     p.slider_p.orientation = SLIDER_HORIZONTAL; */
+/*     p.slider_p.value = &freq_unscaled; */
+/*     p.slider_p.val_type = JDAW_DOUBLE; */
+/*     p.slider_p.action = slider_target_action; */
+/*     p.slider_p.target = (void *)(f); */
+/*     el = page_add_el(page, EL_SLIDER, p, "cutoff_slider"); */
+
+
+    page = tab_view_add_page(
+	tv,
+	"EQ",
+	DELAY_LINE_LT_PATH,
+	page_colors + 2,
+	&color_global_white,
+	main_win);
+    
+    
     
 }
 

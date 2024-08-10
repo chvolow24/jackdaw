@@ -429,18 +429,15 @@ static void *transport_dsp_thread_fn(void *arg)
 }
 
 
-
+/* extern double *del_line_l, *del_line_r; */
+/* extern int16_t del_line_len; */
 void transport_start_playback()
-{
-    
+{   
     if (proj->playing) return;
     fprintf(stdout, "START playback\n");
     proj->playing = true;
     Timeline *tl = proj->timelines[proj->active_tl_index];
     tl->read_pos_sframes = tl->play_pos_sframes;
-
-
-
     
     int priority_min = sched_get_priority_min(SCHED_RR);
     int priority_max = sched_get_priority_max(SCHED_RR);

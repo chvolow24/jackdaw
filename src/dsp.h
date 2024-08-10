@@ -29,11 +29,11 @@
 
 #include <stdio.h>
 #include <complex.h>
-#include "project.h"
 #include "SDL.h"
 
 #define DEFAULT_FILTER_LEN 128
 
+typedef struct track Track;
 
 typedef enum filter_type {
     LOWPASS=0, HIGHPASS=1, BANDPASS=2, BANDCUT=3
@@ -53,6 +53,15 @@ typedef struct fir_filter {
     uint16_t overlap_len;
     SDL_mutex *lock;
 } FIRFilter;
+
+typedef struct delay_line {
+    int32_t len;
+    double amp;
+    int32_t pos_L;
+    int32_t pos_R;
+    double *buf_L;
+    double *buf_R;
+} DelayLine;
 
 /* Initialize the dsp subsystem. All this does currently is to populate the nth roots of unity for n < ROU_MAX_DEGREE */
 void init_dsp();
@@ -84,4 +93,6 @@ void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chu
 void FFT(double *A, double complex *B, int n);
 void get_real_component(double complex *A, double *B, int n);
 void get_magnitude(double complex *A, double *B, int len);
+
+void delay_line_set_params(DelayLine *dl, double amp, int32_t len);
 #endif

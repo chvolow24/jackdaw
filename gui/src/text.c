@@ -98,7 +98,7 @@ static Text *create_empty_text(
 )
 {
 
-    Text *txt = malloc(sizeof(Text));
+    Text *txt = calloc(1, sizeof(Text));
     init_empty_text(txt, container, font, text_size, txt_clr, align, truncate, win);
     return txt;
 }

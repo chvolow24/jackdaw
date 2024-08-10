@@ -408,7 +408,7 @@ int main(int argc, char** argv)
 			}
 		    } else if (shiftdown) {
 			Layout *new_child;
-			if (layout_clicked) {
+			if (layout_clicked && clicked_lt) {
 			    new_child = layout_add_child(clicked_lt);
 			    layout_set_default_dims(new_child);
 			    layout_reset(new_child);

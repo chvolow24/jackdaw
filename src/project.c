@@ -714,7 +714,7 @@ Track *timeline_add_track(Timeline *tl)
 	int ir_len = proj->fourier_len_sframes/4;
 	track->fir_filter = filter_create(LOWPASS, ir_len, track->tl->proj->fourier_len_sframes * 2);
 	filter_set_params_hz(track->fir_filter, LOWPASS, 1000, 1000);
-	track->fir_filter_active = true;
+	track->fir_filter_active = false;
     }
     /* END FILTER TESTS */
 

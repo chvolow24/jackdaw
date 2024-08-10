@@ -42,7 +42,7 @@
 #endif
 
 #define LAYOUT_DIR INSTALL_DIR "/assets/layouts/"
-#define FIR_FILTER_LT_PATH LAYOUT_DIR "some_name.xml"
+#define FIR_FILTER_LT_PATH LAYOUT_DIR "track_settings_fir_filter.xml"
 
 extern Project *proj;
 extern Window *main_win;
@@ -110,6 +110,8 @@ static int slider_irlen_target_action(void *self_v, void *target)
 
 void settings_track_tabview_set_track(TabView *tv, Track *track)
 {
+
+    FIRFilter *f = track->fir_filter;
     for (int i=0; i<tv->num_tabs; i++) {
 	page_destroy(tv->tabs[i]);
 	textbox_destroy(tv->labels[i]);
@@ -147,47 +149,83 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 
         
     PageElParams p;
+    
+    
     p.textbox_p.font = main_win->std_font;
     p.textbox_p.text_size = 12;
     p.textbox_p.set_str = "Bandwidth:";
     p.textbox_p.win = main_win;
+    
+
+    p.textbox_p.set_str = "Bandwidth:";
     PageEl *el = page_add_el(page, EL_TEXTBOX, p, "bandwidth_label");
 
     Textbox *tb = el->component;
     textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
     
-    p.textbox_p.set_str = "Cutoff frequency:";
+    p.textbox_p.set_str = "Cutoff / center frequency:";
     p.textbox_p.win = main_win;
     el = page_add_el(page, EL_TEXTBOX, p, "cutoff_label");
     tb = el->component;
     textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
     
     p.textbox_p.set_str = "Impulse response length (\"sharpness\")";
     el = page_add_el(page, EL_TEXTBOX, p, "irlen_label");
     tb=el->component;
     textbox_set_trunc(tb, false);
     textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+
+    p.textbox_p.set_str = "Enable FIR filter";
+    el = page_add_el(page, EL_TEXTBOX, p, "toggle_label");
+    tb=el->component;
+    textbox_set_trunc(tb, false);
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+
+    p.toggle_p.value = &track->fir_filter_active;
+    page_add_el(page, EL_TOGGLE, p, "toggle_filter_on");
 
     
     static double freq_unscaled;
-    freq_unscaled = unscale_freq(track->fir_filter->cutoff_freq);
+    freq_unscaled = unscale_freq(f->cutoff_freq);
     p.slider_p.create_label_fn = NULL;
     p.slider_p.style = SLIDER_TICK;
     p.slider_p.orientation = SLIDER_HORIZONTAL;
     p.slider_p.value = &freq_unscaled;
     p.slider_p.val_type = JDAW_DOUBLE;
     p.slider_p.action = slider_target_action;
-    p.slider_p.target = (void *)(track->fir_filter);
+    p.slider_p.target = (void *)(f);
     el = page_add_el(page, EL_SLIDER, p, "cutoff_slider");
 
 
     static double bandwidth_unscaled;
-    bandwidth_unscaled = unscale_freq(track->fir_filter->bandwidth);
+    bandwidth_unscaled = unscale_freq(f->bandwidth);
     p.slider_p.action = slider_bandwidth_target_action;
-    p.slider_p.target = (void *)(track->fir_filter);
+    p.slider_p.target = (void *)(f);
     p.slider_p.value = &bandwidth_unscaled;
     el = page_add_el(page, EL_SLIDER, p, "bandwidth_slider");
 
+    static int ir_len = 20;
+    if (track->fir_filter_active) ir_len = f->impulse_response_len;
+    p.slider_p.action = slider_irlen_target_action;
+    /* p.slider_p.target = */
+    p.slider_p.target = (void *)f;
+    p.slider_p.value = &ir_len;
+    p.slider_p.val_type = JDAW_INT;
+    p.slider_p.create_label_fn = NULL;
+    el = page_add_el(page, EL_SLIDER, p, "irlen_slider");
+
+    
+    Slider *sl = (Slider *)el->component;
+    Value min, max;
+    min.int_v = 4;
+    max.int_v = proj->fourier_len_sframes;
+    slider_set_range(sl, min, max);
+    slider_reset(sl);
+    
 
     /* 	int text_size; */
     /* 	SDL_Color *text_color; */
@@ -212,13 +250,11 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     p.radio_p.action = rb_target_action;
     p.radio_p.item_names = item_names;
     p.radio_p.num_items = 4;
-    p.radio_p.target = track->fir_filter;
+    p.radio_p.target = f;
     
-    el = page_add_el(page, EL_RADIO, p, "radio1");
+    el = page_add_el(page, EL_RADIO, p, "filter_type");
     RadioButton *radio = el->component;
-    radio->selected_item = (uint8_t)track->fir_filter->type;
-
-    FIRFilter *f = track->fir_filter;
+    radio->selected_item = (uint8_t)f->type;
 
     if (!track->buf_L_freq_mag) track->buf_L_freq_mag = calloc(f->frequency_response_len, sizeof(double));
     if (!track->buf_R_freq_mag) track->buf_R_freq_mag = calloc(f->frequency_response_len, sizeof(double));
@@ -247,27 +283,6 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
        response buffer is reallocated. Find a better way to do this
        than storing in a global var, maybe. */
     current_fp = el->component;
-
-    
-    static int ir_len = 20;
-    if (track->fir_filter_active) ir_len = f->impulse_response_len;
-    p.slider_p.action = slider_irlen_target_action;
-    p.slider_p.style = SLIDER_TICK;
-    /* p.slider_p.target = */
-    p.slider_p.target = (void *)f;
-    p.slider_p.value = &ir_len;
-    p.slider_p.val_type = JDAW_INT;
-    p.slider_p.create_label_fn = NULL;
-    p.slider_p.orientation = SLIDER_HORIZONTAL;
-    el = page_add_el(page, EL_SLIDER, p, "slider_ir_len");
-
-    Slider *sl = (Slider *)el->component;
-    Value min, max;
-    min.int_v = 4;
-    max.int_v = proj->fourier_len_sframes;
-    slider_set_range(sl, min, max);
-    slider_reset(sl);
-    
     
 }
 

@@ -189,6 +189,7 @@ static void page_el_reset(PageEl *el)
     case EL_TEXTAREA:
 	break;
     case EL_TEXTBOX:
+	textbox_reset_full(el->component);
 	break;
     case EL_TEXTENTRY:
 	break;
@@ -300,6 +301,7 @@ PageEl *page_add_el(
     page_el_set_params(el, params, page);
     page->elements[page->num_elements] = el;
     page->num_elements++;
+    page_el_reset(el);
     return el;
 }
 
@@ -476,14 +478,19 @@ void page_draw(Page *page)
     temp.y += brdr;
     temp.w -= brdrtt;
     temp.h -= brdrtt;
-    static SDL_Color brdrclr = {25, 25, 25, 255};
+    /* static SDL_Color brdrclr = {25, 25, 25, 255}; */
     SDL_SetRenderDrawColor(page->win->rend, sdl_color_expand(color_global_black));
     geom_draw_rounded_rect_thick(page->win->rend, &temp, 7, TAB_R * page->win->dpi_scale_factor, page->win->dpi_scale_factor);
     for (uint8_t i=0; i<page->num_elements; i++) {
 	page_el_draw(page->elements[i]);
     }
 
+    /* static bool sf = false; */
     /* layout_draw(page->win, page->layout); */
+    /* if (!sf) { */
+    /* 	FILE *f = fopen("test.xml", "w"); */
+    /* 	layout_write(f, page->layout, 0); */
+    /* } */
 }
 
 int test(int some_other) {

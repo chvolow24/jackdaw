@@ -466,13 +466,13 @@ void modal_submit_form(Modal *modal)
     
 /* } */
 
-void modal_triage_mouse(Modal *modal, SDL_Point *mousep, bool click)
+bool modal_triage_mouse(Modal *modal, SDL_Point *mousep, bool click)
 {
     if (!SDL_PointInRect(mousep, &modal->layout->rect)) {
 	if (click) {
 	    window_pop_modal(main_win);
 	}
-	return;
+	return false;
     }
     ModalEl *el;
     uint8_t i;
@@ -522,7 +522,8 @@ void modal_triage_mouse(Modal *modal, SDL_Point *mousep, bool click)
 		}
 	    }
 	}
-    }    
+    }
+    return true;
 }
 
 

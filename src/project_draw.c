@@ -433,7 +433,12 @@ static void control_bar_draw(Project *proj)
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_white));
     waveform_draw_all_channels(&proj->output_L, 1, proj->fourier_len_sframes, proj->outwav_l_rect);
     waveform_draw_all_channels(&proj->output_R, 1, proj->fourier_len_sframes, proj->outwav_r_rect);
-    
+
+    /* DRAW HAMBURGER */
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(track_bckgrnd));
+    for (int i=0; i<3; i++) {
+	SDL_RenderFillRect(main_win->rend, proj->bun_patty_bun[i]);
+    }
 
 
     /* SOURCE MODE */

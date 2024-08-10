@@ -127,8 +127,10 @@ static void read_dimension(char *dimstr, Dimension *dim)
 	dim->type = STACK;
 	val_i = 6;
     } else if (strncmp(dimstr, "PAD", 3) == 0) {
+	dim->type = PAD;
 	val_i = 4;
     } else if (strncmp(dimstr, "REVREL", 6) == 0) {
+	dim->type = REVREL;
 	val_i = 7;
     }
     switch (dim->type) {

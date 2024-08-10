@@ -162,7 +162,9 @@ static void mouse_triage_click_control_bar(uint8_t button)
     if (SDL_PointInRect(&main_win->mousep, &proj->tb_out_value->layout->rect)) {
 	user_tl_set_default_out(NULL);
     }
-
+    if (SDL_PointInRect(&main_win->mousep, proj->hamburger)) {
+	user_global_menu(NULL);
+    }
 }
 
 void mouse_triage_click_project(uint8_t button)
@@ -215,7 +217,8 @@ void mouse_triage_click_menu(uint8_t button)
     if (main_win->num_menus == 0) return;
     Menu *top_menu = main_win->menus[main_win->num_menus -1];
     if (top_menu) {
-	menu_triage_mouse(top_menu, &main_win->mousep, true);
+	if (!menu_triage_mouse(top_menu, &main_win->mousep, true))
+	    proj->timelines[proj->active_tl_index]->needs_redraw = true;
     }
 }
 
@@ -224,7 +227,8 @@ void mouse_triage_click_modal(uint8_t button)
     if (main_win->num_modals == 0) return;
     Modal *top_modal = main_win->modals[main_win->num_modals -1];
     if (top_modal) {
-	modal_triage_mouse(top_modal, &main_win->mousep, true);
+	if (!modal_triage_mouse(top_modal, &main_win->mousep, true))
+	    proj->timelines[proj->active_tl_index]->needs_redraw = true;
     }
 }
 

@@ -484,7 +484,13 @@ Project *project_create(
     textbox_reset_full(proj->status_bar.error);
     textbox_reset_full(proj->status_bar.dragstat);
     textbox_reset_full(proj->status_bar.call);
-	
+
+    Layout *hamburger_lt = layout_get_child_by_name_recursive(proj->layout, "hamburger");
+
+    proj->hamburger = &hamburger_lt->rect;
+    proj->bun_patty_bun[0] = &hamburger_lt->children[0]->children[0]->rect;
+    proj->bun_patty_bun[1] = &hamburger_lt->children[1]->children[0]->rect;
+    proj->bun_patty_bun[2] = &hamburger_lt->children[2]->children[0]->rect;
     return proj;
 }
 

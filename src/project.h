@@ -336,6 +336,8 @@ typedef struct project {
     SDL_Rect *source_rect;
     SDL_Rect *source_clip_rect;
     SDL_Rect *console_column_rect;
+    SDL_Rect *hamburger;
+    SDL_Rect *bun_patty_bun[3];
     Textbox *source_name_tb;
 
     Textbox *tb_out_label;

@@ -809,7 +809,7 @@ int set_rect_wh(Layout *lt)
 	lt->rect.h = round(((float) lt->parent->rect.h) * lt->h.value.floatval);
 	break;
     case COMPLEMENT: {
-	if (!lt->parent) break;
+	if (!lt->parent || lt->index == 0 || lt->index > lt->parent->num_children - 1) break;
 	Layout *last_sibling = lt->parent->children[lt->index - 1];
 	while (last_sibling && last_sibling->h.type == COMPLEMENT && last_sibling->index > 0) {
 	    last_sibling = last_sibling->parent->children[last_sibling->index - 1];

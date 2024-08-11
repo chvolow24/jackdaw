@@ -608,6 +608,10 @@ static void txt_area_make_line(TextArea *txtarea, char *line_start)
     if (txtarea->text_h == 0) {
 	txtarea->text_h = line_h;
     }
+    /* int w, h; */
+    /* SDL_QueryTexture(texture, NULL, NULL, &w, &h); */
+    /* fprintf(stdout, "Line w and h: %d, %d\n", line_w, line_h); */
+    /* fprintf(stdout, "Texture w and h: %d, %d\n", w, h); */
     txtarea->line_widths[txtarea->num_lines] = line_w;
     txtarea->line_heights[txtarea->num_lines] = line_h;
     txtarea->line_textures[txtarea->num_lines] = texture;
@@ -703,10 +707,12 @@ static int txt_area_create_line(TextArea *txtarea, char **line_start, int w)
     return 0;
 }
 
+/* void reset_iterations(LayoutIterator *iter); */
+
 void txt_area_create_lines(TextArea *txtarea)
 {
     TTF_Font *font = ttf_get_font_at_size(txtarea->font, txtarea->text_size);
-
+    /* fprintf(stdout, "\nTXTAREA CREATE font: %p, Text size: %d\n", txtarea->font, txtarea->text_size); */
     /* Clear old values if present */
     for (int i=0; i<txtarea->num_lines; i++) {
 	SDL_DestroyTexture(txtarea->line_textures[i]);
@@ -723,10 +729,9 @@ void txt_area_create_lines(TextArea *txtarea)
     int w = txtarea->layout->rect.w;
 
     w = w < TXT_AREA_W_MIN ? TXT_AREA_W_MIN : w;
-    fprintf(stdout, "CREATING HEADER w fixed w %d\n", w);
+    /* fprintf(stdout, "CREATING HEADER w fixed w %d\n", w); */
     char *line_start = value_copy;
-    while (txt_area_create_line(txtarea, &line_start, w) > 0) {
-    }
+    while (txt_area_create_line(txtarea, &line_start, w) > 0) {}
     free(value_copy);
 
     if (txtarea->text_h == 0) {
@@ -737,13 +742,19 @@ void txt_area_create_lines(TextArea *txtarea)
     Layout *line_template = layout_add_child(txtarea->layout);
     line_template->y.value.intval = txtarea->line_spacing;
     line_template->h.value.intval = txtarea->text_h / txtarea->win->dpi_scale_factor;
+
+
+    /* NEW */
+    line_template->y.type = STACK;
+    /* END */
+
     
     for (int i=0; i<txtarea->num_lines; i++) {
 	txtarea->layout->h.value.intval += (txtarea->text_h / txtarea->win->dpi_scale_factor) + txtarea->line_spacing;
-	layout_add_iter(line_template, VERTICAL, false);
+	/* layout_add_iter(line_template, VERTICAL, false); */
+	layout_copy(line_template, txtarea->layout);
     }
-
- 
+    /* reset_iterations(line_template->iterator); */
 }
 
 
@@ -761,6 +772,8 @@ TextArea *txt_area_create(const char *value, Layout *layout, Font *font, uint8_t
 
     txtarea->line_spacing = TXT_AREA_DEFAULT_LINE_SPACING;
     txt_area_create_lines(txtarea);
+
+    /* layout_force_reset(layout); */
     
     return txtarea;
 }
@@ -830,21 +843,42 @@ void txt_draw(Text *txt)
 
 }
     
-
-
 void txt_area_draw(TextArea *txtarea)
 {
-    SDL_RenderSetClipRect(main_win->rend, &txtarea->layout->rect);
+    /* SDL_RenderSetClipRect(main_win->rend, &txtarea->layout->rect); */
     for (int i=0; i<txtarea->num_lines; i++) {
-	Layout *line_lt = txtarea->layout->children[0]->iterator->iterations[i];
+	Layout *line_lt = txtarea->layout->children[i];
+	/* Layout *line_lt = txtarea->layout->children[0]->iterator->iterations[i]; */
 	line_lt->rect.w = txtarea->line_widths[i];
 	line_lt->rect.h = txtarea->line_heights[i];
-	if (SDL_RenderCopy(txtarea->win->rend, txtarea->line_textures[i], NULL, &(line_lt->rect)) != 0) {
+	/* fprintf(stdout, "W and H: %d, %d\n", line_lt->rect.w, line_lt->rect.h); */
+	/* layout_set_values_from_rect(line_lt); */
+	/* layout_set_name(line_lt, "FUCKITY FUCK FUCK FUCK"); */
+	/* FILE *f = fopen("test.xml", "w"); */
+	/* layout_write(f, line_lt->parent, 0); */
+	/* exit(0); */
+	/* layout_force_reset(line_lt->parent); */
+	/* uint8_t r,g,b,a; */
+	/* SDL_Rect test = {200, 200, 1200, 90}; */
+	/* SDL_GetRenderDrawColor(txtarea->win->rend, &r, &b, &g, &a); */
+	/* SDL_SetRenderDrawColor(txtarea->win->rend, 255, 0, 0, 255); */
+	/* SDL_RenderDrawRect(txtarea->win->rend, &line_lt->rect); */
+	/* SDL_RenderDrawRect(txtarea->win->rend, &test); */
+	/* fprintf(stdout, "WHAT THE FUCK %d %d %d %d\n", line_lt->rect.x, line_lt->rect.y, line_lt->rect.w, line_lt->rect.h); */
+	/* SDL_SetRenderDrawColor(txtarea->win->rend, r, g, b, a); */
+
+	/* fprintf(stdout, "\n\nLine lt rect target: %p %d %d %d %d\n", txtarea->line_textures[i], line_lt->rect.x, line_lt->rect.y, line_lt->rect.w, line_lt->rect.h); */
+	if (SDL_RenderCopy(txtarea->win->rend, txtarea->line_textures[i], NULL, &line_lt->rect) != 0) {
 	    fprintf(stderr, "Error: Render Copy failed in txt_draw. %s\n", SDL_GetError());
 	    exit(1);
 	}
+	/* if (SDL_RenderCopy(txtarea->win->rend, txtarea->line_textures[i], NULL, &test) != 0) { */
+	/*     fprintf(stderr, "Error: Render Copy failed in txt_draw. %s\n", SDL_GetError()); */
+	/*     exit(1); */
+	/* } */
+
     }
-    SDL_RenderSetClipRect(main_win->rend, &main_win->layout->rect);
+    /* SDL_RenderSetClipRect(main_win->rend, &main_win->layout->rect); */
 }
 
 

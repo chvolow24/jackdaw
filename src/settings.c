@@ -45,13 +45,15 @@
 #define FIR_FILTER_LT_PATH LAYOUT_DIR "track_settings_fir_filter.xml"
 #define DELAY_LINE_LT_PATH LAYOUT_DIR "track_settings_delay_line.xml"
 
+#define LABEL_STD_FONT_SIZE 12
+#define RADIO_STD_FONT_SIZE 14
+
 extern Project *proj;
 extern Window *main_win;
 
 extern SDL_Color color_global_white;
 extern SDL_Color freq_L_color;
 extern SDL_Color freq_R_color;
-
 
 
 static double unscale_freq(double scaled)
@@ -70,7 +72,7 @@ static int rb_target_action(void *self_v, void *target)
     return 0;
 }
 
-static int slider_target_action(void *self_v, void *target)
+static int slider_cutoff_target_action(void *self_v, void *target)
 {
     Slider *self = (Slider *)self_v;
     FIRFilter *f = (FIRFilter *)target;
@@ -105,7 +107,25 @@ static int slider_irlen_target_action(void *self_v, void *target)
     waveform_reset_freq_plot(current_fp);
 
     
-    slider_reset(self);
+    /* slider_reset(self); */
+    return 0;
+}
+
+static int toggle_delay_line_target_action(void *self_v, void *target)
+{
+    DelayLine *dl = (DelayLine *)target;
+    delay_line_clear(dl);
+    return 0;
+}
+
+static int slider_deltime_target_action(void *self_v, void *target)
+{
+    DelayLine *dl = (DelayLine *)target;
+    Slider *self = (Slider *)self_v;
+    int32_t val_msec = *(int32_t *)self->value;
+    int32_t len_sframes = (int32_t)((double)val_msec * proj->sample_rate / 1000);
+    delay_line_set_params(dl, dl->amp, len_sframes);
+    /* slider_reset(self); */
     return 0;
 }
 
@@ -132,30 +152,12 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 	page_colors,
 	&color_global_white,
 	main_win);
-
-
-
-    /* tab_view_add_page( */
-    /* 	tv, */
-    /* 	"[EQ]", */
-    /* 	INSTALL_DIR "/assets/layouts/some_name.xml", */
-    /* 	page_colors + 1, */
-    /* 	&color_global_white, */
-    /* 	main_win); */
-    /* tab_view_add_page( */
-    /* 	tv, */
-    /* 	"[This is another tab]", */
-    /* 	INSTALL_DIR "/assets/layouts/some_name.xml", */
-    /* 	page_colors + 2, */
-    /* 	&color_global_white, */
-    /* 	main_win); */
-
         
     PageElParams p;
     
     
     p.textbox_p.font = main_win->std_font;
-    p.textbox_p.text_size = 12;
+    p.textbox_p.text_size = LABEL_STD_FONT_SIZE;
     p.textbox_p.set_str = "Bandwidth:";
     p.textbox_p.win = main_win;
     
@@ -189,6 +191,8 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     textbox_reset_full(tb);
 
     p.toggle_p.value = &track->fir_filter_active;
+    p.toggle_p.target = NULL;
+    p.toggle_p.action = NULL;
     page_add_el(page, EL_TOGGLE, p, "toggle_filter_on");
 
     
@@ -199,7 +203,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     p.slider_p.orientation = SLIDER_HORIZONTAL;
     p.slider_p.value = &freq_unscaled;
     p.slider_p.val_type = JDAW_DOUBLE;
-    p.slider_p.action = slider_target_action;
+    p.slider_p.action = slider_cutoff_target_action;
     p.slider_p.target = (void *)(f);
     el = page_add_el(page, EL_SLIDER, p, "cutoff_slider");
 
@@ -247,7 +251,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 
     };
 
-    p.radio_p.text_size = 14;
+    p.radio_p.text_size = RADIO_STD_FONT_SIZE;
     p.radio_p.text_color = &color_global_white;
     /* p.radio_p.target_enum = NULL; */
     p.radio_p.action = rb_target_action;
@@ -296,6 +300,59 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 	page_colors + 1,
 	&color_global_white,
 	main_win);
+
+
+    p.toggle_p.value = &track->delay_line_active;
+    p.toggle_p.action = toggle_delay_line_target_action;
+    p.toggle_p.target = (void *)(&track->delay_line);
+    el = page_add_el(page, EL_TOGGLE, p, "toggle_delay");
+
+    p.textbox_p.set_str = "Delay line on";
+    p.textbox_p.font = main_win->std_font;
+    p.textbox_p.text_size = LABEL_STD_FONT_SIZE;
+    p.textbox_p.win = main_win;
+    tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "toggle_label")->component);
+    textbox_set_background_color(tb, NULL);
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+
+    p.textbox_p.set_str = "Delay time (ms)";
+    tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "del_time_label")->component);
+    textbox_set_background_color(tb, NULL);
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+    
+    p.textbox_p.set_str = "Delay amplitude";
+    tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "del_amp_label")->component);
+    textbox_set_background_color(tb, NULL);
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+
+
+    static int32_t delay_msec;
+    delay_msec = (int32_t)((double)track->delay_line.len / proj->sample_rate * 1000.0);
+    
+    p.slider_p.create_label_fn = NULL;
+    p.slider_p.style = SLIDER_TICK;
+    p.slider_p.orientation = SLIDER_HORIZONTAL;
+    p.slider_p.value = &delay_msec;
+    p.slider_p.val_type = JDAW_INT32;
+    p.slider_p.action = slider_deltime_target_action;
+    p.slider_p.target = (void *)(&track->delay_line);
+    el = page_add_el(page, EL_SLIDER, p, "del_time_slider");
+    min.int32_v = 1;
+    max.int32_v = 1000;
+    slider_set_range((Slider *)el->component, min, max);
+    slider_reset((Slider *)el->component);
+    
+    p.slider_p.value = &track->delay_line.amp;
+    p.slider_p.val_type = JDAW_DOUBLE;
+    p.slider_p.action = NULL;
+    p.slider_p.target = NULL;
+    el = page_add_el(page, EL_SLIDER, p, "del_amp_slider");
+
+    
+    
 
 /* ; */
 /*     /\* freq_unscaled = unscale_freq(f->cutoff_freq); *\/ */

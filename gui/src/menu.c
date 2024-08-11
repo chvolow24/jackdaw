@@ -398,6 +398,7 @@ bool menu_triage_mouse(Menu *menu, SDL_Point *mousep, bool click)
 	    }
 	}
     }
+    return false;
 }
 
 

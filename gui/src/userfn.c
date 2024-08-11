@@ -25,10 +25,13 @@ extern char DIRPATH_SAVED_PROJ[MAX_PATHLEN];
 extern char DIRPATH_OPEN_FILE[MAX_PATHLEN];
 extern char DIRPATH_EXPORT[MAX_PATHLEN];
 
-extern SDL_Color color_global_black;
-extern SDL_Color color_global_grey;
-extern SDL_Color color_global_white;
-extern SDL_Color control_bar_bckgrnd;
+/* extern SDL_Color color_global_black; */
+/* extern SDL_Color color_global_grey; */
+/* extern SDL_Color color_global_white; */
+/* extern SDL_Color control_bar_bckgrnd; */
+
+extern SDL_Color color_global_light_grey;
+
 void jdaw_write_project(const char *path);
 
 void user_global_menu(void *nullarg)
@@ -218,11 +221,11 @@ void user_global_save_project(void *nullarg)
     Layout *mod_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(mod_lt);
     Modal *save_as = modal_create(mod_lt);
-    modal_add_header(save_as, "Save as:", &control_bar_bckgrnd, 3);
-    modal_add_header(save_as, "Project name:", &control_bar_bckgrnd, 5);
+    modal_add_header(save_as, "Save as:", &color_global_light_grey, 3);
+    modal_add_header(save_as, "Project name:", &color_global_light_grey, 5);
     modal_add_textentry(save_as, proj->name, txt_name_validation, file_ext_completion_jdaw);
-    modal_add_p(save_as, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-p\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &color_global_black);
-    modal_add_header(save_as, "Project location:", &control_bar_bckgrnd, 5);
+    modal_add_p(save_as, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-<tab>\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &color_global_light_grey);
+    modal_add_header(save_as, "Project location:", &color_global_light_grey, 5);
     modal_add_dirnav(save_as, DIRPATH_SAVED_PROJ, dir_to_tline_filter_save);
     modal_add_button(save_as, "Save", submit_save_as_form);
     save_as->submit_form = submit_save_as_form;
@@ -287,11 +290,11 @@ void user_global_open_file(void *nullarg)
     Layout *mod_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(mod_lt);
     Modal *openfile = modal_create(mod_lt);
-    modal_add_header(openfile, "Open file:", &control_bar_bckgrnd, 3);
-    /* modal_add_header(openfile, "Project name:", &control_bar_bckgrnd, 5); */
+    modal_add_header(openfile, "Open file:", &color_global_light_grey, 3);
+    /* modal_add_header(openfile, "Project name:", &color_global_light_grey, 5); */
     /* modal_add_textentry(openfile, proj->name); */
     /* modal_add_p(openfile, "\t\t\t^\t\tS-p (S-d)\t\t\t\tv\t\tS-n (S-d)", &color_global_black); */
-    /* modal_add_header(openfile, "Project location:", &control_bar_bckgrnd, 5); */
+    /* modal_add_header(openfile, "Project location:", &color_global_light_grey, 5); */
     ModalEl *dirnav_el = modal_add_dirnav(openfile, DIRPATH_OPEN_FILE, dir_to_tline_filter_open);
     DirNav *dn = (DirNav *)dirnav_el->obj;
     dn->file_select_action = openfile_file_select_action;
@@ -443,6 +446,8 @@ void user_menu_translate_up(void *nullarg)
 	exit(1);
     }
     menu_translate(m, 0, -1 * MENU_MOVE_BY);
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    tl->needs_redraw = true;
 }
 
 void user_menu_translate_down(void *nullarg)
@@ -453,6 +458,8 @@ void user_menu_translate_down(void *nullarg)
 	exit(1);
     }
     menu_translate(m, 0, MENU_MOVE_BY);
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    tl->needs_redraw = true;
 
 }
 
@@ -464,6 +471,8 @@ void user_menu_translate_left(void *nullarg)
 	exit(1);
     }
     menu_translate(m, -1 * MENU_MOVE_BY, 0);
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    tl->needs_redraw = true;
 }
 
 void user_menu_translate_right(void *nullarg)
@@ -474,6 +483,8 @@ void user_menu_translate_right(void *nullarg)
 	exit(1);
     }
     menu_translate(m, MENU_MOVE_BY, 0);
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    tl->needs_redraw = true;
 }
 
 void user_menu_dismiss(void *nullarg)
@@ -899,24 +910,24 @@ void user_tl_track_set_in(void *nullarg)
     track_set_input(track);
 }
 
-void user_tl_track_add_filter(void *nullarg)
-{
-    Timeline *tl = proj->timelines[proj->active_tl_index];
-    Track *track = tl->tracks[tl->track_selector];
-    if (!track) {
-	status_set_errstr("No track is selected");
-	return;
-    }
-    Layout *lt = layout_add_child(main_win->layout);
-    layout_set_default_dims(lt);
-    Modal *m = modal_create(lt);
-    char buf[255];
-    snprintf(buf, 255, "Add filter to track \"%s\"", track->name);
-    modal_add_header(m, buf, &color_global_black, 4);
-    window_push_modal(main_win, m);
-    modal_reset(m);
+/* void user_tl_track_add_filter(void *nullarg) */
+/* { */
+/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
+/*     Track *track = tl->tracks[tl->track_selector]; */
+/*     if (!track) { */
+/* 	status_set_errstr("No track is selected"); */
+/* 	return; */
+/*     } */
+/*     Layout *lt = layout_add_child(main_win->layout); */
+/*     layout_set_default_dims(lt); */
+/*     Modal *m = modal_create(lt); */
+/*     char buf[255]; */
+/*     snprintf(buf, 255, "Add filter to track \"%s\"", track->name); */
+/*     modal_add_header(m, buf, &color_global_light_grey, 4); */
+/*     window_push_modal(main_win, m); */
+/*     modal_reset(m); */
 
-}
+/* } */
 
 /* void user_tl_track_toggle_in(void *nullarg) */
 /* >>>>>>> main */
@@ -1171,6 +1182,9 @@ void user_tl_load_clip_at_point_to_src(void *nullarg)
 	/* fprintf(stdout, "Src clip name? %s\n", proj->src_clip->name); */
 	txt_set_value_handle(proj->source_name_tb->text, proj->src_clip->name);
     }
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    tl->needs_redraw = true;
+
 }
 
 void user_tl_activate_source_mode(void *nullarg)
@@ -1184,6 +1198,9 @@ void user_tl_activate_source_mode(void *nullarg)
 	proj->source_mode = false;
 	window_pop_mode(main_win);
     }
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    tl->needs_redraw = true;
+
 }
 
 static int32_t get_drop_pos()
@@ -1289,7 +1306,7 @@ void user_tl_add_new_timeline(void *nullarg)
     Layout *mod_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(mod_lt);
     Modal *mod = modal_create(mod_lt);
-    modal_add_header(mod, "Create new timeline:", &color_global_black, 5);
+    modal_add_header(mod, "Create new timeline:", &color_global_light_grey, 5);
     modal_add_textentry(mod, proj->timelines[proj->active_tl_index]->name, txt_name_validation, NULL);
     modal_add_button(mod, "Create", new_tl_submit_form);
     mod->submit_form = new_tl_submit_form;
@@ -1332,12 +1349,12 @@ void user_tl_next_timeline(void *nullarg)
 /*     Layout *mod_lt = layout_add_child(main_win->layout); */
 /*     layout_set_default_dims(mod_lt); */
 /*     Modal *save_as = modal_create(mod_lt); */
-/*     modal_add_header(save_as, "Save as:", &control_bar_bckgrnd, 3); */
-/*     modal_add_header(save_as, "Project name:", &control_bar_bckgrnd, 5); */
+/*     modal_add_header(save_as, "Save as:", &color_global_light_grey, 3); */
+/*     modal_add_header(save_as, "Project name:", &color_global_light_grey, 5); */
 /*     modal_add_textentry(save_as, proj->name); */
 /*     modal_add_p(save_as, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-p\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &color_global_black); */
-/*     /\* modal_add_op(save_as, "\t\t(type <ret> to accept name)", &control_bar_bckgrnd); *\/ */
-/*     modal_add_header(save_as, "Project location:", &control_bar_bckgrnd, 5); */
+/*     /\* modal_add_op(save_as, "\t\t(type <ret> to accept name)", &color_global_light_grey); *\/ */
+/*     modal_add_header(save_as, "Project location:", &color_global_light_grey, 5); */
 /*     modal_add_dirnav(save_as, DIRPATH_SAVED_PROJ, dir_to_tline_filter_save); */
 /*     save_as->submit_form = submit_save_as_form; */
 /*     window_push_modal(main_win, save_as); */
@@ -1392,6 +1409,9 @@ static int submit_save_wav_form(void *mod_v, void *target)
 	/* fprintf(stdout, " is %s\n", DIRPATH_SAVED_PROJ); */
     }
     window_pop_modal(main_win);
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    tl->needs_redraw = true;
+
     return 0;
 }
 
@@ -1400,9 +1420,9 @@ void user_tl_write_mixdown_to_wav(void *nullarg)
     Layout *mod_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(mod_lt);
     Modal *save_wav = modal_create(mod_lt);
-    modal_add_header(save_wav, "Export WAV", &control_bar_bckgrnd, 3);
-    modal_add_p(save_wav, "Export a mixdown of the current timeline, from the in-mark to the out-mark, in .wav format.", &control_bar_bckgrnd);
-    modal_add_header(save_wav, "Filename:", &control_bar_bckgrnd, 5);
+    modal_add_header(save_wav, "Export WAV", &color_global_light_grey, 3);
+    modal_add_p(save_wav, "Export a mixdown of the current timeline, from the in-mark to the out-mark, in .wav format.", &color_global_light_grey);
+    modal_add_header(save_wav, "Filename:", &color_global_light_grey, 5);
     char *wavfilename = malloc(sizeof(char) * 255);
     int i=0;
     char c;
@@ -1414,9 +1434,9 @@ void user_tl_write_mixdown_to_wav(void *nullarg)
     strcat(wavfilename, ".wav");
     modal_add_textentry(save_wav, wavfilename, txt_name_validation, file_ext_completion_wav);
     
-    modal_add_p(save_wav, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-p\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &color_global_black);
-    /* modal_add_op(save_wav, "\t\t(type <ret> to accept name)", &control_bar_bckgrnd); */
-    modal_add_header(save_wav, "Location:", &control_bar_bckgrnd, 5);
+    modal_add_p(save_wav, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-<tab>\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &color_global_light_grey);
+    /* modal_add_op(save_wav, "\t\t(type <ret> to accept name)", &color_global_light_grey); */
+    modal_add_header(save_wav, "Location:", &color_global_light_grey, 5);
     modal_add_dirnav(save_wav, DIRPATH_EXPORT, dir_to_tline_filter_save);
     modal_add_button(save_wav, "Save .wav file", submit_save_wav_form);
     /* save_as->submit_form = submit_save_as_form; */
@@ -1560,6 +1580,19 @@ void user_text_edit_escape(void *nullarg)
 {
     if (main_win->txt_editing) {
 	txt_stop_editing(main_win->txt_editing);
+    }
+
+    /* TODO:
+       Need to replace text as editing target with textentry struct
+       so that a ComponentFn can be called upon completion of editing.
+       In Modal, this completion would be set to call modal next.
+
+       For now, this is a hack that will also call modal_next to be called
+       if an unrelated text is editing while a modal window is open
+       (unlikely enough)
+    */
+    if (main_win->num_modals > 0) {
+	modal_next(main_win->modals[main_win->num_modals - 1]);
     }
 }
 

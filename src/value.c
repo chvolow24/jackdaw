@@ -30,6 +30,7 @@ void jdaw_val_set(Value *vp, ValType vt, void *valptr)
 	break;
     case JDAW_INT32:
 	(*vp).int32_v = *((int32_t *)valptr);
+	break;
     case JDAW_BOOL:
 	(*vp).bool_v = *((bool *)valptr);
 	break;
@@ -67,6 +68,7 @@ void jdaw_val_set_ptr(void *valptr, ValType vt, Value new_value)
 	break;
     case JDAW_INT32:
         *((int32_t *)valptr) = new_value.int32_v;
+	break;
     case JDAW_BOOL:
 	*((bool *)valptr) = new_value.bool_v;
 	break;
@@ -106,6 +108,7 @@ Value jdaw_val_from_ptr(void *valptr, ValType vt)
 	break;
     case JDAW_INT32:
 	ret.int32_v = *((int32_t *)valptr);
+	break;
     case JDAW_BOOL:
 	ret.bool_v = *((bool *)valptr);
 	break;
@@ -364,25 +367,25 @@ Value jdaw_val_scale(Value a, double scalar, ValType vt)
         ret.double_v = a.double_v * scalar;
 	break;
     case JDAW_INT:
-	ret.int_v = a.int_v * scalar;
+	ret.int_v = (int)((double)a.int_v * scalar);
 	break;
     case JDAW_UINT8:
-	ret.uint8_v = a.uint8_v * scalar;
+	ret.uint8_v = (uint8_t)((double)a.uint8_v * scalar);
 	break;
     case JDAW_UINT16:
-	ret.uint16_v = a.uint16_v * scalar;
+	ret.uint16_v = (uint16_t)((double)a.uint16_v * scalar);
 	break;
     case JDAW_UINT32:
-	ret.uint32_v = a.uint32_v * scalar;
+	ret.uint32_v = (uint32_t)((double)a.uint32_v * scalar);
 	break;
     case JDAW_INT8:
-	ret.int8_v = a.int8_v * scalar;
+	ret.int8_v = (int8_t)((double)a.int8_v * scalar);
 	break;
     case JDAW_INT16:
-	ret.int16_v = a.int16_v * scalar;
+	ret.int16_v = (int16_t)((double)a.int16_v * scalar);
 	break;
     case JDAW_INT32:
-	ret.int32_v = a.int32_v * scalar;
+	ret.int32_v = (int32_t)((double)a.int32_v * scalar);
 	break;
     case JDAW_BOOL:
 	ret.bool_v = a.bool_v * scalar;

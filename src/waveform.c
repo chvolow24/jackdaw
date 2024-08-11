@@ -199,13 +199,14 @@ void waveform_destroy_freq_plot(struct freq_plot *fp)
     }
     for (int i=0; i<fp->num_plots; i++) {
 	waveform_destroy_logscale(fp->plots[i]);
-	free(fp->arrays);
-	free(fp->colors);
-	free(fp->steps);
+
     }
     for (int i=0; i<fp->num_labels; i++) {
 	textbox_destroy(fp->labels[i]);
     }
+    free(fp->arrays);
+    free(fp->colors);
+    free(fp->steps);
     layout_destroy(fp->container);
     free(fp);
 }

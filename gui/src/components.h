@@ -22,6 +22,8 @@ typedef struct button {
 
 typedef struct toggle {
     bool *value;
+    ComponentFn action;
+    void *target;
     Layout *layout;
 } Toggle;
 
@@ -32,6 +34,7 @@ typedef struct text_entry {
     /* void (*validation)(TextEntry *self, void *xarg); */
     /* void (*completion)(TextEntry *self, void *xarg); */
     ComponentFn action;
+    void *target;
 } TextEntry;
 
 
@@ -139,11 +142,12 @@ void radio_destroy(RadioButton *rb);
 
 /* Toggle */
 
-Toggle *toggle_create(Layout *lt, bool *value);
+Toggle *toggle_create(Layout *lt, bool *value, ComponentFn action, void *target);
 void toggle_destroy(Toggle *toggle);
 /* Returns the new value of the toggle */
 bool toggle_toggle(Toggle *toggle);
 void toggle_draw(Toggle *toggle);
+bool toggle_click(Toggle *toggle, Window *win);
 
 bool slider_mouse_motion(Slider *slider, Window *win);
 bool toggle_mouse_click(Toggle *toggle, Window *win);

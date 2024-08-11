@@ -12,7 +12,7 @@
             <h>REL 20</h>
             <index>0</index>
             <children>
-                <Layout name="toggle_filter_on" type="NORMAL">
+                <Layout name="toggle_delay" type="NORMAL">
                     <x>REL 0</x>
                     <y>REL 0</y>
                     <w>REL 20</w>
@@ -55,7 +55,7 @@
                     <h>SCALE 0.333333</h>
                     <index>0</index>
                     <children>
-                        <Layout name="cutoff_label" type="NORMAL">
+                        <Layout name="del_time_label" type="NORMAL">
                             <x>REL 0</x>
                             <y>STACK 0</y>
                             <w>SCALE 1.000000</w>
@@ -64,7 +64,7 @@
                             <children>
                             </children>
                         </Layout>
-                        <Layout name="cutoff_slider" type="NORMAL">
+                        <Layout name="del_time_slider" type="NORMAL">
                             <x>REL 0</x>
                             <y>STACK 0</y>
                             <w>SCALE 1.000000</w>
@@ -82,7 +82,7 @@
                     <h>SCALE 0.333333</h>
                     <index>1</index>
                     <children>
-                        <Layout name="bandwidth_label" type="NORMAL">
+                        <Layout name="del_amp_label" type="NORMAL">
                             <x>REL 0</x>
                             <y>STACK 0</y>
                             <w>SCALE 1.000000</w>
@@ -91,7 +91,7 @@
                             <children>
                             </children>
                         </Layout>
-                        <Layout name="bandwidth_slider" type="NORMAL">
+                        <Layout name="del_amp_slider" type="NORMAL">
                             <x>REL 0</x>
                             <y>STACK 0</y>
                             <w>SCALE 1.000000</w>

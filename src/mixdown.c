@@ -210,16 +210,36 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 	    /* b= clock(); */
 	    /* track_filter_time = (b-a); */
 	}
-	if (track->tl_rank == 0) {
+	if (track->delay_line_active) {
 	    DelayLine *dl = &track->delay_line;
+	    SDL_LockMutex(dl->lock);
 	    double *del_line = channel == 0 ? dl->buf_L : dl->buf_R;
 	    int32_t *del_line_pos = channel == 0 ? &dl->pos_L : &dl->pos_R;
 	    /* do_fn2(); */
 	    /* int32_t *del_line_pos = channel==0 ? &track->delay_line_L.pos : &track->delay_line_R.pos; */
+
 	    for (int16_t i=0; i<len_sframes; i++) {
 		/* fprintf(stdout, "Writing %f pos %d\n", del_line[del_line_pos], del_line_pos); */
 		double track_sample = track_chunk[i];
-		track_chunk[i] += del_line[*del_line_pos];
+		int32_t pos = *del_line_pos;
+		/* if (channel == 0) { */
+		/*     pos += 800; */
+		/*     pos %= dl->len; */
+		/* } */
+		track_chunk[i] += del_line[pos];
+		/* int tap = *del_line_pos - 1025; */
+		/* if (tap < 0) tap = dl->len + tap; */
+		/* track_chunk[i] += del_line[tap]; */
+		/* tap -= 2031; */
+		/* if (tap < 0) tap = dl->len + tap; */
+		/* track_chunk[i] += del_line[tap]; */
+		/* tap -= 3000; */
+		/* if (tap < 0) tap = dl->len + tap; */
+		/* track_chunk[i] += del_line[tap]; */
+		/* tap -= 2044; */
+		/* if (tap < 0) tap = dl->len + tap; */
+		/* track_chunk[i] += del_line[tap]; */
+		
 		del_line[*del_line_pos] += track_sample;
 		del_line[*del_line_pos] *= dl->amp;
 		/* fprintf(stdout, "Del pos vs len? %d %d\n", *del_line_pos, dl.len); */
@@ -233,6 +253,7 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 		}
 		/* fprintf(stdout, "del line pos: %d\n", *del_line_pos); */
 	    }
+	    SDL_UnlockMutex(dl->lock);
 	}
 
         for (uint32_t i=0; i<len_sframes; i++) {

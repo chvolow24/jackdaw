@@ -29,7 +29,6 @@
   - C-y		: redo
   - S-f		: show_output_freq_domain
   - C-s		: save_project
-  - C-S-s	: save_current_project_as
   - C-o		: open_file
   - A-S-p	: start_or_stop_screenrecording
 - menu_nav:
@@ -44,7 +43,7 @@
   - <ret>     	: menu_choose_item
   - <spc>	: menu_choose_item
   - k		: menu_choose_item
-  - <del>     	: menu_cancel
+  - <del>     	: menu_dismiss
   - C-n	      	: menu_next_section
   - C-p	      	: menu_previous_section
   - C-<up>  	: menu_next_section
@@ -108,10 +107,7 @@
   - <del>	: tl_cliprefs_destroy
   - m		: tl_mute
   - s		: tl_solo
-  - r		: tl_start_stop_record
   - g		: tl_grab_clips_at_point
-  - m		: tl_mute_unmute
-  - s		: tl_solo_unsolo
   - r		: tl_record
   - C-1		: tl_load_clip_at_point_to_source
   - S-1		: tl_activate_source_mode

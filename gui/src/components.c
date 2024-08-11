@@ -131,10 +131,10 @@ Value slider_val_from_coord(Slider *s, int coord_pix)
 	proportion = ((double)coord_pix - s->layout->rect.x) / s->layout->rect.w;
 	break;
     }
-    /* fprintf(stdout, "Proportion: %f\n", proportion); */
     Value range = jdaw_val_sub(s->max, s->min, s->val_type);
     Value val_proportion = jdaw_val_scale(range, proportion, s->val_type);
-    return jdaw_val_add(val_proportion, s->min, s->val_type);
+    Value ret = jdaw_val_add(val_proportion, s->min, s->val_type);
+    return ret;
 
 }
 
@@ -240,7 +240,7 @@ void button_destroy(Button *button)
 
 /* Toggle */
 
-Toggle *toggle_create(Layout *lt, bool *value)
+Toggle *toggle_create(Layout *lt, bool *value, ComponentFn action, void *target)
 {
     Layout *inner = layout_add_child(lt);
     inner->w.type = SCALE;
@@ -259,6 +259,8 @@ Toggle *toggle_create(Layout *lt, bool *value)
     Toggle *tgl = calloc(1, sizeof(Toggle));
     tgl->value = value;
     tgl->layout = lt;
+    tgl->action = action;
+    tgl->target = target;
     return tgl;
 }
 
@@ -287,6 +289,8 @@ bool toggle_toggle(Toggle *toggle)
     *(toggle->value) = !(*toggle->value);
     return toggle->value;
 }
+
+
 
 /* Radio Button */
 RadioButton *radio_button_create(
@@ -409,6 +413,16 @@ bool radio_click(RadioButton *rb, Window *Win)
     return false;
 }
 
+bool toggle_click(Toggle *toggle, Window *win)
+{
+    if (SDL_PointInRect(&main_win->mousep, &toggle->layout->rect)) {
+	toggle_toggle(toggle);
+	if (toggle->action) {
+	    toggle->action((void *)toggle, toggle->target);
+	}
+    }
+    return false;
+}
 
 void radio_destroy(RadioButton *rb)
 {

@@ -6,31 +6,7 @@
 #include "layout_xml.h"
 #include "textbox.h"
 #include "waveform.h"
-/*
 
-      switch (el->type) {
-    case EL_TEXTAREA:
-	break;
-    case EL_TEXTBOX:
-	break;
-    case EL_TEXTENTRY:
-	break;
-    case EL_SLIDER:
-	break;
-    case EL_RADIO:
-	break;
-    case EL_TOGGLE:
-	break;
-    case EL_PLOT:
-	break;
-    case EL_FREQ_PLOT:
-	break;
-    case EL_BUTTON:
-	break;
-    default:
-	break;
-    }
-*/
 
 extern SDL_Color color_global_clear;
 extern SDL_Color color_global_white;
@@ -44,10 +20,6 @@ TabView *tab_view_create(const char *title, Layout *parent_lt, Window *win)
     tv_lt->h.type = SCALE;
     tv_lt->x.type = SCALE;
     tv_lt->y.type = SCALE;
-    /* tv_lt->x.value.floatval = 0.01; */
-    /* tv_lt->y.value.floatval = 0.01; */
-    /* tv_lt->w.value.floatval = 0.98; */
-    /* tv_lt->h.value.floatval = 0.98; */
     tv_lt->x.value.floatval = 0.1;
     tv_lt->y.value.floatval = 0.1;
     tv_lt->w.value.floatval = 0.8;
@@ -100,7 +72,14 @@ Page *tab_view_add_page(
     }
     tab_lt->h.type = SCALE;
     tab_lt->h.value.floatval = 1.0f;
-    layout_force_reset(tv->layout);
+
+    /* ??? Problems */
+    /* layout_force_reset(tv->layout); */
+
+    layout_reset(tv->layout);
+
+
+    
     Textbox *tab_tb = textbox_create_from_str((char *)page_title, tab_lt, tv->win->mono_bold_font, 14, tv->win);
     textbox_set_background_color(tab_tb, &color_global_clear);
     textbox_set_text_color(tab_tb, text_color);
@@ -167,6 +146,7 @@ static void page_el_destroy(PageEl *el)
     case EL_PLOT:
 	break;
     case EL_FREQ_PLOT:
+	waveform_destroy_freq_plot((struct freq_plot *)el->component);
 	break;
     case EL_BUTTON:
 	break;
@@ -265,7 +245,9 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
     case EL_TOGGLE:
 	el->component = (void *)toggle_create(
 	    el->layout,
-	    params.toggle_p.value);
+	    params.toggle_p.value,
+	    params.toggle_p.action,
+	    params.toggle_p.target);
 	break;
     case EL_PLOT:
 	break;
@@ -358,7 +340,7 @@ static bool page_element_mouse_click(PageEl *el, Window *win)
 	return radio_click((RadioButton *)el->component, win);
 	break;
     case EL_TOGGLE:
-	toggle_toggle((Toggle *)el->component);
+	toggle_click((Toggle *)el->component, win);
 	break;
     case EL_PLOT:
 	break;

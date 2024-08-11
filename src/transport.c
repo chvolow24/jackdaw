@@ -132,95 +132,7 @@ static float *get_source_mode_chunk(uint8_t channel, float *chunk, uint32_t len_
  }
 
 void transport_recording_update_cliprects();
-void ____transport_playback_callback(void* user_data, uint8_t* stream, int len)
-{
-    memset(stream, '\0', len);
 
-    /* fprintf(stdout, "PLAyback callbac\n"); */
-    uint32_t stream_len_samples = len / sizeof(int16_t);
-    uint32_t len_sframes = stream_len_samples / proj->channels;
-    float chunk_L[len_sframes];
-    float chunk_R[len_sframes];
-    if (proj->source_mode) {
-	/* chunk_L = get_source_mode_chunk(0, len_sframes, proj->src_play_pos_sframes, proj->src_play_speed); */
-	/* chunk_R = get_source_mode_chunk(1, len_sframes, proj->src_play_pos_sframes, proj->src_play_speed); */
-	get_source_mode_chunk(0, chunk_L, len_sframes, proj->src_play_pos_sframes, proj->src_play_speed);
-	get_source_mode_chunk(1, chunk_R, len_sframes, proj->src_play_pos_sframes, proj->src_play_speed);
-    } else {
-	Timeline *tl = proj->timelines[proj->active_tl_index];
-	/* fprintf(stdout, "Getting mixdown...\n"); */
-	get_mixdown_chunk(tl, chunk_L, 0, len_sframes, tl->play_pos_sframes, proj->play_speed);
-	get_mixdown_chunk(tl, chunk_R, 1, len_sframes, tl->play_pos_sframes, proj->play_speed);
-	/* fprintf(stdout, "Done.\n"); */
-    }
-
-    int16_t *stream_fmt = (int16_t *)stream;
-    double *output_l = malloc(sizeof(double) * proj->chunk_size_sframes);
-    double *output_r = malloc(sizeof(double) * proj->chunk_size_sframes);
-    for (uint32_t i=0; i<stream_len_samples; i+=2)
-    {
-	float val_L = chunk_L[i/2];
-	float val_R = chunk_R[i/2];
-	/* proj->output_L[i/2] = val_L; */
-	/* proj->output_R[i/2] = val_R; */
-	output_l[i/2] = val_L;
-	output_r[i/2] = val_R;
-	stream_fmt[i] = (int16_t) (val_L * INT16_MAX);
-	stream_fmt[i+1] = (int16_t) (val_R * INT16_MAX);
-    }
-
-    double complex  *lfreq = malloc(sizeof(double complex) * proj->chunk_size_sframes);
-    double complex *rfreq = malloc(sizeof(double complex) * proj->chunk_size_sframes);
-    FFT(output_l, lfreq, proj->chunk_size_sframes);
-    FFT(output_r, rfreq, proj->chunk_size_sframes);
-    /* double *ok = malloc(sizeof(double) * proj->chunk_size_sframes); */
-    get_magnitude(lfreq, proj->output_L_freq, proj->chunk_size_sframes);
-    get_magnitude(rfreq, proj->output_R_freq, proj->chunk_size_sframes);
-    
-	    /* free(chunk_L); */
-    /* free(chunk_R); */
-
-    // for (uint8_t i = 0; i<40; i+=2) {
-    //     fprintf(stderr, "%hd ", (int16_t)(stream[i]));
-    // }
-    // if (proj->tl->play_offset == 0) {
-    //     long            ms; // Milliseconds
-    //     time_t          s;  // Seconds
-    //     struct timespec spec;
-    //     clock_gettime(CLOCK_REALTIME, &spec);
-    //     s  = spec.tv_sec;
-    //     ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
-    //     if (ms > 999) {
-    //         s++;
-    //         ms = 0;
-    //     }
-    //     // proj->tl->play_offset = ms;
-    // }
-    if (proj->source_mode) {
-	proj->src_play_pos_sframes += proj->src_play_speed * stream_len_samples / proj->channels;
-	if (proj->src_play_pos_sframes < 0 || proj->src_play_pos_sframes > proj->src_clip->len_sframes) {
-	    proj->src_play_pos_sframes = 0;
-	}
-    } else {
-	/* fprintf(stdout, "Move pos: %d\n", (int)proj->play_speed * stream_len_samples / proj->channels); */
-	timeline_move_play_position(proj->play_speed * stream_len_samples / proj->channels);
-	/* transport_recording_update_cliprects(); */
-	for (uint8_t i=proj->active_clip_index; i<proj->num_clips; i++) {
-	    Clip *clip = proj->clips[i];
-	    AudioConn *conn = clip->recorded_from;
-	    if (conn->type == JACKDAW) {
-		if (conn->c.jdaw.write_bufpos_sframes + proj->chunk_size_sframes < conn->c.jdaw.rec_buf_len_sframes) {
-		    memcpy(conn->c.jdaw.rec_buffer_L + conn->c.jdaw.write_bufpos_sframes, proj->output_L, sizeof(float) * proj->chunk_size_sframes);
-		    memcpy(conn->c.jdaw.rec_buffer_R + conn->c.jdaw.write_bufpos_sframes, proj->output_R, sizeof(float) * proj->chunk_size_sframes);
-		    conn->c.jdaw.write_bufpos_sframes += proj->chunk_size_sframes;
-		} else {
-		    copy_conn_buf_to_clip(clip, JACKDAW);
-		}
-		break;
-	    }
-	}
-    }
-}
 
 void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 {
@@ -233,25 +145,15 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     conn->callback_time.timeline_pos = tl->play_pos_sframes + (tl->buf_read_pos % (proj->fourier_len_sframes / proj->chunk_size_sframes));
 
     memset(stream, '\0', len);
-    /* fprintf(stdout, "PLAyback callbac\n"); */
     uint32_t stream_len_samples = len / sizeof(int16_t);
     uint32_t len_sframes = stream_len_samples / proj->channels;
     float chunk_L[len_sframes];
     float chunk_R[len_sframes];
     if (proj->source_mode) {
-	/* chunk_L = get_source_mode_chunk(0, len_sframes, proj->src_play_pos_sframes, proj->src_play_speed); */
-	/* chunk_R = get_source_mode_chunk(1, len_sframes, proj->src_play_pos_sframes, proj->src_play_speed); */
 	get_source_mode_chunk(0, chunk_L, len_sframes, proj->src_play_pos_sframes, proj->src_play_speed);
 	get_source_mode_chunk(1, chunk_R, len_sframes, proj->src_play_pos_sframes, proj->src_play_speed);
     } else {
-	/* /\* fprintf(stdout, "wait readable...\n"); *\/ */
-	/* clock_t s_a, s_b; */
-	/* s_a = clock(); */
 	sem_wait(tl->readable_chunks);
-	/* s_b = clock(); */
-	/* fprintf(stdout, "\tsem: %lu\n", s_b - s_a); */
-	/* fprintf(stdout, "done!\n"); */
-	/* fprintf(stdout, "READ. buf read pos: %d. src: %p\n", tl->buf_read_pos, tl->buf_L + tl->buf_read_pos); */
 	memcpy(chunk_L, tl->buf_L + tl->buf_read_pos, sizeof(float) * len_sframes);
 	memcpy(chunk_R, tl->buf_R + tl->buf_read_pos, sizeof(float) * len_sframes);
 	sem_post(tl->writable_chunks);
@@ -262,74 +164,25 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     }
 
     int16_t *stream_fmt = (int16_t *)stream;
-    /* double *output_l = malloc(sizeof(double) * proj->chunk_size_sframes); */
-    /* double *output_r = malloc(sizeof(double) * proj->chunk_size_sframes); */
     for (uint32_t i=0; i<stream_len_samples; i+=2)
     {
 	float val_L = chunk_L[i/2];
 	float val_R = chunk_R[i/2];
-	/* proj->output_L[i/2] = val_L; */
-	/* proj->output_R[i/2] = val_R; */
-	/* output_l[i/2] = val_L; */
-	/* output_r[i/2] = val_R; */
 	stream_fmt[i] = (int16_t) (val_L * INT16_MAX);
 	stream_fmt[i+1] = (int16_t) (val_R * INT16_MAX);
     }
 
-    /* double complex  *lfreq = malloc(sizeof(double complex) * proj->chunk_size_sframes); */
-    /* double complex *rfreq = malloc(sizeof(double complex) * proj->chunk_size_sframes); */
-    /* FFT(output_l, lfreq, proj->chunk_size_sframes); */
-    /* FFT(output_r, rfreq, proj->chunk_size_sframes); */
-    /* double *ok = malloc(sizeof(double) * proj->chunk_size_sframes); */
-    /* get_magnitude(lfreq, proj->output_L_freq, proj->chunk_size_sframes); */
-    /* get_magnitude(rfreq, proj->output_R_freq, proj->chunk_size_sframes); */
-    
-	    /* free(chunk_L); */
-    /* free(chunk_R); */
 
-    // for (uint8_t i = 0; i<40; i+=2) {
-    //     fprintf(stderr, "%hd ", (int16_t)(stream[i]));
-    // }
-    // if (proj->tl->play_offset == 0) {
-    //     long            ms; // Milliseconds
-    //     time_t          s;  // Seconds
-    //     struct timespec spec;
-    //     clock_gettime(CLOCK_REALTIME, &spec);
-    //     s  = spec.tv_sec;
-    //     ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
-    //     if (ms > 999) {
-    //         s++;
-    //         ms = 0;
-    //     }
-    //     // proj->tl->play_offset = ms;
-    // }
     if (proj->source_mode) {
 	proj->src_play_pos_sframes += proj->src_play_speed * stream_len_samples / proj->channels;
 	if (proj->src_play_pos_sframes < 0 || proj->src_play_pos_sframes > proj->src_clip->len_sframes) {
 	    proj->src_play_pos_sframes = 0;
 	}
+	tl->needs_redraw = true;
+
     } else {
-	/* fprintf(stdout, "Move pos: %d\n", (int)proj->play_speed * stream_len_samples / proj->channels); */
 	timeline_move_play_position(proj->play_speed * stream_len_samples / proj->channels);
-	/* transport_recording_update_cliprects(); */
-	/* for (uint8_t i=proj->active_clip_index; i<proj->num_clips; i++) { */
-	/*     Clip *clip = proj->clips[i]; */
-	/*     AudioConn *conn = clip->recorded_from; */
-	/*     if (conn->type == JACKDAW) { */
-	/* 	if (conn->c.jdaw.write_bufpos_sframes + proj->chunk_size_sframes < conn->c.jdaw.rec_buf_len_sframes) { */
-	/* 	    memcpy(conn->c.jdaw.rec_buffer_L + conn->c.jdaw.write_bufpos_sframes, proj->output_L, sizeof(float) * proj->chunk_size_sframes); */
-	/* 	    memcpy(conn->c.jdaw.rec_buffer_R + conn->c.jdaw.write_bufpos_sframes, proj->output_R, sizeof(float) * proj->chunk_size_sframes); */
-	/* 	    conn->c.jdaw.write_bufpos_sframes += proj->chunk_size_sframes; */
-	/* 	} else { */
-	/* 	    copy_conn_buf_to_clip(clip, JACKDAW); */
-	/* 	} */
-	/* 	break; */
-	/*     } */
-	/* } */
     }
-    /* b = clock(); */
-    /* fprintf(stdout, "DEL: %lu\n", b-a); */
-    /* fprintf(stdout, "\t->END cb\n"); */
 }
 
 static void *transport_dsp_thread_fn(void *arg)
@@ -672,15 +525,7 @@ void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type)
     default:
 	break;
     }
-     /* clip->recorded_from->write_bufpos_samples = 0; */
-     /* clip->recording = false; */
 }
-
- /* static void complete_pd_clip(Clip *clip) */
- /* { */
-
- /* } */
-
 
 
 void transport_stop_recording()

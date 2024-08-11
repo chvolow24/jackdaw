@@ -29,6 +29,7 @@ extern SDL_Color color_global_black;
 extern SDL_Color color_global_clear;
 extern SDL_Color color_global_white;
 extern SDL_Color control_bar_bckgrnd;
+extern SDL_Color color_global_light_grey;
 
 extern SDL_Color menu_std_clr_inner_border;
 extern SDL_Color menu_std_clr_outer_border;
@@ -46,7 +47,9 @@ extern SDL_Color menu_std_clr_sctn_div;
 
 
 
-SDL_Color modal_color_background = (SDL_Color){220, 160, 0, 245};
+/* SDL_Color modal_color_background = (SDL_Color){220, 160, 0, 245}; */
+SDL_Color modal_color_background = (SDL_Color){30, 80, 80, 255};
+
 SDL_Color modal_color_border = (SDL_Color){200, 200, 200, 255};
 SDL_Color modal_color_border_outer = (SDL_Color){10, 10, 10, 255};
 SDL_Color modal_color_border_selected = (SDL_Color) {10, 10, 155, 255};
@@ -201,19 +204,9 @@ ModalEl *modal_add_header(Modal *modal, const char *text, SDL_Color *color, int 
 ModalEl *modal_add_p(Modal *modal, const char *text, SDL_Color *color)
 {
     ModalEl *el = modal_add_el(modal);
-
     el->type = MODAL_EL_TEXTAREA;
     TextArea *ta = txt_area_create(text, el->layout, main_win->std_font, MODAL_P_FONTSIZE, *color, main_win);
-    /* fprintf(stdout, "AFTER creation, TA y and height: %d, %d\n", el->layout->rect.y,  el->layout->rect.h); */
     el->obj = (void *)ta;
-    /* layout_force_reset(modal->layout); */
-    /* fprintf(stdout, "AFTER force reset, TA y and height: %d, %d\n", el->layout->rect.y,  el->layout->rect.h); */
-    /* modal_reset(modal); */
-    /* fprintf(stdout, "AFTER modal reset, TA height: %d\n", el->layout->rect.h); */
-    
-    /* layout_size_to_fit_children(el->layout, true, MODAL_V_PADDING); */
-    /* modal_reset(modal); */
-    /* modal_reset(modal); */
     return el;
 }
 
@@ -249,8 +242,6 @@ ModalEl *modal_add_button(Modal *modal, char *text, ComponentFn action)
     return el;
 }
 
-
-
 ModalEl *modal_add_textentry(Modal *modal, char *init_val, int (*validation)(Text *txt, char input), int (*completion)(Text *))
 {
     ModalEl *el = modal_add_el(modal);
@@ -265,7 +256,6 @@ ModalEl *modal_add_textentry(Modal *modal, char *init_val, int (*validation)(Tex
 
     TextEntry *te = calloc(1, sizeof(TextEntry));
     te->tb = textbox_create_from_str(init_val, el->layout, main_win->bold_font, 12, main_win);
-    
     textbox_set_text_color(te->tb, &modal_textentry_text_color);
     textbox_set_background_color(te->tb, &modal_textentry_background);
     textbox_set_align(te->tb, CENTER_LEFT);
@@ -370,9 +360,12 @@ void modal_draw(Modal *modal)
     if (modal->num_selectable > 0) {
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(modal_color_border_selected));
 	geom_draw_rect_thick(main_win->rend, &modal->els[modal->selectable_indices[modal->selected_i]]->layout->rect, 2, main_win->dpi_scale_factor);
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_light_grey));
+	SDL_RenderDrawRect(main_win->rend, &modal->els[modal->selectable_indices[modal->selected_i]]->layout->rect);
 	/* SDL_Rect r = modal->els[modal->selectable_indices[modal->selected_i]]->layout->rect; */
 	/* fprintf(stdout, "R: %d %d %d %d\n", r.x, r.y, r.w, r.h); */
     }
+    /* layout_draw(main_win, modal->layout); */
     /* layout_write(stdout, modal->layout, 0); */
 }
 
@@ -390,11 +383,10 @@ void modal_next_escape(Modal *modal);
 void modal_move_onto(Modal *modal)
 {
     ModalEl *el = modal->els[modal->selectable_indices[modal->selected_i]];
-    fprintf(stdout, "El: %p\n", el);
     switch (el->type) {
     case MODAL_EL_TEXTENTRY:
 	txt_edit((((TextEntry *)el->obj))->tb->text, project_draw);
-	modal_next_escape(modal);
+	/* modal_next_escape(modal); */
 	break;
     default:
 	break;
@@ -416,7 +408,6 @@ void modal_previous(Modal *modal)
 
 void modal_next_escape(Modal *modal)
 {
-    fprintf(stdout, "Next escape\n");
     int num_selectable = modal->num_selectable;
     if (modal->selected_i < num_selectable - 1) {
 	modal->selected_i++;

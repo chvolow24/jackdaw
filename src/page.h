@@ -112,6 +112,8 @@ struct radio_params {
 
 struct toggle_params {
     bool *value;
+    ComponentFn action;
+    void *target;
 };
 
 typedef union page_el_params {

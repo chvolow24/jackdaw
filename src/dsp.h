@@ -61,6 +61,7 @@ typedef struct delay_line {
     int32_t pos_R;
     double *buf_L;
     double *buf_R;
+    SDL_mutex *lock;
 } DelayLine;
 
 /* Initialize the dsp subsystem. All this does currently is to populate the nth roots of unity for n < ROU_MAX_DEGREE */
@@ -94,5 +95,7 @@ void FFT(double *A, double complex *B, int n);
 void get_real_component(double complex *A, double *B, int n);
 void get_magnitude(double complex *A, double *B, int len);
 
+void delay_line_init(DelayLine *dl);
 void delay_line_set_params(DelayLine *dl, double amp, int32_t len);
+void delay_line_clear(DelayLine *dl);
 #endif

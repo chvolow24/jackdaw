@@ -190,251 +190,14 @@ extern SDL_Color color_global_grey;
 
 //typedef void (SliderStrFn)(char *dst, size_t dstsize, void *value, ValType type);
 
-static int rb_target_action(void *self_v, void *target)
-{
-    RadioButton *self = (RadioButton *)self_v;
-    FIRFilter *f = (FIRFilter *)target;
-    /* double cutoff = f->cutoff_freq; */
-    FilterType t = (FilterType)(self->selected_item);
-    /* fprintf(stdout, "SET FIR FILTER PARAMS %p\n", f); */
-    filter_set_type(f, t);
-    return 0;
-    
-}
-
-static int slider_target_action(void *self_v, void *target)
-{
-    Slider *self = (Slider *)self_v;
-    FIRFilter *f = (FIRFilter *)target;
-    /* double cutoff = f->cutoff_freq; */
-    double cutoff_unscaled = *(double *)(self->value);
-    /* double cutoff_scaled = log(1.0 + cutoff_unscaled) / log(2.0f); */
-    double cutoff_h = pow(10.0, log10((double)proj->sample_rate / 2) * cutoff_unscaled);
-    /* /\* double cutoff_h = log(0.0001 + cutoff_unscaled) / log(1.0001f) * proj->sample_rate / 2; *\/ */
-    /* fprintf(stdout, "unscaled: %f, %d\n", cutoff_unscaled, (int)cutoff_h); */
-    /* FilterType t = f->type; */
-    /* filter_set_params_h(f, t, cutoff_h, 500); */
-    filter_set_cutoff_hz(f, cutoff_h);
-    return 0;
-}
-
-static int slider_bandwidth_target_action(void *self_v, void *target)
-{
-    Slider *self = (Slider *)self_v;
-    FIRFilter *f = (FIRFilter *)target;
-    double bandwidth_unscaled = *(double *)(self->value);
-    double bandwidth_h = pow(10.0, log10((double)proj->sample_rate / 2) * bandwidth_unscaled);
-    /* /\* double cutoff_h = log(0.0001 + cutoff_unscaled) / log(1.0001f) * proj->sample_rate / 2; *\/ */
-    /* fprintf(stdout, "unscaled: %f, %d\n", cutoff_unscaled, (int)cutoff_h); */
-    /* FilterType t = f->type; */
-    /* filter_set_params_hz(f, t, cutoff_hz, 500); */
-    filter_set_bandwidth_hz(f, bandwidth_h);
-    return 0;
-}
-
-struct slider_irlen_target {
-    FIRFilter *f;
-    struct freq_plot *fp;
-};
-static int slider_irlen_target_action(void *self_v, void *target)
-{
-    Slider *self = (Slider *)self_v;
-    struct slider_irlen_target *sit = (struct slider_irlen_target *)target;
-    FIRFilter *f = sit->f;
-    struct freq_plot *fp = sit->fp;
-    int val = *(int *)self->value;
-    filter_set_impulse_response_len(f, val);
-    fp->arrays[2] = f->frequency_response_mag;
-    waveform_reset_freq_plot(fp);
-    slider_reset(self);
-    /* if (proj->freq_domain_plot) waveform_destroy_freq_plot(proj->freq_domain_plot); */
-
-
-    /* double *arrays[] = {proj->output_L_freq, proj->output_R_freq, proj->timelines[0]->tracks[0]->fir_filter->frequency_response_mag}; */
-    /* SDL_Color *colors[] = {&color_global_white, &color_global_white, &color_global_white}; */
-    /* int steps[] = {1, 1, 2}; */
-    /* proj->freq_domain_plot = waveform_create_freq_plot(arrays, 3, colors, steps, proj->fourier_len_sframes / 2, freq_lt); */
-    /* proj->freq_domain_plot->plots[2] = proj->timelines[0]->tracks[0]->fir_filter->frequency_response_mag; */
-    
-    return 0;
-}
-
-static void test_tabview()
-{
-    if (main_win->active_tab_view) {
-	/* tabview_destroy(main_win->active_tab_view); */
-	main_win->active_tab_view = NULL;
-	return;
-    }
-
-    TabView *tv = tab_view_create("Some view", proj->layout, main_win);
-
-    static SDL_Color page_colors[] = {
-	{30, 80, 80, 255},
-	{70, 40, 70, 255},
-	{40, 40, 80, 255}
-    };
-    /* static SDL_Color lightgrey = {220, 220, 220, 255}; */
-    Page *page = tab_view_add_page(
-	tv,
-	"Track FIR Filter",
-	INSTALL_DIR "/assets/layouts/some_name.xml",
-	page_colors,
-	&color_global_white,
-	main_win);
-
-    tab_view_add_page(
-	tv,
-	"EQ",
-	INSTALL_DIR "/assets/layouts/some_name.xml",
-	page_colors + 1,
-	&color_global_white,
-	main_win);
-    tab_view_add_page(
-	tv,
-	"This is another tab",
-	INSTALL_DIR "/assets/layouts/some_name.xml",
-	page_colors + 2,
-	&color_global_white,
-	main_win);
-
-        
-    PageElParams p;
-    p.textbox_p.font = main_win->std_font;
-    p.textbox_p.text_size = 12;
-    p.textbox_p.set_str = "Bandwidth:";
-    p.textbox_p.win = main_win;
-    PageEl *el = page_add_el(page, EL_TEXTBOX, p, "bandwidth_label");
-
-    Textbox *tb = el->component;
-    textbox_set_align(tb, CENTER_LEFT);
-    textbox_reset_full(tb);
-    
-    p.textbox_p.set_str = "Cutoff frequency:";
-    p.textbox_p.win = main_win;
-    el = page_add_el(page, EL_TEXTBOX, p, "cutoff_label");
-    tb = el->component;
-    textbox_set_align(tb, CENTER_LEFT);
-    textbox_reset_full(tb);
-    p.textbox_p.set_str = "Impulse response length (\"sharpness\")";
-    el = page_add_el(page, EL_TEXTBOX, p, "irlen_label");
-    tb=el->component;
-    textbox_set_trunc(tb, false);
-    textbox_set_align(tb, CENTER_LEFT);
-    textbox_reset_full(tb);
-
-    Track *track = proj->timelines[0]->tracks[0];
-    static double freq_unscaled = 0.5;
-    p.slider_p.create_label_fn = NULL;
-    p.slider_p.style = SLIDER_TICK;
-    p.slider_p.orientation = SLIDER_HORIZONTAL;
-    p.slider_p.value = &freq_unscaled;
-    p.slider_p.val_type = JDAW_DOUBLE;
-    p.slider_p.action = slider_target_action;
-    p.slider_p.target = (void *)(track->fir_filter);
-    el = page_add_el(page, EL_SLIDER, p, "cutoff_slider");
-
-
-    static double bandwidth_unscaled = 0.5;
-    p.slider_p.action = slider_bandwidth_target_action;
-    p.slider_p.target = (void *)(track->fir_filter);
-    p.slider_p.value = &bandwidth_unscaled;
-    el = page_add_el(page, EL_SLIDER, p, "bandwidth_slider");
-
-
-    /* 	int text_size; */
-    /* 	SDL_Color *text_color; */
-    /* 	void *target_enum; */
-    /* 	void (*external_action)(void *); */
-    /* 	const char **item_names; */
-    /* 	uint8_t num_items; */
-    /* }; */
-    
-
-    static const char * item_names[] = {
-	"Lowpass",
-	"Highpass",
-	"Bandpass",
-	"Bandcut"
-
-    };
-
-    p.radio_p.text_size = 14;
-    p.radio_p.text_color = &color_global_white;
-    /* p.radio_p.target_enum = NULL; */
-    p.radio_p.action = rb_target_action;
-    p.radio_p.item_names = item_names;
-    p.radio_p.num_items = 4;
-    p.radio_p.target = proj->timelines[0]->tracks[0]->fir_filter;
-    
-    el = page_add_el(page, EL_RADIO, p, "radio1");
-
-    FIRFilter *f = proj->timelines[proj->active_tl_index]->tracks[0]->fir_filter;
-    double **track_l, **track_r;
-    track_l = &track->buf_L_freq_mag;
-    track_r = &track->buf_R_freq_mag;
-    if (!*track_l) {
-	*track_l = malloc(f->frequency_response_len * 2 * sizeof(double));
-    }
-    if (!(*track_r)) {
-	*track_r = malloc(f->frequency_response_len * 2 * sizeof(double));
-    }
-    double *arrays[3] = {
-	track->buf_L_freq_mag,
-	track->buf_R_freq_mag,
-	/* proj->output_L_freq, */
-	/* proj->output_R_freq, */
-	f->frequency_response_mag
-    };
-	
-    int steps[] = {2, 2, 2};
-    SDL_Color *colors[] = {&freq_L_color, &freq_R_color, &color_global_white};
-    p.freqplot_p.arrays = arrays;
-    p.freqplot_p.colors =  colors;
-    p.freqplot_p.steps = steps;
-    p.freqplot_p.num_items = proj->fourier_len_sframes / 2;
-    p.freqplot_p.num_arrays = 3;
-    /* p.freqplot_p. */
-    el = page_add_el(page, EL_FREQ_PLOT, p, "freq_plot");
-
-
-    struct slider_irlen_target *sit = malloc(sizeof(struct slider_irlen_target));
-    sit->f = proj->timelines[0]->tracks[0]->fir_filter;
-    sit->fp = (struct freq_plot *)el->component;
-    static int ir_len = 20;
-    p.slider_p.action = slider_irlen_target_action;
-    p.slider_p.style = SLIDER_TICK;
-    /* p.slider_p.target = */
-    p.slider_p.target = (void *)(sit);
-    p.slider_p.value = &ir_len;
-    p.slider_p.val_type = JDAW_INT;
-    p.slider_p.create_label_fn = NULL;
-    p.slider_p.orientation = SLIDER_HORIZONTAL;
-    el = page_add_el(page, EL_SLIDER, p, "slider_ir_len");
-
-    Slider *sl = (Slider *)el->component;
-    Value min, max;
-    min.int_v = 4;
-    max.int_v = proj->fourier_len_sframes;
-    slider_set_range(sl, min, max);
-    slider_reset(sl);
-    
-
-    layout_force_reset(tv->layout);
-    tab_view_activate(tv);
-    /* FILE *f = fopen("test.xml", "w"); */
-    /* layout_write(f, tv->layout, 0); */
-    /* fclose(f); */
-}
-
 
 void user_tl_track_open_settings(void *nullarg);
 void loop_project_main()
 {
 
-    clock_t start, end;
-    uint8_t frame_ctr = 0;
-    float fps = 0;
+    /* clock_t start, end; */
+    /* uint8_t frame_ctr = 0; */
+    /* float fps = 0; */
 
     Layout *temp_scrolling_lt = NULL;
     Layout *scrolling_lt = NULL;
@@ -792,15 +555,15 @@ void loop_project_main()
 	SDL_Delay(1);
 
 
-        end = clock();
-	fps += (float)CLOCKS_PER_SEC / (end - start);
-	start = end;
-	if (frame_ctr > 250) {
-	    fps /= 250;
-	    fprintf(stdout, "FPS: %f\n", fps);
-	    frame_ctr = 0;
-	} else {
-	    frame_ctr++;
-	}
+        /* end = clock(); */
+	/* fps += (float)CLOCKS_PER_SEC / (end - start); */
+	/* start = end; */
+	/* if (frame_ctr > 250) { */
+	/*     fps /= 250; */
+	/*     fprintf(stdout, "FPS: %f\n", fps); */
+	/*     frame_ctr = 0; */
+	/* } else { */
+	/*     frame_ctr++; */
+	/* } */
     }
 }

@@ -722,12 +722,10 @@ Track *timeline_add_track(Timeline *tl)
 	filter_set_params_hz(track->fir_filter, LOWPASS, 1000, 1000);
 	track->fir_filter_active = false;
     }
-
-    delay_line_set_params(&track->delay_line, 0.6, 10000);
+    delay_line_init(&track->delay_line);
+    delay_line_set_params(&track->delay_line, 0.3, 10000);
     /* delay_line_set_params(&track->delay_line_R, 0.8, 5000); */
     /* END FILTER TESTS */
-    
-    /* do_fn2(); */
 
     
     return track;
@@ -1349,7 +1347,7 @@ void timeline_cut_clipref_at_point(Timeline *tl)
     for (uint8_t i=0; i<track->num_clips; i++) {
 	ClipRef *cr = track->clips[i];
 	if (cr->pos_sframes < tl->play_pos_sframes && cr->pos_sframes + clipref_len(cr) > tl->play_pos_sframes) {
-	    ClipRef *new = clipref_cut(cr, tl->play_pos_sframes - cr->pos_sframes);
+	    clipref_cut(cr, tl->play_pos_sframes - cr->pos_sframes);
 	    return;
 	}
     }

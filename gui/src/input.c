@@ -249,6 +249,12 @@ static void mode_load_menu_nav()
     mode_subcat_add_fn(mc, fn);
 
     fn = create_user_fn(
+	"menu_translate_left",
+	"Move menu left",
+	user_menu_translate_left);
+    mode_subcat_add_fn(mc, fn);
+
+    fn = create_user_fn(
 	"menu_dismiss",
 	"go back (dismiss)",
 	user_menu_dismiss);
@@ -585,11 +591,11 @@ static void mode_load_timeline()
 	user_tl_track_set_in);
     mode_subcat_add_fn(sc, fn);
 
-    fn = create_user_fn(
-	"tl_track_add_filter",
-	"Add filter to track",
-	user_tl_track_add_filter);
-    mode_subcat_add_fn(sc, fn);
+    /* fn = create_user_fn( */
+    /* 	"tl_track_add_filter", */
+    /* 	"Add filter to track", */
+    /* 	user_tl_track_add_filter); */
+    /* mode_subcat_add_fn(sc, fn); */
 
     /* Clips */
     sc = mode_add_subcat(mode, "Clips");

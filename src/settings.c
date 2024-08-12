@@ -166,12 +166,18 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     }
     tv->num_tabs = 0;
     
+    /* static SDL_Color page_colors[] = { */
+    /* 	{30, 80, 80, 255}, */
+    /* 	{40, 40, 80, 255}, */
+    /* 	{70, 40, 70, 255} */
+    /* }; */
+
     static SDL_Color page_colors[] = {
 	{30, 80, 80, 255},
-	{40, 40, 80, 255},
+	{50, 50, 80, 255},
 	{70, 40, 70, 255}
     };
-    
+
    Page *page = tab_view_add_page(
 	tv,
 	"FIR Filter",

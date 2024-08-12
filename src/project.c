@@ -525,6 +525,18 @@ static void slider_label_amp_to_dbstr(char *dst, size_t dstsize, void *value, Va
     strcat(dst, " dB");
 }
 
+static void slider_label_pan(char *dst, size_t dstsize, void *value, ValType type)
+{
+    float val = *(float *)value;
+    if (val < 0.5) {	
+	snprintf(dst, dstsize, "%.1f%% L", (0.5 - val) * 200);
+    } else if (val > 0.5) {
+	snprintf(dst, dstsize, "%.1f%% R", (val - 0.5) * 200);
+    } else {
+	snprintf(dst, dstsize, "C");
+    }
+}
+
 /* static void slider_label_plain_str(char *dst, size_t dstsize, void *value, ValType type) */
 /* { */
 /*     double value_d = type == JDAW_DOUBLE ? *(double *)value : *(float *)value; */
@@ -701,7 +713,7 @@ Track *timeline_add_track(Timeline *tl)
 	JDAW_FLOAT,
 	SLIDER_HORIZONTAL,
 	SLIDER_TICK,
-	slider_std_labelmaker,
+	slider_label_pan,
 	NULL,
 	NULL);
 

@@ -1,4 +1,4 @@
-<Layout name="track_settings_fir_filter" type="NORMAL">
+<Layout name="track_settings_delay_line" type="NORMAL">
     <x>REL 0</x>
     <y>REL 0</y>
     <w>SCALE 1.000000</w>
@@ -52,7 +52,7 @@
                     <x>REL 0</x>
                     <y>STACK 0</y>
                     <w>SCALE 1.000000</w>
-                    <h>SCALE 0.333333</h>
+                    <h>SCALE 0.250000</h>
                     <index>0</index>
                     <children>
                         <Layout name="del_time_label" type="NORMAL">
@@ -79,7 +79,7 @@
                     <x>REL 0</x>
                     <y>STACK 0</y>
                     <w>SCALE 1.000000</w>
-                    <h>SCALE 0.333333</h>
+                    <h>SCALE 0.250000</h>
                     <index>1</index>
                     <children>
                         <Layout name="del_amp_label" type="NORMAL">
@@ -102,14 +102,14 @@
                         </Layout>
                     </children>
                 </Layout>
-                <Layout name="slider_area_child1" type="NORMAL">
+                <Layout name="slider_area" type="NORMAL">
                     <x>REL 0</x>
                     <y>STACK 0</y>
                     <w>SCALE 1.000000</w>
-                    <h>SCALE 0.333333</h>
+                    <h>SCALE 0.250000</h>
                     <index>2</index>
                     <children>
-                        <Layout name="irlen_label" type="NORMAL">
+                        <Layout name="offset_L_label" type="NORMAL">
                             <x>REL 0</x>
                             <y>STACK 0</y>
                             <w>SCALE 1.000000</w>
@@ -118,7 +118,34 @@
                             <children>
                             </children>
                         </Layout>
-                        <Layout name="irlen_slider" type="NORMAL">
+                        <Layout name="offset_L_slider" type="NORMAL">
+                            <x>REL 0</x>
+                            <y>STACK 0</y>
+                            <w>SCALE 1.000000</w>
+                            <h>SCALE 0.500000</h>
+                            <index>1</index>
+                            <children>
+                            </children>
+                        </Layout>
+                    </children>
+                </Layout>
+                <Layout name="slider_area" type="NORMAL">
+                    <x>REL 0</x>
+                    <y>STACK 0</y>
+                    <w>SCALE 1.000000</w>
+                    <h>SCALE 0.250000</h>
+                    <index>3</index>
+                    <children>
+                        <Layout name="offset_R_label" type="NORMAL">
+                            <x>REL 0</x>
+                            <y>STACK 0</y>
+                            <w>SCALE 1.000000</w>
+                            <h>SCALE 0.500000</h>
+                            <index>0</index>
+                            <children>
+                            </children>
+                        </Layout>
+                        <Layout name="offset_R_slider" type="NORMAL">
                             <x>REL 0</x>
                             <y>STACK 0</y>
                             <w>SCALE 1.000000</w>

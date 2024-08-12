@@ -57,6 +57,8 @@ typedef struct fir_filter {
 typedef struct delay_line {
     int32_t len;
     double amp;
+    int32_t stereo_offset;
+    
     int32_t pos_L;
     int32_t pos_R;
     double *buf_L;

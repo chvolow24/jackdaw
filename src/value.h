@@ -2,6 +2,7 @@
 #define JDAW_VALUE_H
 
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <limits.h>
 
@@ -70,4 +71,5 @@ Value jdaw_val_mult(Value a, Value b, ValType vt);
 Value jdaw_val_div(Value a, Value b, ValType vt);
 Value jdaw_val_scale(Value a, double scalar, ValType vt);
 double jdaw_val_div_double(Value a, Value b, ValType vt);
+void jdaw_val_set_str(char *dst, size_t dstsize, void *value, ValType type, int decimal_places);
 #endif

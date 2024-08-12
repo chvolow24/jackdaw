@@ -220,12 +220,13 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 
 	    for (int16_t i=0; i<len_sframes; i++) {
 		/* fprintf(stdout, "Writing %f pos %d\n", del_line[del_line_pos], del_line_pos); */
+		
 		double track_sample = track_chunk[i];
 		int32_t pos = *del_line_pos;
-		/* if (channel == 0) { */
-		/*     pos += 800; */
-		/*     pos %= dl->len; */
-		/* } */
+		if (channel == 0) {
+		    pos += dl->stereo_offset;
+		    pos %= dl->len;
+		}
 		track_chunk[i] += del_line[pos];
 		/* int tap = *del_line_pos - 1025; */
 		/* if (tap < 0) tap = dl->len + tap; */

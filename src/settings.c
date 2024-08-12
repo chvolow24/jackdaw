@@ -129,6 +129,33 @@ static int slider_deltime_target_action(void *self_v, void *target)
     return 0;
 }
 
+static int delay_set_offset(void *self_v, void *target)
+{
+    DelayLine *dl = (DelayLine *)target;
+    double offset_prop = *((double *)((Slider *)self_v)->value);
+    int32_t offset = offset_prop * dl->len;
+    SDL_LockMutex(dl->lock);
+    dl->stereo_offset = offset;
+    SDL_UnlockMutex(dl->lock);
+    return 0;
+}
+
+/* typedef void (SliderStrFn)(char *dst, size_t dstsize, void *value, ValType type); */
+static void create_hz_label(char *dst, size_t dstsize, void *value, ValType type)
+{
+    double raw = *(double *)value;
+    double hz = pow(10.0, log10((double)proj->sample_rate / 2) * raw);
+    snprintf(dst, dstsize, "%.0f Hz", hz);
+    /* snprintf(dst, dstsize, "hi"); */
+    dst[dstsize - 1] = '\0';
+}
+
+static void create_msec_label(char *dst, size_t dstsize, void *value, ValType type)
+{
+    int32_t msec = *(int32_t *)value;
+    snprintf(dst, dstsize, "%d ms", msec);
+}
+
 void settings_track_tabview_set_track(TabView *tv, Track *track)
 {
 
@@ -198,7 +225,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     
     static double freq_unscaled;
     freq_unscaled = unscale_freq(f->cutoff_freq);
-    p.slider_p.create_label_fn = NULL;
+    p.slider_p.create_label_fn = create_hz_label;
     p.slider_p.style = SLIDER_TICK;
     p.slider_p.orientation = SLIDER_HORIZONTAL;
     p.slider_p.value = &freq_unscaled;
@@ -222,7 +249,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     p.slider_p.target = (void *)f;
     p.slider_p.value = &ir_len;
     p.slider_p.val_type = JDAW_INT;
-    p.slider_p.create_label_fn = NULL;
+    p.slider_p.create_label_fn = slider_std_labelmaker;
     el = page_add_el(page, EL_SLIDER, p, "irlen_slider");
 
     
@@ -328,6 +355,12 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     textbox_set_align(tb, CENTER_LEFT);
     textbox_reset_full(tb);
 
+    p.textbox_p.set_str = "Stereo offset";
+    tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "offset_L_label")->component);
+    textbox_set_background_color(tb, NULL);
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+
 
     static int32_t delay_msec;
     delay_msec = (int32_t)((double)track->delay_line.len / proj->sample_rate * 1000.0);
@@ -339,6 +372,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     p.slider_p.val_type = JDAW_INT32;
     p.slider_p.action = slider_deltime_target_action;
     p.slider_p.target = (void *)(&track->delay_line);
+    p.slider_p.create_label_fn = create_msec_label;
     el = page_add_el(page, EL_SLIDER, p, "del_time_slider");
     min.int32_v = 1;
     max.int32_v = 1000;
@@ -347,11 +381,27 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     
     p.slider_p.value = &track->delay_line.amp;
     p.slider_p.val_type = JDAW_DOUBLE;
+    p.slider_p.create_label_fn = slider_std_labelmaker;
     p.slider_p.action = NULL;
     p.slider_p.target = NULL;
     el = page_add_el(page, EL_SLIDER, p, "del_amp_slider");
 
-    
+    static double offset;
+    offset = (double)abs(track->delay_line.stereo_offset) / track->delay_line.len;
+    p.slider_p.value = &offset;
+    p.slider_p.val_type = JDAW_DOUBLE;
+    p.slider_p.action = delay_set_offset;
+    p.slider_p.target = &track->delay_line;
+    el = page_add_el(page, EL_SLIDER, p, "offset_L_slider");
+    slider_reset(el->component);
+
+    /* static double offset_R; */
+    /* offset_R = (double)abs(track->delay_line.offset_R) / track->delay_line.len; */
+    /* p.slider_p.value = &offset_R; */
+    /* p.slider_p.val_type = JDAW_DOUBLE; */
+    /* p.slider_p.action = delay_set_offset_R; */
+    /* p.slider_p.target = &track->delay_line; */
+    /* el = page_add_el(page, EL_SLIDER, p, "offset_R_slider"); */
     
 
 /* ; */

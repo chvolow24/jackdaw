@@ -293,7 +293,6 @@ static void modal_el_reset(ModalEl *el)
 void modal_reset(Modal *modal)
 {
     layout_force_reset(modal->layout);
-    fprintf(stdout, "modal reset!\n");
     for (uint8_t i=0; i<modal->num_els; i++) {
 	modal_el_reset(modal->els[i]);
 	/* layout_force_reset(modal->layout); */

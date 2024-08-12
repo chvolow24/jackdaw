@@ -36,6 +36,7 @@
 #include "color.h"
 #include "dsp.h"
 #include "geometry.h"
+#include "input.h"
 #include "layout.h"
 #include "modal.h"
 #include "page.h"
@@ -317,7 +318,7 @@ void fill_quadrant_complement(SDL_Renderer *rend, int xinit, int yinit, int r, c
 static void timeline_draw(Timeline *tl)
 {
     /* Only redraw the timeline if necessary */
-    if (!tl->needs_redraw && !proj->recording && !main_win->txt_editing) {
+    if (!tl->needs_redraw && !proj->recording && !main_win->txt_editing && !(main_win->i_state | I_STATE_MOUSE_L)) {
 	return;
     }
     /* static int i=0; */

@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <string.h>
 #include "value.h"
 
 
@@ -434,4 +436,45 @@ double jdaw_val_div_double(Value a, Value b, ValType vt)
 	break;
     }
     return ret;
+}
+
+void jdaw_val_set_str(char *dst, size_t dstsize, void *value, ValType type, int decimal_places)
+{
+
+    Value v = jdaw_val_from_ptr(value, type);
+    switch (type) {
+    case JDAW_FLOAT:
+	snprintf(dst, dstsize, "%.*f", decimal_places, v.float_v);
+	break;
+    case JDAW_DOUBLE:
+	snprintf(dst, dstsize, "%.*f", decimal_places, v.double_v);
+	break;
+    case JDAW_INT:
+	snprintf(dst, dstsize, "%d", v.int_v);
+	break;
+    case JDAW_UINT8:
+	snprintf(dst, dstsize, "%du", v.uint8_v);
+	break;
+    case JDAW_UINT16:
+	snprintf(dst, dstsize, "%du", v.uint16_v);
+	break;
+    case JDAW_UINT32:
+	snprintf(dst, dstsize, "%du", v.uint32_v);
+	break;
+    case JDAW_INT8:
+	snprintf(dst, dstsize, "%d", v.int8_v);
+	break;
+    case JDAW_INT16:
+	snprintf(dst, dstsize, "%d", v.int16_v);
+	break;
+    case JDAW_INT32:
+	snprintf(dst, dstsize, "%d", v.int32_v);
+	break;
+    case JDAW_BOOL:
+	snprintf(dst, dstsize, v.bool_v ? "true" : "false");
+	break;
+    default:
+	break;
+    }
+    dst[dstsize - 1] = '\0';
 }

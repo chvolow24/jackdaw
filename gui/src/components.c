@@ -14,6 +14,7 @@ extern Window *main_win;
 #define SLIDER_LABEL_H_PAD 4
 #define SLIDER_LABEL_V_PAD 2
 #define RADIO_BUTTON_LEFT_COL_W 10
+#define SLIDER_MAX_LABEL_COUNTDOWN 80
 
 /* SDL_Color fslider_bckgrnd = {60, 60, 60, 255}; */
 /* SDL_Color fslider_bar_container_bckgrnd =  {190, 190, 190, 255}; */
@@ -59,6 +60,7 @@ Slider *slider_create(
     /* snprintf(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, "%f", *value); */
     s->label = textbox_create_from_str(s->label_str, label, main_win->std_font, 10, main_win);
     textbox_size_to_fit(s->label, SLIDER_LABEL_H_PAD, SLIDER_LABEL_V_PAD);
+    textbox_set_pad(s->label, SLIDER_LABEL_H_PAD, SLIDER_LABEL_V_PAD);
     textbox_set_border(s->label, &color_global_black, 2);
     layout_reset(layout);
     /* bar_container->x.value.intval = SLIDER_INNER_PAD; */
@@ -173,10 +175,13 @@ void slider_reset(Slider *s)
 	}
     }
     if (s->editing) {
-	s->create_label(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, s->value, s->val_type);
+	if (s->create_label) {
+	    s->create_label(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, s->value, s->val_type);
 	/* amp_to_dbstr(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, *(s->value)); */
 	/* snprintf(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, "%f", *(s->value)); */
-	textbox_reset_full(s->label);
+	    textbox_size_to_fit(s->label, SLIDER_LABEL_H_PAD, SLIDER_LABEL_V_PAD);
+	    textbox_reset_full(s->label);
+	}
     }
     /* layout_write(stdout, s->layout, 0); */
     layout_reset(s->layout);
@@ -198,8 +203,12 @@ void slider_draw(Slider *s)
 
     /* fprintf(stdout, "DRAWING textbox label w disp val: %s\n", s->label->text->display_value); */
     /* fprintf(stdout, "Str? %s\n", s->label_str); */
-    if (s->editing) {
+    if (s->editing && s->label) {
 	textbox_draw(s->label);
+	s->label_countdown--;
+	if (s->label_countdown == 0) {
+	    s->editing = false;
+	}
     }
 }
 
@@ -209,6 +218,49 @@ void slider_destroy(Slider *s)
     layout_destroy(s->layout);
     free(s);
 }
+
+/* void (SliderStrFn)(char *dst, size_t dstsize, void *value, ValType type); */
+void slider_std_labelmaker(char *dst, size_t dstsize, void *value, ValType type)
+{
+    jdaw_val_set_str(dst, dstsize, value, type, 2);
+}
+
+void slider_edit_made(Slider *slider)
+{
+    slider->label_countdown = SLIDER_MAX_LABEL_COUNTDOWN;
+    slider->editing = true;
+    textbox_reset_full(slider->label);
+}
+/* static int timed_hide_slider_label(void *data) */
+/* { */
+/*     Slider *fs = (Slider *)data; */
+/*     if (fs->editing) { */
+/* 	SDL_Delay(STICK_DELAY_MS); */
+/* 	fs->editing = false; */
+/*     } */
+/*     return 0; */
+/* } */
+
+/* static void hide_slider_label(Slider *fs) */
+/* { */
+/*     SDL_CreateThread(timed_hide_slider_label, "hide_slider_label", fs); */
+/* } */
+
+
+/* static void stop_update_track_vol_pan() */
+/* { */
+/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
+/*     Track *trk = NULL; */
+/*     for (int i=0; i<tl->num_tracks; i++) { */
+/* 	trk = tl->tracks[i]; */
+/* 	hide_slider_label(trk->vol_ctrl); */
+/* 	hide_slider_label(trk->pan_ctrl); */
+/*         /\* trk->vol_ctrl->editing = false; *\/ */
+/* 	/\* trk->pan_ctrl->editing = false; *\/ */
+/*     } */
+/*     proj->vol_changing = false; */
+/*     proj->pan_changing = false; */
+/* } */
 
 
 /* Button */
@@ -222,6 +274,7 @@ Button *button_create(Layout *lt, char *text, ComponentFn action, SDL_Color *tex
     button->tb->corner_radius = BUTTON_CORNER_RADIUS;
     textbox_set_border(button->tb, text_color, 1);
     textbox_set_background_color(button->tb, background_color);
+    
     textbox_size_to_fit(button->tb, 16, 2);
     return button;
 }
@@ -391,6 +444,7 @@ bool slider_mouse_motion(Slider *slider, Window *win)
 		slider->action((void *)slider, slider->target);
 	/* track->vol = newval.float_v; */
 	slider_reset(slider);
+	slider_edit_made(slider);
 	/* proj->vol_changing = true; */
 	return true;
     }

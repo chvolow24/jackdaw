@@ -521,16 +521,16 @@ static void slider_label_amp_to_dbstr(char *dst, size_t dstsize, void *value, Va
 	dst[0] = '\0';
 	return;
     }
-    snprintf(dst, max_float_chars, "%f", amp_to_db(amp));
+    snprintf(dst, max_float_chars, "%.2f", amp_to_db(amp));
     strcat(dst, " dB");
 }
 
-static void slider_label_plain_str(char *dst, size_t dstsize, void *value, ValType type)
-{
-    double value_d = type == JDAW_DOUBLE ? *(double *)value : *(float *)value;
-    snprintf(dst, dstsize, "%f", value_d);
+/* static void slider_label_plain_str(char *dst, size_t dstsize, void *value, ValType type) */
+/* { */
+/*     double value_d = type == JDAW_DOUBLE ? *(double *)value : *(float *)value; */
+/*     snprintf(dst, dstsize, "%f", value_d); */
 
-}
+/* } */
 
 /* static void do_fn2() {} */
 Track *timeline_add_track(Timeline *tl)
@@ -701,7 +701,7 @@ Track *timeline_add_track(Timeline *tl)
 	JDAW_FLOAT,
 	SLIDER_HORIZONTAL,
 	SLIDER_TICK,
-	slider_label_plain_str,
+	slider_std_labelmaker,
 	NULL,
 	NULL);
 
@@ -739,7 +739,6 @@ void project_clear_active_clips()
 
 Clip *project_add_clip(AudioConn *conn, Track *target)
 {
-    fprintf(stdout, "\tnum clips? %d\n", proj->num_clips);
     if (proj->num_clips == MAX_PROJ_CLIPS) {
 	return NULL;
     }
@@ -1152,7 +1151,6 @@ void track_destroy(Track *track, bool displace)
 
 void clipref_destroy(ClipRef *cr, bool displace_in_clip)
 {
-    /* fprintf(stdout, "CR DESTROY %s num clips %d\n", cr->track->name, cr->track->num_clips); */
     Track *track = cr->track;
     Clip *clip = cr->clip;
 

@@ -583,57 +583,54 @@ void delay_line_init(DelayLine *dl)
     dl->pos_R = 0;
     dl->amp = 0.0;
     dl->len = 0;
+    dl->stereo_offset = 0;
     dl->lock = SDL_CreateMutex();
 }
 
 /* IMPLEMENTATION 1:  Does not account for wraparound */
-void ____delay_line_set_params(DelayLine *dl, double amp, int32_t len)
-{
-    SDL_LockMutex(dl->lock);
+/* void ____delay_line_set_params(DelayLine *dl, double amp, int32_t len) */
+/* { */
+/*     SDL_LockMutex(dl->lock); */
     
  
-    int32_t len_diff = len - dl->len;
-    int32_t copy_pos = dl->len;
-    if (dl->buf_L) {
-	dl->buf_L = realloc(dl->buf_L, len * sizeof(double));
-	/* memset(dl->buf_L, '\0', len * sizeof(double)); */
-	while (len - copy_pos > 0) {
-	    int32_t copyable = len_diff < dl->len ? len_diff : dl->len;
-	    fprintf(stdout, "COPYING %d samples at pos %d\n", copyable, copy_pos);
-	    memcpy(dl->buf_L + copy_pos, dl->buf_L, sizeof(double) * copyable);
-	    len_diff -= copyable;
-	    copy_pos += copyable;
+/*     int32_t len_diff = len - dl->len; */
+/*     int32_t copy_pos = dl->len; */
+/*     if (dl->buf_L) { */
+/* 	dl->buf_L = realloc(dl->buf_L, len * sizeof(double)); */
+/* 	/\* memset(dl->buf_L, '\0', len * sizeof(double)); *\/ */
+/* 	while (len - copy_pos > 0) { */
+/* 	    int32_t copyable = len_diff < dl->len ? len_diff : dl->len; */
+/* 	    fprintf(stdout, "COPYING %d samples at pos %d\n", copyable, copy_pos); */
+/* 	    memcpy(dl->buf_L + copy_pos, dl->buf_L, sizeof(double) * copyable); */
+/* 	    len_diff -= copyable; */
+/* 	    copy_pos += copyable; */
 	    
-	}
-    } else {
-	dl->buf_L = calloc(len, sizeof(double));
-    }
-    len_diff = len - dl->len;
-    copy_pos = dl->len;
-    if (dl->buf_R) {
-	dl->buf_R = realloc(dl->buf_R, len * sizeof(double));
-	/* memset(dl->buf_R, '\0', len * sizeof(double)); */
-	while (len - copy_pos > 0) {
-	    int32_t copyable = len_diff < dl->len ? len_diff : dl->len;
-	    memcpy(dl->buf_R + copy_pos, dl->buf_R, sizeof(double) * copyable);
-	    len_diff -= copyable;
-	    copy_pos += copyable;
+/* 	} */
+/*     } else { */
+/* 	dl->buf_L = calloc(len, sizeof(double)); */
+/*     } */
+/*     len_diff = len - dl->len; */
+/*     copy_pos = dl->len; */
+/*     if (dl->buf_R) { */
+/* 	dl->buf_R = realloc(dl->buf_R, len * sizeof(double)); */
+/* 	/\* memset(dl->buf_R, '\0', len * sizeof(double)); *\/ */
+/* 	while (len - copy_pos > 0) { */
+/* 	    int32_t copyable = len_diff < dl->len ? len_diff : dl->len; */
+/* 	    memcpy(dl->buf_R + copy_pos, dl->buf_R, sizeof(double) * copyable); */
+/* 	    len_diff -= copyable; */
+/* 	    copy_pos += copyable; */
 	    
-	}
-    } else {
-	dl->buf_R = calloc(len, sizeof(double));
-    }
+/* 	} */
+/*     } else { */
+/* 	dl->buf_R = calloc(len, sizeof(double)); */
+/*     } */
 
-    int32_t saved = dl->pos_L;
-    dl->pos_L %= len;
-    /* fprintf(stdout, "Reset pos l %d -> %d\n", saved, dl->pos_L); */
-    saved = dl->pos_R;
-    dl->pos_R %= len;
-    /* fprintf(stdout, "Reset pos r %d -> %d\n", saved, dl->pos_R); */
-    dl->len = len;
-    dl->amp = amp;
-    SDL_UnlockMutex(dl->lock);
-}
+/*     dl->pos_L %= len; */
+/*     dl->pos_R %= len; */
+/*     dl->len = len; */
+/*     dl->amp = amp; */
+/*     SDL_UnlockMutex(dl->lock); */
+/* } */
 
 
 void delay_line_set_params(DelayLine *dl, double amp, int32_t len)

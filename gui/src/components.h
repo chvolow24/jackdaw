@@ -5,7 +5,7 @@
 #include "textbox.h"
 #include "value.h"
 
-#define SLIDER_LABEL_STRBUFLEN 8
+#define SLIDER_LABEL_STRBUFLEN 20
 #define BUTTON_CORNER_RADIUS 4
 #define RADIO_BUTTON_MAX_ITEMS 64
 #define RADIO_BUTTON_ITEM_H 24
@@ -94,6 +94,7 @@ typedef struct slider {
     SliderStrFn *create_label;
     ComponentFn action;
     void *target;
+    int label_countdown;
 } Slider;
 Slider *slider_create(
     Layout *layout,
@@ -118,6 +119,8 @@ void slider_reset(Slider *s);
 void slider_draw(Slider *s);
 Value slider_val_from_coord(Slider *s, int coord_pix);
 void slider_destroy(Slider *s);
+SliderStrFn slider_std_labelmaker;
+void slider_edit_made(Slider *slider);
 
 /* Button */
 Button *button_create(Layout *lt, char *text, ComponentFn action, SDL_Color *text_color, SDL_Color *background_color);

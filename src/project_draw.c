@@ -69,7 +69,7 @@ SDL_Color ruler_bckgrnd = {10, 10, 10, 255};
 SDL_Color control_bar_bckgrnd = {22, 28, 34, 255};
 SDL_Color track_selector_color = {100, 190, 255, 255};
 
-SDL_Color grey_mask = {100, 100, 100, 100};
+SDL_Color grey_mask = {30, 30, 30, 190};
 
 SDL_Color clip_ref_bckgrnd = {20, 200, 120, 200};
 SDL_Color clip_ref_grabbed_bckgrnd = {50, 230, 150, 230};

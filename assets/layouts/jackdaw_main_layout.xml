@@ -1,4 +1,4 @@
-<Layout name="jackdaw_main_layout2" type="NORMAL">
+<Layout name="jackdaw_main_layout3" type="NORMAL">
     <x>ABS 0</x>
     <y>ABS 0</y>
     <w>SCALE 1.000000</w>
@@ -12,17 +12,17 @@
             <h>REL 147</h>
             <index>0</index>
             <children>
-	      <Layout name="quickref" type="NORMAL">
+                <Layout name="quickref" type="NORMAL">
                     <x>REL 242</x>
                     <y>REL 33</y>
                     <w>REL 200</w>
                     <h>REL 93</h>
-                    <index>3</index>
+                    <index>0</index>
                     <children>
                         <Layout name="row1" type="NORMAL">
                             <x>REL 0</x>
                             <y>STACK 0</y>
-                            <w>SCALE 1.0</w>
+                            <w>SCALE 1.000000</w>
                             <h>SCALE 0.333333</h>
                             <index>0</index>
                             <children>
@@ -31,7 +31,7 @@
                         <Layout name="row2" type="NORMAL">
                             <x>REL 0</x>
                             <y>STACK 0</y>
-                            <w>SCALE 1.0</w>
+                            <w>SCALE 1.000000</w>
                             <h>SCALE 0.333333</h>
                             <index>1</index>
                             <children>
@@ -40,7 +40,7 @@
                         <Layout name="row3" type="NORMAL">
                             <x>REL 0</x>
                             <y>STACK 0</y>
-                            <w>SCALE 1.0</w>
+                            <w>SCALE 1.000000</w>
                             <h>SCALE 0.333333</h>
                             <index>2</index>
                             <children>
@@ -51,24 +51,24 @@
                 <Layout name="source_area" type="NORMAL">
                     <x>STACK 100</x>
                     <y>REL 33</y>
-                    <w>SCALE 0.3</w>
-                    <h>REL 77</h>
-                    <index>0</index>
+                    <w>SCALE 0.300000</w>
+                    <h>REL 93</h>
+                    <index>1</index>
                     <children>
                         <Layout name="source_clip" type="NORMAL">
-                            <x>REL 0</x>
-                            <y>REL 31</y>
-                            <w>SCALE 1.000000</w>
+                            <x>REL 15</x>
+                            <y>REL 40</y>
+                            <w>SCALE 0.922222</w>
                             <h>REL 46</h>
                             <index>0</index>
                             <children>
                             </children>
                         </Layout>
                         <Layout name="source_clip_name" type="NORMAL">
-                            <x>REL 0</x>
-                            <y>REL 0</y>
-                            <w>SCALE 1.000000</w>
-                            <h>REL 20</h>
+                            <x>REL 15</x>
+                            <y>REL 7</y>
+                            <w>SCALE 0.922222</w>
+                            <h>REL 17</h>
                             <index>1</index>
                             <children>
                             </children>
@@ -80,7 +80,7 @@
                     <y>REL 126</y>
                     <w>REL 180</w>
                     <h>REL 21</h>
-                    <index>1</index>
+                    <index>2</index>
                     <children>
                     </children>
                 </Layout>
@@ -89,7 +89,7 @@
                     <y>REL 15</y>
                     <w>REL 30</w>
                     <h>REL 26</h>
-                    <index>2</index>
+                    <index>3</index>
                     <children>
                         <Layout name="hamburger_child1" type="NORMAL">
                             <x>REL 0</x>

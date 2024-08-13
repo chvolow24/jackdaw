@@ -736,6 +736,12 @@ void user_tl_add_track(void *nullarg)
     }
     Timeline *tl = proj->timelines[proj->active_tl_index]; // TODO: get active timeline;
     timeline_add_track(tl);
+    button_press_color_change(
+	proj->quickref.add_track,
+	&color_global_quickref_button_pressed,
+	&color_global_quickref_button_blue,
+	quickref_button_press_callback,
+	NULL);
     tl->needs_redraw = true;
 }
 

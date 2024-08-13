@@ -41,6 +41,7 @@
 #include "layout.h"
 #include "layout_xml.h"
 #include "menu.h"
+#include "page.h"
 #include "project.h"
 /* #include "slider.h" */
 #include "textbox.h"
@@ -53,7 +54,7 @@
 #define INSTALL_DIR "."
 #endif
 
-#define MAIN_LT_PATH INSTALL_DIR "/gui/jackdaw_main_layout.xml"
+#define MAIN_LT_PATH INSTALL_DIR "/assets/layouts/jackdaw_main_layout.xml"
 
 #define DEFAULT_SFPP 600
 #define CR_RECT_V_PAD (4 * main_win->dpi_scale_factor)
@@ -84,6 +85,7 @@ extern SDL_Color color_global_clear;
 extern SDL_Color color_global_red;
 extern SDL_Color color_global_green;
 extern SDL_Color color_global_light_grey;
+extern SDL_Color color_global_quickref_button_blue;
 
 SDL_Color color_mute_solo_grey = {210, 210, 210, 255};
 
@@ -306,6 +308,7 @@ void project_reset_tl_label(Project *proj)
 }
 
 void project_init_audio_conns(Project *proj);
+void project_init_quickref(Project *proj, Layout *control_bar_layout);
 Project *project_create(
     char *name,
     uint8_t channels,
@@ -342,7 +345,9 @@ Project *project_create(
     proj->layout = main_win->layout;
     proj->audio_rect = &(layout_get_child_by_name_recursive(proj->layout, "audio_rect")->rect);
     proj->console_column_rect = &(layout_get_child_by_name_recursive(proj->layout, "audio_rect_pad")->rect);
-    proj->control_bar_rect = &(layout_get_child_by_name_recursive(proj->layout, "control_bar")->rect);
+    Layout *control_bar_layout = layout_get_child_by_name_recursive(proj->layout, "control_bar");
+    project_init_quickref(proj, control_bar_layout);
+    proj->control_bar_rect = &control_bar_layout->rect;
     proj->ruler_rect = &(layout_get_child_by_name_recursive(proj->layout, "ruler")->rect);
     Layout *source_lt = layout_get_child_by_name_recursive(proj->layout, "source_area");
     proj->source_rect = &source_lt->rect;
@@ -485,7 +490,7 @@ Project *project_create(
     textbox_reset_full(proj->status_bar.dragstat);
     textbox_reset_full(proj->status_bar.call);
 
-    Layout *hamburger_lt = layout_get_child_by_name_recursive(proj->layout, "hamburger");
+    Layout *hamburger_lt = layout_get_child_by_name_recursive(control_bar_layout, "hamburger");
 
     proj->hamburger = &hamburger_lt->rect;
     proj->bun_patty_bun[0] = &hamburger_lt->children[0]->children[0]->rect;
@@ -494,6 +499,110 @@ Project *project_create(
     return proj;
 }
 
+
+static inline Layout *create_quickref_button_lt(Layout *row)
+{
+    Layout *ret = layout_add_child(row);
+    ret->h.type = SCALE;
+    ret->h.value.floatval = 1.0f;
+    ret->x.type = STACK;
+    ret->x.value.intval = 10;
+    return ret;
+}
+
+static inline Button *create_button_from_params(Layout *lt, struct button_params b)
+{
+    Button *button = button_create(
+	lt,
+	b.set_str,
+	b.action,
+	b.target,
+	b.font,
+	b.text_size,
+	b.text_color,
+	b.background_color
+	);
+    Textbox *tb = button->tb;
+    tb->layout->h.value.floatval = 0.8;
+    layout_force_reset(tb->layout);
+    textbox_reset_full(button->tb);
+    return button;
+
+    
+}
+
+void project_init_quickref(Project *proj, Layout *control_bar_lt)
+{
+    Layout *quickref_lt = layout_get_child_by_name_recursive(control_bar_lt, "quickref");
+    struct quickref *q = &proj->quickref;
+    q->layout = quickref_lt;
+    struct button_params b;
+    Layout *row1 = quickref_lt->children[0];
+    Layout *row2 = quickref_lt->children[1];
+    Layout *row3 = quickref_lt->children[2];
+    Layout *button_lt = create_quickref_button_lt(row1);
+    
+    b.font = main_win->symbolic_font;
+    b.background_color = &color_global_quickref_button_blue;
+    b.text_color = &color_global_white;
+    b.set_str = "C-t (add track)";
+    b.action = NULL;
+    b.target = NULL;
+    b.text_size = 14;
+    q->add_track = create_button_from_params(button_lt, b);
+
+    button_lt = create_quickref_button_lt(row1);
+    b.set_str = "r ⏺";
+    q->record = create_button_from_params(button_lt, b);
+
+
+    /* ROW 2 */
+    button_lt = create_quickref_button_lt(row2);
+    b.font = main_win->mono_font;
+    b.set_str = "h ←";
+    q->left = create_button_from_params(button_lt, b);
+
+    button_lt = create_quickref_button_lt(row2);
+    b.font = main_win->symbolic_font;
+    b.set_str = "j ⏴";
+    q->rewind = create_button_from_params(button_lt, b);
+
+    button_lt = create_quickref_button_lt(row2);
+    b.set_str = "k ⏸";
+    q->pause = create_button_from_params(button_lt, b);
+
+    button_lt = create_quickref_button_lt(row2);
+    b.set_str = "l ⏵";
+    q->play = create_button_from_params(button_lt, b);
+
+    button_lt = create_quickref_button_lt(row2);
+    b.font = main_win->mono_font;
+    b.set_str = "; →";
+    q->right = create_button_from_params(button_lt, b);
+
+
+    /* ROW 3 */
+
+    button_lt = create_quickref_button_lt(row3);
+    b.set_str = "n ↓";
+    q->next = create_button_from_params(button_lt, b);
+
+    button_lt = create_quickref_button_lt(row3);
+    b.set_str = "p ↑";
+    q->previous = create_button_from_params(button_lt, b);
+
+
+    button_lt = create_quickref_button_lt(row3);
+    b.font = main_win->symbolic_font;
+    b.set_str = ", 🔍-";
+    q->zoom_in = create_button_from_params(button_lt, b);
+
+    button_lt = create_quickref_button_lt(row3);
+    b.set_str = ". 🔍+";
+    q->zoom_out = create_button_from_params(button_lt, b);
+
+    layout_size_to_fit_children(q->layout, true, 0);
+}
 
 int audioconn_open(Project *proj, AudioConn *dev);
 void project_init_audio_conns(Project *proj)
@@ -611,7 +720,7 @@ Track *timeline_add_track(Timeline *tl)
 
 
     track->tb_name = textbox_create_from_str(
-	track->name,
+        track->name,
 	name,
 	main_win->bold_font,
 	14,

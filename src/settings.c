@@ -35,6 +35,8 @@
 #include "dsp.h"
 #include "page.h"
 #include "project.h"
+#include "textbox.h"
+#include "userfn.h"
 #include "waveform.h"
 
 #ifndef INSTALL_DIR
@@ -52,9 +54,15 @@ extern Project *proj;
 extern Window *main_win;
 
 extern SDL_Color color_global_white;
+extern SDL_Color color_global_black;
+extern SDL_Color color_global_light_grey;
 extern SDL_Color freq_L_color;
 extern SDL_Color freq_R_color;
 
+
+
+static struct freq_plot *current_fp;
+Waveform *current_waveform;
 
 static double unscale_freq(double scaled)
 {
@@ -92,7 +100,6 @@ static int slider_bandwidth_target_action(void *self_v, void *target)
     return 0;
 }
 
-static struct freq_plot *current_fp;
 static int slider_irlen_target_action(void *self_v, void *target)
 {
     Slider *self = (Slider *)self_v;
@@ -156,6 +163,46 @@ static void create_msec_label(char *dst, size_t dstsize, void *value, ValType ty
     snprintf(dst, dstsize, "%d ms", msec);
 }
 
+static int previous_track(void *self_v, void *target)
+{
+    user_tl_track_selector_up(NULL);
+    return 0;
+}
+
+static int next_track(void *self_v, void *target)
+{
+    user_tl_track_selector_down(NULL);
+    return 0;
+}
+
+static void create_track_selection_area(Page *page, Track *track)
+{
+    PageElParams p;
+    p.textbox_p.font = main_win->mono_bold_font;
+    p.textbox_p.win = main_win;
+    p.textbox_p.text_size = 16;
+    p.textbox_p.set_str = track->name;
+    PageEl *el = page_add_el(page, EL_TEXTBOX, p, "track_name");
+    Textbox *tb = el->component;
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_size_to_fit_h(tb, 5);
+    /* layout_reset(tb->layout->parent); */
+    textbox_reset_full(tb);
+
+    p.button_p.set_str = "p↑";
+    p.button_p.font = main_win->mono_bold_font;
+    p.button_p.win = main_win;
+    p.button_p.text_size = 16;
+    p.button_p.background_color = &color_global_light_grey;
+    p.button_p.text_color = &color_global_black;
+    p.button_p.action = previous_track;
+    el = page_add_el(page, EL_BUTTON, p, "track_previous");
+
+    p.button_p.set_str = "n↓";
+    p.button_p.action = next_track;
+    el = page_add_el(page, EL_BUTTON, p, "track_next");
+}
+
 void settings_track_tabview_set_track(TabView *tv, Track *track)
 {
 
@@ -178,30 +225,28 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 	{70, 40, 70, 255}
     };
 
-   Page *page = tab_view_add_page(
+    Page *page = tab_view_add_page(
 	tv,
 	"FIR Filter",
 	FIR_FILTER_LT_PATH,
 	page_colors,
 	&color_global_white,
 	main_win);
-        
+
+
+    create_track_selection_area(page, track);
     PageElParams p;
-    
-    
-    p.textbox_p.font = main_win->std_font;
+
+    p.textbox_p.font = main_win->mono_bold_font;
     p.textbox_p.text_size = LABEL_STD_FONT_SIZE;
     p.textbox_p.set_str = "Bandwidth:";
-    p.textbox_p.win = main_win;
-    
-
-    p.textbox_p.set_str = "Bandwidth:";
+    p.textbox_p.win = page->win;
     PageEl *el = page_add_el(page, EL_TEXTBOX, p, "bandwidth_label");
 
     Textbox *tb = el->component;
     textbox_set_align(tb, CENTER_LEFT);
     textbox_reset_full(tb);
-    
+
     p.textbox_p.set_str = "Cutoff / center frequency:";
     p.textbox_p.win = main_win;
     el = page_add_el(page, EL_TEXTBOX, p, "cutoff_label");
@@ -334,6 +379,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 	&color_global_white,
 	main_win);
 
+    create_track_selection_area(page, track);
 
     p.toggle_p.value = &track->delay_line_active;
     p.toggle_p.action = toggle_delay_line_target_action;
@@ -341,7 +387,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     el = page_add_el(page, EL_TOGGLE, p, "toggle_delay");
 
     p.textbox_p.set_str = "Delay line on";
-    p.textbox_p.font = main_win->std_font;
+    p.textbox_p.font = main_win->mono_bold_font;
     p.textbox_p.text_size = LABEL_STD_FONT_SIZE;
     p.textbox_p.win = main_win;
     tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "toggle_label")->component);
@@ -362,7 +408,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     textbox_reset_full(tb);
 
     p.textbox_p.set_str = "Stereo offset";
-    tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "offset_L_label")->component);
+    tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "stereo_offset_label")->component);
     textbox_set_background_color(tb, NULL);
     textbox_set_align(tb, CENTER_LEFT);
     textbox_reset_full(tb);
@@ -398,30 +444,20 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     p.slider_p.val_type = JDAW_DOUBLE;
     p.slider_p.action = delay_set_offset;
     p.slider_p.target = &track->delay_line;
-    el = page_add_el(page, EL_SLIDER, p, "offset_L_slider");
+    el = page_add_el(page, EL_SLIDER, p, "stereo_offset_slider");
     slider_reset(el->component);
 
-    /* static double offset_R; */
-    /* offset_R = (double)abs(track->delay_line.offset_R) / track->delay_line.len; */
-    /* p.slider_p.value = &offset_R; */
-    /* p.slider_p.val_type = JDAW_DOUBLE; */
-    /* p.slider_p.action = delay_set_offset_R; */
-    /* p.slider_p.target = &track->delay_line; */
-    /* el = page_add_el(page, EL_SLIDER, p, "offset_R_slider"); */
+    /* p.waveform_p.len = track->delay_line.len; */
+    /* p.waveform_p.num_channels = 2; */
+    /* void *channels[2] = {(void *)&(track->delay_line.buf_L), (void *)&(track->delay_line.buf_R)}; */
+    /* p.waveform_p.channels =channels; */
+    /* p.waveform_p.background_color = &color_global_black; */
+    /* p.waveform_p.plot_color = &color_global_white; */
+    /* p.waveform_p.type = JDAW_DOUBLE; */
+
+    /* el = page_add_el(page, EL_WAVEFORM, p, "waveform"); */
+    /* current_waveform = el->component; */
     
-
-/* ; */
-/*     /\* freq_unscaled = unscale_freq(f->cutoff_freq); *\/ */
-/*     p.slider_p.create_label_fn = NULL; */
-/*     p.slider_p.style = SLIDER_TICK; */
-/*     p.slider_p.orientation = SLIDER_HORIZONTAL; */
-/*     p.slider_p.value = &freq_unscaled; */
-/*     p.slider_p.val_type = JDAW_DOUBLE; */
-/*     p.slider_p.action = slider_target_action; */
-/*     p.slider_p.target = (void *)(f); */
-/*     el = page_add_el(page, EL_SLIDER, p, "cutoff_slider"); */
-
-
     page = tab_view_add_page(
 	tv,
 	"EQ",

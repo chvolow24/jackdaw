@@ -11,6 +11,8 @@
 extern SDL_Color color_global_clear;
 extern SDL_Color color_global_white;
 extern SDL_Color color_global_black;
+
+extern Window *main_win;
 TabView *tab_view_create(const char *title, Layout *parent_lt, Window *win)
 {
     TabView *tv = calloc(1, sizeof(Page));
@@ -115,6 +117,9 @@ Page *page_create(
     page->background_color = background_color;
     page->text_color = text_color;
     Layout *page_lt = layout_read_from_xml(layout_filepath);
+    if (!page_lt) {
+	fprintf(stderr, "Critical error: unable to read layout at %s\n", layout_filepath);
+    }
     page->layout = page_lt;
     layout_reparent(page_lt, parent_lt);
     /* layout_write(stdout, page->layout, 0); */
@@ -143,7 +148,8 @@ static void page_el_destroy(PageEl *el)
     case EL_TOGGLE:
 	toggle_destroy((Toggle *)el->component);
 	break;
-    case EL_PLOT:
+    case EL_WAVEFORM:
+	waveform_destroy((Waveform *)el->component);
 	break;
     case EL_FREQ_PLOT:
 	waveform_destroy_freq_plot((struct freq_plot *)el->component);
@@ -180,7 +186,7 @@ static void page_el_reset(PageEl *el)
 	break;
     case EL_TOGGLE:
 	break;
-    case EL_PLOT:
+    case EL_WAVEFORM:
 	break;
     case EL_FREQ_PLOT:
 	break;
@@ -249,7 +255,15 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	    params.toggle_p.action,
 	    params.toggle_p.target);
 	break;
-    case EL_PLOT:
+    case EL_WAVEFORM:
+	el->component = (void *)waveform_create(
+	    el->layout,
+	    params.waveform_p.channels,
+	    params.waveform_p.type,
+	    params.waveform_p.num_channels,
+	    params.waveform_p.len,
+	    params.waveform_p.background_color,
+	    params.waveform_p.plot_color);
 	break;
     case EL_FREQ_PLOT:
 	el->component = (void *)waveform_create_freq_plot(
@@ -261,6 +275,15 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	    el->layout);
 	break;
     case EL_BUTTON:
+	el->component = (void *)button_create(
+	    el->layout,
+	    params.button_p.set_str,
+	    params.button_p.action,
+	    params.button_p.target,
+	    params.button_p.font,
+	    params.button_p.text_size,
+	    params.button_p.text_color,
+	    params.button_p.background_color);
 	break;
     default:
 	break;
@@ -309,7 +332,7 @@ static bool page_element_mouse_motion(PageEl *el, Window *win)
 	break;
     case EL_TOGGLE:
 	break;
-    case EL_PLOT:
+    case EL_WAVEFORM:
 	break;
     case EL_FREQ_PLOT:
 	break;
@@ -340,13 +363,14 @@ static bool page_element_mouse_click(PageEl *el, Window *win)
 	return radio_click((RadioButton *)el->component, win);
 	break;
     case EL_TOGGLE:
-	toggle_click((Toggle *)el->component, win);
+	return toggle_click((Toggle *)el->component, win);
 	break;
-    case EL_PLOT:
+    case EL_WAVEFORM:
 	break;
     case EL_FREQ_PLOT:
 	break;
     case EL_BUTTON:
+	return button_click((Button *)el->component, win);
 	break;
     default:
 	break;
@@ -433,12 +457,14 @@ static void page_el_draw(PageEl *el)
     case EL_TOGGLE:
 	toggle_draw((Toggle *)el->component);
 	break;
-    case EL_PLOT:
+    case EL_WAVEFORM:
+	waveform_draw((Waveform *)el->component);
 	break;
     case EL_FREQ_PLOT:
 	waveform_draw_freq_plot((struct freq_plot *)el->component);
 	break;
     case EL_BUTTON:
+	button_draw((Button *)el->component);
 	break;
     default:
 	break;

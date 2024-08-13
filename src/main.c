@@ -204,6 +204,7 @@ int main(int argc, char **argv)
     window_assign_font(main_win, OPEN_SANS_BOLD_PATH, BOLD);
     window_assign_font(main_win, LTSUPERIOR_PATH, MONO);
     window_assign_font(main_win, LTSUPERIOR_BOLD_PATH, MONO_BOLD);
+    window_assign_font(main_win, NOTO_SANS_SYMBOLS2_PATH, SYMBOLIC);
 
 
     

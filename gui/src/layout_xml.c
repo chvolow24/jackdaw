@@ -259,9 +259,12 @@ Layout *layout_read_from_xml(const char *filename)
     FILE *f = fopen(filename, "r");
     if (!f) {
         fprintf(stderr, "Error: unable to open file at %s\n", filename);
+	perror("(Error in fopen)");
         return NULL;
     }
-    return read_layout(f, 0);
+    Layout *ret = read_layout(f, 0);
+    fclose(f);
+    return ret;
 }
 
 Layout *layout_read_xml_to_lt(Layout *dst, const char *filename)

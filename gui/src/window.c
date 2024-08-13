@@ -136,6 +136,9 @@ void window_assign_font(Window *win, const char *font_path, FontType type)
     case MONO_BOLD:
 	font_to_init = &win->mono_bold_font;
 	break;
+    case SYMBOLIC:
+	font_to_init = &win->symbolic_font;
+	break;
     }
     *font_to_init = ttf_init_font(font_path, win);
     if (!(*font_to_init)) {
@@ -283,15 +286,7 @@ void window_set_layout(Window *win, Layout *layout)
 
 Layout *layout_create_from_window(Window *win);
 
-/* Create a window, intialize font and layout */
-/* Window *window_init(int w, int h, const char *name, const char *font_path) */
-/* { */
-/*     Window *win = window_create(w, h, name); */
-/*     window_assign_std_font(win, font_path); */
-/*     fprintf(stderr, "Assigned standard font\n"); */
-/*     window_set_layout(win, layout_create_from_window(win)); */
-/*     return win; */
-/* } */
+
 
 void layout_destroy(Layout *lt);
 void window_destroy(Window *win)

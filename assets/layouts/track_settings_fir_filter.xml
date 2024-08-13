@@ -7,9 +7,9 @@
     <children>
         <Layout name="toggle_area" type="NORMAL">
             <x>SCALE 0.060000</x>
-            <y>SCALE 0.056464</y>
+            <y>SCALE 0.056632</y>
             <w>REL 303</w>
-            <h>REL 20</h>
+            <h>REL 31</h>
             <index>0</index>
             <children>
                 <Layout name="toggle_filter_on" type="NORMAL">
@@ -33,10 +33,10 @@
             </children>
         </Layout>
         <Layout name="filter_type" type="NORMAL">
-            <x>SCALE 0.657083</x>
-            <y>SCALE 0.121257</y>
-            <w>SCALE 0.287500</w>
-            <h>SCALE 0.392216</h>
+            <x>SCALE 0.698750</x>
+            <y>SCALE 0.250749</y>
+            <w>SCALE 0.206250</w>
+            <h>SCALE 0.262725</h>
             <index>1</index>
             <children>
             </children>
@@ -141,12 +141,39 @@
             </children>
         </Layout>
         <Layout name="track_selection" type="NORMAL">
-            <x>REL 410</x>
-            <y>REL 19</y>
-            <w>SCALE 0.415000</w>
-            <h>SCALE 0.080981</h>
+            <x>REVREL 10</x>
+            <y>SCALE 0.056632</y>
+            <w>SCALE 0.256667</w>
+            <h>SCALE 0.046200</h>
             <index>4</index>
             <children>
+                <Layout name="track_name" type="NORMAL">
+                    <x>STACK 0</x>
+                    <y>REL 0</y>
+                    <w>REL 100</w>
+                    <h>SCALE 1.000000</h>
+                    <index>0</index>
+                    <children>
+                    </children>
+                </Layout>
+                <Layout name="track_previous" type="NORMAL">
+                    <x>STACK 4</x>
+                    <y>REL 0</y>
+                    <w>REL 100</w>
+                    <h>SCALE 1.000000</h>
+                    <index>1</index>
+                    <children>
+                    </children>
+                </Layout>
+                <Layout name="track_next" type="NORMAL">
+                    <x>STACK 4</x>
+                    <y>REL 0</y>
+                    <w>REL 100</w>
+                    <h>SCALE 1.000000</h>
+                    <index>2</index>
+                    <children>
+                    </children>
+                </Layout>
             </children>
         </Layout>
     </children>

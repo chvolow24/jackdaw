@@ -32,6 +32,7 @@ typedef struct window {
     Font *bold_font;
     Font *mono_font;
     Font *mono_bold_font;
+    Font *symbolic_font;
     Layout *layout;
 
     uint16_t i_state;
@@ -64,7 +65,6 @@ void window_destroy(Window *win);
 
 /* Create a Font object, open TTF Fonts, and assign to window */
 void window_assign_font(Window *win, const char *font_path, FontType type);
-
 
 /* Reset the values of the w and h members of a Window struct based on current window dimensions */
 void window_auto_resize(Window *window);

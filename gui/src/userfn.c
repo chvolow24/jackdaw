@@ -31,6 +31,16 @@ extern char DIRPATH_EXPORT[MAX_PATHLEN];
 /* extern SDL_Color control_bar_bckgrnd; */
 
 extern SDL_Color color_global_light_grey;
+extern SDL_Color color_global_quickref_button_pressed;
+extern SDL_Color color_global_quickref_button_blue;
+
+
+int quickref_button_press_callback(void *self_v, void *target)
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    tl->needs_redraw = true;
+    return 0;
+}
 
 void jdaw_write_project(const char *path);
 
@@ -504,14 +514,28 @@ void user_tl_play(void *nullarg)
 	proj->play_speed *= 2.0f;
 	status_stat_playspeed();
     }
-    fprintf(stdout, "user_tl_play\n");
+    button_press_color_change(
+	proj->quickref.play,
+	&color_global_quickref_button_pressed,
+	&color_global_quickref_button_blue,
+	quickref_button_press_callback,
+	NULL);
 }
 
 void user_tl_pause(void *nullarg)
 {
     proj->play_speed = 0;
     transport_stop_playback();
-    fprintf(stdout, "user_tl_pause\n");
+    button_press_color_change(
+	proj->quickref.pause,
+	&color_global_quickref_button_pressed,
+	&color_global_quickref_button_blue,
+	quickref_button_press_callback,
+	NULL);
+    /* textbox_set_background_color(proj->quickref.pause->tb, &somethin); */
+    /* textbox_schedule_color_change(proj->quickref.pause->tb, 200, &somethin_else, false, quickref_change_callback, NULL); */
+    /* textbox_reset_full(proj->quickref.pause->tb); */
+    proj->timelines[proj->active_tl_index]->needs_redraw = true;
 }
 
 void user_tl_rewind(void *nullarg)
@@ -523,6 +547,12 @@ void user_tl_rewind(void *nullarg)
 	proj->play_speed *= 2.0f;
 	status_stat_playspeed();
     }
+    button_press_color_change(
+	proj->quickref.rewind,
+	&color_global_quickref_button_pressed,
+	&color_global_quickref_button_blue,
+	quickref_button_press_callback,
+	NULL);
     fprintf(stdout, "user_tl_rewind\n");
 }
 
@@ -574,27 +604,50 @@ void user_tl_one_sample_right(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     timeline_set_play_position(tl->play_pos_sframes + 1);
-
 }
 
 void user_tl_move_right(void *nullarg)
 {
     timeline_scroll_horiz(TL_DEFAULT_XSCROLL);
+    button_press_color_change(
+	proj->quickref.right,
+	&color_global_quickref_button_pressed,
+	&color_global_quickref_button_blue,
+	quickref_button_press_callback,
+	NULL);
 }
 
 void user_tl_move_left(void *nullarg)
 {
     timeline_scroll_horiz(TL_DEFAULT_XSCROLL * -1);
+    button_press_color_change(
+	proj->quickref.left,
+	&color_global_quickref_button_pressed,
+	&color_global_quickref_button_blue,
+	quickref_button_press_callback,
+	NULL);
 }
 
 void user_tl_zoom_in(void *nullarg)
 {
     timeline_rescale(1.2, false);
+    button_press_color_change(
+	proj->quickref.zoom_in,
+	&color_global_quickref_button_pressed,
+	&color_global_quickref_button_blue,
+	quickref_button_press_callback,
+	NULL);
 }
 
 void user_tl_zoom_out(void *nullarg)
 {
     timeline_rescale(0.8, false);
+    button_press_color_change(
+	proj->quickref.zoom_out,
+	&color_global_quickref_button_pressed,
+	&color_global_quickref_button_blue,
+	quickref_button_press_callback,
+	NULL);
 }
 
 void user_tl_set_mark_out(void *nullarg)
@@ -816,6 +869,12 @@ void user_tl_track_selector_up(void *nullarg)
 	    settings_track_tabview_set_track(tv, tl->tracks[tl->track_selector]);
 	}
     }
+    button_press_color_change(
+	proj->quickref.previous,
+	&color_global_quickref_button_pressed,
+	&color_global_quickref_button_blue,
+	quickref_button_press_callback,
+	NULL);
     tl->needs_redraw = true;
     
 }
@@ -857,6 +916,12 @@ void user_tl_track_selector_down(void *nullarg)
 	    settings_track_tabview_set_track(tv, tl->tracks[tl->track_selector]);
 	}
     }
+    button_press_color_change(
+	proj->quickref.next,
+	&color_global_quickref_button_pressed,
+	&color_global_quickref_button_blue,
+	quickref_button_press_callback,
+	NULL);
     tl->needs_redraw = true;
 }
 

@@ -265,6 +265,16 @@ struct drop_save {
     int32_t out;
 };
 
+struct quickref {
+    Layout *layout;
+    Button *add_track;
+    Button *record;
+    Button *left, *right;
+    Button *rewind, *pause, *play;
+    Button *next, *previous;
+    Button *zoom_in, *zoom_out;
+};
+
 /* A Jackdaw project. Only one can be active at a time. Can persist on disk as a .jdaw file (see dot_jdaw.c, dot_jdaw.h) */
 typedef struct project {
     char name[MAX_NAMELENGTH];
@@ -304,6 +314,9 @@ typedef struct project {
     int32_t src_in_sframes;
     int32_t src_out_sframes;
     float src_play_speed;
+
+    /* Quickref */
+    struct quickref quickref;
 
     /* Audio output */
     float *output_L;

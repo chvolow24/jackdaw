@@ -6,7 +6,7 @@
 #include "value.h"
 
 #define SLIDER_LABEL_STRBUFLEN 20
-#define BUTTON_CORNER_RADIUS 4
+#define BUTTON_CORNER_RADIUS 6
 #define RADIO_BUTTON_MAX_ITEMS 64
 #define RADIO_BUTTON_ITEM_H 24
 #define RADIO_BUTTON_LEFT_W 24
@@ -17,6 +17,7 @@ typedef int (*ComponentFn)(void *self, void *target);
 typedef struct button {
     Textbox *tb;
     ComponentFn action;
+    void *target;
     /* void *(*action)(void *arg); */
 } Button;
 
@@ -77,6 +78,16 @@ typedef struct radio_button {
 } RadioButton;
 
 
+typedef struct waveform {
+    Layout *layout;
+    void **channels;
+    ValType type;
+    uint8_t num_channels;
+    uint32_t len;
+    SDL_Color *background_color;
+    SDL_Color *plot_color;
+} Waveform;
+
 /* Slider */
 typedef struct slider {
     Layout *layout;
@@ -123,13 +134,28 @@ SliderStrFn slider_std_labelmaker;
 void slider_edit_made(Slider *slider);
 
 /* Button */
-Button *button_create(Layout *lt, char *text, ComponentFn action, SDL_Color *text_color, SDL_Color *background_color);
+/* Button *button_create(Layout *lt, char *text, ComponentFn action, SDL_Color *text_color, SDL_Color *background_color); */
+Button *button_create(
+    Layout *layout,
+    char *text,
+    ComponentFn action,
+    void *target,
+    Font *font,
+    int text_size,
+    SDL_Color *text_color,
+    SDL_Color *background_color);
 void button_draw(Button *button);
 void button_destroy(Button *button);
+void button_press_color_change(
+    Button *button,
+    SDL_Color *temp_color,
+    SDL_Color *return_color,
+    ComponentFn callback,
+    void *callback_target);
 
 /* Radio button */
 RadioButton *radio_button_create(
-    Layout *lt,
+    Layout *layout,
     int text_size,
     SDL_Color *text_color,
     void *target,
@@ -143,6 +169,19 @@ void radio_button_draw(RadioButton *rb);
 bool radio_click(RadioButton *rb, Window *Win);
 void radio_destroy(RadioButton *rb);
 
+/* Waveform */
+
+
+Waveform *waveform_create(
+    Layout *lt,
+    void **channels,
+    ValType type,
+    uint8_t num_channels,
+    uint32_t len,
+    SDL_Color *background_color,
+    SDL_Color *plot_color);
+void waveform_destroy(Waveform *w);
+void waveform_draw(Waveform *w);
 /* Toggle */
 
 Toggle *toggle_create(Layout *lt, bool *value, ComponentFn action, void *target);
@@ -154,5 +193,6 @@ bool toggle_click(Toggle *toggle, Window *win);
 
 bool slider_mouse_motion(Slider *slider, Window *win);
 bool toggle_mouse_click(Toggle *toggle, Window *win);
+bool button_click(Button *button, Window *win);
 
 #endif

@@ -12,10 +12,46 @@
             <h>REL 147</h>
             <index>0</index>
             <children>
-                <Layout name="source_area" type="NORMAL">
-                    <x>REVREL 25</x>
+	      <Layout name="quickref" type="NORMAL">
+                    <x>REL 242</x>
                     <y>REL 33</y>
-                    <w>SCALE 0.277500</w>
+                    <w>REL 200</w>
+                    <h>REL 93</h>
+                    <index>3</index>
+                    <children>
+                        <Layout name="row1" type="NORMAL">
+                            <x>REL 0</x>
+                            <y>STACK 0</y>
+                            <w>SCALE 1.0</w>
+                            <h>SCALE 0.333333</h>
+                            <index>0</index>
+                            <children>
+                            </children>
+                        </Layout>
+                        <Layout name="row2" type="NORMAL">
+                            <x>REL 0</x>
+                            <y>STACK 0</y>
+                            <w>SCALE 1.0</w>
+                            <h>SCALE 0.333333</h>
+                            <index>1</index>
+                            <children>
+                            </children>
+                        </Layout>
+                        <Layout name="row3" type="NORMAL">
+                            <x>REL 0</x>
+                            <y>STACK 0</y>
+                            <w>SCALE 1.0</w>
+                            <h>SCALE 0.333333</h>
+                            <index>2</index>
+                            <children>
+                            </children>
+                        </Layout>
+                    </children>
+                </Layout>
+                <Layout name="source_area" type="NORMAL">
+                    <x>STACK 100</x>
+                    <y>REL 33</y>
+                    <w>SCALE 0.3</w>
                     <h>REL 77</h>
                     <index>0</index>
                     <children>
@@ -49,10 +85,10 @@
                     </children>
                 </Layout>
                 <Layout name="hamburger" type="NORMAL">
-                    <x>REVREL 25</x>
-                    <y>REL 25</y>
-                    <w>REL 38</w>
-                    <h>REL 30</h>
+                    <x>REVREL 15</x>
+                    <y>REL 15</y>
+                    <w>REL 30</w>
+                    <h>REL 26</h>
                     <index>2</index>
                     <children>
                         <Layout name="hamburger_child1" type="NORMAL">
@@ -107,42 +143,6 @@
                                     <children>
                                     </children>
                                 </Layout>
-                            </children>
-                        </Layout>
-                    </children>
-                </Layout>
-                <Layout name="quickref" type="NORMAL">
-                    <x>REL 242</x>
-                    <y>REL 33</y>
-                    <w>REL 461</w>
-                    <h>REL 93</h>
-                    <index>3</index>
-                    <children>
-                        <Layout name="row1" type="NORMAL">
-                            <x>REL 0</x>
-                            <y>STACK 0</y>
-                            <w>REL 461</w>
-                            <h>SCALE 0.333333</h>
-                            <index>0</index>
-                            <children>
-                            </children>
-                        </Layout>
-                        <Layout name="row2" type="NORMAL">
-                            <x>REL 0</x>
-                            <y>STACK 0</y>
-                            <w>REL 461</w>
-                            <h>SCALE 0.333333</h>
-                            <index>1</index>
-                            <children>
-                            </children>
-                        </Layout>
-                        <Layout name="row3" type="NORMAL">
-                            <x>REL 0</x>
-                            <y>STACK 0</y>
-                            <w>REL 461</w>
-                            <h>SCALE 0.333333</h>
-                            <index>2</index>
-                            <children>
                             </children>
                         </Layout>
                     </children>
@@ -359,7 +359,7 @@
         <Layout name="default_out" type="NORMAL">
             <x>REL 21</x>
             <y>REL 35</y>
-            <w>REL 200</w>
+            <w>REL 186</w>
             <h>REL 20</h>
             <index>2</index>
             <children>

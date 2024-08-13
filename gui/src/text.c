@@ -119,7 +119,10 @@ void txt_reset_drawable(Text *txt)
 	txt->texture = NULL;
     }
 
+    /* char *pause_symbol = "hello↑⏵⏸⏴world\0"; */
     SDL_Surface *surface = TTF_RenderUTF8_Blended(font, txt->display_value, txt->color);
+    /* SDL_Surface *surface = TTF_RenderUTF8_Blended(font, pause_symbol, txt->color); */
+
     if (!surface) {
         fprintf(stderr, "Error: TTF_RenderText_Blended failed: %s\n", TTF_GetError());
         return;

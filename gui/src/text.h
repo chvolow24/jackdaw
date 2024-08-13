@@ -11,6 +11,14 @@
 #define OPEN_SANS_BOLD_PATH INSTALL_DIR "/assets/ttf/OpenSans-Bold.ttf"
 #define LTSUPERIOR_PATH INSTALL_DIR "/assets/ttf/LTSuperiorMono-Regular.otf"
 #define LTSUPERIOR_BOLD_PATH INSTALL_DIR "/assets/ttf/LTSuperiorMono-Bold.otf"
+#define NOTO_SANS_SYMBOLS2_PATH INSTALL_DIR "/assets/ttf/NotoSansSymbols2-Regular.ttf"
+/* #define OPEN_SANS_PATH INSTALL_DIR "/assets/ttf/NotoSansSymbols2-Regular.ttf" */
+/* #define OPEN_SANS_BOLD_PATH OPEN_SANS_PATH */
+/* #define LTSUPERIOR_PATH OPEN_SANS_PATH */
+/* #define LTSUPERIOR_BOLD_PATH OPEN_SANS_PATH */
+
+/* #define OPEN_SANS_PATH LTSUPERIOR_BOLD_PATH */
+/* #define OPEN_SANS_BOLD_PATH LTSUPERIOR_BOLD_PATH */
 /* #define OPEN_SANS_BOLD_PATH INSTALL_DIR "/assets/ttf/Iosevka-Bold.ttf" */
 #define TTF_SPEC_ADJUST 1
 
@@ -40,7 +48,8 @@ typedef enum font_type {
     REG,
     BOLD,
     MONO,
-    MONO_BOLD
+    MONO_BOLD,
+    SYMBOLIC
 } FontType;
 
 

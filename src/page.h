@@ -21,7 +21,7 @@ typedef enum page_el_type {
     EL_SLIDER,
     EL_RADIO,
     EL_TOGGLE,
-    EL_PLOT,
+    EL_WAVEFORM,
     EL_FREQ_PLOT,
     EL_BUTTON
 } PageElType;
@@ -97,8 +97,11 @@ struct button_params {
     char *set_str;
     Font *font;
     uint8_t text_size;
-    void *(*action)(void *arg);
+    ComponentFn action;
+    void *target;
     Window *win;
+    SDL_Color *background_color;
+    SDL_Color *text_color;
 };
 
 struct radio_params {
@@ -116,6 +119,16 @@ struct toggle_params {
     void *target;
 };
 
+struct waveform_params {
+    Layout *lt;
+    void **channels;
+    ValType type;
+    uint8_t num_channels;
+    uint32_t len;
+    SDL_Color *background_color;
+    SDL_Color *plot_color;
+};
+
 typedef union page_el_params {
     struct slider_params slider_p;
     struct textbox_params textbox_p;
@@ -125,6 +138,7 @@ typedef union page_el_params {
     struct button_params button_p;
     struct toggle_params toggle_p;
     struct radio_params radio_p;
+    struct waveform_params waveform_p;
 } PageElParams;
 
 

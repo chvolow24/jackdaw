@@ -44,7 +44,8 @@
 
 
 extern Project *proj;
-
+extern SDL_Color color_global_red;
+extern SDL_Color color_global_quickref_button_blue;
 
 void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type);
 void transport_record_callback(void* user_data, uint8_t *stream, int len)
@@ -68,8 +69,16 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
         struct timespec now;
 	clock_gettime(CLOCK_MONOTONIC, &now);
 
+	/* TODO
+
+	   These latency estimates, used for latency compensation, are
+	   spurious. I can more precisely estimate latency if/when I switch
+	   from SDL to PortAudio (or a similar, more audio-focused library
+	   that can report on ADC and DAC time in a callback).
+
+	*/
 	double est_latency_mult = 60.0f;
-	double record_latency_ms = (double)1000.0f * proj->chunk_size_sframes / proj->sample_rate;
+	double record_latency_ms = (double)1000.0f * 64.0 / proj->sample_rate;
 	double playback_latency_ms = est_latency_mult * record_latency_ms;
 	fprintf(stdout, "Playback latency ms: %f\n", playback_latency_ms);
 
@@ -435,6 +444,9 @@ void transport_start_recording()
     }
     proj->recording = true;
 
+
+    Textbox *record_button = proj->quickref.record->tb;
+    textbox_set_background_color(record_button, &color_global_red);
     /* pd_jackdaw_record_get_block(); */
 
 }
@@ -570,6 +582,9 @@ void transport_stop_recording()
     while (num_conns_to_close > 0) {
 	audioconn_close(conns_to_close[--num_conns_to_close]);
     }
+
+    Textbox *record_button = proj->quickref.record->tb;
+    textbox_set_background_color(record_button, &color_global_quickref_button_blue );
 
     
 }

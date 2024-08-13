@@ -3,6 +3,7 @@
 - Quit : <kbd>C-q</kbd>
 - Undo : <kbd>C-z</kbd>
 - Redo : <kbd>C-y</kbd>
+- Show output spectrum : <kbd>S-f</kbd>
 - Save Project : <kbd>C-s</kbd>
 - Open File (.wav or .jdaw) : <kbd>C-o</kbd>
 - Start or stop screenrecording : <kbd>A-S-p</kbd>
@@ -17,7 +18,8 @@
 - Move menu up : <kbd>\<up\></kbd>
 - Move menu down : <kbd>\<down\></kbd>
 - Move menu right : <kbd>\<right\></kbd>
-- go back (dismiss) : <kbd>m</kbd>, <kbd>h</kbd>, <kbd>\<esc\></kbd>
+- Move menu left : <kbd>\<left\></kbd>
+- go back (dismiss) : <kbd>\<del\></kbd>, <kbd>m</kbd>, <kbd>h</kbd>, <kbd>\<esc\></kbd>
 ### timeline mode
 #### Playback / Record
 - Play : <kbd>l</kbd>, <kbd>e</kbd>
@@ -25,6 +27,12 @@
 - Rewind : <kbd>j</kbd>, <kbd>q</kbd>
 - Play slow : <kbd>K-l</kbd>, <kbd>S-l</kbd>
 - Rewind slow : <kbd>K-j</kbd>, <kbd>S-j</kbd>
+- Nudge play position left (500 samples) : <kbd>\<left\></kbd>
+- Nudge play position right (500 samples) : <kbd>\<right\></kbd>
+- Nudge play position left (100 samples) : <kbd>S-\<left\></kbd>
+- Nudge play position right (100 samples) : <kbd>S-\<right\></kbd>
+- Move one sample left : <kbd>C-S-\<left\></kbd>
+- Move one sample right : <kbd>C-S-\<right\></kbd>
 - Record (start or stop) : <kbd>r</kbd>
 #### Timeline navigation
 - Move track selector up : <kbd>p</kbd>, <kbd>d</kbd>
@@ -64,7 +72,6 @@
 - Track pan right : <kbd>S-0</kbd>
 - Rename selected track : <kbd>C-r</kbd>
 - Set track input : <kbd>C-S-i</kbd>
-- Add filter to track : <kbd>C-S-f</kbd>
 #### Clips
 - Grab clip at point : <kbd>g</kbd>
 - Start or stop dragging clips : <kbd>C-k</kbd>

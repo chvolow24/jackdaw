@@ -75,6 +75,7 @@ SDL_Color clip_ref_bckgrnd = {20, 200, 120, 200};
 SDL_Color clip_ref_grabbed_bckgrnd = {50, 230, 150, 230};
 SDL_Color clip_ref_home_bckgrnd = {90, 180, 245, 200};
 SDL_Color clip_ref_home_grabbed_bckgrnd = {120, 210, 255, 230};
+
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;
 extern SDL_Color color_global_grey;
@@ -232,11 +233,11 @@ static void track_draw(Track *track)
     }
     SDL_RenderFillRect(main_win->rend, &track->layout->rect);
 
-    SDL_RenderSetClipRect(main_win->rend, proj->audio_rect);
+    /* SDL_RenderSetClipRect(main_win->rend, &tl->layout->rect); */
     for (uint8_t i=0; i<track->num_clips; i++) {
 	clipref_draw(track->clips[i]);
     }
-    SDL_RenderSetClipRect(main_win->rend, &main_win->layout->rect);
+    /* SDL_RenderSetClipRect(main_win->rend, &main_win->layout->rect); */
 
     if (track->tl->track_selector == track->tl_rank) {
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(console_bckgrnd_selector));
@@ -333,9 +334,11 @@ static void timeline_draw(Timeline *tl)
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(console_column_bckgrnd));
     SDL_RenderFillRect(main_win->rend, proj->console_column_rect);
     /* Draw tracks */
+    SDL_RenderSetClipRect(main_win->rend, &tl->layout->rect);
     for (int i=0; i<tl->num_tracks; i++) {
 	track_draw(tl->tracks[i]);
     }
+    SDL_RenderSetClipRect(main_win->rend, &main_win->layout->rect);
     /* Draw ruler */
     ruler_draw(tl);
     if (tl->timecode_tb) {
@@ -442,6 +445,20 @@ static void control_bar_draw(Project *proj)
     }
 
 
+    /* QUCIKREF */
+
+    button_draw(proj->quickref.add_track);
+    button_draw(proj->quickref.record);
+    button_draw(proj->quickref.rewind);
+    button_draw(proj->quickref.pause);
+    button_draw(proj->quickref.play);
+    button_draw(proj->quickref.left);
+    button_draw(proj->quickref.right);
+    button_draw(proj->quickref.next);
+    button_draw(proj->quickref.previous);
+    button_draw(proj->quickref.zoom_in);
+    button_draw(proj->quickref.zoom_out);
+    
     /* SOURCE MODE */
     if (proj->source_mode) {
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(source_mode_bckgrnd));
@@ -533,13 +550,13 @@ void project_draw()
     }
 	/* page_draw(main_win->active_page); */
     /* if (proj->status_bar.stat_timer > 0 || proj->status_bar.err_timer > 0 || proj->status_bar.call_timer > 0) { */
-	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
-	SDL_RenderFillRect(main_win->rend, &proj->status_bar.layout->rect);
-	textbox_draw(proj->status_bar.error);
-	if (proj->dragging) {
-	    textbox_draw(proj->status_bar.dragstat);
-	}
-	textbox_draw(proj->status_bar.call);
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
+    SDL_RenderFillRect(main_win->rend, &proj->status_bar.layout->rect);
+    textbox_draw(proj->status_bar.error);
+    if (proj->dragging) {
+	textbox_draw(proj->status_bar.dragstat);
+    }
+    textbox_draw(proj->status_bar.call);
     /* } */
     /* Layout *status = layout_get_child_by_name_recursive(proj->layout, "status_bar"); */
     /* layout_draw(main_win, status); */

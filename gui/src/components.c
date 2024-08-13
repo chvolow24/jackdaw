@@ -6,6 +6,7 @@
 #include "text.h"
 #include "textbox.h"
 #include "value.h"
+#include "waveform.h"
 
 extern Window *main_win;
 #define SLIDER_INNER_PAD 2
@@ -15,6 +16,7 @@ extern Window *main_win;
 #define SLIDER_LABEL_V_PAD 2
 #define RADIO_BUTTON_LEFT_COL_W 10
 #define SLIDER_MAX_LABEL_COUNTDOWN 80
+#define BUTTON_COLOR_CHANGE_STD_DELAY 400
 
 /* SDL_Color fslider_bckgrnd = {60, 60, 60, 255}; */
 /* SDL_Color fslider_bar_container_bckgrnd =  {190, 190, 190, 255}; */
@@ -58,7 +60,7 @@ Slider *slider_create(
     /* amp_to_dbstr(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, *value); */
 
     /* snprintf(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, "%f", *value); */
-    s->label = textbox_create_from_str(s->label_str, label, main_win->std_font, 10, main_win);
+    s->label = textbox_create_from_str(s->label_str, label, main_win->std_font, 12, main_win);
     textbox_size_to_fit(s->label, SLIDER_LABEL_H_PAD, SLIDER_LABEL_V_PAD);
     textbox_set_pad(s->label, SLIDER_LABEL_H_PAD, SLIDER_LABEL_V_PAD);
     textbox_set_border(s->label, &color_global_black, 2);
@@ -266,16 +268,19 @@ void slider_edit_made(Slider *slider)
 /* Button */
 
 
-Button *button_create(Layout *lt, char *text, ComponentFn action, SDL_Color *text_color, SDL_Color *background_color)
+Button *button_create(Layout *lt, char *text, ComponentFn action, void *target, Font *font, int text_size, SDL_Color *text_color, SDL_Color *background_color)
 {
     Button *button = calloc(1, sizeof(Button));
     button->action = action;
-    button->tb = textbox_create_from_str(text, lt, main_win->bold_font, 12, main_win);
+    button->target = target;
+    button->tb = textbox_create_from_str(text, lt, font, text_size, main_win);
     button->tb->corner_radius = BUTTON_CORNER_RADIUS;
     textbox_set_border(button->tb, text_color, 1);
+    textbox_set_text_color(button->tb, text_color);
     textbox_set_background_color(button->tb, background_color);
-    
-    textbox_size_to_fit(button->tb, 16, 2);
+    textbox_set_align(button->tb, CENTER);
+    textbox_size_to_fit(button->tb, 6, 2);
+    textbox_reset_full(button->tb);
     return button;
 }
 
@@ -290,6 +295,16 @@ void button_destroy(Button *button)
     free(button);
 }
 
+void button_press_color_change(
+    Button *button,
+    SDL_Color *temp_color,
+    SDL_Color *return_color,
+    ComponentFn callback,
+    void *callback_target)
+{
+    textbox_set_background_color(button->tb, temp_color);
+    textbox_schedule_color_change(button->tb, BUTTON_COLOR_CHANGE_STD_DELAY, return_color, false, callback, callback_target);
+}
 
 /* Toggle */
 
@@ -385,7 +400,7 @@ RadioButton *radio_button_create(
 	    r = item_lt->children[1];
 	}
 	layout_force_reset(item_lt);
-	Textbox *label = textbox_create_from_str((char *)item_names[i], r, main_win->std_font, 14, main_win);
+	Textbox *label = textbox_create_from_str((char *)item_names[i], r, main_win->mono_bold_font, 14, main_win);
 	textbox_set_align(label, CENTER_LEFT);
 	textbox_set_pad(label, 4, 0);
 	textbox_set_text_color(label, text_color);
@@ -431,6 +446,58 @@ void radio_button_draw(RadioButton *rb)
     }
 }
 
+void radio_destroy(RadioButton *rb)
+{
+    for (uint8_t i=0; i<rb->num_items; i++) {
+	textbox_destroy(rb->items[i]);
+    }
+    layout_destroy(rb->layout);
+    free(rb);
+
+}
+
+
+/* Waveform */
+
+Waveform *waveform_create(
+    Layout *lt,
+    void **channels,
+    ValType type,
+    uint8_t num_channels,
+    uint32_t len,
+    SDL_Color *background_color,
+    SDL_Color *plot_color)
+{
+    Waveform *w = calloc(1, sizeof(Waveform));
+    w->layout = lt;
+    w->channels = calloc(num_channels, sizeof(void *));
+    for (uint8_t i=0; i<num_channels; i++) {
+	w->channels[i] = channels[i];
+    }
+    w->type = type;
+    w->num_channels = num_channels;
+    w->len = len;
+    w->background_color = background_color;
+    w->plot_color = plot_color;
+    return w;
+}
+
+void waveform_destroy(Waveform *w)
+{
+    free(w->channels);
+    layout_destroy(w->layout);
+    free(w);
+}
+
+void waveform_draw(Waveform *w)
+{
+    SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(w->background_color));
+    SDL_RenderFillRect(main_win->rend, &w->layout->rect);
+    waveform_draw_all_channels_generic(w->channels, w->type, w->num_channels, w->len, &w->layout->rect);
+}
+
+
+
 
 /* Mouse functions */
 
@@ -474,16 +541,17 @@ bool toggle_click(Toggle *toggle, Window *win)
 	if (toggle->action) {
 	    toggle->action((void *)toggle, toggle->target);
 	}
+	return true;
     }
     return false;
 }
 
-void radio_destroy(RadioButton *rb)
+bool button_click(Button *button, Window *win)
 {
-    for (uint8_t i=0; i<rb->num_items; i++) {
-	textbox_destroy(rb->items[i]);
+    if (SDL_PointInRect(&main_win->mousep, &button->tb->layout->rect)) {
+	button->action((void *)button, button->target);
+	return true;
     }
-    layout_destroy(rb->layout);
-    free(rb);
-
+    return false;
 }
+

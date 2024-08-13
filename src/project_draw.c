@@ -316,11 +316,11 @@ static void ruler_draw(Timeline *tl)
 
 void fill_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad);
 void fill_quadrant_complement(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad);
-static void timeline_draw(Timeline *tl)
+static int timeline_draw(Timeline *tl)
 {
     /* Only redraw the timeline if necessary */
     if (!tl->needs_redraw && !proj->recording && !main_win->txt_editing && !(main_win->i_state | I_STATE_MOUSE_L)) {
-	return;
+	return 0;
     }
     /* static int i=0; */
     /* fprintf(stdout, "TL draw %d\n", i); */
@@ -416,6 +416,7 @@ static void timeline_draw(Timeline *tl)
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(grey_mask));
 	SDL_RenderFillRect(main_win->rend, &tl->layout->rect);
     }
+    return 1;
     /* tl->needs_redraw = false; */
 
 }
@@ -540,12 +541,16 @@ void project_draw()
 {
     window_start_draw(main_win, NULL);
     Timeline *tl = proj->timelines[proj->active_tl_index];
-    timeline_draw(tl);
-    if (tl->needs_redraw) {
+    int timeline_redrawn = timeline_draw(tl);
+    if (timeline_redrawn) {
 	control_bar_draw(proj);
 	textbox_draw(proj->timeline_label);
     }
     if (main_win->active_tab_view) {
+	if (timeline_redrawn) {
+	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(grey_mask));
+	    SDL_RenderFillRect(main_win->rend, &proj->layout->rect);
+	}
 	tab_view_draw(main_win->active_tab_view);
     }
 	/* page_draw(main_win->active_page); */

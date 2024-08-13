@@ -514,12 +514,12 @@ void user_tl_play(void *nullarg)
 	proj->play_speed *= 2.0f;
 	status_stat_playspeed();
     }
-    button_press_color_change(
-	proj->quickref.play,
-	&color_global_quickref_button_pressed,
-	&color_global_quickref_button_blue,
-	quickref_button_press_callback,
-	NULL);
+    /* button_press_color_change( */
+    /* 	proj->quickref.play, */
+    /* 	&color_global_quickref_button_pressed, */
+    /* 	&color_global_quickref_button_blue, */
+    /* 	quickref_button_press_callback, */
+    /* 	NULL); */
 }
 
 void user_tl_pause(void *nullarg)

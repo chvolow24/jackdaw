@@ -45,6 +45,7 @@
 
 extern Project *proj;
 extern SDL_Color color_global_red;
+extern SDL_Color color_global_play_green;
 extern SDL_Color color_global_quickref_button_blue;
 
 void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type);
@@ -301,9 +302,9 @@ void transport_start_playback()
     Timeline *tl = proj->timelines[proj->active_tl_index];
     tl->read_pos_sframes = tl->play_pos_sframes;
     
-    int priority_min = sched_get_priority_min(SCHED_RR);
+    /* int priority_min = sched_get_priority_min(SCHED_RR); */
     int priority_max = sched_get_priority_max(SCHED_RR);
-    fprintf(stdout, "priority range: %d-%d\n", priority_min, priority_max);
+    /* fprintf(stdout, "priority range: %d-%d\n", priority_min, priority_max); */
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     
@@ -322,6 +323,9 @@ void transport_start_playback()
     
     sem_wait(tl->unpause_sem);
     audioconn_start_playback(proj->playback_conn);
+
+    Textbox *play_button = proj->quickref.play->tb;
+    textbox_set_background_color(play_button, &color_global_play_green);
 }
 
 void transport_stop_playback()
@@ -348,6 +352,8 @@ void transport_stop_playback()
     /* fprintf(stdout, "Cancelled!\n"); */
     proj->src_play_speed = 0.0f;
     proj->play_speed = 0.0f;
+    Textbox *play_button = proj->quickref.play->tb;
+    textbox_set_background_color(play_button, &color_global_quickref_button_blue);
 
 }
 

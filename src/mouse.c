@@ -161,10 +161,23 @@ static void mouse_triage_click_control_bar(uint8_t button)
 {
     if (SDL_PointInRect(&main_win->mousep, &proj->tb_out_value->layout->rect)) {
 	user_tl_set_default_out(NULL);
+	return;
     }
     if (SDL_PointInRect(&main_win->mousep, proj->hamburger)) {
 	user_global_menu(NULL);
+	return;
     }
+    if (button_click(proj->quickref.add_track, main_win)) return;
+    if (button_click(proj->quickref.record, main_win)) return;
+    if (button_click(proj->quickref.left, main_win)) return;
+    if (button_click(proj->quickref.rewind, main_win)) return;
+    if (button_click(proj->quickref.pause, main_win)) return;
+    if (button_click(proj->quickref.play, main_win)) return;
+    if (button_click(proj->quickref.right, main_win)) return;
+    if (button_click(proj->quickref.next, main_win)) return;
+    if (button_click(proj->quickref.previous, main_win)) return;
+    if (button_click(proj->quickref.zoom_in, main_win)) return;
+    if (button_click(proj->quickref.zoom_out, main_win)) return;
 }
 
 void mouse_triage_click_project(uint8_t button)

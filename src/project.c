@@ -47,6 +47,7 @@
 #include "textbox.h"
 #include "timeline.h"
 #include "transport.h"
+#include "userfn.h"
 #include "waveform.h"
 #include "window.h"
 
@@ -526,9 +527,73 @@ static inline Button *create_button_from_params(Layout *lt, struct button_params
     tb->layout->h.value.floatval = 0.8;
     layout_force_reset(tb->layout);
     textbox_reset_full(button->tb);
-    return button;
+    return button;   
+}
 
-    
+static int quickref_add_track(void *self_v, void *target)
+{
+    user_tl_add_track(NULL);
+    return 0;
+}
+
+static int quickref_record(void *self_v, void *target)
+{
+    user_tl_record(NULL);
+    return 0;
+}
+
+static int quickref_left(void *self_v, void *target)
+{
+    user_tl_move_left(NULL);
+    return 0;
+}
+
+static int quickref_right(void *self_v, void *target)
+{
+    user_tl_move_right(NULL);
+    return 0;
+}
+
+static int quickref_rewind(void *self_v, void *target)
+{
+    user_tl_rewind(NULL);
+}
+
+
+static int quickref_pause(void *self_v, void *target)
+{
+    user_tl_pause(NULL);
+    return 0;
+}
+
+static int quickref_play(void *self_v, void *target)
+{
+    user_tl_play(NULL);
+    return 0;
+}
+
+static int quickref_next(void *self_v, void *target)
+{
+    user_tl_track_selector_down(NULL);
+    return 0;
+}
+
+static int quickref_previous(void *self_v, void *target)
+{
+    user_tl_track_selector_up(NULL);
+    return 0;
+}
+
+static int quickref_zoom_in(void *self_v, void *target)
+{
+    user_tl_zoom_in(NULL);
+    return 0;
+}
+
+static int quickref_zoom_out(void *self_v, void *target)
+{
+    user_tl_zoom_out(NULL);
+    return 0;
 }
 
 void project_init_quickref(Project *proj, Layout *control_bar_lt)
@@ -546,11 +611,12 @@ void project_init_quickref(Project *proj, Layout *control_bar_lt)
     b.background_color = &color_global_quickref_button_blue;
     b.text_color = &color_global_white;
     b.set_str = "C-t (add track)";
-    b.action = NULL;
+    b.action = quickref_add_track;
     b.target = NULL;
     b.text_size = 14;
     q->add_track = create_button_from_params(button_lt, b);
 
+    b.action = quickref_record;
     button_lt = create_quickref_button_lt(row1);
     b.set_str = "r ⏺";
     q->record = create_button_from_params(button_lt, b);
@@ -559,24 +625,29 @@ void project_init_quickref(Project *proj, Layout *control_bar_lt)
     /* ROW 2 */
     button_lt = create_quickref_button_lt(row2);
     b.font = main_win->mono_font;
+    b.action = quickref_left;
     b.set_str = "h ←";
     q->left = create_button_from_params(button_lt, b);
 
     button_lt = create_quickref_button_lt(row2);
     b.font = main_win->symbolic_font;
+    b.action = quickref_rewind;
     b.set_str = "j ⏴";
     q->rewind = create_button_from_params(button_lt, b);
 
     button_lt = create_quickref_button_lt(row2);
+    b.action = quickref_pause;
     b.set_str = "k ⏸";
     q->pause = create_button_from_params(button_lt, b);
 
     button_lt = create_quickref_button_lt(row2);
+    b.action = quickref_play;
     b.set_str = "l ⏵";
     q->play = create_button_from_params(button_lt, b);
 
     button_lt = create_quickref_button_lt(row2);
     b.font = main_win->mono_font;
+    b.action = quickref_right;
     b.set_str = "; →";
     q->right = create_button_from_params(button_lt, b);
 
@@ -584,22 +655,26 @@ void project_init_quickref(Project *proj, Layout *control_bar_lt)
     /* ROW 3 */
 
     button_lt = create_quickref_button_lt(row3);
+    b.action = quickref_next;
     b.set_str = "n ↓";
     q->next = create_button_from_params(button_lt, b);
 
     button_lt = create_quickref_button_lt(row3);
+    b.action = quickref_previous;
     b.set_str = "p ↑";
     q->previous = create_button_from_params(button_lt, b);
 
 
     button_lt = create_quickref_button_lt(row3);
     b.font = main_win->symbolic_font;
+    b.action = quickref_zoom_out;
     b.set_str = ", 🔍-";
-    q->zoom_in = create_button_from_params(button_lt, b);
+    q->zoom_out = create_button_from_params(button_lt, b);
 
     button_lt = create_quickref_button_lt(row3);
+    b.action = quickref_zoom_in;
     b.set_str = ". 🔍+";
-    q->zoom_out = create_button_from_params(button_lt, b);
+    q->zoom_in = create_button_from_params(button_lt, b);
 
     layout_size_to_fit_children(q->layout, true, 0);
 }

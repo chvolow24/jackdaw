@@ -54,6 +54,7 @@ Positions	Sample Value	    Description
 #include <stdio.h>
 #include <string.h>
 #include "SDL.h"
+#include "dir.h"
 #include "project.h"
 #include "mixdown.h"
 #include "transport.h"
@@ -215,6 +216,9 @@ void wav_load_to_track(Track *track, const char *filename, int32_t start_pos) {
         clip->R[i/2] = (float) src_buf[i+1] / INT16_MAX;
     }
     free(wav_cvt.buf);
-    track_create_clip_ref(track, clip, start_pos, true);
+    ClipRef *cr = track_create_clip_ref(track, clip, start_pos, true);
+    char *filename_modifiable = strdup(filename);
+    strncpy(cr->name, path_get_tail(filename_modifiable), MAX_NAMELENGTH);
+    free(filename_modifiable);
     timeline_reset(track->tl);
 }

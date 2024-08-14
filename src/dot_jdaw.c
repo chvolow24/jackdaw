@@ -53,11 +53,12 @@ const static char hdr_track[] = {'T','R','C','K'};
 const static char hdr_clipref[] = {'C','L','I','P','R','E','F'};
 const static char hdr_data[] = {'d','a','t','a'};
 
-const static char current_file_spec_version[] = {'0','0','.','1','0'};
-const static float current_file_spec_version_f = 0.1f;
+const static char current_file_spec_version[] = {'0','0','.','1','1'};
+/* const static float current_file_spec_version_f = 0.11f; */
 
 const static char nullterm = '\0';
 
+float read_file_spec_version;
 /* static void write_clip_to_jdaw(FILE *f, Clip *clip); */
 /* static void write_track_to_jdaw(FILE *f, Track *track); */
 /* static void read_clip_from_jdaw(FILE *f, float file_spec_version, Clip *track); */
@@ -210,6 +211,30 @@ static void jdaw_write_track(FILE *f, Track *track)
     for (uint8_t i=0; i<track->num_clips; i++) {
 	jdaw_write_clipref(f, track->clips[i]);
     }
+
+    /* TRCK_FX */
+    fwrite(&track->fir_filter_active, 1, 1, f);
+    FIRFilter *filter;
+    if (track->fir_filter_active && (filter = track->fir_filter)) {
+	fwrite(&filter->type, 1, 1, f);
+	snprintf(float_value_buffer, 16, "%f", filter->cutoff_freq);
+	fwrite(float_value_buffer, 1, 16, f);
+	snprintf(float_value_buffer, 16, "%f", filter->bandwidth);
+	fwrite(float_value_buffer, 1, 16, f);
+	fwrite(&filter->impulse_response_len, 2, 1, f);
+    } else {
+	fseek(f, 35, SEEK_CUR);
+    }
+    fwrite(&track->delay_line_active, 1, 1, f);
+    if (track->delay_line_active) {
+	fwrite(&track->delay_line.len, 4, 1, f);
+	fwrite(&track->delay_line.stereo_offset, 4, 1, f);
+	snprintf(float_value_buffer, 16, "%f", track->delay_line.amp);
+	fwrite(float_value_buffer, 1, 16, f);
+    } else {
+	fseek(f, 24, SEEK_CUR);
+    }
+    
 }
 
 static void jdaw_write_clipref(FILE *f, ClipRef *cr)
@@ -276,8 +301,8 @@ Project *jdaw_read_file(const char *path)
     }
     fread(hdr_buffer, 1, 5, f);
     hdr_buffer[5] = '\0';
-    float file_spec_version = atof(hdr_buffer);
-    if (file_spec_version < current_file_spec_version_f) {
+    read_file_spec_version = atof(hdr_buffer);
+    if (read_file_spec_version < 00.10f) {
 	fprintf(stderr, "Error: .jdaw file version %s is not compatible with the current jackdaw version (%s). You may need to downgrade to open this file.\n", hdr_buffer, JACKDAW_VERSION);
         /* free(proj); */
 	return NULL;
@@ -475,14 +500,53 @@ static void jdaw_read_track(FILE *f, Timeline *tl)
 	track_solomute(track);
     }
 
-    
-
     uint8_t num_cliprefs;
     fread(&num_cliprefs, 1, 1, f);
 
     while (num_cliprefs > 0) {
 	jdaw_read_clipref(f, track);
 	num_cliprefs--;
+    }
+    fprintf(stdout, "\n\n\nFile spec version: %f\n", read_file_spec_version);
+    if (read_file_spec_version >= 00.11f) {
+	fread(&track->fir_filter_active, 1, 1, f);
+	if (track->fir_filter_active) {
+/* filter_create(FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len) -> FIRFilter * */
+	    FilterType type;
+	    double cutoff_freq;
+	    double bandwidth;
+	    uint16_t impulse_response_len;
+	    fread(&type, 1, 1, f);
+	    fread(floatvals, 1, 16, f);
+	    floatvals[16] = '\0';
+	    cutoff_freq = atof(floatvals);
+	    fread(floatvals, 1, 16, f);
+	    bandwidth = atof(floatvals);
+	    fread(&impulse_response_len, 2, 1, f);
+	    track->fir_filter = filter_create(
+		type,
+		impulse_response_len,
+		proj->fourier_len_sframes * 2);
+	    filter_set_params(track->fir_filter, type, cutoff_freq, bandwidth);
+	} else {
+	    fseek(f, 35, SEEK_CUR);
+	}
+	fread(&track->delay_line_active, 1, 1, f);
+	if (track->delay_line_active) {
+	    int32_t len;
+	    int32_t stereo_offset;
+	    double amp;
+	    fread(&len, 4, 1, f);
+	    fread(&stereo_offset, 4, 1, f);
+	    fread(floatvals, 1, 16, f);
+	    floatvals[16] = '\0';
+	    amp = atof(floatvals);
+	    delay_line_init(&track->delay_line);
+	    delay_line_set_params(&track->delay_line, amp, len);
+	    track->delay_line.stereo_offset = stereo_offset;
+	} else {
+	    fseek(f, 24, SEEK_CUR);
+	}
     }
 }
 

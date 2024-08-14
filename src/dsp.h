@@ -27,15 +27,16 @@
 #ifndef JDAW_DSP_H
 #define JDAW_DSP_H
 
-#include <stdio.h>
 #include <complex.h>
+#include <stdio.h>
+#include <stdint.h>
 #include "SDL.h"
 
 #define DEFAULT_FILTER_LEN 128
 
 typedef struct track Track;
 
-typedef enum filter_type {
+typedef enum filter_type : uint8_t {
     LOWPASS=0, HIGHPASS=1, BANDPASS=2, BANDCUT=3
 } FilterType;
 

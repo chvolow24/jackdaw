@@ -61,6 +61,11 @@
 #define CR_RECT_V_PAD (4 * main_win->dpi_scale_factor)
 #define NUM_TRACK_COLORS 7
 
+
+#define CLIPREF_NAMELABEL_H 20
+#define CLIPREF_NAMELABEL_H_PAD 8
+#define CLIPREF_NAMELABEL_V_PAD 2
+
 #define TRACK_NAME_H_PAD 3
 #define TRACK_NAME_V_PAD 1
 #define TRACK_CTRL_SLIDER_H_PAD 7
@@ -557,6 +562,7 @@ static int quickref_right(void *self_v, void *target)
 static int quickref_rewind(void *self_v, void *target)
 {
     user_tl_rewind(NULL);
+    return 0;
 }
 
 
@@ -951,7 +957,7 @@ Clip *project_add_clip(AudioConn *conn, Track *target)
     if (!target && conn) {
 	snprintf(clip->name, sizeof(clip->name), "%s_rec_%d", conn->name, proj->num_clips); /* TODO: Fix this */
     } else if (target) {
-	snprintf(clip->name, sizeof(clip->name), "%s take %d", target->name, target->num_takes);
+	snprintf(clip->name, sizeof(clip->name), "%s take %d", target->name, target->num_takes + 1);
 	target->num_takes++;
     } else {
 	snprintf(clip->name, sizeof(clip->name), "anonymous");
@@ -974,13 +980,24 @@ int32_t clip_ref_len(ClipRef *cr)
 
 void clipref_reset(ClipRef *cr)
 {
-    cr->rect.x = timeline_get_draw_x(cr->pos_sframes);
+
+    cr->layout->rect.x = timeline_get_draw_x(cr->pos_sframes);
     uint32_t cr_len = cr->in_mark_sframes >= cr->out_mark_sframes
 	? cr->clip->len_sframes
 	: cr->out_mark_sframes - cr->in_mark_sframes;
-    cr->rect.w = timeline_get_draw_w(cr_len);
-    cr->rect.y = cr->track->layout->rect.y + CR_RECT_V_PAD;
-    cr->rect.h = cr->track->layout->rect.h - 2 * CR_RECT_V_PAD;
+    cr->layout->rect.w = timeline_get_draw_w(cr_len);
+    cr->layout->rect.y = cr->track->layout->rect.y + CR_RECT_V_PAD;
+    cr->layout->rect.h = cr->track->layout->rect.h - 2 * CR_RECT_V_PAD;
+    layout_set_values_from_rect(cr->layout);
+    layout_reset(cr->layout);
+    textbox_reset_full(cr->label);
+    /* cr->rect.x = timeline_get_draw_x(cr->pos_sframes); */
+    /* uint32_t cr_len = cr->in_mark_sframes >= cr->out_mark_sframes */
+    /* 	? cr->clip->len_sframes */
+    /* 	: cr->out_mark_sframes - cr->in_mark_sframes; */
+    /* cr->rect.w = timeline_get_draw_w(cr_len); */
+    /* cr->rect.y = cr->track->layout->rect.y + CR_RECT_V_PAD; */
+    /* cr->rect.h = cr->track->layout->rect.h - 2 * CR_RECT_V_PAD; */
 }
 
 static void clipref_remove_from_track(ClipRef *cr)
@@ -1053,8 +1070,14 @@ ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sfr
 {
     /* fprintf(stdout, "track %s create clipref\n", track->name); */
     ClipRef *cr = calloc(1, sizeof(ClipRef));
-    
-    snprintf(cr->name, MAX_NAMELENGTH, "%s ref%d", clip->name, track->num_clips);
+    cr->layout = layout_add_child(track->layout);
+    cr->layout->h.type = SCALE;
+    cr->layout->h.value.floatval = 0.96;
+    if (clip->num_refs > 0) {
+	snprintf(cr->name, MAX_NAMELENGTH, "%s ref %d", clip->name, clip->num_refs);
+    } else {
+	snprintf(cr->name, MAX_NAMELENGTH, "%s", clip->name);
+    }
     cr->lock = SDL_CreateMutex();
     SDL_LockMutex(cr->lock);
     track->clips[track->num_clips] = cr;
@@ -1063,6 +1086,19 @@ ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sfr
     cr->clip = clip;
     cr->track = track;
     cr->home = home;
+
+    Layout *label_lt = layout_add_child(cr->layout);
+    label_lt->x.value.intval = CLIPREF_NAMELABEL_H_PAD;
+    label_lt->y.value.intval = CLIPREF_NAMELABEL_V_PAD;
+    label_lt->w.type = SCALE;
+    label_lt->w.value.floatval = 0.8f;
+    label_lt->h.value.intval = CLIPREF_NAMELABEL_H;
+    cr->label = textbox_create_from_str(cr->name, label_lt, main_win->mono_bold_font, 12, main_win);
+    textbox_set_align(cr->label, CENTER_LEFT);
+    textbox_set_background_color(cr->label, NULL);
+    textbox_set_text_color(cr->label, &color_global_light_grey);
+	/* textbox_size_to_fit(cr->label, CLIPREF_NAMELABEL_H_PAD, CLIPREF_NAMELABEL_V_PAD); */
+
     /* fprintf(stdout, "Clip num refs: %d\n", clip->num_refs); */
     clip->refs[clip->num_refs] = cr;
     clip->num_refs++;

@@ -157,8 +157,10 @@ typedef struct clip_ref {
     bool home;
     bool grabbed;
 
-    SDL_Rect rect;
+    Layout *layout;
+    /* SDL_Rect rect; */
     SDL_mutex *lock;
+    Textbox *label;
 } ClipRef;
     
 typedef struct clip {

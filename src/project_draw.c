@@ -117,7 +117,7 @@ static void draw_waveform(ClipRef *cr)
     if (num_channels > 1) {
 	channels[1] = cr->clip->R + cr->in_mark_sframes;
     }
-    waveform_draw_all_channels(channels, num_channels, cr_len_sframes, &cr->rect);
+    waveform_draw_all_channels(channels, num_channels, cr_len_sframes, &cr->layout->rect);
     return;
 
     
@@ -181,12 +181,15 @@ static void draw_waveform(ClipRef *cr)
 
 static void clipref_draw(ClipRef *cr)
 {
+    /* clipref_reset(cr); */
     if (cr->deleted) {
 	return;
     }
-
+    if (cr->grabbed && proj->dragging) {
+	clipref_reset(cr);
+    }
     /* Only check horizontal out-of-bounds; track handles vertical */
-    if (cr->rect.x > main_win->w_pix || cr->rect.x + cr->rect.w < 0) {
+    if (cr->layout->rect.x > main_win->w_pix || cr->layout->rect.x + cr->layout->rect.w < 0) {
 	return;
     }
 
@@ -203,7 +206,7 @@ static void clipref_draw(ClipRef *cr)
 	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_bckgrnd));
 	}
     }
-    SDL_RenderFillRect(main_win->rend, &cr->rect);
+    SDL_RenderFillRect(main_win->rend, &cr->layout->rect);
     if (!cr->clip->recording) {
 	draw_waveform(cr);
     }
@@ -211,9 +214,13 @@ static void clipref_draw(ClipRef *cr)
     int border = cr->grabbed ? 3 : 2;
 	
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
-    geom_draw_rect_thick(main_win->rend, &cr->rect, border, main_win->dpi_scale_factor);
+    geom_draw_rect_thick(main_win->rend, &cr->layout->rect, border, main_win->dpi_scale_factor);
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_white));    
-    geom_draw_rect_thick(main_win->rend, &cr->rect, border / 2, main_win->dpi_scale_factor); 
+    geom_draw_rect_thick(main_win->rend, &cr->layout->rect, border / 2, main_win->dpi_scale_factor);
+    if (cr->label) {
+	textbox_draw(cr->label);
+    }
+    /* layout_draw(main_win, cr->layout); */
 }
 
 

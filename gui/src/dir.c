@@ -95,7 +95,7 @@ int path_updir_name(char *pathname)
 }
 
 
-static char *path_get_tail(char *pathname)
+char *path_get_tail(char *pathname)
 {
     char *mov = pathname;
     char *slash = pathname;

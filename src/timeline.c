@@ -225,7 +225,7 @@ void timeline_move_play_position(int32_t move_by_sframes)
 	for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
 	    ClipRef *cr = tl->grabbed_clips[i];
 	    cr->pos_sframes += move_by_sframes;
-	    clipref_reset(cr);
+	    /* clipref_reset(cr); */
 	}
     }
     tl->needs_redraw = true;

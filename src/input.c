@@ -21,7 +21,8 @@ static const char *input_mode_strs[] = {
     "timeline",
     "source",
     "modal",
-    "text_edit"
+    "text_edit",
+    "tabview"
 };
 
 const char *input_mode_str(InputMode im)
@@ -60,6 +61,8 @@ InputMode input_mode_from_str(char *str)
 	return MODAL;
     } else if (strcmp(str, "text_edit") == 0) {
 	return TEXT_EDIT;
+    } else if (strcmp(str, "tabview") == 0) {
+	return TABVIEW;
     } else {
 	return -1;
     }
@@ -850,6 +853,11 @@ void mode_load_text_edit()
     mode_subcat_add_fn(sc, fn);
 }
 
+
+void mode_load_tabview()
+{
+
+}
 void input_init_mode_load_all()
 {
     mode_load_global();
@@ -858,6 +866,7 @@ void input_init_mode_load_all()
     mode_load_source();
     mode_load_modal();
     mode_load_text_edit();
+    mode_load_tabview();
 }
 
 void input_init_hash_table()

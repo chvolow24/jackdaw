@@ -8,7 +8,8 @@ typedef enum input_mode {
     TIMELINE=2,
     SOURCE=3,
     MODAL=4,
-    TEXT_EDIT=5
+    TEXT_EDIT=5,
+    TABVIEW=6
 } InputMode;
 
 

@@ -1054,6 +1054,13 @@ void user_tl_track_destroy(void *nullarg)
     } else {
 	status_set_errstr("Error: no track to delete");
     }
+
+    TabView *tv;
+    if ((tv = main_win->active_tab_view)) {
+	if (strcmp(tv->title, "Track Settings") == 0) {
+	    settings_track_tabview_set_track(tv, tl->tracks[tl->track_selector]);
+	}
+    }
     tl->needs_redraw = true;
 }
 

@@ -60,7 +60,7 @@ Slider *slider_create(
     /* amp_to_dbstr(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, *value); */
 
     /* snprintf(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, "%f", *value); */
-    s->label = textbox_create_from_str(s->label_str, label, main_win->std_font, 12, main_win);
+    s->label = textbox_create_from_str(s->label_str, label, main_win->mono_font, 12, main_win);
     textbox_size_to_fit(s->label, SLIDER_LABEL_H_PAD, SLIDER_LABEL_V_PAD);
     textbox_set_pad(s->label, SLIDER_LABEL_H_PAD, SLIDER_LABEL_V_PAD);
     textbox_set_border(s->label, &color_global_black, 2);

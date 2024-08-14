@@ -647,9 +647,6 @@ void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
 	/* memset(dl->buf_L, '\0', len * sizeof(double)); */
 	while (copy_to_pos < len) {
 	    int32_t copyable;
-	    for (uint32_t i=0; i<dl->len; i++) {
-		saved[i] *= dl->amp;
-	    }
 	    if ((copyable = len - copy_to_pos) <= dl->len) {
 	        copy_from_pos = copyable;
 	    } else {
@@ -658,6 +655,13 @@ void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
 	    /* fprintf(stdout, "FIRST: copying %d samples to pos %d\n", copyable, copy_to_pos); */
 	    memcpy(dl->buf_L + copy_to_pos, saved, copyable * sizeof(double));
 	    copy_to_pos += copyable;
+	    if (copy_to_pos < len) {
+		for (uint32_t i=0; i<dl->len; i++) {
+		    saved[i] *= dl->amp;
+		}
+	    } else {
+		break;
+	    }
 	}
 	copy_to_pos = 0;
 	dl->pos_L %= len;
@@ -685,9 +689,9 @@ void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
 	/* memset(dl->buf_R, '\0', len * sizeof(double)); */
 	while (copy_to_pos < len) {
 	    int32_t copyable;
-	    for (uint32_t i=0; i<dl->len; i++) {
-		saved[i] *= dl->amp;
-	    }
+	    /* for (uint32_t i=0; i<dl->len; i++) { */
+	    /* 	saved[i] *= dl->amp; */
+	    /* } */
 
 	    if ((copyable = len - copy_to_pos) <= dl->len) {
 	        copy_from_pos = copyable;
@@ -696,6 +700,14 @@ void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
 	    }
 	    memcpy(dl->buf_R + copy_to_pos, saved, copyable * sizeof(double));
 	    copy_to_pos += copyable;
+	    if (copy_to_pos < len) {
+		for (uint32_t i=0; i<dl->len; i++) {
+		    saved[i] *= dl->amp;
+		}
+	    } else {
+		break;
+	    }
+
 	}
 	copy_to_pos = 0;
 	dl->pos_R %= len;

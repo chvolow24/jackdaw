@@ -1378,6 +1378,9 @@ void track_destroy(Track *track, bool displace)
 	/* timeline_reset(tl); */
 	/* layout_reset(tl->layout); */
     }
+    if (track->fir_filter) filter_destroy(track->fir_filter);
+    if (track->delay_line.buf_L) free(track->delay_line.buf_L);
+    if (track->delay_line.buf_R) free(track->delay_line.buf_R);
     free(track);
 }
 
@@ -1409,6 +1412,7 @@ void clipref_destroy(ClipRef *cr, bool displace_in_clip)
 	clip->num_refs--;
 	/* fprintf(stdout, "\t->Clip at %p now has %d refs\n", clip, clip->num_refs); */
     }
+    textbox_destroy(cr->label);
     SDL_DestroyMutex(cr->lock);
     free(cr);
 }
@@ -1425,6 +1429,7 @@ void clipref_destroy_no_displace(ClipRef *cr)
     }
     cr->clip->num_refs--;
     SDL_DestroyMutex(cr->lock);
+    textbox_destroy(cr->label);
     free(cr);
 }
 

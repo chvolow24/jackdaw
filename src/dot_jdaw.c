@@ -438,7 +438,6 @@ static void jdaw_read_timeline(FILE *f, Project *proj)
     }
     uint8_t tl_namelen;
     fread(&tl_namelen, 1, 1, f);
-    fprintf(stdout, "NAME LEN? %d\n", tl_namelen);
     /* Timeline *tl = calloc(sizeof(Timeline), 1); */
     /* proj->timelines[proj->num_timelines] = tl; */
     /* proj->num_timelines++; */
@@ -507,7 +506,6 @@ static void jdaw_read_track(FILE *f, Timeline *tl)
 	jdaw_read_clipref(f, track);
 	num_cliprefs--;
     }
-    fprintf(stdout, "\n\n\nFile spec version: %f\n", read_file_spec_version);
     if (read_file_spec_version >= 00.11f) {
 	fread(&track->fir_filter_active, 1, 1, f);
 	if (track->fir_filter_active) {

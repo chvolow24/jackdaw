@@ -136,6 +136,8 @@ void user_tabview_previous_escape(void *nullarg);
 void user_tabview_enter(void *nullarg);
 void user_tabview_left(void *nullarg);
 void user_tabview_right(void *nullarg);
+void user_tabview_next_tab(void *nullarg);
+void user_tabview_previous_tab(void *nullarg);
 
 #endif
 

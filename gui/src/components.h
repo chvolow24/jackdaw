@@ -172,9 +172,11 @@ RadioButton *radio_button_create(
 void radio_button_draw(RadioButton *rb);
 bool radio_click(RadioButton *rb, Window *Win);
 void radio_destroy(RadioButton *rb);
+void radio_cycle(RadioButton *rb);
+
+
 
 /* Waveform */
-
 
 Waveform *waveform_create(
     Layout *lt,

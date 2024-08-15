@@ -1773,3 +1773,20 @@ void user_tabview_right(void *nullarg)
 	page_right(page);
     }
 }
+
+void user_tabview_next_tab(void *nullarg)
+{
+     TabView *tv = main_win->active_tab_view;
+     if (tv) {
+	 tab_view_next_tab(tv);
+     }
+}
+
+
+void user_tabview_previous_tab(void *nullarg)
+{
+     TabView *tv = main_win->active_tab_view;
+     if (tv) {
+	 tab_view_previous_tab(tv);
+     }
+}

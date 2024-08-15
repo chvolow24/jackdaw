@@ -890,6 +890,18 @@ void mode_load_tabview()
 	"Move right",
 	user_tabview_right);
     mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tabview_next_tab",
+	"Next tab",
+	user_tabview_next_tab);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tabview_previous_tab",
+	"Previous tab",
+	user_tabview_previous_tab);
+    mode_subcat_add_fn(sc, fn);
 }
 void input_init_mode_load_all()
 {

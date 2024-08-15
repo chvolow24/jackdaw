@@ -596,11 +596,24 @@ void page_close(Page *page)
 }
 void tab_view_close(TabView *tv)
 {
+    window_pop_mode(tv->win);
     tv->win->active_tab_view = NULL;
     tab_view_destroy(tv);
-    window_pop_mode(tv->win);
 }
 
+void tab_view_next_tab(TabView *tv)
+{
+    if (tv->current_tab < tv->num_tabs - 1)
+	tv->current_tab++;
+    else tv->current_tab = 0;
+}
+
+void tab_view_previous_tab(TabView *tv)
+{
+    if (tv->current_tab > 0)
+	tv->current_tab--;
+    else tv->current_tab = tv->num_tabs - 1;
+}
 
 /* NAVIGATION FUNCTIONS */
 void page_next_escape(Page *page)
@@ -624,6 +637,8 @@ void page_enter(Page *page)
     case EL_TOGGLE:
 	toggle_toggle((Toggle *)el->component);
 	break;
+    case EL_RADIO:
+	radio_cycle((RadioButton *)el->component);
     default:
 	break;
     }

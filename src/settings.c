@@ -59,8 +59,6 @@ extern SDL_Color color_global_light_grey;
 extern SDL_Color freq_L_color;
 extern SDL_Color freq_R_color;
 
-
-
 static struct freq_plot *current_fp;
 Waveform *current_waveform;
 
@@ -233,8 +231,6 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 	&color_global_white,
 	main_win);
 
-
-    create_track_selection_area(page, track);
     PageElParams p;
 
     p.textbox_p.font = main_win->mono_bold_font;
@@ -369,6 +365,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
        than storing in a global var, maybe. */
     current_fp = el->component;
 
+    create_track_selection_area(page, track);
 
 
     page = tab_view_add_page(
@@ -379,7 +376,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 	&color_global_white,
 	main_win);
 
-    create_track_selection_area(page, track);
+    /* create_track_selection_area(page, track); */
 
     p.toggle_p.value = &track->delay_line_active;
     p.toggle_p.action = toggle_delay_line_target_action;
@@ -457,10 +454,14 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 
     /* el = page_add_el(page, EL_WAVEFORM, p, "waveform"); */
     /* current_waveform = el->component; */
-    
+
+
+    create_track_selection_area(page, track);
+
+	
     page = tab_view_add_page(
 	tv,
-	"EQ",
+	"EQ (coming soon)",
 	DELAY_LINE_LT_PATH,
 	page_colors + 2,
 	&color_global_white,

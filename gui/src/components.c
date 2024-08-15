@@ -247,6 +247,7 @@ void slider_nudge_right(Slider *slider)
     }
     jdaw_val_set_ptr(slider->value, slider->val_type, val);
     slider_reset(slider);
+    if (slider->action) slider->action((void *)slider, slider->target);
 }
 
 void slider_nudge_left(Slider *slider)
@@ -261,6 +262,7 @@ void slider_nudge_left(Slider *slider)
     }
     jdaw_val_set_ptr(slider->value, slider->val_type, val);
     slider_reset(slider);
+        if (slider->action) slider->action((void *)slider, slider->target);
 }
 /* static int timed_hide_slider_label(void *data) */
 /* { */
@@ -473,6 +475,13 @@ void radio_button_draw(RadioButton *rb)
 	    geom_fill_circle(main_win->rend, orig_x, orig_y, r);
 	}
     }
+}
+
+void radio_cycle(RadioButton *rb)
+{
+    rb->selected_item++;
+    rb->selected_item %= rb->num_items;
+    if (rb->action) rb->action((void *)rb, rb->target);
 }
 
 void radio_destroy(RadioButton *rb)

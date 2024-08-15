@@ -162,7 +162,8 @@ Page *tab_view_add_page(
 
 bool tab_view_mouse_click(TabView *tv);
 bool tab_view_mouse_motion(TabView *tv);
-
+void tab_view_next_tab(TabView *tv);
+void tab_view_previous_tab(TabView *tv);
 
 /* Page methods */
 

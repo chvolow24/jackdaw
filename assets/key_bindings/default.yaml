@@ -171,3 +171,5 @@
   - <ret>	: tabview_enter
   - h		: tabview_left
   - ;		: tabview_right
+  - S-h		: tabview_previous_tab
+  - S-;		: tabview_next_tab

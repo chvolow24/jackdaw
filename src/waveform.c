@@ -117,6 +117,9 @@ void waveform_reset_freq_plot(struct freq_plot *fp)
 	if ((ls = fp->plots[i])) waveform_destroy_logscale(ls);
 	fp->plots[i] = waveform_create_logscale(fp->arrays[i], fp->num_items, &fp->container->rect, fp->colors[i], fp->steps[i]);
     }
+    for (int i=0; i<fp->num_labels; i++) {
+	textbox_destroy(fp->labels[i]);
+    }
     int tics[FREQ_PLOT_MAX_TICS];
     int num_tics = 0;
     double nyquist = (double)proj->sample_rate / 2;
@@ -169,6 +172,7 @@ void waveform_reset_freq_plot(struct freq_plot *fp)
 	    break;
 	}	
     }
+    if (fp->tic_cache) free(fp->tic_cache);
     fp->tic_cache = malloc(sizeof(int) * num_tics);
     memcpy(fp->tic_cache, tics, sizeof(int) * num_tics);
     fp->num_tics = num_tics;

@@ -300,6 +300,21 @@ void project_destroy(Project *proj)
     textbox_destroy(proj->tb_out_value);
     textbox_destroy(proj->source_name_tb);
     textbox_destroy(proj->timeline_label);
+
+    /* DESTROY QUICKREF */
+    struct quickref q = proj->quickref;
+    if (q.add_track) button_destroy(q.add_track);
+    if (q.record) button_destroy(q.record);
+    if (q.left) button_destroy(q.left);
+    if (q.rewind) button_destroy(q.rewind);
+    if (q.play) button_destroy(q.play);
+    if (q.pause) button_destroy(q.pause);
+    if (q.next) button_destroy(q.next);
+    if (q.previous) button_destroy(q.previous);
+    if (q.zoom_in) button_destroy(q.zoom_in);
+    if (q.zoom_out) button_destroy(q.zoom_out);
+
+    
     if (proj->status_bar.call) textbox_destroy(proj->status_bar.call);
     if (proj->status_bar.dragstat) textbox_destroy(proj->status_bar.dragstat);
     if (proj->status_bar.error) textbox_destroy(proj->status_bar.error);
@@ -1381,6 +1396,8 @@ void track_destroy(Track *track, bool displace)
     if (track->fir_filter) filter_destroy(track->fir_filter);
     if (track->delay_line.buf_L) free(track->delay_line.buf_L);
     if (track->delay_line.buf_R) free(track->delay_line.buf_R);
+    if (track->buf_L_freq_mag) free(track->buf_L_freq_mag);
+    if (track->buf_R_freq_mag) free(track->buf_R_freq_mag);
     free(track);
 }
 

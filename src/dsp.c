@@ -292,7 +292,9 @@ static void FIR_filter_alloc_buffers(FIRFilter *filter)
     if (filter->frequency_response_mag) free(filter->frequency_response_mag);
     filter->frequency_response_mag = calloc(1, sizeof(double) * filter->frequency_response_len);
     filter->overlap_len = filter->impulse_response_len - 1;
+    if (filter->overlap_buffer_L) free(filter->overlap_buffer_L);
     filter->overlap_buffer_L = calloc(1, sizeof(double) * filter->overlap_len);
+    if (filter->overlap_buffer_R) free(filter->overlap_buffer_R);
     filter->overlap_buffer_R = calloc(1, sizeof(double) * filter->overlap_len);
     SDL_UnlockMutex(filter->lock);
 
@@ -428,6 +430,15 @@ void filter_destroy(FIRFilter *filter)
     if (filter->impulse_response) {
         free(filter->impulse_response);
         filter->impulse_response = NULL;
+    }
+    if (filter->overlap_buffer_L) {
+	free(filter->overlap_buffer_L);
+    }
+    if (filter->overlap_buffer_R) {
+	free(filter->overlap_buffer_R);
+    }
+    if (filter->frequency_response_mag) {
+	free(filter->frequency_response_mag);
     }
     free(filter);
 }

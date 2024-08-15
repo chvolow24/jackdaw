@@ -374,9 +374,15 @@ void window_pop_mode(Window *win)
 }
 
 #ifndef LAYOUT_BUILD
-
+#include "page.h"
 void window_push_modal(Window *win, Modal *modal)
 {
+    if (win->active_tab_view) {
+	tab_view_close(win->active_tab_view);
+    }
+    if (win->active_page) {
+	page_close(win->active_page);
+    }
     while (win->num_menus > 0) {
 	window_pop_menu(win);
     }

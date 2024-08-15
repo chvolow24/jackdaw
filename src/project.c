@@ -1396,6 +1396,7 @@ void track_destroy(Track *track, bool displace)
     if (track->fir_filter) filter_destroy(track->fir_filter);
     if (track->delay_line.buf_L) free(track->delay_line.buf_L);
     if (track->delay_line.buf_R) free(track->delay_line.buf_R);
+    if (track->delay_line.lock) SDL_DestroyMutex(track->delay_line.lock);
     if (track->buf_L_freq_mag) free(track->buf_L_freq_mag);
     if (track->buf_R_freq_mag) free(track->buf_R_freq_mag);
     free(track);

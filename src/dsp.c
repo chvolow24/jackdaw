@@ -440,6 +440,9 @@ void filter_destroy(FIRFilter *filter)
     if (filter->frequency_response_mag) {
 	free(filter->frequency_response_mag);
     }
+    if (filter->lock) {
+	SDL_DestroyMutex(filter->lock);
+    }
     free(filter);
 }
 

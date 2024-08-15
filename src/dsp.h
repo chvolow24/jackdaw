@@ -36,7 +36,7 @@
 
 typedef struct track Track;
 
-typedef enum filter_type : uint8_t {
+typedef enum filter_type {
     LOWPASS=0, HIGHPASS=1, BANDPASS=2, BANDCUT=3
 } FilterType;
 

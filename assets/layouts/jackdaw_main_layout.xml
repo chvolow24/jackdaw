@@ -13,9 +13,9 @@
             <index>0</index>
             <children>
                 <Layout name="quickref" type="NORMAL">
-                    <x>REL 242</x>
+                    <x>REL 210</x>
                     <y>REL 33</y>
-                    <w>REL 200</w>
+                    <w>REL 170</w>
                     <h>REL 93</h>
                     <index>0</index>
                     <children>
@@ -48,12 +48,48 @@
                         </Layout>
                     </children>
                 </Layout>
+                <Layout name="quickrefcol2" type="NORMAL">
+                    <x>STACK 10</x>
+                    <y>REL 33</y>
+                    <w>REL 170</w>
+                    <h>REL 93</h>
+                    <index>1</index>
+                    <children>
+                        <Layout name="row1" type="NORMAL">
+                            <x>REL 0</x>
+                            <y>STACK 0</y>
+                            <w>SCALE 1.000000</w>
+                            <h>SCALE 0.333333</h>
+                            <index>0</index>
+                            <children>
+                            </children>
+                        </Layout>
+                        <Layout name="row2" type="NORMAL">
+                            <x>REL 0</x>
+                            <y>STACK 0</y>
+                            <w>SCALE 1.000000</w>
+                            <h>SCALE 0.333333</h>
+                            <index>1</index>
+                            <children>
+                            </children>
+                        </Layout>
+                        <Layout name="row3" type="NORMAL">
+                            <x>REL 0</x>
+                            <y>STACK 0</y>
+                            <w>SCALE 1.000000</w>
+                            <h>SCALE 0.333333</h>
+                            <index>2</index>
+                            <children>
+                            </children>
+                        </Layout>
+                    </children>
+                </Layout>
                 <Layout name="source_area" type="NORMAL">
-                    <x>STACK 100</x>
+                    <x>STACK 10</x>
                     <y>REL 33</y>
                     <w>SCALE 0.300000</w>
                     <h>REL 93</h>
-                    <index>1</index>
+                    <index>2</index>
                     <children>
                         <Layout name="source_clip" type="NORMAL">
                             <x>REL 15</x>
@@ -76,11 +112,11 @@
                     </children>
                 </Layout>
                 <Layout name="timeline_label" type="NORMAL">
-                    <x>REL 21</x>
+                    <x>REL 15</x>
                     <y>REL 126</y>
                     <w>REL 180</w>
                     <h>REL 21</h>
-                    <index>2</index>
+                    <index>3</index>
                     <children>
                     </children>
                 </Layout>
@@ -89,7 +125,7 @@
                     <y>REL 15</y>
                     <w>REL 30</w>
                     <h>REL 26</h>
-                    <index>3</index>
+                    <index>4</index>
                     <children>
                         <Layout name="hamburger_child1" type="NORMAL">
                             <x>REL 0</x>
@@ -357,7 +393,7 @@
             </children>
         </Layout>
         <Layout name="default_out" type="NORMAL">
-            <x>REL 21</x>
+            <x>REL 15</x>
             <y>REL 35</y>
             <w>REL 186</w>
             <h>REL 20</h>
@@ -384,7 +420,7 @@
             </children>
         </Layout>
         <Layout name="out_waveform_right" type="NORMAL">
-            <x>REL 117</x>
+            <x>REL 111</x>
             <y>REL 64</y>
             <w>REL 90</w>
             <h>REL 45</h>
@@ -393,7 +429,7 @@
             </children>
         </Layout>
         <Layout name="out_waveform_left" type="NORMAL">
-            <x>REL 21</x>
+            <x>REL 15</x>
             <y>REL 64</y>
             <w>REL 90</w>
             <h>REL 45</h>

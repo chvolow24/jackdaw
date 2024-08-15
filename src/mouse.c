@@ -178,6 +178,10 @@ static void mouse_triage_click_control_bar(uint8_t button)
     if (button_click(proj->quickref.previous, main_win)) return;
     if (button_click(proj->quickref.zoom_in, main_win)) return;
     if (button_click(proj->quickref.zoom_out, main_win)) return;
+    if (button_click(proj->quickref.open_file, main_win)) return;
+    if (button_click(proj->quickref.save, main_win)) return;
+    if (button_click(proj->quickref.export_wav, main_win)) return;
+    if (button_click(proj->quickref.track_settings, main_win)) return;
 }
 
 void mouse_triage_click_project(uint8_t button)
@@ -287,7 +291,11 @@ bool mouse_triage_click_tabview()
 {
     TabView *tv;
     if ((tv = main_win->active_tab_view)) {
-	return tab_view_mouse_click(tv);
+	if (!tab_view_mouse_click(tv)) {
+	    tab_view_close(tv);
+	} else {
+	    return true;
+	}
     }
     return false;
 }

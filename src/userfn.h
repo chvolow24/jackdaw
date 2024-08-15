@@ -77,6 +77,7 @@ void user_tl_track_add_filter(void *nullarg);
 void user_tl_track_destroy(void *nullarg);
 
 
+void user_tl_track_open_settings(void *nullarg);
 void user_tl_mute(void *nullarg);
 void user_tl_solo(void *nullarg);
 void user_tl_track_vol_up(void *nullarg);

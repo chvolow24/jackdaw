@@ -1231,6 +1231,29 @@ void layout_size_to_fit_children(Layout *lt, bool fixed_origin, int padding)
     layout_set_values_from_rect(lt);
 }
 
+void layout_size_to_fit_children_h(Layout *lt, bool fixed_origin, int padding)
+{
+    int min_x = main_win->layout->rect.w;
+    int max_x = 0;
+    /* int min_y = main_win->layout->rect.h; */
+    /* int max_y = 0; */
+    int right;
+    for (uint8_t i=0; i<lt->num_children; i++) {
+	Layout *child = lt->children[i];
+	if (child->rect.x < min_x) min_x = child->rect.x;
+	/* if (child->rect.y < min_y) min_y = child->rect.y; */
+	if ((right = child->rect.x + child->rect.w) > max_x) max_x = right;
+	/* if ((bottom = child->rect.y + child->rect.h) > max_y) max_y = bottom; */
+    }
+    if (!fixed_origin) {
+	lt->rect.x = min_x - padding * main_win->dpi_scale_factor;
+	/* lt->rect.y = min_y - padding * main_win->dpi_scale_factor; */
+    }
+    lt->rect.w = max_x - lt->rect.x + padding * main_win->dpi_scale_factor;
+    /* lt->rect.h = max_y - lt->rect.y + padding * main_win->dpi_scale_factor; */
+    layout_set_values_from_rect(lt);
+}
+
 
 
 /* Layout *template; */

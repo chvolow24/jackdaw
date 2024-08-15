@@ -466,7 +466,12 @@ static void control_bar_draw(Project *proj)
     button_draw(proj->quickref.previous);
     button_draw(proj->quickref.zoom_in);
     button_draw(proj->quickref.zoom_out);
-    
+
+    button_draw(proj->quickref.open_file);
+    button_draw(proj->quickref.save);
+    button_draw(proj->quickref.export_wav);
+    button_draw(proj->quickref.track_settings);
+
     /* SOURCE MODE */
     if (proj->source_mode) {
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(source_mode_bckgrnd));

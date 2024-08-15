@@ -191,7 +191,7 @@ extern SDL_Color color_global_grey;
 //typedef void (SliderStrFn)(char *dst, size_t dstsize, void *value, ValType type);
 
 
-void user_tl_track_open_settings(void *nullarg);
+/* void user_tl_track_open_settings(void *nullarg); */
 void loop_project_main()
 {
 
@@ -266,44 +266,6 @@ void loop_project_main()
 		break;
 	    case SDL_KEYDOWN: {
 		switch (e.key.keysym.scancode) {
-		case SDL_SCANCODE_6:
-		    user_tl_track_open_settings(NULL);
-		    /* test_tabview(); */
-		    /* test_page_create(); */
-		    /* fprintf(stdout, "Ck size before: %d\n", proj->chunk_size_sframes); */
-		    /* project_set_chunk_size(512); */
-		    /* fprintf(stdout, "DONE! new chunk size: %d\n", proj->chunk_size_sframes); */
-		    break;
-		case SDL_SCANCODE_7: {
-		    Timeline *tl = proj->timelines[0];
-		    Track *track = tl->tracks[0];
-		    FilterType type = track->fir_filter->type;
-		    double cutoff = track->fir_filter->cutoff_freq;
-		    type++;
-		    type %= 4;
-		    /* double current_cutoff = track->fir_filter->cutoff_freq; */
-		    filter_set_params(track->fir_filter, type, cutoff, 0.05);
-
-		}
-		    break;
-		case SDL_SCANCODE_8: {
-
-		    		    Timeline *tl = proj->timelines[0];
-		    Track *track = tl->tracks[0];
-		    FilterType type = track->fir_filter->type;
-		    double cutoff = track->fir_filter->cutoff_freq;
-		    type--;
-		    type %= 4;
-		    /* double current_cutoff = track->fir_filter->cutoff_freq; */
-		    filter_set_params(track->fir_filter, type, cutoff, 0.05);
-
-		    /* Timeline *tl = proj->timelines[0]; */
-		    /* Track *track = tl->tracks[0]; */
-		    /* double current_cutoff = track->fir_filter->cutoff_freq; */
-		    /* filter_set_params(track->fir_filter, LOWPASS, current_cutoff + 0.001, 0.05); */
-		    
-		}
-		    break;
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LCTRL:

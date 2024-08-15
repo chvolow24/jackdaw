@@ -315,6 +315,12 @@ void project_destroy(Project *proj)
     if (q.zoom_in) button_destroy(q.zoom_in);
     if (q.zoom_out) button_destroy(q.zoom_out);
 
+    if (q.open_file) button_destroy(q.open_file);
+    if (q.save) button_destroy(q.save);
+    if (q.export_wav) button_destroy(q.export_wav);
+    if (q.track_settings) button_destroy(q.track_settings);
+
+
     
     if (proj->status_bar.call) textbox_destroy(proj->status_bar.call);
     if (proj->status_bar.dragstat) textbox_destroy(proj->status_bar.dragstat);
@@ -618,6 +624,30 @@ static int quickref_zoom_out(void *self_v, void *target)
     return 0;
 }
 
+static int quickref_open_file(void *self_v, void *target)
+{
+    user_global_open_file(NULL);
+    return 0;
+}
+
+static int quickref_save(void *self_v, void *target)
+{
+    user_global_save_project(NULL);
+    return 0;
+}
+
+static int quickref_export_wav(void *self_v, void *target)
+{
+    user_tl_write_mixdown_to_wav(NULL);
+    return 0;
+}
+
+static int quickref_track_settings(void *self_v, void *target)
+{
+    user_tl_track_open_settings(NULL);
+    return 0;
+}
+
 void project_init_quickref(Project *proj, Layout *control_bar_lt)
 {
     Layout *quickref_lt = layout_get_child_by_name_recursive(control_bar_lt, "quickref");
@@ -698,7 +728,50 @@ void project_init_quickref(Project *proj, Layout *control_bar_lt)
     b.set_str = ". 🔍+";
     q->zoom_in = create_button_from_params(button_lt, b);
 
+    layout_size_to_fit_children_h(row1, true, 0);
+    layout_size_to_fit_children_h(row2, true, 0);
+    layout_size_to_fit_children_h(row3, true, 0);
     layout_size_to_fit_children(q->layout, true, 0);
+
+    
+
+    /* COL2 */
+
+    Layout *col2 = layout_get_child_by_name_recursive(control_bar_lt, "quickrefcol2");
+    layout_reset(col2);
+    row1 = col2->children[0];
+    row2 = col2->children[1];
+    row3 = col2->children[2];
+
+    button_lt = create_quickref_button_lt(row1);
+    /* b.font = main_win->mono_bold_font; */
+    b.action = quickref_open_file;
+    b.text_size = 12;
+    b.set_str = "Open file (C-o)";
+    q->open_file = create_button_from_params(button_lt, b);
+
+    button_lt = create_quickref_button_lt(row1);
+    b.action = quickref_save;
+    b.set_str = "Save (C-s)";
+    q->save = create_button_from_params(button_lt, b);
+
+    button_lt = create_quickref_button_lt(row2);
+    b.action = quickref_export_wav;
+    b.set_str = "Export wav (S-w)";
+    q->export_wav = create_button_from_params(button_lt, b);
+
+    button_lt = create_quickref_button_lt(row3);
+    b.action = quickref_track_settings;
+    b.set_str = "Track settings (S-t)";
+    q->track_settings = create_button_from_params(button_lt, b);
+    
+    layout_size_to_fit_children_h(row1, true, 0);
+    layout_size_to_fit_children_h(row2, true, 0);
+    layout_size_to_fit_children_h(row3, true, 0);
+    layout_size_to_fit_children(col2, true, 0);
+
+    
+    
 }
 
 int audioconn_open(Project *proj, AudioConn *dev);

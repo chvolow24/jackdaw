@@ -275,6 +275,11 @@ struct quickref {
     Button *rewind, *pause, *play;
     Button *next, *previous;
     Button *zoom_in, *zoom_out;
+
+    Button *open_file;
+    Button *save;
+    Button *export_wav;
+    Button *track_settings;
 };
 
 /* A Jackdaw project. Only one can be active at a time. Can persist on disk as a .jdaw file (see dot_jdaw.c, dot_jdaw.h) */

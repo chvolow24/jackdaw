@@ -250,6 +250,10 @@ void loop_project_main()
 		    if (!mouse_triage_motion_page() && !mouse_triage_motion_tabview()) {
 			mouse_triage_motion_timeline();
 		    }
+		case TABVIEW:
+		    if (!mouse_triage_motion_tabview())
+			mouse_triage_motion_page();
+		    break;
 		default:
 		    break;
 		}
@@ -449,7 +453,7 @@ void loop_project_main()
 		switch(TOP_MODE) {
 		case TIMELINE:
 		    /* fprintf(stdout, "top mode tl\n"); */
-		    if (!mouse_triage_click_page() && !mouse_triage_click_tabview())
+		    /* if (!mouse_triage_click_page() && !mouse_triage_click_tabview()) */
 			mouse_triage_click_project(e.button.button);
 		    break;
 		case MENU_NAV:
@@ -460,6 +464,10 @@ void loop_project_main()
 		    break;
 		case TEXT_EDIT:
 		    mouse_triage_click_text_edit(e.button.button);
+		    break;
+		case TABVIEW:
+		    if (!mouse_triage_click_tabview())
+			mouse_triage_click_page();
 		    break;
 		default:
 		    break;

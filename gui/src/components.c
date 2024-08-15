@@ -16,6 +16,7 @@ extern Window *main_win;
 #define SLIDER_LABEL_V_PAD 2
 #define RADIO_BUTTON_LEFT_COL_W 10
 #define SLIDER_MAX_LABEL_COUNTDOWN 80
+#define SLIDER_NUDGE_PROP 0.05
 #define BUTTON_COLOR_CHANGE_STD_DELAY 400
 
 /* SDL_Color fslider_bckgrnd = {60, 60, 60, 255}; */
@@ -232,6 +233,34 @@ void slider_edit_made(Slider *slider)
     slider->label_countdown = SLIDER_MAX_LABEL_COUNTDOWN;
     slider->editing = true;
     textbox_reset_full(slider->label);
+}
+
+void slider_nudge_right(Slider *slider)
+{
+    Value range = jdaw_val_sub(slider->max, slider->min, slider->val_type);
+    double slider_nudge_prop = SLIDER_NUDGE_PROP;
+    Value nudge_amt = jdaw_val_scale(range, slider_nudge_prop, slider->val_type);
+    Value val = jdaw_val_from_ptr(slider->value, slider->val_type);
+    val = jdaw_val_add(val, nudge_amt, slider->val_type);
+    if (jdaw_val_less_than(slider->max, val, slider->val_type)) {
+	val = slider->max;
+    }
+    jdaw_val_set_ptr(slider->value, slider->val_type, val);
+    slider_reset(slider);
+}
+
+void slider_nudge_left(Slider *slider)
+{
+    Value range = jdaw_val_sub(slider->max, slider->min, slider->val_type);
+    double slider_nudge_prop = SLIDER_NUDGE_PROP;
+    Value nudge_amt = jdaw_val_scale(range, slider_nudge_prop, slider->val_type);
+    Value val = jdaw_val_from_ptr(slider->value, slider->val_type);
+    val = jdaw_val_sub(val, nudge_amt, slider->val_type);
+    if (jdaw_val_less_than(val, slider->min, slider->val_type)) {
+	val = slider->min;
+    }
+    jdaw_val_set_ptr(slider->value, slider->val_type, val);
+    slider_reset(slider);
 }
 /* static int timed_hide_slider_label(void *data) */
 /* { */

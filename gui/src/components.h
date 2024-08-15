@@ -132,6 +132,10 @@ Value slider_val_from_coord(Slider *s, int coord_pix);
 void slider_destroy(Slider *s);
 SliderStrFn slider_std_labelmaker;
 void slider_edit_made(Slider *slider);
+void slider_nudge_right(Slider *slider);
+void slider_nudge_left(Slider *slider);
+
+
 
 /* Button */
 /* Button *button_create(Layout *lt, char *text, ComponentFn action, SDL_Color *text_color, SDL_Color *background_color); */

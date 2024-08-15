@@ -856,7 +856,40 @@ void mode_load_text_edit()
 
 void mode_load_tabview()
 {
+    Mode *mode = mode_create(TABVIEW);
+    modes[TABVIEW] = mode;
 
+    ModeSubcat *sc = mode_add_subcat(mode, "");
+
+    UserFn *fn = create_user_fn(
+	"tabview_next_escape",
+	"Next element",
+	user_tabview_next_escape);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tabview_previous_escape",
+	"Previous element",
+	user_tabview_previous_escape);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tabview_enter",
+	"Select",
+	user_tabview_enter);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tabview_left",
+	"Move left",
+	user_tabview_left);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tabview_right",
+	"Move right",
+	user_tabview_right);
+    mode_subcat_add_fn(sc, fn);
 }
 void input_init_mode_load_all()
 {

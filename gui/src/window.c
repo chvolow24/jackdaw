@@ -315,6 +315,7 @@ void window_destroy(Window *win)
     free(win);    
 }
 
+#ifndef LAYOUT_BUILD
 void window_pop_menu(Window *win)
 {
     if (win->num_menus > 0) {
@@ -325,6 +326,7 @@ void window_pop_menu(Window *win)
 	window_pop_mode(win);
     }
 }
+#endif
 
 /* extern Window *main_win; */
 void window_add_menu(Window *win, Menu *menu)

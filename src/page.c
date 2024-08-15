@@ -155,6 +155,7 @@ static void page_el_destroy(PageEl *el)
 	waveform_destroy_freq_plot((struct freq_plot *)el->component);
 	break;
     case EL_BUTTON:
+	button_destroy((Button *)el->component);
 	break;
     default:
 	break;
@@ -194,6 +195,21 @@ static void page_el_reset(PageEl *el)
 	break;
     default:
 	break;
+    }
+}
+
+static inline bool el_is_selectable(PageElType type)
+{
+    switch (type) {
+    case EL_BUTTON:
+    case EL_RADIO:
+    case EL_SLIDER:
+    case EL_TEXTENTRY:
+    case EL_TOGGLE:
+	return true;
+    default:
+	return false;
+	
     }
 }
 
@@ -306,6 +322,10 @@ PageEl *page_add_el(
     page_el_set_params(el, params, page);
     page->elements[page->num_elements] = el;
     page->num_elements++;
+    if (el_is_selectable(type)) {
+	page->selectable_els[page->num_selectable] = el;
+	page->num_selectable++;
+    }
     page_el_reset(el);
     return el;
 }
@@ -491,8 +511,12 @@ void page_draw(Page *page)
     geom_draw_rounded_rect_thick(page->win->rend, &temp, 7, TAB_R * page->win->dpi_scale_factor, page->win->dpi_scale_factor);
     for (uint8_t i=0; i<page->num_elements; i++) {
 	page_el_draw(page->elements[i]);
+	if (page->elements[i] == page->selectable_els[page->selected_i]) {
+	    SDL_SetRenderDrawColor(page->win->rend, 255, 200, 10, 255);
+	    SDL_Rect r = page->elements[i]->layout->rect;
+	    geom_draw_rect_thick(page->win->rend, &r, 2, 2);
+	}
     }
-
     /* static bool sf = false; */
     /* layout_draw(page->win, page->layout); */
     /* if (!sf) { */
@@ -562,6 +586,7 @@ void tab_view_activate(TabView *tv)
 	tab_view_destroy(win->active_tab_view);
     }
     win->active_tab_view = tv;
+    window_push_mode(tv->win, TABVIEW);
 }
 
 void page_close(Page *page)
@@ -573,5 +598,66 @@ void tab_view_close(TabView *tv)
 {
     tv->win->active_tab_view = NULL;
     tab_view_destroy(tv);
+    window_pop_mode(tv->win);
 }
 
+
+/* NAVIGATION FUNCTIONS */
+void page_next_escape(Page *page)
+{
+    if (page->selected_i < page->num_selectable - 1)
+	page->selected_i++;
+    else page->selected_i = 0;
+}
+
+void page_previous_escape(Page *page)
+{
+    if (page->selected_i > 0)
+	page->selected_i--;
+    else page->selected_i = page->num_selectable - 1;
+}
+
+void page_enter(Page *page)
+{
+    PageEl *el = page->selectable_els[page->selected_i];
+    switch (el->type) {
+    case EL_TOGGLE:
+	toggle_toggle((Toggle *)el->component);
+	break;
+    default:
+	break;
+    }
+}
+void page_next(Page *page)
+{
+
+}
+void page_previous(Page *page)
+{
+
+}
+
+void page_right(Page *page)
+{
+    PageEl *el = page->selectable_els[page->selected_i];
+    switch (el->type) {
+    case EL_SLIDER:
+	slider_nudge_right((Slider *)el->component);
+	break;
+    default:
+	break;
+    }
+}
+
+void page_left(Page *page)
+{
+        PageEl *el = page->selectable_els[page->selected_i];
+    switch (el->type) {
+    case EL_SLIDER:
+	slider_nudge_left((Slider *)el->component);
+	break;
+    default:
+	break;
+    }
+}
+    

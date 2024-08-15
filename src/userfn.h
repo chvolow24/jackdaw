@@ -129,4 +129,13 @@ void user_text_edit_backspace(void *nullarg);
 void user_text_edit_cursor_right(void *nullarg);
 void user_text_edit_cursor_left(void *nullarg);
 void user_text_edit_select_all(void *nullarg);
+
+
+void user_tabview_next_escape(void *nullarg);
+void user_tabview_previous_escape(void *nullarg);
+void user_tabview_enter(void *nullarg);
+void user_tabview_left(void *nullarg);
+void user_tabview_right(void *nullarg);
+
 #endif
+

@@ -1704,14 +1704,72 @@ void user_text_edit_select_all(void *nullarg)
     }
 }
 
-
-/*
+void user_tabview_next_escape(void *nullarg)
+{
+    TabView *tv = main_win->active_tab_view;
+    Page *page = NULL;
+    if (tv) {
+	page = tv->tabs[tv->current_tab];
+    } else {
+	page = main_win->active_page;
+    }
+    if (page) {
+	page_next_escape(page);
+    }
 }
 
-void user_tl_pause()
+void user_tabview_previous_escape(void *nullarg)
 {
+    TabView *tv = main_win->active_tab_view;
+    Page *page = NULL;
+    if (tv) {
+	page = tv->tabs[tv->current_tab];
+    } else {
+	page = main_win->active_page;
+    }
+    if (page) {
+	page_previous_escape(page);
+    }
+}
 
-
-void user_tl_rewind()
+void user_tabview_enter(void *nullarg)
 {
-*/
+    TabView *tv = main_win->active_tab_view;
+    Page *page = NULL;
+    if (tv) {
+	page = tv->tabs[tv->current_tab];
+    } else {
+	page = main_win->active_page;
+    }
+    if (page) {
+	page_enter(page);
+    }
+}
+
+void user_tabview_left(void *nullarg)
+{
+    TabView *tv = main_win->active_tab_view;
+    Page *page = NULL;
+    if (tv) {
+	page = tv->tabs[tv->current_tab];
+    } else {
+	page = main_win->active_page;
+    }
+    if (page) {
+	page_left(page);
+    }
+}
+
+void user_tabview_right(void *nullarg)
+{
+    TabView *tv = main_win->active_tab_view;
+    Page *page = NULL;
+    if (tv) {
+	page = tv->tabs[tv->current_tab];
+    } else {
+	page = main_win->active_page;
+    }
+    if (page) {
+	page_right(page);
+    }
+}

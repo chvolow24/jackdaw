@@ -6,7 +6,7 @@
 #include "textbox.h"
 #include "value.h"
 
-#define MAX_ELEMENTS 255
+#define MAX_ELEMENTS 64
 #define MAX_TABS 16
 
 #define TAB_H 32
@@ -35,7 +35,10 @@ typedef struct page_element {
 typedef struct page {
     const char *title;
     PageEl *elements[MAX_ELEMENTS];
+    PageEl *selectable_els[MAX_ELEMENTS];
     uint8_t num_elements;
+    uint8_t num_selectable;
+    uint8_t selected_i;
     Layout *layout;
     SDL_Color *background_color;
     SDL_Color *text_color;
@@ -193,5 +196,13 @@ void tab_view_draw(TabView *tv);
 
 void page_activate(Page *page);
 void page_close(Page *page);
+
+void page_next_escape(Page *page);
+void page_previous_escape(Page *page);
+void page_next(Page *page);
+void page_previous(Page *page);
+void page_right(Page *page);
+void page_left(Page *page);
+void page_enter(Page *page);
 
 #endif

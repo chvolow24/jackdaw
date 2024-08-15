@@ -303,6 +303,9 @@ void window_destroy(Window *win)
     if (win->mono_bold_font) {
 	ttf_destroy_font(win->mono_bold_font);
     }
+    if (win->symbolic_font) {
+	ttf_destroy_font(win->symbolic_font);
+    }
     if (win->rend) {
 	SDL_DestroyRenderer(win->rend);
     }

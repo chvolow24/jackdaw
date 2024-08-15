@@ -308,6 +308,7 @@ void project_destroy(Project *proj)
     if (q.left) button_destroy(q.left);
     if (q.rewind) button_destroy(q.rewind);
     if (q.play) button_destroy(q.play);
+    if (q.right) button_destroy(q.right);
     if (q.pause) button_destroy(q.pause);
     if (q.next) button_destroy(q.next);
     if (q.previous) button_destroy(q.previous);

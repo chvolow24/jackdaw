@@ -212,6 +212,7 @@ void waveform_destroy_freq_plot(struct freq_plot *fp)
     free(fp->colors);
     free(fp->steps);
     layout_destroy(fp->container);
+    free(fp->plots);
     free(fp);
 }
 

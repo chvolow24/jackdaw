@@ -75,6 +75,7 @@ extern SDL_Color freq_R_color;
 
 extern Project *proj;
 
+extern volatile bool cancel_threads;
 
 /* static int timed_stop_update_track_vol_pan(void *data) */
 /* { */
@@ -90,7 +91,10 @@ static int timed_hide_slider_label(void *data)
 {
     Slider *fs = (Slider *)data;
     if (fs->editing) {
-	SDL_Delay(STICK_DELAY_MS);
+	for (int i=0; i<STICK_DELAY_MS; i++) {
+	    if (cancel_threads) return 0;
+	    SDL_Delay(1);
+	}
 	fs->editing = false;
     }
     return 0;
@@ -357,18 +361,18 @@ void loop_project_main()
 		break;
 	    case SDL_MOUSEWHEEL: {
 		mouse_triage_wheel(e.wheel.x * TL_SCROLL_STEP_H, e.wheel.y * TL_SCROLL_STEP_V);
-		if (main_win->modes[main_win->num_modes - 1] == TIMELINE) {
+		if (main_win->modes[main_win->num_modes - 1] == TIMELINE || main_win->modes[main_win->num_modes - 1] == TABVIEW) {
 		    if (main_win->i_state & I_STATE_SHIFT) {
 			if (main_win->i_state & I_STATE_CMDCTRL)
-			    if (main_win->i_state & I_STATE_META) {
-				Timeline *tl = proj->timelines[0];
-				Track *track = tl->tracks[0];
-				double current_cutoff = track->fir_filter->cutoff_freq;
-				FilterType type = track->fir_filter->type;
-				double filter_adj = 0.001;
-				filter_set_params(track->fir_filter, type, current_cutoff + filter_adj * e.wheel.y, 0.05);
-			    } else 
-				proj->play_speed += e.wheel.y * PLAYSPEED_ADJUST_SCALAR_LARGE;
+			    /* if (main_win->i_state & I_STATE_META) { */
+			    /* 	Timeline *tl = proj->timelines[0]; */
+			    /* 	Track *track = tl->tracks[0]; */
+			    /* 	double current_cutoff = track->fir_filter->cutoff_freq; */
+			    /* 	FilterType type = track->fir_filter->type; */
+			    /* 	double filter_adj = 0.001; */
+			    /* 	filter_set_params(track->fir_filter, type, current_cutoff + filter_adj * e.wheel.y, 0.05); */
+			    /* } else  */
+			    proj->play_speed += e.wheel.y * PLAYSPEED_ADJUST_SCALAR_LARGE;
 			else 
 			    proj->play_speed += e.wheel.y * PLAYSPEED_ADJUST_SCALAR_SMALL;
 			

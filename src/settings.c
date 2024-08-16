@@ -203,6 +203,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 {
 
     FIRFilter *f = track->fir_filter;
+    
     for (int i=0; i<tv->num_tabs; i++) {
 	page_destroy(tv->tabs[i]);
 	textbox_destroy(tv->labels[i]);
@@ -337,14 +338,14 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 
     if (!track->buf_L_freq_mag) track->buf_L_freq_mag = calloc(f->frequency_response_len, sizeof(double));
     if (!track->buf_R_freq_mag) track->buf_R_freq_mag = calloc(f->frequency_response_len, sizeof(double));
+    
     double *arrays[3] = {
 	track->buf_L_freq_mag,
 	track->buf_R_freq_mag,
 	/* proj->output_L_freq, */
 	/* proj->output_R_freq, */
 	f->frequency_response_mag
-    };
-	
+    };	
     int steps[] = {1, 1, 1};
     SDL_Color *plot_colors[] = {&freq_L_color, &freq_R_color, &color_global_white};
     p.freqplot_p.arrays = arrays;

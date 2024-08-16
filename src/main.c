@@ -74,6 +74,7 @@ char DIRPATH_OPEN_FILE[MAX_PATHLEN];
 char DIRPATH_EXPORT[MAX_PATHLEN];
 
 bool sys_byteorder_le = false;
+volatile bool cancel_threads = false;
 
 Window *main_win;
 Project *proj = NULL;
@@ -130,6 +131,7 @@ static void init()
 
 static void quit()
 {
+    cancel_threads = true;
     pd_signal_termination_of_jackdaw();
     if (proj->recording) {
 	transport_stop_recording();

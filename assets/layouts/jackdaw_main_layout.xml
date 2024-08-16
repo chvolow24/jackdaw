@@ -13,7 +13,7 @@
             <index>0</index>
             <children>
                 <Layout name="quickref" type="NORMAL">
-                    <x>REL 210</x>
+                    <x>REL 250</x>
                     <y>REL 33</y>
                     <w>REL 170</w>
                     <h>REL 93</h>
@@ -49,7 +49,7 @@
                     </children>
                 </Layout>
                 <Layout name="quickrefcol2" type="NORMAL">
-                    <x>STACK 10</x>
+                    <x>STACK 70</x>
                     <y>REL 33</y>
                     <w>REL 170</w>
                     <h>REL 93</h>
@@ -85,9 +85,9 @@
                     </children>
                 </Layout>
                 <Layout name="source_area" type="NORMAL">
-                    <x>STACK 10</x>
+                    <x>REL 318</x>
                     <y>REL 33</y>
-                    <w>SCALE 0.300000</w>
+                    <w>SCALE 0.460833</w>
                     <h>REL 93</h>
                     <index>2</index>
                     <children>

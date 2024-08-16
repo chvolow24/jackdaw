@@ -273,6 +273,12 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 	if (new_proj) {
 	    project_destroy(proj);
 	    proj = new_proj;
+	    /* layout_destroy(main_win->layout); */
+	    main_win->layout = new_proj->layout;
+	    layout_reset(main_win->layout);
+	    /* window_resize_passive(main_win, , main_win->h_pix); */
+	    /* layout_force_reset(new_proj->layout); */
+
 	} else {
 	    status_set_errstr("Error opening jdaw project");
 	}

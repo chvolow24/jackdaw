@@ -13,11 +13,9 @@ extern SDL_Color color_global_clear;
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_green;
 extern SDL_Color color_global_grey;
+extern volatile bool cancel_threads;
 int textbox_default_radius = 0;
 
-void do2_fn() {
-    printf("Doing 2 fn\n");
-}
 /*txt_create_from_str(char *set_str, int max_len, SDL_Rect *container, TTF_Font *font, SDL_Color txt_clr, TextAlign align, bool truncate, SDL_Renderer *rend) -> Text **/
 Textbox *textbox_create_from_str(
     char *set_str,
@@ -28,7 +26,6 @@ Textbox *textbox_create_from_str(
     Window *win
     )
 {
-    if (strcmp("Track FIR Filter", set_str) == 0) do2_fn();
     Textbox *tb = malloc(sizeof(Textbox));
     tb->layout = lt;
     tb->bckgrnd_clr = &textbox_default_bckgrnd_clr;
@@ -196,7 +193,12 @@ void textbox_draw(Textbox *tb)
 static int scheduled_color_change(void *data)
 {
     Textbox *tb = (Textbox *)data;
-    SDL_Delay(tb->color_change_timer);
+    for (int i=0; i<tb->color_change_timer; i++) {
+	if (cancel_threads) return 0;
+	SDL_Delay(1);
+	
+    }
+    /* SDL_Delay(tb->color_change_timer); */
     if (tb->color_change_target_text) {
 	textbox_set_text_color(tb, tb->color_change_new_color);
     } else {

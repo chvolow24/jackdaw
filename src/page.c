@@ -526,10 +526,6 @@ void page_draw(Page *page)
     /* } */
 }
 
-int test(int some_other) {
-    return some_other + 2;
-}
-
 static inline void tab_view_draw_inner(TabView *tv, uint8_t i)
 {
     Page *page = tv->tabs[i];

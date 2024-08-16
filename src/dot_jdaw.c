@@ -216,7 +216,8 @@ static void jdaw_write_track(FILE *f, Track *track)
     fwrite(&track->fir_filter_active, 1, 1, f);
     FIRFilter *filter;
     if (track->fir_filter_active && (filter = track->fir_filter)) {
-	fwrite(&filter->type, 1, 1, f);
+	uint8_t type_byte = (uint8_t)filter->type;
+	fwrite(&type_byte, 1, 1, f);
 	snprintf(float_value_buffer, 16, "%f", filter->cutoff_freq);
 	fwrite(float_value_buffer, 1, 16, f);
 	snprintf(float_value_buffer, 16, "%f", filter->bandwidth);
@@ -510,21 +511,23 @@ static void jdaw_read_track(FILE *f, Timeline *tl)
 	fread(&track->fir_filter_active, 1, 1, f);
 	if (track->fir_filter_active) {
 /* filter_create(FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len) -> FIRFilter * */
+	    uint8_t type_byte;
 	    FilterType type;
 	    double cutoff_freq;
 	    double bandwidth;
 	    uint16_t impulse_response_len;
-	    fread(&type, 1, 1, f);
+	    fread(&type_byte, 1, 1, f);
+	    type = (FilterType)type_byte;
 	    fread(floatvals, 1, 16, f);
 	    floatvals[16] = '\0';
 	    cutoff_freq = atof(floatvals);
 	    fread(floatvals, 1, 16, f);
 	    bandwidth = atof(floatvals);
 	    fread(&impulse_response_len, 2, 1, f);
-	    track->fir_filter = filter_create(
-		type,
-		impulse_response_len,
-		proj->fourier_len_sframes * 2);
+	    /* track->fir_filter = filter_create( */
+	    /* 	type, */
+	    /* 	impulse_response_len, */
+	    /* 	tl->proj->fourier_len_sframes * 2); */
 	    filter_set_params(track->fir_filter, type, cutoff_freq, bandwidth);
 	} else {
 	    fseek(f, 35, SEEK_CUR);

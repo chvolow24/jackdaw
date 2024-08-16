@@ -335,7 +335,7 @@ void transport_stop_playback()
 	sem_post(tl->writable_chunks);
 	sem_post(tl->readable_chunks);
     }
-    pthread_cancel(proj->dsp_thread);
+    if (proj->dsp_thread) pthread_cancel(proj->dsp_thread);
     audioconn_stop_playback(proj->playback_conn);
     /* fprintf(stdout, "RESETTING SEMS from tl %p\n", tl); */
     while (sem_trywait(tl->unpause_sem) == 0) {};

@@ -13,7 +13,9 @@ extern SDL_Color color_global_clear;
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_green;
 extern SDL_Color color_global_grey;
+#ifndef LAYOUT_BUILD
 extern volatile bool cancel_threads;
+#endif
 int textbox_default_radius = 0;
 
 /*txt_create_from_str(char *set_str, int max_len, SDL_Rect *container, TTF_Font *font, SDL_Color txt_clr, TextAlign align, bool truncate, SDL_Renderer *rend) -> Text **/
@@ -194,7 +196,9 @@ static int scheduled_color_change(void *data)
 {
     Textbox *tb = (Textbox *)data;
     for (int i=0; i<tb->color_change_timer; i++) {
+	#ifndef LAYOUT_BUILD
 	if (cancel_threads) return 0;
+	#endif
 	SDL_Delay(1);
 	
     }

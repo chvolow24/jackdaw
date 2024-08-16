@@ -524,10 +524,10 @@ static void jdaw_read_track(FILE *f, Timeline *tl)
 	    fread(floatvals, 1, 16, f);
 	    bandwidth = atof(floatvals);
 	    fread(&impulse_response_len, 2, 1, f);
-	    /* track->fir_filter = filter_create( */
-	    /* 	type, */
-	    /* 	impulse_response_len, */
-	    /* 	tl->proj->fourier_len_sframes * 2); */
+	    if (!track->fir_filter) track->fir_filter = filter_create(
+		type,
+		impulse_response_len,
+		tl->proj->fourier_len_sframes * 2);
 	    filter_set_params(track->fir_filter, type, cutoff_freq, bandwidth);
 	} else {
 	    fseek(f, 35, SEEK_CUR);

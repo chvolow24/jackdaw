@@ -457,6 +457,7 @@ The `pd_jackdaw~` objects inlets are for the left and right channels of audio. I
 - Quit : <kbd>C-q</kbd>
 - Undo : <kbd>C-z</kbd>
 - Redo : <kbd>C-y</kbd>
+- Show output spectrum : <kbd>S-f</kbd>
 - Save Project : <kbd>C-s</kbd>
 - Open File (.wav or .jdaw) : <kbd>C-o</kbd>
 - Start or stop screenrecording : <kbd>A-S-p</kbd>
@@ -471,7 +472,8 @@ The `pd_jackdaw~` objects inlets are for the left and right channels of audio. I
 - Move menu up : <kbd>\<up\></kbd>
 - Move menu down : <kbd>\<down\></kbd>
 - Move menu right : <kbd>\<right\></kbd>
-- go back (dismiss) : <kbd>m</kbd>, <kbd>h</kbd>, <kbd>\<esc\></kbd>
+- Move menu left : <kbd>\<left\></kbd>
+- go back (dismiss) : <kbd>\<del\></kbd>, <kbd>m</kbd>, <kbd>h</kbd>, <kbd>\<esc\></kbd>
 ### timeline mode
 #### Playback / Record
 - Play : <kbd>l</kbd>, <kbd>e</kbd>
@@ -479,6 +481,12 @@ The `pd_jackdaw~` objects inlets are for the left and right channels of audio. I
 - Rewind : <kbd>j</kbd>, <kbd>q</kbd>
 - Play slow : <kbd>K-l</kbd>, <kbd>S-l</kbd>
 - Rewind slow : <kbd>K-j</kbd>, <kbd>S-j</kbd>
+- Nudge play position left (500 samples) : <kbd>\<left\></kbd>
+- Nudge play position right (500 samples) : <kbd>\<right\></kbd>
+- Nudge play position left (100 samples) : <kbd>S-\<left\></kbd>
+- Nudge play position right (100 samples) : <kbd>S-\<right\></kbd>
+- Move one sample left : <kbd>C-S-\<left\></kbd>
+- Move one sample right : <kbd>C-S-\<right\></kbd>
 - Record (start or stop) : <kbd>r</kbd>
 #### Timeline navigation
 - Move track selector up : <kbd>p</kbd>, <kbd>d</kbd>
@@ -510,6 +518,7 @@ The `pd_jackdaw~` objects inlets are for the left and right channels of audio. I
 - Activate track 8 : <kbd>8</kbd>
 - Activate track 9 : <kbd>9</kbd>
 #### Track settings
+- Open track settings : <kbd>S-t</kbd>
 - Mute or unmute selected track(s) : <kbd>m</kbd>
 - Solo or unsolo selected track(s) : <kbd>s</kbd>
 - Track volume up : <kbd>S-=</kbd>
@@ -518,7 +527,6 @@ The `pd_jackdaw~` objects inlets are for the left and right channels of audio. I
 - Track pan right : <kbd>S-0</kbd>
 - Rename selected track : <kbd>C-r</kbd>
 - Set track input : <kbd>C-S-i</kbd>
-- Add filter to track : <kbd>C-S-f</kbd>
 #### Clips
 - Grab clip at point : <kbd>g</kbd>
 - Start or stop dragging clips : <kbd>C-k</kbd>
@@ -560,11 +568,18 @@ The `pd_jackdaw~` objects inlets are for the left and right channels of audio. I
 - Move cursor right : <kbd>\<right\></kbd>, <kbd>C-f</kbd>
 - Move cursor left : <kbd>\<left\></kbd>, <kbd>C-d</kbd>, <kbd>C-b</kbd>
 - Select all : <kbd>C-a</kbd>
-
+### tabview mode
+- Next element : <kbd>\<tab\></kbd>
+- Previous element : <kbd>S-\<tab\></kbd>
+- Select : <kbd>\<ret\></kbd>
+- Move left : <kbd>h</kbd>
+- Move right : <kbd>;</kbd>
+- Next tab : <kbd>S-;</kbd>
+- Previous tab : <kbd>S-h</kbd>
 
 ...
 
 
-[ LAST UPDATED 2024-06-23 SUNDAY ]
+[ LAST UPDATED 2024-08-16 FRIDAY ]
 
 ...

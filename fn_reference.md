@@ -64,6 +64,7 @@
 - Activate track 8 : <kbd>8</kbd>
 - Activate track 9 : <kbd>9</kbd>
 #### Track settings
+- Open track settings : <kbd>S-t</kbd>
 - Mute or unmute selected track(s) : <kbd>m</kbd>
 - Solo or unsolo selected track(s) : <kbd>s</kbd>
 - Track volume up : <kbd>S-=</kbd>
@@ -113,3 +114,11 @@
 - Move cursor right : <kbd>\<right\></kbd>, <kbd>C-f</kbd>
 - Move cursor left : <kbd>\<left\></kbd>, <kbd>C-d</kbd>, <kbd>C-b</kbd>
 - Select all : <kbd>C-a</kbd>
+### tabview mode
+- Next element : <kbd>\<tab\></kbd>
+- Previous element : <kbd>S-\<tab\></kbd>
+- Select : <kbd>\<ret\></kbd>
+- Move left : <kbd>h</kbd>
+- Move right : <kbd>;</kbd>
+- Next tab : <kbd>S-;</kbd>
+- Previous tab : <kbd>S-h</kbd>

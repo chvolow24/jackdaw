@@ -53,8 +53,6 @@
 
 #include "audio_connection.h"
 
-/* #define JACKDAW_VERSION "0.2.0" */
-
 #define LT_DEV_MODE 0
 
 #ifndef INSTALL_DIR
@@ -68,7 +66,7 @@
 
 #define DEFAULT_PROJ_AUDIO_SETTINGS 2, 48000, AUDIO_S16SYS, 1024, 2048
 
-const char *JACKDAW_VERSION = "0.2.0";
+const char *JACKDAW_VERSION = "0.3.0";
 char DIRPATH_SAVED_PROJ[MAX_PATHLEN];
 char DIRPATH_OPEN_FILE[MAX_PATHLEN];
 char DIRPATH_EXPORT[MAX_PATHLEN];

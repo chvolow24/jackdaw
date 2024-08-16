@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "project.h"
+#include "transport.h"
 
 #define MAX_SFPP 80000
 
@@ -152,7 +153,6 @@ void timeline_rescale(double sfpp_scale_factor, bool on_mouse)
     tl->display_offset_sframes += (timeline_get_abs_w_sframes(offset_draw_delta));
 
     timeline_reset(tl);
-    fprintf(stdout, "Sample frames per pixel: %d\n", tl->sample_frames_per_pixel);
     /* Track *track = NULL; */
     /* for (int i=0; i<tl->num_tracks; i++) { */
     /*     track = tl->tracks[i]; */
@@ -198,8 +198,20 @@ void timeline_set_timecode()
 void timeline_set_play_position(int32_t abs_pos_sframes)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
+    /* float saved_speed = proj->play_speed; */
+    /* bool restart = false; */
+    /* if (proj->playing) { */
+    /* 	transport_stop_playback(); */
+    /* 	restart = true; */
+    /* } */
     tl->play_pos_sframes = abs_pos_sframes;
-    /* timeline_set_timecode(); */
+    tl->read_pos_sframes = abs_pos_sframes;
+    /* if (restart) { */
+    /* 	proj->play_speed = saved_speed; */
+    /* 	transport_start_playback(); */
+    /* } */
+    timeline_set_timecode();
+    tl->needs_redraw = true;
 }
 
 
@@ -213,9 +225,10 @@ void timeline_move_play_position(int32_t move_by_sframes)
 	for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
 	    ClipRef *cr = tl->grabbed_clips[i];
 	    cr->pos_sframes += move_by_sframes;
-	    clipref_reset(cr);
+	    /* clipref_reset(cr); */
 	}
     }
+    tl->needs_redraw = true;
     
     /* timeline_set_timecode(); */
 }

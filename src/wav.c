@@ -54,6 +54,7 @@ Positions	Sample Value	    Description
 #include <stdio.h>
 #include <string.h>
 #include "SDL.h"
+#include "dir.h"
 #include "project.h"
 #include "mixdown.h"
 #include "transport.h"
@@ -120,16 +121,19 @@ void wav_write_mixdown(const char *filepath)
     Timeline *tl = proj->timelines[proj->active_tl_index];
     /* reset_overlap_buffers(); */
     fprintf(stdout, "Chunk size sframes: %d, chan: %d, sr: %d\n", proj->chunk_size_sframes, proj->channels, proj->sample_rate);
-    uint16_t chunk_len_sframes = proj->chunk_size_sframes;
+    uint16_t chunk_len_sframes = proj->fourier_len_sframes;
     uint16_t chunk_len_samples = chunk_len_sframes * proj->channels;
     uint32_t len_sframes = tl->out_mark_sframes - tl->in_mark_sframes;
     uint32_t len_samples = proj->channels * len_sframes;
-    uint32_t chunks = len_sframes / proj->chunk_size_sframes;
+    uint32_t chunks = len_sframes / chunk_len_sframes;
     int16_t *samples = malloc(sizeof(int16_t) * len_samples);
 
     for (uint32_t c=0; c<chunks; c++) {
-        float *samples_L = get_mixdown_chunk(tl, 0, chunk_len_sframes, tl->in_mark_sframes + (c * chunk_len_sframes), 1);
-        float *samples_R = get_mixdown_chunk(tl, 1, chunk_len_sframes, tl->in_mark_sframes + (c * chunk_len_sframes), 1);
+	/* fprintf(stdout, "C/chunks: %d/%d\n", c, chunks); */
+        float *samples_L = malloc(sizeof(float) * chunk_len_sframes);
+	float *samples_R = malloc(sizeof(float) * chunk_len_sframes);
+	get_mixdown_chunk(tl, samples_L, 0, chunk_len_sframes, tl->in_mark_sframes + (c * chunk_len_sframes), 1);
+        get_mixdown_chunk(tl, samples_R, 1, chunk_len_sframes, tl->in_mark_sframes + (c * chunk_len_sframes), 1);
         for (uint32_t i=0; i<chunk_len_samples; i+=2) {
             samples[c * chunk_len_samples + i] = samples_L[i/2] * INT16_MAX;
             samples[c * chunk_len_samples + i + 1] = samples_R[i/2] * INT16_MAX;
@@ -212,6 +216,10 @@ void wav_load_to_track(Track *track, const char *filename, int32_t start_pos) {
         clip->R[i/2] = (float) src_buf[i+1] / INT16_MAX;
     }
     free(wav_cvt.buf);
-    track_create_clip_ref(track, clip, start_pos, true);
+    ClipRef *cr = track_create_clip_ref(track, clip, start_pos, true);
+    char *filename_modifiable = strdup(filename);
+    strncpy(clip->name, path_get_tail(filename_modifiable), MAX_NAMELENGTH);
+    strncpy(cr->name, path_get_tail(filename_modifiable), MAX_NAMELENGTH);
+    free(filename_modifiable);
     timeline_reset(track->tl);
 }

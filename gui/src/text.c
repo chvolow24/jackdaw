@@ -63,7 +63,8 @@ static void init_empty_text(
     txt->max_len = 0;
     txt->container = container;
     txt->text_lt = layout_add_child(container);
-
+    layout_set_name(txt->text_lt, "txt_layout");
+    
     /* txt->font = font; */
     txt->font = font;
     txt->text_size = text_size;
@@ -97,7 +98,7 @@ static Text *create_empty_text(
 )
 {
 
-    Text *txt = malloc(sizeof(Text));
+    Text *txt = calloc(1, sizeof(Text));
     init_empty_text(txt, container, font, text_size, txt_clr, align, truncate, win);
     return txt;
 }
@@ -118,7 +119,10 @@ void txt_reset_drawable(Text *txt)
 	txt->texture = NULL;
     }
 
+    /* char *pause_symbol = "hello↑⏵⏸⏴world\0"; */
     SDL_Surface *surface = TTF_RenderUTF8_Blended(font, txt->display_value, txt->color);
+    /* SDL_Surface *surface = TTF_RenderUTF8_Blended(font, pause_symbol, txt->color); */
+
     if (!surface) {
         fprintf(stderr, "Error: TTF_RenderText_Blended failed: %s\n", TTF_GetError());
         return;
@@ -329,8 +333,10 @@ static void handle_backspace(Text *txt)
     txt_reset_drawable(txt);
 }
 
+#ifndef LAYOUT_BUILD
 void txt_edit(Text *txt, void (*draw_fn) (void))
 {
+    /* fprintf(stdout, "NEW txt edit\n"); */
     /* txt->truncate = false; */
     /* txt_reset_display_value(txt); */
     txt->show_cursor = true;
@@ -340,6 +346,7 @@ void txt_edit(Text *txt, void (*draw_fn) (void))
     main_win->txt_editing = txt;
     SDL_StartTextInput();
 }
+#endif
 
 void txt_stop_editing(Text *txt)
 {
@@ -386,7 +393,8 @@ void txt_edit_select_all(Text *txt)
     txt->cursor_end_pos = strlen(txt->display_value);
 }
 
-void __txt_edit(Text *txt, void (*draw_fn) (void))
+#ifdef LAYOUT_BUILD
+void txt_edit(Text *txt, void (*draw_fn) (void))
 {
     bool save_truncate = txt->truncate;
     txt->truncate = false;
@@ -396,13 +404,78 @@ void __txt_edit(Text *txt, void (*draw_fn) (void))
     txt->cursor_end_pos = txt->len;
     bool done = false;
     // bool mousedown = false;
-    /* bool cmdctrldown = false; */
+    bool cmdctrldown = false;
     SDL_StartTextInput();
     while (!done) {
         // get_mousep(main_win, &mousep);
         SDL_Event e;
 
         while (SDL_PollEvent(&e)) {
+            if (e.type == SDL_QUIT 
+                || (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_CLOSE) 
+                || e.type == SDL_MOUSEBUTTONDOWN) {
+                done = true;
+                /* Push the event back to the main event stack, so it can be handled in main.c */
+                SDL_PushEvent(&e);
+            } else if (e.type == SDL_TEXTINPUT) {
+                handle_char(txt, e.text.text[0]);
+                txt_reset_drawable(txt);
+            } else if (e.type == SDL_KEYDOWN) {
+                switch (e.key.keysym.scancode) {
+		case SDL_SCANCODE_RETURN:
+		case SDL_SCANCODE_KP_ENTER:
+		case SDL_SCANCODE_TAB:
+		    done = true;
+		    break;
+		case SDL_SCANCODE_LGUI:
+		case SDL_SCANCODE_RGUI:
+		case SDL_SCANCODE_LCTRL:
+		case SDL_SCANCODE_RCTRL:
+		    cmdctrldown = true;
+		    break;
+		case SDL_SCANCODE_LEFT:
+		    cursor_left(txt);
+		    break;
+		case SDL_SCANCODE_RIGHT:
+		    cursor_right(txt);
+		    break;
+		case SDL_SCANCODE_BACKSPACE:
+		    handle_backspace(txt);
+		    // set_text_value(txt, txt->display_value);
+		    txt_reset_drawable(txt);
+		    // set_text_value(txt, txt->display_value);
+		    break;
+		case SDL_SCANCODE_SPACE:
+		    handle_char(txt, ' ');
+		    txt_reset_drawable(txt);
+		    // set_text_value(txt, txt->display_value);
+		    break;
+		case SDL_SCANCODE_A:
+		    if (cmdctrldown) {
+			txt->cursor_start_pos = 0;
+			txt->cursor_end_pos = strlen(txt->display_value);
+		    }
+		    break;
+		default: {
+		    break;
+		}
+
+                }
+            } else if (e.type == SDL_KEYUP) {
+                switch (e.key.keysym.scancode) {
+                    case SDL_SCANCODE_LGUI:
+                    case SDL_SCANCODE_RGUI:
+                    case SDL_SCANCODE_LCTRL:
+                    case SDL_SCANCODE_RCTRL:
+                        cmdctrldown = false;
+                        break;
+                    default: 
+                        break;
+                }
+	    } else if (e.type == SDL_MOUSEMOTION) {
+
+		window_set_mouse_point(main_win, e.motion.x, e.motion.y);
+	    }
         }
 	draw_fn();
 	/* window_end_draw(main_win); */
@@ -421,9 +494,8 @@ void __txt_edit(Text *txt, void (*draw_fn) (void))
     txt_set_value(txt, txt->display_value);
 
     main_win->i_state = 0;
-
-    // draw_main();
 }
+#endif
 
 void txt_destroy(Text *txt)
 {
@@ -539,6 +611,10 @@ static void txt_area_make_line(TextArea *txtarea, char *line_start)
     if (txtarea->text_h == 0) {
 	txtarea->text_h = line_h;
     }
+    /* int w, h; */
+    /* SDL_QueryTexture(texture, NULL, NULL, &w, &h); */
+    /* fprintf(stdout, "Line w and h: %d, %d\n", line_w, line_h); */
+    /* fprintf(stdout, "Texture w and h: %d, %d\n", w, h); */
     txtarea->line_widths[txtarea->num_lines] = line_w;
     txtarea->line_heights[txtarea->num_lines] = line_h;
     txtarea->line_textures[txtarea->num_lines] = texture;
@@ -634,10 +710,12 @@ static int txt_area_create_line(TextArea *txtarea, char **line_start, int w)
     return 0;
 }
 
+/* void reset_iterations(LayoutIterator *iter); */
+
 void txt_area_create_lines(TextArea *txtarea)
 {
     TTF_Font *font = ttf_get_font_at_size(txtarea->font, txtarea->text_size);
-
+    /* fprintf(stdout, "\nTXTAREA CREATE font: %p, Text size: %d\n", txtarea->font, txtarea->text_size); */
     /* Clear old values if present */
     for (int i=0; i<txtarea->num_lines; i++) {
 	SDL_DestroyTexture(txtarea->line_textures[i]);
@@ -654,10 +732,9 @@ void txt_area_create_lines(TextArea *txtarea)
     int w = txtarea->layout->rect.w;
 
     w = w < TXT_AREA_W_MIN ? TXT_AREA_W_MIN : w;
-    fprintf(stdout, "CREATING HEADER w fixed w %d\n", w);
+    /* fprintf(stdout, "CREATING HEADER w fixed w %d\n", w); */
     char *line_start = value_copy;
-    while (txt_area_create_line(txtarea, &line_start, w) > 0) {
-    }
+    while (txt_area_create_line(txtarea, &line_start, w) > 0) {}
     free(value_copy);
 
     if (txtarea->text_h == 0) {
@@ -668,13 +745,19 @@ void txt_area_create_lines(TextArea *txtarea)
     Layout *line_template = layout_add_child(txtarea->layout);
     line_template->y.value.intval = txtarea->line_spacing;
     line_template->h.value.intval = txtarea->text_h / txtarea->win->dpi_scale_factor;
+
+
+    /* NEW */
+    line_template->y.type = STACK;
+    /* END */
+
     
     for (int i=0; i<txtarea->num_lines; i++) {
 	txtarea->layout->h.value.intval += (txtarea->text_h / txtarea->win->dpi_scale_factor) + txtarea->line_spacing;
-	layout_add_iter(line_template, VERTICAL, false);
+	/* layout_add_iter(line_template, VERTICAL, false); */
+	layout_copy(line_template, txtarea->layout);
     }
-
- 
+    /* reset_iterations(line_template->iterator); */
 }
 
 
@@ -692,6 +775,8 @@ TextArea *txt_area_create(const char *value, Layout *layout, Font *font, uint8_t
 
     txtarea->line_spacing = TXT_AREA_DEFAULT_LINE_SPACING;
     txt_area_create_lines(txtarea);
+
+    /* layout_force_reset(layout); */
     
     return txtarea;
 }
@@ -761,24 +846,46 @@ void txt_draw(Text *txt)
 
 }
     
-
-
 void txt_area_draw(TextArea *txtarea)
 {
-    SDL_RenderSetClipRect(main_win->rend, &txtarea->layout->rect);
+    /* SDL_RenderSetClipRect(main_win->rend, &txtarea->layout->rect); */
     for (int i=0; i<txtarea->num_lines; i++) {
-	Layout *line_lt = txtarea->layout->children[0]->iterator->iterations[i];
+	Layout *line_lt = txtarea->layout->children[i];
+	/* Layout *line_lt = txtarea->layout->children[0]->iterator->iterations[i]; */
 	line_lt->rect.w = txtarea->line_widths[i];
 	line_lt->rect.h = txtarea->line_heights[i];
-	if (SDL_RenderCopy(txtarea->win->rend, txtarea->line_textures[i], NULL, &(line_lt->rect)) != 0) {
+	/* fprintf(stdout, "W and H: %d, %d\n", line_lt->rect.w, line_lt->rect.h); */
+	/* layout_set_values_from_rect(line_lt); */
+	/* layout_set_name(line_lt, "FUCKITY FUCK FUCK FUCK"); */
+	/* FILE *f = fopen("test.xml", "w"); */
+	/* layout_write(f, line_lt->parent, 0); */
+	/* exit(0); */
+	/* layout_force_reset(line_lt->parent); */
+	/* uint8_t r,g,b,a; */
+	/* SDL_Rect test = {200, 200, 1200, 90}; */
+	/* SDL_GetRenderDrawColor(txtarea->win->rend, &r, &b, &g, &a); */
+	/* SDL_SetRenderDrawColor(txtarea->win->rend, 255, 0, 0, 255); */
+	/* SDL_RenderDrawRect(txtarea->win->rend, &line_lt->rect); */
+	/* SDL_RenderDrawRect(txtarea->win->rend, &test); */
+	/* fprintf(stdout, "WHAT THE FUCK %d %d %d %d\n", line_lt->rect.x, line_lt->rect.y, line_lt->rect.w, line_lt->rect.h); */
+	/* SDL_SetRenderDrawColor(txtarea->win->rend, r, g, b, a); */
+
+	/* fprintf(stdout, "\n\nLine lt rect target: %p %d %d %d %d\n", txtarea->line_textures[i], line_lt->rect.x, line_lt->rect.y, line_lt->rect.w, line_lt->rect.h); */
+	if (SDL_RenderCopy(txtarea->win->rend, txtarea->line_textures[i], NULL, &line_lt->rect) != 0) {
 	    fprintf(stderr, "Error: Render Copy failed in txt_draw. %s\n", SDL_GetError());
 	    exit(1);
 	}
+	/* if (SDL_RenderCopy(txtarea->win->rend, txtarea->line_textures[i], NULL, &test) != 0) { */
+	/*     fprintf(stderr, "Error: Render Copy failed in txt_draw. %s\n", SDL_GetError()); */
+	/*     exit(1); */
+	/* } */
+
     }
-    SDL_RenderSetClipRect(main_win->rend, &main_win->layout->rect);
+    /* SDL_RenderSetClipRect(main_win->rend, &main_win->layout->rect); */
 }
 
 
+#ifndef LAYOUT_BUILD
 int txt_name_validation(Text *txt, char input)
 {
     if (strlen(txt->display_value) >= MAX_NAMELENGTH - 1) {
@@ -791,3 +898,4 @@ int txt_name_validation(Text *txt, char input)
     }
 }
 
+#endif

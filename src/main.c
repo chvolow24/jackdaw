@@ -48,11 +48,10 @@
 #include "text.h"
 #include "transport.h"
 #include "wav.h"
+#include "waveform.h"
 #include "window.h"
 
 #include "audio_connection.h"
-
-/* #define JACKDAW_VERSION "0.2.0" */
 
 #define LT_DEV_MODE 0
 
@@ -65,14 +64,15 @@
 /* #define OPEN_SANS_PATH INSTALL_DIR "/assets/ttf/OpenSans-Regular.ttf" */
 #define DEFAULT_KEYBIND_CFG_PATH INSTALL_DIR "/assets/key_bindings/default.yaml"
 
-#define DEFAULT_PROJ_AUDIO_SETTINGS 2, 48000, AUDIO_S16SYS, 64
+#define DEFAULT_PROJ_AUDIO_SETTINGS 2, 48000, AUDIO_S16SYS, 1024, 2048
 
-const char *JACKDAW_VERSION = "0.2.0";
+const char *JACKDAW_VERSION = "0.3.0";
 char DIRPATH_SAVED_PROJ[MAX_PATHLEN];
 char DIRPATH_OPEN_FILE[MAX_PATHLEN];
 char DIRPATH_EXPORT[MAX_PATHLEN];
 
 bool sys_byteorder_le = false;
+volatile bool cancel_threads = false;
 
 Window *main_win;
 Project *proj = NULL;
@@ -124,16 +124,19 @@ static void init()
     strcpy(DIRPATH_OPEN_FILE, DIRPATH_SAVED_PROJ);
     strcpy(DIRPATH_EXPORT, DIRPATH_SAVED_PROJ);
     /* fprintf(stdout, "Initializing dsp...\n"); */
-    /* init_dsp(); */
+    init_dsp();
 }
 
 static void quit()
 {
+    cancel_threads = true;
     pd_signal_termination_of_jackdaw();
     if (proj->recording) {
 	transport_stop_recording();
     }
     transport_stop_playback();
+    /* Sleep to allow DSP thread to exit */
+    SDL_Delay(100);
     project_destroy(proj);
     if (main_win) {
 	window_destroy(main_win);
@@ -150,7 +153,11 @@ extern bool connection_open;
 void dir_tests();
 int main(int argc, char **argv)
 {
-    /* dir_tests(); */
+
+    /* SDL_Rect test = {0, 0, 1000, 1000}; */
+    /* struct logscale_array *la = waveform_create_logscale(NULL, 512, &test); */
+    /* fprintf(stdout, "Interval : %f\n", la->interval); */
+    /* /\* dir_tests(); *\/ */
     /* exit(0); */
     fprintf(stdout, "\n\nJACKDAW (version %s)\nby Charlie Volow\n\n", JACKDAW_VERSION);
     
@@ -197,6 +204,7 @@ int main(int argc, char **argv)
     window_assign_font(main_win, OPEN_SANS_BOLD_PATH, BOLD);
     window_assign_font(main_win, LTSUPERIOR_PATH, MONO);
     window_assign_font(main_win, LTSUPERIOR_BOLD_PATH, MONO_BOLD);
+    window_assign_font(main_win, NOTO_SANS_SYMBOLS2_PATH, SYMBOLIC);
 
 
     

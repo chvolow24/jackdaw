@@ -26,10 +26,9 @@
 
 
 /*****************************************************************************************************************
-    audio_device.h
+    audio_connection.h
 
-    * Query available audio devices
-    * Open, pause/unpause, and otherwise
+    * Typedef structs for audio connections (e.g. devices)
  *****************************************************************************************************************/
 
 
@@ -37,6 +36,7 @@
 #define JDAW_AUDIO_DEVICE_H
 
 #include <stdbool.h>
+#include <time.h>
 #include "SDL.h"
 
 
@@ -88,6 +88,11 @@ union audio_conn_substruct {
     JDAWConn jdaw;
     
 };
+
+struct realtime_tick {
+    struct timespec ts;
+    int32_t timeline_pos;
+};
 typedef struct audio_conn {
     bool iscapture;
     int index;
@@ -97,6 +102,8 @@ typedef struct audio_conn {
     bool active;
     bool available;
     Clip *current_clip; /* The clip currently being recorded, if applicable */
+    bool current_clip_repositioned;
+    struct realtime_tick callback_time;
     enum audio_conn_type type;
     union audio_conn_substruct c;
 } AudioConn;
@@ -114,6 +121,8 @@ void audioconn_stop_recording(AudioConn *conn);
 void audioconn_handle_connection_event(int index, int iscapture, int event_type);
 
 void audioconn_destroy(AudioConn *conn);
+
+void audioconn_reset_chunk_size(AudioConn *conn, uint16_t new_chunk_size);
 
 void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type);
 /* int query_audio_devices(Project *proj, int iscapture); */

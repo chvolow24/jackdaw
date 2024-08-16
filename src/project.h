@@ -47,12 +47,15 @@
 #define JDAW_PROJECT_H
 
 
+#include <complex.h>
+#include <semaphore.h>
 #include <stdbool.h>
 #include <stdint.h>
 
-/* #include "dsp.h" */
+#include "dsp.h"
+#include "components.h"
 #include "textbox.h"
-#include "slider.h"
+
 
 #define MAX_TRACKS 255
 #define MAX_NAMELENGTH 64
@@ -76,7 +79,8 @@ typedef struct timeline Timeline;
 typedef struct audio_conn AudioConn;
 typedef struct clip Clip;
 typedef struct clip_ref ClipRef;
-
+/* typedef struct fir_filter FIRFilter; */
+/* typedef struct delay_line DelayLine; */
 
 typedef struct track {
     char name[MAX_NAMELENGTH];
@@ -100,12 +104,25 @@ typedef struct track {
 
     float vol; /* 0.0 - 1.0 attenuation only */
     float pan; /* 0.0 pan left; 0.5 center; 1.0 pan right */
-    FSlider *vol_ctrl;
-    FSlider *pan_ctrl;
+    Slider *vol_ctrl;
+    Slider *pan_ctrl;
 
-    /* FIRFilter *fir_filters[MAX_TRACK_FILTERS]; */
-    /* uint8_t num_filters; */
+    /* double *buf_L; */
+    /* double *buf_R; */
+    /* uint16_t buf_len; */
+    /* uint16_t buf_read_pos; */
+    /* uint16_t buf_write_pos; */
+    /* sem_t *buf_sem; */
+
+    double *buf_L_freq_mag;
+    double *buf_R_freq_mag;
+
+    FIRFilter *fir_filter;
+    bool fir_filter_active;
     
+    DelayLine delay_line;
+    bool delay_line_active;
+    /* uint8_t num_filters; */
     
     /* FSLIDER *vol_ctrl */
     /* FSlider *pan_ctrl */
@@ -140,8 +157,10 @@ typedef struct clip_ref {
     bool home;
     bool grabbed;
 
-    SDL_Rect rect;
+    Layout *layout;
+    /* SDL_Rect rect; */
     SDL_mutex *lock;
+    Textbox *label;
 } ClipRef;
     
 typedef struct clip {
@@ -162,11 +181,6 @@ typedef struct clip {
     /* Xfade */
     uint32_t start_ramp_len_sframes;
     uint32_t end_ramp_len_sframes;
-
-    /* TL navigation */
-    /* bool grabbed; */
-    /* bool changed_track; */
-    
     
 } Clip;
 
@@ -182,12 +196,26 @@ typedef struct timecode {
 /* The project timeline organizes included tracks and specifies how they should be displayed */
 typedef struct timeline {
     char name[MAX_NAMELENGTH];
-    
+    uint8_t index;
     int32_t play_pos_sframes;
+    int32_t read_pos_sframes;
     int32_t in_mark_sframes;
     int32_t out_mark_sframes;
     int32_t record_from_sframes;
-    
+
+    /*
+    - Channel buffers allocated at fourier len (e.g. 1024) * 2
+    - writer calls sem_post for every chunk (chunk_size, e.g. 64) available
+    - reader calls sem_wait for every chunk requested (in audio thread)
+    */
+    float *buf_L;
+    float *buf_R;
+    uint16_t buf_read_pos;
+    uint16_t buf_write_pos;
+    sem_t *readable_chunks;
+    sem_t *writable_chunks;
+    sem_t *unpause_sem;
+    pthread_t mixdown_thread;
     Track *tracks[MAX_TRACKS];
     
     uint8_t num_tracks;
@@ -213,7 +241,8 @@ typedef struct timeline {
     int32_t display_offset_sframes; // in samples frames
     int sample_frames_per_pixel;
     int display_v_offset;
-    
+
+    bool needs_redraw;
 } Timeline;
 
 
@@ -238,6 +267,21 @@ struct drop_save {
     int32_t out;
 };
 
+struct quickref {
+    Layout *layout;
+    Button *add_track;
+    Button *record;
+    Button *left, *right;
+    Button *rewind, *pause, *play;
+    Button *next, *previous;
+    Button *zoom_in, *zoom_out;
+
+    Button *open_file;
+    Button *save;
+    Button *export_wav;
+    Button *track_settings;
+};
+
 /* A Jackdaw project. Only one can be active at a time. Can persist on disk as a .jdaw file (see dot_jdaw.c, dot_jdaw.h) */
 typedef struct project {
     char name[MAX_NAMELENGTH];
@@ -250,6 +294,7 @@ typedef struct project {
     float play_speed;
     bool dragging;
     bool recording;
+    bool playing;
 
     AudioConn *record_conns[MAX_PROJ_AUDIO_CONNS];
     uint8_t num_record_conns;
@@ -262,6 +307,7 @@ typedef struct project {
     uint32_t sample_rate; //samples per second
     SDL_AudioFormat fmt;
     uint16_t chunk_size_sframes; //sample_frames
+    uint16_t fourier_len_sframes;
 
     /* Clips */
     Clip *clips[MAX_PROJ_CLIPS];
@@ -276,11 +322,24 @@ typedef struct project {
     int32_t src_out_sframes;
     float src_play_speed;
 
+    /* Quickref */
+    struct quickref quickref;
+
     /* Audio output */
     float *output_L;
     float *output_R;
-    uint16_t output_len;
+    /* uint16_t output_len; */
 
+    double *output_L_freq;
+    double *output_R_freq;
+
+
+    /* DSP thread */
+    pthread_t dsp_thread;
+
+    /* struct logscale *output_logscale_L; */
+    /* struct logscale *output_logscale_R; */
+    struct freq_plot *freq_domain_plot;
 
     /* In progress */
     /* Track *vol_changing; */
@@ -288,6 +347,7 @@ typedef struct project {
     bool vol_up;
     bool pan_changing;
     bool pan_right;
+    bool show_output_freq_domain;
 
     /* GUI Members */
     Layout *layout;
@@ -300,6 +360,8 @@ typedef struct project {
     SDL_Rect *source_rect;
     SDL_Rect *source_clip_rect;
     SDL_Rect *console_column_rect;
+    SDL_Rect *hamburger;
+    SDL_Rect *bun_patty_bun[3];
     Textbox *source_name_tb;
 
     Textbox *tb_out_label;
@@ -317,12 +379,14 @@ Project *project_create(
     uint8_t channels,
     uint32_t sample_rate,
     SDL_AudioFormat fmt,
-    uint16_t chunk_size_sframes
+    uint16_t chunk_size_sframes,
+    uint16_t fourier_len_sframes
     );
 
 /* Return the index of a timeline to switch to (new one if success) */
 uint8_t project_add_timeline(Project *proj, char *name);
 void project_reset_tl_label(Project *proj);
+void project_set_chunk_size(uint16_t new_chunk_size);
 Track *timeline_add_track(Timeline *tl);
 void timeline_reset_full(Timeline *tl);
 void timeline_reset(Timeline *tl);

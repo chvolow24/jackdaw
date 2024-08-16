@@ -35,17 +35,21 @@
 #include <time.h>
 #include "SDL.h"
 #include "audio_connection.h"
+#include "components.h"
 #include "draw.h"
+#include "dsp.h"
 #include "input.h"
 #include "layout.h"
 #include "modal.h"
 #include "mouse.h"
+#include "page.h"
 #include "project.h"
 #include "project_draw.h"
 #include "screenrecord.h"
 #include "status.h"
 #include "timeline.h"
 #include "transport.h"
+#include "waveform.h"
 #include "window.h"
 
 #define MAX_MODES 8
@@ -66,9 +70,12 @@ extern Window *main_win;
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;
 
+extern SDL_Color freq_L_color;
+extern SDL_Color freq_R_color;
 
 extern Project *proj;
 
+extern volatile bool cancel_threads;
 
 /* static int timed_stop_update_track_vol_pan(void *data) */
 /* { */
@@ -82,15 +89,18 @@ extern Project *proj;
 
 static int timed_hide_slider_label(void *data)
 {
-    FSlider *fs = (FSlider *)data;
+    Slider *fs = (Slider *)data;
     if (fs->editing) {
-	SDL_Delay(STICK_DELAY_MS);
+	for (int i=0; i<STICK_DELAY_MS; i++) {
+	    if (cancel_threads) return 0;
+	    SDL_Delay(1);
+	}
 	fs->editing = false;
     }
     return 0;
 }
 
-static void hide_slider_label(FSlider *fs)
+static void hide_slider_label(Slider *fs)
 {
     SDL_CreateThread(timed_hide_slider_label, "hide_slider_label", fs);
 }
@@ -164,6 +174,7 @@ static void update_track_vol_pan()
 	    selected_track->pan_ctrl->editing = true;
 	}
     }
+    tl->needs_redraw = true;
 }
 
 /* TODO: SDL bug workaround. I haven't been able to get this to work reliably cross-platform. */
@@ -179,13 +190,18 @@ static void update_track_vol_pan()
 
 /* Modal *test_modal; */
 
-void layout_write(FILE *f, Layout *lt, int indent);
+extern SDL_Color color_global_grey;
+
+//typedef void (SliderStrFn)(char *dst, size_t dstsize, void *value, ValType type);
+
+
+/* void user_tl_track_open_settings(void *nullarg); */
 void loop_project_main()
 {
 
-    clock_t start, end;
-    uint8_t frame_ctr = 0;
-    float fps = 0;
+    /* clock_t start, end; */
+    /* uint8_t frame_ctr = 0; */
+    /* float fps = 0; */
 
     Layout *temp_scrolling_lt = NULL;
     Layout *scrolling_lt = NULL;
@@ -213,6 +229,7 @@ void loop_project_main()
 	    case SDL_WINDOWEVENT:
 		if (e.window.event == SDL_WINDOWEVENT_RESIZED) {
 		    window_resize_passive(main_win, e.window.data1, e.window.data2);
+		    proj->timelines[proj->active_tl_index]->needs_redraw = true;
 		}
 		break;
 	    case SDL_AUDIODEVICEADDED:
@@ -234,7 +251,13 @@ void loop_project_main()
 		    mouse_triage_motion_menu();
 		    break;
 		case TIMELINE:
-		    mouse_triage_motion_timeline();
+		    if (!mouse_triage_motion_page() && !mouse_triage_motion_tabview()) {
+			mouse_triage_motion_timeline();
+		    }
+		case TABVIEW:
+		    if (!mouse_triage_motion_tabview())
+			mouse_triage_motion_page();
+		    break;
 		default:
 		    break;
 		}
@@ -245,21 +268,7 @@ void loop_project_main()
 		    txt_input_event_handler(main_win->txt_editing, &e);
 		}
 		break;
-	    case SDL_KEYDOWN:
-		/* for (uint8_t i=0; i<proj->num_clips; i++) { */
-		/*     Clip *clip = proj->clips[i]; */
-		/*     fprintf(stdout, "\n\nClip: %p\n", clip); */
-		/*     for (uint8_t t=0; t<proj->timelines[0]->num_tracks; t++) { */
-		/* 	Track *trk = proj->timelines[0]->tracks[t]; */
-		/* 	for (uint8_t c=0;c<trk->num_clips; c++) { */
-		/* 	    ClipRef *cr= trk->clips[c]; */
-		/* 	    fprintf(stdout, "\t\t testing clip %p in trk %d\n", cr->clip, t); */
-		/* 	    if (cr->clip == clip) { */
-		/* 		fprintf(stdout, "\tFound in track %d\n", t); */
-		/* 	    } */
-		/* 	} */
-		/*     } */
-		/* } */
+	    case SDL_KEYDOWN: {
 		switch (e.key.keysym.scancode) {
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
@@ -352,13 +361,21 @@ void loop_project_main()
 		break;
 	    case SDL_MOUSEWHEEL: {
 		mouse_triage_wheel(e.wheel.x * TL_SCROLL_STEP_H, e.wheel.y * TL_SCROLL_STEP_V);
-		if (main_win->modes[main_win->num_modes - 1] == TIMELINE) {
+		if (main_win->modes[main_win->num_modes - 1] == TIMELINE || main_win->modes[main_win->num_modes - 1] == TABVIEW) {
 		    if (main_win->i_state & I_STATE_SHIFT) {
 			if (main_win->i_state & I_STATE_CMDCTRL)
+			    /* if (main_win->i_state & I_STATE_META) { */
+			    /* 	Timeline *tl = proj->timelines[0]; */
+			    /* 	Track *track = tl->tracks[0]; */
+			    /* 	double current_cutoff = track->fir_filter->cutoff_freq; */
+			    /* 	FilterType type = track->fir_filter->type; */
+			    /* 	double filter_adj = 0.001; */
+			    /* 	filter_set_params(track->fir_filter, type, current_cutoff + filter_adj * e.wheel.y, 0.05); */
+			    /* } else  */
 			    proj->play_speed += e.wheel.y * PLAYSPEED_ADJUST_SCALAR_LARGE;
-			else {
+			else 
 			    proj->play_speed += e.wheel.y * PLAYSPEED_ADJUST_SCALAR_SMALL;
-			}
+			
 			status_stat_playspeed();
 		    } else {
 			bool allow_scroll = true;
@@ -392,6 +409,7 @@ void loop_project_main()
 		}
 	    }
 		break;
+	    }
 	    case SDL_MOUSEBUTTONDOWN:
 		if (e.button.button == SDL_BUTTON_LEFT) {
 		    main_win->i_state |= I_STATE_MOUSE_L;
@@ -401,7 +419,8 @@ void loop_project_main()
 		switch(TOP_MODE) {
 		case TIMELINE:
 		    /* fprintf(stdout, "top mode tl\n"); */
-		    mouse_triage_click_project(e.button.button);
+		    /* if (!mouse_triage_click_page() && !mouse_triage_click_tabview()) */
+			mouse_triage_click_project(e.button.button);
 		    break;
 		case MENU_NAV:
 		    mouse_triage_click_menu(e.button.button);
@@ -411,6 +430,10 @@ void loop_project_main()
 		    break;
 		case TEXT_EDIT:
 		    mouse_triage_click_text_edit(e.button.button);
+		    break;
+		case TABVIEW:
+		    if (!mouse_triage_click_tabview())
+			mouse_triage_click_page();
 		    break;
 		default:
 		    break;
@@ -480,10 +503,14 @@ void loop_project_main()
 	/* if (proj->recording) { */
 	/*     transport_recording_update_cliprects(); */
 	/* } */
-	
+
+	if (proj->recording) {
+	    transport_recording_update_cliprects();
+	}
 	status_frame();
 	
 	project_draw();
+
 
 	if (main_win->screenrecording) {
 	    screenshot_loop();
@@ -502,15 +529,15 @@ void loop_project_main()
 	SDL_Delay(1);
 
 
-        end = clock();
-	fps += (float)CLOCKS_PER_SEC / (end - start);
-	start = end;
-	if (frame_ctr > 250) {
-	    fps /= 250;
-	    fprintf(stdout, "FPS: %f\n", fps);
-	    frame_ctr = 0;
-	} else {
-	    frame_ctr++;
-	}
+        /* end = clock(); */
+	/* fps += (float)CLOCKS_PER_SEC / (end - start); */
+	/* start = end; */
+	/* if (frame_ctr > 250) { */
+	/*     fps /= 250; */
+	/*     fprintf(stdout, "FPS: %f\n", fps); */
+	/*     frame_ctr = 0; */
+	/* } else { */
+	/*     frame_ctr++; */
+	/* } */
     }
 }

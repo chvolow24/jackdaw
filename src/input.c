@@ -21,7 +21,8 @@ static const char *input_mode_strs[] = {
     "timeline",
     "source",
     "modal",
-    "text_edit"
+    "text_edit",
+    "tabview"
 };
 
 const char *input_mode_str(InputMode im)
@@ -60,6 +61,8 @@ InputMode input_mode_from_str(char *str)
 	return MODAL;
     } else if (strcmp(str, "text_edit") == 0) {
 	return TEXT_EDIT;
+    } else if (strcmp(str, "tabview") == 0) {
+	return TABVIEW;
     } else {
 	return -1;
     }
@@ -155,6 +158,12 @@ static void mode_load_global()
     mode_subcat_add_fn(mc, fn);
 
     fn = create_user_fn(
+	"show_output_freq_domain",
+	"Show output spectrum",
+	user_global_show_output_freq_domain);
+    mode_subcat_add_fn(mc, fn);
+
+    fn = create_user_fn(
 	"save_project",
 	"Save Project",
 	user_global_save_project);
@@ -243,6 +252,12 @@ static void mode_load_menu_nav()
     mode_subcat_add_fn(mc, fn);
 
     fn = create_user_fn(
+	"menu_translate_left",
+	"Move menu left",
+	user_menu_translate_left);
+    mode_subcat_add_fn(mc, fn);
+
+    fn = create_user_fn(
 	"menu_dismiss",
 	"go back (dismiss)",
 	user_menu_dismiss);
@@ -289,7 +304,42 @@ static void mode_load_timeline()
 	user_tl_rewind_slow);
     mode_subcat_add_fn(sc, fn);
 
+    fn = create_user_fn(
+	"tl_nudge_left",
+	"Nudge play position left (500 samples)",
+	user_tl_nudge_left);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_nudge_right",
+	"Nudge play position right (500 samples)",
+	user_tl_nudge_right);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_small_nudge_left",
+	"Nudge play position left (100 samples)",
+	user_tl_small_nudge_left);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_small_nudge_right",
+	"Nudge play position right (100 samples)",
+	user_tl_small_nudge_right);
+    mode_subcat_add_fn(sc, fn);
     
+    fn = create_user_fn(
+	"tl_one_sample_left",
+	"Move one sample left",
+	user_tl_one_sample_left);
+    mode_subcat_add_fn(sc, fn);
+
+        fn = create_user_fn(
+	"tl_one_sample_right",
+	"Move one sample right",
+	user_tl_one_sample_right);
+    mode_subcat_add_fn(sc, fn);
+
     fn = create_user_fn(
 	"tl_record",
 	"Record (start or stop)",
@@ -488,6 +538,12 @@ static void mode_load_timeline()
     sc = mode_add_subcat(mode, "Track settings");
 
     fn = create_user_fn(
+	"tl_track_open_settings",
+	"Open track settings",
+	user_tl_track_open_settings);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
 	"tl_mute",
 	"Mute or unmute selected track(s)",
 	user_tl_mute);
@@ -543,6 +599,12 @@ static void mode_load_timeline()
 	"Set track input",
 	user_tl_track_set_in);
     mode_subcat_add_fn(sc, fn);
+
+    /* fn = create_user_fn( */
+    /* 	"tl_track_add_filter", */
+    /* 	"Add filter to track", */
+    /* 	user_tl_track_add_filter); */
+    /* mode_subcat_add_fn(sc, fn); */
 
     /* Clips */
     sc = mode_add_subcat(mode, "Clips");
@@ -797,6 +859,56 @@ void mode_load_text_edit()
     mode_subcat_add_fn(sc, fn);
 }
 
+
+void mode_load_tabview()
+{
+    Mode *mode = mode_create(TABVIEW);
+    modes[TABVIEW] = mode;
+
+    ModeSubcat *sc = mode_add_subcat(mode, "");
+
+    UserFn *fn = create_user_fn(
+	"tabview_next_escape",
+	"Next element",
+	user_tabview_next_escape);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tabview_previous_escape",
+	"Previous element",
+	user_tabview_previous_escape);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tabview_enter",
+	"Select",
+	user_tabview_enter);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tabview_left",
+	"Move left",
+	user_tabview_left);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tabview_right",
+	"Move right",
+	user_tabview_right);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tabview_next_tab",
+	"Next tab",
+	user_tabview_next_tab);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tabview_previous_tab",
+	"Previous tab",
+	user_tabview_previous_tab);
+    mode_subcat_add_fn(sc, fn);
+}
 void input_init_mode_load_all()
 {
     mode_load_global();
@@ -805,6 +917,7 @@ void input_init_mode_load_all()
     mode_load_source();
     mode_load_modal();
     mode_load_text_edit();
+    mode_load_tabview();
 }
 
 void input_init_hash_table()
@@ -1029,7 +1142,7 @@ void input_bind_fn(UserFn *fn, uint16_t i_state, SDL_Keycode keycode, InputMode 
 		keyb_node->next = malloc(sizeof(KeybNode));
 		keyb_node = keyb_node->next;
 		/* fprintf(stdout, "\t->inserting at %p\n", &keyb_node); */
-		kb = malloc(sizeof(Keybinding));
+		/* kb = malloc(sizeof(Keybinding)); */
 		keyb_node->kb = kb;
 		keyb_node->next = NULL;
 		break;
@@ -1233,7 +1346,8 @@ void input_load_keybinding_config(const char *filepath)
 	InputMode mode = input_mode_from_str(buf);
 	if (mode == -1) {
 	    fprintf(stderr, "Error: no mode under name %s\n", buf);
-	    exit(1);
+	    return;
+	    /* exit(1); */
 	}
 	
 

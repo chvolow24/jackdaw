@@ -165,14 +165,14 @@ int audioconn_open(Project *proj, AudioConn *conn)
 
 	device->spec.channels = proj->channels;
 	device->spec.callback = conn->iscapture ? transport_record_callback : transport_playback_callback;
-	device->spec.userdata = device;
+	device->spec.userdata = conn;
 
 	/* for (int i=0; i<10; i++) { */
 	if ((device->id = SDL_OpenAudioDevice(conn->name, conn->iscapture, &(device->spec), &(obtained), 0)) > 0) {
 	    fprintf(stdout, "ID: %d\n", device->id);
 	    device->spec = obtained;
 	    conn->open = true;
-	    fprintf(stderr, "Successfully opened device %s, with id: %d\n", conn->name, device->id);
+	    fprintf(stderr, "Successfully opened device %s, with id: %d, chunk size %d\n", conn->name, device->id, obtained.samples);
 	} else {
 	    conn->open = false;
 	    fprintf(stderr, "Error opening audio device %s : %s\n", conn->name, SDL_GetError());
@@ -254,6 +254,9 @@ void audioconn_destroy(AudioConn *conn)
 {
     /* audioconn_close(conn); */
     /* fprintf(stdout, "Destroying %s\n", conn->name); */
+    if (conn->open) {
+	audioconn_close(conn);
+    }
     float *buf;
     int16_t *intbuf;
     switch (conn->type) {
@@ -535,6 +538,22 @@ void audioconn_handle_connection_event(int index_or_id, int iscapture, int event
     fprintf(stdout, "\t\t\tEXIT handle device event\n");
 }
 
+void audioconn_reset_chunk_size(AudioConn *c, uint16_t new_chunk_size)
+{
+    if (c->open) {
+	fprintf(stdout, "closing \"%s\"\n", c->name);
+	audioconn_close(c);
+    }
+    switch (c->type) {
+    case DEVICE:
+	fprintf(stdout, "resetting ck size of \"%s\"\n", c->name);
+	c->c.device.spec.samples = new_chunk_size;
+	break;
+    default:
+	break;
+    }
+
+}
 void ___audioconn_handle_connection_event(int id, int iscapture, int event_type)
 {
     /* if (!proj) { */

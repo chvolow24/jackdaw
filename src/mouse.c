@@ -33,6 +33,7 @@
 #include "input.h"
 #include "menu.h"
 #include "modal.h"
+#include "page.h"
 #include "project.h"
 #include "timeline.h"
 #include "userfn.h"
@@ -47,20 +48,22 @@ extern Project *proj;
 static void mouse_triage_motion_track(Track *track)
 {
     if (main_win->i_state & I_STATE_MOUSE_L && SDL_PointInRect(&main_win->mousep, track->console_rect)) {
-	if (SDL_PointInRect(&main_win->mousep, &track->vol_ctrl->layout->rect)) {
-	    float newval = fslider_val_from_coord(track->vol_ctrl, main_win->mousep.x);
-	    track->vol = newval;
-	    fslider_reset(track->vol_ctrl);
-	    /* proj->vol_changing = true; */
-	    return;
-	}
-	if (SDL_PointInRect(&main_win->mousep, &track->pan_ctrl->layout->rect)) {
-	    float newval = fslider_val_from_coord(track->pan_ctrl, main_win->mousep.x);
-	    track->pan = newval;
-	    fslider_reset(track->pan_ctrl);
-	    /* proj->pan_changing = true; */
-	    return;
-	}
+	if (slider_mouse_motion(track->vol_ctrl, main_win)) return;
+	/* if (SDL_PointInRect(&main_win->mousep, &track->vol_ctrl->layout->rect)) { */
+	/*     Value newval = slider_val_from_coord(track->vol_ctrl, main_win->mousep.x); */
+	/*     track->vol = newval.float_v; */
+	/*     slider_reset(track->vol_ctrl); */
+	/*     /\* proj->vol_changing = true; *\/ */
+	/*     return; */
+	/* } */
+	if (slider_mouse_motion(track->pan_ctrl, main_win)) return;
+	/* if (SDL_PointInRect(&main_win->mousep, &track->pan_ctrl->layout->rect)) { */
+	/*     Value newval = slider_val_from_coord(track->pan_ctrl, main_win->mousep.x); */
+	/*     track->pan = newval.float_v; */
+	/*     slider_reset(track->pan_ctrl); */
+	/*     /\* proj->pan_changing = true; *\/ */
+	/*     return; */
+	/* } */
     }
 
 }
@@ -88,15 +91,15 @@ static void mouse_triage_click_track(uint8_t button, Track *track)
 	    return;
 	}
 	if (SDL_PointInRect(&main_win->mousep, &track->vol_ctrl->layout->rect)) {
-	    float newval = fslider_val_from_coord(track->vol_ctrl, main_win->mousep.x);
-	    track->vol = newval;
-	    fslider_reset(track->vol_ctrl);
+	    Value newval = slider_val_from_coord(track->vol_ctrl, main_win->mousep.x);
+	    track->vol = newval.float_v;
+	    slider_reset(track->vol_ctrl);
 	    return;
 	}
 	if (SDL_PointInRect(&main_win->mousep, &track->pan_ctrl->layout->rect)) {
-	    float newval = fslider_val_from_coord(track->pan_ctrl, main_win->mousep.x);
-	    track->pan = newval;
-	    fslider_reset(track->pan_ctrl);
+	    Value newval = slider_val_from_coord(track->pan_ctrl, main_win->mousep.x);
+	    track->pan = newval.float_v;
+	    slider_reset(track->pan_ctrl);
 	}
     }
 
@@ -158,8 +161,27 @@ static void mouse_triage_click_control_bar(uint8_t button)
 {
     if (SDL_PointInRect(&main_win->mousep, &proj->tb_out_value->layout->rect)) {
 	user_tl_set_default_out(NULL);
+	return;
     }
-
+    if (SDL_PointInRect(&main_win->mousep, proj->hamburger)) {
+	user_global_menu(NULL);
+	return;
+    }
+    if (button_click(proj->quickref.add_track, main_win)) return;
+    if (button_click(proj->quickref.record, main_win)) return;
+    if (button_click(proj->quickref.left, main_win)) return;
+    if (button_click(proj->quickref.rewind, main_win)) return;
+    if (button_click(proj->quickref.pause, main_win)) return;
+    if (button_click(proj->quickref.play, main_win)) return;
+    if (button_click(proj->quickref.right, main_win)) return;
+    if (button_click(proj->quickref.next, main_win)) return;
+    if (button_click(proj->quickref.previous, main_win)) return;
+    if (button_click(proj->quickref.zoom_in, main_win)) return;
+    if (button_click(proj->quickref.zoom_out, main_win)) return;
+    if (button_click(proj->quickref.open_file, main_win)) return;
+    if (button_click(proj->quickref.save, main_win)) return;
+    if (button_click(proj->quickref.export_wav, main_win)) return;
+    if (button_click(proj->quickref.track_settings, main_win)) return;
 }
 
 void mouse_triage_click_project(uint8_t button)
@@ -212,7 +234,8 @@ void mouse_triage_click_menu(uint8_t button)
     if (main_win->num_menus == 0) return;
     Menu *top_menu = main_win->menus[main_win->num_menus -1];
     if (top_menu) {
-	menu_triage_mouse(top_menu, &main_win->mousep, true);
+	if (!menu_triage_mouse(top_menu, &main_win->mousep, true))
+	    proj->timelines[proj->active_tl_index]->needs_redraw = true;
     }
 }
 
@@ -221,7 +244,8 @@ void mouse_triage_click_modal(uint8_t button)
     if (main_win->num_modals == 0) return;
     Modal *top_modal = main_win->modals[main_win->num_modals -1];
     if (top_modal) {
-	modal_triage_mouse(top_modal, &main_win->mousep, true);
+	if (!modal_triage_mouse(top_modal, &main_win->mousep, true))
+	    proj->timelines[proj->active_tl_index]->needs_redraw = true;
     }
 }
 
@@ -245,3 +269,41 @@ void mouse_triage_click_text_edit(uint8_t button)
 
 }
 
+
+bool mouse_triage_motion_page()
+{
+    Page *page;
+    if ((page = main_win->active_page)) {
+	return page_mouse_motion(page, main_win);
+    }
+    return false;
+}
+
+bool mouse_triage_click_page()
+{
+    Page *page;
+    if ((page = main_win->active_page)) {
+	return page_mouse_click(page, main_win);
+    }
+    return false;
+}
+bool mouse_triage_click_tabview()
+{
+    TabView *tv;
+    if ((tv = main_win->active_tab_view)) {
+	if (!tab_view_mouse_click(tv)) {
+	    tab_view_close(tv);
+	} else {
+	    return true;
+	}
+    }
+    return false;
+}
+bool mouse_triage_motion_tabview()
+{
+    TabView *tv;
+    if ((tv = main_win->active_tab_view)) {
+	return tab_view_mouse_motion(tv);
+    }
+    return false;
+}

@@ -30,6 +30,7 @@
     * Get sampels from tracks/clips for playback or export
  *****************************************************************************************************************/
 
+#include "dsp.h"
 #include "project.h"
 
 
@@ -80,14 +81,15 @@ extern Project *proj;
 /*     return sample; */
 /* } */
 
-int ijk=0;
+/* int ijk=0; */
 
-float *get_track_channel_chunk(Track *track, uint8_t channel, int32_t start_pos_sframes, uint32_t len_sframes, float step)
+float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32_t start_pos_sframes, uint32_t len_sframes, float step)
 {
+   
     /* fprintf(stderr, "Start get track buf %d\n", i++); */
     uint32_t chunk_bytelen = sizeof(float) * len_sframes;
-    float *chunk = calloc(1, chunk_bytelen);
-    /* memset(chunk, '\0', chunk_bytelen); */
+    /* float *chunk = calloc(1, chunk_bytelen); */
+    memset(chunk, '\0', chunk_bytelen);
     if (track->muted || track->solo_muted) {
         return chunk;
     }
@@ -132,12 +134,15 @@ float *get_track_channel_chunk(Track *track, uint8_t channel, int32_t start_pos_
 		chunk[chunk_i] += clip_buf[(int32_t)pos_in_clip_sframes + cr->in_mark_sframes] * track->vol * pan_scale;
 	    }
 	    pos_in_clip_sframes += step;
+	    /* fprintf(stdout, "Chunk %d: %f\n", chunk_i, chunk[chunk_i]); */
 	    chunk_i++;
 	}
+
 	
 	
 	SDL_UnlockMutex(cr->lock);
     }
+
     /* for (uint32_t i=0; i<len_sframes; i++) { */
     /*     for (uint8_t clip_i=0; clip_i<track->num_clips; clip_i++) { */
     /*         ClipRef *cr = (track->clips)[clip_i]; */
@@ -160,32 +165,102 @@ float *get_track_channel_chunk(Track *track, uint8_t channel, int32_t start_pos_
     return chunk;
 }
 
+
+/* /\* DELAY TESTS *\/ */
+/* double *del_line_l = NULL; */
+/* double *del_line_r = NULL; */
+/* int32_t del_line_len; */
+/* int32_t del_line_pos_l = 0; */
+/* int32_t del_line_pos_r = 0; */
+/* double del_line_amp = 0.8; */
+/* /\* END TESTS *\/ */
+
 /* 
 Sum track samples over a chunk of timeline and return an array of samples. from_mark_in indicates that samples
 should be collected from the in mark rather than from the play head.
 */
-float *get_mixdown_chunk(Timeline* tl, uint8_t channel, uint32_t len_sframes, int32_t start_pos_sframes, float step)
+float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t len_sframes, int32_t start_pos_sframes, float step)
 {
+
     uint32_t chunk_len_bytes = sizeof(float) * len_sframes;
-    float *mixdown = malloc(chunk_len_bytes);
+    /* float *mixdown = malloc(chunk_len_bytes); */
     memset(mixdown, '\0', chunk_len_bytes);
     if (!mixdown) {
         fprintf(stderr, "\nError: could not allocate mixdown chunk.");
         exit(1);
     }
 
+    /* long unsigned track_mixdown_time = 0; */
+    /* long unsigned track_filter_time = 0; */
     for (uint8_t t=0; t<tl->num_tracks; t++) {
         Track *track = tl->tracks[t];
         /* double panctrlval = track->pan_ctrl->value; */
         /* double lpan = track->pan_ctrl->value < 0 ? 1 : 1 - panctrlval; */
         /* double rpan = track->pan_ctrl->value > 0 ? 1 : 1 + panctrlval; */
         /* double pan = channel == 0 ? lpan : rpan; */
-        float *track_chunk = get_track_channel_chunk(track, channel, start_pos_sframes, len_sframes, step);
-        /* apply_track_filters(track, channel, len_sframes, track_chunk); */
+	float track_chunk[len_sframes];
+	/* clock_t a, b; */
+	/* a=clock(); */
+        get_track_channel_chunk(track, track_chunk, channel, start_pos_sframes, len_sframes, step);
+	/* b=clock(); */
+	/* track_mixdown_time+=(b-a); */
+	if (track->fir_filter_active) {
+	    /* a = clock(); */
+	    apply_filter(track->fir_filter, track, channel, len_sframes, track_chunk);
+	    /* b= clock(); */
+	    /* track_filter_time = (b-a); */
+	}
+	if (track->delay_line_active) {
+	    DelayLine *dl = &track->delay_line;
+	    SDL_LockMutex(dl->lock);
+	    double *del_line = channel == 0 ? dl->buf_L : dl->buf_R;
+	    int32_t *del_line_pos = channel == 0 ? &dl->pos_L : &dl->pos_R;
+	    /* do_fn2(); */
+	    /* int32_t *del_line_pos = channel==0 ? &track->delay_line_L.pos : &track->delay_line_R.pos; */
+
+	    for (int16_t i=0; i<len_sframes; i++) {
+		/* fprintf(stdout, "Writing %f pos %d\n", del_line[del_line_pos], del_line_pos); */
+		
+		double track_sample = track_chunk[i];
+		int32_t pos = *del_line_pos;
+		if (channel == 0) {
+		    pos += dl->stereo_offset;
+		    pos %= dl->len;
+		}
+		track_chunk[i] += del_line[pos];
+		/* int tap = *del_line_pos - 1025; */
+		/* if (tap < 0) tap = dl->len + tap; */
+		/* track_chunk[i] += del_line[tap]; */
+		/* tap -= 2031; */
+		/* if (tap < 0) tap = dl->len + tap; */
+		/* track_chunk[i] += del_line[tap]; */
+		/* tap -= 3000; */
+		/* if (tap < 0) tap = dl->len + tap; */
+		/* track_chunk[i] += del_line[tap]; */
+		/* tap -= 2044; */
+		/* if (tap < 0) tap = dl->len + tap; */
+		/* track_chunk[i] += del_line[tap]; */
+		
+		del_line[*del_line_pos] += track_sample;
+		del_line[*del_line_pos] *= dl->amp;
+		/* fprintf(stdout, "Del pos vs len? %d %d\n", *del_line_pos, dl.len); */
+		if (*del_line_pos + 1 >= dl->len) {
+		    /* fprintf(stdout, "\tSETTING zero\n"); */
+		    *del_line_pos = 0;
+		} else {
+		    /* fprintf(stdout, "\tinc %d->", *del_line_pos); */
+		    (*del_line_pos)++;
+		    /* fprintf(stdout, "%d\n", *del_line_pos); */
+		}
+		/* fprintf(stdout, "del line pos: %d\n", *del_line_pos); */
+	    }
+	    SDL_UnlockMutex(dl->lock);
+	}
 
         for (uint32_t i=0; i<len_sframes; i++) {
             /* mixdown[i] += track_chunk[i] * pan * track->vol_ctrl->value; */
 	    mixdown[i] += track_chunk[i];
+	    /* fprintf(stdout, "Track chunk %d: %f\n", i, track_chunk[i]); */
 	    if (t == tl->num_tracks - 1) {
 		if (mixdown[i] > 1.0f) {
 		    mixdown[i] = 1.0f;
@@ -198,8 +273,9 @@ float *get_mixdown_chunk(Timeline* tl, uint8_t channel, uint32_t len_sframes, in
         }
 
 	
-        free(track_chunk);
+        /* free(track_chunk); */
     }
+    /* fprintf(stdout, "\tMixdown: %lu\n\tFilter: %lu\n", track_mixdown_time, track_filter_time); */
 
 
     return mixdown;

@@ -27,8 +27,8 @@
   - C-q		: quit
   - C-z		: undo
   - C-y		: redo
+  - S-f		: show_output_freq_domain
   - C-s		: save_project
-  - C-S-s	: save_current_project_as
   - C-o		: open_file
   - A-S-p	: start_or_stop_screenrecording
 - menu_nav:
@@ -43,7 +43,7 @@
   - <ret>     	: menu_choose_item
   - <spc>	: menu_choose_item
   - k		: menu_choose_item
-  - <del>     	: menu_cancel
+  - <del>     	: menu_dismiss
   - C-n	      	: menu_next_section
   - C-p	      	: menu_previous_section
   - C-<up>  	: menu_next_section
@@ -65,6 +65,12 @@
   - S-l		: tl_play_slow
   - S-j		: tl_rewind_slow
   - S-k		: tl_pause
+  - <left>	: tl_nudge_left
+  - <right>	: tl_nudge_right
+  - S-<left>	: tl_small_nudge_left
+  - S-<right>	: tl_small_nudge_right
+  - C-S-<left>	: tl_one_sample_left
+  - C-S-<right>	: tl_one_sample_right
   - C-k		: tl_toggle_drag
   - S-c		: tl_cut_clipref
   - ;		: tl_move_right
@@ -97,13 +103,11 @@
   - C-r		: tl_track_rename
   - C-S-i	: tl_track_set_in
   - C-<del>	: tl_track_destroy
+  - S-t		: tl_track_open_settings
   - <del>	: tl_cliprefs_destroy
   - m		: tl_mute
   - s		: tl_solo
-  - r		: tl_start_stop_record
   - g		: tl_grab_clips_at_point
-  - m		: tl_mute_unmute
-  - s		: tl_solo_unsolo
   - r		: tl_record
   - C-1		: tl_load_clip_at_point_to_source
   - S-1		: tl_activate_source_mode
@@ -119,6 +123,7 @@
   - A-t		: tl_add_new_timeline
   - A-j		: tl_previous_timeline
   - A-l		: tl_next_timeline
+  - C-e		: tl_write_mixdown_to_wav
   - S-w		: tl_write_mixdown_to_wav
 - source:
   - l		: source_play
@@ -153,6 +158,7 @@
 - text_edit:
   - <ret>	: text_edit_escape
   - <tab>	: text_edit_escape
+  - <esc>	: text_edit_escape
   - <del>	: text_edit_backspace
   - <left>	: text_edit_cursor_left
   - <right>	: text_edit_cursor_right
@@ -160,3 +166,11 @@
   - C-b		: text_edit_cursor_left
   - C-f		: text_edit_cursor_right
   - C-a		: text_edit_select_all
+- tabview:
+  - <tab>	: tabview_next_escape
+  - S-<tab>	: tabview_previous_escape
+  - <ret>	: tabview_enter
+  - h		: tabview_left
+  - ;		: tabview_right
+  - S-h		: tabview_previous_tab
+  - S-;		: tabview_next_tab

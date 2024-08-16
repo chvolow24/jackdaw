@@ -351,7 +351,7 @@ void menu_destroy(Menu *menu)
 }
 
 
-void menu_triage_mouse(Menu *menu, SDL_Point *mousep, bool click)
+bool menu_triage_mouse(Menu *menu, SDL_Point *mousep, bool click)
 {
     if (menu->selected && !SDL_PointInRect(mousep, &menu->selected->layout->rect)) {
 	menu->selected->selected = false;
@@ -363,7 +363,7 @@ void menu_triage_mouse(Menu *menu, SDL_Point *mousep, bool click)
 	    window_pop_menu(main_win);
 	    /* window_pop_mode(main_win); */
 	}
-	return;
+	return false;
     }
     for (int c=0; c<menu->num_columns; c++) {
 
@@ -393,11 +393,12 @@ void menu_triage_mouse(Menu *menu, SDL_Point *mousep, bool click)
 		    }
 		    
 		    /* textbox_set_background_color(item->tb, &menu_std_clr_highlight); */
-		    return;
+		    return true;
 		}
 	    }
 	}
     }
+    return false;
 }
 
 

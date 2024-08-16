@@ -33,27 +33,38 @@
  *****************************************************************************************************************/
 
 #include <string.h>
-
+#include <semaphore.h>
+#include <fcntl.h>
 #include "audio_connection.h"
+#include "components.h"
+#include "dsp.h"
 #include "layout.h"
 #include "layout_xml.h"
 #include "menu.h"
+#include "page.h"
 #include "project.h"
-#include "slider.h"
+/* #include "slider.h" */
 #include "textbox.h"
 #include "timeline.h"
 #include "transport.h"
+#include "userfn.h"
+#include "waveform.h"
 #include "window.h"
 
 #ifndef INSTALL_DIR
 #define INSTALL_DIR "."
 #endif
 
-#define MAIN_LT_PATH INSTALL_DIR "/gui/jackdaw_main_layout.xml"
+#define MAIN_LT_PATH INSTALL_DIR "/assets/layouts/jackdaw_main_layout.xml"
 
 #define DEFAULT_SFPP 600
 #define CR_RECT_V_PAD (4 * main_win->dpi_scale_factor)
 #define NUM_TRACK_COLORS 7
+
+
+#define CLIPREF_NAMELABEL_H 20
+#define CLIPREF_NAMELABEL_H_PAD 8
+#define CLIPREF_NAMELABEL_V_PAD 2
 
 #define TRACK_NAME_H_PAD 3
 #define TRACK_NAME_V_PAD 1
@@ -65,6 +76,13 @@
 
 #define TRACK_VOL_STEP 0.03
 #define TRACK_PAN_STEP 0.01
+
+#define SEM_NAME_UNPAUSE "/tl_%d_unpause_sem"
+#define SEM_NAME_WRITABLE_CHUNKS "/tl_%d_writable_chunks"
+#define SEM_NAME_READABLE_CHUNKS "/tl_%d_readable_chunks"
+
+
+
 extern Window *main_win;
 extern Project *proj;
 extern SDL_Color color_global_black;
@@ -73,10 +91,15 @@ extern SDL_Color color_global_clear;
 extern SDL_Color color_global_red;
 extern SDL_Color color_global_green;
 extern SDL_Color color_global_light_grey;
+extern SDL_Color color_global_quickref_button_blue;
 
 SDL_Color color_mute_solo_grey = {210, 210, 210, 255};
 
 SDL_Color timeline_label_txt_color = {0, 200, 100, 255};
+
+SDL_Color freq_L_color = {130, 255, 255, 255};
+SDL_Color freq_R_color = {255, 255, 130, 220};
+
 
 /* Alternating bright colors to easily distinguish tracks */
 uint8_t track_color_index = 0;
@@ -107,6 +130,7 @@ uint8_t project_add_timeline(Project *proj, char *name)
     }
     strcpy(new_tl->name, name);
     new_tl->proj = proj;
+    new_tl->index = proj->num_timelines;
     Layout *tl_lt = layout_get_child_by_name_recursive(proj->layout, "timeline");
     Layout *cpy = layout_copy(tl_lt, tl_lt->parent);
     new_tl->layout = cpy;
@@ -114,7 +138,7 @@ uint8_t project_add_timeline(Project *proj, char *name)
     /* new_tl->layout = layout_get_child_by_name_recursive(proj->layout, "timeline"); */
     new_tl->sample_frames_per_pixel = DEFAULT_SFPP;
     strcpy(new_tl->timecode.str, "+00:00:00:00000");
-    Layout *tc_lt = layout_get_child_by_name_recursive(proj->layout, "timecode");
+    Layout *tc_lt = layout_get_child_by_name_recursive(new_tl->layout, "timecode");
     new_tl->timecode_tb = textbox_create_from_str(
 	new_tl->timecode.str,
 	tc_lt,
@@ -127,29 +151,116 @@ uint8_t project_add_timeline(Project *proj, char *name)
     /* textbox_size_to_fit(new_tl->timecode_tb, 0, 0); */
     
     /* new_tl->track_selector = 0; */
-    
+    /* new_tl->mixdown_L = malloc(sizeof(float) * proj->chunk_size_sframes); */
+    /* new_tl->mixdown_R = malloc(sizeof(float) * proj->chunk_size_sframes); */
+
+
+    new_tl->buf_L = calloc(1, sizeof(float) * proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS);
+    new_tl->buf_R = calloc(1, sizeof(float) * proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS);
+    new_tl->buf_write_pos = 0;
+    new_tl->buf_read_pos = 0;
+    char buf[128];
+    snprintf(buf, 128, SEM_NAME_UNPAUSE, new_tl->index);
+    bool retry = false;
+retry1:
+    if ((new_tl->unpause_sem = sem_open(buf, O_CREAT | O_EXCL, 0666, 0)) == SEM_FAILED) {
+	sem_unlink(buf);
+	perror("Error opening unpause sem");
+	if (!retry) {
+	    goto retry1;
+	    retry = true;
+	} else {
+	    fprintf(stderr, "Fatal error: retry failed\n");
+	    exit(1);
+	}
+	/* exit(1); */
+	
+    }
+retry2:
+    snprintf(buf, 128, SEM_NAME_READABLE_CHUNKS, new_tl->index);
+    if ((new_tl->readable_chunks = sem_open(buf, O_CREAT | O_EXCL, 0666, 0)) == SEM_FAILED) {
+	sem_unlink(buf);
+	perror("Error opening readable chunks sem");
+	if (!retry) {
+	    goto retry2;
+	    retry = true;
+	} else {
+	    fprintf(stderr, "Fatal error: retry failed\n");
+	    exit(1);
+	}
+
+	/* exit(1); */
+    }
+retry3:
+    snprintf(buf, 128, SEM_NAME_WRITABLE_CHUNKS, new_tl->index);
+    int init_writable_chunks = proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS / proj->chunk_size_sframes;
+    if ((new_tl->writable_chunks = sem_open(buf, O_CREAT | O_EXCL, 0666, init_writable_chunks)) == SEM_FAILED) {
+	sem_unlink(buf);
+	perror("Error opening writable chunks sem");
+	if (!retry) {
+	    goto retry3;
+	    retry = true;
+	} else {
+	    fprintf(stderr, "Fatal error: retry failed\n");
+	    exit(1);
+	}
+	/* exit(1); */
+    }
+    new_tl->needs_redraw = true;
     proj->timelines[proj->num_timelines] = new_tl;
     proj->num_timelines++;
     return proj->num_timelines - 1; /* Return the new timeline index */
 }
 
-void timeline_destroy(Timeline *tl)
+static void timeline_destroy(Timeline *tl, bool displace_in_proj)
 {
     for (uint8_t i=0; i<tl->num_tracks; i++) {
 	/* fprintf(stdout, "DESTROYING track %d/%d\n", i, tl->num_tracks); */
 	track_destroy(tl->tracks[i], false);
     }
-    layout_destroy(tl->layout);
     /* tl->proj->num_timelines--; */
-    bool displace = false;
-    for (uint8_t i=0; i<proj->num_timelines; i++) {
-	Timeline *test = proj->timelines[i];
-	if (test == tl) displace = true;
-	else if (displace && i > 0) {
-	    proj->timelines[i - 1] = proj->timelines[i];
+    if (displace_in_proj) {
+	bool displace = false;
+	for (uint8_t i=0; i<proj->num_timelines; i++) {
+	    Timeline *test = proj->timelines[i];
+	    if (test == tl) displace = true;
+	    else if (displace && i > 0) {
+		proj->timelines[i - 1] = proj->timelines[i];
+	    }
+	    proj->num_timelines--;
 	}
-	proj->num_timelines--;
     }
+    if (tl->buf_L) free(tl->buf_L);
+    if (tl->buf_R) free(tl->buf_R);
+
+    if (tl->timecode_tb) textbox_destroy(tl->timecode_tb);
+
+    if (sem_close(tl->unpause_sem) != 0) perror("Sem close");
+    if (sem_close(tl->writable_chunks) != 0) perror("Sem close");
+    if (sem_close(tl->readable_chunks) != 0) perror("Sem close");
+
+    char buf[128];
+    snprintf(buf, 128, SEM_NAME_UNPAUSE, tl->index);
+    if (sem_unlink(buf) != 0) {
+	perror("Error in sem unlink");
+    }
+    snprintf(buf, 128, SEM_NAME_WRITABLE_CHUNKS, tl->index);
+    if (sem_unlink(buf) != 0) {
+	perror("Error in sem unlink");
+    }
+    snprintf(buf, 128, SEM_NAME_READABLE_CHUNKS, tl->index);
+    if (sem_unlink(buf) != 0) {
+	perror("Error in sem unlink");
+    }
+
+
+    /* if (tl->mixdown_L) { */
+    /* 	free(tl->mixdown_L); */
+    /* } */
+    /* if (tl->mixdown_R) { */
+    /* 	free(tl->mixdown_R); */
+    /* } */
+    layout_destroy(tl->layout);
     free(tl);
 
 }
@@ -163,10 +274,10 @@ void project_destroy(Project *proj)
     }
     /* fprintf(stdout, "PROJECT_DESTROY num tracks: %d\n", proj->timelines[0]->num_tracks); */
     for (uint8_t i=0; i<proj->num_timelines; i++) {
-	timeline_destroy(proj->timelines[i]);
+	timeline_destroy(proj->timelines[i], false);
     }
     /* fprintf(stdout, "Proj num timelines? %d\n", proj->num_timelines); */
-    textbox_destroy(proj->timeline_label);
+    /* textbox_destroy(proj->timeline_label); */
     for (uint8_t i=0; i<proj->num_record_conns; i++) {
 	audioconn_destroy(proj->record_conns[i]);
     }
@@ -180,12 +291,40 @@ void project_destroy(Project *proj)
     }
     free(proj->output_L);
     free(proj->output_R);
+    free(proj->output_L_freq);
+    free(proj->output_R_freq);
     /* fprintf(stdout, "Tbs? %p %p\n", */
     /* 	    proj->tb_out_label, */
     /* 	    proj->tb_out_value); */
     textbox_destroy(proj->tb_out_label);
     textbox_destroy(proj->tb_out_value);
     textbox_destroy(proj->source_name_tb);
+    textbox_destroy(proj->timeline_label);
+
+    /* DESTROY QUICKREF */
+    struct quickref q = proj->quickref;
+    if (q.add_track) button_destroy(q.add_track);
+    if (q.record) button_destroy(q.record);
+    if (q.left) button_destroy(q.left);
+    if (q.rewind) button_destroy(q.rewind);
+    if (q.play) button_destroy(q.play);
+    if (q.right) button_destroy(q.right);
+    if (q.pause) button_destroy(q.pause);
+    if (q.next) button_destroy(q.next);
+    if (q.previous) button_destroy(q.previous);
+    if (q.zoom_in) button_destroy(q.zoom_in);
+    if (q.zoom_out) button_destroy(q.zoom_out);
+
+    if (q.open_file) button_destroy(q.open_file);
+    if (q.save) button_destroy(q.save);
+    if (q.export_wav) button_destroy(q.export_wav);
+    if (q.track_settings) button_destroy(q.track_settings);
+
+
+    
+    if (proj->status_bar.call) textbox_destroy(proj->status_bar.call);
+    if (proj->status_bar.dragstat) textbox_destroy(proj->status_bar.dragstat);
+    if (proj->status_bar.error) textbox_destroy(proj->status_bar.error);
     free(proj);
 }
 
@@ -197,12 +336,14 @@ void project_reset_tl_label(Project *proj)
 }
 
 void project_init_audio_conns(Project *proj);
+void project_init_quickref(Project *proj, Layout *control_bar_layout);
 Project *project_create(
     char *name,
     uint8_t channels,
     uint32_t sample_rate,
     SDL_AudioFormat fmt,
-    uint16_t chunk_size_sframes
+    uint16_t chunk_size_sframes,
+    uint16_t fourier_len_sframes
     )
 {
     Project *proj = calloc(1, sizeof(Project));
@@ -228,10 +369,13 @@ Project *project_create(
     proj->sample_rate = sample_rate;
     proj->fmt = fmt;
     proj->chunk_size_sframes = chunk_size_sframes;
+    proj->fourier_len_sframes = fourier_len_sframes;
     proj->layout = main_win->layout;
     proj->audio_rect = &(layout_get_child_by_name_recursive(proj->layout, "audio_rect")->rect);
     proj->console_column_rect = &(layout_get_child_by_name_recursive(proj->layout, "audio_rect_pad")->rect);
-    proj->control_bar_rect = &(layout_get_child_by_name_recursive(proj->layout, "control_bar")->rect);
+    Layout *control_bar_layout = layout_get_child_by_name_recursive(proj->layout, "control_bar");
+    project_init_quickref(proj, control_bar_layout);
+    proj->control_bar_rect = &control_bar_layout->rect;
     proj->ruler_rect = &(layout_get_child_by_name_recursive(proj->layout, "ruler")->rect);
     Layout *source_lt = layout_get_child_by_name_recursive(proj->layout, "source_area");
     proj->source_rect = &source_lt->rect;
@@ -264,11 +408,13 @@ Project *project_create(
     textbox_set_align(proj->timeline_label, CENTER_LEFT);
     project_reset_tl_label(proj);
     /* Initialize output */
-    proj->output_len = chunk_size_sframes;
-    proj->output_L = malloc(sizeof(float) * chunk_size_sframes);
-    proj->output_R = malloc(sizeof(float) * chunk_size_sframes);
-    memset(proj->output_L, '\0', sizeof(float) * chunk_size_sframes);
-    memset(proj->output_R, '\0', sizeof(float) * chunk_size_sframes);
+    /* proj->output_len = chunk_size_sframes; */
+    proj->output_L = malloc(sizeof(float) * fourier_len_sframes);
+    proj->output_R = malloc(sizeof(float) * fourier_len_sframes);
+    proj->output_L_freq = malloc(sizeof(double) * fourier_len_sframes);
+    proj->output_R_freq  = malloc(sizeof(double) * fourier_len_sframes);
+    memset(proj->output_L, '\0', sizeof(float) * fourier_len_sframes);
+    memset(proj->output_R, '\0', sizeof(float) * fourier_len_sframes);
 
 
     project_init_audio_conns(proj);
@@ -371,10 +517,262 @@ Project *project_create(
     textbox_reset_full(proj->status_bar.error);
     textbox_reset_full(proj->status_bar.dragstat);
     textbox_reset_full(proj->status_bar.call);
-	
+
+    Layout *hamburger_lt = layout_get_child_by_name_recursive(control_bar_layout, "hamburger");
+
+    proj->hamburger = &hamburger_lt->rect;
+    proj->bun_patty_bun[0] = &hamburger_lt->children[0]->children[0]->rect;
+    proj->bun_patty_bun[1] = &hamburger_lt->children[1]->children[0]->rect;
+    proj->bun_patty_bun[2] = &hamburger_lt->children[2]->children[0]->rect;
     return proj;
 }
 
+
+static inline Layout *create_quickref_button_lt(Layout *row)
+{
+    Layout *ret = layout_add_child(row);
+    ret->h.type = SCALE;
+    ret->h.value.floatval = 1.0f;
+    ret->x.type = STACK;
+    ret->x.value.intval = 10;
+    return ret;
+}
+
+static inline Button *create_button_from_params(Layout *lt, struct button_params b)
+{
+    Button *button = button_create(
+	lt,
+	b.set_str,
+	b.action,
+	b.target,
+	b.font,
+	b.text_size,
+	b.text_color,
+	b.background_color
+	);
+    Textbox *tb = button->tb;
+    tb->layout->h.value.floatval = 0.8;
+    layout_force_reset(tb->layout);
+    textbox_reset_full(button->tb);
+    return button;   
+}
+
+static int quickref_add_track(void *self_v, void *target)
+{
+    user_tl_add_track(NULL);
+    return 0;
+}
+
+static int quickref_record(void *self_v, void *target)
+{
+    user_tl_record(NULL);
+    return 0;
+}
+
+static int quickref_left(void *self_v, void *target)
+{
+    user_tl_move_left(NULL);
+    return 0;
+}
+
+static int quickref_right(void *self_v, void *target)
+{
+    user_tl_move_right(NULL);
+    return 0;
+}
+
+static int quickref_rewind(void *self_v, void *target)
+{
+    user_tl_rewind(NULL);
+    return 0;
+}
+
+
+static int quickref_pause(void *self_v, void *target)
+{
+    user_tl_pause(NULL);
+    return 0;
+}
+
+static int quickref_play(void *self_v, void *target)
+{
+    user_tl_play(NULL);
+    return 0;
+}
+
+static int quickref_next(void *self_v, void *target)
+{
+    user_tl_track_selector_down(NULL);
+    return 0;
+}
+
+static int quickref_previous(void *self_v, void *target)
+{
+    user_tl_track_selector_up(NULL);
+    return 0;
+}
+
+static int quickref_zoom_in(void *self_v, void *target)
+{
+    user_tl_zoom_in(NULL);
+    return 0;
+}
+
+static int quickref_zoom_out(void *self_v, void *target)
+{
+    user_tl_zoom_out(NULL);
+    return 0;
+}
+
+static int quickref_open_file(void *self_v, void *target)
+{
+    user_global_open_file(NULL);
+    return 0;
+}
+
+static int quickref_save(void *self_v, void *target)
+{
+    user_global_save_project(NULL);
+    return 0;
+}
+
+static int quickref_export_wav(void *self_v, void *target)
+{
+    user_tl_write_mixdown_to_wav(NULL);
+    return 0;
+}
+
+static int quickref_track_settings(void *self_v, void *target)
+{
+    user_tl_track_open_settings(NULL);
+    return 0;
+}
+
+void project_init_quickref(Project *proj, Layout *control_bar_lt)
+{
+    Layout *quickref_lt = layout_get_child_by_name_recursive(control_bar_lt, "quickref");
+    struct quickref *q = &proj->quickref;
+    q->layout = quickref_lt;
+    struct button_params b;
+    Layout *row1 = quickref_lt->children[0];
+    Layout *row2 = quickref_lt->children[1];
+    Layout *row3 = quickref_lt->children[2];
+    Layout *button_lt = create_quickref_button_lt(row1);
+    
+    b.font = main_win->symbolic_font;
+    b.background_color = &color_global_quickref_button_blue;
+    b.text_color = &color_global_white;
+    b.set_str = "C-t (add track)";
+    b.action = quickref_add_track;
+    b.target = NULL;
+    b.text_size = 14;
+    q->add_track = create_button_from_params(button_lt, b);
+
+    b.action = quickref_record;
+    button_lt = create_quickref_button_lt(row1);
+    b.set_str = "r ⏺";
+    q->record = create_button_from_params(button_lt, b);
+
+
+    /* ROW 2 */
+    button_lt = create_quickref_button_lt(row2);
+    b.font = main_win->mono_font;
+    b.action = quickref_left;
+    b.set_str = "h ←";
+    q->left = create_button_from_params(button_lt, b);
+
+    button_lt = create_quickref_button_lt(row2);
+    b.font = main_win->symbolic_font;
+    b.action = quickref_rewind;
+    b.set_str = "j ⏴";
+    q->rewind = create_button_from_params(button_lt, b);
+
+    button_lt = create_quickref_button_lt(row2);
+    b.action = quickref_pause;
+    b.set_str = "k ⏸";
+    q->pause = create_button_from_params(button_lt, b);
+
+    button_lt = create_quickref_button_lt(row2);
+    b.action = quickref_play;
+    b.set_str = "l ⏵";
+    q->play = create_button_from_params(button_lt, b);
+
+    button_lt = create_quickref_button_lt(row2);
+    b.font = main_win->mono_font;
+    b.action = quickref_right;
+    b.set_str = "; →";
+    q->right = create_button_from_params(button_lt, b);
+
+
+    /* ROW 3 */
+
+    button_lt = create_quickref_button_lt(row3);
+    b.action = quickref_next;
+    b.set_str = "n ↓";
+    q->next = create_button_from_params(button_lt, b);
+
+    button_lt = create_quickref_button_lt(row3);
+    b.action = quickref_previous;
+    b.set_str = "p ↑";
+    q->previous = create_button_from_params(button_lt, b);
+
+
+    button_lt = create_quickref_button_lt(row3);
+    b.font = main_win->symbolic_font;
+    b.action = quickref_zoom_out;
+    b.set_str = ", 🔍-";
+    q->zoom_out = create_button_from_params(button_lt, b);
+
+    button_lt = create_quickref_button_lt(row3);
+    b.action = quickref_zoom_in;
+    b.set_str = ". 🔍+";
+    q->zoom_in = create_button_from_params(button_lt, b);
+
+    layout_size_to_fit_children_h(row1, true, 0);
+    layout_size_to_fit_children_h(row2, true, 0);
+    layout_size_to_fit_children_h(row3, true, 0);
+    layout_size_to_fit_children(q->layout, true, 0);
+
+    
+
+    /* COL2 */
+
+    Layout *col2 = layout_get_child_by_name_recursive(control_bar_lt, "quickrefcol2");
+    layout_reset(col2);
+    row1 = col2->children[0];
+    row2 = col2->children[1];
+    row3 = col2->children[2];
+
+    button_lt = create_quickref_button_lt(row1);
+    /* b.font = main_win->mono_bold_font; */
+    b.action = quickref_open_file;
+    b.text_size = 12;
+    b.set_str = "Open file (C-o)";
+    q->open_file = create_button_from_params(button_lt, b);
+
+    button_lt = create_quickref_button_lt(row1);
+    b.action = quickref_save;
+    b.set_str = "Save (C-s)";
+    q->save = create_button_from_params(button_lt, b);
+
+    button_lt = create_quickref_button_lt(row2);
+    b.action = quickref_export_wav;
+    b.set_str = "Export wav (S-w)";
+    q->export_wav = create_button_from_params(button_lt, b);
+
+    button_lt = create_quickref_button_lt(row3);
+    b.action = quickref_track_settings;
+    b.set_str = "Track settings (S-t)";
+    q->track_settings = create_button_from_params(button_lt, b);
+    
+    layout_size_to_fit_children_h(row1, true, 0);
+    layout_size_to_fit_children_h(row2, true, 0);
+    layout_size_to_fit_children_h(row3, true, 0);
+    layout_size_to_fit_children(col2, true, 0);
+
+    
+    
+}
 
 int audioconn_open(Project *proj, AudioConn *dev);
 void project_init_audio_conns(Project *proj)
@@ -393,25 +791,39 @@ static float amp_to_db(float amp)
     return (20.0f * log10(amp));
 }
 
-static void slider_label_amp_to_dbstr(char *dst, size_t dstsize, float amp)
+static void slider_label_amp_to_dbstr(char *dst, size_t dstsize, void *value, ValType type)
 {
+    double amp = type == JDAW_DOUBLE ? *(double *)value : *(float *)value;
     int max_float_chars = dstsize - 2;
     if (max_float_chars < 1) {
 	fprintf(stderr, "Error: no room for dbstr\n");
 	dst[0] = '\0';
 	return;
     }
-    snprintf(dst, max_float_chars, "%f", amp_to_db(amp));
+    snprintf(dst, max_float_chars, "%.2f", amp_to_db(amp));
     strcat(dst, " dB");
 }
 
-static void slider_label_plain_str(char *dst, size_t dstsize, float value)
+static void slider_label_pan(char *dst, size_t dstsize, void *value, ValType type)
 {
-    snprintf(dst, dstsize, "%f", value);
-
+    float val = *(float *)value;
+    if (val < 0.5) {	
+	snprintf(dst, dstsize, "%.1f%% L", (0.5 - val) * 200);
+    } else if (val > 0.5) {
+	snprintf(dst, dstsize, "%.1f%% R", (val - 0.5) * 200);
+    } else {
+	snprintf(dst, dstsize, "C");
+    }
 }
 
+/* static void slider_label_plain_str(char *dst, size_t dstsize, void *value, ValType type) */
+/* { */
+/*     double value_d = type == JDAW_DOUBLE ? *(double *)value : *(float *)value; */
+/*     snprintf(dst, dstsize, "%f", value_d); */
 
+/* } */
+
+/* static void do_fn2() {} */
 Track *timeline_add_track(Timeline *tl)
 {
     Track *track = calloc(1, sizeof(Track));
@@ -478,7 +890,7 @@ Track *timeline_add_track(Timeline *tl)
 
 
     track->tb_name = textbox_create_from_str(
-	track->name,
+        track->name,
 	name,
 	main_win->bold_font,
 	14,
@@ -549,13 +961,20 @@ Track *timeline_add_track(Timeline *tl)
     /* layout_set_values_from_rect(vol_ctrl_lt); */
     
     track->vol = 1.0f;
-    track->vol_ctrl = fslider_create(
-	&track->vol,
+    track->vol_ctrl = slider_create(
 	vol_ctrl_lt,
+	(void *)(&track->vol),
+	JDAW_FLOAT,
 	SLIDER_HORIZONTAL,
 	SLIDER_FILL,
-	slider_label_amp_to_dbstr);
-    fslider_set_range(track->vol_ctrl, 0.0f, 3.0f);
+	&slider_label_amp_to_dbstr,
+	NULL,
+	NULL);
+    SliderStrFn t;
+    Value min, max;
+    min.float_v = 0.0f;
+    max.float_v = 3.0f;
+    slider_set_range(track->vol_ctrl, min, max);
 
     Layout *pan_ctrl_row = layout_get_child_by_name_recursive(track->layout, "pan_slider");
     Layout *pan_ctrl_lt = layout_add_child(pan_ctrl_row);
@@ -567,22 +986,42 @@ Track *timeline_add_track(Timeline *tl)
     /* pan_ctrl_lt->h.value.intval = pan_ctrl_row->h.value.intval - TRACK_CTRL_SLIDER_V_PAD * 2; */
     /* /\* layout_set_values_from_rect(pan_ctrl_lt); *\/ */
     track->pan = 0.5f;
-    track->pan_ctrl = fslider_create(
-	&track->pan,
+    track->pan_ctrl = slider_create(
 	pan_ctrl_lt,
+	&track->pan,
+	JDAW_FLOAT,
 	SLIDER_HORIZONTAL,
 	SLIDER_TICK,
-	slider_label_plain_str);
+	slider_label_pan,
+	NULL,
+	NULL);
 
-    fslider_reset(track->vol_ctrl);
-    fslider_reset(track->pan_ctrl);
+    slider_reset(track->vol_ctrl);
+    slider_reset(track->pan_ctrl);
     
 
     track->console_rect = &(layout_get_child_by_name_recursive(track->layout, "track_console")->rect);
     track->colorbar = &(layout_get_child_by_name_recursive(track->layout, "colorbar")->rect);
     /* textbox_reset_full(track->tb_name); */
+
+
+
+    /* FILTER TESTS */
+    if (proj) {
+	int ir_len = proj->fourier_len_sframes/4;
+	track->fir_filter = filter_create(LOWPASS, ir_len, track->tl->proj->fourier_len_sframes * 2);
+	filter_set_params_hz(track->fir_filter, LOWPASS, 1000, 1000);
+	track->fir_filter_active = false;
+    }
+    delay_line_init(&track->delay_line);
+    delay_line_set_params(&track->delay_line, 0.3, 10000);
+    /* delay_line_set_params(&track->delay_line_R, 0.8, 5000); */
+    /* END FILTER TESTS */
+
+    
     return track;
 }
+
 
 void project_clear_active_clips()
 {
@@ -591,7 +1030,6 @@ void project_clear_active_clips()
 
 Clip *project_add_clip(AudioConn *conn, Track *target)
 {
-    fprintf(stdout, "\tnum clips? %d\n", proj->num_clips);
     if (proj->num_clips == MAX_PROJ_CLIPS) {
 	return NULL;
     }
@@ -608,7 +1046,7 @@ Clip *project_add_clip(AudioConn *conn, Track *target)
     if (!target && conn) {
 	snprintf(clip->name, sizeof(clip->name), "%s_rec_%d", conn->name, proj->num_clips); /* TODO: Fix this */
     } else if (target) {
-	snprintf(clip->name, sizeof(clip->name), "%s take %d", target->name, target->num_takes);
+	snprintf(clip->name, sizeof(clip->name), "%s take %d", target->name, target->num_takes + 1);
 	target->num_takes++;
     } else {
 	snprintf(clip->name, sizeof(clip->name), "anonymous");
@@ -631,13 +1069,24 @@ int32_t clip_ref_len(ClipRef *cr)
 
 void clipref_reset(ClipRef *cr)
 {
-    cr->rect.x = timeline_get_draw_x(cr->pos_sframes);
+
+    cr->layout->rect.x = timeline_get_draw_x(cr->pos_sframes);
     uint32_t cr_len = cr->in_mark_sframes >= cr->out_mark_sframes
 	? cr->clip->len_sframes
 	: cr->out_mark_sframes - cr->in_mark_sframes;
-    cr->rect.w = timeline_get_draw_w(cr_len);
-    cr->rect.y = cr->track->layout->rect.y + CR_RECT_V_PAD;
-    cr->rect.h = cr->track->layout->rect.h - 2 * CR_RECT_V_PAD;
+    cr->layout->rect.w = timeline_get_draw_w(cr_len);
+    cr->layout->rect.y = cr->track->layout->rect.y + CR_RECT_V_PAD;
+    cr->layout->rect.h = cr->track->layout->rect.h - 2 * CR_RECT_V_PAD;
+    layout_set_values_from_rect(cr->layout);
+    layout_reset(cr->layout);
+    textbox_reset_full(cr->label);
+    /* cr->rect.x = timeline_get_draw_x(cr->pos_sframes); */
+    /* uint32_t cr_len = cr->in_mark_sframes >= cr->out_mark_sframes */
+    /* 	? cr->clip->len_sframes */
+    /* 	: cr->out_mark_sframes - cr->in_mark_sframes; */
+    /* cr->rect.w = timeline_get_draw_w(cr_len); */
+    /* cr->rect.y = cr->track->layout->rect.y + CR_RECT_V_PAD; */
+    /* cr->rect.h = cr->track->layout->rect.h - 2 * CR_RECT_V_PAD; */
 }
 
 static void clipref_remove_from_track(ClipRef *cr)
@@ -686,8 +1135,8 @@ static void track_reset_full(Track *track)
     for (uint8_t i=0; i<track->num_clips; i++) {
 	clipref_reset(track->clips[i]);
     }
-    fslider_reset(track->vol_ctrl);
-    fslider_reset(track->pan_ctrl);
+    slider_reset(track->vol_ctrl);
+    slider_reset(track->pan_ctrl);
 }
     
 
@@ -710,8 +1159,14 @@ ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sfr
 {
     /* fprintf(stdout, "track %s create clipref\n", track->name); */
     ClipRef *cr = calloc(1, sizeof(ClipRef));
-    
-    snprintf(cr->name, MAX_NAMELENGTH, "%s ref%d", clip->name, track->num_clips);
+    cr->layout = layout_add_child(track->layout);
+    cr->layout->h.type = SCALE;
+    cr->layout->h.value.floatval = 0.96;
+    if (clip->num_refs > 0) {
+	snprintf(cr->name, MAX_NAMELENGTH, "%s ref %d", clip->name, clip->num_refs);
+    } else {
+	snprintf(cr->name, MAX_NAMELENGTH, "%s", clip->name);
+    }
     cr->lock = SDL_CreateMutex();
     SDL_LockMutex(cr->lock);
     track->clips[track->num_clips] = cr;
@@ -720,6 +1175,19 @@ ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sfr
     cr->clip = clip;
     cr->track = track;
     cr->home = home;
+
+    Layout *label_lt = layout_add_child(cr->layout);
+    label_lt->x.value.intval = CLIPREF_NAMELABEL_H_PAD;
+    label_lt->y.value.intval = CLIPREF_NAMELABEL_V_PAD;
+    label_lt->w.type = SCALE;
+    label_lt->w.value.floatval = 0.8f;
+    label_lt->h.value.intval = CLIPREF_NAMELABEL_H;
+    cr->label = textbox_create_from_str(cr->name, label_lt, main_win->mono_bold_font, 12, main_win);
+    textbox_set_align(cr->label, CENTER_LEFT);
+    textbox_set_background_color(cr->label, NULL);
+    textbox_set_text_color(cr->label, &color_global_light_grey);
+	/* textbox_size_to_fit(cr->label, CLIPREF_NAMELABEL_H_PAD, CLIPREF_NAMELABEL_V_PAD); */
+
     /* fprintf(stdout, "Clip num refs: %d\n", clip->num_refs); */
     clip->refs[clip->num_refs] = cr;
     clip->num_refs++;
@@ -742,15 +1210,16 @@ void timeline_reset(Timeline *tl)
     }
     /* fprintf(stdout, "TL reset\n"); */
     layout_reset(tl->layout);
+    tl->needs_redraw = true;
 }
 
 void track_increment_vol(Track *track)
 {
     track->vol += TRACK_VOL_STEP;
-    if (track->vol > track->vol_ctrl->max) {
-	track->vol = track->vol_ctrl->max;
+    if (track->vol > track->vol_ctrl->max.float_v) {
+	track->vol = track->vol_ctrl->max.float_v;
     }
-    fslider_reset(track->vol_ctrl);
+    slider_reset(track->vol_ctrl);
 }
 void track_decrement_vol(Track *track)
 {
@@ -758,7 +1227,7 @@ void track_decrement_vol(Track *track)
     if (track->vol < 0.0f) {
 	track->vol = 0.0f;
     }
-    fslider_reset(track->vol_ctrl);
+    slider_reset(track->vol_ctrl);
 }
 
 void track_increment_pan(Track *track)
@@ -767,7 +1236,7 @@ void track_increment_pan(Track *track)
     if (track->pan > 1.0f) {
 	track->pan = 1.0f;
     }
-    fslider_reset(track->pan_ctrl);
+    slider_reset(track->pan_ctrl);
 }
 
 void track_decrement_pan(Track *track)
@@ -776,7 +1245,7 @@ void track_decrement_pan(Track *track)
     if (track->pan < 0.0f) {
 	track->pan = 0.0f;
     }
-    fslider_reset(track->pan_ctrl);
+    slider_reset(track->pan_ctrl);
 }
 
 /* SDL_Color mute_red = {255, 0, 0, 100}; */
@@ -902,6 +1371,8 @@ static void track_set_in_onclick(void *void_arg)
     textbox_set_value_handle(arg->track->tb_input_name, arg->track->input->name);
 
     window_pop_menu(main_win);
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    tl->needs_redraw = true;
     /* window_pop_mode(main_win); */
 }
 
@@ -971,8 +1442,8 @@ void track_destroy(Track *track, bool displace)
 	num_clips_to_destroy--;
     }
     /* fprintf(stdout, "Ok deleted all clips\n"); */
-    fslider_destroy(track->vol_ctrl);
-    fslider_destroy(track->pan_ctrl);
+    slider_destroy(track->vol_ctrl);
+    slider_destroy(track->pan_ctrl);
     textbox_destroy(track->tb_name);
     textbox_destroy(track->tb_input_label);
     textbox_destroy(track->tb_input_name);
@@ -996,12 +1467,17 @@ void track_destroy(Track *track, bool displace)
 	/* timeline_reset(tl); */
 	/* layout_reset(tl->layout); */
     }
+    if (track->fir_filter) filter_destroy(track->fir_filter);
+    if (track->delay_line.buf_L) free(track->delay_line.buf_L);
+    if (track->delay_line.buf_R) free(track->delay_line.buf_R);
+    if (track->delay_line.lock) SDL_DestroyMutex(track->delay_line.lock);
+    if (track->buf_L_freq_mag) free(track->buf_L_freq_mag);
+    if (track->buf_R_freq_mag) free(track->buf_R_freq_mag);
     free(track);
 }
 
 void clipref_destroy(ClipRef *cr, bool displace_in_clip)
 {
-    /* fprintf(stdout, "CR DESTROY %s num clips %d\n", cr->track->name, cr->track->num_clips); */
     Track *track = cr->track;
     Clip *clip = cr->clip;
 
@@ -1028,6 +1504,7 @@ void clipref_destroy(ClipRef *cr, bool displace_in_clip)
 	clip->num_refs--;
 	/* fprintf(stdout, "\t->Clip at %p now has %d refs\n", clip, clip->num_refs); */
     }
+    textbox_destroy(cr->label);
     SDL_DestroyMutex(cr->lock);
     free(cr);
 }
@@ -1044,6 +1521,7 @@ void clipref_destroy_no_displace(ClipRef *cr)
     }
     cr->clip->num_refs--;
     SDL_DestroyMutex(cr->lock);
+    textbox_destroy(cr->label);
     free(cr);
 }
 
@@ -1195,13 +1673,56 @@ void timeline_cut_clipref_at_point(Timeline *tl)
     if (!track) return;
     for (uint8_t i=0; i<track->num_clips; i++) {
 	ClipRef *cr = track->clips[i];
-	fprintf(stdout, "CLIPREF OLD LEN: %d\n", clipref_len(cr));
 	if (cr->pos_sframes < tl->play_pos_sframes && cr->pos_sframes + clipref_len(cr) > tl->play_pos_sframes) {
-	    ClipRef *new = clipref_cut(cr, tl->play_pos_sframes - cr->pos_sframes);
-	    fprintf(stdout, "New Lens: %d, %d\n", clipref_len(cr), clipref_len(new));
+	    clipref_cut(cr, tl->play_pos_sframes - cr->pos_sframes);
 	    return;
 	}
     }
 }
 
-/* Iosevka */
+void project_set_chunk_size(uint16_t new_chunk_size)
+{
+    if (proj->recording) {
+	transport_stop_recording();
+    }
+    transport_stop_playback();
+    proj->chunk_size_sframes = new_chunk_size;
+
+    
+    /* if (proj->output_L) free(proj->output_L); */
+    /* if (proj->output_R) free(proj->output_R); */
+    /* proj->output_L = calloc(1, sizeof(float) * new_chunk_size); */
+    /* proj->output_R = calloc(1, sizeof(float) * new_chunk_size); */
+    /* if (proj->output_L_freq) free(proj->output_L_freq); */
+    /* if (proj->output_R_freq) free(proj->output_R_freq); */
+    /* proj->output_L_freq = calloc(1, sizeof(double) * new_chunk_size); */
+    /* proj->output_R_freq = calloc(1, sizeof(double) * new_chunk_size); */
+
+
+
+
+/* proj->output_len = new_chunk_size; */
+    /* for (uint8_t i=0; i<proj->num_timelines; i++) { */
+    /* 	Timeline *tl = proj->timelines[i]; */
+    /* 	if (tl->mixdown_L) free(tl->mixdown_L); */
+    /* 	if (tl->mixdown_R) free(tl->mixdown_R); */
+    /* 	tl->mixdown_L = calloc(1, sizeof(float) * new_chunk_size); */
+    /* 	tl->mixdown_R = calloc(1, sizeof(float) * new_chunk_size); */
+    /* } */
+    for (uint8_t i=0; i<proj->num_record_conns; i++) {
+	/* AudioConn *c = proj->record_conns[i]; */
+	/* if (c->open) { */
+	/*     audioconn_close(c); */
+	/* } */
+	audioconn_reset_chunk_size(proj->record_conns[i], new_chunk_size);
+    }
+    for (uint8_t i=0; i<proj->num_playback_conns; i++) {
+	audioconn_reset_chunk_size(proj->playback_conns[i], new_chunk_size);
+    }
+    audioconn_open(proj, proj->playback_conn);
+    if (proj->freq_domain_plot) {
+	waveform_destroy_freq_plot(proj->freq_domain_plot);
+	proj->freq_domain_plot = NULL;
+    }
+
+}

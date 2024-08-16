@@ -11,6 +11,14 @@
 #define OPEN_SANS_BOLD_PATH INSTALL_DIR "/assets/ttf/OpenSans-Bold.ttf"
 #define LTSUPERIOR_PATH INSTALL_DIR "/assets/ttf/LTSuperiorMono-Regular.otf"
 #define LTSUPERIOR_BOLD_PATH INSTALL_DIR "/assets/ttf/LTSuperiorMono-Bold.otf"
+#define NOTO_SANS_SYMBOLS2_PATH INSTALL_DIR "/assets/ttf/NotoSansSymbols2-Regular.ttf"
+/* #define OPEN_SANS_PATH INSTALL_DIR "/assets/ttf/NotoSansSymbols2-Regular.ttf" */
+/* #define OPEN_SANS_BOLD_PATH OPEN_SANS_PATH */
+/* #define LTSUPERIOR_PATH OPEN_SANS_PATH */
+/* #define LTSUPERIOR_BOLD_PATH OPEN_SANS_PATH */
+
+/* #define OPEN_SANS_PATH LTSUPERIOR_BOLD_PATH */
+/* #define OPEN_SANS_BOLD_PATH LTSUPERIOR_BOLD_PATH */
 /* #define OPEN_SANS_BOLD_PATH INSTALL_DIR "/assets/ttf/Iosevka-Bold.ttf" */
 #define TTF_SPEC_ADJUST 1
 
@@ -40,7 +48,8 @@ typedef enum font_type {
     REG,
     BOLD,
     MONO,
-    MONO_BOLD
+    MONO_BOLD,
+    SYMBOLIC
 } FontType;
 
 
@@ -188,7 +197,13 @@ void txt_set_color(Text *txt, SDL_Color *clr);
 void txt_set_pad(Text *txt, int h_pad, int v_pad);
 
 
-TextArea *txt_area_create(const char *value, Layout *layout, Font *font, uint8_t text_size, SDL_Color color, Window *win);
+TextArea *txt_area_create(
+    const char *value,
+    Layout *layout,
+    Font *font,
+    uint8_t text_size,
+    SDL_Color color,
+    Window *win);
 
 void txt_area_draw(TextArea *txtarea);
 

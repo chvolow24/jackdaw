@@ -25,24 +25,12 @@
 *****************************************************************************************************************/
 
 /*****************************************************************************************************************
-    mouse.h
+    mixdown.h
 
-    * Functions related to mouse clicks
+    * Get samples from tracks/clips for playback or export
  *****************************************************************************************************************/
 
-#ifndef JDAW_MOUSE_H
-#define JDAW_MOUSE_H
 
-#include <stdint.h>
+#include "project.h"
 
-void mouse_triage_click_project(uint8_t button);
-void mouse_triage_motion_menu();
-void mouse_triage_click_menu(uint8_t button);
-void mouse_triage_motion_timeline();
-void mouse_triage_motion_modal();
-void mouse_triage_click_modal(uint8_t button);
-void mouse_triage_wheel(int x, int y);
-void mouse_triage_click_text_edit(uint8_t button);
-
-
-#endif
+float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t len_sframes, int32_t start_pos_sframes, float step);

@@ -6,9 +6,13 @@ void user_global_menu(void *nullarg);
 void user_global_quit(void *nullarg);
 void user_global_undo(void *nullarg);
 void user_global_redo(void *nullarg);
+void user_global_show_output_freq_domain(void *nullarg);
 void user_global_save_project(void *nullarg);
 void user_global_open_file(void *nullarg);
 void user_global_start_or_stop_screenrecording(void *nullarg);
+
+
+
 void user_menu_nav_next_item(void *nullarg);
 void user_menu_nav_prev_item(void *nullarg);
 void user_menu_nav_next_sctn(void *nullarg);
@@ -30,6 +34,12 @@ void user_tl_pause(void *nullarg);
 void user_tl_rewind(void *nullarg);
 void user_tl_play_slow(void *nullarg);
 void user_tl_rewind_slow(void *nullarg);
+void user_tl_nudge_left(void *nullarg);
+void user_tl_nudge_right(void *nullarg);
+void user_tl_small_nudge_left(void *nullarg);
+void user_tl_small_nudge_right(void *nullarg);
+void user_tl_one_sample_left(void *nullarg);
+void user_tl_one_sample_right(void *nullarg);
 void user_tl_move_right(void *nullarg);
 void user_tl_move_left(void *nullarg);
 void user_tl_zoom_in(void *nullarg);
@@ -63,8 +73,11 @@ void user_tl_track_activate_selected(void *nullarg);
 void user_tl_track_rename(void *nullarg);
 void user_tl_track_toggle_in(void *nullarg);
 void user_tl_track_set_in(void *nullarg);
+void user_tl_track_add_filter(void *nullarg);
 void user_tl_track_destroy(void *nullarg);
 
+
+void user_tl_track_open_settings(void *nullarg);
 void user_tl_mute(void *nullarg);
 void user_tl_solo(void *nullarg);
 void user_tl_track_vol_up(void *nullarg);
@@ -117,4 +130,15 @@ void user_text_edit_backspace(void *nullarg);
 void user_text_edit_cursor_right(void *nullarg);
 void user_text_edit_cursor_left(void *nullarg);
 void user_text_edit_select_all(void *nullarg);
+
+
+void user_tabview_next_escape(void *nullarg);
+void user_tabview_previous_escape(void *nullarg);
+void user_tabview_enter(void *nullarg);
+void user_tabview_left(void *nullarg);
+void user_tabview_right(void *nullarg);
+void user_tabview_next_tab(void *nullarg);
+void user_tabview_previous_tab(void *nullarg);
+
 #endif
+

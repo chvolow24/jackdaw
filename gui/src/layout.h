@@ -163,6 +163,7 @@ void layout_set_type_recursive(Layout *lt, LayoutType type);
 void layout_pad(Layout *lt, int h_pad, int v_pad);
 Layout *layout_deepest_at_point(Layout *search, SDL_Point *point);
 void layout_size_to_fit_children(Layout *lt, bool fixed_origin, int padding);
+void layout_size_to_fit_children_h(Layout *lt, bool fixed_origin, int padding);
 const char *layout_get_dimtype_str(DimType dt);
 const char *layout_get_itertype_str(IteratorType iter_type);
 
@@ -194,4 +195,6 @@ void layout_fprint(FILE *f, Layout *lt);
 
 void layout_draw(Window *win, Layout *lt);
 
+
+void layout_write(FILE *f, Layout *lt, int indent);
 #endif

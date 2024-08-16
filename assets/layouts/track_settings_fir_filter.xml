@@ -1,0 +1,180 @@
+<Layout name="track_settings_fir_filter" type="NORMAL">
+    <x>REL 0</x>
+    <y>REL 0</y>
+    <w>SCALE 1.000000</w>
+    <h>SCALE 1.000000</h>
+    <index>0</index>
+    <children>
+        <Layout name="toggle_area" type="NORMAL">
+            <x>SCALE 0.060000</x>
+            <y>SCALE 0.056632</y>
+            <w>REL 303</w>
+            <h>REL 31</h>
+            <index>0</index>
+            <children>
+                <Layout name="toggle_filter_on" type="NORMAL">
+                    <x>REL 0</x>
+                    <y>REL 0</y>
+                    <w>REL 20</w>
+                    <h>REL 20</h>
+                    <index>0</index>
+                    <children>
+                    </children>
+                </Layout>
+                <Layout name="toggle_label" type="NORMAL">
+                    <x>REL 37</x>
+                    <y>REL 0</y>
+                    <w>REL 266</w>
+                    <h>REL 20</h>
+                    <index>1</index>
+                    <children>
+                    </children>
+                </Layout>
+            </children>
+        </Layout>
+        <Layout name="filter_type" type="NORMAL">
+            <x>SCALE 0.698750</x>
+            <y>SCALE 0.250749</y>
+            <w>SCALE 0.206250</w>
+            <h>SCALE 0.262725</h>
+            <index>1</index>
+            <children>
+            </children>
+        </Layout>
+        <Layout name="slider_area" type="NORMAL">
+            <x>SCALE 0.060000</x>
+            <y>SCALE 0.121100</y>
+            <w>SCALE 0.523333</w>
+            <h>SCALE 0.392273</h>
+            <index>2</index>
+            <children>
+                <Layout name="slider_area_cutoff" type="NORMAL">
+                    <x>REL 0</x>
+                    <y>STACK 0</y>
+                    <w>SCALE 1.000000</w>
+                    <h>SCALE 0.333333</h>
+                    <index>0</index>
+                    <children>
+                        <Layout name="cutoff_label" type="NORMAL">
+                            <x>REL 0</x>
+                            <y>STACK 0</y>
+                            <w>SCALE 1.000000</w>
+                            <h>SCALE 0.500000</h>
+                            <index>0</index>
+                            <children>
+                            </children>
+                        </Layout>
+                        <Layout name="cutoff_slider" type="NORMAL">
+                            <x>REL 0</x>
+                            <y>STACK 0</y>
+                            <w>SCALE 1.000000</w>
+                            <h>SCALE 0.500000</h>
+                            <index>1</index>
+                            <children>
+                            </children>
+                        </Layout>
+                    </children>
+                </Layout>
+                <Layout name="slider_area_child1" type="NORMAL">
+                    <x>REL 0</x>
+                    <y>STACK 0</y>
+                    <w>SCALE 1.000000</w>
+                    <h>SCALE 0.333333</h>
+                    <index>1</index>
+                    <children>
+                        <Layout name="bandwidth_label" type="NORMAL">
+                            <x>REL 0</x>
+                            <y>STACK 0</y>
+                            <w>SCALE 1.000000</w>
+                            <h>SCALE 0.500000</h>
+                            <index>0</index>
+                            <children>
+                            </children>
+                        </Layout>
+                        <Layout name="bandwidth_slider" type="NORMAL">
+                            <x>REL 0</x>
+                            <y>STACK 0</y>
+                            <w>SCALE 1.000000</w>
+                            <h>SCALE 0.500000</h>
+                            <index>1</index>
+                            <children>
+                            </children>
+                        </Layout>
+                    </children>
+                </Layout>
+                <Layout name="slider_area_child1" type="NORMAL">
+                    <x>REL 0</x>
+                    <y>STACK 0</y>
+                    <w>SCALE 1.000000</w>
+                    <h>SCALE 0.333333</h>
+                    <index>2</index>
+                    <children>
+                        <Layout name="irlen_label" type="NORMAL">
+                            <x>REL 0</x>
+                            <y>STACK 0</y>
+                            <w>SCALE 1.000000</w>
+                            <h>SCALE 0.500000</h>
+                            <index>0</index>
+                            <children>
+                            </children>
+                        </Layout>
+                        <Layout name="irlen_slider" type="NORMAL">
+                            <x>REL 0</x>
+                            <y>STACK 0</y>
+                            <w>SCALE 1.000000</w>
+                            <h>SCALE 0.500000</h>
+                            <index>1</index>
+                            <children>
+                            </children>
+                        </Layout>
+                    </children>
+                </Layout>
+            </children>
+        </Layout>
+        <Layout name="freq_plot" type="NORMAL">
+            <x>SCALE 0.060000</x>
+            <y>SCALE 0.557692</y>
+            <w>SCALE 0.850000</w>
+            <h>SCALE 0.367308</h>
+            <index>3</index>
+            <children>
+            </children>
+        </Layout>
+        <Layout name="track_selection" type="NORMAL">
+            <x>REVREL 10</x>
+            <y>SCALE 0.056632</y>
+            <w>SCALE 0.256667</w>
+            <h>SCALE 0.046200</h>
+            <index>4</index>
+            <children>
+                <Layout name="track_name" type="NORMAL">
+                    <x>STACK 0</x>
+                    <y>REL 0</y>
+                    <w>REL 100</w>
+                    <h>SCALE 1.000000</h>
+                    <index>0</index>
+                    <children>
+                    </children>
+                </Layout>
+                <Layout name="track_previous" type="NORMAL">
+                    <x>STACK 4</x>
+                    <y>REL 0</y>
+                    <w>REL 100</w>
+                    <h>SCALE 1.000000</h>
+                    <index>1</index>
+                    <children>
+                    </children>
+                </Layout>
+                <Layout name="track_next" type="NORMAL">
+                    <x>STACK 4</x>
+                    <y>REL 0</y>
+                    <w>REL 100</w>
+                    <h>SCALE 1.000000</h>
+                    <index>2</index>
+                    <children>
+                    </children>
+                </Layout>
+            </children>
+        </Layout>
+    </children>
+</Layout>

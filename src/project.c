@@ -132,10 +132,24 @@ uint8_t project_add_timeline(Project *proj, char *name)
     new_tl->proj = proj;
     new_tl->index = proj->num_timelines;
     Layout *tl_lt = layout_get_child_by_name_recursive(proj->layout, "timeline");
-    Layout *cpy = layout_copy(tl_lt, tl_lt->parent);
-    new_tl->layout = cpy;
+    if (proj->num_timelines != 0) {
+	Layout *cpy = layout_copy(tl_lt, tl_lt->parent);
+	new_tl->layout = cpy;
+    } else {
+	new_tl->layout = tl_lt;
+    }
     layout_reset(new_tl->layout);
-    /* new_tl->layout = layout_get_child_by_name_recursive(proj->layout, "timeline"); */
+    new_tl->track_area = layout_get_child_by_name_recursive(new_tl->layout, "tracks_area");
+
+    /* Clear tracks in old timeline layout before copying */
+    for (int i=0; i<new_tl->track_area->num_children; i++) {
+	layout_destroy_no_offset(new_tl->track_area->children[i]);
+    }
+    new_tl->track_area->num_children = 0;
+
+    
+    new_tl->layout = layout_get_child_by_name_recursive(proj->layout, "timeline");
+    
     new_tl->sample_frames_per_pixel = DEFAULT_SFPP;
     strcpy(new_tl->timecode.str, "+00:00:00:00000");
     Layout *tc_lt = layout_get_child_by_name_recursive(new_tl->layout, "timecode");
@@ -373,6 +387,7 @@ Project *project_create(
     proj->layout = main_win->layout;
     proj->audio_rect = &(layout_get_child_by_name_recursive(proj->layout, "audio_rect")->rect);
     proj->console_column_rect = &(layout_get_child_by_name_recursive(proj->layout, "audio_rect_pad")->rect);
+    /* proj->track_area = layout_get_child_by_name_recursive(proj->layout, "tracks_area"); */
     Layout *control_bar_layout = layout_get_child_by_name_recursive(proj->layout, "control_bar");
     project_init_quickref(proj, control_bar_layout);
     proj->control_bar_rect = &control_bar_layout->rect;
@@ -842,15 +857,17 @@ Track *timeline_add_track(Timeline *tl)
 	track_color_index = 0;
     }
     
-    Layout *track_template = layout_get_child_by_name_recursive(tl->layout, "track_container");
-    if (!track_template) {
-	fprintf(stderr, "Error: unable to find layout with name \"track_container\"\n");
-	exit(1);
-    }
-
-    Layout *iteration = layout_add_iter(track_template, VERTICAL, true);
-    /* track->layout = track_template->iterator->iterations[track->tl_rank]; */
-    track->layout = iteration;
+    /* Layout *track_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area"); */
+    Layout *track_template = layout_read_xml_to_lt(tl->track_area, "/Users/charlievolow/Documents/c/jackdaw/assets/layouts/track_template.xml");
+    fprintf(stdout, "Track template parent: %p\n", tl->track_area);
+    /* Layout *iteration = layout_copy(track_template, track_template->parent); */
+    /* track->layout = iteration; */
+    track->layout = track_template;
+    
+    tl->track_area->h.value.intval = tl->num_tracks * (track_template->h.value.intval + track_template->y.value.intval);
+    /* layout_size_to_fit_children(tl->track_area, true, 0); */
+    tl->track_area->h.type = REL;
+    fprintf(stdout, "TL TRACK AREA H: %d, rect h: %d\n", tl->track_area->h.value.intval, tl->track_area->rect.h);
     Layout *name, *mute, *solo, *vol_label, *pan_label, *in_label, *in_value;
 
     Layout *track_name_row = layout_get_child_by_name_recursive(track->layout, "name_value");
@@ -1459,7 +1476,8 @@ void track_destroy(Track *track, bool displace)
 	    t->tl_rank--;
 	    /* t->layout = t->layout->parent->iterator->iterations[t->tl_rank]; */
 	}
-	layout_remove_iter_at(track->layout->parent->iterator, track->tl_rank);
+	layout_destroy(track->layout);
+	/* layout_remove_iter_at(track->layout->parent->iterator, track->tl_rank); */
 	tl->tracks[tl->num_tracks - 1] = NULL;
 	/* track->layout->parent->iterator->num_iterations--; */
 	tl->num_tracks--;

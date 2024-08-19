@@ -390,13 +390,16 @@ void loop_project_main()
 				timeline_scroll_horiz(TL_SCROLL_STEP_H * e.wheel.x);
 			    }
 			}
+			proj->timelines[proj->active_tl_index]->track_area->scroll_offset_v += scroll_y;
+			timeline_reset(proj->timelines[proj->active_tl_index]);
+			/* fprintf(stdout, "Track area scroll offset: %d\n", proj->track_area->scroll_offset_v); */
+			/* layout_reset(proj->track_area); */
 			if (allow_scroll) {
 			    if (fabs(scroll_x) > fabs(scroll_y)) {
 				scroll_y = 0;
 			    } else {
 				scroll_x = 0;
 			    }
-			    
 			    temp_scrolling_lt = layout_handle_scroll(
 				main_win->layout,
 				&main_win->mousep,

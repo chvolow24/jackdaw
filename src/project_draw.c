@@ -281,7 +281,9 @@ static void track_draw(Track *track)
     slider_draw(track->vol_ctrl);
     /* slider_reset(track->pan_ctrl); */
 
-    slider_draw(track->pan_ctrl);        
+    slider_draw(track->pan_ctrl);
+    /* layout_force_reset(track->layout); */
+    /* layout_draw(main_win, track->layout->parent); */
 }
 
 static void ruler_draw(Timeline *tl)
@@ -423,6 +425,9 @@ static int timeline_draw(Timeline *tl)
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(grey_mask));
 	SDL_RenderFillRect(main_win->rend, &tl->layout->rect);
     }
+    /* SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 10); */
+    /* SDL_RenderFillRect(main_win->rend, &tl->track_area->rect); */
+    layout_draw(main_win, tl->track_area);
     return 1;
     /* tl->needs_redraw = false; */
 

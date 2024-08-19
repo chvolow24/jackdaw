@@ -139,6 +139,9 @@ Layout *layout_create_from_window(Window *win);
 /* Permanent deletion. Includes all children. */
 void layout_destroy(Layout *lt);
 
+/* Delete layout without adjust parent num children */
+void layout_destroy_no_offset(Layout *lt);
+
 /* Add a new child with default name to layout */
 Layout *layout_add_child(Layout *parent);
 

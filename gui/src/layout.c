@@ -998,6 +998,11 @@ void layout_destroy(Layout *lt)
     layout_destroy_inner(lt);
 }
 
+void layout_destroy_no_offset(Layout *lt)
+{
+    layout_destroy_inner(lt);
+}
+
 Layout *layout_create_from_window(Window *win)
 {
     DimVal dv;

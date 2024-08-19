@@ -238,6 +238,7 @@ typedef struct timeline {
 
     /* GUI members */
     Layout *layout;
+    Layout *track_area;
     int32_t display_offset_sframes; // in samples frames
     int sample_frames_per_pixel;
     int display_v_offset;
@@ -353,7 +354,6 @@ typedef struct project {
     Layout *layout;
     /* Textbox *tb_audio_out_label; */
     /* Textbox *tb_audio_out_name; */
-
     SDL_Rect *audio_rect;
     SDL_Rect *control_bar_rect;
     SDL_Rect *ruler_rect;

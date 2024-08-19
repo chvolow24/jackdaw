@@ -275,7 +275,7 @@ Layout *layout_read_xml_to_lt(Layout *dst, const char *filename)
     }
 
     layout_reparent(opened, dst);
-    fprintf(stderr, "\"%s\" now a child of \"%s\"\n", opened->name, opened->parent->name);
+    /* fprintf(stderr, "\"%s\" now a child of \"%s\"\n", opened->name, opened->parent->name); */
     // if (dst->parent) {
     //     reparent(opened, dst->parent);
     // }

@@ -91,6 +91,8 @@ typedef struct layout {
     bool hidden;
     int scroll_offset_v;
     int scroll_offset_h;
+    int scroll_momentum_v;
+    int scroll_momentum_h;
     // Layout *complement;
     // bool display;
     // bool internal;
@@ -184,7 +186,14 @@ void layout_move_position(Layout *lt, int move_by_x, int move_by_y, bool block_s
 
 LayoutIterator *layout_create_iter_from_template(Layout *template, IteratorType type, int num_iterations, bool scrollable);
 
+/* DEPRECATED. This function uses layout iterators, which are for all intents and purposes deprecated and replaced with stacked layouts */
 Layout *layout_handle_scroll(Layout *main_lt, SDL_Point *mousep, float scroll_x, float scroll_y, bool dynamic);
+
+/* Replaces "layout_handle_scroll */
+void layout_scroll(Layout *layout, float scroll_x, float scroll_y, bool dynamic);
+
+void layout_halt_scroll(Layout *lt);
+
 int layout_scroll_step(Layout *lt);
 
 Layout *layout_add_iter(Layout *lt, IteratorType type, bool scrollable);

@@ -56,6 +56,7 @@
 #endif
 
 #define MAIN_LT_PATH INSTALL_DIR "/assets/layouts/jackdaw_main_layout.xml"
+#define TRACK_LT_PATH INSTALL_DIR "/assets/layouts/track_template.xml"
 
 #define DEFAULT_SFPP 600
 #define CR_RECT_V_PAD (4 * main_win->dpi_scale_factor)
@@ -386,7 +387,7 @@ Project *project_create(
     proj->fourier_len_sframes = fourier_len_sframes;
     proj->layout = main_win->layout;
     proj->audio_rect = &(layout_get_child_by_name_recursive(proj->layout, "audio_rect")->rect);
-    proj->console_column_rect = &(layout_get_child_by_name_recursive(proj->layout, "audio_rect_pad")->rect);
+    proj->console_column_rect = &(layout_get_child_by_name_recursive(proj->layout, "console_column")->rect);
     /* proj->track_area = layout_get_child_by_name_recursive(proj->layout, "tracks_area"); */
     Layout *control_bar_layout = layout_get_child_by_name_recursive(proj->layout, "control_bar");
     project_init_quickref(proj, control_bar_layout);
@@ -469,21 +470,20 @@ Project *project_create(
     proj->outwav_l_rect = &output_l_lt->rect;
     proj->outwav_r_rect = &output_r_lt->rect;
 
-    Layout *status_bar_lt = layout_add_child(proj->layout);
-    layout_set_name(status_bar_lt, "status_bar");
+    /* Layout *status_bar_lt = layout_add_child(proj->layout); */
+    /* layout_set_name(status_bar_lt, "status_bar"); */
+    Layout *status_bar_lt = layout_get_child_by_name_recursive(proj->layout, "status_bar");
     Layout *draglt = layout_add_child(status_bar_lt);
     Layout *calllt = layout_add_child(status_bar_lt);
     Layout *errlt = layout_add_child(status_bar_lt);
     /* calllt->w.type = SCALE; */
     /* errlt->w.type = SCALE; */
     /* calllt->w.value.floatval = 1.0; */
-    /* errlt->w.value.floatval = 1.0f; */
-
-   
-    status_bar_lt->y.type = REVREL;
-    status_bar_lt->w.type = SCALE;
-    status_bar_lt->w.value.floatval = 1.0;
-    status_bar_lt->h.value.intval = STATUS_BAR_H;
+    /* errlt->w.value.floatval = 1.0f; */ 
+    /* status_bar_lt->y.type = REVREL; */
+    /* status_bar_lt->w.type = SCALE; */
+    /* status_bar_lt->w.value.floatval = 1.0; */
+    /* status_bar_lt->h.value.intval = STATUS_BAR_H; */
     proj->status_bar.layout = status_bar_lt;
 
     draglt->h.type = SCALE;
@@ -858,8 +858,7 @@ Track *timeline_add_track(Timeline *tl)
     }
     
     /* Layout *track_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area"); */
-    Layout *track_template = layout_read_xml_to_lt(tl->track_area, "/Users/charlievolow/Documents/c/jackdaw/assets/layouts/track_template.xml");
-    fprintf(stdout, "Track template parent: %p\n", tl->track_area);
+    Layout *track_template = layout_read_xml_to_lt(tl->track_area, TRACK_LT_PATH);
     /* Layout *iteration = layout_copy(track_template, track_template->parent); */
     /* track->layout = iteration; */
     track->layout = track_template;
@@ -868,7 +867,6 @@ Track *timeline_add_track(Timeline *tl)
     /* layout_size_to_fit_children(tl->track_area, true, 0); */
     tl->track_area->h.type = REL;
     layout_reset(tl->track_area);
-    fprintf(stdout, "TL TRACK AREA H: %d, rect h: %d\n", tl->track_area->h.value.intval, tl->track_area->rect.h);
     Layout *name, *mute, *solo, *vol_label, *pan_label, *in_label, *in_value;
 
     Layout *track_name_row = layout_get_child_by_name_recursive(track->layout, "name_value");

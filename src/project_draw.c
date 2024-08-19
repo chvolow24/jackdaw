@@ -427,7 +427,7 @@ static int timeline_draw(Timeline *tl)
     }
     /* SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 10); */
     /* SDL_RenderFillRect(main_win->rend, &tl->track_area->rect); */
-    layout_draw(main_win, tl->track_area);
+    /* layout_draw(main_win, tl->track_area); */
     return 1;
     /* tl->needs_redraw = false; */
 

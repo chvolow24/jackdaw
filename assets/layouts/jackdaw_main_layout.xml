@@ -12,7 +12,7 @@
             <h>REL 147</h>
             <index>0</index>
             <children>
-                <Layout name="quickref" type="NORMAkL">
+                <Layout name="quickref" type="NORMAL">
                     <x>REL 250</x>
                     <y>REL 33</y>
                     <w>REL 170</w>
@@ -230,9 +230,9 @@
                 </Layout>
                 <Layout name="audio_rect_pad" type="NORMAL">
                     <x>REL 0</x>
-                    <y>REL 28</y>
+                    <y>REL 0</y>
                     <w>REL 161</w>
-                    <h>COMPLEMENT 1064526170</h>
+                    <h>REL 28</h>
                     <index>2</index>
                     <children>
                     </children>
@@ -240,9 +240,18 @@
                 <Layout name="audio_rect" type="NORMAL">
                     <x>REL 161</x>
                     <y>REL 28</y>
-                    <w>COMPLEMENT 1056949981</w>
+                    <w>COMPLEMENT 1056964608</w>
                     <h>COMPLEMENT 1056964608</h>
                     <index>3</index>
+                    <children>
+                    </children>
+                </Layout>
+                <Layout name="console_column" type="NORMAL">
+                    <x>REL 0</x>
+                    <y>REL 0</y>
+                    <w>REL 161</w>
+                    <h>SCALE 1.000000</h>
+                    <index>4</index>
                     <children>
                     </children>
                 </Layout>
@@ -290,6 +299,15 @@
             <w>REL 90</w>
             <h>REL 45</h>
             <index>4</index>
+            <children>
+            </children>
+        </Layout>
+        <Layout name="status_bar" type="NORMAL">
+            <x>REL 0</x>
+            <y>REVREL 0</y>
+            <w>SCALE 1.000000</w>
+            <h>REL 28</h>
+            <index>5</index>
             <children>
             </children>
         </Layout>

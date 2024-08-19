@@ -462,11 +462,47 @@ Layout *layout_handle_scroll(Layout *main_lt, SDL_Point *mousep, float scroll_x,
     handle_scroll_internal(scrollable, scroll_x, scroll_y, dynamic);
     return scrollable;
 }
+void layout_scroll(Layout *layout, float scroll_x, float scroll_y, bool dynamic)
+{
+    float epsilon = 0.0001f;
+    float fabs_scroll_x = 0.0f;
+    float fabs_scroll_y = 0.0f;
+    if ((fabs_scroll_x = fabs(scroll_x)) - 0 < epsilon && (fabs_scroll_y = fabs(scroll_y)) - 0 < epsilon) {
+	return;
+    }
+    
+    float scroll_amt;
+    int *offset;
+    int *momentum;
+    int min_offset;
+    if (fabs_scroll_x > fabs_scroll_y) {
+	offset = &layout->scroll_offset_h;
+	momentum = &layout->scroll_momentum_h;
+	scroll_amt = scroll_x;
+	min_offset = -1 * layout->rect.w / main_win->dpi_scale_factor;
 
+    } else {
+	offset = &layout->scroll_offset_v;
+	momentum = &layout->scroll_momentum_v;
+	scroll_amt = scroll_y;
+	min_offset = -1 * layout->rect.h / main_win->dpi_scale_factor;
+    }
+
+    *offset += scroll_amt;
+    if (*offset > 0) {
+	*offset = 0;
+    } else if (*offset < min_offset) {
+	*offset = min_offset;
+    }
+    layout_reset(layout);
+    if (dynamic) {
+	*momentum = scroll_amt;
+    }
+}
 
 void reset_iterations(LayoutIterator *iter);
 /* Run every frame on scrollable layout to reset scroll offset and momentum. Return 1 if scroll should continue, 0 if it's done */
-int layout_scroll_step(Layout *lt)
+int layout_scroll_step_OLD(Layout *lt)
 {
     if (!lt->iterator || !lt->iterator->scrollable || lt->iterator->scroll_momentum == 0) return 0;
 
@@ -497,6 +533,72 @@ int layout_scroll_step(Layout *lt)
     }
 }
 
+int layout_scroll_step(Layout *lt)
+{
+    int *momentum;
+    int *offset;
+    int min_offset;
+    if (abs(lt->scroll_momentum_v) > abs(lt->scroll_momentum_h)) {
+	momentum = &lt->scroll_momentum_v;
+	offset = &lt->scroll_offset_v;
+	min_offset = -1 * lt->rect.h / main_win->dpi_scale_factor;
+    } else {
+	momentum = &lt->scroll_momentum_h;
+	offset = &lt->scroll_offset_h;
+	min_offset = -1 * lt->rect.w / main_win->dpi_scale_factor;
+    }
+    if (*momentum == 0) return 0;
+    int dampen_addend = *momentum > 0 ? -1 : 1;
+
+    *momentum += dampen_addend;
+
+    *offset += *momentum;
+    layout_reset(lt);
+    if (*momentum == 0) return 0;
+
+    if (*offset > 0) {
+	*momentum = 0;
+	*offset = 0;
+	return 0;
+    }
+    if (*offset < min_offset) {
+	*momentum = 0;
+	*offset = min_offset;
+    }
+    return 1;
+    /* lt->scroll_momentum_v += (lt->iterator->scroll_momentum < 0 ? 1 : -1); */
+    /* lt->scroll_momentum_h += (lt->scroll_momentum_h < 0 ?  */
+    /* if (lt->iterator->scroll_stop_count > SCROLL_STOP_THRESHOLD) { */
+    /* 	lt->iterator->scroll_momentum = 0; */
+    /* 	return 0; */
+    /* } */
+    /* else if (fabs(lt->iterator->scroll_momentum) < 1) { */
+    /* 	lt->iterator->scroll_momentum = 0; */
+    /* 	return 0; */
+    /* } */
+    /* if (lt->iterator->scroll_offset + lt->iterator->scroll_momentum < 0) { */
+    /* 	lt->iterator->scroll_offset = 0; */
+    /* 	lt->iterator->scroll_momentum = 0; */
+    /* 	reset_iterations(lt->iterator); */
+    /* 	return 0; */
+    /* } else if (lt->iterator->scroll_offset + lt->iterator->scroll_momentum > iter_dim) { */
+    /* 	lt->iterator->scroll_offset = iter_dim; */
+    /* 	lt->iterator->scroll_momentum = 0; */
+    /* 	return 0; */
+    /* } else { */
+    /* 	lt->iterator->scroll_offset += lt->iterator->scroll_momentum; */
+    /* 	reset_iterations(lt->iterator); */
+    /* 	return 1; */
+    /* } */
+}
+
+void layout_halt_scroll(Layout *lt)
+{
+    lt->scroll_momentum_v = 0;
+    lt->scroll_momentum_h = 0;
+}
+
+/* Deprecated (unless using iterators). Use "layout halt scroll" instead */
 void layout_stop_scroll(Layout *lt)
 {
     if (lt->iterator) {
@@ -967,6 +1069,8 @@ Layout *layout_create()
 
     lt->scroll_offset_v = 0;
     lt->scroll_offset_h = 0;
+    lt->scroll_momentum_v = 0;
+    lt->scroll_momentum_h = 0;
     return lt;
 }
 

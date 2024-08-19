@@ -212,6 +212,7 @@ void loop_project_main()
     uint8_t fingersdown = 0;
     /* uint8_t fingerdown_timer = 0; */
 
+    
     uint8_t animate_step = 0;
     bool set_i_state_k = false;
 
@@ -219,6 +220,7 @@ void loop_project_main()
 
     bool first_frame = true;
     while (!(main_win->i_state & I_STATE_QUIT)) {
+	bool wheel_event_occurred = false;
 	/* fprintf(stdout, "About to poll...\n"); */
 	while (SDL_PollEvent(&e)) {
 	    /* fprintf(stdout, "Polled!\n"); */
@@ -360,6 +362,7 @@ void loop_project_main()
 		}
 		break;
 	    case SDL_MOUSEWHEEL: {
+		wheel_event_occurred = true;
 		mouse_triage_wheel(e.wheel.x * TL_SCROLL_STEP_H, e.wheel.y * TL_SCROLL_STEP_V);
 		if (main_win->modes[main_win->num_modes - 1] == TIMELINE || main_win->modes[main_win->num_modes - 1] == TABVIEW) {
 		    if (main_win->i_state & I_STATE_SHIFT) {
@@ -380,7 +383,7 @@ void loop_project_main()
 		    } else {
 			bool allow_scroll = true;
 			double scroll_x = e.wheel.preciseX * LAYOUT_SCROLL_SCALAR;
-			double scroll_y = e.wheel.preciseY * LAYOUT_SCROLL_SCALAR * -1;
+			double scroll_y = e.wheel.preciseY * LAYOUT_SCROLL_SCALAR;
 			if (SDL_PointInRect(&main_win->mousep, proj->audio_rect)) {
 			    if (main_win->i_state & I_STATE_CMDCTRL) {
 				double scale_factor = pow(SFPP_STEP, e.wheel.y);
@@ -389,26 +392,33 @@ void loop_project_main()
 			    } else if (fabs(scroll_x) > fabs(scroll_y)) {
 				timeline_scroll_horiz(TL_SCROLL_STEP_H * e.wheel.x);
 			    }
+			    /* proj->timelines[proj->active_tl_index]->track_area->scroll_offset_v += scroll_y; */
+			    /* If "fingersdown" is nonzero, dynamic scroll is allowed */
+			    if (allow_scroll) {
+				temp_scrolling_lt = proj->timelines[proj->active_tl_index]->track_area;
+				layout_scroll(proj->timelines[proj->active_tl_index]->track_area, 0, scroll_y, fingersdown);
+			    }
+			    /* temp_scrolling_lt = proj->timelines[proj->active_tl_index]->track_area; */
+			    /* temp_scrolling_lt->scroll_momentum_v = scroll_y; */
 			}
-			proj->timelines[proj->active_tl_index]->track_area->scroll_offset_v += scroll_y;
 			timeline_reset(proj->timelines[proj->active_tl_index]);
 			/* layout_reset(proj->timelines[proj->active_tl_index]->track_area); */
 			/* fprintf(stdout, "Track area scroll offset: %d\n", proj->timelines[proj->active_tl_index]->track_area->scroll_offset_v); */
 			/* layout_reset(proj->track_area); */
-			if (allow_scroll) {
-			    if (fabs(scroll_x) > fabs(scroll_y)) {
-				scroll_y = 0;
-			    } else {
-				scroll_x = 0;
-			    }
-			    temp_scrolling_lt = layout_handle_scroll(
-				main_win->layout,
-				&main_win->mousep,
-				scroll_x,
-				scroll_y,
-				fingersdown);
-			    timeline_reset(proj->timelines[proj->active_tl_index]);
-			}
+			/* if (allow_scroll) { */
+			/*     if (fabs(scroll_x) > fabs(scroll_y)) { */
+			/* 	scroll_y = 0; */
+			/*     } else { */
+			/* 	scroll_x = 0; */
+			/*     } */
+			/*     temp_scrolling_lt = layout_handle_scroll( */
+			/* 	main_win->layout, */
+			/* 	&main_win->mousep, */
+			/* 	scroll_x, */
+			/* 	scroll_y, */
+			/* 	fingersdown); */
+			/*     timeline_reset(proj->timelines[proj->active_tl_index]); */
+			/* } */
 		    }
 		}
 	    }
@@ -450,16 +460,23 @@ void loop_project_main()
 		    main_win->i_state &= ~I_STATE_MOUSE_R;
 		}
 		break;
-	    case SDL_FINGERDOWN:
-	        fingersdown = SDL_GetNumTouchFingers(-1);
-		break;
 	    case SDL_FINGERUP:
 		fingersdown = SDL_GetNumTouchFingers(-1);
-
-		if (fingersdown == 0) {
+		if (fingersdown == 0)
 		    scrolling_lt = temp_scrolling_lt;
+		/* } else { */
+		/*     scrolling_lt = NULL; */
+		/* } */
+		break;
+	    case SDL_FINGERDOWN:
+	        fingersdown = SDL_GetNumTouchFingers(-1);
+		if (scrolling_lt && !wheel_event_occurred) {
+		    /* fprintf(stdout, "HALT fingerdown; wheel occurred? %d\n", wheel_occurred_n_ago); */
+		    layout_halt_scroll(scrolling_lt);
+		    scrolling_lt = NULL;
 		}
 		break;
+
 	    default:
 		break;
 	    }
@@ -469,14 +486,15 @@ void loop_project_main()
 	    }
 		
 	} /* End event handling */
+
 	if (scrolling_lt) {
 	    if (animate_step % 1 == 0) {
 		/* fingersdown = SDL_GetNumTouchFingers(-1); */
 		if (layout_scroll_step(scrolling_lt) == 0) {
-		    scrolling_lt->iterator->scroll_momentum = 0;
+		    /* scrolling_lt->iterator->scroll_momentum = 0; */
 		    scrolling_lt = NULL;
 		} else if (fingersdown > 0) {
-		    scrolling_lt->iterator->scroll_momentum = 0;
+		    /* scrolling_lt->iterator->scroll_momentum = 0; */
 		    scrolling_lt = NULL;
 		}
 		timeline_reset(proj->timelines[proj->active_tl_index]);

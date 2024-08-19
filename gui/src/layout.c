@@ -553,18 +553,20 @@ int layout_scroll_step(Layout *lt)
     *momentum += dampen_addend;
 
     *offset += *momentum;
-    layout_reset(lt);
     if (*momentum == 0) return 0;
 
+    /* fprintf(stdout, "Momentum: %d; offset: %d\n", *momentum, *offset); */
     if (*offset > 0) {
 	*momentum = 0;
 	*offset = 0;
+	layout_reset(lt);
 	return 0;
     }
     if (*offset < min_offset) {
 	*momentum = 0;
 	*offset = min_offset;
     }
+    layout_reset(lt);
     return 1;
     /* lt->scroll_momentum_v += (lt->iterator->scroll_momentum < 0 ? 1 : -1); */
     /* lt->scroll_momentum_h += (lt->scroll_momentum_h < 0 ?  */

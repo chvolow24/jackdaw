@@ -249,13 +249,14 @@ void mouse_triage_click_modal(uint8_t button)
     }
 }
 
-void mouse_triage_wheel(int x, int y)
+Layout *mouse_triage_wheel(int x, int y, bool dynamic)
 {
-    if (main_win->num_modals == 0) return;
+    if (main_win->num_modals == 0) return NULL;
     Modal *top_modal = main_win->modals[main_win->num_modals -1];
     if (top_modal) {
-	modal_triage_wheel(top_modal, &main_win->mousep, x, y);
+	return modal_triage_wheel(top_modal, &main_win->mousep, x, y, dynamic);
     }
+    return NULL;
 }
 
 void mouse_triage_click_text_edit(uint8_t button)

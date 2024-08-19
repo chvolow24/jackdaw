@@ -517,7 +517,7 @@ bool modal_triage_mouse(Modal *modal, SDL_Point *mousep, bool click)
 }
 
 
-void modal_triage_wheel(Modal *modal, SDL_Point *mousep, int x, int y)
+Layout *modal_triage_wheel(Modal *modal, SDL_Point *mousep, int x, int y, bool dynamic)
 {
     ModalEl *el;
     for (uint8_t i=0; i<modal->num_els; i++) {
@@ -525,12 +525,16 @@ void modal_triage_wheel(Modal *modal, SDL_Point *mousep, int x, int y)
 	if (el->type == MODAL_EL_DIRNAV) {
 	    /* fprintf(stdout, "Found dirnav\n"); */
 	    if (SDL_PointInRect(mousep, &el->layout->rect)) {
-		int *scroll_offset = &((DirNav *)el->obj)->lines->container->scroll_offset_v;
-		*scroll_offset += y;
-		if (*scroll_offset > 0) *scroll_offset = 0;
-		layout_reset(el->layout);		
+		Layout *ret = ((DirNav *)el->obj)->lines->container;
+		layout_scroll(ret, 0, y, dynamic);
+		/* int *scroll_offset = &((DirNav *)el->obj)->lines->container->scroll_offset_v; */
+		/* *scroll_offset += y; */
+		/* if (*scroll_offset > 0) *scroll_offset = 0; */
+		/* layout_reset(el->layout); */
+		return ret;
 	    }
 	    break;
 	}
     }
+    return NULL;
 }

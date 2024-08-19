@@ -50,6 +50,6 @@ void modal_select(Modal *modal);
 void modal_move_onto(Modal *modal);
 void modal_submit_form(Modal *modal);
 bool modal_triage_mouse(Modal *modal, SDL_Point *mousep, bool click);
-void modal_triage_wheel(Modal *modal, SDL_Point *mousep, int x, int y);
+Layout *modal_triage_wheel(Modal *modal, SDL_Point *mousep, int x, int y, bool dynamic);
 
 #endif

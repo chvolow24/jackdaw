@@ -219,8 +219,8 @@ void loop_project_main()
     window_push_mode(main_win, TIMELINE);
 
     bool first_frame = true;
+    int wheel_event_recency = 0;
     while (!(main_win->i_state & I_STATE_QUIT)) {
-	bool wheel_event_occurred = false;
 	/* fprintf(stdout, "About to poll...\n"); */
 	while (SDL_PollEvent(&e)) {
 	    /* fprintf(stdout, "Polled!\n"); */
@@ -362,9 +362,11 @@ void loop_project_main()
 		}
 		break;
 	    case SDL_MOUSEWHEEL: {
-		wheel_event_occurred = true;
-		mouse_triage_wheel(e.wheel.x * TL_SCROLL_STEP_H, e.wheel.y * TL_SCROLL_STEP_V);
-		if (main_win->modes[main_win->num_modes - 1] == TIMELINE || main_win->modes[main_win->num_modes - 1] == TABVIEW) {
+		wheel_event_recency = 0;
+		Layout *modal_scrollable = NULL;
+		if ((modal_scrollable = mouse_triage_wheel(e.wheel.x * TL_SCROLL_STEP_H, e.wheel.y * TL_SCROLL_STEP_V, fingersdown))) {
+		    temp_scrolling_lt = modal_scrollable;
+		} else if (main_win->modes[main_win->num_modes - 1] == TIMELINE || main_win->modes[main_win->num_modes - 1] == TABVIEW) {
 		    if (main_win->i_state & I_STATE_SHIFT) {
 			if (main_win->i_state & I_STATE_CMDCTRL)
 			    /* if (main_win->i_state & I_STATE_META) { */
@@ -403,7 +405,6 @@ void loop_project_main()
 			}
 			timeline_reset(proj->timelines[proj->active_tl_index]);
 			/* layout_reset(proj->timelines[proj->active_tl_index]->track_area); */
-			/* fprintf(stdout, "Track area scroll offset: %d\n", proj->timelines[proj->active_tl_index]->track_area->scroll_offset_v); */
 			/* layout_reset(proj->track_area); */
 			/* if (allow_scroll) { */
 			/*     if (fabs(scroll_x) > fabs(scroll_y)) { */
@@ -432,7 +433,6 @@ void loop_project_main()
 		}
 		switch(TOP_MODE) {
 		case TIMELINE:
-		    /* fprintf(stdout, "top mode tl\n"); */
 		    /* if (!mouse_triage_click_page() && !mouse_triage_click_tabview()) */
 			mouse_triage_click_project(e.button.button);
 		    break;
@@ -462,7 +462,7 @@ void loop_project_main()
 		break;
 	    case SDL_FINGERUP:
 		fingersdown = SDL_GetNumTouchFingers(-1);
-		if (fingersdown == 0)
+		if (fingersdown == 0 && wheel_event_recency < 2)
 		    scrolling_lt = temp_scrolling_lt;
 		/* } else { */
 		/*     scrolling_lt = NULL; */
@@ -470,8 +470,7 @@ void loop_project_main()
 		break;
 	    case SDL_FINGERDOWN:
 	        fingersdown = SDL_GetNumTouchFingers(-1);
-		if (scrolling_lt && !wheel_event_occurred) {
-		    /* fprintf(stdout, "HALT fingerdown; wheel occurred? %d\n", wheel_occurred_n_ago); */
+		if (scrolling_lt && wheel_event_recency >= 2) {
 		    layout_halt_scroll(scrolling_lt);
 		    scrolling_lt = NULL;
 		}
@@ -487,6 +486,9 @@ void loop_project_main()
 		
 	} /* End event handling */
 
+	wheel_event_recency++;
+	if (wheel_event_recency == INT_MAX)
+	    wheel_event_recency = 0;
 	if (scrolling_lt) {
 	    if (animate_step % 1 == 0) {
 		/* fingersdown = SDL_GetNumTouchFingers(-1); */

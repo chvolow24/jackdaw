@@ -1382,7 +1382,8 @@ static int new_tl_submit_form(void *mod_v, void *target)
 
 void user_tl_add_new_timeline(void *nullarg)
 {
-        if (proj->recording) transport_stop_recording(); else  transport_stop_playback();
+    if (proj->recording) transport_stop_recording(); else  transport_stop_playback();
+    
     proj->timelines[proj->active_tl_index]->layout->hidden = true;
     proj->active_tl_index = project_add_timeline(proj, "New Timeline");
     project_reset_tl_label(proj);

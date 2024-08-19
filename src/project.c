@@ -132,7 +132,7 @@ uint8_t project_add_timeline(Project *proj, char *name)
     new_tl->proj = proj;
     new_tl->index = proj->num_timelines;
     Layout *tl_lt = layout_get_child_by_name_recursive(proj->layout, "timeline");
-    if (proj->num_timelines != 0) {
+    if (new_tl->index != 0) {
 	Layout *cpy = layout_copy(tl_lt, tl_lt->parent);
 	new_tl->layout = cpy;
     } else {
@@ -148,7 +148,7 @@ uint8_t project_add_timeline(Project *proj, char *name)
     new_tl->track_area->num_children = 0;
 
     
-    new_tl->layout = layout_get_child_by_name_recursive(proj->layout, "timeline");
+    /* new_tl->layout = layout_get_child_by_name_recursive(proj->layout, "timeline"); */
     
     new_tl->sample_frames_per_pixel = DEFAULT_SFPP;
     strcpy(new_tl->timecode.str, "+00:00:00:00000");
@@ -867,6 +867,7 @@ Track *timeline_add_track(Timeline *tl)
     tl->track_area->h.value.intval = tl->num_tracks * (track_template->h.value.intval + track_template->y.value.intval);
     /* layout_size_to_fit_children(tl->track_area, true, 0); */
     tl->track_area->h.type = REL;
+    layout_reset(tl->track_area);
     fprintf(stdout, "TL TRACK AREA H: %d, rect h: %d\n", tl->track_area->h.value.intval, tl->track_area->rect.h);
     Layout *name, *mute, *solo, *vol_label, *pan_label, *in_label, *in_value;
 

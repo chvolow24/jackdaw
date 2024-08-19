@@ -392,7 +392,8 @@ void loop_project_main()
 			}
 			proj->timelines[proj->active_tl_index]->track_area->scroll_offset_v += scroll_y;
 			timeline_reset(proj->timelines[proj->active_tl_index]);
-			/* fprintf(stdout, "Track area scroll offset: %d\n", proj->track_area->scroll_offset_v); */
+			/* layout_reset(proj->timelines[proj->active_tl_index]->track_area); */
+			/* fprintf(stdout, "Track area scroll offset: %d\n", proj->timelines[proj->active_tl_index]->track_area->scroll_offset_v); */
 			/* layout_reset(proj->track_area); */
 			if (allow_scroll) {
 			    if (fabs(scroll_x) > fabs(scroll_y)) {

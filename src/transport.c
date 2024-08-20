@@ -331,12 +331,12 @@ void transport_start_playback()
 void transport_stop_playback()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
+    audioconn_stop_playback(proj->playback_conn);
+    if (proj->dsp_thread) pthread_cancel(proj->dsp_thread);
     for (int i=0; i<512; i++) {
 	sem_post(tl->writable_chunks);
 	sem_post(tl->readable_chunks);
     }
-    if (proj->dsp_thread) pthread_cancel(proj->dsp_thread);
-    audioconn_stop_playback(proj->playback_conn);
     /* fprintf(stdout, "RESETTING SEMS from tl %p\n", tl); */
     while (sem_trywait(tl->unpause_sem) == 0) {};
     while (sem_trywait(tl->writable_chunks) == 0) {};

@@ -1419,28 +1419,32 @@ void user_tl_add_new_timeline(void *nullarg)
 
 void user_tl_previous_timeline(void *nullarg)
 {
-    if (proj->recording) transport_stop_recording(); else  transport_stop_playback();
     if (proj->active_tl_index > 0) {
+	if (proj->recording) transport_stop_recording(); else  transport_stop_playback();
 	proj->timelines[proj->active_tl_index]->layout->hidden = true;
 	proj->active_tl_index--;
 	proj->timelines[proj->active_tl_index]->layout->hidden = false;
 	project_reset_tl_label(proj);
+	timeline_reset_full(proj->timelines[proj->active_tl_index]);
+	proj->timelines[proj->active_tl_index]->needs_redraw = true;
+    } else {
+	status_set_errstr("No timeline to the left.");
     }
-    timeline_reset_full(proj->timelines[proj->active_tl_index]);
-    proj->timelines[proj->active_tl_index]->needs_redraw = true;
 }
 
 void user_tl_next_timeline(void *nullarg)
 {
-    if (proj->recording) transport_stop_recording(); else  transport_stop_playback();
     if (proj->active_tl_index < proj->num_timelines - 1) {
+	if (proj->recording) transport_stop_recording(); else  transport_stop_playback();
 	proj->timelines[proj->active_tl_index]->layout->hidden = true;
 	proj->active_tl_index++;
 	proj->timelines[proj->active_tl_index]->layout->hidden = false;
 	project_reset_tl_label(proj);
+	timeline_reset_full(proj->timelines[proj->active_tl_index]);
+	proj->timelines[proj->active_tl_index]->needs_redraw = true;
+    } else {
+	status_set_errstr("No timeline to the right. Create new with A-t");
     }
-    timeline_reset_full(proj->timelines[proj->active_tl_index]);
-    proj->timelines[proj->active_tl_index]->needs_redraw = true;
 }
 
 

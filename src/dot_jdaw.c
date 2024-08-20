@@ -339,7 +339,7 @@ Project *jdaw_read_file(const char *path)
     fread(&num_clips, 1, 1, f);
     fread(&num_timelines, 1, 1, f);
 
-    Project *proj = project_create(
+    Project *proj_loc = project_create(
 	project_name,
 	channels,
 	sample_rate,
@@ -347,17 +347,17 @@ Project *jdaw_read_file(const char *path)
 	chunk_size,
 	1024 // TODO: variable fourier len
 	);
-    /* proj = proj_loc; */
+
     
-    proj->num_timelines = 0;
+    proj_loc->num_timelines = 0;
 
     while (num_clips > 0) {
-	jdaw_read_clip(f, proj);
+	jdaw_read_clip(f, proj_loc);
 	num_clips--;
     }
 
     while (num_timelines > 0) {
-	jdaw_read_timeline(f, proj);
+	jdaw_read_timeline(f, proj_loc);
 	num_timelines--;
     }
 
@@ -365,7 +365,7 @@ Project *jdaw_read_file(const char *path)
 
     
     fclose(f);
-    return proj;
+    return proj_loc;
 }
 
 static void jdaw_read_clip(FILE *f, Project *proj)

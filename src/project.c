@@ -1354,12 +1354,39 @@ void track_or_tracks_solo(Timeline *tl, Track *opt_track)
 	    }
 	}
     }
+    tl->needs_redraw = true;
 
 }
 
-void track_or_tracks_mute(Timeline *tl, Track *track)
+void track_or_tracks_mute(Timeline *tl)
 {
-
+    if (tl->num_tracks == 0) return;
+    bool has_active_track = false;
+    bool all_muted = true;
+    Track *track;
+    for (uint8_t i=0; i<tl->num_tracks; i++) {
+	track = tl->tracks[i];
+	if (track->active) {
+	    has_active_track = true;
+	    if (!track->muted) {
+		has_active_track = true;
+		all_muted = false;
+		track_mute(track);	
+	    }
+	}
+    }
+    if (!has_active_track) {
+	track = tl->tracks[tl->track_selector];
+	track_mute(track);
+    } else if (all_muted) {
+	for (uint8_t i=0; i<tl->num_tracks; i++) {
+	    track = tl->tracks[i];
+	    if (track->active) {
+		track_mute(track); /* unmute */
+	    }
+	}
+    }
+    tl->needs_redraw = true;
 }
 
 struct track_in_arg {

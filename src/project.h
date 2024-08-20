@@ -412,6 +412,7 @@ void track_undelete(Track *track);
 void track_destroy(Track *track, bool displace);
 
 void track_or_tracks_solo(Timeline *tl, Track *opt_track);
+void track_or_tracks_mute(Timeline *tl);
 
 ClipRef *clipref_at_point();
 ClipRef *clipref_at_point_in_track(Track *track);

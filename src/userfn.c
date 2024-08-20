@@ -782,6 +782,18 @@ void user_tl_set_default_out(void *nullarg) {
     /* window_push_mode(main_win, MENU_NAV); */
 }
 
+NEW_EVENT_FN(add_track_undo)
+{
+    Track *track = (Track *)obj1;
+    track_delete(track);
+}
+
+NEW_EVENT_FN(add_track_redo)
+{
+    Track *track = (Track *)obj1;
+    track_undelete(track);
+}
+
 void user_tl_add_track(void *nullarg)
 {
     fprintf(stdout, "user_tl_add_track\n");
@@ -790,7 +802,7 @@ void user_tl_add_track(void *nullarg)
 	exit(1);
     }
     Timeline *tl = proj->timelines[proj->active_tl_index]; // TODO: get active timeline;
-    timeline_add_track(tl);
+    Track *track = timeline_add_track(tl);
     button_press_color_change(
 	proj->quickref.add_track,
 	&color_global_quickref_button_pressed,
@@ -798,6 +810,24 @@ void user_tl_add_track(void *nullarg)
 	quickref_button_press_callback,
 	NULL);
     tl->needs_redraw = true;
+
+    Value nullval = {.int_v = 0};
+    user_event_push(
+	&proj->history,
+	add_track_undo,
+	add_track_redo,
+	NULL,
+	(void *)track,
+	NULL,
+	nullval,
+	nullval,
+	nullval,
+	nullval,
+	0,
+	0,
+	false,
+	false);
+	
 }
 
 static void track_select_n(int n)
@@ -898,7 +928,6 @@ void user_tl_track_selector_up(void *nullarg)
     if (tl->track_selector > 0) {
 	tl->track_selector--;
     }
-    fprintf(stdout, "track selector %d\n", tl->track_selector);
     Track *selected = tl->tracks[tl->track_selector];
     if (!selected) {
 	return;
@@ -961,7 +990,6 @@ void user_tl_track_selector_down(void *nullarg)
     if (tl->track_selector < tl->num_tracks - 1) {
 	tl->track_selector++;
     }
-    fprintf(stdout, "track selector %d\n", tl->track_selector);
     Track *selected = tl->tracks[tl->track_selector];
     if (!selected) {
 	return;
@@ -1028,24 +1056,6 @@ void user_tl_track_rename(void *nullarg)
 }
 
 
-/* /\* Helper struct and fn *\/ */
-/* struct select_dev_onclick_arg { */
-/*     Track *track; */
-/*     AudioConn *new_in; */
-/* }; */
-/* static void select_in_onclick(void *arg) */
-/* { */
-/*     /\* struct select_dev_onclick_arg *carg = (struct select_dev_onclick_arg *)arg; *\/ */
-/*     /\* Track *track = carg->track; *\/ */
-/*     /\* AudioConn *dev = carg->new_in; *\/ */
-/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
-/*     Track *track = tl->tracks[tl->track_selector]; */
-/*     int index = *((int *)arg); */
-/*     track->input = proj->record_conns[index]; */
-/*     textbox_set_value_handle(track->tb_input_name, track->input->name); */
-/*     window_pop_menu(main_win); */
-/*     window_pop_mode(main_win); */
-/* } */
 void user_tl_track_set_in(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
@@ -1056,88 +1066,40 @@ void user_tl_track_set_in(void *nullarg)
     track_set_input(track);
 }
 
-/* void user_tl_track_add_filter(void *nullarg) */
+
+/* void user_tl_track_destroy(void *nullarg) */
 /* { */
-/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
-/*     Track *track = tl->tracks[tl->track_selector]; */
-/*     if (!track) { */
-/* 	status_set_errstr("No track is selected"); */
-/* 	return; */
+/*     user_tl_pause(NULL); */
+/*     if (proj->recording) { */
+/* 	transport_stop_recording(); */
 /*     } */
-/*     Layout *lt = layout_add_child(main_win->layout); */
-/*     layout_set_default_dims(lt); */
-/*     Modal *m = modal_create(lt); */
-/*     char buf[255]; */
-/*     snprintf(buf, 255, "Add filter to track \"%s\"", track->name); */
-/*     modal_add_header(m, buf, &color_global_light_grey, 4); */
-/*     window_push_modal(main_win, m); */
-/*     modal_reset(m); */
-
-/* } */
-
-/* void user_tl_track_toggle_in(void *nullarg) */
-/* >>>>>>> main */
-/* { */
-/*     /\* fprintf(stdout, "toggle in\n"); *\/ */
-/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
-/*     Track *track = tl->tracks[tl->track_selector]; */
-/*     if (!track) return; */
-
-/*     int index = track->input->index; */
-/*     fprintf(stdout, "CURRENT INDEX: %d\n", index); */
-/*     if (index < proj->num_record_conns - 1) { */
-/* 	AudioConn *next = proj->record_conns[index + 1]; */
-/* 	if (next) { */
-/* 	    track->input = next; */
-/* 	    textbox_set_value_handle(track->tb_input_name, track->input->name); */
-/* 	} else { */
-/* 	    fprintf(stderr, "Error: no record conn at index %d\n", index + 1); */
-	    
-/* 	} */
-/*     } else { */
-/* 	AudioConn *next = proj->record_conns[0]; */
-/* 	if (next) { */
-/* 	    track->input = next; */
-/* 	    textbox_set_value_handle(track->tb_input_name, track->input->name); */
-/* 	} else { */
-/* 	    fprintf(stderr, "Error: no record conn at index 0\n"); */
-/* 	} */
-/*     } */
-/* } */
-
-void user_tl_track_destroy(void *nullarg)
-{
-    user_tl_pause(NULL);
-    if (proj->recording) {
-	transport_stop_recording();
-    }
     
 
-    Timeline *tl = proj->timelines[proj->active_tl_index];
-    if (tl->num_tracks > 0) {
+/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
+/*     if (tl->num_tracks > 0) { */
 	
-	/* Temporary (?) bug fix: */
-	timeline_ungrab_all_cliprefs(tl);
-	status_stat_drag();
-	/* End temporary (?) bug fix */
+/* 	/\* Temporary (?) bug fix: *\/ */
+/* 	timeline_ungrab_all_cliprefs(tl); */
+/* 	status_stat_drag(); */
+/* 	/\* End temporary (?) bug fix *\/ */
 	
-	Track *track = tl->tracks[tl->track_selector];
-	track_destroy(track, true);
-	if (tl->track_selector > tl->num_tracks - 1) {
-	    tl->track_selector = tl->num_tracks == 0 ? 0 : tl->num_tracks - 1;
-	}
-    } else {
-	status_set_errstr("Error: no track to delete");
-    }
+/* 	Track *track = tl->tracks[tl->track_selector]; */
+/* 	track_destroy(track, true); */
+/* 	if (tl->track_selector > tl->num_tracks - 1) { */
+/* 	    tl->track_selector = tl->num_tracks == 0 ? 0 : tl->num_tracks - 1; */
+/* 	} */
+/*     } else { */
+/* 	status_set_errstr("Error: no track to delete"); */
+/*     } */
 
-    TabView *tv;
-    if ((tv = main_win->active_tab_view)) {
-	if (strcmp(tv->title, "Track Settings") == 0) {
-	    settings_track_tabview_set_track(tv, tl->tracks[tl->track_selector]);
-	}
-    }
-    tl->needs_redraw = true;
-}
+/*     TabView *tv; */
+/*     if ((tv = main_win->active_tab_view)) { */
+/* 	if (strcmp(tv->title, "Track Settings") == 0) { */
+/* 	    settings_track_tabview_set_track(tv, tl->tracks[tl->track_selector]); */
+/* 	} */
+/*     } */
+/*     tl->needs_redraw = true; */
+/* } */
 
 
 NEW_EVENT_FN(undo_track_delete)
@@ -1189,48 +1151,20 @@ void user_tl_track_delete(void *nullarg)
 	0,
 	0,
 	false,
-	false);
-	
-	
+	false);	
 }
 
 void user_tl_mute(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
-    if (tl->num_tracks == 0) return;
-    bool has_active_track = false;
-    bool all_muted = true;
-    Track *track;
-    for (uint8_t i=0; i<tl->num_tracks; i++) {
-	track = tl->tracks[i];
-	if (track->active) {
-	    has_active_track = true;
-	    if (!track->muted) {
-		has_active_track = true;
-		all_muted = false;
-		track_mute(track);	
-	    }
-	}
-    }
-    if (!has_active_track) {
-	track = tl->tracks[tl->track_selector];
-	track_mute(track);
-    } else if (all_muted) {
-	for (uint8_t i=0; i<tl->num_tracks; i++) {
-	    track = tl->tracks[i];
-	    if (track->active) {
-		track_mute(track); /* unmute */
-	    }
-	}
-    }
-    tl->needs_redraw = true;
+    track_or_tracks_mute(tl);
 }
 
 void user_tl_solo(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     track_or_tracks_solo(tl, NULL);
-    tl->needs_redraw = true;
+    /* tl->needs_redraw = true; */
 }
 
 void user_tl_track_vol_up(void *nullarg)

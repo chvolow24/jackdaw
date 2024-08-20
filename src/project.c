@@ -1426,6 +1426,55 @@ void clipref_destroy(ClipRef *cr, bool displace_in_clip);
 void clipref_destroy_no_displace(ClipRef *cr);
 void clip_destroy(Clip *clip);
 
+
+static void timeline_remove_track(Track *track)
+{
+    Timeline *tl = track->tl;
+    for (uint8_t i=track->tl_rank + 1; i<tl->num_tracks; i++) {
+	Track *t = tl->tracks[i];
+	tl->tracks[i-1] = t;
+	t->tl_rank--;
+    }
+    layout_remove_child(track->layout);
+    tl->num_tracks--;
+}
+
+static void timeline_insert_track_at(Track *track, uint8_t index)
+{
+
+
+    Timeline *tl = track->tl;
+    /* for (int i=0; i<tl->num_tracks; i++) { */
+    /* 	fprintf(stdout, "\t\t%d: Track index %d named \"%s\"\n", i, tl->tracks[i]->tl_rank, tl->tracks[i]->name); */
+    /* } */
+    while (index > tl->num_tracks) index--;
+    /* fprintf(stdout, "->adj ind: %d\n", index); */
+    for (uint8_t i=tl->num_tracks; i>index; i--) {
+	/* fprintf(stdout, "\tmoving track %d->%d\n", i-1, i); */
+	tl->tracks[i] = tl->tracks[i - 1];
+	tl->tracks[i]->tl_rank = i;
+    }
+    layout_insert_child_at(track->layout, tl->track_area, index);
+    tl->tracks[index] = track;
+    track->tl_rank = index;
+    tl->num_tracks++;
+    for (int i=0; i<tl->num_tracks; i++) {
+	/* fprintf(stdout, "\t\t%d: Track index %d named \"%s\"\n", i, tl->tracks[i]->tl_rank, tl->tracks[i]->name); */
+    }
+}
+void track_delete(Track *track)
+{
+    track->deleted = true;
+    Timeline *tl = track->tl;
+    timeline_remove_track(track);
+    timeline_reset(tl);
+}
+void track_undelete(Track *track)
+{
+    track->deleted = false;
+    timeline_insert_track_at(track, track->tl_rank);
+    timeline_reset(track->tl);
+}
 void track_destroy(Track *track, bool displace)
 {
     Clip *clips_to_destroy[MAX_PROJ_CLIPS];

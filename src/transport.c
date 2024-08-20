@@ -613,6 +613,23 @@ void transport_set_mark(Timeline *tl, bool in)
     }
 }
 
+void transport_set_mark_to(Timeline *tl, int32_t pos, bool in)
+{
+    if (tl) {
+	if (in) {
+	    tl->in_mark_sframes = pos;
+	} else {
+	    tl->out_mark_sframes = pos;
+	}
+    } else if (proj->source_mode) {
+	if (in) {
+	    proj->src_in_sframes = pos;
+	} else {
+	    proj->src_out_sframes = pos;
+	}	
+    }
+}
+
 void transport_goto_mark(Timeline *tl, bool in)
 {
     if (in) {

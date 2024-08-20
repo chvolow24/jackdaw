@@ -24,23 +24,76 @@
 
 *****************************************************************************************************************/
 
-
 /*****************************************************************************************************************
-    dot_jdaw.h
+    user_event.h
 
-    * Define the .jdaw file type and provide functions for saving and opening .jdaw files
+    * define function prototypes for undo/redo class of functions
+    * define user event struct, which is allocated when an undoable action occurs
+    * define a UserEventHistory to be stored on global 'proj' obj
  *****************************************************************************************************************/
 
 
-#ifndef JDAW_DOT_JDAW_H
-#define JDAW_DOT_JDAW_H
+#include "value.h"
 
-#include "project.h"
 
-/* Write a .jdaw file from the current project at the directory pointed to by 'path' */
-void write_jdaw_file(const char *path);
+#define MAX_USER_EVENT_HISTORY_LEN 50
+#define NEW_EVENT_FN(name) \
+    void name(void *obj1, void *obj2, Value val1, Value val2, ValType type1, ValType type2)
 
-/* Open a .jdaw file at the directory pointed to by 'path', and return a pointer to the built Project struct */
-Project *open_jdaw_file(const char *path);
+typedef void (*EventFn)(
+    void *obj1,
+    void *obj2,
+    Value val1,
+    Value val2,
+    ValType type1,
+    ValType type2);
 
-#endif
+
+typedef struct user_event UserEvent;
+
+typedef struct user_event {
+    EventFn undo;
+    EventFn redo;
+    EventFn dispose;
+    void *obj1;
+    void *obj2;
+    Value undo_val1;
+    Value undo_val2;
+    Value redo_val1;
+    Value redo_val2;
+    ValType type1;
+    ValType type2;
+    bool free_obj1;
+    bool free_obj2;
+
+    UserEvent *next;
+    UserEvent *previous;
+} UserEvent;
+
+
+typedef struct user_event_history {
+    UserEvent *most_recent;
+    UserEvent *oldest;
+    UserEvent *next_undo;
+    int len;
+} UserEventHistory;
+
+
+int user_event_do_undo(UserEventHistory *history);
+int user_event_do_redo(UserEventHistory *history);
+
+UserEvent *user_event_push(
+    UserEventHistory *history,
+    EventFn undo_fn,
+    EventFn redo_fn,
+    EventFn dispose_fn,
+    void *obj1,
+    void *obj2,
+    Value undo_val1,
+    Value undo_val2,
+    Value redo_val1,
+    Value redo_val2,
+    ValType type1,
+    ValType type2,
+    bool free_obj1,
+    bool free_obj2);

@@ -68,11 +68,13 @@ void user_global_quit(void *nullarg)
 
 void user_global_undo(void *nullarg)
 {
+    user_event_do_undo(&proj->history);
     fprintf(stdout, "user_global_undo\n");
 }
 
 void user_global_redo(void *nullarg)
 {
+    user_event_do_redo(&proj->history);
     fprintf(stdout, "user_global_redo\n");
 }
 
@@ -656,17 +658,64 @@ void user_tl_zoom_out(void *nullarg)
 	NULL);
 }
 
+NEW_EVENT_FN(undo_redo_set_mark)
+{
+    int32_t *mark = (int32_t *)obj1;
+    *mark = val1.int32_v;
+}
+
+/* NEW_EVENT_FN(redo_set_mark) */
+/* { */
+/*     int32_t *mark = (int32_t *)obj1; */
+/*     *mark = val1.int32_v; */
+/* } */
+
 void user_tl_set_mark_out(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
+    Value old_mark = {.int32_v = tl->out_mark_sframes};
     transport_set_mark(tl, false);
-    fprintf(stdout, "user_tl_set_mark_out\n");
+    Value new_mark = {.int32_v = tl->out_mark_sframes};
+
+    user_event_push(
+	&proj->history,
+	undo_redo_set_mark,
+	undo_redo_set_mark,
+	NULL,
+	(void *)&tl->out_mark_sframes,
+	NULL,
+	old_mark,
+	old_mark,
+	new_mark,
+	new_mark,
+	0,
+	0,
+	false,
+	false);
 }
 void user_tl_set_mark_in(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
+
+    Value old_mark = {.int32_v = tl->in_mark_sframes};
     transport_set_mark(tl, true);
-    fprintf(stdout, "user_tl_set_mark_in\n");
+    Value new_mark = {.int32_v = tl->in_mark_sframes};
+
+    user_event_push(
+	&proj->history,
+	undo_redo_set_mark,
+	undo_redo_set_mark,
+	NULL,
+	(void *)&tl->in_mark_sframes,
+	NULL,
+	old_mark,
+	old_mark,
+	new_mark,
+	new_mark,
+	0,
+	0,
+	false,
+	false);
 }
 
 void user_tl_goto_mark_out(void *nullarg)
@@ -845,9 +894,11 @@ void user_tl_track_activate_all(void *nullarg)
 void user_tl_track_selector_up(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
+    if (tl->num_tracks == 0) return;
     if (tl->track_selector > 0) {
 	tl->track_selector--;
     }
+    fprintf(stdout, "track selector %d\n", tl->track_selector);
     Track *selected = tl->tracks[tl->track_selector];
     if (!selected) {
 	return;
@@ -906,14 +957,16 @@ void user_tl_track_selector_up(void *nullarg)
 void user_tl_track_selector_down(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
-    if (tl->track_selector < tl->num_tracks -1) {
+    if (tl->num_tracks == 0) return;
+    if (tl->track_selector < tl->num_tracks - 1) {
 	tl->track_selector++;
     }
+    fprintf(stdout, "track selector %d\n", tl->track_selector);
     Track *selected = tl->tracks[tl->track_selector];
-    Layout *lt = selected->layout;
     if (!selected) {
 	return;
     }
+    Layout *lt = selected->layout;
     if (lt->rect.y + lt->rect.h > proj->audio_rect->y + proj->audio_rect->h) {
 	lt->parent->scroll_offset_v = -1 * selected->tl_rank * (lt->rect.h / main_win->dpi_scale_factor + lt->y.value.intval) + proj->audio_rect->h / main_win->dpi_scale_factor / 2;
     } else if (lt->rect.y < proj->audio_rect->y) {
@@ -1084,6 +1137,61 @@ void user_tl_track_destroy(void *nullarg)
 	}
     }
     tl->needs_redraw = true;
+}
+
+
+NEW_EVENT_FN(undo_track_delete)
+{
+    Track *track = (Track *)obj1;
+    track_undelete(track);
+    
+}
+
+NEW_EVENT_FN(redo_track_delete)
+{
+    Track *track = (Track *)obj1;
+    track_delete(track);
+}
+
+NEW_EVENT_FN(dispose_track_delete)
+{
+    Track *track = (Track *)obj1;
+    /* fprintf(stdout, "PERMANENTLY DETROYING %s\n", track->name); */
+    track_destroy(track, false);
+}
+
+void user_tl_track_delete(void *nullarg)
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    if (tl->num_tracks == 0) return;
+    Track *track = tl->tracks[tl->track_selector];
+    if (track) {
+	track_delete(track);
+	/* timeline_reset(tl); */
+	if (tl->track_selector > 0 && tl->track_selector > tl->num_tracks - 1) {
+	    tl->track_selector--;
+	}
+    } else {
+	status_set_errstr("Error: no track to delete");
+    }
+    Value nullval = {.int_v = 0};
+    user_event_push(
+	&proj->history,
+	undo_track_delete,
+	redo_track_delete,
+	dispose_track_delete,
+	(void *)track,
+	NULL,
+	nullval,
+	nullval,
+	nullval,
+	nullval,
+	0,
+	0,
+	false,
+	false);
+	
+	
 }
 
 void user_tl_mute(void *nullarg)

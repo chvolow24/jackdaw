@@ -55,6 +55,7 @@
 #include "dsp.h"
 #include "components.h"
 #include "textbox.h"
+#include "user_event.h"
 
 
 #define MAX_TRACKS 255
@@ -338,22 +339,21 @@ typedef struct project {
     /* DSP thread */
     pthread_t dsp_thread;
 
-    /* struct logscale *output_logscale_L; */
-    /* struct logscale *output_logscale_R; */
     struct freq_plot *freq_domain_plot;
 
-    /* In progress */
-    /* Track *vol_changing; */
+    /* In-progress events */
     bool vol_changing;
     bool vol_up;
     bool pan_changing;
     bool pan_right;
     bool show_output_freq_domain;
 
+
+    /* Event History (undo/redo) */
+    UserEventHistory history;
+
     /* GUI Members */
     Layout *layout;
-    /* Textbox *tb_audio_out_label; */
-    /* Textbox *tb_audio_out_name; */
     SDL_Rect *audio_rect;
     SDL_Rect *control_bar_rect;
     SDL_Rect *ruler_rect;
@@ -407,6 +407,8 @@ void track_solomute(Track *track);
 void track_unsolomute(Track *track);
 void track_set_input(Track *track);
 void track_rename(Track *track);
+void track_delete(Track *track);
+void track_undelete(Track *track);
 void track_destroy(Track *track, bool displace);
 
 void track_or_tracks_solo(Timeline *tl, Track *opt_track);

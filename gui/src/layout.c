@@ -1497,7 +1497,34 @@ void layout_remove_iter_at(LayoutIterator *iter, uint8_t at)
 	iter->iterations[i-1] = iter->iterations[i];
     }
     iter->num_iterations--;
+}
 
+
+void layout_remove_child(Layout *child)
+{
+    Layout *parent = child->parent;
+    /* fprintf(stdout, "Remove child at index %d\n", child->index); */
+    if (!parent) return;
+    for (int i=child->index + 1; i<parent->num_children; i++) {
+	/* fprintf(stdout, "\tmoving index %d -> %d\n", i, i-1); */
+	parent->children[i - 1] = parent->children[i];
+	parent->children[i - 1]->index--;
+    }
+    parent->num_children--;
+}
+
+void layout_insert_child_at(Layout *child, Layout *parent, uint8_t index)
+{
+    child->parent = parent;
+    if (!parent) return;
+    while (index > parent->num_children) index--;
+    child->index = index;
+    for (int i=parent->num_children; i>index; i--) {
+	parent->children[i] = parent->children[i-1];
+	parent->children[i]->index = i;
+    }
+    parent->children[index] = child;
+    parent->num_children++;
 }
 
 Layout *layout_add_iter(Layout *lt, IteratorType type, bool scrollable)

@@ -102,7 +102,7 @@
   - <ret>	: tl_track_activate_selected
   - C-r		: tl_track_rename
   - C-S-i	: tl_track_set_in
-  - C-<del>	: tl_track_destroy
+  - C-<del>	: tl_track_delete
   - S-t		: tl_track_open_settings
   - <del>	: tl_cliprefs_destroy
   - m		: tl_mute

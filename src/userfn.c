@@ -853,22 +853,34 @@ void user_tl_track_selector_up(void *nullarg)
 	return;
     }
     /* fprintf(stdout, "Selected x: %d\n", selected->layout->rect.y); */
-    if (selected->layout->rect.y < tl->layout->rect.y) {
-	Layout *template = NULL;
-	LayoutIterator *iter = NULL;
-	if ((template = selected->layout->parent) && (iter = template->iterator)) {
-	    /* LayoutIterator *iter = selected->layout->parent->iterator; */
-	    iter->scroll_offset = (template->rect.h + template->rect.y - proj->audio_rect->y) * selected->tl_rank;
-	    if (iter->scroll_offset < 0) {
-		iter->scroll_offset = 0;
-	    }
-	    layout_reset(tl->layout);
-	    /* layout_force_reset(tl->layout); */
-	    timeline_reset(tl);
-        } else {
-	   fprintf(stderr, "Error: no iterator on layout: %s\n", selected->layout->parent->name);
-	}	    
+
+    Layout *lt = selected->layout;
+    if (lt->rect.y + lt->rect.h > proj->audio_rect->y + proj->audio_rect->h) {
+	lt->parent->scroll_offset_v = -1 * selected->tl_rank * (lt->rect.h / main_win->dpi_scale_factor + lt->y.value.intval) + proj->audio_rect->h / main_win->dpi_scale_factor / 2;
+    } else if (lt->rect.y < proj->audio_rect->y) {
+	lt->parent->scroll_offset_v = -1 * selected->tl_rank * (lt->rect.h / main_win->dpi_scale_factor + lt->y.value.intval);
     }
+    timeline_reset(tl);
+    /* if (lt->parent->scroll_offset_v > 0) { */
+    /* 	lt->parent->scroll_offset_v = 0; */
+    /* } */
+
+    /* if (selected->layout->rect.y < tl->layout->rect.y) { */
+    /* 	Layout *template = NULL; */
+    /* 	LayoutIterator *iter = NULL; */
+    /* 	if ((template = selected->layout->parent) && (iter = template->iterator)) { */
+    /* 	    /\* LayoutIterator *iter = selected->layout->parent->iterator; *\/ */
+    /* 	    iter->scroll_offset = (template->rect.h + template->rect.y - proj->audio_rect->y) * selected->tl_rank; */
+    /* 	    if (iter->scroll_offset < 0) { */
+    /* 		iter->scroll_offset = 0; */
+    /* 	    } */
+    /* 	    layout_reset(tl->layout); */
+    /* 	    /\* layout_force_reset(tl->layout); *\/ */
+    /* 	    timeline_reset(tl); */
+    /*     } else { */
+    /* 	   fprintf(stderr, "Error: no iterator on layout: %s\n", selected->layout->parent->name); */
+    /* 	}	     */
+    /* } */
     if (proj->dragging) {
 	for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
 	    ClipRef *cr = tl->grabbed_clips[i];
@@ -898,30 +910,34 @@ void user_tl_track_selector_down(void *nullarg)
 	tl->track_selector++;
     }
     Track *selected = tl->tracks[tl->track_selector];
+    Layout *lt = selected->layout;
     if (!selected) {
 	return;
     }
-    if (selected->layout->rect.y + selected->layout->rect.h > main_win->layout->rect.h || selected->layout->rect.y < proj->audio_rect->y) {
-	Layout *template = NULL;
-	LayoutIterator *iter = NULL;
-	if ((template = selected->layout->parent) && (iter = template->iterator)) {
-	    iter->scroll_offset = (template->rect.h + template->rect.y - proj->audio_rect->y) * selected->tl_rank - (proj->audio_rect->h - template->rect.h - 10);
-	    if (iter->scroll_offset < 0) {
-		iter->scroll_offset = 0;
-	    }
-	    layout_reset(tl->layout);
-	    /* layout_force_reset(tl->layout); */
-	    timeline_reset(tl);
-	} else {
-	    fprintf(stderr, "Error: no iterator on layout: %s\n", selected->layout->parent->name);
-	}	    
+    if (lt->rect.y + lt->rect.h > proj->audio_rect->y + proj->audio_rect->h) {
+	lt->parent->scroll_offset_v = -1 * selected->tl_rank * (lt->rect.h / main_win->dpi_scale_factor + lt->y.value.intval) + proj->audio_rect->h / main_win->dpi_scale_factor / 2;
+    } else if (lt->rect.y < proj->audio_rect->y) {
+	lt->parent->scroll_offset_v = -1 * selected->tl_rank * (lt->rect.h / main_win->dpi_scale_factor + lt->y.value.intval);
     }
+	/* Layout *template = NULL; */
+	/* LayoutIterator *iter = NULL; */
+	/* if ((template = selected->layout->parent) && (iter = template->iterator)) { */
+	/*     iter->scroll_offset = (template->rect.h + template->rect.y - proj->audio_rect->y) * selected->tl_rank - (proj->audio_rect->h - template->rect.h - 10); */
+	/*     if (iter->scroll_offset < 0) { */
+	/* 	iter->scroll_offset = 0; */
+	/*     } */
+	/*     layout_reset(tl->layout); */
+	/*     /\* layout_force_reset(tl->layout); *\/ */
+	/*     timeline_reset(tl); */
+	/* } else { */
+	/*     fprintf(stderr, "Error: no iterator on layout: %s\n", selected->layout->parent->name); */
     if (proj->dragging) {
 	for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
 	    ClipRef *cr = tl->grabbed_clips[i];
 	    clipref_displace(cr, 1);
 	}
     }
+    timeline_reset(tl);
     TabView *tv;
     if ((tv = main_win->active_tab_view)) {
 	if (strcmp(tv->title, "Track Settings") == 0) {

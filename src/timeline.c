@@ -27,6 +27,7 @@
 /*****************************************************************************************************************
     timeline.c
 
+    * Functions related to timeline positions; others in project.c
     * Translate between draw coordinates and absolute positions (time values) within the timeline
  *****************************************************************************************************************/
 

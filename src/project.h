@@ -232,6 +232,7 @@ typedef struct timeline {
 
     ClipRef *grabbed_clips[MAX_GRABBED_CLIPS];
     uint8_t num_grabbed_clips;
+    int32_t grabbed_clip_pos[MAX_GRABBED_CLIPS];
 
     /* Clip *clip_clipboard[MAX_CLIPBOARD_CLIPS]; */
     /* uint8_t num_clipboard_clips; */
@@ -418,8 +419,11 @@ ClipRef *clipref_at_point();
 ClipRef *clipref_at_point_in_track(Track *track);
 void timeline_ungrab_all_cliprefs(Timeline *tl);
 void clipref_grab(ClipRef *cr);
+void clipref_ungrab(ClipRef *cr);
 /* void clipref_destroy(ClipRef *cr); */
 void clip_destroy(Clip *clip);
+void timeline_cache_grabbed_clip_positions(Timeline *tl);
+void timeline_push_grabbed_clip_move_event(Timeline *tl);
 void timeline_destroy_grabbed_cliprefs(Timeline *tl);
 void timeline_cut_clipref_at_point(Timeline *tl);
 

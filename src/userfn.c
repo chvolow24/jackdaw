@@ -540,10 +540,13 @@ void user_tl_pause(void *nullarg)
 	&color_global_quickref_button_blue,
 	quickref_button_press_callback,
 	NULL);
-    /* textbox_set_background_color(proj->quickref.pause->tb, &somethin); */
-    /* textbox_schedule_color_change(proj->quickref.pause->tb, 200, &somethin_else, false, quickref_change_callback, NULL); */
-    /* textbox_reset_full(proj->quickref.pause->tb); */
-    proj->timelines[proj->active_tl_index]->needs_redraw = true;
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    tl->needs_redraw = true;
+
+    if (proj->dragging && tl->num_grabbed_clips > 0) {
+	timeline_push_grabbed_clip_move_event(tl);
+	timeline_cache_grabbed_clip_positions(tl);
+    }
 }
 
 void user_tl_rewind(void *nullarg)
@@ -1224,7 +1227,6 @@ void user_tl_track_open_settings(void *nullarg)
 
 void user_tl_record(void *nullarg)
 {
-    fprintf(stdout, "user_tl_record\n");
     if (proj->recording) {
 	transport_stop_recording();
     } else {
@@ -1234,14 +1236,29 @@ void user_tl_record(void *nullarg)
     tl->needs_redraw = true;
 }
 
+NEW_EVENT_FN(undo_redo_grab_clips)
+{
+    ClipRef **clips = (ClipRef **)obj1;
+    uint8_t num = val1.uint8_v;
+
+    for (uint8_t i=0; i<num; i++) {
+	ClipRef *cr = clips[i];
+	if (cr->grabbed) {
+	    clipref_ungrab(cr);
+	} else clipref_grab(cr);
+    }
+}
+
 void user_tl_clipref_grab_ungrab()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (tl->num_tracks == 0) return;
     Track *track = NULL;
     ClipRef *cr =  NULL;
-    /* ClipRef *crs[MAX_GRABBED_CLIPS]; */
-    /* uint8_t num_clips = 0; */
+    
+    ClipRef *undo_crs[MAX_GRABBED_CLIPS];
+    uint8_t num_undo_crs = 0;
+    
     bool clip_grabbed = false;
     bool had_active_track = false;
     for (uint8_t i=0; i<tl->num_tracks; i++) {
@@ -1252,10 +1269,9 @@ void user_tl_clipref_grab_ungrab()
 	    if (cr && !cr->grabbed) {
 		clipref_grab(cr);
 		clip_grabbed = true;
-		/* tl->grabbed_clips[tl->num_grabbed_clips] = cr; */
-		/* tl->num_grabbed_clips++; */
-		/* cr->grabbed = true; */
-		/* clip_grabbed = true;	 */	
+		
+		undo_crs[num_undo_crs] = cr;
+		num_undo_crs++;
 	    }
 	}
     }
@@ -1265,45 +1281,65 @@ void user_tl_clipref_grab_ungrab()
 	if (cr && !cr->grabbed) {
 	    clipref_grab(cr);
 	    clip_grabbed = true;
-	    /* tl->grabbed_clips[tl->num_grabbed_clips] = cr; */
-	    /* tl->num_grabbed_clips++; */
-	    /* cr->grabbed = true; */
-	    /* clip_grabbed = true; */
+
+	    undo_crs[num_undo_crs] = cr;
+	    num_undo_crs++;
 	}
     }
     if (!clip_grabbed) {
 	for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
 	    cr = tl->grabbed_clips[i];
 	    cr->grabbed = false;
+
+	    undo_crs[num_undo_crs] = cr;
+	    num_undo_crs++;
 	}
 	tl->num_grabbed_clips = 0;
     }
     if (proj->dragging) {
 	status_stat_drag();
     }
+
+    
+    if (num_undo_crs > 0) {
+	ClipRef **clips = calloc(num_undo_crs, sizeof(ClipRef *));
+	memcpy(clips, undo_crs, num_undo_crs * sizeof(ClipRef *));
+	Value num = {.uint8_v = num_undo_crs};
+	user_event_push(
+	    &proj->history,
+	    undo_redo_grab_clips,
+	    undo_redo_grab_clips,
+	    NULL,
+	    clips,
+	    NULL,
+	    num,
+	    num,
+	    num,
+	    num,
+	    0,
+	    0,
+	    true,
+	    false);
+    }
+    
+    if (tl->num_grabbed_clips > 0) {
+	timeline_cache_grabbed_clip_positions(tl);
+	if (proj->playing && proj->dragging)
+	    timeline_push_grabbed_clip_move_event(tl);
+    }
     tl->needs_redraw = true;
 }
 
-/* void user_tl_play_drag() */
-/* { */
-/*     proj->dragging = true; */
-/*     user_tl_play(); */
-/* } */
-/* void user_tl_rewind_drag() */
-/* { */
-/*     proj->dragging = true; */
-/*     user_tl_rewind(); */
-/* } */
 
-/* void user_tl_pause_drag() */
-/* { */
-/*     proj->dragging = false; */
-/*     user_tl_pause(); */
-/* } */
 void user_tl_toggle_drag(void *nullarg)
 {
     proj->dragging = !proj->dragging;
     status_stat_drag();
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    if (!proj->dragging) {
+	timeline_push_grabbed_clip_move_event(tl);
+    }
+    timeline_cache_grabbed_clip_positions(tl);
 }
 
 void user_tl_cut_clipref(void *nullarg)

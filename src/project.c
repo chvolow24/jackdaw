@@ -43,7 +43,7 @@
 #include "menu.h"
 #include "page.h"
 #include "project.h"
-/* #include "slider.h" */
+#include "status.h"
 #include "textbox.h"
 #include "timeline.h"
 #include "transport.h"
@@ -1561,9 +1561,17 @@ void clipref_destroy_no_displace(ClipRef *cr);
 void clip_destroy(Clip *clip);
 
 
+void clipref_ungrab(ClipRef *cr);
 static void timeline_remove_track(Track *track)
 {
     Timeline *tl = track->tl;
+    for (uint16_t i=0; i<track->num_clips; i++) {
+	ClipRef *clip = track->clips[i];
+	if (clip->grabbed) {
+	    clipref_ungrab(clip);
+	}
+    }
+    if (proj->dragging) status_stat_drag();
     for (uint8_t i=track->tl_rank + 1; i<tl->num_tracks; i++) {
 	Track *t = tl->tracks[i];
 	tl->tracks[i-1] = t;
@@ -1777,6 +1785,77 @@ void clip_destroy(Clip *clip)
     free(clip);
 }
 
+
+void timeline_cache_grabbed_clip_positions(Timeline *tl)
+{
+    fprintf(stdout, "CACHE\n");
+    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
+	tl->grabbed_clip_pos[i] = tl->grabbed_clips[i]->pos_sframes;
+    }
+}
+
+NEW_EVENT_FN(undo_move_clips)
+{
+    ClipRef **cliprefs = (ClipRef **)obj1;
+    int32_t *positions = (int32_t *)obj2;
+    uint8_t num = val1.uint8_v;
+    for (uint8_t i = 0; i<num; i++) {
+	cliprefs[i]->pos_sframes = positions[i];
+	clipref_reset(cliprefs[i]);
+    }
+    Timeline *tl = cliprefs[0]->track->tl;
+    tl->needs_redraw = true;
+}
+
+NEW_EVENT_FN(redo_move_clips)
+{
+
+    ClipRef **cliprefs = (ClipRef **)obj1;
+    int32_t *positions = (int32_t *)obj2;
+    uint8_t num = val1.uint8_v;
+
+    for (uint8_t i = 0; i<num; i++) {
+	cliprefs[i]->pos_sframes = positions[i + num];
+	clipref_reset(cliprefs[i]);
+    }
+    Timeline *tl = cliprefs[0]->track->tl;
+    tl->needs_redraw = true;
+
+}
+void timeline_push_grabbed_clip_move_event(Timeline *tl)
+{
+    fprintf(stdout, "PUSH\n");
+    ClipRef **cliprefs = calloc(tl->num_grabbed_clips, sizeof(ClipRef *));
+    int32_t *positions = calloc(tl->num_grabbed_clips * 2, sizeof(ClipRef *));
+
+    /* Undo positions in first half of array; redo in second half */
+    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
+	cliprefs[i] = tl->grabbed_clips[i];
+	/* undo pos */
+	positions[i] = tl->grabbed_clip_pos[i];
+	/* redo pos */
+	positions[i + tl->num_grabbed_clips] = cliprefs[i]->pos_sframes;
+    }
+    Value num = {.uint8_v = tl->num_grabbed_clips};
+
+    user_event_push(
+	&proj->history,
+	undo_move_clips,
+	redo_move_clips,
+	NULL,
+	(void *)cliprefs,
+	(void *)positions,
+	num,
+	num,
+	num,
+	num,
+	0,
+	0,
+	true,
+	true
+	);
+}
+
 void timeline_destroy_grabbed_cliprefs(Timeline *tl)
 {
     Clip *clips_to_destroy[255];
@@ -1835,6 +1914,21 @@ void clipref_grab(ClipRef *cr)
     tl->grabbed_clips[tl->num_grabbed_clips] = cr;
     tl->num_grabbed_clips++;
     cr->grabbed = true;
+}
+
+void clipref_ungrab(ClipRef *cr)
+{
+    Timeline *tl = cr->track->tl;
+    bool displace = false;
+    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
+	if (displace) {
+	    tl->grabbed_clips[i - 1] = tl->grabbed_clips[i];
+	} else if (cr == tl->grabbed_clips[i]) {
+	    displace = true;
+	}
+    }
+    cr->grabbed = false;
+    tl->num_grabbed_clips--;
 }
 
 void timeline_ungrab_all_cliprefs(Timeline *tl)

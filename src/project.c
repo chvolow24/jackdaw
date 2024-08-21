@@ -1299,8 +1299,66 @@ void track_unsolomute(Track *track)
     textbox_set_background_color(track->tb_solo_button, &color_mute_solo_grey);
 }
 
+
+
+static void rectify_solomute(Timeline *tl, int solo_count)
+{
+    Track *track;
+    if (solo_count > 0) {
+	for (uint8_t i=0; i<tl->num_tracks; i++) {
+	    track = tl->tracks[i];
+	    if (!track->solo) {
+		track_solomute(track);
+	    }
+	}
+    } else {
+	for (uint8_t i=0; i<tl->num_tracks; i++) {
+	    track = tl->tracks[i];
+	    if (!track->solo) {
+		track_unsolomute(track);
+	    }
+	}
+    }
+}
+
+
+NEW_EVENT_FN(undo_redo_tracks_mute)
+{
+    Track **tracks = (Track **)obj1;
+    uint8_t num_tracks = val1.uint8_v;
+    for (uint8_t i=0; i<num_tracks; i++) {
+	track_mute(tracks[i]);
+    }
+}
+
+NEW_EVENT_FN(undo_redo_tracks_solo)
+{
+    Track **tracks_to_solo = (Track **)obj1;
+    Timeline *tl = (Timeline *)obj2;
+    uint8_t num_tracks_to_solo = val1.uint8_v;
+    uint8_t solo_count = val2.uint8_v;
+    bool end_state_solo = false;
+    for (uint8_t i=0; i<num_tracks_to_solo; i++) {
+	end_state_solo = track_solo(tracks_to_solo[i]);
+    }
+    if (end_state_solo) {
+	rectify_solomute(tl, 1);
+    } else if (solo_count > num_tracks_to_solo) {
+	rectify_solomute(tl, 1);
+    } else {
+	rectify_solomute(tl, 0);
+    }
+}
+
+
+
 void track_or_tracks_solo(Timeline *tl, Track *opt_track)
 {
+
+    Track *tracks_to_solo[MAX_TRACKS];
+    uint8_t num_tracks_to_solo = 0;
+
+    
     if (tl->num_tracks == 0) return;
     bool has_active_track = false;
     bool all_solo = true;
@@ -1318,6 +1376,8 @@ void track_or_tracks_solo(Timeline *tl, Track *opt_track)
 		all_solo = false;
 		track_solo(track);
 		solo_count++;
+		tracks_to_solo[num_tracks_to_solo] = track;
+		num_tracks_to_solo++;
 	    }
 	}
     }
@@ -1329,37 +1389,55 @@ void track_or_tracks_solo(Timeline *tl, Track *opt_track)
 	} else {
 	    solo_count--;
 	}
+	tracks_to_solo[num_tracks_to_solo] = track;
+	num_tracks_to_solo++;
     } else if (all_solo) {
 	for (uint8_t i=0; i<tl->num_tracks; i++) {
 	    track = tl->tracks[i];
 	    if (track->active) {
 		track_solo(track); /* unsolo */
 		solo_count--;
+		tracks_to_solo[num_tracks_to_solo] = track;
+		num_tracks_to_solo++;
 		
 	    }
 	}
     }
-    if (solo_count > 0) {
-	for (uint8_t i=0; i<tl->num_tracks; i++) {
-	    track = tl->tracks[i];
-	    if (!track->solo) {
-		track_solomute(track);
-	    }
-	}
-    } else {
-	for (uint8_t i=0; i<tl->num_tracks; i++) {
-	    track = tl->tracks[i];
-	    if (!track->solo) {
-		track_unsolomute(track);
-	    }
-	}
-    }
-    tl->needs_redraw = true;
+    rectify_solomute(tl, solo_count);
 
+    if (num_tracks_to_solo > 0) {
+	Track **undo_packet = calloc(num_tracks_to_solo, sizeof(Track *));
+	memcpy(undo_packet, tracks_to_solo, num_tracks_to_solo * sizeof(Track *));
+	Value num = {.uint8_v = num_tracks_to_solo};
+	Value solocount = {.uint8_v = solo_count};
+	user_event_push(
+	    &proj->history,
+	    undo_redo_tracks_solo,
+	    undo_redo_tracks_solo,
+	    NULL,
+	    (void *)undo_packet,
+	    (void *)tl,
+	    num,
+	    solocount,
+	    num,
+	    solocount,
+	    0,
+	    0,
+	    true,
+	    false);
+    }
+	    
+
+    tl->needs_redraw = true;
 }
+
+
 
 void track_or_tracks_mute(Timeline *tl)
 {
+    Track *muted_tracks[MAX_TRACKS];
+    uint8_t num_muted = 0;
+    
     if (tl->num_tracks == 0) return;
     bool has_active_track = false;
     bool all_muted = true;
@@ -1371,22 +1449,51 @@ void track_or_tracks_mute(Timeline *tl)
 	    if (!track->muted) {
 		has_active_track = true;
 		all_muted = false;
-		track_mute(track);	
+		track_mute(track);
+		muted_tracks[num_muted] = track;
+		num_muted++;
 	    }
 	}
     }
     if (!has_active_track) {
 	track = tl->tracks[tl->track_selector];
 	track_mute(track);
+	muted_tracks[num_muted] = track;
+	num_muted++;
     } else if (all_muted) {
+	num_muted = 0;
 	for (uint8_t i=0; i<tl->num_tracks; i++) {
 	    track = tl->tracks[i];
 	    if (track->active) {
 		track_mute(track); /* unmute */
+		muted_tracks[num_muted] = track;
+		num_muted++;
 	    }
 	}
     }
     tl->needs_redraw = true;
+
+    if (num_muted > 0) {
+	Track **undo_packet = calloc(num_muted, sizeof(Track *));
+	memcpy(undo_packet, muted_tracks, num_muted * sizeof(Track *));
+	Value num = {.uint8_v = num_muted};
+	user_event_push(
+	    &proj->history,
+	    undo_redo_tracks_mute,
+	    undo_redo_tracks_mute,
+	    NULL,
+	    (void *)undo_packet,
+	    NULL,
+	    num,
+	    num,
+	    num,
+	    num,
+	    0,
+	    0,
+	    true,
+	    false);
+    }
+    
 }
 
 struct track_in_arg {

@@ -400,6 +400,18 @@ static void mode_load_timeline()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
+	"tl_move_track_down",
+	"Move selected track down",
+	user_tl_move_track_down);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_move_track_up",
+	"Move selected track up",
+	user_tl_move_track_up);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
 	"tl_move_right",
 	"Move view right",
 	user_tl_move_right);

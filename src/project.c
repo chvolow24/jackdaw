@@ -1795,13 +1795,21 @@ void clip_destroy(Clip *clip)
 }
 
 
+void timeline_push_grabbed_clip_move_event(Timeline *tl);
 void timeline_cache_grabbed_clip_positions(Timeline *tl)
 {
     fprintf(stdout, "CACHE\n");
-    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
-	tl->grabbed_clip_pos[i].track = tl->grabbed_clips[i]->track;
-	tl->grabbed_clip_pos[i].pos = tl->grabbed_clips[i]->pos_sframes;
+    if (!tl->grabbed_clip_cache_initialized) {
+	tl->grabbed_clip_cache_initialized = true;
+    } else if (!tl->grabbed_clip_cache_pushed) {
+	fprintf(stdout, "->Pushing from cache\n");
+	timeline_push_grabbed_clip_move_event(tl);
     }
+    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
+	tl->grabbed_clip_pos_cache[i].track = tl->grabbed_clips[i]->track;
+	tl->grabbed_clip_pos_cache[i].pos = tl->grabbed_clips[i]->pos_sframes;
+    }
+    tl->grabbed_clip_cache_pushed = false;
 }
 
 NEW_EVENT_FN(undo_move_clips)
@@ -1810,6 +1818,7 @@ NEW_EVENT_FN(undo_move_clips)
     uint8_t num = val1.uint8_v;
     if (num == 0) return;
     for (uint8_t i = 0; i<num; i++) {
+	if (!positions[i].track) break;
 	clipref_move_to_track(cliprefs[i], positions[i].track);
 	cliprefs[i]->pos_sframes = positions[i].pos;
 	clipref_reset(cliprefs[i]);
@@ -1824,6 +1833,7 @@ NEW_EVENT_FN(redo_move_clips)
     uint8_t num = val1.uint8_v;
     if (num == 0) return;
     for (uint8_t i = 0; i<num; i++) {
+	if (!positions[i].track) break;
 	clipref_move_to_track(cliprefs[i], positions[i + num].track);
 	cliprefs[i]->pos_sframes = positions[i + num].pos;
 	clipref_reset(cliprefs[i]);
@@ -1847,8 +1857,8 @@ void timeline_push_grabbed_clip_move_event(Timeline *tl)
     for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
 	cliprefs[i] = tl->grabbed_clips[i];
 	/* undo pos */
-	positions[i].track = tl->grabbed_clip_pos[i].track;
-	positions[i].pos = tl->grabbed_clip_pos[i].pos;
+	positions[i].track = tl->grabbed_clip_pos_cache[i].track;
+	positions[i].pos = tl->grabbed_clip_pos_cache[i].pos;
 	/* redo pos */
 	positions[i + tl->num_grabbed_clips].track = cliprefs[i]->track;
 	positions[i + tl->num_grabbed_clips].pos = cliprefs[i]->pos_sframes;
@@ -1871,6 +1881,7 @@ void timeline_push_grabbed_clip_move_event(Timeline *tl)
 	true,
 	true
 	);
+    tl->grabbed_clip_cache_pushed = true;
 }
 
 void timeline_destroy_grabbed_cliprefs(Timeline *tl)

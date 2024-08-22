@@ -69,6 +69,8 @@ void user_tl_track_select_9(void *nullarg);
 void user_tl_track_activate_all(void *nullarg);
 void user_tl_track_selector_up(void *nullarg);
 void user_tl_track_selector_down(void *nullarg);
+void user_tl_move_track_up(void *nullarg);
+void user_tl_move_track_down(void *nullarg);
 void user_tl_track_activate_selected(void *nullarg);
 void user_tl_track_rename(void *nullarg);
 void user_tl_track_toggle_in(void *nullarg);

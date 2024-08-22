@@ -98,6 +98,8 @@
   - n		: tl_track_selector_down
   - f		: tl_track_selector_down
   - d		: tl_track_selector_up
+  - S-p		: tl_move_track_up
+  - S-n		: tl_move_track_down
   - <spc>	: tl_track_activate_selected
   - <ret>	: tl_track_activate_selected
   - C-r		: tl_track_rename

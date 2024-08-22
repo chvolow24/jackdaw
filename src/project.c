@@ -1991,6 +1991,54 @@ void timeline_cut_clipref_at_point(Timeline *tl)
     }
 }
 
+
+NEW_EVENT_FN(undo_redo_move_track)
+    Track *track = (Track *)obj1;
+    int direction = val1.int_v;
+    timeline_move_track(track->tl, track, direction, true);
+}
+void timeline_move_track(Timeline *tl, Track *track, int direction, bool from_undo)
+{
+    int old_pos = track->tl_rank;
+    int new_pos = old_pos + direction;
+    if (new_pos < 0 || new_pos >= tl->num_tracks) return;
+
+    Track *displaced = tl->tracks[new_pos];
+    tl->tracks[new_pos] = track;
+    tl->tracks[old_pos] = displaced;
+    displaced->tl_rank = track->tl_rank;
+
+    Layout *displaced_layout = displaced->layout;
+    Layout *track_layout = track->layout;
+
+    displaced_layout->parent->children[displaced_layout->index] = track_layout;
+    displaced_layout->parent->children[track_layout->index] = displaced_layout;
+    int saved_i = displaced_layout->index;
+    displaced_layout->index = track_layout->index;
+    track_layout->index = saved_i;
+    
+    track->tl_rank = new_pos;
+    tl->track_selector = track->tl_rank;
+    timeline_reset(tl);
+
+    if (!from_undo) {
+	Value direction_forward = {.int_v = direction};
+	Value direction_reverse = {.int_v = direction * -1};
+	user_event_push(
+	    &proj->history,
+	    undo_redo_move_track,
+	    undo_redo_move_track,
+	    NULL,
+	    (void *)track,
+	    NULL,
+	    direction_reverse,
+	    direction_reverse,
+	    direction_forward,
+	    direction_forward,
+	    0, 0, false, false);
+    }
+}
+
 void project_set_chunk_size(uint16_t new_chunk_size)
 {
     if (proj->recording) {

@@ -433,6 +433,7 @@ void timeline_cache_grabbed_clip_positions(Timeline *tl);
 void timeline_push_grabbed_clip_move_event(Timeline *tl);
 void timeline_destroy_grabbed_cliprefs(Timeline *tl);
 void timeline_cut_clipref_at_point(Timeline *tl);
+void timeline_move_track(Timeline *tl, Track *track, int direction, bool from_undo);
 
 void project_destroy(Project *proj);
 

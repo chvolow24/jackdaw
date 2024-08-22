@@ -1059,26 +1059,7 @@ static void move_track(int direction)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     Track *track = tl->tracks[tl->track_selector];
-    int new_pos = track->tl_rank + direction;
-    if (new_pos < 0 || new_pos >= tl->num_tracks) return;
-
-    Track *displaced = tl->tracks[new_pos];
-    tl->tracks[new_pos] = track;
-    tl->tracks[track->tl_rank] = displaced;
-    displaced->tl_rank = track->tl_rank;
-
-    Layout *displaced_layout = displaced->layout;
-    Layout *track_layout = track->layout;
-
-    displaced_layout->parent->children[displaced_layout->index] = track_layout;
-    displaced_layout->parent->children[track_layout->index] = displaced_layout;
-    int saved_i = displaced_layout->index;
-    displaced_layout->index = track_layout->index;
-    track_layout->index = saved_i;
-    
-    track->tl_rank = new_pos;
-    tl->track_selector = track->tl_rank;
-    timeline_reset(tl);
+    timeline_move_track(tl, track, direction, false);
 }
 
 void user_tl_move_track_up(void *nullarg)

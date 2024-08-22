@@ -1127,6 +1127,17 @@ void clipref_displace(ClipRef *cr, int displace_by)
     timeline_reset(tl);
 }
 
+void clipref_move_to_track(ClipRef *cr, Track *target)
+{
+    Track *prev_track = cr->track;
+    Timeline *tl = prev_track->tl;
+    clipref_remove_from_track(cr);
+    target->clips[target->num_clips] = cr;
+    target->num_clips++;
+    cr->track = target;
+    timeline_reset(tl);
+}
+
 static void track_reset_full(Track *track)
 {
     textbox_reset_full(track->tb_name);
@@ -1323,7 +1334,6 @@ static void rectify_solomute(Timeline *tl, int solo_count)
 
 
 NEW_EVENT_FN(undo_redo_tracks_mute)
-{
     Track **tracks = (Track **)obj1;
     uint8_t num_tracks = val1.uint8_v;
     for (uint8_t i=0; i<num_tracks; i++) {
@@ -1332,7 +1342,6 @@ NEW_EVENT_FN(undo_redo_tracks_mute)
 }
 
 NEW_EVENT_FN(undo_redo_tracks_solo)
-{
     Track **tracks_to_solo = (Track **)obj1;
     Timeline *tl = (Timeline *)obj2;
     uint8_t num_tracks_to_solo = val1.uint8_v;
@@ -1790,17 +1799,19 @@ void timeline_cache_grabbed_clip_positions(Timeline *tl)
 {
     fprintf(stdout, "CACHE\n");
     for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
-	tl->grabbed_clip_pos[i] = tl->grabbed_clips[i]->pos_sframes;
+	tl->grabbed_clip_pos[i].track = tl->grabbed_clips[i]->track;
+	tl->grabbed_clip_pos[i].pos = tl->grabbed_clips[i]->pos_sframes;
     }
 }
 
 NEW_EVENT_FN(undo_move_clips)
-{
     ClipRef **cliprefs = (ClipRef **)obj1;
-    int32_t *positions = (int32_t *)obj2;
+    struct track_and_pos *positions = (struct track_and_pos *)obj2;
     uint8_t num = val1.uint8_v;
+    if (num == 0) return;
     for (uint8_t i = 0; i<num; i++) {
-	cliprefs[i]->pos_sframes = positions[i];
+	clipref_move_to_track(cliprefs[i], positions[i].track);
+	cliprefs[i]->pos_sframes = positions[i].pos;
 	clipref_reset(cliprefs[i]);
     }
     Timeline *tl = cliprefs[0]->track->tl;
@@ -1808,33 +1819,39 @@ NEW_EVENT_FN(undo_move_clips)
 }
 
 NEW_EVENT_FN(redo_move_clips)
-{
-
     ClipRef **cliprefs = (ClipRef **)obj1;
-    int32_t *positions = (int32_t *)obj2;
+    struct track_and_pos *positions = (struct track_and_pos *)obj2;
     uint8_t num = val1.uint8_v;
-
+    if (num == 0) return;
     for (uint8_t i = 0; i<num; i++) {
-	cliprefs[i]->pos_sframes = positions[i + num];
+	clipref_move_to_track(cliprefs[i], positions[i + num].track);
+	cliprefs[i]->pos_sframes = positions[i + num].pos;
 	clipref_reset(cliprefs[i]);
     }
     Timeline *tl = cliprefs[0]->track->tl;
     tl->needs_redraw = true;
-
 }
 void timeline_push_grabbed_clip_move_event(Timeline *tl)
 {
     fprintf(stdout, "PUSH\n");
     ClipRef **cliprefs = calloc(tl->num_grabbed_clips, sizeof(ClipRef *));
-    int32_t *positions = calloc(tl->num_grabbed_clips * 2, sizeof(ClipRef *));
+    /* int32_t *positions = calloc(tl->num_grabbed_clips * 2, sizeof(ClipRef *)); */
+
+    struct track_and_pos {
+	Track *track;
+	int32_t pos;
+    };
+    struct track_and_pos *positions = calloc(tl->num_grabbed_clips * 2, sizeof(struct track_and_pos));
 
     /* Undo positions in first half of array; redo in second half */
     for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
 	cliprefs[i] = tl->grabbed_clips[i];
 	/* undo pos */
-	positions[i] = tl->grabbed_clip_pos[i];
+	positions[i].track = tl->grabbed_clip_pos[i].track;
+	positions[i].pos = tl->grabbed_clip_pos[i].pos;
 	/* redo pos */
-	positions[i + tl->num_grabbed_clips] = cliprefs[i]->pos_sframes;
+	positions[i + tl->num_grabbed_clips].track = cliprefs[i]->track;
+	positions[i + tl->num_grabbed_clips].pos = cliprefs[i]->pos_sframes;
     }
     Value num = {.uint8_v = tl->num_grabbed_clips};
 

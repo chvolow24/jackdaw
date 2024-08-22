@@ -515,6 +515,10 @@ void user_menu_dismiss(void *nullarg)
 
 void user_tl_play(void *nullarg)
 {
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    if (!proj->playing && tl->num_grabbed_clips > 0) {
+	timeline_cache_grabbed_clip_positions(tl);
+    }
     if (proj->play_speed <= 0.0f) {
 	proj->play_speed = 1.0f;
 	transport_start_playback();
@@ -532,6 +536,8 @@ void user_tl_play(void *nullarg)
 
 void user_tl_pause(void *nullarg)
 {
+
+    Timeline *tl = proj->timelines[proj->active_tl_index];
     proj->play_speed = 0;
     transport_stop_playback();
     button_press_color_change(
@@ -540,17 +546,20 @@ void user_tl_pause(void *nullarg)
 	&color_global_quickref_button_blue,
 	quickref_button_press_callback,
 	NULL);
-    Timeline *tl = proj->timelines[proj->active_tl_index];
-    tl->needs_redraw = true;
 
+    tl->needs_redraw = true;
     if (proj->dragging && tl->num_grabbed_clips > 0) {
 	timeline_push_grabbed_clip_move_event(tl);
-	timeline_cache_grabbed_clip_positions(tl);
     }
 }
 
 void user_tl_rewind(void *nullarg)
 {
+
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    if (!proj->playing && proj->dragging && tl->num_grabbed_clips > 0) {
+	timeline_cache_grabbed_clip_positions(tl);
+    }
     if (proj->play_speed >= 0.0f) {
 	proj->play_speed = -1.0f;
 	transport_start_playback();
@@ -569,6 +578,10 @@ void user_tl_rewind(void *nullarg)
 
 void user_tl_play_slow(void *nullarg)
 {
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    if (!proj->playing && proj->dragging && tl->num_grabbed_clips > 0) {
+	timeline_cache_grabbed_clip_positions(tl);
+    }
     proj->play_speed = SLOW_PLAYBACK_SPEED;
     status_stat_playspeed();
     transport_start_playback();
@@ -576,6 +589,10 @@ void user_tl_play_slow(void *nullarg)
 
 void user_tl_rewind_slow(void *nullarg)
 {
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    if (!proj->playing && tl->num_grabbed_clips > 0) {
+	timeline_cache_grabbed_clip_positions(tl);
+    }
     proj->play_speed = -1 * SLOW_PLAYBACK_SPEED;
     status_stat_playspeed();
     transport_start_playback();
@@ -662,7 +679,6 @@ void user_tl_zoom_out(void *nullarg)
 }
 
 NEW_EVENT_FN(undo_redo_set_mark)
-{
     int32_t *mark = (int32_t *)obj1;
     *mark = val1.int32_v;
 }
@@ -786,13 +802,11 @@ void user_tl_set_default_out(void *nullarg) {
 }
 
 NEW_EVENT_FN(add_track_undo)
-{
     Track *track = (Track *)obj1;
     track_delete(track);
 }
 
 NEW_EVENT_FN(add_track_redo)
-{
     Track *track = (Track *)obj1;
     track_undelete(track);
 }
@@ -1106,20 +1120,17 @@ void user_tl_track_set_in(void *nullarg)
 
 
 NEW_EVENT_FN(undo_track_delete)
-{
     Track *track = (Track *)obj1;
     track_undelete(track);
     
 }
 
 NEW_EVENT_FN(redo_track_delete)
-{
     Track *track = (Track *)obj1;
     track_delete(track);
 }
 
 NEW_EVENT_FN(dispose_track_delete)
-{
     Track *track = (Track *)obj1;
     /* fprintf(stdout, "PERMANENTLY DETROYING %s\n", track->name); */
     track_destroy(track, false);
@@ -1236,18 +1247,17 @@ void user_tl_record(void *nullarg)
     tl->needs_redraw = true;
 }
 
-NEW_EVENT_FN(undo_redo_grab_clips)
-{
-    ClipRef **clips = (ClipRef **)obj1;
-    uint8_t num = val1.uint8_v;
+/* NEW_EVENT_FN(undo_redo_grab_clips) */
+/*     ClipRef **clips = (ClipRef **)obj1; */
+/*     uint8_t num = val1.uint8_v; */
 
-    for (uint8_t i=0; i<num; i++) {
-	ClipRef *cr = clips[i];
-	if (cr->grabbed) {
-	    clipref_ungrab(cr);
-	} else clipref_grab(cr);
-    }
-}
+/*     for (uint8_t i=0; i<num; i++) { */
+/* 	ClipRef *cr = clips[i]; */
+/* 	if (cr->grabbed) { */
+/* 	    clipref_ungrab(cr); */
+/* 	} else clipref_grab(cr); */
+/*     } */
+/* } */
 
 void user_tl_clipref_grab_ungrab()
 {
@@ -1256,8 +1266,8 @@ void user_tl_clipref_grab_ungrab()
     Track *track = NULL;
     ClipRef *cr =  NULL;
     
-    ClipRef *undo_crs[MAX_GRABBED_CLIPS];
-    uint8_t num_undo_crs = 0;
+    ClipRef *clips_to_grab[MAX_GRABBED_CLIPS];
+    uint8_t num_clips = 0;
     
     bool clip_grabbed = false;
     bool had_active_track = false;
@@ -1267,11 +1277,13 @@ void user_tl_clipref_grab_ungrab()
 	    had_active_track = true;
 	    cr = clipref_at_point_in_track(track);
 	    if (cr && !cr->grabbed) {
-		clipref_grab(cr);
+		clips_to_grab[num_clips] = cr;
+		num_clips++;
+		/* clipref_grab(cr); */
 		clip_grabbed = true;
 		
-		undo_crs[num_undo_crs] = cr;
-		num_undo_crs++;
+		/* undo_crs[num_undo_crs] = cr; */
+		/* num_undo_crs++; */
 	    }
 	}
     }
@@ -1279,55 +1291,67 @@ void user_tl_clipref_grab_ungrab()
 	track = tl->tracks[tl->track_selector];
 	cr = clipref_at_point_in_track(track);
 	if (cr && !cr->grabbed) {
-	    clipref_grab(cr);
+	    /* clipref_grab(cr); */
+	    clips_to_grab[num_clips] = cr;
+	    num_clips++;
 	    clip_grabbed = true;
 
-	    undo_crs[num_undo_crs] = cr;
-	    num_undo_crs++;
+	    /* undo_crs[num_undo_crs] = cr; */
+	    /* num_undo_crs++; */
 	}
     }
-    if (!clip_grabbed) {
+
+
+    if (clip_grabbed) {
+	for (uint8_t i=0; i<num_clips; i++) {
+	    clipref_grab(clips_to_grab[i]);
+	}
+	if (proj->dragging && proj->playing) {
+	    timeline_cache_grabbed_clip_positions(tl);
+	}
+    } else {
+	if (proj->dragging && proj->playing) {
+	    timeline_push_grabbed_clip_move_event(tl);
+	}
 	for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
 	    cr = tl->grabbed_clips[i];
 	    cr->grabbed = false;
-
-	    undo_crs[num_undo_crs] = cr;
-	    num_undo_crs++;
 	}
 	tl->num_grabbed_clips = 0;
     }
+    
     if (proj->dragging) {
 	status_stat_drag();
     }
 
     
-    if (num_undo_crs > 0) {
-	ClipRef **clips = calloc(num_undo_crs, sizeof(ClipRef *));
-	memcpy(clips, undo_crs, num_undo_crs * sizeof(ClipRef *));
-	Value num = {.uint8_v = num_undo_crs};
-	user_event_push(
-	    &proj->history,
-	    undo_redo_grab_clips,
-	    undo_redo_grab_clips,
-	    NULL,
-	    clips,
-	    NULL,
-	    num,
-	    num,
-	    num,
-	    num,
-	    0,
-	    0,
-	    true,
-	    false);
-    }
+    /* if (num_undo_crs > 0) { */
+    /* 	ClipRef **clips = calloc(num_undo_crs, sizeof(ClipRef *)); */
+    /* 	memcpy(clips, undo_crs, num_undo_crs * sizeof(ClipRef *)); */
+    /* 	Value num = {.uint8_v = num_undo_crs}; */
+    /* 	user_event_push( */
+    /* 	    &proj->history, */
+    /* 	    undo_redo_grab_clips, */
+    /* 	    undo_redo_grab_clips, */
+    /* 	    NULL, */
+    /* 	    clips, */
+    /* 	    NULL, */
+    /* 	    num, */
+    /* 	    num, */
+    /* 	    num, */
+    /* 	    num, */
+    /* 	    0, */
+    /* 	    0, */
+    /* 	    true, */
+    /* 	    false); */
+    /* } */
     
-    if (tl->num_grabbed_clips > 0) {
-	timeline_cache_grabbed_clip_positions(tl);
-	if (proj->playing && proj->dragging)
-	    timeline_push_grabbed_clip_move_event(tl);
-    }
-    tl->needs_redraw = true;
+    /* if (tl->num_grabbed_clips > 0) { */
+    /* 	timeline_cache_grabbed_clip_positions(tl); */
+    /* 	if (proj->playing && proj->dragging) */
+    /* 	    timeline_push_grabbed_clip_move_event(tl); */
+    /* } */
+    /* tl->needs_redraw = true; */
 }
 
 
@@ -1336,10 +1360,13 @@ void user_tl_toggle_drag(void *nullarg)
     proj->dragging = !proj->dragging;
     status_stat_drag();
     Timeline *tl = proj->timelines[proj->active_tl_index];
-    if (!proj->dragging) {
-	timeline_push_grabbed_clip_move_event(tl);
+    if (proj->playing) {
+	if (proj->dragging) {
+	    timeline_cache_grabbed_clip_positions(tl);
+	} else {
+	    timeline_push_grabbed_clip_move_event(tl);
+	}
     }
-    timeline_cache_grabbed_clip_positions(tl);
 }
 
 void user_tl_cut_clipref(void *nullarg)

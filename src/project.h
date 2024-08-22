@@ -194,6 +194,11 @@ typedef struct timecode {
     char str[16]; // e.g. "+00:00:00:96000"
 } Timecode;
 
+struct track_and_pos {
+    Track *track;
+    int32_t pos;
+};
+
 /* The project timeline organizes included tracks and specifies how they should be displayed */
 typedef struct timeline {
     char name[MAX_NAMELENGTH];
@@ -232,7 +237,7 @@ typedef struct timeline {
 
     ClipRef *grabbed_clips[MAX_GRABBED_CLIPS];
     uint8_t num_grabbed_clips;
-    int32_t grabbed_clip_pos[MAX_GRABBED_CLIPS];
+    struct track_and_pos grabbed_clip_pos[MAX_GRABBED_CLIPS];
 
     /* Clip *clip_clipboard[MAX_CLIPBOARD_CLIPS]; */
     /* uint8_t num_clipboard_clips; */

@@ -344,9 +344,9 @@ void loop_project_main()
 		    break;
 		case SDL_SCANCODE_K:
 		    main_win->i_state &= ~I_STATE_K;
-		    proj->play_speed = 0;
-		    proj->src_play_speed = 0;
-		    transport_stop_playback();
+		    /* proj->play_speed = 0; */
+		    /* proj->src_play_speed = 0; */
+		    /* transport_stop_playback(); */
 		    break;
 		case SDL_SCANCODE_J:
 		case SDL_SCANCODE_L:

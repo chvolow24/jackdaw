@@ -548,7 +548,6 @@ void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type)
 
 void transport_stop_recording()
 {
-
     transport_stop_playback();
     AudioConn *conn;
     AudioConn *conns_to_close[64];
@@ -591,8 +590,6 @@ void transport_stop_recording()
 
     Textbox *record_button = proj->quickref.record->tb;
     textbox_set_background_color(record_button, &color_global_quickref_button_blue );
-
-    
 }
 
 void transport_set_mark(Timeline *tl, bool in)

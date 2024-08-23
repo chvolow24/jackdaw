@@ -676,9 +676,9 @@ static void mode_load_timeline()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
-	"tl_cliprefs_destroy",
+	"tl_cliprefs_delete",
 	"Delete selected clip(s)",
-	user_tl_cliprefs_destroy);
+	user_tl_cliprefs_delete);
     mode_subcat_add_fn(sc, fn);
     
 

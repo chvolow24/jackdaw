@@ -37,9 +37,10 @@
 
 
 #define MAX_USER_EVENT_HISTORY_LEN 50
-#define NEW_EVENT_FN(name) \
+#define NEW_EVENT_FN(name, statstr)						\
     static void name(void *obj1, void *obj2, Value val1, Value val2, ValType type1, ValType type2) { \
-    fprintf(stdout, "%s\n", #name);						\
+    fprintf(stdout, "%s\n", #name); \
+    status_set_errstr(statstr);	    \
 
 typedef void (*EventFn)(
     void *obj1,

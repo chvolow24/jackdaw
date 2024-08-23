@@ -678,7 +678,7 @@ void user_tl_zoom_out(void *nullarg)
 	NULL);
 }
 
-NEW_EVENT_FN(undo_redo_set_mark)
+NEW_EVENT_FN(undo_redo_set_mark, "undo/redo set mark")
     int32_t *mark = (int32_t *)obj1;
     *mark = val1.int32_v;
 }
@@ -801,12 +801,12 @@ void user_tl_set_default_out(void *nullarg) {
     /* window_push_mode(main_win, MENU_NAV); */
 }
 
-NEW_EVENT_FN(add_track_undo)
+NEW_EVENT_FN(add_track_undo, "undo add track")
     Track *track = (Track *)obj1;
     track_delete(track);
 }
 
-NEW_EVENT_FN(add_track_redo)
+NEW_EVENT_FN(add_track_redo, "redo add track")
     Track *track = (Track *)obj1;
     track_undelete(track);
 }
@@ -1140,18 +1140,18 @@ void user_tl_track_set_in(void *nullarg)
 /* } */
 
 
-NEW_EVENT_FN(undo_track_delete)
+NEW_EVENT_FN(undo_track_delete, "undo delete track")
     Track *track = (Track *)obj1;
     track_undelete(track);
     
 }
 
-NEW_EVENT_FN(redo_track_delete)
+NEW_EVENT_FN(redo_track_delete, "redo delete track")
     Track *track = (Track *)obj1;
     track_delete(track);
 }
 
-NEW_EVENT_FN(dispose_track_delete)
+NEW_EVENT_FN(dispose_track_delete, "")
     Track *track = (Track *)obj1;
     /* fprintf(stdout, "PERMANENTLY DETROYING %s\n", track->name); */
     track_destroy(track, false);
@@ -1256,6 +1256,13 @@ void user_tl_track_open_settings(void *nullarg)
     tl->needs_redraw = true;
 }
 
+/* NEW_EVENT_FN(undo_record_new_clip, "Undo record clip") */
+/*     Clip **clips = (Clip **)obj1; */
+/*     uint8_t num_clips = val1.uint8_v; */
+/* for (uint8_t i=0; i<num_clips; i++) { */
+/*     clip_delete(clips[i]); */
+/* } */
+/*      } */
 
 void user_tl_record(void *nullarg)
 {
@@ -1678,11 +1685,25 @@ void user_tl_write_mixdown_to_wav(void *nullarg)
     modal_move_onto(save_wav);
 }
 
-void user_tl_cliprefs_destroy(void *nullarg)
+
+/* Deprecated; replaced by user_tl_cliprefs_delete */
+void DEPRECATED_user_tl_cliprefs_destroy(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (tl) {
 	timeline_destroy_grabbed_cliprefs(tl);
+    }
+    if (proj->dragging) {
+	status_stat_drag();
+    }
+    tl->needs_redraw = true;
+}
+
+void user_tl_cliprefs_delete(void *nullarg)
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    if (tl) {
+	timeline_delete_grabbed_cliprefs(tl);
     }
     if (proj->dragging) {
 	status_stat_drag();

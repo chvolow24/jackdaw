@@ -428,10 +428,14 @@ void timeline_ungrab_all_cliprefs(Timeline *tl);
 void clipref_grab(ClipRef *cr);
 void clipref_ungrab(ClipRef *cr);
 /* void clipref_destroy(ClipRef *cr); */
+void clipref_delete(ClipRef *cr);
+void clipref_undelete(ClipRef *cr);
 void clip_destroy(Clip *clip);
 void timeline_cache_grabbed_clip_positions(Timeline *tl);
 void timeline_push_grabbed_clip_move_event(Timeline *tl);
+/* Deprecated; replaced by timeline_delete_grabbed_cliprefs */
 void timeline_destroy_grabbed_cliprefs(Timeline *tl);
+void timeline_delete_grabbed_cliprefs(Timeline *tl);
 void timeline_cut_clipref_at_point(Timeline *tl);
 void timeline_move_track(Timeline *tl, Track *track, int direction, bool from_undo);
 

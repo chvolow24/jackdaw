@@ -42,6 +42,7 @@ extern Project *proj;
 extern SDL_Color color_global_red;
 extern SDL_Color color_global_light_grey;
 extern SDL_Color color_global_white;
+extern SDL_Color color_global_undo_purple;
 
 void status_frame()
 {
@@ -75,8 +76,21 @@ void status_set_errstr(const char *errstr)
     strcpy(proj->status_bar.errstr, errstr);
     /* textbox_set_text_color(proj->status_bar.error, &color_global_red); */
     textbox_size_to_fit(proj->status_bar.error, 0, 0);
+        textbox_set_text_color(proj->status_bar.error, &color_global_red);
     layout_center_agnostic(proj->status_bar.error->layout, false, true);
 
+    textbox_reset_full(proj->status_bar.error);
+    proj->status_bar.err_timer = ERR_TIMER_MAX;
+    proj->status_bar.error->text->color.a = 255;
+}
+
+void status_set_undostr(const char *undostr)
+{
+    strcpy(proj->status_bar.errstr, undostr);
+    /* textbox_set_text_color(proj->status_bar.error, &color_global_red); */
+    textbox_size_to_fit(proj->status_bar.error, 0, 0);
+    textbox_set_text_color(proj->status_bar.error, &color_global_undo_purple);
+    layout_center_agnostic(proj->status_bar.error->layout, false, true);
     textbox_reset_full(proj->status_bar.error);
     proj->status_bar.err_timer = ERR_TIMER_MAX;
     proj->status_bar.error->text->color.a = 255;

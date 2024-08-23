@@ -978,7 +978,7 @@ void user_tl_track_selector_up(void *nullarg)
     /* 	   fprintf(stderr, "Error: no iterator on layout: %s\n", selected->layout->parent->name); */
     /* 	}	     */
     /* } */
-    if (proj->dragging) {
+    if (proj->dragging && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
 	for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
 	    ClipRef *cr = tl->grabbed_clips[i];
@@ -1031,7 +1031,7 @@ void user_tl_track_selector_down(void *nullarg)
 	/*     timeline_reset(tl); */
 	/* } else { */
 	/*     fprintf(stderr, "Error: no iterator on layout: %s\n", selected->layout->parent->name); */
-    if (proj->dragging) {
+    if (proj->dragging && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
 	for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
 	    ClipRef *cr = tl->grabbed_clips[i];
@@ -1160,7 +1160,11 @@ NEW_EVENT_FN(dispose_track_delete, "")
 void user_tl_track_delete(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
-    if (tl->num_tracks == 0) return;
+    if (tl->num_tracks == 0) {
+	status_set_errstr("Error: no track to delete");
+	return;
+    }
+
     Track *track = tl->tracks[tl->track_selector];
     if (track) {
 	track_delete(track);
@@ -1264,9 +1268,50 @@ void user_tl_track_open_settings(void *nullarg)
 /* } */
 /*      } */
 
+NEW_EVENT_FN(undo_record_new_clips, "undo create new clip(s)")
+    ClipRef **clips = (ClipRef **)obj1;
+    uint8_t num = val1.uint8_v;
+    for (uint8_t i=0; i<num; i++) {
+	clipref_delete(clips[i]);
+    }
+}
+
+NEW_EVENT_FN(redo_record_new_clips, "undo create new clip(s)")
+    ClipRef **clips = (ClipRef **)obj1;
+    uint8_t num = val1.uint8_v;
+    for (uint8_t i=0; i<num; i++) {
+	clipref_undelete(clips[i]);
+    }
+}
+
 void user_tl_record(void *nullarg)
 {
     if (proj->recording) {
+	ClipRef **created_clips = calloc(proj->num_clips - proj->active_clip_index, sizeof(ClipRef *));
+	uint8_t num_created = 0;
+	for (uint8_t i=proj->active_clip_index; i<proj->num_clips; i++) {
+	    Clip *clip = proj->clips[i];
+	    for (uint8_t j=0; j<clip->num_refs; j++) {
+		ClipRef *ref = clip->refs[j];
+		created_clips[num_created] = ref;
+		num_created++;
+	    }
+	}
+	Value num_created_v = {.uint8_v = num_created};
+	user_event_push(
+	    &proj->history,
+	    undo_record_new_clips,
+	    redo_record_new_clips,
+	    NULL,
+	    (void *)created_clips,
+	    NULL,
+	    num_created_v,
+	    num_created_v,
+	    num_created_v,
+	    num_created_v,
+	    0, 0, true, false);
+	    
+	    
 	transport_stop_recording();
     } else {
 	transport_start_recording();

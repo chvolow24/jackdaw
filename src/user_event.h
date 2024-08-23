@@ -38,11 +38,14 @@
 
 #define MAX_USER_EVENT_HISTORY_LEN 50
 #define NEW_EVENT_FN(name, statstr)						\
-    static void name(void *obj1, void *obj2, Value val1, Value val2, ValType type1, ValType type2) { \
-    fprintf(stdout, "%s\n", #name); \
-    status_set_errstr(statstr);	    \
+    static void name(UserEvent *self, void *obj1, void *obj2, Value val1, Value val2, ValType type1, ValType type2) { \
+    char statstr_fmt[255]; \
+    snprintf(statstr_fmt, 255, "(%d/%d) %s", proj->history.len - self->index, proj->history.len, statstr); \
+    status_set_undostr(statstr_fmt); \
 
+typedef struct user_event UserEvent;
 typedef void (*EventFn)(
+    UserEvent *self,
     void *obj1,
     void *obj2,
     Value val1,
@@ -52,6 +55,7 @@ typedef void (*EventFn)(
 
 
 typedef struct user_event UserEvent;
+typedef struct user_event_history UserEventHistory;
 
 typedef struct user_event {
     EventFn undo;
@@ -68,6 +72,8 @@ typedef struct user_event {
     bool free_obj1;
     bool free_obj2;
 
+    int index;
+    UserEventHistory *history;
     UserEvent *next;
     UserEvent *previous;
 } UserEvent;

@@ -40,7 +40,8 @@ int user_event_do_undo(UserEventHistory *history)
     UserEvent *e = history->next_undo;
     if (!e) return 1;
 
-    e->undo(e->obj1,
+    e->undo(e,
+	    e->obj1,
 	    e->obj2,
 	    e->undo_val1,
 	    e->undo_val2,
@@ -66,7 +67,8 @@ int user_event_do_redo(UserEventHistory *history)
     if (!e) return 1;
 
     if (e->redo) {
-	e->redo(e->obj1,
+	e->redo(e,
+		e->obj1,
 		e->obj2,
 		e->redo_val1,
 		e->redo_val2,
@@ -118,6 +120,7 @@ UserEvent *user_event_push(
     e->free_obj2 = free_obj2;
 
 
+
     /* First case: history initialized, but we're all the way back */
     if (history->oldest && !history->next_undo) {
 	UserEvent *iter = history->oldest;
@@ -155,11 +158,13 @@ UserEvent *user_event_push(
     history->next_undo = e;
     history->most_recent = e;
     
+    e->index = history->len;
     history->len++;
     if (history->len > MAX_USER_EVENT_HISTORY_LEN) {
 	UserEvent *old = history->oldest;
 	if (old->dispose) {
 	    old->dispose(
+		e,
 		old->obj1,
 		old->obj2,
 		old->undo_val1, /* not to be used */
@@ -172,6 +177,11 @@ UserEvent *user_event_push(
 	history->oldest->previous = NULL;
 	user_event_destroy(old);
 	history->len--;
+	old = history->oldest;
+	while (old) {
+	    old->index--;
+	    old = old->next;
+	}
     }
     return e;
 }

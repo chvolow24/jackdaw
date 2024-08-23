@@ -1921,14 +1921,14 @@ void timeline_destroy_grabbed_cliprefs(Timeline *tl)
     /* fprintf(stdout, "Deleted all grabbed cliprefs and clips\n"); */
 }
 
-NEW_EVENT_FN(undo_delete_clips, "Undo delete clips")
+NEW_EVENT_FN(undo_delete_clips, "undo delete clips")
     ClipRef **clips = (ClipRef **)obj1;
     uint8_t num = val1.uint8_v;
     for (uint8_t i=0; i<num; i++) {
 	clipref_undelete(clips[i]);
     }
 }
-NEW_EVENT_FN(redo_delete_clips, "Redo delete clips")
+NEW_EVENT_FN(redo_delete_clips, "redo delete clips")
     ClipRef **clips = (ClipRef **)obj1;
     uint8_t num = val1.uint8_v;
     for (uint8_t i=0; i<num; i++) {

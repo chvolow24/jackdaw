@@ -78,6 +78,7 @@ typedef struct text Text;
 typedef struct text {
     char *value_handle;
     char display_value[TEXT_BUFLEN];
+    char *cached_value;
     int len;
     int max_len;
     int trunc_len;

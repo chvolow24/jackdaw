@@ -44,6 +44,7 @@
 #include "page.h"
 #include "project.h"
 #include "status.h"
+#include "text.h"
 #include "textbox.h"
 #include "timeline.h"
 #include "transport.h"
@@ -838,6 +839,37 @@ static void slider_label_pan(char *dst, size_t dstsize, void *value, ValType typ
 
 /* } */
 
+
+NEW_EVENT_FN(undo_track_rename, "undo rename track")
+    Text *txt = (Text *)obj1;
+    char *old_value = strdup(txt->value_handle);
+    txt_set_value(txt, txt->cached_value);
+    if (txt->cached_value) {
+        free(txt->cached_value);
+    }
+    txt->cached_value = old_value;
+}
+
+NEW_EVENT_FN(redo_track_rename, "redo rename track")
+    Text *txt = (Text *)obj1;
+    txt_set_value(txt, txt->cached_value);
+}
+    
+
+static int track_name_completion(Text *txt)
+{
+    Value nullval = {.int_v = 0};
+    user_event_push(
+	&proj->history,
+	undo_track_rename,
+	redo_track_rename,
+	NULL, NULL,
+	(void *)txt,
+	NULL,
+	nullval, nullval, nullval, nullval,
+	0, 0, false, false);
+    return 0;
+}
 /* static void do_fn2() {} */
 Track *timeline_add_track(Timeline *tl)
 {
@@ -911,13 +943,14 @@ Track *timeline_add_track(Timeline *tl)
 	main_win->bold_font,
 	14,
 	main_win);
-
     textbox_set_align(track->tb_name, CENTER_LEFT);
     textbox_set_pad(track->tb_name, 4, 0);
     textbox_set_border(track->tb_name, &color_global_black, 1);
     textbox_reset_full(track->tb_name);
     track->tb_name->text->validation = txt_name_validation;
+    track->tb_name->text->completion = track_name_completion;
 
+    
     track->tb_input_label = textbox_create_from_str(
 	"In: ",
 	in_label,
@@ -1429,6 +1462,7 @@ void track_or_tracks_solo(Timeline *tl, Track *opt_track)
 	    undo_redo_tracks_solo,
 	    undo_redo_tracks_solo,
 	    NULL,
+	    NULL,
 	    (void *)undo_packet,
 	    (void *)tl,
 	    num,
@@ -1495,6 +1529,7 @@ void track_or_tracks_mute(Timeline *tl)
 	    &proj->history,
 	    undo_redo_tracks_mute,
 	    undo_redo_tracks_mute,
+	    NULL,
 	    NULL,
 	    (void *)undo_packet,
 	    NULL,
@@ -1887,17 +1922,11 @@ void timeline_push_grabbed_clip_move_event(Timeline *tl)
 	undo_move_clips,
 	redo_move_clips,
 	NULL,
+	NULL,
 	(void *)cliprefs,
 	(void *)positions,
-	num,
-	num,
-	num,
-	num,
-	0,
-	0,
-	true,
-	true
-	);
+	num,num,num,num,
+	0,0,true,true);
     tl->grabbed_clip_cache_pushed = true;
 }
 
@@ -1960,6 +1989,7 @@ void timeline_delete_grabbed_cliprefs(Timeline *tl)
 	undo_delete_clips,
 	redo_delete_clips,
 	dispose_delete_clips,
+	NULL,
 	(void *)deleted_cliprefs,
 	NULL,
 	num,
@@ -2053,7 +2083,11 @@ NEW_EVENT_FN(redo_cut_clipref, "redo cut clip")
     clipref_undelete(cr2);
     cr1->out_mark_sframes = val1.int32_v;
     clipref_reset(cr1);
-    clipref_reset(cr2);
+    /* clipref_reset(cr2); */
+}
+
+NEW_EVENT_FN(cut_clip_dispose_forward, "")
+    clipref_destroy_no_displace((ClipRef *)obj2);
 }
 
     
@@ -2072,6 +2106,7 @@ static ClipRef *clipref_cut(ClipRef *cr, int32_t cut_pos_rel)
 	undo_cut_clipref,
 	redo_cut_clipref,
 	NULL,
+	cut_clip_dispose_forward,
 	cr, new,
 	cut_pos, orig_end_pos, cut_pos, orig_end_pos,
 	0, 0, false, false);
@@ -2131,6 +2166,7 @@ void timeline_move_track(Timeline *tl, Track *track, int direction, bool from_un
 	    &proj->history,
 	    undo_redo_move_track,
 	    undo_redo_move_track,
+	    NULL,
 	    NULL,
 	    (void *)track,
 	    NULL,

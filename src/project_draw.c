@@ -261,13 +261,13 @@ static void track_draw(Track *track)
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(track->color));
     SDL_RenderFillRect(main_win->rend, track->colorbar);
     
-    textbox_draw(track->tb_name);
     textbox_draw(track->tb_input_label);
     textbox_draw(track->tb_vol_label);
     textbox_draw(track->tb_pan_label);
     textbox_draw(track->tb_input_name);
     textbox_draw(track->tb_mute_button);
     textbox_draw(track->tb_solo_button);
+    textbox_draw(track->tb_name);
 
     if (track->tl->track_selector == track->tl_rank) {
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));

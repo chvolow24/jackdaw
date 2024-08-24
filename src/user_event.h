@@ -39,9 +39,11 @@
 #define MAX_USER_EVENT_HISTORY_LEN 50
 #define NEW_EVENT_FN(name, statstr)						\
     static void name(UserEvent *self, void *obj1, void *obj2, Value val1, Value val2, ValType type1, ValType type2) { \
-    char statstr_fmt[255]; \
-    snprintf(statstr_fmt, 255, "(%d/%d) %s", proj->history.len - self->index, proj->history.len, statstr); \
-    status_set_undostr(statstr_fmt); \
+    if (strlen(statstr) > 0) { \
+        char statstr_fmt[255];						\
+        snprintf(statstr_fmt, 255, "(%d/%d) %s", proj->history.len - self->index, proj->history.len, statstr); \
+        status_set_undostr(statstr_fmt); \
+    } \
 
 typedef struct user_event UserEvent;
 typedef void (*EventFn)(
@@ -61,6 +63,7 @@ typedef struct user_event {
     EventFn undo;
     EventFn redo;
     EventFn dispose;
+    EventFn dispose_forward;
     void *obj1;
     void *obj2;
     Value undo_val1;
@@ -95,6 +98,7 @@ UserEvent *user_event_push(
     EventFn undo_fn,
     EventFn redo_fn,
     EventFn dispose_fn,
+    EventFn dispose_forward_fn,
     void *obj1,
     void *obj2,
     Value undo_val1,

@@ -344,6 +344,10 @@ void txt_edit(Text *txt, void (*draw_fn) (void))
     txt->cursor_end_pos = txt->len;
     window_push_mode(main_win, TEXT_EDIT);
     main_win->txt_editing = txt;
+    if (txt->cached_value) {
+	free(txt->cached_value);
+    }
+    txt->cached_value = strdup(txt->value_handle);
     SDL_StartTextInput();
 }
 #endif
@@ -504,6 +508,9 @@ void txt_destroy(Text *txt)
     }
     if (txt->text_lt) {
 	layout_destroy(txt->text_lt);
+    }
+    if (txt->cached_value) {
+	free(txt->cached_value);
     }
     free(txt);
 }

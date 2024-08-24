@@ -69,13 +69,11 @@ void user_global_quit(void *nullarg)
 void user_global_undo(void *nullarg)
 {
     user_event_do_undo(&proj->history);
-    fprintf(stdout, "user_global_undo\n");
 }
 
 void user_global_redo(void *nullarg)
 {
     user_event_do_redo(&proj->history);
-    fprintf(stdout, "user_global_redo\n");
 }
 
 void user_global_show_output_freq_domain(void *nullarg)
@@ -700,17 +698,12 @@ void user_tl_set_mark_out(void *nullarg)
 	&proj->history,
 	undo_redo_set_mark,
 	undo_redo_set_mark,
-	NULL,
+	NULL, NULL,
 	(void *)&tl->out_mark_sframes,
 	NULL,
-	old_mark,
-	old_mark,
-	new_mark,
-	new_mark,
-	0,
-	0,
-	false,
-	false);
+	old_mark,old_mark,
+	new_mark,new_mark,
+	0,0,false,false);
 }
 void user_tl_set_mark_in(void *nullarg)
 {
@@ -724,17 +717,12 @@ void user_tl_set_mark_in(void *nullarg)
 	&proj->history,
 	undo_redo_set_mark,
 	undo_redo_set_mark,
-	NULL,
+	NULL, NULL,
 	(void *)&tl->in_mark_sframes,
 	NULL,
-	old_mark,
-	old_mark,
-	new_mark,
-	new_mark,
-	0,
-	0,
-	false,
-	false);
+	old_mark, old_mark,
+	new_mark, new_mark,
+	0, 0, false, false);
 }
 
 void user_tl_goto_mark_out(void *nullarg)
@@ -833,17 +821,11 @@ void user_tl_add_track(void *nullarg)
 	&proj->history,
 	add_track_undo,
 	add_track_redo,
-	NULL,
+	NULL, NULL,
 	(void *)track,
 	NULL,
-	nullval,
-	nullval,
-	nullval,
-	nullval,
-	0,
-	0,
-	false,
-	false);
+	nullval, nullval, nullval, nullval,
+	0,0,false,false);
 	
 }
 
@@ -1180,17 +1162,11 @@ void user_tl_track_delete(void *nullarg)
 	&proj->history,
 	undo_track_delete,
 	redo_track_delete,
-	dispose_track_delete,
+	dispose_track_delete, NULL,
 	(void *)track,
 	NULL,
-	nullval,
-	nullval,
-	nullval,
-	nullval,
-	0,
-	0,
-	false,
-	false);	
+	nullval,nullval,nullval,nullval,
+	0,0,false,false);	
 }
 
 void user_tl_mute(void *nullarg)
@@ -1302,13 +1278,10 @@ void user_tl_record(void *nullarg)
 	    &proj->history,
 	    undo_record_new_clips,
 	    redo_record_new_clips,
-	    NULL,
+	    NULL, NULL,
 	    (void *)created_clips,
 	    NULL,
-	    num_created_v,
-	    num_created_v,
-	    num_created_v,
-	    num_created_v,
+	    num_created_v,num_created_v,num_created_v,num_created_v,
 	    0, 0, true, false);
 	    
 	    

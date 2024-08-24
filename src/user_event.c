@@ -92,6 +92,7 @@ UserEvent *user_event_push(
     EventFn undo_fn,
     EventFn redo_fn,
     EventFn dispose_fn,
+    EventFn dispose_forward_fn,
     void *obj1,
     void *obj2,
     Value undo_val1,
@@ -108,6 +109,7 @@ UserEvent *user_event_push(
     e->undo = undo_fn;
     e->redo = redo_fn;
     e->dispose = dispose_fn;
+    e->dispose_forward = dispose_forward_fn;
     e->obj1 = obj1;
     e->obj2 = obj2;
     e->undo_val1 = undo_val1;
@@ -143,6 +145,16 @@ UserEvent *user_event_push(
 	UserEvent *next = iter->next;
 	while (iter) {
 	    next = iter->next;
+	    if (iter->dispose_forward) {
+		iter->dispose_forward(
+		    iter,
+		    iter->obj1,
+		    iter->obj2,
+		    iter->redo_val1,
+		    iter->redo_val2,
+		    iter->type1, iter->type2);
+		    
+	    }
 	    user_event_destroy(iter);
 	    iter = next;
 	    history->len--;

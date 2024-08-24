@@ -842,12 +842,11 @@ static void slider_label_pan(char *dst, size_t dstsize, void *value, ValType typ
 
 NEW_EVENT_FN(undo_track_rename, "undo rename track")
     Text *txt = (Text *)obj1;
-    char *old_value = strdup(txt->value_handle);
-    txt_set_value(txt, txt->cached_value);
     if (txt->cached_value) {
         free(txt->cached_value);
     }
-    txt->cached_value = old_value;
+    txt->cached_value = strdup(txt->value_handle);
+    txt_set_value(txt, (char *)obj2);
 }
 
 NEW_EVENT_FN(redo_track_rename, "redo rename track")
@@ -859,15 +858,16 @@ NEW_EVENT_FN(redo_track_rename, "redo rename track")
 static int track_name_completion(Text *txt)
 {
     Value nullval = {.int_v = 0};
+    char *old_value = strdup(txt->cached_value);
     user_event_push(
 	&proj->history,
 	undo_track_rename,
 	redo_track_rename,
 	NULL, NULL,
 	(void *)txt,
-	NULL,
+	old_value,
 	nullval, nullval, nullval, nullval,
-	0, 0, false, false);
+	0, 0, false, true);
     return 0;
 }
 /* static void do_fn2() {} */

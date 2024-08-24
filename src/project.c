@@ -2038,16 +2038,48 @@ void timeline_ungrab_all_cliprefs(Timeline *tl)
     tl->num_grabbed_clips = 0;
 }
 
+
+NEW_EVENT_FN(undo_cut_clipref, "undo cut clip")
+    ClipRef *cr1 = (ClipRef *)obj1;
+    ClipRef *cr2 = (ClipRef *)obj2;
+    cr1->out_mark_sframes = val2.int32_v;
+    clipref_reset(cr1);
+    clipref_delete(cr2);
+}
+
+NEW_EVENT_FN(redo_cut_clipref, "redo cut clip")
+    ClipRef *cr1 = (ClipRef *)obj1;
+    ClipRef *cr2 = (ClipRef *)obj2;
+    clipref_undelete(cr2);
+    cr1->out_mark_sframes = val1.int32_v;
+    clipref_reset(cr1);
+    clipref_reset(cr2);
+}
+
+    
 static ClipRef *clipref_cut(ClipRef *cr, int32_t cut_pos_rel)
 {
-    fprintf(stdout, "Starting new cr at %d (not %d)\n", cr->pos_sframes + cut_pos_rel, cr->pos_sframes);
     ClipRef *new = track_create_clip_ref(cr->track, cr->clip, cr->pos_sframes + cut_pos_rel, false);
     new->in_mark_sframes = cr->in_mark_sframes + cut_pos_rel;
     new->out_mark_sframes = cr->out_mark_sframes == 0 ? clipref_len(cr): cr->out_mark_sframes;
+    Value orig_end_pos = {.int32_v = cr->out_mark_sframes};
     cr->out_mark_sframes = cr->out_mark_sframes == 0 ? cut_pos_rel : cr->out_mark_sframes - (clipref_len(cr) - cut_pos_rel);
     track_reset(cr->track);
+
+    Value cut_pos = {.int32_v = cr->out_mark_sframes};
+    user_event_push(
+	&proj->history,
+	undo_cut_clipref,
+	redo_cut_clipref,
+	NULL,
+	cr, new,
+	cut_pos, orig_end_pos, cut_pos, orig_end_pos,
+	0, 0, false, false);
+
     return new;
 }
+
+
 
 void timeline_cut_clipref_at_point(Timeline *tl)
 {

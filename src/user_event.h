@@ -40,8 +40,9 @@
 
 
 #define MAX_USER_EVENT_HISTORY_LEN 50
+#define EVENT_FN_DECL(name) void name(UserEvent *, void *, void *, Value, Value);
 #define NEW_EVENT_FN(name, statstr)						\
-    static void name(UserEvent *self, void *obj1, void *obj2, Value val1, Value val2, ValType type1, ValType type2) { \
+    void name(UserEvent *self, void *obj1, void *obj2, Value val1, Value val2, ValType type1, ValType type2) { \
     if (strlen(statstr) > 0) { \
         char statstr_fmt[255];						\
         snprintf(statstr_fmt, 255, "(%d/%d) %s", proj->history.len - self->index, proj->history.len, statstr); \
@@ -113,5 +114,18 @@ UserEvent *user_event_push(
     bool free_obj1,
     bool free_obj2);
 
+void user_event_undo_set_value(
+    UserEvent *self,
+    void *obj1,
+    Value old_value,
+    ValType type);
+
+void user_event_redo_set_value(
+    UserEvent *self,
+    void *obj1,
+    Value new_value,
+    ValType type);
+
+void user_event_history_destroy(UserEventHistory *history);
 
 #endif

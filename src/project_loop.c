@@ -46,6 +46,7 @@
 #include "project.h"
 #include "project_draw.h"
 #include "screenrecord.h"
+#include "settings.h"
 #include "status.h"
 #include "timeline.h"
 #include "transport.h"
@@ -71,6 +72,7 @@
 extern Window *main_win;
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;
+extern SDL_Color color_global_grey;
 
 extern SDL_Color freq_L_color;
 extern SDL_Color freq_R_color;
@@ -190,22 +192,43 @@ static void update_track_vol_pan()
 /*     return 0; */
 /* } */
 
-/* Modal *test_modal; */
-
-extern SDL_Color color_global_grey;
 
 
-NEW_EVENT_FN(undo_slider_set_value, "undo slider set value")
-    Slider *s = (Slider *)obj1;
-    slider_set_value(s, val1);
-}
+/* static NEW_EVENT_FN(undo_set_track_vol, "undo set track vol") */
+/*     user_event_undo_set_value(self, obj1, val1, type1); */
+/* } */
 
-NEW_EVENT_FN(redo_slider_set_value, "undo slider set value")
-    Slider *s = (Slider *)obj1;
-    slider_set_value(s, val1);
-}
+/* static NEW_EVENT_FN(redo_set_track_vol, "redo set track vol") */
+/*     user_event_redo_set_value(self, obj1, val1, type1); */
+/* } */
 
-/* void user_tl_track_open_settings(void *nullarg); */
+/* static NEW_EVENT_FN(undo_set_track_pan, "undo set track pan") */
+/*     user_event_undo_set_value(self, obj1, val1, type1); */
+/* } */
+
+/* static NEW_EVENT_FN(redo_set_track_pan, "redo set track pan") */
+/*     user_event_redo_set_value(self, obj1, val1, type1); */
+/* } */
+
+/* static NEW_EVENT_FN(undo_set_track_effect_param, "undo set track effect param") */
+/*     user_event_undo_set_value(self, obj1, val1, type1); */
+/*     TabView *tv = main_win->active_tab_view; */
+/*     if (tv) { */
+/*         Timeline *tl = proj->timelines[proj->active_tl_index]; */
+/*         settings_track_tabview_set_track(tv, tl->tracks[tl->track_selector]); */
+/*     } */
+/* } */
+
+/* static NEW_EVENT_FN(redo_set_track_effect_param, "redo set track effect param") */
+/*     user_event_redo_set_value(self, obj1, val1, type1); */
+/*     TabView *tv = main_win->active_tab_view; */
+/*     if (tv) { */
+/*         Timeline *tl = proj->timelines[proj->active_tl_index]; */
+/*         settings_track_tabview_set_track(tv, tl->tracks[tl->track_selector]); */
+/*     } */
+/* } */
+
+
 void loop_project_main()
 {
 
@@ -469,22 +492,38 @@ void loop_project_main()
 		} else if (e.button.button == SDL_BUTTON_RIGHT) {
 		    main_win->i_state &= ~I_STATE_MOUSE_R;
 		}
-		if (proj->currently_editing_slider) {
-		    Slider *s = proj->currently_editing_slider;
-		    Value v_old = proj->cached_slider_val;
-		    Value v_new = jdaw_val_from_ptr(s->value, s->val_type);
-		    user_event_push(
-			&proj->history,
-			undo_slider_set_value,
-			redo_slider_set_value,
-			NULL, NULL,
-			proj->currently_editing_slider,
-			NULL,
-			v_old, v_old, v_new, v_new,
-			0, 0, false, false);
+		/* if (proj->currently_editing_slider) { */
+		/*     EventFn undofn; */
+		/*     EventFn redofn; */
+		/*     switch (proj->cached_slider_type) { */
+		/*     case SLIDER_TARGET_TRACK_VOL: */
+		/* 	undofn = undo_set_track_vol; */
+		/* 	redofn = redo_set_track_vol; */
+		/* 	break; */
+		/*     case SLIDER_TARGET_TRACK_PAN: */
+		/* 	undofn = undo_set_track_pan; */
+		/* 	redofn = redo_set_track_pan; */
+		/* 	break; */
+		/*     case SLIDER_TARGET_TRACK_EFFECT_PARAM: */
+		/* 	undofn = undo_set_track_effect_param; */
+		/* 	redofn = redo_set_track_effect_param; */
+		/* 	break; */
+		/*     } */
+		/*     Slider *s = proj->currently_editing_slider; */
+		/*     Value v_old = proj->cached_slider_val; */
+		/*     Value v_new = jdaw_val_from_ptr(s->value, s->val_type); */
+		/*     user_event_push( */
+		/* 	&proj->history, */
+		/* 	undofn, */
+		/* 	redofn, */
+		/* 	NULL, NULL, */
+		/* 	proj->currently_editing_slider->value, */
+		/* 	NULL, */
+		/* 	v_old, v_old, v_new, v_new, */
+		/* 	s->val_type, s->val_type, false, false); */
 			
-		    proj->currently_editing_slider = NULL;
-		}
+		/*     proj->currently_editing_slider = NULL; */
+		/* } */
 		break;
 	    case SDL_FINGERUP:
 		fingersdown = SDL_GetNumTouchFingers(-1);

@@ -288,6 +288,8 @@ void project_destroy(Project *proj)
     } else {
 	transport_stop_playback();
     }
+
+    user_event_history_destroy(&proj->history);
     /* fprintf(stdout, "PROJECT_DESTROY num tracks: %d\n", proj->timelines[0]->num_tracks); */
     for (uint8_t i=0; i<proj->num_timelines; i++) {
 	timeline_destroy(proj->timelines[i], false);
@@ -840,7 +842,7 @@ static void slider_label_pan(char *dst, size_t dstsize, void *value, ValType typ
 /* } */
 
 
-NEW_EVENT_FN(undo_track_rename, "undo rename track")
+static NEW_EVENT_FN(undo_track_rename, "undo rename track")
     Text *txt = (Text *)obj1;
     if (txt->cached_value) {
         free(txt->cached_value);
@@ -849,7 +851,7 @@ NEW_EVENT_FN(undo_track_rename, "undo rename track")
     txt_set_value(txt, (char *)obj2);
 }
 
-NEW_EVENT_FN(redo_track_rename, "redo rename track")
+static NEW_EVENT_FN(redo_track_rename, "redo rename track")
     Text *txt = (Text *)obj1;
     txt_set_value(txt, txt->cached_value);
 }
@@ -1371,7 +1373,7 @@ static void rectify_solomute(Timeline *tl, int solo_count)
 }
 
 
-NEW_EVENT_FN(undo_redo_tracks_mute, "undo/redo mute track")
+static NEW_EVENT_FN(undo_redo_tracks_mute, "undo/redo mute track")
     Track **tracks = (Track **)obj1;
     uint8_t num_tracks = val1.uint8_v;
     for (uint8_t i=0; i<num_tracks; i++) {
@@ -1379,7 +1381,7 @@ NEW_EVENT_FN(undo_redo_tracks_mute, "undo/redo mute track")
     }
 }
 
-NEW_EVENT_FN(undo_redo_tracks_solo, "undo/redo solo track")
+static NEW_EVENT_FN(undo_redo_tracks_solo, "undo/redo solo track")
     Track **tracks_to_solo = (Track **)obj1;
     Timeline *tl = (Timeline *)obj2;
     uint8_t num_tracks_to_solo = val1.uint8_v;
@@ -1787,7 +1789,7 @@ static void clip_destroy_no_displace(Clip *clip)
 {
     for (uint8_t i=0; i<clip->num_refs; i++) {
 	ClipRef *cr = clip->refs[i];
-	clipref_destroy(cr, true);
+	clipref_destroy(cr, false);
     }
     if (clip == proj->src_clip) {
 	proj->src_clip = NULL;
@@ -1854,7 +1856,6 @@ void timeline_cache_grabbed_clip_positions(Timeline *tl)
     if (!tl->grabbed_clip_cache_initialized) {
 	tl->grabbed_clip_cache_initialized = true;
     } else if (!tl->grabbed_clip_cache_pushed) {
-	fprintf(stdout, "->Pushing from cache\n");
 	timeline_push_grabbed_clip_move_event(tl);
     }
     for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
@@ -1864,7 +1865,7 @@ void timeline_cache_grabbed_clip_positions(Timeline *tl)
     tl->grabbed_clip_cache_pushed = false;
 }
 
-NEW_EVENT_FN(undo_move_clips, "undo move clips")
+static NEW_EVENT_FN(undo_move_clips, "undo move clips")
     ClipRef **cliprefs = (ClipRef **)obj1;
     struct track_and_pos *positions = (struct track_and_pos *)obj2;
     uint8_t num = val1.uint8_v;
@@ -1879,7 +1880,7 @@ NEW_EVENT_FN(undo_move_clips, "undo move clips")
     tl->needs_redraw = true;
 }
 
-NEW_EVENT_FN(redo_move_clips, "redo move clips")
+static NEW_EVENT_FN(redo_move_clips, "redo move clips")
     ClipRef **cliprefs = (ClipRef **)obj1;
     struct track_and_pos *positions = (struct track_and_pos *)obj2;
     uint8_t num = val1.uint8_v;
@@ -1950,21 +1951,21 @@ void timeline_destroy_grabbed_cliprefs(Timeline *tl)
     /* fprintf(stdout, "Deleted all grabbed cliprefs and clips\n"); */
 }
 
-NEW_EVENT_FN(undo_delete_clips, "undo delete clips")
+static NEW_EVENT_FN(undo_delete_clips, "undo delete clips")
     ClipRef **clips = (ClipRef **)obj1;
     uint8_t num = val1.uint8_v;
     for (uint8_t i=0; i<num; i++) {
 	clipref_undelete(clips[i]);
     }
 }
-NEW_EVENT_FN(redo_delete_clips, "redo delete clips")
+static NEW_EVENT_FN(redo_delete_clips, "redo delete clips")
     ClipRef **clips = (ClipRef **)obj1;
     uint8_t num = val1.uint8_v;
     for (uint8_t i=0; i<num; i++) {
 	clipref_delete(clips[i]);
     }
 }
-NEW_EVENT_FN(dispose_delete_clips, "")
+static NEW_EVENT_FN(dispose_delete_clips, "")
     ClipRef **clips = (ClipRef **)obj1;
     uint8_t num = val1.uint8_v;
     for (uint8_t i=0; i<num; i++) {
@@ -2069,7 +2070,7 @@ void timeline_ungrab_all_cliprefs(Timeline *tl)
 }
 
 
-NEW_EVENT_FN(undo_cut_clipref, "undo cut clip")
+static NEW_EVENT_FN(undo_cut_clipref, "undo cut clip")
     ClipRef *cr1 = (ClipRef *)obj1;
     ClipRef *cr2 = (ClipRef *)obj2;
     cr1->out_mark_sframes = val2.int32_v;
@@ -2077,7 +2078,7 @@ NEW_EVENT_FN(undo_cut_clipref, "undo cut clip")
     clipref_delete(cr2);
 }
 
-NEW_EVENT_FN(redo_cut_clipref, "redo cut clip")
+static NEW_EVENT_FN(redo_cut_clipref, "redo cut clip")
     ClipRef *cr1 = (ClipRef *)obj1;
     ClipRef *cr2 = (ClipRef *)obj2;
     clipref_undelete(cr2);
@@ -2086,7 +2087,7 @@ NEW_EVENT_FN(redo_cut_clipref, "redo cut clip")
     /* clipref_reset(cr2); */
 }
 
-NEW_EVENT_FN(cut_clip_dispose_forward, "")
+static NEW_EVENT_FN(cut_clip_dispose_forward, "")
     clipref_destroy_no_displace((ClipRef *)obj2);
 }
 
@@ -2130,7 +2131,7 @@ void timeline_cut_clipref_at_point(Timeline *tl)
 }
 
 
-NEW_EVENT_FN(undo_redo_move_track, "undo/redo move track")
+static NEW_EVENT_FN(undo_redo_move_track, "undo/redo move track")
     Track *track = (Track *)obj1;
     int direction = val1.int_v;
     timeline_move_track(track->tl, track, direction, true);

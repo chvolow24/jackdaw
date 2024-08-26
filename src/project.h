@@ -292,6 +292,12 @@ struct quickref {
     Button *track_settings;
 };
 
+/* enum slider_target_type { */
+/*     SLIDER_TARGET_TRACK_VOL, */
+/*     SLIDER_TARGET_TRACK_PAN, */
+/*     SLIDER_TARGET_TRACK_EFFECT_PARAM */
+/* }; */
+
 /* A Jackdaw project. Only one can be active at a time. Can persist on disk as a .jdaw file (see dot_jdaw.c, dot_jdaw.h) */
 typedef struct project {
     char name[MAX_NAMELENGTH];
@@ -355,8 +361,9 @@ typedef struct project {
     bool pan_changing;
     bool pan_right;
     bool show_output_freq_domain;
-    Slider *currently_editing_slider;
-    Value cached_slider_val;
+    /* Slider *currently_editing_slider; */
+    /* Value cached_slider_val; */
+    /* enum slider_target_type cached_slider_type; */
 
     /* Event History (undo/redo) */
     UserEventHistory history;

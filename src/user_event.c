@@ -87,6 +87,17 @@ static void user_event_destroy(UserEvent *e)
     if (e->free_obj2) free(e->obj2);
 }
 
+void user_event_history_destroy(UserEventHistory *history)
+{
+    UserEvent *test = history->oldest;
+    UserEvent *delete;
+    while (test) {
+	delete = test;
+	test = test->next;
+	user_event_destroy(delete);
+    }
+}
+
 UserEvent *user_event_push(
     UserEventHistory *history,
     EventFn undo_fn,
@@ -196,4 +207,89 @@ UserEvent *user_event_push(
 	}
     }
     return e;
+}
+
+#include "project.h"
+#include "status.h"
+extern Project *proj;
+
+
+void user_event_undo_set_value(
+    UserEvent *self,
+    void *obj1,
+    Value old_value,
+    ValType type)
+{
+    switch (type) {
+    case JDAW_FLOAT:
+	*(float *)obj1 = old_value.float_v;
+	break;
+    case JDAW_DOUBLE:
+	*(double *)obj1 = old_value.double_v;
+	break;
+    case JDAW_INT:
+	*(int *)obj1 = old_value.int_v;
+	break;
+    case JDAW_UINT8:
+	*(uint8_t *)obj1 = old_value.uint8_v;
+	break;
+    case JDAW_UINT16:
+	*(uint16_t *)obj1 = old_value.uint16_v;
+	break;
+    case JDAW_UINT32:
+	*(uint32_t *)obj1 = old_value.uint32_v;
+	break;
+    case JDAW_INT8:
+	*(int8_t *)obj1 = old_value.int8_v;
+	break;
+    case JDAW_INT16:
+	*(int16_t *)obj1 = old_value.int16_v;
+	break;
+    case JDAW_INT32:
+	*(int32_t *)obj1 = old_value.int32_v;
+	break;
+    case JDAW_BOOL:
+	*(bool *)obj1 = old_value.bool_v;
+	break;
+    }
+}
+
+void user_event_redo_set_value(
+    UserEvent *self,
+    void *obj1,
+    Value new_value,
+    ValType type)
+{
+    switch (type) {
+    case JDAW_FLOAT:
+	*(float *)obj1 = new_value.float_v;
+	break;
+    case JDAW_DOUBLE:
+	*(double *)obj1 = new_value.double_v;
+	break;
+    case JDAW_INT:
+	*(int *)obj1 = new_value.int_v;
+	break;
+    case JDAW_UINT8:
+	*(uint8_t *)obj1 = new_value.uint8_v;
+	break;
+    case JDAW_UINT16:
+	*(uint16_t *)obj1 = new_value.uint16_v;
+	break;
+    case JDAW_UINT32:
+	*(uint32_t *)obj1 = new_value.uint32_v;
+	break;
+    case JDAW_INT8:
+	*(int8_t *)obj1 = new_value.int8_v;
+	break;
+    case JDAW_INT16:
+	*(int16_t *)obj1 = new_value.int16_v;
+	break;
+    case JDAW_INT32:
+	*(int32_t *)obj1 = new_value.int32_v;
+	break;
+    case JDAW_BOOL:
+	*(bool *)obj1 = new_value.bool_v;
+	break;
+    }
 }

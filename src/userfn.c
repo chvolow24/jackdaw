@@ -61,7 +61,6 @@ void user_global_menu(void *nullarg)
 
 void user_global_quit(void *nullarg)
 {
-    fprintf(stdout, "user_global_quit\n");
     main_win->i_state |= I_STATE_QUIT;
     /* exit(0); //TODO: add the i_state to window (or proj?) to quit naturally. */
 }
@@ -227,7 +226,6 @@ static int file_ext_completion_jdaw(Text *txt)
 }
 void user_global_save_project(void *nullarg)
 {
-    fprintf(stdout, "user_global_save\n");
     Layout *mod_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(mod_lt);
     Modal *save_as = modal_create(mod_lt);
@@ -302,7 +300,6 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 
 void user_global_open_file(void *nullarg)
 {
-    /* fprintf(stdout, "user_global_open\n"); */
     Layout *mod_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(mod_lt);
     Modal *openfile = modal_create(mod_lt);
@@ -346,8 +343,6 @@ void user_menu_nav_next_item(void *nullarg)
 	s = c->sections[c->sel_sctn];
 	s->sel_item = 0;
     }
-    
-    fprintf(stdout, "user_menu_nav_next_item\n");
 }
 
 void user_menu_nav_prev_item(void *nullarg)
@@ -375,20 +370,17 @@ void user_menu_nav_prev_item(void *nullarg)
 	c->sel_sctn--;
 	
     }
-    
-    fprintf(stdout, "user_menu_nav_prev_item\n");
 }
 
 
 void user_menu_nav_next_sctn(void *nullarg)
 {
-    fprintf(stdout, "user_menu_nav_next_sctn\n");
+
 }
 
 void user_menu_nav_prev_sctn(void *nullarg)
 {
 
-    fprintf(stdout, "user_menu_nav_prev_sctn\n");
 }
 
 void user_menu_nav_column_right(void *nullarg)
@@ -412,7 +404,6 @@ void user_menu_nav_column_right(void *nullarg)
 	}
 	
     }
-    fprintf(stdout, "user_menu_nav_column_right\n");
 }
 
 void user_menu_nav_column_left(void *nullarg)
@@ -428,7 +419,6 @@ void user_menu_nav_column_left(void *nullarg)
     } else if (m->sel_col > 0) {
 	m->sel_col--;
     }
-    fprintf(stdout, "user_menu_nav_column_left\n");
 }
 
 void user_menu_nav_choose_item(void *nullarg)
@@ -571,7 +561,6 @@ void user_tl_rewind(void *nullarg)
 	&color_global_quickref_button_blue,
 	quickref_button_press_callback,
 	NULL);
-    fprintf(stdout, "user_tl_rewind\n");
 }
 
 void user_tl_play_slow(void *nullarg)
@@ -676,7 +665,7 @@ void user_tl_zoom_out(void *nullarg)
 	NULL);
 }
 
-NEW_EVENT_FN(undo_redo_set_mark, "undo/redo set mark")
+static NEW_EVENT_FN(undo_redo_set_mark, "undo/redo set mark")
     int32_t *mark = (int32_t *)obj1;
     *mark = val1.int32_v;
 }
@@ -789,19 +778,18 @@ void user_tl_set_default_out(void *nullarg) {
     /* window_push_mode(main_win, MENU_NAV); */
 }
 
-NEW_EVENT_FN(add_track_undo, "undo add track")
+static NEW_EVENT_FN(add_track_undo, "undo add track")
     Track *track = (Track *)obj1;
     track_delete(track);
 }
 
-NEW_EVENT_FN(add_track_redo, "redo add track")
+static NEW_EVENT_FN(add_track_redo, "redo add track")
     Track *track = (Track *)obj1;
     track_undelete(track);
 }
 
 void user_tl_add_track(void *nullarg)
 {
-    fprintf(stdout, "user_tl_add_track\n");
     if (!proj) {
 	fprintf(stderr, "Error: user call to add track w/o global project\n");
 	exit(1);
@@ -1122,18 +1110,18 @@ void user_tl_track_set_in(void *nullarg)
 /* } */
 
 
-NEW_EVENT_FN(undo_track_delete, "undo delete track")
+static NEW_EVENT_FN(undo_track_delete, "undo delete track")
     Track *track = (Track *)obj1;
     track_undelete(track);
     
 }
 
-NEW_EVENT_FN(redo_track_delete, "redo delete track")
+static NEW_EVENT_FN(redo_track_delete, "redo delete track")
     Track *track = (Track *)obj1;
     track_delete(track);
 }
 
-NEW_EVENT_FN(dispose_track_delete, "")
+static NEW_EVENT_FN(dispose_track_delete, "")
     Track *track = (Track *)obj1;
     /* fprintf(stdout, "PERMANENTLY DETROYING %s\n", track->name); */
     track_destroy(track, false);
@@ -1248,7 +1236,7 @@ void user_tl_track_open_settings(void *nullarg)
 /* } */
 /*      } */
 
-NEW_EVENT_FN(undo_record_new_clips, "undo create new clip(s)")
+static NEW_EVENT_FN(undo_record_new_clips, "undo create new clip(s)")
     ClipRef **clips = (ClipRef **)obj1;
     uint8_t num = val1.uint8_v;
     for (uint8_t i=0; i<num; i++) {
@@ -1256,7 +1244,7 @@ NEW_EVENT_FN(undo_record_new_clips, "undo create new clip(s)")
     }
 }
 
-NEW_EVENT_FN(redo_record_new_clips, "undo create new clip(s)")
+static NEW_EVENT_FN(redo_record_new_clips, "undo create new clip(s)")
     ClipRef **clips = (ClipRef **)obj1;
     uint8_t num = val1.uint8_v;
     for (uint8_t i=0; i<num; i++) {

@@ -89,6 +89,7 @@ static void mouse_triage_click_track(uint8_t button, Track *track)
 	    return;
 	}
 	if (SDL_PointInRect(&main_win->mousep, &track->vol_ctrl->layout->rect)) {
+	    Value oldval = jdaw_val_from_ptr(track->vol_ctrl->value, track->vol_ctrl->val_type);
 	    Value newval = slider_val_from_coord(track->vol_ctrl, main_win->mousep.x);
 	    track->vol = newval.float_v;
 	    slider_reset(track->vol_ctrl);

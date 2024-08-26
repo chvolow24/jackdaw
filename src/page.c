@@ -385,12 +385,13 @@ static bool page_element_mouse_motion(PageEl *el, Window *win)
 	break;
     case EL_SLIDER: {
 	Slider *s = (Slider *)el->component;
-	Value saved = jdaw_val_from_ptr(s->value, s->val_type);
+	/* Value saved = jdaw_val_from_ptr(s->value, s->val_type); */
 	if (slider_mouse_motion(s, win)) {
-	    if (!proj->currently_editing_slider) {
-		proj->currently_editing_slider = s;
-		proj->cached_slider_val = saved;
-	    }
+	    /* if (!proj->currently_editing_slider) { */
+	    /* 	proj->currently_editing_slider = s; */
+	    /* 	proj->cached_slider_val = saved; */
+	    /* 	proj->cached_slider_type = SLIDER_TARGET_TRACK_EFFECT_PARAM; */
+	    /* } */
 	    return true;
 	}
     }
@@ -425,12 +426,13 @@ static bool page_element_mouse_click(PageEl *el, Window *win)
 	break;
     case EL_SLIDER: {
 	Slider *s = (Slider *)el->component;
-	Value saved = jdaw_val_from_ptr(s->value, s->val_type);
+	/* Value saved = jdaw_val_from_ptr(s->value, s->val_type); */
 	if (slider_mouse_motion(s, win)) {
-	    if (!proj->currently_editing_slider) {
-		proj->currently_editing_slider = s;
-		proj->cached_slider_val = saved;
-	    }
+	    /* if (!proj->currently_editing_slider) { */
+	    /* 	proj->currently_editing_slider = s; */
+	    /* 	proj->cached_slider_val = saved; */
+	    /* 	proj->cached_slider_type = SLIDER_TARGET_TRACK_EFFECT_PARAM; */
+	    /* } */
 	    return true;
 	}
     }

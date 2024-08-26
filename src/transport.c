@@ -297,7 +297,6 @@ static void *transport_dsp_thread_fn(void *arg)
 void transport_start_playback()
 {   
     if (proj->playing) return;
-    fprintf(stdout, "START playback\n");
     proj->playing = true;
     Timeline *tl = proj->timelines[proj->active_tl_index];
     tl->read_pos_sframes = tl->play_pos_sframes;

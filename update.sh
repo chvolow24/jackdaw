@@ -16,6 +16,7 @@ if [[ ! -d "build" ]]; then
 fi
 cd ..
 
+make clean
 make
 
 if [[ $? != 0 ]]; then

@@ -1850,7 +1850,7 @@ void clip_destroy(Clip *clip)
 void timeline_push_grabbed_clip_move_event(Timeline *tl);
 void timeline_cache_grabbed_clip_positions(Timeline *tl)
 {
-    fprintf(stdout, "CACHE\n");
+    /* fprintf(stdout, "CACHE\n"); */
     if (!tl->grabbed_clip_cache_initialized) {
 	tl->grabbed_clip_cache_initialized = true;
     } else if (!tl->grabbed_clip_cache_pushed) {
@@ -1895,7 +1895,7 @@ NEW_EVENT_FN(redo_move_clips, "redo move clips")
 }
 void timeline_push_grabbed_clip_move_event(Timeline *tl)
 {
-    fprintf(stdout, "PUSH\n");
+    /* fprintf(stdout, "PUSH\n"); */
     ClipRef **cliprefs = calloc(tl->num_grabbed_clips, sizeof(ClipRef *));
     /* int32_t *positions = calloc(tl->num_grabbed_clips * 2, sizeof(ClipRef *)); */
 

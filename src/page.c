@@ -36,9 +36,11 @@
 #include "geometry.h"
 #include "input.h"
 #include "page.h"
+#include "project.h"
 #include "layout.h"
 #include "layout_xml.h"
 #include "textbox.h"
+#include "value.h"
 #include "waveform.h"
 
 
@@ -47,6 +49,8 @@ extern SDL_Color color_global_white;
 extern SDL_Color color_global_black;
 
 extern Window *main_win;
+extern Project *proj;
+
 TabView *tab_view_create(const char *title, Layout *parent_lt, Window *win)
 {
     TabView *tv = calloc(1, sizeof(Page));
@@ -379,8 +383,17 @@ static bool page_element_mouse_motion(PageEl *el, Window *win)
 	break;
     case EL_TEXTENTRY:
 	break;
-    case EL_SLIDER:
-	return slider_mouse_motion((Slider *)el->component, win);
+    case EL_SLIDER: {
+	Slider *s = (Slider *)el->component;
+	Value saved = jdaw_val_from_ptr(s->value, s->val_type);
+	if (slider_mouse_motion(s, win)) {
+	    if (!proj->currently_editing_slider) {
+		proj->currently_editing_slider = s;
+		proj->cached_slider_val = saved;
+	    }
+	    return true;
+	}
+    }
 	break;
     case EL_RADIO:
 	break;
@@ -410,8 +423,17 @@ static bool page_element_mouse_click(PageEl *el, Window *win)
 	break;
     case EL_TEXTENTRY:
 	break;
-    case EL_SLIDER:
-	return slider_mouse_motion((Slider *)el->component, win);
+    case EL_SLIDER: {
+	Slider *s = (Slider *)el->component;
+	Value saved = jdaw_val_from_ptr(s->value, s->val_type);
+	if (slider_mouse_motion(s, win)) {
+	    if (!proj->currently_editing_slider) {
+		proj->currently_editing_slider = s;
+		proj->cached_slider_val = saved;
+	    }
+	    return true;
+	}
+    }
 	break;
     case EL_RADIO:
 	return radio_click((RadioButton *)el->component, win);

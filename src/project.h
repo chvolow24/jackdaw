@@ -355,7 +355,8 @@ typedef struct project {
     bool pan_changing;
     bool pan_right;
     bool show_output_freq_domain;
-
+    Slider *currently_editing_slider;
+    Value cached_slider_val;
 
     /* Event History (undo/redo) */
     UserEventHistory history;

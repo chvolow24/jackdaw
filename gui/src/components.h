@@ -125,6 +125,7 @@ Slider *slider_create(
 /* void fslider_draw(FSlider *fs); */
 /* float fslider_val_from_coord(FSlider *fs, int coord_pix); */
 /* void fslider_destroy(FSlider *fs); */
+void slider_set_value(Slider *s, Value val);
 void slider_set_range(Slider *s, Value min, Value max);
 void slider_reset(Slider *s);
 void slider_draw(Slider *s);

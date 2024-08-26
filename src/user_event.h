@@ -33,6 +33,9 @@
  *****************************************************************************************************************/
 
 
+#ifndef JDAW_USER_EVENT_H
+#define JDAW_USER_EVENT_H
+
 #include "value.h"
 
 
@@ -109,3 +112,6 @@ UserEvent *user_event_push(
     ValType type2,
     bool free_obj1,
     bool free_obj2);
+
+
+#endif

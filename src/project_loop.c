@@ -49,6 +49,8 @@
 #include "status.h"
 #include "timeline.h"
 #include "transport.h"
+#include "user_event.h"
+#include "value.h"
 #include "waveform.h"
 #include "window.h"
 
@@ -192,8 +194,16 @@ static void update_track_vol_pan()
 
 extern SDL_Color color_global_grey;
 
-//typedef void (SliderStrFn)(char *dst, size_t dstsize, void *value, ValType type);
 
+NEW_EVENT_FN(undo_slider_set_value, "undo slider set value")
+    Slider *s = (Slider *)obj1;
+    slider_set_value(s, val1);
+}
+
+NEW_EVENT_FN(redo_slider_set_value, "undo slider set value")
+    Slider *s = (Slider *)obj1;
+    slider_set_value(s, val1);
+}
 
 /* void user_tl_track_open_settings(void *nullarg); */
 void loop_project_main()
@@ -458,6 +468,22 @@ void loop_project_main()
 		    main_win->i_state &= ~I_STATE_MOUSE_L;
 		} else if (e.button.button == SDL_BUTTON_RIGHT) {
 		    main_win->i_state &= ~I_STATE_MOUSE_R;
+		}
+		if (proj->currently_editing_slider) {
+		    Slider *s = proj->currently_editing_slider;
+		    Value v_old = proj->cached_slider_val;
+		    Value v_new = jdaw_val_from_ptr(s->value, s->val_type);
+		    user_event_push(
+			&proj->history,
+			undo_slider_set_value,
+			redo_slider_set_value,
+			NULL, NULL,
+			proj->currently_editing_slider,
+			NULL,
+			v_old, v_old, v_new, v_new,
+			0, 0, false, false);
+			
+		    proj->currently_editing_slider = NULL;
 		}
 		break;
 	    case SDL_FINGERUP:

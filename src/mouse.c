@@ -43,8 +43,6 @@ extern Project *proj;
 
 //SDL_BUTTON_LEFT | SDL_BUTTON_RIGHT
 
-
-
 static void mouse_triage_motion_track(Track *track)
 {
     if (main_win->i_state & I_STATE_MOUSE_L && SDL_PointInRect(&main_win->mousep, track->console_rect)) {

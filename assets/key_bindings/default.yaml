@@ -27,6 +27,7 @@
   - C-q		: quit
   - C-z		: undo
   - C-y		: redo
+  - C-S-z	: redo
   - S-f		: show_output_freq_domain
   - C-s		: save_project
   - C-o		: open_file

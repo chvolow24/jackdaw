@@ -1186,6 +1186,7 @@ void user_tl_track_vol_up(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (tl->num_tracks == 0) return;
+    if (proj->vol_changing) return;
     /* proj->vol_changing = tl->tracks[tl->track_selector]; */
     proj->vol_changing = true;
     proj->vol_up = true;
@@ -1196,6 +1197,7 @@ void user_tl_track_vol_down(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (tl->num_tracks == 0) return;
+    if (proj->vol_changing) return;
     /* proj->vol_changing = tl->tracks[tl->track_selector]; */
     proj->vol_changing = true;
     proj->vol_up = false;
@@ -1207,6 +1209,7 @@ void user_tl_track_pan_left(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (tl->num_tracks ==0) return;
+    if (proj->pan_changing) return;
     proj->pan_changing = tl->tracks[tl->track_selector];
     proj->pan_right = false;
     tl->needs_redraw = true;
@@ -1217,6 +1220,7 @@ void user_tl_track_pan_right(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (tl->num_tracks == 0) return;
+    if (proj->pan_changing) return;
     proj->pan_changing = tl->tracks[tl->track_selector];
     proj->pan_right = true;
     tl->needs_redraw = true;

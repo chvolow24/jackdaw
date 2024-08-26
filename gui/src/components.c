@@ -119,6 +119,12 @@ Slider *slider_create(
     return s;
 }
 
+void slider_set_value(Slider *s, Value val)
+{
+    jdaw_val_set_ptr(s->value, s->val_type, val);
+    slider_reset(s);
+}
+
 void slider_set_range(Slider *s, Value min, Value max)
 {
     s->min = min;

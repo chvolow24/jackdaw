@@ -1670,24 +1670,24 @@ void track_undelete(Track *track)
 }
 void track_destroy(Track *track, bool displace)
 {
-    Clip *clips_to_destroy[MAX_PROJ_CLIPS];
-    uint8_t num_clips_to_destroy = 0;
+    /* Clip *clips_to_destroy[MAX_PROJ_CLIPS]; */
+    /* uint8_t num_clips_to_destroy = 0; */
     for (uint8_t i=0; i<track->num_clips; i++) {
 	ClipRef *cr = track->clips[i];
 	if (cr) {
-	    if (cr->home) {
-		clips_to_destroy[num_clips_to_destroy] = cr->clip;
-		num_clips_to_destroy++;
-	    }
+	    /* if (cr->home) { */
+	    /* 	clips_to_destroy[num_clips_to_destroy] = cr->clip; */
+	    /* 	num_clips_to_destroy++; */
+	    /* } */
 	    clipref_destroy_no_displace(track->clips[i]);
 	}
     }
     /* fprintf(stdout, "OK deleted all crs, now clips\n"); */
-    while (num_clips_to_destroy > 0) {
-	/* fprintf(stdout, "Deleting clip\n"); */
-	clip_destroy(clips_to_destroy[num_clips_to_destroy - 1]);
-	num_clips_to_destroy--;
-    }
+    /* while (num_clips_to_destroy > 0) { */
+    /* 	/\* fprintf(stdout, "Deleting clip\n"); *\/ */
+    /* 	clip_destroy(clips_to_destroy[num_clips_to_destroy - 1]); */
+    /* 	num_clips_to_destroy--; */
+    /* } */
     /* fprintf(stdout, "Ok deleted all clips\n"); */
     slider_destroy(track->vol_ctrl);
     slider_destroy(track->pan_ctrl);
@@ -1764,6 +1764,11 @@ void clipref_destroy(ClipRef *cr, bool displace_in_clip)
 	clip->num_refs--;
 	/* fprintf(stdout, "\t->Clip at %p now has %d refs\n", clip, clip->num_refs); */
     }
+
+    /* TODO: keep clips around */
+    if (clip->num_refs == 0) {
+	clip_destroy(clip);
+    }
     textbox_destroy(cr->label);
     SDL_DestroyMutex(cr->lock);
     free(cr);
@@ -1780,6 +1785,10 @@ void clipref_destroy_no_displace(ClipRef *cr)
 	}
     }
     cr->clip->num_refs--;
+    /* TODO: keep clips around */
+    if (cr->clip->num_refs == 0) {
+	clip_destroy(cr->clip);
+    }
     SDL_DestroyMutex(cr->lock);
     textbox_destroy(cr->label);
     free(cr);
@@ -1809,7 +1818,6 @@ static void clip_destroy_no_displace(Clip *clip)
 
 void clip_destroy(Clip *clip)
 {
-    
     /* fprintf(stdout, "CLIP DESTROY %s, num refs: %d\n", clip->name,  clip->num_refs); */
     /* fprintf(stdout, "DESTROYING CLIP %p, num: %d\n", clip, proj->num_clips); */
     for (uint8_t i=0; i<clip->num_refs; i++) {
@@ -1934,20 +1942,20 @@ void timeline_push_grabbed_clip_move_event(Timeline *tl)
 /* Deprecated; replaced by timeline_delete_grabbed_cliprefs */
 void timeline_destroy_grabbed_cliprefs(Timeline *tl)
 {
-    Clip *clips_to_destroy[255];
-    uint8_t num_clips_to_destroy = 0;
+    /* Clip *clips_to_destroy[255]; */
+    /* uint8_t num_clips_to_destroy = 0; */
     /* fprintf(stdout, "Num grabbed clips to destroy: %d\n", tl->num_grabbed_clips); */
     while (tl->num_grabbed_clips > 0) {
 	ClipRef *cr = tl->grabbed_clips[--tl->num_grabbed_clips];
-	if (cr->home) {
-	    clips_to_destroy[num_clips_to_destroy] = cr->clip;
-	    num_clips_to_destroy++;
-	}
+	/* if (cr->home) { */
+	/*     clips_to_destroy[num_clips_to_destroy] = cr->clip; */
+	/*     num_clips_to_destroy++; */
+	/* } */
 	clipref_destroy(cr, true);
     }
-    while (num_clips_to_destroy > 0) {
-	clip_destroy(clips_to_destroy[--num_clips_to_destroy]);	     
-    }
+    /* while (num_clips_to_destroy > 0) { */
+    /* 	clip_destroy(clips_to_destroy[--num_clips_to_destroy]);	      */
+    /* } */
     /* fprintf(stdout, "Deleted all grabbed cliprefs and clips\n"); */
 }
 

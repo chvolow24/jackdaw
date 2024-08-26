@@ -419,7 +419,6 @@ void transport_start_recording()
 		fprintf(stderr, "Error opening audio device to record\n");
 		exit(1);
 	    }
-	    fprintf(stdout, "\n\nProject add clip!\n");
 	    clip = project_add_clip(conn, track);
 	    clip->recording = true;
 	    home = true;

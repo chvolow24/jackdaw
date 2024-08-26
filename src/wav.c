@@ -146,7 +146,7 @@ void wav_write_mixdown(const char *filepath)
 }
 
 
-void wav_load_to_track(Track *track, const char *filename, int32_t start_pos) {
+ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos) {
     SDL_AudioSpec wav_spec;
     uint8_t* audio_buf = NULL;
     uint32_t audio_len_bytes = 0;
@@ -158,7 +158,7 @@ void wav_load_to_track(Track *track, const char *filename, int32_t start_pos) {
 
     if (!(SDL_LoadWAV(filename, &wav_spec, &audio_buf, &audio_len_bytes))) {
         fprintf(stderr, "Error loading wav %s: %s", filename, SDL_GetError());
-        return;
+        return NULL;
     }
     /* fprintf(stderr, "Success loading wav %s\n", filename); */
     /* fprintf(stderr, "Format = %s\n", get_audio_fmt_str(wav_spec.format)); */
@@ -175,7 +175,7 @@ void wav_load_to_track(Track *track, const char *filename, int32_t start_pos) {
     int ret = SDL_BuildAudioCVT(&wav_cvt, wav_spec.format, wav_spec.channels, wav_spec.freq, proj->fmt, proj->channels, proj->sample_rate);
     if (ret < 0) {
         fprintf(stderr, "Error: unable to build SDL_AudioCVT. %s\n", SDL_GetError());
-        return;
+        return NULL;
     } else if (ret == 1) { // Needs converstion
         fprintf(stderr, "Converting. Len mult: %d\n", wav_cvt.len_mult);
         wav_cvt.needed = 1;
@@ -184,7 +184,7 @@ void wav_load_to_track(Track *track, const char *filename, int32_t start_pos) {
         memcpy(wav_cvt.buf, audio_buf, audio_len_bytes);
         if (SDL_ConvertAudio(&wav_cvt) < 0) {
             fprintf(stderr, "Error: Unable to convert audio. %s\n", SDL_GetError());
-            return;
+            return NULL;
         }
         audio_len_bytes *= wav_cvt.len_ratio;
     } else if (ret == 0) { // No converstion needed
@@ -193,7 +193,7 @@ void wav_load_to_track(Track *track, const char *filename, int32_t start_pos) {
         memcpy(wav_cvt.buf, audio_buf, audio_len_bytes);
     } else {
         fprintf(stderr, "Error: unexpected return value for SDL_BuildAudioCVT.\n");
-        return;
+        return NULL;
     }
 
 
@@ -201,7 +201,7 @@ void wav_load_to_track(Track *track, const char *filename, int32_t start_pos) {
     if (buf_len_samples < 3) {
 	fprintf(stderr, "Error: cannot read wav file.\n");
 	status_set_errstr("Error reading wav file.");
-	return;
+	return NULL;
     }
     Clip *clip = project_add_clip(NULL, track);
     proj->active_clip_index++;
@@ -222,4 +222,5 @@ void wav_load_to_track(Track *track, const char *filename, int32_t start_pos) {
     strncpy(cr->name, path_get_tail(filename_modifiable), MAX_NAMELENGTH);
     free(filename_modifiable);
     timeline_reset(track->tl);
+    return cr;
 }

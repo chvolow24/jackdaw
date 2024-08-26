@@ -243,6 +243,17 @@ void user_global_save_project(void *nullarg)
     modal_move_onto(save_as);
 }
 
+static NEW_EVENT_FN(undo_load_wav, "undo load wav")
+    ClipRef *cr = (ClipRef *)obj1;
+    clipref_delete(cr);
+}
+
+static NEW_EVENT_FN(redo_load_wav, "redo load wav")
+    ClipRef *cr = (ClipRef *)obj1;
+    clipref_undelete(cr);
+}
+
+
 Project *jdaw_read_file(char *path);
 static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 {
@@ -264,7 +275,18 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 	    fprintf(stderr, "Error: at least one track must exist to load a wav file\n");
 	    return;
 	}
-	wav_load_to_track(track, dp->path, tl->play_pos_sframes);
+	ClipRef *cr = wav_load_to_track(track, dp->path, tl->play_pos_sframes);
+	Value nullval = {.int_v = 0};
+	user_event_push(
+	    &proj->history,
+	    undo_load_wav,
+	    redo_load_wav,
+	    NULL, NULL,
+	    (void *)cr, NULL,
+	    nullval, nullval, nullval, nullval,
+	    0, 0, false, false);
+	    
+	
     } else if (strcmp("jdaw", ext) * strcmp("JDAW", ext) == 0) {
 	fprintf(stdout, "Jdaw file selected\n");
 	Project *new_proj = jdaw_read_file(dp->path);
@@ -423,7 +445,6 @@ void user_menu_nav_column_left(void *nullarg)
 
 void user_menu_nav_choose_item(void *nullarg)
 {
-    fprintf(stdout, "user_menu_nav_choose_item\n");
     Menu *m = window_top_menu(main_win);
     if (!m) {
 	fprintf(stderr, "No menu on main window\n");	

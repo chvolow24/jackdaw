@@ -85,6 +85,7 @@ static void user_event_destroy(UserEvent *e)
        as needed */
     if (e->free_obj1) free(e->obj1);
     if (e->free_obj2) free(e->obj2);
+    free(e);
 }
 
 void user_event_history_destroy(UserEventHistory *history)

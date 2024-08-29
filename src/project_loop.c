@@ -254,6 +254,18 @@ void panel_testing()
 	&color_global_white,
 	main_win);
 
+    PageElParams p;
+
+    static bool testbool;
+    p.toggle_p.action = NULL;
+    /* p.toggle_p.target = &testbool; */
+    p.toggle_p.value = &testbool;
+    PageEl *el = page_add_el(page1, EL_TOGGLE, p, NULL);
+    Layout *lt = el->layout;
+    lt->x.value.intval = 10;
+    lt->y.value.intval = 20;
+    lt->h.value.intval = 10;
+    lt->w.value.intval = 10;
     panel_select_page(test_pa, 0, 0);
     panel_select_page(test_pa, 1, 1);
     layout_reset(test_pa->layout);

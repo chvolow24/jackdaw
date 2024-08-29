@@ -360,9 +360,13 @@ PageEl *page_add_el(
 {
     PageEl *el = calloc(1, sizeof(PageEl));
     el->type = type;
-    el->layout = layout_get_child_by_name_recursive(page->layout, layout_name);
-    if (!el->layout) {
-	fprintf(stdout, "Error in layout at %s; unable to find child named %s\n", page->layout->name, layout_name);
+    if (layout_name) {
+	el->layout = layout_get_child_by_name_recursive(page->layout, layout_name);
+	if (!el->layout) {
+	    fprintf(stdout, "Error in layout at %s; unable to find child named %s\n", page->layout->name, layout_name);
+	}
+    } else {
+	el->layout = layout_add_child(page->layout);
     }
     page_el_set_params(el, params, page);
     page->elements[page->num_elements] = el;

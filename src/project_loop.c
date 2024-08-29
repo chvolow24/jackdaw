@@ -43,6 +43,7 @@
 #include "modal.h"
 #include "mouse.h"
 #include "page.h"
+#include "panel.h"
 #include "project.h"
 #include "project_draw.h"
 #include "screenrecord.h"
@@ -228,6 +229,36 @@ static void update_track_vol_pan()
 /*     } */
 /* } */
 
+PanelArea *test_pa;
+void panel_testing()
+{
+    Layout *panel_area_lt = layout_add_child(main_win->layout);
+    layout_set_default_dims(panel_area_lt);
+    test_pa = panel_area_create(panel_area_lt, main_win);
+    Panel *p1 = panel_area_add_panel(test_pa);
+    Panel *p2 = panel_area_add_panel(test_pa);
+
+    Page *page1 = panel_area_add_page(
+	test_pa,
+	"Some title   ∨",
+	NULL,
+	NULL,
+	&color_global_white,
+	main_win);
+
+    Page *page2 = panel_area_add_page(
+	test_pa,
+	"Another title   ∨",
+	NULL,
+        NULL,
+	&color_global_white,
+	main_win);
+
+    panel_select_page(test_pa, 0, 0);
+    panel_select_page(test_pa, 1, 1);
+    layout_reset(test_pa->layout);
+}
+
 
 void loop_project_main()
 {
@@ -250,6 +281,9 @@ void loop_project_main()
     bool set_i_state_k = false;
 
     window_push_mode(main_win, TIMELINE);
+
+
+    panel_testing();
 
     bool first_frame = true;
     int wheel_event_recency = 0;

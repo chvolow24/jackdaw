@@ -1860,7 +1860,6 @@ void clip_destroy(Clip *clip)
 void timeline_push_grabbed_clip_move_event(Timeline *tl);
 void timeline_cache_grabbed_clip_positions(Timeline *tl)
 {
-    /* fprintf(stdout, "CACHE\n"); */
     if (!tl->grabbed_clip_cache_initialized) {
 	tl->grabbed_clip_cache_initialized = true;
     } else if (!tl->grabbed_clip_cache_pushed) {

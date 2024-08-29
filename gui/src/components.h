@@ -12,6 +12,11 @@
 #define RADIO_BUTTON_LEFT_W 24
 #define RADIO_BUTTON_RAD_PAD (3 * main_win->dpi_scale_factor);
 
+
+/*****************************************/
+/************ Definitions ****************/
+/*****************************************/
+
 typedef int (*ComponentFn)(void *self, void *target);
 
 typedef struct button {
@@ -38,7 +43,6 @@ typedef struct text_entry {
     void *target;
 } TextEntry;
 
-
 typedef void (SliderStrFn)(char *dst, size_t dstsize, void *value, ValType type);
  
 enum slider_orientation {
@@ -51,21 +55,6 @@ enum slider_style {
     SLIDER_TICK
 };
 
-/* typedef struct f_slider { */
-/*     Layout *layout; */
-/*     float *value; */
-/*     float max, min; */
-/*     SliderOrientation orientation; */
-/*     SliderType type; */
-/*     DimVal *val_dim; */
-/*     SDL_Rect *bar_rect; */
-/*     bool editing; */
-/*     Textbox *label; */
-/*     char label_str[SLIDER_LABEL_STRBUFLEN]; */
-/*     SliderStrFn *create_label; */
-/* } FSlider; */
-
-
 typedef struct radio_button {
     Layout *layout;
     Textbox *items[RADIO_BUTTON_MAX_ITEMS];
@@ -77,7 +66,6 @@ typedef struct radio_button {
     SDL_Color *text_color; 
 } RadioButton;
 
-
 typedef struct waveform {
     Layout *layout;
     void **channels;
@@ -88,7 +76,6 @@ typedef struct waveform {
     SDL_Color *plot_color;
 } Waveform;
 
-/* Slider */
 typedef struct slider {
     Layout *layout;
     ValType val_type;
@@ -107,6 +94,21 @@ typedef struct slider {
     void *target;
     int label_countdown;
 } Slider;
+
+typedef struct canvas {
+    Layout *layout;
+    void (*draw_fn)(void *, void *);
+    void *draw_arg1, *draw_arg2;
+} Canvas;
+
+
+
+/*****************************************/
+/************ Interfaces ****************/
+/*****************************************/
+
+/* Slider */
+
 Slider *slider_create(
     Layout *layout,
     void *value,
@@ -189,6 +191,8 @@ Waveform *waveform_create(
     SDL_Color *plot_color);
 void waveform_destroy(Waveform *w);
 void waveform_draw(Waveform *w);
+
+
 /* Toggle */
 
 Toggle *toggle_create(Layout *lt, bool *value, ComponentFn action, void *target);
@@ -201,5 +205,16 @@ bool toggle_click(Toggle *toggle, Window *win);
 bool slider_mouse_motion(Slider *slider, Window *win);
 bool toggle_mouse_click(Toggle *toggle, Window *win);
 bool button_click(Button *button, Window *win);
+
+
+/* Canvas */
+
+Canvas *canvas_create(
+    Layout *lt,
+    void (*draw_fn)(void *arg1, void *arg2),
+    void *draw_arg1,
+    void *draw_arg2
+    );
+void canvas_draw(Canvas *canvas);
 
 #endif

@@ -6,12 +6,13 @@
 #include "SDL.h"
 #include "SDL_ttf.h"
 /* #include "window.h" */
-
-#define OPEN_SANS_PATH INSTALL_DIR "/assets/ttf/OpenSans-Regular.ttf"
-#define OPEN_SANS_BOLD_PATH INSTALL_DIR "/assets/ttf/OpenSans-Bold.ttf"
-#define LTSUPERIOR_PATH INSTALL_DIR "/assets/ttf/LTSuperiorMono-Regular.otf"
-#define LTSUPERIOR_BOLD_PATH INSTALL_DIR "/assets/ttf/LTSuperiorMono-Bold.otf"
-#define NOTO_SANS_SYMBOLS2_PATH INSTALL_DIR "/assets/ttf/NotoSansSymbols2-Regular.ttf"
+#define TTF_PATH INSTALL_DIR "/assets/ttf/"
+#define OPEN_SANS_PATH TTF_PATH "OpenSans-Regular.ttf"
+#define OPEN_SANS_BOLD_PATH TTF_PATH "OpenSans-Bold.ttf"
+#define LTSUPERIOR_PATH TTF_PATH "LTSuperiorMono-Regular.otf"
+#define LTSUPERIOR_BOLD_PATH TTF_PATH "LTSuperiorMono-Bold.otf"
+#define NOTO_SANS_SYMBOLS2_PATH TTF_PATH "NotoSansSymbols2-Regular.ttf"
+#define NOTO_SANS_MATH_PATH TTF_PATH "NotoSansMath-Regular.ttf"
 /* #define OPEN_SANS_PATH INSTALL_DIR "/assets/ttf/NotoSansSymbols2-Regular.ttf" */
 /* #define OPEN_SANS_BOLD_PATH OPEN_SANS_PATH */
 /* #define LTSUPERIOR_PATH OPEN_SANS_PATH */
@@ -49,7 +50,8 @@ typedef enum font_type {
     BOLD,
     MONO,
     MONO_BOLD,
-    SYMBOLIC
+    SYMBOLIC,
+    MATHEMATICAL
 } FontType;
 
 

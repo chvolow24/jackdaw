@@ -154,12 +154,19 @@ Page *page_create(
     page->title = title;
     page->background_color = background_color;
     page->text_color = text_color;
-    Layout *page_lt = layout_read_from_xml(layout_filepath);
-    if (!page_lt) {
-	fprintf(stderr, "Critical error: unable to read layout at %s\n", layout_filepath);
+    Layout *page_lt;
+    if (layout_filepath) {
+	page_lt = layout_read_from_xml(layout_filepath);
+	if (!page_lt) {
+	    fprintf(stderr, "Critical error: unable to read layout at %s\n", layout_filepath);
+	}
+    } else {
+	page_lt = layout_create();
     }
     page->layout = page_lt;
-    layout_reparent(page_lt, parent_lt);
+    if (parent_lt) {
+	layout_reparent(page_lt, parent_lt);
+    }
     /* layout_write(stdout, page->layout, 0); */
     /* layout_reset(page->layout); */
     page->win = win;
@@ -554,20 +561,23 @@ void page_draw(Page *page)
 {
     /* fprintf(stdout, "page lt rect %d %d %d %d\n", page->layout->rect.x, page->layout->rect.y, page->layout->rect.w, page->layout->rect.h); */
     /* fprintf(stdout, "Page dims: %d %d %f %f\n", page->layout->x.value.intval, page->layout->y.value.intval, page->layout->w.value.floatval, page->layout->h.value.floatval); */
-    SDL_SetRenderDrawColor(page->win->rend, sdl_colorp_expand(page->background_color));
-    SDL_Rect temp = page->layout->rect;
-    int r = PAGE_R * page->win->dpi_scale_factor;
-    geom_fill_rounded_rect(page->win->rend, &temp, r);
+    if (page->background_color) {
+	SDL_SetRenderDrawColor(page->win->rend, sdl_colorp_expand(page->background_color));
+	SDL_Rect temp = page->layout->rect;
+	int r = PAGE_R * page->win->dpi_scale_factor;
+	geom_fill_rounded_rect(page->win->rend, &temp, r);
 
-    int brdr = 7 * page->win->dpi_scale_factor;
-    int brdrtt = 2 * brdr;
-    temp.x += brdr;
-    temp.y += brdr;
-    temp.w -= brdrtt;
-    temp.h -= brdrtt;
-    /* static SDL_Color brdrclr = {25, 25, 25, 255}; */
-    SDL_SetRenderDrawColor(page->win->rend, sdl_color_expand(color_global_black));
-    geom_draw_rounded_rect_thick(page->win->rend, &temp, 7, TAB_R * page->win->dpi_scale_factor, page->win->dpi_scale_factor);
+	int brdr = 7 * page->win->dpi_scale_factor;
+	int brdrtt = 2 * brdr;
+	temp.x += brdr;
+	temp.y += brdr;
+	temp.w -= brdrtt;
+	temp.h -= brdrtt;
+	/* static SDL_Color brdrclr = {25, 25, 25, 255}; */
+
+	SDL_SetRenderDrawColor(page->win->rend, sdl_color_expand(color_global_black));
+	geom_draw_rounded_rect_thick(page->win->rend, &temp, 7, TAB_R * page->win->dpi_scale_factor, page->win->dpi_scale_factor);
+    }
     for (uint8_t i=0; i<page->num_elements; i++) {
 	page_el_draw(page->elements[i]);
 	if (page->elements[i] == page->selectable_els[page->selected_i]) {
@@ -721,7 +731,7 @@ void page_right(Page *page)
 
 void page_left(Page *page)
 {
-        PageEl *el = page->selectable_els[page->selected_i];
+    PageEl *el = page->selectable_els[page->selected_i];
     switch (el->type) {
     case EL_SLIDER:
 	slider_nudge_left((Slider *)el->component);

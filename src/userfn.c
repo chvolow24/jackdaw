@@ -1134,7 +1134,6 @@ void user_tl_track_set_in(void *nullarg)
 static NEW_EVENT_FN(undo_track_delete, "undo delete track")
     Track *track = (Track *)obj1;
     track_undelete(track);
-    
 }
 
 static NEW_EVENT_FN(redo_track_delete, "redo delete track")
@@ -1144,7 +1143,6 @@ static NEW_EVENT_FN(redo_track_delete, "redo delete track")
 
 static NEW_EVENT_FN(dispose_track_delete, "")
     Track *track = (Track *)obj1;
-    /* fprintf(stdout, "PERMANENTLY DETROYING %s\n", track->name); */
     track_destroy(track, false);
 }
 

@@ -139,6 +139,9 @@ void window_assign_font(Window *win, const char *font_path, FontType type)
     case SYMBOLIC:
 	font_to_init = &win->symbolic_font;
 	break;
+    case MATHEMATICAL:
+	font_to_init = &win->mathematical_font;
+	break;
     }
     *font_to_init = ttf_init_font(font_path, win);
     if (!(*font_to_init)) {

@@ -33,6 +33,7 @@ typedef struct window {
     Font *mono_font;
     Font *mono_bold_font;
     Font *symbolic_font;
+    Font *mathematical_font;
     Layout *layout;
 
     uint16_t i_state;

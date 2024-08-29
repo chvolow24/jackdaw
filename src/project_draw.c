@@ -40,6 +40,7 @@
 #include "layout.h"
 #include "modal.h"
 #include "page.h"
+#include "panel.h"
 #include "project.h"
 #include "textbox.h"
 #include "timeline.h"
@@ -51,6 +52,9 @@
 
 extern Window *main_win;
 extern Project *proj;
+
+/* TESTING */
+extern PanelArea *test_pa;
 
 SDL_Color track_bckgrnd = {120, 130, 150, 255};
 SDL_Color source_mode_bckgrnd = {0, 20, 40, 255};
@@ -590,6 +594,11 @@ void project_draw()
     proj->timelines[proj->active_tl_index]->needs_redraw = false;
     
 
+
+    /* TESTING */
+    panel_area_draw(test_pa);
+    /* layout_draw(main_win, test_pa->layout); */
+    
     window_end_draw(main_win);
 }
 

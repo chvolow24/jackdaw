@@ -599,3 +599,18 @@ bool button_click(Button *button, Window *win)
     return false;
 }
 
+
+Canvas *canvas_create(Layout *lt, void (*draw_fn)(void *, void *), void *draw_arg1, void *draw_arg2)
+{
+    Canvas *c = calloc(1, sizeof(Canvas));
+    c->layout = lt;
+    c->draw_fn = draw_fn;
+    c->draw_arg1 = draw_arg1;
+    c->draw_arg2 = draw_arg2;
+    return c;
+}
+
+void canvas_draw(Canvas *c)
+{
+    c->draw_fn(c->draw_arg1, c->draw_arg2);
+}

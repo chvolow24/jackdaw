@@ -1,0 +1,18 @@
+<Layout name="output_spectrum" type="NORMAL">
+    <x>REL 0</x>
+    <y>REL 0</y>
+    <w>REL 500</w>
+    <h>SCALE 1.0</h>
+    <index>0</index>
+    <children>
+        <Layout name="freqplot" type="NORMAL">
+            <x>SCALE 0.050000</x>
+            <y>SCALE 0.050000</y>
+            <w>REL 400</w>
+            <h>SCALE 0.800000</h>
+            <index>0</index>
+            <children>
+            </children>
+        </Layout>
+    </children>
+</Layout>

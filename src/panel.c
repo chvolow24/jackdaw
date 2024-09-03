@@ -83,11 +83,6 @@ Page *panel_area_add_page(
     return p;
 }
 
-void TEST_DOFN()
-{
-
-}
-
 Page *panel_select_page(PanelArea *pa, uint8_t panel_i, uint8_t new_selection)
 {
     Panel *panel = pa->panels[panel_i];
@@ -108,17 +103,21 @@ Page *panel_select_page(PanelArea *pa, uint8_t panel_i, uint8_t new_selection)
     textbox_set_background_color(panel->selector, NULL);
     textbox_set_text_color(panel->selector, &color_global_cerulean);
     textbox_reset_full(panel->selector);
-    page_reset(page);
-    layout_force_reset(panel->layout);
 
+    layout_force_reset(pa->layout);
     layout_size_to_fit_children_h(panel->content_layout->children[0], true, 0);
     layout_size_to_fit_children_h(panel->content_layout, true, 0);
     layout_size_to_fit_children_h(panel->layout, true, PANEL_H_SPACING);
-
     layout_force_reset(pa->layout);
     for (uint8_t i=0; i<pa->num_panels; i++) {
 	page_reset(pa->pages[pa->panels[i]->current_page]);
     }
+
+    layout_force_reset(pa->layout);
+
+    /* layout_size_to_fit_children_h(panel->content_layout->children[0], true, 0); */
+    /* layout_size_to_fit_children_h(panel->content_layout, true, 0); */
+    /* layout_size_to_fit_children_h(panel->layout, true, PANEL_H_SPACING); */
     return page;
 }
 
@@ -159,7 +158,6 @@ void panel_selector_onclick(void *arg_v)
     int swap_panel_i = -1;
     for (uint8_t i=0; i<targ->pa->num_panels; i++) {
 	if (targ->pa->panels[i]->current_page == targ->page_i) {
-	    /* swap_panel = targ->pa->panels[i]; */
 	    swap_panel_i = i;
 	}
     }

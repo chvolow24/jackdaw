@@ -770,6 +770,25 @@ void user_tl_goto_zero(void *nullarg)
     timeline_reset(tl);
 }
 
+void user_tl_goto_clip_start(void *nullarg)
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    ClipRef *cr = clipref_at_point();
+    if (cr) {
+	timeline_set_play_position(cr->pos_sframes);
+	timeline_reset(tl);
+    }
+}
+void user_tl_goto_clip_end(void *nullarg)
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    ClipRef *cr = clipref_at_point();
+    if (cr) {
+	timeline_set_play_position(cr->pos_sframes + clip_ref_len(cr));
+	timeline_reset(tl);
+    }
+}
+
 /* static void select_out_onclick(void *arg) */
 /* { */
 /*     /\* struct select_dev_onclick_arg *carg = (struct select_dev_onclick_arg *)arg; *\/ */

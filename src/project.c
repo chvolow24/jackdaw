@@ -64,6 +64,7 @@
 #define QUICKREF_LT_PATH LAYOUT_PATH "/quickref.xml"
 #define SOURCE_AREA_LT_PATH LAYOUT_PATH "/source_area.xml"
 #define OUTPUT_PANEL_LT_PATH LAYOUT_PATH "/output_panel.xml"
+#define OUTPUT_SPECTRUM_LT_PATH LAYOUT_PATH "/output_spectrum.xml"
 
 #define DEFAULT_SFPP 600
 #define CR_RECT_V_PAD (4 * main_win->dpi_scale_factor)
@@ -1144,6 +1145,31 @@ static inline void project_init_source_area(Page *source_area, Project *proj)
 
 }
 
+static inline void project_init_output_spectrum(Page *output_spectrum, Project *proj_loc)
+{
+    double *arrays[] = {
+	proj_loc->output_L_freq,
+	proj_loc->output_R_freq
+    };
+    int steps[] = {1, 1};
+    SDL_Color *plot_colors[] = {&freq_L_color, &freq_R_color, &color_global_white};
+    PageElParams p;
+    p.freqplot_p.arrays = arrays;
+    p.freqplot_p.steps = steps;
+    p.freqplot_p.num_arrays = 2;
+    p.freqplot_p.num_items = proj_loc->fourier_len_sframes / 2;
+    p.freqplot_p.colors = plot_colors;
+    Project *saved_glob_proj = proj;
+    proj = proj_loc; /* Not great */
+    page_add_el(
+	output_spectrum,
+	EL_FREQ_PLOT,
+	p,
+	"panel_output_freqplot",
+	"freqplot");
+    proj=saved_glob_proj; /* Not great */
+}
+
 static void project_init_panels(Project *proj, Layout *lt)
 {
     PanelArea *pa = panel_area_create(lt, main_win);
@@ -1184,144 +1210,25 @@ static void project_init_panels(Project *proj, Layout *lt)
 	&color_global_white,
 	main_win);
 
+    Page *output_spectrum = panel_area_add_page(
+	pa,
+	"Output spectrum",
+	OUTPUT_SPECTRUM_LT_PATH,
+	NULL,
+	&color_global_white,
+	main_win);
+
 
     project_init_quickref_panels(quickref1, quickref2);
     project_init_output_panel(output_panel, proj);
     project_init_source_area(source_area, proj);
-    
+    project_init_output_spectrum(output_spectrum, proj);
     panel_select_page(pa, 0, 0);
     panel_select_page(pa, 1, 1);
     panel_select_page(pa, 2, 2);
     panel_select_page(pa, 3, 3);
-    
-    
-    
 }
-void project_init_quickref(Project *proj, Layout *control_bar_lt)
-{
-    /* Layout *quickref_lt = layout_get_child_by_name_recursive(control_bar_lt, "quickref"); */
-    /* struct quickref *q = &proj->quickref; */
-    /* q->layout = quickref_lt; */
-    /* struct button_params b; */
-    /* Layout *row1 = quickref_lt->children[0]; */
-    /* Layout *row2 = quickref_lt->children[1]; */
-    /* Layout *row3 = quickref_lt->children[2]; */
-    /* Layout *button_lt = create_quickref_button_lt(row1); */
-    
-    /* b.font = main_win->symbolic_font; */
-    /* b.background_color = &color_global_quickref_button_blue; */
-    /* b.text_color = &color_global_white; */
-    /* b.set_str = "C-t (add track)"; */
-    /* b.action = quickref_add_track; */
-    /* b.target = NULL; */
-    /* b.text_size = 14; */
-    /* q->add_track = create_button_from_params(button_lt, b); */
 
-    /* b.action = quickref_record; */
-    /* button_lt = create_quickref_button_lt(row1); */
-    /* b.set_str = "r ⏺"; */
-    /* q->record = create_button_from_params(button_lt, b); */
-
-
-    /* /\* ROW 2 *\/ */
-    /* button_lt = create_quickref_button_lt(row2); */
-    /* b.font = main_win->mono_font; */
-    /* b.action = quickref_left; */
-    /* b.set_str = "h ←"; */
-    /* q->left = create_button_from_params(button_lt, b); */
-
-    /* button_lt = create_quickref_button_lt(row2); */
-    /* b.font = main_win->symbolic_font; */
-    /* b.action = quickref_rewind; */
-    /* b.set_str = "j ⏴"; */
-    /* q->rewind = create_button_from_params(button_lt, b); */
-
-    /* button_lt = create_quickref_button_lt(row2); */
-    /* b.action = quickref_pause; */
-    /* b.set_str = "k ⏸"; */
-    /* q->pause = create_button_from_params(button_lt, b); */
-
-    /* button_lt = create_quickref_button_lt(row2); */
-    /* b.action = quickref_play; */
-    /* b.set_str = "l ⏵"; */
-    /* q->play = create_button_from_params(button_lt, b); */
-
-    /* button_lt = create_quickref_button_lt(row2); */
-    /* b.font = main_win->mono_font; */
-    /* b.action = quickref_right; */
-    /* b.set_str = "; →"; */
-    /* q->right = create_button_from_params(button_lt, b); */
-
-
-    /* /\* ROW 3 *\/ */
-
-    /* button_lt = create_quickref_button_lt(row3); */
-    /* b.action = quickref_next; */
-    /* b.set_str = "n ↓"; */
-    /* q->next = create_button_from_params(button_lt, b); */
-
-    /* button_lt = create_quickref_button_lt(row3); */
-    /* b.action = quickref_previous; */
-    /* b.set_str = "p ↑"; */
-    /* q->previous = create_button_from_params(button_lt, b); */
-
-
-    /* button_lt = create_quickref_button_lt(row3); */
-    /* b.font = main_win->symbolic_font; */
-    /* b.action = quickref_zoom_out; */
-    /* b.set_str = ", 🔍-"; */
-    /* q->zoom_out = create_button_from_params(button_lt, b); */
-
-    /* button_lt = create_quickref_button_lt(row3); */
-    /* b.action = quickref_zoom_in; */
-    /* b.set_str = ". 🔍+"; */
-    /* q->zoom_in = create_button_from_params(button_lt, b); */
-
-    /* layout_size_to_fit_children_h(row1, true, 0); */
-    /* layout_size_to_fit_children_h(row2, true, 0); */
-    /* layout_size_to_fit_children_h(row3, true, 0); */
-    /* layout_size_to_fit_children(q->layout, true, 0); */
-
-    
-
-    /* /\* COL2 *\/ */
-
-    /* Layout *col2 = layout_get_child_by_name_recursive(control_bar_lt, "quickrefcol2"); */
-    /* layout_reset(col2); */
-    /* row1 = col2->children[0]; */
-    /* row2 = col2->children[1]; */
-    /* row3 = col2->children[2]; */
-
-    /* button_lt = create_quickref_button_lt(row1); */
-    /* /\* b.font = main_win->mono_bold_font; *\/ */
-    /* b.action = quickref_open_file; */
-    /* b.text_size = 12; */
-    /* b.set_str = "Open file (C-o)"; */
-    /* q->open_file = create_button_from_params(button_lt, b); */
-
-    /* button_lt = create_quickref_button_lt(row1); */
-    /* b.action = quickref_save; */
-    /* b.set_str = "Save (C-s)"; */
-    /* q->save = create_button_from_params(button_lt, b); */
-
-    /* button_lt = create_quickref_button_lt(row2); */
-    /* b.action = quickref_export_wav; */
-    /* b.set_str = "Export wav (S-w)"; */
-    /* q->export_wav = create_button_from_params(button_lt, b); */
-
-    /* button_lt = create_quickref_button_lt(row3); */
-    /* b.action = quickref_track_settings; */
-    /* b.set_str = "Track settings (S-t)"; */
-    /* q->track_settings = create_button_from_params(button_lt, b); */
-    
-    /* layout_size_to_fit_children_h(row1, true, 0); */
-    /* layout_size_to_fit_children_h(row2, true, 0); */
-    /* layout_size_to_fit_children_h(row3, true, 0); */
-    /* layout_size_to_fit_children(col2, true, 0); */
-
-    
-    
-}
 
 int audioconn_open(Project *proj, AudioConn *dev);
 void project_init_audio_conns(Project *proj)

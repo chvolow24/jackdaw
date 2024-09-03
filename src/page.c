@@ -238,6 +238,7 @@ static void page_el_reset(PageEl *el)
     case EL_WAVEFORM:
 	break;
     case EL_FREQ_PLOT:
+	waveform_reset_freq_plot((struct freq_plot *)el->component);
 	break;
     case EL_BUTTON:
 	textbox_reset_full(((Button *)el->component)->tb);

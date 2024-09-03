@@ -49,6 +49,8 @@ void user_tl_set_mark_in(void *nullarg);
 void user_tl_goto_mark_out(void *nullarg);
 void user_tl_goto_mark_in(void *nullarg);
 void user_tl_goto_zero(void *nullarg);
+void user_tl_goto_clip_start(void *nullarg);
+void user_tl_goto_clip_end(void *nullarg);
 /* void user_tl_play_drag(void *nullarg); */
 /* void user_tl_rewind_drag(void *nullarg); */
 /* void user_tl_pause_drag(void *nullarg); */

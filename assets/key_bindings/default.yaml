@@ -63,8 +63,8 @@
   - q		: tl_rewind
   - K-l		: tl_play_slow
   - K-j		: tl_rewind_slow
-  - S-l		: tl_play_slow
-  - S-j		: tl_rewind_slow
+  - C-l		: tl_play_slow
+  - C-j		: tl_rewind_slow
   - S-k		: tl_pause
   - <left>	: tl_nudge_left
   - <right>	: tl_nudge_right
@@ -83,6 +83,8 @@
   - S-i		: tl_goto_in_mark
   - S-o		: tl_goto_out_mark
   - S-u		: tl_goto_zero
+  - S-j		: tl_goto_clip_start
+  - S-l		: tl_goto_clip_end
   - C-S-o	: tl_set_default_out
   - C-t		: tl_track_add
   - 1		: tl_track_select_1

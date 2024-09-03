@@ -490,6 +490,18 @@ static void mode_load_timeline()
 	user_tl_goto_zero);
     mode_subcat_add_fn(sc, fn);
 
+    fn = create_user_fn(
+	"tl_goto_clip_start",
+	"Go to clip start",
+	user_tl_goto_clip_start);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_goto_clip_end",
+	"Go to clip end",
+	user_tl_goto_clip_end);
+    mode_subcat_add_fn(sc, fn);
+
 
     /* Audio output */
 

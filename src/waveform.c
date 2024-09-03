@@ -144,9 +144,8 @@ void waveform_reset_freq_plot(struct freq_plot *fp)
 	    Layout *tb_lt = layout_add_child(fp->container);
 	    layout_set_default_dims(tb_lt);
 	    layout_reset(tb_lt);
-	    /* fprintf(stdout, "OK %d %d %d %d\n", tb_lt->rect.x, tb_lt->rect.y, tb_lt->rect.w, tb_lt->rect.h); */
 	    const char *str = freq_labels[omega == 60 ? 0 : omega == 100 ? 1 : omega == 200 ? 2 : omega == 1000 ? 3 : omega == 2000 ? 4 : 5];
-	    Textbox *tb = textbox_create_from_str((char *)str, tb_lt, main_win->mono_font, 14, main_win);
+	    Textbox *tb = textbox_create_from_str((char *)str, tb_lt, main_win->mono_font, 10, main_win);
 	    fp->labels[fp->num_labels] = tb;
 	    fp->num_labels++;
 	    /* textbox_reset_full(fp->labels[fp->num_labels]); */

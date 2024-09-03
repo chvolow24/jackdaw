@@ -195,7 +195,7 @@ bool panel_area_mouse_click(PanelArea *pa)
 			target);
 		    item->free_target_on_destroy = true;
 		}
-		menu_add_header(menu,"", "Select the default audio output.\n\n'n' to select next item; 'p' to select previous item.");
+		menu_add_header(menu,"", "\n\n'n' to select next item; 'p' to select previous item.");
 		/* menu_reset_layout(menu); */
 		window_add_menu(pa->win, menu);
 	    } else {

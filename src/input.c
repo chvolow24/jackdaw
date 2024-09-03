@@ -37,6 +37,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include "input.h"
+#include "layout.h"
 #include "menu.h"
 #include "userfn.h"
 
@@ -1333,7 +1334,7 @@ void input_create_menu_from_mode(InputMode im)
 
 Menu *input_create_master_menu()
 {
-    InputMode im = GLOBAL;
+    /* InputMode im = GLOBAL; */
 
     Layout *m_layout = create_menu_layout();
     if (!m_layout) {
@@ -1341,7 +1342,16 @@ Menu *input_create_master_menu()
 	exit(1);
     }
     Menu *m = menu_create(m_layout, main_win);
-    while (im < NUM_INPUT_MODES) {
+    /* while (im < NUM_INPUT_MODES) { */
+    for (uint8_t i=0; i<main_win->num_modes + 1; i++) {
+	InputMode im;
+	if (i == 0) {
+	    im = GLOBAL;
+	} else {
+	    im = main_win->modes[i - 1];
+
+	}
+	if (im == MENU_NAV) continue;
 	Mode *mode = modes[im];
 	if (!mode) {
 	    fprintf(stderr, "Error: mode %s not initialized\n", input_mode_str(im));
@@ -1352,19 +1362,32 @@ Menu *input_create_master_menu()
 	/*     fprintf(stderr, "Error: Unable to create menu layout\n"); */
 	/*     exit(1); */
 	/* } */
-	MenuColumn *c = menu_column_add(m, mode->name);
-	for (int i=0; i<mode->num_subcats; i++) {
-	    ModeSubcat *sc = mode->subcats[i];
-	    MenuSection *sctn = menu_section_add(c, sc->name);
-	    for (int j=0; j<sc->num_fns; j++) {
-		UserFn *fn = sc->fns[j];
+	if (mode->num_subcats == 1) {
+	    MenuColumn *c = menu_column_add(m, "");
+	    MenuSection *sctn = menu_section_add(c, mode->name);
+	    for (uint8_t i=0; i<mode->subcats[0]->num_fns; i++) {
+		UserFn *fn = mode->subcats[0]->fns[i];
 		menu_item_add(sctn, fn->fn_display_name, fn->annotation, fn->do_fn, NULL);
 	    }
+	} else {
+	    MenuColumn *c = menu_column_add(m, "");
+	    for (int i=0; i<mode->num_subcats; i++) {
+		ModeSubcat *sc = mode->subcats[i];
+	    
+		MenuSection *sctn = menu_section_add(c, sc->name);
+		menu_item_add(sctn, sc->name, ">", create_menu_from_mode_subcat, sc);
+	    }
+	    /* for (int j=0; j<sc->num_fns; j++) { */
+	    /* 	UserFn *fn = sc->fns[j]; */
+	    /* 	menu_item_add(sctn, fn->fn_display_name, fn->annotation, fn->do_fn, NULL); */
+	    /* } */
+	/* } */
 	}
-	im++;
     }
 
-    menu_add_header(m, "ALL", "Here are functions available to you in aforementioned mode.");
+    menu_add_header(m, "", "n - next item\np - previous item\nl - column right\nj - column left\n<ret> - select\nm - dismiss");
+    layout_center_agnostic(m_layout, true, true);
+    menu_reset_layout(m);
     return m;
 }
 

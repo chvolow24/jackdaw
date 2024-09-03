@@ -128,6 +128,11 @@ void menu_reset_layout(Menu *menu)
 	layout_set_values_from_rect(lt);
 	menu_reset_layout(menu);
     }
+    if (lt->rect.y + lt->rect.h > main_win->h_pix) {
+	lt->rect.y = main_win->h_pix - lt->rect.h;
+	layout_set_values_from_rect(lt);
+	menu_reset_layout(menu);
+    }
     layout_force_reset(menu->layout);
     menu_reset_textboxes(menu);
 }
@@ -149,7 +154,7 @@ void menu_add_header(Menu *menu, const char *title, const char *description)
     /* Set y value of content layout */
     menu->layout->children[1]->y.value.intval = header_h + MENU_STD_HEADER_PAD;
     menu->layout->h.value.intval += menu->layout->children[1]->y.value.intval;
-    
+    layout_reset(menu->layout);
     menu_reset_layout(menu);
 }
 

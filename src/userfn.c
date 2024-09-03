@@ -53,8 +53,9 @@ void user_global_menu(void *nullarg)
     }
     InputMode current_mode = main_win->modes[main_win->num_modes - 1];
     
-    /* Menu *new = input_create_master_menu(void *nullarg); */
-    input_create_menu_from_mode(current_mode);
+    Menu *new = input_create_master_menu();
+    window_add_menu(main_win, new);
+    /* input_create_menu_from_mode(current_mode); */
     /* window_add_menu(main_win, new); */
     /* window_push_mode(main_win, MENU_NAV);  */  
 }
@@ -1519,6 +1520,16 @@ void user_tl_activate_source_mode(void *nullarg)
 /*     return tl_pos_now; */
 /* } */
 
+NEW_EVENT_FN(undo_drop, "Undo drop clip from source")
+    ClipRef *cr = (ClipRef *)obj1;
+    clipref_delete(cr);
+}
+
+NEW_EVENT_FN(redo_drop, "Redo drop clip from source")
+    ClipRef *cr = (ClipRef *)obj1;
+    clipref_undelete(cr);
+}
+
 void user_tl_drop_from_source(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
@@ -1545,6 +1556,16 @@ void user_tl_drop_from_source(void *nullarg)
 	    /* fprintf(stdout, "MET condition, num dropped: %d\n", proj->num_dropped); */
 	}
 	tl->needs_redraw = true;
+	Value nullval = {.int_v = 0};
+	user_event_push(
+	    &proj->history,
+	    undo_drop,
+	    redo_drop,
+	    NULL, NULL,
+	    (void *)cr, NULL,
+	    nullval, nullval, nullval, nullval,
+	    0, 0, false, false);
+	    
     }
 }
 

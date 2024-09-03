@@ -467,7 +467,7 @@ static void control_bar_draw(Project *proj)
     int rad = (10 * main_win->dpi_scale_factor);
     while (mask.w > rad) {
 	if (c.a < 225) {
-	    c.a += 10;
+	    c.a += 5;
 	}
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(c));
 	geom_fill_rounded_rect(main_win->rend, &mask, rad);

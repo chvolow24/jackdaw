@@ -178,7 +178,7 @@ static void create_track_selection_area(Page *page, Track *track)
     p.textbox_p.win = main_win;
     p.textbox_p.text_size = 16;
     p.textbox_p.set_str = track->name;
-    PageEl *el = page_add_el(page, EL_TEXTBOX, p, "track_name");
+    PageEl *el = page_add_el(page, EL_TEXTBOX, p, "track_settings_name_tb", "track_name");
     Textbox *tb = el->component;
     textbox_set_align(tb, CENTER_LEFT);
     textbox_size_to_fit_h(tb, 5);
@@ -192,11 +192,11 @@ static void create_track_selection_area(Page *page, Track *track)
     p.button_p.background_color = &color_global_light_grey;
     p.button_p.text_color = &color_global_black;
     p.button_p.action = previous_track;
-    el = page_add_el(page, EL_BUTTON, p, "track_previous");
+    el = page_add_el(page, EL_BUTTON, p, "track_settings_prev_track", "track_previous");
 
     p.button_p.set_str = "n↓";
     p.button_p.action = next_track;
-    el = page_add_el(page, EL_BUTTON, p, "track_next");
+    el = page_add_el(page, EL_BUTTON, p, "track_settings_next_track", "track_next");
 }
 
 void settings_track_tabview_set_track(TabView *tv, Track *track)
@@ -245,7 +245,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     p.textbox_p.text_size = LABEL_STD_FONT_SIZE;
     p.textbox_p.set_str = "Bandwidth:";
     p.textbox_p.win = page->win;
-    PageEl *el = page_add_el(page, EL_TEXTBOX, p, "bandwidth_label");
+    PageEl *el = page_add_el(page, EL_TEXTBOX, p, "track_settings_filter_bandwidth_label", "bandwidth_label");
 
     Textbox *tb = el->component;
     textbox_set_align(tb, CENTER_LEFT);
@@ -253,20 +253,20 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 
     p.textbox_p.set_str = "Cutoff / center frequency:";
     p.textbox_p.win = main_win;
-    el = page_add_el(page, EL_TEXTBOX, p, "cutoff_label");
+    el = page_add_el(page, EL_TEXTBOX, p, "track_settings_filter_cutoff_label",  "cutoff_label");
     tb = el->component;
     textbox_set_align(tb, CENTER_LEFT);
     textbox_reset_full(tb);
     
     p.textbox_p.set_str = "Impulse response length (\"sharpness\")";
-    el = page_add_el(page, EL_TEXTBOX, p, "irlen_label");
+    el = page_add_el(page, EL_TEXTBOX, p, "track_settings_filter_irlen_label", "irlen_label");
     tb=el->component;
     textbox_set_trunc(tb, false);
     textbox_set_align(tb, CENTER_LEFT);
     textbox_reset_full(tb);
 
     p.textbox_p.set_str = "Enable FIR filter";
-    el = page_add_el(page, EL_TEXTBOX, p, "toggle_label");
+    el = page_add_el(page, EL_TEXTBOX, p, "track_settings_filter_toggle_label", "toggle_label");
     tb=el->component;
     textbox_set_trunc(tb, false);
     textbox_set_align(tb, CENTER_LEFT);
@@ -275,7 +275,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     p.toggle_p.value = &track->fir_filter_active;
     p.toggle_p.target = NULL;
     p.toggle_p.action = NULL;
-    page_add_el(page, EL_TOGGLE, p, "toggle_filter_on");
+    page_add_el(page, EL_TOGGLE, p, "track_settings_filter_toggle", "toggle_filter_on");
 
     
     static double freq_unscaled;
@@ -287,7 +287,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     p.slider_p.val_type = JDAW_DOUBLE;
     p.slider_p.action = slider_cutoff_target_action;
     p.slider_p.target = (void *)(f);
-    el = page_add_el(page, EL_SLIDER, p, "cutoff_slider");
+    el = page_add_el(page, EL_SLIDER, p, "track_settings_filter_cutoff_slider", "cutoff_slider");
 
 
     static double bandwidth_unscaled;
@@ -295,7 +295,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     p.slider_p.action = slider_bandwidth_target_action;
     p.slider_p.target = (void *)(f);
     p.slider_p.value = &bandwidth_unscaled;
-    el = page_add_el(page, EL_SLIDER, p, "bandwidth_slider");
+    el = page_add_el(page, EL_SLIDER, p, "track_settings_filter_bandwidth_slider", "bandwidth_slider");
 
     static int ir_len = 20;
     if (track->fir_filter_active) ir_len = f->impulse_response_len;
@@ -305,7 +305,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     p.slider_p.value = &ir_len;
     p.slider_p.val_type = JDAW_INT;
     p.slider_p.create_label_fn = slider_std_labelmaker;
-    el = page_add_el(page, EL_SLIDER, p, "irlen_slider");
+    el = page_add_el(page, EL_SLIDER, p, "track_settings_filter_irlen_slider",  "irlen_slider");
 
     
     Slider *sl = (Slider *)el->component;
@@ -341,7 +341,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     p.radio_p.num_items = 4;
     p.radio_p.target = f;
     
-    el = page_add_el(page, EL_RADIO, p, "filter_type");
+    el = page_add_el(page, EL_RADIO, p, "track_settings_filter_type_radio", "filter_type");
     RadioButton *radio = el->component;
     radio->selected_item = (uint8_t)f->type;
 
@@ -363,7 +363,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     p.freqplot_p.num_items = f->frequency_response_len / 2;
     p.freqplot_p.num_arrays = 3;
     /* p.freqplot_p. */
-    el = page_add_el(page, EL_FREQ_PLOT, p, "freq_plot");
+    el = page_add_el(page, EL_FREQ_PLOT, p, "track_settings_filter_freq_plot", "freq_plot");
 
 
     /* TODO:
@@ -389,31 +389,31 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     p.toggle_p.value = &track->delay_line_active;
     p.toggle_p.action = toggle_delay_line_target_action;
     p.toggle_p.target = (void *)(&track->delay_line);
-    el = page_add_el(page, EL_TOGGLE, p, "toggle_delay");
+    el = page_add_el(page, EL_TOGGLE, p, "track_settings_delay_toggle", "toggle_delay");
 
     p.textbox_p.set_str = "Delay line on";
     p.textbox_p.font = main_win->mono_bold_font;
     p.textbox_p.text_size = LABEL_STD_FONT_SIZE;
     p.textbox_p.win = main_win;
-    tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "toggle_label")->component);
+    tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "track_settings_delay_toggle_label", "toggle_label")->component);
     textbox_set_background_color(tb, NULL);
     textbox_set_align(tb, CENTER_LEFT);
     textbox_reset_full(tb);
 
     p.textbox_p.set_str = "Delay time (ms)";
-    tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "del_time_label")->component);
+    tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "track_settings_delay_time_label", "del_time_label")->component);
     textbox_set_background_color(tb, NULL);
     textbox_set_align(tb, CENTER_LEFT);
     textbox_reset_full(tb);
     
     p.textbox_p.set_str = "Delay amplitude";
-    tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "del_amp_label")->component);
+    tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "track_settings_delay_amp_label", "del_amp_label")->component);
     textbox_set_background_color(tb, NULL);
     textbox_set_align(tb, CENTER_LEFT);
     textbox_reset_full(tb);
 
     p.textbox_p.set_str = "Stereo offset";
-    tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "stereo_offset_label")->component);
+    tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "track_settings_delay_stereo_offset", "stereo_offset_label")->component);
     textbox_set_background_color(tb, NULL);
     textbox_set_align(tb, CENTER_LEFT);
     textbox_reset_full(tb);
@@ -430,7 +430,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     p.slider_p.action = slider_deltime_target_action;
     p.slider_p.target = (void *)(&track->delay_line);
     p.slider_p.create_label_fn = create_msec_label;
-    el = page_add_el(page, EL_SLIDER, p, "del_time_slider");
+    el = page_add_el(page, EL_SLIDER, p, "track_settings_delay_time_slider", "del_time_slider");
     min.int32_v = 1;
     max.int32_v = 1000;
     slider_set_range((Slider *)el->component, min, max);
@@ -441,7 +441,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     p.slider_p.create_label_fn = slider_std_labelmaker;
     p.slider_p.action = NULL;
     p.slider_p.target = NULL;
-    el = page_add_el(page, EL_SLIDER, p, "del_amp_slider");
+    el = page_add_el(page, EL_SLIDER, p, "track_settings_delay_amp_slider", "del_amp_slider");
 
     static double offset;
     offset = (double)abs(track->delay_line.stereo_offset) / track->delay_line.len;
@@ -449,7 +449,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     p.slider_p.val_type = JDAW_DOUBLE;
     p.slider_p.action = delay_set_offset;
     p.slider_p.target = &track->delay_line;
-    el = page_add_el(page, EL_SLIDER, p, "stereo_offset_slider");
+    el = page_add_el(page, EL_SLIDER, p, "track_settings_delay_stereo_offset_slider", "stereo_offset_slider");
     slider_reset(el->component);
 
     /* p.waveform_p.len = track->delay_line.len; */

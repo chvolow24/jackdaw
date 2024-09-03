@@ -63,6 +63,7 @@ typedef enum page_el_type {
 } PageElType;
 
 typedef struct page_element {
+    const char *id;
     PageElType type;
     void *component;
     Layout *layout;
@@ -225,6 +226,7 @@ PageEl *page_add_el(
     Page *page,
     PageElType type,
     PageElParams params,
+    const char *id,
     const char *layout_name);
 
 /* Add an element with custom logic to create its layout from a specified parent */
@@ -232,6 +234,7 @@ PageEl *page_add_el_custom_layout(
     Page *page,
     PageElType type,
     PageElParams params,
+    const char *id,
     Layout *parent,
     const char *new_layout_name,
     Layout *(*create_layout_fn)(Layout *parent));
@@ -258,5 +261,7 @@ void page_previous(Page *page);
 void page_right(Page *page);
 void page_left(Page *page);
 void page_enter(Page *page);
+
+PageEl *page_get_el_by_id(Page *page, const char *id);
 
 #endif

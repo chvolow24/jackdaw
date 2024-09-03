@@ -535,8 +535,10 @@ void user_tl_play(void *nullarg)
 	proj->play_speed *= 2.0f;
 	status_stat_playspeed();
     }
+    /* PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_play"); */
+    /* Button *btn = (Button *)el->component; */
     /* button_press_color_change( */
-    /* 	proj->quickref.play, */
+    /* 	btn, */
     /* 	&color_global_quickref_button_pressed, */
     /* 	&color_global_quickref_button_blue, */
     /* 	quickref_button_press_callback, */
@@ -549,12 +551,14 @@ void user_tl_pause(void *nullarg)
     Timeline *tl = proj->timelines[proj->active_tl_index];
     proj->play_speed = 0;
     transport_stop_playback();
-    /* button_press_color_change( */
-    /* 	proj->quickref.pause, */
-    /* 	&color_global_quickref_button_pressed, */
-    /* 	&color_global_quickref_button_blue, */
-    /* 	quickref_button_press_callback, */
-    /* 	NULL); */
+    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_pause");
+    Button *btn = (Button *)el->component;
+    button_press_color_change(
+	btn,
+	&color_global_quickref_button_pressed,
+	&color_global_quickref_button_blue,
+	quickref_button_press_callback,
+	NULL);
 
     tl->needs_redraw = true;
     if (proj->dragging && tl->num_grabbed_clips > 0) {
@@ -576,12 +580,14 @@ void user_tl_rewind(void *nullarg)
 	proj->play_speed *= 2.0f;
 	status_stat_playspeed();
     }
-    /* button_press_color_change( */
-    /* 	proj->quickref.rewind, */
-    /* 	&color_global_quickref_button_pressed, */
-    /* 	&color_global_quickref_button_blue, */
-    /* 	quickref_button_press_callback, */
-    /* 	NULL); */
+    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_rewind");
+    Button *btn = (Button *)el->component;
+    button_press_color_change(
+	btn,
+	&color_global_quickref_button_pressed,
+	&color_global_quickref_button_blue,
+	quickref_button_press_callback,
+	NULL);
 }
 
 void user_tl_play_slow(void *nullarg)
@@ -645,45 +651,54 @@ void user_tl_one_sample_right(void *nullarg)
 void user_tl_move_right(void *nullarg)
 {
     timeline_scroll_horiz(TL_DEFAULT_XSCROLL);
-    /* button_press_color_change( */
-    /* 	proj->quickref.right, */
-    /* 	&color_global_quickref_button_pressed, */
-    /* 	&color_global_quickref_button_blue, */
-    /* 	quickref_button_press_callback, */
-    /* 	NULL); */
+    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_right");
+    Button *btn = (Button *)el->component;
+    button_press_color_change(
+	btn,
+	&color_global_quickref_button_pressed,
+	&color_global_quickref_button_blue,
+	quickref_button_press_callback,
+	NULL);
 }
 
 void user_tl_move_left(void *nullarg)
 {
     timeline_scroll_horiz(TL_DEFAULT_XSCROLL * -1);
-    /* button_press_color_change( */
-    /* 	proj->quickref.left, */
-    /* 	&color_global_quickref_button_pressed, */
-    /* 	&color_global_quickref_button_blue, */
-    /* 	quickref_button_press_callback, */
-    /* 	NULL); */
+    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_left");
+    Button *btn = (Button *)el->component;
+    button_press_color_change(
+	btn,
+	&color_global_quickref_button_pressed,
+	&color_global_quickref_button_blue,
+	quickref_button_press_callback,
+	NULL);
 }
 
 void user_tl_zoom_in(void *nullarg)
 {
     timeline_rescale(1.2, false);
-    /* button_press_color_change( */
-    /* 	proj->quickref.zoom_in, */
-    /* 	&color_global_quickref_button_pressed, */
-    /* 	&color_global_quickref_button_blue, */
-    /* 	quickref_button_press_callback, */
-    /* 	NULL); */
+    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_zoom_in");
+    Button *btn = (Button *)el->component;
+    button_press_color_change(
+	btn,
+	&color_global_quickref_button_pressed,
+	&color_global_quickref_button_blue,
+	quickref_button_press_callback,
+	NULL);
 }
 
 void user_tl_zoom_out(void *nullarg)
 {
     timeline_rescale(0.8, false);
-    /* button_press_color_change( */
-    /* 	proj->quickref.zoom_out, */
-    /* 	&color_global_quickref_button_pressed, */
-    /* 	&color_global_quickref_button_blue, */
-    /* 	quickref_button_press_callback, */
-    /* 	NULL); */
+
+    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_zoom_out");
+    Button *btn = (Button *)el->component;
+    button_press_color_change(
+	btn,
+	&color_global_quickref_button_pressed,
+	&color_global_quickref_button_blue,
+	quickref_button_press_callback,
+	NULL);
 }
 
 static NEW_EVENT_FN(undo_redo_set_mark, "undo/redo set mark")
@@ -755,27 +770,28 @@ void user_tl_goto_zero(void *nullarg)
     timeline_reset(tl);
 }
 
-static void select_out_onclick(void *arg)
-{
-    /* struct select_dev_onclick_arg *carg = (struct select_dev_onclick_arg *)arg; */
-    /* Track *track = carg->track; */
-    /* AudioConn *dev = carg->new_in; */
-    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
-    int index = *((int *)arg);
-    audioconn_close(proj->playback_conn);
-    proj->playback_conn = proj->playback_conns[index];
-    if (audioconn_open(proj, proj->playback_conn) != 0) {
-	fprintf(stderr, "Error: failed to open default audio conn \"%s\". More info: %s\n", proj->playback_conn->name, SDL_GetError());
-	status_set_errstr("Error: failed to open default audio conn \"%s\"");
-    }
-    /* textbox_set_value_handle(proj->tb_out_value, proj->playback_conn->name); */
-    window_pop_menu(main_win);
-    Timeline *tl = proj->timelines[proj->active_tl_index];
-    tl->needs_redraw = true;
-    /* window_pop_mode(main_win); */
-}
+/* static void select_out_onclick(void *arg) */
+/* { */
+/*     /\* struct select_dev_onclick_arg *carg = (struct select_dev_onclick_arg *)arg; *\/ */
+/*     /\* Track *track = carg->track; *\/ */
+/*     /\* AudioConn *dev = carg->new_in; *\/ */
+/*     /\* Timeline *tl = proj->timelines[proj->active_tl_index]; *\/ */
+/*     int index = *((int *)arg); */
+/*     audioconn_close(proj->playback_conn); */
+/*     proj->playback_conn = proj->playback_conns[index]; */
+/*     if (audioconn_open(proj, proj->playback_conn) != 0) { */
+/* 	fprintf(stderr, "Error: failed to open default audio conn \"%s\". More info: %s\n", proj->playback_conn->name, SDL_GetError()); */
+/* 	status_set_errstr("Error: failed to open default audio conn \"%s\""); */
+/*     } */
+/*     /\* textbox_set_value_handle(proj->tb_out_value, proj->playback_conn->name); *\/ */
+/*     window_pop_menu(main_win); */
+/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
+/*     tl->needs_redraw = true; */
+/*     /\* window_pop_mode(main_win); *\/ */
+/* } */
 
 void user_tl_set_default_out(void *nullarg) {
+    project_set_default_out(proj);
     /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
     /* SDL_Rect *rect = &(proj->tb_out_value->layout->rect); */
     /* Menu *menu = menu_create_at_point(rect->x, rect->y); */
@@ -817,13 +833,17 @@ void user_tl_add_track(void *nullarg)
     }
     Timeline *tl = proj->timelines[proj->active_tl_index]; // TODO: get active timeline;
     Track *track = timeline_add_track(tl);
-    /* button_press_color_change( */
-    /* 	proj->quickref.add_track, */
-    /* 	&color_global_quickref_button_pressed, */
-    /* 	&color_global_quickref_button_blue, */
-    /* 	quickref_button_press_callback, */
-    /* 	NULL); */
+    
+    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_add_track");
+    Button *btn = (Button *)el->component;
+    button_press_color_change(
+	btn,
+	&color_global_quickref_button_pressed,
+	&color_global_quickref_button_blue,
+	quickref_button_press_callback,
+	NULL);
     tl->needs_redraw = true;
+
 
     Value nullval = {.int_v = 0};
     user_event_push(
@@ -983,12 +1003,14 @@ void user_tl_track_selector_up(void *nullarg)
 	    settings_track_tabview_set_track(tv, tl->tracks[tl->track_selector]);
 	}
     }
-    /* button_press_color_change( */
-    /* 	proj->quickref.previous, */
-    /* 	&color_global_quickref_button_pressed, */
-    /* 	&color_global_quickref_button_blue, */
-    /* 	quickref_button_press_callback, */
-    /* 	NULL); */
+    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_previous");
+    Button *btn = (Button *)el->component;
+    button_press_color_change(
+	btn,
+	&color_global_quickref_button_pressed,
+	&color_global_quickref_button_blue,
+	quickref_button_press_callback,
+	NULL);
     tl->needs_redraw = true;
     
 }
@@ -1037,12 +1059,14 @@ void user_tl_track_selector_down(void *nullarg)
 	    settings_track_tabview_set_track(tv, tl->tracks[tl->track_selector]);
 	}
     }
-    /* button_press_color_change( */
-    /* 	proj->quickref.next, */
-    /* 	&color_global_quickref_button_pressed, */
-    /* 	&color_global_quickref_button_blue, */
-    /* 	quickref_button_press_callback, */
-    /* 	NULL); */
+    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_next");
+    Button *btn = (Button *)el->component;
+    button_press_color_change(
+	btn,
+	&color_global_quickref_button_pressed,
+	&color_global_quickref_button_blue,
+	quickref_button_press_callback,
+	NULL);
     tl->needs_redraw = true;
 }
 

@@ -236,6 +236,16 @@ void panel_area_destroy(PanelArea *pa)
     free(pa);
 }
 
+PageEl *panel_area_get_el_by_id(PanelArea *pa, const char *id)
+{
+    PageEl *el = NULL;
+    for (uint8_t i=0; i<pa->num_pages; i++) {
+	Page *p = pa->pages[i];
+	el = page_get_el_by_id(p, id);
+	if (el) break;
+    }
+    return el;
+}
 
 /* WHEN panel selecting,
  - remove page layout from parent;

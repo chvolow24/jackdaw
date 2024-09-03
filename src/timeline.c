@@ -61,7 +61,8 @@ int timeline_get_draw_x(int32_t abs_x)
         return (int) round(precise);
     } else {
         fprintf(stderr, "Error: proj tl sfpp value 0\n");
-        return 0;
+	exit(0);
+        /* return 0; */
     }
 }
 
@@ -127,6 +128,7 @@ float timeline_first_second_tick_x(int *first_second)
 
 void timeline_rescale(double sfpp_scale_factor, bool on_mouse)
 {
+    if (sfpp_scale_factor == 1.0f) return;
     Timeline *tl = proj->timelines[proj->active_tl_index];
     int32_t center_abs_pos = 0;
     if (on_mouse) {
@@ -144,7 +146,9 @@ void timeline_rescale(double sfpp_scale_factor, bool on_mouse)
         return;
     }
     if ((int)new_sfpp == tl->sample_frames_per_pixel) {
-        tl->sample_frames_per_pixel += sfpp_scale_factor < 0 ? -1 : 1;
+	int old = tl->sample_frames_per_pixel;
+        tl->sample_frames_per_pixel += sfpp_scale_factor <= 1.0f ? 1 : -1;
+	if (tl->sample_frames_per_pixel < 1) tl->sample_frames_per_pixel = 1;
     } else {
         tl->sample_frames_per_pixel = new_sfpp;
     }

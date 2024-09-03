@@ -704,6 +704,7 @@ static inline void project_init_output_panel(Page *output, Project *proj)
 	output,
 	EL_TEXTBOX,
 	p,
+	"panel_out_label",
 	"default_out_label");
     /* textbox_set_align(proj->tb_out_label, CENTER_LEFT); */
     /* textbox_set_background_color(proj->tb_out_label, &color_global_clear); */
@@ -722,6 +723,7 @@ static inline void project_init_output_panel(Page *output, Project *proj)
 	output,
 	EL_BUTTON,
 	p,
+	"panel_out_value",
 	"default_out_value");
 
     void **output_L, **output_R;
@@ -737,6 +739,7 @@ static inline void project_init_output_panel(Page *output, Project *proj)
 	output,
 	EL_WAVEFORM,
 	p,
+	"panel_out_wav_left",
 	"out_waveform_left");
 
     p.waveform_p.channels = output_R;
@@ -744,6 +747,7 @@ static inline void project_init_output_panel(Page *output, Project *proj)
 	output,
 	EL_WAVEFORM,
 	p,
+	"panel_out_wav_right",
 	"out_waveform_right");
     
     
@@ -798,6 +802,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	quickref1,
 	EL_BUTTON,
 	p,
+	"panel_quickref_add_track",
 	row1,
 	"add_track",
 	create_quickref_button_lt);
@@ -809,6 +814,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	quickref1,
 	EL_BUTTON,
 	p,
+	"panel_quickref_record",
 	row1,
 	"record",
 	create_quickref_button_lt);
@@ -822,6 +828,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	quickref1,
 	EL_BUTTON,
 	p,
+	"panel_quickref_left",
 	row2,
 	"left",
 	create_quickref_button_lt);
@@ -835,6 +842,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	quickref1,
 	EL_BUTTON,
 	p,
+	"panel_quickref_rewind",
 	row2,
 	"rewind",
 	create_quickref_button_lt);
@@ -847,6 +855,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	quickref1,
 	EL_BUTTON,
 	p,
+	"panel_quickref_pause",
 	row2,
 	"pause",
 	create_quickref_button_lt);
@@ -860,6 +869,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	quickref1,
 	EL_BUTTON,
 	p,
+	"panel_quickref_play",
 	row2,
 	"play",
 	create_quickref_button_lt);
@@ -874,6 +884,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	quickref1,
 	EL_BUTTON,
 	p,
+	"panel_quickref_right",
 	row2,
 	"right",
 	create_quickref_button_lt);
@@ -890,6 +901,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	quickref1,
 	EL_BUTTON,
 	p,
+	"panel_quickref_next",
 	row3,
 	"next",
 	create_quickref_button_lt);
@@ -903,6 +915,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	quickref1,
 	EL_BUTTON,
 	p,
+	"panel_quickref_previous",
 	row3,
 	"previous",
 	create_quickref_button_lt);
@@ -917,6 +930,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	quickref1,
 	EL_BUTTON,
 	p,
+	"panel_quickref_zoom_out",
 	row3,
 	"zoom_out",
 	create_quickref_button_lt);
@@ -929,6 +943,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	quickref1,
 	EL_BUTTON,
 	p,
+	"panel_quickref_zoom_in",
 	row3,
 	"zoom_in",
 	create_quickref_button_lt);
@@ -968,6 +983,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	quickref2,
 	EL_BUTTON,
 	p,
+	"panel_quickref_open_file",
 	row1,
 	"open_file",
 	create_quickref_button_lt);
@@ -978,6 +994,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	quickref2,
 	EL_BUTTON,
 	p,
+	"panel_quickref_save_file",
 	row1,
 	"save",
 	create_quickref_button_lt);
@@ -990,6 +1007,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	quickref2,
 	EL_BUTTON,
 	p,
+	"panel_quickref_export_wav",
 	row2,
 	"export_wav",
 	create_quickref_button_lt);
@@ -1001,6 +1019,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	quickref2,
 	EL_BUTTON,
 	p,
+	"panel_quickref_track_settings",
 	row3,
 	"track_settings",
 	create_quickref_button_lt);
@@ -1102,6 +1121,7 @@ static inline void project_init_source_area(Page *source_area, Project *proj)
 	source_area,
 	EL_TEXTBOX,
 	p,
+	"panel_source_clip_name_tb",
 	"source_clip_name");
     Textbox *tb = (Textbox *)el->component;
     textbox_set_align(tb, CENTER_LEFT);
@@ -1115,6 +1135,7 @@ static inline void project_init_source_area(Page *source_area, Project *proj)
 	source_area,
 	EL_CANVAS,
 	p,
+	"panel_source_canvas",
 	"source_area");
     Layout *source_area_lt = el->layout;
     Layout *clip_lt = layout_get_child_by_name_recursive(source_area_lt, "source_clip");
@@ -2692,9 +2713,44 @@ void timeline_move_track(Timeline *tl, Track *track, int direction, bool from_un
     }
 }
 
+static void select_out_onclick(void *arg)
+{
+    int index = *((int *)arg);
+    audioconn_close(proj->playback_conn);
+    proj->playback_conn = proj->playback_conns[index];
+    if (audioconn_open(proj, proj->playback_conn) != 0) {
+	fprintf(stderr, "Error: failed to open default audio conn \"%s\". More info: %s\n", proj->playback_conn->name, SDL_GetError());
+	status_set_errstr("Error: failed to open default audio conn \"%s\"");
+    }
+    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_out_value");
+    textbox_set_value_handle(((Button *)el->component)->tb, proj->playback_conn->name);
+    window_pop_menu(main_win);
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    tl->needs_redraw = true;
+    /* window_pop_mode(main_win); */
+}
 void project_set_default_out(void *nullarg)
 {
-    
+    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_out_value");
+    SDL_Rect *rect = &((Button *)el->component)->tb->layout->rect;
+    Menu *menu = menu_create_at_point(rect->x, rect->y);
+    MenuColumn *c = menu_column_add(menu, "");
+    MenuSection *sc = menu_section_add(c, "");
+    for (int i=0; i<proj->num_playback_conns; i++) {
+	AudioConn *conn = proj->playback_conns[i];
+	/* fprintf(stdout, "Conn index: %d\n", conn->index); */
+	if (conn->available) {
+	    menu_item_add(
+		sc,
+		conn->name,
+		" ",
+		select_out_onclick,
+		&(conn->index));
+	}
+    }
+    menu_add_header(menu,"", "Select the default audio output.\n\n'n' to select next item; 'p' to select previous item.");
+    /* menu_reset_layout(menu); */
+    window_add_menu(main_win, menu);
 }
 
 void project_set_chunk_size(uint16_t new_chunk_size)

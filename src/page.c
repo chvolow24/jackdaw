@@ -367,9 +367,11 @@ PageEl *page_add_el(
     Page *page,
     PageElType type,
     PageElParams params,
+    const char *id,
     const char *layout_name)
 {
     PageEl *el = calloc(1, sizeof(PageEl));
+    el->id = id;
     el->type = type;
     if (layout_name) {
 	el->layout = layout_get_child_by_name_recursive(page->layout, layout_name);
@@ -394,7 +396,8 @@ PageEl *page_add_el_custom_layout(
     Page *page,
     PageElType type,
     PageElParams params,
-    Layout *parent,
+    const char *id,
+    Layout *parent,    
     const char *new_layout_name,
     Layout *(*create_layout_fn)(Layout *parent))
 {
@@ -404,6 +407,7 @@ PageEl *page_add_el_custom_layout(
 	page,
 	type,
 	params,
+	id,
 	new_layout_name);
 }
 
@@ -777,5 +781,16 @@ void page_left(Page *page)
     default:
 	break;
     }
+}
+
+PageEl *page_get_el_by_id(Page *page, const char *id)
+{
+    PageEl *el = NULL;
+    for (uint8_t i=0; i<page->num_elements; i++) {
+	el = page->elements[i];
+	if (strcmp(el->id, id) == 0) break;
+	else if (i == page->num_elements - 1) el = NULL;
+    }
+    return el;
 }
     

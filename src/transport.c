@@ -81,7 +81,6 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
 	double est_latency_mult = 60.0f;
 	double record_latency_ms = (double)1000.0f * 64.0 / proj->sample_rate;
 	double playback_latency_ms = est_latency_mult * record_latency_ms;
-	fprintf(stdout, "Playback latency ms: %f\n", playback_latency_ms);
 
 	struct realtime_tick pb_cb_tick = proj->playback_conn->callback_time;
 	double elapsed_pb_chunk_ms = TIMESPEC_DIFF_MS(now, pb_cb_tick.ts) - playback_latency_ms;
@@ -323,8 +322,9 @@ void transport_start_playback()
     sem_wait(tl->unpause_sem);
     audioconn_start_playback(proj->playback_conn);
 
-    /* Textbox *play_button = proj->quickref.play->tb; */
-    /* textbox_set_background_color(play_button, &color_global_play_green); */
+    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_play");
+    Textbox *play_button = ((Button *)el->component)->tb;
+    textbox_set_background_color(play_button, &color_global_play_green);
 }
 
 void transport_stop_playback()
@@ -351,8 +351,10 @@ void transport_stop_playback()
     /* fprintf(stdout, "Cancelled!\n"); */
     proj->src_play_speed = 0.0f;
     proj->play_speed = 0.0f;
-    /* Textbox *play_button = proj->quickref.play->tb; */
-    /* textbox_set_background_color(play_button, &color_global_quickref_button_blue); */
+    
+    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_play");
+    Textbox *play_button = ((Button *)el->component)->tb;
+    textbox_set_background_color(play_button, &color_global_quickref_button_blue);
 
 }
 
@@ -449,8 +451,9 @@ void transport_start_recording()
     proj->recording = true;
 
 
-    /* Textbox *record_button = proj->quickref.record->tb; */
-    /* textbox_set_background_color(record_button, &color_global_red); */
+    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_record");
+    Textbox *record_button = ((Button *)el->component)->tb;
+    textbox_set_background_color(record_button, &color_global_red);
     /* pd_jackdaw_record_get_block(); */
 
 }
@@ -585,9 +588,9 @@ void transport_stop_recording()
     while (num_conns_to_close > 0) {
 	audioconn_close(conns_to_close[--num_conns_to_close]);
     }
-
-    /* Textbox *record_button = proj->quickref.record->tb; */
-    /* textbox_set_background_color(record_button, &color_global_quickref_button_blue ); */
+    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_record");
+    Textbox *record_button = ((Button *)el->component)->tb;
+    textbox_set_background_color(record_button, &color_global_quickref_button_blue );
 }
 
 void transport_set_mark(Timeline *tl, bool in)

@@ -43,4 +43,6 @@ bool panel_area_mouse_motion(PanelArea *pa);
 
 void panel_area_destroy(PanelArea *pa);
 
+PageEl *panel_area_get_el_by_id(PanelArea *pa, const char *id);
+
 #endif

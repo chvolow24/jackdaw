@@ -455,5 +455,7 @@ void timeline_move_track(Timeline *tl, Track *track, int direction, bool from_un
 
 void project_destroy(Project *proj);
 
+void project_set_default_out(void *nullarg);
+
 
 #endif

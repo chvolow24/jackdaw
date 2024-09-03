@@ -10,6 +10,7 @@ typedef struct panel_area PanelArea;
 typedef struct panel {
     PanelArea *area;
     Layout *layout;
+    Layout *content_layout;
     uint8_t current_page;
     Textbox *selector;
 } Panel;
@@ -34,10 +35,12 @@ Page *panel_area_add_page(
     SDL_Color *text_color,
     Window *win);
 Page *panel_select_page(PanelArea *pa, uint8_t panel, uint8_t new_selection);
-bool panel_triage_click(Panel *panel);
-void panel_destroy(Panel *panel);
+
 void panel_area_draw(PanelArea *panel);
-bool panel_triage_click(Panel *panel);
-bool panel_triage_motion(Panel *panel);
+
+bool panel_area_mouse_click(PanelArea *pa);
+bool panel_area_mouse_motion(PanelArea *pa);
+
+void panel_area_destroy(PanelArea *pa);
 
 #endif

@@ -216,5 +216,6 @@ Canvas *canvas_create(
     void *draw_arg2
     );
 void canvas_draw(Canvas *canvas);
+void canvas_destroy(Canvas *canvas);
 
 #endif

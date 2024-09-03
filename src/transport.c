@@ -323,8 +323,8 @@ void transport_start_playback()
     sem_wait(tl->unpause_sem);
     audioconn_start_playback(proj->playback_conn);
 
-    Textbox *play_button = proj->quickref.play->tb;
-    textbox_set_background_color(play_button, &color_global_play_green);
+    /* Textbox *play_button = proj->quickref.play->tb; */
+    /* textbox_set_background_color(play_button, &color_global_play_green); */
 }
 
 void transport_stop_playback()
@@ -351,8 +351,8 @@ void transport_stop_playback()
     /* fprintf(stdout, "Cancelled!\n"); */
     proj->src_play_speed = 0.0f;
     proj->play_speed = 0.0f;
-    Textbox *play_button = proj->quickref.play->tb;
-    textbox_set_background_color(play_button, &color_global_quickref_button_blue);
+    /* Textbox *play_button = proj->quickref.play->tb; */
+    /* textbox_set_background_color(play_button, &color_global_quickref_button_blue); */
 
 }
 
@@ -449,8 +449,8 @@ void transport_start_recording()
     proj->recording = true;
 
 
-    Textbox *record_button = proj->quickref.record->tb;
-    textbox_set_background_color(record_button, &color_global_red);
+    /* Textbox *record_button = proj->quickref.record->tb; */
+    /* textbox_set_background_color(record_button, &color_global_red); */
     /* pd_jackdaw_record_get_block(); */
 
 }
@@ -586,8 +586,8 @@ void transport_stop_recording()
 	audioconn_close(conns_to_close[--num_conns_to_close]);
     }
 
-    Textbox *record_button = proj->quickref.record->tb;
-    textbox_set_background_color(record_button, &color_global_quickref_button_blue );
+    /* Textbox *record_button = proj->quickref.record->tb; */
+    /* textbox_set_background_color(record_button, &color_global_quickref_button_blue ); */
 }
 
 void transport_set_mark(Timeline *tl, bool in)

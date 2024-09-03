@@ -504,7 +504,7 @@ void audioconn_handle_connection_event(int index_or_id, int iscapture, int event
 	    } else {
 		if (proj->playback_conn == removed_conn) {
 		    proj->playback_conn = replacement;
-		    textbox_set_value_handle(proj->tb_out_value, replacement->name);
+		    /* textbox_set_value_handle(proj->tb_out_value, replacement->name); */
 		    if (audioconn_open(proj, proj->playback_conn) != 0) {
 			fprintf(stderr, "Error: failed to open default audio conn \"%s\". More info: %s\n", proj->playback_conn->name, SDL_GetError());
 		    }

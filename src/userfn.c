@@ -549,12 +549,12 @@ void user_tl_pause(void *nullarg)
     Timeline *tl = proj->timelines[proj->active_tl_index];
     proj->play_speed = 0;
     transport_stop_playback();
-    button_press_color_change(
-	proj->quickref.pause,
-	&color_global_quickref_button_pressed,
-	&color_global_quickref_button_blue,
-	quickref_button_press_callback,
-	NULL);
+    /* button_press_color_change( */
+    /* 	proj->quickref.pause, */
+    /* 	&color_global_quickref_button_pressed, */
+    /* 	&color_global_quickref_button_blue, */
+    /* 	quickref_button_press_callback, */
+    /* 	NULL); */
 
     tl->needs_redraw = true;
     if (proj->dragging && tl->num_grabbed_clips > 0) {
@@ -576,12 +576,12 @@ void user_tl_rewind(void *nullarg)
 	proj->play_speed *= 2.0f;
 	status_stat_playspeed();
     }
-    button_press_color_change(
-	proj->quickref.rewind,
-	&color_global_quickref_button_pressed,
-	&color_global_quickref_button_blue,
-	quickref_button_press_callback,
-	NULL);
+    /* button_press_color_change( */
+    /* 	proj->quickref.rewind, */
+    /* 	&color_global_quickref_button_pressed, */
+    /* 	&color_global_quickref_button_blue, */
+    /* 	quickref_button_press_callback, */
+    /* 	NULL); */
 }
 
 void user_tl_play_slow(void *nullarg)
@@ -645,45 +645,45 @@ void user_tl_one_sample_right(void *nullarg)
 void user_tl_move_right(void *nullarg)
 {
     timeline_scroll_horiz(TL_DEFAULT_XSCROLL);
-    button_press_color_change(
-	proj->quickref.right,
-	&color_global_quickref_button_pressed,
-	&color_global_quickref_button_blue,
-	quickref_button_press_callback,
-	NULL);
+    /* button_press_color_change( */
+    /* 	proj->quickref.right, */
+    /* 	&color_global_quickref_button_pressed, */
+    /* 	&color_global_quickref_button_blue, */
+    /* 	quickref_button_press_callback, */
+    /* 	NULL); */
 }
 
 void user_tl_move_left(void *nullarg)
 {
     timeline_scroll_horiz(TL_DEFAULT_XSCROLL * -1);
-    button_press_color_change(
-	proj->quickref.left,
-	&color_global_quickref_button_pressed,
-	&color_global_quickref_button_blue,
-	quickref_button_press_callback,
-	NULL);
+    /* button_press_color_change( */
+    /* 	proj->quickref.left, */
+    /* 	&color_global_quickref_button_pressed, */
+    /* 	&color_global_quickref_button_blue, */
+    /* 	quickref_button_press_callback, */
+    /* 	NULL); */
 }
 
 void user_tl_zoom_in(void *nullarg)
 {
     timeline_rescale(1.2, false);
-    button_press_color_change(
-	proj->quickref.zoom_in,
-	&color_global_quickref_button_pressed,
-	&color_global_quickref_button_blue,
-	quickref_button_press_callback,
-	NULL);
+    /* button_press_color_change( */
+    /* 	proj->quickref.zoom_in, */
+    /* 	&color_global_quickref_button_pressed, */
+    /* 	&color_global_quickref_button_blue, */
+    /* 	quickref_button_press_callback, */
+    /* 	NULL); */
 }
 
 void user_tl_zoom_out(void *nullarg)
 {
     timeline_rescale(0.8, false);
-    button_press_color_change(
-	proj->quickref.zoom_out,
-	&color_global_quickref_button_pressed,
-	&color_global_quickref_button_blue,
-	quickref_button_press_callback,
-	NULL);
+    /* button_press_color_change( */
+    /* 	proj->quickref.zoom_out, */
+    /* 	&color_global_quickref_button_pressed, */
+    /* 	&color_global_quickref_button_blue, */
+    /* 	quickref_button_press_callback, */
+    /* 	NULL); */
 }
 
 static NEW_EVENT_FN(undo_redo_set_mark, "undo/redo set mark")
@@ -768,7 +768,7 @@ static void select_out_onclick(void *arg)
 	fprintf(stderr, "Error: failed to open default audio conn \"%s\". More info: %s\n", proj->playback_conn->name, SDL_GetError());
 	status_set_errstr("Error: failed to open default audio conn \"%s\"");
     }
-    textbox_set_value_handle(proj->tb_out_value, proj->playback_conn->name);
+    /* textbox_set_value_handle(proj->tb_out_value, proj->playback_conn->name); */
     window_pop_menu(main_win);
     Timeline *tl = proj->timelines[proj->active_tl_index];
     tl->needs_redraw = true;
@@ -777,25 +777,25 @@ static void select_out_onclick(void *arg)
 
 void user_tl_set_default_out(void *nullarg) {
     /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
-    SDL_Rect *rect = &(proj->tb_out_value->layout->rect);
-    Menu *menu = menu_create_at_point(rect->x, rect->y);
-    MenuColumn *c = menu_column_add(menu, "");
-    MenuSection *sc = menu_section_add(c, "");
-    for (int i=0; i<proj->num_playback_conns; i++) {
-	AudioConn *conn = proj->playback_conns[i];
-	/* fprintf(stdout, "Conn index: %d\n", conn->index); */
-	if (conn->available) {
-	    menu_item_add(
-		sc,
-		conn->name,
-		" ",
-		select_out_onclick,
-		&(conn->index));
-	}
-    }
-    menu_add_header(menu,"", "Select the default audio output.\n\n'n' to select next item; 'p' to select previous item.");
-    /* menu_reset_layout(menu); */
-    window_add_menu(main_win, menu);
+    /* SDL_Rect *rect = &(proj->tb_out_value->layout->rect); */
+    /* Menu *menu = menu_create_at_point(rect->x, rect->y); */
+    /* MenuColumn *c = menu_column_add(menu, ""); */
+    /* MenuSection *sc = menu_section_add(c, ""); */
+    /* for (int i=0; i<proj->num_playback_conns; i++) { */
+    /* 	AudioConn *conn = proj->playback_conns[i]; */
+    /* 	/\* fprintf(stdout, "Conn index: %d\n", conn->index); *\/ */
+    /* 	if (conn->available) { */
+    /* 	    menu_item_add( */
+    /* 		sc, */
+    /* 		conn->name, */
+    /* 		" ", */
+    /* 		select_out_onclick, */
+    /* 		&(conn->index)); */
+    /* 	} */
+    /* } */
+    /* menu_add_header(menu,"", "Select the default audio output.\n\n'n' to select next item; 'p' to select previous item."); */
+    /* /\* menu_reset_layout(menu); *\/ */
+    /* window_add_menu(main_win, menu); */
     /* window_push_mode(main_win, MENU_NAV); */
 }
 
@@ -817,12 +817,12 @@ void user_tl_add_track(void *nullarg)
     }
     Timeline *tl = proj->timelines[proj->active_tl_index]; // TODO: get active timeline;
     Track *track = timeline_add_track(tl);
-    button_press_color_change(
-	proj->quickref.add_track,
-	&color_global_quickref_button_pressed,
-	&color_global_quickref_button_blue,
-	quickref_button_press_callback,
-	NULL);
+    /* button_press_color_change( */
+    /* 	proj->quickref.add_track, */
+    /* 	&color_global_quickref_button_pressed, */
+    /* 	&color_global_quickref_button_blue, */
+    /* 	quickref_button_press_callback, */
+    /* 	NULL); */
     tl->needs_redraw = true;
 
     Value nullval = {.int_v = 0};
@@ -983,12 +983,12 @@ void user_tl_track_selector_up(void *nullarg)
 	    settings_track_tabview_set_track(tv, tl->tracks[tl->track_selector]);
 	}
     }
-    button_press_color_change(
-	proj->quickref.previous,
-	&color_global_quickref_button_pressed,
-	&color_global_quickref_button_blue,
-	quickref_button_press_callback,
-	NULL);
+    /* button_press_color_change( */
+    /* 	proj->quickref.previous, */
+    /* 	&color_global_quickref_button_pressed, */
+    /* 	&color_global_quickref_button_blue, */
+    /* 	quickref_button_press_callback, */
+    /* 	NULL); */
     tl->needs_redraw = true;
     
 }
@@ -1037,12 +1037,12 @@ void user_tl_track_selector_down(void *nullarg)
 	    settings_track_tabview_set_track(tv, tl->tracks[tl->track_selector]);
 	}
     }
-    button_press_color_change(
-	proj->quickref.next,
-	&color_global_quickref_button_pressed,
-	&color_global_quickref_button_blue,
-	quickref_button_press_callback,
-	NULL);
+    /* button_press_color_change( */
+    /* 	proj->quickref.next, */
+    /* 	&color_global_quickref_button_pressed, */
+    /* 	&color_global_quickref_button_blue, */
+    /* 	quickref_button_press_callback, */
+    /* 	NULL); */
     tl->needs_redraw = true;
 }
 
@@ -1442,7 +1442,7 @@ void user_tl_load_clip_at_point_to_src(void *nullarg)
 	proj->src_play_pos_sframes = 0;
 	proj->src_out_sframes = cr->out_mark_sframes;
 	/* fprintf(stdout, "Src clip name? %s\n", proj->src_clip->name); */
-	txt_set_value_handle(proj->source_name_tb->text, proj->src_clip->name);
+	/* txt_set_value_handle(proj->source_name_tb->text, proj->src_clip->name); */
     }
     Timeline *tl = proj->timelines[proj->active_tl_index];
     tl->needs_redraw = true;
@@ -1465,16 +1465,16 @@ void user_tl_activate_source_mode(void *nullarg)
 
 }
 
-static int32_t get_drop_pos()
-{
-    double latency_est_ms = 44.0f;
-    struct timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
-    struct realtime_tick pb = proj->playback_conn->callback_time;
-    double elapsed_pb_chunk_ms = TIMESPEC_DIFF_MS(now, pb.ts);
-    int32_t tl_pos_now = pb.timeline_pos + (int32_t)((elapsed_pb_chunk_ms - latency_est_ms) * proj->sample_rate * proj->play_speed / 1000.0f);
-    return tl_pos_now;
-}
+/* static int32_t get_drop_pos() */
+/* { */
+/*     double latency_est_ms = 44.0f; */
+/*     struct timespec now; */
+/*     clock_gettime(CLOCK_MONOTONIC, &now); */
+/*     struct realtime_tick pb = proj->playback_conn->callback_time; */
+/*     double elapsed_pb_chunk_ms = TIMESPEC_DIFF_MS(now, pb.ts); */
+/*     int32_t tl_pos_now = pb.timeline_pos + (int32_t)((elapsed_pb_chunk_ms - latency_est_ms) * proj->sample_rate * proj->play_speed / 1000.0f); */
+/*     return tl_pos_now; */
+/* } */
 
 void user_tl_drop_from_source(void *nullarg)
 {
@@ -1483,7 +1483,8 @@ void user_tl_drop_from_source(void *nullarg)
     Track *track = tl->tracks[tl->track_selector];
     if (proj->src_clip) {
 	/* int32_t drop_pos = tl->play_pos_sframes - proj->play_speed * 2 * proj->chunk_size_sframes; */
-	int32_t drop_pos = get_drop_pos();
+	int32_t drop_pos = tl->play_pos_sframes;
+	/* int32_t drop_pos = get_drop_pos(); */
 	ClipRef *cr = track_create_clip_ref(track, proj->src_clip, drop_pos, false);
 	cr->in_mark_sframes = proj->src_in_sframes;
 	cr->out_mark_sframes = proj->src_out_sframes;
@@ -1514,7 +1515,8 @@ static void user_tl_drop_savedn_from_source(int n)
 	struct drop_save drop = proj->saved_drops[n];
 	if (!drop.clip) return;
 	/* int32_t drop_pos = tl->play_pos_sframes - proj->play_speed * 2 * proj->chunk_size_sframes; */
-	int32_t drop_pos = get_drop_pos();
+	int32_t drop_pos = tl->play_pos_sframes;
+	/* int32_t drop_pos = get_drop_pos(); */
 	ClipRef *cr = track_create_clip_ref(track, drop.clip, drop_pos, false);
 	cr->in_mark_sframes = drop.in;
 	cr->out_mark_sframes = drop.out;

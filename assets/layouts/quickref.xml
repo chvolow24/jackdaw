@@ -1,0 +1,37 @@
+
+<Layout name="quickref" type="NORMAL">
+  <x>REL 0</x>
+  <y>REL 0</y>
+  <w>REL 170</w>
+  <h>REL 93</h>
+  <index>0</index>
+  <children>
+    <Layout name="row1" type="NORMAL">
+      <x>REL 0</x>
+      <y>STACK 0</y>
+      <w>REL 200</w>
+      <h>SCALE 0.333333</h>
+      <index>0</index>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="row2" type="NORMAL">
+      <x>REL 0</x>
+      <y>STACK 0</y>
+      <w>REL 200</w>
+      <h>SCALE 0.333333</h>
+      <index>1</index>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="row3" type="NORMAL">
+      <x>REL 0</x>
+      <y>STACK 0</y>
+      <w>REL 200</w>
+      <h>SCALE 0.333333</h>
+      <index>2</index>
+      <children>
+      </children>
+    </Layout>
+  </children>
+</Layout>

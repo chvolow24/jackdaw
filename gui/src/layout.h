@@ -147,7 +147,7 @@ void layout_destroy_no_offset(Layout *lt);
 /* Add a new child with default name to layout */
 Layout *layout_add_child(Layout *parent);
 
-void layout_set_name(Layout *lt, char *new_name);
+void layout_set_name(Layout *lt, const char *new_name);
 
 /* Add a child with a complementary dimension. comp_rm should be one of W or H */
 Layout *layout_add_complementary_child(Layout *parent, RectMem comp_rm);

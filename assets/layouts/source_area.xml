@@ -1,0 +1,36 @@
+<Layout name="source_area_container" type="NORMAL">
+  <x>REL 0</x>
+  <y>REL 0</y>
+  <w>REL 300</w>
+  <h>SCALE 1.0</h>
+  <index>0</index>
+  <children>
+    <Layout name="source_area" type="NORMAL">
+      <x>REL 0</x>
+      <y>REL 0</y>
+      <w>SCALE 1.0</w>
+      <h>SCALE 1.0</h>
+      <index>0</index>
+      <children>
+	<Layout name="source_clip" type="NORMAL">
+	  <x>REL 15</x>
+	  <y>REL 40</y>
+	  <w>SCALE 0.922222</w>
+	  <h>REL 46</h>
+	  <index>0</index>
+	  <children>
+	  </children>
+	</Layout>
+	<Layout name="source_clip_name" type="NORMAL">
+	  <x>REL 15</x>
+	  <y>REL 7</y>
+	  <w>SCALE 0.922222</w>
+	  <h>REL 17</h>
+	  <index>1</index>
+	  <children>
+	  </children>
+	</Layout>
+      </children>
+    </Layout>
+  </children>
+</Layout>

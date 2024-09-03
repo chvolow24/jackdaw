@@ -12,111 +12,12 @@
             <h>REL 147</h>
             <index>0</index>
             <children>
-                <Layout name="quickref" type="NORMAL">
-                    <x>REL 250</x>
-                    <y>REL 33</y>
-                    <w>REL 170</w>
-                    <h>REL 93</h>
-                    <index>0</index>
-                    <children>
-                        <Layout name="row1" type="NORMAL">
-                            <x>REL 0</x>
-                            <y>STACK 0</y>
-                            <w>SCALE 1.000000</w>
-                            <h>SCALE 0.333333</h>
-                            <index>0</index>
-                            <children>
-                            </children>
-                        </Layout>
-                        <Layout name="row2" type="NORMAL">
-                            <x>REL 0</x>
-                            <y>STACK 0</y>
-                            <w>SCALE 1.000000</w>
-                            <h>SCALE 0.333333</h>
-                            <index>1</index>
-                            <children>
-                            </children>
-                        </Layout>
-                        <Layout name="row3" type="NORMAL">
-                            <x>REL 0</x>
-                            <y>STACK 0</y>
-                            <w>SCALE 1.000000</w>
-                            <h>SCALE 0.333333</h>
-                            <index>2</index>
-                            <children>
-                            </children>
-                        </Layout>
-                    </children>
-                </Layout>
-                <Layout name="quickrefcol2" type="NORMAL">
-                    <x>STACK 70</x>
-                    <y>REL 33</y>
-                    <w>REL 170</w>
-                    <h>REL 93</h>
-                    <index>1</index>
-                    <children>
-                        <Layout name="row1" type="NORMAL">
-                            <x>REL 0</x>
-                            <y>STACK 0</y>
-                            <w>SCALE 1.000000</w>
-                            <h>SCALE 0.333333</h>
-                            <index>0</index>
-                            <children>
-                            </children>
-                        </Layout>
-                        <Layout name="row2" type="NORMAL">
-                            <x>REL 0</x>
-                            <y>STACK 0</y>
-                            <w>SCALE 1.000000</w>
-                            <h>SCALE 0.333333</h>
-                            <index>1</index>
-                            <children>
-                            </children>
-                        </Layout>
-                        <Layout name="row3" type="NORMAL">
-                            <x>REL 0</x>
-                            <y>STACK 0</y>
-                            <w>SCALE 1.000000</w>
-                            <h>SCALE 0.333333</h>
-                            <index>2</index>
-                            <children>
-                            </children>
-                        </Layout>
-                    </children>
-                </Layout>
-                <Layout name="source_area" type="NORMAL">
-                    <x>REL 318</x>
-                    <y>REL 33</y>
-                    <w>SCALE 0.460833</w>
-                    <h>REL 93</h>
-                    <index>2</index>
-                    <children>
-                        <Layout name="source_clip" type="NORMAL">
-                            <x>REL 15</x>
-                            <y>REL 40</y>
-                            <w>SCALE 0.922222</w>
-                            <h>REL 46</h>
-                            <index>0</index>
-                            <children>
-                            </children>
-                        </Layout>
-                        <Layout name="source_clip_name" type="NORMAL">
-                            <x>REL 15</x>
-                            <y>REL 7</y>
-                            <w>SCALE 0.922222</w>
-                            <h>REL 17</h>
-                            <index>1</index>
-                            <children>
-                            </children>
-                        </Layout>
-                    </children>
-                </Layout>
                 <Layout name="timeline_label" type="NORMAL">
                     <x>REL 15</x>
                     <y>REL 126</y>
                     <w>REL 180</w>
                     <h>REL 21</h>
-                    <index>3</index>
+                    <index>0</index>
                     <children>
                     </children>
                 </Layout>
@@ -125,7 +26,7 @@
                     <y>REL 15</y>
                     <w>REL 30</w>
                     <h>REL 26</h>
-                    <index>4</index>
+                    <index>1</index>
                     <children>
                         <Layout name="hamburger_child1" type="NORMAL">
                             <x>REL 0</x>
@@ -181,6 +82,15 @@
                                 </Layout>
                             </children>
                         </Layout>
+                    </children>
+                </Layout>
+                <Layout name="panel_area" type="NORMAL">
+                    <x>REL 0</x>
+                    <y>REL 0</y>
+                    <w>SCALE 1.000000</w>
+                    <h>REL 147</h>
+                    <index>2</index>
+                    <children>
                     </children>
                 </Layout>
             </children>
@@ -257,57 +167,12 @@
                 </Layout>
             </children>
         </Layout>
-        <Layout name="default_out" type="NORMAL">
-            <x>REL 15</x>
-            <y>REL 35</y>
-            <w>REL 186</w>
-            <h>REL 20</h>
-            <index>2</index>
-            <children>
-                <Layout name="default_out_label" type="NORMAL">
-                    <x>REL 0</x>
-                    <y>REL 0</y>
-                    <w>REL 80</w>
-                    <h>SCALE 1.000000</h>
-                    <index>0</index>
-                    <children>
-                    </children>
-                </Layout>
-                <Layout name="default_out_value" type="NORMAL">
-                    <x>REL 80</x>
-                    <y>REL 0</y>
-                    <w>COMPLEMENT 0</w>
-                    <h>SCALE 1.000000</h>
-                    <index>1</index>
-                    <children>
-                    </children>
-                </Layout>
-            </children>
-        </Layout>
-        <Layout name="out_waveform_right" type="NORMAL">
-            <x>REL 111</x>
-            <y>REL 64</y>
-            <w>REL 90</w>
-            <h>REL 45</h>
-            <index>3</index>
-            <children>
-            </children>
-        </Layout>
-        <Layout name="out_waveform_left" type="NORMAL">
-            <x>REL 15</x>
-            <y>REL 64</y>
-            <w>REL 90</w>
-            <h>REL 45</h>
-            <index>4</index>
-            <children>
-            </children>
-        </Layout>
         <Layout name="status_bar" type="NORMAL">
             <x>REL 0</x>
             <y>REVREL 0</y>
             <w>SCALE 1.000000</w>
             <h>REL 28</h>
-            <index>5</index>
+            <index>2</index>
             <children>
             </children>
         </Layout>

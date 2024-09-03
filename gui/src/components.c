@@ -537,6 +537,7 @@ void waveform_draw(Waveform *w)
 {
     SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(w->background_color));
     SDL_RenderFillRect(main_win->rend, &w->layout->rect);
+    SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(w->plot_color));
     waveform_draw_all_channels_generic(w->channels, w->type, w->num_channels, w->len, &w->layout->rect);
 }
 
@@ -593,7 +594,8 @@ bool toggle_click(Toggle *toggle, Window *win)
 bool button_click(Button *button, Window *win)
 {
     if (SDL_PointInRect(&main_win->mousep, &button->tb->layout->rect)) {
-	button->action((void *)button, button->target);
+	if (button->action) 
+	    button->action((void *)button, button->target);
 	return true;
     }
     return false;
@@ -613,4 +615,9 @@ Canvas *canvas_create(Layout *lt, void (*draw_fn)(void *, void *), void *draw_ar
 void canvas_draw(Canvas *c)
 {
     c->draw_fn(c->draw_arg1, c->draw_arg2);
+}
+
+void canvas_destroy(Canvas *c)
+{
+    free(c);
 }

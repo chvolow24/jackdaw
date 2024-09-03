@@ -58,7 +58,8 @@ typedef enum page_el_type {
     EL_TOGGLE,
     EL_WAVEFORM,
     EL_FREQ_PLOT,
-    EL_BUTTON
+    EL_BUTTON,
+    EL_CANVAS
 } PageElType;
 
 typedef struct page_element {
@@ -73,7 +74,7 @@ typedef struct page {
     PageEl *selectable_els[MAX_ELEMENTS];
     uint8_t num_elements;
     uint8_t num_selectable;
-    uint8_t selected_i;
+    int selected_i;
     Layout *layout;
     SDL_Color *background_color;
     SDL_Color *text_color;
@@ -158,13 +159,18 @@ struct toggle_params {
 };
 
 struct waveform_params {
-    Layout *lt;
     void **channels;
     ValType type;
     uint8_t num_channels;
     uint32_t len;
     SDL_Color *background_color;
     SDL_Color *plot_color;
+};
+
+struct canvas_params {
+    void (*draw_fn)(void *arg1, void *arg2);
+    void *draw_arg1;
+    void *draw_arg2;
 };
 
 typedef union page_el_params {
@@ -177,6 +183,7 @@ typedef union page_el_params {
     struct toggle_params toggle_p;
     struct radio_params radio_p;
     struct waveform_params waveform_p;
+    struct canvas_params canvas_p;
 } PageElParams;
 
 
@@ -212,11 +219,22 @@ Page *page_create(
 
 void page_destroy(Page *page);
 void page_el_set_params(PageEl *el, PageElParams params, Page *page);
+
+/* Add an element at an already-existing named layout, which must be a child of page layout */
 PageEl *page_add_el(
     Page *page,
     PageElType type,
     PageElParams params,
     const char *layout_name);
+
+/* Add an element with custom logic to create its layout from a specified parent */
+PageEl *page_add_el_custom_layout(
+    Page *page,
+    PageElType type,
+    PageElParams params,
+    Layout *parent,
+    const char *new_layout_name,
+    Layout *(*create_layout_fn)(Layout *parent));
 bool page_mouse_motion(Page *page, Window *win);
 bool page_mouse_click(Page *page, Window *win);
 

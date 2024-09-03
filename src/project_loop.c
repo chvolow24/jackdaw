@@ -229,49 +229,6 @@ static void update_track_vol_pan()
 /*     } */
 /* } */
 
-PanelArea *test_pa;
-void panel_testing()
-{
-    Layout *panel_area_lt = layout_add_child(main_win->layout);
-    layout_set_default_dims(panel_area_lt);
-    test_pa = panel_area_create(panel_area_lt, main_win);
-    Panel *p1 = panel_area_add_panel(test_pa);
-    Panel *p2 = panel_area_add_panel(test_pa);
-
-    Page *page1 = panel_area_add_page(
-	test_pa,
-	"Some title   ∨",
-	NULL,
-	NULL,
-	&color_global_white,
-	main_win);
-
-    Page *page2 = panel_area_add_page(
-	test_pa,
-	"Another title   ∨",
-	NULL,
-        NULL,
-	&color_global_white,
-	main_win);
-
-    PageElParams p;
-
-    static bool testbool;
-    p.toggle_p.action = NULL;
-    /* p.toggle_p.target = &testbool; */
-    p.toggle_p.value = &testbool;
-    PageEl *el = page_add_el(page1, EL_TOGGLE, p, NULL);
-    Layout *lt = el->layout;
-    lt->x.value.intval = 10;
-    lt->y.value.intval = 20;
-    lt->h.value.intval = 10;
-    lt->w.value.intval = 10;
-    panel_select_page(test_pa, 0, 0);
-    panel_select_page(test_pa, 1, 1);
-    layout_reset(test_pa->layout);
-}
-
-
 void loop_project_main()
 {
 
@@ -287,15 +244,11 @@ void loop_project_main()
     SDL_Event e;
     uint8_t fingersdown = 0;
     /* uint8_t fingerdown_timer = 0; */
-
     
     uint8_t animate_step = 0;
     bool set_i_state_k = false;
 
     window_push_mode(main_win, TIMELINE);
-
-
-    panel_testing();
 
     bool first_frame = true;
     int wheel_event_recency = 0;

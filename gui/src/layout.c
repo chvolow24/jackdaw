@@ -49,7 +49,7 @@ extern SDL_Color color_global_white;
 
 extern Window *main_win;
 
-void layout_set_name(Layout *lt, char *new_name)
+void layout_set_name(Layout *lt, const char *new_name)
 {
     int len = strlen(new_name);
     if (len < MAX_LT_NAMELEN - 1) {
@@ -992,6 +992,7 @@ void layout_force_reset(Layout *lt)
 /* Old recursive implementation */
 void layout_reset(Layout *lt)
 {
+    if (!lt) return;
     /* fprintf(stdout, "\t\tLT RESET\n"); */
     if (lt->hidden) {
 	return;
@@ -1046,6 +1047,7 @@ Layout *layout_create()
     lt->selected = false;
     lt->type = NORMAL;
     lt->iterator = NULL;
+    memset(lt->children, '\0', sizeof(Layout *) * MAX_CHILDREN);
 
     lt->x.type = REL;
     lt->y.type = REL;
@@ -1353,7 +1355,9 @@ void layout_size_to_fit_children_h(Layout *lt, bool fixed_origin, int padding)
 	Layout *child = lt->children[i];
 	if (child->rect.x < min_x) min_x = child->rect.x;
 	/* if (child->rect.y < min_y) min_y = child->rect.y; */
-	if ((right = child->rect.x + child->rect.w) > max_x) max_x = right;
+	if ((right = child->rect.x + child->rect.w) > max_x) {
+	    max_x = right;
+	}
 	/* if ((bottom = child->rect.y + child->rect.h) > max_y) max_y = bottom; */
     }
     if (!fixed_origin) {
@@ -1505,6 +1509,7 @@ void layout_remove_child(Layout *child)
     Layout *parent = child->parent;
     /* fprintf(stdout, "Remove child at index %d\n", child->index); */
     if (!parent) return;
+    if (parent->num_children == 0) return;
     for (int i=child->index + 1; i<parent->num_children; i++) {
 	/* fprintf(stdout, "\tmoving index %d -> %d\n", i, i-1); */
 	parent->children[i - 1] = parent->children[i];

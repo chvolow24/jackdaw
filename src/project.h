@@ -54,6 +54,7 @@
 
 #include "dsp.h"
 #include "components.h"
+#include "panel.h"
 #include "textbox.h"
 #include "user_event.h"
 
@@ -73,6 +74,8 @@
 #define MAX_TRACK_FILTERS 4
 
 #define PROJ_TL_LABEL_BUFLEN 50
+
+#define PLAYHEAD_TRI_H (10 * main_win->dpi_scale_factor)
 
 typedef struct project Project;
 typedef struct timeline Timeline;
@@ -277,20 +280,20 @@ struct drop_save {
     int32_t out;
 };
 
-struct quickref {
-    Layout *layout;
-    Button *add_track;
-    Button *record;
-    Button *left, *right;
-    Button *rewind, *pause, *play;
-    Button *next, *previous;
-    Button *zoom_in, *zoom_out;
+/* struct quickref { */
+/*     Layout *layout; */
+/*     Button *add_track; */
+/*     Button *record; */
+/*     Button *left, *right; */
+/*     Button *rewind, *pause, *play; */
+/*     Button *next, *previous; */
+/*     Button *zoom_in, *zoom_out; */
 
-    Button *open_file;
-    Button *save;
-    Button *export_wav;
-    Button *track_settings;
-};
+/*     Button *open_file; */
+/*     Button *save; */
+/*     Button *export_wav; */
+/*     Button *track_settings; */
+/* }; */
 
 /* enum slider_target_type { */
 /*     SLIDER_TARGET_TRACK_VOL, */
@@ -338,8 +341,11 @@ typedef struct project {
     int32_t src_out_sframes;
     float src_play_speed;
 
-    /* Quickref */
-    struct quickref quickref;
+    /* /\* Quickref *\/ */
+    /* struct quickref quickref; */
+
+    /* Panel area */
+    PanelArea *panels;
 
     /* Audio output */
     float *output_L;
@@ -373,17 +379,17 @@ typedef struct project {
     SDL_Rect *audio_rect;
     SDL_Rect *control_bar_rect;
     SDL_Rect *ruler_rect;
-    SDL_Rect *source_rect;
-    SDL_Rect *source_clip_rect;
+    /* SDL_Rect *source_rect; */
+    /* SDL_Rect *source_clip_rect; */
     SDL_Rect *console_column_rect;
     SDL_Rect *hamburger;
     SDL_Rect *bun_patty_bun[3];
     Textbox *source_name_tb;
 
-    Textbox *tb_out_label;
-    Textbox *tb_out_value;
-    SDL_Rect *outwav_l_rect;
-    SDL_Rect *outwav_r_rect;
+    /* Textbox *tb_out_label; */
+    /* Textbox *tb_out_value; */
+    /* SDL_Rect *outwav_l_rect; */
+    /* SDL_Rect *outwav_r_rect; */
     struct status_bar status_bar;
 
     struct drop_save saved_drops[5];

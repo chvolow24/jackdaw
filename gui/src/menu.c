@@ -114,15 +114,20 @@ Menu *menu_create_at_point(int x_pix, int y_pix)
     /* lt->w.value.intval = 1200; */
     /* lt->h.value.intval = 900; */
     layout_reset(lt);
-    layout_write(stdout, lt, 0);
+    /* layout_write(stdout, lt, 0); */
     Menu *menu = menu_create(lt, main_win);
     return menu;
-
 }
 
 
 void menu_reset_layout(Menu *menu)
 {
+    Layout *lt = menu->layout;
+    if (lt->rect.x + lt->rect.w > main_win->w_pix) {
+	lt->rect.x = main_win->w_pix - lt->rect.w;
+	layout_set_values_from_rect(lt);
+	menu_reset_layout(menu);
+    }
     layout_force_reset(menu->layout);
     menu_reset_textboxes(menu);
 }

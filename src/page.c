@@ -202,6 +202,9 @@ static void page_el_destroy(PageEl *el)
     case EL_BUTTON:
 	button_destroy((Button *)el->component);
 	break;
+    case EL_CANVAS:
+	canvas_destroy((Canvas *)el->component);
+	break;
     default:
 	break;
     }
@@ -237,6 +240,7 @@ static void page_el_reset(PageEl *el)
     case EL_FREQ_PLOT:
 	break;
     case EL_BUTTON:
+	textbox_reset_full(((Button *)el->component)->tb);
 	break;
     default:
 	break;
@@ -346,6 +350,13 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	    params.button_p.text_color,
 	    params.button_p.background_color);
 	break;
+    case EL_CANVAS:
+	el->component = (void *)canvas_create(
+	    el->layout,
+	    params.canvas_p.draw_fn,
+	    params.canvas_p.draw_arg1,
+	    params.canvas_p.draw_arg2);
+	break;
     default:
 	break;
     }
@@ -379,10 +390,30 @@ PageEl *page_add_el(
     return el;
 }
 
+PageEl *page_add_el_custom_layout(
+    Page *page,
+    PageElType type,
+    PageElParams params,
+    Layout *parent,
+    const char *new_layout_name,
+    Layout *(*create_layout_fn)(Layout *parent))
+{
+    Layout *lt = create_layout_fn(parent);
+    layout_set_name(lt, new_layout_name);
+    return page_add_el(
+	page,
+	type,
+	params,
+	new_layout_name);
+}
+
 
 void page_reset(Page *page)
 {
-    layout_reset(page->layout);
+    layout_force_reset(page->layout);
+    for (uint8_t i=0; i<page->num_elements; i++) {
+	page_el_reset(page->elements[i]);
+    }
 }
 
 static bool page_element_mouse_motion(PageEl *el, Window *win)
@@ -556,6 +587,9 @@ static void page_el_draw(PageEl *el)
     case EL_BUTTON:
 	button_draw((Button *)el->component);
 	break;
+    case EL_CANVAS:
+	canvas_draw((Canvas *)el->component);
+	break;
     default:
 	break;
     }
@@ -584,7 +618,7 @@ void page_draw(Page *page)
     }
     for (uint8_t i=0; i<page->num_elements; i++) {
 	page_el_draw(page->elements[i]);
-	if (page->elements[i] == page->selectable_els[page->selected_i]) {
+	if (page->selected_i >= 0 && page->elements[i] == page->selectable_els[page->selected_i]) {
 	    SDL_SetRenderDrawColor(page->win->rend, 255, 200, 10, 255);
 	    SDL_Rect r = page->elements[i]->layout->rect;
 	    geom_draw_rect_thick(page->win->rend, &r, 2, 2);

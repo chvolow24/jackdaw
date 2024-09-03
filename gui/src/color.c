@@ -16,3 +16,4 @@ SDL_Color color_global_quickref_button_pressed = {10, 20, 30, 255};
 SDL_Color color_global_play_green = (SDL_Color) {0, 140, 50, 255};
 SDL_Color color_global_undo_purple = (SDL_Color) {230, 30, 200, 255};
 SDL_Color color_global_cerulean = (SDL_Color) {100, 190, 255, 255};
+SDL_Color color_global_cerulean_pale = (SDL_Color) {100, 190, 255, 100};

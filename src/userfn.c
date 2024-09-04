@@ -790,49 +790,8 @@ void user_tl_goto_clip_end(void *nullarg)
     }
 }
 
-/* static void select_out_onclick(void *arg) */
-/* { */
-/*     /\* struct select_dev_onclick_arg *carg = (struct select_dev_onclick_arg *)arg; *\/ */
-/*     /\* Track *track = carg->track; *\/ */
-/*     /\* AudioConn *dev = carg->new_in; *\/ */
-/*     /\* Timeline *tl = proj->timelines[proj->active_tl_index]; *\/ */
-/*     int index = *((int *)arg); */
-/*     audioconn_close(proj->playback_conn); */
-/*     proj->playback_conn = proj->playback_conns[index]; */
-/*     if (audioconn_open(proj, proj->playback_conn) != 0) { */
-/* 	fprintf(stderr, "Error: failed to open default audio conn \"%s\". More info: %s\n", proj->playback_conn->name, SDL_GetError()); */
-/* 	status_set_errstr("Error: failed to open default audio conn \"%s\""); */
-/*     } */
-/*     /\* textbox_set_value_handle(proj->tb_out_value, proj->playback_conn->name); *\/ */
-/*     window_pop_menu(main_win); */
-/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
-/*     tl->needs_redraw = true; */
-/*     /\* window_pop_mode(main_win); *\/ */
-/* } */
-
 void user_tl_set_default_out(void *nullarg) {
     project_set_default_out(proj);
-    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
-    /* SDL_Rect *rect = &(proj->tb_out_value->layout->rect); */
-    /* Menu *menu = menu_create_at_point(rect->x, rect->y); */
-    /* MenuColumn *c = menu_column_add(menu, ""); */
-    /* MenuSection *sc = menu_section_add(c, ""); */
-    /* for (int i=0; i<proj->num_playback_conns; i++) { */
-    /* 	AudioConn *conn = proj->playback_conns[i]; */
-    /* 	/\* fprintf(stdout, "Conn index: %d\n", conn->index); *\/ */
-    /* 	if (conn->available) { */
-    /* 	    menu_item_add( */
-    /* 		sc, */
-    /* 		conn->name, */
-    /* 		" ", */
-    /* 		select_out_onclick, */
-    /* 		&(conn->index)); */
-    /* 	} */
-    /* } */
-    /* menu_add_header(menu,"", "Select the default audio output.\n\n'n' to select next item; 'p' to select previous item."); */
-    /* /\* menu_reset_layout(menu); *\/ */
-    /* window_add_menu(main_win, menu); */
-    /* window_push_mode(main_win, MENU_NAV); */
 }
 
 static NEW_EVENT_FN(add_track_undo, "undo add track")
@@ -989,26 +948,7 @@ void user_tl_track_selector_up(void *nullarg)
 	lt->parent->scroll_offset_v = -1 * selected->tl_rank * (lt->rect.h / main_win->dpi_scale_factor + lt->y.value.intval);
     }
     timeline_reset(tl);
-    /* if (lt->parent->scroll_offset_v > 0) { */
-    /* 	lt->parent->scroll_offset_v = 0; */
-    /* } */
 
-    /* if (selected->layout->rect.y < tl->layout->rect.y) { */
-    /* 	Layout *template = NULL; */
-    /* 	LayoutIterator *iter = NULL; */
-    /* 	if ((template = selected->layout->parent) && (iter = template->iterator)) { */
-    /* 	    /\* LayoutIterator *iter = selected->layout->parent->iterator; *\/ */
-    /* 	    iter->scroll_offset = (template->rect.h + template->rect.y - proj->audio_rect->y) * selected->tl_rank; */
-    /* 	    if (iter->scroll_offset < 0) { */
-    /* 		iter->scroll_offset = 0; */
-    /* 	    } */
-    /* 	    layout_reset(tl->layout); */
-    /* 	    /\* layout_force_reset(tl->layout); *\/ */
-    /* 	    timeline_reset(tl); */
-    /*     } else { */
-    /* 	   fprintf(stderr, "Error: no iterator on layout: %s\n", selected->layout->parent->name); */
-    /* 	}	     */
-    /* } */
     if (proj->dragging && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
 	for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
@@ -1052,18 +992,7 @@ void user_tl_track_selector_down(void *nullarg)
     } else if (lt->rect.y < proj->audio_rect->y) {
 	lt->parent->scroll_offset_v = -1 * selected->tl_rank * (lt->rect.h / main_win->dpi_scale_factor + lt->y.value.intval);
     }
-	/* Layout *template = NULL; */
-	/* LayoutIterator *iter = NULL; */
-	/* if ((template = selected->layout->parent) && (iter = template->iterator)) { */
-	/*     iter->scroll_offset = (template->rect.h + template->rect.y - proj->audio_rect->y) * selected->tl_rank - (proj->audio_rect->h - template->rect.h - 10); */
-	/*     if (iter->scroll_offset < 0) { */
-	/* 	iter->scroll_offset = 0; */
-	/*     } */
-	/*     layout_reset(tl->layout); */
-	/*     /\* layout_force_reset(tl->layout); *\/ */
-	/*     timeline_reset(tl); */
-	/* } else { */
-	/*     fprintf(stderr, "Error: no iterator on layout: %s\n", selected->layout->parent->name); */
+
     if (proj->dragging && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
 	for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
@@ -1138,42 +1067,6 @@ void user_tl_track_set_in(void *nullarg)
     }
     track_set_input(track);
 }
-
-
-/* void user_tl_track_destroy(void *nullarg) */
-/* { */
-/*     user_tl_pause(NULL); */
-/*     if (proj->recording) { */
-/* 	transport_stop_recording(); */
-/*     } */
-    
-
-/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
-/*     if (tl->num_tracks > 0) { */
-	
-/* 	/\* Temporary (?) bug fix: *\/ */
-/* 	timeline_ungrab_all_cliprefs(tl); */
-/* 	status_stat_drag(); */
-/* 	/\* End temporary (?) bug fix *\/ */
-	
-/* 	Track *track = tl->tracks[tl->track_selector]; */
-/* 	track_destroy(track, true); */
-/* 	if (tl->track_selector > tl->num_tracks - 1) { */
-/* 	    tl->track_selector = tl->num_tracks == 0 ? 0 : tl->num_tracks - 1; */
-/* 	} */
-/*     } else { */
-/* 	status_set_errstr("Error: no track to delete"); */
-/*     } */
-
-/*     TabView *tv; */
-/*     if ((tv = main_win->active_tab_view)) { */
-/* 	if (strcmp(tv->title, "Track Settings") == 0) { */
-/* 	    settings_track_tabview_set_track(tv, tl->tracks[tl->track_selector]); */
-/* 	} */
-/*     } */
-/*     tl->needs_redraw = true; */
-/* } */
-
 
 static NEW_EVENT_FN(undo_track_delete, "undo delete track")
     Track *track = (Track *)obj1;
@@ -1973,7 +1866,6 @@ void user_text_edit_cursor_right(void *nullarg)
 	txt_edit_move_cursor(main_win->txt_editing, false);
     }
 }
-
 
 void user_text_edit_select_all(void *nullarg)
 {

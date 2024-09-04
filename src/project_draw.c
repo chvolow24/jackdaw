@@ -82,26 +82,6 @@ extern SDL_Color color_global_yellow;
 
 extern SDL_Color timeline_label_txt_color;
 
-
-/* SDL_Color track_vol_bar_clr = (SDL_Color) {200, 100, 100, 255}; */
-/* SDL_Color track_pan_bar_clr = (SDL_Color) {100, 200, 100, 255}; */
-/* SDL_Color track_in_bar_clr = (SDL_Color) {100, 100, 200, 255}; */
-
-/* static void draw_waveform_to_rect(float *buf, uint32_t len, SDL_Rect *rect) */
-/* { */
-/*     int center_y = rect->y + rect->h / 2; */
-/*     float precise_x = rect->x; */
-/*     float sfpp = (float)len / rect->w; */
-/*     float halfw = (float)rect->w / 2; */
-/*     int sample_i = 0; */
-/*     while (precise_x < rect->x + rect->w) { */
-/* 	sample_i += sfpp; */
-/* 	float y_offset = halfw * buf[sample_i]; */
-/* 	SDL_RenderDrawLine(main_win->rend, (int) precise_x, center_y, (int) precise_x, center_y - y_offset); */
-/* 	precise_x++; */
-/*     } */
-/* } */
-
 static void draw_waveform(ClipRef *cr)
 {
     SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
@@ -276,14 +256,8 @@ static void track_draw(Track *track)
 
     }
 
-    /* slider_reset(track->vol_ctrl); */
     slider_draw(track->vol_ctrl);
-    /* slider_reset(track->pan_ctrl); */
-
-    slider_draw(track->pan_ctrl);
-    /* layout_force_reset(track->layout); */
-    /* layout_draw(main_win, track->layout->parent); */
-}
+    slider_draw(track->pan_ctrl);}
 
 static void ruler_draw(Timeline *tl)
 {
@@ -439,22 +413,7 @@ static void control_bar_draw(Project *proj)
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
     SDL_RenderFillRect(main_win->rend, proj->control_bar_rect);
 
-    /* textbox_draw(proj->tb_out_label); */
-    /* textbox_draw(proj->tb_out_value); */
-
-    /* DRAW THE OUTPUT WAVEFORMS */
-    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black)); */
-    /* SDL_RenderFillRect(main_win->rend, proj->outwav_l_rect); */
-    /* SDL_RenderFillRect(main_win->rend, proj->outwav_r_rect); */
-    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_white)); */
-    /* waveform_draw_all_channels(&proj->output_L, 1, proj->fourier_len_sframes, proj->outwav_l_rect); */
-    /* waveform_draw_all_channels(&proj->output_R, 1, proj->fourier_len_sframes, proj->outwav_r_rect); */
-
-
-
-    /* QUCIKREF */
     panel_area_draw(proj->panels);
-
         
     /* DRAW HAMBURGER */
     SDL_Rect mask = *proj->hamburger;
@@ -480,103 +439,8 @@ static void control_bar_draw(Project *proj)
     for (int i=0; i<3; i++) {
 	SDL_RenderFillRect(main_win->rend, proj->bun_patty_bun[i]);
     }
-    
-
-    /* if (!proj->source_mode) { */
-	/* button_draw(proj->quickref.add_track); */
-	/* button_draw(proj->quickref.record); */
-	/* button_draw(proj->quickref.rewind); */
-	/* button_draw(proj->quickref.pause); */
-	/* button_draw(proj->quickref.play); */
-	/* button_draw(proj->quickref.left); */
-	/* button_draw(proj->quickref.right); */
-	/* button_draw(proj->quickref.next); */
-	/* button_draw(proj->quickref.previous); */
-	/* button_draw(proj->quickref.zoom_in); */
-	/* button_draw(proj->quickref.zoom_out); */
-
-	/* button_draw(proj->quickref.open_file); */
-	/* button_draw(proj->quickref.save); */
-	/* button_draw(proj->quickref.export_wav); */
-	/* button_draw(proj->quickref.track_settings); */
-    /* } */
-
-    /* SOURCE MODE */
-    /* if (proj->source_mode) { */
-    /* 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(source_mode_bckgrnd)); */
-    /* 	SDL_RenderFillRect(main_win->rend, proj->source_rect); */
-    /* 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_white)); */
-    /* 	SDL_RenderDrawRect(main_win->rend, proj->source_rect); */
-    /* 	textbox_draw(proj->source_name_tb); */
-    /* 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_home_bckgrnd)); */
-    /* 	SDL_RenderDrawRect(main_win->rend, proj->source_clip_rect); */
-    /* 	if (proj->src_clip) { */
-    /* 	    SDL_RenderFillRect(main_win->rend, proj->source_clip_rect); */
-
-    /* 	    /\* Draw src clip waveform *\/ */
-    /* 	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black)); */
-    /* 	    uint8_t num_channels = proj->src_clip->channels; */
-    /* 	    float *channels[num_channels]; */
-    /* 	    channels[0] = proj->src_clip->L; */
-    /* 	    if (num_channels > 1) { */
-    /* 		channels[1] = proj->src_clip->R; */
-    /* 	    } */
-    /* 	    waveform_draw_all_channels(channels, num_channels, proj->src_clip->len_sframes, proj->source_clip_rect); */
-    /* 	    /\* draw_waveform_to_rect(proj->src_clip->L, proj->src_clip->len_sframes, proj->source_clip_rect); *\/ */
-	
-    /* 	    /\* Draw play head line *\/ */
-    /* 	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_white)); */
-    /* 	    int ph_y = proj->source_clip_rect->y; */
-    /* 	    /\* int tri_y = tl->proj->ruler_rect->y; *\/ */
-    /* 	    int play_head_x = proj->source_clip_rect->x + proj->source_clip_rect->w * proj->src_play_pos_sframes / proj->src_clip->len_sframes; */
-    /* 	    SDL_RenderDrawLine(main_win->rend, play_head_x, ph_y, play_head_x, ph_y + proj->source_clip_rect->h); */
-
-    /* 	    /\* /\\* Draw play head triangle *\\/ *\/ */
-    /* 	    int tri_x1 = play_head_x; */
-    /* 	    int tri_x2 = play_head_x; */
-    /* 	    /\* int ph_y = tl->rect.y; *\/ */
-    /* 	    for (int i=0; i<PLAYHEAD_TRI_H; i++) { */
-    /* 		SDL_RenderDrawLine(main_win->rend, tri_x1, ph_y, tri_x2, ph_y); */
-    /* 		ph_y -= 1; */
-    /* 		tri_x2 += 1; */
-    /* 		tri_x1 -= 1; */
-    /* 	    } */
-
-    /* 	    /\* draw mark in *\/ */
-    /* 	    int in_x, out_x = -1; */
-
-    /* 	    in_x = proj->source_clip_rect->x + proj->source_clip_rect->w * proj->src_in_sframes / proj->src_clip->len_sframes; */
-    /* 	    int i_tri_x2 = in_x; */
-    /* 	    ph_y = proj->source_clip_rect->y; */
-    /* 	    for (int i=0; i<PLAYHEAD_TRI_H; i++) { */
-    /* 		SDL_RenderDrawLine(main_win->rend, in_x, ph_y, i_tri_x2, ph_y); */
-    /* 		ph_y -= 1; */
-    /* 		i_tri_x2 += 1; */
-    /* 	    } */
-
-    /* 	    /\* draw mark out *\/ */
-
-    /* 	    out_x = proj->source_clip_rect->x + proj->source_clip_rect->w * proj->src_out_sframes / proj->src_clip->len_sframes; */
-    /* 	    int o_tri_x2 = out_x; */
-    /* 	    ph_y = proj->source_clip_rect->y; */
-    /* 	    for (int i=0; i<PLAYHEAD_TRI_H; i++) { */
-    /* 		SDL_RenderDrawLine(main_win->rend, out_x, ph_y, o_tri_x2, ph_y); */
-    /* 		ph_y -= 1; */
-    /* 		o_tri_x2 -= 1; */
-    /* 	    } */
-
-	    
-    /* 	    if (in_x < out_x && out_x != 0) { */
-    /* 		SDL_Rect in_out = (SDL_Rect) {in_x, proj->source_clip_rect->y, out_x - in_x, proj->source_clip_rect->h}; */
-    /* 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(timeline_marked_bckgrnd)); */
-    /* 		SDL_RenderFillRect(main_win->rend, &(in_out)); */
-    /* 	    } */
-    /* 	} */
-    /* } */
-    /* fprintf(stdout, "Drawing source name tb: \"%s\"\n", proj->source_name_tb->text->display_value); */
 }
 
-/* extern Modal *test_modal; */
 void project_draw()
 {
     window_start_draw(main_win, NULL);
@@ -593,8 +457,7 @@ void project_draw()
 	}
 	tab_view_draw(main_win->active_tab_view);
     }
-	/* page_draw(main_win->active_page); */
-    /* if (proj->status_bar.stat_timer > 0 || proj->status_bar.err_timer > 0 || proj->status_bar.call_timer > 0) { */
+
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
     SDL_RenderFillRect(main_win->rend, &proj->status_bar.layout->rect);
     textbox_draw(proj->status_bar.error);
@@ -602,23 +465,10 @@ void project_draw()
 	textbox_draw(proj->status_bar.dragstat);
     }
     textbox_draw(proj->status_bar.call);
-    /* } */
-    /* Layout *status = layout_get_child_by_name_recursive(proj->layout, "status_bar"); */
-    /* layout_draw(main_win, status); */
     window_draw_modals(main_win);
     window_draw_menus(main_win);
-    /* modal_draw(test_modal); */
 
     proj->timelines[proj->active_tl_index]->needs_redraw = false;
-    
-
-
-    /* TESTING */
-    /* panel_area_draw(test_pa); */
-    /* layout_draw(main_win, proj->panels->panels[0]->layout); */
-    /* layout_write(stdout, proj->panels->layout, 0); */
-    /* exit(0); */
-    /* layout_draw(main_win, test_pa->layout); */
     
     window_end_draw(main_win);
 }

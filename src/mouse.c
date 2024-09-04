@@ -90,7 +90,6 @@ static void mouse_triage_click_track(uint8_t button, Track *track)
 	    return;
 	}
 	if (SDL_PointInRect(&main_win->mousep, &track->vol_ctrl->layout->rect)) {
-	    Value oldval = jdaw_val_from_ptr(track->vol_ctrl->value, track->vol_ctrl->val_type);
 	    Value newval = slider_val_from_coord(track->vol_ctrl, main_win->mousep.x);
 	    track->vol = newval.float_v;
 	    slider_reset(track->vol_ctrl);
@@ -167,22 +166,6 @@ static void mouse_triage_click_control_bar(uint8_t button)
     } else if (SDL_PointInRect(&main_win->mousep, &proj->panels->layout->rect)) {
 	panel_area_mouse_click(proj->panels);
     }
-    
-    /* if (button_click(proj->quickref.add_track, main_win)) return; */
-    /* if (button_click(proj->quickref.record, main_win)) return; */
-    /* if (button_click(proj->quickref.left, main_win)) return; */
-    /* if (button_click(proj->quickref.rewind, main_win)) return; */
-    /* if (button_click(proj->quickref.pause, main_win)) return; */
-    /* if (button_click(proj->quickref.play, main_win)) return; */
-    /* if (button_click(proj->quickref.right, main_win)) return; */
-    /* if (button_click(proj->quickref.next, main_win)) return; */
-    /* if (button_click(proj->quickref.previous, main_win)) return; */
-    /* if (button_click(proj->quickref.zoom_in, main_win)) return; */
-    /* if (button_click(proj->quickref.zoom_out, main_win)) return; */
-    /* if (button_click(proj->quickref.open_file, main_win)) return; */
-    /* if (button_click(proj->quickref.save, main_win)) return; */
-    /* if (button_click(proj->quickref.export_wav, main_win)) return; */
-    /* if (button_click(proj->quickref.track_settings, main_win)) return; */
 }
 
 void mouse_triage_click_project(uint8_t button)

@@ -51,13 +51,8 @@ void user_global_menu(void *nullarg)
 	fprintf(stderr, "Error: no modes active in user_global_expose_help\n");
 	return;
     }
-    InputMode current_mode = main_win->modes[main_win->num_modes - 1];
-    
     Menu *new = input_create_master_menu();
     window_add_menu(main_win, new);
-    /* input_create_menu_from_mode(current_mode); */
-    /* window_add_menu(main_win, new); */
-    /* window_push_mode(main_win, MENU_NAV);  */  
 }
 
 void user_global_quit(void *nullarg)
@@ -254,6 +249,11 @@ static NEW_EVENT_FN(redo_load_wav, "redo load wav")
     clipref_undelete(cr);
 }
 
+static NEW_EVENT_FN(dispose_forward_load_wav, "")
+    ClipRef *cr = (ClipRef *)obj1;
+    clipref_destroy_no_displace(cr);
+}
+
 
 Project *jdaw_read_file(char *path);
 static void openfile_file_select_action(DirNav *dn, DirPath *dp)
@@ -282,7 +282,7 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 	    &proj->history,
 	    undo_load_wav,
 	    redo_load_wav,
-	    NULL, NULL,
+	    NULL, dispose_forward_load_wav,
 	    (void *)cr, NULL,
 	    nullval, nullval, nullval, nullval,
 	    0, 0, false, false);
@@ -1208,6 +1208,15 @@ static NEW_EVENT_FN(redo_record_new_clips, "undo create new clip(s)")
     }
 }
 
+static NEW_EVENT_FN(dispose_forward_record_new_clips, "")
+    ClipRef **clips = (ClipRef **)obj1;
+    uint8_t num = val1.uint8_v;
+    for (uint8_t i=0; i<num; i++) {
+	ClipRef *cr = clips[i];
+	clipref_destroy_no_displace(cr);
+    }
+}
+
 void user_tl_record(void *nullarg)
 {
     if (proj->recording) {
@@ -1226,7 +1235,8 @@ void user_tl_record(void *nullarg)
 	    &proj->history,
 	    undo_record_new_clips,
 	    redo_record_new_clips,
-	    NULL, NULL,
+	    NULL,
+	    dispose_forward_record_new_clips,
 	    (void *)created_clips,
 	    NULL,
 	    num_created_v,num_created_v,num_created_v,num_created_v,
@@ -1413,14 +1423,19 @@ void user_tl_activate_source_mode(void *nullarg)
 /*     return tl_pos_now; */
 /* } */
 
-NEW_EVENT_FN(undo_drop, "Undo drop clip from source")
+static NEW_EVENT_FN(undo_drop, "Undo drop clip from source")
     ClipRef *cr = (ClipRef *)obj1;
     clipref_delete(cr);
 }
 
-NEW_EVENT_FN(redo_drop, "Redo drop clip from source")
+static NEW_EVENT_FN(redo_drop, "Redo drop clip from source")
     ClipRef *cr = (ClipRef *)obj1;
     clipref_undelete(cr);
+}
+
+static NEW_EVENT_FN(dispose_forward_drop, "")
+    ClipRef *cr = (ClipRef *)obj1;
+    clipref_destroy_no_displace(cr);
 }
 
 void user_tl_drop_from_source(void *nullarg)
@@ -1454,7 +1469,8 @@ void user_tl_drop_from_source(void *nullarg)
 	    &proj->history,
 	    undo_drop,
 	    redo_drop,
-	    NULL, NULL,
+	    NULL,
+	    dispose_forward_drop,
 	    (void *)cr, NULL,
 	    nullval, nullval, nullval, nullval,
 	    0, 0, false, false);

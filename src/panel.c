@@ -115,9 +115,6 @@ Page *panel_select_page(PanelArea *pa, uint8_t panel_i, uint8_t new_selection)
 
     layout_force_reset(pa->layout);
 
-    /* layout_size_to_fit_children_h(panel->content_layout->children[0], true, 0); */
-    /* layout_size_to_fit_children_h(panel->content_layout, true, 0); */
-    /* layout_size_to_fit_children_h(panel->layout, true, PANEL_H_SPACING); */
     return page;
 }
 

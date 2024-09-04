@@ -1587,6 +1587,15 @@ static void user_tl_drop_savedn_from_source(int n)
 	clipref_reset(cr);
 
 	tl->needs_redraw = true;
+	Value nullval = {.int_v = 0};
+	user_event_push(
+	    &proj->history,
+	    undo_drop,
+	    redo_drop,
+	    NULL, NULL,
+	    (void *)cr, NULL,
+	    nullval, nullval, nullval, nullval,
+	    0, 0, false, false);
 	/* ClipRef *cr = track_create_clip_ref(track, drop.cr->clip,  */
     }
 }

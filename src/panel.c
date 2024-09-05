@@ -288,7 +288,7 @@ void panel_page_refocus(PanelArea *pa, const char *page_title, uint8_t refocus_p
 	Page *test = pa->pages[pa->panels[i]->current_page];
 	if (strcmp(test->title, page_title) == 0) {
 	    p = test;
-	    index = i;
+	    index = pa->panels[i]->current_page;
 	    break;
 	}
     }

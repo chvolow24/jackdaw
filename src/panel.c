@@ -75,9 +75,9 @@ Page *panel_area_add_page(
     /* p->layout->h.type = SCALE; */
     /* p->layout->w.value.floatval = 1.0f; */
     /* p->layout->h.value.floatval = 1.0f; */
-    char layout_name[255];
-    snprintf(layout_name, 255, "panel_page_%d", pa->num_pages);
-    layout_set_name(p->layout, layout_name);
+    /* char layout_name[255]; */
+    /* snprintf(layout_name, 255, "panel_page_%d", pa->num_pages); */
+    /* layout_set_name(p->layout, layout_name); */
     pa->pages[pa->num_pages] = p;
     pa->num_pages++;
     return p;
@@ -141,27 +141,65 @@ void panel_area_draw(PanelArea *pa)
     }
 }
 
+void panel_insert_page(PanelArea *pa, uint8_t dst_panel_i, uint8_t page_i)
+{
+    if (pa->panels[dst_panel_i]->current_page == page_i) return;
+    int current_pages[pa->num_panels];
+    int destinations[pa->num_panels];
+    for (uint8_t i=0; i<pa->num_panels; i++) {
+	current_pages[i] = pa->panels[i]->current_page;
+    }
+    int offset = 0;
+    for (uint8_t i=0; i<pa->num_panels; i++) {
+	/* current_pages[i] = pa->panels[i]->current_page; */
+	if (i == dst_panel_i) {
+	    destinations[i] = page_i;
+	    offset++;
+	} else if (current_pages[i] == page_i) {
+	    if (offset == 0) {
+		offset--;
+		destinations[i] = current_pages[i - offset];
+	    } else {
+		destinations[i] = current_pages[i - offset];
+		offset--;
+	    }
+	    /* if (i - offset < pa->num_panels) { */
+	    /* 	destinations[i] = current_pages[i - offset]; */
+	    /* } */
+	} else {
+	    if (i - offset < pa->num_panels) {
+		destinations[i] = current_pages[i - offset];
+	    }
+
+	    /* destinations[i] = current_pages[i - offset]; */
+	}
+	
+    }
+    for (uint8_t i=0; i<pa->num_panels; i++) {
+	panel_select_page(pa, i, destinations[i]);
+    }
+}
 
 struct pa_click_target {
     int panel_i;
     int page_i;
     PanelArea *pa;
 };
-
 void panel_selector_onclick(void *arg_v)
 {
     struct pa_click_target *targ = (struct pa_click_target *)arg_v;
     /* Panel *swap_panel = NULL; */
-    int swap_panel_i = -1;
-    for (uint8_t i=0; i<targ->pa->num_panels; i++) {
-	if (targ->pa->panels[i]->current_page == targ->page_i) {
-	    swap_panel_i = i;
-	}
-    }
-    if (swap_panel_i >= 0) {
-	panel_select_page(targ->pa, swap_panel_i, targ->pa->panels[targ->panel_i]->current_page);
-    }
-    panel_select_page(targ->pa, targ->panel_i, targ->page_i);
+    /* int swap_panel_i = -1; */
+    /* for (uint8_t i=0; i<targ->pa->num_panels; i++) { */
+    /* 	if (targ->pa->panels[i]->current_page == targ->page_i) { */
+    /* 	    swap_panel_i = i; */
+    /* 	} */
+    /* } */
+    /* if (swap_panel_i >= 0) { */
+    /* 	panel_select_page(targ->pa, swap_panel_i, targ->pa->panels[targ->panel_i]->current_page); */
+    /* } */
+    /* panel_select_page(targ->pa, targ->panel_i, targ->page_i); */
+    panel_insert_page(targ->pa, targ->panel_i, targ->page_i);
     window_pop_menu(targ->pa->win);
 }
 
@@ -241,6 +279,33 @@ PageEl *panel_area_get_el_by_id(PanelArea *pa, const char *id)
     }
     return el;
 }
+
+void panel_page_refocus(PanelArea *pa, const char *page_title, uint8_t refocus_panel)
+{
+    Page *p = NULL;
+    uint8_t index;
+    for (uint8_t i=0; i<pa->num_panels; i++) {
+	Page *test = pa->pages[pa->panels[i]->current_page];
+	if (strcmp(test->title, page_title) == 0) {
+	    p = test;
+	    index = i;
+	    break;
+	}
+    }
+    if (!p) {
+	for (uint8_t i=0; i<pa->num_pages; i++) {
+	    Page *test = pa->pages[i];
+	    if (strcmp(test->title, page_title) == 0) {
+		index = i;
+		break;
+	    }
+	}
+    }
+    if (!p || p->layout->rect.x + p->layout->rect.w > pa->win->w_pix) {
+	panel_insert_page(pa, refocus_panel, index);
+    }
+}
+
 
 /* WHEN panel selecting,
  - remove page layout from parent;

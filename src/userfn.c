@@ -1390,9 +1390,11 @@ void user_tl_load_clip_at_point_to_src(void *nullarg)
 	proj->src_out_sframes = cr->out_mark_sframes;
 	/* fprintf(stdout, "Src clip name? %s\n", proj->src_clip->name); */
 	/* txt_set_value_handle(proj->source_name_tb->text, proj->src_clip->name); */
+	Timeline *tl = proj->timelines[proj->active_tl_index];
+	tl->needs_redraw = true;
+
+	panel_page_refocus(proj->panels, "Clip source", 1);
     }
-    Timeline *tl = proj->timelines[proj->active_tl_index];
-    tl->needs_redraw = true;
 
 }
 
@@ -1402,6 +1404,9 @@ void user_tl_activate_source_mode(void *nullarg)
 	if (proj->src_clip) {
 	    proj->source_mode = true;
 	    window_push_mode(main_win, SOURCE);
+	    panel_page_refocus(proj->panels, "Clip source", 1);
+	} else {
+	    status_set_errstr("Load a clip to source before activating source mode");
 	}
     } else {
 	proj->source_mode = false;

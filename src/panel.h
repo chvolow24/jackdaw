@@ -35,7 +35,7 @@ Page *panel_area_add_page(
     SDL_Color *text_color,
     Window *win);
 Page *panel_select_page(PanelArea *pa, uint8_t panel, uint8_t new_selection);
-
+void panel_insert_page(PanelArea *pa, uint8_t dst_panel_i, uint8_t page_i);
 void panel_area_draw(PanelArea *panel);
 
 bool panel_area_mouse_click(PanelArea *pa);
@@ -44,5 +44,7 @@ bool panel_area_mouse_motion(PanelArea *pa);
 void panel_area_destroy(PanelArea *pa);
 
 PageEl *panel_area_get_el_by_id(PanelArea *pa, const char *id);
+void panel_page_refocus(PanelArea *pa, const char *page_title, uint8_t refocus_panel);
 
 #endif
+

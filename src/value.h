@@ -6,32 +6,31 @@
 #include <stdint.h>
 #include <limits.h>
 
-#define JDAW_VAL_CAST(val, type) \
-    ((type) == JDAW_FLOAT ? (val).float_v : \
-     (type) == JDAW_DOUBLE ? (val).double_v : \
-     (type) == JDAW_INT ? (val).int_v : \
-     (type) == JDAW_UINT8 ? (val).uint8_v : \
-     (type) == JDAW_UINT16 ? (val).uint16_v : \
-     (type) == JDAW_UINT32 ? (val).uint32_v : \
-     (type) == JDAW_INT8 ? (val).int8_v : \
-     (type) == JDAW_INT16 ? (val).int16_v : \
-     (type) == JDAW_INT32 ? (val).int32_v : \
-     (type) == JDAW_BOOL ? (val).bool_v : \
+#define JDAW_VAL_CAST(val, src_type, end_type)	    \
+    ((src_type) == JDAW_FLOAT ? (end_type)(val).float_v : \
+     (src_type) == JDAW_DOUBLE ? (end_type)(val).double_v : \
+     (src_type) == JDAW_INT ? (end_type)(val).int_v : \
+     (src_type) == JDAW_UINT8 ? (end_type)(val).uint8_v : \
+     (src_type) == JDAW_UINT16 ? (end_type)(val).uint16_v : \
+     (src_type) == JDAW_UINT32 ? (end_type)(val).uint32_v : \
+     (src_type) == JDAW_INT8 ? (end_type)(val).int8_v : \
+     (src_type) == JDAW_INT16 ? (end_type)(val).int16_v : \
+     (src_type) == JDAW_INT32 ? (end_type)(val).int32_v : \
+     (src_type) == JDAW_BOOL ? (end_type)(val).bool_v : \
      0 )
 
-#define JDAW_VALPTR_CAST(valptr, type) \
-    ((type) == JDAW_FLOAT ? (valptr)->float_v : \
-     (type) == JDAW_DOUBLE ? (valptr)->double_v : \
-     (type) == JDAW_INT ? (valptr)->int_v : \
-     (type) == JDAW_UINT8 ? (valptr)->uint8_v : \
-     (type) == JDAW_UINT16 ? (valptr)->uint16_v : \
-     (type) == JDAW_UINT32 ? (valptr)->uint32_v : \
-     (type) == JDAW_INT8 ? (valptr)->int8_v : \
-     (type) == JDAW_INT16 ? (valptr)->int16_v : \
-     (type) == JDAW_INT32 ? (valptr)->int32_v : \
-     (type) == JDAW_BOOL ? (valptr)->bool_v : \
-     0 )
-    
+/* #define JDAW_VALPTR_CAST(valptr, type) \ */
+/*     ((type) == JDAW_FLOAT ? (valptr)->float_v : \ */
+/*      (type) == JDAW_DOUBLE ? (valptr)->double_v : \ */
+/*      (type) == JDAW_INT ? (valptr)->int_v : \ */
+/*      (type) == JDAW_UINT8 ? (valptr)->uint8_v : \ */
+/*      (type) == JDAW_UINT16 ? (valptr)->uint16_v : \ */
+/*      (type) == JDAW_UINT32 ? (valptr)->uint32_v : \ */
+/*      (type) == JDAW_INT8 ? (valptr)->int8_v : \ */
+/*      (type) == JDAW_INT16 ? (valptr)->int16_v : \ */
+/*      (type) == JDAW_INT32 ? (valptr)->int32_v : \ */
+/*      (type) == JDAW_BOOL ? (valptr)->bool_v : \ */
+/*      0 ) */
 
 typedef enum value_type {
     JDAW_FLOAT,

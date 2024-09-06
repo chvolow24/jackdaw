@@ -1383,7 +1383,7 @@ void user_tl_cut_clipref(void *nullarg)
 void user_tl_load_clip_at_point_to_src(void *nullarg)
 {
     ClipRef *cr = clipref_at_point();
-    if (cr) {
+    if (cr && !cr->clip->recording) {
 	proj->src_clip = cr->clip;
 	proj->src_in_sframes = cr->in_mark_sframes;
 	proj->src_play_pos_sframes = 0;

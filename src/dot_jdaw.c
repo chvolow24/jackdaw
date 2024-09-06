@@ -576,9 +576,15 @@ static void jdaw_read_clipref(FILE *f, Track *track)
     uint8_t src_clip_index;
     fread(&src_clip_index, 1, 1, f);
     Clip *clip = track->tl->proj->clips[src_clip_index];
-    ClipRef *cr = track_create_clip_ref(track, clip, 0, clipref_home);
+    int32_t pos_sframes;
     if (sys_byteorder_le) {
-	fread(&cr->pos_sframes, 4, 1, f);
+	fread(&pos_sframes, 4, 1, f);
+    } else {
+	BYTEORDER_FATAL;
+    }
+    ClipRef *cr = track_create_clip_ref(track, clip, pos_sframes, clipref_home);
+    if (sys_byteorder_le) {
+	/* fread(&cr->pos_sframes, 4, 1, f); */
 	fread(&cr->in_mark_sframes, 4, 1, f);
 	fread(&cr->out_mark_sframes, 4, 1, f);
 	fread(&cr->start_ramp_len, 4, 1, f);

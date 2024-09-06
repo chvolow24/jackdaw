@@ -83,6 +83,12 @@ extern Project *proj;
 
 /* int ijk=0; */
 
+double search_time;
+double chunk_time;
+double dsp_time;
+
+clock_t start, end;
+
 float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32_t start_pos_sframes, uint32_t len_sframes, float step)
 {
    
@@ -95,6 +101,7 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
     }
     // uint32_t end_pos_sframes = start_pos_sframes + len_sframes;
     for (uint8_t i=0; i<track->num_clips; i++) {
+	start = clock();
 	ClipRef *cr = track->clips[i];
 	if (!cr) {
 	    continue;
@@ -120,8 +127,14 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
 	int32_t cr_len = clip_ref_len(cr);
 	if (max < 0 || min > cr_len) {
 	    SDL_UnlockMutex(cr->lock);
+	    end = clock();
+	    search_time += (double)(end - start) / CLOCKS_PER_SEC;
+
 	    continue;
 	}
+	end = clock();
+	search_time += (double)(end - start) / CLOCKS_PER_SEC;
+	start = clock();
 	float *clip_buf = (channel == 0) ? cr->clip->L : cr->clip->R;
 	int16_t chunk_i = 0;
 	/* float pan_scale = (channel == 0) ? (track->pan - 0.5) * 2 : track->pan * 2; */
@@ -137,6 +150,8 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
 	    /* fprintf(stdout, "Chunk %d: %f\n", chunk_i, chunk[chunk_i]); */
 	    chunk_i++;
 	}
+	end = clock();
+	chunk_time += (double)(end - start) / CLOCKS_PER_SEC;
 
 	
 	
@@ -182,6 +197,10 @@ should be collected from the in mark rather than from the play head.
 float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t len_sframes, int32_t start_pos_sframes, float step)
 {
 
+    fprintf(stderr, "\nSEARCH: %f\nCHUNK: %f\nDSP: %f\n", search_time, chunk_time, dsp_time);
+    search_time = 0.0;
+    chunk_time = 0.0;
+    dsp_time = 0.0;
     uint32_t chunk_len_bytes = sizeof(float) * len_sframes;
     /* float *mixdown = malloc(chunk_len_bytes); */
     memset(mixdown, '\0', chunk_len_bytes);
@@ -206,7 +225,10 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 	/* track_mixdown_time+=(b-a); */
 	if (track->fir_filter_active) {
 	    /* a = clock(); */
+	    start = clock();
 	    apply_filter(track->fir_filter, track, channel, len_sframes, track_chunk);
+	    end = clock();
+	    dsp_time += (double)(end - start) / CLOCKS_PER_SEC;
 	    /* b= clock(); */
 	    /* track_filter_time = (b-a); */
 	}

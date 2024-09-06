@@ -35,6 +35,7 @@
 #include <time.h>
 #include "SDL.h"
 #include "audio_connection.h"
+#include "clipref_search.h"
 #include "components.h"
 #include "draw.h"
 #include "dsp.h"
@@ -325,6 +326,26 @@ void loop_project_main()
 		/* 	main_win->i_state |= I_STATE_C_X; */
 		/*     } */
 		/*     break; */
+		case SDL_SCANCODE_5: {
+		    Timeline *tl = proj->timelines[proj->active_tl_index];
+		    Track *t = tl->tracks[tl->track_selector];
+		    clipref_list_fwdsort(t->clips, t->num_clips);
+		    for (uint8_t i=0; i<t->num_clips; i++) {
+			fprintf(stdout, "Clipref %d start: %d\n", i, t->clips[i]->pos_sframes);
+		    }
+		}
+		    break;
+
+		    
+		case SDL_SCANCODE_6: {
+		    Timeline *tl = proj->timelines[proj->active_tl_index];
+		    Track *t = tl->tracks[tl->track_selector];
+		    clipref_list_backsort(t->clips, t->num_clips);
+		    for (uint8_t i=0; i<t->num_clips; i++) {
+			fprintf(stdout, "Clipref %d start: %d\n", i, t->clips[i]->pos_sframes);
+		    }
+		}
+		    break;
 	        case SDL_SCANCODE_K:
 		    if (main_win->i_state & I_STATE_K) {
 			break;

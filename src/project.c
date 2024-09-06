@@ -36,6 +36,7 @@
 #include <semaphore.h>
 #include <fcntl.h>
 #include "audio_connection.h"
+#include "clipref_search.h"
 #include "color.h"
 #include "components.h"
 #include "dsp.h"
@@ -1663,12 +1664,19 @@ ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sfr
     }
     cr->lock = SDL_CreateMutex();
     SDL_LockMutex(cr->lock);
-    track->clips[track->num_clips] = cr;
-    track->num_clips++;
+
+
+    
     cr->pos_sframes = record_from_sframes;
     cr->clip = clip;
     cr->track = track;
     cr->home = home;
+
+    /* TESTING */
+    clipref_insert_sorted(cr, track->clips, &track->num_clips, false);
+    /* track->clips[track->num_clips] = cr; */
+    /* track->num_clips++; */
+
 
     Layout *label_lt = layout_add_child(cr->layout);
     label_lt->x.value.intval = CLIPREF_NAMELABEL_H_PAD;

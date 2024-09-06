@@ -98,7 +98,7 @@ typedef struct track {
     uint8_t tl_rank;
 
     ClipRef *clips[MAX_TRACK_CLIPS];
-    uint8_t num_clips;
+    uint16_t num_clips;
     /* uint8_t num_grabbed_clips; */
 
     uint8_t num_takes;

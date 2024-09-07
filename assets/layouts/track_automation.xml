@@ -1,0 +1,36 @@
+<Layout name="track_automation" type="NORMAL">
+  <x>REL 0</x>
+  <y>STACK 4</y>
+  <w>SCALE 1.000000</w>
+  <h>REL 60</h>
+  <index>0</index>
+  <children>
+    <Layout name="automation_console" type="NORMAL">
+      <x>REL 2</x>
+      <y>REL 0</y>
+      <w>REL 150</w>
+      <h>SCALE 1.0</h>
+      <index>0</index>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="colorbar" type="NORMAL">
+      <x>STACK 0</x>
+      <y>REL 0</y>
+      <w>REL 8</w>
+      <h>SCALE 1.0</h>
+      <index>0</index>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="main" type="NORMAL">
+      <x>STACK 0</x>
+      <y>REL 0</y>
+      <w>COMPLEMENT 0</w>
+      <h>SCALE 1.0</h>
+      <index>0</index>
+      <children>
+      </children>
+    </Layout>
+  </children>
+</Layout>

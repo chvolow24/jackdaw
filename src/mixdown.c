@@ -93,6 +93,57 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
         return chunk;
     }
     // uint32_t end_pos_sframes = start_pos_sframes + len_sframes;
+
+    /************************* VOL/PAN AUTOMATION *************************/
+    Automation *vol_auto = NULL;
+    Automation *pan_auto = NULL;
+    float vol_init = track->vol;
+    float pan_init = track->pan;
+    double vol_m = 0.0;
+    double pan_m = 0.0f;
+    int32_t vol_next_kf;
+    int32_t pan_next_kf;
+    for (uint8_t i=0; i<track->num_automations; i++) {
+	Automation *a = track->automations[i];
+	if (a->type == AUTO_VOL) vol_auto = a;
+	else if (a->type == AUTO_PAN) pan_auto = a;
+    }
+    if (vol_auto && vol_auto->read) {
+	if (!vol_auto->current) {
+	    vol_auto->current = automation_get_segment(vol_auto, start_pos_sframes);
+	}
+	if (vol_auto->current) {
+	    vol_init = vol_auto->current->value.float_v + (start_pos_sframes - vol_auto->current->pos) * vol_auto->current->m_fwd;
+	    track->vol = vol_init;
+	    slider_reset(track->vol_ctrl);
+	    vol_m = vol_auto->current->m_fwd;
+	    if (vol_auto->current->next) {
+		vol_next_kf = step > 0.0 ?
+		    vol_auto->current->next->pos :
+		    vol_auto->current->pos;
+	    }
+	}
+    }
+    if (pan_auto && pan_auto->read) {
+	if (!pan_auto->current) {
+	    pan_auto->current = automation_get_segment(pan_auto, start_pos_sframes);
+	}
+	if (pan_auto->current) {
+	    pan_init= pan_auto->current->value.float_v + (start_pos_sframes - pan_auto->current->pos) * pan_auto->current->m_fwd;
+	    track->pan = pan_init;
+	    slider_reset(track->pan_ctrl);
+	    pan_m = pan_auto->current->m_fwd;
+	    if (pan_auto->current->next) {
+		pan_next_kf = step > 0.0 ?
+		    pan_auto->current->next->pos :
+		    pan_auto->current->pos;
+	    }
+	}
+
+    }
+
+
+    /**********************************************************************/
     for (uint8_t i=0; i<track->num_clips; i++) {
 	ClipRef *cr = track->clips[i];
 	if (!cr) {
@@ -124,17 +175,53 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
 	float *clip_buf = (channel == 0) ? cr->clip->L : cr->clip->R;
 	int16_t chunk_i = 0;
 	/* float pan_scale = (channel == 0) ? (track->pan - 0.5) * 2 : track->pan * 2; */
-	double pan_scale = channel == 0 ?
-	    track->pan <= 0.5 ? 1 : (1.0f - track->pan) * 2
-	    : track->pan >= 0.5 ? 1 : track->pan * 2;
+
 	/* double rpan = track->pan < */
+	int32_t abs_pos = start_pos_sframes;
 	while (chunk_i < len_sframes) {
+	    if (step > 0) {
+		if (vol_auto && vol_auto->current && vol_auto->current->next && abs_pos >= vol_next_kf) {
+		    vol_auto->current = vol_auto->current->next;
+		    if (vol_auto->current->next)
+			vol_next_kf = vol_auto->current->next->pos;
+		    vol_m = vol_auto->current->m_fwd;
+		    fprintf(stderr, "RESETTING VOL CURRENT %d\n", vol_next_kf);
+		}
+		if (pan_auto && pan_auto->current && pan_auto->current->next && abs_pos >= pan_next_kf) {
+		    pan_auto->current = pan_auto->current->next;
+		    if (pan_auto->current->next)
+			pan_next_kf = pan_auto->current->next->pos;
+		    pan_m = pan_auto->current->m_fwd;
+		    fprintf(stderr, "RESETTING PAN CURRENT %d\n", pan_next_kf);
+		}
+	    } else {
+		if (vol_auto && vol_auto->current && vol_auto->current->prev && abs_pos <= vol_next_kf) {
+		    vol_auto->current = vol_auto->current->prev;
+		    vol_next_kf = vol_auto->current->pos;
+		    vol_m = vol_auto->current->m_fwd;
+		    fprintf(stderr, "RESETTING VOL CURRENT %d\n", vol_next_kf);
+		}
+		if (pan_auto && pan_auto->current && pan_auto->current->prev && abs_pos <= pan_next_kf) {
+		    pan_auto->current = pan_auto->current->prev;
+		    pan_next_kf = pan_auto->current->pos;
+		    pan_m = pan_auto->current->m_fwd;
+		    fprintf(stderr, "RESETTING PAN CURRENT %d\n", pan_next_kf);
+		}
+
+	    }
+	    float raw_pan = pan_init + pan_m * chunk_i;
+	    double pan_scale = channel == 0 ?
+		raw_pan <= 0.5 ? 1 : (1.0f - raw_pan) * 2
+	    : raw_pan >= 0.5 ? 1 : raw_pan * 2;
+
+	    
 	    if (pos_in_clip_sframes >= 0 && pos_in_clip_sframes < cr_len) {
-		chunk[chunk_i] += clip_buf[(int32_t)pos_in_clip_sframes + cr->in_mark_sframes] * track->vol * pan_scale;
+		chunk[chunk_i] += clip_buf[(int32_t)pos_in_clip_sframes + cr->in_mark_sframes] * (track->vol + vol_m * chunk_i) * pan_scale;
 	    }
 	    pos_in_clip_sframes += step;
 	    /* fprintf(stdout, "Chunk %d: %f\n", chunk_i, chunk[chunk_i]); */
 	    chunk_i++;
+	    abs_pos += step;
 	}
 
 	

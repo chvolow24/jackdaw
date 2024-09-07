@@ -199,6 +199,14 @@ void timeline_set_timecode()
 	/* fprintf(stdout, "Lt w? %d\n", tl->timecode_tb->layout->rect.w); */
     }
 }
+static void track_handle_playhead_jump(Track *track)
+{
+    for (uint8_t i =0; i<track->num_automations; i++) {
+	Automation *a = track->automations[i];
+	a->current = NULL;
+    }
+}
+
 
 void timeline_set_play_position(int32_t abs_pos_sframes)
 {
@@ -215,6 +223,10 @@ void timeline_set_play_position(int32_t abs_pos_sframes)
     /* 	proj->play_speed = saved_speed; */
     /* 	transport_start_playback(); */
     /* } */
+
+    for (uint8_t i=0; i<tl->num_tracks; i++) {
+	track_handle_playhead_jump(tl->tracks[i]);
+    }
     timeline_set_timecode();
     tl->needs_redraw = true;
 }

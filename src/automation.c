@@ -33,54 +33,79 @@
 #include <stdlib.h>
 
 #include "automation.h"
+#include "color.h"
 #include "layout.h"
+#include "layout_xml.h"
 #include "project.h"
 #include "timeline.h"
 #include "value.h"
 
+#define KEYFRAME_DIAG 21
+#define AUTOMATION_LT_H 70
+
+#ifndef INSTALL_DIR
+#define INSTALL_DIR "."
+#endif
+
+#define AUTOMATION_LT_FILEPATH INSTALL_DIR "/assets/layouts/track_automation.xml"
+
 extern Window *main_win;
+extern SDL_Color console_bckgrnd;
+extern SDL_Color control_bar_bckgrnd;
+/* SDL_Color automation_bckgrnd = {0, 25, 26, 255}; */
+SDL_Color automation_bckgrnd = {90, 100, 120, 255};
 
-void track_init_default_automations(Track *track)
-{
-    Automation a = track->vol_automation;
-    a.track = track;
-    a.type = AUTO_VOL;
-    a.min.float_v = 0.0f;
-    a.max.float_v = 1.0f;
-    a.range.float_v = 1.0f;
+const char *AUTOMATION_LABELS[] = {
+    "Volume",
+    "Pan (L->R)",
+    "FIR filter cutoff",
+    "FIR filter bandwidth",
+    "Delay time",
+    "Delay amplitude",
+    "Delay stereo offset"
+};
 
-    a = track->pan_automation;
-    a.track = track;
-    a.type = AUTO_PAN;
-    a.min.float_v = 0.0f;
-    a.min.float_v = 1.0f;
-    a.range.float_v = 1.0f;
-}
+/* void track_init_default_automations(Track *track) */
+/* { */
+/*     Automation a = track->vol_automation; */
+/*     a.track = track; */
+/*     a.type = AUTO_VOL; */
+/*     a.min.float_v = 0.0f; */
+/*     a.max.float_v = 1.0f; */
+/*     a.range.float_v = 1.0f; */
+
+/*     a = track->pan_automation; */
+/*     a.track = track; */
+/*     a.type = AUTO_PAN; */
+/*     a.min.float_v = 0.0f; */
+/*     a.min.float_v = 1.0f; */
+/*     a.range.float_v = 1.0f; */
+/* } */
 
 Automation *track_add_automation(Track *track, AutomationType type)
 {
     Automation *a = calloc(1, sizeof(Automation));
     a->track = track;
     a->type = type;
+    a->read = true;
+    track->automations[track->num_automations] = a;
+    track->num_automations++;
     /* Layout *lt = layout_add_child(track->layout->parent); */
-    Layout *lt = layout_create();
-    lt->w.type = SCALE;
-    lt->w.value.floatval = 1.0;
-    lt->h.type = ABS;
-    lt->h.value.intval = 70;
-    lt->y.type = STACK;
-    a->layout = lt;
-    /* layout_write(stdout, track->layout, 0); */
-    /* exit(0); */
-    layout_insert_child_at(lt, track->layout->parent, track->layout->index + 1);
-    layout_reset(lt->parent);
+
     /* layout_write(stdout, lt->parent, 0); */
     switch (type) {
     case AUTO_VOL:
 	a->val_type = JDAW_FLOAT;
+	a->min.float_v = 0.0f;
+	a->max.float_v = TRACK_VOL_MAX;
+	a->range.float_v = TRACK_VOL_MAX;
 	a->target_val = &track->vol;
+	break;
     case AUTO_PAN:
 	a->val_type = JDAW_FLOAT;
+	a->min.float_v = 0.0f;
+	a->max.float_v = 1.0f;
+	a->range.float_v = 1.0f;
 	a->target_val = &track->pan;
 	break;
     case AUTO_FIR_FILTER_CUTOFF:
@@ -106,6 +131,44 @@ Automation *track_add_automation(Track *track, AutomationType type)
     return a;
 }
 
+void track_automations_show_all(Track *track)
+{
+    for (uint8_t i=0; i<track->num_automations; i++) {
+	Automation *a = track->automations[i];
+	a->shown = true;
+	if (!a->layout) {
+	    Layout *lt = layout_read_from_xml(AUTOMATION_LT_FILEPATH);
+	    a->layout = lt;
+	    Layout *console = layout_get_child_by_name_recursive(lt, "automation_console");
+	    a->console_rect = &console->rect;
+	    a->bckgrnd_rect = &lt->rect;
+	    Layout *color_bar = layout_get_child_by_name_recursive(lt, "colorbar");
+	    a->color_bar_rect = &color_bar->rect;
+	    Layout *main = layout_get_child_by_name_recursive(lt, "main");
+	    a->bckgrnd_rect = &main->rect;
+	/* layout_write(stdout, track->layout, 0); */
+	/* exit(0); */
+	    layout_insert_child_at(lt, track->layout->parent, track->layout->index + 1);
+	} else {
+	    a->layout->h.value.intval = AUTOMATION_LT_H;
+	}
+    }
+    timeline_reset(track->tl);
+}
+
+void track_automations_hide_all(Track *track)
+{
+    for (uint8_t i=0; i<track->num_automations; i++) {
+	Automation *a = track->automations[i];
+	a->shown = false;
+	Layout *lt = a->layout;
+	if (lt) {
+	    lt->h.value.intval = 0;
+	}
+    }
+    timeline_reset(track->tl);
+}
+
 static void keyframe_recalculate_m(Keyframe *k, ValType type)
 {
     if (!k->next) return;
@@ -122,6 +185,7 @@ Keyframe *automation_insert_keyframe_after(
 {
     Keyframe *k = calloc(1, sizeof(Keyframe));
     k->value = val;
+    k->pos = pos;
     if (insert_after) {
 	Keyframe *next = insert_after->next;
 	insert_after->next = k;
@@ -137,6 +201,11 @@ Keyframe *automation_insert_keyframe_after(
     } else {
 	automation->first = k;
 	automation->last = k;
+    }
+    Keyframe *print = automation->first;
+    while (print) {
+	fprintf(stdout, "keyframe at pos: %d\n", print->pos);
+	print = print->next;
     }
     return k;
 }
@@ -182,41 +251,87 @@ Keyframe *automation_get_segment(Automation *a, int32_t at)
     else return k;
 }
 
+static inline bool segment_intersects_screen(int a, int b)
+{
+    return (b >= 0 && main_win->w_pix >= a);
+   
+}
 
-static inline bool offscreen_left(int x)
-{
-    return x < 0;
-}
-static inline bool offscreen_right(int x)
-{
-    return x > main_win->w_pix;
-}
-static inline bool onscreen(int x)
+static inline bool x_onscreen(int x)
 {
     return (x > 0 && x < main_win->w_pix);
 }
 
-static inline bool segment_intersects_screen(int a, int b)
+static inline void keyframe_draw(int x, int y)
 {
-    return (offscreen_left(a) && offscreen_right(b)) || onscreen(a) || onscreen(b);
-}
-Automation *automation_draw(Automation *a)
-{
-    Keyframe *k = a->first;
-    while (k && k->next) {
-	int k_pos = timeline_get_draw_x(k->pos);
-	int next_pos = timeline_get_draw_x(k->next->pos);
-	if (segment_intersects_screen(k_pos, next_pos)) {
-	    int y_left, y_right;
-	    Value v = jdaw_val_sub(k->value, a->min, a->val_type);
-	    double scaled = jdaw_val_div_double(v, a->range, a->val_type);
-	    y_left = scaled * a->layout->rect.w;
-	    v = jdaw_val_sub(k->next->value, a->min, a->val_type);
-	    scaled = jdaw_val_div_double(v, a->range, a->val_type);
-	    y_right = scaled * a->layout->rect.w;
-	    SDL_RenderDrawLine(main_win->rend, k_pos, y_left, next_pos, y_right);
-	    
+    int half_diag = KEYFRAME_DIAG / 2;
+    x -= half_diag;
+    int y1 = y;
+    int y2 = y;
+    for (int i=0; i<KEYFRAME_DIAG; i++) {
+	SDL_RenderDrawLine(main_win->rend, x, y1, x, y2);
+	if (i < half_diag) {
+	    y1--;
+	    y2++;
+	} else {
+	    y1++;
+	    y2--;
 	}
+	x++;
     }
+
+}
+
+void automation_draw(Automation *a)
+{
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(automation_bckgrnd));
+    SDL_RenderFillRect(main_win->rend, a->bckgrnd_rect);
+    
+    Keyframe *k = a->first;
+
+    bool set_k = true;
+    int bottom_y = a->layout->rect.y + a->layout->rect.h;
+    int y_left = 0;
+    int y_right = 0;
+    int k_pos;
+    int next_pos;
+    SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255);
+    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(a->track->color)); */
+    while (k) {
+	if (set_k) {
+	    k_pos = timeline_get_draw_x(k->pos);
+	} else {
+	    k_pos = next_pos;
+	}
+	/* fprintf(stdout, "DRAWING k pos: %d\n", k_pos); */
+	if (x_onscreen(k_pos)) {
+	    if (set_k) {
+		Value v = jdaw_val_sub(k->value, a->min, a->val_type);
+	        double scaled = jdaw_val_div_double(v, a->range, a->val_type);
+	        y_left = bottom_y -  scaled * a->layout->rect.h;
+	    } else {
+		y_left = y_right;
+	    }
+	    keyframe_draw(k_pos, y_left);
+	}
+	if (k->next) {
+	    next_pos = timeline_get_draw_x(k->next->pos);
+	    if (segment_intersects_screen(k_pos, next_pos)) {
+		Value v = jdaw_val_sub(k->next->value, a->min, a->val_type);
+		double scaled = jdaw_val_div_double(v, a->range, a->val_type);
+		y_right = bottom_y -  scaled * a->layout->rect.h;
+		SDL_RenderDrawLine(main_win->rend, k_pos, y_left, next_pos, y_right); 
+	    }
+	}
+	set_k = false;
+	k = k->next;
+    }
+
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(a->track->color));
+    SDL_RenderFillRect(main_win->rend, a->color_bar_rect);
+
+    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(console_bckgrnd)); */
+    /* SDL_RenderFillRect(main_win->rend, a->console_rect); */
+
 }
 

@@ -73,6 +73,8 @@
 #define MAX_STATUS_STRLEN 255
 #define MAX_TRACK_FILTERS 4
 
+#define TRACK_VOL_MAX 3.0f
+
 #define PROJ_TL_LABEL_BUFLEN 50
 
 #define PLAYHEAD_TRI_H (10 * main_win->dpi_scale_factor)
@@ -127,8 +129,6 @@ typedef struct track {
     DelayLine delay_line;
     bool delay_line_active;
 
-    Automation vol_automation;
-    Automation pan_automation;
     Automation *automations[MAX_TRACK_AUTOMATIONS];
     uint8_t num_automations;
     /* uint8_t num_filters; */

@@ -36,6 +36,7 @@
 #define JDAW_AUTOMATION_H
 
 #include "layout.h"
+#include "textbox.h"
 #include "value.h"
 
 #define MAX_TRACK_AUTOMATIONS 8
@@ -47,13 +48,13 @@ typedef struct keyframe Keyframe;
 typedef struct keyframe_clip KClip;
 
 typedef enum automation_type {
-    AUTO_VOL,
-    AUTO_PAN,
-    AUTO_FIR_FILTER_CUTOFF,
-    AUTO_FIR_FILTER_BANDWIDTH,
-    AUTO_DEL_TIME,
-    AUTO_DEL_AMP,
-    AUTO_DEL_STEREO_OFFSET
+    AUTO_VOL = 0,
+    AUTO_PAN = 1,
+    AUTO_FIR_FILTER_CUTOFF = 2,
+    AUTO_FIR_FILTER_BANDWIDTH = 3,
+    AUTO_DEL_TIME = 4,
+    AUTO_DEL_AMP = 5,
+    AUTO_DEL_STEREO_OFFSET = 6
 } AutomationType;
 
 typedef struct keyframe {
@@ -84,8 +85,13 @@ typedef struct automation {
     Keyframe *first;
     Keyframe *last;
     Keyframe *current;
-    
+
+    bool shown;
+    Textbox *label;
     Layout *layout;
+    SDL_Rect *console_rect;
+    SDL_Rect *bckgrnd_rect;
+    SDL_Rect *color_bar_rect;
 } Automation;
 
 typedef struct keyframe_clip {
@@ -99,8 +105,19 @@ typedef struct keyframe_clipref {
     int32_t pos;
 } KClipRef;
 
-
 Automation *track_add_automation(Track *track, AutomationType type);
-
-
+void automation_draw(Automation *a);
+Keyframe *automation_insert_keyframe_after(
+    Automation *automation,
+    Keyframe *insert_after,
+    Value val,
+    int32_t pos);
+Keyframe *automation_insert_keyframe_before(
+    Automation *automation,
+    Keyframe *insert_before,
+    Value val,
+    int32_t pos);
+Keyframe *automation_get_segment(Automation *a, int32_t at);
+void track_automations_show_all(Track *track);
+void track_automations_hide_all(Track *track);
 #endif

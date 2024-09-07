@@ -56,7 +56,7 @@
 #define LT_DEV_MODE 0
 
 #ifndef INSTALL_DIR
-#define INSTALL_DIR ""
+#define INSTALL_DIR "."
 #endif
 
 /* #define WINDOW_DEFAULT_W 900 */

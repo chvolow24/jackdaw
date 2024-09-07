@@ -321,9 +321,49 @@ void loop_project_main()
 		case SDL_SCANCODE_RALT:
 		    main_win->i_state |= I_STATE_META;
 		    break;
-		case SDL_SCANCODE_6:
-		    track_add_automation(proj->timelines[0]->tracks[0], AUTO_VOL);
-		    break;
+		case SDL_SCANCODE_6: {
+		    Timeline *tl = proj->timelines[proj->active_tl_index];
+		    Track *track = tl->tracks[tl->track_selector];
+		    if (track->num_automations == 0) {
+			fprintf(stdout, "OK vol\n");
+			Automation *a = track_add_automation(track, AUTO_VOL);
+
+			Value v = {.float_v = 0.3};
+			Keyframe *k = automation_insert_keyframe_after(a, NULL, v, 200);
+			v.float_v = 1.7;
+			k = automation_insert_keyframe_after(a, k, v, 48000);
+			v.float_v = 0.1;
+			k = automation_insert_keyframe_after(a, k, v, (48000 * 5));
+			v.float_v = 3.0f;
+			k = automation_insert_keyframe_after(a, k, v, (48000 *6));
+			k = automation_insert_keyframe_after(a, k, v, (48000 *7));
+			v.float_v = 0.0f;
+			k = automation_insert_keyframe_after(a, k, v, (48000 *7.5));
+			k = automation_insert_keyframe_after(a, k, v, (48000 *8.0));
+			v.float_v = 2.5f;
+			k = automation_insert_keyframe_after(a, k, v, (48000 *9));
+		    } else {
+			fprintf(stdout, "ok pan\n");
+			Automation *a = track_add_automation(track, AUTO_PAN);
+			Value v = {.float_v = 0.3};
+			Keyframe *k = automation_insert_keyframe_after(a, NULL, v, 200);
+			v.float_v = 1.0;
+			k = automation_insert_keyframe_after(a, k, v, 48000 * 2);
+			v.float_v = 0.1;
+			k = automation_insert_keyframe_after(a, k, v, (48000 * 6));
+			v.float_v = 1.0f;
+			k = automation_insert_keyframe_after(a, k, v, (48000 *6.8));
+			k = automation_insert_keyframe_after(a, k, v, (48000 *7));
+			v.float_v = 0.5f;
+			k = automation_insert_keyframe_after(a, k, v, (48000 *7.7));
+			k = automation_insert_keyframe_after(a, k, v, (48000 *8.8));
+			v.float_v = 0.0f;
+			k = automation_insert_keyframe_after(a, k, v, (48000 *10));
+		    }
+		    track_automations_show_all(track);
+
+
+		} break;
 		/* case SDL_SCANCODE_X: */
 		/*     if (main_win->i_state & I_STATE_CMDCTRL) { */
 		/* 	main_win->i_state |= I_STATE_C_X; */

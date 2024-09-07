@@ -257,7 +257,14 @@ static void track_draw(Track *track)
     }
 
     slider_draw(track->vol_ctrl);
-    slider_draw(track->pan_ctrl);}
+    slider_draw(track->pan_ctrl);
+    for (uint8_t i=0; i<track->num_automations; i++) {
+	Automation *a = track->automations[i];
+	if (a->shown) {
+	    automation_draw(a);
+	}
+    }
+}
 
 static void ruler_draw(Timeline *tl)
 {

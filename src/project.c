@@ -1423,7 +1423,7 @@ Track *timeline_add_track(Timeline *tl)
     SliderStrFn t;
     Value min, max;
     min.float_v = 0.0f;
-    max.float_v = 3.0f;
+    max.float_v = TRACK_VOL_MAX;
     slider_set_range(track->vol_ctrl, min, max);
 
     Layout *pan_ctrl_row = layout_get_child_by_name_recursive(track->layout, "pan_slider");

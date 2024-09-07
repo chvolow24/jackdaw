@@ -6,17 +6,17 @@
   <index>0</index>
   <children>
     <Layout name="track_console" type="NORMAL">
-      <x>REL 3</x>
-      <y>REL 3</y>
+      <x>REL 2</x>
+      <y>REL 0</y>
       <w>REL 150</w>
-      <h>ABS 90</h>
+      <h>SCALE 1.0</h>
       <index>0</index>
       <children>
         <Layout name="name_row" type="NORMAL">
           <x>REL 0</x>
-          <y>REL 0</y>
+          <y>REL 2</y>
           <w>SCALE 1.000000</w>
-          <h>SCALE 0.250000</h>
+          <h>REL 23</h>
           <index>0</index>
           <children>
             <Layout name="name_value" type="NORMAL">
@@ -50,9 +50,9 @@
         </Layout>
         <Layout name="vol_row" type="NORMAL">
           <x>REL 0</x>
-          <y>SCALE 0.250000</y>
+          <y>STACK 0</y>
           <w>SCALE 1.000000</w>
-          <h>SCALE 0.250000</h>
+          <h>REL 23</h>
           <index>1</index>
           <children>
             <Layout name="vol_label" type="NORMAL">
@@ -77,9 +77,9 @@
         </Layout>
         <Layout name="pan_row" type="NORMAL">
           <x>REL 0</x>
-          <y>SCALE 0.500000</y>
+          <y>STACK 0</y>
           <w>SCALE 1.000000</w>
-          <h>SCALE 0.250000</h>
+          <h>REL 23</h>
           <index>2</index>
           <children>
             <Layout name="pan_label" type="NORMAL">
@@ -104,9 +104,9 @@
         </Layout>
         <Layout name="in_row" type="NORMAL">
           <x>REL 0</x>
-          <y>SCALE 0.750000</y>
+          <y>STACK 0</y>
           <w>SCALE 1.000000</w>
-          <h>SCALE 0.250000</h>
+          <h>REL 23</h>
           <index>3</index>
           <children>
             <Layout name="in_label" type="NORMAL">
@@ -131,9 +131,9 @@
         </Layout>
         <Layout name="colorbar" type="NORMAL">
           <x>STACK 0</x>
-          <y>REL -3</y>
+          <y>REL 0</y>
           <w>REL 8</w>
-          <h>REL 96</h>
+          <h>SCALE 1.0</h>
           <index>4</index>
           <children>
           </children>

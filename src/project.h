@@ -51,7 +51,7 @@
 #include <semaphore.h>
 #include <stdbool.h>
 #include <stdint.h>
-
+#include "automation.h"
 #include "dsp.h"
 #include "components.h"
 #include "panel.h"
@@ -126,6 +126,11 @@ typedef struct track {
     
     DelayLine delay_line;
     bool delay_line_active;
+
+    Automation vol_automation;
+    Automation pan_automation;
+    Automation *automations[MAX_TRACK_AUTOMATIONS];
+    uint8_t num_automations;
     /* uint8_t num_filters; */
     
     /* FSLIDER *vol_ctrl */

@@ -171,12 +171,6 @@ uint8_t project_add_timeline(Project *proj, char *name)
     textbox_set_background_color(new_tl->timecode_tb, &color_global_black);
     textbox_set_text_color(new_tl->timecode_tb, &color_global_white);
     textbox_set_trunc(new_tl->timecode_tb, false);
-    /* textbox_size_to_fit(new_tl->timecode_tb, 0, 0); */
-    
-    /* new_tl->track_selector = 0; */
-    /* new_tl->mixdown_L = malloc(sizeof(float) * proj->chunk_size_sframes); */
-    /* new_tl->mixdown_R = malloc(sizeof(float) * proj->chunk_size_sframes); */
-
 
     new_tl->buf_L = calloc(1, sizeof(float) * proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS);
     new_tl->buf_R = calloc(1, sizeof(float) * proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS);
@@ -276,13 +270,6 @@ static void timeline_destroy(Timeline *tl, bool displace_in_proj)
 	perror("Error in sem unlink");
     }
 
-
-    /* if (tl->mixdown_L) { */
-    /* 	free(tl->mixdown_L); */
-    /* } */
-    /* if (tl->mixdown_R) { */
-    /* 	free(tl->mixdown_R); */
-    /* } */
     layout_destroy(tl->layout);
     free(tl);
 
@@ -301,16 +288,14 @@ void project_destroy(Project *proj)
     for (uint8_t i=0; i<proj->num_timelines; i++) {
 	timeline_destroy(proj->timelines[i], false);
     }
-    /* fprintf(stdout, "Proj num timelines? %d\n", proj->num_timelines); */
-    /* textbox_destroy(proj->timeline_label); */
+
     for (uint8_t i=0; i<proj->num_record_conns; i++) {
 	audioconn_destroy(proj->record_conns[i]);
     }
     for (uint8_t i=0; i<proj->num_playback_conns; i++) {
 	audioconn_destroy(proj->playback_conns[i]);
     }
-    /* fprintf(stdout, "Proj %d clips remaining\n", proj->num_clips); */
-    /* exit(1); */
+
     for (uint8_t i=0; i<proj->num_clips; i++) {
 	clip_destroy_no_displace(proj->clips[i]);
     }
@@ -318,32 +303,8 @@ void project_destroy(Project *proj)
     free(proj->output_R);
     free(proj->output_L_freq);
     free(proj->output_R_freq);
-    /* fprintf(stdout, "Tbs? %p %p\n", */
-    /* 	    proj->tb_out_label, */
-    /* 	    proj->tb_out_value); */
-    /* textbox_destroy(proj->tb_out_label); */
-    /* textbox_destroy(proj->tb_out_value); */
-    /* textbox_destroy(proj->source_name_tb); */
+
     textbox_destroy(proj->timeline_label);
-
-    /* DESTROY QUICKREF */
-    /* struct quickref q = proj->quickref; */
-    /* if (q.add_track) button_destroy(q.add_track); */
-    /* if (q.record) button_destroy(q.record); */
-    /* if (q.left) button_destroy(q.left); */
-    /* if (q.rewind) button_destroy(q.rewind); */
-    /* if (q.play) button_destroy(q.play); */
-    /* if (q.right) button_destroy(q.right); */
-    /* if (q.pause) button_destroy(q.pause); */
-    /* if (q.next) button_destroy(q.next); */
-    /* if (q.previous) button_destroy(q.previous); */
-    /* if (q.zoom_in) button_destroy(q.zoom_in); */
-    /* if (q.zoom_out) button_destroy(q.zoom_out); */
-
-    /* if (q.open_file) button_destroy(q.open_file); */
-    /* if (q.save) button_destroy(q.save); */
-    /* if (q.export_wav) button_destroy(q.export_wav); */
-    /* if (q.track_settings) button_destroy(q.track_settings); */
 
     panel_area_destroy(proj->panels);
     

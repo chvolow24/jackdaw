@@ -33,7 +33,6 @@
 #include "dsp.h"
 #include "project.h"
 
-
 extern Project *proj;
 
 /* /\* Query track clips and return audio sample representing a given point in the timeline.  */

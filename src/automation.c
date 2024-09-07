@@ -30,14 +30,51 @@
     * All operations related to track automation
  *****************************************************************************************************************/
 
+#include <stdlib.h>
+
 #include "automation.h"
+#include "layout.h"
+#include "project.h"
+#include "timeline.h"
 #include "value.h"
+
+extern Window *main_win;
+
+void track_init_default_automations(Track *track)
+{
+    Automation a = track->vol_automation;
+    a.track = track;
+    a.type = AUTO_VOL;
+    a.min.float_v = 0.0f;
+    a.max.float_v = 1.0f;
+    a.range.float_v = 1.0f;
+
+    a = track->pan_automation;
+    a.track = track;
+    a.type = AUTO_PAN;
+    a.min.float_v = 0.0f;
+    a.min.float_v = 1.0f;
+    a.range.float_v = 1.0f;
+}
 
 Automation *track_add_automation(Track *track, AutomationType type)
 {
     Automation *a = calloc(1, sizeof(Automation));
     a->track = track;
     a->type = type;
+    /* Layout *lt = layout_add_child(track->layout->parent); */
+    Layout *lt = layout_create();
+    lt->w.type = SCALE;
+    lt->w.value.floatval = 1.0;
+    lt->h.type = ABS;
+    lt->h.value.intval = 70;
+    lt->y.type = STACK;
+    a->layout = lt;
+    /* layout_write(stdout, track->layout, 0); */
+    /* exit(0); */
+    layout_insert_child_at(lt, track->layout->parent, track->layout->index + 1);
+    layout_reset(lt->parent);
+    /* layout_write(stdout, lt->parent, 0); */
     switch (type) {
     case AUTO_VOL:
 	a->val_type = JDAW_FLOAT;
@@ -146,4 +183,40 @@ Keyframe *automation_get_segment(Automation *a, int32_t at)
 }
 
 
+static inline bool offscreen_left(int x)
+{
+    return x < 0;
+}
+static inline bool offscreen_right(int x)
+{
+    return x > main_win->w_pix;
+}
+static inline bool onscreen(int x)
+{
+    return (x > 0 && x < main_win->w_pix);
+}
+
+static inline bool segment_intersects_screen(int a, int b)
+{
+    return (offscreen_left(a) && offscreen_right(b)) || onscreen(a) || onscreen(b);
+}
+Automation *automation_draw(Automation *a)
+{
+    Keyframe *k = a->first;
+    while (k && k->next) {
+	int k_pos = timeline_get_draw_x(k->pos);
+	int next_pos = timeline_get_draw_x(k->next->pos);
+	if (segment_intersects_screen(k_pos, next_pos)) {
+	    int y_left, y_right;
+	    Value v = jdaw_val_sub(k->value, a->min, a->val_type);
+	    double scaled = jdaw_val_div_double(v, a->range, a->val_type);
+	    y_left = scaled * a->layout->rect.w;
+	    v = jdaw_val_sub(k->next->value, a->min, a->val_type);
+	    scaled = jdaw_val_div_double(v, a->range, a->val_type);
+	    y_right = scaled * a->layout->rect.w;
+	    SDL_RenderDrawLine(main_win->rend, k_pos, y_left, next_pos, y_right);
+	    
+	}
+    }
+}
 

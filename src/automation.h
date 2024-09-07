@@ -35,7 +35,12 @@
 #ifndef JDAW_AUTOMATION_H
 #define JDAW_AUTOMATION_H
 
-#include "project.h"
+#include "layout.h"
+#include "value.h"
+
+#define MAX_TRACK_AUTOMATIONS 8
+
+typedef struct track Track;
 
 typedef struct automation Automation;
 typedef struct keyframe Keyframe;
@@ -68,6 +73,9 @@ typedef struct automation {
     Track *track;
     AutomationType type;
     ValType val_type;
+    Value max;
+    Value min;
+    Value range;
     void *target_val;
     
     bool read;
@@ -76,7 +84,8 @@ typedef struct automation {
     Keyframe *first;
     Keyframe *last;
     Keyframe *current;
-    /* ComponentFn read_action; */
+    
+    Layout *layout;
 } Automation;
 
 typedef struct keyframe_clip {
@@ -89,6 +98,9 @@ typedef struct keyframe_clipref {
     Automation *automation;
     int32_t pos;
 } KClipRef;
+
+
+Automation *track_add_automation(Track *track, AutomationType type);
 
 
 #endif

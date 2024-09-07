@@ -35,6 +35,7 @@
 #include <time.h>
 #include "SDL.h"
 #include "audio_connection.h"
+#include "automation.h"
 #include "components.h"
 #include "draw.h"
 #include "dsp.h"
@@ -320,11 +321,26 @@ void loop_project_main()
 		case SDL_SCANCODE_RALT:
 		    main_win->i_state |= I_STATE_META;
 		    break;
+		case SDL_SCANCODE_6:
+		    track_add_automation(proj->timelines[0]->tracks[0], AUTO_VOL);
+		    break;
 		/* case SDL_SCANCODE_X: */
 		/*     if (main_win->i_state & I_STATE_CMDCTRL) { */
 		/* 	main_win->i_state |= I_STATE_C_X; */
 		/*     } */
 		/*     break; */
+		case SDL_SCANCODE_7: {
+		    Timeline *tl = proj->timelines[proj->active_tl_index];
+		    Track *track = tl->tracks[tl->track_selector];
+		    track->layout->h.value.intval-=10;
+		    timeline_reset(tl);
+		} break;
+		case SDL_SCANCODE_8: {
+		    Timeline *tl = proj->timelines[proj->active_tl_index];
+		    Track *track = tl->tracks[tl->track_selector];
+		    track->layout->h.value.intval+=10;
+		    timeline_reset(tl);
+		} break;   
 	        case SDL_SCANCODE_K:
 		    if (main_win->i_state & I_STATE_K) {
 			break;

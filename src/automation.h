@@ -35,6 +35,7 @@
 #ifndef JDAW_AUTOMATION_H
 #define JDAW_AUTOMATION_H
 
+#include "components.h"
 #include "layout.h"
 #include "textbox.h"
 #include "value.h"
@@ -65,6 +66,8 @@ typedef struct keyframe {
 
     Keyframe *prev;
     Keyframe *next;
+
+    double draw_y_prop;
     
     KClip *kclip; /* Optional; used for replication of envelopes */
     int32_t pos_rel; /* Position relative to KClip start */
@@ -72,6 +75,7 @@ typedef struct keyframe {
 
 typedef struct automation {
     Track *track;
+    int index;
     AutomationType type;
     ValType val_type;
     Value max;
@@ -88,6 +92,8 @@ typedef struct automation {
 
     bool shown;
     Textbox *label;
+    Button *read_button;
+    Button *write_button;
     Layout *layout;
     SDL_Rect *console_rect;
     SDL_Rect *bckgrnd_rect;

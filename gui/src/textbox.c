@@ -20,7 +20,7 @@ int textbox_default_radius = 0;
 
 /*txt_create_from_str(char *set_str, int max_len, SDL_Rect *container, TTF_Font *font, SDL_Color txt_clr, TextAlign align, bool truncate, SDL_Renderer *rend) -> Text **/
 Textbox *textbox_create_from_str(
-    char *set_str,
+    const char *set_str,
     Layout *lt,
     Font *font,
     uint8_t text_size,

@@ -52,7 +52,7 @@ enum textbox_style {
 Textbox *textbox_create();
 void textbox_destroy(Textbox *);
 Textbox *textbox_create_from_str(
-    char *set_str,
+    const char *set_str,
     Layout *lt,
     /* TTF_Font *font, */
     Font *font,

@@ -407,11 +407,14 @@ int main(int argc, char** argv)
 			    layout_copy(clicked_lt, clicked_lt->parent);
 			}
 		    } else if (shiftdown) {
+			fprintf(stderr, "SHIFT C\n");
 			Layout *new_child;
 			if (layout_clicked && clicked_lt) {
+			    fprintf(stderr, "\tok\n");
 			    new_child = layout_add_child(clicked_lt);
 			    layout_set_default_dims(new_child);
 			    layout_reset(new_child);
+			    fprintf(stderr, "New child: %s\n", new_child->name);
 			} else {
 			    new_child = layout_add_child(main_lt);
 			}

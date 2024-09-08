@@ -122,6 +122,10 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
 		    vol_auto->current->next->pos :
 		    vol_auto->current->pos;
 	    }
+	} else {
+	    vol_init = vol_auto->first->value.float_v;
+	    track->vol = vol_init;
+	    slider_reset(track->vol_ctrl);
 	}
     }
     if (pan_auto && pan_auto->read) {
@@ -138,12 +142,17 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
 		    pan_auto->current->next->pos :
 		    pan_auto->current->pos;
 	    }
+	} else {
+	    pan_init = pan_auto->first->value.float_v;
+	    track->pan = pan_init;
+	    slider_reset(track->pan_ctrl);
 	}
 
     }
 
 
     /**********************************************************************/
+    bool clip_read = false;
     for (uint8_t i=0; i<track->num_clips; i++) {
 	ClipRef *cr = track->clips[i];
 	if (!cr) {
@@ -185,27 +194,35 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
 		    if (vol_auto->current->next)
 			vol_next_kf = vol_auto->current->next->pos;
 		    vol_m = vol_auto->current->m_fwd;
-		    fprintf(stderr, "RESETTING VOL CURRENT %d\n", vol_next_kf);
+		    /* fprintf(stderr, "RESETTING VOL CURRENT %d\n", vol_next_kf); */
 		}
 		if (pan_auto && pan_auto->current && pan_auto->current->next && abs_pos >= pan_next_kf) {
 		    pan_auto->current = pan_auto->current->next;
 		    if (pan_auto->current->next)
 			pan_next_kf = pan_auto->current->next->pos;
 		    pan_m = pan_auto->current->m_fwd;
-		    fprintf(stderr, "RESETTING PAN CURRENT %d\n", pan_next_kf);
+		    /* fprintf(stderr, "RESETTING PAN CURRENT %d\n", pan_next_kf); */
 		}
 	    } else {
-		if (vol_auto && vol_auto->current && vol_auto->current->prev && abs_pos <= vol_next_kf) {
-		    vol_auto->current = vol_auto->current->prev;
-		    vol_next_kf = vol_auto->current->pos;
-		    vol_m = vol_auto->current->m_fwd;
-		    fprintf(stderr, "RESETTING VOL CURRENT %d\n", vol_next_kf);
+		if (vol_auto) {
+		    if (vol_auto->current && vol_auto->current->prev && abs_pos <= vol_next_kf) {
+			vol_auto->current = vol_auto->current->prev;
+			vol_next_kf = vol_auto->current->pos;
+			vol_m = vol_auto->current->m_fwd;
+			/* fprintf(stderr, "RESETTING VOL CURRENT %d\n", vol_next_kf); */
+		    } else {
+			vol_auto->current = NULL;
+		    }
 		}
-		if (pan_auto && pan_auto->current && pan_auto->current->prev && abs_pos <= pan_next_kf) {
-		    pan_auto->current = pan_auto->current->prev;
-		    pan_next_kf = pan_auto->current->pos;
-		    pan_m = pan_auto->current->m_fwd;
-		    fprintf(stderr, "RESETTING PAN CURRENT %d\n", pan_next_kf);
+		if (pan_auto) {
+		    if (pan_auto->current && pan_auto->current->prev && abs_pos <= pan_next_kf) {
+			pan_auto->current = pan_auto->current->prev;
+			pan_next_kf = pan_auto->current->pos;
+			pan_m = pan_auto->current->m_fwd;
+			/* fprintf(stderr, "RESETTING PAN CURRENT %d\n", pan_next_kf); */
+		    } else {
+			pan_auto->current = NULL;
+		    }
 		}
 
 	    }
@@ -222,11 +239,15 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
 	    /* fprintf(stdout, "Chunk %d: %f\n", chunk_i, chunk[chunk_i]); */
 	    chunk_i++;
 	    abs_pos += step;
-	}
-
-	
-	
+	}	
 	SDL_UnlockMutex(cr->lock);
+	clip_read = true;
+    }
+    if (!clip_read) {
+	if (vol_auto)
+	    vol_auto->current = NULL;
+	if (pan_auto)
+	    pan_auto->current = NULL;
     }
 
     /* for (uint32_t i=0; i<len_sframes; i++) { */

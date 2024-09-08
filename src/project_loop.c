@@ -325,7 +325,6 @@ void loop_project_main()
 		    Timeline *tl = proj->timelines[proj->active_tl_index];
 		    Track *track = tl->tracks[tl->track_selector];
 		    if (track->num_automations == 0) {
-			fprintf(stdout, "OK vol\n");
 			Automation *a = track_add_automation(track, AUTO_VOL);
 
 			Value v = {.float_v = 0.3};
@@ -343,7 +342,6 @@ void loop_project_main()
 			v.float_v = 2.5f;
 			k = automation_insert_keyframe_after(a, k, v, (48000 *9));
 		    } else {
-			fprintf(stdout, "ok pan\n");
 			Automation *a = track_add_automation(track, AUTO_PAN);
 			Value v = {.float_v = 0.3};
 			Keyframe *k = automation_insert_keyframe_after(a, NULL, v, 200);

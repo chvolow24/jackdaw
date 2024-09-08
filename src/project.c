@@ -86,6 +86,7 @@
 #define TRACK_VOL_STEP 0.03
 #define TRACK_PAN_STEP 0.01
 
+
 #define SEM_NAME_UNPAUSE "/tl_%d_unpause_sem"
 #define SEM_NAME_WRITABLE_CHUNKS "/tl_%d_writable_chunks"
 #define SEM_NAME_READABLE_CHUNKS "/tl_%d_readable_chunks"
@@ -528,28 +529,6 @@ Project *project_create(
     proj->bun_patty_bun[2] = &hamburger_lt->children[2]->children[0]->rect;
     return proj;
 }
-
-
-
-
-/* static inline Button *create_button_from_params(Layout *lt, struct button_params b) */
-/* { */
-/*     Button *button = button_create( */
-/* 	lt, */
-/* 	b.set_str, */
-/* 	b.action, */
-/* 	b.target, */
-/* 	b.font, */
-/* 	b.text_size, */
-/* 	b.text_color, */
-/* 	b.background_color */
-/* 	); */
-/*     Textbox *tb = button->tb; */
-/*     tb->layout->h.value.floatval = 0.8; */
-/*     layout_force_reset(tb->layout); */
-/*     textbox_reset_full(button->tb); */
-/*     return button;    */
-/* } */
 
 static int quickref_add_track(void *self_v, void *target)
 {
@@ -1369,7 +1348,7 @@ Track *timeline_add_track(Timeline *tl)
 	main_win->std_font,
 	12,
 	main_win);
-    track->tb_input_name->corner_radius = 6;
+    track->tb_input_name->corner_radius = BUBBLE_CORNER_RADIUS;
     /* textbox_set_align(track->tb_input_name, CENTER_LEFT); */
     /* int saved_w = track->tb_input_name->layout->rect.w / main_win->dpi_scale_factor; */
     /* textbox_size_to_fit(track->tb_input_name, 10, 0); */
@@ -1383,7 +1362,7 @@ Track *timeline_add_track(Timeline *tl)
 	main_win->bold_font,
 	14,
 	main_win);
-    track->tb_mute_button->corner_radius = 4;
+    track->tb_mute_button->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
     textbox_set_border(track->tb_mute_button, &color_global_black, 1);
     textbox_set_background_color(track->tb_mute_button, &color_mute_solo_grey);
     textbox_reset_full(track->tb_mute_button);
@@ -1394,7 +1373,7 @@ Track *timeline_add_track(Timeline *tl)
 	main_win->bold_font,
 	14,
 	main_win);
-    track->tb_solo_button->corner_radius = 4;
+    track->tb_solo_button->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
     textbox_set_border(track->tb_solo_button, &color_global_black, 1);
     textbox_set_background_color(track->tb_solo_button, &color_mute_solo_grey);
     textbox_reset_full(track->tb_solo_button);
@@ -1597,14 +1576,14 @@ static void track_reset_full(Track *track)
 
 static void track_reset(Track *track)
 {
-    textbox_reset(track->tb_name);
-    textbox_reset(track->tb_input_label);
-    textbox_reset(track->tb_mute_button);
-    textbox_reset(track->tb_solo_button);
-    textbox_reset(track->tb_vol_label);
-    textbox_reset(track->tb_pan_label);
-    textbox_reset(track->tb_input_label);
-    textbox_reset(track->tb_input_name);
+    /* textbox_reset(track->tb_name); */
+    /* textbox_reset(track->tb_input_label); */
+    /* textbox_reset(track->tb_mute_button); */
+    /* textbox_reset(track->tb_solo_button); */
+    /* textbox_reset(track->tb_vol_label); */
+    /* textbox_reset(track->tb_pan_label); */
+    /* textbox_reset(track->tb_input_label); */
+    /* textbox_reset(track->tb_input_name); */
     for (uint8_t i=0; i<track->num_clips; i++) {
 	clipref_reset(track->clips[i]);
     }

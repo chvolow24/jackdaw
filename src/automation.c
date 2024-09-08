@@ -52,12 +52,16 @@
 extern Window *main_win;
 extern SDL_Color console_bckgrnd;
 extern SDL_Color control_bar_bckgrnd;
+extern SDL_Color color_mute_solo_grey;
+extern SDL_Color color_global_black;
+extern SDL_Color color_global_play_green;
 /* SDL_Color automation_bckgrnd = {0, 25, 26, 255}; */
+SDL_Color automation_console_bckgrnd = {110, 110, 110, 255};
 SDL_Color automation_bckgrnd = {90, 100, 120, 255};
 
 const char *AUTOMATION_LABELS[] = {
     "Volume",
-    "Pan (L->R)",
+    "Pan",
     "FIR filter cutoff",
     "FIR filter bandwidth",
     "Delay time",
@@ -88,11 +92,9 @@ Automation *track_add_automation(Track *track, AutomationType type)
     a->track = track;
     a->type = type;
     a->read = true;
+    a->index = track->num_automations;
     track->automations[track->num_automations] = a;
     track->num_automations++;
-    /* Layout *lt = layout_add_child(track->layout->parent); */
-
-    /* layout_write(stdout, lt->parent, 0); */
     switch (type) {
     case AUTO_VOL:
 	a->val_type = JDAW_FLOAT;
@@ -131,27 +133,83 @@ Automation *track_add_automation(Track *track, AutomationType type)
     return a;
 }
 
+void automation_show(Automation *a)
+{
+    a->shown = true;
+    if (!a->layout) {
+	Layout *lt = layout_read_from_xml(AUTOMATION_LT_FILEPATH);
+	a->layout = lt;
+	Layout *console = layout_get_child_by_name_recursive(lt, "automation_console");
+	a->console_rect = &console->rect;
+	a->bckgrnd_rect = &lt->rect;
+	Layout *color_bar = layout_get_child_by_name_recursive(lt, "colorbar");
+	a->color_bar_rect = &color_bar->rect;
+	Layout *main = layout_get_child_by_name_recursive(lt, "main");
+	a->bckgrnd_rect = &main->rect;
+	/* layout_write(stdout, track->layout, 0); */
+	/* exit(0); */
+	layout_insert_child_at(lt, a->track->layout->parent, a->track->layout->index + 1 + a->index);
+
+
+	Layout *tb_lt = layout_get_child_by_name_recursive(lt, "label");
+	layout_reset(tb_lt);
+	a->label = textbox_create_from_str(
+	    AUTOMATION_LABELS[a->type],
+	    tb_lt,
+	    main_win->mono_bold_font,
+	    12,
+	    main_win);
+	a->label->corner_radius = BUBBLE_CORNER_RADIUS;
+	textbox_set_border(a->label, &color_global_black, 2);
+	
+	tb_lt = layout_get_child_by_name_recursive(lt, "read");
+	Button *button = button_create(
+	    tb_lt,
+	    "Read",
+	    NULL,
+	    NULL,
+	    main_win->mono_bold_font,
+	    12,
+	    &color_global_black,
+	    &color_global_play_green
+	    );
+        textbox_set_border(button->tb, &color_global_black, 1);
+	button->tb->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
+	a->read_button = button;
+	
+	tb_lt = layout_get_child_by_name_recursive(lt, "write");
+	
+	button = button_create(
+	    tb_lt,
+	    "Write",
+	    NULL,
+	    NULL,
+	    main_win->mono_bold_font,
+	    12,
+	    &color_global_black,
+	    &color_mute_solo_grey
+	    );
+	textbox_set_border(button->tb, &color_global_black, 1);
+	button->tb->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
+	a->write_button = button;
+
+	/* textbox_set_align(a->label, CENTER_LEFT); */
+	
+	textbox_set_pad(a->label, 4, 0);
+	textbox_size_to_fit(a->label, 10, 2);
+	textbox_reset_full(a->label);
+	
+	    
+    } else {
+	a->layout->h.value.intval = AUTOMATION_LT_H;
+    }
+
+}
+
 void track_automations_show_all(Track *track)
 {
     for (uint8_t i=0; i<track->num_automations; i++) {
-	Automation *a = track->automations[i];
-	a->shown = true;
-	if (!a->layout) {
-	    Layout *lt = layout_read_from_xml(AUTOMATION_LT_FILEPATH);
-	    a->layout = lt;
-	    Layout *console = layout_get_child_by_name_recursive(lt, "automation_console");
-	    a->console_rect = &console->rect;
-	    a->bckgrnd_rect = &lt->rect;
-	    Layout *color_bar = layout_get_child_by_name_recursive(lt, "colorbar");
-	    a->color_bar_rect = &color_bar->rect;
-	    Layout *main = layout_get_child_by_name_recursive(lt, "main");
-	    a->bckgrnd_rect = &main->rect;
-	/* layout_write(stdout, track->layout, 0); */
-	/* exit(0); */
-	    layout_insert_child_at(lt, track->layout->parent, track->layout->index + 1);
-	} else {
-	    a->layout->h.value.intval = AUTOMATION_LT_H;
-	}
+	automation_show(track->automations[i]);
     }
     timeline_reset(track->tl);
 }
@@ -177,6 +235,14 @@ static void keyframe_recalculate_m(Keyframe *k, ValType type)
     k->m_fwd = JDAW_VAL_CAST(dy, type, double) / (double)dx;
 }
 
+static void keyframe_set_y_prop(Keyframe *k)
+{
+    Automation *a = k->automation;
+    Value v = jdaw_val_sub(k->value, a->min, a->val_type);
+    k->draw_y_prop = jdaw_val_div_double(v, a->range, a->val_type);
+    
+}
+
 Keyframe *automation_insert_keyframe_after(
     Automation *automation,
     Keyframe *insert_after,
@@ -184,6 +250,7 @@ Keyframe *automation_insert_keyframe_after(
     int32_t pos)
 {
     Keyframe *k = calloc(1, sizeof(Keyframe));
+    k->automation = automation;
     k->value = val;
     k->pos = pos;
     if (insert_after) {
@@ -202,11 +269,12 @@ Keyframe *automation_insert_keyframe_after(
 	automation->first = k;
 	automation->last = k;
     }
-    Keyframe *print = automation->first;
-    while (print) {
-	fprintf(stdout, "keyframe at pos: %d\n", print->pos);
-	print = print->next;
-    }
+    /* Keyframe *print = automation->first; */
+    /* while (print) { */
+    /* 	/\* fprintf(stdout, "keyframe at pos: %d\n", print->pos); *\/ */
+    /* 	print = print->next; */
+    /* } */
+    keyframe_set_y_prop(k);
     return k;
 }
 
@@ -217,6 +285,7 @@ Keyframe *automation_insert_keyframe_before(
     int32_t pos)
 {
     Keyframe *k = calloc(1, sizeof(Keyframe));
+    k->automation = automation;
     k->value = val;
     if (insert_before) {
 	Keyframe *prev = insert_before->prev;
@@ -235,12 +304,14 @@ Keyframe *automation_insert_keyframe_before(
 	automation->first = k;
 	automation->last = k;
     }
+    keyframe_set_y_prop(k);
     return k;
 }
 
 Keyframe *automation_get_segment(Automation *a, int32_t at)
 {
     Keyframe *k = a->first;
+    if (at < k->pos) return NULL;
     while (k && k->pos < at) {
 	if (k->next) 
 	    k = k->next;
@@ -286,52 +357,65 @@ void automation_draw(Automation *a)
 {
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(automation_bckgrnd));
     SDL_RenderFillRect(main_win->rend, a->bckgrnd_rect);
-    
+
+
     Keyframe *k = a->first;
 
-    bool set_k = true;
+    /* bool set_k = true; */
     int bottom_y = a->layout->rect.y + a->layout->rect.h;
-    int y_left = 0;
-    int y_right = 0;
+    int y_left = -1;
+    int y_right;
     int k_pos;
     int next_pos;
+    
+    if (!k) return;
+    
+    next_pos = timeline_get_draw_x(k->pos);
+    y_right = bottom_y -  k->draw_y_prop * a->layout->rect.h;
+
     SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255);
-    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(a->track->color)); */
+
+    /* fprintf(stdout, "\n\n\n"); */
+    /* int keyframe_i = 0; */
+    bool init_y = true;
     while (k) {
-	if (set_k) {
-	    k_pos = timeline_get_draw_x(k->pos);
-	} else {
-	    k_pos = next_pos;
-	}
-	/* fprintf(stdout, "DRAWING k pos: %d\n", k_pos); */
+	
+	k_pos = next_pos;
 	if (x_onscreen(k_pos)) {
-	    if (set_k) {
-		Value v = jdaw_val_sub(k->value, a->min, a->val_type);
-	        double scaled = jdaw_val_div_double(v, a->range, a->val_type);
-	        y_left = bottom_y -  scaled * a->layout->rect.h;
-	    } else {
-		y_left = y_right;
-	    }
-	    keyframe_draw(k_pos, y_left);
+	    keyframe_draw(k_pos, y_right);
 	}
 	if (k->next) {
 	    next_pos = timeline_get_draw_x(k->next->pos);
 	    if (segment_intersects_screen(k_pos, next_pos)) {
-		Value v = jdaw_val_sub(k->next->value, a->min, a->val_type);
-		double scaled = jdaw_val_div_double(v, a->range, a->val_type);
-		y_right = bottom_y -  scaled * a->layout->rect.h;
+		if (init_y) {
+		    y_left = bottom_y - k->draw_y_prop * a->layout->rect.h;
+		    init_y = false;
+		} else {
+		    y_left = y_right;
+		}
+		y_right = bottom_y -  k->next->draw_y_prop * a->layout->rect.h;
+		/* fprintf(stdout, "%d: %d->%d\n", keyframe_i, y_left, y_right); */
 		SDL_RenderDrawLine(main_win->rend, k_pos, y_left, next_pos, y_right); 
 	    }
 	}
-	set_k = false;
 	k = k->next;
+	/* keyframe_i++; */
     }
+    if (a->last) {
+	y_left = bottom_y - a->last->draw_y_prop * a->layout->rect.h;
+	SDL_RenderDrawLine(main_win->rend, k_pos, y_left, main_win->w_pix, y_left);
+    }
+
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(automation_bckgrnd));
+    SDL_RenderFillRect(main_win->rend, a->console_rect);
+
 
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(a->track->color));
     SDL_RenderFillRect(main_win->rend, a->color_bar_rect);
 
-    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(console_bckgrnd)); */
-    /* SDL_RenderFillRect(main_win->rend, a->console_rect); */
+    textbox_draw(a->label);
+    button_draw(a->read_button);
+    button_draw(a->write_button);
 
 }
 

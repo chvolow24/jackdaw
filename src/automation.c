@@ -34,6 +34,7 @@
 
 #include "automation.h"
 #include "color.h"
+#include "input.h"
 #include "layout.h"
 #include "layout_xml.h"
 #include "project.h"
@@ -420,8 +421,35 @@ void automation_draw(Automation *a)
     textbox_draw(a->label);
     button_draw(a->read_button);
     button_draw(a->write_button);
+}
+
+bool automations_triage_motion(Timeline *tl)
+{
+    Keyframe *k = tl->selected_keyframe;
+    if (k && main_win->i_state & I_STATE_MOUSE_L) {
+	Automation *a = k->automation;
+	int32_t abs_pos = timeline_get_abspos_sframes(main_win->mousep.x);
+	if ((!k->prev || (abs_pos > k->prev->pos)) && (!k->next || (abs_pos < k->next->pos))) {
+	    double val_prop = (double)(a->bckgrnd_rect->y + a->bckgrnd_rect->h - main_win->mousep.y) / a->bckgrnd_rect->h;
+	    Value range_scaled = jdaw_val_scale(a->range, val_prop, a->val_type);
+	    Value v = jdaw_val_add(a->min, range_scaled, a->val_type);
+	    if (jdaw_val_less_than(a->max, v, a->val_type)) v = a->max;
+	    else if (jdaw_val_less_than(v, a->min, a->val_type)) v = a->min;
+	    k->value = v;
+	    keyframe_set_y_prop(k);
+	    keyframe_recalculate_m(k, a->val_type);
+	    if (k->prev) {
+		keyframe_recalculate_m(k->prev, a->val_type);
+	    }
+	    k->pos = abs_pos;
+
+	}
+	return true;
+    }
+    return false;
 
 }
+
 
 bool automation_triage_click(uint8_t button, Automation *a)
 {
@@ -432,7 +460,7 @@ bool automation_triage_click(uint8_t button, Automation *a)
 	    double val_prop = (double)(a->bckgrnd_rect->y + a->bckgrnd_rect->h - main_win->mousep.y) / a->bckgrnd_rect->h;
 	    Value range_scaled = jdaw_val_scale(a->range, val_prop, a->val_type);
 	    Value v = jdaw_val_add(a->min, range_scaled, a->val_type);
-	    Keyframe *k = automation_insert_keyframe_after(a, insertion,v, abs_pos);
+	    a->track->tl->selected_keyframe = automation_insert_keyframe_after(a, insertion,v, abs_pos);
 	}
 	return true;
     }

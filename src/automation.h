@@ -43,6 +43,7 @@
 #define MAX_TRACK_AUTOMATIONS 8
 
 typedef struct track Track;
+typedef struct timeline Timeline;
 
 typedef struct automation Automation;
 typedef struct keyframe Keyframe;
@@ -128,5 +129,5 @@ void track_automations_show_all(Track *track);
 void track_automations_hide_all(Track *track);
 
 bool automation_triage_click(uint8_t button, Automation *a);
-
+bool automations_triage_motion(Timeline *tl);
 #endif

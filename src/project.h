@@ -257,6 +257,8 @@ typedef struct timeline {
     /* uint8_t num_clipboard_clips; */
     /* int32_t leftmost_clipboard_clip_pos; */
 
+    Keyframe *selected_keyframe;
+
     /* GUI members */
     Layout *layout;
     Layout *track_area;

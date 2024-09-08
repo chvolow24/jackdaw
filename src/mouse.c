@@ -134,7 +134,6 @@ static void mouse_triage_click_audiorect(Timeline *tl, uint8_t button)
 
 static void mouse_triage_motion_audiorect(Timeline *tl)
 {
-
     if (main_win->i_state & I_STATE_MOUSE_L) {
 	int32_t abs_pos = timeline_get_abspos_sframes(main_win->mousep.x);
 	timeline_set_play_position(abs_pos);
@@ -187,6 +186,7 @@ void mouse_triage_click_project(uint8_t button)
 void mouse_triage_motion_timeline()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
+    if (automations_triage_motion(tl)) return;
     if (SDL_PointInRect(&main_win->mousep, proj->audio_rect)) {
 	mouse_triage_motion_audiorect(tl);
 	return;

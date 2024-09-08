@@ -260,6 +260,7 @@ Keyframe *automation_insert_keyframe_after(
 	keyframe_recalculate_m(insert_after, automation->val_type);
 	if (next) {
 	    k->next = next;
+	    next->prev = k;
 	    keyframe_recalculate_m(k, automation->val_type);
 	} else {
 	    automation->last = k;
@@ -373,6 +374,8 @@ void automation_draw(Automation *a)
     next_pos = timeline_get_draw_x(k->pos);
     y_right = bottom_y -  k->draw_y_prop * a->layout->rect.h;
 
+
+    SDL_RenderSetClipRect(main_win->rend, a->bckgrnd_rect);
     SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255);
 
     /* fprintf(stdout, "\n\n\n"); */
@@ -406,6 +409,7 @@ void automation_draw(Automation *a)
 	SDL_RenderDrawLine(main_win->rend, k_pos, y_left, main_win->w_pix, y_left);
     }
 
+    SDL_RenderSetClipRect(main_win->rend, NULL);
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(automation_bckgrnd));
     SDL_RenderFillRect(main_win->rend, a->console_rect);
 
@@ -419,3 +423,18 @@ void automation_draw(Automation *a)
 
 }
 
+bool automation_triage_click(uint8_t button, Automation *a)
+{
+    if (SDL_PointInRect(&main_win->mousep, &a->layout->rect)) {
+	if (SDL_PointInRect(&main_win->mousep, a->bckgrnd_rect)) {
+	    int32_t abs_pos = timeline_get_abspos_sframes(main_win->mousep.x);
+	    Keyframe *insertion = automation_get_segment(a, abs_pos);
+	    double val_prop = (double)(a->bckgrnd_rect->y + a->bckgrnd_rect->h - main_win->mousep.y) / a->bckgrnd_rect->h;
+	    Value range_scaled = jdaw_val_scale(a->range, val_prop, a->val_type);
+	    Value v = jdaw_val_add(a->min, range_scaled, a->val_type);
+	    Keyframe *k = automation_insert_keyframe_after(a, insertion,v, abs_pos);
+	}
+	return true;
+    }
+    return false;
+}

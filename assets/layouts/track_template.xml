@@ -112,7 +112,7 @@
             <Layout name="in_label" type="NORMAL">
               <x>REL 0</x>
               <y>REL 0</y>
-              <w>REL 30</w>
+              <w>REL 25</w>
               <h>SCALE 1.000000</h>
               <index>0</index>
               <children>
@@ -121,7 +121,7 @@
             <Layout name="in_value" type="NORMAL">
               <x>STACK 0</x>
               <y>REL 1</y>
-              <w>ABS 110</w>
+              <w>ABS 95</w>
               <h>REL 20</h>
               <index>1</index>
               <children>

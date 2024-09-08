@@ -126,4 +126,7 @@ Keyframe *automation_insert_keyframe_before(
 Keyframe *automation_get_segment(Automation *a, int32_t at);
 void track_automations_show_all(Track *track);
 void track_automations_hide_all(Track *track);
+
+bool automation_triage_click(uint8_t button, Automation *a);
+
 #endif

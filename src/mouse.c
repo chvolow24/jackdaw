@@ -68,40 +68,41 @@ static void mouse_triage_motion_track(Track *track)
 }
 
 
-static void mouse_triage_click_track(uint8_t button, Track *track)
+static bool mouse_triage_click_track(uint8_t button, Track *track)
 {
     if (SDL_PointInRect(&main_win->mousep, track->console_rect)) {
 	if (SDL_PointInRect(&main_win->mousep, &track->tb_input_name->layout->rect)) {
 	    track_set_input(track);
-	    return;
+	    return true;
 	}
 	Layout *solo = layout_get_child_by_name_recursive(track->layout, "solo_button");
 	if (SDL_PointInRect(&main_win->mousep, &solo->rect)) {
 	    track_or_tracks_solo(track->tl, track);
-	    return;
+	    return true;
 	}
 	Layout *mute = layout_get_child_by_name_recursive(track->layout, "mute_button");
 	if (SDL_PointInRect(&main_win->mousep, &mute->rect)) {
 	    track_mute(track);
-	    return;
+	    return true;
 	}
 	if (SDL_PointInRect(&main_win->mousep, &track->tb_name->layout->rect)) {
 	    track_rename(track);
-	    return;
+	    return true;
 	}
 	if (SDL_PointInRect(&main_win->mousep, &track->vol_ctrl->layout->rect)) {
 	    Value newval = slider_val_from_coord(track->vol_ctrl, main_win->mousep.x);
 	    track->vol = newval.float_v;
 	    slider_reset(track->vol_ctrl);
-	    return;
+	    return true;
 	}
 	if (SDL_PointInRect(&main_win->mousep, &track->pan_ctrl->layout->rect)) {
 	    Value newval = slider_val_from_coord(track->pan_ctrl, main_win->mousep.x);
 	    track->pan = newval.float_v;
 	    slider_reset(track->pan_ctrl);
+	    return true;
 	}
     }
-
+    return false;
 }
 
 static void mouse_triage_click_audiorect(Timeline *tl, uint8_t button)
@@ -146,12 +147,17 @@ static void mouse_triage_click_timeline(uint8_t button)
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (SDL_PointInRect(&main_win->mousep, proj->audio_rect)) {
 	mouse_triage_click_audiorect(tl, button);
-	return;
+	/* return; */
     }
     for (uint8_t i=0; i<tl->num_tracks; i++) {
 	Track *track = tl->tracks[i];
-	if (SDL_PointInRect(&main_win->mousep, &track->layout->rect)) {
-	    mouse_triage_click_track(button, track);
+	if (mouse_triage_click_track(button, track)) {
+	    break;
+	}
+	for (uint8_t i = 0; i<track->num_automations; i++) {
+	    if (automation_triage_click(button, track->automations[i])) {
+		break;
+	    }
 	}
     }
 }

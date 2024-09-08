@@ -6,14 +6,14 @@
     <index>0</index>
     <children>
         <Layout name="automation_console" type="NORMAL">
-            <x>REL 2</x>
+            <x>REL 20</x>
             <y>REL 0</y>
-            <w>REL 150</w>
+            <w>REL 130</w>
             <h>SCALE 1.000000</h>
             <index>0</index>
             <children>
                 <Layout name="label" type="NORMAL">
-                    <x>REL 25</x>
+                    <x>REL 5</x>
                     <y>REL 5</y>
                     <w>REL 140</w>
                     <h>REL 22</h>
@@ -22,7 +22,7 @@
                     </children>
                 </Layout>
                 <Layout name="readwrite_row" type="NORMAL">
-                    <x>REL 25</x>
+                    <x>REL 5</x>
                     <y>REL 30</y>
                     <w>REL 140</w>
                     <h>REL 25</h>

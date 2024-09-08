@@ -245,31 +245,38 @@ static void keyframe_set_y_prop(Keyframe *k)
 }
 
 Keyframe *automation_insert_keyframe_after(
-    Automation *automation,
+    Automation *a,
     Keyframe *insert_after,
     Value val,
     int32_t pos)
 {
     Keyframe *k = calloc(1, sizeof(Keyframe));
-    k->automation = automation;
+    k->automation = a;
     k->value = val;
     k->pos = pos;
     if (insert_after) {
 	Keyframe *next = insert_after->next;
 	insert_after->next = k;
 	k->prev = insert_after;
-	keyframe_recalculate_m(insert_after, automation->val_type);
+	keyframe_recalculate_m(insert_after, a->val_type);
 	if (next) {
 	    k->next = next;
 	    next->prev = k;
-	    keyframe_recalculate_m(k, automation->val_type);
+	    keyframe_recalculate_m(k, a->val_type);
 	} else {
-	    automation->last = k;
+	    a->last = k;
 	}
 	
     } else {
-	automation->first = k;
-	automation->last = k;
+	if (a->first) {
+	    k->next = a->first;
+	    a->first->prev = k;
+	    a->first = k;
+	    keyframe_recalculate_m(k, a->val_type);
+	} else {
+	    a->first = k;
+	    a->last = k;
+	}
     }
     /* Keyframe *print = automation->first; */
     /* while (print) { */
@@ -280,35 +287,35 @@ Keyframe *automation_insert_keyframe_after(
     return k;
 }
 
-Keyframe *automation_insert_keyframe_before(
-    Automation *automation,
-    Keyframe *insert_before,
-    Value val,
-    int32_t pos)
-{
-    Keyframe *k = calloc(1, sizeof(Keyframe));
-    k->automation = automation;
-    k->value = val;
-    if (insert_before) {
-	Keyframe *prev = insert_before->prev;
-	k->next = insert_before;
-	insert_before->prev = k;
-	prev->next = k;
-	keyframe_recalculate_m(k, automation->val_type);
-	if (prev) {
-	    k->prev = prev;
-	    keyframe_recalculate_m(prev, automation->val_type);
-	} else {
-	    automation->first = k;
-	}
+/* Keyframe *automation_insert_keyframe_before( */
+/*     Automation *automation, */
+/*     Keyframe *insert_before, */
+/*     Value val, */
+/*     int32_t pos) */
+/* { */
+/*     Keyframe *k = calloc(1, sizeof(Keyframe)); */
+/*     k->automation = automation; */
+/*     k->value = val; */
+/*     if (insert_before) { */
+/* 	Keyframe *prev = insert_before->prev; */
+/* 	k->next = insert_before; */
+/* 	insert_before->prev = k; */
+/* 	prev->next = k; */
+/* 	keyframe_recalculate_m(k, automation->val_type); */
+/* 	if (prev) { */
+/* 	    k->prev = prev; */
+/* 	    keyframe_recalculate_m(prev, automation->val_type); */
+/* 	} else { */
+/* 	    automation->first = k; */
+/* 	} */
 	
-    } else {
-	automation->first = k;
-	automation->last = k;
-    }
-    keyframe_set_y_prop(k);
-    return k;
-}
+/*     } else { */
+/* 	automation->first = k; */
+/* 	automation->last = k; */
+/*     } */
+/*     keyframe_set_y_prop(k); */
+/*     return k; */
+/* } */
 
 Keyframe *automation_get_segment(Automation *a, int32_t at)
 {
@@ -365,7 +372,7 @@ void automation_draw(Automation *a)
 
     /* bool set_k = true; */
     int bottom_y = a->layout->rect.y + a->layout->rect.h;
-    int y_left = -1;
+    int y_left;
     int y_right;
     int k_pos;
     int next_pos;
@@ -385,8 +392,17 @@ void automation_draw(Automation *a)
     while (k) {
 	
 	k_pos = next_pos;
+	if (k == a->first && next_pos > 0) {
+	    int y = bottom_y - k->draw_y_prop * a->layout->rect.h;
+	    SDL_RenderDrawLine(main_win->rend, 0, y, k_pos, y);
+	}
 	if (x_onscreen(k_pos)) {
 	    keyframe_draw(k_pos, y_right);
+	    if (!k->next) {
+		y_left = bottom_y - a->last->draw_y_prop * a->layout->rect.h;
+		SDL_RenderDrawLine(main_win->rend, k_pos, y_left, main_win->w_pix, y_left);
+		break;
+	    }
 	}
 	if (k->next) {
 	    next_pos = timeline_get_draw_x(k->next->pos);
@@ -405,10 +421,14 @@ void automation_draw(Automation *a)
 	k = k->next;
 	/* keyframe_i++; */
     }
-    if (a->last) {
-	y_left = bottom_y - a->last->draw_y_prop * a->layout->rect.h;
-	SDL_RenderDrawLine(main_win->rend, k_pos, y_left, main_win->w_pix, y_left);
-    }
+    /* if (a->first) { */
+    /* 	y_left = bottom_y - a->first->draw_y_prop * a->layout->rect.h; */
+    /* 	SDL_RenderDrawLine(main_win->rend, 0, y_left, k_pos, y_left); */
+    /* } */
+    /* if (a->last) { */
+    /* 	y_left = bottom_y - a->last->draw_y_prop * a->layout->rect.h; */
+    /* 	SDL_RenderDrawLine(main_win->rend, k_pos, y_left, main_win->w_pix, y_left); */
+    /* } */
 
     SDL_RenderSetClipRect(main_win->rend, NULL);
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(automation_bckgrnd));
@@ -423,29 +443,58 @@ void automation_draw(Automation *a)
     button_draw(a->write_button);
 }
 
+static void keyframe_move(Keyframe *k, int x, int y)
+{
+    /* fprintf(stdout, "MOVE to %d, %d\n", x, y); */
+    Automation *a = k->automation;
+    int32_t abs_pos = timeline_get_abspos_sframes(x);
+    if ((!k->prev || (abs_pos > k->prev->pos)) && (!k->next || (abs_pos < k->next->pos))) {
+	double val_prop = (double)(a->bckgrnd_rect->y + a->bckgrnd_rect->h - y) / a->bckgrnd_rect->h;
+	Value range_scaled = jdaw_val_scale(a->range, val_prop, a->val_type);
+	Value v = jdaw_val_add(a->min, range_scaled, a->val_type);
+	if (jdaw_val_less_than(a->max, v, a->val_type)) v = a->max;
+	else if (jdaw_val_less_than(v, a->min, a->val_type)) v = a->min;
+	k->value = v;
+	keyframe_set_y_prop(k);
+	keyframe_recalculate_m(k, a->val_type);
+	if (k->prev) {
+	    keyframe_recalculate_m(k->prev, a->val_type);
+	}
+	k->pos = abs_pos;
+
+    }
+}
+
 bool automations_triage_motion(Timeline *tl)
 {
     Keyframe *k = tl->selected_keyframe;
-    if (k && main_win->i_state & I_STATE_MOUSE_L) {
-	Automation *a = k->automation;
-	int32_t abs_pos = timeline_get_abspos_sframes(main_win->mousep.x);
-	if ((!k->prev || (abs_pos > k->prev->pos)) && (!k->next || (abs_pos < k->next->pos))) {
-	    double val_prop = (double)(a->bckgrnd_rect->y + a->bckgrnd_rect->h - main_win->mousep.y) / a->bckgrnd_rect->h;
-	    Value range_scaled = jdaw_val_scale(a->range, val_prop, a->val_type);
-	    Value v = jdaw_val_add(a->min, range_scaled, a->val_type);
-	    if (jdaw_val_less_than(a->max, v, a->val_type)) v = a->max;
-	    else if (jdaw_val_less_than(v, a->min, a->val_type)) v = a->min;
-	    k->value = v;
-	    keyframe_set_y_prop(k);
-	    keyframe_recalculate_m(k, a->val_type);
-	    if (k->prev) {
-		keyframe_recalculate_m(k->prev, a->val_type);
-	    }
-	    k->pos = abs_pos;
-
+    if (k) {
+	if (main_win->i_state & I_STATE_MOUSE_L) {
+	    keyframe_move(k, main_win->mousep.x, main_win->mousep.y);
+	    return true;
+	} else {
+	    tl->selected_keyframe = NULL;
 	}
-	return true;
     }
+	/* Automation *a = k->automation; */
+	/* int32_t abs_pos = timeline_get_abspos_sframes(main_win->mousep.x); */
+	/* if ((!k->prev || (abs_pos > k->prev->pos)) && (!k->next || (abs_pos < k->next->pos))) { */
+	/*     double val_prop = (double)(a->bckgrnd_rect->y + a->bckgrnd_rect->h - main_win->mousep.y) / a->bckgrnd_rect->h; */
+	/*     Value range_scaled = jdaw_val_scale(a->range, val_prop, a->val_type); */
+	/*     Value v = jdaw_val_add(a->min, range_scaled, a->val_type); */
+	/*     if (jdaw_val_less_than(a->max, v, a->val_type)) v = a->max; */
+	/*     else if (jdaw_val_less_than(v, a->min, a->val_type)) v = a->min; */
+	/*     k->value = v; */
+	/*     keyframe_set_y_prop(k); */
+	/*     keyframe_recalculate_m(k, a->val_type); */
+	/*     if (k->prev) { */
+	/* 	keyframe_recalculate_m(k->prev, a->val_type); */
+	/*     } */
+	/*     k->pos = abs_pos; */
+
+	/* } */
+	/* return true; */
+    /* } */
     return false;
 
 }
@@ -453,14 +502,31 @@ bool automations_triage_motion(Timeline *tl)
 
 bool automation_triage_click(uint8_t button, Automation *a)
 {
+    int32_t epsilon = 10000;
     if (SDL_PointInRect(&main_win->mousep, &a->layout->rect)) {
 	if (SDL_PointInRect(&main_win->mousep, a->bckgrnd_rect)) {
 	    int32_t abs_pos = timeline_get_abspos_sframes(main_win->mousep.x);
 	    Keyframe *insertion = automation_get_segment(a, abs_pos);
-	    double val_prop = (double)(a->bckgrnd_rect->y + a->bckgrnd_rect->h - main_win->mousep.y) / a->bckgrnd_rect->h;
-	    Value range_scaled = jdaw_val_scale(a->range, val_prop, a->val_type);
-	    Value v = jdaw_val_add(a->min, range_scaled, a->val_type);
-	    a->track->tl->selected_keyframe = automation_insert_keyframe_after(a, insertion,v, abs_pos);
+	    if (!insertion) {
+		double val_prop = (double)(a->bckgrnd_rect->y + a->bckgrnd_rect->h - main_win->mousep.y) / a->bckgrnd_rect->h;
+		Value range_scaled = jdaw_val_scale(a->range, val_prop, a->val_type);
+		Value v = jdaw_val_add(a->min, range_scaled, a->val_type);
+		a->track->tl->selected_keyframe = automation_insert_keyframe_after(a, NULL, v, abs_pos);
+		return true;
+	    }
+	    if (abs(insertion->pos - abs_pos) < epsilon) {
+		a->track->tl->selected_keyframe = insertion;
+		keyframe_move(insertion, main_win->mousep.x, main_win->mousep.y);
+	    } else if (insertion->next && abs(insertion->next->pos - abs_pos) < epsilon) {
+		a->track->tl->selected_keyframe = insertion->next;
+		keyframe_move(insertion->next, main_win->mousep.x, main_win->mousep.y);
+	    } else {
+		double val_prop = (double)(a->bckgrnd_rect->y + a->bckgrnd_rect->h - main_win->mousep.y) / a->bckgrnd_rect->h;
+		Value range_scaled = jdaw_val_scale(a->range, val_prop, a->val_type);
+		Value v = jdaw_val_add(a->min, range_scaled, a->val_type);
+		a->track->tl->selected_keyframe = automation_insert_keyframe_after(a, insertion,v, abs_pos);
+		/* keyframe_move(insertion->next, main_win->mousep.x, main_win->mousep.y); */
+	    }
 	}
 	return true;
     }

@@ -139,9 +139,12 @@ static int delay_set_offset(void *self_v, void *target)
 {
     DelayLine *dl = (DelayLine *)target;
     double offset_prop = *((double *)((Slider *)self_v)->value);
-    int32_t offset = offset_prop * dl->len;
+    /* int32_t offset = offset_prop * dl->len; */
+    /* SDL_LockMutex(dl->lock); */
+    /* dl->stereo_offset = offset; */
+    /* SDL_UnlockMutex(dl->lock); */
     SDL_LockMutex(dl->lock);
-    dl->stereo_offset = offset;
+    dl->stereo_offset = offset_prop;
     SDL_UnlockMutex(dl->lock);
     return 0;
 }
@@ -449,7 +452,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     el = page_add_el(page, EL_SLIDER, p, "track_settings_delay_amp_slider", "del_amp_slider");
 
     static double offset;
-    offset = (double)abs(track->delay_line.stereo_offset) / track->delay_line.len;
+    offset = track->delay_line.stereo_offset;
     p.slider_p.value = &offset;
     p.slider_p.val_type = JDAW_DOUBLE;
     p.slider_p.action = delay_set_offset;

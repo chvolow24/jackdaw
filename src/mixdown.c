@@ -170,7 +170,12 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
 	    del_line_edit = true;
 	}
 	if (del_line_edit) {
-	    delay_line_set_params(&track->delay_line, del_amp, del_time);
+	    /* fprintf(stdout, "DEL TIME: %d\n", del_time); */
+	    if (del_time < 0) {
+		fprintf(stderr, "ERROR: del time read value negative: %d\n", del_time);
+	    } else {
+		delay_line_set_params(&track->delay_line, del_amp, del_time);
+	    }
 	}
     }
 
@@ -371,8 +376,11 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 		double track_sample = track_chunk[i];
 		int32_t pos = *del_line_pos;
 		if (channel == 0) {
-		    pos += dl->stereo_offset;
-		    pos %= dl->len;
+		    pos -= dl->stereo_offset * dl->len;
+		    if (pos < 0) {
+			pos += dl->len;
+		    }
+		    /* pos %= dl->len; */
 		}
 		track_chunk[i] += del_line[pos];
 		/* int tap = *del_line_pos - 1025; */

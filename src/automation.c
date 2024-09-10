@@ -128,6 +128,7 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	a->range.double_v = 1.0;
 	break;
     case AUTO_DEL_TIME:
+	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line);
 	a->val_type = JDAW_INT32;
 	a->min.int32_v = 10;
 	a->max.int32_v = proj->sample_rate * DELAY_LINE_MAX_LEN_S;

@@ -368,7 +368,7 @@ void loop_project_main()
 			automation_insert_keyframe_after(a, NULL, v, 0);
 		    } else if (track->num_automations == 4) {
 			Automation *a = track_add_automation(track, AUTO_DEL_TIME);
-			Value v = {.float_v = 0.5};
+			Value v = {.int32_v = 2000};
 			automation_insert_keyframe_after(a, NULL, v, 0);
 		    } else if (track->num_automations == 5) {
 			Automation *a = track_add_automation(track, AUTO_DEL_AMP);

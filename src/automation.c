@@ -51,6 +51,8 @@
 #define AUTOMATION_LT_FILEPATH INSTALL_DIR "/assets/layouts/track_automation.xml"
 
 extern Window *main_win;
+extern Project *proj;
+
 extern SDL_Color console_bckgrnd;
 extern SDL_Color control_bar_bckgrnd;
 extern SDL_Color color_mute_solo_grey;
@@ -127,9 +129,9 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	break;
     case AUTO_DEL_TIME:
 	a->val_type = JDAW_INT32;
-	a->min.int32_v = 1;
-	a->max.int32_v = 48000 * 2;
-	a->range.int32_v = 48000 * 2 - 1;
+	a->min.int32_v = 10;
+	a->max.int32_v = proj->sample_rate * DELAY_LINE_MAX_LEN_S;
+	a->range.int32_v = a->max.int32_v - 10;
 	a->target_val = &track->delay_line.len;
 	break;
     case AUTO_DEL_AMP:

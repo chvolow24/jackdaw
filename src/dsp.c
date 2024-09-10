@@ -650,6 +650,7 @@ void delay_line_init(DelayLine *dl)
 
 void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
 {
+    
     SDL_LockMutex(dl->lock);
 
     /* LEFT CHANNEL */
@@ -658,7 +659,7 @@ void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
     double saved[dl->len];
     if (dl->buf_L) {
 	memcpy(saved, dl->buf_L, dl->len * sizeof(double));
-	dl->buf_L = realloc(dl->buf_L, len * sizeof(double));
+	/* dl->buf_L = realloc(dl->buf_L, len * sizeof(double)); */
 	/* memset(dl->buf_L, '\0', len * sizeof(double)); */
 	while (copy_to_pos < len) {
 	    int32_t copyable;
@@ -691,7 +692,7 @@ void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
 	    copy_to_pos += copyable;
 	}
     } else {
-	dl->buf_L = calloc(len, sizeof(double));
+	dl->buf_L = calloc(DELAY_LINE_MAX_LEN_S * proj->sample_rate, sizeof(double));
     }
 
 
@@ -700,7 +701,7 @@ void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
     copy_to_pos = dl->len;
         if (dl->buf_R) {
 	memcpy(saved, dl->buf_R, dl->len * sizeof(double));
-	dl->buf_R = realloc(dl->buf_R, len * sizeof(double));
+	/* dl->buf_R = realloc(dl->buf_R, len * sizeof(double)); */
 	/* memset(dl->buf_R, '\0', len * sizeof(double)); */
 	while (copy_to_pos < len) {
 	    int32_t copyable;
@@ -736,8 +737,7 @@ void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
 	    copy_to_pos += copyable;
 	}
     } else {
-	dl->buf_R = calloc(len, sizeof(double));
-    }
+	dl->buf_R = calloc(DELAY_LINE_MAX_LEN_S * proj->sample_rate, sizeof(double));    }
 
 
     /* int32_t saved_pos = dl->pos_L; */

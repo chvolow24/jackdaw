@@ -33,6 +33,7 @@
 #include "SDL.h"
 
 #define DEFAULT_FILTER_LEN 128
+#define DELAY_LINE_MAX_LEN_S 1
 
 typedef struct track Track;
 

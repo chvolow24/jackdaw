@@ -65,6 +65,7 @@ Slider *slider_create(
     textbox_size_to_fit(s->label, SLIDER_LABEL_H_PAD, SLIDER_LABEL_V_PAD);
     textbox_set_pad(s->label, SLIDER_LABEL_H_PAD, SLIDER_LABEL_V_PAD);
     textbox_set_border(s->label, &color_global_black, 2);
+    textbox_set_trunc(s->label, false);
     layout_reset(layout);
     /* bar_container->x.value.intval = SLIDER_INNER_PAD; */
     /* bar_container->y.value.intval = SLIDER_INNER_PAD; */
@@ -312,6 +313,7 @@ Button *button_create(Layout *lt, char *text, ComponentFn action, void *target, 
     button->target = target;
     button->tb = textbox_create_from_str(text, lt, font, text_size, main_win);
     button->tb->corner_radius = BUTTON_CORNER_RADIUS;
+    textbox_set_trunc(button->tb, false);
     textbox_set_border(button->tb, text_color, 1);
     textbox_set_text_color(button->tb, text_color);
     textbox_set_background_color(button->tb, background_color);

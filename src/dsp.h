@@ -42,7 +42,9 @@ typedef enum filter_type {
 
 typedef struct fir_filter {
     FilterType type;
-    double cutoff_freq; // 0 < cutoff_freq < 0.5
+    double cutoff_freq_unscaled; /* For gui components and automations */
+    double cutoff_freq; /* 0 < cutoff_freq < 0.5 */
+    double bandwidth_unscaled; /* For gui components and automations */
     double bandwidth;
     double *impulse_response;
     double complex *frequency_response;
@@ -90,9 +92,6 @@ void filter_destroy(FIRFilter *filter);
 
 /* void apply_track_filter(Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array); */
 void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array);
-// void process_clip_vol_and_pan(Clip *clip);
-/* void process_track_vol_and_pan(Track *track); */
-/* void process_vol_and_pan(void); */
 
 void FFT(double *A, double complex *B, int n);
 void get_real_component(double complex *A, double *B, int n);
@@ -101,4 +100,7 @@ void get_magnitude(double complex *A, double *B, int len);
 void delay_line_init(DelayLine *dl);
 void delay_line_set_params(DelayLine *dl, double amp, int32_t len);
 void delay_line_clear(DelayLine *dl);
+
+double dsp_scale_freq_to_hz(double freq_unscaled);
+
 #endif

@@ -175,7 +175,7 @@ void txt_reset_display_value(Text *txt)
     TTF_Font *font = ttf_get_font_at_size(txt->font, txt->text_size);
     TTF_SizeUTF8(font, txt->value_handle, &txtw, &txth);
     txt->len = strlen(txt->value_handle);
-    if (txt->truncate && txtw > txt->container->rect.w) {
+    if (txt->truncate && txtw > txt->container->rect.w - 2 * txt->h_pad * txt->win->dpi_scale_factor) {
         int approx_allowable_chars = (int) ((float) txt->len * txt->container->rect.w / txtw);
         for (int i=0; i<approx_allowable_chars - 3; i++) {
             txt->display_value[i] = txt->value_handle[i];

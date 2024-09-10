@@ -64,10 +64,6 @@ void textbox_size_to_fit(Textbox *tb, int h_pad, int v_pad)
     txt_reset_display_value(tb->text);
     layout_rect->w = text_rect->w + h_pad * 2;
     layout_rect->h = text_rect->h + v_pad * 2;
-
-    if (strcmp(tb->text->value_handle, "Create") == 0) {
-	fprintf(stdout, "Layout rect w? %d\n", layout_rect->w);
-    }
     
     text_rect->x = layout_rect->x + h_pad;
     /* fprintf(stderr, "Textbox rect x: %d, layout rect x: %d\n", text_rect->x, layout_rect->x); */
@@ -76,10 +72,6 @@ void textbox_size_to_fit(Textbox *tb, int h_pad, int v_pad)
     
     layout_set_wh_from_rect(tb->layout);
     layout_reset(tb->layout);
-
-    if (strcmp(tb->text->value_handle, "Create") == 0) {
-	fprintf(stdout, "Layout rect w? %d\n", layout_rect->w);
-    }
 }
 
 void textbox_size_to_fit_v(Textbox *tb, int v_pad)

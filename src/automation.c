@@ -114,6 +114,9 @@ Automation *track_add_automation(Track *track, AutomationType type)
     case AUTO_FIR_FILTER_CUTOFF:
 	a->val_type = JDAW_DOUBLE;
 	a->target_val = &track->fir_filter->cutoff_freq;
+	a->min.double_v = 0.0;
+	a->max.double_v = 1.0;
+	a->range.double_v = 1.0;
 	break;
     case AUTO_FIR_FILTER_BANDWIDTH:
 	a->val_type = JDAW_DOUBLE;
@@ -161,6 +164,7 @@ void automation_show(Automation *a)
 	    12,
 	    main_win);
 	a->label->corner_radius = BUBBLE_CORNER_RADIUS;
+	textbox_set_trunc(a->label, false);
 	textbox_set_border(a->label, &color_global_black, 2);
 	
 	tb_lt = layout_get_child_by_name_recursive(lt, "read");
@@ -230,10 +234,19 @@ void track_automations_hide_all(Track *track)
 
 static void keyframe_recalculate_m(Keyframe *k, ValType type)
 {
-    if (!k->next) return;
-    int32_t dx = k->next->pos - k->pos;
-    Value dy = jdaw_val_sub(k->next->value, k->value, type);
-    k->m_fwd = JDAW_VAL_CAST(dy, type, double) / (double)dx;
+    Value dy;
+    int32_t dx;
+    if (!k->next) {
+	memset(&dy, '\0', sizeof(dy));
+	dx = 1;
+    } else {
+	dx = k->next->pos - k->pos;
+	dy = jdaw_val_sub(k->next->value, k->value, type);
+    }
+    k->m_fwd.dy = dy;
+    k->m_fwd.dx = dx;
+    /* k->m_fwd = JDAW_VAL_CAST(dy, type, double) / (double)dx; */
+
 }
 
 static void keyframe_set_y_prop(Keyframe *k)
@@ -262,7 +275,6 @@ Keyframe *automation_insert_keyframe_after(
 	if (next) {
 	    k->next = next;
 	    next->prev = k;
-	    keyframe_recalculate_m(k, a->val_type);
 	} else {
 	    a->last = k;
 	}
@@ -272,12 +284,13 @@ Keyframe *automation_insert_keyframe_after(
 	    k->next = a->first;
 	    a->first->prev = k;
 	    a->first = k;
-	    keyframe_recalculate_m(k, a->val_type);
+	    /* keyframe_recalculate_m(k, a->val_type); */
 	} else {
 	    a->first = k;
 	    a->last = k;
 	}
     }
+    keyframe_recalculate_m(k, a->val_type);
     /* Keyframe *print = automation->first; */
     /* while (print) { */
     /* 	/\* fprintf(stdout, "keyframe at pos: %d\n", print->pos); *\/ */
@@ -360,6 +373,36 @@ static inline void keyframe_draw(int x, int y)
 	x++;
     }
 
+}
+
+/* This function assumes "current" pointer has been set or unset appropriately elsewhere */
+Value automation_get_value(Automation *a, int32_t pos, float direction)
+{
+    if (!a->current) {
+	a->current = automation_get_segment(a, pos);
+    }
+    if (!a->current) {
+	return a->first->value;
+    }
+
+    if (direction > 0.0f && a->current->next && a->current->next->pos <= pos) {
+	a->current = a->current->next;
+    } else if (direction < 0.0f  && pos < a->current->pos) {
+	if (a->current->prev) {
+	    a->current = a->current->prev;
+	} else {
+	    a->current = NULL;
+	    return a->first->value;
+	}
+    }
+    int32_t pos_rel = pos - a->current->pos;
+    /* int32_t next_pos = 0; */
+    /* if (a->current->next) { */
+    /* 	next_pos = a->current->next->pos; */
+    /* } */
+    double scalar = (double)pos_rel / a->current->m_fwd.dx;
+    /* fprintf(stdout, "SCALAR: %f (%d/%d) (next pos rel: %d)\n", scalar, pos_rel, a->current->m_fwd.dx, next_pos - pos); */
+    return jdaw_val_add(a->current->value, jdaw_val_scale(a->current->m_fwd.dy, scalar, a->val_type), a->val_type);
 }
 
 void automation_draw(Automation *a)

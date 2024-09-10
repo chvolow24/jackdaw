@@ -144,10 +144,7 @@ static void mouse_triage_motion_audiorect(Timeline *tl)
 static void mouse_triage_click_timeline(uint8_t button)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
-    if (SDL_PointInRect(&main_win->mousep, proj->audio_rect)) {
-	mouse_triage_click_audiorect(tl, button);
-	/* return; */
-    }
+
     for (uint8_t i=0; i<tl->num_tracks; i++) {
 	Track *track = tl->tracks[i];
 	if (mouse_triage_click_track(button, track)) {
@@ -155,9 +152,13 @@ static void mouse_triage_click_timeline(uint8_t button)
 	}
 	for (uint8_t i = 0; i<track->num_automations; i++) {
 	    if (automation_triage_click(button, track->automations[i])) {
-		break;
+		return;
 	    }
 	}
+    }
+    if (SDL_PointInRect(&main_win->mousep, proj->audio_rect)) {
+	mouse_triage_click_audiorect(tl, button);
+	/* return; */
     }
 }
 

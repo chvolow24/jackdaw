@@ -323,6 +323,7 @@ void filter_set_params(FIRFilter *filter, FilterType type, double cutoff, double
     double *ir = filter->impulse_response;
     uint16_t len = filter->impulse_response_len;
     uint16_t offset = len/2;
+    
     switch (filter->type) {
         case LOWPASS:
             for (uint16_t i=0; i<len; i++) {
@@ -755,4 +756,10 @@ void delay_line_clear(DelayLine *dl)
 {
     memset(dl->buf_L, '\0', dl->len * sizeof(double));
     memset(dl->buf_R, '\0', dl->len * sizeof(double));
+}
+
+
+double dsp_scale_freq_to_hz(double freq_unscaled)
+{
+    return pow(10.0, log10((double)proj->sample_rate / 2) * freq_unscaled);
 }

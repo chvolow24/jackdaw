@@ -49,6 +49,12 @@ typedef struct automation Automation;
 typedef struct keyframe Keyframe;
 typedef struct keyframe_clip KClip;
 
+typedef struct automation_slope {
+    int32_t dx;
+    Value dy;
+} AutomationSlope;
+
+
 typedef enum automation_type {
     AUTO_VOL = 0,
     AUTO_PAN = 1,
@@ -63,7 +69,8 @@ typedef struct keyframe {
     Automation *automation;
     int32_t pos;
     Value value;
-    double m_fwd; /* slope (change in value per sample) */
+    AutomationSlope m_fwd;
+    /* double m_fwd; /\* slope (change in value per sample) *\/ */
 
     Keyframe *prev;
     Keyframe *next;
@@ -113,6 +120,7 @@ typedef struct keyframe_clipref {
 } KClipRef;
 
 Automation *track_add_automation(Track *track, AutomationType type);
+Value automation_get_value(Automation *a, int32_t pos, float direction);
 void automation_draw(Automation *a);
 Keyframe *automation_insert_keyframe_after(
     Automation *automation,

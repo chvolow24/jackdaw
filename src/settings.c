@@ -83,8 +83,10 @@ static int slider_cutoff_target_action(void *self_v, void *target)
     Slider *self = (Slider *)self_v;
     FIRFilter *f = (FIRFilter *)target;
     double cutoff_unscaled = *(double *)(self->value);
-    double cutoff_h = pow(10.0, log10((double)proj->sample_rate / 2) * cutoff_unscaled);
-    filter_set_cutoff_hz(f, cutoff_h);
+    
+    /* double cutoff_h = pow(10.0, log10((double)proj->sample_rate / 2) * cutoff_unscaled); */
+    double cutoff_hz = dsp_scale_freq_to_hz(cutoff_unscaled);
+    filter_set_cutoff_hz(f, cutoff_hz);
     return 0;
 }
 
@@ -93,8 +95,9 @@ static int slider_bandwidth_target_action(void *self_v, void *target)
     Slider *self = (Slider *)self_v;
     FIRFilter *f = (FIRFilter *)target;
     double bandwidth_unscaled = *(double *)(self->value);
-    double bandwidth_h = pow(10.0, log10((double)proj->sample_rate / 2) * bandwidth_unscaled);
-    filter_set_bandwidth_hz(f, bandwidth_h);
+    /* double bandwidth_h = pow(10.0, log10((double)proj->sample_rate / 2) * bandwidth_unscaled); */
+    double bandwidth_hz = dsp_scale_freq_to_hz(bandwidth_unscaled);
+    filter_set_bandwidth_hz(f, bandwidth_hz);
     return 0;
 }
 
@@ -147,7 +150,8 @@ static int delay_set_offset(void *self_v, void *target)
 static void create_hz_label(char *dst, size_t dstsize, void *value, ValType type)
 {
     double raw = *(double *)value;
-    double hz = pow(10.0, log10((double)proj->sample_rate / 2) * raw);
+    /* double hz = pow(10.0, log10((double)proj->sample_rate / 2) * raw); */
+    double hz = dsp_scale_freq_to_hz(raw);
     snprintf(dst, dstsize, "%.0f Hz", hz);
     /* snprintf(dst, dstsize, "hi"); */
     dst[dstsize - 1] = '\0';
@@ -278,23 +282,24 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     page_add_el(page, EL_TOGGLE, p, "track_settings_filter_toggle", "toggle_filter_on");
 
     
-    static double freq_unscaled;
-    freq_unscaled = unscale_freq(f->cutoff_freq);
+    /* static double freq_unscaled; */
+    
+    f->cutoff_freq_unscaled = unscale_freq(f->cutoff_freq);
     p.slider_p.create_label_fn = create_hz_label;
     p.slider_p.style = SLIDER_TICK;
     p.slider_p.orientation = SLIDER_HORIZONTAL;
-    p.slider_p.value = &freq_unscaled;
+    p.slider_p.value = &f->cutoff_freq_unscaled;
     p.slider_p.val_type = JDAW_DOUBLE;
     p.slider_p.action = slider_cutoff_target_action;
     p.slider_p.target = (void *)(f);
     el = page_add_el(page, EL_SLIDER, p, "track_settings_filter_cutoff_slider", "cutoff_slider");
 
 
-    static double bandwidth_unscaled;
-    bandwidth_unscaled = unscale_freq(f->bandwidth);
+    /* static double bandwidth_unscaled; */
+    f->bandwidth_unscaled = unscale_freq(f->bandwidth);
     p.slider_p.action = slider_bandwidth_target_action;
     p.slider_p.target = (void *)(f);
-    p.slider_p.value = &bandwidth_unscaled;
+    p.slider_p.value = &f->bandwidth_unscaled;
     el = page_add_el(page, EL_SLIDER, p, "track_settings_filter_bandwidth_slider", "bandwidth_slider");
 
     static int ir_len = 20;

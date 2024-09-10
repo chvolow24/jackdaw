@@ -631,7 +631,13 @@ static Layout *create_quickref_button_lt(Layout *row)
     return ret;
 }
 
+typedef int (*ComponentFn)(void *self, void *target);
 
+int set_output_compfn(void *self, void *target)
+{
+    project_set_default_out(proj);
+    return 0;
+}
 static inline void project_init_output_panel(Page *output, Project *proj)
 {
 
@@ -659,14 +665,16 @@ static inline void project_init_output_panel(Page *output, Project *proj)
     p.button_p.set_str = (char *)proj->playback_conn->name;
     p.button_p.win = output->win;
     p.button_p.target = NULL;
-    p.button_p.action = NULL;
-    page_add_el(
+    p.button_p.action = set_output_compfn;
+    el = page_add_el(
 	output,
 	EL_BUTTON,
 	p,
 	"panel_out_value",
 	"default_out_value");
 
+    textbox_set_trunc(((Button *)el->component)->tb, true);
+    
     void **output_L, **output_R;
     output_L = (void *)&(proj->output_L);
     output_R = (void *)&(proj->output_R);
@@ -747,6 +755,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row1,
 	"add_track",
 	create_quickref_button_lt);
+    /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
 
     p.button_p.action = quickref_record;
     p.button_p.set_str = "r ⏺";
@@ -759,13 +768,14 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row1,
 	"record",
 	create_quickref_button_lt);
+    /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
 
     /* /\* ROW 2 *\/ */
     /* button_lt = create_quickref_button_lt(row2); */
     p.button_p.font = main_win->mono_font;
     p.button_p.action = quickref_left;
     p.button_p.set_str = "h ←";
-        page_add_el_custom_layout(
+    page_add_el_custom_layout(
 	quickref1,
 	EL_BUTTON,
 	p,
@@ -773,6 +783,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row2,
 	"left",
 	create_quickref_button_lt);
+    /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->left = create_button_from_params(button_lt, b); */
 
     /* button_lt = create_quickref_button_lt(row2); */
@@ -787,6 +798,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row2,
 	"rewind",
 	create_quickref_button_lt);
+    /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->rewind = create_button_from_params(button_lt, b); */
 
     /* button_lt = create_quickref_button_lt(row2); */
@@ -800,6 +812,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row2,
 	"pause",
 	create_quickref_button_lt);
+    /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->pause = create_button_from_params(button_lt, b); */
 
     /* button_lt = create_quickref_button_lt(row2); */
@@ -814,6 +827,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row2,
 	"play",
 	create_quickref_button_lt);
+    /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* Q->play = create_button_from_params(button_lt, b); */
 
     /* button_lt = create_quickref_button_lt(row2); */
@@ -829,6 +843,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row2,
 	"right",
 	create_quickref_button_lt);
+    /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->right = create_button_from_params(button_lt, b); */
 
 
@@ -846,6 +861,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row3,
 	"next",
 	create_quickref_button_lt);
+    /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->next = create_button_from_params(button_lt, b); */
 
     /* button_lt = create_quickref_button_lt(row3); */
@@ -860,6 +876,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row3,
 	"previous",
 	create_quickref_button_lt);
+    /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->previous = create_button_from_params(button_lt, b); */
 
 
@@ -875,6 +892,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row3,
 	"zoom_out",
 	create_quickref_button_lt);
+    /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->zoom_out = create_button_from_params(button_lt, b); */
 
     /* button_lt = create_quickref_button_lt(row3); */
@@ -888,6 +906,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row3,
 	"zoom_in",
 	create_quickref_button_lt);
+    /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
 
     
     /* q->zoom_in = create_button_from_params(button_lt, b); */
@@ -928,6 +947,8 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row1,
 	"open_file",
 	create_quickref_button_lt);
+    /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
+
 
     p.button_p.action = quickref_save;
     p.button_p.set_str = "Save (C-s)";
@@ -939,6 +960,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row1,
 	"save",
 	create_quickref_button_lt);
+    /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
 
 
     p.button_p.action = quickref_export_wav;
@@ -952,11 +974,12 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row2,
 	"export_wav",
 	create_quickref_button_lt);
+    /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
 
     p.button_p.action = quickref_track_settings;
     p.button_p.set_str = "Track settings (S-t)";
 
-        page_add_el_custom_layout(
+    page_add_el_custom_layout(
 	quickref2,
 	EL_BUTTON,
 	p,
@@ -964,6 +987,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row3,
 	"track_settings",
 	create_quickref_button_lt);
+	/* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
 }
 
 extern SDL_Color source_mode_bckgrnd;
@@ -1283,20 +1307,18 @@ Track *timeline_add_track(Timeline *tl)
     Layout *name, *mute, *solo, *vol_label, *pan_label, *in_label, *in_value;
 
     Layout *track_name_row = layout_get_child_by_name_recursive(track->layout, "name_value");
-    name = layout_add_child(track_name_row);
-    layout_pad(name, TRACK_NAME_H_PAD, TRACK_NAME_V_PAD);
+    name = layout_get_child_by_name_recursive(track_name_row, "name_value");
     mute = layout_get_child_by_name_recursive(track->layout, "mute_button");
     solo = layout_get_child_by_name_recursive(track->layout, "solo_button");
     vol_label = layout_get_child_by_name_recursive(track->layout, "vol_label");
     pan_label = layout_get_child_by_name_recursive(track->layout, "pan_label");
     in_label = layout_get_child_by_name_recursive(track->layout, "in_label");
     in_value = layout_get_child_by_name_recursive(track->layout, "in_value");
-    /* layout_pad(in_value, TRACK_NAME_H_PAD, TRACK_NAME_V_PAD); */
-    /* layout_force_reset(in_value); */
-    /* fprintf(stdout, "Addrs: %p, %p, %p, %p, %p, %p, %p\n", name, mute, solo, vol_label, pan_label, in_label, in_value); */
-    /* textbox_create_from_str(char *set_str, Layout *lt, Font *font, uint8_t text_size, Window *win) -> Textbox *
-     */
 
+    /* Force layout reset before creating gui components */
+    layout_force_reset(track->layout);
+
+    
     track->tb_vol_label = textbox_create_from_str(
 	"Vol:",
 	vol_label,
@@ -1306,6 +1328,7 @@ Track *timeline_add_track(Timeline *tl)
     textbox_set_background_color(track->tb_vol_label, &color_global_clear);
     textbox_set_align(track->tb_vol_label, CENTER_LEFT);
     textbox_set_pad(track->tb_vol_label, TRACK_NAME_H_PAD, 0);
+    textbox_set_trunc(track->tb_vol_label, false);
 
     track->tb_pan_label = textbox_create_from_str(
 	"Pan:",
@@ -1316,7 +1339,7 @@ Track *timeline_add_track(Timeline *tl)
     textbox_set_background_color(track->tb_pan_label, &color_global_clear);
     textbox_set_align(track->tb_pan_label, CENTER_LEFT);
     textbox_set_pad(track->tb_pan_label, TRACK_NAME_H_PAD, 0);
-
+    textbox_set_trunc(track->tb_pan_label, false);
 
     track->tb_name = textbox_create_from_str(
         track->name,
@@ -1327,6 +1350,7 @@ Track *timeline_add_track(Timeline *tl)
     textbox_set_align(track->tb_name, CENTER_LEFT);
     textbox_set_pad(track->tb_name, 4, 0);
     textbox_set_border(track->tb_name, &color_global_black, 1);
+    textbox_set_trunc(track->tb_vol_label, false);
     /* textbox_reset_full(track->tb_name); */
     track->tb_name->text->validation = txt_name_validation;
     track->tb_name->text->completion = track_name_completion;
@@ -1350,12 +1374,14 @@ Track *timeline_add_track(Timeline *tl)
 	12,
 	main_win);
     track->tb_input_name->corner_radius = BUBBLE_CORNER_RADIUS;
-    /* textbox_set_align(track->tb_input_name, CENTER_LEFT); */
+    /* textbox_set_align(track->tb_input_name, CENTER_); */
+    textbox_set_pad(track->tb_input_name, 4, 0);
     /* int saved_w = track->tb_input_name->layout->rect.w / main_win->dpi_scale_factor; */
     /* textbox_size_to_fit(track->tb_input_name, 10, 0); */
     /* textbox_set_trunc(track->tb_input_name, true); */
     /* textbox_set_fixed_w(track->tb_input_name, saved_w); */
     textbox_set_border(track->tb_input_name, &color_global_black, 1);
+
     
     track->tb_mute_button = textbox_create_from_str(
 	"M",
@@ -1426,18 +1452,15 @@ Track *timeline_add_track(Timeline *tl)
 	NULL,
 	NULL);
 
-    slider_reset(track->vol_ctrl);
-    slider_reset(track->pan_ctrl);
+    /* slider_reset(track->vol_ctrl); */
+    /* slider_reset(track->pan_ctrl); */
     
 
     track->console_rect = &(layout_get_child_by_name_recursive(track->layout, "track_console")->rect);
     track->colorbar = &(layout_get_child_by_name_recursive(track->layout, "colorbar")->rect);
-    /* textbox_reset_full(track->tb_name); */
-    /* layout_force_reset(track->layout); */
-
+    
     track_reset_full(track);
 
-    
     return track;
 }
 

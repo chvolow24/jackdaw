@@ -13,23 +13,23 @@
       <index>0</index>
       <children>
         <Layout name="name_row" type="NORMAL">
-          <x>REL 0</x>
-          <y>REL 2</y>
+          <x>REL 2</x>
+          <y>REL 4</y>
           <w>SCALE 1.000000</w>
-          <h>REL 23</h>
+          <h>REL 21</h>
           <index>0</index>
           <children>
             <Layout name="name_value" type="NORMAL">
               <x>REL 0</x>
               <y>REL 0</y>
-              <w>REL 100</w>
+              <w>REL 96</w>
               <h>SCALE 1.000000</h>
               <index>0</index>
               <children>
               </children>
             </Layout>
             <Layout name="mute_button" type="NORMAL">
-              <x>STACK 2</x>
+              <x>STACK 4</x>
               <y>REL 1</y>
               <w>REL 20</w>
               <h>REL 20</h>

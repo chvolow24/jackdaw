@@ -101,15 +101,8 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
     Automation *fir_filter_bandwidth = NULL;
     Automation *delay_time = NULL;
     Automation *delay_amp = NULL;
-    /* float vol_init = track->vol; */
-    /* float pan_init = track->pan; */
-    Value m_zero = {.float_v = 0.0f};
-    AutomationSlope vol_m = {.dx = 1, .dy = m_zero};
-    AutomationSlope pan_m = {.dx = 1, .dy = m_zero};
-    /* double vol_m = 0.0; */
-    /* double pan_m = 0.0f; */
-    /* int32_t vol_next_kf; */
-    /* int32_t pan_next_kf; */
+    Automation *play_speed = NULL;
+
     for (uint8_t i=0; i<track->num_automations; i++) {
 	Automation *a = track->automations[i];
 	if (a->type == AUTO_VOL) vol_auto = a;
@@ -118,6 +111,7 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
 	else if (a->type == AUTO_FIR_FILTER_BANDWIDTH) fir_filter_bandwidth = a;
 	else if (a->type == AUTO_DEL_TIME) delay_time = a;
 	else if (a->type == AUTO_DEL_AMP) delay_amp = a;
+	else if (a->type == AUTO_PLAY_SPEED) play_speed = a;
     }
     
     
@@ -144,6 +138,9 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
 	double bandwidth_raw = automation_get_value(fir_filter_bandwidth, start_pos_sframes, step).double_v;
 	bandwidth_hz = dsp_scale_freq_to_hz(bandwidth_raw);
 	bandwidth_set = true;
+    }
+    if (play_speed && play_speed->read) {
+	proj->play_speed = (proj->play_speed / fabs(proj->play_speed)) * automation_get_value(play_speed, start_pos_sframes, step).float_v;
     }
     FIRFilter *f;
     if ((f = track->fir_filter)) {

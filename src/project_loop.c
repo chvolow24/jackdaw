@@ -325,56 +325,19 @@ void loop_project_main()
 		    Timeline *tl = proj->timelines[proj->active_tl_index];
 		    Track *track = tl->tracks[tl->track_selector];
 		    if (track->num_automations == 0) {
-			Automation *a = track_add_automation(track, AUTO_VOL);
-
-			Value v = {.float_v = 1.0};
-			Keyframe *k = automation_insert_keyframe_after(a, NULL, v, 0);
-			/* v.float_v = 1.7; */
-			/* k = automation_insert_keyframe_after(a, k, v, 48000); */
-			/* v.float_v = 0.1; */
-			/* k = automation_insert_keyframe_after(a, k, v, (48000 * 5)); */
-			/* v.float_v = 3.0f; */
-			/* k = automation_insert_keyframe_after(a, k, v, (48000 *6)); */
-			/* k = automation_insert_keyframe_after(a, k, v, (48000 *7)); */
-			/* v.float_v = 0.0f; */
-			/* k = automation_insert_keyframe_after(a, k, v, (48000 *7.5)); */
-			/* k = automation_insert_keyframe_after(a, k, v, (48000 *8.0)); */
-			/* v.float_v = 2.5f; */
-			/* k = automation_insert_keyframe_after(a, k, v, (48000 *9)); */
+			track_add_automation(track, AUTO_VOL);
 		    } else if (track->num_automations == 1) {
-
-			Automation *a = track_add_automation(track, AUTO_PAN);
-			Value v = {.float_v = 0.5};
-			Keyframe *k = automation_insert_keyframe_after(a, NULL, v, 0);
-			/* v.float_v = 1.0; */
-			/* k = automation_insert_keyframe_after(a, k, v, 48000 * 2); */
-			/* v.float_v = 0.1; */
-			/* k = automation_insert_keyframe_after(a, k, v, (48000 * 6)); */
-			/* v.float_v = 1.0f; */
-			/* k = automation_insert_keyframe_after(a, k, v, (48000 *6.8)); */
-			/* k = automation_insert_keyframe_after(a, k, v, (48000 *7)); */
-			/* v.float_v = 0.5f; */
-			/* k = automation_insert_keyframe_after(a, k, v, (48000 *7.7)); */
-			/* k = automation_insert_keyframe_after(a, k, v, (48000 *8.8)); */
-			/* v.float_v = 0.0f; */
-			/* k = automation_insert_keyframe_after(a, k, v, (48000 *10)); */
+			track_add_automation(track, AUTO_PAN);
 		    } else if (track->num_automations == 2) {
-			Automation *a = track_add_automation(track, AUTO_FIR_FILTER_CUTOFF);
-			Value v = {.float_v = 0.5};
-			automation_insert_keyframe_after(a, NULL, v, 0);
+			track_add_automation(track, AUTO_FIR_FILTER_CUTOFF);
 		    } else if (track->num_automations == 3) {
-			Automation *a = track_add_automation(track, AUTO_FIR_FILTER_BANDWIDTH);
-			Value v = {.float_v = 0.5};
-			automation_insert_keyframe_after(a, NULL, v, 0);
+			track_add_automation(track, AUTO_PLAY_SPEED);
+			/* track_add_automation(track, AUTO_FIR_FILTER_BANDWIDTH); */
 		    } else if (track->num_automations == 4) {
-			Automation *a = track_add_automation(track, AUTO_DEL_TIME);
-			Value v = {.int32_v = 2000};
-			automation_insert_keyframe_after(a, NULL, v, 0);
+			/* track_add_automation(track, AUTO_DEL_TIME); */
 		    } else if (track->num_automations == 5) {
-			Automation *a = track_add_automation(track, AUTO_DEL_AMP);
-			Value v = {.float_v = 0.5};
-			automation_insert_keyframe_after(a, NULL, v, 0);
-
+			/* track */
+			/* track_add_automation(track, AUTO_DEL_AMP); */
 		    }
 			    
 		    track_automations_show_all(track);

@@ -69,7 +69,7 @@ const char *AUTOMATION_LABELS[] = {
     "Filter bandwidth",
     "Delay time",
     "Delay amplitude",
-    "Delay stereo offset"
+    "Play speed"
 };
 
 /* void track_init_default_automations(Track *track) */
@@ -98,6 +98,7 @@ Automation *track_add_automation(Track *track, AutomationType type)
     a->index = track->num_automations;
     track->automations[track->num_automations] = a;
     track->num_automations++;
+    Value base_kf_val;
     switch (type) {
     case AUTO_VOL:
 	a->val_type = JDAW_FLOAT;
@@ -105,6 +106,8 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	a->max.float_v = TRACK_VOL_MAX;
 	a->range.float_v = TRACK_VOL_MAX;
 	a->target_val = &track->vol;
+	base_kf_val.float_v = track->vol;
+	automation_insert_keyframe_after(a, NULL, base_kf_val, 0);
 	break;
     case AUTO_PAN:
 	a->val_type = JDAW_FLOAT;
@@ -112,6 +115,8 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	a->max.float_v = 1.0f;
 	a->range.float_v = 1.0f;
 	a->target_val = &track->pan;
+	base_kf_val.float_v = track->pan;
+	automation_insert_keyframe_after(a, NULL, base_kf_val, 0);
 	break;
     case AUTO_FIR_FILTER_CUTOFF:
 	a->val_type = JDAW_DOUBLE;
@@ -119,6 +124,8 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	a->min.double_v = 0.0;
 	a->max.double_v = 1.0;
 	a->range.double_v = 1.0;
+	base_kf_val.double_v = 0.5;
+	automation_insert_keyframe_after(a, NULL, base_kf_val, 0);
 	break;
     case AUTO_FIR_FILTER_BANDWIDTH:
 	a->val_type = JDAW_DOUBLE;
@@ -126,6 +133,8 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	a->min.double_v = 0.0;
 	a->max.double_v = 1.0;
 	a->range.double_v = 1.0;
+	base_kf_val.double_v = 0.5;
+	automation_insert_keyframe_after(a, NULL, base_kf_val, 0);
 	break;
     case AUTO_DEL_TIME:
 	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line);
@@ -134,6 +143,9 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	a->max.int32_v = proj->sample_rate * DELAY_LINE_MAX_LEN_S;
 	a->range.int32_v = a->max.int32_v - 10;
 	a->target_val = &track->delay_line.len;
+	base_kf_val.int32_v = proj->sample_rate / 2;
+	automation_insert_keyframe_after(a, NULL, base_kf_val, 0);
+
 	break;
     case AUTO_DEL_AMP:
 	a->val_type = JDAW_DOUBLE;
@@ -141,10 +153,17 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	a->min.double_v = 0.0;
 	a->max.double_v = 1.0;
 	a->range.double_v = 1.0;
+	base_kf_val.double_v = 0.5;
+	automation_insert_keyframe_after(a, NULL, base_kf_val, 0);
 	break;
-    case AUTO_DEL_STEREO_OFFSET:
-	a->val_type = JDAW_INT32;
-	a->target_val = &track->delay_line.stereo_offset;
+    case AUTO_PLAY_SPEED:
+	a->val_type = JDAW_FLOAT;
+	a->min.float_v = 0.05;
+	a->max.float_v = 5.0;
+	a->range.float_v = 5.0 - 0.05;
+	base_kf_val.float_v = 1.0f;
+	automation_insert_keyframe_after(a, NULL, base_kf_val, 0);
+	break;
     default:
 	break;
     }
@@ -180,6 +199,10 @@ void automation_show(Automation *a)
 	a->label->corner_radius = BUBBLE_CORNER_RADIUS;
 	textbox_set_trunc(a->label, false);
 	textbox_set_border(a->label, &color_global_black, 2);
+	textbox_set_pad(a->label, 4, 0);
+	textbox_size_to_fit(a->label, 6, 2);
+	textbox_reset_full(a->label);
+
 	
 	tb_lt = layout_get_child_by_name_recursive(lt, "read");
 	Button *button = button_create(
@@ -211,14 +234,6 @@ void automation_show(Automation *a)
 	textbox_set_border(button->tb, &color_global_black, 1);
 	button->tb->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
 	a->write_button = button;
-
-	/* textbox_set_align(a->label, CENTER_LEFT); */
-	
-	textbox_set_pad(a->label, 4, 0);
-	textbox_size_to_fit(a->label, 10, 2);
-	textbox_reset_full(a->label);
-	
-	    
     } else {
 	a->layout->h.value.intval = AUTOMATION_LT_H;
     }

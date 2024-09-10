@@ -63,8 +63,8 @@ SDL_Color automation_bckgrnd = {90, 100, 120, 255};
 const char *AUTOMATION_LABELS[] = {
     "Volume",
     "Pan",
-    "FIR filter cutoff",
-    "FIR filter bandwidth",
+    "Filter cutoff",
+    "Filter bandwidth",
     "Delay time",
     "Delay amplitude",
     "Delay stereo offset"
@@ -121,13 +121,24 @@ Automation *track_add_automation(Track *track, AutomationType type)
     case AUTO_FIR_FILTER_BANDWIDTH:
 	a->val_type = JDAW_DOUBLE;
 	a->target_val = &track->fir_filter->bandwidth;
+	a->min.double_v = 0.0;
+	a->max.double_v = 1.0;
+	a->range.double_v = 1.0;
 	break;
     case AUTO_DEL_TIME:
 	a->val_type = JDAW_INT32;
+	a->min.int32_v = 1;
+	a->max.int32_v = 48000 * 2;
+	a->range.int32_v = 48000 * 2 - 1;
 	a->target_val = &track->delay_line.len;
+	break;
     case AUTO_DEL_AMP:
 	a->val_type = JDAW_DOUBLE;
-	a->target_val = &track->delay_line.amp;
+	a->target_val = &track->fir_filter->bandwidth;
+	a->min.double_v = 0.0;
+	a->max.double_v = 1.0;
+	a->range.double_v = 1.0;
+	break;
     case AUTO_DEL_STEREO_OFFSET:
 	a->val_type = JDAW_INT32;
 	a->target_val = &track->delay_line.stereo_offset;
@@ -376,7 +387,7 @@ static inline void keyframe_draw(int x, int y)
 }
 
 /* This function assumes "current" pointer has been set or unset appropriately elsewhere */
-Value automation_get_value(Automation *a, int32_t pos, float direction)
+Value inline automation_get_value(Automation *a, int32_t pos, float direction)
 {
     if (!a->current) {
 	a->current = automation_get_segment(a, pos);

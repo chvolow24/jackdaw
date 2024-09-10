@@ -100,7 +100,7 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
     Automation *fir_filter_cutoff = NULL;
     Automation *fir_filter_bandwidth = NULL;
     Automation *delay_time = NULL;
-    Automation *delay_amplitude = NULL;
+    Automation *delay_amp = NULL;
     /* float vol_init = track->vol; */
     /* float pan_init = track->pan; */
     Value m_zero = {.float_v = 0.0f};
@@ -117,7 +117,7 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
 	else if (a->type == AUTO_FIR_FILTER_CUTOFF) fir_filter_cutoff = a;
 	else if (a->type == AUTO_FIR_FILTER_BANDWIDTH) fir_filter_bandwidth = a;
 	else if (a->type == AUTO_DEL_TIME) delay_time = a;
-	else if (a->type == AUTO_DEL_AMP) delay_amplitude = a;
+	else if (a->type == AUTO_DEL_AMP) delay_amp = a;
     }
     
     
@@ -131,14 +131,48 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
 	track->pan = pan_init;
 	slider_reset(track->pan_ctrl);
     }
+    bool bandwidth_set = false;
+    bool cutoff_set = false;
+    double cutoff_hz;
+    double bandwidth_hz;
     if (fir_filter_cutoff && fir_filter_cutoff->read) {
 	double cutoff_raw = automation_get_value(fir_filter_cutoff, start_pos_sframes, step).double_v;
-	double cutoff_hz = dsp_scale_freq_to_hz(cutoff_raw);
-	if (track->fir_filter) {
-	    filter_set_cutoff_hz(track->fir_filter,cutoff_hz); 
+	cutoff_hz = dsp_scale_freq_to_hz(cutoff_raw);
+	cutoff_set = true;
+    }
+    if (fir_filter_bandwidth && fir_filter_bandwidth->read) {
+	double bandwidth_raw = automation_get_value(fir_filter_bandwidth, start_pos_sframes, step).double_v;
+	bandwidth_hz = dsp_scale_freq_to_hz(bandwidth_raw);
+	bandwidth_set = true;
+    }
+    FIRFilter *f;
+    if ((f = track->fir_filter)) {
+	if (cutoff_set && bandwidth_set) {
+	    FilterType t = f->type;
+	    filter_set_params_hz(f, t, cutoff_hz, bandwidth_hz);
+	} else if (cutoff_set) {
+	    filter_set_cutoff_hz(f, cutoff_hz);
+	} else if (bandwidth_set) {
+	    filter_set_bandwidth_hz(f, bandwidth_hz);
 	}
     }
 
+    if (track->delay_line_active) {
+	int32_t del_time = track->delay_line.len;
+	double del_amp = track->delay_line.amp;
+	bool del_line_edit = false;
+	if (delay_time && delay_time->read) {
+	    del_time = automation_get_value(delay_time, start_pos_sframes, step).int32_v;
+	    del_line_edit = true;
+	}
+	if (delay_amp && delay_amp->read) {
+	    del_amp = automation_get_value(delay_amp, start_pos_sframes, step).double_v;
+	    del_line_edit = true;
+	}
+	if (del_line_edit) {
+	    delay_line_set_params(&track->delay_line, del_amp, del_time);
+	}
+    }
 
     /**********************************************************************/
     bool clip_read = false;

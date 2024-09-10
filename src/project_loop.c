@@ -358,11 +358,25 @@ void loop_project_main()
 			/* k = automation_insert_keyframe_after(a, k, v, (48000 *8.8)); */
 			/* v.float_v = 0.0f; */
 			/* k = automation_insert_keyframe_after(a, k, v, (48000 *10)); */
-		    } else {
+		    } else if (track->num_automations == 2) {
 			Automation *a = track_add_automation(track, AUTO_FIR_FILTER_CUTOFF);
 			Value v = {.float_v = 0.5};
-			Keyframe *k = automation_insert_keyframe_after(a, NULL, v, 0);
+			automation_insert_keyframe_after(a, NULL, v, 0);
+		    } else if (track->num_automations == 3) {
+			Automation *a = track_add_automation(track, AUTO_FIR_FILTER_BANDWIDTH);
+			Value v = {.float_v = 0.5};
+			automation_insert_keyframe_after(a, NULL, v, 0);
+		    } else if (track->num_automations == 4) {
+			Automation *a = track_add_automation(track, AUTO_DEL_TIME);
+			Value v = {.float_v = 0.5};
+			automation_insert_keyframe_after(a, NULL, v, 0);
+		    } else if (track->num_automations == 5) {
+			Automation *a = track_add_automation(track, AUTO_DEL_AMP);
+			Value v = {.float_v = 0.5};
+			automation_insert_keyframe_after(a, NULL, v, 0);
+
 		    }
+			    
 		    track_automations_show_all(track);
 
 

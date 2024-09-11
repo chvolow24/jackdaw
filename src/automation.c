@@ -72,22 +72,6 @@ const char *AUTOMATION_LABELS[] = {
     "Play speed"
 };
 
-/* void track_init_default_automations(Track *track) */
-/* { */
-/*     Automation a = track->vol_automation; */
-/*     a.track = track; */
-/*     a.type = AUTO_VOL; */
-/*     a.min.float_v = 0.0f; */
-/*     a.max.float_v = 1.0f; */
-/*     a.range.float_v = 1.0f; */
-
-/*     a = track->pan_automation; */
-/*     a.track = track; */
-/*     a.type = AUTO_PAN; */
-/*     a.min.float_v = 0.0f; */
-/*     a.min.float_v = 1.0f; */
-/*     a.range.float_v = 1.0f; */
-/* } */
 
 Automation *track_add_automation(Track *track, AutomationType type)
 {
@@ -167,6 +151,7 @@ Automation *track_add_automation(Track *track, AutomationType type)
     default:
 	break;
     }
+
     return a;
 }
 
@@ -234,6 +219,15 @@ void automation_show(Automation *a)
 	textbox_set_border(button->tb, &color_global_black, 1);
 	button->tb->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
 	a->write_button = button;
+	Layout *kf_label = layout_add_child(a->layout);
+	layout_set_default_dims(kf_label);
+	layout_force_reset(kf_label);
+	a->keyframe_label = textbox_create_from_str(a->keyframe_label_str, kf_label, main_win->mono_font, 12, main_win);
+	textbox_set_trunc(a->keyframe_label, false);
+
+	textbox_set_pad(a->keyframe_label, SLIDER_LABEL_H_PAD, SLIDER_LABEL_V_PAD);
+	textbox_set_border(a->keyframe_label, &color_global_black, 2);
+
     } else {
 	a->layout->h.value.intval = AUTOMATION_LT_H;
     }
@@ -513,8 +507,30 @@ void automation_draw(Automation *a)
     textbox_draw(a->label);
     button_draw(a->read_button);
     button_draw(a->write_button);
+    if (a->keyframe_label_countdown > 0) {
+	textbox_draw(a->keyframe_label);
+	a->keyframe_label_countdown--;
+    }
 }
 
+static void set_label_std(Automation *a, Keyframe *k)
+{
+    jdaw_val_set_str(a->keyframe_label_str, SLIDER_LABEL_STRBUFLEN, k->value, a->val_type, 2);
+}
+
+static void automation_editing(Automation *a, Keyframe *k, int x, int y)
+{
+    set_label_std(a, k);
+    /* fprintf(stderr, "OK: %s\n", a->keyframe_label_str); */
+    a->keyframe_label_countdown = 80;
+    a->keyframe_label->layout->rect.x = x;
+    a->keyframe_label->layout->rect.y = y;
+    textbox_reset_full(a->keyframe_label);
+    layout_set_values_from_rect(a->keyframe_label->layout);
+    textbox_size_to_fit(a->keyframe_label, SLIDER_LABEL_H_PAD, SLIDER_LABEL_V_PAD);
+    layout_force_reset(a->keyframe_label->layout);
+    
+}
 static void keyframe_move(Keyframe *k, int x, int y)
 {
     /* fprintf(stdout, "MOVE to %d, %d\n", x, y); */
@@ -533,7 +549,7 @@ static void keyframe_move(Keyframe *k, int x, int y)
 	    keyframe_recalculate_m(k->prev, a->val_type);
 	}
 	k->pos = abs_pos;
-
+	automation_editing(a, k, x, y);
     }
 }
 

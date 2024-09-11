@@ -12,8 +12,6 @@ extern Window *main_win;
 #define SLIDER_INNER_PAD 2
 #define SLIDER_TICK_W 2
 
-#define SLIDER_LABEL_H_PAD 4
-#define SLIDER_LABEL_V_PAD 2
 #define RADIO_BUTTON_LEFT_COL_W 10
 #define SLIDER_MAX_LABEL_COUNTDOWN 80
 #define SLIDER_NUDGE_PROP 0.05
@@ -32,6 +30,7 @@ SDL_Color tgl_bckgrnd = {110, 110, 110, 255};
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_clear;
 
+
 /* Slider fslider_create(Layout *layout, SliderOrientation orientation, SliderType type, SliderStrFn *fn) */
 Slider *slider_create(
     Layout *layout,
@@ -39,13 +38,14 @@ Slider *slider_create(
     ValType val_type,
     enum slider_orientation orientation,
     enum slider_style style,
-    SliderStrFn *create_label_fn,
+    LabelStrFn label_str_fn,
+    /* SliderStrFn *create_label_fn, */
     ComponentFn action,
     void *target)
 
 {
     Slider *s = calloc(1, sizeof(Slider));
-    s->create_label = create_label_fn;
+    /* s->create_label = create_label_fn; */
     s->action = action;
     s->target = target;
     s->layout = layout;
@@ -55,18 +55,20 @@ Slider *slider_create(
     label->rect.x = layout->rect.x + layout->rect.w;
     label->rect.y = layout->rect.y;
     layout_set_values_from_rect(label);
-    if (create_label_fn) {
-	create_label_fn(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, value, val_type);
-    }
+    s->label = label_create(0, label, NULL, value, val_type, main_win);
+    /* if (create_label_fn) { */
+    /* 	create_label_fn(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, value, val_type); */
+    /* } */
     /* amp_to_dbstr(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, *value); */
 
     /* snprintf(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, "%f", *value); */
-    s->label = textbox_create_from_str(s->label_str, label, main_win->mono_font, 12, main_win);
-    textbox_size_to_fit(s->label, SLIDER_LABEL_H_PAD, SLIDER_LABEL_V_PAD);
-    textbox_set_pad(s->label, SLIDER_LABEL_H_PAD, SLIDER_LABEL_V_PAD);
-    textbox_set_border(s->label, &color_global_black, 2);
-    textbox_set_trunc(s->label, false);
-    layout_reset(layout);
+    /* s->label = textbox_create_from_str(s->label_str, label, main_win->mono_font, 12, main_win); */
+
+    /* textbox_size_to_fit(s->label, SLIDER_LABEL_H_PAD, SLIDER_LABEL_V_PAD); */
+    /* textbox_set_pad(s->label, SLIDER_LABEL_H_PAD, SLIDER_LABEL_V_PAD); */
+    /* textbox_set_border(s->label, &color_global_black, 2); */
+    /* textbox_set_trunc(s->label, false); */
+    /* layout_reset(layout); */
     /* bar_container->x.value.intval = SLIDER_INNER_PAD; */
     /* bar_container->y.value.intval = SLIDER_INNER_PAD; */
     /* bar_container->w.value.intval = (layout->rect.w - (SLIDER_INNER_PAD * main_win->dpi_scale_factor * 2)) / main_win->dpi_scale_factor; */
@@ -184,15 +186,15 @@ void slider_reset(Slider *s)
 	    break;
 	}
     }
-    if (s->editing) {
-	if (s->create_label) {
-	    s->create_label(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, s->value, s->val_type);
-	/* amp_to_dbstr(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, *(s->value)); */
-	/* snprintf(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, "%f", *(s->value)); */
-	    textbox_size_to_fit(s->label, SLIDER_LABEL_H_PAD, SLIDER_LABEL_V_PAD);
-	    textbox_reset_full(s->label);
-	}
-    }
+    /* if (s->editing) { */
+    /* 	if (s->create_label) { */
+    /* 	    s->create_label(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, s->value, s->val_type); */
+    /* 	/\* amp_to_dbstr(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, *(s->value)); *\/ */
+    /* 	/\* snprintf(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, "%f", *(s->value)); *\/ */
+    /* 	    /\* textbox_size_to_fit(s->label, SLIDER_LABEL_H_PAD, SLIDER_LABEL_V_PAD); *\/ */
+    /* 	    textbox_reset_full(s->label); */
+    /* 	} */
+    /* } */
     /* layout_write(stdout, s->layout, 0); */
     layout_reset(s->layout);
     
@@ -213,18 +215,21 @@ void slider_draw(Slider *s)
 
     /* fprintf(stdout, "DRAWING textbox label w disp val: %s\n", s->label->text->display_value); */
     /* fprintf(stdout, "Str? %s\n", s->label_str); */
-    if (s->editing && s->label) {
-	textbox_draw(s->label);
-	s->label_countdown--;
-	if (s->label_countdown == 0) {
-	    s->editing = false;
-	}
-    }
+
+    label_draw(s->label);
+    /* if (s->editing && s->label) { */
+    /* 	textbox_draw(s->label); */
+    /* 	s->label_countdown--; */
+    /* 	if (s->label_countdown == 0) { */
+    /* 	    s->editing = false; */
+    /* 	} */
+    /* } */
 }
 
 void slider_destroy(Slider *s)
 {
-    textbox_destroy(s->label);
+    /* textbox_destroy(s->label); */
+    label_destroy(s->label);
     layout_destroy(s->layout);
     free(s);
 }
@@ -232,14 +237,15 @@ void slider_destroy(Slider *s)
 /* void (SliderStrFn)(char *dst, size_t dstsize, void *value, ValType type); */
 void slider_std_labelmaker(char *dst, size_t dstsize, void *value, ValType type)
 {
-    jdaw_val_set_str(dst, dstsize, value, type, 2);
+    jdaw_valptr_set_str(dst, dstsize, value, type, 2);
 }
 
 void slider_edit_made(Slider *slider)
 {
-    slider->label_countdown = SLIDER_MAX_LABEL_COUNTDOWN;
+    /* slider->label_countdown = SLIDER_MAX_LABEL_COUNTDOWN; */
     slider->editing = true;
-    textbox_reset_full(slider->label);
+    label_reset(slider->label);
+    /* textbox_reset_full(slider->label); */
 }
 
 void slider_nudge_right(Slider *slider)

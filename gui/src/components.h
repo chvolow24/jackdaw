@@ -1,6 +1,7 @@
 #ifndef JDAW_GUI_COMPONENTS
 #define JDAW_GUI_COMPONENTS
 
+#include "label.h"
 #include "layout.h"
 #include "textbox.h"
 #include "value.h"
@@ -11,6 +12,11 @@
 #define RADIO_BUTTON_ITEM_H 24
 #define RADIO_BUTTON_LEFT_W 24
 #define RADIO_BUTTON_RAD_PAD (3 * main_win->dpi_scale_factor);
+
+
+#define SLIDER_LABEL_H_PAD 4
+#define SLIDER_LABEL_V_PAD 2
+
 
 
 /*****************************************/
@@ -87,12 +93,15 @@ typedef struct slider {
     SDL_Rect *bar_rect;
     DimVal *val_dim;
     bool editing;
-    Textbox *label;
-    char label_str[SLIDER_LABEL_STRBUFLEN];
-    SliderStrFn *create_label;
+    /* Textbox *label; */
+    /* char label_str[SLIDER_LABEL_STRBUFLEN]; */
+    /* SliderStrFn *create_label; */
     ComponentFn action;
     void *target;
-    int label_countdown;
+    /* int label_countdown; */
+    Label *label;
+
+
 } Slider;
 
 typedef struct canvas {
@@ -115,7 +124,8 @@ Slider *slider_create(
     ValType val_type,
     enum slider_orientation orientation,
     enum slider_style style,
-    SliderStrFn *create_label_fn,
+    LabelStrFn set_str_fn,
+    /* SliderStrFn *create_label_fn, */
     ComponentFn action,
     void *target);
 /*     Layout *layout, */

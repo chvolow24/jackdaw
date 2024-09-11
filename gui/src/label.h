@@ -9,7 +9,7 @@
 #define LABEL_H_PAD 8
 #define LABEL_V_PAD 2
 
-typedef void (*LabelStrFn)(char *dst, size_t dstsize, ValType t, void *target);
+typedef void (*LabelStrFn)(char *dst, size_t dstsize, void *target, ValType type);
 
 typedef struct label {
     /* Layout *layout; */

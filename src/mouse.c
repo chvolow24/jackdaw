@@ -89,18 +89,8 @@ static bool mouse_triage_click_track(uint8_t button, Track *track)
 	    track_rename(track);
 	    return true;
 	}
-	if (SDL_PointInRect(&main_win->mousep, &track->vol_ctrl->layout->rect)) {
-	    Value newval = slider_val_from_coord(track->vol_ctrl, main_win->mousep.x);
-	    track->vol = newval.float_v;
-	    slider_reset(track->vol_ctrl);
-	    return true;
-	}
-	if (SDL_PointInRect(&main_win->mousep, &track->pan_ctrl->layout->rect)) {
-	    Value newval = slider_val_from_coord(track->pan_ctrl, main_win->mousep.x);
-	    track->pan = newval.float_v;
-	    slider_reset(track->pan_ctrl);
-	    return true;
-	}
+	if (slider_mouse_motion(track->vol_ctrl, main_win)) return true;
+	if (slider_mouse_motion(track->pan_ctrl, main_win)) return true;
     }
     return false;
 }

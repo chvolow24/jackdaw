@@ -55,7 +55,7 @@ Slider *slider_create(
     label->rect.x = layout->rect.x + layout->rect.w;
     label->rect.y = layout->rect.y;
     layout_set_values_from_rect(label);
-    s->label = label_create(0, label, NULL, value, val_type, main_win);
+    s->label = label_create(0, label, label_str_fn, value, val_type, main_win);
     /* if (create_label_fn) { */
     /* 	create_label_fn(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, value, val_type); */
     /* } */
@@ -242,10 +242,7 @@ void slider_std_labelmaker(char *dst, size_t dstsize, void *value, ValType type)
 
 void slider_edit_made(Slider *slider)
 {
-    /* slider->label_countdown = SLIDER_MAX_LABEL_COUNTDOWN; */
-    slider->editing = true;
     label_reset(slider->label);
-    /* textbox_reset_full(slider->label); */
 }
 
 void slider_nudge_right(Slider *slider)

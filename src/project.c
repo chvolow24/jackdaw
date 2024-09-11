@@ -1211,6 +1211,10 @@ static float amp_to_db(float amp)
     return (20.0f * log10(amp));
 }
 
+
+/* Type: `void (*)(char *, size_t, ValType, void *)`   */
+
+
 static void slider_label_amp_to_dbstr(char *dst, size_t dstsize, void *value, ValType type)
 {
     double amp = type == JDAW_DOUBLE ? *(double *)value : *(float *)value;
@@ -1415,7 +1419,6 @@ Track *timeline_add_track(Timeline *tl)
     /* vol_ctrl_lt->w.value.intval = vol_ctrl_row->w.value.intval - TRACK_CTRL_SLIDER_H_PAD * 2; */
     /* vol_ctrl_lt->h.value.intval = vol_ctrl_row->h.value.intval - TRACK_CTRL_SLIDER_V_PAD * 2; */
     /* layout_set_values_from_rect(vol_ctrl_lt); */
-    
     track->vol = 1.0f;
     track->vol_ctrl = slider_create(
 	vol_ctrl_lt,

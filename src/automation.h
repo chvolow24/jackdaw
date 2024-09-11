@@ -101,11 +101,12 @@ typedef struct automation {
     bool shown;
     Textbox *label;
     
-    Textbox *keyframe_label;
-    char keyframe_label_str[SLIDER_LABEL_STRBUFLEN];
-    SliderStrFn *keyframe_create_label;
-    int keyframe_label_countdown;
-    bool keyframe_label_show;
+    /* Textbox *keyframe_label; */
+    /* char keyframe_label_str[SLIDER_LABEL_STRBUFLEN]; */
+    /* SliderStrFn *keyframe_create_label; */
+    /* int keyframe_label_countdown; */
+    /* bool keyframe_label_show; */
+    Label *keyframe_label;
     
     Button *read_button;
     Button *write_button;

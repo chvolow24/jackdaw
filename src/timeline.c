@@ -167,6 +167,22 @@ void timeline_rescale(double sfpp_scale_factor, bool on_mouse)
     /* } */
 }
 
+void timecode_str_at(char *dst, size_t dstsize, int32_t pos)
+{
+    char sign = pos < 0 ? '-' : '+';
+    uint32_t abs_play_pos = abs(pos);
+    uint8_t seconds, minutes, hours;
+    uint32_t frames;
+
+    double total_seconds = (double) abs_play_pos / (double) proj->sample_rate;
+    hours = total_seconds / 3600;
+    minutes = (total_seconds - 3600 * hours) / 60;
+    seconds = total_seconds - (3600 * hours) - (60 * minutes);
+    frames = abs_play_pos - ((int) total_seconds * proj->sample_rate);
+
+    snprintf(dst, dstsize, "%c%02d:%02d:%02d:%05d", sign, hours, minutes, seconds, frames);
+}
+
 void timeline_set_timecode()
 {
     if (!proj) {

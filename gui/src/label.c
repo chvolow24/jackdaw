@@ -25,8 +25,6 @@ Label *label_create(
     }
     l->str = calloc(l->max_len, sizeof(char));
     Layout *lt = layout_add_child(parent_lt);
-    lt->w.value.intval = 100;
-    lt->h.value.intval = 50;
     l->tb = textbox_create_from_str(l->str, lt, win->mono_font, 12, win);
     if (set_str_fn) {
 	l->set_str_fn = set_str_fn;
@@ -37,7 +35,7 @@ Label *label_create(
     l->countdown_max = LABEL_COUNTDOWN_MAX;
     l->val_type = t;
 
-    textbox_set_pad(l->tb, LABEL_H_PAD, LABEL_V_PAD);
+    /* textbox_set_pad(l->tb, LABEL_H_PAD, LABEL_V_PAD); */
     textbox_set_border(l->tb, &color_global_black, 2);
     textbox_set_trunc(l->tb, false);
     textbox_size_to_fit(l->tb, LABEL_H_PAD, LABEL_V_PAD);
@@ -74,3 +72,51 @@ void label_destroy(Label *label)
     textbox_destroy(label->tb);
 }
 
+
+
+/* LABELMAKING UTILITIES */
+
+static float amp_to_db(float amp)
+{
+    return (20.0f * log10(amp));
+}
+
+void label_amp_to_dbstr(char *dst, size_t dstsize, float amp)
+{
+    int max_float_chars = dstsize - 2;
+    if (max_float_chars < 1) {
+	fprintf(stderr, "Error: no room for dbstr\n");
+	dst[0] = '\0';
+	return;
+    }
+    snprintf(dst, max_float_chars, "%.2f", amp_to_db(amp));
+    strcat(dst, " dB");
+}
+
+void label_pan(char *dst, size_t dstsize, float pan)
+{
+    if (pan < 0.5) {	
+	snprintf(dst, dstsize, "%.1f%% L", (0.5 - pan) * 200);
+    } else if (pan > 0.5) {
+	snprintf(dst, dstsize, "%.1f%% R", (pan - 0.5) * 200);
+    } else {
+	snprintf(dst, dstsize, "C");
+    }
+}
+
+
+double dsp_scale_freq_to_hz(double raw);
+void label_freq_raw_to_hz(char *dst, size_t dstsize, double raw)
+{
+    double hz = dsp_scale_freq_to_hz(raw);
+    snprintf(dst, dstsize, "%.0f Hz", hz);
+    /* snprintf(dst, dstsize, "hi"); */
+    dst[dstsize - 1] = '\0';
+}
+
+
+void label_time_samples_to_msec(char *dst, size_t dstsize, int32_t samples, int32_t sample_rate)
+{
+    int msec = (double)samples * 1000 / sample_rate;
+    snprintf(dst, dstsize, "%d ms", msec);
+}

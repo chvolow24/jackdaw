@@ -1206,38 +1206,40 @@ void project_init_audio_conns(Project *proj)
 }
 
 
-static float amp_to_db(float amp)
-{
-    return (20.0f * log10(amp));
-}
+/* static float amp_to_db(float amp) */
+/* { */
+/*     return (20.0f * log10(amp)); */
+/* } */
 
 
-/* Type: `void (*)(char *, size_t, ValType, void *)`   */
+/* /\* Type: `void (*)(char *, size_t, ValType, void *)`   *\/ */
 
 
 static void slider_label_amp_to_dbstr(char *dst, size_t dstsize, void *value, ValType type)
 {
-    double amp = type == JDAW_DOUBLE ? *(double *)value : *(float *)value;
-    int max_float_chars = dstsize - 2;
-    if (max_float_chars < 1) {
-	fprintf(stderr, "Error: no room for dbstr\n");
-	dst[0] = '\0';
-	return;
-    }
-    snprintf(dst, max_float_chars, "%.2f", amp_to_db(amp));
-    strcat(dst, " dB");
+    float amp = type == JDAW_DOUBLE ? *(double *)value : *(float *)value;
+    label_amp_to_dbstr(dst, dstsize, amp);
+    /* int max_float_chars = dstsize - 2; */
+    /* if (max_float_chars < 1) { */
+    /* 	fprintf(stderr, "Error: no room for dbstr\n"); */
+    /* 	dst[0] = '\0'; */
+    /* 	return; */
+    /* } */
+    /* snprintf(dst, max_float_chars, "%.2f", amp_to_db(amp)); */
+    /* strcat(dst, " dB"); */
 }
 
 static void slider_label_pan(char *dst, size_t dstsize, void *value, ValType type)
 {
     float val = *(float *)value;
-    if (val < 0.5) {	
-	snprintf(dst, dstsize, "%.1f%% L", (0.5 - val) * 200);
-    } else if (val > 0.5) {
-	snprintf(dst, dstsize, "%.1f%% R", (val - 0.5) * 200);
-    } else {
-	snprintf(dst, dstsize, "C");
-    }
+    label_pan(dst, dstsize, val);
+    /* if (val < 0.5) {	 */
+    /* 	snprintf(dst, dstsize, "%.1f%% L", (0.5 - val) * 200); */
+    /* } else if (val > 0.5) { */
+    /* 	snprintf(dst, dstsize, "%.1f%% R", (val - 0.5) * 200); */
+    /* } else { */
+    /* 	snprintf(dst, dstsize, "C"); */
+    /* } */
 }
 
 /* static void slider_label_plain_str(char *dst, size_t dstsize, void *value, ValType type) */

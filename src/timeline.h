@@ -28,6 +28,7 @@
 #define JDAW_TIMELINE_H
 
 #include <stdint.h>
+#include <stdio.h>
 #include <stdbool.h>
 
 #define TL_SHIFT_STEP (50 * main_win->dpi_scale_factor)
@@ -51,5 +52,7 @@ void timeline_move_play_position(int32_t move_by_sframes);
 
 void timeline_set_timecode();
 void timeline_catchup();
+
+void timecode_str_at(char *dst, size_t dstsize, int32_t pos);
 
 #endif

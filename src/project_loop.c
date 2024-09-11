@@ -331,13 +331,13 @@ void loop_project_main()
 		    } else if (track->num_automations == 2) {
 			track_add_automation(track, AUTO_FIR_FILTER_CUTOFF);
 		    } else if (track->num_automations == 3) {
-			track_add_automation(track, AUTO_PLAY_SPEED);
-			/* track_add_automation(track, AUTO_FIR_FILTER_BANDWIDTH); */
+			/* track_add_automation(track, AUTO_PLAY_SPEED); */
+			track_add_automation(track, AUTO_FIR_FILTER_BANDWIDTH);
 		    } else if (track->num_automations == 4) {
-			/* track_add_automation(track, AUTO_DEL_TIME); */
+			track_add_automation(track, AUTO_DEL_TIME);
 		    } else if (track->num_automations == 5) {
 			/* track */
-			/* track_add_automation(track, AUTO_DEL_AMP); */
+			track_add_automation(track, AUTO_DEL_AMP);
 		    }
 			    
 		    track_automations_show_all(track);

@@ -155,6 +155,36 @@ Automation *track_add_automation(Track *track, AutomationType type)
     return a;
 }
 
+static void keyframe_labelmaker(char *dst, size_t dstsize, void *target, ValType t)
+{
+    Automation *a = (Automation *)target;
+    Timeline *tl = a->track->tl;
+    Keyframe *k = tl->selected_keyframe;
+    if (!k) return;
+    char valstr[dstsize];
+    /* char tcstr[dstsize]; */
+    switch(a->type) {
+    case AUTO_VOL:
+    case AUTO_DEL_AMP:
+    case AUTO_PLAY_SPEED:
+	jdaw_val_set_str(valstr, dstsize, k->value, a->val_type, 2);
+    break;
+    case AUTO_PAN: 
+        label_pan(valstr, dstsize, k->value.float_v);
+	break;
+    case AUTO_FIR_FILTER_CUTOFF:
+    case AUTO_FIR_FILTER_BANDWIDTH:
+	label_freq_raw_to_hz(valstr, dstsize, k->value.double_v);
+	break;
+    case AUTO_DEL_TIME:
+	label_time_samples_to_msec(valstr, dstsize, k->value.int32_v, proj->sample_rate);
+	break;
+    }
+    /* timecode_str_at(tcstr, dstsize, k->pos); */
+    snprintf(dst, dstsize, "%s", valstr);
+
+}
+
 void automation_show(Automation *a)
 {
     a->shown = true;
@@ -219,14 +249,15 @@ void automation_show(Automation *a)
 	textbox_set_border(button->tb, &color_global_black, 1);
 	button->tb->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
 	a->write_button = button;
-	Layout *kf_label = layout_add_child(a->layout);
-	layout_set_default_dims(kf_label);
-	layout_force_reset(kf_label);
-	a->keyframe_label = textbox_create_from_str(a->keyframe_label_str, kf_label, main_win->mono_font, 12, main_win);
-	textbox_set_trunc(a->keyframe_label, false);
+	a->keyframe_label = label_create(0, a->layout, keyframe_labelmaker, a, 0, main_win);
+	/* Layout *kf_label = layout_add_child(a->layout); */
+	/* layout_set_default_dims(kf_label); */
+	/* layout_force_reset(kf_label); */
+	/* a->keyframe_label = textbox_create_from_str(a->keyframe_label_str, kf_label, main_win->mono_font, 12, main_win); */
+	/* textbox_set_trunc(a->keyframe_label, false); */
 
-	textbox_set_pad(a->keyframe_label, SLIDER_LABEL_H_PAD, SLIDER_LABEL_V_PAD);
-	textbox_set_border(a->keyframe_label, &color_global_black, 2);
+	/* textbox_set_pad(a->keyframe_label, SLIDER_LABEL_H_PAD, SLIDER_LABEL_V_PAD); */
+	/* textbox_set_border(a->keyframe_label, &color_global_black, 2); */
 
     } else {
 	a->layout->h.value.intval = AUTOMATION_LT_H;
@@ -507,28 +538,32 @@ void automation_draw(Automation *a)
     textbox_draw(a->label);
     button_draw(a->read_button);
     button_draw(a->write_button);
-    if (a->keyframe_label_countdown > 0) {
-	textbox_draw(a->keyframe_label);
-	a->keyframe_label_countdown--;
-    }
+    label_draw(a->keyframe_label);
+    /* if (a->keyframe_label_countdown > 0) { */
+    /* 	textbox_draw(a->keyframe_label); */
+    /* 	a->keyframe_label_countdown--; */
+    /* } */
 }
 
-static void set_label_std(Automation *a, Keyframe *k)
-{
-    jdaw_val_set_str(a->keyframe_label_str, SLIDER_LABEL_STRBUFLEN, k->value, a->val_type, 2);
-}
+/* static void set_label_std(Automation *a, Keyframe *k) */
+/* { */
+/*     jdaw_val_set_str(a->keyframe_label_str, SLIDER_LABEL_STRBUFLEN, k->value, a->val_type, 2); */
+/* } */
 
 static void automation_editing(Automation *a, Keyframe *k, int x, int y)
 {
-    set_label_std(a, k);
-    /* fprintf(stderr, "OK: %s\n", a->keyframe_label_str); */
-    a->keyframe_label_countdown = 80;
-    a->keyframe_label->layout->rect.x = x;
-    a->keyframe_label->layout->rect.y = y;
-    textbox_reset_full(a->keyframe_label);
-    layout_set_values_from_rect(a->keyframe_label->layout);
-    textbox_size_to_fit(a->keyframe_label, SLIDER_LABEL_H_PAD, SLIDER_LABEL_V_PAD);
-    layout_force_reset(a->keyframe_label->layout);
+    /* x -= a->keyframe_label->tb->layout->rect.x; */
+    label_move(a->keyframe_label, x - 50, y - 50);
+    label_reset(a->keyframe_label);
+    /* set_label_std(a, k); */
+    /* /\* fprintf(stderr, "OK: %s\n", a->keyframe_label_str); *\/ */
+    /* a->keyframe_label_countdown = 80; */
+    /* a->keyframe_label->layout->rect.x = x; */
+    /* a->keyframe_label->layout->rect.y = y; */
+    /* textbox_reset_full(a->keyframe_label); */
+    /* layout_set_values_from_rect(a->keyframe_label->layout); */
+    /* textbox_size_to_fit(a->keyframe_label, SLIDER_LABEL_H_PAD, SLIDER_LABEL_V_PAD); */
+    /* layout_force_reset(a->keyframe_label->layout); */
     
 }
 static void keyframe_move(Keyframe *k, int x, int y)

@@ -159,7 +159,7 @@ static void keyframe_labelmaker(char *dst, size_t dstsize, void *target, ValType
 {
     Automation *a = (Automation *)target;
     Timeline *tl = a->track->tl;
-    Keyframe *k = tl->selected_keyframe;
+    Keyframe *k = tl->dragging_keyframe;
     if (!k) return;
     char valstr[dstsize];
     /* char tcstr[dstsize]; */
@@ -262,6 +262,8 @@ void automation_show(Automation *a)
     } else {
 	a->layout->h.value.intval = AUTOMATION_LT_H;
     }
+    layout_reset(a->layout);
+    timeline_rectify_track_area(a->track->tl);
 
 }
 
@@ -590,13 +592,13 @@ static void keyframe_move(Keyframe *k, int x, int y)
 
 bool automations_triage_motion(Timeline *tl)
 {
-    Keyframe *k = tl->selected_keyframe;
+    Keyframe *k = tl->dragging_keyframe;
     if (k) {
 	if (main_win->i_state & I_STATE_MOUSE_L) {
 	    keyframe_move(k, main_win->mousep.x, main_win->mousep.y);
 	    return true;
 	} else {
-	    tl->selected_keyframe = NULL;
+	    tl->dragging_keyframe = NULL;
 	}
     }
 	/* Automation *a = k->automation; */
@@ -634,20 +636,20 @@ bool automation_triage_click(uint8_t button, Automation *a)
 		double val_prop = (double)(a->bckgrnd_rect->y + a->bckgrnd_rect->h - main_win->mousep.y) / a->bckgrnd_rect->h;
 		Value range_scaled = jdaw_val_scale(a->range, val_prop, a->val_type);
 		Value v = jdaw_val_add(a->min, range_scaled, a->val_type);
-		a->track->tl->selected_keyframe = automation_insert_keyframe_after(a, NULL, v, abs_pos);
+		a->track->tl->dragging_keyframe = automation_insert_keyframe_after(a, NULL, v, abs_pos);
 		return true;
 	    }
 	    if (abs(insertion->pos - abs_pos) < epsilon) {
-		a->track->tl->selected_keyframe = insertion;
+		a->track->tl->dragging_keyframe = insertion;
 		keyframe_move(insertion, main_win->mousep.x, main_win->mousep.y);
 	    } else if (insertion->next && abs(insertion->next->pos - abs_pos) < epsilon) {
-		a->track->tl->selected_keyframe = insertion->next;
+		a->track->tl->dragging_keyframe = insertion->next;
 		keyframe_move(insertion->next, main_win->mousep.x, main_win->mousep.y);
 	    } else {
 		double val_prop = (double)(a->bckgrnd_rect->y + a->bckgrnd_rect->h - main_win->mousep.y) / a->bckgrnd_rect->h;
 		Value range_scaled = jdaw_val_scale(a->range, val_prop, a->val_type);
 		Value v = jdaw_val_add(a->min, range_scaled, a->val_type);
-		a->track->tl->selected_keyframe = automation_insert_keyframe_after(a, insertion,v, abs_pos);
+		a->track->tl->dragging_keyframe = automation_insert_keyframe_after(a, insertion,v, abs_pos);
 		/* keyframe_move(insertion->next, main_win->mousep.x, main_win->mousep.y); */
 	    }
 	}

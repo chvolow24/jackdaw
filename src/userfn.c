@@ -932,21 +932,25 @@ void user_tl_track_selector_up(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (tl->num_tracks == 0) return;
+    Track *selected = tl->tracks[tl->track_selector];
+    while (selected->selected_automation > -1 &&
+	   !selected->automations[selected->selected_automation]->shown) {
+	selected->selected_automation--;
+    }
+
+    if (selected->num_automations > 0 && selected->selected_automation > -1) {
+	selected->selected_automation--;
+	timeline_refocus_track(tl, selected, false);
+	return;
+    }
     if (tl->track_selector > 0) {
 	tl->track_selector--;
     }
-    Track *selected = tl->tracks[tl->track_selector];
+    selected = tl->tracks[tl->track_selector];
     if (!selected) {
 	return;
     }
-    /* fprintf(stdout, "Selected x: %d\n", selected->layout->rect.y); */
-
-    Layout *lt = selected->layout;
-    if (lt->rect.y + lt->rect.h > proj->audio_rect->y + proj->audio_rect->h) {
-	lt->parent->scroll_offset_v = -1 * selected->tl_rank * (lt->rect.h / main_win->dpi_scale_factor + lt->y.value.intval) + proj->audio_rect->h / main_win->dpi_scale_factor / 2;
-    } else if (lt->rect.y < proj->audio_rect->y) {
-	lt->parent->scroll_offset_v = -1 * selected->tl_rank * (lt->rect.h / main_win->dpi_scale_factor + lt->y.value.intval);
-    }
+    timeline_refocus_track(tl, selected, false);
     timeline_reset(tl);
 
     if (proj->dragging && tl->num_grabbed_clips > 0) {
@@ -979,19 +983,33 @@ void user_tl_track_selector_down(void *nullarg)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (tl->num_tracks == 0) return;
+    Track *selected = tl->tracks[tl->track_selector];
+    if (selected->num_automations > 0 && selected->selected_automation < selected->num_automations) {
+	int16_t init_select = selected->selected_automation;
+	selected->selected_automation++;
+	while (selected->selected_automation < selected->num_automations &&
+	       !selected->automations[selected->selected_automation]->shown) {
+	    selected->selected_automation++;
+	}
+	if (selected->selected_automation >= selected->num_automations) {
+	    if (tl->track_selector < tl->num_tracks - 1) {
+		selected->selected_automation = -1;
+	    } else {
+		selected->selected_automation = init_select;
+	    }
+	} else {
+	    timeline_refocus_track(tl, selected, true);
+	    return;
+	}
+    }
     if (tl->track_selector < tl->num_tracks - 1) {
 	tl->track_selector++;
     }
-    Track *selected = tl->tracks[tl->track_selector];
+    selected = tl->tracks[tl->track_selector];
     if (!selected) {
 	return;
     }
-    Layout *lt = selected->layout;
-    if (lt->rect.y + lt->rect.h > proj->audio_rect->y + proj->audio_rect->h) {
-	lt->parent->scroll_offset_v = -1 * selected->tl_rank * (lt->rect.h / main_win->dpi_scale_factor + lt->y.value.intval) + proj->audio_rect->h / main_win->dpi_scale_factor / 2;
-    } else if (lt->rect.y < proj->audio_rect->y) {
-	lt->parent->scroll_offset_v = -1 * selected->tl_rank * (lt->rect.h / main_win->dpi_scale_factor + lt->y.value.intval);
-    }
+    timeline_refocus_track(tl, selected, true);
 
     if (proj->dragging && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);

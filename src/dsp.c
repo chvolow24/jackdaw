@@ -664,15 +664,25 @@ void delay_line_init(DelayLine *dl)
 
 static inline void del_read_into_buffer_resize(DelayLine *dl, double *read_from, double *read_to, int32_t *read_pos, int32_t len, double read_step)
 {
-    double read_pos_d = *read_from;
+    double read_pos_d = (double)*read_pos;
+    // fprintf(stdout, "\n\n\nREADING FROM buffer of size %d into size %d, starting %d\n", dl->len, len, *read_pos);
     for (int32_t i=0; i<len; i++) {
 	int32_t read_i = (int32_t)(round(read_pos_d));
+	// if (i < 10) {
+	//     fprintf(stdout, "\tread from: %f / %d\n", read_pos_d, read_i);
+	// }
+	// if (i == 10) {
+	//     fprintf(stdout, "\t...\n");
+	// }
+	// if (i > len - 3) {
+	//     fprintf(stdout, "\tread from: %f / %d\n", read_pos_d, read_i);
+	// }
 	if (read_i < 0) read_i = 0;
 	read_to[i] = read_from[read_i];
 	read_pos_d += read_step;
 	if (read_pos_d > dl->len) {
 	    read_pos_d -= dl->len;
-	    /* read_pos_d = dec; */
+	    // fprintf(stdout, "\t->(resetting read_pos_d to %f\n", read_pos_d);
 	}
     }
 }

@@ -135,6 +135,7 @@ typedef struct track {
 
     Automation *automations[MAX_TRACK_AUTOMATIONS];
     uint8_t num_automations;
+    int16_t selected_automation;
     /* uint8_t num_filters; */
     
     /* FSLIDER *vol_ctrl */
@@ -257,7 +258,7 @@ typedef struct timeline {
     /* uint8_t num_clipboard_clips; */
     /* int32_t leftmost_clipboard_clip_pos; */
 
-    Keyframe *selected_keyframe;
+    Keyframe *dragging_keyframe;
 
     /* GUI members */
     Layout *layout;
@@ -439,5 +440,7 @@ void project_destroy(Project *proj);
 
 void project_set_default_out(void *nullarg);
 
+void timeline_rectify_track_area(Timeline *tl);
+bool timeline_refocus_track(Timeline *tl, Track *track, bool at_bottom);
 
 #endif

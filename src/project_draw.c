@@ -101,7 +101,6 @@ static void draw_waveform(ClipRef *cr)
 
     
     /* old code below */
-    
     /* int32_t cr_len = clip_ref_len(cr); */
     /* if (cr->clip->channels == 1) { */
     /*     int wav_x = cr->rect.x; */
@@ -209,7 +208,7 @@ static void track_draw(Track *track)
 	return;
     }
     if (track->layout->rect.y + track->layout->rect.h < proj->audio_rect->y || track->layout->rect.y > main_win->layout->rect.h) {
-	return;
+	goto automations_draw;
     }
 
     if (track->active) {
@@ -258,10 +257,19 @@ static void track_draw(Track *track)
 
     slider_draw(track->vol_ctrl);
     slider_draw(track->pan_ctrl);
+    
+automations_draw:
     for (uint8_t i=0; i<track->num_automations; i++) {
 	Automation *a = track->automations[i];
-	if (a->shown) {
+	if (a->shown && a->layout->rect.y + a->layout->rect.h > proj->audio_rect->y && a->layout->rect.y < proj->audio_rect->y + proj->audio_rect->h) {
 	    automation_draw(a);
+	    if (i == track->selected_automation) {
+		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
+		geom_draw_rect_thick(main_win->rend, &a->layout->rect, 3, main_win->dpi_scale_factor);
+		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(track_selector_color));
+		geom_draw_rect_thick(main_win->rend, &a->layout->rect, 1, main_win->dpi_scale_factor);
+	    }
+
 	}
     }
 }
@@ -324,10 +332,12 @@ static int timeline_draw(Timeline *tl)
     SDL_RenderFillRect(main_win->rend, proj->console_column_rect);
     /* Draw tracks */
     SDL_RenderSetClipRect(main_win->rend, &tl->layout->rect);
-    for (int i=0; i<tl->num_tracks; i++) {
+    for (uint8_t i=0; i<tl->num_tracks; i++) {
 	track_draw(tl->tracks[i]);
     }
+
     SDL_RenderSetClipRect(main_win->rend, &main_win->layout->rect);
+    
     /* Draw ruler */
     ruler_draw(tl);
     if (tl->timecode_tb) {
@@ -476,7 +486,7 @@ void project_draw()
     window_draw_menus(main_win);
 
     proj->timelines[proj->active_tl_index]->needs_redraw = false;
-    
+
     window_end_draw(main_win);
 }
 

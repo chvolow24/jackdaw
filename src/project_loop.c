@@ -93,36 +93,36 @@ extern volatile bool cancel_threads;
 /*     return 0; */
 /* } */
 
-static int timed_hide_slider_label(void *data)
-{
-    Slider *fs = (Slider *)data;
-    if (fs->editing) {
-	for (int i=0; i<STICK_DELAY_MS; i++) {
-	    if (cancel_threads) return 0;
-	    SDL_Delay(1);
-	}
-	fs->editing = false;
-    }
-    return 0;
-}
+/* static int timed_hide_slider_label(void *data) */
+/* { */
+/*     Slider *fs = (Slider *)data; */
+/*     if (fs->editing) { */
+/* 	for (int i=0; i<STICK_DELAY_MS; i++) { */
+/* 	    if (cancel_threads) return 0; */
+/* 	    SDL_Delay(1); */
+/* 	} */
+/* 	fs->editing = false; */
+/*     } */
+/*     return 0; */
+/* } */
 
-static void hide_slider_label(Slider *fs)
-{
-    SDL_CreateThread(timed_hide_slider_label, "hide_slider_label", fs);
-}
+/* static void hide_slider_label(Slider *fs) */
+/* { */
+/*     SDL_CreateThread(timed_hide_slider_label, "hide_slider_label", fs); */
+/* } */
 
 
 static void stop_update_track_vol_pan()
 {
-    Timeline *tl = proj->timelines[proj->active_tl_index];
-    Track *trk = NULL;
-    for (int i=0; i<tl->num_tracks; i++) {
-	trk = tl->tracks[i];
-	hide_slider_label(trk->vol_ctrl);
-	hide_slider_label(trk->pan_ctrl);
-        /* trk->vol_ctrl->editing = false; */
-	/* trk->pan_ctrl->editing = false; */
-    }
+    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
+    /* Track *trk = NULL; */
+    /* for (int i=0; i<tl->num_tracks; i++) { */
+    /* 	trk = tl->tracks[i]; */
+    /* 	/\* hide_slider_label(trk->vol_ctrl); *\/ */
+    /* 	/\* hide_slider_label(trk->pan_ctrl); *\/ */
+    /*     /\* trk->vol_ctrl->editing = false; *\/ */
+    /* 	/\* trk->pan_ctrl->editing = false; *\/ */
+    /* } */
     proj->vol_changing = false;
     proj->pan_changing = false;
 }

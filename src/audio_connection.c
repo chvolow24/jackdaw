@@ -151,6 +151,7 @@ void transport_record_callback(void *user_data, uint8_t *stream, int len);
 
 int audioconn_open(Project *proj, AudioConn *conn)
 {
+    SDL_AudioFormat f;
     switch (conn->type) {
     case DEVICE: {
 	AudioDevice *device = &conn->c.device;

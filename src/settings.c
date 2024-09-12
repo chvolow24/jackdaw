@@ -153,11 +153,7 @@ static int delay_set_offset(void *self_v, void *target)
 static void create_hz_label(char *dst, size_t dstsize, void *value, ValType type)
 {
     double raw = *(double *)value;
-    /* double hz = pow(10.0, log10((double)proj->sample_rate / 2) * raw); */
-    double hz = dsp_scale_freq_to_hz(raw);
-    snprintf(dst, dstsize, "%.0f Hz", hz);
-    /* snprintf(dst, dstsize, "hi"); */
-    dst[dstsize - 1] = '\0';
+    label_freq_raw_to_hz(dst, dstsize, raw);
 }
 
 static void create_msec_label(char *dst, size_t dstsize, void *value, ValType type)

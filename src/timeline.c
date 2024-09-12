@@ -146,7 +146,6 @@ void timeline_rescale(double sfpp_scale_factor, bool on_mouse)
         return;
     }
     if ((int)new_sfpp == tl->sample_frames_per_pixel) {
-	int old = tl->sample_frames_per_pixel;
         tl->sample_frames_per_pixel += sfpp_scale_factor <= 1.0f ? 1 : -1;
 	if (tl->sample_frames_per_pixel < 1) tl->sample_frames_per_pixel = 1;
     } else {

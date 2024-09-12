@@ -133,7 +133,7 @@
                     <x>REL 0</x>
                     <y>REL 28</y>
                     <w>SCALE 1.000000</w>
-                    <h>COMPLEMENT 231</h>
+                    <h>REL 0</h>
                     <index>1</index>
                     <children>
                     </children>

@@ -1281,6 +1281,12 @@ static int track_name_completion(Text *txt)
     return 0;
 }
 
+void timeline_rectify_track_area(Timeline *tl)
+{
+    layout_force_reset(tl->track_area);
+    layout_size_to_fit_children_v(tl->track_area, true, 0);
+}
+
 static void track_reset_full(Track *track);
 Track *timeline_add_track(Timeline *tl)
 {
@@ -1305,11 +1311,8 @@ Track *timeline_add_track(Timeline *tl)
     /* Layout *iteration = layout_copy(track_template, track_template->parent); */
     /* track->layout = iteration; */
     track->layout = track_template;
-    
-    tl->track_area->h.value.intval = tl->num_tracks * (track_template->h.value.intval + track_template->y.value.intval);
-    /* layout_size_to_fit_children(tl->track_area, true, 0); */
-    tl->track_area->h.type = REL;
-    layout_reset(tl->track_area);
+    timeline_rectify_track_area(tl);
+    /* fprintf(stdout, "tracks area h: %d/%d\n", tl->track_area->h.value.intval, tl->track_area->rect.h); */
     Layout *name, *mute, *solo, *vol_label, *pan_label, *in_label, *in_value;
 
     Layout *track_name_row = layout_get_child_by_name_recursive(track->layout, "name_value");
@@ -1460,7 +1463,7 @@ Track *timeline_add_track(Timeline *tl)
     /* slider_reset(track->vol_ctrl); */
     /* slider_reset(track->pan_ctrl); */
     
-
+    track->selected_automation = -1;
     track->console_rect = &(layout_get_child_by_name_recursive(track->layout, "track_console")->rect);
     track->colorbar = &(layout_get_child_by_name_recursive(track->layout, "colorbar")->rect);
     
@@ -1682,6 +1685,7 @@ void track_increment_vol(Track *track)
     if (track->vol > track->vol_ctrl->max.float_v) {
 	track->vol = track->vol_ctrl->max.float_v;
     }
+    slider_edit_made(track->vol_ctrl);
     slider_reset(track->vol_ctrl);
 }
 void track_decrement_vol(Track *track)
@@ -1690,6 +1694,7 @@ void track_decrement_vol(Track *track)
     if (track->vol < 0.0f) {
 	track->vol = 0.0f;
     }
+    slider_edit_made(track->vol_ctrl);
     slider_reset(track->vol_ctrl);
 }
 
@@ -1699,6 +1704,7 @@ void track_increment_pan(Track *track)
     if (track->pan > 1.0f) {
 	track->pan = 1.0f;
     }
+    slider_edit_made(track->pan_ctrl);
     slider_reset(track->pan_ctrl);
 }
 
@@ -1708,6 +1714,7 @@ void track_decrement_pan(Track *track)
     if (track->pan < 0.0f) {
 	track->pan = 0.0f;
     }
+    slider_edit_made(track->pan_ctrl);
     slider_reset(track->pan_ctrl);
 }
 
@@ -2033,6 +2040,8 @@ static void timeline_remove_track(Track *track)
     }
     layout_remove_child(track->layout);
     tl->num_tracks--;
+    timeline_rectify_track_area(tl);
+    /* layout_size_to_fit_children_v(tl->track_area, true, 0); */
 }
 
 static void timeline_insert_track_at(Track *track, uint8_t index)
@@ -2675,3 +2684,30 @@ void project_set_chunk_size(uint16_t new_chunk_size)
     }
 
 }
+
+
+
+bool timeline_refocus_track(Timeline *tl, Track *track, bool at_bottom)
+{
+    Layout *lt;
+    if (track->selected_automation > 0) {
+	lt = track->automations[track->selected_automation]->layout;
+    } else {
+	lt = track->layout;
+    }
+    int y_diff = lt->rect.y - lt->parent->rect.y;
+    int audio_rect_h_by_2 = tl->proj->audio_rect->h / 2;
+    if (lt->rect.y + lt->rect.h > proj->audio_rect->y + proj->audio_rect->h || lt->rect.y < proj->audio_rect->y) {
+	if (at_bottom) {
+	    lt->parent->scroll_offset_v = -1 * (y_diff - audio_rect_h_by_2) / main_win->dpi_scale_factor;
+	} else {
+	    lt->parent->scroll_offset_v = -1 * y_diff / main_win->dpi_scale_factor;
+	}
+	if (lt->parent->scroll_offset_v > 0) lt->parent->scroll_offset_v = 0;
+	layout_force_reset(lt->parent);
+	return true;
+    }
+    return false;
+
+}
+

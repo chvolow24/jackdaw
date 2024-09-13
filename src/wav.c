@@ -180,50 +180,73 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
     }
     /* write_wav("TEST_WAV.wav", audio_buf, audio_len_bytes / 2, 16, 2); */
     /* exit(0); */
+
     SDL_AudioCVT wav_cvt;
     int ret = SDL_BuildAudioCVT(&wav_cvt, wav_spec.format, wav_spec.channels, wav_spec.freq, proj->fmt, proj->channels, proj->sample_rate);
+    uint8_t *final_buffer = NULL;
+    int final_buffer_len;
     if (ret < 0) {
         fprintf(stderr, "Error: unable to build SDL_AudioCVT. %s\n", SDL_GetError());
         return NULL;
     } else if (ret == 1) { // Needs conversion
-        /* fprintf(stderr, "Converting. Len mult: %d\n", wav_cvt.len_mult); */
-	/* fprintf(stderr, "WAV specs: freq: %d, format: %s, channels: %d\n", wav_spec.freq, get_fmt_str(wav_spec.format), wav_spec.channels); */
-	/* fprintf(stderr, "dst specs: freq: %d, format %s, channels: %d\n", proj->sample_rate, get_fmt_str(proj->fmt), proj->channels); */
-	/* fprintf(stderr, "Len ratio: %f\n", wav_cvt.len_ratio); */
+        fprintf(stderr, "Converting. Len mult: %d\n", wav_cvt.len_mult);
+	fprintf(stderr, "WAV specs: freq: %d, format: %s, channels: %d\n", wav_spec.freq, get_fmt_str(wav_spec.format), wav_spec.channels);
+	fprintf(stderr, "dst specs: freq: %d, format %s, channels: %d\n", proj->sample_rate, get_fmt_str(proj->fmt), proj->channels);
+	fprintf(stderr, "Len ratio: %f\n", wav_cvt.len_ratio);
+	
+	int chunk_size_bytes = 100000;
+	int read_pos = 0;
+	int write_pos = 0;
         wav_cvt.needed = 1;
-        wav_cvt.len = audio_len_bytes;
-	fprintf(stdout, "Audio len bytes: %"PRIu32" wav cvt len: %d\n", audio_len_bytes, wav_cvt.len);
-	size_t alloc_len = (size_t)audio_len_bytes * wav_cvt.len_mult;
-	fprintf(stdout, "Alloc len: %lu\n", alloc_len);
-        wav_cvt.buf = malloc(alloc_len);
-	if (!wav_cvt.buf) {
-	    fprintf(stderr, "ERROR: unable to allocate space for conversion buffer\n");
-	    exit(1);
+
+	while (read_pos < audio_len_bytes) {
+	    int len = chunk_size_bytes;
+	    int remainder;
+	    if ((remainder = audio_len_bytes - read_pos) < len) {
+		len = remainder;
+	    }
+	    wav_cvt.len = len;
+	
+	    /* fprintf(stdout, "Audio len bytes: %"PRIu32" wav cvt len: %d\n", audio_len_bytes, wav_cvt.len); */
+	    size_t alloc_len = (size_t)len * wav_cvt.len_mult;
+	    /* fprintf(stdout, "Alloc len: %lu pos: %d/%d\n", alloc_len, read_pos, audio_len_bytes); */
+	    wav_cvt.buf = malloc(alloc_len);
+	    if (!wav_cvt.buf) {
+		fprintf(stderr, "ERROR: unable to allocate space for conversion buffer\n");
+		exit(1);
+	    }
+	    memcpy(wav_cvt.buf, audio_buf + read_pos, len);
+	    if (SDL_ConvertAudio(&wav_cvt) < 0) {
+		fprintf(stderr, "Error: Unable to convert audio. %s\n", SDL_GetError());
+		return NULL;
+	    }
+	    if (!final_buffer) {
+		size_t final_buffer_alloc_len = audio_len_bytes * wav_cvt.len_ratio;
+		final_buffer = malloc(final_buffer_alloc_len);
+		final_buffer_len = audio_len_bytes * wav_cvt.len_ratio;
+	    }
+	    memcpy(final_buffer + write_pos, wav_cvt.buf, wav_cvt.len_cvt);
+	    read_pos += len;
+	    write_pos += wav_cvt.len_cvt;
+	    free(wav_cvt.buf);
 	}
-        memcpy(wav_cvt.buf, audio_buf, audio_len_bytes);
-	SDL_FreeWAV(audio_buf);
-        if (SDL_ConvertAudio(&wav_cvt) < 0) {
-            fprintf(stderr, "Error: Unable to convert audio. %s\n", SDL_GetError());
-            return NULL;
-        }
-        audio_len_bytes *= wav_cvt.len_ratio;
     } else if (ret == 0) { // No conversion needed
         fprintf(stderr, "No conversion needed. copying directly to track.\n");
-        wav_cvt.buf = malloc(audio_len_bytes);
-        memcpy(wav_cvt.buf, audio_buf, audio_len_bytes);
-	SDL_FreeWAV(audio_buf);
+        /* wav_cvt.buf = malloc(audio_len_bytes); */
+        /* memcpy(wav_cvt.buf, audio_buf, audio_len_bytes); */
+	final_buffer = malloc(audio_len_bytes);
+	memcpy(final_buffer, audio_buf, audio_len_bytes);
+	final_buffer_len = audio_len_bytes;
+	/* free(wav_cvt.buf); */
+	/* SDL_FreeWAV(audio_buf); */
     } else {
         fprintf(stderr, "Error: unexpected return value for SDL_BuildAudioCVT.\n");
         return NULL;
     }
 
+    SDL_FreeWAV(audio_buf);
 
-    uint32_t buf_len_samples = audio_len_bytes / sizeof(int16_t);
-    /* const char *filepath = "TEST_WAV.wav"; */
-
-    /* write_wav(filepath, wav_cvt.buf, buf_len_samples, 16, proj->channels); */
-
-    /* exit(0); */
+    uint32_t buf_len_samples = final_buffer_len / sizeof(int16_t);
     if (buf_len_samples < 3) {
 	fprintf(stderr, "Error: cannot read wav file.\n");
 	status_set_errstr("Error reading wav file.");
@@ -235,13 +258,13 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
     clip->len_sframes = buf_len_samples / track->channels;
     create_clip_buffers(clip, clip->len_sframes);
 
-    int16_t *src_buf = (int16_t *)wav_cvt.buf;
+    int16_t *src_buf = (int16_t *)final_buffer;
 
     for (uint32_t i=0; i<buf_len_samples - 2; i+=2) {
         clip->L[i/2] = (float) src_buf[i] / INT16_MAX;
         clip->R[i/2] = (float) src_buf[i+1] / INT16_MAX;
     }
-    free(wav_cvt.buf);
+    /* free(wav_cvt.buf); */
     ClipRef *cr = track_create_clip_ref(track, clip, start_pos, true);
     char *filename_modifiable = strdup(filename);
     strncpy(clip->name, path_get_tail(filename_modifiable), MAX_NAMELENGTH);

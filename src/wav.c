@@ -227,6 +227,7 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
 	    }
 	    memcpy(final_buffer + write_pos, wav_cvt.buf, wav_cvt.len_cvt);
 	    read_pos += len;
+	    /* write_pos +=  wav_cvt.len; */
 	    write_pos += wav_cvt.len_cvt;
 	    free(wav_cvt.buf);
 	}

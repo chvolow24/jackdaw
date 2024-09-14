@@ -31,39 +31,6 @@ SDL_Color tgl_bckgrnd = {110, 110, 110, 255};
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_clear;
 
-Symbol *symbol_create(
-    Window *win,
-    int x_dim_pix,
-    int y_dim_pix,
-    void (*draw_fn)(void *self))
-{
-    Symbol *s = calloc(1, sizeof(Symbol));
-    s->window = win;
-    s->x_dim_pix = x_dim_pix;
-    s->y_dim_pix = y_dim_pix;
-    s->draw_fn = draw_fn;
-    return s;
-}
-
-void symbol_draw(Symbol *s, SDL_Rect *dst)
-{
-    if (!s->texture || s->redraw) {
-	if (s->texture) {
-	    SDL_DestroyTexture(s->texture);
-	}
-	SDL_Texture *saved_targ = SDL_GetRenderTarget(s->window->rend);
-	s->texture = SDL_CreateTexture(s->window->rend, 0, SDL_TEXTUREACCESS_TARGET, s->x_dim_pix, s->y_dim_pix);
-	SDL_SetTextureBlendMode(s->texture, SDL_BLENDMODE_BLEND);
-	SDL_SetRenderTarget(s->window->rend, s->texture);
-	/* SDL_SetRenderDrawColor(s->window->rend, 0, 0, 0, 0); */
-	/* SDL_RenderClear(s->window->rend); */
-	s->draw_fn((void *)s);
-	SDL_SetRenderTarget(s->window->rend, saved_targ);
-    } else {
-	SDL_RenderCopy(s->window->rend, s->texture, NULL, dst);
-    }
-}
-
 
 /* Slider fslider_create(Layout *layout, SliderOrientation orientation, SliderType type, SliderStrFn *fn) */
 Slider *slider_create(

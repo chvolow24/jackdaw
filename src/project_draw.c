@@ -80,6 +80,7 @@ extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;
 extern SDL_Color color_global_grey;
 extern SDL_Color color_global_yellow;
+extern SDL_Color color_global_red;
 
 extern SDL_Color timeline_label_txt_color;
 
@@ -463,7 +464,9 @@ static void control_bar_draw(Project *proj)
 }
 
 
-extern Symbol *test_symbol;
+extern SDL_Color color_global_x_red;
+extern SDL_Color color_global_dropdown_green;
+extern SDL_Color color_global_min_yellow;
 void project_draw()
 {
     window_start_draw(main_win, NULL);
@@ -493,20 +496,6 @@ void project_draw()
 
     proj->timelines[proj->active_tl_index]->needs_redraw = false;
 
-
-    SDL_Rect r = {25, 25, 25, 25};
-    symbol_draw(SYMBOL_TABLE[SYMBOL_X], &r);
-    r.x = 200;
-    r.w = SYMBOL_TABLE[SYMBOL_X]->x_dim_pix;
-    r.h = SYMBOL_TABLE[SYMBOL_X]->y_dim_pix;
-    symbol_draw(SYMBOL_TABLE[SYMBOL_X], &r);
-    r.x = 400;
-    symbol_draw(SYMBOL_TABLE[SYMBOL_X], &r);
-    r.y = 400;
-    symbol_draw(SYMBOL_TABLE[SYMBOL_MINIMIZE], &r);
-    r.y = 500;
-    symbol_draw(SYMBOL_TABLE[SYMBOL_DROPDOWN], &r);
-    
     window_end_draw(main_win);
 }
 

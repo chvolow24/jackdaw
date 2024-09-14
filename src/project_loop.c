@@ -194,42 +194,6 @@ static void update_track_vol_pan()
 /*     return 0; */
 /* } */
 
-
-
-/* static NEW_EVENT_FN(undo_set_track_vol, "undo set track vol") */
-/*     user_event_undo_set_value(self, obj1, val1, type1); */
-/* } */
-
-/* static NEW_EVENT_FN(redo_set_track_vol, "redo set track vol") */
-/*     user_event_redo_set_value(self, obj1, val1, type1); */
-/* } */
-
-/* static NEW_EVENT_FN(undo_set_track_pan, "undo set track pan") */
-/*     user_event_undo_set_value(self, obj1, val1, type1); */
-/* } */
-
-/* static NEW_EVENT_FN(redo_set_track_pan, "redo set track pan") */
-/*     user_event_redo_set_value(self, obj1, val1, type1); */
-/* } */
-
-/* static NEW_EVENT_FN(undo_set_track_effect_param, "undo set track effect param") */
-/*     user_event_undo_set_value(self, obj1, val1, type1); */
-/*     TabView *tv = main_win->active_tab_view; */
-/*     if (tv) { */
-/*         Timeline *tl = proj->timelines[proj->active_tl_index]; */
-/*         settings_track_tabview_set_track(tv, tl->tracks[tl->track_selector]); */
-/*     } */
-/* } */
-
-/* static NEW_EVENT_FN(redo_set_track_effect_param, "redo set track effect param") */
-/*     user_event_redo_set_value(self, obj1, val1, type1); */
-/*     TabView *tv = main_win->active_tab_view; */
-/*     if (tv) { */
-/*         Timeline *tl = proj->timelines[proj->active_tl_index]; */
-/*         settings_track_tabview_set_track(tv, tl->tracks[tl->track_selector]); */
-/*     } */
-/* } */
-
 void loop_project_main()
 {
     /* clock_t start, end; */

@@ -45,6 +45,7 @@
 #include "layout_xml.h"
 #include "project.h"
 #include "pure_data.h"
+#include "symbols.h"
 #include "text.h"
 #include "transport.h"
 #include "wav.h"
@@ -207,6 +208,7 @@ int main(int argc, char **argv)
     window_assign_font(main_win, LTSUPERIOR_BOLD_PATH, MONO_BOLD);
     window_assign_font(main_win, NOTO_SANS_SYMBOLS2_PATH, SYMBOLIC);
     window_assign_font(main_win, NOTO_SANS_MATH_PATH, MATHEMATICAL);
+    init_symbol_table(main_win);
 
 
     

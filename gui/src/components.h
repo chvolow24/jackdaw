@@ -27,11 +27,10 @@ typedef int (*ComponentFn)(void *self, void *target);
 
 typedef struct symbol {
     Window *window;
-    Layout *layout;
+    int x_dim_pix;
+    int y_dim_pix;
     SDL_Texture *texture;
-    void (*draw_fn)(void *, void *, void *);
-    void *draw_arg1;
-    void *draw_arg2;
+    void (*draw_fn)(void *self);
     bool redraw;
 } Symbol;
 
@@ -132,11 +131,10 @@ typedef struct canvas {
 
 Symbol *symbol_create(
     Window *win,
-    Layout *layout,
-    void (*draw_fn)(void *, void *, void *),
-    void *draw_arg1,
-    void *draw_arg2);
-void symbol_draw(Symbol *symbol);
+    int x_dim_pix,
+    int y_dim_pix,
+    void (*draw_fn)(void *));
+void symbol_draw(Symbol *symbol, SDL_Rect *dst);
 
 
 /* Slider */

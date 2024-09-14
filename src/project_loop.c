@@ -230,37 +230,8 @@ static void update_track_vol_pan()
 /*     } */
 /* } */
 
-
-
-Symbol *test_symbol;
-void geom_fill_circle(SDL_Renderer *rend, int orig_x, int orig_y, int r);
-void test_symbol_draw_fn(void *self, void *arg1, void *arg2)
-{
-    Symbol *s = (Symbol *)self;
-    SDL_SetRenderDrawColor(s->window->rend, 255, 255, 255, 255);
-    fprintf(stdout, "CIRCLE RAD: %d\n", s->layout->rect.w / 2);
-    geom_fill_circle(s->window->rend, 0, 0, s->layout->rect.w / 2);
-    
-}
-void symbol_test()
-{
-    Layout *lt = layout_add_child(proj->layout);
-    lt->x.value.intval = 20;
-    lt->y.value.intval = 20;
-    lt->w.value.intval = 30;
-    lt->h.value.intval = 30;
-    layout_reset(lt);
-    test_symbol = symbol_create(
-	main_win,
-	lt,
-	test_symbol_draw_fn,
-	NULL, NULL);
-}
-
 void loop_project_main()
 {
-
-    symbol_test();
     /* clock_t start, end; */
     /* uint8_t frame_ctr = 0; */
     /* float fps = 0; */
@@ -282,9 +253,6 @@ void loop_project_main()
     bool first_frame = true;
     int wheel_event_recency = 0;
     while (!(main_win->i_state & I_STATE_QUIT)) {
-	test_symbol->layout->x.value.intval++;
-	test_symbol->layout->h.value.intval++;
-	layout_reset(test_symbol->layout);
 	/* fprintf(stdout, "About to poll...\n"); */
 	while (SDL_PollEvent(&e)) {
 	    /* fprintf(stdout, "Polled!\n"); */

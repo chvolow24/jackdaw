@@ -42,6 +42,7 @@
 #include "page.h"
 #include "panel.h"
 #include "project.h"
+#include "symbols.h"
 #include "textbox.h"
 #include "timeline.h"
 #include "waveform.h"
@@ -81,6 +82,9 @@ extern SDL_Color color_global_grey;
 extern SDL_Color color_global_yellow;
 
 extern SDL_Color timeline_label_txt_color;
+
+
+extern Symbol *SYMBOL_TABLE[];
 
 static void draw_waveform(ClipRef *cr)
 {
@@ -488,7 +492,21 @@ void project_draw()
     window_draw_menus(main_win);
 
     proj->timelines[proj->active_tl_index]->needs_redraw = false;
-    symbol_draw(test_symbol);
+
+
+    SDL_Rect r = {25, 25, 25, 25};
+    symbol_draw(SYMBOL_TABLE[SYMBOL_X], &r);
+    r.x = 200;
+    r.w = SYMBOL_TABLE[SYMBOL_X]->x_dim_pix;
+    r.h = SYMBOL_TABLE[SYMBOL_X]->y_dim_pix;
+    symbol_draw(SYMBOL_TABLE[SYMBOL_X], &r);
+    r.x = 400;
+    symbol_draw(SYMBOL_TABLE[SYMBOL_X], &r);
+    r.y = 400;
+    symbol_draw(SYMBOL_TABLE[SYMBOL_MINIMIZE], &r);
+    r.y = 500;
+    symbol_draw(SYMBOL_TABLE[SYMBOL_DROPDOWN], &r);
+    
     window_end_draw(main_win);
 }
 

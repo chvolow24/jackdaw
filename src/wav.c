@@ -59,6 +59,8 @@ Positions	Sample Value	    Description
 #include "status.h"
 extern Project *proj;
 
+#define WAV_READ_CK_LEN_BYTES 100000
+
 //TODO: Endianness!
 static void write_wav_header(FILE *f, uint32_t num_samples, uint16_t bits_per_sample, uint8_t channels)
 {
@@ -194,13 +196,12 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
 	fprintf(stderr, "dst specs: freq: %d, format %s, channels: %d\n", proj->sample_rate, get_fmt_str(proj->fmt), proj->channels);
 	fprintf(stderr, "Len ratio: %f\n", wav_cvt.len_ratio);
 	
-	int chunk_size_bytes = 100000;
 	int read_pos = 0;
 	int write_pos = 0;
         wav_cvt.needed = 1;
 
 	while (read_pos < audio_len_bytes) {
-	    int len = chunk_size_bytes;
+	    int len = WAV_READ_CK_LEN_BYTES;
 	    int remainder;
 	    if ((remainder = audio_len_bytes - read_pos) < len) {
 		len = remainder;

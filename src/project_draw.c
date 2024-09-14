@@ -458,6 +458,8 @@ static void control_bar_draw(Project *proj)
     }
 }
 
+
+extern Symbol *test_symbol;
 void project_draw()
 {
     window_start_draw(main_win, NULL);
@@ -486,7 +488,7 @@ void project_draw()
     window_draw_menus(main_win);
 
     proj->timelines[proj->active_tl_index]->needs_redraw = false;
-
+    symbol_draw(test_symbol);
     window_end_draw(main_win);
 }
 

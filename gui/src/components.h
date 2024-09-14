@@ -25,6 +25,16 @@
 
 typedef int (*ComponentFn)(void *self, void *target);
 
+typedef struct symbol {
+    Window *window;
+    Layout *layout;
+    SDL_Texture *texture;
+    void (*draw_fn)(void *, void *, void *);
+    void *draw_arg1;
+    void *draw_arg2;
+    bool redraw;
+} Symbol;
+
 typedef struct button {
     Textbox *tb;
     ComponentFn action;
@@ -115,6 +125,19 @@ typedef struct canvas {
 /*****************************************/
 /************ Interfaces ****************/
 /*****************************************/
+
+
+
+/* Symbol */
+
+Symbol *symbol_create(
+    Window *win,
+    Layout *layout,
+    void (*draw_fn)(void *, void *, void *),
+    void *draw_arg1,
+    void *draw_arg2);
+void symbol_draw(Symbol *symbol);
+
 
 /* Slider */
 

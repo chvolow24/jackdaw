@@ -77,7 +77,8 @@ Window *window_create(int w, int h, const char *name)
     window->canvas_src.h = window->h_pix;
 
     /* Initialize canvas texture. All rendering will be done to this texture, then copied to the screen. */
-    window->canvas = SDL_CreateTexture(rend, 0, SDL_TEXTUREACCESS_TARGET, window->w_pix * window->dpi_scale_factor, window->h_pix * window->dpi_scale_factor);
+    window->canvas = SDL_CreateTexture(rend, 0, SDL_TEXTUREACCESS_TARGET, window->w_pix, window->h_pix);
+    /* window->canvas = SDL_CreateTexture(rend, 0, SDL_TEXTUREACCESS_TARGET, window->w_pix * window->dpi_scale_factor, window->h_pix * window->dpi_scale_factor); */
     if (!window->canvas) {
 	fprintf(stderr, "Error: failed to create canvas texture. %s\n", SDL_GetError());
 	exit(1);

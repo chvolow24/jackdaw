@@ -1,3 +1,4 @@
+#include "SDL_render.h"
 #include "color.h"
 #include "components.h"
 #include "geometry.h"
@@ -29,6 +30,42 @@ SDL_Color tgl_bckgrnd = {110, 110, 110, 255};
 
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_clear;
+
+Symbol *symbol_create(
+    Window *win,
+    Layout *layout,
+    void (*draw_fn)(void * self, void *xarg1, void *xarg2),
+    void *draw_arg1,
+    void *draw_arg2)
+{
+    Symbol *s = calloc(1, sizeof(Symbol));
+    s->window = win;
+    s->layout = layout;
+    s->draw_fn = draw_fn;
+    s->draw_arg1 = draw_arg1;
+    s->draw_arg2 = draw_arg2;
+    return s;
+}
+
+void symbol_draw(Symbol *s)
+{
+    if (!s->texture || s->redraw) {
+	if (s->texture) {
+	    SDL_DestroyTexture(s->texture);
+	}
+	SDL_Texture *saved_targ = SDL_GetRenderTarget(s->window->rend);
+	s->texture = SDL_CreateTexture(s->window->rend, 0, SDL_TEXTUREACCESS_TARGET, s->layout->rect.w, s->layout->rect.h);
+	SDL_BlendMode a;
+	SDL_SetTextureBlendMode(s->texture, SDL_BLENDMODE_BLEND);
+	SDL_SetRenderTarget(s->window->rend, s->texture);
+	SDL_SetRenderDrawColor(s->window->rend, 0, 0, 0, 0);
+	SDL_RenderClear(s->window->rend);
+	s->draw_fn((void *)s, s->draw_arg1, s->draw_arg2);
+	SDL_SetRenderTarget(s->window->rend, saved_targ);
+    } else {
+	SDL_RenderCopy(s->window->rend, s->texture, NULL, &s->layout->rect);
+    }
+}
 
 
 /* Slider fslider_create(Layout *layout, SliderOrientation orientation, SliderType type, SliderStrFn *fn) */

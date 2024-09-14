@@ -3,6 +3,7 @@
 
 #include "label.h"
 #include "layout.h"
+#include "symbols.h"
 #include "textbox.h"
 #include "value.h"
 
@@ -28,9 +29,16 @@ typedef int (*ComponentFn)(void *self, void *target);
 typedef struct button {
     Textbox *tb;
     ComponentFn action;
-    void *target;
-    /* void *(*action)(void *arg); */
+    void *target;    
 } Button;
+
+typedef struct symbol_button {
+    Symbol *symbol;
+    ComponentFn action;
+    void *target;
+    Layout *layout;
+    SDL_Color *background_color;
+} SymbolButton;
 
 typedef struct toggle {
     bool *value;
@@ -169,6 +177,22 @@ void button_press_color_change(
     SDL_Color *return_color,
     ComponentFn callback,
     void *callback_target);
+
+
+/* Symbol button */
+
+
+SymbolButton *symbol_button_create(
+    Layout *lt,
+    Symbol *symbol,
+    ComponentFn action,
+    void *target,
+    SDL_Color *background_color);
+
+
+void button_draw(Button *button);
+void symbol_button_draw(SymbolButton *sbutton);
+void symbol_button_destroy(SymbolButton *sbutton);
 
 /* Radio button */
 RadioButton *radio_button_create(

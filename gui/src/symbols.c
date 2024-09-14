@@ -139,6 +139,7 @@ void init_symbol_table(Window *win)
 }
 
 
+
 Symbol *symbol_create(
     Window *win,
     int x_dim_pix,
@@ -152,6 +153,23 @@ Symbol *symbol_create(
     s->draw_fn = draw_fn;
     return s;
 }
+
+void symbol_destroy(Symbol *s)
+{
+    if (s->texture) {
+	SDL_DestroyTexture(s->texture);
+    }
+    free(s);
+}
+
+void symbol_quit(Window *win)
+{
+    for (int i=0; i<4; i++) {
+	symbol_destroy(SYMBOL_TABLE[i]);
+    }
+
+}
+
 
 void symbol_draw(Symbol *s, SDL_Rect *dst)
 {

@@ -4,6 +4,7 @@
 #include "geometry.h"
 #include "input.h"
 #include "layout.h"
+#include "symbols.h"
 #include "text.h"
 #include "textbox.h"
 #include "value.h"
@@ -310,7 +311,15 @@ void slider_nudge_left(Slider *slider)
 /* Button */
 
 
-Button *button_create(Layout *lt, char *text, ComponentFn action, void *target, Font *font, int text_size, SDL_Color *text_color, SDL_Color *background_color)
+Button *button_create(
+    Layout *lt,
+    char *text,
+    ComponentFn action,
+    void *target,
+    Font *font,
+    int text_size,
+    SDL_Color *text_color,
+    SDL_Color *background_color)
 {
     Button *button = calloc(1, sizeof(Button));
     button->action = action;
@@ -327,15 +336,45 @@ Button *button_create(Layout *lt, char *text, ComponentFn action, void *target, 
     return button;
 }
 
+SymbolButton *symbol_button_create(
+    Layout *lt,
+    Symbol *symbol,
+    ComponentFn action,
+    void *target,
+    SDL_Color *background_color)
+{
+    SymbolButton *button = calloc(1, sizeof(SymbolButton));
+    button->action = action;
+    button->target = target;
+    button->symbol = symbol;
+    button->layout = lt;
+    button->background_color = background_color;
+    return button;
+}
+
 void button_draw(Button *button)
 {
     textbox_draw(button->tb);
+}
+
+void symbol_button_draw(SymbolButton *sbutton)
+{
+    if (sbutton->background_color) {
+	symbol_draw_w_bckgrnd(sbutton->symbol, &sbutton->layout->rect, sbutton->background_color);
+    } else {
+	symbol_draw(sbutton->symbol, &sbutton->layout->rect);
+    }
 }
 
 void button_destroy(Button *button)
 {
     textbox_destroy(button->tb);
     free(button);
+}
+
+void symbol_button_destroy(SymbolButton *sbutton)
+{
+    free(sbutton);
 }
 
 void button_press_color_change(
@@ -605,6 +644,19 @@ bool button_click(Button *button, Window *win)
 	return true;
     }
     return false;
+}
+
+bool symbol_button_click(SymbolButton *sbutton, Window *win)
+{
+{
+    if (SDL_PointInRect(&main_win->mousep, &sbutton->layout->rect)) {
+	if (sbutton->action) 
+	    sbutton->action((void *)sbutton, sbutton->target);
+	return true;
+    }
+    return false;
+}
+
 }
 
 

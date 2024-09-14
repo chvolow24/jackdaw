@@ -149,6 +149,7 @@ typedef struct track {
     Textbox *tb_pan_label;
     Textbox *tb_mute_button;
     Textbox *tb_solo_button;
+    SymbolButton *automation_dropdown;
 
     SDL_Rect *console_rect;
     SDL_Rect *colorbar;

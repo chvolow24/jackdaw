@@ -179,10 +179,16 @@ void get_clicked_layout(SDL_Point p, Layout *top_level, int *distance, Layout **
     }
 }
 
+#define STD_W 1200
+#define STD_H 800
 void set_window_size_to_lt()
 {
     if (main_lt->w.type != SCALE && main_lt->h.type != SCALE) {
         window_resize(main_win, main_lt->w.value.intval, main_lt->h.value.intval);
+    } else if (main_lt->w.type == REL || main_lt->w.type == ABS) {
+	window_resize(main_win, main_lt->w.value.intval, STD_H);
+    } else if (main_lt->h.type == REL || main_lt->h.type == ABS) {
+	window_resize(main_win, STD_W, main_lt->h.value.intval);
     } else {
         main_lt->rect.w = main_win->w_pix;
         main_lt->rect.h = main_win->h_pix;

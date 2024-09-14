@@ -262,7 +262,7 @@ static void track_draw(Track *track)
 
     slider_draw(track->vol_ctrl);
     slider_draw(track->pan_ctrl);
-    
+    symbol_button_draw(track->automation_dropdown);
 automations_draw:
     for (uint8_t i=0; i<track->num_automations; i++) {
 	Automation *a = track->automations[i];

@@ -11,7 +11,7 @@ CFLAGS_DEBUG := -g -O0 -fsanitize=address
 CFLAGS_ADDTL =
 
 LAYOUT_PROGRAM_SRCS := gui/src/openfile.c gui/src/lt_params.c gui/src/draw.c gui/src/main.c gui/src/test.c
-JACKDAW_ONLY_SRCS :=  src/main.c  gui/src/test.c gui/src/menu.c gui/src/modal.c gui/src/dir.c gui/src/components.c
+JACKDAW_ONLY_SRCS :=  src/main.c  gui/src/test.c gui/src/menu.c gui/src/modal.c gui/src/dir.c gui/src/components.c gui/src/label.c gui/src/symbols.c
 SRCS := $(wildcard $(SRC_DIR)/*.c)
 GUI_SRCS_ALL := $(wildcard $(GUI_SRC_DIR)/*.c)
 GUI_SRCS := $(filter-out $(LAYOUT_PROGRAM_SRCS), $(GUI_SRCS_ALL))
@@ -36,6 +36,10 @@ ifeq ($(MAKECMDGOALS),debug)
     CFLAGS_ADDTL := $(CFLAGS_DEBUG)
 endif
 
+ifeq ($(MAKECMDGOALS),layout)
+    CFLAGS_ADDTL := $(CFLAGS_DEBUG)
+endif
+
 
 $(EXEC): $(OBJS) $(GUI_OBJS)
 	$(CC) -o $@ $^ $(CFLAGS) $(CFLAGS_ADDTL) $(CFLAGS_JDAW_ONLY)
@@ -43,9 +47,9 @@ $(EXEC): $(OBJS) $(GUI_OBJS)
 debug: $(OBJS) $(GUI_OBJS)
 	$(CC) -o $(EXEC) $^ $(CFLAGS) $(CFLAGS_ADDTL)
 
-$(LT_EXEC): CFLAGS_ADDTL := $(CFLAGS_LT_ONLY)
+# $(LT_EXEC): CFLAGS_ADDTL := $(CFLAGS_LT_ONLY)
 $(LT_EXEC): $(LT_OBJS)
-	$(CC) -o $@ $^ $(CFLAGS) $(CFLAGS_ADDTL)
+	$(CC) -o $@ $^ $(CFLAGS) $(CFLAGS_ADDTL) $(CFLAGS_LT_ONLY)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) $(CFLAGS) $(CFLAGS_ADDTL) -c $< -o $@

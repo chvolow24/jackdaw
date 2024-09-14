@@ -103,6 +103,8 @@ extern SDL_Color color_global_green;
 extern SDL_Color color_global_light_grey;
 extern SDL_Color color_global_quickref_button_blue;
 
+extern Symbol *SYMBOL_TABLE[];
+
 SDL_Color color_mute_solo_grey = {210, 210, 210, 255};
 
 SDL_Color timeline_label_txt_color = {0, 200, 100, 255};
@@ -1288,6 +1290,23 @@ void timeline_rectify_track_area(Timeline *tl)
 }
 
 static void track_reset_full(Track *track);
+
+
+static int auto_dropdown_action(void *self, void *xarg)
+{
+    Track *t = (Track *)xarg;
+    bool some_shown = false;
+    for (uint8_t i=0; i<t->num_automations; i++) {
+	if (t->automations[i]->shown) some_shown = true;
+    }
+    if (some_shown) {
+	track_automations_hide_all(t);
+    } else {
+	track_automations_show_all(t);
+    }
+    return 0;
+}
+
 Track *timeline_add_track(Timeline *tl)
 {
     Track *track = calloc(1, sizeof(Track));
@@ -1462,6 +1481,17 @@ Track *timeline_add_track(Timeline *tl)
 
     /* slider_reset(track->vol_ctrl); */
     /* slider_reset(track->pan_ctrl); */
+    Layout *auto_dropdown_lt = layout_get_child_by_name_recursive(track->layout, "automation_dropdown");
+    track->automation_dropdown = symbol_button_create(
+	auto_dropdown_lt,
+	SYMBOL_TABLE[SYMBOL_DROPDOWN],
+	auto_dropdown_action,
+	(void *)track,
+	NULL);
+    auto_dropdown_lt->w.value.intval = track->automation_dropdown->symbol->x_dim_pix / main_win->dpi_scale_factor;
+    auto_dropdown_lt->h.value.intval = track->automation_dropdown->symbol->y_dim_pix / main_win->dpi_scale_factor;
+    auto_dropdown_lt->x.value.intval+=4;
+    layout_reset(auto_dropdown_lt);
     
     track->selected_automation = -1;
     track->console_rect = &(layout_get_child_by_name_recursive(track->layout, "track_console")->rect);

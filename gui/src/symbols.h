@@ -20,7 +20,7 @@ enum symbol_id {
 };
 
 void init_symbol_table(Window *win);
-
+void symbol_quit(Window *win);
 Symbol *symbol_create(
     Window *win,
     int x_dim_pix,

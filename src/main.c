@@ -140,6 +140,7 @@ static void quit()
     /* Sleep to allow DSP thread to exit */
     SDL_Delay(100);
     project_destroy(proj);
+    symbol_quit(main_win);
     if (main_win) {
 	window_destroy(main_win);
     }

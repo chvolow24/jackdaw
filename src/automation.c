@@ -42,7 +42,8 @@
 #include "value.h"
 
 #define KEYFRAME_DIAG 21
-#define AUTOMATION_LT_H 70
+#define AUTOMATION_LT_H 60
+#define AUTOMATION_LT_Y 4
 
 #ifndef INSTALL_DIR
 #define INSTALL_DIR "."
@@ -261,6 +262,7 @@ void automation_show(Automation *a)
 
     } else {
 	a->layout->h.value.intval = AUTOMATION_LT_H;
+	a->layout->y.value.intval = AUTOMATION_LT_Y;
     }
     layout_reset(a->layout);
     timeline_rectify_track_area(a->track->tl);
@@ -283,6 +285,8 @@ void track_automations_hide_all(Track *track)
 	Layout *lt = a->layout;
 	if (lt) {
 	    lt->h.value.intval = 0;
+	    lt->y.value.intval = 0;
+	    /* layout_reset(lt); */
 	}
     }
     timeline_reset(track->tl);

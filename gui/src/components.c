@@ -648,15 +648,12 @@ bool button_click(Button *button, Window *win)
 
 bool symbol_button_click(SymbolButton *sbutton, Window *win)
 {
-{
     if (SDL_PointInRect(&main_win->mousep, &sbutton->layout->rect)) {
-	if (sbutton->action) 
+	if (sbutton->action)
 	    sbutton->action((void *)sbutton, sbutton->target);
 	return true;
     }
     return false;
-}
-
 }
 
 

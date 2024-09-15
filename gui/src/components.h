@@ -193,6 +193,7 @@ SymbolButton *symbol_button_create(
 void button_draw(Button *button);
 void symbol_button_draw(SymbolButton *sbutton);
 void symbol_button_destroy(SymbolButton *sbutton);
+bool symbol_button_click(SymbolButton *sbutton, Window *win);
 
 /* Radio button */
 RadioButton *radio_button_create(

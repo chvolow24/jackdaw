@@ -945,8 +945,13 @@ void user_tl_track_selector_up(void *nullarg)
     }
     if (tl->track_selector > 0) {
 	tl->track_selector--;
+	selected = tl->tracks[tl->track_selector];
+	for (uint8_t i=0; i<selected->num_automations; i++) {
+	Automation *a = selected->automations[i];
+	if (a->shown) selected->selected_automation = i;
     }
-    selected = tl->tracks[tl->track_selector];
+
+    }
     if (!selected) {
 	return;
     }

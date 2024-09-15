@@ -91,6 +91,7 @@ static bool mouse_triage_click_track(uint8_t button, Track *track)
 	}
 	if (slider_mouse_motion(track->vol_ctrl, main_win)) return true;
 	if (slider_mouse_motion(track->pan_ctrl, main_win)) return true;
+	if (symbol_button_click(track->automation_dropdown, main_win)) return true;
     }
     return false;
 }

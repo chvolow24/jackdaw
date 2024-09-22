@@ -1046,7 +1046,11 @@ static void move_track(int direction)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     Track *track = tl->tracks[tl->track_selector];
-    timeline_move_track(tl, track, direction, false);
+    if (track->num_automations == 0 || track->selected_automation == -1) {
+	timeline_move_track(tl, track, direction, false);
+    } else {
+	track_move_automation(track, direction, false);
+    }
 }
 
 void user_tl_move_track_up(void *nullarg)

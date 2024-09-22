@@ -12,7 +12,8 @@ enum mod_s_type {
     MODAL_EL_TEXTAREA,
     MODAL_EL_TEXT,
     MODAL_EL_DIRNAV,
-    MODAL_EL_BUTTON
+    MODAL_EL_BUTTON,
+    MODAL_EL_RADIO
 };
 
 typedef struct ModalEl {
@@ -39,6 +40,23 @@ ModalEl *modal_add_dirnav(Modal *modal, const char *dirpath, int (*dir_to_tline_
 ModalEl *modal_add_textentry(Modal *modal, char *init_val, int (*validation)(Text *txt, char input), int (*completion)(Text *));
 /* ModalEl *modal_add_textentry(Modal *modal, char *init_val, int (*validation)(Text *txt, char input), ComponentFn completion); */
 ModalEl *modal_add_button(Modal *modal, char *text, ComponentFn action);
+    /* Layout *layout, */
+    /* int text_size, */
+    /* SDL_Color *text_color, */
+    /* void *target, */
+    /* ComponentFn action, */
+    /* /\* void (*external_action)(int selected_i, void *target), *\/ */
+    /* const char **item_names, */
+    /* uint8_t num_items */
+    /* ); */
+
+ModalEl *modal_add_radio(
+    Modal *modal,
+    SDL_Color *color,
+    void *target,
+    ComponentFn action,
+    const char **item_names,
+    uint8_t num_items);
 void modal_reset(Modal *modal);
 void modal_draw(Modal *modal);
 

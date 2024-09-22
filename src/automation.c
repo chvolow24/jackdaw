@@ -37,7 +37,9 @@
 #include "input.h"
 #include "layout.h"
 #include "layout_xml.h"
+#include "modal.h"
 #include "project.h"
+#include "status.h"
 #include "timeline.h"
 #include "value.h"
 
@@ -59,6 +61,7 @@ extern SDL_Color control_bar_bckgrnd;
 extern SDL_Color color_mute_solo_grey;
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_play_green;
+extern SDL_Color color_global_light_grey;
 /* SDL_Color automation_bckgrnd = {0, 25, 26, 255}; */
 SDL_Color automation_console_bckgrnd = {110, 110, 110, 255};
 SDL_Color automation_bckgrnd = {90, 100, 120, 255};
@@ -156,6 +159,55 @@ Automation *track_add_automation(Track *track, AutomationType type)
     return a;
 }
 
+static int add_auto_form(void *mod_v, void *nullarg)
+{
+    Modal *modal = (Modal *)mod_v;
+    ModalEl *el;
+    AutomationType t = 0;
+    Track *track = NULL;
+    for (uint8_t i=0; i<modal->num_els; i++) {
+	switch ((el = modal->els[i])->type) {
+	case MODAL_EL_RADIO:
+	    t = ((RadioButton *)el->obj)->selected_item;
+	    track = ((RadioButton *)el->obj)->target;
+	    break;
+	default:
+	    break;
+	}
+    }
+    for (uint8_t i=0; i<track->num_automations; i++) {
+	if (track->automations[i]->type == t) {
+	    status_set_errstr("Track already has an automation of that type");
+	    return 1;
+	}
+    }
+    track_add_automation(track, t);
+    track_automations_show_all(track);
+    window_pop_modal(main_win);
+    return 0;
+}
+
+void track_add_new_automation(Track *track)
+{
+    Layout *lt = layout_add_child(track->tl->proj->layout);
+    layout_set_default_dims(lt);
+    Modal *m = modal_create(lt);
+    /* Automation *a = track_add_automation_internal(track, AUTO_VOL); */
+    modal_add_header(m, "Add automation to track", &color_global_light_grey, 4);
+    modal_add_radio(
+	m,
+	&color_global_light_grey,
+	(void *)track,
+	NULL,
+	AUTOMATION_LABELS,
+	sizeof(AUTOMATION_LABELS) / sizeof(const char *));
+    modal_add_button(m, "Add", add_auto_form);
+    window_push_modal(main_win, m);
+    modal_reset(m);
+    modal_move_onto(m);
+
+}
+
 static void keyframe_labelmaker(char *dst, size_t dstsize, void *target, ValType t)
 {
     Automation *a = (Automation *)target;
@@ -201,8 +253,8 @@ void automation_show(Automation *a)
 	a->bckgrnd_rect = &main->rect;
 	/* layout_write(stdout, track->layout, 0); */
 	/* exit(0); */
-	layout_insert_child_at(lt, a->track->layout->parent, a->track->layout->index + 1 + a->index);
-
+	layout_insert_child_at(lt, a->track->layout, a->track->layout->num_children);
+	layout_size_to_fit_children_v(a->track->layout, true, 0);
 
 	Layout *tb_lt = layout_get_child_by_name_recursive(lt, "label");
 	layout_reset(tb_lt);
@@ -265,6 +317,7 @@ void automation_show(Automation *a)
 	a->layout->y.value.intval = AUTOMATION_LT_Y;
     }
     layout_reset(a->layout);
+    layout_size_to_fit_children_v(a->track->layout, true, 0);
     timeline_rectify_track_area(a->track->tl);
 
 }
@@ -286,9 +339,10 @@ void track_automations_hide_all(Track *track)
 	if (lt) {
 	    lt->h.value.intval = 0;
 	    lt->y.value.intval = 0;
-	    /* layout_reset(lt); */
+	    layout_reset(lt);
 	}
     }
+    layout_size_to_fit_children_v(track->layout, true, 0);
     timeline_reset(track->tl);
 }
 

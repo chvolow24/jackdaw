@@ -203,7 +203,7 @@ void layout_remove_iter_at(LayoutIterator *iter, uint8_t at);
 
 void layout_remove_child(Layout *child);
 void layout_insert_child_at(Layout *child, Layout *parent, uint8_t index);
-
+void layout_swap_children(Layout *child1, Layout *child2);
 void layout_set_wh_from_rect(Layout *lt);
 void layout_set_values_from_rect(Layout *lt);
 

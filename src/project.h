@@ -31,8 +31,6 @@
 	* All structs can be accessed through a single Project struct
  *****************************************************************************************************************/
 
-
-
 /*
 	Type rules:
 		* All sample or sframe (sample fram) elengths in uint32_t
@@ -142,6 +140,7 @@ typedef struct track {
     /* FSlider *pan_ctrl */
 
     Layout *layout;
+    Layout *inner_layout;
     Textbox *tb_name;
     Textbox *tb_input_label;
     Textbox *tb_input_name;
@@ -436,7 +435,7 @@ void timeline_destroy_grabbed_cliprefs(Timeline *tl);
 void timeline_delete_grabbed_cliprefs(Timeline *tl);
 void timeline_cut_clipref_at_point(Timeline *tl);
 void timeline_move_track(Timeline *tl, Track *track, int direction, bool from_undo);
-
+void track_move_automation(Track *track, int direction, bool from_undo);
 void project_destroy(Project *proj);
 
 void project_set_default_out(void *nullarg);

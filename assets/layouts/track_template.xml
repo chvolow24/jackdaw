@@ -1,153 +1,162 @@
-<Layout name="track_container" type="NORMAL">
-    <x>REL 0</x>
-    <y>STACK 4</y>
-    <w>SCALE 1.000000</w>
-    <h>REL 96</h>
-    <index>0</index>
-    <children>
+<Layout name="track_and_automations" type="NORMAL">
+  <x>REL 0</x>
+  <y>STACK 4</y>
+  <w>SCALE 1.0</w>
+  <h>REL 96</h>
+  <index>0</index>
+  <children>
+    <Layout name="track_container" type="NORMAL">
+      <x>REL 0</x>
+      <y>STACK 0</y>
+      <w>SCALE 1.000000</w>
+      <h>REL 96</h>
+      <index>0</index>
+      <children>
         <Layout name="track_console" type="NORMAL">
-            <x>REL 2</x>
-            <y>REL 0</y>
-            <w>REL 150</w>
-            <h>SCALE 1.000000</h>
-            <index>0</index>
-            <children>
-                <Layout name="name_row" type="NORMAL">
-                    <x>REL 2</x>
-                    <y>REL 4</y>
-                    <w>SCALE 1.000000</w>
-                    <h>REL 21</h>
-                    <index>0</index>
-                    <children>
-                        <Layout name="name_value" type="NORMAL">
-                            <x>REL 0</x>
-                            <y>REL 0</y>
-                            <w>REL 96</w>
-                            <h>SCALE 1.000000</h>
-                            <index>0</index>
-                            <children>
-                            </children>
-                        </Layout>
-                        <Layout name="mute_button" type="NORMAL">
-                            <x>STACK 4</x>
-                            <y>REL 1</y>
-                            <w>REL 20</w>
-                            <h>REL 20</h>
-                            <index>1</index>
-                            <children>
-                            </children>
-                        </Layout>
-                        <Layout name="solo_button" type="NORMAL">
-                            <x>STACK 2</x>
-                            <y>REL 1</y>
-                            <w>REL 20</w>
-                            <h>REL 20</h>
-                            <index>2</index>
-                            <children>
-                            </children>
-                        </Layout>
-                    </children>
+          <x>REL 2</x>
+          <y>REL 0</y>
+          <w>REL 150</w>
+          <h>SCALE 1.000000</h>
+          <index>0</index>
+          <children>
+            <Layout name="name_row" type="NORMAL">
+              <x>REL 2</x>
+              <y>REL 4</y>
+              <w>SCALE 1.000000</w>
+              <h>REL 21</h>
+              <index>0</index>
+              <children>
+                <Layout name="name_value" type="NORMAL">
+                  <x>REL 0</x>
+                  <y>REL 0</y>
+                  <w>REL 96</w>
+                  <h>SCALE 1.000000</h>
+                  <index>0</index>
+                  <children>
+                  </children>
                 </Layout>
-                <Layout name="vol_row" type="NORMAL">
-                    <x>REL 0</x>
-                    <y>STACK 0</y>
-                    <w>SCALE 1.000000</w>
-                    <h>REL 23</h>
-                    <index>1</index>
-                    <children>
-                        <Layout name="vol_label" type="NORMAL">
-                            <x>REL 0</x>
-                            <y>REL 0</y>
-                            <w>REL 30</w>
-                            <h>SCALE 1.000000</h>
-                            <index>0</index>
-                            <children>
-                            </children>
-                        </Layout>
-                        <Layout name="vol_slider" type="NORMAL">
-                            <x>REL 30</x>
-                            <y>REL 0</y>
-                            <w>COMPLEMENT 0</w>
-                            <h>SCALE 1.000000</h>
-                            <index>1</index>
-                            <children>
-                            </children>
-                        </Layout>
-                    </children>
+                <Layout name="mute_button" type="NORMAL">
+                  <x>STACK 4</x>
+                  <y>REL 1</y>
+                  <w>REL 20</w>
+                  <h>REL 20</h>
+                  <index>1</index>
+                  <children>
+                  </children>
                 </Layout>
-                <Layout name="pan_row" type="NORMAL">
-                    <x>REL 0</x>
-                    <y>STACK 0</y>
-                    <w>SCALE 1.000000</w>
-                    <h>REL 23</h>
-                    <index>2</index>
-                    <children>
-                        <Layout name="pan_label" type="NORMAL">
-                            <x>REL 0</x>
-                            <y>REL 0</y>
-                            <w>REL 30</w>
-                            <h>SCALE 1.000000</h>
-                            <index>0</index>
-                            <children>
-                            </children>
-                        </Layout>
-                        <Layout name="pan_slider" type="NORMAL">
-                            <x>REL 30</x>
-                            <y>REL 0</y>
-                            <w>COMPLEMENT 1062557013</w>
-                            <h>SCALE 1.000000</h>
-                            <index>1</index>
-                            <children>
-                            </children>
-                        </Layout>
-                    </children>
+                <Layout name="solo_button" type="NORMAL">
+                  <x>STACK 2</x>
+                  <y>REL 1</y>
+                  <w>REL 20</w>
+                  <h>REL 20</h>
+                  <index>2</index>
+                  <children>
+                  </children>
                 </Layout>
-                <Layout name="in_row" type="NORMAL">
-                    <x>REL 0</x>
-                    <y>STACK 0</y>
-                    <w>SCALE 1.000000</w>
-                    <h>REL 23</h>
-                    <index>3</index>
-                    <children>
-                        <Layout name="in_label" type="NORMAL">
-                            <x>REL 0</x>
-                            <y>REL 0</y>
-                            <w>REL 25</w>
-                            <h>SCALE 1.000000</h>
-                            <index>0</index>
-                            <children>
-                            </children>
-                        </Layout>
-                        <Layout name="in_value" type="NORMAL">
-                            <x>STACK 0</x>
-                            <y>REL 1</y>
-                            <w>ABS 95</w>
-                            <h>REL 20</h>
-                            <index>1</index>
-                            <children>
-                            </children>
-                        </Layout>
-                        <Layout name="automation_dropdown" type="NORMAL">
-                            <x>STACK 2</x>
-                            <y>REL 2</y>
-                            <w>REL 25</w>
-                            <h>REL 20</h>
-                            <index>2</index>
-                            <children>
-                            </children>
-                        </Layout>
-                    </children>
+              </children>
+            </Layout>
+            <Layout name="vol_row" type="NORMAL">
+              <x>REL 0</x>
+              <y>STACK 0</y>
+              <w>SCALE 1.000000</w>
+              <h>REL 23</h>
+              <index>1</index>
+              <children>
+                <Layout name="vol_label" type="NORMAL">
+                  <x>REL 0</x>
+                  <y>REL 0</y>
+                  <w>REL 30</w>
+                  <h>SCALE 1.000000</h>
+                  <index>0</index>
+                  <children>
+                  </children>
                 </Layout>
-                <Layout name="colorbar" type="NORMAL">
-                    <x>STACK 0</x>
-                    <y>REL 0</y>
-                    <w>REL 8</w>
-                    <h>SCALE 1.000000</h>
-                    <index>4</index>
-                    <children>
-                    </children>
+                <Layout name="vol_slider" type="NORMAL">
+                  <x>REL 30</x>
+                  <y>REL 0</y>
+                  <w>COMPLEMENT 0</w>
+                  <h>SCALE 1.000000</h>
+                  <index>1</index>
+                  <children>
+                  </children>
                 </Layout>
-            </children>
+              </children>
+            </Layout>
+            <Layout name="pan_row" type="NORMAL">
+              <x>REL 0</x>
+              <y>STACK 0</y>
+              <w>SCALE 1.000000</w>
+              <h>REL 23</h>
+              <index>2</index>
+              <children>
+                <Layout name="pan_label" type="NORMAL">
+                  <x>REL 0</x>
+                  <y>REL 0</y>
+                  <w>REL 30</w>
+                  <h>SCALE 1.000000</h>
+                  <index>0</index>
+                  <children>
+                  </children>
+                </Layout>
+                <Layout name="pan_slider" type="NORMAL">
+                  <x>REL 30</x>
+                  <y>REL 0</y>
+                  <w>COMPLEMENT 1062557013</w>
+                  <h>SCALE 1.000000</h>
+                  <index>1</index>
+                  <children>
+                  </children>
+                </Layout>
+              </children>
+            </Layout>
+            <Layout name="in_row" type="NORMAL">
+              <x>REL 0</x>
+              <y>STACK 0</y>
+              <w>SCALE 1.000000</w>
+              <h>REL 23</h>
+              <index>3</index>
+              <children>
+                <Layout name="in_label" type="NORMAL">
+                  <x>REL 0</x>
+                  <y>REL 0</y>
+                  <w>REL 25</w>
+                  <h>SCALE 1.000000</h>
+                  <index>0</index>
+                  <children>
+                  </children>
+                </Layout>
+                <Layout name="in_value" type="NORMAL">
+                  <x>STACK 0</x>
+                  <y>REL 1</y>
+                  <w>ABS 95</w>
+                  <h>REL 20</h>
+                  <index>1</index>
+                  <children>
+                  </children>
+                </Layout>
+                <Layout name="automation_dropdown" type="NORMAL">
+                  <x>STACK 2</x>
+                  <y>REL 2</y>
+                  <w>REL 25</w>
+                  <h>REL 20</h>
+                  <index>2</index>
+                  <children>
+                  </children>
+                </Layout>
+              </children>
+            </Layout>
+            <Layout name="colorbar" type="NORMAL">
+              <x>STACK 0</x>
+              <y>REL 0</y>
+              <w>REL 8</w>
+              <h>SCALE 1.000000</h>
+              <index>4</index>
+              <children>
+              </children>
+            </Layout>
+          </children>
         </Layout>
-    </children>
+      </children>
+    </Layout>
+  </children>
 </Layout>

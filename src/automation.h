@@ -128,6 +128,7 @@ typedef struct keyframe_clipref {
 } KClipRef;
 
 Automation *track_add_automation(Track *track, AutomationType type);
+void track_add_new_automation(Track *track);
 Value automation_get_value(Automation *a, int32_t pos, float direction);
 void automation_draw(Automation *a);
 Keyframe *automation_insert_keyframe_after(

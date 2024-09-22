@@ -97,6 +97,9 @@ static void modal_el_destroy(ModalEl *el)
 	    button_destroy((Button *)el->obj);
 	    /* free((Button *)el->obj); */
 	    break;
+	case MODAL_EL_RADIO:
+	    radio_destroy((RadioButton *)el->obj);
+	    break;
 	    
 	}
     }
@@ -152,13 +155,7 @@ static void layout_size_to_fit_text_v(ModalEl *el)
 	return;
     }
     Textbox *tb = (Textbox *)el->obj;
-    /* int saved_w = tb->layout->rect.w; */
-    /* textbox_size_to_fit(tb, 5, 5); */
-    /* tb->layout->rect.w = saved_w; */
-    /* layout_set_values_from_rect(tb->layout); */
     textbox_size_to_fit(tb, MODAL_V_PADDING, MODAL_V_PADDING);
-    /* layout_center_agnostic(tb->layout, true, false); */
-    
 }
 
 
@@ -188,15 +185,11 @@ ModalEl *modal_add_header(Modal *modal, const char *text, SDL_Color *color, int 
     
     }
     el = modal_add_text(modal, main_win->bold_font, fontsize, color, (char *)text, ta, false);
-    /* modal->selectable_indices[modal->num_selectable] = modal->num_els -1; */
-    /* modal->num_selectable++; */
     layout_size_to_fit_text_v(el);
     if (level == 5) {
 	el->layout->x.value.intval = 0;
     }
     layout_force_reset(modal->layout);
-    /* layout_size_to_fit_children(el->layout, true, MODAL_V_PADDING); */
-    /* modal_reset(modal); */
     return el;
 }
 
@@ -264,8 +257,33 @@ ModalEl *modal_add_textentry(Modal *modal, char *init_val, int (*validation)(Tex
     te->tb->text->validation = validation;
     te->tb->text->completion = completion;
     el->obj = (void *)te;
+    return el; 
+}
+
+ModalEl *modal_add_radio(
+    Modal *modal,
+    SDL_Color *color,
+    void *target,
+    ComponentFn action,
+    const char **item_names,
+    uint8_t num_items)
+{
+    ModalEl *el = modal_add_el(modal);
+    el->layout->y.value.intval = MODAL_V_PADDING;
+    modal->selectable_indices[modal->num_selectable] = modal->num_els - 1;
+    modal->num_selectable++;
+    el->type = MODAL_EL_RADIO;
+
+    el->obj = (void *)radio_button_create(
+	el->layout,
+	12,
+	color,
+	target,
+	action,
+	item_names,
+	num_items);
+    layout_size_to_fit_children_v(el->layout, true, 0);
     return el;
-    
 }
 
 static void modal_el_reset(ModalEl *el)
@@ -286,6 +304,7 @@ static void modal_el_reset(ModalEl *el)
     case MODAL_EL_TEXTAREA:
     case MODAL_EL_DIRNAV:
     case MODAL_EL_BUTTON:
+    case MODAL_EL_RADIO:
 	break;
     }
 }
@@ -327,6 +346,9 @@ static void modal_el_draw(ModalEl *el)
     case MODAL_EL_BUTTON:
 	button_draw((Button *)el->obj);
 	/* textbox_draw(((Button *)el->obj)->tb); */
+	break;
+    case MODAL_EL_RADIO:
+	radio_button_draw((RadioButton *)el->obj);
 	break;
     }
 }
@@ -374,6 +396,8 @@ void modal_next(Modal *modal)
     ModalEl *el = modal->els[modal->selectable_indices[modal->selected_i]];
     if (el->type == MODAL_EL_DIRNAV) {
 	dirnav_next((DirNav *)el->obj);
+    } else if (el->type == MODAL_EL_RADIO) {
+	radio_cycle((RadioButton *)el->obj);
     } else if (modal->selected_i < num_selectable - 1) modal->selected_i++;
 
 }
@@ -398,6 +422,8 @@ void modal_previous(Modal *modal)
     if (el->type == MODAL_EL_DIRNAV) {
 	dirnav_previous((DirNav *)el->obj);
 	return;
+    } else if (el->type == MODAL_EL_RADIO) {
+	radio_cycle_back((RadioButton *)el->obj);
     } else if (modal->selected_i > 0) {
 	modal->selected_i--;
 	modal_move_onto(modal);
@@ -437,6 +463,10 @@ void modal_select(Modal *modal)
 	break;
     case MODAL_EL_BUTTON:
 	((Button *)(current_el->obj))->action(modal, NULL);
+	break;
+    case MODAL_EL_RADIO:
+	modal_next_escape(modal);
+	break;
     default:
 	break;
     }
@@ -444,9 +474,7 @@ void modal_select(Modal *modal)
 
 void modal_submit_form(Modal *modal)
 {
-    fprintf(stdout, "modal submit form\n");
     if (modal->submit_form) {
-	fprintf(stdout, "has fn\n");
 	modal->submit_form((void *)modal, NULL);
     }
 }

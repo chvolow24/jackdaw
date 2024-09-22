@@ -528,6 +528,15 @@ void radio_button_draw(RadioButton *rb)
     }
 }
 
+void radio_cycle_back(RadioButton *rb)
+{
+    if (rb->selected_item > 0)
+	rb->selected_item--;
+    else
+	rb->selected_item = rb->num_items - 1;
+    if (rb->action) rb->action((void *)rb, rb->target);
+}
+
 void radio_cycle(RadioButton *rb)
 {
     rb->selected_item++;

@@ -212,7 +212,7 @@ static void track_draw(Track *track)
     if (track->deleted) {
 	return;
     }
-    if (track->layout->rect.y + track->layout->rect.h < proj->audio_rect->y || track->layout->rect.y > main_win->layout->rect.h) {
+    if (track->inner_layout->rect.y + track->inner_layout->rect.h < proj->audio_rect->y || track->inner_layout->rect.y > main_win->layout->rect.h) {
 	goto automations_draw;
     }
 
@@ -221,7 +221,7 @@ static void track_draw(Track *track)
     } else {
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(track_bckgrnd));
     }
-    SDL_RenderFillRect(main_win->rend, &track->layout->rect);
+    SDL_RenderFillRect(main_win->rend, &track->inner_layout->rect);
 
     /* SDL_RenderSetClipRect(main_win->rend, &tl->layout->rect); */
     for (uint8_t i=0; i<track->num_clips; i++) {
@@ -254,10 +254,9 @@ static void track_draw(Track *track)
 
     if (track->tl->track_selector == track->tl_rank) {
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
-	geom_draw_rect_thick(main_win->rend, &track->layout->rect, 3, main_win->dpi_scale_factor);
+	geom_draw_rect_thick(main_win->rend, &track->inner_layout->rect, 3, main_win->dpi_scale_factor);
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(track_selector_color));
-	geom_draw_rect_thick(main_win->rend, &track->layout->rect, 1, main_win->dpi_scale_factor);
-
+	geom_draw_rect_thick(main_win->rend, &track->inner_layout->rect, 1, main_win->dpi_scale_factor);
     }
 
     slider_draw(track->vol_ctrl);

@@ -287,21 +287,22 @@ void loop_project_main()
 		case SDL_SCANCODE_6: {
 		    Timeline *tl = proj->timelines[proj->active_tl_index];
 		    Track *track = tl->tracks[tl->track_selector];
-		    if (track->num_automations == 0) {
-			track_add_automation(track, AUTO_VOL);
-		    } else if (track->num_automations == 1) {
-			track_add_automation(track, AUTO_PAN);
-		    } else if (track->num_automations == 2) {
-			track_add_automation(track, AUTO_FIR_FILTER_CUTOFF);
-		    } else if (track->num_automations == 3) {
-			/* track_add_automation(track, AUTO_PLAY_SPEED); */
-			track_add_automation(track, AUTO_FIR_FILTER_BANDWIDTH);
-		    } else if (track->num_automations == 4) {
-			track_add_automation(track, AUTO_DEL_TIME);
-		    } else if (track->num_automations == 5) {
-			/* track */
-			track_add_automation(track, AUTO_DEL_AMP);
-		    }
+		    track_add_new_automation(track);
+		    /* if (track->num_automations == 0) { */
+		    /* 	track_add_automation(track, AUTO_VOL); */
+		    /* } else if (track->num_automations == 1) { */
+		    /* 	track_add_automation(track, AUTO_PAN); */
+		    /* } else if (track->num_automations == 2) { */
+		    /* 	track_add_automation(track, AUTO_PLAY_SPEED); */
+		    /* } else if (track->num_automations == 3) { */
+		    /* 	/\* track_add_automation(track, AUTO_PLAY_SPEED); *\/ */
+		    /* 	track_add_automation(track, AUTO_FIR_FILTER_CUTOFF); */
+		    /* } else if (track->num_automations == 4) { */
+		    /* 	track_add_automation(track, AUTO_DEL_TIME); */
+		    /* } else if (track->num_automations == 5) { */
+		    /* 	/\* track *\/ */
+		    /* 	track_add_automation(track, AUTO_DEL_AMP); */
+		    /* } */
 			    
 		    track_automations_show_all(track);
 
@@ -312,18 +313,6 @@ void loop_project_main()
 		/* 	main_win->i_state |= I_STATE_C_X; */
 		/*     } */
 		/*     break; */
-		case SDL_SCANCODE_7: {
-		    Timeline *tl = proj->timelines[proj->active_tl_index];
-		    Track *track = tl->tracks[tl->track_selector];
-		    track->layout->h.value.intval-=10;
-		    timeline_reset(tl);
-		} break;
-		case SDL_SCANCODE_8: {
-		    Timeline *tl = proj->timelines[proj->active_tl_index];
-		    Track *track = tl->tracks[tl->track_selector];
-		    track->layout->h.value.intval+=10;
-		    timeline_reset(tl);
-		} break;   
 	        case SDL_SCANCODE_K:
 		    if (main_win->i_state & I_STATE_K) {
 			break;

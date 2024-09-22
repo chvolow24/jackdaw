@@ -92,7 +92,6 @@
 #define SEM_NAME_READABLE_CHUNKS "/tl_%d_readable_chunks"
 
 
-
 extern Window *main_win;
 extern Project *proj;
 extern SDL_Color color_global_black;
@@ -1327,21 +1326,21 @@ Track *timeline_add_track(Timeline *tl)
     
     /* Layout *track_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area"); */
     Layout *track_template = layout_read_xml_to_lt(tl->track_area, TRACK_LT_PATH);
-    /* Layout *iteration = layout_copy(track_template, track_template->parent); */
-    /* track->layout = iteration; */
     track->layout = track_template;
+
+    track->inner_layout = track_template->children[0];
     timeline_rectify_track_area(tl);
     /* fprintf(stdout, "tracks area h: %d/%d\n", tl->track_area->h.value.intval, tl->track_area->rect.h); */
     Layout *name, *mute, *solo, *vol_label, *pan_label, *in_label, *in_value;
 
-    Layout *track_name_row = layout_get_child_by_name_recursive(track->layout, "name_value");
+    Layout *track_name_row = layout_get_child_by_name_recursive(track->inner_layout, "name_value");
     name = layout_get_child_by_name_recursive(track_name_row, "name_value");
-    mute = layout_get_child_by_name_recursive(track->layout, "mute_button");
-    solo = layout_get_child_by_name_recursive(track->layout, "solo_button");
-    vol_label = layout_get_child_by_name_recursive(track->layout, "vol_label");
-    pan_label = layout_get_child_by_name_recursive(track->layout, "pan_label");
-    in_label = layout_get_child_by_name_recursive(track->layout, "in_label");
-    in_value = layout_get_child_by_name_recursive(track->layout, "in_value");
+    mute = layout_get_child_by_name_recursive(track->inner_layout, "mute_button");
+    solo = layout_get_child_by_name_recursive(track->inner_layout, "solo_button");
+    vol_label = layout_get_child_by_name_recursive(track->inner_layout, "vol_label");
+    pan_label = layout_get_child_by_name_recursive(track->inner_layout, "pan_label");
+    in_label = layout_get_child_by_name_recursive(track->inner_layout, "in_label");
+    in_value = layout_get_child_by_name_recursive(track->inner_layout, "in_value");
 
     /* Force layout reset before creating gui components */
     layout_force_reset(track->layout);
@@ -1434,7 +1433,7 @@ Track *timeline_add_track(Timeline *tl)
     /* textbox_reset_full(track->tb_solo_button); */
 
 
-    Layout *vol_ctrl_row = layout_get_child_by_name_recursive(track->layout, "vol_slider");
+    Layout *vol_ctrl_row = layout_get_child_by_name_recursive(track->inner_layout, "vol_slider");
     Layout *vol_ctrl_lt = layout_add_child(vol_ctrl_row);
 
     layout_pad(vol_ctrl_lt, TRACK_CTRL_SLIDER_H_PAD, TRACK_CTRL_SLIDER_V_PAD);
@@ -1459,7 +1458,7 @@ Track *timeline_add_track(Timeline *tl)
     max.float_v = TRACK_VOL_MAX;
     slider_set_range(track->vol_ctrl, min, max);
 
-    Layout *pan_ctrl_row = layout_get_child_by_name_recursive(track->layout, "pan_slider");
+    Layout *pan_ctrl_row = layout_get_child_by_name_recursive(track->inner_layout, "pan_slider");
     Layout *pan_ctrl_lt = layout_add_child(pan_ctrl_row);
 
     layout_pad(pan_ctrl_lt, TRACK_CTRL_SLIDER_H_PAD, TRACK_CTRL_SLIDER_V_PAD);
@@ -1481,7 +1480,7 @@ Track *timeline_add_track(Timeline *tl)
 
     /* slider_reset(track->vol_ctrl); */
     /* slider_reset(track->pan_ctrl); */
-    Layout *auto_dropdown_lt = layout_get_child_by_name_recursive(track->layout, "automation_dropdown");
+    Layout *auto_dropdown_lt = layout_get_child_by_name_recursive(track->inner_layout, "automation_dropdown");
     track->automation_dropdown = symbol_button_create(
 	auto_dropdown_lt,
 	SYMBOL_TABLE[SYMBOL_DROPDOWN],
@@ -1494,8 +1493,8 @@ Track *timeline_add_track(Timeline *tl)
     layout_reset(auto_dropdown_lt);
     
     track->selected_automation = -1;
-    track->console_rect = &(layout_get_child_by_name_recursive(track->layout, "track_console")->rect);
-    track->colorbar = &(layout_get_child_by_name_recursive(track->layout, "colorbar")->rect);
+    track->console_rect = &(layout_get_child_by_name_recursive(track->inner_layout, "track_console")->rect);
+    track->colorbar = &(layout_get_child_by_name_recursive(track->inner_layout, "colorbar")->rect);
     
     track_reset_full(track);
 
@@ -1555,8 +1554,8 @@ void clipref_reset(ClipRef *cr)
 	? cr->clip->len_sframes
 	: cr->out_mark_sframes - cr->in_mark_sframes;
     cr->layout->rect.w = timeline_get_draw_w(cr_len);
-    cr->layout->rect.y = cr->track->layout->rect.y + CR_RECT_V_PAD;
-    cr->layout->rect.h = cr->track->layout->rect.h - 2 * CR_RECT_V_PAD;
+    cr->layout->rect.y = cr->track->inner_layout->rect.y + CR_RECT_V_PAD;
+    cr->layout->rect.h = cr->track->inner_layout->rect.h - 2 * CR_RECT_V_PAD;
     layout_set_values_from_rect(cr->layout);
     layout_reset(cr->layout);
     textbox_reset_full(cr->label);
@@ -1565,7 +1564,7 @@ void clipref_reset(ClipRef *cr)
     /* 	? cr->clip->len_sframes */
     /* 	: cr->out_mark_sframes - cr->in_mark_sframes; */
     /* cr->rect.w = timeline_get_draw_w(cr_len); */
-    /* cr->rect.y = cr->track->layout->rect.y + CR_RECT_V_PAD; */
+    /* cr->rect.y = cr->track->inner_layout->rect.y + CR_RECT_V_PAD; */
     /* cr->rect.h = cr->track->layout->rect.h - 2 * CR_RECT_V_PAD; */
 }
 
@@ -1655,7 +1654,7 @@ ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sfr
 {
     /* fprintf(stdout, "track %s create clipref\n", track->name); */
     ClipRef *cr = calloc(1, sizeof(ClipRef));
-    cr->layout = layout_add_child(track->layout);
+    cr->layout = layout_add_child(track->inner_layout);
     cr->layout->h.type = SCALE;
     cr->layout->h.value.floatval = 0.96;
     if (clip->num_refs > 0) {
@@ -2596,14 +2595,15 @@ void timeline_move_track(Timeline *tl, Track *track, int direction, bool from_un
     tl->tracks[old_pos] = displaced;
     displaced->tl_rank = track->tl_rank;
 
-    Layout *displaced_layout = displaced->layout;
-    Layout *track_layout = track->layout;
+    /* Layout *displaced_layout = displaced->layout; */
+    /* Layout *track_layout = track->layout; */
 
-    displaced_layout->parent->children[displaced_layout->index] = track_layout;
-    displaced_layout->parent->children[track_layout->index] = displaced_layout;
-    int saved_i = displaced_layout->index;
-    displaced_layout->index = track_layout->index;
-    track_layout->index = saved_i;
+    /* displaced_layout->parent->children[displaced_layout->index] = track_layout; */
+    /* displaced_layout->parent->children[track_layout->index] = displaced_layout; */
+    /* int saved_i = displaced_layout->index; */
+    /* displaced_layout->index = track_layout->index; */
+    /* track_layout->index = saved_i; */
+    layout_swap_children(displaced->layout, track->layout);
     
     track->tl_rank = new_pos;
     tl->track_selector = track->tl_rank;
@@ -2626,6 +2626,21 @@ void timeline_move_track(Timeline *tl, Track *track, int direction, bool from_un
 	    direction_forward,
 	    0, 0, false, false);
     }
+}
+
+void track_move_automation(Track *track, int direction, bool from_undo)
+{
+    Automation *a = track->automations[track->selected_automation];
+    int new_pos = track->selected_automation + direction;
+    if (new_pos >= 0 && new_pos < track->num_automations) {
+	Automation *to_swap = track->automations[new_pos];
+	layout_swap_children(a->layout, to_swap->layout);
+	track->automations[track->selected_automation] = to_swap;
+	track->automations[new_pos] = a;
+	track->selected_automation = new_pos;
+    }
+    layout_reset(track->layout);
+    /* track->tl->needs_redraw = true; */
 }
 
 static void select_out_onclick(void *arg)

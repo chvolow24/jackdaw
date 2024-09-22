@@ -1554,6 +1554,19 @@ void layout_insert_child_at(Layout *child, Layout *parent, uint8_t index)
     parent->num_children++;
 }
 
+void layout_swap_children(Layout *child1, Layout *child2)
+{
+    Layout *parent = NULL;
+    if (!(parent = child1->parent) || parent != child2->parent) {
+	fprintf(stderr, "Error: layout_swap_children: distinct parents or parent is null.\n");
+    }
+    parent->children[child2->index] = child1;
+    parent->children[child1->index] = child2;
+    int saved_ind = child1->index;
+    child1->index = child2->index;
+    child2->index = saved_ind;
+}
+
 Layout *layout_add_iter(Layout *lt, IteratorType type, bool scrollable)
 {
     if (!(lt->iterator)) {

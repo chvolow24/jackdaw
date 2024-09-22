@@ -211,6 +211,7 @@ void radio_button_draw(RadioButton *rb);
 bool radio_click(RadioButton *rb, Window *Win);
 void radio_destroy(RadioButton *rb);
 void radio_cycle(RadioButton *rb);
+void radio_cycle_back(RadioButton *rb);
 
 
 

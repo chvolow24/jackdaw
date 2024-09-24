@@ -40,6 +40,7 @@
 #include "modal.h"
 #include "project.h"
 #include "status.h"
+#include "symbols.h"
 #include "timeline.h"
 #include "value.h"
 
@@ -56,12 +57,19 @@
 extern Window *main_win;
 extern Project *proj;
 
+extern Symbol *SYMBOL_TABLE[];
+
 extern SDL_Color console_bckgrnd;
 extern SDL_Color control_bar_bckgrnd;
 extern SDL_Color color_mute_solo_grey;
 extern SDL_Color color_global_black;
+extern SDL_Color color_global_white;
+extern SDL_Color color_global_grey;
+extern SDL_Color color_global_red;
 extern SDL_Color color_global_play_green;
 extern SDL_Color color_global_light_grey;
+extern SDL_Color color_global_dropdown_green;
+extern SDL_Color color_global_quickref_button_blue;
 /* SDL_Color automation_bckgrnd = {0, 25, 26, 255}; */
 SDL_Color automation_console_bckgrnd = {110, 110, 110, 255};
 SDL_Color automation_bckgrnd = {90, 100, 120, 255};
@@ -155,7 +163,7 @@ Automation *track_add_automation(Track *track, AutomationType type)
     default:
 	break;
     }
-
+    track->automation_dropdown->background_color = &color_global_dropdown_green;
     return a;
 }
 
@@ -208,6 +216,7 @@ void track_add_new_automation(Track *track)
 
 }
 
+
 static void keyframe_labelmaker(char *dst, size_t dstsize, void *target, ValType t)
 {
     Automation *a = (Automation *)target;
@@ -238,6 +247,52 @@ static void keyframe_labelmaker(char *dst, size_t dstsize, void *target, ValType
 
 }
 
+bool automation_toggle_read(Automation *a)
+{
+    Track *track = a->track;
+    a->read = !(a->read);
+    if (a->read) {
+	track->some_automations_read = true;
+	textbox_set_background_color(a->read_button->tb, &color_global_play_green);
+	textbox_set_text_color(a->read_button->tb, &color_global_white);
+    } else {
+	textbox_set_background_color(a->read_button->tb, &color_global_quickref_button_blue);
+	textbox_set_text_color(a->read_button->tb, &color_global_black);
+	for (uint8_t i=0; i<track->num_automations; i++) {
+	    if (track->automations[i]->read) return 0;
+	}
+	track->some_automations_read = false;
+    }
+    return 0;
+}
+
+bool automation_toggle_write(Automation *a)
+{
+    a->write = !(a->write);
+    if (a->write) {
+	textbox_set_background_color(a->write_button->tb, &color_global_red);
+	/* textbox_set_text_color(a->write_button->tb, &color_global_white); */
+    } else {
+	textbox_set_background_color(a->write_button->tb, &color_global_quickref_button_blue);
+	/* textbox_set_text_color(a->write_button->tb, &color_global_black); */
+    }
+    return 0;
+}
+
+static int button_read_action(void *self_v, void *xarg)
+{
+    Automation *a = (Automation *)xarg;
+    automation_toggle_read(a);
+    return 0;
+}
+
+static int button_write_action(void *self_v, void *xarg)
+{
+    Automation *a = (Automation *)xarg;
+    automation_toggle_write(a);
+    return 0;
+}
+
 void automation_show(Automation *a)
 {
     a->shown = true;
@@ -258,15 +313,27 @@ void automation_show(Automation *a)
 
 	Layout *tb_lt = layout_get_child_by_name_recursive(lt, "label");
 	layout_reset(tb_lt);
+    /* 	    p.button_p.text_color = &color_global_white; */
+    /* p.button_p.background_color = &color_global_quickref_button_blue; */
+    /* p.button_p.text_size = 12; */
+    /* p.button_p.font = main_win->std_font; */
+    /* p.button_p.set_str = (char *)proj->playback_conn->name; */
+    /* p.button_p.win = output->win; */
+    /* p.button_p.target = NULL; */
+    /* p.button_p.action = set_output_compfn; */
+
 	a->label = textbox_create_from_str(
 	    AUTOMATION_LABELS[a->type],
 	    tb_lt,
 	    main_win->mono_bold_font,
 	    12,
 	    main_win);
-	a->label->corner_radius = BUBBLE_CORNER_RADIUS;
+	/* a->label->corner_radius = BUBBLE_CORNER_RADIUS; */
 	textbox_set_trunc(a->label, false);
-	textbox_set_border(a->label, &color_global_black, 2);
+	textbox_set_background_color(a->label,  &color_global_quickref_button_blue);
+	textbox_set_text_color(a->label, &color_global_white);
+	/* textbox_set_border(a->label, &color_global_white, 1); */
+	a->label->corner_radius = BUTTON_CORNER_RADIUS;
 	textbox_set_pad(a->label, 4, 0);
 	textbox_size_to_fit(a->label, 6, 2);
 	textbox_reset_full(a->label);
@@ -276,11 +343,11 @@ void automation_show(Automation *a)
 	Button *button = button_create(
 	    tb_lt,
 	    "Read",
-	    NULL,
-	    NULL,
+	    button_read_action,
+	    (void *)a,
 	    main_win->mono_bold_font,
 	    12,
-	    &color_global_black,
+	    &color_global_white,
 	    &color_global_play_green
 	    );
         textbox_set_border(button->tb, &color_global_black, 1);
@@ -292,12 +359,12 @@ void automation_show(Automation *a)
 	button = button_create(
 	    tb_lt,
 	    "Write",
-	    NULL,
-	    NULL,
+	    button_write_action,
+	    (void *)a,
 	    main_win->mono_bold_font,
 	    12,
-	    &color_global_black,
-	    &color_mute_solo_grey
+	    &color_global_white,
+	    &color_global_grey
 	    );
 	textbox_set_border(button->tb, &color_global_black, 1);
 	button->tb->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
@@ -322,11 +389,15 @@ void automation_show(Automation *a)
 
 }
 
+
 void track_automations_show_all(Track *track)
 {
+    if (track->num_automations == 0) return;
     for (uint8_t i=0; i<track->num_automations; i++) {
 	automation_show(track->automations[i]);
     }
+    track->some_automations_shown = true;
+    track->automation_dropdown->symbol = SYMBOL_TABLE[SYMBOL_DROPUP];
     timeline_reset(track->tl);
 }
 
@@ -342,6 +413,7 @@ void track_automations_hide_all(Track *track)
 	    layout_reset(lt);
 	}
     }
+    track->automation_dropdown->symbol = SYMBOL_TABLE[SYMBOL_DROPDOWN];
     layout_size_to_fit_children_v(track->layout, true, 0);
     timeline_reset(track->tl);
 }
@@ -414,35 +486,7 @@ Keyframe *automation_insert_keyframe_after(
     return k;
 }
 
-/* Keyframe *automation_insert_keyframe_before( */
-/*     Automation *automation, */
-/*     Keyframe *insert_before, */
-/*     Value val, */
-/*     int32_t pos) */
-/* { */
-/*     Keyframe *k = calloc(1, sizeof(Keyframe)); */
-/*     k->automation = automation; */
-/*     k->value = val; */
-/*     if (insert_before) { */
-/* 	Keyframe *prev = insert_before->prev; */
-/* 	k->next = insert_before; */
-/* 	insert_before->prev = k; */
-/* 	prev->next = k; */
-/* 	keyframe_recalculate_m(k, automation->val_type); */
-/* 	if (prev) { */
-/* 	    k->prev = prev; */
-/* 	    keyframe_recalculate_m(prev, automation->val_type); */
-/* 	} else { */
-/* 	    automation->first = k; */
-/* 	} */
-	
-/*     } else { */
-/* 	automation->first = k; */
-/* 	automation->last = k; */
-/*     } */
-/*     keyframe_set_y_prop(k); */
-/*     return k; */
-/* } */
+
 
 Keyframe *automation_get_segment(Automation *a, int32_t at)
 {
@@ -687,6 +731,8 @@ bool automation_triage_click(uint8_t button, Automation *a)
 {
     int32_t epsilon = 10000;
     if (SDL_PointInRect(&main_win->mousep, &a->layout->rect)) {
+	if (button_click(a->read_button, main_win)) return true;
+	if (button_click(a->write_button, main_win)) return true;
 	if (SDL_PointInRect(&main_win->mousep, a->bckgrnd_rect)) {
 	    int32_t abs_pos = timeline_get_abspos_sframes(main_win->mousep.x);
 	    Keyframe *insertion = automation_get_segment(a, abs_pos);

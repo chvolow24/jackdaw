@@ -673,7 +673,6 @@ static inline void project_init_output_panel(Page *output, Project *proj)
 	p,
 	"panel_out_value",
 	"default_out_value");
-
     textbox_set_trunc(((Button *)el->component)->tb, true);
     
     void **output_L, **output_R;

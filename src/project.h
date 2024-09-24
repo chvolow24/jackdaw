@@ -134,6 +134,8 @@ typedef struct track {
     Automation *automations[MAX_TRACK_AUTOMATIONS];
     uint8_t num_automations;
     int16_t selected_automation;
+    bool some_automations_shown;
+    bool some_automations_read;
     /* uint8_t num_filters; */
     
     /* FSLIDER *vol_ctrl */

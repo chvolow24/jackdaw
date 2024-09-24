@@ -76,6 +76,7 @@ typedef struct keyframe {
     Keyframe *next;
 
     double draw_y_prop;
+    int draw_x;
     
     KClip *kclip; /* Optional; used for replication of envelopes */
     int32_t pos_rel; /* Position relative to KClip start */

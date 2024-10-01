@@ -229,11 +229,12 @@ static void jdaw_write_track(FILE *f, Track *track)
     fwrite(&track->delay_line_active, 1, 1, f);
     if (track->delay_line_active) {
 	fwrite(&track->delay_line.len, 4, 1, f);
-	fwrite(&track->delay_line.stereo_offset, 4, 1, f);
+	snprintf(float_value_buffer, 16, "%f", track->delay_line.stereo_offset);
+	fwrite(float_value_buffer, 16, 1, f);
 	snprintf(float_value_buffer, 16, "%f", track->delay_line.amp);
 	fwrite(float_value_buffer, 1, 16, f);
     } else {
-	fseek(f, 24, SEEK_CUR);
+	fseek(f, 36, SEEK_CUR);
     }
     
 }
@@ -535,10 +536,12 @@ static void jdaw_read_track(FILE *f, Timeline *tl)
 	fread(&track->delay_line_active, 1, 1, f);
 	if (track->delay_line_active) {
 	    int32_t len;
-	    int32_t stereo_offset;
 	    double amp;
+	    double stereo_offset;
 	    fread(&len, 4, 1, f);
-	    fread(&stereo_offset, 4, 1, f);
+	    fread(&floatvals, 1, 16, f);
+	    floatvals[16] = '\0';
+	    stereo_offset = atof(floatvals);
 	    fread(floatvals, 1, 16, f);
 	    floatvals[16] = '\0';
 	    amp = atof(floatvals);
@@ -546,7 +549,7 @@ static void jdaw_read_track(FILE *f, Timeline *tl)
 	    delay_line_set_params(&track->delay_line, amp, len);
 	    track->delay_line.stereo_offset = stereo_offset;
 	} else {
-	    fseek(f, 24, SEEK_CUR);
+	    fseek(f, 36, SEEK_CUR);
 	}
     }
 }

@@ -413,10 +413,7 @@ void loop_project_main()
 				allow_scroll = false;
 			    } else if (fabs(scroll_x) > fabs(scroll_y)) {
 				timeline_scroll_horiz(TL_SCROLL_STEP_H * e.wheel.x);
-			    }
-			    /* proj->timelines[proj->active_tl_index]->track_area->scroll_offset_v += scroll_y; */
-			    /* If "fingersdown" is nonzero, dynamic scroll is allowed */
-			    if (allow_scroll) {
+			    } else if (allow_scroll) {
 				temp_scrolling_lt = proj->timelines[proj->active_tl_index]->track_area;
 				layout_scroll(proj->timelines[proj->active_tl_index]->track_area, 0, scroll_y, fingersdown);
 			    }

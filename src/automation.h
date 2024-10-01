@@ -142,6 +142,7 @@ Keyframe *automation_insert_keyframe_before(
     Keyframe *insert_before,
     Value val,
     int32_t pos);
+void automation_reset_keyframe_x(Automation *a);
 Keyframe *automation_get_segment(Automation *a, int32_t at);
 void track_automations_show_all(Track *track);
 void track_automations_hide_all(Track *track);

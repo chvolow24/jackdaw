@@ -1636,16 +1636,14 @@ static void track_reset_full(Track *track)
 
 static void track_reset(Track *track)
 {
-    /* textbox_reset(track->tb_name); */
-    /* textbox_reset(track->tb_input_label); */
-    /* textbox_reset(track->tb_mute_button); */
-    /* textbox_reset(track->tb_solo_button); */
-    /* textbox_reset(track->tb_vol_label); */
-    /* textbox_reset(track->tb_pan_label); */
-    /* textbox_reset(track->tb_input_label); */
-    /* textbox_reset(track->tb_input_name); */
     for (uint8_t i=0; i<track->num_clips; i++) {
 	clipref_reset(track->clips[i]);
+    }
+    for (uint8_t i=0; i<track->num_automations; i++) {
+	Automation *a = track->automations[i];
+	if (a->shown) {
+	    automation_reset_keyframe_x(a);
+	}
     }
 }
 

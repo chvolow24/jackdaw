@@ -256,8 +256,7 @@ bool automation_toggle_read(Automation *a)
 	textbox_set_background_color(a->read_button->tb, &color_global_play_green);
 	textbox_set_text_color(a->read_button->tb, &color_global_white);
     } else {
-	textbox_set_background_color(a->read_button->tb, &color_global_quickref_button_blue);
-	textbox_set_text_color(a->read_button->tb, &color_global_black);
+	textbox_set_background_color(a->read_button->tb, &color_global_grey);
 	for (uint8_t i=0; i<track->num_automations; i++) {
 	    if (track->automations[i]->read) return 0;
 	}
@@ -273,7 +272,8 @@ bool automation_toggle_write(Automation *a)
 	textbox_set_background_color(a->write_button->tb, &color_global_red);
 	/* textbox_set_text_color(a->write_button->tb, &color_global_white); */
     } else {
-	textbox_set_background_color(a->write_button->tb, &color_global_quickref_button_blue);
+	/* textbox_set_background_color(a->write_button->tb, &color_global_quickref_button_blue); */
+	textbox_set_background_color(a->write_button->tb, &color_global_grey);
 	/* textbox_set_text_color(a->write_button->tb, &color_global_black); */
     }
     return 0;
@@ -483,10 +483,21 @@ Keyframe *automation_insert_keyframe_after(
     /* 	print = print->next; */
     /* } */
     keyframe_set_y_prop(k);
+    k->draw_x = timeline_get_draw_x(k->pos);
     return k;
 }
 
 
+
+void automation_reset_keyframe_x(Automation *a)
+{
+    Keyframe *k = a->first;
+    while (k) {
+	k->draw_x = timeline_get_draw_x(k->pos);
+	k = k->next;
+    }
+    
+}
 
 Keyframe *automation_get_segment(Automation *a, int32_t at)
 {
@@ -567,70 +578,31 @@ void automation_draw(Automation *a)
 {
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(automation_bckgrnd));
     SDL_RenderFillRect(main_win->rend, a->bckgrnd_rect);
-
-
-    Keyframe *k = a->first;
-
-    /* bool set_k = true; */
-    int bottom_y = a->layout->rect.y + a->layout->rect.h;
-    int y_left;
-    int y_right;
-    int k_pos;
-    int next_pos;
     
-    if (!k) return;
-    
-    next_pos = timeline_get_draw_x(k->pos);
-    y_right = bottom_y -  k->draw_y_prop * a->layout->rect.h;
-
-
     SDL_RenderSetClipRect(main_win->rend, a->bckgrnd_rect);
     SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255);
 
-    /* fprintf(stdout, "\n\n\n"); */
-    /* int keyframe_i = 0; */
-    bool init_y = true;
-    while (k) {
-	
-	k_pos = next_pos;
-	if (k == a->first && next_pos > 0) {
-	    int y = bottom_y - k->draw_y_prop * a->layout->rect.h;
-	    SDL_RenderDrawLine(main_win->rend, 0, y, k_pos, y);
+    Keyframe *k = a->first;
+    int h = a->layout->rect.h;
+    int last_y = 0;
+    int bottom_y = a->layout->rect.y + a->layout->rect.h;
+    while(k) {
+        int y = bottom_y - k->draw_y_prop * h;
+	if (x_onscreen(k->draw_x))
+	    keyframe_draw(k->draw_x, y);
+	if (last_y != 0 && segment_intersects_screen(k->prev->draw_x, k->draw_x)) {
+	    SDL_RenderDrawLine(main_win->rend, k->prev->draw_x, last_y, k->draw_x, y);
 	}
-	if (x_onscreen(k_pos)) {
-	    keyframe_draw(k_pos, y_right);
-	    if (!k->next) {
-		y_left = bottom_y - a->last->draw_y_prop * a->layout->rect.h;
-		SDL_RenderDrawLine(main_win->rend, k_pos, y_left, main_win->w_pix, y_left);
-		break;
-	    }
+	if (k == a->first && k->draw_x > 0) {
+	    SDL_RenderDrawLine(main_win->rend, 0, y, k->draw_x, y);
 	}
-	if (k->next) {
-	    next_pos = timeline_get_draw_x(k->next->pos);
-	    if (segment_intersects_screen(k_pos, next_pos)) {
-		if (init_y) {
-		    y_left = bottom_y - k->draw_y_prop * a->layout->rect.h;
-		    init_y = false;
-		} else {
-		    y_left = y_right;
-		}
-		y_right = bottom_y -  k->next->draw_y_prop * a->layout->rect.h;
-		/* fprintf(stdout, "%d: %d->%d\n", keyframe_i, y_left, y_right); */
-		SDL_RenderDrawLine(main_win->rend, k_pos, y_left, next_pos, y_right); 
-	    }
+        if (k == a->last && k->draw_x < main_win->w_pix) {
+	    SDL_RenderDrawLine(main_win->rend, k->draw_x, y, main_win->w_pix, y);
 	}
-	k = k->next;
-	/* keyframe_i++; */
-    }
-    /* if (a->first) { */
-    /* 	y_left = bottom_y - a->first->draw_y_prop * a->layout->rect.h; */
-    /* 	SDL_RenderDrawLine(main_win->rend, 0, y_left, k_pos, y_left); */
-    /* } */
-    /* if (a->last) { */
-    /* 	y_left = bottom_y - a->last->draw_y_prop * a->layout->rect.h; */
-    /* 	SDL_RenderDrawLine(main_win->rend, k_pos, y_left, main_win->w_pix, y_left); */
-    /* } */
 
+	last_y = y;
+	k = k->next;
+    }
     SDL_RenderSetClipRect(main_win->rend, NULL);
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(automation_bckgrnd));
     SDL_RenderFillRect(main_win->rend, a->console_rect);
@@ -643,32 +615,92 @@ void automation_draw(Automation *a)
     button_draw(a->read_button);
     button_draw(a->write_button);
     label_draw(a->keyframe_label);
-    /* if (a->keyframe_label_countdown > 0) { */
-    /* 	textbox_draw(a->keyframe_label); */
-    /* 	a->keyframe_label_countdown--; */
-    /* } */
 }
-
-/* static void set_label_std(Automation *a, Keyframe *k) */
+/* void ___automation_draw(Automation *a) */
 /* { */
-/*     jdaw_val_set_str(a->keyframe_label_str, SLIDER_LABEL_STRBUFLEN, k->value, a->val_type, 2); */
+/*     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(automation_bckgrnd)); */
+/*     SDL_RenderFillRect(main_win->rend, a->bckgrnd_rect); */
+
+/*     Keyframe *k = a->first; */
+
+/*     int bottom_y = a->layout->rect.y + a->layout->rect.h; */
+/*     int y_left; */
+/*     int y_right; */
+/*     int k_pos; */
+/*     int next_pos; */
+    
+/*     if (!k) return; */
+    
+/*     next_pos = timeline_get_draw_x(k->pos); */
+/*     y_right = bottom_y -  k->draw_y_prop * a->layout->rect.h; */
+
+
+/*     SDL_RenderSetClipRect(main_win->rend, a->bckgrnd_rect); */
+/*     SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255); */
+
+/*     /\* fprintf(stdout, "\n\n\n"); *\/ */
+/*     /\* int keyframe_i = 0; *\/ */
+/*     bool init_y = true; */
+/*     while (k) { */
+	
+/* 	k_pos = next_pos; */
+/* 	if (k == a->first && next_pos > 0) { */
+/* 	    int y = bottom_y - k->draw_y_prop * a->layout->rect.h; */
+/* 	    SDL_RenderDrawLine(main_win->rend, 0, y, k_pos, y); */
+/* 	} */
+/* 	if (x_onscreen(k_pos)) { */
+/* 	    keyframe_draw(k_pos, y_right); */
+/* 	    if (!k->next) { */
+/* 		y_left = bottom_y - a->last->draw_y_prop * a->layout->rect.h; */
+/* 		SDL_RenderDrawLine(main_win->rend, k_pos, y_left, main_win->w_pix, y_left); */
+/* 		break; */
+/* 	    } */
+/* 	} */
+/* 	if (k->next) { */
+/* 	    next_pos = timeline_get_draw_x(k->next->pos); */
+/* 	    if (segment_intersects_screen(k_pos, next_pos)) { */
+/* 		if (init_y) { */
+/* 		    y_left = bottom_y - k->draw_y_prop * a->layout->rect.h; */
+/* 		    init_y = false; */
+/* 		} else { */
+/* 		    y_left = y_right; */
+/* 		} */
+/* 		y_right = bottom_y -  k->next->draw_y_prop * a->layout->rect.h; */
+/* 		/\* fprintf(stdout, "%d: %d->%d\n", keyframe_i, y_left, y_right); *\/ */
+/* 		SDL_RenderDrawLine(main_win->rend, k_pos, y_left, next_pos, y_right);  */
+/* 	    } */
+/* 	} */
+/* 	k = k->next; */
+/* 	/\* keyframe_i++; *\/ */
+/*     } */
+/*     /\* if (a->first) { *\/ */
+/*     /\* 	y_left = bottom_y - a->first->draw_y_prop * a->layout->rect.h; *\/ */
+/*     /\* 	SDL_RenderDrawLine(main_win->rend, 0, y_left, k_pos, y_left); *\/ */
+/*     /\* } *\/ */
+/*     /\* if (a->last) { *\/ */
+/*     /\* 	y_left = bottom_y - a->last->draw_y_prop * a->layout->rect.h; *\/ */
+/*     /\* 	SDL_RenderDrawLine(main_win->rend, k_pos, y_left, main_win->w_pix, y_left); *\/ */
+/*     /\* } *\/ */
+
+/*     SDL_RenderSetClipRect(main_win->rend, NULL); */
+/*     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(automation_bckgrnd)); */
+/*     SDL_RenderFillRect(main_win->rend, a->console_rect); */
+
+
+/*     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(a->track->color)); */
+/*     SDL_RenderFillRect(main_win->rend, a->color_bar_rect); */
+
+/*     textbox_draw(a->label); */
+/*     button_draw(a->read_button); */
+/*     button_draw(a->write_button); */
+/*     label_draw(a->keyframe_label); */
 /* } */
+
 
 static void automation_editing(Automation *a, Keyframe *k, int x, int y)
 {
-    /* x -= a->keyframe_label->tb->layout->rect.x; */
     label_move(a->keyframe_label, x - 50, y - 50);
-    label_reset(a->keyframe_label);
-    /* set_label_std(a, k); */
-    /* /\* fprintf(stderr, "OK: %s\n", a->keyframe_label_str); *\/ */
-    /* a->keyframe_label_countdown = 80; */
-    /* a->keyframe_label->layout->rect.x = x; */
-    /* a->keyframe_label->layout->rect.y = y; */
-    /* textbox_reset_full(a->keyframe_label); */
-    /* layout_set_values_from_rect(a->keyframe_label->layout); */
-    /* textbox_size_to_fit(a->keyframe_label, SLIDER_LABEL_H_PAD, SLIDER_LABEL_V_PAD); */
-    /* layout_force_reset(a->keyframe_label->layout); */
-    
+    label_reset(a->keyframe_label);   
 }
 static void keyframe_move(Keyframe *k, int x, int y)
 {
@@ -676,6 +708,7 @@ static void keyframe_move(Keyframe *k, int x, int y)
     Automation *a = k->automation;
     int32_t abs_pos = timeline_get_abspos_sframes(x);
     if ((!k->prev || (abs_pos > k->prev->pos)) && (!k->next || (abs_pos < k->next->pos))) {
+	k->draw_x = x;
 	double val_prop = (double)(a->bckgrnd_rect->y + a->bckgrnd_rect->h - y) / a->bckgrnd_rect->h;
 	Value range_scaled = jdaw_val_scale(a->range, val_prop, a->val_type);
 	Value v = jdaw_val_add(a->min, range_scaled, a->val_type);
@@ -729,31 +762,34 @@ bool automations_triage_motion(Timeline *tl)
 
 bool automation_triage_click(uint8_t button, Automation *a)
 {
-    int32_t epsilon = 10000;
+    int click_tolerance = 15;
+    /* int32_t epsilon = 10000; */
     if (SDL_PointInRect(&main_win->mousep, &a->layout->rect)) {
 	if (button_click(a->read_button, main_win)) return true;
 	if (button_click(a->write_button, main_win)) return true;
 	if (SDL_PointInRect(&main_win->mousep, a->bckgrnd_rect)) {
-	    int32_t abs_pos = timeline_get_abspos_sframes(main_win->mousep.x);
-	    Keyframe *insertion = automation_get_segment(a, abs_pos);
-	    if (!insertion) {
+	    int32_t clicked_pos_sframes = timeline_get_abspos_sframes(main_win->mousep.x);
+	    Keyframe *insertion_segment = automation_get_segment(a, clicked_pos_sframes);
+	    if (!insertion_segment) {
 		double val_prop = (double)(a->bckgrnd_rect->y + a->bckgrnd_rect->h - main_win->mousep.y) / a->bckgrnd_rect->h;
 		Value range_scaled = jdaw_val_scale(a->range, val_prop, a->val_type);
 		Value v = jdaw_val_add(a->min, range_scaled, a->val_type);
-		a->track->tl->dragging_keyframe = automation_insert_keyframe_after(a, NULL, v, abs_pos);
+		a->track->tl->dragging_keyframe = automation_insert_keyframe_after(a, NULL, v, clicked_pos_sframes);
 		return true;
 	    }
-	    if (abs(insertion->pos - abs_pos) < epsilon) {
-		a->track->tl->dragging_keyframe = insertion;
-		keyframe_move(insertion, main_win->mousep.x, main_win->mousep.y);
-	    } else if (insertion->next && abs(insertion->next->pos - abs_pos) < epsilon) {
-		a->track->tl->dragging_keyframe = insertion->next;
-		keyframe_move(insertion->next, main_win->mousep.x, main_win->mousep.y);
+	    /* if (abs(insertion_segment->pos - clicked_pos_sframes) < epsilon) { */
+	    if (abs(insertion_segment->draw_x - main_win->mousep.x) < click_tolerance) {
+		a->track->tl->dragging_keyframe = insertion_segment;
+		keyframe_move(insertion_segment, main_win->mousep.x, main_win->mousep.y);
+	    /* } else if (insertion_segment->next && abs(insertion_segment->next->pos - clicked_pos_sframes) < epsilon) { */
+	    } else if (insertion_segment->next && abs(insertion_segment->next->draw_x - main_win->mousep.x) < click_tolerance) {
+		a->track->tl->dragging_keyframe = insertion_segment->next;
+		keyframe_move(insertion_segment->next, main_win->mousep.x, main_win->mousep.y);
 	    } else {
 		double val_prop = (double)(a->bckgrnd_rect->y + a->bckgrnd_rect->h - main_win->mousep.y) / a->bckgrnd_rect->h;
 		Value range_scaled = jdaw_val_scale(a->range, val_prop, a->val_type);
 		Value v = jdaw_val_add(a->min, range_scaled, a->val_type);
-		a->track->tl->dragging_keyframe = automation_insert_keyframe_after(a, insertion,v, abs_pos);
+		a->track->tl->dragging_keyframe = automation_insert_keyframe_after(a, insertion_segment,v, clicked_pos_sframes);
 		/* keyframe_move(insertion->next, main_win->mousep.x, main_win->mousep.y); */
 	    }
 	}

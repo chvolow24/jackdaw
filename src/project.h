@@ -357,6 +357,8 @@ typedef struct project {
     bool pan_changing;
     bool pan_right;
     bool show_output_freq_domain;
+
+    Draggable dragged_component;
     /* Slider *currently_editing_slider; */
     /* Value cached_slider_val; */
     /* enum slider_target_type cached_slider_type; */

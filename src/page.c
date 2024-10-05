@@ -302,7 +302,8 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	    params.slider_p.style,
 	    params.slider_p.create_label_fn,
 	    params.slider_p.action,
-	    params.slider_p.target);
+	    params.slider_p.target,
+	    &proj->dragged_component);
 	break;
     case EL_RADIO:
 	el->component = (void *)radio_button_create(
@@ -423,40 +424,41 @@ void page_reset(Page *page)
 
 static bool page_element_mouse_motion(PageEl *el, Window *win)
 {
-    switch (el->type) {
-    case EL_TEXTAREA:
-	break;
-    case EL_TEXTBOX:
-	break;
-    case EL_TEXTENTRY:
-	break;
-    case EL_SLIDER: {
-	Slider *s = (Slider *)el->component;
-	/* Value saved = jdaw_val_from_ptr(s->value, s->val_type); */
-	if (slider_mouse_motion(s, win)) {
-	    /* if (!proj->currently_editing_slider) { */
-	    /* 	proj->currently_editing_slider = s; */
-	    /* 	proj->cached_slider_val = saved; */
-	    /* 	proj->cached_slider_type = SLIDER_TARGET_TRACK_EFFECT_PARAM; */
-	    /* } */
-	    return true;
-	}
-    }
-	break;
-    case EL_RADIO:
-	break;
-    case EL_TOGGLE:
-	break;
-    case EL_WAVEFORM:
-	break;
-    case EL_FREQ_PLOT:
-	break;
-    case EL_BUTTON:
-	break;
-    default:
-	break;
-    }
-    return false;
+    /* switch (el->type) { */
+    /* case EL_TEXTAREA: */
+    /* 	break; */
+    /* case EL_TEXTBOX: */
+    /* 	break; */
+    /* case EL_TEXTENTRY: */
+    /* 	break; */
+    /* case EL_SLIDER: { */
+    /* 	Slider *s = (Slider *)el->component; */
+    /* 	/\* Value saved = jdaw_val_from_ptr(s->value, s->val_type); *\/ */
+    /* 	if (slider_mouse_motion(s, win)) { */
+    /* 	    /\* if (!proj->currently_editing_slider) { *\/ */
+    /* 	    /\* 	proj->currently_editing_slider = s; *\/ */
+    /* 	    /\* 	proj->cached_slider_val = saved; *\/ */
+    /* 	    /\* 	proj->cached_slider_type = SLIDER_TARGET_TRACK_EFFECT_PARAM; *\/ */
+    /* 	    /\* } *\/ */
+    /* 	    return true; */
+    /* 	} */
+    /* } */
+    /* 	break; */
+    /* case EL_RADIO: */
+    /* 	break; */
+    /* case EL_TOGGLE: */
+    /* 	break; */
+    /* case EL_WAVEFORM: */
+    /* 	break; */
+    /* case EL_FREQ_PLOT: */
+    /* 	break; */
+    /* case EL_BUTTON: */
+    /* 	break; */
+    /* default: */
+    /* 	break; */
+    /* } */
+    /* return false; */
+    return true;
 }
 
 static bool page_element_mouse_click(PageEl *el, Window *win)
@@ -471,25 +473,12 @@ static bool page_element_mouse_click(PageEl *el, Window *win)
 	break;
     case EL_TEXTENTRY:
 	break;
-    case EL_SLIDER: {
-	Slider *s = (Slider *)el->component;
-	/* Value saved = jdaw_val_from_ptr(s->value, s->val_type); */
-	if (slider_mouse_motion(s, win)) {
-	    /* if (!proj->currently_editing_slider) { */
-	    /* 	proj->currently_editing_slider = s; */
-	    /* 	proj->cached_slider_val = saved; */
-	    /* 	proj->cached_slider_type = SLIDER_TARGET_TRACK_EFFECT_PARAM; */
-	    /* } */
-	    return true;
-	}
-    }
-	break;
+    case EL_SLIDER:
+	return slider_mouse_click((Slider *)el->component, win);
     case EL_RADIO:
 	return radio_click((RadioButton *)el->component, win);
-	break;
     case EL_TOGGLE:
 	return toggle_click((Toggle *)el->component, win);
-	break;
     case EL_WAVEFORM:
 	break;
     case EL_FREQ_PLOT:

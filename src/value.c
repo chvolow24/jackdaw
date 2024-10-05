@@ -1,8 +1,9 @@
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include "value.h"
 
-
+/* Set the value pointed to by vp based on the current value stored at valptr */
 void jdaw_val_set(Value *vp, ValType vt, void *valptr)
 {
     switch (vt) {
@@ -544,6 +545,63 @@ bool jdaw_val_less_than(Value a, Value b, ValType type)
 	return a.int32_v < b.int32_v;
     case JDAW_BOOL:
 	return a.bool_v < b.bool_v;
+    default:
+	return 0;
+	break;
+    }
+}
+
+bool jdaw_val_is_zero(Value a, ValType type)
+{
+    double epsilon = 1e-9;
+    switch (type) {
+    case JDAW_FLOAT:
+	return fabs(a.float_v) < epsilon;
+    case JDAW_DOUBLE:
+	return fabs(a.double_v) < epsilon;
+    case JDAW_INT:
+	return a.int_v == 0;
+    case JDAW_UINT8:
+	return a.uint8_v == 0;
+    case JDAW_UINT16:
+	return a.uint16_v == 0;
+    case JDAW_UINT32:
+	return a.uint32_v == 0;
+    case JDAW_INT8:
+	return a.int8_v == 0;
+    case JDAW_INT16:
+	return a.int16_v == 0;
+    case JDAW_INT32:
+	return a.int32_v == 0;
+    case JDAW_BOOL:
+	return a.bool_v == false;
+    default:
+	return 0;
+	break;
+    }
+}
+
+bool jdaw_val_sign_match(Value a, Value b, ValType type)
+{
+    switch (type) {
+    case JDAW_FLOAT:
+	return a.float_v * b.float_v >= 0.0f;
+    case JDAW_DOUBLE:
+	return a.double_v * b.double_v >= 0.0;
+    case JDAW_INT:
+	return a.int_v * b.int_v > 0;
+    case JDAW_UINT8:
+    case JDAW_UINT16:
+    case JDAW_UINT32:
+	return true;
+    case JDAW_INT8:
+	return a.int8_v * b.int8_v > 0;
+    case JDAW_INT16:
+	return a.int16_v * b.int16_v > 0;
+    case JDAW_INT32:
+	return a.int32_v * b.int32_v > 0;
+    case JDAW_BOOL:
+	return a.bool_v = b.bool_v;
     default:
 	return 0;
 	break;

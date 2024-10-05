@@ -46,24 +46,25 @@ extern Project *proj;
 
 static void mouse_triage_motion_track(Track *track)
 {
-    if (main_win->i_state & I_STATE_MOUSE_L && SDL_PointInRect(&main_win->mousep, track->console_rect)) {
-	if (slider_mouse_motion(track->vol_ctrl, main_win)) return;
-	/* if (SDL_PointInRect(&main_win->mousep, &track->vol_ctrl->layout->rect)) { */
-	/*     Value newval = slider_val_from_coord(track->vol_ctrl, main_win->mousep.x); */
-	/*     track->vol = newval.float_v; */
-	/*     slider_reset(track->vol_ctrl); */
-	/*     /\* proj->vol_changing = true; *\/ */
-	/*     return; */
-	/* } */
-	if (slider_mouse_motion(track->pan_ctrl, main_win)) return;
-	/* if (SDL_PointInRect(&main_win->mousep, &track->pan_ctrl->layout->rect)) { */
-	/*     Value newval = slider_val_from_coord(track->pan_ctrl, main_win->mousep.x); */
-	/*     track->pan = newval.float_v; */
-	/*     slider_reset(track->pan_ctrl); */
-	/*     /\* proj->pan_changing = true; *\/ */
-	/*     return; */
-	/* } */
-    }
+    /* NO OP */
+    /* if (main_win->i_state & I_STATE_MOUSE_L && SDL_PointInRect(&main_win->mousep, track->console_rect)) { */
+    /* 	if (slider_mouse_motion(track->vol_ctrl, main_win)) return; */
+    /* 	/\* if (SDL_PointInRect(&main_win->mousep, &track->vol_ctrl->layout->rect)) { *\/ */
+    /* 	/\*     Value newval = slider_val_from_coord(track->vol_ctrl, main_win->mousep.x); *\/ */
+    /* 	/\*     track->vol = newval.float_v; *\/ */
+    /* 	/\*     slider_reset(track->vol_ctrl); *\/ */
+    /* 	/\*     /\\* proj->vol_changing = true; *\\/ *\/ */
+    /* 	/\*     return; *\/ */
+    /* 	/\* } *\/ */
+    /* 	if (slider_mouse_motion(track->pan_ctrl, main_win)) return; */
+    /* 	/\* if (SDL_PointInRect(&main_win->mousep, &track->pan_ctrl->layout->rect)) { *\/ */
+    /* 	/\*     Value newval = slider_val_from_coord(track->pan_ctrl, main_win->mousep.x); *\/ */
+    /* 	/\*     track->pan = newval.float_v; *\/ */
+    /* 	/\*     slider_reset(track->pan_ctrl); *\/ */
+    /* 	/\*     /\\* proj->pan_changing = true; *\\/ *\/ */
+    /* 	/\*     return; *\/ */
+    /* 	/\* } *\/ */
+    /* } */
 
 }
 
@@ -89,8 +90,8 @@ static bool mouse_triage_click_track(uint8_t button, Track *track)
 	    track_rename(track);
 	    return true;
 	}
-	if (slider_mouse_motion(track->vol_ctrl, main_win)) return true;
-	if (slider_mouse_motion(track->pan_ctrl, main_win)) return true;
+	if (slider_mouse_click(track->vol_ctrl, main_win)) return true;
+	if (slider_mouse_click(track->pan_ctrl, main_win)) return true;
 	if (symbol_button_click(track->automation_dropdown, main_win)) return true;
     }
     return false;
@@ -255,6 +256,10 @@ void mouse_triage_click_text_edit(uint8_t button)
 bool mouse_triage_motion_page()
 {
     Page *page;
+    if (proj->dragged_component.component) {
+	draggable_mouse_motion(&proj->dragged_component, main_win);
+	return true;
+    }
     if ((page = main_win->active_page)) {
 	return page_mouse_motion(page, main_win);
     }
@@ -284,6 +289,10 @@ bool mouse_triage_click_tabview()
 bool mouse_triage_motion_tabview()
 {
     TabView *tv;
+    if (proj->dragged_component.component) {
+	draggable_mouse_motion(&proj->dragged_component, main_win);
+	return true;
+    }
     if ((tv = main_win->active_tab_view)) {
 	return tab_view_mouse_motion(tv);
     }

@@ -85,7 +85,7 @@ extern Project *proj;
 float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32_t start_pos_sframes, uint32_t len_sframes, float step)
 {
    
-    /* fprintf(stderr, "Start get track buf %d\n", i++); */
+    int32_t chunk_end = start_pos_sframes + step * len_sframes;
     uint32_t chunk_bytelen = sizeof(float) * len_sframes;
     /* float *chunk = calloc(1, chunk_bytelen); */
     memset(chunk, '\0', chunk_bytelen);
@@ -114,25 +114,46 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
 	else if (a->type == AUTO_PLAY_SPEED) play_speed = a;
     }
     
-    
-    if (vol_auto && vol_auto->read) {
-	float vol_init = automation_get_value(vol_auto, start_pos_sframes, step).float_v;
-	track->vol = vol_init;
-	slider_reset(track->vol_ctrl);
+    if (vol_auto) {
+	if (vol_auto->write) {
+	    /* if (!vol_auto->current) { */
+	    /* 	vol_auto->current = automation_get_segment(vol_auto, start_pos_sframes); */
+	    /* } */
+	    
+	} else if (vol_auto->read) {
+	    float vol_init = automation_get_value(vol_auto, start_pos_sframes, step).float_v;
+	    track->vol = vol_init;
+	    slider_reset(track->vol_ctrl);
+	}
     }
-    if (pan_auto && pan_auto->read) {
-	float pan_init = automation_get_value(pan_auto, start_pos_sframes, step).float_v;
-	track->pan = pan_init;
-	slider_reset(track->pan_ctrl);
+    if (pan_auto) {
+	if (pan_auto->write) {
+	    /* if (!pan_auto->current) { */
+	    /* 	pan_auto->current = automation_get_segment(pan_auto, start_pos_sframes); */
+	    /* } */
+	    /* Value pan; */
+	    /* pan.float_v = track->pan; */
+	    /* automation_insert_maybe(pan_auto, pan_auto->current, pan, start_pos_sframes, chunk_end, step); */
+	} else if (pan_auto->read) {
+	    float pan_init = automation_get_value(pan_auto, start_pos_sframes, step).float_v;
+	    track->pan = pan_init;
+	    slider_reset(track->pan_ctrl);
+	}
     }
+    /* if (pan_auto && pan_auto->read) { */
+    /* } */
     bool bandwidth_set = false;
     bool cutoff_set = false;
     double cutoff_hz;
     double bandwidth_hz;
-    if (fir_filter_cutoff && fir_filter_cutoff->read) {
-	double cutoff_raw = automation_get_value(fir_filter_cutoff, start_pos_sframes, step).double_v;
-	cutoff_hz = dsp_scale_freq_to_hz(cutoff_raw);
-	cutoff_set = true;
+    if (fir_filter_cutoff) {
+	if (fir_filter_cutoff->write) {
+
+	} else if (fir_filter_cutoff->read) {
+	    double cutoff_raw = automation_get_value(fir_filter_cutoff, start_pos_sframes, step).double_v;
+	    cutoff_hz = dsp_scale_freq_to_hz(cutoff_raw);
+	    cutoff_set = true;
+	}
     }
     if (fir_filter_bandwidth && fir_filter_bandwidth->read) {
 	double bandwidth_raw = automation_get_value(fir_filter_bandwidth, start_pos_sframes, step).double_v;
@@ -252,13 +273,13 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
 
 	    /* } */
 	    float vol;
-	    if (vol_auto && vol_auto->read) {
+	    if (vol_auto && vol_auto->read && !vol_auto->write) {
 		vol = automation_get_value(vol_auto, abs_pos, step).float_v;
 	    } else {
 		vol = track->vol;
 	    }
 	    float raw_pan;
-	    if (pan_auto && pan_auto->read) {
+	    if (pan_auto && pan_auto->read && !pan_auto->write) {
 		raw_pan = automation_get_value(pan_auto, abs_pos, step).float_v;
 	    } else {
 		raw_pan = track->pan;
@@ -286,9 +307,9 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
 	clip_read = true;
     }
     if (!clip_read) {
-	if (vol_auto)
+	if (vol_auto && vol_auto->read && !vol_auto->write)
 	    vol_auto->current = NULL;
-	if (pan_auto)
+	if (pan_auto && pan_auto->read && !pan_auto->write)
 	    pan_auto->current = NULL;
     }
 

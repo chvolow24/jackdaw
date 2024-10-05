@@ -99,6 +99,10 @@ typedef struct automation {
     Keyframe *last;
     Keyframe *current;
 
+    bool ghost_valid;
+    int32_t ghost_pos;
+    Value ghost_val;
+    
     bool shown;
     Textbox *label;
     
@@ -142,6 +146,14 @@ Keyframe *automation_insert_keyframe_before(
     Keyframe *insert_before,
     Value val,
     int32_t pos);
+/* Keyframe *automation_insert_maybe( */
+/*     Automation *a, */
+/*     /\* Keyframe *insert_after, *\/ */
+/*     Value val, */
+/*     int32_t pos, */
+/*     int32_t chunk_end_pos, */
+/*     float direction); */
+void automation_do_write(Automation *a, int32_t pos, int32_t end_pos, float step);
 void automation_reset_keyframe_x(Automation *a);
 Keyframe *automation_get_segment(Automation *a, int32_t at);
 void track_automations_show_all(Track *track);

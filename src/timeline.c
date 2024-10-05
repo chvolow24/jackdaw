@@ -38,7 +38,7 @@
 
 #define MAX_SFPP 80000
 
-#define TIMELINE_CATCHUP_W (main_win->dpi_scale_factor * 150)
+#define TIMELINE_CATCHUP_W (main_win->w_pix / 2)
 
 extern Project *proj;
 extern Window *main_win;
@@ -219,6 +219,7 @@ static void track_handle_playhead_jump(Track *track)
     for (uint8_t i =0; i<track->num_automations; i++) {
 	Automation *a = track->automations[i];
 	a->current = NULL;
+	a->ghost_valid = false;
     }
 }
 
@@ -275,9 +276,9 @@ void timeline_catchup()
     if (proj->audio_rect->w <= 0) {
 	return;
     }
-    while (catchup_w > proj->audio_rect->w / 2 && catchup_w > 10) {
-	catchup_w /= 2;
-    }
+    /* while (catchup_w > proj->audio_rect->w / 2 && catchup_w > 10) { */
+    /* 	catchup_w /= 2; */
+    /* } */
     if ((tl_draw_x = timeline_get_draw_x(tl->play_pos_sframes)) > proj->audio_rect->x + proj->audio_rect->w) {
 	tl->display_offset_sframes = tl->play_pos_sframes - timeline_get_abs_w_sframes(proj->audio_rect->w - catchup_w);
 	timeline_reset(tl);

@@ -473,6 +473,7 @@ void loop_project_main()
 	    case SDL_MOUSEBUTTONUP:
 		if (e.button.button == SDL_BUTTON_LEFT) {
 		    main_win->i_state &= ~I_STATE_MOUSE_L;
+		    proj->dragged_component.component = NULL;
 		} else if (e.button.button == SDL_BUTTON_RIGHT) {
 		    main_win->i_state &= ~I_STATE_MOUSE_R;
 		}
@@ -594,6 +595,22 @@ void loop_project_main()
 	/* layout_draw(main_win, main_win->layout); */
 	/**********************/
 
+
+	Timeline *tl = proj->timelines[proj->active_tl_index];
+	for (uint8_t i=0; i<tl->num_tracks; i++) {
+	    Track *track = tl->tracks[i];
+	    for (uint8_t ai=0; ai<track->num_automations; ai++) {
+		Automation *a = track->automations[ai];
+		if (a->write) {
+		    if (!a->current) a->current = automation_get_segment(a, tl->play_pos_sframes);
+		    int32_t frame_dur = proj->sample_rate * proj->play_speed / 60.0;
+		    automation_do_write(a, tl->play_pos_sframes, tl->play_pos_sframes + frame_dur, proj->play_speed);
+		    /* automation_insert_maybe(a, a->current, a->target_val, tl->play_pos_sframes, tl->play_pos_sframes + proj->play_speed * 10, 1); */
+
+		}
+	    }
+	}
+	
 
 	
 	/* window_end_draw(main_win); */

@@ -1450,7 +1450,8 @@ Track *timeline_add_track(Timeline *tl)
 	SLIDER_FILL,
 	&slider_label_amp_to_dbstr,
 	NULL,
-	NULL);
+	NULL,
+	&proj->dragged_component);
     SliderStrFn t;
     Value min, max;
     min.float_v = 0.0f;
@@ -1475,7 +1476,8 @@ Track *timeline_add_track(Timeline *tl)
 	SLIDER_TICK,
 	slider_label_pan,
 	NULL,
-	NULL);
+	NULL,
+	&proj->dragged_component);
 
     /* slider_reset(track->vol_ctrl); */
     /* slider_reset(track->pan_ctrl); */

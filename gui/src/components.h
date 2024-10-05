@@ -69,6 +69,15 @@ enum slider_style {
     SLIDER_TICK
 };
 
+enum drag_comp_type {
+    DRAG_SLIDER
+};
+
+typedef struct draggable {
+    enum drag_comp_type type;
+    void *component;
+} Draggable;
+
 typedef struct radio_button {
     Layout *layout;
     Textbox *items[RADIO_BUTTON_MAX_ITEMS];
@@ -108,6 +117,7 @@ typedef struct slider {
     void *target;
     /* int label_countdown; */
     Label *label;
+    Draggable *drag_context;
 
 
 } Slider;
@@ -135,7 +145,8 @@ Slider *slider_create(
     LabelStrFn set_str_fn,
     /* SliderStrFn *create_label_fn, */
     ComponentFn action,
-    void *target);
+    void *target,
+    Draggable *drag_context);
 /*     Layout *layout, */
 /*     SliderOrientation orientation, */
 /*     SliderType type, */
@@ -238,6 +249,8 @@ bool toggle_toggle(Toggle *toggle);
 void toggle_draw(Toggle *toggle);
 bool toggle_click(Toggle *toggle, Window *win);
 
+bool draggable_mouse_motion(Draggable *draggable, Window *win);
+bool slider_mouse_click(Slider *slider, Window *win);
 bool slider_mouse_motion(Slider *slider, Window *win);
 bool toggle_mouse_click(Toggle *toggle, Window *win);
 bool button_click(Button *button, Window *win);

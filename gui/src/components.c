@@ -4,6 +4,7 @@
 #include "geometry.h"
 #include "input.h"
 #include "layout.h"
+#include "status.h"
 #include "symbols.h"
 #include "text.h"
 #include "textbox.h"
@@ -43,7 +44,8 @@ Slider *slider_create(
     LabelStrFn label_str_fn,
     /* SliderStrFn *create_label_fn, */
     ComponentFn action,
-    void *target)
+    void *target,
+    Draggable *drag_context)
 
 {
     Slider *s = calloc(1, sizeof(Slider));
@@ -58,6 +60,7 @@ Slider *slider_create(
     label->rect.y = layout->rect.y;
     layout_set_values_from_rect(label);
     s->label = label_create(0, label, label_str_fn, value, val_type, main_win);
+    s->drag_context = drag_context;
     /* if (create_label_fn) { */
     /* 	create_label_fn(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, value, val_type); */
     /* } */
@@ -600,7 +603,18 @@ void waveform_draw(Waveform *w)
 
 /* Mouse functions */
 
-bool slider_mouse_motion(Slider *slider, Window *win)
+bool draggable_mouse_motion(Draggable *draggable, Window *win)
+{
+
+    switch (draggable->type) {
+    case DRAG_SLIDER:
+	return slider_mouse_motion((Slider *)draggable->component, win);
+	break;
+    }
+    return false;
+}
+
+bool slider_mouse_click(Slider *slider, Window *win)
 {
     if (SDL_PointInRect(&main_win->mousep, &slider->layout->rect) && win->i_state & I_STATE_MOUSE_L) {
 	int dim = slider->orientation == SLIDER_VERTICAL ? main_win->mousep.y : main_win->mousep.x;
@@ -608,13 +622,47 @@ bool slider_mouse_motion(Slider *slider, Window *win)
 	jdaw_val_set_ptr(slider->value, slider->val_type, newval);
 	if (slider->action)
 		slider->action((void *)slider, slider->target);
-	/* track->vol = newval.float_v; */
 	slider_reset(slider);
 	slider_edit_made(slider);
-	/* proj->vol_changing = true; */
+	slider->drag_context->component = (void *)slider;
+	slider->drag_context->type = DRAG_SLIDER;
 	return true;
     }
     return false;
+}
+
+bool slider_mouse_motion(Slider *slider, Window *win)
+{
+    int dim, mindim, maxdim;
+    switch (slider->orientation) {
+    case SLIDER_VERTICAL:
+	dim = main_win->mousep.y;
+	mindim = slider->layout->rect.y;
+	maxdim = slider->layout->rect.y + slider->layout->rect.h;
+	break;
+    case SLIDER_HORIZONTAL:
+	dim = main_win->mousep.x;
+	mindim = slider->layout->rect.x;
+	maxdim = slider->layout->rect.x + slider->layout->rect.w;
+	break;
+    }
+    /* int dim = slider->orientation == SLIDER_VERTICAL ? main_win->mousep.y : main_win->mousep.x; */
+    /* int mindim = slider->orientation == SLIDER_ */
+    if (!(win->i_state & I_STATE_SHIFT && win->i_state & I_STATE_CMDCTRL)) {
+	if (dim < mindim) dim = mindim;
+	if (dim > maxdim) dim = maxdim;
+    } else {
+	status_set_errstr("SLIDER UNSAFE MODE (release ctrl/shift to return to safety!)");
+    }
+    Value newval = slider_val_from_coord(slider, dim);
+    jdaw_val_set_ptr(slider->value, slider->val_type, newval);
+    if (slider->action)
+	slider->action((void *)slider, slider->target);
+    /* track->vol = newval.float_v; */
+    slider_reset(slider);
+    slider_edit_made(slider);
+    /* proj->vol_changing = true; */
+    return true;
 }
 
 bool radio_click(RadioButton *rb, Window *Win)

@@ -178,6 +178,10 @@ void mouse_triage_click_project(uint8_t button)
 
 void mouse_triage_motion_timeline()
 {
+    if (proj->dragged_component.component) {
+	draggable_mouse_motion(&proj->dragged_component, main_win);
+	return;
+    }
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (automations_triage_motion(tl)) return;
     if (SDL_PointInRect(&main_win->mousep, proj->audio_rect)) {

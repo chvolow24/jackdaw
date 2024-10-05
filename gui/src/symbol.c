@@ -209,6 +209,9 @@ void symbol_draw(Symbol *s, SDL_Rect *dst)
 	s->texture = SDL_CreateTexture(s->window->rend, 0, SDL_TEXTUREACCESS_TARGET, s->x_dim_pix, s->y_dim_pix);
 	SDL_SetTextureBlendMode(s->texture, SDL_BLENDMODE_BLEND);
 	SDL_SetRenderTarget(s->window->rend, s->texture);
+	SDL_SetRenderDrawColor(s->window->rend, 0, 0, 0, 0);
+	SDL_RenderClear(s->window->rend);
+
 	/* SDL_SetRenderDrawColor(s->window->rend, 0, 0, 0, 0); */
 	/* SDL_RenderClear(s->window->rend); */
 	s->draw_fn((void *)s);

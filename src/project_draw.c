@@ -175,6 +175,8 @@ static void clipref_draw_waveform(ClipRef *cr)
     int32_t end_pos = clipref_len;
     double sfpp = cr->track->tl->sample_frames_per_pixel;
     SDL_Rect onscreen_rect = cr->layout->rect;
+    if (onscreen_rect.x > main_win->w_pix) return;
+    if (onscreen_rect.x + onscreen_rect.w < 0) return;
     if (onscreen_rect.x < 0) {
 	start_pos = sfpp * -1 * onscreen_rect.x;
 	if (start_pos < 0 || start_pos > clip_ref_len(cr)) {
@@ -210,7 +212,9 @@ static void clipref_draw_waveform(ClipRef *cr)
 	}
 	SDL_SetTextureBlendMode(cr->waveform_texture, SDL_BLENDMODE_BLEND);
 	SDL_SetRenderTarget(main_win->rend, cr->waveform_texture);
-
+	SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 0);
+	SDL_RenderClear(main_win->rend);
+	
 	/* Do waveform draw here */
 	SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
 	uint8_t num_channels = cr->clip->channels;

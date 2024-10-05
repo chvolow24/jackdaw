@@ -732,7 +732,8 @@ static inline bool x_onscreen(int x)
 
 static void keyframe_draw(int x, int y)
 {
-    SDL_Rect dst = {x - SYMBOL_STD_DIM / 2, y - SYMBOL_STD_DIM / 2, SYMBOL_STD_DIM, SYMBOL_STD_DIM};
+    int dim = SYMBOL_STD_DIM * main_win->dpi_scale_factor;
+    SDL_Rect dst = {x - dim / 4, y - dim / 4, dim / 2, dim / 2};
     symbol_draw(SYMBOL_TABLE[SYMBOL_KEYFRAME], &dst);
 }
 

@@ -2214,6 +2214,8 @@ void clipref_destroy(ClipRef *cr, bool displace_in_clip)
     }
     textbox_destroy(cr->label);
     SDL_DestroyMutex(cr->lock);
+    if (cr->waveform_texture)
+	SDL_DestroyTexture(cr->waveform_texture);
     free(cr);
 }
 void clipref_destroy_no_displace(ClipRef *cr)
@@ -2234,6 +2236,8 @@ void clipref_destroy_no_displace(ClipRef *cr)
     }
     SDL_DestroyMutex(cr->lock);
     textbox_destroy(cr->label);
+    if (cr->waveform_texture)
+	SDL_DestroyTexture(cr->waveform_texture);
     free(cr);
 }
 

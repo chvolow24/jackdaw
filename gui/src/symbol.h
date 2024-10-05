@@ -3,6 +3,8 @@
 
 #include "window.h"
 
+#define SYMBOL_STD_DIM 16
+
 typedef struct symbol {
     Window *window;
     int x_dim_pix;
@@ -16,7 +18,8 @@ enum symbol_id {
     SYMBOL_X=0,
     SYMBOL_MINIMIZE=1,
     SYMBOL_DROPDOWN=2,
-    SYMBOL_DROPUP=3
+    SYMBOL_DROPUP=3,
+    SYMBOL_KEYFRAME=4
 };
 
 void init_symbol_table(Window *win);

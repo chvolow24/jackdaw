@@ -102,7 +102,7 @@ void timeline_scroll_horiz(int scroll_by)
     Timeline *tl = proj->timelines[proj->active_tl_index];
     int32_t new_offset = tl->display_offset_sframes + timeline_get_abs_w_sframes(scroll_by);
     tl->display_offset_sframes = new_offset;
-    timeline_reset(tl);
+    timeline_reset(tl, false);
 }
 
 float timeline_get_leftmost_seconds()
@@ -156,7 +156,7 @@ void timeline_rescale(double sfpp_scale_factor, bool on_mouse)
     int offset_draw_delta = new_draw_pos - init_draw_pos;
     tl->display_offset_sframes += (timeline_get_abs_w_sframes(offset_draw_delta));
 
-    timeline_reset(tl);
+    timeline_reset(tl, true);
     /* Track *track = NULL; */
     /* for (int i=0; i<tl->num_tracks; i++) { */
     /*     track = tl->tracks[i]; */
@@ -281,10 +281,10 @@ void timeline_catchup()
     /* } */
     if ((tl_draw_x = timeline_get_draw_x(tl->play_pos_sframes)) > proj->audio_rect->x + proj->audio_rect->w) {
 	tl->display_offset_sframes = tl->play_pos_sframes - timeline_get_abs_w_sframes(proj->audio_rect->w - catchup_w);
-	timeline_reset(tl);
+	timeline_reset(tl, false);
     } else if (tl_draw_x < proj->audio_rect->x) {
 	tl->display_offset_sframes = tl->play_pos_sframes - timeline_get_abs_w_sframes(catchup_w);
-	timeline_reset(tl);
+	timeline_reset(tl, false);
     }
 }
 

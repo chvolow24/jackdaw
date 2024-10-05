@@ -358,8 +358,9 @@ static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, 
 }
 
 
+extern bool doing_old;
 /* TODO: rename function and deprecate old one */
-static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t buflen, int start_x, int w, int amp_h_max, int center_y)
+static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t buflen, int start_x, int w, int amp_h_max, int center_y, int min_x, int max_x)
 {
     float sfpp = (double) buflen / w;
     
@@ -375,17 +376,20 @@ static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t
 	float sample_i = 0.0f;
 	while (x < start_x + w && sample_i + sfpp < buflen) {
 	    /* Early exit conditions (offscreen) */
-	    if (x < 0) {
+	    if (x < min_x) {
 		sample_i+=sfpp*(0-x);
 		x=0;
 		continue;
-	    } else if (x > main_win->w_pix) {
+	    } else if (x > max_x) {
 		break;
 	    }
 	    
 	    /* Get avg amplitude value */
 	    max_amp_neg = 0;
 	    max_amp_pos = 0;
+	    
+	    /* int sfpp_safe_DIAG = doing_old ? SFPP_SAFE : SFPP_SAFE * 10; */
+	    
 	    int sfpp_safe = (int)sfpp < SFPP_SAFE ? (int)sfpp : SFPP_SAFE;
 	    for (int i=0; i<sfpp_safe; i++) {
 		if (sample_i + i >= buflen) {
@@ -435,11 +439,11 @@ static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t
 	float sample_i = 0.0f;
 	while (x < start_x + w && sample_i + sfpp < buflen) {
 	    avg_amp = 0;
-	    if (x < 0) {
+	    if (x < min_x) {
 		sample_i+=sfpp;
 		x++;
 		continue;
-	    } else if (x > main_win->w_pix) {
+	    } else if (x > max_x) {
 		break;
 	    }
 	    if (sfpp > 1) {
@@ -492,12 +496,12 @@ void waveform_draw_all_channels(float **channels, uint8_t num_channels, uint32_t
 }
 
 /* TODO: rename and deprecate old function */
-void waveform_draw_all_channels_generic(void **channels, ValType type, uint8_t num_channels, uint32_t buflen, SDL_Rect *rect)
+void waveform_draw_all_channels_generic(void **channels, ValType type, uint8_t num_channels, uint32_t buflen, SDL_Rect *rect, int min_x, int max_x)
 {
     int channel_h = rect->h / num_channels;
     int center_y = rect->y + channel_h / 2;
     for (uint8_t i=0; i<num_channels; i++) {
-	waveform_draw_channel_generic(channels[i], type,  buflen, rect->x, rect->w, channel_h / 2, center_y);
+	waveform_draw_channel_generic(channels[i], type,  buflen, rect->x, rect->w, channel_h / 2, center_y, min_x, max_x);
 	center_y += channel_h;
     }
 }

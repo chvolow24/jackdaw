@@ -3,7 +3,7 @@
 
 #include "label.h"
 #include "layout.h"
-#include "symbols.h"
+#include "symbol.h"
 #include "textbox.h"
 #include "value.h"
 
@@ -134,6 +134,11 @@ typedef struct canvas {
 /************ Interfaces ****************/
 /*****************************************/
 
+
+/* Draggable */
+
+void draggable_handle_scroll(Draggable *d, int x, int y);
+
 /* Slider */
 
 Slider *slider_create(
@@ -249,6 +254,8 @@ bool toggle_toggle(Toggle *toggle);
 void toggle_draw(Toggle *toggle);
 bool toggle_click(Toggle *toggle, Window *win);
 
+
+/* Mouse functions */
 bool draggable_mouse_motion(Draggable *draggable, Window *win);
 bool slider_mouse_click(Slider *slider, Window *win);
 bool slider_mouse_motion(Slider *slider, Window *win);

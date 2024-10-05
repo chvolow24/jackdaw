@@ -40,7 +40,7 @@
 #include "modal.h"
 #include "project.h"
 #include "status.h"
-#include "symbols.h"
+#include "symbol.h"
 #include "timeline.h"
 #include "value.h"
 
@@ -398,7 +398,7 @@ void track_automations_show_all(Track *track)
     }
     track->some_automations_shown = true;
     track->automation_dropdown->symbol = SYMBOL_TABLE[SYMBOL_DROPUP];
-    timeline_reset(track->tl);
+    timeline_reset(track->tl, false);
 }
 
 void track_automations_hide_all(Track *track)
@@ -415,7 +415,7 @@ void track_automations_hide_all(Track *track)
     }
     track->automation_dropdown->symbol = SYMBOL_TABLE[SYMBOL_DROPDOWN];
     layout_size_to_fit_children_v(track->layout, true, 0);
-    timeline_reset(track->tl);
+    timeline_reset(track->tl, false);
 }
 
 static void keyframe_recalculate_m(Keyframe *k, ValType type)
@@ -702,26 +702,39 @@ static inline bool x_onscreen(int x)
     return (x > 0 && x < main_win->w_pix);
 }
 
-static inline void keyframe_draw(int x, int y)
+
+/* clock_t start; */
+/* clock_t running_total_old; */
+/* clock_t running_total_new; */
+/* int diagnostic_i = 0; */
+
+
+/* static inline void keyframe_draw_old(int x, int y) */
+/* { */
+/*     start = clock(); */
+/*     int half_diag = KEYFRAME_DIAG / 2; */
+/*     x -= half_diag; */
+/*     int y1 = y; */
+/*     int y2 = y; */
+/*     for (int i=0; i<KEYFRAME_DIAG; i++) { */
+/* 	SDL_RenderDrawLine(main_win->rend, x, y1, x, y2); */
+/* 	if (i < half_diag) { */
+/* 	    y1--; */
+/* 	    y2++; */
+/* 	} else { */
+/* 	    y1++; */
+/* 	    y2--; */
+/* 	} */
+/* 	x++; */
+/*     } */
+/*     running_total_old += (clock() - start); */
+/* } */
+
+static void keyframe_draw(int x, int y)
 {
-    int half_diag = KEYFRAME_DIAG / 2;
-    x -= half_diag;
-    int y1 = y;
-    int y2 = y;
-    for (int i=0; i<KEYFRAME_DIAG; i++) {
-	SDL_RenderDrawLine(main_win->rend, x, y1, x, y2);
-	if (i < half_diag) {
-	    y1--;
-	    y2++;
-	} else {
-	    y1++;
-	    y2--;
-	}
-	x++;
-    }
-
+    SDL_Rect dst = {x - SYMBOL_STD_DIM / 2, y - SYMBOL_STD_DIM / 2, SYMBOL_STD_DIM, SYMBOL_STD_DIM};
+    symbol_draw(SYMBOL_TABLE[SYMBOL_KEYFRAME], &dst);
 }
-
 
 /* This function assumes "current" pointer has been set or unset appropriately elsewhere */
 Value inline automation_get_value(Automation *a, int32_t pos, float direction)
@@ -887,12 +900,12 @@ static void keyframe_move(Keyframe *k, int x, int y)
 	if (jdaw_val_less_than(a->max, v, a->val_type)) v = a->max;
 	else if (jdaw_val_less_than(v, a->min, a->val_type)) v = a->min;
 	k->value = v;
+	k->pos = abs_pos;
 	keyframe_set_y_prop(k);
 	keyframe_recalculate_m(k, a->val_type);
 	if (k->prev) {
 	    keyframe_recalculate_m(k->prev, a->val_type);
 	}
-	k->pos = abs_pos;
 	automation_editing(a, k, x, y);
     }
 }
@@ -938,7 +951,7 @@ bool automation_triage_click(uint8_t button, Automation *a)
     if (SDL_PointInRect(&main_win->mousep, &a->layout->rect)) {
 	if (button_click(a->read_button, main_win)) return true;
 	if (button_click(a->write_button, main_win)) return true;
-	if (SDL_PointInRect(&main_win->mousep, a->bckgrnd_rect)) {
+	if (SDL_PointInRect(&main_win->mousep, a->bckgrnd_rect) && main_win->i_state & I_STATE_CMDCTRL) {
 	    int32_t clicked_pos_sframes = timeline_get_abspos_sframes(main_win->mousep.x);
 	    Keyframe *insertion_segment = automation_get_segment(a, clicked_pos_sframes);
 	    if (!insertion_segment) {
@@ -963,8 +976,8 @@ bool automation_triage_click(uint8_t button, Automation *a)
 		a->track->tl->dragging_keyframe = automation_insert_keyframe_after(a, insertion_segment,v, clicked_pos_sframes);
 		/* keyframe_move(insertion->next, main_win->mousep.x, main_win->mousep.y); */
 	    }
+	    return true;
 	}
-	return true;
     }
     return false;
 }

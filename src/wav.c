@@ -272,6 +272,6 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
     strncpy(clip->name, path_get_tail(filename_modifiable), MAX_NAMELENGTH);
     strncpy(cr->name, path_get_tail(filename_modifiable), MAX_NAMELENGTH);
     free(filename_modifiable);
-    timeline_reset(track->tl);
+    timeline_reset(track->tl, false);
     return cr;
 }

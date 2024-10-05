@@ -1547,7 +1547,7 @@ int32_t clip_ref_len(ClipRef *cr)
 }
 
 
-void clipref_reset(ClipRef *cr)
+void clipref_reset(ClipRef *cr, bool rescaled)
 {
 
     cr->layout->rect.x = timeline_get_draw_x(cr->pos_sframes);
@@ -1560,6 +1560,9 @@ void clipref_reset(ClipRef *cr)
     layout_set_values_from_rect(cr->layout);
     layout_reset(cr->layout);
     textbox_reset_full(cr->label);
+    /* if (rescaled) { */
+	cr->waveform_redraw = true;
+    /* } */
     /* cr->rect.x = timeline_get_draw_x(cr->pos_sframes); */
     /* uint32_t cr_len = cr->in_mark_sframes >= cr->out_mark_sframes */
     /* 	? cr->clip->len_sframes */
@@ -1599,7 +1602,7 @@ void clipref_displace(ClipRef *cr, int displace_by)
 	/* fprintf(stdout, "ADD CLIP TO TRACK %s, which has %d clips now\n", new_track->name, new_track->num_clips); */
 	
     }
-    timeline_reset(tl);
+    timeline_reset(tl, false);
 }
 
 static void clipref_insert_on_track(ClipRef *cr, Track *target)
@@ -1615,7 +1618,7 @@ void clipref_move_to_track(ClipRef *cr, Track *target)
     Timeline *tl = prev_track->tl;
     clipref_remove_from_track(cr);
     clipref_insert_on_track(cr, target);
-    timeline_reset(tl);
+    timeline_reset(tl, false);
 }
 
 static void track_reset_full(Track *track)
@@ -1629,17 +1632,17 @@ static void track_reset_full(Track *track)
     textbox_reset_full(track->tb_input_label);
     textbox_reset_full(track->tb_input_name);
     for (uint8_t i=0; i<track->num_clips; i++) {
-	clipref_reset(track->clips[i]);
+	clipref_reset(track->clips[i], true);
     }
     slider_reset(track->vol_ctrl);
     slider_reset(track->pan_ctrl);
 }
     
 
-static void track_reset(Track *track)
+static void track_reset(Track *track, bool rescaled)
 {
     for (uint8_t i=0; i<track->num_clips; i++) {
-	clipref_reset(track->clips[i]);
+	clipref_reset(track->clips[i], rescaled);
     }
     for (uint8_t i=0; i<track->num_automations; i++) {
 	Automation *a = track->automations[i];
@@ -1696,11 +1699,11 @@ void timeline_reset_full(Timeline *tl)
     }
 }
 
-void timeline_reset(Timeline *tl)
+void timeline_reset(Timeline *tl, bool rescaled)
 {
     layout_reset(tl->layout);
     for (int i=0; i<tl->num_tracks; i++) {
-	track_reset(tl->tracks[i]);
+	track_reset(tl->tracks[i], rescaled);
     }
     /* fprintf(stdout, "TL reset\n"); */
     layout_reset(tl->layout);
@@ -2100,13 +2103,13 @@ void track_delete(Track *track)
     track->deleted = true;
     Timeline *tl = track->tl;
     timeline_remove_track(track);
-    timeline_reset(tl);
+    timeline_reset(tl, false);
 }
 void track_undelete(Track *track)
 {
     track->deleted = false;
     timeline_insert_track_at(track, track->tl_rank);
-    timeline_reset(track->tl);
+    timeline_reset(track->tl, false);
 }
 void track_destroy(Track *track, bool displace)
 {
@@ -2151,7 +2154,7 @@ void track_destroy(Track *track, bool displace)
 	tl->tracks[tl->num_tracks - 1] = NULL;
 	/* track->layout->parent->iterator->num_iterations--; */
 	tl->num_tracks--;
-	timeline_reset(tl);
+	timeline_reset(tl, false);
 	/* timeline_reset(tl); */
 	/* layout_reset(tl->layout); */
     }
@@ -2321,7 +2324,7 @@ static NEW_EVENT_FN(undo_move_clips, "undo move clips")
 	if (!positions[i].track) break;
 	clipref_move_to_track(cliprefs[i], positions[i].track);
 	cliprefs[i]->pos_sframes = positions[i].pos;
-	clipref_reset(cliprefs[i]);
+	clipref_reset(cliprefs[i], false);
     }
     Timeline *tl = cliprefs[0]->track->tl;
     tl->needs_redraw = true;
@@ -2336,7 +2339,7 @@ static NEW_EVENT_FN(redo_move_clips, "redo move clips")
 	if (!positions[i].track) break;
 	clipref_move_to_track(cliprefs[i], positions[i + num].track);
 	cliprefs[i]->pos_sframes = positions[i + num].pos;
-	clipref_reset(cliprefs[i]);
+	clipref_reset(cliprefs[i], false);
     }
     Timeline *tl = cliprefs[0]->track->tl;
     tl->needs_redraw = true;
@@ -2521,7 +2524,7 @@ static NEW_EVENT_FN(undo_cut_clipref, "undo cut clip")
     ClipRef *cr1 = (ClipRef *)obj1;
     ClipRef *cr2 = (ClipRef *)obj2;
     cr1->out_mark_sframes = val2.int32_v;
-    clipref_reset(cr1);
+    clipref_reset(cr1, true);
     clipref_delete(cr2);
 }
 
@@ -2530,7 +2533,7 @@ static NEW_EVENT_FN(redo_cut_clipref, "redo cut clip")
     ClipRef *cr2 = (ClipRef *)obj2;
     clipref_undelete(cr2);
     cr1->out_mark_sframes = val1.int32_v;
-    clipref_reset(cr1);
+    clipref_reset(cr1, true);
     /* clipref_reset(cr2); */
 }
 
@@ -2546,7 +2549,7 @@ static ClipRef *clipref_cut(ClipRef *cr, int32_t cut_pos_rel)
     new->out_mark_sframes = cr->out_mark_sframes == 0 ? clipref_len(cr): cr->out_mark_sframes;
     Value orig_end_pos = {.int32_v = cr->out_mark_sframes};
     cr->out_mark_sframes = cr->out_mark_sframes == 0 ? cut_pos_rel : cr->out_mark_sframes - (clipref_len(cr) - cut_pos_rel);
-    track_reset(cr->track);
+    track_reset(cr->track, true);
 
     Value cut_pos = {.int32_v = cr->out_mark_sframes};
     user_event_push(
@@ -2606,7 +2609,7 @@ void timeline_move_track(Timeline *tl, Track *track, int direction, bool from_un
     
     track->tl_rank = new_pos;
     tl->track_selector = track->tl_rank;
-    timeline_reset(tl);
+    timeline_reset(tl, false);
 
     if (!from_undo) {
 	Value direction_forward = {.int_v = direction};

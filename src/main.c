@@ -45,7 +45,7 @@
 #include "layout_xml.h"
 #include "project.h"
 #include "pure_data.h"
-#include "symbols.h"
+#include "symbol.h"
 #include "text.h"
 #include "transport.h"
 #include "wav.h"

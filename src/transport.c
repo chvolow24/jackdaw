@@ -659,7 +659,7 @@ void transport_recording_update_cliprects()
 	for (uint8_t j=0; j<clip->num_refs; j++) {
 	    ClipRef *cr = clip->refs[j];
 	    cr->out_mark_sframes = clip->len_sframes;
-	    clipref_reset(cr);
+	    clipref_reset(cr, false);
 	}
     }
 }

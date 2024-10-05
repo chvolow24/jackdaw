@@ -79,6 +79,6 @@ struct freq_plot *waveform_create_freq_plot(
 void waveform_reset_freq_plot(struct freq_plot *fp);
 void waveform_destroy_freq_plot(struct freq_plot *fp);
 void waveform_draw_freq_plot(struct freq_plot *fp);
-void waveform_draw_all_channels_generic(void **channels, ValType type, uint8_t num_channels, uint32_t buflen, SDL_Rect *rect);
-
+/* void waveform_draw_all_channels_generic(void **channels, ValType type, uint8_t num_channels, uint32_t buflen, SDL_Rect *rect); */
+void waveform_draw_all_channels_generic(void **channels, ValType type, uint8_t num_channels, uint32_t buflen, SDL_Rect *rect, int min_x, int max_x);
 #endif

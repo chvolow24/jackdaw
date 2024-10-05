@@ -177,6 +177,9 @@ typedef struct clip_ref {
     /* SDL_Rect rect; */
     SDL_mutex *lock;
     Textbox *label;
+
+    SDL_Texture *waveform_texture;
+    bool waveform_redraw;
 } ClipRef;
     
 typedef struct clip {
@@ -194,9 +197,9 @@ typedef struct clip {
     bool recording;
     AudioConn *recorded_from;
 
-    /* Xfade */
-    uint32_t start_ramp_len_sframes;
-    uint32_t end_ramp_len_sframes;
+    /* /\* Xfade *\/ */
+    /* uint32_t start_ramp_len_sframes; */
+    /* uint32_t end_ramp_len_sframes; */
     
 } Clip;
 
@@ -397,11 +400,12 @@ void project_reset_tl_label(Project *proj);
 void project_set_chunk_size(uint16_t new_chunk_size);
 Track *timeline_add_track(Timeline *tl);
 void timeline_reset_full(Timeline *tl);
-void timeline_reset(Timeline *tl);
+void timeline_reset(Timeline *tl, bool rescaled);
 Clip *project_add_clip(AudioConn *dev, Track *target);
 ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sframes, bool home);
 int32_t clip_ref_len(ClipRef *cr);
-void clipref_reset(ClipRef *cr);
+/* void clipref_reset(ClipRef *cr); */
+void clipref_reset(ClipRef *cr, bool rescaled);
 
 void clipref_displace(ClipRef *cr, int displace_by);
 

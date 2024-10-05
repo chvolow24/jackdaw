@@ -42,7 +42,7 @@
 #include "page.h"
 #include "panel.h"
 #include "project.h"
-#include "symbols.h"
+#include "symbol.h"
 #include "textbox.h"
 #include "timeline.h"
 #include "waveform.h"
@@ -162,6 +162,82 @@ static void draw_waveform(ClipRef *cr)
     /* } */
 }
 
+
+static void clipref_draw_waveform(ClipRef *cr)
+{
+    if (cr->waveform_redraw && cr->waveform_texture) {
+	SDL_DestroyTexture(cr->waveform_texture);
+	cr->waveform_texture = NULL;
+	cr->waveform_redraw = false;
+    }
+    int32_t clipref_len = clip_ref_len(cr);
+    int32_t start_pos = 0;
+    int32_t end_pos = clipref_len;
+    double sfpp = cr->track->tl->sample_frames_per_pixel;
+    SDL_Rect onscreen_rect = cr->layout->rect;
+    if (onscreen_rect.x < 0) {
+	start_pos = sfpp * -1 * onscreen_rect.x;
+	if (start_pos < 0 || start_pos > clip_ref_len(cr)) {
+	    return;
+	    fprintf(stderr, "ERROR: start pos is %d\n", start_pos);
+	    fprintf(stderr, "vs len: %d\n", start_pos - clipref_len);
+	    fprintf(stderr, "Clipref: %s\n", cr->name);
+	    /* exit(1); */
+	}
+	onscreen_rect.w += onscreen_rect.x;
+	onscreen_rect.x = 0;
+    }
+    if (onscreen_rect.x + onscreen_rect.w > main_win->w_pix) {
+	
+	if (end_pos <= start_pos || end_pos > clipref_len) {
+	    fprintf(stderr, "ERROR: end pos is %d\n", end_pos);
+	    exit(1);
+	}
+	onscreen_rect.w = main_win->w_pix - onscreen_rect.x;
+	end_pos = start_pos + sfpp * onscreen_rect.w;
+	
+    }
+    if (onscreen_rect.w <= 0) return;
+    if (!cr->waveform_texture) {
+	SDL_Texture *saved_targ = SDL_GetRenderTarget(main_win->rend);
+	/* SDL_Rect onscreen_rect = cr->layout->rect; */
+
+	cr->waveform_texture = SDL_CreateTexture(main_win->rend, 0, SDL_TEXTUREACCESS_TARGET, onscreen_rect.w, onscreen_rect.h);
+	if (!cr->waveform_texture) {
+	    fprintf(stderr, "Error: unable to create waveform texture. %s\n", SDL_GetError());
+	    fprintf(stderr, "Attempted to create with dims: %d, %d\n", onscreen_rect.w, onscreen_rect.h);
+	    exit(1);
+	}
+	SDL_SetTextureBlendMode(cr->waveform_texture, SDL_BLENDMODE_BLEND);
+	SDL_SetRenderTarget(main_win->rend, cr->waveform_texture);
+
+	/* Do waveform draw here */
+	SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
+	uint8_t num_channels = cr->clip->channels;
+	float *channels[num_channels];
+	/* uint32_t cr_len_sframes = clip_ref_len(cr); */
+	if (!cr->clip->L) {
+	    return;
+	}
+	channels[0] = cr->clip->L + cr->in_mark_sframes + start_pos;
+	if (num_channels > 1) {
+	    channels[1] = cr->clip->R + cr->in_mark_sframes + start_pos;
+	}
+	SDL_Rect waveform_container = {0, 0, onscreen_rect.w, onscreen_rect.h};
+	waveform_draw_all_channels_generic((void **)channels, JDAW_FLOAT, num_channels, end_pos - start_pos, &waveform_container, 0, onscreen_rect.w);
+	SDL_SetRenderTarget(main_win->rend, saved_targ);
+    }
+    SDL_RenderCopy(main_win->rend, cr->waveform_texture, NULL, &onscreen_rect);
+}
+
+
+const int diag_max_iter = 50000;
+int diagnostic_i = 0;
+clock_t start;
+double dur_old_s;
+double dur_new_s;
+bool doing_old;
+
 static void clipref_draw(ClipRef *cr)
 {
     /* clipref_reset(cr); */
@@ -169,7 +245,7 @@ static void clipref_draw(ClipRef *cr)
 	return;
     }
     if (cr->grabbed && proj->dragging) {
-	clipref_reset(cr);
+	clipref_reset(cr, false);
     }
     /* Only check horizontal out-of-bounds; track handles vertical */
     if (cr->layout->rect.x > main_win->w_pix || cr->layout->rect.x + cr->layout->rect.w < 0) {
@@ -191,7 +267,29 @@ static void clipref_draw(ClipRef *cr)
     }
     SDL_RenderFillRect(main_win->rend, &cr->layout->rect);
     if (!cr->clip->recording) {
+
+	/* New way */
+	doing_old = false;
+	start = clock();
+	clipref_draw_waveform(cr);
+	dur_new_s += (double)(clock() - start) / CLOCKS_PER_SEC;
+
+
+	/* Old way */
+	doing_old = true;
+	start = clock();
 	draw_waveform(cr);
+	dur_old_s += (double)(clock() - start) / CLOCKS_PER_SEC;
+	diagnostic_i++;
+
+	/* Print diags */
+	if (diagnostic_i % 100 == 0) {
+	    fprintf(stderr, "diag %f%% complete...\n", (double)diagnostic_i * 100 / diag_max_iter);
+	}
+	if (diagnostic_i > diag_max_iter) {
+	    fprintf(stderr, "NEW: %f\nOLD: %f\n", dur_new_s, dur_old_s);
+	    exit(0);
+	}
     }
 
     int border = cr->grabbed ? 3 : 2;

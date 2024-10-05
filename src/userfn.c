@@ -768,7 +768,7 @@ void user_tl_goto_zero(void *nullarg)
     Timeline *tl = proj->timelines[proj->active_tl_index];
     timeline_set_play_position(0);
     tl->display_offset_sframes = 0;
-    timeline_reset(tl);
+    timeline_reset(tl, false);
 }
 
 void user_tl_goto_clip_start(void *nullarg)
@@ -777,7 +777,7 @@ void user_tl_goto_clip_start(void *nullarg)
     ClipRef *cr = clipref_at_point();
     if (cr) {
 	timeline_set_play_position(cr->pos_sframes);
-	timeline_reset(tl);
+	timeline_reset(tl, false);
     }
 }
 void user_tl_goto_clip_end(void *nullarg)
@@ -786,7 +786,7 @@ void user_tl_goto_clip_end(void *nullarg)
     ClipRef *cr = clipref_at_point();
     if (cr) {
 	timeline_set_play_position(cr->pos_sframes + clip_ref_len(cr));
-	timeline_reset(tl);
+	timeline_reset(tl, false);
     }
 }
 
@@ -956,7 +956,7 @@ void user_tl_track_selector_up(void *nullarg)
 	return;
     }
     timeline_refocus_track(tl, selected, false);
-    timeline_reset(tl);
+    timeline_reset(tl, false);
 
     if (proj->dragging && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
@@ -1024,7 +1024,7 @@ void user_tl_track_selector_down(void *nullarg)
 	}
 	timeline_push_grabbed_clip_move_event(tl);
     }
-    timeline_reset(tl);
+    timeline_reset(tl, false);
     TabView *tv;
     if ((tv = main_win->active_tab_view)) {
 	if (strcmp(tv->title, "Track Settings") == 0) {
@@ -1482,7 +1482,7 @@ void user_tl_drop_from_source(void *nullarg)
 	ClipRef *cr = track_create_clip_ref(track, proj->src_clip, drop_pos, false);
 	cr->in_mark_sframes = proj->src_in_sframes;
 	cr->out_mark_sframes = proj->src_out_sframes;
-	clipref_reset(cr);
+	clipref_reset(cr, true);
 	struct drop_save current_drop = (struct drop_save){cr->clip, cr->in_mark_sframes, cr->out_mark_sframes};
 	/* struct drop_save drop_zero =  proj->saved_drops[0]; */
 	/* fprintf(stdout, "Current: %p, %d, %d\nzero: %p, %d, %d\n", current_drop.clip, current_drop.in, current_drop.out, drop_zero.clip, drop_zero.in, drop_zero.out); */
@@ -1525,7 +1525,7 @@ static void user_tl_drop_savedn_from_source(int n)
 	ClipRef *cr = track_create_clip_ref(track, drop.clip, drop_pos, false);
 	cr->in_mark_sframes = drop.in;
 	cr->out_mark_sframes = drop.out;
-	clipref_reset(cr);
+	clipref_reset(cr, true);
 
 	tl->needs_redraw = true;
 	Value nullval = {.int_v = 0};

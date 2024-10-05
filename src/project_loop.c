@@ -382,6 +382,10 @@ void loop_project_main()
 		}
 		break;
 	    case SDL_MOUSEWHEEL: {
+		if (proj->dragged_component.component) {
+		    draggable_handle_scroll(&proj->dragged_component, e.wheel.x, e.wheel.y);
+		    break;
+		}
 		wheel_event_recency = 0;
 		Layout *modal_scrollable = NULL;
 		if ((modal_scrollable = mouse_triage_wheel(e.wheel.x * TL_SCROLL_STEP_H, e.wheel.y * TL_SCROLL_STEP_V, fingersdown))) {
@@ -420,7 +424,13 @@ void loop_project_main()
 			    /* temp_scrolling_lt = proj->timelines[proj->active_tl_index]->track_area; */
 			    /* temp_scrolling_lt->scroll_momentum_v = scroll_y; */
 			}
-			timeline_reset(proj->timelines[proj->active_tl_index]);
+
+
+			
+			/* timeline_reset(proj->timelines[proj->active_tl_index]); */
+
+
+			
 			/* layout_reset(proj->timelines[proj->active_tl_index]->track_area); */
 			/* layout_reset(proj->track_area); */
 			/* if (allow_scroll) { */
@@ -549,7 +559,7 @@ void loop_project_main()
 		    /* scrolling_lt->iterator->scroll_momentum = 0; */
 		    scrolling_lt = NULL;
 		}
-		timeline_reset(proj->timelines[proj->active_tl_index]);
+		timeline_reset(proj->timelines[proj->active_tl_index], false);
 	    }
 	}
 	

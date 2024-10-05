@@ -1,14 +1,13 @@
 #include "SDL_render.h"
 #include "color.h" 
 #include "geometry.h"
-#include "symbols.h"
+#include "symbol.h"
 
-#define SYMBOL_STD_DIM 16
 #define SYMBOL_DEFAULT_PAD 4
 #define SYMBOL_DEFAULT_CORNER_R 4
 #define SYMBOL_DEFAULT_THICKNESS 3
 
-Symbol *SYMBOL_TABLE[4];
+Symbol *SYMBOL_TABLE[5];
 
 static void x_draw_fn(void *self)
 {
@@ -113,6 +112,30 @@ static void dropup_draw_fn(void *self)
     }
 }
 
+/* draws at center, rather than at origin (top left) */
+static void keyframe_draw_fn(void *self)
+{
+    Symbol *s = (Symbol *)self;
+    /* int half_diag = KEYFRAME_DIAG / 2; */
+    int half_diag = s->x_dim_pix / 2;
+    int x = 0;
+    int y1 = half_diag;
+    int y2 = half_diag;
+    SDL_SetRenderDrawColor(s->window->rend, 255, 255, 255, 255);
+    for (int i=0; i<s->x_dim_pix; i++) {
+	SDL_RenderDrawLine(s->window->rend, x, y1, x, y2);
+	if (i < half_diag) {
+	    y1--;
+	    y2++;
+	} else {
+	    y1++;
+	    y2--;
+	}
+	x++;
+    }
+}
+
+
 void init_symbol_table(Window *win)
 {
     int std_dim = SYMBOL_STD_DIM * win->dpi_scale_factor;
@@ -136,6 +159,11 @@ void init_symbol_table(Window *win)
 	std_dim,
 	std_dim,
 	dropup_draw_fn);
+    SYMBOL_TABLE[4] = symbol_create(
+	win,
+	std_dim,
+	std_dim,
+	keyframe_draw_fn);
 }
 
 
@@ -164,7 +192,7 @@ void symbol_destroy(Symbol *s)
 
 void symbol_quit(Window *win)
 {
-    for (int i=0; i<4; i++) {
+    for (int i=0; i<sizeof(SYMBOL_TABLE) / sizeof(Symbol *); i++) {
 	symbol_destroy(SYMBOL_TABLE[i]);
     }
 

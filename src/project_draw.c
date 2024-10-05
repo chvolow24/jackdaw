@@ -87,80 +87,80 @@ extern SDL_Color timeline_label_txt_color;
 
 extern Symbol *SYMBOL_TABLE[];
 
-static void draw_waveform(ClipRef *cr)
-{
-    SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
-    uint8_t num_channels = cr->clip->channels;
-    float *channels[num_channels];
-    uint32_t cr_len_sframes = clip_ref_len(cr);
+/* static void draw_waveform(ClipRef *cr) */
+/* { */
+/*     SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255); */
+/*     uint8_t num_channels = cr->clip->channels; */
+/*     float *channels[num_channels]; */
+/*     uint32_t cr_len_sframes = clip_ref_len(cr); */
 
-    if (!cr->clip->L) {
-	return;
-    }
-    channels[0] = cr->clip->L + cr->in_mark_sframes;
-    if (num_channels > 1) {
-	channels[1] = cr->clip->R + cr->in_mark_sframes;
-    }
-    waveform_draw_all_channels(channels, num_channels, cr_len_sframes, &cr->layout->rect);
-    return;
+/*     if (!cr->clip->L) { */
+/* 	return; */
+/*     } */
+/*     channels[0] = cr->clip->L + cr->in_mark_sframes; */
+/*     if (num_channels > 1) { */
+/* 	channels[1] = cr->clip->R + cr->in_mark_sframes; */
+/*     } */
+/*     waveform_draw_all_channels(channels, num_channels, cr_len_sframes, &cr->layout->rect); */
+/*     return; */
 
     
-    /* old code below */
-    /* int32_t cr_len = clip_ref_len(cr); */
-    /* if (cr->clip->channels == 1) { */
-    /*     int wav_x = cr->rect.x; */
-    /*     int wav_y = cr->rect.y + cr->rect.h / 2; */
-    /*     SDL_SetRenderDrawColor(main_win->rend, 5, 5, 60, 255); */
-    /*     float sample = 0; */
-    /*     int last_sample_y = wav_y; */
-    /*     int sample_y = wav_y; */
-    /*     for (int i=0; i<cr_len-1; i+=cr->track->tl->sample_frames_per_pixel) { */
-    /*         if (wav_x > proj->audio_rect->x) { */
-    /*             if (wav_x >= proj->audio_rect->x + proj->audio_rect->w) { */
-    /*                 break; */
-    /*             } */
-    /*             sample = cr->clip->L[i + cr->in_mark_sframes]; */
-    /*             sample_y = wav_y - sample * cr->rect.h / 2; */
-    /*             // SDL_RenderDrawLine(proj->jwin->rend, wav_x, wav_y, wav_x, sample_y); */
-    /*             SDL_RenderDrawLine(main_win->rend, wav_x, last_sample_y, wav_x + 1, sample_y); */
-    /*             last_sample_y = sample_y; */
-    /*         } */
-    /*         wav_x++; */
-    /*     } */
-    /* } else if (cr->clip->channels == 2) { */
-    /*     int wav_x = cr->rect.x; */
-    /*     int wav_y_l = cr->rect.y + cr->rect.h / 4; */
-    /*     int wav_y_r = cr->rect.y + 3 * cr->rect.h / 4; */
-    /* 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black)); */
-    /*     SDL_SetRenderDrawColor(main_win->rend, 5, 5, 60, 255); */
-    /*     float sample_l = 0; */
-    /*     float sample_r = 0; */
-    /*     int last_sample_y_l = wav_y_l; */
-    /*     int last_sample_y_r = wav_y_r; */
-    /*     int sample_y_l = wav_y_l; */
-    /*     int sample_y_r = wav_y_r; */
+/*     /\* old code below *\/ */
+/*     /\* int32_t cr_len = clip_ref_len(cr); *\/ */
+/*     /\* if (cr->clip->channels == 1) { *\/ */
+/*     /\*     int wav_x = cr->rect.x; *\/ */
+/*     /\*     int wav_y = cr->rect.y + cr->rect.h / 2; *\/ */
+/*     /\*     SDL_SetRenderDrawColor(main_win->rend, 5, 5, 60, 255); *\/ */
+/*     /\*     float sample = 0; *\/ */
+/*     /\*     int last_sample_y = wav_y; *\/ */
+/*     /\*     int sample_y = wav_y; *\/ */
+/*     /\*     for (int i=0; i<cr_len-1; i+=cr->track->tl->sample_frames_per_pixel) { *\/ */
+/*     /\*         if (wav_x > proj->audio_rect->x) { *\/ */
+/*     /\*             if (wav_x >= proj->audio_rect->x + proj->audio_rect->w) { *\/ */
+/*     /\*                 break; *\/ */
+/*     /\*             } *\/ */
+/*     /\*             sample = cr->clip->L[i + cr->in_mark_sframes]; *\/ */
+/*     /\*             sample_y = wav_y - sample * cr->rect.h / 2; *\/ */
+/*     /\*             // SDL_RenderDrawLine(proj->jwin->rend, wav_x, wav_y, wav_x, sample_y); *\/ */
+/*     /\*             SDL_RenderDrawLine(main_win->rend, wav_x, last_sample_y, wav_x + 1, sample_y); *\/ */
+/*     /\*             last_sample_y = sample_y; *\/ */
+/*     /\*         } *\/ */
+/*     /\*         wav_x++; *\/ */
+/*     /\*     } *\/ */
+/*     /\* } else if (cr->clip->channels == 2) { *\/ */
+/*     /\*     int wav_x = cr->rect.x; *\/ */
+/*     /\*     int wav_y_l = cr->rect.y + cr->rect.h / 4; *\/ */
+/*     /\*     int wav_y_r = cr->rect.y + 3 * cr->rect.h / 4; *\/ */
+/*     /\* 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black)); *\/ */
+/*     /\*     SDL_SetRenderDrawColor(main_win->rend, 5, 5, 60, 255); *\/ */
+/*     /\*     float sample_l = 0; *\/ */
+/*     /\*     float sample_r = 0; *\/ */
+/*     /\*     int last_sample_y_l = wav_y_l; *\/ */
+/*     /\*     int last_sample_y_r = wav_y_r; *\/ */
+/*     /\*     int sample_y_l = wav_y_l; *\/ */
+/*     /\*     int sample_y_r = wav_y_r; *\/ */
 
-    /*     int i=0; */
-    /*     while (i<cr_len) { */
-    /*         if (wav_x > proj->audio_rect->x && wav_x < proj->audio_rect->x + proj->audio_rect->w) { */
-    /*             sample_l = cr->clip->L[i + cr->in_mark_sframes]; */
-    /*             sample_r = cr->clip->R[i + cr->in_mark_sframes]; */
-    /*             sample_y_l = wav_y_l + sample_l * cr->rect.h / 4; */
-    /*             sample_y_r = wav_y_r + sample_r * cr->rect.h / 4; */
-    /*             SDL_RenderDrawLine(main_win->rend, wav_x, last_sample_y_l, wav_x + 1, sample_y_l); */
-    /*             SDL_RenderDrawLine(main_win->rend, wav_x, last_sample_y_r, wav_x + 1, sample_y_r); */
+/*     /\*     int i=0; *\/ */
+/*     /\*     while (i<cr_len) { *\/ */
+/*     /\*         if (wav_x > proj->audio_rect->x && wav_x < proj->audio_rect->x + proj->audio_rect->w) { *\/ */
+/*     /\*             sample_l = cr->clip->L[i + cr->in_mark_sframes]; *\/ */
+/*     /\*             sample_r = cr->clip->R[i + cr->in_mark_sframes]; *\/ */
+/*     /\*             sample_y_l = wav_y_l + sample_l * cr->rect.h / 4; *\/ */
+/*     /\*             sample_y_r = wav_y_r + sample_r * cr->rect.h / 4; *\/ */
+/*     /\*             SDL_RenderDrawLine(main_win->rend, wav_x, last_sample_y_l, wav_x + 1, sample_y_l); *\/ */
+/*     /\*             SDL_RenderDrawLine(main_win->rend, wav_x, last_sample_y_r, wav_x + 1, sample_y_r); *\/ */
 
-    /*             last_sample_y_l = sample_y_l; */
-    /*             last_sample_y_r = sample_y_r; */
-    /*             i+= cr->track->tl->sample_frames_per_pixel; */
+/*     /\*             last_sample_y_l = sample_y_l; *\/ */
+/*     /\*             last_sample_y_r = sample_y_r; *\/ */
+/*     /\*             i+= cr->track->tl->sample_frames_per_pixel; *\/ */
                 
-    /*         } else { */
-    /*             i += cr->track->tl->sample_frames_per_pixel; */
-    /*         } */
-    /*         wav_x++; */
-    /*     } */
-    /* } */
-}
+/*     /\*         } else { *\/ */
+/*     /\*             i += cr->track->tl->sample_frames_per_pixel; *\/ */
+/*     /\*         } *\/ */
+/*     /\*         wav_x++; *\/ */
+/*     /\*     } *\/ */
+/*     /\* } *\/ */
+/* } */
 
 
 static void clipref_draw_waveform(ClipRef *cr)
@@ -230,14 +230,6 @@ static void clipref_draw_waveform(ClipRef *cr)
     SDL_RenderCopy(main_win->rend, cr->waveform_texture, NULL, &onscreen_rect);
 }
 
-
-const int diag_max_iter = 50000;
-int diagnostic_i = 0;
-clock_t start;
-double dur_old_s;
-double dur_new_s;
-bool doing_old;
-
 static void clipref_draw(ClipRef *cr)
 {
     /* clipref_reset(cr); */
@@ -267,29 +259,7 @@ static void clipref_draw(ClipRef *cr)
     }
     SDL_RenderFillRect(main_win->rend, &cr->layout->rect);
     if (!cr->clip->recording) {
-
-	/* New way */
-	doing_old = false;
-	start = clock();
 	clipref_draw_waveform(cr);
-	dur_new_s += (double)(clock() - start) / CLOCKS_PER_SEC;
-
-
-	/* Old way */
-	doing_old = true;
-	start = clock();
-	draw_waveform(cr);
-	dur_old_s += (double)(clock() - start) / CLOCKS_PER_SEC;
-	diagnostic_i++;
-
-	/* Print diags */
-	if (diagnostic_i % 100 == 0) {
-	    fprintf(stderr, "diag %f%% complete...\n", (double)diagnostic_i * 100 / diag_max_iter);
-	}
-	if (diagnostic_i > diag_max_iter) {
-	    fprintf(stderr, "NEW: %f\nOLD: %f\n", dur_new_s, dur_old_s);
-	    exit(0);
-	}
     }
 
     int border = cr->grabbed ? 3 : 2;

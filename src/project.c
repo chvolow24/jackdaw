@@ -2550,7 +2550,7 @@ static ClipRef *clipref_cut(ClipRef *cr, int32_t cut_pos_rel)
 {
     ClipRef *new = track_create_clip_ref(cr->track, cr->clip, cr->pos_sframes + cut_pos_rel, false);
     new->in_mark_sframes = cr->in_mark_sframes + cut_pos_rel;
-    new->out_mark_sframes = cr->out_mark_sframes == 0 ? clipref_len(cr): cr->out_mark_sframes;
+    new->out_mark_sframes = cr->out_mark_sframes == 0 ? clipref_len(cr) : cr->out_mark_sframes;
     Value orig_end_pos = {.int32_v = cr->out_mark_sframes};
     cr->out_mark_sframes = cr->out_mark_sframes == 0 ? cut_pos_rel : cr->out_mark_sframes - (clipref_len(cr) - cut_pos_rel);
     track_reset(cr->track, true);

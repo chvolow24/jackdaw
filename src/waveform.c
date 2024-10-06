@@ -358,12 +358,10 @@ static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, 
 }
 
 
-extern bool doing_old;
 /* TODO: rename function and deprecate old one */
 static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t buflen, int start_x, int w, int amp_h_max, int center_y, int min_x, int max_x)
 {
     float sfpp = (double) buflen / w;
-    
     if (sfpp <= 0) {
 	fprintf(stderr, "Error in waveform_draw_channel: sfpp<=0\n");
 	return;
@@ -373,29 +371,29 @@ static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t
 	float max_amp_neg, max_amp_pos;
 	int x = start_x;
 	/* int amp_y = center_y; */
-	float sample_i = 0.0f;
+	/* float sample_i = 0.0f; */
+	double sample_i = 0.0;
 	while (x < start_x + w && sample_i + sfpp < buflen) {
+	    sample_i = buflen * ((double)(x - start_x) / w);
+	    /* sample_i = buflen * ((double)x / w); */
 	    /* Early exit conditions (offscreen) */
 	    if (x < min_x) {
 		sample_i+=sfpp*(0-x);
-		x=0;
+		x=min_x;
 		continue;
 	    } else if (x > max_x) {
 		break;
 	    }
 	    
-	    /* Get avg amplitude value */
 	    max_amp_neg = 0;
 	    max_amp_pos = 0;
 	    
-	    /* int sfpp_safe_DIAG = doing_old ? SFPP_SAFE : SFPP_SAFE * 10; */
-	    
-	    int sfpp_safe = (int)sfpp < SFPP_SAFE ? (int)sfpp : SFPP_SAFE;
+	    int sfpp_safe = round(sfpp) < SFPP_SAFE ? round(sfpp) : SFPP_SAFE;
 	    for (int i=0; i<sfpp_safe; i++) {
 		if (sample_i + i >= buflen) {
 		    break;
 		}
-		float sample = channel[(int)sample_i + i];
+		float sample = channel[(int)round(sample_i) + i];
 		if (sample > max_amp_pos) {
 		    max_amp_pos = sample;
 		} else if (sample < max_amp_neg) {
@@ -436,8 +434,9 @@ static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t
 	int x = start_x;
 	/* int sample_y = center_y; */
 	int last_sample_y = center_y;
-	float sample_i = 0.0f;
+	double sample_i = 0.0;
 	while (x < start_x + w && sample_i + sfpp < buflen) {
+	    sample_i = buflen * ((double)(x - start_x) / w);
 	    avg_amp = 0;
 	    if (x < min_x) {
 		sample_i+=sfpp;
@@ -447,16 +446,16 @@ static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t
 		break;
 	    }
 	    if (sfpp > 1) {
-		for (int i=0; i<(int)sfpp; i++) {
+		for (int i=0; i<(int)round(sfpp); i++) {
 		    if (sample_i + i >= buflen) {
 			break;
 		    }
-		    avg_amp += channel[(int)sample_i + i];
+		    avg_amp += channel[(int)round(sample_i) + i];
 		    /* fprintf(stdout, "\t->avg amp + %f\n", channel[(int)(sample_i) + i]); */
 		}
 		avg_amp /= sfpp;
 	    } else {
-		avg_amp = channel[(int)sample_i];
+		avg_amp = channel[(int)round(sample_i)];
 	    }
 	    int sample_y = center_y + avg_amp * amp_h_max;
 	    if (x == start_x) {last_sample_y = sample_y;}
@@ -473,7 +472,7 @@ static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t
 		SDL_RenderDrawLine(main_win->rend, x-1, last_sample_y, x, sample_y);
 		last_sample_y = sample_y;
 	    }
-	    sample_i+=sfpp;
+	    /* sample_i+=sfpp; */
 	    x++;
 	}
 	

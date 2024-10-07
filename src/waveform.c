@@ -39,7 +39,9 @@
 #include "window.h"
 #include "project.h"
 
-#define SFPP_THRESHOLD 15
+/* Non-integral so that individual channel draws on a timeline fall
+   reliably to one side or the other, despite float error */
+#define SFPP_THRESHOLD 15.5
 #define SFPP_SAFE 200
 
 #define FREQ_PLOT_MAX_TICS 255

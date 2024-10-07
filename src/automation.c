@@ -115,17 +115,23 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	automation_insert_keyframe_after(a, NULL, base_kf_val, 0);
 	break;
     case AUTO_FIR_FILTER_CUTOFF:
+	if (!track->fir_filter) {
+	    track_add_default_filter(track);
+	}
 	a->val_type = JDAW_DOUBLE;
-	a->target_val = &track->fir_filter->cutoff_freq;
+	a->target_val = &track->fir_filter->cutoff_freq_unscaled;
 	a->min.double_v = 0.0;
 	a->max.double_v = 1.0;
 	a->range.double_v = 1.0;
-	base_kf_val.double_v = 0.5;
+	base_kf_val.double_v = 1.0;
 	automation_insert_keyframe_after(a, NULL, base_kf_val, 0);
 	break;
     case AUTO_FIR_FILTER_BANDWIDTH:
+	if (!track->fir_filter) {
+	    track_add_default_filter(track);
+	}
 	a->val_type = JDAW_DOUBLE;
-	a->target_val = &track->fir_filter->bandwidth;
+	a->target_val = &track->fir_filter->bandwidth_unscaled;
 	a->min.double_v = 0.0;
 	a->max.double_v = 1.0;
 	a->range.double_v = 1.0;
@@ -145,7 +151,7 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	break;
     case AUTO_DEL_AMP:
 	a->val_type = JDAW_DOUBLE;
-	a->target_val = &track->fir_filter->bandwidth;
+	a->target_val = &track->delay_line.amp;
 	a->min.double_v = 0.0;
 	a->max.double_v = 1.0;
 	a->range.double_v = 1.0;
@@ -157,6 +163,7 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	a->min.float_v = 0.05;
 	a->max.float_v = 5.0;
 	a->range.float_v = 5.0 - 0.05;
+	a->target_val = &proj->play_speed;
 	base_kf_val.float_v = 1.0f;
 	automation_insert_keyframe_after(a, NULL, base_kf_val, 0);
 	break;
@@ -499,8 +506,18 @@ static Value automation_value_at(Automation *a, int32_t pos)
     if (!a->current) {
 	return a->first->value;
     }
+    Value m_dy;
+    memset(&m_dy, '\0', sizeof(Value));
+    int32_t m_dx = 1;
+    if (a->current->next) {
+	m_dy = jdaw_val_sub(a->current->next->value, a->current->value, a->val_type);
+	m_dx = a->current->next->pos - a->current->pos;
+    }
+   
     int32_t pos_rel = pos - a->current->pos;
+    /* double scalar = (double)pos_rel / m_dx; */
     double scalar = (double)pos_rel / a->current->m_fwd.dx;
+    /* return jdaw_val_add(a->current->value, jdaw_val_scale(m_dy, scalar, a->val_type), a->val_type); */
     return jdaw_val_add(a->current->value, jdaw_val_scale(a->current->m_fwd.dy, scalar, a->val_type), a->val_type);
 }
 
@@ -508,17 +525,21 @@ static Value automation_value_at(Automation *a, int32_t pos)
 void keyframe_remove(Keyframe *k)
 {
     if (k == k->automation->first) return;
-    if (k->prev)
-	k->prev->next = k->next;
+    if (k->prev) {
+        k->prev->next = k->next;
+	keyframe_recalculate_m(k->prev, k->automation->val_type);
+    }
     if (k->next)
 	k->next->prev = k->prev;
     /* if (k == k->automation->first) */
     /* 	return; */
     /* 	/\* k->automation->first = k->next; *\/ */
-    if (k == k->automation->last)
+    if (k == k->automation->last) 
 	k->automation->last = k->prev;
+
     keyframe_destroy(k);
 }
+
 
 static Keyframe *automation_insert_maybe(
     Automation *a,
@@ -527,17 +548,17 @@ static Keyframe *automation_insert_maybe(
     int32_t end_pos,
     float direction)
 {
-
     if (direction < 0) {
 	while (a->current && a->current->pos > end_pos) {
 	    a->current = a->current->prev;
 	}
 	return NULL;
     }
-    static const double diff_prop_thresh = 1e-9;
-    static const double m_prop_thresh = 0.05;
-    static bool changing = false;
+    static const double diff_prop_thresh = 1e-15;
+    static const double m_prop_thresh = 0.008;
+    /* static bool changing = false; */
 
+    /* Overwrite existing keyframes in chunk */
     if (direction > 0) {
 	if (a->current) {
 	    Keyframe *next = a->current->next;
@@ -559,36 +580,28 @@ static Keyframe *automation_insert_maybe(
 	}
     }
 
-    /* if (a->ghost_set) { */
-    /* 	fprintf(stderr, "Inserted ghost\n"); */
-    /* 	a->current = automation_insert_keyframe_after(a, a->current, a->ghost_val, a->ghost_pos); */
-    /* 	a->ghost_set = false; */
-    /* } */
-
     
-    /* Where current value would be if automation was read */
+    /* Calculate where current value would be if automation was read */
     Value predicted_value = automation_value_at(a, pos);
 
     /* Calculate deviance from predicted value */
     Value diff = jdaw_val_sub(predicted_value, val, a->val_type);
     double diff_prop = jdaw_val_div_double(diff, a->range, a->val_type);
 
+    /* Only do work if current value is different from predicted value */
     if (fabs(diff_prop) > diff_prop_thresh) {
-	if (changing == false && a->ghost_valid) {
+	/* Insert "ghost" keyframe if a change has *stopped* occurring */
+	if (a->changing == false && a->ghost_valid) {
 	    a->current = automation_insert_keyframe_after(a, a->current, a->ghost_val, a->ghost_pos);
 	}
-	changing = true;
+	a->changing = true;
 	a->ghost_val = val;
 	a->ghost_pos = pos;
 	a->ghost_valid = true;
 
-	Keyframe *k = NULL;
 	if (direction > 0) {
-	    if (!k) 
-		k = automation_insert_keyframe_after(a, a->current, val, pos);
-	    /* if (k->next && abs(k->next->pos - pos) < overwrite_thresh_seconds * proj->sample_rate) { */
-	    /* 	keyframe_remove(k->next); */
-	    /* } */
+	    Keyframe *k = automation_insert_keyframe_after(a, a->current, val, pos);
+	    
 	    if (k->prev && k->prev->prev) {
 		Keyframe *p = k->prev;
 		Keyframe *pp = k->prev->prev;
@@ -596,62 +609,26 @@ static Keyframe *automation_insert_maybe(
 		Value pm = jdaw_val_scale(p->m_fwd.dy, 1000.0f / p->m_fwd.dx, a->val_type);
 		diff = jdaw_val_sub(ppm, pm, a->val_type);
 		diff_prop = jdaw_val_div_double(diff, a->range, a->val_type);
-		fprintf(stderr, "Dy, dy: %d %d\n", pp->m_fwd.dx, p->m_fwd.dx);
-		fprintf(stderr, "Dx, dx: %f %f\n", pp->m_fwd.dy.float_v, p->m_fwd.dy.float_v);
-		fprintf(stderr, "m_prop_thresh: %f\n", diff_prop);
 		if (fabs(diff_prop) < m_prop_thresh && !jdaw_val_is_zero(ppm, a->val_type) && jdaw_val_sign_match(ppm, pm, a->val_type)) {
-		    fprintf(stderr, "\t->removing\n");
-		    keyframe_remove(p);
+		    a->mdelta_prop_cum += diff_prop;
+		    if (fabs(a->mdelta_prop_cum) < 0.1) {
+			keyframe_remove(p);
+		    } else {
+			fprintf(stderr, "NOT removed on account of mdelta prop cum\n");
+		    }
+		} else {
+		    a->mdelta_prop_cum = 0.0;
 		}
 	    }
-	    /* fprintf(stderr, "FWD, setting current to new keyframe %p\n", k); */
 	    a->current = k;
-	} else if (direction < 0) {
-	    /* if (a->current && a->current->next) { */
-	    /* 	diff = jdaw_val_sub(a->current->next->value, val, a->val_type); */
-	    /* 	diff_prop = jdaw_val_div_double(diff, a->range, a->val_type); */
-	    /* 	if (fabs(diff_prop) < diff_prop_thresh && jdaw_val_is_zero(a->current->next->m_fwd.dy, a->val_type)) { */
-	    /* 	    k = a->current->next; */
-	    /* 	    k->pos = pos; */
-	    /* 	    k->draw_x = timeline_get_draw_x(pos); */
-	    /* 	} */
-	    /* } */
-	    /* if (!k) { */
-	    /* 	k = automation_insert_keyframe_after(a, a->current, val, pos); */
-	    /* } */
-	    /* /\* if (k->prev && abs(k->prev->pos - pos) < overwrite_thresh_seconds * proj->sample_rate) { *\/ */
-	    /* /\* 	keyframe_remove(k->prev); *\/ */
-	    /* /\* } *\/ */
-	    /* /\* fprintf(stderr, "\tintermediate, k, kprev = %p, %p\n", k, k->prev); *\/ */
-	    /* if (k->next && k->next->next) { */
-	    /* 	Keyframe *n = k; */
-	    /* 	Keyframe *nn = k->next; */
-	    /* 	Value nm = jdaw_val_scale(n->m_fwd.dy, 1000.0f / n->m_fwd.dx, a->val_type); */
-	    /* 	Value nnm = jdaw_val_scale(nn->m_fwd.dy, 1000.0f / nn->m_fwd.dx, a->val_type); */
-	    /* 	diff = jdaw_val_sub(nm, nnm, a->val_type); */
-	    /* 	diff_prop = jdaw_val_div_double(diff, a->range, a->val_type); */
-	    /* 	if (fabs(diff_prop) < m_prop_thresh && jdaw_val_sign_match (nm, nnm, a->val_type) && !jdaw_val_is_zero(nnm, a->val_type)) { */
-	    /* 	    keyframe_remove(nn); */
-	    /* 	} */
-	    /* } */
-	    /* /\* fprintf(stderr, "REV, setting current to %p\n", k->prev); *\/ */
-	    /* a->current = k->prev; */
-	    /* while (a->current && a->current->pos > end_pos) { */
-	    /* 	a->current = a->current->prev; */
-	    /* } */
 	}
     } else {
-	/* if (changing && direction < 0 && a->ghost_valid) { */
-	/*     automation_insert_keyframe_after(a, a->current, a->ghost_val, a->ghost_pos); */
-	/* } */
-        changing = false;
+        a->changing = false;
 	a->ghost_val = val;
 	a->ghost_pos = pos;
 	a->ghost_valid = true;
     }
-    /* a->current = automation_get_segment(a, end_pos); */
     return NULL;
-    
 }
 
 void breakfn() {

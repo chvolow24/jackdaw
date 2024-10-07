@@ -39,6 +39,7 @@
 #include "color.h"
 #include "components.h"
 #include "dsp.h"
+#include "input.h"
 #include "layout.h"
 #include "layout_xml.h"
 #include "menu.h"
@@ -90,6 +91,9 @@
 #define SEM_NAME_UNPAUSE "/tl_%d_unpause_sem"
 #define SEM_NAME_WRITABLE_CHUNKS "/tl_%d_writable_chunks"
 #define SEM_NAME_READABLE_CHUNKS "/tl_%d_readable_chunks"
+
+#define PLAYSPEED_ADJUST_SCALAR_LARGE 0.1f
+#define PLAYSPEED_ADJUST_SCALAR_SMALL 0.015f
 
 
 extern Window *main_win;
@@ -2762,3 +2766,19 @@ bool timeline_refocus_track(Timeline *tl, Track *track, bool at_bottom)
 
 }
 
+void timeline_play_speed_adj(int dim)
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    double old_speed = proj->play_speed;
+    if (main_win->i_state & I_STATE_CMDCTRL) {
+	proj->play_speed += dim * PLAYSPEED_ADJUST_SCALAR_LARGE;
+    } else {
+	proj->play_speed += dim * PLAYSPEED_ADJUST_SCALAR_SMALL;
+    }
+    
+    /* If speed crosses the zero line, need to invalidate direction-dependent caches */
+    if (proj->play_speed * old_speed < 0.0) {
+	timeline_set_play_position(tl->play_pos_sframes);
+    }
+    status_stat_playspeed();
+}

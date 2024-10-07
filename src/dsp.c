@@ -81,13 +81,8 @@ static void init_roots_of_unity()
 
 static void FFT_inner(double *A, double complex *B, int n, int offset, int increment)
 {
-    /* double complex *B = (double complex *)malloc(sizeof(double complex) * n); */
-
-    /* fprintf(stdout, "FFT inner from %p to %p, len %d offset %d, inc %d\n", A, B, n, offset, increment); */
-    /* fprintf(stdout, "n == 1? %d\n", n==1); */
     if (n==1) {
         B[0] = A[offset] + 0 * I;
-	/* fprintf(stdout, "\t->early exit\n"); */
         return;
     }
 
@@ -99,24 +94,11 @@ static void FFT_inner(double *A, double complex *B, int n, int offset, int incre
     double complex Bodd[halfn];
     FFT_inner(A, Beven, halfn, offset, doubleinc);
     FFT_inner(A, Bodd, halfn, offset + increment, doubleinc);
-    /* double complex *Beven = FFT_inner(A, halfn, offset, doubleinc); */
-    /* double complex *Bodd = FFT_inner(A, halfn, offset + increment, doubleinc); */
-    /* fprintf(stdout, "\t->inners done on %p, %p, %d, %d %d\n\n", A, B, n, offset, increment); */
     for (int k=0; k<halfn; k++) {
-	/* fprintf(stdout, "Accessxo at %d/%d\n", k, halfn); */
         double complex odd_part_by_x = Bodd[k] * conj(X[k]);
         B[k] = Beven[k] + odd_part_by_x;
-	/* fprintf(stdout, "K + halfn: %d/%d\n", k + halfn, n); */
-	/* fprintf(stdout, "K rel b even: %d/%d\n", k, halfn); */
-	
         B[k + halfn] = Beven[k] - odd_part_by_x;
-	/* fprintf(stdout, "DONE\n"); */
-
     }
-    /* free(Beven); */
-    /* free(Bodd); */
-    return;
-
 }
 
 void FFT(double *A, double complex *B, int n)
@@ -124,12 +106,8 @@ void FFT(double *A, double complex *B, int n)
 
     FFT_inner(A, B, n, 0, 1);
 
-    /* double max = 0.0f; */
-    /* double test; */
     for (int k=0; k<n; k++) {
         B[k]/=n;
-	/* if ((test = B[k]) > max) max = test; */
-	/* fprintf(stdout, "mag %d: %f\n", k, cabs(B[k])); */
     }
 }
 
@@ -163,8 +141,6 @@ static double complex *IFFT_inner(double complex *A, double complex *B, int n, i
         B[k] = Beven[k] + odd_part_by_x;
         B[k + halfn] = Beven[k] - odd_part_by_x;
     }
-    /* free(Beven); */
-    /* free(Bodd); */
     return B;
 
 }
@@ -174,14 +150,14 @@ static void IFFT(double complex *A, double complex *B, int n)
     IFFT_inner(A, B, n, 0, 1);
 }
 
-static void IFFT_real_input(double *A_real, double complex *B, int n)
-{
-    double complex A[n];
-    for (int i=0; i<n; i++) {
-        A[i] = A_real[i] + 0 * I;
-    }
-    IFFT(A, B, n);
-}
+/* static void IFFT_real_input(double *A_real, double complex *B, int n) */
+/* { */
+/*     double complex A[n]; */
+/*     for (int i=0; i<n; i++) { */
+/*         A[i] = A_real[i] + 0 * I; */
+/*     } */
+/*     IFFT(A, B, n); */
+/* } */
 
 
 void get_magnitude(double complex *A, double *B, int len) 
@@ -455,22 +431,6 @@ void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chu
 {
     SDL_LockMutex(filter->lock);
     double *overlap_buffer = channel == 0 ? filter->overlap_buffer_L : filter->overlap_buffer_R;
-    /* if (filter->overlap_len != filter->impulse_response_len - 1) { */
-    /*     filter->overlap_len = filter->impulse_response_len - 1; */
-    /*     if (overlap_buffer) { */
-    /*         free(overlap_buffer); */
-    /*     } */
-    /* } */
-    /* if (!overlap_buffer) { */
-    /*     overlap_buffer = malloc(sizeof(double) * filter->overlap_len); */
-    /*     memset(overlap_buffer, '\0', sizeof(double) * filter->overlap_len); */
-    /*     if (channel == 0) { */
-    /*         filter->overlap_buffer_L = overlap_buffer; */
-    /*     } else { */
-    /*         filter->overlap_buffer_R = overlap_buffer; */
-    /*     } */
-    /* } */
-    
     uint16_t padded_len = filter->frequency_response_len;
     double padded_chunk[padded_len];
     for (uint16_t i=0; i<padded_len; i++) {
@@ -584,6 +544,14 @@ void ___apply_track_filter(Track *track, uint8_t channel, uint16_t chunk_size, f
 
 }
 
+void track_add_default_filter(Track *track)
+{
+    int ir_len = track->tl->proj->fourier_len_sframes/4;
+    track->fir_filter = filter_create(LOWPASS, ir_len, track->tl->proj->fourier_len_sframes * 2);
+    filter_set_params_hz(track->fir_filter, LOWPASS, 1000, 1000);
+    track->fir_filter_active = false;
+}
+
 
 /*****************************************************************************************************************
    Delay lines
@@ -603,52 +571,6 @@ void delay_line_init(DelayLine *dl)
     dl->buf_R = calloc(dl->max_len, sizeof(double));
 }
 
-/* IMPLEMENTATION 1:  Does not account for wraparound */
-/* void ____delay_line_set_params(DelayLine *dl, double amp, int32_t len) */
-/* { */
-/*     SDL_LockMutex(dl->lock); */
-    
- 
-/*     int32_t len_diff = len - dl->len; */
-/*     int32_t copy_pos = dl->len; */
-/*     if (dl->buf_L) { */
-/* 	dl->buf_L = realloc(dl->buf_L, len * sizeof(double)); */
-/* 	/\* memset(dl->buf_L, '\0', len * sizeof(double)); *\/ */
-/* 	while (len - copy_pos > 0) { */
-/* 	    int32_t copyable = len_diff < dl->len ? len_diff : dl->len; */
-/* 	    fprintf(stdout, "COPYING %d samples at pos %d\n", copyable, copy_pos); */
-/* 	    memcpy(dl->buf_L + copy_pos, dl->buf_L, sizeof(double) * copyable); */
-/* 	    len_diff -= copyable; */
-/* 	    copy_pos += copyable; */
-	    
-/* 	} */
-/*     } else { */
-/* 	dl->buf_L = calloc(len, sizeof(double)); */
-/*     } */
-/*     len_diff = len - dl->len; */
-/*     copy_pos = dl->len; */
-/*     if (dl->buf_R) { */
-/* 	dl->buf_R = realloc(dl->buf_R, len * sizeof(double)); */
-/* 	/\* memset(dl->buf_R, '\0', len * sizeof(double)); *\/ */
-/* 	while (len - copy_pos > 0) { */
-/* 	    int32_t copyable = len_diff < dl->len ? len_diff : dl->len; */
-/* 	    memcpy(dl->buf_R + copy_pos, dl->buf_R, sizeof(double) * copyable); */
-/* 	    len_diff -= copyable; */
-/* 	    copy_pos += copyable; */
-	    
-/* 	} */
-/*     } else { */
-/* 	dl->buf_R = calloc(len, sizeof(double)); */
-/*     } */
-
-/*     dl->pos_L %= len; */
-/*     dl->pos_R %= len; */
-/*     dl->len = len; */
-/*     dl->amp = amp; */
-/*     SDL_UnlockMutex(dl->lock); */
-/* } */
-
-
 /*
 
   Delay line reduce length:
@@ -665,34 +587,26 @@ void delay_line_init(DelayLine *dl)
 static inline void del_read_into_buffer_resize(DelayLine *dl, double *read_from, double *read_to, int32_t *read_pos, int32_t len, double read_step)
 {
     double read_pos_d = (double)*read_pos;
-    // fprintf(stdout, "\n\n\nREADING FROM buffer of size %d into size %d, starting %d\n", dl->len, len, *read_pos);
     for (int32_t i=0; i<len; i++) {
 	int32_t read_i = (int32_t)(round(read_pos_d));
-	// if (i < 10) {
-	//     fprintf(stdout, "\tread from: %f / %d\n", read_pos_d, read_i);
-	// }
-	// if (i == 10) {
-	//     fprintf(stdout, "\t...\n");
-	// }
-	// if (i > len - 3) {
-	//     fprintf(stdout, "\tread from: %f / %d\n", read_pos_d, read_i);
-	// }
 	if (read_i < 0) read_i = 0;
 	read_to[i] = read_from[read_i];
 	read_pos_d += read_step;
 	if (read_pos_d > dl->len) {
 	    read_pos_d -= dl->len;
-	    // fprintf(stdout, "\t->(resetting read_pos_d to %f\n", read_pos_d);
 	}
     }
 }
 
 void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
 {
-    
     SDL_LockMutex(dl->lock);
-    double new_buf[len];
+    if (len > proj->sample_rate) {
+	fprintf(stderr, "UH OH: len = %d\n", len);
+	return;
+    }
     if (dl->len != len) {
+	double new_buf[len];
 	double read_step = (double)dl->len / len;
 	del_read_into_buffer_resize(dl, dl->buf_L, new_buf,  &dl->pos_L, len, read_step);
 	memcpy(dl->buf_L, new_buf, len * sizeof(double));
@@ -700,10 +614,9 @@ void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
 	del_read_into_buffer_resize(dl, dl->buf_R, new_buf, &dl->pos_R, len, read_step);
 	memcpy(dl->buf_R, new_buf, len * sizeof(double));
 	dl->pos_R = 0;
-    dl->len = len;
+	dl->len = len;
     }
     dl->amp = amp;
-
     SDL_UnlockMutex(dl->lock);
 }
 

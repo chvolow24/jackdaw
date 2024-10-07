@@ -299,26 +299,46 @@ void transport_start_playback()
     proj->playing = true;
     Timeline *tl = proj->timelines[proj->active_tl_index];
     tl->read_pos_sframes = tl->play_pos_sframes;
-    
-    /* int priority_min = sched_get_priority_min(SCHED_RR); */
-    int priority_max = sched_get_priority_max(SCHED_RR);
-    /* fprintf(stdout, "priority range: %d-%d\n", priority_min, priority_max); */
-    pthread_attr_t attr;
-    pthread_attr_init(&attr);
-    
-    /* struct sched_param sched_hm; */
-    /* pthread_attr_getschedparam(&attr, &sched_hm); */
-    /* fprintf(stdout, "Current thread pri? %d\n", sched_hm.sched_priority); */
-    /* int current_pri = sched_hm.sched_priority; */
 
+
+
+    
+    pthread_attr_t attr;
+    int sched_policy = SCHED_RR;
+    int ret;
+    if ((ret = pthread_attr_init(&attr)) != 0) {
+	fprintf(stderr, "pthread_attr_init: %s\n", strerror(ret));
+    }
+    if ((ret = pthread_attr_setschedpolicy(&attr, sched_policy)) != 0) {
+	fprintf(stderr, "pthread_attr_setschedpolicy: %s\n", strerror(ret));
+    }
+    int priority_max = sched_get_priority_max(sched_policy);
+    if (priority_max < 0) {
+	perror("sched_get_priority_max");
+	exit(1);
+    }
+    
+    /* Set priority */
     struct sched_param dsp_sched;
     dsp_sched.sched_priority = priority_max;
-    /* dsp_sched.sched_priority = current_pri; */
-    pthread_attr_setschedparam(&attr, &dsp_sched);
-    
-    /* pthread_create(&proj->dsp_thread, &attr, transport_dsp_thread_fn, (void *)tl); */
-    pthread_create(&proj->dsp_thread, NULL, transport_dsp_thread_fn, (void *)tl);
-    
+    if ((ret = pthread_attr_setschedparam(&attr, &dsp_sched)) != 0) {
+	fprintf(stderr, "pthread_attr_setschedparam: %s\n", strerror(ret));
+    }
+
+    /* Set stack size */
+    size_t orig_stack_size;
+    size_t desired_stack_size = 4 * sizeof(double) * proj->sample_rate;
+    if ((ret = pthread_attr_getstacksize(&attr, &orig_stack_size) != 0)) {
+	fprintf(stderr, "pthread_attr_getstacksize: %s\n", strerror(ret));
+    }
+    if (orig_stack_size < desired_stack_size) {
+	if ((ret = pthread_attr_setstacksize(&attr, desired_stack_size)) != 0) {
+	    fprintf(stderr, "pthread_attr_setstacksize: %s\n", strerror(ret));
+	}
+    }
+    if ((ret = pthread_create(&proj->dsp_thread, &attr, transport_dsp_thread_fn, (void *)tl)) != 0) {
+	fprintf(stderr, "pthread_create: %s\n", strerror(ret));
+    }
     sem_wait(tl->unpause_sem);
     audioconn_start_playback(proj->playback_conn);
 

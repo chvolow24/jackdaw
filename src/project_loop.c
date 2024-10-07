@@ -59,8 +59,6 @@
 
 #define MAX_MODES 8
 #define STICK_DELAY_MS 500
-#define PLAYSPEED_ADJUST_SCALAR_LARGE 0.1f
-#define PLAYSPEED_ADJUST_SCALAR_SMALL 0.015f
 
 
 #define TOP_MODE (main_win->modes[main_win->num_modes - 1])
@@ -392,20 +390,21 @@ void loop_project_main()
 		    temp_scrolling_lt = modal_scrollable;
 		} else if (main_win->modes[main_win->num_modes - 1] == TIMELINE || main_win->modes[main_win->num_modes - 1] == TABVIEW) {
 		    if (main_win->i_state & I_STATE_SHIFT) {
-			if (main_win->i_state & I_STATE_CMDCTRL)
-			    /* if (main_win->i_state & I_STATE_META) { */
-			    /* 	Timeline *tl = proj->timelines[0]; */
-			    /* 	Track *track = tl->tracks[0]; */
-			    /* 	double current_cutoff = track->fir_filter->cutoff_freq; */
-			    /* 	FilterType type = track->fir_filter->type; */
-			    /* 	double filter_adj = 0.001; */
-			    /* 	filter_set_params(track->fir_filter, type, current_cutoff + filter_adj * e.wheel.y, 0.05); */
-			    /* } else  */
-			    proj->play_speed += e.wheel.y * PLAYSPEED_ADJUST_SCALAR_LARGE;
-			else 
-			    proj->play_speed += e.wheel.y * PLAYSPEED_ADJUST_SCALAR_SMALL;
+			timeline_play_speed_adj(e.wheel.y);
+			/* if (main_win->i_state & I_STATE_CMDCTRL) */
+			/*     /\* if (main_win->i_state & I_STATE_META) { *\/ */
+			/*     /\* 	Timeline *tl = proj->timelines[0]; *\/ */
+			/*     /\* 	Track *track = tl->tracks[0]; *\/ */
+			/*     /\* 	double current_cutoff = track->fir_filter->cutoff_freq; *\/ */
+			/*     /\* 	FilterType type = track->fir_filter->type; *\/ */
+			/*     /\* 	double filter_adj = 0.001; *\/ */
+			/*     /\* 	filter_set_params(track->fir_filter, type, current_cutoff + filter_adj * e.wheel.y, 0.05); *\/ */
+			/*     /\* } else  *\/ */
+			/*     proj->play_speed += e.wheel.y * PLAYSPEED_ADJUST_SCALAR_LARGE; */
+			/* else  */
+			/*     proj->play_speed += e.wheel.y * PLAYSPEED_ADJUST_SCALAR_SMALL; */
 			
-			status_stat_playspeed();
+			/* status_stat_playspeed(); */
 		    } else {
 			bool allow_scroll = true;
 			double scroll_x = e.wheel.preciseX * LAYOUT_SCROLL_SCALAR;
@@ -606,21 +605,25 @@ void loop_project_main()
 	/**********************/
 
 
-	Timeline *tl = proj->timelines[proj->active_tl_index];
-	for (uint8_t i=0; i<tl->num_tracks; i++) {
-	    Track *track = tl->tracks[i];
-	    for (uint8_t ai=0; ai<track->num_automations; ai++) {
-		Automation *a = track->automations[ai];
-		if (a->write) {
-		    if (!a->current) a->current = automation_get_segment(a, tl->play_pos_sframes);
-		    int32_t frame_dur = proj->sample_rate * proj->play_speed / 60.0;
-		    automation_do_write(a, tl->play_pos_sframes, tl->play_pos_sframes + frame_dur, proj->play_speed);
-		    /* automation_insert_maybe(a, a->current, a->target_val, tl->play_pos_sframes, tl->play_pos_sframes + proj->play_speed * 10, 1); */
+	if (proj->playing) {
+	    Timeline *tl = proj->timelines[proj->active_tl_index];
+	    struct timespec now;
+	    clock_gettime(CLOCK_MONOTONIC, &now);
+	    double elapsed_s = now.tv_sec + ((double)now.tv_nsec / 1e9) - tl->play_pos_moved_at.tv_sec - ((double)tl->play_pos_moved_at.tv_nsec / 1e9);
+	    int32_t play_pos_adj = tl->play_pos_sframes + elapsed_s * proj->sample_rate * proj->play_speed;
+	    for (uint8_t i=0; i<tl->num_tracks; i++) {
+		Track *track = tl->tracks[i];
+		for (uint8_t ai=0; ai<track->num_automations; ai++) {
+		    Automation *a = track->automations[ai];
+		    if (a->write) {
+			if (!a->current) a->current = automation_get_segment(a, play_pos_adj);
+			int32_t frame_dur = proj->sample_rate * proj->play_speed / 60.0;
+			automation_do_write(a, play_pos_adj, play_pos_adj + frame_dur, proj->play_speed);
 
+		    }
 		}
 	    }
 	}
-	
 
 	
 	/* window_end_draw(main_win); */

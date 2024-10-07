@@ -262,7 +262,8 @@ typedef struct timeline {
     /* Clip *clip_clipboard[MAX_CLIPBOARD_CLIPS]; */
     /* uint8_t num_clipboard_clips; */
     /* int32_t leftmost_clipboard_clip_pos; */
-
+    struct timespec play_pos_moved_at;
+    
     Keyframe *dragging_keyframe;
 
     /* GUI members */
@@ -450,5 +451,6 @@ void project_set_default_out(void *nullarg);
 
 void timeline_rectify_track_area(Timeline *tl);
 bool timeline_refocus_track(Timeline *tl, Track *track, bool at_bottom);
+void timeline_play_speed_adj(int dim);
 
 #endif

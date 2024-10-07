@@ -146,21 +146,17 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
     bool cutoff_set = false;
     double cutoff_hz;
     double bandwidth_hz;
-    if (fir_filter_cutoff) {
-	if (fir_filter_cutoff->write) {
-
-	} else if (fir_filter_cutoff->read) {
-	    double cutoff_raw = automation_get_value(fir_filter_cutoff, start_pos_sframes, step).double_v;
-	    cutoff_hz = dsp_scale_freq_to_hz(cutoff_raw);
-	    cutoff_set = true;
-	}
+    if (fir_filter_cutoff && fir_filter_cutoff->read && !fir_filter_cutoff->write) {
+	double cutoff_raw = automation_get_value(fir_filter_cutoff, start_pos_sframes, step).double_v;
+	cutoff_hz = dsp_scale_freq_to_hz(cutoff_raw);
+	cutoff_set = true;
     }
-    if (fir_filter_bandwidth && fir_filter_bandwidth->read) {
+    if (fir_filter_bandwidth && fir_filter_bandwidth->read && !fir_filter_bandwidth->write) {
 	double bandwidth_raw = automation_get_value(fir_filter_bandwidth, start_pos_sframes, step).double_v;
 	bandwidth_hz = dsp_scale_freq_to_hz(bandwidth_raw);
 	bandwidth_set = true;
     }
-    if (play_speed && play_speed->read) {
+    if (play_speed && play_speed->read && !play_speed->write) {
 	proj->play_speed = (proj->play_speed / fabs(proj->play_speed)) * automation_get_value(play_speed, start_pos_sframes, step).float_v;
     }
     FIRFilter *f;
@@ -179,11 +175,11 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
 	int32_t del_time = track->delay_line.len;
 	double del_amp = track->delay_line.amp;
 	bool del_line_edit = false;
-	if (delay_time && delay_time->read) {
+	if (delay_time && delay_time->read && !delay_time->write) {
 	    del_time = automation_get_value(delay_time, start_pos_sframes, step).int32_v;
 	    del_line_edit = true;
 	}
-	if (delay_amp && delay_amp->read) {
+	if (delay_amp && delay_amp->read && !delay_amp->write) {
 	    del_amp = automation_get_value(delay_amp, start_pos_sframes, step).double_v;
 	    del_line_edit = true;
 	}

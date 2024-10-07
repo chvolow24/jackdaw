@@ -224,22 +224,13 @@ static void track_handle_playhead_jump(Track *track)
 }
 
 
+/* Invalidates continuous-play-dependent caches.
+   Use this any time a "jump" occurrs */
 void timeline_set_play_position(int32_t abs_pos_sframes)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
-    /* float saved_speed = proj->play_speed; */
-    /* bool restart = false; */
-    /* if (proj->playing) { */
-    /* 	transport_stop_playback(); */
-    /* 	restart = true; */
-    /* } */
     tl->play_pos_sframes = abs_pos_sframes;
     tl->read_pos_sframes = abs_pos_sframes;
-    /* if (restart) { */
-    /* 	proj->play_speed = saved_speed; */
-    /* 	transport_start_playback(); */
-    /* } */
-
     for (uint8_t i=0; i<tl->num_tracks; i++) {
 	track_handle_playhead_jump(tl->tracks[i]);
     }
@@ -253,7 +244,7 @@ void timeline_move_play_position(int32_t move_by_sframes)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     tl->play_pos_sframes += move_by_sframes;
-
+    clock_gettime(CLOCK_MONOTONIC, &tl->play_pos_moved_at);
     if (proj->dragging) {
 	for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
 	    ClipRef *cr = tl->grabbed_clips[i];
@@ -287,4 +278,3 @@ void timeline_catchup()
 	timeline_reset(tl, false);
     }
 }
-

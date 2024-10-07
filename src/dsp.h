@@ -106,4 +106,6 @@ void delay_line_clear(DelayLine *dl);
 
 double dsp_scale_freq_to_hz(double freq_unscaled);
 
+
+void track_add_default_filter(Track *track);
 #endif

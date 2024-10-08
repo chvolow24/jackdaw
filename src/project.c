@@ -2763,22 +2763,44 @@ bool timeline_refocus_track(Timeline *tl, Track *track, bool at_bottom)
 	return true;
     }
     return false;
-
 }
 
-void timeline_play_speed_adj(int dim)
+
+void timeline_play_speed_set(double new_speed)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     double old_speed = proj->play_speed;
-    if (main_win->i_state & I_STATE_CMDCTRL) {
-	proj->play_speed += dim * PLAYSPEED_ADJUST_SCALAR_LARGE;
-    } else {
-	proj->play_speed += dim * PLAYSPEED_ADJUST_SCALAR_SMALL;
-    }
+    proj->play_speed = new_speed;
     
     /* If speed crosses the zero line, need to invalidate direction-dependent caches */
     if (proj->play_speed * old_speed < 0.0) {
 	timeline_set_play_position(tl->play_pos_sframes);
     }
+    
     status_stat_playspeed();
+
+}
+void timeline_play_speed_mult(double scale_factor)
+{
+    double new_speed = proj->play_speed * scale_factor;
+    timeline_play_speed_set(new_speed);
+}
+
+void timeline_play_speed_adj(int dim)
+{
+    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
+    /* double old_speed = proj->play_speed; */
+
+    double new_speed = proj->play_speed;
+    if (main_win->i_state & I_STATE_CMDCTRL) {
+	new_speed += dim * PLAYSPEED_ADJUST_SCALAR_LARGE;
+    } else {
+	new_speed += dim * PLAYSPEED_ADJUST_SCALAR_SMALL;
+    }
+    timeline_play_speed_set(new_speed);
+    /* /\* If speed crosses the zero line, need to invalidate direction-dependent caches *\/ */
+    /* if (proj->play_speed * old_speed < 0.0) { */
+    /* 	timeline_set_play_position(tl->play_pos_sframes); */
+    /* } */
+    /* status_stat_playspeed(); */
 }

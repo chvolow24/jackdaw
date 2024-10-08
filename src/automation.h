@@ -103,8 +103,8 @@ typedef struct automation {
     bool ghost_valid;
     int32_t ghost_pos;
     Value ghost_val;
-    double mdelta_prop_cum;
-    uint16_t mdelta_cum_count;
+    /* double mdelta_prop_cum; */
+    /* uint16_t mdelta_cum_count; */
     bool changing;
     
     bool shown;

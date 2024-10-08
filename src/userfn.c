@@ -530,11 +530,13 @@ void user_tl_play(void *nullarg)
 	timeline_cache_grabbed_clip_positions(tl);
     }
     if (proj->play_speed <= 0.0f) {
-	proj->play_speed = 1.0f;
+	/* proj->play_speed = 1.0f; */
+	timeline_play_speed_set(1.0);
 	transport_start_playback();
     } else {
-	proj->play_speed *= 2.0f;
-	status_stat_playspeed();
+	timeline_play_speed_mult(2.0);
+	/* /\* proj->play_speed *= 2.0f; *\/ */
+	/* status_stat_playspeed(); */
     }
     /* PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_play"); */
     /* Button *btn = (Button *)el->component; */
@@ -575,11 +577,13 @@ void user_tl_rewind(void *nullarg)
 	timeline_cache_grabbed_clip_positions(tl);
     }
     if (proj->play_speed >= 0.0f) {
-	proj->play_speed = -1.0f;
+	timeline_play_speed_set(-1.0);
+	/* proj->play_speed = -1.0f; */
 	transport_start_playback();
     } else {
-	proj->play_speed *= 2.0f;
-	status_stat_playspeed();
+	timeline_play_speed_mult(2.0);
+	/* proj->play_speed *= 2.0f; */
+	/* status_stat_playspeed(); */
     }
     PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_rewind");
     Button *btn = (Button *)el->component;
@@ -597,8 +601,9 @@ void user_tl_play_slow(void *nullarg)
     if (!proj->playing && proj->dragging && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
-    proj->play_speed = SLOW_PLAYBACK_SPEED;
-    status_stat_playspeed();
+    timeline_play_speed_set(SLOW_PLAYBACK_SPEED);
+    /* proj->play_speed = SLOW_PLAYBACK_SPEED; */
+    /* status_stat_playspeed(); */
     transport_start_playback();
 }
 
@@ -608,8 +613,9 @@ void user_tl_rewind_slow(void *nullarg)
     if (!proj->playing && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
-    proj->play_speed = -1 * SLOW_PLAYBACK_SPEED;
-    status_stat_playspeed();
+    timeline_play_speed_set(-1 * SLOW_PLAYBACK_SPEED);
+    /* proj->play_speed = -1 * SLOW_PLAYBACK_SPEED; */
+    /* status_stat_playspeed(); */
     transport_start_playback();
 }
 

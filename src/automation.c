@@ -320,14 +320,6 @@ void automation_show(Automation *a)
 
 	Layout *tb_lt = layout_get_child_by_name_recursive(lt, "label");
 	layout_reset(tb_lt);
-    /* 	    p.button_p.text_color = &color_global_white; */
-    /* p.button_p.background_color = &color_global_quickref_button_blue; */
-    /* p.button_p.text_size = 12; */
-    /* p.button_p.font = main_win->std_font; */
-    /* p.button_p.set_str = (char *)proj->playback_conn->name; */
-    /* p.button_p.win = output->win; */
-    /* p.button_p.target = NULL; */
-    /* p.button_p.action = set_output_compfn; */
 
 	a->label = textbox_create_from_str(
 	    AUTOMATION_LABELS[a->type],
@@ -377,15 +369,6 @@ void automation_show(Automation *a)
 	button->tb->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
 	a->write_button = button;
 	a->keyframe_label = label_create(0, a->layout, keyframe_labelmaker, a, 0, main_win);
-	/* Layout *kf_label = layout_add_child(a->layout); */
-	/* layout_set_default_dims(kf_label); */
-	/* layout_force_reset(kf_label); */
-	/* a->keyframe_label = textbox_create_from_str(a->keyframe_label_str, kf_label, main_win->mono_font, 12, main_win); */
-	/* textbox_set_trunc(a->keyframe_label, false); */
-
-	/* textbox_set_pad(a->keyframe_label, SLIDER_LABEL_H_PAD, SLIDER_LABEL_V_PAD); */
-	/* textbox_set_border(a->keyframe_label, &color_global_black, 2); */
-
     } else {
 	a->layout->h.value.intval = AUTOMATION_LT_H;
 	a->layout->y.value.intval = AUTOMATION_LT_Y;
@@ -438,8 +421,6 @@ static void keyframe_recalculate_m(Keyframe *k, ValType type)
     }
     k->m_fwd.dy = dy;
     k->m_fwd.dx = dx;
-    /* k->m_fwd = JDAW_VAL_CAST(dy, type, double) / (double)dx; */
-
 }
 
 static void keyframe_set_y_prop(Keyframe *k)
@@ -477,7 +458,6 @@ Keyframe *automation_insert_keyframe_after(
 	    k->next = a->first;
 	    a->first->prev = k;
 	    a->first = k;
-	    /* keyframe_recalculate_m(k, a->val_type); */
 	} else {
 	    a->first = k;
 	    a->last = k;
@@ -506,13 +486,13 @@ static Value automation_value_at(Automation *a, int32_t pos)
     if (!a->current) {
 	return a->first->value;
     }
-    Value m_dy;
-    memset(&m_dy, '\0', sizeof(Value));
-    int32_t m_dx = 1;
-    if (a->current->next) {
-	m_dy = jdaw_val_sub(a->current->next->value, a->current->value, a->val_type);
-	m_dx = a->current->next->pos - a->current->pos;
-    }
+    /* Value m_dy; */
+    /* memset(&m_dy, '\0', sizeof(Value)); */
+    /* int32_t m_dx = 1; */
+    /* if (a->current->next) { */
+    /* 	m_dy = jdaw_val_sub(a->current->next->value, a->current->value, a->val_type); */
+    /* 	m_dx = a->current->next->pos - a->current->pos; */
+    /* } */
    
     int32_t pos_rel = pos - a->current->pos;
     /* double scalar = (double)pos_rel / m_dx; */
@@ -548,6 +528,14 @@ static Keyframe *automation_insert_maybe(
     int32_t end_pos,
     float direction)
 {
+    bool set_current = false;
+    if (!a->current) {
+	/* fprintf(stderr, "\n\nResetting current\n"); */
+	set_current = true;
+        a->current = automation_get_segment(a, pos);
+	
+    }
+
     if (direction < 0) {
 	while (a->current && a->current->pos > end_pos) {
 	    a->current = a->current->prev;
@@ -557,28 +545,17 @@ static Keyframe *automation_insert_maybe(
     static const double diff_prop_thresh = 1e-15;
     static const double m_prop_thresh = 0.008;
     /* static bool changing = false; */
-
+    /* fprintf(stderr, "POS %d\n", pos); */
     /* Overwrite existing keyframes in chunk */
-    if (direction > 0) {
-	if (a->current) {
-	    Keyframe *next = a->current->next;
-	    while (next && next->pos < end_pos) {
-		Keyframe *to_remove = next;
-		next = next->next;
-		keyframe_remove(to_remove);
-	    }
-	}
-    } else {
-	if (a->current) {
-	    Keyframe *prev = a->current;
-	    while (prev && prev->pos > end_pos) {
-		Keyframe *to_remove = prev;
-		prev = prev->prev;
-		keyframe_remove(to_remove);
-		a->current = prev;
-	    }
+    if (a->current) {
+	Keyframe *next = a->current->next;
+	while (next && next->pos < end_pos) {
+	    Keyframe *to_remove = next;
+	    next = next->next;
+	    keyframe_remove(to_remove);
 	}
     }
+
 
     
     /* Calculate where current value would be if automation was read */
@@ -591,8 +568,11 @@ static Keyframe *automation_insert_maybe(
     /* Only do work if current value is different from predicted value */
     if (fabs(diff_prop) > diff_prop_thresh) {
 	/* Insert "ghost" keyframe if a change has *stopped* occurring */
+	bool ghost_inserted = false;
 	if (a->changing == false && a->ghost_valid) {
 	    a->current = automation_insert_keyframe_after(a, a->current, a->ghost_val, a->ghost_pos);
+	    fprintf(stderr, "INSERT GHOST %d\n", a->ghost_pos);
+	    ghost_inserted = true;
 	}
 	a->changing = true;
 	a->ghost_val = val;
@@ -601,7 +581,16 @@ static Keyframe *automation_insert_maybe(
 
 	if (direction > 0) {
 	    Keyframe *k = automation_insert_keyframe_after(a, a->current, val, pos);
-	    
+	    a->current = k;
+	    if (ghost_inserted) {
+		/* fprintf(stderr, "Now insert pos %d\n", pos); */
+		/* fprintf(stderr, "->EXIT\n"); */
+		return NULL;
+	    }
+	    if (set_current) {
+		fprintf(stderr, "NOT REMOVE set current!\n");
+		return NULL;
+	    }
 	    if (k->prev && k->prev->prev) {
 		Keyframe *p = k->prev;
 		Keyframe *pp = k->prev->prev;
@@ -609,18 +598,21 @@ static Keyframe *automation_insert_maybe(
 		Value pm = jdaw_val_scale(p->m_fwd.dy, 1000.0f / p->m_fwd.dx, a->val_type);
 		diff = jdaw_val_sub(ppm, pm, a->val_type);
 		diff_prop = jdaw_val_div_double(diff, a->range, a->val_type);
-		if (fabs(diff_prop) < m_prop_thresh && !jdaw_val_is_zero(ppm, a->val_type) && jdaw_val_sign_match(ppm, pm, a->val_type)) {
-		    a->mdelta_prop_cum += diff_prop;
-		    if (fabs(a->mdelta_prop_cum) < 0.1) {
+		if (fabs(diff_prop) < m_prop_thresh) {//&& !jdaw_val_is_zero(ppm, a->val_type) && jdaw_val_sign_match(ppm, pm, a->val_type)) {
+		    /* if (fabs(a->mdelta_prop_cum) < 0.1) { */
+			/* a->mdelta_prop_cum += diff_prop; */
+			/* fprintf(stderr, "REMOVED %d\n", p->pos); */
 			keyframe_remove(p);
-		    } else {
-			fprintf(stderr, "NOT removed on account of mdelta prop cum\n");
-		    }
+		    /* } else { */
+			/* fprintf(stderr, "Not removed, prop cum\n"); */
+			/* a->mdelta_prop_cum = 0.0; */
+		    /* } */
 		} else {
-		    a->mdelta_prop_cum = 0.0;
+		    fprintf(stderr, "NOT remove %f\n", diff_prop);
+		    /* a->mdelta_prop_cum = 0.0; */
 		}
 	    }
-	    a->current = k;
+	    /* a->current = k; */
 	}
     } else {
         a->changing = false;
@@ -636,9 +628,6 @@ void breakfn() {
 }
 void automation_do_write(Automation *a, int32_t pos, int32_t end_pos, float step)
 {
-    if (!a->current) {
-	breakfn();
-    }
     Value v;
     jdaw_val_set(&v, a->val_type, a->target_val);
     automation_insert_maybe(a, v, pos, end_pos, step);

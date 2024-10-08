@@ -300,8 +300,6 @@ void transport_start_playback()
     Timeline *tl = proj->timelines[proj->active_tl_index];
     tl->read_pos_sframes = tl->play_pos_sframes;
 
-
-
     
     pthread_attr_t attr;
     int sched_policy = SCHED_RR;

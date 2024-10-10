@@ -1650,6 +1650,8 @@ static void track_reset(Track *track, bool rescaled)
     }
     for (uint8_t i=0; i<track->num_automations; i++) {
 	Automation *a = track->automations[i];
+	/* automation_clear_cache(track->automations[i]); */
+	/* a->current = NULL; */
 	if (a->shown) {
 	    automation_reset_keyframe_x(a);
 	}

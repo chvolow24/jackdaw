@@ -41,6 +41,7 @@
 #include "value.h"
 
 #define MAX_TRACK_AUTOMATIONS 8
+#define KCLIPS_ARR_INITLEN 4
 
 typedef struct track Track;
 typedef struct timeline Timeline;
@@ -82,6 +83,7 @@ typedef struct keyframe {
     int32_t pos_rel; /* Position relative to KClip start */
 } Keyframe;
 
+typedef struct keyframe_clipref KClipRef;
 typedef struct automation {
     Track *track;
     int index;
@@ -103,18 +105,15 @@ typedef struct automation {
     bool ghost_valid;
     int32_t ghost_pos;
     Value ghost_val;
-    /* double mdelta_prop_cum; */
-    /* uint16_t mdelta_cum_count; */
     bool changing;
+
+    KClipRef *kclips;
+    uint16_t num_kclips;
+    uint16_t kclips_arr_len;
     
     bool shown;
     Textbox *label;
     
-    /* Textbox *keyframe_label; */
-    /* char keyframe_label_str[SLIDER_LABEL_STRBUFLEN]; */
-    /* SliderStrFn *keyframe_create_label; */
-    /* int keyframe_label_countdown; */
-    /* bool keyframe_label_show; */
     Label *keyframe_label;
     
     Button *read_button;
@@ -132,11 +131,15 @@ typedef struct keyframe_clip {
 
 typedef struct keyframe_clipref {
     KClip *kclip;
-    Automation *automation;
     int32_t pos;
+    bool home;
+    Automation *automation;
+    Keyframe *first;
+    Keyframe *last;
 } KClipRef;
 
 Automation *track_add_automation(Track *track, AutomationType type);
+void automation_clear_cache(Automation *a);
 void track_add_new_automation(Track *track);
 Value automation_get_value(Automation *a, int32_t pos, float direction);
 void automation_draw(Automation *a);
@@ -165,4 +168,5 @@ void track_automations_hide_all(Track *track);
 
 bool automation_triage_click(uint8_t button, Automation *a);
 bool automations_triage_motion(Timeline *tl);
+void automation_record(Automation *a);
 #endif

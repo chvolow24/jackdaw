@@ -584,14 +584,15 @@ void delay_line_init(DelayLine *dl)
     - read every <1 sample
  */
 
-static inline void del_read_into_buffer_resize(DelayLine *dl, double *read_from, double *read_to, int32_t *read_pos, int32_t len, double read_step)
+static inline void del_read_into_buffer_resize(DelayLine *dl, double *read_from, double *read_to, int32_t *read_pos, int32_t len)
 {
-    double read_pos_d = (double)*read_pos;
     for (int32_t i=0; i<len; i++) {
+	/* double read_pos_d = (double)*read_pos; */
+	double read_pos_d = dl->len * ((double)i / len);
 	int32_t read_i = (int32_t)(round(read_pos_d));
 	if (read_i < 0) read_i = 0;
 	read_to[i] = read_from[read_i];
-	read_pos_d += read_step;
+	/* read_pos_d += read_step; */
 	if (read_pos_d > dl->len) {
 	    read_pos_d -= dl->len;
 	}
@@ -603,15 +604,17 @@ void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
     SDL_LockMutex(dl->lock);
     if (len > proj->sample_rate) {
 	fprintf(stderr, "UH OH: len = %d\n", len);
+	exit(1);
 	return;
     }
     if (dl->len != len) {
 	double new_buf[len];
-	double read_step = (double)dl->len / len;
-	del_read_into_buffer_resize(dl, dl->buf_L, new_buf,  &dl->pos_L, len, read_step);
+	/* double read_step = (double)dl->len / len; */
+	/* double read_step = 1.0; */
+	del_read_into_buffer_resize(dl, dl->buf_L, new_buf,  &dl->pos_L, len);
 	memcpy(dl->buf_L, new_buf, len * sizeof(double));
 	dl->pos_L = 0;
-	del_read_into_buffer_resize(dl, dl->buf_R, new_buf, &dl->pos_R, len, read_step);
+	del_read_into_buffer_resize(dl, dl->buf_R, new_buf, &dl->pos_R, len);
 	memcpy(dl->buf_R, new_buf, len * sizeof(double));
 	dl->pos_R = 0;
 	dl->len = len;

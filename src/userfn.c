@@ -1217,84 +1217,22 @@ void user_tl_track_open_settings(void *nullarg)
     tl->needs_redraw = true;
 }
 
-/* NEW_EVENT_FN(undo_record_new_clip, "Undo record clip") */
-/*     Clip **clips = (Clip **)obj1; */
-/*     uint8_t num_clips = val1.uint8_v; */
-/* for (uint8_t i=0; i<num_clips; i++) { */
-/*     clip_delete(clips[i]); */
-/* } */
-/*      } */
-
-static NEW_EVENT_FN(undo_record_new_clips, "undo create new clip(s)")
-    ClipRef **clips = (ClipRef **)obj1;
-    uint8_t num = val1.uint8_v;
-    for (uint8_t i=0; i<num; i++) {
-	clipref_delete(clips[i]);
-    }
-}
-
-static NEW_EVENT_FN(redo_record_new_clips, "undo create new clip(s)")
-    ClipRef **clips = (ClipRef **)obj1;
-    uint8_t num = val1.uint8_v;
-    for (uint8_t i=0; i<num; i++) {
-	clipref_undelete(clips[i]);
-    }
-}
-
-static NEW_EVENT_FN(dispose_forward_record_new_clips, "")
-    ClipRef **clips = (ClipRef **)obj1;
-    uint8_t num = val1.uint8_v;
-    for (uint8_t i=0; i<num; i++) {
-	ClipRef *cr = clips[i];
-	clipref_destroy_no_displace(cr);
-    }
-}
-
 void user_tl_record(void *nullarg)
 {
+    
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Track *sel_track = tl->tracks[tl->track_selector];
+    if (sel_track->selected_automation >= 0) {
+	automation_record(sel_track->automations[sel_track->selected_automation]);
+	return;
+    }
     if (proj->recording) {
-	ClipRef **created_clips = calloc(proj->num_clips - proj->active_clip_index, sizeof(ClipRef *));
-	uint8_t num_created = 0;
-	for (uint8_t i=proj->active_clip_index; i<proj->num_clips; i++) {
-	    Clip *clip = proj->clips[i];
-	    for (uint8_t j=0; j<clip->num_refs; j++) {
-		ClipRef *ref = clip->refs[j];
-		created_clips[num_created] = ref;
-		num_created++;
-	    }
-	}
-	Value num_created_v = {.uint8_v = num_created};
-	user_event_push(
-	    &proj->history,
-	    undo_record_new_clips,
-	    redo_record_new_clips,
-	    NULL,
-	    dispose_forward_record_new_clips,
-	    (void *)created_clips,
-	    NULL,
-	    num_created_v,num_created_v,num_created_v,num_created_v,
-	    0, 0, true, false);
-	    
-	    
 	transport_stop_recording();
     } else {
 	transport_start_recording();
     }
-    Timeline *tl = proj->timelines[proj->active_tl_index];
     tl->needs_redraw = true;
 }
-
-/* NEW_EVENT_FN(undo_redo_grab_clips) */
-/*     ClipRef **clips = (ClipRef **)obj1; */
-/*     uint8_t num = val1.uint8_v; */
-
-/*     for (uint8_t i=0; i<num; i++) { */
-/* 	ClipRef *cr = clips[i]; */
-/* 	if (cr->grabbed) { */
-/* 	    clipref_ungrab(cr); */
-/* 	} else clipref_grab(cr); */
-/*     } */
-/* } */
 
 void user_tl_clipref_grab_ungrab()
 {

@@ -35,9 +35,11 @@
 #include <string.h>
 #include "audio_connection.h"
 #include "dsp.h"
+#include "user_event.h"
 #include "mixdown.h"
 #include "project.h"
 #include "pure_data.h"
+#include "status.h"
 #include "timeline.h"
 #include "transport.h"
 #include "wav.h"
@@ -300,6 +302,15 @@ void transport_start_playback()
     Timeline *tl = proj->timelines[proj->active_tl_index];
     tl->read_pos_sframes = tl->play_pos_sframes;
 
+    for (uint8_t i=0; i<tl->num_tracks; i++) {
+	Track *track = tl->tracks[i];
+	for (uint8_t a=0; a<track->num_automations; a++) {
+	    automation_clear_cache(track->automations[a]);
+	    /* fprintf(stderr, "RESETTTTTTTT\n"); */
+	    /* track->automations[a]->current = NULL; */
+	    /* /\* track->automation[a]-> *\/ */
+	}
+    }
     
     pthread_attr_t attr;
     int sched_policy = SCHED_RR;
@@ -379,8 +390,10 @@ void transport_stop_playback()
 void transport_start_recording()
 {
     transport_stop_playback();
-    proj->play_speed = 1.0f;
+    /* proj->play_speed = 1.0f; */
+    timeline_play_speed_set(1.0);
     transport_start_playback();
+
     AudioConn *conns_to_activate[MAX_PROJ_AUDIO_CONNS];
     uint8_t num_conns_to_activate = 0;
     Timeline *tl = proj->timelines[proj->active_tl_index];
@@ -564,9 +577,57 @@ void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type)
     }
 }
 
+static NEW_EVENT_FN(undo_record_new_clips, "undo create new clip(s)")
+    ClipRef **clips = (ClipRef **)obj1;
+    uint8_t num = val1.uint8_v;
+    for (uint8_t i=0; i<num; i++) {
+	clipref_delete(clips[i]);
+    }
+}
+
+static NEW_EVENT_FN(redo_record_new_clips, "undo create new clip(s)")
+    ClipRef **clips = (ClipRef **)obj1;
+    uint8_t num = val1.uint8_v;
+    for (uint8_t i=0; i<num; i++) {
+	clipref_undelete(clips[i]);
+    }
+}
+
+static NEW_EVENT_FN(dispose_forward_record_new_clips, "")
+    ClipRef **clips = (ClipRef **)obj1;
+    uint8_t num = val1.uint8_v;
+    for (uint8_t i=0; i<num; i++) {
+	ClipRef *cr = clips[i];
+	clipref_destroy_no_displace(cr);
+    }
+}
 
 void transport_stop_recording()
 {
+    	ClipRef **created_clips = calloc(proj->num_clips - proj->active_clip_index, sizeof(ClipRef *));
+	uint8_t num_created = 0;
+	for (uint8_t i=proj->active_clip_index; i<proj->num_clips; i++) {
+	    Clip *clip = proj->clips[i];
+	    for (uint8_t j=0; j<clip->num_refs; j++) {
+		ClipRef *ref = clip->refs[j];
+		created_clips[num_created] = ref;
+		num_created++;
+	    }
+	}
+	Value num_created_v = {.uint8_v = num_created};
+	user_event_push(
+	    &proj->history,
+	    undo_record_new_clips,
+	    redo_record_new_clips,
+	    NULL,
+	    dispose_forward_record_new_clips,
+	    (void *)created_clips,
+	    NULL,
+	    num_created_v,num_created_v,num_created_v,num_created_v,
+	    0, 0, true, false);
+	    
+	    
+
     transport_stop_playback();
     AudioConn *conn;
     AudioConn *conns_to_close[64];

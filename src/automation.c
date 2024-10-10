@@ -42,6 +42,7 @@
 #include "status.h"
 #include "symbol.h"
 #include "timeline.h"
+#include "transport.h"
 #include "value.h"
 
 #define KEYFRAME_DIAG 21
@@ -84,6 +85,14 @@ const char *AUTOMATION_LABELS[] = {
     "Play speed"
 };
 
+void automation_clear_cache(Automation *a)
+{
+    fprintf(stderr, "AUTOMATION CLEAR CACHE\n");
+    a->current = NULL;
+    a->ghost_valid = false;
+    a->changing = true;
+}
+
 
 Automation *track_add_automation(Track *track, AutomationType type)
 {
@@ -92,6 +101,9 @@ Automation *track_add_automation(Track *track, AutomationType type)
     a->type = type;
     a->read = true;
     a->index = track->num_automations;
+    a->kclips_arr_len = KCLIPS_ARR_INITLEN;
+    a->kclips = calloc(KCLIPS_ARR_INITLEN, sizeof(KClipRef));
+    
     track->automations[track->num_automations] = a;
     track->num_automations++;
     Value base_kf_val;
@@ -272,9 +284,9 @@ bool automation_toggle_read(Automation *a)
     return 0;
 }
 
-bool automation_toggle_write(Automation *a)
+static void automation_set_write(Automation *a, bool to)
 {
-    a->write = !(a->write);
+    a->write = to;
     if (a->write) {
 	textbox_set_background_color(a->write_button->tb, &color_global_red);
 	/* textbox_set_text_color(a->write_button->tb, &color_global_white); */
@@ -283,7 +295,13 @@ bool automation_toggle_write(Automation *a)
 	textbox_set_background_color(a->write_button->tb, &color_global_grey);
 	/* textbox_set_text_color(a->write_button->tb, &color_global_black); */
     }
-    return 0;
+}
+
+bool automation_toggle_write(Automation *a)
+{
+    /* a->write = !(a->write); */
+    automation_set_write(a, !a->write);
+    return a->write;
 }
 
 static int button_read_action(void *self_v, void *xarg)
@@ -428,7 +446,6 @@ static void keyframe_set_y_prop(Keyframe *k)
     Automation *a = k->automation;
     Value v = jdaw_val_sub(k->value, a->min, a->val_type);
     k->draw_y_prop = jdaw_val_div_double(v, a->range, a->val_type);
-    
 }
 
 Keyframe *automation_insert_keyframe_after(
@@ -520,7 +537,6 @@ void keyframe_remove(Keyframe *k)
     keyframe_destroy(k);
 }
 
-
 static Keyframe *automation_insert_maybe(
     Automation *a,
     Value val,
@@ -528,12 +544,18 @@ static Keyframe *automation_insert_maybe(
     int32_t end_pos,
     float direction)
 {
+    Keyframe *k = a->first;
+    /* int i=0;  */
+    /* while (k) { */
+    /* 	fprintf(stderr, "Kf %d pos: %d\n", i, k->pos); */
+    /* 	k = k->next; */
+    /* 	i++; */
+    /* } */
     bool set_current = false;
     if (!a->current) {
 	/* fprintf(stderr, "\n\nResetting current\n"); */
 	set_current = true;
         a->current = automation_get_segment(a, pos);
-	
     }
 
     if (direction < 0) {
@@ -555,7 +577,11 @@ static Keyframe *automation_insert_maybe(
 	    keyframe_remove(to_remove);
 	}
     }
-
+    if (set_current) {
+	a->current = automation_insert_keyframe_after(a, a->current, val, pos);
+	a->current = automation_insert_keyframe_after(a, a->current, val, end_pos);
+	return NULL;
+    }
 
     
     /* Calculate where current value would be if automation was read */
@@ -563,10 +589,16 @@ static Keyframe *automation_insert_maybe(
 
     /* Calculate deviance from predicted value */
     Value diff = jdaw_val_sub(predicted_value, val, a->val_type);
-    double diff_prop = jdaw_val_div_double(diff, a->range, a->val_type);
+    double diff_prop = fabs(jdaw_val_div_double(diff, a->range, a->val_type));
 
+    if (a->ghost_valid) {
+	diff = jdaw_val_sub(a->ghost_val, val, a->val_type);
+	diff_prop += fabs(jdaw_val_div_double(diff, a->range, a->val_type));
+    }
+
+    
     /* Only do work if current value is different from predicted value */
-    if (fabs(diff_prop) > diff_prop_thresh) {
+    if (diff_prop > diff_prop_thresh) {
 	/* Insert "ghost" keyframe if a change has *stopped* occurring */
 	bool ghost_inserted = false;
 	if (a->changing == false && a->ghost_valid) {
@@ -581,16 +613,25 @@ static Keyframe *automation_insert_maybe(
 
 	if (direction > 0) {
 	    Keyframe *k = automation_insert_keyframe_after(a, a->current, val, pos);
+	    fprintf(stderr, "STANDARD INSERTION %d\n", pos);
+	    /* if (not_removed) { */
+	    /* 	fprintf(stderr, "Ok now inserted one more at %d\n", k->pos); */
+	    /* 	fprintf(stderr, "Prev at %d\n", k->prev->pos); */
+	    /* 	return NULL; */
+	    /* } */
 	    a->current = k;
 	    if (ghost_inserted) {
 		/* fprintf(stderr, "Now insert pos %d\n", pos); */
 		/* fprintf(stderr, "->EXIT\n"); */
 		return NULL;
 	    }
-	    if (set_current) {
-		fprintf(stderr, "NOT REMOVE set current!\n");
-		return NULL;
-	    }
+	    /* if (set_current) { */
+	    /* 	fprintf(stderr, "NOT REMOVE set current!\n"); */
+	    /* 	fprintf(stderr, "NOT REMOVED: %d\n", k->pos); */
+	    /* 	not_removed = true; */
+	    /* 	/\* a->current = automation_insert_keyframe_after(a, a->current, val, pos + 1); *\/ */
+	    /* 	return NULL; */
+	    /* } */
 	    if (k->prev && k->prev->prev) {
 		Keyframe *p = k->prev;
 		Keyframe *pp = k->prev->prev;
@@ -615,6 +656,7 @@ static Keyframe *automation_insert_maybe(
 	    /* a->current = k; */
 	}
     } else {
+	fprintf(stderr, "STOP CHANGING\n");
         a->changing = false;
 	a->ghost_val = val;
 	a->ghost_pos = pos;
@@ -640,7 +682,6 @@ void automation_reset_keyframe_x(Automation *a)
 	k->draw_x = timeline_get_draw_x(k->pos);
 	k = k->next;
     }
-    
 }
 
 Keyframe *automation_get_segment(Automation *a, int32_t at)
@@ -732,8 +773,34 @@ void automation_draw(Automation *a)
     SDL_RenderFillRect(main_win->rend, a->bckgrnd_rect);
     
     SDL_RenderSetClipRect(main_win->rend, a->bckgrnd_rect);
-    SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255);
 
+
+    /* Draw KCLIPS */
+
+    static SDL_Color homebckgrnd = {200, 200, 255, 50};
+    static SDL_Color bckgrnd = {200, 255, 200, 50};
+    static SDL_Color brdr = {200, 200, 200, 200};
+    
+    /* SDL_SetRenderDrawColor(main_win->rend, 100, 100, 255, 100); */
+    SDL_Rect kcliprect = {0, a->layout->rect.y, 0, a->layout->rect.h};
+    for (uint16_t i=0; i<a->num_kclips; i++) {
+	/* fprintf(stderr, "Draw kclip %d\n", i); */
+	KClipRef *kcr = a->kclips + i;
+	kcliprect.x = timeline_get_draw_x(kcr->first->pos);
+	kcliprect.w = timeline_get_draw_x(kcr->last->pos) - kcliprect.x;
+	/* SDL_RenderDrawLine(main_win->rend, x, 0, x, 800); */
+	if (kcr->home) {
+	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(homebckgrnd));
+	} else {
+	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(bckgrnd));
+	}
+	SDL_RenderFillRect(main_win->rend, &kcliprect);
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(brdr));
+	SDL_RenderDrawRect(main_win->rend, &kcliprect);
+    }
+
+    
+    SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255);
     Keyframe *k = a->first;
     int h = a->layout->rect.h;
     int last_y = 0;
@@ -947,4 +1014,164 @@ bool automation_triage_click(uint8_t button, Automation *a)
 	}
     }
     return false;
+}
+
+void user_tl_play(void *nullarg);
+void user_tl_pause(void *nullarg);
+
+static KClip *record_kclip(Automation *a, int32_t start_pos, int32_t end_pos)
+{
+    if (end_pos <= start_pos) return NULL;
+
+    Keyframe *first = automation_get_segment(a, start_pos);
+    if (!first && a->first->pos < start_pos) first = a->first;
+    if (!first || !first->next) return NULL;
+    first = first->next;
+    Keyframe *k = first;
+    while (k->pos < end_pos) {
+	if (k->next) {
+	    k = k->next;
+	} else break;
+    }
+    KClip *kc = calloc(1, sizeof(KClip));
+    kc->first = first;
+    kc->last = k;
+    return kc;
+}
+
+static void kclip_set_pos_rel(KClip *kc)
+{
+    Keyframe *k = kc->first;
+    int32_t start_pos = k->pos;
+    while (k) {
+	k->pos_rel = k->pos - start_pos;
+	if (k == kc->last) break;
+	k=k->next;
+    }
+}
+
+void automation_insert_kclipref(Automation *a, KClip *kc, int32_t pos)
+{
+    /* fprintf(stderr, "\n\n\nKC Sanity check\n"); */
+    Keyframe *k = kc->first;
+    int i=0;
+    while (k && k != kc->last) {
+	fprintf(stderr, "K %d: %p\n", i, k);
+	k = k->next;
+	i++;
+    }
+    
+    Keyframe *prev = automation_get_segment(a, pos);
+    Keyframe *next = NULL;
+    if (prev) next = prev->next;
+    if (a->num_kclips == a->kclips_arr_len) {
+	a->kclips_arr_len *= 2;
+	a->kclips = realloc(a->kclips, a->kclips_arr_len * sizeof(KClipRef));
+    }
+    KClipRef *kcr = a->kclips + a->num_kclips;
+    kcr->kclip = kc;
+    kcr->home = false;
+    kcr->automation = a;
+    Keyframe *to_copy = kc->first;
+    bool first = true;
+    int32_t last_pos = INT32_MIN;
+    i = 0;
+    while (to_copy) {
+	if (to_copy->pos < last_pos ) {
+	    fprintf(stderr, "CYCLE DETECTED!!!! Exiting!\n");
+	    exit(1);
+	}
+	last_pos = to_copy->pos;
+        Keyframe *cpy = calloc(1, sizeof(Keyframe));
+	memcpy(cpy, to_copy, sizeof(Keyframe));
+	if (first) {
+	    kcr->first = cpy;
+	    first = false;
+	}
+	cpy->prev = prev;
+	prev->next = cpy;
+	cpy->next = NULL;
+	cpy->pos = to_copy->pos_rel + pos;
+	fprintf(stderr, "To Copy %d: %p vs %p at pos %d (dist to last: %d)\n", i, to_copy, kc->last, to_copy->pos, kc->last->pos_rel + pos - to_copy->pos);
+	i++;
+	cpy->draw_x = timeline_get_draw_x(cpy->pos);
+	/* keyframe_set_y_prop(cpy); */
+	cpy->automation = a;
+	keyframe_set_y_prop(cpy);
+	prev = cpy;
+	if (to_copy == kc->last) {
+	    kcr->last = cpy;
+	    break;
+	}
+	to_copy = to_copy->next;
+    }
+    if (next) {
+	int32_t end_pos = kcr->last->pos;
+	while (next && next->pos < end_pos) {
+	    Keyframe *to_remove = next;
+	    fprintf(stderr, "removing %p at pos %d, before %d\n", to_remove, to_remove->pos,  end_pos);
+	    next = next->next;
+	    if (to_remove == a->last) a->last = NULL;
+	    keyframe_remove(to_remove);
+	}
+	kcr->last->next = next;
+	next->prev = kcr->last;
+    } else {
+	kcr->last->next = NULL;
+    }
+    /* Sanity check */
+
+    /* Keyframe *k = a->first; */
+    /* int ki = 0; */
+    /* while (k) { */
+    /* 	fprintf(stderr, "K (%d): %p, pos: %d\n", ki, k, k->pos); */
+    /* 	ki++; */
+    /* 	k = k->next; */
+    /* 	if (ki > 200) { */
+    /* 	    exit(1); */
+    /* 	} */
+    /* } */
+    a->num_kclips++;
+    if (!a->last || (kcr->last->next == NULL)) {
+	a->last = kcr->last;
+    }
+    /* automation_reset_keyframe_x(a); */
+}
+
+void automation_record(Automation *a)
+{
+    static int32_t start_pos = 0;
+    bool write = automation_toggle_write(a);
+    if (write) {
+	start_pos = a->track->tl->play_pos_sframes;
+	user_tl_play(NULL);
+	timeline_play_speed_set(1.0);
+    } else {
+	KClip *kc = record_kclip(a, start_pos, a->track->tl->play_pos_sframes);
+	if (kc) {
+	    kclip_set_pos_rel(kc);
+	    if (a->num_kclips == a->kclips_arr_len) {
+		a->kclips_arr_len *= 2;
+		a->kclips = realloc(a->kclips, a->kclips_arr_len * sizeof(KClipRef));
+	    }
+	    KClipRef *kcr = a->kclips + a->num_kclips;
+	    kcr->pos = kc->first->pos;
+	    kcr->kclip = kc;
+	    kcr->automation = a;
+	    kcr->home = true;
+	    kcr->first = kc->first;
+	    kcr->last = kc->last;
+	    a->num_kclips++;
+	    
+	    int i=0;
+	    Keyframe *k = kc->first;
+	    while (k && k!= kc->last) {
+		i++;
+		k = k->next;
+		/* fprintf(stderr, "K %p\n", k); */
+	    }
+	    automation_insert_kclipref(a, kc, start_pos + 5 * proj->sample_rate);
+	}
+	user_tl_pause(NULL);
+    }
 }

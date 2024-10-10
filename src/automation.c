@@ -454,6 +454,9 @@ Keyframe *automation_insert_keyframe_after(
     Value val,
     int32_t pos)
 {
+    if (insert_after && pos < insert_after->pos) {
+	fprintf(stderr, "Fatal error: keyframe insert out of order\n");
+    }
     Keyframe *k = calloc(1, sizeof(Keyframe));
     k->automation = a;
     k->value = val;
@@ -544,7 +547,7 @@ static Keyframe *automation_insert_maybe(
     int32_t end_pos,
     float direction)
 {
-    Keyframe *k = a->first;
+    /* Keyframe *k = a->first; */
     /* int i=0;  */
     /* while (k) { */
     /* 	fprintf(stderr, "Kf %d pos: %d\n", i, k->pos); */
@@ -552,11 +555,13 @@ static Keyframe *automation_insert_maybe(
     /* 	i++; */
     /* } */
     bool set_current = false;
+    bool set_first = false;
     if (!a->current) {
 	/* fprintf(stderr, "\n\nResetting current\n"); */
 	set_current = true;
         a->current = automation_get_segment(a, pos);
     }
+    if (!a->current) set_first = true;
 
     if (direction < 0) {
 	while (a->current && a->current->pos > end_pos) {
@@ -574,11 +579,22 @@ static Keyframe *automation_insert_maybe(
 	while (next && next->pos < end_pos) {
 	    Keyframe *to_remove = next;
 	    next = next->next;
-	    keyframe_remove(to_remove);
+	    bool dont_remove = false;
+	    for (uint16_t i=0; i<a->num_kclips; i++) {
+		if (to_remove == a->kclips[i].first) {
+		    dont_remove = true;
+		}
+	    }
+	    if (!dont_remove)
+		keyframe_remove(to_remove);
 	}
     }
     if (set_current) {
 	a->current = automation_insert_keyframe_after(a, a->current, val, pos);
+	if (set_first) {
+	    fprintf(stderr, "SETTING auto first\n");
+	    a->first = a->current;
+	}
 	a->current = automation_insert_keyframe_after(a, a->current, val, end_pos);
 	return NULL;
     }
@@ -1024,7 +1040,13 @@ static KClip *record_kclip(Automation *a, int32_t start_pos, int32_t end_pos)
     if (end_pos <= start_pos) return NULL;
 
     Keyframe *first = automation_get_segment(a, start_pos);
-    if (!first && a->first->pos < start_pos) first = a->first;
+    fprintf(stderr, "first is %p, auto first is %p %d vs %d\n", first, a->first, a->first->pos, start_pos);
+    if (!first) {
+	first = a->first;
+	while (first && first->pos < start_pos) {
+	    first = first->next;
+	}
+    }
     if (!first || !first->next) return NULL;
     first = first->next;
     Keyframe *k = first;
@@ -1052,7 +1074,6 @@ static void kclip_set_pos_rel(KClip *kc)
 
 void automation_insert_kclipref(Automation *a, KClip *kc, int32_t pos)
 {
-    /* fprintf(stderr, "\n\n\nKC Sanity check\n"); */
     Keyframe *k = kc->first;
     int i=0;
     while (k && k != kc->last) {
@@ -1163,10 +1184,10 @@ void automation_record(Automation *a)
 	    kcr->last = kc->last;
 	    a->num_kclips++;
 	    
-	    int i=0;
+	    /* int i=0; */
 	    Keyframe *k = kc->first;
 	    while (k && k!= kc->last) {
-		i++;
+		/* i++; */
 		k = k->next;
 		/* fprintf(stderr, "K %p\n", k); */
 	    }

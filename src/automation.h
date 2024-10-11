@@ -42,6 +42,7 @@
 
 #define MAX_TRACK_AUTOMATIONS 8
 #define KCLIPS_ARR_INITLEN 4
+#define KEYFRAMES_ARR_INITLEN 4
 
 typedef struct track Track;
 typedef struct timeline Timeline;
@@ -73,9 +74,8 @@ typedef struct keyframe {
     AutomationSlope m_fwd;
     /* double m_fwd; /\* slope (change in value per sample) *\/ */
 
-    Keyframe *prev;
-    Keyframe *next;
-
+    /* Keyframe *prev; */
+    /* Keyframe *next; */
     double draw_y_prop;
     int draw_x;
     
@@ -97,15 +97,20 @@ typedef struct automation {
     bool read;
     bool write;
     
-    Keyframe *first;
-    Keyframe *last;
-    Keyframe *current;
+
+    Keyframe *keyframes;
+    uint16_t num_keyframes;
+    uint16_t keyframe_arrlen;
+    uint16_t current;
+    /* Keyframe *first; */
+    /* Keyframe *last; */
+    /* Keyframe *current; */
 
     /* Write cache */
-    bool ghost_valid;
-    int32_t ghost_pos;
-    Value ghost_val;
-    bool changing;
+    /* bool ghost_valid; */
+    /* int32_t ghost_pos; */
+    /* Value ghost_val; */
+    /* bool changing; */
 
     KClipRef *kclips;
     uint16_t num_kclips;
@@ -143,16 +148,20 @@ void automation_clear_cache(Automation *a);
 void track_add_new_automation(Track *track);
 Value automation_get_value(Automation *a, int32_t pos, float direction);
 void automation_draw(Automation *a);
-Keyframe *automation_insert_keyframe_after(
-    Automation *automation,
-    Keyframe *insert_after,
-    Value val,
-    int32_t pos);
-Keyframe *automation_insert_keyframe_before(
-    Automation *automation,
-    Keyframe *insert_before,
-    Value val,
-    int32_t pos);
+uint16_t automation_insert_keyframe_at(
+    Automation *a,
+    int32_t pos,
+    Value val);
+/* Keyframe *automation_insert_keyframe_after( */
+/*     Automation *automation, */
+/*     Keyframe *insert_after, */
+/*     Value val, */
+/*     int32_t pos); */
+/* Keyframe *automation_insert_keyframe_before( */
+/*     Automation *automation, */
+/*     Keyframe *insert_before, */
+/*     Value val, */
+/*     int32_t pos); */
 /* Keyframe *automation_insert_maybe( */
 /*     Automation *a, */
 /*     /\* Keyframe *insert_after, *\/ */
@@ -162,7 +171,7 @@ Keyframe *automation_insert_keyframe_before(
 /*     float direction); */
 void automation_do_write(Automation *a, int32_t pos, int32_t end_pos, float step);
 void automation_reset_keyframe_x(Automation *a);
-Keyframe *automation_get_segment(Automation *a, int32_t at);
+/* Keyframe *automation_get_segment(Automation *a, int32_t at); */
 void track_automations_show_all(Track *track);
 void track_automations_hide_all(Track *track);
 

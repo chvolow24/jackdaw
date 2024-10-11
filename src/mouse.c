@@ -114,10 +114,12 @@ static void mouse_triage_click_audiorect(Timeline *tl, uint8_t button)
 	    Track *track = tl->tracks[i];
 	    if (SDL_PointInRect(&main_win->mousep, &track->inner_layout->rect)) {
 		ClipRef *cr = clipref_at_point_in_track(track);
-		if (cr->grabbed) {
-		    timeline_ungrab_all_cliprefs(tl);
-		} else {
-		    clipref_grab(cr);
+		if (cr) {
+		    if (cr->grabbed) {
+			timeline_ungrab_all_cliprefs(tl);
+		    } else {
+			clipref_grab(cr);
+		    }
 		}
 	    }
 	}

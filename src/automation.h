@@ -101,16 +101,17 @@ typedef struct automation {
     Keyframe *keyframes;
     uint16_t num_keyframes;
     uint16_t keyframe_arrlen;
-    uint16_t current;
+    Keyframe *current;
+    /* int32_t current; */
     /* Keyframe *first; */
     /* Keyframe *last; */
     /* Keyframe *current; */
 
     /* Write cache */
-    /* bool ghost_valid; */
-    /* int32_t ghost_pos; */
-    /* Value ghost_val; */
-    /* bool changing; */
+    bool ghost_valid;
+    int32_t ghost_pos;
+    Value ghost_val;
+    bool changing;
 
     KClipRef *kclips;
     uint16_t num_kclips;
@@ -148,7 +149,7 @@ void automation_clear_cache(Automation *a);
 void track_add_new_automation(Track *track);
 Value automation_get_value(Automation *a, int32_t pos, float direction);
 void automation_draw(Automation *a);
-uint16_t automation_insert_keyframe_at(
+Keyframe *automation_insert_keyframe_at(
     Automation *a,
     int32_t pos,
     Value val);

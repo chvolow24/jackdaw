@@ -302,12 +302,12 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
 	SDL_UnlockMutex(cr->lock);
 	clip_read = true;
     }
-    if (!clip_read) {
-	if (vol_auto && vol_auto->read && !vol_auto->write)
-	    vol_auto->current = NULL;
-	if (pan_auto && pan_auto->read && !pan_auto->write)
-	    pan_auto->current = NULL;
-    }
+    /* if (!clip_read) { */
+    /* 	if (vol_auto && vol_auto->read && !vol_auto->write) */
+    /* 	    vol_auto->current = NULL; */
+    /* 	if (pan_auto && pan_auto->read && !pan_auto->write) */
+    /* 	    pan_auto->current = NULL; */
+    /* } */
 
     /* for (uint32_t i=0; i<len_sframes; i++) { */
     /*     for (uint8_t clip_i=0; clip_i<track->num_clips; clip_i++) { */

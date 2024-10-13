@@ -96,7 +96,8 @@ typedef struct automation {
     
     bool read;
     bool write;
-    
+
+    pthread_mutex_t lock;
 
     Keyframe *keyframes;
     uint16_t num_keyframes;

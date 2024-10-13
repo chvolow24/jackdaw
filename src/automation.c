@@ -30,6 +30,7 @@
     * All operations related to track automation
  *****************************************************************************************************************/
 
+#include <pthread.h>
 #include <stdlib.h>
 
 #include "automation.h"
@@ -104,6 +105,12 @@ Automation *track_add_automation(Track *track, AutomationType type)
     a->index = track->num_automations;
     a->keyframe_arrlen = KEYFRAMES_ARR_INITLEN;
     a->keyframes = calloc(a->keyframe_arrlen, sizeof(Keyframe));
+
+    int ret;
+    if ((ret = pthread_mutex_init(&a->lock, NULL) != 0)) {
+	fprintf(stderr, "Error initializing lock: %s\n", strerror(ret));
+	exit(1);
+    }
     
     a->kclips_arr_len = KCLIPS_ARR_INITLEN;
     a->kclips = calloc(KCLIPS_ARR_INITLEN, sizeof(KClipRef));
@@ -467,8 +474,12 @@ Keyframe *automation_insert_keyframe_at(
 {
     if (a->num_keyframes + 1 >= a->keyframe_arrlen) {
 	a->keyframe_arrlen *= 2;
+	Keyframe *old_ptr = a->keyframes;
 	a->keyframes = realloc(a->keyframes, a->keyframe_arrlen * sizeof(Keyframe));
 	fprintf(stderr, "Reallocing kf array new len: %d\n", a->keyframe_arrlen);
+	long int migration = a->keyframes - old_ptr;
+	if (a->current) a->current += migration;
+	if (a->track->tl->dragging_keyframe) a->track->tl->dragging_keyframe += migration;
     }
 
 
@@ -648,7 +659,9 @@ static Value automation_value_at(Automation *a, int32_t pos)
     /* int32_t current_i = automation_check_get_cache(a, pos); */
     /* if (!a->current) return a->keyframes[0].value; */
     /* Keyframe *current = a->keyframes + current_i; */
+    pthread_mutex_lock(&a->lock);
     Keyframe *current = automation_check_get_cache(a, pos);
+    pthread_mutex_unlock(&a->lock);
     /* int32_t current_i = current - a->keyframes; */
     /* fprintf(stderr, "Current i in READ: %d\n", current_i); */
     /* int32_ */
@@ -688,6 +701,11 @@ static void keyframe_remove(Keyframe *k)
     Automation *a = k->automation;
     uint16_t pos = k - a->keyframes;
     uint16_t num = a->num_keyframes - pos;
+    int ret = pthread_mutex_lock(&a->lock);
+    if (ret != 0) {
+	fprintf(stderr, "ERROR locking in remove: %s\n", strerror(ret));
+	exit(1);
+    }
     if (a->current == k) {
 	if (k > a->keyframes) {
 	    a->current = k-1;
@@ -695,8 +713,12 @@ static void keyframe_remove(Keyframe *k)
 	    a->current = NULL;
 	}
     }
+    if (a->track->tl->dragging_keyframe) {
+	a->track->tl->dragging_keyframe = NULL;
+    }
     memmove(a->keyframes + pos, a->keyframes + pos + 1, num * sizeof(Keyframe));
     a->num_keyframes--;
+    pthread_mutex_unlock(&a->lock);
 }
 static Keyframe *automation_insert_maybe(
     Automation *a,
@@ -732,6 +754,7 @@ static Keyframe *automation_insert_maybe(
 	/* } */
 	/* remove_end_i++; */
 	/* fprintf(stderr, "REMOVE CHUNK: %d-%d\n", remove_start_i, remove_end_i - 1); */
+	pthread_mutex_lock(&a->lock);
 	int32_t remove_count = remove_end_i - remove_start_i;
 	int32_t move_count = a->num_keyframes - remove_end_i;
 	if (remove_count > 0) {
@@ -747,7 +770,17 @@ static Keyframe *automation_insert_maybe(
 	    a->num_keyframes -= remove_count;
 	    fprintf(stderr, "\t->removed %d keyframes\n", remove_count);
 	    fprintf(stderr, "\t->moved %d keyframes\n", move_count);
+	    uint16_t current_i = a->current - a->keyframes;
+	    uint16_t dragging_i = a->track->tl->dragging_keyframe - a->keyframes;
+	    if (current_i >= remove_start_i && current_i < remove_end_i) {
+		a->current = NULL;
+	    }
+	    if (dragging_i >= remove_start_i && dragging_i < remove_end_i) {
+		a->track->tl->dragging_keyframe = NULL;
+	    }
+	    
 	}
+	pthread_mutex_unlock(&a->lock);
     }
 
     /* if (current_i < a->num_keyframes - 1 && a->keyframes[remove_start_i].pos < chunk_end_pos) { */
@@ -1117,15 +1150,20 @@ void automation_reset_keyframe_x(Automation *a)
     }
 }
 
-uint16_t automation_get_segment(Automation *a, int32_t at)
+Keyframe *automation_get_segment(Automation *a, int32_t at)
 {
-    for (uint16_t i=0; i<a->num_keyframes; i++) {
-	Keyframe *k = a->keyframes + i;
-	if (k->pos > at) {
-	    return i == 0 ? 0 : i - 1;
-	}
-    }
-    return a->num_keyframes;
+    if (a->keyframes[0].pos > at) return NULL;
+    Keyframe *k = a->keyframes;
+    while (k < a->keyframes + a->num_keyframes - 1 && k->pos < at) k++;
+    if (k == a->keyframes + a->num_keyframes - 1) return k;
+    return k - 1;
+    /* for (uint16_t i=0; i<a->num_keyframes; i++) { */
+    /* 	Keyframe *k = a->keyframes + i; */
+    /* 	if (k->pos > at) { */
+    /* 	    return i == 0 ? 0 : i - 1; */
+    /* 	} */
+    /* } */
+    /* return a->num_keyframes; */
 }
 /* Keyframe *automation_get_segment(Automation *a, int32_t at) */
 /* { */
@@ -1258,8 +1296,13 @@ void automation_draw(Automation *a)
 	Keyframe *k = a->keyframes + i;
 	Keyframe *prev = k - 1;
         int y = bottom_y - k->draw_y_prop * h;
-	if (x_onscreen(k->draw_x))
+	if (x_onscreen(k->draw_x)) {
 	    keyframe_draw(k->draw_x, y);
+	    if (k == a->track->tl->dragging_keyframe) {
+		SDL_Rect r = {k->draw_x - 10, y - 10, 20, 20};
+		SDL_RenderDrawRect(main_win->rend, &r);
+	    }
+	}
 	if (last_y != 0 && segment_intersects_screen(prev->draw_x, k->draw_x)) {
 	    SDL_RenderDrawLine(main_win->rend, prev->draw_x, last_y, k->draw_x, y);
 	}
@@ -1444,21 +1487,35 @@ bool automations_triage_motion(Timeline *tl)
 
 bool automation_triage_click(uint8_t button, Automation *a)
 {
-    int click_tolerance = 15;
+    int click_tolerance = 10 * main_win->dpi_scale_factor;;
     /* int32_t epsilon = 10000; */
     if (SDL_PointInRect(&main_win->mousep, &a->layout->rect)) {
 	if (button_click(a->read_button, main_win)) return true;
 	if (button_click(a->write_button, main_win)) return true;
 	if (SDL_PointInRect(&main_win->mousep, a->bckgrnd_rect) && main_win->i_state & I_STATE_CMDCTRL) {
 	    int32_t clicked_pos_sframes = timeline_get_abspos_sframes(main_win->mousep.x);
-	    uint16_t insertion_i = automation_get_segment(a, clicked_pos_sframes);
-	    Keyframe *insertion = a->keyframes + insertion_i;
+	    /* uint16_t insertion_i = automation_get_segment(a, clicked_pos_sframes); */
+	    Keyframe *insertion = automation_get_segment(a, clicked_pos_sframes);
 	    Keyframe *next = NULL;
-	    if (insertion_i < a->num_keyframes - 1) next = insertion + 1;
-	    if (abs(insertion->draw_x - main_win->mousep.x) < click_tolerance) {
-		fprintf(stderr, "Left kf clicked\n");
-	    } else if (next && abs(next->draw_x - main_win->mousep.x ) < click_tolerance) {
-		fprintf(stderr, "Right kf clicked\n");
+	    int left_kf_dist = click_tolerance + 1;
+	    int right_kf_dist = click_tolerance + 1;
+	    if (!insertion) next = a->keyframes;
+	    else if (insertion < a->keyframes + a->num_keyframes - 1) {
+		next = insertion + 1;
+	    }
+	    /* fprintf(stderr, "\n\nL R: %ld %ld\n", insertion - a->keyframes, next - a->keyframes); */
+	    /* if (insertion_i < a->num_keyframes - 1) next = insertion + 1; */
+	    if (insertion) left_kf_dist = abs(insertion->draw_x - main_win->mousep.x);
+	    if (next) right_kf_dist = abs(next->draw_x - main_win->mousep.x);	
+	    /* fprintf(stderr, "LDIST %d RDIST %d\n", left_kf_dist, right_kf_dist); */
+	    if (left_kf_dist < click_tolerance && left_kf_dist < right_kf_dist) {
+		a->track->tl->dragging_keyframe = insertion;
+		keyframe_move(insertion, main_win->mousep.x, main_win->mousep.y);
+		/* fprintf(stderr, "Left kf clicked\n"); */
+	    } else if (right_kf_dist < click_tolerance) {
+		a->track->tl->dragging_keyframe = next;
+		keyframe_move(next, main_win->mousep.x, main_win->mousep.y);
+		/* fprintf(stderr, "Right kf clicked\n"); */
 	    } else {
 		double val_prop = (double)(a->bckgrnd_rect->y + a->bckgrnd_rect->h - main_win->mousep.y) / a->bckgrnd_rect->h;
 		Value range_scaled = jdaw_val_scale(a->range, val_prop, a->val_type);

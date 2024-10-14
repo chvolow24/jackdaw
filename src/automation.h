@@ -133,7 +133,7 @@ typedef struct automation {
 
 typedef struct keyframe_clip {
     Keyframe *first;
-    Keyframe *last;
+    uint16_t len;
 } KClip;
 
 typedef struct keyframe_clipref {

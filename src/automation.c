@@ -248,7 +248,6 @@ void track_add_new_automation(Track *track)
     window_push_modal(main_win, m);
     modal_reset(m);
     modal_move_onto(m);
-
 }
 
 
@@ -467,21 +466,62 @@ static void keyframe_set_y_prop(Automation *a, uint16_t insert_i)
     k->draw_y_prop = jdaw_val_div_double(v, a->range, a->val_type);
 }
 
+static void automation_reset_pointers(Automation *a, uint16_t displace_from, int32_t displace_by)
+{
+    if (a->current > a->keyframes + displace_from) {
+	a->current += displace_by;
+    }
+    if (a->track->tl->dragging_keyframe > a->keyframes + displace_from) {
+	a->track->tl->dragging_keyframe += displace_by;
+    }
+    for (uint16_t i=0; i<a->num_kclips; i++) {
+	KClipRef *kcr = a->kclips + i;
+	if (kcr->first > a->keyframes + displace_from) {
+	    kcr->first += displace_by;
+	}
+	if (kcr->last > a->keyframes + displace_from) {
+	    kcr->last += displace_by;
+	}
+    }
+}
+
+static long keyframe_arr_resize(Automation *a)
+{
+    for (uint16_t i=0; i<a->num_kclips; i++) {
+	KClipRef *kcr = a->kclips + i;
+	fprintf(stderr, "\t(before resize) %d: %p, first: %d, last: %d\n", i, kcr, kcr->first->pos, kcr->last->pos);
+
+    }
+    Keyframe *old_base_ptr = a->keyframes;
+    a->keyframe_arrlen *= 2;
+    a->keyframes = realloc(a->keyframes, a->keyframe_arrlen * sizeof(Keyframe));
+    long int migration_bytes = (char *)(a->keyframes) - (char *)old_base_ptr;
+    fprintf(stderr, "Reallocing kf array new len: %d\n", a->keyframe_arrlen);
+    if (a->current) a->current = (Keyframe *)((char *)a->current +  migration_bytes);
+    if (a->track->tl->dragging_keyframe)
+	a->track->tl->dragging_keyframe = (Keyframe *)((char *)a->track->tl->dragging_keyframe +  migration_bytes);
+    for (uint16_t i=0; i<a->num_kclips; i++) {
+	KClipRef *kcr = a->kclips + i;
+	/* Keyframe *old = kcr->first; */
+	kcr->first = (Keyframe *)((char *)kcr->first + migration_bytes);
+	kcr->last = (Keyframe *)((char *)kcr->last + migration_bytes);
+	if (kcr->home) {
+	    KClip *kc = kcr->kclip;
+	    kc->first = (Keyframe *)((char *)kc->first + migration_bytes);
+	}	
+    }
+    return migration_bytes;
+
+}
+
 Keyframe *automation_insert_keyframe_at(
     Automation *a,
     int32_t pos,
     Value val)
 {
     if (a->num_keyframes + 1 >= a->keyframe_arrlen) {
-	a->keyframe_arrlen *= 2;
-	Keyframe *old_ptr = a->keyframes;
-	a->keyframes = realloc(a->keyframes, a->keyframe_arrlen * sizeof(Keyframe));
-	fprintf(stderr, "Reallocing kf array new len: %d\n", a->keyframe_arrlen);
-	long int migration = a->keyframes - old_ptr;
-	if (a->current) a->current += migration;
-	if (a->track->tl->dragging_keyframe) a->track->tl->dragging_keyframe += migration;
+	keyframe_arr_resize(a);
     }
-
 
     uint16_t insert_i = 0;
     while (insert_i <a->num_keyframes) {
@@ -573,7 +613,7 @@ Keyframe *automation_insert_keyframe_at(
 static void automation_reset_cache(Automation *a, int32_t pos)
 {
 
-    int ops = 0;
+    /* int ops = 0; */
     /* fprintf(stderr, "RESET cache pos %d\n", pos); */
     if (!a->current) {
 	fprintf(stderr, "A current is null\n");
@@ -586,7 +626,7 @@ static void automation_reset_cache(Automation *a, int32_t pos)
 	}
     }
     while (a->current > a->keyframes && a->current->pos > pos) {
-	ops++;
+	/* ops++; */
 	a->current--;
     }
     if (a->current->pos > pos) {
@@ -596,12 +636,13 @@ static void automation_reset_cache(Automation *a, int32_t pos)
     }
 
     while (a->current < a->keyframes + a->num_keyframes - 1 && (int32_t)pos - a->current->pos > a->current->m_fwd.dx) {
-	ops++;
+	/* ops++; */
 	a->current++;
     }
     
 describe:
-    fprintf(stderr, "OPS: %d\n", ops);
+    /* fprintf(stderr, "OPS: %d\n", ops); */
+    return;
 }
 
 static Keyframe *automation_check_get_cache(Automation *a, int32_t pos)
@@ -670,7 +711,11 @@ static Value automation_value_at(Automation *a, int32_t pos)
     /* double scalar = (double)pos_rel / m_dx; */
     double scalar = (double)pos_rel / current->m_fwd.dx;
     /* return jdaw_val_add(a->current->value, jdaw_val_scale(m_dy, scalar, a->val_type), a->val_type); */
-    return jdaw_val_add(current->value, jdaw_val_scale(current->m_fwd.dy, scalar, a->val_type), a->val_type);
+    Value ret = jdaw_val_add(current->value, jdaw_val_scale(current->m_fwd.dy, scalar, a->val_type), a->val_type);
+    if (a->type == AUTO_PLAY_SPEED) {
+	fprintf(stderr, "READING value %f\n", ret.float_v);
+    }
+    return ret;
 }
 
 
@@ -718,8 +763,10 @@ static void keyframe_remove(Keyframe *k)
     }
     memmove(a->keyframes + pos, a->keyframes + pos + 1, num * sizeof(Keyframe));
     a->num_keyframes--;
+    keyframe_recalculate_m(a, pos - 1);
     pthread_mutex_unlock(&a->lock);
 }
+
 static Keyframe *automation_insert_maybe(
     Automation *a,
     Value val,
@@ -813,15 +860,17 @@ static Keyframe *automation_insert_maybe(
     /* bool current_inserted = false; */
 
     if (ghost_diff_prop > diff_prop_thresh) {
-	fprintf(stderr, "CHANGING\n");
+	/* fprintf(stderr, "CHANGING\n"); */
 	if (!a->changing) {
 	    a->current = automation_insert_keyframe_at(a, a->ghost_pos, a->ghost_val);
 	    ghost_inserted = true;
 	    fprintf(stderr, "START changing\n");
+	    a->current = automation_insert_keyframe_at(a, pos, val);
+	    pos++;
 	}
 	a->changing = true;
     } else {
-	fprintf(stderr, "Not changing\n");
+	/* fprintf(stderr, "Not changing\n"); */
 	if (a->changing) {
 	    fprintf(stderr, "STOP changing\n");
 	    if (a->ghost_valid) {
@@ -847,7 +896,7 @@ static Keyframe *automation_insert_maybe(
 	double diff_prop = fabs(jdaw_val_div_double(diff, a->range, a->val_type));
 	if (diff_prop > diff_prop_thresh) {
 	    fprintf(stderr, "DEVIATION from predicted value\n");
-	    a->current = automation_insert_keyframe_at(a, pos, val);
+	    /* a->current = automation_insert_keyframe_at(a, pos, val); */
 	    if (!ghost_inserted) {
 		/* Keyframe *p = NULL; */
 		/* Keyframe *pp = NULL; */
@@ -856,22 +905,33 @@ static Keyframe *automation_insert_maybe(
 		/* if (a->current > a->keyframes) p = a->current - 1; */
 		/* if (a->current > a->keyframes + 1) pp = a->current - 2; */
 		if (a->current > a->keyframes + 1) {
-		    Keyframe *p = a->current - 1;
-		    Keyframe *pp = a->current - 2;
+		    /* Keyframe *p = a->current - 1; */
+		    Keyframe *pp = a->current - 1;
+		    Value val_diff = jdaw_val_sub(val, a->current->value, a->val_type);
 		    Value ppm = jdaw_val_scale(pp->m_fwd.dy, 1000.0f / pp->m_fwd.dx, a->val_type);
-		    Value pm = jdaw_val_scale(p->m_fwd.dy, 1000.0f / p->m_fwd.dx, a->val_type);
+		    Value pm = jdaw_val_scale(val_diff, 1000.0f / (pos - a->current->pos), a->val_type);
 		    diff = jdaw_val_sub(ppm, pm, a->val_type);
 		    diff_prop = jdaw_val_div_double(diff, a->range, a->val_type);
+		    fprintf(stderr, "DIFF PROP: %f\n", diff_prop);
 		    if (fabs(diff_prop) < m_prop_thresh) {//&& !jdaw_val_is_zero(ppm, a->val_type) && jdaw_val_sign_match(ppm, pm, a->val_type)) {
 			/* if (fabs(a->mdelta_prop_cum) < 0.1) { */
 			/* a->mdelta_prop_cum += diff_prop; */
 			/* fprintf(stderr, "REMOVED %d\n", p->pos); */
-			keyframe_remove(p);
+			/* keyframe_remove(p); */
 			/* } else { */
 			/* fprintf(stderr, "Not removed, prop cum\n"); */
 			/* a->mdelta_prop_cum = 0.0; */
 			/* } */
+			fprintf(stderr, "MOVING current %d->%d\n", a->current->pos, pos);
+			a->current->pos = pos;
+			a->current->value = val;
+			keyframe_set_y_prop(a, a->current - a->keyframes);
+			keyframe_recalculate_m(a, a->current - a->keyframes);
+			keyframe_recalculate_m(a, a->current - 1 - a->keyframes);
+			a->current->draw_x = timeline_get_draw_x(pos);
+			
 		    } else {
+			a->current = automation_insert_keyframe_at(a, pos, val);
 			fprintf(stderr, "NOT remove %f\n", diff_prop);
 			/* a->mdelta_prop_cum = 0.0; */
 		    }
@@ -1558,32 +1618,33 @@ bool automation_triage_click(uint8_t button, Automation *a)
 void user_tl_play(void *nullarg);
 void user_tl_pause(void *nullarg);
 
-/* static KClip *record_kclip(Automation *a, int32_t start_pos, int32_t end_pos) */
-/* { */
-/*     /\* if (end_pos <= start_pos) return NULL; *\/ */
+static void kclip_set_pos_rel(KClip *kc)
+{
+    Keyframe *k = kc->first;
+    int32_t init_pos = k->pos;
+    while (k < kc->first + kc->len) {
+	k->pos_rel = k->pos - init_pos;
+	k++;
+    }
 
-/*     /\* Keyframe *first = automation_get_segment(a, start_pos); *\/ */
-/*     /\* fprintf(stderr, "first is %p, auto first is %p %d vs %d\n", first, a->first, a->first->pos, start_pos); *\/ */
-/*     /\* if (!first) { *\/ */
-/*     /\* 	first = a->first; *\/ */
-/*     /\* 	while (first && first->pos < start_pos) { *\/ */
-/*     /\* 	    first = first->next; *\/ */
-/*     /\* 	} *\/ */
-/*     /\* } *\/ */
-/*     /\* if (!first || !first->next) return NULL; *\/ */
-/*     /\* first = first->next; *\/ */
-/*     /\* Keyframe *k = first; *\/ */
-/*     /\* while (k->pos < end_pos) { *\/ */
-/*     /\* 	if (k->next) { *\/ */
-/*     /\* 	    k = k->next; *\/ */
-/*     /\* 	} else break; *\/ */
-/*     /\* } *\/ */
-/*     /\* KClip *kc = calloc(1, sizeof(KClip)); *\/ */
-/*     /\* kc->first = first; *\/ */
-/*     /\* kc->last = k; *\/ */
-/*     /\* return kc; *\/ */
-/*     return NULL; */
-/* } */
+}
+
+static KClip *record_kclip(Automation *a, int32_t start_pos, int32_t end_pos)
+{
+    if (end_pos <= start_pos) return NULL;
+
+    Keyframe *first = automation_get_segment(a, start_pos);
+    if (!first) first = a->keyframes;
+    if (first < a->keyframes + a->num_keyframes) first++; else return NULL;
+    Keyframe *last = automation_get_segment(a, end_pos);
+    uint16_t len = last - first;
+    
+    KClip *kc = calloc(1, sizeof(KClip));
+    kc->first = first;
+    kc->len = len;
+    return kc;
+    /* return NULL; */
+}
 
 /* static void kclip_set_pos_rel(KClip *kc) */
 /* { */
@@ -1598,6 +1659,36 @@ void user_tl_pause(void *nullarg);
 
 void automation_insert_kclipref(Automation *a, KClip *kc, int32_t pos)
 {
+
+    while (a->num_keyframes + kc->len >= a->keyframe_arrlen) {
+	keyframe_arr_resize(a);
+    }
+    a->num_keyframes += kc->len;
+    Keyframe *insert_after = automation_get_segment(a, pos);
+    uint16_t num_to_move = a->keyframes + a->num_keyframes - insert_after;
+    Keyframe *dst = insert_after + kc->len + 1;
+    memmove(dst, insert_after + 1, num_to_move * sizeof(Keyframe));
+    memcpy(insert_after + 1, kc->first, kc->len * sizeof(Keyframe));
+    Keyframe *k = insert_after + 1;
+    while (k < dst) {
+	k->pos = pos + k->pos_rel;
+	keyframe_recalculate_m(a, k - a->keyframes);
+	k->draw_x = timeline_get_draw_x(k->pos);
+	k++;
+	
+    }
+    if (a->num_kclips + 1 >= a->kclips_arr_len) {
+	a->kclips_arr_len *= 2;
+	
+	a->kclips = realloc(a->kclips, a->kclips_arr_len * sizeof(KClipRef));
+    }
+    KClipRef *kcr = a->kclips + a->num_kclips;
+
+    kcr->first = insert_after + 1;
+    kcr->last = kcr->first + kc->len;
+    kcr->pos = pos;
+    kcr->automation = a;
+    a->num_kclips++;
     /* Keyframe *k = kc->first; */
     /* int i=0; */
     /* while (k && k != kc->last) { */
@@ -1685,40 +1776,47 @@ void automation_insert_kclipref(Automation *a, KClip *kc, int32_t pos)
 
 void automation_record(Automation *a)
 {
-    /* static int32_t start_pos = 0; */
-    /* bool write = automation_toggle_write(a); */
-    /* if (write) { */
-    /* 	start_pos = a->track->tl->play_pos_sframes; */
-    /* 	user_tl_play(NULL); */
-    /* 	timeline_play_speed_set(1.0); */
-    /* } else { */
-    /* 	KClip *kc = record_kclip(a, start_pos, a->track->tl->play_pos_sframes); */
-    /* 	if (kc) { */
-    /* 	    kclip_set_pos_rel(kc); */
-    /* 	    if (a->num_kclips == a->kclips_arr_len) { */
-    /* 		a->kclips_arr_len *= 2; */
-    /* 		a->kclips = realloc(a->kclips, a->kclips_arr_len * sizeof(KClipRef)); */
-    /* 	    } */
-    /* 	    KClipRef *kcr = a->kclips + a->num_kclips; */
-    /* 	    kcr->pos = kc->first->pos; */
-    /* 	    kcr->kclip = kc; */
-    /* 	    kcr->automation = a; */
-    /* 	    kcr->home = true; */
-    /* 	    kcr->first = kc->first; */
-    /* 	    kcr->last = kc->last; */
-    /* 	    a->num_kclips++; */
-	    
-    /* 	    /\* int i=0; *\/ */
-    /* 	    Keyframe *k = kc->first; */
-    /* 	    while (k && k!= kc->last) { */
-    /* 		/\* i++; *\/ */
-    /* 		k = k->next; */
-    /* 		/\* fprintf(stderr, "K %p\n", k); *\/ */
-    /* 	    } */
-    /* 	    automation_insert_kclipref(a, kc, start_pos + 5 * proj->sample_rate); */
-    /* 	} */
-    /* 	user_tl_pause(NULL); */
-    /* } */
+    static int32_t start_pos = 0;
+    bool write = automation_toggle_write(a);
+    if (write) {
+	start_pos = a->track->tl->play_pos_sframes;
+	user_tl_play(NULL);
+	timeline_play_speed_set(1.0);
+    } else {
+	fprintf(stderr, "\n\nFINISH RECORD, START AND END: %d, %d\n", start_pos, a->track->tl->play_pos_sframes);
+	KClip *kc = record_kclip(a, start_pos, a->track->tl->play_pos_sframes);
+	if (kc) {
+	    kclip_set_pos_rel(kc);
+	    if (a->num_kclips + 1 >= a->kclips_arr_len) {
+		a->kclips_arr_len *= 2;
+		a->kclips = realloc(a->kclips, a->kclips_arr_len * sizeof(KClipRef));
+	    }
+	    KClipRef *kcr = a->kclips + a->num_kclips;
+	    kcr->pos = kc->first->pos;
+	    kcr->kclip = kc;
+	    kcr->automation = a;
+	    kcr->home = true;
+	    kcr->first = kc->first;
+	    kcr->last = kc->first + kc->len - 1;
+	    /* kcr->last = kc->last; */
+	    a->num_kclips++;
+
+	    fprintf(stderr, "\n\n\nKCLIPS:\n");
+	    for (uint16_t i=0; i<a->num_kclips; i++) {
+		KClipRef *kcr = a->kclips + i;
+		fprintf(stderr, "\t%d: %p, first: %d, last: %d\n", i, a->kclips + i, kcr->first->pos, kcr->last->pos);
+	    }
+	    /* int i=0; */
+	    /* Keyframe *k = kc->first; */
+	    /* while (k && k!= kc->last) { */
+	    /* 	/\* i++; *\/ */
+	    /* 	k = k->next; */
+	    /* 	/\* fprintf(stderr, "K %p\n", k); *\/ */
+	    /* } */
+	    /* automation_insert_kclipref(a, kc, start_pos + 5 * proj->sample_rate); */
+	}
+	user_tl_pause(NULL);
+    }
 }
 
 

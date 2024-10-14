@@ -779,6 +779,46 @@ static void keyframe_remove(Keyframe *k)
     pthread_mutex_unlock(&a->lock);
 }
 
+
+static void automation_remove_kf_range(Automation *a, int32_t start_pos, int32_t end_pos)
+{
+    uint16_t current_i = automation_check_get_cache(a, start_pos) - a->keyframes;
+    uint16_t remove_start_i;
+    if ((remove_start_i = current_i + 1) < a->num_keyframes && a->keyframes[remove_start_i].pos < end_pos) {
+	uint16_t remove_start_i = current_i + 1;
+	uint16_t remove_end_i = remove_start_i;
+	while (1) {
+	    if (remove_end_i > a->num_keyframes) break;
+	    if (a->keyframes[remove_end_i].pos > end_pos) {
+		break;
+	    }
+	    remove_end_i++;
+	}
+	
+	pthread_mutex_lock(&a->lock);
+	int32_t remove_count = remove_end_i - remove_start_i;
+	int32_t move_count = a->num_keyframes - remove_end_i;
+	if (remove_count > 0) {
+	    if (move_count > 0)
+		memmove(a->keyframes + remove_start_i, a->keyframes + remove_end_i, move_count * sizeof(Keyframe));
+	    a->num_keyframes -= remove_count;
+	    automation_reset_pointers(a, remove_end_i, remove_start_i - remove_end_i);
+	    uint16_t current_i = a->current - a->keyframes;
+	    uint16_t dragging_i = a->track->tl->dragging_keyframe - a->keyframes;
+	    if (current_i >= remove_start_i && current_i < remove_end_i) {
+		a->current = NULL;
+	    }
+	    if (dragging_i >= remove_start_i && dragging_i < remove_end_i) {
+		a->track->tl->dragging_keyframe = NULL;
+	    }
+	    
+	}
+	pthread_mutex_unlock(&a->lock);
+    }
+
+}
+
+
 static Keyframe *automation_insert_maybe(
     Automation *a,
     Value val,
@@ -792,62 +832,64 @@ static Keyframe *automation_insert_maybe(
     for (uint16_t i=0; i<a->num_kclips; i++) {
 	KClipRef *kcr = a->kclips + i;
 	if (chunk_end_pos > kcr->pos && pos < kcr->last->pos) {
+	    a->record_start_pos = kcr->last->pos;
 	    return NULL;
 	}
     }
-    uint16_t current_i = automation_check_get_cache(a, pos) - a->keyframes;
-    /* fprintf(stderr, "Current i: %d\n", current_i); */
-    /* fprintf(stderr, "Same as ret? %d\n", a->current); */
-    /* fprintf(stderr, "\tSure? %d < %d < %d\n", a->keyframes[current_i].pos, pos, a->keyframes[current_i + 1].pos); */
-    uint16_t remove_start_i;
-    if ((remove_start_i = current_i + 1) < a->num_keyframes && a->keyframes[remove_start_i].pos < chunk_end_pos) {
-	uint16_t remove_start_i = current_i + 1;
-	/* fprintf(stderr, "Start removal check at %d, pos %d\n", remove_start_i, a->keyframes[remove_start_i].pos); */
-	uint16_t remove_end_i = remove_start_i;
-	while (1) {
-	    if (remove_end_i > a->num_keyframes) break;
-	    if (a->keyframes[remove_end_i].pos > chunk_end_pos) {
-		/* remove_end_i++; */
-		break;
-	    }
-	    remove_end_i++;
-	}
-	/* while (remove_end_i < a->num_keyframes) { */
-	/*     if (a->keyframes[remove_end_i].pos > chunk_end_pos) { */
-	/* 	break; */
-	/*     } */
-	/*     remove_end_i++; */
-	/* } */
-	/* remove_end_i++; */
-	/* fprintf(stderr, "REMOVE CHUNK: %d-%d\n", remove_start_i, remove_end_i - 1); */
-	pthread_mutex_lock(&a->lock);
-	int32_t remove_count = remove_end_i - remove_start_i;
-	int32_t move_count = a->num_keyframes - remove_end_i;
-	if (remove_count > 0) {
-	    fprintf(stderr, "\t\t%d should be < %d\n", a->keyframes[remove_start_i - 1].pos, pos);
-	    for (uint16_t i=0; i<remove_count; i++) {
-		fprintf(stderr, "\t\tRemoving pos %d (betw %d and %d)\n", a->keyframes[remove_start_i + i].pos, pos, chunk_end_pos);
-	    }
-	    fprintf(stderr, "\t\t%d should be > %d\n", a->keyframes[remove_end_i].pos, chunk_end_pos);
+    automation_remove_kf_range(a, pos, chunk_end_pos);
+    /* uint16_t current_i = automation_check_get_cache(a, pos) - a->keyframes; */
+    /* /\* fprintf(stderr, "Current i: %d\n", current_i); *\/ */
+    /* /\* fprintf(stderr, "Same as ret? %d\n", a->current); *\/ */
+    /* /\* fprintf(stderr, "\tSure? %d < %d < %d\n", a->keyframes[current_i].pos, pos, a->keyframes[current_i + 1].pos); *\/ */
+    /* uint16_t remove_start_i; */
+    /* if ((remove_start_i = current_i + 1) < a->num_keyframes && a->keyframes[remove_start_i].pos < chunk_end_pos) { */
+    /* 	uint16_t remove_start_i = current_i + 1; */
+    /* 	/\* fprintf(stderr, "Start removal check at %d, pos %d\n", remove_start_i, a->keyframes[remove_start_i].pos); *\/ */
+    /* 	uint16_t remove_end_i = remove_start_i; */
+    /* 	while (1) { */
+    /* 	    if (remove_end_i > a->num_keyframes) break; */
+    /* 	    if (a->keyframes[remove_end_i].pos > chunk_end_pos) { */
+    /* 		/\* remove_end_i++; *\/ */
+    /* 		break; */
+    /* 	    } */
+    /* 	    remove_end_i++; */
+    /* 	} */
+    /* 	/\* while (remove_end_i < a->num_keyframes) { *\/ */
+    /* 	/\*     if (a->keyframes[remove_end_i].pos > chunk_end_pos) { *\/ */
+    /* 	/\* 	break; *\/ */
+    /* 	/\*     } *\/ */
+    /* 	/\*     remove_end_i++; *\/ */
+    /* 	/\* } *\/ */
+    /* 	/\* remove_end_i++; *\/ */
+    /* 	/\* fprintf(stderr, "REMOVE CHUNK: %d-%d\n", remove_start_i, remove_end_i - 1); *\/ */
+    /* 	pthread_mutex_lock(&a->lock); */
+    /* 	int32_t remove_count = remove_end_i - remove_start_i; */
+    /* 	int32_t move_count = a->num_keyframes - remove_end_i; */
+    /* 	if (remove_count > 0) { */
+    /* 	    fprintf(stderr, "\t\t%d should be < %d\n", a->keyframes[remove_start_i - 1].pos, pos); */
+    /* 	    for (uint16_t i=0; i<remove_count; i++) { */
+    /* 		fprintf(stderr, "\t\tRemoving pos %d (betw %d and %d)\n", a->keyframes[remove_start_i + i].pos, pos, chunk_end_pos); */
+    /* 	    } */
+    /* 	    fprintf(stderr, "\t\t%d should be > %d\n", a->keyframes[remove_end_i].pos, chunk_end_pos); */
 	
-	    fprintf(stderr, "Moving from %d to %d\n", remove_end_i, remove_start_i);
-	    if (move_count > 0)
-		memmove(a->keyframes + remove_start_i, a->keyframes + remove_end_i, move_count * sizeof(Keyframe));
-	    a->num_keyframes -= remove_count;
-	    fprintf(stderr, "\t->removed %d keyframes\n", remove_count);
-	    fprintf(stderr, "\t->moved %d keyframes\n", move_count);
-	    uint16_t current_i = a->current - a->keyframes;
-	    uint16_t dragging_i = a->track->tl->dragging_keyframe - a->keyframes;
-	    if (current_i >= remove_start_i && current_i < remove_end_i) {
-		a->current = NULL;
-	    }
-	    if (dragging_i >= remove_start_i && dragging_i < remove_end_i) {
-		a->track->tl->dragging_keyframe = NULL;
-	    }
+    /* 	    fprintf(stderr, "Moving from %d to %d\n", remove_end_i, remove_start_i); */
+    /* 	    if (move_count > 0) */
+    /* 		memmove(a->keyframes + remove_start_i, a->keyframes + remove_end_i, move_count * sizeof(Keyframe)); */
+    /* 	    a->num_keyframes -= remove_count; */
+    /* 	    fprintf(stderr, "\t->removed %d keyframes\n", remove_count); */
+    /* 	    fprintf(stderr, "\t->moved %d keyframes\n", move_count); */
+    /* 	    uint16_t current_i = a->current - a->keyframes; */
+    /* 	    uint16_t dragging_i = a->track->tl->dragging_keyframe - a->keyframes; */
+    /* 	    if (current_i >= remove_start_i && current_i < remove_end_i) { */
+    /* 		a->current = NULL; */
+    /* 	    } */
+    /* 	    if (dragging_i >= remove_start_i && dragging_i < remove_end_i) { */
+    /* 		a->track->tl->dragging_keyframe = NULL; */
+    /* 	    } */
 	    
-	}
-	pthread_mutex_unlock(&a->lock);
-    }
+    /* 	} */
+    /* 	pthread_mutex_unlock(&a->lock); */
+    /* } */
 
     /* if (current_i < a->num_keyframes - 1 && a->keyframes[remove_start_i].pos < chunk_end_pos) { */
     /* 	uint16_t remove_end_i = remove_start_i; */
@@ -1795,15 +1837,15 @@ void automation_insert_kclipref(Automation *a, KClip *kc, int32_t pos)
 
 void automation_record(Automation *a)
 {
-    static int32_t start_pos = 0;
+    /* static int32_t start_pos = 0; */
     bool write = automation_toggle_write(a);
     if (write) {
-	start_pos = a->track->tl->play_pos_sframes;
+	a->record_start_pos = a->track->tl->play_pos_sframes;
 	user_tl_play(NULL);
 	timeline_play_speed_set(1.0);
     } else {
-	fprintf(stderr, "\n\nFINISH RECORD, START AND END: %d, %d\n", start_pos, a->track->tl->play_pos_sframes);
-	KClip *kc = record_kclip(a, start_pos, a->track->tl->play_pos_sframes);
+	fprintf(stderr, "\n\nFINISH RECORD, START AND END: %d, %d\n", a->record_start_pos, a->track->tl->play_pos_sframes);
+	KClip *kc = record_kclip(a, a->record_start_pos, a->track->tl->play_pos_sframes);
 	if (kc) {
 	    kclip_set_pos_rel(kc);
 	    if (a->num_kclips + 1 >= a->kclips_arr_len) {

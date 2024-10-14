@@ -109,6 +109,7 @@ typedef struct automation {
     /* Keyframe *current; */
 
     /* Write cache */
+    int32_t record_start_pos;
     bool ghost_valid;
     int32_t ghost_pos;
     Value ghost_val;

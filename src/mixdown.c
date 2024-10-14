@@ -185,6 +185,7 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
 	}
 	if (del_line_edit) {
 	    /* fprintf(stdout, "DEL TIME: %d\n", del_time); */
+	    fprintf(stderr, "DEL TIME: %d\n", del_time);
 	    if (del_time < 0) {
 		fprintf(stderr, "ERROR: del time read value negative: %d\n", del_time);
 	    } else {

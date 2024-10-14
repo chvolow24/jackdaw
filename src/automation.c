@@ -468,19 +468,29 @@ static void keyframe_set_y_prop(Automation *a, uint16_t insert_i)
 
 static void automation_reset_pointers(Automation *a, uint16_t displace_from, int32_t displace_by)
 {
-    if (a->current > a->keyframes + displace_from) {
-	a->current += displace_by;
-    }
+    fprintf(stderr, "DISPLACE FROM index: %d\n", displace_from);
+    fprintf(stderr, "DISPLACE BY: %d\n", displace_by);
     if (a->track->tl->dragging_keyframe > a->keyframes + displace_from) {
 	a->track->tl->dragging_keyframe += displace_by;
     }
     for (uint16_t i=0; i<a->num_kclips; i++) {
 	KClipRef *kcr = a->kclips + i;
-	if (kcr->first > a->keyframes + displace_from) {
+	/* kcr->first += displace_by; */
+	fprintf(stderr, "\tKCR First index: %ld\n", kcr->first - a->keyframes);
+	if (kcr->first + displace_by > a->keyframes + displace_from) {
+	    fprintf(stderr, "\t\tDisplace!\n");
 	    kcr->first += displace_by;
 	}
-	if (kcr->last > a->keyframes + displace_from) {
+	fprintf(stderr, "\tKCR Last index: %ld\n", kcr->last - a->keyframes);
+	if (kcr->last + displace_by > a->keyframes + displace_from) {
+	    fprintf(stderr, "\t\tDisplace!\n");
 	    kcr->last += displace_by;
+	}
+	if (kcr->home) {
+	    KClip *kc = kcr->kclip;
+	    if (kc->first > a->keyframes + displace_from) {
+		kc->first += displace_by;
+	    }
 	}
     }
 }
@@ -554,6 +564,7 @@ Keyframe *automation_insert_keyframe_at(
 	/*     fprintf(stderr, "i: %d, pos: %d, dx: %d, dy: %f\n", i, a->keyframes[i].pos, a->keyframes[i].m_fwd.dx, a->keyframes[i].m_fwd.dy.float_v); */
 	/* } */
     }
+    automation_reset_pointers(a, insert_i, 1);
     return inserted;
 }
 
@@ -764,6 +775,7 @@ static void keyframe_remove(Keyframe *k)
     memmove(a->keyframes + pos, a->keyframes + pos + 1, num * sizeof(Keyframe));
     a->num_keyframes--;
     keyframe_recalculate_m(a, pos - 1);
+    automation_reset_pointers(a, pos, -1);
     pthread_mutex_unlock(&a->lock);
 }
 
@@ -775,7 +787,14 @@ static Keyframe *automation_insert_maybe(
     float direction)
 {
     if (direction < 0.0) return NULL;
-    /* fprintf(stderr, "\n\nSTART CHUNK %d-%d\n", pos, chunk_end_pos); */
+
+    /* Check for insersection with kclips and exit early if intersect */
+    for (uint16_t i=0; i<a->num_kclips; i++) {
+	KClipRef *kcr = a->kclips + i;
+	if (chunk_end_pos > kcr->pos && pos < kcr->last->pos) {
+	    return NULL;
+	}
+    }
     uint16_t current_i = automation_check_get_cache(a, pos) - a->keyframes;
     /* fprintf(stderr, "Current i: %d\n", current_i); */
     /* fprintf(stderr, "Same as ret? %d\n", a->current); */

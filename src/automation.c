@@ -468,22 +468,22 @@ static void keyframe_set_y_prop(Automation *a, uint16_t insert_i)
 
 static void automation_reset_pointers(Automation *a, uint16_t displace_from, int32_t displace_by)
 {
-    fprintf(stderr, "DISPLACE FROM index: %d\n", displace_from);
-    fprintf(stderr, "DISPLACE BY: %d\n", displace_by);
+    /* fprintf(stderr, "DISPLACE FROM index: %d\n", displace_from); */
+    /* fprintf(stderr, "DISPLACE BY: %d\n", displace_by); */
     if (a->track->tl->dragging_keyframe > a->keyframes + displace_from) {
 	a->track->tl->dragging_keyframe += displace_by;
     }
     for (uint16_t i=0; i<a->num_kclips; i++) {
 	KClipRef *kcr = a->kclips + i;
 	/* kcr->first += displace_by; */
-	fprintf(stderr, "\tKCR First index: %ld\n", kcr->first - a->keyframes);
+	/* fprintf(stderr, "\tKCR First index: %ld\n", kcr->first - a->keyframes); */
 	if (kcr->first + displace_by > a->keyframes + displace_from) {
-	    fprintf(stderr, "\t\tDisplace!\n");
+	    /* fprintf(stderr, "\t\tDisplace!\n"); */
 	    kcr->first += displace_by;
 	}
-	fprintf(stderr, "\tKCR Last index: %ld\n", kcr->last - a->keyframes);
+	/* fprintf(stderr, "\tKCR Last index: %ld\n", kcr->last - a->keyframes); */
 	if (kcr->last + displace_by > a->keyframes + displace_from) {
-	    fprintf(stderr, "\t\tDisplace!\n");
+	    /* fprintf(stderr, "\t\tDisplace!\n"); */
 	    kcr->last += displace_by;
 	}
 	if (kcr->home) {
@@ -499,14 +499,14 @@ static long keyframe_arr_resize(Automation *a)
 {
     for (uint16_t i=0; i<a->num_kclips; i++) {
 	KClipRef *kcr = a->kclips + i;
-	fprintf(stderr, "\t(before resize) %d: %p, first: %d, last: %d\n", i, kcr, kcr->first->pos, kcr->last->pos);
+	/* fprintf(stderr, "\t(before resize) %d: %p, first: %d, last: %d\n", i, kcr, kcr->first->pos, kcr->last->pos); */
 
     }
     Keyframe *old_base_ptr = a->keyframes;
     a->keyframe_arrlen *= 2;
     a->keyframes = realloc(a->keyframes, a->keyframe_arrlen * sizeof(Keyframe));
     long int migration_bytes = (char *)(a->keyframes) - (char *)old_base_ptr;
-    fprintf(stderr, "Reallocing kf array new len: %d\n", a->keyframe_arrlen);
+    /* fprintf(stderr, "Reallocing kf array new len: %d\n", a->keyframe_arrlen); */
     if (a->current) a->current = (Keyframe *)((char *)a->current +  migration_bytes);
     if (a->track->tl->dragging_keyframe)
 	a->track->tl->dragging_keyframe = (Keyframe *)((char *)a->track->tl->dragging_keyframe +  migration_bytes);
@@ -542,8 +542,8 @@ Keyframe *automation_insert_keyframe_at(
 	}
 	insert_i++;
     }
-    fprintf(stderr, "INSERT at %d\n", pos);
-    fprintf(stderr, "Insert i: %d\n", insert_i);
+    /* fprintf(stderr, "INSERT at %d\n", pos); */
+    /* fprintf(stderr, "Insert i: %d\n", insert_i); */
     uint16_t num_displaced = a->num_keyframes - insert_i;
     if (num_displaced != 0) {
 	memmove(a->keyframes + insert_i + 1, a->keyframes + insert_i, num_displaced * sizeof(Keyframe));
@@ -627,7 +627,7 @@ static void automation_reset_cache(Automation *a, int32_t pos)
     /* int ops = 0; */
     /* fprintf(stderr, "RESET cache pos %d\n", pos); */
     if (!a->current) {
-	fprintf(stderr, "A current is null\n");
+	/* fprintf(stderr, "A current is null\n"); */
 	if (a->keyframes[0].pos > pos) {
 	    a->current = NULL;
 	    goto describe;

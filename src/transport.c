@@ -334,17 +334,17 @@ void transport_start_playback()
 	fprintf(stderr, "pthread_attr_setschedparam: %s\n", strerror(ret));
     }
 
-    /* Set stack size */
-    size_t orig_stack_size;
-    size_t desired_stack_size = 4 * sizeof(double) * proj->sample_rate;
-    if ((ret = pthread_attr_getstacksize(&attr, &orig_stack_size) != 0)) {
-	fprintf(stderr, "pthread_attr_getstacksize: %s\n", strerror(ret));
-    }
-    if (orig_stack_size < desired_stack_size) {
-	if ((ret = pthread_attr_setstacksize(&attr, desired_stack_size)) != 0) {
-	    fprintf(stderr, "pthread_attr_setstacksize: %s\n", strerror(ret));
-	}
-    }
+    /* /\* Set stack size *\/ */
+    /* size_t orig_stack_size; */
+    /* size_t desired_stack_size = 4 * sizeof(double) * proj->sample_rate; */
+    /* if ((ret = pthread_attr_getstacksize(&attr, &orig_stack_size) != 0)) { */
+    /* 	fprintf(stderr, "pthread_attr_getstacksize: %s\n", strerror(ret)); */
+    /* } */
+    /* if (orig_stack_size < desired_stack_size) { */
+    /* 	if ((ret = pthread_attr_setstacksize(&attr, desired_stack_size)) != 0) { */
+    /* 	    fprintf(stderr, "pthread_attr_setstacksize: %s\n", strerror(ret)); */
+    /* 	} */
+    /* } */
     if ((ret = pthread_create(&proj->dsp_thread, &attr, transport_dsp_thread_fn, (void *)tl)) != 0) {
 	fprintf(stderr, "pthread_create: %s\n", strerror(ret));
     }

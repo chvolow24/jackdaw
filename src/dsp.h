@@ -69,6 +69,7 @@ typedef struct delay_line {
     int32_t pos_R;
     double *buf_L;
     double *buf_R;
+    double *cpy_buf;
     SDL_mutex *lock;
 } DelayLine;
 

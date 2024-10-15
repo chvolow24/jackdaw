@@ -497,11 +497,6 @@ static void automation_reset_pointers(Automation *a, uint16_t displace_from, int
 
 static long keyframe_arr_resize(Automation *a)
 {
-    for (uint16_t i=0; i<a->num_kclips; i++) {
-	KClipRef *kcr = a->kclips + i;
-	/* fprintf(stderr, "\t(before resize) %d: %p, first: %d, last: %d\n", i, kcr, kcr->first->pos, kcr->last->pos); */
-
-    }
     Keyframe *old_base_ptr = a->keyframes;
     a->keyframe_arrlen *= 2;
     a->keyframes = realloc(a->keyframes, a->keyframe_arrlen * sizeof(Keyframe));
@@ -925,26 +920,32 @@ static Keyframe *automation_insert_maybe(
 	if (!a->changing) {
 	    a->current = automation_insert_keyframe_at(a, a->ghost_pos, a->ghost_val);
 	    ghost_inserted = true;
-	    fprintf(stderr, "START changing\n");
+	    /* fprintf(stderr, "START changing\n"); */
 	    a->current = automation_insert_keyframe_at(a, pos, val);
-	    pos++;
+	    a->changing = true;
+	    goto set_ghost;
+	    /* return NULL; */
+	    /* pos++; */
 	}
 	a->changing = true;
     } else {
 	/* fprintf(stderr, "Not changing\n"); */
 	if (a->changing) {
-	    fprintf(stderr, "STOP changing\n");
+	    /* fprintf(stderr, "STOP changing\n"); */
 	    if (a->ghost_valid) {
 		a->current = automation_insert_keyframe_at(a, a->ghost_pos, a->ghost_val);
 		ghost_inserted = true;
 	    }
 	}
 	if (!a->ghost_valid) {
-	    fprintf(stderr, "GHOST INVALID!\n");
+	    /* fprintf(stderr, "GHOST INVALID!\n"); */
 	    a->current = automation_insert_keyframe_at(a, pos, val);
-	    pos++;
-	    a->current = automation_insert_keyframe_at(a, pos, val);
-	    pos++;
+	    /* pos++; */
+	    /* a->current = automation_insert_keyframe_at(a, pos, val); */
+	    /* pos++; */
+	    /* return NULL; */
+	    goto set_ghost;
+	    
 	    /* current_inserted = true; */
 	    /* a->keyframes[a->current].dne+=10; */
 	    
@@ -953,54 +954,55 @@ static Keyframe *automation_insert_maybe(
     }
 
     /* if (!current_inserted) { */
- 	diff = jdaw_val_sub(predicted_value, val, a->val_type);
-	double diff_prop = fabs(jdaw_val_div_double(diff, a->range, a->val_type));
-	if (diff_prop > diff_prop_thresh) {
-	    fprintf(stderr, "DEVIATION from predicted value\n");
-	    /* a->current = automation_insert_keyframe_at(a, pos, val); */
-	    if (!ghost_inserted) {
-		/* Keyframe *p = NULL; */
-		/* Keyframe *pp = NULL; */
-		/* if (a->current > 0) p = a->keyframes + a->current - 1; */
-		/* if (a->current > 1) pp = a->keyframes + a->current - 2; */
-		/* if (a->current > a->keyframes) p = a->current - 1; */
-		/* if (a->current > a->keyframes + 1) pp = a->current - 2; */
-		if (a->current > a->keyframes + 1) {
-		    /* Keyframe *p = a->current - 1; */
-		    Keyframe *pp = a->current - 1;
-		    Value val_diff = jdaw_val_sub(val, a->current->value, a->val_type);
-		    Value ppm = jdaw_val_scale(pp->m_fwd.dy, 1000.0f / pp->m_fwd.dx, a->val_type);
-		    Value pm = jdaw_val_scale(val_diff, 1000.0f / (pos - a->current->pos), a->val_type);
-		    diff = jdaw_val_sub(ppm, pm, a->val_type);
-		    diff_prop = jdaw_val_div_double(diff, a->range, a->val_type);
-		    fprintf(stderr, "DIFF PROP: %f\n", diff_prop);
-		    if (fabs(diff_prop) < m_prop_thresh) {//&& !jdaw_val_is_zero(ppm, a->val_type) && jdaw_val_sign_match(ppm, pm, a->val_type)) {
-			/* if (fabs(a->mdelta_prop_cum) < 0.1) { */
-			/* a->mdelta_prop_cum += diff_prop; */
-			/* fprintf(stderr, "REMOVED %d\n", p->pos); */
-			/* keyframe_remove(p); */
-			/* } else { */
-			/* fprintf(stderr, "Not removed, prop cum\n"); */
-			/* a->mdelta_prop_cum = 0.0; */
-			/* } */
-			fprintf(stderr, "MOVING current %d->%d\n", a->current->pos, pos);
-			a->current->pos = pos;
-			a->current->value = val;
-			keyframe_set_y_prop(a, a->current - a->keyframes);
-			keyframe_recalculate_m(a, a->current - a->keyframes);
-			keyframe_recalculate_m(a, a->current - 1 - a->keyframes);
-			a->current->draw_x = timeline_get_draw_x(pos);
+    diff = jdaw_val_sub(predicted_value, val, a->val_type);
+    double diff_prop = fabs(jdaw_val_div_double(diff, a->range, a->val_type));
+    if (diff_prop > diff_prop_thresh) {
+	/* fprintf(stderr, "DEVIATION from predicted value\n"); */
+	/* a->current = automation_insert_keyframe_at(a, pos, val); */
+	if (!ghost_inserted) {
+	    /* Keyframe *p = NULL; */
+	    /* Keyframe *pp = NULL; */
+	    /* if (a->current > 0) p = a->keyframes + a->current - 1; */
+	    /* if (a->current > 1) pp = a->keyframes + a->current - 2; */
+	    /* if (a->current > a->keyframes) p = a->current - 1; */
+	    /* if (a->current > a->keyframes + 1) pp = a->current - 2; */
+	    if (a->current > a->keyframes + 1) {
+		/* Keyframe *p = a->current - 1; */
+		Keyframe *pp = a->current - 1;
+		Value val_diff = jdaw_val_sub(val, a->current->value, a->val_type);
+		Value ppm = jdaw_val_scale(pp->m_fwd.dy, 1000.0f / pp->m_fwd.dx, a->val_type);
+		Value pm = jdaw_val_scale(val_diff, 1000.0f / (pos - a->current->pos), a->val_type);
+		diff = jdaw_val_sub(ppm, pm, a->val_type);
+		diff_prop = jdaw_val_div_double(diff, a->range, a->val_type);
+		/* fprintf(stderr, "DIFF PROP: %f\n", diff_prop); */
+		if (fabs(diff_prop) < m_prop_thresh) {//&& !jdaw_val_is_zero(ppm, a->val_type) && jdaw_val_sign_match(ppm, pm, a->val_type)) {
+		    /* if (fabs(a->mdelta_prop_cum) < 0.1) { */
+		    /* a->mdelta_prop_cum += diff_prop; */
+		    /* fprintf(stderr, "REMOVED %d\n", p->pos); */
+		    /* keyframe_remove(p); */
+		    /* } else { */
+		    /* fprintf(stderr, "Not removed, prop cum\n"); */
+		    /* a->mdelta_prop_cum = 0.0; */
+		    /* } */
+		    /* fprintf(stderr, "MOVING current %d->%d\n", a->current->pos, pos); */
+		    a->current->pos = pos;
+		    a->current->value = val;
+		    keyframe_set_y_prop(a, a->current - a->keyframes);
+		    keyframe_recalculate_m(a, a->current - a->keyframes);
+		    keyframe_recalculate_m(a, a->current - 1 - a->keyframes);
+		    a->current->draw_x = timeline_get_draw_x(pos);
 			
-		    } else {
-			a->current = automation_insert_keyframe_at(a, pos, val);
-			fprintf(stderr, "NOT remove %f\n", diff_prop);
-			/* a->mdelta_prop_cum = 0.0; */
-		    }
+		} else {
+		    a->current = automation_insert_keyframe_at(a, pos, val);
+		    /* fprintf(stderr, "NOT remove %f\n", diff_prop); */
+		    /* a->mdelta_prop_cum = 0.0; */
 		}
 	    }
-
 	}
+
+    }
     /* } */
+set_ghost:
     a->ghost_val = val;
     a->ghost_pos = pos;
     a->ghost_valid = true;
@@ -1699,6 +1701,8 @@ static KClip *record_kclip(Automation *a, int32_t start_pos, int32_t end_pos)
     if (first < a->keyframes + a->num_keyframes) first++; else return NULL;
     Keyframe *last = automation_get_segment(a, end_pos);
     uint16_t len = last - first;
+    if (first == last) return NULL;
+    fprintf(stderr, "FIRST POS: %d, LAST POS: %d\n", first->pos, last->pos);
     
     KClip *kc = calloc(1, sizeof(KClip));
     kc->first = first;

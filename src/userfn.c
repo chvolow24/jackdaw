@@ -17,6 +17,8 @@
 #define TL_DEFAULT_XSCROLL 60
 #define SLOW_PLAYBACK_SPEED 0.2f
 
+#define TRACK_AUTO_SELECTED(track) (track->num_automations == 0 || track->selected_automation == -1)
+
 extern Window *main_win;
 extern Project *proj;
 extern Mode **modes;
@@ -1052,7 +1054,8 @@ static void move_track(int direction)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     Track *track = tl->tracks[tl->track_selector];
-    if (track->num_automations == 0 || track->selected_automation == -1) {
+    /* if (track->num_automations == 0 || track->selected_automation == -1) { */
+    if (TRACK_AUTO_SELECTED(track)) {
 	timeline_move_track(tl, track, direction, false);
     } else {
 	track_move_automation(track, direction, false);
@@ -1353,6 +1356,7 @@ void user_tl_cut_clipref(void *nullarg)
 
 void user_tl_load_clip_at_point_to_src(void *nullarg)
 {
+    Timeline *tl = proj->timelines[proj->active_tl_index];
     ClipRef *cr = clipref_at_point();
     if (cr && !cr->clip->recording) {
 	proj->src_clip = cr->clip;

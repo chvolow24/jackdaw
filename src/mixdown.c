@@ -81,11 +81,8 @@ extern Project *proj;
 /*     return sample; */
 /* } */
 
-/* int ijk=0; */
 float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32_t start_pos_sframes, uint32_t len_sframes, float step)
 {
-   
-    int32_t chunk_end = start_pos_sframes + step * len_sframes;
     uint32_t chunk_bytelen = sizeof(float) * len_sframes;
     /* float *chunk = calloc(1, chunk_bytelen); */
     memset(chunk, '\0', chunk_bytelen);
@@ -185,7 +182,7 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
 	}
 	if (del_line_edit) {
 	    /* fprintf(stdout, "DEL TIME: %d\n", del_time); */
-	    fprintf(stderr, "DEL TIME: %d\n", del_time);
+	    /* fprintf(stderr, "DEL TIME: %d\n", del_time); */
 	    if (del_time < 0) {
 		fprintf(stderr, "ERROR: del time read value negative: %d\n", del_time);
 	    } else {
@@ -195,7 +192,7 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
     }
 
     /**********************************************************************/
-    bool clip_read = false;
+    /* bool clip_read = false; */
     for (uint8_t i=0; i<track->num_clips; i++) {
 	ClipRef *cr = track->clips[i];
 	if (!cr) {
@@ -301,7 +298,7 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
 	    abs_pos += step;
 	}	
 	SDL_UnlockMutex(cr->lock);
-	clip_read = true;
+	/* clip_read = true; */
     }
     /* if (!clip_read) { */
     /* 	if (vol_auto && vol_auto->read && !vol_auto->write) */

@@ -36,7 +36,7 @@ Textbox *textbox_create_from_str(
     tb->corner_radius = textbox_default_radius * win->dpi_scale_factor;
     tb->window = win;
     tb->text = txt_create_from_str(
-	set_str,
+	(char *)set_str,
 	TXTBX_DEFAULT_MAXLEN,
 	lt,
 	font,

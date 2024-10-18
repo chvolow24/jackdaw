@@ -41,7 +41,7 @@
 #include "value.h"
 
 #define MAX_TRACK_AUTOMATIONS 8
-#define KCLIPS_ARR_INITLEN 4
+/* #define KCLIPS_ARR_INITLEN 4 */
 #define KEYFRAMES_ARR_INITLEN 4
 
 typedef struct track Track;
@@ -49,7 +49,7 @@ typedef struct timeline Timeline;
 
 typedef struct automation Automation;
 typedef struct keyframe Keyframe;
-typedef struct keyframe_clip KClip;
+/* typedef struct keyframe_clip KClip; */
 
 typedef struct automation_slope {
     int32_t dx;
@@ -79,11 +79,12 @@ typedef struct keyframe {
     double draw_y_prop;
     int draw_x;
     
-    KClip *kclip; /* Optional; used for replication of envelopes */
+    /* KClip *kclip; /\* Optional; used for replication of envelopes *\/ */
     int32_t pos_rel; /* Position relative to KClip start */
 } Keyframe;
 
-typedef struct keyframe_clipref KClipRef;
+/* typedef struct keyframe_clipref KClipRef; */
+
 typedef struct automation {
     Track *track;
     int index;
@@ -118,9 +119,9 @@ typedef struct automation {
     Value ghost_val;
     bool changing;
 
-    KClipRef *kclips;
-    uint16_t num_kclips;
-    uint16_t kclips_arr_len;
+    /* KClipRef *kclips; */
+    /* uint16_t num_kclips; */
+    /* uint16_t kclips_arr_len; */
     
     bool shown;
     Textbox *label;
@@ -135,19 +136,19 @@ typedef struct automation {
     SDL_Rect *color_bar_rect;
 } Automation;
 
-typedef struct keyframe_clip {
-    Keyframe *first;
-    uint16_t len;
-} KClip;
+/* typedef struct keyframe_clip { */
+/*     Keyframe *first; */
+/*     uint16_t len; */
+/* } KClip; */
 
-typedef struct keyframe_clipref {
-    KClip *kclip;
-    int32_t pos;
-    bool home;
-    Automation *automation;
-    Keyframe *first;
-    Keyframe *last;
-} KClipRef;
+/* typedef struct keyframe_clipref { */
+/*     KClip *kclip; */
+/*     int32_t pos; */
+/*     bool home; */
+/*     Automation *automation; */
+/*     Keyframe *first; */
+/*     Keyframe *last; */
+/* } KClipRef; */
 
 Automation *track_add_automation(Track *track, AutomationType type);
 void automation_clear_cache(Automation *a);
@@ -184,7 +185,7 @@ void track_automations_hide_all(Track *track);
 bool automation_triage_click(uint8_t button, Automation *a);
 bool automations_triage_motion(Timeline *tl);
 void automation_record(Automation *a);
-void kclipref_move(KClipRef *kcr, int32_t move_by);
+/* void kclipref_move(KClipRef *kcr, int32_t move_by); */
 void TEST_automation_keyframe_order(Automation *a);
 void TEST_kclipref_bounds(Automation *a);
 #endif

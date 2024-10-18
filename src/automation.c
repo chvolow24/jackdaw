@@ -735,35 +735,12 @@ static Keyframe *automation_check_get_cache(Automation *a, int32_t pos)
 
 static Value automation_value_at(Automation *a, int32_t pos)
 {
-    /* if (!a->current) { */
-    /* 	return a->first->value; */
-    /* } */
-    /* Value m_dy; */
-    /* memset(&m_dy, '\0', sizeof(Value)); */
-    /* int32_t m_dx = 1; */
-    /* if (a->current->next) { */
-    /* 	m_dy = jdaw_val_sub(a->current->next->value, a->current->value, a->val_type); */
-    /* 	m_dx = a->current->next->pos - a->current->pos; */
-    /* } */
-
-
-
-    /* First check to make sure we have the correct keyframe cached */
-
-    /* int32_t current_i = automation_check_get_cache(a, pos); */
-    /* if (!a->current) return a->keyframes[0].value; */
-    /* Keyframe *current = a->keyframes + current_i; */
     pthread_mutex_lock(&a->lock);
     Keyframe *current = automation_check_get_cache(a, pos);
     pthread_mutex_unlock(&a->lock);
-    /* int32_t current_i = current - a->keyframes; */
-    /* fprintf(stderr, "Current i in READ: %d\n", current_i); */
-    /* int32_ */
     if (!current) return a->keyframes[0].value;
     int32_t pos_rel = pos - current->pos;
-    /* double scalar = (double)pos_rel / m_dx; */
     double scalar = (double)pos_rel / current->m_fwd.dx;
-    /* return jdaw_val_add(a->current->value, jdaw_val_scale(m_dy, scalar, a->val_type), a->val_type); */
     Value ret = jdaw_val_add(current->value, jdaw_val_scale(current->m_fwd.dy, scalar, a->val_type), a->val_type);
     return ret;
 }
@@ -1186,9 +1163,9 @@ bool automations_triage_motion(Timeline *tl)
 	    keyframe_move_coords(k, main_win->mousep.x, main_win->mousep.y);
 	    return true;
 	} else {
-	    if (tl->dragging_keyframe) {
-		tl->dragging_keyframe = NULL;
-	    }
+	    /* if (tl->dragging_keyframe) { */
+	    /* 	tl->dragging_keyframe = NULL; */
+	    /* } */
 	}
     }
     return false;
@@ -1216,7 +1193,7 @@ void kclipref_set_pos(KClipRef *kcr, int32_t new_pos)
     /* Record indices of current KCR */
     uint16_t kcr_first_i = kcr->first - a->keyframes;
     uint16_t kcr_last_i = kcr->last - a->keyframes;
-    uint16_t move_len_kfs = a->num_keyframes - kcr_last_i;
+    /* uint16_t move_len_kfs = a->num_keyframes - kcr_last_i; */
 
 
     fprintf(stderr, "KEYFRAMES BEFORE REMOVE KCLIP\n");
@@ -1282,13 +1259,64 @@ NEW_EVENT_FN(undo_insert_keyframe, "undo insert keyframe")
     keyframe_remove(a->keyframes + index);
 }
 
+NEW_EVENT_FN(undo_redo_automation_write, "undo/redo automation write")
+    Automation *a = (Automation *)obj1;
+    Keyframe *cached_arr = (Keyframe *)obj2;
+    uint16_t num_keyframes = val1.uint16_v;
+    uint16_t cache_start_i = val2.uint16_v;
+    automation_remove_kf_range(a, 0, a->num_keyframes);
+    memcpy(a->keyframes, cached_arr + cache_start_i, num_keyframes * sizeof(Keyframe));
+    a->num_keyframes = num_keyframes;
+    automation_clear_cache(a);
+}
+
+static void automation_undo_cache(Automation *a)
+{
+    if (a->undo_cache) free(a->undo_cache);
+    a->undo_cache = malloc(a->num_keyframes * sizeof(Keyframe));
+    memcpy(a->undo_cache, a->keyframes, a->num_keyframes * sizeof(Keyframe));
+    a->undo_cache_len.uint16_v = a->num_keyframes;
+    a->record_start_pos = a->track->tl->play_pos_sframes;
+}
+
+
+static void automation_push_write_event(Automation *a)
+{
+
+    uint16_t new_start_pos = a->undo_cache_len.uint16_v;
+    Keyframe *undo_cache = malloc((new_start_pos + a->num_keyframes) * sizeof(Keyframe));
+    /* a->undo_cache = realloc(a->undo_cache, (new_start_pos + a->num_keyframes) * sizeof(Keyframe));	 */
+    memcpy(undo_cache, a->undo_cache, a->undo_cache_len.int32_v * sizeof(Keyframe));
+    memcpy(undo_cache + new_start_pos, a->keyframes, a->num_keyframes * sizeof(Keyframe));
+    Value redo_cache_len = {.uint16_v = a->num_keyframes};
+    Value zero = {.uint16_v = 0};
+    user_event_push(
+	&proj->history,
+	undo_redo_automation_write,
+	undo_redo_automation_write,
+	NULL, NULL,
+	(void *)a,
+	(void *)undo_cache,
+	a->undo_cache_len, zero,
+	redo_cache_len, a->undo_cache_len,
+	0, 0, false, true);
+
+}
+
 bool automation_triage_click(uint8_t button, Automation *a)
 {
     int click_tolerance = 10 * main_win->dpi_scale_factor;;
     /* int32_t epsilon = 10000; */
     if (SDL_PointInRect(&main_win->mousep, &a->layout->rect)) {
 	if (button_click(a->read_button, main_win)) return true;
-	if (button_click(a->write_button, main_win)) return true;
+	if (button_click(a->write_button, main_win)) {
+	    if (a->write) {
+		automation_undo_cache(a);
+	    } else {
+		automation_push_write_event(a);
+	    }
+	    return true;
+	}
 	if (SDL_PointInRect(&main_win->mousep, a->bckgrnd_rect) && main_win->i_state & I_STATE_CMDCTRL) {
 	    if (main_win->i_state & I_STATE_SHIFT) {
 		if (a->num_kclips > 0) {
@@ -1548,30 +1576,15 @@ void ___kclipref_move(KClipRef *kcr, int32_t move_by)
     keyframe_recalculate_m(a, kcr->last - a->keyframes);
 }
 
-NEW_EVENT_FN(undo_redo_automation_write, "undo/redo automation write")
-    Automation *a = (Automation *)obj1;
-    Keyframe *cached_arr = (Keyframe *)obj2;
-    uint16_t num_keyframes = val1.uint16_v;
-    uint16_t cache_start_i = val2.uint16_v;
-    automation_remove_kf_range(a, 0, a->num_keyframes);
-    memcpy(a->keyframes, cached_arr + cache_start_i, num_keyframes * sizeof(Keyframe));
-    a->num_keyframes = num_keyframes;
-    automation_clear_cache(a);
-}
 
 void automation_record(Automation *a)
 {
     /* static int32_t start_pos = 0; */
-    static Keyframe *cache;
-    static Value cache_len;
+    /* static Keyframe *cache; */
+    /* static Value cache_len; */
     bool write = automation_toggle_write(a);
     if (write) {
-	
-	cache = malloc(a->num_keyframes * sizeof(Keyframe));
-	memcpy(cache, a->keyframes, a->num_keyframes * sizeof(Keyframe));
-	cache_len.uint16_v = a->num_keyframes;
-	
-	a->record_start_pos = a->track->tl->play_pos_sframes;
+	automation_undo_cache(a);
 	user_tl_play(NULL);
 	timeline_play_speed_set(1.0);
     } else {
@@ -1602,21 +1615,23 @@ void automation_record(Automation *a)
 	/* 	fprintf(stderr, "\t%d: %p, first: %d, last: %d\n", i, a->kclips + i, kcr->first->pos, kcr->last->pos); */
 	/*     } */
 	/* } */
-	uint16_t new_start_pos = cache_len.uint16_v;
-	cache = realloc(cache, (new_start_pos + a->num_keyframes) * sizeof(Keyframe));	
-	memcpy(cache + new_start_pos, a->keyframes, a->num_keyframes * sizeof(Keyframe));
-	Value redo_cache_len = {.uint16_v = a->num_keyframes};
-	Value zero = {.uint16_v = 0};
-	user_event_push(
-	    &proj->history,
-	    undo_redo_automation_write,
-	    undo_redo_automation_write,
-	    NULL, NULL,
-	    (void *)a,
-	    (void *)cache,
-	    cache_len, zero,
-	    redo_cache_len, cache_len,
-	    0, 0, false, true);
+
+	automation_push_write_event(a);
+	/* uint16_t new_start_pos = a->undo_cache_len.uint16_v; */
+	/* a->undo_cache = realloc(a->undo_cache, (new_start_pos + a->num_keyframes) * sizeof(Keyframe));	 */
+	/* memcpy(a->undo_cache + new_start_pos, a->keyframes, a->num_keyframes * sizeof(Keyframe)); */
+	/* Value redo_cache_len = {.uint16_v = a->num_keyframes}; */
+	/* Value zero = {.uint16_v = 0}; */
+	/* user_event_push( */
+	/*     &proj->history, */
+	/*     undo_redo_automation_write, */
+	/*     undo_redo_automation_write, */
+	/*     NULL, NULL, */
+	/*     (void *)a, */
+	/*     (void *)a->undo_cache, */
+	/*     a->undo_cache_len, zero, */
+	/*     redo_cache_len, a->undo_cache_len, */
+	/*     0, 0, false, false); */
 	user_tl_pause(NULL);
     }
 }

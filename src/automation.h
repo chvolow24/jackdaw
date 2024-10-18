@@ -108,6 +108,9 @@ typedef struct automation {
     /* Keyframe *last; */
     /* Keyframe *current; */
 
+    Keyframe *undo_cache;
+    Value undo_cache_len;
+    
     /* Write cache */
     int32_t record_start_pos;
     bool ghost_valid;

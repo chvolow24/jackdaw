@@ -265,6 +265,8 @@ typedef struct timeline {
     struct timespec play_pos_moved_at;
     
     Keyframe *dragging_keyframe;
+    int32_t dragging_kf_cache_pos;
+    Value dragging_kf_cache_val;
 
     /* GUI members */
     Layout *layout;

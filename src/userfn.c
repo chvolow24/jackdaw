@@ -1356,7 +1356,7 @@ void user_tl_cut_clipref(void *nullarg)
 
 void user_tl_load_clip_at_point_to_src(void *nullarg)
 {
-    Timeline *tl = proj->timelines[proj->active_tl_index];
+    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
     ClipRef *cr = clipref_at_point();
     if (cr && !cr->clip->recording) {
 	proj->src_clip = cr->clip;

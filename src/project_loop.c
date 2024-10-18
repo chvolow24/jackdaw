@@ -619,12 +619,18 @@ void loop_project_main()
 			/* if (!a->current) a->current = automation_get_segment(a, play_pos_adj); */
 			int32_t frame_dur = proj->sample_rate * proj->play_speed / 40.0;
 			automation_do_write(a, play_pos_adj, play_pos_adj + frame_dur, proj->play_speed);
-
 		    }
+		    /* if (a->num_kclips > 0) { */
+		    /* 	kclipref_move(a->kclips, 500); */
+		    /* } */
+		    /* TEST_automation_keyframe_order(a); */
+		    /* TEST_kclipref_bounds(a); */
 		}
+		
 	    }
 	}
 
+	
 	
 	/* window_end_draw(main_win); */
 	/**********************************************/

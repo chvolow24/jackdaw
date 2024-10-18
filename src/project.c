@@ -2747,13 +2747,14 @@ void project_set_chunk_size(uint16_t new_chunk_size)
 
 bool timeline_refocus_track(Timeline *tl, Track *track, bool at_bottom)
 {
-    Layout *lt;
+    Layout *lt, *inner;
+    lt = track->layout;
     if (track->selected_automation > 0) {
-	lt = track->automations[track->selected_automation]->layout;
+	inner = track->automations[track->selected_automation]->layout;
     } else {
-	lt = track->layout;
+	inner = track->layout;
     }
-    int y_diff = lt->rect.y - lt->parent->rect.y;
+    int y_diff = inner->rect.y - lt->parent->rect.y;
     int audio_rect_h_by_2 = tl->proj->audio_rect->h / 2;
     if (lt->rect.y + lt->rect.h > proj->audio_rect->y + proj->audio_rect->h || lt->rect.y < proj->audio_rect->y) {
 	if (at_bottom) {

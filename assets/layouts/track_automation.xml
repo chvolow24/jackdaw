@@ -13,9 +13,9 @@
             <index>0</index>
             <children>
                 <Layout name="label" type="NORMAL">
-                    <x>REL 5</x>
+                    <x>REL 4</x>
                     <y>REL 5</y>
-                    <w>REL 140</w>
+                    <w>REL 122</w>
                     <h>REL 22</h>
                     <index>0</index>
                     <children>

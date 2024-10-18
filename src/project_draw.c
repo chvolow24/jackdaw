@@ -340,14 +340,31 @@ automations_draw:
 	if (a->shown && a->layout->rect.y + a->layout->rect.h > proj->audio_rect->y && a->layout->rect.y < proj->audio_rect->y + proj->audio_rect->h) {
 	    automation_draw(a);
 	    if (i == track->selected_automation) {
+		SDL_Rect auto_console_bar = {
+		    a->layout->rect.x + 5 * main_win->dpi_scale_factor,
+		    a->layout->rect.y + 3 * main_win->dpi_scale_factor,
+		    a->console_rect->x - a->layout->rect.x - 8 * main_win->dpi_scale_factor,
+		    a->layout->rect.h - 6 * main_win->dpi_scale_factor
+		};
+		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(console_bckgrnd_selector));
+		SDL_RenderFillRect(main_win->rend, &auto_console_bar);
 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
-		geom_draw_rect_thick(main_win->rend, &a->layout->rect, 3, main_win->dpi_scale_factor);
+		SDL_Rect layout_rect_large = a->layout->rect;
+		layout_rect_large.y -= 3 * main_win->dpi_scale_factor;
+		layout_rect_large.h += 6 * main_win->dpi_scale_factor;
+		/* geom_draw_rect_thick(main_win->rend, &a->layout->rect, 3, main_win->dpi_scale_factor); */
+		geom_draw_rect_thick(main_win->rend, &layout_rect_large, 3, main_win->dpi_scale_factor);
 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(track_selector_color));
-		geom_draw_rect_thick(main_win->rend, &a->layout->rect, 1, main_win->dpi_scale_factor);
+		/* geom_draw_rect_thick(main_win->rend, &a->layout->rect, 1, main_win->dpi_scale_factor); */
+		geom_draw_rect_thick(main_win->rend, &layout_rect_large, 1, main_win->dpi_scale_factor);
 	    }
 
 	}
     }
+    /* if (track->active) { */
+    /* 	fprintf(stderr, "Diff %d\n", track->layout->parent->parent->rect.y - track->layout->parent->rect.y); */
+    /* 	layout_draw(main_win, track->layout); */
+    /* } */
 }
 
 static void ruler_draw(Timeline *tl)

@@ -4,6 +4,7 @@
 #include "value.h"
 
 /* Set the value pointed to by vp based on the current value stored at valptr */
+Value nullval;
 void jdaw_val_set(Value *vp, ValType vt, void *valptr)
 {
     switch (vt) {

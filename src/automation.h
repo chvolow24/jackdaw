@@ -181,4 +181,7 @@ void track_automations_hide_all(Track *track);
 bool automation_triage_click(uint8_t button, Automation *a);
 bool automations_triage_motion(Timeline *tl);
 void automation_record(Automation *a);
+void kclipref_move(KClipRef *kcr, int32_t move_by);
+void TEST_automation_keyframe_order(Automation *a);
+void TEST_kclipref_bounds(Automation *a);
 #endif

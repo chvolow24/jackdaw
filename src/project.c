@@ -2641,19 +2641,42 @@ void timeline_move_track(Timeline *tl, Track *track, int direction, bool from_un
     }
 }
 
-void track_move_automation(Track *track, int direction, bool from_undo)
+NEW_EVENT_FN(undo_redo_move_automation, "undo/redo move automation")
+    Automation *a = (Automation *)obj1;
+    int direction = val1.int_v;
+    track_move_automation(a, direction, true);
+}
+
+void track_move_automation(Automation *a, int direction, bool from_undo)
 {
-    Automation *a = track->automations[track->selected_automation];
+    Track *track = a->track;
+    /* Automation *a = track->automations[track->selected_automation]; */
     int new_pos = track->selected_automation + direction;
     if (new_pos >= 0 && new_pos < track->num_automations) {
 	Automation *to_swap = track->automations[new_pos];
+	uint8_t swap_index = to_swap->index;
+	to_swap->index = a->index;
+	a->index = swap_index;
 	layout_swap_children(a->layout, to_swap->layout);
 	track->automations[track->selected_automation] = to_swap;
 	track->automations[new_pos] = a;
 	track->selected_automation = new_pos;
     }
     layout_reset(track->layout);
-    /* track->tl->needs_redraw = true; */
+    if (!from_undo) {
+	Value undo_dir = {.int_v = -1 * direction};
+	Value redo_dir = {.int_v = direction};
+	user_event_push(
+	    &proj->history,
+	    undo_redo_move_automation,
+	    undo_redo_move_automation,
+	    NULL, NULL,
+	    (void *)a,
+	    NULL,
+	    undo_dir, undo_dir,
+	    redo_dir, redo_dir,
+	    0, 0, false, false);
+    }
 }
 
 static void select_out_onclick(void *arg)

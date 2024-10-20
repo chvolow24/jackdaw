@@ -109,6 +109,7 @@
   - C-S-i	: tl_track_set_in
   - C-<del>	: tl_track_delete
   - S-t		: tl_track_open_settings
+  - a		: tl_track_add_automation
   - <del>	: tl_cliprefs_delete
   - m		: tl_mute
   - s		: tl_solo

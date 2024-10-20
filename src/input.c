@@ -537,7 +537,7 @@ static void mode_load_timeline()
 
     fn = create_user_fn(
 	"tl_track_delete",
-	"Delete selected track",
+	"Delete selected track or automation",
 	user_tl_track_delete);
     mode_subcat_add_fn(sc, fn);
     
@@ -659,6 +659,12 @@ static void mode_load_timeline()
 	"tl_track_set_in",
 	"Set track input",
 	user_tl_track_set_in);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_track_add_automation",
+	"Add automation to track",
+	user_tl_track_add_automation);
     mode_subcat_add_fn(sc, fn);
 
     /* fn = create_user_fn( */

@@ -282,30 +282,30 @@ void loop_project_main()
 		case SDL_SCANCODE_RALT:
 		    main_win->i_state |= I_STATE_META;
 		    break;
-		case SDL_SCANCODE_6: {
-		    Timeline *tl = proj->timelines[proj->active_tl_index];
-		    Track *track = tl->tracks[tl->track_selector];
-		    track_add_new_automation(track);
-		    /* if (track->num_automations == 0) { */
-		    /* 	track_add_automation(track, AUTO_VOL); */
-		    /* } else if (track->num_automations == 1) { */
-		    /* 	track_add_automation(track, AUTO_PAN); */
-		    /* } else if (track->num_automations == 2) { */
-		    /* 	track_add_automation(track, AUTO_PLAY_SPEED); */
-		    /* } else if (track->num_automations == 3) { */
-		    /* 	/\* track_add_automation(track, AUTO_PLAY_SPEED); *\/ */
-		    /* 	track_add_automation(track, AUTO_FIR_FILTER_CUTOFF); */
-		    /* } else if (track->num_automations == 4) { */
-		    /* 	track_add_automation(track, AUTO_DEL_TIME); */
-		    /* } else if (track->num_automations == 5) { */
-		    /* 	/\* track *\/ */
-		    /* 	track_add_automation(track, AUTO_DEL_AMP); */
-		    /* } */
+ 		/* case SDL_SCANCODE_6: { */
+		/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
+		/*     Track *track = tl->tracks[tl->track_selector]; */
+		/*     track_add_new_automation(track); */
+		/*     /\* if (track->num_automations == 0) { *\/ */
+		/*     /\* 	track_add_automation(track, AUTO_VOL); *\/ */
+		/*     /\* } else if (track->num_automations == 1) { *\/ */
+		/*     /\* 	track_add_automation(track, AUTO_PAN); *\/ */
+		/*     /\* } else if (track->num_automations == 2) { *\/ */
+		/*     /\* 	track_add_automation(track, AUTO_PLAY_SPEED); *\/ */
+		/*     /\* } else if (track->num_automations == 3) { *\/ */
+		/*     /\* 	/\\* track_add_automation(track, AUTO_PLAY_SPEED); *\\/ *\/ */
+		/*     /\* 	track_add_automation(track, AUTO_FIR_FILTER_CUTOFF); *\/ */
+		/*     /\* } else if (track->num_automations == 4) { *\/ */
+		/*     /\* 	track_add_automation(track, AUTO_DEL_TIME); *\/ */
+		/*     /\* } else if (track->num_automations == 5) { *\/ */
+		/*     /\* 	/\\* track *\\/ *\/ */
+		/*     /\* 	track_add_automation(track, AUTO_DEL_AMP); *\/ */
+		/*     /\* } *\/ */
 			    
-		    track_automations_show_all(track);
+		/*     track_automations_show_all(track); */
 
 
-		} break;
+		/* } break; */
 		/* case SDL_SCANCODE_X: */
 		/*     if (main_win->i_state & I_STATE_CMDCTRL) { */
 		/* 	main_win->i_state |= I_STATE_C_X; */

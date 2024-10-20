@@ -106,7 +106,8 @@ void automation_destroy(Automation *a)
 	label_destroy(a->keyframe_label);
     button_destroy(a->read_button);
     button_destroy(a->write_button);
-    layout_destroy(a->layout);
+    if (a->layout)
+	layout_destroy(a->layout);
     free(a);
 }
 
@@ -119,27 +120,44 @@ static void automation_remove(Automation *a)
 	    displace = true;
 	    /* layout_remove_child_at(a->layout->parent, a->layout->index); */
 	    layout_remove_child(a->layout);
+	    
 	} else if (displace) {
+	    track->automations[i]->index--;
 	    track->automations[i - 1] = track->automations[i];
 	}
     }
-    track->num_automations--;    
+    layout_reset(a->layout);
+    layout_size_to_fit_children_v(a->track->layout, true, 0);
+    timeline_rectify_track_area(a->track->tl);
+
+    layout_size_to_fit_children_v(a->layout->parent, true, 0);
+    layout_size_to_fit_children_v(track->layout, true, 0);
+    timeline_rectify_track_area(a->track->tl);
+    /* layout_force_reset(track->layout->parent); */
+    /* timeline_reset(track->tl, false); */
+    track->num_automations--;  
 }
 
 static void automation_reinsert(Automation *a)
-{
+{    
     Track *track = a->track;
-    /* bool displace = true; */
     for (int16_t i=track->num_automations; i>=0; i--) {
 	/* if (displace) { */
 	if (i < track->num_automations) {
+	    track->automations[i]->index++;
 	    track->automations[i + 1] = track->automations[i];
 	}
 	/* } */
 	if (i == a->index) {
 	    track->automations[i] = a;
-	    layout_insert_child_at(a->layout, a->track->layout, a->layout->index);
+	    Layout *automation_container = a->track->layout;
+	    layout_insert_child_at(a->layout, automation_container, a->index + 1);
 	    track->num_automations++;
+	    layout_size_to_fit_children_v(automation_container, true, 0);
+	    /* layout_size_to_fit_children_v(a->layout->parent, true, 0); */
+	    layout_size_to_fit_children_v(track->layout, true, 0);
+	    timeline_rectify_track_area(a->track->tl);
+	    track_automations_show_all(track);
 	    return;
 	}
     }
@@ -149,30 +167,43 @@ NEW_EVENT_FN(undo_add_automation, "undo add automation")
     Automation *a = (Automation *)obj1;
     automation_remove(a);
 }
-NEW_EVENT_FN(redo_add_automation, "undo add automation")
+NEW_EVENT_FN(redo_add_automation, "redo add automation")
     Automation *a = (Automation *)obj1;
     automation_reinsert(a);
 }
 
 
-NEW_EVENT_FN(automation_delete_dispose, "")
+NEW_EVENT_FN(dispose_delete_automation, "")
     automation_destroy((Automation *)obj1);
 }
 
 NEW_EVENT_FN(undo_delete_automation, "undo delete automation")
     Automation *a = (Automation *)obj1;
-    Track *track = a->track;
-    bool displace = false;
+    automation_reinsert(a);
+}
 
+NEW_EVENT_FN(redo_delete_automation, "redo delete automation")
+    Automation *a = (Automation *)obj1;
+    automation_remove(a);
 }
 
 void automation_delete(Automation *a)
 {
- 
+    automation_remove(a);
+    Value nullval;
+    memset(&nullval, '\0', sizeof(Value));
+    user_event_push(
+	&proj->history,
+	undo_delete_automation,
+	redo_delete_automation,
+	dispose_delete_automation, NULL,
+	(void *)a, NULL,
+	nullval, nullval, nullval, nullval,
+	0, 0, false, false);
 }
 
 
-Automation *track_add_automation(Track *track, AutomationType type)
+static Automation *track_add_automation(Track *track, AutomationType type)
 {
     Automation *a = calloc(1, sizeof(Automation));
     a->track = track;

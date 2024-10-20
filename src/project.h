@@ -446,7 +446,7 @@ void timeline_destroy_grabbed_cliprefs(Timeline *tl);
 void timeline_delete_grabbed_cliprefs(Timeline *tl);
 void timeline_cut_clipref_at_point(Timeline *tl);
 void timeline_move_track(Timeline *tl, Track *track, int direction, bool from_undo);
-void track_move_automation(Track *track, int direction, bool from_undo);
+void track_move_automation(Automation *a, int direction, bool from_undo);
 void project_destroy(Project *proj);
 
 void project_set_default_out(void *nullarg);

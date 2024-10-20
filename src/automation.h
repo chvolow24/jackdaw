@@ -150,7 +150,7 @@ typedef struct automation {
 /*     Keyframe *last; */
 /* } KClipRef; */
 
-Automation *track_add_automation(Track *track, AutomationType type);
+/* Automation *track_add_automation(Track *track, AutomationType type); */
 void automation_clear_cache(Automation *a);
 void track_add_new_automation(Track *track);
 Value automation_get_value(Automation *a, int32_t pos, float direction);
@@ -159,6 +159,7 @@ Keyframe *automation_insert_keyframe_at(
     Automation *a,
     int32_t pos,
     Value val);
+void automation_delete(Automation *a);
 /* Keyframe *automation_insert_keyframe_after( */
 /*     Automation *automation, */
 /*     Keyframe *insert_after, */

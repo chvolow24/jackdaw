@@ -361,10 +361,10 @@ automations_draw:
 
 	}
     }
-    /* if (track->active) { */
-    /* 	fprintf(stderr, "Diff %d\n", track->layout->parent->parent->rect.y - track->layout->parent->rect.y); */
-    /* 	layout_draw(main_win, track->layout); */
-    /* } */
+    if (track->active) {
+	layout_draw(main_win, track->layout);
+	layout_write(stderr, track->layout, 0);
+    }
 }
 
 static void ruler_draw(Timeline *tl)

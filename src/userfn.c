@@ -17,7 +17,7 @@
 #define TL_DEFAULT_XSCROLL 60
 #define SLOW_PLAYBACK_SPEED 0.2f
 
-#define TRACK_AUTO_SELECTED(track) (track->num_automations == 0 || track->selected_automation == -1)
+#define TRACK_AUTO_SELECTED(track) (track->num_automations != 0 && track->selected_automation != -1)
 
 extern Window *main_win;
 extern Project *proj;
@@ -1056,9 +1056,9 @@ static void move_track(int direction)
     Track *track = tl->tracks[tl->track_selector];
     /* if (track->num_automations == 0 || track->selected_automation == -1) { */
     if (TRACK_AUTO_SELECTED(track)) {
-	timeline_move_track(tl, track, direction, false);
+	track_move_automation(track->automations[track->selected_automation], direction, false);
     } else {
-	track_move_automation(track, direction, false);
+	timeline_move_track(tl, track, direction, false);
     }
 }
 
@@ -1129,6 +1129,11 @@ void user_tl_track_delete(void *nullarg)
 
     Track *track = tl->tracks[tl->track_selector];
     if (track) {
+	if (TRACK_AUTO_SELECTED(track)) {
+	    Automation *a = track->automations[track->selected_automation];
+	    automation_delete(a);
+	    return;
+	}
 	track_delete(track);
 	/* timeline_reset(tl); */
 	if (tl->track_selector > 0 && tl->track_selector > tl->num_tracks - 1) {
@@ -1219,6 +1224,15 @@ void user_tl_track_open_settings(void *nullarg)
     tab_view_activate(tv);
     tl->needs_redraw = true;
 }
+
+void user_tl_track_add_automation(void *nullarg)
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Track *track = tl->tracks[tl->track_selector];
+    track_add_new_automation(track);
+    track_automations_show_all(track);
+}
+
 
 void user_tl_record(void *nullarg)
 {

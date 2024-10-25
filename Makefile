@@ -7,7 +7,7 @@ CFLAGS := -Wall -Wno-unused-command-line-argument -I$(SRC_DIR) -I$(GUI_SRC_DIR) 
 CFLAGS_JDAW_ONLY := -DLT_DEV_MODE=0
 CFLAGS_LT_ONLY := -DLT_DEV_MODE=1 -DLAYOUT_BUILD=1
 CFLAGS_PROD := -O3
-CFLAGS_DEBUG := -g -O0 -fsanitize=address
+CFLAGS_DEBUG := -DTESTBUILD=1 -g -O0 -fsanitize=address
 CFLAGS_ADDTL =
 
 LAYOUT_PROGRAM_SRCS := gui/src/openfile.c gui/src/lt_params.c gui/src/draw.c gui/src/main.c gui/src/test.c

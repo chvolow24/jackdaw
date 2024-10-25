@@ -40,8 +40,8 @@
 
 
 #define MAX_USER_EVENT_HISTORY_LEN 50
-#define EVENT_FN_DECL(name) void name(UserEvent *, void *, void *, Value, Value);
-#define NEW_EVENT_FN(name, statstr)						\
+/* #define EVENT_FN_DECL(name) void name(UserEvent *, void *, void *, Value, Value); */
+#define NEW_EVENT_FN(name, statstr)	\
     void name(UserEvent *self, void *obj1, void *obj2, Value val1, Value val2, ValType type1, ValType type2) { \
     if (strlen(statstr) > 0) { \
         char statstr_fmt[255];						\

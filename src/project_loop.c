@@ -637,7 +637,6 @@ void loop_project_main()
 
 	SDL_Delay(1);
 
-
         /* end = clock(); */
 	/* fps += (float)CLOCKS_PER_SEC / (end - start); */
 	/* start = end; */

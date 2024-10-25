@@ -37,6 +37,7 @@
 
 #include "components.h"
 #include "layout.h"
+#include "test.h"
 #include "textbox.h"
 #include "value.h"
 
@@ -186,7 +187,11 @@ void track_automations_hide_all(Track *track);
 bool automation_triage_click(uint8_t button, Automation *a);
 bool automations_triage_motion(Timeline *tl);
 void automation_record(Automation *a);
-/* void kclipref_move(KClipRef *kcr, int32_t move_by); */
-void TEST_automation_keyframe_order(Automation *a);
-void TEST_kclipref_bounds(Automation *a);
+bool automation_handle_delete(Automation *a);
+/* void keyframe_delete(Keyframe *k); */
+void keyframe_delete(Keyframe *k);
+
+TEST_FN_DECL(track_automation_order, Track *track);
+TEST_FN_DECL(automation_keyframe_order, Automation *a);
+TEST_FN_DECL(automation_index, Automation *a);
 #endif

@@ -361,10 +361,6 @@ automations_draw:
 
 	}
     }
-    if (track->active) {
-	layout_draw(main_win, track->layout);
-	layout_write(stderr, track->layout, 0);
-    }
 }
 
 static void ruler_draw(Timeline *tl)

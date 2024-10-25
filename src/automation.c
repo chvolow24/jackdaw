@@ -42,6 +42,7 @@
 #include "project.h"
 #include "status.h"
 #include "symbol.h"
+#include "test.h"
 #include "timeline.h"
 #include "transport.h"
 #include "value.h"
@@ -135,19 +136,19 @@ static void automation_remove(Automation *a)
     timeline_rectify_track_area(a->track->tl);
     /* layout_force_reset(track->layout->parent); */
     /* timeline_reset(track->tl, false); */
-    track->num_automations--;  
+    track->num_automations--;
+    TEST_FN_CALL(track_automation_order, track);
 }
 
 static void automation_reinsert(Automation *a)
 {    
     Track *track = a->track;
     for (int16_t i=track->num_automations; i>=0; i--) {
-	/* if (displace) { */
 	if (i < track->num_automations) {
+	    /* fprintf(stderr, "incr index, moving %d->%d\n", i, i+1); */
 	    track->automations[i]->index++;
 	    track->automations[i + 1] = track->automations[i];
 	}
-	/* } */
 	if (i == a->index) {
 	    track->automations[i] = a;
 	    Layout *automation_container = a->track->layout;
@@ -158,9 +159,11 @@ static void automation_reinsert(Automation *a)
 	    layout_size_to_fit_children_v(track->layout, true, 0);
 	    timeline_rectify_track_area(a->track->tl);
 	    track_automations_show_all(track);
+	    TEST_FN_CALL(track_automation_order, track);
 	    return;
 	}
     }
+    TEST_FN_CALL(track_automation_order, track);
 }
 
 NEW_EVENT_FN(undo_add_automation, "undo add automation")
@@ -920,7 +923,10 @@ static void keyframe_remove(Keyframe *k)
 static bool automation_get_kf_range(Automation *a, int32_t start_pos, int32_t end_pos, uint16_t *start_i_dst, uint16_t *end_i_dst)
 {
 
-    uint16_t current_i = automation_check_get_cache(a, start_pos) - a->keyframes;
+    Keyframe *current = automation_check_get_cache(a, start_pos);
+
+    if (!current) return false;
+    uint16_t current_i = current - a->keyframes;    
     uint16_t start_i = current_i + 1;
     if (start_i < a->num_keyframes && a->keyframes[start_i].pos < end_pos) {
 	start_i = current_i + 1;
@@ -1283,9 +1289,9 @@ bool automations_triage_motion(Timeline *tl)
 	    keyframe_move_coords(k, main_win->mousep.x, main_win->mousep.y);
 	    return true;
 	} else {
-	    /* if (tl->dragging_keyframe) { */
-	    /* 	tl->dragging_keyframe = NULL; */
-	    /* } */
+	    if (tl->dragging_keyframe) {
+		tl->dragging_keyframe = NULL;
+	    }
 	}
     }
     return false;
@@ -1420,7 +1426,6 @@ static void automation_push_write_event(Automation *a)
 	a->undo_cache_len, zero,
 	redo_cache_len, a->undo_cache_len,
 	0, 0, false, true);
-
 }
 
 bool automation_triage_click(uint8_t button, Automation *a)
@@ -1437,7 +1442,8 @@ bool automation_triage_click(uint8_t button, Automation *a)
 	    }
 	    return true;
 	}
-	if (SDL_PointInRect(&main_win->mousep, a->bckgrnd_rect) && main_win->i_state & I_STATE_CMDCTRL) {
+	if (SDL_PointInRect(&main_win->mousep, a->bckgrnd_rect)) {
+	    /* if (main_win->i_state & I_STATE_CMDCTRL) { */
 	    int32_t clicked_pos_sframes = timeline_get_abspos_sframes(main_win->mousep.x);
 	    /* uint16_t insertion_i = automation_get_segment(a, clicked_pos_sframes); */
 	    Keyframe *insertion = automation_get_segment(a, clicked_pos_sframes);
@@ -1454,17 +1460,17 @@ bool automation_triage_click(uint8_t button, Automation *a)
 	    if (next) right_kf_dist = abs(next->draw_x - main_win->mousep.x);	
 	    /* fprintf(stderr, "LDIST %d RDIST %d\n", left_kf_dist, right_kf_dist); */
 	  
-	    if (left_kf_dist < click_tolerance && left_kf_dist < right_kf_dist) {
+	    if (left_kf_dist < click_tolerance && left_kf_dist < right_kf_dist && !(main_win->i_state & I_STATE_SHIFT)) {
 		a->track->tl->dragging_keyframe = insertion;
 		keyframe_move_coords(insertion, main_win->mousep.x, main_win->mousep.y);
 		/* fprintf(stderr, "Left kf clicked\n"); */
-	    } else if (right_kf_dist < click_tolerance) {
+	    } else if (right_kf_dist < click_tolerance && !(main_win->i_state & I_STATE_SHIFT)) {
 		a->track->tl->dragging_keyframe = next;
 		a->track->tl->dragging_kf_cache_pos = next->pos;
 		a->track->tl->dragging_kf_cache_val = next->value;
 		keyframe_move_coords(next, main_win->mousep.x, main_win->mousep.y);
 		/* fprintf(stderr, "Right kf clicked\n"); */
-	    } else {
+	    } else if (main_win->i_state & I_STATE_CMDCTRL) {
 		double val_prop = (double)(a->bckgrnd_rect->y + a->bckgrnd_rect->h - main_win->mousep.y) / a->bckgrnd_rect->h;
 		Value range_scaled = jdaw_val_scale(a->range, val_prop, a->val_type);
 		Value v = jdaw_val_add(a->min, range_scaled, a->val_type);
@@ -1487,7 +1493,8 @@ bool automation_triage_click(uint8_t button, Automation *a)
 		    0, 0, false, true);
 		a->track->tl->dragging_kf_cache_pos = k->pos;
 		a->track->tl->dragging_kf_cache_val = k->value;
-
+	    } else {
+		a->track->tl->dragging_keyframe = NULL;
 	    }
 	    return true;
 	}
@@ -1688,7 +1695,6 @@ void user_tl_pause(void *nullarg);
 /*     keyframe_recalculate_m(a, kcr->last - a->keyframes); */
 /* } */
 
-
 void automation_record(Automation *a)
 {
     /* static int32_t start_pos = 0; */
@@ -1748,34 +1754,139 @@ void automation_record(Automation *a)
     }
 }
 
-
-/* NO OP */
 void automation_clear_cache(Automation *a)
 {
     a->ghost_valid = false;
 }
 
+NEW_EVENT_FN(undo_delete_keyframe, "undo delete keyframe")
+    Keyframe *inserted = automation_insert_keyframe_at((Automation *)obj1, val1.int32_v, val2);
+    self->obj2 = (void *)inserted;
+}
 
-void TEST_automation_keyframe_order(Automation *a)
+NEW_EVENT_FN(redo_delete_keyframe, "redo delete keyframe")
+    Keyframe *k = (Keyframe *)obj2;
+    keyframe_remove(k);
+}
+
+void keyframe_delete(Keyframe *k)
 {
-    int32_t pos = a->keyframes->pos;
-    for (uint16_t i=0; i<a->num_keyframes; i++) {
-	if (i != 0 && a->keyframes[i].pos <= pos) {
-	    fprintf(stderr, "ERROR:\n");
-	    fprintf(stderr, "Keyframe positions out of order.\n");
-	    for (uint16_t j=0; j<a->num_keyframes; j++) {
-		fprintf(stderr, "\ti: %d, pos: %d", j, a->keyframes[j].pos);
-		if (i==j) {
-		    fprintf(stderr, " <--\n");
-		} else {
-		    fprintf(stderr, "\n");
-		}
-	    }
-	    exit(1);
-	}
-	pos = a->keyframes[i].pos;
+    /* Keyframe *cpy = malloc(sizeof(Keyframe)); */
+    /* memcpy(cpy, k, sizeof(Keyframe)); */
+    Value pos = {.int32_v = k->pos};
+    Automation *a = k->automation;
+    Value v = k->value;
+    keyframe_remove(k);
+    Value nullval;
+    memset(&nullval, '\0', sizeof(Value));
+    user_event_push(
+	&proj->history,
+	undo_delete_keyframe,
+	redo_delete_keyframe,
+	NULL, NULL,
+	(void *)a, NULL,
+	pos, v,
+	nullval, nullval,
+	0, 0, false, false);
+}
+
+void automation_delete_keyframe_range(Automation *a, int32_t start_pos, int32_t end_pos)
+{
+    uint16_t start_i, end_i;
+    if (automation_get_kf_range(a, start_pos, end_pos, &start_i, &end_i)) {
+	fprintf(stderr, "KEYFRAMES IN RANGE: %d, start %d\n", end_i - start_i, start_i);
+	uint16_t num_keyframes = end_i - start_i;
+	Keyframe *range_cpy = malloc(num_keyframes * sizeof(Keyframe));
+	memcpy(range_cpy, a->keyframes + start_i, num_keyframes * sizeof(Keyframe));
+
+	automation_remove_kf_range(a, start_pos, end_pos);
     }
 }
+
+
+/* TEST_FN_DEF(automation_keyframe_order, { */
+/* 	int32_t pos = a->keyframes->pos; */
+/* 	for (uint16_t i=0; i<a->num_keyframes; i++) { */
+/* 	    if (i != 0 && a->keyframes[i].pos <= pos) { */
+/* 		fprintf(stderr, "ERROR:\n"); */
+/* 		fprintf(stderr, "Keyframe positions out of order.\n"); */
+/* 		for (uint16_t j=0; j<a->num_keyframes; j++) { */
+/* 		    fprintf(stderr, "\ti: %d, pos: %d", j, a->keyframes[j].pos); */
+/* 		    if (i==j) { */
+/* 			fprintf(stderr, " <--\n"); */
+/* 		    } else { */
+/* 			fprintf(stderr, "\n"); */
+/* 		    } */
+/* 		} */
+/* 		return 1; */
+/* 	    } */
+/* 	    pos = a->keyframes[i].pos; */
+/* 	} */
+/* 	return 0; */
+/*     }, Automation *a); */
+
+bool automation_handle_delete(Automation *a)
+{
+    fprintf(stderr, "HANDLE DEL\n");
+    Timeline *tl = a->track->tl;
+    if (tl->dragging_keyframe) {
+	fprintf(stderr, "second case\n");
+	keyframe_delete(tl->dragging_keyframe);
+	tl->dragging_keyframe = NULL;
+	return true;
+    }
+    if (tl->in_mark_sframes < tl->out_mark_sframes) {
+	fprintf(stderr, "first case\n");
+	automation_delete_keyframe_range(a, tl->in_mark_sframes, tl->out_mark_sframes);
+	return true;
+    }
+
+    return false;
+}
+
+TEST_FN_DEF(track_automation_order,
+	{
+	    bool a_index_fault = false;
+	    bool layout_index_fault = false;
+	    for (uint8_t i=0; i<track->num_automations; i++) {
+		Automation *a = track->automations[i];
+		if (a->index != i) a_index_fault = true;
+		if (a->layout->index != i + 1) layout_index_fault = true;
+	    }
+
+	    if (a_index_fault || layout_index_fault) {
+		fprintf(stderr, "Fault (%d, %d) in track \"%s\"\n", a_index_fault, layout_index_fault, track->name);
+		for (uint8_t i=0; i<track->num_automations; i++) {
+		    Automation *a = track->automations[i];
+		    fprintf(stderr, "i: %d, index: %d, layout: %d\n",i, a->index, a->layout->index);
+		}
+		return 1;
+	    }
+	    return 0;
+
+	}, Track *track);
+    
+
+/* void TEST_track_automation_order(Track *track) */
+/* { */
+
+/*     bool a_index_fault = false; */
+/*     bool layout_index_fault = false; */
+/*     for (uint8_t i=0; i<track->num_automations; i++) { */
+/* 	Automation *a = track->automations[i]; */
+/* 	if (a->index != i) a_index_fault = true; */
+/* 	if (a->layout->index != i) layout_index_fault = true; */
+/*     } */
+
+/*     if (a_index_fault || layout_index_fault) { */
+/* 	fprintf(stderr, "Fault (%d, %d) in track \"%s\"\n", a_index_fault, layout_index_fault, track->name); */
+/* 	for (uint8_t i=0; i<track->num_automations; i++) { */
+/* 	    Automation *a = track->automations[i]; */
+/* 	    fprintf(stderr, "i: %d, index: %d, layout: %d\n",i, a->index, a->layout->index); */
+/* 	} */
+/* 	exit(1); */
+/*     } */
+/* } */
 
 /* void TEST_kclipref_bounds(Automation *a) */
 /* { */
@@ -1790,3 +1901,21 @@ void TEST_automation_keyframe_order(Automation *a)
 	
 /*     } */
 /* } */
+
+TEST_FN_DEF(automation_keyframe_order, {
+	int32_t pos = automation->keyframes[0].pos;
+	for (uint16_t i=1; i<automation->num_keyframes; i++) {
+	    Keyframe *k = automation->keyframes + i;
+	    if (k->pos <= pos) {
+		return 1;
+	    }
+	    pos = k->pos;
+	}
+    }, Automation *automation);
+
+
+TEST_FN_DEF(automation_index, {
+	if (automation != automation->track->automations[automation->index])
+	    return 1;
+	return 0;
+    }, Automation *automation);

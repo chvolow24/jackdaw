@@ -109,9 +109,9 @@ void status_set_statstr(const char *statstr)
 
 void status_set_callstr(const char *callstr)
 {
-    if (proj->status_bar.stat_timer > 0) {
-	return;
-    }
+    /* if (proj->status_bar.stat_timer > 0) { */
+    /* 	return; */
+    /* } */
     layout_force_reset(proj->status_bar.layout);
     strcpy(proj->status_bar.callstr, callstr);
     textbox_size_to_fit(proj->status_bar.call, 0, 0);
@@ -127,9 +127,9 @@ void status_set_callstr(const char *callstr)
 
 void status_cat_callstr(const char *catstr)
 {
-    if (proj->status_bar.stat_timer > 0) {
-	return;
-    }
+    /* if (proj->status_bar.stat_timer > 0) { */
+    /* 	return; */
+    /* } */
     strcat(proj->status_bar.callstr, catstr);
     textbox_size_to_fit(proj->status_bar.call, 0, 0);
     layout_center_agnostic(proj->status_bar.call->layout, false, true);

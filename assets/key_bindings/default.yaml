@@ -109,8 +109,10 @@
   - C-S-i	: tl_track_set_in
   - C-<del>	: tl_track_delete
   - S-t		: tl_track_open_settings
-  - a		: tl_track_add_automation
-  - <del>	: tl_cliprefs_delete
+  - a		: tl_track_show_hide_automations
+  - C-a		: tl_track_add_automation
+  - S-r		: tl_track_automation_toggle_read
+  - <del>	: tl_delete_generic
   - m		: tl_mute
   - s		: tl_solo
   - g		: tl_grab_clips_at_point

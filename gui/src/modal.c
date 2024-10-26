@@ -515,6 +515,10 @@ bool modal_triage_mouse(Modal *modal, SDL_Point *mousep, bool click)
 		case MODAL_EL_DIRNAV:
 		    dirnav_triage_click(el->obj, mousep);
 		    break;
+		case MODAL_EL_RADIO:
+		    radio_click((RadioButton *)el->obj, main_win);
+		    break;
+
 		default:
 		    break;
 		

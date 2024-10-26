@@ -401,6 +401,12 @@ static void mode_load_timeline()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
+	"tl_track_automation_toggle_read",
+	"Toggle automation read",
+        user_tl_track_automation_toggle_read);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
 	"tl_move_track_down",
 	"Move selected track down",
 	user_tl_move_track_down);
@@ -662,6 +668,12 @@ static void mode_load_timeline()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
+	"tl_track_show_hide_automations",
+	"Show or hide all track automations",
+	user_tl_track_show_hide_automations);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
 	"tl_track_add_automation",
 	"Add automation to track",
 	user_tl_track_add_automation);
@@ -695,9 +707,9 @@ static void mode_load_timeline()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
-	"tl_cliprefs_delete",
-	"Delete selected clip(s)",
-	user_tl_cliprefs_delete);
+	"tl_delete_generic",
+	"Delete",
+	user_tl_delete_generic);
     mode_subcat_add_fn(sc, fn);
     
 

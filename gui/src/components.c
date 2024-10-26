@@ -619,6 +619,27 @@ void waveform_draw(Waveform *w)
     waveform_draw_all_channels_generic(w->channels, w->type, w->num_channels, w->len, &w->layout->rect, 0, main_win->w_pix);
 }
 
+/* Canvas */
+
+Canvas *canvas_create(Layout *lt, void (*draw_fn)(void *, void *), void *draw_arg1, void *draw_arg2)
+{
+    Canvas *c = calloc(1, sizeof(Canvas));
+    c->layout = lt;
+    c->draw_fn = draw_fn;
+    c->draw_arg1 = draw_arg1;
+    c->draw_arg2 = draw_arg2;
+    return c;
+}
+
+void canvas_draw(Canvas *c)
+{
+    c->draw_fn(c->draw_arg1, c->draw_arg2);
+}
+
+void canvas_destroy(Canvas *c)
+{
+    free(c);
+}
 
 /* Mouse functions */
 
@@ -722,8 +743,6 @@ bool button_click(Button *button, Window *win)
     return false;
 }
 
-/* Symbol button */
-
 bool symbol_button_click(SymbolButton *sbutton, Window *win)
 {
     if (SDL_PointInRect(&main_win->mousep, &sbutton->layout->rect)) {
@@ -732,29 +751,6 @@ bool symbol_button_click(SymbolButton *sbutton, Window *win)
 	return true;
     }
     return false;
-}
-
-
-/* Canvas */
-
-Canvas *canvas_create(Layout *lt, void (*draw_fn)(void *, void *), void *draw_arg1, void *draw_arg2)
-{
-    Canvas *c = calloc(1, sizeof(Canvas));
-    c->layout = lt;
-    c->draw_fn = draw_fn;
-    c->draw_arg1 = draw_arg1;
-    c->draw_arg2 = draw_arg2;
-    return c;
-}
-
-void canvas_draw(Canvas *c)
-{
-    c->draw_fn(c->draw_arg1, c->draw_arg2);
-}
-
-void canvas_destroy(Canvas *c)
-{
-    free(c);
 }
 
 

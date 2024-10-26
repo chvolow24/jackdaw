@@ -582,6 +582,37 @@ bool jdaw_val_is_zero(Value a, ValType type)
     }
 }
 
+bool jdaw_val_equal(Value a, Value b, ValType type)
+{
+    double epsilon = 1e-9;
+    switch (type) {
+    case JDAW_FLOAT:
+	return fabs(fabs(a.float_v) - fabs(b.float_v)) < epsilon;
+    case JDAW_DOUBLE:
+	return fabs(fabs(a.double_v) - fabs(b.float_v)) < epsilon;
+    case JDAW_INT:
+	return a.int_v == b.int_v;
+    case JDAW_UINT8:
+	return a.uint8_v == b.uint8_v;
+    case JDAW_UINT16:
+	return a.uint16_v == b.uint16_v;
+    case JDAW_UINT32:
+	return a.uint32_v == b.uint32_v;
+    case JDAW_INT8:
+	return a.int8_v == b.int8_v;
+    case JDAW_INT16:
+	return a.int16_v == b.int16_v;
+    case JDAW_INT32:
+	return a.int32_v == b.int32_v;
+    case JDAW_BOOL:
+	return a.bool_v == b.bool_v;
+    default:
+	return 0;
+	break;
+    }
+}
+
+
 bool jdaw_val_sign_match(Value a, Value b, ValType type)
 {
     switch (type) {

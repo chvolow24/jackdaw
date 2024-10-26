@@ -1237,10 +1237,41 @@ void user_tl_track_add_automation(void *nullarg)
     track_automations_show_all(track);
 }
 
+void user_tl_track_show_hide_automations(void *nullarg)
+{
+    Timeline *tl = ACTIVE_TL;
+    Track *track = ACTIVE_TRACK(tl);
+    if (track->num_automations == 0) {
+	status_set_errstr("No automation tracks to show. C-a to add");
+	return;
+    }
+    bool some_shown = false;
+    for (uint8_t i=0; i<track->num_automations; i++) {
+	if (track->automations[i]->shown) {
+	    some_shown = true;
+	    break;
+	}
+    }
+    if (some_shown) {
+	track_automations_hide_all(track);
+    } else {
+	track_automations_show_all(track);
+    }
+}
+
+void user_tl_track_automation_toggle_read(void *nullarg)
+{
+    Timeline *tl = ACTIVE_TL;
+    Track *track = ACTIVE_TRACK(tl);
+    if (TRACK_AUTO_SELECTED(track)) {
+	Automation *a = track->automations[track->selected_automation];
+	automation_toggle_read(a);
+    }
+
+}
 
 void user_tl_record(void *nullarg)
 {
-    
     Timeline *tl = ACTIVE_TL;
     Track *sel_track = ACTIVE_TRACK(tl);
     if (sel_track->selected_automation >= 0) {
@@ -1297,7 +1328,6 @@ void user_tl_clipref_grab_ungrab()
 	}
     }
 
-
     if (clip_grabbed) {
 	for (uint8_t i=0; i<num_clips; i++) {
 	    clipref_grab(clips_to_grab[i]);
@@ -1319,7 +1349,6 @@ void user_tl_clipref_grab_ungrab()
     if (proj->dragging) {
 	status_stat_drag();
     }
-
     
     /* if (num_undo_crs > 0) { */
     /* 	ClipRef **clips = calloc(num_undo_crs, sizeof(ClipRef *)); */
@@ -1710,7 +1739,7 @@ void DEPRECATED_user_tl_cliprefs_destroy(void *nullarg)
     tl->needs_redraw = true;
 }
 
-void user_tl_cliprefs_delete(void *nullarg)
+void user_tl_delete_generic(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
     Track *t;
@@ -1718,6 +1747,7 @@ void user_tl_cliprefs_delete(void *nullarg)
 	if (automation_handle_delete(t->automations[t->selected_automation]))
 	    return;
     } else if (tl->dragging_keyframe) {
+	status_cat_callstr(" selected keyframe");
 	keyframe_delete(tl->dragging_keyframe);
 	tl->dragging_keyframe = NULL;
 	return;
@@ -1728,6 +1758,7 @@ void user_tl_cliprefs_delete(void *nullarg)
     /* 	return; */
     /* } */
     if (tl) {
+	status_cat_callstr(" grabbed clip(s)");
 	timeline_delete_grabbed_cliprefs(tl);
     }
     if (proj->dragging) {

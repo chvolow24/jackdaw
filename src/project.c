@@ -105,6 +105,7 @@ extern SDL_Color color_global_red;
 extern SDL_Color color_global_green;
 extern SDL_Color color_global_light_grey;
 extern SDL_Color color_global_quickref_button_blue;
+extern SDL_Color color_global_grey;
 
 extern Symbol *SYMBOL_TABLE[];
 
@@ -1297,6 +1298,10 @@ static void track_reset_full(Track *track);
 static int auto_dropdown_action(void *self, void *xarg)
 {
     Track *t = (Track *)xarg;
+    if (t->num_automations == 0) {
+	track_add_new_automation(t);
+	return 0;
+    }
     bool some_shown = false;
     for (uint8_t i=0; i<t->num_automations; i++) {
 	if (t->automations[i]->shown) some_shown = true;
@@ -1492,6 +1497,7 @@ Track *timeline_add_track(Timeline *tl)
 	auto_dropdown_action,
 	(void *)track,
 	NULL);
+    track->automation_dropdown->background_color = &color_global_grey;
     auto_dropdown_lt->w.value.intval = track->automation_dropdown->symbol->x_dim_pix / main_win->dpi_scale_factor;
     auto_dropdown_lt->h.value.intval = track->automation_dropdown->symbol->y_dim_pix / main_win->dpi_scale_factor;
     auto_dropdown_lt->x.value.intval+=4;

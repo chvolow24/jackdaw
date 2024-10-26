@@ -1104,6 +1104,10 @@ void layout_destroy(Layout *lt)
             lt->parent->children[i] = lt->parent->children[i + 1];
             lt->parent->children[i]->index--;
         }
+	if (lt->parent->num_children == 0) {
+	    fprintf(stderr, "Fatal error in layout_destroy: decrementing parent num_children past zero\n");
+	    exit(1);
+	}
         lt->parent->num_children--;
     }
     layout_destroy_inner(lt);
@@ -1538,6 +1542,8 @@ void layout_remove_child(Layout *child)
 	parent->children[i - 1]->index--;
     }
     parent->num_children--;
+    child->cached_parent = parent;
+    child->parent = NULL;
 }
 
 void layout_insert_child_at(Layout *child, Layout *parent, uint8_t index)

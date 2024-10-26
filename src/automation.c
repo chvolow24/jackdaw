@@ -95,8 +95,11 @@ const char *AUTOMATION_LABELS[] = {
 /*     /\* a->ghost_valid = false; *\/ */
 /*     /\* a->changing = true; *\/ */
 /* } */
+
+TEST_FN_DECL(layout_num_children, Layout *lt);
 void automation_destroy(Automation *a)
 {
+    TEST_FN_CALL(layout_num_children, a->track->layout);
     if (a->keyframes) 
 	free(a->keyframes);
     if (a->undo_cache)
@@ -114,29 +117,39 @@ void automation_destroy(Automation *a)
 
 static void automation_remove(Automation *a)
 {
-   Track *track = a->track;
+    Track *track = a->track;
     bool displace = false;
+    bool some_read = false;
     for (uint16_t i=0; i<track->num_automations; i++) {
 	if (track->automations[i] == a) {
 	    displace = true;
 	    /* layout_remove_child_at(a->layout->parent, a->layout->index); */
 	    layout_remove_child(a->layout);
 	    
-	} else if (displace) {
-	    track->automations[i]->index--;
-	    track->automations[i - 1] = track->automations[i];
+	} else {
+	    if (track->automations[i]->read) some_read = true;
+	    if (displace) {
+		track->automations[i]->index--;
+		track->automations[i - 1] = track->automations[i];
+	    }
+	    
+	    
 	}
+	
     }
     layout_reset(a->layout);
     layout_size_to_fit_children_v(a->track->layout, true, 0);
     timeline_rectify_track_area(a->track->tl);
 
-    layout_size_to_fit_children_v(a->layout->parent, true, 0);
+    layout_size_to_fit_children_v(a->layout->cached_parent, true, 0);
     layout_size_to_fit_children_v(track->layout, true, 0);
     timeline_rectify_track_area(a->track->tl);
     /* layout_force_reset(track->layout->parent); */
     /* timeline_reset(track->tl, false); */
     track->num_automations--;
+    if (!some_read || track->num_automations == 0) {
+	track->automation_dropdown->background_color = &color_global_grey;
+    }
     TEST_FN_CALL(track_automation_order, track);
 }
 
@@ -412,12 +425,19 @@ bool automation_toggle_read(Automation *a)
 	track->some_automations_read = true;
 	textbox_set_background_color(a->read_button->tb, &color_global_play_green);
 	textbox_set_text_color(a->read_button->tb, &color_global_white);
+	track->automation_dropdown->background_color = &color_global_play_green;
     } else {
 	textbox_set_background_color(a->read_button->tb, &color_global_grey);
 	for (uint8_t i=0; i<track->num_automations; i++) {
-	    if (track->automations[i]->read) return 0;
+	    if (track->automations[i]->read) {
+		track->some_automations_read = true;
+		return 0;
+	    }
 	}
 	track->some_automations_read = false;
+	track->automation_dropdown->background_color = &color_global_grey;
+	track->some_automations_read = false;
+
     }
     return 0;
 }
@@ -1281,6 +1301,49 @@ static void keyframe_move_coords(Keyframe *k, int x, int y)
     }
 }
 
+
+
+NEW_EVENT_FN(undo_redo_move_keyframe, "undo/redo move keyframe")
+    Automation *a = (Automation *)obj1;
+    uint16_t index = *((uint16_t *)obj2);
+    Keyframe *k = a->keyframes + index;
+    keyframe_move(k, val1.int32_v, val2);
+}
+
+
+static void automation_set_dragging_kf(Keyframe *k)
+{
+    fprintf(stderr, "SET dragging kf\n");
+    Timeline *tl = k->automation->track->tl;
+    tl->dragging_keyframe = k;
+    tl->dragging_kf_cache_pos = k->pos;
+    tl->dragging_kf_cache_val = k->value;
+}
+
+static void automation_unset_dragging_kf(Timeline *tl)
+{
+    Keyframe *k;
+    if ((k = tl->dragging_keyframe)) {
+	if (k->pos != tl->dragging_kf_cache_pos || !jdaw_val_equal(k->value, tl->dragging_kf_cache_val, k->automation->val_type)) {
+	    uint16_t *index = malloc(sizeof(int32_t));
+	    *index = k - k->automation->keyframes;
+	    Value cache_pos_val = {.int32_v = tl->dragging_kf_cache_pos};
+	    Value new_pos_val = {.int32_v = k->pos};
+	    user_event_push(
+		&proj->history,
+		undo_redo_move_keyframe,
+		undo_redo_move_keyframe,
+		NULL, NULL,
+		(void *)k->automation, (void *)index,
+		cache_pos_val, tl->dragging_kf_cache_val,
+		new_pos_val, k->value,
+		0, 0, false, true); 
+	}
+	tl->dragging_keyframe = NULL;
+    }
+}
+
+
 bool automations_triage_motion(Timeline *tl)
 {
     Keyframe *k = tl->dragging_keyframe;
@@ -1289,9 +1352,10 @@ bool automations_triage_motion(Timeline *tl)
 	    keyframe_move_coords(k, main_win->mousep.x, main_win->mousep.y);
 	    return true;
 	} else {
-	    if (tl->dragging_keyframe) {
-		tl->dragging_keyframe = NULL;
-	    }
+	    automation_unset_dragging_kf(tl);
+	    /* if (tl->dragging_keyframe) { */
+	    /* 	tl->dragging_keyframe = NULL; */
+	    /* } */
 	}
     }
     return false;
@@ -1380,7 +1444,8 @@ NEW_EVENT_FN(redo_insert_keyframe, "redo insert keyframe")
 NEW_EVENT_FN(undo_insert_keyframe, "undo insert keyframe")
     Automation *a = (Automation *)obj1;
     /* Keyframe *k = (Keyframe *)obj2; */
-    int32_t index = *(int32_t *)obj2;
+    /* int32_t index = *(int32_t *)obj2; */
+    int32_t index = val1.int32_v;
     /* automation_remove_kf_range(a, k->pos - 1, k->pos); */
     keyframe_remove(a->keyframes + index);
 }
@@ -1396,7 +1461,8 @@ NEW_EVENT_FN(undo_redo_automation_write, "undo/redo automation write")
     automation_clear_cache(a);
 }
 
-static void automation_undo_cache(Automation *a)
+
+static void automation_write_set_undo_cache(Automation *a)
 {
     if (a->undo_cache) free(a->undo_cache);
     a->undo_cache = malloc(a->num_keyframes * sizeof(Keyframe));
@@ -1436,7 +1502,7 @@ bool automation_triage_click(uint8_t button, Automation *a)
 	if (button_click(a->read_button, main_win)) return true;
 	if (button_click(a->write_button, main_win)) {
 	    if (a->write) {
-		automation_undo_cache(a);
+		automation_write_set_undo_cache(a);
 	    } else {
 		automation_push_write_event(a);
 	    }
@@ -1461,13 +1527,15 @@ bool automation_triage_click(uint8_t button, Automation *a)
 	    /* fprintf(stderr, "LDIST %d RDIST %d\n", left_kf_dist, right_kf_dist); */
 	  
 	    if (left_kf_dist < click_tolerance && left_kf_dist < right_kf_dist && !(main_win->i_state & I_STATE_SHIFT)) {
-		a->track->tl->dragging_keyframe = insertion;
+		/* a->track->tl->dragging_keyframe = insertion; */
+		automation_set_dragging_kf(insertion);
 		keyframe_move_coords(insertion, main_win->mousep.x, main_win->mousep.y);
 		/* fprintf(stderr, "Left kf clicked\n"); */
 	    } else if (right_kf_dist < click_tolerance && !(main_win->i_state & I_STATE_SHIFT)) {
-		a->track->tl->dragging_keyframe = next;
-		a->track->tl->dragging_kf_cache_pos = next->pos;
-		a->track->tl->dragging_kf_cache_val = next->value;
+		automation_set_dragging_kf(next);
+		/* a->track->tl->dragging_keyframe = next; */
+		/* a->track->tl->dragging_kf_cache_pos = next->pos; */
+		/* a->track->tl->dragging_kf_cache_val = next->value; */
 		keyframe_move_coords(next, main_win->mousep.x, main_win->mousep.y);
 		/* fprintf(stderr, "Right kf clicked\n"); */
 	    } else if (main_win->i_state & I_STATE_CMDCTRL) {
@@ -1478,9 +1546,11 @@ bool automation_triage_click(uint8_t button, Automation *a)
 		/* a->track->tl->dragging_keyframe = a->keyframes + new_i; */
 		Keyframe *k = a->track->tl->dragging_keyframe = automation_insert_keyframe_at(a, clicked_pos_sframes, v);
 		Value nullval;
+		Value indexval;
+		indexval.int32_v = k - a->keyframes;
 		Value posval = {.int32_v = k->pos};
-		int32_t *index = malloc(sizeof(int32_t));
-		*index = k - a->keyframes;
+		/* int32_t *index = malloc(sizeof(int32_t)); */
+		/* *index = k - a->keyframes; */
 		memset(&nullval, '\0', sizeof(Value));
 		user_event_push(
 		    &proj->history,
@@ -1488,13 +1558,15 @@ bool automation_triage_click(uint8_t button, Automation *a)
 		    redo_insert_keyframe,
 		    NULL, NULL,
 		    a, index,
-		    posval, nullval,
+		    indexval, nullval,
 		    posval, k->value,
-		    0, 0, false, true);
-		a->track->tl->dragging_kf_cache_pos = k->pos;
-		a->track->tl->dragging_kf_cache_val = k->value;
+		    0, 0, false, false);
+		automation_set_dragging_kf(k);
+		/* a->track->tl->dragging_kf_cache_pos = k->pos; */
+		/* a->track->tl->dragging_kf_cache_val = k->value; */
 	    } else {
-		a->track->tl->dragging_keyframe = NULL;
+		automation_unset_dragging_kf(a->track->tl);
+		/* a->track->tl->dragging_keyframe = NULL; */
 	    }
 	    return true;
 	}
@@ -1702,7 +1774,7 @@ void automation_record(Automation *a)
     /* static Value cache_len; */
     bool write = automation_toggle_write(a);
     if (write) {
-	automation_undo_cache(a);
+	automation_write_set_undo_cache(a);
 	user_tl_play(NULL);
 	timeline_play_speed_set(1.0);
     } else {
@@ -1827,20 +1899,18 @@ void automation_delete_keyframe_range(Automation *a, int32_t start_pos, int32_t 
 
 bool automation_handle_delete(Automation *a)
 {
-    fprintf(stderr, "HANDLE DEL\n");
     Timeline *tl = a->track->tl;
     if (tl->dragging_keyframe) {
-	fprintf(stderr, "second case\n");
 	keyframe_delete(tl->dragging_keyframe);
 	tl->dragging_keyframe = NULL;
+	status_cat_callstr(" selected keyframe");
 	return true;
     }
     if (tl->in_mark_sframes < tl->out_mark_sframes) {
-	fprintf(stderr, "first case\n");
 	automation_delete_keyframe_range(a, tl->in_mark_sframes, tl->out_mark_sframes);
+	status_cat_callstr(" keyframe in->out");
 	return true;
     }
-
     return false;
 }
 
@@ -1853,7 +1923,6 @@ TEST_FN_DEF(track_automation_order,
 		if (a->index != i) a_index_fault = true;
 		if (a->layout->index != i + 1) layout_index_fault = true;
 	    }
-
 	    if (a_index_fault || layout_index_fault) {
 		fprintf(stderr, "Fault (%d, %d) in track \"%s\"\n", a_index_fault, layout_index_fault, track->name);
 		for (uint8_t i=0; i<track->num_automations; i++) {
@@ -1863,7 +1932,6 @@ TEST_FN_DEF(track_automation_order,
 		return 1;
 	    }
 	    return 0;
-
 	}, Track *track);
     
 
@@ -1911,6 +1979,7 @@ TEST_FN_DEF(automation_keyframe_order, {
 	    }
 	    pos = k->pos;
 	}
+	return 0;
     }, Automation *automation);
 
 
@@ -1919,3 +1988,16 @@ TEST_FN_DEF(automation_index, {
 	    return 1;
 	return 0;
     }, Automation *automation);
+
+TEST_FN_DEF(layout_num_children, {
+	int ret = 0;
+	for (uint8_t i=0; i<lt->num_children; i++) {
+	    Layout *child = lt->children[i];
+	    if (!child) {
+		fprintf(stderr, "EXCESS children on layout %s: %d\n", lt->name, lt->num_children);
+		return 1;
+	    }
+	    ret += layout_num_children(child);
+	}
+	return ret;
+    }, Layout *lt);

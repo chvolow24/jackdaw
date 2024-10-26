@@ -74,5 +74,6 @@ void jdaw_valptr_set_str(char *dst, size_t dstsize, void *value, ValType type, i
 void jdaw_val_set_str(char *dst, size_t dstsize, Value value, ValType type, int decimal_places);
 bool jdaw_val_less_than(Value a, Value b, ValType type);
 bool jdaw_val_is_zero(Value a, ValType type);
+bool jdaw_val_equal(Value a, Value b, ValType type);
 bool jdaw_val_sign_match(Value a, Value b, ValType type);
 #endif

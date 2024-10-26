@@ -188,6 +188,7 @@ bool automation_triage_click(uint8_t button, Automation *a);
 bool automations_triage_motion(Timeline *tl);
 void automation_record(Automation *a);
 bool automation_handle_delete(Automation *a);
+bool automation_toggle_read(Automation *a);
 /* void keyframe_delete(Keyframe *k); */
 void keyframe_delete(Keyframe *k);
 

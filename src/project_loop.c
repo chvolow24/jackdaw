@@ -333,12 +333,12 @@ void loop_project_main()
 		    /* } */
 		    /* fprintf(stdout, "Input fn? %p, do fn? %p\n", input_fn, input_fn->do_fn); */
 		    if (input_fn && input_fn->do_fn) {
-			input_fn->do_fn(NULL);
 			char *keycmd_str = input_get_keycmd_str(main_win->i_state, e.key.keysym.sym);
 			status_set_callstr(keycmd_str);
 			free(keycmd_str);
 			status_cat_callstr(" : ");
 			status_cat_callstr(input_fn->fn_display_name);
+			input_fn->do_fn(NULL);
 			/* timeline_reset(proj->timelines[proj->active_tl_index]); */
 		    }
 		    break;

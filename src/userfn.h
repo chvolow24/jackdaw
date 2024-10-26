@@ -80,8 +80,9 @@ void user_tl_track_set_in(void *nullarg);
 void user_tl_track_add_filter(void *nullarg);
 void user_tl_track_destroy(void *nullarg);
 void user_tl_track_delete(void *nullarg);
+void user_tl_track_show_hide_automations(void *nullarg);
 void user_tl_track_add_automation(void *nullarg);
-
+void user_tl_track_automation_toggle_read(void *nullarg);
 
 void user_tl_track_open_settings(void *nullarg);
 void user_tl_mute(void *nullarg);
@@ -98,7 +99,7 @@ void user_tl_record(void *nullarg);
 void user_tl_clipref_grab_ungrab(void *nullarg);
 /* Deprecated; use user_tl_cliprefs_delete */
 void user_tl_cliprefs_destroy(void *nullarg);
-void user_tl_cliprefs_delete(void *nullarg);
+void user_tl_delete_generic(void *nullarg);
 
 void user_tl_load_clip_at_point_to_src(void *nullarg);
 void user_tl_activate_source_mode(void *nullarg);

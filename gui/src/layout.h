@@ -79,6 +79,7 @@ typedef struct layout {
     Dimension h;
     char name[MAX_LT_NAMELEN];
     Layout *parent;
+    Layout *cached_parent;
     Layout *children[MAX_CHILDREN];
     uint8_t num_children;
     uint8_t index;

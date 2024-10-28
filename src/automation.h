@@ -81,7 +81,7 @@ typedef struct keyframe {
     int draw_x;
     
     /* KClip *kclip; /\* Optional; used for replication of envelopes *\/ */
-    int32_t pos_rel; /* Position relative to KClip start */
+    /* int32_t pos_rel; /\* Position relative to KClip start *\/ */
 } Keyframe;
 
 /* typedef struct keyframe_clipref KClipRef; */
@@ -151,9 +151,18 @@ typedef struct automation {
 /*     Keyframe *last; */
 /* } KClipRef; */
 
+
+
 /* Automation *track_add_automation(Track *track, AutomationType type); */
 void automation_clear_cache(Automation *a);
+
+/* High-level function opens a modal window for user to select automation type */
 void track_add_new_automation(Track *track);
+
+/* To prompt user for automation type, use "track_add_new_automation" instead */
+Automation *track_add_automation(Track *track, AutomationType type);
+
+    
 Value automation_get_value(Automation *a, int32_t pos, float direction);
 void automation_draw(Automation *a);
 Keyframe *automation_insert_keyframe_at(
@@ -181,6 +190,9 @@ void automation_delete(Automation *a);
 void automation_do_write(Automation *a, int32_t pos, int32_t end_pos, float step);
 void automation_reset_keyframe_x(Automation *a);
 /* Keyframe *automation_get_segment(Automation *a, int32_t at); */
+
+void automation_show(Automation *a);
+void automation_hide(Automation *a);
 void track_automations_show_all(Track *track);
 void track_automations_hide_all(Track *track);
 

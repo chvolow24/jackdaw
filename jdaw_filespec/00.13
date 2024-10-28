@@ -1,4 +1,4 @@
-/**************************** .JDAW VERSION 00.12 FILE SPEC ***********************************
+/**************************** .JDAW VERSION 00.13 FILE SPEC ***********************************
 
 ===========================================================================================================
 SCTN          LEN IN BYTES      TYPE                      BYTE ORDER   FIELD NAME OR VALUE
@@ -45,15 +45,30 @@ TRCK	      1                 bool                                   muted
 TRCK	      1                 bool                                   soloed
 TRCK 	      1                 bool                                   solo muted
 TRCK   	      1                 uint8_t                                num cliprefs
-TRCK_FX	      1			bool				       fir_filter_active
-TRCK_FX	      1			uint8_t				       fir_filter_type
-TRCK_FX	      16		char[16] (from double)		       fir_filter_cutoff_freq
-TRCK_FX	      16		char[16] (from double)		       fir_filter_bandwidth
-TRCK_FX	      2			uint16_t       			       fir_filter_impulse_response_len
-TRCK_FX	      1			bool				       delay_line_active
-TRCK_FX	      4			int32_t				       delay_line_len
-TRCK_FX	      16		char[16] (from double)		       delay_line_stereo_offset
-TRCK_FX	      16		char[16] (from double)		       delay_line_amp
+
+............................
+...[CLIP_REFs; SEE BELOW]...
+............................
+
+TRCK	      1			uint8_t 			       num_automations
+
+.............................
+...[TRCK_AUTOs; SEE BELOW]...
+.............................
+
+TRCK_FX	      1			bool				       fir filter active
+TRCK_FX	      1			uint8_t				       fir filter type
+TRCK_FX	      16		char[16] (from double)		       fir filter cutoff_freq
+TRCK_FX	      16		char[16] (from double)		       fir filter bandwidth
+TRCK_FX	      2			uint16_t       			       fir filter impulse_response_len
+TRCK_FX	      1			bool				       delay line active
+TRCK_FX	      4			int32_t				       delay line len
+TRCK_FX	      16		char[16] (from double)		       delay line stereo_offset
+TRCK_FX	      16		char[16] (from double)		       delay line amp
+
+.................................................................................
+.................................................................................
+.................................................................................
 
 [MULTIPLE PER TRACK]
 CLIP_REF      7                 char[7]                                "CLIPREF"
@@ -66,5 +81,21 @@ CLIP_REF      4                 uint32_t                  LE           in mark (
 CLIP_REF      4			uint32_t		  LE	       out mark (sframes)
 CLIP_REF      4                 uint32_t                  LE           clipref start ramp len (sframes)
 CLIP_REF      4                 uint32_t                  LE           clipref end ramp len (sframes)
+
+[MULTIPLE PER TRACK]
+TRCK_AUTO     4			char[4]			  	       "AUTO"
+TRCK_AUTO     1			uint8_t				       automation type
+TRCK_AUTO     1			uint8_t				       val_type
+TRCK_AUTO     16		char[16] (from Value)		       min
+TRCK_AUTO     16		char[16] (from Value)		       max
+TRCK_AUTO     16		char[16] (from Value)		       range
+TRCK_AUTO     1			bool	       			       read
+TRCK_AUTO     1			bool				       shown
+TRCK_AUTO     2			uint16_t	          LE	       num keyframes
+
+[MULTIPLE PER AUTOMATION]
+AUTO_KF	      4			char[4]				       "KEYF"
+AUTO_KF	      4			int32_t			  LE	       position (sample frames)
+AUTO_KF	      16		char[16] (from Value)	  	       value
 
 *********************************************************************************/

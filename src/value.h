@@ -33,16 +33,16 @@
 /*      0 ) */
 
 typedef enum value_type {
-    JDAW_FLOAT,
-    JDAW_DOUBLE,
-    JDAW_INT,
-    JDAW_UINT8,
-    JDAW_UINT16,
-    JDAW_UINT32,
-    JDAW_INT8,
-    JDAW_INT16,
-    JDAW_INT32,
-    JDAW_BOOL,
+    JDAW_FLOAT = 0,
+    JDAW_DOUBLE = 1,
+    JDAW_INT = 2,
+    JDAW_UINT8 = 3,
+    JDAW_UINT16 = 4,
+    JDAW_UINT32 = 5,
+    JDAW_INT8 = 6,
+    JDAW_INT16 = 7,
+    JDAW_INT32 = 8,
+    JDAW_BOOL = 9
 } ValType;
 
 typedef union value {
@@ -76,4 +76,6 @@ bool jdaw_val_less_than(Value a, Value b, ValType type);
 bool jdaw_val_is_zero(Value a, ValType type);
 bool jdaw_val_equal(Value a, Value b, ValType type);
 bool jdaw_val_sign_match(Value a, Value b, ValType type);
+void jdaw_val_serialize(Value v, ValType type, FILE *f, uint8_t dstsize);
+Value jdaw_val_deserialize(FILE *f, uint8_t size, ValType type);
 #endif

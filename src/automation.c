@@ -218,8 +218,7 @@ void automation_delete(Automation *a)
 	0, 0, false, false);
 }
 
-
-static Automation *track_add_automation(Track *track, AutomationType type)
+Automation *track_add_automation(Track *track, AutomationType type)
 {
     Automation *a = calloc(1, sizeof(Automation));
     a->track = track;
@@ -242,6 +241,7 @@ static Automation *track_add_automation(Track *track, AutomationType type)
     Value base_kf_val;
     switch (type) {
     case AUTO_VOL:
+	fprintf(stderr, "OK auto vol\n");
 	a->val_type = JDAW_FLOAT;
 	a->min.float_v = 0.0f;
 	a->max.float_v = TRACK_VOL_MAX;
@@ -497,6 +497,8 @@ void automation_show(Automation *a)
 	Layout *tb_lt = layout_get_child_by_name_recursive(lt, "label");
 	layout_reset(tb_lt);
 
+	fprintf(stderr, "A type int val: %d\n", a->type);
+	fprintf(stderr, "Corresponding label: %s\n", AUTOMATION_LABELS[a->type]);
 	a->label = textbox_create_from_str(
 	    AUTOMATION_LABELS[a->type],
 	    tb_lt,

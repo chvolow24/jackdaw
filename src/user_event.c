@@ -62,6 +62,7 @@ int user_event_do_redo(UserEventHistory *history)
     UserEvent *e = NULL;
     if (!history->next_undo) {
 	e = history->oldest;
+	if (!e) return 1;
     } else if (!history->next_undo->next) return 1;
     if (!e) e = history->next_undo->next;
     if (!e) return 1;

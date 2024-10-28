@@ -73,8 +73,8 @@ char DIRPATH_SAVED_PROJ[MAX_PATHLEN];
 char DIRPATH_OPEN_FILE[MAX_PATHLEN];
 char DIRPATH_EXPORT[MAX_PATHLEN];
 
-bool sys_byteorder_le = false;
-volatile bool cancel_threads = false;
+bool SYS_BYTEORDER_LE = false;
+volatile bool CANCEL_THREADS = false;
 
 Window *main_win;
 Project *proj = NULL;
@@ -83,7 +83,7 @@ Project *proj = NULL;
 static void get_native_byte_order()
 {
     #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    sys_byteorder_le = true;
+    SYS_BYTEORDER_LE = true;
     #else
     sys_byteorder_le = false;
     #endif
@@ -131,7 +131,7 @@ static void init()
 
 static void quit()
 {
-    cancel_threads = true;
+    CANCEL_THREADS = true;
     pd_signal_termination_of_jackdaw();
     if (proj->recording) {
 	transport_stop_recording();
@@ -153,10 +153,50 @@ Project *jdaw_read_file(const char *path);
 
 extern bool connection_open;
 
-void dir_tests();
+
+/* void value_serialize_test() */
+/* { */
+/*     char dst[17]; */
+/*     double test = 1.2345678987654321; */
+    
+/*     snprintf(dst, 16, "%.16g", test); */
+/*     fprintf(stderr, "Dst: %s\n", dst); */
+
+/*     FILE *f = fopen("hello.txt", "w"); */
+/*     ValType t = JDAW_FLOAT; */
+/*     Value a; */
+/*     a.float_v = 3.141593456789098765456789; */
+/*     jdaw_val_serialize(a, t, f, 16); */
+/*     a.float_v = -3.141593456789098765456789; */
+/*     jdaw_val_serialize(a, t, f, 16); */
+/*     t = JDAW_BOOL; */
+/*     a.bool_v = true; */
+/*     jdaw_val_serialize(a, t, f, 16); */
+/*     a.double_v = 3.141593456789098765456789; */
+/*     t = JDAW_DOUBLE; */
+/*     jdaw_val_serialize(a, t, f, 16); */
+/*     fclose(f); */
+    
+    
+/*     f = fopen("hello.txt", "r"); */
+/*     a = jdaw_val_deserialize(f, 16, JDAW_FLOAT); */
+/*     fprintf(stderr, "A: %.16g\n", a.float_v); */
+/*     a = jdaw_val_deserialize(f, 16, JDAW_FLOAT); */
+/*     fprintf(stderr, "A: %.16g\n", a.float_v); */
+/*     a = jdaw_val_deserialize(f, 16, JDAW_BOOL); */
+/*     fprintf(stderr, "A: %d\n", a.bool_v); */
+/*     a = jdaw_val_deserialize(f, 16, JDAW_DOUBLE); */
+/*     fprintf(stderr, "A: %f\n", a.double_v); */
+/*     fclose(f); */
+    
+
+/* } */
+
 int main(int argc, char **argv)
 {
 
+    /* value_serialize_test(); */
+    /* return 1; */
     /* SDL_Rect test = {0, 0, 1000, 1000}; */
     /* struct logscale_array *la = waveform_create_logscale(NULL, 512, &test); */
     /* fprintf(stdout, "Interval : %f\n", la->interval); */

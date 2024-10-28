@@ -14,7 +14,7 @@ extern SDL_Color color_global_black;
 extern SDL_Color color_global_green;
 extern SDL_Color color_global_grey;
 #ifndef LAYOUT_BUILD
-extern volatile bool cancel_threads;
+extern volatile bool CANCEL_THREADS;
 #endif
 int textbox_default_radius = 0;
 
@@ -189,7 +189,7 @@ static int scheduled_color_change(void *data)
     Textbox *tb = (Textbox *)data;
     for (int i=0; i<tb->color_change_timer; i++) {
 	#ifndef LAYOUT_BUILD
-	if (cancel_threads) return 0;
+	if (CANCEL_THREADS) return 0;
 	#endif
 	SDL_Delay(1);
 	

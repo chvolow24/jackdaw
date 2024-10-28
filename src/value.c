@@ -1,5 +1,6 @@
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "value.h"
 
@@ -638,4 +639,93 @@ bool jdaw_val_sign_match(Value a, Value b, ValType type)
 	return 0;
 	break;
     }
+}
+
+void jdaw_val_serialize(Value v, ValType type, FILE *f, uint8_t dstsize)
+{
+
+    char dst[dstsize + 1];
+    switch (type) {
+    case JDAW_FLOAT:
+	snprintf(dst, dstsize, "%.*g", dstsize, v.float_v);
+	break;
+    case JDAW_DOUBLE:
+	snprintf(dst, dstsize, "%.*g", dstsize, v.double_v);
+	break;
+    case JDAW_INT:
+	snprintf(dst, dstsize, "%d", v.int_v);
+	break;
+    case JDAW_UINT8:
+	snprintf(dst, dstsize, "%d", v.uint8_v);
+	break;
+    case JDAW_UINT16:
+	snprintf(dst, dstsize, "%d", v.uint16_v);
+	break;	
+    case JDAW_UINT32:
+	snprintf(dst, dstsize, "%d", v.uint32_v);
+	break;
+    case JDAW_INT8:
+	snprintf(dst, dstsize, "%d", v.int8_v);
+	break;
+    case JDAW_INT16:
+	snprintf(dst, dstsize, "%d", v.int16_v);
+	break;
+    case JDAW_INT32:
+	snprintf(dst, dstsize, "%d", v.int32_v);
+	break;
+    case JDAW_BOOL:
+	snprintf(dst, dstsize, "%d", v.bool_v);
+	break;
+    default:
+	break;
+    }
+    dst[dstsize] = '\0';
+    fwrite(dst, 1, dstsize, f);
+}
+
+
+
+
+Value jdaw_val_deserialize(FILE *f, uint8_t size, ValType type)
+{
+    char buf[size + 1];
+    fread(buf, 1, size, f);
+    buf[size] = '\0';
+    
+    Value ret;
+    switch (type) {
+    case JDAW_FLOAT:
+	ret.float_v = atof(buf);
+	break;
+    case JDAW_DOUBLE:
+	ret.double_v = atof(buf);
+	break;
+    case JDAW_INT:
+	ret.int_v = atoi(buf);
+	break;
+    case JDAW_UINT8:
+	ret.uint8_v = atoi(buf);
+	break;
+    case JDAW_UINT16:
+	ret.uint16_v = atoi(buf);
+	break;
+    case JDAW_UINT32:
+	ret.uint32_v = atoi(buf);
+	break;
+    case JDAW_INT8:
+	ret.int8_v = atoi(buf);
+	break;
+    case JDAW_INT16:
+	ret.int16_v = atoi(buf);
+	break;
+    case JDAW_INT32:
+	ret.int32_v = atoi(buf);
+	break;
+    case JDAW_BOOL:
+	ret.bool_v = atoi(buf);
+	break;
+    default:
+	break;
+    }
+    return ret;
 }

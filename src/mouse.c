@@ -248,14 +248,15 @@ Layout *mouse_triage_wheel(int x, int y, bool dynamic)
     return NULL;
 }
 
-void mouse_triage_click_text_edit(uint8_t button)
+bool mouse_triage_click_text_edit(uint8_t button)
 {
     Text *txt = main_win->txt_editing;
-    if (!txt) return;
-    if (!SDL_PointInRect(&main_win->mousep, &txt->container->rect))
-    {
+    if (!txt) return false;
+    if (!SDL_PointInRect(&main_win->mousep, &txt->container->rect)) {
 	txt_stop_editing(txt);
+	return false;
     }
+    return true;
 }
 
 

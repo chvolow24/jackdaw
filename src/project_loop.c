@@ -79,7 +79,7 @@ extern SDL_Color freq_R_color;
 
 extern Project *proj;
 
-extern volatile bool cancel_threads;
+extern volatile bool CANCEL_THREADS;
 
 /* static int timed_stop_update_track_vol_pan(void *data) */
 /* { */
@@ -457,6 +457,7 @@ void loop_project_main()
 		} else if (e.button.button == SDL_BUTTON_RIGHT) {
 		    main_win->i_state |= I_STATE_MOUSE_R;
 		}
+	    escaped_text_edit:
 		switch(TOP_MODE) {
 		case TIMELINE:
 		    /* if (!mouse_triage_click_page() && !mouse_triage_click_tabview()) */
@@ -469,7 +470,9 @@ void loop_project_main()
 		    mouse_triage_click_modal(e.button.button);
 		    break;
 		case TEXT_EDIT:
-		    mouse_triage_click_text_edit(e.button.button);
+		    if (!mouse_triage_click_text_edit(e.button.button)) {
+			goto escaped_text_edit;
+		    }
 		    break;
 		case TABVIEW:
 		    if (!mouse_triage_click_tabview())
@@ -483,6 +486,7 @@ void loop_project_main()
 		if (e.button.button == SDL_BUTTON_LEFT) {
 		    main_win->i_state &= ~I_STATE_MOUSE_L;
 		    proj->dragged_component.component = NULL;
+		    automation_unset_dragging_kf(proj->timelines[proj->active_tl_index]);
 		} else if (e.button.button == SDL_BUTTON_RIGHT) {
 		    main_win->i_state &= ~I_STATE_MOUSE_R;
 		}

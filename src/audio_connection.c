@@ -163,7 +163,9 @@ int audioconn_open(Project *proj, AudioConn *conn)
 	device->spec.samples = proj->chunk_size_sframes;
 	device->spec.freq = proj->sample_rate;
 
-	device->spec.channels = proj->channels;
+	if (conn->iscapture) {
+	    device->spec.channels = 4;
+	}
 	device->spec.callback = conn->iscapture ? transport_record_callback : transport_playback_callback;
 	device->spec.userdata = conn;
 
@@ -172,7 +174,7 @@ int audioconn_open(Project *proj, AudioConn *conn)
 	    fprintf(stdout, "ID: %d\n", device->id);
 	    device->spec = obtained;
 	    conn->open = true;
-	    fprintf(stderr, "Successfully opened device %s, with id: %d, chunk size %d\n", conn->name, device->id, obtained.samples);
+	    fprintf(stderr, "Successfully opened device %s, with id: %d, chunk size %d, %d channels\n", conn->name, device->id, obtained.samples, obtained.channels);
 	} else {
 	    conn->open = false;
 	    fprintf(stderr, "Error opening audio device %s : %s\n", conn->name, SDL_GetError());

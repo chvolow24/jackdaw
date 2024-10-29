@@ -1315,14 +1315,13 @@ NEW_EVENT_FN(undo_redo_move_keyframe, "undo/redo move keyframe")
 
 static void automation_set_dragging_kf(Keyframe *k)
 {
-    fprintf(stderr, "SET dragging kf\n");
     Timeline *tl = k->automation->track->tl;
     tl->dragging_keyframe = k;
     tl->dragging_kf_cache_pos = k->pos;
     tl->dragging_kf_cache_val = k->value;
 }
 
-static void automation_unset_dragging_kf(Timeline *tl)
+void automation_unset_dragging_kf(Timeline *tl)
 {
     Keyframe *k;
     if ((k = tl->dragging_keyframe)) {

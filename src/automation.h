@@ -196,6 +196,7 @@ void automation_hide(Automation *a);
 void track_automations_show_all(Track *track);
 void track_automations_hide_all(Track *track);
 
+void automation_unset_dragging_kf(Timeline *tl);
 bool automation_triage_click(uint8_t button, Automation *a);
 bool automations_triage_motion(Timeline *tl);
 void automation_record(Automation *a);

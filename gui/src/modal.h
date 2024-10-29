@@ -30,6 +30,7 @@ typedef struct modal {
     uint8_t num_selectable;
     uint8_t selected_i;
     ComponentFn submit_form;
+    SymbolButton *x;
 } Modal;
 
 Modal *modal_create(Layout *lt);
@@ -57,6 +58,7 @@ ModalEl *modal_add_radio(
     ComponentFn action,
     const char **item_names,
     uint8_t num_items);
+
 void modal_reset(Modal *modal);
 void modal_draw(Modal *modal);
 

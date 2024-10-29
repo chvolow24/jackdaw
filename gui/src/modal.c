@@ -47,6 +47,7 @@ extern SDL_Color menu_std_clr_sctn_div;
 
 
 
+extern Symbol *SYMBOL_TABLE[];
 /* SDL_Color modal_color_background = (SDL_Color){220, 160, 0, 245}; */
 SDL_Color modal_color_background = (SDL_Color){30, 80, 80, 255};
 
@@ -57,9 +58,35 @@ SDL_Color modal_textentry_background = (SDL_Color) {200, 200, 200, 255};
 SDL_Color modal_textentry_text_color = (SDL_Color) {10, 30, 100, 255};
 SDL_Color modal_button_color = (SDL_Color) {200, 200, 200, 255};
 
+extern SDL_Color color_global_red;
+
+
+void user_modal_dismiss(void *nullarg);
+static int modal_x_action(void *self, void *target)
+{
+    user_modal_dismiss(NULL);
+    return 0;
+}
+
 Modal *modal_create(Layout *lt)
 {
     Modal *modal = calloc(1, sizeof(Modal));
+    if (!modal->x) {
+	Layout *x_lt = layout_add_child(lt);
+	x_lt->x.type = REVREL;
+	x_lt->x.value.intval = 16;
+	x_lt->y.value.intval = 10;
+	x_lt->h.value.intval = SYMBOL_STD_DIM;
+	x_lt->w.value.intval = SYMBOL_STD_DIM;
+    
+	modal->x = symbol_button_create(
+	    x_lt,
+	    SYMBOL_TABLE[SYMBOL_X],
+	    modal_x_action,
+	    NULL,
+	    &color_global_red);
+    }
+
     /* Layout *padded = layout_add_child(lt); */
     /* padded->x.value.intval = MODAL_V_PADDING; */
     /* padded->y.value.intval = MODAL_V_PADDING; */
@@ -118,7 +145,11 @@ void modal_destroy(Modal *modal)
 static ModalEl *modal_add_el(Modal *modal)
 {
     Layout *lt = layout_add_child(modal->layout);
-    lt->y.type = STACK;
+    if (modal->num_els == 0) {
+	lt->y.type = REL;
+    } else {
+	lt->y.type = STACK;
+    }
     lt->y.value.intval = MODAL_V_PADDING;
     lt->w.type = SCALE;
     lt->w.value.floatval = 1.0;
@@ -190,6 +221,7 @@ ModalEl *modal_add_header(Modal *modal, const char *text, SDL_Color *color, int 
 	el->layout->x.value.intval = 0;
     }
     layout_force_reset(modal->layout);
+
     return el;
 }
 
@@ -286,6 +318,24 @@ ModalEl *modal_add_radio(
     return el;
 }
 
+static void modal_add_x(Modal *modal)
+{
+    Layout *x_lt = layout_add_child(modal->layout);
+    x_lt->x.type = REVREL;
+    x_lt->x.value.intval = 10;
+    x_lt->y.value.intval = 10;
+    x_lt->h.value.intval = SYMBOL_STD_DIM;
+    x_lt->w.value.intval = SYMBOL_STD_DIM;
+    
+    modal->x = symbol_button_create(
+	x_lt,
+	SYMBOL_TABLE[SYMBOL_X],
+	NULL,
+	NULL,
+	&color_global_red);
+
+}
+
 static void modal_el_reset(ModalEl *el)
 {
     /* fprintf(stdout, "Resetting el... \n"); */
@@ -311,7 +361,6 @@ static void modal_el_reset(ModalEl *el)
 
 void modal_reset(Modal *modal)
 {
-    layout_force_reset(modal->layout);
     for (uint8_t i=0; i<modal->num_els; i++) {
 	modal_el_reset(modal->els[i]);
 	/* layout_force_reset(modal->layout); */
@@ -386,6 +435,8 @@ void modal_draw(Modal *modal)
 	/* SDL_Rect r = modal->els[modal->selectable_indices[modal->selected_i]]->layout->rect; */
 	/* fprintf(stdout, "R: %d %d %d %d\n", r.x, r.y, r.w, r.h); */
     }
+    if (modal->x) 
+	symbol_button_draw(modal->x);
     /* layout_draw(main_win, modal->layout); */
     /* layout_write(stdout, modal->layout, 0); */
 }
@@ -491,6 +542,10 @@ bool modal_triage_mouse(Modal *modal, SDL_Point *mousep, bool click)
 	    window_pop_modal(main_win);
 	}
 	return false;
+    }
+
+    if (click && modal->x) {
+	if (symbol_button_click(modal->x, main_win)) return true;
     }
     ModalEl *el;
     uint8_t i;

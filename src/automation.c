@@ -173,9 +173,13 @@ static void automation_reinsert(Automation *a)
 	    timeline_rectify_track_area(a->track->tl);
 	    track_automations_show_all(track);
 	    TEST_FN_CALL(track_automation_order, track);
+	    if (a->read) {
+		track->automation_dropdown->background_color = &color_global_dropdown_green;
+	    }
 	    return;
 	}
     }
+
     TEST_FN_CALL(track_automation_order, track);
 }
 

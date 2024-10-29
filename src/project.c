@@ -2177,6 +2177,7 @@ void track_destroy(Track *track, bool displace)
     if (track->delay_line.lock) SDL_DestroyMutex(track->delay_line.lock);
     if (track->buf_L_freq_mag) free(track->buf_L_freq_mag);
     if (track->buf_R_freq_mag) free(track->buf_R_freq_mag);
+    if (track->automation_dropdown) symbol_button_destroy(track->automation_dropdown);
     free(track);
 }
 

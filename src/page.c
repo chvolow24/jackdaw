@@ -215,6 +215,7 @@ void page_destroy(Page *page)
     for (uint8_t i=0; i<page->num_elements; i++) {
 	page_el_destroy(page->elements[i]);
     }
+    layout_destroy(page->layout);
     free(page);
 }
 

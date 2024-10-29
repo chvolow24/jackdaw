@@ -70,6 +70,7 @@ void label_destroy(Label *label)
 {
     free(label->str);
     textbox_destroy(label->tb);
+    free(label);
 }
 
 

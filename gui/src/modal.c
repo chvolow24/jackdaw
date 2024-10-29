@@ -137,6 +137,7 @@ void modal_destroy(Modal *modal)
     for (uint8_t i=0; i<modal->num_els; i++) {
 	modal_el_destroy(modal->els[i]);
     }
+    if (modal->x) symbol_button_destroy(modal->x);
     layout_destroy(modal->layout);
     free(modal);
 

@@ -1871,7 +1871,6 @@ void automation_delete_keyframe_range(Automation *a, int32_t start_pos, int32_t 
 {
     uint16_t start_i, end_i;
     if (automation_get_kf_range(a, start_pos, end_pos, &start_i, &end_i)) {
-	fprintf(stderr, "KEYFRAMES IN RANGE: %d, start %d\n", end_i - start_i, start_i);
 	uint16_t num_keyframes = end_i - start_i;
 	Keyframe *range_cpy = malloc(num_keyframes * sizeof(Keyframe));
 	memcpy(range_cpy, a->keyframes + start_i, num_keyframes * sizeof(Keyframe));

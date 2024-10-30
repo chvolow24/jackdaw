@@ -41,11 +41,11 @@
     #define TEST_FN_DECL(name, ...) \
         int name(__VA_ARGS__)
     #define TEST_FN_CALL(name, ...) \
-        {int code = name(__VA_ARGS__);	    \
+        {int code = name(__VA_ARGS__);						\
         if (code != 0) {						\
-	fprintf(stderr, "\n%s:%d:\ttest \"%s\" failed with error code %d\n", __FILE__, __LINE__, #name, code); \
+	    fprintf(stderr, "\n%s:%d:\ttest \"%s\" failed with error code %d\n", __FILE__, __LINE__, #name, code); \
 	    exit(1); \
-        }}
+	}}
 #else
     #define TEST_FN_DEF(name, body, ...)
     #define TEST_FN_DECL(name, ...)

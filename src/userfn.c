@@ -5,6 +5,7 @@
 #include "input.h"
 #include "menu.h"
 #include "modal.h"
+#include "panel.h"
 #include "project.h"
 #include "settings.h"
 #include "status.h"
@@ -37,6 +38,7 @@ extern char DIRPATH_EXPORT[MAX_PATHLEN];
 extern SDL_Color color_global_light_grey;
 extern SDL_Color color_global_quickref_button_pressed;
 extern SDL_Color color_global_quickref_button_blue;
+/* extern SDL_Color color_global_white; */
 
 #define NO_TRACK_ERRSTR "No track. Add new with C-t"
 
@@ -62,9 +64,41 @@ void user_global_menu(void *nullarg)
     window_add_menu(main_win, new);
 }
 
-void user_global_quit(void *nullarg)
+static int quit_yes_action(void *self, void *xarg)
 {
     main_win->i_state |= I_STATE_QUIT;
+    return 0;
+}
+
+void user_modal_dismiss(void *nullarg);
+static int quit_no_action(void *self, void *xarg)
+{
+    proj->quit_count = 0;
+    /* user_modal_dismiss(NULL); */
+    window_pop_modal(main_win);
+    Timeline *tl = ACTIVE_TL;
+    tl->needs_redraw = true;
+
+    return 0;
+}
+
+void user_global_quit(void *nullarg)
+{
+    if (proj->quit_count == 0) {
+	Layout *lt = layout_add_child(main_win->layout);
+	layout_set_default_dims(lt);
+	Modal *m = modal_create(lt);
+	modal_add_header(m, "Really quit?", &color_global_light_grey, 3);
+	modal_add_button(m, "Yes", quit_yes_action);
+	modal_add_button(m, "No", quit_no_action);
+	m->x->action = quit_no_action;
+	modal_reset(m);
+	window_push_modal(main_win, m);
+    } else if (proj->quit_count > 1) {
+	quit_yes_action(NULL, NULL);
+    }
+    proj->quit_count++;
+
     /* exit(0); //TODO: add the i_state to window (or proj?) to quit naturally. */
 }
 
@@ -80,7 +114,8 @@ void user_global_redo(void *nullarg)
 
 void user_global_show_output_freq_domain(void *nullarg)
 {
-    proj->show_output_freq_domain = !proj->show_output_freq_domain;
+    /* proj->show_output_freq_domain = !proj->show_output_freq_domain; */
+    panel_page_refocus(proj->panels, "Output spectrum", 0);
 }
 
 
@@ -836,7 +871,6 @@ void user_tl_add_track(void *nullarg)
 	NULL);
     tl->needs_redraw = true;
 
-
     Value nullval = {.int_v = 0};
     user_event_push(
 	&proj->history,
@@ -954,6 +988,7 @@ void user_tl_track_selector_up(void *nullarg)
     if (selected->num_automations > 0 && selected->selected_automation > -1) {
 	selected->selected_automation--;
 	timeline_refocus_track(tl, selected, false);
+	tl->needs_redraw = true;
 	return;
     }
     if (tl->track_selector > 0) {
@@ -966,6 +1001,7 @@ void user_tl_track_selector_up(void *nullarg)
 
     }
     if (!selected) {
+	tl->needs_redraw = true;
 	return;
     }
     timeline_refocus_track(tl, selected, false);
@@ -1017,6 +1053,7 @@ void user_tl_track_selector_down(void *nullarg)
 	    }
 	} else {
 	    timeline_refocus_track(tl, selected, true);
+	    tl->needs_redraw = true;
 	    return;
 	}
     }
@@ -1070,6 +1107,7 @@ static void move_track(int direction)
     } else {
 	timeline_move_track(tl, track, direction, false);
     }
+    tl->needs_redraw = true;
 }
 
 void user_tl_move_track_up(void *nullarg)
@@ -1271,6 +1309,7 @@ void user_tl_track_show_hide_automations(void *nullarg)
     } else {
 	track_automations_show_all(track);
     }
+    tl->needs_redraw = true;
 }
 
 void user_tl_track_automation_toggle_read(void *nullarg)
@@ -1285,6 +1324,7 @@ void user_tl_track_automation_toggle_read(void *nullarg)
 	Automation *a = track->automations[track->selected_automation];
 	automation_toggle_read(a);
     }
+    tl->needs_redraw = true;
 
 }
 
@@ -1298,6 +1338,7 @@ void user_tl_record(void *nullarg)
     }
     if (sel_track && sel_track->selected_automation >= 0) {
 	automation_record(sel_track->automations[sel_track->selected_automation]);
+	tl->needs_redraw = true;
 	return;
     }
     if (proj->recording) {
@@ -1436,7 +1477,9 @@ void user_tl_load_clip_at_point_to_src(void *nullarg)
 	/* txt_set_value_handle(proj->source_name_tb->text, proj->src_clip->name); */
 	Timeline *tl = ACTIVE_TL;
 	tl->needs_redraw = true;
-
+	PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_source_clip_name_tb");
+	Textbox *tb = (Textbox *)el->component;
+	textbox_set_value_handle(tb, cr->clip->name);
 	panel_page_refocus(proj->panels, "Clip source", 1);
     }
 
@@ -1769,12 +1812,15 @@ void user_tl_delete_generic(void *nullarg)
     Timeline *tl = ACTIVE_TL;
     Track *t;
     if ((t = ACTIVE_TRACK(tl)) && TRACK_AUTO_SELECTED(t)) {
-	if (automation_handle_delete(t->automations[t->selected_automation]))
+	if (automation_handle_delete(t->automations[t->selected_automation])) {
+	    tl->needs_redraw = true;
 	    return;
+	}
     } else if (tl->dragging_keyframe) {
 	status_cat_callstr(" selected keyframe");
 	keyframe_delete(tl->dragging_keyframe);
 	tl->dragging_keyframe = NULL;
+	tl->needs_redraw = true;
 	return;
     }
     /* if (tl->dragging_keyframe) { */
@@ -1894,7 +1940,9 @@ void user_modal_select(void *nullarg)
 
 void user_modal_dismiss(void *nullarg)
 {
-    window_pop_modal(main_win);
+    Modal *m = main_win->modals[main_win->num_modals - 1];
+    if (m->x->action) m->x->action(NULL, NULL);
+    /* window_pop_modal(main_win); */
     Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;
 }

@@ -118,6 +118,7 @@ void automation_destroy(Automation *a)
 static void automation_remove(Automation *a)
 {
     Track *track = a->track;
+    track->tl->needs_redraw = true;
     bool displace = false;
     bool some_read = false;
     for (uint16_t i=0; i<track->num_automations; i++) {
@@ -150,12 +151,18 @@ static void automation_remove(Automation *a)
     if (!some_read || track->num_automations == 0) {
 	track->automation_dropdown->background_color = &color_global_grey;
     }
+    if (track->num_automations == 0) {
+	track->selected_automation = -1;
+    } else if (track->selected_automation > track->num_automations - 1) {
+	track->selected_automation = track->selected_automation - 1;
+    }
     TEST_FN_CALL(track_automation_order, track);
 }
 
 static void automation_reinsert(Automation *a)
 {    
     Track *track = a->track;
+    track->tl->needs_redraw = true;
     for (int16_t i=track->num_automations; i>=0; i--) {
 	if (i < track->num_automations) {
 	    /* fprintf(stderr, "incr index, moving %d->%d\n", i, i+1); */
@@ -245,7 +252,6 @@ Automation *track_add_automation(Track *track, AutomationType type)
     Value base_kf_val;
     switch (type) {
     case AUTO_VOL:
-	fprintf(stderr, "OK auto vol\n");
 	a->val_type = JDAW_FLOAT;
 	a->min.float_v = 0.0f;
 	a->max.float_v = TRACK_VOL_MAX;
@@ -501,8 +507,8 @@ void automation_show(Automation *a)
 	Layout *tb_lt = layout_get_child_by_name_recursive(lt, "label");
 	layout_reset(tb_lt);
 
-	fprintf(stderr, "A type int val: %d\n", a->type);
-	fprintf(stderr, "Corresponding label: %s\n", AUTOMATION_LABELS[a->type]);
+	/* fprintf(stderr, "A type int val: %d\n", a->type); */
+	/* fprintf(stderr, "Corresponding label: %s\n", AUTOMATION_LABELS[a->type]); */
 	a->label = textbox_create_from_str(
 	    AUTOMATION_LABELS[a->type],
 	    tb_lt,
@@ -635,6 +641,7 @@ static void keyframe_move(Keyframe *k, int32_t new_pos, Value new_value)
     }
     keyframe_set_y_prop(a, k - a->keyframes);
     k->draw_x = timeline_get_draw_x(new_pos);
+    a->track->tl->needs_redraw = true;
 }
 
 static inline bool kf_in_range(Automation *a, Keyframe *k, uint16_t start, uint16_t end)
@@ -1908,11 +1915,13 @@ bool automation_handle_delete(Automation *a)
 	keyframe_delete(tl->dragging_keyframe);
 	tl->dragging_keyframe = NULL;
 	status_cat_callstr(" selected keyframe");
+	tl->needs_redraw = true;
 	return true;
     }
     if (tl->in_mark_sframes < tl->out_mark_sframes) {
 	automation_delete_keyframe_range(a, tl->in_mark_sframes, tl->out_mark_sframes);
 	status_cat_callstr(" keyframe in->out");
+	tl->needs_redraw = true;
 	return true;
     }
     return false;

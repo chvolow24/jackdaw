@@ -278,7 +278,6 @@ static void clipref_draw(ClipRef *cr)
     /* layout_draw(main_win, cr->layout); */
 }
 
-
 static void track_draw(Track *track)
 {
     if (track->deleted) {
@@ -287,7 +286,6 @@ static void track_draw(Track *track)
     if (track->inner_layout->rect.y + track->inner_layout->rect.h < proj->audio_rect->y || track->inner_layout->rect.y > main_win->layout->rect.h) {
 	goto automations_draw;
     }
-
     if (track->active) {
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(track_bckgrnd_active));
     } else {
@@ -405,9 +403,11 @@ void fill_quadrant_complement(SDL_Renderer *rend, int xinit, int yinit, int r, c
 static int timeline_draw(Timeline *tl)
 {
     /* Only redraw the timeline if necessary */
-    if (!tl->needs_redraw && !proj->recording && !main_win->txt_editing && !(main_win->i_state | I_STATE_MOUSE_L)) {
+    if (!tl->needs_redraw && !proj->recording && !main_win->txt_editing && !(main_win->i_state & I_STATE_MOUSE_L)) {
+	/* fprintf(stderr, "SKIP!\n"); */
 	return 0;
     }
+    /* fprintf(stderr, "Tl redraw? %d\n", tl->needs_redraw); */
     /* static int i=0; */
     /* fprintf(stdout, "TL draw %d\n", i); */
     /* i++; */
@@ -507,6 +507,7 @@ static int timeline_draw(Timeline *tl)
     /* SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 10); */
     /* SDL_RenderFillRect(main_win->rend, &tl->track_area->rect); */
     /* layout_draw(main_win, tl->track_area); */
+    tl->needs_redraw = false;
     return 1;
     /* tl->needs_redraw = false; */
 

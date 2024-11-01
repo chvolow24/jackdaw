@@ -216,6 +216,7 @@ void symbol_draw(Symbol *s, SDL_Rect *dst)
 	/* SDL_RenderClear(s->window->rend); */
 	s->draw_fn((void *)s);
 	SDL_SetRenderTarget(s->window->rend, saved_targ);
+	symbol_draw(s, dst);
     } else {
 	SDL_RenderCopy(s->window->rend, s->texture, NULL, dst);
     }

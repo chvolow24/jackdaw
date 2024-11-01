@@ -31,7 +31,7 @@
     * swap out params for settings pages
  *****************************************************************************************************************/
 
-
+#include <pthread.h>
 #include "dsp.h"
 #include "page.h"
 #include "project.h"
@@ -143,9 +143,11 @@ static int delay_set_offset(void *self_v, void *target)
     /* SDL_LockMutex(dl->lock); */
     /* dl->stereo_offset = offset; */
     /* SDL_UnlockMutex(dl->lock); */
-    SDL_LockMutex(dl->lock);
+    /* SDL_LockMutex(dl->lock); */
+    pthread_mutex_lock(&dl->lock);
     dl->stereo_offset = offset_prop;
-    SDL_UnlockMutex(dl->lock);
+    pthread_mutex_unlock(&dl->lock);
+    /* SDL_UnlockMutex(dl->lock); */
     return 0;
 }
 

@@ -64,7 +64,8 @@ extern SDL_Color color_global_red;
 void user_modal_dismiss(void *nullarg);
 static int modal_x_action(void *self, void *target)
 {
-    user_modal_dismiss(NULL);
+    window_pop_modal(main_win);
+    /* user_modal_dismiss(NULL); */
     return 0;
 }
 
@@ -319,23 +320,23 @@ ModalEl *modal_add_radio(
     return el;
 }
 
-static void modal_add_x(Modal *modal)
-{
-    Layout *x_lt = layout_add_child(modal->layout);
-    x_lt->x.type = REVREL;
-    x_lt->x.value.intval = 10;
-    x_lt->y.value.intval = 10;
-    x_lt->h.value.intval = SYMBOL_STD_DIM;
-    x_lt->w.value.intval = SYMBOL_STD_DIM;
+/* static void modal_add_x(Modal *modal) */
+/* { */
+/*     Layout *x_lt = layout_add_child(modal->layout); */
+/*     x_lt->x.type = REVREL; */
+/*     x_lt->x.value.intval = 10; */
+/*     x_lt->y.value.intval = 10; */
+/*     x_lt->h.value.intval = SYMBOL_STD_DIM; */
+/*     x_lt->w.value.intval = SYMBOL_STD_DIM; */
     
-    modal->x = symbol_button_create(
-	x_lt,
-	SYMBOL_TABLE[SYMBOL_X],
-	NULL,
-	NULL,
-	&color_global_red);
+/*     modal->x = symbol_button_create( */
+/* 	x_lt, */
+/* 	SYMBOL_TABLE[SYMBOL_X], */
+/* 	NULL, */
+/* 	NULL, */
+/* 	&color_global_red); */
 
-}
+/* } */
 
 static void modal_el_reset(ModalEl *el)
 {
@@ -489,6 +490,8 @@ void modal_next_escape(Modal *modal)
     if (modal->selected_i < num_selectable - 1) {
 	modal->selected_i++;
 	modal_move_onto(modal);
+    } else {
+	modal->selected_i = 0;
     }
 }
 
@@ -540,7 +543,8 @@ bool modal_triage_mouse(Modal *modal, SDL_Point *mousep, bool click)
 {
     if (!SDL_PointInRect(mousep, &modal->layout->rect)) {
 	if (click) {
-	    window_pop_modal(main_win);
+	    user_modal_dismiss(NULL);
+	    /* window_pop_modal(main_win); */
 	}
 	return false;
     }

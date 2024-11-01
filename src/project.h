@@ -175,7 +175,7 @@ typedef struct clip_ref {
 
     Layout *layout;
     /* SDL_Rect rect; */
-    SDL_mutex *lock;
+    pthread_mutex_t lock;
     Textbox *label;
 
     SDL_Texture *waveform_texture;
@@ -362,7 +362,7 @@ typedef struct project {
     bool vol_up;
     bool pan_changing;
     bool pan_right;
-    bool show_output_freq_domain;
+    /* bool show_output_freq_domain; */
 
     Draggable dragged_component;
     /* Slider *currently_editing_slider; */
@@ -371,6 +371,9 @@ typedef struct project {
 
     /* Event History (undo/redo) */
     UserEventHistory history;
+
+    /* Quitting */
+    int quit_count;
 
     /* GUI Members */
     Layout *layout;

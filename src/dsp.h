@@ -55,7 +55,8 @@ typedef struct fir_filter {
     uint16_t impulse_response_len;
     uint16_t frequency_response_len;
     uint16_t overlap_len;
-    SDL_mutex *lock;
+    pthread_mutex_t lock;
+    /* SDL_mutex *lock;audio.c */
 } FIRFilter;
 
 typedef struct delay_line {
@@ -70,7 +71,8 @@ typedef struct delay_line {
     double *buf_L;
     double *buf_R;
     double *cpy_buf;
-    SDL_mutex *lock;
+    pthread_mutex_t lock;
+    /* SDL_mutex *lock; */
 } DelayLine;
 
 /* Initialize the dsp subsystem. All this does currently is to populate the nth roots of unity for n < ROU_MAX_DEGREE */

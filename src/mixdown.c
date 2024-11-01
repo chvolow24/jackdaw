@@ -30,6 +30,7 @@
     * Get sampels from tracks/clips for playback or export
  *****************************************************************************************************************/
 
+#include <pthread.h>
 #include "automation.h"
 #include "dsp.h"
 #include "project.h"
@@ -201,9 +202,9 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
 	if (proj->dragging && cr->grabbed) {
 	    continue;
 	}
-	SDL_LockMutex(cr->lock);
+	pthread_mutex_lock(&cr->lock);
 	if (cr->clip->recording) {
-	    SDL_UnlockMutex(cr->lock);
+	    pthread_mutex_unlock(&cr->lock);
 	    continue;
 	}
 	double pos_in_clip_sframes = start_pos_sframes - cr->pos_sframes;
@@ -218,7 +219,7 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
 	}
 	int32_t cr_len = clip_ref_len(cr);
 	if (max < 0 || min > cr_len) {
-	    SDL_UnlockMutex(cr->lock);
+	    pthread_mutex_unlock(&cr->lock);
 	    continue;
 	}
 	float *clip_buf = (channel == 0) ? cr->clip->L : cr->clip->R;
@@ -297,7 +298,7 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
 	    chunk_i++;
 	    abs_pos += step;
 	}	
-	SDL_UnlockMutex(cr->lock);
+	pthread_mutex_unlock(&cr->lock);
 	/* clip_read = true; */
     }
     /* if (!clip_read) { */
@@ -311,7 +312,7 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
     /*     for (uint8_t clip_i=0; clip_i<track->num_clips; clip_i++) { */
     /*         ClipRef *cr = (track->clips)[clip_i]; */
 
-    /* 	    SDL_LockMutex(cr->lock); */
+    /* 	    pthread_mutex_lock(&cr->lock); */
     /* 	    if (cr->clip->recording) { */
     /* 		continue; */
     /* 	    } */
@@ -322,7 +323,7 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
     /*         if (pos_in_clip_sframes >= 0 && pos_in_clip_sframes < cr_len) { */
     /* 		chunk[i] += clip_buf[pos_in_clip_sframes + cr->in_mark_sframes]; */
     /*         } */
-    /* 	    SDL_UnlockMutex(cr->lock); */
+    /* 	    pthread_mutex_unlock(&cr->lock); */
     /*     } */
     /* } */
 
@@ -376,7 +377,7 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 	}
 	if (track->delay_line_active) {
 	    DelayLine *dl = &track->delay_line;
-	    SDL_LockMutex(dl->lock);
+	    pthread_mutex_lock(&dl->lock);
 	    double *del_line = channel == 0 ? dl->buf_L : dl->buf_R;
 	    int32_t *del_line_pos = channel == 0 ? &dl->pos_L : &dl->pos_R;
 	    /* do_fn2(); */
@@ -421,7 +422,7 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 		}
 		/* fprintf(stdout, "del line pos: %d\n", *del_line_pos); */
 	    }
-	    SDL_UnlockMutex(dl->lock);
+	    pthread_mutex_unlock(&dl->lock);
 	}
 
         for (uint32_t i=0; i<len_sframes; i++) {

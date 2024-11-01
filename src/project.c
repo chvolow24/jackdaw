@@ -32,6 +32,7 @@
     * timeline.c contains operations related to visualizing time onscreen
  *****************************************************************************************************************/
 
+#include <pthread.h>
 #include <string.h>
 #include <semaphore.h>
 #include <fcntl.h>
@@ -1460,7 +1461,7 @@ Track *timeline_add_track(Timeline *tl)
 	&slider_label_amp_to_dbstr,
 	NULL,
 	NULL,
-	&proj->dragged_component);
+	&tl->proj->dragged_component);
     SliderStrFn t;
     Value min, max;
     min.float_v = 0.0f;
@@ -1486,7 +1487,7 @@ Track *timeline_add_track(Timeline *tl)
 	slider_label_pan,
 	NULL,
 	NULL,
-	&proj->dragged_component);
+	&tl->proj->dragged_component);
 
     /* slider_reset(track->vol_ctrl); */
     /* slider_reset(track->pan_ctrl); */
@@ -1676,8 +1677,10 @@ ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sfr
     } else {
 	snprintf(cr->name, MAX_NAMELENGTH, "%s", clip->name);
     }
-    cr->lock = SDL_CreateMutex();
-    SDL_LockMutex(cr->lock);
+    pthread_mutex_init(&cr->lock, NULL);
+    /* cr->lock = SDL_CreateMutex(); */
+    /* SDL_LockMutex(cr->lock); */
+    pthread_mutex_lock(&cr->lock);
     track->clips[track->num_clips] = cr;
     track->num_clips++;
     cr->pos_sframes = record_from_sframes;
@@ -1700,7 +1703,7 @@ ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sfr
     /* fprintf(stdout, "Clip num refs: %d\n", clip->num_refs); */
     clip->refs[clip->num_refs] = cr;
     clip->num_refs++;
-    SDL_UnlockMutex(cr->lock);
+    pthread_mutex_unlock(&cr->lock);
     return cr;
 }
 
@@ -2174,7 +2177,8 @@ void track_destroy(Track *track, bool displace)
     if (track->delay_line.buf_L) free(track->delay_line.buf_L);
     if (track->delay_line.buf_R) free(track->delay_line.buf_R);
     if (track->delay_line.cpy_buf) free(track->delay_line.cpy_buf);
-    if (track->delay_line.lock) SDL_DestroyMutex(track->delay_line.lock);
+    /* if (track->delay_line.lock) SDL_DestroyMutex(track->delay_line.lock); */
+    pthread_mutex_destroy(&track->delay_line.lock);
     if (track->buf_L_freq_mag) free(track->buf_L_freq_mag);
     if (track->buf_R_freq_mag) free(track->buf_R_freq_mag);
     if (track->automation_dropdown) symbol_button_destroy(track->automation_dropdown);
@@ -2227,7 +2231,8 @@ void clipref_destroy(ClipRef *cr, bool displace_in_clip)
 	clip_destroy(clip);
     }
     textbox_destroy(cr->label);
-    SDL_DestroyMutex(cr->lock);
+    /* SDL_DestroyMutex(cr->lock); */
+    pthread_mutex_destroy(&cr->lock);
     if (cr->waveform_texture)
 	SDL_DestroyTexture(cr->waveform_texture);
     free(cr);
@@ -2248,7 +2253,8 @@ void clipref_destroy_no_displace(ClipRef *cr)
     if (cr->clip->num_refs == 0) {
 	clip_destroy(cr->clip);
     }
-    SDL_DestroyMutex(cr->lock);
+    pthread_mutex_destroy(&cr->lock);
+    /* SDL_DestroyMutex(cr->lock); */
     textbox_destroy(cr->label);
     if (cr->waveform_texture)
 	SDL_DestroyTexture(cr->waveform_texture);

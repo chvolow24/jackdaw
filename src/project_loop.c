@@ -192,6 +192,8 @@ static void update_track_vol_pan()
 /*     return 0; */
 /* } */
 
+void user_global_quit(void *);
+
 void loop_project_main()
 {
     /* clock_t start, end; */
@@ -220,7 +222,15 @@ void loop_project_main()
 	    /* fprintf(stdout, "Polled!\n"); */
 	    switch (e.type) {
 	    case SDL_QUIT:
-		main_win->i_state |= I_STATE_QUIT;
+		/* proj->quit_count++; */
+		/* if (proj->quit_count > 1) { */
+		/*     main_win->i_state |= I_STATE_QUIT; */
+		/* } else if (proj->quit_count == 0) { */
+		    user_global_quit(NULL);
+		/* } else { */
+		/*     proj->quit_count++; */
+		/* } */
+		/* main_win->i_state |= I_STATE_QUIT; */
 		break;
 	    case SDL_WINDOWEVENT:
 		if (e.window.event == SDL_WINDOWEVENT_RESIZED) {
@@ -380,6 +390,8 @@ void loop_project_main()
 		}
 		break;
 	    case SDL_MOUSEWHEEL: {
+		Timeline *tl = proj->timelines[proj->active_tl_index];
+		tl->needs_redraw = true;
 		if (proj->dragged_component.component) {
 		    draggable_handle_scroll(&proj->dragged_component, e.wheel.x, e.wheel.y);
 		    break;
@@ -417,8 +429,8 @@ void loop_project_main()
 			    } else if (fabs(scroll_x) > fabs(scroll_y)) {
 				timeline_scroll_horiz(TL_SCROLL_STEP_H * e.wheel.x);
 			    } else if (allow_scroll) {
-				temp_scrolling_lt = proj->timelines[proj->active_tl_index]->track_area;
-				layout_scroll(proj->timelines[proj->active_tl_index]->track_area, 0, scroll_y, fingersdown);
+				temp_scrolling_lt = tl->track_area;
+				layout_scroll(tl->track_area, 0, scroll_y, fingersdown);
 			    }
 			    /* temp_scrolling_lt = proj->timelines[proj->active_tl_index]->track_area; */
 			    /* temp_scrolling_lt->scroll_momentum_v = scroll_y; */

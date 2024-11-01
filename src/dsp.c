@@ -35,6 +35,7 @@
 #include <complex.h>
 #include <stdint.h>
 #include "project.h"
+#include "pthread.h"
 #include "dsp.h"
 
 
@@ -260,7 +261,8 @@ static double bandcut_IR(int x, int offset, double center_freq, double bandwidth
 /* Create an empty FIR filter and allocate space for its buffers. MUST be initialized with 'set_filter_params'*/
 static void FIR_filter_alloc_buffers(FIRFilter *filter)
 {
-    SDL_LockMutex(filter->lock);
+    pthread_mutex_lock(&filter->lock);
+    /* SDL_LockMutex(filter->lock); */
     if (filter->impulse_response) free(filter->impulse_response);
     filter->impulse_response = calloc(1, sizeof(double) * filter->impulse_response_len);
     if (filter->frequency_response) free(filter->frequency_response);
@@ -272,7 +274,8 @@ static void FIR_filter_alloc_buffers(FIRFilter *filter)
     filter->overlap_buffer_L = calloc(1, sizeof(double) * filter->overlap_len);
     if (filter->overlap_buffer_R) free(filter->overlap_buffer_R);
     filter->overlap_buffer_R = calloc(1, sizeof(double) * filter->overlap_len);
-    SDL_UnlockMutex(filter->lock);
+    pthread_mutex_unlock(&filter->lock);
+    /* pthread_mutex_unlock(&filter->lock); */
 
 }
 FIRFilter *filter_create(FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len) 
@@ -286,13 +289,15 @@ FIRFilter *filter_create(FilterType type, uint16_t impulse_response_len, uint16_
     filter->impulse_response_len = impulse_response_len;
     filter->frequency_response_len = frequency_response_len;
     FIR_filter_alloc_buffers(filter);
-    filter->lock = SDL_CreateMutex();
+    pthread_mutex_init(&filter->lock, NULL);
+    /* filter->lock = SDL_CreateMutex(); */
     return filter;
 }
 
 /* Bandwidth param only required for band-pass and band-cut filters */
 void filter_set_params(FIRFilter *filter, FilterType type, double cutoff, double bandwidth)
 {
+    pthread_mutex_lock(&filter->lock);
     filter->type = type;
     filter->cutoff_freq = cutoff;
     filter->bandwidth = bandwidth;
@@ -338,7 +343,7 @@ void filter_set_params(FIRFilter *filter, FilterType type, double cutoff, double
     /* } */
     FFT_unscaled(IR_zero_padded, filter->frequency_response, filter->frequency_response_len);
     get_magnitude(filter->frequency_response, filter->frequency_response_mag, filter->frequency_response_len);
-
+    pthread_mutex_unlock(&filter->lock);
 
     /* free(IR_zero_padded); */
 }
@@ -417,9 +422,10 @@ void filter_destroy(FIRFilter *filter)
     if (filter->frequency_response_mag) {
 	free(filter->frequency_response_mag);
     }
-    if (filter->lock) {
-	SDL_DestroyMutex(filter->lock);
-    }
+    /* if (filter->lock) { */
+    pthread_mutex_destroy(&filter->lock);
+	/* SDL_DestroyMutex(filter->lock); */
+    /* } */
     free(filter);
 }
 
@@ -429,7 +435,8 @@ void filter_destroy(FIRFilter *filter)
 /* Destructive; replaces values in sample_array */
 void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array)
 {
-    SDL_LockMutex(filter->lock);
+    pthread_mutex_lock(&filter->lock);
+    /* SDL_LockMutex(filter->lock); */
     double *overlap_buffer = channel == 0 ? filter->overlap_buffer_L : filter->overlap_buffer_R;
     uint16_t padded_len = filter->frequency_response_len;
     double padded_chunk[padded_len];
@@ -469,80 +476,80 @@ void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chu
             overlap_buffer[i-chunk_size] = real[i];
         }
     }
-    SDL_UnlockMutex(filter->lock);
+    pthread_mutex_unlock(&filter->lock);
 }
 
 
-void ___apply_track_filter(Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array) 
-{
-    if (!track->fir_filter_active == 0) {
-        return;
-    }
-    uint16_t padded_len = proj->chunk_size_sframes * 2;
+/* void ___apply_track_filter(Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array)  */
+/* { */
+/*     if (!track->fir_filter_active == 0) { */
+/*         return; */
+/*     } */
+/*     uint16_t padded_len = proj->chunk_size_sframes * 2; */
 
-    double padded_chunk[padded_len];
-    for (uint16_t i=0; i<padded_len; i++) {
-	if (i<chunk_size) {
-	    padded_chunk[i] = sample_array[i];
-	} else {
-	    padded_chunk[i] = 0.0;
-	}
+/*     double padded_chunk[padded_len]; */
+/*     for (uint16_t i=0; i<padded_len; i++) { */
+/* 	if (i<chunk_size) { */
+/* 	    padded_chunk[i] = sample_array[i]; */
+/* 	} else { */
+/* 	    padded_chunk[i] = 0.0; */
+/* 	} */
 
-    }
-    double complex freq_domain[padded_len];
-    FFT(padded_chunk, freq_domain, padded_len);
-    /* free(padded_chunk); */
+/*     } */
+/*     double complex freq_domain[padded_len]; */
+/*     FFT(padded_chunk, freq_domain, padded_len); */
+/*     /\* free(padded_chunk); *\/ */
 
-    FIRFilter *filter = track->fir_filter;
-    SDL_LockMutex(filter->lock);
-    /* double complex freq_response_sum[filter->frequency_response_len]; */
+/*     FIRFilter *filter = track->fir_filter; */
+/*     pthread_mutex_lock(&filter->lock); */
+/*     /\* double complex freq_response_sum[filter->frequency_response_len]; *\/ */
 	
-    /* memset(freq_response_sum, '\0', sizeof(double complex) * filter->frequency_response_len); */
+/*     /\* memset(freq_response_sum, '\0', sizeof(double complex) * filter->frequency_response_len); *\/ */
 
-    double *overlap_buffer = channel == 0 ? filter->overlap_buffer_L : filter->overlap_buffer_R;
+/*     double *overlap_buffer = channel == 0 ? filter->overlap_buffer_L : filter->overlap_buffer_R; */
 
-    /* if (!overlap_buffer) { */
-    /*     overlap_buffer = malloc(sizeof(double) * filter->overlap_len); */
-    /*     memset(overlap_buffer, '\0', sizeof(double) * filter->overlap_len); */
-    /*     if (channel == 0) { */
-    /* 	filter->overlap_buffer_L = overlap_buffer; */
-    /*     } else { */
-    /* 	filter->overlap_buffer_R = overlap_buffer; */
-    /*     } */
-    /* } */
+/*     /\* if (!overlap_buffer) { *\/ */
+/*     /\*     overlap_buffer = malloc(sizeof(double) * filter->overlap_len); *\/ */
+/*     /\*     memset(overlap_buffer, '\0', sizeof(double) * filter->overlap_len); *\/ */
+/*     /\*     if (channel == 0) { *\/ */
+/*     /\* 	filter->overlap_buffer_L = overlap_buffer; *\/ */
+/*     /\*     } else { *\/ */
+/*     /\* 	filter->overlap_buffer_R = overlap_buffer; *\/ */
+/*     /\*     } *\/ */
+/*     /\* } *\/ */
     
 
 
-    /* for (uint16_t i=0; i<filter->frequency_response_len; i++) { */
-    /* 	freq_response_sum[i] += filter->frequency_response[i]; */
-    /* } */
-    for (uint16_t i=0; i<filter->frequency_response_len; i++) {
-	freq_domain[i] *= filter->frequency_response[i];
-    }
-    SDL_UnlockMutex(filter->lock);
-    double complex time_domain[padded_len];
-    IFFT(freq_domain, time_domain, padded_len);
-    /* free(freq_domain); */
-    double real[padded_len];
-    get_real_component(time_domain, real, padded_len);
-    /* free(time_domain); */
+/*     /\* for (uint16_t i=0; i<filter->frequency_response_len; i++) { *\/ */
+/*     /\* 	freq_response_sum[i] += filter->frequency_response[i]; *\/ */
+/*     /\* } *\/ */
+/*     for (uint16_t i=0; i<filter->frequency_response_len; i++) { */
+/* 	freq_domain[i] *= filter->frequency_response[i]; */
+/*     } */
+/*     pthread_mutex_unlock(&filter->lock); */
+/*     double complex time_domain[padded_len]; */
+/*     IFFT(freq_domain, time_domain, padded_len); */
+/*     /\* free(freq_domain); *\/ */
+/*     double real[padded_len]; */
+/*     get_real_component(time_domain, real, padded_len); */
+/*     /\* free(time_domain); *\/ */
 
-    for (uint16_t i=0; i<chunk_size + filter->overlap_len; i++) {
-	if (i<chunk_size) {
-	    sample_array[i] = real[i];
-	    if (i<filter->overlap_len) {
-		sample_array[i] += overlap_buffer[i];
-	    }
-	} else {
-	    overlap_buffer[i-chunk_size] = real[i];
-	}
-    }
-    /* for (uint8_t f=0; f<track->num_filters; f++) { */
-    /*     FIRFilter *filter = track->filters[f]; */
+/*     for (uint16_t i=0; i<chunk_size + filter->overlap_len; i++) { */
+/* 	if (i<chunk_size) { */
+/* 	    sample_array[i] = real[i]; */
+/* 	    if (i<filter->overlap_len) { */
+/* 		sample_array[i] += overlap_buffer[i]; */
+/* 	    } */
+/* 	} else { */
+/* 	    overlap_buffer[i-chunk_size] = real[i]; */
+/* 	} */
+/*     } */
+/*     /\* for (uint8_t f=0; f<track->num_filters; f++) { *\/ */
+/*     /\*     FIRFilter *filter = track->filters[f]; *\/ */
 
-    /* } */
+/*     /\* } *\/ */
 
-}
+/* } */
 
 void track_add_default_filter(Track *track)
 {
@@ -565,7 +572,8 @@ void delay_line_init(DelayLine *dl)
     dl->amp = 0.0;
     dl->len = 0;
     dl->stereo_offset = 0;
-    dl->lock = SDL_CreateMutex();
+    pthread_mutex_init(&dl->lock, NULL);
+    /* dl->lock = SDL_CreateMutex(); */
     dl->max_len = DELAY_LINE_MAX_LEN_S * proj->sample_rate;
     dl->buf_L = calloc(dl->max_len, sizeof(double));
     dl->buf_R = calloc(dl->max_len, sizeof(double));
@@ -603,7 +611,7 @@ static inline void del_read_into_buffer_resize(DelayLine *dl, double *read_from,
 void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
 {
     /* fprintf(stderr, "Set line len: %d\n", len); */
-    SDL_LockMutex(dl->lock);
+    pthread_mutex_lock(&dl->lock);
     if (len > proj->sample_rate) {
 	fprintf(stderr, "UH OH: len = %d\n", len);
 	exit(1);
@@ -627,7 +635,7 @@ void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
 	/* dl->pos_R = 0; */
     }
     dl->amp = amp;
-    SDL_UnlockMutex(dl->lock);
+    pthread_mutex_unlock(&dl->lock);
 }
 
 void delay_line_clear(DelayLine *dl)

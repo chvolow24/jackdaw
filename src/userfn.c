@@ -1233,8 +1233,12 @@ void user_tl_track_add_automation(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
     Track *track = ACTIVE_TRACK(tl);
-    track_add_new_automation(track);
-    track_automations_show_all(track);
+    if (track) {
+	track_add_new_automation(track);
+	track_automations_show_all(track);
+    } else {
+	status_set_errstr("No track. Add new with C-t");
+    }
 }
 
 void user_tl_track_show_hide_automations(void *nullarg)

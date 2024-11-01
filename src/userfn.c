@@ -38,6 +38,8 @@ extern SDL_Color color_global_light_grey;
 extern SDL_Color color_global_quickref_button_pressed;
 extern SDL_Color color_global_quickref_button_blue;
 
+#define NO_TRACK_ERRSTR "No track. Add new with C-t"
+
 
 int quickref_button_press_callback(void *self_v, void *target)
 {
@@ -1058,6 +1060,10 @@ static void move_track(int direction)
 {
     Timeline *tl = ACTIVE_TL;
     Track *track = ACTIVE_TRACK(tl);
+    if (!track) {
+	status_set_errstr(NO_TRACK_ERRSTR);
+	return;
+    }
     /* if (track->num_automations == 0 || track->selected_automation == -1) { */
     if (TRACK_AUTO_SELECTED(track)) {
 	track_move_automation(track->automations[track->selected_automation], direction, false);
@@ -1237,7 +1243,7 @@ void user_tl_track_add_automation(void *nullarg)
 	track_add_new_automation(track);
 	track_automations_show_all(track);
     } else {
-	status_set_errstr("No track. Add new with C-t");
+	status_set_errstr(NO_TRACK_ERRSTR);
     }
 }
 
@@ -1245,6 +1251,10 @@ void user_tl_track_show_hide_automations(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
     Track *track = ACTIVE_TRACK(tl);
+    if (!track) {
+	status_set_errstr(NO_TRACK_ERRSTR);
+	return;
+    }
     if (track->num_automations == 0) {
 	status_set_errstr("No automation tracks to show. C-a to add");
 	return;
@@ -1267,6 +1277,10 @@ void user_tl_track_automation_toggle_read(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
     Track *track = ACTIVE_TRACK(tl);
+    if (!track) {
+	status_set_errstr(NO_TRACK_ERRSTR);
+	return;
+    }
     if (TRACK_AUTO_SELECTED(track)) {
 	Automation *a = track->automations[track->selected_automation];
 	automation_toggle_read(a);
@@ -1278,7 +1292,11 @@ void user_tl_record(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
     Track *sel_track = ACTIVE_TRACK(tl);
-    if (sel_track->selected_automation >= 0) {
+    if (!sel_track) {
+	status_set_errstr(NO_TRACK_ERRSTR);
+	return;
+    }
+    if (sel_track && sel_track->selected_automation >= 0) {
 	automation_record(sel_track->automations[sel_track->selected_automation]);
 	return;
     }
@@ -1474,6 +1492,9 @@ void user_tl_drop_from_source(void *nullarg)
     Timeline *tl = ACTIVE_TL;
     if (tl->num_tracks == 0) return;
     Track *track = ACTIVE_TRACK(tl);
+    if (!track) {
+	status_set_errstr(NO_TRACK_ERRSTR);
+    }
     if (proj->src_clip) {
 	/* int32_t drop_pos = tl->play_pos_sframes - proj->play_speed * 2 * proj->chunk_size_sframes; */
 	int32_t drop_pos = tl->play_pos_sframes;

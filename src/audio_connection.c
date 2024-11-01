@@ -162,10 +162,6 @@ int audioconn_open(Project *proj, AudioConn *conn)
 	device->spec.format = AUDIO_S16LSB;
 	device->spec.samples = proj->chunk_size_sframes;
 	device->spec.freq = proj->sample_rate;
-
-	if (conn->iscapture) {
-	    device->spec.channels = 4;
-	}
 	device->spec.callback = conn->iscapture ? transport_record_callback : transport_playback_callback;
 	device->spec.userdata = conn;
 

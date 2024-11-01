@@ -24,6 +24,7 @@
 ---
 - global:
   - C-m		: menu
+  - C-h		: menu
   - C-q		: quit
   - C-z		: undo
   - C-y		: redo
@@ -47,6 +48,8 @@
   - <del>     	: menu_dismiss
   - C-n	      	: menu_next_section
   - C-p	      	: menu_previous_section
+  - C-f		: menu_next_section
+  - C-d		: menu_previous_section
   - C-<up>  	: menu_next_section
   - C-<down>   	: menu_previous_section
   - l	      	: menu_column_right
@@ -97,12 +100,14 @@
   - 8		: tl_track_select_8
   - 9		: tl_track_select_9
   - `		: tl_track_activate_all
-  - p		: tl_track_selector_up
   - n		: tl_track_selector_down
+  - p		: tl_track_selector_up
   - f		: tl_track_selector_down
   - d		: tl_track_selector_up
-  - S-p		: tl_move_track_up
   - S-n		: tl_move_track_down
+  - S-p		: tl_move_track_up
+  - S-f		: tl_move_track_down
+  - S-d		: tl_move_track_up
   - <spc>	: tl_track_activate_selected
   - <ret>	: tl_track_activate_selected
   - C-r		: tl_track_rename

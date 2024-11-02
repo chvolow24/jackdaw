@@ -1779,6 +1779,7 @@ bool track_mute(Track *track)
     } else {
 	textbox_set_background_color(track->tb_mute_button, &color_mute_solo_grey);
     }
+    track->tl->needs_redraw = true;
     return track->muted;
 }
 
@@ -1796,6 +1797,7 @@ bool track_solo(Track *track)
 	textbox_set_background_color(track->tb_solo_button, &color_mute_solo_grey);
 
     }
+    track->tl->needs_redraw = true;
     return track->solo;
 }
 
@@ -2187,12 +2189,14 @@ void track_destroy(Track *track, bool displace)
 
 void clipref_delete(ClipRef *cr)
 {
+    cr->track->tl->needs_redraw = true;
     cr->deleted = true;
     clipref_remove_from_track(cr);
 }
 
 void clipref_undelete(ClipRef *cr)
 {
+    cr->track->tl->needs_redraw = true;
     cr->deleted = false;
     clipref_insert_on_track(cr, cr->track);
 }
@@ -2664,6 +2668,7 @@ void track_move_automation(Automation *a, int direction, bool from_undo)
 {
     TEST_FN_CALL(automation_index, a);
     Track *track = a->track;
+    track->tl->needs_redraw = true;
     TEST_FN_CALL(track_automation_order, track);
     int new_pos = a->index + direction;
     if (new_pos >= 0 && new_pos < track->num_automations) {

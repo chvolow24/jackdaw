@@ -370,8 +370,9 @@ static int add_auto_form(void *mod_v, void *nullarg)
 	    return 1;
 	}
     }
-    track_add_automation(track, t);
+    Automation *a = track_add_automation(track, t);
     track_automations_show_all(track);
+    track->selected_automation = a->index;
     window_pop_modal(main_win);
     return 0;
 }
@@ -721,6 +722,7 @@ Keyframe *automation_insert_keyframe_at(
     int32_t pos,
     Value val)
 {
+    a->track->tl->needs_redraw = true;
     if (a->num_keyframes + 1 >= a->keyframe_arrlen) {
 	keyframe_arr_resize(a);
     }
@@ -821,18 +823,11 @@ Keyframe *automation_insert_keyframe_at(
 
 static void automation_reset_cache(Automation *a, int32_t pos)
 {
-
-    /* int ops = 0; */
-    /* fprintf(stderr, "RESET cache pos %d\n", pos); */
     if (!a->current) {
-	/* fprintf(stderr, "A current is null\n"); */
-	if (a->keyframes[0].pos > pos) {
-	    a->current = NULL;
-	    goto describe;
-	    /* return; */
-	} else {
+	if (a->keyframes[0].pos < pos) {
 	    a->current = a->keyframes;
 	}
+	goto describe;
     }
     while (a->current > a->keyframes && a->current->pos > pos) {
 	/* ops++; */
@@ -928,6 +923,7 @@ static void keyframe_remove(Keyframe *k)
     /* fprintf(stderr, "REMOVE %d\n", k->pos); */
     if (k == k->automation->keyframes) return; /* Don't remove last keyframe */
     Automation *a = k->automation;
+    a->track->tl->needs_redraw= true;
     uint16_t pos = k - a->keyframes;
     uint16_t num = a->num_keyframes - pos;
     int ret = pthread_mutex_lock(&a->lock);
@@ -949,6 +945,7 @@ static void keyframe_remove(Keyframe *k)
     memmove(a->keyframes + pos, a->keyframes + pos + 1, num * sizeof(Keyframe));
     a->num_keyframes--;
     keyframe_recalculate_m(a, pos - 1);
+    
     pthread_mutex_unlock(&a->lock);
 }
 
@@ -1024,6 +1021,8 @@ static void automation_remove_kf_range(Automation *a, int32_t start_pos, int32_t
 	if (dragging_i >= remove_start_i && dragging_i < remove_end_i) {
 	    a->track->tl->dragging_keyframe = NULL;
 	}
+	keyframe_recalculate_m(a, remove_start_i - 1);
+	keyframe_recalculate_m(a, remove_start_i);
 	    
     }
     pthread_mutex_unlock(&a->lock);
@@ -1318,6 +1317,7 @@ static void keyframe_move_coords(Keyframe *k, int x, int y)
 
 NEW_EVENT_FN(undo_redo_move_keyframe, "undo/redo move keyframe")
     Automation *a = (Automation *)obj1;
+    a->track->tl->needs_redraw = true;
     uint16_t index = *((uint16_t *)obj2);
     Keyframe *k = a->keyframes + index;
     keyframe_move(k, val1.int32_v, val2);

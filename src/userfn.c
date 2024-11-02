@@ -1517,11 +1517,13 @@ void user_tl_activate_source_mode(void *nullarg)
 
 static NEW_EVENT_FN(undo_drop, "Undo drop clip from source")
     ClipRef *cr = (ClipRef *)obj1;
+    cr->track->tl->needs_redraw = true;
     clipref_delete(cr);
 }
 
 static NEW_EVENT_FN(redo_drop, "Redo drop clip from source")
     ClipRef *cr = (ClipRef *)obj1;
+    cr->track->tl->needs_redraw = true;
     clipref_undelete(cr);
 }
 

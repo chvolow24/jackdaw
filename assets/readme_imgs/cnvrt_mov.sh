@@ -6,7 +6,7 @@ input_file="$1"
 output_file="$2"
 
 # Set the width to 600 pixels
-width=600
+width=1000
 
 duration=$(ffmpeg -i $1 2>&1 | grep "Duration" | awk '{print $2}' | tr -d , | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }')
 

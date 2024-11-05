@@ -101,7 +101,7 @@ void user_tl_clipref_grab_ungrab(void *nullarg);
 void user_tl_cliprefs_destroy(void *nullarg);
 void user_tl_delete_generic(void *nullarg);
 
-void user_tl_load_clip_at_point_to_src(void *nullarg);
+void user_tl_load_clip_at_cursor_to_src(void *nullarg);
 void user_tl_activate_source_mode(void *nullarg);
 void user_tl_drop_from_source(void *nullarg);
 

@@ -626,11 +626,9 @@ static void keyframe_set_y_prop(Automation *a, uint16_t insert_i)
 static void keyframe_move(Keyframe *k, int32_t new_pos, Value new_value)
 {
     Automation *a = k->automation;
-    if (new_pos < k->pos && k > a->keyframes && (k-1)->pos == new_pos) {
-	fprintf(stderr, "ERROR: attempting to move keyframe to previous kf pos\n");
+    if (new_pos < k->pos && k > a->keyframes && (k-1)->pos >= new_pos) {
 	return;
-    } else if (new_pos > k->pos && k < a->keyframes + a->num_keyframes - 1 && (k+1)->pos == new_pos) {
-	fprintf(stderr, "ERROR: attempting to move keyframe to next kf pos\n");
+    } else if (new_pos > k->pos && k < a->keyframes + a->num_keyframes - 1 && (k+1)->pos <= new_pos) {
 	return;
     }
 
@@ -978,6 +976,7 @@ static bool automation_get_kf_range(Automation *a, int32_t start_pos, int32_t en
 
 static void automation_remove_kf_range(Automation *a, int32_t start_pos, int32_t end_pos)
 {
+    a->track->tl->needs_redraw = true;
     /* uint16_t current_i = automation_check_get_cache(a, start_pos) - a->keyframes; */
     /* uint16_t remove_start_i; */
     /* if ((remove_start_i = current_i + 1) < a->num_keyframes && a->keyframes[remove_start_i].pos < end_pos) { */
@@ -1356,12 +1355,25 @@ void automation_unset_dragging_kf(Timeline *tl)
 }
 
 
-bool automations_triage_motion(Timeline *tl)
+bool automations_triage_motion(Timeline *tl, int xrel, int yrel)
 {
     Keyframe *k = tl->dragging_keyframe;
     if (k) {
+	Automation *a = k->automation;
 	if (main_win->i_state & I_STATE_MOUSE_L) {
-	    keyframe_move_coords(k, main_win->mousep.x, main_win->mousep.y);
+	    if (main_win->i_state & I_STATE_SHIFT && !(main_win->i_state & I_STATE_CMDCTRL)) {
+		if (k > a->keyframes) {
+		    keyframe_move(k, timeline_get_abspos_sframes(main_win->mousep.x), (k-1)->value);
+		}
+	    } else if (main_win->i_state & I_STATE_SHIFT && main_win->i_state & I_STATE_CMDCTRL) {
+	        if (k > a->keyframes) {
+		    keyframe_move_coords(k, main_win->mousep.x, main_win->mousep.y);
+		    keyframe_move(k, (k-1)->pos + 1, k->value);
+		}
+	    } else {
+		keyframe_move_coords(k, main_win->mousep.x, main_win->mousep.y);
+	    }
+	    TEST_FN_CALL(automation_keyframe_order, a);
 	    return true;
 	} else {
 	    automation_unset_dragging_kf(tl);
@@ -1472,7 +1484,6 @@ NEW_EVENT_FN(undo_redo_automation_write, "undo/redo automation write")
     a->num_keyframes = num_keyframes;
     automation_clear_cache(a);
 }
-
 
 static void automation_write_set_undo_cache(Automation *a)
 {
@@ -1786,6 +1797,7 @@ void automation_record(Automation *a)
     /* static Value cache_len; */
     bool write = automation_toggle_write(a);
     if (write) {
+	automation_clear_cache(a);
 	automation_write_set_undo_cache(a);
 	user_tl_play(NULL);
 	timeline_play_speed_set(1.0);
@@ -1876,6 +1888,7 @@ void keyframe_delete(Keyframe *k)
 
 void automation_delete_keyframe_range(Automation *a, int32_t start_pos, int32_t end_pos)
 {
+    automation_write_set_undo_cache(a);
     uint16_t start_i, end_i;
     if (automation_get_kf_range(a, start_pos, end_pos, &start_i, &end_i)) {
 	uint16_t num_keyframes = end_i - start_i;
@@ -1884,6 +1897,8 @@ void automation_delete_keyframe_range(Automation *a, int32_t start_pos, int32_t 
 
 	automation_remove_kf_range(a, start_pos, end_pos);
     }
+    automation_push_write_event(a);
+	
 }
 
 

@@ -689,8 +689,8 @@ static void mode_load_timeline()
     sc = mode_add_subcat(mode, "Clips");
 
     fn = create_user_fn(
-	"tl_grab_clips_at_point",
-	"Grab clip at point",
+	"tl_grab_clips_at_cursor",
+	"Grab clip at cursor",
 	user_tl_clipref_grab_ungrab);
     mode_subcat_add_fn(sc, fn);
     
@@ -702,7 +702,7 @@ static void mode_load_timeline()
 
     fn = create_user_fn(
 	"tl_cut_clipref",
-	"Cut clip at point",
+	"Cut clip at cursor",
 	user_tl_cut_clipref);
     mode_subcat_add_fn(sc, fn);
 
@@ -717,9 +717,9 @@ static void mode_load_timeline()
 
     sc = mode_add_subcat(mode, "Sample mode");
     fn = create_user_fn(
-	"tl_load_clip_at_point_to_source",
-	"Load clip at point to source",
-        user_tl_load_clip_at_point_to_src);
+	"tl_load_clip_at_cursor_to_source",
+	"Load clip at cursor to source",
+        user_tl_load_clip_at_cursor_to_src);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(

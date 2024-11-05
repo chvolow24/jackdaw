@@ -1174,7 +1174,7 @@ static void project_init_panels(Project *proj, Layout *lt)
 
     Page *source_area = panel_area_add_page(
 	pa,
-	"Clip source",
+	"Sample source",
 	SOURCE_AREA_LT_PATH,
 	NULL,
 	&color_global_white,
@@ -2386,6 +2386,7 @@ void timeline_push_grabbed_clip_move_event(Timeline *tl)
 
     /* Undo positions in first half of array; redo in second half */
     for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
+	clipref_reset(tl->grabbed_clips[i], false);
 	cliprefs[i] = tl->grabbed_clips[i];
 	/* undo pos */
 	positions[i].track = tl->grabbed_clip_pos_cache[i].track;
@@ -2477,8 +2478,6 @@ void timeline_delete_grabbed_cliprefs(Timeline *tl)
 	num,
 	0, 0, true, false);
     tl->num_grabbed_clips = 0;
-
-    
 }
 
 
@@ -2491,7 +2490,7 @@ static int32_t clipref_len(ClipRef *cr)
     }
 }
 
-ClipRef *clipref_at_point_in_track(Track *track)
+ClipRef *clipref_at_cursor_in_track(Track *track)
 {
     for (int i=track->num_clips-1; i>=0; i--) {
 	ClipRef *cr = track->clips[i];
@@ -2502,7 +2501,7 @@ ClipRef *clipref_at_point_in_track(Track *track)
     return NULL;
 }
 
-ClipRef *clipref_at_point()
+ClipRef *clipref_at_cursor()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     Track *track = tl->tracks[tl->track_selector];
@@ -2595,7 +2594,7 @@ static ClipRef *clipref_cut(ClipRef *cr, int32_t cut_pos_rel)
 
 
 
-void timeline_cut_clipref_at_point(Timeline *tl)
+void timeline_cut_clipref_at_cursor(Timeline *tl)
 {
     Track *track = tl->tracks[tl->track_selector];
     if (!track) return;

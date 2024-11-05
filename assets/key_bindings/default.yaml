@@ -120,9 +120,9 @@
   - <del>	: tl_delete_generic
   - m		: tl_mute
   - s		: tl_solo
-  - g		: tl_grab_clips_at_point
+  - g		: tl_grab_clips_at_cursor
   - r		: tl_record
-  - C-1		: tl_load_clip_at_point_to_source
+  - C-1		: tl_load_clip_at_cursor_to_source
   - S-1		: tl_activate_source_mode
   - b		: tl_drop_from_source
   - v		: tl_drop_saved1_from_source

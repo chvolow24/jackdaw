@@ -674,14 +674,13 @@ void transport_stop_recording()
 
 void transport_set_mark(Timeline *tl, bool in)
 {
-    if (tl) {
+    if (!proj->source_mode) {
 	if (in) {
 	    tl->in_mark_sframes = tl->play_pos_sframes;
 	} else {
 	    tl->out_mark_sframes = tl->play_pos_sframes;
 	}
-	tl->needs_redraw = true;
-    } else if (proj->source_mode) {
+    } else {
 	if (in) {
 	    proj->src_in_sframes = proj->src_play_pos_sframes;
 	} else {
@@ -689,6 +688,7 @@ void transport_set_mark(Timeline *tl, bool in)
 	}
 		
     }
+    tl->needs_redraw = true;
 }
 
 void transport_set_mark_to(Timeline *tl, int32_t pos, bool in)

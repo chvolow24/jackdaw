@@ -499,11 +499,8 @@ static void jdaw_read_timeline(FILE *f, Project *proj)
 
 static void jdaw_read_clipref(FILE *f, Track *track);
 static void jdaw_read_automation(FILE *f, Track *track);
-uint8_t i=0;
 static void jdaw_read_track(FILE *f, Timeline *tl)
 {
-    fprintf(stderr, "Reading track %d...\n", i);
-    i++;
     char hdr_buffer[4];
     fread(hdr_buffer, 1, 4, f);
     if (strncmp(hdr_buffer, hdr_track, 4) != 0) {

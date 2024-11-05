@@ -297,6 +297,10 @@ static void track_draw(Track *track)
     for (uint8_t i=0; i<track->num_clips; i++) {
 	clipref_draw(track->clips[i]);
     }
+    /* Left mask */
+    SDL_Rect l_mask = {0, track->layout->rect.y, track->console_rect->x, track->layout->rect.h};
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(timeline_bckgrnd));
+    SDL_RenderFillRect(main_win->rend, &l_mask);
     /* SDL_RenderSetClipRect(main_win->rend, &main_win->layout->rect); */
 
     if (track->tl->track_selector == track->tl_rank) {
@@ -512,7 +516,6 @@ static int timeline_draw(Timeline *tl)
     /* tl->needs_redraw = false; */
 
 }
-
 
 
 static void control_bar_draw(Project *proj)

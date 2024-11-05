@@ -198,7 +198,7 @@ void track_automations_hide_all(Track *track);
 
 void automation_unset_dragging_kf(Timeline *tl);
 bool automation_triage_click(uint8_t button, Automation *a);
-bool automations_triage_motion(Timeline *tl);
+bool automations_triage_motion(Timeline *tl, int xrel, int yrel);
 void automation_record(Automation *a);
 bool automation_handle_delete(Automation *a);
 bool automation_toggle_read(Automation *a);

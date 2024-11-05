@@ -113,7 +113,7 @@ static void mouse_triage_click_audiorect(Timeline *tl, uint8_t button)
 	for (uint8_t i=0; i<tl->num_tracks; i++) {
 	    Track *track = tl->tracks[i];
 	    if (SDL_PointInRect(&main_win->mousep, &track->inner_layout->rect)) {
-		ClipRef *cr = clipref_at_point_in_track(track);
+		ClipRef *cr = clipref_at_cursor_in_track(track);
 		if (cr) {
 		    if (cr->grabbed) {
 			timeline_ungrab_all_cliprefs(tl);
@@ -178,14 +178,14 @@ void mouse_triage_click_project(uint8_t button)
     }
 }
 
-void mouse_triage_motion_timeline()
+void mouse_triage_motion_timeline(int xrel, int yrel)
 {
     if (proj->dragged_component.component) {
 	draggable_mouse_motion(&proj->dragged_component, main_win);
 	return;
     }
     Timeline *tl = proj->timelines[proj->active_tl_index];
-    if (automations_triage_motion(tl)) return;
+    if (automations_triage_motion(tl, xrel, yrel)) return;
     if (SDL_PointInRect(&main_win->mousep, proj->audio_rect)) {
 	mouse_triage_motion_audiorect(tl);
 	return;

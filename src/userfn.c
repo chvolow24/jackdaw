@@ -753,6 +753,8 @@ void user_tl_zoom_out(void *nullarg)
 static NEW_EVENT_FN(undo_redo_set_mark, "undo/redo set mark")
     int32_t *mark = (int32_t *)obj1;
     *mark = val1.int32_v;
+    Timeline *tl = (Timeline *)obj2;
+    tl->needs_redraw = true;
 }
 
 /* NEW_EVENT_FN(redo_set_mark) */
@@ -774,7 +776,7 @@ void user_tl_set_mark_out(void *nullarg)
 	undo_redo_set_mark,
 	NULL, NULL,
 	(void *)&tl->out_mark_sframes,
-	NULL,
+	(void *)tl,
 	old_mark,old_mark,
 	new_mark,new_mark,
 	0,0,false,false);
@@ -793,7 +795,7 @@ void user_tl_set_mark_in(void *nullarg)
 	undo_redo_set_mark,
 	NULL, NULL,
 	(void *)&tl->in_mark_sframes,
-	NULL,
+	(void *)tl,
 	old_mark, old_mark,
 	new_mark, new_mark,
 	0, 0, false, false);
@@ -822,7 +824,7 @@ void user_tl_goto_zero(void *nullarg)
 void user_tl_goto_clip_start(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    ClipRef *cr = clipref_at_point();
+    ClipRef *cr = clipref_at_cursor();
     if (cr) {
 	timeline_set_play_position(cr->pos_sframes);
 	timeline_reset(tl, false);
@@ -831,7 +833,7 @@ void user_tl_goto_clip_start(void *nullarg)
 void user_tl_goto_clip_end(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    ClipRef *cr = clipref_at_point();
+    ClipRef *cr = clipref_at_cursor();
     if (cr) {
 	timeline_set_play_position(cr->pos_sframes + clip_ref_len(cr));
 	timeline_reset(tl, false);
@@ -1352,6 +1354,7 @@ void user_tl_record(void *nullarg)
 void user_tl_clipref_grab_ungrab()
 {
     Timeline *tl = ACTIVE_TL;
+    tl->needs_redraw = true;
     if (tl->num_tracks == 0) return;
     Track *track = NULL;
     ClipRef *cr =  NULL;
@@ -1365,7 +1368,7 @@ void user_tl_clipref_grab_ungrab()
 	track = tl->tracks[i];
 	if (track->active) {
 	    had_active_track = true;
-	    cr = clipref_at_point_in_track(track);
+	    cr = clipref_at_cursor_in_track(track);
 	    if (cr && !cr->grabbed) {
 		clips_to_grab[num_clips] = cr;
 		num_clips++;
@@ -1379,7 +1382,7 @@ void user_tl_clipref_grab_ungrab()
     }
     if (!had_active_track && tl->num_tracks > 0) {
 	track = ACTIVE_TRACK(tl);
-	cr = clipref_at_point_in_track(track);
+	cr = clipref_at_cursor_in_track(track);
 	if (cr && !cr->grabbed) {
 	    /* clipref_grab(cr); */
 	    clips_to_grab[num_clips] = cr;
@@ -1460,14 +1463,14 @@ void user_tl_toggle_drag(void *nullarg)
 void user_tl_cut_clipref(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    timeline_cut_clipref_at_point(tl);
+    timeline_cut_clipref_at_cursor(tl);
     tl->needs_redraw = true;
 }
 
-void user_tl_load_clip_at_point_to_src(void *nullarg)
+void user_tl_load_clip_at_cursor_to_src(void *nullarg)
 {
     /* Timeline *tl = ACTIVE_TL; */
-    ClipRef *cr = clipref_at_point();
+    ClipRef *cr = clipref_at_cursor();
     if (cr && !cr->clip->recording) {
 	proj->src_clip = cr->clip;
 	proj->src_in_sframes = cr->in_mark_sframes;
@@ -1480,7 +1483,7 @@ void user_tl_load_clip_at_point_to_src(void *nullarg)
 	PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_source_clip_name_tb");
 	Textbox *tb = (Textbox *)el->component;
 	textbox_set_value_handle(tb, cr->clip->name);
-	panel_page_refocus(proj->panels, "Clip source", 1);
+	panel_page_refocus(proj->panels, "Sample source", 1);
     }
 
 }
@@ -1491,7 +1494,7 @@ void user_tl_activate_source_mode(void *nullarg)
 	if (proj->src_clip) {
 	    proj->source_mode = true;
 	    window_push_mode(main_win, SOURCE);
-	    panel_page_refocus(proj->panels, "Clip source", 1);
+	    panel_page_refocus(proj->panels, "Sample source", 1);
 	} else {
 	    status_set_errstr("Load a clip to source before activating source mode");
 	}
@@ -1517,13 +1520,11 @@ void user_tl_activate_source_mode(void *nullarg)
 
 static NEW_EVENT_FN(undo_drop, "Undo drop clip from source")
     ClipRef *cr = (ClipRef *)obj1;
-    cr->track->tl->needs_redraw = true;
     clipref_delete(cr);
 }
 
 static NEW_EVENT_FN(redo_drop, "Redo drop clip from source")
     ClipRef *cr = (ClipRef *)obj1;
-    cr->track->tl->needs_redraw = true;
     clipref_undelete(cr);
 }
 
@@ -1886,12 +1887,14 @@ void user_source_rewind_slow(void *nullarg)
 
 void user_source_set_in_mark(void *nullarg)
 {
-    transport_set_mark(NULL, true);
+    Timeline *tl = ACTIVE_TL;
+    transport_set_mark(tl, true);
 }
 
 void user_source_set_out_mark(void *nullarg)
 {
-    transport_set_mark(NULL, false);
+    Timeline *tl = ACTIVE_TL;
+    transport_set_mark(tl, false);
 }
 
 void user_modal_next(void *nullarg)

@@ -258,7 +258,7 @@ void loop_project_main()
 		    break;
 		case TIMELINE:
 		    if (!mouse_triage_motion_page() && !mouse_triage_motion_tabview()) {
-			mouse_triage_motion_timeline();
+			mouse_triage_motion_timeline(e.motion.xrel, e.motion.yrel);
 		    }
 		case TABVIEW:
 		    if (!mouse_triage_motion_tabview())

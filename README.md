@@ -1,7 +1,7 @@
 # Jackdaw (WIP)
 A free, open-source, keyboard-focused digital audio workstation (DAW). Written in C, using SDL (https://libsdl.org/).
 
-<img src="assets/readme_imgs/main_new.gif" width="75%" />
+<img src="assets/readme_imgs/main_new_short.gif" width="75%" />
 
 ## Table of Contents
 1. [Disclaimer](#disclaimer)
@@ -36,7 +36,12 @@ A free, open-source, keyboard-focused digital audio workstation (DAW). Written i
 	7. [Project navigation / multiple timelines](#project-navigation--multiple-timelines)
 	8. [Opening and saving files](#opening-and-saving-files)
 	9. [Track effects](#track-effects)
+		 1. [FIR filter](#fir-filter)
+		 2. [Delay line](#delay-line)
 	10. [Automation](#automation)
+	     1. [Adding keyframes with the mouse](#adding-keyframes-with-the-mouse)
+		 2. [Writing (adding keyframes automatically)](#writing-adding-keyframes-automatically)
+		 3. [Deleting keyframes](#deleting-keyframes)
 	11. [Undo / redo](#undo--redo)
 	12. [Special audio inputs](#special-audio-inputs)
 		 1. [Jackdaw out](#jackdaw-out)
@@ -470,7 +475,7 @@ If a `.wav` file is opened, it will be loaded as a clip to the currently-selecte
 
 ### Saving a project
 
-The `.jdaw` format (current version described in `jdaw_filespec/00.10) stores a jackdaw project, including all of its timelines, tracks, clips, etc.
+The `.jdaw` format (version as of writing described in `jdaw_filespec/00.13`) stores a jackdaw project, including all of its timelines, tracks, clips, effects, automations, etc.
 
 <kbd>C-s</kbd> : **Save project as**<br>
 
@@ -478,12 +483,94 @@ You will be prompted first to edit the current project file name. Please note th
 
 <img src="assets/readme_imgs/save_project.gif" width="75%" />
 
-
 ## Track effects
+
+Only two track effects are available now, but more will be available soon. A track effect is applied only to clips on the "effected" track. In other words, these are "insert" effects; "sends" will be added in a later version of jackdaw.
+
+<kbd>S-t</kbd> : **Open track effects**<br>
+
+You might choose to navigate the tab view with your mouse, but it can be done with the keyboard as well. A single element on a page (e.g. slider, toggle, button) is selected, and the selection can be changes with <kbd>\<tab\></kbd>. Actions can be performed on the currently-selected 
+
+<kbd>\<tab\></kbd> : **Cycle through page elements**<br>
+<kbd>h</kbd> : **Nudge slider left**<br>
+<kbd>;</kbd> : **Nudge slider right**<br>
+<kbd>\<ret\></kbd> : **Select / toggle / cycle current element**<br>
+
+You can also navigate to other tabs:
+
+<kbd>S-h</kbd> : **Tab left**<br>
+<kbd>S-;</kbd> : **Tab right**<br>
+
+### FIR filter
+
+The FIR ("finite impulse response") filter effect is an FFT-based "[windowed-sinc](https://www.analog.com/media/en/technical-documentation/dsp-book/dsp_book_Ch16.pdf)" filter. It can be configured to have a low-pass, high-pass, band-pass, or band-cut frequency response. The cutoff frequency and bandwidth are adjustable parameters, as is the length of the impulse response. This last parameter affects the "steepness" of the frequency response curve. 
+
+> [!NOTE]
+> This is a computationally expensive effect. Applying FIR filters to many tracks may begin to cause audio playback issues. (My 2020 macbook air maxes out at 45.)
+
+The frequency response of the filter is shown. When the filter is active, the frequency domain of the filtered audio track is also shown.
+
+<img src="assets/readme_imgs/fir_filter.gif" width="75%" />
+
+
+### Delay line
+
+The delay line is a simpler effect and has three parameters: time, amplitude, and "stereo offset." As in any delay line, the delay time is the amount of time between echoes, and the amplitude is the relative amplitude of each echo. "Stereo offset" delays playback of the delay line buffer in the left channel by some proportion of the delay line length, expressed as a value between 0.0 and 1.0. In other words, with a nonzero stereo offset, you will hear echoes at different times in each channel of the stereo output. 
+
+Dynamic changes to the delay line length during playback are accomplished by "squeezing" or "stretching" the existing delay line buffer into the space of the new-length buffer. The squeezing and stretching produce pitch-shifting effects which are better experienced than described.
 
 ## Automation
 
+Automation is available for the following track* parameters:
+- Volume
+- Pan
+- FIR Filter cutoff frequency
+- FIR Filter bandwidth
+- Delay line length
+- Delay line amplitude
+- Play speed
+
+*Play speed is a global parameter, not a track parameter. If play speed automation is added to multiple tracks, only the last of them will be read.
+
+<kbd>C-a</kbd> : **Add automation to track**<br>
+<kbd>a</kbd> : **Show / hide track automations**<br>
+
+<img src="assets/readme_imgs/add_automation.gif" width="75%" />
+
+(Note that <kbd>n</kbd> and <kbd>p</kbd> (or <kbd>f</kbd> and <kbd>d</kbd>) can be used to cycle through the radio button options, and <kbd>\<tab\></kbd> and <kbd>S-\<tab\></kbd> can be used to move between the selector and the "add" button. The mouse is available but optional.)
+
+### Adding keyframes with the mouse
+
+Use <kbd>C-\<click\></kbd> to add a keyframe to an automation track. You can then drag the keyframe to the desired position. If you hold shift, the keyframe will will snap to the same vertical position as the previous keyframe. If you hold cmd or ctrl AND shift, the keyframe will snap to the position immediately after the previous keyframe. 
+
+<img src="assets/readme_imgs/insert_keyframes.gif" width="75%" />
+
+### Writing (adding keyframes automatically)
+
+While an automation is in "write" mode, any changes to the automated parameter will be recorded on the automation track during playback. Any existing keyframes intersecting with the newly-written portion will be overwritten.
+
+The easest way to accomplish this is to "record" on the automation track exactly as you would on an audio track: navigate the cursor to the automation track with <kbd>n</kbd> and <kbd>p</kbd> (or <kbd>f</kbd> and <kbd>d</kbd>) and hit <kbd>r</kbd> to start recording. Hit <kbd>r</kbd> again to stop.
+
+<kbd>r</kbd> : **Start / stop recording automation** (when automation track selected)<br>
+
+<img src="assets/readme_imgs/automation_write.gif" width="75%" />
+
+### Deleting keyframes
+
+When an automation track is selected, you can delete a range of keyframes by marking (with <kbd>i</kbd> and <kbd>o</kbd>) a section of the timeline and hitting <kbd>del</kbd>.
+
+<kbd>del</kbd> : **Delete keyframes in->out** (when automation track selected)<br>
+
+<img src="assets/readme_imgs/delete_keyframes.gif" width="75%" />
+
 ## Undo / redo
+
+Jackdaw retains a 100-event long history of user events. Objects that are deleted will be retained under the hood until the session ends, or the deletion event drops off the end of the event history.
+
+
+
+<kbd>C-z</kbd> : **undo**<br>
+<kbd>C-y</kbd> / <kbd>C-S-z</kbd> : **redo**<br>
 
 ## Special audio inputs
 

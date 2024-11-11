@@ -119,6 +119,7 @@ typedef struct automation {
     int32_t ghost_pos;
     Value ghost_val;
     bool changing;
+    double m_diff_prop_cum;
 
     /* KClipRef *kclips; */
     /* uint16_t num_kclips; */

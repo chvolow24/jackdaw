@@ -17,7 +17,7 @@ extern Window *main_win;
 
 #define RADIO_BUTTON_LEFT_COL_W 10
 #define SLIDER_MAX_LABEL_COUNTDOWN 80
-#define SLIDER_NUDGE_PROP 0.05
+#define SLIDER_NUDGE_PROP 0.01
 #define BUTTON_COLOR_CHANGE_STD_DELAY 400
 
 /* SDL_Color fslider_bckgrnd = {60, 60, 60, 255}; */

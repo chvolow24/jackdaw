@@ -425,6 +425,7 @@ void track_solomute(Track *track);
 void track_unsolomute(Track *track);
 void track_set_input(Track *track);
 void track_rename(Track *track);
+void clipref_rename(ClipRef *cr);
 void track_delete(Track *track);
 void track_undelete(Track *track);
 void track_destroy(Track *track, bool displace);
@@ -442,6 +443,7 @@ void clipref_destroy_no_displace(ClipRef *cr);
 void clipref_delete(ClipRef *cr);
 void clipref_undelete(ClipRef *cr);
 void clip_destroy(Clip *clip);
+void timeline_delete(Timeline *tl, bool from_undo);
 void timeline_cache_grabbed_clip_positions(Timeline *tl);
 void timeline_push_grabbed_clip_move_event(Timeline *tl);
 /* Deprecated; replaced by timeline_delete_grabbed_cliprefs */
@@ -449,6 +451,7 @@ void timeline_destroy_grabbed_cliprefs(Timeline *tl);
 void timeline_delete_grabbed_cliprefs(Timeline *tl);
 void timeline_cut_clipref_at_cursor(Timeline *tl);
 void timeline_move_track(Timeline *tl, Track *track, int direction, bool from_undo);
+void timeline_switch(uint8_t new_tl_index);
 void track_move_automation(Automation *a, int direction, bool from_undo);
 void project_destroy(Project *proj);
 

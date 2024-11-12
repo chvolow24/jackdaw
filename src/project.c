@@ -280,8 +280,8 @@ static void timeline_destroy(Timeline *tl, bool displace_in_proj)
 
     layout_destroy(tl->layout);
     free(tl);
-
 }
+
 static void clip_destroy_no_displace(Clip *clip);
 void project_destroy(Project *proj)
 {
@@ -1269,6 +1269,20 @@ static NEW_EVENT_FN(redo_track_rename, "redo rename track")
     Text *txt = (Text *)obj1;
     txt_set_value(txt, txt->cached_value);
 }
+
+static NEW_EVENT_FN(undo_clipref_rename, "undo rename clipref")
+    Text *txt = (Text *)obj1;
+    if (txt->cached_value) {
+        free(txt->cached_value);
+    }
+    txt->cached_value = strdup(txt->value_handle);
+    txt_set_value(txt, (char *)obj2);
+}
+
+static NEW_EVENT_FN(redo_clipref_rename, "redo rename clipref")
+    Text *txt = (Text *)obj1;
+    txt_set_value(txt, txt->cached_value);
+}
     
 
 static int track_name_completion(Text *txt)
@@ -1286,6 +1300,23 @@ static int track_name_completion(Text *txt)
 	0, 0, false, true);
     return 0;
 }
+
+static int clipref_name_completion(Text *txt)
+{
+    Value nullval = {.int_v = 0};
+    char *old_value = strdup(txt->cached_value);
+    user_event_push(
+	&proj->history,
+	undo_clipref_rename,
+	redo_clipref_rename,
+	NULL, NULL,
+	(void *)txt,
+	old_value,
+	nullval, nullval, nullval, nullval,
+	0, 0, false, true);
+    return 0;
+}
+
 
 void timeline_rectify_track_area(Timeline *tl)
 {
@@ -1695,6 +1726,9 @@ ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sfr
     label_lt->w.value.floatval = 0.8f;
     label_lt->h.value.intval = CLIPREF_NAMELABEL_H;
     cr->label = textbox_create_from_str(cr->name, label_lt, main_win->mono_bold_font, 12, main_win);
+    cr->label->text->validation = txt_name_validation;
+    cr->label->text->completion = clipref_name_completion;
+
     textbox_set_align(cr->label, CENTER_LEFT);
     textbox_set_background_color(cr->label, NULL);
     textbox_set_text_color(cr->label, &color_global_light_grey);
@@ -2065,6 +2099,13 @@ void track_rename(Track *track)
     main_win->i_state = 0;
 }
 
+void clipref_rename(ClipRef *cr)
+{
+    txt_edit(cr->label->text, project_draw);
+    main_win->i_state = 0;
+}
+
+
 void clipref_destroy(ClipRef *cr, bool displace_in_clip);
 void clipref_destroy_no_displace(ClipRef *cr);
 void clip_destroy(Clip *clip);
@@ -2325,6 +2366,91 @@ void clip_destroy(Clip *clip)
     }
 
     free(clip);
+}
+
+
+static void timeline_reinsert(Timeline *tl)
+{
+    /* Timeline *currently_active = proj->timelines[proj->active_tl_index]; */
+    for (uint8_t i=proj->num_timelines; i>tl->index; i--) {
+	proj->timelines[i] = proj->timelines[i-1];
+	proj->timelines[i]->index++;
+    }
+    proj->timelines[tl->index] = tl;
+    proj->num_timelines++;
+    timeline_switch(tl->index);
+    /* currently_active->layout->hidden = true; */
+    /* tl->layout->hidden = false; */
+    /* proj->active_tl_index = tl->index; */
+    /* tl->needs_redraw = true; */
+    /* project_reset_tl_label(tl->proj); */
+}
+
+NEW_EVENT_FN(undo_delete_timeline, "Undo delete timeline")
+    Timeline *tl = (Timeline *)obj1;
+    timeline_reinsert(tl);
+}
+
+NEW_EVENT_FN(redo_delete_timeline, "Redo delete timeline")
+    Timeline *tl = (Timeline *)obj1;
+    timeline_delete(tl, true);
+}
+
+NEW_EVENT_FN(dispose_delete_timeline, "")
+    Timeline *tl = (Timeline *)obj1;
+    timeline_destroy(tl, false);
+}
+
+void timeline_switch(uint8_t new_tl_index)
+{
+    Timeline *current = proj->timelines[proj->active_tl_index];
+    current->layout->hidden = true;
+
+    proj->active_tl_index = new_tl_index;
+    Timeline *new = proj->timelines[new_tl_index];
+    new->layout->hidden = false;
+    
+    /* Concession to bad design */
+    proj->audio_rect = &(layout_get_child_by_name_recursive(new->layout, "audio_rect")->rect);
+    proj->ruler_rect = &(layout_get_child_by_name_recursive(new->layout, "ruler")->rect);
+    
+    new->needs_redraw = true;
+    project_reset_tl_label(new->proj);
+}
+
+void timeline_delete(Timeline *tl, bool from_undo)
+{
+    if (tl->proj->num_timelines == 1) {
+	status_set_errstr("Cannot delete sole timeline on project.");
+	return;
+    }
+    for (uint8_t i=tl->index; i<proj->num_timelines - 1; i++) {
+	proj->timelines[i] = proj->timelines[i+1];
+	proj->timelines[i]->index--;
+    }
+    proj->num_timelines--;
+    if (proj->active_tl_index > proj->num_timelines - 1) {
+	proj->active_tl_index--;
+    }
+    timeline_switch(proj->active_tl_index);
+    /* Timeline *active = proj->timelines[proj->active_tl_index]; */
+    /* active->layout->hidden = false; */
+    /* project_reset_tl_label(proj); */
+    /* active->needs_redraw = true; */
+    if (!from_undo) {
+	Value nullval = {.int_v = 0.0};
+        user_event_push(
+	    &proj->history,
+	    undo_delete_timeline,
+	    redo_delete_timeline,
+	    dispose_delete_timeline,
+	    NULL,
+	    (void *)tl,
+	    NULL,
+	    nullval, nullval, nullval, nullval,
+	    0, 0, false, false);
+    }
+
 }
 
 

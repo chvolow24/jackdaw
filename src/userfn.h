@@ -99,6 +99,7 @@ void user_tl_record(void *nullarg);
 void user_tl_clipref_grab_ungrab(void *nullarg);
 /* Deprecated; use user_tl_cliprefs_delete */
 void user_tl_cliprefs_destroy(void *nullarg);
+void user_tl_rename_clip_at_cursor(void *nullarg);
 void user_tl_delete_generic(void *nullarg);
 
 void user_tl_load_clip_at_cursor_to_src(void *nullarg);
@@ -113,6 +114,7 @@ void user_tl_drop_saved4_from_source(void *nullarg);
 void user_tl_add_new_timeline(void *nullarg);
 void user_tl_previous_timeline(void *nullarg);
 void user_tl_next_timeline(void *nullarg);
+void user_tl_delete_timeline(void *nullarg);
 
 void user_tl_write_mixdown_to_wav(void *nullarg);
 

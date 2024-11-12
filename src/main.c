@@ -228,14 +228,16 @@ int main(int argc, char **argv)
 	}
 	file_to_open = argv[1];
 	char *dotpos = strrchr(file_to_open, '.');
+	if (!dotpos) goto unrecognized_arg;
 	char *ext = dotpos + 1;
-	if (strcmp("wav", ext) * strcmp("WAV", ext) == 0) {
+	if (strncmp("wav", ext, 3) * strcmp("WAV", ext) == 0) {
 	    fprintf(stderr, "Passed WAV file.\n");
 	    invoke_open_wav_file = true;
-	} else if (strcmp("jdaw", ext) * strcmp("JDAW", ext) == 0) {
+	} else if (strncmp("jdaw", ext, 4) * strcmp("JDAW", ext) == 0) {
 	    fprintf(stderr, "Passed JDAW file.\n");
 	    invoke_open_jdaw_file = true;
 	} else {
+	unrecognized_arg:
 	    fprintf(stderr, "Error: argument \"%s\" not recognized. Pass a .jdaw or .wav file to open that file.\n", argv[1]);
 	    exit(1);
 	}

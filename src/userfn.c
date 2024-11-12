@@ -1143,6 +1143,15 @@ void user_tl_track_rename(void *nullarg)
     /* fprintf(stdout, "DONE track edit\n"); */
 }
 
+void user_tl_rename_clip_at_cursor(void *nullarg)
+{
+    ClipRef *cr = clipref_at_cursor();
+    if (cr) {
+	clipref_rename(cr);
+	cr->track->tl->needs_redraw = true;
+    }
+}
+
 
 void user_tl_track_set_in(void *nullarg)
 {
@@ -1665,12 +1674,13 @@ void user_tl_previous_timeline(void *nullarg)
 {
     if (proj->active_tl_index > 0) {
 	if (proj->recording) transport_stop_recording(); else  transport_stop_playback();
-	ACTIVE_TL->layout->hidden = true;
-	proj->active_tl_index--;
-	ACTIVE_TL->layout->hidden = false;
-	project_reset_tl_label(proj);
-	timeline_reset_full(ACTIVE_TL);
-	ACTIVE_TL->needs_redraw = true;
+	timeline_switch(proj->active_tl_index - 1);
+	/* ACTIVE_TL->layout->hidden = true; */
+	/* proj->active_tl_index--; */
+	/* ACTIVE_TL->layout->hidden = false; */
+	/* project_reset_tl_label(proj); */
+	/* timeline_reset_full(ACTIVE_TL); */
+	/* ACTIVE_TL->needs_redraw = true; */
     } else {
 	status_set_errstr("No timeline to the left.");
     }
@@ -1680,15 +1690,22 @@ void user_tl_next_timeline(void *nullarg)
 {
     if (proj->active_tl_index < proj->num_timelines - 1) {
 	if (proj->recording) transport_stop_recording(); else  transport_stop_playback();
-	ACTIVE_TL->layout->hidden = true;
-	proj->active_tl_index++;
-	ACTIVE_TL->layout->hidden = false;
-	project_reset_tl_label(proj);
-	timeline_reset_full(ACTIVE_TL);
-	ACTIVE_TL->needs_redraw = true;
+	timeline_switch(proj->active_tl_index + 1);
+	/* ACTIVE_TL->layout->hidden = true; */
+	/* proj->active_tl_index++; */
+	/* ACTIVE_TL->layout->hidden = false; */
+	/* project_reset_tl_label(proj); */
+	/* timeline_reset_full(ACTIVE_TL); */
+	/* ACTIVE_TL->needs_redraw = true; */
     } else {
 	status_set_errstr("No timeline to the right. Create new with A-t");
     }
+}
+
+void user_tl_delete_timeline(void *nullarg)
+{
+    Timeline *tl = ACTIVE_TL;
+    timeline_delete(tl, false);
 }
 
 
@@ -1967,6 +1984,8 @@ void user_text_edit_escape(void *nullarg)
     if (main_win->txt_editing) {
 	txt_stop_editing(main_win->txt_editing);
     }
+    Timeline *tl = ACTIVE_TL;
+    timeline_reset(tl, false);
 
     /* TODO:
        Need to replace text as editing target with textentry struct

@@ -707,6 +707,12 @@ static void mode_load_timeline()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
+	"tl_rename_clip_at_cursor",
+	"Rename clip at cursor",
+	user_tl_rename_clip_at_cursor);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
 	"tl_delete_generic",
 	"Delete",
 	user_tl_delete_generic);
@@ -760,7 +766,7 @@ static void mode_load_timeline()
 
 
     /* Project navigation */
-    sc = mode_add_subcat(mode, "Project navigation");
+    sc = mode_add_subcat(mode, "Multiple timelines");
 
     fn = create_user_fn(
 	"tl_add_new_timeline",
@@ -778,6 +784,12 @@ static void mode_load_timeline()
 	"tl_next_timeline",
 	"Next timeline",
 	user_tl_next_timeline);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_delete_timeline",
+	"Delete timeline",
+	user_tl_delete_timeline);
     mode_subcat_add_fn(sc, fn);
 
 

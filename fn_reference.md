@@ -1,8 +1,8 @@
 ### global mode
-- Summon menu : <kbd>C-m</kbd>
+- Summon menu : <kbd>C-m</kbd>, <kbd>C-h</kbd>
 - Quit : <kbd>C-q</kbd>
 - Undo : <kbd>C-z</kbd>
-- Redo : <kbd>C-y</kbd>
+- Redo : <kbd>C-y</kbd>, <kbd>C-S-z</kbd>
 - Show output spectrum : <kbd>S-f</kbd>
 - Save Project : <kbd>C-s</kbd>
 - Open File (.wav or .jdaw) : <kbd>C-o</kbd>
@@ -10,8 +10,8 @@
 ### menu_nav mode
 - Next item : <kbd>n</kbd>, <kbd>f</kbd>
 - Previous item : <kbd>p</kbd>, <kbd>d</kbd>
-- Next section : <kbd>C-n</kbd>, <kbd>C-\<up\></kbd>
-- Previous section : <kbd>C-p</kbd>, <kbd>C-\<down\></kbd>
+- Next section : <kbd>C-n</kbd>, <kbd>C-f</kbd>, <kbd>C-\<up\></kbd>
+- Previous section : <kbd>C-p</kbd>, <kbd>C-d</kbd>, <kbd>C-\<down\></kbd>
 - Choose item : <kbd>\<ret\></kbd>, <kbd>\<spc\></kbd>, <kbd>k</kbd>
 - Column right : <kbd>l</kbd>
 - Column left : <kbd>j</kbd>
@@ -25,8 +25,8 @@
 - Play : <kbd>l</kbd>, <kbd>e</kbd>
 - Pause : <kbd>k</kbd>, <kbd>w</kbd>, <kbd>S-k</kbd>
 - Rewind : <kbd>j</kbd>, <kbd>q</kbd>
-- Play slow : <kbd>K-l</kbd>, <kbd>S-l</kbd>
-- Rewind slow : <kbd>K-j</kbd>, <kbd>S-j</kbd>
+- Play slow : <kbd>K-l</kbd>, <kbd>C-l</kbd>
+- Rewind slow : <kbd>K-j</kbd>, <kbd>C-j</kbd>
 - Nudge play position left (500 samples) : <kbd>\<left\></kbd>
 - Nudge play position right (500 samples) : <kbd>\<right\></kbd>
 - Nudge play position left (100 samples) : <kbd>S-\<left\></kbd>
@@ -37,6 +37,9 @@
 #### Timeline navigation
 - Move track selector up : <kbd>p</kbd>, <kbd>d</kbd>
 - Move track selector down : <kbd>n</kbd>, <kbd>f</kbd>
+- Toggle automation read : <kbd>S-r</kbd>
+- Move selected track down : <kbd>S-n</kbd>, <kbd>S-f</kbd>
+- Move selected track up : <kbd>S-p</kbd>, <kbd>S-d</kbd>
 - Move view right : <kbd>;</kbd>
 - Move view left : <kbd>h</kbd>
 - Zoom out : <kbd>,</kbd>
@@ -47,13 +50,15 @@
 - Go to In : <kbd>S-i</kbd>
 - Go to Out : <kbd>S-o</kbd>
 - Go to t=0 : <kbd>S-u</kbd>
+- Go to clip start : <kbd>S-j</kbd>
+- Go to clip end : <kbd>S-l</kbd>
 #### Output
 - Set default audio output : <kbd>C-S-o</kbd>
 #### Tracks
 - Add Track : <kbd>C-t</kbd>
 - Activate/deactivate selected track : <kbd>\<spc\></kbd>, <kbd>\<ret\></kbd>
 - Activate/deactivate all tracks : <kbd>`</kbd>
-- Destroy selected track (permanent) : <kbd>C-\<del\></kbd>
+- Delete selected track or automation : <kbd>C-\<del\></kbd>
 - Select track 1 : <kbd>1</kbd>
 - Activate track 2 : <kbd>2</kbd>
 - Activate track 3 : <kbd>3</kbd>
@@ -73,23 +78,26 @@
 - Track pan right : <kbd>S-0</kbd>
 - Rename selected track : <kbd>C-r</kbd>
 - Set track input : <kbd>C-S-i</kbd>
+- Show or hide all track automations : <kbd>a</kbd>
+- Add automation to track : <kbd>C-a</kbd>
 #### Clips
-- Grab clip at point : <kbd>g</kbd>
+- Grab clip at cursor : <kbd>g</kbd>
 - Start or stop dragging clips : <kbd>C-k</kbd>
-- Cut clip at point : <kbd>S-c</kbd>
-- Delete selected clip(s) : <kbd>\<del\></kbd>
+- Cut clip at cursor : <kbd>S-c</kbd>
+- Delete : <kbd>\<del\></kbd>
 #### Sample mode
-- Load clip at point to source : <kbd>C-1</kbd>
+- Load clip at cursor to source : <kbd>C-1</kbd>
 - Activate Source Mode : <kbd>S-1</kbd>
 - Drop clip from source : <kbd>b</kbd>
 - Drop previously dropped clip (1) : <kbd>v</kbd>
 - Drop previously dropped clip (2) : <kbd>c</kbd>
 - Drop previously dropped clip (3) : <kbd>x</kbd>
 - Drop previously dropped clip (4) : <kbd>z</kbd>
-#### Project navigation
+#### Multiple timelines
 - Add new timeline : <kbd>A-t</kbd>
 - Previous timeline : <kbd>A-j</kbd>
 - Next timeline : <kbd>A-l</kbd>
+- Delete timeline : <kbd>A-\<del\></kbd>
 #### Export
 - Write mixdown to .wav file : <kbd>C-e</kbd>, <kbd>S-w</kbd>
 ### source mode

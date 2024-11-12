@@ -28,10 +28,12 @@ A free, open-source, keyboard-focused digital audio workstation (DAW). Written i
 		 3. [Adjusting volume / pan](#adjusting-volume--pan)
 		 4. [Setting track input](#setting-track-input)
 		 5. [Reordering tracks](#reordering-tracks)
+		 6. [Renaming tracks](#renaming-tracks)
 	5. [Clips](#clips)
 		 1. ["Clips" vs "Clip references"](#technical-note-clips-vs-clip-references)
 		 2. ["Grabbing" and moving clips](#grabbing-and-moving-clips)
 		 3. [Cutting clips](#cutting-clips)
+		 4. [Renaming clips](#renaming-clips)
 	6. [Sample mode / Source mode](#sample-mode--source-mode)
 	7. [Project navigation / multiple timelines](#project-navigation--multiple-timelines)
 	8. [Opening and saving files](#opening-and-saving-files)
@@ -64,11 +66,13 @@ $ git clone https://github.com/chvolow24/jackdaw.git
 
 ### OS compatibility
 
-Jackdaw is compatibile with macOS and Linux.
+Jackdaw is compatibile with macOS and Linux. 
+
+Jackdaw currently depends on POSIX system APIs for threading and synchronization, directory navigation, timing, and inter-process communication.
 
 ### Dependencies
 
-Jackdaw is dependent on the [SDL2](https://libsdl.org/) library, and related [SDL2_ttf](https://wiki.libsdl.org/SDL2_ttf/FrontPage) library. There are no other dependencies.
+Jackdaw is dependent on the [SDL2](https://libsdl.org/) library, and related [SDL2_ttf](https://wiki.libsdl.org/SDL2_ttf/FrontPage) library.
 
 ### The easy way: bash scripts
 
@@ -366,6 +370,12 @@ If you hold down shift while moving the track selector up or down, the selected 
 
 <img src="assets/readme_imgs/move_track.gif" width="75%" />
 
+### Renaming tracks
+
+You can rename the selected track with <kbd>C-r</kbd>, or cmd/ctrl + click the track name label box.
+
+<kbd>C-r</kbd> : **Rename selected track**<br>
+
 ### Deleting tracks
 
 <kbd>C-\<del\></kbd> : **Delete the currently-selected track**</br>
@@ -417,6 +427,10 @@ This will cut any clips on the currently selected track at the current playhead 
 
 <img src="assets/readme_imgs/cut_clip.gif" width="75%" />
 
+### Renaming clips
+
+<kbd>C-S-r</kbd> : **Rename clip at cursor**<br>
+
 ## Sample mode / Source mode
 
 Jackdaw provides an interface for extracting samples from an audio clip, and dropping [references](#technical-note-clips-vs-clip-references) to those samples in your timeline.
@@ -450,6 +464,7 @@ Jackdaw provides a way to use multiple workspaces in a single project. Each of t
 <kbd>A-t</kbd> : **Create new timeline**<br>
 <kbd>A-l</kbd> : **Go to next timeline**<br>
 <kbd>A-j</kbd> : **Go to previous timeline**<br>
+<kbd>A-<del></kbd> : **Delete current timeline**<br>
 
 When creating a new timeline, you will be prompted to enter a name. Type the name, hit <kbd>\<tab\></kbd>, and then <kbd>\<ret\></kbd> to complete naming the timeline.
 
@@ -565,9 +580,25 @@ When an automation track is selected, you can delete a range of keyframes by mar
 
 ## Undo / redo
 
-Jackdaw retains a 100-event long history of user events. Objects that are deleted will be retained under the hood until the session ends, or the deletion event drops off the end of the event history.
+Jackdaw retains a 100-event long history of user events. Generally, any changes to the project state -- those that would affect the saved `.jdaw` file -- can be undone. Actions that only affect the superficial state of the program cannot.
+
+Examples of "undoable" actions:
+- recording an audio clip
+- moving an audio clip
+- renaming a clip
+- muting a track
+
+Examples of actions that cannot be undone:
+- moving the track selector
+- navigating to a different timeline
+- grabbing or un-grabbing clips
+- zooming in on the timeline
+- setting a track input audio device
 
 
+Objects that are deleted will be retained under the hood until the session ends, or the deletion event drops off the end of the event history.
+
+Jackdaw undo is *linear.* That means that if you undo some number of changes, and then make a new change, you will lose the ability to redo those previously-undone events.
 
 <kbd>C-z</kbd> : **undo**<br>
 <kbd>C-y</kbd> / <kbd>C-S-z</kbd> : **redo**<br>

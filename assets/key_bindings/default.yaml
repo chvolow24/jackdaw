@@ -121,6 +121,7 @@
   - m		: tl_mute
   - s		: tl_solo
   - g		: tl_grab_clips_at_cursor
+  - C-S-r	: tl_rename_clip_at_cursor
   - r		: tl_record
   - C-1		: tl_load_clip_at_cursor_to_source
   - S-1		: tl_activate_source_mode
@@ -136,6 +137,7 @@
   - A-t		: tl_add_new_timeline
   - A-j		: tl_previous_timeline
   - A-l		: tl_next_timeline
+  - A-<del>	: tl_delete_timeline
   - C-e		: tl_write_mixdown_to_wav
   - S-w		: tl_write_mixdown_to_wav
 - source:

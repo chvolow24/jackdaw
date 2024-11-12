@@ -35,6 +35,8 @@
 #include "dsp.h"
 #include "project.h"
 
+#define AMP_EPSILON 0.00001f
+
 extern Project *proj;
 
 /* /\* Query track clips and return audio sample representing a given point in the timeline.  */
@@ -82,13 +84,14 @@ extern Project *proj;
 /*     return sample; */
 /* } */
 
-float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32_t start_pos_sframes, uint32_t len_sframes, float step)
+float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32_t start_pos_sframes, uint32_t len_sframes, float step)
 {
     uint32_t chunk_bytelen = sizeof(float) * len_sframes;
     /* float *chunk = calloc(1, chunk_bytelen); */
     memset(chunk, '\0', chunk_bytelen);
     if (track->muted || track->solo_muted) {
-        return chunk;
+        /* return chunk; */
+	return 0.0f;
     }
     // uint32_t end_pos_sframes = start_pos_sframes + len_sframes;
 
@@ -194,6 +197,8 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
 
     /**********************************************************************/
     /* bool clip_read = false; */
+
+    float total_amp = 0.0f;
     for (uint8_t i=0; i<track->num_clips; i++) {
 	ClipRef *cr = track->clips[i];
 	if (!cr) {
@@ -229,69 +234,28 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
 	/* double rpan = track->pan < */
 	int32_t abs_pos = start_pos_sframes;
 	while (chunk_i < len_sframes) {
-	    /* if (step > 0) { */
-	    /* 	if (vol_auto && vol_auto->current && vol_auto->current->next && abs_pos >= vol_next_kf) { */
-	    /* 	    vol_auto->current = vol_auto->current->next; */
-	    /* 	    if (vol_auto->current->next) */
-	    /* 		vol_next_kf = vol_auto->current->next->pos; */
-	    /* 	    vol_m = vol_auto->current->m_fwd; */
-	    /* 	    /\* fprintf(stderr, "RESETTING VOL CURRENT %d\n", vol_next_kf); *\/ */
-	    /* 	} */
-	    /* 	if (pan_auto && pan_auto->current && pan_auto->current->next && abs_pos >= pan_next_kf) { */
-	    /* 	    pan_auto->current = pan_auto->current->next; */
-	    /* 	    if (pan_auto->current->next) */
-	    /* 		pan_next_kf = pan_auto->current->next->pos; */
-	    /* 	    pan_m = pan_auto->current->m_fwd; */
-	    /* 	    /\* fprintf(stderr, "RESETTING PAN CURRENT %d\n", pan_next_kf); *\/ */
-	    /* 	} */
-	    /* } else { */
-	    /* 	if (vol_auto) { */
-	    /* 	    if (vol_auto->current && vol_auto->current->prev && abs_pos <= vol_next_kf) { */
-	    /* 		vol_auto->current = vol_auto->current->prev; */
-	    /* 		vol_next_kf = vol_auto->current->pos; */
-	    /* 		vol_m = vol_auto->current->m_fwd; */
-	    /* 		/\* fprintf(stderr, "RESETTING VOL CURRENT %d\n", vol_next_kf); *\/ */
-	    /* 	    } else { */
-	    /* 		vol_auto->current = NULL; */
-	    /* 	    } */
-	    /* 	} */
-	    /* 	if (pan_auto) { */
-	    /* 	    if (pan_auto->current && pan_auto->current->prev && abs_pos <= pan_next_kf) { */
-	    /* 		pan_auto->current = pan_auto->current->prev; */
-	    /* 		pan_next_kf = pan_auto->current->pos; */
-	    /* 		pan_m = pan_auto->current->m_fwd; */
-	    /* 		/\* fprintf(stderr, "RESETTING PAN CURRENT %d\n", pan_next_kf); *\/ */
-	    /* 	    } else { */
-	    /* 		pan_auto->current = NULL; */
-	    /* 	    } */
-	    /* 	} */
-
-	    /* } */
-	    float vol;
-	    if (vol_auto && vol_auto->read && !vol_auto->write) {
-		vol = automation_get_value(vol_auto, abs_pos, step).float_v;
-	    } else {
-		vol = track->vol;
-	    }
-	    float raw_pan;
-	    if (pan_auto && pan_auto->read && !pan_auto->write) {
-		raw_pan = automation_get_value(pan_auto, abs_pos, step).float_v;
-	    } else {
-		raw_pan = track->pan;
-	    }
-
-						
-	    /* float raw_pan = automation_get_value(pan_auto, abs_pos, step).float_v; */
-	    /* fprintf(stdout, "RAW PAN: %f, RAW VOL: %f\n"); */
-	    /* float raw_pan = pan_init + chunk_i * pan_m.dy.float_v / pan_m.dx; */
-	    double pan_scale = channel == 0 ?
-		raw_pan <= 0.5 ? 1 : (1.0f - raw_pan) * 2
-	    : raw_pan >= 0.5 ? 1 : raw_pan * 2;
-
 	    
+	    /* Clip overlaps */
 	    if (pos_in_clip_sframes >= 0 && pos_in_clip_sframes < cr_len) {
-		/* chunk[chunk_i] += clip_buf[(int32_t)pos_in_clip_sframes + cr->in_mark_sframes] * (track->vol + chunk_i * vol_m.dy.float_v / vol_m.dx) * pan_scale; */
+		float vol;
+		if (vol_auto && vol_auto->read && !vol_auto->write) {
+		    vol = automation_get_value(vol_auto, abs_pos, step).float_v;
+		} else {
+		    vol = track->vol;
+		}
+		float raw_pan;
+		if (pan_auto && pan_auto->read && !pan_auto->write) {
+		    raw_pan = automation_get_value(pan_auto, abs_pos, step).float_v;
+		} else {
+		    raw_pan = track->pan;
+		}
+						
+		double pan_scale = channel == 0 ?
+		    raw_pan <= 0.5 ? 1 : (1.0f - raw_pan) * 2
+		    : raw_pan >= 0.5 ? 1 : raw_pan * 2;
+
 		chunk[chunk_i] += clip_buf[(int32_t)pos_in_clip_sframes + cr->in_mark_sframes] * vol * pan_scale;
+		total_amp += fabs(chunk[chunk_i]);
 	    }
 	    pos_in_clip_sframes += step;
 	    /* fprintf(stdout, "Chunk %d: %f\n", chunk_i, chunk[chunk_i]); */
@@ -327,7 +291,7 @@ float *get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int3
     /*     } */
     /* } */
 
-    return chunk;
+    return total_amp;
 }
 
 
@@ -358,34 +322,28 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
     /* long unsigned track_mixdown_time = 0; */
     /* long unsigned track_filter_time = 0; */
     for (uint8_t t=0; t<tl->num_tracks; t++) {
+	bool audio_in_track = false;
         Track *track = tl->tracks[t];
-        /* double panctrlval = track->pan_ctrl->value; */
-        /* double lpan = track->pan_ctrl->value < 0 ? 1 : 1 - panctrlval; */
-        /* double rpan = track->pan_ctrl->value > 0 ? 1 : 1 + panctrlval; */
-        /* double pan = channel == 0 ? lpan : rpan; */
+
 	float track_chunk[len_sframes];
-	/* clock_t a, b; */
-	/* a=clock(); */
-        get_track_channel_chunk(track, track_chunk, channel, start_pos_sframes, len_sframes, step);
-	/* b=clock(); */
-	/* track_mixdown_time+=(b-a); */
-	if (track->fir_filter_active) {
-	    /* a = clock(); */
-	    apply_filter(track->fir_filter, track, channel, len_sframes, track_chunk);
-	    /* b= clock(); */
-	    /* track_filter_time = (b-a); */
+
+        float track_chunk_amp = get_track_channel_chunk(track, track_chunk, channel, start_pos_sframes, len_sframes, step);
+
+	if (track_chunk_amp > AMP_EPSILON) { /* Checks if any clip audio available */
+	    audio_in_track = true;
 	}
+
+	if (audio_in_track && track->fir_filter_active) { /* Only apply FIR filter if there is audio */
+	    apply_filter(track->fir_filter, track, channel, len_sframes, track_chunk);
+	}
+	float del_line_total_amp = 0.0f;
 	if (track->delay_line_active) {
 	    DelayLine *dl = &track->delay_line;
 	    pthread_mutex_lock(&dl->lock);
 	    double *del_line = channel == 0 ? dl->buf_L : dl->buf_R;
 	    int32_t *del_line_pos = channel == 0 ? &dl->pos_L : &dl->pos_R;
-	    /* do_fn2(); */
-	    /* int32_t *del_line_pos = channel==0 ? &track->delay_line_L.pos : &track->delay_line_R.pos; */
 
 	    for (int16_t i=0; i<len_sframes; i++) {
-		/* fprintf(stdout, "Writing %f pos %d\n", del_line[del_line_pos], del_line_pos); */
-		
 		double track_sample = track_chunk[i];
 		int32_t pos = *del_line_pos;
 		if (channel == 0) {
@@ -396,6 +354,7 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 		    /* pos %= dl->len; */
 		}
 		track_chunk[i] += del_line[pos];
+		del_line_total_amp += fabs(del_line[pos]);
 		/* int tap = *del_line_pos - 1025; */
 		/* if (tap < 0) tap = dl->len + tap; */
 		/* track_chunk[i] += del_line[tap]; */
@@ -425,20 +384,26 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 	    pthread_mutex_unlock(&dl->lock);
 	}
 
-        for (uint32_t i=0; i<len_sframes; i++) {
-            /* mixdown[i] += track_chunk[i] * pan * track->vol_ctrl->value; */
-	    mixdown[i] += track_chunk[i];
-	    /* fprintf(stdout, "Track chunk %d: %f\n", i, track_chunk[i]); */
-	    if (t == tl->num_tracks - 1) {
-		if (mixdown[i] > 1.0f) {
-		    mixdown[i] = 1.0f;
-		    /* fprintf(stdout, "Clip up mixdown\n"); */
-		} else if (mixdown[i] < -1.0f) {
-		    mixdown[i] = -1.0f;
-		    /* fprintf(stdout, "Clip down mixdown\n"); */
+	if (del_line_total_amp > AMP_EPSILON) { /* There is something to play back */
+	    audio_in_track = true;
+	}
+	
+	if (audio_in_track || t == tl->num_tracks - 1) {
+	    for (uint32_t i=0; i<len_sframes; i++) {
+		/* mixdown[i] += track_chunk[i] * pan * track->vol_ctrl->value; */
+		mixdown[i] += track_chunk[i];
+		/* fprintf(stdout, "Track chunk %d: %f\n", i, track_chunk[i]); */
+		if (t == tl->num_tracks - 1) {
+		    if (mixdown[i] > 1.0f) {
+			mixdown[i] = 1.0f;
+			/* fprintf(stdout, "Clip up mixdown\n"); */
+		    } else if (mixdown[i] < -1.0f) {
+			mixdown[i] = -1.0f;
+			/* fprintf(stdout, "Clip down mixdown\n"); */
+		    }
 		}
 	    }
-        }
+	}
 
 	
         /* free(track_chunk); */

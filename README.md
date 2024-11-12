@@ -5,16 +5,16 @@ A free, open-source, keyboard-focused digital audio workstation (DAW). Written i
 
 ## Table of Contents
 1. [Disclaimer](#disclaimer)
-2. [Installation](#installation)
-    1. [Compatibility](#os-compatibility)
-	2. [Dependencies](#dependencies)
-    3. [The easy way: bash scripts](#the-easy-way-bash-scripts)
-    4. [Manual installation](#manual-installation)
-3. [Keyboard command shorthand](#keyboard-command-shorthand)
-4. [Quickstart (getting comfortable)](#quickstart-getting-comfortable) 
-5. [User manual](#user-manual)
+2. [Compatibility](#os-compatibility)
+3. [Dependencies](#dependencies)
+4. [Installation](#installation)
+    1. [The easy way: bash scripts](#the-easy-way-bash-scripts)
+    2. [Manual installation](#manual-installation)
+5. [Keyboard command shorthand](#keyboard-command-shorthand)
+6. [Quickstart (getting comfortable)](#quickstart-getting-comfortable) 
+7. [User manual](#user-manual)
     1. [Menus](#menus)
-	2. [Timeline navigation and playback](#timeline-navigation-and-playback)po
+	2. [Timeline navigation and playback](#timeline-navigation-and-playback)
 	     1. [Playback](#playback)
 		 2. [Translate / zoom](#translate--zoom)
 		 3. [Track selector](#track-selector)
@@ -29,6 +29,7 @@ A free, open-source, keyboard-focused digital audio workstation (DAW). Written i
 		 4. [Setting track input](#setting-track-input)
 		 5. [Reordering tracks](#reordering-tracks)
 		 6. [Renaming tracks](#renaming-tracks)
+			 1. [Editing text](#editing-text)
 	5. [Clips](#clips)
 		 1. ["Clips" vs "Clip references"](#technical-note-clips-vs-clip-references)
 		 2. ["Grabbing" and moving clips](#grabbing-and-moving-clips)
@@ -48,12 +49,22 @@ A free, open-source, keyboard-focused digital audio workstation (DAW). Written i
 	12. [Special audio inputs](#special-audio-inputs)
 		 1. [Jackdaw out](#jackdaw-out)
 		 2. [Pure data](#pure-data)
-6. [Function reference](#function-reference)
+8. [Function reference](#function-reference)
 	
 
 ## Disclaimer
 
-Jackdaw is a work in progress and has not been officially "released." What's available here is fun to use and can definitely be used to make music; but I cannot guarantee that everything will work perfectly or as expected.
+Jackdaw is a work in progress and has not been officially "released." What's available here is surprisingly powerful, fun to use, and can definitely be used to make music, but I do not guarantee that everything will work perfectly or as expected.
+
+## OS compatibility
+
+Jackdaw is compatibile with macOS and Linux. 
+
+Jackdaw currently depends on POSIX system APIs for threading and synchronization, directory navigation, timing, and inter-process communication.
+
+## Dependencies
+
+Jackdaw depends on the [SDL2](https://libsdl.org/) library, and related [SDL2_ttf](https://wiki.libsdl.org/SDL2_ttf/FrontPage) library.
 
 ## Installation
 
@@ -63,16 +74,6 @@ Currently, the only way to install Jackdaw is to build it from the source code. 
 $ git clone https://github.com/chvolow24/jackdaw.git
 
 ```
-
-### OS compatibility
-
-Jackdaw is compatibile with macOS and Linux. 
-
-Jackdaw currently depends on POSIX system APIs for threading and synchronization, directory navigation, timing, and inter-process communication.
-
-### Dependencies
-
-Jackdaw is dependent on the [SDL2](https://libsdl.org/) library, and related [SDL2_ttf](https://wiki.libsdl.org/SDL2_ttf/FrontPage) library.
 
 ### The easy way: bash scripts
 
@@ -96,7 +97,7 @@ If you prefer not to run my bash scripts, you'll need to manually install the de
 
 #### Installing dependencies (SDL2 and SDL2_ttf)
 
-Detailed instructions for installing SDL can be found [here](https://wiki.libsdl.org/SDL2/Installation). 
+Detailed instructions for installing SDL can be found [on their wiki](https://wiki.libsdl.org/SDL2/Installation), but here's a summary:
 
 ##### macOS
 
@@ -108,7 +109,7 @@ $ brew install sdl2_ttf
 
 ##### linux
 
-You may want to build SDL from source by default instead of using `apt-get`; I found that the version of SDL provided by `apt-get` on ubuntu was too old.
+You may want to build SDL from source by default (again, see [wiki](https://wiki.libsdl.org/SDL2/Installation)) instead of using `apt-get`; I found that the version of SDL provided by `apt-get` on ubuntu was too old.
 
 SDL2_ttf can be installed with the package manager, though:
 
@@ -195,11 +196,12 @@ Once you have selected an appropriate audio input device, you can **start record
 ### 3. Playback
 
 You should now see a clip on your timeline, with an audio waveform representing the audio you just recorded. You can rewind over the clip, pause, and play it back with the <kbd>j</kbd> (rewind) <kbd>k</kbd> (pause) and <kbd>l</kbd> (play) keys.
-<br><br>
-#### J K L : (Rewind | Pause | Play)
-<br><br>
-If you tap <kbd>l</kbd> or <kbd>j</kbd> multiple times, the playback speed will double.
 
+#### j k l : Rewind, Pause, Play
+
+If you tap <kbd>l</kbd> or <kbd>j</kbd> multiple times, the playback speed will double. 
+
+**These are jackdaw's most important key commands!**
 
 ### 4. Multi-track audio
 
@@ -209,7 +211,9 @@ The clip you recorded landed on the first track by default. You can again use th
 
 ### 5. Exporting a .wav file
 
-Now that you've created some multi-track audio, you might want to export it to a wav file to show your friends. First you'll need to place in and out marks on your timeline with <kbd>i</kbd> and <kbd>o</kbd>. Once you have placed them such that some portion of the timeline is marked, you can export to a wav file with <kbd>S-w</kbd>.
+Now that you've created some multi-track audio, you might want to export it to a wav file to show your friends. 
+
+First you'll need to place in and out marks on your timeline with <kbd>i</kbd> and <kbd>o</kbd>. A mark will be placed at the current playhead position, so you'll need to play/rewind/pause a bit (<kbd>j</kbd><kbd>k</kbd><kbd>l</kbd>!) to get them in the right place. Once you have placed in and out marks such that some portion of the timeline is marked, you can export to a wav file with <kbd>S-w</kbd>.
 
 You will first be prompted to enter a file name. Hit <kbd>tab</kbd> or <kbd>\<ret\></kbd> to apply the current name, and move down to the directory navigation pane. Then, use <kbd>n</kbd> and <kbd>p</kbd> to navigate through the filesystem to the directory where you want to save the file. Finally, use <kbd>\<tab\></kbd> to move down to the "Save" button, and then <kbd>\<ret\></kbd> to save the file with the current name, in the currently open directory. (Or, use <kbd>C-\<ret\></kbd> to "submit the form" and save the file.)
 
@@ -311,11 +315,10 @@ You can record from multiple audio devices at once, simply by setting different 
 
 ## Tracks
 
+In the current version of jackdaw (v0.4.0) all tracks are stereo audio tracks.
+
 <kbd>C-t</kbd> : **add a track**<br>
 <kbd>C-\<del\></kbd> : **delete the currently selected track**<br>
-
-> [!CAUTION]
-> In the current jackdaw version (v0.2.0), deleting a track will permanently delete all of its data, as well as any audio clip data native to that track and all references to those clips.
 
 ### Activating / deactivating tracks
 
@@ -355,7 +358,7 @@ Track volume can be attenuated or boosted. Stereo tracks can be panned to the le
 
 (Note that the pan adjustment keystrokes are the left and right parens.)
 
-### Set track input
+### Setting track input
 
 The track input can be set to any of the available system audio devices (e.g. built-in laptop microphone, external microphone) or one of two special inputs, which are described below.
 
@@ -375,6 +378,19 @@ If you hold down shift while moving the track selector up or down, the selected 
 You can rename the selected track with <kbd>C-r</kbd>, or cmd/ctrl + click the track name label box.
 
 <kbd>C-r</kbd> : **Rename selected track**<br>
+
+#### Editing text
+
+Renaming a track or other object will put the program into "text edit mode", in which most keystrokes are read as text input rather than as keycommands. Use <kbd>\<ret\></kbd> to complete your edit and "escape" text edit mode.
+
+There are some very limited additional text editing commands that can be used while a text field is being edited:
+
+<kbd>\<ret\></kbd>, <kbd>\<tab\></kbd>, <kbd>\<esc\></kbd> : **Escape text edit mode (complete edit)**<br>
+<kbd>\<del\></kbd> : **Backspace**<br>
+<kbd>\<right\></kbd>, <kbd>C-f</kbd> : **Move cursor to the right**<br>
+<kbd>\<left\></kbd>, <kbd>C-d</kbd>, <kbd>C-b</kbd> : **Move cursor to the left**<br>
+<kbd>C-a</kbd> : **Highlight all text**<br>
+
 
 ### Deleting tracks
 
@@ -431,6 +447,8 @@ This will cut any clips on the currently selected track at the current playhead 
 
 <kbd>C-S-r</kbd> : **Rename clip at cursor**<br>
 
+See <a href = "#editing-text">"Editing text"</a> for more on text edit mode.
+
 ## Sample mode / Source mode
 
 Jackdaw provides an interface for extracting samples from an audio clip, and dropping [references](#technical-note-clips-vs-clip-references) to those samples in your timeline.
@@ -467,8 +485,6 @@ Jackdaw provides a way to use multiple workspaces in a single project. Each of t
 <kbd>A-<del></kbd> : **Delete current timeline**<br>
 
 When creating a new timeline, you will be prompted to enter a name. Type the name, hit <kbd>\<tab\></kbd>, and then <kbd>\<ret\></kbd> to complete naming the timeline.
-
-In the current version of jackdaw, the timelines are unconnected to one another, but all will be saved along with a project. In a future version, I intend to introduce a "timeline reference;" this will look like a clip, but the associated audio data will be a mixdown of another timeline in the same project, from some start position to some end position.
 
 ## Opening and Saving files
 
@@ -582,21 +598,12 @@ When an automation track is selected, you can delete a range of keyframes by mar
 
 Jackdaw retains a 100-event long history of user events. Generally, any changes to the project state -- those that would affect the saved `.jdaw` file -- can be undone. Actions that only affect the superficial state of the program cannot.
 
-Examples of "undoable" actions:
-- recording an audio clip
-- moving an audio clip
-- renaming a clip
-- muting a track
 
-Examples of actions that cannot be undone:
-- moving the track selector
-- navigating to a different timeline
-- grabbing or un-grabbing clips
-- zooming in on the timeline
-- setting a track input audio device
+> [!CAUTION]
+> In the current jackdaw version (v0.4.0), track volume and pan adjustments, as well as adjustments to track effect parameters (e.g. FIR filter cutoff frequency) cannot be undone. This is a technical limitation and will be fixed in a future version of jackdaw.
 
 
-Objects that are deleted will be retained under the hood until the session ends, or the deletion event drops off the end of the event history.
+Objects that you delete will not be permanently deleted until the program is closed or the deletion event drops off the end of the event history.
 
 Jackdaw undo is *linear.* That means that if you undo some number of changes, and then make a new change, you will lose the ability to redo those previously-undone events.
 

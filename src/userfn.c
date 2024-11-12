@@ -105,11 +105,13 @@ void user_global_quit(void *nullarg)
 void user_global_undo(void *nullarg)
 {
     user_event_do_undo(&proj->history);
+    timeline_reset(ACTIVE_TL, false);
 }
 
 void user_global_redo(void *nullarg)
 {
     user_event_do_redo(&proj->history);
+    timeline_reset(ACTIVE_TL, false);
 }
 
 void user_global_show_output_freq_domain(void *nullarg)
@@ -381,10 +383,10 @@ void user_global_open_file(void *nullarg)
     modal_reset(openfile);
 }
 
-void user_global_start_or_stop_screenrecording(void *nullarg)
-{
-    main_win->screenrecording = !main_win->screenrecording;
-}
+/* void user_global_start_or_stop_screenrecording(void *nullarg) */
+/* { */
+/*     main_win->screenrecording = !main_win->screenrecording; */
+/* } */
 
 void user_menu_nav_next_item(void *nullarg)
 {

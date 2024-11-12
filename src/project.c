@@ -123,8 +123,10 @@ uint8_t track_color_index = 0;
 SDL_Color track_colors[7] = {
     {5, 100, 115, 255},
     {38, 125, 240, 255},
-    {70, 30, 130, 255},
-    {171, 38, 38, 255},
+    /* {70, 30, 130, 255}, */
+    {100, 60, 130, 255},
+    /* {171, 38, 38, 255}, */
+    {171, 70, 70, 255},
     {224, 142, 74, 255},
     {250, 110, 100, 255},
     {60, 200, 150, 255}
@@ -1256,7 +1258,7 @@ static void slider_label_pan(char *dst, size_t dstsize, void *value, ValType typ
 /* } */
 
 
-static NEW_EVENT_FN(undo_track_rename, "undo rename track")
+static NEW_EVENT_FN(undo_rename_object, "undo rename object")
     Text *txt = (Text *)obj1;
     if (txt->cached_value) {
         free(txt->cached_value);
@@ -1265,34 +1267,34 @@ static NEW_EVENT_FN(undo_track_rename, "undo rename track")
     txt_set_value(txt, (char *)obj2);
 }
 
-static NEW_EVENT_FN(redo_track_rename, "redo rename track")
+static NEW_EVENT_FN(redo_rename_object, "redo rename object")
     Text *txt = (Text *)obj1;
     txt_set_value(txt, txt->cached_value);
 }
 
-static NEW_EVENT_FN(undo_clipref_rename, "undo rename clipref")
-    Text *txt = (Text *)obj1;
-    if (txt->cached_value) {
-        free(txt->cached_value);
-    }
-    txt->cached_value = strdup(txt->value_handle);
-    txt_set_value(txt, (char *)obj2);
-}
+/* static NEW_EVENT_FN(undo_clipref_rename, "undo rename clipref") */
+/*     Text *txt = (Text *)obj1; */
+/*     if (txt->cached_value) { */
+/*         free(txt->cached_value); */
+/*     } */
+/*     txt->cached_value = strdup(txt->value_handle); */
+/*     txt_set_value(txt, (char *)obj2); */
+/* } */
 
-static NEW_EVENT_FN(redo_clipref_rename, "redo rename clipref")
-    Text *txt = (Text *)obj1;
-    txt_set_value(txt, txt->cached_value);
-}
+/* static NEW_EVENT_FN(redo_clipref_rename, "redo rename clipref") */
+/*     Text *txt = (Text *)obj1; */
+/*     txt_set_value(txt, txt->cached_value); */
+/* } */
     
 
-static int track_name_completion(Text *txt)
+static int name_completion(Text *txt)
 {
     Value nullval = {.int_v = 0};
     char *old_value = strdup(txt->cached_value);
     user_event_push(
 	&proj->history,
-	undo_track_rename,
-	redo_track_rename,
+	undo_rename_object,
+	redo_rename_object,
 	NULL, NULL,
 	(void *)txt,
 	old_value,
@@ -1301,21 +1303,21 @@ static int track_name_completion(Text *txt)
     return 0;
 }
 
-static int clipref_name_completion(Text *txt)
-{
-    Value nullval = {.int_v = 0};
-    char *old_value = strdup(txt->cached_value);
-    user_event_push(
-	&proj->history,
-	undo_clipref_rename,
-	redo_clipref_rename,
-	NULL, NULL,
-	(void *)txt,
-	old_value,
-	nullval, nullval, nullval, nullval,
-	0, 0, false, true);
-    return 0;
-}
+/* static int clipref_name_completion(Text *txt) */
+/* { */
+/*     Value nullval = {.int_v = 0}; */
+/*     char *old_value = strdup(txt->cached_value); */
+/*     user_event_push( */
+/* 	&proj->history, */
+/* 	undo_rename_object, */
+/* 	redo_rename_object, */
+/* 	NULL, NULL, */
+/* 	(void *)txt, */
+/* 	old_value, */
+/* 	nullval, nullval, nullval, nullval, */
+/* 	0, 0, false, true); */
+/*     return 0; */
+/* } */
 
 
 void timeline_rectify_track_area(Timeline *tl)
@@ -1420,7 +1422,7 @@ Track *timeline_add_track(Timeline *tl)
     textbox_set_trunc(track->tb_vol_label, false);
     /* textbox_reset_full(track->tb_name); */
     track->tb_name->text->validation = txt_name_validation;
-    track->tb_name->text->completion = track_name_completion;
+    track->tb_name->text->completion = name_completion;
 
     
     track->tb_input_label = textbox_create_from_str(
@@ -1727,7 +1729,7 @@ ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sfr
     label_lt->h.value.intval = CLIPREF_NAMELABEL_H;
     cr->label = textbox_create_from_str(cr->name, label_lt, main_win->mono_bold_font, 12, main_win);
     cr->label->text->validation = txt_name_validation;
-    cr->label->text->completion = clipref_name_completion;
+    cr->label->text->completion = name_completion;
 
     textbox_set_align(cr->label, CENTER_LEFT);
     textbox_set_background_color(cr->label, NULL);

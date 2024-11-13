@@ -595,7 +595,6 @@ void delay_line_init(DelayLine *dl)
 
 static inline void del_read_into_buffer_resize(DelayLine *dl, double *read_from, double *read_to, int32_t *read_pos, int32_t len)
 {
-    fprintf(stderr, "POSs BEFORE: %d, %d\n", dl->pos_L, dl->pos_R);
     for (int32_t i=0; i<len; i++) {
 	/* double read_pos_d = (double)*read_pos; */
 	double read_pos_d = dl->len * ((double)i / len);
@@ -607,7 +606,6 @@ static inline void del_read_into_buffer_resize(DelayLine *dl, double *read_from,
 	    read_pos_d -= dl->len;
 	}
     }
-    fprintf(stderr, "POSs AFTER: %d, %d\n", dl->pos_L, dl->pos_R);
 }
 
 void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
@@ -631,10 +629,14 @@ void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
 	memcpy(dl->buf_L, new_buf, len * sizeof(double));
 	del_read_into_buffer_resize(dl, dl->buf_R, new_buf, &dl->pos_R, len);
 	memcpy(dl->buf_R, new_buf, len * sizeof(double));
+	fprintf(stderr, "POSs BEFORE: %d, %d\n", dl->pos_L, dl->pos_R);
 	double pos_L_prop = (double)dl->pos_L / dl->len;
 	double pos_R_prop = (double)dl->pos_R / dl->len;
+	fprintf(stderr, "PROP: %f, %f\n", pos_L_prop, pos_R_prop);
+	fprintf(stderr, "mult by len %d\n", len);
 	dl->pos_L = pos_L_prop * len;
 	dl->pos_R = pos_R_prop * len;
+	fprintf(stderr, "POSs After: %d, %d\n", dl->pos_L, dl->pos_R);
 	dl->len = len;
 	/* dl->pos_L = 0; */
 	/* dl->pos_R = 0; */

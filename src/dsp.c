@@ -570,7 +570,7 @@ void delay_line_init(DelayLine *dl)
     dl->pos_L = 0;
     dl->pos_R = 0;
     dl->amp = 0.0;
-    dl->len = 0;
+    dl->len = 5000;
     dl->stereo_offset = 0;
     pthread_mutex_init(&dl->lock, NULL);
     /* dl->lock = SDL_CreateMutex(); */

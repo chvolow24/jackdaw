@@ -630,6 +630,7 @@ void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
 	del_read_into_buffer_resize(dl, dl->buf_R, new_buf, &dl->pos_R, len);
 	memcpy(dl->buf_R, new_buf, len * sizeof(double));
 	fprintf(stderr, "POSs BEFORE: %d, %d\n", dl->pos_L, dl->pos_R);
+	fprintf(stderr, "dividing %f by %d\n", (double)dl->pos_L, dl->len);
 	double pos_L_prop = (double)dl->pos_L / dl->len;
 	double pos_R_prop = (double)dl->pos_R / dl->len;
 	fprintf(stderr, "PROP: %f, %f\n", pos_L_prop, pos_R_prop);

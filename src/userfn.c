@@ -66,6 +66,7 @@ void user_global_menu(void *nullarg)
 
 static int quit_yes_action(void *self, void *xarg)
 {
+    window_pop_modal(main_win);
     main_win->i_state |= I_STATE_QUIT;
     return 0;
 }

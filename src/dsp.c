@@ -567,7 +567,6 @@ void track_add_default_filter(Track *track)
 
 void delay_line_init(DelayLine *dl)
 {
-    fprintf(stderr, "\n\n\nDELAY LINE INIT\n\n\n");
     dl->pos_L = 0;
     dl->pos_R = 0;
     dl->amp = 0.0;
@@ -595,7 +594,8 @@ void delay_line_init(DelayLine *dl)
  */
 
 static inline void del_read_into_buffer_resize(DelayLine *dl, double *read_from, double *read_to, int32_t *read_pos, int32_t len)
-{   
+{
+    fprintf(stderr, "POSs BEFORE: %d, %d\n", dl->pos_L, dl->pos_R);
     for (int32_t i=0; i<len; i++) {
 	/* double read_pos_d = (double)*read_pos; */
 	double read_pos_d = dl->len * ((double)i / len);
@@ -607,6 +607,7 @@ static inline void del_read_into_buffer_resize(DelayLine *dl, double *read_from,
 	    read_pos_d -= dl->len;
 	}
     }
+    fprintf(stderr, "POSs AFTER: %d, %d\n", dl->pos_L, dl->pos_R);
 }
 
 void delay_line_set_params(DelayLine *dl, double amp, int32_t len)

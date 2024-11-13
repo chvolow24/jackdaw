@@ -342,7 +342,7 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 	    pthread_mutex_lock(&dl->lock);
 	    double *del_line = channel == 0 ? dl->buf_L : dl->buf_R;
 	    int32_t *del_line_pos = channel == 0 ? &dl->pos_L : &dl->pos_R;
-
+	    fprintf(stderr, "POSs in MIXDOWN: %d, %d\n", dl->pos_L, dl->pos_R);
 	    for (int16_t i=0; i<len_sframes; i++) {
 		double track_sample = track_chunk[i];
 		int32_t pos = *del_line_pos;

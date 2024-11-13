@@ -314,8 +314,8 @@ static void jdaw_write_auto_keyframe(FILE *f, Keyframe *k)
 
 
 
-static void jdaw_read_clip(FILE *f, Project *proj);
-static void jdaw_read_timeline(FILE *f, Project *proj);
+static int jdaw_read_clip(FILE *f, Project *proj);
+static int jdaw_read_timeline(FILE *f, Project *proj);
 Project *jdaw_read_file(const char *path)
 {
     
@@ -394,29 +394,38 @@ Project *jdaw_read_file(const char *path)
     proj_loc->num_timelines = 0;
 
     while (num_clips > 0) {
-	jdaw_read_clip(f, proj_loc);
+	if (jdaw_read_clip(f, proj_loc) != 0) {
+	    goto jdaw_parse_error;
+	}
 	num_clips--;
     }
 
     while (num_timelines > 0) {
-	jdaw_read_timeline(f, proj_loc);
+	if (jdaw_read_timeline(f, proj_loc) != 0) {
+	    goto jdaw_parse_error;
+	}
 	num_timelines--;
     }
 
     /* timeline_reset(proj->timelines[0]); */
-
-    
     fclose(f);
     return proj_loc;
+    
+jdaw_parse_error:
+    fclose(f);
+    fprintf(stderr, "Error parsing .jdaw file at %s, filespec version %05.2f\n", path, read_file_spec_version);
+    /* project_destroy(proj_loc); */
+    return NULL;
+    
 }
 
-static void jdaw_read_clip(FILE *f, Project *proj)
+static int jdaw_read_clip(FILE *f, Project *proj)
 {
     char hdr_buffer[5];
     fread(hdr_buffer, 1, 4, f);
     if (strncmp(hdr_buffer, hdr_clip, 4) != 0) {
-	fprintf(stderr, "Error: .jdaw parsing error: CLIP indicator missing.\n");
-	return;
+	fprintf(stderr, "Error: CLIP indicator missing.\n");
+	return 1;
     }
 
     Clip *clip = calloc(1, sizeof(Clip));
@@ -441,8 +450,8 @@ static void jdaw_read_clip(FILE *f, Project *proj)
     }
     fread(hdr_buffer, 1, 4, f);
     if (strncmp(hdr_buffer, hdr_data, 4) != 0) {
-	fprintf(stderr, "Error: .jdaw parsing error: clip 'data' indicator missing.\n");
-	return;
+	fprintf(stderr, "Error: clip 'data' indicator missing.\n");
+	return 1;
     }
 
     /* Read clip data */
@@ -465,19 +474,20 @@ static void jdaw_read_clip(FILE *f, Project *proj)
         }
     }
     free(interleaved_clip_samples);
+    return 0;
     /* fprintf(stderr, "Finished creating samples array\n"); */
 
 }
 
 
-static void jdaw_read_track(FILE *f, Timeline *tl);
-static void jdaw_read_timeline(FILE *f, Project *proj)
+static int jdaw_read_track(FILE *f, Timeline *tl);
+static int jdaw_read_timeline(FILE *f, Project *proj)
 {
     char hdr_buffer[8];
     fread(hdr_buffer, 1, 8, f);
     if (strncmp(hdr_buffer, hdr_timeline, 8) != 0) {
-	fprintf(stderr, "Error: .jdaw parsing error: \"TIMELINE\" indicator not found\n");
-	return;
+	fprintf(stderr, "Error: \"TIMELINE\" indicator not found\n");
+	return 1;
     }
     uint8_t tl_namelen;
     fread(&tl_namelen, 1, 1, f);
@@ -492,19 +502,23 @@ static void jdaw_read_timeline(FILE *f, Project *proj)
     uint8_t num_tracks;
     fread(&num_tracks, 1, 1, f);
     while (num_tracks > 0) {
-	jdaw_read_track(f, tl);
+	if (jdaw_read_track(f, tl) != 0) {
+	    return 1;
+	}
 	num_tracks--;
     }
+    return 0;
 }
 
-static void jdaw_read_clipref(FILE *f, Track *track);
-static void jdaw_read_automation(FILE *f, Track *track);
-static void jdaw_read_track(FILE *f, Timeline *tl)
+static int jdaw_read_clipref(FILE *f, Track *track);
+static int jdaw_read_automation(FILE *f, Track *track);
+static int jdaw_read_track(FILE *f, Timeline *tl)
 {
     char hdr_buffer[4];
     fread(hdr_buffer, 1, 4, f);
     if (strncmp(hdr_buffer, hdr_track, 4) != 0) {
 	fprintf(stderr, "Error: .jdaw parsing error: \"TRCK\" indicator not found\n");
+	return 1;
     }
     
     /* Track *track = calloc(sizeof(Track), 1); */
@@ -547,14 +561,18 @@ static void jdaw_read_track(FILE *f, Timeline *tl)
     fread(&num_cliprefs, 1, 1, f);
 
     while (num_cliprefs > 0) {
-	jdaw_read_clipref(f, track);
+	if (jdaw_read_clipref(f, track) != 0) {
+	    return 1;
+	}
 	num_cliprefs--;
     }
     if (read_file_spec_version >= 00.13f) {
 	uint8_t num_automations;
 	fread(&num_automations, 1, 1, f);
 	while (num_automations > 0) {
-	    jdaw_read_automation(f, track);
+	    if (jdaw_read_automation(f, track) != 0) {
+		return 1;
+	    }
 	    num_automations--;
 	}
     }
@@ -603,9 +621,10 @@ static void jdaw_read_track(FILE *f, Timeline *tl)
 	    fseek(f, 36, SEEK_CUR);
 	}
     }
+    return 0;
 }
 
-static void jdaw_read_clipref(FILE *f, Track *track)
+static int jdaw_read_clipref(FILE *f, Track *track)
 {
 
     char hdr_buffer[7];
@@ -613,7 +632,7 @@ static void jdaw_read_clipref(FILE *f, Track *track)
 
     if (strncmp(hdr_buffer, hdr_clipref, 7) != 0) {
 	fprintf(stderr, "Error: .jdaw parsing error: \"CLIPREF\" indicator missing\n");
-	exit(1);
+	return 1;
     }
 
     /* ClipRef *cr = calloc(sizeof(ClipRef), 1); */
@@ -640,12 +659,12 @@ static void jdaw_read_clipref(FILE *f, Track *track)
     } else {
 	BYTEORDER_FATAL
     }
-    
+    return 0;
 }
 
-static void jdaw_read_keyframe(FILE *f, Automation *a);
+static int jdaw_read_keyframe(FILE *f, Automation *a);
 
-static void jdaw_read_automation(FILE *f, Track *track)
+static int jdaw_read_automation(FILE *f, Track *track)
 {
 
     char hdr_buffer[4];
@@ -653,7 +672,7 @@ static void jdaw_read_automation(FILE *f, Track *track)
 
     if (strncmp(hdr_buffer, hdr_auto, 4) != 0) {
 	fprintf(stderr, "Error: .jdaw parsing error: \"AUTO\" indicator missing\n");
-	exit(1);
+	return 1;
     }
 
     uint8_t type_byte;
@@ -684,19 +703,22 @@ static void jdaw_read_automation(FILE *f, Track *track)
 
     a->num_keyframes = 0;
     while (num_keyframes > 0) {
-	jdaw_read_keyframe(f, a);
+	if (jdaw_read_keyframe(f, a) != 0) {
+	    return 1;
+	}
 	num_keyframes--;
     }
+    return 0;
 }
 
 
-static void jdaw_read_keyframe(FILE *f, Automation *a)
+static int jdaw_read_keyframe(FILE *f, Automation *a)
 {
     char hdr_buffer[4];
     fread(hdr_buffer, 1, 4, f);
     if (strncmp(hdr_buffer, hdr_keyf, 4) != 0) {
 	fprintf(stderr, "Error: .jdaw parsing error: \"KEYF\" indicator missing\n");
-	exit(1);
+	return 1;
     }
     int32_t pos;
     Value val;
@@ -707,6 +729,7 @@ static void jdaw_read_keyframe(FILE *f, Automation *a)
     }
     val = jdaw_val_deserialize(f, STD_FLOAT_SER_W, a->val_type);
     automation_insert_keyframe_at(a, pos, val);
+    return 0;
 }
 
 
@@ -860,4 +883,3 @@ static void jdaw_read_keyframe(FILE *f, Automation *a)
 /*     clip->done = true; */
 /*     reset_cliprect(clip); */
 /* } */
-

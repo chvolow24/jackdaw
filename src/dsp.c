@@ -611,6 +611,9 @@ static inline void del_read_into_buffer_resize(DelayLine *dl, double *read_from,
 void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
 {
     /* fprintf(stderr, "Set line len: %d\n", len); */
+    if (!dl->buf_L) {
+	delay_line_init(dl);
+    }
     pthread_mutex_lock(&dl->lock);
     if (len > proj->sample_rate) {
 	fprintf(stderr, "UH OH: len = %d\n", len);

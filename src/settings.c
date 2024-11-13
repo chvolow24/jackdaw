@@ -120,6 +120,9 @@ static int slider_irlen_target_action(void *self_v, void *target)
 static int toggle_delay_line_target_action(void *self_v, void *target)
 {
     DelayLine *dl = (DelayLine *)target;
+    if (!dl->buf_L) {
+	delay_line_init(dl);
+    }
     delay_line_clear(dl);
     return 0;
 }
@@ -212,7 +215,8 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 	track->fir_filter = filter_create(LOWPASS, ir_len, proj_loc->fourier_len_sframes * 2);
 	filter_set_params_hz(track->fir_filter, LOWPASS, 1000, 1000);
 	track->fir_filter_active = false;
-	delay_line_init(&track->delay_line);
+    }
+    if (!track->delay_line.buf_L) {
 	delay_line_set_params(&track->delay_line, 0.3, 10000);
     }
 

@@ -567,6 +567,7 @@ void track_add_default_filter(Track *track)
 
 void delay_line_init(DelayLine *dl)
 {
+    fprintf(stderr, "\n\n\nDELAY LINE INIT\n\n\n");
     dl->pos_L = 0;
     dl->pos_R = 0;
     dl->amp = 0.0;

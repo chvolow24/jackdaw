@@ -144,7 +144,8 @@ void textbox_destroy(Textbox *tb)
 
 void textbox_draw(Textbox *tb)
 {
-    int rad = tb->corner_radius * tb->window->dpi_scale_factor;
+    /* int rad = tb->corner_radius * tb->window->dpi_scale_factor; */
+    int rad = tb->corner_radius * 2;
     /* TODO: consider whether this is bad and if rend needs to be on textbox as well */
     SDL_Renderer *rend = tb->text->win->rend;
     SDL_Color *bckgrnd = tb->bckgrnd_clr;

@@ -599,6 +599,7 @@ static void jdaw_read_track(FILE *f, Timeline *tl)
 	    delay_line_set_params(&track->delay_line, amp, len);
 	    track->delay_line.stereo_offset = stereo_offset;
 	} else {
+	    delay_line_init(&track->delay_line);
 	    fseek(f, 36, SEEK_CUR);
 	}
     }

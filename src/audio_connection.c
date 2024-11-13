@@ -36,6 +36,7 @@
 #include "audio_connection.h"
 #include "project.h"
 #include "pure_data.h"
+#include "status.h"
 
 
 /* #define DEVICE_BUFLEN_SECONDS 2 /\* TODO: reduce, and write to clip during recording *\/ */
@@ -56,49 +57,54 @@ int query_audio_connections(Project *proj, int iscapture)
 	conn_list = proj->playback_conns;
     }
 
-    
     AudioConn *default_conn = calloc(sizeof(AudioConn), 1);
     AudioDevice *default_dev = &default_conn->c.device;
+    int device_list_index = 0;
+    bool default_device_found = false;
     char *name;
-    if (SDL_GetDefaultAudioInfo(&name, &(default_dev->spec), iscapture) != 0) {
-        default_conn->iscapture = iscapture;
-        /* default_conn->name = "(no device found)"; */
-	strcpy(default_conn->name, "(no device found)");
-        fprintf(stderr, "Error: unable to retrieve default %s device info. %s\n", iscapture ? "input" : "output", SDL_GetError());
+    if (SDL_GetDefaultAudioInfo(&name, &(default_dev->spec), iscapture) == 0) {
+	strncpy(default_conn->name, name, MAX_CONN_NAMELENGTH);
+	SDL_free(name);
+	default_conn->name[MAX_CONN_NAMELENGTH - 1] = '\0';
+	fprintf(stdout, "Found default %s device: \"%s\"\n", iscapture ? "capture" : "playback", default_conn->name);
+	default_conn->open = false;
+	default_conn->active = false;
+	default_conn->available = true;
+	default_conn->index = 0;
+	default_conn->iscapture = iscapture;
+	default_dev->write_bufpos_samples = 0;
+	default_dev->rec_buffer = NULL;
+	default_dev->id = 0;
+	conn_list[device_list_index] = default_conn;
+	default_device_found = true;
+	device_list_index++;
     }
-    strncpy(default_conn->name, name, MAX_CONN_NAMELENGTH);
-    default_conn->name[MAX_CONN_NAMELENGTH - 1] = '\0';
-    fprintf(stdout, "FOUND default device, name %s\n", default_conn->name);
-    /* exit(0); */
-    default_conn->open = false;
-    default_conn->active = false;
-    default_conn->available = true;
-    default_conn->index = 0;
-    default_conn->iscapture = iscapture;
-    default_dev->write_bufpos_samples = 0;
-    default_dev->rec_buffer = NULL;
-    default_dev->id = 0;
-    // memset(default_dev->rec_buffer, '\0', BUFFLEN / 2);
-    /* fprintf(stdout, "Default device %s at index %d\n", default_conn->name, default_conn->index); */
-
+    
     int num_devices = SDL_GetNumAudioDevices(iscapture);
-    conn_list[0] = default_conn;
-    for (int i=0,j=1; i<num_devices; i++,j++) {
+
+    if (!iscapture && num_devices + device_list_index == 0) {
+	strcpy(default_conn->name, "(none)");
+	default_conn->available = false;
+	conn_list[0] = default_conn;
+	return 1;
+    }
+    for (int i=0; i<num_devices; i++) {
+	const char *name = SDL_GetAudioDeviceName(i, iscapture);
+	if (!name) {
+	    fprintf(stderr, "Error: could not get audio device name at index %d: %s\n", i, SDL_GetError());
+	    continue;
+	}
+        if (default_device_found && strcmp(name, default_conn->name) == 0) {
+	    continue;
+	}
 	AudioConn *conn = calloc(sizeof(AudioConn), 1);
         AudioDevice *dev = &conn->c.device;
-	const char *name = SDL_GetAudioDeviceName(i, iscapture);
         strncpy(conn->name, name, MAX_CONN_NAMELENGTH);
 	conn->name[MAX_CONN_NAMELENGTH - 1] = '\0';
-        if (strcmp(conn->name, default_conn->name) == 0) {
-	    /* default_conn->index = j; */
-            free(conn);
-            j--;
-            continue;
-        }
         /* conn->open = false; */
         /* conn->active = false; */
 	conn->available = true;
-        conn->index = j;
+        conn->index = device_list_index;
         conn->iscapture = iscapture;
         /* dev->write_bufpos_samples = 0; */
         // memset(dev->rec_buffer, '\0', BUFFLEN / 2);
@@ -109,7 +115,8 @@ int query_audio_connections(Project *proj, int iscapture)
         dev->spec = spec;
         dev->rec_buffer = NULL;
 	dev->id = 0;
-        conn_list[j] = conn;
+        conn_list[device_list_index] = conn;
+	device_list_index++;
 	/* fprintf(stdout, "Connection %s at index %d\n", conn->name, conn->index); */
         /* fprintf(stderr, "\tFound device: %s, index: %d\n", dev->name, dev->index); */
 
@@ -138,11 +145,7 @@ int query_audio_connections(Project *proj, int iscapture)
 	conn_list[num_conns] = jdaw;
 	num_conns++;
     }
-    if (!iscapture) {
-	fprintf(stdout, "PLAYBACK CONNS: %d\n", num_conns);
-    }
     return num_conns;
-
 }
 
 
@@ -330,6 +333,10 @@ static void device_start_playback(AudioDevice *dev)
 
 void audioconn_start_playback(AudioConn *conn)
 {
+    if (!conn->available) {
+	status_set_errstr("No audio can be played through this device.");
+	return;
+    }
     switch (conn->type) {
     case DEVICE:
 	device_start_playback(&conn->c.device);

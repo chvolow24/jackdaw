@@ -1208,7 +1208,7 @@ void project_init_audio_conns(Project *proj)
     proj->num_playback_conns = query_audio_connections(proj, 0);
     proj->num_record_conns = query_audio_connections(proj, 1);
     proj->playback_conn = proj->playback_conns[0];
-    if (audioconn_open(proj, proj->playback_conn) != 0) {
+    if (proj->playback_conn->available && audioconn_open(proj, proj->playback_conn) != 0) {
 	fprintf(stderr, "Error: failed to open default audio conn \"%s\". More info: %s\n", proj->playback_conn->name, SDL_GetError());
     }
 }

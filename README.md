@@ -213,9 +213,9 @@ The clip you recorded landed on the first track by default. You can again use th
 
 Now that you've created some multi-track audio, you might want to export it to a wav file to show your friends. 
 
-First you'll need to place in and out marks on your timeline with <kbd>i</kbd> and <kbd>o</kbd>. A mark will be placed at the current playhead position, so you'll need to play/rewind/pause a bit (<kbd>j</kbd><kbd>k</kbd><kbd>l</kbd>!) to get them in the right place. Once you have placed in and out marks such that some portion of the timeline is marked, you can export to a wav file with <kbd>S-w</kbd>.
+First you'll need to place "in" and "out" marks on your timeline with <kbd>i</kbd> and <kbd>o</kbd>, which will place the mark at the current playhead position. You'll need to play/rewind/pause a bit (<kbd>j</kbd><kbd>k</kbd><kbd>l</kbd>! <kbd>j</kbd><kbd>k</kbd><kbd>l</kbd>!) to get the playhead positioned correctly to set the marks. Once you have placed in and out marks such that some portion of the timeline is visibly marked, you can export to a wav file with <kbd>S-w</kbd>.
 
-You will first be prompted to enter a file name. Hit <kbd>tab</kbd> or <kbd>\<ret\></kbd> to apply the current name, and move down to the directory navigation pane. Then, use <kbd>n</kbd> and <kbd>p</kbd> to navigate through the filesystem to the directory where you want to save the file. Finally, use <kbd>\<tab\></kbd> to move down to the "Save" button, and then <kbd>\<ret\></kbd> to save the file with the current name, in the currently open directory. (Or, use <kbd>C-\<ret\></kbd> to "submit the form" and save the file.)
+You will be prompted to type a file name. Hit <kbd>tab</kbd> or <kbd>\<ret\></kbd> to apply the current name, and move down to the directory navigation pane. Then, use <kbd>n</kbd> and <kbd>p</kbd> to navigate through the filesystem to the directory where you want to save the file. Subdirectories are displayed in green. The double dots ("..") will bring you up one directory. Finally, use <kbd>\<tab\></kbd> to move down to the "Save" button, and then <kbd>\<ret\></kbd> to save the file with the current name, in the currently open directory. (Or, use <kbd>C-\<ret\></kbd> to "submit the form" and save the file.)
 
 <img src="assets/readme_imgs/export_wav2.gif" width="75%" />
 
@@ -229,7 +229,7 @@ You will be prompted to enter a project name (which must include the `.jdaw` ext
 
 ## Menus
 
-**At any time**, you can summon a menu with a list of available actions (and keyboard shortcuts) with <kbd>C-m</kbd> or <kbd>C-h</kbd> ("m" for menu, "h" for help). The menu will display the functions available in the current mode (see "Input modes" below). Navigate with <kbd>n</kbd>, <kbd>p</kbd>, and <kbd>\<ret\></kbd> to select. Use <kbd>m</kbd> (or <kbd>h</kbd> or <kbd>\<esc\></kbd>) to dismiss the menu.
+**At any time**, you can summon a menu with a list of available actions (and keyboard shortcuts) with <kbd>C-m</kbd> or <kbd>C-h</kbd> ("m" for menu, "h" for help). The menu will display a taxonomy of the available user actions. Navigate with <kbd>n</kbd>, <kbd>p</kbd> to move the selection up or down, and <kbd>j</kbd> and <kbd>l</kbd> to move left and right between columns. Then use <kbd>\<ret\></kbd> to select. Use <kbd>m</kbd> (or <kbd>h</kbd> or <kbd>\<esc\></kbd>) to dismiss the menu.
 
 You can also summon the menu by clicking on the "hamburger" in the upper-right corner of the window.
 
@@ -287,7 +287,7 @@ The cursor concept is one of jackdaw's unique strengths.
 
 ### Marks and jump-to
 
-In and out marks can be set to mark a range on the current timeline. They also be used as handy jump-to points.
+"In" and "out" marks can be set to mark a range on the current timeline. They also be used as handy jump-to points.
 
 You can also jump to the start of the timeline (t=00:00:00000) with <kbd>S-u</kbd>, which is helpful if you get lost. 
 
@@ -309,7 +309,7 @@ Holding <kbd>Cmd</kbd> or <kbd>Ctrl</kbd> and scrolling on the timeline will zoo
 
 <kbd>r</kbd> : **start or stop recording**<br>
 
-When you hit <kbd>r</kbd>, audio recording will begin on all [activated](#activating-deactivating-tracks) tracks -- or, if no tracks are activated, on the currently selected track. Clips are created on each of these tracks beginning at the current playhead position. When you stop recording, these clips will be populated with the audio data you just recorded.
+When you hit <kbd>r</kbd>, audio recording will begin on all [activated](#activating-deactivating-tracks) tracks, or, if no tracks are activated, on the currently selected track. Clips are created on each of these tracks beginning at the current playhead position. When you stop recording, these clips will be populated with the audio data you just recorded.
 
 You can record from multiple audio devices at once, simply by setting different inputs on different tracks, activating each of those tracks, and hitting <kbd>r</kbd>.
 
@@ -369,7 +369,7 @@ The track input can be set to any of the available system audio devices (e.g. bu
 If you hold down shift while moving the track selector up or down, the selected track will move with you.
 
 <kbd>S-n</kbd> : **Move selected track down**<br>
-<kbd>S-p></kbd> : **Move selected track up**<br>
+<kbd>S-p</kbd> : **Move selected track up**<br>
 
 <img src="assets/readme_imgs/move_track.gif" width="75%" />
 
@@ -408,7 +408,7 @@ The audio data itself does live in a object called a [`Clip`](https://github.com
 
 A clip can have many clip reference. The audio data associated with the clip is not duplicated; therefore, when copying clips or portions of clips using Source Mode, you are not actually copying any audio data; you are merely creating additional references to the clip.
 
-The blue or green color of any given clip reference on the timeline is not particularly meaningful in this version of jackdaw (0.4).
+The blue or green color of any given clip reference on the timeline is not particularly meaningful in this version of jackdaw (0.4) and can be safely ignored.
 <!-- In general, this document and the application itself merely refer to any chunks of audio data present on the timeline as "clips." You may, however, notice that some clips are green, while others are blue. Why? -->
 
 <!-- Under the hood, a "clip" is a chunk of audio data that is associated with a project, but is not directly associated with a timeline or track. A "clip reference" (or "clipref") is the data object that represents that association. It specifies which track it appears on, which clip it references, and the start and end positions within that clip that describe the boundaries as represented on the timeline. -->
@@ -484,7 +484,7 @@ Jackdaw provides a way to use multiple workspaces in a single project. Each of t
 <kbd>A-j</kbd> : **Go to previous timeline**<br>
 <kbd>A-<del></kbd> : **Delete current timeline**<br>
 
-When creating a new timeline, you will be prompted to enter a name. Type the name, hit <kbd>\<tab\></kbd>, and then <kbd>\<ret\></kbd> to complete naming the timeline.
+When creating a new timeline, you will be prompted to enter a name. Type the name, hit <kbd>\<tab\></kbd> or <kbd>\<ret\></kbd> to move to the "Create" button, and then <kbd>\<ret\></kbd> again to complete naming the timeline.
 
 ## Opening and Saving files
 
@@ -506,11 +506,13 @@ If a `.wav` file is opened, it will be loaded as a clip to the currently-selecte
 
 ### Saving a project
 
-The `.jdaw` format (version as of writing described in `jdaw_filespec/00.13`) stores a jackdaw project, including all of its timelines, tracks, clips, effects, automations, etc.
+A `.jdaw` file stores a jackdaw project, including all of its timelines, tracks, clips, effects, automations, etc.
 
 <kbd>C-s</kbd> : **Save project as**<br>
 
-You will be prompted first to edit the current project file name. Please note that the file extension **must** be `.jdaw` or `.JDAW` and the program will not fix this for you. (I will fix this in a later version). Hit <kbd>\<tab\></kbd> or <kbd>\<ret\></kbd> to finish editing the name. Now, the directory navigation pane will be active, and you can use <kbd>n</kbd>, <kbd>p</kbd>, and <kbd>\<ret\></kbd> to navigate through the filesystem to the directory where you would like to save the file. When satisfied, type <kbd>\<tab\></kbd> and then <kbd>\<ret\></kbd> (or just <kbd>C-\<ret\></kbd> to save.)
+You will be prompted first to edit the current project file name. The file extension **must** be `.jdaw` or `.JDAW`; the program will encourage you to fix this if you make a mistake. Hit <kbd>\<tab\></kbd> or <kbd>\<ret\></kbd> to finish editing the name. Now, the directory navigation pane will be active, and you can use <kbd>n</kbd>, <kbd>p</kbd>, and <kbd>\<ret\></kbd> to navigate through the filesystem to the directory where you would like to save the file. When satisfied, type <kbd>\<tab\></kbd> and then <kbd>\<ret\></kbd> (or just <kbd>C-\<ret\></kbd> to save.)
+
+Like everything else about jackdaw, the `.jdaw` file format is open and is described in the `jdaw_filespec` directory. (The current version as of writing is described in `jdaw_filespec/00.13`). 
 
 <img src="assets/readme_imgs/save_project.gif" width="75%" />
 
@@ -523,6 +525,7 @@ Only two track effects are available now, but more will be available soon. A tra
 You might choose to navigate the tab view with your mouse, but it can be done with the keyboard as well. A single element on a page (e.g. slider, toggle, button) is selected, and the selection can be changes with <kbd>\<tab\></kbd>. Actions can be performed on the currently-selected 
 
 <kbd>\<tab\></kbd> : **Cycle through page elements**<br>
+<kbd>S-\<tab\></kbd> : **Cycle through page elements in reverse**<br>
 <kbd>h</kbd> : **Nudge slider left**<br>
 <kbd>;</kbd> : **Nudge slider right**<br>
 <kbd>\<ret\></kbd> : **Select / toggle / cycle current element**<br>
@@ -537,16 +540,16 @@ You can also navigate to other tabs:
 The FIR ("finite impulse response") filter effect is an FFT-based "[windowed-sinc](https://www.analog.com/media/en/technical-documentation/dsp-book/dsp_book_Ch16.pdf)" filter. It can be configured to have a low-pass, high-pass, band-pass, or band-cut frequency response. The cutoff frequency and bandwidth are adjustable parameters, as is the length of the impulse response. This last parameter affects the "steepness" of the frequency response curve. 
 
 > [!NOTE]
-> This is a computationally expensive effect. Applying FIR filters to many tracks may begin to cause audio playback issues. (My 2020 macbook air maxes out at 45.)
+> This is a computationally expensive effect. Applying FIR filters to many tracks may begin to cause audio playback issues if there is audio on those tracks that needs to be processed. (My 2020 macbook air maxes out at around 45.)
 
-The frequency response of the filter is shown. When the filter is active, the frequency domain of the filtered audio track is also shown.
+The frequency response of the filter is shown. When the filter is active, and playback is occurring, the frequency domain of the filtered audio track is also shown.
 
 <img src="assets/readme_imgs/fir_filter.gif" width="75%" />
 
 
 ### Delay line
 
-The delay line is a simpler effect and has three parameters: time, amplitude, and "stereo offset." As in any delay line, the delay time is the amount of time between echoes, and the amplitude is the relative amplitude of each echo. "Stereo offset" delays playback of the delay line buffer in the left channel by some proportion of the delay line length, expressed as a value between 0.0 and 1.0. In other words, with a nonzero stereo offset, you will hear echoes at different times in each channel of the stereo output. 
+The delay line is a simpler effect and has three parameters: time, amplitude, and "stereo offset." As in any delay line, the delay time is the amount of time between echoes, and the amplitude is the relative amplitude of each successive echo. "Stereo offset" delays playback of the delay line buffer in the left channel by some proportion of the delay line length, expressed as a value between 0.0 and 1.0. In other words, with a nonzero stereo offset, you will hear echoes at different times in your left and right ears.
 
 Dynamic changes to the delay line length during playback are accomplished by "squeezing" or "stretching" the existing delay line buffer into the space of the new-length buffer. The squeezing and stretching produce pitch-shifting effects which are better experienced than described.
 
@@ -572,7 +575,7 @@ Automation is available for the following track* parameters:
 
 ### Adding keyframes with the mouse
 
-Use <kbd>C-\<click\></kbd> to add a keyframe to an automation track. You can then drag the keyframe to the desired position. If you hold shift, the keyframe will will snap to the same vertical position as the previous keyframe. If you hold cmd or ctrl AND shift, the keyframe will snap to the position immediately after the previous keyframe. 
+Use <kbd>C-\<click\></kbd> to add a keyframe to an automation track. You can then drag the keyframe to the desired position. If you release cmd/ctrl and hold shift, the keyframe will will snap to the same vertical position as the previous keyframe, creating a flat segment. If you hold cmd or ctrl AND shift, the keyframe will snap to the position immediately after the previous keyframe, creating a near-vertical segment.
 
 <img src="assets/readme_imgs/insert_keyframes.gif" width="75%" />
 
@@ -598,10 +601,8 @@ When an automation track is selected, you can delete a range of keyframes by mar
 
 Jackdaw retains a 100-event long history of user events. Generally, any changes to the project state -- those that would affect the saved `.jdaw` file -- can be undone. Actions that only affect the superficial state of the program cannot.
 
-
 > [!CAUTION]
 > In the current jackdaw version (v0.4.0), track volume and pan adjustments, as well as adjustments to track effect parameters (e.g. FIR filter cutoff frequency) cannot be undone. This is a technical limitation and will be fixed in a future version of jackdaw.
-
 
 Objects that you delete will not be permanently deleted until the program is closed or the deletion event drops off the end of the event history.
 
@@ -621,11 +622,11 @@ Jackdaw is capable of using its own audio output as an audio input. This makes i
 ### Pure data
 
 > [!NOTE]
-> This is an experimental feature.
+> This is an experimental feature and is not yet reliable.
 
 <img src="assets/readme_imgs/pd_jackdaw.png"/>
 
-[Pure data](https://puredata.info/) (often "Pd") is a graphical audio programming environment developed by Miller Puckette. It is very similar to Max, which was also developed by Puckette, but, unlike Max, is free to download and use. Pure data can be used to create things like synthesizers and drum machines, as well as sound production programs that are too unusual to be designated as such.
+[Pure data](https://puredata.info/) (often "Pd") is a graphical audio programming environment developed by Miller Puckette. It is very similar to Max, which was also developed by Puckette, but unlike Max, is free to download and use. Pure data can be used to create things like synthesizers and drum machines, as well as sound production programs that are too unusual to be designated as such.
 
 Pd also provides a method for writing your own objects (called "externals") for use in the program. Jackdaw is capable of communicating with (and receiving audio from) Pd by means of an external called `pd_jackdaw~`. This external needs to be built and loaded into Pd. 
 
@@ -637,19 +638,18 @@ The `pd_jackdaw~` objects inlets are for the left and right channels of audio. I
 # Function reference
 
 ### global mode
-- Summon menu : <kbd>C-m</kbd>
+- Summon menu : <kbd>C-m</kbd>, <kbd>C-h</kbd>
 - Quit : <kbd>C-q</kbd>
 - Undo : <kbd>C-z</kbd>
-- Redo : <kbd>C-y</kbd>
+- Redo : <kbd>C-y</kbd>, <kbd>C-S-z</kbd>
 - Show output spectrum : <kbd>S-f</kbd>
 - Save Project : <kbd>C-s</kbd>
 - Open File (.wav or .jdaw) : <kbd>C-o</kbd>
-- Start or stop screenrecording : <kbd>A-S-p</kbd>
 ### menu_nav mode
 - Next item : <kbd>n</kbd>, <kbd>f</kbd>
 - Previous item : <kbd>p</kbd>, <kbd>d</kbd>
-- Next section : <kbd>C-n</kbd>, <kbd>C-\<up\></kbd>
-- Previous section : <kbd>C-p</kbd>, <kbd>C-\<down\></kbd>
+- Next section : <kbd>C-n</kbd>, <kbd>C-f</kbd>, <kbd>C-\<up\></kbd>
+- Previous section : <kbd>C-p</kbd>, <kbd>C-d</kbd>, <kbd>C-\<down\></kbd>
 - Choose item : <kbd>\<ret\></kbd>, <kbd>\<spc\></kbd>, <kbd>k</kbd>
 - Column right : <kbd>l</kbd>
 - Column left : <kbd>j</kbd>
@@ -663,8 +663,8 @@ The `pd_jackdaw~` objects inlets are for the left and right channels of audio. I
 - Play : <kbd>l</kbd>, <kbd>e</kbd>
 - Pause : <kbd>k</kbd>, <kbd>w</kbd>, <kbd>S-k</kbd>
 - Rewind : <kbd>j</kbd>, <kbd>q</kbd>
-- Play slow : <kbd>K-l</kbd>, <kbd>S-l</kbd>
-- Rewind slow : <kbd>K-j</kbd>, <kbd>S-j</kbd>
+- Play slow : <kbd>K-l</kbd>, <kbd>C-l</kbd>
+- Rewind slow : <kbd>K-j</kbd>, <kbd>C-j</kbd>
 - Nudge play position left (500 samples) : <kbd>\<left\></kbd>
 - Nudge play position right (500 samples) : <kbd>\<right\></kbd>
 - Nudge play position left (100 samples) : <kbd>S-\<left\></kbd>
@@ -675,6 +675,9 @@ The `pd_jackdaw~` objects inlets are for the left and right channels of audio. I
 #### Timeline navigation
 - Move track selector up : <kbd>p</kbd>, <kbd>d</kbd>
 - Move track selector down : <kbd>n</kbd>, <kbd>f</kbd>
+- Toggle automation read : <kbd>S-r</kbd>
+- Move selected track down : <kbd>S-n</kbd>, <kbd>S-f</kbd>
+- Move selected track up : <kbd>S-p</kbd>, <kbd>S-d</kbd>
 - Move view right : <kbd>;</kbd>
 - Move view left : <kbd>h</kbd>
 - Zoom out : <kbd>,</kbd>
@@ -685,13 +688,15 @@ The `pd_jackdaw~` objects inlets are for the left and right channels of audio. I
 - Go to In : <kbd>S-i</kbd>
 - Go to Out : <kbd>S-o</kbd>
 - Go to t=0 : <kbd>S-u</kbd>
+- Go to clip start : <kbd>S-j</kbd>
+- Go to clip end : <kbd>S-l</kbd>
 #### Output
 - Set default audio output : <kbd>C-S-o</kbd>
 #### Tracks
 - Add Track : <kbd>C-t</kbd>
 - Activate/deactivate selected track : <kbd>\<spc\></kbd>, <kbd>\<ret\></kbd>
 - Activate/deactivate all tracks : <kbd>`</kbd>
-- Destroy selected track (permanent) : <kbd>C-\<del\></kbd>
+- Delete selected track or automation : <kbd>C-\<del\></kbd>
 - Select track 1 : <kbd>1</kbd>
 - Activate track 2 : <kbd>2</kbd>
 - Activate track 3 : <kbd>3</kbd>
@@ -711,12 +716,14 @@ The `pd_jackdaw~` objects inlets are for the left and right channels of audio. I
 - Track pan right : <kbd>S-0</kbd>
 - Rename selected track : <kbd>C-r</kbd>
 - Set track input : <kbd>C-S-i</kbd>
-- Add filter to track : <kbd>C-S-f</kbd>
+- Show or hide all track automations : <kbd>a</kbd>
+- Add automation to track : <kbd>C-a</kbd>
 #### Clips
 - Grab clip at cursor : <kbd>g</kbd>
 - Start or stop dragging clips : <kbd>C-k</kbd>
 - Cut clip at cursor : <kbd>S-c</kbd>
-- Delete selected clip(s) : <kbd>\<del\></kbd>
+- Rename clip at cursor : <kbd>C-S-r</kbd>
+- Delete : <kbd>\<del\></kbd>
 #### Sample mode
 - Load clip at cursor to source : <kbd>C-1</kbd>
 - Activate Source Mode : <kbd>S-1</kbd>
@@ -725,10 +732,11 @@ The `pd_jackdaw~` objects inlets are for the left and right channels of audio. I
 - Drop previously dropped clip (2) : <kbd>c</kbd>
 - Drop previously dropped clip (3) : <kbd>x</kbd>
 - Drop previously dropped clip (4) : <kbd>z</kbd>
-#### Project navigation
+#### Multiple timelines
 - Add new timeline : <kbd>A-t</kbd>
 - Previous timeline : <kbd>A-j</kbd>
 - Next timeline : <kbd>A-l</kbd>
+- Delete timeline : <kbd>A-\<del\></kbd>
 #### Export
 - Write mixdown to .wav file : <kbd>C-e</kbd>, <kbd>S-w</kbd>
 ### source mode
@@ -764,6 +772,6 @@ The `pd_jackdaw~` objects inlets are for the left and right channels of audio. I
 
 ...
 
-[ LAST UPDATED 2024-08-16 FRIDAY ]
+[ LAST UPDATED 2024-11-13 WEDNESDAY ]
 
 ...

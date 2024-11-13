@@ -6,7 +6,6 @@
 - Show output spectrum : <kbd>S-f</kbd>
 - Save Project : <kbd>C-s</kbd>
 - Open File (.wav or .jdaw) : <kbd>C-o</kbd>
-- Start or stop screenrecording : <kbd>A-S-p</kbd>
 ### menu_nav mode
 - Next item : <kbd>n</kbd>, <kbd>f</kbd>
 - Previous item : <kbd>p</kbd>, <kbd>d</kbd>
@@ -84,6 +83,7 @@
 - Grab clip at cursor : <kbd>g</kbd>
 - Start or stop dragging clips : <kbd>C-k</kbd>
 - Cut clip at cursor : <kbd>S-c</kbd>
+- Rename clip at cursor : <kbd>C-S-r</kbd>
 - Delete : <kbd>\<del\></kbd>
 #### Sample mode
 - Load clip at cursor to source : <kbd>C-1</kbd>

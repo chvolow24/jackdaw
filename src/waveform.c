@@ -455,7 +455,7 @@ static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t
 		    avg_amp += channel[(int)round(sample_i) + i];
 		    /* fprintf(stdout, "\t->avg amp + %f\n", channel[(int)(sample_i) + i]); */
 		}
-		avg_amp /= sfpp;
+		avg_amp /= round(sfpp);
 	    } else {
 		avg_amp = channel[(int)round(sample_i)];
 	    }

@@ -89,6 +89,8 @@ const char *layout_get_itertype_str(IteratorType iter_type)
 	return "HORIZONTAL";
     case VERTICAL:
 	return "VERTICAL";
+    default:
+	return NULL;
     }
 }
 

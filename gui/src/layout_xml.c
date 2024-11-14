@@ -54,18 +54,16 @@ static void write_dimension(FILE *f, Dimension *dim, char dimchar, int indent)
 static const char *get_lt_type_str(LayoutType tp)
 {
     switch (tp){
-        case NORMAL:
-            return "NORMAL";
-            break;
-        case PRGRM_INTERNAL:
-            return "PRGRM_INTERNAL";
-            break;
-        case TEMPLATE:
-            return "TEMPLATE";
-            break;
-        case ITERATION:
-            return "ITERATION";
-            break;
+    case NORMAL:
+	return "NORMAL";
+    case PRGRM_INTERNAL:
+	return "PRGRM_INTERNAL";
+    case TEMPLATE:
+	return "TEMPLATE";
+    case ITERATION:
+	return "ITERATION";
+    default:
+	return NULL;
     }
 }
 

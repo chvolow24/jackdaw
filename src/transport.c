@@ -517,11 +517,8 @@ void create_clip_buffers(Clip *clip, uint32_t len_sframes)
 	}
 	if (!clip->R) {
 	    fprintf(stderr, "Fatal error: clip buffer allocation failed\n");
+	    exit(1);
 	}
-    }
-    if (!clip->R || !clip->L) {
-	fprintf(stderr, "Error: failed to allocate space for clip buffer\n");
-	exit(1);
     }
 }
 

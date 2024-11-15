@@ -87,6 +87,8 @@ int query_audio_connections(Project *proj, int iscapture)
 	default_conn->available = false;
 	conn_list[0] = default_conn;
 	return 1;
+    } else if (!default_device_found) {
+	free(default_conn);
     }
     for (int i=0; i<num_devices; i++) {
 	const char *name = SDL_GetAudioDeviceName(i, iscapture);
@@ -167,6 +169,7 @@ int audioconn_open(Project *proj, AudioConn *conn)
 	device->spec.freq = proj->sample_rate;
 	device->spec.callback = conn->iscapture ? transport_record_callback : transport_playback_callback;
 	device->spec.userdata = conn;
+	/* device->spec.channels = 2; /\* TODO: channel count flexibility *\/ */
 
 	/* for (int i=0; i<10; i++) { */
 	if ((device->id = SDL_OpenAudioDevice(conn->name, conn->iscapture, &(device->spec), &(obtained), 0)) > 0) {

@@ -217,6 +217,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 	track->fir_filter_active = false;
     }
     if (!track->delay_line.buf_L) {
+	delay_line_init(&track->delay_line, proj->sample_rate);
 	delay_line_set_params(&track->delay_line, 0.3, 10000);
     }
 

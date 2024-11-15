@@ -565,7 +565,7 @@ void track_add_default_filter(Track *track)
  *****************************************************************************************************************/
 
 
-void delay_line_init(DelayLine *dl)
+void delay_line_init(DelayLine *dl, uint32_t sample_rate)
 {
     dl->pos_L = 0;
     dl->pos_R = 0;
@@ -574,7 +574,7 @@ void delay_line_init(DelayLine *dl)
     dl->stereo_offset = 0;
     pthread_mutex_init(&dl->lock, NULL);
     /* dl->lock = SDL_CreateMutex(); */
-    dl->max_len = DELAY_LINE_MAX_LEN_S * proj->sample_rate;
+    dl->max_len = DELAY_LINE_MAX_LEN_S * sample_rate;
     dl->buf_L = calloc(dl->max_len, sizeof(double));
     dl->buf_R = calloc(dl->max_len, sizeof(double));
     dl->cpy_buf = calloc(dl->max_len, sizeof(double));
@@ -611,15 +611,15 @@ static inline void del_read_into_buffer_resize(DelayLine *dl, double *read_from,
 void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
 {
     /* fprintf(stderr, "Set line len: %d\n", len); */
-    if (!dl->buf_L) {
-	delay_line_init(dl);
-    }
+    /* if (!dl->buf_L) { */
+    /* 	delay_line_init(dl, sample_rate); */
+    /* } */
     pthread_mutex_lock(&dl->lock);
-    if (len > proj->sample_rate) {
-	fprintf(stderr, "UH OH: len = %d\n", len);
-	exit(1);
-	return;
-    }
+    /* if (len > proj->sample_rate) { */
+    /* 	fprintf(stderr, "UH OH: len = %d\n", len); */
+    /* 	exit(1); */
+    /* 	return; */
+    /* } */
     if (dl->len != len) {
 	/* double new_buf[len]; */
 	double *new_buf = dl->cpy_buf;

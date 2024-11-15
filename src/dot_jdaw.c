@@ -613,11 +613,11 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 	    fread(floatvals, 1, STD_FLOAT_SER_W, f);
 	    floatvals[STD_FLOAT_SER_W] = '\0';
 	    amp = atof(floatvals);
-	    delay_line_init(&track->delay_line);
+	    delay_line_init(&track->delay_line, tl->proj->sample_rate);
 	    delay_line_set_params(&track->delay_line, amp, len);
 	    track->delay_line.stereo_offset = stereo_offset;
 	} else {
-	    delay_line_init(&track->delay_line);
+	    delay_line_init(&track->delay_line, tl->proj->sample_rate);
 	    fseek(f, 36, SEEK_CUR);
 	}
     }

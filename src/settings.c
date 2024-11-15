@@ -121,7 +121,7 @@ static int toggle_delay_line_target_action(void *self_v, void *target)
 {
     DelayLine *dl = (DelayLine *)target;
     if (!dl->buf_L) {
-	delay_line_init(dl);
+	delay_line_init(dl, proj->sample_rate);
     }
     delay_line_clear(dl);
     return 0;

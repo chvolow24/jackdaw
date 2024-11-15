@@ -32,7 +32,6 @@
   - S-f		: show_output_freq_domain
   - C-s		: save_project
   - C-o		: open_file
-  - A-S-p	: start_or_stop_screenrecording
 - menu_nav:
   - n		: menu_next_item
   - p		: menu_previous_item

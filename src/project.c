@@ -32,6 +32,7 @@
     * timeline.c contains operations related to visualizing time onscreen
  *****************************************************************************************************************/
 
+#include <errno.h>
 #include <pthread.h>
 #include <string.h>
 #include <semaphore.h>
@@ -191,8 +192,10 @@ uint8_t project_add_timeline(Project *proj, char *name)
     bool retry = false;
 retry1:
     if ((new_tl->unpause_sem = sem_open(buf, O_CREAT | O_EXCL, 0666, 0)) == SEM_FAILED) {
+	if (errno != EEXIST) {
+	    perror("Error opening unpause sem");
+	}
 	sem_unlink(buf);
-	perror("Error opening unpause sem");
 	if (!retry) {
 	    goto retry1;
 	    retry = true;
@@ -206,8 +209,10 @@ retry1:
 retry2:
     snprintf(buf, 128, SEM_NAME_READABLE_CHUNKS, new_tl->index);
     if ((new_tl->readable_chunks = sem_open(buf, O_CREAT | O_EXCL, 0666, 0)) == SEM_FAILED) {
+	if (errno != EEXIST) {
+	    perror("Error opening readable chunks sem");
+	}
 	sem_unlink(buf);
-	perror("Error opening readable chunks sem");
 	if (!retry) {
 	    goto retry2;
 	    retry = true;
@@ -222,8 +227,10 @@ retry3:
     snprintf(buf, 128, SEM_NAME_WRITABLE_CHUNKS, new_tl->index);
     int init_writable_chunks = proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS / proj->chunk_size_sframes;
     if ((new_tl->writable_chunks = sem_open(buf, O_CREAT | O_EXCL, 0666, init_writable_chunks)) == SEM_FAILED) {
+	if (errno != EEXIST) {
+	    perror("Error opening writable chunks sem");
+	}
 	sem_unlink(buf);
-	perror("Error opening writable chunks sem");
 	if (!retry) {
 	    goto retry3;
 	    retry = true;

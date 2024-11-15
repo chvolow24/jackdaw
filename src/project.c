@@ -275,15 +275,15 @@ static void timeline_destroy(Timeline *tl, bool displace_in_proj)
 
     char buf[128];
     snprintf(buf, 128, SEM_NAME_UNPAUSE, tl->index);
-    if (sem_unlink(buf) != 0) {
+    if (sem_unlink(buf) != 0 && errno != ENOENT) {
 	perror("Error in sem unlink");
     }
     snprintf(buf, 128, SEM_NAME_WRITABLE_CHUNKS, tl->index);
-    if (sem_unlink(buf) != 0) {
+    if (sem_unlink(buf) != 0 && errno != ENOENT) {
 	perror("Error in sem unlink");
     }
     snprintf(buf, 128, SEM_NAME_READABLE_CHUNKS, tl->index);
-    if (sem_unlink(buf) != 0) {
+    if (sem_unlink(buf) != 0 && errno != ENOENT) {
 	perror("Error in sem unlink");
     }
 

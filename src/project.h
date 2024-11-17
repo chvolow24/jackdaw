@@ -53,6 +53,7 @@
 #include "dsp.h"
 #include "components.h"
 #include "panel.h"
+#include "tempo.h"
 #include "textbox.h"
 #include "user_event.h"
 
@@ -240,9 +241,12 @@ typedef struct timeline {
     sem_t *writable_chunks;
     sem_t *unpause_sem;
     pthread_t mixdown_thread;
-    Track *tracks[MAX_TRACKS];
     
+    Track *tracks[MAX_TRACKS];  
     uint8_t num_tracks;
+
+    TempoTrack *tempo_tracks[MAX_TEMPO_TRACKS];
+    uint8_t num_tempo_tracks;
     // uint8_t active_track_indices[MAX_ACTIVE_TRACKS];
     // uint8_t num_active_tracks;
 

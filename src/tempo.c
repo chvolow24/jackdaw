@@ -25,49 +25,14 @@
 *****************************************************************************************************************/
 
 /*****************************************************************************************************************
-    tempo.h
+    tempo.c
 
-    * Define structs related to tempo tracks, bars, and beats
+    * Measure configuration
+    * Drawing and arranging tempo tracks
+    * Setting tempo and time signature
  *****************************************************************************************************************/
 
-#ifndef JDAW_TEMPO_H
-#define JDAW_TEMPO_H
+#include "tempo.h"
 
-#include <stdint.h>
-#include "layout.h"
 
-#define MAX_BEATS_PER_BAR 16
-#define MAX_TEMPO_TRACKS 16
 
-typedef struct measure_config {
-    int bpm;
-    int32_t dur_sframes;
-    uint8_t num_beats;
-    uint8_t beat_subdivs[MAX_BEATS_PER_BAR];
-} MeasureConfig;
-
-typedef struct tempo_track TempoTrack;
-
-typedef struct tempo_segment {
-    int32_t start_pos;
-    uint16_t first_measure_index; /* 0 if first segment, else sum of previous segment lengths */
-    int16_t num_measures;
-    TempoTrack *tempo_track;
-    MeasureConfig cfg;
-} TempoSegment;
-
-typedef struct timeline Timeline;
-
-typedef struct tempo_track {
-    TempoSegment *segments[255];
-    uint8_t num_segments;
-    uint8_t current_segment;
-
-    float *metronome_buffers[2];
-    uint16_t metronome_buffer_lens[2];
-    
-    Timeline *tl;
-    Layout *layout;
-} TempoTrack;
-
-#endif

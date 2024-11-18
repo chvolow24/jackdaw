@@ -2239,6 +2239,9 @@ void track_destroy(Track *track, bool displace)
 
 void clipref_delete(ClipRef *cr)
 {
+    if (cr->grabbed) {
+	clipref_ungrab(cr);
+    }
     cr->track->tl->needs_redraw = true;
     cr->deleted = true;
     clipref_remove_from_track(cr);
@@ -2671,6 +2674,7 @@ void clipref_ungrab(ClipRef *cr)
     }
     cr->grabbed = false;
     tl->num_grabbed_clips--;
+    status_stat_drag();
 }
 
 void timeline_ungrab_all_cliprefs(Timeline *tl)

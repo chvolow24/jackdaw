@@ -47,21 +47,25 @@ typedef struct measure_config {
 } MeasureConfig;
 
 typedef struct tempo_track TempoTrack;
-
+typedef struct tempo_segment TempoSegment;
 typedef struct tempo_segment {
     TempoTrack *track;
     int32_t start_pos;
+    int32_t end_pos;
     uint16_t first_measure_index; /* 0 if first segment, else sum of previous segment lengths */
-    int16_t num_measures;
+    /* int16_t num_measures; */
     TempoTrack *tempo_track;
     MeasureConfig cfg;
+
+    TempoSegment *next;
+    TempoSegment *prev;
 } TempoSegment;
 
 typedef struct timeline Timeline;
 
 typedef struct tempo_track {
-    TempoSegment *segments[255];
-    uint8_t num_segments;
+    TempoSegment *segments;
+    /* uint8_t num_segments; */
     uint8_t current_segment;
 
     float *metronome_buffers[2];

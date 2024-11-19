@@ -49,6 +49,7 @@ typedef struct measure_config {
 typedef struct tempo_track TempoTrack;
 
 typedef struct tempo_segment {
+    TempoTrack *track;
     int32_t start_pos;
     uint16_t first_measure_index; /* 0 if first segment, else sum of previous segment lengths */
     int16_t num_measures;

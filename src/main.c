@@ -108,6 +108,7 @@ static void init_SDL()
     SDL_StopTextInput();
 }
 
+void tempo_segment_set_config(int bpm, int num_beats, ...);
 static void init()
 {
     init_SDL();

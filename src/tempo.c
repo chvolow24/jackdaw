@@ -32,7 +32,55 @@
     * Setting tempo and time signature
  *****************************************************************************************************************/
 
+#include <stdarg.h>
+#include "project.h"
 #include "tempo.h"
 
 
+
+static void tempo_segment_set_config(TempoSegment *s, int bpm, int num_beats, ...)
+{
+    if (num_beats > MAX_BEATS_PER_BAR) {
+	fprintf(stderr, "Error: num_beats exceeds maximum per bar (%d)\n", MAX_BEATS_PER_BAR);
+	return;
+    }
+    
+    s->cfg.bpm = bpm;
+    s->cfg.num_beats = num_beats;
+    
+    double beat_dur = s->track->tl->proj->sample_rate * 60.0 / bpm;
+    
+    va_list ap;
+    va_start(ap, num_beats);
+    int min_subdivs = 0;
+    for (int i=0; i<num_beats; i++) {
+	s->cfg.beat_subdivs[i] = va_arg(ap, int);
+	if (i == 0 || s->cfg.beat_subdivs[i] < min_subdivs) {
+	    min_subdivs = s->cfg.beat_subdivs[i];
+	}
+    }
+    double measure_dur = 0;
+    for (int i=0; i<num_beats; i++) {
+	measure_dur += beat_dur * s->cfg.beat_subdivs[i] / min_subdivs;
+    }
+    s->cfg.dur_sframes = (int32_t)(round(measure_dur));
+    va_end(ap);
+    
+}
+
+static TempoSegment *tempo_track_add_segment(TempoTrack *t, int32_t start_pos)
+{
+    TempoSegment *s = calloc(1, sizeof(TempoSegment));
+    s->track = t;
+    s->start_pos = start_pos;
+}
+
+TempoTrack *timeline_add_tempo_track(Timeline *tl)
+{
+    TempoTrack *t = calloc(1, sizeof(TempoTrack));
+    t->tl = tl;
+    tl->tempo_tracks[tl->num_tempo_tracks] = t;
+    tl->num_tempo_tracks++;
+    return t;
+}
 

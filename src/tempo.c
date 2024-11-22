@@ -57,10 +57,8 @@ static TempoSegment *tempo_track_get_segment_at_pos(TempoTrack *t, int32_t pos)
 	s = s->next;
     }
     return s;
-
 }
 
-/* int32_t last = 0; */
 static int32_t beat_pos(TempoSegment *s, int measure, int beat, int subdiv)
 {
     int32_t pos = s->start_pos + measure * s->cfg.dur_sframes;
@@ -68,9 +66,24 @@ static int32_t beat_pos(TempoSegment *s, int measure, int beat, int subdiv)
 	pos += s->cfg.dur_sframes * s->cfg.beat_subdiv_lens[i] / s->cfg.num_atoms;
     }
     pos += s->cfg.dur_sframes * subdiv / s->cfg.num_atoms;
-    /* fprintf(stderr, "DIFF? %d\n", last - pos); */
-    /* last = pos; */
     return pos;
+}
+
+static void do_increment(TempoSegment *s, int *measure, int *beat, int *subdiv)
+{
+    if (*subdiv == s->cfg.beat_subdiv_lens[*beat] - 1) {
+	if (*beat == s->cfg.num_beats - 1) {
+	    *beat = 0;
+	    *subdiv = 0;
+	    (*measure)++;
+	} else {
+	    (*beat)++;
+	    *subdiv = 0;
+	}
+    } else {
+	(*subdiv)++;
+    }
+
 }
 
 /* Stateful function, repeated calls to which will get the next beat or subdiv position on a tempo track */
@@ -83,42 +96,33 @@ void tempo_track_get_next_pos(TempoTrack *t, bool start, int32_t start_from, int
     if (start) {
 	s = tempo_track_get_segment_at_pos(t, start_from);
 	int32_t current_pos = s->start_pos;
+	measure = 0;
 	beat = 0;
 	subdiv = 0;
-	/* fprintf(stderr, "\niter\n"); */
 	while (1) {
 	    current_pos = beat_pos(s, measure, beat, subdiv);
-	    /* fprintf(stderr, "measure, beat, subdiv: %d %d %d; pos: %d\n", measure, beat, subdiv, current_pos); */
-	    /* fprintf(stderr, "current pos: %d\n", current_pos); */
 	    if (current_pos >= start_from) {
-		/* fprintf(stderr, "\texit condition. measure, beat, subdiv: %d %d %d\n", measure, beat, subdiv); */
 		*pos = current_pos;
-		if (subdiv == 0 && beat == 0) {
-		    *bp = BP_MEASURE;
-		} else if (subdiv == 0 && beat != 0) {
-		    *bp = BP_BEAT;
-		} else if (s->cfg.beat_subdiv_lens[beat] %2 == 0 && subdiv % 2 == 0) {
-		    *bp = BP_SUBDIV;
-		} else {
-		    *bp = BP_SUBDIV2;
-		}
-		return;
+		goto set_prominence_and_exit;
 	    }
 
-	    if (subdiv == s->cfg.beat_subdiv_lens[beat] - 1) {
-		if (beat == s->cfg.num_beats - 1) {
-		    beat = 0;
-		    subdiv = 0;
-		    measure++;
-		} else {
-		    beat++;
-		    subdiv = 0;
-		}
-	    } else {
-		subdiv++;
-	    }
+	    do_increment(s, &measure, &beat, &subdiv);
 	}
+    } else {
+	do_increment(s, &measure, &beat, &subdiv);
+	*pos = beat_pos(s, measure, beat, subdiv);
     }
+set_prominence_and_exit:
+    if (subdiv == 0 && beat == 0) {
+	*bp = BP_MEASURE;
+    } else if (subdiv == 0 && beat != 0) {
+	*bp = BP_BEAT;
+    } else if (s->cfg.beat_subdiv_lens[beat] %2 == 0 && subdiv % 2 == 0) {
+	*bp = BP_SUBDIV;
+    } else {
+	*bp = BP_SUBDIV2;
+    }
+    return;
 }
 
 static void tempo_segment_set_config(TempoSegment *s, int bpm, int num_beats, va_list subdivs)

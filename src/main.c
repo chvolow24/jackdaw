@@ -321,23 +321,38 @@ int main(int argc, char **argv)
     }
 
     TempoTrack *tt = timeline_add_tempo_track(proj->timelines[0]);
-    TempoSegment *s = tempo_track_add_segment(tt, 0, -1, 240, 2, 3, 2);
+    TempoSegment *s = tempo_track_add_segment(tt, 0, -1, 120, 4, 2, 2, 2);
     tempo_segment_fprint(stderr, s);
 
     /* exit(1); */
     int32_t pos = -1;
     int32_t start_from = 0;
     int32_t prev_pos = -1;
+    double dur_old = 0.0;
+    double dur_new = 0.0;
+    clock_t c;
     enum beat_prominence bp;
     for (int i=0; i<500; i++) {
 	prev_pos = pos;
+	c = clock();
 	tempo_track_get_next_pos(tt, true, start_from, &pos, &bp);
+	dur_old += ((double)clock() - c)/CLOCKS_PER_SEC;
 	if (pos != prev_pos) {
 	    fprintf(stderr, "start from: %d, pos: %d, prominence: %d\n", start_from, pos, bp);
+	    fprintf(stderr, "\tDIFF: %d\n", prev_pos - pos);
 	}
-	start_from += 2000;
+	start_from += 1000;
     }
-    
+    prev_pos = pos;
+    for (int i=0; i<500; i++) {
+	c = clock();
+	tempo_track_get_next_pos(tt, false, 0, &pos, &bp);
+	dur_new += ((double)clock() - c)/CLOCKS_PER_SEC;
+	fprintf(stderr, "STATEFUL, pos %d prominence %d\n", pos, bp);
+	fprintf(stderr, "\tDIFF: %d\n", prev_pos - pos);
+	prev_pos = pos;
+    }
+    fprintf(stderr, "Durs: %f, %f\n", dur_old, dur_new);
     exit(0);
     loop_project_main();
     

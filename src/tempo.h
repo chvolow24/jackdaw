@@ -43,7 +43,8 @@ typedef struct measure_config {
     int bpm;
     int32_t dur_sframes;
     uint8_t num_beats;
-    uint8_t beat_subdivs[MAX_BEATS_PER_BAR];
+    uint8_t beat_subdiv_lens[MAX_BEATS_PER_BAR];
+    uint8_t num_atoms;
 } MeasureConfig;
 
 typedef struct tempo_track TempoTrack;
@@ -75,4 +76,8 @@ typedef struct tempo_track {
     Layout *layout;
 } TempoTrack;
 
+
+TempoTrack *timeline_add_tempo_track(Timeline *tl);
+TempoSegment *tempo_track_add_segment(TempoTrack *t, int32_t start_pos, int16_t num_measures, int bpm, int num_beats, ...);
+void tempo_segment_fprint(FILE *f, TempoSegment *s);
 #endif

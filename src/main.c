@@ -46,6 +46,7 @@
 #include "project.h"
 #include "pure_data.h"
 #include "symbol.h"
+#include "tempo.h"
 #include "text.h"
 #include "transport.h"
 #include "wav.h"
@@ -192,6 +193,15 @@ extern bool connection_open;
     
 
 /* } */
+enum beat_prominence {
+    BP_MEASURE,
+    BP_BEAT,
+    BP_SUBDIV,
+    BP_SUBDIV2,
+};
+
+void tempo_track_get_next_pos(TempoTrack *t, bool start, int32_t start_from, int32_t *pos, enum beat_prominence *bp);
+
 
 int main(int argc, char **argv)
 {
@@ -309,11 +319,26 @@ int main(int argc, char **argv)
 	
 
     }
-    /* timeline_add_track(proj->timelines[0]); */
-    /* timeline_add_track(proj->timelines[0]); */
-    /* timeline_add_track(proj->timelines[0]); */
 
+    TempoTrack *tt = timeline_add_tempo_track(proj->timelines[0]);
+    TempoSegment *s = tempo_track_add_segment(tt, 0, -1, 240, 2, 3, 2);
+    tempo_segment_fprint(stderr, s);
 
+    /* exit(1); */
+    int32_t pos = -1;
+    int32_t start_from = 0;
+    int32_t prev_pos = -1;
+    enum beat_prominence bp;
+    for (int i=0; i<500; i++) {
+	prev_pos = pos;
+	tempo_track_get_next_pos(tt, true, start_from, &pos, &bp);
+	if (pos != prev_pos) {
+	    fprintf(stderr, "start from: %d, pos: %d, prominence: %d\n", start_from, pos, bp);
+	}
+	start_from += 2000;
+    }
+    
+    exit(0);
     loop_project_main();
     
     quit();

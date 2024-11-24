@@ -37,6 +37,7 @@
 #include <string.h>
 #include <semaphore.h>
 #include <fcntl.h>
+#include "assets.h"
 #include "audio_connection.h"
 #include "color.h"
 #include "components.h"
@@ -57,17 +58,6 @@
 #include "waveform.h"
 #include "window.h"
 
-#ifndef INSTALL_DIR
-#define INSTALL_DIR "."
-#endif
-
-#define LAYOUT_PATH INSTALL_DIR "/assets/layouts"
-#define MAIN_LT_PATH LAYOUT_PATH "/jackdaw_main_layout.xml"
-#define TRACK_LT_PATH LAYOUT_PATH "/track_template.xml"
-#define QUICKREF_LT_PATH LAYOUT_PATH "/quickref.xml"
-#define SOURCE_AREA_LT_PATH LAYOUT_PATH "/source_area.xml"
-#define OUTPUT_PANEL_LT_PATH LAYOUT_PATH "/output_panel.xml"
-#define OUTPUT_SPECTRUM_LT_PATH LAYOUT_PATH "/output_spectrum.xml"
 
 #define DEFAULT_SFPP 600
 #define CR_RECT_V_PAD (4 * main_win->dpi_scale_factor)
@@ -88,7 +78,6 @@
 
 #define TRACK_VOL_STEP 0.03
 #define TRACK_PAN_STEP 0.01
-
 
 #define SEM_NAME_UNPAUSE "/tl_%d_unpause_sem"
 #define SEM_NAME_WRITABLE_CHUNKS "/tl_%d_writable_chunks"

@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <time.h>
+#include "assets.h"
 #include "SDL.h"
 #include "draw.h"
 #include "layout.h"
@@ -42,13 +43,6 @@
 #include "test.h"
 
 #define LT_DEV_MODE 1
-
-#ifndef INSTALL_DIR
-#define INSTALL_DIR "."
-#endif
-
-#define PARAM_LT_PATH INSTALL_DIR "/gui/template_lts/param_lt.xml"
-#define OPENFILE_LT_PATH INSTALL_DIR "/gui/template_lts/openfile.xml"
 
 #define CLICK_EDGE_DIST_TOLERANCE 10
 #define MAX_LTS 255

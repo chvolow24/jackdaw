@@ -63,12 +63,6 @@
 
 #define TOP_MODE (main_win->modes[main_win->num_modes - 1])
 
-
-#ifndef INSTALL_DIR
-#define INSTALL_DIR "."
-#endif
-
-
 extern Window *main_win;
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;
@@ -647,13 +641,13 @@ void loop_project_main()
 		
 	    }
 	}
+
     end_auto_write:
 
 	
 	
 	/* window_end_draw(main_win); */
 	/**********************************************/
-
 	SDL_Delay(1);
 
         /* end = clock(); */

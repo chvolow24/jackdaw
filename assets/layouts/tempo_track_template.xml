@@ -1,0 +1,54 @@
+<Layout name="tempo_track" type="NORMAL">
+    <x>REL 0</x>
+    <y>STACK 0</y>
+    <w>SCALE 1.000000</w>
+    <h>REL 32</h>
+    <index>0</index>
+    <children>
+        <Layout name="console" type="NORMAL">
+            <x>REL 2</x>
+            <y>REL 0</y>
+            <w>REL 150</w>
+            <h>SCALE 1.000000</h>
+            <index>0</index>
+            <children>
+                <Layout name="name_row" type="NORMAL">
+                    <x>REL 2</x>
+                    <y>REL 4</y>
+                    <w>SCALE 1.000000</w>
+                    <h>REL 21</h>
+                    <index>0</index>
+                    <children>
+                        <Layout name="name_value" type="NORMAL">
+                            <x>REL 0</x>
+                            <y>REL 0</y>
+                            <w>REL 96</w>
+                            <h>SCALE 1.000000</h>
+                            <index>0</index>
+                            <children>
+                            </children>
+                        </Layout>
+                        <Layout name="metronome_button" type="NORMAL">
+                            <x>STACK 4</x>
+                            <y>REL 1</y>
+                            <w>REL 20</w>
+                            <h>REL 20</h>
+                            <index>1</index>
+                            <children>
+                            </children>
+                        </Layout>
+                    </children>
+                </Layout>
+                <Layout name="colorbar" type="NORMAL">
+                    <x>STACK 0</x>
+                    <y>REL 0</y>
+                    <w>REL 8</w>
+                    <h>SCALE 1.000000</h>
+                    <index>4</index>
+                    <children>
+                    </children>
+                </Layout>
+            </children>
+        </Layout>
+    </children>
+</Layout>

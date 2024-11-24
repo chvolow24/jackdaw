@@ -111,6 +111,19 @@ void tempo_track_get_next_pos(TempoTrack *t, bool start, int32_t start_from, int
     } else {
 	do_increment(s, &measure, &beat, &subdiv);
 	*pos = beat_pos(s, measure, beat, subdiv);
+	if (s->start_pos != s->end_pos && *pos >= s->end_pos) {
+	    s = s->next;
+	    if (!s) {
+		fprintf(stderr, "Fatal error: no tempo track segment where expected\n");
+		exit(1);
+	    }
+	    *pos = s->start_pos;
+	    measure = 0;
+	    beat = 0;
+	    subdiv = 0;
+	    fprintf(stderr, "SWITCHED SEGMENT\n");
+	    fprintf(stderr, "NEW SEGMENT ATOM DUR: %d\n", s->cfg.dur_sframes / s->cfg.num_atoms);
+	}
     }
 set_prominence_and_exit:
     if (subdiv == 0 && beat == 0) {
@@ -125,7 +138,7 @@ set_prominence_and_exit:
     return;
 }
 
-static void tempo_segment_set_config(TempoSegment *s, int bpm, int num_beats, va_list subdivs)
+static void tempo_segment_set_config(TempoSegment *s, int num_measures, int bpm, int num_beats, va_list subdivs)
 {
     if (num_beats > MAX_BEATS_PER_BAR) {
 	fprintf(stderr, "Error: num_beats exceeds maximum per bar (%d)\n", MAX_BEATS_PER_BAR);
@@ -151,6 +164,11 @@ static void tempo_segment_set_config(TempoSegment *s, int bpm, int num_beats, va
 	measure_dur += beat_dur * s->cfg.beat_subdiv_lens[i] / min_subdiv_len_atoms;
     }
     s->cfg.dur_sframes = (int32_t)(round(measure_dur));
+    if (num_measures > 0 && s->next) {
+	s->end_pos = s->start_pos + num_measures * s->cfg.dur_sframes;
+    } else {
+	s->end_pos = s->start_pos;
+    }
 }
 
 /* Pass -1 to "num_measures" for infinity */
@@ -182,8 +200,12 @@ TempoSegment *tempo_track_add_segment(TempoTrack *t, int32_t start_pos, int16_t 
 
     va_list ap;
     va_start(ap, num_beats);
-    tempo_segment_set_config(s, bpm, num_beats, ap); 
+    tempo_segment_set_config(s, num_measures, bpm, num_beats, ap); 
     va_end(ap);
+
+    if (s->next) {
+	s->next->start_pos = s->end_pos;
+    }
     /* t->num_segments++; */
     /* if (t->num_segments == 1) { */
     /* 	s->first_measure_index = 0; */
@@ -199,34 +221,33 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
     t->tl = tl;
     tl->tempo_tracks[tl->num_tempo_tracks] = t;
     tl->num_tempo_tracks++;
+
+    /* Layout *lt = layout_read_xml_to_lt(tl->track_area, TEMPO_TRACK_LT_PATH); */
     /* tempo_track_add_segment(t, 0, -1, 120, 4, 4, 4, 4, 4); */
     return t;
 }
 
 
-void tempo_segment_draw(TempoSegment *s)
-{
-    int x = timeline_get_draw_x(s->start_pos);
-    if (x > main_win->w_pix) {
-	return;
-    }
-    
-    
-}
 
-void tempo_track_draw(TempoTrack *t)
+void tempo_track_draw(TempoTrack *tt)
 {
-    TempoSegment *s = t->segments;
-
-    while (s) {
-	tempo_segment_draw(s);
-	s = s->next;
+    int32_t pos = tt->tl->display_offset_sframes;
+    enum beat_prominence bp;
+    tempo_track_get_next_pos(tt, true, pos, &pos, &bp);
+    int x = timeline_get_draw_x(pos);
+    fprintf(stderr, "First draw x: %d;, bp: %d\n", x, bp);
+    while (x < main_win->w_pix) {
+	tempo_track_get_next_pos(tt, false, 0, &pos, &bp);
+	x = timeline_get_draw_x(pos);
+	fprintf(stderr, "Next draw x: %d; bp: %d\n", x, bp);
     }
+	
+
 }
 
 void tempo_segment_fprint(FILE *f, TempoSegment *s)
 {
-    fprintf(f, "Segment start/end: %d-%d\n", s->start_pos, s->end_pos);
+    fprintf(f, "\nSegment start/end: %d-%d\n", s->start_pos, s->end_pos);
     fprintf(f, "Segment tempo (bpm): %d\n", s->cfg.bpm);
     fprintf(f, "\tCfg beats: %d\n", s->cfg.num_beats);
     fprintf(f, "\tCfg beat subdiv lengths:\n");
@@ -235,5 +256,17 @@ void tempo_segment_fprint(FILE *f, TempoSegment *s)
     }
     fprintf(f, "\tCfg num atoms: %d\n", s->cfg.num_atoms);
     fprintf(f, "\tCfg measure dur: %d\n", s->cfg.dur_sframes);
+    fprintf(f, "\tCfg atom dur: %d\n", s->cfg.dur_sframes / s->cfg.num_atoms);
 
+}
+
+void tempo_track_fprint(FILE *f, TempoTrack *tt)
+{
+    fprintf(f, "\nTEMPO TRACK\n");
+    TempoSegment *s = tt->segments;
+    while (s) {
+	fprintf(f, "SEGMENT:\n");
+	tempo_segment_fprint(f, s);
+	s = s->next;
+    }
 }

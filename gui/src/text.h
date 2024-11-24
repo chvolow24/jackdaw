@@ -3,16 +3,11 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "assets.h"
 #include "SDL.h"
 #include "SDL_ttf.h"
 /* #include "window.h" */
-#define TTF_PATH INSTALL_DIR "/assets/ttf/"
-#define OPEN_SANS_PATH TTF_PATH "OpenSans-Regular.ttf"
-#define OPEN_SANS_BOLD_PATH TTF_PATH "OpenSans-Bold.ttf"
-#define LTSUPERIOR_PATH TTF_PATH "LTSuperiorMono-Regular.otf"
-#define LTSUPERIOR_BOLD_PATH TTF_PATH "LTSuperiorMono-Bold.otf"
-#define NOTO_SANS_SYMBOLS2_PATH TTF_PATH "NotoSansSymbols2-Regular.ttf"
-#define NOTO_SANS_MATH_PATH TTF_PATH "NotoSansMath-Regular.ttf"
+
 /* #define OPEN_SANS_PATH INSTALL_DIR "/assets/ttf/NotoSansSymbols2-Regular.ttf" */
 /* #define OPEN_SANS_BOLD_PATH OPEN_SANS_PATH */
 /* #define LTSUPERIOR_PATH OPEN_SANS_PATH */

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "assets.h"
 #include "SDL_rect.h"
 #include "SDL_render.h"
 #include "SDL_video.h"
@@ -16,12 +17,6 @@
 
 #define INPUT_HASH_SIZE 1024
 
-#ifndef INSTALL_DIR
-#define INSTALL_DIR
-#endif
-
-#define DEFAULT_KEYB_PATH INSTALL_DIR "/assets/key_bindings/default.yaml"
-#define OPEN_SANS_PATH INSTALL_DIR "/assets/ttf/OpenSans-Regular.ttf"
 
 Window *main_win;
 Menu *second_menu;

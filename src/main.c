@@ -38,6 +38,7 @@
 #include <time.h>
 #include "SDL.h"
 #include "SDL_ttf.h"
+#include "assets.h"
 #include "dir.h"
 #include "dsp.h"
 #include "input.h"
@@ -57,15 +58,11 @@
 
 #define LT_DEV_MODE 0
 
-#ifndef INSTALL_DIR
-#define INSTALL_DIR "."
-#endif
-
 /* #define WINDOW_DEFAULT_W 900 */
 #define WINDOW_DEFAULT_W 1093
 #define WINDOW_DEFAULT_H 650
 /* #define OPEN_SANS_PATH INSTALL_DIR "/assets/ttf/OpenSans-Regular.ttf" */
-#define DEFAULT_KEYBIND_CFG_PATH INSTALL_DIR "/assets/key_bindings/default.yaml"
+
 
 #define DEFAULT_PROJ_AUDIO_SETTINGS 2, 96000, AUDIO_S16SYS, 1024, 2048
 
@@ -190,9 +187,8 @@ extern bool connection_open;
 /*     a = jdaw_val_deserialize(f, 16, JDAW_DOUBLE); */
 /*     fprintf(stderr, "A: %f\n", a.double_v); */
 /*     fclose(f); */
-    
-
 /* } */
+
 enum beat_prominence {
     BP_MEASURE,
     BP_BEAT,
@@ -201,7 +197,8 @@ enum beat_prominence {
 };
 
 void tempo_track_get_next_pos(TempoTrack *t, bool start, int32_t start_from, int32_t *pos, enum beat_prominence *bp);
-
+void tempo_track_fprint(FILE *f, TempoTrack *tt);
+void tempo_track_draw(TempoTrack *tt);
 
 int main(int argc, char **argv)
 {
@@ -320,40 +317,42 @@ int main(int argc, char **argv)
 
     }
 
-    TempoTrack *tt = timeline_add_tempo_track(proj->timelines[0]);
-    TempoSegment *s = tempo_track_add_segment(tt, 0, -1, 120, 4, 2, 2, 2);
-    tempo_segment_fprint(stderr, s);
-
-    /* exit(1); */
-    int32_t pos = -1;
-    int32_t start_from = 0;
-    int32_t prev_pos = -1;
-    double dur_old = 0.0;
-    double dur_new = 0.0;
-    clock_t c;
-    enum beat_prominence bp;
-    for (int i=0; i<500; i++) {
-	prev_pos = pos;
-	c = clock();
-	tempo_track_get_next_pos(tt, true, start_from, &pos, &bp);
-	dur_old += ((double)clock() - c)/CLOCKS_PER_SEC;
-	if (pos != prev_pos) {
-	    fprintf(stderr, "start from: %d, pos: %d, prominence: %d\n", start_from, pos, bp);
-	    fprintf(stderr, "\tDIFF: %d\n", prev_pos - pos);
-	}
-	start_from += 1000;
-    }
-    prev_pos = pos;
-    for (int i=0; i<500; i++) {
-	c = clock();
-	tempo_track_get_next_pos(tt, false, 0, &pos, &bp);
-	dur_new += ((double)clock() - c)/CLOCKS_PER_SEC;
-	fprintf(stderr, "STATEFUL, pos %d prominence %d\n", pos, bp);
-	fprintf(stderr, "\tDIFF: %d\n", prev_pos - pos);
-	prev_pos = pos;
-    }
-    fprintf(stderr, "Durs: %f, %f\n", dur_old, dur_new);
-    exit(0);
+    /* TempoTrack *tt = timeline_add_tempo_track(proj->timelines[0]); */
+    /* tempo_track_add_segment(tt, 0, -1, 145, 4, 2, 2, 2, 2); */
+    /* tempo_track_add_segment(tt, 96000 * 2, 500, 230, 3, 1, 1, 1); */
+    /* tempo_track_add_segment(tt, 96000 * 4, 500, 240, 3, 3, 3, 2); */
+    /* tempo_track_fprint(stderr, tt); */
+    /* tempo_track_draw(tt); */
+    /* exit(0); */
+    /* int32_t pos = -1; */
+    /* int32_t start_from = 0; */
+    /* int32_t prev_pos = -1; */
+    /* double dur_old = 0.0; */
+    /* double dur_new = 0.0; */
+    /* clock_t c; */
+    /* enum beat_prominence bp; */
+    /* for (int i=0; i<1; i++) { */
+    /* 	prev_pos = pos; */
+    /* 	c = clock(); */
+    /* 	tempo_track_get_next_pos(tt, true, start_from, &pos, &bp); */
+    /* 	dur_old += ((double)clock() - c)/CLOCKS_PER_SEC; */
+    /* 	if (pos != prev_pos) { */
+    /* 	    fprintf(stderr, "start from: %d, pos: %d, prominence: %d\n", start_from, pos, bp); */
+    /* 	    fprintf(stderr, "\tDIFF: %d\n", prev_pos - pos); */
+    /* 	} */
+    /* 	start_from += 1000; */
+    /* } */
+    /* prev_pos = pos; */
+    /* for (int i=0; i<40; i++) { */
+    /* 	c = clock(); */
+    /* 	tempo_track_get_next_pos(tt, false, 0, &pos, &bp); */
+    /* 	dur_new += ((double)clock() - c)/CLOCKS_PER_SEC; */
+    /* 	fprintf(stderr, "STATEFUL, pos %d prominence %d\n", pos, bp); */
+    /* 	fprintf(stderr, "\tDIFF: %d\n", prev_pos - pos); */
+    /* 	prev_pos = pos; */
+    /* } */
+    /* fprintf(stderr, "Durs: %f, %f\n", dur_old, dur_new); */
+    /* exit(0); */
     loop_project_main();
     
     quit();

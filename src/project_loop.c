@@ -483,6 +483,10 @@ void loop_project_main()
 		    break;
 		case TEXT_EDIT:
 		    if (!mouse_triage_click_text_edit(e.button.button)) {
+			if (TOP_MODE == TEXT_EDIT) {
+			    fprintf(stderr, "Error: text edit escaped improperly");
+			    window_pop_mode(main_win);
+			}
 			goto escaped_text_edit;
 		    }
 		    break;

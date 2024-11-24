@@ -38,6 +38,12 @@
 
 #define ZOOM_GLOBAL_SCALE 4.0f
 
+#ifndef LAYOUT_BUILD
+#include "project.h"
+extern Project *proj;
+#endif
+
+
 /* Create a window struct and initialize all members */
 Window *window_create(int w, int h, const char *name) 
 {
@@ -387,6 +393,15 @@ void window_pop_mode(Window *win)
 #include "page.h"
 void window_push_modal(Window *win, Modal *modal)
 {
+    while (win->num_modals > 0) {
+	window_pop_modal(win);
+    }
+    
+    #ifndef LAYOUT_BUILD
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    tl->needs_redraw = true;
+    #endif
+    
     if (win->active_tab_view) {
 	tab_view_close(win->active_tab_view);
     }
@@ -413,6 +428,9 @@ void window_push_modal(Window *win, Modal *modal)
 
 void window_pop_modal(Window *win)
 {
+    if (win->txt_editing) {
+	txt_stop_editing(win->txt_editing);
+    }
     if (win->num_modals > 0) {
 	modal_destroy(win->modals[win->num_modals - 1]);
     }

@@ -33,6 +33,7 @@
 
 #include <pthread.h>
 #include <string.h>
+#include <unistd.h>
 #include "audio_connection.h"
 #include "dsp.h"
 #include "user_event.h"
@@ -337,7 +338,9 @@ void transport_start_playback()
     /* Set stack size */
     size_t orig_stack_size;
     size_t desired_stack_size = 2 * sizeof(double) * proj->sample_rate;
-    /* size_t desired_stack_size = 3 * sizeof(double) * proj->sample_rate; */
+    int page_size = getpagesize();
+    int num_pages = desired_stack_size / page_size;
+    desired_stack_size = num_pages * page_size;
     if ((ret = pthread_attr_getstacksize(&attr, &orig_stack_size) != 0)) {
 	fprintf(stderr, "pthread_attr_getstacksize: %s\n", strerror(ret));
     }

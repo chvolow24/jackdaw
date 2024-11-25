@@ -120,6 +120,8 @@
   - m		: tl_mute
   - s		: tl_solo
   - g		: tl_grab_clips_at_cursor
+  - C-c		: tl_copy_grabbed_clips
+  - C-v		: tl_paste_grabbed_clips
   - C-S-r	: tl_rename_clip_at_cursor
   - r		: tl_record
   - C-1		: tl_load_clip_at_cursor_to_source

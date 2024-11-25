@@ -263,6 +263,9 @@ typedef struct timeline {
     bool grabbed_clip_cache_initialized;
     bool grabbed_clip_cache_pushed;
 
+    ClipRef *clipboard[MAX_GRABBED_CLIPS];
+    uint8_t num_clips_in_clipboard;
+
     /* Clip *clip_clipboard[MAX_CLIPBOARD_CLIPS]; */
     /* uint8_t num_clipboard_clips; */
     /* int32_t leftmost_clipboard_clip_pos; */

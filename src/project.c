@@ -2243,12 +2243,33 @@ void clipref_undelete(ClipRef *cr)
     clipref_insert_on_track(cr, cr->track);
 }
 
+static void clipref_check_and_remove_from_clipboard(ClipRef *cr)
+{
+    /* fprintf(stderr, "handling destruction CHECK AND REMOVE\n"); */
+    Timeline *tl = cr->track->tl;
+    bool displace = false;
+    for (int i=0; i<tl->num_clips_in_clipboard; i++) {
+	if (tl->clipboard[i] == cr) {
+	    displace = true;
+	    /* fprintf(stderr, "Found %p==%p at index %d\n", cr, tl->clipboard[i], i); */
+	} else if (displace) {
+	    /* fprintf(stderr, "\tMoving index %d->%d\n", i, i-1); */
+	    tl->clipboard[i-1] = tl->clipboard[i];
+	}
+    }
+    if (displace) {
+	tl->num_clips_in_clipboard--;
+	/* fprintf(stderr, "removed!\n"); */
+    }
+}
+
 void clipref_destroy(ClipRef *cr, bool displace_in_clip)
 {
     Track *track = cr->track;
     Clip *clip = cr->clip;
 
-    /* fprintf(stdout, "CLIPREF DESTROY %p\n", cr); */
+    clipref_check_and_remove_from_clipboard(cr);
+
     bool displace = false;
     for (uint8_t i=0; i<track->num_clips; i++) {
 	if (track->clips[i] == cr) {
@@ -2285,6 +2306,7 @@ void clipref_destroy(ClipRef *cr, bool displace_in_clip)
 }
 void clipref_destroy_no_displace(ClipRef *cr)
 {
+    clipref_check_and_remove_from_clipboard(cr);
     /* fprintf(stdout, "Clipref destroy no displace %s\n", cr->name); */
     bool displace = false;
     for (uint8_t i=0; i<cr->clip->num_refs; i++) {
@@ -2581,7 +2603,6 @@ static NEW_EVENT_FN(dispose_delete_clips, "")
 
 void timeline_delete_grabbed_cliprefs(Timeline *tl)
 {
-
     ClipRef **deleted_cliprefs = calloc(tl->num_grabbed_clips, sizeof(ClipRef *));
     for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
 	ClipRef *cr = tl->grabbed_clips[i];
@@ -2665,6 +2686,17 @@ void clipref_ungrab(ClipRef *cr)
     tl->num_grabbed_clips--;
     status_stat_drag();
 }
+
+/* void timeline_grab_clipref(ClipRef *cr) */
+/* { */
+/*     if (cr->grabbed) return; */
+/*     Timeline *tl = cr->track->tl; */
+/*     if (tl->num_grabbed_clips == MAX_GRABBED_CLIPS) return; */
+/*     tl->grabbed_clips[tl->num_grabbed_clips] = cr; */
+/*     tl->num_grabbed_clips++; */
+/*     cr->grabbed = true; */
+/*     tl->needs_redraw = true; */
+/* } */
 
 void timeline_ungrab_all_cliprefs(Timeline *tl)
 {

@@ -1458,6 +1458,81 @@ void user_tl_clipref_grab_ungrab()
 }
 
 
+void user_tl_copy_grabbed_clips(void *nullarg)
+{
+    Timeline *tl = ACTIVE_TL;
+    memcpy(tl->clipboard, tl->grabbed_clips, sizeof(ClipRef *) * tl->num_grabbed_clips);
+    tl->num_clips_in_clipboard = tl->num_grabbed_clips;
+}
+
+NEW_EVENT_FN(undo_paste_grabbed_clips, "undo paste grabbed clips")
+    ClipRef **clips = (ClipRef **)obj1;
+    uint8_t num = val1.uint8_v;
+     for (int i=0; i<num; i++) {
+	 clipref_delete(clips[i]);
+     }
+}
+
+NEW_EVENT_FN(redo_paste_grabbed_clips, "redo paste grabbed clips")
+    ClipRef **clips = (ClipRef **)obj1;
+    uint8_t num = val1.uint8_v;
+     for (int i=0; i<num; i++) {
+	 clipref_undelete(clips[i]);
+     }
+}
+
+NEW_EVENT_FN(dispose_forward_paste_grabbed_clips, "redo paste grabbed clips")
+    ClipRef **clips = (ClipRef **)obj1;
+    uint8_t num = val1.uint8_v;
+     for (int i=0; i<num; i++) {
+	 clipref_destroy_no_displace(clips[i]);
+     }
+}
+
+void user_tl_paste_grabbed_clips(void *nullarg)
+{
+    Timeline *tl = ACTIVE_TL;
+    timeline_ungrab_all_cliprefs(tl);
+    if (tl->num_clips_in_clipboard == 0) {
+	status_set_errstr("No clips copied to clipboard");
+	return;
+    }
+    int32_t leftmost = tl->clipboard[0]->pos_sframes;
+    for (int i=0; i<tl->num_clips_in_clipboard; i++) {
+	ClipRef *cr = tl->clipboard[i];
+	if (cr->pos_sframes < leftmost) leftmost = cr->pos_sframes;
+    }
+
+    ClipRef **undo_cache = calloc(tl->num_clips_in_clipboard, sizeof(ClipRef *));
+    
+    for (int i=0; i<tl->num_clips_in_clipboard; i++) {
+	ClipRef *cr = tl->clipboard[i];
+	if (!cr->deleted && !cr->track->deleted) {
+	    int32_t offset = cr->pos_sframes - leftmost;
+	    ClipRef *copy = track_create_clip_ref(cr->track, cr->clip, tl->play_pos_sframes + offset, false);
+	    snprintf(copy->name, MAX_NAMELENGTH, "%s copy", cr->name);
+	    copy->in_mark_sframes = cr->in_mark_sframes;
+	    copy->out_mark_sframes = cr->out_mark_sframes;
+	    copy->start_ramp_len = cr->start_ramp_len;
+	    copy->end_ramp_len = cr->end_ramp_len;
+	    clipref_grab(copy);
+	    undo_cache[i] = copy;
+	}
+	    
+    }
+
+    Value num = {.uint8_v = tl->num_clips_in_clipboard};
+    user_event_push(
+	&proj->history,
+	undo_paste_grabbed_clips,
+	redo_paste_grabbed_clips,
+	NULL, dispose_forward_paste_grabbed_clips,
+	undo_cache, NULL,
+	num, num, num, num,
+	0, 0, true, false);
+    timeline_reset(tl, false);
+}
+
 void user_tl_toggle_drag(void *nullarg)
 {
     proj->dragging = !proj->dragging;

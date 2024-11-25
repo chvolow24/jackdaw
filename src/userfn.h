@@ -97,6 +97,8 @@ void user_tl_track_pan_right(void *nullarg);
 
 void user_tl_record(void *nullarg);
 void user_tl_clipref_grab_ungrab(void *nullarg);
+void user_tl_copy_grabbed_clips(void *nullarg);
+void user_tl_paste_grabbed_clips(void *nullarg);
 /* Deprecated; use user_tl_cliprefs_delete */
 void user_tl_cliprefs_destroy(void *nullarg);
 void user_tl_rename_clip_at_cursor(void *nullarg);

@@ -693,7 +693,19 @@ static void mode_load_timeline()
 	"Grab clip at cursor",
 	user_tl_clipref_grab_ungrab);
     mode_subcat_add_fn(sc, fn);
-    
+
+    fn = create_user_fn(
+	"tl_copy_grabbed_clips",
+	"Copy grabbed clips",
+	user_tl_copy_grabbed_clips);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_paste_grabbed_clips",
+	"Paste grabbed clips",
+	user_tl_paste_grabbed_clips);
+    mode_subcat_add_fn(sc, fn);
+
     fn = create_user_fn(
 	"tl_toggle_drag",
 	"Start or stop dragging clips",

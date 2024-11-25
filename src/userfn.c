@@ -1503,8 +1503,9 @@ void user_tl_paste_grabbed_clips(void *nullarg)
 	if (cr->pos_sframes < leftmost) leftmost = cr->pos_sframes;
     }
 
-    ClipRef **undo_cache = calloc(tl->num_clips_in_clipboard, sizeof(ClipRef *));
     
+    ClipRef **undo_cache = calloc(tl->num_clips_in_clipboard, sizeof(ClipRef *));
+    uint8_t actual_num = 0;
     for (int i=0; i<tl->num_clips_in_clipboard; i++) {
 	ClipRef *cr = tl->clipboard[i];
 	if (!cr->deleted && !cr->track->deleted) {
@@ -1516,12 +1517,12 @@ void user_tl_paste_grabbed_clips(void *nullarg)
 	    copy->start_ramp_len = cr->start_ramp_len;
 	    copy->end_ramp_len = cr->end_ramp_len;
 	    clipref_grab(copy);
-	    undo_cache[i] = copy;
-	}
-	    
+	    undo_cache[actual_num] = copy;
+	    actual_num++;
+	}	    
     }
 
-    Value num = {.uint8_v = tl->num_clips_in_clipboard};
+    Value num = {.uint8_v = actual_num};
     user_event_push(
 	&proj->history,
 	undo_paste_grabbed_clips,

@@ -1754,12 +1754,6 @@ void user_tl_previous_timeline(void *nullarg)
     if (proj->active_tl_index > 0) {
 	if (proj->recording) transport_stop_recording(); else  transport_stop_playback();
 	timeline_switch(proj->active_tl_index - 1);
-	/* ACTIVE_TL->layout->hidden = true; */
-	/* proj->active_tl_index--; */
-	/* ACTIVE_TL->layout->hidden = false; */
-	/* project_reset_tl_label(proj); */
-	/* timeline_reset_full(ACTIVE_TL); */
-	/* ACTIVE_TL->needs_redraw = true; */
     } else {
 	status_set_errstr("No timeline to the left.");
     }

@@ -142,7 +142,11 @@ uint8_t project_add_timeline(Project *proj, char *name)
     new_tl->index = proj->num_timelines;
     Layout *tl_lt = layout_get_child_by_name_recursive(proj->layout, "timeline");
     if (new_tl->index != 0) {
-	Layout *cpy = layout_copy(tl_lt, tl_lt->parent);
+	Layout *main_lt_fresh = layout_read_from_xml(MAIN_LT_PATH);
+	Layout *new_tl_lt = layout_get_child_by_name_recursive(main_lt_fresh, "timeline");
+	Layout *cpy = layout_copy(new_tl_lt, tl_lt->parent);
+	layout_destroy(main_lt_fresh);
+	/* Layout *cpy = layout_copy(tl_lt, tl_lt->parent); */
 	new_tl->layout = cpy;
     } else {
 	new_tl->layout = tl_lt;
@@ -1365,7 +1369,7 @@ Track *timeline_add_track(Timeline *tl)
     /* Layout *track_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area"); */
     Layout *track_template = layout_read_xml_to_lt(tl->track_area, TRACK_LT_PATH);
     track->layout = track_template;
-
+    
     track->inner_layout = track_template->children[0];
     timeline_rectify_track_area(tl);
     /* fprintf(stdout, "tracks area h: %d/%d\n", tl->track_area->h.value.intval, tl->track_area->rect.h); */

@@ -33,6 +33,7 @@
  *****************************************************************************************************************/
 
 #include <stdarg.h>
+#include "layout_xml.h"
 #include "project.h"
 #include "tempo.h"
 #include "timeline.h"
@@ -222,7 +223,7 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
     tl->tempo_tracks[tl->num_tempo_tracks] = t;
     tl->num_tempo_tracks++;
 
-    /* Layout *lt = layout_read_xml_to_lt(tl->track_area, TEMPO_TRACK_LT_PATH); */
+    Layout *lt = layout_read_xml_to_lt(tl->track_area, TEMPO_TRACK_LT_PATH);
     /* tempo_track_add_segment(t, 0, -1, 120, 4, 4, 4, 4, 4); */
     return t;
 }

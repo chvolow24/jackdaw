@@ -33,6 +33,7 @@
  *****************************************************************************************************************/
 
 #include <stdarg.h>
+#include "color.h"
 #include "layout_xml.h"
 #include "project.h"
 #include "tempo.h"
@@ -52,7 +53,7 @@ static TempoSegment *tempo_track_get_segment_at_pos(TempoTrack *t, int32_t pos)
 {
     TempoSegment *s = t->segments;
     while (s) {
-	if (pos >= s->start_pos && (s->end_pos == s->start_pos || pos < s->end_pos)) {
+	if (!s->next || (pos >= s->start_pos && (s->end_pos == s->start_pos || pos < s->end_pos))) {
 	    break;
 	}
 	s = s->next;
@@ -84,7 +85,6 @@ static void do_increment(TempoSegment *s, int *measure, int *beat, int *subdiv)
     } else {
 	(*subdiv)++;
     }
-
 }
 
 /* Stateful function, repeated calls to which will get the next beat or subdiv position on a tempo track */
@@ -223,8 +223,19 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
     tl->tempo_tracks[tl->num_tempo_tracks] = t;
     tl->num_tempo_tracks++;
 
-    Layout *lt = layout_read_xml_to_lt(tl->track_area, TEMPO_TRACK_LT_PATH);
-    /* tempo_track_add_segment(t, 0, -1, 120, 4, 4, 4, 4, 4); */
+    Layout *tempo_tracks_area = layout_get_child_by_name_recursive(tl->layout, "tempo_tracks_area");
+    Layout *lt = layout_read_xml_to_lt(tempo_tracks_area, TEMPO_TRACK_LT_PATH);
+    t->layout = lt;
+    layout_size_to_fit_children_v(tempo_tracks_area, true, 0);
+    layout_reset(tl->layout);
+    tl->needs_redraw = true;
+    if (tl->num_tempo_tracks == 1) {
+	tempo_track_add_segment(t, 0, -1, 120, 4, 4, 4, 4, 4);
+    } else if (tl->num_tempo_tracks == 2) {
+	tempo_track_add_segment(t, 0, -1, 120, 3, 3, 3, 2);
+    } else if (tl->num_tempo_tracks == 3) {
+	tempo_track_add_segment(t, 0, -1, 130, 4, 4, 4, 4, 4);
+    }
     return t;
 }
 
@@ -232,16 +243,38 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
 
 void tempo_track_draw(TempoTrack *tt)
 {
+
+    static SDL_Color line_colors[] =  {
+	{255, 255, 255, 255},
+	{170, 170, 170, 255},
+	{130, 130, 130, 255},
+	{100, 100, 100, 255}
+    };
+
     int32_t pos = tt->tl->display_offset_sframes;
     enum beat_prominence bp;
     tempo_track_get_next_pos(tt, true, pos, &pos, &bp);
     int x = timeline_get_draw_x(pos);
-    fprintf(stderr, "First draw x: %d;, bp: %d\n", x, bp);
+
+    int main_top_y = tt->layout->rect.y;
+    int bttm_y = main_top_y + tt->layout->rect.h;
+    int h = tt->layout->rect.h;
+
+    int top_y = main_top_y + h * (int)bp / 4;
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(line_colors[(int)bp]));
+    SDL_RenderDrawLine(main_win->rend, x, top_y, x, bttm_y);
+
     while (x < main_win->w_pix) {
 	tempo_track_get_next_pos(tt, false, 0, &pos, &bp);
 	x = timeline_get_draw_x(pos);
-	fprintf(stderr, "Next draw x: %d; bp: %d\n", x, bp);
+	top_y = main_top_y + h * (int)bp / 4;
+	/* top_y = main_top_y + h / (1 + (int)bp); */
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(line_colors[(int)bp]));
+	SDL_RenderDrawLine(main_win->rend, x, top_y, x, bttm_y);
     }
+
+    SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255);
+    SDL_RenderDrawLine(main_win->rend, tt->layout->rect.x, bttm_y, tt->layout->rect.x + tt->layout->rect.w, bttm_y);
 	
 
 }

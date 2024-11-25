@@ -151,22 +151,38 @@ void wav_write_mixdown(const char *filepath)
     uint16_t chunk_len_samples = chunk_len_sframes * proj->channels;
     uint32_t len_sframes = tl->out_mark_sframes - tl->in_mark_sframes;
     uint32_t len_samples = proj->channels * len_sframes;
+    fprintf(stderr, "len_sframes: %d, chunk len sframes: %d, chunks d: %f\n", len_sframes, chunk_len_sframes, (double)len_sframes / chunk_len_sframes);
     uint32_t chunks = len_sframes / chunk_len_sframes;
+    uint32_t remainder_sframes = len_sframes - chunks * chunk_len_sframes;
     int16_t *samples = malloc(sizeof(int16_t) * len_samples);
 
+
+    float *samples_L = malloc(sizeof(float) * chunk_len_sframes);
+    float *samples_R = malloc(sizeof(float) * chunk_len_sframes);
     for (uint32_t c=0; c<chunks; c++) {
-	/* fprintf(stdout, "C/chunks: %d/%d\n", c, chunks); */
-        float *samples_L = malloc(sizeof(float) * chunk_len_sframes);
-	float *samples_R = malloc(sizeof(float) * chunk_len_sframes);
 	get_mixdown_chunk(tl, samples_L, 0, chunk_len_sframes, tl->in_mark_sframes + (c * chunk_len_sframes), 1);
         get_mixdown_chunk(tl, samples_R, 1, chunk_len_sframes, tl->in_mark_sframes + (c * chunk_len_sframes), 1);
         for (uint32_t i=0; i<chunk_len_samples; i+=2) {
             samples[c * chunk_len_samples + i] = samples_L[i/2] * INT16_MAX;
             samples[c * chunk_len_samples + i + 1] = samples_R[i/2] * INT16_MAX;
         }
-        free(samples_L);
-        free(samples_R);
     }
+
+    if (remainder_sframes > 0) {
+	uint32_t done_len_sframes = chunk_len_sframes * chunks;
+	uint32_t done_len_samples = chunk_len_samples * chunks;
+	get_mixdown_chunk(tl, samples_L, 0, remainder_sframes, tl->in_mark_sframes + done_len_sframes, 1);
+	get_mixdown_chunk(tl, samples_R, 1, remainder_sframes, tl->in_mark_sframes + done_len_sframes, 1);
+	for (uint32_t i=0; i<remainder_sframes * proj->channels; i+=2) {
+	    samples[done_len_samples + i] = samples_L[i/2] * INT16_MAX;
+	    samples[done_len_samples + i + 1] = samples_R[i/2] * INT16_MAX;
+	}
+    }
+    
+    free(samples_L);
+    free(samples_R);
+
+	
     write_wav(filepath, samples, len_samples, 16, proj->channels);
     free(samples);
 }

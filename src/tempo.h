@@ -80,4 +80,7 @@ typedef struct tempo_track {
 TempoTrack *timeline_add_tempo_track(Timeline *tl);
 TempoSegment *tempo_track_add_segment(TempoTrack *t, int32_t start_pos, int16_t num_measures, int bpm, int num_beats, ...);
 void tempo_segment_fprint(FILE *f, TempoSegment *s);
+
+void tempo_track_draw(TempoTrack *tt);
+
 #endif

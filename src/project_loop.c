@@ -270,6 +270,9 @@ void loop_project_main()
 		break;
 	    case SDL_KEYDOWN: {
 		switch (e.key.keysym.scancode) {
+		case SDL_SCANCODE_6:
+		    timeline_add_tempo_track(proj->timelines[0]);
+		    break;
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LCTRL:

@@ -504,6 +504,10 @@ static int timeline_draw(Timeline *tl)
         SDL_RenderFillRect(main_win->rend, &(in_out));
     }
 
+    for (int i=0; i<tl->num_tempo_tracks; i++) {
+	tempo_track_draw(tl->tempo_tracks[i]);
+    }
+
     if (proj->source_mode) {
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(grey_mask));
 	SDL_RenderFillRect(main_win->rend, &tl->layout->rect);

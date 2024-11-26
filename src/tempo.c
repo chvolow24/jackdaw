@@ -33,11 +33,14 @@
  *****************************************************************************************************************/
 
 #include <stdarg.h>
+#include "assets.h"
 #include "color.h"
+#include "components.h"
 #include "layout_xml.h"
 #include "project.h"
 #include "tempo.h"
 #include "timeline.h"
+#include "wav.h"
 
 extern Window *main_win;
 
@@ -48,6 +51,23 @@ enum beat_prominence {
     BP_SUBDIV2=3,
 };
 
+
+void project_init_metronomes(Project *proj)
+{
+    Metronome *m = &proj->metronomes[0];
+    m->name = "standard";
+    
+    float *L, *R;    
+    wav_load(proj, METRONOME_STD_HIGH_PATH, &L, &R);
+    free(R);
+
+    m->buffers[0] = L;
+    
+    wav_load(proj, METRONOME_STD_LOW_PATH, &L, &R);
+    free(R);
+
+    m->buffers[1] = L;    
+}
 
 static TempoSegment *tempo_track_get_segment_at_pos(TempoTrack *t, int32_t pos)
 {
@@ -90,10 +110,10 @@ static void do_increment(TempoSegment *s, int *measure, int *beat, int *subdiv)
 /* Stateful function, repeated calls to which will get the next beat or subdiv position on a tempo track */
 void tempo_track_get_next_pos(TempoTrack *t, bool start, int32_t start_from, int32_t *pos, enum beat_prominence *bp)
 {
-    static TempoSegment *s;
-    static int beat = 0;
-    static int subdiv = 0;
-    static int measure = 0;
+    static _Thread_local TempoSegment *s;
+    static _Thread_local int beat = 0;
+    static _Thread_local int subdiv = 0;
+    static _Thread_local int measure = 0;
     if (start) {
 	s = tempo_track_get_segment_at_pos(t, start_from);
 	int32_t current_pos = s->start_pos;
@@ -122,8 +142,6 @@ void tempo_track_get_next_pos(TempoTrack *t, bool start, int32_t start_from, int
 	    measure = 0;
 	    beat = 0;
 	    subdiv = 0;
-	    fprintf(stderr, "SWITCHED SEGMENT\n");
-	    fprintf(stderr, "NEW SEGMENT ATOM DUR: %d\n", s->cfg.dur_sframes / s->cfg.num_atoms);
 	}
     }
 set_prominence_and_exit:
@@ -220,6 +238,7 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
 {
     TempoTrack *t = calloc(1, sizeof(TempoTrack));
     t->tl = tl;
+    t->metronome = &tl->proj->metronomes[0];
     tl->tempo_tracks[tl->num_tempo_tracks] = t;
     tl->num_tempo_tracks++;
 
@@ -230,7 +249,9 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
     layout_reset(tl->layout);
     tl->needs_redraw = true;
     if (tl->num_tempo_tracks == 1) {
-	tempo_track_add_segment(t, 0, -1, 120, 4, 4, 4, 4, 4);
+	tempo_track_add_segment(t, 0, -1, 223, 4, 4, 4, 4, 4);
+	tempo_track_add_segment(t, 96000 * 3, -1, 120, 3, 3, 3, 3);
+	tempo_track_add_segment(t, 96000 * 4, -1, 130, 5, 3, 3, 2, 2, 2);
     } else if (tl->num_tempo_tracks == 2) {
 	tempo_track_add_segment(t, 0, -1, 120, 3, 3, 3, 2);
     } else if (tl->num_tempo_tracks == 3) {
@@ -239,11 +260,22 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
     return t;
 }
 
+void tempo_track_fill_metronome_buffer(TempoTrack *tt, float *L, float *R, int32_t start_from)
+{
+    static TempoSegment *s = NULL;
+    
+    if (!s) {
+	s = tempo_track_get_segment_at_pos(tt, start_from);
+    } else {
+	while (s->next && start_from < s->start_pos) {
+	    s = s->next;
+	}
+    }
+}
 
 
 void tempo_track_draw(TempoTrack *tt)
 {
-
     static SDL_Color line_colors[] =  {
 	{255, 255, 255, 255},
 	{170, 170, 170, 255},

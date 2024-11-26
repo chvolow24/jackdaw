@@ -21,12 +21,16 @@
 #define NOTO_SANS_SYMBOLS2_PATH TTF_PATH "NotoSansSymbols2-Regular.ttf"
 #define NOTO_SANS_MATH_PATH TTF_PATH "NotoSansMath-Regular.ttf"
 
+#define METRONOME_PATH INSTALL_DIR "/assets/metronome/"
+#define METRONOME_STD_HIGH_PATH METRONOME_PATH "std_high.wav"
+#define METRONOME_STD_LOW_PATH METRONOME_PATH "std_low.wav"
+
 /* #define DEFAULT_KEYB_PATH INSTALL_DIR "/assets/key_bindings/default.yaml" */
 #define DEFAULT_KEYBIND_CFG_PATH INSTALL_DIR "/assets/key_bindings/default.yaml"
 
-
 #define PARAM_LT_PATH INSTALL_DIR "/gui/template_lts/param_lt.xml"
 #define OPENFILE_LT_PATH INSTALL_DIR "/gui/template_lts/openfile.xml"
+
 
 
 #endif

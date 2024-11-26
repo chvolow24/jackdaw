@@ -64,13 +64,22 @@ typedef struct tempo_segment {
 
 typedef struct timeline Timeline;
 
+typedef struct metronome {
+    const char *name;
+    /* const char *buffer_filenames[2]; */
+    float *buffers[2];
+} Metronome;
+
 typedef struct tempo_track {
     TempoSegment *segments;
     /* uint8_t num_segments; */
     uint8_t current_segment;
 
-    float *metronome_buffers[2];
-    uint16_t metronome_buffer_lens[2];
+    Metronome *metronome;
+    /* float *metronome_buffers[2]; */
+    /* uint16_t metronome_buffer_lens[2]; */
+    /* bool metronome_offbeats; */
+    /* float metronome_volume; */
     
     Timeline *tl;
     Layout *layout;
@@ -82,5 +91,8 @@ TempoSegment *tempo_track_add_segment(TempoTrack *t, int32_t start_pos, int16_t 
 void tempo_segment_fprint(FILE *f, TempoSegment *s);
 
 void tempo_track_draw(TempoTrack *tt);
+
+typedef struct project Project;
+void project_init_metronomes(Project *proj);
 
 #endif

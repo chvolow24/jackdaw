@@ -418,6 +418,7 @@ Project *project_create(
 
 
     project_init_audio_conns(proj);
+    project_init_metronomes(proj);
 
 
 

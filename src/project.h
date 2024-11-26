@@ -382,6 +382,9 @@ typedef struct project {
     /* Quitting */
     int quit_count;
 
+    /* Metronomes */
+    Metronome metronomes[1];
+
     /* GUI Members */
     Layout *layout;
     SDL_Rect *audio_rect;

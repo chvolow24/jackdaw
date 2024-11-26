@@ -738,7 +738,6 @@ Keyframe *automation_insert_keyframe_at(
     Keyframe *k;
     if (insert_i - 1 > 0 && (k = a->keyframes + insert_i - 1)->pos == pos) {
 	keyframe_move(k, pos, val);
-	/* fprintf(stderr, "ATTEMPTING TO INSERT AT EXISTING KF LOCATION\n"); */
 	return NULL;
     }
     /* fprintf(stderr, "INSERT at %d\n", pos); */
@@ -825,8 +824,9 @@ static void automation_reset_cache(Automation *a, int32_t pos)
     if (!a->current) {
 	if (a->keyframes[0].pos < pos) {
 	    a->current = a->keyframes;
+	} else {
+	    goto describe;
 	}
-	goto describe;
     }
     while (a->current > a->keyframes && a->current->pos > pos) {
 	/* ops++; */
@@ -951,31 +951,66 @@ static void keyframe_remove(Keyframe *k)
 /* return true if success */
 static bool automation_get_kf_range(Automation *a, int32_t start_pos, int32_t end_pos, uint16_t *start_i_dst, uint16_t *end_i_dst)
 {
-
+    /* No range if I/O range is invalid */
+    if (end_pos <= start_pos) return false;
+    
     Keyframe *current = automation_check_get_cache(a, start_pos);
-
-    if (!current) return false;
-    uint16_t current_i = current - a->keyframes;    
-    uint16_t start_i = current_i + 1;
-    if (start_i < a->num_keyframes && a->keyframes[start_i].pos < end_pos) {
-	start_i = current_i + 1;
-	uint16_t end_i = start_i;
-	while (1) {
-	    if (end_i >= a->num_keyframes) break;
-	    if (a->keyframes[end_i].pos > end_pos) {
-		break;
-	    }
-	    end_i++;
+    /* fprintf(stderr, "\n\n CURRENT (pos %d) i == %ld\n", start_pos, current - a->keyframes); */
+    
+    /* No range if segment at start_pos is the last keyframe */
+    if (current - a->keyframes == a->num_keyframes - 1) return false;
+    
+    Keyframe *end = automation_check_get_cache(a, end_pos);
+    if (!current) {
+	if (!end) {
+	    return false;
+	} else {
+	    /* fprintf(stderr, "FIRST CASE: !current, range: %d, %ld\n", 0, end - a->keyframes + 1); */
+	    *start_i_dst = 0;
+	    *end_i_dst = end - a->keyframes + 1;
 	}
-	*start_i_dst = start_i;
-	*end_i_dst = end_i;
-	return true;
-	
+    } else {
+	/* fprintf(stderr, "SECOND CASE: current. range: %ld, %ld\n", current - a->keyframes, end - a->keyframes + 1); */
+	*start_i_dst = current - a->keyframes + 1;
+	*end_i_dst = end - a->keyframes + 1;
     }
-    return false;
+    return true;
+    /* uint16_t current_i = 0; */
+    /* uint16_t start_i = 0; */
+    /* if (!current) { */
+    /* 	fprintf(stderr, "NO CURRENT\n"); */
+    /* 	if (a->num_keyframes == 1 || end_pos < a->keyframes->pos) { */
+    /* 	    fprintf(stderr, "First false\n"); */
+    /* 	    return false; */
+    /* 	}else if (a->keyframes->pos < end_pos) { */
+    /* 	    start_i = 0; */
+    /* 	    /\* current = a->keyframes;uint16_t uint16_t  *\/ */
+    /* 	} */
+    /* } else { */
+    /* 	current_i = current - a->keyframes;     */
+    /* 	start_i = current_i + 1; */
+
+    /* } */
+    /* if (start_i < a->num_keyframes && a->keyframes[start_i].pos < end_pos) { */
+    /* 	start_i = current_i + 1; */
+    /* 	uint16_t end_i = start_i; */
+    /* 	while (1) { */
+    /* 	    if (end_i >= a->num_keyframes) break; */
+    /* 	    if (a->keyframes[end_i].pos > end_pos) { */
+    /* 		break; */
+    /* 	    } */
+    /* 	    end_i++; */
+    /* 	} */
+    /* 	*start_i_dst = start_i; */
+    /* 	*end_i_dst = end_i; */
+    /* 	return true; */
+	
+    /* } */
+    /* fprintf(stderr, "End condition return false\n"); */
+    /* return false; */
 }
 
-static void automation_remove_kf_range(Automation *a, int32_t start_pos, int32_t end_pos)
+static void automation_remove_kf_range(Automation *a, uint16_t remove_start_i, uint16_t remove_end_i)
 {
     a->track->tl->needs_redraw = true;
     /* uint16_t current_i = automation_check_get_cache(a, start_pos) - a->keyframes; */
@@ -990,8 +1025,13 @@ static void automation_remove_kf_range(Automation *a, int32_t start_pos, int32_t
     /* 	    } */
     /* 	    remove_end_i++; */
     /* 	} */
-    uint16_t remove_start_i, remove_end_i;
-    if (!automation_get_kf_range(a, start_pos, end_pos, &remove_start_i, &remove_end_i)) return;
+    /* uint16_t remove_start_i, remove_end_i; */
+    /* if (!automation_get_kf_range(a, start_pos, end_pos, &remove_start_i, &remove_end_i)) return; */
+
+    /* Do not allow removal of all keyframes */
+    if (remove_start_i == 0 && remove_end_i == a->num_keyframes) {
+	remove_start_i++;
+    }
     pthread_mutex_lock(&a->lock);
     /* fprintf(stderr, "\n\n"); */
     /* if (remove_start_i > 0) { */
@@ -1021,7 +1061,9 @@ static void automation_remove_kf_range(Automation *a, int32_t start_pos, int32_t
 	if (dragging_i >= remove_start_i && dragging_i < remove_end_i) {
 	    a->track->tl->dragging_keyframe = NULL;
 	}
-	keyframe_recalculate_m(a, remove_start_i - 1);
+	if (remove_start_i > 0) {
+	    keyframe_recalculate_m(a, remove_start_i - 1);
+	}
 	keyframe_recalculate_m(a, remove_start_i);
 	    
     }
@@ -1047,7 +1089,10 @@ static Keyframe *automation_insert_maybe(
     /* 	    return NULL; */
     /* 	} */
     /* } */
-    automation_remove_kf_range(a, pos, chunk_end_pos);
+    uint16_t start_i, end_i;
+    if (automation_get_kf_range(a, pos, chunk_end_pos, &start_i, &end_i)) {
+	automation_remove_kf_range(a, start_i, end_i);
+    }
     static const double diff_prop_thresh = 1e-15;
     /* static const double m_prop_thresh = 0.05; */
     static const double m_prop_thresh = 4.0;
@@ -1183,11 +1228,23 @@ void automation_reset_keyframe_x(Automation *a)
 
 Keyframe *automation_get_segment(Automation *a, int32_t at)
 {
-    if (a->keyframes[0].pos > at) return NULL;
     Keyframe *k = a->keyframes;
-    while (k < a->keyframes + a->num_keyframes - 1 && k->pos < at) k++;
-    if (k == a->keyframes + a->num_keyframes - 1) return k;
-    return k - 1;
+    if (k->pos > at) return NULL;
+    while (k) {
+	if (k - a->keyframes == a->num_keyframes - 1) {
+	    return k;
+	} else if ((k+1)->pos > at) {
+	    return k;
+	}
+	k++;
+    }
+    return NULL;
+    /* if (a->keyframes[0].pos > at) return NULL; */
+    /* Keyframe *k = a->keyframes; */
+    /* while (k < a->keyframes + a->num_keyframes - 1 && k->pos < at) k++; */
+    /* if (k == a->keyframes + a->num_keyframes - 1) return k; */
+    /* /\* Suspicious for case where k == a->keyframes *\/ */
+    /* return k - 1; */
 
 }
 
@@ -1560,12 +1617,12 @@ bool automation_triage_click(uint8_t button, Automation *a)
 	    else if (insertion < a->keyframes + a->num_keyframes - 1) {
 		next = insertion + 1;
 	    }
-	    /* fprintf(stderr, "\n\nL R: %ld %ld\n", insertion - a->keyframes, next - a->keyframes); */
+	    /* fprintf(stderr, "insertion: %ld, next: %ld\n", insertion - a->keyframes, next - a->keyframes); */
 	    /* if (insertion_i < a->num_keyframes - 1) next = insertion + 1; */
 	    if (insertion) left_kf_dist = abs(insertion->draw_x - main_win->mousep.x);
 	    if (next) right_kf_dist = abs(next->draw_x - main_win->mousep.x);	
 	    /* fprintf(stderr, "LDIST %d RDIST %d\n", left_kf_dist, right_kf_dist); */
-	  
+
 	    if (left_kf_dist < click_tolerance && left_kf_dist < right_kf_dist && !(main_win->i_state & I_STATE_SHIFT)) {
 		/* a->track->tl->dragging_keyframe = insertion; */
 		automation_set_dragging_kf(insertion);
@@ -1585,23 +1642,26 @@ bool automation_triage_click(uint8_t button, Automation *a)
 		/* uint16_t new_i = automation_insert_keyframe_at(a, clicked_pos_sframes, v); */
 		/* a->track->tl->dragging_keyframe = a->keyframes + new_i; */
 		Keyframe *k = a->track->tl->dragging_keyframe = automation_insert_keyframe_at(a, clicked_pos_sframes, v);
-		Value nullval;
-		Value indexval;
-		indexval.int32_v = k - a->keyframes;
-		Value posval = {.int32_v = k->pos};
-		/* int32_t *index = malloc(sizeof(int32_t)); */
-		/* *index = k - a->keyframes; */
-		memset(&nullval, '\0', sizeof(Value));
-		user_event_push(
-		    &proj->history,
-		    undo_insert_keyframe,
-		    redo_insert_keyframe,
-		    NULL, NULL,
-		    a, index,
-		    indexval, nullval,
-		    posval, k->value,
-		    0, 0, false, false);
-		automation_set_dragging_kf(k);
+		if (k) {
+		    Value nullval;
+		    Value indexval;
+		    indexval.int32_v = k - a->keyframes;
+		    Value posval = {.int32_v = k->pos};
+		    /* int32_t *index = malloc(sizeof(int32_t)); */
+		    /* *index = k - a->keyframes; */
+		    memset(&nullval, '\0', sizeof(Value));
+		    user_event_push(
+			&proj->history,
+			undo_insert_keyframe,
+			redo_insert_keyframe,
+			NULL, NULL,
+			a, index,
+			indexval, nullval,
+			posval, k->value,
+			0, 0, false, false);
+		    automation_set_dragging_kf(k);
+		    return true;
+		}
 		/* a->track->tl->dragging_kf_cache_pos = k->pos; */
 		/* a->track->tl->dragging_kf_cache_val = k->value; */
 	    } else {
@@ -1906,16 +1966,19 @@ void keyframe_delete(Keyframe *k)
 
 void automation_delete_keyframe_range(Automation *a, int32_t start_pos, int32_t end_pos)
 {
-    automation_write_set_undo_cache(a);
     uint16_t start_i, end_i;
+    /* Don't get keyframe range here */
     if (automation_get_kf_range(a, start_pos, end_pos, &start_i, &end_i)) {
-	uint16_t num_keyframes = end_i - start_i;
-	Keyframe *range_cpy = malloc(num_keyframes * sizeof(Keyframe));
-	memcpy(range_cpy, a->keyframes + start_i, num_keyframes * sizeof(Keyframe));
+	automation_write_set_undo_cache(a);
+	/* uint16_t num_keyframes = end_i - start_i; */
+	/* fprintf(stderr, "true, num: %d\n", num_keyframes); */
+	/* Keyframe *range_cpy = malloc(num_keyframes * sizeof(Keyframe)); */
+	/* memcpy(range_cpy, a->keyframes + start_i, num_keyframes * sizeof(Keyframe)); */
 
-	automation_remove_kf_range(a, start_pos, end_pos);
+	automation_remove_kf_range(a, start_i, end_i);
+	automation_push_write_event(a);
     }
-    automation_push_write_event(a);
+    /* fprintf(stderr, "False\n"); */
 	
 }
 

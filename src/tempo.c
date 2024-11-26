@@ -37,6 +37,7 @@
 #include "color.h"
 #include "components.h"
 #include "layout_xml.h"
+#include "portability.h"
 #include "project.h"
 #include "tempo.h"
 #include "timeline.h"
@@ -50,7 +51,6 @@ enum beat_prominence {
     BP_SUBDIV=2,
     BP_SUBDIV2=3,
 };
-
 
 void project_init_metronomes(Project *proj)
 {
@@ -110,10 +110,10 @@ static void do_increment(TempoSegment *s, int *measure, int *beat, int *subdiv)
 /* Stateful function, repeated calls to which will get the next beat or subdiv position on a tempo track */
 void tempo_track_get_next_pos(TempoTrack *t, bool start, int32_t start_from, int32_t *pos, enum beat_prominence *bp)
 {
-    static _Thread_local TempoSegment *s;
-    static _Thread_local int beat = 0;
-    static _Thread_local int subdiv = 0;
-    static _Thread_local int measure = 0;
+    static JDAW_THREAD_LOCAL TempoSegment *s;
+    static JDAW_THREAD_LOCAL int beat = 0;
+    static JDAW_THREAD_LOCAL int subdiv = 0;
+    static JDAW_THREAD_LOCAL int measure = 0;
     if (start) {
 	s = tempo_track_get_segment_at_pos(t, start_from);
 	int32_t current_pos = s->start_pos;

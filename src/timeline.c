@@ -225,6 +225,7 @@ static void track_handle_playhead_jump(Track *track)
     }
 }
 
+void tempo_track_bar_beat_subdiv(TempoTrack *tt, int32_t pos);
 
 /* Invalidates continuous-play-dependent caches.
    Use this any time a "jump" occurrs */
@@ -238,6 +239,8 @@ void timeline_set_play_position(int32_t abs_pos_sframes)
     }
     timeline_set_timecode();
     tl->needs_redraw = true;
+
+    tempo_track_bar_beat_subdiv(tl->tempo_tracks[0], tl->play_pos_sframes);
 }
 
 
@@ -255,7 +258,8 @@ void timeline_move_play_position(int32_t move_by_sframes)
 	}
     }
     tl->needs_redraw = true;
-    
+
+    tempo_track_bar_beat_subdiv(tl->tempo_tracks[0], tl->play_pos_sframes);
     /* timeline_set_timecode(); */
 }
 

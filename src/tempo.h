@@ -38,6 +38,7 @@
 
 #define MAX_BEATS_PER_BAR 16
 #define MAX_TEMPO_TRACKS 16
+#define TEMPO_POS_STR_LEN 32
 
 typedef struct measure_config {
     int bpm;
@@ -54,7 +55,7 @@ typedef struct tempo_segment {
     int32_t start_pos;
     int32_t end_pos;
     uint16_t first_measure_index; /* 0 if first segment, else sum of previous segment lengths */
-    /* int16_t num_measures; */
+    int16_t num_measures;
     TempoTrack *tempo_track;
     MeasureConfig cfg;
 
@@ -80,6 +81,9 @@ typedef struct tempo_track {
     /* uint16_t metronome_buffer_lens[2]; */
     /* bool metronome_offbeats; */
     /* float metronome_volume; */
+
+    char pos_str[TEMPO_POS_STR_LEN];
+    
     
     Timeline *tl;
     Layout *layout;

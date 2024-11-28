@@ -2132,14 +2132,13 @@ static void timeline_remove_track(Track *track)
     }
     layout_remove_child(track->layout);
     tl->num_tracks--;
+    if (tl->track_selector > tl->num_tracks - 1) tl->track_selector = tl->num_tracks - 1;
     timeline_rectify_track_area(tl);
     /* layout_size_to_fit_children_v(tl->track_area, true, 0); */
 }
 
 static void timeline_insert_track_at(Track *track, uint8_t index)
 {
-
-
     Timeline *tl = track->tl;
     /* for (int i=0; i<tl->num_tracks; i++) { */
     /* 	fprintf(stdout, "\t\t%d: Track index %d named \"%s\"\n", i, tl->tracks[i]->tl_rank, tl->tracks[i]->name); */

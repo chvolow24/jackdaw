@@ -58,7 +58,7 @@ int timeline_get_draw_x(int32_t abs_x)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (tl->sample_frames_per_pixel != 0) {
-        float precise = (float)proj->audio_rect->x + ((float)abs_x - (float)tl->display_offset_sframes) / (float)tl->sample_frames_per_pixel;
+        double precise = (double)proj->audio_rect->x + ((double)abs_x - (double)tl->display_offset_sframes) / (double)tl->sample_frames_per_pixel;
         return (int) round(precise);
     } else {
         fprintf(stderr, "Error: proj tl sfpp value 0\n");

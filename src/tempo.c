@@ -76,7 +76,6 @@ static TempoSegment *tempo_track_get_segment_at_pos(TempoTrack *t, int32_t pos)
 {
     static JDAW_THREAD_LOCAL TempoSegment *s = NULL;
     if (!s) s = t->segments;
-    
     while (1) {
 	if (pos < s->start_pos) {
 	    if (s->prev) {
@@ -239,7 +238,7 @@ static void tempo_segment_set_end_pos(TempoSegment *s, int32_t new_end_pos)
 	if (s->prev) {
 	    s->first_measure_index = s->prev->first_measure_index + s->prev->num_measures;
 	} else {
-	    s->first_measure_index = 0;
+	    s->first_measure_index = BARS_FOR_NOTHING * -1;
 	}
 	s = s->next;
     }
@@ -256,6 +255,7 @@ TempoSegment *tempo_track_add_segment(TempoTrack *t, int32_t start_pos, int16_t 
     if (!t->segments) {
 	t->segments = s;
 	s->end_pos = s->start_pos;
+	s->first_measure_index = BARS_FOR_NOTHING * -1;
 
     } else {
 	TempoSegment *s_test = t->segments;
@@ -308,9 +308,9 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
     tl->needs_redraw = true;
     if (tl->num_tempo_tracks == 1) {
 	tempo_track_add_segment(t, 0, -1, 60, 4, 4, 4, 4, 4);
-	tempo_track_add_segment(t, 96000 * 3, -1, 120, 3, 3, 3, 3);
-	tempo_track_add_segment(t, 96000 * 6, -1, 130, 5, 3, 3, 2, 2, 2);
-	tempo_track_add_segment(t, 96000 * 9, -1, 900, 4, 4, 4, 4);
+	tempo_track_add_segment(t, 96000 * 9, -1, 120, 3, 3, 3, 3);
+	/* tempo_track_add_segment(t, 96000 * 6, -1, 130, 5, 3, 3, 2, 2, 2); */
+	/* tempo_track_add_segment(t, 96000 * 9, -1, 900, 4, 4, 4, 4); */
     } else if (tl->num_tempo_tracks == 2) {
 	tempo_track_add_segment(t, 0, -1, 120, 3, 3, 3, 2);
     } else if (tl->num_tempo_tracks == 3) {
@@ -349,7 +349,6 @@ void tempo_track_draw(TempoTrack *tt)
     enum beat_prominence bp;
     tempo_track_get_next_pos(tt, true, pos, &pos, &bp);
     int x = timeline_get_draw_x(pos);
-
     int main_top_y = tt->layout->rect.y;
     int bttm_y = main_top_y + tt->layout->rect.h;
     int h = tt->layout->rect.h;
@@ -368,7 +367,7 @@ void tempo_track_draw(TempoTrack *tt)
     }
     /* SDL_RenderDrawLine(main_win->rend, x, top_y, x, bttm_y); */
 
-    while (x < main_win->w_pix) {
+    while (x > 0 && x < main_win->w_pix) {
 	tempo_track_get_next_pos(tt, false, 0, &pos, &bp);
 	x = timeline_get_draw_x(pos);
 	top_y = main_top_y + h * (int)bp / 5;
@@ -428,7 +427,8 @@ void tempo_track_bar_beat_subdiv(TempoTrack *tt, int32_t pos)
     } else {
 	snprintf(sample_str, sample_str_len, "%d", samples);
     }
-    snprintf(tt->pos_str, TEMPO_POS_STR_LEN, "m%d.%d.%d:%s", measure + 1, beat + 1, subdiv + 1, sample_str);
+    fprintf(stderr, "MEASURE RAW: %d\n", measure);
+    snprintf(tt->pos_str, TEMPO_POS_STR_LEN, "m%d.%d.%d:%s", measure >= 0 ? measure + 1 : measure, beat + 1, subdiv + 1, sample_str);
     fprintf(stderr, "%s\n", tt->pos_str);
 }
 

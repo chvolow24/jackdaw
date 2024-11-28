@@ -428,12 +428,15 @@ void window_push_modal(Window *win, Modal *modal)
 
 void window_pop_modal(Window *win)
 {
+    if (win->num_modals == 0) {
+	return;
+    }
     if (win->txt_editing) {
 	txt_stop_editing(win->txt_editing);
     }
-    if (win->num_modals > 0) {
-	modal_destroy(win->modals[win->num_modals - 1]);
-    }
+    /* if (win->num_modals > 0) { */
+    modal_destroy(win->modals[win->num_modals - 1]);
+    /* } */
     win->num_modals--;
     if (win->num_menus > 0) {
 	window_pop_menu(win);

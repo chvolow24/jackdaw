@@ -35,6 +35,7 @@
 #include <stdint.h>
 #include <time.h>
 #include "project.h"
+#include "thread_safety.h"
 #include "transport.h"
 
 #define MAX_SFPP 80000
@@ -43,6 +44,8 @@
 
 extern Project *proj;
 extern Window *main_win;
+extern pthread_t MAIN_THREAD_ID;
+extern pthread_t DSP_THREAD_ID;
 
 int timeline_get_draw_x(int32_t abs_x);
 
@@ -183,6 +186,10 @@ void timecode_str_at(char *dst, size_t dstsize, int32_t pos)
     snprintf(dst, dstsize, "%c%02d:%02d:%02d:%05d", sign, hours, minutes, seconds, frames);
 }
 
+/* Called in two scenarios:
+   1. timeline_set_play_position() (i.e., when playhead jumps)
+   2. project_loop(), while play speed != 0
+*/
 void timeline_set_timecode()
 {
     if (!proj) {
@@ -231,6 +238,8 @@ void tempo_track_bar_beat_subdiv(TempoTrack *tt, int32_t pos);
    Use this any time a "jump" occurrs */
 void timeline_set_play_position(int32_t abs_pos_sframes)
 {
+    MAIN_THREAD_ONLY("timeline_set_play_position");
+    
     Timeline *tl = proj->timelines[proj->active_tl_index];
     tl->play_pos_sframes = abs_pos_sframes;
     tl->read_pos_sframes = abs_pos_sframes;
@@ -247,6 +256,9 @@ void timeline_set_play_position(int32_t abs_pos_sframes)
 
 void timeline_move_play_position(int32_t move_by_sframes)
 {
+    RESTRICT_NOT_DSP("timeline_move_play_position");
+    RESTRICT_NOT_MAIN("timeline_move_play_position");
+    
     Timeline *tl = proj->timelines[proj->active_tl_index];
     tl->play_pos_sframes += move_by_sframes;
     clock_gettime(CLOCK_MONOTONIC, &tl->play_pos_moved_at);
@@ -260,7 +272,6 @@ void timeline_move_play_position(int32_t move_by_sframes)
     tl->needs_redraw = true;
 
     tempo_track_bar_beat_subdiv(tl->tempo_tracks[0], tl->play_pos_sframes);
-    /* timeline_set_timecode(); */
 }
 
 

@@ -561,7 +561,7 @@ void loop_project_main()
 	    }
 		
 	} /* End event handling */
-
+	
 	wheel_event_recency++;
 	if (wheel_event_recency == INT_MAX)
 	    wheel_event_recency = 0;

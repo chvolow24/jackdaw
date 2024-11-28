@@ -50,6 +50,7 @@ extern Project *proj;
 extern SDL_Color color_global_red;
 extern SDL_Color color_global_play_green;
 extern SDL_Color color_global_quickref_button_blue;
+extern pthread_t DSP_THREAD_ID;
 
 void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type);
 void transport_record_callback(void* user_data, uint8_t *stream, int len)
@@ -199,7 +200,8 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 
 static void *transport_dsp_thread_fn(void *arg)
 {
-    /* fprintf(stdout, "\t\tSTART dsp thread\n"); */
+    DSP_THREAD_ID = pthread_self();
+    
     Timeline *tl = (Timeline *)arg;
     
     if (pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL) != 0) {

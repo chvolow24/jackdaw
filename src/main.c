@@ -32,6 +32,7 @@
  *****************************************************************************************************************/
 
 /* #include <sys/param.h> */
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -76,6 +77,8 @@ volatile bool CANCEL_THREADS = false;
 
 Window *main_win;
 Project *proj = NULL;
+pthread_t MAIN_THREAD_ID;
+pthread_t DSP_THREAD_ID;
 /* char *saved_proj_path = NULL; */
 
 static void get_native_byte_order()
@@ -109,6 +112,7 @@ static void init_SDL()
 void tempo_segment_set_config(int bpm, int num_beats, ...);
 static void init()
 {
+    MAIN_THREAD_ID = pthread_self();
     init_SDL();
     get_native_byte_order();
     input_init_hash_table();

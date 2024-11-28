@@ -76,7 +76,8 @@ static int quit_no_action(void *self, void *xarg)
 {
     proj->quit_count = 0;
     /* user_modal_dismiss(NULL); */
-    window_pop_modal(main_win);
+    if (main_win->num_modals > 0)
+	window_pop_modal(main_win);
     Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;
 

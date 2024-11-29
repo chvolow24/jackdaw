@@ -199,7 +199,7 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
     /* bool clip_read = false; */
 
     float total_amp = 0.0f;
-    for (uint8_t i=0; i<track->num_clips; i++) {
+    for (uint16_t i=0; i<track->num_clips; i++) {
 	ClipRef *cr = track->clips[i];
 	if (!cr) {
 	    continue;

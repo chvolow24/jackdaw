@@ -91,7 +91,7 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
 	int32_t tl_pos_now = pb_cb_tick.timeline_pos + (int32_t)(elapsed_pb_chunk_ms * proj->sample_rate / 1000.0f);
 	int32_t tl_pos_rec_chunk = tl_pos_now - (record_latency_ms * proj->sample_rate / 1000);
 	
-	for (uint8_t i=0; i<conn->current_clip->num_refs; i++) {
+	for (uint16_t i=0; i<conn->current_clip->num_refs; i++) {
 	    ClipRef *cr = conn->current_clip->refs[i];
 	    cr->pos_sframes = tl_pos_rec_chunk;
 	}
@@ -612,7 +612,7 @@ void transport_stop_recording()
     uint8_t num_created = 0;
     for (uint8_t i=proj->active_clip_index; i<proj->num_clips; i++) {
 	Clip *clip = proj->clips[i];
-	for (uint8_t j=0; j<clip->num_refs; j++) {
+	for (uint16_t j=0; j<clip->num_refs; j++) {
 	    ClipRef *ref = clip->refs[j];
 	    created_clips[num_created] = ref;
 	    num_created++;
@@ -725,7 +725,7 @@ void transport_goto_mark(Timeline *tl, bool in)
 void transport_recording_update_cliprects()
 {
     /* fprintf(stdout, "update clip rects...\n"); */
-    for (uint8_t i=proj->active_clip_index; i<proj->num_clips; i++) {
+    for (int i=proj->active_clip_index; i<proj->num_clips; i++) {
 	/* fprintf(stdout, "updating %d/%d\n", i, proj->num_clips); */
 	Clip *clip = proj->clips[i];
 
@@ -741,7 +741,7 @@ void transport_recording_update_cliprects()
 	    break;
 	}
 
-	for (uint8_t j=0; j<clip->num_refs; j++) {
+	for (uint16_t j=0; j<clip->num_refs; j++) {
 	    ClipRef *cr = clip->refs[j];
 	    cr->out_mark_sframes = clip->len_sframes;
 	    clipref_reset(cr, false);

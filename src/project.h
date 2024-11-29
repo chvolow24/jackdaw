@@ -59,10 +59,10 @@
 
 #define MAX_TRACKS 255
 #define MAX_NAMELENGTH 64
-#define MAX_TRACK_CLIPS 255
+#define MAX_TRACK_CLIPS 2048
 #define MAX_ACTIVE_CLIPS 255
 #define MAX_ACTIVE_TRACKS 255
-#define MAX_CLIP_REFS 255
+#define MAX_CLIP_REFS 2048
 #define MAX_CLIPBOARD_CLIPS 255
 #define MAX_PROJ_TIMELINES 255
 #define MAX_PROJ_AUDIO_CONNS 255
@@ -102,7 +102,7 @@ typedef struct track {
     uint8_t tl_rank;
 
     ClipRef *clips[MAX_TRACK_CLIPS];
-    uint8_t num_clips;
+    uint16_t num_clips;
     /* uint8_t num_grabbed_clips; */
 
     uint8_t num_takes;
@@ -179,6 +179,7 @@ typedef struct clip_ref {
     Textbox *label;
 
     SDL_Texture *waveform_texture;
+    pthread_mutex_t waveform_texture_lock;
     bool waveform_redraw;
 } ClipRef;
     
@@ -188,7 +189,7 @@ typedef struct clip {
     uint8_t channels;
     uint32_t len_sframes;
     ClipRef *refs[MAX_CLIP_REFS];
-    uint8_t num_refs;
+    uint16_t num_refs;
     float *L;
     float *R;
     uint32_t write_bufpos_sframes;

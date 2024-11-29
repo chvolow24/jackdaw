@@ -162,7 +162,6 @@ extern Symbol *SYMBOL_TABLE[];
 /*     /\* } *\/ */
 /* } */
 
-
 static void clipref_draw_waveform(ClipRef *cr)
 {
     if (cr->waveform_redraw && cr->waveform_texture) {
@@ -294,7 +293,7 @@ static void track_draw(Track *track)
     SDL_RenderFillRect(main_win->rend, &track->inner_layout->rect);
 
     /* SDL_RenderSetClipRect(main_win->rend, &tl->layout->rect); */
-    for (uint8_t i=0; i<track->num_clips; i++) {
+    for (uint16_t i=0; i<track->num_clips; i++) {
 	clipref_draw(track->clips[i]);
     }
     /* Left mask */

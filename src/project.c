@@ -302,6 +302,10 @@ void project_destroy(Project *proj)
 
     user_event_history_destroy(&proj->history);
     /* fprintf(stdout, "PROJECT_DESTROY num tracks: %d\n", proj->timelines[0]->num_tracks); */
+    for (uint8_t i=0; i<proj->num_clips; i++) {
+	clip_destroy_no_displace(proj->clips[i]);
+    }
+
     for (uint8_t i=0; i<proj->num_timelines; i++) {
 	timeline_destroy(proj->timelines[i], false);
     }
@@ -313,9 +317,6 @@ void project_destroy(Project *proj)
 	audioconn_destroy(proj->playback_conns[i]);
     }
 
-    for (uint8_t i=0; i<proj->num_clips; i++) {
-	clip_destroy_no_displace(proj->clips[i]);
-    }
     free(proj->output_L);
     free(proj->output_R);
     free(proj->output_L_freq);

@@ -1183,6 +1183,7 @@ static NEW_EVENT_FN(dispose_track_delete, "")
 
 void user_tl_track_delete(void *nullarg)
 {
+    if (proj->recording) transport_stop_recording();
     Timeline *tl = ACTIVE_TL;
     if (tl->num_tracks == 0) {
 	status_set_errstr("Error: no track to delete");
@@ -1360,7 +1361,7 @@ void user_tl_record(void *nullarg)
     } else {
 	transport_start_recording();
     }
-    tl->needs_redraw = true;
+    /* tl->needs_redraw = true; */
 }
 
 void user_tl_clipref_grab_ungrab()
@@ -1908,6 +1909,7 @@ void DEPRECATED_user_tl_cliprefs_destroy(void *nullarg)
 
 void user_tl_delete_generic(void *nullarg)
 {
+    if (proj->recording) transport_stop_recording();
     Timeline *tl = ACTIVE_TL;
     Track *t;
     if ((t = ACTIVE_TRACK(tl)) && TRACK_AUTO_SELECTED(t)) {

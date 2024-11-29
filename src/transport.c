@@ -606,27 +606,30 @@ static NEW_EVENT_FN(dispose_forward_record_new_clips, "")
 
 void transport_stop_recording()
 {
-    	ClipRef **created_clips = calloc(proj->num_clips - proj->active_clip_index, sizeof(ClipRef *));
-	uint8_t num_created = 0;
-	for (uint8_t i=proj->active_clip_index; i<proj->num_clips; i++) {
-	    Clip *clip = proj->clips[i];
-	    for (uint8_t j=0; j<clip->num_refs; j++) {
-		ClipRef *ref = clip->refs[j];
-		created_clips[num_created] = ref;
-		num_created++;
-	    }
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    tl->needs_redraw = true;
+    ClipRef **created_clips = calloc(tl->num_tracks, sizeof(ClipRef *));
+    uint8_t num_created = 0;
+    for (uint8_t i=proj->active_clip_index; i<proj->num_clips; i++) {
+	Clip *clip = proj->clips[i];
+	for (uint8_t j=0; j<clip->num_refs; j++) {
+	    ClipRef *ref = clip->refs[j];
+	    created_clips[num_created] = ref;
+	    num_created++;
 	}
-	Value num_created_v = {.uint8_v = num_created};
-	user_event_push(
-	    &proj->history,
-	    undo_record_new_clips,
-	    redo_record_new_clips,
-	    NULL,
-	    dispose_forward_record_new_clips,
-	    (void *)created_clips,
-	    NULL,
-	    num_created_v,num_created_v,num_created_v,num_created_v,
-	    0, 0, true, false);
+    }
+    created_clips = realloc(created_clips, num_created * sizeof(ClipRef *));
+    Value num_created_v = {.uint8_v = num_created};
+    user_event_push(
+	&proj->history,
+	undo_record_new_clips,
+	redo_record_new_clips,
+	NULL,
+	dispose_forward_record_new_clips,
+	(void *)created_clips,
+	NULL,
+	num_created_v,num_created_v,num_created_v,num_created_v,
+	0, 0, true, false);
 	    
 	    
 

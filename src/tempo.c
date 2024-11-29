@@ -367,9 +367,23 @@ void tempo_track_draw(TempoTrack *tt)
     }
     /* SDL_RenderDrawLine(main_win->rend, x, top_y, x, bttm_y); */
 
+    /* const int draw_subdiv_thresh = 2; */
+    /* const int draw_beat_thresh = 1; */
+    /* bool draw_subdivs = true; */
+    /* bool draw_beats = true; */
     while (x > 0 && x < main_win->w_pix) {
 	tempo_track_get_next_pos(tt, false, 0, &pos, &bp);
+	/* int prev_x = x; */
 	x = timeline_get_draw_x(pos);
+	/* int x_diff; */
+	/* if (draw_beats && (x_diff = x - prev_x) <= draw_beat_thresh) { */
+	/*     draw_beats = false; */
+	/*     draw_subdivs = false; */
+	/* } else if (draw_subdivs && x_diff <= draw_subdiv_thresh) { */
+	/*     draw_subdivs = false; */
+	/* } */
+	/* if (!draw_subdivs && (bp >= BP_SUBDIV)) continue; */
+	/* if (!draw_beats && (bp >= BP_BEAT)) continue; */
 	top_y = main_top_y + h * (int)bp / 5;
 	/* top_y = main_top_y + h / (1 + (int)bp); */
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(line_colors[(int)bp]));

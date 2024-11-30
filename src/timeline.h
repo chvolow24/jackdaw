@@ -38,21 +38,22 @@
 #define SFPP_STEP 1.2 // Sample Frames Per Pixel
 #define CATCHUP_STEP (600 * scale_factor)
 
-int32_t timeline_get_abspos_sframes(int draw_x);
-int timeline_get_draw_x(int32_t abs_x);
-int timeline_get_draw_w(int32_t abs_w);
-int32_t timeline_get_abs_w_sframes(int draw_w);
-void timeline_scroll_horiz(int scroll_by);
-float timeline_get_leftmost_seconds();
-float timeline_get_second_w();
-float timeline_first_second_tick_x(int *first_second);
-void timeline_rescale(double sfpp_scale_factor, bool on_mouse);
-void timeline_set_play_position(int32_t abs_pos_sframes);
-void timeline_move_play_position(int32_t move_by_sframes);
+typedef struct timeline Timeline;
+int32_t timeline_get_abspos_sframes(Timeline *tl, int draw_x);
+int timeline_get_draw_x(Timeline *tl, int32_t abs_x);
+int timeline_get_draw_w(Timeline *tl, int32_t abs_w);
+int32_t timeline_get_abs_w_sframes(Timeline *tl, int draw_w);
+void timeline_scroll_horiz(Timeline *tl, int scroll_by);
+float timeline_get_leftmost_seconds(Timeline *tl);
+float timeline_get_second_w(Timeline *tl);
+float timeline_first_second_tick_x(Timeline *tl, int *first_second);
+void timeline_rescale(Timeline *tl, double sfpp_scale_factor, bool on_mouse);
+void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes);
+void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes);
 
-void timeline_set_timecode();
-void timeline_catchup();
+void timeline_set_timecode(Timeline *tl);
+void timeline_catchup(Timeline *tl);
 
-void timecode_str_at(char *dst, size_t dstsize, int32_t pos);
+void timecode_str_at(Timeline *tl, char *dst, size_t dstsize, int32_t pos);
 
 #endif

@@ -193,7 +193,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	tl->needs_redraw = true;
 
     } else {
-	timeline_move_play_position(proj->play_speed * stream_len_samples / proj->channels);
+	timeline_move_play_position(tl, proj->play_speed * stream_len_samples / proj->channels);
     }
 }
 
@@ -716,9 +716,9 @@ void transport_set_mark_to(Timeline *tl, int32_t pos, bool in)
 void transport_goto_mark(Timeline *tl, bool in)
 {
     if (in) {
-	timeline_set_play_position(tl->in_mark_sframes);
+	timeline_set_play_position(tl, tl->in_mark_sframes);
     } else {
-	timeline_set_play_position(tl->out_mark_sframes);
+	timeline_set_play_position(tl, tl->out_mark_sframes);
     }
 }
 

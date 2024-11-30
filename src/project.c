@@ -1602,11 +1602,11 @@ int32_t clip_ref_len(ClipRef *cr)
 void clipref_reset(ClipRef *cr, bool rescaled)
 {
 
-    cr->layout->rect.x = timeline_get_draw_x(cr->pos_sframes);
+    cr->layout->rect.x = timeline_get_draw_x(cr->track->tl, cr->pos_sframes);
     uint32_t cr_len = cr->in_mark_sframes >= cr->out_mark_sframes
 	? cr->clip->len_sframes
 	: cr->out_mark_sframes - cr->in_mark_sframes;
-    cr->layout->rect.w = timeline_get_draw_w(cr_len);
+    cr->layout->rect.w = timeline_get_draw_w(cr->track->tl, cr_len);
     cr->layout->rect.y = cr->track->inner_layout->rect.y + CR_RECT_V_PAD;
     cr->layout->rect.h = cr->track->inner_layout->rect.h - 2 * CR_RECT_V_PAD;
     layout_set_values_from_rect(cr->layout);
@@ -3004,7 +3004,7 @@ void timeline_play_speed_set(double new_speed)
     
     /* If speed crosses the zero line, need to invalidate direction-dependent caches */
     if (proj->play_speed * old_speed < 0.0) {
-	timeline_set_play_position(tl->play_pos_sframes);
+	timeline_set_play_position(tl, tl->play_pos_sframes);
     }
     
     status_stat_playspeed();

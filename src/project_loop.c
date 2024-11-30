@@ -424,10 +424,10 @@ void loop_project_main()
 			if (SDL_PointInRect(&main_win->mousep, proj->audio_rect)) {
 			    if (main_win->i_state & I_STATE_CMDCTRL) {
 				double scale_factor = pow(SFPP_STEP, e.wheel.y);
-				timeline_rescale(scale_factor, true);
+				timeline_rescale(tl, scale_factor, true);
 				allow_scroll = false;
 			    } else if (fabs(scroll_x) > fabs(scroll_y)) {
-				timeline_scroll_horiz(TL_SCROLL_STEP_H * e.wheel.x);
+				timeline_scroll_horiz(tl, TL_SCROLL_STEP_H * e.wheel.x);
 			    } else if (allow_scroll) {
 				temp_scrolling_lt = tl->track_area;
 				layout_scroll(tl->track_area, 0, scroll_y, fingersdown);
@@ -566,6 +566,8 @@ void loop_project_main()
 		
 	} /* End event handling */
 
+
+	Timeline *tl = proj->timelines[proj->active_tl_index];
 	wheel_event_recency++;
 	if (wheel_event_recency == INT_MAX)
 	    wheel_event_recency = 0;
@@ -579,14 +581,14 @@ void loop_project_main()
 		    /* scrolling_lt->iterator->scroll_momentum = 0; */
 		    scrolling_lt = NULL;
 		}
-		timeline_reset(proj->timelines[proj->active_tl_index], false);
+		timeline_reset(tl, false);
 	    }
 	}
 	
 	first_frame = false;
 	if (proj->play_speed != 0 && !proj->source_mode) {
-	    timeline_catchup();
-	    timeline_set_timecode();
+	    timeline_catchup(tl);
+	    timeline_set_timecode(tl);
 	}
 
 	if (animate_step == 255) {
@@ -626,7 +628,7 @@ void loop_project_main()
 	/**********************/
 
 	if (proj->playing) {
-	    Timeline *tl = proj->timelines[proj->active_tl_index];
+	    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
 	    struct timespec now;
 	    clock_gettime(CLOCK_MONOTONIC, &now);
 	    double elapsed_s = now.tv_sec + ((double)now.tv_nsec / 1e9) - tl->play_pos_moved_at.tv_sec - ((double)tl->play_pos_moved_at.tv_nsec / 1e9);

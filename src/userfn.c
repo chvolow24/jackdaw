@@ -673,42 +673,42 @@ void user_tl_rewind_slow(void *nullarg)
 void user_tl_nudge_left(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    timeline_set_play_position(tl->play_pos_sframes - 500);
+    timeline_set_play_position(tl, tl->play_pos_sframes - 500);
 }
 
 void user_tl_nudge_right(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    timeline_set_play_position(tl->play_pos_sframes + 500);
+    timeline_set_play_position(tl, tl->play_pos_sframes + 500);
 }
 
 void user_tl_small_nudge_left(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    timeline_set_play_position(tl->play_pos_sframes - 100);
+    timeline_set_play_position(tl, tl->play_pos_sframes - 100);
 }
 
 void user_tl_small_nudge_right(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    timeline_set_play_position(tl->play_pos_sframes + 100);
+    timeline_set_play_position(tl, tl->play_pos_sframes + 100);
 }
 
 void user_tl_one_sample_left(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    timeline_set_play_position(tl->play_pos_sframes - 1);
+    timeline_set_play_position(tl, tl->play_pos_sframes - 1);
 }
 
 void user_tl_one_sample_right(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    timeline_set_play_position(tl->play_pos_sframes + 1);
+    timeline_set_play_position(tl, tl->play_pos_sframes + 1);
 }
 
 void user_tl_move_right(void *nullarg)
 {
-    timeline_scroll_horiz(TL_DEFAULT_XSCROLL);
+    timeline_scroll_horiz(ACTIVE_TL, TL_DEFAULT_XSCROLL);
     PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_right");
     Button *btn = (Button *)el->component;
     button_press_color_change(
@@ -721,7 +721,7 @@ void user_tl_move_right(void *nullarg)
 
 void user_tl_move_left(void *nullarg)
 {
-    timeline_scroll_horiz(TL_DEFAULT_XSCROLL * -1);
+    timeline_scroll_horiz(ACTIVE_TL, TL_DEFAULT_XSCROLL * -1);
     PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_left");
     Button *btn = (Button *)el->component;
     button_press_color_change(
@@ -734,7 +734,7 @@ void user_tl_move_left(void *nullarg)
 
 void user_tl_zoom_in(void *nullarg)
 {
-    timeline_rescale(1.2, false);
+    timeline_rescale(ACTIVE_TL, 1.2, false);
     PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_zoom_in");
     Button *btn = (Button *)el->component;
     button_press_color_change(
@@ -747,7 +747,7 @@ void user_tl_zoom_in(void *nullarg)
 
 void user_tl_zoom_out(void *nullarg)
 {
-    timeline_rescale(0.8, false);
+    timeline_rescale(ACTIVE_TL, 0.8, false);
 
     PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_zoom_out");
     Button *btn = (Button *)el->component;
@@ -825,7 +825,7 @@ void user_tl_goto_mark_in(void *nullarg)
 void user_tl_goto_zero(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    timeline_set_play_position(0);
+    timeline_set_play_position(tl, 0);
     tl->display_offset_sframes = 0;
     timeline_reset(tl, false);
 }
@@ -835,7 +835,7 @@ void user_tl_goto_clip_start(void *nullarg)
     Timeline *tl = ACTIVE_TL;
     ClipRef *cr = clipref_at_cursor();
     if (cr) {
-	timeline_set_play_position(cr->pos_sframes);
+	timeline_set_play_position(tl, cr->pos_sframes);
 	timeline_reset(tl, false);
     }
 }
@@ -844,7 +844,7 @@ void user_tl_goto_clip_end(void *nullarg)
     Timeline *tl = ACTIVE_TL;
     ClipRef *cr = clipref_at_cursor();
     if (cr) {
-	timeline_set_play_position(cr->pos_sframes + clip_ref_len(cr));
+	timeline_set_play_position(tl, cr->pos_sframes + clip_ref_len(cr));
 	timeline_reset(tl, false);
     }
 }
@@ -869,7 +869,7 @@ void user_tl_add_track(void *nullarg)
 	fprintf(stderr, "Error: user call to add track w/o global project\n");
 	exit(1);
     }
-    Timeline *tl = ACTIVE_TL; // TODO: get active timeline;
+    Timeline *tl = ACTIVE_TL;
     Track *track = timeline_add_track(tl);
     
     PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_add_track");

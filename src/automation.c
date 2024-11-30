@@ -337,7 +337,7 @@ Automation *track_add_automation(Track *track, AutomationType type)
     Value nullval;
     memset(&nullval, '\0', sizeof(Value));
     user_event_push(
-	&proj->history,
+	&track->tl->proj->history,
 	undo_add_automation,
 	redo_add_automation,
 	NULL, NULL,
@@ -640,7 +640,7 @@ static void keyframe_move(Keyframe *k, int32_t new_pos, Value new_value)
 	keyframe_recalculate_m(a, k - 1 - a->keyframes);
     }
     keyframe_set_y_prop(a, k - a->keyframes);
-    k->draw_x = timeline_get_draw_x(new_pos);
+    k->draw_x = timeline_get_draw_x(a->track->tl, new_pos);
     a->track->tl->needs_redraw = true;
 }
 
@@ -751,7 +751,7 @@ Keyframe *automation_insert_keyframe_at(
     inserted->automation = a;
     inserted->value = val;
     inserted->pos = pos;
-    inserted->draw_x = timeline_get_draw_x(pos);
+    inserted->draw_x = timeline_get_draw_x(a->track->tl, pos);
     a->num_keyframes++;
     keyframe_set_y_prop(a, insert_i);
     keyframe_recalculate_m(a, insert_i);
@@ -1222,7 +1222,7 @@ void automation_reset_keyframe_x(Automation *a)
     /* 	k = k->next; */
     /* } */
     for (uint16_t i=0; i<a->num_keyframes; i++) {
-	a->keyframes[i].draw_x = timeline_get_draw_x(a->keyframes[i].pos);
+	a->keyframes[i].draw_x = timeline_get_draw_x(a->track->tl, a->keyframes[i].pos);
     }
 }
 
@@ -1360,9 +1360,9 @@ static void automation_editing(Automation *a, Keyframe *k, int x, int y)
 static void keyframe_move_coords(Keyframe *k, int x, int y)
 {
     /* fprintf(stdout, "MOVE to %d, %d\n", x, y); */
-    int32_t abs_pos = timeline_get_abspos_sframes(x);
     /* Keyframe *k = a->keyframes + i; */
     Automation *a = k->automation;
+    int32_t abs_pos = timeline_get_abspos_sframes(a->track->tl, x);
     uint16_t i = k - a->keyframes;
     
     Keyframe *prev = NULL;
@@ -1437,7 +1437,7 @@ bool automations_triage_motion(Timeline *tl, int xrel, int yrel)
 	if (main_win->i_state & I_STATE_MOUSE_L) {
 	    if (main_win->i_state & I_STATE_SHIFT && !(main_win->i_state & I_STATE_CMDCTRL)) {
 		if (k > a->keyframes) {
-		    keyframe_move(k, timeline_get_abspos_sframes(main_win->mousep.x), (k-1)->value);
+		    keyframe_move(k, timeline_get_abspos_sframes(a->track->tl, main_win->mousep.x), (k-1)->value);
 		}
 	    } else if (main_win->i_state & I_STATE_SHIFT && main_win->i_state & I_STATE_CMDCTRL) {
 	        if (k > a->keyframes) {
@@ -1607,7 +1607,7 @@ bool automation_triage_click(uint8_t button, Automation *a)
 	}
 	if (SDL_PointInRect(&main_win->mousep, a->bckgrnd_rect)) {
 	    /* if (main_win->i_state & I_STATE_CMDCTRL) { */
-	    int32_t clicked_pos_sframes = timeline_get_abspos_sframes(main_win->mousep.x);
+	    int32_t clicked_pos_sframes = timeline_get_abspos_sframes(a->track->tl, main_win->mousep.x);
 	    /* uint16_t insertion_i = automation_get_segment(a, clicked_pos_sframes); */
 	    Keyframe *insertion = automation_get_segment(a, clicked_pos_sframes);
 	    Keyframe *next = NULL;

@@ -372,8 +372,8 @@ static void ruler_draw(Timeline *tl)
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_white));
 
     int second;
-    float x = tl->proj->ruler_rect->x + timeline_first_second_tick_x(&second);
-    float sw = timeline_get_second_w();
+    float x = tl->proj->ruler_rect->x + timeline_first_second_tick_x(tl, &second);
+    float sw = timeline_get_second_w(tl);
     int line_len;
     while (x < proj->audio_rect->x + proj->audio_rect->w) {
     /* while (x < tl->layout->rect.x + tl->layout->rect.w) { */
@@ -438,7 +438,7 @@ static int timeline_draw(Timeline *tl)
     /* Draw t=0 */
     if (tl->display_offset_sframes < 0) {
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
-        int zero_x = timeline_get_draw_x(0);
+        int zero_x = timeline_get_draw_x(tl, 0);
         SDL_RenderDrawLine(main_win->rend, zero_x, proj->audio_rect->y, zero_x, proj->audio_rect->y + proj->audio_rect->h);
     }
 
@@ -448,7 +448,7 @@ static int timeline_draw(Timeline *tl)
     int ph_y = tl->proj->ruler_rect->y + PLAYHEAD_TRI_H;
     /* int tri_y = tl->proj->ruler_rect->y; */
     if (tl->play_pos_sframes >= tl->display_offset_sframes) {
-        int play_head_x = timeline_get_draw_x(tl->play_pos_sframes);
+        int play_head_x = timeline_get_draw_x(tl, tl->play_pos_sframes);
         SDL_RenderDrawLine(main_win->rend, play_head_x, ph_y, play_head_x, tl->proj->audio_rect->y + tl->proj->audio_rect->h);
 
         /* Draw play head triangle */
@@ -466,8 +466,8 @@ static int timeline_draw(Timeline *tl)
     /* draw mark in */
     int in_x, out_x = -1;
 
-    if (tl->in_mark_sframes >= tl->display_offset_sframes && tl->in_mark_sframes < tl->display_offset_sframes + timeline_get_abs_w_sframes(proj->audio_rect->w)) {
-        in_x = timeline_get_draw_x(tl->in_mark_sframes);
+    if (tl->in_mark_sframes >= tl->display_offset_sframes && tl->in_mark_sframes < tl->display_offset_sframes + timeline_get_abs_w_sframes(tl, proj->audio_rect->w)) {
+        in_x = timeline_get_draw_x(tl, tl->in_mark_sframes);
         int i_tri_x2 = in_x;
 	ph_y = tl->proj->ruler_rect->y + PLAYHEAD_TRI_H;
         /* ph_y = tl->layout->rect.y; */
@@ -483,8 +483,8 @@ static int timeline_draw(Timeline *tl)
     }
 
     /* draw mark out */
-    if (tl->out_mark_sframes > tl->display_offset_sframes && tl->out_mark_sframes < tl->display_offset_sframes + timeline_get_abs_w_sframes(proj->audio_rect->w)) {
-        out_x = timeline_get_draw_x(tl->out_mark_sframes);
+    if (tl->out_mark_sframes > tl->display_offset_sframes && tl->out_mark_sframes < tl->display_offset_sframes + timeline_get_abs_w_sframes(tl, proj->audio_rect->w)) {
+        out_x = timeline_get_draw_x(tl, tl->out_mark_sframes);
         int o_tri_x1 = out_x;
 	ph_y =  tl->proj->ruler_rect->y + PLAYHEAD_TRI_H;
         for (int i=0; i<PLAYHEAD_TRI_H; i++) {
@@ -492,7 +492,7 @@ static int timeline_draw(Timeline *tl)
             ph_y -= 1;
             o_tri_x1 -= 1;
         }
-    } else if (tl->out_mark_sframes > tl->display_offset_sframes + timeline_get_abs_w_sframes(proj->audio_rect->w)) {
+    } else if (tl->out_mark_sframes > tl->display_offset_sframes + timeline_get_abs_w_sframes(tl, proj->audio_rect->w)) {
         out_x = proj->audio_rect->x + proj->audio_rect->w;
     }
 

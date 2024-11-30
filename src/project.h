@@ -66,7 +66,7 @@
 #define MAX_CLIPBOARD_CLIPS 255
 #define MAX_PROJ_TIMELINES 255
 #define MAX_PROJ_AUDIO_CONNS 255
-#define MAX_PROJ_CLIPS 512
+#define MAX_PROJ_CLIPS 2048
 #define MAX_GRABBED_CLIPS 255
 #define MAX_STATUS_STRLEN 255
 #define MAX_TRACK_FILTERS 4
@@ -105,7 +105,7 @@ typedef struct track {
     uint16_t num_clips;
     /* uint8_t num_grabbed_clips; */
 
-    uint8_t num_takes;
+    uint16_t num_takes;
 
     AudioConn *input;
     AudioConn *output;

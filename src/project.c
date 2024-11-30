@@ -1708,6 +1708,13 @@ static void track_reset(Track *track, bool rescaled)
 
 ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sframes, bool home)
 {
+
+    if (track->num_clips == MAX_TRACK_CLIPS) {
+	char errstr[MAX_STATUS_STRLEN];
+	snprintf(errstr, MAX_STATUS_STRLEN, "Track cannot have more than %d tracks", MAX_TRACK_CLIPS);
+	status_set_errstr(errstr);
+	return NULL;
+    }
     /* fprintf(stdout, "track %s create clipref\n", track->name); */
     ClipRef *cr = calloc(1, sizeof(ClipRef));
     cr->layout = layout_add_child(track->inner_layout);
@@ -1758,24 +1765,14 @@ void timeline_reset_full(Timeline *tl)
     }
 }
 
-clock_t c;
-double ttime;
-extern double wav_draw_time;
 void timeline_reset(Timeline *tl, bool rescaled)
 {
     layout_reset(tl->layout);
-    ttime = 0.0;
     for (int i=0; i<tl->num_tracks; i++) {
-	c = clock();
 	track_reset(tl->tracks[i], rescaled);
-	ttime += ((double)clock() - c) / CLOCKS_PER_SEC;
     }
-    fprintf(stderr, "TTIME: %fms\n", ttime * 1000);
-    fprintf(stderr, "WTIME: %fms\n", wav_draw_time * 1000);
-    /* fprintf(stdout, "TL reset\n"); */
     layout_reset(tl->layout);
     tl->needs_redraw = true;
-    wav_draw_time = 0.0;
 }
 
 void track_increment_vol(Track *track)
@@ -2329,7 +2326,7 @@ void clipref_destroy_no_displace(ClipRef *cr)
     clipref_check_and_remove_from_clipboard(cr);
     /* fprintf(stdout, "Clipref destroy no displace %s\n", cr->name); */
     bool displace = false;
-    for (uint8_t i=0; i<cr->clip->num_refs; i++) {
+    for (uint16_t i=0; i<cr->clip->num_refs; i++) {
 	ClipRef *test = cr->clip->refs[i];
 	if (test == cr) displace = true;
 	else if (displace) {
@@ -2752,6 +2749,9 @@ static NEW_EVENT_FN(cut_clip_dispose_forward, "")
 static ClipRef *clipref_cut(ClipRef *cr, int32_t cut_pos_rel)
 {
     ClipRef *new = track_create_clip_ref(cr->track, cr->clip, cr->pos_sframes + cut_pos_rel, false);
+    if (!new) {
+	return NULL;
+    }
     new->in_mark_sframes = cr->in_mark_sframes + cut_pos_rel;
     new->out_mark_sframes = cr->out_mark_sframes == 0 ? clipref_len(cr) : cr->out_mark_sframes;
     Value orig_end_pos = {.int32_v = cr->out_mark_sframes};

@@ -259,7 +259,7 @@ static void *transport_dsp_thread_fn(void *arg)
 	memcpy(proj->output_L, buf_L, sizeof(float) * len);
 	memcpy(proj->output_R, buf_R, sizeof(float) * len);
 
-	for (uint8_t i=proj->active_clip_index; i<proj->num_clips; i++) {
+	for (uint16_t i=proj->active_clip_index; i<proj->num_clips; i++) {
 	    Clip *clip = proj->clips[i];
 	    AudioConn *conn = clip->recorded_from;
 	    if (conn->type == JACKDAW) {
@@ -610,7 +610,7 @@ void transport_stop_recording()
     tl->needs_redraw = true;
     ClipRef **created_clips = calloc(tl->num_tracks, sizeof(ClipRef *));
     uint8_t num_created = 0;
-    for (uint8_t i=proj->active_clip_index; i<proj->num_clips; i++) {
+    for (uint16_t i=proj->active_clip_index; i<proj->num_clips; i++) {
 	Clip *clip = proj->clips[i];
 	for (uint16_t j=0; j<clip->num_refs; j++) {
 	    ClipRef *ref = clip->refs[j];

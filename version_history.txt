@@ -1,0 +1,11 @@
+This is an informal document tracking jackdaw version updates. 
+
+
+v0.4.1 (Fri Nov 29 21:48:08 EST 2024)
+       - add clipref copy/paste functionality (undocumented)
+       - allow 2048 cliprefs per track
+       - allow 2048 cliprefs per clip
+       - update .jdaw filespec to version 00.14 to account for new uint_16s
+
+
+v0.4.0 (...)

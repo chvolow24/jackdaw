@@ -173,6 +173,7 @@ void wav_write_mixdown(const char *filepath)
 
 
 ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos) {
+    if (track->num_clips == MAX_TRACK_CLIPS) return NULL;
     SDL_AudioSpec wav_spec;
     uint8_t* audio_buf = NULL;
     uint32_t audio_len_bytes = 0;
@@ -271,6 +272,7 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
     src_buf = NULL;
     /* free(wav_cvt.buf); */
     ClipRef *cr = track_create_clip_ref(track, clip, start_pos, true);
+    if (!cr) return NULL;
     char *filename_modifiable = strdup(filename);
     strncpy(clip->name, path_get_tail(filename_modifiable), MAX_NAMELENGTH);
     strncpy(cr->name, path_get_tail(filename_modifiable), MAX_NAMELENGTH);

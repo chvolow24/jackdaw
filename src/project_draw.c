@@ -92,7 +92,7 @@ extern Symbol *SYMBOL_TABLE[];
 /*     SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255); */
 /*     uint8_t num_channels = cr->clip->channels; */
 /*     float *channels[num_channels]; */
-/*     uint32_t cr_len_sframes = clip_ref_len(cr); */
+/*     uint32_t cr_len_sframes = clipref_len(cr); */
 
 /*     if (!cr->clip->L) { */
 /* 	return; */
@@ -106,7 +106,7 @@ extern Symbol *SYMBOL_TABLE[];
 
     
 /*     /\* old code below *\/ */
-/*     /\* int32_t cr_len = clip_ref_len(cr); *\/ */
+/*     /\* int32_t cr_len = clipref_len(cr); *\/ */
 /*     /\* if (cr->clip->channels == 1) { *\/ */
 /*     /\*     int wav_x = cr->rect.x; *\/ */
 /*     /\*     int wav_y = cr->rect.y + cr->rect.h / 2; *\/ */
@@ -169,19 +169,19 @@ static void clipref_draw_waveform(ClipRef *cr)
 	cr->waveform_texture = NULL;
 	cr->waveform_redraw = false;
     }
-    int32_t clipref_len = clip_ref_len(cr);
+    int32_t cr_len = clipref_len(cr);
     int32_t start_pos = 0;
-    int32_t end_pos = clipref_len;
+    int32_t end_pos = cr_len;
     double sfpp = cr->track->tl->sample_frames_per_pixel;
     SDL_Rect onscreen_rect = cr->layout->rect;
     if (onscreen_rect.x > main_win->w_pix) return;
     if (onscreen_rect.x + onscreen_rect.w < 0) return;
     if (onscreen_rect.x < 0) {
 	start_pos = sfpp * -1 * onscreen_rect.x;
-	if (start_pos < 0 || start_pos > clip_ref_len(cr)) {
+	if (start_pos < 0 || start_pos > clipref_len(cr)) {
 	    return;
 	    fprintf(stderr, "ERROR: start pos is %d\n", start_pos);
-	    fprintf(stderr, "vs len: %d\n", start_pos - clipref_len);
+	    fprintf(stderr, "vs len: %d\n", start_pos - cr_len);
 	    fprintf(stderr, "Clipref: %s\n", cr->name);
 	    /* exit(1); */
 	}
@@ -190,7 +190,7 @@ static void clipref_draw_waveform(ClipRef *cr)
     }
     if (onscreen_rect.x + onscreen_rect.w > main_win->w_pix) {
 	
-	if (end_pos <= start_pos || end_pos > clipref_len) {
+	if (end_pos <= start_pos || end_pos > cr_len) {
 	    fprintf(stderr, "ERROR: end pos is %d\n", end_pos);
 	    exit(1);
 	}
@@ -218,7 +218,7 @@ static void clipref_draw_waveform(ClipRef *cr)
 	SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
 	uint8_t num_channels = cr->clip->channels;
 	float *channels[num_channels];
-	/* uint32_t cr_len_sframes = clip_ref_len(cr); */
+	/* uint32_t cr_len_sframes = clipref_len(cr); */
 	if (!cr->clip->L) {
 	    return;
 	}

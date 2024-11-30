@@ -1589,14 +1589,14 @@ Clip *project_add_clip(AudioConn *conn, Track *target)
     return clip;
 }
 
-int32_t clip_ref_len(ClipRef *cr)
-{
-    if (cr->out_mark_sframes <= cr->in_mark_sframes) {
-	return cr->clip->len_sframes;
-    } else {
-	return cr->out_mark_sframes - cr->in_mark_sframes;
-    }
-}
+/* int32_t clip_ref_len(ClipRef *cr) */
+/* { */
+/*     if (cr->out_mark_sframes <= cr->in_mark_sframes) { */
+/* 	return cr->clip->len_sframes; */
+/*     } else { */
+/* 	return cr->out_mark_sframes - cr->in_mark_sframes; */
+/*     } */
+/* } */
 
 
 void clipref_reset(ClipRef *cr, bool rescaled)
@@ -2652,7 +2652,7 @@ void timeline_delete_grabbed_cliprefs(Timeline *tl)
 }
 
 
-static int32_t clipref_len(ClipRef *cr)
+int32_t clipref_len(ClipRef *cr)
 {
     if (cr->out_mark_sframes <= cr->in_mark_sframes) {
 	return cr->clip->len_sframes;
@@ -2672,18 +2672,89 @@ ClipRef *clipref_at_cursor_in_track(Track *track)
     return NULL;
 }
 
+void clipref_bring_to_front()
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Track *track = tl->tracks[tl->track_selector];
+    if (!track) return;
+    /* bool displace = false; */
+    ClipRef *to_move = NULL;
+    for (int i=0; i<track->num_clips; i++) {
+	ClipRef *cr = track->clips[i];
+	if (!to_move && cr->pos_sframes <= tl->play_pos_sframes && cr->pos_sframes + clipref_len(cr) >= tl->play_pos_sframes) {
+	    to_move = cr;
+	} else if (to_move) {
+	    track->clips[i-1] = track->clips[i];
+	    if (i == track->num_clips - 1) {
+		track->clips[i] = to_move;
+	    }
+	}
+    }
+    tl->needs_redraw = true;
+}
+
+bool clipref_marked(Timeline *tl, ClipRef *cr)
+{
+    if (tl->in_mark_sframes >= tl->out_mark_sframes) return false;
+    int32_t cr_end = cr->pos_sframes + clipref_len(cr);
+    if (cr_end >= tl->in_mark_sframes && cr->pos_sframes <= tl->out_mark_sframes) return true;
+    return false;
+}
+
 ClipRef *clipref_at_cursor()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     Track *track = tl->tracks[tl->track_selector];
     if (!track) return NULL;
+    
+    /* Reverse iter to ensure top-most clip is returned in case of overlap */
     for (int i=track->num_clips -1; i>=0; i--) {
 	ClipRef *cr = track->clips[i];
-	if (cr->pos_sframes <= tl->play_pos_sframes && cr->pos_sframes + clipref_len (cr) >= tl->play_pos_sframes) {
+	if (cr->pos_sframes <= tl->play_pos_sframes && cr->pos_sframes + clipref_len(cr) >= tl->play_pos_sframes) {
 	    return cr;
 	}
     }
     return NULL;
+}
+
+ClipRef *clipref_before_cursor(int32_t *pos_dst)
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Track *track = tl->tracks[tl->track_selector];
+    if (!track) return NULL;
+    if (track->num_clips == 0) return NULL;
+    ClipRef *ret = NULL;
+    int32_t end = INT32_MIN;
+    for (int i=0; i<track->num_clips; i++) {
+	ClipRef *cr = track->clips[i];
+	int32_t cr_end = cr->pos_sframes + clipref_len(cr);
+	if (cr_end < tl->play_pos_sframes && cr_end >= end) {
+	    ret = cr;
+	    end = cr_end;
+	}
+    }
+    *pos_dst = end;
+    return ret;
+}
+
+ClipRef *clipref_after_cursor(int32_t *pos_dst)
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Track *track = tl->tracks[tl->track_selector];
+    if (!track) return NULL;
+    if (track->num_clips == 0) return NULL;
+    ClipRef *ret = NULL;
+    int32_t start = INT32_MAX;
+    for (int i=0; i<track->num_clips; i++) {
+	ClipRef *cr = track->clips[i];
+	int32_t cr_start = cr->pos_sframes;
+	if (cr_start > tl->play_pos_sframes && cr_start <= start) {
+	    start = cr_start;
+	    *pos_dst = cr_start;
+	    ret = cr;
+	}
+    }
+    return ret;
 }
 
 void clipref_grab(ClipRef *cr)

@@ -413,7 +413,9 @@ void timeline_reset_full(Timeline *tl);
 void timeline_reset(Timeline *tl, bool rescaled);
 Clip *project_add_clip(AudioConn *dev, Track *target);
 ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sframes, bool home);
-int32_t clip_ref_len(ClipRef *cr);
+int32_t clipref_len(ClipRef *cr);
+bool clipref_marked(Timeline *tl, ClipRef *cr);
+/* int32_t clip_ref_len(ClipRef *cr); */
 /* void clipref_reset(ClipRef *cr); */
 void clipref_reset(ClipRef *cr, bool rescaled);
 
@@ -439,6 +441,9 @@ void track_or_tracks_mute(Timeline *tl);
 
 ClipRef *clipref_at_cursor();
 ClipRef *clipref_at_cursor_in_track(Track *track);
+ClipRef *clipref_before_cursor(int32_t *pos_dst);
+ClipRef *clipref_after_cursor(int32_t *pos_dst);
+void clipref_bring_to_front();
 void timeline_ungrab_all_cliprefs(Timeline *tl);
 void clipref_grab(ClipRef *cr);
 void clipref_ungrab(ClipRef *cr);

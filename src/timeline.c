@@ -231,11 +231,17 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes)
     /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
     tl->play_pos_sframes = abs_pos_sframes;
     tl->read_pos_sframes = abs_pos_sframes;
+    int x = timeline_get_draw_x(tl, tl->play_pos_sframes);
+    SDL_Rect *audio_rect = tl->proj->audio_rect;
+    if (x < audio_rect->x || x > audio_rect->x + audio_rect->w) {
+	int diff = x - (audio_rect->x + audio_rect->w / 2);
+	tl->display_offset_sframes += timeline_get_abs_w_sframes(tl, diff);
+    }
     for (uint8_t i=0; i<tl->num_tracks; i++) {
 	track_handle_playhead_jump(tl->tracks[i]);
     }
-    timeline_set_timecode(tl);
-    tl->needs_redraw = true;
+    /* timeline_set_timecode(tl); */
+    timeline_reset(tl, false);
 }
 
 

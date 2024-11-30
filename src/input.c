@@ -498,17 +498,22 @@ static void mode_load_timeline()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
-	"tl_goto_clip_start",
-	"Go to clip start",
-	user_tl_goto_clip_start);
+	"tl_goto_previous_clip_boundary",
+	"Go to previous clip boundary",
+	user_tl_goto_previous_clip_boundary);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
-	"tl_goto_clip_end",
-	"Go to clip end",
-	user_tl_goto_clip_end);
+	"tl_goto_next_clip_boundary",
+	"Go to next clip boundary",
+	user_tl_goto_next_clip_boundary);
     mode_subcat_add_fn(sc, fn);
 
+    fn = create_user_fn(
+	"tl_bring_rear_clip_to_front",
+	"Bring rear clip at cursor to front",
+	user_tl_bring_rear_clip_to_front);
+    mode_subcat_add_fn(sc, fn);
 
     /* Audio output */
 
@@ -692,6 +697,12 @@ static void mode_load_timeline()
 	"tl_grab_clips_at_cursor",
 	"Grab clip at cursor",
 	user_tl_clipref_grab_ungrab);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_grab_marked_range",
+	"Grab clips in marked range",
+	user_tl_grab_marked_range);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(

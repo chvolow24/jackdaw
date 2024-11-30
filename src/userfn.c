@@ -830,23 +830,52 @@ void user_tl_goto_zero(void *nullarg)
     timeline_reset(tl, false);
 }
 
-void user_tl_goto_clip_start(void *nullarg)
+void user_tl_goto_previous_clip_boundary(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
     ClipRef *cr = clipref_at_cursor();
+    int32_t pos;
     if (cr) {
+	if (cr->pos_sframes == tl->play_pos_sframes) {
+	    goto goto_previous_clip;
+	}
 	timeline_set_play_position(tl, cr->pos_sframes);
 	timeline_reset(tl, false);
+    } else {
+    goto_previous_clip:
+	if (clipref_before_cursor(&pos)) {
+	    timeline_set_play_position(tl, pos);
+	    timeline_reset(tl, false);
+	} else {
+	    status_set_errstr("No previous clip on selected track");
+	}	
     }
 }
-void user_tl_goto_clip_end(void *nullarg)
+void user_tl_goto_next_clip_boundary(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
     ClipRef *cr = clipref_at_cursor();
+    int32_t pos;
     if (cr) {
-	timeline_set_play_position(tl, cr->pos_sframes + clip_ref_len(cr));
+	if (cr->pos_sframes + clipref_len(cr) == tl->play_pos_sframes) {
+	    goto goto_next_clip;
+	}
+	timeline_set_play_position(tl, cr->pos_sframes + clipref_len(cr));
 	timeline_reset(tl, false);
+    } else {
+    goto_next_clip:
+	if (clipref_after_cursor(&pos)) {
+	    timeline_set_play_position(tl, pos);
+	    timeline_reset(tl, false);
+	} else {
+	    status_set_errstr("No subsequent clip on selected track");
+	}
     }
+}
+
+void user_tl_bring_rear_clip_to_front(void *nullarg)
+{
+    clipref_bring_to_front();
 }
 
 void user_tl_set_default_out(void *nullarg) {
@@ -1464,6 +1493,33 @@ void user_tl_clipref_grab_ungrab()
     /* tl->needs_redraw = true; */
 }
 
+void user_tl_grab_marked_range(void *nullarg)
+{
+    Timeline *tl = ACTIVE_TL;
+    bool had_active_track = false;
+    for (uint8_t i=0; i<tl->num_tracks; i++) {
+	Track *t = tl->tracks[i];
+	if (t->active) {
+	    had_active_track = true;
+	    for (int i=0; i<t->num_clips; i++) {
+		ClipRef *cr = t->clips[i];
+		if (clipref_marked(tl, cr)) {
+		    clipref_grab(cr);
+		}
+	    }
+	}
+    }
+    if (!had_active_track) {
+	Track *t = ACTIVE_TRACK(tl);
+	for (int i=0; i<t->num_clips; i++) {
+	    ClipRef *cr = t->clips[i];
+	    if (clipref_marked(tl, cr)) {
+		clipref_grab(cr);
+	    }
+	}
+    }
+    tl->needs_redraw = true;
+}
 
 void user_tl_copy_grabbed_clips(void *nullarg)
 {

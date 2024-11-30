@@ -222,7 +222,7 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	    min = end_pos;
 	    max = pos_in_clip_sframes;
 	}
-	int32_t cr_len = clip_ref_len(cr);
+	int32_t cr_len = clipref_len(cr);
 	if (max < 0 || min > cr_len) {
 	    pthread_mutex_unlock(&cr->lock);
 	    continue;

@@ -1711,7 +1711,13 @@ ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sfr
 
     if (track->num_clips == MAX_TRACK_CLIPS) {
 	char errstr[MAX_STATUS_STRLEN];
-	snprintf(errstr, MAX_STATUS_STRLEN, "Track cannot have more than %d tracks", MAX_TRACK_CLIPS);
+	snprintf(errstr, MAX_STATUS_STRLEN, "Track cannot have more than %d clips", MAX_TRACK_CLIPS);
+	status_set_errstr(errstr);
+	return NULL;
+    }
+    if (clip->num_refs == MAX_CLIP_REFS) {
+	char errstr[MAX_STATUS_STRLEN];
+	snprintf(errstr, MAX_STATUS_STRLEN, "Audio clip cannot have more than %d references", MAX_TRACK_CLIPS);
 	status_set_errstr(errstr);
 	return NULL;
     }
@@ -2683,6 +2689,13 @@ ClipRef *clipref_at_cursor()
 void clipref_grab(ClipRef *cr)
 {
     Timeline *tl = cr->track->tl;
+    if (tl->num_grabbed_clips == MAX_GRABBED_CLIPS) {
+	char errstr[MAX_STATUS_STRLEN];
+	snprintf(errstr, MAX_STATUS_STRLEN, "Cannot grab >%d clips", MAX_GRABBED_CLIPS);
+	status_set_errstr(errstr);
+	return;
+    }
+
     tl->grabbed_clips[tl->num_grabbed_clips] = cr;
     tl->num_grabbed_clips++;
     cr->grabbed = true;
@@ -2703,17 +2716,6 @@ void clipref_ungrab(ClipRef *cr)
     tl->num_grabbed_clips--;
     status_stat_drag();
 }
-
-/* void timeline_grab_clipref(ClipRef *cr) */
-/* { */
-/*     if (cr->grabbed) return; */
-/*     Timeline *tl = cr->track->tl; */
-/*     if (tl->num_grabbed_clips == MAX_GRABBED_CLIPS) return; */
-/*     tl->grabbed_clips[tl->num_grabbed_clips] = cr; */
-/*     tl->num_grabbed_clips++; */
-/*     cr->grabbed = true; */
-/*     tl->needs_redraw = true; */
-/* } */
 
 void timeline_ungrab_all_cliprefs(Timeline *tl)
 {

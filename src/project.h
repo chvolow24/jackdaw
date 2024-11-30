@@ -53,6 +53,7 @@
 #include "dsp.h"
 #include "components.h"
 #include "panel.h"
+#include "status.h"
 #include "textbox.h"
 #include "user_event.h"
 
@@ -68,7 +69,6 @@
 #define MAX_PROJ_AUDIO_CONNS 255
 #define MAX_PROJ_CLIPS 2048
 #define MAX_GRABBED_CLIPS 255
-#define MAX_STATUS_STRLEN 255
 #define MAX_TRACK_FILTERS 4
 
 

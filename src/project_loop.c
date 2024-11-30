@@ -431,6 +431,7 @@ void loop_project_main()
 			    } else if (allow_scroll) {
 				temp_scrolling_lt = tl->track_area;
 				layout_scroll(tl->track_area, 0, scroll_y, fingersdown);
+				timeline_reset(tl, false);
 			    }
 			    /* temp_scrolling_lt = proj->timelines[proj->active_tl_index]->track_area; */
 			    /* temp_scrolling_lt->scroll_momentum_v = scroll_y; */

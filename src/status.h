@@ -31,7 +31,10 @@
     * write text to the project status bar
  *****************************************************************************************************************/
 
+#ifndef JDAW_STATUS_H
 
+#define JDAW_STATUS_H
+#define MAX_STATUS_STRLEN 255
 
 void status_frame();
 void status_set_statstr(const char *statstr);
@@ -41,3 +44,5 @@ void status_set_callstr(const char *callstr);
 void status_cat_callstr(const char *catstr);
 void status_stat_playspeed();
 void status_stat_drag();
+
+#endif

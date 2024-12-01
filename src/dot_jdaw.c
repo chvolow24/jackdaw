@@ -614,6 +614,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 		type,
 		impulse_response_len,
 		tl->proj->fourier_len_sframes * 2);
+	    track->fir_filter->track = track;
 	    filter_set_params(track->fir_filter, type, cutoff_freq, bandwidth);
 	} else {
 	    fseek(f, 35, SEEK_CUR);

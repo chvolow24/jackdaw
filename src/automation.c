@@ -298,13 +298,13 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
 	break;
     case AUTO_DEL_TIME:
-	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line, proj->sample_rate);
+	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line, track->tl->proj->sample_rate);
 	a->val_type = JDAW_INT32;
 	a->min.int32_v = 10;
-	a->max.int32_v = proj->sample_rate * DELAY_LINE_MAX_LEN_S;
+	a->max.int32_v = track->tl->proj->sample_rate * DELAY_LINE_MAX_LEN_S;
 	a->range.int32_v = a->max.int32_v - 10;
 	a->target_val = &track->delay_line.len;
-	base_kf_val.int32_v = proj->sample_rate / 2;
+	base_kf_val.int32_v = track->tl->proj->sample_rate / 2;
 	automation_insert_keyframe_at(a, 0, base_kf_val);
 	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
 
@@ -324,7 +324,7 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	a->min.float_v = 0.05;
 	a->max.float_v = 5.0;
 	a->range.float_v = 5.0 - 0.05;
-	a->target_val = &proj->play_speed;
+	a->target_val = &track->tl->proj->play_speed;
 	base_kf_val.float_v = 1.0f;
 	automation_insert_keyframe_at(a, 0, base_kf_val);
 	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */

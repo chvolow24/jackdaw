@@ -145,7 +145,6 @@ static float *get_source_mode_chunk(uint8_t channel, float *chunk, uint32_t len_
 
 void transport_recording_update_cliprects();
 
-
 void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 {
     /* fprintf(stdout, "\nSTART cb\n"); */
@@ -165,7 +164,11 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	get_source_mode_chunk(0, chunk_L, len_sframes, proj->src_play_pos_sframes, proj->src_play_speed);
 	get_source_mode_chunk(1, chunk_R, len_sframes, proj->src_play_pos_sframes, proj->src_play_speed);
     } else {
-	sem_wait(tl->readable_chunks);
+	int wait_count = 0;
+	while (sem_trywait(tl->readable_chunks) != 0) {
+	    wait_count++;
+	    if (wait_count > 100) return;
+	}
 	memcpy(chunk_L, tl->buf_L + tl->buf_read_pos, sizeof(float) * len_sframes);
 	memcpy(chunk_R, tl->buf_R + tl->buf_read_pos, sizeof(float) * len_sframes);
 	sem_post(tl->writable_chunks);
@@ -365,7 +368,9 @@ void transport_stop_playback()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     audioconn_stop_playback(proj->playback_conn);
+
     if (proj->dsp_thread) pthread_cancel(proj->dsp_thread);
+    /* Unblock DSP thread */
     for (int i=0; i<512; i++) {
 	sem_post(tl->writable_chunks);
 	sem_post(tl->readable_chunks);

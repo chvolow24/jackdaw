@@ -56,6 +56,8 @@ typedef struct fir_filter {
     uint16_t frequency_response_len;
     uint16_t overlap_len;
     pthread_mutex_t lock;
+
+    Track *track;
     /* SDL_mutex *lock;audio.c */
 } FIRFilter;
 

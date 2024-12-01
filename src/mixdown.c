@@ -334,6 +334,11 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 		
 		del_line[*del_line_pos] += track_sample;
 		del_line[*del_line_pos] *= dl->amp;
+
+		/* clip delay line */
+		if (del_line[*del_line_pos] > 1.0) del_line[*del_line_pos] = 1.0;
+		else if (del_line[*del_line_pos] < -1.0) del_line[*del_line_pos] = -1.0;
+		
 		/* fprintf(stdout, "Del pos vs len? %d %d\n", *del_line_pos, dl.len); */
 		if (*del_line_pos + 1 >= dl->len) {
 		    /* fprintf(stdout, "\tSETTING zero\n"); */

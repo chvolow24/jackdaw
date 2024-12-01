@@ -470,6 +470,6 @@ void timeline_rectify_track_area(Timeline *tl);
 bool timeline_refocus_track(Timeline *tl, Track *track, bool at_bottom);
 void timeline_play_speed_set(double new_speed);
 void timeline_play_speed_mult(double scale_factor);
-void timeline_play_speed_adj(int dim);
+void timeline_play_speed_adj(double dim);
 
 #endif

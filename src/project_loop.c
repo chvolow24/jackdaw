@@ -79,48 +79,10 @@ extern SDL_Color freq_R_color;
 
 extern Project *proj;
 
-extern volatile bool CANCEL_THREADS;
-
-/* static int timed_stop_update_track_vol_pan(void *data) */
-/* { */
-/*     fprintf(stdout, "OK.......\n"); */
-/*     /\* int delay_ms = *((int *)data); *\/ */
-/*     SDL_Delay(STICK_DELAY_MS); */
-/*     fprintf(stdout, "Done!\n"); */
-/*     stop_update_track_vol_pan(); */
-/*     return 0; */
-/* } */
-
-/* static int timed_hide_slider_label(void *data) */
-/* { */
-/*     Slider *fs = (Slider *)data; */
-/*     if (fs->editing) { */
-/* 	for (int i=0; i<STICK_DELAY_MS; i++) { */
-/* 	    if (cancel_threads) return 0; */
-/* 	    SDL_Delay(1); */
-/* 	} */
-/* 	fs->editing = false; */
-/*     } */
-/*     return 0; */
-/* } */
-
-/* static void hide_slider_label(Slider *fs) */
-/* { */
-/*     SDL_CreateThread(timed_hide_slider_label, "hide_slider_label", fs); */
-/* } */
-
+/* extern volatile bool CANCEL_THREADS; */
 
 static void stop_update_track_vol_pan()
 {
-    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
-    /* Track *trk = NULL; */
-    /* for (int i=0; i<tl->num_tracks; i++) { */
-    /* 	trk = tl->tracks[i]; */
-    /* 	/\* hide_slider_label(trk->vol_ctrl); *\/ */
-    /* 	/\* hide_slider_label(trk->pan_ctrl); *\/ */
-    /*     /\* trk->vol_ctrl->editing = false; *\/ */
-    /* 	/\* trk->pan_ctrl->editing = false; *\/ */
-    /* } */
     proj->vol_changing = false;
     proj->pan_changing = false;
 }
@@ -275,6 +237,8 @@ void loop_project_main()
 		}
 		break;
 	    case SDL_KEYDOWN: {
+		scrolling_lt = NULL;
+		temp_scrolling_lt = NULL;
 		switch (e.key.keysym.scancode) {
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
@@ -355,6 +319,8 @@ void loop_project_main()
 		}
 		break;
 	    case SDL_KEYUP:
+		scrolling_lt = NULL;
+		temp_scrolling_lt = NULL;
 		switch (e.key.keysym.scancode) {
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
@@ -402,7 +368,7 @@ void loop_project_main()
 		    temp_scrolling_lt = modal_scrollable;
 		} else if (main_win->modes[main_win->num_modes - 1] == TIMELINE || main_win->modes[main_win->num_modes - 1] == TABVIEW) {
 		    if (main_win->i_state & I_STATE_SHIFT) {
-			timeline_play_speed_adj(e.wheel.y);
+			timeline_play_speed_adj(e.wheel.preciseY);
 			/* if (main_win->i_state & I_STATE_CMDCTRL) */
 			/*     /\* if (main_win->i_state & I_STATE_META) { *\/ */
 			/*     /\* 	Timeline *tl = proj->timelines[0]; *\/ */
@@ -465,6 +431,8 @@ void loop_project_main()
 		break;
 	    }
 	    case SDL_MOUSEBUTTONDOWN:
+		scrolling_lt = NULL;
+		temp_scrolling_lt = NULL;
 		if (e.button.button == SDL_BUTTON_LEFT) {
 		    main_win->i_state |= I_STATE_MOUSE_L;
 		} else if (e.button.button == SDL_BUTTON_RIGHT) {
@@ -500,6 +468,8 @@ void loop_project_main()
 		}
 		break;
 	    case SDL_MOUSEBUTTONUP:
+		scrolling_lt = NULL;
+		temp_scrolling_lt = NULL;
 		if (e.button.button == SDL_BUTTON_LEFT) {
 		    main_win->i_state &= ~I_STATE_MOUSE_L;
 		    proj->dragged_component.component = NULL;

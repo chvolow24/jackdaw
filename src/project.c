@@ -3087,7 +3087,7 @@ void timeline_play_speed_mult(double scale_factor)
     timeline_play_speed_set(new_speed);
 }
 
-void timeline_play_speed_adj(int dim)
+void timeline_play_speed_adj(double dim)
 {
     /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
     /* double old_speed = proj->play_speed; */

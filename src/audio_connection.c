@@ -33,6 +33,7 @@
 
 
 #include <pthread.h>
+/* #include <semaphore.h> */
 #include "audio_connection.h"
 #include "project.h"
 #include "pure_data.h"
@@ -352,6 +353,7 @@ void audioconn_start_playback(AudioConn *conn)
 }
 
 
+extern bool cancel_audio_thread;
 static void device_stop_playback(AudioDevice *dev)
 {
     SDL_PauseAudioDevice(dev->id, 1);

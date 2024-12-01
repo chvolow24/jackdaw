@@ -352,8 +352,6 @@ void audioconn_start_playback(AudioConn *conn)
     }
 }
 
-
-extern bool cancel_audio_thread;
 static void device_stop_playback(AudioDevice *dev)
 {
     SDL_PauseAudioDevice(dev->id, 1);

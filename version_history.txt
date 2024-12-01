@@ -1,11 +1,21 @@
 This is an informal document tracking jackdaw version updates. 
 
+v0.4.2 (Sun Dec  1 10:15:42 EST 2024)
+       - grab clips in markes range (S-g)
+       - bring clip at rear to front (S-z)
+       - move to next/prev clip boundary (S-l, S-j)
+       - update timeline display on any playhead jump
+       - don't rely on global "proj" obj for effect loads
+       - clip delay line amp values
+       - cut top clip only
+       - refine play speed scroll adj (use preciseY)
+       - fix deadlock in playback (esp. on proj destroy)
+       - fix scroll layout state management
 
 v0.4.1 (Fri Nov 29 21:48:08 EST 2024)
        - add clipref copy/paste functionality (undocumented)
        - allow 2048 cliprefs per track
        - allow 2048 cliprefs per clip
        - update .jdaw filespec to version 00.14 to account for new uint_16s
-
 
 v0.4.0 (...)

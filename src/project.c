@@ -2851,12 +2851,9 @@ void timeline_cut_clipref_at_cursor(Timeline *tl)
 {
     Track *track = tl->tracks[tl->track_selector];
     if (!track) return;
-    for (uint16_t i=0; i<track->num_clips; i++) {
-	ClipRef *cr = track->clips[i];
-	if (cr->pos_sframes < tl->play_pos_sframes && cr->pos_sframes + clipref_len(cr) > tl->play_pos_sframes) {
-	    clipref_cut(cr, tl->play_pos_sframes - cr->pos_sframes);
-	    return;
-	}
+    ClipRef *cr = clipref_at_cursor();
+    if (tl->play_pos_sframes > cr->pos_sframes && tl->play_pos_sframes < cr->pos_sframes + clipref_len(cr)) {
+	clipref_cut(cr, tl->play_pos_sframes - cr->pos_sframes);
     }
 }
 

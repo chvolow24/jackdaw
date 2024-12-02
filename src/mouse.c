@@ -101,8 +101,8 @@ static void mouse_triage_click_audiorect(Timeline *tl, uint8_t button)
 {
     switch (button) {
     case SDL_BUTTON_LEFT: {
-	int32_t abs_pos = timeline_get_abspos_sframes(main_win->mousep.x);
-	timeline_set_play_position(abs_pos);
+	int32_t abs_pos = timeline_get_abspos_sframes(tl, main_win->mousep.x);
+	timeline_set_play_position(tl, abs_pos);
 	break;
     }
 	break;
@@ -129,8 +129,8 @@ static void mouse_triage_click_audiorect(Timeline *tl, uint8_t button)
 static void mouse_triage_motion_audiorect(Timeline *tl)
 {
     if (main_win->i_state & I_STATE_MOUSE_L) {
-	int32_t abs_pos = timeline_get_abspos_sframes(main_win->mousep.x);
-	timeline_set_play_position(abs_pos);
+	int32_t abs_pos = timeline_get_abspos_sframes(tl, main_win->mousep.x);
+	timeline_set_play_position(tl, abs_pos);
     }
 }
 

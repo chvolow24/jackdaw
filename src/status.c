@@ -76,7 +76,7 @@ void status_set_errstr(const char *errstr)
     strcpy(proj->status_bar.errstr, errstr);
     /* textbox_set_text_color(proj->status_bar.error, &color_global_red); */
     textbox_size_to_fit(proj->status_bar.error, 0, 0);
-        textbox_set_text_color(proj->status_bar.error, &color_global_red);
+    textbox_set_text_color(proj->status_bar.error, &color_global_red);
     layout_center_agnostic(proj->status_bar.error->layout, false, true);
 
     textbox_reset_full(proj->status_bar.error);

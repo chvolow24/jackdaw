@@ -85,8 +85,9 @@
   - S-i		: tl_goto_in_mark
   - S-o		: tl_goto_out_mark
   - S-u		: tl_goto_zero
-  - S-j		: tl_goto_clip_start
-  - S-l		: tl_goto_clip_end
+  - S-j		: tl_goto_previous_clip_boundary
+  - S-l		: tl_goto_next_clip_boundary
+  - S-z		: tl_bring_rear_clip_to_front
   - C-S-o	: tl_set_default_out
   - C-t		: tl_track_add
   - 1		: tl_track_select_1
@@ -120,6 +121,7 @@
   - m		: tl_mute
   - s		: tl_solo
   - g		: tl_grab_clips_at_cursor
+  - S-g		: tl_grab_marked_range
   - C-c		: tl_copy_grabbed_clips
   - C-v		: tl_paste_grabbed_clips
   - C-S-r	: tl_rename_clip_at_cursor

@@ -49,8 +49,9 @@ void user_tl_set_mark_in(void *nullarg);
 void user_tl_goto_mark_out(void *nullarg);
 void user_tl_goto_mark_in(void *nullarg);
 void user_tl_goto_zero(void *nullarg);
-void user_tl_goto_clip_start(void *nullarg);
-void user_tl_goto_clip_end(void *nullarg);
+void user_tl_goto_previous_clip_boundary(void *nullarg);
+void user_tl_goto_next_clip_boundary(void *nullarg);
+void user_tl_bring_rear_clip_to_front(void *nullarg);
 /* void user_tl_play_drag(void *nullarg); */
 /* void user_tl_rewind_drag(void *nullarg); */
 /* void user_tl_pause_drag(void *nullarg); */
@@ -97,6 +98,7 @@ void user_tl_track_pan_right(void *nullarg);
 
 void user_tl_record(void *nullarg);
 void user_tl_clipref_grab_ungrab(void *nullarg);
+void user_tl_grab_marked_range(void *nullarg);
 void user_tl_copy_grabbed_clips(void *nullarg);
 void user_tl_paste_grabbed_clips(void *nullarg);
 /* Deprecated; use user_tl_cliprefs_delete */

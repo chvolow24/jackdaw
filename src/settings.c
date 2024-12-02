@@ -213,6 +213,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 	Project *proj_loc = track->tl->proj;
 	int ir_len = proj_loc->fourier_len_sframes/4;
 	track->fir_filter = filter_create(LOWPASS, ir_len, proj_loc->fourier_len_sframes * 2);
+	track->fir_filter->track = track;
 	filter_set_params_hz(track->fir_filter, LOWPASS, 1000, 1000);
 	track->fir_filter_active = false;
     }

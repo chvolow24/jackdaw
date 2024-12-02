@@ -55,7 +55,7 @@ const static char hdr_data[] = {'d','a','t','a'};
 const static char hdr_auto[] = {'A', 'U', 'T', 'O'};
 const static char hdr_keyf[] = {'K', 'E', 'Y', 'F'};
 
-const static char current_file_spec_version[] = {'0','0','.','1','3'};
+const static char current_file_spec_version[] = {'0','0','.','1','4'};
 /* const static float current_file_spec_version_f = 0.11f; */
 
 const static char nullterm = '\0';
@@ -105,9 +105,14 @@ void jdaw_write_project(const char *path)
         BYTEORDER_FATAL
     }
     fwrite(&proj->fmt, 2, 1, f);
-    fwrite(&proj->num_clips, 1, 1, f);
+    /* fwrite(&proj->num_clips, 1, 1, f); */
+    if (SYS_BYTEORDER_LE) {
+	fwrite(&proj->num_clips, 2, 1, f);
+    } else {
+	BYTEORDER_FATAL
+    }
     fwrite(&proj->num_timelines, 1, 1, f);
-    for (uint8_t i=0; i<proj->num_clips; i++) {
+    for (uint16_t i=0; i<proj->num_clips; i++) {
 	jdaw_write_clip(f, proj->clips[i], i);
     }
     for (uint8_t i=0; i<proj->num_timelines; i++) {
@@ -210,8 +215,8 @@ static void jdaw_write_track(FILE *f, Track *track)
     fwrite(&track->solo, 1, 1, f);
 
     fwrite(&track->solo_muted, 1, 1, f);
-    fwrite(&track->num_clips, 1, 1, f);
-    for (uint8_t i=0; i<track->num_clips; i++) {
+    fwrite(&track->num_clips, 1, 2, f);
+    for (uint16_t i=0; i<track->num_clips; i++) {
 	jdaw_write_clipref(f, track->clips[i]);
     }
 
@@ -360,7 +365,7 @@ Project *jdaw_read_file(const char *path)
     uint32_t sample_rate;
     SDL_AudioFormat fmt;
     uint16_t chunk_size;
-    uint8_t num_clips;
+    uint16_t num_clips;
     uint8_t num_timelines;
 
     fread(&proj_namelen, 1, 1, f);
@@ -378,7 +383,13 @@ Project *jdaw_read_file(const char *path)
 	BYTEORDER_FATAL
     }
     fread(&fmt, 2, 1, f);
-    fread(&num_clips, 1, 1, f);
+    if (read_file_spec_version < 0.14) {
+	uint8_t byte_num_clips;
+	fread(&byte_num_clips, 1, 1, f);
+	num_clips = byte_num_clips;
+    } else {
+	fread(&num_clips, 2, 1, f);
+    }
     fread(&num_timelines, 1, 1, f);
 
     Project *proj_loc = project_create(
@@ -557,8 +568,14 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 	track_solomute(track);
     }
 
-    uint8_t num_cliprefs;
-    fread(&num_cliprefs, 1, 1, f);
+    uint16_t num_cliprefs;
+    if (read_file_spec_version < 0.14) {
+	uint8_t byte_num_cliprefs;
+	fread(&byte_num_cliprefs, 1, 1, f);
+	num_cliprefs = byte_num_cliprefs;
+    } else {
+	fread(&num_cliprefs, 2, 1, f);
+    }
 
     while (num_cliprefs > 0) {
 	if (jdaw_read_clipref(f, track) != 0) {
@@ -597,6 +614,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 		type,
 		impulse_response_len,
 		tl->proj->fourier_len_sframes * 2);
+	    track->fir_filter->track = track;
 	    filter_set_params(track->fir_filter, type, cutoff_freq, bandwidth);
 	} else {
 	    fseek(f, 35, SEEK_CUR);

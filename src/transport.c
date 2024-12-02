@@ -92,7 +92,7 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
 	int32_t tl_pos_now = pb_cb_tick.timeline_pos + (int32_t)(elapsed_pb_chunk_ms * proj->sample_rate / 1000.0f);
 	int32_t tl_pos_rec_chunk = tl_pos_now - (record_latency_ms * proj->sample_rate / 1000);
 	
-	for (uint8_t i=0; i<conn->current_clip->num_refs; i++) {
+	for (uint16_t i=0; i<conn->current_clip->num_refs; i++) {
 	    ClipRef *cr = conn->current_clip->refs[i];
 	    cr->pos_sframes = tl_pos_rec_chunk;
 	}
@@ -146,7 +146,6 @@ static float *get_source_mode_chunk(uint8_t channel, float *chunk, uint32_t len_
 
 void transport_recording_update_cliprects();
 
-
 void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 {
     /* fprintf(stdout, "\nSTART cb\n"); */
@@ -166,7 +165,11 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	get_source_mode_chunk(0, chunk_L, len_sframes, proj->src_play_pos_sframes, proj->src_play_speed);
 	get_source_mode_chunk(1, chunk_R, len_sframes, proj->src_play_pos_sframes, proj->src_play_speed);
     } else {
-	sem_wait(tl->readable_chunks);
+	int wait_count = 0;
+	while (sem_trywait(tl->readable_chunks) != 0) {
+	    wait_count++;
+	    if (wait_count > 100) return;
+	}
 	memcpy(chunk_L, tl->buf_L + tl->buf_read_pos, sizeof(float) * len_sframes);
 	memcpy(chunk_R, tl->buf_R + tl->buf_read_pos, sizeof(float) * len_sframes);
 	sem_post(tl->writable_chunks);
@@ -194,7 +197,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	tl->needs_redraw = true;
 
     } else {
-	timeline_move_play_position(proj->play_speed * stream_len_samples / proj->channels);
+	timeline_move_play_position(tl, proj->play_speed * stream_len_samples / proj->channels);
     }
 }
 
@@ -261,7 +264,7 @@ static void *transport_dsp_thread_fn(void *arg)
 	memcpy(proj->output_L, buf_L, sizeof(float) * len);
 	memcpy(proj->output_R, buf_R, sizeof(float) * len);
 
-	for (uint8_t i=proj->active_clip_index; i<proj->num_clips; i++) {
+	for (uint16_t i=proj->active_clip_index; i<proj->num_clips; i++) {
 	    Clip *clip = proj->clips[i];
 	    AudioConn *conn = clip->recorded_from;
 	    if (conn->type == JACKDAW) {
@@ -367,7 +370,9 @@ void transport_stop_playback()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     audioconn_stop_playback(proj->playback_conn);
+
     if (proj->dsp_thread) pthread_cancel(proj->dsp_thread);
+    /* Unblock DSP thread */
     for (int i=0; i<512; i++) {
 	sem_post(tl->writable_chunks);
 	sem_post(tl->readable_chunks);
@@ -612,9 +617,9 @@ void transport_stop_recording()
     tl->needs_redraw = true;
     ClipRef **created_clips = calloc(tl->num_tracks, sizeof(ClipRef *));
     uint8_t num_created = 0;
-    for (uint8_t i=proj->active_clip_index; i<proj->num_clips; i++) {
+    for (uint16_t i=proj->active_clip_index; i<proj->num_clips; i++) {
 	Clip *clip = proj->clips[i];
-	for (uint8_t j=0; j<clip->num_refs; j++) {
+	for (uint16_t j=0; j<clip->num_refs; j++) {
 	    ClipRef *ref = clip->refs[j];
 	    created_clips[num_created] = ref;
 	    num_created++;
@@ -718,16 +723,16 @@ void transport_set_mark_to(Timeline *tl, int32_t pos, bool in)
 void transport_goto_mark(Timeline *tl, bool in)
 {
     if (in) {
-	timeline_set_play_position(tl->in_mark_sframes);
+	timeline_set_play_position(tl, tl->in_mark_sframes);
     } else {
-	timeline_set_play_position(tl->out_mark_sframes);
+	timeline_set_play_position(tl, tl->out_mark_sframes);
     }
 }
 
 void transport_recording_update_cliprects()
 {
     /* fprintf(stdout, "update clip rects...\n"); */
-    for (uint8_t i=proj->active_clip_index; i<proj->num_clips; i++) {
+    for (int i=proj->active_clip_index; i<proj->num_clips; i++) {
 	/* fprintf(stdout, "updating %d/%d\n", i, proj->num_clips); */
 	Clip *clip = proj->clips[i];
 
@@ -743,7 +748,7 @@ void transport_recording_update_cliprects()
 	    break;
 	}
 
-	for (uint8_t j=0; j<clip->num_refs; j++) {
+	for (uint16_t j=0; j<clip->num_refs; j++) {
 	    ClipRef *cr = clip->refs[j];
 	    cr->out_mark_sframes = clip->len_sframes;
 	    clipref_reset(cr, false);

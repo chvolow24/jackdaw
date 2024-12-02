@@ -199,7 +199,7 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
     /* bool clip_read = false; */
 
     float total_amp = 0.0f;
-    for (uint8_t i=0; i<track->num_clips; i++) {
+    for (uint16_t i=0; i<track->num_clips; i++) {
 	ClipRef *cr = track->clips[i];
 	if (!cr) {
 	    continue;
@@ -222,7 +222,7 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	    min = end_pos;
 	    max = pos_in_clip_sframes;
 	}
-	int32_t cr_len = clip_ref_len(cr);
+	int32_t cr_len = clipref_len(cr);
 	if (max < 0 || min > cr_len) {
 	    pthread_mutex_unlock(&cr->lock);
 	    continue;
@@ -265,44 +265,9 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	pthread_mutex_unlock(&cr->lock);
 	/* clip_read = true; */
     }
-    /* if (!clip_read) { */
-    /* 	if (vol_auto && vol_auto->read && !vol_auto->write) */
-    /* 	    vol_auto->current = NULL; */
-    /* 	if (pan_auto && pan_auto->read && !pan_auto->write) */
-    /* 	    pan_auto->current = NULL; */
-    /* } */
-
-    /* for (uint32_t i=0; i<len_sframes; i++) { */
-    /*     for (uint8_t clip_i=0; clip_i<track->num_clips; clip_i++) { */
-    /*         ClipRef *cr = (track->clips)[clip_i]; */
-
-    /* 	    pthread_mutex_lock(&cr->lock); */
-    /* 	    if (cr->clip->recording) { */
-    /* 		continue; */
-    /* 	    } */
-    /* 	    int32_t cr_len = clip_ref_len(cr); */
-	    
-    /*         float *clip_buf = (channel == 0) ? cr->clip->L : cr->clip->R; */
-    /*         int32_t pos_in_clip_sframes = i * step + start_pos_sframes - cr->pos_sframes; */
-    /*         if (pos_in_clip_sframes >= 0 && pos_in_clip_sframes < cr_len) { */
-    /* 		chunk[i] += clip_buf[pos_in_clip_sframes + cr->in_mark_sframes]; */
-    /*         } */
-    /* 	    pthread_mutex_unlock(&cr->lock); */
-    /*     } */
-    /* } */
 
     return total_amp;
 }
-
-
-/* /\* DELAY TESTS *\/ */
-/* double *del_line_l = NULL; */
-/* double *del_line_r = NULL; */
-/* int32_t del_line_len; */
-/* int32_t del_line_pos_l = 0; */
-/* int32_t del_line_pos_r = 0; */
-/* double del_line_amp = 0.8; */
-/* /\* END TESTS *\/ */
 
 /* 
 Sum track samples over a chunk of timeline and return an array of samples. from_mark_in indicates that samples
@@ -369,6 +334,11 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 		
 		del_line[*del_line_pos] += track_sample;
 		del_line[*del_line_pos] *= dl->amp;
+
+		/* clip delay line */
+		if (del_line[*del_line_pos] > 1.0) del_line[*del_line_pos] = 1.0;
+		else if (del_line[*del_line_pos] < -1.0) del_line[*del_line_pos] = -1.0;
+		
 		/* fprintf(stdout, "Del pos vs len? %d %d\n", *del_line_pos, dl.len); */
 		if (*del_line_pos + 1 >= dl->len) {
 		    /* fprintf(stdout, "\tSETTING zero\n"); */

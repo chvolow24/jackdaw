@@ -33,6 +33,7 @@
 
 
 #include <pthread.h>
+/* #include <semaphore.h> */
 #include "audio_connection.h"
 #include "project.h"
 #include "pure_data.h"
@@ -350,7 +351,6 @@ void audioconn_start_playback(AudioConn *conn)
 	break;
     }
 }
-
 
 static void device_stop_playback(AudioDevice *dev)
 {

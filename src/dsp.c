@@ -44,7 +44,7 @@
 #define ROU_MAX_DEGREE 13
 double complex *roots_of_unity[ROU_MAX_DEGREE];
 
-extern Project *proj;
+/* extern Project *proj; */
 
 static void init_roots_of_unity();
 
@@ -350,8 +350,8 @@ void filter_set_params(FIRFilter *filter, FilterType type, double cutoff, double
 
 void filter_set_params_hz(FIRFilter *filter, FilterType type, double cutoff_hz, double bandwidth_hz)
 {
-    double cutoff = cutoff_hz / (double)proj->sample_rate;
-    double bandwidth = bandwidth_hz / (double)proj->sample_rate;;
+    double cutoff = cutoff_hz / (double)filter->track->tl->proj->sample_rate;
+    double bandwidth = bandwidth_hz / (double)filter->track->tl->proj->sample_rate;;
     filter_set_params(filter, type, cutoff, bandwidth);
 }
 
@@ -366,7 +366,7 @@ void filter_set_cutoff_hz(FIRFilter *f, double cutoff_hz)
 {
     FilterType t = f->type;
     double bandwidth = f->bandwidth;
-    double cutoff = cutoff_hz / (double)proj->sample_rate;
+    double cutoff = cutoff_hz / (double)f->track->tl->proj->sample_rate;
     filter_set_params(f, t, cutoff, bandwidth);
 }
 void filter_set_bandwidth(FIRFilter *f, double bandwidth)
@@ -378,7 +378,7 @@ void filter_set_bandwidth(FIRFilter *f, double bandwidth)
 void filter_set_bandwidth_hz(FIRFilter *f, double bandwidth_h)
 {
     FilterType t = f->type;
-    double bandwidth = bandwidth_h / proj->sample_rate;
+    double bandwidth = bandwidth_h / f->track->tl->proj->sample_rate;
     double cutoff = f->cutoff_freq;
     filter_set_params(f, t, cutoff, bandwidth);
 }
@@ -555,6 +555,7 @@ void track_add_default_filter(Track *track)
 {
     int ir_len = track->tl->proj->fourier_len_sframes/4;
     track->fir_filter = filter_create(LOWPASS, ir_len, track->tl->proj->fourier_len_sframes * 2);
+    track->fir_filter->track = track;
     filter_set_params_hz(track->fir_filter, LOWPASS, 1000, 1000);
     track->fir_filter_active = false;
 }
@@ -648,6 +649,7 @@ void delay_line_clear(DelayLine *dl)
 }
 
 
+extern Project *proj;
 double dsp_scale_freq_to_hz(double freq_unscaled)
 {
     return pow(10.0, log10((double)proj->sample_rate / 2) * freq_unscaled);

@@ -323,6 +323,12 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 	    return;
 	}
 	ClipRef *cr = wav_load_to_track(track, dp->path, tl->play_pos_sframes);
+	if (!cr) {
+	    Timeline *tl = ACTIVE_TL;
+	    tl->needs_redraw = true;
+	    window_pop_modal(main_win);
+	    return;
+	}
 	Value nullval = {.int_v = 0};
 	user_event_push(
 	    &proj->history,
@@ -668,42 +674,42 @@ void user_tl_rewind_slow(void *nullarg)
 void user_tl_nudge_left(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    timeline_set_play_position(tl->play_pos_sframes - 500);
+    timeline_set_play_position(tl, tl->play_pos_sframes - 500);
 }
 
 void user_tl_nudge_right(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    timeline_set_play_position(tl->play_pos_sframes + 500);
+    timeline_set_play_position(tl, tl->play_pos_sframes + 500);
 }
 
 void user_tl_small_nudge_left(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    timeline_set_play_position(tl->play_pos_sframes - 100);
+    timeline_set_play_position(tl, tl->play_pos_sframes - 100);
 }
 
 void user_tl_small_nudge_right(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    timeline_set_play_position(tl->play_pos_sframes + 100);
+    timeline_set_play_position(tl, tl->play_pos_sframes + 100);
 }
 
 void user_tl_one_sample_left(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    timeline_set_play_position(tl->play_pos_sframes - 1);
+    timeline_set_play_position(tl, tl->play_pos_sframes - 1);
 }
 
 void user_tl_one_sample_right(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    timeline_set_play_position(tl->play_pos_sframes + 1);
+    timeline_set_play_position(tl, tl->play_pos_sframes + 1);
 }
 
 void user_tl_move_right(void *nullarg)
 {
-    timeline_scroll_horiz(TL_DEFAULT_XSCROLL);
+    timeline_scroll_horiz(ACTIVE_TL, TL_DEFAULT_XSCROLL);
     PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_right");
     Button *btn = (Button *)el->component;
     button_press_color_change(
@@ -716,7 +722,7 @@ void user_tl_move_right(void *nullarg)
 
 void user_tl_move_left(void *nullarg)
 {
-    timeline_scroll_horiz(TL_DEFAULT_XSCROLL * -1);
+    timeline_scroll_horiz(ACTIVE_TL, TL_DEFAULT_XSCROLL * -1);
     PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_left");
     Button *btn = (Button *)el->component;
     button_press_color_change(
@@ -729,7 +735,7 @@ void user_tl_move_left(void *nullarg)
 
 void user_tl_zoom_in(void *nullarg)
 {
-    timeline_rescale(1.2, false);
+    timeline_rescale(ACTIVE_TL, 1.2, false);
     PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_zoom_in");
     Button *btn = (Button *)el->component;
     button_press_color_change(
@@ -742,7 +748,7 @@ void user_tl_zoom_in(void *nullarg)
 
 void user_tl_zoom_out(void *nullarg)
 {
-    timeline_rescale(0.8, false);
+    timeline_rescale(ACTIVE_TL, 0.8, false);
 
     PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_zoom_out");
     Button *btn = (Button *)el->component;
@@ -820,28 +826,57 @@ void user_tl_goto_mark_in(void *nullarg)
 void user_tl_goto_zero(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    timeline_set_play_position(0);
+    timeline_set_play_position(tl, 0);
     tl->display_offset_sframes = 0;
     timeline_reset(tl, false);
 }
 
-void user_tl_goto_clip_start(void *nullarg)
+void user_tl_goto_previous_clip_boundary(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
     ClipRef *cr = clipref_at_cursor();
+    int32_t pos;
     if (cr) {
-	timeline_set_play_position(cr->pos_sframes);
+	if (cr->pos_sframes == tl->play_pos_sframes) {
+	    goto goto_previous_clip;
+	}
+	timeline_set_play_position(tl, cr->pos_sframes);
 	timeline_reset(tl, false);
+    } else {
+    goto_previous_clip:
+	if (clipref_before_cursor(&pos)) {
+	    timeline_set_play_position(tl, pos);
+	    timeline_reset(tl, false);
+	} else {
+	    status_set_errstr("No previous clip on selected track");
+	}	
     }
 }
-void user_tl_goto_clip_end(void *nullarg)
+void user_tl_goto_next_clip_boundary(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
     ClipRef *cr = clipref_at_cursor();
+    int32_t pos;
     if (cr) {
-	timeline_set_play_position(cr->pos_sframes + clip_ref_len(cr));
+	if (cr->pos_sframes + clipref_len(cr) == tl->play_pos_sframes) {
+	    goto goto_next_clip;
+	}
+	timeline_set_play_position(tl, cr->pos_sframes + clipref_len(cr));
 	timeline_reset(tl, false);
+    } else {
+    goto_next_clip:
+	if (clipref_after_cursor(&pos)) {
+	    timeline_set_play_position(tl, pos);
+	    timeline_reset(tl, false);
+	} else {
+	    status_set_errstr("No subsequent clip on selected track");
+	}
     }
+}
+
+void user_tl_bring_rear_clip_to_front(void *nullarg)
+{
+    clipref_bring_to_front();
 }
 
 void user_tl_set_default_out(void *nullarg) {
@@ -864,7 +899,7 @@ void user_tl_add_track(void *nullarg)
 	fprintf(stderr, "Error: user call to add track w/o global project\n");
 	exit(1);
     }
-    Timeline *tl = ACTIVE_TL; // TODO: get active timeline;
+    Timeline *tl = ACTIVE_TL;
     Track *track = timeline_add_track(tl);
     
     PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_add_track");
@@ -1459,6 +1494,33 @@ void user_tl_clipref_grab_ungrab()
     /* tl->needs_redraw = true; */
 }
 
+void user_tl_grab_marked_range(void *nullarg)
+{
+    Timeline *tl = ACTIVE_TL;
+    bool had_active_track = false;
+    for (uint8_t i=0; i<tl->num_tracks; i++) {
+	Track *t = tl->tracks[i];
+	if (t->active) {
+	    had_active_track = true;
+	    for (int i=0; i<t->num_clips; i++) {
+		ClipRef *cr = t->clips[i];
+		if (clipref_marked(tl, cr)) {
+		    clipref_grab(cr);
+		}
+	    }
+	}
+    }
+    if (!had_active_track) {
+	Track *t = ACTIVE_TRACK(tl);
+	for (int i=0; i<t->num_clips; i++) {
+	    ClipRef *cr = t->clips[i];
+	    if (clipref_marked(tl, cr)) {
+		clipref_grab(cr);
+	    }
+	}
+    }
+    tl->needs_redraw = true;
+}
 
 void user_tl_copy_grabbed_clips(void *nullarg)
 {
@@ -1513,6 +1575,7 @@ void user_tl_paste_grabbed_clips(void *nullarg)
 	if (!cr->deleted && !cr->track->deleted) {
 	    int32_t offset = cr->pos_sframes - leftmost;
 	    ClipRef *copy = track_create_clip_ref(cr->track, cr->clip, tl->play_pos_sframes + offset, false);
+	    if (!copy) continue;
 	    snprintf(copy->name, MAX_NAMELENGTH, "%s copy", cr->name);
 	    copy->in_mark_sframes = cr->in_mark_sframes;
 	    copy->out_mark_sframes = cr->out_mark_sframes;
@@ -1636,6 +1699,7 @@ void user_tl_drop_from_source(void *nullarg)
 	int32_t drop_pos = tl->play_pos_sframes;
 	/* int32_t drop_pos = get_drop_pos(); */
 	ClipRef *cr = track_create_clip_ref(track, proj->src_clip, drop_pos, false);
+	if (!cr) return;
 	cr->in_mark_sframes = proj->src_in_sframes;
 	cr->out_mark_sframes = proj->src_out_sframes;
 	clipref_reset(cr, true);
@@ -1679,6 +1743,7 @@ static void user_tl_drop_savedn_from_source(int n)
 	int32_t drop_pos = tl->play_pos_sframes;
 	/* int32_t drop_pos = get_drop_pos(); */
 	ClipRef *cr = track_create_clip_ref(track, drop.clip, drop_pos, false);
+	if (!cr) return;
 	cr->in_mark_sframes = drop.in;
 	cr->out_mark_sframes = drop.out;
 	clipref_reset(cr, true);

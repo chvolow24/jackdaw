@@ -54,22 +54,22 @@
 #include "components.h"
 #include "panel.h"
 #include "tempo.h"
+#include "status.h"
 #include "textbox.h"
 #include "user_event.h"
 
 
 #define MAX_TRACKS 255
 #define MAX_NAMELENGTH 64
-#define MAX_TRACK_CLIPS 255
+#define MAX_TRACK_CLIPS 2048
 #define MAX_ACTIVE_CLIPS 255
 #define MAX_ACTIVE_TRACKS 255
-#define MAX_CLIP_REFS 255
+#define MAX_CLIP_REFS 2048
 #define MAX_CLIPBOARD_CLIPS 255
 #define MAX_PROJ_TIMELINES 255
 #define MAX_PROJ_AUDIO_CONNS 255
-#define MAX_PROJ_CLIPS 512
+#define MAX_PROJ_CLIPS 2048
 #define MAX_GRABBED_CLIPS 255
-#define MAX_STATUS_STRLEN 255
 #define MAX_TRACK_FILTERS 4
 
 
@@ -103,10 +103,10 @@ typedef struct track {
     uint8_t tl_rank;
 
     ClipRef *clips[MAX_TRACK_CLIPS];
-    uint8_t num_clips;
+    uint16_t num_clips;
     /* uint8_t num_grabbed_clips; */
 
-    uint8_t num_takes;
+    uint16_t num_takes;
 
     AudioConn *input;
     AudioConn *output;
@@ -180,6 +180,7 @@ typedef struct clip_ref {
     Textbox *label;
 
     SDL_Texture *waveform_texture;
+    pthread_mutex_t waveform_texture_lock;
     bool waveform_redraw;
 } ClipRef;
     
@@ -189,7 +190,7 @@ typedef struct clip {
     uint8_t channels;
     uint32_t len_sframes;
     ClipRef *refs[MAX_CLIP_REFS];
-    uint8_t num_refs;
+    uint16_t num_refs;
     float *L;
     float *R;
     uint32_t write_bufpos_sframes;
@@ -419,7 +420,9 @@ void timeline_reset_full(Timeline *tl);
 void timeline_reset(Timeline *tl, bool rescaled);
 Clip *project_add_clip(AudioConn *dev, Track *target);
 ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sframes, bool home);
-int32_t clip_ref_len(ClipRef *cr);
+int32_t clipref_len(ClipRef *cr);
+bool clipref_marked(Timeline *tl, ClipRef *cr);
+/* int32_t clip_ref_len(ClipRef *cr); */
 /* void clipref_reset(ClipRef *cr); */
 void clipref_reset(ClipRef *cr, bool rescaled);
 
@@ -445,6 +448,9 @@ void track_or_tracks_mute(Timeline *tl);
 
 ClipRef *clipref_at_cursor();
 ClipRef *clipref_at_cursor_in_track(Track *track);
+ClipRef *clipref_before_cursor(int32_t *pos_dst);
+ClipRef *clipref_after_cursor(int32_t *pos_dst);
+void clipref_bring_to_front();
 void timeline_ungrab_all_cliprefs(Timeline *tl);
 void clipref_grab(ClipRef *cr);
 void clipref_ungrab(ClipRef *cr);
@@ -471,6 +477,6 @@ void timeline_rectify_track_area(Timeline *tl);
 bool timeline_refocus_track(Timeline *tl, Track *track, bool at_bottom);
 void timeline_play_speed_set(double new_speed);
 void timeline_play_speed_mult(double scale_factor);
-void timeline_play_speed_adj(int dim);
+void timeline_play_speed_adj(double dim);
 
 #endif

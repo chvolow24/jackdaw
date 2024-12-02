@@ -188,14 +188,14 @@ void wav_write_mixdown(const char *filepath)
 }
 
 
-int wav_load(Project *proj, const char *filename, float **L, float **R)
+int32_t wav_load(Project *proj, const char *filename, float **L, float **R)
 {
     SDL_AudioSpec wav_spec;
     uint8_t *audio_buf = NULL;
     uint32_t audio_len_bytes = 0;
     if (!(SDL_LoadWAV(filename, &wav_spec, &audio_buf, &audio_len_bytes))) {
 	fprintf(stderr, "Error loading wav %s: %s\n", filename, SDL_GetError());
-	return 1;
+	return 0;
     }
     SDL_AudioCVT wav_cvt;
     int ret = SDL_BuildAudioCVT(&wav_cvt, wav_spec.format, wav_spec.channels, wav_spec.freq, proj->fmt, proj->channels, proj->sample_rate);
@@ -204,7 +204,7 @@ int wav_load(Project *proj, const char *filename, float **L, float **R)
 
     if (ret < 0) {
         fprintf(stderr, "Error: unable to build SDL_AudioCVT. %s\n", SDL_GetError());
-        return 1;
+        return 0;
     } else if (ret == 1) { // Needs conversion
         fprintf(stderr, "Converting. Len mult: %d\n", wav_cvt.len_mult);
 	fprintf(stderr, "WAV specs: freq: %d, format: %s, channels: %d\n", wav_spec.freq, get_fmt_str(wav_spec.format), wav_spec.channels);
@@ -258,7 +258,7 @@ int wav_load(Project *proj, const char *filename, float **L, float **R)
 	/* SDL_FreeWAV(audio_buf); */
     } else {
         fprintf(stderr, "Error: unexpected return value for SDL_BuildAudioCVT.\n");
-        return 1;
+        return 0;
     }
 
     SDL_FreeWAV(audio_buf);
@@ -268,18 +268,18 @@ int wav_load(Project *proj, const char *filename, float **L, float **R)
     if (buf_len_samples < 3) {
 	fprintf(stderr, "Error: cannot read wav file.\n");
 	status_set_errstr("Error reading wav file.");
-	return 1;
+	return 0;
     }
 
-    *L = malloc(buf_len_samples / proj->channels * sizeof(float));
-    *R = malloc(buf_len_samples / proj->channels * sizeof(float));
+    *L = malloc(buf_len_sframes * sizeof(float));
+    *R = malloc(buf_len_sframes * sizeof(float));
     int16_t *src_buf = (int16_t *)final_buffer;
     for (uint32_t i=0; i<buf_len_sframes; i++) {
 	(*L)[i] = (float)src_buf[i*2] / INT16_MAX;
 	(*R)[i] = (float)src_buf[i*2+1] / INT16_MAX;
     }
 
-    return 0;
+    return buf_len_sframes;
 }
 
 ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos) {

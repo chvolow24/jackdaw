@@ -372,8 +372,8 @@ static void ruler_draw(Timeline *tl)
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_white));
 
     int second;
-    float x = tl->proj->ruler_rect->x + timeline_first_second_tick_x(tl, &second);
-    float sw = timeline_get_second_w(tl);
+    double x = tl->proj->ruler_rect->x + timeline_first_second_tick_x(tl, &second);
+    double sw = timeline_get_second_w(tl);
     int line_len;
     while (x < proj->audio_rect->x + proj->audio_rect->w) {
     /* while (x < tl->layout->rect.x + tl->layout->rect.w) { */
@@ -389,7 +389,7 @@ static void ruler_draw(Timeline *tl)
 	    } else {
 		line_len = 5;
 	    }
-            SDL_RenderDrawLine(main_win->rend, x, tl->layout->rect.y, x, tl->layout->rect.y + line_len);
+            SDL_RenderDrawLine(main_win->rend, round(x), tl->layout->rect.y, round(x), tl->layout->rect.y + line_len);
         }
         x += sw;
 	second++;

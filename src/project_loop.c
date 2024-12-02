@@ -149,7 +149,6 @@ static void update_track_vol_pan()
 /* } */
 
 void user_global_quit(void *);
-
 void loop_project_main()
 {
     /* clock_t start, end; */
@@ -554,6 +553,10 @@ void loop_project_main()
 	if (proj->play_speed != 0 && !proj->source_mode) {
 	    timeline_catchup(tl);
 	    timeline_set_timecode(tl);
+	    for (int i=0; i<tl->num_tempo_tracks; i++) {
+		int bar, beat, subdiv;
+		tempo_track_bar_beat_subdiv(tl->tempo_tracks[i], tl->play_pos_sframes, &bar, &beat, &subdiv, NULL, true);
+	    }
 	}
 
 	if (animate_step == 255) {

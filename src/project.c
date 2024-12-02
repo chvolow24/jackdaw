@@ -169,8 +169,8 @@ uint8_t project_add_timeline(Project *proj, char *name)
     new_tl->timecode_tb = textbox_create_from_str(
 	new_tl->timecode.str,
 	tc_lt,
-	main_win->std_font,
-	18,
+	main_win->mono_bold_font,
+	16,
 	main_win);
     textbox_set_background_color(new_tl->timecode_tb, &color_global_black);
     textbox_set_text_color(new_tl->timecode_tb, &color_global_white);

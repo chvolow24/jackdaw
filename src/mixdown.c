@@ -284,6 +284,12 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
         exit(1);
     }
 
+    int32_t end_pos_sframes = start_pos_sframes + len_sframes * step;
+    for (uint8_t i=0; i<tl->num_tempo_tracks; i++) {
+	TempoTrack *tt = tl->tempo_tracks[i];
+	tempo_track_mix_metronome(tt, mixdown, len_sframes, start_pos_sframes, end_pos_sframes, step);
+    }
+
     /* long unsigned track_mixdown_time = 0; */
     /* long unsigned track_filter_time = 0; */
     for (uint8_t t=0; t<tl->num_tracks; t++) {
@@ -374,11 +380,6 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 	    }
 	}
 
-	
-        /* free(track_chunk); */
     }
-    /* fprintf(stdout, "\tMixdown: %lu\n\tFilter: %lu\n", track_mixdown_time, track_filter_time); */
-
-
     return mixdown;
 }

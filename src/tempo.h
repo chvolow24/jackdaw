@@ -35,6 +35,7 @@
 
 #include <stdint.h>
 #include "layout.h"
+#include "textbox.h"
 
 #define MAX_BEATS_PER_BAR 16
 #define MAX_TEMPO_TRACKS 16
@@ -47,6 +48,7 @@ typedef struct measure_config {
     uint8_t num_beats;
     uint8_t beat_subdiv_lens[MAX_BEATS_PER_BAR];
     uint8_t num_atoms;
+    int32_t atom_dur_approx; /* Not to be used for precise calculations */
 } MeasureConfig;
 
 typedef struct tempo_track TempoTrack;
@@ -70,10 +72,12 @@ typedef struct metronome {
     const char *name;
     /* const char *buffer_filenames[2]; */
     float *buffers[2];
+    int32_t buf_lens[2];
 } Metronome;
 
 typedef struct tempo_track {
     TempoSegment *segments;
+    uint8_t index;
     /* uint8_t num_segments; */
     uint8_t current_segment;
 
@@ -84,10 +88,11 @@ typedef struct tempo_track {
     /* float metronome_volume; */
 
     char pos_str[TEMPO_POS_STR_LEN];
-    
+    Textbox *readout;
     
     Timeline *tl;
     Layout *layout;
+    SDL_Rect *colorbar_rect;
 } TempoTrack;
 
 
@@ -96,8 +101,10 @@ TempoSegment *tempo_track_add_segment(TempoTrack *t, int32_t start_pos, int16_t 
 void tempo_segment_fprint(FILE *f, TempoSegment *s);
 
 void tempo_track_draw(TempoTrack *tt);
+int32_t tempo_track_bar_beat_subdiv(TempoTrack *tt, int32_t pos, int *bar_p, int *beat_p, int *subdiv_p, TempoSegment **segment_p, bool set_readout);
 
 typedef struct project Project;
 void project_init_metronomes(Project *proj);
+void tempo_track_mix_metronome(TempoTrack *tt, float *mixdown_buf, int32_t mixdown_buf_len, int32_t tl_start_pos_sframes, int32_t tl_end_pos_sframes, float step);
 
 #endif

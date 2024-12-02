@@ -35,6 +35,7 @@
 #include <stdint.h>
 #include <time.h>
 #include "project.h"
+#include "tempo.h"
 #include "thread_safety.h"
 #include "timeline.h"
 #include "transport.h"
@@ -62,7 +63,7 @@ int timeline_get_draw_x(Timeline *tl, int32_t abs_x)
 {
     /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
     if (tl->sample_frames_per_pixel != 0) {
-        double precise = (float)tl->proj->audio_rect->x + ((double)abs_x - (double)tl->display_offset_sframes) / (double)tl->sample_frames_per_pixel;
+        double precise = (double)tl->proj->audio_rect->x + ((double)abs_x - (double)tl->display_offset_sframes) / (double)tl->sample_frames_per_pixel;
         return (int) round(precise);
     } else {
         fprintf(stderr, "Error: proj tl sfpp value 0\n");
@@ -83,13 +84,13 @@ int timeline_get_draw_w(Timeline *tl, int32_t abs_w)
     }
 }
 
-float timeline_get_draw_w_precise(Timeline *tl, int32_t abs_w)
+static double timeline_get_draw_w_precise(Timeline *tl, int32_t abs_w)
 {
     /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
     if (tl->sample_frames_per_pixel != 0) {
-	return (float) abs_w / tl->sample_frames_per_pixel;
+	return (double) abs_w / tl->sample_frames_per_pixel;
     }
-    return 0.0f;
+    return 0.0;
 }
  
 /* Get a length in sample frames from a given draw width */
@@ -107,22 +108,22 @@ void timeline_scroll_horiz(Timeline *tl, int scroll_by)
     timeline_reset(tl, false);
 }
 
-float timeline_get_leftmost_seconds(Timeline *tl)
+double timeline_get_leftmost_seconds(Timeline *tl)
 {
     /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
-    return (float) tl->display_offset_sframes / tl->proj->sample_rate;
+    return (double) tl->display_offset_sframes / tl->proj->sample_rate;
 }
 
-float timeline_get_second_w(Timeline *tl)
+double timeline_get_second_w(Timeline *tl)
 {
     return timeline_get_draw_w_precise(tl, tl->proj->sample_rate);
     /* return ret <= 0 ? 1 : ret; */
 }
 
-float timeline_first_second_tick_x(Timeline *tl, int *first_second)
+double timeline_first_second_tick_x(Timeline *tl, int *first_second)
 {
-    float lms = timeline_get_leftmost_seconds(tl);
-    float dec = lms - floor(lms);
+    double lms = timeline_get_leftmost_seconds(tl);
+    double dec = lms - floor(lms);
     *first_second = (int)floor(lms) + 1;
     return timeline_get_second_w(tl) * (1 - dec);
     /* return 1 - (timeline_get_second_w() * dec) + proj->audio_rect->x; */
@@ -231,8 +232,6 @@ static void track_handle_playhead_jump(Track *track)
     }
 }
 
-void tempo_track_bar_beat_subdiv(TempoTrack *tt, int32_t pos);
-
 /* Invalidates continuous-play-dependent caches.
    Use this any time a "jump" occurrs */
 void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes)
@@ -249,10 +248,12 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes)
     for (uint8_t i=0; i<tl->num_tracks; i++) {
 	track_handle_playhead_jump(tl->tracks[i]);
     }
-    /* timeline_set_timecode(tl); */
+    timeline_set_timecode(tl);
+    for (int i=0; i<tl->num_tempo_tracks; i++) {	
+	tempo_track_bar_beat_subdiv(tl->tempo_tracks[i], tl->play_pos_sframes, NULL, NULL, NULL, NULL, true);
+    }
     timeline_reset(tl, false);
 
-    tempo_track_bar_beat_subdiv(tl->tempo_tracks[0], tl->play_pos_sframes);
 }
 
 
@@ -273,7 +274,7 @@ void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes)
     }
     tl->needs_redraw = true;
 
-    tempo_track_bar_beat_subdiv(tl->tempo_tracks[0], tl->play_pos_sframes);
+    /* tempo_track_bar_beat_subdiv(tl->tempo_tracks[0], tl->play_pos_sframes); */
 }
 
 

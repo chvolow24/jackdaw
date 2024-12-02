@@ -12,27 +12,27 @@
             <h>SCALE 1.000000</h>
             <index>0</index>
             <children>
-                <Layout name="name_row" type="NORMAL">
-                    <x>REL 2</x>
-                    <y>REL 4</y>
+                <Layout name="row" type="NORMAL">
+                    <x>REL 0</x>
+                    <y>REL 0</y>
                     <w>SCALE 1.000000</w>
-                    <h>REL 21</h>
+                    <h>SCALE 1.000000</h>
                     <index>0</index>
                     <children>
-                        <Layout name="name_value" type="NORMAL">
+                        <Layout name="display" type="NORMAL">
                             <x>REL 0</x>
-                            <y>REL 0</y>
-                            <w>REL 96</w>
-                            <h>SCALE 1.000000</h>
+                            <y>REL 6</y>
+                            <w>REL 120</w>
+                            <h>REL 1</h>
                             <index>0</index>
                             <children>
                             </children>
                         </Layout>
                         <Layout name="metronome_button" type="NORMAL">
-                            <x>STACK 4</x>
-                            <y>REL 1</y>
-                            <w>REL 20</w>
-                            <h>REL 20</h>
+                            <x>STACK 0</x>
+                            <y>REL 0</y>
+                            <w>COMPLEMENT 1040746633</w>
+                            <h>SCALE 1.000000</h>
                             <index>1</index>
                             <children>
                             </children>
@@ -44,7 +44,7 @@
                     <y>REL 0</y>
                     <w>REL 8</w>
                     <h>SCALE 1.000000</h>
-                    <index>4</index>
+                    <index>1</index>
                     <children>
                     </children>
                 </Layout>

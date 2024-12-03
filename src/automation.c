@@ -1593,6 +1593,7 @@ static void automation_push_write_event(Automation *a)
 
 bool automation_triage_click(uint8_t button, Automation *a)
 {
+    if (!a->shown) return false;
     int click_tolerance = 10 * main_win->dpi_scale_factor;;
     /* int32_t epsilon = 10000; */
     if (SDL_PointInRect(&main_win->mousep, &a->layout->rect)) {

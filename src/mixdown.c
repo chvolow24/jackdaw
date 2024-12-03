@@ -276,6 +276,7 @@ should be collected from the in mark rather than from the play head.
 float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t len_sframes, int32_t start_pos_sframes, float step)
 {
 
+    /* clock_t start = clock(); */
     uint32_t chunk_len_bytes = sizeof(float) * len_sframes;
     /* float *mixdown = malloc(chunk_len_bytes); */
     memset(mixdown, '\0', chunk_len_bytes);
@@ -382,4 +383,5 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 
     }
     return mixdown;
+    /* fprintf(stderr, "MIXDOWN TOTAL DUR: %f\n", 1000 * ((double)clock() - start)/ CLOCKS_PER_SEC); */
 }

@@ -51,6 +51,11 @@ extern Window *main_win;
 extern SDL_Color color_global_tempo_track;
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;
+extern SDL_Color control_bar_bckgrnd;
+
+extern pthread_t MAIN_THREAD_ID;
+
+
 enum beat_prominence {
     BP_SEGMENT=0,
     BP_MEASURE=1,
@@ -386,14 +391,16 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
     textbox_set_align(t->readout, CENTER_LEFT);
     textbox_set_background_color(t->readout, &color_global_black);
     textbox_set_text_color(t->readout, &color_global_white);
-    textbox_size_to_fit_v(t->readout, 4);
-    layout_center_agnostic(t->readout->layout, false, true);
+    /* textbox_size_to_fit_v(t->readout, 4); */
+    /* layout_center_agnostic(t->readout->layout, false, true); */
     textbox_set_pad(t->readout, 10, 0);
     textbox_set_trunc(t->readout, false);
     textbox_reset_full(t->readout);
 
     t->colorbar_rect = &layout_get_child_by_name_recursive(t->layout, "colorbar")->rect;
-
+    t->console_rect = &layout_get_child_by_name_recursive(t->layout, "console")->rect;
+    t->right_console_rect = &layout_get_child_by_name_recursive(t->layout, "right_console")->rect;
+    t->right_colorbar_rect = &layout_get_child_by_name_recursive(t->layout, "right_colorbar")->rect;
 
     tempo_track_add_segment(t, 0, -1, 120, 4, 4, 4, 4, 4);
     
@@ -466,19 +473,19 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
 	}
 	/* exit(1); */
     } else if (tl->num_tempo_tracks == 2) {
-	tempo_track_add_segment(t, 0, -1, 122, 4, 4, 4, 4, 4);
+	tempo_track_add_segment(t, 1, -1, 122, 4, 4, 4, 4, 4);
     } else if (tl->num_tempo_tracks == 3) {
-	tempo_track_add_segment(t, 0, -1, 123, 4, 4, 4, 4, 4);
+	tempo_track_add_segment(t, 1, -1, 123, 4, 4, 4, 4, 4);
     } else if (tl->num_tempo_tracks == 4) {
-	tempo_track_add_segment(t, 0, -1, 124, 4, 4, 4, 4, 4);
+	tempo_track_add_segment(t, 1, -1, 124, 4, 4, 4, 4, 4);
     } else if (tl->num_tempo_tracks == 5) {
-	tempo_track_add_segment(t, 0, -1, 125, 4, 4, 4, 4, 4);
+	tempo_track_add_segment(t, 1, -1, 125, 4, 4, 4, 4, 4);
     } else if (tl->num_tempo_tracks == 6) {
-	tempo_track_add_segment(t, 0, -1, 126, 4, 4, 4, 4, 4);
+	tempo_track_add_segment(t, 1, -1, 126, 4, 4, 4, 4, 4);
     } else if (tl->num_tempo_tracks == 7) {
-	tempo_track_add_segment(t, 0, -1, 127, 4, 4, 4, 4, 4);
+	tempo_track_add_segment(t, 1, -1, 127, 4, 4, 4, 4, 4);
     } else if (tl->num_tempo_tracks == 8) {
-	tempo_track_add_segment(t, 0, -1, 128, 4, 4, 4, 4, 4);
+	tempo_track_add_segment(t, 1, -1, 128, 4, 4, 4, 4, 4);
     }
 
     return t;
@@ -501,8 +508,14 @@ void tempo_track_draw(TempoTrack *tt)
 {
     Timeline *tl = tt->tl;
     SDL_Rect ttr = tt->layout->rect;
+    
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_tempo_track));
     SDL_RenderFillRect(main_win->rend, &ttr);
+
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
+    SDL_RenderFillRect(main_win->rend, tt->console_rect);
+
+    
     static SDL_Color line_colors[] =  {
 	{255, 250, 125, 255},
 	{255, 255, 255, 255},
@@ -537,7 +550,7 @@ void tempo_track_draw(TempoTrack *tt)
     /* const int draw_beat_thresh = 1; */
     /* bool draw_subdivs = true; */
     /* bool draw_beats = true; */
-    while (x > 0 && x < main_win->w_pix) {
+    while (x > 0 && x < tt->right_console_rect->x) {
 	tempo_track_get_next_pos(tt, false, 0, &pos, &bp);
 	/* int prev_x = x; */
 	x = timeline_get_draw_x(tl, pos);
@@ -565,10 +578,17 @@ void tempo_track_draw(TempoTrack *tt)
 	}
     }
     textbox_draw(tt->readout);
-    
+
+    /* Fill right console */
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
+    SDL_RenderFillRect(main_win->rend, tt->right_console_rect);
+
+    /* Draw outline */
     SDL_SetRenderDrawColor(main_win->rend, 100, 100, 100, 255);
     SDL_RenderDrawRect(main_win->rend, &ttr);
     SDL_RenderFillRect(main_win->rend, tt->colorbar_rect);
+    SDL_RenderFillRect(main_win->rend, tt->right_colorbar_rect);
+
 }
 
 /* sets bar, beat, and pos; returns remainder in sframes */
@@ -684,7 +704,7 @@ int32_t tempo_track_bar_beat_subdiv(TempoTrack *tt, int32_t pos, int *bar_p, int
 void tempo_track_mix_metronome(TempoTrack *tt, float *mixdown_buf, int32_t mixdown_buf_len, int32_t tl_start_pos_sframes, int32_t tl_end_pos_sframes, float step)
 {
     if (step < 0.0) return;
-    if (step > 8.0) return;
+    if (step > 4.0) return;
     /* fprintf(stderr, "TEMPO TRACK MIX METRONOME\n"); */
     /* clock_t start = clock(); */
     int bar, beat, subdiv;
@@ -737,6 +757,7 @@ void tempo_track_mix_metronome(TempoTrack *tt, float *mixdown_buf, int32_t mixdo
 	}
 	int32_t buf_i = 0;
 	double buf_i_d = 0.0;
+	double tick_i_d = (double)tick_start_in_chunk;
 	while (tick_start_in_chunk < mixdown_buf_len) {
 	    if (tick_start_in_chunk > 0 && buf_i > 0 && buf_i < buf_len) {
 		mixdown_buf[tick_start_in_chunk] += buf[buf_i];
@@ -744,6 +765,7 @@ void tempo_track_mix_metronome(TempoTrack *tt, float *mixdown_buf, int32_t mixdo
 	    buf_i_d += step;
 	    buf_i = (int32_t)round(buf_i_d);
 	    tick_start_in_chunk++;
+	    /* tick_start_in_chunk = (round((double)tick_start_in_chunk + step)); */
 	    /* inner_ops++; */
 	}
     previous_beat:

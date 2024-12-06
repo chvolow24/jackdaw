@@ -93,6 +93,9 @@ typedef struct tempo_track {
     Timeline *tl;
     Layout *layout;
     SDL_Rect *colorbar_rect;
+    SDL_Rect *console_rect;
+    SDL_Rect *right_console_rect;
+    SDL_Rect *right_colorbar_rect;
 } TempoTrack;
 
 

@@ -427,6 +427,10 @@ static int timeline_draw(Timeline *tl)
     for (uint8_t i=0; i<tl->num_tracks; i++) {
 	track_draw(tl->tracks[i]);
     }
+    for (int i=0; i<tl->num_tempo_tracks; i++) {
+	tempo_track_draw(tl->tempo_tracks[i]);
+    }
+
 
     SDL_RenderSetClipRect(main_win->rend, &main_win->layout->rect);
     
@@ -501,10 +505,6 @@ static int timeline_draw(Timeline *tl)
         SDL_Rect in_out = (SDL_Rect) {in_x, proj->audio_rect->y, out_x - in_x, proj->audio_rect->h};
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(timeline_marked_bckgrnd));
         SDL_RenderFillRect(main_win->rend, &(in_out));
-    }
-
-    for (int i=0; i<tl->num_tempo_tracks; i++) {
-	tempo_track_draw(tl->tempo_tracks[i]);
     }
 
     if (proj->source_mode) {

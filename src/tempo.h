@@ -106,5 +106,6 @@ int32_t tempo_track_bar_beat_subdiv(TempoTrack *tt, int32_t pos, int *bar_p, int
 typedef struct project Project;
 void project_init_metronomes(Project *proj);
 void tempo_track_mix_metronome(TempoTrack *tt, float *mixdown_buf, int32_t mixdown_buf_len, int32_t tl_start_pos_sframes, int32_t tl_end_pos_sframes, float step);
+void tempo_track_fprint(FILE *f, TempoTrack *tt);
 
 #endif

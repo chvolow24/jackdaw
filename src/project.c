@@ -3075,7 +3075,11 @@ void timeline_play_speed_set(double new_speed)
 void timeline_play_speed_mult(double scale_factor)
 {
     double new_speed = proj->play_speed * scale_factor;
-    timeline_play_speed_set(new_speed);
+    if (fabs(new_speed) > MAX_PLAY_SPEED) {
+	timeline_play_speed_set(proj->play_speed);
+    } else {
+	timeline_play_speed_set(new_speed);
+    }
 }
 
 void timeline_play_speed_adj(double dim)

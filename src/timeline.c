@@ -262,14 +262,22 @@ void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes)
 {
     RESTRICT_NOT_DSP("timeline_move_play_position");
     RESTRICT_NOT_MAIN("timeline_move_play_position");
-    
-    tl->play_pos_sframes += move_by_sframes;
-    clock_gettime(CLOCK_MONOTONIC, &tl->play_pos_moved_at);
-    if (tl->proj->dragging) {
-	for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
-	    ClipRef *cr = tl->grabbed_clips[i];
-	    cr->pos_sframes += move_by_sframes;
-	    /* clipref_reset(cr); */
+
+    int64_t new_pos = (int64_t)tl->play_pos_sframes + move_by_sframes;
+    /* fprintf(stderr, "NEW POS: %lld\n", new_pos); */
+    if (new_pos > INT32_MAX || new_pos < INT32_MIN) {
+	/* fprintf(stderr, "CMPS (to %d, %d) %d %d\n", INT32_MAX, INT32_MIN, new_pos > INT32_MAX, new_pos < INT32_MIN); */
+	if (tl->proj->playing) transport_stop_playback();
+	status_set_errstr("reached end of timeline");
+    } else {
+	tl->play_pos_sframes += move_by_sframes;
+	clock_gettime(CLOCK_MONOTONIC, &tl->play_pos_moved_at);
+	if (tl->proj->dragging) {
+	    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
+		ClipRef *cr = tl->grabbed_clips[i];
+		cr->pos_sframes += move_by_sframes;
+		/* clipref_reset(cr); */
+	    }
 	}
     }
     tl->needs_redraw = true;

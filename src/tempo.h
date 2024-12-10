@@ -34,6 +34,7 @@
 #define JDAW_TEMPO_H
 
 #include <stdint.h>
+#include "components.h"
 #include "layout.h"
 #include "textbox.h"
 
@@ -82,15 +83,20 @@ typedef struct tempo_track {
     uint8_t current_segment;
 
     Metronome *metronome;
+    float metronome_vol;
+    /* Button *metronome_button; */
+    Textbox *metronome_button;
+    Textbox * edit_button;
+    Slider *metronome_vol_slider;
     /* float *metronome_buffers[2]; */
     /* uint16_t metronome_buffer_lens[2]; */
     /* bool metronome_offbeats; */
     /* float metronome_volume; */
+    Timeline *tl;
 
     char pos_str[TEMPO_POS_STR_LEN];
     Textbox *readout;
-    
-    Timeline *tl;
+
     Layout *layout;
     SDL_Rect *colorbar_rect;
     SDL_Rect *console_rect;

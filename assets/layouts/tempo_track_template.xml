@@ -28,11 +28,11 @@
                             <children>
                             </children>
                         </Layout>
-                        <Layout name="metronome_button" type="NORMAL">
-                            <x>STACK 0</x>
-                            <y>REL 0</y>
-                            <w>COMPLEMENT 1040746633</w>
-                            <h>SCALE 1.000000</h>
+                        <Layout name="edit_button" type="NORMAL">
+                            <x>STACK 4</x>
+                            <y>REL 6</y>
+                            <w>REL 20</w>
+                            <h>REL 20</h>
                             <index>1</index>
                             <children>
                             </children>
@@ -53,7 +53,7 @@
         <Layout name="right_console" type="NORMAL">
             <x>REVREL 0</x>
             <y>REL 0</y>
-            <w>REL 150</w>
+            <w>REL 120</w>
             <h>SCALE 1.000000</h>
             <index>1</index>
             <children>
@@ -63,6 +63,24 @@
                     <w>REL 8</w>
                     <h>SCALE 1.000000</h>
                     <index>0</index>
+                    <children>
+                    </children>
+                </Layout>
+                <Layout name="metronome_button" type="NORMAL">
+                    <x>STACK 8</x>
+                    <y>REL 8</y>
+                    <w>REL 20</w>
+                    <h>REL 20</h>
+                    <index>1</index>
+                    <children>
+                    </children>
+                </Layout>
+                <Layout name="metronome_vol_slider" type="NORMAL">
+                    <x>STACK 8</x>
+                    <y>REL 10</y>
+                    <w>REL 70</w>
+                    <h>REL 13</h>
+                    <index>2</index>
                     <children>
                     </children>
                 </Layout>

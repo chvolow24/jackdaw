@@ -402,6 +402,53 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
     t->right_console_rect = &layout_get_child_by_name_recursive(t->layout, "right_console")->rect;
     t->right_colorbar_rect = &layout_get_child_by_name_recursive(t->layout, "right_colorbar")->rect;
 
+    Layout *edit_button_lt = layout_get_child_by_name_recursive(t->layout, "edit_button");
+    t->edit_button = textbox_create_from_str(
+	"✎",
+	edit_button_lt,
+	main_win->symbolic_font,
+	16,
+	main_win);
+    t->edit_button->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
+    textbox_set_border(t->edit_button, &color_global_black, 1);
+
+    Layout *metro_button_lt = layout_get_child_by_name_recursive(t->layout, "metronome_button");
+    t->metronome_button = textbox_create_from_str(
+	"M",
+	metro_button_lt,
+	main_win->bold_font,
+	14,
+	main_win);
+    t->metronome_button->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
+    textbox_set_border(t->metronome_button, &color_global_black, 1);
+    /* textbox_set_background_color(track->tb_mute_button, &color_mute_solo_grey); */
+
+
+
+    t->metronome_vol = 1.0;
+    Layout *vol_lt = layout_get_child_by_name_recursive(t->layout, "metronome_vol_slider");
+    t->metronome_vol_slider = slider_create(
+	vol_lt,
+	(void *)(&t->metronome_vol),
+	JDAW_FLOAT,
+	SLIDER_HORIZONTAL,
+	SLIDER_FILL,
+	NULL,
+	/* &slider_label_amp_to_dbstr, */
+	NULL,
+	NULL,
+	&tl->proj->dragged_component);
+    
+    Value min, max;
+    min.float_v = 0.0f;
+    max.float_v = TRACK_VOL_MAX;
+    slider_set_range(t->metronome_vol_slider, min, max);
+    slider_reset(t->metronome_vol_slider);
+
+
+    /* t->metronome_volume_slider = s */
+
+    
     tempo_track_add_segment(t, 0, -1, 120, 4, 4, 4, 4, 4);
     
     tl->tempo_tracks[tl->num_tempo_tracks] = t;
@@ -529,7 +576,7 @@ void tempo_track_draw(TempoTrack *tt)
     tempo_track_get_next_pos(tt, true, pos, &pos, &bp);
     int x = timeline_get_draw_x(tl, pos);
     int main_top_y = tt->layout->rect.y;
-    int bttm_y = main_top_y + tt->layout->rect.h;
+    int bttm_y = main_top_y + tt->layout->rect.h - 1; /* TODO: figure out why decremet to bttm_y is necessary */
     int h = tt->layout->rect.h;
 
     int top_y = main_top_y + h * (int)bp / 5;
@@ -550,10 +597,11 @@ void tempo_track_draw(TempoTrack *tt)
     /* const int draw_beat_thresh = 1; */
     /* bool draw_subdivs = true; */
     /* bool draw_beats = true; */
-    while (x > 0 && x < tt->right_console_rect->x) {
+    while (x > 0) {
 	tempo_track_get_next_pos(tt, false, 0, &pos, &bp);
 	/* int prev_x = x; */
 	x = timeline_get_draw_x(tl, pos);
+	if (x > tt->right_console_rect->x) break;
 	/* int x_diff; */
 	/* if (draw_beats && (x_diff = x - prev_x) <= draw_beat_thresh) { */
 	/*     draw_beats = false; */
@@ -583,6 +631,11 @@ void tempo_track_draw(TempoTrack *tt)
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
     SDL_RenderFillRect(main_win->rend, tt->right_console_rect);
 
+    /* Draw right console elements */
+    textbox_draw(tt->metronome_button);
+    textbox_draw(tt->edit_button);
+    slider_draw(tt->metronome_vol_slider);
+
     /* Draw outline */
     SDL_SetRenderDrawColor(main_win->rend, 100, 100, 100, 255);
     SDL_RenderDrawRect(main_win->rend, &ttr);
@@ -594,10 +647,10 @@ void tempo_track_draw(TempoTrack *tt)
 /* sets bar, beat, and pos; returns remainder in sframes */
 int32_t tempo_track_bar_beat_subdiv(TempoTrack *tt, int32_t pos, int *bar_p, int *beat_p, int *subdiv_p, TempoSegment **segment_p, bool set_readout)
 {
-    bool debug = false;
-    if (strcmp(get_thread_name(), "main") == 0) {
-	debug = true;
-    }
+    /* bool debug = false; */
+    /* if (strcmp(get_thread_name(), "main") == 0) { */
+    /* 	debug = true; */
+    /* } */
     /* fprintf(stderr, "CALL TO bar beat subdiv in thread %s\n", get_thread_name()); */
     static JDAW_THREAD_LOCAL int measures[MAX_TEMPO_TRACKS];
     static JDAW_THREAD_LOCAL int beats[MAX_TEMPO_TRACKS];
@@ -630,16 +683,16 @@ int32_t tempo_track_bar_beat_subdiv(TempoTrack *tt, int32_t pos, int *bar_p, int
     clock_t c;
     c = clock();
     int32_t remainder = 0;
-    if (debug) {
-	/* fprintf(stderr, "\t\tSTART loop\n"); */
-    }
+    /* if (debug) { */
+    /* 	/\* fprintf(stderr, "\t\tSTART loop\n"); *\/ */
+    /* } */
     while (1) {
 	ops++;
 	beat_pos = get_beat_pos(s, measure, beat, subdiv);
 	remainder = pos - beat_pos;
-	if (debug) {
-	    /* fprintf(stderr, "\t\t\tremainder: (%d - %d) %d cmp dur approx: %d\n", pos, beat_pos, remainder, s->cfg.atom_dur_approx); */
-	}
+	/* if (debug) { */
+	/*     /\* fprintf(stderr, "\t\t\tremainder: (%d - %d) %d cmp dur approx: %d\n", pos, beat_pos, remainder, s->cfg.atom_dur_approx); *\/ */
+	/* } */
 	if (remainder < 0) {
 	    do_decrement(s, &measure, &beat, &subdiv);
 	} else {
@@ -651,13 +704,13 @@ int32_t tempo_track_bar_beat_subdiv(TempoTrack *tt, int32_t pos, int *bar_p, int
 	}
 
     }
-    if (debug) {
-	/* fprintf(stderr, "\t\t->exit loop, ops %d\n", ops); */
-    }
+    /* if (debug) { */
+    /* 	/\* fprintf(stderr, "\t\t->exit loop, ops %d\n", ops); *\/ */
+    /* } */
     /* v_positions[tt->index] = pos; */
     
     /* do_decrement(s, &measure, &beat, &subdiv); */
-    double dur = ((double)clock() - c) / CLOCKS_PER_SEC;
+    /* double dur = ((double)clock() - c) / CLOCKS_PER_SEC; */
     /* fprintf(stderr, "Ops; %d, time msec: %f\n", ops, dur * 1000); */
 
 
@@ -760,7 +813,7 @@ void tempo_track_mix_metronome(TempoTrack *tt, float *mixdown_buf, int32_t mixdo
 	double tick_i_d = (double)tick_start_in_chunk;
 	while (tick_start_in_chunk < mixdown_buf_len) {
 	    if (tick_start_in_chunk > 0 && buf_i > 0 && buf_i < buf_len) {
-		mixdown_buf[tick_start_in_chunk] += buf[buf_i];
+		mixdown_buf[tick_start_in_chunk] += buf[buf_i] * tt->metronome_vol;
 	    }
 	    buf_i_d += step;
 	    buf_i = (int32_t)round(buf_i_d);

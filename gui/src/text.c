@@ -133,7 +133,12 @@ void txt_reset_drawable(Text *txt)
         return;
     }
     SDL_FreeSurface(surface);
-    SDL_QueryTexture(txt->texture, NULL, NULL, &(txt->text_lt->rect.w), &(txt->text_lt->rect.h));
+    int txtrw, txtrh;
+    /* SDL_QueryTexture(txt->texture, NULL, NULL, &(txt->text_lt->rect.w), &(txt->text_lt->rect.h)); */
+    SDL_QueryTexture(txt->texture, NULL, NULL, &txtrw, &txtrh);
+    txt->text_lt->rect.w = txtrw;
+    txt->text_lt->rect.h = txtrh;
+    
     switch (txt->align) {
     case CENTER:
 	txt->text_lt->rect.x = txt->container->rect.x + (int) round((float)txt->container->rect.w / 2.0 - (float) txt->text_lt->rect.w / 2.0);
@@ -165,6 +170,10 @@ void txt_reset_drawable(Text *txt)
 
     }
     layout_set_values_from_rect(txt->text_lt);
+    layout_reset(txt->text_lt);
+    if (txtrh != txt->text_lt->rect.h || txtrw != txt->text_lt->rect.w) {
+	fprintf(stderr, "CMP H (%s): %d, %d; CMP W (%s): %d, %d\n", layout_get_dimtype_str(txt->text_lt->h.type), txtrh, txt->text_lt->rect.h, layout_get_dimtype_str(txt->text_lt->w.type), txtrw, txt->text_lt->rect.w);
+    }
 
 }
 

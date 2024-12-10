@@ -561,8 +561,8 @@ void automation_show(Automation *a)
 	a->write_button = button;
 	a->keyframe_label = label_create(0, a->layout, keyframe_labelmaker, a, 0, main_win);
     } else {
-	a->layout->h.value.intval = AUTOMATION_LT_H;
-	a->layout->y.value.intval = AUTOMATION_LT_Y;
+	a->layout->h.value = AUTOMATION_LT_H;
+	a->layout->y.value = AUTOMATION_LT_Y;
     }
     layout_reset(a->layout);
     layout_size_to_fit_children_v(a->track->layout, true, 0);
@@ -589,8 +589,8 @@ void track_automations_hide_all(Track *track)
 	a->shown = false;
 	Layout *lt = a->layout;
 	if (lt) {
-	    lt->h.value.intval = 0;
-	    lt->y.value.intval = 0;
+	    lt->h.value = 0.0f;
+	    lt->y.value = 0.0f;
 	    layout_reset(lt);
 	}
     }

@@ -75,10 +75,10 @@ Modal *modal_create(Layout *lt)
     if (!modal->x) {
 	Layout *x_lt = layout_add_child(lt);
 	x_lt->x.type = REVREL;
-	x_lt->x.value.intval = 16;
-	x_lt->y.value.intval = 10;
-	x_lt->h.value.intval = SYMBOL_STD_DIM;
-	x_lt->w.value.intval = SYMBOL_STD_DIM;
+	x_lt->x.value = 16;
+	x_lt->y.value = 10;
+	x_lt->h.value = SYMBOL_STD_DIM;
+	x_lt->w.value = SYMBOL_STD_DIM;
     
 	modal->x = symbol_button_create(
 	    x_lt,
@@ -89,8 +89,8 @@ Modal *modal_create(Layout *lt)
     }
 
     /* Layout *padded = layout_add_child(lt); */
-    /* padded->x.value.intval = MODAL_V_PADDING; */
-    /* padded->y.value.intval = MODAL_V_PADDING; */
+    /* padded->x.value = MODAL_V_PADDING; */
+    /* padded->y.value = MODAL_V_PADDING; */
     /* padded->w.type = PAD; */
     /* padded->h.type = PAD; */
     modal->layout = lt;
@@ -152,12 +152,12 @@ static ModalEl *modal_add_el(Modal *modal)
     } else {
 	lt->y.type = STACK;
     }
-    lt->y.value.intval = MODAL_V_PADDING;
+    lt->y.value = MODAL_V_PADDING;
     lt->w.type = SCALE;
-    lt->w.value.floatval = 1.0;
+    lt->w.value = 1.0;
 
     lt->x.type = REL;
-    lt->x.value.intval = MODAL_V_PADDING * 2;
+    lt->x.value = MODAL_V_PADDING * 2;
     lt->w.type = PAD;
     layout_reset(lt);
     ModalEl *new_el = calloc(1, sizeof(ModalEl));
@@ -220,7 +220,7 @@ ModalEl *modal_add_header(Modal *modal, const char *text, SDL_Color *color, int 
     el = modal_add_text(modal, main_win->bold_font, fontsize, color, (char *)text, ta, false);
     layout_size_to_fit_text_v(el);
     if (level == 5) {
-	el->layout->x.value.intval = 0;
+	el->layout->x.value = 0;
     }
     layout_force_reset(modal->layout);
 
@@ -242,11 +242,11 @@ ModalEl *modal_add_dirnav(Modal *modal, const char *dirpath, int (*dir_to_tline_
     /* modal_add_header(modal, "- DirNav -", &color_global_black, 4); */
     /* modal_add_p(modal, "n (f) - next item\np (d) - previous item\n<ret> (<spc>) - drill down\nS-n (S-f) - escape DirNav next\nS-p (S-d) - escape DirNav previous", &color_global_black); */
     ModalEl *el = modal_add_el(modal);
-    el->layout->y.value.intval = MODAL_V_PADDING_TIGHT;
+    el->layout->y.value = MODAL_V_PADDING_TIGHT;
     modal->selectable_indices[modal->num_selectable] = modal->num_els -1;
     modal->num_selectable++;
     /* el->layout->x.type = REL; */
-    /* el->layout->x.value.intval = MODAL_V_PADDING * 2; */
+    /* el->layout->x.value = MODAL_V_PADDING * 2; */
     /* el->layout->w.type = PAD; */
     /* layout_reset(el->layout); */
     el->type = MODAL_EL_DIRNAV;
@@ -272,11 +272,11 @@ ModalEl *modal_add_button(Modal *modal, char *text, ComponentFn action)
 ModalEl *modal_add_textentry(Modal *modal, char *init_val, int (*validation)(Text *txt, char input), int (*completion)(Text *))
 {
     ModalEl *el = modal_add_el(modal);
-    el->layout->y.value.intval = MODAL_V_PADDING_TIGHT;
+    el->layout->y.value = MODAL_V_PADDING_TIGHT;
     modal->selectable_indices[modal->num_selectable] = modal->num_els - 1;
     modal->num_selectable++;
     /* el->layout->x.type = REL; */
-    /* el->layout->x.value.intval = MODAL_V_PADDING * 2; */
+    /* el->layout->x.value = MODAL_V_PADDING * 2; */
     /* el->layout->w.type = PAD; */
     /* layout_reset(el->layout); */
     el->type = MODAL_EL_TEXTENTRY;
@@ -303,7 +303,7 @@ ModalEl *modal_add_radio(
     uint8_t num_items)
 {
     ModalEl *el = modal_add_el(modal);
-    el->layout->y.value.intval = MODAL_V_PADDING;
+    el->layout->y.value = MODAL_V_PADDING;
     modal->selectable_indices[modal->num_selectable] = modal->num_els - 1;
     modal->num_selectable++;
     el->type = MODAL_EL_RADIO;
@@ -324,10 +324,10 @@ ModalEl *modal_add_radio(
 /* { */
 /*     Layout *x_lt = layout_add_child(modal->layout); */
 /*     x_lt->x.type = REVREL; */
-/*     x_lt->x.value.intval = 10; */
-/*     x_lt->y.value.intval = 10; */
-/*     x_lt->h.value.intval = SYMBOL_STD_DIM; */
-/*     x_lt->w.value.intval = SYMBOL_STD_DIM; */
+/*     x_lt->x.value = 10; */
+/*     x_lt->y.value = 10; */
+/*     x_lt->h.value = SYMBOL_STD_DIM; */
+/*     x_lt->w.value = SYMBOL_STD_DIM; */
     
 /*     modal->x = symbol_button_create( */
 /* 	x_lt, */
@@ -368,7 +368,7 @@ void modal_reset(Modal *modal)
 	/* layout_force_reset(modal->layout); */
     }
     layout_size_to_fit_children(modal->layout, true, MODAL_V_PADDING);
-    modal->layout->h.value.intval += MODAL_BOTTOM_PAD;
+    modal->layout->h.value += MODAL_BOTTOM_PAD;
     layout_center_agnostic(modal->layout, true, true);
     layout_reset(modal->layout);
 

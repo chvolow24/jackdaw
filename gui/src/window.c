@@ -286,10 +286,10 @@ void window_end_draw(Window *win)
 
 void window_set_layout(Window *win, Layout *layout)
 {
-    layout->x.value.intval = 0;
-    layout->y.value.intval = 0;
-    layout->w.value.intval = win->w_pix;
-    layout->h.value.intval = win->h_pix;
+    layout->x.value = 0.0f;
+    layout->y.value = 0.0f;
+    layout->w.value = win->w_pix;
+    layout->h.value = win->h_pix;
     layout_reset(layout);
     win->layout = layout;
 }

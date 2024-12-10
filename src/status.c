@@ -164,7 +164,7 @@ void status_stat_playspeed()
 void status_stat_drag()
 {
     if (!proj->dragging) {
-        proj->status_bar.dragstat->layout->w.value.intval = 0;
+        proj->status_bar.dragstat->layout->w.value = 0.0f;
 	layout_reset(proj->status_bar.layout);
 	return;
     }

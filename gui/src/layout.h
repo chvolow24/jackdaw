@@ -48,16 +48,16 @@ typedef enum rect_mem {
     H
 } RectMem;
 
-/* floatval is reserved for the SCALE dimtype */
-typedef union dimval {
-    int intval;
-    float floatval;
-} DimVal;
+/* /\* floatval is reserved for the SCALE dimtype *\/ */
+/* typedef union dimval { */
+/*     int intval; */
+/*     float floatval; */
+/* } DimVal; */
 
 /* Used to describe X, Y, W, and H of a Layout */
 typedef struct dimension {
     DimType type;
-    DimVal value;
+    float value;
 } Dimension;
 
 

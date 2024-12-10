@@ -54,8 +54,8 @@ static void menu_column_rectify_sections(MenuColumn *col)
     int y_logical = MENU_STD_SECTION_PAD;
     for (int i=0; i<col->num_sections; i++) {
 	MenuSection *sctn = col->sections[i];
-	sctn->layout->y.value.intval = y_logical;
-	y_logical += sctn->layout->h.value.intval + MENU_STD_SECTION_PAD;
+	sctn->layout->y.value = y_logical;
+	y_logical += sctn->layout->h.value + MENU_STD_SECTION_PAD;
     }
 }
 
@@ -67,17 +67,17 @@ static void menu_rectify_columns(Menu *menu)
     int w_cumulative = MENU_STD_COLUMN_PAD;
     for (int i=0; i<menu->num_columns; i++) {
 	MenuColumn *column = menu->columns[i];
-	column->layout->x.value.intval = w_cumulative;
-	w_cumulative += column->layout->w.value.intval + 4 * MENU_STD_COLUMN_PAD; 
-	if ((h = column->layout->h.value.intval) > h_max) {
+	column->layout->x.value = w_cumulative;
+	w_cumulative += column->layout->w.value + 4 * MENU_STD_COLUMN_PAD; 
+	if ((h = column->layout->h.value) > h_max) {
 	    h_max = h;
 	}
     }
-    menu->layout->w.value.intval = w_cumulative;
+    menu->layout->w.value = w_cumulative;
     if (menu->header) {
-	h_max += menu->header->layout->h.value.intval + MENU_STD_HEADER_PAD;
+	h_max += menu->header->layout->h.value + MENU_STD_HEADER_PAD;
     }
-    menu->layout->h.value.intval = h_max;
+    menu->layout->h.value = h_max;
     layout_reset(menu->layout);
 }
 	
@@ -109,8 +109,8 @@ Menu *menu_create_at_point(int x_pix, int y_pix)
 {
     Layout *lt = layout_add_child(main_win->layout);
     /* layout_set_default_dims(lt); */
-    lt->x.value.intval = x_pix / main_win->dpi_scale_factor;
-    lt->y.value.intval = y_pix / main_win->dpi_scale_factor;
+    lt->x.value = x_pix / main_win->dpi_scale_factor;
+    lt->y.value = y_pix / main_win->dpi_scale_factor;
     /* lt->w.value.intval = 1200; */
     /* lt->h.value.intval = 900; */
     layout_reset(lt);
@@ -142,18 +142,18 @@ void menu_add_header(Menu *menu, const char *title, const char *description)
     menu->title = title;
     menu->description = description;
     Layout *header_lt = menu->layout->children[0];
-    header_lt->x.value.intval = MENU_STD_COLUMN_PAD + MENU_STD_ITEM_PAD_H * 2;
-    header_lt->y.value.intval = MENU_STD_SECTION_PAD + MENU_STD_ITEM_PAD_V;
+    header_lt->x.value = MENU_STD_COLUMN_PAD + MENU_STD_ITEM_PAD_H * 2;
+    header_lt->y.value = MENU_STD_SECTION_PAD + MENU_STD_ITEM_PAD_V;
     header_lt->w.type = REL;
-    header_lt->w.value.intval = menu->layout->w.value.intval - 2 * header_lt->x.value.intval;
+    header_lt->w.value = menu->layout->w.value - 2 * header_lt->x.value;
     layout_reset(header_lt);
     TextArea *header = txt_area_create(description, header_lt, menu->font, MENU_TXT_SIZE, menu_std_clr_annot_txt, menu->window);
     menu->header = header;
-    int header_h = header->layout->h.value.intval;
+    int header_h = header->layout->h.value;
 
     /* Set y value of content layout */
-    menu->layout->children[1]->y.value.intval = header_h + MENU_STD_HEADER_PAD;
-    menu->layout->h.value.intval += menu->layout->children[1]->y.value.intval;
+    menu->layout->children[1]->y.value = header_h + MENU_STD_HEADER_PAD;
+    menu->layout->h.value += menu->layout->children[1]->y.value;
     layout_reset(menu->layout);
     menu_reset_layout(menu);
 }
@@ -171,8 +171,8 @@ MenuColumn *menu_column_add(Menu *menu, const char *label)
     snprintf(lt_name, 7, "col_%02d", menu->num_columns);
     lt_name[6] = '\0';
     layout_set_name(col->layout, lt_name);
-    col->layout->y.value.intval = 0;
-    col->layout->h.value.intval = MENU_STD_SECTION_PAD;
+    col->layout->y.value = 0;
+    col->layout->h.value = MENU_STD_SECTION_PAD;
     menu->columns[menu->num_columns] = col;
     menu->num_columns++;
     return col;
@@ -187,14 +187,14 @@ MenuSection *menu_section_add(MenuColumn *col, const char *label)
     sctn->column = col;
     sctn->layout = layout_add_child(col->layout);
     sctn->layout->w.type = SCALE;
-    sctn->layout->w.value.floatval = 1.0;
+    sctn->layout->w.value = 1.0;
     char sctn_name[8];
     snprintf(sctn_name, 8, "sctn_%02d", col->num_sections);
     sctn_name[7] = '\0';
     layout_set_name(sctn->layout, sctn_name);
     col->sections[col->num_sections] = sctn;
     col->num_sections++;
-    col->layout->h.value.intval += MENU_STD_SECTION_PAD;
+    col->layout->h.value += MENU_STD_SECTION_PAD;
     return sctn;
 }
 
@@ -228,9 +228,9 @@ MenuItem *menu_item_add(
     Layout *tb_lt = layout_add_child(item->layout);
     Layout *annot_lt = layout_add_child(item->layout);
     /* tb_lt->h.type = SCALE; */
-    /* tb_lt->h.value.floatval = 1.0; */
+    /* tb_lt->h.value = 1.0; */
     /* annot_lt->h.type = SCALE; */
-    /* annot_lt->h.value.floatval = 1.0; */
+    /* annot_lt->h.value = 1.0; */
 
     Window *win = sctn->column->menu->window;
     /* TTF_Font *font = sctn->column->menu->font; */
@@ -276,37 +276,37 @@ MenuItem *menu_item_add(
     if (annotation) {
 	textbox_size_to_fit(item->annot_tb, MENU_STD_ITEM_PAD_H, MENU_STD_ITEM_PAD_V);
 	item->annot_tb->layout->w.type = COMPLEMENT;
-	item->annot_tb->layout->x.value.intval = item->tb->layout->w.value.intval;
+	item->annot_tb->layout->x.value = item->tb->layout->w.value;
     }
 
     /* layout_fprint(stdout, item->tb->layout); */
     /* layout_fprint(stdout, item->annot_tb->layout); */
     /* exit(0); */
     
-    int annot_pad = annotation ? item->annot_tb->layout->w.value.intval + 5 * MENU_STD_ITEM_PAD_H : 0;
-    int w_logical = item->tb->layout->w.value.intval + annot_pad + 2 * MENU_STD_ITEM_PAD_H;
-    int h_logical = item->tb->layout->h.value.intval + MENU_STD_ITEM_PAD_V;    
+    int annot_pad = annotation ? item->annot_tb->layout->w.value + 5 * MENU_STD_ITEM_PAD_H : 0;
+    int w_logical = item->tb->layout->w.value + annot_pad + 2 * MENU_STD_ITEM_PAD_H;
+    int h_logical = item->tb->layout->h.value + MENU_STD_ITEM_PAD_V;    
 
-    item->layout->x.value.intval = 0;
-    item->layout->y.value.intval = (h_logical + MENU_STD_ITEM_V_SPACING) * (sctn->num_items - 1);
-    item->layout->h.value.intval = h_logical;
-    item->layout->w.value.floatval = 1.0;
+    item->layout->x.value = 0;
+    item->layout->y.value = (h_logical + MENU_STD_ITEM_V_SPACING) * (sctn->num_items - 1);
+    item->layout->h.value = h_logical;
+    item->layout->w.value = 1.0;
     item->layout->w.type = SCALE;
     MenuColumn *col = sctn->column;
-    sctn->layout->w.value.floatval = 1.0;
+    sctn->layout->w.value = 1.0;
     sctn->layout->w.type = SCALE;
-    sctn->layout->h.value.intval += h_logical + MENU_STD_ITEM_V_SPACING;
+    sctn->layout->h.value += h_logical + MENU_STD_ITEM_V_SPACING;
     
-    if (w_logical > col->layout->w.value.intval) {
+    if (w_logical > col->layout->w.value) {
 	/* fprintf(stdout, "Setting col w to %d\n", w_logical); */
-	col->layout->w.value.intval = w_logical;
+	col->layout->w.value = w_logical;
     }
-    col->layout->h.value.intval += h_logical + MENU_STD_ITEM_V_SPACING;
+    col->layout->h.value += h_logical + MENU_STD_ITEM_V_SPACING;
     menu_column_rectify_sections(col);
-    /* fprintf(stderr, "Height before: %d\n", col->menu->layout->h.value.intval); */
+    /* fprintf(stderr, "Height before: %d\n", col->menu->layout->h.value); */
     menu_rectify_columns(col->menu);
 
-    /* fprintf(stderr, "Height after: %d\n", col->menu->layout->h.value.intval); */
+    /* fprintf(stderr, "Height after: %d\n", col->menu->layout->h.value); */
     txt_reset_display_value(item->tb->text);
     if (annotation) {
 	txt_reset_display_value(item->annot_tb->text);

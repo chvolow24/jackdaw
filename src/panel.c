@@ -32,16 +32,16 @@ Panel *panel_area_add_panel(PanelArea *pa)
     snprintf(panel_lt_name, 255, "panel_%d", pa->num_panels - 1);
     layout_set_name(panel_lt, panel_lt_name);
     panel_lt->h.type = SCALE;
-    panel_lt->h.value.floatval = 1.0f;
+    panel_lt->h.value = 1.0f;
     panel_lt->x.type = STACK;
-    panel_lt->x.value.intval = PANEL_H_SPACING;
-    panel_lt->w.value.intval = 200;
+    panel_lt->x.value = PANEL_H_SPACING;
+    panel_lt->w.value = 200;
 
-    /* panel_lt->h.value.intval = 200; */
+    /* panel_lt->h.value = 200; */
     p->layout = panel_lt;
     Layout *selector_lt = layout_add_child(panel_lt);
-    /* selector_lt->w.value.intval = 200; */
-    /* selector_lt->h.value.intval = 200; */
+    /* selector_lt->w.value = 200; */
+    /* selector_lt->h.value = 200; */
     layout_set_default_dims(selector_lt);
     layout_reset(selector_lt);
     p->selector = textbox_create_from_str(NULL, selector_lt, pa->win->mathematical_font, 12, pa->win);
@@ -49,7 +49,7 @@ Panel *panel_area_add_panel(PanelArea *pa)
     p->content_layout = layout_add_child(panel_lt);
     layout_set_name(p->content_layout, "content");
     p->content_layout->y.type = STACK;
-    p->content_layout->y.value.intval = 0;
+    p->content_layout->y.value = 0;
     p->content_layout->h.type = COMPLEMENT;
     
     return p;

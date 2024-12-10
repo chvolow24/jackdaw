@@ -108,7 +108,7 @@ typedef struct slider {
     enum slider_style style;
     Layout *bar_layout;
     SDL_Rect *bar_rect;
-    DimVal *val_dim;
+    float *val_dim;
     bool editing;
     /* Textbox *label; */
     /* char label_str[SLIDER_LABEL_STRBUFLEN]; */

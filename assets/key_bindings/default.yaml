@@ -56,6 +56,7 @@
   - m		: menu_dismiss
   - h		: menu_dismiss
   - <esc>	: menu_dismiss
+  - g		: menu_dismiss
 - timeline:
   - l		: tl_play
   - k		: tl_pause
@@ -171,6 +172,7 @@
   - <spc>	: modal_select
   - m		: modal_dismiss
   - h		: modal_dismiss
+  - g		: modal_dismiss
   - <esc>	: modal_dismiss
   - C-<ret>	: modal_submit_form
 - text_edit:
@@ -192,3 +194,5 @@
   - ;		: tabview_right
   - S-h		: tabview_previous_tab
   - S-;		: tabview_next_tab
+  - g		: tabview_escape
+  - <esc>	: tabview_escape

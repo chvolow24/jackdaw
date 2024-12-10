@@ -37,9 +37,9 @@
 static void write_dimension(FILE *f, Dimension *dim, char dimchar, int indent)
 {
     if (dim->type == SCALE) {
-        fprintf(f, "%*s<%c>%s %f</%c>\n", indent, "", dimchar, layout_get_dimtype_str(dim->type), dim->value.floatval, dimchar);
+        fprintf(f, "%*s<%c>%s %f</%c>\n", indent, "", dimchar, layout_get_dimtype_str(dim->type), dim->value, dimchar);
     } else {
-        fprintf(f, "%*s<%c>%s %d</%c>\n", indent, "", dimchar, layout_get_dimtype_str(dim->type), dim->value.intval, dimchar);
+        fprintf(f, "%*s<%c>%s %d</%c>\n", indent, "", dimchar, layout_get_dimtype_str(dim->type), (int)round(dim->value), dimchar);
     }
 }
 
@@ -138,10 +138,10 @@ static void read_dimension(char *dimstr, Dimension *dim)
     case STACK:
     case PAD:
     case REVREL:
-	dim->value.intval = atoi(dimstr + val_i);
+	dim->value = (float)atoi(dimstr + val_i);
 	break;
     case SCALE:
-	dim->value.floatval = atof(dimstr + val_i);
+	dim->value = atof(dimstr + val_i);
 	break;
     }
 }

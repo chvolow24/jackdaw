@@ -1022,6 +1022,12 @@ void mode_load_tabview()
 	"Previous tab",
 	user_tabview_previous_tab);
     mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tabview_escape",
+	"Close tab view",
+	user_tabview_escape);
+    mode_subcat_add_fn(sc, fn);
 }
 void input_init_mode_load_all()
 {
@@ -1306,7 +1312,7 @@ static Layout *create_menu_layout()
 {
     Layout *menu_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(menu_lt);
-    menu_lt->w.value.intval = 1200;
+    menu_lt->w.value = 1200.0f;
     layout_reset(menu_lt);
     return menu_lt;
 }

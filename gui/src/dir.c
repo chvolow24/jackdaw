@@ -283,15 +283,15 @@ static TLinesItem *dir_to_tline(void ***current_item_v, Layout *container, void 
     item->obj = (void *)dp;
     Layout *lt = layout_add_child(container);
     lt->y.type = STACK;
-    lt->y.value.intval = DIRNAV_LINE_SPACING;
-    lt->h.value.intval = 50;
-    lt->w.value.intval = 500;
+    lt->y.value = DIRNAV_LINE_SPACING;
+    lt->h.value = 50;
+    lt->w.value = 500;
     
     item->tb = textbox_create_from_str(path_get_tail(dp->path), lt, main_win->bold_font, 12, main_win);
     /* textbox_set_pad(item->tb, 0, 4); */
     textbox_set_align(item->tb, CENTER_LEFT);
     textbox_size_to_fit(item->tb, 0, 0);
-    item->tb->layout->w.value.floatval = 1.0;
+    item->tb->layout->w.value = 1.0;
     item->tb->layout->w.type = SCALE;
     textbox_reset_full(item->tb);
     SDL_Color *txt_clr =
@@ -339,18 +339,18 @@ DirNav *dirnav_create(const char *dir_name, Layout *lt, int (*dir_to_tline_filte
     strcpy(lt->name, "dirnav_lt");
     Layout *inner = layout_add_child(lt);
     strcpy(inner->name, "dirnav_lines_container");
-    inner->x.value.intval = 5;
-    inner->y.value.intval = 5;
+    inner->x.value = 5;
+    inner->y.value = 5;
     inner->w.type = PAD;
     inner->h.type = ABS;
-    inner->h.value.intval = DIRNAV_TLINES_HEIGHT;
+    inner->h.value = DIRNAV_TLINES_HEIGHT;
     /* dn->show_dirs = show_dirs; */
     /* dn->show_files = show_files; */
-    lt->h.value.intval = DIRNAV_TLINES_HEIGHT;
+    lt->h.value = DIRNAV_TLINES_HEIGHT;
     layout_reset(lt);
     Layout *lines_container = layout_add_child(inner);
-    lines_container->w.value.floatval = 1.0;
-    lines_container->h.value.floatval = 1.0;
+    lines_container->w.value = 1.0;
+    lines_container->h.value = 1.0;
     lines_container->w.type = SCALE;
     lines_container->h.type = SCALE;
     dn->lines = textlines_create((void **)dn->dirpath->entries, dp->num_entries, dir_to_tline_filter, dir_to_tline, lines_container, (void *)dn);
@@ -372,14 +372,14 @@ DirNav *dirnav_create(const char *dir_name, Layout *lt, int (*dir_to_tline_filte
     textbox_set_background_color(dn->current_path_tb, &color_global_clear);
     textbox_set_text_color(dn->current_path_tb, &color_global_white);
     textbox_size_to_fit_v(dn->current_path_tb, 0);
-    /* lt->h.value.intval += pathname_lt->h.value.intval; */
-    pathname_lt->x.value.intval = 5;
+    /* lt->h.value += pathname_lt->h.value; */
+    pathname_lt->x.value = 5;
     /* pathname_lt->rect.y = dn->layout->rect.y + dn->layout->rect.y - inner->rect.h - inner->rect.y; */
     pathname_lt->y.type = STACK;
-    pathname_lt->y.value.intval = 5;
+    pathname_lt->y.value = 5;
     pathname_lt->w.type = PAD;
     /* pathname_lt->rect.h = dn->layout->rect.h - inner->rect.h - inner->rect.y; */
-    pathname_lt->w.value.intval = DIRNAV_LINE_SPACING;
+    pathname_lt->w.value = DIRNAV_LINE_SPACING;
     /* laoyut */
     /* pathname_lt->rect.y = dn->layout->rect.y + dn->layout->rect.h - pathname_lt->rect.h; */
     /* layout_set_values_from_rect(pathname_lt); */
@@ -518,8 +518,8 @@ void dirnav_select(DirNav *dn)
 	    layout_destroy(lines_container->children[i]);
 	}
 	/* Layout *inner = layout_add_child(dn->layout); */
-	/* inner->x.value.intval = 5; */
-	/* inner->y.value.intval = 5; */
+	/* inner->x.value = 5; */
+	/* inner->y.value = 5; */
 	/* inner->w.type = PAD; */
 	/* inner->h.type = PAD; */
 	lines_container->scroll_offset_v = 0;

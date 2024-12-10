@@ -123,10 +123,10 @@ static void set_lt_dim_from_param_str(Layout *lt, RectMem rm)
 	case STACK:
 	case REVREL:
 	case PAD:
-	    lt->x.value.intval = atoi(lt_params->x_value_str);
+	    lt->x.value = (float)atoi(lt_params->x_value_str);
 	    break;
 	case SCALE:
-	    lt->x.value.floatval = atof(lt_params->x_value_str);
+	    lt->x.value = atof(lt_params->x_value_str);
 	    break;
 	case COMPLEMENT:
 	    break;
@@ -139,10 +139,10 @@ static void set_lt_dim_from_param_str(Layout *lt, RectMem rm)
 	case STACK:
 	case PAD:
 	case REVREL:
-	    lt->y.value.intval = atoi(lt_params->y_value_str);
+	    lt->y.value = (float)atoi(lt_params->y_value_str);
 	    break;
 	case SCALE:
-	    lt->y.value.floatval = atof(lt_params->y_value_str);
+	    lt->y.value = atof(lt_params->y_value_str);
 	    break;
 	case COMPLEMENT:
 	    break;
@@ -155,10 +155,10 @@ static void set_lt_dim_from_param_str(Layout *lt, RectMem rm)
 	case STACK:
 	case PAD:
 	case REVREL:
-	    lt->w.value.intval = atoi(lt_params->w_value_str);
+	    lt->w.value = (float)atoi(lt_params->w_value_str);
 	    break;
 	case SCALE:
-	    lt->w.value.floatval = atof(lt_params->w_value_str);
+	    lt->w.value = atof(lt_params->w_value_str);
 	    break;
 	case COMPLEMENT:
 	    break;
@@ -171,10 +171,10 @@ static void set_lt_dim_from_param_str(Layout *lt, RectMem rm)
 	case STACK:
 	case PAD:
 	case REVREL:
-	    lt->h.value.intval = atoi(lt_params->h_value_str);
+	    lt->h.value = (float)atoi(lt_params->h_value_str);
 	    break;
 	case SCALE:
-	    lt->h.value.floatval = atof(lt_params->h_value_str);
+	    lt->h.value = atof(lt_params->h_value_str);
 	    break;
 	case COMPLEMENT:
 	    break;

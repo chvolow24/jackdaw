@@ -1,5 +1,11 @@
 This is an informal document tracking jackdaw version updates. 
 
+v0.4.3 (Tue Dec 10 15:27:38 EST 2024)
+       - store ALL layout dimension values as floats, never ints
+       - (int dimensions causes aliasing problems in text rendering on high-DPI displays, when text dimensions were an odd value in pixels)
+       - add "escape"/"dismiss" options for tabview and modal modes
+       - handle error cutting when no clip at cursor
+
 v0.4.2 (Sun Dec  1 10:15:42 EST 2024)
        - grab clips in markes range (S-g)
        - bring clip at rear to front (S-z)

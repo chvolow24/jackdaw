@@ -60,10 +60,10 @@ TabView *tab_view_create(const char *title, Layout *parent_lt, Window *win)
     tv_lt->h.type = SCALE;
     tv_lt->x.type = SCALE;
     tv_lt->y.type = SCALE;
-    tv_lt->x.value.floatval = 0.1;
-    tv_lt->y.value.floatval = 0.1;
-    tv_lt->w.value.floatval = 0.8;
-    tv_lt->h.value.floatval = 0.8;
+    tv_lt->x.value = 0.1;
+    tv_lt->y.value = 0.1;
+    tv_lt->w.value = 0.8;
+    tv_lt->h.value = 0.8;
 
     tv->layout = tv_lt;
     tv->win = win;
@@ -71,10 +71,10 @@ TabView *tab_view_create(const char *title, Layout *parent_lt, Window *win)
     Layout *page_container = layout_add_child(tv_lt);
     tabs_container->w.type = SCALE;
     page_container->w.type = SCALE;
-    tabs_container->w.value.floatval = 1.0f;
-    page_container->w.value.floatval = 1.0f;
-    tabs_container->h.value.intval = TAB_H;
-    page_container->y.value.intval = TAB_H;
+    tabs_container->w.value = 1.0f;
+    page_container->w.value = 1.0f;
+    tabs_container->h.value = TAB_H;
+    page_container->y.value = TAB_H;
     page_container->h.type = COMPLEMENT;
     return tv;
 }
@@ -91,8 +91,8 @@ Page *tab_view_add_page(
     Layout *page_lt = layout_add_child(tv->layout->children[1]);
     page_lt->w.type = SCALE;
     page_lt->h.type = SCALE;
-    page_lt->w.value.floatval = 1.0f;
-    page_lt->h.value.floatval = 1.0f;
+    page_lt->w.value = 1.0f;
+    page_lt->h.value = 1.0f;
 
     Page *page = page_create(
 	page_title,
@@ -104,14 +104,14 @@ Page *tab_view_add_page(
     tv->tabs[tv->num_tabs] = page;
     Layout *tab_lt = layout_add_child(tv->layout->children[0]);
     tab_lt->x.type = STACK;
-    tab_lt->y.value.intval = 0;
+    tab_lt->y.value = 0;
     if (tv->num_tabs == 0) {
-	tab_lt->x.value.intval = TAB_H_SPACING + TAB_R * 2;
+	tab_lt->x.value = TAB_H_SPACING + TAB_R * 2;
     } else {
-	tab_lt->x.value.intval = TAB_H_SPACING;
+	tab_lt->x.value = TAB_H_SPACING;
     }
     tab_lt->h.type = SCALE;
-    tab_lt->h.value.floatval = 1.0f;
+    tab_lt->h.value = 1.0f;
 
     /* ??? Problems */
     /* layout_force_reset(tv->layout); */
@@ -593,7 +593,7 @@ static void page_el_draw(PageEl *el)
 void page_draw(Page *page)
 {
     /* fprintf(stdout, "page lt rect %d %d %d %d\n", page->layout->rect.x, page->layout->rect.y, page->layout->rect.w, page->layout->rect.h); */
-    /* fprintf(stdout, "Page dims: %d %d %f %f\n", page->layout->x.value.intval, page->layout->y.value.intval, page->layout->w.value.floatval, page->layout->h.value.floatval); */
+    /* fprintf(stdout, "Page dims: %d %d %f %f\n", page->layout->x.value.intval, page->layout->y.value.intval, page->layout->w.value, page->layout->h.value); */
     if (page->background_color) {
 	SDL_SetRenderDrawColor(page->win->rend, sdl_colorp_expand(page->background_color));
 	SDL_Rect temp = page->layout->rect;
@@ -680,6 +680,12 @@ void page_activate(Page *page)
 void tab_view_activate(TabView *tv)
 {
     Window *win = tv->win;
+    if (win->num_modals  > 0) {
+	window_pop_modal(win);
+    }
+    while (win->num_menus > 0) {
+	window_pop_menu(win);
+    }
     if (win->active_tab_view) {
 	tab_view_destroy(win->active_tab_view);
     }
@@ -694,6 +700,9 @@ void page_close(Page *page)
 }
 void tab_view_close(TabView *tv)
 {
+    while (tv->win->num_menus > 0) {
+	window_pop_menu(tv->win);
+    }
     window_pop_mode(tv->win);
     tv->win->active_tab_view = NULL;
     tab_view_destroy(tv);

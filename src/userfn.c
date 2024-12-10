@@ -2103,6 +2103,9 @@ void user_modal_select(void *nullarg)
 
 void user_modal_dismiss(void *nullarg)
 {
+    while (main_win->num_menus > 0) {
+	window_pop_menu(main_win);
+    }
     Modal *m = main_win->modals[main_win->num_modals - 1];
     if (m->x->action) m->x->action(NULL, NULL);
     /* window_pop_modal(main_win); */
@@ -2256,4 +2259,14 @@ void user_tabview_previous_tab(void *nullarg)
      if (tv) {
 	 tab_view_previous_tab(tv);
      }
+}
+
+void user_tabview_escape(void *nullarg)
+{
+    Timeline *tl = ACTIVE_TL;
+    if (main_win->active_tab_view) {
+	tab_view_close(main_win->active_tab_view);
+	tl->needs_redraw = true;
+	return;
+    }
 }

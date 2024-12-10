@@ -85,9 +85,9 @@ Slider *slider_create(
     s->bar_rect = &bar->rect;
     switch (orientation) {
     case SLIDER_HORIZONTAL:
-	bar->y.value.intval = 0;
+	bar->y.value = 0.0f;
 	bar->h.type = SCALE;
-	bar->h.value.floatval = 1.0f;
+	bar->h.value = 1.0f;
 	switch (style) {
 	case SLIDER_FILL:
 	    bar->w.type = SCALE;
@@ -97,14 +97,14 @@ Slider *slider_create(
 	    bar->x.type = SCALE;
 	    s->val_dim = &bar->x.value;
 	    bar->w.type = ABS;
-	    bar->w.value.intval = SLIDER_TICK_W;
+	    bar->w.value = SLIDER_TICK_W;
 	    break;   
 	}
 	break;
     case SLIDER_VERTICAL:
-	bar->x.value.intval = 0;
+	bar->x.value = 0;
 	bar->w.type = SCALE;
-	bar->w.value.floatval = 1.0f;
+	bar->w.value = 1.0f;
 	switch (style) {
 	case SLIDER_FILL:
 	    bar->h.type = SCALE;
@@ -171,23 +171,23 @@ void slider_reset(Slider *s)
     case SLIDER_FILL:
 	switch (s->orientation) {
 	case SLIDER_HORIZONTAL:
-	    s->val_dim->floatval = filled_prop;
+	    *(s->val_dim) = filled_prop;
 	    break;
 	case SLIDER_VERTICAL:
-	    s->bar_layout->y.value.floatval = 1.0 - filled_prop;
-	    s->val_dim->floatval = filled_prop;
+	    s->bar_layout->y.value = 1.0 - filled_prop;
+	    *(s->val_dim) = filled_prop;
 	    break;
 	}
 	break;
     case SLIDER_TICK:
 	switch (s->orientation) {
 	case SLIDER_HORIZONTAL:
-	    s->val_dim->floatval = filled_prop;
+	    *(s->val_dim) = filled_prop;
 	    break;
 	case SLIDER_VERTICAL:
 	    
 	    /* layout_reset(s->layout->children[0]); */
-	    s->val_dim->floatval = 1 - filled_prop;
+	    *(s->val_dim) = 1 - filled_prop;
 	    break;
 	}
     }
@@ -419,8 +419,8 @@ Toggle *toggle_create(Layout *lt, bool *value, ComponentFn action, void *target)
     Layout *inner = layout_add_child(lt);
     inner->w.type = SCALE;
     inner->h.type = SCALE;
-    inner->w.value.floatval = 0.90;
-    inner->h.value.floatval = 0.90;
+    inner->w.value = 0.90;
+    inner->h.value = 0.90;
 
     /* Layout *outer = layout_add_child(lt); */
     /* outer->w.type = SCALE; */
@@ -487,17 +487,17 @@ RadioButton *radio_button_create(
 	Layout *item_lt, *l, *r;
 	if (i==0) {
 	    item_lt = layout_add_child(lt);
-	    item_lt->h.value.intval = RADIO_BUTTON_ITEM_H;
+	    item_lt->h.value = RADIO_BUTTON_ITEM_H;
 	    item_lt->w.type = SCALE;
-	    item_lt->w.value.floatval = 1.0f;
+	    item_lt->w.value = 1.0f;
 	    item_lt->y.type = STACK;
 	    l = layout_add_child(item_lt);
 	    r = layout_add_child(item_lt);
 	    l->h.type = SCALE;
-	    l->h.value.floatval = 1.0f;
+	    l->h.value = 1.0f;
 	    r->h.type = SCALE;
-	    r->h.value.floatval = 1.0f;
-	    l->w.value.intval = RADIO_BUTTON_LEFT_W;
+	    r->h.value = 1.0f;
+	    l->w.value = RADIO_BUTTON_LEFT_W;
 	    r->x.type = STACK;
 	    r->w.type = COMPLEMENT;
 	} else {

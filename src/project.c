@@ -486,26 +486,26 @@ Project *project_create(
     proj->status_bar.layout = status_bar_lt;
 
     draglt->h.type = SCALE;
-    draglt->h.value.floatval = 1.0;
-    draglt->y.value.intval = 0;
+    draglt->h.value = 1.0f;
+    draglt->y.value = 0.0f;
     draglt->x.type = REL;
-    draglt->x.value.intval = STATUS_BAR_H_PAD;
-    draglt->w.value.intval = 0;
+    draglt->x.value = STATUS_BAR_H_PAD;
+    draglt->w.value = 0.0f;
 
     calllt->h.type = SCALE;
-    calllt->h.value.floatval = 1.0;
-    calllt->y.value.intval = 0;
+    calllt->h.value = 1.0f;
+    calllt->y.value = 0.0f;
     calllt->x.type = STACK;
-    calllt->x.value.intval = STATUS_BAR_H_PAD;
-    calllt->w.value.intval = 500;
+    calllt->x.value = STATUS_BAR_H_PAD;
+    calllt->w.value = 500.0f;
 
 
     errlt->h.type = SCALE;
-    errlt->h.value.floatval = 1.0;
-    errlt->y.value.intval = 0;
+    errlt->h.value = 1.0f;
+    errlt->y.value = 0.0f;
     errlt->x.type = REVREL;
-    errlt->x.value.intval = STATUS_BAR_H_PAD;
-    errlt->w.value.intval = 500;
+    errlt->x.value = STATUS_BAR_H_PAD;
+    errlt->w.value = 500.0f;
 
     /* strcpy(proj->status_bar.errstr, "Uh oh! this is an call!\n"); */
     /* strcpy(proj->status_bar.errorstr, "Ok error str\n"); */
@@ -636,9 +636,9 @@ static Layout *create_quickref_button_lt(Layout *row)
 {
     Layout *ret = layout_add_child(row);
     ret->h.type = SCALE;
-    ret->h.value.floatval = 0.8f;
+    ret->h.value = 0.8f;
     ret->x.type = STACK;
-    ret->x.value.intval = 10;
+    ret->x.value = 10.0f;
     return ret;
 }
 
@@ -1534,9 +1534,9 @@ Track *timeline_add_track(Timeline *tl)
 	(void *)track,
 	NULL);
     track->automation_dropdown->background_color = &color_global_grey;
-    auto_dropdown_lt->w.value.intval = track->automation_dropdown->symbol->x_dim_pix / main_win->dpi_scale_factor;
-    auto_dropdown_lt->h.value.intval = track->automation_dropdown->symbol->y_dim_pix / main_win->dpi_scale_factor;
-    auto_dropdown_lt->x.value.intval+=4;
+    auto_dropdown_lt->w.value = (float)track->automation_dropdown->symbol->x_dim_pix / main_win->dpi_scale_factor;
+    auto_dropdown_lt->h.value = (float)track->automation_dropdown->symbol->y_dim_pix / main_win->dpi_scale_factor;
+    auto_dropdown_lt->x.value += 4.0f;
     layout_reset(auto_dropdown_lt);
     
     track->selected_automation = -1;
@@ -1719,7 +1719,7 @@ ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sfr
     ClipRef *cr = calloc(1, sizeof(ClipRef));
     cr->layout = layout_add_child(track->inner_layout);
     cr->layout->h.type = SCALE;
-    cr->layout->h.value.floatval = 0.96;
+    cr->layout->h.value = 0.96;
     if (clip->num_refs > 0) {
 	snprintf(cr->name, MAX_NAMELENGTH, "%s ref %d", clip->name, clip->num_refs);
     } else {
@@ -1737,11 +1737,11 @@ ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sfr
     cr->home = home;
 
     Layout *label_lt = layout_add_child(cr->layout);
-    label_lt->x.value.intval = CLIPREF_NAMELABEL_H_PAD;
-    label_lt->y.value.intval = CLIPREF_NAMELABEL_V_PAD;
+    label_lt->x.value = CLIPREF_NAMELABEL_H_PAD;
+    label_lt->y.value = CLIPREF_NAMELABEL_V_PAD;
     label_lt->w.type = SCALE;
-    label_lt->w.value.floatval = 0.8f;
-    label_lt->h.value.intval = CLIPREF_NAMELABEL_H;
+    label_lt->w.value = 0.8f;
+    label_lt->h.value = CLIPREF_NAMELABEL_H;
     cr->label = textbox_create_from_str(cr->name, label_lt, main_win->mono_bold_font, 12, main_win);
     cr->label->text->validation = txt_name_validation;
     cr->label->text->completion = name_completion;
@@ -2145,7 +2145,7 @@ static void timeline_remove_track(Track *track)
     }
     layout_remove_child(track->layout);
     tl->num_tracks--;
-    if (tl->track_selector > tl->num_tracks - 1) tl->track_selector = tl->num_tracks - 1;
+    if (tl->num_tracks > 0 && tl->track_selector > tl->num_tracks - 1) tl->track_selector = tl->num_tracks - 1;
     timeline_rectify_track_area(tl);
     /* layout_size_to_fit_children_v(tl->track_area, true, 0); */
 }
@@ -2167,9 +2167,6 @@ static void timeline_insert_track_at(Track *track, uint8_t index)
     tl->tracks[index] = track;
     track->tl_rank = index;
     tl->num_tracks++;
-    for (int i=0; i<tl->num_tracks; i++) {
-	/* fprintf(stdout, "\t\t%d: Track index %d named \"%s\"\n", i, tl->tracks[i]->tl_rank, tl->tracks[i]->name); */
-    }
 }
 void track_delete(Track *track)
 {
@@ -2846,6 +2843,10 @@ void timeline_cut_clipref_at_cursor(Timeline *tl)
     Track *track = tl->tracks[tl->track_selector];
     if (!track) return;
     ClipRef *cr = clipref_at_cursor();
+    if (!cr) {
+	status_set_errstr("Error: no clip at cursor");
+	return;
+    }
     if (tl->play_pos_sframes > cr->pos_sframes && tl->play_pos_sframes < cr->pos_sframes + clipref_len(cr)) {
 	clipref_cut(cr, tl->play_pos_sframes - cr->pos_sframes);
     }

@@ -2024,6 +2024,75 @@ bool automation_handle_delete(Automation *a)
     return false;
 }
 
+int track_select_next_automation(Track *t)
+{
+    if (t->num_automations == 0) return -1;
+    while (t->selected_automation < t->num_automations) {
+	t->selected_automation++;
+	if (t->selected_automation == t->num_automations) {
+	    t->selected_automation = -1;
+	    break;
+	} else if (t->automations[t->selected_automation]->shown) {
+	    break;
+	} else if (t->selected_automation == t->num_automations - 1) {
+	    t->selected_automation = -1;
+	    break;
+	}
+    }
+    return t->selected_automation;
+}
+
+int track_select_prev_automation(Track *t)
+{
+    if (t->num_automations == 0) return -1;
+    while (t->selected_automation > -1) {
+	t->selected_automation--;
+	if (t->selected_automation == -1) {
+	    break;
+	} else if (t->automations[t->selected_automation]->shown) {
+	    break;
+	} else if (t->selected_automation == 0) {
+	    t->selected_automation = -1;
+	    break;
+	}
+    }
+    return t->selected_automation;
+}
+
+int track_select_last_shown_automation(Track *t)
+{
+    if (t->num_automations == 0) return -1;
+    int i = t->num_automations - 1;
+    for (; i>=0; i--) {
+	if (t->automations[i]->shown) {
+	    break;
+	}
+    }
+    if (i==0 && !t->automations[i]->shown) {
+	t->selected_automation = -1;
+    } else {
+	t->selected_automation = i;
+    }
+    return t->selected_automation;
+}
+
+int track_select_first_shown_automation(Track *t)
+{
+    if (t->num_automations == 0) return -1;
+    int i=0;
+    for (; i<t->num_automations-1; i++) {
+	if (t->automations[i]->shown) {
+	    break;
+	}
+    }
+    if (i==t->num_automations-1 && !t->automations[i]->shown) {
+	t->selected_automation = -1;
+    } else {
+	t->selected_automation = i;
+    }
+    return t->selected_automation;
+}
+
 TEST_FN_DEF(track_automation_order,
 	{
 	    bool a_index_fault = false;

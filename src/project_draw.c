@@ -325,12 +325,14 @@ static void track_draw(Track *track)
     textbox_draw(track->tb_solo_button);
     textbox_draw(track->tb_name);
 
-    if (track->tl->track_selector == track->tl_rank) {
-	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
-	geom_draw_rect_thick(main_win->rend, &track->inner_layout->rect, 3, main_win->dpi_scale_factor);
-	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(track_selector_color));
-	geom_draw_rect_thick(main_win->rend, &track->inner_layout->rect, 1, main_win->dpi_scale_factor);
-    }
+    /* Move this outside */
+
+    /* if (track->tl->track_selector == track->tl_rank) { */
+    /* 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black)); */
+    /* 	geom_draw_rect_thick(main_win->rend, &track->inner_layout->rect, 3, main_win->dpi_scale_factor); */
+    /* 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(track_selector_color)); */
+    /* 	geom_draw_rect_thick(main_win->rend, &track->inner_layout->rect, 1, main_win->dpi_scale_factor); */
+    /* } */
 
     slider_draw(track->vol_ctrl);
     slider_draw(track->pan_ctrl);
@@ -350,14 +352,14 @@ automations_draw:
 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(console_bckgrnd_selector));
 		SDL_RenderFillRect(main_win->rend, &auto_console_bar);
 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
-		SDL_Rect layout_rect_large = a->layout->rect;
-		layout_rect_large.y -= 3 * main_win->dpi_scale_factor;
-		layout_rect_large.h += 6 * main_win->dpi_scale_factor;
-		/* geom_draw_rect_thick(main_win->rend, &a->layout->rect, 3, main_win->dpi_scale_factor); */
-		geom_draw_rect_thick(main_win->rend, &layout_rect_large, 3, main_win->dpi_scale_factor);
-		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(track_selector_color));
-		/* geom_draw_rect_thick(main_win->rend, &a->layout->rect, 1, main_win->dpi_scale_factor); */
-		geom_draw_rect_thick(main_win->rend, &layout_rect_large, 1, main_win->dpi_scale_factor);
+		/* SDL_Rect layout_rect_large = a->layout->rect; */
+		/* layout_rect_large.y -= 3 * main_win->dpi_scale_factor; */
+		/* layout_rect_large.h += 6 * main_win->dpi_scale_factor; */
+		/* /\* geom_draw_rect_thick(main_win->rend, &a->layout->rect, 3, main_win->dpi_scale_factor); *\/ */
+		/* geom_draw_rect_thick(main_win->rend, &layout_rect_large, 3, main_win->dpi_scale_factor); */
+		/* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(track_selector_color)); */
+		/* /\* geom_draw_rect_thick(main_win->rend, &a->layout->rect, 1, main_win->dpi_scale_factor); *\/ */
+		/* geom_draw_rect_thick(main_win->rend, &layout_rect_large, 1, main_win->dpi_scale_factor); */
 	    }
 
 	}
@@ -429,7 +431,20 @@ static int timeline_draw(Timeline *tl)
     }
     for (int i=0; i<tl->num_tempo_tracks; i++) {
 	tempo_track_draw(tl->tempo_tracks[i]);
+	if (i==tl->tempo_track_selector) {
+	    SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255);
+	    SDL_RenderDrawRect(main_win->rend, &tl->tempo_tracks[i]->layout->rect);
+	}
     }
+
+    Layout *selected_layout = timeline_selected_layout(tl);
+    if (selected_layout) {
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
+	geom_draw_rect_thick(main_win->rend, &selected_layout->rect, 3, main_win->dpi_scale_factor);
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(track_selector_color));
+	geom_draw_rect_thick(main_win->rend, &selected_layout->rect, 1, main_win->dpi_scale_factor);
+    }
+
 
 
     SDL_RenderSetClipRect(main_win->rend, &main_win->layout->rect);
@@ -515,7 +530,28 @@ static int timeline_draw(Timeline *tl)
     /* SDL_RenderFillRect(main_win->rend, &tl->track_area->rect); */
     /* layout_draw(main_win, tl->track_area); */
     tl->needs_redraw = false;
+
+
+    /* Layout *tracks_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area"); */
+    /* if (tracks_area) { */
+    /* 	Layout *selected_lt = tracks_area->children[tl->layout_selector]; */
+    /* 	if (selected_lt) { */
+    /* 	    fprintf(stderr, "SELECTOR: %d, %s\n", tl->layout_selector, selected_lt->name); */
+    /* 	    SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255); */
+    /* 	    SDL_RenderDrawRect(main_win->rend, &selected_lt->rect); */
+    /* 	} else { */
+    /* 	    fprintf(stderr, "NONE\n"); */
+    /* 	} */
+    /* } else { */
+    /* 	fprintf(stderr, "No track and automations\n"); */
+    /* } */
+
     return 1;
+
+
+
+
+    
     /* tl->needs_redraw = false; */
 
 }

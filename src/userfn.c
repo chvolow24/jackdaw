@@ -19,7 +19,7 @@
 #define SLOW_PLAYBACK_SPEED 0.2f
 
 #define ACTIVE_TL (proj->timelines[proj->active_tl_index])
-#define ACTIVE_TRACK(timeline) (tl->tracks[tl->track_selector])
+/* #define ACTIVE_TRACK(timeline) (tl->tracks[tl->track_selector]) */
 #define TRACK_AUTO_SELECTED(track) (track->num_automations != 0 && track->selected_automation != -1)
 
 extern Window *main_win;
@@ -316,7 +316,7 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 	fprintf(stdout, "Wav file selected\n");
 	Timeline *tl = ACTIVE_TL;
 	if (!tl) return;
-	Track *track = ACTIVE_TRACK(tl);
+	Track *track = timeline_selected_track(tl);
 	if (!track) {
 	    status_set_errstr("Error: at least one track must exist to load a wav file");
 	    fprintf(stderr, "Error: at least one track must exist to load a wav file\n");
@@ -1016,52 +1016,94 @@ void user_tl_track_activate_all(void *nullarg)
     }
 }
 
+/* static void timeline_rectify_selectors(Timeline *tl) */
+/* { */
+/*     int tempo_track_index = -1; */
+/*     int track_index = -1; */
+/*     bool tempo_track_selected = false; */
+/*     for (int i=0; i<tl->track_area->num_children; i++) { */
+/* 	Layout *child = tl->track_area->children[i]; */
+/* 	if (strcmp(child->name, "tempo_track") == 0) { */
+/* 	    tempo_track_index++; */
+/* 	    tempo_track_selected = true; */
+/* 	} else { */
+/* 	    track_index++; */
+/* 	    tempo_track_selected = false; */
+/* 	} */
+/* 	if (tl->layout_selector == i) { */
+/* 	    if (tempo_track_selected) { */
+/* 		tl->tempo_track_selector = tempo_track_index; */
+/* 		tl->track_selector = -1; */
+/* 	    } else { */
+/* 		tl->track_selector = track_index; */
+/* 		tl->tempo_track_selector = -1; */
+/* 	    } */
+/* 	} */
+/*     } */
+/*     fprintf(stderr, "SELECTED TRACK: %p; TEMPO TRACK: %p\n", timeline_selected_track(tl), timeline_selected_tempo_track(tl)); */
+/*     fprintf(stderr, "Track selector: %d; tempo track: %d\n", tl->track_selector, tl->tempo_track_selector); */
+/* } */
+
 void user_tl_track_selector_up(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    if (tl->num_tracks == 0) return;
-    Track *selected = ACTIVE_TRACK(tl);
-    while (selected->selected_automation > -1 &&
-	   !selected->automations[selected->selected_automation]->shown) {
-	selected->selected_automation--;
+    Track *selected = timeline_selected_track(tl);
+
+    if (selected) {
+	int old_selection = selected->selected_automation;
+	if (old_selection != track_select_prev_automation(selected)) {
+	    goto button_animation_and_exit;
+	}
+	timeline_cache_grabbed_clip_offsets(tl);
+    }
+    Track *prev_selected = selected;
+    if (tl->layout_selector > 0) {
+	tl->layout_selector--;
+    }
+    timeline_rectify_track_indices(tl);
+    selected = timeline_selected_track(tl);
+
+
+    if (selected) {
+	if (prev_selected && selected != prev_selected) {
+	    /*  Select last shown automation */
+	    track_select_last_shown_automation(selected);
+	}
+	if (proj->dragging && tl->num_grabbed_clips > 0) {
+	    timeline_cache_grabbed_clip_positions(tl);
+	    bool some_clip_moved = false;
+	    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
+		int offset = tl->grabbed_clip_pos_cache[i].track_offset;
+		int new_index = tl->track_selector + offset;
+		if (new_index >= 0) {
+		    some_clip_moved = true;
+		    ClipRef *cr = tl->grabbed_clips[i];
+		    clipref_move_to_track(cr, tl->tracks[new_index]);
+		}
+		/* clipref_displace(cr, -1 + offset); */
+	    }
+	    if (some_clip_moved) {
+		timeline_push_grabbed_clip_move_event(tl);
+	    }
+	}
+	TabView *tv;
+	if ((tv = main_win->active_tab_view)) {
+	    if (strcmp(tv->title, "Track Settings") == 0) {
+		settings_track_tabview_set_track(tv, selected);
+	    }
+	}
     }
 
-    if (selected->num_automations > 0 && selected->selected_automation > -1) {
-	selected->selected_automation--;
+button_animation_and_exit:
+    
+    if (selected) {
 	timeline_refocus_track(tl, selected, false);
-	tl->needs_redraw = true;
-	return;
-    }
-    if (tl->track_selector > 0) {
-	tl->track_selector--;
-	selected = ACTIVE_TRACK(tl);
-	for (uint8_t i=0; i<selected->num_automations; i++) {
-	Automation *a = selected->automations[i];
-	if (a->shown) selected->selected_automation = i;
+    } else {
+	timeline_refocus_tempo_track(tl, timeline_selected_tempo_track(tl), false);
     }
 
-    }
-    if (!selected) {
-	tl->needs_redraw = true;
-	return;
-    }
-    timeline_refocus_track(tl, selected, false);
-    timeline_reset(tl, false);
+    tl->needs_redraw = true;
 
-    if (proj->dragging && tl->num_grabbed_clips > 0) {
-	timeline_cache_grabbed_clip_positions(tl);
-	for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
-	    ClipRef *cr = tl->grabbed_clips[i];
-	    clipref_displace(cr, -1);
-	}
-	timeline_push_grabbed_clip_move_event(tl);
-    }
-    TabView *tv;
-    if ((tv = main_win->active_tab_view)) {
-	if (strcmp(tv->title, "Track Settings") == 0) {
-	    settings_track_tabview_set_track(tv, ACTIVE_TRACK(tl));
-	}
-    }
     PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_previous");
     Button *btn = (Button *)el->component;
     button_press_color_change(
@@ -1069,59 +1111,66 @@ void user_tl_track_selector_up(void *nullarg)
 	&color_global_quickref_button_pressed,
 	&color_global_quickref_button_blue,
 	quickref_button_press_callback,
-	NULL);
-    tl->needs_redraw = true;
-    
+	NULL);  
 }
 
 void user_tl_track_selector_down(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    if (tl->num_tracks == 0) return;
-    Track *selected = ACTIVE_TRACK(tl);
-    if (selected->num_automations > 0 && selected->selected_automation < selected->num_automations) {
-	int16_t init_select = selected->selected_automation;
-	selected->selected_automation++;
-	while (selected->selected_automation < selected->num_automations &&
-	       !selected->automations[selected->selected_automation]->shown) {
-	    selected->selected_automation++;
-	}
-	if (selected->selected_automation >= selected->num_automations) {
-	    if (tl->track_selector < tl->num_tracks - 1) {
-		selected->selected_automation = -1;
-	    } else {
-		selected->selected_automation = init_select;
-	    }
-	} else {
-	    timeline_refocus_track(tl, selected, true);
-	    tl->needs_redraw = true;
-	    return;
-	}
-    }
-    if (tl->track_selector < tl->num_tracks - 1) {
-	tl->track_selector++;
-    }
-    selected = ACTIVE_TRACK(tl);
-    if (!selected) {
-	return;
-    }
-    timeline_refocus_track(tl, selected, true);
 
-    if (proj->dragging && tl->num_grabbed_clips > 0) {
-	timeline_cache_grabbed_clip_positions(tl);
-	for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
-	    ClipRef *cr = tl->grabbed_clips[i];
-	    clipref_displace(cr, 1);
+    Track *selected = timeline_selected_track(tl);
+
+    if (selected) {
+	if (track_select_next_automation(selected) >= 0) {
+	    goto button_animation_and_exit;
 	}
-	timeline_push_grabbed_clip_move_event(tl);
+	timeline_cache_grabbed_clip_offsets(tl);
     }
-    timeline_reset(tl, false);
-    TabView *tv;
-    if ((tv = main_win->active_tab_view)) {
-	if (strcmp(tv->title, "Track Settings") == 0) {
-	    settings_track_tabview_set_track(tv, ACTIVE_TRACK(tl));
+    
+    Track *prev_selected = selected;
+    if (tl->layout_selector < tl->track_area->num_children - 1) {
+	tl->layout_selector++;
+    }
+    timeline_rectify_track_indices(tl);
+    selected = timeline_selected_track(tl);
+
+
+    if (selected) {
+	if (prev_selected && selected != prev_selected) {
+	    selected->selected_automation = -1;
+	}
+	if (proj->dragging && tl->num_grabbed_clips > 0) {
+	    timeline_cache_grabbed_clip_positions(tl);
+	    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
+		int offset = tl->grabbed_clip_pos_cache[i].track_offset;
+		int new_index = tl->track_selector + offset;
+		if (new_index < tl->num_tracks) {
+		    ClipRef *cr = tl->grabbed_clips[i];
+		    clipref_move_to_track(cr, tl->tracks[new_index]);
+		}
+	    }
+	    timeline_push_grabbed_clip_move_event(tl);
+	}
+	TabView *tv;
+	if ((tv = main_win->active_tab_view)) {
+	    if (strcmp(tv->title, "Track Settings") == 0) {
+		settings_track_tabview_set_track(tv, selected);
+	    }
 	}
     }
+
+
+button_animation_and_exit:
+
+    if (selected) {
+	timeline_refocus_track(tl, selected, true);
+    } else {
+	timeline_refocus_tempo_track(tl, timeline_selected_tempo_track(tl), true);
+    }
+
+    /* if (selected) timeline_refocus_track(tl, selected, true); */
+    tl->needs_redraw = true;
+
     PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_next");
     Button *btn = (Button *)el->component;
     button_press_color_change(
@@ -1129,43 +1178,64 @@ void user_tl_track_selector_down(void *nullarg)
 	&color_global_quickref_button_pressed,
 	&color_global_quickref_button_blue,
 	quickref_button_press_callback,
-	NULL);
-    tl->needs_redraw = true;
+	NULL);  
 }
 
 /* Moves automation track if applicable */
-static void move_track(int direction)
-{
-    Timeline *tl = ACTIVE_TL;
-    Track *track = ACTIVE_TRACK(tl);
-    if (!track) {
-	status_set_errstr(NO_TRACK_ERRSTR);
-	return;
-    }
-    /* if (track->num_automations == 0 || track->selected_automation == -1) { */
-    if (TRACK_AUTO_SELECTED(track)) {
-	track_move_automation(track->automations[track->selected_automation], direction, false);
-    } else {
-	timeline_move_track(tl, track, direction, false);
-    }
-    tl->needs_redraw = true;
-}
+/* static void move_track(int direction) */
+/* { */
+/*     /\* Timeline *tl = ACTIVE_TL; *\/ */
+/*     /\* Track *track = timeline_selected_track(tl); *\/ */
+/*     /\* if (!track) { *\/ */
+/*     /\* 	status_set_errstr(NO_TRACK_ERRSTR); *\/ */
+/*     /\* 	return; *\/ */
+/*     /\* } *\/ */
+/*     /\* /\\* if (track->num_automations == 0 || track->selected_automation == -1) { *\\/ *\/ */
+/*     /\* if (TRACK_AUTO_SELECTED(track)) { *\/ */
+/*     /\* 	track_move_automation(track->automations[track->selected_automation], direction, false); *\/ */
+/*     /\* } else { *\/ */
+/*     /\* 	timeline_move_track(tl, track, direction, false); *\/ */
+/*     /\* } *\/ */
+/*     /\* tl->needs_redraw = true; *\/ */
+/*     Timeline *tl = ACTIVE_TL; */
+/*     if (tl->layout_selector + direction >= tl->track_area->num_children) return; */
+/*     if (tl->layout_selector + direction < 0) return; */
+    
+/*     Layout *sel = tl->track_area->children[tl->layout_selector]; */
+/*     Layout *swap = tl->track_area->children[tl->layout_selector + direction]; */
+/*     layout_swap_children(sel, swap); */
+/*     layout_force_reset(tl->track_area); */
+/*     /\* tl->needs_redraw = true; *\/ */
+/*     tl->layout_selector += direction; */
+/*     timeline_rectify_track_indices(tl); */
+/*     Track *sel_track = timeline_selected_track(tl); */
+/*     if (sel_track) { */
+/* 	timeline_refocus_track(tl, sel_track, direction > 0); */
+/*     } else { */
+/* 	TempoTrack *sel_tt = timeline_selected_tempo_track(tl); */
+/* 	timeline_refocus_tempo_track(tl, sel_tt, direction > 0); */
+/*     } */
+    
+/* } */
 
 void user_tl_move_track_up(void *nullarg)
 {
-    move_track(-1);
+    /* move_track(-1); */
+    timeline_move_track_or_automation(ACTIVE_TL, -1);
 }
 
 void user_tl_move_track_down(void *nullarg)
 {
-    move_track(1);
+    timeline_move_track_or_automation(ACTIVE_TL, 1);
 }
 
 
 void user_tl_track_activate_selected(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    track_select_n(tl->track_selector);
+    if (tl->track_selector >= 0) {
+	track_select_n(tl->track_selector);
+    }
 }
 
 void project_draw(void *nullarg);
@@ -1174,7 +1244,7 @@ void user_tl_track_rename(void *nullarg)
     /* window_pop_menu(main_win); */
     /* window_pop_mode(main_win); */
     Timeline *tl = ACTIVE_TL;
-    Track *track = ACTIVE_TRACK(tl);
+    Track *track = timeline_selected_track(tl);
     if (track) {
 	track_rename(track);
     }
@@ -1195,7 +1265,7 @@ void user_tl_rename_clip_at_cursor(void *nullarg)
 void user_tl_track_set_in(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    Track *track = ACTIVE_TRACK(tl);
+    Track *track = timeline_selected_track(tl);
     if (!track) {
 	return;
     }
@@ -1226,7 +1296,7 @@ void user_tl_track_delete(void *nullarg)
 	return;
     }
 
-    Track *track = ACTIVE_TRACK(tl);
+    Track *track = timeline_selected_track(tl);
     if (track) {
 	if (TRACK_AUTO_SELECTED(track)) {
 	    Automation *a = track->automations[track->selected_automation];
@@ -1271,7 +1341,7 @@ void user_tl_track_vol_up(void *nullarg)
     Timeline *tl = ACTIVE_TL;
     if (tl->num_tracks == 0) return;
     if (proj->vol_changing) return;
-    /* proj->vol_changing = ACTIVE_TRACK(tl); */
+    /* proj->vol_changing = timeline_selected_track(tl); */
     proj->vol_changing = true;
     proj->vol_up = true;
     
@@ -1282,7 +1352,7 @@ void user_tl_track_vol_down(void *nullarg)
     Timeline *tl = ACTIVE_TL;
     if (tl->num_tracks == 0) return;
     if (proj->vol_changing) return;
-    /* proj->vol_changing = ACTIVE_TRACK(tl); */
+    /* proj->vol_changing = timeline_selected_track(tl); */
     proj->vol_changing = true;
     proj->vol_up = false;
     tl->needs_redraw = true;
@@ -1294,7 +1364,7 @@ void user_tl_track_pan_left(void *nullarg)
     Timeline *tl = ACTIVE_TL;
     if (tl->num_tracks ==0) return;
     if (proj->pan_changing) return;
-    proj->pan_changing = ACTIVE_TRACK(tl);
+    proj->pan_changing = timeline_selected_track(tl);
     proj->pan_right = false;
     tl->needs_redraw = true;
 
@@ -1305,7 +1375,7 @@ void user_tl_track_pan_right(void *nullarg)
     Timeline *tl = ACTIVE_TL;
     if (tl->num_tracks == 0) return;
     if (proj->pan_changing) return;
-    proj->pan_changing = ACTIVE_TRACK(tl);
+    proj->pan_changing = timeline_selected_track(tl);
     proj->pan_right = true;
     tl->needs_redraw = true;
 }
@@ -1319,7 +1389,7 @@ void user_tl_track_open_settings(void *nullarg)
 	return;
     }
     if (tl->num_tracks == 0) return;
-    TabView *tv = settings_track_tabview_create(ACTIVE_TRACK(tl));
+    TabView *tv = settings_track_tabview_create(timeline_selected_track(tl));
     tab_view_activate(tv);
     tl->needs_redraw = true;
 }
@@ -1327,7 +1397,7 @@ void user_tl_track_open_settings(void *nullarg)
 void user_tl_track_add_automation(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    Track *track = ACTIVE_TRACK(tl);
+    Track *track = timeline_selected_track(tl);
     if (track) {
 	track_add_new_automation(track);
 	track_automations_show_all(track);
@@ -1339,7 +1409,7 @@ void user_tl_track_add_automation(void *nullarg)
 void user_tl_track_show_hide_automations(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    Track *track = ACTIVE_TRACK(tl);
+    Track *track = timeline_selected_track(tl);
     if (!track) {
 	status_set_errstr(NO_TRACK_ERRSTR);
 	return;
@@ -1366,7 +1436,7 @@ void user_tl_track_show_hide_automations(void *nullarg)
 void user_tl_track_automation_toggle_read(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    Track *track = ACTIVE_TRACK(tl);
+    Track *track = timeline_selected_track(tl);
     if (!track) {
 	status_set_errstr(NO_TRACK_ERRSTR);
 	return;
@@ -1382,7 +1452,7 @@ void user_tl_track_automation_toggle_read(void *nullarg)
 void user_tl_record(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    Track *sel_track = ACTIVE_TRACK(tl);
+    Track *sel_track = timeline_selected_track(tl);
     if (!sel_track) {
 	status_set_errstr(NO_TRACK_ERRSTR);
 	return;
@@ -1429,8 +1499,9 @@ void user_tl_clipref_grab_ungrab()
 	    }
 	}
     }
-    if (!had_active_track && tl->num_tracks > 0) {
-	track = ACTIVE_TRACK(tl);
+    track = timeline_selected_track(tl);
+    if (!had_active_track && track) {
+	track = timeline_selected_track(tl);
 	cr = clipref_at_cursor_in_track(track);
 	if (cr && !cr->grabbed) {
 	    /* clipref_grab(cr); */
@@ -1465,6 +1536,7 @@ void user_tl_clipref_grab_ungrab()
 	status_stat_drag();
     }
     
+    /* timeline_cache_grabbed_clip_positions(tl); */
     /* if (num_undo_crs > 0) { */
     /* 	ClipRef **clips = calloc(num_undo_crs, sizeof(ClipRef *)); */
     /* 	memcpy(clips, undo_crs, num_undo_crs * sizeof(ClipRef *)); */
@@ -1487,7 +1559,7 @@ void user_tl_clipref_grab_ungrab()
     /* } */
     
     /* if (tl->num_grabbed_clips > 0) { */
-    /* 	timeline_cache_grabbed_clip_positions(tl); */
+
     /* 	if (proj->playing && proj->dragging) */
     /* 	    timeline_push_grabbed_clip_move_event(tl); */
     /* } */
@@ -1510,8 +1582,9 @@ void user_tl_grab_marked_range(void *nullarg)
 	    }
 	}
     }
-    if (!had_active_track) {
-	Track *t = ACTIVE_TRACK(tl);
+    Track *t = timeline_selected_track(tl);
+    if (!had_active_track && t) {
+	/* Track *t = timeline_selected_track(tl); */
 	for (int i=0; i<t->num_clips; i++) {
 	    ClipRef *cr = t->clips[i];
 	    if (clipref_marked(tl, cr)) {
@@ -1690,7 +1763,7 @@ void user_tl_drop_from_source(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
     if (tl->num_tracks == 0) return;
-    Track *track = ACTIVE_TRACK(tl);
+    Track *track = timeline_selected_track(tl);
     if (!track) {
 	status_set_errstr(NO_TRACK_ERRSTR);
     }
@@ -1736,7 +1809,7 @@ static void user_tl_drop_savedn_from_source(int n)
 	/* fprintf(stdout, "N: %d, num dropped: %d\n", n, proj->num_dropped); */
 	Timeline *tl = ACTIVE_TL;
 	if (tl->num_tracks == 0) return;
-	Track *track = ACTIVE_TRACK(tl);
+	Track *track = timeline_selected_track(tl);
 	struct drop_save drop = proj->saved_drops[n];
 	if (!drop.clip) return;
 	/* int32_t drop_pos = tl->play_pos_sframes - proj->play_speed * 2 * proj->chunk_size_sframes; */
@@ -1972,7 +2045,7 @@ void user_tl_delete_generic(void *nullarg)
     if (proj->recording) transport_stop_recording();
     Timeline *tl = ACTIVE_TL;
     Track *t;
-    if ((t = ACTIVE_TRACK(tl)) && TRACK_AUTO_SELECTED(t)) {
+    if ((t = timeline_selected_track(tl)) && TRACK_AUTO_SELECTED(t)) {
 	if (automation_handle_delete(t->automations[t->selected_automation])) {
 	    tl->needs_redraw = true;
 	    return;

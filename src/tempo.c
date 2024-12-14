@@ -119,8 +119,8 @@ static TempoSegment *tempo_track_get_segment_at_pos(TempoTrack *t, int32_t pos)
 
 static int32_t get_beat_pos(TempoSegment *s, int measure, int beat, int subdiv)
 {
+    
     int32_t pos = s->start_pos + (measure - s->first_measure_index) * s->cfg.dur_sframes;
-    /* fprintf(stderr, "\t\tstart pos: %d; w/measure: %d\n", s->start_pos, pos); */
     for (int i=0; i<beat; i++) {
 	pos += s->cfg.dur_sframes * s->cfg.beat_subdiv_lens[i] / s->cfg.num_atoms;
     }
@@ -263,8 +263,8 @@ static void tempo_segment_set_config(TempoSegment *s, int num_measures, int bpm,
 
 static void tempo_segment_set_end_pos(TempoSegment *s, int32_t new_end_pos)
 {
-    fprintf(stderr, "SETTING end pos on segment with deets\n");
-    tempo_segment_fprint(stderr, s);
+    /* fprintf(stderr, "SETTING end pos on segment with deets\n"); */
+    /* tempo_segment_fprint(stderr, s); */
 
     int32_t segment_dur = new_end_pos - s->start_pos;
     double num_measures = (double)segment_dur / s->cfg.dur_sframes;
@@ -289,14 +289,14 @@ static void tempo_segment_set_end_pos(TempoSegment *s, int32_t new_end_pos)
 
 static TempoSegment *tempo_track_add_segment_internal(TempoTrack *t, int32_t start_pos, int16_t num_measures, int bpm, int num_beats, va_list args)
 {
-    fprintf(stderr, "\n\n\nADDING SEGMENT TO TEMPO TRACK, start: %d, num measures: %d\n", start_pos, num_measures);
+    /* fprintf(stderr, "\n\n\nADDING SEGMENT TO TEMPO TRACK, start: %d, num measures: %d\n", start_pos, num_measures); */
     TempoSegment *s = calloc(1, sizeof(TempoSegment));
     s->track = t;
     s->num_measures = num_measures;
     s->start_pos = start_pos;
 
     if (!t->segments) {
-	fprintf(stderr, "This is the first and I'm adding it\n");
+	/* fprintf(stderr, "This is the first and I'm adding it\n"); */
 	t->segments = s;
 	s->end_pos = s->start_pos;
 	s->first_measure_index = BARS_FOR_NOTHING * -1;
@@ -318,8 +318,8 @@ static TempoSegment *tempo_track_add_segment_internal(TempoTrack *t, int32_t sta
 set_config_and_exit:
     tempo_segment_set_config(s, num_measures, bpm, num_beats, args); 
 
-    fprintf(stderr, "DONE DONE DONE DONE now it looks like this\n");
-    tempo_track_fprint(stderr, t);
+    /* fprintf(stderr, "DONE DONE DONE DONE now it looks like this\n"); */
+    /* tempo_track_fprint(stderr, t); */
 
     return s;
 }
@@ -341,7 +341,7 @@ TempoSegment *tempo_track_add_segment_at_measure(TempoTrack *t, int16_t measure,
     TempoSegment *s = t->segments;
     if (s) {
 	while (1) {
-	    fprintf(stderr, "S: %p, first measure index %d (cmp %d)\n", s, s->first_measure_index, measure);
+	    /* fprintf(stderr, "S: %p, first measure index %d (cmp %d)\n", s, s->first_measure_index, measure); */
 	    if (s->first_measure_index > measure) {
 		if (s->prev) {
 		    s = s->prev;
@@ -364,8 +364,47 @@ TempoSegment *tempo_track_add_segment_at_measure(TempoTrack *t, int16_t measure,
     return s;
 }
 
+/* void timeline_rectify_tracks(Timeline *tl) */
+/* { */
+/*     int tempo_track_index = 0; */
+/*     int track_index = 0; */
+    
+/*     Track *track_stack[tl->num_tracks]; */
+/*     TempoTrack *tempo_track_stack[tl->num_tempo_tracks]; */
+    
+/*     for (int i=0; i<tl->track_area->num_children; i++) { */
+/* 	Layout *lt = tl->track_area->children[i]; */
+/* 	for (uint8_t j=0; j<tl->num_tracks; j++) { */
+/* 	    Track *track = tl->tracks[j]; */
+/* 	    if (track->layout == lt) { */
+/* 		track_stack[track_index] = track; */
+/* 		track_index++; */
+/* 		fprintf(stderr, "LAYOUT %d is track %d\n", i, j); */
+/* 		break; */
+/* 	    } */
+/* 	} */
+/* 	for (uint8_t j=0; j<tl->num_tempo_tracks; j++) { */
+/* 	    TempoTrack *tt = tl->tempo_tracks[j]; */
+/* 	    if (tt->layout == lt) { */
+/* 		tempo_track_stack[tempo_track_index] = tt; */
+/* 		tempo_track_index++; */
+/* 		fprintf(stderr, "LAYOUT %d is TEMPO track %d\n", i, j); */
+/* 		break; */
+/* 	    } */
+/* 	} */
+/*     } */
+/*     fprintf(stderr, "\n"); */
+/*     for (int i=0; i<tl->num_tempo_tracks; i++) { */
+/* 	fprintf(stderr, "IN TL: %p\n", tl->tempo_tracks[i]); */
+/* 	fprintf(stderr, "IN STACK: %p\n", tempo_track_stack[i]); */
+/*     } */
+/*     memcpy(tl->tracks, track_stack, sizeof(Track *) * tl->num_tracks); */
+/*     memcpy(tl->tempo_tracks, tempo_track_stack, sizeof(TempoTrack *) * tl->num_tempo_tracks); */
+/* } */
+
 TempoTrack *timeline_add_tempo_track(Timeline *tl)
 {
+    if (tl->num_tempo_tracks == MAX_TEMPO_TRACKS) return NULL;
     TempoTrack *t = calloc(1, sizeof(TempoTrack));
     t->tl = tl;
     t->metronome = &tl->proj->metronomes[0];
@@ -373,7 +412,11 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
     Layout *tempo_tracks_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area");
     /* Layout *lt = layout_read_xml_to_lt(tempo_tracks_area, TEMPO_TRACK_LT_PATH); */
     Layout *lt = layout_read_from_xml(TEMPO_TRACK_LT_PATH);
-    layout_insert_child_at(lt, tempo_tracks_area, 0);
+    if (tl->layout_selector >= 0) {
+	layout_insert_child_at(lt, tempo_tracks_area, tl->layout_selector);
+    } else {
+	layout_insert_child_at(lt, tempo_tracks_area, 0);
+    }
 
     t->layout = lt;
     layout_size_to_fit_children_v(tempo_tracks_area, true, 0);
@@ -445,10 +488,6 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
     slider_set_range(t->metronome_vol_slider, min, max);
     slider_reset(t->metronome_vol_slider);
 
-
-    /* t->metronome_volume_slider = s */
-
-    
     tempo_track_add_segment(t, 0, -1, 120, 4, 4, 4, 4, 4);
     
     tl->tempo_tracks[tl->num_tempo_tracks] = t;
@@ -457,7 +496,7 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
 
 
     /* TESTING ONLY */
-    fprintf(stderr, "T: %p, NUM: %d\n", t, tl->num_tempo_tracks);
+    /* fprintf(stderr, "T: %p, NUM: %d\n", t, tl->num_tempo_tracks); */
     if (tl->num_tempo_tracks == 1) {
 	/* fprintf(stderr, "ADDING SEGMENTS\n"); */
 	/* /\* tempo_track_add_segment(t, 0, -1, 121, 4, 4, 4, 4, 4); *\/ */
@@ -515,7 +554,7 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
 	tempo_track_add_segment_at_measure(t, 4, -1, 500, 4, 3, 3, 2, 2);
 	TempoSegment *s = t->segments;
 	while (s) {
-	    tempo_segment_fprint(stderr, s);
+	    /* tempo_segment_fprint(stderr, s); */
 	    s = s->next;
 	}
 	/* exit(1); */
@@ -535,6 +574,7 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
 	tempo_track_add_segment(t, 1, -1, 128, 4, 4, 4, 4, 4);
     }
 
+    timeline_rectify_track_indices(tl);
     return t;
 }
 
@@ -679,17 +719,35 @@ int32_t tempo_track_bar_beat_subdiv(TempoTrack *tt, int32_t pos, int *bar_p, int
     /* if (measure == 0) measure = s->first_measure_index; */
     /* int32_t prev_pos = prev_positions[tt->index]; */
     int32_t beat_pos = 0;
+    #ifdef TESTBUILD
     int ops = 0;
     clock_t c;
     c = clock();
+    #endif
     int32_t remainder = 0;
     /* if (debug) { */
     /* 	/\* fprintf(stderr, "\t\tSTART loop\n"); *\/ */
     /* } */
     while (1) {
-	ops++;
+	
+	
 	beat_pos = get_beat_pos(s, measure, beat, subdiv);
 	remainder = pos - beat_pos;
+
+	#ifdef TESTBUILD
+	ops++;
+	if (ops > 1000000 - 5) {
+	    fprintf(stderr, "ABORTING... ops = %d\n", ops);
+	    fprintf(stderr, "Segment start/end: %d-%d\n", s->start_pos, s->end_pos);
+	    fprintf(stderr, "Beat pos: %d\n", beat_pos);
+	    fprintf(stderr, "Pos: %d\n", pos);
+	    if (ops > 1000000) {
+		tempo_track_fprint(stderr, tt);
+		exit(1);
+	    }
+	}
+	#endif
+	
 	/* if (debug) { */
 	/*     /\* fprintf(stderr, "\t\t\tremainder: (%d - %d) %d cmp dur approx: %d\n", pos, beat_pos, remainder, s->cfg.atom_dur_approx); *\/ */
 	/* } */

@@ -219,6 +219,7 @@ typedef struct timecode {
 struct track_and_pos {
     Track *track;
     int32_t pos;
+    int track_offset;
 };
 
 /* The project timeline organizes included tracks and specifies how they should be displayed */
@@ -253,7 +254,10 @@ typedef struct timeline {
     // uint8_t active_track_indices[MAX_ACTIVE_TRACKS];
     // uint8_t num_active_tracks;
 
-    uint8_t track_selector;    
+    int layout_selector; /* Agnostic of track "type"; selects audio OR tempo track */
+    int track_selector; /* Index of selected track, or -1 if N/A */
+    int tempo_track_selector; /* Index of selected tempo track */
+    
 
     Timecode timecode;
     Textbox *timecode_tb;
@@ -418,6 +422,11 @@ uint8_t project_add_timeline(Project *proj, char *name);
 void project_reset_tl_label(Project *proj);
 void project_set_chunk_size(uint16_t new_chunk_size);
 Track *timeline_add_track(Timeline *tl);
+
+Track *timeline_selected_track(Timeline *tl);
+TempoTrack *timeline_selected_tempo_track(Timeline *tl);
+Layout *timeline_selected_layout(Timeline *tl);
+
 void timeline_reset_full(Timeline *tl);
 void timeline_reset(Timeline *tl, bool rescaled);
 Clip *project_add_clip(AudioConn *dev, Track *target);
@@ -429,6 +438,7 @@ bool clipref_marked(Timeline *tl, ClipRef *cr);
 void clipref_reset(ClipRef *cr, bool rescaled);
 
 void clipref_displace(ClipRef *cr, int displace_by);
+void clipref_move_to_track(ClipRef *cr, Track *target);
 
 void track_increment_vol(Track *track);
 void track_decrement_vol(Track *track);
@@ -462,21 +472,25 @@ void clipref_delete(ClipRef *cr);
 void clipref_undelete(ClipRef *cr);
 void clip_destroy(Clip *clip);
 void timeline_delete(Timeline *tl, bool from_undo);
+void timeline_cache_grabbed_clip_offsets(Timeline *tl);
 void timeline_cache_grabbed_clip_positions(Timeline *tl);
 void timeline_push_grabbed_clip_move_event(Timeline *tl);
 /* Deprecated; replaced by timeline_delete_grabbed_cliprefs */
 void timeline_destroy_grabbed_cliprefs(Timeline *tl);
 void timeline_delete_grabbed_cliprefs(Timeline *tl);
 void timeline_cut_clipref_at_cursor(Timeline *tl);
-void timeline_move_track(Timeline *tl, Track *track, int direction, bool from_undo);
+/* void timeline_move_track(Timeline *tl, Track *track, int direction, bool from_undo); */
 void timeline_switch(uint8_t new_tl_index);
-void track_move_automation(Automation *a, int direction, bool from_undo);
 void project_destroy(Project *proj);
 
 void project_set_default_out(void *nullarg);
 
+/* void track_move_automation(Automation *a, int direction, bool from_undo); */
+void timeline_move_track_or_automation(Timeline *tl, int direction);
 void timeline_rectify_track_area(Timeline *tl);
+void timeline_rectify_track_indices(Timeline *tl);
 bool timeline_refocus_track(Timeline *tl, Track *track, bool at_bottom);
+bool timeline_refocus_tempo_track(Timeline *tl, TempoTrack *tt, bool at_bottom);
 void timeline_play_speed_set(double new_speed);
 void timeline_play_speed_mult(double scale_factor);
 void timeline_play_speed_adj(double dim);

@@ -205,6 +205,10 @@ bool automation_handle_delete(Automation *a);
 bool automation_toggle_read(Automation *a);
 /* void keyframe_delete(Keyframe *k); */
 void keyframe_delete(Keyframe *k);
+int track_select_next_automation(Track *t);
+int track_select_prev_automation(Track *t);
+int track_select_first_shown_automation(Track *t);
+int track_select_last_shown_automation(Track *t);
 
 TEST_FN_DECL(track_automation_order, Track *track);
 TEST_FN_DECL(automation_keyframe_order, Automation *a);

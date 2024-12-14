@@ -90,7 +90,7 @@ static void update_track_vol_pan()
     }
     Timeline *tl = proj->timelines[proj->active_tl_index];
     bool had_active_track = false;
-    Track *selected_track = tl->tracks[tl->track_selector];
+    Track *selected_track = timeline_selected_track(tl);
     /* if (proj->vol_changing) { */
     for (int i=0; i<tl->num_tracks; i++) {
 	Track *trk = tl->tracks[i];
@@ -116,7 +116,7 @@ static void update_track_vol_pan()
 	    }
 	}
     }
-    if (!had_active_track) {
+    if (!had_active_track && selected_track) {
 	if (proj->vol_changing) {
 	    if (proj->vol_up) {
 		track_increment_vol(selected_track);
@@ -240,8 +240,6 @@ void loop_project_main()
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LCTRL:
 		case SDL_SCANCODE_RCTRL:
-		    /* modal_reset(test_modal); */
-		    /* layout_reset(main_win->layout); */
 		    main_win->i_state |= I_STATE_CMDCTRL;
 		    break;
 		case SDL_SCANCODE_LSHIFT:
@@ -252,35 +250,6 @@ void loop_project_main()
 		case SDL_SCANCODE_RALT:
 		    main_win->i_state |= I_STATE_META;
 		    break;
- 		/* case SDL_SCANCODE_6: { */
-		/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
-		/*     Track *track = tl->tracks[tl->track_selector]; */
-		/*     track_add_new_automation(track); */
-		/*     /\* if (track->num_automations == 0) { *\/ */
-		/*     /\* 	track_add_automation(track, AUTO_VOL); *\/ */
-		/*     /\* } else if (track->num_automations == 1) { *\/ */
-		/*     /\* 	track_add_automation(track, AUTO_PAN); *\/ */
-		/*     /\* } else if (track->num_automations == 2) { *\/ */
-		/*     /\* 	track_add_automation(track, AUTO_PLAY_SPEED); *\/ */
-		/*     /\* } else if (track->num_automations == 3) { *\/ */
-		/*     /\* 	/\\* track_add_automation(track, AUTO_PLAY_SPEED); *\\/ *\/ */
-		/*     /\* 	track_add_automation(track, AUTO_FIR_FILTER_CUTOFF); *\/ */
-		/*     /\* } else if (track->num_automations == 4) { *\/ */
-		/*     /\* 	track_add_automation(track, AUTO_DEL_TIME); *\/ */
-		/*     /\* } else if (track->num_automations == 5) { *\/ */
-		/*     /\* 	/\\* track *\\/ *\/ */
-		/*     /\* 	track_add_automation(track, AUTO_DEL_AMP); *\/ */
-		/*     /\* } *\/ */
-			    
-		/*     track_automations_show_all(track); */
-
-
-		/* } break; */
-		/* case SDL_SCANCODE_X: */
-		/*     if (main_win->i_state & I_STATE_CMDCTRL) { */
-		/* 	main_win->i_state |= I_STATE_C_X; */
-		/*     } */
-		/*     break; */
 	        case SDL_SCANCODE_K:
 		    if (main_win->i_state & I_STATE_K) {
 			break;
@@ -289,19 +258,7 @@ void loop_project_main()
 		    }
 		    /* No break */
 		default:
-		    /* fprintf(stdout, "== SDLK_ */
-		    /* i_state = triage_keypdown(i_state, e.key.keysym.scancode); */
 		    input_fn  = input_get(main_win->i_state, e.key.keysym.sym);
-		    /* if (main_win->modes[main_win->num_modes - 1] == TEXT_EDIT) break; /\* Text Edit mode blocks all other modes *\/ */
-		    /* if (!input_fn) { */
-		    /* 	for (int i=main_win->num_modes - 1; i>=0; i--) { */
-		    /* 	    input_fn = input_get(main_win->i_state, e.key.keysym.sym); */
-		    /* 	    if (input_fn) { */
-		    /* 		break; */
-		    /* 	    } */
-		    /* 	} */
-		    /* } */
-		    /* fprintf(stdout, "Input fn? %p, do fn? %p\n", input_fn, input_fn->do_fn); */
 		    if (input_fn && input_fn->do_fn) {
 			char *keycmd_str = input_get_keycmd_str(main_win->i_state, e.key.keysym.sym);
 			status_set_callstr(keycmd_str);

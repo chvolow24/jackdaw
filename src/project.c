@@ -1328,6 +1328,85 @@ void timeline_rectify_track_area(Timeline *tl)
     layout_size_to_fit_children_v(tl->track_area, true, 0);
 }
 
+void timeline_rectify_track_indices(Timeline *tl)
+{
+    fprintf(stderr, "Rectify\n");
+    int tempo_track_index = 0;
+    int track_index = 0;
+    
+    Track *track_stack[tl->num_tracks];
+    TempoTrack *tempo_track_stack[tl->num_tempo_tracks];
+    
+    for (int i=0; i<tl->track_area->num_children; i++) {
+	Layout *lt = tl->track_area->children[i];
+	bool is_selected_lt = i == tl->layout_selector;
+	for (uint8_t j=0; j<tl->num_tracks; j++) {
+	    Track *track = tl->tracks[j];
+	    if (track->layout == lt) {
+		track_stack[track_index] = track;
+		track->tl_rank = track_index;
+		if (is_selected_lt) {
+		    tl->track_selector = track_index;
+		    tl->tempo_track_selector = -1;
+		}
+		track_index++;
+		break;
+	    }
+	}
+	for (uint8_t j=0; j<tl->num_tempo_tracks; j++) {
+	    TempoTrack *tt = tl->tempo_tracks[j];
+	    if (tt->layout == lt) {
+		tempo_track_stack[tempo_track_index] = tt;
+		tt->index = tempo_track_index;
+		if (is_selected_lt) {
+		    tl->tempo_track_selector = tempo_track_index;
+		    tl->track_selector = -1;
+		}
+		tempo_track_index++;
+		break;
+	    }
+	}
+    }
+    fprintf(stderr, "->LT selector: %d\n", tl->layout_selector);
+    fprintf(stderr, "->track selector: %d\n", tl->track_selector);
+    fprintf(stderr, "->tt selector: %d\n", tl->tempo_track_selector);
+    memcpy(tl->tracks, track_stack, sizeof(Track *) * tl->num_tracks);
+    memcpy(tl->tempo_tracks, tempo_track_stack, sizeof(TempoTrack *) * tl->num_tempo_tracks);
+    tl->needs_redraw = true;
+}
+
+Track *timeline_selected_track(Timeline *tl)
+{
+    if (tl->track_selector < 0) {
+	return NULL;
+    } else if (tl->track_selector > tl->num_tracks - 1) {
+	fprintf(stderr, "ERROR: track selector points past end of tracks arr\n");
+	exit(1);
+    } else {
+	return tl->tracks[tl->track_selector];
+    }
+}
+
+TempoTrack *timeline_selected_tempo_track(Timeline *tl)
+{
+    if (tl->tempo_track_selector < 0) {
+	return NULL;
+    } else if (tl->tempo_track_selector > tl->num_tempo_tracks - 1) {
+	fprintf(stderr, "ERROR: tempo track selector points past end of tracks arr\n");
+	exit(1);
+    } else {
+	return tl->tempo_tracks[tl->tempo_track_selector];
+    }
+}
+
+Layout *timeline_selected_layout(Timeline *tl)
+{
+    if (tl->layout_selector >= 0 && tl->layout_selector < tl->track_area->num_children) {
+	return tl->track_area->children[tl->layout_selector];
+    }
+    return NULL;
+}
+
 static void track_reset_full(Track *track);
 
 
@@ -1544,6 +1623,7 @@ Track *timeline_add_track(Timeline *tl)
     track->colorbar = &(layout_get_child_by_name_recursive(track->inner_layout, "colorbar")->rect);
     
     track_reset_full(track);
+    timeline_rectify_track_indices(tl);
 
     return track;
 }
@@ -1943,7 +2023,12 @@ void track_or_tracks_solo(Timeline *tl, Track *opt_track)
 	}
     }
     if (!has_active_track || opt_track) {
-	track = opt_track ? opt_track : tl->tracks[tl->track_selector];
+	track = opt_track ? opt_track : timeline_selected_track(tl);
+	if (!track) {
+	    status_set_errstr("No track selected to solo");
+	    return;
+	}
+
 	if (track_solo(track)) {
 	    all_solo = false;
 	    solo_count++;
@@ -2018,7 +2103,12 @@ void track_or_tracks_mute(Timeline *tl)
 	}
     }
     if (!has_active_track) {
-	track = tl->tracks[tl->track_selector];
+	/* track = tl->tracks[tl->track_selector]; */
+	track = timeline_selected_track(tl);
+	if (!track) {
+	    status_set_errstr("No track selected to mute");
+	    return;
+	}
 	track_mute(track);
 	muted_tracks[num_muted] = track;
 	num_muted++;
@@ -2147,6 +2237,7 @@ static void timeline_remove_track(Track *track)
     tl->num_tracks--;
     if (tl->num_tracks > 0 && tl->track_selector > tl->num_tracks - 1) tl->track_selector = tl->num_tracks - 1;
     timeline_rectify_track_area(tl);
+    timeline_rectify_track_indices(tl);
     /* layout_size_to_fit_children_v(tl->track_area, true, 0); */
 }
 
@@ -2167,6 +2258,7 @@ static void timeline_insert_track_at(Track *track, uint8_t index)
     tl->tracks[index] = track;
     track->tl_rank = index;
     tl->num_tracks++;
+    timeline_rectify_track_indices(tl);
 }
 void track_delete(Track *track)
 {
@@ -2492,6 +2584,13 @@ void timeline_delete(Timeline *tl, bool from_undo)
 
 
 void timeline_push_grabbed_clip_move_event(Timeline *tl);
+void timeline_cache_grabbed_clip_offsets(Timeline *tl)
+{
+    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
+	tl->grabbed_clip_pos_cache[i].track_offset = tl->grabbed_clips[i]->track->tl_rank - tl->track_selector;
+    }
+}
+
 void timeline_cache_grabbed_clip_positions(Timeline *tl)
 {
     if (!tl->grabbed_clip_cache_initialized) {
@@ -2502,6 +2601,7 @@ void timeline_cache_grabbed_clip_positions(Timeline *tl)
     for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
 	tl->grabbed_clip_pos_cache[i].track = tl->grabbed_clips[i]->track;
 	tl->grabbed_clip_pos_cache[i].pos = tl->grabbed_clips[i]->pos_sframes;
+	/* tl->grabbed_clip_pos_cache[i].track_offset = tl->grabbed_clips[i]->track->tl_rank - tl->track_selector; */
     }
     tl->grabbed_clip_cache_pushed = false;
 }
@@ -2666,7 +2766,7 @@ ClipRef *clipref_at_cursor_in_track(Track *track)
 void clipref_bring_to_front()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
-    Track *track = tl->tracks[tl->track_selector];
+    Track *track = timeline_selected_track(tl);
     if (!track) return;
     /* bool displace = false; */
     ClipRef *to_move = NULL;
@@ -2695,7 +2795,7 @@ bool clipref_marked(Timeline *tl, ClipRef *cr)
 ClipRef *clipref_at_cursor()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
-    Track *track = tl->tracks[tl->track_selector];
+    Track *track = timeline_selected_track(tl);
     if (!track) return NULL;
     
     /* Reverse iter to ensure top-most clip is returned in case of overlap */
@@ -2711,7 +2811,7 @@ ClipRef *clipref_at_cursor()
 ClipRef *clipref_before_cursor(int32_t *pos_dst)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
-    Track *track = tl->tracks[tl->track_selector];
+    Track *track = timeline_selected_track(tl);
     if (!track) return NULL;
     if (track->num_clips == 0) return NULL;
     ClipRef *ret = NULL;
@@ -2731,7 +2831,7 @@ ClipRef *clipref_before_cursor(int32_t *pos_dst)
 ClipRef *clipref_after_cursor(int32_t *pos_dst)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
-    Track *track = tl->tracks[tl->track_selector];
+    Track *track = timeline_selected_track(tl);
     if (!track) return NULL;
     if (track->num_clips == 0) return NULL;
     ClipRef *ret = NULL;
@@ -2840,7 +2940,7 @@ static ClipRef *clipref_cut(ClipRef *cr, int32_t cut_pos_rel)
 
 void timeline_cut_clipref_at_cursor(Timeline *tl)
 {
-    Track *track = tl->tracks[tl->track_selector];
+    Track *track = timeline_selected_track(tl);
     if (!track) return;
     ClipRef *cr = clipref_at_cursor();
     if (!cr) {
@@ -2853,62 +2953,64 @@ void timeline_cut_clipref_at_cursor(Timeline *tl)
 }
 
 
-static NEW_EVENT_FN(undo_redo_move_track, "undo/redo move track")
-    Track *track = (Track *)obj1;
-    int direction = val1.int_v;
-    timeline_move_track(track->tl, track, direction, true);
-}
-void timeline_move_track(Timeline *tl, Track *track, int direction, bool from_undo)
-{
-    int old_pos = track->tl_rank;
-    int new_pos = old_pos + direction;
-    if (new_pos < 0 || new_pos >= tl->num_tracks) return;
+/* static NEW_EVENT_FN(undo_redo_move_track, "undo/redo move track") */
+/*     Track *track = (Track *)obj1; */
+/*     int direction = val1.int_v; */
+/*     timeline_move_track(track->tl, track, direction, true); */
+/* } */
 
-    Track *displaced = tl->tracks[new_pos];
-    tl->tracks[new_pos] = track;
-    tl->tracks[old_pos] = displaced;
-    displaced->tl_rank = track->tl_rank;
+/* void timeline_move_track(Timeline *tl, Track *track, int direction, bool from_undo) */
+/* { */
+/*     int old_pos = track->tl_rank; */
+/*     int new_pos = old_pos + direction; */
+/*     if (new_pos < 0 || new_pos >= tl->num_tracks) return; */
 
-    /* Layout *displaced_layout = displaced->layout; */
-    /* Layout *track_layout = track->layout; */
+/*     Track *displaced = tl->tracks[new_pos]; */
+/*     tl->tracks[new_pos] = track; */
+/*     tl->tracks[old_pos] = displaced; */
+/*     displaced->tl_rank = track->tl_rank; */
 
-    /* displaced_layout->parent->children[displaced_layout->index] = track_layout; */
-    /* displaced_layout->parent->children[track_layout->index] = displaced_layout; */
-    /* int saved_i = displaced_layout->index; */
-    /* displaced_layout->index = track_layout->index; */
-    /* track_layout->index = saved_i; */
-    layout_swap_children(displaced->layout, track->layout);
+/*     /\* Layout *displaced_layout = displaced->layout; *\/ */
+/*     /\* Layout *track_layout = track->layout; *\/ */
+
+/*     /\* displaced_layout->parent->children[displaced_layout->index] = track_layout; *\/ */
+/*     /\* displaced_layout->parent->children[track_layout->index] = displaced_layout; *\/ */
+/*     /\* int saved_i = displaced_layout->index; *\/ */
+/*     /\* displaced_layout->index = track_layout->index; *\/ */
+/*     /\* track_layout->index = saved_i; *\/ */
+/*     layout_swap_children(displaced->layout, track->layout); */
     
-    track->tl_rank = new_pos;
-    tl->track_selector = track->tl_rank;
-    timeline_reset(tl, false);
+/*     track->tl_rank = new_pos; */
+/*     tl->track_selector = track->tl_rank; */
+/*     timeline_reset(tl, false); */
 
-    if (!from_undo) {
-	Value direction_forward = {.int_v = direction};
-	Value direction_reverse = {.int_v = direction * -1};
-	user_event_push(
-	    &proj->history,
-	    undo_redo_move_track,
-	    undo_redo_move_track,
-	    NULL,
-	    NULL,
-	    (void *)track,
-	    NULL,
-	    direction_reverse,
-	    direction_reverse,
-	    direction_forward,
-	    direction_forward,
-	    0, 0, false, false);
-    }
-}
+/*     if (!from_undo) { */
+/* 	Value direction_forward = {.int_v = direction}; */
+/* 	Value direction_reverse = {.int_v = direction * -1}; */
+/* 	user_event_push( */
+/* 	    &proj->history, */
+/* 	    undo_redo_move_track, */
+/* 	    undo_redo_move_track, */
+/* 	    NULL, */
+/* 	    NULL, */
+/* 	    (void *)track, */
+/* 	    NULL, */
+/* 	    direction_reverse, */
+/* 	    direction_reverse, */
+/* 	    direction_forward, */
+/* 	    direction_forward, */
+/* 	    0, 0, false, false); */
+/*     } */
+/* } */
 
+static void track_move_automation(Automation *a, int direction, bool from_undo);
 NEW_EVENT_FN(undo_redo_move_automation, "undo/redo move automation")
     Automation *a = (Automation *)obj1;
     int direction = val1.int_v;
     track_move_automation(a, direction, true);
 }
 
-void track_move_automation(Automation *a, int direction, bool from_undo)
+static void track_move_automation(Automation *a, int direction, bool from_undo)
 {
     TEST_FN_CALL(automation_index, a);
     Track *track = a->track;
@@ -2943,6 +3045,74 @@ void track_move_automation(Automation *a, int direction, bool from_undo)
 	}
     }
     TEST_FN_CALL(track_automation_order, track);
+}
+
+static void timeline_move_track_at_index(Timeline *tl, int index, int direction, bool from_undo);
+NEW_EVENT_FN(undo_redo_move_track_at_index, "undo/redo move track")
+    int direction = val1.int_v;
+    int index = val2.int_v;
+    Timeline *tl = (Timeline *)obj1;
+    timeline_move_track_at_index(tl, index, direction, true);
+
+}
+
+static void timeline_move_track_at_index(Timeline *tl, int index, int direction, bool from_undo)
+{
+    Layout *sel = tl->track_area->children[index];
+    Layout *swap = tl->track_area->children[index + direction];
+    layout_swap_children(sel, swap);
+    layout_force_reset(tl->track_area);
+    timeline_rectify_track_indices(tl);
+
+    if (!from_undo) {
+	Value undo_dir = {.int_v = -1 * direction};
+	Value redo_dir = {.int_v = direction};
+	Value undo_index = {.int_v = index + direction};
+	Value redo_index = {.int_v = index};
+	user_event_push(
+	    &proj->history,
+	    undo_redo_move_track_at_index,
+	    undo_redo_move_track_at_index,
+	    NULL, NULL,
+	    (void *)tl,
+	    NULL,
+	    undo_dir, undo_index,
+	    redo_dir, redo_index,
+	    0, 0, false, false);
+    }
+
+
+    /* Track *sel_track = timeline_selected_track(tl); */
+    /* if (sel_track) { */
+    /* 	timeline_refocus_track(tl, sel_track, direction > 0); */
+    /* } else { */
+    /* 	TempoTrack *sel_tt = timeline_selected_tempo_track(tl); */
+    /* 	timeline_refocus_tempo_track(tl, sel_tt, direction > 0); */
+    /* } */
+}
+
+void timeline_move_track_or_automation(Timeline *tl, int direction)
+{
+    
+    Track *t = timeline_selected_track(tl);
+    if (t && t->num_automations > 0 && t->selected_automation >= 0) {
+	track_move_automation(t->automations[t->selected_automation], direction, false);
+	return;
+    }
+    int new_pos;
+    if ((new_pos = tl->layout_selector + direction) < 0 || new_pos > tl->track_area->num_children - 1)
+	return;
+    timeline_move_track_at_index(tl, tl->layout_selector, direction, false);
+    tl->layout_selector += direction;
+    timeline_rectify_track_indices(tl);
+    t = timeline_selected_track(tl);
+    if (t) {
+	timeline_refocus_track(tl, t, direction > 0);
+    } else {
+	TempoTrack *tt = timeline_selected_tempo_track(tl);
+	timeline_refocus_tempo_track(tl, tt, direction > 0);
+    }
+    tl->needs_redraw = true;
 }
 
 static void select_out_onclick(void *arg)
@@ -3032,17 +3202,8 @@ void project_set_chunk_size(uint16_t new_chunk_size)
 
 }
 
-
-
-bool timeline_refocus_track(Timeline *tl, Track *track, bool at_bottom)
+static bool refocus_track_lt(Timeline *tl, Layout *lt, Layout *inner, bool at_bottom)
 {
-    Layout *lt, *inner;
-    lt = track->layout;
-    if (track->selected_automation > 0) {
-	inner = track->automations[track->selected_automation]->layout;
-    } else {
-	inner = track->layout;
-    }
     int y_diff = inner->rect.y - lt->parent->rect.y;
     int audio_rect_h_by_2 = tl->proj->audio_rect->h / 2;
     if (lt->rect.y + lt->rect.h > proj->audio_rect->y + proj->audio_rect->h || lt->rect.y < proj->audio_rect->y) {
@@ -3056,6 +3217,25 @@ bool timeline_refocus_track(Timeline *tl, Track *track, bool at_bottom)
 	return true;
     }
     return false;
+}
+
+bool timeline_refocus_tempo_track(Timeline *tl, TempoTrack *tt, bool at_bottom)
+{
+    Layout *lt = tt->layout;
+    return refocus_track_lt(tl, lt, lt, at_bottom);
+}	
+
+bool timeline_refocus_track(Timeline *tl, Track *track, bool at_bottom)
+{
+    Layout *lt, *inner;
+    lt = track->layout;
+    if (track->selected_automation > 0) {
+	inner = track->automations[track->selected_automation]->layout;
+    } else {
+	inner = track->layout;
+    }
+    return refocus_track_lt(tl, lt, inner, at_bottom);
+
 }
 
 

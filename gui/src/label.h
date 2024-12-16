@@ -21,6 +21,7 @@ typedef struct label {
     ValType val_type;
     LabelStrFn set_str_fn;
     void *target_obj;
+    Layout *parent_obj_lt;
 } Label;
 
 Label *label_create(

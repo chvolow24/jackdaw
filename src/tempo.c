@@ -737,11 +737,12 @@ int32_t tempo_track_bar_beat_subdiv(TempoTrack *tt, int32_t pos, int *bar_p, int
 	#ifdef TESTBUILD
 	ops++;
 	if (ops > 1000000 - 5) {
-	    fprintf(stderr, "ABORTING... ops = %d\n", ops);
+	    fprintf(stderr, "ABORTING soon... ops = %d\n", ops);
 	    fprintf(stderr, "Segment start/end: %d-%d\n", s->start_pos, s->end_pos);
 	    fprintf(stderr, "Beat pos: %d\n", beat_pos);
 	    fprintf(stderr, "Pos: %d\n", pos);
 	    if (ops > 1000000) {
+		fprintf(stderr, "ABORT\n");
 		tempo_track_fprint(stderr, tt);
 		exit(1);
 	    }
@@ -868,7 +869,7 @@ void tempo_track_mix_metronome(TempoTrack *tt, float *mixdown_buf, int32_t mixdo
 	}
 	int32_t buf_i = 0;
 	double buf_i_d = 0.0;
-	double tick_i_d = (double)tick_start_in_chunk;
+	/* double tick_i_d = (double)tick_start_in_chunk; */
 	while (tick_start_in_chunk < mixdown_buf_len) {
 	    if (tick_start_in_chunk > 0 && buf_i > 0 && buf_i < buf_len) {
 		mixdown_buf[tick_start_in_chunk] += buf[buf_i] * tt->metronome_vol;
@@ -883,178 +884,25 @@ void tempo_track_mix_metronome(TempoTrack *tt, float *mixdown_buf, int32_t mixdo
 	do_decrement(s, &bar, &beat, &subdiv);
 	/* c = clock(); */
 	remainder = (tl_start_pos_sframes - get_beat_pos(s, bar, beat, subdiv));
-	/* dur = ((double)clock() - c)/CLOCKS_PER_SEC; */
-	/* fprintf(stderr, "SECOND remainder dur msec: %f\n", dur * 1000); */
-
     }
-    /* fprintf(stderr, "OPS outer: %d inner: %d\n", outer_ops, inner_ops); */
+}
 
-    /* fprintf(stderr, "TOTAL DUR MSEC: %f\n", ((double)clock() - start)/CLOCKS_PER_SEC); */
-    /* fprintf(stderr, "->EXIT metro\n"); */
-
+bool tempo_track_triage_click(uint8_t button, TempoTrack *t)
+{
+    if (!SDL_PointInRect(&main_win->mousep, &t->layout->rect)) {
+	return false;
+    }
+    if (slider_mouse_click(t->metronome_vol_slider, main_win)) {
+	return true;
+    }
+    if (SDL_PointInRect(&main_win->mousep, &t->metronome_button->layout->rect)) {
+	fprintf(stderr, "METRONOME BUTTON\n");
+	return true;
+    }
+    return false;
 }
    
 
-    /* OLD CODE */
-
-    
-/*     if (step > 1.0) step = 1.0; */
-    
-/*     fprintf(stderr, "\n\nSTART AT %d, through %d... dur %d\n", tl_start_pos_sframes, tl_end_pos_sframes, tl_end_pos_sframes - tl_start_pos_sframes); */
-/*     int bar, beat, subdiv; */
-/*     TempoSegment *s; */
-/*     float *buf = NULL; */
-/*     int32_t remainder = tempo_track_bar_beat_subdiv(tt, tl_start_pos_sframes, &bar, &beat, &subdiv, &s, false); */
-/*     int32_t buf_len = 0; */
-/*     /\* fprintf(stderr, "OUTSIDE remainder: %d, %d %d %d\n", remainder, bar, beat, subdiv); *\/ */
-/*     while (1) { */
-/* 	/\* fprintf(stderr, "\tloop iter remainder: %d (vs %d), (%d %d %d)\n", remainder, buf_len, bar, beat, subdiv); *\/ */
-/* 	enum beat_prominence bp; */
-/* 	set_beat_prominence(s, &bp, bar, beat, subdiv); */
-/* 	/\* fprintf(stderr, "\thmm OK OK beat prom: %d\n", bp); *\/ */
-/* 	if (bp < 2) { */
-/* 	    buf = tt->metronome->buffers[0]; */
-/* 	    buf_len = tt->metronome->buf_lens[0]; */
-
-/* 	} else if (bp == 2) { */
-/* 	    buf = tt->metronome->buffers[1]; */
-/* 	    buf_len = tt->metronome->buf_lens[1]; */
-/* 	} else { */
-/* 	    buf_len = remainder + 1; */
-/* 	    do_decrement(s, &bar, &beat, &subdiv); */
-/* 	    remainder = tl_start_pos_sframes - get_beat_pos(s, bar, beat, subdiv); */
-/* 	    continue; */
-/* 	} */
-/* 	fprintf(stderr, "Cmp r to bflen*step: %d %f\n", remainder, (double)buf_len / step); */
-/* 	if (remainder > (double)buf_len / step) { */
-/* 	    break; */
-/* 	} */
-/* 	/\* fprintf(stderr, "OK OK beat prom: %d\n", bp); *\/ */
-/* 	double tick_buf_i = remainder * step; */
-/* 	if (tick_buf_i < 0.0) { */
-/* 	    fprintf(stderr, "ERROR tick buf i is %f\n", tick_buf_i); */
-/* 	    goto back_half; */
-/* 	} */
-/* 	int32_t mixdown_i = 0; */
-/* 	fprintf(stderr, "%d %d %d Start at %d/%d\n", bar, beat, subdiv, (int32_t)round(tick_buf_i), buf_len); */
-/* 	while ((int32_t)round(tick_buf_i) < buf_len && mixdown_i < mixdown_buf_len) { */
-/* 	    mixdown_buf[(int32_t)round(mixdown_i)] += buf[(int32_t)round(tick_buf_i)] * 2.0; */
-/* 	    mixdown_i++; */
-/* 	    tick_buf_i+=step; */
-/* 	    if (tick_buf_i < 0.0) break; */
-/* 	} */
-/* 	fprintf(stderr, "\tNow doing decrement\n"); */
-/* 	do_decrement(s, &bar, &beat, &subdiv); */
-/* 	remainder = tl_start_pos_sframes - get_beat_pos(s, bar, beat, subdiv); */
-/* 	fprintf(stderr, "\tNew remainder: %d\n", remainder); */
-/*     } */
-
-/* back_half: */
-/*     return; */
-/*     fprintf(stderr, "BACK HALF OUTSIDE remainder: %d, %d %d %d\n", remainder, bar, beat, subdiv); */
-/*     remainder = tempo_track_bar_beat_subdiv(tt, tl_end_pos_sframes, &bar, &beat, &subdiv, &s, false); */
-/*     while (1) { */
-/* 	fprintf(stderr, "\tloop iter remainder: %d (vs %d), (%d %d %d)\n", remainder, buf_len, bar, beat, subdiv); */
-/* 	enum beat_prominence bp; */
-/* 	set_beat_prominence(s, &bp, bar, beat, subdiv); */
-/* 	if (bp < 2) { */
-/* 	    buf = tt->metronome->buffers[0]; */
-/* 	    buf_len = tt->metronome->buf_lens[0]; */
-
-/* 	} else if (bp == 2) { */
-/* 	    buf = tt->metronome->buffers[1]; */
-/* 	    buf_len = tt->metronome->buf_lens[1]; */
-/* 	} else { */
-/* 	    buf_len = remainder + 1; */
-/* 	    do_decrement(s, &bar, &beat, &subdiv); */
-/* 	    remainder = tl_end_pos_sframes - get_beat_pos(s, bar, beat, subdiv); */
-/* 	    continue; */
-/* 	} */
-/* 	fprintf(stderr, "Cmp rm to bflen*step: %d %f\n", remainder, (double)buf_len / step); */
-/* 	if (remainder > (double)buf_len / step) { */
-/* 	    break; */
-/* 	} */
-
-/* 	double tick_buf_i = 0.0; */
-/* 	int32_t mixdown_i = (int32_t)round((double)remainder / step); */
-/* 	fprintf(stderr, "Back half Start at %d/%d\n", (int32_t)round(tick_buf_i), buf_len); */
-/* 	while ((int32_t)round(tick_buf_i) < buf_len && mixdown_i < mixdown_buf_len) { */
-/* 	    mixdown_buf[mixdown_i] += buf[(int32_t)round(tick_buf_i)] * 2.0; */
-/* 	    mixdown_i++; */
-/* 	    tick_buf_i+=step; */
-/* 	    if (tick_buf_i < 0.0) break; */
-/* 	} */
-/* 	do_decrement(s, &bar, &beat, &subdiv); */
-/* 	remainder = tl_end_pos_sframes - get_beat_pos(s, bar, beat, subdiv);	 */
-/*     } */
-/*     /\* while (bp < 3) { *\/ */
-/*     /\* 	fprintf(stderr, "Start dec remain: %d\n", remainder); *\/ */
-/*     /\* 	do_decrement(s, &bar, &beat, &subdiv); *\/ */
-/*     /\* 	set_beat_prominence(s, &bp, bar, beat, subdiv); *\/ */
-/*     /\* 	remainder = tl_start_pos_sframes - get_beat_pos(s, bar, beat, subdiv); *\/ */
-/*     /\* 	fprintf(stderr, "DID DEC new remain: %d\n", remainder); *\/ */
-/*     /\* } *\/ */
-/*     /\* float *buf; *\/ */
-/*     /\* int32_t buf_len = 0; *\/ */
-/*     /\* if (bp < 2) { *\/ */
-/*     /\* 	buf = tt->metronome->buffers[0]; *\/ */
-/*     /\* 	buf_len = tt->metronome->buf_lens[0]; *\/ */
-
-/*     /\* } else if (bp == 2) { *\/ */
-/*     /\* 	buf = tt->metronome->buffers[1]; *\/ */
-/*     /\* 	buf_len = tt->metronome->buf_lens[1]; *\/ */
-/*     /\* } else { *\/ */
-/*     /\* 	goto bottom; *\/ */
-/*     /\* } *\/ */
-
-/*     /\* double tick_buf_i = remainder * step; *\/ */
-/*     /\* if (tick_buf_i < 0.0) { *\/ */
-/*     /\* 	fprintf(stderr, "ERROR tick buf i is %f\n", tick_buf_i); *\/ */
-/*     /\* 	goto bottom; *\/ */
-/*     /\* } *\/ */
-/*     /\* int32_t mixdown_i = 0; *\/ */
-/*     /\* fprintf(stderr, "Start at %d/%d\n", (int32_t)round(tick_buf_i), buf_len); *\/ */
-/*     /\* while ((int32_t)round(tick_buf_i) < buf_len && mixdown_i < mixdown_buf_len) { *\/ */
-/*     /\* 	mixdown_buf[(int32_t)round(mixdown_i)] += buf[(int32_t)round(tick_buf_i)] * 2.0; *\/ */
-/*     /\* 	mixdown_i++; *\/ */
-/*     /\* 	tick_buf_i+=step; *\/ */
-/*     /\* 	if (tick_buf_i < 0.0) break; *\/ */
-/*     /\* } *\/ */
-/* /\*     int next_bar, next_beat, next_subdiv; *\/ */
-/* /\* bottom: *\/ */
-/*     /\* remainder = tempo_track_bar_beat_subdiv(tt, tl_end_pos_sframes, &next_bar, &next_beat, &next_subdiv, &s, false); *\/ */
-/*     /\* if (next_bar != bar || next_beat != beat || next_subdiv != subdiv) { *\/ */
-/*     /\* 	/\\* fprintf(stderr, "NEWWWWWWWW\n"); *\\/ *\/ */
-/*     /\* 	fprintf(stderr, "\n\nBP before: %d\n", bp); *\/ */
-/*     /\* 	set_beat_prominence(s, &bp, next_bar, next_beat, next_subdiv); *\/ */
-/*     /\* 	fprintf(stderr, "BP after: %d\n", bp); *\/ */
-/*     /\* 	if (bp < 2) { *\/ */
-/*     /\* 	    buf = tt->metronome->buffers[0]; *\/ */
-/*     /\* 	    buf_len = tt->metronome->buf_lens[0]; *\/ */
-
-/*     /\* 	} else if (bp == 2) { *\/ */
-/*     /\* 	    buf = tt->metronome->buffers[1]; *\/ */
-/*     /\* 	    buf_len = tt->metronome->buf_lens[1]; *\/ */
-/*     /\* 	} else { *\/ */
-/*     /\* 	    return; *\/ */
-/*     /\* 	} *\/ */
-/*     /\* 	double tick_buf_i = 0.0; *\/ */
-/*     /\*     mixdown_i = mixdown_buf_len - remainder; *\/ */
-/*     /\* 	if (mixdown_i < 0) { *\/ */
-/*     /\* 	    fprintf(stderr, "ERROR: mixdown buf is %d\n", mixdown_i); *\/ */
-/*     /\* 	    return; *\/ */
-/*     /\* 	} *\/ */
-/*     /\* 	fprintf(stderr, "BELOW Start at %f/%d, in mixdown: %d/%d\n", tick_buf_i, buf_len, mixdown_i, mixdown_buf_len); *\/ */
-/*     /\* 	while (mixdown_i < mixdown_buf_len && (int32_t)round(tick_buf_i) < buf_len) { *\/ */
-/*     /\* 	    mixdown_buf[mixdown_i] += buf[(int32_t)round(tick_buf_i)] * 2.0; *\/ */
-/*     /\* 	    mixdown_i++; *\/ */
-/*     /\* 	    tick_buf_i+=step; *\/ */
-/*     /\* 	    if (tick_buf_i < 0.0) break; *\/ */
-/*     /\* 	} *\/ */
-
-/*     /\* } *\/ */
-/*     return; */
-/* } */
 extern Project *proj;
 void tempo_segment_fprint(FILE *f, TempoSegment *s)
 {

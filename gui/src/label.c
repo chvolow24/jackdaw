@@ -3,6 +3,8 @@
 
 extern SDL_Color color_global_black;
 
+extern Window *main_win;
+
 static void std_str_fn(char *dst, size_t dstsize, void *target, ValType t)
 {
     jdaw_valptr_set_str(dst, dstsize, target, t, 2);
@@ -43,10 +45,16 @@ Label *label_create(
     return l;
 }
 
+static void label_draw_deferred(void *label_v)
+{
+    Label *label = (Label *)label_v;
+    textbox_draw(label->tb);
+}
+
 void label_draw(Label *label)
 {
     if (label->countdown_timer > 0) {
-	textbox_draw(label->tb);
+	window_defer_draw(main_win, label_draw_deferred, label);
 	label->countdown_timer--;
     }
 }
@@ -57,10 +65,22 @@ void label_move(Label *label, int x, int y)
     label->tb->layout->rect.y = y;
     layout_set_values_from_rect(label->tb->layout);
 }
+
 void label_reset(Label *label)
 {
     label->set_str_fn(label->str, label->max_len, label->target_obj, label->val_type);
     textbox_size_to_fit(label->tb, LABEL_H_PAD, LABEL_V_PAD);
+
+    /* Do not allow label to extend offscreen (right) */
+    if (label->tb->layout->rect.x + label->tb->layout->rect.w > main_win->w_pix) {
+	label->tb->layout->rect.x = main_win->w_pix - label->tb->layout->rect.w;
+	layout_set_values_from_rect(label->tb->layout);
+    }
+    /* Do not allow label to intersect parent object layout (vertically) */
+    if (label->parent_obj_lt && SDL_HasIntersection(&label->tb->layout->rect, &label->parent_obj_lt->rect)) {
+	label->tb->layout->rect.y = label->parent_obj_lt->rect.y + label->parent_obj_lt->rect.h + 5 * main_win->dpi_scale_factor;
+	layout_set_values_from_rect(label->tb->layout);
+    }
     label->countdown_timer = label->countdown_max;
     textbox_reset_full(label->tb);
 }

@@ -48,7 +48,7 @@ extern Project *proj;
 Window *window_create(int w, int h, const char *name) 
 {
 
-    Window *window = malloc(sizeof(Window));
+    Window *window = calloc(1, sizeof(Window));
     SDL_Window *win = SDL_CreateWindow(name, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, (Uint32)DEFAULT_WINDOW_FLAGS);
     if (!win) {
         fprintf(stderr, "Error creating window: %s", SDL_GetError());
@@ -77,8 +77,8 @@ Window *window_create(int w, int h, const char *name)
     window->h_pix = h * window->dpi_scale_factor;
 
     window->zoom_scale_factor = 1.0f;
-    window->canvas_src.x = 0;
-    window->canvas_src.y = 0;
+    /* window->canvas_src.x = 0; */
+    /* window->canvas_src.y = 0; */
     window->canvas_src.w = window->w_pix;
     window->canvas_src.h = window->h_pix;
 
@@ -90,16 +90,16 @@ Window *window_create(int w, int h, const char *name)
 	exit(1);
     }
 
-    window->i_state = 0;
+    /* window->i_state = 0; */
     
-    window->std_font = NULL;
-    window->bold_font = NULL;
-    window->layout = NULL;
-    window->num_menus = 0;
-    window->num_modes = 0;
-    window->num_modals = 0;
-    window->active_tab_view = NULL;
-    window->active_page = NULL;
+    /* window->std_font = NULL; */
+    /* window->bold_font = NULL; */
+    /* window->layout = NULL; */
+    /* window->num_menus = 0; */
+    /* window->num_modes = 0; */
+    /* window->num_modals = 0; */
+    /* window->active_tab_view = NULL; */
+    /* window->active_page = NULL; */
     
     SDL_SetRenderDrawBlendMode(window->rend, SDL_BLENDMODE_BLEND);
 
@@ -266,6 +266,14 @@ void window_zoom(Window *win, float zoom_by)
     }
 }
 
+void window_defer_draw(Window *win, void (*draw_op)(void *), void *obj)
+{
+    if (win->num_deferred_draw_ops < WINDOW_MAX_DEFERRED_DRAW_OPS) {
+	win->deferred_draw_ops[win->num_deferred_draw_ops] = draw_op;
+	win->deferred_draw_objs[win->num_deferred_draw_ops] = obj;
+	win->num_deferred_draw_ops++;
+    }	
+}
 
 void window_start_draw(Window *win, SDL_Color *bckgrnd_color)
 {
@@ -279,6 +287,13 @@ void window_start_draw(Window *win, SDL_Color *bckgrnd_color)
 
 void window_end_draw(Window *win)
 {
+    /* Do deferred draw operations */
+    for (uint8_t i=0; i<win->num_deferred_draw_ops; i++) {
+	win->deferred_draw_ops[i](win->deferred_draw_objs[i]);
+    }
+    /* Reset for next frame */
+    win->num_deferred_draw_ops = 0;
+    
     SDL_SetRenderTarget(win->rend, NULL);
     SDL_RenderCopy(win->rend, win->canvas, &win->canvas_src, NULL);
     SDL_RenderPresent(win->rend);

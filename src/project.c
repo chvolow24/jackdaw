@@ -1330,7 +1330,7 @@ void timeline_rectify_track_area(Timeline *tl)
 
 void timeline_rectify_track_indices(Timeline *tl)
 {
-    fprintf(stderr, "Rectify\n");
+    /* fprintf(stderr, "Rectify\n"); */
     int tempo_track_index = 0;
     int track_index = 0;
     
@@ -1367,9 +1367,9 @@ void timeline_rectify_track_indices(Timeline *tl)
 	    }
 	}
     }
-    fprintf(stderr, "->LT selector: %d\n", tl->layout_selector);
-    fprintf(stderr, "->track selector: %d\n", tl->track_selector);
-    fprintf(stderr, "->tt selector: %d\n", tl->tempo_track_selector);
+    /* fprintf(stderr, "->LT selector: %d\n", tl->layout_selector); */
+    /* fprintf(stderr, "->track selector: %d\n", tl->track_selector); */
+    /* fprintf(stderr, "->tt selector: %d\n", tl->tempo_track_selector); */
     memcpy(tl->tracks, track_stack, sizeof(Track *) * tl->num_tracks);
     memcpy(tl->tempo_tracks, tempo_track_stack, sizeof(TempoTrack *) * tl->num_tempo_tracks);
     tl->needs_redraw = true;

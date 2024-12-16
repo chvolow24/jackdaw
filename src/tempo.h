@@ -117,4 +117,6 @@ void project_init_metronomes(Project *proj);
 void tempo_track_mix_metronome(TempoTrack *tt, float *mixdown_buf, int32_t mixdown_buf_len, int32_t tl_start_pos_sframes, int32_t tl_end_pos_sframes, float step);
 void tempo_track_fprint(FILE *f, TempoTrack *tt);
 
+bool tempo_track_triage_click(uint8_t button, TempoTrack *t);
+
 #endif

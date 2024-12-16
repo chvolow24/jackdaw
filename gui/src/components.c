@@ -60,6 +60,7 @@ Slider *slider_create(
     label->rect.y = layout->rect.y;
     layout_set_values_from_rect(label);
     s->label = label_create(0, label, label_str_fn, value, val_type, main_win);
+    s->label->parent_obj_lt  = s->layout;
     s->drag_context = drag_context;
     /* if (create_label_fn) { */
     /* 	create_label_fn(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, value, val_type); */

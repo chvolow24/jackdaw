@@ -34,7 +34,7 @@
 
 #include "thread_safety.h"
 
-#include <stdarg.h>
+/* #include <stdarg.h> */
 #include "assets.h"
 #include "color.h"
 #include "components.h"
@@ -44,6 +44,7 @@
 #include "portability.h"
 #include "project.h"
 #include "tempo.h"
+#include "test.h"
 #include "timeline.h"
 #include "wav.h"
 
@@ -51,6 +52,7 @@ extern Window *main_win;
 extern SDL_Color color_global_tempo_track;
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;
+extern SDL_Color color_global_quickref_button_blue;
 extern SDL_Color control_bar_bckgrnd;
 extern SDL_Color mute_red;
 extern SDL_Color color_global_play_green;
@@ -229,21 +231,23 @@ set_prominence_and_exit:
     return true;
 }
 
-static void tempo_segment_set_config(TempoSegment *s, int num_measures, int bpm, int num_beats, va_list subdivs)
+static void tempo_segment_set_config(TempoSegment *s, int num_measures, int bpm, int num_beats, int *subdivs)
 {
     if (num_beats > MAX_BEATS_PER_BAR) {
 	fprintf(stderr, "Error: num_beats exceeds maximum per bar (%d)\n", MAX_BEATS_PER_BAR);
 	return;
     }
-    
+
     s->cfg.bpm = bpm;
     s->cfg.num_beats = num_beats;
-    
+
     double beat_dur = s->track->tl->proj->sample_rate * 60.0 / bpm;
     
     int min_subdiv_len_atoms = 0;
+    s->cfg.num_atoms = 0;
     for (int i=0; i<num_beats; i++) {
-	int subdiv_len_atoms = va_arg(subdivs, int);
+	int subdiv_len_atoms = subdivs[i];
+	/* int subdiv_len_atoms = va_arg(subdivs, int); */
 	s->cfg.beat_subdiv_lens[i] = subdiv_len_atoms;
 	s->cfg.num_atoms += subdiv_len_atoms;
 	if (i == 0 || s->cfg.beat_subdiv_lens[i] < min_subdiv_len_atoms) {
@@ -254,6 +258,7 @@ static void tempo_segment_set_config(TempoSegment *s, int num_measures, int bpm,
     for (int i=0; i<num_beats; i++) {
 	measure_dur += beat_dur * s->cfg.beat_subdiv_lens[i] / min_subdiv_len_atoms;
     }
+				   
     s->cfg.dur_sframes = (int32_t)(round(measure_dur));
     s->cfg.atom_dur_approx = measure_dur / s->cfg.num_atoms;
     if (num_measures > 0 && s->next) {
@@ -263,33 +268,28 @@ static void tempo_segment_set_config(TempoSegment *s, int num_measures, int bpm,
     }
 }
 
+/* Calculates the new segment dur in measures and sets the first measure index of the next segment */
 static void tempo_segment_set_end_pos(TempoSegment *s, int32_t new_end_pos)
 {
     /* fprintf(stderr, "SETTING end pos on segment with deets\n"); */
     /* tempo_segment_fprint(stderr, s); */
-
-    int32_t segment_dur = new_end_pos - s->start_pos;
-    double num_measures = (double)segment_dur / s->cfg.dur_sframes;
-    /* fprintf(stderr, "Num measures in double is: %f\n", num_measures); */
-    s->num_measures = floor(0.999999 + num_measures);
-    /* fprintf(stderr, "Num measures in int is: %d\n", s->num_measures); */
-    s->end_pos = new_end_pos;
-    if (s->next) {
+    while (s->next) {
+	int32_t segment_dur = new_end_pos - s->start_pos;
+	double num_measures = (double)segment_dur / s->cfg.dur_sframes;
+	/* fprintf(stderr, "Num measures in double is: %f\n", num_measures); */
+	s->num_measures = floor(0.999999 + num_measures);
+	/* fprintf(stderr, "Num measures in int is: %d\n", s->num_measures); */
+    
+	s->end_pos = new_end_pos;
 	s->next->first_measure_index = s->first_measure_index+ s->num_measures;
+	s = s->next;
+	
 	/* fprintf(stderr, "First measure index of next one is %d + %d\n", s->first_measure_index, s->num_measures); */
     }
-    /* if (s->next) s = s->next; */
-    /* while (s) { */
-    /* 	if (s->prev) { */
-    /* 	    s->first_measure_index = s->prev->first_measure_index + s->prev->num_measures; */
-    /* 	} else { */
-    /* 	    s->first_measure_index = BARS_FOR_NOTHING * -1; */
-    /* 	} */
-    /* 	s = s->next; */
-    /* } */
+
 }
 
-static TempoSegment *tempo_track_add_segment_internal(TempoTrack *t, int32_t start_pos, int16_t num_measures, int bpm, int num_beats, va_list args)
+TempoSegment *tempo_track_add_segment(TempoTrack *t, int32_t start_pos, int16_t num_measures, int bpm, int num_beats, int *subdiv_lens)
 {
     /* fprintf(stderr, "\n\n\nADDING SEGMENT TO TEMPO TRACK, start: %d, num measures: %d\n", start_pos, num_measures); */
     TempoSegment *s = calloc(1, sizeof(TempoSegment));
@@ -318,7 +318,7 @@ static TempoSegment *tempo_track_add_segment_internal(TempoTrack *t, int32_t sta
 	return NULL;
     }
 set_config_and_exit:
-    tempo_segment_set_config(s, num_measures, bpm, num_beats, args); 
+    tempo_segment_set_config(s, num_measures, bpm, num_beats, subdiv_lens); 
 
     /* fprintf(stderr, "DONE DONE DONE DONE now it looks like this\n"); */
     /* tempo_track_fprint(stderr, t); */
@@ -326,18 +326,14 @@ set_config_and_exit:
     return s;
 }
 
-/* Pass -1 to "num_measures" for infinity */
-TempoSegment *tempo_track_add_segment(TempoTrack *t, int32_t start_pos, int16_t num_measures, int bpm, int num_beats, ...)
-{
+/* /\* Pass -1 to "num_measures" for infinity *\/ */
+/* TempoSegment *tempo_track_add_segment(TempoTrack *t, int32_t start_pos, int16_t num_measures, int bpm, int num_beats, int *subdiv_lens) */
+/* { */
+/*     TempoSegment *s = tempo_track_add_segment_internal(t, start_pos, num_measures, bpm, num_beats, ap); */
+/*     return s; */
+/* } */
 
-    va_list ap;
-    va_start(ap, num_beats);
-    TempoSegment *s = tempo_track_add_segment_internal(t, start_pos, num_measures, bpm, num_beats, ap);
-    va_end(ap);
-    return s;
-}
-
-TempoSegment *tempo_track_add_segment_at_measure(TempoTrack *t, int16_t measure, int16_t num_measures, int bpm, int num_beats, ...)
+TempoSegment *tempo_track_add_segment_at_measure(TempoTrack *t, int16_t measure, int16_t num_measures, int bpm, int num_beats, int *subdiv_lens)
 {
     int32_t start_pos = 0;
     TempoSegment *s = t->segments;
@@ -359,10 +355,7 @@ TempoSegment *tempo_track_add_segment_at_measure(TempoTrack *t, int16_t measure,
 	}
 	start_pos = get_beat_pos(s, measure, 0, 0);
     }
-    va_list ap;
-    va_start(ap, num_beats);
-    s = tempo_track_add_segment_internal(t, start_pos, num_measures, bpm, num_beats, ap);
-    va_end(ap);
+    s = tempo_track_add_segment(t, start_pos, num_measures, bpm, num_beats, subdiv_lens);
     return s;
 }
 
@@ -455,8 +448,12 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
 	16,
 	main_win);
     t->edit_button->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
-    textbox_set_border(t->edit_button, &color_global_black, 1);
-
+    textbox_set_text_color(t->edit_button, &color_global_white);
+    textbox_set_background_color(t->edit_button, &color_global_quickref_button_blue);
+    /* textbox_set_border(t->edit_button, &color_global_black, 1); */
+    t->edit_button->corner_radius = BUTTON_CORNER_RADIUS;
+    textbox_set_border(t->edit_button, &color_global_white, 1);
+    
     Layout *metro_button_lt = layout_get_child_by_name_recursive(t->layout, "metronome_button");
     t->metronome_button = textbox_create_from_str(
 	"M",
@@ -491,7 +488,8 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
     slider_set_range(t->metronome_vol_slider, min, max);
     slider_reset(t->metronome_vol_slider);
 
-    tempo_track_add_segment(t, 0, -1, 120, 4, 4, 4, 4, 4);
+    int subdivs[] = {4, 4, 4, 4};
+    tempo_track_add_segment(t, 0, -1, 120, 4, subdivs);
     
     tl->tempo_tracks[tl->num_tempo_tracks] = t;
     t->index = tl->num_tempo_tracks;
@@ -499,62 +497,15 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
 
 
     /* TESTING ONLY */
-    /* fprintf(stderr, "T: %p, NUM: %d\n", t, tl->num_tempo_tracks); */
+    int subdivs_l[] = {4, 4, 4, 4};
     if (tl->num_tempo_tracks == 1) {
-	/* fprintf(stderr, "ADDING SEGMENTS\n"); */
-	/* /\* tempo_track_add_segment(t, 0, -1, 121, 4, 4, 4, 4, 4); *\/ */
-	/* int tempo = 352; */
-	/* int measure = -1; */
-	/* tempo_track_add_segment_at_measure(t, measure, -1, tempo / 4, 4, 4, 4, 4, 4); */
-	/* measure++; */
-	/* tempo_track_add_segment_at_measure(t, measure, -1, tempo, 2, 4, 4); */
-	/* measure++; */
-	/* tempo_track_add_segment_at_measure(t, measure, -1, tempo, 3, 4, 4, 4); */
-	/* measure+=2; */
-	/* tempo_track_add_segment_at_measure(t, measure, -1, tempo / 2, 2, 4, 4); */
-	/* measure++; */
-	/* tempo_track_add_segment_at_measure(t, measure, -1, tempo, 2, 4, 4); */
-	/* measure++; */
-	/* tempo_track_add_segment_at_measure(t, measure, -1, tempo, 3, 4, 4, 4); */
-	/* measure+=2; */
-	/* tempo_track_add_segment_at_measure(t, measure, -1, tempo / 2, 2, 4, 4); */
-	/* measure++; */
-
-
-	/* tempo_track_add_segment_at_measure(t, measure, -1, tempo, 3, 4, 4, 4);  */
-	/* measure+=2; */
-
-	/* tempo_track_add_segment_at_measure(t, measure, -1, tempo / 2, 2, 3, 2);  */
-	/* measure++; */
-
-	/* tempo_track_add_segment_at_measure(t, measure, -1, tempo / 2, 2, 4, 4); */
-	/* measure++; */
-
-	/* tempo_track_add_segment_at_measure(t, measure, -1, tempo, 3, 4, 4, 4);  */
-	/* measure++; */
-
-	/* tempo_track_add_segment_at_measure(t, measure, -1, tempo / 2, 2, 4, 4); */
-	/* measure++; */
-
-	/* tempo_track_add_segment_at_measure(t, measure, -1, tempo / 2, 2, 3, 2); */
-	/* measure++; */
-
-	/* tempo_track_add_segment_at_measure(t, measure, -1, tempo / 2, 2, 3, 2); */
-	/* measure++; */
-
-
-	/* tempo_track_add_segment_at_measure(t, 2, -1, 120, 3, 2, 2, 2); */
-	/* tempo_track_add_segment_at_measure(t, 4, -1, 200, 4, 4, 4, 4, 4); */
-	/* tempo_track_add_segment_at_measure(t, 6, -1, 200, 3, 2, 2, 2); */
-	/* tempo_track_add_segment_at_measure(t, 8, -1, 300, 4, 4, 4, 4, 4); */
-	/* tempo_track_add_segment_at_measure(t, 10, -1, 300, 3, 2, 2, 2); */
-	/* tempo_track_add_segment_at_measure(t, 12, -1, 400, 4, 4, 4, 4, 4); */
-	
-	/* tempo_track_add_segment(t, 96000 * 5, -1, 240, 3, 3, 3, 3); */
-	/* tempo_track_add_segment(t, 96000 * 10, -1, 240, 5, 3, 3, 2, 2, 2); */
-	tempo_track_add_segment(t, 10000, -1, 120, 3, 3, 3, 3);
-
-	tempo_track_add_segment_at_measure(t, 4, -1, 500, 4, 3, 3, 2, 2);
+	subdivs[0] = 3;
+	subdivs[1] = 3;
+	subdivs[2] = 3;	
+	tempo_track_add_segment(t, 10000, -1, 120, 3, subdivs);
+	subdivs[2] = 2;
+	subdivs[3] = 2;
+	tempo_track_add_segment_at_measure(t, 4, -1, 500, 4, subdivs);
 	TempoSegment *s = t->segments;
 	while (s) {
 	    /* tempo_segment_fprint(stderr, s); */
@@ -562,23 +513,37 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
 	}
 	/* exit(1); */
     } else if (tl->num_tempo_tracks == 2) {
-	tempo_track_add_segment(t, 1, -1, 122, 4, 4, 4, 4, 4);
+	tempo_track_add_segment(t, 1, -1, 122, 4, subdivs_l);
     } else if (tl->num_tempo_tracks == 3) {
-	tempo_track_add_segment(t, 1, -1, 123, 4, 4, 4, 4, 4);
+	tempo_track_add_segment(t, 1, -1, 123, 4, subdivs_l);
     } else if (tl->num_tempo_tracks == 4) {
-	tempo_track_add_segment(t, 1, -1, 124, 4, 4, 4, 4, 4);
+	tempo_track_add_segment(t, 1, -1, 124, 4, subdivs_l);
     } else if (tl->num_tempo_tracks == 5) {
-	tempo_track_add_segment(t, 1, -1, 125, 4, 4, 4, 4, 4);
+	tempo_track_add_segment(t, 1, -1, 125, 4, subdivs_l);
     } else if (tl->num_tempo_tracks == 6) {
-	tempo_track_add_segment(t, 1, -1, 126, 4, 4, 4, 4, 4);
+	tempo_track_add_segment(t, 1, -1, 126, 4, subdivs_l);
     } else if (tl->num_tempo_tracks == 7) {
-	tempo_track_add_segment(t, 1, -1, 127, 4, 4, 4, 4, 4);
+	tempo_track_add_segment(t, 1, -1, 127, 4, subdivs_l);
     } else if (tl->num_tempo_tracks == 8) {
-	tempo_track_add_segment(t, 1, -1, 128, 4, 4, 4, 4, 4);
+	tempo_track_add_segment(t, 1, -1, 128, 4, subdivs_l);
     }
 
     timeline_rectify_track_indices(tl);
     return t;
+}
+
+/* Excludes start position */
+static void tempo_segment_set_params(TempoSegment *s, int num_measures, int bpm, int num_beats, int *subdiv_lens)
+{
+
+    tempo_segment_set_config(s, num_measures, bpm, num_beats, subdiv_lens);
+}
+
+void tempo_track_edit_segment_at_cursor(TempoTrack *tt, int num_measures, int bpm, int num_beats, int *subdiv_lens)
+{
+    TempoSegment *s = tempo_track_get_segment_at_pos(tt, tt->tl->play_pos_sframes);
+    tempo_segment_set_config(s, num_measures, bpm, num_beats, subdiv_lens);
+    tt->tl->needs_redraw = true;
 }
 
 /* void tempo_track_fill_metronome_buffer(TempoTrack *tt, float *L, float *R, int32_t start_from) */
@@ -596,10 +561,16 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
 
 static void tempo_track_deferred_draw(void *tempo_track_v)
 {
+    
     TempoTrack *tt = (TempoTrack *)tempo_track_v;
-    textbox_draw(tt->metronome_button);
-    textbox_draw(tt->edit_button);
-    slider_draw(tt->metronome_vol_slider);
+    SDL_Rect *audio_rect = tt->tl->proj->audio_rect;
+    if (audio_rect->y + audio_rect->h > tt->tl->layout->rect.y) {
+	SDL_RenderSetClipRect(main_win->rend, audio_rect);
+	textbox_draw(tt->metronome_button);
+	textbox_draw(tt->edit_button);
+	slider_draw(tt->metronome_vol_slider);
+	SDL_RenderSetClipRect(main_win->rend, NULL);
+    }
 
 }
 
@@ -611,8 +582,9 @@ void tempo_track_draw(TempoTrack *tt)
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_tempo_track));
     SDL_RenderFillRect(main_win->rend, &ttr);
 
-    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
     SDL_RenderFillRect(main_win->rend, tt->console_rect);
+
 
     
     static SDL_Color line_colors[] =  {
@@ -754,6 +726,7 @@ int32_t tempo_track_bar_beat_subdiv(TempoTrack *tt, int32_t pos, int *bar_p, int
 	    if (ops > 1000000) {
 		fprintf(stderr, "ABORT\n");
 		tempo_track_fprint(stderr, tt);
+		breakfn();
 		exit(1);
 	    }
 	}

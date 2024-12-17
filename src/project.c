@@ -1386,7 +1386,7 @@ Track *timeline_selected_track(Timeline *tl)
 
 TempoTrack *timeline_selected_tempo_track(Timeline *tl)
 {
-    if (tl->tempo_track_selector < 0) {
+    if (tl->num_tempo_tracks == 0 || tl->tempo_track_selector < 0) {
 	return NULL;
     } else if (tl->tempo_track_selector > tl->num_tempo_tracks - 1) {
 	fprintf(stderr, "ERROR: tempo track selector points past end of tracks arr\n");
@@ -2086,7 +2086,7 @@ void track_or_tracks_mute(Timeline *tl)
     Track *muted_tracks[MAX_TRACKS];
     uint8_t num_muted = 0;
     
-    if (tl->num_tracks == 0) return;
+    /* if (tl->num_tracks == 0) return; */
     bool has_active_track = false;
     bool all_muted = true;
     Track *track;
@@ -2104,12 +2104,12 @@ void track_or_tracks_mute(Timeline *tl)
 	}
     }
     if (!has_active_track) {
-	/* track = tl->tracks[tl->track_selector]; */
 	track = timeline_selected_track(tl);
 	if (!track) {
 	    TempoTrack *tt = timeline_selected_tempo_track(tl);
-	    tempo_track_mute_unmute(tt);
-	    /* status_set_errstr("No track selected to mute"); */
+	    if (tt) {
+		tempo_track_mute_unmute(tt);
+	    }
 	    return;
 	}
 	track_mute(track);
@@ -2240,6 +2240,9 @@ static void timeline_remove_track(Track *track)
     tl->num_tracks--;
     if (tl->num_tracks > 0 && tl->track_selector > tl->num_tracks - 1) tl->track_selector = tl->num_tracks - 1;
     timeline_rectify_track_area(tl);
+    if (tl->layout_selector >= tl->track_area->num_children) {
+	tl->layout_selector = tl->track_area->num_children - 1;
+    }
     timeline_rectify_track_indices(tl);
     /* layout_size_to_fit_children_v(tl->track_area, true, 0); */
 }

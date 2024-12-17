@@ -1099,7 +1099,10 @@ button_animation_and_exit:
     if (selected) {
 	timeline_refocus_track(tl, selected, false);
     } else {
-	timeline_refocus_tempo_track(tl, timeline_selected_tempo_track(tl), false);
+	TempoTrack *tt = timeline_selected_tempo_track(tl);
+	if (tt) {
+	    timeline_refocus_tempo_track(tl, timeline_selected_tempo_track(tl), false);
+	}
     }
 
     tl->needs_redraw = true;
@@ -1308,19 +1311,20 @@ void user_tl_track_delete(void *nullarg)
 	if (tl->track_selector > 0 && tl->track_selector > tl->num_tracks - 1) {
 	    tl->track_selector--;
 	}
+	Value nullval = {.int_v = 0};
+	user_event_push(
+	    &proj->history,
+	    undo_track_delete,
+	    redo_track_delete,
+	    dispose_track_delete, NULL,
+	    (void *)track,
+	    NULL,
+	    nullval,nullval,nullval,nullval,
+	    0,0,false,false);	
+
     } else {
 	status_set_errstr("Error: no track to delete");
     }
-    Value nullval = {.int_v = 0};
-    user_event_push(
-	&proj->history,
-	undo_track_delete,
-	redo_track_delete,
-	dispose_track_delete, NULL,
-	(void *)track,
-	NULL,
-	nullval,nullval,nullval,nullval,
-	0,0,false,false);	
 }
 
 void user_tl_mute(void *nullarg)

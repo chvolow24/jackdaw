@@ -52,5 +52,6 @@
     #define TEST_FN_CALL(name, ...)
 #endif
 
+void breakfn();
 
 #endif

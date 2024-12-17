@@ -245,8 +245,19 @@ void loop_project_main()
 		temp_scrolling_lt = NULL;
 		switch (e.key.keysym.scancode) {
 		case SDL_SCANCODE_6:
-		    timeline_add_tempo_track(proj->timelines[0]);
+		    timeline_add_tempo_track(proj->timelines[proj->active_tl_index]);
 		    break;
+		case SDL_SCANCODE_7: {
+		    Timeline *tl = proj->timelines[proj->active_tl_index];
+		    TempoTrack *tt = timeline_selected_tempo_track(tl);
+		    static int tempo = 120;
+		    if (tt) {
+			int arr[4] = {4, 4, 4, 4};
+			tempo_track_edit_segment_at_cursor(tt, 1, tempo, 4, arr);
+			tempo += 20;
+		    }
+		}
+		    break;   
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LCTRL:

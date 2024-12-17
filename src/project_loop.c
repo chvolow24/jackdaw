@@ -249,13 +249,18 @@ void loop_project_main()
 		    break;
 		case SDL_SCANCODE_7: {
 		    Timeline *tl = proj->timelines[proj->active_tl_index];
-		    TempoTrack *tt = timeline_selected_tempo_track(tl);
-		    static int tempo = 120;
-		    if (tt) {
-			int arr[4] = {4, 4, 4, 4};
-			tempo_track_edit_segment_at_cursor(tt, 1, tempo, 4, arr);
-			tempo += 20;
-		    }
+		    timeline_increment_tempo_at_cursor(tl, -5);
+
+		}
+		    break;
+		case SDL_SCANCODE_8: {
+		    Timeline *tl = proj->timelines[proj->active_tl_index];
+		    timeline_increment_tempo_at_cursor(tl, 5);
+		}
+		    break;
+		case SDL_SCANCODE_9: {
+		    Timeline *tl = proj->timelines[proj->active_tl_index];
+		    timeline_cut_tempo_track_at_cursor(tl);
 		}
 		    break;   
 		case SDL_SCANCODE_LGUI:

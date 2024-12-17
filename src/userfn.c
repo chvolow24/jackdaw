@@ -1350,19 +1350,18 @@ void user_tl_track_vol_up(void *nullarg)
 void user_tl_track_vol_down(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    if (tl->num_tracks == 0) return;
+    /* if (tl->num_tracks == 0) return; */
     if (proj->vol_changing) return;
     /* proj->vol_changing = timeline_selected_track(tl); */
     proj->vol_changing = true;
     proj->vol_up = false;
-    tl->needs_redraw = true;
-
+    /* tl->needs_redraw = true; */
 }
 
 void user_tl_track_pan_left(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    if (tl->num_tracks ==0) return;
+    /* if (tl->num_tracks ==0) return; */
     if (proj->pan_changing) return;
     proj->pan_changing = timeline_selected_track(tl);
     proj->pan_right = false;

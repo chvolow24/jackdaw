@@ -52,6 +52,8 @@ extern SDL_Color color_global_tempo_track;
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;
 extern SDL_Color control_bar_bckgrnd;
+extern SDL_Color mute_red;
+extern SDL_Color color_global_play_green;
 
 extern pthread_t MAIN_THREAD_ID;
 
@@ -462,6 +464,7 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
 	main_win->bold_font,
 	14,
 	main_win);
+    textbox_set_background_color(t->metronome_button, &color_global_play_green);
     t->metronome_button->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
     textbox_set_border(t->metronome_button, &color_global_black, 1);
     /* textbox_set_background_color(track->tb_mute_button, &color_mute_solo_grey); */
@@ -591,6 +594,15 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
 /*     } */
 /* } */
 
+static void tempo_track_deferred_draw(void *tempo_track_v)
+{
+    TempoTrack *tt = (TempoTrack *)tempo_track_v;
+    textbox_draw(tt->metronome_button);
+    textbox_draw(tt->edit_button);
+    slider_draw(tt->metronome_vol_slider);
+
+}
+
 void tempo_track_draw(TempoTrack *tt)
 {
     Timeline *tl = tt->tl;
@@ -672,9 +684,7 @@ void tempo_track_draw(TempoTrack *tt)
     SDL_RenderFillRect(main_win->rend, tt->right_console_rect);
 
     /* Draw right console elements */
-    textbox_draw(tt->metronome_button);
-    textbox_draw(tt->edit_button);
-    slider_draw(tt->metronome_vol_slider);
+    window_defer_draw(main_win, tempo_track_deferred_draw, tt);
 
     /* Draw outline */
     SDL_SetRenderDrawColor(main_win->rend, 100, 100, 100, 255);
@@ -815,6 +825,7 @@ int32_t tempo_track_bar_beat_subdiv(TempoTrack *tt, int32_t pos, int *bar_p, int
 
 void tempo_track_mix_metronome(TempoTrack *tt, float *mixdown_buf, int32_t mixdown_buf_len, int32_t tl_start_pos_sframes, int32_t tl_end_pos_sframes, float step)
 {
+    if (tt->muted) return;
     if (step < 0.0) return;
     if (step > 4.0) return;
     /* fprintf(stderr, "TEMPO TRACK MIX METRONOME\n"); */
@@ -887,17 +898,64 @@ void tempo_track_mix_metronome(TempoTrack *tt, float *mixdown_buf, int32_t mixdo
     }
 }
 
+void tempo_track_mute_unmute(TempoTrack *t)
+{
+    t->muted = !t->muted;
+    if (t->muted) {
+	textbox_set_background_color(t->metronome_button, &mute_red);
+    } else {
+	textbox_set_background_color(t->metronome_button, &color_global_play_green);
+    }
+    t->tl->needs_redraw = true;
+}
+
+/* void track_increment_vol(Track *track) */
+/* { */
+/*     track->vol += TRACK_VOL_STEP; */
+/*     if (track->vol > track->vol_ctrl->max.float_v) { */
+/* 	track->vol = track->vol_ctrl->max.float_v; */
+/*     } */
+/*     slider_edit_made(track->vol_ctrl); */
+/*     slider_reset(track->vol_ctrl); */
+/* } */
+
+void tempo_track_increment_vol(TempoTrack *tt)
+{
+    tt->metronome_vol += TRACK_VOL_STEP;
+    if (tt->metronome_vol > tt->metronome_vol_slider->max.float_v) {
+	tt->metronome_vol = tt->metronome_vol_slider->max.float_v;
+    }
+    slider_edit_made(tt->metronome_vol_slider);
+    slider_reset(tt->metronome_vol_slider);
+}
+void tempo_track_decrement_vol(TempoTrack *tt)
+{
+    tt->metronome_vol -= TRACK_VOL_STEP;
+    if (tt->metronome_vol < 0.0f) {
+	tt->metronome_vol = 0.0f;
+    }
+    slider_edit_made(tt->metronome_vol_slider);
+    slider_reset(tt->metronome_vol_slider);
+}
+
+
 bool tempo_track_triage_click(uint8_t button, TempoTrack *t)
 {
     if (!SDL_PointInRect(&main_win->mousep, &t->layout->rect)) {
 	return false;
     }
-    if (slider_mouse_click(t->metronome_vol_slider, main_win)) {
+    if (SDL_PointInRect(&main_win->mousep, t->right_console_rect)) {
+	if (slider_mouse_click(t->metronome_vol_slider, main_win)) {
+	    return true;
+	}
+	if (SDL_PointInRect(&main_win->mousep, &t->metronome_button->layout->rect)) {
+	    tempo_track_mute_unmute(t);
+	    return true;
+	}
 	return true;
     }
-    if (SDL_PointInRect(&main_win->mousep, &t->metronome_button->layout->rect)) {
-	fprintf(stderr, "METRONOME BUTTON\n");
-	return true;
+    if (SDL_PointInRect(&main_win->mousep, t->console_rect)) {
+	fprintf(stderr, "Left console\n");
     }
     return false;
 }

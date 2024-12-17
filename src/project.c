@@ -76,9 +76,6 @@
 #define STATUS_BAR_H (14 * main_win->dpi_scale_factor)
 #define STATUS_BAR_H_PAD (10 * main_win->dpi_scale_factor);
 
-#define TRACK_VOL_STEP 0.03
-#define TRACK_PAN_STEP 0.01
-
 #define SEM_NAME_UNPAUSE "/tl_%d_unpause_sem"
 #define SEM_NAME_WRITABLE_CHUNKS "/tl_%d_writable_chunks"
 #define SEM_NAME_READABLE_CHUNKS "/tl_%d_readable_chunks"
@@ -1377,7 +1374,7 @@ void timeline_rectify_track_indices(Timeline *tl)
 
 Track *timeline_selected_track(Timeline *tl)
 {
-    if (tl->track_selector < 0) {
+    if (tl->num_tracks == 0 || tl->track_selector < 0) {
 	return NULL;
     } else if (tl->track_selector > tl->num_tracks - 1) {
 	fprintf(stderr, "ERROR: track selector points past end of tracks arr\n");
@@ -1897,8 +1894,12 @@ void track_decrement_pan(Track *track)
 /* SDL_Color mute_red = {255, 0, 0, 100}; */
 /* SDL_Color solo_yellow = {255, 200, 0, 130}; */
 
-SDL_Color mute_red = {255, 0, 0, 130};
-SDL_Color solo_yellow = {255, 200, 0, 130};
+/* SDL_Color mute_red = {255, 0, 0, 130}; */
+/* SDL_Color solo_yellow = {255, 200, 0, 130}; */
+
+SDL_Color mute_red = {240, 80, 80, 255};
+SDL_Color solo_yellow = {255, 200, 50, 255};
+
 extern SDL_Color textbox_default_bckgrnd_clr;
 
 bool track_mute(Track *track)
@@ -2106,7 +2107,9 @@ void track_or_tracks_mute(Timeline *tl)
 	/* track = tl->tracks[tl->track_selector]; */
 	track = timeline_selected_track(tl);
 	if (!track) {
-	    status_set_errstr("No track selected to mute");
+	    TempoTrack *tt = timeline_selected_tempo_track(tl);
+	    tempo_track_mute_unmute(tt);
+	    /* status_set_errstr("No track selected to mute"); */
 	    return;
 	}
 	track_mute(track);

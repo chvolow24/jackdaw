@@ -90,8 +90,7 @@ static void update_track_vol_pan()
     }
     Timeline *tl = proj->timelines[proj->active_tl_index];
     bool had_active_track = false;
-    Track *selected_track = timeline_selected_track(tl);
-    /* if (proj->vol_changing) { */
+
     for (int i=0; i<tl->num_tracks; i++) {
 	Track *trk = tl->tracks[i];
 	if (trk->active) {
@@ -116,22 +115,34 @@ static void update_track_vol_pan()
 	    }
 	}
     }
-    if (!had_active_track && selected_track) {
-	if (proj->vol_changing) {
-	    if (proj->vol_up) {
-		track_increment_vol(selected_track);
-	    } else {
-		track_decrement_vol(selected_track);
+    Track *selected_track = timeline_selected_track(tl);
+    if (!had_active_track) {
+	if (selected_track) {
+	    if (proj->vol_changing) {
+		if (proj->vol_up) {
+		    track_increment_vol(selected_track);
+		} else {
+		    track_decrement_vol(selected_track);
+		}
+		selected_track->vol_ctrl->editing = true;
 	    }
-	    selected_track->vol_ctrl->editing = true;
-	}
-	if (proj->pan_changing) {
-	    if (proj->pan_right) {
-		track_increment_pan(selected_track);
-	    } else {
-		track_decrement_pan(selected_track);
+	    if (proj->pan_changing) {
+		if (proj->pan_right) {
+		    track_increment_pan(selected_track);
+		} else {
+		    track_decrement_pan(selected_track);
+		}
+		selected_track->pan_ctrl->editing = true;
 	    }
-	    selected_track->pan_ctrl->editing = true;
+	} else {
+	    TempoTrack *tt = timeline_selected_tempo_track(tl);
+	    if (tt) {
+		if (proj->vol_up) {
+		    tempo_track_increment_vol(tt);
+		} else {
+		    tempo_track_decrement_vol(tt);
+		}
+	    }
 	}
     }
     tl->needs_redraw = true;

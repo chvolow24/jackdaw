@@ -102,6 +102,8 @@ typedef struct tempo_track {
     SDL_Rect *console_rect;
     SDL_Rect *right_console_rect;
     SDL_Rect *right_colorbar_rect;
+
+    bool muted;
 } TempoTrack;
 
 
@@ -113,10 +115,15 @@ void tempo_track_draw(TempoTrack *tt);
 int32_t tempo_track_bar_beat_subdiv(TempoTrack *tt, int32_t pos, int *bar_p, int *beat_p, int *subdiv_p, TempoSegment **segment_p, bool set_readout);
 
 typedef struct project Project;
+
+
+void tempo_track_mute_unmute(TempoTrack *t);
+void tempo_track_increment_vol(TempoTrack *tt);
+void tempo_track_decrement_vol(TempoTrack *tt);
 void project_init_metronomes(Project *proj);
 void tempo_track_mix_metronome(TempoTrack *tt, float *mixdown_buf, int32_t mixdown_buf_len, int32_t tl_start_pos_sframes, int32_t tl_end_pos_sframes, float step);
-void tempo_track_fprint(FILE *f, TempoTrack *tt);
-
 bool tempo_track_triage_click(uint8_t button, TempoTrack *t);
 
+
+void tempo_track_fprint(FILE *f, TempoTrack *tt);
 #endif

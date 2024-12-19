@@ -46,9 +46,11 @@
 #include "tempo.h"
 #include "test.h"
 #include "timeline.h"
+#include "user_event.h"
 #include "wav.h"
 
 extern Window *main_win;
+extern Project *proj;
 extern SDL_Color color_global_tempo_track;
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;
@@ -66,6 +68,7 @@ enum beat_prominence {
     BP_BEAT=2,
     BP_SUBDIV=3,
     BP_SUBDIV2=4,
+    BP_NONE=5
 };
 
 void project_init_metronomes(Project *proj)
@@ -107,17 +110,19 @@ static TempoSegment *tempo_track_get_segment_at_pos(TempoTrack *t, int32_t pos)
 	    if (s->prev) {
 		s = s->prev;
 	    } else {
-
+		/* fprintf(stderr, "Returning seg %d-%d (POS %d)\n", s->start_pos, s->end_pos, pos); */
 		return s;
 	    }
 	} else {
 	    if (s->end_pos == s->start_pos || pos < s->end_pos) {
+		/* fprintf(stderr, "Returning seg %d-%d (POS %d)\n", s->start_pos, s->end_pos, pos); */
 		return s;
 	    } else {
 		s = s->next;
 	    }
 	}
     }
+    /* fprintf(stderr, "Returning seg %d-%d (POS %d)\n", s->start_pos, s->end_pos, pos); */
     return s;
 }
 
@@ -285,7 +290,6 @@ static void tempo_segment_set_end_pos(TempoSegment *s, int32_t new_end_pos)
 	
 	/* fprintf(stderr, "First measure index of next one is %d + %d\n", s->first_measure_index, s->num_measures); */
     }
-
 }
 
 TempoSegment *tempo_track_add_segment(TempoTrack *t, int32_t start_pos, int16_t num_measures, int bpm, uint8_t num_beats, uint8_t *subdiv_lens)
@@ -525,18 +529,73 @@ void timeline_edit_tempo_track_at_cursor(Timeline *tl, int num_measures, int bpm
     TempoSegment *s = tempo_track_get_segment_at_pos(tt, tl->play_pos_sframes);
     tempo_segment_set_config(s, num_measures, bpm, num_beats, subdiv_lens);
     tl->needs_redraw = true;
-
 }
+
+static void simple_tempo_segment_remove(TempoSegment *s)
+{
+    fprintf(stderr, "SEGMENT REMOVE %p\n", s);
+    fprintf(stderr, "Before:\n");
+    tempo_track_fprint(stderr, s->track);
+    TempoTrack *tt = s->track;
+    if (s->prev) {
+	s->prev->next = s->next;
+	if (s->next) {
+	    tempo_segment_set_end_pos(s->prev, s->next->start_pos);
+	    s->next->prev = s->prev;
+	} else {
+	    s->prev->end_pos = s->prev->start_pos;
+	    s->prev->num_measures = -1;
+	}
+    } else if (s->next) {
+	tt->segments = s->next;
+    }
+    fprintf(stderr, "After:\n");
+    tempo_track_fprint(stderr, s->track);
+}
+
+static void tempo_track_cut_at(TempoTrack *tt, int32_t at)
+{
+    TempoSegment *s = tempo_track_get_segment_at_pos(tt, at);
+    uint8_t subdiv_lens[s->cfg.num_beats];
+    memcpy(subdiv_lens, s->cfg.beat_subdiv_lens, s->cfg.num_beats * sizeof(uint8_t));
+    tempo_track_add_segment(tt, at, -1, s->cfg.bpm, s->cfg.num_beats, subdiv_lens);
+}
+
+
+NEW_EVENT_FN(undo_cut_tempo_track, "undo cut tempo track")
+    TempoTrack *tt = (TempoTrack *)obj1;
+    int32_t at = val1.int32_v;
+    TempoSegment *s = tempo_track_get_segment_at_pos(tt, at);
+    simple_tempo_segment_remove(s);
+    tt->tl->needs_redraw = true;
+}
+
+NEW_EVENT_FN(redo_cut_tempo_track, "redo cut tempo track")
+    TempoTrack *tt = (TempoTrack *)obj1;
+    int32_t at = val1.int32_v;
+    tempo_track_cut_at(tt, at);
+}
+
+NEW_EVENT_FN(dispose_forward_cut_tempo_track, "")
+}
+
 
 void timeline_cut_tempo_track_at_cursor(Timeline *tl)
 {
     TempoTrack *tt = timeline_selected_tempo_track(tl);
     if (!tt) return;
-    TempoSegment *s = tempo_track_get_segment_at_pos(tt, tl->play_pos_sframes);
-    uint8_t subdiv_lens[s->cfg.num_beats];
-    memcpy(subdiv_lens, s->cfg.beat_subdiv_lens, s->cfg.num_beats * sizeof(uint8_t));
-    tempo_track_add_segment(tt, tl->play_pos_sframes, -1, s->cfg.bpm, s->cfg.num_beats, subdiv_lens);
+    tempo_track_cut_at(tt, tl->play_pos_sframes);
     tl->needs_redraw = true;
+    Value cut_pos = {.int32_v = tl->play_pos_sframes};
+    Value nullval = {.int_v = 0};
+    user_event_push(
+	&proj->history,
+	undo_cut_tempo_track, redo_cut_tempo_track,
+	NULL, dispose_forward_cut_tempo_track,
+	(void *)tt, NULL,
+	cut_pos, nullval,
+	cut_pos, nullval,
+	0, 0, false, false);
 }
 
 void timeline_increment_tempo_at_cursor(Timeline *tl, int inc_by)
@@ -550,6 +609,27 @@ void timeline_increment_tempo_at_cursor(Timeline *tl, int inc_by)
     tempo_segment_set_config(s, s->num_measures, new_tempo, s->cfg.num_beats, subdiv_lens);
     tl->needs_redraw = true;
 }
+
+/* static enum beat_prominence timeline_get_beat_pos_range(Timeline *tl, int32_t *pos) */
+/* { */
+/*     TempoTrack *tt = timeline_selected_tempo_track(tl); */
+/*     if (!tt) return BP_NONE; */
+/*     TempoSegment *s = tempo_track_get_segment_at_pos(tt, tl->play_pos_sframes); */
+/*     int32_t pos_n = s->start_pos; */
+/*     int32_t pos_m; */
+/*     while ((pos_m = pos_n + s->cfg.dur_sframes) >= *pos) { */
+/* 	pos_n = pos_m; */
+/*     } */
+/*     enum beat_prominence bp; */
+/*     int bar, beat, subdiv; */
+/*     bar = beat = subdiv = 0; */
+/*     set_beat_prominence(s, &bp, bar, beat, subdiv); */
+    
+/*     return bp; */
+    
+/*     /\* timeline_move_play_position(tl, pos_m); *\/ */
+/*     /\* /\\* tl->needs_redraw = true; *\\/ *\/ */
+/* } */
 
 /* void tempo_track_fill_metronome_buffer(TempoTrack *tt, float *L, float *R, int32_t start_from) */
 /* { */
@@ -942,7 +1022,7 @@ bool tempo_track_triage_click(uint8_t button, TempoTrack *t)
 extern Project *proj;
 void tempo_segment_fprint(FILE *f, TempoSegment *s)
 {
-    fprintf(f, "\nSegment start/end: %d-%d (%f-%fs)\n", s->start_pos, s->end_pos, (float)s->start_pos / proj->sample_rate, (float)s->end_pos / proj->sample_rate);
+    fprintf(f, "\nSegment at %p start/end: %d-%d (%f-%fs)\n", s, s->start_pos, s->end_pos, (float)s->start_pos / proj->sample_rate, (float)s->end_pos / proj->sample_rate);
     fprintf(f, "Segment tempo (bpm): %d\n", s->cfg.bpm);
     fprintf(stderr, "Segment measure start i: %d; num measures: %d\n", s->first_measure_index, s->num_measures);
     fprintf(f, "\tCfg beats: %d\n", s->cfg.num_beats);

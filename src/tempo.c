@@ -236,6 +236,8 @@ set_prominence_and_exit:
     return true;
 }
 
+static void tempo_segment_set_end_pos(TempoSegment *s, int32_t new_end_pos);
+
 static void tempo_segment_set_config(TempoSegment *s, int num_measures, int bpm, uint8_t num_beats, uint8_t *subdivs)
 {
     if (num_beats > MAX_BEATS_PER_BAR) {
@@ -270,6 +272,9 @@ static void tempo_segment_set_config(TempoSegment *s, int num_measures, int bpm,
     } else {
 	s->end_pos = s->start_pos;
     }
+    if (s->next) {
+	tempo_segment_set_end_pos(s, s->next->start_pos);
+    }
 }
 
 /* Calculates the new segment dur in measures and sets the first measure index of the next segment */
@@ -277,17 +282,20 @@ static void tempo_segment_set_end_pos(TempoSegment *s, int32_t new_end_pos)
 {
     /* fprintf(stderr, "SETTING end pos on segment with deets\n"); */
     /* tempo_segment_fprint(stderr, s); */
+    int32_t segment_dur = new_end_pos - s->start_pos;
+    double num_measures = (double)segment_dur / s->cfg.dur_sframes;
+    s->num_measures = floor(0.9999999 + num_measures);
+    s->end_pos = new_end_pos;
     while (s->next) {
-	int32_t segment_dur = new_end_pos - s->start_pos;
-	double num_measures = (double)segment_dur / s->cfg.dur_sframes;
-	/* fprintf(stderr, "Num measures in double is: %f\n", num_measures); */
-	s->num_measures = floor(0.999999 + num_measures);
-	/* fprintf(stderr, "Num measures in int is: %d\n", s->num_measures); */
+	/* int32_t segment_dur = new_end_pos - s->start_pos; */
+	/* double num_measures = (double)segment_dur / s->cfg.dur_sframes; */
+	/* /\* fprintf(stderr, "Num measures in double is: %f\n", num_measures); *\/ */
+	/* s->num_measures = floor(0.999999 + num_measures); */
+	/* s->end_pos = new_end_pos; */
+	/* /\* fprintf(stderr, "Num measures in int is: %d\n", s->num_measures); *\/ */
     
-	s->end_pos = new_end_pos;
 	s->next->first_measure_index = s->first_measure_index+ s->num_measures;
 	s = s->next;
-	
 	/* fprintf(stderr, "First measure index of next one is %d + %d\n", s->first_measure_index, s->num_measures); */
     }
 }
@@ -317,8 +325,17 @@ TempoSegment *tempo_track_add_segment(TempoTrack *t, int32_t start_pos, int16_t 
 	s->prev = interrupt;
 	tempo_segment_set_end_pos(interrupt, start_pos);
     } else {
-	fprintf(stderr, "Error: cannot insert segment in the middle\n");
-	return NULL;
+	s->next = interrupt->next;
+	interrupt->next->prev = s;
+	interrupt->next = s;
+	s->prev = interrupt;
+	tempo_segment_set_config(s, num_measures, bpm, num_beats, subdiv_lens); 
+	tempo_segment_set_end_pos(interrupt, start_pos);
+	tempo_segment_set_end_pos(s, s->next->start_pos);
+	return s;
+	goto set_config_and_exit;
+	/* fprintf(stderr, "Error: cannot insert segment in the middle\n"); */
+	/* return NULL; */
     }
 set_config_and_exit:
     tempo_segment_set_config(s, num_measures, bpm, num_beats, subdiv_lens); 
@@ -534,6 +551,16 @@ void timeline_edit_tempo_track_at_cursor(Timeline *tl, int num_measures, int bpm
 static void simple_tempo_segment_remove(TempoSegment *s)
 {
     fprintf(stderr, "SEGMENT REMOVE %p\n", s);
+    TempoSegment *test = s->track->segments;
+    while (test) {
+	fprintf(stderr, "\t%p", test);
+	if (test == s) {
+	    fprintf( stderr, " <---\n");
+	} else {
+	    fprintf(stderr, "\n");
+	}
+	test = test->next;
+    }
     fprintf(stderr, "Before:\n");
     tempo_track_fprint(stderr, s->track);
     TempoTrack *tt = s->track;
@@ -553,19 +580,20 @@ static void simple_tempo_segment_remove(TempoSegment *s)
     tempo_track_fprint(stderr, s->track);
 }
 
-static void tempo_track_cut_at(TempoTrack *tt, int32_t at)
+static TempoSegment *tempo_track_cut_at(TempoTrack *tt, int32_t at)
 {
     TempoSegment *s = tempo_track_get_segment_at_pos(tt, at);
     uint8_t subdiv_lens[s->cfg.num_beats];
     memcpy(subdiv_lens, s->cfg.beat_subdiv_lens, s->cfg.num_beats * sizeof(uint8_t));
-    tempo_track_add_segment(tt, at, -1, s->cfg.bpm, s->cfg.num_beats, subdiv_lens);
+    return tempo_track_add_segment(tt, at, -1, s->cfg.bpm, s->cfg.num_beats, subdiv_lens);
 }
 
 
 NEW_EVENT_FN(undo_cut_tempo_track, "undo cut tempo track")
     TempoTrack *tt = (TempoTrack *)obj1;
-    int32_t at = val1.int32_v;
-    TempoSegment *s = tempo_track_get_segment_at_pos(tt, at);
+    TempoSegment *s = (TempoSegment *)obj2;
+    /* int32_t at = val1.int32_v; */
+    /* s = tempo_track_get_segment_at_pos(tt, at); */
     simple_tempo_segment_remove(s);
     tt->tl->needs_redraw = true;
 }
@@ -573,7 +601,8 @@ NEW_EVENT_FN(undo_cut_tempo_track, "undo cut tempo track")
 NEW_EVENT_FN(redo_cut_tempo_track, "redo cut tempo track")
     TempoTrack *tt = (TempoTrack *)obj1;
     int32_t at = val1.int32_v;
-    tempo_track_cut_at(tt, at);
+    TempoSegment *s = tempo_track_cut_at(tt, at);
+    self->obj2 = (void *)s;
 }
 
 NEW_EVENT_FN(dispose_forward_cut_tempo_track, "")
@@ -584,7 +613,7 @@ void timeline_cut_tempo_track_at_cursor(Timeline *tl)
 {
     TempoTrack *tt = timeline_selected_tempo_track(tl);
     if (!tt) return;
-    tempo_track_cut_at(tt, tl->play_pos_sframes);
+    TempoSegment *s = tempo_track_cut_at(tt, tl->play_pos_sframes);
     tl->needs_redraw = true;
     Value cut_pos = {.int32_v = tl->play_pos_sframes};
     Value nullval = {.int_v = 0};
@@ -592,7 +621,7 @@ void timeline_cut_tempo_track_at_cursor(Timeline *tl)
 	&proj->history,
 	undo_cut_tempo_track, redo_cut_tempo_track,
 	NULL, dispose_forward_cut_tempo_track,
-	(void *)tt, NULL,
+	(void *)tt, (void *)s,
 	cut_pos, nullval,
 	cut_pos, nullval,
 	0, 0, false, false);
@@ -1020,6 +1049,8 @@ bool tempo_track_triage_click(uint8_t button, TempoTrack *t)
    
 
 extern Project *proj;
+
+
 void tempo_segment_fprint(FILE *f, TempoSegment *s)
 {
     fprintf(f, "\nSegment at %p start/end: %d-%d (%f-%fs)\n", s, s->start_pos, s->end_pos, (float)s->start_pos / proj->sample_rate, (float)s->end_pos / proj->sample_rate);
@@ -1034,6 +1065,13 @@ void tempo_segment_fprint(FILE *f, TempoSegment *s)
     fprintf(f, "\tCfg measure dur: %d\n", s->cfg.dur_sframes);
     fprintf(f, "\tCfg atom dur: %d\n", s->cfg.dur_sframes / s->cfg.num_atoms);
 
+}
+
+void timeline_segment_at_cursor_fprint(FILE *f, Timeline *tl)
+{
+    TempoTrack *tt = timeline_selected_tempo_track(tl);
+    TempoSegment *s = tempo_track_get_segment_at_pos(tt, tl->play_pos_sframes);
+    tempo_segment_fprint(f, s);
 }
 
 void tempo_track_fprint(FILE *f, TempoTrack *tt)

@@ -131,4 +131,6 @@ bool tempo_track_triage_click(uint8_t button, TempoTrack *t);
 
 
 void tempo_track_fprint(FILE *f, TempoTrack *tt);
+void timeline_segment_at_cursor_fprint(FILE *f, Timeline *tl);
+
 #endif

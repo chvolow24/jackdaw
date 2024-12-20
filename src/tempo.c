@@ -992,6 +992,8 @@ set_dst_values:
     return remainder;
 }
 
+int send_message_udp(char *message, int port);
+
 void tempo_track_mix_metronome(TempoTrack *tt, float *mixdown_buf, int32_t mixdown_buf_len, int32_t tl_start_pos_sframes, int32_t tl_end_pos_sframes, float step)
 {
     if (tt->muted) return;
@@ -1026,10 +1028,16 @@ void tempo_track_mix_metronome(TempoTrack *tt, float *mixdown_buf, int32_t mixdo
 	}
 
 	int32_t tick_start_in_chunk = remainder * -1 / step;
+
 	if (tick_start_in_chunk > mixdown_buf_len) {
 	    goto previous_beat;
 	}
 	set_beat_prominence(s, &bp, bar, beat, subdiv);
+	if (tick_start_in_chunk > 0) {
+	    char message[255];
+	    snprintf(message, 255, "%d %d %s;", tick_start_in_chunk, bp, "REC OK");
+	    send_message_udp(message, 5400);
+	}
 	if (bp < 2) {
 	    buf = tt->metronome->buffers[0];
 	    buf_len = tt->metronome->buf_lens[0];

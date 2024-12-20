@@ -122,6 +122,8 @@ int32_t tempo_track_bar_beat_subdiv(TempoTrack *tt, int32_t pos, int *bar_p, int
 /* void tempo_track_edit_segment_at_cursor(TempoTrack *tt, int num_measures, int bpm, uint8_t num_beats, uint8_t *subdiv_lens); */
 typedef struct project Project;
 
+void tempo_track_destroy(TempoTrack *tt);
+
 void tempo_track_mute_unmute(TempoTrack *t);
 void tempo_track_increment_vol(TempoTrack *tt);
 void tempo_track_decrement_vol(TempoTrack *tt);

@@ -537,6 +537,30 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
     return t;
 }
 
+/* Destroy functions */
+
+static void tempo_segment_destroy(TempoSegment *s)
+{
+    free(s);
+}
+
+void tempo_track_destroy(TempoTrack *tt)
+{
+    textbox_destroy(tt->metronome_button);
+    textbox_destroy(tt->edit_button);
+    slider_destroy(tt->metronome_vol_slider);
+    layout_destroy(tt->layout);
+    
+    TempoSegment *s = tt->segments;
+    while (s) {
+	TempoSegment *next = s->next;
+	tempo_segment_destroy(s);
+	s = next;
+    }
+}
+
+	
+
 /* MID-LEVEL INTERFACE */
 
 void timeline_edit_tempo_track_at_cursor(Timeline *tl, int num_measures, int bpm, int num_beats, uint8_t *subdiv_lens)
@@ -580,6 +604,8 @@ static void simple_tempo_segment_remove(TempoSegment *s)
     tempo_track_fprint(stderr, s->track);
 }
 
+
+
 static TempoSegment *tempo_track_cut_at(TempoTrack *tt, int32_t at)
 {
     TempoSegment *s = tempo_track_get_segment_at_pos(tt, at);
@@ -606,6 +632,7 @@ NEW_EVENT_FN(redo_cut_tempo_track, "redo cut tempo track")
 }
 
 NEW_EVENT_FN(dispose_forward_cut_tempo_track, "")
+    tempo_segment_destroy((TempoSegment *)obj2);
 }
 
 
@@ -841,7 +868,9 @@ int32_t tempo_track_bar_beat_subdiv(TempoTrack *tt, int32_t pos, int *bar_p, int
 		fprintf(stderr, "ABORT\n");
 		tempo_track_fprint(stderr, tt);
 		breakfn();
-		exit(1);
+		goto set_dst_values;
+		/* return 0; */
+		/* exit(1); */
 	    }
 	}
 	#endif
@@ -871,6 +900,7 @@ int32_t tempo_track_bar_beat_subdiv(TempoTrack *tt, int32_t pos, int *bar_p, int
 
 
     /* Set destination pointer values */
+set_dst_values:
     if (bar_p && beat_p && subdiv_p) {
 	*bar_p = measure;
 	*beat_p = beat;

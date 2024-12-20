@@ -32,6 +32,7 @@
  *****************************************************************************************************************/
 
 #include <pthread.h>
+#include "assets.h"
 #include "dsp.h"
 #include "page.h"
 #include "project.h"
@@ -43,9 +44,8 @@
 #define INSTALL_DIR "."
 #endif
 
-#define LAYOUT_DIR INSTALL_DIR "/assets/layouts/"
-#define FIR_FILTER_LT_PATH LAYOUT_DIR "track_settings_fir_filter.xml"
-#define DELAY_LINE_LT_PATH LAYOUT_DIR "track_settings_delay_line.xml"
+#define FIR_FILTER_LT_PATH LAYOUT_PATH "track_settings_fir_filter.xml"
+#define DELAY_LINE_LT_PATH LAYOUT_PATH "track_settings_delay_line.xml"
 
 #define LABEL_STD_FONT_SIZE 12
 #define RADIO_STD_FONT_SIZE 14

@@ -239,8 +239,10 @@ retry3:
 static void timeline_destroy(Timeline *tl, bool displace_in_proj)
 {
     for (uint8_t i=0; i<tl->num_tracks; i++) {
-	/* fprintf(stdout, "DESTROYING track %d/%d\n", i, tl->num_tracks); */
 	track_destroy(tl->tracks[i], false);
+    }
+    for (uint8_t i=0; i<tl->num_tempo_tracks; i++) {
+	tempo_track_destroy(tl->tempo_tracks[i]);
     }
     /* tl->proj->num_timelines--; */
     if (displace_in_proj) {

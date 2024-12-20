@@ -61,16 +61,6 @@ extern SDL_Color color_global_play_green;
 
 extern pthread_t MAIN_THREAD_ID;
 
-
-enum beat_prominence {
-    BP_SEGMENT=0,
-    BP_MEASURE=1,
-    BP_BEAT=2,
-    BP_SUBDIV=3,
-    BP_SUBDIV2=4,
-    BP_NONE=5
-};
-
 void project_init_metronomes(Project *proj)
 {
     Metronome *m = &proj->metronomes[0];
@@ -182,6 +172,7 @@ static void set_beat_prominence(TempoSegment *s, enum beat_prominence *bp, int m
 	*bp = BP_SUBDIV2;
     }
 }
+
 /* Stateful function, repeated calls to which will get the next beat or subdiv position on a tempo track */
 static bool tempo_track_get_next_pos(TempoTrack *t, bool start, int32_t start_from, int32_t *pos, enum beat_prominence *bp)
 {
@@ -235,6 +226,7 @@ set_prominence_and_exit:
     /* } */
     return true;
 }
+
 
 static void tempo_segment_set_end_pos(TempoSegment *s, int32_t new_end_pos);
 
@@ -563,7 +555,7 @@ void tempo_track_destroy(TempoTrack *tt)
 
 /* MID-LEVEL INTERFACE */
 
-void timeline_edit_tempo_track_at_cursor(Timeline *tl, int num_measures, int bpm, int num_beats, uint8_t *subdiv_lens)
+static void timeline_set_tempo_track_config_at_cursor(Timeline *tl, int num_measures, int bpm, int num_beats, uint8_t *subdiv_lens)
 {
     TempoTrack *tt = timeline_selected_tempo_track(tl);
     if (!tt) return;
@@ -574,19 +566,19 @@ void timeline_edit_tempo_track_at_cursor(Timeline *tl, int num_measures, int bpm
 
 static void simple_tempo_segment_remove(TempoSegment *s)
 {
-    fprintf(stderr, "SEGMENT REMOVE %p\n", s);
-    TempoSegment *test = s->track->segments;
-    while (test) {
-	fprintf(stderr, "\t%p", test);
-	if (test == s) {
-	    fprintf( stderr, " <---\n");
-	} else {
-	    fprintf(stderr, "\n");
-	}
-	test = test->next;
-    }
-    fprintf(stderr, "Before:\n");
-    tempo_track_fprint(stderr, s->track);
+    /* fprintf(stderr, "SEGMENT REMOVE %p\n", s); */
+    /* TempoSegment *test = s->track->segments; */
+    /* while (test) { */
+    /* 	fprintf(stderr, "\t%p", test); */
+    /* 	if (test == s) { */
+    /* 	    fprintf( stderr, " <---\n"); */
+    /* 	} else { */
+    /* 	    fprintf(stderr, "\n"); */
+    /* 	} */
+    /* 	test = test->next; */
+    /* } */
+    /* fprintf(stderr, "Before:\n"); */
+    /* tempo_track_fprint(stderr, s->track); */
     TempoTrack *tt = s->track;
     if (s->prev) {
 	s->prev->next = s->next;
@@ -600,8 +592,8 @@ static void simple_tempo_segment_remove(TempoSegment *s)
     } else if (s->next) {
 	tt->segments = s->next;
     }
-    fprintf(stderr, "After:\n");
-    tempo_track_fprint(stderr, s->track);
+    /* fprintf(stderr, "After:\n"); */
+    /* tempo_track_fprint(stderr, s->track); */
 }
 
 
@@ -664,6 +656,66 @@ void timeline_increment_tempo_at_cursor(Timeline *tl, int inc_by)
     memcpy(subdiv_lens, s->cfg.beat_subdiv_lens, s->cfg.num_beats * sizeof(uint8_t));
     tempo_segment_set_config(s, s->num_measures, new_tempo, s->cfg.num_beats, subdiv_lens);
     tl->needs_redraw = true;
+}
+
+void timeline_goto_prox_beat(Timeline *tl, int direction, enum beat_prominence bp)
+{
+    TempoTrack *tt = timeline_selected_tempo_track(tl);
+    if (!tt) return;
+    TempoSegment *s;
+    
+    int bar, beat, subdiv;
+    int32_t pos = tl->play_pos_sframes;
+    int safety = 0;
+    tempo_track_bar_beat_subdiv(tt, pos, &bar, &beat, &subdiv, &s, false);
+    pos = get_beat_pos(s, bar, beat, subdiv);
+    if (direction > 0) {
+	do_increment(s, &bar, &beat, &subdiv);
+    }
+    if (direction < 0 && tl->play_pos_sframes == pos) {
+	if (pos <= s->start_pos && s->prev) {
+	    tempo_track_bar_beat_subdiv(tt, pos - 1, &bar, &beat, &subdiv, &s, false);
+	}
+	do_decrement(s, &bar, &beat, &subdiv);
+    }
+    pos = get_beat_pos(s, bar, beat, subdiv);
+    enum beat_prominence bp_test;
+    set_beat_prominence(s, &bp_test, bar, beat, subdiv);
+    
+    while (safety < 10000 && bp_test > bp) {
+	if (direction > 0) {
+	    do_increment(s, &bar, &beat, &subdiv);
+	} else {
+	    do_decrement(s, &bar, &beat, &subdiv);
+	}
+	pos = get_beat_pos(s, bar, beat, subdiv);
+	set_beat_prominence(s, &bp_test, bar, beat, subdiv);
+	/* if (bp_test <= bp) { */
+	/*     timeline_set_play_position(tl, pos);  */
+	/*     return; */
+	/* } */
+	/* if (direction < 0) { */
+	/*     pos -= (s->cfg.atom_dur_approx + 20); */
+	/* } */
+	/* /\* if (direction < 0) { *\/ */
+	/* /\*     pos -= s->cfg.atom_dur_approx; *\/ */
+	/* /\* } *\/ */
+	/* safety++; */
+	/* if (safety > 10000) { */
+	/*     fprintf(stderr, "SAFE LIMIT EXCEEDED\n"); */
+	/*     break; */
+	/* } */
+    }
+    if (safety > 9999) {
+	fprintf(stderr, "SAFETY ISSUE\n");
+    }
+    if (pos < s->start_pos) {
+	pos = s->start_pos;
+    } else if (pos > s->end_pos && s->start_pos != s->end_pos) {
+	pos = s->end_pos;
+    }
+
+    timeline_set_play_position(tl, pos);
 }
 
 /* static enum beat_prominence timeline_get_beat_pos_range(Timeline *tl, int32_t *pos) */

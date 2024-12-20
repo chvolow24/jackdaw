@@ -237,6 +237,15 @@ static void track_handle_playhead_jump(Track *track)
 void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes)
 {
     MAIN_THREAD_ONLY("timeline_set_play_position");
+
+    if (tl->play_pos_sframes == abs_pos_sframes) return;
+
+    int32_t pos_diff = abs_pos_sframes - tl->play_pos_sframes;
+    
+    if (tl->proj->dragging && tl->num_grabbed_clips > 0) {
+	timeline_cache_grabbed_clip_positions(tl);
+    }
+
     tl->play_pos_sframes = abs_pos_sframes;
     tl->read_pos_sframes = abs_pos_sframes;
     int x = timeline_get_draw_x(tl, tl->play_pos_sframes);
@@ -251,6 +260,12 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes)
     timeline_set_timecode(tl);
     for (int i=0; i<tl->num_tempo_tracks; i++) {	
 	tempo_track_bar_beat_subdiv(tl->tempo_tracks[i], tl->play_pos_sframes, NULL, NULL, NULL, NULL, true);
+    }
+    if (tl->proj->dragging && tl->num_grabbed_clips > 0) {
+	for (int i=0; i<tl->num_grabbed_clips; i++) {
+	    tl->grabbed_clips[i]->pos_sframes += pos_diff;
+	}
+	timeline_push_grabbed_clip_move_event(tl);
     }
     timeline_reset(tl, false);
 

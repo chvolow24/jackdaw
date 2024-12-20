@@ -834,42 +834,57 @@ void user_tl_goto_zero(void *nullarg)
 void user_tl_goto_previous_clip_boundary(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    ClipRef *cr = clipref_at_cursor();
-    int32_t pos;
-    if (cr) {
-	if (cr->pos_sframes == tl->play_pos_sframes) {
-	    goto goto_previous_clip;
-	}
-	timeline_set_play_position(tl, cr->pos_sframes);
-	timeline_reset(tl, false);
-    } else {
-    goto_previous_clip:
-	if (clipref_before_cursor(&pos)) {
-	    timeline_set_play_position(tl, pos);
+    if (timeline_selected_track(tl)) {
+	ClipRef *cr = clipref_at_cursor();
+	int32_t pos;
+	if (cr) {
+	    if (cr->pos_sframes == tl->play_pos_sframes) {
+		goto goto_previous_clip;
+	    }
+	    timeline_set_play_position(tl, cr->pos_sframes);
 	    timeline_reset(tl, false);
 	} else {
-	    status_set_errstr("No previous clip on selected track");
-	}	
+	goto_previous_clip:
+	    if (clipref_before_cursor(&pos)) {
+		timeline_set_play_position(tl, pos);
+		timeline_reset(tl, false);
+	    } else {
+		status_set_errstr("No previous clip on selected track");
+	    }	
+	}
+    } else {
+	TempoTrack *tt = timeline_selected_tempo_track(tl);
+	if (tt) {
+	    timeline_goto_prox_beat(tl, -1, BP_BEAT);
+	}
     }
+
 }
 void user_tl_goto_next_clip_boundary(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    ClipRef *cr = clipref_at_cursor();
-    int32_t pos;
-    if (cr) {
-	if (cr->pos_sframes + clipref_len(cr) == tl->play_pos_sframes) {
-	    goto goto_next_clip;
-	}
-	timeline_set_play_position(tl, cr->pos_sframes + clipref_len(cr));
-	timeline_reset(tl, false);
-    } else {
-    goto_next_clip:
-	if (clipref_after_cursor(&pos)) {
-	    timeline_set_play_position(tl, pos);
+    if (timeline_selected_track(tl)) {
+	ClipRef *cr = clipref_at_cursor();
+	int32_t pos;
+	if (cr) {
+	    if (cr->pos_sframes + clipref_len(cr) == tl->play_pos_sframes) {
+		goto goto_next_clip;
+	    }
+	    timeline_set_play_position(tl, cr->pos_sframes + clipref_len(cr));
 	    timeline_reset(tl, false);
 	} else {
-	    status_set_errstr("No subsequent clip on selected track");
+	goto_next_clip:
+	    if (clipref_after_cursor(&pos)) {
+		timeline_set_play_position(tl, pos);
+		timeline_reset(tl, false);
+	    } else {
+		status_set_errstr("No subsequent clip on selected track");
+	    }
+	}
+    } else {
+	TempoTrack *tt = timeline_selected_tempo_track(tl);
+	if (tt) {
+	    timeline_goto_prox_beat(tl, 1, BP_BEAT);
 	}
     }
 }
@@ -1579,7 +1594,7 @@ void user_tl_grab_marked_range(void *nullarg)
 	    had_active_track = true;
 	    for (int i=0; i<t->num_clips; i++) {
 		ClipRef *cr = t->clips[i];
-		if (clipref_marked(tl, cr)) {
+		if (clipref_marked(tl, cr) && !cr->grabbed) {
 		    clipref_grab(cr);
 		}
 	    }
@@ -1590,7 +1605,7 @@ void user_tl_grab_marked_range(void *nullarg)
 	/* Track *t = timeline_selected_track(tl); */
 	for (int i=0; i<t->num_clips; i++) {
 	    ClipRef *cr = t->clips[i];
-	    if (clipref_marked(tl, cr)) {
+	    if (clipref_marked(tl, cr) && !cr->grabbed) {
 		clipref_grab(cr);
 	    }
 	}

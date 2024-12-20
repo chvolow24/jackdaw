@@ -43,6 +43,15 @@
 #define TEMPO_POS_STR_LEN 32
 #define BARS_FOR_NOTHING 2
 
+enum beat_prominence {
+    BP_SEGMENT=0,
+    BP_MEASURE=1,
+    BP_BEAT=2,
+    BP_SUBDIV=3,
+    BP_SUBDIV2=4,
+    BP_NONE=5
+};
+
 typedef struct measure_config {
     int bpm;
     int32_t dur_sframes;
@@ -109,9 +118,9 @@ typedef struct tempo_track {
 
 /* Timeline interface */
 TempoTrack *timeline_add_tempo_track(Timeline *tl);
-void timeline_edit_tempo_track_at_cursor(Timeline *tl, int num_measures, int bpm, int num_beats, uint8_t *subdiv_lens);
 void timeline_cut_tempo_track_at_cursor(Timeline *tl);
 void timeline_increment_tempo_at_cursor(Timeline *tl, int inc_by);
+void timeline_goto_prox_beat(Timeline *tl, int direction, enum beat_prominence bp);
 /*********************/
 
 TempoSegment *tempo_track_add_segment(TempoTrack *t, int32_t start_pos, int16_t num_measures, int bpm, uint8_t num_beats, uint8_t *subdiv_lens);

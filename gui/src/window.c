@@ -449,7 +449,7 @@ void window_pop_modal(Window *win)
     if (win->txt_editing) {
 	txt_stop_editing(win->txt_editing);
     }
-    /* if (win->num_modals > 0) { */
+    
     modal_destroy(win->modals[win->num_modals - 1]);
     /* } */
     win->num_modals--;

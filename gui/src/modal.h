@@ -31,6 +31,7 @@ typedef struct modal {
     uint8_t selected_i;
     ComponentFn submit_form;
     SymbolButton *x;
+    void *stashed_obj;
 } Modal;
 
 Modal *modal_create(Layout *lt);
@@ -38,7 +39,7 @@ void modal_destroy(Modal *modal);
 ModalEl *modal_add_header(Modal *modal, const char *text, SDL_Color *color, int level);
 ModalEl *modal_add_p(Modal *modal, const char *text, SDL_Color *color);
 ModalEl *modal_add_dirnav(Modal *modal, const char *dirpath, int (*dir_to_tline_filter)(void *dp_v, void *dn_v));
-ModalEl *modal_add_textentry(Modal *modal, char *init_val, int (*validation)(Text *txt, char input), int (*completion)(Text *));
+ModalEl *modal_add_textentry(Modal *modal, char *init_val, int (*validation)(Text *txt, char input), int (*completion)(Text *, void *obj));
 /* ModalEl *modal_add_textentry(Modal *modal, char *init_val, int (*validation)(Text *txt, char input), ComponentFn completion); */
 ModalEl *modal_add_button(Modal *modal, char *text, ComponentFn action);
     /* Layout *layout, */

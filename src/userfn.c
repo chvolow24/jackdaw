@@ -223,7 +223,7 @@ static int dir_to_tline_filter_open(void *dp_v, void *dn_v)
     
 }
 
-static int file_ext_completion_wav(Text *txt)
+static int file_ext_completion_wav(Text *txt, void *obj)
 {
     char *dotpos = strrchr(txt->display_value, '.');
     int retval = 0;
@@ -245,7 +245,7 @@ static int file_ext_completion_wav(Text *txt)
     return retval;
 }
 
-static int file_ext_completion_jdaw(Text *txt)
+static int file_ext_completion_jdaw(Text *txt, void *obj)
 {
     char *dotpos = strrchr(txt->display_value, '.');
     int retval = 0;
@@ -1368,7 +1368,6 @@ void user_tl_track_vol_up(void *nullarg)
 
 void user_tl_track_vol_down(void *nullarg)
 {
-    Timeline *tl = ACTIVE_TL;
     /* if (tl->num_tracks == 0) return; */
     if (proj->vol_changing) return;
     /* proj->vol_changing = timeline_selected_track(tl); */

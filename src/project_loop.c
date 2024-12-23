@@ -245,13 +245,9 @@ void loop_project_main()
 		scrolling_lt = NULL;
 		temp_scrolling_lt = NULL;
 		switch (e.key.keysym.scancode) {
-		case SDL_SCANCODE_3:
-		    timeline_goto_prox_beat(proj->timelines[proj->active_tl_index], -1, BP_BEAT);
+		case SDL_SCANCODE_2:
+		    timeline_tempo_track_set_tempo_at_cursor(proj->timelines[proj->active_tl_index]);
 		    break;
-		case SDL_SCANCODE_4:
-		    timeline_goto_prox_beat(proj->timelines[proj->active_tl_index], 1, BP_BEAT);
-		    break;
-		    
 		case SDL_SCANCODE_5:
 		    timeline_segment_at_cursor_fprint(stderr, proj->timelines[proj->active_tl_index]);
 		    break;

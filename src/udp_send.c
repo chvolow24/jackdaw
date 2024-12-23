@@ -37,7 +37,7 @@ int send_message_udp(char *message, int port) {
 	return 1;
     }
 
-    /* printf("Message sent: %s\n", message); */
+    printf("Message sent: %s\n", message);
     close(sockfd);
     return 0;
 }

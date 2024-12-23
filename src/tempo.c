@@ -41,6 +41,7 @@
 #include "geometry.h"
 #include "layout.h"
 #include "layout_xml.h"
+#include "modal.h"
 #include "portability.h"
 #include "project.h"
 #include "tempo.h"
@@ -52,6 +53,7 @@
 extern Window *main_win;
 extern Project *proj;
 extern SDL_Color color_global_tempo_track;
+extern SDL_Color color_global_light_grey;
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;
 extern SDL_Color color_global_quickref_button_blue;
@@ -409,6 +411,42 @@ TempoSegment *tempo_track_add_segment_at_measure(TempoTrack *t, int16_t measure,
 /*     memcpy(tl->tempo_tracks, tempo_track_stack, sizeof(TempoTrack *) * tl->num_tempo_tracks); */
 /* } */
 
+static void tempo_track_remove(TempoTrack *tt)
+{
+    Timeline *tl = tt->tl;
+    for (int i=tt->index; i<tl->num_tempo_tracks - 1; i++) {
+	tl->tempo_tracks[i] = tl->tempo_tracks[i+1];
+    }
+    tl->num_tempo_tracks--;
+    layout_remove_child(tt->layout);
+    timeline_rectify_track_indices(tl);
+
+}
+static void tempo_track_reinsert(TempoTrack *tt)
+{
+    Timeline *tl = tt->tl;
+    for (int i=tl->num_tempo_tracks; i>tt->index; i--) {
+	tl->tempo_tracks[i] = tl->tempo_tracks[i-1];
+    }
+    tl->tempo_tracks[tt->index] = tt;
+    tl->num_tempo_tracks++;
+    layout_insert_child_at(tt->layout, tt->tl->track_area, tt->layout->index);
+    timeline_rectify_track_indices(tl);
+}
+
+NEW_EVENT_FN(undo_add_tempo_track, "undo add tempo track")
+    TempoTrack *tt = obj1;
+    tempo_track_remove(tt);
+
+}
+NEW_EVENT_FN(redo_add_tempo_track, "redo add tempo track")
+    TempoTrack *tt = obj1;
+    tempo_track_reinsert(tt);
+}
+NEW_EVENT_FN(dispose_forward_add_tempo_track, "")
+    tempo_track_destroy((TempoTrack *)obj1);
+}
+
 TempoTrack *timeline_add_tempo_track(Timeline *tl)
 {
     if (tl->num_tempo_tracks == MAX_TEMPO_TRACKS) return NULL;
@@ -524,8 +562,20 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
 	    s = s->next;
 	}
     }
-
     timeline_rectify_track_indices(tl);
+
+    Value nullval = {.int_v = 0};
+    user_event_push(
+	&proj->history,
+	undo_add_tempo_track,
+	redo_add_tempo_track,
+	NULL,
+	dispose_forward_add_tempo_track,
+	(void *)t, NULL,
+	nullval, nullval,
+	nullval, nullval,
+	0, 0, false, false);
+	    
     return t;
 }
 
@@ -551,18 +601,112 @@ void tempo_track_destroy(TempoTrack *tt)
     }
 }
 
+
+
+/* utility functions */
+static void tempo_segment_set_tempo(TempoSegment *s, unsigned int new_tempo, bool from_undo);
+
+NEW_EVENT_FN(undo_redo_set_tempo, "undo/redo set tempo")
+    TempoSegment *s = (TempoSegment *)obj1;
+    int tempo = val1.int_v;
+    tempo_segment_set_tempo(s, tempo, true);
+}
+
+
+static void tempo_segment_set_tempo(TempoSegment *s, unsigned int new_tempo, bool from_undo)
+{
+    if (new_tempo == 0) {
+	status_set_errstr("Tempo cannot be 0 bpm");
+    }
+    int old_tempo = s->cfg.bpm;
+    uint8_t subdiv_lens[s->cfg.num_beats];
+    memcpy(subdiv_lens, s->cfg.beat_subdiv_lens, s->cfg.num_beats * sizeof(uint8_t));
+    tempo_segment_set_config(s, s->num_measures, new_tempo, s->cfg.num_beats, subdiv_lens);
+    s->track->tl->needs_redraw = true;
+    if (!from_undo) {
+	Value old_val = {.int_v = old_tempo};
+	Value new_val = {.int_v = new_tempo};
+	user_event_push(
+	    &proj->history,
+	    undo_redo_set_tempo,
+	    undo_redo_set_tempo,
+	    NULL, NULL,
+	    (void *)s, NULL,
+	    old_val, old_val,
+	    new_val, new_val,
+	    0, 0, false, false);
+    }
+}
+
 	
 
 /* MID-LEVEL INTERFACE */
 
-static void timeline_set_tempo_track_config_at_cursor(Timeline *tl, int num_measures, int bpm, int num_beats, uint8_t *subdiv_lens)
+static int set_tempo_submit_form(void *mod_v, void *target)
+{
+    Modal *mod = (Modal *)mod_v;
+    TempoSegment *s = (TempoSegment *)mod->stashed_obj;
+    for (uint8_t i=0; i<mod->num_els; i++) {
+	ModalEl *el = mod->els[i];
+	if (el->type == MODAL_EL_TEXTENTRY) {
+	    char *value = ((TextEntry *)el->obj)->tb->text->value_handle;
+	    int tempo = atoi(value);
+	    tempo_segment_set_tempo(s, tempo, false);
+	    break;
+	}
+    }
+    window_pop_modal(main_win);
+    return 0;
+}
+
+static int tempo_te_action(Text *t, void *obj)
+{
+    Modal *mod = (Modal *)obj;
+    modal_submit_form(mod);
+    return 0;
+}
+
+#define TEMPO_STRLEN 5
+void timeline_tempo_track_set_tempo_at_cursor(Timeline *tl)
+{
+    TempoTrack *tt = timeline_selected_tempo_track(tl);
+    TempoSegment *s = tempo_track_get_segment_at_pos(tt, tl->play_pos_sframes);
+    Layout *mod_lt = layout_add_child(main_win->layout);
+    layout_set_default_dims(mod_lt);
+    Modal *mod = modal_create(mod_lt);
+    static char tempo_str[TEMPO_STRLEN];
+    snprintf(tempo_str, TEMPO_STRLEN, "%d", s->cfg.bpm);
+    modal_add_header(mod, "Set tempo:", &color_global_light_grey, 5);
+    ModalEl *el = modal_add_textentry(mod, tempo_str, txt_integer_validation, NULL);
+    TextEntry *te = (TextEntry *)el->obj;
+    te->target = (void *)mod;
+    te->tb->text->completion = tempo_te_action;
+    te->tb->text->completion_target = (void *)mod;
+    te->tb->text->max_len = TEMPO_STRLEN;
+    mod->stashed_obj = (void *)s;
+    mod->submit_form = set_tempo_submit_form;
+    window_push_modal(main_win, mod);
+    modal_reset(mod);
+    modal_move_onto(mod);
+    tl->needs_redraw = true;
+}
+
+void timeline_tempo_track_edit(Timeline *tl)
 {
     TempoTrack *tt = timeline_selected_tempo_track(tl);
     if (!tt) return;
-    TempoSegment *s = tempo_track_get_segment_at_pos(tt, tl->play_pos_sframes);
-    tempo_segment_set_config(s, num_measures, bpm, num_beats, subdiv_lens);
-    tl->needs_redraw = true;
+    /* TempoSegment *s = tempo_track_get_segment_at_pos(tt, tl->play_pos_sframes); */
+    /* TODO: CREATE TABVIEW */
+    
 }
+/* static void timeline_set_tempo_track_config_at_cursor(Timeline *tl, int num_measures, int bpm, int num_beats, uint8_t *subdiv_lens) */
+/* { */
+/*     TempoTrack *tt = timeline_selected_tempo_track(tl); */
+/*     if (!tt) return; */
+/*     TempoSegment *s = tempo_track_get_segment_at_pos(tt, tl->play_pos_sframes); */
+/*     tempo_segment_set_config(s, num_measures, bpm, num_beats, subdiv_lens); */
+/*     tl->needs_redraw = true; */
+/* } */
 
 static void simple_tempo_segment_remove(TempoSegment *s)
 {
@@ -894,11 +1038,11 @@ int32_t tempo_track_bar_beat_subdiv(TempoTrack *tt, int32_t pos, int *bar_p, int
     /* if (measure == 0) measure = s->first_measure_index; */
     /* int32_t prev_pos = prev_positions[tt->index]; */
     int32_t beat_pos = 0;
+    
     #ifdef TESTBUILD
     int ops = 0;
-    clock_t c;
-    c = clock();
     #endif
+    
     int32_t remainder = 0;
     /* if (debug) { */
     /* 	/\* fprintf(stderr, "\t\tSTART loop\n"); *\/ */
@@ -1033,11 +1177,15 @@ void tempo_track_mix_metronome(TempoTrack *tt, float *mixdown_buf, int32_t mixdo
 	    goto previous_beat;
 	}
 	set_beat_prominence(s, &bp, bar, beat, subdiv);
-	if (tick_start_in_chunk > 0) {
-	    char message[255];
-	    snprintf(message, 255, "%d %d %s;", tick_start_in_chunk, bp, "REC OK");
-	    send_message_udp(message, 5400);
-	}
+	
+	/* UDP -> Pd testing */
+	/* if (tick_start_in_chunk > 0) { */
+	/*     char message[255]; */
+	/*     snprintf(message, 255, "%d %d;", tick_start_in_chunk, bp); */
+	/*     send_message_udp(message, 5400); */
+	/* } */
+
+	
 	if (bp < 2) {
 	    buf = tt->metronome->buffers[0];
 	    buf_len = tt->metronome->buf_lens[0];

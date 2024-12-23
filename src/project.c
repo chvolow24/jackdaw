@@ -1288,7 +1288,7 @@ static NEW_EVENT_FN(redo_rename_object, "redo rename object")
 /* } */
     
 
-static int name_completion(Text *txt)
+static int name_completion(Text *txt, void *obj)
 {
     Value nullval = {.int_v = 0};
     char *old_value = strdup(txt->cached_value);
@@ -1329,6 +1329,11 @@ void timeline_rectify_track_area(Timeline *tl)
 
 void timeline_rectify_track_indices(Timeline *tl)
 {
+
+    if (tl->layout_selector >= tl->track_area->num_children) {
+	tl->layout_selector = tl->track_area->num_children - 1;
+    }
+
     /* fprintf(stderr, "Rectify\n"); */
     int tempo_track_index = 0;
     int track_index = 0;
@@ -2242,9 +2247,6 @@ static void timeline_remove_track(Track *track)
     tl->num_tracks--;
     if (tl->num_tracks > 0 && tl->track_selector > tl->num_tracks - 1) tl->track_selector = tl->num_tracks - 1;
     timeline_rectify_track_area(tl);
-    if (tl->layout_selector >= tl->track_area->num_children) {
-	tl->layout_selector = tl->track_area->num_children - 1;
-    }
     timeline_rectify_track_indices(tl);
     /* layout_size_to_fit_children_v(tl->track_area, true, 0); */
 }

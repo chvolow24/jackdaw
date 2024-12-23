@@ -100,7 +100,8 @@ typedef struct text {
     SDL_Texture *texture;
 
     int (*validation)(Text *self, char input);
-    int (*completion)(Text *self);
+    int (*completion)(Text *self, void *obj);
+    void *completion_target;
     /* int (*submit_validation)(Text *self); */
     /* pthread_mutex_t draw_lock; */
 } Text;
@@ -214,5 +215,6 @@ void txt_area_destroy(TextArea *ta);
 void ttf_destroy_font(Font *font);
 
 int txt_name_validation(Text *txt, char input);
+int txt_integer_validation(Text *txt, char input);
 
 #endif

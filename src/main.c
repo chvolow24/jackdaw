@@ -193,12 +193,6 @@ extern bool connection_open;
 /*     fclose(f); */
 /* } */
 
-enum beat_prominence {
-    BP_MEASURE,
-    BP_BEAT,
-    BP_SUBDIV,
-    BP_SUBDIV2,
-};
 
 void tempo_track_get_next_pos(TempoTrack *t, bool start, int32_t start_from, int32_t *pos, enum beat_prominence *bp);
 void tempo_track_fprint(FILE *f, TempoTrack *tt);

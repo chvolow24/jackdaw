@@ -355,15 +355,16 @@ void txt_edit(Text *txt, void (*draw_fn) (void))
 
 void txt_stop_editing(Text *txt)
 {
-    if (txt->completion && txt->completion(txt) != 0) {
-	return;
-    }
+    main_win->txt_editing = NULL; /* Set this FIRST to avoid infinite loop in completion */
     txt->show_cursor = false;
     /* txt->truncate = save_truncate; */
     txt_set_value(txt, txt->display_value);
-    main_win->txt_editing = NULL;
+    /* main_win->txt_editing = NULL; */
     SDL_StopTextInput();
     window_pop_mode(main_win);
+    if (txt->completion && txt->completion(txt, txt->completion_target) != 0) {
+	return;
+    }
 }
 
 
@@ -901,9 +902,22 @@ int txt_name_validation(Text *txt, char input)
 	snprintf(buf, 255, "Name cannot exceed %d characters", MAX_NAMELENGTH - 1);
 	status_set_errstr(buf);
 	return 1;
-    } else {
-	return 0;
     }
+    return 0;
+}
+
+int txt_integer_validation(Text *txt, char input)
+{
+    if (strlen(txt->display_value) >= txt->max_len - 1) {
+	char buf[255];
+	snprintf(buf, 255, "Name cannot exceed %d characters", txt->max_len - 1);
+	status_set_errstr(buf);
+	return 1;
+    } else if (input < '0' || input > '9') {
+	status_set_errstr("Only integer values allowed");
+	return 1;
+    }
+    return 0;
 }
 
 #endif

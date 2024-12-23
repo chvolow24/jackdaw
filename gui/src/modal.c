@@ -269,7 +269,7 @@ ModalEl *modal_add_button(Modal *modal, char *text, ComponentFn action)
     return el;
 }
 
-ModalEl *modal_add_textentry(Modal *modal, char *init_val, int (*validation)(Text *txt, char input), int (*completion)(Text *))
+ModalEl *modal_add_textentry(Modal *modal, char *init_val, int (*validation)(Text *txt, char input), int (*completion)(Text *, void *))
 {
     ModalEl *el = modal_add_el(modal);
     el->layout->y.value = MODAL_V_PADDING_TIGHT;
@@ -530,14 +530,9 @@ void modal_select(Modal *modal)
 void modal_submit_form(Modal *modal)
 {
     if (modal->submit_form) {
-	modal->submit_form((void *)modal, NULL);
+	modal->submit_form((void *)modal, modal->stashed_obj);
     }
 }
-
-/* static void modal_el_triage_mouse(ModalEl *el, SDL_Point *mousep, bool click) */
-/* { */
-    
-/* } */
 
 bool modal_triage_mouse(Modal *modal, SDL_Point *mousep, bool click)
 {

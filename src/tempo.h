@@ -122,6 +122,8 @@ void timeline_cut_tempo_track_at_cursor(Timeline *tl);
 void timeline_increment_tempo_at_cursor(Timeline *tl, int inc_by);
 void timeline_goto_prox_beat(Timeline *tl, int direction, enum beat_prominence bp);
 void timeline_tempo_track_set_tempo_at_cursor(Timeline *tl);
+void timeline_tempo_track_edit(Timeline *tl);
+bool timeline_tempo_track_delete(Timeline *tl);
 /*********************/
 
 TempoSegment *tempo_track_add_segment(TempoTrack *t, int32_t start_pos, int16_t num_measures, int bpm, uint8_t num_beats, uint8_t *subdiv_lens);

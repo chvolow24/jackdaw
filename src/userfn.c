@@ -1338,7 +1338,9 @@ void user_tl_track_delete(void *nullarg)
 	    0,0,false,false);	
 
     } else {
-	status_set_errstr("Error: no track to delete");
+	if (!timeline_tempo_track_delete(tl)) {   
+	    status_set_errstr("Error: no track to delete");
+	}
     }
 }
 
@@ -1347,14 +1349,12 @@ void user_tl_mute(void *nullarg)
     Timeline *tl = ACTIVE_TL;
     track_or_tracks_mute(tl);
 }
-
 void user_tl_solo(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
     track_or_tracks_solo(tl, NULL);
     /* tl->needs_redraw = true; */
 }
-
 void user_tl_track_vol_up(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
@@ -1405,10 +1405,14 @@ void user_tl_track_open_settings(void *nullarg)
 	tl->needs_redraw = true;
 	return;
     }
-    if (tl->num_tracks == 0) return;
-    TabView *tv = settings_track_tabview_create(timeline_selected_track(tl));
-    tab_view_activate(tv);
-    tl->needs_redraw = true;
+    Track *track = timeline_selected_track(tl);
+    if (track) {
+	TabView *tv = settings_track_tabview_create(track);
+	tab_view_activate(tv);
+	tl->needs_redraw = true;
+    } else {
+	timeline_tempo_track_edit(tl);
+    }
 }
 
 void user_tl_track_add_automation(void *nullarg)
@@ -1487,7 +1491,22 @@ void user_tl_record(void *nullarg)
     /* tl->needs_redraw = true; */
 }
 
-void user_tl_clipref_grab_ungrab()
+void user_tl_tempo_track_add(void *nullarg)
+{
+    timeline_add_tempo_track(ACTIVE_TL);
+}
+
+/* void user_tl_tempo_track_cut(void *nullarg) */
+/* { */
+/*     timeline_cut_tempo_track_at_cursor(ACTIVE_TL); */
+/* } */
+
+void user_tl_tempo_track_set_tempo(void *nullarg)
+{
+    timeline_tempo_track_set_tempo_at_cursor(ACTIVE_TL);
+}
+
+void user_tl_clipref_grab_ungrab(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;
@@ -1706,7 +1725,7 @@ void user_tl_toggle_drag(void *nullarg)
 void user_tl_cut_clipref(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    timeline_cut_clipref_at_cursor(tl);
+    timeline_cut_at_cursor(tl);
     tl->needs_redraw = true;
 }
 

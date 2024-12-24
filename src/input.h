@@ -46,7 +46,7 @@
 #define MAX_ANNOT_STRLEN 255
 
 #define NUM_INPUT_MODES 7
-#define MAX_MODE_SUBCATS 10
+#define MAX_MODE_SUBCATS 16
 #define MAX_MODE_SUBCAT_FNS 64
 
 /* Input state bitmasks */

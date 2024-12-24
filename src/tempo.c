@@ -420,6 +420,7 @@ static void tempo_track_remove(TempoTrack *tt)
     tl->num_tempo_tracks--;
     layout_remove_child(tt->layout);
     timeline_rectify_track_indices(tl);
+    timeline_rectify_track_area(tl);
 
 }
 static void tempo_track_reinsert(TempoTrack *tt)
@@ -430,8 +431,9 @@ static void tempo_track_reinsert(TempoTrack *tt)
     }
     tl->tempo_tracks[tt->index] = tt;
     tl->num_tempo_tracks++;
-    layout_insert_child_at(tt->layout, tt->tl->track_area, tt->layout->index);
+    layout_insert_child_at(tt->layout, tl->track_area, tt->layout->index);
     timeline_rectify_track_indices(tl);
+    timeline_rectify_track_area(tl);
 }
 
 NEW_EVENT_FN(undo_add_tempo_track, "undo add tempo track")
@@ -691,10 +693,54 @@ void timeline_tempo_track_set_tempo_at_cursor(Timeline *tl)
     tl->needs_redraw = true;
 }
 
+static void tempo_track_delete(TempoTrack *tt, bool from_undo);
+
+NEW_EVENT_FN(undo_delete_tempo_track, "undo delete tempo track")
+    TempoTrack *tt = (TempoTrack *)obj1;
+    tempo_track_reinsert(tt);
+}
+
+NEW_EVENT_FN(redo_delete_tempo_track, "redo delete tempo track")
+    TempoTrack *tt = (TempoTrack *)obj1;
+    tempo_track_delete(tt, true);
+}
+
+NEW_EVENT_FN(dispose_delete_tempo_track, "")
+    TempoTrack *tt = (TempoTrack *)obj1;
+    tempo_track_destroy(tt);
+}
+
+static void tempo_track_delete(TempoTrack *tt, bool from_undo)
+{
+    tempo_track_remove(tt);
+    Value nullval = {.int_v = 0};
+    if (!from_undo) {
+	user_event_push(
+	    &proj->history,
+	    undo_delete_tempo_track,
+	    redo_delete_tempo_track,
+	    dispose_delete_tempo_track,
+	    NULL,
+	    (void *)tt, NULL,
+	    nullval, nullval, nullval, nullval,
+	    0, 0, false, false);	    
+    }
+}
+
+bool timeline_tempo_track_delete(Timeline *tl)
+{
+    TempoTrack *tt = timeline_selected_tempo_track(tl);
+    if (!tt) return false;
+    tempo_track_delete(tt, false);
+    timeline_reset(tl, false);
+    return true;
+}
+
 void timeline_tempo_track_edit(Timeline *tl)
 {
     TempoTrack *tt = timeline_selected_tempo_track(tl);
     if (!tt) return;
+    fprintf(stderr, "OK EDIT TT\n");
     /* TempoSegment *s = tempo_track_get_segment_at_pos(tt, tl->play_pos_sframes); */
     /* TODO: CREATE TABVIEW */
     
@@ -901,10 +947,12 @@ static void tempo_track_deferred_draw(void *tempo_track_v)
     
     TempoTrack *tt = (TempoTrack *)tempo_track_v;
     SDL_Rect *audio_rect = tt->tl->proj->audio_rect;
+    /* SDL_Rect cliprect = *audio_rect; */
+    /* cliprect.w += cliprect.x; */
+    /* cliprect.x = 0; */
     if (audio_rect->y + audio_rect->h > tt->tl->layout->rect.y) {
 	SDL_RenderSetClipRect(main_win->rend, audio_rect);
 	textbox_draw(tt->metronome_button);
-	textbox_draw(tt->edit_button);
 	slider_draw(tt->metronome_vol_slider);
 	SDL_RenderSetClipRect(main_win->rend, NULL);
     }
@@ -987,6 +1035,7 @@ void tempo_track_draw(TempoTrack *tt)
 	}
     }
     textbox_draw(tt->readout);
+    textbox_draw(tt->edit_button);	
 
     /* Fill right console */
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));

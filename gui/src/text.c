@@ -910,7 +910,7 @@ int txt_integer_validation(Text *txt, char input)
 {
     if (strlen(txt->display_value) >= txt->max_len - 1) {
 	char buf[255];
-	snprintf(buf, 255, "Name cannot exceed %d characters", txt->max_len - 1);
+	snprintf(buf, 255, "Field cannot exceed %d characters", txt->max_len - 1);
 	status_set_errstr(buf);
 	return 1;
     } else if (input < '0' || input > '9') {

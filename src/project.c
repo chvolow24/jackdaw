@@ -2251,25 +2251,40 @@ static void timeline_remove_track(Track *track)
     /* layout_size_to_fit_children_v(tl->track_area, true, 0); */
 }
 
-static void timeline_insert_track_at(Track *track, uint8_t index)
+static void timeline_reinsert_track(Track *track)
 {
     Timeline *tl = track->tl;
-    /* for (int i=0; i<tl->num_tracks; i++) { */
-    /* 	fprintf(stdout, "\t\t%d: Track index %d named \"%s\"\n", i, tl->tracks[i]->tl_rank, tl->tracks[i]->name); */
-    /* } */
-    while (index > tl->num_tracks) index--;
-    /* fprintf(stdout, "->adj ind: %d\n", index); */
-    for (uint8_t i=tl->num_tracks; i>index; i--) {
-	/* fprintf(stdout, "\tmoving track %d->%d\n", i-1, i); */
-	tl->tracks[i] = tl->tracks[i - 1];
-	tl->tracks[i]->tl_rank = i;
+    for (int i=tl->num_tracks; i>track->tl_rank; i--) {
+	tl->tracks[i] = tl->tracks[i-1];
     }
-    layout_insert_child_at(track->layout, tl->track_area, index);
-    tl->tracks[index] = track;
-    track->tl_rank = index;
+    tl->tracks[track->tl_rank] = track;
     tl->num_tracks++;
+    layout_insert_child_at(track->layout, tl->track_area, track->layout->index);
     timeline_rectify_track_indices(tl);
+    timeline_rectify_track_area(tl);
 }
+
+/* static void timeline_insert_track_at(Track *track, uint8_t index) */
+/* { */
+/*     Timeline *tl = track->tl; */
+/*     /\* for (int i=0; i<tl->num_tracks; i++) { *\/ */
+/*     /\* 	fprintf(stdout, "\t\t%d: Track index %d named \"%s\"\n", i, tl->tracks[i]->tl_rank, tl->tracks[i]->name); *\/ */
+/*     /\* } *\/ */
+/*     while (index > tl->num_tracks) index--; */
+/*     /\* fprintf(stdout, "->adj ind: %d\n", index); *\/ */
+/*     for (uint8_t i=tl->num_tracks; i>index; i--) { */
+/* 	/\* fprintf(stdout, "\tmoving track %d->%d\n", i-1, i); *\/ */
+/* 	tl->tracks[i] = tl->tracks[i - 1]; */
+/* 	tl->tracks[i]->tl_rank = i; */
+/*     } */
+/*     layout_insert_child_at(track->layout, tl->track_area, index); */
+/*     tl->tracks[index] = track; */
+/*     track->tl_rank = index; */
+/*     tl->num_tracks++; */
+/*     timeline_rectify_track_indices(tl); */
+/* } */
+
+
 void track_delete(Track *track)
 {
     track->deleted = true;
@@ -2280,7 +2295,8 @@ void track_delete(Track *track)
 void track_undelete(Track *track)
 {
     track->deleted = false;
-    timeline_insert_track_at(track, track->tl_rank);
+    /* timeline_insert_track_at(track, track->tl_rank); */
+    timeline_reinsert_track(track);
     timeline_reset(track->tl, false);
 }
 void track_destroy(Track *track, bool displace)
@@ -2948,17 +2964,23 @@ static ClipRef *clipref_cut(ClipRef *cr, int32_t cut_pos_rel)
 
 
 
-void timeline_cut_clipref_at_cursor(Timeline *tl)
+void timeline_cut_at_cursor(Timeline *tl)
 {
     Track *track = timeline_selected_track(tl);
-    if (!track) return;
-    ClipRef *cr = clipref_at_cursor();
-    if (!cr) {
-	status_set_errstr("Error: no clip at cursor");
-	return;
-    }
-    if (tl->play_pos_sframes > cr->pos_sframes && tl->play_pos_sframes < cr->pos_sframes + clipref_len(cr)) {
-	clipref_cut(cr, tl->play_pos_sframes - cr->pos_sframes);
+    if (track) {
+	status_cat_callstr(" clipref at cursor");
+	ClipRef *cr = clipref_at_cursor();
+	if (!cr) {
+	    status_set_errstr("Error: no clip at cursor");
+	    return;
+	}
+	if (tl->play_pos_sframes > cr->pos_sframes && tl->play_pos_sframes < cr->pos_sframes + clipref_len(cr)) {
+	    clipref_cut(cr, tl->play_pos_sframes - cr->pos_sframes);
+	}
+    } else {
+	timeline_cut_tempo_track_at_cursor(tl);
+	status_cat_callstr(" tempo track at cursor");
+
     }
 }
 

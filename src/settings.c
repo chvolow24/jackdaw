@@ -44,8 +44,8 @@
 #define INSTALL_DIR "."
 #endif
 
-#define FIR_FILTER_LT_PATH LAYOUT_PATH "track_settings_fir_filter.xml"
-#define DELAY_LINE_LT_PATH LAYOUT_PATH "track_settings_delay_line.xml"
+#define FIR_FILTER_LT_PATH LAYOUT_PATH "/track_settings_fir_filter.xml"
+#define DELAY_LINE_LT_PATH LAYOUT_PATH "/track_settings_delay_line.xml"
 
 #define LABEL_STD_FONT_SIZE 12
 #define RADIO_STD_FONT_SIZE 14

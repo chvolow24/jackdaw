@@ -135,6 +135,10 @@ static ModeSubcat *mode_add_subcat(Mode *mode, const char *name)
 
 static void mode_subcat_add_fn(ModeSubcat *ms, UserFn *fn)
 {
+    if (ms->num_fns == MAX_MODE_SUBCAT_FNS) {
+	fprintf(stderr, "Reached maximum number of functions per subcat \"%s\"\n", ms->name);
+	exit(1);
+    }
     ms->fns[ms->num_fns] = fn;
     ms->num_fns++;
 }
@@ -605,6 +609,32 @@ static void mode_load_timeline()
         user_tl_track_select_9);
     mode_subcat_add_fn(sc, fn);
 
+    /* Tempo tracks */
+    sc = mode_add_subcat(mode, "Tempo tracks");
+
+    fn = create_user_fn(
+	"tl_tempo_track_add",
+	"Add tempo track",
+        user_tl_tempo_track_add);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_tempo_track_set_tempo",
+	"Set tempo at cursor",
+	user_tl_tempo_track_set_tempo);
+    mode_subcat_add_fn(sc, fn);
+
+    /* fn = create_user_fn( */
+    /* 	"tl_tempo_track_cut", */
+    /* 	"Cut tempo track at cursor", */
+    /* 	user_tl_tempo_track_cut); */
+    /* mode_subcat_add_fn(sc, fn); */
+
+    /* fn = create_user_fn( */
+    /* 	"tl_tempo_track_set_tempo", */
+    /* 	"Set tempo at cursor", */
+    /* 	user_tl_tempo_track_set_tempo); */
+    /* mode_subcat_add_fn(sc, fn); */
 
     /* Track settings */
     sc = mode_add_subcat(mode, "Track settings");
@@ -725,7 +755,7 @@ static void mode_load_timeline()
 
     fn = create_user_fn(
 	"tl_cut_clipref",
-	"Cut clip at cursor",
+	"Cut",
 	user_tl_cut_clipref);
     mode_subcat_add_fn(sc, fn);
 

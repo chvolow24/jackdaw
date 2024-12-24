@@ -79,11 +79,18 @@ void user_tl_track_rename(void *nullarg);
 void user_tl_track_toggle_in(void *nullarg);
 void user_tl_track_set_in(void *nullarg);
 void user_tl_track_add_filter(void *nullarg);
-void user_tl_track_destroy(void *nullarg);
+/* void user_tl_track_destroy(void *nullarg); */
 void user_tl_track_delete(void *nullarg);
+
+void user_tl_tempo_track_add(void *nullarg);
+void user_tl_tempo_track_cut(void *nullarg);
+void user_tl_tempo_track_set_tempo(void *nullarg);
+
+
 void user_tl_track_show_hide_automations(void *nullarg);
 void user_tl_track_add_automation(void *nullarg);
 void user_tl_track_automation_toggle_read(void *nullarg);
+
 
 void user_tl_track_open_settings(void *nullarg);
 void user_tl_mute(void *nullarg);

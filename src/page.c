@@ -686,10 +686,10 @@ void tab_view_activate(TabView *tv)
     while (win->num_menus > 0) {
 	window_pop_menu(win);
     }
-    if (win->active_tab_view) {
-	tab_view_destroy(win->active_tab_view);
+    if (win->active_tabview) {
+	tab_view_destroy(win->active_tabview);
     }
-    win->active_tab_view = tv;
+    win->active_tabview = tv;
     window_push_mode(tv->win, TABVIEW);
 }
 
@@ -704,7 +704,7 @@ void tab_view_close(TabView *tv)
 	window_pop_menu(tv->win);
     }
     window_pop_mode(tv->win);
-    tv->win->active_tab_view = NULL;
+    tv->win->active_tabview = NULL;
     tab_view_destroy(tv);
 }
 
@@ -792,5 +792,16 @@ PageEl *page_get_el_by_id(Page *page, const char *id)
 	else if (i == page->num_elements - 1) el = NULL;
     }
     return el;
+}
+
+void tabview_clear_all_contents(TabView *tv)
+{
+    for (int i=0; i<tv->num_tabs; i++) {
+	page_destroy(tv->tabs[i]);
+	textbox_destroy(tv->labels[i]);
+    }
+    tv->num_tabs = 0;
+    /* tv->current_tab = 0; */
+    
 }
     

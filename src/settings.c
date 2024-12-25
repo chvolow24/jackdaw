@@ -39,13 +39,9 @@
 #include "textbox.h"
 #include "userfn.h"
 #include "waveform.h"
-
 #ifndef INSTALL_DIR
 #define INSTALL_DIR "."
 #endif
-
-#define FIR_FILTER_LT_PATH LAYOUT_PATH "/track_settings_fir_filter.xml"
-#define DELAY_LINE_LT_PATH LAYOUT_PATH "/track_settings_delay_line.xml"
 
 #define LABEL_STD_FONT_SIZE 12
 #define RADIO_STD_FONT_SIZE 14
@@ -223,12 +219,13 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     }
 
     FIRFilter *f = track->fir_filter;
-    
-    for (int i=0; i<tv->num_tabs; i++) {
-	page_destroy(tv->tabs[i]);
-	textbox_destroy(tv->labels[i]);
-    }
-    tv->num_tabs = 0;
+
+    tabview_clear_all_contents(tv);
+    /* for (int i=0; i<tv->num_tabs; i++) { */
+    /* 	page_destroy(tv->tabs[i]); */
+    /* 	textbox_destroy(tv->labels[i]); */
+    /* } */
+    /* tv->num_tabs = 0; */
     
     /* static SDL_Color page_colors[] = { */
     /* 	{30, 80, 80, 255}, */
@@ -488,7 +485,6 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 	main_win);
     
     
-    
 }
 
 TabView *settings_track_tabview_create(Track *track)
@@ -497,6 +493,7 @@ TabView *settings_track_tabview_create(Track *track)
     TabView *tv = tab_view_create("Track Settings", proj->layout, main_win);
 
     settings_track_tabview_set_track(tv, track);
+    
  
     layout_force_reset(tv->layout);
     return tv;

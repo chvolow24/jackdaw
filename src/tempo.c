@@ -432,6 +432,7 @@ static void tempo_track_reinsert(TempoTrack *tt)
     tl->tempo_tracks[tt->index] = tt;
     tl->num_tempo_tracks++;
     layout_insert_child_at(tt->layout, tl->track_area, tt->layout->index);
+    tl->layout_selector = tt->layout->index;
     timeline_rectify_track_indices(tl);
     timeline_rectify_track_area(tl);
 }
@@ -445,6 +446,7 @@ NEW_EVENT_FN(redo_add_tempo_track, "redo add tempo track")
     TempoTrack *tt = obj1;
     tempo_track_reinsert(tt);
 }
+
 NEW_EVENT_FN(dispose_forward_add_tempo_track, "")
     tempo_track_destroy((TempoTrack *)obj1);
 }
@@ -672,6 +674,10 @@ static int tempo_te_action(Text *t, void *obj)
 void timeline_tempo_track_set_tempo_at_cursor(Timeline *tl)
 {
     TempoTrack *tt = timeline_selected_tempo_track(tl);
+    if (!tt) {
+	status_set_errstr("No tempo track selected");
+	return;
+    }
     TempoSegment *s = tempo_track_get_segment_at_pos(tt, tl->play_pos_sframes);
     Layout *mod_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(mod_lt);
@@ -736,11 +742,81 @@ bool timeline_tempo_track_delete(Timeline *tl)
     return true;
 }
 
+void tempo_track_populate_settings_tabview(TempoTrack *tt, TabView *tv)
+{
+    static SDL_Color page_colors[] = {
+	{40, 40, 80, 255},
+	{50, 50, 80, 255},
+	{70, 40, 70, 255}
+    };
+
+    tabview_clear_all_contents(tv);
+    
+    Page *page = tab_view_add_page(
+	tv,
+	"Tempo track config",
+	TEMPO_TRACK_SETTINGS_LT_PATH,
+	page_colors,
+	&color_global_white,
+	main_win);
+
+    PageElParams p;
+
+    p.textbox_p.font = main_win->mono_bold_font;
+    p.textbox_p.text_size = 14;
+    p.textbox_p.set_str = "Tempo track settings";
+    p.textbox_p.win = page->win;
+    PageEl *el = page_add_el(page, EL_TEXTBOX, p, "tempo_track_settings_title", "info");
+    textbox_set_align((Textbox *)el->component, CENTER_LEFT);
+}
+
 void timeline_tempo_track_edit(Timeline *tl)
 {
     TempoTrack *tt = timeline_selected_tempo_track(tl);
     if (!tt) return;
-    fprintf(stderr, "OK EDIT TT\n");
+
+    TabView *tv = tab_view_create("Track Settings", proj->layout, main_win);
+    tempo_track_populate_settings_tabview(tt, tv);
+    /* p.textbox_p.font = main_win->mono_bold_font; */
+    /* p.textbox_p.text_size = LABEL_STD_FONT_SIZE; */
+    /* p.textbox_p.set_str = "Bandwidth:"; */
+    /* p.textbox_p.win = page->win; */
+    /* PageEl *el = page_add_el(page, EL_TEXTBOX, p, "track_settings_filter_bandwidth_label", "bandwidth_label"); */
+
+    /* Textbox *tb = el->component; */
+    /* textbox_set_align(tb, CENTER_LEFT); */
+    /* textbox_reset_full(tb); */
+
+    /* p.textbox_p.set_str = "Cutoff / center frequency:"; */
+    /* p.textbox_p.win = main_win; */
+    /* el = page_add_el(page, EL_TEXTBOX, p, "track_settings_filter_cutoff_label",  "cutoff_label"); */
+    /* tb = el->component; */
+    /* textbox_set_align(tb, CENTER_LEFT); */
+    /* textbox_reset_full(tb); */
+    
+    /* p.textbox_p.set_str = "Impulse response length (\"sharpness\")"; */
+    /* el = page_add_el(page, EL_TEXTBOX, p, "track_settings_filter_irlen_label", "irlen_label"); */
+    /* tb=el->component; */
+    /* textbox_set_trunc(tb, false); */
+    /* textbox_set_align(tb, CENTER_LEFT); */
+    /* textbox_reset_full(tb); */
+
+    /* p.textbox_p.set_str = "Enable FIR filter"; */
+    /* el = page_add_el(page, EL_TEXTBOX, p, "track_settings_filter_toggle_label", "toggle_label"); */
+    /* tb=el->component; */
+    /* textbox_set_trunc(tb, false); */
+    /* textbox_set_align(tb, CENTER_LEFT); */
+    /* textbox_reset_full(tb); */
+
+    /* p.toggle_p.value = &track->fir_filter_active; */
+    /* p.toggle_p.target = NULL; */
+    /* p.toggle_p.action = NULL; */
+    /* page_add_el(page, EL_TOGGLE, p, "track_settings_filter_toggle", "toggle_filter_on"); */
+
+    tab_view_activate(tv);
+    tl->needs_redraw = true;
+
+
     /* TempoSegment *s = tempo_track_get_segment_at_pos(tt, tl->play_pos_sframes); */
     /* TODO: CREATE TABVIEW */
     

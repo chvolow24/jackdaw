@@ -1627,6 +1627,7 @@ Track *timeline_add_track(Timeline *tl)
     track->colorbar = &(layout_get_child_by_name_recursive(track->inner_layout, "colorbar")->rect);
     
     track_reset_full(track);
+    if (tl->layout_selector < 0) tl->layout_selector = 0;
     timeline_rectify_track_indices(tl);
 
     return track;
@@ -2260,6 +2261,7 @@ static void timeline_reinsert_track(Track *track)
     tl->tracks[track->tl_rank] = track;
     tl->num_tracks++;
     layout_insert_child_at(track->layout, tl->track_area, track->layout->index);
+    tl->layout_selector = track->layout->index;
     timeline_rectify_track_indices(tl);
     timeline_rectify_track_area(tl);
 }

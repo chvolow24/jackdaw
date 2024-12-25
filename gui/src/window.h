@@ -51,7 +51,7 @@ typedef struct window {
     uint8_t num_modals;
 
     Page *active_page;
-    TabView *active_tab_view;
+    TabView *active_tabview;
 
     bool screenrecording;
 

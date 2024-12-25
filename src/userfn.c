@@ -21,6 +21,11 @@
 #define ACTIVE_TL (proj->timelines[proj->active_tl_index])
 /* #define ACTIVE_TRACK(timeline) (tl->tracks[tl->track_selector]) */
 #define TRACK_AUTO_SELECTED(track) (track->num_automations != 0 && track->selected_automation != -1)
+#define TABVIEW_BLOCK(str)	    \
+    if (main_win->active_tabview) { \
+	status_set_errstr("Cannot " #str " when tabview active"); \
+	return; \
+    }
 
 extern Window *main_win;
 extern Project *proj;
@@ -41,7 +46,6 @@ extern SDL_Color color_global_quickref_button_blue;
 /* extern SDL_Color color_global_white; */
 
 #define NO_TRACK_ERRSTR "No track. Add new with C-t"
-
 
 int quickref_button_press_callback(void *self_v, void *target)
 {
@@ -1102,10 +1106,15 @@ void user_tl_track_selector_up(void *nullarg)
 	    }
 	}
 	TabView *tv;
-	if ((tv = main_win->active_tab_view)) {
+	if ((tv = main_win->active_tabview)) {
 	    if (strcmp(tv->title, "Track Settings") == 0) {
 		settings_track_tabview_set_track(tv, selected);
 	    }
+	}
+    } else {
+	TabView *tv;
+	if ((tv = main_win->active_tabview)) {
+	    tempo_track_populate_settings_tabview(timeline_selected_tempo_track(tl), tv);
 	}
     }
 
@@ -1170,12 +1179,18 @@ void user_tl_track_selector_down(void *nullarg)
 	    timeline_push_grabbed_clip_move_event(tl);
 	}
 	TabView *tv;
-	if ((tv = main_win->active_tab_view)) {
+	if ((tv = main_win->active_tabview)) {
 	    if (strcmp(tv->title, "Track Settings") == 0) {
 		settings_track_tabview_set_track(tv, selected);
 	    }
 	}
+    } else {
+	TabView *tv;
+	if ((tv = main_win->active_tabview)) {
+	    tempo_track_populate_settings_tabview(timeline_selected_tempo_track(tl), tv);
+	}
     }
+
 
 
 button_animation_and_exit:
@@ -1238,7 +1253,6 @@ button_animation_and_exit:
 
 void user_tl_move_track_up(void *nullarg)
 {
-    /* move_track(-1); */
     timeline_move_track_or_automation(ACTIVE_TL, -1);
 }
 
@@ -1307,13 +1321,9 @@ static NEW_EVENT_FN(dispose_track_delete, "")
 
 void user_tl_track_delete(void *nullarg)
 {
+    TABVIEW_BLOCK(delete track);
     if (proj->recording) transport_stop_recording();
     Timeline *tl = ACTIVE_TL;
-    if (tl->num_tracks == 0) {
-	status_set_errstr("Error: no track to delete");
-	return;
-    }
-
     Track *track = timeline_selected_track(tl);
     if (track) {
 	if (TRACK_AUTO_SELECTED(track)) {
@@ -1400,8 +1410,8 @@ void user_tl_track_pan_right(void *nullarg)
 void user_tl_track_open_settings(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    if (main_win->active_tab_view) {
-	tab_view_close(main_win->active_tab_view);
+    if (main_win->active_tabview) {
+	tab_view_close(main_win->active_tabview);
 	tl->needs_redraw = true;
 	return;
     }
@@ -1417,6 +1427,7 @@ void user_tl_track_open_settings(void *nullarg)
 
 void user_tl_track_add_automation(void *nullarg)
 {
+    TABVIEW_BLOCK(add automation);
     Timeline *tl = ACTIVE_TL;
     Track *track = timeline_selected_track(tl);
     if (track) {
@@ -2285,7 +2296,7 @@ void user_text_edit_select_all(void *nullarg)
 
 void user_tabview_next_escape(void *nullarg)
 {
-    TabView *tv = main_win->active_tab_view;
+    TabView *tv = main_win->active_tabview;
     Page *page = NULL;
     if (tv) {
 	page = tv->tabs[tv->current_tab];
@@ -2299,7 +2310,7 @@ void user_tabview_next_escape(void *nullarg)
 
 void user_tabview_previous_escape(void *nullarg)
 {
-    TabView *tv = main_win->active_tab_view;
+    TabView *tv = main_win->active_tabview;
     Page *page = NULL;
     if (tv) {
 	page = tv->tabs[tv->current_tab];
@@ -2313,7 +2324,7 @@ void user_tabview_previous_escape(void *nullarg)
 
 void user_tabview_enter(void *nullarg)
 {
-    TabView *tv = main_win->active_tab_view;
+    TabView *tv = main_win->active_tabview;
     Page *page = NULL;
     if (tv) {
 	page = tv->tabs[tv->current_tab];
@@ -2327,7 +2338,7 @@ void user_tabview_enter(void *nullarg)
 
 void user_tabview_left(void *nullarg)
 {
-    TabView *tv = main_win->active_tab_view;
+    TabView *tv = main_win->active_tabview;
     Page *page = NULL;
     if (tv) {
 	page = tv->tabs[tv->current_tab];
@@ -2341,7 +2352,7 @@ void user_tabview_left(void *nullarg)
 
 void user_tabview_right(void *nullarg)
 {
-    TabView *tv = main_win->active_tab_view;
+    TabView *tv = main_win->active_tabview;
     Page *page = NULL;
     if (tv) {
 	page = tv->tabs[tv->current_tab];
@@ -2355,7 +2366,7 @@ void user_tabview_right(void *nullarg)
 
 void user_tabview_next_tab(void *nullarg)
 {
-     TabView *tv = main_win->active_tab_view;
+     TabView *tv = main_win->active_tabview;
      if (tv) {
 	 tab_view_next_tab(tv);
      }
@@ -2364,7 +2375,7 @@ void user_tabview_next_tab(void *nullarg)
 
 void user_tabview_previous_tab(void *nullarg)
 {
-     TabView *tv = main_win->active_tab_view;
+     TabView *tv = main_win->active_tabview;
      if (tv) {
 	 tab_view_previous_tab(tv);
      }
@@ -2373,8 +2384,8 @@ void user_tabview_previous_tab(void *nullarg)
 void user_tabview_escape(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    if (main_win->active_tab_view) {
-	tab_view_close(main_win->active_tab_view);
+    if (main_win->active_tabview) {
+	tab_view_close(main_win->active_tabview);
 	tl->needs_redraw = true;
 	return;
     }

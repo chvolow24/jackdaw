@@ -431,10 +431,10 @@ static int timeline_draw(Timeline *tl)
     }
     for (int i=0; i<tl->num_tempo_tracks; i++) {
 	tempo_track_draw(tl->tempo_tracks[i]);
-	if (i==tl->tempo_track_selector) {
-	    SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255);
-	    SDL_RenderDrawRect(main_win->rend, &tl->tempo_tracks[i]->layout->rect);
-	}
+	/* if (i==tl->tempo_track_selector) { */
+	/*     SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255); */
+	/*     SDL_RenderDrawRect(main_win->rend, &tl->tempo_tracks[i]->layout->rect); */
+	/* } */
     }
 
     Layout *selected_layout = timeline_selected_layout(tl);

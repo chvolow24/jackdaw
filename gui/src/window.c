@@ -417,8 +417,8 @@ void window_push_modal(Window *win, Modal *modal)
     tl->needs_redraw = true;
     #endif
     
-    if (win->active_tab_view) {
-	tab_view_close(win->active_tab_view);
+    if (win->active_tabview) {
+	tab_view_close(win->active_tabview);
     }
     if (win->active_page) {
 	page_close(win->active_page);

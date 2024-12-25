@@ -1,0 +1,72 @@
+<Layout name="tempo_track_settings" type="NORMAL">
+    <x>REL 0</x>
+    <y>REL 0</y>
+    <w>SCALE 1.0</w>
+    <h>SCALE 1.0</h>
+    <index>0</index>
+    <children>
+        <Layout name="padded" type="NORMAL">
+            <x>REL 22</x>
+            <y>REL 22</y>
+            <w>PAD 22</w>
+            <h>PAD 22</h>
+            <index>0</index>
+            <children>
+                <Layout name="info" type="NORMAL">
+                    <x>REL 0</x>
+                    <y>REL 0</y>
+                    <w>REL 556</w>
+                    <h>REL 46</h>
+                    <index>0</index>
+                    <children>
+                    </children>
+                </Layout>
+                <Layout name="segment_selector" type="NORMAL">
+                    <x>REL 0</x>
+                    <y>REL 46</y>
+                    <w>REL 556</w>
+                    <h>REL 50</h>
+                    <index>1</index>
+                    <children>
+                    </children>
+                </Layout>
+                <Layout name="segment_info" type="NORMAL">
+                    <x>REL 0</x>
+                    <y>REL 96</y>
+                    <w>REL 556</w>
+                    <h>REL 200</h>
+                    <index>2</index>
+                    <children>
+                        <Layout name="time_signature_area" type="NORMAL">
+                            <x>REL 0</x>
+                            <y>REL 0</y>
+                            <w>REL 267</w>
+                            <h>REL 200</h>
+                            <index>0</index>
+                            <children>
+                                <Layout name="num_beats" type="NORMAL">
+                                    <x>REL 0</x>
+                                    <y>REL 0</y>
+                                    <w>REL 267</w>
+                                    <h>REL 38</h>
+                                    <index>0</index>
+                                    <children>
+                                    </children>
+                                </Layout>
+                                <Layout name="beat_subdivs_area" type="NORMAL">
+                                    <x>REL 23</x>
+                                    <y>REL 38</y>
+                                    <w>REL 244</w>
+                                    <h>REL 162</h>
+                                    <index>1</index>
+                                    <children>
+                                    </children>
+                                </Layout>
+                            </children>
+                        </Layout>
+                    </children>
+                </Layout>
+            </children>
+        </Layout>
+    </children>
+</Layout>

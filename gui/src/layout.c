@@ -817,15 +817,17 @@ int set_rect_wh(Layout *lt)
 	break;
     case COMPLEMENT: {
 	if (!lt->parent) break;
-	Layout *last_sibling = lt->parent->children[lt->index - 1];
-	while (last_sibling && last_sibling->w.type == COMPLEMENT && last_sibling->index > 0) {
-	    last_sibling = last_sibling->parent->children[last_sibling->index - 1];
+	if (lt->index > 0) {
+	    Layout *last_sibling = lt->parent->children[lt->index - 1];
+	    while (last_sibling && last_sibling->w.type == COMPLEMENT && last_sibling->index > 0) {
+		last_sibling = last_sibling->parent->children[last_sibling->index - 1];
+	    }
+	    if (!last_sibling) {
+		fprintf(stderr, "Error: layout %s has type dim COMPLEMENT but no last sibling\n", lt->name);
+		return 0;
+	    }
+	    lt->rect.w = lt->parent->rect.w - last_sibling->rect.w;
 	}
-	if (!last_sibling) {
-	    fprintf(stderr, "Error: layout %s has type dim COMPLEMENT but no last sibling\n", lt->name);
-	    return 0;
-	}
-	lt->rect.w = lt->parent->rect.w - last_sibling->rect.w;
 	break;
     }
     case STACK:

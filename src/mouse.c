@@ -289,8 +289,8 @@ bool mouse_triage_click_tabview()
 {
     TabView *tv;
     if ((tv = main_win->active_tabview)) {
-	if (!tab_view_mouse_click(tv)) {
-	    tab_view_close(tv);
+	if (!tabview_mouse_click(tv)) {
+	    tabview_close(tv);
 	} else {
 	    return true;
 	}
@@ -305,7 +305,7 @@ bool mouse_triage_motion_tabview()
 	return true;
     }
     if ((tv = main_win->active_tabview)) {
-	return tab_view_mouse_motion(tv);
+	return tabview_mouse_motion(tv);
     }
     return false;
 }

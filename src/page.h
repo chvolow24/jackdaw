@@ -192,10 +192,10 @@ typedef union page_el_params {
 
 /* TabView methods */
 
-TabView *tab_view_create(const char *title, Layout *parent_lt, Window *win);
-void tab_view_destroy(TabView *tv);
-void tab_view_activate(TabView *tv);
-void tab_view_close(TabView *tv);
+TabView *tabview_create(const char *title, Layout *parent_lt, Window *win);
+void tabview_destroy(TabView *tv);
+void tabview_activate(TabView *tv);
+void tabview_close(TabView *tv);
 Page *tab_view_add_page(
     TabView *tv,
     const char *page_title,
@@ -204,10 +204,10 @@ Page *tab_view_add_page(
     SDL_Color *text_color,
     Window *win);
 
-bool tab_view_mouse_click(TabView *tv);
-bool tab_view_mouse_motion(TabView *tv);
-void tab_view_next_tab(TabView *tv);
-void tab_view_previous_tab(TabView *tv);
+bool tabview_mouse_click(TabView *tv);
+bool tabview_mouse_motion(TabView *tv);
+void tabview_next_tab(TabView *tv);
+void tabview_previous_tab(TabView *tv);
 
 /* Page methods */
 
@@ -250,7 +250,7 @@ void tab_view_reset(TabView *tv);
 /* Draw functions */
 
 void page_draw(Page *page);
-void tab_view_draw(TabView *tv);
+void tabview_draw(TabView *tv);
 
 void page_activate(Page *page);
 void page_close(Page *page);

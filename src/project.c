@@ -58,11 +58,9 @@
 #include "waveform.h"
 #include "window.h"
 
-
 #define DEFAULT_SFPP 600
 #define CR_RECT_V_PAD (4 * main_win->dpi_scale_factor)
 #define NUM_TRACK_COLORS 7
-
 
 #define CLIPREF_NAMELABEL_H 20
 #define CLIPREF_NAMELABEL_H_PAD 8
@@ -82,7 +80,6 @@
 
 #define PLAYSPEED_ADJUST_SCALAR_LARGE 0.1f
 #define PLAYSPEED_ADJUST_SCALAR_SMALL 0.015f
-
 
 extern Window *main_win;
 extern Project *proj;

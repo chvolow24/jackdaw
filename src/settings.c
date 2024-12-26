@@ -490,7 +490,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 TabView *settings_track_tabview_create(Track *track)
 {
 
-    TabView *tv = tab_view_create("Track Settings", proj->layout, main_win);
+    TabView *tv = tabview_create("Track Settings", proj->layout, main_win);
 
     settings_track_tabview_set_track(tv, track);
     

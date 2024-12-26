@@ -685,7 +685,7 @@ void timeline_tempo_track_set_tempo_at_cursor(Timeline *tl)
     Modal *mod = modal_create(mod_lt);
     static char tempo_str[TEMPO_STRLEN];
     snprintf(tempo_str, TEMPO_STRLEN, "%d", s->cfg.bpm);
-    modal_add_header(mod, "Set tempo:", &color_global_light_grey, 5);
+    modal_add_header(mod, "Set tempo:", &color_global_light_grey, 4);
     ModalEl *el = modal_add_textentry(mod, tempo_str, txt_integer_validation, NULL);
     TextEntry *te = (TextEntry *)el->obj;
     te->target = (void *)mod;
@@ -695,6 +695,10 @@ void timeline_tempo_track_set_tempo_at_cursor(Timeline *tl)
     mod->stashed_obj = (void *)s;
     mod->submit_form = set_tempo_submit_form;
     window_push_modal(main_win, mod);
+    mod->layout->w.value = 250;
+    
+    layout_reset(mod->layout);
+
     modal_reset(mod);
     modal_move_onto(mod);
     tl->needs_redraw = true;
@@ -794,7 +798,9 @@ void tempo_track_populate_settings_tabview(TempoTrack *tt, TabView *tv)
     el = page_add_el(page, EL_TEXTENTRY, p, "tempo_segment_num_beats_value", "num_beats_value");
     layout_center_agnostic(el->layout, false, true);
     textentry_reset(el->component);
-    ((TextEntry *)el->component)->tb->text->max_len = 2;
+    /* TextEntry *num_beats_te = el->component; */
+    /* textentry_reset(num_beats_te); */
+    /* (num_beats_te)->tb->text->max_len = 2; */
 
     Layout *subdiv_area = layout_get_child_by_name_recursive(page->layout, "subdiv_values_col");
     for (int i=0; i<s->cfg.num_beats; i++) {
@@ -845,6 +851,7 @@ void tempo_track_populate_settings_tabview(TempoTrack *tt, TabView *tv)
 	/* layout_center_agnostic(el->layout, false, true); */
 
     }
+    /* textentry_edit(num_beats_te); */
     /* textbox_set_background_color(tb, &color_global_light_grey); */
     /* textbox_set_text_color(tb, &color_global_black); */
     /* textbox_size_to_fit(tb, 20, 2); */
@@ -860,7 +867,7 @@ void timeline_tempo_track_edit(Timeline *tl)
     TempoTrack *tt = timeline_selected_tempo_track(tl);
     if (!tt) return;
 
-    TabView *tv = tab_view_create("Track Settings", proj->layout, main_win);
+    TabView *tv = tabview_create("Track Settings", proj->layout, main_win);
     tempo_track_populate_settings_tabview(tt, tv);
     /* p.textbox_p.font = main_win->mono_bold_font; */
     /* p.textbox_p.text_size = LABEL_STD_FONT_SIZE; */
@@ -898,7 +905,7 @@ void timeline_tempo_track_edit(Timeline *tl)
     /* p.toggle_p.action = NULL; */
     /* page_add_el(page, EL_TOGGLE, p, "track_settings_filter_toggle", "toggle_filter_on"); */
 
-    tab_view_activate(tv);
+    tabview_activate(tv);
     tl->needs_redraw = true;
 
 

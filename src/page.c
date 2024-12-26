@@ -51,7 +51,7 @@ extern SDL_Color color_global_black;
 extern Window *main_win;
 extern Project *proj;
 
-TabView *tab_view_create(const char *title, Layout *parent_lt, Window *win)
+TabView *tabview_create(const char *title, Layout *parent_lt, Window *win)
 {
     TabView *tv = calloc(1, sizeof(Page));
     tv->title = title;
@@ -132,7 +132,7 @@ Page *tab_view_add_page(
 }
 
 
-void tab_view_destroy(TabView *tv)
+void tabview_destroy(TabView *tv)
 {
     for (uint8_t i=0; i<tv->num_tabs; i++) {
 	page_destroy(tv->tabs[i]);
@@ -434,6 +434,9 @@ void page_reset(Page *page)
     for (uint8_t i=0; i<page->num_elements; i++) {
 	page_el_reset(page->elements[i]);
     }
+    /* if (page->selectable_els[page->selected_i]->type == EL_TEXTENTRY) { */
+    /* 	textentry_edit(page->selectable_els[page->selected_i]); */
+    /* } */
 }
 
 static bool page_element_mouse_motion(PageEl *el, Window *win)
@@ -537,7 +540,7 @@ void tab_view_reset(TabView *tv)
     layout_reset(tv->layout);
 }
 
-bool tab_view_mouse_click(TabView *tv)
+bool tabview_mouse_click(TabView *tv)
 {
     if (SDL_PointInRect(&tv->win->mousep, &tv->layout->children[0]->rect)) {
 	for (uint8_t i=0; i<tv->num_tabs; i++) {
@@ -555,7 +558,7 @@ bool tab_view_mouse_click(TabView *tv)
     return false;	    
 }
 
-bool tab_view_mouse_motion(TabView *tv)
+bool tabview_mouse_motion(TabView *tv)
 {
     /* if (SDL_PointInRect(&tv->win->mousep, &tv->layout->children[1]->rect)) { */
     if (SDL_PointInRect(&tv->win->mousep, &tv->layout->children[1]->rect)) {
@@ -641,7 +644,7 @@ void page_draw(Page *page)
     /* } */
 }
 
-static inline void tab_view_draw_inner(TabView *tv, uint8_t i)
+static inline void tabview_draw_inner(TabView *tv, uint8_t i)
 {
     Page *page = tv->tabs[i];
     Textbox *tb = tv->labels[i];
@@ -658,17 +661,17 @@ static inline void tab_view_draw_inner(TabView *tv, uint8_t i)
     SDL_RenderDrawLine(tv->win->rend, left_x, y, right_x - 1, y);
 }
 
-void tab_view_draw(TabView *tv)
+void tabview_draw(TabView *tv)
 {
     for (uint8_t i=tv->num_tabs - 1; i>tv->current_tab; i--) {
-        tab_view_draw_inner(tv, i);
+        tabview_draw_inner(tv, i);
 
     }
     for (uint8_t i=0; i<=tv->current_tab; i++) {
 	if (i == tv->current_tab) {
 	    page_draw(tv->tabs[i]);
 	}
-	tab_view_draw_inner(tv, i);
+	tabview_draw_inner(tv, i);
 
     }
 
@@ -691,7 +694,7 @@ void page_activate(Page *page)
     win->active_page = page;
 }
 
-void tab_view_activate(TabView *tv)
+void tabview_activate(TabView *tv)
 {
     Window *win = tv->win;
     if (win->num_modals  > 0) {
@@ -701,8 +704,9 @@ void tab_view_activate(TabView *tv)
 	window_pop_menu(win);
     }
     if (win->active_tabview) {
-	tab_view_destroy(win->active_tabview);
+	tabview_destroy(win->active_tabview);
     }
+    
     win->active_tabview = tv;
     window_push_mode(tv->win, TABVIEW);
 }
@@ -712,24 +716,24 @@ void page_close(Page *page)
     page->win->active_page = NULL;
     page_destroy(page);
 }
-void tab_view_close(TabView *tv)
+void tabview_close(TabView *tv)
 {
     while (tv->win->num_menus > 0) {
 	window_pop_menu(tv->win);
     }
     window_pop_mode(tv->win);
     tv->win->active_tabview = NULL;
-    tab_view_destroy(tv);
+    tabview_destroy(tv);
 }
 
-void tab_view_next_tab(TabView *tv)
+void tabview_next_tab(TabView *tv)
 {
     if (tv->current_tab < tv->num_tabs - 1)
 	tv->current_tab++;
     else tv->current_tab = 0;
 }
 
-void tab_view_previous_tab(TabView *tv)
+void tabview_previous_tab(TabView *tv)
 {
     if (tv->current_tab > 0)
 	tv->current_tab--;

@@ -418,7 +418,7 @@ void window_push_modal(Window *win, Modal *modal)
     #endif
     
     if (win->active_tabview) {
-	tab_view_close(win->active_tabview);
+	tabview_close(win->active_tabview);
     }
     if (win->active_page) {
 	page_close(win->active_page);

@@ -1412,14 +1412,14 @@ void user_tl_track_open_settings(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
     if (main_win->active_tabview) {
-	tab_view_close(main_win->active_tabview);
+	tabview_close(main_win->active_tabview);
 	tl->needs_redraw = true;
 	return;
     }
     Track *track = timeline_selected_track(tl);
     if (track) {
 	TabView *tv = settings_track_tabview_create(track);
-	tab_view_activate(tv);
+	tabview_activate(tv);
 	tl->needs_redraw = true;
     } else {
 	timeline_tempo_track_edit(tl);
@@ -2253,7 +2253,9 @@ void user_text_edit_escape(void *nullarg)
     timeline_reset(tl, false);
 
     /* In modals / tabview, push a new tab keypress to move up or down through fields */
+    /* fprintf(stderr, "ESCAPE TEXT EDIT!! TOP MODE: %d\n", TOP_MODE); */
     if (TOP_MODE == MODAL || TOP_MODE == TABVIEW) {
+	/* fprintf(stderr, "PUSH\n"); */
 	SDL_Event e;
 	e.type = SDL_KEYDOWN;
 	e.key.keysym.scancode = SDL_SCANCODE_TAB;
@@ -2372,7 +2374,7 @@ void user_tabview_next_tab(void *nullarg)
 {
      TabView *tv = main_win->active_tabview;
      if (tv) {
-	 tab_view_next_tab(tv);
+	 tabview_next_tab(tv);
      }
 }
 
@@ -2381,7 +2383,7 @@ void user_tabview_previous_tab(void *nullarg)
 {
      TabView *tv = main_win->active_tabview;
      if (tv) {
-	 tab_view_previous_tab(tv);
+	 tabview_previous_tab(tv);
      }
 }
 
@@ -2389,7 +2391,7 @@ void user_tabview_escape(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
     if (main_win->active_tabview) {
-	tab_view_close(main_win->active_tabview);
+	tabview_close(main_win->active_tabview);
 	tl->needs_redraw = true;
 	return;
     }

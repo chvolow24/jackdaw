@@ -608,7 +608,7 @@ void project_draw()
 	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(grey_mask));
 	    SDL_RenderFillRect(main_win->rend, &proj->layout->rect);
 	}
-	tab_view_draw(main_win->active_tabview);
+	tabview_draw(main_win->active_tabview);
     }
 
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));

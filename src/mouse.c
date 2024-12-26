@@ -288,7 +288,7 @@ bool mouse_triage_click_page()
 bool mouse_triage_click_tabview()
 {
     TabView *tv;
-    if ((tv = main_win->active_tab_view)) {
+    if ((tv = main_win->active_tabview)) {
 	if (!tab_view_mouse_click(tv)) {
 	    tab_view_close(tv);
 	} else {
@@ -304,7 +304,7 @@ bool mouse_triage_motion_tabview()
 	draggable_mouse_motion(&proj->dragged_component, main_win);
 	return true;
     }
-    if ((tv = main_win->active_tab_view)) {
+    if ((tv = main_win->active_tabview)) {
 	return tab_view_mouse_motion(tv);
     }
     return false;

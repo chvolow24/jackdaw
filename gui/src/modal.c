@@ -13,9 +13,6 @@
 #define MODAL_FONTSIZE_H5 14
 #define MODAL_P_FONTSIZE 12
 
-#define TEXTENTRY_V_PAD 6
-#define TEXTENTRY_H_PAD 4
-
 #define MODAL_STD_CORNER_RAD STD_CORNER_RAD
 
 /* #define modal_color_background (menu_std_clr_bckgrnd) */
@@ -54,8 +51,6 @@ SDL_Color modal_color_background = (SDL_Color){30, 80, 80, 255};
 SDL_Color modal_color_border = (SDL_Color){200, 200, 200, 255};
 SDL_Color modal_color_border_outer = (SDL_Color){10, 10, 10, 255};
 SDL_Color modal_color_border_selected = (SDL_Color) {10, 10, 155, 255};
-SDL_Color modal_textentry_background = (SDL_Color) {200, 200, 200, 255};
-SDL_Color modal_textentry_text_color = (SDL_Color) {10, 30, 100, 255};
 SDL_Color modal_button_color = (SDL_Color) {200, 200, 200, 255};
 
 extern SDL_Color color_global_red;
@@ -97,11 +92,12 @@ Modal *modal_create(Layout *lt)
     return modal;
 }
 
-static void textentry_destroy(TextEntry *te)
-{
-    textbox_destroy(te->tb);
-    free(te);
-}
+/* static void textentry_destroy(TextEntry *te) */
+/* { */
+/*     textbox_destroy(te->tb); */
+/*     free(te); */
+/* } */
+
 static void modal_el_destroy(ModalEl *el)
 {
     if (el->obj) {
@@ -281,15 +277,23 @@ ModalEl *modal_add_textentry(Modal *modal, char *init_val, int (*validation)(Tex
     /* layout_reset(el->layout); */
     el->type = MODAL_EL_TEXTENTRY;
 
-    TextEntry *te = calloc(1, sizeof(TextEntry));
-    te->tb = textbox_create_from_str(init_val, el->layout, main_win->bold_font, 12, main_win);
-    textbox_set_text_color(te->tb, &modal_textentry_text_color);
-    textbox_set_background_color(te->tb, &modal_textentry_background);
-    textbox_set_align(te->tb, CENTER_LEFT);
-    textbox_size_to_fit(te->tb, TEXTENTRY_H_PAD, TEXTENTRY_V_PAD);
-    textbox_reset_full(te->tb);
-    te->tb->text->validation = validation;
-    te->tb->text->completion = completion;
+    TextEntry *te = textentry_create(
+	el->layout,
+	init_val,
+	main_win->bold_font,
+	12,
+        validation,
+	completion,
+	main_win);
+    /* TextEntry *te = calloc(1, sizeof(TextEntry)); */
+    /* te->tb = textbox_create_from_str(init_val, el->layout, main_win->bold_font, 12, main_win); */
+    /* textbox_set_text_color(te->tb, &modal_textentry_text_color); */
+    /* textbox_set_background_color(te->tb, &modal_textentry_background); */
+    /* textbox_set_align(te->tb, CENTER_LEFT); */
+    /* textbox_size_to_fit(te->tb, TEXTENTRY_H_PAD, TEXTENTRY_V_PAD); */
+    /* textbox_reset_full(te->tb); */
+    /* te->tb->text->validation = validation; */
+    /* te->tb->text->completion = completion; */
     el->obj = (void *)te;
     return el; 
 }

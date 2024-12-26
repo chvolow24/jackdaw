@@ -603,12 +603,12 @@ void project_draw()
 	control_bar_draw(proj);
 	textbox_draw(proj->timeline_label);
     }
-    if (main_win->active_tab_view) {
+    if (main_win->active_tabview) {
 	if (timeline_redrawn) {
 	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(grey_mask));
 	    SDL_RenderFillRect(main_win->rend, &proj->layout->rect);
 	}
-	tab_view_draw(main_win->active_tab_view);
+	tab_view_draw(main_win->active_tabview);
     }
 
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));

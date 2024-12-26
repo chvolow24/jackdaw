@@ -113,6 +113,12 @@ typedef struct tempo_track {
     SDL_Rect *right_colorbar_rect;
 
     bool muted;
+
+
+    /* Settings GUI objs */
+    char num_beats_str[3];
+    char subdiv_len_strs[MAX_BEATS_PER_BAR][2];
+    
 } TempoTrack;
 
 

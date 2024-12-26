@@ -118,11 +118,12 @@ struct textarea_params {
 };
 
 struct textentry_params {
-    char *init_val;
+    char *value_handle;
     Font *font;
     uint8_t text_size;
     int (*validation)(Text *txt, char input);
-    ComponentFn completion;
+    int (*completion)(Text *txt, void *target);
+    void *completion_target;
 };
 
 struct freqplot_params {

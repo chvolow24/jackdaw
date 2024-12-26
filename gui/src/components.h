@@ -50,9 +50,7 @@ typedef struct toggle {
 typedef struct text_entry TextEntry;
 typedef struct text_entry {
     Textbox *tb;
-    Textbox *label;
-    /* void (*validation)(TextEntry *self, void *xarg); */
-    /* void (*completion)(TextEntry *self, void *xarg); */
+    /* Textbox *label; */
     ComponentFn action;
     void *target;
 } TextEntry;
@@ -210,6 +208,23 @@ void button_draw(Button *button);
 void symbol_button_draw(SymbolButton *sbutton);
 void symbol_button_destroy(SymbolButton *sbutton);
 bool symbol_button_click(SymbolButton *sbutton, Window *win);
+
+/* Textentry */
+
+TextEntry *textentry_create(
+    Layout *lt,
+    char *value_handle,
+    Font *font,
+    uint8_t text_size,
+    int (*validation)(Text *txt, char input),
+    int (*completion)(Text *txt, void *target),
+    Window *win);
+
+void textentry_destroy(TextEntry *te);
+void textentry_draw(TextEntry *te);
+void textentry_reset(TextEntry *te);
+void textentry_edit(TextEntry *te);
+void textentry_complete_edit(TextEntry *te);
 
 /* Radio button */
 RadioButton *radio_button_create(

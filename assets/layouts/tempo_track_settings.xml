@@ -1,15 +1,15 @@
 <Layout name="tempo_track_settings" type="NORMAL">
     <x>REL 0</x>
     <y>REL 0</y>
-    <w>SCALE 1.0</w>
-    <h>SCALE 1.0</h>
+    <w>SCALE 1.000000</w>
+    <h>SCALE 1.000000</h>
     <index>0</index>
     <children>
         <Layout name="padded" type="NORMAL">
-            <x>REL 22</x>
+            <x>REL 60</x>
             <y>REL 22</y>
-            <w>PAD 22</w>
-            <h>PAD 22</h>
+            <w>PAD 0</w>
+            <h>PAD 0</h>
             <index>0</index>
             <children>
                 <Layout name="info" type="NORMAL">
@@ -44,22 +44,58 @@
                             <h>REL 200</h>
                             <index>0</index>
                             <children>
-                                <Layout name="num_beats" type="NORMAL">
-                                    <x>REL 0</x>
-                                    <y>REL 0</y>
-                                    <w>REL 267</w>
-                                    <h>REL 38</h>
-                                    <index>0</index>
-                                    <children>
-                                    </children>
-                                </Layout>
                                 <Layout name="beat_subdivs_area" type="NORMAL">
                                     <x>REL 23</x>
                                     <y>REL 38</y>
                                     <w>REL 244</w>
                                     <h>REL 162</h>
+                                    <index>0</index>
+                                    <children>
+                                        <Layout name="subdiv_values_col" type="NORMAL">
+                                            <x>REL 0</x>
+                                            <y>REL 0</y>
+                                            <w>REL 186</w>
+                                            <h>SCALE 1.000000</h>
+                                            <index>0</index>
+                                            <children>
+                                            </children>
+                                        </Layout>
+                                        <Layout name="beat_subdivs_area_child2" type="NORMAL">
+                                            <x>STACK 0</x>
+                                            <y>REL 0</y>
+                                            <w>COMPLEMENT 1</w>
+                                            <h>SCALE 1.000000</h>
+                                            <index>1</index>
+                                            <children>
+                                            </children>
+                                        </Layout>
+                                    </children>
+                                </Layout>
+                                <Layout name="num_beats" type="NORMAL">
+                                    <x>REL 0</x>
+                                    <y>REL 0</y>
+                                    <w>REL 267</w>
+                                    <h>REL 38</h>
                                     <index>1</index>
                                     <children>
+                                        <Layout name="num_beats_label" type="NORMAL">
+                                            <x>REL 0</x>
+                                            <y>REL 0</y>
+                                            <w>REL 100</w>
+                                            <h>REL 38</h>
+                                            <index>0</index>
+                                            <children>
+                                            </children>
+                                        </Layout>
+                                        <Layout name="num_beats_value" type="NORMAL">
+                                            <x>STACK 0</x>
+                                            <y>REL 0</y>
+                                            <w>REL 100</w>
+                                            <h>REL 38</h>
+                                            <index>1</index>
+                                            <children>
+                                            </children>
+                                        </Layout>
                                     </children>
                                 </Layout>
                             </children>

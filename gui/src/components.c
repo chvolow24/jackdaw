@@ -1,4 +1,3 @@
-#include "SDL_render.h"
 #include "color.h"
 #include "components.h"
 #include "geometry.h"
@@ -20,6 +19,10 @@ extern Window *main_win;
 #define SLIDER_NUDGE_PROP 0.01
 #define BUTTON_COLOR_CHANGE_STD_DELAY 400
 
+#define TEXTENTRY_V_PAD 4
+#define TEXTENTRY_H_PAD 8
+
+
 /* SDL_Color fslider_bckgrnd = {60, 60, 60, 255}; */
 /* SDL_Color fslider_bar_container_bckgrnd =  {190, 190, 190, 255}; */
 /* SDL_Color fslider_bar_color = {20, 20, 120, 255}; */
@@ -27,6 +30,10 @@ extern Window *main_win;
 SDL_Color slider_bckgrnd = {60, 60, 60, 255};
 SDL_Color slider_bar_container_bckgrnd =  {40, 40, 40, 248};
 SDL_Color slider_bar_color = {12, 107, 249, 250};
+
+SDL_Color textentry_background = (SDL_Color) {200, 200, 200, 255};
+SDL_Color textentry_text_color = (SDL_Color) {0, 0, 0, 255};
+
 
 SDL_Color tgl_bckgrnd = {110, 110, 110, 255};
 
@@ -411,6 +418,59 @@ void button_press_color_change(
 {
     textbox_set_background_color(button->tb, temp_color);
     textbox_schedule_color_change(button->tb, BUTTON_COLOR_CHANGE_STD_DELAY, return_color, false, callback, callback_target);
+}
+
+
+TextEntry *textentry_create(
+    Layout *lt,
+    char *value_handle,
+    Font *font,
+    uint8_t text_size,
+    int (*validation)(Text *txt, char input),
+    int (*completion)(Text *txt, void *target),
+    Window *win) {
+
+
+    TextEntry *te = calloc(1, sizeof(TextEntry));
+    te->tb = textbox_create_from_str(value_handle, lt, font, text_size, win);
+    textbox_set_text_color(te->tb, &textentry_text_color);
+    textbox_set_background_color(te->tb, &textentry_background);
+    textbox_set_border(te->tb, &color_global_black, 1);
+    textbox_set_align(te->tb, CENTER_LEFT);
+    textbox_size_to_fit_v(te->tb, TEXTENTRY_V_PAD);
+    textbox_set_pad(te->tb, TEXTENTRY_H_PAD, TEXTENTRY_V_PAD);
+    /* textbox_size_to_fit(te->tb, TEXTENTRY_H_PAD, TEXTENTRY_V_PAD); */
+    textbox_reset_full(te->tb);
+    te->tb->text->validation = validation;
+    te->tb->text->completion = completion;
+    return te;
+}
+
+void textentry_destroy(TextEntry *te)
+{
+    textbox_destroy(te->tb);
+    free(te);
+}
+
+void textentry_draw(TextEntry *te)
+{
+    textbox_draw(te->tb);    
+}
+
+void textentry_reset(TextEntry *te)
+{
+    textbox_reset_full(te->tb);
+}
+
+extern void (*project_draw)(void);
+void textentry_edit(TextEntry *te)
+{
+    txt_edit(te->tb->text, project_draw);
+}
+
+void textentry_complete_edit(TextEntry *te)
+{
+    txt_stop_editing(te->tb->text);
 }
 
 /* Toggle */

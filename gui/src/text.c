@@ -355,6 +355,7 @@ void txt_edit(Text *txt, void (*draw_fn) (void))
 
 void txt_stop_editing(Text *txt)
 {
+    if (!main_win->txt_editing) return;
     main_win->txt_editing = NULL; /* Set this FIRST to avoid infinite loop in completion */
     txt->show_cursor = false;
     /* txt->truncate = save_truncate; */
@@ -897,7 +898,8 @@ void txt_area_draw(TextArea *txtarea)
 #ifndef LAYOUT_BUILD
 int txt_name_validation(Text *txt, char input)
 {
-    if (strlen(txt->display_value) >= MAX_NAMELENGTH - 1) {
+    fprintf(stderr, "CURSOR? %d->%d\n", txt->cursor_start_pos, txt->cursor_end_pos);
+    if (strlen(txt->display_value) - (txt->cursor_end_pos - txt->cursor_start_pos) >= MAX_NAMELENGTH - 1) {
 	char buf[255];
 	snprintf(buf, 255, "Name cannot exceed %d characters", MAX_NAMELENGTH - 1);
 	status_set_errstr(buf);
@@ -908,7 +910,8 @@ int txt_name_validation(Text *txt, char input)
 
 int txt_integer_validation(Text *txt, char input)
 {
-    if (strlen(txt->display_value) >= txt->max_len - 1) {
+    fprintf(stderr, "CURSOR? %d->%d\n", txt->cursor_start_pos, txt->cursor_end_pos);
+    if (strlen(txt->display_value) - (txt->cursor_end_pos - txt->cursor_start_pos) >= txt->max_len - 1) {
 	char buf[255];
 	snprintf(buf, 255, "Field cannot exceed %d characters", txt->max_len - 1);
 	status_set_errstr(buf);

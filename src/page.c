@@ -183,6 +183,7 @@ static void page_el_destroy(PageEl *el)
 	textbox_destroy((Textbox *)el->component);
 	break;
     case EL_TEXTENTRY:
+	textentry_destroy((TextEntry *)el->component);
 	break;
     case EL_SLIDER:
 	slider_destroy((Slider *)el->component);
@@ -228,6 +229,7 @@ static void page_el_reset(PageEl *el)
 	textbox_reset_full(el->component);
 	break;
     case EL_TEXTENTRY:
+	textentry_reset(el->component);
 	break;
     case EL_SLIDER:
 	slider_reset(el->component);
@@ -293,6 +295,14 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	break;
 	
     case EL_TEXTENTRY:
+	el->component = (void *)textentry_create(
+	    el->layout,
+	    params.textentry_p.value_handle,
+	    params.textentry_p.font,
+	    params.textentry_p.text_size,
+	    params.textentry_p.validation,
+	    params.textentry_p.completion,
+	    page->win);
 	break;
     case EL_SLIDER:
 	el->component = (void *)slider_create(
@@ -563,6 +573,7 @@ static void page_el_draw(PageEl *el)
 	textbox_draw((Textbox *)el->component);
 	break;
     case EL_TEXTENTRY:
+	textentry_draw((TextEntry *)el->component);
 	break;
     case EL_SLIDER:
 	slider_draw((Slider *)el->component);
@@ -723,18 +734,41 @@ void tab_view_previous_tab(TabView *tv)
 }
 
 /* NAVIGATION FUNCTIONS */
+
+static void check_move_off_textentry(Page *page)
+{
+    fprintf(stderr, "MOVEING off\n");
+    PageEl *from = page->selectable_els[page->selected_i];
+    if (from->type == EL_TEXTENTRY) {
+	textentry_complete_edit((TextEntry *)from->component);
+    }
+}
+
+static void check_move_to_textentry(Page *page)
+{
+    fprintf(stderr, "MOVEING TO\n");
+    PageEl *to = page->selectable_els[page->selected_i];
+    if (to->type == EL_TEXTENTRY) {
+	textentry_edit((TextEntry *)to->component);
+    }
+}
+    
 void page_next_escape(Page *page)
 {
+    check_move_off_textentry(page);
     if (page->selected_i < page->num_selectable - 1)
 	page->selected_i++;
     else page->selected_i = 0;
+    check_move_to_textentry(page);
 }
 
 void page_previous_escape(Page *page)
 {
+    check_move_off_textentry(page);
     if (page->selected_i > 0)
 	page->selected_i--;
     else page->selected_i = page->num_selectable - 1;
+    check_move_to_textentry(page);
 }
 
 void page_enter(Page *page)
@@ -746,6 +780,9 @@ void page_enter(Page *page)
 	break;
     case EL_RADIO:
 	radio_cycle((RadioButton *)el->component);
+	break;
+    case EL_TEXTENTRY:
+	break;
     default:
 	break;
     }

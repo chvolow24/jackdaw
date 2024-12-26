@@ -32,6 +32,7 @@
     * Setting tempo and time signature
  *****************************************************************************************************************/
 
+#include "text.h"
 #include "thread_safety.h"
 
 /* #include <stdarg.h> */
@@ -762,12 +763,96 @@ void tempo_track_populate_settings_tabview(TempoTrack *tt, TabView *tv)
 
     PageElParams p;
 
-    p.textbox_p.font = main_win->mono_bold_font;
-    p.textbox_p.text_size = 14;
-    p.textbox_p.set_str = "Tempo track settings";
+    /* p.textbox_p.font = main_win->mono_bold_font; */
+    /* p.textbox_p.text_size = 14; */
+    /* p.textbox_p.set_str = "Tempo track settings"; */
+    /* p.textbox_p.win = page->win; */
+    /* PageEl *el = page_add_el(page, EL_TEXTBOX, p, "tempo_track_settings_title", "info"); */
+    /* textbox_set_align((Textbox *)el->component, CENTER_LEFT); */
+
+
+    TempoSegment *s = tempo_track_get_segment_at_pos(tt, tt->tl->play_pos_sframes);
+    p.textbox_p.font = main_win->bold_font;
+    p.textbox_p.text_size = 12;
+    p.textbox_p.set_str = "Num beats:";
     p.textbox_p.win = page->win;
-    PageEl *el = page_add_el(page, EL_TEXTBOX, p, "tempo_track_settings_title", "info");
-    textbox_set_align((Textbox *)el->component, CENTER_LEFT);
+
+    PageEl *el = page_add_el(page, EL_TEXTBOX, p, "", "num_beats_label");
+    Textbox *tb = (Textbox *)el->component;
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+
+
+    snprintf(tt->num_beats_str, 2, "%d", s->cfg.num_beats);
+    p.textentry_p.font = main_win->bold_font;
+    p.textentry_p.text_size = 14;
+    p.textentry_p.value_handle = tt->num_beats_str;
+    p.textentry_p.validation = txt_integer_validation;
+    p.textentry_p.completion = NULL;
+    /* p.textbox_p.set_str = tt->num_beats_str; */
+    /* p.textbox_p.font = main_win->std_font; */
+    el = page_add_el(page, EL_TEXTENTRY, p, "tempo_segment_num_beats_value", "num_beats_value");
+    layout_center_agnostic(el->layout, false, true);
+    textentry_reset(el->component);
+    ((TextEntry *)el->component)->tb->text->max_len = 2;
+
+    Layout *subdiv_area = layout_get_child_by_name_recursive(page->layout, "subdiv_values_col");
+    for (int i=0; i<s->cfg.num_beats; i++) {
+	snprintf(tt->subdiv_len_strs[i], 2, "%d", s->cfg.beat_subdiv_lens[i]);
+	
+	Layout *child = layout_add_child(subdiv_area);
+	child->y.type = STACK;
+	child->y.value = 8.0;
+	child->h.value = 24.0;
+	child->w.value = 1.0;
+	child->w.type = SCALE;
+	Layout *child_l = layout_add_child(child);
+	/* child_l->h.value = 1.0; */
+	/* child_l->h.type = SCALE; */
+	child_l->w.value = 80.0;
+	child_l->h.type = PAD;
+	child_l->y.value = 1.0;
+	layout_force_reset(child);
+	char name[64];
+	snprintf(name, 64, "beat_subdiv_lt_%d", i);
+	layout_set_name(child_l, name);
+	
+	p.textentry_p.value_handle = tt->subdiv_len_strs[i];
+	el = page_add_el(page, EL_TEXTENTRY, p, "", name);
+	((TextEntry *)el->component)->tb->text->max_len = 2;
+	textentry_reset(el->component);
+	if (i != s->cfg.num_beats - 1) {
+	    Layout *child_r = layout_add_child(child);
+	    snprintf(name, 64, "plus %d", i);
+	    layout_set_name(child_r, name);
+	    child_r->h.value = 1.0;
+	    child_r->h.type = SCALE;
+	    child_r->x.type = STACK;
+	    child_r->w.type = COMPLEMENT;
+	    layout_force_reset(child);
+	    PageElParams pt;
+	    pt.textbox_p.font = main_win->bold_font;
+	    pt.textbox_p.text_size = 14;
+	    pt.textbox_p.set_str = "+";
+	    pt.textbox_p.win = page->win;
+
+	    PageEl *el = page_add_el(page, EL_TEXTBOX, pt, "", name);
+	    textbox_set_pad(el->component, 24, 0);
+	    textbox_set_align(el->component, CENTER_LEFT);
+	    textbox_reset_full(el->component);
+
+	}
+	/* layout_center_agnostic(el->layout, false, true); */
+
+    }
+    /* textbox_set_background_color(tb, &color_global_light_grey); */
+    /* textbox_set_text_color(tb, &color_global_black); */
+    /* textbox_size_to_fit(tb, 20, 2); */
+    /* layout_center_agnostic(tb->layout, false, true); */
+    /* textentry_reset((TextEntry *)el->component); */
+    /* textbox_set_border(tb, &color_global_black, 1); */
+    
+    /* textbox_reset_full(tb); */
 }
 
 void timeline_tempo_track_edit(Timeline *tl)

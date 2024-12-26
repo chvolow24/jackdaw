@@ -46,4 +46,6 @@ typedef enum input_mode {
     TABVIEW=6
 } InputMode;
 
+#define TOP_MODE (main_win->modes[main_win->num_modes - 1])
+
 #endif

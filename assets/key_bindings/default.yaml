@@ -181,6 +181,7 @@
   - <ret>	: text_edit_escape
   - <tab>	: text_edit_escape
   - <esc>	: text_edit_escape
+  - S-<tab>	: text_edit_escape
   - <del>	: text_edit_backspace
   - <left>	: text_edit_cursor_left
   - <right>	: text_edit_cursor_right

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <sys/param.h>
+#include "SDL_events.h"
 #include "audio_connection.h"
 #include "dir.h"
 #include "input.h"
@@ -2251,17 +2252,20 @@ void user_text_edit_escape(void *nullarg)
     Timeline *tl = ACTIVE_TL;
     timeline_reset(tl, false);
 
-    /* TODO:
-       Need to replace text as editing target with textentry struct
-       so that a ComponentFn can be called upon completion of editing.
-       In Modal, this completion would be set to call modal next.
+    /* In modals / tabview, push a new tab keypress to move up or down through fields */
+    if (TOP_MODE == MODAL || TOP_MODE == TABVIEW) {
+	SDL_Event e;
+	e.type = SDL_KEYDOWN;
+	e.key.keysym.scancode = SDL_SCANCODE_TAB;
+	e.key.keysym.sym = '\t';
 
-       For now, this is a hack that will also call modal_next to be called
-       if an unrelated text is editing while a modal window is open
-       (unlikely enough)
-    */
-    if (main_win->num_modals > 0) {
-	modal_next(main_win->modals[main_win->num_modals - 1]);
+	SDL_PushEvent(&e);
+
+	e.type = SDL_KEYUP;
+	e.key.keysym.scancode = SDL_SCANCODE_TAB;
+	e.key.keysym.sym = '\t';
+
+	SDL_PushEvent (&e);
     }
 }
 

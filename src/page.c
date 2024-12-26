@@ -213,6 +213,9 @@ static void page_el_destroy(PageEl *el)
 }
 void page_destroy(Page *page)
 {
+    if (page->win->txt_editing) {
+	txt_stop_editing(page->win->txt_editing);
+    }
     for (uint8_t i=0; i<page->num_elements; i++) {
 	page_el_destroy(page->elements[i]);
     }
@@ -737,7 +740,6 @@ void tab_view_previous_tab(TabView *tv)
 
 static void check_move_off_textentry(Page *page)
 {
-    fprintf(stderr, "MOVEING off\n");
     PageEl *from = page->selectable_els[page->selected_i];
     if (from->type == EL_TEXTENTRY) {
 	textentry_complete_edit((TextEntry *)from->component);
@@ -746,7 +748,6 @@ static void check_move_off_textentry(Page *page)
 
 static void check_move_to_textentry(Page *page)
 {
-    fprintf(stderr, "MOVEING TO\n");
     PageEl *to = page->selectable_els[page->selected_i];
     if (to->type == EL_TEXTENTRY) {
 	textentry_edit((TextEntry *)to->component);

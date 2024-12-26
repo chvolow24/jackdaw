@@ -61,9 +61,6 @@
 #define MAX_MODES 8
 #define STICK_DELAY_MS 500
 
-
-#define TOP_MODE (main_win->modes[main_win->num_modes - 1])
-
 extern Window *main_win;
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;

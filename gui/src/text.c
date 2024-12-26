@@ -898,7 +898,6 @@ void txt_area_draw(TextArea *txtarea)
 #ifndef LAYOUT_BUILD
 int txt_name_validation(Text *txt, char input)
 {
-    fprintf(stderr, "CURSOR? %d->%d\n", txt->cursor_start_pos, txt->cursor_end_pos);
     if (strlen(txt->display_value) - (txt->cursor_end_pos - txt->cursor_start_pos) >= MAX_NAMELENGTH - 1) {
 	char buf[255];
 	snprintf(buf, 255, "Name cannot exceed %d characters", MAX_NAMELENGTH - 1);
@@ -910,7 +909,6 @@ int txt_name_validation(Text *txt, char input)
 
 int txt_integer_validation(Text *txt, char input)
 {
-    fprintf(stderr, "CURSOR? %d->%d\n", txt->cursor_start_pos, txt->cursor_end_pos);
     if (strlen(txt->display_value) - (txt->cursor_end_pos - txt->cursor_start_pos) >= txt->max_len - 1) {
 	char buf[255];
 	snprintf(buf, 255, "Field cannot exceed %d characters", txt->max_len - 1);

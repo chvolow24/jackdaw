@@ -301,6 +301,7 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	el->component = (void *)textentry_create(
 	    el->layout,
 	    params.textentry_p.value_handle,
+	    params.textentry_p.buf_len,
 	    params.textentry_p.font,
 	    params.textentry_p.text_size,
 	    params.textentry_p.validation,
@@ -489,6 +490,11 @@ static bool page_element_mouse_click(PageEl *el, Window *win)
     case EL_TEXTBOX:
 	break;
     case EL_TEXTENTRY:
+	if (win->txt_editing) {
+	    textentry_complete_edit((TextEntry *)el->component);
+	} else {
+	    textentry_edit((TextEntry *)el->component);
+	}
 	break;
     case EL_SLIDER:
 	return slider_mouse_click((Slider *)el->component, win);
@@ -685,6 +691,30 @@ void tabview_draw(TabView *tv)
 
 /* page_create(const char *title, const char *layout_filepath, Layout *parent_lt, SDL_Color *background_color, Window *win) -> Page * */
 
+static void page_el_select(PageEl *el)
+{
+    if (el->type == EL_TEXTENTRY) {
+	textentry_edit((TextEntry *)el->component);
+    }
+}
+static void page_el_deselect(PageEl *el)
+{
+    if (el->type == EL_TEXTENTRY) {
+	textentry_complete_edit((TextEntry *)el->component);
+    }
+}
+
+static void tabview_select_el(TabView *tv)
+{
+    Page *current = tv->tabs[tv->current_tab];
+    page_el_select(current->selectable_els[current->selected_i]);   
+}
+static void tabview_deselect_el(TabView *tv)
+{
+    Page *current = tv->tabs[tv->current_tab];
+    page_el_deselect(current->selectable_els[current->selected_i]);
+}
+
 void page_activate(Page *page)
 {
     Window *win = page->win;
@@ -709,6 +739,10 @@ void tabview_activate(TabView *tv)
     
     win->active_tabview = tv;
     window_push_mode(tv->win, TABVIEW);
+
+    tabview_select_el(tv);
+    /* Page *current = tv->tabs[tv->current_tab]; */
+    /* page_el_select(current->selectable_els[current->selected_i]); */
 }
 
 void page_close(Page *page)
@@ -718,6 +752,7 @@ void page_close(Page *page)
 }
 void tabview_close(TabView *tv)
 {
+    tabview_deselect_el(tv);
     while (tv->win->num_menus > 0) {
 	window_pop_menu(tv->win);
     }
@@ -728,52 +763,57 @@ void tabview_close(TabView *tv)
 
 void tabview_next_tab(TabView *tv)
 {
+    tabview_deselect_el(tv);
     if (tv->current_tab < tv->num_tabs - 1)
 	tv->current_tab++;
     else tv->current_tab = 0;
+    tabview_select_el(tv);
 }
 
 void tabview_previous_tab(TabView *tv)
 {
+    tabview_deselect_el(tv);
     if (tv->current_tab > 0)
 	tv->current_tab--;
     else tv->current_tab = tv->num_tabs - 1;
+    tabview_select_el(tv);
 }
 
 /* NAVIGATION FUNCTIONS */
 
-static void check_move_off_textentry(Page *page)
-{
-    PageEl *from = page->selectable_els[page->selected_i];
-    if (from->type == EL_TEXTENTRY) {
-	textentry_complete_edit((TextEntry *)from->component);
-    }
-}
+/* static void check_move_off_textentry(Page *page) */
+/* { */
+/*     PageEl *from = page->selectable_els[page->selected_i]; */
+/*     if (from->type == EL_TEXTENTRY) { */
+/* 	textentry_complete_edit((TextEntry *)from->component); */
+/*     } */
+/* } */
 
-static void check_move_to_textentry(Page *page)
-{
-    PageEl *to = page->selectable_els[page->selected_i];
-    if (to->type == EL_TEXTENTRY) {
-	textentry_edit((TextEntry *)to->component);
-    }
-}
+/* static void check_move_to_textentry(Page *page) */
+/* { */
+/*     PageEl *to = page->selectable_els[page->selected_i]; */
+/*     if (to->type == EL_TEXTENTRY) { */
+/* 	textentry_edit((TextEntry *)to->component); */
+/*     } */
+/* } */
     
 void page_next_escape(Page *page)
 {
-    check_move_off_textentry(page);
+    page_el_deselect(page->selectable_els[page->selected_i]);
+    /* check_move_off_textentry(page); */
     if (page->selected_i < page->num_selectable - 1)
 	page->selected_i++;
     else page->selected_i = 0;
-    check_move_to_textentry(page);
+    page_el_select(page->selectable_els[page->selected_i]);
 }
 
 void page_previous_escape(Page *page)
 {
-    check_move_off_textentry(page);
+    page_el_deselect(page->selectable_els[page->selected_i]);
     if (page->selected_i > 0)
 	page->selected_i--;
     else page->selected_i = page->num_selectable - 1;
-    check_move_to_textentry(page);
+    page_el_select(page->selectable_els[page->selected_i]);
 }
 
 void page_enter(Page *page)

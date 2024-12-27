@@ -162,7 +162,8 @@ void get_clicked_layout(SDL_Point p, Layout *top_level, int *distance, Layout **
     if  (tmp_distance < *distance) {
         *distance = tmp_distance;
         if (*ret) {
-            (*ret)->selected = false;
+	    layout_deselect(*ret);
+            /* (*ret)->selected = false; */
         }
         *ret = top_level;
         *edge = edge_internal;
@@ -198,10 +199,12 @@ static void reset_clicked_lt(Layout *to)
 {
     if (clicked_lt != to) {
 	if (clicked_lt) {
-	    clicked_lt->selected = false;
+	    layout_deselect(clicked_lt);
+	    /* clicked_lt->selected = false; */
 	}
 	clicked_lt = to;
-	clicked_lt->selected = true;
+	layout_select(clicked_lt);
+	/* clicked_lt->selected = true; */
     }
 }
 
@@ -317,13 +320,16 @@ int main(int argc, char** argv)
                 if (crnr != NONECRNR) {
                     layout_clicked = true;
                     layout_corner_clicked = true;
-                    clicked_lt->selected = true;
+		    layout_select(clicked_lt);
+                    /* clicked_lt->selected = true; */
                 } else if (dist < CLICK_EDGE_DIST_TOLERANCE) {
                     layout_clicked = true;
-                    clicked_lt->selected = true;
+		    layout_select(clicked_lt);
+                    /* clicked_lt->selected = true; */
                 } else {
                     // fprintf(stderr, "Falsifying layout clicked\n");
-                    clicked_lt->selected = false;
+		    layout_deselect(clicked_lt);
+                    /* clicked_lt->selected = false; */
 		    clicked_lt = NULL;
                     layout_clicked = false;
                 }

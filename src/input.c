@@ -979,6 +979,12 @@ void mode_load_text_edit()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
+	"text_edit_full_escape",
+	"Escape text edit",
+	user_text_edit_full_escape);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
 	"text_edit_backspace",
 	"Backspace",
 	user_text_edit_backspace);

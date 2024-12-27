@@ -278,7 +278,12 @@ void user_global_save_project(void *nullarg)
     Modal *save_as = modal_create(mod_lt);
     modal_add_header(save_as, "Save as:", &color_global_light_grey, 3);
     modal_add_header(save_as, "Project name:", &color_global_light_grey, 5);
-    modal_add_textentry(save_as, proj->name, txt_name_validation, file_ext_completion_jdaw);
+    modal_add_textentry(
+	save_as,
+	proj->name,
+	MAX_NAMELENGTH,
+	txt_name_validation,
+	file_ext_completion_jdaw);
     modal_add_p(save_as, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-<tab>\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &color_global_light_grey);
     modal_add_header(save_as, "Project location:", &color_global_light_grey, 5);
     modal_add_dirnav(save_as, DIRPATH_SAVED_PROJ, dir_to_tline_filter_save);
@@ -1928,7 +1933,12 @@ void user_tl_add_new_timeline(void *nullarg)
     layout_set_default_dims(mod_lt);
     Modal *mod = modal_create(mod_lt);
     modal_add_header(mod, "Create new timeline:", &color_global_light_grey, 5);
-    modal_add_textentry(mod, ACTIVE_TL->name, txt_name_validation, NULL);
+    modal_add_textentry(
+	mod,
+	ACTIVE_TL->name,
+	MAX_NAMELENGTH,
+	txt_name_validation,
+	NULL);
     modal_add_button(mod, "Create", new_tl_submit_form);
     mod->submit_form = new_tl_submit_form;
     window_push_modal(main_win, mod);
@@ -2059,7 +2069,12 @@ void user_tl_write_mixdown_to_wav(void *nullarg)
     }
     wavfilename[i] = '\0';
     strcat(wavfilename, ".wav");
-    modal_add_textentry(save_wav, wavfilename, txt_name_validation, file_ext_completion_wav);
+    modal_add_textentry(
+	save_wav,
+	wavfilename,
+	MAX_NAMELENGTH,
+	txt_name_validation,
+	file_ext_completion_wav);
     
     modal_add_p(save_wav, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-<tab>\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &color_global_light_grey);
     /* modal_add_op(save_wav, "\t\t(type <ret> to accept name)", &color_global_light_grey); */
@@ -2269,6 +2284,16 @@ void user_text_edit_escape(void *nullarg)
 
 	SDL_PushEvent (&e);
     }
+}
+
+void user_text_edit_full_escape(void *nullarg)
+{
+    if (main_win->txt_editing) {
+	txt_stop_editing(main_win->txt_editing);
+    }
+    Timeline *tl = ACTIVE_TL;
+    timeline_reset(tl, false);
+
 }
 
 void user_text_edit_backspace(void *nullarg)

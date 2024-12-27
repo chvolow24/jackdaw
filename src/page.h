@@ -119,6 +119,7 @@ struct textarea_params {
 
 struct textentry_params {
     char *value_handle;
+    int buf_len;
     Font *font;
     uint8_t text_size;
     int (*validation)(Text *txt, char input);

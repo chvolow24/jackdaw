@@ -147,7 +147,8 @@ typedef struct track {
 
     Layout *layout;
     Layout *inner_layout;
-    Textbox *tb_name;
+    /* Textbox *tb_name; */
+    TextEntry *tb_name;
     Textbox *tb_input_label;
     Textbox *tb_input_name;
     Textbox *tb_vol_label;

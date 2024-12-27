@@ -686,12 +686,12 @@ void timeline_tempo_track_set_tempo_at_cursor(Timeline *tl)
     static char tempo_str[TEMPO_STRLEN];
     snprintf(tempo_str, TEMPO_STRLEN, "%d", s->cfg.bpm);
     modal_add_header(mod, "Set tempo:", &color_global_light_grey, 4);
-    ModalEl *el = modal_add_textentry(mod, tempo_str, txt_integer_validation, NULL);
+    ModalEl *el = modal_add_textentry(mod, tempo_str, TEMPO_STRLEN, txt_integer_validation, NULL);
     TextEntry *te = (TextEntry *)el->obj;
     te->target = (void *)mod;
     te->tb->text->completion = tempo_te_action;
     te->tb->text->completion_target = (void *)mod;
-    te->tb->text->max_len = TEMPO_STRLEN;
+    /* te->tb->text->max_len = TEMPO_STRLEN; */
     mod->stashed_obj = (void *)s;
     mod->submit_form = set_tempo_submit_form;
     window_push_modal(main_win, mod);
@@ -789,14 +789,17 @@ void tempo_track_populate_settings_tabview(TempoTrack *tt, TabView *tv)
 
     snprintf(tt->num_beats_str, 2, "%d", s->cfg.num_beats);
     p.textentry_p.font = main_win->bold_font;
-    p.textentry_p.text_size = 14;
+    p.textentry_p.text_size = 16;
     p.textentry_p.value_handle = tt->num_beats_str;
+    p.textentry_p.buf_len = 2;
     p.textentry_p.validation = txt_integer_validation;
     p.textentry_p.completion = NULL;
     /* p.textbox_p.set_str = tt->num_beats_str; */
     /* p.textbox_p.font = main_win->std_font; */
     el = page_add_el(page, EL_TEXTENTRY, p, "tempo_segment_num_beats_value", "num_beats_value");
-    layout_center_agnostic(el->layout, false, true);
+    Layout *num_beats_lt = el->layout;
+    layout_size_to_fit_children_v(num_beats_lt, false, 2);
+    layout_center_agnostic(num_beats_lt, false, true);
     textentry_reset(el->component);
     /* TextEntry *num_beats_te = el->component; */
     /* textentry_reset(num_beats_te); */
@@ -805,7 +808,6 @@ void tempo_track_populate_settings_tabview(TempoTrack *tt, TabView *tv)
     Layout *subdiv_area = layout_get_child_by_name_recursive(page->layout, "subdiv_values_col");
     for (int i=0; i<s->cfg.num_beats; i++) {
 	snprintf(tt->subdiv_len_strs[i], 2, "%d", s->cfg.beat_subdiv_lens[i]);
-	
 	Layout *child = layout_add_child(subdiv_area);
 	child->y.type = STACK;
 	child->y.value = 8.0;
@@ -815,7 +817,7 @@ void tempo_track_populate_settings_tabview(TempoTrack *tt, TabView *tv)
 	Layout *child_l = layout_add_child(child);
 	/* child_l->h.value = 1.0; */
 	/* child_l->h.type = SCALE; */
-	child_l->w.value = 80.0;
+	child_l->w.value = 30.0;
 	child_l->h.type = PAD;
 	child_l->y.value = 1.0;
 	layout_force_reset(child);
@@ -825,7 +827,7 @@ void tempo_track_populate_settings_tabview(TempoTrack *tt, TabView *tv)
 	
 	p.textentry_p.value_handle = tt->subdiv_len_strs[i];
 	el = page_add_el(page, EL_TEXTENTRY, p, "", name);
-	((TextEntry *)el->component)->tb->text->max_len = 2;
+	/* ((TextEntry *)el->component)->tb->text->max_len = 2; */
 	textentry_reset(el->component);
 	if (i != s->cfg.num_beats - 1) {
 	    Layout *child_r = layout_add_child(child);
@@ -838,7 +840,7 @@ void tempo_track_populate_settings_tabview(TempoTrack *tt, TabView *tv)
 	    layout_force_reset(child);
 	    PageElParams pt;
 	    pt.textbox_p.font = main_win->bold_font;
-	    pt.textbox_p.text_size = 14;
+	    pt.textbox_p.text_size = 16;
 	    pt.textbox_p.set_str = "+";
 	    pt.textbox_p.win = page->win;
 

@@ -368,16 +368,16 @@ void txt_stop_editing(Text *txt)
     }
 }
 
-
+static int txt_check_len(Text *txt, int len);
 void txt_input_event_handler(Text *txt, SDL_Event *e)
 {
     char input = e->text.text[0];
-    if (txt->validation && txt->validation(txt, input) != 0) {
-	/* fprintf(stdout, "\a\n"); */
-    } else {
-	handle_char(txt, input);
-	txt_reset_drawable(txt);
-    }
+    #ifndef LT_DEV_MODE
+    if (txt_check_len(txt, txt->max_len) != 0) return;
+    if (txt->validation && txt->validation(txt, input) != 0) return;
+    #endif
+    handle_char(txt, input);
+    txt_reset_drawable(txt);
 }
 
 void txt_edit_backspace(Text *txt)
@@ -895,26 +895,43 @@ void txt_area_draw(TextArea *txtarea)
 }
 
 
+
 #ifndef LAYOUT_BUILD
-int txt_name_validation(Text *txt, char input)
+
+static int txt_check_len(Text *txt, int len)
 {
-    if (strlen(txt->display_value) - (txt->cursor_end_pos - txt->cursor_start_pos) >= MAX_NAMELENGTH - 1) {
+    if (strlen(txt->display_value) - (txt->cursor_end_pos - txt->cursor_start_pos) >= len - 1) {
 	char buf[255];
-	snprintf(buf, 255, "Name cannot exceed %d characters", MAX_NAMELENGTH - 1);
+	snprintf(buf, 255, "Name cannot exceed %d characters", len - 1);
 	status_set_errstr(buf);
 	return 1;
     }
     return 0;
 }
 
+int txt_name_validation(Text *txt, char input)
+{
+    return 0;
+    /* TODO: deprecate */ 
+    /* return txt_check_len(txt, MAX_NAMELENGTH); */
+/* { */
+/*     if (strlen(txt->display_value) - (txt->cursor_end_pos - txt->cursor_start_pos) >= MAX_NAMELENGTH - 1) { */
+/* 	char buf[255]; */
+/* 	snprintf(buf, 255, "Name cannot exceed %d characters", MAX_NAMELENGTH - 1); */
+/* 	status_set_errstr(buf); */
+/* 	return 1; */
+/*     } */
+    /* return 0; */
+}
+
 int txt_integer_validation(Text *txt, char input)
 {
-    if (strlen(txt->display_value) - (txt->cursor_end_pos - txt->cursor_start_pos) >= txt->max_len - 1) {
-	char buf[255];
-	snprintf(buf, 255, "Field cannot exceed %d characters", txt->max_len - 1);
-	status_set_errstr(buf);
-	return 1;
-    } else if (input < '0' || input > '9') {
+    /* if (strlen(txt->display_value) - (txt->cursor_end_pos - txt->cursor_start_pos) >= txt->max_len - 1) { */
+    /* 	char buf[255]; */
+    /* 	snprintf(buf, 255, "Field cannot exceed %d characters", txt->max_len - 1); */
+    /* 	status_set_errstr(buf); */
+    /* 	return 1; */
+    if (input < '0' || input > '9') {
 	status_set_errstr("Only integer values allowed");
 	return 1;
     }

@@ -28,10 +28,6 @@
 #include "text.h"
 #include "window.h"
 
-#ifndef LT_DEV_MODE
-#define LT_DEV_MODE 1
-#endif
-
 #define TXT_H 40
 #define SNAP_TOLERANCE 7
 
@@ -129,9 +125,16 @@ Layout *layout_iterate_siblings(Layout *from, int direction)
 
 Layout *layout_get_first_child(Layout *parent)
 {
-    if (parent->num_children > 0) {
-	return parent->children[0];
+    int i=0;
+    while (i<parent->num_children) {
+	if (parent->children[i]->type != PRGRM_INTERNAL) {
+	    return parent->children[i];
+	}
+	i++;
     }
+    /* if (parent->num_children > 0) { */
+    /* 	return parent->children[0]; */
+    /* } */
     return parent;
 }
 	    
@@ -896,8 +899,9 @@ void layout_force_reset(Layout *lt)
 	    fprintf(stderr, "Error: failed to set xy on %s\n", lt->name);
 	}
 
-	if (lt->namelabel) {
-	    lt->label_rect = (SDL_Rect) {lt->rect.x, lt->rect.y - TXT_H, 0, 0};
+	if (lt->namelabel && lt->label_lt) {
+	    lt->label_lt->rect = (SDL_Rect) {lt->rect.x, lt->rect.y - TXT_H, 0, 0};
+	    layout_set_values_from_rect(lt->label_lt);
 	    txt_reset_display_value(lt->namelabel);
 	}
 	if (lt->iterator) {
@@ -942,8 +946,9 @@ void layout_reset(Layout *lt)
             fprintf(stderr, "Error: failed to set xy on %s\n", lt->name);
         }
     }
-    lt->label_rect = (SDL_Rect) {lt->rect.x, lt->rect.y - TXT_H, 0, 0};
-    if (lt->namelabel) {	
+    if (lt->namelabel && lt->label_lt) {
+	lt->label_lt->rect = (SDL_Rect) {lt->rect.x, lt->rect.y - TXT_H, 0, 0};
+	layout_set_values_from_rect(lt->label_lt);
 	txt_reset_display_value(lt->namelabel);
     }
     if (!main_win || !main_win->layout) {
@@ -998,14 +1003,9 @@ Layout *layout_create()
     // lt->internal = false;
     lt->parent = NULL;
     lt->rect = (SDL_Rect) {0,0,0,0};
-    lt->label_rect = (SDL_Rect) {0,0,0,0};
-    if (LT_DEV_MODE) {
-	/* lt->label_layout_add_child( */
-	lt->namelabel = NULL;
-	/* lt->namelabel = txt_create_from_str(lt->name, MAX_LT_NAMELEN, &(lt->label_rect), main_win->std_font, 12, color_global_white, CENTER_LEFT, false, main_win); */
-    } else {
-	lt->namelabel = NULL;
-    }
+
+    lt->namelabel = NULL;
+    lt->label_lt = NULL;
     lt->hidden = false;
 
     lt->scroll_offset_v = 0;
@@ -1019,15 +1019,16 @@ void delete_iterator(LayoutIterator *iter);
 
 static void layout_destroy_inner(Layout *lt)
 {
+    if (lt->namelabel) {
+	txt_destroy(lt->namelabel);
+    }
+
     if (lt->type == TEMPLATE && lt->iterator) {
         delete_iterator(lt->iterator);
 	lt->iterator = NULL;
     }
     for (uint8_t i=0; i<lt->num_children; i++) {
         layout_destroy_inner(lt->children[i]);
-    }
-    if (lt->namelabel) {
-	txt_destroy(lt->namelabel);
     }
     free(lt); 
 }
@@ -1062,7 +1063,10 @@ Layout *layout_create_from_window(Window *win)
     lt->w = (Dimension) {ABS, (float)win->h_pix / main_win->dpi_scale_factor};
 
     lt->rect = (SDL_Rect) {0, 0, win->w_pix, win->h_pix};
-    lt->label_rect = (SDL_Rect) {lt->rect.x, lt->rect.y - TXT_H, 0, 0};
+    if (lt->namelabel && lt->label_lt) {
+	lt->label_lt->rect = (SDL_Rect) {lt->rect.x, lt->rect.y - TXT_H, 0, 0};
+	layout_set_values_from_rect(lt->label_lt);
+    }
     lt->index = 0;
     snprintf(lt->name, 5, "main");
     return lt;
@@ -1674,10 +1678,11 @@ void layout_draw(Window *win, Layout *lt)
 
     if (lt->selected) {
 	if (lt->namelabel) {
+	    SDL_RenderDrawRect(win->rend, &(lt->namelabel->container->rect));
 	    txt_draw(lt->namelabel);
 	}
 	    
-        SDL_RenderDrawRect(win->rend, &(lt->label_rect));
+        /* SDL_RenderDrawRect(win->rend, &(lt->label_lt->rect)); */
     }
     SDL_RenderDrawRect(win->rend, &(lt->rect));
 
@@ -1698,3 +1703,37 @@ void layout_draw(Window *win, Layout *lt)
 }
 
 
+#ifdef LT_DEV_MODE
+void layout_select(Layout *lt)
+{
+    lt->label_lt = calloc(1, sizeof(Layout));
+    lt->label_lt->x.type = REL;
+    lt->label_lt->y.type = REL;
+    lt->label_lt->w.type = ABS;
+    lt->label_lt->h.type = ABS;
+    /* lt->label_lt->w.value = 100.0; */
+    /* lt->label_lt->h.value = 24.0; */
+    layout_reparent(lt->label_lt, lt); 
+    lt->label_lt->type = PRGRM_INTERNAL;
+
+    lt->label_lt->rect = (SDL_Rect) {lt->rect.x, lt->rect.y - TXT_H, 200, 38};
+    layout_set_values_from_rect(lt->label_lt);
+
+
+    /* lt->namelabel = NULL; */
+    lt->namelabel = txt_create_from_str(lt->name, MAX_LT_NAMELEN, lt->label_lt, main_win->std_font, 12, color_global_white, CENTER_LEFT, false, main_win);
+    lt->selected = true;
+    layout_reset(lt);
+}
+
+void layout_deselect(Layout *lt)
+{
+    if (lt->namelabel) {
+	txt_destroy(lt->namelabel);
+	lt->namelabel = NULL;
+	lt->label_lt = NULL;
+    }
+    lt->selected = false;
+}
+
+#endif

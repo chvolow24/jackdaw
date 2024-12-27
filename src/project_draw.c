@@ -323,7 +323,7 @@ static void track_draw(Track *track)
     textbox_draw(track->tb_input_name);
     textbox_draw(track->tb_mute_button);
     textbox_draw(track->tb_solo_button);
-    textbox_draw(track->tb_name);
+    textentry_draw(track->tb_name);
 
     /* Move this outside */
 

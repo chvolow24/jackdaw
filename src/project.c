@@ -1492,19 +1492,30 @@ Track *timeline_add_track(Timeline *tl)
     textbox_set_pad(track->tb_pan_label, TRACK_NAME_H_PAD, 0);
     textbox_set_trunc(track->tb_pan_label, false);
 
-    track->tb_name = textbox_create_from_str(
-        track->name,
+    track->tb_name = textentry_create(
 	name,
+	track->name,
+	MAX_NAMELENGTH,
 	main_win->bold_font,
 	14,
+	NULL,
+	name_completion,
 	main_win);
-    textbox_set_align(track->tb_name, CENTER_LEFT);
-    textbox_set_pad(track->tb_name, 4, 0);
-    textbox_set_border(track->tb_name, &color_global_black, 1);
+    /* track->tb_name = textbox_create_from_str( */
+    /*     track->name, */
+    /* 	name, */
+    /* 	main_win->bold_font, */
+    /* 	14, */
+    /* 	main_win); */
+    Textbox *track_tb = track->tb_name->tb;
+
+    textbox_set_align(track_tb, CENTER_LEFT);
+    textbox_set_pad(track_tb, 4, 0);
+    textbox_set_border(track_tb, &color_global_black, 1);
     textbox_set_trunc(track->tb_vol_label, false);
     /* textbox_reset_full(track->tb_name); */
-    track->tb_name->text->validation = txt_name_validation;
-    track->tb_name->text->completion = name_completion;
+    /* track->tb_name->text->validation = txt_name_validation; */
+    /* track->tb_name->text->completion = name_completion; */
 
     
     track->tb_input_label = textbox_create_from_str(
@@ -1751,7 +1762,7 @@ void clipref_move_to_track(ClipRef *cr, Track *target)
 
 static void track_reset_full(Track *track)
 {
-    textbox_reset_full(track->tb_name);
+    textbox_reset_full(track->tb_name->tb);
     textbox_reset_full(track->tb_input_label);
     textbox_reset_full(track->tb_mute_button);
     textbox_reset_full(track->tb_solo_button);
@@ -2209,7 +2220,8 @@ void track_set_input(Track *track)
 void project_draw();
 void track_rename(Track *track)
 {
-    txt_edit(track->tb_name->text, project_draw);
+    textentry_edit(track->tb_name);
+    /* txt_edit(track->tb_name->text, project_draw); */
     main_win->i_state = 0;
 }
 
@@ -2321,7 +2333,8 @@ void track_destroy(Track *track, bool displace)
     /* fprintf(stdout, "Ok deleted all clips\n"); */
     slider_destroy(track->vol_ctrl);
     slider_destroy(track->pan_ctrl);
-    textbox_destroy(track->tb_name);
+    textentry_destroy(track->tb_name);
+    /* textbox_destroy(track->tb_name); */
     textbox_destroy(track->tb_input_label);
     textbox_destroy(track->tb_input_name);
     textbox_destroy(track->tb_vol_label);

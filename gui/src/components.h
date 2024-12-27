@@ -214,6 +214,7 @@ bool symbol_button_click(SymbolButton *sbutton, Window *win);
 TextEntry *textentry_create(
     Layout *lt,
     char *value_handle,
+    int buf_len,
     Font *font,
     uint8_t text_size,
     int (*validation)(Text *txt, char input),

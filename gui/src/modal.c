@@ -265,7 +265,12 @@ ModalEl *modal_add_button(Modal *modal, char *text, ComponentFn action)
     return el;
 }
 
-ModalEl *modal_add_textentry(Modal *modal, char *init_val, int (*validation)(Text *txt, char input), int (*completion)(Text *, void *))
+ModalEl *modal_add_textentry(
+    Modal *modal,
+    char *init_val,
+    int buf_len,
+    int (*validation)(Text *txt, char input),
+    int (*completion)(Text *, void *))
 {
     ModalEl *el = modal_add_el(modal);
     el->layout->y.value = MODAL_V_PADDING_TIGHT;
@@ -277,14 +282,18 @@ ModalEl *modal_add_textentry(Modal *modal, char *init_val, int (*validation)(Tex
     /* layout_reset(el->layout); */
     el->type = MODAL_EL_TEXTENTRY;
 
+    el->layout->h.value = 28.0;
+    el->layout->h.type = ABS;
     TextEntry *te = textentry_create(
 	el->layout,
 	init_val,
+	buf_len,
 	main_win->bold_font,
 	12,
         validation,
 	completion,
 	main_win);
+
     /* TextEntry *te = calloc(1, sizeof(TextEntry)); */
     /* te->tb = textbox_create_from_str(init_val, el->layout, main_win->bold_font, 12, main_win); */
     /* textbox_set_text_color(te->tb, &modal_textentry_text_color); */
@@ -294,6 +303,7 @@ ModalEl *modal_add_textentry(Modal *modal, char *init_val, int (*validation)(Tex
     /* textbox_reset_full(te->tb); */
     /* te->tb->text->validation = validation; */
     /* te->tb->text->completion = completion; */
+    
     el->obj = (void *)te;
     return el; 
 }

@@ -424,6 +424,7 @@ void button_press_color_change(
 TextEntry *textentry_create(
     Layout *lt,
     char *value_handle,
+    int buf_len,
     Font *font,
     uint8_t text_size,
     int (*validation)(Text *txt, char input),
@@ -433,16 +434,18 @@ TextEntry *textentry_create(
 
     TextEntry *te = calloc(1, sizeof(TextEntry));
     te->tb = textbox_create_from_str(value_handle, lt, font, text_size, win);
-    textbox_set_text_color(te->tb, &textentry_text_color);
-    textbox_set_background_color(te->tb, &textentry_background);
-    textbox_set_border(te->tb, &color_global_black, 1);
+    /* textbox_set_text_color(te->tb, &textentry_text_color); */
+    /* textbox_set_background_color(te->tb, &textentry_background); */
+    /* textbox_set_border(te->tb, &color_global_black, 1); */
+    /* textbox_size_to_fit_v(te->tb, TEXTENTRY_V_PAD); */
     textbox_set_align(te->tb, CENTER_LEFT);
-    textbox_size_to_fit_v(te->tb, TEXTENTRY_V_PAD);
-    textbox_set_pad(te->tb, TEXTENTRY_H_PAD, TEXTENTRY_V_PAD);
+    textbox_set_pad(te->tb, 8, 0);
+    /* textbox_set_(te->tb, TEXTENTRY_H_PAD, TEXTENTRY_V_PAD); */
     /* textbox_size_to_fit(te->tb, TEXTENTRY_H_PAD, TEXTENTRY_V_PAD); */
     textbox_reset_full(te->tb);
     te->tb->text->validation = validation;
     te->tb->text->completion = completion;
+    te->tb->text->max_len = buf_len;
     return te;
 }
 

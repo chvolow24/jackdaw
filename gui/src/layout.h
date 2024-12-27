@@ -83,8 +83,8 @@ typedef struct layout {
     Layout *children[MAX_CHILDREN];
     uint8_t num_children;
     uint8_t index;
-    /* Layout *label_lt; */
-    SDL_Rect label_rect;
+    Layout *label_lt;
+    /* SDL_Rect label_rect; */
     Text *namelabel;
     bool selected;
     LayoutType type;
@@ -214,4 +214,10 @@ void layout_draw(Window *win, Layout *lt);
 
 
 void layout_write(FILE *f, Layout *lt, int indent);
+
+#ifdef LT_DEV_MODE
+void layout_select(Layout *lt);
+void layout_deselect(Layout *lt);
+#endif
+
 #endif

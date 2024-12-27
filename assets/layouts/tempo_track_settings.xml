@@ -90,7 +90,7 @@
                                         <Layout name="num_beats_value" type="NORMAL">
                                             <x>STACK 0</x>
                                             <y>REL 0</y>
-                                            <w>REL 100</w>
+                                            <w>REL 30</w>
                                             <h>REL 38</h>
                                             <index>1</index>
                                             <children>

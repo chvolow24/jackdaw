@@ -147,6 +147,7 @@ void user_modal_submit_form(void *nullarg);
 
 
 void user_text_edit_escape(void *nullarg);
+void user_text_edit_full_escape(void *nullarg);
 void user_text_edit_backspace(void *nullarg);
 void user_text_edit_cursor_right(void *nullarg);
 void user_text_edit_cursor_left(void *nullarg);

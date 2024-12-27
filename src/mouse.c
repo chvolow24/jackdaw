@@ -86,7 +86,7 @@ static bool mouse_triage_click_track(uint8_t button, Track *track)
 	    track_mute(track);
 	    return true;
 	}
-	if (SDL_PointInRect(&main_win->mousep, &track->tb_name->layout->rect)) {
+	if (SDL_PointInRect(&main_win->mousep, &track->tb_name->tb->layout->rect)) {
 	    track_rename(track);
 	    return true;
 	}

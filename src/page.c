@@ -827,6 +827,11 @@ void page_enter(Page *page)
     case EL_RADIO:
 	radio_cycle((RadioButton *)el->component);
 	break;
+    case EL_BUTTON: {
+	Button *b = (Button *)el->component;
+	b->action(b, b->target);
+	break;
+    }
     case EL_TEXTENTRY:
 	break;
     default:

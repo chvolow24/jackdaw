@@ -36,7 +36,7 @@
                             <x>REL 0</x>
                             <y>REL 0</y>
                             <w>SCALE 1.000000</w>
-                            <h>REL 138</h>
+                            <h>REL 90</h>
                             <children>
                                 <Layout name="num_beats" type="NORMAL">
                                     <x>REL 0</x>
@@ -78,14 +78,22 @@
                                         </Layout>
                                         <Layout name="beat_subdiv_values" type="NORMAL">
                                             <x>STACK 0</x>
-                                            <y>REL 0</y>
+                                            <y>REL 6</y>
                                             <w>COMPLEMENT 1</w>
-                                            <h>REL 38</h>
+                                            <h>PAD 0</h>
                                             <children>
                                             </children>
                                         </Layout>
                                     </children>
                                 </Layout>
+                            </children>
+                        </Layout>
+                        <Layout name="time_signature_submit" type="NORMAL">
+                            <x>REL 0</x>
+                            <y>STACK 0</y>
+                            <w>REL 106</w>
+                            <h>REL 31</h>
+                            <children>
                             </children>
                         </Layout>
                     </children>

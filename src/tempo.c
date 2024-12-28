@@ -757,13 +757,7 @@ bool timeline_tempo_track_delete(Timeline *tl)
 void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, bool set_from_cfg);
 static void reset_settings_page(TempoSegment *s, TabView *tv)
 {
-    
-    /* PageEl *el = page_get_el_by_id(page, "tempo_segment_num_beats_value"); */
-    /* int num_beats = ((TextEntry *)el->obj)->tb->txt->value_handle */
-
     TempoTrack *tt = s->track;
-    int num_beats = atoi(tt->num_beats_str);
-    /* s->cfg.num_beats = num_beats; */
     tempo_track_populate_settings_internal(tt, tv, false);
 }
 
@@ -777,6 +771,25 @@ static int num_beats_completion(Text *txt, void *s_v)
     reset_settings_page(s_v, tv);
     return 0;
 
+}
+
+static int time_sig_submit_button_action(void *self, void *s_v)
+{
+    TempoSegment *s = (TempoSegment *)s_v;
+
+    TempoTrack *tt = s->track;
+
+    int num_beats = atoi(tt->num_beats_str);
+    uint8_t subdivs[num_beats];
+    for (int i=0; i<num_beats; i++) {
+	subdivs[i] = atoi(tt->subdiv_len_strs[i]);
+    }
+    tempo_segment_set_config(s, -1, s->cfg.bpm, atoi(tt->num_beats_str), subdivs);
+
+    TabView *tv = main_win->active_tabview;
+    tabview_close(tv);
+    tt->tl->needs_redraw = true;
+    return 0;
 }
 
 void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, bool set_from_cfg)
@@ -870,8 +883,10 @@ void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, bool se
 	snprintf(tt->subdiv_len_strs[i], 2, "%d", subdivs);
 	Layout *child_l = layout_add_child(subdiv_area);
 	child_l->x.type = STACK;
-	child_l->y.value = 5;
-	child_l->h.type = PAD;
+	child_l->h.type = SCALE;
+	child_l->h.value = 1.0;
+	/* child_l->y.value = 5; */
+	/* child_l->h.type = PAD; */
 	child_l->w.value = 30;
 	
 	char name[64];
@@ -902,25 +917,28 @@ void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, bool se
 	    pt.textbox_p.set_str = "+";
 	    pt.textbox_p.win = page->win;
 
-	    PageEl *el = page_add_el(page, EL_TEXTBOX, pt, "", name);
+	    el = page_add_el(page, EL_TEXTBOX, pt, "", name);
 	    /* textbox_set_pad(el->component, 24, 0); */
 	    textbox_set_align(el->component, CENTER);
 	    textbox_reset_full(el->component);
-
 	}
-	/* layout_center_agnostic(el->layout, false, true); */
-
     }
-    /* textentry_edit(num_beats_te); */
-    /* textbox_set_background_color(tb, &color_global_light_grey); */
-    /* textbox_set_text_color(tb, &color_global_black); */
-    /* textbox_size_to_fit(tb, 20, 2); */
-    /* layout_center_agnostic(tb->layout, false, true); */
-    /* textentry_reset((TextEntry *)el->component); */
-    /* textbox_set_border(tb, &color_global_black, 1); */
-    
-    /* textbox_reset_full(tb); */
-
+    p.button_p.action = time_sig_submit_button_action;
+    p.button_p.target = (void *)s;
+    p.button_p.font = main_win->std_font;
+    p.button_p.text_color = &color_global_white;
+    p.button_p.text_size = 14;
+    p.button_p.background_color = &color_global_quickref_button_blue;
+    p.button_p.win = main_win;
+    p.button_p.set_str = "Submit";
+    el = page_add_el(
+	page,
+	EL_BUTTON,
+	p,
+	"time_signature_submit_button",
+	"time_signature_submit");
+    textbox_reset_full(((Button *)el->component)->tb);
+	
 }
 
 void tempo_track_populate_settings_tabview(TempoTrack *tt, TabView *tv)

@@ -911,7 +911,7 @@ static int txt_check_len(Text *txt, int len)
 
 int txt_name_validation(Text *txt, char input)
 {
-    return 0;
+    return txt_check_len(txt, MAX_NAMELENGTH);
     /* TODO: deprecate */ 
     /* return txt_check_len(txt, MAX_NAMELENGTH); */
 /* { */

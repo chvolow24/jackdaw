@@ -219,6 +219,7 @@ TextEntry *textentry_create(
     uint8_t text_size,
     int (*validation)(Text *txt, char input),
     int (*completion)(Text *txt, void *target),
+    void *completion_target,
     Window *win);
 
 void textentry_destroy(TextEntry *te);

@@ -103,14 +103,26 @@ void layout_get_dimval_str(Dimension *dim, char *dst, int maxlen)
 static Layout *get_last_sibling(Layout *lt)
 {
     Layout *ret = NULL;
-    if (lt->parent && lt->index > 0) {
-	return lt->parent->children[lt->index - 1];
+    int index = lt->index - 1;
+    if (lt->parent && index >= 0) {
+	while (index > 0 && lt->parent->children[index] == PRGRM_INTERNAL) {
+	    index--;
+	}
+	ret = lt->parent->children[index];
     }
     return ret;
 }
 
 Layout *layout_iterate_siblings(Layout *from, int direction)
 {
+    /* if (from->parent) { */
+    /* 	for (int i=0; i<from->parent->num_children; i++) { */
+    /* 	    Layout *child = from->parent->children[i]; */
+    /* 	    if (child == from) */
+    /* 		fprintf(stderr, " <------\n"); */
+    /* 	    else fprintf(stderr, "\n"); */
+    /* 	} */
+    /* } */
     if (direction == 1) {
 	if (from->parent && from->index < from->parent->num_children - 1) {
 	    return from->parent->children[from->index + 1];

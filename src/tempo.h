@@ -38,7 +38,7 @@
 #include "layout.h"
 #include "textbox.h"
 
-#define MAX_BEATS_PER_BAR 16
+#define MAX_BEATS_PER_BAR 13
 #define MAX_TEMPO_TRACKS 16
 #define TEMPO_POS_STR_LEN 32
 #define BARS_FOR_NOTHING 2

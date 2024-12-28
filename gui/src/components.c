@@ -429,6 +429,7 @@ TextEntry *textentry_create(
     uint8_t text_size,
     int (*validation)(Text *txt, char input),
     int (*completion)(Text *txt, void *target),
+    void *completion_target,
     Window *win) {
 
 
@@ -446,6 +447,7 @@ TextEntry *textentry_create(
     te->tb->text->validation = validation;
     te->tb->text->completion = completion;
     te->tb->text->max_len = buf_len;
+    te->tb->text->completion_target = completion_target;
     return te;
 }
 

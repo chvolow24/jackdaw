@@ -306,6 +306,7 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	    params.textentry_p.text_size,
 	    params.textentry_p.validation,
 	    params.textentry_p.completion,
+	    params.textentry_p.completion_target,
 	    page->win);
 	break;
     case EL_SLIDER:

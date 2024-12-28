@@ -44,7 +44,8 @@ ModalEl *modal_add_textentry(
     char *init_val,
     int buf_len,
     int (*validation)(Text *txt, char input),
-    int (*completion)(Text *, void *));
+    int (*completion)(Text *, void *),
+    void *completion_target);
 /* ModalEl *modal_add_textentry(Modal *modal, char *init_val, int (*validation)(Text *txt, char input), ComponentFn completion); */
 ModalEl *modal_add_button(Modal *modal, char *text, ComponentFn action);
     /* Layout *layout, */

@@ -270,7 +270,8 @@ ModalEl *modal_add_textentry(
     char *init_val,
     int buf_len,
     int (*validation)(Text *txt, char input),
-    int (*completion)(Text *, void *))
+    int (*completion)(Text *, void *),
+    void *completion_target)
 {
     ModalEl *el = modal_add_el(modal);
     el->layout->y.value = MODAL_V_PADDING_TIGHT;
@@ -292,6 +293,7 @@ ModalEl *modal_add_textentry(
 	12,
         validation,
 	completion,
+	completion_target,
 	main_win);
 
     /* TextEntry *te = calloc(1, sizeof(TextEntry)); */

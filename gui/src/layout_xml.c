@@ -93,7 +93,7 @@ void layout_write(FILE *f, Layout *lt, int indent)
     write_dimension(f, &(lt->h), 'h', indent + TABSPACES);
 
 
-    fprintf(f, "%*s<index>%d</index>\n", indent + TABSPACES, "", lt->index);
+    /* fprintf(f, "%*s<index>%d</index>\n", indent + TABSPACES, "", lt->index); */
     if (lt->type == TEMPLATE) {
         fprintf(f, "%*s<iterator>%s %d</iterator>\n", indent + TABSPACES, "", layout_get_itertype_str(lt->iterator->type), lt->iterator->num_iterations);
     }

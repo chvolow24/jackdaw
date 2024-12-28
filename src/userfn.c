@@ -283,7 +283,8 @@ void user_global_save_project(void *nullarg)
 	proj->name,
 	MAX_NAMELENGTH,
 	txt_name_validation,
-	file_ext_completion_jdaw);
+	file_ext_completion_jdaw,
+	NULL);
     modal_add_p(save_as, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-<tab>\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &color_global_light_grey);
     modal_add_header(save_as, "Project location:", &color_global_light_grey, 5);
     modal_add_dirnav(save_as, DIRPATH_SAVED_PROJ, dir_to_tline_filter_save);
@@ -1938,7 +1939,7 @@ void user_tl_add_new_timeline(void *nullarg)
 	ACTIVE_TL->name,
 	MAX_NAMELENGTH,
 	txt_name_validation,
-	NULL);
+	NULL, NULL);
     modal_add_button(mod, "Create", new_tl_submit_form);
     mod->submit_form = new_tl_submit_form;
     window_push_modal(main_win, mod);
@@ -2074,7 +2075,8 @@ void user_tl_write_mixdown_to_wav(void *nullarg)
 	wavfilename,
 	MAX_NAMELENGTH,
 	txt_name_validation,
-	file_ext_completion_wav);
+	file_ext_completion_wav,
+	NULL);
     
     modal_add_p(save_wav, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-<tab>\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &color_global_light_grey);
     /* modal_add_op(save_wav, "\t\t(type <ret> to accept name)", &color_global_light_grey); */

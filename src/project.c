@@ -1500,6 +1500,7 @@ Track *timeline_add_track(Timeline *tl)
 	14,
 	NULL,
 	name_completion,
+	NULL,
 	main_win);
     /* track->tb_name = textbox_create_from_str( */
     /*     track->name, */

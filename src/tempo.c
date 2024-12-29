@@ -551,23 +551,6 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
     t->index = tl->num_tempo_tracks;
     tl->num_tempo_tracks++;
 
-
-    /* TESTING ONLY */
-    /* uint8_t subdivs_l[] = {4, 4, 4, 4}; */
-    if (tl->num_tempo_tracks == 1) {
-	subdivs[0] = 3;
-	subdivs[1] = 3;
-	subdivs[2] = 3;	
-	tempo_track_add_segment(t, 10000, -1, 120, 3, subdivs);
-	subdivs[2] = 2;
-	subdivs[3] = 2;
-	tempo_track_add_segment_at_measure(t, 4, -1, 500, 4, subdivs);
-	TempoSegment *s = t->segments;
-	while (s) {
-	    /* tempo_segment_fprint(stderr, s); */
-	    s = s->next;
-	}
-    }
     timeline_rectify_track_indices(tl);
 
     Value nullval = {.int_v = 0};
@@ -665,10 +648,18 @@ static int set_tempo_submit_form(void *mod_v, void *target)
     return 0;
 }
 
-static int tempo_te_action(Text *t, void *obj)
+/* static int tempo_te_action(Text *t, void *obj) */
+/* { */
+/*     Modal *mod = (Modal *)obj; */
+/*     modal_submit_form(mod); */
+/*     return 0; */
+/* } */
+
+static int tempo_rb_action(void *self, void *target)
 {
-    Modal *mod = (Modal *)obj;
-    modal_submit_form(mod);
+    RadioButton *rb = (RadioButton *)self;
+    enum tempo_segment_end_bound_behavior *ebb = target;
+    *ebb = rb->selected_item;
     return 0;
 }
 
@@ -693,22 +684,55 @@ void timeline_tempo_track_set_tempo_at_cursor(Timeline *tl)
 	TEMPO_STRLEN,
 	txt_integer_validation,
 	NULL, NULL);
+    el->layout->y.value += 15.0;
     TextEntry *te = (TextEntry *)el->obj;
     te->target = (void *)mod;
-    te->tb->text->completion = tempo_te_action;
-    te->tb->text->completion_target = (void *)mod;
-    /* te->tb->text->max_len = TEMPO_STRLEN; */
+    te->tb->text->completion = NULL;
+    te->tb->text->completion_target = NULL;
+
+    if (s->next) {
+	char opt1[64];
+	char opt2[64];
+	if (s->cfg.dur_sframes * s->num_measures == s->end_pos - s->start_pos) {
+	    snprintf(opt1, 64, "Fixed num measures (%d)", s->num_measures);
+	} else {
+	    snprintf(opt1, 64, "Fixed num measures (%f)", (float)(s->end_pos - s->start_pos)/s->cfg.dur_sframes);
+	}
+	char timestr[64];
+	timecode_str_at(tt->tl, timestr, 64, s->end_pos);
+	snprintf(opt2, 64, "Fixed end pos (%s)", timestr);
+	char *options[] = {opt1, opt2};
+
+	el = modal_add_radio(
+	    mod,
+	    &color_global_white,
+	    &tt->segment_end_behavior,
+	    tempo_rb_action,
+	    (const char **)options,
+	    2);	
+
+	radio_button_set_from_target(el->obj);
+	/* te->tb->text->max_len = TEMPO_STRLEN; */
+    }
+    mod->layout->w.value = 450;
+
+    
+    el = modal_add_button(
+	mod,
+	"Submit",
+	set_tempo_submit_form);
+
+    layout_reset(mod->layout);
+    layout_center_agnostic(el->layout, true, false);
+
     mod->stashed_obj = (void *)s;
     mod->submit_form = set_tempo_submit_form;
     window_push_modal(main_win, mod);
-    mod->layout->w.value = 250;
-    
-    layout_reset(mod->layout);
 
     modal_reset(mod);
     modal_move_onto(mod);
     tl->needs_redraw = true;
-}
+ }
 
 static void tempo_track_delete(TempoTrack *tt, bool from_undo);
 

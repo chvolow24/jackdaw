@@ -239,7 +239,7 @@ RadioButton *radio_button_create(
     const char **item_names,
     uint8_t num_items
     );
-
+void radio_button_set_from_target(RadioButton *rb);
 void radio_button_draw(RadioButton *rb);
 bool radio_click(RadioButton *rb, Window *Win);
 void radio_destroy(RadioButton *rb);

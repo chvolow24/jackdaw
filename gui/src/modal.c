@@ -277,10 +277,6 @@ ModalEl *modal_add_textentry(
     el->layout->y.value = MODAL_V_PADDING_TIGHT;
     modal->selectable_indices[modal->num_selectable] = modal->num_els - 1;
     modal->num_selectable++;
-    /* el->layout->x.type = REL; */
-    /* el->layout->x.value = MODAL_V_PADDING * 2; */
-    /* el->layout->w.type = PAD; */
-    /* layout_reset(el->layout); */
     el->type = MODAL_EL_TEXTENTRY;
 
     el->layout->h.value = 28.0;
@@ -296,6 +292,7 @@ ModalEl *modal_add_textentry(
 	completion_target,
 	main_win);
 
+    textentry_reset(te);
     /* TextEntry *te = calloc(1, sizeof(TextEntry)); */
     /* te->tb = textbox_create_from_str(init_val, el->layout, main_win->bold_font, 12, main_win); */
     /* textbox_set_text_color(te->tb, &modal_textentry_text_color); */
@@ -319,7 +316,7 @@ ModalEl *modal_add_radio(
     uint8_t num_items)
 {
     ModalEl *el = modal_add_el(modal);
-    el->layout->y.value = MODAL_V_PADDING;
+    /* el->layout->y.value = MODAL_V_PADDING; */
     modal->selectable_indices[modal->num_selectable] = modal->num_els - 1;
     modal->num_selectable++;
     el->type = MODAL_EL_RADIO;
@@ -333,6 +330,7 @@ ModalEl *modal_add_radio(
 	item_names,
 	num_items);
     layout_size_to_fit_children_v(el->layout, true, 0);
+    layout_force_reset(el->layout);
     return el;
 }
 
@@ -369,6 +367,10 @@ static void modal_el_reset(ModalEl *el)
 	textbox_reset_full((Textbox *)el->obj);
 	break;
     case MODAL_EL_TEXTENTRY:
+	/* fprintf(stdout, "Reseting Textbox %s to lt %d %d %d %d\n", ((Textbox *)el->obj)->text->value_handle, ((Textbox *)el->obj)->layout->rect.x, ((Textbox *)el->obj)->layout->rect.y, ((Textbox *)el->obj)->layout->rect.w, ((Textbox *)el->obj)->layout->rect.h); */
+	textentry_reset((TextEntry *)el->obj);
+	break;
+
     case MODAL_EL_TEXTAREA:
     case MODAL_EL_DIRNAV:
     case MODAL_EL_BUTTON:
@@ -577,41 +579,36 @@ bool modal_triage_mouse(Modal *modal, SDL_Point *mousep, bool click)
 	/* Already selected */
 	if (click) {
 	    /* fprintf(stdout, "Selected i: %d\n", modal->selected_i); */
-	    if (el == modal->els[modal->selectable_indices[modal->selected_i]]) {
-		/* fprintf(stdout, "El alreadyx selected\n"); */
-		switch (el->type) {
-		case MODAL_EL_BUTTON:
-		    ((Button *)(el->obj))->action(modal, NULL);
-		    break;
-		case MODAL_EL_DIRNAV:
-		    dirnav_triage_click(el->obj, mousep);
-		    break;
-		case MODAL_EL_RADIO:
-		    radio_click((RadioButton *)el->obj, main_win);
-		    break;
-
-		default:
-		    break;
-		
-		}
-	    } else {
+	    if (el != modal->els[modal->selectable_indices[modal->selected_i]]) {
 		for (uint8_t j=0; j<modal->num_selectable; j++) {
-		    /* fprintf(stdout, "Selecting new el\n"); */
 		    if (modal->selectable_indices[j] == i) {
 			modal->selected_i = j;
-			modal_select(modal);
 			break;
 		    }
 		}
 	    }
+	    switch (el->type) {
+	    case MODAL_EL_BUTTON:
+		((Button *)(el->obj))->action(modal, NULL);
+		break;
+	    case MODAL_EL_DIRNAV:
+		dirnav_triage_click(el->obj, mousep);
+		break;
+	    case MODAL_EL_RADIO:
+		radio_click((RadioButton *)el->obj, main_win);
+		break;
+	    case MODAL_EL_TEXTENTRY:
+		textentry_edit((TextEntry *)el->obj);
+		break;
+	    default:
+		break;	
+	    }
 	} else if (el->type == MODAL_EL_DIRNAV) {
 	    DirNav *dn = (DirNav *)(el->obj);
-	    /* fprintf(stdout, "motion in dirnav!\n"); */
 	    for (uint16_t i=0; i<dn->lines->num_items; i++) {
 		TLinesItem *item = dn->lines->items[i];
 		if (SDL_PointInRect(mousep, &item->tb->layout->rect)) {
 		    dirnav_select_item(dn, i);
-		    /* dn->current_line = i; */
 		}
 	    }
 	}

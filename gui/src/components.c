@@ -596,6 +596,16 @@ RadioButton *radio_button_create(
     return rb;
 }
 
+void radio_button_set_from_target(RadioButton *rb)
+{
+    if (!rb->target) return;
+    rb->selected_item = *((int *)rb->target);
+    if (rb->selected_item > rb->num_items) {
+	rb->selected_item = 0;
+	fprintf(stderr, "Error: unable to set radio button from target valu");
+    }
+}
+
 
 void radio_button_draw(RadioButton *rb)
 {
@@ -605,7 +615,6 @@ void radio_button_draw(RadioButton *rb)
 	int r = (circle_container->rect.w >> 1) - RADIO_BUTTON_RAD_PAD;
 	int orig_x = circle_container->rect.x + RADIO_BUTTON_RAD_PAD;
 	int orig_y = circle_container->rect.y + RADIO_BUTTON_RAD_PAD;
-	
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(slider_bar_container_bckgrnd));
 	geom_fill_circle(main_win->rend, orig_x, orig_y, r);
 	if (i==rb->selected_item) {

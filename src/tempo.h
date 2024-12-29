@@ -85,6 +85,11 @@ typedef struct metronome {
     int32_t buf_lens[2];
 } Metronome;
 
+
+enum tempo_segment_end_bound_behavior {
+    SEGMENT_FIXED_END_POS=0,
+    SEGMENT_FIXED_NUM_MEASURES=1
+};
 typedef struct tempo_track {
     TempoSegment *segments;
     uint8_t index;
@@ -113,7 +118,7 @@ typedef struct tempo_track {
     SDL_Rect *right_colorbar_rect;
 
     bool muted;
-
+    enum tempo_segment_end_bound_behavior segment_end_behavior;
 
     /* Settings GUI objs */
     char num_beats_str[3];
@@ -137,8 +142,8 @@ void tempo_track_populate_settings_tabview(TempoTrack *tt, TabView *tv);
 TempoSegment *tempo_track_add_segment(TempoTrack *t, int32_t start_pos, int16_t num_measures, int bpm, uint8_t num_beats, uint8_t *subdiv_lens);
 void tempo_segment_fprint(FILE *f, TempoSegment *s);
 
-void tempo_track_draw(TempoTrack *tt);
 int32_t tempo_track_bar_beat_subdiv(TempoTrack *tt, int32_t pos, int *bar_p, int *beat_p, int *subdiv_p, TempoSegment **segment_p, bool set_readout);
+void tempo_track_draw(TempoTrack *tt);
 /* void tempo_track_edit_segment_at_cursor(TempoTrack *tt, int num_measures, int bpm, uint8_t num_beats, uint8_t *subdiv_lens); */
 typedef struct project Project;
 

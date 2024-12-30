@@ -465,6 +465,10 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
     TempoTrack *t = calloc(1, sizeof(TempoTrack));
     t->tl = tl;
     t->metronome = &tl->proj->metronomes[0];
+    snprintf(t->num_beats_str, 3, "4");
+    for (int i=0; i<MAX_BEATS_PER_BAR; i++) {
+	snprintf(t->subdiv_len_strs[i], 2, "4");
+    }
 
     Layout *tempo_tracks_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area");
     if (!tempo_tracks_area) {
@@ -917,7 +921,7 @@ void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, bool se
 	if (set_from_cfg) {
 	    subdivs = s->cfg.beat_subdiv_lens[i];
 	} else {
-	    subdivs = 4;
+	    subdivs = atoi(tt->subdiv_len_strs[i]);
 	}
 	snprintf(tt->subdiv_len_strs[i], 2, "%d", subdivs);
 	Layout *child_l = layout_add_child(subdiv_area);

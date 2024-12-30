@@ -589,7 +589,7 @@ void user_menu_dismiss(void *nullarg)
 void user_tl_play(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    if (!proj->playing && tl->num_grabbed_clips > 0) {
+    if (proj->dragging && !proj->playing && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
     if (proj->play_speed <= 0.0f) {
@@ -636,7 +636,7 @@ void user_tl_rewind(void *nullarg)
 {
 
     Timeline *tl = ACTIVE_TL;
-    if (!proj->playing && proj->dragging && tl->num_grabbed_clips > 0) {
+    if (proj->dragging && !proj->playing && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
     if (proj->play_speed >= 0.0f) {
@@ -661,7 +661,7 @@ void user_tl_rewind(void *nullarg)
 void user_tl_play_slow(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    if (!proj->playing && proj->dragging && tl->num_grabbed_clips > 0) {
+    if (proj->dragging && !proj->playing && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
     timeline_play_speed_set(SLOW_PLAYBACK_SPEED);
@@ -673,7 +673,7 @@ void user_tl_play_slow(void *nullarg)
 void user_tl_rewind_slow(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-    if (!proj->playing && tl->num_grabbed_clips > 0) {
+    if (proj->dragging && !proj->playing && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
     timeline_play_speed_set(-1 * SLOW_PLAYBACK_SPEED);

@@ -86,7 +86,7 @@ typedef struct metronome {
 } Metronome;
 
 
-enum tempo_segment_end_bound_behavior {
+enum ts_end_bound_behavior {
     SEGMENT_FIXED_END_POS=0,
     SEGMENT_FIXED_NUM_MEASURES=1
 };
@@ -118,7 +118,7 @@ typedef struct tempo_track {
     SDL_Rect *right_colorbar_rect;
 
     bool muted;
-    enum tempo_segment_end_bound_behavior segment_end_behavior;
+    enum ts_end_bound_behavior end_bound_behavior;
 
     /* Settings GUI objs */
     char num_beats_str[3];

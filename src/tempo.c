@@ -289,7 +289,13 @@ static void tempo_segment_set_end_pos(TempoSegment *s, int32_t new_end_pos)
 	/* s->num_measures = floor(0.999999 + num_measures); */
 	/* s->end_pos = new_end_pos; */
 	/* /\* fprintf(stderr, "Num measures in int is: %d\n", s->num_measures); *\/ */
-    
+	int32_t dur_next = s->next->end_pos - s->next->start_pos;
+	s->next->start_pos = s->end_pos;
+	if (s->next->next) {
+	    s->next->end_pos = s->next->start_pos + dur_next;
+	} else {
+	    s->next->end_pos = s->next->start_pos;
+	}
 	s->next->first_measure_index = s->first_measure_index+ s->num_measures;
 	s = s->next;
 	/* fprintf(stderr, "First measure index of next one is %d + %d\n", s->first_measure_index, s->num_measures); */
@@ -612,24 +618,40 @@ void tempo_track_destroy(TempoTrack *tt)
 
 
 /* utility functions */
-static void tempo_segment_set_tempo(TempoSegment *s, unsigned int new_tempo, bool from_undo);
+/* static void tempo_segment_set_tempo(TempoSegment *s, unsigned int new_tempo, bool from_undo); */
+static void tempo_segment_set_tempo(TempoSegment *s, unsigned int new_tempo, enum ts_end_bound_behavior ebb,  bool from_undo);
 
 NEW_EVENT_FN(undo_redo_set_tempo, "undo/redo set tempo")
     TempoSegment *s = (TempoSegment *)obj1;
     int tempo = val1.int_v;
-    tempo_segment_set_tempo(s, tempo, true);
+     /* tempo_segment_set_tempo(s, tempo, true); */
 }
 
 
-static void tempo_segment_set_tempo(TempoSegment *s, unsigned int new_tempo, bool from_undo)
+static void tempo_segment_set_tempo(TempoSegment *s, unsigned int new_tempo, enum ts_end_bound_behavior ebb,  bool from_undo)
 {
     if (new_tempo == 0) {
 	status_set_errstr("Tempo cannot be 0 bpm");
     }
     int old_tempo = s->cfg.bpm;
+    float num_measures;
+    if (s->next && ebb == SEGMENT_FIXED_NUM_MEASURES) {
+	if (s->cfg.dur_sframes * s->num_measures == s->end_pos - s->start_pos) {
+	    num_measures = s->num_measures;
+	} else {
+	    num_measures = ((float)s->end_pos - s->start_pos) / s->cfg.dur_sframes;
+	}
+
+    }
     uint8_t subdiv_lens[s->cfg.num_beats];
     memcpy(subdiv_lens, s->cfg.beat_subdiv_lens, s->cfg.num_beats * sizeof(uint8_t));
     tempo_segment_set_config(s, s->num_measures, new_tempo, s->cfg.num_beats, subdiv_lens);
+
+    if (s->next && ebb == SEGMENT_FIXED_NUM_MEASURES) {
+	fprintf(stderr, "CHOOSE fixed num measures %f\n", num_measures);
+	tempo_segment_set_end_pos(s, s->start_pos + num_measures * s->cfg.dur_sframes);
+    }
+    
     s->track->tl->needs_redraw = true;
     if (!from_undo) {
 	Value old_val = {.int_v = old_tempo};
@@ -659,7 +681,7 @@ static int set_tempo_submit_form(void *mod_v, void *target)
 	if (el->type == MODAL_EL_TEXTENTRY) {
 	    char *value = ((TextEntry *)el->obj)->tb->text->value_handle;
 	    int tempo = atoi(value);
-	    tempo_segment_set_tempo(s, tempo, false);
+	    tempo_segment_set_tempo(s, tempo, s->track->end_bound_behavior, false);
 	    break;
 	}
     }
@@ -667,17 +689,10 @@ static int set_tempo_submit_form(void *mod_v, void *target)
     return 0;
 }
 
-/* static int tempo_te_action(Text *t, void *obj) */
-/* { */
-/*     Modal *mod = (Modal *)obj; */
-/*     modal_submit_form(mod); */
-/*     return 0; */
-/* } */
-
 static int tempo_rb_action(void *self, void *target)
 {
     RadioButton *rb = (RadioButton *)self;
-    enum tempo_segment_end_bound_behavior *ebb = target;
+    enum ts_end_bound_behavior *ebb = target;
     *ebb = rb->selected_item;
     return 0;
 }
@@ -712,20 +727,21 @@ void timeline_tempo_track_set_tempo_at_cursor(Timeline *tl)
     if (s->next) {
 	char opt1[64];
 	char opt2[64];
-	if (s->cfg.dur_sframes * s->num_measures == s->end_pos - s->start_pos) {
-	    snprintf(opt1, 64, "Fixed num measures (%d)", s->num_measures);
-	} else {
-	    snprintf(opt1, 64, "Fixed num measures (%f)", (float)(s->end_pos - s->start_pos)/s->cfg.dur_sframes);
-	}
 	char timestr[64];
 	timecode_str_at(tt->tl, timestr, 64, s->end_pos);
-	snprintf(opt2, 64, "Fixed end pos (%s)", timestr);
+	snprintf(opt1, 64, "Fixed end pos (%s)", timestr);
+
+	if (s->cfg.dur_sframes * s->num_measures == s->end_pos - s->start_pos) {
+	    snprintf(opt2, 64, "Fixed num measures (%d)", s->num_measures);
+	} else {
+	    snprintf(opt2, 64, "Fixed num measures (%f)", (float)(s->end_pos - s->start_pos)/s->cfg.dur_sframes);
+	}
 	char *options[] = {opt1, opt2};
 
 	el = modal_add_radio(
 	    mod,
 	    &color_global_white,
-	    &tt->segment_end_behavior,
+	    &tt->end_bound_behavior,
 	    tempo_rb_action,
 	    (const char **)options,
 	    2);	

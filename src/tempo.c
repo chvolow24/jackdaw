@@ -413,6 +413,12 @@ TempoSegment *tempo_track_add_segment_at_measure(TempoTrack *t, int16_t measure,
 /*     memcpy(tl->tempo_tracks, tempo_track_stack, sizeof(TempoTrack *) * tl->num_tempo_tracks); */
 /* } */
 
+/* void tempo_track_reset(TempoTrack *tt) */
+/* { */
+/*     layout_reset(tt->layout); */
+/*     textbox_reset(tt->readout); */
+/* } */
+
 static void tempo_track_remove(TempoTrack *tt)
 {
     Timeline *tl = tt->tl;
@@ -461,6 +467,10 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
     t->metronome = &tl->proj->metronomes[0];
 
     Layout *tempo_tracks_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area");
+    if (!tempo_tracks_area) {
+	fprintf(stderr, "Error: no tempo tracks area\n");
+	exit(1);
+    }
     /* Layout *lt = layout_read_xml_to_lt(tempo_tracks_area, TEMPO_TRACK_LT_PATH); */
     Layout *lt = layout_read_from_xml(TEMPO_TRACK_LT_PATH);
     if (tl->layout_selector >= 0) {
@@ -474,6 +484,7 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
     layout_reset(tl->layout);
     tl->needs_redraw = true;
 
+    layout_force_reset(lt);
     Layout *tb_lt = layout_get_child_by_name_recursive(t->layout, "display");
     snprintf(t->pos_str, TEMPO_POS_STR_LEN, "0.0.0:00000");
     t->readout = textbox_create_from_str(
@@ -552,7 +563,9 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
     tl->num_tempo_tracks++;
 
     timeline_rectify_track_indices(tl);
-
+    /* timeline_reset(tl, false); */
+    /* layout_force_reset(tl->layout); */
+    /* layout_reset(lt); */
     Value nullval = {.int_v = 0};
     user_event_push(
 	&proj->history,
@@ -564,7 +577,9 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
 	nullval, nullval,
 	nullval, nullval,
 	0, 0, false, false);
-	    
+    timeline_rectify_track_area(tl);
+
+    /* timeline_reset(tl, false); */
     return t;
 }
 

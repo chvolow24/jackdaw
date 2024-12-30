@@ -1865,6 +1865,9 @@ void timeline_reset(Timeline *tl, bool rescaled)
     for (int i=0; i<tl->num_tracks; i++) {
 	track_reset(tl->tracks[i], rescaled);
     }
+    /* for (int i=0; i<tl->num_tempo_tracks; i++) { */
+    /* 	tempo_track_reset(tl->tempo_tracks[i]); */
+    /* } */
     layout_reset(tl->layout);
     tl->needs_redraw = true;
 }

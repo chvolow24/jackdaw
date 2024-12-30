@@ -242,31 +242,6 @@ void loop_project_main()
 		scrolling_lt = NULL;
 		temp_scrolling_lt = NULL;
 		switch (e.key.keysym.scancode) {
-		/* case SDL_SCANCODE_2: */
-		/*     timeline_tempo_track_set_tempo_at_cursor(proj->timelines[proj->active_tl_index]); */
-		/*     break; */
-		/* case SDL_SCANCODE_5: */
-		/*     timeline_segment_at_cursor_fprint(stderr, proj->timelines[proj->active_tl_index]); */
-		/*     break; */
-		/* case SDL_SCANCODE_6: */
-		/*     timeline_add_tempo_track(proj->timelines[proj->active_tl_index]); */
-		/*     break; */
-		/* case SDL_SCANCODE_7: { */
-		/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
-		/*     timeline_increment_tempo_at_cursor(tl, -1); */
-
-		/* } */
-		/*     break; */
-		/* case SDL_SCANCODE_8: { */
-		/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
-		/*     timeline_increment_tempo_at_cursor(tl, 1); */
-		/* } */
-		/*     break; */
-		/* case SDL_SCANCODE_9: { */
-		/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
-		/*     timeline_cut_tempo_track_at_cursor(tl); */
-		/* } */
-		/*     break;    */
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LCTRL:

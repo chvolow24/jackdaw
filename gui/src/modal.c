@@ -5,6 +5,7 @@
 
 #define MODAL_V_PADDING 5
 #define MODAL_V_PADDING_TIGHT 0
+#define MODAL_V_PADDING_BUTTON 8
 #define MODAL_BOTTOM_PAD 12
 #define MODAL_FONTSIZE_H1 36
 #define MODAL_FONTSIZE_H2 24
@@ -255,6 +256,7 @@ ModalEl *modal_add_button(Modal *modal, char *text, ComponentFn action)
 {
     ModalEl *el = modal_add_el(modal);
     el->type = MODAL_EL_BUTTON;
+    el->layout->y.value = MODAL_V_PADDING_BUTTON;
     modal->selectable_indices[modal->num_selectable] = modal->num_els - 1;
     modal->num_selectable++;
     el->layout->w.type = ABS;
@@ -262,6 +264,7 @@ ModalEl *modal_add_button(Modal *modal, char *text, ComponentFn action)
     layout_center_agnostic(el->layout, true, false);
     textbox_reset_full(button->tb);
     el->obj = (void *)button;
+    modal_reset(modal);
     return el;
 }
 

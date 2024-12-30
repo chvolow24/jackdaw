@@ -10,7 +10,7 @@
 
 #define WINDOW_MAX_MODES 8
 #define WINDOW_MAX_MODALS 8
-#define WINDOW_MAX_DEFERRED_DRAW_OPS 8
+#define WINDOW_MAX_DEFERRED_DRAW_OPS 64
 
 typedef struct menu Menu;
 typedef struct modal Modal;

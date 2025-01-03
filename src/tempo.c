@@ -234,7 +234,7 @@ set_prominence_and_exit:
 
 static void tempo_segment_set_end_pos(TempoSegment *s, int32_t new_end_pos);
 
-static void tempo_segment_set_config(TempoSegment *s, int num_measures, int bpm, uint8_t num_beats, uint8_t *subdivs)
+static void tempo_segment_set_config(TempoSegment *s, int num_measures, int bpm, uint8_t num_beats, uint8_t *subdivs, enum ts_end_bound_behavior ebb)
 {
     if (num_beats > MAX_BEATS_PER_BAR) {
 	fprintf(stderr, "Error: num_beats exceeds maximum per bar (%d)\n", MAX_BEATS_PER_BAR);
@@ -243,8 +243,8 @@ static void tempo_segment_set_config(TempoSegment *s, int num_measures, int bpm,
     s->cfg.bpm = bpm;
     s->cfg.num_beats = num_beats;
 
+    int32_t old_dur_sframes = s->cfg.dur_sframes;
     double beat_dur = s->track->tl->proj->sample_rate * 60.0 / bpm;
-    
     int min_subdiv_len_atoms = 0;
     s->cfg.num_atoms = 0;
     for (int i=0; i<num_beats; i++) {
@@ -263,14 +263,32 @@ static void tempo_segment_set_config(TempoSegment *s, int num_measures, int bpm,
 				   
     s->cfg.dur_sframes = (int32_t)(round(measure_dur));
     s->cfg.atom_dur_approx = measure_dur / s->cfg.num_atoms;
-    if (num_measures > 0 && s->next) {
-	s->end_pos = s->start_pos + num_measures * s->cfg.dur_sframes;
-    } else {
+
+    if (!s->next) {
 	s->end_pos = s->start_pos;
+	s->num_measures = -1;
+    } else {
+	if (ebb == SEGMENT_FIXED_NUM_MEASURES) {
+	    float num_measures_f = ((float)s->end_pos - s->start_pos)/old_dur_sframes;
+	    int32_t end_pos = s->start_pos + num_measures_f * s->cfg.dur_sframes;
+	    tempo_segment_set_end_pos(s, end_pos);
+	} else {
+	    tempo_segment_set_end_pos (s, s->next->start_pos);
+	}
     }
-    if (s->next) {
-	tempo_segment_set_end_pos(s, s->next->start_pos);
-    }
+    /* if (s->track->end_bound_behavior == SEGMENT_FIXED_NUM_MEASURES) { */
+	
+    /* 	tempo_segment_set_end_pos(s, s->start_pos + measure_dur * s->num_measures); */
+    /* } else { */
+    /* 	if (num_measures > 0 && s->next) { */
+    /* 	    s->end_pos = s->start_pos + num_measures * s->cfg.dur_sframes; */
+    /* 	} else { */
+    /* 	    s->end_pos = s->start_pos; */
+    /* 	} */
+    /* 	if (s->next) { */
+    /* 	    tempo_segment_set_end_pos(s, s->next->start_pos); */
+    /* 	} */
+    /* } */
 }
 
 /* Calculates the new segment dur in measures and sets the first measure index of the next segment */
@@ -331,16 +349,16 @@ TempoSegment *tempo_track_add_segment(TempoTrack *t, int32_t start_pos, int16_t 
 	interrupt->next->prev = s;
 	interrupt->next = s;
 	s->prev = interrupt;
-	tempo_segment_set_config(s, num_measures, bpm, num_beats, subdiv_lens); 
+	tempo_segment_set_config(s, num_measures, bpm, num_beats, subdiv_lens, SEGMENT_FIXED_END_POS);
 	tempo_segment_set_end_pos(interrupt, start_pos);
 	tempo_segment_set_end_pos(s, s->next->start_pos);
 	return s;
-	goto set_config_and_exit;
+	/* goto set_config_and_exit; */
 	/* fprintf(stderr, "Error: cannot insert segment in the middle\n"); */
 	/* return NULL; */
     }
 set_config_and_exit:
-    tempo_segment_set_config(s, num_measures, bpm, num_beats, subdiv_lens); 
+    tempo_segment_set_config(s, num_measures, bpm, num_beats, subdiv_lens, SEGMENT_FIXED_END_POS); 
 
     /* fprintf(stderr, "DONE DONE DONE DONE now it looks like this\n"); */
     /* tempo_track_fprint(stderr, t); */
@@ -622,8 +640,9 @@ void tempo_track_destroy(TempoTrack *tt)
 static void tempo_segment_set_tempo(TempoSegment *s, unsigned int new_tempo, enum ts_end_bound_behavior ebb,  bool from_undo);
 
 NEW_EVENT_FN(undo_redo_set_tempo, "undo/redo set tempo")
-    TempoSegment *s = (TempoSegment *)obj1;
-    int tempo = val1.int_v;
+    /* TempoSegment *s = (TempoSegment *)obj1; */
+    /* int tempo = val1.int_v; */
+    
      /* tempo_segment_set_tempo(s, tempo, true); */
 }
 
@@ -645,25 +664,25 @@ static void tempo_segment_set_tempo(TempoSegment *s, unsigned int new_tempo, enu
     }
     uint8_t subdiv_lens[s->cfg.num_beats];
     memcpy(subdiv_lens, s->cfg.beat_subdiv_lens, s->cfg.num_beats * sizeof(uint8_t));
-    tempo_segment_set_config(s, s->num_measures, new_tempo, s->cfg.num_beats, subdiv_lens);
+    tempo_segment_set_config(s, s->num_measures, new_tempo, s->cfg.num_beats, subdiv_lens, ebb);
 
-    if (s->next && ebb == SEGMENT_FIXED_NUM_MEASURES) {
-	fprintf(stderr, "CHOOSE fixed num measures %f\n", num_measures);
-	tempo_segment_set_end_pos(s, s->start_pos + num_measures * s->cfg.dur_sframes);
-    }
+    /* if (s->next && ebb == SEGMENT_FIXED_NUM_MEASURES) { */
+    /* 	tempo_segment_set_end_pos(s, s->start_pos + num_measures * s->cfg.dur_sframes); */
+    /* } */
     
     s->track->tl->needs_redraw = true;
     if (!from_undo) {
 	Value old_val = {.int_v = old_tempo};
 	Value new_val = {.int_v = new_tempo};
+	Value ebb = {.int_v = (int)(s->track->end_bound_behavior)};
 	user_event_push(
 	    &proj->history,
 	    undo_redo_set_tempo,
 	    undo_redo_set_tempo,
 	    NULL, NULL,
 	    (void *)s, NULL,
-	    old_val, old_val,
-	    new_val, new_val,
+	    old_val, ebb,
+	    new_val, ebb,
 	    0, 0, false, false);
     }
 }
@@ -843,8 +862,7 @@ static int time_sig_submit_button_action(void *self, void *s_v)
     for (int i=0; i<num_beats; i++) {
 	subdivs[i] = atoi(tt->subdiv_len_strs[i]);
     }
-    tempo_segment_set_config(s, -1, s->cfg.bpm, atoi(tt->num_beats_str), subdivs);
-
+    tempo_segment_set_config(s, -1, s->cfg.bpm, atoi(tt->num_beats_str), subdivs, tt->end_bound_behavior);
     TabView *tv = main_win->active_tabview;
     tabview_close(tv);
     tt->tl->needs_redraw = true;
@@ -982,6 +1000,49 @@ void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, bool se
 	    textbox_reset_full(el->component);
 	}
     }
+
+
+
+
+
+    /* Add end-bound behavior radio */
+    if (s->next) {
+	char opt1[64];
+	char opt2[64];
+	char timestr[64];
+	timecode_str_at(tt->tl, timestr, 64, s->end_pos);
+	snprintf(opt1, 64, "Fixed end pos (%s)", timestr);
+
+	if (s->cfg.dur_sframes * s->num_measures == s->end_pos - s->start_pos) {
+	    snprintf(opt2, 64, "Fixed num measures (%d)", s->num_measures);
+	} else {
+	    snprintf(opt2, 64, "Fixed num measures (%f)", (float)(s->end_pos - s->start_pos)/s->cfg.dur_sframes);
+	}
+	char *options[] = {opt1, opt2};
+
+
+	p.radio_p.action = tempo_rb_action;
+	p.radio_p.target = (void *)&tt->end_bound_behavior;
+	p.radio_p.num_items = 2;
+	p.radio_p.text_size = 14;
+	p.radio_p.text_color = &color_global_white;
+	p.radio_p.item_names = (const char **)options;
+
+	el = page_add_el(
+	    page,
+	    EL_RADIO,
+	    p,
+	    "tempo_segment_ebb_radio",
+	    "ebb_radio"
+	    );
+
+	radio_button_set_from_target(el->component);
+	/* te->tb->text->max_len = TEMPO_STRLEN; */
+    }
+
+
+
+    /* Add submit button */
     p.button_p.action = time_sig_submit_button_action;
     p.button_p.target = (void *)s;
     p.button_p.font = main_win->std_font;
@@ -1155,7 +1216,7 @@ void timeline_increment_tempo_at_cursor(Timeline *tl, int inc_by)
     int new_tempo = s->cfg.bpm + inc_by;
     uint8_t subdiv_lens[s->cfg.num_beats];
     memcpy(subdiv_lens, s->cfg.beat_subdiv_lens, s->cfg.num_beats * sizeof(uint8_t));
-    tempo_segment_set_config(s, s->num_measures, new_tempo, s->cfg.num_beats, subdiv_lens);
+    tempo_segment_set_config(s, s->num_measures, new_tempo, s->cfg.num_beats, subdiv_lens, tt->end_bound_behavior);
     tl->needs_redraw = true;
 }
 

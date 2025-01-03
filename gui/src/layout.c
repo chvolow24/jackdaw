@@ -104,12 +104,21 @@ static Layout *get_last_sibling(Layout *lt)
 {
     Layout *ret = NULL;
     int index = lt->index - 1;
+    /* fprintf(stderr, "INDEX at top: %d\n", index); */
     if (lt->parent && index >= 0) {
 	while (index > 0 && lt->parent->children[index] == PRGRM_INTERNAL) {
 	    index--;
+	    /* fprintf(stderr, "\tIndex %d\n", index); */
 	}
 	ret = lt->parent->children[index];
+	
     }
+    /* if (ret) { */
+    /* 	fprintf(stderr, "Last sibling of %s: %s\n", lt->name, ret->name); */
+	
+    /* } else { */
+    /* 	fprintf(stderr, "Last sibling of %s: %p\n", lt->name, ret); */
+    /* } */
     return ret;
 }
 
@@ -1108,7 +1117,14 @@ Layout *layout_add_child(Layout *parent)
     Layout *child = layout_create();
     child->parent = parent;
     parent->children[parent->num_children] = child;
-    child->index = parent->num_children;
+    int index = 0;
+    for (int i=0; i<parent->num_children; i++) {
+	if (parent->children[i]->type != PRGRM_INTERNAL) {
+	    index++;
+	}
+    }
+    child->index = index;
+    /* fprintf(stderr, "ADDING CHILD w index %d\n", index); */
     parent->num_children++;
     snprintf(child->name, 32, "%s_child%d", parent->name, parent->num_children);
     // fprintf(stderr, "\t->done add child\n");

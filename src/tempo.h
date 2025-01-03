@@ -139,7 +139,7 @@ bool timeline_tempo_track_delete(Timeline *tl);
 void tempo_track_populate_settings_tabview(TempoTrack *tt, TabView *tv);
 /*********************/
 /* void tempo_track_reset(TempoTrack *tt); */
-TempoSegment *tempo_track_add_segment(TempoTrack *t, int32_t start_pos, int16_t num_measures, int bpm, uint8_t num_beats, uint8_t *subdiv_lens);
+/* TempoSegment *tempo_track_add_segment(TempoTrack *t, int32_t start_pos, int16_t num_measures, int bpm, uint8_t num_beats, uint8_t *subdiv_lens); */
 void tempo_segment_fprint(FILE *f, TempoSegment *s);
 
 int32_t tempo_track_bar_beat_subdiv(TempoTrack *tt, int32_t pos, int *bar_p, int *beat_p, int *subdiv_p, TempoSegment **segment_p, bool set_readout);

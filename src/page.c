@@ -679,8 +679,8 @@ void tabview_draw(TabView *tv)
 	    page_draw(tv->tabs[i]);
 	}
 	tabview_draw_inner(tv, i);
-
     }
+    /* layout_draw(main_win, tv->layout); */
 
     /* page = tv->tabs[tv->current_tab]; */
     /* tb = tv->labels[tv->current_tab]; */

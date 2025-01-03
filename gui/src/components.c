@@ -39,8 +39,7 @@ SDL_Color tgl_bckgrnd = {110, 110, 110, 255};
 
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_clear;
-
-
+extern SDL_Color color_global_grey;
 /* Slider fslider_create(Layout *layout, SliderOrientation orientation, SliderType type, SliderStrFn *fn) */
 Slider *slider_create(
     Layout *layout,
@@ -617,6 +616,8 @@ void radio_button_draw(RadioButton *rb)
 	int orig_y = circle_container->rect.y + RADIO_BUTTON_RAD_PAD;
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(slider_bar_container_bckgrnd));
 	geom_fill_circle(main_win->rend, orig_x, orig_y, r);
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_grey));
+	geom_draw_circle(main_win->rend, orig_x, orig_y, r);
 	if (i==rb->selected_item) {
 	    r -= RADIO_BUTTON_RAD_PAD;
 	    orig_x += RADIO_BUTTON_RAD_PAD;

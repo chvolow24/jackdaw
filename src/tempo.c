@@ -351,7 +351,7 @@ TempoSegment *tempo_track_add_segment(TempoTrack *t, int32_t start_pos, int16_t 
 	s->prev = interrupt;
 	tempo_segment_set_config(s, num_measures, bpm, num_beats, subdiv_lens, SEGMENT_FIXED_END_POS);
 	tempo_segment_set_end_pos(interrupt, start_pos);
-	tempo_segment_set_end_pos(s, s->next->start_pos);
+	/* tempo_segment_set_end_pos(s, s->next->start_pos); */
 	return s;
 	/* goto set_config_and_exit; */
 	/* fprintf(stderr, "Error: cannot insert segment in the middle\n"); */
@@ -640,10 +640,10 @@ void tempo_track_destroy(TempoTrack *tt)
 static void tempo_segment_set_tempo(TempoSegment *s, unsigned int new_tempo, enum ts_end_bound_behavior ebb,  bool from_undo);
 
 NEW_EVENT_FN(undo_redo_set_tempo, "undo/redo set tempo")
-    /* TempoSegment *s = (TempoSegment *)obj1; */
-    /* int tempo = val1.int_v; */
-    
-     /* tempo_segment_set_tempo(s, tempo, true); */
+    TempoSegment *s = (TempoSegment *)obj1;
+    int tempo = val1.int_v;
+    enum ts_end_bound_behavior ebb = (enum ts_end_bound_behavior)val2.int_v;
+    tempo_segment_set_tempo(s, tempo, ebb, true);
 }
 
 
@@ -653,15 +653,15 @@ static void tempo_segment_set_tempo(TempoSegment *s, unsigned int new_tempo, enu
 	status_set_errstr("Tempo cannot be 0 bpm");
     }
     int old_tempo = s->cfg.bpm;
-    float num_measures;
-    if (s->next && ebb == SEGMENT_FIXED_NUM_MEASURES) {
-	if (s->cfg.dur_sframes * s->num_measures == s->end_pos - s->start_pos) {
-	    num_measures = s->num_measures;
-	} else {
-	    num_measures = ((float)s->end_pos - s->start_pos) / s->cfg.dur_sframes;
-	}
+    /* float num_measures; */
+    /* if (s->next && ebb == SEGMENT_FIXED_NUM_MEASURES) { */
+    /* 	if (s->cfg.dur_sframes * s->num_measures == s->end_pos - s->start_pos) { */
+    /* 	    num_measures = s->num_measures; */
+    /* 	} else { */
+    /* 	    num_measures = ((float)s->end_pos - s->start_pos) / s->cfg.dur_sframes; */
+    /* 	} */
 
-    }
+    /* } */
     uint8_t subdiv_lens[s->cfg.num_beats];
     memcpy(subdiv_lens, s->cfg.beat_subdiv_lens, s->cfg.num_beats * sizeof(uint8_t));
     tempo_segment_set_config(s, s->num_measures, new_tempo, s->cfg.num_beats, subdiv_lens, ebb);
@@ -854,7 +854,6 @@ static int num_beats_completion(Text *txt, void *s_v)
 static int time_sig_submit_button_action(void *self, void *s_v)
 {
     TempoSegment *s = (TempoSegment *)s_v;
-
     TempoTrack *tt = s->track;
 
     int num_beats = atoi(tt->num_beats_str);
@@ -867,6 +866,44 @@ static int time_sig_submit_button_action(void *self, void *s_v)
     tabview_close(tv);
     tt->tl->needs_redraw = true;
     return 0;
+}
+
+static void draw_time_sig(void *tt_v, void *rect_v)
+{
+    TempoTrack *tt = (TempoTrack *)tt_v;
+    SDL_Rect *rect = (SDL_Rect *)rect_v;
+    int num_beats = atoi(tt->num_beats_str);
+    int subdivs[num_beats];
+    int num_atoms = 0;
+    for (int i=0; i<num_beats; i++) {
+	subdivs[i] = atoi(tt->subdiv_len_strs[i]);
+	num_atoms += subdivs[i];
+    }
+    SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255);
+    SDL_RenderDrawLine(main_win->rend, rect->x, rect->y + rect->h, rect->x + rect->w, rect->y + rect->h);
+    SDL_RenderDrawLine(main_win->rend, rect->x, rect->y, rect->x, rect->y + rect->h);
+    SDL_RenderDrawLine(main_win->rend, rect->x + rect->w, rect->y, rect->x + rect->w, rect->y + rect->h);
+    int beat_i = 0;
+    int subdiv_i = 1;
+    for (int i=1; i<num_atoms; i++) {
+	int x = rect->x + rect->w * i / num_atoms;
+	float h_prop = 0.75;
+	if (subdiv_i != 0) {
+	    if (subdivs[beat_i] % 2 == 0 && subdiv_i % 2 == 0) {
+		h_prop = 0.4;
+	    } else {
+		h_prop = 0.2;
+	    }
+	}
+	SDL_RenderDrawLine(main_win->rend, x, rect->y + rect->h, x, rect->y + rect->h - rect->h * h_prop);
+	if (subdiv_i >= subdivs[beat_i] - 1) {
+	    subdiv_i = 0;
+	    beat_i++;
+	} else {
+	    subdiv_i++;
+	}
+
+    }
 }
 
 void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, bool set_from_cfg)
@@ -1002,6 +1039,19 @@ void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, bool se
     }
 
 
+    /* Add canvas */
+    Layout *time_sig_area = layout_get_child_by_name_recursive(page->layout, "time_signature_area");
+    Layout *canvas_lt = layout_get_child_by_name_recursive(time_sig_area, "time_sig_canvas");
+    p.canvas_p.draw_fn = draw_time_sig;
+    p.canvas_p.draw_arg1 = (void *)tt;
+    p.canvas_p.draw_arg2 = (void *)&canvas_lt->rect;
+    el = page_add_el(
+	page,
+	EL_CANVAS,
+	p,
+	"time_sig_canvas",
+	"time_sig_canvas"
+	);
 
 
 
@@ -1037,8 +1087,14 @@ void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, bool se
 	    );
 
 	radio_button_set_from_target(el->component);
+	layout_reset(el->layout);
+	layout_size_to_fit_children_v(el->layout, true, 0);
+	layout_reset(el->layout);
 	/* te->tb->text->max_len = TEMPO_STRLEN; */
     }
+
+
+    layout_size_to_fit_children_v(time_sig_area, true, 0);
 
 
 

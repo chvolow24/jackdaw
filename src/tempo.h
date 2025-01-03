@@ -122,6 +122,7 @@ typedef struct tempo_track {
 
     /* Settings GUI objs */
     char num_beats_str[3];
+    char tempo_str[5];
     char subdiv_len_strs[MAX_BEATS_PER_BAR][2];
     
 } TempoTrack;

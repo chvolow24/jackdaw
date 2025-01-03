@@ -857,11 +857,12 @@ static int time_sig_submit_button_action(void *self, void *s_v)
     TempoTrack *tt = s->track;
 
     int num_beats = atoi(tt->num_beats_str);
+    int tempo = atoi(tt->tempo_str);
     uint8_t subdivs[num_beats];
     for (int i=0; i<num_beats; i++) {
 	subdivs[i] = atoi(tt->subdiv_len_strs[i]);
     }
-    tempo_segment_set_config(s, -1, s->cfg.bpm, atoi(tt->num_beats_str), subdivs, tt->end_bound_behavior);
+    tempo_segment_set_config(s, -1, tempo, atoi(tt->num_beats_str), subdivs, tt->end_bound_behavior);
     TabView *tv = main_win->active_tabview;
     tabview_close(tv);
     tt->tl->needs_redraw = true;
@@ -927,13 +928,6 @@ void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, bool se
     layout_force_reset(page->layout);
 
     PageElParams p;
-
-    /* p.textbox_p.font = main_win->mono_bold_font; */
-    /* p.textbox_p.text_size = 14; */
-    /* p.textbox_p.set_str = "Tempo track settings"; */
-    /* p.textbox_p.win = page->win; */
-    /* PageEl *el = page_add_el(page, EL_TEXTBOX, p, "tempo_track_settings_title", "info"); */
-    /* textbox_set_align((Textbox *)el->component, CENTER_LEFT); */
     
     TempoSegment *s = tempo_track_get_segment_at_pos(tt, tt->tl->play_pos_sframes);
     p.textbox_p.font = main_win->bold_font;
@@ -948,6 +942,12 @@ void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, bool se
 
     p.textbox_p.set_str = "Subdivisions:";
     el = page_add_el(page, EL_TEXTBOX, p, "", "beat_subdiv_label");
+    tb = (Textbox *)el->component;
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+
+    p.textbox_p.set_str = "Tempo (bpm):";
+    el = page_add_el(page, EL_TEXTBOX, p, "", "tempo_label");
     tb = (Textbox *)el->component;
     textbox_set_align(tb, CENTER_LEFT);
     textbox_reset_full(tb);
@@ -978,8 +978,7 @@ void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, bool se
     /* p.textbox_p.font = main_win->std_font; */
     el = page_add_el(page, EL_TEXTENTRY, p, "tempo_segment_num_beats_value", "num_beats_value");
     Layout *num_beats_lt = el->layout;
-    /* num_beats_lt->w.value = 50; */
-    layout_size_to_fit_children_v(num_beats_lt, false, 2);
+    layout_size_to_fit_children_v(num_beats_lt, false, 1);
     layout_center_agnostic(num_beats_lt, false, true);
     textentry_reset(el->component);
     /* TextEntry *num_beats_te = el->component; */
@@ -1054,6 +1053,31 @@ void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, bool se
 	);
 
 
+        /* Add tempo */
+    snprintf(tt->tempo_str, 5, "%d", s->cfg.bpm);
+    p.textentry_p.font = main_win->bold_font;
+    p.textentry_p.text_size = 14;
+    p.textentry_p.value_handle = tt->tempo_str;
+    p.textentry_p.buf_len = 5;
+    p.textentry_p.validation = txt_integer_validation;
+    p.textentry_p.completion = NULL;
+    /* p.textentry_p.completion = num_beats_completion; */
+    /* p.textentry_p.completion_target = (void *)s; */
+    /* p.textbox_p.set_str = tt->num_beats_str; */
+    /* p.textbox_p.font = main_win->std_font; */
+    el = page_add_el(page, EL_TEXTENTRY, p, "tempo_value", "tempo_value");
+    Layout *tempo_lt = el->layout;
+    /* tempo_lt->w.value = 50; */
+    layout_size_to_fit_children_v(tempo_lt, false, 1);
+    layout_center_agnostic(tempo_lt, false, true);
+    /* /\* num_beats_lt->w.value = 50; *\/ */
+    /* layout_size_to_fit_children_v(num_beats_lt, false, 2); */
+    /* layout_center_agnostic(num_beats_lt, false, true); */
+    textentry_reset(el->component);
+    
+
+
+
 
     /* Add end-bound behavior radio */
     if (s->next) {
@@ -1069,7 +1093,6 @@ void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, bool se
 	    snprintf(opt2, 64, "Fixed num measures (%f)", (float)(s->end_pos - s->start_pos)/s->cfg.dur_sframes);
 	}
 	char *options[] = {opt1, opt2};
-
 
 	p.radio_p.action = tempo_rb_action;
 	p.radio_p.target = (void *)&tt->end_bound_behavior;
@@ -1089,15 +1112,15 @@ void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, bool se
 	radio_button_set_from_target(el->component);
 	layout_reset(el->layout);
 	layout_size_to_fit_children_v(el->layout, true, 0);
-	layout_reset(el->layout);
+	layout_force_reset(el->layout);
 	/* te->tb->text->max_len = TEMPO_STRLEN; */
     }
 
 
+    /* layout_force_reset(page->layout); */
+
     layout_size_to_fit_children_v(time_sig_area, true, 0);
-
-
-
+    
     /* Add submit button */
     p.button_p.action = time_sig_submit_button_action;
     p.button_p.target = (void *)s;
@@ -1619,7 +1642,7 @@ void tempo_track_mix_metronome(TempoTrack *tt, float *mixdown_buf, int32_t mixdo
 {
     if (tt->muted) return;
     if (step < 0.0) return;
-    if (step > 4.0) return;
+    /* if (step > 10.0) return; */
     /* fprintf(stderr, "TEMPO TRACK MIX METRONOME\n"); */
     /* clock_t start = clock(); */
     int bar, beat, subdiv;

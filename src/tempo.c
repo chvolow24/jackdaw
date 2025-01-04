@@ -832,15 +832,18 @@ bool timeline_tempo_track_delete(Timeline *tl)
 }
 
 
-void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, bool set_from_cfg);
+static void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, bool set_from_cfg);
 static void reset_settings_page(TempoSegment *s, TabView *tv)
 {
     TempoTrack *tt = s->track;
     tempo_track_populate_settings_internal(tt, tv, false);
 }
 
+txt_int_range_completion(1, 13)
 static int num_beats_completion(Text *txt, void *s_v)
 {
+
+    txt_int_range_completion_1_13(txt, NULL);
     TabView *tv = main_win->active_tabview;
     if (!tv) {
 	fprintf(stderr, "Error: no tabview on num beats completion\n");
@@ -848,7 +851,6 @@ static int num_beats_completion(Text *txt, void *s_v)
     }
     reset_settings_page(s_v, tv);
     return 0;
-
 }
 
 static int time_sig_submit_button_action(void *self, void *s_v)
@@ -907,8 +909,15 @@ static void draw_time_sig(void *tt_v, void *rect_v)
     }
 }
 
-void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, bool set_from_cfg)
+/* txt_int_validation_range(txt, input, 1, 9) */
+/* txt_int_validation_range(txt, input, 1, 13) */
+txt_int_range_completion(1, 9)
+
+static void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, bool set_from_cfg)
 {
+
+    TempoSegment *s = tempo_track_get_segment_at_pos(tt, tt->tl->play_pos_sframes);
+    
     static SDL_Color page_colors[] = {
 	{40, 40, 80, 255},
 	{50, 50, 80, 255},
@@ -928,9 +937,8 @@ void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, bool se
     layout_force_reset(page->layout);
 
     PageElParams p;
-    
-    TempoSegment *s = tempo_track_get_segment_at_pos(tt, tt->tl->play_pos_sframes);
-    p.textbox_p.font = main_win->bold_font;
+
+    p.textbox_p.font = main_win->mono_font;
     p.textbox_p.text_size = 14;
     p.textbox_p.set_str = "Num beats:";
     p.textbox_p.win = page->win;
@@ -1010,7 +1018,12 @@ void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, bool se
 	p.textentry_p.value_handle = tt->subdiv_len_strs[i];
 	p.textentry_p.buf_len = 2;
 	p.textentry_p.text_size = 14;
-	p.textentry_p.completion = NULL;
+	/* p.textentry_p.completion = subdiv_completion; */
+	/* p.textentry_p.completion_target = ; */
+	/* p.textentry_p.validation = txt_int_validation_range_1_9; */
+	p.textentry_p.validation = txt_integer_validation;
+	p.textentry_p.completion = txt_int_range_completion_1_9;
+	p.textentry_p.completion_target = NULL;
 	el = page_add_el(page, EL_TEXTENTRY, p, "", name);
 	/* layout_size_to_fit_children_v(el->layout, false, 2); */
 	/* layout_center_agnostic(el->layout, false, true); */
@@ -1124,7 +1137,7 @@ void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, bool se
     /* Add submit button */
     p.button_p.action = time_sig_submit_button_action;
     p.button_p.target = (void *)s;
-    p.button_p.font = main_win->std_font;
+    p.button_p.font = main_win->mono_font;
     p.button_p.text_color = &color_global_white;
     p.button_p.text_size = 14;
     p.button_p.background_color = &color_global_quickref_button_blue;
@@ -1207,19 +1220,6 @@ void timeline_tempo_track_edit(Timeline *tl)
 
 static void simple_tempo_segment_remove(TempoSegment *s)
 {
-    /* fprintf(stderr, "SEGMENT REMOVE %p\n", s); */
-    /* TempoSegment *test = s->track->segments; */
-    /* while (test) { */
-    /* 	fprintf(stderr, "\t%p", test); */
-    /* 	if (test == s) { */
-    /* 	    fprintf( stderr, " <---\n"); */
-    /* 	} else { */
-    /* 	    fprintf(stderr, "\n"); */
-    /* 	} */
-    /* 	test = test->next; */
-    /* } */
-    /* fprintf(stderr, "Before:\n"); */
-    /* tempo_track_fprint(stderr, s->track); */
     TempoTrack *tt = s->track;
     if (s->prev) {
 	s->prev->next = s->next;
@@ -1395,7 +1395,6 @@ void timeline_goto_prox_beat(Timeline *tl, int direction, enum beat_prominence b
 
 static void tempo_track_deferred_draw(void *tempo_track_v)
 {
-    
     TempoTrack *tt = (TempoTrack *)tempo_track_v;
     SDL_Rect *audio_rect = tt->tl->proj->audio_rect;
     /* SDL_Rect cliprect = *audio_rect; */
@@ -1407,7 +1406,6 @@ static void tempo_track_deferred_draw(void *tempo_track_v)
 	slider_draw(tt->metronome_vol_slider);
 	SDL_RenderSetClipRect(main_win->rend, NULL);
     }
-
 }
 
 void tempo_track_draw(TempoTrack *tt)

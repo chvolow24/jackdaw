@@ -71,7 +71,7 @@
                                         <Layout name="beat_subdiv_label" type="NORMAL">
                                             <x>REL 0</x>
                                             <y>REL 0</y>
-                                            <w>REL 100</w>
+                                            <w>REL 120</w>
                                             <h>REL 38</h>
                                             <children>
                                             </children>
@@ -89,8 +89,8 @@
                                 <Layout name="time_sig_canvas" type="NORMAL">
                                     <x>REL 0</x>
                                     <y>STACK 10</y>
-                                    <w>SCALE 0.750000</w>
-                                    <h>REL 74</h>
+                                    <w>SCALE 0.60000</w>
+                                    <h>REL 60</h>
                                     <children>
                                     </children>
                                 </Layout>
@@ -103,7 +103,7 @@
                                         <Layout name="tempo_label" type="NORMAL">
                                             <x>REL 0</x>
                                             <y>REL 0</y>
-                                            <w>REL 100</w>
+                                            <w>REL 120</w>
                                             <h>REL 38</h>
                                             <children>
                                             </children>

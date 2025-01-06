@@ -832,11 +832,13 @@ bool timeline_tempo_track_delete(Timeline *tl)
 }
 
 
-static void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, bool set_from_cfg);
-static void reset_settings_page(TempoSegment *s, TabView *tv)
+static void tempo_track_populate_settings_internal(TempoSegment *s, TabView *tv, bool set_from_cfg);
+static void reset_settings_page_subdivs(TempoSegment *s, TabView *tv, const char *selected_el_id)
 {
-    TempoTrack *tt = s->track;
-    tempo_track_populate_settings_internal(tt, tv, false);
+    /* TempoTrack *tt = s->track; */
+    tempo_track_populate_settings_internal(s, tv, false);
+    Page *p = tv->tabs[0];
+    page_select_el_by_id(p, selected_el_id);
 }
 
 txt_int_range_completion(1, 13)
@@ -849,7 +851,10 @@ static int num_beats_completion(Text *txt, void *s_v)
 	fprintf(stderr, "Error: no tabview on num beats completion\n");
 	exit(1);
     }
-    reset_settings_page(s_v, tv);
+    TempoSegment *s = (TempoSegment *)s_v;
+    if (atoi(txt->display_value) != s->cfg.num_beats) {
+	reset_settings_page_subdivs(s_v, tv, "tempo_segment_num_beats_value");
+    }
     return 0;
 }
 
@@ -913,10 +918,32 @@ static void draw_time_sig(void *tt_v, void *rect_v)
 /* txt_int_validation_range(txt, input, 1, 13) */
 txt_int_range_completion(1, 9)
 
-static void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, bool set_from_cfg)
+static int segment_next_action(void *self, void *targ)
+{
+    TempoSegment *s = (TempoSegment *)targ;
+    tempo_track_populate_settings_internal(s->next, main_win->active_tabview, true);
+    Page *p = main_win->active_tabview->tabs[0];
+    page_select_el_by_id(p, "segment_right");
+
+    /* reset_settings_page_subdivs(s->next, main_win->active_tabview, "segment_right"); */
+    return 0;
+}
+
+static int segment_prev_action(void *self, void *targ)
+{
+    TempoSegment *s = (TempoSegment *)targ;
+    tempo_track_populate_settings_internal(s->prev, main_win->active_tabview, true);
+    Page *p = main_win->active_tabview->tabs[0];
+    page_select_el_by_id(p, "segment_left");
+    /* reset_settings_page_subdivs(s->prev, main_win->active_tabview, "segment_left"); */
+    return 0;
+}
+
+static void tempo_track_populate_settings_internal(TempoSegment *s, TabView *tv, bool set_from_cfg)
 {
 
-    TempoSegment *s = tempo_track_get_segment_at_pos(tt, tt->tl->play_pos_sframes);
+    TempoTrack *tt = s->track;
+    /* TempoSegment *s = tempo_track_get_segment_at_pos(tt, tt->tl->play_pos_sframes); */
     
     static SDL_Color page_colors[] = {
 	{40, 40, 80, 255},
@@ -938,24 +965,70 @@ static void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, 
 
     PageElParams p;
 
+    char label[255];
+    if (s->next) {	
+	snprintf(label, 255, "Segment from m%d to m%d", s->first_measure_index, s->next->first_measure_index);
+    } else {
+	snprintf(label, 255, "Segment from m%d to ∞", s->first_measure_index);
+    }
+    /* timecode_str_at(tt->tl, label + offset, 255 - offset, s->start_pos); */
+    
+    /* offset = strlen(label); */
+    /* offset += snprintf(label + offset, 255 - offset, " - "); */
+    /* timecode_str_at(tt->tl, label + offset, 255 - offset, s->end_pos); */
+
+    p.textbox_p.font = main_win->mono_bold_font;
+    p.textbox_p.text_size = 16;
+    p.textbox_p.set_str = label;
+    p.textbox_p.win = page->win;
+
+    PageEl *el = page_add_el(page, EL_TEXTBOX, p, "", "segment_label");
+    Textbox *tb = (Textbox *)el->component;
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+    layout_size_to_fit_children_h(el->layout, true, 0);
+
+    /* Add next/previous segment navigators */
+    if (s->prev || s->next) {
+	p.button_p.font = main_win->mono_font;
+	p.button_p.win = page->win;
+	p.button_p.target = NULL;
+	p.button_p.text_color = &color_global_white;
+	p.button_p.text_size = 16;
+	p.button_p.background_color = &color_global_quickref_button_blue;
+	p.button_p.target = s;
+
+    }
+    if (s->prev) {
+	p.button_p.set_str = "←";
+	p.button_p.action = segment_prev_action;
+	page_add_el(page, EL_BUTTON, p, "segment_left", "segment_left");
+
+    }
+    if (s->next) {
+	p.button_p.set_str = "→";
+	p.button_p.action = segment_next_action;
+	page_add_el(page, EL_BUTTON, p, "segment_right", "segment_right");
+    }
+    
     p.textbox_p.font = main_win->mono_font;
-    p.textbox_p.text_size = 14;
+    p.textbox_p.text_size = 16;
     p.textbox_p.set_str = "Num beats:";
     p.textbox_p.win = page->win;
 
-    PageEl *el = page_add_el(page, EL_TEXTBOX, p, "", "num_beats_label");
-    Textbox *tb = (Textbox *)el->component;
+    el = page_add_el(page, EL_TEXTBOX, p, "num_beats_label", "num_beats_label");
+    tb = (Textbox *)el->component;
     textbox_set_align(tb, CENTER_LEFT);
     textbox_reset_full(tb);
 
     p.textbox_p.set_str = "Subdivisions:";
-    el = page_add_el(page, EL_TEXTBOX, p, "", "beat_subdiv_label");
+    el = page_add_el(page, EL_TEXTBOX, p, "beat_subdiv_label", "beat_subdiv_label");
     tb = (Textbox *)el->component;
     textbox_set_align(tb, CENTER_LEFT);
     textbox_reset_full(tb);
 
     p.textbox_p.set_str = "Tempo (bpm):";
-    el = page_add_el(page, EL_TEXTBOX, p, "", "tempo_label");
+    el = page_add_el(page, EL_TEXTBOX, p, "tempo_label", "tempo_label");
     tb = (Textbox *)el->component;
     textbox_set_align(tb, CENTER_LEFT);
     textbox_reset_full(tb);
@@ -976,7 +1049,7 @@ static void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, 
 	status_set_errstr(errstr);
     }
     p.textentry_p.font = main_win->bold_font;
-    p.textentry_p.text_size = 14;
+    p.textentry_p.text_size = 16;
     p.textentry_p.value_handle = tt->num_beats_str;
     p.textentry_p.buf_len = 3;
     p.textentry_p.validation = txt_integer_validation;
@@ -1017,14 +1090,13 @@ static void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, 
 	
 	p.textentry_p.value_handle = tt->subdiv_len_strs[i];
 	p.textentry_p.buf_len = 2;
-	p.textentry_p.text_size = 14;
-	/* p.textentry_p.completion = subdiv_completion; */
-	/* p.textentry_p.completion_target = ; */
-	/* p.textentry_p.validation = txt_int_validation_range_1_9; */
+	p.textentry_p.text_size = 16;
 	p.textentry_p.validation = txt_integer_validation;
 	p.textentry_p.completion = txt_int_range_completion_1_9;
 	p.textentry_p.completion_target = NULL;
-	el = page_add_el(page, EL_TEXTENTRY, p, "", name);
+	char buf[255];
+	snprintf(buf, 255, "beat_%d_subdiv_len", i);
+	el = page_add_el(page, EL_TEXTENTRY, p, buf, name);
 	/* layout_size_to_fit_children_v(el->layout, false, 2); */
 	/* layout_center_agnostic(el->layout, false, true); */
 
@@ -1066,10 +1138,10 @@ static void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, 
 	);
 
 
-        /* Add tempo */
+    /* Add tempo */
     snprintf(tt->tempo_str, 5, "%d", s->cfg.bpm);
     p.textentry_p.font = main_win->bold_font;
-    p.textentry_p.text_size = 14;
+    p.textentry_p.text_size = 16;
     p.textentry_p.value_handle = tt->tempo_str;
     p.textentry_p.buf_len = 5;
     p.textentry_p.validation = txt_integer_validation;
@@ -1082,7 +1154,7 @@ static void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, 
     Layout *tempo_lt = el->layout;
     /* tempo_lt->w.value = 50; */
     layout_size_to_fit_children_v(tempo_lt, false, 1);
-    layout_center_agnostic(tempo_lt, false, true);
+    /* layout_center_agnostic(tempo_lt, false, true); */
     /* /\* num_beats_lt->w.value = 50; *\/ */
     /* layout_size_to_fit_children_v(num_beats_lt, false, 2); */
     /* layout_center_agnostic(num_beats_lt, false, true); */
@@ -1110,7 +1182,7 @@ static void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, 
 	p.radio_p.action = tempo_rb_action;
 	p.radio_p.target = (void *)&tt->end_bound_behavior;
 	p.radio_p.num_items = 2;
-	p.radio_p.text_size = 14;
+	p.radio_p.text_size = 16;
 	p.radio_p.text_color = &color_global_white;
 	p.radio_p.item_names = (const char **)options;
 
@@ -1139,7 +1211,7 @@ static void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, 
     p.button_p.target = (void *)s;
     p.button_p.font = main_win->mono_font;
     p.button_p.text_color = &color_global_white;
-    p.button_p.text_size = 14;
+    p.button_p.text_size = 16;
     p.button_p.background_color = &color_global_quickref_button_blue;
     p.button_p.win = main_win;
     p.button_p.set_str = "Submit";
@@ -1150,12 +1222,14 @@ static void tempo_track_populate_settings_internal(TempoTrack *tt, TabView *tv, 
 	"time_signature_submit_button",
 	"time_signature_submit");
     textbox_reset_full(((Button *)el->component)->tb);
+    page_reset(page);
 	
 }
 
 void tempo_track_populate_settings_tabview(TempoTrack *tt, TabView *tv)
 {
-    tempo_track_populate_settings_internal(tt, tv, true);
+    TempoSegment *s = tempo_track_get_segment_at_pos(tt, tt->tl->play_pos_sframes);
+    tempo_track_populate_settings_internal(s, tv, true);
 }
 
 void timeline_tempo_track_edit(Timeline *tl)

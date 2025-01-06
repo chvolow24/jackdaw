@@ -882,6 +882,18 @@ PageEl *page_get_el_by_id(Page *page, const char *id)
     return el;
 }
 
+void page_select_el_by_id(Page *page, const char *id)
+{
+    while (strcmp(page->selectable_els[page->selected_i]->id, id) != 0) {
+	page->selected_i++;
+	if (page->selected_i >= page->num_selectable) {
+	    page->selected_i = 0;
+	    break;
+	}
+    }
+}
+
+
 void tabview_clear_all_contents(TabView *tv)
 {
     for (int i=0; i<tv->num_tabs; i++) {
@@ -890,6 +902,7 @@ void tabview_clear_all_contents(TabView *tv)
     }
     tv->num_tabs = 0;
     /* tv->current_tab = 0; */
-    
 }
+
+
     

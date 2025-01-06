@@ -5,8 +5,8 @@
     <h>SCALE 1.000000</h>
     <children>
         <Layout name="padded" type="NORMAL">
-            <x>REL 60</x>
-            <y>REL 22</y>
+            <x>REL 40</x>
+            <y>REL 14</y>
             <w>PAD 0</w>
             <h>PAD 0</h>
             <children>
@@ -24,6 +24,38 @@
                     <w>SCALE 1.000000</w>
                     <h>REL 50</h>
                     <children>
+                        <Layout name="segment_selector_padded" type="NORMAL">
+                            <x>REL 0</x>
+                            <y>REL 10</y>
+                            <w>SCALE 1.000000</w>
+                            <h>PAD 1</h>
+                            <children>
+                                <Layout name="segment_label" type="NORMAL">
+                                    <x>STACK 0</x>
+                                    <y>REL 0</y>
+                                    <w>REL 500</w>
+                                    <h>REL 30</h>
+                                    <children>
+                                    </children>
+                                </Layout>
+                                <Layout name="segment_left" type="NORMAL">
+                                    <x>STACK 20</x>
+                                    <y>REL 0</y>
+                                    <w>REL 0</w>
+                                    <h>REL 30</h>
+                                    <children>
+                                    </children>
+                                </Layout>
+                                <Layout name="segment_right" type="NORMAL">
+                                    <x>STACK 20</x>
+                                    <y>REL 0</y>
+                                    <w>REL 0</w>
+                                    <h>REL 30</h>
+                                    <children>
+                                    </children>
+                                </Layout>
+                            </children>
+                        </Layout>
                     </children>
                 </Layout>
                 <Layout name="segment_info" type="NORMAL">
@@ -41,7 +73,7 @@
                                 <Layout name="num_beats" type="NORMAL">
                                     <x>REL 0</x>
                                     <y>REL 0</y>
-                                    <w>REL 267</w>
+                                    <w>REL 140</w>
                                     <h>REL 38</h>
                                     <children>
                                         <Layout name="num_beats_label" type="NORMAL">
@@ -71,7 +103,7 @@
                                         <Layout name="beat_subdiv_label" type="NORMAL">
                                             <x>REL 0</x>
                                             <y>REL 0</y>
-                                            <w>REL 120</w>
+                                            <w>REL 140</w>
                                             <h>REL 38</h>
                                             <children>
                                             </children>
@@ -87,14 +119,14 @@
                                     </children>
                                 </Layout>
                                 <Layout name="time_sig_canvas" type="NORMAL">
-                                    <x>REL 0</x>
+                                    <x>REL 50</x>
                                     <y>STACK 10</y>
-                                    <w>SCALE 0.60000</w>
+                                    <w>SCALE 0.600000</w>
                                     <h>REL 60</h>
                                     <children>
                                     </children>
                                 </Layout>
-				<Layout name="tempo" type="NORMAL">
+                                <Layout name="tempo" type="NORMAL">
                                     <x>REL 0</x>
                                     <y>STACK 20</y>
                                     <w>SCALE 1.000000</w>
@@ -103,13 +135,13 @@
                                         <Layout name="tempo_label" type="NORMAL">
                                             <x>REL 0</x>
                                             <y>REL 0</y>
-                                            <w>REL 120</w>
+                                            <w>REL 140</w>
                                             <h>REL 38</h>
                                             <children>
                                             </children>
                                         </Layout>
                                         <Layout name="tempo_value" type="NORMAL">
-                                            <x>REL 140</x>
+                                            <x>STACK 0</x>
                                             <y>REL 0</y>
                                             <w>REL 127</w>
                                             <h>REL 38</h>

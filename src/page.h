@@ -265,6 +265,7 @@ void page_left(Page *page);
 void page_enter(Page *page);
 
 PageEl *page_get_el_by_id(Page *page, const char *id);
+void page_select_el_by_id(Page *page, const char *id);
 
 void tabview_clear_all_contents(TabView *tv);
 

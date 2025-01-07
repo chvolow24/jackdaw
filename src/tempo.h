@@ -100,7 +100,7 @@ typedef struct tempo_track {
     float metronome_vol;
     /* Button *metronome_button; */
     Textbox *metronome_button;
-    Textbox * edit_button;
+    Textbox *edit_button;
     Slider *metronome_vol_slider;
     /* float *metronome_buffers[2]; */
     /* uint16_t metronome_buffer_lens[2]; */

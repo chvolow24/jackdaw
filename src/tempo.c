@@ -1852,9 +1852,45 @@ bool tempo_track_triage_click(uint8_t button, TempoTrack *t)
 	return true;
     }
     if (SDL_PointInRect(&main_win->mousep, t->console_rect)) {
-	fprintf(stderr, "Left console\n");
+	if (SDL_PointInRect(&main_win->mousep, &t->edit_button->layout->rect)) {
+	    timeline_tempo_track_edit(proj->timelines[proj->active_tl_index]);
+	    return true;
+	}
+	return true;
     }
+    TempoSegment *final = NULL;
+    TempoSegment *s = t->segments;
+    const int xdst_init = 5 * main_win->dpi_scale_factor;
+    int xdst = xdst_init;
+    while (s) {
+	int xdst_test = abs(main_win->mousep.x - timeline_get_draw_x(s->track->tl, s->start_pos));
+	if (xdst_test < xdst) {
+	    final = s;
+	    xdst = xdst_test;
+	} else if (final) {
+	    break;
+	}
+	s = s->next;
+    }
+    if (final) {
+	proj->dragged_component.component = final;
+	proj->dragged_component.type = DRAG_TEMPO_SEG_BOUND;
+	return true;
+    }
+
+    
     return false;
+}
+
+void tempo_track_mouse_motion(TempoSegment *s, Window *win)
+{
+    if (!s->prev) return;
+    s = s->prev;
+    int32_t tl_pos = timeline_get_abspos_sframes(s->track->tl, win->mousep.x);
+    if (tl_pos < s->start_pos + proj->sample_rate / 100) {
+	return;
+    }
+    tempo_segment_set_end_pos(s, tl_pos);
 }
    
 

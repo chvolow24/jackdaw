@@ -14,11 +14,8 @@
 #define RADIO_BUTTON_LEFT_W 24
 #define RADIO_BUTTON_RAD_PAD (3 * main_win->dpi_scale_factor);
 
-
 #define SLIDER_LABEL_H_PAD 4
 #define SLIDER_LABEL_V_PAD 2
-
-
 
 /*****************************************/
 /************ Definitions ****************/
@@ -68,7 +65,8 @@ enum slider_style {
 };
 
 enum drag_comp_type {
-    DRAG_SLIDER
+    DRAG_SLIDER,
+    DRAG_TEMPO_SEG_BOUND
 };
 
 typedef struct draggable {

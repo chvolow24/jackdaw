@@ -719,13 +719,16 @@ void canvas_destroy(Canvas *c)
 
 /* Mouse functions */
 
+typedef struct type_segment TempoSegment;
+bool tempo_track_mouse_motion(TempoSegment *s, Window *win);
 bool draggable_mouse_motion(Draggable *draggable, Window *win)
 {
-
     switch (draggable->type) {
     case DRAG_SLIDER:
 	return slider_mouse_motion((Slider *)draggable->component, win);
 	break;
+    case DRAG_TEMPO_SEG_BOUND:
+	return tempo_track_mouse_motion((TempoSegment *)draggable->component, win);
     }
     return false;
 }

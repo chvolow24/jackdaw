@@ -858,9 +858,32 @@ static int num_beats_completion(Text *txt, void *s_v)
     return 0;
 }
 
+static TempoSegment *tempo_segment_copy(TempoSegment *s)
+{
+    TempoSegment *cpy = calloc(1, sizeof(TempoSegment));
+    memcpy(cpy, s, sizeof(TempoSegment));
+    return cpy;
+}
+
+NEW_EVENT_FN(undo_redo_set_segment_params, "undo/redo edit tempo segment")
+    TempoSegment *s = (TempoSegment *)obj1;
+    s = tempo_track_get_segment_at_pos(s->track, s->start_pos);
+    self->obj1 = s;
+    TempoSegment *cpy = (TempoSegment *)obj2;
+    enum ts_end_bound_behavior ebb = val1.int_v;
+
+    TempoSegment *redo_cpy = tempo_segment_copy(s);
+    tempo_segment_set_config(s, -1, cpy->cfg.bpm, cpy->cfg.num_beats, cpy->cfg.beat_subdiv_lens, ebb);
+    tempo_segment_destroy(cpy);
+    self->obj2 = redo_cpy;
+    s->track->tl->needs_redraw = true;
+}
+
+
 static int time_sig_submit_button_action(void *self, void *s_v)
 {
     TempoSegment *s = (TempoSegment *)s_v;
+    TempoSegment *cpy = tempo_segment_copy(s);
     TempoTrack *tt = s->track;
 
     int num_beats = atoi(tt->num_beats_str);
@@ -873,6 +896,19 @@ static int time_sig_submit_button_action(void *self, void *s_v)
     TabView *tv = main_win->active_tabview;
     tabview_close(tv);
     tt->tl->needs_redraw = true;
+
+    Value ebb = {.int_v = tt->end_bound_behavior};
+    user_event_push(
+	&proj->history,
+	undo_redo_set_segment_params,
+	undo_redo_set_segment_params,
+	NULL, NULL,
+	s,
+	cpy,
+	ebb, ebb,
+	ebb, ebb,
+	0, 0,
+	false, true);
     return 0;
 }
 

@@ -1,5 +1,9 @@
 This is an informal document tracking jackdaw version updates. 
 
+v0.5.0
+       - tempo tracks etc.
+       - scroll timeline horizontally
+----
 v0.4.3 (Tue Dec 10 15:27:38 EST 2024)
        - store ALL layout dimension values as floats, never ints
        - (int dimensions causes aliasing problems in text rendering on high-DPI displays, when text dimensions were an odd value in pixels)

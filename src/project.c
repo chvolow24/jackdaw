@@ -3213,33 +3213,7 @@ void project_set_chunk_size(uint16_t new_chunk_size)
     }
     transport_stop_playback();
     proj->chunk_size_sframes = new_chunk_size;
-
-    
-    /* if (proj->output_L) free(proj->output_L); */
-    /* if (proj->output_R) free(proj->output_R); */
-    /* proj->output_L = calloc(1, sizeof(float) * new_chunk_size); */
-    /* proj->output_R = calloc(1, sizeof(float) * new_chunk_size); */
-    /* if (proj->output_L_freq) free(proj->output_L_freq); */
-    /* if (proj->output_R_freq) free(proj->output_R_freq); */
-    /* proj->output_L_freq = calloc(1, sizeof(double) * new_chunk_size); */
-    /* proj->output_R_freq = calloc(1, sizeof(double) * new_chunk_size); */
-
-
-
-
-/* proj->output_len = new_chunk_size; */
-    /* for (uint8_t i=0; i<proj->num_timelines; i++) { */
-    /* 	Timeline *tl = proj->timelines[i]; */
-    /* 	if (tl->mixdown_L) free(tl->mixdown_L); */
-    /* 	if (tl->mixdown_R) free(tl->mixdown_R); */
-    /* 	tl->mixdown_L = calloc(1, sizeof(float) * new_chunk_size); */
-    /* 	tl->mixdown_R = calloc(1, sizeof(float) * new_chunk_size); */
-    /* } */
     for (uint8_t i=0; i<proj->num_record_conns; i++) {
-	/* AudioConn *c = proj->record_conns[i]; */
-	/* if (c->open) { */
-	/*     audioconn_close(c); */
-	/* } */
 	audioconn_reset_chunk_size(proj->record_conns[i], new_chunk_size);
     }
     for (uint8_t i=0; i<proj->num_playback_conns; i++) {

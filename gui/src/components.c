@@ -849,5 +849,7 @@ void draggable_handle_scroll(Draggable *d, int x, int y)
 	}
     }
 	break;
+    default:
+	break;
     }
 }

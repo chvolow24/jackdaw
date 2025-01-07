@@ -496,5 +496,6 @@ bool timeline_refocus_tempo_track(Timeline *tl, TempoTrack *tt, bool at_bottom);
 void timeline_play_speed_set(double new_speed);
 void timeline_play_speed_mult(double scale_factor);
 void timeline_play_speed_adj(double dim);
+void timeline_scroll_playhead(double dim);
 
 #endif

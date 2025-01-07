@@ -81,6 +81,9 @@
 #define PLAYSPEED_ADJUST_SCALAR_LARGE 0.1f
 #define PLAYSPEED_ADJUST_SCALAR_SMALL 0.015f
 
+#define PLAYHEAD_ADJUST_SCALAR_LARGE 0.001f;
+#define PLAYHEAD_ADJUST_SCALAR_SMALL 0.00015f
+
 extern Window *main_win;
 extern Project *proj;
 extern SDL_Color color_global_black;
@@ -3313,9 +3316,6 @@ void timeline_play_speed_mult(double scale_factor)
 
 void timeline_play_speed_adj(double dim)
 {
-    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
-    /* double old_speed = proj->play_speed; */
-
     double new_speed = proj->play_speed;
     if (main_win->i_state & I_STATE_CMDCTRL) {
 	new_speed += dim * PLAYSPEED_ADJUST_SCALAR_LARGE;
@@ -3323,9 +3323,16 @@ void timeline_play_speed_adj(double dim)
 	new_speed += dim * PLAYSPEED_ADJUST_SCALAR_SMALL;
     }
     timeline_play_speed_set(new_speed);
-    /* /\* If speed crosses the zero line, need to invalidate direction-dependent caches *\/ */
-    /* if (proj->play_speed * old_speed < 0.0) { */
-    /* 	timeline_set_play_position(tl->play_pos_sframes); */
-    /* } */
-    /* status_stat_playspeed(); */
+}
+
+void timeline_scroll_playhead(double dim)
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    if (main_win->i_state & I_STATE_CMDCTRL) {
+	dim *= proj->sample_rate * tl->sample_frames_per_pixel * PLAYHEAD_ADJUST_SCALAR_LARGE;
+    } else {
+	dim *= proj->sample_rate * tl->sample_frames_per_pixel * PLAYHEAD_ADJUST_SCALAR_SMALL;
+    }
+    int32_t new_pos = tl->play_pos_sframes + dim;
+    timeline_set_play_position(proj->timelines[proj->active_tl_index], new_pos);
 }

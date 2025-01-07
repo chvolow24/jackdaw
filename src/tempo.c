@@ -1825,6 +1825,8 @@ void tempo_track_increment_vol(TempoTrack *tt)
     slider_edit_made(tt->metronome_vol_slider);
     slider_reset(tt->metronome_vol_slider);
 }
+
+
 void tempo_track_decrement_vol(TempoTrack *tt)
 {
     tt->metronome_vol -= TRACK_VOL_STEP;

@@ -21,12 +21,20 @@
 /************ Definitions ****************/
 /*****************************************/
 
+
+/* Stateful components (toggle, radio, slider) can govern undoable actions.
+   The UI components themselves may no longer exist when the undo action is done */
+struct undo_ref_ctr {
+    int num_refs;
+    bool destroy;
+};
+
 typedef int (*ComponentFn)(void *self, void *target);
 
 typedef struct button {
     Textbox *tb;
     ComponentFn action;
-    void *target;    
+    void *target;
 } Button;
 
 typedef struct symbol_button {
@@ -42,6 +50,7 @@ typedef struct toggle {
     ComponentFn action;
     void *target;
     Layout *layout;
+    struct undo_ref_ctr undo_state;
 } Toggle;
 
 typedef struct text_entry TextEntry;
@@ -72,6 +81,8 @@ enum drag_comp_type {
 typedef struct draggable {
     enum drag_comp_type type;
     void *component;
+    Value cached_val;
+    ValType cached_val_type;
 } Draggable;
 
 typedef struct radio_button {
@@ -82,7 +93,8 @@ typedef struct radio_button {
     /* void (*external_action)(int selected_i, void *target); */
     uint8_t num_items;
     uint8_t selected_item;
-    SDL_Color *text_color; 
+    SDL_Color *text_color;
+    struct undo_ref_ctr undo_state;
 } RadioButton;
 
 typedef struct waveform {
@@ -113,7 +125,12 @@ typedef struct slider {
     void *target;
     /* int label_countdown; */
     Label *label;
+    
     Draggable *drag_context;
+
+    struct undo_ref_ctr undo_state;
+    /* bool defer_destroy; */
+    /* int dangling_refs; /\* references may remain in undo history *\/ */
 
 
 } Slider;
@@ -163,11 +180,11 @@ void slider_reset(Slider *s);
 void slider_draw(Slider *s);
 Value slider_val_from_coord(Slider *s, int coord_pix);
 void slider_destroy(Slider *s);
+void slider_decr_undo_refs(Slider *s);
 SliderStrFn slider_std_labelmaker;
 void slider_edit_made(Slider *slider);
 void slider_nudge_right(Slider *slider);
 void slider_nudge_left(Slider *slider);
-
 
 
 /* Button */
@@ -288,5 +305,19 @@ Canvas *canvas_create(
     );
 void canvas_draw(Canvas *canvas);
 void canvas_destroy(Canvas *canvas);
+
+/* Draggable interface */
+void draggable_start_dragging(Draggable *d, enum drag_comp_type type, void *component);
+void draggable_stop_dragging(Draggable *);
+
+
+
+/* Undo state */
+
+void toggle_decr_undo_refs(Toggle *tgl);
+bool toggle_toggle_internal(Toggle *tgl, bool from_undo);
+void radio_decr_undo_refs(RadioButton *rb);
+void radio_select_internal(RadioButton *rb, int selection, bool from_undo);
+
 
 #endif

@@ -137,6 +137,7 @@ Slider *slider_create(
 void slider_set_value(Slider *s, Value val)
 {
     jdaw_val_set_ptr(s->value, s->val_type, val);
+    if (s->action) s->action((void *)s, s->target);
     slider_reset(s);
 }
 
@@ -172,6 +173,8 @@ void slider_reset(Slider *s)
     Value slider_val;
     /* Value slider_val = jdaw_val_from_ptr(&slider_val, s->val_type); */
     jdaw_val_set(&slider_val, s->val_type, s->value);
+
+    if (s->undo_state.destroy) return; /* Skip GUI update if slider scheduled to be destroyed */
     Value filled = jdaw_val_sub(slider_val, s->min, s->val_type);
     double filled_prop = jdaw_val_div_double(filled, range, s->val_type);
     switch (s->style) {
@@ -240,10 +243,22 @@ void slider_draw(Slider *s)
 
 void slider_destroy(Slider *s)
 {
-    /* textbox_destroy(s->label); */
+    if (s->undo_state.num_refs > 0) {
+	s->undo_state.destroy = true;
+	return;
+    }
+    fprintf(stderr, "Actually destroying slider\n");
     label_destroy(s->label);
-    layout_destroy(s->layout);
+    /* layout_destroy(s->layout); */
     free(s);
+}
+
+void slider_decr_undo_refs(Slider *s)
+{
+    s->undo_state.num_refs--;
+    if (s->undo_state.num_refs == 0 && s->undo_state.destroy) {
+	slider_destroy(s);
+    }
 }
 
 /* void (SliderStrFn)(char *dst, size_t dstsize, void *value, ValType type); */
@@ -505,9 +520,42 @@ Toggle *toggle_create(Layout *lt, bool *value, ComponentFn action, void *target)
 
 void toggle_destroy(Toggle *tgl)
 {
-    layout_destroy(tgl->layout);
+    if (tgl->undo_state.num_refs > 0) {
+	tgl->undo_state.destroy = true;
+	return;
+    }
+    /* layout_destroy(tgl->layout); */
     free(tgl);
 }
+
+void toggle_decr_undo_refs(Toggle *tgl)
+{
+    tgl->undo_state.num_refs--;
+    if (tgl->undo_state.num_refs == 0 && tgl->undo_state.destroy) {
+	toggle_destroy(tgl);
+    }
+}
+
+/* oid radio_destroy(RadioButton *rb) */
+/* { */
+/*     if (rb->undo_state.num_refs > 0) { */
+/* 	rb->undo_state.destroy = true; */
+/* 	return; */
+/*     } */
+/*     for (uint8_t i=0; i<rb->num_items; i++) { */
+/* 	textbox_destroy(rb->items[i]); */
+/*     } */
+/*     layout_destroy(rb->layout); */
+/*     free(rb); */
+/* } */
+
+/* void radio_decr_undo_refs(RadioButton *rb) */
+/* { */
+/*     rb->undo_state.num_refs--; */
+/*     if (rb->undo_state.num_refs == 0 && rb->undo_state.destroy) { */
+/* 	radio_destroy(rb); */
+/*     } */
+/* } */
 
 void toggle_draw(Toggle *tgl)
 {
@@ -522,11 +570,25 @@ void toggle_draw(Toggle *tgl)
     }
 }
 
+void toggle_push_event(Toggle *tgl);
+
+bool toggle_toggle_internal(Toggle *toggle, bool from_undo)
+{
+    if (!from_undo) {
+	toggle_push_event(toggle);
+    }
+    *(toggle->value) = !(*toggle->value);
+    if (toggle->action) {
+	toggle->action((void *)toggle, toggle->target);
+    }
+
+    return toggle->value;
+
+}
 
 bool toggle_toggle(Toggle *toggle)
 {
-    *(toggle->value) = !(*toggle->value);
-    return toggle->value;
+    return toggle_toggle_internal(toggle, false);
 }
 
 
@@ -628,32 +690,61 @@ void radio_button_draw(RadioButton *rb)
     }
 }
 
+void radio_push_event(RadioButton *rb, int newval);
+void radio_select_internal(RadioButton *rb, int selection, bool from_undo)
+{
+    if (!from_undo) {
+	radio_push_event(rb, selection);
+    }
+    rb->selected_item = selection;
+    if (rb->action) rb->action((void *)rb, rb->target);
+}
+
+void radio_select(RadioButton *rb, int selection)
+{
+    radio_select_internal(rb, selection, false);
+}
+
 void radio_cycle_back(RadioButton *rb)
 {
-    if (rb->selected_item > 0)
-	rb->selected_item--;
+    int selected_item = rb->selected_item;
+    if (selected_item > 0)
+	selected_item--;
     else
-	rb->selected_item = rb->num_items - 1;
-    if (rb->action) rb->action((void *)rb, rb->target);
+	selected_item = rb->num_items - 1;
+    radio_select(rb, selected_item);
 }
 
 void radio_cycle(RadioButton *rb)
 {
-    rb->selected_item++;
-    rb->selected_item %= rb->num_items;
-    if (rb->action) rb->action((void *)rb, rb->target);
+    int selected_item = rb->selected_item;
+    selected_item++;
+    selected_item %= rb->num_items;
+    radio_select(rb, selected_item);
+    /* if (rb->action) rb->action((void *)rb, rb->target); */
 }
 
 void radio_destroy(RadioButton *rb)
 {
+    if (rb->undo_state.num_refs > 0) {
+	rb->undo_state.destroy = true;
+	return;
+    }
     for (uint8_t i=0; i<rb->num_items; i++) {
 	textbox_destroy(rb->items[i]);
     }
-    layout_destroy(rb->layout);
+    /* layout_destroy(rb->layout); */
+    fprintf(stderr, "Actually destroying radio\n");
     free(rb);
-
 }
 
+void radio_decr_undo_refs(RadioButton *rb)
+{
+    rb->undo_state.num_refs--;
+    if (rb->undo_state.num_refs == 0 && rb->undo_state.destroy) {
+	radio_destroy(rb);
+    }
+}
 
 /* Waveform */
 
@@ -720,7 +811,7 @@ void canvas_destroy(Canvas *c)
 /* Mouse functions */
 
 typedef struct type_segment TempoSegment;
-bool tempo_track_mouse_motion(TempoSegment *s, Window *win);
+bool tempo_segment_bound_drag(TempoSegment *s, Window *win);
 bool draggable_mouse_motion(Draggable *draggable, Window *win)
 {
     switch (draggable->type) {
@@ -728,7 +819,7 @@ bool draggable_mouse_motion(Draggable *draggable, Window *win)
 	return slider_mouse_motion((Slider *)draggable->component, win);
 	break;
     case DRAG_TEMPO_SEG_BOUND:
-	return tempo_track_mouse_motion((TempoSegment *)draggable->component, win);
+	return tempo_segment_bound_drag((TempoSegment *)draggable->component, win);
     }
     return false;
 }
@@ -736,6 +827,7 @@ bool draggable_mouse_motion(Draggable *draggable, Window *win)
 bool slider_mouse_click(Slider *slider, Window *win)
 {
     if (SDL_PointInRect(&main_win->mousep, &slider->layout->rect) && win->i_state & I_STATE_MOUSE_L) {
+	draggable_start_dragging(slider->drag_context, DRAG_SLIDER, (void *)slider);
 	int dim = slider->orientation == SLIDER_VERTICAL ? main_win->mousep.y : main_win->mousep.x;
 	Value newval = slider_val_from_coord(slider, dim);
 	jdaw_val_set_ptr(slider->value, slider->val_type, newval);
@@ -743,8 +835,8 @@ bool slider_mouse_click(Slider *slider, Window *win)
 		slider->action((void *)slider, slider->target);
 	slider_reset(slider);
 	slider_edit_made(slider);
-	slider->drag_context->component = (void *)slider;
-	slider->drag_context->type = DRAG_SLIDER;
+	/* slider->drag_context->component = (void *)slider; */
+	/* slider->drag_context->type = DRAG_SLIDER; */
 	return true;
     }
     return false;
@@ -789,10 +881,11 @@ bool radio_click(RadioButton *rb, Window *Win)
     if (SDL_PointInRect(&main_win->mousep, &rb->layout->rect)) {
 	for (uint8_t i = 0; i<rb->num_items; i++) {
 	    if (SDL_PointInRect(&main_win->mousep, &(rb->layout->children[i]->rect))) {
-		rb->selected_item = i;
-		if (rb->action) {
-		    rb->action((void *)rb, rb->target);
-		}
+		radio_select(rb, i);
+		/* rb->selected_item = i; */
+		/* if (rb->action) { */
+		/*     rb->action((void *)rb, rb->target); */
+		/* } */
 		return true;
 	    }
 	}
@@ -804,9 +897,9 @@ bool toggle_click(Toggle *toggle, Window *win)
 {
     if (SDL_PointInRect(&main_win->mousep, &toggle->layout->rect)) {
 	toggle_toggle(toggle);
-	if (toggle->action) {
-	    toggle->action((void *)toggle, toggle->target);
-	}
+	/* if (toggle->action) { */
+	/*     toggle->action((void *)toggle, toggle->target); */
+	/* } */
 	return true;
     }
     return false;
@@ -832,6 +925,43 @@ bool symbol_button_click(SymbolButton *sbutton, Window *win)
     return false;
 }
 
+
+void draggable_start_dragging(Draggable *d, enum drag_comp_type type, void *component)
+{
+    d->type = type;
+    d->component = component;
+    switch (type) {
+    case DRAG_SLIDER: {
+	Slider *s = (Slider *)component;
+	d->cached_val = jdaw_val_from_ptr(s->value, s->val_type);
+	d->cached_val_type = s->val_type;
+    }
+	break;
+    case DRAG_TEMPO_SEG_BOUND: {
+	TempoSegment *s = (TempoSegment *)component;
+	fprintf(stderr, "Attempting to cache tempo segment\n");
+    }
+
+    }    
+}
+
+typedef struct project Project;
+void project_push_drag_event(Draggable *d, Value current_val);
+void draggable_stop_dragging(Draggable *d)
+{
+    if (!d->component) return;
+    switch (d->type) {
+    case DRAG_SLIDER: {
+	Slider *s = (Slider *)d->component;
+	project_push_drag_event(d, jdaw_val_from_ptr(s->value, s->val_type));
+	/* Slider *s = (Slider *)d->component; */
+	/* slider_set_value(s, d->cached_val);	 */
+    }
+	break;
+    case DRAG_TEMPO_SEG_BOUND:
+	break;
+    }
+}
 
 void draggable_handle_scroll(Draggable *d, int x, int y)
 {

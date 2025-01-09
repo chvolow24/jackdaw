@@ -55,6 +55,7 @@
 #include "timeline.h"
 #include "transport.h"
 #include "userfn.h"
+#include "value.h"
 #include "waveform.h"
 #include "window.h"
 
@@ -2305,6 +2306,9 @@ static void timeline_reinsert_track(Track *track)
 
 void track_delete(Track *track)
 {
+    if (main_win->active_tabview) {
+	tabview_close(main_win->active_tabview);
+    }
     track->deleted = true;
     Timeline *tl = track->tl;
     timeline_remove_track(track);
@@ -2312,6 +2316,10 @@ void track_delete(Track *track)
 }
 void track_undelete(Track *track)
 {
+    if (main_win->active_tabview) {
+	tabview_close(main_win->active_tabview);
+    }
+
     track->deleted = false;
     /* timeline_insert_track_at(track, track->tl_rank); */
     timeline_reinsert_track(track);
@@ -3309,4 +3317,41 @@ void timeline_scroll_playhead(double dim)
     }
     int32_t new_pos = tl->play_pos_sframes + dim;
     timeline_set_play_position(proj->timelines[proj->active_tl_index], new_pos);
+}
+
+NEW_EVENT_FN(undo_redo_drag_event, "undo drag event")
+    switch ((enum drag_comp_type)val1.int_v) {
+    case DRAG_SLIDER:
+	slider_set_value((Slider *)obj1, val2);
+	break;
+    case DRAG_TEMPO_SEG_BOUND:
+	break;
+    default:
+	break;
+    }
+}
+
+NEW_EVENT_FN(dispose_drag_event, "")
+    if ((enum drag_comp_type)val1.int_v == DRAG_SLIDER) {
+	Slider *s = (Slider *)obj1;
+	slider_decr_undo_refs(s);
+    }
+}
+void project_push_drag_event(Draggable *d, Value current_val)
+{
+    Value comptype = {.int_v = (int)d->type};
+    if (d->type == DRAG_SLIDER) {
+	Slider *s = (Slider *)d->component;
+	s->undo_state.num_refs++;
+    }
+    user_event_push(
+	&proj->history,
+	undo_redo_drag_event,
+	undo_redo_drag_event,
+	NULL, NULL,
+	d->component, NULL,
+	comptype, d->cached_val,
+	comptype, current_val,
+	d->cached_val_type, d->cached_val_type,
+	false, false);	
 }

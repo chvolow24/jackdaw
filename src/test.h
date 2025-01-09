@@ -35,6 +35,8 @@
 #ifndef JDAW_TEST_H
 #define JDAW_TEST_H
 
+#include <stdlib.h>
+
 #ifdef TESTBUILD 
     #define TEST_FN_DEF(name, body, ...) \
         int name(__VA_ARGS__) body
@@ -53,5 +55,9 @@
 #endif
 
 void breakfn();
+
+void jfree(void *obj);
+void *jcalloc(size_t count, size_t size);
+void *jmalloc(size_t size);
 
 #endif

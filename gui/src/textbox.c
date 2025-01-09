@@ -136,9 +136,9 @@ void textbox_destroy(Textbox *tb)
     if (tb->text) {
 	txt_destroy(tb->text);
     }
-    if (tb->layout) {
-	layout_destroy(tb->layout);
-    }
+    /* if (tb->layout) { */
+    /* 	layout_destroy(tb->layout); */
+    /* } */
     free(tb);
 }
 

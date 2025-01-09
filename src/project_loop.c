@@ -434,6 +434,7 @@ void loop_project_main()
 		scrolling_lt = NULL;
 		temp_scrolling_lt = NULL;
 		if (e.button.button == SDL_BUTTON_LEFT) {
+		    draggable_stop_dragging(&proj->dragged_component);
 		    main_win->i_state &= ~I_STATE_MOUSE_L;
 		    proj->dragged_component.component = NULL;
 		    automation_unset_dragging_kf(proj->timelines[proj->active_tl_index]);

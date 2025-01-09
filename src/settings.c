@@ -106,8 +106,10 @@ static int slider_irlen_target_action(void *self_v, void *target)
 
     /* Need to reset arrays in freq plot */
     /* TODO: find a better way to do this */
-    current_fp->arrays[2] = f->frequency_response_mag;
-    waveform_reset_freq_plot(current_fp);
+    if (current_fp && self->undo_state.destroy == false) {
+	current_fp->arrays[2] = f->frequency_response_mag;
+	waveform_reset_freq_plot(current_fp);
+    }
     
     /* slider_reset(self); */
     return 0;

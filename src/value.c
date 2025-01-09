@@ -6,38 +6,38 @@
 
 /* Set the value pointed to by vp based on the current value stored at valptr */
 
-void jdaw_val_set(Value *vp, ValType vt, void *valptr)
+void jdaw_val_set(Value *to_set, ValType vt, void *from_ptr)
 {
     switch (vt) {
     case JDAW_FLOAT:
-	(*vp).float_v = *((float *)valptr);
+	(*to_set).float_v = *((float *)from_ptr);
 	break;
     case JDAW_DOUBLE:
-	(*vp).double_v = *((double *)valptr);
+	(*to_set).double_v = *((double *)from_ptr);
 	break;
     case JDAW_INT:
-	(*vp).int_v = *((int *)valptr);
+	(*to_set).int_v = *((int *)from_ptr);
 	break;
     case JDAW_UINT8:
-	(*vp).uint8_v = *((uint8_t *)valptr);
+	(*to_set).uint8_v = *((uint8_t *)from_ptr);
 	break;
     case JDAW_UINT16:
-	(*vp).uint16_v = *((uint16_t *)valptr);
+	(*to_set).uint16_v = *((uint16_t *)from_ptr);
 	break;
     case JDAW_UINT32:
-	(*vp).uint32_v = *((uint32_t *)valptr);
+	(*to_set).uint32_v = *((uint32_t *)from_ptr);
 	break;
     case JDAW_INT8:
-	(*vp).int8_v = *((int8_t *)valptr);
+	(*to_set).int8_v = *((int8_t *)from_ptr);
 	break;
     case JDAW_INT16:
-	(*vp).int16_v = *((int16_t *)valptr);
+	(*to_set).int16_v = *((int16_t *)from_ptr);
 	break;
     case JDAW_INT32:
-	(*vp).int32_v = *((int32_t *)valptr);
+	(*to_set).int32_v = *((int32_t *)from_ptr);
 	break;
     case JDAW_BOOL:
-	(*vp).bool_v = *((bool *)valptr);
+	(*to_set).bool_v = *((bool *)from_ptr);
 	break;
     default:
 	break;

@@ -457,6 +457,9 @@ static void tempo_track_remove(TempoTrack *tt)
 }
 static void tempo_track_reinsert(TempoTrack *tt)
 {
+    if (main_win->active_tabview) {
+	tabview_close(main_win->active_tabview);
+    }
     Timeline *tl = tt->tl;
     for (int i=tl->num_tempo_tracks; i>tt->index; i--) {
 	tl->tempo_tracks[i] = tl->tempo_tracks[i-1];
@@ -807,6 +810,9 @@ NEW_EVENT_FN(dispose_delete_tempo_track, "")
 
 static void tempo_track_delete(TempoTrack *tt, bool from_undo)
 {
+    if (main_win->active_tabview) {
+	tabview_close(main_win->active_tabview);
+    }
     tempo_track_remove(tt);
     Value nullval = {.int_v = 0};
     if (!from_undo) {
@@ -1920,7 +1926,8 @@ bool tempo_track_triage_click(uint8_t button, TempoTrack *t)
     return false;
 }
 
-void tempo_track_mouse_motion(TempoSegment *s, Window *win)
+/* called from draggable interface */
+void tempo_segment_bound_drag(TempoSegment *s, Window *win)
 {
     if (!s->prev) return;
     s = s->prev;
@@ -1929,6 +1936,7 @@ void tempo_track_mouse_motion(TempoSegment *s, Window *win)
 	return;
     }
     tempo_segment_set_end_pos(s, tl_pos);
+    s->track->tl->needs_redraw = true;
 }
    
 

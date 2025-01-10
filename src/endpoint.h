@@ -1,0 +1,103 @@
+/*****************************************************************************************************************
+  Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation | built on SDL (https://libsdl.org/)
+******************************************************************************************************************
+
+  Copyright (C) 2023 Charlie Volow
+  
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+  
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+  
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+
+*****************************************************************************************************************/
+
+/*****************************************************************************************************************
+    endpoint.h
+
+    * define API by which project paramters can be accessed and modified
+    * groundwork for UDP API
+ *****************************************************************************************************************/
+
+/*
+
+  Jackdaw object parameters can be modified from within the program in normal C-like ways.
+  E.g., it is legal to update the volume of a track object like this:
+  
+      Track *track = (...);
+      track->vol = 0.0;
+      
+  However, it is sometimes helpful to place such modifications behind the API defined here, for the following reasons:
+
+  1. THREAD SAFETY
+      Endpoint write operations are legal from ANY thread
+  2. UNDO/REDO
+      Modifications to endpoint parameters that are undoable are handled by this API, so the event functions don't need to be separately implemented
+  3. IPC:
+      External applications can safely modify Jackdaw project parameters through this API
+  
+ */
+
+
+#ifndef JDAW_ENDPOINT_H
+#define JDAW_ENDPOINT_H
+
+#include <pthread.h>
+#include "value.h"
+
+typedef struct endpoint Endpoint;
+typedef void (*EndptCb)(Endpoint *);
+
+typedef struct endpoint {
+    
+    void *val;
+    ValType val_type;
+    Value cached_val;
+    
+    EndptCb main_callback; /* Main thread */
+    EndptCb gui_callback; /* Main thread */
+    EndptCb dsp_callback; /* DSP thread */
+    
+    pthread_mutex_t lock;
+    
+    const char *undo_str;
+    const char *redo_str;
+
+    void *xarg1;
+    void *xarg2;
+    void *xarg3;
+    void *xarg4;
+    
+} Endpoint;
+
+
+void endpoint_init(
+    Endpoint *ep,
+    void *val,
+    ValType t,
+    EndptCb main_cb,
+    EndptCb gui_cb,
+    EndptCb dsp_cb,
+    void *xarg1,
+    void *xarg2,
+    void *xarg3,
+    void *xarg4);
+
+void endpoint_write(Endpoint *ep, Value new_val);
+void endpoint_read(Endpoint *ep, Value *dst_val, ValType *dst_vt);
+
+void endpoint_API_register(Endpoint *ep);
+
+#endif

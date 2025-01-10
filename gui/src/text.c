@@ -1,8 +1,8 @@
 /*****************************************************************************************************************
-  Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation | built on SDL (https://libsdl.org/)
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
 ******************************************************************************************************************
 
-  Copyright (C) 2023 Charlie Volow
+  Copyright (C) 2023-2025 Charlie Volow
 3  
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal

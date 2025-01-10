@@ -54,3 +54,43 @@ void radio_push_event(RadioButton *rb, int newval)
 	redo_val, redo_val,
 	0, 0, false, false);
 }
+
+
+
+NEW_EVENT_FN(undo_redo_drag_event, "undo drag event")
+    switch ((enum drag_comp_type)val1.int_v) {
+    case DRAG_SLIDER:
+	slider_set_value((Slider *)obj1, val2);
+	break;
+    case DRAG_TEMPO_SEG_BOUND:
+	break;
+    default:
+	break;
+    }
+}
+
+NEW_EVENT_FN(dispose_drag_event, "")
+    if ((enum drag_comp_type)val1.int_v == DRAG_SLIDER) {
+	Slider *s = (Slider *)obj1;
+	slider_decr_undo_refs(s);
+    }
+}
+void push_drag_event(Draggable *d, Value current_val)
+{
+    Value comptype = {.int_v = (int)d->type};
+    if (d->type == DRAG_SLIDER) {
+	Slider *s = (Slider *)d->component;
+	s->undo_state.num_refs++;
+    }
+    user_event_push(
+	&proj->history,
+	undo_redo_drag_event,
+	undo_redo_drag_event,
+	dispose_drag_event, dispose_drag_event,
+	d->component, NULL,
+	comptype, d->cached_val,
+	comptype, current_val,
+	d->cached_val_type, d->cached_val_type,
+	false, false);	
+}
+

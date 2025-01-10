@@ -1,5 +1,6 @@
 #include "color.h"
 #include "components.h"
+#include "components_undo.h"
 #include "geometry.h"
 #include "input.h"
 #include "layout.h"
@@ -570,8 +571,6 @@ void toggle_draw(Toggle *tgl)
     }
 }
 
-void toggle_push_event(Toggle *tgl);
-
 bool toggle_toggle_internal(Toggle *toggle, bool from_undo)
 {
     if (!from_undo) {
@@ -690,7 +689,7 @@ void radio_button_draw(RadioButton *rb)
     }
 }
 
-void radio_push_event(RadioButton *rb, int newval);
+/* void radio_push_event(RadioButton *rb, int newval); */
 void radio_select_internal(RadioButton *rb, int selection, bool from_undo)
 {
     if (!from_undo) {
@@ -895,6 +894,7 @@ bool radio_click(RadioButton *rb, Window *Win)
 
 bool toggle_click(Toggle *toggle, Window *win)
 {
+    frexp(2.5);
     if (SDL_PointInRect(&main_win->mousep, &toggle->layout->rect)) {
 	toggle_toggle(toggle);
 	/* if (toggle->action) { */
@@ -945,15 +945,13 @@ void draggable_start_dragging(Draggable *d, enum drag_comp_type type, void *comp
     }    
 }
 
-typedef struct project Project;
-void project_push_drag_event(Draggable *d, Value current_val);
 void draggable_stop_dragging(Draggable *d)
 {
     if (!d->component) return;
     switch (d->type) {
     case DRAG_SLIDER: {
 	Slider *s = (Slider *)d->component;
-	project_push_drag_event(d, jdaw_val_from_ptr(s->value, s->val_type));
+	push_drag_event(d, jdaw_val_from_ptr(s->value, s->val_type));
 	/* Slider *s = (Slider *)d->component; */
 	/* slider_set_value(s, d->cached_val);	 */
     }

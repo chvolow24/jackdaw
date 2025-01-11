@@ -592,10 +592,12 @@ void user_tl_play(void *nullarg)
     if (proj->dragging && !proj->playing && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
+    if (!proj->playing) {
+	transport_start_playback();
+    }
     if (proj->play_speed <= 0.0f) {
 	/* proj->play_speed = 1.0f; */
 	timeline_play_speed_set(1.0);
-	transport_start_playback();
     } else {
 	timeline_play_speed_mult(2.0);
 	/* /\* proj->play_speed *= 2.0f; *\/ */

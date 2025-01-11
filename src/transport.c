@@ -220,6 +220,14 @@ static void *transport_dsp_thread_fn(void *arg)
     int N = len / proj->chunk_size_sframes;
     bool init = true;
     while (1) {
+
+	Value speed = {.float_v = proj->play_speed};
+	speed.float_v += 0.001;
+	endpoint_write(
+	    &proj->play_speed_ep,
+	    speed,
+	    true, false, false);
+
 	/* clock_t a,b; */
 	/* a = clock(); */
 
@@ -291,6 +299,9 @@ static void *transport_dsp_thread_fn(void *arg)
 	    sem_post(tl->unpause_sem);
 	    init = false;
 	}
+
+	project_flush_val_changes(proj, JDAW_THREAD_DSP);
+	project_flush_callbacks(proj, JDAW_THREAD_DSP);
 	/* fprintf(stdout, "END DSP THREAD iter\n"); */
 	/* b = clock(); */
 	/* fprintf(stdout, "DSP time: %lu\n", b-a); */

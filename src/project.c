@@ -42,6 +42,7 @@
 #include "color.h"
 #include "components.h"
 #include "dsp.h"
+#include "endpoint_callbacks.h"
 #include "input.h"
 #include "layout.h"
 #include "layout_xml.h"
@@ -321,6 +322,9 @@ void project_destroy(Project *proj)
     if (proj->status_bar.call) textbox_destroy(proj->status_bar.call);
     if (proj->status_bar.dragstat) textbox_destroy(proj->status_bar.dragstat);
     if (proj->status_bar.error) textbox_destroy(proj->status_bar.error);
+
+    project_destroy_metronomes(proj);
+    
     free(proj);
 }
 
@@ -420,68 +424,13 @@ Project *project_create(
     project_init_audio_conns(proj);
     project_init_metronomes(proj);
 
-
-
-
-
-    
-    /* Layout *out_label_lt, *out_value_lt; */
-    /* out_label_lt = layout_get_child_by_name_recursive(proj->layout, "default_out_label"); */
-    /* out_value_lt = layout_get_child_by_name_recursive(proj->layout, "default_out_value"); */
-    /* proj->tb_out_label = textbox_create_from_str( */
-    /* 	"Default Out:", */
-    /* 	out_label_lt, */
-    /* 	main_win->bold_font, */
-    /* 	12, */
-    /* 	main_win); */
-    /* /\* fprintf(stdout, "PROJ %p out label %p\n", proj, proj->tb_out_label); *\/ */
-    /* textbox_set_align(proj->tb_out_label, CENTER_LEFT); */
-    /* textbox_set_background_color(proj->tb_out_label, &color_global_clear); */
-    /* textbox_set_text_color(proj->tb_out_label, &color_global_white); */
-    
-    /* proj->tb_out_value = textbox_create_from_str( */
-    /* 	(char *)proj->playback_conn->name, */
-    /* 	out_value_lt, */
-    /* 	main_win->std_font, */
-    /* 	12, */
-    /* 	main_win); */
-    /* textbox_set_align(proj->tb_out_value, CENTER_LEFT); */
-    /* proj->tb_out_value->corner_radius = 6; */
-    /* /\* textbox_set_align(proj->tb_out_value, CENTER); *\/ */
-    /* int saved_w = proj->tb_out_value->layout->rect.w / main_win->dpi_scale_factor; */
-    /* textbox_size_to_fit(proj->tb_out_value, 2, 1); */
-    /* textbox_set_fixed_w(proj->tb_out_value, saved_w - 10); */
-    /* textbox_set_border(proj->tb_out_value, &color_global_black, 1); */
-
-    /* Layout *output_l_lt, *output_r_lt; */
-    /* output_l_lt = layout_get_child_by_name_recursive(proj->layout, "out_waveform_left"); */
-    /* output_r_lt = layout_get_child_by_name_recursive(proj->layout, "out_waveform_right"); */
-
-    /* proj->outwav_l_rect = &output_l_lt->rect; */
-    /* proj->outwav_r_rect = &output_r_lt->rect; */
-
-
-
-
     Layout *panels_layout = layout_get_child_by_name_recursive(control_bar_layout, "panel_area");
     project_init_panels(proj, panels_layout);
-
-
     
-    /* Layout *status_bar_lt = layout_add_child(proj->layout); */
-    /* layout_set_name(status_bar_lt, "status_bar"); */
     Layout *status_bar_lt = layout_get_child_by_name_recursive(proj->layout, "status_bar");
     Layout *draglt = layout_add_child(status_bar_lt);
     Layout *calllt = layout_add_child(status_bar_lt);
     Layout *errlt = layout_add_child(status_bar_lt);
-    /* calllt->w.type = SCALE; */
-    /* errlt->w.type = SCALE; */
-    /* calllt->w.value.floatval = 1.0; */
-    /* errlt->w.value.floatval = 1.0f; */ 
-    /* status_bar_lt->y.type = REVREL; */
-    /* status_bar_lt->w.type = SCALE; */
-    /* status_bar_lt->w.value.floatval = 1.0; */
-    /* status_bar_lt->h.value.intval = STATUS_BAR_H; */
     proj->status_bar.layout = status_bar_lt;
 
     draglt->h.type = SCALE;
@@ -537,6 +486,20 @@ Project *project_create(
     proj->bun_patty_bun[0] = &hamburger_lt->children[0]->children[0]->rect;
     proj->bun_patty_bun[1] = &hamburger_lt->children[1]->children[0]->rect;
     proj->bun_patty_bun[2] = &hamburger_lt->children[2]->children[0]->rect;
+
+    pthread_mutex_init(&proj->queued_val_changes_lock, NULL);
+    pthread_mutex_init(&proj->queued_callback_lock, NULL);
+    /* Initialize endpoints */
+    endpoint_init(
+	&proj->play_speed_ep,
+	&proj->play_speed,
+	JDAW_FLOAT,
+	"undo/redo play speed adj",
+	JDAW_THREAD_DSP,
+	play_speed_gui_cb, NULL, NULL,
+	NULL, NULL, NULL, NULL);
+    
+
     return proj;
 }
 
@@ -3309,4 +3272,54 @@ void timeline_scroll_playhead(double dim)
     }
     int32_t new_pos = tl->play_pos_sframes + dim;
     timeline_set_play_position(proj->timelines[proj->active_tl_index], new_pos);
+}
+
+
+/* CALLBACKS */
+
+/* Returns 0 on success, 1 if maximum number of callbacks reached */
+int project_queue_val_change(Project *proj, void *target, ValType t, Value new_val, enum jdaw_thread thread)
+{
+    if (proj->num_queued_val_changes[thread] == MAX_ENDPT_CALLBACKS) {
+	return 1;
+    }
+    struct queued_val_change *qvc = &proj->queued_val_changes[thread][proj->num_queued_val_changes[thread]];
+    qvc->val = target;
+    qvc->type = t;
+    qvc->new_val = new_val;
+    proj->num_queued_val_changes[thread]++;
+	    return 0;
+}
+
+void project_flush_val_changes(Project *proj, enum jdaw_thread thread)
+{
+    for (int i=0; i<proj->num_queued_val_changes[thread]; i++) {
+	struct queued_val_change *qvc = &proj->queued_val_changes[thread][i];
+	jdaw_val_set_ptr(qvc->val, qvc->type, qvc->new_val);
+    }
+    proj->num_queued_val_changes[thread] = 0;
+}
+
+int project_queue_callback(Project *proj, Endpoint *ep, EndptCb cb, enum jdaw_thread thread)
+{
+    pthread_mutex_lock(&proj->queued_callback_lock);
+    if (proj->num_queued_callbacks[thread] == MAX_ENDPT_CALLBACKS) {
+	return 1;
+    }
+    proj->queued_callbacks[thread][proj->num_queued_callbacks[thread]] = cb;
+    proj->queued_callback_args[thread][proj->num_queued_callbacks[thread]] = ep;
+    proj->num_queued_callbacks[thread]++;
+    pthread_mutex_unlock(&proj->queued_callback_lock);
+    return 0;
+}
+
+void project_flush_callbacks(Project *proj, enum jdaw_thread thread)
+{
+    EndptCb *cb_arr = proj->queued_callbacks[thread];
+    Endpoint **arg_arr = proj->queued_callback_args[thread];
+    uint8_t num = proj->num_queued_callbacks[thread];
+    for (int i=0; i<num; i++) {
+	cb_arr[i](arg_arr[i]);
+    }
+    proj->num_queued_callbacks[thread] = 0;
 }

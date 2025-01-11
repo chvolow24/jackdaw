@@ -2,6 +2,13 @@
 #define JDAW_THREAD_SAFETY_H
 
 #include <pthread.h>
+#include <stdbool.h>
+
+#define NUM_CALLBACK_THREADS 2
+enum jdaw_thread {
+    JDAW_THREAD_MAIN=0,
+    JDAW_THREAD_DSP=1
+};
 
 #ifdef TESTBUILD
 #define RESTRICT_NOT_MAIN(name) \
@@ -39,5 +46,6 @@
 
 
 const char *get_thread_name();
+bool on_thread(enum jdaw_thread thread_index);
 
 #endif

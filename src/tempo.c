@@ -93,6 +93,17 @@ void project_init_metronomes(Project *proj)
     m->buf_lens[1] = buf_len;
 }
 
+void project_destroy_metronomes(Project *proj)
+{
+    for (int i=0; i<PROJ_NUM_METRONOMES; i++) {
+	Metronome *m = proj->metronomes + i;
+	if (m->buffers[0])
+	    free(m->buffers[0]);
+	if (m->buffers[1])
+	    free(m->buffers[1]);
+    }
+}
+
 static TempoSegment *tempo_track_get_segment_at_pos(TempoTrack *t, int32_t pos)
 {
     TempoSegment *s = t->segments;

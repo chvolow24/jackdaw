@@ -25,7 +25,7 @@
 *****************************************************************************************************************/
 
 /*****************************************************************************************************************
-    endpoint.h
+    endpoint.c
 
     * define API by which project paramters can be accessed and modified
     * groundwork for UDP API
@@ -49,41 +49,16 @@
       External applications can safely modify Jackdaw project parameters through this API
   
  */
-
-
-#ifndef JDAW_ENDPOINT_H
-#define JDAW_ENDPOINT_H
-
-#include <pthread.h>
-#include "thread_safety.h"
+#include <stdlib.h>
+#include <string.h>
+#include "endpoint.h"
 #include "value.h"
 
-typedef struct endpoint Endpoint;
-typedef void (*EndptCb)(Endpoint *);
+typedef struct project Project;
+extern Project *proj;
 
-typedef struct jackdaw_api Jackdaw_API;
-
-typedef struct endpoint {
-    
-    void *val;
-    ValType val_type;
-    Value cached_val;
-    
-    EndptCb proj_callback; /* Main thread -- update project state outside target parameter */
-    EndptCb gui_callback; /* Main thread -- update GUI state */
-    EndptCb dsp_callback; /* DSP thread */
-    
-    /* pthread_mutex_t lock; */
-    enum jdaw_thread owner_thread;
-    
-    const char *undo_str;
-
-    void *xarg1;
-    void *xarg2;
-    void *xarg3;
-    void *xarg4;
-    
-} Endpoint;
+int project_queue_callback(Project *proj, Endpoint *ep, EndptCb cb, enum jdaw_thread thread);
+int project_queue_val_change(Project *proj, void *target, ValType t, Value new_val, enum jdaw_thread thread);
 
 int endpoint_init(
     Endpoint *ep,
@@ -95,17 +70,64 @@ int endpoint_init(
     EndptCb proj_cb,
     EndptCb dsp_cb,
     void *xarg1, void *xarg2,
-    void *xarg3, void *xarg4);
+    void *xarg3, void *xarg4)
+{
+    ep->val = val;
+    ep->val_type = t;
+    ep->undo_str = undo_str;
+    ep->owner_thread = owner_thread;
+    ep->gui_callback = gui_cb;
+    ep->proj_callback = proj_cb;
+    ep->dsp_callback = dsp_cb;
+    ep->xarg1 = xarg1;
+    ep->xarg2 = xarg2;
+    ep->xarg3 = xarg3;
+    ep->xarg4 = xarg4;
 
-/* Safely modify an endpoint's target value */
-int endpoint_write(Endpoint *ep,
+    int err;
+    /* if ((err = pthread_mutex_init(&ep->lock, NULL)) != 0) { */
+    /* 	fprintf(stderr, "Error initializing mutex: %s\n", strerror(err)); */
+    /* 	return 1; */
+    /* } */
+    return 0;
+}
+
+int endpoint_write(
+    Endpoint *ep,
     Value new_val,
     bool run_gui_cb,
     bool run_proj_cb,
-    bool run_dsp_cb);
+    bool run_dsp_cb)
+{
+    /* pthread_mutex_lock(&ep->lock); */
+    if (on_thread(ep->owner_thread)) {
+	fprintf(stderr, "SETTING DIRECT\n");
+	jdaw_val_set_ptr(ep->val, ep->val_type, new_val);
+    } else {
+	fprintf(stderr, "QUEUEING\n");
+	project_queue_val_change(proj, ep->val, ep->val_type, new_val, ep->owner_thread);
+    }
+    /* pthread_mutex_unlock(&ep->lock); */
 
-int endpoint_read(Endpoint *ep, Value *dst_val, ValType *dst_vt);
-
-int endpoint_register(Endpoint *ep, Jackdaw_API *api);
-
-#endif
+    bool on_main = on_thread(JDAW_THREAD_MAIN);
+    if (run_gui_cb) {
+	if (on_main)
+	    ep->gui_callback(ep);
+	else
+	    project_queue_callback(proj, ep, ep->gui_callback, JDAW_THREAD_MAIN);
+    }
+    if (run_proj_cb) {
+	if (on_main)
+	    ep->proj_callback(ep);
+	else
+	    project_queue_callback(proj, ep, ep->proj_callback, JDAW_THREAD_MAIN);
+    }
+    if (run_dsp_cb) {
+	if (on_thread(JDAW_THREAD_DSP))
+	    ep->dsp_callback(ep);
+	else
+	    project_queue_callback(proj, ep, ep->dsp_callback, JDAW_THREAD_DSP);
+	
+    }
+    return 0;
+}

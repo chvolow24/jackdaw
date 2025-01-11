@@ -553,7 +553,8 @@ void loop_project_main()
 	    transport_recording_update_cliprects();
 	}
 	status_frame();
-	
+	project_flush_val_changes(proj, JDAW_THREAD_MAIN);
+	project_flush_callbacks(proj, JDAW_THREAD_MAIN);
 	project_draw();
 
 
@@ -597,10 +598,10 @@ void loop_project_main()
     end_auto_write:
 
 	
-	
 	/* window_end_draw(main_win); */
 	/**********************************************/
-	SDL_Delay(1);
+	SDL_Delay(1);	
+
 
         /* end = clock(); */
 	/* fps += (float)CLOCKS_PER_SEC / (end - start); */
@@ -612,5 +613,6 @@ void loop_project_main()
 	/* } else { */
 	/*     frame_ctr++; */
 	/* } */
+
     }
 }

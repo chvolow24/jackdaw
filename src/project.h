@@ -50,10 +50,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "automation.h"
-#include "dsp.h"
 #include "components.h"
+#include "dsp.h"
+#include "endpoint.h"
 #include "panel.h"
 #include "tempo.h"
+#include "thread_safety.h"
 #include "status.h"
 #include "textbox.h"
 #include "user_event.h"
@@ -84,6 +86,10 @@
 #define PROJ_TL_LABEL_BUFLEN 50
 
 #define PLAYHEAD_TRI_H (10 * main_win->dpi_scale_factor)
+
+#define PROJ_NUM_METRONOMES 1
+
+#define MAX_ENDPT_CALLBACKS 64
 
 typedef struct project Project;
 typedef struct timeline Timeline;
@@ -160,6 +166,11 @@ typedef struct track {
     SDL_Rect *console_rect;
     SDL_Rect *colorbar;
     SDL_Color color;
+
+    Endpoint mute_ep;
+    Endpoint solo_ep;
+    Endpoint vol_ep;
+    Endpoint pan_ep;
     // SDL_Rect *vol_bar;
     // SDL_Rect *pan_bar;
     // SDL_Rect *in_bar;
@@ -316,6 +327,12 @@ struct drop_save {
     int32_t out;
 };
 
+struct queued_val_change {
+    void *val;
+    ValType type;
+    Value new_val;
+};
+
 /* A Jackdaw project. Only one can be active at a time. Can persist on disk as a .jdaw file (see dot_jdaw.c, dot_jdaw.h) */
 typedef struct project {
     char name[MAX_NAMELENGTH];
@@ -326,6 +343,7 @@ typedef struct project {
     Textbox *timeline_label;
     
     float play_speed;
+    Endpoint play_speed_ep;
     bool dragging;
     bool recording;
     bool playing;
@@ -392,7 +410,7 @@ typedef struct project {
     int quit_count;
 
     /* Metronomes */
-    Metronome metronomes[1];
+    Metronome metronomes[PROJ_NUM_METRONOMES];
 
     /* GUI Members */
     Layout *layout;
@@ -404,10 +422,28 @@ typedef struct project {
     SDL_Rect *bun_patty_bun[3];
     Textbox *source_name_tb;
 
+    /* Status bar */
     struct status_bar status_bar;
 
+    /* Source mode state */
     struct drop_save saved_drops[5];
     uint8_t num_dropped;
+
+    /* Scheduled endpoint callbacks */
+    /* EndptCb main_thread_callbacks[MAX_ENDPT_CALLBACKS]; */
+    /* uint8_t num_main_thread_callbacks; */
+    
+    /* EndptCb dsp_thread_callbacks[MAX_ENDPT_CALLBACKS]; */
+    /* uint8_t num_dsp_thread_callbacks; */
+    struct queued_val_change queued_val_changes[NUM_CALLBACK_THREADS][MAX_ENDPT_CALLBACKS];
+    uint8_t num_queued_val_changes[NUM_CALLBACK_THREADS];
+    pthread_mutex_t queued_val_changes_lock;
+    
+    EndptCb queued_callbacks[NUM_CALLBACK_THREADS][MAX_ENDPT_CALLBACKS];
+    Endpoint *queued_callback_args[NUM_CALLBACK_THREADS][MAX_ENDPT_CALLBACKS];
+    uint8_t num_queued_callbacks[NUM_CALLBACK_THREADS];
+    pthread_mutex_t queued_callback_lock;
+
 } Project;
 
 Project *project_create(
@@ -497,5 +533,13 @@ void timeline_play_speed_set(double new_speed);
 void timeline_play_speed_mult(double scale_factor);
 void timeline_play_speed_adj(double dim);
 void timeline_scroll_playhead(double dim);
+
+
+int project_queue_val_change(Project *proj, void *target, ValType t, Value new_val, enum jdaw_thread thread);
+void project_flush_val_changes(Project *proj, enum jdaw_thread thread);
+
+int project_queue_callback(Project *proj, Endpoint *ep, EndptCb cb, enum jdaw_thread thread);
+void project_flush_callbacks(Project *proj, enum jdaw_thread thread);
+
 
 #endif

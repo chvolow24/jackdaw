@@ -27,7 +27,7 @@
 /*****************************************************************************************************************
     mixdown.c
 
-    * Get sampels from tracks/clips for playback or export
+    * Get samples from tracks/clips for playback or export
  *****************************************************************************************************************/
 
 #include <pthread.h>
@@ -39,61 +39,14 @@
 
 extern Project *proj;
 
-/* /\* Query track clips and return audio sample representing a given point in the timeline.  */
-/* channel is 0 for left or mono, 1 for right *\/ */
-/* static float get_track_sample(Track *track, uint8_t channel, int32_t tl_pos_sframes) */
-/* { */
-/*     if (track->muted || track->solo_muted) { */
-/*         return 0; */
-/*     } */
-
-/*     float sample = 0; */
-
-
-/*     for (int i=0; i<track->num_clips; i++) { */
-/*         ClipRef *cr = (track->clips)[i]; */
-
-/* 	/\* TODO: reinstate this!! *\/ */
-/*         /\* if (cr->clip->recording) { *\/ */
-/*             /\* continue; *\/ */
-/*         /\* } *\/ */
-	
-/*         float *clip_buf = (channel == 0) ? cr->clip->L : cr->clip->R; */
-/*         int32_t pos_in_clip_sframes = tl_pos_sframes - cr->pos_sframes; */
-/*         // fprintf(stderr, "Pos in clip: %d\n", pos_in_clip_sframes); */
-/*         if (pos_in_clip_sframes >= 0 && pos_in_clip_sframes < cr->clip->len_sframes) { */
-/*             /\* if (pos_in_clip_sframes < cr->start_ramp_len) { *\/ */
-/*             /\*     float ramp_value = (float) pos_in_clip_sframes / clip->start_ramp_len; *\/ */
-/*             /\*     sample += ramp_value * clip_buf[pos_in_clip_sframes]; *\/ */
-/*             /\* } else if (pos_in_clip_sframes > clip->len_sframes - clip->end_ramp_len) { *\/ */
-/*             /\*     float ramp_value = (float) (clip->len_sframes - pos_in_clip_sframes) / clip->end_ramp_len; *\/ */
-/*             /\*     // ramp_value *= ramp_value; *\/ */
-/*             /\*     // ramp_value *= ramp_value; *\/ */
-/*             /\*     // ramp_value *= ramp_value; *\/ */
-/*             /\*     // fprintf(stderr, "(END RAMP) Pos in clip: %d; scale: %f\n", pos_in_clip, ramp_value); *\/ */
-/*             /\*     // fprintf(stderr, "\t Sample pre & post: %d, %d\n", (clip->post_proc)[pos_in_clip], (int16_t) ((clip->post_proc)[pos_in_clip] * ramp_value)); *\/ */
-/*             /\*     // sample += (int16_t) ((clip->post_proc)[pos_in_clip] * ramp_value); *\/ */
-/*             /\*     sample += ramp_value * clip_buf[pos_in_clip_sframes]; *\/ */
-/*             /\* } else { *\/ */
-
-/*                 sample += clip_buf[pos_in_clip_sframes]; */
-/*             /\* } *\/ */
-/*         } */
-/*     } */
-
-/*     return sample; */
-/* } */
 
 float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32_t start_pos_sframes, uint32_t len_sframes, float step)
 {
     uint32_t chunk_bytelen = sizeof(float) * len_sframes;
-    /* float *chunk = calloc(1, chunk_bytelen); */
     memset(chunk, '\0', chunk_bytelen);
     if (track->muted || track->solo_muted) {
-        /* return chunk; */
 	return 0.0f;
     }
-    // uint32_t end_pos_sframes = start_pos_sframes + len_sframes;
 
     /************************* VOL/PAN AUTOMATION *************************/
     Automation *vol_auto = NULL;
@@ -116,33 +69,19 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
     }
     
     if (vol_auto) {
-	if (vol_auto->write) {
-	    /* if (!vol_auto->current) { */
-	    /* 	vol_auto->current = automation_get_segment(vol_auto, start_pos_sframes); */
-	    /* } */
-	    
-	} else if (vol_auto->read) {
+	if (!vol_auto->write && vol_auto->read) {
 	    float vol_init = automation_get_value(vol_auto, start_pos_sframes, step).float_v;
 	    track->vol = vol_init;
 	    slider_reset(track->vol_ctrl);
 	}
     }
     if (pan_auto) {
-	if (pan_auto->write) {
-	    /* if (!pan_auto->current) { */
-	    /* 	pan_auto->current = automation_get_segment(pan_auto, start_pos_sframes); */
-	    /* } */
-	    /* Value pan; */
-	    /* pan.float_v = track->pan; */
-	    /* automation_insert_maybe(pan_auto, pan_auto->current, pan, start_pos_sframes, chunk_end, step); */
-	} else if (pan_auto->read) {
+	if (!pan_auto->write && pan_auto->read) {
 	    float pan_init = automation_get_value(pan_auto, start_pos_sframes, step).float_v;
 	    track->pan = pan_init;
 	    slider_reset(track->pan_ctrl);
 	}
     }
-    /* if (pan_auto && pan_auto->read) { */
-    /* } */
     bool bandwidth_set = false;
     bool cutoff_set = false;
     double cutoff_hz;

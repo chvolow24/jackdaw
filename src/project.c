@@ -3278,24 +3278,30 @@ void timeline_scroll_playhead(double dim)
 /* CALLBACKS */
 
 /* Returns 0 on success, 1 if maximum number of callbacks reached */
-int project_queue_val_change(Project *proj, void *target, ValType t, Value new_val, enum jdaw_thread thread)
+int project_queue_val_change(Project *proj, Endpoint *ep, Value new_val)
 {
-    if (proj->num_queued_val_changes[thread] == MAX_ENDPT_CALLBACKS) {
+    enum jdaw_thread thread = ep->owner_thread;
+    if (proj->num_queued_val_changes[thread] == MAX_QUEUED_OPS) {
 	return 1;
     }
     struct queued_val_change *qvc = &proj->queued_val_changes[thread][proj->num_queued_val_changes[thread]];
-    qvc->val = target;
-    qvc->type = t;
+    qvc->ep = ep;
     qvc->new_val = new_val;
     proj->num_queued_val_changes[thread]++;
-	    return 0;
+    /* fprintf(stderr, "QUEUED new count: %d\n", proj->num_queued_val_changes[thread]); */
+    return 0;
 }
 
 void project_flush_val_changes(Project *proj, enum jdaw_thread thread)
 {
     for (int i=0; i<proj->num_queued_val_changes[thread]; i++) {
 	struct queued_val_change *qvc = &proj->queued_val_changes[thread][i];
-	jdaw_val_set_ptr(qvc->val, qvc->type, qvc->new_val);
+	Endpoint *ep = qvc->ep;
+	/* Protected write */
+	pthread_mutex_lock(&ep->lock);
+	jdaw_val_set_ptr(ep->val, ep->val_type, qvc->new_val);
+	pthread_mutex_unlock(&ep->lock);
+	/* fprintf(stderr, "\tFLUSHED %d/%d\n", i,proj->num_queued_val_changes[thread]); */
     }
     proj->num_queued_val_changes[thread] = 0;
 }
@@ -3303,7 +3309,7 @@ void project_flush_val_changes(Project *proj, enum jdaw_thread thread)
 int project_queue_callback(Project *proj, Endpoint *ep, EndptCb cb, enum jdaw_thread thread)
 {
     pthread_mutex_lock(&proj->queued_callback_lock);
-    if (proj->num_queued_callbacks[thread] == MAX_ENDPT_CALLBACKS) {
+    if (proj->num_queued_callbacks[thread] == MAX_QUEUED_OPS) {
 	return 1;
     }
     proj->queued_callbacks[thread][proj->num_queued_callbacks[thread]] = cb;

@@ -29,26 +29,9 @@
 
     * define API by which project paramters can be accessed and modified
     * groundwork for UDP API
+    * see endpoint.h for more info
  *****************************************************************************************************************/
 
-/*
-
-  Jackdaw object parameters can be modified from within the program in normal C-like ways.
-  E.g., it is legal to update the volume of a track object like this:
-  
-      Track *track = (...);
-      track->vol = 0.0;
-      
-  However, it is sometimes helpful to place such modifications behind the API defined here, for the following reasons:
-
-  1. THREAD SAFETY
-      Endpoint write operations are legal from ANY thread
-  2. UNDO/REDO
-      Modifications to endpoint parameters that are undoable are handled by this API, so the event functions don't need to be separately implemented
-  3. IPC:
-      External applications can safely modify Jackdaw project parameters through this API
-  
- */
 #include <stdlib.h>
 #include <string.h>
 #include "endpoint.h"
@@ -58,7 +41,7 @@ typedef struct project Project;
 extern Project *proj;
 
 int project_queue_callback(Project *proj, Endpoint *ep, EndptCb cb, enum jdaw_thread thread);
-int project_queue_val_change(Project *proj, void *target, ValType t, Value new_val, enum jdaw_thread thread);
+int project_queue_val_change(Project *proj, Endpoint *ep, Value new_val);
 
 int endpoint_init(
     Endpoint *ep,
@@ -85,30 +68,42 @@ int endpoint_init(
     ep->xarg4 = xarg4;
 
     int err;
-    /* if ((err = pthread_mutex_init(&ep->lock, NULL)) != 0) { */
-    /* 	fprintf(stderr, "Error initializing mutex: %s\n", strerror(err)); */
-    /* 	return 1; */
-    /* } */
+    if ((err = pthread_mutex_init(&ep->lock, NULL)) != 0) {
+	fprintf(stderr, "Error initializing mutex: %s\n", strerror(err));
+	return 1;
+    }
     return 0;
 }
+
+/* int enpoint_add_callback(Endpoint *ep, EndptCb fn, enum jdaw_thread thread) */
+/* { */
+/*     if (ep->num_callbacks == MAX_ENDPOINT_CALLBACKS) { */
+/* 	return 1; */
+/*     } */
+/*     struct endpt_cb *cb = ep->callbacks + ep->num_callbacks; */
+/*     cb->fn = fn; */
+/*     cb->thread = thread; */
+/*     return 0; */
+/* } */
 
 int endpoint_write(
     Endpoint *ep,
     Value new_val,
     bool run_gui_cb,
     bool run_proj_cb,
-    bool run_dsp_cb)
+    bool run_dsp_cb,
+    bool undoable)
 {
-    /* pthread_mutex_lock(&ep->lock); */
+    /* Value change */
     if (on_thread(ep->owner_thread)) {
-	fprintf(stderr, "SETTING DIRECT\n");
+	pthread_mutex_lock(&ep->lock);
 	jdaw_val_set_ptr(ep->val, ep->val_type, new_val);
+	pthread_mutex_unlock(&ep->lock);
     } else {
-	fprintf(stderr, "QUEUEING\n");
-	project_queue_val_change(proj, ep->val, ep->val_type, new_val, ep->owner_thread);
+	project_queue_val_change(proj, ep, new_val);
     }
-    /* pthread_mutex_unlock(&ep->lock); */
 
+    /* Callbacks */
     bool on_main = on_thread(JDAW_THREAD_MAIN);
     if (run_gui_cb) {
 	if (on_main)
@@ -130,4 +125,26 @@ int endpoint_write(
 	
     }
     return 0;
+}
+
+Value endpoint_unsafe_read(Endpoint *ep, ValType *vt)
+{
+    if (vt) {
+	*vt = ep->val_type;
+    }
+    return jdaw_val_from_ptr(ep->val, ep->val_type);    
+}
+
+Value endpoint_safe_read(Endpoint *ep, ValType *vt)
+{
+    if (on_thread(ep->owner_thread)) {
+	fprintf(stderr, "DIRECT read\n");
+	return endpoint_unsafe_read(ep, vt);
+    } else {
+	fprintf(stderr, "INDIRECT read\n");
+	pthread_mutex_lock(&ep->lock);
+	Value ret = endpoint_unsafe_read(ep, vt);
+	pthread_mutex_unlock(&ep->lock);
+	return ret;
+    }   
 }

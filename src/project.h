@@ -89,7 +89,7 @@
 
 #define PROJ_NUM_METRONOMES 1
 
-#define MAX_ENDPT_CALLBACKS 64
+#define MAX_QUEUED_OPS 64
 
 typedef struct project Project;
 typedef struct timeline Timeline;
@@ -328,8 +328,7 @@ struct drop_save {
 };
 
 struct queued_val_change {
-    void *val;
-    ValType type;
+    Endpoint *ep;
     Value new_val;
 };
 
@@ -429,18 +428,14 @@ typedef struct project {
     struct drop_save saved_drops[5];
     uint8_t num_dropped;
 
-    /* Scheduled endpoint callbacks */
-    /* EndptCb main_thread_callbacks[MAX_ENDPT_CALLBACKS]; */
-    /* uint8_t num_main_thread_callbacks; */
-    
-    /* EndptCb dsp_thread_callbacks[MAX_ENDPT_CALLBACKS]; */
-    /* uint8_t num_dsp_thread_callbacks; */
-    struct queued_val_change queued_val_changes[NUM_CALLBACK_THREADS][MAX_ENDPT_CALLBACKS];
+
+    /* Endpoints API */
+    struct queued_val_change queued_val_changes[NUM_CALLBACK_THREADS][MAX_QUEUED_OPS];
     uint8_t num_queued_val_changes[NUM_CALLBACK_THREADS];
     pthread_mutex_t queued_val_changes_lock;
     
-    EndptCb queued_callbacks[NUM_CALLBACK_THREADS][MAX_ENDPT_CALLBACKS];
-    Endpoint *queued_callback_args[NUM_CALLBACK_THREADS][MAX_ENDPT_CALLBACKS];
+    EndptCb queued_callbacks[NUM_CALLBACK_THREADS][MAX_QUEUED_OPS];
+    Endpoint *queued_callback_args[NUM_CALLBACK_THREADS][MAX_QUEUED_OPS];
     uint8_t num_queued_callbacks[NUM_CALLBACK_THREADS];
     pthread_mutex_t queued_callback_lock;
 
@@ -535,7 +530,7 @@ void timeline_play_speed_adj(double dim);
 void timeline_scroll_playhead(double dim);
 
 
-int project_queue_val_change(Project *proj, void *target, ValType t, Value new_val, enum jdaw_thread thread);
+int project_queue_val_change(Project *proj, Endpoint *ep, Value new_val);
 void project_flush_val_changes(Project *proj, enum jdaw_thread thread);
 
 int project_queue_callback(Project *proj, Endpoint *ep, EndptCb cb, enum jdaw_thread thread);

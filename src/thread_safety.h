@@ -7,7 +7,8 @@
 #define NUM_CALLBACK_THREADS 2
 enum jdaw_thread {
     JDAW_THREAD_MAIN=0,
-    JDAW_THREAD_DSP=1
+    JDAW_THREAD_DSP=1,
+    JDAW_THREAD_OTHER=2
 };
 
 #ifdef TESTBUILD
@@ -43,6 +44,17 @@ enum jdaw_thread {
 #define MAIN_THREAD_ONLY(name)
 
 #endif
+
+#if defined(HAVE_THREAD_LOCAL)
+    #define JDAW_THREAD_LOCAL thread_local
+#elsif defined(HAVE__THREAD_LOCAL)
+    #define JDAW_THREAD_LOCAL _Thread_local
+#elsif defined(HAVE___THREAD)
+    #define JDAW_THREAD_LOCAL __thread
+#else
+    #define JDAW_THREAD_LOCAL
+#endif
+
 
 
 const char *get_thread_name();

@@ -44,7 +44,6 @@
 #include "layout.h"
 #include "layout_xml.h"
 #include "modal.h"
-#include "portability.h"
 #include "project.h"
 #include "tempo.h"
 #include "test.h"

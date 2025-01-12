@@ -35,13 +35,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include "endpoint.h"
+#include "project.h"
+#include "status.h"
 #include "value.h"
 
 typedef struct project Project;
 extern Project *proj;
 
-int project_queue_callback(Project *proj, Endpoint *ep, EndptCb cb, enum jdaw_thread thread);
-int project_queue_val_change(Project *proj, Endpoint *ep, Value new_val);
+/* int project_queue_callback(Project *proj, Endpoint *ep, EndptCb cb, enum jdaw_thread thread); */
+/* int project_queue_val_change(Project *proj, Endpoint *ep, Value new_val); */
 
 int endpoint_init(
     Endpoint *ep,
@@ -86,6 +88,25 @@ int endpoint_init(
 /*     return 0; */
 /* } */
 
+NEW_EVENT_FN(undo_redo_endpoint_write, "")
+    Endpoint *ep = (Endpoint *)obj1;
+    uint8_t cb_bf = val2.uint8_v;
+    bool run_gui_cb = cb_bf & 0b001;
+    bool run_proj_cb = cb_bf & 0b010;
+    bool run_dsp_cb = cb_bf & 0b100;
+    endpoint_write(
+	ep,
+	val1,
+	run_gui_cb,
+	run_proj_cb,
+	run_dsp_cb,
+	false);
+
+    char statstr_fmt[255];						
+    snprintf(statstr_fmt, 255, "(%d/%d) %s", proj->history.len - self->index, proj->history.len, ep->undo_str);
+    status_set_undostr(statstr_fmt);
+}
+
 int endpoint_write(
     Endpoint *ep,
     Value new_val,
@@ -94,6 +115,12 @@ int endpoint_write(
     bool run_dsp_cb,
     bool undoable)
 {
+
+    Value old_val;
+    if (undoable) {
+	old_val = endpoint_safe_read(ep, NULL);
+    }
+    
     /* Value change */
     if (on_thread(ep->owner_thread)) {
 	pthread_mutex_lock(&ep->lock);
@@ -124,6 +151,29 @@ int endpoint_write(
 	    project_queue_callback(proj, ep, ep->dsp_callback, JDAW_THREAD_DSP);
 	
     }
+
+    /* Undo */
+    if (undoable) {
+	if (!on_main) {
+	    fprintf(stderr, "UH OH can't push event fn on thread that is not main\n");
+	    return 2;
+	}
+	uint8_t callback_bitfield = 0;
+	if (run_gui_cb) callback_bitfield |= 0b001;
+	if (run_proj_cb) callback_bitfield |= 0b010;
+	if (run_dsp_cb) callback_bitfield |= 0b100;
+	Value cb_matrix = {.uint8_v = callback_bitfield};
+	user_event_push(
+	    &proj->history,
+	    undo_redo_endpoint_write,
+	    undo_redo_endpoint_write,
+	    NULL, NULL,
+	    (void *)ep, NULL,
+	    old_val, cb_matrix,
+	    new_val, cb_matrix,
+	    0, 0, false, false);
+    }
+    
     return 0;
 }
 

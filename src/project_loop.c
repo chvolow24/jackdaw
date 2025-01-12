@@ -603,14 +603,16 @@ void loop_project_main()
 	SDL_Delay(1);	
 
 
-	Value speed = {.float_v = proj->play_speed};
-	speed.float_v += 0.005;
-	fprintf(stderr, "Setting speed to %f\n", speed.float_v);
-	endpoint_write(
-	    &proj->play_speed_ep,
-	    speed,
-	    true, false, false,
-	    false);
+	/* Value speed = {.float_v = proj->play_speed}; */
+	/* if (fabs(speed.float_v) > 0.0001) { */
+	/*     speed.float_v += 0.005; */
+	/*     fprintf(stderr, "Setting speed to %f\n", speed.float_v); */
+	/*     endpoint_write( */
+	/* 	&proj->play_speed_ep, */
+	/* 	speed, */
+	/* 	true, false, false, */
+	/* 	true); */
+	/* } */
         /* end = clock(); */
 	/* fps += (float)CLOCKS_PER_SEC / (end - start); */
 	/* start = end; */

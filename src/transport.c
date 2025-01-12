@@ -220,6 +220,17 @@ static void *transport_dsp_thread_fn(void *arg)
     int N = len / proj->chunk_size_sframes;
     bool init = true;
     while (1) {
+	/* Value speed = {.float_v = proj->play_speed}; */
+	/* if (fabs(speed.float_v) > 0.0001) { */
+	/*     speed.float_v += 0.005; */
+	/*     fprintf(stderr, "Setting speed to %f\n", speed.float_v); */
+	/*     endpoint_write( */
+	/* 	&proj->play_speed_ep, */
+	/* 	speed, */
+	/* 	true, false, false, */
+	/* 	true); */
+	/* } */
+
 	/* clock_t a,b; */
 	/* a = clock(); */
 

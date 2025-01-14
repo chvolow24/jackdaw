@@ -102,7 +102,8 @@ typedef struct endpoint {
     
     pthread_mutex_t lock;
     enum jdaw_thread owner_thread;
-    
+
+    const char *local_id;
     const char *undo_str;
 
     void *xarg1;
@@ -116,6 +117,7 @@ int endpoint_init(
     Endpoint *ep,
     void *val,
     ValType t,
+    const char *local_id,
     const char *undo_str,
     enum jdaw_thread owner_thread,
     EndptCb gui_cb,

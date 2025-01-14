@@ -494,6 +494,7 @@ Project *project_create(
 	&proj->play_speed_ep,
 	&proj->play_speed,
 	JDAW_FLOAT,
+	"play_speed",
 	"undo/redo play speed adj",
 	JDAW_THREAD_DSP,
 	play_speed_gui_cb, NULL, NULL,
@@ -1600,10 +1601,39 @@ Track *timeline_add_track(Timeline *tl)
     track->selected_automation = -1;
     track->console_rect = &(layout_get_child_by_name_recursive(track->inner_layout, "track_console")->rect);
     track->colorbar = &(layout_get_child_by_name_recursive(track->inner_layout, "colorbar")->rect);
+
+
+    /* API */
+    endpoint_init(
+	&track->vol_ep,
+	&track->vol,
+	JDAW_FLOAT,
+	"vol",
+	"undo/redo adjust track volume",
+	JDAW_THREAD_DSP,
+	track_slider_cb,
+	NULL, NULL,
+	track->vol_ctrl, track->tl,
+	NULL, NULL);
+
+    endpoint_init(
+	&track->pan_ep,
+	&track->pan,
+	JDAW_FLOAT,
+	"pan",
+	"undo/redo adjust track pan",
+	JDAW_THREAD_DSP,
+	track_slider_cb,
+	NULL, NULL,
+	track->pan_ctrl, track->tl,
+	NULL, NULL);
+
+	
     
     track_reset_full(track);
     if (tl->layout_selector < 0) tl->layout_selector = 0;
     timeline_rectify_track_indices(tl);
+
 
     return track;
 }

@@ -49,6 +49,7 @@ int endpoint_init(
     Endpoint *ep,
     void *val,
     ValType t,
+    const char *local_id,
     const char *undo_str,
     enum jdaw_thread owner_thread,
     EndptCb gui_cb,
@@ -59,6 +60,7 @@ int endpoint_init(
 {
     ep->val = val;
     ep->val_type = t;
+    ep->local_id = local_id;
     ep->undo_str = undo_str;
     ep->owner_thread = owner_thread;
     ep->gui_callback = gui_cb;
@@ -127,7 +129,13 @@ int endpoint_write(
 	jdaw_val_set_ptr(ep->val, ep->val_type, new_val);
 	pthread_mutex_unlock(&ep->lock);
     } else {
-	project_queue_val_change(proj, ep, new_val);
+	if (!proj->playing && ep->owner_thread == JDAW_THREAD_DSP) {
+	    pthread_mutex_lock(&ep->lock);
+	    jdaw_val_set_ptr(ep->val, ep->val_type, new_val);
+	    pthread_mutex_unlock(&ep->lock);	    
+	} else {
+	    project_queue_val_change(proj, ep, new_val);
+	}
     }
 
     /* Callbacks */
@@ -147,8 +155,13 @@ int endpoint_write(
     if (run_dsp_cb) {
 	if (on_thread(JDAW_THREAD_DSP))
 	    ep->dsp_callback(ep);
-	else
-	    project_queue_callback(proj, ep, ep->dsp_callback, JDAW_THREAD_DSP);
+	else {
+	    if (proj->playing) {
+		project_queue_callback(proj, ep, ep->dsp_callback, JDAW_THREAD_DSP);
+	    } else {
+		ep->dsp_callback(ep);
+	    }
+	}
 	
     }
 
@@ -188,10 +201,10 @@ Value endpoint_unsafe_read(Endpoint *ep, ValType *vt)
 Value endpoint_safe_read(Endpoint *ep, ValType *vt)
 {
     if (on_thread(ep->owner_thread)) {
-	fprintf(stderr, "DIRECT read\n");
+	/* fprintf(stderr, "DIRECT read\n"); */
 	return endpoint_unsafe_read(ep, vt);
     } else {
-	fprintf(stderr, "INDIRECT read\n");
+	/* fprintf(stderr, "INDIRECT read\n"); */
 	pthread_mutex_lock(&ep->lock);
 	Value ret = endpoint_unsafe_read(ep, vt);
 	pthread_mutex_unlock(&ep->lock);

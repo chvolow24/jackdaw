@@ -171,6 +171,11 @@ typedef struct track {
     Endpoint solo_ep;
     Endpoint vol_ep;
     Endpoint pan_ep;
+    Endpoint fir_filter_cutoff_ep;
+    Endpoint fir_filter_bandwidth_ep;
+    Endpoint delay_line_len_ep;
+    Endpoint delay_line_amp_ep;
+    Endpoint delay_line_stereo_offset_ep;
     // SDL_Rect *vol_bar;
     // SDL_Rect *pan_bar;
     // SDL_Rect *in_bar;

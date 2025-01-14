@@ -71,6 +71,8 @@ extern SDL_Color freq_R_color;
 
 extern Project *proj;
 
+extern pthread_t DSP_THREAD_ID;
+
 /* extern volatile bool CANCEL_THREADS; */
 
 static void stop_update_track_vol_pan()
@@ -242,6 +244,17 @@ void loop_project_main()
 		scrolling_lt = NULL;
 		temp_scrolling_lt = NULL;
 		switch (e.key.keysym.scancode) {
+		case SDL_SCANCODE_6: {
+		    fprintf(stderr, "DSP THREAD? %p\n", DSP_THREAD_ID);
+		    Timeline *tl = proj->timelines[proj->active_tl_index];
+		    Track *track = timeline_selected_track(tl);
+		    if (track) {
+			Value volval = endpoint_safe_read(&track->vol_ep, NULL);
+			volval.float_v += 0.1;
+			endpoint_write(&track->vol_ep, volval, true, false, false, true);
+		    }
+		    break;
+		    }
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LCTRL:
@@ -613,6 +626,8 @@ void loop_project_main()
 	/* 	true, false, false, */
 	/* 	true); */
 	/* } */
+
+	
         /* end = clock(); */
 	/* fps += (float)CLOCKS_PER_SEC / (end - start); */
 	/* start = end; */

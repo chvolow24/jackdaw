@@ -56,4 +56,5 @@ void timeline_catchup(Timeline *tl);
 
 void timecode_str_at(Timeline *tl, char *dst, size_t dstsize, int32_t pos);
 
+int32_t timeline_get_play_pos_now(Timeline *tl);
 #endif

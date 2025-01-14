@@ -1378,8 +1378,8 @@ void user_tl_solo(void *nullarg)
     /* tl->needs_redraw = true; */
 }
 
-Value vol_incr = {.float_v=0.01};
-Value vol_decr = {.float_v = -0.01};
+Value vol_incr = {.float_v=0.04};
+Value vol_decr = {.float_v = -0.04};
 void user_tl_track_vol_up(void *nullarg)
 {
 

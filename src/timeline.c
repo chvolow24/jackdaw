@@ -321,3 +321,14 @@ void timeline_catchup(Timeline *tl)
 	timeline_reset(tl, false);
     }
 }
+
+int32_t timeline_get_play_pos_now(Timeline *tl)
+{
+    if (!tl->proj->playing) {
+	return tl->play_pos_sframes;
+    }
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    double elapsed_s = now.tv_sec + ((double)now.tv_nsec / 1e9) - tl->play_pos_moved_at.tv_sec - ((double)tl->play_pos_moved_at.tv_nsec / 1e9);
+    return tl->play_pos_sframes + elapsed_s * tl->proj->sample_rate * tl->proj->play_speed;
+}

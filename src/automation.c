@@ -35,6 +35,7 @@
 
 #include "automation.h"
 #include "color.h"
+#include "endpoint.h"
 #include "input.h"
 #include "layout.h"
 #include "layout_xml.h"
@@ -260,6 +261,7 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	a->target_val = &track->vol;
 	base_kf_val.float_v = track->vol;
 	automation_insert_keyframe_at(a, 0, base_kf_val);
+	endpoint_bind_automation(&track->vol_ep, a);
 	break;
     case AUTO_PAN:
 	a->val_type = JDAW_FLOAT;
@@ -1207,10 +1209,10 @@ set_ghost:
     return NULL;
 }
 
-void automation_do_write(Automation *a, int32_t pos, int32_t end_pos, float step)
+void automation_do_write(Automation *a, Value v, int32_t pos, int32_t end_pos, float step)
 {
-    Value v;
-    jdaw_val_set(&v, a->val_type, a->target_val);
+    /* Value v; */
+    /* jdaw_val_set(&v, a->val_type, a->target_val); */
     automation_insert_maybe(a, v, pos, end_pos, step);
 }
 
@@ -2030,7 +2032,7 @@ int track_select_next_automation(Track *t)
     while (t->selected_automation < t->num_automations) {
 	t->selected_automation++;
 	if (t->selected_automation == t->num_automations) {
-	    t->selected_automation = -1;
+	    t->selected_automation -= 1;
 	    break;
 	} else if (t->automations[t->selected_automation]->shown) {
 	    break;
@@ -2180,3 +2182,10 @@ TEST_FN_DEF(layout_num_children, {
 	}
 	return ret;
     }, Layout *lt);
+
+
+
+void automation_endpoint_write(Endpoint *ep, Value val, int32_t play_pos)
+{
+    automation_do_write(ep->automation, val, play_pos, play_pos + 10000, ep->automation->track->tl->proj->play_speed);
+}

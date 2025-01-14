@@ -70,7 +70,7 @@
 #ifndef JDAW_ENDPOINT_H
 #define JDAW_ENDPOINT_H
 
-#include <pthread.h>
+#include "automation.h"
 #include "thread_safety.h"
 #include "value.h"
 
@@ -100,8 +100,10 @@ typedef struct endpoint {
     EndptCb gui_callback; /* Main thread -- update GUI state */
     EndptCb dsp_callback; /* DSP thread */
     
-    pthread_mutex_t lock;
+    pthread_mutex_t val_lock;
+    pthread_mutex_t owner_lock;
     enum jdaw_thread owner_thread;
+    enum jdaw_thread cached_owner;
 
     const char *local_id;
     const char *undo_str;
@@ -114,7 +116,9 @@ typedef struct endpoint {
     /* Continuous changes */
     bool do_auto_incr;
     Value incr;
-    
+
+    /* Bindings */
+    Automation *automation;
 } Endpoint;
 
 int endpoint_init(
@@ -148,6 +152,9 @@ int endpoint_read(Endpoint *ep, Value *dst_val, ValType *dst_vt);
 Value endpoint_unsafe_read(Endpoint *ep, ValType *vt);
 Value endpoint_safe_read(Endpoint *ep, ValType *vt);
 
+void endpoint_set_owner(Endpoint *ep, enum jdaw_thread thread);
+enum jdaw_thread endpoint_get_owner(Endpoint *ep);
+
 void endpoint_start_continuous_change(
     Endpoint *ep,
     bool do_auto_incr,
@@ -157,5 +164,7 @@ void endpoint_continuous_change_do_incr(Endpoint *ep);
 void endpoint_stop_continuous_change(Endpoint *ep);
 
 int endpoint_register(Endpoint *ep, Jackdaw_API *api);
+
+void endpoint_bind_automation(Endpoint *ep, Automation *a);
 
 #endif

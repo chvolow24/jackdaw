@@ -36,6 +36,7 @@
 #include <string.h>
 #include "endpoint.h"
 #include "project_endpoint_ops.h"
+#include "timeline.h"
 #include "status.h"
 #include "value.h"
 
@@ -72,9 +73,13 @@ int endpoint_init(
     ep->xarg4 = xarg4;
 
     int err;
-    if ((err = pthread_mutex_init(&ep->lock, NULL)) != 0) {
-	fprintf(stderr, "Error initializing mutex: %s\n", strerror(err));
-	return 1;
+    if ((err = pthread_mutex_init(&ep->val_lock, NULL)) != 0) {
+	fprintf(stderr, "Error initializing ep val mutex: %s\n", strerror(err));
+	exit(1);
+    }
+    if ((err = pthread_mutex_init(&ep->owner_lock, NULL)) != 0) {
+	fprintf(stderr, "Error initializing ep owner mutex: %s\n", strerror(err));
+	exit(1);
     }
     return 0;
 }
@@ -124,18 +129,24 @@ int endpoint_write(
     }
     
     /* Value change */
-    if (on_thread(ep->owner_thread)) {
-	pthread_mutex_lock(&ep->lock);
+    enum jdaw_thread owner = endpoint_get_owner(ep);
+    if (on_thread(owner) || (!proj->playing && owner == JDAW_THREAD_DSP)) {
+	pthread_mutex_lock(&ep->val_lock);
 	jdaw_val_set_ptr(ep->val, ep->val_type, new_val);
-	pthread_mutex_unlock(&ep->lock);
-    } else {
-	if (!proj->playing && ep->owner_thread == JDAW_THREAD_DSP) {
-	    pthread_mutex_lock(&ep->lock);
-	    jdaw_val_set_ptr(ep->val, ep->val_type, new_val);
-	    pthread_mutex_unlock(&ep->lock);	    
-	} else {
-	    project_queue_val_change(proj, ep, new_val);
+	if (ep->automation && ep->automation->write) {
+	    Timeline *tl = proj->timelines[proj->active_tl_index];
+	    int32_t tl_now = timeline_get_play_pos_now(tl);
+	    automation_endpoint_write(ep, new_val, tl_now);
 	}
+	pthread_mutex_unlock(&ep->val_lock);
+    } else {
+	/* if (!proj->playing && ep->owner_thread == JDAW_THREAD_DSP) { */
+	/*     pthread_mutex_lock(&ep->lock); */
+	/*     jdaw_val_set_ptr(ep->val, ep->val_type, new_val); */
+	/*     pthread_mutex_unlock(&ep->lock);	     */
+	/* } else { */
+	project_queue_val_change(proj, ep, new_val);
+	/* } */
     }
 
     /* Callbacks */
@@ -200,16 +211,34 @@ Value endpoint_unsafe_read(Endpoint *ep, ValType *vt)
 
 Value endpoint_safe_read(Endpoint *ep, ValType *vt)
 {
-    if (on_thread(ep->owner_thread)) {
+    enum jdaw_thread owner = endpoint_get_owner(ep);
+    if (on_thread(owner)) {
 	/* fprintf(stderr, "DIRECT read\n"); */
 	return endpoint_unsafe_read(ep, vt);
     } else {
 	/* fprintf(stderr, "INDIRECT read\n"); */
-	pthread_mutex_lock(&ep->lock);
+	pthread_mutex_lock(&ep->val_lock);
 	Value ret = endpoint_unsafe_read(ep, vt);
-	pthread_mutex_unlock(&ep->lock);
+	pthread_mutex_unlock(&ep->val_lock);
 	return ret;
     }   
+}
+
+/* PROBLEM: there may be queued value change operations */
+void endpoint_set_owner(Endpoint *ep, enum jdaw_thread thread)
+{
+    pthread_mutex_lock(&ep->owner_lock);
+    ep->owner_thread = thread;
+    pthread_mutex_unlock(&ep->owner_lock);
+}
+
+enum jdaw_thread endpoint_get_owner(Endpoint *ep)
+{
+    enum jdaw_thread thread;
+    pthread_mutex_lock(&ep->owner_lock);
+    thread = ep->owner_thread;
+    pthread_mutex_unlock(&ep->owner_lock);
+    return thread;
 }
 
 void endpoint_start_continuous_change(
@@ -218,6 +247,8 @@ void endpoint_start_continuous_change(
     Value incr,
     enum jdaw_thread thread)
 {
+    ep->cached_owner = endpoint_get_owner(ep);
+    endpoint_set_owner(ep, thread);
     ep->do_auto_incr = do_auto_incr;
     ep->incr = incr;
     ep->cached_val = endpoint_safe_read(ep, NULL);
@@ -234,6 +265,7 @@ void endpoint_continuous_change_do_incr(Endpoint *ep)
 void endpoint_stop_continuous_change(Endpoint *ep)
 {
 
+    endpoint_set_owner(ep, ep->cached_owner);
     uint8_t callback_bitfield = 0b111;
     /* callback_bitfield |= 0b001; */
     /* if (run_proj_cb) callback_bitfield |= 0b010; */
@@ -250,4 +282,9 @@ void endpoint_stop_continuous_change(Endpoint *ep)
 	current_val, cb_matrix,
 	0, 0, false, false);
 
+}
+
+void endpoint_bind_automation(Endpoint *ep, Automation *a)
+{
+    ep->automation = a;
 }

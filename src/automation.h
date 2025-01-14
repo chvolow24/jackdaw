@@ -188,7 +188,7 @@ void automation_delete(Automation *a);
 /*     int32_t pos, */
 /*     int32_t chunk_end_pos, */
 /*     float direction); */
-void automation_do_write(Automation *a, int32_t pos, int32_t end_pos, float step);
+void automation_do_write(Automation *a, Value v, int32_t pos, int32_t end_pos, float step);
 void automation_reset_keyframe_x(Automation *a);
 /* Keyframe *automation_get_segment(Automation *a, int32_t at); */
 
@@ -213,4 +213,7 @@ int track_select_last_shown_automation(Track *t);
 TEST_FN_DECL(track_automation_order, Track *track);
 TEST_FN_DECL(automation_keyframe_order, Automation *a);
 TEST_FN_DECL(automation_index, Automation *a);
+
+typedef struct endpoint Endpoint;
+void automation_endpoint_write(Endpoint *ep, Value val, int32_t play_pos);
 #endif

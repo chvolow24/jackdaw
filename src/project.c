@@ -487,8 +487,19 @@ Project *project_create(
     proj->bun_patty_bun[1] = &hamburger_lt->children[1]->children[0]->rect;
     proj->bun_patty_bun[2] = &hamburger_lt->children[2]->children[0]->rect;
 
-    pthread_mutex_init(&proj->queued_val_changes_lock, NULL);
-    pthread_mutex_init(&proj->queued_callback_lock, NULL);
+    int err;
+    if ((err = pthread_mutex_init(&proj->queued_val_changes_lock, NULL)) != 0) {
+	fprintf(stderr, "Error initializing queued val changes mutex: %s\n", strerror(err));
+	exit(1);
+    }
+    if ((err = pthread_mutex_init(&proj->queued_callback_lock, NULL)) != 0) {
+	fprintf(stderr, "Error initializing queued callback mutex: %s\n", strerror(err));
+	exit(1);
+    }
+    if ((err = pthread_mutex_init(&proj->ongoing_changes_lock, NULL)) != 0) {
+	fprintf(stderr, "Error initializing ongoing changes mutex: %s\n", strerror(err));
+	exit(1);
+    }
     /* Initialize endpoints */
     endpoint_init(
 	&proj->play_speed_ep,
@@ -496,7 +507,7 @@ Project *project_create(
 	JDAW_FLOAT,
 	"play_speed",
 	"undo/redo play speed adj",
-	JDAW_THREAD_DSP,
+	JDAW_THREAD_MAIN,
 	play_speed_gui_cb, NULL, NULL,
 	NULL, NULL, NULL, NULL);
     

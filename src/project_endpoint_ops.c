@@ -34,6 +34,7 @@
 
 #include "project_endpoint_ops.h"
 #include "endpoint.h"
+#include "timeline.h"
 
 /* CALLBACKS */
 
@@ -41,7 +42,7 @@
 int project_queue_val_change(Project *proj, Endpoint *ep, Value new_val)
 {
     pthread_mutex_lock(&proj->queued_val_changes_lock);
-    enum jdaw_thread thread = ep->owner_thread;
+    enum jdaw_thread thread = endpoint_get_owner(ep);
     if (proj->num_queued_val_changes[thread] == MAX_QUEUED_OPS) {
 	pthread_mutex_unlock(&proj->queued_val_changes_lock);
 	return 1;
@@ -56,14 +57,19 @@ int project_queue_val_change(Project *proj, Endpoint *ep, Value new_val)
 
 void project_flush_val_changes(Project *proj, enum jdaw_thread thread)
 {
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    int32_t tl_now = timeline_get_play_pos_now(tl);
     pthread_mutex_lock(&proj->queued_val_changes_lock);
     for (int i=0; i<proj->num_queued_val_changes[thread]; i++) {
 	struct queued_val_change *qvc = &proj->queued_val_changes[thread][i];
 	Endpoint *ep = qvc->ep;
 	/* Protected write */
-	pthread_mutex_lock(&ep->lock);
+	pthread_mutex_lock(&ep->val_lock);
 	jdaw_val_set_ptr(ep->val, ep->val_type, qvc->new_val);
-	pthread_mutex_unlock(&ep->lock);
+	pthread_mutex_unlock(&ep->val_lock);
+	if (ep->automation && ep->automation->write) {
+	    automation_endpoint_write(ep, qvc->new_val, tl_now);
+	}
 	/* fprintf(stderr, "\tFLUSHED %d/%d\n", i,proj->num_queued_val_changes[thread]); */
     }
     proj->num_queued_val_changes[thread] = 0;

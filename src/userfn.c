@@ -1160,10 +1160,16 @@ void user_tl_track_selector_down(void *nullarg)
     Track *selected = timeline_selected_track(tl);
 
     if (selected) {
-	if (track_select_next_automation(selected) >= 0) {
-	    goto button_animation_and_exit;
+	if (selected->selected_automation != selected->num_automations - 1) {
+	    
+	    int auto_sel = track_select_next_automation(selected);
+	    if (auto_sel >= 0) {
+		goto button_animation_and_exit;
+	    }
+	    timeline_cache_grabbed_clip_offsets(tl);
+	} else {
+	    selected->selected_automation = -1;
 	}
-	timeline_cache_grabbed_clip_offsets(tl);
     }
     
     Track *prev_selected = selected;

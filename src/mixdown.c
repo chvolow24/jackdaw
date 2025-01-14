@@ -86,21 +86,22 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
     bool cutoff_set = false;
     double cutoff_hz;
     double bandwidth_hz;
-    if (fir_filter_cutoff && fir_filter_cutoff->read && !fir_filter_cutoff->write) {
+    if (channel == 0 && fir_filter_cutoff && fir_filter_cutoff->read && !fir_filter_cutoff->write) {
 	double cutoff_raw = automation_get_value(fir_filter_cutoff, start_pos_sframes, step).double_v;
 	cutoff_hz = dsp_scale_freq_to_hz(cutoff_raw);
 	cutoff_set = true;
     }
-    if (fir_filter_bandwidth && fir_filter_bandwidth->read && !fir_filter_bandwidth->write) {
+    if (channel == 0 && fir_filter_bandwidth && fir_filter_bandwidth->read && !fir_filter_bandwidth->write) {
 	double bandwidth_raw = automation_get_value(fir_filter_bandwidth, start_pos_sframes, step).double_v;
 	bandwidth_hz = dsp_scale_freq_to_hz(bandwidth_raw);
 	bandwidth_set = true;
     }
-    if (play_speed && play_speed->read && !play_speed->write) {
+    if (channel == 0 && play_speed && play_speed->read && !play_speed->write) {
 	proj->play_speed = (proj->play_speed / fabs(proj->play_speed)) * automation_get_value(play_speed, start_pos_sframes, step).float_v;
     }
-    FIRFilter *f;
-    if ((f = track->fir_filter)) {
+    FIRFilter *f = &track->fir_filter;
+    
+    if (f->frequency_response && channel == 0) {
 	if (cutoff_set && bandwidth_set) {
 	    FilterType t = f->type;
 	    filter_set_params_hz(f, t, cutoff_hz, bandwidth_hz);
@@ -111,7 +112,7 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	}
     }
 
-    if (track->delay_line_active) {
+    if (track->delay_line_active && channel == 0) {
 	int32_t del_time = track->delay_line.len;
 	double del_amp = track->delay_line.amp;
 	bool del_line_edit = false;
@@ -180,7 +181,9 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 		if (vol_auto && vol_auto->read && !vol_auto->write) {
 		    vol = automation_get_value(vol_auto, abs_pos, step).float_v;
 		} else {
-		    vol = track->vol;
+		    /* vol = track->vol; */		    
+		    Value volval = endpoint_safe_read(&track->vol_ep, NULL);
+		    vol = volval.float_v;
 		}
 		float raw_pan;
 		if (pan_auto && pan_auto->read && !pan_auto->write) {
@@ -245,7 +248,7 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 	}
 
 	if (audio_in_track && track->fir_filter_active) { /* Only apply FIR filter if there is audio */
-	    apply_filter(track->fir_filter, track, channel, len_sframes, track_chunk);
+	    apply_filter(&track->fir_filter, track, channel, len_sframes, track_chunk);
 	}
 	float del_line_total_amp = 0.0f;
 	if (track->delay_line_active) {

@@ -110,6 +110,10 @@ typedef struct endpoint {
     void *xarg2;
     void *xarg3;
     void *xarg4;
+
+    /* Continuous changes */
+    bool do_auto_incr;
+    Value incr;
     
 } Endpoint;
 
@@ -143,6 +147,14 @@ int endpoint_write(
 int endpoint_read(Endpoint *ep, Value *dst_val, ValType *dst_vt);
 Value endpoint_unsafe_read(Endpoint *ep, ValType *vt);
 Value endpoint_safe_read(Endpoint *ep, ValType *vt);
+
+void endpoint_start_continuous_change(
+    Endpoint *ep,
+    bool do_auto_incr,
+    Value incr,
+    enum jdaw_thread thread);
+void endpoint_continuous_change_do_incr(Endpoint *ep);
+void endpoint_stop_continuous_change(Endpoint *ep);
 
 int endpoint_register(Endpoint *ep, Jackdaw_API *api);
 

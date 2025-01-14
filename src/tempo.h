@@ -91,6 +91,7 @@ enum ts_end_bound_behavior {
     SEGMENT_FIXED_NUM_MEASURES=1
 };
 typedef struct tempo_track {
+    char name[255];
     TempoSegment *segments;
     uint8_t index;
     /* uint8_t num_segments; */

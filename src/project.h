@@ -135,7 +135,7 @@ typedef struct track {
     double *buf_L_freq_mag;
     double *buf_R_freq_mag;
 
-    FIRFilter *fir_filter;
+    FIRFilter fir_filter;
     bool fir_filter_active;
     
     DelayLine delay_line;
@@ -435,14 +435,19 @@ typedef struct project {
 
 
     /* Endpoints API */
-    struct queued_val_change queued_val_changes[NUM_CALLBACK_THREADS][MAX_QUEUED_OPS];
-    uint8_t num_queued_val_changes[NUM_CALLBACK_THREADS];
+    struct queued_val_change queued_val_changes[NUM_JDAW_THREADS][MAX_QUEUED_OPS];
+    uint8_t num_queued_val_changes[NUM_JDAW_THREADS];
     pthread_mutex_t queued_val_changes_lock;
     
-    EndptCb queued_callbacks[NUM_CALLBACK_THREADS][MAX_QUEUED_OPS];
-    Endpoint *queued_callback_args[NUM_CALLBACK_THREADS][MAX_QUEUED_OPS];
-    uint8_t num_queued_callbacks[NUM_CALLBACK_THREADS];
+    EndptCb queued_callbacks[NUM_JDAW_THREADS][MAX_QUEUED_OPS];
+    Endpoint *queued_callback_args[NUM_JDAW_THREADS][MAX_QUEUED_OPS];
+    uint8_t num_queued_callbacks[NUM_JDAW_THREADS];
     pthread_mutex_t queued_callback_lock;
+
+    Endpoint *ongoing_changes[NUM_JDAW_THREADS][MAX_QUEUED_OPS];
+    uint8_t num_ongoing_changes[NUM_JDAW_THREADS];
+    pthread_mutex_t ongoing_changes_lock;
+    
 
 } Project;
 
@@ -533,13 +538,5 @@ void timeline_play_speed_set(double new_speed);
 void timeline_play_speed_mult(double scale_factor);
 void timeline_play_speed_adj(double dim);
 void timeline_scroll_playhead(double dim);
-
-
-int project_queue_val_change(Project *proj, Endpoint *ep, Value new_val);
-void project_flush_val_changes(Project *proj, enum jdaw_thread thread);
-
-int project_queue_callback(Project *proj, Endpoint *ep, EndptCb cb, enum jdaw_thread thread);
-void project_flush_callbacks(Project *proj, enum jdaw_thread thread);
-
 
 #endif

@@ -46,6 +46,7 @@
 #include "page.h"
 #include "panel.h"
 #include "project.h"
+#include "project_endpoint_ops.h"
 #include "project_draw.h"
 #include "screenrecord.h"
 #include "settings.h"
@@ -84,6 +85,7 @@ static void stop_update_track_vol_pan()
 
 static void update_track_vol_pan()
 {
+    return;
     /* fprintf(stdout, "%p, %p\n", proj->vol_changing, proj->pan_changing); */
     if (!proj->vol_changing && !proj->pan_changing) {
 	return;
@@ -323,6 +325,8 @@ void loop_project_main()
 		    }
 		    break;
 		default:
+		    project_flush_ongoing_changes(proj, JDAW_THREAD_MAIN);
+		    project_flush_ongoing_changes(proj, JDAW_THREAD_DSP);
 		    stop_update_track_vol_pan();
 		    break;
 		}
@@ -340,7 +344,7 @@ void loop_project_main()
 		    temp_scrolling_lt = modal_scrollable;
 		} else if (main_win->modes[main_win->num_modes - 1] == TIMELINE || main_win->modes[main_win->num_modes - 1] == TABVIEW) {
 		    if (main_win->i_state & I_STATE_SHIFT) {
-			if (fabs(e.wheel.preciseY) - fabs(e.wheel.preciseX) > 0.0f) {
+			if (fabs(e.wheel.preciseY) > fabs(e.wheel.preciseX)) {
 			    timeline_play_speed_adj(e.wheel.preciseY);
 			} else {
 			    timeline_scroll_playhead(e.wheel.preciseX);
@@ -566,6 +570,8 @@ void loop_project_main()
 	    transport_recording_update_cliprects();
 	}
 	status_frame();
+
+	project_do_ongoing_changes(proj, JDAW_THREAD_MAIN);
 	project_flush_val_changes(proj, JDAW_THREAD_MAIN);
 	project_flush_callbacks(proj, JDAW_THREAD_MAIN);
 	project_draw();

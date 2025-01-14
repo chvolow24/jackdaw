@@ -4,7 +4,7 @@
 #include <pthread.h>
 #include <stdbool.h>
 
-#define NUM_CALLBACK_THREADS 2
+#define NUM_JDAW_THREADS 2
 enum jdaw_thread {
     JDAW_THREAD_MAIN=0,
     JDAW_THREAD_DSP=1,

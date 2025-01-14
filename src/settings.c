@@ -205,12 +205,12 @@ static void create_track_selection_area(Page *page, Track *track)
 
 void settings_track_tabview_set_track(TabView *tv, Track *track)
 {
-    if (!track->fir_filter) {
+    if (!track->fir_filter.frequency_response) {
 	Project *proj_loc = track->tl->proj;
 	int ir_len = proj_loc->fourier_len_sframes/4;
-	track->fir_filter = filter_create(LOWPASS, ir_len, proj_loc->fourier_len_sframes * 2);
-	track->fir_filter->track = track;
-	filter_set_params_hz(track->fir_filter, LOWPASS, 1000, 1000);
+	filter_init(&track->fir_filter, LOWPASS, ir_len, proj_loc->fourier_len_sframes * 2);
+	track->fir_filter.track = track;
+	filter_set_params_hz(&track->fir_filter, LOWPASS, 1000, 1000);
 	track->fir_filter_active = false;
     }
     if (!track->delay_line.buf_L) {
@@ -218,7 +218,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 	delay_line_set_params(&track->delay_line, 0.3, 10000);
     }
 
-    FIRFilter *f = track->fir_filter;
+    FIRFilter *f = &track->fir_filter;
 
     tabview_clear_all_contents(tv);
     /* for (int i=0; i<tv->num_tabs; i++) { */

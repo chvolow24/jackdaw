@@ -31,14 +31,13 @@
     * Playback and recording
  *****************************************************************************************************************/
 
-#include <pthread.h>
-#include <string.h>
 #include <unistd.h>
 #include "audio_connection.h"
 #include "dsp.h"
 #include "user_event.h"
 #include "mixdown.h"
 #include "project.h"
+#include "project_endpoint_ops.h"
 #include "pure_data.h"
 #include "status.h"
 #include "timeline.h"
@@ -220,35 +219,14 @@ static void *transport_dsp_thread_fn(void *arg)
     int N = len / proj->chunk_size_sframes;
     bool init = true;
     while (1) {
-	/* Value speed = {.float_v = proj->play_speed}; */
-	/* if (fabs(speed.float_v) > 0.0001) { */
-	/*     speed.float_v += 0.005; */
-	/*     fprintf(stderr, "Setting speed to %f\n", speed.float_v); */
-	/*     endpoint_write( */
-	/* 	&proj->play_speed_ep, */
-	/* 	speed, */
-	/* 	true, false, false, */
-	/* 	true); */
-	/* } */
-
-	/* clock_t a,b; */
-	/* a = clock(); */
-
-	/* fprintf(stdout, "START DSP thread iter\n"); */
 	pthread_testcancel();
 	float play_speed = proj->play_speed;
 
 	/* GET MIXDOWN */
-	/* fprintf(stdout, "MIXDOWN:  */
-	/* clock_t am, bm; */
-	/* am = clock(); */
 	get_mixdown_chunk(tl, buf_L, 0, len, tl->read_pos_sframes, proj->play_speed);
 	get_mixdown_chunk(tl, buf_R, 1, len, tl->read_pos_sframes, proj->play_speed);
-	/* bm = clock(); */
-	/* fprintf(stdout, "\tmixdown: %lu\n", bm-am); */
 
 	/* DSP */
-
 	double dL[len];
 	double dR[len];
 	for (int i=0; i<len; i++) {
@@ -259,10 +237,9 @@ static void *transport_dsp_thread_fn(void *arg)
 	double complex rfreq[len];
 	FFT(dL, lfreq, len);
 	FFT(dR, rfreq, len);
-    /* double *ok = malloc(sizeof(double) * proj->chunk_size_sframes); */
+
 	get_magnitude(lfreq, proj->output_L_freq, len);
 	get_magnitude(rfreq, proj->output_R_freq, len);
-
 
 
 	/* Copy buffer */
@@ -303,6 +280,7 @@ static void *transport_dsp_thread_fn(void *arg)
 	    init = false;
 	}
 
+	project_do_ongoing_changes(proj, JDAW_THREAD_DSP);
 	project_flush_val_changes(proj, JDAW_THREAD_DSP);
 	project_flush_callbacks(proj, JDAW_THREAD_DSP);
     }

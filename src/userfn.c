@@ -3,6 +3,7 @@
 #include "SDL_events.h"
 #include "audio_connection.h"
 #include "dir.h"
+#include "project_endpoint_ops.h"
 #include "input.h"
 #include "menu.h"
 #include "modal.h"
@@ -1376,25 +1377,59 @@ void user_tl_solo(void *nullarg)
     track_or_tracks_solo(tl, NULL);
     /* tl->needs_redraw = true; */
 }
+
+Value vol_incr = {.float_v=0.01};
+Value vol_decr = {.float_v = -0.01};
 void user_tl_track_vol_up(void *nullarg)
 {
-    Timeline *tl = ACTIVE_TL;
-    if (tl->num_tracks == 0) return;
+
     if (proj->vol_changing) return;
-    /* proj->vol_changing = timeline_selected_track(tl); */
     proj->vol_changing = true;
-    proj->vol_up = true;
-    
+    proj->vol_up = false;
+
+    bool has_active_track = false;
+    Timeline *tl = ACTIVE_TL;
+    for (int i=0; i<tl->num_tracks; i++) {
+	Track *trk = tl->tracks[i];
+	if (trk->active) {
+	    has_active_track = true;
+	    endpoint_start_continuous_change(&trk->vol_ep, true, vol_incr, JDAW_THREAD_MAIN);
+	}
+    }
+    if (!has_active_track) {
+	Track *trk = timeline_selected_track(tl);
+	endpoint_start_continuous_change(&trk->vol_ep, true, vol_incr, JDAW_THREAD_MAIN);
+    }
+
+    /* Timeline *tl = ACTIVE_TL; */
+    /* if (tl->num_tracks == 0) return; */
+    /* if (proj->vol_changing) return; */
+    /* /\* proj->vol_changing = timeline_selected_track(tl); *\/ */
+    /* proj->vol_changing = true; */
+    /* proj->vol_up = true; */
+    /* /\* Track *track = timeline_selected_track(tl); *\/ */
+    /* /\* endpoint_start_continuous_change(&track->vol_ep); *\/ */
 }
 
 void user_tl_track_vol_down(void *nullarg)
 {
-    /* if (tl->num_tracks == 0) return; */
     if (proj->vol_changing) return;
-    /* proj->vol_changing = timeline_selected_track(tl); */
     proj->vol_changing = true;
     proj->vol_up = false;
-    /* tl->needs_redraw = true; */
+
+    bool has_active_track = false;
+    Timeline *tl = ACTIVE_TL;
+    for (int i=0; i<tl->num_tracks; i++) {
+	Track *trk = tl->tracks[i];
+	if (trk->active) {
+	    has_active_track = true;
+	    endpoint_start_continuous_change(&trk->vol_ep, true, vol_decr, JDAW_THREAD_MAIN);
+	}
+    }
+    if (!has_active_track) {
+	Track *trk = timeline_selected_track(tl);
+	endpoint_start_continuous_change(&trk->vol_ep, true, vol_decr, JDAW_THREAD_MAIN);
+    }
 }
 
 void user_tl_track_pan_left(void *nullarg)

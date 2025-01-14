@@ -35,7 +35,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "endpoint.h"
-#include "project.h"
+#include "project_endpoint_ops.h"
 #include "status.h"
 #include "value.h"
 
@@ -140,19 +140,19 @@ int endpoint_write(
 
     /* Callbacks */
     bool on_main = on_thread(JDAW_THREAD_MAIN);
-    if (run_gui_cb) {
+    if (run_gui_cb && ep->gui_callback) {
 	if (on_main)
 	    ep->gui_callback(ep);
 	else
 	    project_queue_callback(proj, ep, ep->gui_callback, JDAW_THREAD_MAIN);
     }
-    if (run_proj_cb) {
+    if (run_proj_cb && ep->proj_callback) {
 	if (on_main)
 	    ep->proj_callback(ep);
 	else
 	    project_queue_callback(proj, ep, ep->proj_callback, JDAW_THREAD_MAIN);
     }
-    if (run_dsp_cb) {
+    if (run_dsp_cb && ep->dsp_callback) {
 	if (on_thread(JDAW_THREAD_DSP))
 	    ep->dsp_callback(ep);
 	else {
@@ -210,4 +210,44 @@ Value endpoint_safe_read(Endpoint *ep, ValType *vt)
 	pthread_mutex_unlock(&ep->lock);
 	return ret;
     }   
+}
+
+void endpoint_start_continuous_change(
+    Endpoint *ep,
+    bool do_auto_incr,
+    Value incr,
+    enum jdaw_thread thread)
+{
+    ep->do_auto_incr = do_auto_incr;
+    ep->incr = incr;
+    ep->cached_val = endpoint_safe_read(ep, NULL);
+    project_add_ongoing_change(proj, ep, thread);
+}
+
+void endpoint_continuous_change_do_incr(Endpoint *ep)
+{
+    Value prev_val = jdaw_val_from_ptr(ep->val, ep->val_type);
+    Value new_val = jdaw_val_add(prev_val, ep->incr, ep->val_type);
+    endpoint_write(ep, new_val, true, true, true, false);
+}
+
+void endpoint_stop_continuous_change(Endpoint *ep)
+{
+
+    uint8_t callback_bitfield = 0b111;
+    /* callback_bitfield |= 0b001; */
+    /* if (run_proj_cb) callback_bitfield |= 0b010; */
+    /* if (run_dsp_cb) callback_bitfield |= 0b100; */
+    Value cb_matrix = {.uint8_v = callback_bitfield};
+    Value current_val = jdaw_val_from_ptr(ep->val, ep->val_type);
+    user_event_push(
+	&proj->history,
+	undo_redo_endpoint_write,
+	undo_redo_endpoint_write,
+	NULL, NULL,
+	(void *)ep, NULL,
+	ep->cached_val, cb_matrix,
+	current_val, cb_matrix,
+	0, 0, false, false);
+
 }

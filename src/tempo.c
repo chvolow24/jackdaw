@@ -497,6 +497,7 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
 {
     if (tl->num_tempo_tracks == MAX_TEMPO_TRACKS) return NULL;
     TempoTrack *t = calloc(1, sizeof(TempoTrack));
+    snprintf(t->name, MAX_NAMELENGTH, "click_track_%d", tl->num_tempo_tracks + 1);
     t->tl = tl;
     t->metronome = &tl->proj->metronomes[0];
     snprintf(t->num_beats_str, 3, "4");

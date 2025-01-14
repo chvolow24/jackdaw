@@ -272,11 +272,11 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	/* automation_insert_keyframe_at(a, NULL, base_kf_val, 0); */
 	break;
     case AUTO_FIR_FILTER_CUTOFF:
-	if (!track->fir_filter) {
+	if (track->fir_filter.frequency_response) {
 	    track_add_default_filter(track);
 	}
 	a->val_type = JDAW_DOUBLE;
-	a->target_val = &track->fir_filter->cutoff_freq_unscaled;
+	a->target_val = &track->fir_filter.cutoff_freq_unscaled;
 	a->min.double_v = 0.0;
 	a->max.double_v = 1.0;
 	a->range.double_v = 1.0;
@@ -285,11 +285,11 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
 	break;
     case AUTO_FIR_FILTER_BANDWIDTH:
-	if (!track->fir_filter) {
+	if (track->fir_filter.frequency_response) {
 	    track_add_default_filter(track);
 	}
 	a->val_type = JDAW_DOUBLE;
-	a->target_val = &track->fir_filter->bandwidth_unscaled;
+	a->target_val = &track->fir_filter.bandwidth_unscaled;
 	a->min.double_v = 0.0;
 	a->max.double_v = 1.0;
 	a->range.double_v = 1.0;

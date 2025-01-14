@@ -278,20 +278,13 @@ static void FIR_filter_alloc_buffers(FIRFilter *filter)
     /* pthread_mutex_unlock(&filter->lock); */
 
 }
-FIRFilter *filter_create(FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len) 
+void filter_init(FIRFilter *filter, FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len) 
 {
-    FIRFilter *filter = calloc(1, sizeof(FIRFilter));
-    if (!filter) {
-        fprintf(stderr, "Error: unable to allocate space for FIR Filter\n");
-        return NULL;
-    }
     filter->type = type;
     filter->impulse_response_len = impulse_response_len;
     filter->frequency_response_len = frequency_response_len;
     FIR_filter_alloc_buffers(filter);
     pthread_mutex_init(&filter->lock, NULL);
-    /* filter->lock = SDL_CreateMutex(); */
-    return filter;
 }
 
 /* Bandwidth param only required for band-pass and band-cut filters */
@@ -403,7 +396,7 @@ void filter_set_type(FIRFilter *f, FilterType t)
     filter_set_params(f, t, cutoff, bandwidth);
 }
 
-void filter_destroy(FIRFilter *filter) 
+void filter_deinit(FIRFilter *filter) 
 {
     if (filter->frequency_response) {
         free(filter->frequency_response);
@@ -426,7 +419,7 @@ void filter_destroy(FIRFilter *filter)
     pthread_mutex_destroy(&filter->lock);
 	/* SDL_DestroyMutex(filter->lock); */
     /* } */
-    free(filter);
+    /* free(filter); */
 }
 
 
@@ -554,9 +547,9 @@ void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chu
 void track_add_default_filter(Track *track)
 {
     int ir_len = track->tl->proj->fourier_len_sframes/4;
-    track->fir_filter = filter_create(LOWPASS, ir_len, track->tl->proj->fourier_len_sframes * 2);
-    track->fir_filter->track = track;
-    filter_set_params_hz(track->fir_filter, LOWPASS, 1000, 1000);
+    filter_init(&track->fir_filter, LOWPASS, ir_len, track->tl->proj->fourier_len_sframes * 2);
+    track->fir_filter.track = track;
+    filter_set_params_hz(&track->fir_filter, LOWPASS, 1000, 1000);
     track->fir_filter_active = false;
 }
 

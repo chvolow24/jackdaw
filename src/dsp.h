@@ -80,8 +80,8 @@ typedef struct delay_line {
 /* Initialize the dsp subsystem. All this does currently is to populate the nth roots of unity for n < ROU_MAX_DEGREE */
 void init_dsp();
 
-/* Create an empty FIR filter and allocate space for its buffers. MUST be initialized with 'set_filter_params'*/
-FIRFilter *filter_create(FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len);
+/* Init an empty FIR filter and allocate space for its buffers. Params MUST be initialized with 'set_filter_params'*/
+void filter_init(FIRFilter *filter, FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len);
 
 /* Bandwidth param only required for band-pass and band-cut filters */
 void filter_set_params(FIRFilter *filter, FilterType type,  double cutoff, double bandwidth);
@@ -96,7 +96,7 @@ void filter_set_type(FIRFilter *filter, FilterType t);
 void filter_set_impulse_response_len(FIRFilter *f, int new_len);
 
 /* Destry a FIRFilter and associated memory */
-void filter_destroy(FIRFilter *filter);
+void filter_deinit(FIRFilter *filter);
 
 /* void apply_track_filter(Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array); */
 void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array);

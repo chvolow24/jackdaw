@@ -271,6 +271,7 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	a->target_val = &track->pan;
 	base_kf_val.float_v = track->pan;
 	automation_insert_keyframe_at(a, 0, base_kf_val);
+	endpoint_bind_automation(&track->pan_ep, a);
 	/* automation_insert_keyframe_at(a, NULL, base_kf_val, 0); */
 	break;
     case AUTO_FIR_FILTER_CUTOFF:
@@ -284,6 +285,7 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	a->range.double_v = 1.0;
 	base_kf_val.double_v = 1.0;
 	automation_insert_keyframe_at(a, 0, base_kf_val);
+	endpoint_bind_automation(&track->fir_filter_cutoff_ep, a);
 	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
 	break;
     case AUTO_FIR_FILTER_BANDWIDTH:
@@ -297,6 +299,7 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	a->range.double_v = 1.0;
 	base_kf_val.double_v = 0.5;
 	automation_insert_keyframe_at(a, 0, base_kf_val);
+	endpoint_bind_automation(&track->fir_filter_bandwidth_ep, a);
 	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
 	break;
     case AUTO_DEL_TIME:
@@ -308,6 +311,7 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	a->target_val = &track->delay_line.len;
 	base_kf_val.int32_v = track->tl->proj->sample_rate / 2;
 	automation_insert_keyframe_at(a, 0, base_kf_val);
+	endpoint_bind_automation(&track->delay_line_len_ep, a);
 	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
 
 	break;
@@ -319,6 +323,7 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	a->range.double_v = 1.0;
 	base_kf_val.double_v = 0.5;
 	automation_insert_keyframe_at(a, 0, base_kf_val);
+	endpoint_bind_automation(&track->delay_line_amp_ep, a);
 	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
 	break;
     case AUTO_PLAY_SPEED:

@@ -1,6 +1,7 @@
 #ifndef JDAW_GUI_COMPONENTS
 #define JDAW_GUI_COMPONENTS
 
+/* #include "endpoint.h" */
 #include "label.h"
 #include "layout.h"
 #include "symbol.h"
@@ -95,10 +96,12 @@ typedef struct waveform {
     SDL_Color *plot_color;
 } Waveform;
 
+typedef struct endpoint Endpoint;
 typedef struct slider {
     Layout *layout;
-    ValType val_type;
-    void *value;
+    Endpoint *ep;
+    /* ValType val_type; */
+    /* void *value; */
     Value min, max;
     enum slider_orientation orientation;
     enum slider_style style;
@@ -109,8 +112,8 @@ typedef struct slider {
     /* Textbox *label; */
     /* char label_str[SLIDER_LABEL_STRBUFLEN]; */
     /* SliderStrFn *create_label; */
-    ComponentFn action;
-    void *target;
+    /* ComponentFn action; */
+    /* void *target; */
     /* int label_countdown; */
     Label *label;
     Draggable *drag_context;
@@ -139,14 +142,14 @@ void draggable_handle_scroll(Draggable *d, int x, int y);
 
 Slider *slider_create(
     Layout *layout,
-    void *value,
-    ValType val_type,
+    Endpoint *ep,
+    Value min, Value max,
     enum slider_orientation orientation,
     enum slider_style style,
     LabelStrFn set_str_fn,
     /* SliderStrFn *create_label_fn, */
-    ComponentFn action,
-    void *target,
+    /* ComponentFn action, */
+    /* void *target, */
     Draggable *drag_context);
 /*     Layout *layout, */
 /*     SliderOrientation orientation, */
@@ -157,14 +160,21 @@ Slider *slider_create(
 /* void fslider_draw(FSlider *fs); */
 /* float fslider_val_from_coord(FSlider *fs, int coord_pix); */
 /* void fslider_destroy(FSlider *fs); */
-void slider_set_value(Slider *s, Value val);
-void slider_set_range(Slider *s, Value min, Value max);
+
+
+/* void slider_set_value(Slider *s, Value val); */
+/* void slider_set_range(Slider *s, Value min, Value max); */
+
 void slider_reset(Slider *s);
 void slider_draw(Slider *s);
-Value slider_val_from_coord(Slider *s, int coord_pix);
+bool slider_mouse_click(Slider *slider, Window *win);
+bool slider_mouse_motion(Slider *slider, Window *win);
 void slider_destroy(Slider *s);
-SliderStrFn slider_std_labelmaker;
-void slider_edit_made(Slider *slider);
+
+
+/* SliderStrFn slider_std_labelmaker; */
+/* Value slider_val_from_coord(Slider *s, int coord_pix); */
+/* void slider_edit_made(Slider *slider); */
 void slider_nudge_right(Slider *slider);
 void slider_nudge_left(Slider *slider);
 
@@ -272,8 +282,6 @@ bool toggle_click(Toggle *toggle, Window *win);
 
 /* Mouse functions */
 bool draggable_mouse_motion(Draggable *draggable, Window *win);
-bool slider_mouse_click(Slider *slider, Window *win);
-bool slider_mouse_motion(Slider *slider, Window *win);
 bool toggle_mouse_click(Toggle *toggle, Window *win);
 bool button_click(Button *button, Window *win);
 

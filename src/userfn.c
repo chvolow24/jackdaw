@@ -1384,8 +1384,8 @@ void user_tl_solo(void *nullarg)
     /* tl->needs_redraw = true; */
 }
 
-Value vol_incr = {.float_v=0.04};
-Value vol_decr = {.float_v = -0.04};
+static Value vol_incr = {.float_v = 0.04};
+static Value pan_incr = {.float_v = 0.02};
 void user_tl_track_vol_up(void *nullarg)
 {
 
@@ -1419,12 +1419,13 @@ void user_tl_track_vol_up(void *nullarg)
 
 void user_tl_track_vol_down(void *nullarg)
 {
-    if (proj->vol_changing) return;
-    proj->vol_changing = true;
-    proj->vol_up = false;
+    /* if (proj->vol_changing) return; */
+    /* proj->vol_changing = true; */
+    /* proj->vol_up = false; */
 
     bool has_active_track = false;
     Timeline *tl = ACTIVE_TL;
+    Value vol_decr = jdaw_val_negate(vol_incr, JDAW_FLOAT);
     for (int i=0; i<tl->num_tracks; i++) {
 	Track *trk = tl->tracks[i];
 	if (trk->active) {
@@ -1440,23 +1441,52 @@ void user_tl_track_vol_down(void *nullarg)
 
 void user_tl_track_pan_left(void *nullarg)
 {
-    Timeline *tl = ACTIVE_TL;
-    /* if (tl->num_tracks ==0) return; */
-    if (proj->pan_changing) return;
-    proj->pan_changing = timeline_selected_track(tl);
-    proj->pan_right = false;
-    tl->needs_redraw = true;
+    /* Timeline *tl = ACTIVE_TL; */
+    /* /\* if (tl->num_tracks ==0) return; *\/ */
+    /* if (proj->pan_changing) return; */
+    /* proj->pan_changing = timeline_selected_track(tl); */
+    /* proj->pan_right = false; */
+    /* tl->needs_redraw = true; */
 
+
+    bool has_active_track = false;
+    Timeline *tl = ACTIVE_TL;
+    Value pan_decr = jdaw_val_negate(pan_incr, JDAW_FLOAT);
+    for (int i=0; i<tl->num_tracks; i++) {
+	Track *trk = tl->tracks[i];
+	if (trk->active) {
+	    has_active_track = true;
+	    endpoint_start_continuous_change(&trk->pan_ep, true, pan_decr, JDAW_THREAD_MAIN);
+	}
+    }
+    if (!has_active_track) {
+	Track *trk = timeline_selected_track(tl);
+	endpoint_start_continuous_change(&trk->pan_ep, true, pan_decr, JDAW_THREAD_MAIN);
+    }
 }
 
 void user_tl_track_pan_right(void *nullarg)
 {
+    bool has_active_track = false;
     Timeline *tl = ACTIVE_TL;
-    if (tl->num_tracks == 0) return;
-    if (proj->pan_changing) return;
-    proj->pan_changing = timeline_selected_track(tl);
-    proj->pan_right = true;
-    tl->needs_redraw = true;
+    for (int i=0; i<tl->num_tracks; i++) {
+	Track *trk = tl->tracks[i];
+	if (trk->active) {
+	    has_active_track = true;
+	    endpoint_start_continuous_change(&trk->pan_ep, true, pan_incr, JDAW_THREAD_MAIN);
+	}
+    }
+    if (!has_active_track) {
+	Track *trk = timeline_selected_track(tl);
+	endpoint_start_continuous_change(&trk->pan_ep, true, pan_incr, JDAW_THREAD_MAIN);
+    }
+
+    /* Timeline *tl = ACTIVE_TL; */
+    /* if (tl->num_tracks == 0) return; */
+    /* if (proj->pan_changing) return; */
+    /* proj->pan_changing = timeline_selected_track(tl); */
+    /* proj->pan_right = true; */
+    /* tl->needs_redraw = true; */
 }
 
 void user_tl_track_open_settings(void *nullarg)

@@ -1,5 +1,6 @@
 #include "color.h"
 #include "components.h"
+#include "endpoint.h"
 #include "geometry.h"
 #include "input.h"
 #include "layout.h"
@@ -43,21 +44,27 @@ extern SDL_Color color_global_grey;
 /* Slider fslider_create(Layout *layout, SliderOrientation orientation, SliderType type, SliderStrFn *fn) */
 Slider *slider_create(
     Layout *layout,
-    void *value,
-    ValType val_type,
+    Endpoint *ep,
+    Value min,
+    Value max,
+    /* void *value, */
+    /* ValType val_type, */
     enum slider_orientation orientation,
     enum slider_style style,
     LabelStrFn label_str_fn,
     /* SliderStrFn *create_label_fn, */
-    ComponentFn action,
-    void *target,
+    /* ComponentFn action, */
+    /* void *target, */
     Draggable *drag_context)
 
 {
     Slider *s = calloc(1, sizeof(Slider));
+    s->ep = ep;
+    s->min = min;
+    s->max = max;
     /* s->create_label = create_label_fn; */
-    s->action = action;
-    s->target = target;
+    /* s->action = action; */
+    /* s->target = target; */
     s->layout = layout;
     Layout *bar_container = layout_add_child(layout);
     layout_set_name(bar_container, "bar_container");
@@ -65,7 +72,7 @@ Slider *slider_create(
     label->rect.x = layout->rect.x + layout->rect.w;
     label->rect.y = layout->rect.y;
     layout_set_values_from_rect(label);
-    s->label = label_create(0, label, label_str_fn, value, val_type, main_win);
+    s->label = label_create(0, label, label_str_fn, ep->val, ep->val_type, main_win);
     s->label->parent_obj_lt  = s->layout;
     s->drag_context = drag_context;
     /* if (create_label_fn) { */
@@ -125,28 +132,35 @@ Slider *slider_create(
 	}
     }
 
-    jdaw_val_set_min(&(s->min), val_type);
-    jdaw_val_set_max(&(s->max), val_type);
-    s->val_type = val_type;
-    s->value = value;
+    /* if (ep->restrict_range) { */
+    /* 	s->min = ep->min; */
+    /* 	s->max = ep->max; */
+    /* } else { */
+    /* 	jdaw_val_set_min(&(s->min), ep->val_type); */
+    /* 	jdaw_val_set_max(&(s->max), ep->val_type); */
+    /* } */
+    /* s->val_type = ep->val_type; */
+    /* s->value = ep->value; */
     s->orientation = orientation;
     s->style = style;
     return s;
 }
 
-void slider_set_value(Slider *s, Value val)
-{
-    jdaw_val_set_ptr(s->value, s->val_type, val);
-    slider_reset(s);
-}
+/* Calls endpoint_write */
+/* void slider_set_value(Slider *s, Value val, ) */
+/* { */
+/*     endpoint_write(s->ep, val, true, true, true, false); */
+/*     /\* jdaw_val_set_ptr(s->value, s->val_type, val); *\/ */
+/*     slider_reset(s); */
+/* } */
 
 void slider_set_range(Slider *s, Value min, Value max)
 {
-    s->min = min;
-    s->max = max;
+/*     s->min = min; */
+/*     s->max = max; */
 }
 
-Value slider_val_from_coord(Slider *s, int coord_pix)
+static Value slider_val_from_coord(Slider *s, int coord_pix)
 {
     double proportion;
     switch (s->orientation) {
@@ -157,23 +171,21 @@ Value slider_val_from_coord(Slider *s, int coord_pix)
 	proportion = ((double)coord_pix - s->layout->rect.x) / s->layout->rect.w;
 	break;
     }
-    Value range = jdaw_val_sub(s->max, s->min, s->val_type);
-    Value val_proportion = jdaw_val_scale(range, proportion, s->val_type);
-    Value ret = jdaw_val_add(val_proportion, s->min, s->val_type);
+    Value range = jdaw_val_sub(s->max, s->min, s->ep->val_type);
+    Value val_proportion = jdaw_val_scale(range, proportion, s->ep->val_type);
+    Value ret = jdaw_val_add(val_proportion, s->min, s->ep->val_type);
     return ret;
-
 }
 
 
 void layout_write(FILE *f, Layout *lt, int indent);
 void slider_reset(Slider *s)
 {
-    Value range = jdaw_val_sub(s->max, s->min, s->val_type);
-    Value slider_val;
-    /* Value slider_val = jdaw_val_from_ptr(&slider_val, s->val_type); */
-    jdaw_val_set(&slider_val, s->val_type, s->value);
-    Value filled = jdaw_val_sub(slider_val, s->min, s->val_type);
-    double filled_prop = jdaw_val_div_double(filled, range, s->val_type);
+    Value range = jdaw_val_sub(s->max, s->min, s->ep->val_type);
+    Value slider_val = endpoint_safe_read(s->ep, NULL);
+    
+    Value filled = jdaw_val_sub(slider_val, s->min, s->ep->val_type);
+    double filled_prop = jdaw_val_div_double(filled, range, s->ep->val_type);
     switch (s->style) {
     case SLIDER_FILL:
 	switch (s->orientation) {
@@ -192,25 +204,11 @@ void slider_reset(Slider *s)
 	    *(s->val_dim) = filled_prop;
 	    break;
 	case SLIDER_VERTICAL:
-	    
-	    /* layout_reset(s->layout->children[0]); */
 	    *(s->val_dim) = 1 - filled_prop;
 	    break;
 	}
     }
-    /* if (s->editing) { */
-    /* 	if (s->create_label) { */
-    /* 	    s->create_label(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, s->value, s->val_type); */
-    /* 	/\* amp_to_dbstr(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, *(s->value)); *\/ */
-    /* 	/\* snprintf(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, "%f", *(s->value)); *\/ */
-    /* 	    /\* textbox_size_to_fit(s->label, SLIDER_LABEL_H_PAD, SLIDER_LABEL_V_PAD); *\/ */
-    /* 	    textbox_reset_full(s->label); */
-    /* 	} */
-    /* } */
-    /* layout_write(stdout, s->layout, 0); */
     layout_reset(s->layout);
-    
-    /* fprintf(stdout, "Bar rect: %d %d %d %d\n", s->bar_rect->x, s->bar_rect->y, s->bar_rect->w, s->bar_rect->h); */
 }    
 
 
@@ -225,17 +223,7 @@ void slider_draw(Slider *s)
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(slider_bar_color));
     SDL_RenderFillRect(main_win->rend, s->bar_rect);
 
-    /* fprintf(stdout, "DRAWING textbox label w disp val: %s\n", s->label->text->display_value); */
-    /* fprintf(stdout, "Str? %s\n", s->label_str); */
-
     label_draw(s->label);
-    /* if (s->editing && s->label) { */
-    /* 	textbox_draw(s->label); */
-    /* 	s->label_countdown--; */
-    /* 	if (s->label_countdown == 0) { */
-    /* 	    s->editing = false; */
-    /* 	} */
-    /* } */
 }
 
 void slider_destroy(Slider *s)
@@ -257,56 +245,110 @@ void slider_edit_made(Slider *slider)
     label_reset(slider->label);
 }
 
+
+bool slider_mouse_click(Slider *slider, Window *win)
+{
+    if (SDL_PointInRect(&main_win->mousep, &slider->layout->rect) && win->i_state & I_STATE_MOUSE_L) {
+	int dim = slider->orientation == SLIDER_VERTICAL ? main_win->mousep.y : main_win->mousep.x;
+	Value newval = slider_val_from_coord(slider, dim);
+	endpoint_write(slider->ep, newval, true, true, true, true);
+	endpoint_start_continuous_change(slider->ep, false, (Value)0, JDAW_THREAD_MAIN);
+	/* if (slider->action) */
+	/* 	slider->action((void *)slider, slider->target); */
+	slider_reset(slider);
+	slider_edit_made(slider);
+	slider->drag_context->component = (void *)slider;
+	slider->drag_context->type = DRAG_SLIDER;
+	return true;
+    }
+    return false;
+}
+
+bool slider_mouse_motion(Slider *slider, Window *win)
+{
+    int dim, mindim, maxdim;
+    switch (slider->orientation) {
+    case SLIDER_VERTICAL:
+	dim = main_win->mousep.y;
+	mindim = slider->layout->rect.y;
+	maxdim = slider->layout->rect.y + slider->layout->rect.h;
+	break;
+    case SLIDER_HORIZONTAL:
+	dim = main_win->mousep.x;
+	mindim = slider->layout->rect.x;
+	maxdim = slider->layout->rect.x + slider->layout->rect.w;
+	break;
+    }
+    /* int dim = slider->orientation == SLIDER_VERTICAL ? main_win->mousep.y : main_win->mousep.x; */
+    /* int mindim = slider->orientation == SLIDER_ */
+    if (!(win->i_state & I_STATE_SHIFT && win->i_state & I_STATE_CMDCTRL)) {
+	if (dim < mindim) dim = mindim;
+	if (dim > maxdim) dim = maxdim;
+    } else {
+	status_set_errstr("SLIDER UNSAFE MODE (release ctrl/shift to return to safety!)");
+    }
+    Value newval = slider_val_from_coord(slider, dim);
+    endpoint_write(slider->ep, newval, true, true, true, false);
+    /* jdaw_val_set_ptr(slider->value, slider->val_type, newval); */
+    /* if (slider->action) */
+    /* 	slider->action((void *)slider, slider->target); */
+    /* track->vol = newval.float_v; */
+    slider_reset(slider);
+    slider_edit_made(slider);
+    /* proj->vol_changing = true; */
+    return true;
+}
+
 void slider_nudge_right(Slider *slider)
 {
-    Value range = jdaw_val_sub(slider->max, slider->min, slider->val_type);
-    static const double slider_nudge_prop = SLIDER_NUDGE_PROP;
-    Value nudge_amt = jdaw_val_scale(range, slider_nudge_prop, slider->val_type);
-    Value val = jdaw_val_from_ptr(slider->value, slider->val_type);
-    val = jdaw_val_add(val, nudge_amt, slider->val_type);
-    if (jdaw_val_less_than(slider->max, val, slider->val_type)) {
-	val = slider->max;
-    }
-    jdaw_val_set_ptr(slider->value, slider->val_type, val);
-    slider_reset(slider);
-    if (slider->action) slider->action((void *)slider, slider->target);
+/*     Value range = jdaw_val_sub(slider->max, slider->min, slider->val_type); */
+/*     static const double slider_nudge_prop = SLIDER_NUDGE_PROP; */
+/*     Value nudge_amt = jdaw_val_scale(range, slider_nudge_prop, slider->val_type); */
+/*     Value val = jdaw_val_from_ptr(slider->value, slider->val_type); */
+/*     val = jdaw_val_add(val, nudge_amt, slider->val_type); */
+/*     if (jdaw_val_less_than(slider->max, val, slider->val_type)) { */
+/* 	val = slider->max; */
+/*     } */
+/*     jdaw_val_set_ptr(slider->value, slider->val_type, val); */
+/*     slider_reset(slider); */
+/*     if (slider->action) slider->action((void *)slider, slider->target); */
 }
 
 void slider_nudge_left(Slider *slider)
 {
-    Value range = jdaw_val_sub(slider->max, slider->min, slider->val_type);
-    static const double slider_nudge_prop = SLIDER_NUDGE_PROP;
-    Value nudge_amt = jdaw_val_scale(range, slider_nudge_prop, slider->val_type);
-    Value val = jdaw_val_from_ptr(slider->value, slider->val_type);
-    val = jdaw_val_sub(val, nudge_amt, slider->val_type);
-    if (jdaw_val_less_than(val, slider->min, slider->val_type)) {
-	val = slider->min;
-    }
-    jdaw_val_set_ptr(slider->value, slider->val_type, val);
-    slider_reset(slider);
-    if (slider->action) slider->action((void *)slider, slider->target);
+/*     Value range = jdaw_val_sub(slider->max, slider->min, slider->val_type); */
+/*     static const double slider_nudge_prop = SLIDER_NUDGE_PROP; */
+/*     Value nudge_amt = jdaw_val_scale(range, slider_nudge_prop, slider->val_type); */
+/*     Value val = jdaw_val_from_ptr(slider->value, slider->val_type); */
+/*     val = jdaw_val_sub(val, nudge_amt, slider->val_type); */
+/*     if (jdaw_val_less_than(val, slider->min, slider->val_type)) { */
+/* 	val = slider->min; */
+/*     } */
+/*     jdaw_val_set_ptr(slider->value, slider->val_type, val); */
+/*     slider_reset(slider); */
+/*     if (slider->action) slider->action((void *)slider, slider->target); */
 }
 
-static void slider_scroll(Slider *slider, int scroll_value)
-{
-    /* fprintf(stderr, "SCROLL VALUE: %d\n", scroll_value); */
-    static const int MAX_SCROLL = 60;
-    Value range = jdaw_val_sub(slider->max, slider->min, slider->val_type);
-    double slider_nudge_prop = (double)scroll_value / MAX_SCROLL;
-    /* fprintf(stderr, "OK scroll nudge prop %f\n", slider_nudge_prop); */
-    Value nudge_amt = jdaw_val_scale(range, slider_nudge_prop, slider->val_type);
-    Value val = jdaw_val_from_ptr(slider->value, slider->val_type);
-    val = jdaw_val_sub(val, nudge_amt, slider->val_type);
-    if (jdaw_val_less_than(val, slider->min, slider->val_type)) {
-	val = slider->min;
-    } else if (jdaw_val_less_than(slider->max, val, slider->val_type)) {
-	val = slider->max;
-    }
-    jdaw_val_set_ptr(slider->value, slider->val_type, val);
-    slider_reset(slider);
-    if (slider->action) slider->action((void *)slider, slider->target);
+/* static void slider_scroll(Slider *slider, int scroll_value) */
+/* { */
+/*     /\* fprintf(stderr, "SCROLL VALUE: %d\n", scroll_value); *\/ */
+/*     static const int MAX_SCROLL = 60; */
+/*     Value range = jdaw_val_sub(slider->max, slider->min, slider->val_type); */
+/*     double slider_nudge_prop = (double)scroll_value / MAX_SCROLL; */
+/*     /\* fprintf(stderr, "OK scroll nudge prop %f\n", slider_nudge_prop); *\/ */
+/*     Value nudge_amt = jdaw_val_scale(range, slider_nudge_prop, slider->val_type); */
+/*     Value val = jdaw_val_from_ptr(slider->value, slider->val_type); */
+/*     val = jdaw_val_sub(val, nudge_amt, slider->val_type); */
+/*     if (jdaw_val_less_than(val, slider->min, slider->val_type)) { */
+/* 	val = slider->min; */
+/*     } else if (jdaw_val_less_than(slider->max, val, slider->val_type)) { */
+/* 	val = slider->max; */
+/*     } */
+/*     jdaw_val_set_ptr(slider->value, slider->val_type, val); */
+/*     slider_reset(slider); */
+/*     if (slider->action) slider->action((void *)slider, slider->target); */
     
-}
+/* } */
 /* static int timed_hide_slider_label(void *data) */
 /* { */
 /*     Slider *fs = (Slider *)data; */
@@ -733,56 +775,6 @@ bool draggable_mouse_motion(Draggable *draggable, Window *win)
     return false;
 }
 
-bool slider_mouse_click(Slider *slider, Window *win)
-{
-    if (SDL_PointInRect(&main_win->mousep, &slider->layout->rect) && win->i_state & I_STATE_MOUSE_L) {
-	int dim = slider->orientation == SLIDER_VERTICAL ? main_win->mousep.y : main_win->mousep.x;
-	Value newval = slider_val_from_coord(slider, dim);
-	jdaw_val_set_ptr(slider->value, slider->val_type, newval);
-	if (slider->action)
-		slider->action((void *)slider, slider->target);
-	slider_reset(slider);
-	slider_edit_made(slider);
-	slider->drag_context->component = (void *)slider;
-	slider->drag_context->type = DRAG_SLIDER;
-	return true;
-    }
-    return false;
-}
-
-bool slider_mouse_motion(Slider *slider, Window *win)
-{
-    int dim, mindim, maxdim;
-    switch (slider->orientation) {
-    case SLIDER_VERTICAL:
-	dim = main_win->mousep.y;
-	mindim = slider->layout->rect.y;
-	maxdim = slider->layout->rect.y + slider->layout->rect.h;
-	break;
-    case SLIDER_HORIZONTAL:
-	dim = main_win->mousep.x;
-	mindim = slider->layout->rect.x;
-	maxdim = slider->layout->rect.x + slider->layout->rect.w;
-	break;
-    }
-    /* int dim = slider->orientation == SLIDER_VERTICAL ? main_win->mousep.y : main_win->mousep.x; */
-    /* int mindim = slider->orientation == SLIDER_ */
-    if (!(win->i_state & I_STATE_SHIFT && win->i_state & I_STATE_CMDCTRL)) {
-	if (dim < mindim) dim = mindim;
-	if (dim > maxdim) dim = maxdim;
-    } else {
-	status_set_errstr("SLIDER UNSAFE MODE (release ctrl/shift to return to safety!)");
-    }
-    Value newval = slider_val_from_coord(slider, dim);
-    jdaw_val_set_ptr(slider->value, slider->val_type, newval);
-    if (slider->action)
-	slider->action((void *)slider, slider->target);
-    /* track->vol = newval.float_v; */
-    slider_reset(slider);
-    slider_edit_made(slider);
-    /* proj->vol_changing = true; */
-    return true;
-}
 
 bool radio_click(RadioButton *rb, Window *Win)
 {
@@ -836,20 +828,20 @@ bool symbol_button_click(SymbolButton *sbutton, Window *win)
 void draggable_handle_scroll(Draggable *d, int x, int y)
 {
 
-    switch (d->type) {
-    case DRAG_SLIDER: {
-	Slider *s = (Slider *)d->component;
-	if (abs(x) > abs(y) && s->orientation == SLIDER_HORIZONTAL) {
-	    slider_scroll(s, x);
-	} else {
-	    if (abs(x) > abs(y))
-		slider_scroll(s, x);
-	    else
-		slider_scroll(s, -1 * y);
-	}
-    }
-	break;
-    default:
-	break;
-    }
+/*     switch (d->type) { */
+/*     case DRAG_SLIDER: { */
+/* 	Slider *s = (Slider *)d->component; */
+/* 	if (abs(x) > abs(y) && s->orientation == SLIDER_HORIZONTAL) { */
+/* 	    slider_scroll(s, x); */
+/* 	} else { */
+/* 	    if (abs(x) > abs(y)) */
+/* 		slider_scroll(s, x); */
+/* 	    else */
+/* 		slider_scroll(s, -1 * y); */
+/* 	} */
+/*     } */
+/* 	break; */
+/*     default: */
+/* 	break; */
+/*     } */
 }

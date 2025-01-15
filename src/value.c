@@ -320,6 +320,46 @@ Value jdaw_val_mult(Value a, Value b, ValType vt)
     return ret;
 }
 
+Value jdaw_val_negate(Value a, ValType vt)
+{
+    switch (vt) {
+    case JDAW_FLOAT:
+	a.float_v *= -1;
+	break;
+    case JDAW_DOUBLE:
+	a.double_v *= -1;
+	break;
+    case JDAW_INT:
+	a.int_v *= -1;
+	break;
+    case JDAW_UINT8:
+	a.uint8_v *= -1;
+	break;
+    case JDAW_UINT16:
+	a.uint16_v *= -1;
+	break;
+    case JDAW_UINT32:
+	a.uint32_v *= -1;
+	break;
+    case JDAW_INT8:
+	a.int8_v *= -1;
+	break;
+    case JDAW_INT16:
+	a.int16_v *= -1;
+	break;
+    case JDAW_INT32:
+	a.int32_v *= -1;
+	break;
+    case JDAW_BOOL:
+	a.bool_v = !a.bool_v;
+	break;
+    default:
+	break;
+
+    }
+    return a;    
+}
+
 
 Value jdaw_val_div(Value a, Value b, ValType vt)
 {
@@ -728,4 +768,34 @@ Value jdaw_val_deserialize(FILE *f, uint8_t size, ValType type)
 	break;
     }
     return ret;
+}
+
+
+bool jdaw_val_in_range(Value test, Value min, Value max, ValType type)
+{
+    switch (type) {
+    case JDAW_FLOAT:
+	return min.float_v <= test.float_v && test.float_v <= max.float_v;
+    case JDAW_DOUBLE:
+	return min.double_v <= test.double_v && test.double_v <= max.double_v;
+    case JDAW_INT:
+	return min.int_v <= test.int_v && test.int_v <= max.double_v;
+    case JDAW_UINT8:
+	return min.uint8_v <= test.uint8_v && test.uint8_v <= max.uint8_v;
+    case JDAW_UINT16:
+	return min.uint16_v <= test.uint16_v && test.uint16_v <= max.uint16_v;
+    case JDAW_UINT32:
+	return min.uint32_v <= test.uint32_v && test.uint32_v <= max.uint32_v;
+    case JDAW_INT8:
+	return min.int8_v <= test.int8_v && test.int8_v <= max.int8_v;
+    case JDAW_INT16:
+	return min.int16_v <= test.int16_v && test.int16_v <= max.int16_v;
+    case JDAW_INT32:
+	return min.int32_v <= test.int32_v && test.int32_v <= max.int32_v;
+    case JDAW_BOOL:
+	true;
+    default:
+	return 0;
+	break;
+    }
 }

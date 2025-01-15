@@ -344,7 +344,7 @@ void loop_project_main()
 		    temp_scrolling_lt = modal_scrollable;
 		} else if (main_win->modes[main_win->num_modes - 1] == TIMELINE || main_win->modes[main_win->num_modes - 1] == TABVIEW) {
 		    if (main_win->i_state & I_STATE_SHIFT) {
-			if (fabs(e.wheel.preciseY) > fabs(e.wheel.preciseX)) {
+			if (fabs(e.wheel.preciseY) - fabs(e.wheel.preciseX) > -0.3) {
 			    timeline_play_speed_adj(e.wheel.preciseY);
 			} else {
 			    timeline_scroll_playhead(e.wheel.preciseX);

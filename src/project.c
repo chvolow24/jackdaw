@@ -42,6 +42,7 @@
 #include "color.h"
 #include "components.h"
 #include "dsp.h"
+#include "endpoint.h"
 #include "endpoint_callbacks.h"
 #include "input.h"
 #include "layout.h"
@@ -1425,6 +1426,54 @@ Track *timeline_add_track(Timeline *tl)
     } else {
 	track_color_index = 0;
     }
+
+    /* API */
+    endpoint_init(
+	&track->vol_ep,
+	&track->vol,
+	JDAW_FLOAT,
+	"vol",
+	"undo/redo adjust track volume",
+	JDAW_THREAD_DSP,
+	track_slider_cb,
+	NULL, NULL,
+	track->vol_ctrl, track->tl,
+	NULL, NULL);
+    endpoint_set_allowed_range(
+	&track->vol_ep,
+	(Value){.float_v=0.0},
+	(Value){.float_v = 3.0});
+
+    endpoint_init(
+	&track->pan_ep,
+	&track->pan,
+	JDAW_FLOAT,
+	"pan",
+	"undo/redo adj track pan",
+	JDAW_THREAD_DSP,
+	track_slider_cb,
+	NULL, NULL,
+	track->pan_ctrl, track->tl,
+	NULL, NULL);
+    endpoint_set_allowed_range(
+	&track->pan_ep,
+	(Value){.float_v = 0.0},
+	(Value){.float_v = 1.0});
+
+    endpoint_init(
+	&track->fir_filter_cutoff_ep,
+	&track->fir_filter.cutoff_freq_unscaled,
+	JDAW_DOUBLE,
+	"filter_cutoff_freq",
+	"undo/redo adj filter cutoff",
+	JDAW_THREAD_DSP,
+	NULL, NULL, NULL,
+	NULL, NULL, NULL, NULL);
+    endpoint_set_allowed_range(
+	&track->fir_filter_cutoff_ep,
+	(Value){.float_v = 0.0},
+	(Value){.float_v = 1.0});
+
     
     /* Layout *track_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area"); */
     Layout *track_template = layout_read_xml_to_lt(tl->track_area, TRACK_LT_PATH);
@@ -1557,21 +1606,32 @@ Track *timeline_add_track(Timeline *tl)
     /* vol_ctrl_lt->h.value.intval = vol_ctrl_row->h.value.intval - TRACK_CTRL_SLIDER_V_PAD * 2; */
     /* layout_set_values_from_rect(vol_ctrl_lt); */
     track->vol = 1.0f;
+
     track->vol_ctrl = slider_create(
 	vol_ctrl_lt,
-	(void *)(&track->vol),
-	JDAW_FLOAT,
+	&track->vol_ep,
+	(Value){.float_v = 0.0f},
+	(Value){.float_v = 3.0f},
 	SLIDER_HORIZONTAL,
 	SLIDER_FILL,
 	&slider_label_amp_to_dbstr,
-	NULL,
-	NULL,
 	&tl->proj->dragged_component);
-    SliderStrFn t;
-    Value min, max;
-    min.float_v = 0.0f;
-    max.float_v = TRACK_VOL_MAX;
-    slider_set_range(track->vol_ctrl, min, max);
+    track->vol_ep.xarg1 = track->vol_ctrl;
+    /* track->vol_ctrl = slider_create( */
+    /* 	vol_ctrl_lt, */
+    /* 	(void *)(&track->vol), */
+    /* 	JDAW_FLOAT, */
+    /* 	SLIDER_HORIZONTAL, */
+    /* 	SLIDER_FILL, */
+    /* 	&slider_label_amp_to_dbstr, */
+    /* 	NULL, */
+    /* 	NULL, */
+    /* 	&tl->proj->dragged_component); */
+    /* SliderStrFn t; */
+    /* Value min, max; */
+    /* min.float_v = 0.0f; */
+    /* max.float_v = TRACK_VOL_MAX; */
+    /* slider_set_range(track->vol_ctrl, min, max); */
 
     Layout *pan_ctrl_row = layout_get_child_by_name_recursive(track->inner_layout, "pan_slider");
     Layout *pan_ctrl_lt = layout_add_child(pan_ctrl_row);
@@ -1583,16 +1643,26 @@ Track *timeline_add_track(Timeline *tl)
     /* pan_ctrl_lt->h.value.intval = pan_ctrl_row->h.value.intval - TRACK_CTRL_SLIDER_V_PAD * 2; */
     /* /\* layout_set_values_from_rect(pan_ctrl_lt); *\/ */
     track->pan = 0.5f;
+    /* track->pan_ctrl = slider_create( */
+    /* 	pan_ctrl_lt, */
+    /* 	&track->pan, */
+    /* 	JDAW_FLOAT, */
+    /* 	SLIDER_HORIZONTAL, */
+    /* 	SLIDER_TICK, */
+    /* 	slider_label_pan, */
+    /* 	NULL, */
+    /* 	NULL, */
+    /* 	&tl->proj->dragged_component); */
     track->pan_ctrl = slider_create(
 	pan_ctrl_lt,
-	&track->pan,
-	JDAW_FLOAT,
+	&track->pan_ep,
+	(Value){.float_v = 0.0f},
+	(Value){.float_v = 1.0f},
 	SLIDER_HORIZONTAL,
 	SLIDER_TICK,
 	slider_label_pan,
-	NULL,
-	NULL,
 	&tl->proj->dragged_component);
+    track->pan_ep.xarg1 = track->pan_ctrl;
 
     /* slider_reset(track->vol_ctrl); */
     /* slider_reset(track->pan_ctrl); */
@@ -1614,33 +1684,6 @@ Track *timeline_add_track(Timeline *tl)
     track->colorbar = &(layout_get_child_by_name_recursive(track->inner_layout, "colorbar")->rect);
 
 
-    /* API */
-    endpoint_init(
-	&track->vol_ep,
-	&track->vol,
-	JDAW_FLOAT,
-	"vol",
-	"undo/redo adjust track volume",
-	JDAW_THREAD_DSP,
-	track_slider_cb,
-	NULL, NULL,
-	track->vol_ctrl, track->tl,
-	NULL, NULL);
-
-    endpoint_init(
-	&track->pan_ep,
-	&track->pan,
-	JDAW_FLOAT,
-	"pan",
-	"undo/redo adjust track pan",
-	JDAW_THREAD_DSP,
-	track_slider_cb,
-	NULL, NULL,
-	track->pan_ctrl, track->tl,
-	NULL, NULL);
-
-	
-    
     track_reset_full(track);
     if (tl->layout_selector < 0) tl->layout_selector = 0;
     timeline_rectify_track_indices(tl);
@@ -1885,7 +1928,7 @@ void track_increment_vol(Track *track)
     if (track->vol > track->vol_ctrl->max.float_v) {
 	track->vol = track->vol_ctrl->max.float_v;
     }
-    slider_edit_made(track->vol_ctrl);
+    /* slider_edit_made(track->vol_ctrl); */
     slider_reset(track->vol_ctrl);
 }
 void track_decrement_vol(Track *track)
@@ -1894,7 +1937,7 @@ void track_decrement_vol(Track *track)
     if (track->vol < 0.0f) {
 	track->vol = 0.0f;
     }
-    slider_edit_made(track->vol_ctrl);
+    /* slider_edit_made(track->vol_ctrl); */
     slider_reset(track->vol_ctrl);
 }
 
@@ -1904,7 +1947,7 @@ void track_increment_pan(Track *track)
     if (track->pan > 1.0f) {
 	track->pan = 1.0f;
     }
-    slider_edit_made(track->pan_ctrl);
+    /* slider_edit_made(track->pan_ctrl); */
     slider_reset(track->pan_ctrl);
 }
 
@@ -1914,7 +1957,7 @@ void track_decrement_pan(Track *track)
     if (track->pan < 0.0f) {
 	track->pan = 0.0f;
     }
-    slider_edit_made(track->pan_ctrl);
+    /* slider_edit_made(track->pan_ctrl); */
     slider_reset(track->pan_ctrl);
 }
 

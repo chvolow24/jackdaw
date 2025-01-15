@@ -84,6 +84,13 @@ int endpoint_init(
     return 0;
 }
 
+void endpoint_set_allowed_range(Endpoint *ep, Value min, Value max)
+{
+    ep->min = min;
+    ep->max = max;
+    ep->restrict_range = true;
+}
+
 /* int enpoint_add_callback(Endpoint *ep, EndptCb fn, enum jdaw_thread thread) */
 /* { */
 /*     if (ep->num_callbacks == MAX_ENDPOINT_CALLBACKS) { */
@@ -114,6 +121,11 @@ NEW_EVENT_FN(undo_redo_endpoint_write, "")
     status_set_undostr(statstr_fmt);
 }
 
+/* Return value is one of:
+   0: value written synchronously
+   1: value change scheduled other thread
+   -1: ERROR: undo action can't be pushed on current thread
+*/
 int endpoint_write(
     Endpoint *ep,
     Value new_val,
@@ -122,12 +134,18 @@ int endpoint_write(
     bool run_dsp_cb,
     bool undoable)
 {
-
+    int ret = 0;
+    if (ep->restrict_range) {
+	if (jdaw_val_less_than(new_val, ep->min, ep->val_type)) {
+	    new_val = ep->min;
+	} else if (jdaw_val_less_than(ep->max, new_val, ep->val_type)) {
+	    new_val = ep->max;
+	}
+    }
     Value old_val;
     if (undoable) {
 	old_val = endpoint_safe_read(ep, NULL);
     }
-    
     /* Value change */
     enum jdaw_thread owner = endpoint_get_owner(ep);
     if (on_thread(owner) || (!proj->playing && owner == JDAW_THREAD_DSP)) {
@@ -146,6 +164,7 @@ int endpoint_write(
 	/*     pthread_mutex_unlock(&ep->lock);	     */
 	/* } else { */
 	project_queue_val_change(proj, ep, new_val);
+	ret = 1;
 	/* } */
     }
 
@@ -180,7 +199,7 @@ int endpoint_write(
     if (undoable) {
 	if (!on_main) {
 	    fprintf(stderr, "UH OH can't push event fn on thread that is not main\n");
-	    return 2;
+	    return -1;
 	}
 	uint8_t callback_bitfield = 0;
 	if (run_gui_cb) callback_bitfield |= 0b001;
@@ -198,7 +217,7 @@ int endpoint_write(
 	    0, 0, false, false);
     }
     
-    return 0;
+    return ret;
 }
 
 Value endpoint_unsafe_read(Endpoint *ep, ValType *vt)
@@ -247,6 +266,8 @@ void endpoint_start_continuous_change(
     Value incr,
     enum jdaw_thread thread)
 {
+    if (ep->changing) return;
+    ep->changing = true;
     ep->cached_owner = endpoint_get_owner(ep);
     endpoint_set_owner(ep, thread);
     ep->do_auto_incr = do_auto_incr;
@@ -281,6 +302,7 @@ void endpoint_stop_continuous_change(Endpoint *ep)
 	ep->cached_val, cb_matrix,
 	current_val, cb_matrix,
 	0, 0, false, false);
+    ep->changing = false;
 
 }
 

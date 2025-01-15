@@ -92,7 +92,9 @@ typedef struct endpoint {
     void *val;
     ValType val_type;
     Value cached_val;
-
+    bool restrict_range;
+    Value min;
+    Value max;
     /* struct endpt_cb callbacks[MAX_ENDPOINT_CALLBACKS]; */
     /* uint8_t num_callbacks; */
     
@@ -116,6 +118,7 @@ typedef struct endpoint {
     /* Continuous changes */
     bool do_auto_incr;
     Value incr;
+    bool changing;
 
     /* Bindings */
     Automation *automation;
@@ -134,6 +137,8 @@ int endpoint_init(
     void *xarg1, void *xarg2,
     void *xarg3, void *xarg4);
 
+void endpoint_set_allowed_range(Endpoint *ep, Value min, Value max);
+
 /* int endpoint_add_callback( */
 /*     Endpoint *ep, */
 /*     EndptCb fn, */
@@ -148,7 +153,7 @@ int endpoint_write(
     bool run_dsp_cb,
     bool undoable);
 
-int endpoint_read(Endpoint *ep, Value *dst_val, ValType *dst_vt);
+/* int endpoint_read(Endpoint *ep, Value *dst_val, ValType *dst_vt); */
 Value endpoint_unsafe_read(Endpoint *ep, ValType *vt);
 Value endpoint_safe_read(Endpoint *ep, ValType *vt);
 

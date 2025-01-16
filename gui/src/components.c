@@ -281,14 +281,17 @@ bool slider_mouse_motion(Slider *slider, Window *win)
     }
     /* int dim = slider->orientation == SLIDER_VERTICAL ? main_win->mousep.y : main_win->mousep.x; */
     /* int mindim = slider->orientation == SLIDER_ */
-    if (!(win->i_state & I_STATE_SHIFT && win->i_state & I_STATE_CMDCTRL)) {
+    bool restrict_range = slider->ep->restrict_range;
+    if (slider->disallow_unsafe_mode || !(win->i_state & I_STATE_SHIFT && win->i_state & I_STATE_CMDCTRL)) {
 	if (dim < mindim) dim = mindim;
 	if (dim > maxdim) dim = maxdim;
     } else {
 	status_set_errstr("SLIDER UNSAFE MODE (release ctrl/shift to return to safety!)");
+	slider->ep->restrict_range = false;
     }
     Value newval = slider_val_from_coord(slider, dim);
     endpoint_write(slider->ep, newval, true, true, true, false);
+    slider->ep->restrict_range = restrict_range;
     /* jdaw_val_set_ptr(slider->value, slider->val_type, newval); */
     /* if (slider->action) */
     /* 	slider->action((void *)slider, slider->target); */
@@ -382,7 +385,6 @@ void slider_nudge_left(Slider *slider)
 
 
 /* Button */
-
 
 Button *button_create(
     Layout *lt,

@@ -1437,12 +1437,12 @@ Track *timeline_add_track(Timeline *tl)
 	JDAW_THREAD_DSP,
 	track_slider_cb,
 	NULL, NULL,
-	track->vol_ctrl, track->tl,
+	&track->vol_ctrl, track->tl,
 	NULL, NULL);
     endpoint_set_allowed_range(
 	&track->vol_ep,
 	(Value){.float_v=0.0},
-	(Value){.float_v = 3.0});
+	(Value){.float_v=3.0});
 
     endpoint_init(
 	&track->pan_ep,
@@ -1453,7 +1453,7 @@ Track *timeline_add_track(Timeline *tl)
 	JDAW_THREAD_DSP,
 	track_slider_cb,
 	NULL, NULL,
-	track->pan_ctrl, track->tl,
+	&track->pan_ctrl, track->tl,
 	NULL, NULL);
     endpoint_set_allowed_range(
 	&track->pan_ep,
@@ -1616,7 +1616,7 @@ Track *timeline_add_track(Timeline *tl)
 	SLIDER_FILL,
 	&slider_label_amp_to_dbstr,
 	&tl->proj->dragged_component);
-    track->vol_ep.xarg1 = track->vol_ctrl;
+    /* track->vol_ep.xarg1 = track->vol_ctrl; */
     /* track->vol_ctrl = slider_create( */
     /* 	vol_ctrl_lt, */
     /* 	(void *)(&track->vol), */
@@ -1662,7 +1662,8 @@ Track *timeline_add_track(Timeline *tl)
 	SLIDER_TICK,
 	slider_label_pan,
 	&tl->proj->dragged_component);
-    track->pan_ep.xarg1 = track->pan_ctrl;
+    track->pan_ctrl->disallow_unsafe_mode = true;
+    /* track->pan_ep.xarg1 = track->pan_ctrl; */
 
     /* slider_reset(track->vol_ctrl); */
     /* slider_reset(track->pan_ctrl); */

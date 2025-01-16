@@ -93,13 +93,17 @@ typedef struct tab_view {
 } TabView;
 
 struct slider_params {
-    void *value;
-    ValType val_type;
+    
+    /* void *value; */
+    /* ValType val_type; */
+    Endpoint *ep;
+    Value min;
+    Value max;
     enum slider_orientation orientation;
     enum slider_style style;
-    SliderStrFn *create_label_fn;
-    ComponentFn action;
-    void *target;
+    LabelStrFn create_label_fn;
+    /* ComponentFn action; */
+    /* void *target; */
 };
 
 struct textbox_params {

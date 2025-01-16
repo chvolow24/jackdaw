@@ -42,7 +42,7 @@ void play_speed_gui_cb(Endpoint *ep)
 
 void track_slider_cb(Endpoint *ep)
 {
-    Slider *s = (Slider *)ep->xarg1;
+    Slider *s = *((Slider **)ep->xarg1);
     slider_reset(s);
     Timeline *tl = (Timeline *)ep->xarg2;
     tl->needs_redraw = true;

@@ -53,7 +53,7 @@ typedef struct text_entry {
     void *target;
 } TextEntry;
 
-typedef void (SliderStrFn)(char *dst, size_t dstsize, void *value, ValType type);
+/* typedef void (SliderStrFn)(char *dst, size_t dstsize, void *value, ValType type); */
  
 enum slider_orientation {
     SLIDER_HORIZONTAL,
@@ -118,6 +118,7 @@ typedef struct slider {
     Label *label;
     Draggable *drag_context;
 
+    bool disallow_unsafe_mode;
 
 } Slider;
 
@@ -172,6 +173,8 @@ bool slider_mouse_motion(Slider *slider, Window *win);
 void slider_destroy(Slider *s);
 
 
+void slider_std_labelmaker(char *dst, size_t dstsize, void *value, ValType type);
+/* LabelStrFn slider_std_labelmaker; */
 /* SliderStrFn slider_std_labelmaker; */
 /* Value slider_val_from_coord(Slider *s, int coord_pix); */
 /* void slider_edit_made(Slider *slider); */

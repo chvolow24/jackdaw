@@ -292,27 +292,30 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     p.slider_p.create_label_fn = create_hz_label;
     p.slider_p.style = SLIDER_TICK;
     p.slider_p.orientation = SLIDER_HORIZONTAL;
-    p.slider_p.value = &f->cutoff_freq_unscaled;
-    p.slider_p.val_type = JDAW_DOUBLE;
-    p.slider_p.action = slider_cutoff_target_action;
-    p.slider_p.target = (void *)(f);
+    p.slider_p.ep = &track->fir_filter_cutoff_ep;
+    /* p.slider_p.value = &f->cutoff_freq_unscaled; */
+    /* p.slider_p.val_type = JDAW_DOUBLE; */
+    /* p.slider_p.action = slider_cutoff_target_action; */
+    /* p.slider_p.target = (void *)(f); */
     el = page_add_el(page, EL_SLIDER, p, "track_settings_filter_cutoff_slider", "cutoff_slider");
 
 
     /* static double bandwidth_unscaled; */
     f->bandwidth_unscaled = unscale_freq(f->bandwidth);
-    p.slider_p.action = slider_bandwidth_target_action;
-    p.slider_p.target = (void *)(f);
-    p.slider_p.value = &f->bandwidth_unscaled;
+    p.slider_p.ep = &track->fir_filter_bandwidth_ep;
+    /* p.slider_p.action = slider_bandwidth_target_action; */
+    /* p.slider_p.target = (void *)(f); */
+    /* p.slider_p.value = &f->bandwidth_unscaled; */
     el = page_add_el(page, EL_SLIDER, p, "track_settings_filter_bandwidth_slider", "bandwidth_slider");
 
     static int ir_len = 20;
     if (track->fir_filter_active) ir_len = f->impulse_response_len;
-    p.slider_p.action = slider_irlen_target_action;
+    /* p.slider_p.action = slider_irlen_target_action; */
+    p.slider_p.ep = &track->fir_filter_impulse_response_len_endpoint;
     /* p.slider_p.target = */
-    p.slider_p.target = (void *)f;
-    p.slider_p.value = &ir_len;
-    p.slider_p.val_type = JDAW_INT;
+    /* p.slider_p.target = (void *)f; */
+    /* p.slider_p.value = &ir_len; */
+    /* p.slider_p.val_type = JDAW_INT; */
     p.slider_p.create_label_fn = slider_std_labelmaker;
     el = page_add_el(page, EL_SLIDER, p, "track_settings_filter_irlen_slider",  "irlen_slider");
 

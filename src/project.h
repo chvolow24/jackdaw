@@ -173,6 +173,7 @@ typedef struct track {
     Endpoint pan_ep;
     Endpoint fir_filter_cutoff_ep;
     Endpoint fir_filter_bandwidth_ep;
+    Endpoint fir_filter_impulse_response_len_endpoint;
     Endpoint delay_line_len_ep;
     Endpoint delay_line_amp_ep;
     Endpoint delay_line_stereo_offset_ep;

@@ -63,6 +63,15 @@ void api_node_register(APINode *node, APINode *parent, char *obj_name)
     node->parent = parent;
 }
 
+
+static char make_idchar(char c)
+{
+    if (c >= 'a' && c <= 'z') return c;
+    if (c >= 'A' && c <= 'Z') return c - 'A' + 'a';
+    if (c >= '0' && c <= '9') return c;
+    return '_';
+}
+
 void api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size)
 {
     char *components[MAX_ROUTE_DEPTH];
@@ -80,11 +89,16 @@ void api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size)
     num_components--;
     int offset = 0;
     while (num_components >= 0) {
-	offset += snprintf(dst + offset, dst_size - offset, "/%s", components[num_components]);
+	char *str = components[num_components];
+	char lowered[dst_size];
+	for (int i=0; i<strlen(str); i++) {
+	    lowered[i] = make_idchar(str[i]);
+	}
+	lowered[strlen(str)] = '\0';
+	offset += snprintf(dst + offset, dst_size - offset, "/%s", lowered);
 	num_components--;
     }   
 }
-
 
 void api_node_print_all_routes(APINode *node)
 {

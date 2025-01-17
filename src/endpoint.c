@@ -293,6 +293,7 @@ void endpoint_stop_continuous_change(Endpoint *ep)
     /* if (run_dsp_cb) callback_bitfield |= 0b100; */
     Value cb_matrix = {.uint8_v = callback_bitfield};
     Value current_val = jdaw_val_from_ptr(ep->val, ep->val_type);
+    /* fprintf(stderr, "DOUBLE VALS: %f, %f\n", ep->cached_val.double_v, current_val.double_v); */
     if (!jdaw_val_equal(current_val, ep->cached_val, ep->val_type)) {
 	user_event_push(
 	    &proj->history,

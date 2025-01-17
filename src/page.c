@@ -312,13 +312,20 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
     case EL_SLIDER:
 	el->component = (void *)slider_create(
 	    el->layout,
-	    params.slider_p.value,
-	    params.slider_p.val_type,
+	    params.slider_p.ep,
+	    params.slider_p.min,
+	    params.slider_p.max,
 	    params.slider_p.orientation,
 	    params.slider_p.style,
 	    params.slider_p.create_label_fn,
-	    params.slider_p.action,
-	    params.slider_p.target,
+	    /* el->layout, */
+	    /* params.slider_p.value, */
+	    /* params.slider_p.val_type, */
+	    /* params.slider_p.orientation, */
+	    /* params.slider_p.style, */
+	    /* params.slider_p.create_label_fn, */
+	    /* params.slider_p.action, */
+	    /* params.slider_p.target, */
 	    &proj->dragged_component);
 	break;
     case EL_RADIO:

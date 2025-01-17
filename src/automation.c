@@ -275,7 +275,17 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	/* automation_insert_keyframe_at(a, NULL, base_kf_val, 0); */
 	break;
     case AUTO_FIR_FILTER_CUTOFF:
-	if (track->fir_filter.frequency_response) {
+
+	/* 	if (!track->fir_filter.frequency_response) { */
+	/*     Project *proj_loc = track->tl->proj; */
+	/*     int ir_len = proj_loc->fourier_len_sframes/4; */
+	/*     filter_init(&track->fir_filter, LOWPASS, ir_len, proj_loc->fourier_len_sframes * 2); */
+	/*     track->fir_filter.track = track; */
+	/*     filter_set_params_hz(&track->fir_filter, LOWPASS, 1000, 1000); */
+	/*     track->fir_filter_active = false; */
+	/* } */
+
+	if (!track->fir_filter.frequency_response) {
 	    track_add_default_filter(track);
 	}
 	a->val_type = JDAW_DOUBLE;
@@ -285,11 +295,11 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	a->range.double_v = 1.0;
 	base_kf_val.double_v = 1.0;
 	automation_insert_keyframe_at(a, 0, base_kf_val);
-	endpoint_bind_automation(&track->fir_filter_cutoff_ep, a);
+	endpoint_bind_automation(&track->fir_filter.cutoff_ep, a);
 	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
 	break;
     case AUTO_FIR_FILTER_BANDWIDTH:
-	if (track->fir_filter.frequency_response) {
+	if (!track->fir_filter.frequency_response) {
 	    track_add_default_filter(track);
 	}
 	a->val_type = JDAW_DOUBLE;
@@ -299,7 +309,7 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	a->range.double_v = 1.0;
 	base_kf_val.double_v = 0.5;
 	automation_insert_keyframe_at(a, 0, base_kf_val);
-	endpoint_bind_automation(&track->fir_filter_bandwidth_ep, a);
+	endpoint_bind_automation(&track->fir_filter.bandwidth_ep, a);
 	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
 	break;
     case AUTO_DEL_TIME:
@@ -311,7 +321,7 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	a->target_val = &track->delay_line.len;
 	base_kf_val.int32_v = track->tl->proj->sample_rate / 2;
 	automation_insert_keyframe_at(a, 0, base_kf_val);
-	endpoint_bind_automation(&track->delay_line_len_ep, a);
+	endpoint_bind_automation(&track->delay_line.len_ep, a);
 	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
 
 	break;
@@ -323,7 +333,7 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	a->range.double_v = 1.0;
 	base_kf_val.double_v = 0.5;
 	automation_insert_keyframe_at(a, 0, base_kf_val);
-	endpoint_bind_automation(&track->delay_line_amp_ep, a);
+	endpoint_bind_automation(&track->delay_line.amp_ep, a);
 	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
 	break;
     case AUTO_PLAY_SPEED:

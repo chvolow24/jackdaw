@@ -74,44 +74,44 @@ static int rb_target_action(void *self_v, void *target)
     return 0;
 }
 
-static int slider_cutoff_target_action(void *self_v, void *target)
-{
-    Slider *self = (Slider *)self_v;
-    FIRFilter *f = (FIRFilter *)target;
-    double cutoff_unscaled = *(double *)(self->value);
+/* static int slider_cutoff_target_action(void *self_v, void *target) */
+/* { */
+/*     Slider *self = (Slider *)self_v; */
+/*     FIRFilter *f = (FIRFilter *)target; */
+/*     double cutoff_unscaled = *(double *)(self->value); */
     
-    /* double cutoff_h = pow(10.0, log10((double)proj->sample_rate / 2) * cutoff_unscaled); */
-    double cutoff_hz = dsp_scale_freq_to_hz(cutoff_unscaled);
-    filter_set_cutoff_hz(f, cutoff_hz);
-    return 0;
-}
+/*     /\* double cutoff_h = pow(10.0, log10((double)proj->sample_rate / 2) * cutoff_unscaled); *\/ */
+/*     double cutoff_hz = dsp_scale_freq_to_hz(cutoff_unscaled); */
+/*     filter_set_cutoff_hz(f, cutoff_hz); */
+/*     return 0; */
+/* } */
 
-static int slider_bandwidth_target_action(void *self_v, void *target)
-{
-    Slider *self = (Slider *)self_v;
-    FIRFilter *f = (FIRFilter *)target;
-    double bandwidth_unscaled = *(double *)(self->value);
-    /* double bandwidth_h = pow(10.0, log10((double)proj->sample_rate / 2) * bandwidth_unscaled); */
-    double bandwidth_hz = dsp_scale_freq_to_hz(bandwidth_unscaled);
-    filter_set_bandwidth_hz(f, bandwidth_hz);
-    return 0;
-}
+/* static int slider_bandwidth_target_action(void *self_v, void *target) */
+/* { */
+/*     Slider *self = (Slider *)self_v; */
+/*     FIRFilter *f = (FIRFilter *)target; */
+/*     double bandwidth_unscaled = *(double *)(self->value); */
+/*     /\* double bandwidth_h = pow(10.0, log10((double)proj->sample_rate / 2) * bandwidth_unscaled); *\/ */
+/*     double bandwidth_hz = dsp_scale_freq_to_hz(bandwidth_unscaled); */
+/*     filter_set_bandwidth_hz(f, bandwidth_hz); */
+/*     return 0; */
+/* } */
 
-static int slider_irlen_target_action(void *self_v, void *target)
-{
-    Slider *self = (Slider *)self_v;
-    FIRFilter *f = (FIRFilter *)target;
-    int val = *(int *)self->value;
-    filter_set_impulse_response_len(f, val);
+/* static int slider_irlen_target_action(void *self_v, void *target) */
+/* { */
+/*     Slider *self = (Slider *)self_v; */
+/*     FIRFilter *f = (FIRFilter *)target; */
+/*     int val = *(int *)self->value; */
+/*     filter_set_impulse_response_len(f, val); */
 
-    /* Need to reset arrays in freq plot */
-    /* TODO: find a better way to do this */
-    current_fp->arrays[2] = f->frequency_response_mag;
-    waveform_reset_freq_plot(current_fp);
+/*     /\* Need to reset arrays in freq plot *\/ */
+/*     /\* TODO: find a better way to do this *\/ */
+/*     current_fp->arrays[2] = f->frequency_response_mag; */
+/*     waveform_reset_freq_plot(current_fp); */
     
-    /* slider_reset(self); */
-    return 0;
-}
+/*     /\* slider_reset(self); *\/ */
+/*     return 0; */
+/* } */
 
 static int toggle_delay_line_target_action(void *self_v, void *target)
 {
@@ -123,32 +123,32 @@ static int toggle_delay_line_target_action(void *self_v, void *target)
     return 0;
 }
 
-static int slider_deltime_target_action(void *self_v, void *target)
-{
-    DelayLine *dl = (DelayLine *)target;
-    Slider *self = (Slider *)self_v;
-    int32_t val_msec = *(int32_t *)self->value;
-    int32_t len_sframes = (int32_t)((double)val_msec * proj->sample_rate / 1000);
-    delay_line_set_params(dl, dl->amp, len_sframes);
-    /* slider_reset(self); */
-    return 0;
-}
+/* static int slider_deltime_target_action(void *self_v, void *target) */
+/* { */
+/*     DelayLine *dl = (DelayLine *)target; */
+/*     Slider *self = (Slider *)self_v; */
+/*     int32_t val_msec = *(int32_t *)self->value; */
+/*     int32_t len_sframes = (int32_t)((double)val_msec * proj->sample_rate / 1000); */
+/*     delay_line_set_params(dl, dl->amp, len_sframes); */
+/*     /\* slider_reset(self); *\/ */
+/*     return 0; */
+/* } */
 
-static int delay_set_offset(void *self_v, void *target)
-{
-    DelayLine *dl = (DelayLine *)target;
-    double offset_prop = *((double *)((Slider *)self_v)->value);
-    /* int32_t offset = offset_prop * dl->len; */
-    /* SDL_LockMutex(dl->lock); */
-    /* dl->stereo_offset = offset; */
-    /* SDL_UnlockMutex(dl->lock); */
-    /* SDL_LockMutex(dl->lock); */
-    pthread_mutex_lock(&dl->lock);
-    dl->stereo_offset = offset_prop;
-    pthread_mutex_unlock(&dl->lock);
-    /* SDL_UnlockMutex(dl->lock); */
-    return 0;
-}
+/* static int delay_set_offset(void *self_v, void *target) */
+/* { */
+/*     DelayLine *dl = (DelayLine *)target; */
+/*     double offset_prop = *((double *)((Slider *)self_v)->value); */
+/*     /\* int32_t offset = offset_prop * dl->len; *\/ */
+/*     /\* SDL_LockMutex(dl->lock); *\/ */
+/*     /\* dl->stereo_offset = offset; *\/ */
+/*     /\* SDL_UnlockMutex(dl->lock); *\/ */
+/*     /\* SDL_LockMutex(dl->lock); *\/ */
+/*     pthread_mutex_lock(&dl->lock); */
+/*     dl->stereo_offset = offset_prop; */
+/*     pthread_mutex_unlock(&dl->lock); */
+/*     /\* SDL_UnlockMutex(dl->lock); *\/ */
+/*     return 0; */
+/* } */
 
 /* typedef void (SliderStrFn)(char *dst, size_t dstsize, void *value, ValType type); */
 static void create_hz_label(char *dst, size_t dstsize, void *value, ValType type)
@@ -292,7 +292,9 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     p.slider_p.create_label_fn = create_hz_label;
     p.slider_p.style = SLIDER_TICK;
     p.slider_p.orientation = SLIDER_HORIZONTAL;
-    p.slider_p.ep = &track->fir_filter_cutoff_ep;
+    p.slider_p.min = (Value){.double_v = 0.0};
+    p.slider_p.max = (Value){.double_v = 1.0};
+    p.slider_p.ep = &track->fir_filter.cutoff_ep;
     /* p.slider_p.value = &f->cutoff_freq_unscaled; */
     /* p.slider_p.val_type = JDAW_DOUBLE; */
     /* p.slider_p.action = slider_cutoff_target_action; */
@@ -302,29 +304,29 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 
     /* static double bandwidth_unscaled; */
     f->bandwidth_unscaled = unscale_freq(f->bandwidth);
-    p.slider_p.ep = &track->fir_filter_bandwidth_ep;
+    p.slider_p.ep = &track->fir_filter.bandwidth_ep;
     /* p.slider_p.action = slider_bandwidth_target_action; */
     /* p.slider_p.target = (void *)(f); */
     /* p.slider_p.value = &f->bandwidth_unscaled; */
     el = page_add_el(page, EL_SLIDER, p, "track_settings_filter_bandwidth_slider", "bandwidth_slider");
 
-    static int ir_len = 20;
-    if (track->fir_filter_active) ir_len = f->impulse_response_len;
+    /* static int ir_len = 20; */
+    /* if (track->fir_filter_active) ir_len = f->impulse_response_len; */
     /* p.slider_p.action = slider_irlen_target_action; */
-    p.slider_p.ep = &track->fir_filter_impulse_response_len_endpoint;
+    p.slider_p.ep = &track->fir_filter.impulse_response_len_ep;
     /* p.slider_p.target = */
     /* p.slider_p.target = (void *)f; */
     /* p.slider_p.value = &ir_len; */
     /* p.slider_p.val_type = JDAW_INT; */
+    /* Value min, max; */
+    p.slider_p.min = (Value){.int_v = 4};
+    p.slider_p.max = (Value){.int_v = proj->fourier_len_sframes};
     p.slider_p.create_label_fn = slider_std_labelmaker;
     el = page_add_el(page, EL_SLIDER, p, "track_settings_filter_irlen_slider",  "irlen_slider");
 
     
     Slider *sl = (Slider *)el->component;
-    Value min, max;
-    min.int_v = 4;
-    max.int_v = proj->fourier_len_sframes;
-    slider_set_range(sl, min, max);
+    /* slider_set_range(sl, min, max); */
     slider_reset(sl);
     
 
@@ -431,36 +433,45 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     textbox_reset_full(tb);
 
 
-    static int32_t delay_msec;
-    delay_msec = (int32_t)((double)track->delay_line.len / proj->sample_rate * 1000.0);
+    /* static int32_t delay_msec; */
+    /* delay_msec = (int32_t)((double)track->delay_line.len / proj->sample_rate * 1000.0); */
     
     p.slider_p.create_label_fn = NULL;
     p.slider_p.style = SLIDER_TICK;
     p.slider_p.orientation = SLIDER_HORIZONTAL;
-    p.slider_p.value = &delay_msec;
-    p.slider_p.val_type = JDAW_INT32;
-    p.slider_p.action = slider_deltime_target_action;
-    p.slider_p.target = (void *)(&track->delay_line);
+    p.slider_p.ep = &track->delay_line.len_ep;
+    p.slider_p.min = (Value){.int32_v = 1};
+    p.slider_p.max = (Value){.int32_v = 1000};
+    /* p.slider_p.value = &delay_msec; */
+    /* p.slider_p.val_type = JDAW_INT32; */
+    /* p.slider_p.action = slider_deltime_target_action; */
+    /* p.slider_p.target = (void *)(&track->delay_line); */
     p.slider_p.create_label_fn = create_msec_label;
     el = page_add_el(page, EL_SLIDER, p, "track_settings_delay_time_slider", "del_time_slider");
-    min.int32_v = 1;
-    max.int32_v = 1000;
-    slider_set_range((Slider *)el->component, min, max);
+    /* min.int32_v = 1; */
+    /* max.int32_v = 1000; */
+    /* slider_set_range((Slider *)el->component, min, max); */
     slider_reset((Slider *)el->component);
     
-    p.slider_p.value = &track->delay_line.amp;
-    p.slider_p.val_type = JDAW_DOUBLE;
+    /* p.slider_p.value = &track->delay_line.amp; */
+    /* p.slider_p.val_type = JDAW_DOUBLE; */
     p.slider_p.create_label_fn = slider_std_labelmaker;
-    p.slider_p.action = NULL;
-    p.slider_p.target = NULL;
+    p.slider_p.ep = &track->delay_line.amp_ep;
+    p.slider_p.min = (Value){.double_v = 0.0};
+    p.slider_p.max = (Value){.double_v = 0.999};
+    /* p.slider_p.action = NULL; */
+    /* p.slider_p.target = NULL; */
     el = page_add_el(page, EL_SLIDER, p, "track_settings_delay_amp_slider", "del_amp_slider");
 
-    static double offset;
-    offset = track->delay_line.stereo_offset;
-    p.slider_p.value = &offset;
-    p.slider_p.val_type = JDAW_DOUBLE;
-    p.slider_p.action = delay_set_offset;
-    p.slider_p.target = &track->delay_line;
+    /* static double offset; */
+    /* offset = track->delay_line.stereo_offset; */
+    p.slider_p.ep = &track->delay_line.stereo_offset_ep;
+    p.slider_p.max = (Value){.double_v = 0.0};
+    p.slider_p.max = (Value){.double_v = 1.0};
+    /* p.slider_p.value = &offset; */
+    /* p.slider_p.val_type = JDAW_DOUBLE; */
+    /* p.slider_p.action = delay_set_offset; */
+    /* p.slider_p.target = &track->delay_line; */
     el = page_add_el(page, EL_SLIDER, p, "track_settings_delay_stereo_offset_slider", "stereo_offset_slider");
     slider_reset(el->component);
 

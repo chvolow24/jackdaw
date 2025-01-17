@@ -630,7 +630,7 @@ bool jdaw_val_equal(Value a, Value b, ValType type)
     case JDAW_FLOAT:
 	return fabs(fabs(a.float_v) - fabs(b.float_v)) < epsilon;
     case JDAW_DOUBLE:
-	return fabs(fabs(a.double_v) - fabs(b.float_v)) < epsilon;
+	return fabs(fabs(a.double_v) - fabs(b.double_v)) < epsilon;
     case JDAW_INT:
 	return a.int_v == b.int_v;
     case JDAW_UINT8:

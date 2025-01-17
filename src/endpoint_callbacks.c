@@ -30,10 +30,14 @@
     * Definitions of all endpoint callback functions
  *****************************************************************************************************************/
 
+#include "dsp.h"
 #include "endpoint_callbacks.h"
+#include "page.h"
 #include "status.h"
+#include "waveform.h"
 
 extern Project *proj;
+extern Window *main_win;
 
 void play_speed_gui_cb(Endpoint *ep)
 {
@@ -47,3 +51,69 @@ void track_slider_cb(Endpoint *ep)
     Timeline *tl = (Timeline *)ep->xarg2;
     tl->needs_redraw = true;
 }
+
+void filter_cutoff_dsp_cb(Endpoint *ep)
+{
+    FIRFilter *f = (FIRFilter *)ep->xarg1;
+    Value cutoff = endpoint_safe_read(ep, NULL);
+    double cutoff_hz = dsp_scale_freq_to_hz(cutoff.double_v);
+    filter_set_cutoff_hz(f, cutoff_hz);
+    /* fprintf(stderr, "DSP callback\n"); */
+}
+
+static PageEl *track_settings_get_el(const char *id)
+{
+    TabView *tv = main_win->active_tabview;
+    if (!tv) return NULL;
+    Page *filter_tab = tv->tabs[0];
+    return page_get_el_by_id(filter_tab, id);
+}
+
+void filter_cutoff_gui_cb(Endpoint *ep)
+{
+    PageEl *el = track_settings_get_el("track_settings_filter_cutoff_slider");
+    if (!el) return;
+    slider_reset((Slider *)el->component);   
+}
+
+void filter_bandwidth_dsp_cb(Endpoint *ep)
+{
+    FIRFilter *f = (FIRFilter *)ep->xarg1;
+    Value bandwidth = endpoint_safe_read(ep, NULL);
+    double bandwidth_hz = dsp_scale_freq_to_hz(bandwidth.double_v);
+    filter_set_bandwidth_hz(f, bandwidth_hz);
+}
+
+void filter_bandwidth_gui_cb(Endpoint *ep)
+{
+    PageEl *el = track_settings_get_el("track_settings_filter_bandwidth_slider");
+    if (!el) return;
+    slider_reset((Slider *)el->component);   
+}
+
+/* void settings_reset_freq_plot(struct freq_plot *fp,  */
+void filter_irlen_dsp_cb(Endpoint *ep)
+{
+    
+}
+
+void filter_irlen_gui_cb(Endpoint *ep)
+{
+
+    FIRFilter *f = (FIRFilter *)ep->xarg1;
+    Value irlen_val = endpoint_safe_read(ep, NULL);
+    filter_set_impulse_response_len(f, irlen_val.uint16_v);
+
+    /* fprintf(stderr, "RESETTING mag\n"); */
+    PageEl *el = track_settings_get_el("track_settings_filter_freq_plot");
+    if (!el) return;
+    struct freq_plot *fp = (struct freq_plot *)el->component;
+    fp->arrays[2] = f->frequency_response_mag;
+    waveform_reset_freq_plot(fp);
+    
+    el = track_settings_get_el("track_settings_filter_irlen_slider");
+    if (!el) return;
+    slider_reset((Slider *)el->component);   
+}
+
+

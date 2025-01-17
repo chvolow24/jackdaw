@@ -71,15 +71,17 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
     if (vol_auto) {
 	if (!vol_auto->write && vol_auto->read) {
 	    float vol_init = automation_get_value(vol_auto, start_pos_sframes, step).float_v;
-	    track->vol = vol_init;
-	    slider_reset(track->vol_ctrl);
+	    endpoint_write(&track->vol_ep, (Value){.float_v = vol_init}, true, true, true, false);
+	    /* track->vol = vol_init; */
+	    /* slider_reset(track->vol_ctrl); */
 	}
     }
     if (pan_auto) {
 	if (!pan_auto->write && pan_auto->read) {
 	    float pan_init = automation_get_value(pan_auto, start_pos_sframes, step).float_v;
-	    track->pan = pan_init;
-	    slider_reset(track->pan_ctrl);
+	    endpoint_write(&track->pan_ep, (Value){.float_v = pan_init}, true, true, true, false);
+	    /* track->pan = pan_init; */
+	    /* slider_reset(track->pan_ctrl); */
 	}
     }
     bool bandwidth_set = false;
@@ -88,29 +90,32 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
     double bandwidth_hz;
     if (channel == 0 && fir_filter_cutoff && fir_filter_cutoff->read && !fir_filter_cutoff->write) {
 	double cutoff_raw = automation_get_value(fir_filter_cutoff, start_pos_sframes, step).double_v;
-	cutoff_hz = dsp_scale_freq_to_hz(cutoff_raw);
-	cutoff_set = true;
+	endpoint_write(&track->fir_filter.cutoff_ep, (Value){.double_v = cutoff_raw}, true, true, true, false);
+	/* cutoff_hz = dsp_scale_freq_to_hz(cutoff_raw); */
+	/* cutoff_set = true; */
     }
     if (channel == 0 && fir_filter_bandwidth && fir_filter_bandwidth->read && !fir_filter_bandwidth->write) {
 	double bandwidth_raw = automation_get_value(fir_filter_bandwidth, start_pos_sframes, step).double_v;
-	bandwidth_hz = dsp_scale_freq_to_hz(bandwidth_raw);
-	bandwidth_set = true;
+	endpoint_write(&track->fir_filter.bandwidth_ep, (Value){.double_v = bandwidth_raw}, true, true, true, false);
+	/* bandwidth_hz = dsp_scale_freq_to_hz(bandwidth_raw); */
+	/* bandwidth_set = true; */
     }
     if (channel == 0 && play_speed && play_speed->read && !play_speed->write) {
-	proj->play_speed = (proj->play_speed / fabs(proj->play_speed)) * automation_get_value(play_speed, start_pos_sframes, step).float_v;
+	float play_speed_val = (proj->play_speed / fabs(proj->play_speed)) * automation_get_value(play_speed, start_pos_sframes, step).float_v;
+	endpoint_write(&proj->play_speed_ep, (Value){.float_v = play_speed_val}, true, true, true, false);
     }
-    FIRFilter *f = &track->fir_filter;
+    /* FIRFilter *f = &track->fir_filter; */
     
-    if (f->frequency_response && channel == 0) {
-	if (cutoff_set && bandwidth_set) {
-	    FilterType t = f->type;
-	    filter_set_params_hz(f, t, cutoff_hz, bandwidth_hz);
-	} else if (cutoff_set) {
-	    filter_set_cutoff_hz(f, cutoff_hz);
-	} else if (bandwidth_set) {
-	    filter_set_bandwidth_hz(f, bandwidth_hz);
-	}
-    }
+    /* if (f->frequency_response && channel == 0) { */
+    /* 	if (cutoff_set && bandwidth_set) { */
+    /* 	    FilterType t = f->type; */
+    /* 	    filter_set_params_hz(f, t, cutoff_hz, bandwidth_hz); */
+    /* 	} else if (cutoff_set) { */
+    /* 	    filter_set_cutoff_hz(f, cutoff_hz); */
+    /* 	} else if (bandwidth_set) { */
+    /* 	    filter_set_bandwidth_hz(f, bandwidth_hz); */
+    /* 	} */
+    /* } */
 
     if (track->delay_line_active && channel == 0) {
 	int32_t del_time = track->delay_line.len;

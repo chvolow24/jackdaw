@@ -35,6 +35,7 @@
 
 #include <stdint.h>
 #include "components.h"
+#include "endpoint.h"
 #include "layout.h"
 #include "textbox.h"
 
@@ -99,6 +100,7 @@ typedef struct tempo_track {
 
     Metronome *metronome;
     float metronome_vol;
+    Endpoint metronome_vol_ep;
     /* Button *metronome_button; */
     Textbox *metronome_button;
     Textbox *edit_button;

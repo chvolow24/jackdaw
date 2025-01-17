@@ -34,6 +34,7 @@
 
 #include <complex.h>
 #include <stdint.h>
+#include "endpoint_callbacks.h"
 #include "project.h"
 #include "pthread.h"
 #include "dsp.h"
@@ -285,6 +286,42 @@ void filter_init(FIRFilter *filter, FilterType type, uint16_t impulse_response_l
     filter->frequency_response_len = frequency_response_len;
     FIR_filter_alloc_buffers(filter);
     pthread_mutex_init(&filter->lock, NULL);
+
+
+    
+    endpoint_init(
+	&filter->cutoff_ep,
+	&filter->cutoff_freq_unscaled,
+	JDAW_DOUBLE,
+	"filter_cutoff_freq",
+	"undo/redo adj filter cutoff",
+	JDAW_THREAD_DSP,
+	filter_cutoff_gui_cb, NULL, filter_cutoff_dsp_cb,
+        filter, NULL, NULL, NULL);
+    endpoint_set_allowed_range(
+	&filter->cutoff_ep,
+	(Value){.double_v = 0.0},
+	(Value){.double_v = 1.0});
+
+    endpoint_init(
+	&filter->bandwidth_ep,
+	&filter->bandwidth_unscaled,
+	JDAW_DOUBLE,
+	"filter_bandwidth",
+	"undo/redo adj filter bandwidth",
+	JDAW_THREAD_DSP,
+	filter_bandwidth_gui_cb, NULL, filter_bandwidth_dsp_cb,
+	filter, NULL, NULL, NULL);
+
+    endpoint_init(
+	&filter->impulse_response_len_ep,
+	&filter->impulse_response_len,
+	JDAW_UINT16,
+	"filter_irlen",
+	"undo/redo adj filter impulse resp len",
+	JDAW_THREAD_DSP,
+	filter_irlen_gui_cb, NULL, filter_irlen_dsp_cb,
+	filter, NULL, NULL, NULL);
 }
 
 /* Bandwidth param only required for band-pass and band-cut filters */
@@ -550,7 +587,7 @@ void track_add_default_filter(Track *track)
     filter_init(&track->fir_filter, LOWPASS, ir_len, track->tl->proj->fourier_len_sframes * 2);
     track->fir_filter.track = track;
     filter_set_params_hz(&track->fir_filter, LOWPASS, 1000, 1000);
-    track->fir_filter_active = false;
+    track->fir_filter_active = true;
 }
 
 
@@ -572,6 +609,36 @@ void delay_line_init(DelayLine *dl, uint32_t sample_rate)
     dl->buf_L = calloc(dl->max_len, sizeof(double));
     dl->buf_R = calloc(dl->max_len, sizeof(double));
     dl->cpy_buf = calloc(dl->max_len, sizeof(double));
+
+    endpoint_init(
+	&dl->len_ep,
+	&dl->len,
+	JDAW_INT32,
+	"delay_line_len",
+	"undo/redo adj delay time",
+	JDAW_THREAD_DSP,
+	NULL, NULL, NULL,
+	NULL, NULL, NULL, NULL);
+
+    endpoint_init(
+	&dl->amp_ep,
+	&dl->amp,
+	JDAW_DOUBLE,
+	"delay_line_amp",
+	"undo/redo adj delay amp",
+	JDAW_THREAD_DSP,
+	NULL, NULL, NULL,
+	NULL, NULL, NULL, NULL);
+    
+    endpoint_init(
+	&dl->stereo_offset_ep,
+	&dl->stereo_offset,
+	JDAW_DOUBLE,
+	"delay_line_stereo_offset",
+	"undo/redo adj delay stereo offset",
+	JDAW_THREAD_DSP,
+	NULL, NULL, NULL,
+	NULL, NULL, NULL, NULL);
 }
 
 /*

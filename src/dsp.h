@@ -30,6 +30,7 @@
 #include <complex.h>
 #include <stdio.h>
 #include <stdint.h>
+#include "endpoint.h"
 #include "SDL.h"
 
 #define DEFAULT_FILTER_LEN 128
@@ -52,12 +53,17 @@ typedef struct fir_filter {
     double *frequency_response_mag;
     double *overlap_buffer_L;
     double *overlap_buffer_R;
-    uint16_t impulse_response_len;
+    uint16_t impulse_response_len; /* Only modified in callbacks */
     uint16_t frequency_response_len;
     uint16_t overlap_len;
     pthread_mutex_t lock;
 
     Track *track;
+
+    Endpoint cutoff_ep;
+    Endpoint bandwidth_ep;
+    Endpoint impulse_response_len_ep;
+
     /* SDL_mutex *lock;audio.c */
 } FIRFilter;
 
@@ -74,6 +80,11 @@ typedef struct delay_line {
     double *buf_R;
     double *cpy_buf;
     pthread_mutex_t lock;
+
+    Endpoint len_ep;
+    Endpoint amp_ep;
+    Endpoint stereo_offset_ep;
+
     /* SDL_mutex *lock; */
 } DelayLine;
 

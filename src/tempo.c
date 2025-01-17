@@ -574,25 +574,41 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
 
 
 
-    t->metronome_vol = 1.0;
+    t->metronome_vol = 1.0f;
+    endpoint_init(
+	&t->metronome_vol_ep,
+	&t->metronome_vol,
+	JDAW_FLOAT,
+	"metro_vol",
+	"undo/redo adj metronome vol",
+	JDAW_THREAD_MAIN,
+	NULL, NULL, NULL,
+	NULL, NULL, NULL, NULL);
+    endpoint_set_allowed_range(
+	&t->metronome_vol_ep,
+	(Value){.float_v = 0.0},
+	(Value){.float_v = TRACK_VOL_MAX});
+	
     Layout *vol_lt = layout_get_child_by_name_recursive(t->layout, "metronome_vol_slider");
     t->metronome_vol_slider = slider_create(
 	vol_lt,
-	(void *)(&t->metronome_vol),
-	JDAW_FLOAT,
+	&t->metronome_vol_ep,
+	(Value){.float_v = 0.0f},
+	(Value){.float_v = TRACK_VOL_MAX},
 	SLIDER_HORIZONTAL,
 	SLIDER_FILL,
+	/* NULL, */
+	/* /\* &slider_label_amp_to_dbstr, *\/ */
+	/* NULL, */
 	NULL,
-	/* &slider_label_amp_to_dbstr, */
-	NULL,
-	NULL,
+	/* NULL, */
 	&tl->proj->dragged_component);
     
-    Value min, max;
-    min.float_v = 0.0f;
-    max.float_v = TRACK_VOL_MAX;
-    slider_set_range(t->metronome_vol_slider, min, max);
-    slider_reset(t->metronome_vol_slider);
+    /* Value min, max; */
+    /* min.float_v = 0.0f; */
+    /* max.float_v = TRACK_VOL_MAX; */
+    /* slider_set_range(t->metronome_vol_slider, min, max); */
+    /* slider_reset(t->metronome_vol_slider); */
 
     uint8_t subdivs[] = {4, 4, 4, 4};
     tempo_track_add_segment(t, 0, -1, 120, 4, subdivs);
@@ -1869,7 +1885,7 @@ void tempo_track_increment_vol(TempoTrack *tt)
     if (tt->metronome_vol > tt->metronome_vol_slider->max.float_v) {
 	tt->metronome_vol = tt->metronome_vol_slider->max.float_v;
     }
-    slider_edit_made(tt->metronome_vol_slider);
+    /* slider_edit_made(tt->metronome_vol_slider); */
     slider_reset(tt->metronome_vol_slider);
 }
 
@@ -1880,7 +1896,7 @@ void tempo_track_decrement_vol(TempoTrack *tt)
     if (tt->metronome_vol < 0.0f) {
 	tt->metronome_vol = 0.0f;
     }
-    slider_edit_made(tt->metronome_vol_slider);
+    /* slider_edit_made(tt->metronome_vol_slider); */
     slider_reset(tt->metronome_vol_slider);
 }
 

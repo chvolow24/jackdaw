@@ -256,7 +256,7 @@ bool slider_mouse_click(Slider *slider, Window *win)
 	/* if (slider->action) */
 	/* 	slider->action((void *)slider, slider->target); */
 	slider_reset(slider);
-	slider_edit_made(slider);
+	/* slider_edit_made(slider); */
 	slider->drag_context->component = (void *)slider;
 	slider->drag_context->type = DRAG_SLIDER;
 	return true;

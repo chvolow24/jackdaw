@@ -1442,7 +1442,7 @@ Track *timeline_add_track(Timeline *tl)
     endpoint_set_allowed_range(
 	&track->vol_ep,
 	(Value){.float_v=0.0},
-	(Value){.float_v=3.0});
+	(Value){.float_v=TRACK_VOL_MAX});
 
     endpoint_init(
 	&track->pan_ep,
@@ -1459,21 +1459,6 @@ Track *timeline_add_track(Timeline *tl)
 	&track->pan_ep,
 	(Value){.float_v = 0.0},
 	(Value){.float_v = 1.0});
-
-    endpoint_init(
-	&track->fir_filter_cutoff_ep,
-	&track->fir_filter.cutoff_freq_unscaled,
-	JDAW_DOUBLE,
-	"filter_cutoff_freq",
-	"undo/redo adj filter cutoff",
-	JDAW_THREAD_DSP,
-	NULL, NULL, NULL,
-	NULL, NULL, NULL, NULL);
-    endpoint_set_allowed_range(
-	&track->fir_filter_cutoff_ep,
-	(Value){.float_v = 0.0},
-	(Value){.float_v = 1.0});
-
     
     /* Layout *track_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area"); */
     Layout *track_template = layout_read_xml_to_lt(tl->track_area, TRACK_LT_PATH);
@@ -1611,7 +1596,7 @@ Track *timeline_add_track(Timeline *tl)
 	vol_ctrl_lt,
 	&track->vol_ep,
 	(Value){.float_v = 0.0f},
-	(Value){.float_v = 3.0f},
+	(Value){.float_v = TRACK_VOL_MAX},
 	SLIDER_HORIZONTAL,
 	SLIDER_FILL,
 	&slider_label_amp_to_dbstr,

@@ -314,12 +314,12 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	break;
     case AUTO_DEL_TIME:
 	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line, track->tl->proj->sample_rate);
-	a->val_type = JDAW_INT32;
-	a->min.int32_v = 10;
-	a->max.int32_v = track->tl->proj->sample_rate * DELAY_LINE_MAX_LEN_S;
-	a->range.int32_v = a->max.int32_v - 10;
-	a->target_val = &track->delay_line.len;
-	base_kf_val.int32_v = track->tl->proj->sample_rate / 2;
+	a->val_type = JDAW_INT16;
+	a->min.int16_v = 1;
+	a->max.int16_v = DELAY_LINE_MAX_LEN_S * 1000;//track->tl->proj->sample_rate * DELAY_LINE_MAX_LEN_S;
+	a->range.int16_v = a->max.int16_v - 1;
+	a->target_val = &track->delay_line.len_msec;
+	base_kf_val.int16_v = 100;
 	automation_insert_keyframe_at(a, 0, base_kf_val);
 	endpoint_bind_automation(&track->delay_line.len_ep, a);
 	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */

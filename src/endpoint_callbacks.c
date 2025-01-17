@@ -65,8 +65,14 @@ static PageEl *track_settings_get_el(const char *id)
 {
     TabView *tv = main_win->active_tabview;
     if (!tv) return NULL;
-    Page *filter_tab = tv->tabs[0];
-    return page_get_el_by_id(filter_tab, id);
+    PageEl *ret = NULL;
+    for (int i=0; i<tv->num_tabs; i++) {
+	Page *tab = tv->tabs[i];
+	if ((ret = page_get_el_by_id(tab, id))) {
+	    break;
+	}
+    }
+    return ret;
 }
 
 void filter_cutoff_gui_cb(Endpoint *ep)
@@ -112,8 +118,44 @@ void filter_irlen_gui_cb(Endpoint *ep)
     waveform_reset_freq_plot(fp);
     
     el = track_settings_get_el("track_settings_filter_irlen_slider");
-    if (!el) return;
-    slider_reset((Slider *)el->component);   
+    if (el) {
+	slider_reset((Slider *)el->component);
+    }
 }
 
+
+void delay_line_len_dsp_cb(Endpoint *ep)
+{
+    DelayLine *dl = (DelayLine *)ep->xarg1;
+    int16_t val_msec = endpoint_safe_read(ep, NULL).int16_v;
+    int32_t len_sframes = (int32_t)((double)val_msec * proj->sample_rate / 1000.0);
+    delay_line_set_params(dl, dl->amp, len_sframes);
+
+}
+
+void delay_line_len_gui_cb(Endpoint *ep)
+{
+    PageEl *el = track_settings_get_el("track_settings_delay_time_slider");
+    if (el) {
+	slider_reset(el->component);
+    }
+
+}
+
+void delay_line_amp_dsp_cb(Endpoint *ep)
+{
+    /* DelayLine *dl = (DelayLine *)ep->xarg1; */
+    /* int32_t val_msec = endpoint_safe_read(ep, NULL).int32_v; */
+    /* int32_t len_sframes = (int32_t)((double)val_msec * proj->sample_rate / 1000.0); */
+    /* delay_line_set_params(dl, dl->amp, len_sframes); */
+
+}
+
+void delay_line_amp_gui_cb(Endpoint *ep)
+{
+    PageEl *el = track_settings_get_el("track_settings_delay_amp_slider");
+    if (el) {
+	slider_reset(el->component);
+    }
+}
 

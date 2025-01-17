@@ -45,3 +45,10 @@ void filter_bandwidth_gui_cb(Endpoint *ep);
 
 void filter_irlen_dsp_cb(Endpoint *ep);
 void filter_irlen_gui_cb(Endpoint *ep);
+
+
+void delay_line_len_dsp_cb(Endpoint *ep);
+void delay_line_len_gui_cb(Endpoint *ep);
+
+void delay_line_amp_dsp_cb(Endpoint *ep);
+void delay_line_amp_gui_cb(Endpoint *ep);

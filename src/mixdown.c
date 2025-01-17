@@ -84,25 +84,30 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	    /* slider_reset(track->pan_ctrl); */
 	}
     }
-    bool bandwidth_set = false;
-    bool cutoff_set = false;
-    double cutoff_hz;
-    double bandwidth_hz;
-    if (channel == 0 && fir_filter_cutoff && fir_filter_cutoff->read && !fir_filter_cutoff->write) {
-	double cutoff_raw = automation_get_value(fir_filter_cutoff, start_pos_sframes, step).double_v;
-	endpoint_write(&track->fir_filter.cutoff_ep, (Value){.double_v = cutoff_raw}, true, true, true, false);
-	/* cutoff_hz = dsp_scale_freq_to_hz(cutoff_raw); */
-	/* cutoff_set = true; */
-    }
-    if (channel == 0 && fir_filter_bandwidth && fir_filter_bandwidth->read && !fir_filter_bandwidth->write) {
-	double bandwidth_raw = automation_get_value(fir_filter_bandwidth, start_pos_sframes, step).double_v;
-	endpoint_write(&track->fir_filter.bandwidth_ep, (Value){.double_v = bandwidth_raw}, true, true, true, false);
-	/* bandwidth_hz = dsp_scale_freq_to_hz(bandwidth_raw); */
-	/* bandwidth_set = true; */
-    }
-    if (channel == 0 && play_speed && play_speed->read && !play_speed->write) {
-	float play_speed_val = (proj->play_speed / fabs(proj->play_speed)) * automation_get_value(play_speed, start_pos_sframes, step).float_v;
-	endpoint_write(&proj->play_speed_ep, (Value){.float_v = play_speed_val}, true, true, true, false);
+
+    if (channel == 0) {
+	if (fir_filter_cutoff && fir_filter_cutoff->read && !fir_filter_cutoff->write) {
+	    Value cutoff_raw = automation_get_value(fir_filter_cutoff, start_pos_sframes, step);
+	    endpoint_write(&track->fir_filter.cutoff_ep, cutoff_raw, true, true, true, false);
+	}
+	if (fir_filter_bandwidth && fir_filter_bandwidth->read && !fir_filter_bandwidth->write) {
+	    Value bandwidth_raw = automation_get_value(fir_filter_bandwidth, start_pos_sframes, step);
+	    endpoint_write(&track->fir_filter.bandwidth_ep, bandwidth_raw, true, true, true, false);
+	}
+	if (delay_time && delay_time->read && !delay_time->write) {
+	    Value del_time = automation_get_value(delay_time, start_pos_sframes, step);
+
+	    /* int32_t del_time_msec = (double)del_time.int32_v * 1000.0 / proj->sample_rate; */
+	    endpoint_write(&track->delay_line.len_ep, del_time, true, true, true, false);
+	}
+	if (delay_amp && delay_amp->read && !delay_amp->write) {
+	    Value del_amp = automation_get_value(delay_amp, start_pos_sframes, step);
+	    endpoint_write(&track->delay_line.amp_ep, del_amp, true, true, true, false);
+	}
+	if (play_speed && play_speed->read && !play_speed->write) {
+	    float play_speed_val = (proj->play_speed / fabs(proj->play_speed)) * automation_get_value(play_speed, start_pos_sframes, step).float_v;
+	    endpoint_write(&proj->play_speed_ep, (Value){.float_v = play_speed_val}, true, true, true, false);
+	}
     }
     /* FIRFilter *f = &track->fir_filter; */
     
@@ -117,28 +122,28 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
     /* 	} */
     /* } */
 
-    if (track->delay_line_active && channel == 0) {
-	int32_t del_time = track->delay_line.len;
-	double del_amp = track->delay_line.amp;
-	bool del_line_edit = false;
-	if (delay_time && delay_time->read && !delay_time->write) {
-	    del_time = automation_get_value(delay_time, start_pos_sframes, step).int32_v;
-	    del_line_edit = true;
-	}
-	if (delay_amp && delay_amp->read && !delay_amp->write) {
-	    del_amp = automation_get_value(delay_amp, start_pos_sframes, step).double_v;
-	    del_line_edit = true;
-	}
-	if (del_line_edit) {
-	    /* fprintf(stdout, "DEL TIME: %d\n", del_time); */
-	    /* fprintf(stderr, "DEL TIME: %d\n", del_time); */
-	    if (del_time < 0) {
-		fprintf(stderr, "ERROR: del time read value negative: %d\n", del_time);
-	    } else {
-		delay_line_set_params(&track->delay_line, del_amp, del_time);
-	    }
-	}
-    }
+    /* if (track->delay_line_active && channel == 0) { */
+    /* 	int32_t del_time = track->delay_line.len; */
+    /* 	double del_amp = track->delay_line.amp; */
+    /* 	bool del_line_edit = false; */
+    /* 	if (delay_time && delay_time->read && !delay_time->write) { */
+    /* 	    del_time = automation_get_value(delay_time, start_pos_sframes, step).int32_v; */
+    /* 	    del_line_edit = true; */
+    /* 	} */
+    /* 	if (delay_amp && delay_amp->read && !delay_amp->write) { */
+    /* 	    del_amp = automation_get_value(delay_amp, start_pos_sframes, step).double_v; */
+    /* 	    del_line_edit = true; */
+    /* 	} */
+    /* 	if (del_line_edit) { */
+    /* 	    /\* fprintf(stdout, "DEL TIME: %d\n", del_time); *\/ */
+    /* 	    /\* fprintf(stderr, "DEL TIME: %d\n", del_time); *\/ */
+    /* 	    if (del_time < 0) { */
+    /* 		fprintf(stderr, "ERROR: del time read value negative: %d\n", del_time); */
+    /* 	    } else { */
+    /* 		delay_line_set_params(&track->delay_line, del_amp, del_time); */
+    /* 	    } */
+    /* 	} */
+    /* } */
 
     /**********************************************************************/
     /* bool clip_read = false; */

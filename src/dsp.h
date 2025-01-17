@@ -68,7 +68,8 @@ typedef struct fir_filter {
 } FIRFilter;
 
 typedef struct delay_line {
-    int32_t len;
+    int32_t len_msec; /* For endpoint / GUI components */
+    int32_t len; /* Sample frames */
     double amp;
     double stereo_offset;
     int32_t max_len;

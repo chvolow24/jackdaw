@@ -612,13 +612,13 @@ void delay_line_init(DelayLine *dl, uint32_t sample_rate)
 
     endpoint_init(
 	&dl->len_ep,
-	&dl->len,
-	JDAW_INT32,
+	&dl->len_msec,
+	JDAW_INT16,
 	"delay_line_len",
 	"undo/redo adj delay time",
 	JDAW_THREAD_DSP,
-	NULL, NULL, NULL,
-	NULL, NULL, NULL, NULL);
+	delay_line_len_gui_cb, NULL, delay_line_len_dsp_cb,
+	(void *)dl, NULL, NULL, NULL);
 
     endpoint_init(
 	&dl->amp_ep,
@@ -627,8 +627,8 @@ void delay_line_init(DelayLine *dl, uint32_t sample_rate)
 	"delay_line_amp",
 	"undo/redo adj delay amp",
 	JDAW_THREAD_DSP,
-	NULL, NULL, NULL,
-	NULL, NULL, NULL, NULL);
+	delay_line_amp_gui_cb, NULL, NULL,
+	(void *)dl, NULL, NULL, NULL);
     
     endpoint_init(
 	&dl->stereo_offset_ep,

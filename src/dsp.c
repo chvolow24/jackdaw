@@ -302,6 +302,7 @@ void filter_init(FIRFilter *filter, FilterType type, uint16_t impulse_response_l
 	&filter->cutoff_ep,
 	(Value){.double_v = 0.0},
 	(Value){.double_v = 1.0});
+    api_endpoint_register(&filter->cutoff_ep, &filter->track->api_node);
 
     endpoint_init(
 	&filter->bandwidth_ep,
@@ -312,6 +313,7 @@ void filter_init(FIRFilter *filter, FilterType type, uint16_t impulse_response_l
 	JDAW_THREAD_DSP,
 	filter_bandwidth_gui_cb, NULL, filter_bandwidth_dsp_cb,
 	filter, NULL, NULL, NULL);
+    api_endpoint_register(&filter->bandwidth_ep, &filter->track->api_node);
 
     endpoint_init(
 	&filter->impulse_response_len_ep,
@@ -322,6 +324,7 @@ void filter_init(FIRFilter *filter, FilterType type, uint16_t impulse_response_l
 	JDAW_THREAD_DSP,
 	filter_irlen_gui_cb, NULL, filter_irlen_dsp_cb,
 	filter, NULL, NULL, NULL);
+    api_endpoint_register(&filter->impulse_response_len_ep, &filter->track->api_node);
 }
 
 /* Bandwidth param only required for band-pass and band-cut filters */
@@ -619,6 +622,8 @@ void delay_line_init(DelayLine *dl, uint32_t sample_rate)
 	JDAW_THREAD_DSP,
 	delay_line_len_gui_cb, NULL, delay_line_len_dsp_cb,
 	(void *)dl, NULL, NULL, NULL);
+
+        /* api_endpoint_register(&dl->len_ep, &dl->track->api_node); */
 
     endpoint_init(
 	&dl->amp_ep,

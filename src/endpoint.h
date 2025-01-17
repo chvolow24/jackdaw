@@ -85,8 +85,8 @@ typedef void (*EndptCb)(Endpoint *);
 /*     enum jdaw_thread thread; */
 /* }; */
 
-typedef struct jackdaw_api Jackdaw_API;
-
+/* typedef struct jackdaw_api Jackdaw_API; */
+typedef struct api_node APINode;
 typedef struct endpoint {
     
     void *val;
@@ -122,6 +122,9 @@ typedef struct endpoint {
 
     /* Bindings */
     Automation *automation;
+
+    /* API */
+    APINode *parent;
 } Endpoint;
 
 int endpoint_init(
@@ -168,7 +171,7 @@ void endpoint_start_continuous_change(
 void endpoint_continuous_change_do_incr(Endpoint *ep);
 void endpoint_stop_continuous_change(Endpoint *ep);
 
-int endpoint_register(Endpoint *ep, Jackdaw_API *api);
+/* int endpoint_register(Endpoint *ep, Jackdaw_API *api); */
 
 void endpoint_bind_automation(Endpoint *ep, Automation *a);
 

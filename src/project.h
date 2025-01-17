@@ -49,6 +49,7 @@
 #include <semaphore.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include "api.h"
 #include "automation.h"
 #include "components.h"
 #include "dsp.h"
@@ -166,6 +167,9 @@ typedef struct track {
     SDL_Rect *console_rect;
     SDL_Rect *colorbar;
     SDL_Color color;
+
+    /* API */
+    APINode api_node;
 
     Endpoint mute_ep;
     Endpoint solo_ep;
@@ -303,6 +307,10 @@ typedef struct timeline {
     int display_v_offset;
 
     bool needs_redraw;
+
+    /* API */
+
+    APINode api_node;
 } Timeline;
 
 
@@ -430,6 +438,9 @@ typedef struct project {
 
 
     /* Endpoints API */
+
+    APINode api_root;
+    
     struct queued_val_change queued_val_changes[NUM_JDAW_THREADS][MAX_QUEUED_OPS];
     uint8_t num_queued_val_changes[NUM_JDAW_THREADS];
     pthread_mutex_t queued_val_changes_lock;
@@ -442,8 +453,6 @@ typedef struct project {
     Endpoint *ongoing_changes[NUM_JDAW_THREADS][MAX_QUEUED_OPS];
     uint8_t num_ongoing_changes[NUM_JDAW_THREADS];
     pthread_mutex_t ongoing_changes_lock;
-    
-
 } Project;
 
 Project *project_create(

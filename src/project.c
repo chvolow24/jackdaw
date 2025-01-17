@@ -235,6 +235,9 @@ retry3:
     new_tl->needs_redraw = true;
     proj->timelines[proj->num_timelines] = new_tl;
     proj->num_timelines++;
+
+    api_node_register(&new_tl->api_node, &new_tl->proj->api_root, new_tl->name);
+    
     return proj->num_timelines - 1; /* Return the new timeline index */
 }
 
@@ -511,6 +514,8 @@ Project *project_create(
 	JDAW_THREAD_MAIN,
 	play_speed_gui_cb, NULL, NULL,
 	NULL, NULL, NULL, NULL);
+    
+    api_endpoint_register(&proj->play_speed_ep, &proj->api_root);			  
     
 
     return proj;
@@ -1428,6 +1433,9 @@ Track *timeline_add_track(Timeline *tl)
     }
 
     /* API */
+
+    api_node_register(&track->api_node, &track->tl->api_node, track->name);
+    
     endpoint_init(
 	&track->vol_ep,
 	&track->vol,
@@ -1443,6 +1451,7 @@ Track *timeline_add_track(Timeline *tl)
 	&track->vol_ep,
 	(Value){.float_v=0.0},
 	(Value){.float_v=TRACK_VOL_MAX});
+    api_endpoint_register(&track->vol_ep, &track->api_node);
 
     endpoint_init(
 	&track->pan_ep,
@@ -1459,6 +1468,8 @@ Track *timeline_add_track(Timeline *tl)
 	&track->pan_ep,
 	(Value){.float_v = 0.0},
 	(Value){.float_v = 1.0});
+    api_endpoint_register(&track->pan_ep, &track->api_node);
+    api_node_print_all_routes(&track->tl->proj->api_root);
     
     /* Layout *track_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area"); */
     Layout *track_template = layout_read_xml_to_lt(tl->track_area, TRACK_LT_PATH);

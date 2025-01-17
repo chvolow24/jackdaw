@@ -46,8 +46,8 @@
 
 #define FN_REFERENCE_FILENAME "fn_reference.md"
 
-Mode *modes[NUM_INPUT_MODES];
-KeybNode *input_hash_table[INPUT_HASH_SIZE];
+static Mode *modes[NUM_INPUT_MODES];
+static KeybNode *input_hash_table[INPUT_HASH_SIZE];
 /* KeybNode *input_keyup_hash_table[INPUT_KEYUP_HASH_SIZE]; */
 extern Window *main_win;
 

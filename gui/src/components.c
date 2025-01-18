@@ -251,11 +251,9 @@ bool slider_mouse_click(Slider *slider, Window *win)
     if (SDL_PointInRect(&main_win->mousep, &slider->layout->rect) && win->i_state & I_STATE_MOUSE_L) {
 	int dim = slider->orientation == SLIDER_VERTICAL ? main_win->mousep.y : main_win->mousep.x;
 	Value newval = slider_val_from_coord(slider, dim);
-	endpoint_write(slider->ep, newval, true, true, true, true);
-	endpoint_start_continuous_change(slider->ep, false, (Value)0, JDAW_THREAD_MAIN);
-	/* if (slider->action) */
-	/* 	slider->action((void *)slider, slider->target); */
-	slider_reset(slider);
+	/* endpoint_write(slider->ep, newval, true, true, true, true); */
+	endpoint_start_continuous_change(slider->ep, false, (Value)0, JDAW_THREAD_MAIN, newval);
+	/* slider_reset(slider); */
 	/* slider_edit_made(slider); */
 	slider->drag_context->component = (void *)slider;
 	slider->drag_context->type = DRAG_SLIDER;

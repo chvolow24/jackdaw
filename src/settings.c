@@ -116,9 +116,9 @@ static int rb_target_action(void *self_v, void *target)
 static int toggle_delay_line_target_action(void *self_v, void *target)
 {
     DelayLine *dl = (DelayLine *)target;
-    if (!dl->buf_L) {
-	delay_line_init(dl, proj->sample_rate);
-    }
+    /* if (!dl->buf_L) { */
+    /* 	delay_line_init(dl, NULL, proj->sample_rate); */
+    /* } */
     delay_line_clear(dl);
     return 0;
 }
@@ -208,13 +208,13 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     if (!track->fir_filter.frequency_response) {
 	Project *proj_loc = track->tl->proj;
 	int ir_len = proj_loc->fourier_len_sframes/4;
-	filter_init(&track->fir_filter, LOWPASS, ir_len, proj_loc->fourier_len_sframes * 2);
+	filter_init(&track->fir_filter, track, LOWPASS, ir_len, proj_loc->fourier_len_sframes * 2);
 	track->fir_filter.track = track;
 	filter_set_params_hz(&track->fir_filter, LOWPASS, 1000, 1000);
 	track->fir_filter_active = false;
     }
     if (!track->delay_line.buf_L) {
-	delay_line_init(&track->delay_line, proj->sample_rate);
+	delay_line_init(&track->delay_line, track, proj->sample_rate);
 	delay_line_set_params(&track->delay_line, 0.3, 10000);
     }
 

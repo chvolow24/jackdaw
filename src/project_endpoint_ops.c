@@ -39,7 +39,7 @@
 /* CALLBACKS */
 
 /* Returns 0 on success, 1 if maximum number of callbacks reached */
-int project_queue_val_change(Project *proj, Endpoint *ep, Value new_val)
+int project_queue_val_change(Project *proj, Endpoint *ep, Value new_val, bool run_gui_cb)
 {
     pthread_mutex_lock(&proj->queued_val_changes_lock);
     enum jdaw_thread thread = endpoint_get_owner(ep);
@@ -50,10 +50,18 @@ int project_queue_val_change(Project *proj, Endpoint *ep, Value new_val)
     struct queued_val_change *qvc = &proj->queued_val_changes[thread][proj->num_queued_val_changes[thread]];
     qvc->ep = ep;
     qvc->new_val = new_val;
+    qvc->run_gui_cb = run_gui_cb;
     proj->num_queued_val_changes[thread]++;
     pthread_mutex_unlock(&proj->queued_val_changes_lock);
     return 0;
 }
+
+
+static JDAW_THREAD_LOCAL int MAX_DEFERRED = 32;
+static JDAW_THREAD_LOCAL int num_deferred = 0;
+static JDAW_THREAD_LOCAL Endpoint *deferred_eps[32];
+static JDAW_THREAD_LOCAL EndptCb deferred_cbs[32];
+static JDAW_THREAD_LOCAL enum jdaw_thread deferred_threads[32];
 
 void project_flush_val_changes(Project *proj, enum jdaw_thread thread)
 {
@@ -70,15 +78,32 @@ void project_flush_val_changes(Project *proj, enum jdaw_thread thread)
 	if (ep->automation && ep->automation->write) {
 	    automation_endpoint_write(ep, qvc->new_val, tl_now);
 	}
-	/* fprintf(stderr, "\tFLUSHED %d/%d\n", i,proj->num_queued_val_changes[thread]); */
+	if (thread != JDAW_THREAD_MAIN && qvc->run_gui_cb && ep->gui_callback) {
+	    project_queue_callback(proj, ep, ep->gui_callback, JDAW_THREAD_MAIN);
+	}
     }
     proj->num_queued_val_changes[thread] = 0;
     pthread_mutex_unlock(&proj->queued_val_changes_lock);
+    for (int i=0; i<num_deferred; i++) {
+	project_queue_callback(proj, deferred_eps[i], deferred_cbs[i], deferred_threads[i]);
+    }
+    num_deferred = 0;
+
 }
 
 int project_queue_callback(Project *proj, Endpoint *ep, EndptCb cb, enum jdaw_thread thread)
 {
-    pthread_mutex_lock(&proj->queued_callback_lock);
+    /* fprintf(stderr, "QUEUE from thread %s\n", get_thread_name()); */
+    int ret;
+    if ((ret = pthread_mutex_trylock(&proj->queued_callback_lock)) != 0) {
+	if (num_deferred == MAX_DEFERRED) return 3;
+	deferred_eps[num_deferred] = ep;
+	deferred_cbs[num_deferred] = cb;
+	deferred_threads[num_deferred] = thread;
+	num_deferred++;
+	return 2;
+	/* return 2; */
+    }
     if (proj->num_queued_callbacks[thread] == MAX_QUEUED_OPS) {
 	pthread_mutex_unlock(&proj->queued_callback_lock);
 	return 1;
@@ -86,13 +111,19 @@ int project_queue_callback(Project *proj, Endpoint *ep, EndptCb cb, enum jdaw_th
     proj->queued_callbacks[thread][proj->num_queued_callbacks[thread]] = cb;
     proj->queued_callback_args[thread][proj->num_queued_callbacks[thread]] = ep;
     proj->num_queued_callbacks[thread]++;
-    pthread_mutex_unlock(&proj->queued_callback_lock);
+    if ((ret = pthread_mutex_unlock(&proj->queued_callback_lock)) != 0) {
+	fprintf(stderr, "Error in project_queue_callback unlock: %s\n", strerror(ret));
+    }
+    /* fprintf(stderr, "\t->completing queue on thread %s\n", get_thread_name()); */
     return 0;
 }
 
 void project_flush_callbacks(Project *proj, enum jdaw_thread thread)
 {
-    pthread_mutex_lock(&proj->queued_callback_lock);
+    int ret;
+    if ((ret=pthread_mutex_lock(&proj->queued_callback_lock)) != 0) {
+	fprintf(stderr, "Error in project_flush_callbacks lock: %s\n", strerror(ret));
+    }
     EndptCb *cb_arr = proj->queued_callbacks[thread];
     Endpoint **arg_arr = proj->queued_callback_args[thread];
     uint8_t num = proj->num_queued_callbacks[thread];

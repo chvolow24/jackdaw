@@ -3,6 +3,7 @@
 #include "SDL_events.h"
 #include "audio_connection.h"
 #include "dir.h"
+#include "endpoint.h"
 #include "project_endpoint_ops.h"
 #include "input.h"
 #include "menu.h"
@@ -1399,12 +1400,12 @@ void user_tl_track_vol_up(void *nullarg)
 	Track *trk = tl->tracks[i];
 	if (trk->active) {
 	    has_active_track = true;
-	    endpoint_start_continuous_change(&trk->vol_ep, true, vol_incr, JDAW_THREAD_MAIN);
+	    endpoint_start_continuous_change(&trk->vol_ep, true, vol_incr, JDAW_THREAD_MAIN, endpoint_safe_read(&trk->vol_ep, NULL));
 	}
     }
     if (!has_active_track) {
 	Track *trk = timeline_selected_track(tl);
-	endpoint_start_continuous_change(&trk->vol_ep, true, vol_incr, JDAW_THREAD_MAIN);
+	endpoint_start_continuous_change(&trk->vol_ep, true, vol_incr, JDAW_THREAD_MAIN, endpoint_safe_read(&trk->vol_ep, NULL));
     }
 
     /* Timeline *tl = ACTIVE_TL; */
@@ -1430,12 +1431,12 @@ void user_tl_track_vol_down(void *nullarg)
 	Track *trk = tl->tracks[i];
 	if (trk->active) {
 	    has_active_track = true;
-	    endpoint_start_continuous_change(&trk->vol_ep, true, vol_decr, JDAW_THREAD_MAIN);
+	    endpoint_start_continuous_change(&trk->vol_ep, true, vol_decr, JDAW_THREAD_MAIN, endpoint_safe_read(&trk->vol_ep, NULL));
 	}
     }
     if (!has_active_track) {
 	Track *trk = timeline_selected_track(tl);
-	endpoint_start_continuous_change(&trk->vol_ep, true, vol_decr, JDAW_THREAD_MAIN);
+	endpoint_start_continuous_change(&trk->vol_ep, true, vol_decr, JDAW_THREAD_MAIN, endpoint_safe_read(&trk->vol_ep, NULL));
     }
 }
 
@@ -1456,12 +1457,12 @@ void user_tl_track_pan_left(void *nullarg)
 	Track *trk = tl->tracks[i];
 	if (trk->active) {
 	    has_active_track = true;
-	    endpoint_start_continuous_change(&trk->pan_ep, true, pan_decr, JDAW_THREAD_MAIN);
+	    endpoint_start_continuous_change(&trk->pan_ep, true, pan_decr, JDAW_THREAD_MAIN, endpoint_safe_read(&trk->pan_ep, NULL));
 	}
     }
     if (!has_active_track) {
 	Track *trk = timeline_selected_track(tl);
-	endpoint_start_continuous_change(&trk->pan_ep, true, pan_decr, JDAW_THREAD_MAIN);
+	endpoint_start_continuous_change(&trk->pan_ep, true, pan_decr, JDAW_THREAD_MAIN, endpoint_safe_read(&trk->pan_ep, NULL));
     }
 }
 
@@ -1473,12 +1474,12 @@ void user_tl_track_pan_right(void *nullarg)
 	Track *trk = tl->tracks[i];
 	if (trk->active) {
 	    has_active_track = true;
-	    endpoint_start_continuous_change(&trk->pan_ep, true, pan_incr, JDAW_THREAD_MAIN);
+	    endpoint_start_continuous_change(&trk->pan_ep, true, pan_incr, JDAW_THREAD_MAIN, endpoint_safe_read(&trk->pan_ep, NULL));
 	}
     }
     if (!has_active_track) {
 	Track *trk = timeline_selected_track(tl);
-	endpoint_start_continuous_change(&trk->pan_ep, true, pan_incr, JDAW_THREAD_MAIN);
+	endpoint_start_continuous_change(&trk->pan_ep, true, pan_incr, JDAW_THREAD_MAIN, endpoint_safe_read(&trk->pan_ep, NULL));
     }
 
     /* Timeline *tl = ACTIVE_TL; */

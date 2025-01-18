@@ -146,6 +146,7 @@ int endpoint_write(
     if (undoable) {
 	old_val = endpoint_safe_read(ep, NULL);
     }
+    bool async_change_will_occur = false;
     /* Value change */
     enum jdaw_thread owner = endpoint_get_owner(ep);
     if (on_thread(owner) || (!proj->playing && owner == JDAW_THREAD_DSP)) {
@@ -163,38 +164,48 @@ int endpoint_write(
 	/*     jdaw_val_set_ptr(ep->val, ep->val_type, new_val); */
 	/*     pthread_mutex_unlock(&ep->lock);	     */
 	/* } else { */
-	project_queue_val_change(proj, ep, new_val);
+	project_queue_val_change(proj, ep, new_val, run_gui_cb);
+	async_change_will_occur = true;
 	ret = 1;
 	/* } */
     }
 
     /* Callbacks */
     bool on_main = on_thread(JDAW_THREAD_MAIN);
-    if (run_gui_cb && ep->gui_callback) {
-	if (on_main)
-	    ep->gui_callback(ep);
-	else
-	    project_queue_callback(proj, ep, ep->gui_callback, JDAW_THREAD_MAIN);
+    if (run_dsp_cb && ep->dsp_callback) {
+	if (on_thread(JDAW_THREAD_DSP)) {
+	    /* fprintf(stderr, "DSP CALLBACK SYNCHRONOUS\n"); */
+	    ep->dsp_callback(ep);
+	} else {
+	    if (proj->playing) {
+		/* fprintf(stderr, "DSP CALLBACK scheduled.....\n"); */
+		project_queue_callback(proj, ep, ep->dsp_callback, JDAW_THREAD_DSP);
+		async_change_will_occur = true;
+	    } else {
+		/* fprintf(stderr, "DSP CALLBACK SYNCHRONOUS\n"); */
+		ep->dsp_callback(ep);
+	    }
+	}	
     }
     if (run_proj_cb && ep->proj_callback) {
 	if (on_main)
 	    ep->proj_callback(ep);
-	else
-	    project_queue_callback(proj, ep, ep->proj_callback, JDAW_THREAD_MAIN);
-    }
-    if (run_dsp_cb && ep->dsp_callback) {
-	if (on_thread(JDAW_THREAD_DSP))
-	    ep->dsp_callback(ep);
 	else {
-	    if (proj->playing) {
-		project_queue_callback(proj, ep, ep->dsp_callback, JDAW_THREAD_DSP);
-	    } else {
-		ep->dsp_callback(ep);
-	    }
+	    project_queue_callback(proj, ep, ep->proj_callback, JDAW_THREAD_MAIN);
 	}
-	
     }
 
+    if (run_gui_cb && ep->gui_callback && !async_change_will_occur) {
+	ep->gui_callback(ep);
+    }
+    
+    /* if (run_gui_cb && ep->gui_callback) { */
+    /* 	if (on_main) */
+    /* 	    ep->gui_callback(ep); */
+    /* 	else */
+    /* 	    project_queue_callback(proj, ep, ep->gui_callback, JDAW_THREAD_MAIN); */
+    /* } */
+    
     /* Undo */
     if (undoable) {
 	if (!on_main) {
@@ -264,15 +275,20 @@ void endpoint_start_continuous_change(
     Endpoint *ep,
     bool do_auto_incr,
     Value incr,
-    enum jdaw_thread thread)
+    enum jdaw_thread thread,
+    Value new_value)
 {
     if (ep->changing) return;
     ep->changing = true;
     ep->cached_owner = endpoint_get_owner(ep);
     endpoint_set_owner(ep, thread);
+
+    endpoint_write(ep, new_value, true, true, true, true);
+
     ep->do_auto_incr = do_auto_incr;
     ep->incr = incr;
     ep->cached_val = endpoint_safe_read(ep, NULL);
+    
     project_add_ongoing_change(proj, ep, thread);
 }
 
@@ -285,7 +301,6 @@ void endpoint_continuous_change_do_incr(Endpoint *ep)
 
 void endpoint_stop_continuous_change(Endpoint *ep)
 {
-
     endpoint_set_owner(ep, ep->cached_owner);
     uint8_t callback_bitfield = 0b111;
     /* callback_bitfield |= 0b001; */
@@ -293,7 +308,6 @@ void endpoint_stop_continuous_change(Endpoint *ep)
     /* if (run_dsp_cb) callback_bitfield |= 0b100; */
     Value cb_matrix = {.uint8_v = callback_bitfield};
     Value current_val = jdaw_val_from_ptr(ep->val, ep->val_type);
-    /* fprintf(stderr, "DOUBLE VALS: %f, %f\n", ep->cached_val.double_v, current_val.double_v); */
     if (!jdaw_val_equal(current_val, ep->cached_val, ep->val_type)) {
 	user_event_push(
 	    &proj->history,

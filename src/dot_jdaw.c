@@ -612,6 +612,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 	    fread(&impulse_response_len, 2, 1, f);
 	    filter_init(
 		&track->fir_filter,
+		track,
 		type,
 		impulse_response_len,
 		tl->proj->fourier_len_sframes * 2);
@@ -632,11 +633,11 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 	    fread(floatvals, 1, STD_FLOAT_SER_W, f);
 	    floatvals[STD_FLOAT_SER_W] = '\0';
 	    amp = atof(floatvals);
-	    delay_line_init(&track->delay_line, tl->proj->sample_rate);
+	    delay_line_init(&track->delay_line, track, tl->proj->sample_rate);
 	    delay_line_set_params(&track->delay_line, amp, len);
 	    track->delay_line.stereo_offset = stereo_offset;
 	} else {
-	    delay_line_init(&track->delay_line, tl->proj->sample_rate);
+	    delay_line_init(&track->delay_line, track, tl->proj->sample_rate);
 	    fseek(f, 36, SEEK_CUR);
 	}
     }

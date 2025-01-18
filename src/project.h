@@ -338,6 +338,7 @@ struct drop_save {
 struct queued_val_change {
     Endpoint *ep;
     Value new_val;
+    bool run_gui_cb;
 };
 
 /* A Jackdaw project. Only one can be active at a time. Can persist on disk as a .jdaw file (see dot_jdaw.c, dot_jdaw.h) */

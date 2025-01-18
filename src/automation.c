@@ -313,7 +313,7 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
 	break;
     case AUTO_DEL_TIME:
-	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line, track->tl->proj->sample_rate);
+	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line, track, track->tl->proj->sample_rate);
 	a->val_type = JDAW_INT16;
 	a->min.int16_v = 1;
 	a->max.int16_v = DELAY_LINE_MAX_LEN_S * 1000;//track->tl->proj->sample_rate * DELAY_LINE_MAX_LEN_S;

@@ -82,6 +82,8 @@ typedef struct delay_line {
     double *cpy_buf;
     pthread_mutex_t lock;
 
+    Track *track;
+
     Endpoint len_ep;
     Endpoint amp_ep;
     Endpoint stereo_offset_ep;
@@ -93,7 +95,7 @@ typedef struct delay_line {
 void init_dsp();
 
 /* Init an empty FIR filter and allocate space for its buffers. Params MUST be initialized with 'set_filter_params'*/
-void filter_init(FIRFilter *filter, FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len);
+void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len);
 
 /* Bandwidth param only required for band-pass and band-cut filters */
 void filter_set_params(FIRFilter *filter, FilterType type,  double cutoff, double bandwidth);
@@ -117,7 +119,7 @@ void FFT(double *A, double complex *B, int n);
 void get_real_component(double complex *A, double *B, int n);
 void get_magnitude(double complex *A, double *B, int len);
 
-void delay_line_init(DelayLine *dl, uint32_t sample_rate);
+void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate);
 void delay_line_set_params(DelayLine *dl, double amp, int32_t len);
 void delay_line_clear(DelayLine *dl);
 

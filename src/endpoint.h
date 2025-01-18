@@ -167,7 +167,8 @@ void endpoint_start_continuous_change(
     Endpoint *ep,
     bool do_auto_incr,
     Value incr,
-    enum jdaw_thread thread);
+    enum jdaw_thread thread,
+    Value new_value);
 void endpoint_continuous_change_do_incr(Endpoint *ep);
 void endpoint_stop_continuous_change(Endpoint *ep);
 

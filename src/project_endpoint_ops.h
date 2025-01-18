@@ -34,7 +34,7 @@
 
 #include "project.h"
 
-int project_queue_val_change(Project *proj, Endpoint *ep, Value new_val);
+int project_queue_val_change(Project *proj, Endpoint *ep, Value new_val, bool run_gui_cb);
 void project_flush_val_changes(Project *proj, enum jdaw_thread thread);
 
 int project_queue_callback(Project *proj, Endpoint *ep, EndptCb cb, enum jdaw_thread thread);

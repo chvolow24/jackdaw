@@ -279,9 +279,10 @@ static void FIR_filter_alloc_buffers(FIRFilter *filter)
     /* pthread_mutex_unlock(&filter->lock); */
 
 }
-void filter_init(FIRFilter *filter, FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len) 
+void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len) 
 {
     filter->type = type;
+    filter->track = track;
     filter->impulse_response_len = impulse_response_len;
     filter->frequency_response_len = frequency_response_len;
     FIR_filter_alloc_buffers(filter);
@@ -587,7 +588,7 @@ void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chu
 void track_add_default_filter(Track *track)
 {
     int ir_len = track->tl->proj->fourier_len_sframes/4;
-    filter_init(&track->fir_filter, LOWPASS, ir_len, track->tl->proj->fourier_len_sframes * 2);
+    filter_init(&track->fir_filter, track, LOWPASS, ir_len, track->tl->proj->fourier_len_sframes * 2);
     track->fir_filter.track = track;
     filter_set_params_hz(&track->fir_filter, LOWPASS, 1000, 1000);
     track->fir_filter_active = true;
@@ -599,8 +600,9 @@ void track_add_default_filter(Track *track)
  *****************************************************************************************************************/
 
 
-void delay_line_init(DelayLine *dl, uint32_t sample_rate)
+void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate)
 {
+    dl->track = track;
     dl->pos_L = 0;
     dl->pos_R = 0;
     dl->amp = 0.0;
@@ -621,9 +623,10 @@ void delay_line_init(DelayLine *dl, uint32_t sample_rate)
 	"undo/redo adj delay time",
 	JDAW_THREAD_DSP,
 	delay_line_len_gui_cb, NULL, delay_line_len_dsp_cb,
+	/* NULL, NULL, delay_line_len_dsp_cb, */
 	(void *)dl, NULL, NULL, NULL);
 
-        /* api_endpoint_register(&dl->len_ep, &dl->track->api_node); */
+    api_endpoint_register(&dl->len_ep, &dl->track->api_node);
 
     endpoint_init(
 	&dl->amp_ep,
@@ -632,8 +635,11 @@ void delay_line_init(DelayLine *dl, uint32_t sample_rate)
 	"delay_line_amp",
 	"undo/redo adj delay amp",
 	JDAW_THREAD_DSP,
+	/* delay_line_amp_gui_cb, NULL, NULL, */
 	delay_line_amp_gui_cb, NULL, NULL,
 	(void *)dl, NULL, NULL, NULL);
+    
+    api_endpoint_register(&dl->amp_ep, &dl->track->api_node);
     
     endpoint_init(
 	&dl->stereo_offset_ep,
@@ -644,6 +650,8 @@ void delay_line_init(DelayLine *dl, uint32_t sample_rate)
 	JDAW_THREAD_DSP,
 	NULL, NULL, NULL,
 	NULL, NULL, NULL, NULL);
+    
+    api_endpoint_register(&dl->stereo_offset_ep, &dl->track->api_node);
 }
 
 /*

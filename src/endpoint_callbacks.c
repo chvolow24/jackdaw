@@ -33,6 +33,7 @@
 #include "dsp.h"
 #include "endpoint_callbacks.h"
 #include "page.h"
+#include "project_endpoint_ops.h"
 #include "status.h"
 #include "waveform.h"
 
@@ -124,13 +125,23 @@ void filter_irlen_gui_cb(Endpoint *ep)
 }
 
 
+/* static void secondary_delay_line_gui_cb(Endpoint *ep) */
+/* { */
+/*     /\* fprintf(stderr, "AND GUI at %lu\n", clock()); *\/ */
+/*     PageEl *el = track_settings_get_el("track_settings_delay_time_slider"); */
+/*     if (el) { */
+/* 	slider_reset(el->component); */
+/*     } */
+
+/* } */
 void delay_line_len_dsp_cb(Endpoint *ep)
 {
+    fprintf(stderr, "Running DSP at %lu\n", clock());
     DelayLine *dl = (DelayLine *)ep->xarg1;
     int16_t val_msec = endpoint_safe_read(ep, NULL).int16_v;
     int32_t len_sframes = (int32_t)((double)val_msec * proj->sample_rate / 1000.0);
     delay_line_set_params(dl, dl->amp, len_sframes);
-
+    /* project_queue_callback(proj, ep, secondary_delay_line_gui_cb, JDAW_THREAD_MAIN); */
 }
 
 void delay_line_len_gui_cb(Endpoint *ep)
@@ -142,14 +153,19 @@ void delay_line_len_gui_cb(Endpoint *ep)
 
 }
 
-void delay_line_amp_dsp_cb(Endpoint *ep)
-{
-    /* DelayLine *dl = (DelayLine *)ep->xarg1; */
-    /* int32_t val_msec = endpoint_safe_read(ep, NULL).int32_v; */
-    /* int32_t len_sframes = (int32_t)((double)val_msec * proj->sample_rate / 1000.0); */
-    /* delay_line_set_params(dl, dl->amp, len_sframes); */
+/* static void secondary_delay_line_amp_gui_cb(Endpoint *ep) */
+/* { */
+/*     PageEl *el = track_settings_get_el("track_settings_delay_time_slider"); */
+/*     if (el) { */
+/* 	slider_reset(el->component); */
+/*     } */
+/* } */
 
-}
+/* void delay_line_amp_dsp_cb(Endpoint *ep) */
+/* { */
+/*     /\* VALUE CHANGED *\/ */
+/*     /\* project_queue_callback(proj, ep, secondary_delay_line_amp_gui_cb, JDAW_THREAD_MAIN); *\/ */
+/* } */
 
 void delay_line_amp_gui_cb(Endpoint *ep)
 {

@@ -38,6 +38,10 @@
 #define API_HASH_TABLE_SIZE 1024
 #define MAX_ROUTE_DEPTH 16
 
+static struct api_hash_node *api_hash_table[API_HASH_TABLE_SIZE] = {0};
+
+static unsigned long api_hash_route(const char *route);
+static void api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size);
 void api_endpoint_register(Endpoint *ep, APINode *parent)
 {
     if (parent->num_endpoints == MAX_API_NODE_ENDPOINTS) {
@@ -47,6 +51,23 @@ void api_endpoint_register(Endpoint *ep, APINode *parent)
     parent->endpoints[parent->num_endpoints] = ep;
     parent->num_endpoints++;
     ep->parent = parent;
+
+    char route[255];
+    api_endpoint_get_route(ep, route, 255);
+
+    unsigned long hash_i = api_hash_route(route);
+    APIHashNode *new = calloc(1, sizeof(struct api_hash_node));
+    new->ep = ep;
+    APIHashNode *ahn = NULL;
+    if ((ahn = api_hash_table[hash_i])) {
+	while (ahn->next) {
+	    ahn = ahn->next;
+	}
+	ahn->next = new;
+    } else {
+	api_hash_table[hash_i] = new;
+    }
+    
     
 }
 
@@ -72,7 +93,7 @@ static char make_idchar(char c)
     return '_';
 }
 
-void api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size)
+static void api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size)
 {
     char *components[MAX_ROUTE_DEPTH];
     int num_components = 0;
@@ -100,6 +121,17 @@ void api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size)
     }   
 }
 
+/* dbj2: http://www.cse.yorku.ca/~oz/hash.html */
+static unsigned long api_hash_route(const char *route)
+{
+    unsigned long hash = 5381;
+    int c;
+
+    while ((c = *route++))
+	hash = ((hash << 5) + hash) + c;
+    return hash % API_HASH_TABLE_SIZE;
+}
+
 void api_node_print_all_routes(APINode *node)
 {
     int dstlen = 255;
@@ -107,8 +139,32 @@ void api_node_print_all_routes(APINode *node)
     for (int i=0; i<node->num_endpoints; i++) {
 	api_endpoint_get_route(node->endpoints[i], dst, dstlen);
 	fprintf(stderr, "%s\n", dst);
+	fprintf(stderr, "\t->hash: %lu\n", api_hash_route(dst));
     }
     for (int i=0; i<node->num_children; i++) {
         api_node_print_all_routes(node->children[i]);
     }
 }
+
+void api_table_print()
+{
+    for (int i=0; i<API_HASH_TABLE_SIZE; i++) {
+	APIHashNode *n = api_hash_table[i];
+	bool init = true;
+	if (!n) {
+	    fprintf(stderr, "%d: NULL\n", i);
+	} else while (n) {
+		char dst[255];
+		api_endpoint_get_route(n->ep, dst, 255);
+		if (init) {
+		    fprintf(stderr, "%d: %s\n", i, dst);
+		}else {
+		    fprintf(stderr, "\t%d: %s\n", i, dst);
+		}
+		n = n->next;
+		init = false;
+	}
+    }
+}
+
+

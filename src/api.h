@@ -48,10 +48,15 @@ typedef struct api_node {
     char *obj_name;
 } APINode;
 
+typedef struct api_hash_node {
+    Endpoint *ep;
+    struct api_hash_node *next;
+} APIHashNode;
 
 void api_endpoint_register(Endpoint *ep, APINode *parent);
 void api_node_register(APINode *node, APINode *parent, char *obj_name);
-void api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size);
+/* static void api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size); */
 
 void api_node_print_all_routes(APINode *node);
+void api_table_print();
 /* void api_node_renamed(APINode *api); */

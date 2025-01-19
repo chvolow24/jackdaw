@@ -1469,7 +1469,6 @@ Track *timeline_add_track(Timeline *tl)
 	(Value){.float_v = 0.0},
 	(Value){.float_v = 1.0});
     api_endpoint_register(&track->pan_ep, &track->api_node);
-    api_node_print_all_routes(&track->tl->proj->api_root);
     
     /* Layout *track_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area"); */
     Layout *track_template = layout_read_xml_to_lt(tl->track_area, TRACK_LT_PATH);

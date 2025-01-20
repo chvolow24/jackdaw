@@ -148,6 +148,7 @@ static void quit()
 	window_destroy(main_win);
     }
     input_quit();
+    api_quit();
     SDL_Quit();
 }
 

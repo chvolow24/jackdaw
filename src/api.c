@@ -42,6 +42,32 @@ static struct api_hash_node *api_hash_table[API_HASH_TABLE_SIZE] = {0};
 
 static unsigned long api_hash_route(const char *route);
 static void api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size);
+
+
+static void api_endpoint_insert_into_table(Endpoint *ep)
+{
+    char route[255];
+    api_endpoint_get_route(ep, route, 255);
+
+    unsigned long hash_i = api_hash_route(route);
+    APIHashNode *new = calloc(1, sizeof(struct api_hash_node));
+    new->route = strdup(route);
+    new->ep = ep;
+    new->index = hash_i;
+    ep->hash_node = new;
+    APIHashNode *ahn = NULL;
+    if ((ahn = api_hash_table[hash_i])) {
+	while (ahn->next) {
+	    ahn = ahn->next;
+	}
+	ahn->next = new;
+	new->prev = ahn;
+    } else {
+	api_hash_table[hash_i] = new;
+    }
+}
+
+/* Insert an endpoint into the API tree, and into the route hash table */
 void api_endpoint_register(Endpoint *ep, APINode *parent)
 {
     if (parent->num_endpoints == MAX_API_NODE_ENDPOINTS) {
@@ -52,23 +78,8 @@ void api_endpoint_register(Endpoint *ep, APINode *parent)
     parent->num_endpoints++;
     ep->parent = parent;
 
-    char route[255];
-    api_endpoint_get_route(ep, route, 255);
+    api_endpoint_insert_into_table(ep);
 
-    unsigned long hash_i = api_hash_route(route);
-    APIHashNode *new = calloc(1, sizeof(struct api_hash_node));
-    new->ep = ep;
-    APIHashNode *ahn = NULL;
-    if ((ahn = api_hash_table[hash_i])) {
-	while (ahn->next) {
-	    ahn = ahn->next;
-	}
-	ahn->next = new;
-    } else {
-	api_hash_table[hash_i] = new;
-    }
-    
-    
 }
 
 
@@ -92,6 +103,7 @@ static char make_idchar(char c)
     if (c >= '0' && c <= '9') return c;
     return '_';
 }
+
 
 static void api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size)
 {
@@ -130,6 +142,89 @@ static unsigned long api_hash_route(const char *route)
     while ((c = *route++))
 	hash = ((hash << 5) + hash) + c;
     return hash % API_HASH_TABLE_SIZE;
+}
+
+Endpoint *api_endpoint_get(const char *route)
+{
+    unsigned long hash = api_hash_route(route);
+    APIHashNode *ahn = api_hash_table[hash];
+    if (!ahn) return NULL;
+    if (!ahn->next) return ahn->ep;
+    while (1) {
+	if (strcmp(ahn->route, route) == 0) {
+	    return ahn->ep;
+	} else if (ahn->next) {
+	    ahn = ahn->next;
+	} else {
+	    return NULL;
+	}
+    }
+}
+
+static void api_hash_node_destroy(APIHashNode *ahn);
+void api_node_renamed(APINode *an)
+{
+    for (int i=0; i<an->num_endpoints; i++) {
+	Endpoint *ep = an->endpoints[i];
+	APIHashNode *to_delete = ep->hash_node;
+	unsigned long index = to_delete->index;
+	/* APIHashNode *head = api_hash_table[index]; */
+	
+	if (!to_delete) continue;
+	/* Case 2: we are in first slot */
+	if (!to_delete->prev) {
+	    if (to_delete->next) {
+		APIHashNode *next = to_delete->next;
+		api_hash_table[index] = next; /* Move 'next' into hash table */
+		next->prev = NULL;
+	    } else {
+		/* api_hash_node_destroy(ahn); */
+		api_hash_table[index] = NULL; /* Clear hash table entry */
+	    }
+	} else { /* Case 3: we are in the linked list */
+	    to_delete->prev->next = to_delete->next;
+	    if (to_delete->next) to_delete->next->prev = to_delete->prev;
+	    /* api_hash_node_destroy(ahn); */
+	}
+	api_hash_node_destroy(to_delete);
+	ep->hash_node = NULL;
+	api_endpoint_insert_into_table(ep);
+    }
+    for (int i=0; i<an->num_children; i++) {
+	api_node_renamed(an->children[i]);
+    }
+
+}
+
+
+
+
+/* Teardown */
+
+
+static void api_hash_node_destroy(APIHashNode *ahn)
+{
+    if (ahn->route)
+	free(ahn->route);
+    free(ahn);
+}
+
+static void api_hash_table_destroy()
+{
+    for (int i=0; i<API_HASH_TABLE_SIZE; i++) {
+	APIHashNode *ahn = api_hash_table[i];
+	while (ahn) {
+	    APIHashNode *next = ahn->next;
+	    api_hash_node_destroy(ahn);
+	    ahn = next;
+	}
+    }
+}
+
+
+void api_quit()
+{
+    api_hash_table_destroy();
 }
 
 void api_node_print_all_routes(APINode *node)

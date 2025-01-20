@@ -87,6 +87,7 @@ typedef void (*EndptCb)(Endpoint *);
 
 /* typedef struct jackdaw_api Jackdaw_API; */
 typedef struct api_node APINode;
+typedef struct api_hash_node APIHashNode;
 typedef struct endpoint {
     
     void *val;
@@ -125,6 +126,7 @@ typedef struct endpoint {
 
     /* API */
     APINode *parent;
+    APIHashNode *hash_node;
 } Endpoint;
 
 int endpoint_init(

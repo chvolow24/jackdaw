@@ -1270,9 +1270,15 @@ static NEW_EVENT_FN(redo_rename_object, "redo rename object")
     
 
 static int name_completion(Text *txt, void *obj)
-{
+{   
     Value nullval = {.int_v = 0};
     char *old_value = strdup(txt->cached_value);
+
+    if (obj) {
+	APINode *node = (APINode *)obj;
+	api_node_renamed(node);
+    }
+    
     user_event_push(
 	&proj->history,
 	undo_rename_object,
@@ -1522,7 +1528,7 @@ Track *timeline_add_track(Timeline *tl)
 	14,
 	NULL,
 	name_completion,
-	NULL,
+	&track->api_node,
 	main_win);
     /* track->tb_name = textbox_create_from_str( */
     /*     track->name, */

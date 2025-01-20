@@ -32,6 +32,10 @@
     * triage messages sent via UDP
  *****************************************************************************************************************/
 
+#include <arpa/inet.h>
+#include <pthread.h>
+#include <sys/socket.h>
+#include <unistd.h>
 #include "api.h"
 #include "endpoint.h"
 
@@ -196,10 +200,66 @@ void api_node_renamed(APINode *an)
 
 }
 
+static void *server_threadfn(void *arg)
+{
+    int port = *(int *)arg;
+    int sockfd;
+    struct sockaddr_in servaddr;
+    socklen_t len = sizeof(servaddr);
+    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+	perror("Socket creation failed");
+	exit(1);
+    }
+
+    memset(&servaddr, 0, sizeof(servaddr));
+
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = INADDR_ANY;
+    servaddr.sin_port = htons(port);
+
+    if (bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
+	perror("Bind failed");
+	exit(1);
+    }
+    char buffer[1024];
+    while (1) {
+	if (recvfrom(sockfd, (char *)buffer, 1024, 0, (struct sockaddr *) &servaddr, &len) < 0) {
+	    perror("recvfrom");
+	    exit(1);
+	}
+	int val_offset = 0;
+	for (int i=0; i<strlen(buffer); i++) {
+	    if (buffer[i] == ' ') {
+		buffer[i] = '\0';
+		val_offset = i + 1;	    
+	    } else if (buffer[i] == ';') {
+		buffer[i] = '\0';
+	    }
+	}
+	
+	fprintf(stderr, "RECEIVED route: %s; val: %s\n", buffer, buffer + val_offset);
+	Endpoint *ep = api_endpoint_get(buffer);
+	double readval = atof(buffer + val_offset);
+	Value new_val = {.float_v = readval};
+	endpoint_write(ep, new_val, true, true, true, false);
+    }
+
+
+}
+
+
+/* Server */
+int api_start_server(int port)
+{
+    pthread_t servthread;
+    pthread_create(&servthread, NULL, server_threadfn, &port);
+    return 0;
+}
 
 
 
-/* Teardown */
+
+/* Cleanup */
 
 
 static void api_hash_node_destroy(APIHashNode *ahn)
@@ -226,6 +286,11 @@ void api_quit()
 {
     api_hash_table_destroy();
 }
+
+
+
+
+/* Testing & logging */
 
 void api_node_print_all_routes(APINode *node)
 {

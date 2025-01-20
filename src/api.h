@@ -62,6 +62,8 @@ void api_node_register(APINode *node, APINode *parent, char *obj_name);
 void api_node_renamed(APINode *node);
 /* static void api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size); */
 
+int api_start_server(int port);
+    
 void api_node_print_all_routes(APINode *node);
 void api_table_print();
 void api_quit();

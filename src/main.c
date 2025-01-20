@@ -109,7 +109,7 @@ static void init_SDL()
     SDL_StopTextInput();
 }
 
-void tempo_segment_set_config(int bpm, int num_beats, ...);
+
 static void init()
 {
     MAIN_THREAD_ID = pthread_self();
@@ -130,6 +130,7 @@ static void init()
     strcpy(DIRPATH_EXPORT, DIRPATH_SAVED_PROJ);
     /* fprintf(stdout, "Initializing dsp...\n"); */
     init_dsp();
+    api_start_server(5080);
 }
 
 static void quit()

@@ -236,7 +236,7 @@ retry3:
     proj->timelines[proj->num_timelines] = new_tl;
     proj->num_timelines++;
 
-    api_node_register(&new_tl->api_node, &new_tl->proj->api_root, new_tl->name);
+    api_node_register(&new_tl->api_node, &new_tl->proj->server.api_root, new_tl->name);
     
     return proj->num_timelines - 1; /* Return the new timeline index */
 }
@@ -515,7 +515,7 @@ Project *project_create(
 	play_speed_gui_cb, NULL, NULL,
 	NULL, NULL, NULL, NULL);
     
-    api_endpoint_register(&proj->play_speed_ep, &proj->api_root);			  
+    api_endpoint_register(&proj->play_speed_ep, &proj->server.api_root);			  
     
 
     return proj;

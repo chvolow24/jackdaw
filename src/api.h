@@ -30,14 +30,24 @@
     * typedefs supporting jackdaw UDP API
  *****************************************************************************************************************/
 
+#include <arpa/inet.h>
+#include <pthread.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
+#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+
+#ifndef JDAW_API_H
+#define JDAW_API_H
 
 #define MAX_API_NODE_CHILDREN 255
 #define MAX_API_NODE_ENDPOINTS 32
 
 typedef struct endpoint Endpoint;
 typedef struct api_node APINode;
+
 
 typedef struct api_node {
     APINode *parent;
@@ -47,6 +57,14 @@ typedef struct api_node {
     uint8_t num_endpoints;
     char *obj_name;
 } APINode;
+
+struct api_server {
+    int port;
+    bool active;
+    APINode api_root;
+    int sockfd;
+    struct sockaddr_in servaddr;
+};
 
 typedef struct api_hash_node {
     Endpoint *ep;
@@ -70,3 +88,5 @@ void api_quit();
 /* void api_hash_table_destroy(); */
 
 /* void api_node_renamed(APINode *api); */
+
+#endif

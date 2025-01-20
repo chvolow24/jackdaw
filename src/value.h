@@ -78,6 +78,7 @@ bool jdaw_val_equal(Value a, Value b, ValType type);
 bool jdaw_val_sign_match(Value a, Value b, ValType type);
 void jdaw_val_serialize(Value v, ValType type, FILE *f, uint8_t dstsize);
 Value jdaw_val_deserialize(FILE *f, uint8_t size, ValType type);
+Value jdaw_val_from_str(const char *str, ValType type);
 bool jdaw_val_in_range(Value test, Value min, Value max, ValType type);
 Value jdaw_val_negate(Value a, ValType vt);
 

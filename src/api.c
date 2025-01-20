@@ -32,15 +32,14 @@
     * triage messages sent via UDP
  *****************************************************************************************************************/
 
-#include <arpa/inet.h>
-#include <pthread.h>
-#include <sys/socket.h>
-#include <unistd.h>
 #include "api.h"
 #include "endpoint.h"
+#include "project.h"
 
 #define API_HASH_TABLE_SIZE 1024
 #define MAX_ROUTE_DEPTH 16
+
+extern volatile bool CANCEL_THREADS;
 
 static struct api_hash_node *api_hash_table[API_HASH_TABLE_SIZE] = {0};
 
@@ -200,30 +199,30 @@ void api_node_renamed(APINode *an)
 
 }
 
+extern Project *proj;
 static void *server_threadfn(void *arg)
 {
     int port = *(int *)arg;
-    int sockfd;
-    struct sockaddr_in servaddr;
-    socklen_t len = sizeof(servaddr);
-    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+    socklen_t len = sizeof(proj->server.servaddr);
+    if ((proj->server.sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 	perror("Socket creation failed");
 	exit(1);
     }
 
-    memset(&servaddr, 0, sizeof(servaddr));
+    memset(&proj->server.servaddr, 0, sizeof(proj->server.servaddr));
 
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = INADDR_ANY;
-    servaddr.sin_port = htons(port);
+    proj->server.servaddr.sin_family = AF_INET;
+    proj->server.servaddr.sin_addr.s_addr = INADDR_ANY;
+    proj->server.servaddr.sin_port = htons(port);
 
-    if (bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
+    if (bind(proj->server.sockfd, (const struct sockaddr *)&proj->server.servaddr, sizeof(proj->server.servaddr)) < 0) {
 	perror("Bind failed");
 	exit(1);
     }
     char buffer[1024];
-    while (1) {
-	if (recvfrom(sockfd, (char *)buffer, 1024, 0, (struct sockaddr *) &servaddr, &len) < 0) {
+    while (proj->server.active) {
+	fprintf(stderr, "WAITING FOR MESSAGE..........\n");
+	if (recvfrom(proj->server.sockfd, (char *)buffer, 1024, 0, (struct sockaddr *) &proj->server.servaddr, &len) < 0) {
 	    perror("recvfrom");
 	    exit(1);
 	}
@@ -237,13 +236,17 @@ static void *server_threadfn(void *arg)
 	    }
 	}
 	
-	fprintf(stderr, "RECEIVED route: %s; val: %s\n", buffer, buffer + val_offset);
 	Endpoint *ep = api_endpoint_get(buffer);
-	double readval = atof(buffer + val_offset);
-	Value new_val = {.float_v = readval};
-	endpoint_write(ep, new_val, true, true, true, false);
+	fprintf(stderr, "Ep: %p, from %s\n", ep, buffer);
+	if (ep) {
+	    Value new_val = jdaw_val_from_str(buffer + val_offset, ep->val_type);
+	    endpoint_write(ep, new_val, true, true, true, false);
+	}
     }
-
+    if (close(proj->server.sockfd) != 0) {
+	perror("Error closing socket:");
+    }
+    return NULL;
 
 }
 
@@ -252,6 +255,8 @@ static void *server_threadfn(void *arg)
 int api_start_server(int port)
 {
     pthread_t servthread;
+    proj->server.active = true;
+    proj->server.port = port;
     pthread_create(&servthread, NULL, server_threadfn, &port);
     return 0;
 }
@@ -284,6 +289,9 @@ static void api_hash_table_destroy()
 
 void api_quit()
 {
+    proj->server.active = false;
+    char *msg = "quit";
+    sendto(proj->server.sockfd, msg, strlen(msg), 0, (struct sockaddr *)&proj->server.servaddr, sizeof(proj->server.servaddr));
     api_hash_table_destroy();
 }
 

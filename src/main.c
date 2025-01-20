@@ -130,12 +130,12 @@ static void init()
     strcpy(DIRPATH_EXPORT, DIRPATH_SAVED_PROJ);
     /* fprintf(stdout, "Initializing dsp...\n"); */
     init_dsp();
-    api_start_server(5080);
 }
 
 static void quit()
 {
     CANCEL_THREADS = true;
+    api_quit();
     pd_signal_termination_of_jackdaw();
     if (proj->recording) {
 	transport_stop_recording();
@@ -149,7 +149,6 @@ static void quit()
 	window_destroy(main_win);
     }
     input_quit();
-    api_quit();
     SDL_Quit();
 }
 
@@ -317,6 +316,7 @@ int main(int argc, char **argv)
 
     }
 
+    api_start_server(5080);
     loop_project_main();
     
     quit();

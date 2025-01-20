@@ -724,6 +724,46 @@ void jdaw_val_serialize(Value v, ValType type, FILE *f, uint8_t dstsize)
 }
 
 
+Value jdaw_val_from_str(const char *str, ValType type)
+{
+    Value ret;
+    switch (type) {
+    case JDAW_FLOAT:
+	ret.float_v = atof(str);
+	break;
+    case JDAW_DOUBLE:
+	ret.double_v = atof(str);
+	break;
+    case JDAW_INT:
+	ret.int_v = atoi(str);
+	break;
+    case JDAW_UINT8:
+	ret.uint8_v = atoi(str);
+	break;
+    case JDAW_UINT16:
+	ret.uint16_v = atoi(str);
+	break;
+    case JDAW_UINT32:
+	ret.uint32_v = atoi(str);
+	break;
+    case JDAW_INT8:
+	ret.int8_v = atoi(str);
+	break;
+    case JDAW_INT16:
+	ret.int16_v = atoi(str);
+	break;
+    case JDAW_INT32:
+	ret.int32_v = atoi(str);
+	break;
+    case JDAW_BOOL:
+	ret.bool_v = atoi(str);
+	break;
+    default:
+	break;
+    }
+    return ret;
+}
+
 
 
 Value jdaw_val_deserialize(FILE *f, uint8_t size, ValType type)

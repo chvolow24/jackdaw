@@ -440,7 +440,10 @@ typedef struct project {
 
     /* Endpoints API */
 
-    APINode api_root;
+    struct api_server server;
+    /* APINode api_root; */
+    /* bool server_active; */
+    /* int server_port; */
     
     struct queued_val_change queued_val_changes[NUM_JDAW_THREADS][MAX_QUEUED_OPS];
     uint8_t num_queued_val_changes[NUM_JDAW_THREADS];

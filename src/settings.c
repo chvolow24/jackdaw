@@ -55,7 +55,7 @@ extern SDL_Color color_global_light_grey;
 extern SDL_Color freq_L_color;
 extern SDL_Color freq_R_color;
 
-static struct freq_plot *current_fp;
+/* static struct freq_plot *current_fp; */
 Waveform *current_waveform;
 
 static double unscale_freq(double scaled)
@@ -208,14 +208,15 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     if (!track->fir_filter.frequency_response) {
 	Project *proj_loc = track->tl->proj;
 	int ir_len = proj_loc->fourier_len_sframes/4;
-	filter_init(&track->fir_filter, track, LOWPASS, ir_len, proj_loc->fourier_len_sframes * 2);
-	track->fir_filter.track = track;
-	filter_set_params_hz(&track->fir_filter, LOWPASS, 1000, 1000);
+	if (!track->fir_filter.initialized)
+	    filter_init(&track->fir_filter, track, LOWPASS, ir_len, proj_loc->fourier_len_sframes * 2);
+	/* track->fir_filter.track = track; */
+	/* filter_set_params_hz(&track->fir_filter, LOWPASS, 1000, 1000); */
 	track->fir_filter_active = false;
     }
     if (!track->delay_line.buf_L) {
 	delay_line_init(&track->delay_line, track, proj->sample_rate);
-	delay_line_set_params(&track->delay_line, 0.3, 10000);
+	/* delay_line_set_params(&track->delay_line, 0.3, 10000); */
     }
 
     FIRFilter *f = &track->fir_filter;
@@ -347,13 +348,17 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 
     };
 
+    
+    
     p.radio_p.text_size = RADIO_STD_FONT_SIZE;
     p.radio_p.text_color = &color_global_white;
+    p.radio_p.ep = &f->type_ep;
+    /* TODO: FIX THIS!!!! */
     /* p.radio_p.target_enum = NULL; */
-    p.radio_p.action = rb_target_action;
+    /* p.radio_p.action = rb_target_action; */
     p.radio_p.item_names = item_names;
     p.radio_p.num_items = 4;
-    p.radio_p.target = f;
+    /* p.radio_p.target = f; */
     
     el = page_add_el(page, EL_RADIO, p, "track_settings_filter_type_radio", "filter_type");
     RadioButton *radio = el->component;
@@ -376,16 +381,18 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     p.freqplot_p.steps = steps;
     p.freqplot_p.num_items = f->frequency_response_len / 2;
     p.freqplot_p.num_arrays = 3;
+
     /* p.freqplot_p. */
     el = page_add_el(page, EL_FREQ_PLOT, p, "track_settings_filter_freq_plot", "freq_plot");
-
+    struct freq_plot *plot = el->component;
+    plot->related_obj_lock = &f->lock;
 
     /* TODO:
        This freq plot needs to be accessible to the slider's action
        so it can reset the array pointer when the FIR filter's freq
        response buffer is reallocated. Find a better way to do this
        than storing in a global var, maybe. */
-    current_fp = el->component;
+    /* current_fp = el->component; */
 
     create_track_selection_area(page, track);
 

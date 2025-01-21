@@ -333,8 +333,9 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	    el->layout,
 	    params.radio_p.text_size,
 	    params.radio_p.text_color,
-	    params.radio_p.target,
-	    params.radio_p.action,
+	    params.radio_p.ep,
+	    /* params.radio_p.target, */
+	    /* params.radio_p.action, */
 	    params.radio_p.item_names,
 	    params.radio_p.num_items);
 	break;

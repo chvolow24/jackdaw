@@ -246,6 +246,10 @@ void loop_project_main()
 		scrolling_lt = NULL;
 		temp_scrolling_lt = NULL;
 		switch (e.key.keysym.scancode) {
+		case SDL_SCANCODE_5:
+		    api_node_print_all_routes(&proj->server.api_root);
+		    break;
+
 		case SDL_SCANCODE_6:
 		    api_table_print();
 		    break;

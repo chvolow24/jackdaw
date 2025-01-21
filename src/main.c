@@ -134,8 +134,8 @@ static void init()
 
 static void quit()
 {
+    api_quit(proj);
     CANCEL_THREADS = true;
-    api_quit();
     pd_signal_termination_of_jackdaw();
     if (proj->recording) {
 	transport_stop_recording();
@@ -315,8 +315,6 @@ int main(int argc, char **argv)
 	
 
     }
-
-    api_start_server(5080);
     loop_project_main();
     
     quit();

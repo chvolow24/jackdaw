@@ -61,6 +61,7 @@ struct freq_plot {
     int *tic_cache;
     Textbox *labels[128];
     int num_labels;
+    pthread_mutex_t *related_obj_lock;
 };
 
 void waveform_draw_all_channels(float **channels, uint8_t num_channels, uint32_t buflen, SDL_Rect *rect);

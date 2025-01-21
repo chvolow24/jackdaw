@@ -221,10 +221,17 @@ void waveform_draw_freq_plot(struct freq_plot *fp)
 {
     SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
     SDL_RenderFillRect(main_win->rend, &fp->container->rect);
-    
+
+    if (fp->related_obj_lock) {
+	pthread_mutex_lock(fp->related_obj_lock);
+    }
     for (int i=0; i<fp->num_plots; i++) {
 	waveform_draw_freq_domain(fp->plots[i]);
     }
+    if (fp->related_obj_lock) {
+	pthread_mutex_unlock(fp->related_obj_lock);
+    }
+
 
     SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 70);
     int top_y = fp->container->rect.y;

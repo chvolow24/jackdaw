@@ -297,6 +297,7 @@ void project_destroy(Project *proj)
 	transport_stop_playback();
     }
 
+    /* api_quit(proj); */
     user_event_history_destroy(&proj->history);
     /* fprintf(stdout, "PROJECT_DESTROY num tracks: %d\n", proj->timelines[0]->num_tracks); */
     for (uint16_t i=0; i<proj->num_clips; i++) {
@@ -328,7 +329,6 @@ void project_destroy(Project *proj)
     if (proj->status_bar.error) textbox_destroy(proj->status_bar.error);
 
     project_destroy_metronomes(proj);
-    
     free(proj);
 }
 
@@ -516,7 +516,7 @@ Project *project_create(
 	NULL, NULL, NULL, NULL);
     
     api_endpoint_register(&proj->play_speed_ep, &proj->server.api_root);			  
-    
+    api_start_server(proj, 9302);
 
     return proj;
 }
@@ -1457,7 +1457,7 @@ Track *timeline_add_track(Timeline *tl)
 	&track->vol_ep,
 	(Value){.float_v=0.0},
 	(Value){.float_v=TRACK_VOL_MAX});
-    api_endpoint_register(&track->vol_ep, &track->api_node);
+
 
     endpoint_init(
 	&track->pan_ep,
@@ -1474,7 +1474,6 @@ Track *timeline_add_track(Timeline *tl)
 	&track->pan_ep,
 	(Value){.float_v = 0.0},
 	(Value){.float_v = 1.0});
-    api_endpoint_register(&track->pan_ep, &track->api_node);
     
     /* Layout *track_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area"); */
     Layout *track_template = layout_read_xml_to_lt(tl->track_area, TRACK_LT_PATH);
@@ -1690,7 +1689,8 @@ Track *timeline_add_track(Timeline *tl)
     if (tl->layout_selector < 0) tl->layout_selector = 0;
     timeline_rectify_track_indices(tl);
 
-
+    api_endpoint_register(&track->vol_ep, &track->api_node);
+    api_endpoint_register(&track->pan_ep, &track->api_node);
     return track;
 }
 

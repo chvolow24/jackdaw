@@ -912,16 +912,6 @@ static int txt_check_len(Text *txt, int len)
 int txt_name_validation(Text *txt, char input)
 {
     return txt_check_len(txt, MAX_NAMELENGTH);
-    /* TODO: deprecate */ 
-    /* return txt_check_len(txt, MAX_NAMELENGTH); */
-/* { */
-/*     if (strlen(txt->display_value) - (txt->cursor_end_pos - txt->cursor_start_pos) >= MAX_NAMELENGTH - 1) { */
-/* 	char buf[255]; */
-/* 	snprintf(buf, 255, "Name cannot exceed %d characters", MAX_NAMELENGTH - 1); */
-/* 	status_set_errstr(buf); */
-/* 	return 1; */
-/*     } */
-    /* return 0; */
 }
 
 int txt_integer_validation(Text *txt, char input)

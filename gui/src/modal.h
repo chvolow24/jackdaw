@@ -61,8 +61,9 @@ ModalEl *modal_add_button(Modal *modal, char *text, ComponentFn action);
 ModalEl *modal_add_radio(
     Modal *modal,
     SDL_Color *color,
-    void *target,
-    ComponentFn action,
+    Endpoint *ep,
+    /* void *target, */
+    /* ComponentFn action, */
     const char **item_names,
     uint8_t num_items);
 

@@ -23,6 +23,7 @@
 /*****************************************/
 
 typedef int (*ComponentFn)(void *self, void *target);
+typedef struct endpoint Endpoint;
 
 typedef struct button {
     Textbox *tb;
@@ -78,8 +79,9 @@ typedef struct draggable {
 typedef struct radio_button {
     Layout *layout;
     Textbox *items[RADIO_BUTTON_MAX_ITEMS];
-    void *target;
-    ComponentFn action;
+    Endpoint *ep;
+    /* void *target; */
+    /* ComponentFn action; */
     /* void (*external_action)(int selected_i, void *target); */
     uint8_t num_items;
     uint8_t selected_item;
@@ -96,7 +98,6 @@ typedef struct waveform {
     SDL_Color *plot_color;
 } Waveform;
 
-typedef struct endpoint Endpoint;
 typedef struct slider {
     Layout *layout;
     Endpoint *ep;
@@ -244,13 +245,14 @@ RadioButton *radio_button_create(
     Layout *layout,
     int text_size,
     SDL_Color *text_color,
-    void *target,
-    ComponentFn action,
+    Endpoint *ep,
+    /* void *target, */
+    /* ComponentFn action, */
     /* void (*external_action)(int selected_i, void *target), */
     const char **item_names,
     uint8_t num_items
     );
-void radio_button_set_from_target(RadioButton *rb);
+void radio_button_reset_from_endpoint(RadioButton *rb);
 void radio_button_draw(RadioButton *rb);
 bool radio_click(RadioButton *rb, Window *Win);
 void radio_destroy(RadioButton *rb);

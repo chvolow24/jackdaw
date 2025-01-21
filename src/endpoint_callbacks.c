@@ -101,27 +101,44 @@ void filter_bandwidth_gui_cb(Endpoint *ep)
 /* void settings_reset_freq_plot(struct freq_plot *fp,  */
 void filter_irlen_dsp_cb(Endpoint *ep)
 {
-    
-}
-
-void filter_irlen_gui_cb(Endpoint *ep)
-{
-
     FIRFilter *f = (FIRFilter *)ep->xarg1;
     Value irlen_val = endpoint_safe_read(ep, NULL);
     filter_set_impulse_response_len(f, irlen_val.uint16_v);
 
     /* fprintf(stderr, "RESETTING mag\n"); */
-    PageEl *el = track_settings_get_el("track_settings_filter_freq_plot");
-    if (!el) return;
-    struct freq_plot *fp = (struct freq_plot *)el->component;
-    fp->arrays[2] = f->frequency_response_mag;
-    waveform_reset_freq_plot(fp);
+    /* PageEl *el = track_settings_get_el("track_settings_filter_freq_plot"); */
+    /* if (!el) return; */
+    /* struct freq_plot *fp = (struct freq_plot *)el->component; */
+    /* pthread_mutex_lock(&f->lock); */
+    /* fp->arrays[2] = f->frequency_response_mag; */
+    /* waveform_reset_freq_plot(fp); */
+    /* pthread_mutex_unlock(&f->lock); */
+    /* fprintf(stderr, "RESET WAVEFORM\n"); */
+}
+
+void filter_irlen_gui_cb(Endpoint *ep)
+{
     
-    el = track_settings_get_el("track_settings_filter_irlen_slider");
+    PageEl *el = track_settings_get_el("track_settings_filter_irlen_slider");
     if (el) {
 	slider_reset((Slider *)el->component);
     }
+}
+
+void filter_type_gui_cb(Endpoint *ep)
+{
+    PageEl *el = track_settings_get_el("track_settings_filter_type_radio");
+    if (!el) return;
+    radio_button_reset_from_endpoint((RadioButton *)el->component);   
+    
+}
+void filter_type_dsp_cb(Endpoint *ep)
+{
+    FIRFilter *f = (FIRFilter *)ep->xarg1;
+    Value val = endpoint_safe_read(ep, NULL);
+    FilterType t = (FilterType)val.int_v;
+    filter_set_type(f, t);
+    
 }
 
 

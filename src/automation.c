@@ -285,7 +285,7 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	/*     track->fir_filter_active = false; */
 	/* } */
 
-	if (!track->fir_filter.frequency_response) {
+	if (!track->fir_filter.initialized) {
 	    track_add_default_filter(track);
 	}
 	a->val_type = JDAW_DOUBLE;
@@ -376,7 +376,7 @@ static int add_auto_form(void *mod_v, void *nullarg)
 	switch ((el = modal->els[i])->type) {
 	case MODAL_EL_RADIO:
 	    t = ((RadioButton *)el->obj)->selected_item;
-	    track = ((RadioButton *)el->obj)->target;
+	    track = ((RadioButton *)el->obj)->ep->xarg1;
 	    break;
 	default:
 	    break;
@@ -402,11 +402,28 @@ void track_add_new_automation(Track *track)
     Modal *m = modal_create(lt);
     /* Automation *a = track_add_automation_internal(track, AUTO_VOL); */
     modal_add_header(m, "Add automation to track", &color_global_light_grey, 4);
+
+    static int automation_selection = 0;
+    static Endpoint automation_selection_ep = {0};
+    if (automation_selection_ep.local_id == NULL) {
+	fprintf(stderr, "INITING TRACK SELECTION EP!!!\n");
+	endpoint_init(
+	    &automation_selection_ep,
+	    &automation_selection,
+	    JDAW_INT,
+	    "",
+	    "",
+	    JDAW_THREAD_MAIN,
+	    NULL, NULL, NULL,
+	    track, NULL,NULL,NULL);
+    }
+    automation_selection_ep.xarg1 = (void *)track;
     modal_add_radio(
 	m,
 	&color_global_light_grey,
-	(void *)track,
-	NULL,
+	/* (void *)track, */
+	&automation_selection_ep,
+	/* NULL, */
 	AUTOMATION_LABELS,
 	sizeof(AUTOMATION_LABELS) / sizeof(const char *));
     modal_add_button(m, "Add", add_auto_form);

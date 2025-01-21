@@ -355,6 +355,7 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 	
     } else if (strcmp("jdaw", ext) * strcmp("JDAW", ext) == 0) {
 	fprintf(stdout, "Jdaw file selected\n");
+	api_quit(proj);
 	Project *new_proj = jdaw_read_file(dp->path);
 	if (new_proj) {
 	    project_destroy(proj);

@@ -313,8 +313,9 @@ ModalEl *modal_add_textentry(
 ModalEl *modal_add_radio(
     Modal *modal,
     SDL_Color *color,
-    void *target,
-    ComponentFn action,
+    Endpoint *ep,
+    /* void *target, */
+    /* ComponentFn action, */
     const char **item_names,
     uint8_t num_items)
 {
@@ -328,8 +329,9 @@ ModalEl *modal_add_radio(
 	el->layout,
 	12,
 	color,
-	target,
-	action,
+	ep,
+	/* target, */
+	/* action, */
 	item_names,
 	num_items);
     layout_size_to_fit_children_v(el->layout, true, 0);

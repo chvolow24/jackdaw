@@ -43,6 +43,7 @@ typedef enum filter_type {
 } FilterType;
 
 typedef struct fir_filter {
+    bool initialized;
     FilterType type;
     double cutoff_freq_unscaled; /* For gui components and automations */
     double cutoff_freq; /* 0 < cutoff_freq < 0.5 */
@@ -54,12 +55,15 @@ typedef struct fir_filter {
     double *overlap_buffer_L;
     double *overlap_buffer_R;
     uint16_t impulse_response_len; /* Only modified in callbacks */
+    uint16_t impulse_response_len_internal;
+    /* uint16_t impulse_response_len_internal; */
     uint16_t frequency_response_len;
     uint16_t overlap_len;
     pthread_mutex_t lock;
 
     Track *track;
 
+    Endpoint type_ep;
     Endpoint cutoff_ep;
     Endpoint bandwidth_ep;
     Endpoint impulse_response_len_ep;
@@ -68,6 +72,7 @@ typedef struct fir_filter {
 } FIRFilter;
 
 typedef struct delay_line {
+    bool initialized;
     int32_t len_msec; /* For endpoint / GUI components */
     int32_t len; /* Sample frames */
     double amp;

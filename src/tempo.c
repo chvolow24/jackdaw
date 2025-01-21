@@ -784,15 +784,18 @@ void timeline_tempo_track_set_tempo_at_cursor(Timeline *tl)
 	}
 	char *options[] = {opt1, opt2};
 
+
+	/* TODO: FIX THIS */
 	el = modal_add_radio(
 	    mod,
 	    &color_global_white,
-	    &tt->end_bound_behavior,
-	    tempo_rb_action,
+	    NULL,
+	    /* &tt->end_bound_behavior, */
+	    /* tempo_rb_action, */
 	    (const char **)options,
 	    2);	
 
-	radio_button_set_from_target(el->obj);
+	radio_button_reset_from_endpoint(el->obj);
 	/* te->tb->text->max_len = TEMPO_STRLEN; */
     }
     mod->layout->w.value = 450;
@@ -1242,8 +1245,9 @@ static void tempo_track_populate_settings_internal(TempoSegment *s, TabView *tv,
 	}
 	char *options[] = {opt1, opt2};
 
-	p.radio_p.action = tempo_rb_action;
-	p.radio_p.target = (void *)&tt->end_bound_behavior;
+	/* p.radio_p.action = tempo_rb_action; */
+	/* p.radio_p.target = (void *)&tt->end_bound_behavior; */
+	p.radio_p.ep = NULL;
 	p.radio_p.num_items = 2;
 	p.radio_p.text_size = 16;
 	p.radio_p.text_color = &color_global_white;
@@ -1257,7 +1261,7 @@ static void tempo_track_populate_settings_internal(TempoSegment *s, TabView *tv,
 	    "ebb_radio"
 	    );
 
-	radio_button_set_from_target(el->component);
+	radio_button_reset_from_endpoint(el->component);
 	layout_reset(el->layout);
 	layout_size_to_fit_children_v(el->layout, true, 0);
 	layout_force_reset(el->layout);

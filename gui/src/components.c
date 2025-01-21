@@ -252,7 +252,7 @@ bool slider_mouse_click(Slider *slider, Window *win)
 	int dim = slider->orientation == SLIDER_VERTICAL ? main_win->mousep.y : main_win->mousep.x;
 	Value newval = slider_val_from_coord(slider, dim);
 	/* endpoint_write(slider->ep, newval, true, true, true, true); */
-	endpoint_start_continuous_change(slider->ep, false, (Value)0, JDAW_THREAD_MAIN, newval);
+	endpoint_start_continuous_change(slider->ep, false, (Value)0, slider->ep->owner_thread, newval);
 	/* slider_reset(slider); */
 	/* slider_edit_made(slider); */
 	slider->drag_context->component = (void *)slider;
@@ -578,15 +578,17 @@ RadioButton *radio_button_create(
     Layout *lt,
     int text_size,
     SDL_Color *text_color,
-    void *target,
-    ComponentFn action,
+    Endpoint *ep,
+    /* void *target, */
+    /* ComponentFn action, */
     const char **item_names,
     uint8_t num_items
     )
 {
     RadioButton *rb = calloc(1, sizeof(RadioButton));
-    rb->action = action;
-    rb->target = target;
+    rb->ep = ep;
+    /* rb->action = action; */
+    /* rb->target = target; */
     rb->num_items = num_items;
     rb->layout = lt;
     /* Layout manipulation */
@@ -637,10 +639,11 @@ RadioButton *radio_button_create(
     return rb;
 }
 
-void radio_button_set_from_target(RadioButton *rb)
+void radio_button_reset_from_endpoint(RadioButton *rb)
 {
-    if (!rb->target) return;
-    rb->selected_item = *((int *)rb->target);
+    /* if (!rb->target) return; */
+    Value val = endpoint_safe_read(rb->ep, NULL);
+    rb->selected_item = val.int_v;
     if (rb->selected_item > rb->num_items) {
 	rb->selected_item = 0;
 	fprintf(stderr, "Error: unable to set radio button from target valu");
@@ -676,14 +679,17 @@ void radio_cycle_back(RadioButton *rb)
 	rb->selected_item--;
     else
 	rb->selected_item = rb->num_items - 1;
-    if (rb->action) rb->action((void *)rb, rb->target);
+    
+    endpoint_write(rb->ep, (Value){.int_v = rb->selected_item}, true, true, true, false);
+    /* if (rb->action) rb->action((void *)rb, rb->target); */
 }
 
 void radio_cycle(RadioButton *rb)
 {
     rb->selected_item++;
     rb->selected_item %= rb->num_items;
-    if (rb->action) rb->action((void *)rb, rb->target);
+    endpoint_write(rb->ep, (Value){.int_v = rb->selected_item}, true, true, true, false);
+    /* if (rb->action) rb->action((void *)rb, rb->target); */
 }
 
 void radio_destroy(RadioButton *rb)
@@ -782,9 +788,10 @@ bool radio_click(RadioButton *rb, Window *Win)
 	for (uint8_t i = 0; i<rb->num_items; i++) {
 	    if (SDL_PointInRect(&main_win->mousep, &(rb->layout->children[i]->rect))) {
 		rb->selected_item = i;
-		if (rb->action) {
-		    rb->action((void *)rb, rb->target);
-		}
+		endpoint_write(rb->ep, (Value){.int_v = rb->selected_item}, true, true, true, false);
+		/* if (rb->action) { */
+		/*     rb->action((void *)rb, rb->target); */
+		/* } */
 		return true;
 	    }
 	}

@@ -153,8 +153,9 @@ struct button_params {
 struct radio_params {
     int text_size;
     SDL_Color *text_color;
-    void *target;
-    ComponentFn action;
+    Endpoint *ep;
+    /* void *target; */
+    /* ComponentFn action; */
     const char **item_names;
     uint8_t num_items;
 };

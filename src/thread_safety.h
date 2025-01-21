@@ -30,6 +30,13 @@ enum jdaw_thread {
 	exit(1); \
     }
 
+#define DSP_THREAD_ONLY_WHEN_ACTIVE(name) \
+    if (proj->playing && pthread_self() != DSP_THREAD_ID) { \
+        fprintf(stderr, "Error: fn %s called outside DSP thread while proj playing", #name); \
+	breakfn(); \
+	exit(1);\
+    }
+
 #define MAIN_THREAD_ONLY(name)		   \
     if (pthread_self() != MAIN_THREAD_ID) { \
 	fprintf(stderr, "Error: fn %s called outside main thread", #name); \
@@ -42,6 +49,7 @@ enum jdaw_thread {
 #define RESTRICT_NOT_DSP(name)
 #define DSP_THREAD_ONLY(name)
 #define MAIN_THREAD_ONLY(name)
+#define DSP_THREAD_ONLY_WHEN_ACTIVE(name)
 
 #endif
 

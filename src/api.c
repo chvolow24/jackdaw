@@ -199,10 +199,12 @@ void api_node_renamed(APINode *an)
 
 }
 
-extern Project *proj;
+/* extern Project *proj; */
 static void *server_threadfn(void *arg)
 {
-    int port = *(int *)arg;
+    /* int port = *(int *)arg; */
+    Project *proj = (Project *)arg;
+    int port = proj->server.port;
     socklen_t len = sizeof(proj->server.servaddr);
     if ((proj->server.sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 	perror("Socket creation failed");
@@ -220,8 +222,8 @@ static void *server_threadfn(void *arg)
 	exit(1);
     }
     char buffer[1024];
+    proj->server.active = true;
     while (proj->server.active) {
-	fprintf(stderr, "WAITING FOR MESSAGE..........\n");
 	if (recvfrom(proj->server.sockfd, (char *)buffer, 1024, 0, (struct sockaddr *) &proj->server.servaddr, &len) < 0) {
 	    perror("recvfrom");
 	    exit(1);
@@ -235,9 +237,8 @@ static void *server_threadfn(void *arg)
 		buffer[i] = '\0';
 	    }
 	}
-	
+
 	Endpoint *ep = api_endpoint_get(buffer);
-	fprintf(stderr, "Ep: %p, from %s\n", ep, buffer);
 	if (ep) {
 	    Value new_val = jdaw_val_from_str(buffer + val_offset, ep->val_type);
 	    endpoint_write(ep, new_val, true, true, true, false);
@@ -252,12 +253,13 @@ static void *server_threadfn(void *arg)
 
 
 /* Server */
-int api_start_server(int port)
+int api_start_server(Project *proj, int port)
 {
+    fprintf(stderr, "API START SERVER port: %d\n", port);
     pthread_t servthread;
-    proj->server.active = true;
     proj->server.port = port;
-    pthread_create(&servthread, NULL, server_threadfn, &port);
+    pthread_create(&servthread, NULL, server_threadfn, (void *)proj);
+    proj->server.thread_id = servthread;
     return 0;
 }
 
@@ -283,15 +285,20 @@ static void api_hash_table_destroy()
 	    api_hash_node_destroy(ahn);
 	    ahn = next;
 	}
+	api_hash_table[i] = NULL; /* Hash table will be reused if project swapped out */
     }
 }
 
 
-void api_quit()
+void api_quit(Project *proj)
 {
+    
     proj->server.active = false;
     char *msg = "quit";
+    fprintf(stderr, "SENDING QUIT MESSAGE on proj: %p, id: %d\n", proj, proj->server.sockfd);
     sendto(proj->server.sockfd, msg, strlen(msg), 0, (struct sockaddr *)&proj->server.servaddr, sizeof(proj->server.servaddr));
+    pthread_join(proj->server.thread_id, NULL);
+    fprintf(stderr, "JOINED THREAD DONE\n");
     api_hash_table_destroy();
 }
 

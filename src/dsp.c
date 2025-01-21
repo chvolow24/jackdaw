@@ -263,32 +263,55 @@ static double bandcut_IR(int x, int offset, double center_freq, double bandwidth
 static void FIR_filter_alloc_buffers(FIRFilter *filter)
 {
     pthread_mutex_lock(&filter->lock);
+
+    int max_irlen = filter->track->tl->proj->fourier_len_sframes;
+    if (!filter->impulse_response)
+	filter->impulse_response = calloc(1, sizeof(double) * max_irlen);
+
+    if (!filter->frequency_response)
+	filter->frequency_response = calloc(1, sizeof(double complex) * filter->frequency_response_len);
+
+    if (!filter->frequency_response_mag)
+	filter->frequency_response_mag = calloc(1, sizeof(double) * filter->frequency_response_len);
+
+    /* filter->overlap_len =  = 1; */
+    if (!filter->overlap_buffer_L)
+	filter->overlap_buffer_L = calloc(1, sizeof(double) * max_irlen - 1);
+    if (!filter->overlap_buffer_R)
+	filter->overlap_buffer_R = calloc(1, sizeof(double) * max_irlen - 1);
+
+	
     /* SDL_LockMutex(filter->lock); */
-    if (filter->impulse_response) free(filter->impulse_response);
-    filter->impulse_response = calloc(1, sizeof(double) * filter->impulse_response_len);
-    if (filter->frequency_response) free(filter->frequency_response);
-    filter->frequency_response = calloc(1, sizeof(double complex) * filter->frequency_response_len);
-    if (filter->frequency_response_mag) free(filter->frequency_response_mag);
-    filter->frequency_response_mag = calloc(1, sizeof(double) * filter->frequency_response_len);
-    filter->overlap_len = filter->impulse_response_len - 1;
-    if (filter->overlap_buffer_L) free(filter->overlap_buffer_L);
-    filter->overlap_buffer_L = calloc(1, sizeof(double) * filter->overlap_len);
-    if (filter->overlap_buffer_R) free(filter->overlap_buffer_R);
-    filter->overlap_buffer_R = calloc(1, sizeof(double) * filter->overlap_len);
+    /* if (filter->impulse_response) free(filter->impulse_response); */
+    /* filter->impulse_response = calloc(1, sizeof(double) * filter->impulse_response_len); */
+    /* if (filter->frequency_response) free(filter->frequency_response); */
+    /* filter->frequency_response = calloc(1, sizeof(double complex) * filter->frequency_response_len); */
+    /* if (filter->frequency_response_mag) free(filter->frequency_response_mag); */
+    /* filter->frequency_response_mag = calloc(1, sizeof(double) * filter->frequency_response_len); */
+    /* filter->overlap_len = filter->impulse_response_len - 1; */
+    /* if (filter->overlap_buffer_L) free(filter->overlap_buffer_L); */
+    /* filter->overlap_buffer_L = calloc(1, sizeof(double) * filter->overlap_len); */
+    /* if (filter->overlap_buffer_R) free(filter->overlap_buffer_R); */
+    /* filter->overlap_buffer_R = calloc(1, sizeof(double) * filter->overlap_len); */
     pthread_mutex_unlock(&filter->lock);
     /* pthread_mutex_unlock(&filter->lock); */
 
 }
 void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len) 
 {
+    fprintf(stderr, "INIT with IRLEN: %d, track %p name %s\n", impulse_response_len, track, track->name);
+    pthread_mutex_init(&filter->lock, NULL);
     filter->type = type;
     filter->track = track;
+    filter->impulse_response_len_internal = impulse_response_len;
     filter->impulse_response_len = impulse_response_len;
     filter->frequency_response_len = frequency_response_len;
     FIR_filter_alloc_buffers(filter);
-    pthread_mutex_init(&filter->lock, NULL);
 
-
+    filter->cutoff_freq = 0.02;
+    filter->bandwidth = 0.1;
+    filter_set_impulse_response_len(filter, impulse_response_len);
+    /* filter_set_params(filter, LOWPASS, 0.02, 0.1); */
     
     endpoint_init(
 	&filter->cutoff_ep,
@@ -318,7 +341,7 @@ void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impu
 
     endpoint_init(
 	&filter->impulse_response_len_ep,
-	&filter->impulse_response_len,
+	&filter->impulse_response_len_internal,
 	JDAW_UINT16,
 	"filter_irlen",
 	"undo/redo adj filter impulse resp len",
@@ -326,11 +349,26 @@ void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impu
 	filter_irlen_gui_cb, NULL, filter_irlen_dsp_cb,
 	filter, NULL, NULL, NULL);
     api_endpoint_register(&filter->impulse_response_len_ep, &filter->track->api_node);
+
+    endpoint_init(
+	&filter->type_ep,
+	&filter->type,
+	JDAW_INT,
+	"type",
+	"undo/redo set filter type",
+	JDAW_THREAD_DSP,
+	filter_type_gui_cb, NULL, filter_type_dsp_cb,
+	filter, NULL, NULL, NULL);
+    filter->initialized = true;
 }
+
+extern pthread_t DSP_THREAD_ID;
+extern Project *proj;
 
 /* Bandwidth param only required for band-pass and band-cut filters */
 void filter_set_params(FIRFilter *filter, FilterType type, double cutoff, double bandwidth)
 {
+    /* DSP_THREAD_ONLY_WHEN_ACTIVE("filter_set_params"); */
     pthread_mutex_lock(&filter->lock);
     filter->type = type;
     filter->cutoff_freq = cutoff;
@@ -378,7 +416,6 @@ void filter_set_params(FIRFilter *filter, FilterType type, double cutoff, double
     FFT_unscaled(IR_zero_padded, filter->frequency_response, filter->frequency_response_len);
     get_magnitude(filter->frequency_response, filter->frequency_response_mag, filter->frequency_response_len);
     pthread_mutex_unlock(&filter->lock);
-
     /* free(IR_zero_padded); */
 }
 
@@ -419,15 +456,15 @@ void filter_set_bandwidth_hz(FIRFilter *f, double bandwidth_h)
 
 void filter_set_impulse_response_len(FIRFilter *f, int new_len)
 {
+    /* DSP_THREAD_ONLY_WHEN_ACTIVE("filter_set_params"); */
     f->impulse_response_len = new_len;
-    FIR_filter_alloc_buffers(f);
+    f->overlap_len = new_len - 1;
     double cutoff = f->cutoff_freq;
     double bandwidth = f->bandwidth;
     FilterType t = f->type;
     filter_set_params(f, t, cutoff, bandwidth);
     memset(f->overlap_buffer_L, '\0', f->overlap_len * sizeof(double));
     memset(f->overlap_buffer_R, '\0', f->overlap_len * sizeof(double));
-	      
 }
 
 void filter_set_type(FIRFilter *f, FilterType t)

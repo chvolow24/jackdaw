@@ -192,3 +192,25 @@ void delay_line_amp_gui_cb(Endpoint *ep)
     }
 }
 
+void tempo_track_ebb_gui_cb(Endpoint *ep)
+{
+    if (main_win->num_modals > 0) {
+	Modal *m = main_win->modals[main_win->num_modals - 1];
+	for (int i=0; i<m->num_els; i++) {
+	    ModalEl *el = m->els[i];
+	    if (el->type == MODAL_EL_RADIO) {
+		RadioButton *rb = el->obj;
+		if (rb->ep == ep) {
+		    radio_button_reset_from_endpoint(rb);
+		}
+	    }
+	}
+    } else if (main_win->active_tabview) {
+	Page *p = main_win->active_tabview->tabs[0];
+	PageEl *el = page_get_el_by_id(p, "tempo_segment_ebb_radio");
+	if (el) {
+	    radio_button_reset_from_endpoint(el->component);
+	}
+    }
+}
+

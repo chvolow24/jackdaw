@@ -680,7 +680,7 @@ void radio_cycle_back(RadioButton *rb)
     else
 	rb->selected_item = rb->num_items - 1;
     
-    endpoint_write(rb->ep, (Value){.int_v = rb->selected_item}, true, true, true, false);
+    endpoint_write(rb->ep, (Value){.int_v = rb->selected_item}, true, true, true, true);
     /* if (rb->action) rb->action((void *)rb, rb->target); */
 }
 
@@ -688,9 +688,28 @@ void radio_cycle(RadioButton *rb)
 {
     rb->selected_item++;
     rb->selected_item %= rb->num_items;
-    endpoint_write(rb->ep, (Value){.int_v = rb->selected_item}, true, true, true, false);
+    
+    endpoint_write(rb->ep, (Value){.int_v = rb->selected_item}, true, true, true, true);
     /* if (rb->action) rb->action((void *)rb, rb->target); */
 }
+
+bool radio_click(RadioButton *rb, Window *Win)
+{
+    if (SDL_PointInRect(&main_win->mousep, &rb->layout->rect)) {
+	for (uint8_t i = 0; i<rb->num_items; i++) {
+	    if (SDL_PointInRect(&main_win->mousep, &(rb->layout->children[i]->rect))) {
+		rb->selected_item = i;
+		endpoint_write(rb->ep, (Value){.int_v = rb->selected_item}, true, true, true, true);
+		/* if (rb->action) { */
+		/*     rb->action((void *)rb, rb->target); */
+		/* } */
+		return true;
+	    }
+	}
+    }
+    return false;
+}
+
 
 void radio_destroy(RadioButton *rb)
 {
@@ -781,23 +800,6 @@ bool draggable_mouse_motion(Draggable *draggable, Window *win)
     return false;
 }
 
-
-bool radio_click(RadioButton *rb, Window *Win)
-{
-    if (SDL_PointInRect(&main_win->mousep, &rb->layout->rect)) {
-	for (uint8_t i = 0; i<rb->num_items; i++) {
-	    if (SDL_PointInRect(&main_win->mousep, &(rb->layout->children[i]->rect))) {
-		rb->selected_item = i;
-		endpoint_write(rb->ep, (Value){.int_v = rb->selected_item}, true, true, true, false);
-		/* if (rb->action) { */
-		/*     rb->action((void *)rb, rb->target); */
-		/* } */
-		return true;
-	    }
-	}
-    }
-    return false;
-}
 
 bool toggle_click(Toggle *toggle, Window *win)
 {

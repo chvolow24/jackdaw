@@ -33,6 +33,7 @@
 
 #include "project.h"
 #include "endpoint.h"
+#include "modal.h"
 
 void play_speed_gui_cb(Endpoint *ep);
 void track_slider_cb(Endpoint *ep);
@@ -53,3 +54,6 @@ void delay_line_len_gui_cb(Endpoint *ep);
 
 void delay_line_amp_dsp_cb(Endpoint *ep);
 void delay_line_amp_gui_cb(Endpoint *ep);
+
+
+void tempo_track_ebb_gui_cb(Endpoint *ep);

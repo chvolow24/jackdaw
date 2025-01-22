@@ -32,6 +32,7 @@
     * Setting tempo and time signature
  *****************************************************************************************************************/
 
+#include "endpoint_callbacks.h"
 #include "page.h"
 #include "text.h"
 #include "thread_safety.h"
@@ -503,7 +504,7 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
     snprintf(t->num_beats_str, 3, "4");
     for (int i=0; i<MAX_BEATS_PER_BAR; i++) {
 	snprintf(t->subdiv_len_strs[i], 2, "4");
-    }
+    }    
 
     Layout *tempo_tracks_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area");
     if (!tempo_tracks_area) {
@@ -575,19 +576,6 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
 
 
     t->metronome_vol = 1.0f;
-    endpoint_init(
-	&t->metronome_vol_ep,
-	&t->metronome_vol,
-	JDAW_FLOAT,
-	"metro_vol",
-	"undo/redo adj metronome vol",
-	JDAW_THREAD_MAIN,
-	NULL, NULL, NULL,
-	NULL, NULL, NULL, NULL);
-    endpoint_set_allowed_range(
-	&t->metronome_vol_ep,
-	(Value){.float_v = 0.0},
-	(Value){.float_v = TRACK_VOL_MAX});
 	
     Layout *vol_lt = layout_get_child_by_name_recursive(t->layout, "metronome_vol_slider");
     t->metronome_vol_slider = slider_create(
@@ -633,6 +621,37 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
 	nullval, nullval,
 	0, 0, false, false);
     timeline_rectify_track_area(tl);
+
+    endpoint_init(
+	&t->metronome_vol_ep,
+	&t->metronome_vol,
+	JDAW_FLOAT,
+	"metro_vol",
+	"undo/redo adj metronome vol",
+	JDAW_THREAD_MAIN,
+	NULL, NULL, NULL,
+	NULL, NULL, NULL, NULL);
+    endpoint_set_allowed_range(
+	&t->metronome_vol_ep,
+	(Value){.float_v = 0.0},
+	(Value){.float_v = TRACK_VOL_MAX});
+
+    endpoint_init(
+	&t->end_bound_behavior_ep,
+	&t->end_bound_behavior,
+	JDAW_INT,
+	"segment_end_bound_behavior",
+	"undo/redo set tempo track end bound behavior",
+	JDAW_THREAD_MAIN,
+        tempo_track_ebb_gui_cb, NULL, NULL,
+	NULL, NULL, NULL, NULL);
+    
+    endpoint_set_allowed_range(
+	&t->metronome_vol_ep,
+	(Value){.int_v = 0},
+	(Value){.int_v = 1});
+
+
 
     /* timeline_reset(tl, false); */
     return t;
@@ -735,13 +754,13 @@ static int set_tempo_submit_form(void *mod_v, void *target)
     return 0;
 }
 
-static int tempo_rb_action(void *self, void *target)
-{
-    RadioButton *rb = (RadioButton *)self;
-    enum ts_end_bound_behavior *ebb = target;
-    *ebb = rb->selected_item;
-    return 0;
-}
+/* static int tempo_rb_action(void *self, void *target) */
+/* { */
+/*     RadioButton *rb = (RadioButton *)self; */
+/*     enum ts_end_bound_behavior *ebb = target; */
+/*     *ebb = rb->selected_item; */
+/*     return 0; */
+/* } */
 
 #define TEMPO_STRLEN 5
 void timeline_tempo_track_set_tempo_at_cursor(Timeline *tl)
@@ -784,12 +803,13 @@ void timeline_tempo_track_set_tempo_at_cursor(Timeline *tl)
 	}
 	char *options[] = {opt1, opt2};
 
-
+	
 	/* TODO: FIX THIS */
 	el = modal_add_radio(
 	    mod,
 	    &color_global_white,
-	    NULL,
+	    /* NULL, */
+	    &tt->end_bound_behavior_ep,
 	    /* &tt->end_bound_behavior, */
 	    /* tempo_rb_action, */
 	    (const char **)options,
@@ -1245,9 +1265,9 @@ static void tempo_track_populate_settings_internal(TempoSegment *s, TabView *tv,
 	}
 	char *options[] = {opt1, opt2};
 
+	p.radio_p.ep = &tt->end_bound_behavior_ep;
 	/* p.radio_p.action = tempo_rb_action; */
 	/* p.radio_p.target = (void *)&tt->end_bound_behavior; */
-	p.radio_p.ep = NULL;
 	p.radio_p.num_items = 2;
 	p.radio_p.text_size = 16;
 	p.radio_p.text_color = &color_global_white;

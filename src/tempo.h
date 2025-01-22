@@ -34,6 +34,7 @@
 #define JDAW_TEMPO_H
 
 #include <stdint.h>
+#include "api.h"
 #include "components.h"
 #include "endpoint.h"
 #include "layout.h"
@@ -100,7 +101,6 @@ typedef struct tempo_track {
 
     Metronome *metronome;
     float metronome_vol;
-    Endpoint metronome_vol_ep;
     /* Button *metronome_button; */
     Textbox *metronome_button;
     Textbox *edit_button;
@@ -127,6 +127,11 @@ typedef struct tempo_track {
     char num_beats_str[3];
     char tempo_str[5];
     char subdiv_len_strs[MAX_BEATS_PER_BAR][2];
+
+    /* API */
+    APINode api_node;
+    Endpoint metronome_vol_ep;
+    Endpoint end_bound_behavior_ep;
     
 } TempoTrack;
 

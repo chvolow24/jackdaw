@@ -664,6 +664,7 @@ static inline void project_init_output_panel(Page *output, Project *proj)
 	"panel_out_value",
 	"default_out_value");
     textbox_set_trunc(((Button *)el->component)->tb, true);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
     
     void **output_L, **output_R;
     output_L = (void *)&(proj->output_L);
@@ -941,7 +942,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
     p.button_p.action = quickref_open_file;
     p.button_p.text_size = 12;
     p.button_p.set_str = "Open file (C-o)";
-    page_add_el_custom_layout(
+    el = page_add_el_custom_layout(
 	quickref2,
 	EL_BUTTON,
 	p,
@@ -949,12 +950,13 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row1,
 	"open_file",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
 
 
     p.button_p.action = quickref_save;
     p.button_p.set_str = "Save (C-s)";
-    page_add_el_custom_layout(
+    el = page_add_el_custom_layout(
 	quickref2,
 	EL_BUTTON,
 	p,
@@ -962,13 +964,14 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row1,
 	"save",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
 
 
     p.button_p.action = quickref_export_wav;
     p.button_p.set_str = "Export wav (S-w)";
     
-    page_add_el_custom_layout(
+    el = page_add_el_custom_layout(
 	quickref2,
 	EL_BUTTON,
 	p,
@@ -976,12 +979,13 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row2,
 	"export_wav",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
 
     p.button_p.action = quickref_track_settings;
     p.button_p.set_str = "Track settings (S-t)";
 
-    page_add_el_custom_layout(
+    el = page_add_el_custom_layout(
 	quickref2,
 	EL_BUTTON,
 	p,
@@ -989,6 +993,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row3,
 	"track_settings",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
 	/* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
 }
 
@@ -1583,6 +1588,7 @@ Track *timeline_add_track(Timeline *tl)
     /* textbox_set_trunc(track->tb_input_name, true); */
     /* textbox_set_fixed_w(track->tb_input_name, saved_w); */
     textbox_set_border(track->tb_input_name, &color_global_black, 1);
+    textbox_set_style(track->tb_input_name, BUTTON_CLASSIC);
 
     
     track->tb_mute_button = textbox_create_from_str(

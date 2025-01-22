@@ -576,6 +576,7 @@ void automation_show(Automation *a)
 	    );
         textbox_set_border(button->tb, &color_global_black, 1);
 	button->tb->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
+	textbox_set_style(button->tb, BUTTON_DARK);
 	a->read_button = button;
 	
 	tb_lt = layout_get_child_by_name_recursive(lt, "write");
@@ -592,6 +593,7 @@ void automation_show(Automation *a)
 	    );
 	textbox_set_border(button->tb, &color_global_black, 1);
 	button->tb->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
+	textbox_set_style(button->tb, BUTTON_DARK);
 	a->write_button = button;
 	a->keyframe_label = label_create(0, a->layout, keyframe_labelmaker, a, 0, main_win);
     } else {

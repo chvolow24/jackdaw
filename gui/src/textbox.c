@@ -186,25 +186,26 @@ void textbox_draw(Textbox *tb)
     }
 
     if (tb->style == BUTTON_CLASSIC || tb->style == BUTTON_DARK) {
+	int dpi_scale = tb->window->dpi_scale_factor;
 	tb_rect = tb->layout->rect;
 	if (tb->style == BUTTON_CLASSIC)
 	    SDL_SetRenderDrawColor(rend, 240, 240, 240, 255);
 	else
 	    SDL_SetRenderDrawColor(rend, 120, 120, 120, 255);
-	SDL_Rect draw_rect = {tb_rect.x, tb_rect.y, 2, tb_rect.h - 2};
+	SDL_Rect draw_rect = {tb_rect.x, tb_rect.y, dpi_scale, tb_rect.h - dpi_scale};
 	SDL_RenderFillRect(rend, &draw_rect);
-	draw_rect.w = tb_rect.w - 2;
-	draw_rect.h = 2;
+	draw_rect.w = tb_rect.w - dpi_scale;
+	draw_rect.h = dpi_scale;
 	SDL_RenderFillRect(rend, &draw_rect);
 	SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
 	/* draw_rect.x += 2; */
-	draw_rect.y += tb_rect.h - 2;
-	/* draw_rect.w -= 2; */
+	draw_rect.y += tb_rect.h - dpi_scale;
+	/* draw_rect.w -= dpi_scale; */
 	SDL_RenderFillRect(rend, &draw_rect);
-	draw_rect.x += tb_rect.w - 2;
+	draw_rect.x += tb_rect.w - dpi_scale;
 	draw_rect.y = tb_rect.y;
 	draw_rect.h = tb_rect.h;
-	draw_rect.w = 2;
+	draw_rect.w = dpi_scale;
 	SDL_RenderFillRect(rend, &draw_rect);
     }
 

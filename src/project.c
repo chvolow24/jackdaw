@@ -737,7 +737,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
     p.button_p.text_size = 14;
     /* q->add_track = create_button_from_params(button_lt, b); */
     
-    page_add_el_custom_layout(
+    PageEl *el = page_add_el_custom_layout(
 	quickref1,
 	EL_BUTTON,
 	p,
@@ -745,12 +745,13 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row1,
 	"add_track",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
 
     p.button_p.action = quickref_record;
     p.button_p.set_str = "r ⏺";
     /* q->record = create_button_from_params(button_lt, b); */
-    page_add_el_custom_layout(
+    el = page_add_el_custom_layout(
 	quickref1,
 	EL_BUTTON,
 	p,
@@ -758,6 +759,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row1,
 	"record",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
 
     /* /\* ROW 2 *\/ */
@@ -765,7 +767,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
     p.button_p.font = main_win->mono_font;
     p.button_p.action = quickref_left;
     p.button_p.set_str = "h ←";
-    page_add_el_custom_layout(
+    el = page_add_el_custom_layout(
 	quickref1,
 	EL_BUTTON,
 	p,
@@ -773,6 +775,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row2,
 	"left",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->left = create_button_from_params(button_lt, b); */
 
@@ -780,7 +783,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
     p.button_p.font = main_win->symbolic_font;
     p.button_p.action = quickref_rewind;
     p.button_p.set_str = "j ⏴";
-    page_add_el_custom_layout(
+    el = page_add_el_custom_layout(
 	quickref1,
 	EL_BUTTON,
 	p,
@@ -788,13 +791,15 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row2,
 	"rewind",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
+    
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->rewind = create_button_from_params(button_lt, b); */
 
     /* button_lt = create_quickref_button_lt(row2); */
     p.button_p.action = quickref_pause;
     p.button_p.set_str = "k ⏸";
-    page_add_el_custom_layout(
+    el = page_add_el_custom_layout(
 	quickref1,
 	EL_BUTTON,
 	p,
@@ -802,6 +807,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row2,
 	"pause",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->pause = create_button_from_params(button_lt, b); */
 
@@ -809,7 +815,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
     p.button_p.action = quickref_play;
     p.button_p.set_str = "l ⏵";
 
-    page_add_el_custom_layout(
+    el = page_add_el_custom_layout(
 	quickref1,
 	EL_BUTTON,
 	p,
@@ -817,6 +823,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row2,
 	"play",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* Q->play = create_button_from_params(button_lt, b); */
 
@@ -825,7 +832,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
     p.button_p.action = quickref_right;
     p.button_p.set_str = "; →";
 
-    page_add_el_custom_layout(
+    el = page_add_el_custom_layout(
 	quickref1,
 	EL_BUTTON,
 	p,
@@ -833,6 +840,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row2,
 	"right",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->right = create_button_from_params(button_lt, b); */
 
@@ -843,7 +851,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
     p.button_p.action = quickref_next;
     p.button_p.set_str = "n ↓";
 
-    page_add_el_custom_layout(
+    el = page_add_el_custom_layout(
 	quickref1,
 	EL_BUTTON,
 	p,
@@ -851,6 +859,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row3,
 	"next",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->next = create_button_from_params(button_lt, b); */
 
@@ -858,7 +867,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
     p.button_p.action = quickref_previous;
     p.button_p.set_str = "p ↑";
 
-    page_add_el_custom_layout(
+    el = page_add_el_custom_layout(
 	quickref1,
 	EL_BUTTON,
 	p,
@@ -866,6 +875,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row3,
 	"previous",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->previous = create_button_from_params(button_lt, b); */
 
@@ -874,7 +884,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
     p.button_p.font = main_win->symbolic_font;
     p.button_p.action = quickref_zoom_out;
     p.button_p.set_str = ", 🔍-";
-    page_add_el_custom_layout(
+    el = page_add_el_custom_layout(
 	quickref1,
 	EL_BUTTON,
 	p,
@@ -882,13 +892,14 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row3,
 	"zoom_out",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->zoom_out = create_button_from_params(button_lt, b); */
 
     /* button_lt = create_quickref_button_lt(row3); */
     p.button_p.action = quickref_zoom_in;
     p.button_p.set_str = ". 🔍+";
-    page_add_el_custom_layout(
+    el = page_add_el_custom_layout(
 	quickref1,
 	EL_BUTTON,
 	p,
@@ -896,6 +907,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row3,
 	"zoom_in",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
 
     
@@ -1582,6 +1594,7 @@ Track *timeline_add_track(Timeline *tl)
     track->tb_mute_button->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
     textbox_set_border(track->tb_mute_button, &color_global_black, 1);
     textbox_set_background_color(track->tb_mute_button, &color_mute_solo_grey);
+    textbox_set_style(track->tb_mute_button, BUTTON_CLASSIC);
     /* textbox_reset_full(track->tb_mute_button); */
 
     track->tb_solo_button = textbox_create_from_str(
@@ -1593,6 +1606,7 @@ Track *timeline_add_track(Timeline *tl)
     track->tb_solo_button->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
     textbox_set_border(track->tb_solo_button, &color_global_black, 1);
     textbox_set_background_color(track->tb_solo_button, &color_mute_solo_grey);
+    textbox_set_style(track->tb_solo_button, BUTTON_CLASSIC);
     /* textbox_reset_full(track->tb_solo_button); */
 
 

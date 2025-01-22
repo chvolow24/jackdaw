@@ -63,7 +63,6 @@ extern SDL_Color control_bar_bckgrnd;
 extern SDL_Color mute_red;
 extern SDL_Color color_global_play_green;
 /* extern SDL_Color color_button_light_text; */
-extern SDL_Color color_button_light_bckgrnd;
 
 extern pthread_t MAIN_THREAD_ID;
 
@@ -1053,56 +1052,12 @@ static void tempo_track_populate_settings_internal(TempoSegment *s, TabView *tv,
     layout_force_reset(page->layout);
 
     PageElParams p;
-
-    char label[255];
-    if (s->next) {	
-	snprintf(label, 255, "Segment from m%d to m%d", s->first_measure_index, s->next->first_measure_index);
-    } else {
-	snprintf(label, 255, "Segment from m%d to ∞", s->first_measure_index);
-    }
-    /* timecode_str_at(tt->tl, label + offset, 255 - offset, s->start_pos); */
-    
-    /* offset = strlen(label); */
-    /* offset += snprintf(label + offset, 255 - offset, " - "); */
-    /* timecode_str_at(tt->tl, label + offset, 255 - offset, s->end_pos); */
-
-    p.textbox_p.font = main_win->bold_font;
-    p.textbox_p.text_size = 16;
-    p.textbox_p.set_str = label;
-    p.textbox_p.win = page->win;
-
-    PageEl *el = page_add_el(page, EL_TEXTBOX, p, "", "segment_label");
-    Textbox *tb = (Textbox *)el->component;
-    textbox_set_align(tb, CENTER_LEFT);
-    textbox_reset_full(tb);
-    layout_size_to_fit_children_h(el->layout, true, 0);
-
-    /* Add next/previous segment navigators */
-    if (s->prev || s->next) {
-	p.button_p.font = main_win->mono_font;
-	p.button_p.win = page->win;
-	p.button_p.target = NULL;
-	p.button_p.text_color = &color_global_white;
-	p.button_p.text_size = 16;
-	p.button_p.background_color = &color_global_quickref_button_blue;
-	p.button_p.target = s;
-
-    }
-    if (s->prev) {
-	p.button_p.set_str = "←";
-	p.button_p.action = segment_prev_action;
-	page_add_el(page, EL_BUTTON, p, "segment_left", "segment_left");
-
-    }
-    if (s->next) {
-	p.button_p.set_str = "→";
-	p.button_p.action = segment_next_action;
-	page_add_el(page, EL_BUTTON, p, "segment_right", "segment_right");
-    }
+    PageEl *el;
+    Textbox *tb;
 
 
     
-    p.textbox_p.font = main_win->bold_font;
+    p.textbox_p.font = main_win->std_font;
     p.textbox_p.text_size = 16;
     p.textbox_p.win = page->win;
 
@@ -1321,7 +1276,7 @@ static void tempo_track_populate_settings_internal(TempoSegment *s, TabView *tv,
     p.button_p.font = main_win->bold_font;
     p.button_p.text_color = &color_global_black;
     p.button_p.text_size = 16;
-    p.button_p.background_color = &color_button_light_bckgrnd;
+    p.button_p.background_color = &color_global_light_grey;
     p.button_p.win = main_win;
     p.button_p.set_str = "Submit";
     el = page_add_el(
@@ -1333,6 +1288,57 @@ static void tempo_track_populate_settings_internal(TempoSegment *s, TabView *tv,
     layout_center_agnostic(el->layout, true, false);
     textbox_set_align(((Button *)el->component)->tb, CENTER);
     textbox_reset_full(((Button *)el->component)->tb);
+
+
+
+    char label[255];
+    if (s->next) {	
+	snprintf(label, 255, "Segment from m%d to m%d", s->first_measure_index, s->next->first_measure_index);
+    } else {
+	snprintf(label, 255, "Segment from m%d to ∞", s->first_measure_index);
+    }
+    /* timecode_str_at(tt->tl, label + offset, 255 - offset, s->start_pos); */
+    
+    /* offset = strlen(label); */
+    /* offset += snprintf(label + offset, 255 - offset, " - "); */
+    /* timecode_str_at(tt->tl, label + offset, 255 - offset, s->end_pos); */
+
+    p.textbox_p.font = main_win->bold_font;
+    p.textbox_p.text_size = 16;
+    p.textbox_p.set_str = label;
+    p.textbox_p.win = page->win;
+
+    el = page_add_el(page, EL_TEXTBOX, p, "", "segment_label");
+    tb = (Textbox *)el->component;
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+    layout_size_to_fit_children_h(el->layout, true, 0);
+
+    /* Add next/previous segment navigators */
+    if (s->prev || s->next) {
+	p.button_p.font = main_win->mono_font;
+	p.button_p.win = page->win;
+	p.button_p.target = NULL;
+	p.button_p.text_color = &color_global_white;
+	p.button_p.text_size = 16;
+	p.button_p.background_color = &color_global_quickref_button_blue;
+	p.button_p.target = s;
+
+    }
+    if (s->prev) {
+	p.button_p.set_str = "←";
+	p.button_p.action = segment_prev_action;
+	page_add_el(page, EL_BUTTON, p, "segment_left", "segment_left");
+
+    }
+    if (s->next) {
+	p.button_p.set_str = "→";
+	p.button_p.action = segment_next_action;
+	page_add_el(page, EL_BUTTON, p, "segment_right", "segment_right");
+    }
+
+
+    
     page_reset(page);
     
 	

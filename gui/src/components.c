@@ -400,7 +400,8 @@ Button *button_create(
     button->tb = textbox_create_from_str(text, lt, font, text_size, main_win);
     button->tb->corner_radius = BUTTON_CORNER_RADIUS;
     textbox_set_trunc(button->tb, false);
-    textbox_set_border(button->tb, text_color, 1);
+    /* textbox_set_border(button->tb, text_color, 1); */
+    textbox_set_style(button->tb, BUTTON_CLASSIC);
     textbox_set_text_color(button->tb, text_color);
     textbox_set_background_color(button->tb, background_color);
     textbox_set_align(button->tb, CENTER);

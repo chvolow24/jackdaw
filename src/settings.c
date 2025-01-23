@@ -34,11 +34,14 @@
 #include <pthread.h>
 #include "assets.h"
 #include "dsp.h"
+#include "label.h"
 #include "page.h"
 #include "project.h"
 #include "textbox.h"
+#include "timeline.h"
 #include "userfn.h"
 #include "waveform.h"
+
 #ifndef INSTALL_DIR
 #define INSTALL_DIR "."
 #endif
@@ -52,6 +55,7 @@ extern Window *main_win;
 extern SDL_Color color_global_white;
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_light_grey;
+extern SDL_Color color_global_quickref_button_blue;
 extern SDL_Color freq_L_color;
 extern SDL_Color freq_R_color;
 
@@ -62,107 +66,12 @@ static double unscale_freq(double scaled)
 {
     return log(scaled * proj->sample_rate) / log(proj->sample_rate);
 }
-
-static int rb_target_action(void *self_v, void *target)
-{
-    RadioButton *self = (RadioButton *)self_v;
-    FIRFilter *f = (FIRFilter *)target;
-    /* double cutoff = f->cutoff_freq; */
-    FilterType t = (FilterType)(self->selected_item);
-    /* fprintf(stdout, "SET FIR FILTER PARAMS %p\n", f); */
-    filter_set_type(f, t);
-    return 0;
-}
-
-/* static int slider_cutoff_target_action(void *self_v, void *target) */
-/* { */
-/*     Slider *self = (Slider *)self_v; */
-/*     FIRFilter *f = (FIRFilter *)target; */
-/*     double cutoff_unscaled = *(double *)(self->value); */
-    
-/*     /\* double cutoff_h = pow(10.0, log10((double)proj->sample_rate / 2) * cutoff_unscaled); *\/ */
-/*     double cutoff_hz = dsp_scale_freq_to_hz(cutoff_unscaled); */
-/*     filter_set_cutoff_hz(f, cutoff_hz); */
-/*     return 0; */
-/* } */
-
-/* static int slider_bandwidth_target_action(void *self_v, void *target) */
-/* { */
-/*     Slider *self = (Slider *)self_v; */
-/*     FIRFilter *f = (FIRFilter *)target; */
-/*     double bandwidth_unscaled = *(double *)(self->value); */
-/*     /\* double bandwidth_h = pow(10.0, log10((double)proj->sample_rate / 2) * bandwidth_unscaled); *\/ */
-/*     double bandwidth_hz = dsp_scale_freq_to_hz(bandwidth_unscaled); */
-/*     filter_set_bandwidth_hz(f, bandwidth_hz); */
-/*     return 0; */
-/* } */
-
-/* static int slider_irlen_target_action(void *self_v, void *target) */
-/* { */
-/*     Slider *self = (Slider *)self_v; */
-/*     FIRFilter *f = (FIRFilter *)target; */
-/*     int val = *(int *)self->value; */
-/*     filter_set_impulse_response_len(f, val); */
-
-/*     /\* Need to reset arrays in freq plot *\/ */
-/*     /\* TODO: find a better way to do this *\/ */
-/*     current_fp->arrays[2] = f->frequency_response_mag; */
-/*     waveform_reset_freq_plot(current_fp); */
-    
-/*     /\* slider_reset(self); *\/ */
-/*     return 0; */
-/* } */
-
 static int toggle_delay_line_target_action(void *self_v, void *target)
 {
     DelayLine *dl = (DelayLine *)target;
-    /* if (!dl->buf_L) { */
-    /* 	delay_line_init(dl, NULL, proj->sample_rate); */
-    /* } */
     delay_line_clear(dl);
     return 0;
 }
-
-/* static int slider_deltime_target_action(void *self_v, void *target) */
-/* { */
-/*     DelayLine *dl = (DelayLine *)target; */
-/*     Slider *self = (Slider *)self_v; */
-/*     int32_t val_msec = *(int32_t *)self->value; */
-/*     int32_t len_sframes = (int32_t)((double)val_msec * proj->sample_rate / 1000); */
-/*     delay_line_set_params(dl, dl->amp, len_sframes); */
-/*     /\* slider_reset(self); *\/ */
-/*     return 0; */
-/* } */
-
-/* static int delay_set_offset(void *self_v, void *target) */
-/* { */
-/*     DelayLine *dl = (DelayLine *)target; */
-/*     double offset_prop = *((double *)((Slider *)self_v)->value); */
-/*     /\* int32_t offset = offset_prop * dl->len; *\/ */
-/*     /\* SDL_LockMutex(dl->lock); *\/ */
-/*     /\* dl->stereo_offset = offset; *\/ */
-/*     /\* SDL_UnlockMutex(dl->lock); *\/ */
-/*     /\* SDL_LockMutex(dl->lock); *\/ */
-/*     pthread_mutex_lock(&dl->lock); */
-/*     dl->stereo_offset = offset_prop; */
-/*     pthread_mutex_unlock(&dl->lock); */
-/*     /\* SDL_UnlockMutex(dl->lock); *\/ */
-/*     return 0; */
-/* } */
-
-/* typedef void (SliderStrFn)(char *dst, size_t dstsize, void *value, ValType type); */
-static void create_hz_label(char *dst, size_t dstsize, void *value, ValType type)
-{
-    double raw = *(double *)value;
-    label_freq_raw_to_hz(dst, dstsize, raw);
-}
-
-static void create_msec_label(char *dst, size_t dstsize, void *value, ValType type)
-{
-    int32_t msec = *(int32_t *)value;
-    snprintf(dst, dstsize, "%d ms", msec);
-}
-
 static int previous_track(void *self_v, void *target)
 {
     user_tl_track_selector_up(NULL);
@@ -210,8 +119,6 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 	int ir_len = proj_loc->fourier_len_sframes/4;
 	if (!track->fir_filter.initialized)
 	    filter_init(&track->fir_filter, track, LOWPASS, ir_len, proj_loc->fourier_len_sframes * 2);
-	/* track->fir_filter.track = track; */
-	/* filter_set_params_hz(&track->fir_filter, LOWPASS, 1000, 1000); */
 	track->fir_filter_active = false;
     }
     if (!track->delay_line.buf_L) {
@@ -222,17 +129,6 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     FIRFilter *f = &track->fir_filter;
 
     tabview_clear_all_contents(tv);
-    /* for (int i=0; i<tv->num_tabs; i++) { */
-    /* 	page_destroy(tv->tabs[i]); */
-    /* 	textbox_destroy(tv->labels[i]); */
-    /* } */
-    /* tv->num_tabs = 0; */
-    
-    /* static SDL_Color page_colors[] = { */
-    /* 	{30, 80, 80, 255}, */
-    /* 	{40, 40, 80, 255}, */
-    /* 	{70, 40, 70, 255} */
-    /* }; */
 
     static SDL_Color page_colors[] = {
 	{30, 80, 80, 255},
@@ -285,60 +181,29 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     p.toggle_p.target = NULL;
     p.toggle_p.action = NULL;
     page_add_el(page, EL_TOGGLE, p, "track_settings_filter_toggle", "toggle_filter_on");
-
-    
-    /* static double freq_unscaled; */
     
     f->cutoff_freq_unscaled = unscale_freq(f->cutoff_freq);
-    p.slider_p.create_label_fn = create_hz_label;
+    p.slider_p.create_label_fn = label_freq_raw_to_hz;
     p.slider_p.style = SLIDER_TICK;
     p.slider_p.orientation = SLIDER_HORIZONTAL;
     p.slider_p.min = (Value){.double_v = 0.0};
     p.slider_p.max = (Value){.double_v = 1.0};
     p.slider_p.ep = &track->fir_filter.cutoff_ep;
-    /* p.slider_p.value = &f->cutoff_freq_unscaled; */
-    /* p.slider_p.val_type = JDAW_DOUBLE; */
-    /* p.slider_p.action = slider_cutoff_target_action; */
-    /* p.slider_p.target = (void *)(f); */
     el = page_add_el(page, EL_SLIDER, p, "track_settings_filter_cutoff_slider", "cutoff_slider");
 
-
-    /* static double bandwidth_unscaled; */
     f->bandwidth_unscaled = unscale_freq(f->bandwidth);
     p.slider_p.ep = &track->fir_filter.bandwidth_ep;
-    /* p.slider_p.action = slider_bandwidth_target_action; */
-    /* p.slider_p.target = (void *)(f); */
-    /* p.slider_p.value = &f->bandwidth_unscaled; */
     el = page_add_el(page, EL_SLIDER, p, "track_settings_filter_bandwidth_slider", "bandwidth_slider");
 
-    /* static int ir_len = 20; */
-    /* if (track->fir_filter_active) ir_len = f->impulse_response_len; */
-    /* p.slider_p.action = slider_irlen_target_action; */
     p.slider_p.ep = &track->fir_filter.impulse_response_len_ep;
-    /* p.slider_p.target = */
-    /* p.slider_p.target = (void *)f; */
-    /* p.slider_p.value = &ir_len; */
-    /* p.slider_p.val_type = JDAW_INT; */
-    /* Value min, max; */
+
     p.slider_p.min = (Value){.int_v = 4};
     p.slider_p.max = (Value){.int_v = proj->fourier_len_sframes};
-    p.slider_p.create_label_fn = slider_std_labelmaker;
-    el = page_add_el(page, EL_SLIDER, p, "track_settings_filter_irlen_slider",  "irlen_slider");
-
-    
+    p.slider_p.create_label_fn = NULL;
+    el = page_add_el(page, EL_SLIDER, p, "track_settings_filter_irlen_slider",  "irlen_slider");    
     Slider *sl = (Slider *)el->component;
-    /* slider_set_range(sl, min, max); */
+    sl->disallow_unsafe_mode = true;
     slider_reset(sl);
-    
-
-    /* 	int text_size; */
-    /* 	SDL_Color *text_color; */
-    /* 	void *target_enum; */
-    /* 	void (*external_action)(void *); */
-    /* 	const char **item_names; */
-    /* 	uint8_t num_items; */
-    /* }; */
-    
 
     static const char * item_names[] = {
 	"Lowpass",
@@ -347,18 +212,12 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 	"Bandcut"
 
     };
-
-    
     
     p.radio_p.text_size = RADIO_STD_FONT_SIZE;
     p.radio_p.text_color = &color_global_white;
     p.radio_p.ep = &f->type_ep;
-    /* TODO: FIX THIS!!!! */
-    /* p.radio_p.target_enum = NULL; */
-    /* p.radio_p.action = rb_target_action; */
     p.radio_p.item_names = item_names;
     p.radio_p.num_items = 4;
-    /* p.radio_p.target = f; */
     
     el = page_add_el(page, EL_RADIO, p, "track_settings_filter_type_radio", "filter_type");
     RadioButton *radio = el->component;
@@ -370,8 +229,6 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     double *arrays[3] = {
 	track->buf_L_freq_mag,
 	track->buf_R_freq_mag,
-	/* proj->output_L_freq, */
-	/* proj->output_R_freq, */
 	f->frequency_response_mag
     };	
     int steps[] = {1, 1, 1};
@@ -382,20 +239,11 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     p.freqplot_p.num_items = f->frequency_response_len / 2;
     p.freqplot_p.num_arrays = 3;
 
-    /* p.freqplot_p. */
     el = page_add_el(page, EL_FREQ_PLOT, p, "track_settings_filter_freq_plot", "freq_plot");
     struct freq_plot *plot = el->component;
     plot->related_obj_lock = &f->lock;
 
-    /* TODO:
-       This freq plot needs to be accessible to the slider's action
-       so it can reset the array pointer when the FIR filter's freq
-       response buffer is reallocated. Find a better way to do this
-       than storing in a global var, maybe. */
-    /* current_fp = el->component; */
-
     create_track_selection_area(page, track);
-
 
     page = tab_view_add_page(
 	tv,
@@ -404,8 +252,6 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 	page_colors + 1,
 	&color_global_white,
 	main_win);
-
-    /* create_track_selection_area(page, track); */
 
     p.toggle_p.value = &track->delay_line_active;
     p.toggle_p.action = toggle_delay_line_target_action;
@@ -438,10 +284,6 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     textbox_set_background_color(tb, NULL);
     textbox_set_align(tb, CENTER_LEFT);
     textbox_reset_full(tb);
-
-
-    /* static int32_t delay_msec; */
-    /* delay_msec = (int32_t)((double)track->delay_line.len / proj->sample_rate * 1000.0); */
     
     p.slider_p.create_label_fn = NULL;
     p.slider_p.style = SLIDER_TICK;
@@ -449,53 +291,30 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     p.slider_p.ep = &track->delay_line.len_ep;
     p.slider_p.min = (Value){.int32_v = 1};
     p.slider_p.max = (Value){.int32_v = 1000};
-    /* p.slider_p.value = &delay_msec; */
-    /* p.slider_p.val_type = JDAW_INT32; */
-    /* p.slider_p.action = slider_deltime_target_action; */
-    /* p.slider_p.target = (void *)(&track->delay_line); */
-    p.slider_p.create_label_fn = create_msec_label;
+    p.slider_p.create_label_fn = label_msec;
     el = page_add_el(page, EL_SLIDER, p, "track_settings_delay_time_slider", "del_time_slider");
-    /* min.int32_v = 1; */
-    /* max.int32_v = 1000; */
-    /* slider_set_range((Slider *)el->component, min, max); */
-    slider_reset((Slider *)el->component);
+
+    sl = el->component;
+    sl->disallow_unsafe_mode = true;
+    slider_reset(sl);
     
-    /* p.slider_p.value = &track->delay_line.amp; */
-    /* p.slider_p.val_type = JDAW_DOUBLE; */
-    p.slider_p.create_label_fn = slider_std_labelmaker;
+    p.slider_p.create_label_fn = NULL;
     p.slider_p.ep = &track->delay_line.amp_ep;
     p.slider_p.min = (Value){.double_v = 0.0};
-    p.slider_p.max = (Value){.double_v = 0.999};
-    /* p.slider_p.action = NULL; */
-    /* p.slider_p.target = NULL; */
+    p.slider_p.max = (Value){.double_v = 0.99};
+
     el = page_add_el(page, EL_SLIDER, p, "track_settings_delay_amp_slider", "del_amp_slider");
 
-    /* static double offset; */
-    /* offset = track->delay_line.stereo_offset; */
     p.slider_p.ep = &track->delay_line.stereo_offset_ep;
     p.slider_p.max = (Value){.double_v = 0.0};
     p.slider_p.max = (Value){.double_v = 1.0};
-    /* p.slider_p.value = &offset; */
-    /* p.slider_p.val_type = JDAW_DOUBLE; */
-    /* p.slider_p.action = delay_set_offset; */
-    /* p.slider_p.target = &track->delay_line; */
+
     el = page_add_el(page, EL_SLIDER, p, "track_settings_delay_stereo_offset_slider", "stereo_offset_slider");
-    slider_reset(el->component);
-
-    /* p.waveform_p.len = track->delay_line.len; */
-    /* p.waveform_p.num_channels = 2; */
-    /* void *channels[2] = {(void *)&(track->delay_line.buf_L), (void *)&(track->delay_line.buf_R)}; */
-    /* p.waveform_p.channels =channels; */
-    /* p.waveform_p.background_color = &color_global_black; */
-    /* p.waveform_p.plot_color = &color_global_white; */
-    /* p.waveform_p.type = JDAW_DOUBLE; */
-
-    /* el = page_add_el(page, EL_WAVEFORM, p, "waveform"); */
-    /* current_waveform = el->component; */
-
-
+    sl = el->component;
+    slider_reset(sl);
+    sl->disallow_unsafe_mode = true;
+    
     create_track_selection_area(page, track);
-
 	
     page = tab_view_add_page(
 	tv,
@@ -504,19 +323,488 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 	page_colors + 2,
 	&color_global_white,
 	main_win);
-    
-    
 }
 
 TabView *settings_track_tabview_create(Track *track)
 {
-
     TabView *tv = tabview_create("Track Settings", proj->layout, main_win);
-
     settings_track_tabview_set_track(tv, track);
-    
- 
     layout_force_reset(tv->layout);
     return tv;
  
+}
+
+
+static void tempo_track_populate_settings_internal(TempoSegment *s, TabView *tv, bool set_from_cfg);
+static void reset_settings_page_subdivs(TempoSegment *s, TabView *tv, const char *selected_el_id)
+{
+    /* TempoTrack *tt = s->track; */
+    tempo_track_populate_settings_internal(s, tv, false);
+    Page *p = tv->tabs[0];
+    page_select_el_by_id(p, selected_el_id);
+}
+
+txt_int_range_completion(1, 13)
+static int num_beats_completion(Text *txt, void *s_v)
+{
+
+    txt_int_range_completion_1_13(txt, NULL);
+    TabView *tv = main_win->active_tabview;
+    if (!tv) {
+	fprintf(stderr, "Error: no tabview on num beats completion\n");
+	exit(1);
+    }
+    TempoSegment *s = (TempoSegment *)s_v;
+    if (atoi(txt->display_value) != s->cfg.num_beats) {
+	reset_settings_page_subdivs(s_v, tv, "tempo_segment_num_beats_value");
+    }
+    return 0;
+}
+
+static TempoSegment *tempo_segment_copy(TempoSegment *s)
+{
+    TempoSegment *cpy = calloc(1, sizeof(TempoSegment));
+    memcpy(cpy, s, sizeof(TempoSegment));
+    return cpy;
+}
+
+NEW_EVENT_FN(undo_redo_set_segment_params, "undo/redo edit tempo segment")
+    TempoSegment *s = (TempoSegment *)obj1;
+    s = tempo_track_get_segment_at_pos(s->track, s->start_pos);
+    self->obj1 = s;
+    TempoSegment *cpy = (TempoSegment *)obj2;
+    enum ts_end_bound_behavior ebb = val1.int_v;
+
+    TempoSegment *redo_cpy = tempo_segment_copy(s);
+    tempo_segment_set_config(s, -1, cpy->cfg.bpm, cpy->cfg.num_beats, cpy->cfg.beat_subdiv_lens, ebb);
+    tempo_segment_destroy(cpy);
+    self->obj2 = redo_cpy;
+    s->track->tl->needs_redraw = true;
+}
+
+
+static int time_sig_submit_button_action(void *self, void *s_v)
+{
+    TempoSegment *s = (TempoSegment *)s_v;
+    TempoSegment *cpy = tempo_segment_copy(s);
+    TempoTrack *tt = s->track;
+
+    int num_beats = atoi(tt->num_beats_str);
+    int tempo = atoi(tt->tempo_str);
+    uint8_t subdivs[num_beats];
+    for (int i=0; i<num_beats; i++) {
+	subdivs[i] = atoi(tt->subdiv_len_strs[i]);
+    }
+    tempo_segment_set_config(s, -1, tempo, atoi(tt->num_beats_str), subdivs, tt->end_bound_behavior);
+    TabView *tv = main_win->active_tabview;
+    tabview_close(tv);
+    tt->tl->needs_redraw = true;
+
+    Value ebb = {.int_v = tt->end_bound_behavior};
+    user_event_push(
+	&proj->history,
+	undo_redo_set_segment_params,
+	undo_redo_set_segment_params,
+	NULL, NULL,
+	s,
+	cpy,
+	ebb, ebb,
+	ebb, ebb,
+	0, 0,
+	false, true);
+    return 0;
+}
+
+static void draw_time_sig(void *tt_v, void *rect_v)
+{
+    TempoTrack *tt = (TempoTrack *)tt_v;
+    SDL_Rect *rect = (SDL_Rect *)rect_v;
+    int num_beats = atoi(tt->num_beats_str);
+    int subdivs[num_beats];
+    int num_atoms = 0;
+    for (int i=0; i<num_beats; i++) {
+	subdivs[i] = atoi(tt->subdiv_len_strs[i]);
+	num_atoms += subdivs[i];
+    }
+    SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255);
+    SDL_RenderDrawLine(main_win->rend, rect->x, rect->y + rect->h, rect->x + rect->w, rect->y + rect->h);
+    SDL_RenderDrawLine(main_win->rend, rect->x, rect->y, rect->x, rect->y + rect->h);
+    SDL_RenderDrawLine(main_win->rend, rect->x + rect->w, rect->y, rect->x + rect->w, rect->y + rect->h);
+    int beat_i = 0;
+    int subdiv_i = 1;
+    for (int i=1; i<num_atoms; i++) {
+	int x = rect->x + rect->w * i / num_atoms;
+	float h_prop = 0.75;
+	if (subdiv_i != 0) {
+	    if (subdivs[beat_i] % 2 == 0 && subdiv_i % 2 == 0) {
+		h_prop = 0.4;
+	    } else {
+		h_prop = 0.2;
+	    }
+	}
+	SDL_RenderDrawLine(main_win->rend, x, rect->y + rect->h, x, rect->y + rect->h - rect->h * h_prop);
+	if (subdiv_i >= subdivs[beat_i] - 1) {
+	    subdiv_i = 0;
+	    beat_i++;
+	} else {
+	    subdiv_i++;
+	}
+
+    }
+}
+
+/* txt_int_validation_range(txt, input, 1, 9) */
+/* txt_int_validation_range(txt, input, 1, 13) */
+txt_int_range_completion(1, 9)
+
+static int segment_next_action(void *self, void *targ)
+{
+    TempoSegment *s = (TempoSegment *)targ;
+    tempo_track_populate_settings_internal(s->next, main_win->active_tabview, true);
+    Page *p = main_win->active_tabview->tabs[0];
+    page_select_el_by_id(p, "segment_right");
+
+    /* reset_settings_page_subdivs(s->next, main_win->active_tabview, "segment_right"); */
+    return 0;
+}
+
+static int segment_prev_action(void *self, void *targ)
+{
+    TempoSegment *s = (TempoSegment *)targ;
+    tempo_track_populate_settings_internal(s->prev, main_win->active_tabview, true);
+    Page *p = main_win->active_tabview->tabs[0];
+    page_select_el_by_id(p, "segment_left");
+    /* reset_settings_page_subdivs(s->prev, main_win->active_tabview, "segment_left"); */
+    return 0;
+}
+
+static void tempo_track_populate_settings_internal(TempoSegment *s, TabView *tv, bool set_from_cfg)
+{
+
+    TempoTrack *tt = s->track;
+    /* TempoSegment *s = tempo_track_get_segment_at_pos(tt, tt->tl->play_pos_sframes); */
+    
+    static SDL_Color page_colors[] = {
+	{40, 40, 80, 255},
+	{50, 50, 80, 255},
+	{70, 40, 70, 255}
+    };
+
+    tabview_clear_all_contents(tv);
+    
+    Page *page = tab_view_add_page(
+	tv,
+	"Tempo track config",
+	TEMPO_TRACK_SETTINGS_LT_PATH,
+	page_colors,
+	&color_global_white,
+	main_win);
+    
+    layout_force_reset(page->layout);
+
+    PageElParams p;
+    PageEl *el;
+    Textbox *tb;
+
+
+    
+    p.textbox_p.font = main_win->mono_font;
+    p.textbox_p.text_size = 14;
+    p.textbox_p.win = page->win;
+
+    p.textbox_p.set_str = "Track name:";
+    el = page_add_el(page, EL_TEXTBOX, p, "track_name_label", "track_name_label");
+    tb = (Textbox *)el->component;
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+
+    p.textbox_p.set_str = "Num beats:";
+    el = page_add_el(page, EL_TEXTBOX, p, "num_beats_label", "num_beats_label");
+    tb = (Textbox *)el->component;
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+
+    p.textbox_p.set_str = "Subdivisions:";
+    el = page_add_el(page, EL_TEXTBOX, p, "beat_subdiv_label", "beat_subdiv_label");
+    tb = (Textbox *)el->component;
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+
+    p.textbox_p.set_str = "Tempo (bpm):";
+    el = page_add_el(page, EL_TEXTBOX, p, "tempo_label", "tempo_label");
+    tb = (Textbox *)el->component;
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+
+
+    int num_beats;
+    if (set_from_cfg) {
+	num_beats = s->cfg.num_beats;
+	snprintf(tt->num_beats_str, 3, "%d", s->cfg.num_beats);
+    } else {
+	num_beats = atoi(tt->num_beats_str);
+    }
+    if (num_beats > MAX_BEATS_PER_BAR) {
+	num_beats = MAX_BEATS_PER_BAR;
+	snprintf(tt->num_beats_str, 3, "%d", num_beats);
+	char errstr[128];
+	snprintf(errstr, 128, "Cannot exceed %d beats per bar", num_beats);
+	status_set_errstr(errstr);
+    }
+    p.textentry_p.font = main_win->mono_bold_font;
+    p.textentry_p.text_size = 14;
+
+
+    p.textentry_p.value_handle = tt->name;
+    p.textentry_p.validation = NULL;
+    p.textentry_p.completion = NULL;
+    p.textentry_p.buf_len = MAX_NAMELENGTH;
+    el = page_add_el(page, EL_TEXTENTRY, p, "track_name", "track_name");
+    /* Layout *name_lt = el->layout; */
+    /* layout_size_to_fit_children_v(name_lt, false, 1); */
+    /* layout_center_agnostic(name_lt, false, true); */
+    textentry_reset(el->component);
+
+    
+    p.textentry_p.value_handle = tt->num_beats_str;
+    p.textentry_p.buf_len = 3;    
+    p.textentry_p.validation = txt_integer_validation;
+    p.textentry_p.completion = num_beats_completion;
+    p.textentry_p.completion_target = (void *)s;
+    /* p.textbox_p.set_str = tt->num_beats_str; */
+    /* p.textbox_p.font = main_win->mono_font; */
+    el = page_add_el(page, EL_TEXTENTRY, p, "tempo_segment_num_beats_value", "num_beats_value");
+    /* Layout *num_beats_lt = el->layout; */
+    /* layout_size_to_fit_children_v(num_beats_lt, false, 1); */
+    /* layout_center_agnostic(num_beats_lt, false, true); */
+    textentry_reset(el->component);
+
+
+    Layout *subdiv_area = layout_get_child_by_name_recursive(page->layout, "beat_subdiv_values");
+    for (int i=0; i<num_beats; i++) {
+	int subdivs;
+	if (set_from_cfg) {
+	    subdivs = s->cfg.beat_subdiv_lens[i];
+	} else {
+	    subdivs = atoi(tt->subdiv_len_strs[i]);
+	}
+	snprintf(tt->subdiv_len_strs[i], 2, "%d", subdivs);
+	Layout *child_l = layout_add_child(subdiv_area);
+	child_l->x.type = STACK;
+	child_l->h.type = SCALE;
+	child_l->h.value = 1.0;
+	/* child_l->y.value = 5; */
+	/* child_l->h.type = PAD; */
+	child_l->w.value = 23;
+	
+	char name[64];
+	snprintf(name, 64, "beat_subdiv_lt_%d", i);
+	layout_set_name(child_l, name);
+	layout_force_reset(subdiv_area);
+	
+	p.textentry_p.value_handle = tt->subdiv_len_strs[i];
+	p.textentry_p.buf_len = 2;
+	p.textentry_p.text_size = 14;
+	p.textentry_p.validation = txt_integer_validation;
+	p.textentry_p.completion = txt_int_range_completion_1_9;
+	p.textentry_p.completion_target = NULL;
+	char buf[255];
+	snprintf(buf, 255, "beat_%d_subdiv_len", i);
+	el = page_add_el(page, EL_TEXTENTRY, p, buf, name);
+	/* layout_size_to_fit_children_v(el->layout, false, 2); */
+	/* layout_center_agnostic(el->layout, false, true); */
+
+	/* ((TextEntry *)el->component)->tb->text->max_len = 2; */
+	textentry_reset(el->component);
+	if (i != num_beats - 1) {
+	    Layout *child_r = layout_copy(child_l, child_l->parent);
+	    child_r->w.value *= 0.75;
+	    /* Layout *child_r = layout_add_child(child); */
+	    snprintf(name, 64, "plus %d", i);
+	    layout_set_name(child_r, name);
+	    layout_force_reset(subdiv_area);
+	    PageElParams pt;
+	    pt.textbox_p.font = main_win->mono_bold_font;
+	    pt.textbox_p.text_size = 14;
+	    pt.textbox_p.set_str = "+";
+	    pt.textbox_p.win = page->win;
+
+	    el = page_add_el(page, EL_TEXTBOX, pt, "", name);
+	    /* textbox_set_pad(el->component, 24, 0); */
+	    textbox_set_align(el->component, CENTER);
+	    textbox_reset_full(el->component);
+	}
+    }
+
+
+    /* Add canvas */
+    Layout *time_sig_area = layout_get_child_by_name_recursive(page->layout, "time_signature_area");
+    Layout *canvas_lt = layout_get_child_by_name_recursive(time_sig_area, "time_sig_canvas");
+    p.canvas_p.draw_fn = draw_time_sig;
+    p.canvas_p.draw_arg1 = (void *)tt;
+    p.canvas_p.draw_arg2 = (void *)&canvas_lt->rect;
+    el = page_add_el(
+	page,
+	EL_CANVAS,
+	p,
+	"time_sig_canvas",
+	"time_sig_canvas"
+	);
+
+
+    /* Add tempo */
+    snprintf(tt->tempo_str, 5, "%d", s->cfg.bpm);
+    p.textentry_p.font = main_win->mono_bold_font;
+    p.textentry_p.text_size = 14;
+    p.textentry_p.value_handle = tt->tempo_str;
+    p.textentry_p.buf_len = 5;
+    p.textentry_p.validation = txt_integer_validation;
+    p.textentry_p.completion = NULL;
+    /* p.textentry_p.completion = num_beats_completion; */
+    /* p.textentry_p.completion_target = (void *)s; */
+    /* p.textbox_p.set_str = tt->num_beats_str; */
+    /* p.textbox_p.font = main_win->mono_font; */
+    el = page_add_el(page, EL_TEXTENTRY, p, "tempo_value", "tempo_value");
+    /* Layout *tempo_lt = el->layout; */
+    /* tempo_lt->w.value = 50; */
+    /* layout_size_to_fit_children_v(tempo_lt, false, 1); */
+    /* layout_center_agnostic(tempo_lt, false, true); */
+    /* /\* num_beats_lt->w.value = 50; *\/ */
+    /* layout_size_to_fit_children_v(num_beats_lt, false, 2); */
+    /* layout_center_agnostic(num_beats_lt, false, true); */
+    textentry_reset(el->component);
+    
+
+
+
+
+    /* Add end-bound behavior radio */
+    if (s->next) {
+	char opt1[64];
+	char opt2[64];
+	char timestr[64];
+	timecode_str_at(tt->tl, timestr, 64, s->end_pos);
+	snprintf(opt1, 64, "Fixed end pos (%s)", timestr);
+
+	if (s->cfg.dur_sframes * s->num_measures == s->end_pos - s->start_pos) {
+	    snprintf(opt2, 64, "Fixed num measures (%d)", s->num_measures);
+	} else {
+	    snprintf(opt2, 64, "Fixed num measures (%f)", (float)(s->end_pos - s->start_pos)/s->cfg.dur_sframes);
+	}
+	char *options[] = {opt1, opt2};
+
+	p.radio_p.ep = &tt->end_bound_behavior_ep;
+	/* p.radio_p.action = tempo_rb_action; */
+	/* p.radio_p.target = (void *)&tt->end_bound_behavior; */
+	p.radio_p.num_items = 2;
+	p.radio_p.text_size = 14;
+	p.radio_p.text_color = &color_global_white;
+	p.radio_p.item_names = (const char **)options;
+
+	el = page_add_el(
+	    page,
+	    EL_RADIO,
+	    p,
+	    "tempo_segment_ebb_radio",
+	    "ebb_radio"
+	    );
+
+	radio_button_reset_from_endpoint(el->component);
+	layout_reset(el->layout);
+	layout_size_to_fit_children_v(el->layout, true, 0);
+	layout_force_reset(el->layout);
+	/* te->tb->text->max_len = TEMPO_STRLEN; */
+    }
+
+
+    /* layout_force_reset(page->layout); */
+
+    layout_size_to_fit_children_v(time_sig_area, true, 0);
+
+    /* Add submit button */
+    p.button_p.action = time_sig_submit_button_action;
+    p.button_p.target = (void *)s;
+    p.button_p.font = main_win->mono_bold_font;
+    p.button_p.text_color = &color_global_black;
+    p.button_p.text_size = 14;
+    p.button_p.background_color = &color_global_light_grey;
+    p.button_p.win = main_win;
+    p.button_p.set_str = "Submit";
+    el = page_add_el(
+	page,
+	EL_BUTTON,
+	p,
+	"time_signature_submit_button",
+	"time_signature_submit");
+    layout_center_agnostic(el->layout, true, false);
+    textbox_set_align(((Button *)el->component)->tb, CENTER);
+    textbox_reset_full(((Button *)el->component)->tb);
+
+
+
+    char label[255];
+    if (s->next) {	
+	snprintf(label, 255, "Segment from m%d to m%d", s->first_measure_index, s->next->first_measure_index);
+    } else {
+	snprintf(label, 255, "Segment from m%d to ∞", s->first_measure_index);
+    }
+    /* timecode_str_at(tt->tl, label + offset, 255 - offset, s->start_pos); */
+    
+    /* offset = strlen(label); */
+    /* offset += snprintf(label + offset, 255 - offset, " - "); */
+    /* timecode_str_at(tt->tl, label + offset, 255 - offset, s->end_pos); */
+
+    p.textbox_p.font = main_win->mono_bold_font;
+    p.textbox_p.text_size = 14;
+    p.textbox_p.set_str = label;
+    p.textbox_p.win = page->win;
+
+    el = page_add_el(page, EL_TEXTBOX, p, "", "segment_label");
+    tb = (Textbox *)el->component;
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+    layout_size_to_fit_children_h(el->layout, true, 0);
+
+    /* Add next/previous segment navigators */
+    if (s->prev || s->next) {
+	p.button_p.font = main_win->mono_font;
+	p.button_p.win = page->win;
+	p.button_p.target = NULL;
+	p.button_p.text_color = &color_global_white;
+	p.button_p.text_size = 14;
+	p.button_p.background_color = &color_global_quickref_button_blue;
+	p.button_p.target = s;
+
+    }
+    if (s->prev) {
+	p.button_p.set_str = "←";
+	p.button_p.action = segment_prev_action;
+	page_add_el(page, EL_BUTTON, p, "segment_left", "segment_left");
+
+    }
+    if (s->next) {
+	p.button_p.set_str = "→";
+	p.button_p.action = segment_next_action;
+	page_add_el(page, EL_BUTTON, p, "segment_right", "segment_right");
+    }
+    
+    page_reset(page);
+}
+
+void tempo_track_populate_settings_tabview(TempoTrack *tt, TabView *tv)
+{
+    TempoSegment *s = tempo_track_get_segment_at_pos(tt, tt->tl->play_pos_sframes);
+    tempo_track_populate_settings_internal(s, tv, true);
+}
+
+void timeline_tempo_track_edit(Timeline *tl)
+{
+    TempoTrack *tt = timeline_selected_tempo_track(tl);
+    if (!tt) return;
+
+    TabView *tv = tabview_create("Track Settings", proj->layout, main_win);
+    tempo_track_populate_settings_tabview(tt, tv);
+
+    tabview_activate(tv);
+    tl->needs_redraw = true;    
 }

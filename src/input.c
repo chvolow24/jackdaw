@@ -254,7 +254,6 @@ static void mode_load_menu_nav()
 	user_menu_nav_prev_sctn);
     mode_subcat_add_fn(mc, fn);
 
-    
     fn = create_user_fn(
 	"menu_choose_item",
 	"Choose item",
@@ -343,6 +342,30 @@ static void mode_load_timeline()
 	"tl_rewind_slow",
 	"Rewind slow",
 	user_tl_rewind_slow);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_move_playhead_left",
+	"Move playhead left",
+	user_tl_move_playhead_left);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_move_playhead_right",
+	"Move playhead rigth",
+	user_tl_move_playhead_right);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_move_playhead_left_slow",
+	"Move playhead left (slow)",
+	user_tl_move_playhead_left_slow);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_move_playhead_right_slow",
+	"Move playhead right (slow)",
+	user_tl_move_playhead_right_slow);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(

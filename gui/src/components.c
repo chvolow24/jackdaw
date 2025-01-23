@@ -179,13 +179,13 @@ static Value slider_val_from_coord(Slider *s, int coord_pix)
 
 
 void layout_write(FILE *f, Layout *lt, int indent);
-void slider_reset(Slider *s)
+Value slider_reset(Slider *s)
 {
     Value range = jdaw_val_sub(s->max, s->min, s->ep->val_type);
     Value slider_val = endpoint_safe_read(s->ep, NULL);
-    
     Value filled = jdaw_val_sub(slider_val, s->min, s->ep->val_type);
     double filled_prop = jdaw_val_div_double(filled, range, s->ep->val_type);
+    /* fprintf(stderr, "Filled prop? %f\n", filled_prop); */
     switch (s->style) {
     case SLIDER_FILL:
 	switch (s->orientation) {
@@ -209,6 +209,8 @@ void slider_reset(Slider *s)
 	}
     }
     layout_reset(s->layout);
+    return slider_val;
+    /* label_reset(s->label); */
 }    
 
 
@@ -240,10 +242,10 @@ void slider_std_labelmaker(char *dst, size_t dstsize, void *value, ValType type)
     jdaw_valptr_set_str(dst, dstsize, value, type, 2);
 }
 
-void slider_edit_made(Slider *slider)
-{
-    label_reset(slider->label);
-}
+/* void slider_edit_made(Slider *slider) */
+/* { */
+/*     label_reset(slider->label); */
+/* } */
 
 
 bool slider_mouse_click(Slider *slider, Window *win)
@@ -251,8 +253,10 @@ bool slider_mouse_click(Slider *slider, Window *win)
     if (SDL_PointInRect(&main_win->mousep, &slider->layout->rect) && win->i_state & I_STATE_MOUSE_L) {
 	int dim = slider->orientation == SLIDER_VERTICAL ? main_win->mousep.y : main_win->mousep.x;
 	Value newval = slider_val_from_coord(slider, dim);
-	/* endpoint_write(slider->ep, newval, true, true, true, true); */
 	endpoint_start_continuous_change(slider->ep, false, (Value)0, slider->ep->owner_thread, newval);
+	Value val = slider_reset(slider);
+	label_reset(slider->label, val);
+
 	/* slider_reset(slider); */
 	/* slider_edit_made(slider); */
 	slider->drag_context->component = (void *)slider;
@@ -294,8 +298,9 @@ bool slider_mouse_motion(Slider *slider, Window *win)
     /* if (slider->action) */
     /* 	slider->action((void *)slider, slider->target); */
     /* track->vol = newval.float_v; */
-    slider_reset(slider);
-    slider_edit_made(slider);
+    Value val = slider_reset(slider);
+    label_reset(slider->label, val);
+    /* slider_edit_made(slider); */
     /* proj->vol_changing = true; */
     return true;
 }
@@ -400,7 +405,7 @@ Button *button_create(
     button->tb = textbox_create_from_str(text, lt, font, text_size, main_win);
     button->tb->corner_radius = BUTTON_CORNER_RADIUS;
     textbox_set_trunc(button->tb, false);
-    /* textbox_set_border(button->tb, text_color, 1); */
+    textbox_set_border(button->tb, text_color, 1);
     textbox_set_style(button->tb, BUTTON_CLASSIC);
     textbox_set_text_color(button->tb, text_color);
     textbox_set_background_color(button->tb, background_color);

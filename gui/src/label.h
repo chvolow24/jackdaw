@@ -9,7 +9,8 @@
 #define LABEL_H_PAD 4
 #define LABEL_V_PAD 2
 
-typedef void (*LabelStrFn)(char *dst, size_t dstsize, void *target, ValType type);
+/* typedef void (*LabelStrFn)(char *dst, size_t dstsize, void *target, ValType type); */
+typedef void (*LabelStrFn)(char *dst, size_t dstsize, Value val, ValType type);
 
 typedef struct label {
     /* Layout *layout; */
@@ -33,12 +34,17 @@ Label *label_create(
     Window *win);
 
 void label_move(Label *label, int x, int y);
-void label_reset(Label *label);
+void label_reset(Label *label, Value v);
+/* void label_reset(Label *label); */
 void label_draw(Label *label);
 void label_destroy(Label *label);
 
-void label_amp_to_dbstr(char *dst, size_t dstsize, float amp);
-void label_pan(char *dst, size_t dstsize, float pan);
-void label_freq_raw_to_hz(char *dst, size_t dstsize, double raw);
-void label_time_samples_to_msec(char *dst, size_t dstsize, int32_t samples, int32_t sample_rate);
+void label_amp_to_dbstr(char *dst, size_t dstsize, Value val, ValType t);
+void label_pan(char *dst, size_t dstsize, Value val, ValType t);
+/* void label_amp_to_dbstr(char *dst, size_t dstsize, float amp); */
+/* void label_pan(char *dst, size_t dstsize, float pan); */
+void label_msec(char *dst, size_t dstsize, Value v, ValType t);
+void label_freq_raw_to_hz(char *dst, size_t dstsize, Value v, ValType t);
+/* void label_freq_raw_to_hz(char *dst, size_t dstsize, double raw); */
+/* void label_time_samples_to_msec(char *dst, size_t dstsize, int32_t samples, int32_t sample_rate); */
 #endif

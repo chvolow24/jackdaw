@@ -153,7 +153,6 @@ void filter_type_dsp_cb(Endpoint *ep)
 /* } */
 void delay_line_len_dsp_cb(Endpoint *ep)
 {
-    fprintf(stderr, "Running DSP at %lu\n", clock());
     DelayLine *dl = (DelayLine *)ep->xarg1;
     int16_t val_msec = endpoint_safe_read(ep, NULL).int16_v;
     int32_t len_sframes = (int32_t)((double)val_msec * proj->sample_rate / 1000.0);
@@ -170,26 +169,21 @@ void delay_line_len_gui_cb(Endpoint *ep)
 
 }
 
-/* static void secondary_delay_line_amp_gui_cb(Endpoint *ep) */
-/* { */
-/*     PageEl *el = track_settings_get_el("track_settings_delay_time_slider"); */
-/*     if (el) { */
-/* 	slider_reset(el->component); */
-/*     } */
-/* } */
-
-/* void delay_line_amp_dsp_cb(Endpoint *ep) */
-/* { */
-/*     /\* VALUE CHANGED *\/ */
-/*     /\* project_queue_callback(proj, ep, secondary_delay_line_amp_gui_cb, JDAW_THREAD_MAIN); *\/ */
-/* } */
-
 void delay_line_amp_gui_cb(Endpoint *ep)
 {
     PageEl *el = track_settings_get_el("track_settings_delay_amp_slider");
     if (el) {
 	slider_reset(el->component);
     }
+}
+
+void delay_line_stereo_offset_gui_cb(Endpoint *ep)
+{
+    PageEl *el = track_settings_get_el("track_settings_delay_stereo_offset_slider");
+    if (el) {
+	slider_reset(el->component);
+    }
+    
 }
 
 void tempo_track_ebb_gui_cb(Endpoint *ep)

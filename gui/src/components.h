@@ -167,7 +167,7 @@ Slider *slider_create(
 /* void slider_set_value(Slider *s, Value val); */
 /* void slider_set_range(Slider *s, Value min, Value max); */
 
-void slider_reset(Slider *s);
+Value slider_reset(Slider *s);
 void slider_draw(Slider *s);
 bool slider_mouse_click(Slider *slider, Window *win);
 bool slider_mouse_motion(Slider *slider, Window *win);

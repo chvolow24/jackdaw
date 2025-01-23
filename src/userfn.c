@@ -1,4 +1,4 @@
-#include <stdio.h>
+ #include <stdio.h>
 #include <sys/param.h>
 #include "SDL_events.h"
 #include "audio_connection.h"
@@ -687,6 +687,35 @@ void user_tl_rewind_slow(void *nullarg)
     /* proj->play_speed = -1 * SLOW_PLAYBACK_SPEED; */
     /* status_stat_playspeed(); */
     transport_start_playback();
+}
+
+static void playhead_incr(float by)
+{
+    if (!proj->playhead_do_incr) {
+	proj->playhead_do_incr = true;
+	proj->playhead_frame_incr = by;
+    }
+}
+
+void user_tl_move_playhead_left(void *nullarg)
+{
+    playhead_incr(-3.0);
+}
+    
+
+void user_tl_move_playhead_right(void *nullarg)
+{
+    playhead_incr(3.0);
+}
+
+void user_tl_move_playhead_left_slow(void *nullarg)
+{
+    playhead_incr(-0.2);
+}
+
+void user_tl_move_playhead_right_slow(void *nullarg)
+{
+    playhead_incr(0.2);
 }
 
 void user_tl_nudge_left(void *nullarg)
@@ -1391,9 +1420,9 @@ static Value pan_incr = {.float_v = 0.02};
 void user_tl_track_vol_up(void *nullarg)
 {
 
-    if (proj->vol_changing) return;
-    proj->vol_changing = true;
-    proj->vol_up = false;
+    /* if (proj->vol_changing) return; */
+    /* proj->vol_changing = true; */
+    /* proj->vol_up = false; */
 
     bool has_active_track = false;
     Timeline *tl = ACTIVE_TL;
@@ -1406,7 +1435,13 @@ void user_tl_track_vol_up(void *nullarg)
     }
     if (!has_active_track) {
 	Track *trk = timeline_selected_track(tl);
-	endpoint_start_continuous_change(&trk->vol_ep, true, vol_incr, JDAW_THREAD_MAIN, endpoint_safe_read(&trk->vol_ep, NULL));
+	if (trk) {
+	    endpoint_start_continuous_change(&trk->vol_ep, true, vol_incr, JDAW_THREAD_MAIN, endpoint_safe_read(&trk->vol_ep, NULL));
+	} else {
+	    TempoTrack *tt = timeline_selected_tempo_track(tl);
+	    endpoint_start_continuous_change(&tt->metronome_vol_ep, true, vol_incr, JDAW_THREAD_MAIN, endpoint_safe_read(&tt->metronome_vol_ep, NULL));
+	}
+
     }
 
     /* Timeline *tl = ACTIVE_TL; */
@@ -1437,7 +1472,12 @@ void user_tl_track_vol_down(void *nullarg)
     }
     if (!has_active_track) {
 	Track *trk = timeline_selected_track(tl);
-	endpoint_start_continuous_change(&trk->vol_ep, true, vol_decr, JDAW_THREAD_MAIN, endpoint_safe_read(&trk->vol_ep, NULL));
+	if (trk) {
+	    endpoint_start_continuous_change(&trk->vol_ep, true, vol_decr, JDAW_THREAD_MAIN, endpoint_safe_read(&trk->vol_ep, NULL));
+	} else {
+	    TempoTrack *tt = timeline_selected_tempo_track(tl);
+	    endpoint_start_continuous_change(&tt->metronome_vol_ep, true, vol_decr, JDAW_THREAD_MAIN, endpoint_safe_read(&tt->metronome_vol_ep, NULL));
+	}
     }
 }
 
@@ -1463,7 +1503,8 @@ void user_tl_track_pan_left(void *nullarg)
     }
     if (!has_active_track) {
 	Track *trk = timeline_selected_track(tl);
-	endpoint_start_continuous_change(&trk->pan_ep, true, pan_decr, JDAW_THREAD_MAIN, endpoint_safe_read(&trk->pan_ep, NULL));
+	if (trk)
+	    endpoint_start_continuous_change(&trk->pan_ep, true, pan_decr, JDAW_THREAD_MAIN, endpoint_safe_read(&trk->pan_ep, NULL));
     }
 }
 
@@ -1480,7 +1521,8 @@ void user_tl_track_pan_right(void *nullarg)
     }
     if (!has_active_track) {
 	Track *trk = timeline_selected_track(tl);
-	endpoint_start_continuous_change(&trk->pan_ep, true, pan_incr, JDAW_THREAD_MAIN, endpoint_safe_read(&trk->pan_ep, NULL));
+	if (trk)
+	    endpoint_start_continuous_change(&trk->pan_ep, true, pan_incr, JDAW_THREAD_MAIN, endpoint_safe_read(&trk->pan_ep, NULL));
     }
 
     /* Timeline *tl = ACTIVE_TL; */

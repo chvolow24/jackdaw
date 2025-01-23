@@ -433,35 +433,82 @@ void track_add_new_automation(Track *track)
 }
 
 
-static void keyframe_labelmaker(char *dst, size_t dstsize, void *target, ValType t)
-{
-    Automation *a = (Automation *)target;
-    Timeline *tl = a->track->tl;
-    Keyframe *k = tl->dragging_keyframe;
-    if (!k) return;
-    char valstr[dstsize];
-    /* char tcstr[dstsize]; */
-    switch(a->type) {
-    case AUTO_VOL:
-    case AUTO_DEL_AMP:
-    case AUTO_PLAY_SPEED:
-	jdaw_val_set_str(valstr, dstsize, k->value, a->val_type, 2);
-    break;
-    case AUTO_PAN: 
-        label_pan(valstr, dstsize, k->value.float_v);
-	break;
-    case AUTO_FIR_FILTER_CUTOFF:
-    case AUTO_FIR_FILTER_BANDWIDTH:
-	label_freq_raw_to_hz(valstr, dstsize, k->value.double_v);
-	break;
-    case AUTO_DEL_TIME:
-	label_time_samples_to_msec(valstr, dstsize, k->value.int32_v, proj->sample_rate);
-	break;
-    }
-    /* timecode_str_at(tcstr, dstsize, k->pos); */
-    snprintf(dst, dstsize, "%s", valstr);
+/* TODO: replace keyframe labels with standard labelfns */
+/* static float amp_to_db(float amp) */
+/* { */
+/*     return (20.0f * log10(amp)); */
+/* } */
 
-}
+/* static void a_label_freq_raw_to_hz(char *dst, size_t dstsize, double raw) */
+/* { */
+/*     double hz = dsp_scale_freq_to_hz(raw); */
+/*     snprintf(dst, dstsize, "%.0f Hz", hz); */
+/*     snprintf(dst, dstsize, "hi"); */
+/*     dst[dstsize - 1] = '\0'; */
+/* } */
+/* static void a_label_time_samples_to_msec(char *dst, size_t dstsize, int32_t samples, int sample_rate) */
+/* { */
+    
+/*     int msec = (double)samples * 1000 / sample_rate; */
+/*     snprintf(dst, dstsize, "%d ms", msec); */
+/* } */
+
+
+/* static void a_label_amp_to_dbstr(char *dst, size_t dstsize, float amp) */
+/* { */
+/*     int max_float_chars = dstsize - 2; */
+/*     if (max_float_chars < 1) { */
+/* 	fprintf(stderr, "Error: no room for dbstr\n"); */
+/* 	dst[0] = '\0'; */
+/* 	return; */
+/*     } */
+/*     snprintf(dst, max_float_chars, "%.2f", amp_to_db(amp)); */
+/*     strcat(dst, " dB"); */
+/* } */
+
+/* static void a_label_pan(char *dst, size_t dstsize, float pan) */
+/* { */
+/*     if (pan < 0.5) { */
+/* 	snprintf(dst, dstsize, "%.1f%% L", (0.5 - pan) * 200); */
+/*     } else if (pan > 0.5) { */
+/* 	snprintf(dst, dstsize, "%.1f%% R", (pan - 0.5) * 200); */
+/*     } else { */
+/* 	snprintf(dst, dstsize, "C"); */
+/*     } */
+/* } */
+
+
+
+/* /\* static void keyframe_labelmaker(char *dst, size_t dstsize, void *target, ValType t) *\/ */
+/* static void keyframe_labelmaker(char *dst, size_t dstsize, void *target, ValType t) */
+/* { */
+/*     Automation *a = (Automation *)target; */
+/*     Timeline *tl = a->track->tl; */
+/*     Keyframe *k = tl->dragging_keyframe; */
+/*     if (!k) return; */
+/*     char valstr[dstsize]; */
+/*     /\* char tcstr[dstsize]; *\/ */
+/*     switch(a->type) { */
+/*     case AUTO_VOL: */
+/*     case AUTO_DEL_AMP: */
+/*     case AUTO_PLAY_SPEED: */
+/* 	jdaw_val_set_str(valstr, dstsize, k->value, a->val_type, 2); */
+/*     break; */
+/*     case AUTO_PAN:  */
+/*         a_label_pan(valstr, dstsize, k->value.float_v); */
+/* 	break; */
+/*     case AUTO_FIR_FILTER_CUTOFF: */
+/*     case AUTO_FIR_FILTER_BANDWIDTH: */
+/* 	a_label_freq_raw_to_hz(valstr, dstsize, k->value.double_v); */
+/* 	break; */
+/*     case AUTO_DEL_TIME: */
+/* 	a_label_time_samples_to_msec(valstr, dstsize, k->value.int32_v, proj->sample_rate); */
+/* 	break; */
+/*     } */
+/*     /\* timecode_str_at(tcstr, dstsize, k->pos); *\/ */
+/*     snprintf(dst, dstsize, "%s", valstr); */
+
+/* } */
 
 bool automation_toggle_read(Automation *a)
 {
@@ -595,7 +642,7 @@ void automation_show(Automation *a)
 	button->tb->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
 	textbox_set_style(button->tb, BUTTON_DARK);
 	a->write_button = button;
-	a->keyframe_label = label_create(0, a->layout, keyframe_labelmaker, a, 0, main_win);
+	a->keyframe_label = label_create(0, a->layout, NULL, a, 0, main_win);
     } else {
 	a->layout->h.value = AUTOMATION_LT_H;
 	a->layout->y.value = AUTOMATION_LT_Y;
@@ -1389,7 +1436,7 @@ void automation_draw(Automation *a)
 static void automation_editing(Automation *a, Keyframe *k, int x, int y)
 {
     label_move(a->keyframe_label, x - 50, y - 50);
-    label_reset(a->keyframe_label);   
+    label_reset(a->keyframe_label, k->value);   
 }
 
 

@@ -1221,34 +1221,6 @@ void project_init_audio_conns(Project *proj)
 
 /* /\* Type: `void (*)(char *, size_t, ValType, void *)`   *\/ */
 
-
-static void slider_label_amp_to_dbstr(char *dst, size_t dstsize, void *value, ValType type)
-{
-    float amp = type == JDAW_DOUBLE ? *(double *)value : *(float *)value;
-    label_amp_to_dbstr(dst, dstsize, amp);
-    /* int max_float_chars = dstsize - 2; */
-    /* if (max_float_chars < 1) { */
-    /* 	fprintf(stderr, "Error: no room for dbstr\n"); */
-    /* 	dst[0] = '\0'; */
-    /* 	return; */
-    /* } */
-    /* snprintf(dst, max_float_chars, "%.2f", amp_to_db(amp)); */
-    /* strcat(dst, " dB"); */
-}
-
-static void slider_label_pan(char *dst, size_t dstsize, void *value, ValType type)
-{
-    float val = *(float *)value;
-    label_pan(dst, dstsize, val);
-    /* if (val < 0.5) {	 */
-    /* 	snprintf(dst, dstsize, "%.1f%% L", (0.5 - val) * 200); */
-    /* } else if (val > 0.5) { */
-    /* 	snprintf(dst, dstsize, "%.1f%% R", (val - 0.5) * 200); */
-    /* } else { */
-    /* 	snprintf(dst, dstsize, "C"); */
-    /* } */
-}
-
 /* static void slider_label_plain_str(char *dst, size_t dstsize, void *value, ValType type) */
 /* { */
 /*     double value_d = type == JDAW_DOUBLE ? *(double *)value : *(float *)value; */
@@ -1634,7 +1606,7 @@ Track *timeline_add_track(Timeline *tl)
 	(Value){.float_v = TRACK_VOL_MAX},
 	SLIDER_HORIZONTAL,
 	SLIDER_FILL,
-	&slider_label_amp_to_dbstr,
+	&label_amp_to_dbstr,
 	&tl->proj->dragged_component);
     /* track->vol_ep.xarg1 = track->vol_ctrl; */
     /* track->vol_ctrl = slider_create( */
@@ -1680,7 +1652,7 @@ Track *timeline_add_track(Timeline *tl)
 	(Value){.float_v = 1.0f},
 	SLIDER_HORIZONTAL,
 	SLIDER_TICK,
-	slider_label_pan,
+	label_pan,
 	&tl->proj->dragged_component);
     track->pan_ctrl->disallow_unsafe_mode = true;
     /* track->pan_ep.xarg1 = track->pan_ctrl; */

@@ -1,13 +1,14 @@
 #include "label.h"
 #include "layout.h"
+#include "value.h"
 
 extern SDL_Color color_global_black;
 
 extern Window *main_win;
 
-static void std_str_fn(char *dst, size_t dstsize, void *target, ValType t)
+static void std_str_fn(char *dst, size_t dstsize, Value v, ValType t)
 {
-    jdaw_valptr_set_str(dst, dstsize, target, t, 2);
+    jdaw_val_to_str(dst, dstsize, v, t, 2);
 }
 
 /* Use zero for default max len */
@@ -66,9 +67,9 @@ void label_move(Label *label, int x, int y)
     layout_set_values_from_rect(label->tb->layout);
 }
 
-void label_reset(Label *label)
+void label_reset(Label *label, Value v)
 {
-    label->set_str_fn(label->str, label->max_len, label->target_obj, label->val_type);
+    label->set_str_fn(label->str, label->max_len, v, label->val_type);
     textbox_size_to_fit(label->tb, LABEL_H_PAD, LABEL_V_PAD);
 
     /* Do not allow label to extend offscreen (right) */
@@ -102,20 +103,18 @@ static float amp_to_db(float amp)
     return (20.0f * log10(amp));
 }
 
-void label_amp_to_dbstr(char *dst, size_t dstsize, float amp)
+void label_amp_to_dbstr(char *dst, size_t dstsize, Value val, ValType t)
 {
-    int max_float_chars = dstsize - 2;
-    if (max_float_chars < 1) {
-	fprintf(stderr, "Error: no room for dbstr\n");
-	dst[0] = '\0';
-	return;
-    }
-    snprintf(dst, max_float_chars, "%.2f", amp_to_db(amp));
+    float amp = t == JDAW_FLOAT ? val.float_v : val.double_v;
+    float db = amp_to_db(amp);
+    snprintf(dst, dstsize - 4, "%.*f", 2, db);
+    /* jdaw_val_set_str(dst, dstsize - 4, val, t, 2); */
     strcat(dst, " dB");
 }
 
-void label_pan(char *dst, size_t dstsize, float pan)
+void label_pan(char *dst, size_t dstsize, Value val, ValType t)
 {
+    float pan = t == JDAW_FLOAT ? val.float_v : val.double_v;
     if (pan < 0.5) {	
 	snprintf(dst, dstsize, "%.1f%% L", (0.5 - pan) * 200);
     } else if (pan > 0.5) {
@@ -125,19 +124,69 @@ void label_pan(char *dst, size_t dstsize, float pan)
     }
 }
 
+    
+
+/* void OLDlabel_amp_to_dbstr(char *dst, size_t dstsize, float amp) */
+/* { */
+/*     int max_float_chars = dstsize - 2; */
+/*     if (max_float_chars < 1) { */
+/* 	fprintf(stderr, "Error: no room for dbstr\n"); */
+/* 	dst[0] = '\0'; */
+/* 	return; */
+/*     } */
+/*     snprintf(dst, max_float_chars, "%.2f", amp_to_db(amp)); */
+/*     strcat(dst, " dB"); */
+/* } */
+
+/* void label_pan(char *dst, size_t dstsize, float pan) */
+/* { */
+/*     if (pan < 0.5) {	 */
+/* 	snprintf(dst, dstsize, "%.1f%% L", (0.5 - pan) * 200); */
+/*     } else if (pan > 0.5) { */
+/* 	snprintf(dst, dstsize, "%.1f%% R", (pan - 0.5) * 200); */
+/*     } else { */
+/* 	snprintf(dst, dstsize, "C"); */
+/*     } */
+/* } */
+
 
 double dsp_scale_freq_to_hz(double raw);
-void label_freq_raw_to_hz(char *dst, size_t dstsize, double raw)
+
+void label_freq_raw_to_hz(char *dst, size_t dstsize, Value v, ValType t)
 {
+    double raw = t == JDAW_FLOAT ? v.float_v : v.double_v;
     double hz = dsp_scale_freq_to_hz(raw);
     snprintf(dst, dstsize, "%.0f Hz", hz);
     /* snprintf(dst, dstsize, "hi"); */
     dst[dstsize - 1] = '\0';
 }
 
-
-void label_time_samples_to_msec(char *dst, size_t dstsize, int32_t samples, int32_t sample_rate)
+void label_msec(char *dst, size_t dstsize, Value v, ValType t)
 {
-    int msec = (double)samples * 1000 / sample_rate;
-    snprintf(dst, dstsize, "%d ms", msec);
+    jdaw_val_to_str(dst, dstsize, v, t, 2);
+    strcat(dst, " ms");
 }
+
+/* void label_freq_raw_to_hz(char *dst, size_t dstsize, double raw) */
+/* { */
+/*     double hz = dsp_scale_freq_to_hz(raw); */
+/*     snprintf(dst, dstsize, "%.0f Hz", hz); */
+/*     /\* snprintf(dst, dstsize, "hi"); *\/ */
+/*     dst[dstsize - 1] = '\0'; */
+/* } */
+
+
+/* void label_time_samples_to_msec(char *dst, size_t dstsize, Value v, ValType t) */
+/* { */
+    
+/*     int msec = (double)samples * 1000 / sample_rate; */
+/*     snprintf(dst, dstsize, "%d ms", msec); */
+/* } */
+
+
+/* void label_time_samples_to_msec(char *dst, size_t dstsize, int32_t samples, int32_t sample_rate) */
+/* { */
+/*     int msec = (double)samples * 1000 / sample_rate; */
+/*     snprintf(dst, dstsize, "%d ms", msec); */
+/* } */
+

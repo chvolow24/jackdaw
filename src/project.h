@@ -400,10 +400,12 @@ typedef struct project {
     struct freq_plot *freq_domain_plot;
 
     /* In-progress events */
-    bool vol_changing;
-    bool vol_up;
-    bool pan_changing;
-    bool pan_right;
+    float playhead_frame_incr;
+    bool playhead_do_incr;
+    /* bool vol_changing; */
+    /* bool vol_up; */
+    /* bool pan_changing; */
+    /* bool pan_right; */
     /* bool show_output_freq_domain; */
 
     Draggable dragged_component;

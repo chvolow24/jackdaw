@@ -185,29 +185,32 @@ void textbox_draw(Textbox *tb)
 	}
     }
 
-    if (tb->style == BUTTON_CLASSIC || tb->style == BUTTON_DARK) {
-	int dpi_scale = tb->window->dpi_scale_factor;
-	tb_rect = tb->layout->rect;
-	if (tb->style == BUTTON_CLASSIC)
-	    SDL_SetRenderDrawColor(rend, 240, 240, 240, 255);
-	else
-	    SDL_SetRenderDrawColor(rend, 120, 120, 120, 255);
-	SDL_Rect draw_rect = {tb_rect.x, tb_rect.y, dpi_scale, tb_rect.h - dpi_scale};
-	SDL_RenderFillRect(rend, &draw_rect);
-	draw_rect.w = tb_rect.w - dpi_scale;
-	draw_rect.h = dpi_scale;
-	SDL_RenderFillRect(rend, &draw_rect);
-	SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
-	/* draw_rect.x += 2; */
-	draw_rect.y += tb_rect.h - dpi_scale;
-	/* draw_rect.w -= dpi_scale; */
-	SDL_RenderFillRect(rend, &draw_rect);
-	draw_rect.x += tb_rect.w - dpi_scale;
-	draw_rect.y = tb_rect.y;
-	draw_rect.h = tb_rect.h;
-	draw_rect.w = dpi_scale;
-	SDL_RenderFillRect(rend, &draw_rect);
-    }
+
+    /* Styled chunky buttons -- save for later, maybe */
+
+    /* if (tb->style == BUTTON_CLASSIC || tb->style == BUTTON_DARK) { */
+    /* 	int dpi_scale = tb->window->dpi_scale_factor; */
+    /* 	tb_rect = tb->layout->rect; */
+    /* 	if (tb->style == BUTTON_CLASSIC) */
+    /* 	    SDL_SetRenderDrawColor(rend, 240, 240, 240, 255); */
+    /* 	else */
+    /* 	    SDL_SetRenderDrawColor(rend, 120, 120, 120, 255); */
+    /* 	SDL_Rect draw_rect = {tb_rect.x, tb_rect.y, dpi_scale, tb_rect.h - dpi_scale}; */
+    /* 	SDL_RenderFillRect(rend, &draw_rect); */
+    /* 	draw_rect.w = tb_rect.w - dpi_scale; */
+    /* 	draw_rect.h = dpi_scale; */
+    /* 	SDL_RenderFillRect(rend, &draw_rect); */
+    /* 	SDL_SetRenderDrawColor(rend, 0, 0, 0, 255); */
+    /* 	/\* draw_rect.x += 2; *\/ */
+    /* 	draw_rect.y += tb_rect.h - dpi_scale; */
+    /* 	/\* draw_rect.w -= dpi_scale; *\/ */
+    /* 	SDL_RenderFillRect(rend, &draw_rect); */
+    /* 	draw_rect.x += tb_rect.w - dpi_scale; */
+    /* 	draw_rect.y = tb_rect.y; */
+    /* 	draw_rect.h = tb_rect.h; */
+    /* 	draw_rect.w = dpi_scale; */
+    /* 	SDL_RenderFillRect(rend, &draw_rect); */
+    /* } */
 
 
     
@@ -315,21 +318,23 @@ void textbox_set_value_handle(Textbox *tb, const char *new_value)
     txt_set_value_handle(tb->text, (char *) new_value);
 }
 
+
+/* Chunky buttons -- save for later, maybe */
 void textbox_set_style(Textbox *tb, enum textbox_style style)
 {
-    tb->border_thickness = 0;
-    tb->border_clr = NULL;
-    tb->corner_radius = 0;
+    /* tb->border_thickness = 0; */
+    /* tb->border_clr = NULL; */
+    /* tb->corner_radius = 0; */
 
-    switch (style) {
-    case BUTTON_CLASSIC:
-	tb->style = BUTTON_CLASSIC;
-	break;
-    case BUTTON_DARK:
-	tb->style = BUTTON_DARK;
-    default:
-	break;
-    }
+    /* switch (style) { */
+    /* case BUTTON_CLASSIC: */
+    /* 	tb->style = BUTTON_CLASSIC; */
+    /* 	break; */
+    /* case BUTTON_DARK: */
+    /* 	tb->style = BUTTON_DARK; */
+    /* default: */
+    /* 	break; */
+    /* } */
 }
 
 /* void textbox_set_style(Textbox *tb, enum textbox_style style) */

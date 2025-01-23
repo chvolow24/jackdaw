@@ -66,9 +66,13 @@
   - q		: tl_rewind
   - K-l		: tl_play_slow
   - K-j		: tl_rewind_slow
-  - C-l		: tl_play_slow
+  - C-l		: ptl_play_slow
   - C-j		: tl_rewind_slow
   - S-k		: tl_pause
+  - [		: tl_move_playhead_left
+  - ]		: tl_move_playhead_right
+  - S-[		: tl_move_playhead_left_slow
+  - S-]		: tl_move_playhead_right_slow
   - <left>	: tl_nudge_left
   - <right>	: tl_nudge_right
   - S-<left>	: tl_small_nudge_left

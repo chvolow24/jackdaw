@@ -76,79 +76,79 @@ extern pthread_t DSP_THREAD_ID;
 
 /* extern volatile bool CANCEL_THREADS; */
 
-static void stop_update_track_vol_pan()
-{
-    proj->vol_changing = false;
-    proj->pan_changing = false;
-}
+/* static void stop_update_track_vol_pan() */
+/* { */
+/*     proj->vol_changing = false; */
+/*     proj->pan_changing = false; */
+/* } */
 
 
-static void update_track_vol_pan()
-{
-    return;
-    /* fprintf(stdout, "%p, %p\n", proj->vol_changing, proj->pan_changing); */
-    if (!proj->vol_changing && !proj->pan_changing) {
-	return;
-    }
-    Timeline *tl = proj->timelines[proj->active_tl_index];
-    bool had_active_track = false;
+/* static void update_track_vol_pan() */
+/* { */
+/*     return; */
+/*     /\* fprintf(stdout, "%p, %p\n", proj->vol_changing, proj->pan_changing); *\/ */
+/*     if (!proj->vol_changing && !proj->pan_changing) { */
+/* 	return; */
+/*     } */
+/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
+/*     bool had_active_track = false; */
 
-    for (int i=0; i<tl->num_tracks; i++) {
-	Track *trk = tl->tracks[i];
-	if (trk->active) {
-	    had_active_track = true;
-	    if (proj->vol_changing) {
-		/* hide_slider_label(trk->vol_ctrl); */
-		trk->vol_ctrl->editing = true;
-		if (proj->vol_up) {
-		    track_increment_vol(trk);
-		} else {
-		    track_decrement_vol(trk);
-		}
-	    }
-	    if (proj->pan_changing) {
-		/* hide_slider_label */
-		trk->pan_ctrl->editing = true;
-		if (proj->pan_right) {
-		    track_increment_pan(trk);
-		} else {
-		    track_decrement_pan(trk);
-		}
-	    }
-	}
-    }
-    Track *selected_track = timeline_selected_track(tl);
-    if (!had_active_track) {
-	if (selected_track) {
-	    if (proj->vol_changing) {
-		if (proj->vol_up) {
-		    track_increment_vol(selected_track);
-		} else {
-		    track_decrement_vol(selected_track);
-		}
-		selected_track->vol_ctrl->editing = true;
-	    }
-	    if (proj->pan_changing) {
-		if (proj->pan_right) {
-		    track_increment_pan(selected_track);
-		} else {
-		    track_decrement_pan(selected_track);
-		}
-		selected_track->pan_ctrl->editing = true;
-	    }
-	} else {
-	    TempoTrack *tt = timeline_selected_tempo_track(tl);
-	    if (tt) {
-		if (proj->vol_up) {
-		    tempo_track_increment_vol(tt);
-		} else {
-		    tempo_track_decrement_vol(tt);
-		}
-	    }
-	}
-    }
-    tl->needs_redraw = true;
-}
+/*     for (int i=0; i<tl->num_tracks; i++) { */
+/* 	Track *trk = tl->tracks[i]; */
+/* 	if (trk->active) { */
+/* 	    had_active_track = true; */
+/* 	    if (proj->vol_changing) { */
+/* 		/\* hide_slider_label(trk->vol_ctrl); *\/ */
+/* 		trk->vol_ctrl->editing = true; */
+/* 		if (proj->vol_up) { */
+/* 		    track_increment_vol(trk); */
+/* 		} else { */
+/* 		    track_decrement_vol(trk); */
+/* 		} */
+/* 	    } */
+/* 	    if (proj->pan_changing) { */
+/* 		/\* hide_slider_label *\/ */
+/* 		trk->pan_ctrl->editing = true; */
+/* 		if (proj->pan_right) { */
+/* 		    track_increment_pan(trk); */
+/* 		} else { */
+/* 		    track_decrement_pan(trk); */
+/* 		} */
+/* 	    } */
+/* 	} */
+/*     } */
+/*     Track *selected_track = timeline_selected_track(tl); */
+/*     if (!had_active_track) { */
+/* 	if (selected_track) { */
+/* 	    if (proj->vol_changing) { */
+/* 		if (proj->vol_up) { */
+/* 		    track_increment_vol(selected_track); */
+/* 		} else { */
+/* 		    track_decrement_vol(selected_track); */
+/* 		} */
+/* 		selected_track->vol_ctrl->editing = true; */
+/* 	    } */
+/* 	    if (proj->pan_changing) { */
+/* 		if (proj->pan_right) { */
+/* 		    track_increment_pan(selected_track); */
+/* 		} else { */
+/* 		    track_decrement_pan(selected_track); */
+/* 		} */
+/* 		selected_track->pan_ctrl->editing = true; */
+/* 	    } */
+/* 	} else { */
+/* 	    TempoTrack *tt = timeline_selected_tempo_track(tl); */
+/* 	    if (tt) { */
+/* 		if (proj->vol_up) { */
+/* 		    tempo_track_increment_vol(tt); */
+/* 		} else { */
+/* 		    tempo_track_decrement_vol(tt); */
+/* 		} */
+/* 	    } */
+/* 	} */
+/*     } */
+/*     tl->needs_redraw = true; */
+/* } */
 
 /* TODO: SDL bug workaround. I haven't been able to get this to work reliably cross-platform. */
 /* https://discourse.libsdl.org/t/window-event-at-initiation-of-window-resize/50963/3 */
@@ -323,7 +323,8 @@ void loop_project_main()
 		default:
 		    project_flush_ongoing_changes(proj, JDAW_THREAD_MAIN);
 		    project_flush_ongoing_changes(proj, JDAW_THREAD_DSP);
-		    stop_update_track_vol_pan();
+		    proj->playhead_do_incr = false;
+		    /* stop_update_track_vol_pan(); */
 		    break;
 		}
 		break;
@@ -552,7 +553,10 @@ void loop_project_main()
 	    animate_step++;
 	}
 
-	update_track_vol_pan();
+	if (proj->playhead_do_incr) {
+	    timeline_scroll_playhead(proj->playhead_frame_incr);
+	}
+	/* update_track_vol_pan(); */
 
 	if (main_win->txt_editing) {
 	    if (main_win->txt_editing->cursor_countdown == 0) {

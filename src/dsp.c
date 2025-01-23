@@ -662,7 +662,7 @@ void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate)
 	delay_line_len_gui_cb, NULL, delay_line_len_dsp_cb,
 	/* NULL, NULL, delay_line_len_dsp_cb, */
 	(void *)dl, NULL, NULL, NULL);
-
+    endpoint_set_allowed_range(&dl->len_ep, (Value){.int16_v=0}, (Value){.int16_v=1000});
     api_endpoint_register(&dl->len_ep, &dl->track->api_node);
 
     endpoint_init(
@@ -675,7 +675,7 @@ void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate)
 	/* delay_line_amp_gui_cb, NULL, NULL, */
 	delay_line_amp_gui_cb, NULL, NULL,
 	(void *)dl, NULL, NULL, NULL);
-    
+    endpoint_set_allowed_range(&dl->amp_ep, (Value){.double_v=0.0}, (Value){.double_v=0.99});
     api_endpoint_register(&dl->amp_ep, &dl->track->api_node);
     
     endpoint_init(
@@ -685,9 +685,9 @@ void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate)
 	"delay_line_stereo_offset",
 	"undo/redo adj delay stereo offset",
 	JDAW_THREAD_DSP,
-	NULL, NULL, NULL,
+	delay_line_stereo_offset_gui_cb, NULL, NULL,
 	NULL, NULL, NULL, NULL);
-    
+    endpoint_set_allowed_range(&dl->stereo_offset_ep, (Value){.double_v=0.0}, (Value){.double_v=1.0});    
     api_endpoint_register(&dl->stereo_offset_ep, &dl->track->api_node);
 }
 

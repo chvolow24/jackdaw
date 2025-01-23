@@ -145,7 +145,15 @@ void timeline_tempo_track_set_tempo_at_cursor(Timeline *tl);
 void timeline_tempo_track_edit(Timeline *tl);
 bool timeline_tempo_track_delete(Timeline *tl);
 
-void tempo_track_populate_settings_tabview(TempoTrack *tt, TabView *tv);
+
+/* Required in settings.c */
+TempoSegment *tempo_track_get_segment_at_pos(TempoTrack *t, int32_t pos);
+void tempo_segment_set_config(TempoSegment *s, int num_measures, int bpm, uint8_t num_beats, uint8_t *subdivs, enum ts_end_bound_behavior ebb);
+void tempo_segment_destroy(TempoSegment *s);
+    /* tempo_segment_set_config(s, -1, cpy->cfg.bpm, cpy->cfg.num_beats, cpy->cfg.beat_subdiv_lens, ebb); */
+    /* tempo_segment_destroy(cpy); */
+
+    
 /*********************/
 /* void tempo_track_reset(TempoTrack *tt); */
 /* TempoSegment *tempo_track_add_segment(TempoTrack *t, int32_t start_pos, int16_t num_measures, int bpm, uint8_t num_beats, uint8_t *subdiv_lens); */
@@ -155,7 +163,6 @@ int32_t tempo_track_bar_beat_subdiv(TempoTrack *tt, int32_t pos, int *bar_p, int
 void tempo_track_draw(TempoTrack *tt);
 /* void tempo_track_edit_segment_at_cursor(TempoTrack *tt, int num_measures, int bpm, uint8_t num_beats, uint8_t *subdiv_lens); */
 typedef struct project Project;
-
 void tempo_track_destroy(TempoTrack *tt);
 
 void tempo_track_mute_unmute(TempoTrack *t);

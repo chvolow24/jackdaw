@@ -212,20 +212,22 @@ int endpoint_write(
 	    fprintf(stderr, "UH OH can't push event fn on thread that is not main\n");
 	    return -1;
 	}
-	uint8_t callback_bitfield = 0;
-	if (run_gui_cb) callback_bitfield |= 0b001;
-	if (run_proj_cb) callback_bitfield |= 0b010;
-	if (run_dsp_cb) callback_bitfield |= 0b100;
-	Value cb_matrix = {.uint8_v = callback_bitfield};
-	user_event_push(
-	    &proj->history,
-	    undo_redo_endpoint_write,
-	    undo_redo_endpoint_write,
-	    NULL, NULL,
-	    (void *)ep, NULL,
-	    old_val, cb_matrix,
-	    new_val, cb_matrix,
-	    0, 0, false, false);
+	if (!jdaw_val_equal(old_val, new_val, ep->val_type)) {
+	    uint8_t callback_bitfield = 0;
+	    if (run_gui_cb) callback_bitfield |= 0b001;
+	    if (run_proj_cb) callback_bitfield |= 0b010;
+	    if (run_dsp_cb) callback_bitfield |= 0b100;
+	    Value cb_matrix = {.uint8_v = callback_bitfield};
+	    user_event_push(
+		&proj->history,
+		undo_redo_endpoint_write,
+		undo_redo_endpoint_write,
+		NULL, NULL,
+		(void *)ep, NULL,
+		old_val, cb_matrix,
+		new_val, cb_matrix,
+		0, 0, false, false);
+	}
     }
     
     return ret;

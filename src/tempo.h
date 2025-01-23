@@ -76,6 +76,9 @@ typedef struct click_segment {
 
     ClickSegment *next;
     ClickSegment *prev;
+
+    int32_t end_pos_internal;
+    Endpoint end_pos_ep;
 } ClickSegment;
 
 typedef struct timeline Timeline;

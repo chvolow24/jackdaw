@@ -244,7 +244,7 @@ set_prominence_and_exit:
 }
 
 
-static void click_segment_set_end_pos(ClickSegment *s, int32_t new_end_pos);
+void click_segment_set_end_pos(ClickSegment *s, int32_t new_end_pos);
 
 void click_segment_set_config(ClickSegment *s, int num_measures, int bpm, uint8_t num_beats, uint8_t *subdivs, enum ts_end_bound_behavior ebb)
 {
@@ -278,6 +278,7 @@ void click_segment_set_config(ClickSegment *s, int num_measures, int bpm, uint8_
 
     if (!s->next) {
 	s->end_pos = s->start_pos;
+	s->end_pos_internal = s->start_pos;
 	s->num_measures = -1;
     } else {
 	if (ebb == SEGMENT_FIXED_NUM_MEASURES) {
@@ -304,7 +305,7 @@ void click_segment_set_config(ClickSegment *s, int num_measures, int bpm, uint8_
 }
 
 /* Calculates the new segment dur in measures and sets the first measure index of the next segment */
-static void click_segment_set_end_pos(ClickSegment *s, int32_t new_end_pos)
+void click_segment_set_end_pos(ClickSegment *s, int32_t new_end_pos)
 {
     /* fprintf(stderr, "SETTING end pos on segment with deets\n"); */
     /* click_segment_fprint(stderr, s); */
@@ -312,6 +313,7 @@ static void click_segment_set_end_pos(ClickSegment *s, int32_t new_end_pos)
     double num_measures = (double)segment_dur / s->cfg.dur_sframes;
     s->num_measures = floor(0.9999999 + num_measures);
     s->end_pos = new_end_pos;
+    s->end_pos_internal = new_end_pos;
     while (s->next) {
 	/* int32_t segment_dur = new_end_pos - s->start_pos; */
 	/* double num_measures = (double)segment_dur / s->cfg.dur_sframes; */
@@ -339,9 +341,17 @@ ClickSegment *click_track_add_segment(ClickTrack *t, int32_t start_pos, int16_t 
     s->track = t;
     s->num_measures = num_measures;
     s->start_pos = start_pos;
-
+    endpoint_init(
+	&s->end_pos_ep,
+	&s->end_pos_internal,
+	JDAW_INT32,
+	"end_pos",
+	"undo/redo move click segment boundary",
+	JDAW_THREAD_MAIN,
+	NULL, click_segment_bound_proj_cb, NULL,
+	(void *)s, NULL, NULL, NULL);
+	
     if (!t->segments) {
-	/* fprintf(stderr, "This is the first and I'm adding it\n"); */
 	t->segments = s;
 	s->end_pos = s->start_pos;
 	s->first_measure_index = BARS_FOR_NOTHING * -1;
@@ -1434,7 +1444,7 @@ void click_track_decrement_vol(ClickTrack *tt)
     slider_reset(tt->metronome_vol_slider);
 }
 
-
+/* Mouse click */
 bool click_track_triage_click(uint8_t button, ClickTrack *t)
 {
     if (!SDL_PointInRect(&main_win->mousep, &t->layout->rect)) {
@@ -1471,9 +1481,11 @@ bool click_track_triage_click(uint8_t button, ClickTrack *t)
 	}
 	s = s->next;
     }
-    if (final) {
-	proj->dragged_component.component = final;
+    if (final && final->prev) {
+	proj->dragged_component.component = final->prev;
 	proj->dragged_component.type = DRAG_CLICK_SEG_BOUND;
+	Value current_val = endpoint_safe_read(&final->prev->end_pos_ep, NULL);
+	endpoint_start_continuous_change(&final->prev->end_pos_ep, false, (Value)0, JDAW_THREAD_MAIN, current_val);
 	return true;
     }
 
@@ -1483,12 +1495,13 @@ bool click_track_triage_click(uint8_t button, ClickTrack *t)
 
 void click_track_mouse_motion(ClickSegment *s, Window *win)
 {
-    if (!s->prev) return;
-    s = s->prev;
+    /* if (!s->prev) return; */
+    /* s = s->prev; */
     int32_t tl_pos = timeline_get_abspos_sframes(s->track->tl, win->mousep.x);
     if (tl_pos < s->start_pos + proj->sample_rate / 100) {
 	return;
     }
+    endpoint_write(&s->end_pos_ep, (Value){.int32_v = tl_pos}, true, true, true, false);
     click_segment_set_end_pos(s, tl_pos);
 }
    

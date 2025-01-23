@@ -255,7 +255,6 @@ static void *server_threadfn(void *arg)
 /* Server */
 int api_start_server(Project *proj, int port)
 {
-    fprintf(stderr, "API START SERVER port: %d\n", port);
     pthread_t servthread;
     proj->server.port = port;
     pthread_create(&servthread, NULL, server_threadfn, (void *)proj);
@@ -295,10 +294,8 @@ void api_quit(Project *proj)
     
     proj->server.active = false;
     char *msg = "quit";
-    fprintf(stderr, "SENDING QUIT MESSAGE on proj: %p, id: %d\n", proj, proj->server.sockfd);
     sendto(proj->server.sockfd, msg, strlen(msg), 0, (struct sockaddr *)&proj->server.servaddr, sizeof(proj->server.servaddr));
     pthread_join(proj->server.thread_id, NULL);
-    fprintf(stderr, "JOINED THREAD DONE\n");
     api_hash_table_destroy();
 }
 
@@ -328,16 +325,18 @@ void api_table_print()
 	bool init = true;
 	if (!n) {
 	    fprintf(stderr, "%d: NULL\n", i);
-	} else while (n) {
+	} else {
+	    while (n) {
 		char dst[255];
 		api_endpoint_get_route(n->ep, dst, 255);
 		if (init) {
 		    fprintf(stderr, "%d: %s\n", i, dst);
-		}else {
+		} else {
 		    fprintf(stderr, "\t%d: %s\n", i, dst);
 		}
 		n = n->next;
 		init = false;
+	    }
 	}
     }
 }

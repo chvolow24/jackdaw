@@ -326,8 +326,10 @@ void click_segment_set_end_pos(ClickSegment *s, int32_t new_end_pos)
 	s->next->start_pos = s->end_pos;
 	if (s->next->next) {
 	    s->next->end_pos = s->next->start_pos + dur_next;
+	    s->next->end_pos_internal = s->next->end_pos;
 	} else {
 	    s->next->end_pos = s->next->start_pos;
+	    s->next->end_pos_internal = s->next->end_pos;
 	}
 	s->next->first_measure_index = s->first_measure_index+ s->num_measures;
 	s = s->next;
@@ -953,6 +955,7 @@ NEW_EVENT_FN(dispose_forward_cut_click_track, "")
 
 void timeline_cut_click_track_at_cursor(Timeline *tl)
 {
+    if (tl->play_pos_sframes < 0) return;
     ClickTrack *tt = timeline_selected_click_track(tl);
     if (!tt) return;
     ClickSegment *s = click_track_cut_at(tt, tl->play_pos_sframes);
@@ -1512,14 +1515,15 @@ static int32_t click_segment_get_nearest_beat_pos(ClickTrack *ct, int32_t start_
 void click_track_mouse_motion(ClickSegment *s, Window *win)
 {
     int32_t tl_pos = timeline_get_abspos_sframes(s->track->tl, win->mousep.x);
-    if (tl_pos < s->start_pos + proj->sample_rate / 100) {
-	return;
-    }
     if (!(main_win->i_state & I_STATE_SHIFT)) {
 	tl_pos = click_segment_get_nearest_beat_pos(s->track, tl_pos);
     }
+    if (tl_pos < 0 || tl_pos < s->start_pos + proj->sample_rate / 100) {
+	return;
+    }
+
     endpoint_write(&s->end_pos_ep, (Value){.int32_v = tl_pos}, true, true, true, false);
-    click_segment_set_end_pos(s, tl_pos);
+    /* click_segment_set_end_pos(s, tl_pos); */
 }
    
 

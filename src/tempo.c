@@ -42,6 +42,7 @@
 #include "color.h"
 #include "components.h"
 #include "geometry.h"
+#include "input.h"
 #include "layout.h"
 #include "layout_xml.h"
 #include "modal.h"
@@ -500,7 +501,7 @@ NEW_EVENT_FN(redo_add_click_track, "redo add tempo track")
     ClickTrack *tt = obj1;
     click_track_reinsert(tt);
 }
-
+ 
 NEW_EVENT_FN(dispose_forward_add_click_track, "")
     click_track_destroy((ClickTrack *)obj1);
 }
@@ -1493,13 +1494,29 @@ bool click_track_triage_click(uint8_t button, ClickTrack *t)
     return false;
 }
 
+static int32_t click_segment_get_nearest_beat_pos(ClickTrack *ct, int32_t start_pos)
+{
+    int bar, beat, subdiv;
+    ClickSegment *s;
+    int32_t remainder = click_track_bar_beat_subdiv(ct, start_pos, &bar, &beat, &subdiv, &s, false);
+    int32_t init = get_beat_pos(s, bar, beat, subdiv);
+    do_increment(s, &bar, &beat, &subdiv);
+    int32_t next = get_beat_pos(s, bar, beat, subdiv);
+    if (next - start_pos < remainder) {
+	return next;
+    } else {
+	return init;
+    }
+    
+}
 void click_track_mouse_motion(ClickSegment *s, Window *win)
 {
-    /* if (!s->prev) return; */
-    /* s = s->prev; */
     int32_t tl_pos = timeline_get_abspos_sframes(s->track->tl, win->mousep.x);
     if (tl_pos < s->start_pos + proj->sample_rate / 100) {
 	return;
+    }
+    if (!(main_win->i_state & I_STATE_SHIFT)) {
+	tl_pos = click_segment_get_nearest_beat_pos(s->track, tl_pos);
     }
     endpoint_write(&s->end_pos_ep, (Value){.int32_v = tl_pos}, true, true, true, false);
     click_segment_set_end_pos(s, tl_pos);

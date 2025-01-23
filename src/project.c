@@ -246,8 +246,8 @@ static void timeline_destroy(Timeline *tl, bool displace_in_proj)
     for (uint8_t i=0; i<tl->num_tracks; i++) {
 	track_destroy(tl->tracks[i], false);
     }
-    for (uint8_t i=0; i<tl->num_tempo_tracks; i++) {
-	tempo_track_destroy(tl->tempo_tracks[i]);
+    for (uint8_t i=0; i<tl->num_click_tracks; i++) {
+	click_track_destroy(tl->click_tracks[i]);
     }
     /* tl->proj->num_timelines--; */
     if (displace_in_proj) {
@@ -1311,11 +1311,11 @@ void timeline_rectify_track_indices(Timeline *tl)
     }
 
     /* fprintf(stderr, "Rectify\n"); */
-    int tempo_track_index = 0;
+    int click_track_index = 0;
     int track_index = 0;
     
     Track *track_stack[tl->num_tracks];
-    TempoTrack *tempo_track_stack[tl->num_tempo_tracks];
+    ClickTrack *click_track_stack[tl->num_click_tracks];
     
     for (int i=0; i<tl->track_area->num_children; i++) {
 	Layout *lt = tl->track_area->children[i];
@@ -1327,31 +1327,31 @@ void timeline_rectify_track_indices(Timeline *tl)
 		track->tl_rank = track_index;
 		if (is_selected_lt) {
 		    tl->track_selector = track_index;
-		    tl->tempo_track_selector = -1;
+		    tl->click_track_selector = -1;
 		}
 		track_index++;
 		break;
 	    }
 	}
-	for (uint8_t j=0; j<tl->num_tempo_tracks; j++) {
-	    TempoTrack *tt = tl->tempo_tracks[j];
+	for (uint8_t j=0; j<tl->num_click_tracks; j++) {
+	    ClickTrack *tt = tl->click_tracks[j];
 	    if (tt->layout == lt) {
-		tempo_track_stack[tempo_track_index] = tt;
-		tt->index = tempo_track_index;
+		click_track_stack[click_track_index] = tt;
+		tt->index = click_track_index;
 		if (is_selected_lt) {
-		    tl->tempo_track_selector = tempo_track_index;
+		    tl->click_track_selector = click_track_index;
 		    tl->track_selector = -1;
 		}
-		tempo_track_index++;
+		click_track_index++;
 		break;
 	    }
 	}
     }
     /* fprintf(stderr, "->LT selector: %d\n", tl->layout_selector); */
     /* fprintf(stderr, "->track selector: %d\n", tl->track_selector); */
-    /* fprintf(stderr, "->tt selector: %d\n", tl->tempo_track_selector); */
+    /* fprintf(stderr, "->tt selector: %d\n", tl->click_track_selector); */
     memcpy(tl->tracks, track_stack, sizeof(Track *) * tl->num_tracks);
-    memcpy(tl->tempo_tracks, tempo_track_stack, sizeof(TempoTrack *) * tl->num_tempo_tracks);
+    memcpy(tl->click_tracks, click_track_stack, sizeof(ClickTrack *) * tl->num_click_tracks);
     tl->needs_redraw = true;
 }
 
@@ -1367,15 +1367,15 @@ Track *timeline_selected_track(Timeline *tl)
     }
 }
 
-TempoTrack *timeline_selected_tempo_track(Timeline *tl)
+ClickTrack *timeline_selected_click_track(Timeline *tl)
 {
-    if (tl->num_tempo_tracks == 0 || tl->tempo_track_selector < 0) {
+    if (tl->num_click_tracks == 0 || tl->click_track_selector < 0) {
 	return NULL;
-    } else if (tl->tempo_track_selector > tl->num_tempo_tracks - 1) {
+    } else if (tl->click_track_selector > tl->num_click_tracks - 1) {
 	fprintf(stderr, "ERROR: tempo track selector points past end of tracks arr\n");
 	exit(1);
     } else {
-	return tl->tempo_tracks[tl->tempo_track_selector];
+	return tl->click_tracks[tl->click_track_selector];
     }
 }
 
@@ -1909,8 +1909,8 @@ void timeline_reset(Timeline *tl, bool rescaled)
     for (int i=0; i<tl->num_tracks; i++) {
 	track_reset(tl->tracks[i], rescaled);
     }
-    /* for (int i=0; i<tl->num_tempo_tracks; i++) { */
-    /* 	tempo_track_reset(tl->tempo_tracks[i]); */
+    /* for (int i=0; i<tl->num_click_tracks; i++) { */
+    /* 	click_track_reset(tl->click_tracks[i]); */
     /* } */
     layout_reset(tl->layout);
     tl->needs_redraw = true;
@@ -2170,9 +2170,9 @@ void track_or_tracks_mute(Timeline *tl)
     if (!has_active_track) {
 	track = timeline_selected_track(tl);
 	if (!track) {
-	    TempoTrack *tt = timeline_selected_tempo_track(tl);
+	    ClickTrack *tt = timeline_selected_click_track(tl);
 	    if (tt) {
-		tempo_track_mute_unmute(tt);
+		click_track_mute_unmute(tt);
 	    }
 	    return;
 	}
@@ -3038,7 +3038,7 @@ void timeline_cut_at_cursor(Timeline *tl)
 	    clipref_cut(cr, tl->play_pos_sframes - cr->pos_sframes);
 	}
     } else {
-	timeline_cut_tempo_track_at_cursor(tl);
+	timeline_cut_click_track_at_cursor(tl);
 	status_cat_callstr(" tempo track at cursor");
 
     }
@@ -3178,8 +3178,8 @@ static void timeline_move_track_at_index(Timeline *tl, int index, int direction,
     /* if (sel_track) { */
     /* 	timeline_refocus_track(tl, sel_track, direction > 0); */
     /* } else { */
-    /* 	TempoTrack *sel_tt = timeline_selected_tempo_track(tl); */
-    /* 	timeline_refocus_tempo_track(tl, sel_tt, direction > 0); */
+    /* 	ClickTrack *sel_tt = timeline_selected_click_track(tl); */
+    /* 	timeline_refocus_click_track(tl, sel_tt, direction > 0); */
     /* } */
 }
 
@@ -3201,8 +3201,8 @@ void timeline_move_track_or_automation(Timeline *tl, int direction)
     if (t) {
 	timeline_refocus_track(tl, t, direction > 0);
     } else {
-	TempoTrack *tt = timeline_selected_tempo_track(tl);
-	timeline_refocus_tempo_track(tl, tt, direction > 0);
+	ClickTrack *tt = timeline_selected_click_track(tl);
+	timeline_refocus_click_track(tl, tt, direction > 0);
     }
     tl->needs_redraw = true;
 }
@@ -3285,7 +3285,7 @@ static bool refocus_track_lt(Timeline *tl, Layout *lt, Layout *inner, bool at_bo
     return false;
 }
 
-bool timeline_refocus_tempo_track(Timeline *tl, TempoTrack *tt, bool at_bottom)
+bool timeline_refocus_click_track(Timeline *tl, ClickTrack *tt, bool at_bottom)
 {
     Layout *lt = tt->layout;
     return refocus_track_lt(tl, lt, lt, at_bottom);

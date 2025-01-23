@@ -131,8 +131,8 @@
   - C-v		: tl_paste_grabbed_clips
   - C-S-r	: tl_rename_clip_at_cursor
   - r		: tl_record
-  - C-S-t	: tl_tempo_track_add
-  - t		: tl_tempo_track_set_tempo
+  - C-S-t	: tl_click_track_add
+  - t		: tl_click_track_set_tempo
   - C-1		: tl_load_clip_at_cursor_to_source
   - S-1		: tl_activate_source_mode
   - b		: tl_drop_from_source

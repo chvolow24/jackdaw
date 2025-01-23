@@ -41,8 +41,8 @@
 #include "textbox.h"
 
 #define MAX_BEATS_PER_BAR 13
-#define MAX_TEMPO_TRACKS 16
-#define TEMPO_POS_STR_LEN 32
+#define MAX_CLICK_TRACKS 16
+#define CLICK_POS_STR_LEN 32
 #define BARS_FOR_NOTHING 2
 
 enum beat_prominence {
@@ -63,20 +63,20 @@ typedef struct measure_config {
     int32_t atom_dur_approx; /* Not to be used for precise calculations */
 } MeasureConfig;
 
-typedef struct tempo_track TempoTrack;
-typedef struct tempo_segment TempoSegment;
-typedef struct tempo_segment {
-    TempoTrack *track;
+typedef struct click_track ClickTrack;
+typedef struct click_segment ClickSegment;
+typedef struct click_segment {
+    ClickTrack *track;
     int32_t start_pos;
     int32_t end_pos;
     int16_t first_measure_index;
     int32_t num_measures;
-    TempoTrack *tempo_track;
+    ClickTrack *click_track;
     MeasureConfig cfg;
 
-    TempoSegment *next;
-    TempoSegment *prev;
-} TempoSegment;
+    ClickSegment *next;
+    ClickSegment *prev;
+} ClickSegment;
 
 typedef struct timeline Timeline;
 
@@ -92,9 +92,9 @@ enum ts_end_bound_behavior {
     SEGMENT_FIXED_END_POS=0,
     SEGMENT_FIXED_NUM_MEASURES=1
 };
-typedef struct tempo_track {
+typedef struct click_track {
     char name[255];
-    TempoSegment *segments;
+    ClickSegment *segments;
     uint8_t index;
     /* uint8_t num_segments; */
     uint8_t current_segment;
@@ -111,7 +111,7 @@ typedef struct tempo_track {
     /* float metronome_volume; */
     Timeline *tl;
 
-    char pos_str[TEMPO_POS_STR_LEN];
+    char pos_str[CLICK_POS_STR_LEN];
     Textbox *readout;
 
     Layout *layout;
@@ -133,48 +133,42 @@ typedef struct tempo_track {
     Endpoint metronome_vol_ep;
     Endpoint end_bound_behavior_ep;
     
-} TempoTrack;
+} ClickTrack;
 
 
 /* Timeline interface */
-TempoTrack *timeline_add_tempo_track(Timeline *tl);
-void timeline_cut_tempo_track_at_cursor(Timeline *tl);
+ClickTrack *timeline_add_click_track(Timeline *tl);
+void timeline_cut_click_track_at_cursor(Timeline *tl);
 void timeline_increment_tempo_at_cursor(Timeline *tl, int inc_by);
 void timeline_goto_prox_beat(Timeline *tl, int direction, enum beat_prominence bp);
-void timeline_tempo_track_set_tempo_at_cursor(Timeline *tl);
-void timeline_tempo_track_edit(Timeline *tl);
-bool timeline_tempo_track_delete(Timeline *tl);
+void timeline_click_track_set_tempo_at_cursor(Timeline *tl);
+void timeline_click_track_edit(Timeline *tl);
+bool timeline_click_track_delete(Timeline *tl);
 
 
 /* Required in settings.c */
-TempoSegment *tempo_track_get_segment_at_pos(TempoTrack *t, int32_t pos);
-void tempo_segment_set_config(TempoSegment *s, int num_measures, int bpm, uint8_t num_beats, uint8_t *subdivs, enum ts_end_bound_behavior ebb);
-void tempo_segment_destroy(TempoSegment *s);
-    /* tempo_segment_set_config(s, -1, cpy->cfg.bpm, cpy->cfg.num_beats, cpy->cfg.beat_subdiv_lens, ebb); */
-    /* tempo_segment_destroy(cpy); */
+ClickSegment *click_track_get_segment_at_pos(ClickTrack *t, int32_t pos);
+void click_segment_set_config(ClickSegment *s, int num_measures, int bpm, uint8_t num_beats, uint8_t *subdivs, enum ts_end_bound_behavior ebb);
+void click_segment_destroy(ClickSegment *s);
 
-    
-/*********************/
-/* void tempo_track_reset(TempoTrack *tt); */
-/* TempoSegment *tempo_track_add_segment(TempoTrack *t, int32_t start_pos, int16_t num_measures, int bpm, uint8_t num_beats, uint8_t *subdiv_lens); */
-void tempo_segment_fprint(FILE *f, TempoSegment *s);
+void click_segment_fprint(FILE *f, ClickSegment *s);
 
-int32_t tempo_track_bar_beat_subdiv(TempoTrack *tt, int32_t pos, int *bar_p, int *beat_p, int *subdiv_p, TempoSegment **segment_p, bool set_readout);
-void tempo_track_draw(TempoTrack *tt);
-/* void tempo_track_edit_segment_at_cursor(TempoTrack *tt, int num_measures, int bpm, uint8_t num_beats, uint8_t *subdiv_lens); */
+int32_t click_track_bar_beat_subdiv(ClickTrack *tt, int32_t pos, int *bar_p, int *beat_p, int *subdiv_p, ClickSegment **segment_p, bool set_readout);
+void click_track_draw(ClickTrack *tt);
+
 typedef struct project Project;
-void tempo_track_destroy(TempoTrack *tt);
+void click_track_destroy(ClickTrack *tt);
 
-void tempo_track_mute_unmute(TempoTrack *t);
-void tempo_track_increment_vol(TempoTrack *tt);
-void tempo_track_decrement_vol(TempoTrack *tt);
+void click_track_mute_unmute(ClickTrack *t);
+void click_track_increment_vol(ClickTrack *tt);
+void click_track_decrement_vol(ClickTrack *tt);
 void project_init_metronomes(Project *proj);
 void project_destroy_metronomes(Project *proj);
-void tempo_track_mix_metronome(TempoTrack *tt, float *mixdown_buf, int32_t mixdown_buf_len, int32_t tl_start_pos_sframes, int32_t tl_end_pos_sframes, float step);
-bool tempo_track_triage_click(uint8_t button, TempoTrack *t);
+void click_track_mix_metronome(ClickTrack *tt, float *mixdown_buf, int32_t mixdown_buf_len, int32_t tl_start_pos_sframes, int32_t tl_end_pos_sframes, float step);
+bool click_track_triage_click(uint8_t button, ClickTrack *t);
 
 
-void tempo_track_fprint(FILE *f, TempoTrack *tt);
-void timeline_segment_at_cursor_fprint(FILE *f, Timeline *tl);
+void click_track_fprint(FILE *f, ClickTrack *tt);
+void click_segment_at_cursor_fprint(FILE *f, Timeline *tl);
 
 #endif

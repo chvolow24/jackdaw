@@ -900,7 +900,7 @@ void user_tl_goto_previous_clip_boundary(void *nullarg)
 	    }	
 	}
     } else {
-	TempoTrack *tt = timeline_selected_tempo_track(tl);
+	ClickTrack *tt = timeline_selected_click_track(tl);
 	if (tt) {
 	    timeline_goto_prox_beat(tl, -1, BP_BEAT);
 	}
@@ -929,7 +929,7 @@ void user_tl_goto_next_clip_boundary(void *nullarg)
 	    }
 	}
     } else {
-	TempoTrack *tt = timeline_selected_tempo_track(tl);
+	ClickTrack *tt = timeline_selected_click_track(tl);
 	if (tt) {
 	    timeline_goto_prox_beat(tl, 1, BP_BEAT);
 	}
@@ -1080,30 +1080,30 @@ void user_tl_track_activate_all(void *nullarg)
 
 /* static void timeline_rectify_selectors(Timeline *tl) */
 /* { */
-/*     int tempo_track_index = -1; */
+/*     int click_track_index = -1; */
 /*     int track_index = -1; */
-/*     bool tempo_track_selected = false; */
+/*     bool click_track_selected = false; */
 /*     for (int i=0; i<tl->track_area->num_children; i++) { */
 /* 	Layout *child = tl->track_area->children[i]; */
-/* 	if (strcmp(child->name, "tempo_track") == 0) { */
-/* 	    tempo_track_index++; */
-/* 	    tempo_track_selected = true; */
+/* 	if (strcmp(child->name, "click_track") == 0) { */
+/* 	    click_track_index++; */
+/* 	    click_track_selected = true; */
 /* 	} else { */
 /* 	    track_index++; */
-/* 	    tempo_track_selected = false; */
+/* 	    click_track_selected = false; */
 /* 	} */
 /* 	if (tl->layout_selector == i) { */
-/* 	    if (tempo_track_selected) { */
-/* 		tl->tempo_track_selector = tempo_track_index; */
+/* 	    if (click_track_selected) { */
+/* 		tl->click_track_selector = click_track_index; */
 /* 		tl->track_selector = -1; */
 /* 	    } else { */
 /* 		tl->track_selector = track_index; */
-/* 		tl->tempo_track_selector = -1; */
+/* 		tl->click_track_selector = -1; */
 /* 	    } */
 /* 	} */
 /*     } */
-/*     fprintf(stderr, "SELECTED TRACK: %p; TEMPO TRACK: %p\n", timeline_selected_track(tl), timeline_selected_tempo_track(tl)); */
-/*     fprintf(stderr, "Track selector: %d; tempo track: %d\n", tl->track_selector, tl->tempo_track_selector); */
+/*     fprintf(stderr, "SELECTED TRACK: %p; TEMPO TRACK: %p\n", timeline_selected_track(tl), timeline_selected_click_track(tl)); */
+/*     fprintf(stderr, "Track selector: %d; tempo track: %d\n", tl->track_selector, tl->click_track_selector); */
 /* } */
 
 void user_tl_track_selector_up(void *nullarg)
@@ -1157,7 +1157,7 @@ void user_tl_track_selector_up(void *nullarg)
     } else {
 	TabView *tv;
 	if ((tv = main_win->active_tabview)) {
-	    tempo_track_populate_settings_tabview(timeline_selected_tempo_track(tl), tv);
+	    click_track_populate_settings_tabview(timeline_selected_click_track(tl), tv);
 	}
     }
 
@@ -1166,9 +1166,9 @@ button_animation_and_exit:
     if (selected) {
 	timeline_refocus_track(tl, selected, false);
     } else {
-	TempoTrack *tt = timeline_selected_tempo_track(tl);
+	ClickTrack *tt = timeline_selected_click_track(tl);
 	if (tt) {
-	    timeline_refocus_tempo_track(tl, timeline_selected_tempo_track(tl), false);
+	    timeline_refocus_click_track(tl, timeline_selected_click_track(tl), false);
 	}
     }
 
@@ -1236,7 +1236,7 @@ void user_tl_track_selector_down(void *nullarg)
     } else {
 	TabView *tv;
 	if ((tv = main_win->active_tabview)) {
-	    tempo_track_populate_settings_tabview(timeline_selected_tempo_track(tl), tv);
+	    click_track_populate_settings_tabview(timeline_selected_click_track(tl), tv);
 	}
     }
 
@@ -1247,7 +1247,7 @@ button_animation_and_exit:
     if (selected) {
 	timeline_refocus_track(tl, selected, true);
     } else {
-	timeline_refocus_tempo_track(tl, timeline_selected_tempo_track(tl), true);
+	timeline_refocus_click_track(tl, timeline_selected_click_track(tl), true);
     }
 
     /* if (selected) timeline_refocus_track(tl, selected, true); */
@@ -1294,8 +1294,8 @@ button_animation_and_exit:
 /*     if (sel_track) { */
 /* 	timeline_refocus_track(tl, sel_track, direction > 0); */
 /*     } else { */
-/* 	TempoTrack *sel_tt = timeline_selected_tempo_track(tl); */
-/* 	timeline_refocus_tempo_track(tl, sel_tt, direction > 0); */
+/* 	ClickTrack *sel_tt = timeline_selected_click_track(tl); */
+/* 	timeline_refocus_click_track(tl, sel_tt, direction > 0); */
 /*     } */
     
 /* } */
@@ -1397,7 +1397,7 @@ void user_tl_track_delete(void *nullarg)
 	    0,0,false,false);	
 
     } else {
-	if (!timeline_tempo_track_delete(tl)) {   
+	if (!timeline_click_track_delete(tl)) {   
 	    status_set_errstr("Error: no track to delete");
 	}
     }
@@ -1438,7 +1438,7 @@ void user_tl_track_vol_up(void *nullarg)
 	if (trk) {
 	    endpoint_start_continuous_change(&trk->vol_ep, true, vol_incr, JDAW_THREAD_MAIN, endpoint_safe_read(&trk->vol_ep, NULL));
 	} else {
-	    TempoTrack *tt = timeline_selected_tempo_track(tl);
+	    ClickTrack *tt = timeline_selected_click_track(tl);
 	    endpoint_start_continuous_change(&tt->metronome_vol_ep, true, vol_incr, JDAW_THREAD_MAIN, endpoint_safe_read(&tt->metronome_vol_ep, NULL));
 	}
 
@@ -1475,7 +1475,7 @@ void user_tl_track_vol_down(void *nullarg)
 	if (trk) {
 	    endpoint_start_continuous_change(&trk->vol_ep, true, vol_decr, JDAW_THREAD_MAIN, endpoint_safe_read(&trk->vol_ep, NULL));
 	} else {
-	    TempoTrack *tt = timeline_selected_tempo_track(tl);
+	    ClickTrack *tt = timeline_selected_click_track(tl);
 	    endpoint_start_continuous_change(&tt->metronome_vol_ep, true, vol_decr, JDAW_THREAD_MAIN, endpoint_safe_read(&tt->metronome_vol_ep, NULL));
 	}
     }
@@ -1547,7 +1547,7 @@ void user_tl_track_open_settings(void *nullarg)
 	tabview_activate(tv);
 	tl->needs_redraw = true;
     } else {
-	timeline_tempo_track_edit(tl);
+	timeline_click_track_edit(tl);
     }
 }
 
@@ -1628,19 +1628,19 @@ void user_tl_record(void *nullarg)
     /* tl->needs_redraw = true; */
 }
 
-void user_tl_tempo_track_add(void *nullarg)
+void user_tl_click_track_add(void *nullarg)
 {
-    timeline_add_tempo_track(ACTIVE_TL);
+    timeline_add_click_track(ACTIVE_TL);
 }
 
-/* void user_tl_tempo_track_cut(void *nullarg) */
+/* void user_tl_click_track_cut(void *nullarg) */
 /* { */
-/*     timeline_cut_tempo_track_at_cursor(ACTIVE_TL); */
+/*     timeline_cut_click_track_at_cursor(ACTIVE_TL); */
 /* } */
 
-void user_tl_tempo_track_set_tempo(void *nullarg)
+void user_tl_click_track_set_tempo(void *nullarg)
 {
-    timeline_tempo_track_set_tempo_at_cursor(ACTIVE_TL);
+    timeline_click_track_set_tempo_at_cursor(ACTIVE_TL);
 }
 
 void user_tl_clipref_grab_ungrab(void *nullarg)

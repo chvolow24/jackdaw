@@ -12,10 +12,10 @@
 #define SOURCE_AREA_LT_PATH LAYOUT_PATH "/source_area.xml"
 #define OUTPUT_PANEL_LT_PATH LAYOUT_PATH "/output_panel.xml"
 #define OUTPUT_SPECTRUM_LT_PATH LAYOUT_PATH "/output_spectrum.xml"
-#define TEMPO_TRACK_LT_PATH LAYOUT_PATH "/tempo_track_template.xml"
+#define CLICK_TRACK_LT_PATH LAYOUT_PATH "/click_track_template.xml"
 #define FIR_FILTER_LT_PATH LAYOUT_PATH "/track_settings_fir_filter.xml"
 #define DELAY_LINE_LT_PATH LAYOUT_PATH "/track_settings_delay_line.xml"
-#define TEMPO_TRACK_SETTINGS_LT_PATH LAYOUT_PATH "/tempo_track_settings.xml"
+#define CLICK_TRACK_SETTINGS_LT_PATH LAYOUT_PATH "/click_track_settings.xml"
 
 #define TTF_PATH INSTALL_DIR "/assets/ttf/"
 #define OPEN_SANS_PATH TTF_PATH "OpenSans-Regular.ttf"

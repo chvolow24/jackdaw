@@ -258,8 +258,8 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes)
 	track_handle_playhead_jump(tl->tracks[i]);
     }
     timeline_set_timecode(tl);
-    for (int i=0; i<tl->num_tempo_tracks; i++) {	
-	tempo_track_bar_beat_subdiv(tl->tempo_tracks[i], tl->play_pos_sframes, NULL, NULL, NULL, NULL, true);
+    for (int i=0; i<tl->num_click_tracks; i++) {	
+	click_track_bar_beat_subdiv(tl->click_tracks[i], tl->play_pos_sframes, NULL, NULL, NULL, NULL, true);
     }
     if (tl->proj->dragging && tl->num_grabbed_clips > 0) {
 	for (int i=0; i<tl->num_grabbed_clips; i++) {
@@ -296,8 +296,6 @@ void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes)
 	}
     }
     tl->needs_redraw = true;
-
-    /* tempo_track_bar_beat_subdiv(tl->tempo_tracks[0], tl->play_pos_sframes); */
 }
 
 

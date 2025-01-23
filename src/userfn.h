@@ -86,9 +86,9 @@ void user_tl_track_add_filter(void *nullarg);
 /* void user_tl_track_destroy(void *nullarg); */
 void user_tl_track_delete(void *nullarg);
 
-void user_tl_tempo_track_add(void *nullarg);
-void user_tl_tempo_track_cut(void *nullarg);
-void user_tl_tempo_track_set_tempo(void *nullarg);
+void user_tl_click_track_add(void *nullarg);
+void user_tl_click_track_cut(void *nullarg);
+void user_tl_click_track_set_tempo(void *nullarg);
 
 
 void user_tl_track_show_hide_automations(void *nullarg);

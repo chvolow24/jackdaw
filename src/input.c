@@ -636,27 +636,27 @@ static void mode_load_timeline()
     sc = mode_add_subcat(mode, "Tempo tracks");
 
     fn = create_user_fn(
-	"tl_tempo_track_add",
+	"tl_click_track_add",
 	"Add tempo track",
-        user_tl_tempo_track_add);
+        user_tl_click_track_add);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
-	"tl_tempo_track_set_tempo",
+	"tl_click_track_set_tempo",
 	"Set tempo at cursor",
-	user_tl_tempo_track_set_tempo);
+	user_tl_click_track_set_tempo);
     mode_subcat_add_fn(sc, fn);
 
     /* fn = create_user_fn( */
-    /* 	"tl_tempo_track_cut", */
+    /* 	"tl_click_track_cut", */
     /* 	"Cut tempo track at cursor", */
-    /* 	user_tl_tempo_track_cut); */
+    /* 	user_tl_click_track_cut); */
     /* mode_subcat_add_fn(sc, fn); */
 
     /* fn = create_user_fn( */
-    /* 	"tl_tempo_track_set_tempo", */
+    /* 	"tl_click_track_set_tempo", */
     /* 	"Set tempo at cursor", */
-    /* 	user_tl_tempo_track_set_tempo); */
+    /* 	user_tl_click_track_set_tempo); */
     /* mode_subcat_add_fn(sc, fn); */
 
     /* Track settings */

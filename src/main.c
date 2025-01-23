@@ -59,11 +59,8 @@
 
 #define LT_DEV_MODE 0
 
-/* #define WINDOW_DEFAULT_W 900 */
 #define WINDOW_DEFAULT_W 1093
 #define WINDOW_DEFAULT_H 650
-/* #define OPEN_SANS_PATH INSTALL_DIR "/assets/ttf/OpenSans-Regular.ttf" */
-
 
 #define DEFAULT_PROJ_AUDIO_SETTINGS 2, 96000, AUDIO_S16SYS, 1024, 2048
 
@@ -158,62 +155,11 @@ Project *jdaw_read_file(const char *path);
 extern bool connection_open;
 
 
-/* void value_serialize_test() */
-/* { */
-/*     char dst[17]; */
-/*     double test = 1.2345678987654321; */
-    
-/*     snprintf(dst, 16, "%.16g", test); */
-/*     fprintf(stderr, "Dst: %s\n", dst); */
-
-/*     FILE *f = fopen("hello.txt", "w"); */
-/*     ValType t = JDAW_FLOAT; */
-/*     Value a; */
-/*     a.float_v = 3.141593456789098765456789; */
-/*     jdaw_val_serialize(a, t, f, 16); */
-/*     a.float_v = -3.141593456789098765456789; */
-/*     jdaw_val_serialize(a, t, f, 16); */
-/*     t = JDAW_BOOL; */
-/*     a.bool_v = true; */
-/*     jdaw_val_serialize(a, t, f, 16); */
-/*     a.double_v = 3.141593456789098765456789; */
-/*     t = JDAW_DOUBLE; */
-/*     jdaw_val_serialize(a, t, f, 16); */
-/*     fclose(f); */
-    
-    
-/*     f = fopen("hello.txt", "r"); */
-/*     a = jdaw_val_deserialize(f, 16, JDAW_FLOAT); */
-/*     fprintf(stderr, "A: %.16g\n", a.float_v); */
-/*     a = jdaw_val_deserialize(f, 16, JDAW_FLOAT); */
-/*     fprintf(stderr, "A: %.16g\n", a.float_v); */
-/*     a = jdaw_val_deserialize(f, 16, JDAW_BOOL); */
-/*     fprintf(stderr, "A: %d\n", a.bool_v); */
-/*     a = jdaw_val_deserialize(f, 16, JDAW_DOUBLE); */
-/*     fprintf(stderr, "A: %f\n", a.double_v); */
-/*     fclose(f); */
-/* } */
-
-
-void tempo_track_get_next_pos(TempoTrack *t, bool start, int32_t start_from, int32_t *pos, enum beat_prominence *bp);
-void tempo_track_fprint(FILE *f, TempoTrack *tt);
-void tempo_track_draw(TempoTrack *tt);
-
 int main(int argc, char **argv)
 {
-
-    /* value_serialize_test(); */
-    /* return 1; */
-    /* SDL_Rect test = {0, 0, 1000, 1000}; */
-    /* struct logscale_array *la = waveform_create_logscale(NULL, 512, &test); */
-    /* fprintf(stdout, "Interval : %f\n", la->interval); */
-    /* /\* dir_tests(); *\/ */
-    /* exit(0); */
     fprintf(stdout, "\n\nJACKDAW (version %s)\nby Charlie Volow\n\n", JACKDAW_VERSION);
     
     init();
-
-    /* pd_open_shared_memory(); */
 
     char *file_to_open = NULL;
     bool invoke_open_wav_file = false;

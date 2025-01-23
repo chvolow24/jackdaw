@@ -23,7 +23,4 @@ SDL_Color color_global_dropdown_green = {20, 100, 40, 255};
 SDL_Color color_global_x_red = {200, 0, 0, 255};
 SDL_Color color_global_min_yellow = {200, 90, 0, 255};
 
-SDL_Color color_global_tempo_track = {10, 30, 25, 255};
-
-SDL_Color color_button_light_bckgrnd = {200, 200, 100, 255};
-SDL_Color color_button_light_text = {20,20,255,255};
+SDL_Color color_global_click_track = {10, 30, 25, 255};

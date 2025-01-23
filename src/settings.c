@@ -335,11 +335,11 @@ TabView *settings_track_tabview_create(Track *track)
 }
 
 
-static void tempo_track_populate_settings_internal(TempoSegment *s, TabView *tv, bool set_from_cfg);
-static void reset_settings_page_subdivs(TempoSegment *s, TabView *tv, const char *selected_el_id)
+static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv, bool set_from_cfg);
+static void reset_settings_page_subdivs(ClickSegment *s, TabView *tv, const char *selected_el_id)
 {
-    /* TempoTrack *tt = s->track; */
-    tempo_track_populate_settings_internal(s, tv, false);
+    /* ClickTrack *tt = s->track; */
+    click_track_populate_settings_internal(s, tv, false);
     Page *p = tv->tabs[0];
     page_select_el_by_id(p, selected_el_id);
 }
@@ -354,30 +354,30 @@ static int num_beats_completion(Text *txt, void *s_v)
 	fprintf(stderr, "Error: no tabview on num beats completion\n");
 	exit(1);
     }
-    TempoSegment *s = (TempoSegment *)s_v;
+    ClickSegment *s = (ClickSegment *)s_v;
     if (atoi(txt->display_value) != s->cfg.num_beats) {
-	reset_settings_page_subdivs(s_v, tv, "tempo_segment_num_beats_value");
+	reset_settings_page_subdivs(s_v, tv, "click_segment_num_beats_value");
     }
     return 0;
 }
 
-static TempoSegment *tempo_segment_copy(TempoSegment *s)
+static ClickSegment *click_segment_copy(ClickSegment *s)
 {
-    TempoSegment *cpy = calloc(1, sizeof(TempoSegment));
-    memcpy(cpy, s, sizeof(TempoSegment));
+    ClickSegment *cpy = calloc(1, sizeof(ClickSegment));
+    memcpy(cpy, s, sizeof(ClickSegment));
     return cpy;
 }
 
-NEW_EVENT_FN(undo_redo_set_segment_params, "undo/redo edit tempo segment")
-    TempoSegment *s = (TempoSegment *)obj1;
-    s = tempo_track_get_segment_at_pos(s->track, s->start_pos);
+NEW_EVENT_FN(undo_redo_set_segment_params, "undo/redo edit click segment")
+    ClickSegment *s = (ClickSegment *)obj1;
+    s = click_track_get_segment_at_pos(s->track, s->start_pos);
     self->obj1 = s;
-    TempoSegment *cpy = (TempoSegment *)obj2;
+    ClickSegment *cpy = (ClickSegment *)obj2;
     enum ts_end_bound_behavior ebb = val1.int_v;
 
-    TempoSegment *redo_cpy = tempo_segment_copy(s);
-    tempo_segment_set_config(s, -1, cpy->cfg.bpm, cpy->cfg.num_beats, cpy->cfg.beat_subdiv_lens, ebb);
-    tempo_segment_destroy(cpy);
+    ClickSegment *redo_cpy = click_segment_copy(s);
+    click_segment_set_config(s, -1, cpy->cfg.bpm, cpy->cfg.num_beats, cpy->cfg.beat_subdiv_lens, ebb);
+    click_segment_destroy(cpy);
     self->obj2 = redo_cpy;
     s->track->tl->needs_redraw = true;
 }
@@ -385,9 +385,9 @@ NEW_EVENT_FN(undo_redo_set_segment_params, "undo/redo edit tempo segment")
 
 static int time_sig_submit_button_action(void *self, void *s_v)
 {
-    TempoSegment *s = (TempoSegment *)s_v;
-    TempoSegment *cpy = tempo_segment_copy(s);
-    TempoTrack *tt = s->track;
+    ClickSegment *s = (ClickSegment *)s_v;
+    ClickSegment *cpy = click_segment_copy(s);
+    ClickTrack *tt = s->track;
 
     int num_beats = atoi(tt->num_beats_str);
     int tempo = atoi(tt->tempo_str);
@@ -395,7 +395,7 @@ static int time_sig_submit_button_action(void *self, void *s_v)
     for (int i=0; i<num_beats; i++) {
 	subdivs[i] = atoi(tt->subdiv_len_strs[i]);
     }
-    tempo_segment_set_config(s, -1, tempo, atoi(tt->num_beats_str), subdivs, tt->end_bound_behavior);
+    click_segment_set_config(s, -1, tempo, atoi(tt->num_beats_str), subdivs, tt->end_bound_behavior);
     TabView *tv = main_win->active_tabview;
     tabview_close(tv);
     tt->tl->needs_redraw = true;
@@ -417,7 +417,7 @@ static int time_sig_submit_button_action(void *self, void *s_v)
 
 static void draw_time_sig(void *tt_v, void *rect_v)
 {
-    TempoTrack *tt = (TempoTrack *)tt_v;
+    ClickTrack *tt = (ClickTrack *)tt_v;
     SDL_Rect *rect = (SDL_Rect *)rect_v;
     int num_beats = atoi(tt->num_beats_str);
     int subdivs[num_beats];
@@ -453,14 +453,12 @@ static void draw_time_sig(void *tt_v, void *rect_v)
     }
 }
 
-/* txt_int_validation_range(txt, input, 1, 9) */
-/* txt_int_validation_range(txt, input, 1, 13) */
 txt_int_range_completion(1, 9)
 
 static int segment_next_action(void *self, void *targ)
 {
-    TempoSegment *s = (TempoSegment *)targ;
-    tempo_track_populate_settings_internal(s->next, main_win->active_tabview, true);
+    ClickSegment *s = (ClickSegment *)targ;
+    click_track_populate_settings_internal(s->next, main_win->active_tabview, true);
     Page *p = main_win->active_tabview->tabs[0];
     page_select_el_by_id(p, "segment_right");
 
@@ -470,19 +468,19 @@ static int segment_next_action(void *self, void *targ)
 
 static int segment_prev_action(void *self, void *targ)
 {
-    TempoSegment *s = (TempoSegment *)targ;
-    tempo_track_populate_settings_internal(s->prev, main_win->active_tabview, true);
+    ClickSegment *s = (ClickSegment *)targ;
+    click_track_populate_settings_internal(s->prev, main_win->active_tabview, true);
     Page *p = main_win->active_tabview->tabs[0];
     page_select_el_by_id(p, "segment_left");
     /* reset_settings_page_subdivs(s->prev, main_win->active_tabview, "segment_left"); */
     return 0;
 }
 
-static void tempo_track_populate_settings_internal(TempoSegment *s, TabView *tv, bool set_from_cfg)
+static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv, bool set_from_cfg)
 {
 
-    TempoTrack *tt = s->track;
-    /* TempoSegment *s = tempo_track_get_segment_at_pos(tt, tt->tl->play_pos_sframes); */
+    ClickTrack *tt = s->track;
+    /* TempoSegment *s = click_track_get_segment_at_pos(tt, tt->tl->play_pos_sframes); */
     
     static SDL_Color page_colors[] = {
 	{40, 40, 80, 255},
@@ -494,8 +492,8 @@ static void tempo_track_populate_settings_internal(TempoSegment *s, TabView *tv,
     
     Page *page = tab_view_add_page(
 	tv,
-	"Tempo track config",
-	TEMPO_TRACK_SETTINGS_LT_PATH,
+	"Click track config",
+	CLICK_TRACK_SETTINGS_LT_PATH,
 	page_colors,
 	&color_global_white,
 	main_win);
@@ -573,7 +571,7 @@ static void tempo_track_populate_settings_internal(TempoSegment *s, TabView *tv,
     p.textentry_p.completion_target = (void *)s;
     /* p.textbox_p.set_str = tt->num_beats_str; */
     /* p.textbox_p.font = main_win->mono_font; */
-    el = page_add_el(page, EL_TEXTENTRY, p, "tempo_segment_num_beats_value", "num_beats_value");
+    el = page_add_el(page, EL_TEXTENTRY, p, "click_segment_num_beats_value", "num_beats_value");
     /* Layout *num_beats_lt = el->layout; */
     /* layout_size_to_fit_children_v(num_beats_lt, false, 1); */
     /* layout_center_agnostic(num_beats_lt, false, true); */
@@ -705,7 +703,7 @@ static void tempo_track_populate_settings_internal(TempoSegment *s, TabView *tv,
 	    page,
 	    EL_RADIO,
 	    p,
-	    "tempo_segment_ebb_radio",
+	    "click_segment_ebb_radio",
 	    "ebb_radio"
 	    );
 
@@ -791,19 +789,19 @@ static void tempo_track_populate_settings_internal(TempoSegment *s, TabView *tv,
     page_reset(page);
 }
 
-void tempo_track_populate_settings_tabview(TempoTrack *tt, TabView *tv)
+void click_track_populate_settings_tabview(ClickTrack *tt, TabView *tv)
 {
-    TempoSegment *s = tempo_track_get_segment_at_pos(tt, tt->tl->play_pos_sframes);
-    tempo_track_populate_settings_internal(s, tv, true);
+    ClickSegment *s = click_track_get_segment_at_pos(tt, tt->tl->play_pos_sframes);
+    click_track_populate_settings_internal(s, tv, true);
 }
 
-void timeline_tempo_track_edit(Timeline *tl)
+void timeline_click_track_edit(Timeline *tl)
 {
-    TempoTrack *tt = timeline_selected_tempo_track(tl);
+    ClickTrack *tt = timeline_selected_click_track(tl);
     if (!tt) return;
 
     TabView *tv = tabview_create("Track Settings", proj->layout, main_win);
-    tempo_track_populate_settings_tabview(tt, tv);
+    click_track_populate_settings_tabview(tt, tv);
 
     tabview_activate(tv);
     tl->needs_redraw = true;    

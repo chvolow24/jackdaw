@@ -266,14 +266,14 @@ typedef struct timeline {
     Track *tracks[MAX_TRACKS];  
     uint8_t num_tracks;
 
-    TempoTrack *tempo_tracks[MAX_TEMPO_TRACKS];
-    uint8_t num_tempo_tracks;
+    ClickTrack *click_tracks[MAX_CLICK_TRACKS];
+    uint8_t num_click_tracks;
     // uint8_t active_track_indices[MAX_ACTIVE_TRACKS];
     // uint8_t num_active_tracks;
 
     int layout_selector; /* Agnostic of track "type"; selects audio OR tempo track */
     int track_selector; /* Index of selected track, or -1 if N/A */
-    int tempo_track_selector; /* Index of selected tempo track */
+    int click_track_selector; /* Index of selected tempo track */
     
 
     Timecode timecode;
@@ -477,7 +477,7 @@ void project_set_chunk_size(uint16_t new_chunk_size);
 Track *timeline_add_track(Timeline *tl);
 
 Track *timeline_selected_track(Timeline *tl);
-TempoTrack *timeline_selected_tempo_track(Timeline *tl);
+ClickTrack *timeline_selected_click_track(Timeline *tl);
 Layout *timeline_selected_layout(Timeline *tl);
 
 void timeline_reset_full(Timeline *tl);
@@ -543,7 +543,7 @@ void timeline_move_track_or_automation(Timeline *tl, int direction);
 void timeline_rectify_track_area(Timeline *tl);
 void timeline_rectify_track_indices(Timeline *tl);
 bool timeline_refocus_track(Timeline *tl, Track *track, bool at_bottom);
-bool timeline_refocus_tempo_track(Timeline *tl, TempoTrack *tt, bool at_bottom);
+bool timeline_refocus_click_track(Timeline *tl, ClickTrack *tt, bool at_bottom);
 void timeline_play_speed_set(double new_speed);
 void timeline_play_speed_mult(double scale_factor);
 void timeline_play_speed_adj(double dim);

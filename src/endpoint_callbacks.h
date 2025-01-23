@@ -55,4 +55,4 @@ void delay_line_amp_dsp_cb(Endpoint *ep);
 void delay_line_amp_gui_cb(Endpoint *ep);
 void delay_line_stereo_offset_gui_cb(Endpoint *ep);
 
-void tempo_track_ebb_gui_cb(Endpoint *ep);
+void click_track_ebb_gui_cb(Endpoint *ep);

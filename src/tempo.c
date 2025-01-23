@@ -54,7 +54,7 @@
 
 extern Window *main_win;
 extern Project *proj;
-extern SDL_Color color_global_tempo_track;
+extern SDL_Color color_global_click_track;
 extern SDL_Color color_global_light_grey;
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;
@@ -105,9 +105,9 @@ void project_destroy_metronomes(Project *proj)
     }
 }
 
-TempoSegment *tempo_track_get_segment_at_pos(TempoTrack *t, int32_t pos)
+ClickSegment *click_track_get_segment_at_pos(ClickTrack *t, int32_t pos)
 {
-    TempoSegment *s = t->segments;
+    ClickSegment *s = t->segments;
     if (!s) return NULL;
     
     /* THREAD SAFETY ISSUE: track may exist before segment assigned */
@@ -132,7 +132,7 @@ TempoSegment *tempo_track_get_segment_at_pos(TempoTrack *t, int32_t pos)
     return s;
 }
 
-static int32_t get_beat_pos(TempoSegment *s, int measure, int beat, int subdiv)
+static int32_t get_beat_pos(ClickSegment *s, int measure, int beat, int subdiv)
 {
     
     int32_t pos = s->start_pos + (measure - s->first_measure_index) * s->cfg.dur_sframes;
@@ -143,7 +143,7 @@ static int32_t get_beat_pos(TempoSegment *s, int measure, int beat, int subdiv)
     return pos;
 }
 
-static void do_increment(TempoSegment *s, int *measure, int *beat, int *subdiv)
+static void do_increment(ClickSegment *s, int *measure, int *beat, int *subdiv)
 {
     if (*subdiv == s->cfg.beat_subdiv_lens[*beat] - 1) {
 	if (*beat == s->cfg.num_beats - 1) {
@@ -159,7 +159,7 @@ static void do_increment(TempoSegment *s, int *measure, int *beat, int *subdiv)
     }
 }
 
-static void do_decrement(TempoSegment *s, int *measure, int *beat, int *subdiv)
+static void do_decrement(ClickSegment *s, int *measure, int *beat, int *subdiv)
 {
     if (*subdiv > 0) {
 	(*subdiv)--;
@@ -174,7 +174,7 @@ static void do_decrement(TempoSegment *s, int *measure, int *beat, int *subdiv)
 }
 
 
-static void set_beat_prominence(TempoSegment *s, enum beat_prominence *bp, int measure, int beat, int subdiv)
+static void set_beat_prominence(ClickSegment *s, enum beat_prominence *bp, int measure, int beat, int subdiv)
 {
     if (measure == s->first_measure_index && beat == 0 && subdiv == 0) {
 	*bp = BP_SEGMENT;
@@ -190,14 +190,14 @@ static void set_beat_prominence(TempoSegment *s, enum beat_prominence *bp, int m
 }
 
 /* Stateful function, repeated calls to which will get the next beat or subdiv position on a tempo track */
-static bool tempo_track_get_next_pos(TempoTrack *t, bool start, int32_t start_from, int32_t *pos, enum beat_prominence *bp)
+static bool click_track_get_next_pos(ClickTrack *t, bool start, int32_t start_from, int32_t *pos, enum beat_prominence *bp)
 {
-    static JDAW_THREAD_LOCAL TempoSegment *s;
+    static JDAW_THREAD_LOCAL ClickSegment *s;
     static JDAW_THREAD_LOCAL int beat = 0;
     static JDAW_THREAD_LOCAL int subdiv = 0;
     static JDAW_THREAD_LOCAL int measure = 0;
     if (start) {
-	s = tempo_track_get_segment_at_pos(t, start_from);
+	s = click_track_get_segment_at_pos(t, start_from);
 	int32_t current_pos = s->start_pos;
 	measure = s->first_measure_index;
 	beat = 0;
@@ -244,9 +244,9 @@ set_prominence_and_exit:
 }
 
 
-static void tempo_segment_set_end_pos(TempoSegment *s, int32_t new_end_pos);
+static void click_segment_set_end_pos(ClickSegment *s, int32_t new_end_pos);
 
-void tempo_segment_set_config(TempoSegment *s, int num_measures, int bpm, uint8_t num_beats, uint8_t *subdivs, enum ts_end_bound_behavior ebb)
+void click_segment_set_config(ClickSegment *s, int num_measures, int bpm, uint8_t num_beats, uint8_t *subdivs, enum ts_end_bound_behavior ebb)
 {
     if (num_beats > MAX_BEATS_PER_BAR) {
 	fprintf(stderr, "Error: num_beats exceeds maximum per bar (%d)\n", MAX_BEATS_PER_BAR);
@@ -283,14 +283,14 @@ void tempo_segment_set_config(TempoSegment *s, int num_measures, int bpm, uint8_
 	if (ebb == SEGMENT_FIXED_NUM_MEASURES) {
 	    float num_measures_f = ((float)s->end_pos - s->start_pos)/old_dur_sframes;
 	    int32_t end_pos = s->start_pos + num_measures_f * s->cfg.dur_sframes;
-	    tempo_segment_set_end_pos(s, end_pos);
+	    click_segment_set_end_pos(s, end_pos);
 	} else {
-	    tempo_segment_set_end_pos (s, s->next->start_pos);
+	    click_segment_set_end_pos (s, s->next->start_pos);
 	}
     }
     /* if (s->track->end_bound_behavior == SEGMENT_FIXED_NUM_MEASURES) { */
 	
-    /* 	tempo_segment_set_end_pos(s, s->start_pos + measure_dur * s->num_measures); */
+    /* 	click_segment_set_end_pos(s, s->start_pos + measure_dur * s->num_measures); */
     /* } else { */
     /* 	if (num_measures > 0 && s->next) { */
     /* 	    s->end_pos = s->start_pos + num_measures * s->cfg.dur_sframes; */
@@ -298,16 +298,16 @@ void tempo_segment_set_config(TempoSegment *s, int num_measures, int bpm, uint8_
     /* 	    s->end_pos = s->start_pos; */
     /* 	} */
     /* 	if (s->next) { */
-    /* 	    tempo_segment_set_end_pos(s, s->next->start_pos); */
+    /* 	    click_segment_set_end_pos(s, s->next->start_pos); */
     /* 	} */
     /* } */
 }
 
 /* Calculates the new segment dur in measures and sets the first measure index of the next segment */
-static void tempo_segment_set_end_pos(TempoSegment *s, int32_t new_end_pos)
+static void click_segment_set_end_pos(ClickSegment *s, int32_t new_end_pos)
 {
     /* fprintf(stderr, "SETTING end pos on segment with deets\n"); */
-    /* tempo_segment_fprint(stderr, s); */
+    /* click_segment_fprint(stderr, s); */
     int32_t segment_dur = new_end_pos - s->start_pos;
     double num_measures = (double)segment_dur / s->cfg.dur_sframes;
     s->num_measures = floor(0.9999999 + num_measures);
@@ -332,10 +332,10 @@ static void tempo_segment_set_end_pos(TempoSegment *s, int32_t new_end_pos)
     }
 }
 
-TempoSegment *tempo_track_add_segment(TempoTrack *t, int32_t start_pos, int16_t num_measures, int bpm, uint8_t num_beats, uint8_t *subdiv_lens)
+ClickSegment *click_track_add_segment(ClickTrack *t, int32_t start_pos, int16_t num_measures, int bpm, uint8_t num_beats, uint8_t *subdiv_lens)
 {
     /* fprintf(stderr, "\n\n\nADDING SEGMENT TO TEMPO TRACK, start: %d, num measures: %d\n", start_pos, num_measures); */
-    TempoSegment *s = calloc(1, sizeof(TempoSegment));
+    ClickSegment *s = calloc(1, sizeof(ClickSegment));
     s->track = t;
     s->num_measures = num_measures;
     s->start_pos = start_pos;
@@ -347,7 +347,7 @@ TempoSegment *tempo_track_add_segment(TempoTrack *t, int32_t start_pos, int16_t 
 	s->first_measure_index = BARS_FOR_NOTHING * -1;
 	goto set_config_and_exit;
     }
-    TempoSegment *interrupt = tempo_track_get_segment_at_pos(t, start_pos);
+    ClickSegment *interrupt = click_track_get_segment_at_pos(t, start_pos);
     if (interrupt->start_pos == start_pos) {
 	fprintf(stderr, "Error: cannot insert segment at existing segment loc\n");
 	return NULL;
@@ -355,40 +355,40 @@ TempoSegment *tempo_track_add_segment(TempoTrack *t, int32_t start_pos, int16_t 
     if (!interrupt->next) {
 	interrupt->next = s;
 	s->prev = interrupt;
-	tempo_segment_set_end_pos(interrupt, start_pos);
+	click_segment_set_end_pos(interrupt, start_pos);
     } else {
 	s->next = interrupt->next;
 	interrupt->next->prev = s;
 	interrupt->next = s;
 	s->prev = interrupt;
-	tempo_segment_set_config(s, num_measures, bpm, num_beats, subdiv_lens, SEGMENT_FIXED_END_POS);
-	tempo_segment_set_end_pos(interrupt, start_pos);
-	/* tempo_segment_set_end_pos(s, s->next->start_pos); */
+	click_segment_set_config(s, num_measures, bpm, num_beats, subdiv_lens, SEGMENT_FIXED_END_POS);
+	click_segment_set_end_pos(interrupt, start_pos);
+	/* click_segment_set_end_pos(s, s->next->start_pos); */
 	return s;
 	/* goto set_config_and_exit; */
 	/* fprintf(stderr, "Error: cannot insert segment in the middle\n"); */
 	/* return NULL; */
     }
 set_config_and_exit:
-    tempo_segment_set_config(s, num_measures, bpm, num_beats, subdiv_lens, SEGMENT_FIXED_END_POS); 
+    click_segment_set_config(s, num_measures, bpm, num_beats, subdiv_lens, SEGMENT_FIXED_END_POS); 
 
     /* fprintf(stderr, "DONE DONE DONE DONE now it looks like this\n"); */
-    /* tempo_track_fprint(stderr, t); */
+    /* click_track_fprint(stderr, t); */
 
     return s;
 }
 
 /* /\* Pass -1 to "num_measures" for infinity *\/ */
-/* TempoSegment *tempo_track_add_segment(TempoTrack *t, int32_t start_pos, int16_t num_measures, int bpm, int num_beats, int *subdiv_lens) */
+/* ClickSegment *click_track_add_segment(ClickTrack *t, int32_t start_pos, int16_t num_measures, int bpm, int num_beats, int *subdiv_lens) */
 /* { */
-/*     TempoSegment *s = tempo_track_add_segment_internal(t, start_pos, num_measures, bpm, num_beats, ap); */
+/*     ClickSegment *s = click_track_add_segment_internal(t, start_pos, num_measures, bpm, num_beats, ap); */
 /*     return s; */
 /* } */
 
-TempoSegment *tempo_track_add_segment_at_measure(TempoTrack *t, int16_t measure, int16_t num_measures, int bpm, uint8_t num_beats, uint8_t *subdiv_lens)
+ClickSegment *click_track_add_segment_at_measure(ClickTrack *t, int16_t measure, int16_t num_measures, int bpm, uint8_t num_beats, uint8_t *subdiv_lens)
 {
     int32_t start_pos = 0;
-    TempoSegment *s = t->segments;
+    ClickSegment *s = t->segments;
     if (s) {
 	while (1) {
 	    /* fprintf(stderr, "S: %p, first measure index %d (cmp %d)\n", s, s->first_measure_index, measure); */
@@ -407,17 +407,17 @@ TempoSegment *tempo_track_add_segment_at_measure(TempoTrack *t, int16_t measure,
 	}
 	start_pos = get_beat_pos(s, measure, 0, 0);
     }
-    s = tempo_track_add_segment(t, start_pos, num_measures, bpm, num_beats, subdiv_lens);
+    s = click_track_add_segment(t, start_pos, num_measures, bpm, num_beats, subdiv_lens);
     return s;
 }
 
 /* void timeline_rectify_tracks(Timeline *tl) */
 /* { */
-/*     int tempo_track_index = 0; */
+/*     int click_track_index = 0; */
 /*     int track_index = 0; */
     
 /*     Track *track_stack[tl->num_tracks]; */
-/*     TempoTrack *tempo_track_stack[tl->num_tempo_tracks]; */
+/*     ClickTrack *click_track_stack[tl->num_click_tracks]; */
     
 /*     for (int i=0; i<tl->track_area->num_children; i++) { */
 /* 	Layout *lt = tl->track_area->children[i]; */
@@ -430,76 +430,76 @@ TempoSegment *tempo_track_add_segment_at_measure(TempoTrack *t, int16_t measure,
 /* 		break; */
 /* 	    } */
 /* 	} */
-/* 	for (uint8_t j=0; j<tl->num_tempo_tracks; j++) { */
-/* 	    TempoTrack *tt = tl->tempo_tracks[j]; */
+/* 	for (uint8_t j=0; j<tl->num_click_tracks; j++) { */
+/* 	    ClickTrack *tt = tl->click_tracks[j]; */
 /* 	    if (tt->layout == lt) { */
-/* 		tempo_track_stack[tempo_track_index] = tt; */
-/* 		tempo_track_index++; */
+/* 		click_track_stack[click_track_index] = tt; */
+/* 		click_track_index++; */
 /* 		fprintf(stderr, "LAYOUT %d is TEMPO track %d\n", i, j); */
 /* 		break; */
 /* 	    } */
 /* 	} */
 /*     } */
 /*     fprintf(stderr, "\n"); */
-/*     for (int i=0; i<tl->num_tempo_tracks; i++) { */
-/* 	fprintf(stderr, "IN TL: %p\n", tl->tempo_tracks[i]); */
-/* 	fprintf(stderr, "IN STACK: %p\n", tempo_track_stack[i]); */
+/*     for (int i=0; i<tl->num_click_tracks; i++) { */
+/* 	fprintf(stderr, "IN TL: %p\n", tl->click_tracks[i]); */
+/* 	fprintf(stderr, "IN STACK: %p\n", click_track_stack[i]); */
 /*     } */
 /*     memcpy(tl->tracks, track_stack, sizeof(Track *) * tl->num_tracks); */
-/*     memcpy(tl->tempo_tracks, tempo_track_stack, sizeof(TempoTrack *) * tl->num_tempo_tracks); */
+/*     memcpy(tl->click_tracks, click_track_stack, sizeof(ClickTrack *) * tl->num_click_tracks); */
 /* } */
 
-/* void tempo_track_reset(TempoTrack *tt) */
+/* void click_track_reset(ClickTrack *tt) */
 /* { */
 /*     layout_reset(tt->layout); */
 /*     textbox_reset(tt->readout); */
 /* } */
 
-static void tempo_track_remove(TempoTrack *tt)
+static void click_track_remove(ClickTrack *tt)
 {
     Timeline *tl = tt->tl;
-    for (int i=tt->index; i<tl->num_tempo_tracks - 1; i++) {
-	tl->tempo_tracks[i] = tl->tempo_tracks[i+1];
+    for (int i=tt->index; i<tl->num_click_tracks - 1; i++) {
+	tl->click_tracks[i] = tl->click_tracks[i+1];
     }
-    tl->num_tempo_tracks--;
+    tl->num_click_tracks--;
     layout_remove_child(tt->layout);
     timeline_rectify_track_indices(tl);
     timeline_rectify_track_area(tl);
 
 }
-static void tempo_track_reinsert(TempoTrack *tt)
+static void click_track_reinsert(ClickTrack *tt)
 {
     Timeline *tl = tt->tl;
-    for (int i=tl->num_tempo_tracks; i>tt->index; i--) {
-	tl->tempo_tracks[i] = tl->tempo_tracks[i-1];
+    for (int i=tl->num_click_tracks; i>tt->index; i--) {
+	tl->click_tracks[i] = tl->click_tracks[i-1];
     }
-    tl->tempo_tracks[tt->index] = tt;
-    tl->num_tempo_tracks++;
+    tl->click_tracks[tt->index] = tt;
+    tl->num_click_tracks++;
     layout_insert_child_at(tt->layout, tl->track_area, tt->layout->index);
     tl->layout_selector = tt->layout->index;
     timeline_rectify_track_indices(tl);
     timeline_rectify_track_area(tl);
 }
 
-NEW_EVENT_FN(undo_add_tempo_track, "undo add tempo track")
-    TempoTrack *tt = obj1;
-    tempo_track_remove(tt);
+NEW_EVENT_FN(undo_add_click_track, "undo add tempo track")
+    ClickTrack *tt = obj1;
+    click_track_remove(tt);
 
 }
-NEW_EVENT_FN(redo_add_tempo_track, "redo add tempo track")
-    TempoTrack *tt = obj1;
-    tempo_track_reinsert(tt);
+NEW_EVENT_FN(redo_add_click_track, "redo add tempo track")
+    ClickTrack *tt = obj1;
+    click_track_reinsert(tt);
 }
 
-NEW_EVENT_FN(dispose_forward_add_tempo_track, "")
-    tempo_track_destroy((TempoTrack *)obj1);
+NEW_EVENT_FN(dispose_forward_add_click_track, "")
+    click_track_destroy((ClickTrack *)obj1);
 }
 
-TempoTrack *timeline_add_tempo_track(Timeline *tl)
+ClickTrack *timeline_add_click_track(Timeline *tl)
 {
-    if (tl->num_tempo_tracks == MAX_TEMPO_TRACKS) return NULL;
-    TempoTrack *t = calloc(1, sizeof(TempoTrack));
-    snprintf(t->name, MAX_NAMELENGTH, "click_track_%d", tl->num_tempo_tracks + 1);
+    if (tl->num_click_tracks == MAX_CLICK_TRACKS) return NULL;
+    ClickTrack *t = calloc(1, sizeof(ClickTrack));
+    snprintf(t->name, MAX_NAMELENGTH, "click_track_%d", tl->num_click_tracks + 1);
     t->tl = tl;
     t->metronome = &tl->proj->metronomes[0];
     snprintf(t->num_beats_str, 3, "4");
@@ -528,7 +528,7 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
 	"segment_end_bound_behavior",
 	"undo/redo set tempo track end bound behavior",
 	JDAW_THREAD_MAIN,
-        tempo_track_ebb_gui_cb, NULL, NULL,
+        click_track_ebb_gui_cb, NULL, NULL,
 	NULL, NULL, NULL, NULL);
     
     endpoint_set_allowed_range(
@@ -538,28 +538,28 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
 
 
     
-    Layout *tempo_tracks_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area");
-    if (!tempo_tracks_area) {
+    Layout *click_tracks_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area");
+    if (!click_tracks_area) {
 	fprintf(stderr, "Error: no tempo tracks area\n");
 	exit(1);
     }
-    /* Layout *lt = layout_read_xml_to_lt(tempo_tracks_area, TEMPO_TRACK_LT_PATH); */
-    Layout *lt = layout_read_from_xml(TEMPO_TRACK_LT_PATH);
+    /* Layout *lt = layout_read_xml_to_lt(click_tracks_area, CLICK_TRACK_LT_PATH); */
+    Layout *lt = layout_read_from_xml(CLICK_TRACK_LT_PATH);
     if (tl->layout_selector >= 0) {
-	layout_insert_child_at(lt, tempo_tracks_area, tl->layout_selector);
+	layout_insert_child_at(lt, click_tracks_area, tl->layout_selector);
     } else {
-	layout_insert_child_at(lt, tempo_tracks_area, 0);
+	layout_insert_child_at(lt, click_tracks_area, 0);
     }
 
     t->layout = lt;
-    layout_size_to_fit_children_v(tempo_tracks_area, true, 0);
+    layout_size_to_fit_children_v(click_tracks_area, true, 0);
     layout_reset(tl->layout);
     tl->needs_redraw = true;
 
     layout_force_reset(lt);
 
     Layout *tb_lt = layout_get_child_by_name_recursive(t->layout, "display");
-    snprintf(t->pos_str, TEMPO_POS_STR_LEN, "0.0.0:00000");
+    snprintf(t->pos_str, CLICK_POS_STR_LEN, "0.0.0:00000");
     t->readout = textbox_create_from_str(
 	t->pos_str,
 	tb_lt,
@@ -633,11 +633,11 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
     /* slider_reset(t->metronome_vol_slider); */
 
     uint8_t subdivs[] = {4, 4, 4, 4};
-    tempo_track_add_segment(t, 0, -1, 120, 4, subdivs);
+    click_track_add_segment(t, 0, -1, 120, 4, subdivs);
     
-    tl->tempo_tracks[tl->num_tempo_tracks] = t;
-    t->index = tl->num_tempo_tracks;
-    tl->num_tempo_tracks++;
+    tl->click_tracks[tl->num_click_tracks] = t;
+    t->index = tl->num_click_tracks;
+    tl->num_click_tracks++;
     snprintf(t->name, MAX_NAMELENGTH, "Click track %d\n", t->index + 1);
 
     timeline_rectify_track_indices(tl);
@@ -647,10 +647,10 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
     Value nullval = {.int_v = 0};
     user_event_push(
 	&proj->history,
-	undo_add_tempo_track,
-	redo_add_tempo_track,
+	undo_add_click_track,
+	redo_add_click_track,
 	NULL,
-	dispose_forward_add_tempo_track,
+	dispose_forward_add_click_track,
 	(void *)t, NULL,
 	nullval, nullval,
 	nullval, nullval,
@@ -664,22 +664,22 @@ TempoTrack *timeline_add_tempo_track(Timeline *tl)
 
 /* Destroy functions */
 
-void tempo_segment_destroy(TempoSegment *s)
+void click_segment_destroy(ClickSegment *s)
 {
     free(s);
 }
 
-void tempo_track_destroy(TempoTrack *tt)
+void click_track_destroy(ClickTrack *tt)
 {
     textbox_destroy(tt->metronome_button);
     textbox_destroy(tt->edit_button);
     slider_destroy(tt->metronome_vol_slider);
     layout_destroy(tt->layout);
     
-    TempoSegment *s = tt->segments;
+    ClickSegment *s = tt->segments;
     while (s) {
-	TempoSegment *next = s->next;
-	tempo_segment_destroy(s);
+	ClickSegment *next = s->next;
+	click_segment_destroy(s);
 	s = next;
     }
 }
@@ -687,18 +687,18 @@ void tempo_track_destroy(TempoTrack *tt)
 
 
 /* utility functions */
-/* static void tempo_segment_set_tempo(TempoSegment *s, unsigned int new_tempo, bool from_undo); */
-static void tempo_segment_set_tempo(TempoSegment *s, unsigned int new_tempo, enum ts_end_bound_behavior ebb,  bool from_undo);
+/* static void click_segment_set_tempo(ClickSegment *s, unsigned int new_tempo, bool from_undo); */
+static void click_segment_set_tempo(ClickSegment *s, unsigned int new_tempo, enum ts_end_bound_behavior ebb,  bool from_undo);
 
 NEW_EVENT_FN(undo_redo_set_tempo, "undo/redo set tempo")
-    TempoSegment *s = (TempoSegment *)obj1;
+    ClickSegment *s = (ClickSegment *)obj1;
     int tempo = val1.int_v;
     enum ts_end_bound_behavior ebb = (enum ts_end_bound_behavior)val2.int_v;
-    tempo_segment_set_tempo(s, tempo, ebb, true);
+    click_segment_set_tempo(s, tempo, ebb, true);
 }
 
 
-static void tempo_segment_set_tempo(TempoSegment *s, unsigned int new_tempo, enum ts_end_bound_behavior ebb,  bool from_undo)
+static void click_segment_set_tempo(ClickSegment *s, unsigned int new_tempo, enum ts_end_bound_behavior ebb,  bool from_undo)
 {
     if (new_tempo == 0) {
 	status_set_errstr("Tempo cannot be 0 bpm");
@@ -715,10 +715,10 @@ static void tempo_segment_set_tempo(TempoSegment *s, unsigned int new_tempo, enu
     /* } */
     uint8_t subdiv_lens[s->cfg.num_beats];
     memcpy(subdiv_lens, s->cfg.beat_subdiv_lens, s->cfg.num_beats * sizeof(uint8_t));
-    tempo_segment_set_config(s, s->num_measures, new_tempo, s->cfg.num_beats, subdiv_lens, ebb);
+    click_segment_set_config(s, s->num_measures, new_tempo, s->cfg.num_beats, subdiv_lens, ebb);
 
     /* if (s->next && ebb == SEGMENT_FIXED_NUM_MEASURES) { */
-    /* 	tempo_segment_set_end_pos(s, s->start_pos + num_measures * s->cfg.dur_sframes); */
+    /* 	click_segment_set_end_pos(s, s->start_pos + num_measures * s->cfg.dur_sframes); */
     /* } */
     
     s->track->tl->needs_redraw = true;
@@ -745,13 +745,13 @@ static void tempo_segment_set_tempo(TempoSegment *s, unsigned int new_tempo, enu
 static int set_tempo_submit_form(void *mod_v, void *target)
 {
     Modal *mod = (Modal *)mod_v;
-    TempoSegment *s = (TempoSegment *)mod->stashed_obj;
+    ClickSegment *s = (ClickSegment *)mod->stashed_obj;
     for (uint8_t i=0; i<mod->num_els; i++) {
 	ModalEl *el = mod->els[i];
 	if (el->type == MODAL_EL_TEXTENTRY) {
 	    char *value = ((TextEntry *)el->obj)->tb->text->value_handle;
 	    int tempo = atoi(value);
-	    tempo_segment_set_tempo(s, tempo, s->track->end_bound_behavior, false);
+	    click_segment_set_tempo(s, tempo, s->track->end_bound_behavior, false);
 	    break;
 	}
     }
@@ -759,23 +759,16 @@ static int set_tempo_submit_form(void *mod_v, void *target)
     return 0;
 }
 
-/* static int tempo_rb_action(void *self, void *target) */
-/* { */
-/*     RadioButton *rb = (RadioButton *)self; */
-/*     enum ts_end_bound_behavior *ebb = target; */
-/*     *ebb = rb->selected_item; */
-/*     return 0; */
-/* } */
 
 #define TEMPO_STRLEN 5
-void timeline_tempo_track_set_tempo_at_cursor(Timeline *tl)
+void timeline_click_track_set_tempo_at_cursor(Timeline *tl)
 {
-    TempoTrack *tt = timeline_selected_tempo_track(tl);
+    ClickTrack *tt = timeline_selected_click_track(tl);
     if (!tt) {
 	status_set_errstr("No tempo track selected");
 	return;
     }
-    TempoSegment *s = tempo_track_get_segment_at_pos(tt, tl->play_pos_sframes);
+    ClickSegment *s = click_track_get_segment_at_pos(tt, tl->play_pos_sframes);
     Layout *mod_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(mod_lt);
     Modal *mod = modal_create(mod_lt);
@@ -843,33 +836,33 @@ void timeline_tempo_track_set_tempo_at_cursor(Timeline *tl)
     tl->needs_redraw = true;
  }
 
-static void tempo_track_delete(TempoTrack *tt, bool from_undo);
+static void click_track_delete(ClickTrack *tt, bool from_undo);
 
-NEW_EVENT_FN(undo_delete_tempo_track, "undo delete tempo track")
-    TempoTrack *tt = (TempoTrack *)obj1;
-    tempo_track_reinsert(tt);
+NEW_EVENT_FN(undo_delete_click_track, "undo delete tempo track")
+    ClickTrack *tt = (ClickTrack *)obj1;
+    click_track_reinsert(tt);
 }
 
-NEW_EVENT_FN(redo_delete_tempo_track, "redo delete tempo track")
-    TempoTrack *tt = (TempoTrack *)obj1;
-    tempo_track_delete(tt, true);
+NEW_EVENT_FN(redo_delete_click_track, "redo delete tempo track")
+    ClickTrack *tt = (ClickTrack *)obj1;
+    click_track_delete(tt, true);
 }
 
-NEW_EVENT_FN(dispose_delete_tempo_track, "")
-    TempoTrack *tt = (TempoTrack *)obj1;
-    tempo_track_destroy(tt);
+NEW_EVENT_FN(dispose_delete_click_track, "")
+    ClickTrack *tt = (ClickTrack *)obj1;
+    click_track_destroy(tt);
 }
 
-static void tempo_track_delete(TempoTrack *tt, bool from_undo)
+static void click_track_delete(ClickTrack *tt, bool from_undo)
 {
-    tempo_track_remove(tt);
+    click_track_remove(tt);
     Value nullval = {.int_v = 0};
     if (!from_undo) {
 	user_event_push(
 	    &proj->history,
-	    undo_delete_tempo_track,
-	    redo_delete_tempo_track,
-	    dispose_delete_tempo_track,
+	    undo_delete_click_track,
+	    redo_delete_click_track,
+	    dispose_delete_click_track,
 	    NULL,
 	    (void *)tt, NULL,
 	    nullval, nullval, nullval, nullval,
@@ -877,32 +870,32 @@ static void tempo_track_delete(TempoTrack *tt, bool from_undo)
     }
 }
 
-bool timeline_tempo_track_delete(Timeline *tl)
+bool timeline_click_track_delete(Timeline *tl)
 {
-    TempoTrack *tt = timeline_selected_tempo_track(tl);
+    ClickTrack *tt = timeline_selected_click_track(tl);
     if (!tt) return false;
-    tempo_track_delete(tt, false);
+    click_track_delete(tt, false);
     timeline_reset(tl, false);
     return true;
 }
 
 
-/* static void timeline_set_tempo_track_config_at_cursor(Timeline *tl, int num_measures, int bpm, int num_beats, uint8_t *subdiv_lens) */
+/* static void timeline_set_click_track_config_at_cursor(Timeline *tl, int num_measures, int bpm, int num_beats, uint8_t *subdiv_lens) */
 /* { */
-/*     TempoTrack *tt = timeline_selected_tempo_track(tl); */
+/*     ClickTrack *tt = timeline_selected_click_track(tl); */
 /*     if (!tt) return; */
-/*     TempoSegment *s = tempo_track_get_segment_at_pos(tt, tl->play_pos_sframes); */
-/*     tempo_segment_set_config(s, num_measures, bpm, num_beats, subdiv_lens); */
+/*     ClickSegment *s = click_track_get_segment_at_pos(tt, tl->play_pos_sframes); */
+/*     click_segment_set_config(s, num_measures, bpm, num_beats, subdiv_lens); */
 /*     tl->needs_redraw = true; */
 /* } */
 
-static void simple_tempo_segment_remove(TempoSegment *s)
+static void simple_click_segment_remove(ClickSegment *s)
 {
-    TempoTrack *tt = s->track;
+    ClickTrack *tt = s->track;
     if (s->prev) {
 	s->prev->next = s->next;
 	if (s->next) {
-	    tempo_segment_set_end_pos(s->prev, s->next->start_pos);
+	    click_segment_set_end_pos(s->prev, s->next->start_pos);
 	    s->next->prev = s->prev;
 	} else {
 	    s->prev->end_pos = s->prev->start_pos;
@@ -912,88 +905,88 @@ static void simple_tempo_segment_remove(TempoSegment *s)
 	tt->segments = s->next;
     }
     /* fprintf(stderr, "After:\n"); */
-    /* tempo_track_fprint(stderr, s->track); */
+    /* click_track_fprint(stderr, s->track); */
 }
 
 
 
-static TempoSegment *tempo_track_cut_at(TempoTrack *tt, int32_t at)
+static ClickSegment *click_track_cut_at(ClickTrack *tt, int32_t at)
 {
-    TempoSegment *s = tempo_track_get_segment_at_pos(tt, at);
+    ClickSegment *s = click_track_get_segment_at_pos(tt, at);
     uint8_t subdiv_lens[s->cfg.num_beats];
     memcpy(subdiv_lens, s->cfg.beat_subdiv_lens, s->cfg.num_beats * sizeof(uint8_t));
-    return tempo_track_add_segment(tt, at, -1, s->cfg.bpm, s->cfg.num_beats, subdiv_lens);
+    return click_track_add_segment(tt, at, -1, s->cfg.bpm, s->cfg.num_beats, subdiv_lens);
 }
 
 
-NEW_EVENT_FN(undo_cut_tempo_track, "undo cut tempo track")
-    TempoTrack *tt = (TempoTrack *)obj1;
-    TempoSegment *s = (TempoSegment *)obj2;
+NEW_EVENT_FN(undo_cut_click_track, "undo cut tempo track")
+    ClickTrack *tt = (ClickTrack *)obj1;
+    ClickSegment *s = (ClickSegment *)obj2;
     /* int32_t at = val1.int32_v; */
-    /* s = tempo_track_get_segment_at_pos(tt, at); */
-    simple_tempo_segment_remove(s);
+    /* s = click_track_get_segment_at_pos(tt, at); */
+    simple_click_segment_remove(s);
     tt->tl->needs_redraw = true;
 }
 
-NEW_EVENT_FN(redo_cut_tempo_track, "redo cut tempo track")
-    TempoTrack *tt = (TempoTrack *)obj1;
+NEW_EVENT_FN(redo_cut_click_track, "redo cut tempo track")
+    ClickTrack *tt = (ClickTrack *)obj1;
     int32_t at = val1.int32_v;
-    TempoSegment *s = tempo_track_cut_at(tt, at);
+    ClickSegment *s = click_track_cut_at(tt, at);
     self->obj2 = (void *)s;
 }
 
-NEW_EVENT_FN(dispose_forward_cut_tempo_track, "")
-    tempo_segment_destroy((TempoSegment *)obj2);
+NEW_EVENT_FN(dispose_forward_cut_click_track, "")
+    click_segment_destroy((ClickSegment *)obj2);
 }
 
 
-void timeline_cut_tempo_track_at_cursor(Timeline *tl)
+void timeline_cut_click_track_at_cursor(Timeline *tl)
 {
-    TempoTrack *tt = timeline_selected_tempo_track(tl);
+    ClickTrack *tt = timeline_selected_click_track(tl);
     if (!tt) return;
-    TempoSegment *s = tempo_track_cut_at(tt, tl->play_pos_sframes);
+    ClickSegment *s = click_track_cut_at(tt, tl->play_pos_sframes);
     tl->needs_redraw = true;
     Value cut_pos = {.int32_v = tl->play_pos_sframes};
     Value nullval = {.int_v = 0};
     user_event_push(
 	&proj->history,
-	undo_cut_tempo_track, redo_cut_tempo_track,
-	NULL, dispose_forward_cut_tempo_track,
+	undo_cut_click_track, redo_cut_click_track,
+	NULL, dispose_forward_cut_click_track,
 	(void *)tt, (void *)s,
 	cut_pos, nullval,
 	cut_pos, nullval,
 	0, 0, false, false);
 }
 
-void timeline_increment_tempo_at_cursor(Timeline *tl, int inc_by)
+void timeline_increment_click_at_cursor(Timeline *tl, int inc_by)
 {
-    TempoTrack *tt = timeline_selected_tempo_track(tl);
+    ClickTrack *tt = timeline_selected_click_track(tl);
     if (!tt) return;
-    TempoSegment *s = tempo_track_get_segment_at_pos(tt, tl->play_pos_sframes);
+    ClickSegment *s = click_track_get_segment_at_pos(tt, tl->play_pos_sframes);
     int new_tempo = s->cfg.bpm + inc_by;
     uint8_t subdiv_lens[s->cfg.num_beats];
     memcpy(subdiv_lens, s->cfg.beat_subdiv_lens, s->cfg.num_beats * sizeof(uint8_t));
-    tempo_segment_set_config(s, s->num_measures, new_tempo, s->cfg.num_beats, subdiv_lens, tt->end_bound_behavior);
+    click_segment_set_config(s, s->num_measures, new_tempo, s->cfg.num_beats, subdiv_lens, tt->end_bound_behavior);
     tl->needs_redraw = true;
 }
 
 void timeline_goto_prox_beat(Timeline *tl, int direction, enum beat_prominence bp)
 {
-    TempoTrack *tt = timeline_selected_tempo_track(tl);
+    ClickTrack *tt = timeline_selected_click_track(tl);
     if (!tt) return;
-    TempoSegment *s;
+    ClickSegment *s;
     
     int bar, beat, subdiv;
     int32_t pos = tl->play_pos_sframes;
     int safety = 0;
-    tempo_track_bar_beat_subdiv(tt, pos, &bar, &beat, &subdiv, &s, false);
+    click_track_bar_beat_subdiv(tt, pos, &bar, &beat, &subdiv, &s, false);
     pos = get_beat_pos(s, bar, beat, subdiv);
     if (direction > 0) {
 	do_increment(s, &bar, &beat, &subdiv);
     }
     if (direction < 0 && tl->play_pos_sframes == pos) {
 	if (pos <= s->start_pos && s->prev) {
-	    tempo_track_bar_beat_subdiv(tt, pos - 1, &bar, &beat, &subdiv, &s, false);
+	    click_track_bar_beat_subdiv(tt, pos - 1, &bar, &beat, &subdiv, &s, false);
 	}
 	do_decrement(s, &bar, &beat, &subdiv);
     }
@@ -1039,9 +1032,9 @@ void timeline_goto_prox_beat(Timeline *tl, int direction, enum beat_prominence b
 
 /* static enum beat_prominence timeline_get_beat_pos_range(Timeline *tl, int32_t *pos) */
 /* { */
-/*     TempoTrack *tt = timeline_selected_tempo_track(tl); */
+/*     ClickTrack *tt = timeline_selected_click_track(tl); */
 /*     if (!tt) return BP_NONE; */
-/*     TempoSegment *s = tempo_track_get_segment_at_pos(tt, tl->play_pos_sframes); */
+/*     ClickSegment *s = click_track_get_segment_at_pos(tt, tl->play_pos_sframes); */
 /*     int32_t pos_n = s->start_pos; */
 /*     int32_t pos_m; */
 /*     while ((pos_m = pos_n + s->cfg.dur_sframes) >= *pos) { */
@@ -1058,12 +1051,12 @@ void timeline_goto_prox_beat(Timeline *tl, int direction, enum beat_prominence b
 /*     /\* /\\* tl->needs_redraw = true; *\\/ *\/ */
 /* } */
 
-/* void tempo_track_fill_metronome_buffer(TempoTrack *tt, float *L, float *R, int32_t start_from) */
+/* void click_track_fill_metronome_buffer(ClickTrack *tt, float *L, float *R, int32_t start_from) */
 /* { */
-/*     static TempoSegment *s = NULL; */
+/*     static ClickSegment *s = NULL; */
     
 /*     if (!s) { */
-/* 	s = tempo_track_get_segment_at_pos(tt, start_from); */
+/* 	s = click_track_get_segment_at_pos(tt, start_from); */
 /*     } else { */
 /* 	while (s->next && start_from < s->start_pos) { */
 /* 	    s = s->next; */
@@ -1071,9 +1064,9 @@ void timeline_goto_prox_beat(Timeline *tl, int direction, enum beat_prominence b
 /*     } */
 /* } */
 
-static void tempo_track_deferred_draw(void *tempo_track_v)
+static void click_track_deferred_draw(void *click_track_v)
 {
-    TempoTrack *tt = (TempoTrack *)tempo_track_v;
+    ClickTrack *tt = (ClickTrack *)click_track_v;
     SDL_Rect *audio_rect = tt->tl->proj->audio_rect;
     /* SDL_Rect cliprect = *audio_rect; */
     /* cliprect.w += cliprect.x; */
@@ -1086,12 +1079,12 @@ static void tempo_track_deferred_draw(void *tempo_track_v)
     }
 }
 
-void tempo_track_draw(TempoTrack *tt)
+void click_track_draw(ClickTrack *tt)
 {
     Timeline *tl = tt->tl;
     SDL_Rect ttr = tt->layout->rect;
     
-    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_tempo_track));
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_click_track));
     SDL_RenderFillRect(main_win->rend, &ttr);
 
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
@@ -1109,7 +1102,7 @@ void tempo_track_draw(TempoTrack *tt)
 
     int32_t pos = tt->tl->display_offset_sframes;
     enum beat_prominence bp;
-    tempo_track_get_next_pos(tt, true, pos, &pos, &bp);
+    click_track_get_next_pos(tt, true, pos, &pos, &bp);
     int x = timeline_get_draw_x(tl, pos);
     int main_top_y = tt->layout->rect.y;
     int bttm_y = main_top_y + tt->layout->rect.h - 1; /* TODO: figure out why decremet to bttm_y is necessary */
@@ -1134,7 +1127,7 @@ void tempo_track_draw(TempoTrack *tt)
     /* bool draw_subdivs = true; */
     /* bool draw_beats = true; */
     while (x > 0) {
-	tempo_track_get_next_pos(tt, false, 0, &pos, &bp);
+	click_track_get_next_pos(tt, false, 0, &pos, &bp);
 	/* int prev_x = x; */
 	x = timeline_get_draw_x(tl, pos);
 	if (x > tt->right_console_rect->x) break;
@@ -1169,7 +1162,7 @@ void tempo_track_draw(TempoTrack *tt)
     SDL_RenderFillRect(main_win->rend, tt->right_console_rect);
 
     /* Draw right console elements */
-    window_defer_draw(main_win, tempo_track_deferred_draw, tt);
+    window_defer_draw(main_win, click_track_deferred_draw, tt);
 
     /* Draw outline */
     SDL_SetRenderDrawColor(main_win->rend, 100, 100, 100, 255);
@@ -1180,23 +1173,23 @@ void tempo_track_draw(TempoTrack *tt)
 }
 
 /* sets bar, beat, and pos; returns remainder in sframes */
-int32_t tempo_track_bar_beat_subdiv(TempoTrack *tt, int32_t pos, int *bar_p, int *beat_p, int *subdiv_p, TempoSegment **segment_p, bool set_readout)
+int32_t click_track_bar_beat_subdiv(ClickTrack *tt, int32_t pos, int *bar_p, int *beat_p, int *subdiv_p, ClickSegment **segment_p, bool set_readout)
 {
     /* bool debug = false; */
     /* if (strcmp(get_thread_name(), "main") == 0) { */
     /* 	debug = true; */
     /* } */
     /* fprintf(stderr, "CALL TO bar beat subdiv in thread %s\n", get_thread_name()); */
-    static JDAW_THREAD_LOCAL int measures[MAX_TEMPO_TRACKS];
-    static JDAW_THREAD_LOCAL int beats[MAX_TEMPO_TRACKS];
-    static JDAW_THREAD_LOCAL int subdivs[MAX_TEMPO_TRACKS];
-    /* static JDAW_THREAD_LOCAL int32_t prev_positions[MAX_TEMPO_TRACKS]; */
+    static JDAW_THREAD_LOCAL int measures[MAX_CLICK_TRACKS];
+    static JDAW_THREAD_LOCAL int beats[MAX_CLICK_TRACKS];
+    static JDAW_THREAD_LOCAL int subdivs[MAX_CLICK_TRACKS];
+    /* static JDAW_THREAD_LOCAL int32_t prev_positions[MAX_CLICK_TRACKS]; */
     
     int measure = measures[tt->index];
     int beat = beats[tt->index];
     int subdiv = subdivs[tt->index];
 
-    TempoSegment *s = tempo_track_get_segment_at_pos(tt, pos);
+    ClickSegment *s = click_track_get_segment_at_pos(tt, pos);
     if (measure < s->first_measure_index) {
 	/* fprintf(stderr, "Cache invalid MEASURE %d (s num: %d)\n", measure, s->num_measures); */
 	measure = s->first_measure_index;
@@ -1238,7 +1231,7 @@ int32_t tempo_track_bar_beat_subdiv(TempoTrack *tt, int32_t pos, int *bar_p, int
 	    fprintf(stderr, "Pos: %d\n", pos);
 	    if (ops > 1000000) {
 		fprintf(stderr, "ABORT\n");
-		tempo_track_fprint(stderr, tt);
+		click_track_fprint(stderr, tt);
 		breakfn();
 		goto set_dst_values;
 		/* return 0; */
@@ -1305,7 +1298,7 @@ set_dst_values:
 	    snprintf(sample_str, sample_str_len, "%d", remainder);
 	}
 	/* fprintf(stderr, "MEASURE RAW: %d\n", measure); */
-	snprintf(tt->pos_str, TEMPO_POS_STR_LEN, "%d.%d.%d:%s", measure, beat, subdiv, sample_str);
+	snprintf(tt->pos_str, CLICK_POS_STR_LEN, "%d.%d.%d:%s", measure, beat, subdiv, sample_str);
 	textbox_reset_full(tt->readout);
     /* fprintf(stderr, "%s\n", tt->pos_str); */
     }
@@ -1314,7 +1307,7 @@ set_dst_values:
 
 int send_message_udp(char *message, int port);
 
-void tempo_track_mix_metronome(TempoTrack *tt, float *mixdown_buf, int32_t mixdown_buf_len, int32_t tl_start_pos_sframes, int32_t tl_end_pos_sframes, float step)
+void click_track_mix_metronome(ClickTrack *tt, float *mixdown_buf, int32_t mixdown_buf_len, int32_t tl_start_pos_sframes, int32_t tl_end_pos_sframes, float step)
 {
     if (tt->muted) return;
     if (step < 0.0) return;
@@ -1322,14 +1315,14 @@ void tempo_track_mix_metronome(TempoTrack *tt, float *mixdown_buf, int32_t mixdo
     /* fprintf(stderr, "TEMPO TRACK MIX METRONOME\n"); */
     /* clock_t start = clock(); */
     int bar, beat, subdiv;
-    TempoSegment *s;
+    ClickSegment *s;
     float *buf = NULL;
     int32_t buf_len;
     int32_t tl_chunk_len = tl_end_pos_sframes - tl_start_pos_sframes;
     enum beat_prominence bp;
     /* clock_t c; */
     /* c = clock(); */
-    int32_t remainder = tempo_track_bar_beat_subdiv(tt, tl_end_pos_sframes, &bar, &beat, &subdiv, &s, false);
+    int32_t remainder = click_track_bar_beat_subdiv(tt, tl_end_pos_sframes, &bar, &beat, &subdiv, &s, false);
     /* double dur = ((double)clock() - c)/CLOCKS_PER_SEC; */
     /* fprintf(stderr, "Remainder dur msec: %f\n", dur * 1000); */
     
@@ -1399,7 +1392,7 @@ void tempo_track_mix_metronome(TempoTrack *tt, float *mixdown_buf, int32_t mixdo
     }
 }
 
-void tempo_track_mute_unmute(TempoTrack *t)
+void click_track_mute_unmute(ClickTrack *t)
 {
     t->muted = !t->muted;
     if (t->muted) {
@@ -1420,7 +1413,7 @@ void tempo_track_mute_unmute(TempoTrack *t)
 /*     slider_reset(track->vol_ctrl); */
 /* } */
 
-void tempo_track_increment_vol(TempoTrack *tt)
+void click_track_increment_vol(ClickTrack *tt)
 {
     tt->metronome_vol += TRACK_VOL_STEP;
     if (tt->metronome_vol > tt->metronome_vol_slider->max.float_v) {
@@ -1431,7 +1424,7 @@ void tempo_track_increment_vol(TempoTrack *tt)
 }
 
 
-void tempo_track_decrement_vol(TempoTrack *tt)
+void click_track_decrement_vol(ClickTrack *tt)
 {
     tt->metronome_vol -= TRACK_VOL_STEP;
     if (tt->metronome_vol < 0.0f) {
@@ -1442,7 +1435,7 @@ void tempo_track_decrement_vol(TempoTrack *tt)
 }
 
 
-bool tempo_track_triage_click(uint8_t button, TempoTrack *t)
+bool click_track_triage_click(uint8_t button, ClickTrack *t)
 {
     if (!SDL_PointInRect(&main_win->mousep, &t->layout->rect)) {
 	return false;
@@ -1452,20 +1445,20 @@ bool tempo_track_triage_click(uint8_t button, TempoTrack *t)
 	    return true;
 	}
 	if (SDL_PointInRect(&main_win->mousep, &t->metronome_button->layout->rect)) {
-	    tempo_track_mute_unmute(t);
+	    click_track_mute_unmute(t);
 	    return true;
 	}
 	return true;
     }
     if (SDL_PointInRect(&main_win->mousep, t->console_rect)) {
 	if (SDL_PointInRect(&main_win->mousep, &t->edit_button->layout->rect)) {
-	    timeline_tempo_track_edit(proj->timelines[proj->active_tl_index]);
+	    timeline_click_track_edit(proj->timelines[proj->active_tl_index]);
 	    return true;
 	}
 	return true;
     }
-    TempoSegment *final = NULL;
-    TempoSegment *s = t->segments;
+    ClickSegment *final = NULL;
+    ClickSegment *s = t->segments;
     const int xdst_init = 5 * main_win->dpi_scale_factor;
     int xdst = xdst_init;
     while (s) {
@@ -1480,7 +1473,7 @@ bool tempo_track_triage_click(uint8_t button, TempoTrack *t)
     }
     if (final) {
 	proj->dragged_component.component = final;
-	proj->dragged_component.type = DRAG_TEMPO_SEG_BOUND;
+	proj->dragged_component.type = DRAG_CLICK_SEG_BOUND;
 	return true;
     }
 
@@ -1488,7 +1481,7 @@ bool tempo_track_triage_click(uint8_t button, TempoTrack *t)
     return false;
 }
 
-void tempo_track_mouse_motion(TempoSegment *s, Window *win)
+void click_track_mouse_motion(ClickSegment *s, Window *win)
 {
     if (!s->prev) return;
     s = s->prev;
@@ -1496,14 +1489,14 @@ void tempo_track_mouse_motion(TempoSegment *s, Window *win)
     if (tl_pos < s->start_pos + proj->sample_rate / 100) {
 	return;
     }
-    tempo_segment_set_end_pos(s, tl_pos);
+    click_segment_set_end_pos(s, tl_pos);
 }
    
 
 extern Project *proj;
 
 
-void tempo_segment_fprint(FILE *f, TempoSegment *s)
+void click_segment_fprint(FILE *f, ClickSegment *s)
 {
     fprintf(f, "\nSegment at %p start/end: %d-%d (%f-%fs)\n", s, s->start_pos, s->end_pos, (float)s->start_pos / proj->sample_rate, (float)s->end_pos / proj->sample_rate);
     fprintf(f, "Segment tempo (bpm): %d\n", s->cfg.bpm);
@@ -1519,20 +1512,20 @@ void tempo_segment_fprint(FILE *f, TempoSegment *s)
 
 }
 
-void timeline_segment_at_cursor_fprint(FILE *f, Timeline *tl)
+void click_segment_at_cursor_fprint(FILE *f, Timeline *tl)
 {
-    TempoTrack *tt = timeline_selected_tempo_track(tl);
-    TempoSegment *s = tempo_track_get_segment_at_pos(tt, tl->play_pos_sframes);
-    tempo_segment_fprint(f, s);
+    ClickTrack *tt = timeline_selected_click_track(tl);
+    ClickSegment *s = click_track_get_segment_at_pos(tt, tl->play_pos_sframes);
+    click_segment_fprint(f, s);
 }
 
-void tempo_track_fprint(FILE *f, TempoTrack *tt)
+void click_track_fprint(FILE *f, ClickTrack *tt)
 {
     fprintf(f, "\nTEMPO TRACK\n");
-    TempoSegment *s = tt->segments;
+    ClickSegment *s = tt->segments;
     while (s) {
 	fprintf(f, "SEGMENT:\n");
-	tempo_segment_fprint(f, s);
+	click_segment_fprint(f, s);
 	s = s->next;
     }
 }

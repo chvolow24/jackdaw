@@ -429,11 +429,11 @@ static int timeline_draw(Timeline *tl)
     for (uint8_t i=0; i<tl->num_tracks; i++) {
 	track_draw(tl->tracks[i]);
     }
-    for (int i=0; i<tl->num_tempo_tracks; i++) {
-	tempo_track_draw(tl->tempo_tracks[i]);
-	/* if (i==tl->tempo_track_selector) { */
+    for (int i=0; i<tl->num_click_tracks; i++) {
+	click_track_draw(tl->click_tracks[i]);
+	/* if (i==tl->click_track_selector) { */
 	/*     SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255); */
-	/*     SDL_RenderDrawRect(main_win->rend, &tl->tempo_tracks[i]->layout->rect); */
+	/*     SDL_RenderDrawRect(main_win->rend, &tl->click_tracks[i]->layout->rect); */
 	/* } */
     }
 

@@ -137,12 +137,12 @@ extern pthread_t DSP_THREAD_ID;
 /* 		selected_track->pan_ctrl->editing = true; */
 /* 	    } */
 /* 	} else { */
-/* 	    TempoTrack *tt = timeline_selected_tempo_track(tl); */
+/* 	    TempoTrack *tt = timeline_selected_click_track(tl); */
 /* 	    if (tt) { */
 /* 		if (proj->vol_up) { */
-/* 		    tempo_track_increment_vol(tt); */
+/* 		    click_track_increment_vol(tt); */
 /* 		} else { */
-/* 		    tempo_track_decrement_vol(tt); */
+/* 		    click_track_decrement_vol(tt); */
 /* 		} */
 /* 	    } */
 /* 	} */
@@ -538,11 +538,11 @@ void loop_project_main()
 	    timeline_catchup(tl);
 	    timeline_set_timecode(tl);
 	    /* fprintf(stderr, "PROJECT LOOP: Start tempo track bbs\n"); */
-	    for (int i=0; i<tl->num_tempo_tracks; i++) {
-		/* fprintf(stderr, "\tstart %d/%d\n", i, tl->num_tempo_tracks); */
+	    for (int i=0; i<tl->num_click_tracks; i++) {
+		/* fprintf(stderr, "\tstart %d/%d\n", i, tl->num_click_tracks); */
 		int bar, beat, subdiv;
-		tempo_track_bar_beat_subdiv(tl->tempo_tracks[i], tl->play_pos_sframes, &bar, &beat, &subdiv, NULL, true);
-		/* fprintf(stderr, "\tend %d/%d\n", i, tl->num_tempo_tracks); */
+		click_track_bar_beat_subdiv(tl->click_tracks[i], tl->play_pos_sframes, &bar, &beat, &subdiv, NULL, true);
+		/* fprintf(stderr, "\tend %d/%d\n", i, tl->num_click_tracks); */
 	    }
 	    /* fprintf(stderr, "->PROJECT LOOP exit\n"); */
 	}

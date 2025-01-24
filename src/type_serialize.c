@@ -3,8 +3,8 @@ uint16_t uint16_fromstr_le(char *buf)
 {
     uint16_t val = 0;
     uint8_t *ubuf = (uint8_t *)buf;
-    val += ubuf[0];
-    val += ubuf[1]<<8;
+    val += (uint16_t)ubuf[0];
+    val += (uint16_t)ubuf[1]<<8;
     return val;
 }
 
@@ -65,9 +65,6 @@ void float_tostr40_le(double ts, char *buf)
 {
     int exp;
     double mantissa = frexp(ts, &exp);
-
-    fprintf(stderr, "Raw exp and mantissa in: %d, %f\n", exp, mantissa);
-
     int32_t mant_sint = (int32_t)(mantissa * INT32_MAX);
     int8_t exp_sint = (int8_t)exp;
     uint8_t exp_uint = *((uint8_t *)&exp_sint);
@@ -85,6 +82,11 @@ double float_fromstr40_le(char *buf)
     int exp = (int)exp_sint;
     double mantissa = (double)mant_sint / INT32_MAX;
     return ldexp(mantissa, exp);
+}
+
+void uint8_ser(FILE *f, uint8_t *val_p)
+{
+    fwrite(val_p, 1, 1, f);
 }
 
 void uint16_ser_le(FILE *f, uint16_t *val_p)
@@ -118,6 +120,13 @@ void float_ser40_le(FILE *f, double val)
     fwrite(buf, 1, 5, f);
 }
 
+uint8_t uint8_deser(FILE *f)
+{
+    uint8_t ret;
+    fread(&ret, 1, 1, f);
+    return ret;
+}
+
 uint16_t uint16_deser_le(FILE *f)
 {
     char buf[2];
@@ -146,6 +155,10 @@ double float_deser40_le(FILE *f)
     return float_fromstr40_le(buf);
 }
 
+void int8_ser(FILE *f, int8_t *v_p)
+{
+    uint8_ser(f, (uint8_t *)v_p);
+}
 
 void int16_ser_le(FILE *f, int16_t *v_p)
 {
@@ -166,6 +179,13 @@ void int_ser_le(FILE *f, int *v_p)
 {
     int32_t v = *v_p;
     int32_ser_le(f, &v);
+}
+
+int8_t int8_deser(FILE *f)
+{
+    int8_t ret;
+    fread(&ret, 1, 1, f);
+    return ret;
 }
 
 int16_t int16_deser_le(FILE *f)

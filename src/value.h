@@ -86,4 +86,8 @@ Value jdaw_val_negate(Value a, ValType vt);
 void jdaw_val_serialize(FILE *f, Value v, ValType type);
 Value jdaw_val_deserialize(FILE *f);
 
+/* Backwards compatibility; .jdaw v < 00.15 */
+void jdaw_val_serialize_OLD(Value v, ValType type, FILE *f, uint8_t dstsize);
+Value jdaw_val_deserialize_OLD(FILE *f, uint8_t size, ValType type);
+
 #endif

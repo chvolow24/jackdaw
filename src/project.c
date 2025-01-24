@@ -1305,9 +1305,11 @@ void timeline_rectify_track_area(Timeline *tl)
 
 void timeline_rectify_track_indices(Timeline *tl)
 {
-
     if (tl->layout_selector >= tl->track_area->num_children) {
 	tl->layout_selector = tl->track_area->num_children - 1;
+    }
+    if (tl->layout_selector < 0 && tl->track_area->num_children > 0) {
+	tl->layout_selector = 0;
     }
 
     /* fprintf(stderr, "Rectify\n"); */

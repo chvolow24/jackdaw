@@ -308,20 +308,12 @@ void click_segment_set_config(ClickSegment *s, int num_measures, int bpm, uint8_
 /* Calculates the new segment dur in measures and sets the first measure index of the next segment */
 void click_segment_set_end_pos(ClickSegment *s, int32_t new_end_pos)
 {
-    /* fprintf(stderr, "SETTING end pos on segment with deets\n"); */
-    /* click_segment_fprint(stderr, s); */
     int32_t segment_dur = new_end_pos - s->start_pos;
     double num_measures = (double)segment_dur / s->cfg.dur_sframes;
     s->num_measures = floor(0.9999999 + num_measures);
     s->end_pos = new_end_pos;
     s->end_pos_internal = new_end_pos;
     while (s->next) {
-	/* int32_t segment_dur = new_end_pos - s->start_pos; */
-	/* double num_measures = (double)segment_dur / s->cfg.dur_sframes; */
-	/* /\* fprintf(stderr, "Num measures in double is: %f\n", num_measures); *\/ */
-	/* s->num_measures = floor(0.999999 + num_measures); */
-	/* s->end_pos = new_end_pos; */
-	/* /\* fprintf(stderr, "Num measures in int is: %d\n", s->num_measures); *\/ */
 	int32_t dur_next = s->next->end_pos - s->next->start_pos;
 	s->next->start_pos = s->end_pos;
 	if (s->next->next) {
@@ -339,7 +331,6 @@ void click_segment_set_end_pos(ClickSegment *s, int32_t new_end_pos)
 
 ClickSegment *click_track_add_segment(ClickTrack *t, int32_t start_pos, int16_t num_measures, int bpm, uint8_t num_beats, uint8_t *subdiv_lens)
 {
-    /* fprintf(stderr, "\n\n\nADDING SEGMENT TO TEMPO TRACK, start: %d, num measures: %d\n", start_pos, num_measures); */
     ClickSegment *s = calloc(1, sizeof(ClickSegment));
     s->track = t;
     s->num_measures = num_measures;
@@ -376,27 +367,12 @@ ClickSegment *click_track_add_segment(ClickTrack *t, int32_t start_pos, int16_t 
 	s->prev = interrupt;
 	click_segment_set_config(s, num_measures, bpm, num_beats, subdiv_lens, SEGMENT_FIXED_END_POS);
 	click_segment_set_end_pos(interrupt, start_pos);
-	/* click_segment_set_end_pos(s, s->next->start_pos); */
 	return s;
-	/* goto set_config_and_exit; */
-	/* fprintf(stderr, "Error: cannot insert segment in the middle\n"); */
-	/* return NULL; */
     }
 set_config_and_exit:
     click_segment_set_config(s, num_measures, bpm, num_beats, subdiv_lens, SEGMENT_FIXED_END_POS); 
-
-    /* fprintf(stderr, "DONE DONE DONE DONE now it looks like this\n"); */
-    /* click_track_fprint(stderr, t); */
-
     return s;
 }
-
-/* /\* Pass -1 to "num_measures" for infinity *\/ */
-/* ClickSegment *click_track_add_segment(ClickTrack *t, int32_t start_pos, int16_t num_measures, int bpm, int num_beats, int *subdiv_lens) */
-/* { */
-/*     ClickSegment *s = click_track_add_segment_internal(t, start_pos, num_measures, bpm, num_beats, ap); */
-/*     return s; */
-/* } */
 
 ClickSegment *click_track_add_segment_at_measure(ClickTrack *t, int16_t measure, int16_t num_measures, int bpm, uint8_t num_beats, uint8_t *subdiv_lens)
 {
@@ -404,7 +380,7 @@ ClickSegment *click_track_add_segment_at_measure(ClickTrack *t, int16_t measure,
     ClickSegment *s = t->segments;
     if (s) {
 	while (1) {
-	    /* fprintf(stderr, "S: %p, first measure index %d (cmp %d)\n", s, s->first_measure_index, measure); */
+
 	    if (s->first_measure_index > measure) {
 		if (s->prev) {
 		    s = s->prev;
@@ -424,50 +400,6 @@ ClickSegment *click_track_add_segment_at_measure(ClickTrack *t, int16_t measure,
     return s;
 }
 
-/* void timeline_rectify_tracks(Timeline *tl) */
-/* { */
-/*     int click_track_index = 0; */
-/*     int track_index = 0; */
-    
-/*     Track *track_stack[tl->num_tracks]; */
-/*     ClickTrack *click_track_stack[tl->num_click_tracks]; */
-    
-/*     for (int i=0; i<tl->track_area->num_children; i++) { */
-/* 	Layout *lt = tl->track_area->children[i]; */
-/* 	for (uint8_t j=0; j<tl->num_tracks; j++) { */
-/* 	    Track *track = tl->tracks[j]; */
-/* 	    if (track->layout == lt) { */
-/* 		track_stack[track_index] = track; */
-/* 		track_index++; */
-/* 		fprintf(stderr, "LAYOUT %d is track %d\n", i, j); */
-/* 		break; */
-/* 	    } */
-/* 	} */
-/* 	for (uint8_t j=0; j<tl->num_click_tracks; j++) { */
-/* 	    ClickTrack *tt = tl->click_tracks[j]; */
-/* 	    if (tt->layout == lt) { */
-/* 		click_track_stack[click_track_index] = tt; */
-/* 		click_track_index++; */
-/* 		fprintf(stderr, "LAYOUT %d is TEMPO track %d\n", i, j); */
-/* 		break; */
-/* 	    } */
-/* 	} */
-/*     } */
-/*     fprintf(stderr, "\n"); */
-/*     for (int i=0; i<tl->num_click_tracks; i++) { */
-/* 	fprintf(stderr, "IN TL: %p\n", tl->click_tracks[i]); */
-/* 	fprintf(stderr, "IN STACK: %p\n", click_track_stack[i]); */
-/*     } */
-/*     memcpy(tl->tracks, track_stack, sizeof(Track *) * tl->num_tracks); */
-/*     memcpy(tl->click_tracks, click_track_stack, sizeof(ClickTrack *) * tl->num_click_tracks); */
-/* } */
-
-/* void click_track_reset(ClickTrack *tt) */
-/* { */
-/*     layout_reset(tt->layout); */
-/*     textbox_reset(tt->readout); */
-/* } */
-
 static void click_track_remove(ClickTrack *tt)
 {
     Timeline *tl = tt->tl;
@@ -480,6 +412,7 @@ static void click_track_remove(ClickTrack *tt)
     timeline_rectify_track_area(tl);
 
 }
+
 static void click_track_reinsert(ClickTrack *tt)
 {
     Timeline *tl = tt->tl;
@@ -611,7 +544,7 @@ ClickTrack *timeline_add_click_track(Timeline *tl)
     t->metronome_button = textbox_create_from_str(
 	"M",
 	metro_button_lt,
-	main_win->mono_bold_font,
+	main_win->bold_font,
 	14,
 	main_win);
     textbox_set_background_color(t->metronome_button, &color_global_play_green);
@@ -1521,9 +1454,8 @@ void click_track_mouse_motion(ClickSegment *s, Window *win)
     if (tl_pos < 0 || tl_pos < s->start_pos + proj->sample_rate / 100) {
 	return;
     }
-
     endpoint_write(&s->end_pos_ep, (Value){.int32_v = tl_pos}, true, true, true, false);
-    /* click_segment_set_end_pos(s, tl_pos); */
+
 }
    
 

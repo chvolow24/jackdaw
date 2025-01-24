@@ -1,3 +1,4 @@
+#include "type_serialize.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -681,7 +682,95 @@ bool jdaw_val_sign_match(Value a, Value b, ValType type)
     }
 }
 
-void jdaw_val_serialize(Value v, ValType type, FILE *f, uint8_t dstsize)
+/* Variable size, depending on type */
+void jdaw_val_serialize(FILE *f, Value v, ValType type)
+{
+    uint8_t type_byte = (uint8_t)type;
+    fwrite(&type_byte, 1, 1, f);
+    switch (type) {
+    case JDAW_FLOAT:
+	float_ser40_le(f, v.float_v);
+	break;
+    case JDAW_DOUBLE:
+	float_ser40_le(f, v.double_v);
+	break;
+    case JDAW_INT:
+        int_ser_le(f, &v.int_v);
+	break;
+    case JDAW_UINT8:
+	fwrite(&v.uint8_v, 1, 1, f);
+	break;
+    case JDAW_UINT16:
+	uint16_ser_le(f, &v.uint16_v);
+	break;	
+    case JDAW_UINT32:
+	uint32_ser_le(f, &v.uint32_v);
+	break;
+    case JDAW_INT8:
+	fwrite(&v.int8_v, 1, 1, f);
+	break;
+    case JDAW_INT16:
+	int16_ser_le(f, &v.int16_v);
+	break;
+    case JDAW_INT32:
+	int32_ser_le(f, &v.int32_v);
+	break;
+    case JDAW_BOOL: {
+	uint8_t bool_byte = (uint8_t)(v.bool_v);
+	fwrite(&bool_byte, 1, 1, f);
+    }
+	break;
+    default:
+	break;
+    }
+}
+
+Value jdaw_val_deserialize(FILE *f)
+{
+    uint8_t type_byte;
+    fread(&type_byte, 1, 1, f);
+    ValType type = (ValType)((int)type_byte);
+    Value ret = {0};
+    switch (type) {
+    case JDAW_FLOAT:
+	ret.float_v = float_deser40_le(f);
+	break;
+    case JDAW_DOUBLE:
+	ret.double_v = float_deser40_le(f);
+	break;
+    case JDAW_INT:
+        ret.int_v = int_deser_le(f);
+	break;
+    case JDAW_UINT8:
+	ret.uint8_v = fread(&ret.uint8_v, 1, 1, f);
+	break;
+    case JDAW_UINT16:
+	ret.uint16_v = uint16_deser_le(f);
+	break;	
+    case JDAW_UINT32:
+	ret.uint32_v = uint32_deser_le(f);
+	break;
+    case JDAW_INT8:
+	fread(&ret.int8_v, 1, 1, f);
+	break;
+    case JDAW_INT16:
+	ret.int16_v = int16_deser_le(f);
+	break;
+    case JDAW_INT32:
+	ret.int32_v = int32_deser_le(f);
+	break;
+    case JDAW_BOOL: {
+	uint8_t bool_byte;
+	fread(&bool_byte, 1, 1, f);
+	ret.bool_v = (bool)bool_byte;
+    }	
+	break;
+    default:
+	break;
+    }
+    return ret;
+}
+void jdaw_val_serialize_OLD(Value v, ValType type, FILE *f, uint8_t dstsize)
 {
 
     char dst[dstsize + 1];
@@ -804,7 +893,7 @@ Value jdaw_val_from_str(const char *str, ValType type)
 
 
 
-Value jdaw_val_deserialize(FILE *f, uint8_t size, ValType type)
+Value jdaw_val_deserialize_OLD(FILE *f, uint8_t size, ValType type)
 {
     char buf[size + 1];
     fread(buf, 1, size, f);

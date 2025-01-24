@@ -168,6 +168,7 @@ void loop_project_main()
     /* uint8_t frame_ctr = 0; */
     /* float fps = 0; */
 
+    /* layout_force_reset(proj->layout); */
     Layout *temp_scrolling_lt = NULL;
     Layout *scrolling_lt = NULL;
     UserFn *input_fn = NULL;

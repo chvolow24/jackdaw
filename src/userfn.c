@@ -1166,8 +1166,8 @@ button_animation_and_exit:
     if (selected) {
 	timeline_refocus_track(tl, selected, false);
     } else {
-	ClickTrack *tt = timeline_selected_click_track(tl);
-	if (tt) {
+	ClickTrack *ct = timeline_selected_click_track(tl);
+	if (ct) {
 	    timeline_refocus_click_track(tl, timeline_selected_click_track(tl), false);
 	}
     }
@@ -1247,7 +1247,10 @@ button_animation_and_exit:
     if (selected) {
 	timeline_refocus_track(tl, selected, true);
     } else {
-	timeline_refocus_click_track(tl, timeline_selected_click_track(tl), true);
+	ClickTrack *ct = timeline_selected_click_track(tl);
+	if (ct) {
+	    timeline_refocus_click_track(tl, timeline_selected_click_track(tl), true);
+	}
     }
 
     /* if (selected) timeline_refocus_track(tl, selected, true); */
@@ -1939,6 +1942,7 @@ void user_tl_drop_from_source(void *nullarg)
     Track *track = timeline_selected_track(tl);
     if (!track) {
 	status_set_errstr(NO_TRACK_ERRSTR);
+	return;
     }
     if (proj->src_clip) {
 	/* int32_t drop_pos = tl->play_pos_sframes - proj->play_speed * 2 * proj->chunk_size_sframes; */

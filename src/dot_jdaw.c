@@ -54,6 +54,8 @@ const static char hdr_clipref[] = {'C','L','I','P','R','E','F'};
 const static char hdr_data[] = {'d','a','t','a'};
 const static char hdr_auto[] = {'A', 'U', 'T', 'O'};
 const static char hdr_keyf[] = {'K', 'E', 'Y', 'F'};
+const static char hdr_click[] = {'C', 'L', 'C', 'K'};
+const static char hdr_click_segm[] = {'S', 'E', 'G', 'M'};
 
 const static char current_file_spec_version[] = {'0','0','.','1','4'};
 /* const static float current_file_spec_version_f = 0.11f; */

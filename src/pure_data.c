@@ -23,7 +23,6 @@
 #define PD_AUDIOBUFFERS_WRITE_SEMNAME "/pd_jackdaw_audiobuf_write_sem"
 #define PD_AUDIOBUFFERS_READ_SEMNAME "/pd_jackdaw_audiobuf_read_sem"
 
-
 struct pd_jackdaw_shm_pids {
     pid_t jackdaw_pid;
     pid_t pd_pid;

@@ -31,6 +31,7 @@ const char *get_thread_name()
 /* } */
 bool on_thread(enum jdaw_thread thread_index)
 {
+    /* TODO: use thread local global variable for thread id rather than calling pthread_self() */
     pthread_t id = pthread_self();
     if (thread_index == JDAW_THREAD_MAIN && id == MAIN_THREAD_ID)
 	return true;

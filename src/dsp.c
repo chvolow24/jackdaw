@@ -299,7 +299,6 @@ static void FIR_filter_alloc_buffers(FIRFilter *filter)
 }
 void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len) 
 {
-    fprintf(stderr, "INIT with IRLEN: %d, track %p name %s\n", impulse_response_len, track, track->name);
     pthread_mutex_init(&filter->lock, NULL);
     filter->type = type;
     filter->track = track;

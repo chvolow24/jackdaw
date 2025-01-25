@@ -39,7 +39,7 @@
 #include "type_serialize.h"
 
 /* #define BYTEORDER_FATAL fprintf(stderr, "Fatal error (TODO): big-endian byte order not supported\n"); exit(1); */
-/* #define STD_FLOAT_SER_W 16 */
+#define OLD_FLOAT_SER_W 16
 
 extern Project *proj;
 extern bool SYS_BYTEORDER_LE;
@@ -62,9 +62,22 @@ const static char hdr_click_segm[] = {'C', 'T', 'S', 'G'};
 const static char current_file_spec_version[] = {'0','0','.','1','5'};
 /* const static float current_file_spec_version_f = 0.11f; */
 
-const static char nullterm = '\0';
+/* const static char nullterm = '\0'; */
 
 static float read_file_spec_version;
+
+static void debug_print_bytes_around(FILE *f)
+{
+    char errbuf[32];
+    fseek(f, -4, SEEK_CUR);
+    fread(errbuf, 1, 31, f);
+    for (int i=0; i<32; i++) {
+	if (errbuf[i] == '\0') errbuf[i] = '_';
+    }
+    errbuf[31] = '\0';
+    fprintf(stderr, "BYTES AROUND: %s\n", errbuf);
+
+}
 
 /**********************************************/
 /******************** WRITE *******************/
@@ -183,7 +196,7 @@ static void jdaw_write_timeline(FILE *f, Timeline *tl)
 	jdaw_write_track(f, tl->tracks[i]);
     }
     uint8_ser(f, &tl->num_click_tracks);
-    for (uint8_t i=0; i<tl->num_tracks; i++) {
+    for (uint8_t i=0; i<tl->num_click_tracks; i++) {
 	jdaw_write_click_track(f, tl->click_tracks[i]);
     }
 }
@@ -197,7 +210,7 @@ static void jdaw_write_track(FILE *f, Track *track)
     uint8_t track_namelen = strlen(track->name);
     fwrite(&track_namelen, 1, 1, f);
     fwrite(track->name, 1, track_namelen, f);
-    fwrite(&nullterm, 1, 1, f);
+    /* fwrite(&nullterm, 1, 1, f); */
     fwrite(&track->color, 1, 4, f);
 
     /* vol and pan */
@@ -214,7 +227,7 @@ static void jdaw_write_track(FILE *f, Track *track)
 	jdaw_write_clipref(f, track->clips[i]);
     }
 
-    /* fwrite(&track->num_automations, 1, 1, f); */
+    uint8_ser(f, &track->num_automations);
     for (uint8_t i=0; i<track->num_automations; i++) {
 	jdaw_write_automation(f, track->automations[i]);
     }
@@ -223,18 +236,24 @@ static void jdaw_write_track(FILE *f, Track *track)
     fwrite(&track->fir_filter_active, 1, 1, f);
     
     FIRFilter *filter = &track->fir_filter;
-    /* if (track->fir_filter_active && (filter = &track->fir_filter)) { */
-    uint8_t type_byte = (uint8_t)(filter->type);
+    if (track->fir_filter_active && (filter = &track->fir_filter)) {
+	uint8_t type_byte = (uint8_t)(filter->type);
 	fwrite(&type_byte, 1, 1, f);
 	float_ser40_le(f, filter->cutoff_freq);
 	float_ser40_le(f, filter->bandwidth);
-    /* } else { */
-	/* fseek(f, 15, SEEK_CUR); */
-    /* } */
+        uint16_ser_le(f, &filter->impulse_response_len);
+    } else {
+	fseek(f, 13, SEEK_CUR);
+
+    }
     fwrite(&track->delay_line_active, 1, 1, f);
-    /* if (track->delay_line_active) { */
-    int32_ser_le(f, &track->delay_line.len);
-    float_ser40_le(f, track->delay_line.amp);
+    if (track->delay_line_active) {
+	int32_ser_le(f, &track->delay_line.len);
+	float_ser40_le(f, track->delay_line.stereo_offset);
+	float_ser40_le(f, track->delay_line.amp);
+    } else {
+	fseek(f, 14, SEEK_CUR);
+    }
 	/* fwrite(&track->delay_line.len, 4, 1, f); */
 	/* snprintf(float_value_buffer, STD_FLOAT_SER_W, "%f", track->delay_line.stereo_offset); */
 	/* fwrite(float_value_buffer, STD_FLOAT_SER_W, 1, f); */
@@ -265,7 +284,7 @@ static void jdaw_write_click_track(FILE *f, ClickTrack *ct)
 
 static void jdaw_write_click_segment(FILE *f, ClickSegment *s)
 {
-    fwrite(hdr_click_segm, 1, 5, f);
+    fwrite(hdr_click_segm, 1, 4, f);
     int32_ser_le(f, &s->start_pos);
     int32_ser_le(f, &s->end_pos);
     int16_ser_le(f, &s->first_measure_index);
@@ -273,8 +292,11 @@ static void jdaw_write_click_segment(FILE *f, ClickSegment *s)
     int16_t bpm = (int16_t)s->cfg.bpm;
     int16_ser_le(f, &bpm);
     uint8_ser(f, &s->cfg.num_beats);
+    fprintf(stderr, "WRITING AREA OF LEN %d\n", s->cfg.num_beats);
     fwrite(&s->cfg.beat_subdiv_lens, 1, s->cfg.num_beats, f);
+    fprintf(stderr, "S has next? %d\n", s->next != NULL);
     uint8_t more_segments = s->next != NULL;
+    fprintf(stderr, "serializing more segments as %d\n", more_segments);
     uint8_ser(f, &more_segments);    
 }
 
@@ -376,8 +398,6 @@ Project *jdaw_read_file(const char *path)
 	return NULL;
     }
 
-    /* fprintf(stdout, "JDAW FILE SPEC VERSION: %f\n", file_spec_version); */
-
     uint8_t proj_namelen;
     char project_name[MAX_NAMELENGTH];
     uint8_t channels;
@@ -387,29 +407,30 @@ Project *jdaw_read_file(const char *path)
     uint16_t num_clips;
     uint8_t num_timelines;
 
-    fread(&proj_namelen, 1, 1, f);
-    fread(project_name, 1, proj_namelen + 1, f);
-
-    /* The file should contain a null terminator, but do this to be sure. */
-    /* project_name[proj_namelen] = '\0'; */
-
-    fread(&channels, 1, 1, f);
-    if (SYS_BYTEORDER_LE) {
-        fread(&sample_rate, 4, 1, f);
-        fread(&chunk_size, 2, 1, f);
-	/* fprintf(stdout, "CHUNK SIZE: %d\n", chunk_size); */
-    } else {
-	BYTEORDER_FATAL
+    proj_namelen = uint8_deser(f);
+    fread(project_name, 1, proj_namelen, f);
+    project_name[proj_namelen] = '\0';
+    if (read_file_spec_version < 0.15f) {
+	/* Extraneous nullterm in older versions */
+	char c;
+	fread(&c, 1, 1, f);
     }
-    fread(&fmt, 2, 1, f);
+
+    channels = uint8_deser(f);
+    sample_rate = uint32_deser_le(f);
+    chunk_size = uint16_deser_le(f);
+    fmt = (SDL_AudioFormat)uint16_deser_le(f);
+    
     if (read_file_spec_version < 0.14) {
 	uint8_t byte_num_clips;
 	fread(&byte_num_clips, 1, 1, f);
 	num_clips = byte_num_clips;
     } else {
-	fread(&num_clips, 2, 1, f);
+	num_clips = uint16_deser_le(f);
+	/* fread(&num_clips, 2, 1, f); */
     }
-    fread(&num_timelines, 1, 1, f);
+    
+    num_timelines = uint8_deser(f);
 
     Project *proj_loc = project_create(
 	project_name,
@@ -442,6 +463,7 @@ Project *jdaw_read_file(const char *path)
     return proj_loc;
     
 jdaw_parse_error:
+    debug_print_bytes_around(f);
     fclose(f);
     fprintf(stderr, "Error parsing .jdaw file at %s, filespec version %05.2f\n", path, read_file_spec_version);
     /* project_destroy(proj_loc); */
@@ -466,18 +488,18 @@ static int jdaw_read_clip(FILE *f, Project *proj)
     uint8_t name_length;
     
     fread(&name_length, 1, 1, f);
-    fread(clip->name, 1, name_length + 1, f);
+    if (read_file_spec_version < 0.15f) {
+	fread(clip->name, 1, name_length + 1, f);
+    } else {
+	fread(clip->name, 1, name_length, f);
+    }
     clip->name[name_length] = '\0';
 
     uint8_t clip_index;
     fread(&clip_index, 1, 1, f);
     
     fread(&clip->channels, 1, 1, f);
-    if (SYS_BYTEORDER_LE) {
-	fread(&clip->len_sframes, 4, 1, f);
-    } else {
-	BYTEORDER_FATAL
-    }
+    clip->len_sframes = uint32_deser_le(f);    
     fread(hdr_buffer, 1, 4, f);
     if (strncmp(hdr_buffer, hdr_data, 4) != 0) {
 	fprintf(stderr, "Error: clip 'data' indicator missing.\n");
@@ -485,14 +507,16 @@ static int jdaw_read_clip(FILE *f, Project *proj)
     }
 
     /* Read clip data */
-
     create_clip_buffers(clip, clip->len_sframes);
     uint32_t clip_len_samples = clip->len_sframes * clip->channels;
-
     int16_t *interleaved_clip_samples = malloc(sizeof(int16_t) * clip_len_samples);
-    fread(interleaved_clip_samples, 2, clip_len_samples, f);
-    /* fprintf(stderr, "Read into interleaved samples array\n"); */
 
+    /* Read data */
+    for (uint32_t i=0; i<clip_len_samples; i++) {
+	interleaved_clip_samples[i] = int16_deser_le(f);
+    }
+    
+    /* write data to clip */
     if (clip->channels == 2) {
         for (uint32_t i=0; i<clip_len_samples; i+=2) {
             clip->L[i/2] = (float)interleaved_clip_samples[i] / INT16_MAX;
@@ -503,14 +527,14 @@ static int jdaw_read_clip(FILE *f, Project *proj)
             clip->L[i] = (float)interleaved_clip_samples[i] / INT16_MAX;
         }
     }
+    
     free(interleaved_clip_samples);
     return 0;
-    /* fprintf(stderr, "Finished creating samples array\n"); */
-
 }
 
 
 static int jdaw_read_track(FILE *f, Timeline *tl);
+static int jdaw_read_click_track(FILE *f, Timeline *tl);
 static int jdaw_read_timeline(FILE *f, Project *proj)
 {
     char hdr_buffer[8];
@@ -519,23 +543,34 @@ static int jdaw_read_timeline(FILE *f, Project *proj)
 	fprintf(stderr, "Error: \"TIMELINE\" indicator not found\n");
 	return 1;
     }
-    uint8_t tl_namelen;
-    fread(&tl_namelen, 1, 1, f);
-    /* Timeline *tl = calloc(sizeof(Timeline), 1); */
-    /* proj->timelines[proj->num_timelines] = tl; */
-    /* proj->num_timelines++; */
-    char tl_name[MAX_NAMELENGTH + 1];
-    fread(tl_name, 1, tl_namelen + 1, f);
+    uint8_t tl_namelen = uint8_deser(f);
+    
+    char tl_name[tl_namelen + 1];
+    fread(tl_name, 1, tl_namelen, f);
+    if (read_file_spec_version < 0.15f) {
+	char c;
+	fread(&c, 1, 1, f); /* Extraneous nullterm in earlier versions */
+    }
     tl_name[tl_namelen] = '\0';
     uint8_t index = project_add_timeline(proj, tl_name);
     Timeline *tl = proj->timelines[index];
-    uint8_t num_tracks;
-    fread(&num_tracks, 1, 1, f);
+    uint8_t num_tracks = uint8_deser(f);
+
     while (num_tracks > 0) {
 	if (jdaw_read_track(f, tl) != 0) {
 	    return 1;
 	}
 	num_tracks--;
+    }
+
+    if (read_file_spec_version >= 0.15) {
+	uint8_t num_click_tracks = uint8_deser(f);
+	while (num_click_tracks > 0) {
+	    if (jdaw_read_click_track(f, tl) != 0) {
+		return 1;
+	    }
+	    num_click_tracks--;
+	}
     }
     return 0;
 }
@@ -548,6 +583,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
     fread(hdr_buffer, 1, 4, f);
     if (strncmp(hdr_buffer, hdr_track, 4) != 0) {
 	fprintf(stderr, "Error: .jdaw parsing error: \"TRCK\" indicator not found\n");
+	debug_print_bytes_around(f);
 	return 1;
     }
     
@@ -558,25 +594,32 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
     timeline_add_track(tl);
     Track *track = tl->tracks[tl->num_tracks - 1];
 
-    uint8_t track_namelen;
-    fread(&track_namelen, 1, 1, f);
-    fread(track->name, 1, track_namelen + 1, f);
+    uint8_t track_namelen = uint8_deser(f);
+    fread(track->name, 1, track_namelen, f);
+    if (read_file_spec_version < 0.15f) {
+	char c;
+	fread(&c, 1, 1, f);
+    }
     track->name[track_namelen] = '\0';
 
     fread(&track->color, 1, 4, f);
 
     char floatvals[17];
-    fread(floatvals, 1, STD_FLOAT_SER_W, f);
-    floatvals[STD_FLOAT_SER_W] = '\0';
-    track->vol = atof(floatvals);
-    fread(floatvals, 1, STD_FLOAT_SER_W, f);
-    track->pan = atof(floatvals);
-
-    bool muted, solo, solo_muted;
+    if (read_file_spec_version < 0.15f) {
+	fread(floatvals, 1, OLD_FLOAT_SER_W, f);
+	floatvals[OLD_FLOAT_SER_W] = '\0';
+	track->vol = atof(floatvals);
+	fread(floatvals, 1, OLD_FLOAT_SER_W, f);
+	track->pan = atof(floatvals);
+    } else {
+    	track->vol = float_deser40_le(f);
+	track->pan = float_deser40_le(f);
+    }
     
-    fread(&muted, 1, 1, f);
-    fread(&solo, 1, 1, f);
-    fread(&solo_muted, 1, 1, f);
+    bool muted = uint8_deser(f);
+    bool solo = uint8_deser(f);
+    bool solo_muted = uint8_deser(f);
+    
     if (muted) {
 	track_mute(track);
     }
@@ -593,7 +636,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 	fread(&byte_num_cliprefs, 1, 1, f);
 	num_cliprefs = byte_num_cliprefs;
     } else {
-	fread(&num_cliprefs, 2, 1, f);
+	num_cliprefs = uint16_deser_le(f);
     }
 
     while (num_cliprefs > 0) {
@@ -603,8 +646,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 	num_cliprefs--;
     }
     if (read_file_spec_version >= 00.13f) {
-	uint8_t num_automations;
-	fread(&num_automations, 1, 1, f);
+	uint8_t num_automations = uint8_deser(f);
 	while (num_automations > 0) {
 	    if (jdaw_read_automation(f, track) != 0) {
 		return 1;
@@ -613,51 +655,73 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 	}
     }
     if (read_file_spec_version >= 00.11f) {
-	fread(&track->fir_filter_active, 1, 1, f);
+	/* fread(&track->fir_filter_active, 1, 1, f); */
+	track->fir_filter_active = (bool)uint8_deser(f);
 	if (track->fir_filter_active) {
-/* filter_create(FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len) -> FIRFilter * */
 	    uint8_t type_byte;
 	    FilterType type;
 	    double cutoff_freq;
 	    double bandwidth;
 	    uint16_t impulse_response_len;
+	
 	    fread(&type_byte, 1, 1, f);
 	    type = (FilterType)type_byte;
-	    fread(floatvals, 1, STD_FLOAT_SER_W, f);
-	    floatvals[STD_FLOAT_SER_W] = '\0';
-	    cutoff_freq = atof(floatvals);
-	    fread(floatvals, 1, STD_FLOAT_SER_W, f);
-	    bandwidth = atof(floatvals);
-	    fread(&impulse_response_len, 2, 1, f);
+
+	    if (read_file_spec_version < 0.15f) {
+		fread(floatvals, 1, OLD_FLOAT_SER_W, f);
+		floatvals[OLD_FLOAT_SER_W] = '\0';
+		cutoff_freq = atof(floatvals);
+		fread(floatvals, 1, OLD_FLOAT_SER_W, f);
+		bandwidth = atof(floatvals);
+		fread(&impulse_response_len, 2, 1, f);
+	    } else {
+		cutoff_freq = float_deser40_le(f);
+		bandwidth = float_deser40_le(f);
+		impulse_response_len = uint16_deser_le(f);
+	    }
 	    filter_init(
 		&track->fir_filter,
 		track,
 		type,
 		impulse_response_len,
 		tl->proj->fourier_len_sframes * 2);
-	    track->fir_filter.track = track;
 	    filter_set_params(&track->fir_filter, type, cutoff_freq, bandwidth);
 	} else {
-	    fseek(f, 35, SEEK_CUR);
+	    if (read_file_spec_version < 0.15f) {
+		fseek(f, 35, SEEK_CUR);
+	    } else {
+		fseek(f, 13, SEEK_CUR);
+	    }
 	}
-	fread(&track->delay_line_active, 1, 1, f);
+	track->delay_line_active = (bool)uint8_deser(f);
+	/* fread(&track->delay_line_active, 1, 1, f); */
 	if (track->delay_line_active) {
 	    int32_t len;
 	    double amp;
 	    double stereo_offset;
-	    fread(&len, 4, 1, f);
-	    fread(&floatvals, 1, STD_FLOAT_SER_W, f);
-	    floatvals[STD_FLOAT_SER_W] = '\0';
-	    stereo_offset = atof(floatvals);
-	    fread(floatvals, 1, STD_FLOAT_SER_W, f);
-	    floatvals[STD_FLOAT_SER_W] = '\0';
-	    amp = atof(floatvals);
+	    if (read_file_spec_version < 0.15f) {
+		fread(&len, 4, 1, f);
+		fread(&floatvals, 1, OLD_FLOAT_SER_W, f);
+		floatvals[OLD_FLOAT_SER_W] = '\0';
+		stereo_offset = atof(floatvals);
+		fread(floatvals, 1, OLD_FLOAT_SER_W, f);
+		floatvals[OLD_FLOAT_SER_W] = '\0';
+		amp = atof(floatvals);
+	    } else {
+		len = int32_deser_le(f);
+		amp = float_deser40_le(f);
+		stereo_offset = float_deser40_le(f);
+	    }
 	    delay_line_init(&track->delay_line, track, tl->proj->sample_rate);
 	    delay_line_set_params(&track->delay_line, amp, len);
 	    track->delay_line.stereo_offset = stereo_offset;
 	} else {
-	    delay_line_init(&track->delay_line, track, tl->proj->sample_rate);
-	    fseek(f, 36, SEEK_CUR);
+	    /* delay_line_init(&track->delay_line, track, tl->proj->sample_rate); */
+	    if (read_file_spec_version < 0.15f) {
+		fseek(f, 36, SEEK_CUR);
+	    } else {
+		fseek(f, 14, SEEK_CUR);
+	    }
 	}
     }
     return 0;
@@ -678,26 +742,20 @@ static int jdaw_read_clipref(FILE *f, Track *track)
     /* track->clips[track->num_clips] = cr; */
     /* track->num_clips++; */
 
-    uint8_t clipref_namelen;
-    fread(&clipref_namelen, 1, 1, f);
-    char clipref_name[MAX_NAMELENGTH];
+    uint8_t clipref_namelen = uint8_deser(f);
+    char clipref_name[clipref_namelen + 1];
     fread(clipref_name, 1, clipref_namelen, f);
     clipref_name[clipref_namelen] = '\0';
-    bool clipref_home;
-    fread(&clipref_home, 1, 1, f);
-    uint8_t src_clip_index;
-    fread(&src_clip_index, 1, 1, f);
+    bool clipref_home = uint8_deser(f);
+    uint8_t src_clip_index = uint8_deser(f);
     Clip *clip = track->tl->proj->clips[src_clip_index];
     ClipRef *cr = track_create_clip_ref(track, clip, 0, clipref_home);
-    if (SYS_BYTEORDER_LE) {
-	fread(&cr->pos_sframes, 4, 1, f);
-	fread(&cr->in_mark_sframes, 4, 1, f);
-	fread(&cr->out_mark_sframes, 4, 1, f);
-	fread(&cr->start_ramp_len, 4, 1, f);
-	fread(&cr->end_ramp_len, 4, 1, f);
-    } else {
-	BYTEORDER_FATAL
-    }
+
+    cr->pos_sframes = int32_deser_le(f);
+    cr->in_mark_sframes = uint32_deser_le(f);
+    cr->out_mark_sframes = uint32_deser_le(f);
+    cr->start_ramp_len = uint32_deser_le(f);
+    cr->end_ramp_len = uint32_deser_le(f);
     return 0;
 }
 
@@ -714,33 +772,33 @@ static int jdaw_read_automation(FILE *f, Track *track)
 	return 1;
     }
 
-    uint8_t type_byte;
-    fread(&type_byte, 1, 1, f);
+    uint8_t type_byte = uint8_deser(f);
     AutomationType t = (AutomationType)type_byte;
     Automation *a = track_add_automation(track, t);
-    fread(&a->val_type, 1, 1, f);
-    
-    a->min = jdaw_val_deserialize_OLD(f, STD_FLOAT_SER_W, a->val_type);
-    a->max = jdaw_val_deserialize_OLD(f, STD_FLOAT_SER_W, a->val_type);
-    a->range = jdaw_val_deserialize_OLD(f, STD_FLOAT_SER_W, a->val_type);
-    bool read;
-    fread(&read, 1, 1, f);
+    a->val_type = (ValType)uint8_deser(f);
+
+    if (read_file_spec_version < 0.15f) {
+	a->min = jdaw_val_deserialize_OLD(f, OLD_FLOAT_SER_W, a->val_type);
+	a->max = jdaw_val_deserialize_OLD(f, OLD_FLOAT_SER_W, a->val_type);
+	a->range = jdaw_val_deserialize_OLD(f, OLD_FLOAT_SER_W, a->val_type);
+    } else {
+	a->min = jdaw_val_deserialize(f);
+	a->max = jdaw_val_deserialize(f);
+	a->range = jdaw_val_deserialize(f);
+    }
+    bool read = (bool)uint8_deser(f);
     if (!read) {
 	automation_toggle_read(a);
     }
     /* TODO: figure out how to initialize this */
-    fread(&a->shown, 1, 1, f);
+    a->shown = uint8_deser(f);
     if (a->shown) {
 	automation_show(a);
     }
-    uint16_t num_keyframes;
-    if (SYS_BYTEORDER_LE) {
-	fread(&num_keyframes, 2, 1, f);
-    } else {
-	BYTEORDER_FATAL
-    }
-
+    uint16_t num_keyframes = uint16_deser_le(f);
+    
     a->num_keyframes = 0;
+    
     while (num_keyframes > 0) {
 	if (jdaw_read_keyframe(f, a) != 0) {
 	    return 1;
@@ -756,17 +814,73 @@ static int jdaw_read_keyframe(FILE *f, Automation *a)
     char hdr_buffer[4];
     fread(hdr_buffer, 1, 4, f);
     if (strncmp(hdr_buffer, hdr_keyf, 4) != 0) {
-	fprintf(stderr, "Error: .jdaw parsing error: \"KEYF\" indicator missing\n");
+	fprintf(stderr, "Error: .jdaw parsing error: \"KEYF\" indicator missing.\n");
 	return 1;
     }
-    int32_t pos;
+    int32_t pos = int32_deser_le(f);
     Value val;
-    if (SYS_BYTEORDER_LE) {
-	fread(&pos, 4, 1, f);
+    if (read_file_spec_version < 0.15) {
+	val = jdaw_val_deserialize_OLD(f, OLD_FLOAT_SER_W, a->val_type);
     } else {
-	BYTEORDER_FATAL
+	val = jdaw_val_deserialize(f);
     }
-    val = jdaw_val_deserialize_OLD(f, STD_FLOAT_SER_W, a->val_type);
     automation_insert_keyframe_at(a, pos, val);
+    return 0;
+}
+
+
+static int jdaw_read_click_segment(FILE *f, ClickTrack *ct, bool *more_segments);
+static int jdaw_read_click_track(FILE *f, Timeline *tl)
+{
+    char hdr_buf[4];
+    fread(hdr_buf, 1, 4, f);
+    if (strncmp(hdr_buf, hdr_click, 4) != 0) {
+	fprintf(stderr, "Error: .jdaw parse error: \"CLICK\" indicator not found where expected\n");
+	return 1;
+    }
+    ClickTrack *ct = timeline_add_click_track(tl);
+    uint8_t namelen = uint8_deser(f);
+    fread(ct->name, 1, namelen, f);
+    ct->name[namelen] = '\0';
+
+    ct->metronome_vol = float_deser40_le(f);
+    ct->muted = (bool)uint8_deser(f);
+
+    bool more_segments = true;
+    while (more_segments) {
+	if (jdaw_read_click_segment(f, ct, &more_segments) != 0) {
+	    return 1;
+	}
+    }
+    return 0;
+    
+}
+
+static bool first_segment = true;
+
+static int jdaw_read_click_segment(FILE *f, ClickTrack *ct, bool *more_segments)
+{
+    char hdr_buf[4];
+    fread(hdr_buf, 1, 4, f);
+    if (strncmp(hdr_buf, hdr_click_segm, 4) != 0) {
+	fprintf(stderr, "Error: .jdaw parse error: \"CTSG\" indicator not found where expected.\n");
+	return 1;
+    }
+
+    int32_t start_pos = int32_deser_le(f);
+    int32_deser_le(f); /* End pos:  unusued */
+    int16_deser_le(f); /* First measure index:  unused */
+    int32_t num_measures = int32_deser_le(f);
+    int16_t tempo = int16_deser_le(f);
+    uint8_t num_beats = uint8_deser(f);
+    uint8_t beat_subdivs[num_beats];
+    fread(beat_subdivs, 1, num_beats, f);
+    if (first_segment) {
+	click_segment_set_config(ct->segments, num_measures, tempo, num_beats, beat_subdivs, 0);
+	first_segment = false;
+    } else {
+	click_track_add_segment(ct, start_pos, num_measures, tempo, num_beats, beat_subdivs);
+    }
+    *more_segments = (bool)uint8_deser(f);
     return 0;
 }

@@ -174,4 +174,6 @@ bool click_track_triage_click(uint8_t button, ClickTrack *t);
 void click_track_fprint(FILE *f, ClickTrack *tt);
 void click_segment_at_cursor_fprint(FILE *f, Timeline *tl);
 
+ClickSegment *click_track_add_segment(ClickTrack *t, int32_t start_pos, int16_t num_measures, int bpm, uint8_t num_beats, uint8_t *subdiv_lens);
+
 #endif

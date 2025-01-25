@@ -291,6 +291,7 @@ static void api_hash_table_destroy()
 
 void api_quit(Project *proj)
 {
+    if (!proj->server.active) return;
     
     proj->server.active = false;
     char *msg = "quit";

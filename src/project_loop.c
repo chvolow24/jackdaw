@@ -185,6 +185,7 @@ void loop_project_main()
 
     bool first_frame = true;
     int wheel_event_recency = 0;
+    int play_speed_scroll_recency = 60;
     while (!(main_win->i_state & I_STATE_QUIT)) {
 	/* fprintf(stdout, "About to poll...\n"); */
 	while (SDL_PollEvent(&e)) {
@@ -342,10 +343,21 @@ void loop_project_main()
 		    temp_scrolling_lt = modal_scrollable;
 		} else if (main_win->modes[main_win->num_modes - 1] == TIMELINE || main_win->modes[main_win->num_modes - 1] == TABVIEW) {
 		    if (main_win->i_state & I_STATE_SHIFT) {
-			if (fabs(e.wheel.preciseY) - fabs(e.wheel.preciseX) > -0.3) {
+			if (fabs(e.wheel.preciseY) > fabs(e.wheel.preciseX)) {
 			    timeline_play_speed_adj(e.wheel.preciseY);
 			} else {
-			    timeline_scroll_playhead(e.wheel.preciseX);
+			    play_speed_scroll_recency = 0;
+			    if (!proj->playing) transport_start_playback();
+			    Value old_speed = endpoint_safe_read(&proj->play_speed_ep, NULL);
+			    if (main_win->i_state & I_STATE_CMDCTRL) {
+				float new_speed = (old_speed.float_v + e.wheel.preciseX) / 2;
+				endpoint_write(&proj->play_speed_ep, (Value){.float_v = new_speed}, true, true, true, false);				
+			    } else {
+				float new_speed = (old_speed.float_v + e.wheel.preciseX / 3.0) / 2;
+				endpoint_write(&proj->play_speed_ep, (Value){.float_v = new_speed}, true, true, true, false);				
+			    }
+
+			    /* timeline_scroll_playhead(e.wheel.preciseX); */
 			}
 			/* if (main_win->i_state & I_STATE_CMDCTRL) */
 			/*     /\* if (main_win->i_state & I_STATE_META) { *\/ */
@@ -520,6 +532,9 @@ void loop_project_main()
 	wheel_event_recency++;
 	if (wheel_event_recency == INT_MAX)
 	    wheel_event_recency = 0;
+	play_speed_scroll_recency++;
+	if (play_speed_scroll_recency == INT_MAX)
+	    wheel_event_recency = 100;
 	if (scrolling_lt) {
 	    if (animate_step % 1 == 0) {
 		/* fingersdown = SDL_GetNumTouchFingers(-1); */
@@ -535,6 +550,12 @@ void loop_project_main()
 	}
 	
 	first_frame = false;
+	
+	if (fingersdown > 0 && play_speed_scroll_recency > 4 && play_speed_scroll_recency < 10) {
+	    Value old_speed = endpoint_safe_read(&proj->play_speed_ep, NULL);
+	    endpoint_write(&proj->play_speed_ep, (Value){.float_v = old_speed.float_v / 5.0}, true, true, true, false);
+	}
+	
 	if (proj->play_speed != 0 && !proj->source_mode) {
 	    timeline_catchup(tl);
 	    timeline_set_timecode(tl);

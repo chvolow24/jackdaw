@@ -1187,7 +1187,6 @@ button_animation_and_exit:
 void user_tl_track_selector_down(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
-
     Track *selected = timeline_selected_track(tl);
 
     if (selected) {

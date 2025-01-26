@@ -72,7 +72,7 @@ char DIRPATH_EXPORT[MAX_PATHLEN];
 bool SYS_BYTEORDER_LE = false;
 volatile bool CANCEL_THREADS = false;
 
-Window *main_win;
+Window *main_win = NULL;
 Project *proj = NULL;
 pthread_t MAIN_THREAD_ID;
 pthread_t DSP_THREAD_ID;

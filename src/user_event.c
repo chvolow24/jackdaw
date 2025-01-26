@@ -32,7 +32,11 @@
  *****************************************************************************************************************/
 
 #include <stdlib.h>
+#include "project.h"
+#include "status.h"
 #include "user_event.h"
+
+extern Project *proj;
 
 /* Returns 0 if action completed; 1 if no action available */
 int user_event_do_undo(UserEventHistory *history)
@@ -130,6 +134,7 @@ UserEvent *user_event_push(
     bool free_obj2
     )
 {
+    if (!proj) return NULL;
     UserEvent *e = calloc(1, sizeof(UserEvent));
     e->undo = undo_fn;
     e->redo = redo_fn;
@@ -222,11 +227,6 @@ UserEvent *user_event_push(
     }
     return e;
 }
-
-#include "project.h"
-#include "status.h"
-extern Project *proj;
-
 
 void user_event_undo_set_value(
     UserEvent *self,

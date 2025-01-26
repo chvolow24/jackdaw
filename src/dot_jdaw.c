@@ -185,20 +185,36 @@ static void jdaw_write_clip(FILE *f, Clip *clip, int index)
 
 static void jdaw_write_track(FILE *f, Track *track);
 static void jdaw_write_click_track(FILE *f, ClickTrack *ct);
+
 static void jdaw_write_timeline(FILE *f, Timeline *tl)
 {
     fwrite(hdr_timeline, 1, 8, f);
     uint8_t timeline_namelen = strlen(tl->name);
     uint8_ser(f, &timeline_namelen);
     fwrite(tl->name, 1, timeline_namelen, f);
-    uint8_ser(f, &tl->num_tracks);
-    for (uint8_t i=0; i<tl->num_tracks; i++) {
-	jdaw_write_track(f, tl->tracks[i]);
+
+    /* Write number of tracks + click tracks */
+    uint8_ser(f, &tl->track_area->num_children);
+
+    for (uint8_t i=0; i<tl->track_area->num_children; i++) {
+	tl->layout_selector = i;
+	timeline_rectify_track_indices(tl);
+	Track *t;
+	if ((t = timeline_selected_track(tl))) {
+	    jdaw_write_track(f, t);
+	} else {
+	    ClickTrack *ct = timeline_selected_click_track(tl);
+	    jdaw_write_click_track(f, ct);
+	}
     }
-    uint8_ser(f, &tl->num_click_tracks);
-    for (uint8_t i=0; i<tl->num_click_tracks; i++) {
-	jdaw_write_click_track(f, tl->click_tracks[i]);
-    }
+    /* uint8_ser(f, &tl->num_tracks); */
+    /* for (uint8_t i=0; i<tl->num_tracks; i++) { */
+    /* 	jdaw_write_track(f, tl->tracks[i]); */
+    /* } */
+    /* uint8_ser(f, &tl->num_click_tracks); */
+    /* for (uint8_t i=0; i<tl->num_click_tracks; i++) { */
+    /* 	jdaw_write_click_track(f, tl->click_tracks[i]); */
+    /* } */
 }
 
 static void jdaw_write_clipref(FILE *f, ClipRef *cr);
@@ -292,11 +308,8 @@ static void jdaw_write_click_segment(FILE *f, ClickSegment *s)
     int16_t bpm = (int16_t)s->cfg.bpm;
     int16_ser_le(f, &bpm);
     uint8_ser(f, &s->cfg.num_beats);
-    fprintf(stderr, "WRITING AREA OF LEN %d\n", s->cfg.num_beats);
     fwrite(&s->cfg.beat_subdiv_lens, 1, s->cfg.num_beats, f);
-    fprintf(stderr, "S has next? %d\n", s->next != NULL);
     uint8_t more_segments = s->next != NULL;
-    fprintf(stderr, "serializing more segments as %d\n", more_segments);
     uint8_ser(f, &more_segments);    
 }
 
@@ -362,6 +375,9 @@ static void jdaw_write_auto_keyframe(FILE *f, Keyframe *k)
 
 static int jdaw_read_clip(FILE *f, Project *proj);
 static int jdaw_read_timeline(FILE *f, Project *proj);
+
+static Project *proj_reading;
+
 Project *jdaw_read_file(const char *path)
 {
     
@@ -432,7 +448,7 @@ Project *jdaw_read_file(const char *path)
     
     num_timelines = uint8_deser(f);
 
-    Project *proj_loc = project_create(
+    proj_reading = project_create(
 	project_name,
 	channels,
 	sample_rate,
@@ -442,17 +458,17 @@ Project *jdaw_read_file(const char *path)
 	);
 
     
-    proj_loc->num_timelines = 0;
+    proj_reading->num_timelines = 0;
 
     while (num_clips > 0) {
-	if (jdaw_read_clip(f, proj_loc) != 0) {
+	if (jdaw_read_clip(f, proj_reading) != 0) {
 	    goto jdaw_parse_error;
 	}
 	num_clips--;
     }
 
     while (num_timelines > 0) {
-	if (jdaw_read_timeline(f, proj_loc) != 0) {
+	if (jdaw_read_timeline(f, proj_reading) != 0) {
 	    goto jdaw_parse_error;
 	}
 	num_timelines--;
@@ -460,7 +476,7 @@ Project *jdaw_read_file(const char *path)
 
     /* timeline_reset(proj->timelines[0]); */
     fclose(f);
-    return proj_loc;
+    return proj_reading;
     
 jdaw_parse_error:
     debug_print_bytes_around(f);
@@ -533,9 +549,43 @@ static int jdaw_read_clip(FILE *f, Project *proj)
 }
 
 
+void user_tl_move_track_up(void *nullarg);
+void user_tl_move_track_down(void *nullarg);
+void user_tl_track_selector_up(void *nullarg);
+void user_tl_track_selector_down(void *nullarg);
+static void local_track_selector_down()
+{
+    Project *sg = proj;
+    proj = proj_reading;
+    user_tl_track_selector_down(NULL);
+    proj = sg;
+
+}
+static void local_track_selector_up()
+{
+    Project *sg = proj;
+    proj = proj_reading;
+    user_tl_track_selector_up(NULL);
+    proj = sg;
+}
+static void local_move_track_down()
+{
+    Project *sg = proj;
+    proj = proj_reading;
+    user_tl_move_track_down(NULL);
+    proj = sg;
+}
+static void local_move_track_up()
+{
+    Project *sg = proj;
+    proj = proj_reading;
+    user_tl_move_track_up(NULL);
+    proj = sg;
+}
+
 static int jdaw_read_track(FILE *f, Timeline *tl);
 static int jdaw_read_click_track(FILE *f, Timeline *tl);
-static int jdaw_read_timeline(FILE *f, Project *proj)
+static int jdaw_read_timeline(FILE *f, Project *proj_loc)
 {
     char hdr_buffer[8];
     fread(hdr_buffer, 1, 8, f);
@@ -552,26 +602,50 @@ static int jdaw_read_timeline(FILE *f, Project *proj)
 	fread(&c, 1, 1, f); /* Extraneous nullterm in earlier versions */
     }
     tl_name[tl_namelen] = '\0';
-    uint8_t index = project_add_timeline(proj, tl_name);
-    Timeline *tl = proj->timelines[index];
+    uint8_t index = project_add_timeline(proj_loc, tl_name);
+    Timeline *tl = proj_loc->timelines[index];
+
     uint8_t num_tracks = uint8_deser(f);
 
-    while (num_tracks > 0) {
-	if (jdaw_read_track(f, tl) != 0) {
-	    return 1;
-	}
-	num_tracks--;
-    }
-
-    if (read_file_spec_version >= 0.15) {
-	uint8_t num_click_tracks = uint8_deser(f);
-	while (num_click_tracks > 0) {
-	    if (jdaw_read_click_track(f, tl) != 0) {
+    if (read_file_spec_version < 0.15) {
+	while (num_tracks > 0) {
+	    if (jdaw_read_track(f, tl) != 0) {
 		return 1;
 	    }
-	    num_click_tracks--;
+	    num_tracks--;
 	}
+    } else {
+	bool more_tracks = true;
+	while (more_tracks) {
+	    char hdr_buf[4];
+	    fread(hdr_buf, 1, 4, f);
+	    fseek(f, -4, SEEK_CUR);
+	    if (strncmp(hdr_buf, hdr_track, 4) == 0) {
+		if (jdaw_read_track(f, tl) != 0)
+		    return 1;
+	    } else if (strncmp(hdr_buf, hdr_click, 4) == 0) {
+		if (jdaw_read_click_track(f, tl) != 0)
+		    return 1;
+		local_move_track_down();
+	    } else {
+		more_tracks = false;
+	    }
+	    hdr_buf[0] = '\0';
+	    local_track_selector_down();
+	}
+	tl->layout_selector = 0;
+	timeline_rectify_track_indices(tl);
     }
+
+    /* if (read_file_spec_version >= 0.15) { */
+    /* 	uint8_t num_click_tracks = uint8_deser(f); */
+    /* 	while (num_click_tracks > 0) { */
+    /* 	    if (jdaw_read_click_track(f, tl) != 0) { */
+    /* 		return 1; */
+    /* 	    } */
+    /* 	    num_click_tracks--; */
+    /* 	} */
+    /* } */
     return 0;
 }
 
@@ -601,7 +675,6 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 	fread(&c, 1, 1, f);
     }
     track->name[track_namelen] = '\0';
-
     fread(&track->color, 1, 4, f);
 
     char floatvals[17];
@@ -843,9 +916,12 @@ static int jdaw_read_click_track(FILE *f, Timeline *tl)
     fread(ct->name, 1, namelen, f);
     ct->name[namelen] = '\0';
 
-    ct->metronome_vol = float_deser40_le(f);
-    ct->muted = (bool)uint8_deser(f);
+    float metronome_vol = float_deser40_le(f);
+    bool muted = (bool)uint8_deser(f);
 
+    if (muted) click_track_mute_unmute(ct);
+    endpoint_write(&ct->metronome_vol_ep, (Value){.float_v = metronome_vol}, true, true, true, false);
+    
     bool more_segments = true;
     while (more_segments) {
 	if (jdaw_read_click_segment(f, ct, &more_segments) != 0) {

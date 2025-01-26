@@ -575,13 +575,13 @@ static void local_move_track_down()
     user_tl_move_track_down(NULL);
     proj = sg;
 }
-static void local_move_track_up()
-{
-    Project *sg = proj;
-    proj = proj_reading;
-    user_tl_move_track_up(NULL);
-    proj = sg;
-}
+/* static void local_move_track_up() */
+/* { */
+/*     Project *sg = proj; */
+/*     proj = proj_reading; */
+/*     user_tl_move_track_up(NULL); */
+/*     proj = sg; */
+/* } */
 
 static int jdaw_read_track(FILE *f, Timeline *tl);
 static int jdaw_read_click_track(FILE *f, Timeline *tl);
@@ -635,6 +635,10 @@ static int jdaw_read_timeline(FILE *f, Project *proj_loc)
 	}
 	tl->layout_selector = 0;
 	timeline_rectify_track_indices(tl);
+	while (num_tracks > 0) {
+	    local_track_selector_up();
+	    num_tracks--;
+	}
     }
 
     /* if (read_file_spec_version >= 0.15) { */

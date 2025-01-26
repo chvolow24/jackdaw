@@ -75,8 +75,12 @@ extern SDL_Color color_global_light_grey;
 extern SDL_Color color_global_dropdown_green;
 extern SDL_Color color_global_quickref_button_blue;
 /* SDL_Color automation_bckgrnd = {0, 25, 26, 255}; */
-SDL_Color automation_console_bckgrnd = {110, 110, 110, 255};
-SDL_Color automation_bckgrnd = {90, 100, 120, 255};
+/* SDL_Color automation_console_bckgrnd = {110, 110, 110, 255}; */
+/* SDL_Color automation_console_bckgrnd = {90, 100, 120, 255}; */
+
+SDL_Color automation_console_bckgrnd = {90, 100, 110, 255};
+SDL_Color automation_bckgrnd = {70, 80, 90, 255};
+
 
 const char *AUTOMATION_LABELS[] = {
     "Volume",
@@ -406,7 +410,6 @@ void track_add_new_automation(Track *track)
     static int automation_selection = 0;
     static Endpoint automation_selection_ep = {0};
     if (automation_selection_ep.local_id == NULL) {
-	fprintf(stderr, "INITING TRACK SELECTION EP!!!\n");
 	endpoint_init(
 	    &automation_selection_ep,
 	    &automation_selection,
@@ -1360,10 +1363,8 @@ void automation_draw(Automation *a)
 {
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(automation_bckgrnd));
     SDL_RenderFillRect(main_win->rend, a->bckgrnd_rect);
-    
+        
     SDL_RenderSetClipRect(main_win->rend, a->bckgrnd_rect);
-
-
     /* Draw KCLIPS */
 
     /* static SDL_Color homebckgrnd = {200, 200, 255, 50}; */
@@ -1421,7 +1422,7 @@ void automation_draw(Automation *a)
 	/* k = k->next; */
     }
     SDL_RenderSetClipRect(main_win->rend, NULL);
-    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(automation_bckgrnd));
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(automation_console_bckgrnd));
     SDL_RenderFillRect(main_win->rend, a->console_rect);
 
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(a->track->color));
@@ -1431,6 +1432,17 @@ void automation_draw(Automation *a)
     button_draw(a->read_button);
     button_draw(a->write_button);
     label_draw(a->keyframe_label);
+
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_grey));
+    SDL_Rect ltrect = a->layout->rect;
+    ltrect.x = a->console_rect->x;
+    SDL_RenderDrawRect(main_win->rend, &ltrect);
+    ltrect.x += 1;
+    ltrect.y += 1;
+    ltrect.h -= 2;
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
+    SDL_RenderDrawRect(main_win->rend, &ltrect);
+		     
 }
 
 static void automation_editing(Automation *a, Keyframe *k, int x, int y)

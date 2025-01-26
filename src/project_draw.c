@@ -52,10 +52,18 @@
 extern Window *main_win;
 extern Project *proj;
 
+
+/******************** DARKER ********************/
+/* SDL_Color track_bckgrnd = {90, 100, 110, 255}; */
+/* SDL_Color track_bckgrnd_active = {120, 130, 150, 255}; */
+/****************************************************/
+
 SDL_Color track_bckgrnd = {120, 130, 150, 255};
+SDL_Color track_bckgrnd_active = {190, 190, 180, 255};
+
+
 SDL_Color source_mode_bckgrnd = {0, 20, 40, 255};
 /* SDL_Color track_bckgrnd_active = {170, 130, 130, 255}; */
-SDL_Color track_bckgrnd_active = {190, 190, 180, 255};
 /* SDL_Color track_bckgrnd_active = {220, 210, 170, 255}; */
 SDL_Color console_bckgrnd = {140, 140, 140, 255};
 /* SDL_Color console_bckgrnd_selector = {210, 180, 100, 255}; */
@@ -79,6 +87,7 @@ SDL_Color clip_ref_home_grabbed_bckgrnd = {120, 210, 255, 230};
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;
 extern SDL_Color color_global_grey;
+extern SDL_Color color_global_light_grey;
 extern SDL_Color color_global_yellow;
 extern SDL_Color color_global_red;
 
@@ -277,6 +286,14 @@ static void clipref_draw(ClipRef *cr)
     /* layout_draw(main_win, cr->layout); */
 }
 
+static void draw_selected_track_rect(Layout *selected_layout)
+{
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
+	geom_draw_rect_thick(main_win->rend, &selected_layout->rect, 3, main_win->dpi_scale_factor);
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(track_selector_color));
+	geom_draw_rect_thick(main_win->rend, &selected_layout->rect, 1, main_win->dpi_scale_factor);
+}
+
 static void track_draw(Track *track)
 {
     if (track->deleted) {
@@ -325,15 +342,6 @@ static void track_draw(Track *track)
     textbox_draw(track->tb_solo_button);
     textentry_draw(track->tb_name);
 
-    /* Move this outside */
-
-    /* if (track->tl->track_selector == track->tl_rank) { */
-    /* 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black)); */
-    /* 	geom_draw_rect_thick(main_win->rend, &track->inner_layout->rect, 3, main_win->dpi_scale_factor); */
-    /* 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(track_selector_color)); */
-    /* 	geom_draw_rect_thick(main_win->rend, &track->inner_layout->rect, 1, main_win->dpi_scale_factor); */
-    /* } */
-
     slider_draw(track->vol_ctrl);
     slider_draw(track->pan_ctrl);
     symbol_button_draw(track->automation_dropdown);
@@ -352,6 +360,7 @@ automations_draw:
 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(console_bckgrnd_selector));
 		SDL_RenderFillRect(main_win->rend, &auto_console_bar);
 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
+		draw_selected_track_rect(a->layout);
 		/* SDL_Rect layout_rect_large = a->layout->rect; */
 		/* layout_rect_large.y -= 3 * main_win->dpi_scale_factor; */
 		/* layout_rect_large.h += 6 * main_win->dpi_scale_factor; */
@@ -361,9 +370,12 @@ automations_draw:
 		/* /\* geom_draw_rect_thick(main_win->rend, &a->layout->rect, 1, main_win->dpi_scale_factor); *\/ */
 		/* geom_draw_rect_thick(main_win->rend, &layout_rect_large, 1, main_win->dpi_scale_factor); */
 	    }
-
 	}
     }
+    if (track->tl->track_selector == track->tl_rank && track->selected_automation < 0) {
+	draw_selected_track_rect(track->layout);
+    }
+
 }
 
 static void ruler_draw(Timeline *tl)
@@ -436,16 +448,6 @@ static int timeline_draw(Timeline *tl)
 	/*     SDL_RenderDrawRect(main_win->rend, &tl->click_tracks[i]->layout->rect); */
 	/* } */
     }
-
-    Layout *selected_layout = timeline_selected_layout(tl);
-    if (selected_layout) {
-	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
-	geom_draw_rect_thick(main_win->rend, &selected_layout->rect, 3, main_win->dpi_scale_factor);
-	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(track_selector_color));
-	geom_draw_rect_thick(main_win->rend, &selected_layout->rect, 1, main_win->dpi_scale_factor);
-    }
-
-
 
     SDL_RenderSetClipRect(main_win->rend, &main_win->layout->rect);
     

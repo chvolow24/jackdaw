@@ -638,6 +638,10 @@ void track_add_default_filter(Track *track)
 
 void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate)
 {
+    if (dl->buf_L) {
+	fprintf(stderr, "ERROR: attempt to reinitialize delay line.\n");
+	return;
+    }
     dl->track = track;
     dl->pos_L = 0;
     dl->pos_R = 0;

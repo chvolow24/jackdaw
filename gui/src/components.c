@@ -307,32 +307,28 @@ bool slider_mouse_motion(Slider *slider, Window *win)
 
 void slider_nudge_right(Slider *slider)
 {
-/*     Value range = jdaw_val_sub(slider->max, slider->min, slider->val_type); */
-/*     static const double slider_nudge_prop = SLIDER_NUDGE_PROP; */
-/*     Value nudge_amt = jdaw_val_scale(range, slider_nudge_prop, slider->val_type); */
-/*     Value val = jdaw_val_from_ptr(slider->value, slider->val_type); */
-/*     val = jdaw_val_add(val, nudge_amt, slider->val_type); */
-/*     if (jdaw_val_less_than(slider->max, val, slider->val_type)) { */
-/* 	val = slider->max; */
-/*     } */
-/*     jdaw_val_set_ptr(slider->value, slider->val_type, val); */
-/*     slider_reset(slider); */
-/*     if (slider->action) slider->action((void *)slider, slider->target); */
+    Value range = jdaw_val_sub(slider->max, slider->min, slider->ep->val_type);
+    static const double slider_nudge_prop = SLIDER_NUDGE_PROP;
+    Value nudge_amt = jdaw_val_scale(range, slider_nudge_prop, slider->ep->val_type);
+    Value val = endpoint_safe_read(slider->ep, NULL);
+    val = jdaw_val_add(val, nudge_amt, slider->ep->val_type);
+    if (jdaw_val_less_than(slider->max, val, slider->ep->val_type)) {
+	val = slider->max;
+    }
+    endpoint_write(slider->ep, val, true, true, true, true);
 }
 
 void slider_nudge_left(Slider *slider)
 {
-/*     Value range = jdaw_val_sub(slider->max, slider->min, slider->val_type); */
-/*     static const double slider_nudge_prop = SLIDER_NUDGE_PROP; */
-/*     Value nudge_amt = jdaw_val_scale(range, slider_nudge_prop, slider->val_type); */
-/*     Value val = jdaw_val_from_ptr(slider->value, slider->val_type); */
-/*     val = jdaw_val_sub(val, nudge_amt, slider->val_type); */
-/*     if (jdaw_val_less_than(val, slider->min, slider->val_type)) { */
-/* 	val = slider->min; */
-/*     } */
-/*     jdaw_val_set_ptr(slider->value, slider->val_type, val); */
-/*     slider_reset(slider); */
-/*     if (slider->action) slider->action((void *)slider, slider->target); */
+    Value range = jdaw_val_sub(slider->max, slider->min, slider->ep->val_type);
+    static const double slider_nudge_prop = SLIDER_NUDGE_PROP;
+    Value nudge_amt = jdaw_val_scale(range, slider_nudge_prop, slider->ep->val_type);
+    Value val = endpoint_safe_read(slider->ep, NULL);
+    val = jdaw_val_sub(val, nudge_amt, slider->ep->val_type);
+    if (jdaw_val_less_than(slider->max, val, slider->ep->val_type)) {
+	val = slider->max;
+    }
+    endpoint_write(slider->ep, val, true, true, true, true);
 }
 
 /* static void slider_scroll(Slider *slider, int scroll_value) */

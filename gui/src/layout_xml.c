@@ -29,7 +29,6 @@
 #include "layout.h"
 #include "parse_xml.h"
 
-#define TABSPACES 4
 #define MAX_TOKLEN 255
 #define LT_TAGNAME "Layout"
 
@@ -76,6 +75,76 @@ bool read_bool_str(char *bstr)
     }
 }
 
+void layout_write_debug(FILE *f, Layout *lt, int indent, int maxdepth)
+{
+    if (lt->type == PRGRM_INTERNAL) {
+        return;
+    }
+    fprintf(f, "%*s<Layout name=\"%s\" type=\"%s\">\n", indent, "", lt->name, get_lt_type_str(lt->type));
+
+    // fprintf(f, "%*s<Layout name=\"%s\" display=\"%s\" internal=\"%s\">\n", indent, "", lt->name, get_bool_str(lt->display), get_bool_str(lt->internal));
+    // fprintf(f, "%*s<name>%s</name>\n", indent + TABSPACES, "", lt->name);
+
+    write_dimension(f, &(lt->x), 'x', indent + TABSPACES);
+    write_dimension(f, &(lt->y), 'y', indent + TABSPACES);
+    write_dimension(f, &(lt->w), 'w', indent + TABSPACES);
+    write_dimension(f, &(lt->h), 'h', indent + TABSPACES);
+
+
+    /* fprintf(f, "%*s<index>%d</index>\n", indent + TABSPACES, "", lt->index); */
+    if (lt->type == TEMPLATE) {
+        fprintf(f, "%*s<iterator>%s %d</iterator>\n", indent + TABSPACES, "", layout_get_itertype_str(lt->iterator->type), lt->iterator->num_iterations);
+    }
+    fprintf(f, "%*s<children>\n", indent + TABSPACES, "");
+
+    if (indent / TABSPACES < maxdepth) {
+	for (uint8_t i=0; i<lt->num_children; i++) {
+	    layout_write_debug(f, lt->children[i], indent + TABSPACES * 2, maxdepth);
+	}
+    }
+    fprintf(f, "%*s</children>\n", indent + TABSPACES, "");
+    fprintf(f, "%*sRECT: %d %d %d %d\n", indent + TABSPACES, "", lt->rect.x, lt->rect.y, lt->rect.w, lt->rect.h);
+    fprintf(f, "%*sSCROLL: %d (v) %d (h)\n", indent + TABSPACES, "", lt->scroll_offset_v, lt->scroll_offset_h);
+    if (lt->parent) {
+	fprintf(f, "%*sPARENT SCROLL: %d (v) %d (h)\n", indent + TABSPACES, "", lt->parent->scroll_offset_v, lt->parent->scroll_offset_h);
+    }
+
+    fprintf(f, "%*s</Layout>\n", indent, "");
+
+}
+
+
+void layout_write_limit_depth(FILE *f, Layout *lt, int indent, int maxdepth)
+{
+    if (lt->type == PRGRM_INTERNAL) {
+        return;
+    }
+    fprintf(f, "%*s<Layout name=\"%s\" type=\"%s\">\n", indent, "", lt->name, get_lt_type_str(lt->type));
+
+    // fprintf(f, "%*s<Layout name=\"%s\" display=\"%s\" internal=\"%s\">\n", indent, "", lt->name, get_bool_str(lt->display), get_bool_str(lt->internal));
+    // fprintf(f, "%*s<name>%s</name>\n", indent + TABSPACES, "", lt->name);
+
+    write_dimension(f, &(lt->x), 'x', indent + TABSPACES);
+    write_dimension(f, &(lt->y), 'y', indent + TABSPACES);
+    write_dimension(f, &(lt->w), 'w', indent + TABSPACES);
+    write_dimension(f, &(lt->h), 'h', indent + TABSPACES);
+
+
+    /* fprintf(f, "%*s<index>%d</index>\n", indent + TABSPACES, "", lt->index); */
+    if (lt->type == TEMPLATE) {
+        fprintf(f, "%*s<iterator>%s %d</iterator>\n", indent + TABSPACES, "", layout_get_itertype_str(lt->iterator->type), lt->iterator->num_iterations);
+    }
+    fprintf(f, "%*s<children>\n", indent + TABSPACES, "");
+
+    if (indent / TABSPACES < maxdepth) {
+	for (uint8_t i=0; i<lt->num_children; i++) {
+	    layout_write_limit_depth(f, lt->children[i], indent + TABSPACES * 2, maxdepth);
+	}
+    }
+    fprintf(f, "%*s</children>\n", indent + TABSPACES, "");
+    fprintf(f, "%*s</Layout>\n", indent, "");
+
+}
 
 void layout_write(FILE *f, Layout *lt, int indent)
 {

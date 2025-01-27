@@ -239,6 +239,7 @@ void loop_project_main()
 		}
 		break;
 	    }
+		break;
 	    case SDL_TEXTINPUT:
 		if (main_win->txt_editing) {
 		    txt_input_event_handler(main_win->txt_editing, &e);
@@ -252,9 +253,33 @@ void loop_project_main()
 		/*     api_node_print_all_routes(&proj->server.api_root); */
 		/*     break; */
 
-		/* case SDL_SCANCODE_6: */
-		/*     api_table_print(); */
-		/*     break; */
+		case SDL_SCANCODE_6: {
+		    Timeline *tl = proj->timelines[proj->active_tl_index];
+		    fprintf(stderr, "\n\nSEL LT: %d\n", tl->layout_selector);
+		    for (int i=0; i<tl->track_area->num_children; i++) {
+			fprintf(stderr, "\tlt %d: %s", i, tl->track_area->children[i]->name);
+			bool track_found = false;
+			for (int t=0; t<tl->num_tracks; t++) {
+			    Track *track = tl->tracks[t];
+			    if (track->layout == tl->track_area->children[i]) {
+				fprintf(stderr, " <---- \"%s\"\n", track->name);
+				track_found = true;
+			    }
+			}
+			if (!track_found) {
+			    fprintf(stderr, "\n");
+			}
+			layout_force_reset(tl->track_area->children[i]);
+		    }
+		}
+		    
+		    break;
+		case SDL_SCANCODE_7: {
+		    Timeline *tl = proj->timelines[proj->active_tl_index];
+		    layout_write_debug(stdout, tl->track_area->children[tl->layout_selector], 0, 2);
+		    /* layout_write_debug(stdout, tl->track_area, 0, 3); */
+		}
+			break;
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LCTRL:
@@ -645,7 +670,6 @@ void loop_project_main()
 	/* window_end_draw(main_win); */
 	/**********************************************/
 	SDL_Delay(1);	
-
 
 	/* Value speed = {.float_v = proj->play_speed}; */
 	/* if (fabs(speed.float_v) > 0.0001) { */

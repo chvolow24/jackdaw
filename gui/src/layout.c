@@ -104,34 +104,18 @@ static Layout *get_last_sibling(Layout *lt)
 {
     Layout *ret = NULL;
     int index = lt->index - 1;
-    /* fprintf(stderr, "INDEX at top: %d\n", index); */
     if (lt->parent && index >= 0) {
 	while (index > 0 && lt->parent->children[index] == PRGRM_INTERNAL) {
 	    index--;
-	    /* fprintf(stderr, "\tIndex %d\n", index); */
 	}
 	ret = lt->parent->children[index];
 	
     }
-    /* if (ret) { */
-    /* 	fprintf(stderr, "Last sibling of %s: %s\n", lt->name, ret->name); */
-	
-    /* } else { */
-    /* 	fprintf(stderr, "Last sibling of %s: %p\n", lt->name, ret); */
-    /* } */
     return ret;
 }
 
 Layout *layout_iterate_siblings(Layout *from, int direction)
 {
-    /* if (from->parent) { */
-    /* 	for (int i=0; i<from->parent->num_children; i++) { */
-    /* 	    Layout *child = from->parent->children[i]; */
-    /* 	    if (child == from) */
-    /* 		fprintf(stderr, " <------\n"); */
-    /* 	    else fprintf(stderr, "\n"); */
-    /* 	} */
-    /* } */
     if (direction == 1) {
 	if (from->parent && from->index < from->parent->num_children - 1) {
 	    return from->parent->children[from->index + 1];
@@ -904,7 +888,6 @@ void reset_iterations(LayoutIterator *iter);
 /* New iterative implementation */
 void layout_force_reset(Layout *lt)
 {
-    /* fprintf(stdout, "\t\tLT FORCE RESET\n"); */
     if (lt->hidden) {
 	return;
     }
@@ -982,7 +965,7 @@ void layout_reset(Layout *lt)
     padded_win.h += WINDOW_PAD * 2;
 
     if (SDL_HasIntersection(&lt->rect, &padded_win)) {
-	for (uint8_t i=0; i<lt->num_children; i++) {
+	for (int16_t i=0; i<lt->num_children; i++) {
 	    Layout *child = lt->children[i];
 	    layout_reset(child);
 	}
@@ -1001,7 +984,9 @@ Layout *layout_create()
     }
 	
     /* TTF_Font *open_sans_12 = ttf_get_font_at_size(main_win->std_font, 12); */
-    Layout *lt = malloc(sizeof(Layout));
+    Layout *lt = calloc(1, sizeof(Layout));
+    lt->children_arr_len = 4;
+    lt->children = calloc(4, sizeof(Layout *));
     lt->num_children = 0;
     lt->index = 0;
     lt->name[0] = 'L';
@@ -1010,7 +995,7 @@ Layout *layout_create()
     lt->selected = false;
     lt->type = NORMAL;
     lt->iterator = NULL;
-    memset(lt->children, '\0', sizeof(Layout *) * MAX_CHILDREN);
+    /* memset(lt->children, '\0', sizeof(Layout *) * MAX_CHILDREN); */
 
     lt->x.type = REL;
     lt->y.type = REL;
@@ -1048,15 +1033,16 @@ static void layout_destroy_inner(Layout *lt)
         delete_iterator(lt->iterator);
 	lt->iterator = NULL;
     }
-    for (uint8_t i=0; i<lt->num_children; i++) {
+    for (int16_t i=0; i<lt->num_children; i++) {
         layout_destroy_inner(lt->children[i]);
     }
+    free(lt->children);
     free(lt); 
 }
 void layout_destroy(Layout *lt)
 {
     if (lt->parent && lt->type != ITERATION) {
-        for (uint8_t i=lt->index; i<lt->parent->num_children - 1; i++) {
+        for (int16_t i=lt->index; i<lt->parent->num_children - 1; i++) {
             lt->parent->children[i] = lt->parent->children[i + 1];
             lt->parent->children[i]->index--;
         }
@@ -1114,6 +1100,17 @@ void layout_reset_from_window(Layout *lt, Window *win)
 
 Layout *layout_add_child(Layout *parent)
 {
+    if (parent->num_children == parent->children_arr_len) {
+	if (parent->num_children == MAX_CHILDREN) {
+	    fprintf(stderr, "CRITICAL ERROR: layout \"%s\"has %d children\n", parent->name, MAX_CHILDREN);
+	    exit(1);
+	}
+	parent->children_arr_len *= 2;
+	if (parent->children_arr_len > MAX_CHILDREN) {
+	    parent->children_arr_len = MAX_CHILDREN;
+	}
+	parent->children = realloc(parent->children, parent->children_arr_len * sizeof(Layout *));
+    }
     Layout *child = layout_create();
     child->parent = parent;
     parent->children[parent->num_children] = child;
@@ -1156,6 +1153,17 @@ Layout *layout_add_complementary_child(Layout *parent, RectMem comp_rm)
 void layout_reparent(Layout *child, Layout *parent)
 {
     child->parent = parent;
+    if (parent->num_children == parent->children_arr_len) {
+	if (parent->num_children == MAX_CHILDREN) {
+	    fprintf(stderr, "CRITICAL ERROR: layout \"%s\"has %d children\n", parent->name, MAX_CHILDREN);
+	    exit(1);
+	}
+	parent->children_arr_len *= 2;
+	if (parent->children_arr_len > MAX_CHILDREN) {
+	    parent->children_arr_len = MAX_CHILDREN;
+	}
+	parent->children = realloc(parent->children, parent->children_arr_len * sizeof(Layout *));
+    }
     parent->children[parent->num_children] = child;
     child->index = parent->num_children;
     parent->num_children++;
@@ -1210,7 +1218,7 @@ void layout_set_default_dims(Layout *lt)
 }
 Layout *layout_get_child_by_name(Layout *lt, const char *name)
 {
-    for (uint8_t i=0; i<lt->num_children; i++) {
+    for (int16_t i=0; i<lt->num_children; i++) {
         if (strcmp(lt->children[i]->name, name) == 0) {
             return lt->children[i];
         }
@@ -1225,7 +1233,7 @@ Layout *layout_get_child_by_name_recursive(Layout *lt, const char *name)
     if (strcmp(lt->name, name) == 0) {
         ret = lt;
     } else {
-        for (uint8_t i=0; i<lt->num_children; i++) {
+        for (int16_t i=0; i<lt->num_children; i++) {
             ret = layout_get_child_by_name_recursive(lt->children[i], name);
             if (ret) {
                 break;
@@ -1295,7 +1303,7 @@ void layout_size_to_fit_children(Layout *lt, bool fixed_origin, int padding)
     int min_y = main_win->layout->rect.h;
     int max_y = 0;
     int right, bottom;
-    for (uint8_t i=0; i<lt->num_children; i++) {
+    for (int16_t i=0; i<lt->num_children; i++) {
 	Layout *child = lt->children[i];
 	if (child->rect.x < min_x) min_x = child->rect.x;
 	if (child->rect.y < min_y) min_y = child->rect.y;
@@ -1318,7 +1326,7 @@ void layout_size_to_fit_children_h(Layout *lt, bool fixed_origin, int padding)
     /* int min_y = main_win->layout->rect.h; */
     /* int max_y = 0; */
     int right;
-    for (uint8_t i=0; i<lt->num_children; i++) {
+    for (int16_t i=0; i<lt->num_children; i++) {
 	Layout *child = lt->children[i];
 	if (child->rect.x < min_x) min_x = child->rect.x;
 	/* if (child->rect.y < min_y) min_y = child->rect.y; */
@@ -1341,7 +1349,7 @@ void layout_size_to_fit_children_v(Layout *lt, bool fixed_origin, int padding)
     int min_y = INT_MAX;
     int max_y = INT_MIN;
     int bottom;
-    for (uint8_t i=0; i<lt->num_children; i++) {
+    for (int16_t i=0; i<lt->num_children; i++) {
 	Layout *child = lt->children[i];
 	if (child->rect.y < min_y) min_y = child->rect.y;
 	if ((bottom = child->rect.y + child->rect.h) > max_y) max_y = bottom;
@@ -1384,7 +1392,6 @@ LayoutIterator *copy_iterator(LayoutIterator *to_copy)
     copy->scrollable = to_copy->scrollable;
     /* TODO: copy the iterations! */
     for (int i=0; i<to_copy->num_iterations; i++) {
-	fprintf(stderr, "\tCopy iteration %d/%d\n", i, to_copy->num_iterations);
 	Layout *iter_copy = layout_copy(to_copy->iterations[i], NULL);
 	copy->iterations[i] = iter_copy;
     }
@@ -1472,18 +1479,16 @@ static void add_iteration(LayoutIterator *iter)
 
 static void remove_iteration(LayoutIterator *iter) 
 {
-    fprintf(stderr, "Remove iteration from %s\n", iter->template->name);
     if (iter->num_iterations > 0) {
-	fprintf(stderr, "->deleting %p, not %p\n", iter->iterations[iter->num_iterations-1], iter->template);
         layout_destroy(iter->iterations[iter->num_iterations - 1]);
 	iter->num_iterations--;
     }
 }
 
-void layout_remove_iter_at(LayoutIterator *iter, uint8_t at)
+void layout_remove_iter_at(LayoutIterator *iter, int16_t at)
 {
     layout_destroy(iter->iterations[at]);
-    for (uint8_t i=at + 1; i<iter->num_iterations; i++) {
+    for (int16_t i=at + 1; i<iter->num_iterations; i++) {
 	iter->iterations[i-1] = iter->iterations[i];
     }
     iter->num_iterations--;
@@ -1493,11 +1498,9 @@ void layout_remove_iter_at(LayoutIterator *iter, uint8_t at)
 void layout_remove_child(Layout *child)
 {
     Layout *parent = child->parent;
-    /* fprintf(stdout, "Remove child at index %d\n", child->index); */
     if (!parent) return;
     if (parent->num_children == 0) return;
     for (int i=child->index + 1; i<parent->num_children; i++) {
-	/* fprintf(stdout, "\tmoving index %d -> %d\n", i, i-1); */
 	parent->children[i - 1] = parent->children[i];
 	parent->children[i - 1]->index--;
     }
@@ -1506,7 +1509,7 @@ void layout_remove_child(Layout *child)
     child->parent = NULL;
 }
 
-void layout_insert_child_at(Layout *child, Layout *parent, uint8_t index)
+void layout_insert_child_at(Layout *child, Layout *parent, int16_t index)
 {
     child->parent = parent;
     if (!parent) return;
@@ -1724,7 +1727,7 @@ void layout_draw(Window *win, Layout *lt)
     }
 
 
-    for (uint8_t i=0; i<lt->num_children; i++) {
+    for (int16_t i=0; i<lt->num_children; i++) {
         layout_draw(win, lt->children[i]);
     }
 
@@ -1764,4 +1767,22 @@ void layout_deselect(Layout *lt)
     lt->selected = false;
 }
 
+
 #endif
+
+void breakfn(void);
+int layout_test_indices_recursive(Layout *lt)
+{
+    for (int i=0; i<lt->num_children; i++) {
+	Layout *child = lt->children[i];
+	if (child->index != i) {
+	    fprintf(stderr, "FAILED! Child: %s\n", child->name);
+	    breakfn();
+	    return 1;
+	}
+	layout_test_indices_recursive(child);	
+    }
+    return 0;
+}
+
+

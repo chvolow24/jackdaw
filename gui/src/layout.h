@@ -7,7 +7,7 @@
 #include "text.h"
 #include "window.h"
 
-#define MAX_CHILDREN 255
+#define MAX_CHILDREN INT16_MAX
 #define MAX_LT_NAMELEN 64
 
 #define LAYOUT_SCROLL_SCALAR 8
@@ -80,9 +80,10 @@ typedef struct layout {
     char name[MAX_LT_NAMELEN];
     Layout *parent;
     Layout *cached_parent;
-    Layout *children[MAX_CHILDREN];
-    uint8_t num_children;
-    uint8_t index;
+    Layout **children;
+    int16_t num_children;
+    int16_t children_arr_len;
+    int16_t index;
     Layout *label_lt;
     /* SDL_Rect label_rect; */
     Text *namelabel;
@@ -110,7 +111,7 @@ typedef enum iterator_type {
 typedef struct layout_iterator {
     Layout *template;
     IteratorType type;
-    uint8_t num_iterations;
+    int16_t num_iterations;
     Layout *iterations[MAX_CHILDREN];
     bool scrollable;
     float scroll_offset;
@@ -200,10 +201,10 @@ int layout_scroll_step(Layout *lt);
 
 Layout *layout_add_iter(Layout *lt, IteratorType type, bool scrollable);
 void layout_remove_iter(Layout *lt);
-void layout_remove_iter_at(LayoutIterator *iter, uint8_t at);
+void layout_remove_iter_at(LayoutIterator *iter, int16_t at);
 
 void layout_remove_child(Layout *child);
-void layout_insert_child_at(Layout *child, Layout *parent, uint8_t index);
+void layout_insert_child_at(Layout *child, Layout *parent, int16_t index);
 void layout_swap_children(Layout *child1, Layout *child2);
 void layout_set_wh_from_rect(Layout *lt);
 void layout_set_values_from_rect(Layout *lt);
@@ -214,10 +215,14 @@ void layout_draw(Window *win, Layout *lt);
 
 
 void layout_write(FILE *f, Layout *lt, int indent);
+void layout_write_limit_depth(FILE *f, Layout *lt, int indent, int maxdepth);
+void layout_write_debug(FILE *f, Layout *lt, int indent, int maxdepth);
 
 #ifdef LT_DEV_MODE
 void layout_select(Layout *lt);
 void layout_deselect(Layout *lt);
 #endif
+
+int layout_test_indices_recursive(Layout *lt);
 
 #endif

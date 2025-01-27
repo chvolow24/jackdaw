@@ -194,8 +194,9 @@ static void jdaw_write_timeline(FILE *f, Timeline *tl)
     fwrite(tl->name, 1, timeline_namelen, f);
 
     /* Write number of tracks + click tracks */
-    uint8_ser(f, &tl->track_area->num_children);
 
+    int16_ser_le(f, &tl->track_area->num_children);
+    
     for (uint8_t i=0; i<tl->track_area->num_children; i++) {
 	tl->layout_selector = i;
 	timeline_rectify_track_indices(tl);
@@ -605,7 +606,12 @@ static int jdaw_read_timeline(FILE *f, Project *proj_loc)
     uint8_t index = project_add_timeline(proj_loc, tl_name);
     Timeline *tl = proj_loc->timelines[index];
 
-    uint8_t num_tracks = uint8_deser(f);
+    int16_t num_tracks;
+    if (read_file_spec_version < 0.15) {
+	num_tracks = uint8_deser(f);
+    } else {
+	num_tracks = int16_deser_le(f);
+    }
 
     if (read_file_spec_version < 0.15) {
 	while (num_tracks > 0) {

@@ -37,7 +37,8 @@ const char *get_thread_name()
 
 bool on_thread(enum jdaw_thread thread_index)
 {
-    pthread_t id = CURRENT_THREAD_ID;   
+    /* pthread_t id = CURRENT_THREAD_ID;    */
+    pthread_t id = pthread_self();
     if (thread_index == JDAW_THREAD_MAIN && id == MAIN_THREAD_ID)
 	return true;
     else if (thread_index == JDAW_THREAD_DSP && id == DSP_THREAD_ID)

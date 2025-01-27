@@ -547,7 +547,6 @@ static int timeline_draw(Timeline *tl)
     /* } else { */
     /* 	fprintf(stderr, "No track and automations\n"); */
     /* } */
-
     return 1;
 
 

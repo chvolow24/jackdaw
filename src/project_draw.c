@@ -443,6 +443,9 @@ static int timeline_draw(Timeline *tl)
     }
     for (int i=0; i<tl->num_click_tracks; i++) {
 	click_track_draw(tl->click_tracks[i]);
+	if (i==tl->click_track_selector) {
+	    draw_selected_track_rect(tl->click_tracks[i]->layout);
+	}
 	/* if (i==tl->click_track_selector) { */
 	/*     SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255); */
 	/*     SDL_RenderDrawRect(main_win->rend, &tl->click_tracks[i]->layout->rect); */
@@ -456,6 +459,9 @@ static int timeline_draw(Timeline *tl)
     if (tl->timecode_tb) {
 	textbox_draw(tl->timecode_tb);
     }
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_grey));
+    SDL_Rect tctbrect = tl->timecode_tb->layout->rect;
+    SDL_RenderDrawLine(main_win->rend, tctbrect.x + tctbrect.w, tctbrect.y, tctbrect.x + tctbrect.w, tctbrect.y + tctbrect.h);
     /* Draw t=0 */
     if (tl->display_offset_sframes < 0) {
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));

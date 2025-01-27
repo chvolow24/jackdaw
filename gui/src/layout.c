@@ -1098,7 +1098,7 @@ void layout_reset_from_window(Layout *lt, Window *win)
     /* fprintf(stdout, "NEW LT: %d, %d, %d %d, rect: %d %d %d %d\n", lt->x.value.intval, lt->y.value.intval, lt->w.value.intval, lt->h.value.intval, lt->rect.x, lt->rect.y, lt->rect.w, lt->rect.h); */
 }
 
-Layout *layout_add_child(Layout *parent)
+void layout_realloc_children_maybe(Layout *parent)
 {
     if (parent->num_children == parent->children_arr_len) {
 	if (parent->num_children == MAX_CHILDREN) {
@@ -1111,6 +1111,11 @@ Layout *layout_add_child(Layout *parent)
 	}
 	parent->children = realloc(parent->children, parent->children_arr_len * sizeof(Layout *));
     }
+}
+
+Layout *layout_add_child(Layout *parent)
+{
+    layout_realloc_children_maybe(parent);
     Layout *child = layout_create();
     child->parent = parent;
     parent->children[parent->num_children] = child;
@@ -1153,17 +1158,7 @@ Layout *layout_add_complementary_child(Layout *parent, RectMem comp_rm)
 void layout_reparent(Layout *child, Layout *parent)
 {
     child->parent = parent;
-    if (parent->num_children == parent->children_arr_len) {
-	if (parent->num_children == MAX_CHILDREN) {
-	    fprintf(stderr, "CRITICAL ERROR: layout \"%s\"has %d children\n", parent->name, MAX_CHILDREN);
-	    exit(1);
-	}
-	parent->children_arr_len *= 2;
-	if (parent->children_arr_len > MAX_CHILDREN) {
-	    parent->children_arr_len = MAX_CHILDREN;
-	}
-	parent->children = realloc(parent->children, parent->children_arr_len * sizeof(Layout *));
-    }
+    layout_realloc_children_maybe(parent);
     parent->children[parent->num_children] = child;
     child->index = parent->num_children;
     parent->num_children++;
@@ -1513,6 +1508,8 @@ void layout_insert_child_at(Layout *child, Layout *parent, int16_t index)
 {
     child->parent = parent;
     if (!parent) return;
+    layout_realloc_children_maybe(parent);
+
     while (index > parent->num_children) index--;
     child->index = index;
     for (int i=parent->num_children; i>index; i--) {

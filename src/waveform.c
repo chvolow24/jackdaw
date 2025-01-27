@@ -83,27 +83,25 @@ void waveform_destroy_logscale(struct logscale *la)
     free(la);
 }
 
+double amp_to_logscaled(double amp)
+{
+    static const double alpha = 80.0;
+    return log10(1 + alpha * amp) / log10(1 + alpha);
+}
+
 /* Draw an array of floats (e.g. frequencies) on a log scale */
 void waveform_draw_freq_domain(struct logscale *la)
 {
     if (la->color) {
 	SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(la->color));
     }
-    /* static double epsilon = 1e-12; */
-    /* double min_db = 20.0f * log10(epsilon); */
-    /* double max_db = 20.0f * log10(1.0f); */
-    /* double db_range = max_db - min_db; */
-    double scale = 1.0f / log(2.0f);
     double btm_y = la->container->y + (double)la->container->h;
-    /* double db = 20.0f * log10(epsilon + la->array[1]); */
-    /* double last_y = btm_y - ((db - min_db) / db_range) * la->container->h; */
-    double last_y = btm_y - log(1 + la->array[1]) * scale * la->container->h;
+    double last_y = btm_y - (amp_to_logscaled(la->array[0]) * la->container->h);
     double current_y = btm_y;
     for (int i=2; i<la->num_items; i+=la->step) {
 	int last_x = la->x_pos_cache[i/la->step-1];
-	/* db = 20.0f * log10(epsilon + la->array[i]); */
-	/* current_y = btm_y - ((db - min_db) / db_range) * la->container->h; */
-	current_y = btm_y - log(1 + la->array[i]) * scale * la->container->h;
+	double scaled = amp_to_logscaled(la->array[i]);
+	current_y = btm_y - scaled * la->container->h;
 	SDL_RenderDrawLine(main_win->rend, last_x, last_y, la->x_pos_cache[i/la->step], current_y);
 	/* fprintf(stdout, "Draw %d %f %d %f\n", last_x, last_y, la->x_pos_cache[i/la->step], current_y); */
 	last_y = current_y;

@@ -67,21 +67,28 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	else if (a->type == AUTO_DEL_AMP) delay_amp = a;
 	else if (a->type == AUTO_PLAY_SPEED) play_speed = a;
     }
+
+    float vol_vals[len_sframes];
+    float pan_vals[len_sframes];
     
-    if (vol_auto) {
-	if (!vol_auto->write && vol_auto->read) {
-	    float vol_init = automation_get_value(vol_auto, start_pos_sframes, step).float_v;
-	    endpoint_write(&track->vol_ep, (Value){.float_v = vol_init}, true, true, true, false);
-	    /* track->vol = vol_init; */
-	    /* slider_reset(track->vol_ctrl); */
+    if (vol_auto && !vol_auto->write && vol_auto->read) {
+	float vol_init = automation_get_value(vol_auto, start_pos_sframes, step).float_v;
+	endpoint_write(&track->vol_ep, (Value){.float_v = vol_init}, true, true, true, false);
+	automation_get_range(vol_auto, vol_vals, len_sframes, start_pos_sframes, step); 
+    } else {
+	Value vol_val = endpoint_safe_read(&track->vol_ep, NULL);
+	for (int i=0; i<len_sframes; i++) {
+	    vol_vals[i] = vol_val.float_v;
 	}
     }
-    if (pan_auto) {
-	if (!pan_auto->write && pan_auto->read) {
-	    float pan_init = automation_get_value(pan_auto, start_pos_sframes, step).float_v;
-	    endpoint_write(&track->pan_ep, (Value){.float_v = pan_init}, true, true, true, false);
-	    /* track->pan = pan_init; */
-	    /* slider_reset(track->pan_ctrl); */
+    if (pan_auto && !pan_auto->write && pan_auto->read) {
+	float pan_init = automation_get_value(pan_auto, start_pos_sframes, step).float_v;
+	endpoint_write(&track->pan_ep, (Value){.float_v = pan_init}, true, true, true, false);
+	automation_get_range(pan_auto, pan_vals, len_sframes, start_pos_sframes, step);
+    } else {
+	Value pan_val = endpoint_safe_read(&track->pan_ep, NULL);
+	for (int i=0; i<len_sframes; i++) {
+	    pan_vals[i] = pan_val.float_v;
 	}
     }
 
@@ -182,26 +189,27 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	/* float pan_scale = (channel == 0) ? (track->pan - 0.5) * 2 : track->pan * 2; */
 
 	/* double rpan = track->pan < */
-	int32_t abs_pos = start_pos_sframes;
+	/* int32_t abs_pos = start_pos_sframes; */
 	while (chunk_i < len_sframes) {
 	    
 	    /* Clip overlaps */
 	    if (pos_in_clip_sframes >= 0 && pos_in_clip_sframes < cr_len) {
-		float vol;
-		if (vol_auto && vol_auto->read && !vol_auto->write) {
-		    vol = automation_get_value(vol_auto, abs_pos, step).float_v;
-		} else {
-		    /* vol = track->vol; */		    
-		    Value volval = endpoint_safe_read(&track->vol_ep, NULL);
-		    vol = volval.float_v;
-		}
-		float raw_pan;
-		if (pan_auto && pan_auto->read && !pan_auto->write) {
-		    raw_pan = automation_get_value(pan_auto, abs_pos, step).float_v;
-		} else {
-		    raw_pan = track->pan;
-		}
-						
+		/* float vol; */
+		/* if (vol_auto && vol_auto->read && !vol_auto->write) { */
+		/*     vol = automation_get_value(vol_auto, abs_pos, step).float_v; */
+		/* } else { */
+		/*     /\* vol = track->vol; *\/		     */
+		/*     Value volval = endpoint_safe_read(&track->vol_ep, NULL); */
+		/*     vol = volval.float_v; */
+		/* } */
+		/* float raw_pan; */
+		/* if (pan_auto && pan_auto->read && !pan_auto->write) { */
+		/*     raw_pan = automation_get_value(pan_auto, abs_pos, step).float_v; */
+		/* } else { */
+		/*     raw_pan = track->pan; */
+		/* } */
+		float vol = vol_vals[chunk_i];
+		float raw_pan = pan_vals[chunk_i];
 		double pan_scale = channel == 0 ?
 		    raw_pan <= 0.5 ? 1 : (1.0f - raw_pan) * 2
 		    : raw_pan >= 0.5 ? 1 : raw_pan * 2;
@@ -212,7 +220,7 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	    pos_in_clip_sframes += step;
 	    /* fprintf(stdout, "Chunk %d: %f\n", chunk_i, chunk[chunk_i]); */
 	    chunk_i++;
-	    abs_pos += step;
+	    /* abs_pos += step; */
 	}	
 	pthread_mutex_unlock(&cr->lock);
 	/* clip_read = true; */

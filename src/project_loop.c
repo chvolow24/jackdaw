@@ -253,33 +253,33 @@ void loop_project_main()
 		/*     api_node_print_all_routes(&proj->server.api_root); */
 		/*     break; */
 
-		case SDL_SCANCODE_6: {
-		    Timeline *tl = proj->timelines[proj->active_tl_index];
-		    fprintf(stderr, "\n\nSEL LT: %d\n", tl->layout_selector);
-		    for (int i=0; i<tl->track_area->num_children; i++) {
-			fprintf(stderr, "\tlt %d: %s", i, tl->track_area->children[i]->name);
-			bool track_found = false;
-			for (int t=0; t<tl->num_tracks; t++) {
-			    Track *track = tl->tracks[t];
-			    if (track->layout == tl->track_area->children[i]) {
-				fprintf(stderr, " <---- \"%s\"\n", track->name);
-				track_found = true;
-			    }
-			}
-			if (!track_found) {
-			    fprintf(stderr, "\n");
-			}
-			layout_force_reset(tl->track_area->children[i]);
-		    }
-		}
+		/* case SDL_SCANCODE_6: { */
+		/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
+		/*     Track *t = timeline_selected_track(tl); */
+		/*     Automation *a = t->automations[0]; */
+		/*     float a_vals[100]; */
+		/*     memset(a_vals, '\0', 100 * sizeof(float)); */
+		/*     automation_get_range(a, a_vals, 100, tl->play_pos_sframes, 1.0); */
+		/*     for (int i=0; i<100; i++) { */
+		/* 	fprintf(stderr, "%p: %d: %f\n", a_vals + i, i, a_vals[i]); */
+		/*     } */
+		/* } */
 		    
-		    break;
-		case SDL_SCANCODE_7: {
-		    Timeline *tl = proj->timelines[proj->active_tl_index];
-		    layout_write_debug(stdout, tl->track_area->children[tl->layout_selector], 0, 2);
-		    /* layout_write_debug(stdout, tl->track_area, 0, 3); */
-		}
-			break;
+		/*     break; */
+		/* case SDL_SCANCODE_7: { */
+		/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
+		/*     Track *t = timeline_selected_track(tl); */
+		/*     Automation *a = t->automations[0]; */
+		/*     float a_vals[100]; */
+		/*     memset(a_vals, '\0', 100 * sizeof(float)); */
+		/*     automation_get_range(a, a_vals, 100, tl->play_pos_sframes, 4.0); */
+		/*     for (int i=0; i<100; i++) { */
+		/* 	fprintf(stderr, "%d: %f\n", i, a_vals[i]); */
+		/*     } */
+
+		/*     /\* layout_write_debug(stdout, tl->track_area, 0, 3); *\/ */
+		/* } */
+		/* 	break; */
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LCTRL:
@@ -636,35 +636,36 @@ void loop_project_main()
 	/* layout_draw(main_win, main_win->layout); */
 	/**********************/
 
-	/* if (proj->playing) { */
-	/*     /\* Timeline *tl = proj->timelines[proj->active_tl_index]; *\/ */
-	/*     struct timespec now; */
-	/*     clock_gettime(CLOCK_MONOTONIC, &now); */
-	/*     double elapsed_s = now.tv_sec + ((double)now.tv_nsec / 1e9) - tl->play_pos_moved_at.tv_sec - ((double)tl->play_pos_moved_at.tv_nsec / 1e9); */
-	/*     if (elapsed_s > 0.05) { */
-	/* 	goto end_auto_write; */
-	/*     } */
-	/*     int32_t play_pos_adj = tl->play_pos_sframes + elapsed_s * proj->sample_rate * proj->play_speed; */
-	/*     for (uint8_t i=0; i<tl->num_tracks; i++) { */
-	/* 	Track *track = tl->tracks[i]; */
-	/* 	for (uint8_t ai=0; ai<track->num_automations; ai++) { */
-	/* 	    Automation *a = track->automations[ai]; */
-	/* 	    if (a->write) { */
-	/* 		/\* if (!a->current) a->current = automation_get_segment(a, play_pos_adj); *\/ */
-	/* 		int32_t frame_dur = proj->sample_rate * proj->play_speed / 30.0; */
-	/* 		automation_do_write(a, play_pos_adj, play_pos_adj + frame_dur, proj->play_speed); */
-	/* 	    } */
-	/* 	    /\* if (a->num_kclips > 0) { *\/ */
-	/* 	    /\* 	kclipref_move(a->kclips, 500); *\/ */
-	/* 	    /\* } *\/ */
-	/* 	    /\* TEST_automation_keyframe_order(a); *\/ */
-	/* 	    /\* TEST_kclipref_bounds(a); *\/ */
-	/* 	} */
+	if (proj->playing) {
+	    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
+	    struct timespec now;
+	    clock_gettime(CLOCK_MONOTONIC, &now);
+	    double elapsed_s = now.tv_sec + ((double)now.tv_nsec / 1e9) - tl->play_pos_moved_at.tv_sec - ((double)tl->play_pos_moved_at.tv_nsec / 1e9);
+	    if (elapsed_s > 0.05) {
+		goto end_auto_write;
+	    }
+	    int32_t play_pos_adj = tl->play_pos_sframes + elapsed_s * proj->sample_rate * proj->play_speed;
+	    for (uint8_t i=0; i<tl->num_tracks; i++) {
+		Track *track = tl->tracks[i];
+		for (uint8_t ai=0; ai<track->num_automations; ai++) {
+		    Automation *a = track->automations[ai];
+		    if (a->write) {
+			/* if (!a->current) a->current = automation_get_segment(a, play_pos_adj); */
+			int32_t frame_dur = proj->sample_rate * proj->play_speed / 30.0;
+			Value val = endpoint_safe_read(a->endpoint, NULL);
+			automation_do_write(a, val, play_pos_adj, play_pos_adj + frame_dur, proj->play_speed);
+		    }
+		    /* if (a->num_kclips > 0) { */
+		    /* 	kclipref_move(a->kclips, 500); */
+		    /* } */
+		    /* TEST_automation_keyframe_order(a); */
+		    /* TEST_kclipref_bounds(a); */
+		}
 		
-	/*     } */
-	/* } */
+	    }
+	}
 
-    /* end_auto_write: */
+    end_auto_write:
 
 	
 	/* window_end_draw(main_win); */

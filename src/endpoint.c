@@ -328,4 +328,5 @@ void endpoint_stop_continuous_change(Endpoint *ep)
 void endpoint_bind_automation(Endpoint *ep, Automation *a)
 {
     ep->automation = a;
+    a->endpoint = ep;
 }

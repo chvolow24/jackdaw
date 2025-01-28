@@ -966,3 +966,32 @@ bool jdaw_val_in_range(Value test, Value min, Value max, ValType type)
 	break;
     }
 }
+
+size_t jdaw_val_type_size(ValType type)
+{
+    switch (type) {
+    case JDAW_FLOAT:
+	return sizeof(float);
+    case JDAW_DOUBLE:
+	return sizeof(double);
+    case JDAW_INT:
+	return sizeof(int);
+    case JDAW_UINT8:
+	return sizeof(uint8_t);
+    case JDAW_UINT16:
+	return sizeof(uint16_t);
+    case JDAW_UINT32:
+	return sizeof(uint32_t);
+    case JDAW_INT8:
+	return sizeof(int8_t);
+    case JDAW_INT16:
+	return sizeof(int16_t);
+    case JDAW_INT32:
+	return sizeof(int32_t);
+    case JDAW_BOOL:
+	return sizeof(bool);
+    default:
+	return 0;
+	break;
+    }
+}

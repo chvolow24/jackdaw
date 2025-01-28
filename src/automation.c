@@ -348,6 +348,7 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	a->target_val = &track->tl->proj->play_speed;
 	base_kf_val.float_v = 1.0f;
 	automation_insert_keyframe_at(a, 0, base_kf_val);
+	endpoint_bind_automation(&proj->play_speed_ep, a);
 	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
 	break;
     default:
@@ -908,7 +909,7 @@ Keyframe *automation_insert_keyframe_at(
 static void automation_reset_cache(Automation *a, int32_t pos)
 {
     if (!a->current) {
-	if (a->keyframes[0].pos < pos) {
+	if (a->keyframes[0].pos <= pos) {
 	    a->current = a->keyframes;
 	} else {
 	    goto describe;
@@ -936,44 +937,15 @@ describe:
 
 static Keyframe *automation_check_get_cache(Automation *a, int32_t pos)
 {
-    /* automation_reset_cache(a, pos); */
-    /* return a->current; */
-    /* if (a->keyframes[a->current].pos > pos) { */
-    /* 	/\* fprintf(stderr, "Cache pos greater than current, so must reset\n"); *\/ */
-    /* 	automation_reset_cache(a, pos); */
-    /* 	return a->current; */
-    /* } */
-    /* if (a->current == a->num_keyframes - 1) { */
-    /* 	/\* fprintf(stderr, "We're at the end\n"); *\/ */
-    /* 	automation_reset_cache(a, pos); */
-    /* 	return a->current; */
-    /* } */
-    /* if (a->keyframes[a->current + 1].pos > pos) { */
-    /* 	/\* fprintf(stderr, "We're OK!\n"); *\/ */
-    /* 	return a->current; */
-    /* } */
+    pthread_mutex_lock(&a->lock);
     automation_reset_cache(a, pos);
-    /* return a->current; */
+    pthread_mutex_unlock(&a->lock);
     return a->current;
-    
-    /* bool cache_valid = false; */
-    /* int32_t current_pos = a->keyframes[a->current].pos; */
-    /* if (current_pos <= pos) { */
-    /* 	if (a->current + 1 < a->num_keyframes && a->keyframes[a->current + 1].pos > pos) { */
-    /* 	    cache_valid = true; */
-    /* 	} */
-	
-    /* } */
-    /* if (!cache_valid) { */
-    /* 	automation_reset_cache(a, pos); */
-    /* } */
 }
 
 static Value automation_value_at(Automation *a, int32_t pos)
 {
-    pthread_mutex_lock(&a->lock);
     Keyframe *current = automation_check_get_cache(a, pos);
-    pthread_mutex_unlock(&a->lock);
     if (!current) return a->keyframes[0].value;
     int32_t pos_rel = pos - current->pos;
     double scalar = (double)pos_rel / current->m_fwd.dx;
@@ -982,30 +954,74 @@ static Value automation_value_at(Automation *a, int32_t pos)
 }
 
 
-/* void keyframe_remove_at(Automation *a, int16_t pos) */
-/* void keyframe_remove(Keyframe *k) */
-/* { */
-/*     /\* if (k == k->automation->first) return; *\/ */
-/*     /\* if (k->prev) { *\/ */
-/*     /\*     k->prev->next = k->next; *\/ */
-/*     /\* 	keyframe_recalculate_m(k->prev, k->automation->val_type); *\/ */
-/*     /\* } *\/ */
-/*     /\* if (k->next) *\/ */
-/*     /\* 	k->next->prev = k->prev; *\/ */
-/*     /\* /\\* if (k == k->automation->first) *\\/ *\/ */
-/*     /\* /\\* 	return; *\\/ *\/ */
-/*     /\* /\\* 	/\\\* k->automation->first = k->next; *\\\/ *\\/ *\/ */
-/*     /\* if (k == k->automation->last)  *\/ */
-/*     /\* 	k->automation->last = k->prev; *\/ */
+void automation_get_range(Automation *a, void *dst, int dst_len, int32_t start_pos, float step)
+{
+    size_t arr_incr = jdaw_val_type_size(a->val_type);
+    void *arr_ptr = dst;
 
-/*     /\* keyframe_destroy(k); *\/ */
-/* } */
+    bool rev = step < 0.0;
+    int32_t end_pos = start_pos + dst_len * step;
+    double pos = (double)start_pos;
+    Keyframe *current = automation_check_get_cache(a, start_pos);
+    int32_t next_kf_pos = rev ? end_pos - 1 : end_pos + 1;
+    
+    if (!current) { /* no need to worry about reverse case; if condition will never be met*/
+	next_kf_pos = a->keyframes[0].pos;
+	while (arr_ptr < dst + dst_len * arr_incr) {
+	    jdaw_val_set_ptr(arr_ptr, a->val_type, a->keyframes[0].value);
+	    arr_ptr += arr_incr;
+	    pos += step;
+	    if (pos >= next_kf_pos) {
+		current = a->keyframes;
+		next_kf_pos = end_pos + 1;
+		goto do_remainder_of_array;
+		/* break; */
+	    }
+	}
+	return; /* Completed array before first keyframe */
+	
+    }
 
+do_remainder_of_array:
+    if (rev) {
+	if (current > a->keyframes) {
+	    next_kf_pos = (current - 1)->pos;
+	}
+    } else {
+	if (current - a->keyframes < a->num_keyframes - 1) {
+	    next_kf_pos = (current + 1)->pos;
+	}
+    }
+
+    while (arr_ptr < dst + dst_len * arr_incr) {
+	int32_t pos_rel = pos - current->pos;
+	double scalar = (double)pos_rel / current->m_fwd.dx;
+	Value val = jdaw_val_add(current->value, jdaw_val_scale(current->m_fwd.dy, scalar, a->val_type), a->val_type);
+	jdaw_val_set_ptr(arr_ptr, a->val_type, val);
+	arr_ptr += arr_incr;
+	pos += step;
+	if ((!rev && pos >= next_kf_pos) || (rev && pos <= next_kf_pos)) {
+	    current = rev ? current - 1 : current + 1;
+	    if (rev) {
+		if (current > a->keyframes) {
+		    next_kf_pos = (current - 1)->pos;
+		} else {
+		    next_kf_pos = end_pos - 1;
+		}
+	    } else {
+		if (current - a->keyframes < a->num_keyframes - 1) {
+		    next_kf_pos = (current + 1)->pos;
+		} else {
+		    next_kf_pos = end_pos + 1;
+		}
+	    }
+	}
+    }
+    
+}
 
 static void keyframe_remove(Keyframe *k)
 {
-    /* fprintf(stderr, "REMOVE %p\n", k); */
-    /* fprintf(stderr, "REMOVE %d\n", k->pos); */
     if (k == k->automation->keyframes) return; /* Don't remove last keyframe */
     Automation *a = k->automation;
     a->track->tl->needs_redraw= true;
@@ -1357,6 +1373,11 @@ static void keyframe_draw(int x, int y)
 Value inline automation_get_value(Automation *a, int32_t pos, float direction)
 {
     return automation_value_at(a, pos);
+}
+
+void automation_get_value_range(Automation *a, int32_t start_pos, void *dst_arr, int num_items, float step)
+{
+    
 }
 
 void automation_draw(Automation *a)
@@ -2280,5 +2301,5 @@ TEST_FN_DEF(layout_num_children, {
 
 void automation_endpoint_write(Endpoint *ep, Value val, int32_t play_pos)
 {
-    automation_do_write(ep->automation, val, play_pos, play_pos + 10000, ep->automation->track->tl->proj->play_speed);
+    /* automation_do_write(ep->automation, val, play_pos, play_pos + 10000, ep->automation->track->tl->proj->play_speed); */
 }

@@ -50,6 +50,7 @@ typedef struct timeline Timeline;
 
 typedef struct automation Automation;
 typedef struct keyframe Keyframe;
+typedef struct endpoint Endpoint;
 /* typedef struct keyframe_clip KClip; */
 
 typedef struct automation_slope {
@@ -95,6 +96,8 @@ typedef struct automation {
     Value min;
     Value range;
     void *target_val;
+
+    Endpoint *endpoint;
     
     bool read;
     bool write;
@@ -165,6 +168,7 @@ Automation *track_add_automation(Track *track, AutomationType type);
 
     
 Value automation_get_value(Automation *a, int32_t pos, float direction);
+void automation_get_range(Automation *a, void *dst, int dst_len, int32_t start_pos, float step);
 void automation_draw(Automation *a);
 Keyframe *automation_insert_keyframe_at(
     Automation *a,

@@ -142,9 +142,11 @@ int endpoint_write(
 	    new_val = ep->max;
 	}
     }
-    Value old_val;
-    if (undoable) {
-	old_val = endpoint_safe_read(ep, NULL);
+
+    bool val_changed = !jdaw_val_equal(ep->last_write_val, new_val, ep->val_type);
+    if (!val_changed && ep->write_has_occurred) return 0;
+    if (!ep->write_has_occurred) {
+	ep->last_write_val = endpoint_safe_read(ep, NULL);
     }
     bool async_change_will_occur = false;
     /* Value change */
@@ -196,7 +198,11 @@ int endpoint_write(
     }
 
     if (run_gui_cb && ep->gui_callback && !async_change_will_occur) {
-	ep->gui_callback(ep);
+	if (on_main) {
+	    ep->gui_callback(ep);
+	} else {
+	    project_queue_callback(proj, ep, ep->gui_callback, JDAW_THREAD_MAIN);
+	}
     }
     
     /* if (run_gui_cb && ep->gui_callback) { */
@@ -212,7 +218,7 @@ int endpoint_write(
 	    fprintf(stderr, "UH OH can't push event fn on thread that is not main\n");
 	    return -1;
 	}
-	if (!jdaw_val_equal(old_val, new_val, ep->val_type)) {
+	/* if (!jdaw_val_equal(old_val, new_val, ep->val_type)) { */
 	    uint8_t callback_bitfield = 0;
 	    if (run_gui_cb) callback_bitfield |= 0b001;
 	    if (run_proj_cb) callback_bitfield |= 0b010;
@@ -224,11 +230,13 @@ int endpoint_write(
 		undo_redo_endpoint_write,
 		NULL, NULL,
 		(void *)ep, NULL,
-		old_val, cb_matrix,
+		ep->last_write_val, cb_matrix,
 		new_val, cb_matrix,
 		0, 0, false, false);
-	}
+	/* } */
     }
+    ep->last_write_val = new_val;
+    ep->write_has_occurred = true;
     
     return ret;
 }

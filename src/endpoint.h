@@ -92,6 +92,8 @@ typedef struct endpoint {
     
     void *val;
     ValType val_type;
+    Value last_write_val;
+    bool write_has_occurred;
     Value cached_val;
     bool restrict_range;
     Value min;

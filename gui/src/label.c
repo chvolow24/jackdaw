@@ -1,3 +1,4 @@
+#include "animation.h"
 #include "label.h"
 #include "layout.h"
 #include "value.h"
@@ -38,7 +39,6 @@ Label *label_create(
     l->countdown_max = LABEL_COUNTDOWN_MAX;
     l->val_type = t;
 
-    /* textbox_set_pad(l->tb, LABEL_H_PAD, LABEL_V_PAD); */
     textbox_set_border(l->tb, &color_global_black, 2);
     textbox_set_trunc(l->tb, false);
     textbox_size_to_fit(l->tb, LABEL_H_PAD, LABEL_V_PAD);
@@ -46,17 +46,21 @@ Label *label_create(
     return l;
 }
 
+
 static void label_draw_deferred(void *label_v)
 {
     Label *label = (Label *)label_v;
     textbox_draw(label->tb);
 }
 
+
+
 void label_draw(Label *label)
 {
+    
     if (label->countdown_timer > 0) {
 	window_defer_draw(main_win, label_draw_deferred, label);
-	label->countdown_timer--;
+	/* label->countdown_timer--; */
     }
 }
 
@@ -65,6 +69,31 @@ void label_move(Label *label, int x, int y)
     label->tb->layout->rect.x = x;
     label->tb->layout->rect.y = y;
     layout_set_values_from_rect(label->tb->layout);
+}
+
+
+#include "project.h"
+extern Project *proj;
+static void animation_frame_op(void *arg1, void *arg2)
+{
+    Label *l = (Label *)arg1;
+    if (l->countdown_timer > 0) 
+	l->countdown_timer--;
+}
+static void animation_end_op(void *arg1, void *arg2)
+{
+    Label *l = (Label *)arg1;
+    if (l->countdown_timer <= 0) {
+	l->animation_running = false;
+	Timeline *tl = proj->timelines[proj->active_tl_index];
+	tl->needs_redraw = true;
+    } else {
+	l->animation = project_queue_animation(
+	    animation_frame_op, animation_end_op,
+	    (void *)l, NULL,
+	    l->countdown_timer);
+
+    }
 }
 
 void label_reset(Label *label, Value v)
@@ -83,16 +112,28 @@ void label_reset(Label *label, Value v)
 	layout_set_values_from_rect(label->tb->layout);
     }
     label->countdown_timer = label->countdown_max;
+    if (!label->animation_running) {
+	label->animation = project_queue_animation(
+	    animation_frame_op, animation_end_op,
+	    (void *)label, NULL,
+	    label->countdown_max);
+	label->animation_running = true;
+
+    }
     textbox_reset_full(label->tb);
 }
 
-
 void label_destroy(Label *label)
 {
+    if (label->animation_running) {
+	Animation *a = label->animation;
+	project_dequeue_animation(a);
+    }
     free(label->str);
     textbox_destroy(label->tb);
     free(label);
 }
+    
 
 
 
@@ -107,6 +148,7 @@ void label_amp_to_dbstr(char *dst, size_t dstsize, Value val, ValType t)
 {
     float amp = t == JDAW_FLOAT ? val.float_v : val.double_v;
     float db = amp_to_db(amp);
+    
     snprintf(dst, dstsize - 4, "%.*f", 2, db);
     /* jdaw_val_set_str(dst, dstsize - 4, val, t, 2); */
     strcat(dst, " dB");

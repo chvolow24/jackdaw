@@ -599,6 +599,7 @@ void loop_project_main()
 	} else {
 	    animate_step++;
 	}
+        project_animations_do_frame();
 
 	if (proj->playhead_do_incr) {
 	    timeline_scroll_playhead(proj->playhead_frame_incr);

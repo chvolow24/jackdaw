@@ -1,6 +1,7 @@
 #ifndef JDAW_LABEL_H
 #define JDAW_LABEL_H
 
+#include "animation.h"
 #include "textbox.h"
 #include "value.h"
 
@@ -17,12 +18,14 @@ typedef struct label {
     char *str;
     int max_len;
     Textbox *tb;
+    bool animation_running;
     int countdown_timer;
     int countdown_max;
     ValType val_type;
     LabelStrFn set_str_fn;
     void *target_obj;
     Layout *parent_obj_lt;
+    Animation *animation;
 } Label;
 
 Label *label_create(

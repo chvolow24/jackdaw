@@ -328,7 +328,9 @@ void project_destroy(Project *proj)
     if (proj->status_bar.dragstat) textbox_destroy(proj->status_bar.dragstat);
     if (proj->status_bar.error) textbox_destroy(proj->status_bar.error);
 
+    project_destroy_animations(proj);
     project_destroy_metronomes(proj);
+
     free(proj);
 }
 
@@ -491,7 +493,14 @@ Project *project_create(
     proj->bun_patty_bun[1] = &hamburger_lt->children[1]->children[0]->rect;
     proj->bun_patty_bun[2] = &hamburger_lt->children[2]->children[0]->rect;
 
+
+    
     int err;
+    if ((err = pthread_mutex_init(&proj->animation_lock, NULL)) != 0) {
+	fprintf(stderr, "Error initializing animation mutex: %s\n", strerror(err));
+	exit(1);
+    }
+
     if ((err = pthread_mutex_init(&proj->queued_val_changes_lock, NULL)) != 0) {
 	fprintf(stderr, "Error initializing queued val changes mutex: %s\n", strerror(err));
 	exit(1);

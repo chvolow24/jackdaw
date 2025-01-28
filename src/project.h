@@ -49,6 +49,7 @@
 #include <semaphore.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include "animation.h"
 #include "api.h"
 #include "automation.h"
 #include "components.h"
@@ -91,6 +92,7 @@
 #define PROJ_NUM_METRONOMES 1
 
 #define MAX_QUEUED_OPS 64
+#define MAX_ANIMATIONS 64
 
 typedef struct project Project;
 typedef struct timeline Timeline;
@@ -440,8 +442,11 @@ typedef struct project {
     uint8_t num_dropped;
 
 
-    /* Endpoints API */
+    /* Animations */
+    Animation *animations;
+    pthread_mutex_t animation_lock;
 
+    /* Endpoints API */
     struct api_server server;
     /* APINode api_root; */
     /* bool server_active; */

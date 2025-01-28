@@ -210,7 +210,6 @@ Value slider_reset(Slider *s)
     }
     layout_reset(s->layout);
     return slider_val;
-    /* label_reset(s->label); */
 }    
 
 
@@ -254,8 +253,7 @@ bool slider_mouse_click(Slider *slider, Window *win)
 	int dim = slider->orientation == SLIDER_VERTICAL ? main_win->mousep.y : main_win->mousep.x;
 	Value newval = slider_val_from_coord(slider, dim);
 	endpoint_start_continuous_change(slider->ep, false, (Value)0, slider->ep->owner_thread, newval);
-	Value val = slider_reset(slider);
-	label_reset(slider->label, val);
+	slider_reset(slider);
 
 	/* slider_reset(slider); */
 	/* slider_edit_made(slider); */

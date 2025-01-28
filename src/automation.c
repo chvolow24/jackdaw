@@ -573,6 +573,16 @@ static int button_write_action(void *self_v, void *xarg)
     return 0;
 }
 
+LabelStrFn auto_labelfns[] = {
+    label_amp_to_dbstr, /* Vol */
+    label_pan, /* Pan */
+    label_freq_raw_to_hz, /* FIR Filter Cutoff */
+    label_freq_raw_to_hz, /* FIR Filter Bandwidth */
+    label_msec,
+    label_amp_to_dbstr,
+    NULL
+};
+
 void automation_show(Automation *a)
 {
     a->shown = true;
@@ -646,7 +656,7 @@ void automation_show(Automation *a)
 	button->tb->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
 	textbox_set_style(button->tb, BUTTON_DARK);
 	a->write_button = button;
-	a->keyframe_label = label_create(0, a->layout, NULL, a, 0, main_win);
+	a->keyframe_label = label_create(0, a->layout, auto_labelfns[a->type], a, a->val_type, main_win);
     } else {
 	a->layout->h.value = AUTOMATION_LT_H;
 	a->layout->y.value = AUTOMATION_LT_Y;

@@ -266,5 +266,6 @@ int main(int argc, char **argv)
     loop_project_main();
     
     quit();
+    fprintf(stderr, "See ya later!\n");
     
 }

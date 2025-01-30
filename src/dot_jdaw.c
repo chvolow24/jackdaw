@@ -461,6 +461,7 @@ Project *jdaw_read_file(const char *path)
     
     proj_reading->num_timelines = 0;
 
+    fprintf(stderr, "Reading clips...\n");
     while (num_clips > 0) {
 	if (jdaw_read_clip(f, proj_reading) != 0) {
 	    goto jdaw_parse_error;
@@ -529,8 +530,13 @@ static int jdaw_read_clip(FILE *f, Project *proj)
     int16_t *interleaved_clip_samples = malloc(sizeof(int16_t) * clip_len_samples);
 
     /* Read data */
-    for (uint32_t i=0; i<clip_len_samples; i++) {
-	interleaved_clip_samples[i] = int16_deser_le(f);
+    fread(interleaved_clip_samples, sizeof(int16_t), clip_len_samples, f);
+    if (!SYS_BYTEORDER_LE) {
+	for (uint32_t i=0; i<clip_len_samples; i++) {
+	    char *buf =(char *)(interleaved_clip_samples + i);
+	    uint16_t sample_u = uint16_fromstr_le(buf);
+	    interleaved_clip_samples[i] = *((int16_t *)&sample_u);
+	}
     }
     
     /* write data to clip */
@@ -603,6 +609,7 @@ static int jdaw_read_timeline(FILE *f, Project *proj_loc)
 	fread(&c, 1, 1, f); /* Extraneous nullterm in earlier versions */
     }
     tl_name[tl_namelen] = '\0';
+    fprintf(stderr, "Reading timeline\"%s\"...\n", tl_name);
     uint8_t index = project_add_timeline(proj_loc, tl_name);
     Timeline *tl = proj_loc->timelines[index];
 
@@ -612,7 +619,6 @@ static int jdaw_read_timeline(FILE *f, Project *proj_loc)
     } else {
 	num_tracks = int16_deser_le(f);
     }
-
     if (read_file_spec_version < 0.15) {
 	while (num_tracks > 0) {
 	    if (jdaw_read_track(f, tl) != 0) {
@@ -622,6 +628,7 @@ static int jdaw_read_timeline(FILE *f, Project *proj_loc)
 	}
     } else {
 	bool more_tracks = true;
+	fprintf(stderr, "\tReading tracks...\n");
 	while (more_tracks) {
 	    char hdr_buf[4];
 	    fread(hdr_buf, 1, 4, f);

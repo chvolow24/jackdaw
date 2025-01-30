@@ -67,7 +67,7 @@ int timeline_get_draw_x(Timeline *tl, int32_t abs_x)
         return (int) round(precise);
     } else {
         fprintf(stderr, "Error: proj tl sfpp value 0\n");
-	exit(0);
+	exit(1);
         /* return 0; */
     }
 }
@@ -278,9 +278,11 @@ void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes)
     RESTRICT_NOT_DSP("timeline_move_play_position");
     RESTRICT_NOT_MAIN("timeline_move_play_position");
 
+    static const int32_t end_tl_buffer = 96000 * 30; /* 30 seconds at max sample rate*/
+    
     int64_t new_pos = (int64_t)tl->play_pos_sframes + move_by_sframes;
     /* fprintf(stderr, "NEW POS: %lld\n", new_pos); */
-    if (new_pos > INT32_MAX || new_pos < INT32_MIN) {
+    if (new_pos > INT32_MAX - end_tl_buffer || new_pos < INT32_MIN + end_tl_buffer) {
 	/* fprintf(stderr, "CMPS (to %d, %d) %d %d\n", INT32_MAX, INT32_MIN, new_pos > INT32_MAX, new_pos < INT32_MIN); */
 	if (tl->proj->playing) transport_stop_playback();
 	status_set_errstr("reached end of timeline");

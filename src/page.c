@@ -702,12 +702,14 @@ void tabview_draw(TabView *tv)
 
 static void page_el_select(PageEl *el)
 {
+    if (!el) return;
     if (el->type == EL_TEXTENTRY) {
 	textentry_edit((TextEntry *)el->component);
     }
 }
 static void page_el_deselect(PageEl *el)
 {
+    if (!el) return;
     if (el->type == EL_TEXTENTRY) {
 	textentry_complete_edit((TextEntry *)el->component);
     }
@@ -716,11 +718,13 @@ static void page_el_deselect(PageEl *el)
 static void tabview_select_el(TabView *tv)
 {
     Page *current = tv->tabs[tv->current_tab];
+    if (current->num_selectable == 0) return;
     page_el_select(current->selectable_els[current->selected_i]);   
 }
 static void tabview_deselect_el(TabView *tv)
 {
     Page *current = tv->tabs[tv->current_tab];
+    if (current->num_selectable == 0) return;
     page_el_deselect(current->selectable_els[current->selected_i]);
 }
 
@@ -828,6 +832,7 @@ void page_previous_escape(Page *page)
 void page_enter(Page *page)
 {
     PageEl *el = page->selectable_els[page->selected_i];
+    if (!el) return;
     switch (el->type) {
     case EL_TOGGLE:
 	toggle_toggle((Toggle *)el->component);
@@ -858,6 +863,7 @@ void page_previous(Page *page)
 void page_right(Page *page)
 {
     PageEl *el = page->selectable_els[page->selected_i];
+    if (!el) return;
     switch (el->type) {
     case EL_SLIDER:
 	slider_nudge_right((Slider *)el->component);
@@ -870,6 +876,7 @@ void page_right(Page *page)
 void page_left(Page *page)
 {
     PageEl *el = page->selectable_els[page->selected_i];
+    if (!el) return;
     switch (el->type) {
     case EL_SLIDER:
 	slider_nudge_left((Slider *)el->component);
@@ -892,6 +899,7 @@ PageEl *page_get_el_by_id(Page *page, const char *id)
 
 void page_select_el_by_id(Page *page, const char *id)
 {
+    if (page->num_selectable == 0) return;
     while (strcmp(page->selectable_els[page->selected_i]->id, id) != 0) {
 	page->selected_i++;
 	if (page->selected_i >= page->num_selectable) {

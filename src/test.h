@@ -35,6 +35,9 @@
 #ifndef JDAW_TEST_H
 #define JDAW_TEST_H
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #ifdef TESTBUILD 
     #define TEST_FN_DEF(name, body, ...) \
         int name(__VA_ARGS__) body
@@ -53,5 +56,6 @@
 #endif
 
 void breakfn();
+TEST_FN_DECL(really_dumb_tests, bool *run_tests, uint64_t max_num_frames);
 
 #endif

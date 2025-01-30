@@ -186,6 +186,7 @@ void loop_project_main()
     bool first_frame = true;
     int wheel_event_recency = 0;
     int play_speed_scroll_recency = 60;
+    bool do_tests = false;
     while (!(main_win->i_state & I_STATE_QUIT)) {
 	/* fprintf(stdout, "About to poll...\n"); */
 	while (SDL_PollEvent(&e)) {
@@ -249,6 +250,9 @@ void loop_project_main()
 		scrolling_lt = NULL;
 		temp_scrolling_lt = NULL;
 		switch (e.key.keysym.scancode) {
+		case SDL_SCANCODE_6:
+		    do_tests = !do_tests;
+		    break;
 		/* case SDL_SCANCODE_5: */
 		/*     api_node_print_all_routes(&proj->server.api_root); */
 		/*     break; */
@@ -669,32 +673,11 @@ void loop_project_main()
     end_auto_write:
 
 	
-	/* window_end_draw(main_win); */
-	/**********************************************/
-	SDL_Delay(1);	
+	SDL_Delay(1);
 
-	/* Value speed = {.float_v = proj->play_speed}; */
-	/* if (fabs(speed.float_v) > 0.0001) { */
-	/*     speed.float_v += 0.005; */
-	/*     fprintf(stderr, "Setting speed to %f\n", speed.float_v); */
-	/*     endpoint_write( */
-	/* 	&proj->play_speed_ep, */
-	/* 	speed, */
-	/* 	true, false, false, */
-	/* 	true); */
-	/* } */
 
-	
-        /* end = clock(); */
-	/* fps += (float)CLOCKS_PER_SEC / (end - start); */
-	/* start = end; */
-	/* if (frame_ctr > 250) { */
-	/*     fps /= 250; */
-	/*     fprintf(stdout, "FPS: %f\n", fps); */
-	/*     frame_ctr = 0; */
-	/* } else { */
-	/*     frame_ctr++; */
-	/* } */
-
+	if (do_tests) {
+	    TEST_FN_CALL(really_dumb_tests, &do_tests, 60 * 10); /* 10s of really dumb tests */
+	}
     }
 }

@@ -1441,7 +1441,9 @@ void user_tl_track_vol_up(void *nullarg)
 	    endpoint_start_continuous_change(&trk->vol_ep, true, vol_incr, JDAW_THREAD_MAIN, endpoint_safe_read(&trk->vol_ep, NULL));
 	} else {
 	    ClickTrack *tt = timeline_selected_click_track(tl);
-	    endpoint_start_continuous_change(&tt->metronome_vol_ep, true, vol_incr, JDAW_THREAD_MAIN, endpoint_safe_read(&tt->metronome_vol_ep, NULL));
+	    if (tt) {
+		endpoint_start_continuous_change(&tt->metronome_vol_ep, true, vol_incr, JDAW_THREAD_MAIN, endpoint_safe_read(&tt->metronome_vol_ep, NULL));
+	    }
 	}
 
     }
@@ -1478,7 +1480,9 @@ void user_tl_track_vol_down(void *nullarg)
 	    endpoint_start_continuous_change(&trk->vol_ep, true, vol_decr, JDAW_THREAD_MAIN, endpoint_safe_read(&trk->vol_ep, NULL));
 	} else {
 	    ClickTrack *tt = timeline_selected_click_track(tl);
-	    endpoint_start_continuous_change(&tt->metronome_vol_ep, true, vol_decr, JDAW_THREAD_MAIN, endpoint_safe_read(&tt->metronome_vol_ep, NULL));
+	    if (tt) {
+		endpoint_start_continuous_change(&tt->metronome_vol_ep, true, vol_decr, JDAW_THREAD_MAIN, endpoint_safe_read(&tt->metronome_vol_ep, NULL));
+	    }
 	}
     }
 }
@@ -2366,6 +2370,7 @@ void user_modal_dismiss(void *nullarg)
     while (main_win->num_menus > 0) {
 	window_pop_menu(main_win);
     }
+    if (main_win->num_modals == 0) return;
     Modal *m = main_win->modals[main_win->num_modals - 1];
     if (m->x->action) m->x->action(NULL, NULL);
     /* window_pop_modal(main_win); */

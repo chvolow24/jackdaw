@@ -970,7 +970,7 @@ void automation_get_range(Automation *a, void *dst, int dst_len, int32_t start_p
     void *arr_ptr = dst;
 
     bool rev = step < 0.0;
-    int32_t end_pos = start_pos + dst_len * step;
+    int32_t end_pos = start_pos + (int32_t)(dst_len * step);
     double pos = (double)start_pos;
     Keyframe *current = automation_check_get_cache(a, start_pos);
     int32_t next_kf_pos = rev ? end_pos - 1 : end_pos + 1;

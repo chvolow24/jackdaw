@@ -250,9 +250,11 @@ void loop_project_main()
 		scrolling_lt = NULL;
 		temp_scrolling_lt = NULL;
 		switch (e.key.keysym.scancode) {
+#ifdef TESTBUILD
 		case SDL_SCANCODE_6:
 		    do_tests = !do_tests;
 		    break;
+#endif
 		case SDL_SCANCODE_7:
 		    proj->loop_play = !proj->loop_play;
 		    break;
@@ -680,7 +682,7 @@ void loop_project_main()
 
 
 	if (do_tests) {
-	    TEST_FN_CALL(really_dumb_tests, &do_tests, 60 * 10); /* 10s of really dumb tests */
+	    TEST_FN_CALL(chaotic_user, &do_tests, 60 * 10); /* 10s of really dumb tests */
 	}
     }
 }

@@ -245,12 +245,27 @@ static void *transport_dsp_thread_fn(void *arg)
 
 	/* Move the read (DSP) pos */
 	tl->read_pos_sframes += len * play_speed;
-	if (proj->loop_play) {
-	    int32_t remainder = tl->read_pos_sframes - tl->out_mark_sframes;
-	    if (remainder > 0) {
-		tl->read_pos_sframes = tl->in_mark_sframes + remainder;
+
+	if (tl->proj->loop_play) {
+	    int32_t loop_len = tl->out_mark_sframes - tl->in_mark_sframes;
+	    if (loop_len > 0) {
+		int64_t remainder = tl->read_pos_sframes - tl->out_mark_sframes;
+		/* int32_t remainder = tl->read_pos_sframes - tl->out_mark_sframes; */
+		if (remainder > 0) {
+		    if (remainder > loop_len) remainder = 0;
+		    tl->read_pos_sframes = tl->in_mark_sframes + remainder;
+		}
 	    }
 	}
+
+	/* if (proj->loop_play && tl->out_mark_sframes > tl->in_mark_sframes) { */
+	/*     int32_t remainder = tl->read_pos_sframes - tl->out_mark_sframes; */
+	/*     if (remainder > 0) { */
+	/* 	int32_t new_pos = tl->in_mark_sframes + remainder; */
+	/* 	if (new_pos > tl->out_mark_sframes) new_pos = tl->in_mark_sframes; */
+	/* 	tl->read_pos_sframes = new_pos; */
+	/*     } */
+	/* } */
 
 	/* Copy buffer */	
 	for (int i=0; i<N; i++) {
@@ -690,13 +705,13 @@ void transport_set_mark(Timeline *tl, bool in)
 	} else {
 	    tl->out_mark_sframes = tl->play_pos_sframes;
 	}
+	timeline_reset_loop_play_lemniscate(tl);
     } else {
 	if (in) {
 	    proj->src_in_sframes = proj->src_play_pos_sframes;
 	} else {
 	    proj->src_out_sframes = proj->src_play_pos_sframes;
 	}
-		
     }
     tl->needs_redraw = true;
 }
@@ -709,12 +724,13 @@ void transport_set_mark_to(Timeline *tl, int32_t pos, bool in)
 	} else {
 	    tl->out_mark_sframes = pos;
 	}
+	timeline_reset_loop_play_lemniscate(tl);
     } else if (proj->source_mode) {
 	if (in) {
 	    proj->src_in_sframes = pos;
 	} else {
 	    proj->src_out_sframes = pos;
-	}	
+	}
     }
 }
 

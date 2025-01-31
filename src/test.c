@@ -11,7 +11,7 @@ extern Window *main_win;
 
 
 TEST_FN_DEF(
-    really_dumb_tests,
+    chaotic_user,
     {
 	static uint64_t num_frames = 0;
 	if (num_frames == 0) srand(time(NULL));

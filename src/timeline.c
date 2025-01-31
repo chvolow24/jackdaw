@@ -280,10 +280,15 @@ void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes)
     static const int32_t end_tl_buffer = 96000 * 30; /* 30 seconds at max sample rate*/
     
     int64_t new_pos = (int64_t)tl->play_pos_sframes + move_by_sframes;
-    if (tl->proj->loop_play && new_pos > tl->out_mark_sframes) {
-	int64_t remainder = new_pos - tl->out_mark_sframes;
-	new_pos = tl->in_mark_sframes + remainder;
-    /* 	project_queue_callback(tl->proj, (Endpoint *)tl, set_play_pos_to_in_cb, JDAW_THREAD_MAIN); */
+    if (tl->proj->loop_play) {
+	int32_t loop_len = tl->out_mark_sframes - tl->in_mark_sframes;
+	if (loop_len > 0) {
+	    int64_t remainder = new_pos - tl->out_mark_sframes;
+	    if (remainder > 0) {
+		if (remainder > loop_len) remainder = 0;
+		new_pos = tl->in_mark_sframes + remainder;
+	    }
+	}
     }
     if (new_pos > INT32_MAX - end_tl_buffer || new_pos < INT32_MIN + end_tl_buffer) {
 	/* fprintf(stderr, "CMPS (to %d, %d) %d %d\n", INT32_MAX, INT32_MIN, new_pos > INT32_MAX, new_pos < INT32_MIN); */

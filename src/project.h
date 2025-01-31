@@ -307,6 +307,7 @@ typedef struct timeline {
     int32_t display_offset_sframes; // in samples frames
     int sample_frames_per_pixel;
     int display_v_offset;
+    Textbox *loop_play_lemniscate;
 
     bool needs_redraw;
 
@@ -555,4 +556,5 @@ void timeline_play_speed_mult(double scale_factor);
 void timeline_play_speed_adj(double dim);
 void timeline_scroll_playhead(double dim);
 
+void timeline_reset_loop_play_lemniscate(Timeline *tl);
 #endif

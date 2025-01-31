@@ -300,11 +300,10 @@ void textbox_reset_full(Textbox *tb)
 }
 
 
-/* TODO: remove all calls to textbox_reset. It is no longer relevant */
 void textbox_reset(Textbox *tb)
 {
     /* txt_reset_display_value(tb->text); */
-    /* txt_reset_drawable(tb->text); */
+    txt_reset_drawable(tb->text);
 }
 
 void textbox_set_pad(Textbox *tb, int h_pad, int v_pad)

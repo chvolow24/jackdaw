@@ -175,6 +175,25 @@ uint8_t project_add_timeline(Project *proj, char *name)
     textbox_set_text_color(new_tl->timecode_tb, &color_global_white);
     textbox_set_trunc(new_tl->timecode_tb, false);
 
+    Layout *ruler_lt = layout_get_child_by_name_recursive(new_tl->layout, "ruler");
+    Layout *lemniscate_lt = layout_add_child(ruler_lt);
+    lemniscate_lt->h.type = SCALE;
+    lemniscate_lt->h.value = 1.0;
+    lemniscate_lt->w.type = ABS;
+    lemniscate_lt->w.value = 500.0;
+    lemniscate_lt->x.type = ABS;
+    lemniscate_lt->x.value = 0.0;
+    layout_force_reset(lemniscate_lt);
+    new_tl->loop_play_lemniscate = textbox_create_from_str(
+	"∞",
+	lemniscate_lt,
+	main_win->std_font,
+	24,
+	main_win);
+    textbox_set_background_color(new_tl->loop_play_lemniscate, &color_global_clear);
+    textbox_set_text_color(new_tl->loop_play_lemniscate, &color_global_white);
+    textbox_reset_full(new_tl->loop_play_lemniscate);
+    
     new_tl->buf_L = calloc(1, sizeof(float) * proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS);
     new_tl->buf_R = calloc(1, sizeof(float) * proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS);
     new_tl->buf_write_pos = 0;
@@ -1907,11 +1926,33 @@ ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sfr
     return cr;
 }
 
+void timeline_reset_loop_play_lemniscate(Timeline *tl)
+{
+    if (tl->in_mark_sframes >= tl->out_mark_sframes) return;
+    int in_x = timeline_get_draw_x(tl, tl->in_mark_sframes);
+    int out_x = timeline_get_draw_x(tl, tl->out_mark_sframes);
+    layout_reset(tl->loop_play_lemniscate->layout);
+
+    tl->loop_play_lemniscate->layout->rect.x = in_x;
+    tl->loop_play_lemniscate->layout->rect.w = out_x - in_x;
+    layout_set_values_from_rect(tl->loop_play_lemniscate->layout);
+    textbox_reset(tl->loop_play_lemniscate);
+    tl->needs_redraw = true;
+    
+}
+
 void timeline_reset_full(Timeline *tl)
 {
     for (int i=0; i<tl->num_tracks; i++) {
 	track_reset_full(tl->tracks[i]);
     }
+    layout_reset(tl->layout);
+    if (tl->proj->loop_play) {
+	timeline_reset_loop_play_lemniscate(tl);
+    }
+
+    tl->needs_redraw = true;
+
 }
 
 void timeline_reset(Timeline *tl, bool rescaled)
@@ -1920,10 +1961,12 @@ void timeline_reset(Timeline *tl, bool rescaled)
     for (int i=0; i<tl->num_tracks; i++) {
 	track_reset(tl->tracks[i], rescaled);
     }
-    /* for (int i=0; i<tl->num_click_tracks; i++) { */
-    /* 	click_track_reset(tl->click_tracks[i]); */
-    /* } */
+
     layout_reset(tl->layout);
+    if (tl->proj->loop_play) {
+	timeline_reset_loop_play_lemniscate(tl);
+    }
+
     tl->needs_redraw = true;
 }
 

@@ -459,6 +459,11 @@ static int timeline_draw(Timeline *tl)
     if (tl->timecode_tb) {
 	textbox_draw(tl->timecode_tb);
     }
+    if (tl->proj->loop_play && tl->out_mark_sframes > tl->in_mark_sframes) {
+	textbox_draw(tl->loop_play_lemniscate);
+	/* layout_draw(main_win, tl->loop_play_lemniscate->layout); */
+    }
+    
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_grey));
     SDL_Rect tctbrect = tl->timecode_tb->layout->rect;
     SDL_RenderDrawLine(main_win->rend, tctbrect.x + tctbrect.w, tctbrect.y, tctbrect.x + tctbrect.w, tctbrect.y + tctbrect.h);
@@ -538,7 +543,6 @@ static int timeline_draw(Timeline *tl)
     /* SDL_RenderFillRect(main_win->rend, &tl->track_area->rect); */
     /* layout_draw(main_win, tl->track_area); */
     tl->needs_redraw = false;
-
 
     /* Layout *tracks_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area"); */
     /* if (tracks_area) { */
@@ -628,7 +632,7 @@ void project_draw()
     window_draw_modals(main_win);
     window_draw_menus(main_win);
 
-    proj->timelines[proj->active_tl_index]->needs_redraw = false;
+    tl->needs_redraw = false;
 
     window_end_draw(main_win);
 }

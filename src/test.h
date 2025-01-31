@@ -56,6 +56,6 @@
 #endif
 
 void breakfn();
-TEST_FN_DECL(really_dumb_tests, bool *run_tests, uint64_t max_num_frames);
+TEST_FN_DECL(chaotic_user, bool *run_tests, uint64_t max_num_frames);
 
 #endif

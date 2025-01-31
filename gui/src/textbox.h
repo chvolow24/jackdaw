@@ -32,12 +32,13 @@ typedef struct textbox {
     int corner_radius;
     Window *window;
 
-    int color_change_timer;
-    bool color_change_target_text;
-    SDL_Color *color_change_new_color;
-
-    ComponentFn color_change_callback;
-    void *color_change_callback_target;
+    /* COLOR CHANGE CALLBACKS: DEPRECATED AND REPLACED WITH animation.c */
+    
+    /* int color_change_timer; */
+    /* bool color_change_target_text; */
+    /* SDL_Color *color_change_new_color; */
+    /* ComponentFn color_change_callback; */
+    /* void *color_change_callback_target; */
     
 } Textbox;
 
@@ -93,13 +94,13 @@ void textbox_set_pad(Textbox *tb, int h_pad, int v_pad);
 void textbox_set_value_handle(Textbox *tb, const char *new_value);
 
 void textbox_set_style(Textbox *tb, enum textbox_style style);
-void textbox_schedule_color_change(
-    Textbox *tb,
-    int timer,
-    SDL_Color *new_color,
-    bool change_text_color,
-    ComponentFn color_change_callback,
-    void *color_change_callback_target);
+/* void textbox_schedule_color_change( */
+/*     Textbox *tb, */
+/*     int timer, */
+/*     SDL_Color *new_color, */
+/*     bool change_text_color, */
+/*     ComponentFn color_change_callback, */
+/*     void *color_change_callback_target); */
 
 TextLines *textlines_create(
     void **items,

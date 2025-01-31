@@ -219,43 +219,45 @@ void textbox_draw(Textbox *tb)
     txt_draw(tb->text);
 }
 
-static int scheduled_color_change(void *data)
-{
-    Textbox *tb = (Textbox *)data;
-    for (int i=0; i<tb->color_change_timer; i++) {
-	#ifndef LAYOUT_BUILD
-	if (CANCEL_THREADS) return 0;
-	#endif
-	SDL_Delay(1);
+/* static int scheduled_color_change(void *data) */
+/* { */
+/*     Textbox *tb = (Textbox *)data; */
+/*     for (int i=0; i<tb->color_change_timer; i++) { */
+/* 	#ifndef LAYOUT_BUILD */
+/* 	if (CANCEL_THREADS) return 0; */
+/* 	#endif */
+/* 	SDL_Delay(1); */
 	
-    }
-    /* SDL_Delay(tb->color_change_timer); */
-    if (tb->color_change_target_text) {
-	textbox_set_text_color(tb, tb->color_change_new_color);
-    } else {
-	textbox_set_background_color(tb, tb->color_change_new_color);
-    }
-    if (tb->color_change_callback)
-	tb->color_change_callback((void *)tb, tb->color_change_callback_target);
-    return 0;
-}
+/*     } */
+/*     /\* SDL_Delay(tb->color_change_timer); *\/ */
+/*     if (tb->color_change_target_text) { */
+/* 	textbox_set_text_color(tb, tb->color_change_new_color); */
+/*     } else { */
+/* 	textbox_set_background_color(tb, tb->color_change_new_color); */
+/*     } */
+/*     if (tb->color_change_callback) */
+/* 	tb->color_change_callback((void *)tb, tb->color_change_callback_target); */
+/*     return 0; */
+/* } */
 
-void textbox_schedule_color_change(
-    Textbox *tb,
-    int timer,
-    SDL_Color *new_color,
-    bool change_text_color,
-    ComponentFn color_change_callback,
-    void *color_change_callback_target)
-{
-    /* tb->color_change_timer = timer; */
-    /* tb->color_change_target_text = change_text_color; */
-    /* tb->color_change_new_color = new_color; */
-    /* tb->color_change_callback = color_change_callback; */
-    /* tb->color_change_callback_target = color_change_callback_target; */
 
-    /* SDL_CreateThread(scheduled_color_change, "scheduled_tb_color_change", tb); */
-}
+
+/* void textbox_schedule_color_change( */
+/*     Textbox *tb, */
+/*     int timer, */
+/*     SDL_Color *new_color, */
+/*     bool change_text_color, */
+/*     ComponentFn color_change_callback, */
+/*     void *color_change_callback_target) */
+/* { */
+/*     /\* tb->color_change_timer = timer; *\/ */
+/*     /\* tb->color_change_target_text = change_text_color; *\/ */
+/*     /\* tb->color_change_new_color = new_color; *\/ */
+/*     /\* tb->color_change_callback = color_change_callback; *\/ */
+/*     /\* tb->color_change_callback_target = color_change_callback_target; *\/ */
+
+/*     /\* SDL_CreateThread(scheduled_color_change, "scheduled_tb_color_change", tb); *\/ */
+/* } */
 
 
 void textbox_set_trunc(Textbox *tb, bool trunc)

@@ -1990,6 +1990,7 @@ static void user_tl_drop_savedn_from_source(int n)
 	Timeline *tl = ACTIVE_TL;
 	if (tl->num_tracks == 0) return;
 	Track *track = timeline_selected_track(tl);
+	if (!track) return;
 	struct drop_save drop = proj->saved_drops[n];
 	if (!drop.clip) return;
 	/* int32_t drop_pos = tl->play_pos_sframes - proj->play_speed * 2 * proj->chunk_size_sframes; */

@@ -219,7 +219,7 @@ static void *server_threadfn(void *arg)
 
     if (bind(proj->server.sockfd, (const struct sockaddr *)&proj->server.servaddr, sizeof(proj->server.servaddr)) < 0) {
 	perror("Bind failed");
-	exit(1);
+	return NULL;
     }
     char buffer[1024];
     proj->server.active = true;

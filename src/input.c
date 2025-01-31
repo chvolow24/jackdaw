@@ -1113,25 +1113,20 @@ static int input_hash(uint16_t i_state, SDL_Keycode key)
 char *input_get_keycmd_str(uint16_t i_state, SDL_Keycode keycode);
 
 UserFn *input_get(uint16_t i_state, SDL_Keycode keycode)
-{
-    /* fprintf(stdout, "KEYCMD STR: %s\n", input_get_keycmd_str(i_state, keycode)); */
+{    
     int hash = input_hash(i_state, keycode);
-
     int win_mode_i = main_win->num_modes - 1;
     InputMode mode = main_win->modes[win_mode_i];
     while (win_mode_i >= 0) {
-	/* fprintf(stdout, "TESTING MODE: %s\n", input_mode_strs[mode]); */
 	KeybNode *node = input_hash_table[hash];
-	/* char *keycmd_str = input_get_keycmd_str(i_state, keycode); */
-	/* fprintf(stdout, "KEYCMD: %s\n", keycmd_str); */
-	/* free(keycmd_str); */
 	if (!node) {
 	    return NULL;
 	}
 	while (1) {
-	    /* fprintf(stdout, "Modes: %d, %d; i_state: %d, %d; key: %d, %d\n", mode, node->kb->mode, i_state, node->kb->i_state, keycode, node->kb->keycode); */
 	    if ((node->kb->mode == mode || node->kb->mode == GLOBAL) && node->kb->i_state == i_state && node->kb->keycode == keycode) {
-		/* fprintf(stdout, "\t->Good!\n"); */
+		if (node->kb->mode == GLOBAL && mode == TEXT_EDIT) {
+		    txt_stop_editing(main_win->txt_editing);
+		}
 		return node->kb->fn;
 	    } else if (node->next) {
 		node = node->next;

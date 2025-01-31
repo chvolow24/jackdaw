@@ -245,8 +245,8 @@ struct track_and_pos {
 typedef struct timeline {
     char name[MAX_NAMELENGTH];
     uint8_t index;
-    int32_t play_pos_sframes;
-    int32_t read_pos_sframes;
+    int32_t play_pos_sframes; /* Incremented in AUDIO DEVICE thread (small chunks) */
+    int32_t read_pos_sframes; /* Incremented in DSP thread (large chunks) */
     int32_t in_mark_sframes;
     int32_t out_mark_sframes;
     int32_t record_from_sframes;
@@ -354,6 +354,7 @@ typedef struct project {
     
     float play_speed;
     Endpoint play_speed_ep;
+    bool loop_play;
     bool dragging;
     bool recording;
     bool playing;

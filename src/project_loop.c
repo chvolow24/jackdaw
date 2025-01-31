@@ -253,6 +253,9 @@ void loop_project_main()
 		case SDL_SCANCODE_6:
 		    do_tests = !do_tests;
 		    break;
+		case SDL_SCANCODE_7:
+		    proj->loop_play = !proj->loop_play;
+		    break;
 		/* case SDL_SCANCODE_5: */
 		/*     api_node_print_all_routes(&proj->server.api_root); */
 		/*     break; */

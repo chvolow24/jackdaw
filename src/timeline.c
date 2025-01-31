@@ -35,6 +35,7 @@
 #include <stdint.h>
 #include <time.h>
 #include "project.h"
+#include "project_endpoint_ops.h"
 #include "tempo.h"
 #include "thread_safety.h"
 #include "timeline.h"
@@ -233,13 +234,13 @@ static void track_handle_playhead_jump(Track *track)
 }
 
 /* Invalidates continuous-play-dependent caches.
-   Use this any time a "jump" occurrs */
+   Use this any time a "jump" occurs */
 void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes)
 {
     MAIN_THREAD_ONLY("timeline_set_play_position");
 
     if (tl->play_pos_sframes == abs_pos_sframes) return;
-
+    
     int32_t pos_diff = abs_pos_sframes - tl->play_pos_sframes;
     
     if (tl->proj->dragging && tl->num_grabbed_clips > 0) {
@@ -271,8 +272,6 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes)
 
 }
 
-
-
 void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes)
 {
     RESTRICT_NOT_DSP("timeline_move_play_position");
@@ -281,13 +280,17 @@ void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes)
     static const int32_t end_tl_buffer = 96000 * 30; /* 30 seconds at max sample rate*/
     
     int64_t new_pos = (int64_t)tl->play_pos_sframes + move_by_sframes;
-    /* fprintf(stderr, "NEW POS: %lld\n", new_pos); */
+    if (tl->proj->loop_play && new_pos > tl->out_mark_sframes) {
+	int64_t remainder = new_pos - tl->out_mark_sframes;
+	new_pos = tl->in_mark_sframes + remainder;
+    /* 	project_queue_callback(tl->proj, (Endpoint *)tl, set_play_pos_to_in_cb, JDAW_THREAD_MAIN); */
+    }
     if (new_pos > INT32_MAX - end_tl_buffer || new_pos < INT32_MIN + end_tl_buffer) {
 	/* fprintf(stderr, "CMPS (to %d, %d) %d %d\n", INT32_MAX, INT32_MIN, new_pos > INT32_MAX, new_pos < INT32_MIN); */
 	if (tl->proj->playing) transport_stop_playback();
 	status_set_errstr("reached end of timeline");
     } else {
-	tl->play_pos_sframes += move_by_sframes;
+	tl->play_pos_sframes = new_pos;
 	clock_gettime(CLOCK_MONOTONIC, &tl->play_pos_moved_at);
 	if (tl->proj->dragging) {
 	    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {

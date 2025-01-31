@@ -243,9 +243,16 @@ static void *transport_dsp_thread_fn(void *arg)
 	get_magnitude(lfreq, proj->output_L_freq, len);
 	get_magnitude(rfreq, proj->output_R_freq, len);
 
-
-	/* Copy buffer */
+	/* Move the read (DSP) pos */
 	tl->read_pos_sframes += len * play_speed;
+	if (proj->loop_play) {
+	    int32_t remainder = tl->read_pos_sframes - tl->out_mark_sframes;
+	    if (remainder > 0) {
+		tl->read_pos_sframes = tl->in_mark_sframes + remainder;
+	    }
+	}
+
+	/* Copy buffer */	
 	for (int i=0; i<N; i++) {
 	    sem_wait(tl->writable_chunks);
 	}

@@ -3407,3 +3407,7 @@ void timeline_scroll_playhead(double dim)
 }
 
 
+void project_active_tl_redraw(Project *proj)
+{
+    proj->timelines[proj->active_tl_index]->needs_redraw = true;
+}

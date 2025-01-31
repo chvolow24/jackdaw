@@ -1,3 +1,4 @@
+#include "animation.h"
 #include "geometry.h"
 #include "text.h"
 #include "textbox.h"
@@ -247,13 +248,13 @@ void textbox_schedule_color_change(
     ComponentFn color_change_callback,
     void *color_change_callback_target)
 {
-    tb->color_change_timer = timer;
-    tb->color_change_target_text = change_text_color;
-    tb->color_change_new_color = new_color;
-    tb->color_change_callback = color_change_callback;
-    tb->color_change_callback_target = color_change_callback_target;
+    /* tb->color_change_timer = timer; */
+    /* tb->color_change_target_text = change_text_color; */
+    /* tb->color_change_new_color = new_color; */
+    /* tb->color_change_callback = color_change_callback; */
+    /* tb->color_change_callback_target = color_change_callback_target; */
 
-    SDL_CreateThread(scheduled_color_change, "scheduled_tb_color_change", tb);
+    /* SDL_CreateThread(scheduled_color_change, "scheduled_tb_color_change", tb); */
 }
 
 

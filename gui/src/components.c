@@ -18,7 +18,7 @@ extern Window *main_win;
 #define RADIO_BUTTON_LEFT_COL_W 10
 #define SLIDER_MAX_LABEL_COUNTDOWN 80
 #define SLIDER_NUDGE_PROP 0.01
-#define BUTTON_COLOR_CHANGE_STD_DELAY 400
+#define BUTTON_COLOR_CHANGE_STD_DELAY 20
 
 #define TEXTENTRY_V_PAD 4
 #define TEXTENTRY_H_PAD 8
@@ -441,6 +441,9 @@ void symbol_button_draw(SymbolButton *sbutton)
 
 void button_destroy(Button *button)
 {
+    if (button->animation) {
+	project_dequeue_animation(button->animation);
+    }
     textbox_destroy(button->tb);
     free(button);
 }
@@ -450,6 +453,17 @@ void symbol_button_destroy(SymbolButton *sbutton)
     free(sbutton);
 }
 
+extern Project *proj;
+extern void project_active_tl_redraw(Project *proj);
+static void button_end_animation(void *arg1, void *arg2)
+{
+    Button *b = (Button *)arg1;
+    SDL_Color *c = (SDL_Color *)arg2;
+    textbox_set_background_color(b->tb, c);
+    project_active_tl_redraw(proj);
+    b->animation = NULL;
+    
+}
 void button_press_color_change(
     Button *button,
     SDL_Color *temp_color,
@@ -458,7 +472,9 @@ void button_press_color_change(
     void *callback_target)
 {
     textbox_set_background_color(button->tb, temp_color);
-    textbox_schedule_color_change(button->tb, BUTTON_COLOR_CHANGE_STD_DELAY, return_color, false, callback, callback_target);
+    
+    button->animation = project_queue_animation(NULL, button_end_animation, (void *)button, (void *)return_color, BUTTON_COLOR_CHANGE_STD_DELAY);
+    /* textbox_schedule_color_change(button->tb, BUTTON_COLOR_CHANGE_STD_DELAY, return_color, false, callback, callback_target); */
 }
 
 

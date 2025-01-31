@@ -28,7 +28,8 @@ typedef struct endpoint Endpoint;
 typedef struct button {
     Textbox *tb;
     ComponentFn action;
-    void *target;    
+    void *target;
+    Animation *animation;
 } Button;
 
 typedef struct symbol_button {

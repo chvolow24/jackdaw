@@ -330,6 +330,7 @@ Automation *track_add_automation(Track *track, AutomationType type)
 
 	break;
     case AUTO_DEL_AMP:
+	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line, track, track->tl->proj->sample_rate);
 	a->val_type = JDAW_DOUBLE;
 	a->target_val = &track->delay_line.amp;
 	a->min.double_v = 0.0;

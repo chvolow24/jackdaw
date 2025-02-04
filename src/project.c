@@ -3258,6 +3258,7 @@ void timeline_move_track_or_automation(Timeline *tl, int direction)
 	ClickTrack *tt = timeline_selected_click_track(tl);
 	timeline_refocus_click_track(tl, tt, direction > 0);
     }
+    timeline_reset(tl, false);
     tl->needs_redraw = true;
 }
 
@@ -3411,3 +3412,56 @@ void project_active_tl_redraw(Project *proj)
 {
     proj->timelines[proj->active_tl_index]->needs_redraw = true;
 }
+
+static bool track_minimize(Track *t)
+{
+    t->minimized = !t->minimized;
+    if (t->minimized) {
+	if (t->num_automations > 0) {
+	    track_automations_hide_all(t);
+	}
+	t->layout->h.value = 31.0;
+	t->inner_layout->h.value = 31.0;
+    } else {
+	t->layout->h.value = 96.0;
+	t->inner_layout->h.value = 96.0;
+    }
+
+    return t->minimized;
+}
+
+void timeline_minimize_track_or_tracks(Timeline *tl)
+{
+    bool some_active = false;
+    bool to_min = false;
+    bool from_min = false;
+    for (uint8_t i=0; i<tl->num_tracks; i++) {
+	Track *t = tl->tracks[i];
+	if (t->active) {
+	    some_active = true;
+	    if (track_minimize(t)) {
+		to_min = true;
+	    } else {
+		from_min = true;
+	    }
+	}
+    }
+    if (!some_active) {
+	Track *t = timeline_selected_track(tl);
+	if (t) track_minimize(t);
+    } else if (to_min && from_min) {
+	for (uint8_t i=0; i<tl->num_tracks; i++) {
+	    Track *t = tl->tracks[i];
+	    if (t->active && !t->minimized) {
+		track_minimize(t);
+	    }
+	}
+    }
+    timeline_rectify_track_area(tl);
+    timeline_reset(tl, false);
+
+}
+
+
+
+

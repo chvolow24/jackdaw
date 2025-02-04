@@ -42,7 +42,7 @@
 #include "userfn.h"
 
 #define not_whitespace_char(c) (c != ' ' && c != '\n' && c != '\t')
-#define is_whitespace_char(c) (c == ' ' || c == '\n' || c == '\t')
+#define is_whitespace_char(c) ((c) == ' ' || (c) == '\n' || (c) == '\t')
 
 #define FN_REFERENCE_FILENAME "fn_reference.md"
 
@@ -443,6 +443,12 @@ static void mode_load_timeline()
 	"tl_move_track_up",
 	"Move selected track up",
 	user_tl_move_track_up);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_track_or_tracks_minimize",
+	"Minimize selected track(s)",
+	user_tl_tracks_minimize);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
@@ -1351,14 +1357,19 @@ static int check_next_line_indent(FILE *f)
     char c;
     int ret = 0;
     while (fgetc(f) != '\n') {}
-    while (is_whitespace_char((c = fgetc(f)))) {
+    /* while (is_whitespace_char((c = fgetc(f)))) { */
+    while (1) {
+	c = fgetc(f);
 	if (c == EOF) {
 	    return -1;
+	}
+	if (!is_whitespace_char(c)) {
+	    ungetc(c, f);
+	    return ret;
 	}
 	ret++;
     }
     ungetc(c, f);
-    return ret;
     
 }
 
@@ -1554,6 +1565,8 @@ void input_load_keybinding_config(const char *filepath)
 	    uint16_t i_state = 0;
 	    SDL_Keycode key = 0;
 	    UserFn *fn = NULL;
+
+
 	    
 	    int next_line_indent;
 	    
@@ -1563,8 +1576,13 @@ void input_load_keybinding_config(const char *filepath)
 	    } else if (next_line_indent == 0) {
 		break;
 	    }
-
-	    while ((c = fgetc(f)) == '-' || c == ' ' || c == '\t') {}
+	    
+	    while ((c = fgetc(f)) == ' ' || c == '\t' || c == '\n') {}
+	    if (c != '-') {
+		fprintf(stderr, "YAML parse error; expected '-' and got '%c'\n", c);
+		exit(1);
+	    }
+	    while ((c = fgetc(f)) == ' ' || c == '\t') {}
 	    
 	    /* Get input pattern */
 	    i = 0;
@@ -1575,7 +1593,7 @@ void input_load_keybinding_config(const char *filepath)
 	    } while (c != ':' && c != ' ' && c != '\t');
 	    buf[i] = '\0';
 	    input_read_keycmd(buf, &i_state, &key);
-	    /* fprintf(stdout, "BUF: %s\n", buf); */
+	    
 	    while ((c = fgetc(f)) == ' ' || c == '\t' || c == ':') {}
 
 	    /* Get fn id*/

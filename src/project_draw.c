@@ -333,18 +333,22 @@ static void track_draw(Track *track)
     /* Draw the colorbar */
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(track->color));
     SDL_RenderFillRect(main_win->rend, track->colorbar);
-    
-    textbox_draw(track->tb_input_label);
-    textbox_draw(track->tb_vol_label);
-    textbox_draw(track->tb_pan_label);
-    textbox_draw(track->tb_input_name);
+
     textbox_draw(track->tb_mute_button);
     textbox_draw(track->tb_solo_button);
     textentry_draw(track->tb_name);
 
-    slider_draw(track->vol_ctrl);
-    slider_draw(track->pan_ctrl);
-    symbol_button_draw(track->automation_dropdown);
+    if (!track->minimized) {
+	textbox_draw(track->tb_input_label);
+	textbox_draw(track->tb_vol_label);
+	textbox_draw(track->tb_pan_label);
+	textbox_draw(track->tb_input_name);
+
+	
+	slider_draw(track->vol_ctrl);
+	slider_draw(track->pan_ctrl);
+	symbol_button_draw(track->automation_dropdown);
+    }
 automations_draw:
     for (uint8_t i=0; i<track->num_automations; i++) {
 	Automation *a = track->automations[i];

@@ -258,6 +258,29 @@ void loop_project_main()
 		case SDL_SCANCODE_7:
 		    proj->loop_play = !proj->loop_play;
 		    break;
+		case SDL_SCANCODE_8:
+		    timeline_minimize_track_or_tracks(proj->timelines[proj->active_tl_index]);
+		    break;
+		/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
+		/*     Track *t = timeline_selected_track(tl); */
+		/*     if (t) { */
+		/* 	t->minimized = !t->minimized; */
+		/* 	if (t->minimized) { */
+		/* 	    if (t->num_automations > 0) { */
+		/* 		track_automations_hide_all(t); */
+		/* 	    } */
+		/* 	    t->layout->h.value = 31.0; */
+		/* 	    t->inner_layout->h.value = 31.0; */
+		/* 	} else { */
+		/* 	    t->layout->h.value = 96.0; */
+		/* 	    t->inner_layout->h.value = 96.0; */
+		/* 	} */
+		/* 	timeline_rectify_track_area(tl); */
+		/* 	tl->needs_redraw = true; */
+		/*     } */
+		/*     /\* layout_reset(t->inner_layout); *\/ */
+		/* } */
+		    /* break; */
 		/* case SDL_SCANCODE_5: */
 		/*     api_node_print_all_routes(&proj->server.api_root); */
 		/*     break; */
@@ -379,6 +402,7 @@ void loop_project_main()
 		    if (main_win->i_state & I_STATE_SHIFT) {
 			if (fabs(e.wheel.preciseY) > fabs(e.wheel.preciseX)) {
 			    timeline_play_speed_adj(e.wheel.preciseY);
+			    if (!proj->playing) transport_start_playback();
 			} else {
 			    play_speed_scroll_recency = 0;
 			    if (!proj->playing) transport_start_playback();
@@ -585,9 +609,17 @@ void loop_project_main()
 	
 	first_frame = false;
 	
-	if (fingersdown > 0 && play_speed_scroll_recency > 4 && play_speed_scroll_recency < 10) {
+	if (fingersdown > 0 && play_speed_scroll_recency > 4 && play_speed_scroll_recency < 20) {
 	    Value old_speed = endpoint_safe_read(&proj->play_speed_ep, NULL);
-	    endpoint_write(&proj->play_speed_ep, (Value){.float_v = old_speed.float_v / 5.0}, true, true, true, false);
+	    float new_speed = old_speed.float_v / 3.0;
+	    if (fabs(new_speed) < 1E-6) {
+		transport_stop_playback();
+		play_speed_scroll_recency = 20;
+		
+	    } else {
+		endpoint_write(&proj->play_speed_ep, (Value){.float_v = new_speed}, true, true, true, false);
+	    }
+
 	}
 	
 	if (proj->play_speed != 0 && !proj->source_mode) {
@@ -613,6 +645,7 @@ void loop_project_main()
 	if (proj->playhead_do_incr) {
 	    timeline_scroll_playhead(proj->playhead_frame_incr);
 	}
+
 	/* update_track_vol_pan(); */
 
 	if (main_win->txt_editing) {

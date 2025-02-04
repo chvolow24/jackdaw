@@ -513,6 +513,9 @@ void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chu
     for (uint16_t i=0; i<padded_len; i++) {
         if (i<chunk_size) {
             padded_chunk[i] = sample_array[i];
+	    /* CLIP AMPLITUDE FIRST -- sounds more boring if you do :) */
+	    /* if (padded_chunk[i] > 1.0) padded_chunk[i] = 1.0; */
+	    /* else if (padded_chunk[i] < -1.0) padded_chunk[i] = -1.0; */	    
         } else {
             padded_chunk[i] = 0.0;
         }

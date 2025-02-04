@@ -865,7 +865,7 @@ static ClickSegment *click_track_cut_at(ClickTrack *tt, int32_t at)
 }
 
 
-NEW_EVENT_FN(undo_cut_click_track, "undo cut tempo track")
+NEW_EVENT_FN(undo_cut_click_track, "undo cut click track")
     ClickTrack *tt = (ClickTrack *)obj1;
     ClickSegment *s = (ClickSegment *)obj2;
     /* int32_t at = val1.int32_v; */
@@ -874,7 +874,7 @@ NEW_EVENT_FN(undo_cut_click_track, "undo cut tempo track")
     tt->tl->needs_redraw = true;
 }
 
-NEW_EVENT_FN(redo_cut_click_track, "redo cut tempo track")
+NEW_EVENT_FN(redo_cut_click_track, "redo cut click track")
     ClickTrack *tt = (ClickTrack *)obj1;
     int32_t at = val1.int32_v;
     ClickSegment *s = click_track_cut_at(tt, at);
@@ -892,6 +892,10 @@ void timeline_cut_click_track_at_cursor(Timeline *tl)
     ClickTrack *tt = timeline_selected_click_track(tl);
     if (!tt) return;
     ClickSegment *s = click_track_cut_at(tt, tl->play_pos_sframes);
+    if (!s) {
+	status_set_errstr("Error: cannot cut at existing segment boundary");
+	return;
+    }
     tl->needs_redraw = true;
     Value cut_pos = {.int32_v = tl->play_pos_sframes};
     Value nullval = {.int_v = 0};

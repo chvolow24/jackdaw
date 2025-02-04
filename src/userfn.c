@@ -1312,6 +1312,11 @@ void user_tl_move_track_down(void *nullarg)
     timeline_move_track_or_automation(ACTIVE_TL, 1);
 }
 
+void user_tl_tracks_minimize(void *nullarg)
+{
+    timeline_minimize_track_or_tracks(ACTIVE_TL);
+}
+
 
 void user_tl_track_activate_selected(void *nullarg)
 {

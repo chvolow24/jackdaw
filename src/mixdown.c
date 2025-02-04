@@ -30,6 +30,7 @@
     * Get samples from tracks/clips for playback or export
  *****************************************************************************************************************/
 
+#include <math.h>
 #include <pthread.h>
 #include "automation.h"
 #include "dsp.h"
@@ -39,6 +40,19 @@
 
 extern Project *proj;
 
+static float do_filter(float raw_input, float *fbuf, const float *coeff, int num_coeffs)
+{
+    /* fprintf(stderr, "\nIN: %f\n", raw_input); */
+    for (int i=0; i<num_coeffs; i++) {
+	raw_input += coeff[i] * fbuf[i];
+	/* fprintf(stderr, "\t%d: %f * %f\n", i, coeff[i], fbuf[i]); */
+	if (isnan(fbuf[i])) exit(1);
+    }
+    memmove(fbuf + 1, fbuf, sizeof(float) * (num_coeffs - 2));
+    fbuf[0] = raw_input;
+    /* fprintf(stderr, "\t--->OUT: %f\n", raw_input); */
+    return raw_input;
+}
 
 float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32_t start_pos_sframes, uint32_t len_sframes, float step)
 {
@@ -70,6 +84,13 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 
     float vol_vals[len_sframes];
     float pan_vals[len_sframes];
+
+    float playspeed_rolloff = 1.0;
+    float fabs_playspeed = fabs(proj->play_speed);
+    if (fabs(proj->play_speed) < 0.01) {
+	playspeed_rolloff = fabs_playspeed * 100.0f;
+    }
+
     
     if (vol_auto && !vol_auto->write && vol_auto->read) {
 	float vol_init = automation_get_value(vol_auto, start_pos_sframes, step).float_v;
@@ -213,8 +234,14 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 		double pan_scale = channel == 0 ?
 		    raw_pan <= 0.5 ? 1 : (1.0f - raw_pan) * 2
 		    : raw_pan >= 0.5 ? 1 : raw_pan * 2;
-
-		chunk[chunk_i] += clip_buf[(int32_t)pos_in_clip_sframes + cr->in_mark_sframes] * vol * pan_scale;
+		/* static const float coeffs[] = {0.1, 0.2, 0.3, 0.2, 0.1, -0.09, -0.18, -0.1, -0.05}; */
+		/* static float filterbuf[9]; */
+		
+		float add = clip_buf[(int32_t)pos_in_clip_sframes + cr->in_mark_sframes] * vol * pan_scale * playspeed_rolloff;
+		
+		/* add = do_filter(add, filterbuf, coeffs, 9); */
+		chunk[chunk_i] += add;
+		
 		total_amp += fabs(chunk[chunk_i]);
 	    }
 	    pos_in_clip_sframes += step;

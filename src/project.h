@@ -110,6 +110,7 @@ typedef struct track {
     bool muted;
     bool solo;
     bool solo_muted;
+    bool minimized;
     uint8_t channels;
     Timeline *tl; /* Parent timeline */
     uint8_t tl_rank;
@@ -557,4 +558,5 @@ void timeline_play_speed_adj(double dim);
 void timeline_scroll_playhead(double dim);
 
 void timeline_reset_loop_play_lemniscate(Timeline *tl);
+void timeline_minimize_track_or_tracks(Timeline *tl);
 #endif

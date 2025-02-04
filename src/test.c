@@ -20,6 +20,7 @@ TEST_FN_DEF(
 	if (num_frames >= max_num_frames) {
 	    num_frames = 0;
 	    *run_tests = false;
+	    main_win->i_state = 0;
 	    return 0;
 	}
     

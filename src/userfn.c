@@ -12,6 +12,7 @@
 #include "project.h"
 #include "settings.h"
 #include "status.h"
+#include "test.h"
 #include "textbox.h"
 #include "transport.h"
 #include "timeline.h"
@@ -409,6 +410,11 @@ void user_global_open_file(void *nullarg)
 /* { */
 /*     main_win->screenrecording = !main_win->screenrecording; */
 /* } */
+
+void user_global_chaotic_user_test(void *nullarg)
+{
+    proj->do_tests = true;
+}
 
 void user_menu_nav_next_item(void *nullarg)
 {
@@ -878,6 +884,11 @@ void user_tl_goto_zero(void *nullarg)
     timeline_reset(tl, false);
 }
 
+void user_tl_toggle_loop_playback(void *nullarg)
+{
+    proj->loop_play = !proj->loop_play;
+}
+
 void user_tl_goto_previous_clip_boundary(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
@@ -907,6 +918,8 @@ void user_tl_goto_previous_clip_boundary(void *nullarg)
     }
 
 }
+
+
 void user_tl_goto_next_clip_boundary(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;

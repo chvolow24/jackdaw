@@ -467,6 +467,9 @@ typedef struct project {
     Endpoint *ongoing_changes[NUM_JDAW_THREADS][MAX_QUEUED_OPS];
     uint8_t num_ongoing_changes[NUM_JDAW_THREADS];
     pthread_mutex_t ongoing_changes_lock;
+
+
+    bool do_tests;
 } Project;
 
 Project *project_create(

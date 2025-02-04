@@ -32,6 +32,7 @@
   - S-f		: show_output_freq_domain
   - C-s		: save_project
   - C-o		: open_file
+  - A-S-<del>	: chaotic_user_test
 - menu_nav:
   - n		: menu_next_item
   - p		: menu_previous_item
@@ -93,6 +94,7 @@
   - S-j		: tl_goto_previous_clip_boundary
   - S-l		: tl_goto_next_clip_boundary
   - S-z		: tl_bring_rear_clip_to_front
+  - C-8		: tl_toggle_loop_playback
   - C-S-o	: tl_set_default_out
   - C-t		: tl_track_add
   - 1		: tl_track_select_1

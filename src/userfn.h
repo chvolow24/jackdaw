@@ -1,6 +1,7 @@
 #ifndef JDAW_GUI_USERFN_H
 #define JDAW_GUI_USERFN_H
 
+#include "test.h"
 
 void user_global_menu(void *nullarg);
 void user_global_quit(void *nullarg);
@@ -55,6 +56,7 @@ void user_tl_goto_mark_in(void *nullarg);
 void user_tl_goto_zero(void *nullarg);
 void user_tl_goto_previous_clip_boundary(void *nullarg);
 void user_tl_goto_next_clip_boundary(void *nullarg);
+void user_tl_toggle_loop_playback(void *nullarg);
 void user_tl_bring_rear_clip_to_front(void *nullarg);
 /* void user_tl_play_drag(void *nullarg); */
 /* void user_tl_rewind_drag(void *nullarg); */
@@ -168,5 +170,6 @@ void user_tabview_next_tab(void *nullarg);
 void user_tabview_previous_tab(void *nullarg);
 void user_tabview_escape(void *nullarg);
 
-#endif
+void user_global_chaotic_user_test(void *nullarg);
 
+#endif

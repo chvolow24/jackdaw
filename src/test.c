@@ -65,9 +65,9 @@ TEST_FN_DEF(
 	    e.type = SDL_KEYUP;
 	    SDL_PushEvent(&e);
 	    
-	    char *keycmd_str = input_get_keycmd_str(i_state, key);
-	    fprintf(stderr, "%s\n", keycmd_str);
-	    free(keycmd_str);
+	    /* char *keycmd_str = input_get_keycmd_str(i_state, key); */
+	    /* fprintf(stderr, "%s\n", keycmd_str); */
+	    /* free(keycmd_str); */
 	}
 	/* fprintf(stderr, "\n\n\n\n"); */
 	return 0;

@@ -216,6 +216,11 @@ static void mode_load_global()
 	user_global_open_file);
     mode_subcat_add_fn(mc, fn);
 
+    fn = create_user_fn(
+	"chaotic_user_test",
+	"Chaotic user test (debug only)",
+	user_global_chaotic_user_test);
+    mode_subcat_add_fn(mc, fn);
     /* fn = create_user_fn( */
     /* 	"start_or_stop_screenrecording", */
     /* 	"Start or stop screenrecording", */
@@ -546,6 +551,12 @@ static void mode_load_timeline()
 	"tl_bring_rear_clip_to_front",
 	"Bring rear clip at cursor to front",
 	user_tl_bring_rear_clip_to_front);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_toggle_loop_playback",
+	"Toggle loop playback",
+	user_tl_toggle_loop_playback);
     mode_subcat_add_fn(sc, fn);
 
     /* Audio output */

@@ -186,7 +186,6 @@ void loop_project_main()
     bool first_frame = true;
     int wheel_event_recency = 0;
     int play_speed_scroll_recency = 60;
-    bool do_tests = false;
     while (!(main_win->i_state & I_STATE_QUIT)) {
 	/* fprintf(stdout, "About to poll...\n"); */
 	while (SDL_PollEvent(&e)) {
@@ -250,17 +249,6 @@ void loop_project_main()
 		scrolling_lt = NULL;
 		temp_scrolling_lt = NULL;
 		switch (e.key.keysym.scancode) {
-#ifdef TESTBUILD
-		case SDL_SCANCODE_6:
-		    do_tests = !do_tests;
-		    break;
-#endif
-		case SDL_SCANCODE_7:
-		    proj->loop_play = !proj->loop_play;
-		    break;
-		case SDL_SCANCODE_8:
-		    timeline_minimize_track_or_tracks(proj->timelines[proj->active_tl_index]);
-		    break;
 		/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
 		/*     Track *t = timeline_selected_track(tl); */
 		/*     if (t) { */
@@ -714,8 +702,8 @@ void loop_project_main()
 	SDL_Delay(1);
 
 
-	if (do_tests) {
-	    TEST_FN_CALL(chaotic_user, &do_tests, 60 * 10); /* 10s of really dumb tests */
+	if (proj->do_tests) {
+	    TEST_FN_CALL(chaotic_user, &proj->do_tests, 60 * 10); /* 10s of really dumb tests */
 	}
     }
 }

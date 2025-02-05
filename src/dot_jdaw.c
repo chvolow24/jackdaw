@@ -197,7 +197,7 @@ static void jdaw_write_timeline(FILE *f, Timeline *tl)
 
     int16_ser_le(f, &tl->track_area->num_children);
     
-    for (uint8_t i=0; i<tl->track_area->num_children; i++) {
+    for (uint16_t i=0; i<tl->track_area->num_children; i++) {
 	tl->layout_selector = i;
 	timeline_rectify_track_indices(tl);
 	Track *t;

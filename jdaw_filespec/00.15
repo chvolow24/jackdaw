@@ -38,7 +38,7 @@ CLIP_DATA     ?			int16_t[]		  CLIP SAMPLE DATA
 TL	      8			char[8]			  "TIMELINE"
 TL	      1			uint8_t			  timeline name length
 TL	      0-255		char[]	                  timeline name
-TL	      1			uint8_t	                  num tracks (incl track && click tracks)
+TL	      2			int16_t 	          num tracks (incl track && click tracks)
 
 
 .................................................

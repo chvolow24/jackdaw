@@ -249,57 +249,6 @@ void loop_project_main()
 		scrolling_lt = NULL;
 		temp_scrolling_lt = NULL;
 		switch (e.key.keysym.scancode) {
-		/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
-		/*     Track *t = timeline_selected_track(tl); */
-		/*     if (t) { */
-		/* 	t->minimized = !t->minimized; */
-		/* 	if (t->minimized) { */
-		/* 	    if (t->num_automations > 0) { */
-		/* 		track_automations_hide_all(t); */
-		/* 	    } */
-		/* 	    t->layout->h.value = 31.0; */
-		/* 	    t->inner_layout->h.value = 31.0; */
-		/* 	} else { */
-		/* 	    t->layout->h.value = 96.0; */
-		/* 	    t->inner_layout->h.value = 96.0; */
-		/* 	} */
-		/* 	timeline_rectify_track_area(tl); */
-		/* 	tl->needs_redraw = true; */
-		/*     } */
-		/*     /\* layout_reset(t->inner_layout); *\/ */
-		/* } */
-		    /* break; */
-		/* case SDL_SCANCODE_5: */
-		/*     api_node_print_all_routes(&proj->server.api_root); */
-		/*     break; */
-
-		/* case SDL_SCANCODE_6: { */
-		/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
-		/*     Track *t = timeline_selected_track(tl); */
-		/*     Automation *a = t->automations[0]; */
-		/*     float a_vals[100]; */
-		/*     memset(a_vals, '\0', 100 * sizeof(float)); */
-		/*     automation_get_range(a, a_vals, 100, tl->play_pos_sframes, 1.0); */
-		/*     for (int i=0; i<100; i++) { */
-		/* 	fprintf(stderr, "%p: %d: %f\n", a_vals + i, i, a_vals[i]); */
-		/*     } */
-		/* } */
-		    
-		/*     break; */
-		/* case SDL_SCANCODE_7: { */
-		/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
-		/*     Track *t = timeline_selected_track(tl); */
-		/*     Automation *a = t->automations[0]; */
-		/*     float a_vals[100]; */
-		/*     memset(a_vals, '\0', 100 * sizeof(float)); */
-		/*     automation_get_range(a, a_vals, 100, tl->play_pos_sframes, 4.0); */
-		/*     for (int i=0; i<100; i++) { */
-		/* 	fprintf(stderr, "%d: %f\n", i, a_vals[i]); */
-		/*     } */
-
-		/*     /\* layout_write_debug(stdout, tl->track_area, 0, 3); *\/ */
-		/* } */
-		/* 	break; */
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LCTRL:

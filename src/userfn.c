@@ -1209,10 +1209,10 @@ void user_tl_track_selector_down(void *nullarg)
 	    if (auto_sel >= 0) {
 		goto button_animation_and_exit;
 	    }
-	    timeline_cache_grabbed_clip_offsets(tl);
 	} else {
 	    selected->selected_automation = -1;
 	}
+	timeline_cache_grabbed_clip_offsets(tl);
     }
     
     Track *prev_selected = selected;

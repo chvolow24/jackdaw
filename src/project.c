@@ -1799,7 +1799,7 @@ static void clipref_remove_from_track(ClipRef *cr)
 	    
 	}
     }
-    track->num_clips--;
+    if (displace) track->num_clips--; /* else not found! */
 }
 
 void clipref_displace(ClipRef *cr, int displace_by)
@@ -2524,7 +2524,9 @@ void clipref_destroy(ClipRef *cr, bool displace_in_clip)
 	    track->clips[i-1] = track->clips[i];
 	}
     }
-    track->num_clips--;
+    if (displace) {
+	track->num_clips--; /* else not found! */
+    }
     /* fprintf(stdout, "\t->Track %d now has %d clips\n", track->tl_rank, track->num_clips); */
 
     if (displace_in_clip) {
@@ -2885,8 +2887,12 @@ void timeline_delete_grabbed_cliprefs(Timeline *tl)
 
 int32_t clipref_len(ClipRef *cr)
 {
-    if (cr->out_mark_sframes <= cr->in_mark_sframes) {
-	return cr->clip->len_sframes;
+    if (cr->out_mark_sframes < cr->in_mark_sframes) {
+	fprintf(stderr, "ERROR: clipref has negative length\n");
+	breakfn();
+	return 0;
+    /* } else if (cr->out_mark_sframes == cr->in_mark_sframes) { */
+    /* 	return cr->clip->len_sframes; */
     } else {
 	return cr->out_mark_sframes - cr->in_mark_sframes;
     }
@@ -3056,6 +3062,7 @@ static ClipRef *clipref_cut(ClipRef *cr, int32_t cut_pos_rel)
     if (!new) {
 	return NULL;
     }
+    if (cut_pos_rel < 0) return NULL;
     new->in_mark_sframes = cr->in_mark_sframes + cut_pos_rel;
     new->out_mark_sframes = cr->out_mark_sframes == 0 ? clipref_len(cr) : cr->out_mark_sframes;
     Value orig_end_pos = {.int32_v = cr->out_mark_sframes};

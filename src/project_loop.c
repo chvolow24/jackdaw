@@ -562,14 +562,10 @@ void loop_project_main()
 	if (proj->play_speed != 0 && !proj->source_mode) {
 	    timeline_catchup(tl);
 	    timeline_set_timecode(tl);
-	    /* fprintf(stderr, "PROJECT LOOP: Start tempo track bbs\n"); */
 	    for (int i=0; i<tl->num_click_tracks; i++) {
-		/* fprintf(stderr, "\tstart %d/%d\n", i, tl->num_click_tracks); */
 		int bar, beat, subdiv;
 		click_track_bar_beat_subdiv(tl->click_tracks[i], tl->play_pos_sframes, &bar, &beat, &subdiv, NULL, true);
-		/* fprintf(stderr, "\tend %d/%d\n", i, tl->num_click_tracks); */
 	    }
-	    /* fprintf(stderr, "->PROJECT LOOP exit\n"); */
 	}
 
 	if (animate_step == 255) {

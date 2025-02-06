@@ -1131,9 +1131,9 @@ int32_t click_track_bar_beat_subdiv(ClickTrack *tt, int32_t pos, int *bar_p, int
     /* 	debug = true; */
     /* } */
     /* fprintf(stderr, "CALL TO bar beat subdiv in thread %s\n", get_thread_name()); */
-    static JDAW_THREAD_LOCAL int measures[MAX_CLICK_TRACKS];
-    static JDAW_THREAD_LOCAL int beats[MAX_CLICK_TRACKS];
-    static JDAW_THREAD_LOCAL int subdivs[MAX_CLICK_TRACKS];
+    static JDAW_THREAD_LOCAL int measures[MAX_CLICK_TRACKS] = {0};
+    static JDAW_THREAD_LOCAL int beats[MAX_CLICK_TRACKS] = {0};
+    static JDAW_THREAD_LOCAL int subdivs[MAX_CLICK_TRACKS] = {0};
     /* static JDAW_THREAD_LOCAL int32_t prev_positions[MAX_CLICK_TRACKS]; */
     
     int measure = measures[tt->index];
@@ -1176,6 +1176,7 @@ int32_t click_track_bar_beat_subdiv(ClickTrack *tt, int32_t pos, int *bar_p, int
 	#ifdef TESTBUILD
 	ops++;
 	if (ops > 1000000 - 5) {
+	    if (ops > 1000000 - 3) breakfn();
 	    fprintf(stderr, "ABORTING soon... ops = %d\n", ops);
 	    fprintf(stderr, "Segment start/end: %d-%d\n", s->start_pos, s->end_pos);
 	    fprintf(stderr, "Beat pos: %d\n", beat_pos);
@@ -1183,7 +1184,6 @@ int32_t click_track_bar_beat_subdiv(ClickTrack *tt, int32_t pos, int *bar_p, int
 	    if (ops > 1000000) {
 		fprintf(stderr, "ABORT\n");
 		click_track_fprint(stderr, tt);
-		breakfn();
 		goto set_dst_values;
 		/* return 0; */
 		/* exit(1); */

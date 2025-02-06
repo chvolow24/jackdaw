@@ -252,6 +252,7 @@ static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, 
     
     if (sfpp <= 0) {
 	fprintf(stderr, "Error in waveform_draw_channel: sfpp<=0\n");
+	breakfn();
 	return;
     }
 
@@ -371,6 +372,7 @@ static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t
     float sfpp = (double) buflen / w;
     if (sfpp <= 0) {
 	fprintf(stderr, "Error in waveform_draw_channel: sfpp<=0\n");
+	breakfn();
 	return;
     }
 
@@ -397,10 +399,11 @@ static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t
 	    
 	    int sfpp_safe = round(sfpp) < SFPP_SAFE ? round(sfpp) : SFPP_SAFE;
 	    for (int i=0; i<sfpp_safe; i++) {
-		if (sample_i + i >= buflen) {
+		int sample_i_rounded = (int)round(sample_i) + i;
+		if (sample_i_rounded >= buflen) {
 		    break;
 		}
-		float sample = channel[(int)round(sample_i) + i];
+		float sample = channel[sample_i_rounded];
 		if (sample > max_amp_pos) {
 		    max_amp_pos = sample;
 		} else if (sample < max_amp_neg) {

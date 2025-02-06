@@ -181,6 +181,11 @@ static void clipref_draw_waveform(ClipRef *cr)
     int32_t cr_len = clipref_len(cr);
     int32_t start_pos = 0;
     int32_t end_pos = cr_len;
+    if (end_pos - start_pos == 0) {
+	fprintf(stderr, "Error: cr \"%s\" has 0 length\n", cr->name);
+	breakfn();
+	return;
+    }
     double sfpp = cr->track->tl->sample_frames_per_pixel;
     SDL_Rect onscreen_rect = cr->layout->rect;
     if (onscreen_rect.x > main_win->w_pix) return;
@@ -188,10 +193,11 @@ static void clipref_draw_waveform(ClipRef *cr)
     if (onscreen_rect.x < 0) {
 	start_pos = sfpp * -1 * onscreen_rect.x;
 	if (start_pos < 0 || start_pos > clipref_len(cr)) {
-	    return;
 	    fprintf(stderr, "ERROR: start pos is %d\n", start_pos);
 	    fprintf(stderr, "vs len: %d\n", start_pos - cr_len);
 	    fprintf(stderr, "Clipref: %s\n", cr->name);
+	    breakfn();
+	    return;
 	    /* exit(1); */
 	}
 	onscreen_rect.w += onscreen_rect.x;
@@ -201,7 +207,8 @@ static void clipref_draw_waveform(ClipRef *cr)
 	
 	if (end_pos <= start_pos || end_pos > cr_len) {
 	    fprintf(stderr, "ERROR: end pos is %d\n", end_pos);
-	    exit(1);
+	    breakfn();
+	    return;
 	}
 	onscreen_rect.w = main_win->w_pix - onscreen_rect.x;
 	end_pos = start_pos + sfpp * onscreen_rect.w;

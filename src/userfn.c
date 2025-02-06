@@ -356,6 +356,8 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 	
     } else if (strcmp("jdaw", ext) * strcmp("JDAW", ext) == 0) {
 	fprintf(stdout, "Jdaw file selected\n");
+	if (proj->recording) transport_stop_recording();
+	else if (proj->playing) transport_stop_playback();
 	api_quit(proj);
 	Project *new_proj = jdaw_read_file(dp->path);
 	if (new_proj) {
@@ -416,9 +418,21 @@ void user_global_chaotic_user_test(void *nullarg)
     proj->do_tests = true;
 }
 
+static void menu_nav_mode_error()
+{
+    fprintf(stderr, "ERROR: in mode menu_nav, no menu on main window");
+    breakfn();
+    window_pop_mode(main_win);
+}
+
 void user_menu_nav_next_item(void *nullarg)
 {
     Menu *m = window_top_menu(main_win);
+    if (!m) {
+	menu_nav_mode_error();
+	return;
+    }
+
     if (m->sel_col == 255) {
 	m->sel_col = 0;
     }
@@ -444,8 +458,8 @@ void user_menu_nav_prev_item(void *nullarg)
 {
     Menu *m = window_top_menu(main_win);
     if (!m) {
-	fprintf(stderr, "No menu on main window\n");	
-	exit(1);
+	menu_nav_mode_error();
+	return;
     }
     if (m->sel_col == 255) {
 	m->sel_col = 0;
@@ -482,10 +496,9 @@ void user_menu_nav_column_right(void *nullarg)
 {
     Menu *m = window_top_menu(main_win);
     if (!m) {
-	fprintf(stderr, "No menu on main window\n");	
-	exit(1);
+	menu_nav_mode_error();
+	return;
     }
-
     if (m->sel_col < m->num_columns - 1) {
 	fprintf(stdout, "Sel col to inc: %d, num: %d\n", m->sel_col, m->num_columns);
 	m->sel_col++;
@@ -505,10 +518,9 @@ void user_menu_nav_column_left(void *nullarg)
 {
     Menu *m = window_top_menu(main_win);
     if (!m) {
-	fprintf(stderr, "No menu on main window\n");	
-	exit(1);
+	menu_nav_mode_error();
+	return;
     }
-
     if (m->sel_col == 255) {
 	m->sel_col = 0;
     } else if (m->sel_col > 0) {
@@ -1150,7 +1162,7 @@ void user_tl_track_selector_up(void *nullarg)
 	    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
 		int offset = tl->grabbed_clip_pos_cache[i].track_offset;
 		int new_index = tl->track_selector + offset;
-		if (new_index >= 0) {
+		if (new_index >=0 && new_index < tl->num_tracks) {
 		    some_clip_moved = true;
 		    ClipRef *cr = tl->grabbed_clips[i];
 		    clipref_move_to_track(cr, tl->tracks[new_index]);
@@ -1232,7 +1244,7 @@ void user_tl_track_selector_down(void *nullarg)
 	    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
 		int offset = tl->grabbed_clip_pos_cache[i].track_offset;
 		int new_index = tl->track_selector + offset;
-		if (new_index < tl->num_tracks) {
+		if (new_index >=0 && new_index < tl->num_tracks) {
 		    ClipRef *cr = tl->grabbed_clips[i];
 		    clipref_move_to_track(cr, tl->tracks[new_index]);
 		}

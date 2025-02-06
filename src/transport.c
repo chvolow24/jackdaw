@@ -628,12 +628,15 @@ void transport_stop_recording()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     tl->needs_redraw = true;
-    ClipRef **created_clips = calloc(tl->num_tracks, sizeof(ClipRef *));
-    uint8_t num_created = 0;
+    ClipRef **created_clips = calloc(tl->num_tracks * 2, sizeof(ClipRef *));
+    uint16_t num_created = 0;
     for (uint16_t i=proj->active_clip_index; i<proj->num_clips; i++) {
 	Clip *clip = proj->clips[i];
 	for (uint16_t j=0; j<clip->num_refs; j++) {
 	    ClipRef *ref = clip->refs[j];
+	    if (num_created >= tl->num_tracks * 2 - 1) {
+		created_clips = realloc(created_clips, num_created * 2 * sizeof(ClipRef *));
+	    }
 	    created_clips[num_created] = ref;
 	    num_created++;
 	}

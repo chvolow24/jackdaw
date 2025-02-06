@@ -497,6 +497,9 @@ static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv,
 	page_colors,
 	&color_global_white,
 	main_win);
+    if (tv->current_tab >= tv->num_tabs) {
+	tv->current_tab = 0;
+    }
     
     layout_force_reset(page->layout);
 

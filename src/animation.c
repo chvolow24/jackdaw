@@ -85,40 +85,6 @@ Animation *project_queue_animation(
     /* pthread_mutex_unlock(&proj->animation_lock); */
 }
 
-void project_animations_do_frame()
-{
-    /* pthread_mutex_lock(&proj->animation_lock); */
-    Animation *a = proj->animations;
-    while (a) {
-	if (a->frame_op)
-	    a->frame_op(a->arg1, a->arg2);
-	a->frame_ctr--;
-	if (a->frame_ctr == 0) {
-	    if (a->end_op)
-		a->end_op(a->arg1, a->arg2);
-	    if (a->prev) {
-		a->prev->next = a->next;
-		if (a->next) {
-		    a->next->prev = a->prev;
-		}
-	    } else {
-		proj->animations = a->next;
-		if (a->next) {
-		    a->next->prev = NULL;
-		}
-	    }
-	    Animation *next  = a->next;
-	    animation_destroy(a);
-	    a = next;
-	    
-	} else {
-	    a = a->next;
-	}
-
-    }
-    /* pthread_mutex_unlock(&proj->animation_lock); */
-}
-
 
 void project_dequeue_animation(Animation *a)
 {
@@ -132,6 +98,42 @@ void project_dequeue_animation(Animation *a)
     }
     animation_destroy(a);
 
+}
+
+
+void project_animations_do_frame()
+{
+    /* pthread_mutex_lock(&proj->animation_lock); */
+    Animation *a = proj->animations;
+    while (a) {
+	if (a->frame_op)
+	    a->frame_op(a->arg1, a->arg2);
+	a->frame_ctr--;
+	if (a->frame_ctr == 0) {
+	    if (a->end_op)
+		a->end_op(a->arg1, a->arg2);
+	    /* if (a->prev) { */
+	    /* 	a->prev->next = a->next; */
+	    /* 	if (a->next) { */
+	    /* 	    a->next->prev = a->prev; */
+	    /* 	} */
+	    /* } else { */
+	    /* 	proj->animations = a->next; */
+	    /* 	if (a->next) { */
+	    /* 	    a->next->prev = NULL; */
+	    /* 	} */
+	    /* } */
+	    Animation *next  = a->next;
+	    project_dequeue_animation(a);
+	    /* animation_destroy(a); */
+	    a = next;
+	    
+	} else {
+	    a = a->next;
+	}
+
+    }
+    /* pthread_mutex_unlock(&proj->animation_lock); */
 }
 
 void project_destroy_animations(Project *proj)

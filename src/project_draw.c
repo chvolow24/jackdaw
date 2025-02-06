@@ -182,7 +182,6 @@ static void clipref_draw_waveform(ClipRef *cr)
     int32_t start_pos = 0;
     int32_t end_pos = cr_len;
     if (end_pos - start_pos == 0) {
-	fprintf(stderr, "Error: cr \"%s\" has 0 length\n", cr->name);
 	breakfn();
 	return;
     }

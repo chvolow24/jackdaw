@@ -1979,6 +1979,7 @@ void user_tl_drop_from_source(void *nullarg)
     }
     if (proj->src_clip) {
 	/* int32_t drop_pos = tl->play_pos_sframes - proj->play_speed * 2 * proj->chunk_size_sframes; */
+	if (proj->src_in_sframes >= proj->src_out_sframes) return;
 	int32_t drop_pos = tl->play_pos_sframes;
 	/* int32_t drop_pos = get_drop_pos(); */
 	ClipRef *cr = track_create_clip_ref(track, proj->src_clip, drop_pos, false);

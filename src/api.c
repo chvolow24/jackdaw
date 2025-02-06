@@ -224,7 +224,7 @@ static void *server_threadfn(void *arg)
     char buffer[1024];
     proj->server.active = true;
     while (proj->server.active) {
-	if (recvfrom(proj->server.sockfd, (char *)buffer, 1024, 0, (struct sockaddr *) &proj->server.servaddr, &len) < 0) {
+	if (recvfrom(proj->server.sockfd, (char *)buffer, 1024, 0, (struct sockaddr *)&proj->server.servaddr, &len) < 0) {
 	    perror("recvfrom");
 	    exit(1);
 	}
@@ -259,6 +259,7 @@ int api_start_server(Project *proj, int port)
     proj->server.port = port;
     pthread_create(&servthread, NULL, server_threadfn, (void *)proj);
     proj->server.thread_id = servthread;
+    fprintf(stderr, "Launching server on port %d\n", port);
     return 0;
 }
 

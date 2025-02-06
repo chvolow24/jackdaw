@@ -1645,22 +1645,31 @@ void user_tl_track_automation_toggle_read(void *nullarg)
 
 void user_tl_record(void *nullarg)
 {
+    if (proj->recording) {
+	transport_stop_recording();
+	return;
+    }
+
+    if (proj->automation_recording) {
+	automation_record(proj->automation_recording);
+	proj->automation_recording = NULL;
+	return;
+    }
     Timeline *tl = ACTIVE_TL;
     Track *sel_track = timeline_selected_track(tl);
     if (!sel_track) {
-	status_set_errstr(NO_TRACK_ERRSTR);
+	status_set_errstr("Select an audio track to record");
 	return;
     }
     if (sel_track && sel_track->selected_automation >= 0) {
-	automation_record(sel_track->automations[sel_track->selected_automation]);
+	Automation *sel_auto = sel_track->automations[sel_track->selected_automation];
+	automation_record(sel_auto);
+	proj->automation_recording = sel_auto;
 	tl->needs_redraw = true;
 	return;
     }
-    if (proj->recording) {
-	transport_stop_recording();
-    } else {
-	transport_start_recording();
-    }
+    transport_start_recording();
+
     /* tl->needs_redraw = true; */
 }
 

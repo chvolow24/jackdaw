@@ -360,6 +360,7 @@ typedef struct project {
     bool dragging;
     bool recording;
     bool playing;
+    Automation *automation_recording;
 
     AudioConn *record_conns[MAX_PROJ_AUDIO_CONNS];
     uint8_t num_record_conns;

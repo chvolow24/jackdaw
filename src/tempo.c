@@ -1385,6 +1385,12 @@ void click_track_decrement_vol(ClickTrack *tt)
     slider_reset(tt->metronome_vol_slider);
 }
 
+static void timeline_select_click_track(Timeline *tl, ClickTrack *ct)
+{
+    tl->layout_selector = ct->layout->index;
+    timeline_rectify_track_indices(tl);
+}
+
 /* Mouse click */
 bool click_track_triage_click(uint8_t button, ClickTrack *t)
 {
@@ -1403,7 +1409,9 @@ bool click_track_triage_click(uint8_t button, ClickTrack *t)
     }
     if (SDL_PointInRect(&main_win->mousep, t->console_rect)) {
 	if (SDL_PointInRect(&main_win->mousep, &t->edit_button->layout->rect)) {
-	    timeline_click_track_edit(proj->timelines[proj->active_tl_index]);
+	    Timeline *tl = proj->timelines[proj->active_tl_index];
+	    timeline_select_click_track(tl, t);
+	    timeline_click_track_edit(tl);
 	    return true;
 	}
 	return true;

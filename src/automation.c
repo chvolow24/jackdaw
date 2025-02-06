@@ -1995,7 +1995,8 @@ void user_tl_pause(void *nullarg);
 /*     keyframe_recalculate_m(a, kcr->last - a->keyframes); */
 /* } */
 
-void automation_record(Automation *a)
+
+bool automation_record(Automation *a)
 {
     /* static int32_t start_pos = 0; */
     /* static Keyframe *cache; */
@@ -2053,6 +2054,7 @@ void automation_record(Automation *a)
 	/*     0, 0, false, false); */
 	user_tl_pause(NULL);
     }
+    return write;
 }
 
 void automation_clear_cache(Automation *a)

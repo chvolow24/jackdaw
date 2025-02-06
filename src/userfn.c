@@ -964,13 +964,15 @@ void user_tl_goto_next_clip_boundary(void *nullarg)
 static void tl_goto_prox_click(Timeline *tl, int direction, enum beat_prominence bp)
 {
     ClickTrack *ct = NULL;
-    for (int i=0; i<tl->num_click_tracks; i++) {
+    for (int i=tl->num_click_tracks - 1; i>=0; i--) {
 	if (tl->click_tracks[i]->layout->index <= tl->layout_selector) {
 	    ct = tl->click_tracks[i];
 	    break;
 	}
     }
-    click_track_goto_prox_beat(ct, direction, bp);
+    if (ct) {
+	click_track_goto_prox_beat(ct, direction, bp);
+    }
 }
 
 void user_tl_goto_next_beat(void *nullarg)

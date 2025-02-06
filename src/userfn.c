@@ -925,7 +925,7 @@ void user_tl_goto_previous_clip_boundary(void *nullarg)
     } else {
 	ClickTrack *tt = timeline_selected_click_track(tl);
 	if (tt) {
-	    timeline_goto_prox_beat(tl, -1, BP_BEAT);
+	    click_track_goto_prox_beat(tt, -1, BP_BEAT);
 	}
     }
 
@@ -956,9 +956,51 @@ void user_tl_goto_next_clip_boundary(void *nullarg)
     } else {
 	ClickTrack *tt = timeline_selected_click_track(tl);
 	if (tt) {
-	    timeline_goto_prox_beat(tl, 1, BP_BEAT);
+	    click_track_goto_prox_beat(tt, 1, BP_BEAT);
 	}
     }
+}
+
+static void tl_goto_prox_click(Timeline *tl, int direction, enum beat_prominence bp)
+{
+    ClickTrack *ct = NULL;
+    for (int i=0; i<tl->num_click_tracks; i++) {
+	if (tl->click_tracks[i]->layout->index <= tl->layout_selector) {
+	    ct = tl->click_tracks[i];
+	    break;
+	}
+    }
+    click_track_goto_prox_beat(ct, direction, bp);
+}
+
+void user_tl_goto_next_beat(void *nullarg)
+{
+    tl_goto_prox_click(ACTIVE_TL, 1, BP_BEAT);
+}
+
+void user_tl_goto_prev_beat(void *nullarg)
+{
+    tl_goto_prox_click(ACTIVE_TL,-1, BP_BEAT);
+}
+
+void user_tl_goto_next_subdiv(void *nullarg)
+{
+    tl_goto_prox_click(ACTIVE_TL, 1, BP_SUBDIV);
+}
+
+void user_tl_goto_prev_subdiv(void *nullarg)
+{
+    tl_goto_prox_click(ACTIVE_TL, -1, BP_SUBDIV);
+}
+
+void user_tl_goto_next_measure(void *nullarg)
+{
+    tl_goto_prox_click(ACTIVE_TL, 1, BP_MEASURE);
+}
+
+void user_tl_goto_prev_measure(void *nullarg)
+{
+    tl_goto_prox_click(ACTIVE_TL, -1, BP_MEASURE);
 }
 
 void user_tl_bring_rear_clip_to_front(void *nullarg)

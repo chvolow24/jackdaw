@@ -921,10 +921,10 @@ void timeline_increment_click_at_cursor(Timeline *tl, int inc_by)
     tl->needs_redraw = true;
 }
 
-void timeline_goto_prox_beat(Timeline *tl, int direction, enum beat_prominence bp)
+void click_track_goto_prox_beat(ClickTrack *tt, int direction, enum beat_prominence bp)
 {
-    ClickTrack *tt = timeline_selected_click_track(tl);
-    if (!tt) return;
+
+    Timeline *tl = tt->tl;
     ClickSegment *s;
     
     int bar, beat, subdiv;

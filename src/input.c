@@ -548,6 +548,42 @@ static void mode_load_timeline()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
+	"tl_goto_next_beat",
+	"Go to next beat",
+	user_tl_goto_next_beat);
+    mode_subcat_add_fn(sc, fn);
+    
+    fn = create_user_fn(
+	"tl_goto_prev_beat",
+	"Go to prev beat",
+	user_tl_goto_prev_beat);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_goto_next_subdiv",
+	"Go to next subdiv",
+	user_tl_goto_next_subdiv);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_goto_prev_subdiv",
+	"Go to prev subdiv",
+	user_tl_goto_prev_subdiv);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_goto_next_measure",
+	"Go to next measure",
+	user_tl_goto_next_measure);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_goto_prev_measure",
+	"Go to prev measure",
+	user_tl_goto_prev_measure);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
 	"tl_bring_rear_clip_to_front",
 	"Bring rear clip at cursor to front",
 	user_tl_bring_rear_clip_to_front);

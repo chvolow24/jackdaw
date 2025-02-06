@@ -143,7 +143,8 @@ typedef struct click_track {
 ClickTrack *timeline_add_click_track(Timeline *tl);
 void timeline_cut_click_track_at_cursor(Timeline *tl);
 void timeline_increment_tempo_at_cursor(Timeline *tl, int inc_by);
-void timeline_goto_prox_beat(Timeline *tl, int direction, enum beat_prominence bp);
+void click_track_goto_prox_beat(ClickTrack *tt, int direction, enum beat_prominence bp);
+/* void timeline_goto_prox_beat(Timeline *tl, int direction, enum beat_prominence bp); */
 void timeline_click_track_set_tempo_at_cursor(Timeline *tl);
 void timeline_click_track_edit(Timeline *tl);
 bool timeline_click_track_delete(Timeline *tl);

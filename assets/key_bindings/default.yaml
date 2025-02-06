@@ -67,8 +67,6 @@
   - q		: tl_rewind
   - K-l		: tl_play_slow
   - K-j		: tl_rewind_slow
-  - C-l		: tl_play_slow
-  - C-j		: tl_rewind_slow
   - S-k		: tl_pause
   - [		: tl_move_playhead_left
   - ]		: tl_move_playhead_right
@@ -93,6 +91,12 @@
   - S-u		: tl_goto_zero
   - S-j		: tl_goto_previous_clip_boundary
   - S-l		: tl_goto_next_clip_boundary
+  - C-l		: tl_goto_next_beat
+  - C-j		: tl_goto_prev_beat
+  - C-S-l	: tl_goto_next_subdiv
+  - C-S-j	: tl_goto_prev_subdiv
+  - A-S-l	: tl_goto_next_measure
+  - A-S-j	: tl_goto_prev_measure
   - S-z		: tl_bring_rear_clip_to_front
   - C-8		: tl_toggle_loop_playback
   - C-S-o	: tl_set_default_out

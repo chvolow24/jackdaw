@@ -56,6 +56,16 @@ void user_tl_goto_mark_in(void *nullarg);
 void user_tl_goto_zero(void *nullarg);
 void user_tl_goto_previous_clip_boundary(void *nullarg);
 void user_tl_goto_next_clip_boundary(void *nullarg);
+
+void user_tl_goto_next_beat(void *nullarg);
+void user_tl_goto_prev_beat(void *nullarg);
+void user_tl_goto_next_subdiv(void *nullarg);
+void user_tl_goto_prev_subdiv(void *nullarg);
+void user_tl_goto_next_measure(void *nullarg);
+void user_tl_goto_prev_measure(void *nullarg);
+
+void user_tl_bring_rear_clip_to_front(void *nullarg);
+
 void user_tl_toggle_loop_playback(void *nullarg);
 void user_tl_bring_rear_clip_to_front(void *nullarg);
 /* void user_tl_play_drag(void *nullarg); */

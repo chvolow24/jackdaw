@@ -150,7 +150,7 @@ Animation *project_queue_animation(
 	arg1, arg2,
 	ctr_init);
 
-    get_bt_alloc(new);
+    /* get_bt_alloc(new); */
 
     /* pthread_mutex_lock(&proj->animation_lock); */
     Animation *node = proj->animations;

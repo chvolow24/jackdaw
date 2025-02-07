@@ -277,7 +277,7 @@ int32_t wav_load(Project *proj, const char *filename, float **L, float **R)
 	(*L)[i] = (float)src_buf[i*2] / INT16_MAX;
 	(*R)[i] = (float)src_buf[i*2+1] / INT16_MAX;
     }
-
+    free(final_buffer);
     return buf_len_sframes;
 }
 

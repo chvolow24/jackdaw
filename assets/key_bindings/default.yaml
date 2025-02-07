@@ -25,6 +25,7 @@
 - global:
   - C-m		: menu
   - C-h		: menu
+  - <esc>	: escape
   - C-q		: quit
   - C-z		: undo
   - C-y		: redo

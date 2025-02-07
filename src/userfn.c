@@ -92,6 +92,21 @@ static int quit_no_action(void *self, void *xarg)
     return 0;
 }
 
+void user_tl_activate_source_mode(void *nullarg);
+    
+/* Escape a confusing or illegal program state */
+void user_global_escape(void *nullarg)
+{
+    if (proj->source_mode) {
+	user_tl_activate_source_mode(NULL);
+    } else if (main_win->num_modes > 1) {
+	window_pop_mode(main_win);
+    } else if (main_win->modes[0] != TIMELINE) {
+	main_win->modes[0] = TIMELINE;
+	main_win->num_modes = 1;
+    }
+}
+
 void user_global_quit(void *nullarg)
 {
     if (proj->quit_count == 0) {

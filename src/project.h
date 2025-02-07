@@ -448,7 +448,7 @@ typedef struct project {
 
     /* Animations */
     Animation *animations;
-    pthread_mutex_t animation_lock;
+    /* pthread_mutex_t animation_lock; */
 
     /* Endpoints API */
     struct api_server server;

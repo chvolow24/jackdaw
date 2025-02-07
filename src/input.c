@@ -178,6 +178,12 @@ static void mode_load_global()
 	"Summon menu",
 	user_global_menu);
     mode_subcat_add_fn(mc, fn);
+
+    fn = create_user_fn(
+	"escape",
+	"Escape",
+	user_global_escape);
+    mode_subcat_add_fn(mc, fn);
     
     fn = create_user_fn(
 	"quit",
@@ -1170,13 +1176,15 @@ UserFn *input_get(uint16_t i_state, SDL_Keycode keycode)
     int hash = input_hash(i_state, keycode);
     int win_mode_i = main_win->num_modes - 1;
     InputMode mode = main_win->modes[win_mode_i];
-    while (win_mode_i >= 0) {
-	KeybNode *node = input_hash_table[hash];
+    while (win_mode_i >= -1) {
+	KeybNode *init_node = input_hash_table[hash];
+	KeybNode *node = init_node;
 	if (!node) {
 	    return NULL;
 	}
 	while (1) {
-	    if ((node->kb->mode == mode || node->kb->mode == GLOBAL) && node->kb->i_state == i_state && node->kb->keycode == keycode) {
+	    /* if ((node->kb->mode == mode || node->kb->mode == GLOBAL) && node->kb->i_state == i_state && node->kb->keycode == keycode) { */
+	    if ((node->kb->mode == mode) && node->kb->i_state == i_state && node->kb->keycode == keycode) {
 		if (node->kb->mode == GLOBAL && mode == TEXT_EDIT) {
 		    txt_stop_editing(main_win->txt_editing);
 		}
@@ -1187,9 +1195,13 @@ UserFn *input_get(uint16_t i_state, SDL_Keycode keycode)
 		break;
 	    }
 	}
-	if (mode == TEXT_EDIT) return NULL;
+	if (mode == TEXT_EDIT) return NULL; /* No "sieve" for text edit mode */
 	win_mode_i--;
-	mode = main_win->modes[win_mode_i];
+	if (win_mode_i < 0) {
+	    mode = GLOBAL;
+	} else {
+	    mode = main_win->modes[win_mode_i];
+	}
     }
     return NULL;
 }

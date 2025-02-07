@@ -52,6 +52,87 @@ static Animation *animation_create(
     return a;
 }
 
+
+/* #include <execinfo.h> */
+
+/* struct abt { */
+/*     Animation *a; */
+/*     char **bt; */
+/*     size_t num_bt_els; */
+/* }; */
+
+/* #define ABTS_MAX 1000 */
+/* struct abt abts[ABTS_MAX]; */
+/* struct abt alloc_abts[ABTS_MAX]; */
+/* uint32_t num_abts; */
+/* uint32_t num_alloc_abts; */
+
+/* static void get_bt_alloc(Animation *a) */
+/* { */
+/*     if (num_alloc_abts == ABTS_MAX) { */
+/* 	fprintf(stderr, "Already reached max logged abts\n"); */
+/* 	return; */
+/*     } */
+/*     void *arr[255]; */
+/*     int num = backtrace(arr, 255); */
+/*     char **bt_syms = backtrace_symbols(arr, num); */
+/*     alloc_abts[num_alloc_abts].a = a; */
+/*     alloc_abts[num_alloc_abts].bt = bt_syms; */
+/*     alloc_abts[num_alloc_abts].num_bt_els = num; */
+/*     num_alloc_abts++; */
+
+/* } */
+
+/* static void get_bt(Animation *a) */
+/* { */
+/*     if (num_abts == ABTS_MAX) { */
+/* 	fprintf(stderr, "Already reached max logged abts\n"); */
+/* 	return; */
+/*     } */
+/*     void *arr[255]; */
+/*     int num = backtrace(arr, 255); */
+/*     char **bt_syms = backtrace_symbols(arr, num); */
+/*     abts[num_abts].a = a; */
+/*     abts[num_abts].bt = bt_syms; */
+/*     abts[num_abts].num_bt_els = num; */
+/*     num_abts++; */
+/* } */
+
+/* static void print_bt(Animation *a) */
+/* { */
+/*     /\* fprintf(stderr, "Prev freed:\n"); *\/ */
+/*     for (uint32_t i=0; i<num_abts; i++) { */
+/* 	struct abt* abt = abts + i; */
+/* 	/\* fprintf(stderr, "\t%p\n", abt->a); *\/ */
+/* 	if (abt->a == a) { */
+/* 	    fprintf(stderr, "\tANIMATION %p ALREADY FREED! Backtrace:\n", a); */
+/* 	    for (int j=0; j<abt->num_bt_els; j++) { */
+/* 		fprintf(stderr, "\t\t->%s\n", abt->bt[j]); */
+/* 	    } */
+/* 	    breakfn(); */
+/* 	    break; */
+/* 	} */
+/*     } */
+/* } */
+
+/* static void print_bt_alloc(Animation *a) */
+/* { */
+/*     for (uint32_t i=0; i<num_alloc_abts; i++) { */
+/* 	struct abt* abt = alloc_abts + i; */
+/* 	/\* fprintf(stderr, "\t%p\n", abt->a); *\/ */
+/* 	if (abt->a == a) { */
+/* 	    fprintf(stderr, "\tANIMATION %p allocated at:\n", a); */
+/* 	    for (int j=0; j<abt->num_bt_els; j++) { */
+/* 		fprintf(stderr, "\t\t->%s\n", abt->bt[j]); */
+/* 	    } */
+/* 	    breakfn(); */
+/* 	    break; */
+/* 	} */
+/*     } */
+/* } */
+
+
+
 static void animation_destroy(Animation *a)
 {
     free(a);
@@ -69,11 +150,13 @@ Animation *project_queue_animation(
 	arg1, arg2,
 	ctr_init);
 
+    get_bt_alloc(new);
+
     /* pthread_mutex_lock(&proj->animation_lock); */
     Animation *node = proj->animations;
     if (!node) {
 	proj->animations = new;
-	pthread_mutex_unlock(&proj->animation_lock);
+	/* pthread_mutex_unlock(&proj->animation_lock); */
 	return new;
     }
     while (node->next) {
@@ -86,8 +169,12 @@ Animation *project_queue_animation(
 }
 
 
+
 void project_dequeue_animation(Animation *a)
 {
+    /* print_bt(a); */
+    /* /\* print_bt_alloc(a); *\/ */
+    /* get_bt(a); */
     if (!a->prev) {
 	proj->animations = a->next;
     } else {
@@ -141,7 +228,8 @@ void project_destroy_animations(Project *proj)
     Animation *a = proj->animations;
     while (a) {
 	Animation *next = a->next;
-	animation_destroy(a);
+	project_dequeue_animation(a);
+	/* animation_destroy(a); */
 	a = next;
     }
 }

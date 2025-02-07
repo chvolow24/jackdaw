@@ -609,7 +609,7 @@ static int jdaw_read_timeline(FILE *f, Project *proj_loc)
 	fread(&c, 1, 1, f); /* Extraneous nullterm in earlier versions */
     }
     tl_name[tl_namelen] = '\0';
-    fprintf(stderr, "Reading timeline\"%s\"...\n", tl_name);
+    fprintf(stderr, "Reading timeline \"%s\"...\n", tl_name);
     uint8_t index = project_add_timeline(proj_loc, tl_name);
     Timeline *tl = proj_loc->timelines[index];
 
@@ -628,11 +628,11 @@ static int jdaw_read_timeline(FILE *f, Project *proj_loc)
 	}
     } else {
 	bool more_tracks = true;
-	fprintf(stderr, "\tReading tracks...\n");
 	while (more_tracks) {
 	    char hdr_buf[4];
-	    fread(hdr_buf, 1, 4, f);
-	    fseek(f, -4, SEEK_CUR);
+	    memset(hdr_buf, '\0', 4);
+	    size_t bytes_read = fread(hdr_buf, 1, 4, f);
+	    fseek(f, -1 * bytes_read, SEEK_CUR);
 	    if (strncmp(hdr_buf, hdr_track, 4) == 0) {
 		if (jdaw_read_track(f, tl) != 0)
 		    return 1;
@@ -937,7 +937,7 @@ static int jdaw_read_click_track(FILE *f, Timeline *tl)
     bool muted = (bool)uint8_deser(f);
 
     if (muted) click_track_mute_unmute(ct);
-    endpoint_write(&ct->metronome_vol_ep, (Value){.float_v = metronome_vol}, true, true, true, false);
+    endpoint_write(&ct->metronome_vol_ep, (Value){.float_v = metronome_vol}, false, false, false, false);
     
     bool more_segments = true;
     while (more_segments) {

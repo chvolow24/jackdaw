@@ -4,6 +4,7 @@
 #include "test.h"
 
 void user_global_menu(void *nullarg);
+void user_global_escape(void *nullarg);
 void user_global_quit(void *nullarg);
 void user_global_undo(void *nullarg);
 void user_global_redo(void *nullarg);

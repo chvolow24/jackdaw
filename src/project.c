@@ -515,10 +515,10 @@ Project *project_create(
 
     
     int err;
-    if ((err = pthread_mutex_init(&proj->animation_lock, NULL)) != 0) {
-	fprintf(stderr, "Error initializing animation mutex: %s\n", strerror(err));
-	exit(1);
-    }
+    /* if ((err = pthread_mutex_init(&proj->animation_lock, NULL)) != 0) { */
+    /* 	fprintf(stderr, "Error initializing animation mutex: %s\n", strerror(err)); */
+    /* 	exit(1); */
+    /* } */
 
     if ((err = pthread_mutex_init(&proj->queued_val_changes_lock, NULL)) != 0) {
 	fprintf(stderr, "Error initializing queued val changes mutex: %s\n", strerror(err));

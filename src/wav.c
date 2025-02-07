@@ -181,7 +181,6 @@ void wav_write_mixdown(const char *filepath)
     
     free(samples_L);
     free(samples_R);
-
 	
     write_wav(filepath, samples, len_samples, 16, proj->channels);
     free(samples);

@@ -737,7 +737,7 @@ static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv,
 	p,
 	"time_signature_submit_button",
 	"time_signature_submit");
-    layout_center_agnostic(el->layout, true, false);
+    /* layout_center_agnostic(el->layout, true, false); */
     textbox_set_align(((Button *)el->component)->tb, CENTER);
     textbox_reset_full(((Button *)el->component)->tb);
 

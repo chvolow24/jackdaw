@@ -185,7 +185,7 @@
                             </children>
                         </Layout>
                         <Layout name="time_signature_submit" type="NORMAL">
-                            <x>REL 0</x>
+                            <x>REL 20</x>
                             <y>STACK 40</y>
                             <w>REL 106</w>
                             <h>REL 31</h>

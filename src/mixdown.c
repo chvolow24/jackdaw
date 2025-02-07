@@ -87,7 +87,8 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 
     float playspeed_rolloff = 1.0;
     float fabs_playspeed = fabs(proj->play_speed);
-    if (fabs(proj->play_speed) < 0.01) {
+    /* Check for proj->playing to ensure write wav is not broken */
+    if (proj->playing && fabs(proj->play_speed) < 0.01) {
 	playspeed_rolloff = fabs_playspeed * 100.0f;
     }
 
@@ -238,7 +239,6 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 		/* static float filterbuf[9]; */
 		
 		float add = clip_buf[(int32_t)pos_in_clip_sframes + cr->in_mark_sframes] * vol * pan_scale * playspeed_rolloff;
-		
 		/* add = do_filter(add, filterbuf, coeffs, 9); */
 		chunk[chunk_i] += add;
 		
@@ -350,7 +350,6 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 	if (del_line_total_amp > AMP_EPSILON) { /* There is something to play back */
 	    audio_in_track = true;
 	}
-	
 	if (audio_in_track || t == tl->num_tracks - 1) {
 	    for (uint32_t i=0; i<len_sframes; i++) {
 		/* mixdown[i] += track_chunk[i] * pan * track->vol_ctrl->value; */

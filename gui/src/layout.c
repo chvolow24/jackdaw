@@ -116,13 +116,20 @@ static Layout *get_last_sibling(Layout *lt)
 
 Layout *layout_iterate_siblings(Layout *from, int direction)
 {
+    Layout *test = from;
     if (direction == 1) {
-	if (from->parent && from->index < from->parent->num_children - 1) {
-	    return from->parent->children[from->index + 1];
+	while (test->parent && test->index < test->parent->num_children - 1) {
+	    test = test->parent->children[test->index + 1];
+	    if (test->type != PRGRM_INTERNAL) {
+		return test;
+	    }
 	}
     } else if (direction == -1) {
-	if (from->parent && from->index > 0) {
-	    return from->parent->children[from->index - 1];
+	while (test->parent && test->index > 0) {
+	    test = test->parent->children[test->index - 1];
+	    if (test->type != PRGRM_INTERNAL) {
+		return test;
+	    }
 	}
     }
     return from;
@@ -1119,13 +1126,19 @@ Layout *layout_add_child(Layout *parent)
     Layout *child = layout_create();
     child->parent = parent;
     parent->children[parent->num_children] = child;
-    int index = 0;
-    for (int i=0; i<parent->num_children; i++) {
-	if (parent->children[i]->type != PRGRM_INTERNAL) {
-	    index++;
-	}
-    }
-    child->index = index;
+
+
+    /* UGHHH */
+    /* int index = 0; */
+    /* for (int i=0; i<parent->num_children; i++) { */
+    /* 	if (parent->children[i]->type != PRGRM_INTERNAL) { */
+    /* 	    index++; */
+    /* 	} */
+    /* } */
+    /* child->index = index; */
+
+    child->index = parent->num_children;
+    
     /* fprintf(stderr, "ADDING CHILD w index %d\n", index); */
     parent->num_children++;
     snprintf(child->name, 32, "%s_child%d", parent->name, parent->num_children);
@@ -1739,6 +1752,8 @@ void layout_select(Layout *lt)
     lt->label_lt->y.type = REL;
     lt->label_lt->w.type = ABS;
     lt->label_lt->h.type = ABS;
+    lt->label_lt->children_arr_len = 4;
+    lt->label_lt->children = calloc(4, sizeof(Layout *));
     /* lt->label_lt->w.value = 100.0; */
     /* lt->label_lt->h.value = 24.0; */
     layout_reparent(lt->label_lt, lt); 
@@ -1767,14 +1782,11 @@ void layout_deselect(Layout *lt)
 
 #endif
 
-void breakfn(void);
 int layout_test_indices_recursive(Layout *lt)
 {
     for (int i=0; i<lt->num_children; i++) {
 	Layout *child = lt->children[i];
 	if (child->index != i) {
-	    fprintf(stderr, "FAILED! Child: %s\n", child->name);
-	    breakfn();
 	    return 1;
 	}
 	layout_test_indices_recursive(child);	

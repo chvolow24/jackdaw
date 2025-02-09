@@ -158,12 +158,12 @@ void wav_write_mixdown(const char *filepath)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     /* reset_overlap_buffers(); */
-    fprintf(stdout, "Chunk size sframes: %d, chan: %d, sr: %d\n", proj->chunk_size_sframes, proj->channels, proj->sample_rate);
+    /* fprintf(stdout, "Chunk size sframes: %d, chan: %d, sr: %d\n", proj->chunk_size_sframes, proj->channels, proj->sample_rate); */
     uint16_t chunk_len_sframes = proj->fourier_len_sframes;
     uint16_t chunk_len_samples = chunk_len_sframes * proj->channels;
     uint32_t len_sframes = tl->out_mark_sframes - tl->in_mark_sframes;
     uint32_t len_samples = proj->channels * len_sframes;
-    fprintf(stderr, "len_sframes: %d, chunk len sframes: %d, chunks d: %f\n", len_sframes, chunk_len_sframes, (double)len_sframes / chunk_len_sframes);
+    /* fprintf(stderr, "len_sframes: %d, chunk len sframes: %d, chunks d: %f\n", len_sframes, chunk_len_sframes, (double)len_sframes / chunk_len_sframes); */
     uint32_t chunks = len_sframes / chunk_len_sframes;
     uint32_t remainder_sframes = len_sframes - chunks * chunk_len_sframes;
     int16_t *samples = malloc(sizeof(int16_t) * len_samples);
@@ -171,8 +171,10 @@ void wav_write_mixdown(const char *filepath)
 
     float *samples_L = malloc(sizeof(float) * chunk_len_sframes);
     float *samples_R = malloc(sizeof(float) * chunk_len_sframes);
+
+    project_set_loading_screen("Exporting WAV file...", "Creating mixdown and applying effects...", true);
     for (uint32_t c=0; c<chunks; c++) {
-	fprintf(stderr, "Chunk %d/%d\n", c, chunks);
+	project_loading_screen_update(NULL, (float)c/chunks);
 	get_mixdown_chunk(tl, samples_L, 0, chunk_len_sframes, tl->in_mark_sframes + (c * chunk_len_sframes), 1);
         get_mixdown_chunk(tl, samples_R, 1, chunk_len_sframes, tl->in_mark_sframes + (c * chunk_len_sframes), 1);
         for (uint32_t i=0; i<chunk_len_samples; i+=2) {
@@ -191,19 +193,19 @@ void wav_write_mixdown(const char *filepath)
 	    samples[done_len_samples + i + 1] = samples_R[i/2] * INT16_MAX;
 	}
     }
-    fprintf(stderr, "pre_track: %f\n", pre_track);
-    fprintf(stderr, "filter: %f\n", filter);
-    fprintf(stderr, "after track: %f\n", after_track);
-    fprintf(stderr, "track subtotals: \n");
+    /* fprintf(stderr, "pre_track: %f\n", pre_track); */
+    /* fprintf(stderr, "filter: %f\n", filter); */
+    /* fprintf(stderr, "after track: %f\n", after_track); */
+    /* fprintf(stderr, "track subtotals: \n"); */
     for (int i=0; i<tl->num_tracks; i++) {
 	fprintf(stderr, "\t->%d: %f\n", i, track_subtotals[i]);
     }
 
-    fprintf(stderr, "\n\nbefore_fft: %f\n", before_fft);
-    fprintf(stderr, "fft: %f\n", fft);
-    fprintf(stderr, "mag: %f\n", mag);
-    fprintf(stderr, "ifft: %f\n", ifft);
-    fprintf(stderr, "after_ifft: %f\n", after_ifft);
+    /* fprintf(stderr, "\n\nbefore_fft: %f\n", before_fft); */
+    /* fprintf(stderr, "fft: %f\n", fft); */
+    /* fprintf(stderr, "mag: %f\n", mag); */
+    /* fprintf(stderr, "ifft: %f\n", ifft); */
+    /* fprintf(stderr, "after_ifft: %f\n", after_ifft); */
     
     free(samples_L);
     free(samples_R);
@@ -309,6 +311,8 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
     /* write_wav("TEST_WAV.wav", audio_buf, audio_len_bytes / 2, 16, 2); */
     /* exit(0); */
 
+    project_set_loading_screen("Importing WAV...", NULL, true);
+
     SDL_AudioCVT wav_cvt;
     int ret = SDL_BuildAudioCVT(&wav_cvt, wav_spec.format, wav_spec.channels, wav_spec.freq, proj->fmt, proj->channels, proj->sample_rate);
     uint8_t *final_buffer = NULL;
@@ -322,6 +326,7 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
         wav_cvt.needed = 1;
 
 	while (read_pos < audio_len_bytes) {
+	    project_loading_screen_update(NULL, (float)read_pos/audio_len_bytes);
 	    int len = WAV_READ_CK_LEN_BYTES;
 	    int remainder;
 	    if ((remainder = audio_len_bytes - read_pos) < len) {

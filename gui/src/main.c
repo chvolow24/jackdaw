@@ -139,6 +139,10 @@ int point_dist_from_rect(SDL_Point p, SDL_Rect r, Edge *edge_arg)
 
 }
 
+void layout_deselect(Layout *lt);
+void layout_select(Layout *lt);
+int layout_test_indices_recursive(Layout *lt);
+
 void get_clicked_layout(SDL_Point p, Layout *top_level, int *distance, Layout **ret, Edge *edge, Corner *corner)
 {
     if (top_level->type == PRGRM_INTERNAL || top_level->type == ITERATION) {
@@ -513,6 +517,11 @@ int main(int argc, char** argv)
 		    /*     clicked_lt->selected = true; */
 		    /* } */
 		    break;
+		case SDL_SCANCODE_W:
+		    if (layout_clicked && clicked_lt) {
+			layout_write(stderr, clicked_lt, 0);
+		    }
+		    break;
 		case SDL_SCANCODE_LEFTBRACKET:
 		    reset_clicked_lt(layout_iterate_siblings(clicked_lt, -1));
 		    break;
@@ -561,6 +570,7 @@ int main(int argc, char** argv)
         SDL_Delay(1);
 	/* fprintf(stderr, "Layout clicked: %d (%p)\n", layout_clicked, clicked_lt); */
 
+	layout_test_indices_recursive(main_lt);
 	if (screen_record) {
 	    if (i % 12 == 0) {
 		screenshot_index++;

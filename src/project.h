@@ -55,6 +55,7 @@
 #include "components.h"
 #include "dsp.h"
 #include "endpoint.h"
+#include "loading.h"
 #include "panel.h"
 #include "tempo.h"
 #include "thread_safety.h"
@@ -443,6 +444,9 @@ typedef struct project {
 
     /* Status bar */
     struct status_bar status_bar;
+
+    /* Loading Screen */
+    LoadingScreen loading_screen;
 
     /* Source mode state */
     struct drop_save saved_drops[5];

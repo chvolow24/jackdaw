@@ -3420,7 +3420,7 @@ void project_active_tl_redraw(Project *proj)
     proj->timelines[proj->active_tl_index]->needs_redraw = true;
 }
 
-static bool track_minimize(Track *t)
+bool track_minimize(Track *t)
 {
     t->minimized = !t->minimized;
     if (t->minimized) {

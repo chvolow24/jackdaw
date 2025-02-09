@@ -110,7 +110,6 @@ static Mode *mode_create(InputMode im)
     Mode *mode = malloc(sizeof(Mode));
     mode->name = input_mode_str(im);
     mode->num_subcats = 0;
-    fprintf(stdout, "Inserting mode %s at index %d\n", mode->name, im);
     modes[im] = mode;	
     return mode;
 }

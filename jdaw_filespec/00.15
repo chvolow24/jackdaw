@@ -59,6 +59,7 @@ TRCK          5			float			  pan
 TRCK	      1                 bool			  muted
 TRCK	      1                 bool			  soloed
 TRCK 	      1                 bool			  solo muted
+TRCK	      1			bool			  minimized
 TRCK   	      2                 uint16_t                  num cliprefs
 
 ....................................

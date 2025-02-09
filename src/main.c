@@ -62,9 +62,9 @@
 #define WINDOW_DEFAULT_W 1093
 #define WINDOW_DEFAULT_H 650
 
-#define DEFAULT_PROJ_AUDIO_SETTINGS 2, 96000, AUDIO_S16SYS, 1024, 2048
+#define DEFAULT_PROJ_AUDIO_SETTINGS 2, 96000, AUDIO_S16SYS, DEFAULT_AUDIO_CHUNK_LEN_SFRAMES, DEFAULT_FOURIER_LEN_SFRAMES
 
-const char *JACKDAW_VERSION = "0.4.3";
+const char *JACKDAW_VERSION = "0.5.0";
 char DIRPATH_SAVED_PROJ[MAX_PATHLEN];
 char DIRPATH_OPEN_FILE[MAX_PATHLEN];
 char DIRPATH_EXPORT[MAX_PATHLEN];
@@ -84,7 +84,7 @@ static void get_native_byte_order()
     #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     SYS_BYTEORDER_LE = true;
     #else
-    sys_byteorder_le = false;
+    SYS_BYTEORDER_LE = false;
     #endif
 }
 
@@ -110,6 +110,7 @@ static void init_SDL()
 
 static void init()
 {
+    fprintf(stderr, "Initializing SDL and subsystems...\n");
     MAIN_THREAD_ID = pthread_self();
     CURRENT_THREAD_ID = MAIN_THREAD_ID;
     init_SDL();
@@ -127,8 +128,8 @@ static void init()
     }
     strcpy(DIRPATH_OPEN_FILE, DIRPATH_SAVED_PROJ);
     strcpy(DIRPATH_EXPORT, DIRPATH_SAVED_PROJ);
-    /* fprintf(stdout, "Initializing dsp...\n"); */
     init_dsp();
+    fprintf(stderr, "\t...done.\n");
 }
 
 static void quit()
@@ -159,7 +160,7 @@ extern bool connection_open;
 
 int main(int argc, char **argv)
 {
-    fprintf(stdout, "\n\nJACKDAW (version %s)\nby Charlie Volow\n\n", JACKDAW_VERSION);
+    fprintf(stdout, "\n\nJACKDAW (version %s)\nby Charlie Volow\n\nhttps://jackdaw-audio.net/\n\n", JACKDAW_VERSION);
     
     init();
 
@@ -214,6 +215,7 @@ int main(int argc, char **argv)
     /* Create project here */
 
     if (invoke_open_jdaw_file) {
+	fprintf(stderr, "Opening \"%s\"...\n", file_to_open);
 	proj = jdaw_read_file(file_to_open);
 	if (proj) {
 	    char *realpath_ret;
@@ -232,16 +234,17 @@ int main(int argc, char **argv)
 	    }
 	}
     } else {
+	fprintf(stderr, "Creating new project...\n");
 	proj = project_create("project.jdaw", DEFAULT_PROJ_AUDIO_SETTINGS);
     }
-
-    
     if (!proj && invoke_open_jdaw_file) {
 	fprintf(stderr, "Error: unable to open project \"%s\".\n", file_to_open);
 	exit(1);
     } else if (!proj) {
 	fprintf(stderr, "Critical error: unable to create project\n");
+	exit(1);
     }
+    fprintf(stderr, "\t...done\n");
 
     if (invoke_open_wav_file) {
 	Track *track = timeline_add_track(proj->timelines[0]);
@@ -260,8 +263,6 @@ int main(int argc, char **argv)
 	    free(filepath);
 
 	}
-	
-
     }
     loop_project_main();
     

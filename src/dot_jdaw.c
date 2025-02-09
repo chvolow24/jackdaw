@@ -59,7 +59,7 @@ const static char hdr_keyf[] = {'K', 'E', 'Y', 'F'};
 const static char hdr_click[] = {'C', 'L', 'C', 'K'};
 const static char hdr_click_segm[] = {'C', 'T', 'S', 'G'};
 
-const static char current_file_spec_version[] = {'0','0','.','1','5'};
+const static char current_file_spec_version[] = {'0','.','1','5','1'};
 /* const static float current_file_spec_version_f = 0.11f; */
 
 /* const static char nullterm = '\0'; */
@@ -114,13 +114,16 @@ void jdaw_write_project(const char *path)
     uint16_ser_le(f, &proj->num_clips);
     uint8_ser(f, &proj->num_timelines);
     /* fwrite(&proj->num_timelines, 1, 1, f); */
-    
+
+    fprintf(stderr, "Serializing %d audio clips...\n", proj->num_clips);
     for (uint16_t i=0; i<proj->num_clips; i++) {
 	jdaw_write_clip(f, proj->clips[i], i);
     }
+    fprintf(stderr, "\t...done.\nSerializing %d timelines...\n", proj->num_timelines);
     for (uint8_t i=0; i<proj->num_timelines; i++) {
 	jdaw_write_timeline(f, proj->timelines[i]);
     }
+    fprintf(stderr, "\t...done.\n");
     /* fwrite(&(proj->tl->num_tracks), 1, 1, f); */
     /* for (uint8_t i=0; i<proj->tl->num_tracks; i++) { */
         /* write_track_to_jdaw(f, proj->tl->tracks[i]); */
@@ -237,8 +240,8 @@ static void jdaw_write_track(FILE *f, Track *track)
     /* Write mute and solo values */
     fwrite(&track->muted, 1, 1, f);
     fwrite(&track->solo, 1, 1, f);
-
     fwrite(&track->solo_muted, 1, 1, f);
+    fwrite(&track->minimized, 1, 1, f);
     uint16_ser_le(f, &track->num_clips);
     for (uint16_t i=0; i<track->num_clips; i++) {
 	jdaw_write_clipref(f, track->clips[i]);
@@ -379,6 +382,8 @@ static int jdaw_read_timeline(FILE *f, Project *proj);
 
 static Project *proj_reading;
 
+
+const char *get_fmt_str(SDL_AudioFormat f);
 Project *jdaw_read_file(const char *path)
 {
     
@@ -449,13 +454,18 @@ Project *jdaw_read_file(const char *path)
     
     num_timelines = uint8_deser(f);
 
+    fprintf(stderr, "CREATING PROJECT with settings:\n");
+    fprintf(stderr, "\tchannels: %d\n\tsample_rate: %d\n\tfmt: %s\n",
+	    channels,
+	    sample_rate,
+	    get_fmt_str(fmt));
     proj_reading = project_create(
 	project_name,
 	channels,
 	sample_rate,
 	fmt,
 	chunk_size,
-	1024 // TODO: variable fourier len
+	DEFAULT_FOURIER_LEN_SFRAMES
 	);
 
     
@@ -654,6 +664,7 @@ static int jdaw_read_timeline(FILE *f, Project *proj_loc)
 	}
     }
 
+    timeline_reset(tl, true);
     /* if (read_file_spec_version >= 0.15) { */
     /* 	uint8_t num_click_tracks = uint8_deser(f); */
     /* 	while (num_click_tracks > 0) { */
@@ -709,6 +720,11 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
     bool muted = uint8_deser(f);
     bool solo = uint8_deser(f);
     bool solo_muted = uint8_deser(f);
+    bool minimized = false;
+
+    if (read_file_spec_version >= 0.151f) {
+	minimized = uint8_deser(f);
+    }
     
     if (muted) {
 	track_mute(track);
@@ -719,7 +735,12 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
     if (solo_muted) {
 	track_solomute(track);
     }
+    if (minimized) {
+	track_minimize(track);
+    }
 
+    fprintf(stderr, "\ntrack %s\n", track->name);
+    fprintf(stderr, "muted, solo, sm, min: %d %d %d %d\n", muted, solo, solo_muted, minimized);
     uint16_t num_cliprefs;
     if (read_file_spec_version < 0.14) {
 	uint8_t byte_num_cliprefs;

@@ -62,6 +62,9 @@
 #include "textbox.h"
 #include "user_event.h"
 
+#define DEFAULT_FOURIER_LEN_SFRAMES 2048
+#define DEFAULT_AUDIO_CHUNK_LEN_SFRAMES 1024
+
 
 #define MAX_TRACKS 255
 #define MAX_NAMELENGTH 64
@@ -562,5 +565,6 @@ void timeline_play_speed_adj(double dim);
 void timeline_scroll_playhead(double dim);
 
 void timeline_reset_loop_play_lemniscate(Timeline *tl);
+bool track_minimize(Track *t);
 void timeline_minimize_track_or_tracks(Timeline *tl);
 #endif

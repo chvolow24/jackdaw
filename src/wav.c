@@ -141,6 +141,18 @@ const char *get_fmt_str(SDL_AudioFormat f)
     }
     return "unknown format";
 }
+extern double pre_track;
+extern double track_subtotals[255];
+extern double filter;
+extern double after_track;
+extern double grand_total;
+
+extern double before_fft;
+extern double fft;
+extern double mag;
+extern double ifft;
+extern double after_ifft;
+
 
 void wav_write_mixdown(const char *filepath)
 {
@@ -160,6 +172,7 @@ void wav_write_mixdown(const char *filepath)
     float *samples_L = malloc(sizeof(float) * chunk_len_sframes);
     float *samples_R = malloc(sizeof(float) * chunk_len_sframes);
     for (uint32_t c=0; c<chunks; c++) {
+	fprintf(stderr, "Chunk %d/%d\n", c, chunks);
 	get_mixdown_chunk(tl, samples_L, 0, chunk_len_sframes, tl->in_mark_sframes + (c * chunk_len_sframes), 1);
         get_mixdown_chunk(tl, samples_R, 1, chunk_len_sframes, tl->in_mark_sframes + (c * chunk_len_sframes), 1);
         for (uint32_t i=0; i<chunk_len_samples; i+=2) {
@@ -178,6 +191,19 @@ void wav_write_mixdown(const char *filepath)
 	    samples[done_len_samples + i + 1] = samples_R[i/2] * INT16_MAX;
 	}
     }
+    fprintf(stderr, "pre_track: %f\n", pre_track);
+    fprintf(stderr, "filter: %f\n", filter);
+    fprintf(stderr, "after track: %f\n", after_track);
+    fprintf(stderr, "track subtotals: \n");
+    for (int i=0; i<tl->num_tracks; i++) {
+	fprintf(stderr, "\t->%d: %f\n", i, track_subtotals[i]);
+    }
+
+    fprintf(stderr, "\n\nbefore_fft: %f\n", before_fft);
+    fprintf(stderr, "fft: %f\n", fft);
+    fprintf(stderr, "mag: %f\n", mag);
+    fprintf(stderr, "ifft: %f\n", ifft);
+    fprintf(stderr, "after_ifft: %f\n", after_ifft);
     
     free(samples_L);
     free(samples_R);
@@ -204,12 +230,7 @@ int32_t wav_load(Project *proj, const char *filename, float **L, float **R)
     if (ret < 0) {
         fprintf(stderr, "Error: unable to build SDL_AudioCVT. %s\n", SDL_GetError());
         return 0;
-    } else if (ret == 1) { // Needs conversion
-        fprintf(stderr, "Converting. Len mult: %d\n", wav_cvt.len_mult);
-	fprintf(stderr, "WAV specs: freq: %d, format: %s, channels: %d\n", wav_spec.freq, get_fmt_str(wav_spec.format), wav_spec.channels);
-	fprintf(stderr, "dst specs: freq: %d, format %s, channels: %d\n", proj->sample_rate, get_fmt_str(proj->fmt), proj->channels);
-	fprintf(stderr, "Len ratio: %f\n", wav_cvt.len_ratio);
-	
+    } else if (ret == 1) { // Needs conversion	
 	int read_pos = 0;
 	int write_pos = 0;
         wav_cvt.needed = 1;
@@ -247,14 +268,9 @@ int32_t wav_load(Project *proj, const char *filename, float **L, float **R)
 	    free(wav_cvt.buf);
 	}
     } else if (ret == 0) { // No conversion needed
-        fprintf(stderr, "No conversion needed. copying directly to track.\n");
-        /* wav_cvt.buf = malloc(audio_len_bytes); */
-        /* memcpy(wav_cvt.buf, audio_buf, audio_len_bytes); */
 	final_buffer = malloc(audio_len_bytes);
 	memcpy(final_buffer, audio_buf, audio_len_bytes);
 	final_buffer_len = audio_len_bytes;
-	/* free(wav_cvt.buf); */
-	/* SDL_FreeWAV(audio_buf); */
     } else {
         fprintf(stderr, "Error: unexpected return value for SDL_BuildAudioCVT.\n");
         return 0;
@@ -301,11 +317,6 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
         fprintf(stderr, "Error: unable to build SDL_AudioCVT. %s\n", SDL_GetError());
         return NULL;
     } else if (ret == 1) { // Needs conversion
-        fprintf(stderr, "Converting. Len mult: %d\n", wav_cvt.len_mult);
-	fprintf(stderr, "WAV specs: freq: %d, format: %s, channels: %d\n", wav_spec.freq, get_fmt_str(wav_spec.format), wav_spec.channels);
-	fprintf(stderr, "dst specs: freq: %d, format %s, channels: %d\n", proj->sample_rate, get_fmt_str(proj->fmt), proj->channels);
-	fprintf(stderr, "Len ratio: %f\n", wav_cvt.len_ratio);
-	
 	int read_pos = 0;
 	int write_pos = 0;
         wav_cvt.needed = 1;
@@ -343,14 +354,9 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
 	    free(wav_cvt.buf);
 	}
     } else if (ret == 0) { // No conversion needed
-        fprintf(stderr, "No conversion needed. copying directly to track.\n");
-        /* wav_cvt.buf = malloc(audio_len_bytes); */
-        /* memcpy(wav_cvt.buf, audio_buf, audio_len_bytes); */
 	final_buffer = malloc(audio_len_bytes);
 	memcpy(final_buffer, audio_buf, audio_len_bytes);
 	final_buffer_len = audio_len_bytes;
-	/* free(wav_cvt.buf); */
-	/* SDL_FreeWAV(audio_buf); */
     } else {
         fprintf(stderr, "Error: unexpected return value for SDL_BuildAudioCVT.\n");
         return NULL;

@@ -1,4 +1,8 @@
+#include <stdbool.h>
 #include "type_serialize.h"
+
+extern bool SYS_BYTEORDER_LE;
+
 uint16_t uint16_fromstr_le(char *buf)
 {
     uint16_t val = 0;
@@ -91,26 +95,38 @@ void uint8_ser(FILE *f, uint8_t *val_p)
 
 void uint16_ser_le(FILE *f, uint16_t *val_p)
 {
-    uint16_t val = *val_p;
-    char buf[2];
-    uint16_tostr_le(val, buf);
-    fwrite(buf, 1, 2, f);
+    if (SYS_BYTEORDER_LE) {
+	fwrite(val_p, 2, 1, f);
+    } else {
+	uint16_t val = *val_p;
+	char buf[2];
+	uint16_tostr_le(val, buf);
+	fwrite(buf, 1, 2, f);
+    }
 }
 
 void uint32_ser_le(FILE *f, uint32_t *val_p)
 {
-    uint32_t val = *val_p;
-    char buf[4];
-    uint32_tostr_le(val, buf);
-    fwrite(buf, 1, 4, f);
+    if (SYS_BYTEORDER_LE) {
+	fwrite(val_p, 4, 1, f);
+    } else {
+	uint32_t val = *val_p;
+	char buf[4];
+	uint32_tostr_le(val, buf);
+	fwrite(buf, 1, 4, f);
+    }
 }
 
 void uint64_ser_le(FILE *f, uint64_t *val_p)
 {
-    uint64_t val = *val_p;
-    char buf[8];
-    uint64_tostr_le(val, buf);
-    fwrite(buf, 1, 8, f);
+    if (SYS_BYTEORDER_LE) {
+	fwrite(val_p, 8, 1, f);
+    } else {
+	uint64_t val = *val_p;
+	char buf[8];
+	uint64_tostr_le(val, buf);
+	fwrite(buf, 1, 8, f);
+    }
 }
 
 void float_ser40_le(FILE *f, double val)

@@ -153,12 +153,10 @@ const char *get_fmt_str(SDL_AudioFormat f)
 /* extern double ifft; */
 /* extern double after_ifft; */
 
-extern double update, events, draw_start_and_end, draw_box, draw_prog, render_copy, render_present;
+/* extern double update, events, draw_start_and_end, draw_box, draw_prog, render_copy, render_present; */
 
 void wav_write_mixdown(const char *filepath)
 {
-    render_copy = 0.0;
-    render_present = 0.0;
     Timeline *tl = proj->timelines[proj->active_tl_index];
     /* reset_overlap_buffers(); */
     /* fprintf(stdout, "Chunk size sframes: %d, chan: %d, sr: %d\n", proj->chunk_size_sframes, proj->channels, proj->sample_rate); */
@@ -206,22 +204,6 @@ void wav_write_mixdown(const char *filepath)
 	    samples[done_len_samples + i + 1] = samples_R[i/2] * INT16_MAX;
 	}
     }
-
-    fprintf(stderr, "UPDATE: %f\nDRAWse: %f\nDRAWbox: %f\nDRAWprog: %f\nEVENTS: %f\n", update, draw_start_and_end, draw_box, draw_prog, events);
-    fprintf(stderr, "RCOPY: %f\nRPRESENT: %f\n", render_copy, render_present);
-    /* fprintf(stderr, "pre_track: %f\n", pre_track); */
-    /* fprintf(stderr, "filter: %f\n", filter); */
-    /* fprintf(stderr, "after track: %f\n", after_track); */
-    /* fprintf(stderr, "track subtotals: \n"); */
-    /* for (int i=0; i<tl->num_tracks; i++) { */
-    /* 	fprintf(stderr, "\t->%d: %f\n", i, track_subtotals[i]); */
-    /* } */
-
-    /* fprintf(stderr, "\n\nbefore_fft: %f\n", before_fft); */
-    /* fprintf(stderr, "fft: %f\n", fft); */
-    /* fprintf(stderr, "mag: %f\n", mag); */
-    /* fprintf(stderr, "ifft: %f\n", ifft); */
-    /* fprintf(stderr, "after_ifft: %f\n", after_ifft); */
     
     free(samples_L);
     free(samples_R);

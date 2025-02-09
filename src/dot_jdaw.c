@@ -738,9 +738,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
     if (minimized) {
 	track_minimize(track);
     }
-
-    fprintf(stderr, "\ntrack %s\n", track->name);
-    fprintf(stderr, "muted, solo, sm, min: %d %d %d %d\n", muted, solo, solo_muted, minimized);
+    
     uint16_t num_cliprefs;
     if (read_file_spec_version < 0.14) {
 	uint8_t byte_num_cliprefs;

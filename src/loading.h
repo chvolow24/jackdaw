@@ -24,7 +24,7 @@ void project_set_loading_screen(
     const char *subtitle,
     bool draw_progress_bar);
 
-void project_loading_screen_update(
+int project_loading_screen_update(
     const char *subtitle,
     float progress);
 

@@ -1,0 +1,40 @@
+<Layout name="loading_screen" type="NORMAL">
+  <x>REL 0</x>
+  <y>REL 0</y>
+  <w>REL 399</w>
+  <h>REL 160</h>
+  <children>
+    <Layout name="title" type="NORMAL">
+      <x>REL 0</x>
+      <y>REL 10</y>
+      <w>SCALE 1.000000</w>
+      <h>REL 40</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="subtitle" type="NORMAL">
+      <x>REL 0</x>
+      <y>STACK 10</y>
+      <w>SCALE 1.000000</w>
+      <h>REL 40</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="progress_bar" type="NORMAL">
+      <x>REL 0</x>
+      <y>STACK 10</y>
+      <w>SCALE 1.000000</w>
+      <h>REL 40</h>
+      <children>
+        <Layout name="progress_bar_inner" type="NORMAL">
+          <x>REL 10</x>
+          <y>REL 10</y>
+          <w>PAD 1</w>
+          <h>REL 20</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+  </children>
+</Layout>

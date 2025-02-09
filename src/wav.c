@@ -141,21 +141,24 @@ const char *get_fmt_str(SDL_AudioFormat f)
     }
     return "unknown format";
 }
-extern double pre_track;
-extern double track_subtotals[255];
-extern double filter;
-extern double after_track;
-extern double grand_total;
+/* extern double pre_track; */
+/* extern double track_subtotals[255]; */
+/* extern double filter; */
+/* extern double after_track; */
+/* extern double grand_total; */
 
-extern double before_fft;
-extern double fft;
-extern double mag;
-extern double ifft;
-extern double after_ifft;
+/* extern double before_fft; */
+/* extern double fft; */
+/* extern double mag; */
+/* extern double ifft; */
+/* extern double after_ifft; */
 
+extern double update, events, draw_start_and_end, draw_box, draw_prog, render_copy, render_present;
 
 void wav_write_mixdown(const char *filepath)
 {
+    render_copy = 0.0;
+    render_present = 0.0;
     Timeline *tl = proj->timelines[proj->active_tl_index];
     /* reset_overlap_buffers(); */
     /* fprintf(stdout, "Chunk size sframes: %d, chan: %d, sr: %d\n", proj->chunk_size_sframes, proj->channels, proj->sample_rate); */
@@ -173,8 +176,18 @@ void wav_write_mixdown(const char *filepath)
     float *samples_R = malloc(sizeof(float) * chunk_len_sframes);
 
     project_set_loading_screen("Exporting WAV file...", "Creating mixdown and applying effects...", true);
+    uint32_t loading_screen_modulus = chunks / 100;
     for (uint32_t c=0; c<chunks; c++) {
-	project_loading_screen_update(NULL, (float)c/chunks);
+	if (c % loading_screen_modulus == 0) {
+	    if (project_loading_screen_update(NULL, 0.9 * (float)c/chunks) != 0) {
+		free(samples);
+		free(samples_L);
+		free(samples_R);
+		status_set_errstr("WAV export aborted");
+		fprintf(stderr, "WAV export aborted\n");
+		return;
+	    }
+	}
 	get_mixdown_chunk(tl, samples_L, 0, chunk_len_sframes, tl->in_mark_sframes + (c * chunk_len_sframes), 1);
         get_mixdown_chunk(tl, samples_R, 1, chunk_len_sframes, tl->in_mark_sframes + (c * chunk_len_sframes), 1);
         for (uint32_t i=0; i<chunk_len_samples; i+=2) {
@@ -193,13 +206,16 @@ void wav_write_mixdown(const char *filepath)
 	    samples[done_len_samples + i + 1] = samples_R[i/2] * INT16_MAX;
 	}
     }
+
+    fprintf(stderr, "UPDATE: %f\nDRAWse: %f\nDRAWbox: %f\nDRAWprog: %f\nEVENTS: %f\n", update, draw_start_and_end, draw_box, draw_prog, events);
+    fprintf(stderr, "RCOPY: %f\nRPRESENT: %f\n", render_copy, render_present);
     /* fprintf(stderr, "pre_track: %f\n", pre_track); */
     /* fprintf(stderr, "filter: %f\n", filter); */
     /* fprintf(stderr, "after track: %f\n", after_track); */
     /* fprintf(stderr, "track subtotals: \n"); */
-    for (int i=0; i<tl->num_tracks; i++) {
-	fprintf(stderr, "\t->%d: %f\n", i, track_subtotals[i]);
-    }
+    /* for (int i=0; i<tl->num_tracks; i++) { */
+    /* 	fprintf(stderr, "\t->%d: %f\n", i, track_subtotals[i]); */
+    /* } */
 
     /* fprintf(stderr, "\n\nbefore_fft: %f\n", before_fft); */
     /* fprintf(stderr, "fft: %f\n", fft); */
@@ -209,7 +225,9 @@ void wav_write_mixdown(const char *filepath)
     
     free(samples_L);
     free(samples_R);
-	
+
+    project_loading_screen_update("Writing file...", 0.95);
+
     write_wav(filepath, samples, len_samples, 16, proj->channels);
     free(samples);
 }
@@ -326,7 +344,12 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
         wav_cvt.needed = 1;
 
 	while (read_pos < audio_len_bytes) {
-	    project_loading_screen_update(NULL, (float)read_pos/audio_len_bytes);
+	    if (project_loading_screen_update("Reading file data...", 0.8 * (float)read_pos/audio_len_bytes) != 0) {
+		fprintf(stderr, "WAV load aborted\n");
+		status_set_errstr("WAV load aborted");
+		SDL_FreeWAV(audio_buf);
+		return NULL;
+	    }
 	    int len = WAV_READ_CK_LEN_BYTES;
 	    int remainder;
 	    if ((remainder = audio_len_bytes - read_pos) < len) {
@@ -367,6 +390,7 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
         return NULL;
     }
 
+
     SDL_FreeWAV(audio_buf);
 
     uint32_t buf_len_samples = final_buffer_len / sizeof(int16_t);
@@ -383,7 +407,18 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
 
     int16_t *src_buf = (int16_t *)final_buffer;
 
+
+    project_loading_screen_update("Converting audio samples to native format...", 0.8);
     for (uint32_t i=0; i<buf_len_samples - 2; i+=2) {
+	if (i % 5000000 == 0) {
+	    if (project_loading_screen_update(NULL, 0.8 + 0.2 * (float)i / buf_len_samples) != 0) {
+		fprintf(stderr, "WAV load aborted\n");
+		status_set_errstr("WAV load aborted");
+		clip_destroy(clip);
+		return NULL;
+	    }
+	}
+
         clip->L[i/2] = (float) src_buf[i] / INT16_MAX;
         clip->R[i/2] = (float) src_buf[i+1] / INT16_MAX;
     }

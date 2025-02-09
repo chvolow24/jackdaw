@@ -284,6 +284,8 @@ void window_start_draw(Window *win, SDL_Color *bckgrnd_color)
     }
 }
 
+double render_copy = 0.0;
+double render_present = 0.0;
 
 void window_end_draw(Window *win)
 {
@@ -295,8 +297,12 @@ void window_end_draw(Window *win)
     win->num_deferred_draw_ops = 0;
     
     SDL_SetRenderTarget(win->rend, NULL);
+    clock_t start = clock();
     SDL_RenderCopy(win->rend, win->canvas, &win->canvas_src, NULL);
+    render_copy += ((double)clock() - start)/CLOCKS_PER_SEC;
+    start = clock();
     SDL_RenderPresent(win->rend);
+    render_present += ((double)clock() - start)/CLOCKS_PER_SEC;
 }
 
 void window_set_layout(Window *win, Layout *layout)

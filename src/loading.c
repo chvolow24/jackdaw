@@ -78,9 +78,16 @@ void project_set_loading_screen(
 }
 
 
+double draw_start_and_end = 0.0;
+double draw_box = 0.0;
+double draw_prog = 0.0;
+
 static void loading_screen_draw(LoadingScreen *ls)
 {
+    clock_t start = clock();
     window_start_draw(main_win, NULL);
+    draw_start_and_end += ((double)clock() - start)/CLOCKS_PER_SEC;
+    start = clock();
 
     static const SDL_Color bckgrnd = {10, 10, 10, 255};
 
@@ -101,6 +108,9 @@ static void loading_screen_draw(LoadingScreen *ls)
     textbox_draw(ls->subtitle_tb);
     /* layout_draw(main_win, ls->layout); */
 
+    draw_box += ((double)clock() - start)/CLOCKS_PER_SEC;
+    start = clock();
+
     if (ls->draw_progress_bar) {
 	SDL_Rect progress = *ls->progress_bar_rect;
 	progress.w = ls->progress * ls->progress_bar_rect->w;
@@ -110,20 +120,52 @@ static void loading_screen_draw(LoadingScreen *ls)
 	SDL_SetRenderDrawColor(main_win->rend, 100, 100, 100, 255);
 	geom_draw_rect_thick(main_win->rend, ls->progress_bar_rect, 2, main_win->dpi_scale_factor);
     }
-    
+
+    draw_prog += ((double)clock() - start)/CLOCKS_PER_SEC;
+    start = clock();
     window_end_draw(main_win);
+    draw_start_and_end += ((double)clock() - start) / CLOCKS_PER_SEC;
 }
 
-void project_loading_screen_update(
+
+double update = 0.0;
+double events = 0.0;
+
+
+/* Return 1 to abort operation */
+int project_loading_screen_update(
     const char *subtitle,
     float progress)
 {
+    /* return 0; */
+    clock_t start = clock();
     LoadingScreen *ls = &proj->loading_screen;
     ls->progress = progress;
     if (subtitle) {
 	strncpy(ls->subtitle, subtitle, MAX_LOADSTR_LEN);
 	textbox_reset_full(ls->subtitle_tb);
     }
-    loading_screen_draw(ls);
+    update += ((double)clock() - start)/CLOCKS_PER_SEC;
     
+    loading_screen_draw(ls);
+
+    start = clock();
+    SDL_Event e;
+
+    while (SDL_PollEvent(&e)) {
+	switch (e.type) {
+	case SDL_QUIT:
+	    SDL_PushEvent(&e); /* Push quit event to be handled later */
+	    return 1;
+	case SDL_KEYDOWN:
+	    switch (e.key.keysym.scancode) {
+	    case SDL_SCANCODE_ESCAPE:
+		return 1;
+	    default:
+		break;
+	    }
+	}
+    }
+    events += ((double)clock() - start)/CLOCKS_PER_SEC;
+    return 0;
 }

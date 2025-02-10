@@ -354,6 +354,7 @@ ClickSegment *click_track_add_segment(ClickTrack *t, int32_t start_pos, int16_t 
     ClickSegment *interrupt = click_track_get_segment_at_pos(t, start_pos);
     if (interrupt->start_pos == start_pos) {
 	fprintf(stderr, "Error: cannot insert segment at existing segment loc\n");
+	free(s);
 	return NULL;
     }
     if (!interrupt->next) {

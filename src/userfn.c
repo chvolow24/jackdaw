@@ -2288,7 +2288,8 @@ void user_tl_write_mixdown_to_wav(void *nullarg)
     modal_add_header(save_wav, "Export WAV", &color_global_light_grey, 3);
     modal_add_p(save_wav, "Export a mixdown of the current timeline, from the in-mark to the out-mark, in .wav format.", &color_global_light_grey);
     modal_add_header(save_wav, "Filename:", &color_global_light_grey, 5);
-    char *wavfilename = malloc(sizeof(char) * 255);
+    static char wavfilename[MAX_NAMELENGTH];
+    /* char *wavfilename = malloc(sizeof(char) * 255); */
     int i=0;
     char c;
     while ((c = proj->name[i]) != '.' && c != '\0') {

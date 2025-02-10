@@ -28,6 +28,8 @@ int project_loading_screen_update(
     const char *subtitle,
     float progress);
 
+void project_loading_screen_deinit(Project *proj);
+
 #endif
 
 

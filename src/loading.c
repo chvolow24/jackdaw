@@ -13,6 +13,13 @@ extern SDL_Color menu_std_clr_outer_border;
 
 static const SDL_Color txt_clr = {10, 245, 10, 255};
 
+void project_loading_screen_deinit(Project *proj)
+{
+    LoadingScreen *ls = &proj->loading_screen;
+    if (ls->title_tb) textbox_destroy(ls->title_tb);
+    if (ls->subtitle_tb) textbox_destroy(ls->subtitle_tb);
+}
+
 static void loading_screen_init(
     LoadingScreen *ls,
     const char *title,
@@ -24,7 +31,8 @@ static void loading_screen_init(
     if (subtitle)
 	strncpy(ls->subtitle, subtitle, MAX_LOADSTR_LEN);
     ls->draw_progress_bar = draw_progress_bar;
-    
+
+    if (ls->layout) layout_destroy(ls->layout);
     Layout *lt = layout_read_from_xml(LOADING_SCREEN_LT_PATH);
     layout_reparent(lt, main_win->layout);
     ls->layout = lt;
@@ -34,6 +42,7 @@ static void loading_screen_init(
     Layout *progress_bar_lt = lt->children[2];
    
 
+    if (ls->title_tb) textbox_destroy(ls->title_tb);
     ls->title_tb = textbox_create_from_str(
 	ls->title,
 	title_lt,
@@ -43,6 +52,7 @@ static void loading_screen_init(
     textbox_set_text_color(ls->title_tb, (SDL_Color *)&txt_clr);
     textbox_set_background_color(ls->title_tb, NULL);
 
+    if (ls->subtitle_tb) textbox_destroy(ls->subtitle_tb);
     ls->subtitle_tb = textbox_create_from_str(
 	ls->subtitle,
 	subtitle_lt,

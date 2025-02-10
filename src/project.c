@@ -284,6 +284,7 @@ static void timeline_destroy(Timeline *tl, bool displace_in_proj)
     if (tl->buf_R) free(tl->buf_R);
 
     if (tl->timecode_tb) textbox_destroy(tl->timecode_tb);
+    if (tl->loop_play_lemniscate) textbox_destroy(tl->loop_play_lemniscate);
 
     if (sem_close(tl->unpause_sem) != 0) perror("Sem close");
     if (sem_close(tl->writable_chunks) != 0) perror("Sem close");
@@ -349,6 +350,7 @@ void project_destroy(Project *proj)
 
     project_destroy_animations(proj);
     project_destroy_metronomes(proj);
+    project_loading_screen_deinit(proj);
 
     free(proj);
 }

@@ -4,23 +4,7 @@
 
   Copyright (C) 2023-2025 Charlie Volow
   
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files (the "Software"), to deal
-  in the Software without restriction, including without limitation the rights
-  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  copies of the Software, and to permit persons to whom the Software is
-  furnished to do so, subject to the following conditions:
-  
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
-  
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-  SOFTWARE.
+  Jackdaw is licensed under the GNU General Public License.
 
 *****************************************************************************************************************/
 
@@ -503,16 +487,8 @@ void filter_deinit(FIRFilter *filter)
 
 
 /* Destructive; replaces values in sample_array */
-extern clock_t start;
-double before_fft;
-double fft;
-double mag;
-double ifft;
-double after_ifft;
-
 void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array)
 {
-    start = clock();
     pthread_mutex_lock(&filter->lock);
     /* SDL_LockMutex(filter->lock); */
     double *overlap_buffer = channel == 0 ? filter->overlap_buffer_L : filter->overlap_buffer_R;
@@ -531,13 +507,7 @@ void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chu
     }
     double complex freq_domain[padded_len];
 
-    before_fft += ((double)clock() - start)/CLOCKS_PER_SEC;
-    start = clock();
-   
     FFT(padded_chunk,freq_domain, padded_len);
-    fft += ((double)clock() - start)/CLOCKS_PER_SEC;
-    start = clock();
-    /* free(padded_chunk); */
     for (uint16_t i=0; i<padded_len; i++) {
         freq_domain[i] *= filter->frequency_response[i];
     }
@@ -547,15 +517,9 @@ void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chu
     }
     get_magnitude(freq_domain, *freq_mag_ptr, padded_len);
     double complex time_domain[padded_len];
-    mag += ((double)clock() - start)/CLOCKS_PER_SEC;
-    start = clock();
     IFFT(freq_domain, time_domain, padded_len);
-    ifft += ((double)clock() - start)/CLOCKS_PER_SEC;
-    start = clock();
-    /* free(freq_domain); */
     double real[padded_len];
     get_real_component(time_domain, real, padded_len);
-    /* free(time_domain); */
 
     for (uint16_t i=0; i<chunk_size + filter->overlap_len; i++) {
         if (i<chunk_size) {
@@ -568,7 +532,6 @@ void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chu
         }
     }
     pthread_mutex_unlock(&filter->lock);
-    after_ifft += ((double)clock() - start)/CLOCKS_PER_SEC;
 }
 
 

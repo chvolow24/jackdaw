@@ -174,7 +174,6 @@ int audioconn_open(Project *proj, AudioConn *conn)
 
 	/* for (int i=0; i<10; i++) { */
 	if ((device->id = SDL_OpenAudioDevice(conn->name, conn->iscapture, &(device->spec), &(obtained), 0)) > 0) {
-	    fprintf(stdout, "ID: %d\n", device->id);
 	    device->spec = obtained;
 	    conn->open = true;
 	    fprintf(stderr, "Successfully opened device %s, with id: %d, chunk size %d, %d channels\n", conn->name, device->id, obtained.samples, obtained.channels);

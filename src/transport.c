@@ -499,7 +499,6 @@ void transport_start_recording()
 	/* device_open(proj, dev); */
 	/* device_start_recording(dev); */
     }
-    fprintf(stdout, "OPENED ALL DEVICES TO RECORD\n");
     for (uint8_t i=0; i<num_conns_to_activate; i++) {
 	conn = conns_to_activate[i];
 	audioconn_start_recording(conn);

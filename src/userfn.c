@@ -2338,6 +2338,7 @@ void user_tl_delete_generic(void *nullarg)
     if (proj->recording) transport_stop_recording();
     Timeline *tl = ACTIVE_TL;
     Track *t;
+    ClickTrack *ct;
     if ((t = timeline_selected_track(tl)) && TRACK_AUTO_SELECTED(t)) {
 	if (automation_handle_delete(t->automations[t->selected_automation])) {
 	    tl->needs_redraw = true;
@@ -2349,18 +2350,22 @@ void user_tl_delete_generic(void *nullarg)
 	tl->dragging_keyframe = NULL;
 	tl->needs_redraw = true;
 	return;
-    }
-    /* if (tl->dragging_keyframe) { */
-    /* 	keyframe_delete(tl->dragging_keyframe); */
-    /* 	tl->dragging_keyframe = NULL; */
-    /* 	return; */
-    /* } */
-    if (tl) {
-	status_cat_callstr(" grabbed clip(s)");
-	timeline_delete_grabbed_cliprefs(tl);
-    }
-    if (proj->dragging) {
-	status_stat_drag();
+    } else if ((ct = timeline_selected_click_track(tl))) {
+	click_track_delete_segment_at_cursor(ct);
+	status_cat_callstr(" click track segment");
+    } else {
+	/* if (tl->dragging_keyframe) { */
+	/* 	keyframe_delete(tl->dragging_keyframe); */
+	/* 	tl->dragging_keyframe = NULL; */
+	/* 	return; */
+	/* } */
+	if (tl) {
+	    status_cat_callstr(" grabbed clip(s)");
+	    timeline_delete_grabbed_cliprefs(tl);
+	}
+	if (proj->dragging) {
+	    status_stat_drag();
+	}
     }
     tl->needs_redraw = true;
 }

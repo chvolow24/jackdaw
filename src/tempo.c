@@ -836,8 +836,18 @@ bool timeline_click_track_delete(Timeline *tl)
 /*     tl->needs_redraw = true; */
 /* } */
 
+/* static void simple_click_segment_reinsert(ClickSegment *s, int32_t at) */
+/* { */
+
+
+/*     ClickSegment *insertion = click_track_get_segment_at_pos(s->track, at); */
+/*     insertion->next = s; */
+    
+/* } */
+
 static void simple_click_segment_remove(ClickSegment *s)
 {
+    if (s == s->track->segments && !s->next) return;
     ClickTrack *tt = s->track;
     if (s->prev) {
 	s->prev->next = s->next;
@@ -1386,6 +1396,53 @@ void click_track_decrement_vol(ClickTrack *tt)
     slider_reset(tt->metronome_vol_slider);
 }
 
+static void click_track_delete_segment_at(ClickTrack *ct, int32_t at, bool from_undo);
+
+NEW_EVENT_FN(undo_delete_click_segment, "undo delete click track segment")
+    ClickSegment *to_cpy = (ClickSegment *)obj1;
+    int32_t at = val1.int32_v;
+    uint8_t subdiv_lens[to_cpy->cfg.num_beats];
+    memcpy(subdiv_lens, to_cpy->cfg.beat_subdiv_lens, to_cpy->cfg.num_beats * sizeof(uint8_t));
+    click_track_add_segment(to_cpy->track, at, -1, to_cpy->cfg.bpm, to_cpy->cfg.num_beats, subdiv_lens);
+}
+
+NEW_EVENT_FN(redo_delete_click_segment, "redo delete click track segment")
+    ClickSegment *deleted = (ClickSegment *)obj1;
+    click_track_delete_segment_at(deleted->track, val1.int32_v, true);
+}
+
+NEW_EVENT_FN(dispose_delete_click_segment, "")
+    click_segment_destroy(obj1);
+}
+
+static void click_track_delete_segment_at(ClickTrack *ct, int32_t at, bool from_undo)
+{
+    ClickSegment *s = click_track_get_segment_at_pos(ct, at);
+    int32_t start_pos = s->start_pos;
+    simple_click_segment_remove(s);
+    
+
+    if (!from_undo) {
+	user_event_push(
+	    &proj->history,
+	    undo_delete_click_segment,
+	    redo_delete_click_segment,
+	    dispose_delete_click_segment, NULL,
+	    (void *)s,
+	    NULL,
+	    (Value){.int32_v = start_pos}, (Value){0},
+	    (Value){.int32_v = start_pos}, (Value){0},
+	    0, 0,
+	    false, false);
+    }
+
+}
+
+void click_track_delete_segment_at_cursor(ClickTrack *ct)
+{
+    click_track_delete_segment_at(ct, ct->tl->play_pos_sframes, false);
+}
+
 static void timeline_select_click_track(Timeline *tl, ClickTrack *ct)
 {
     tl->layout_selector = ct->layout->index;
@@ -1494,8 +1551,10 @@ void click_segment_fprint(FILE *f, ClickSegment *s)
 void click_segment_at_cursor_fprint(FILE *f, Timeline *tl)
 {
     ClickTrack *tt = timeline_selected_click_track(tl);
-    ClickSegment *s = click_track_get_segment_at_pos(tt, tl->play_pos_sframes);
-    click_segment_fprint(f, s);
+    if (tt) {
+	ClickSegment *s = click_track_get_segment_at_pos(tt, tl->play_pos_sframes);
+	click_segment_fprint(f, s);
+    }
 }
 
 void click_track_fprint(FILE *f, ClickTrack *tt)

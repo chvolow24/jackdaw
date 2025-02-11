@@ -668,13 +668,13 @@ static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv,
 	char opt1[64];
 	char opt2[64];
 	char timestr[64];
-	timecode_str_at(tt->tl, timestr, 64, s->end_pos);
+	timecode_str_at(tt->tl, timestr, 64, s->next->start_pos);
 	snprintf(opt1, 64, "Fixed end pos (%s)", timestr);
 
-	if (s->cfg.dur_sframes * s->num_measures == s->end_pos - s->start_pos) {
+	if (s->cfg.dur_sframes * s->num_measures == s->next->start_pos - s->start_pos) {
 	    snprintf(opt2, 64, "Fixed num measures (%d)", s->num_measures);
 	} else {
-	    snprintf(opt2, 64, "Fixed num measures (%f)", (float)(s->end_pos - s->start_pos)/s->cfg.dur_sframes);
+	    snprintf(opt2, 64, "Fixed num measures (%f)", (float)(s->next->start_pos - s->start_pos)/s->cfg.dur_sframes);
 	}
 	char *options[] = {opt1, opt2};
 

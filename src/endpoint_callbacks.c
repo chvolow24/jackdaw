@@ -209,12 +209,12 @@ void click_track_ebb_gui_cb(Endpoint *ep)
 }
 
 
-void click_segment_set_end_pos(ClickSegment *s, int32_t new_end_pos);
+void click_segment_set_start_pos(ClickSegment *s, int32_t new_end_pos);
 void click_segment_bound_proj_cb(Endpoint *ep)
 {
     ClickSegment *s = ep->xarg1;
     Value new_pos = endpoint_safe_read(ep, NULL);
-    click_segment_set_end_pos(s, new_pos.int32_v);
+    click_segment_set_start_pos(s, new_pos.int32_v);
 }
 
 void click_segment_bound_gui_cb(Endpoint *ep)

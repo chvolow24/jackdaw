@@ -52,7 +52,7 @@ typedef struct click_segment ClickSegment;
 typedef struct click_segment {
     ClickTrack *track;
     int32_t start_pos;
-    int32_t end_pos;
+    /* int32_t end_pos; */
     int16_t first_measure_index;
     int32_t num_measures;
     ClickTrack *click_track;
@@ -61,8 +61,8 @@ typedef struct click_segment {
     ClickSegment *next;
     ClickSegment *prev;
 
-    int32_t end_pos_internal;
-    Endpoint end_pos_ep;
+    int32_t start_pos_internal;
+    Endpoint start_pos_ep;
 } ClickSegment;
 
 typedef struct timeline Timeline;

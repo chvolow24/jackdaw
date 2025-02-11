@@ -105,7 +105,7 @@ ClickSegment *click_track_get_segment_at_pos(ClickTrack *t, int32_t pos)
 		return s;
 	    }
 	} else {
-	    if (s->end_pos == s->start_pos || pos < s->end_pos) {
+	    if (!s->next || pos < s->next->start_pos) {
 		/* fprintf(stderr, "Returning seg %d-%d (POS %d)\n", s->start_pos, s->end_pos, pos); */
 		return s;
 	    } else {
@@ -200,7 +200,7 @@ static bool click_track_get_next_pos(ClickTrack *t, bool start, int32_t start_fr
 	do_increment(s, &measure, &beat, &subdiv);
 	*pos = get_beat_pos(s, measure, beat, subdiv);
 	/* If segment is not last */
-	if (s->next && *pos >= s->end_pos) {
+	if (s->next && *pos >= s->next->start_pos) {
 	    s = s->next;
 	    if (!s) {
 		fprintf(stderr, "Fatal error: no tempo track segment where expected\n");
@@ -229,7 +229,7 @@ set_prominence_and_exit:
 }
 
 
-void click_segment_set_end_pos(ClickSegment *s, int32_t new_end_pos);
+void click_segment_set_start_pos(ClickSegment *s, int32_t new_end_pos);
 
 void click_segment_set_config(ClickSegment *s, int num_measures, int bpm, uint8_t num_beats, uint8_t *subdivs, enum ts_end_bound_behavior ebb)
 {
@@ -262,16 +262,16 @@ void click_segment_set_config(ClickSegment *s, int num_measures, int bpm, uint8_
     s->cfg.atom_dur_approx = measure_dur / s->cfg.num_atoms;
 
     if (!s->next) {
-	s->end_pos = s->start_pos;
-	s->end_pos_internal = s->start_pos;
+	/* s->end_pos = s->start_pos; */
+	/* s->end_pos_internal = s->start_pos; */
 	s->num_measures = -1;
     } else {
 	if (ebb == SEGMENT_FIXED_NUM_MEASURES) {
-	    float num_measures_f = ((float)s->end_pos - s->start_pos)/old_dur_sframes;
+	    float num_measures_f = ((float)s->next->start_pos - s->start_pos)/old_dur_sframes;
 	    int32_t end_pos = s->start_pos + num_measures_f * s->cfg.dur_sframes;
-	    click_segment_set_end_pos(s, end_pos);
+	    click_segment_set_start_pos(s->next, end_pos);
 	} else {
-	    click_segment_set_end_pos (s, s->next->start_pos);
+	    click_segment_set_start_pos(s->next, s->next->start_pos);
 	}
     }
     /* if (s->track->end_bound_behavior == SEGMENT_FIXED_NUM_MEASURES) { */
@@ -290,26 +290,32 @@ void click_segment_set_config(ClickSegment *s, int num_measures, int bpm, uint8_
 }
 
 /* Calculates the new segment dur in measures and sets the first measure index of the next segment */
-void click_segment_set_end_pos(ClickSegment *s, int32_t new_end_pos)
+/* void click_segment_set_end_pos(ClickSegment *s, int32_t new_end_pos) */
+/* { */
+/*     int32_t segment_dur = new_end_pos - s->start_pos; */
+/*     double num_measures = (double)segment_dur / s->cfg.dur_sframes; */
+/*     s->num_measures = floor(0.9999999 + num_measures); */
+/*     /\* s->end_pos = new_end_pos; *\/ */
+/*     /\* s->end_pos_internal = new_end_pos; *\/ */
+/*     if (s->next) { */
+/* 	int32_t diff = new_end_pos - s->next->start_pos; */
+/* 	s->next->start_pos = new_end_pos; */
+/* 	click_segment_set_end_pos(s->next, s->next->start_pos + diff);  */
+/*     } */
+/* } */
+
+void click_segment_set_start_pos(ClickSegment *s, int32_t new_start_pos)
 {
-    int32_t segment_dur = new_end_pos - s->start_pos;
-    double num_measures = (double)segment_dur / s->cfg.dur_sframes;
-    s->num_measures = floor(0.9999999 + num_measures);
-    s->end_pos = new_end_pos;
-    s->end_pos_internal = new_end_pos;
-    while (s->next) {
-	int32_t dur_next = s->next->end_pos - s->next->start_pos;
-	s->next->start_pos = s->end_pos;
-	if (s->next->next) {
-	    s->next->end_pos = s->next->start_pos + dur_next;
-	    s->next->end_pos_internal = s->next->end_pos;
-	} else {
-	    s->next->end_pos = s->next->start_pos;
-	    s->next->end_pos_internal = s->next->end_pos;
-	}
-	s->next->first_measure_index = s->first_measure_index+ s->num_measures;
-	s = s->next;
-	/* fprintf(stderr, "First measure index of next one is %d + %d\n", s->first_measure_index, s->num_measures); */
+    int32_t diff = new_start_pos - s->start_pos;
+    s->start_pos = new_start_pos;
+    s->start_pos_internal = new_start_pos;
+    if (s->prev) {
+	int32_t prev_dur = new_start_pos - s->start_pos;
+	double num_measures = (double)prev_dur / s->prev->cfg.dur_sframes;
+	s->prev->num_measures = floor(0.9999999 + num_measures);
+    }
+    if (s->next) {
+	click_segment_set_start_pos(s->next, s->next->start_pos + diff);
     }
 }
 
@@ -319,11 +325,12 @@ ClickSegment *click_track_add_segment(ClickTrack *t, int32_t start_pos, int16_t 
     s->track = t;
     s->num_measures = num_measures;
     s->start_pos = start_pos;
+    s->start_pos_internal = start_pos;
     endpoint_init(
-	&s->end_pos_ep,
-	&s->end_pos_internal,
+	&s->start_pos_ep,
+	&s->start_pos_internal,
 	JDAW_INT32,
-	"end_pos",
+	"start_pos",
 	"undo/redo move click segment boundary",
 	JDAW_THREAD_MAIN,
 	NULL, click_segment_bound_proj_cb, NULL,
@@ -331,7 +338,7 @@ ClickSegment *click_track_add_segment(ClickTrack *t, int32_t start_pos, int16_t 
 	
     if (!t->segments) {
 	t->segments = s;
-	s->end_pos = s->start_pos;
+	/* s->end_pos = s->start_pos; */
 	s->first_measure_index = BARS_FOR_NOTHING * -1;
 	goto set_config_and_exit;
     }
@@ -344,14 +351,14 @@ ClickSegment *click_track_add_segment(ClickTrack *t, int32_t start_pos, int16_t 
     if (!interrupt->next) {
 	interrupt->next = s;
 	s->prev = interrupt;
-	click_segment_set_end_pos(interrupt, start_pos);
+	click_segment_set_start_pos(s, start_pos);
     } else {
 	s->next = interrupt->next;
 	interrupt->next->prev = s;
 	interrupt->next = s;
 	s->prev = interrupt;
 	click_segment_set_config(s, num_measures, bpm, num_beats, subdiv_lens, SEGMENT_FIXED_END_POS);
-	click_segment_set_end_pos(interrupt, start_pos);
+	click_segment_set_start_pos(s, start_pos);
 	return s;
     }
 set_config_and_exit:
@@ -722,13 +729,13 @@ void timeline_click_track_set_tempo_at_cursor(Timeline *tl)
 	char opt1[64];
 	char opt2[64];
 	char timestr[64];
-	timecode_str_at(tt->tl, timestr, 64, s->end_pos);
+	timecode_str_at(tt->tl, timestr, 64, s->next->start_pos);
 	snprintf(opt1, 64, "Fixed end pos (%s)", timestr);
 
-	if (s->cfg.dur_sframes * s->num_measures == s->end_pos - s->start_pos) {
+	if (s->cfg.dur_sframes * s->num_measures == s->next->start_pos - s->start_pos) {
 	    snprintf(opt2, 64, "Fixed num measures (%d)", s->num_measures);
 	} else {
-	    snprintf(opt2, 64, "Fixed num measures (%f)", (float)(s->end_pos - s->start_pos)/s->cfg.dur_sframes);
+	    snprintf(opt2, 64, "Fixed num measures (%f)", (float)(s->next->start_pos - s->start_pos)/s->cfg.dur_sframes);
 	}
 	char *options[] = {opt1, opt2};
 
@@ -835,18 +842,28 @@ static void simple_click_segment_remove(ClickSegment *s)
     ClickTrack *tt = s->track;
     if (s->prev) {
 	s->prev->next = s->next;
-	if (s->next) {
-	    click_segment_set_end_pos(s->prev, s->next->start_pos);
-	    s->next->prev = s->prev;
-	} else {
-	    s->prev->end_pos = s->prev->start_pos;
-	    s->prev->num_measures = -1;
-	}
-    } else if (s->next) {
+    } else {
 	tt->segments = s->next;
     }
-    /* fprintf(stderr, "After:\n"); */
-    /* click_track_fprint(stderr, s->track); */
+    if (s->next) {
+	s->next->prev = s->prev;
+	click_segment_set_start_pos(s->next, s->next->start_pos);
+    }
+}
+
+static void simple_click_segment_reinsert(ClickSegment *s, int32_t segment_dur)
+{
+    if (!s->prev) {
+	s->track->segments = s;
+    } else {
+	s->prev->next = s;
+    }
+    if (s->next) {
+	s->next->prev = s;
+	click_segment_set_start_pos(s->next, s->start_pos + segment_dur);
+    }
+    /* if ( */
+    click_segment_set_start_pos(s, s->start_pos);
 }
 
 
@@ -871,9 +888,11 @@ NEW_EVENT_FN(undo_cut_click_track, "undo cut click track")
 
 NEW_EVENT_FN(redo_cut_click_track, "redo cut click track")
     ClickTrack *tt = (ClickTrack *)obj1;
-    int32_t at = val1.int32_v;
-    ClickSegment *s = click_track_cut_at(tt, at);
-    self->obj2 = (void *)s;
+    /* int32_t at = val1.int32_v; */
+    simple_click_segment_reinsert(obj2, val2.int32_v);
+    tt->tl->needs_redraw = true;
+    /* ClickSegment *s = click_track_cut_at(tt, at); */
+    /* self->obj2 = (void *)s; */
 }
 
 NEW_EVENT_FN(dispose_forward_cut_click_track, "")
@@ -893,14 +912,14 @@ void timeline_cut_click_track_at_cursor(Timeline *tl)
     }
     tl->needs_redraw = true;
     Value cut_pos = {.int32_v = tl->play_pos_sframes};
-    Value nullval = {.int_v = 0};
+    Value new_seg_duration = {.int32_v = s->next ? s->next->start_pos - s->start_pos : -1};
     user_event_push(
 	&proj->history,
 	undo_cut_click_track, redo_cut_click_track,
 	NULL, dispose_forward_cut_click_track,
 	(void *)tt, (void *)s,
-	cut_pos, nullval,
-	cut_pos, nullval,
+	cut_pos, new_seg_duration,
+	cut_pos, new_seg_duration,
 	0, 0, false, false);
 }
 
@@ -969,8 +988,8 @@ void click_track_goto_prox_beat(ClickTrack *tt, int direction, enum beat_promine
     }
     if (pos < s->start_pos) {
 	pos = s->start_pos;
-    } else if (pos > s->end_pos && s->start_pos != s->end_pos) {
-	pos = s->end_pos;
+    } else if (s->next && pos > s->next->start_pos) {
+	pos = s->next->start_pos;
     }
 
     timeline_set_play_position(tl, pos);
@@ -1173,7 +1192,7 @@ int32_t click_track_bar_beat_subdiv(ClickTrack *tt, int32_t pos, int *bar_p, int
 	if (ops > 1000000 - 5) {
 	    if (ops > 1000000 - 3) breakfn();
 	    fprintf(stderr, "ABORTING soon... ops = %d\n", ops);
-	    fprintf(stderr, "Segment start/end: %d-%d\n", s->start_pos, s->end_pos);
+	    fprintf(stderr, "Segment start: %d\n", s->start_pos);
 	    fprintf(stderr, "Beat pos: %d\n", beat_pos);
 	    fprintf(stderr, "Pos: %d\n", pos);
 	    if (ops > 1000000) {
@@ -1384,10 +1403,11 @@ static void click_track_delete_segment_at(ClickTrack *ct, int32_t at, bool from_
 
 NEW_EVENT_FN(undo_delete_click_segment, "undo delete click track segment")
     ClickSegment *to_cpy = (ClickSegment *)obj1;
-    int32_t at = val1.int32_v;
-    uint8_t subdiv_lens[to_cpy->cfg.num_beats];
-    memcpy(subdiv_lens, to_cpy->cfg.beat_subdiv_lens, to_cpy->cfg.num_beats * sizeof(uint8_t));
-    click_track_add_segment(to_cpy->track, at, -1, to_cpy->cfg.bpm, to_cpy->cfg.num_beats, subdiv_lens);
+    simple_click_segment_reinsert(to_cpy, val2.int32_v);
+    /* int32_t at = val1.int32_v; */
+    /* uint8_t subdiv_lens[to_cpy->cfg.num_beats]; */
+    /* memcpy(subdiv_lens, to_cpy->cfg.beat_subdiv_lens, to_cpy->cfg.num_beats * sizeof(uint8_t)); */
+    /* click_track_add_segment(to_cpy->track, at, -1, to_cpy->cfg.bpm, to_cpy->cfg.num_beats, subdiv_lens); */
 }
 
 NEW_EVENT_FN(redo_delete_click_segment, "redo delete click track segment")
@@ -1403,6 +1423,7 @@ static void click_track_delete_segment_at(ClickTrack *ct, int32_t at, bool from_
 {
     ClickSegment *s = click_track_get_segment_at_pos(ct, at);
     int32_t start_pos = s->start_pos;
+    int32_t segment_dur = s->next ? s->next->start_pos - s->start_pos : -1;
     simple_click_segment_remove(s);
     
 
@@ -1414,8 +1435,8 @@ static void click_track_delete_segment_at(ClickTrack *ct, int32_t at, bool from_
 	    dispose_delete_click_segment, NULL,
 	    (void *)s,
 	    NULL,
-	    (Value){.int32_v = start_pos}, (Value){0},
-	    (Value){.int32_v = start_pos}, (Value){0},
+	    (Value){.int32_v = start_pos}, (Value){.int32_v = segment_dur},
+	    (Value){.int32_v = start_pos}, (Value){.int32_v = segment_dur},
 	    0, 0,
 	    false, false);
     }
@@ -1472,11 +1493,11 @@ bool click_track_triage_click(uint8_t button, ClickTrack *t)
 	}
 	s = s->next;
     }
-    if (final && final->prev) {
-	proj->dragged_component.component = final->prev;
+    if (final) {
+	proj->dragged_component.component = final;
 	proj->dragged_component.type = DRAG_CLICK_SEG_BOUND;
-	Value current_val = endpoint_safe_read(&final->prev->end_pos_ep, NULL);
-	endpoint_start_continuous_change(&final->prev->end_pos_ep, false, (Value)0, JDAW_THREAD_MAIN, current_val);
+	Value current_val = endpoint_safe_read(&final->start_pos_ep, NULL);
+	endpoint_start_continuous_change(&final->start_pos_ep, false, (Value)0, JDAW_THREAD_MAIN, current_val);
 	return true;
     }
 
@@ -1505,10 +1526,10 @@ void click_track_mouse_motion(ClickSegment *s, Window *win)
     if (!(main_win->i_state & I_STATE_SHIFT)) {
 	tl_pos = click_segment_get_nearest_beat_pos(s->track, tl_pos);
     }
-    if (tl_pos < 0 || tl_pos < s->start_pos + proj->sample_rate / 100) {
+    if (tl_pos < 0 || (s->prev && tl_pos < s->prev->start_pos + proj->sample_rate / 100)) {
 	return;
     }
-    endpoint_write(&s->end_pos_ep, (Value){.int32_v = tl_pos}, true, true, true, false);
+    endpoint_write(&s->start_pos_ep, (Value){.int32_v = tl_pos}, true, true, true, false);
 
 }
    
@@ -1518,7 +1539,7 @@ extern Project *proj;
 
 void click_segment_fprint(FILE *f, ClickSegment *s)
 {
-    fprintf(f, "\nSegment at %p start/end: %d-%d (%f-%fs)\n", s, s->start_pos, s->end_pos, (float)s->start_pos / proj->sample_rate, (float)s->end_pos / proj->sample_rate);
+    fprintf(f, "\nSegment at %p start: %d (%fs)\n", s, s->start_pos, (float)s->start_pos / s->track->tl->proj->sample_rate);
     fprintf(f, "Segment tempo (bpm): %d\n", s->cfg.bpm);
     fprintf(stderr, "Segment measure start i: %d; num measures: %d\n", s->first_measure_index, s->num_measures);
     fprintf(f, "\tCfg beats: %d\n", s->cfg.num_beats);

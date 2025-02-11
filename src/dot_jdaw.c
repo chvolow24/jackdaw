@@ -290,7 +290,12 @@ static void jdaw_write_click_segment(FILE *f, ClickSegment *s)
 {
     fwrite(hdr_click_segm, 1, 4, f);
     int32_ser_le(f, &s->start_pos);
-    int32_ser_le(f, &s->end_pos);
+    
+    /* TODO: remove segment end pos from spec */
+    int32_t dummy = 0;
+    int32_ser_le(f, &dummy);
+    
+    /* int32_ser_le(f, &s->end_pos); */
     int16_ser_le(f, &s->first_measure_index);
     int32_ser_le(f, &s->num_measures);
     int16_t bpm = (int16_t)s->cfg.bpm;

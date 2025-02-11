@@ -5,7 +5,7 @@ A free, open-source, keyboard-focused digital audio workstation (DAW). Written i
 
 ## Table of Contents
 1. [Disclaimer](#disclaimer)
-2. [Compatibility](#os-compatibility)
+2. [Compatibility](#os-compatibility)n
 3. [Dependencies](#dependencies)
 4. [Installation](#installation)
     1. [The easy way: bash scripts](#the-easy-way-bash-scripts)
@@ -22,7 +22,7 @@ A free, open-source, keyboard-focused digital audio workstation (DAW). Written i
 		 5. [Marks and jump-to](#marks-and-jump-to)
 		 6. [Scrolling](#scrolling)
 	3. [Recording](#recording)
-	4. [Tracks](#tracks)
+	4. [Audio Tracks](#audio-tracks)
 		 1. [Activating / deactivating tracks](#activating--deactivating-tracks)
 		 2. [Muting / soloing](#muting--soloing)
 		 3. [Adjusting volume / pan](#adjusting-volume--pan)
@@ -35,18 +35,19 @@ A free, open-source, keyboard-focused digital audio workstation (DAW). Written i
 		 2. ["Grabbing" and moving clips](#grabbing-and-moving-clips)
 		 3. [Cutting clips](#cutting-clips)
 		 4. [Renaming clips](#renaming-clips)
-	6. [Sample mode / Source mode](#sample-mode--source-mode)
-	7. [Project navigation / multiple timelines](#project-navigation--multiple-timelines)
-	8. [Opening and saving files](#opening-and-saving-files)
-	9. [Track effects](#track-effects)
+	6. [Click Tracks](#click-tracks)
+	7. [Sample mode / Source mode](#sample-mode--source-mode)
+	8. [Project navigation / multiple timelines](#project-navigation--multiple-timelines)
+	9. [Opening and saving files](#opening-and-saving-files)
+	10. [Track effects](#track-effects)
 		 1. [FIR filter](#fir-filter)
 		 2. [Delay line](#delay-line)
-	10. [Automation](#automation)
+	11. [Automation](#automation)
 	     1. [Adding keyframes with the mouse](#adding-keyframes-with-the-mouse)
 		 2. [Writing (adding keyframes automatically)](#writing-adding-keyframes-automatically)
 		 3. [Deleting keyframes](#deleting-keyframes)
-	11. [Undo / redo](#undo--redo)
-	12. [Special audio inputs](#special-audio-inputs)
+	12. [Undo / redo](#undo--redo)
+	13. [Special audio inputs](#special-audio-inputs)
 		 1. [Jackdaw out](#jackdaw-out)
 		 2. [Pure data](#pure-data)
 8. [Function reference](#function-reference)
@@ -313,7 +314,7 @@ When you hit <kbd>r</kbd>, audio recording will begin on all [activated](#activa
 
 You can record from multiple audio devices at once, simply by setting different inputs on different tracks, activating each of those tracks, and hitting <kbd>r</kbd>.
 
-## Tracks
+## Audio Tracks
 
 In the current version of jackdaw (v0.4.0) all tracks are stereo audio tracks.
 
@@ -448,6 +449,79 @@ This will cut any clips on the currently selected track at the current playhead 
 <kbd>C-S-r</kbd> : **Rename clip at cursor**<br>
 
 See <a href = "#editing-text">"Editing text"</a> for more on text edit mode.
+
+## Click tracks
+
+You can add click tracks to your project to create a "grid."
+
+<kbd>C-S-t</kbd> : **Add click track**<br>
+
+Click tracks fundamentally comprise a series of one or more *segments*, each of which can have its own tempo and time signature. A lot of music will only require a single click track and single time signature, but jackdaw allows you to create many click tracks, each of which can have many segments.
+
+<kbd>S-t</kbd> : **Edit click track**<br>
+
+When you edit a click track by selecting it and then <kbd>S-t</kbd>, or by clicking the pencil icon on the left of the track, you will see this screen:
+
+<img src="assets/readme_imgs/click_track_add.gif" width="75%" />
+
+<kbd>\<tab\></kbd> through the fields to modify the segment at the cursor, and then "Submit" your changes.
+
+### Time signatures
+
+Jackdaw doesn't use conventional time signatures because they're confusing and limited. Instead, you specify first the number of "beats" (coarse divisions of a measure) and then the number of subdivisions in each of those beats. So a 4/4 time signature, which has 4 beats, could be defined as 4 + 4 + 4 + 4 if you want sixteenth-note resolution, or 2 + 2 + 2 + 2 if you only want eighth-note resolution. 6/8 typically has *two* beats, and would be defined as 3 + 3.
+
+It is therefore very easy to define additive meters, like the Bulgarian Gankino horo (4 + 3 + 4):
+
+<img src="assets/readme_imgs/additive_meter.gif" width="75%" />
+
+
+### Click track segments
+
+If you need to change tempo or time signature partway through a song, you can do so by adding new click track segments.
+
+To do so, **cut** the click track with <kbd>S-c</kbd>. (Note that this is the same function you would use to cut a clip, but if a click track is selected, it will cut the click track instead.
+
+<img src="assets/readme_imgs/cut_click_track.gif" width="75%" />
+
+Now, you can modify each of the segments individually. When editing a segment, you can specify whether you want the end position to remain fixed, or the number of measures. If the number of measures is fixed, the end position of the segment may move, and all the segments to the right will move with it.
+
+You can click and drag the boundaries between click track segments to reposition them, and you can delete a segment with <kbd>\<del\></kbd>
+
+<img src="assets/readme_imgs/edit_segment_bounds.gif" width="75%" />
+
+While dragging, the segment boundary will automatically snap to the previous segment's subdivisions. Hold <kbd>\<shift\></kbd> to disable the snapping.
+
+### Metronome
+
+Each click track has a metronome which is on by default. You can mute the click track exactly as you would an audio track (select the track and then <kbd>m</kbd>, and adjust the volume of the metronome exactly as you would adjust the volume of an audio track (<kbd>S--</kbd> and <kbd>S-=</kbd>).
+
+### Set tempo
+
+You can quickly set the tempo of the click segment at cursor with <kbd>t</kbd>
+
+<img src="assets/readme_imgs/edit_segment_bounds.gif" width="75%" />
+
+### Navigation
+
+Click tracks can be moved up and down on the timeline exactly like audio tracks: with <kbd>S-n</kbd> and <kbd>S-p</kbd>.
+
+All of the audio tracks directly *below* a given click track are governed by that click track. In the current version of jackdaw (v0.5.0) this is only relevant when using the following navigation functions:
+
+<kbd>C-j</kbd> : **Go to previous beat**<br>
+<kbd>C-l</kbd> : **Go to next beat**<br>
+
+<kbd>C-S-j</kbd> : **Go to previous subdivision**<br>
+<kbd>C-S-k</kbd> : **Go to next subdivision**<br>
+
+<kbd>A-S-j</kbd> : **Go to previous measure**<br>
+<kbd>A-S-k</kbd> : **Go to next measure**<br>
+
+<img src="assets/readme_imgs/click_track_navigation.gif" width="75%" />
+
+
+
+
+
 
 ## Sample mode / Source mode
 

@@ -93,6 +93,7 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
 	/* fprintf(stdout, "Leftover: %d\n", dev->rec_buf_len_samples - (dev->write_bufpos_samples + stream_len_samples)); */
 	for (int i=proj->active_clip_index; i<proj->num_clips; i++) {
 	    Clip *clip = proj->clips[i];
+	    if (!clip->recorded_from) continue;
 	    if (clip->recorded_from->type == DEVICE && &clip->recorded_from->c.device == dev) {	
 		copy_conn_buf_to_clip(clip, DEVICE);
 	    }
@@ -680,6 +681,7 @@ void transport_stop_recording()
 	    break;
 	    
 	}
+	fprintf(stderr, "SETTING %s rec to false\n", clip->name);
 	clip->recording = false;
 	proj->active_clip_index++;
     }
@@ -745,9 +747,7 @@ void transport_recording_update_cliprects()
 	/* fprintf(stdout, "updating %d/%d\n", i, proj->num_clips); */
 	Clip *clip = proj->clips[i];
 
-	fprintf(stderr, "%d / %d\n", i, proj->num_clips);
 	if (!clip->recorded_from) continue; /* E.g. wav loaded during recording */
-	fprintf(stderr, "->Recorded from? %p\n", clip->recorded_from);
 	switch(clip->recorded_from->type) {
 	case DEVICE:
 	    clip->len_sframes = clip->recorded_from->c.device.write_bufpos_samples / clip->channels + clip->write_bufpos_sframes;

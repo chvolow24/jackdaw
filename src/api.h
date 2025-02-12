@@ -49,6 +49,7 @@ struct api_server {
     int sockfd;
     struct sockaddr_in servaddr;
     pthread_t thread_id;
+    pthread_mutex_t setup_lock;
 };
 
 typedef struct api_hash_node {

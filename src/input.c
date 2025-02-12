@@ -206,6 +206,12 @@ static void mode_load_global()
     mode_subcat_add_fn(mc, fn);
 
     fn = create_user_fn(
+	"start_server",
+	"Start API server",
+	user_global_start_server);
+    mode_subcat_add_fn(mc, fn);
+
+    fn = create_user_fn(
 	"chaotic_user_test",
 	"Chaotic user test (debug only)",
 	user_global_chaotic_user_test);

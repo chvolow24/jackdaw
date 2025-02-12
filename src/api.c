@@ -16,9 +16,11 @@
     * triage messages sent via UDP
  *****************************************************************************************************************/
 
+#include <errno.h>
 #include "api.h"
 #include "endpoint.h"
 #include "project.h"
+
 
 #define API_HASH_TABLE_SIZE 1024
 #define MAX_ROUTE_DEPTH 16
@@ -202,11 +204,16 @@ static void *server_threadfn(void *arg)
     proj->server.servaddr.sin_port = htons(port);
 
     if (bind(proj->server.sockfd, (const struct sockaddr *)&proj->server.servaddr, sizeof(proj->server.servaddr)) < 0) {
-	perror("Bind failed");
+	/* perror("Bind failed"); */
+	proj->server.active = false;
+	fprintf(stderr, "SERVERTHREAD: unlocking due to error\n");
+        pthread_mutex_unlock(&proj->server.setup_lock);
 	return NULL;
     }
     char buffer[1024];
     proj->server.active = true;
+    fprintf(stderr, "SERVERTHREAD: unlocking due to success\n");
+    pthread_mutex_unlock(&proj->server.setup_lock);
     while (proj->server.active) {
 	if (recvfrom(proj->server.sockfd, (char *)buffer, 1024, 0, (struct sockaddr *)&proj->server.servaddr, &len) < 0) {
 	    perror("recvfrom");
@@ -231,19 +238,38 @@ static void *server_threadfn(void *arg)
     if (close(proj->server.sockfd) != 0) {
 	perror("Error closing socket:");
     }
+    fprintf(stderr, "Exiting server threadfn\n");
+    /* proj->server.active = false; */
     return NULL;
 
 }
 
 
+static void api_teardown_server(Project *proj);
+
 /* Server */
 int api_start_server(Project *proj, int port)
 {
-    pthread_t servthread;
+    if (proj->server.active) {
+	fprintf(stderr, "Server already active on port %d. Tearing down.\n", proj->server.port);
+	api_teardown_server(proj);
+    }
+    pthread_mutex_init(&proj->server.setup_lock, NULL);
+    pthread_mutex_lock(&proj->server.setup_lock);
+    static pthread_t servthread;
     proj->server.port = port;
+    fprintf(stderr, "\n\nCalling pthread create....\n");
     pthread_create(&servthread, NULL, server_threadfn, (void *)proj);
+    pthread_mutex_lock(&proj->server.setup_lock);
+    fprintf(stderr, "... OK WE;re unlocked in main\n");
+    if (!proj->server.active) {
+	perror("Server setup failed: ");
+	return 1;
+    }
+
+    fprintf(stderr, "Server active on port %d\n", port);
     proj->server.thread_id = servthread;
-    fprintf(stderr, "Launching server on port %d\n", port);
+
     return 0;
 }
 
@@ -273,15 +299,23 @@ static void api_hash_table_destroy()
     }
 }
 
-
-void api_quit(Project *proj)
+static void api_teardown_server(Project *proj)
 {
-    if (!proj->server.active) return;
-    
+    fprintf(stderr, "Tearing down server running on port %d...\n", proj->server.port);
     proj->server.active = false;
     char *msg = "quit";
     sendto(proj->server.sockfd, msg, strlen(msg), 0, (struct sockaddr *)&proj->server.servaddr, sizeof(proj->server.servaddr));
-    pthread_join(proj->server.thread_id, NULL);
+    int err = pthread_join(proj->server.thread_id, NULL);
+    if (err != 0) {
+	fprintf(stderr, "Error in pthread join: %s\n", err == EINVAL ? "Value specified by rehad is not joinable" : err == ESRCH ? "No thread found" : err == EDEADLK ? "Deadlock detected, or value of thread specifies this (calling) thread" : "Unknown error");
+    }
+    fprintf(stderr, "\t..done.\n");
+    
+}
+
+void api_quit(Project *proj)
+{
+    if (proj->server.active) api_teardown_server(proj);
     api_hash_table_destroy();
 }
 

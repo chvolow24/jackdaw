@@ -14,6 +14,7 @@
 #include "settings.h"
 #include "status.h"
 #include "test.h"
+#include "text.h"
 #include "textbox.h"
 #include "transport.h"
 #include "timeline.h"
@@ -144,6 +145,43 @@ void user_global_show_output_freq_domain(void *nullarg)
 {
     /* proj->show_output_freq_domain = !proj->show_output_freq_domain; */
     panel_page_refocus(proj->panels, "Output spectrum", 0);
+}
+
+
+static int submit_server_form(void *mod_v, void *target)
+{
+    int port = atoi((char *)((Modal *)mod_v)->stashed_obj);
+    fprintf(stderr, "STARTING SERVER ON PORT: %d\n", port);
+    api_start_server(proj, port);
+    return 0;
+}
+
+txt_int_range_completion(0, 99999);
+void user_global_start_server(void *nullarg)
+{
+
+    Layout *mod_lt = layout_add_child(main_win->layout);
+    layout_set_default_dims(mod_lt);
+    Modal *m = modal_create(mod_lt);
+    modal_add_header(m, "Start server", &color_global_light_grey, 3);
+    modal_add_header(m, "Run a UDP server on port:", &color_global_light_grey, 5);
+    static char port[5];
+    modal_add_textentry(
+	m,
+	port,
+	5,
+	txt_integer_validation,
+	txt_int_range_completion_0_99999,
+	NULL);
+    modal_add_button(m, "Start", submit_server_form);
+    m->stashed_obj = port;
+    m->submit_form = submit_server_form;
+    window_push_modal(main_win, m);
+    modal_reset(m);
+    /* fprintf(stdout, "about to call move onto\n"); */
+    modal_move_onto(m);
+
+
 }
 
 

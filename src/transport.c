@@ -263,6 +263,7 @@ static void *transport_dsp_thread_fn(void *arg)
 	for (uint16_t i=proj->active_clip_index; i<proj->num_clips; i++) {
 	    Clip *clip = proj->clips[i];
 	    AudioConn *conn = clip->recorded_from;
+	    if (!conn) continue;
 	    if (conn->type == JACKDAW) {
 		/* if (conn->c.jdaw.write_bufpos_sframes + len < conn->c.jdaw.rec_buf_len_sframes) { */
 		memcpy(conn->c.jdaw.rec_buffer_L + conn->c.jdaw.write_bufpos_sframes, buf_L, sizeof(float) * len);
@@ -662,6 +663,10 @@ void transport_stop_recording()
 	Clip *clip = proj->clips[proj->active_clip_index];
 	/* fprintf(stdout, "CLIP BUFFERS: %p, %p\n", clip->L, clip->R); */
 	/* exit(0); */
+	if (!clip->recorded_from) {
+	    proj->active_clip_index++;
+	    continue;
+	}
 	switch (clip->recorded_from->type) {
 	case DEVICE:
 	    copy_conn_buf_to_clip(clip, DEVICE);
@@ -740,6 +745,9 @@ void transport_recording_update_cliprects()
 	/* fprintf(stdout, "updating %d/%d\n", i, proj->num_clips); */
 	Clip *clip = proj->clips[i];
 
+	fprintf(stderr, "%d / %d\n", i, proj->num_clips);
+	if (!clip->recorded_from) continue; /* E.g. wav loaded during recording */
+	fprintf(stderr, "->Recorded from? %p\n", clip->recorded_from);
 	switch(clip->recorded_from->type) {
 	case DEVICE:
 	    clip->len_sframes = clip->recorded_from->c.device.write_bufpos_samples / clip->channels + clip->write_bufpos_sframes;

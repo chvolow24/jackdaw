@@ -460,11 +460,11 @@ Click tracks fundamentally comprise a series of one or more *segments*, each of 
 
 <kbd>S-t</kbd> : **Edit click track**<br>
 
-When you edit a click track by selecting it and then <kbd>S-t</kbd>, or by clicking the pencil icon on the left of the track, you will see this screen:
+Edit the click track and segment at cursor with <kbd>S-t</kbd>, or by clicking the pencil icon on the left of the track.
 
 <img src="assets/readme_imgs/click_track_add.gif" width="75%" />
 
-<kbd>\<tab\></kbd> through the fields to modify the segment at the cursor, and then "Submit" your changes.
+Then, <kbd>\<tab\></kbd> through the fields to modify any of the track parameters and "Submit" to confirm your changes to the time signature and tempo. (Changes to the track name do not need to be submitted.)
 
 ### Time signatures
 
@@ -499,7 +499,7 @@ Each click track has a metronome which is on by default. You can mute the click 
 
 You can quickly set the tempo of the click segment at cursor with <kbd>t</kbd>
 
-<img src="assets/readme_imgs/edit_segment_bounds.gif" width="75%" />
+<img src="assets/readme_imgs/set_tempo.gif" width="75%" />
 
 ### Navigation
 
@@ -517,10 +517,6 @@ All of the audio tracks directly *below* a given click track are governed by tha
 <kbd>A-S-k</kbd> : **Go to next measure**<br>
 
 <img src="assets/readme_imgs/click_track_navigation.gif" width="75%" />
-
-
-
-
 
 
 ## Sample mode / Source mode

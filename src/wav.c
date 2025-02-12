@@ -196,6 +196,7 @@ void wav_write_mixdown(const char *filepath)
 
     write_wav(filepath, samples, len_samples, 16, proj->channels);
     free(samples);
+    project_loading_screen_deinit(proj);
 }
 
 
@@ -337,6 +338,7 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
 	    memcpy(wav_cvt.buf, audio_buf + read_pos, len);
 	    if (SDL_ConvertAudio(&wav_cvt) < 0) {
 		fprintf(stderr, "Error: Unable to convert audio. %s\n", SDL_GetError());
+		project_loading_screen_deinit(proj);
 		return NULL;
 	    }
 	    if (!final_buffer) {
@@ -356,6 +358,7 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
 	final_buffer_len = audio_len_bytes;
     } else {
         fprintf(stderr, "Error: unexpected return value for SDL_BuildAudioCVT.\n");
+	project_loading_screen_deinit(proj);
         return NULL;
     }
 
@@ -369,7 +372,8 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
 	return NULL;
     }
     Clip *clip = project_add_clip(NULL, track);
-    proj->active_clip_index++;
+    if (!proj->recording)
+	proj->active_clip_index++;
     
     clip->len_sframes = buf_len_samples / track->channels;
     create_clip_buffers(clip, clip->len_sframes);
@@ -402,6 +406,7 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
     strncpy(clip->name, path_get_tail(filename_modifiable), MAX_NAMELENGTH);
     strncpy(cr->name, path_get_tail(filename_modifiable), MAX_NAMELENGTH);
     free(filename_modifiable);
+    project_loading_screen_deinit(proj);
     timeline_reset(track->tl, false);
     return cr;
 }

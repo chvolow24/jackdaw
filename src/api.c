@@ -215,10 +215,17 @@ static void *server_threadfn(void *arg)
     fprintf(stderr, "SERVERTHREAD: unlocking due to success\n");
     pthread_mutex_unlock(&proj->server.setup_lock);
     while (proj->server.active) {
-	if (recvfrom(proj->server.sockfd, (char *)buffer, 1024, 0, (struct sockaddr *)&proj->server.servaddr, &len) < 0) {
+	struct sockaddr sa;
+	if (recvfrom(proj->server.sockfd, (char *)buffer, 1024, 0, &sa, &len) < 0) {
 	    perror("recvfrom");
 	    exit(1);
 	}
+	char *msg = "200 OK";
+	sendto(proj->server.sockfd, msg, strlen(msg), 0, &sa, sizeof(sa));
+
+	/* fprintf(stderr, "SA family: %d", sa.sa_family); */
+	/* fprintf(stderr, "HOST family: %d\n", ); */
+	/* fprintf(stderr, "Rec: %s\n", buffer); */
 	int val_offset = 0;
 	for (int i=0; i<strlen(buffer); i++) {
 	    if (buffer[i] == ' ') {
@@ -301,10 +308,15 @@ static void api_hash_table_destroy()
 
 static void api_teardown_server(Project *proj)
 {
-    fprintf(stderr, "Tearing down server running on port %d...\n", proj->server.port);
+    fprintf(stderr, "Tearing down server running on port %d. Sending quit message...\n", proj->server.port);
     proj->server.active = false;
-    char *msg = "quit";
-    sendto(proj->server.sockfd, msg, strlen(msg), 0, (struct sockaddr *)&proj->server.servaddr, sizeof(proj->server.servaddr));
+    for (int i=0; i<5; i++) {
+	char *msg = "quit";
+	if (sendto(proj->server.sockfd, msg, strlen(msg), 0, (struct sockaddr *)&proj->server.servaddr, sizeof(proj->server.servaddr)) == -1) {
+	    perror("sendto");
+	    exit(1);
+	}
+    }
     int err = pthread_join(proj->server.thread_id, NULL);
     if (err != 0) {
 	fprintf(stderr, "Error in pthread join: %s\n", err == EINVAL ? "Value specified by rehad is not joinable" : err == ESRCH ? "No thread found" : err == EDEADLK ? "Deadlock detected, or value of thread specifies this (calling) thread" : "Unknown error");

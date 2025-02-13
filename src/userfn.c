@@ -152,11 +152,18 @@ static int submit_server_form(void *mod_v, void *target)
 {
     int port = atoi((char *)((Modal *)mod_v)->stashed_obj);
     fprintf(stderr, "STARTING SERVER ON PORT: %d\n", port);
-    api_start_server(proj, port);
+    if (api_start_server(proj, port) == 0) {
+	window_pop_modal(main_win);
+	ACTIVE_TL->needs_redraw = true;
+	return 0;
+    } else {
+	ACTIVE_TL->needs_redraw = true;
+	status_set_errstr("Unable to start server; see console for details");
+    }
     return 0;
 }
 
-txt_int_range_completion(0, 99999);
+txt_int_range_completion(1023, 49152);
 void user_global_start_server(void *nullarg)
 {
 
@@ -165,13 +172,13 @@ void user_global_start_server(void *nullarg)
     Modal *m = modal_create(mod_lt);
     modal_add_header(m, "Start server", &color_global_light_grey, 3);
     modal_add_header(m, "Run a UDP server on port:", &color_global_light_grey, 5);
-    static char port[5];
+    static char port[6];
     modal_add_textentry(
 	m,
 	port,
-	5,
+	6,
 	txt_integer_validation,
-	txt_int_range_completion_0_99999,
+	txt_int_range_completion_1023_49152,
 	NULL);
     modal_add_button(m, "Start", submit_server_form);
     m->stashed_obj = port;

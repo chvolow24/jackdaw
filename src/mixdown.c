@@ -24,20 +24,6 @@
 
 extern Project *proj;
 
-static float do_filter(float raw_input, float *fbuf, const float *coeff, int num_coeffs)
-{
-    /* fprintf(stderr, "\nIN: %f\n", raw_input); */
-    for (int i=0; i<num_coeffs; i++) {
-	raw_input += coeff[i] * fbuf[i];
-	/* fprintf(stderr, "\t%d: %f * %f\n", i, coeff[i], fbuf[i]); */
-	if (isnan(fbuf[i])) exit(1);
-    }
-    memmove(fbuf + 1, fbuf, sizeof(float) * (num_coeffs - 2));
-    fbuf[0] = raw_input;
-    /* fprintf(stderr, "\t--->OUT: %f\n", raw_input); */
-    return raw_input;
-}
-
 float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32_t start_pos_sframes, uint32_t len_sframes, float step)
 {
     uint32_t chunk_bytelen = sizeof(float) * len_sframes;

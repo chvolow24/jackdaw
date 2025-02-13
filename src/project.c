@@ -530,7 +530,7 @@ Project *project_create(
 	NULL, NULL, NULL, NULL);
     
     api_endpoint_register(&proj->play_speed_ep, &proj->server.api_root);			  
-    api_start_server(proj, 9302);
+    /* api_start_server(proj, 9302); */
 
     return proj;
 }

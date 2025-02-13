@@ -191,7 +191,7 @@ static void *server_threadfn(void *arg)
     /* int port = *(int *)arg; */
     Project *proj = (Project *)arg;
     int port = proj->server.port;
-    socklen_t len = sizeof(proj->server.servaddr);
+    /* socklen_t len = sizeof(proj->server.servaddr); */
     if ((proj->server.sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 	perror("Socket creation failed");
 	exit(1);
@@ -215,16 +215,20 @@ static void *server_threadfn(void *arg)
     fprintf(stderr, "SERVERTHREAD: unlocking due to success\n");
     pthread_mutex_unlock(&proj->server.setup_lock);
     while (proj->server.active) {
-	struct sockaddr sa;
-	if (recvfrom(proj->server.sockfd, (char *)buffer, 1024, 0, &sa, &len) < 0) {
+	struct sockaddr_in cliaddr;
+	memset(&cliaddr, '\0', sizeof(cliaddr));
+	socklen_t len = sizeof(cliaddr);
+	if (recvfrom(proj->server.sockfd, (char *)buffer, 1024, 0, (struct sockaddr *)&cliaddr, &len) < 0) {
 	    perror("recvfrom");
 	    exit(1);
 	}
-	char *msg = "200 OK;";
-	if (sendto(proj->server.sockfd, msg, strlen(msg), 0, &sa, sizeof(sa)) == -1) {
-	    perror("sendto");
-	}
 
+
+	/* struct sockaddr_in client_info = *(struct sockaddr_in *)&sa; */
+	/* fprintf(stderr, "CLI: %d, %d\n", ntohs(client_info.sin_port), client_info.sin_addr.s_addr); */
+	/* fprintf(stderr, "HOST: %d, %d\n", ntohs(proj->server.servaddr.sin_port), proj->server.servaddr.sin_addr.s_addr); */
+						 
+						 
 	/* fprintf(stderr, "SA family: %d", sa.sa_family); */
 	/* fprintf(stderr, "HOST family: %d\n", ); */
 	/* fprintf(stderr, "Rec: %s\n", buffer); */
@@ -243,6 +247,16 @@ static void *server_threadfn(void *arg)
 	    Value new_val = jdaw_val_from_str(buffer + val_offset, ep->val_type);
 	    endpoint_write(ep, new_val, true, true, true, false);
 	}
+
+
+	/* Send response */
+	char *msg = ep ? "200 OK;" : "Error: endpoint not found";
+	struct sockaddr_in cliaddr_info = *(struct sockaddr_in *)&cliaddr;
+	fprintf(stderr, "Sending message to port %d\n", ntohs(cliaddr_info.sin_port));
+	if (sendto(proj->server.sockfd, msg, strlen(msg), 0, (struct sockaddr *)&cliaddr, sizeof(cliaddr)) == -1) {
+	    perror("sendto");
+	}
+
     }
     if (close(proj->server.sockfd) != 0) {
 	perror("Error closing socket:");

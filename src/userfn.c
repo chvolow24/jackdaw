@@ -158,7 +158,7 @@ static int submit_server_form(void *mod_v, void *target)
 	return 0;
     } else {
 	ACTIVE_TL->needs_redraw = true;
-	status_set_errstr("Unable to start server; see console for details");
+	status_set_errstr("Unable to start server; port may be in use");
     }
     return 0;
 }
@@ -172,7 +172,7 @@ void user_global_start_server(void *nullarg)
     Modal *m = modal_create(mod_lt);
     modal_add_header(m, "Start server", &color_global_light_grey, 3);
     modal_add_header(m, "Run a UDP server on port:", &color_global_light_grey, 5);
-    static char port[6];
+    static char port[6] = {'9', '3', '0', '2'};
     modal_add_textentry(
 	m,
 	port,

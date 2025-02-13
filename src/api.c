@@ -206,13 +206,11 @@ static void *server_threadfn(void *arg)
     if (bind(proj->server.sockfd, (const struct sockaddr *)&proj->server.servaddr, sizeof(proj->server.servaddr)) < 0) {
 	/* perror("Bind failed"); */
 	proj->server.active = false;
-	fprintf(stderr, "SERVERTHREAD: unlocking due to error\n");
         pthread_mutex_unlock(&proj->server.setup_lock);
 	return NULL;
     }
     char buffer[1024];
     proj->server.active = true;
-    fprintf(stderr, "SERVERTHREAD: unlocking due to success\n");
     pthread_mutex_unlock(&proj->server.setup_lock);
     while (proj->server.active) {
 	struct sockaddr_in cliaddr;
@@ -251,8 +249,6 @@ static void *server_threadfn(void *arg)
 
 	/* Send response */
 	char *msg = ep ? "200 OK;" : "Error: endpoint not found";
-	struct sockaddr_in cliaddr_info = *(struct sockaddr_in *)&cliaddr;
-	fprintf(stderr, "Sending message to port %d\n", ntohs(cliaddr_info.sin_port));
 	if (sendto(proj->server.sockfd, msg, strlen(msg), 0, (struct sockaddr *)&cliaddr, sizeof(cliaddr)) == -1) {
 	    perror("sendto");
 	}
@@ -281,10 +277,8 @@ int api_start_server(Project *proj, int port)
     pthread_mutex_lock(&proj->server.setup_lock);
     static pthread_t servthread;
     proj->server.port = port;
-    fprintf(stderr, "\n\nCalling pthread create....\n");
     pthread_create(&servthread, NULL, server_threadfn, (void *)proj);
     pthread_mutex_lock(&proj->server.setup_lock);
-    fprintf(stderr, "... OK WE;re unlocked in main\n");
     if (!proj->server.active) {
 	perror("Server setup failed: ");
 	return 1;

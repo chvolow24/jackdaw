@@ -220,7 +220,7 @@ static void *server_threadfn(void *arg)
 	    perror("recvfrom");
 	    exit(1);
 	}
-	char *msg = "200 OK";
+	char *msg = "200 OK;";
 	sendto(proj->server.sockfd, msg, strlen(msg), 0, &sa, sizeof(sa));
 
 	/* fprintf(stderr, "SA family: %d", sa.sa_family); */

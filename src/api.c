@@ -221,7 +221,9 @@ static void *server_threadfn(void *arg)
 	    exit(1);
 	}
 	char *msg = "200 OK;";
-	sendto(proj->server.sockfd, msg, strlen(msg), 0, &sa, sizeof(sa));
+	if (sendto(proj->server.sockfd, msg, strlen(msg), 0, &sa, sizeof(sa)) == -1) {
+	    perror("sendto");
+	}
 
 	/* fprintf(stderr, "SA family: %d", sa.sa_family); */
 	/* fprintf(stderr, "HOST family: %d\n", ); */

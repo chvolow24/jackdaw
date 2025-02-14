@@ -810,10 +810,7 @@ The currently-available endpoints are:
 
 Most applications for the API will involve sending UDP messages over localhost, but messages can also be sent over a network. 
 
-Here's an instance of pure data, running on my macbook, sending LFO values over my local network to an instance of jackdaw running on my old thinkpad:
-
-<img src="assets/readme_imgs/network.gif" width="75%" />
-
+# Function reference
 
 ### global mode
 - Summon menu : <kbd>C-m</kbd>, <kbd>C-h</kbd>

@@ -34,6 +34,7 @@
   - C-s		: save_project
   - C-o		: open_file
   - A-S-<del>	: chaotic_user_test
+  - C-S-p	: start_api_server
 - menu_nav:
   - n		: menu_next_item
   - p		: menu_previous_item

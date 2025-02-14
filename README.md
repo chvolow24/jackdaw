@@ -61,6 +61,9 @@ A free, open-source, keyboard-focused digital audio workstation (DAW). Written i
 	13. [Special audio inputs](#special-audio-inputs)
 		 1. [Jackdaw out](#jackdaw-out)
 		 2. [Pure data](#pure-data)
+	14. [API](#api)
+		 1. [Starting the server](#starting-the-server)
+		 2. [Request syntax](#request-syntax)
 8. [Function reference](#function-reference)
 
 ## Disclaimer
@@ -415,8 +418,6 @@ If you hold down shift while moving the track selector up or down, the selected 
 <kbd>-</kbd> : **Minimize / expand selected track(s)**<br>
 
 
-
-
 ### Renaming tracks
 
 You can rename the selected track with <kbd>C-r</kbd>, or cmd/ctrl + click the track name label box.
@@ -754,17 +755,77 @@ I have provided the source code for `pd_jackdaw~` here (`pd_jackdaw/pd_jackdaw.c
 
 The `pd_jackdaw~` objects inlets are for the left and right channels of audio. If jackdaw is open and a `pd_jackdaw~` object is created, the two programs will do a handshake (exchange a series of signals) before setting up a block of shared memory, which they use to exchange audio data. If DSP is enabled in Pd and a track input is set to "Pure data" in jackdaw, you should be able to record audio directly from Pd just as you would from a microphone.
 
+## API
 
-# Function reference
+> [!NOTE]
+> This is an experimental feature and will be developed further in future versions of jackdaw.
+
+Jackdaw can run a UDP server to allow external programs (pure data, for instance, or your own programs) to modify project parameters like the volume on a given track, or a filter effect's cutoff frequency.
+
+### Starting the server
+
+<kbd>C-S-p</kbd> : **Start API server**<br>
+
+You will be prompted to select a port number. If the port is in use or otherwise invalid, an error message will appear at the bottom-right part of the screen. If there is no error, you can assume that the server is currently running on the selected port.
+
+### Request syntax
+
+Requests must be ASCII strings that follow the general format:
+```
+<route> <value>
+``` 
+
+The `<route>` parameter describes a path to the desired parameter. Global parameters like the playback speed are identified at the top level, i.e. `/play_speed`. Parameters related to tracks must be routed through the timeline, then the track, each by name, and finally the name of the parameter. 
+
+So if you want to access the volume parameter on a track called "Synth" on a timeline called "Main" (the default), the route would be:
+
+```
+/main/synth/vol
+```
+
+Note that uppercase characters in the names are lowered. Non-alphanumeric characters are replaced with an underscore. 
+
+Here are some example requests:
+
+`/main/track_1/pan 0.2`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--> set pan on track 1 to 0.2 (0.0 == L, 1.0 = R)
+
+`/scratch_pad/kick/filter_cutoff_freq 0.2`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--> on the "scratch pad" timeline, set the "kick" track filter cutoff freq to 2% of nyquist (range 0.0 -> 1.0)
+
+
+`/main/lead_synth/delay_line_len 600`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--> set the delay line effect time to 600ms
+
+
+The currently-available endpoints are:
+
+```
+/play_speed
+/<timeline>/<track>/vol
+/<timeline>/<track>/pan
+/<timeline>/<track>/filter_cutoff_freq
+/<timeline>/<track>/filter_bandwidth
+/<timeline>/<track>/delay_line_len
+/<timeline>/<track>/delay_line_amp
+/<timeline>/<track>/delay_line_stereo_offset
+```
+
+Most applications for the API will involve sending UDP messages over localhost, but messages can also be sent over a network. 
+
+Here's an instance of pure data, running on my macbook, sending LFO values over my local network to an instance of jackdaw running on my old thinkpad:
+
+<img src="assets/readme_imgs/network.gif" width="75%" />
+
 
 ### global mode
 - Summon menu : <kbd>C-m</kbd>, <kbd>C-h</kbd>
+- Escape : <kbd>\<esc\></kbd>
 - Quit : <kbd>C-q</kbd>
 - Undo : <kbd>C-z</kbd>
 - Redo : <kbd>C-y</kbd>, <kbd>C-S-z</kbd>
 - Show output spectrum : <kbd>S-f</kbd>
 - Save Project : <kbd>C-s</kbd>
 - Open File (.wav or .jdaw) : <kbd>C-o</kbd>
+- Start API server : <kbd>C-S-p</kbd>
+- Chaotic user test (debug only) : <kbd>A-S-\<del\></kbd>
 ### menu_nav mode
 - Next item : <kbd>n</kbd>, <kbd>f</kbd>
 - Previous item : <kbd>p</kbd>, <kbd>d</kbd>
@@ -777,14 +838,18 @@ The `pd_jackdaw~` objects inlets are for the left and right channels of audio. I
 - Move menu down : <kbd>\<down\></kbd>
 - Move menu right : <kbd>\<right\></kbd>
 - Move menu left : <kbd>\<left\></kbd>
-- go back (dismiss) : <kbd>\<del\></kbd>, <kbd>m</kbd>, <kbd>h</kbd>, <kbd>\<esc\></kbd>
+- go back (dismiss) : <kbd>\<del\></kbd>, <kbd>m</kbd>, <kbd>h</kbd>, <kbd>\<esc\></kbd>, <kbd>g</kbd>
 ### timeline mode
 #### Playback / Record
 - Play : <kbd>l</kbd>, <kbd>e</kbd>
 - Pause : <kbd>k</kbd>, <kbd>w</kbd>, <kbd>S-k</kbd>
 - Rewind : <kbd>j</kbd>, <kbd>q</kbd>
-- Play slow : <kbd>K-l</kbd>, <kbd>C-l</kbd>
-- Rewind slow : <kbd>K-j</kbd>, <kbd>C-j</kbd>
+- Play slow : <kbd>K-l</kbd>
+- Rewind slow : <kbd>K-j</kbd>
+- Move playhead left : <kbd>[</kbd>
+- Move playhead rigth : <kbd>]</kbd>
+- Move playhead left (slow) : <kbd>S-[</kbd>
+- Move playhead right (slow) : <kbd>S-]</kbd>
 - Nudge play position left (500 samples) : <kbd>\<left\></kbd>
 - Nudge play position right (500 samples) : <kbd>\<right\></kbd>
 - Nudge play position left (100 samples) : <kbd>S-\<left\></kbd>
@@ -798,6 +863,7 @@ The `pd_jackdaw~` objects inlets are for the left and right channels of audio. I
 - Toggle automation read : <kbd>S-r</kbd>
 - Move selected track down : <kbd>S-n</kbd>, <kbd>S-f</kbd>
 - Move selected track up : <kbd>S-p</kbd>, <kbd>S-d</kbd>
+- Minimize selected track(s) : <kbd>-</kbd>
 - Move view right : <kbd>;</kbd>
 - Move view left : <kbd>h</kbd>
 - Zoom out : <kbd>,</kbd>
@@ -808,8 +874,16 @@ The `pd_jackdaw~` objects inlets are for the left and right channels of audio. I
 - Go to In : <kbd>S-i</kbd>
 - Go to Out : <kbd>S-o</kbd>
 - Go to t=0 : <kbd>S-u</kbd>
-- Go to clip start : <kbd>S-j</kbd>
-- Go to clip end : <kbd>S-l</kbd>
+- Go to previous clip boundary : <kbd>S-j</kbd>
+- Go to next clip boundary : <kbd>S-l</kbd>
+- Go to next beat : <kbd>C-l</kbd>
+- Go to prev beat : <kbd>C-j</kbd>
+- Go to next subdiv : <kbd>C-S-l</kbd>
+- Go to prev subdiv : <kbd>C-S-j</kbd>
+- Go to next measure : <kbd>A-S-l</kbd>
+- Go to prev measure : <kbd>A-S-j</kbd>
+- Bring rear clip at cursor to front : <kbd>S-z</kbd>
+- Toggle loop playback : <kbd>C-8</kbd>
 #### Output
 - Set default audio output : <kbd>C-S-o</kbd>
 #### Tracks
@@ -826,6 +900,9 @@ The `pd_jackdaw~` objects inlets are for the left and right channels of audio. I
 - Activate track 7 : <kbd>7</kbd>
 - Activate track 8 : <kbd>8</kbd>
 - Activate track 9 : <kbd>9</kbd>
+#### Tempo tracks
+- Add tempo track : <kbd>C-S-t</kbd>
+- Set tempo at cursor : <kbd>t</kbd>
 #### Track settings
 - Open track settings : <kbd>S-t</kbd>
 - Mute or unmute selected track(s) : <kbd>m</kbd>
@@ -840,8 +917,11 @@ The `pd_jackdaw~` objects inlets are for the left and right channels of audio. I
 - Add automation to track : <kbd>C-a</kbd>
 #### Clips
 - Grab clip at cursor : <kbd>g</kbd>
+- Grab clips in marked range : <kbd>S-g</kbd>
+- Copy grabbed clips : <kbd>C-c</kbd>
+- Paste grabbed clips : <kbd>C-v</kbd>
 - Start or stop dragging clips : <kbd>C-k</kbd>
-- Cut clip at cursor : <kbd>S-c</kbd>
+- Cut : <kbd>S-c</kbd>
 - Rename clip at cursor : <kbd>C-S-r</kbd>
 - Delete : <kbd>\<del\></kbd>
 #### Sample mode
@@ -873,25 +953,27 @@ The `pd_jackdaw~` objects inlets are for the left and right channels of audio. I
 - Go to next item (escape DirNav) : <kbd>\<tab\></kbd>, <kbd>S-n</kbd>, <kbd>S-f</kbd>
 - Go to previous item (escape DirNav) : <kbd>S-\<tab\></kbd>, <kbd>S-p</kbd>, <kbd>S-d</kbd>
 - Select item : <kbd>\<ret\></kbd>, <kbd>\<spc\></kbd>
-- Dismiss modal window : <kbd>m</kbd>, <kbd>h</kbd>, <kbd>\<esc\></kbd>
+- Dismiss modal window : <kbd>m</kbd>, <kbd>h</kbd>, <kbd>g</kbd>, <kbd>\<esc\></kbd>
 - Submit form : <kbd>C-\<ret\></kbd>
 ### text_edit mode
-- Escape text edit : <kbd>\<ret\></kbd>, <kbd>\<tab\></kbd>, <kbd>\<esc\></kbd>
+- Escape text edit : <kbd>\<ret\></kbd>, <kbd>\<tab\></kbd>, <kbd>S-\<tab\></kbd>
+- Escape text edit : <kbd>\<esc\></kbd>
 - Backspace : <kbd>\<del\></kbd>
 - Move cursor right : <kbd>\<right\></kbd>, <kbd>C-f</kbd>
 - Move cursor left : <kbd>\<left\></kbd>, <kbd>C-d</kbd>, <kbd>C-b</kbd>
 - Select all : <kbd>C-a</kbd>
 ### tabview mode
-- Next element : <kbd>\<tab\></kbd>
-- Previous element : <kbd>S-\<tab\></kbd>
+- Next element : <kbd>S-n</kbd>, <kbd>S-f</kbd>, <kbd>\<tab\></kbd>
+- Previous element : <kbd>S-p</kbd>, <kbd>S-d</kbd>, <kbd>S-\<tab\></kbd>
 - Select : <kbd>\<ret\></kbd>
 - Move left : <kbd>h</kbd>
 - Move right : <kbd>;</kbd>
-- Next tab : <kbd>S-;</kbd>
-- Previous tab : <kbd>S-h</kbd>
+- Next tab : <kbd>S-l</kbd>, <kbd>S-;</kbd>
+- Previous tab : <kbd>S-j</kbd>, <kbd>S-h</kbd>
+- Close tab view : <kbd>g</kbd>, <kbd>\<esc\></kbd>
 
 ...
 
-[ LAST UPDATED 2024-11-13 WEDNESDAY ]
+[ LAST UPDATED 2025-02-14 FRIDAY ]
 
 ...

@@ -216,6 +216,7 @@ static void *server_threadfn(void *arg)
 	struct sockaddr_in cliaddr;
 	memset(&cliaddr, '\0', sizeof(cliaddr));
 	socklen_t len = sizeof(cliaddr);
+	memset(buffer, '\0', sizeof(buffer));
 	if (recvfrom(proj->server.sockfd, (char *)buffer, 1024, 0, (struct sockaddr *)&cliaddr, &len) < 0) {
 	    perror("recvfrom");
 	    exit(1);
@@ -229,7 +230,8 @@ static void *server_threadfn(void *arg)
 						 
 	/* fprintf(stderr, "SA family: %d", sa.sa_family); */
 	/* fprintf(stderr, "HOST family: %d\n", ); */
-	/* fprintf(stderr, "Rec: %s\n", buffer); */
+	fprintf(stderr, "Rec: %s\n", buffer);
+
 	int val_offset = 0;
 	for (int i=0; i<strlen(buffer); i++) {
 	    if (buffer[i] == ' ') {
@@ -239,6 +241,7 @@ static void *server_threadfn(void *arg)
 		buffer[i] = '\0';
 	    }
 	}
+	fprintf(stderr, "Val string: %s\n", buffer + val_offset);
 
 	Endpoint *ep = api_endpoint_get(buffer);
 	if (ep) {

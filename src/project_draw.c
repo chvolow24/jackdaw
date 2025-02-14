@@ -1,26 +1,10 @@
 /*****************************************************************************************************************
-  Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation | built on SDL (https://libsdl.org/)
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
 ******************************************************************************************************************
 
-  Copyright (C) 2023 Charlie Volow
+  Copyright (C) 2023-2025 Charlie Volow
   
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files (the "Software"), to deal
-  in the Software without restriction, including without limitation the rights
-  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  copies of the Software, and to permit persons to whom the Software iso
-  furnished to do so, subject to the following conditions:
-  
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
-  
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-  SOFTWARE.
+  Jackdaw is licensed under the GNU General Public License.
 
 *****************************************************************************************************************/
 
@@ -52,10 +36,18 @@
 extern Window *main_win;
 extern Project *proj;
 
+
+/******************** DARKER ********************/
+/* SDL_Color track_bckgrnd = {90, 100, 110, 255}; */
+/* SDL_Color track_bckgrnd_active = {120, 130, 150, 255}; */
+/****************************************************/
+
 SDL_Color track_bckgrnd = {120, 130, 150, 255};
+SDL_Color track_bckgrnd_active = {190, 190, 180, 255};
+
+
 SDL_Color source_mode_bckgrnd = {0, 20, 40, 255};
 /* SDL_Color track_bckgrnd_active = {170, 130, 130, 255}; */
-SDL_Color track_bckgrnd_active = {190, 190, 180, 255};
 /* SDL_Color track_bckgrnd_active = {220, 210, 170, 255}; */
 SDL_Color console_bckgrnd = {140, 140, 140, 255};
 /* SDL_Color console_bckgrnd_selector = {210, 180, 100, 255}; */
@@ -79,6 +71,7 @@ SDL_Color clip_ref_home_grabbed_bckgrnd = {120, 210, 255, 230};
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;
 extern SDL_Color color_global_grey;
+extern SDL_Color color_global_light_grey;
 extern SDL_Color color_global_yellow;
 extern SDL_Color color_global_red;
 
@@ -172,6 +165,12 @@ static void clipref_draw_waveform(ClipRef *cr)
     int32_t cr_len = clipref_len(cr);
     int32_t start_pos = 0;
     int32_t end_pos = cr_len;
+    if (end_pos - start_pos == 0) {
+	cr->out_mark_sframes = cr->clip->len_sframes;
+	fprintf(stderr, "Clip ref len error, likely related to older project file. Applying fix and moving on.\n");
+	breakfn();
+	return;
+    }
     double sfpp = cr->track->tl->sample_frames_per_pixel;
     SDL_Rect onscreen_rect = cr->layout->rect;
     if (onscreen_rect.x > main_win->w_pix) return;
@@ -179,10 +178,11 @@ static void clipref_draw_waveform(ClipRef *cr)
     if (onscreen_rect.x < 0) {
 	start_pos = sfpp * -1 * onscreen_rect.x;
 	if (start_pos < 0 || start_pos > clipref_len(cr)) {
-	    return;
 	    fprintf(stderr, "ERROR: start pos is %d\n", start_pos);
 	    fprintf(stderr, "vs len: %d\n", start_pos - cr_len);
 	    fprintf(stderr, "Clipref: %s\n", cr->name);
+	    breakfn();
+	    return;
 	    /* exit(1); */
 	}
 	onscreen_rect.w += onscreen_rect.x;
@@ -192,7 +192,8 @@ static void clipref_draw_waveform(ClipRef *cr)
 	
 	if (end_pos <= start_pos || end_pos > cr_len) {
 	    fprintf(stderr, "ERROR: end pos is %d\n", end_pos);
-	    exit(1);
+	    breakfn();
+	    return;
 	}
 	onscreen_rect.w = main_win->w_pix - onscreen_rect.x;
 	end_pos = start_pos + sfpp * onscreen_rect.w;
@@ -277,6 +278,14 @@ static void clipref_draw(ClipRef *cr)
     /* layout_draw(main_win, cr->layout); */
 }
 
+static void draw_selected_track_rect(Layout *selected_layout)
+{
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
+	geom_draw_rect_thick(main_win->rend, &selected_layout->rect, 3, main_win->dpi_scale_factor);
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(track_selector_color));
+	geom_draw_rect_thick(main_win->rend, &selected_layout->rect, 1, main_win->dpi_scale_factor);
+}
+
 static void track_draw(Track *track)
 {
     if (track->deleted) {
@@ -316,25 +325,22 @@ static void track_draw(Track *track)
     /* Draw the colorbar */
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(track->color));
     SDL_RenderFillRect(main_win->rend, track->colorbar);
-    
-    textbox_draw(track->tb_input_label);
-    textbox_draw(track->tb_vol_label);
-    textbox_draw(track->tb_pan_label);
-    textbox_draw(track->tb_input_name);
+
     textbox_draw(track->tb_mute_button);
     textbox_draw(track->tb_solo_button);
-    textbox_draw(track->tb_name);
+    textentry_draw(track->tb_name);
 
-    if (track->tl->track_selector == track->tl_rank) {
-	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
-	geom_draw_rect_thick(main_win->rend, &track->inner_layout->rect, 3, main_win->dpi_scale_factor);
-	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(track_selector_color));
-	geom_draw_rect_thick(main_win->rend, &track->inner_layout->rect, 1, main_win->dpi_scale_factor);
+    if (!track->minimized) {
+	textbox_draw(track->tb_input_label);
+	textbox_draw(track->tb_vol_label);
+	textbox_draw(track->tb_pan_label);
+	textbox_draw(track->tb_input_name);
+
+	
+	slider_draw(track->vol_ctrl);
+	slider_draw(track->pan_ctrl);
+	symbol_button_draw(track->automation_dropdown);
     }
-
-    slider_draw(track->vol_ctrl);
-    slider_draw(track->pan_ctrl);
-    symbol_button_draw(track->automation_dropdown);
 automations_draw:
     for (uint8_t i=0; i<track->num_automations; i++) {
 	Automation *a = track->automations[i];
@@ -350,18 +356,22 @@ automations_draw:
 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(console_bckgrnd_selector));
 		SDL_RenderFillRect(main_win->rend, &auto_console_bar);
 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
-		SDL_Rect layout_rect_large = a->layout->rect;
-		layout_rect_large.y -= 3 * main_win->dpi_scale_factor;
-		layout_rect_large.h += 6 * main_win->dpi_scale_factor;
-		/* geom_draw_rect_thick(main_win->rend, &a->layout->rect, 3, main_win->dpi_scale_factor); */
-		geom_draw_rect_thick(main_win->rend, &layout_rect_large, 3, main_win->dpi_scale_factor);
-		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(track_selector_color));
-		/* geom_draw_rect_thick(main_win->rend, &a->layout->rect, 1, main_win->dpi_scale_factor); */
-		geom_draw_rect_thick(main_win->rend, &layout_rect_large, 1, main_win->dpi_scale_factor);
+		draw_selected_track_rect(a->layout);
+		/* SDL_Rect layout_rect_large = a->layout->rect; */
+		/* layout_rect_large.y -= 3 * main_win->dpi_scale_factor; */
+		/* layout_rect_large.h += 6 * main_win->dpi_scale_factor; */
+		/* /\* geom_draw_rect_thick(main_win->rend, &a->layout->rect, 3, main_win->dpi_scale_factor); *\/ */
+		/* geom_draw_rect_thick(main_win->rend, &layout_rect_large, 3, main_win->dpi_scale_factor); */
+		/* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(track_selector_color)); */
+		/* /\* geom_draw_rect_thick(main_win->rend, &a->layout->rect, 1, main_win->dpi_scale_factor); *\/ */
+		/* geom_draw_rect_thick(main_win->rend, &layout_rect_large, 1, main_win->dpi_scale_factor); */
 	    }
-
 	}
     }
+    if (track->tl->track_selector == track->tl_rank && track->selected_automation < 0) {
+	draw_selected_track_rect(track->layout);
+    }
+
 }
 
 static void ruler_draw(Timeline *tl)
@@ -372,8 +382,8 @@ static void ruler_draw(Timeline *tl)
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_white));
 
     int second;
-    float x = tl->proj->ruler_rect->x + timeline_first_second_tick_x(tl, &second);
-    float sw = timeline_get_second_w(tl);
+    double x = tl->proj->ruler_rect->x + timeline_first_second_tick_x(tl, &second);
+    double sw = timeline_get_second_w(tl);
     int line_len;
     while (x < proj->audio_rect->x + proj->audio_rect->w) {
     /* while (x < tl->layout->rect.x + tl->layout->rect.w) { */
@@ -389,7 +399,7 @@ static void ruler_draw(Timeline *tl)
 	    } else {
 		line_len = 5;
 	    }
-            SDL_RenderDrawLine(main_win->rend, x, tl->layout->rect.y, x, tl->layout->rect.y + line_len);
+            SDL_RenderDrawLine(main_win->rend, round(x), tl->layout->rect.y, round(x), tl->layout->rect.y + line_len);
         }
         x += sw;
 	second++;
@@ -427,6 +437,16 @@ static int timeline_draw(Timeline *tl)
     for (uint8_t i=0; i<tl->num_tracks; i++) {
 	track_draw(tl->tracks[i]);
     }
+    for (int i=0; i<tl->num_click_tracks; i++) {
+	click_track_draw(tl->click_tracks[i]);
+	if (i==tl->click_track_selector) {
+	    draw_selected_track_rect(tl->click_tracks[i]->layout);
+	}
+	/* if (i==tl->click_track_selector) { */
+	/*     SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255); */
+	/*     SDL_RenderDrawRect(main_win->rend, &tl->click_tracks[i]->layout->rect); */
+	/* } */
+    }
 
     SDL_RenderSetClipRect(main_win->rend, &main_win->layout->rect);
     
@@ -435,6 +455,14 @@ static int timeline_draw(Timeline *tl)
     if (tl->timecode_tb) {
 	textbox_draw(tl->timecode_tb);
     }
+    if (tl->proj->loop_play && tl->out_mark_sframes > tl->in_mark_sframes) {
+	textbox_draw(tl->loop_play_lemniscate);
+	/* layout_draw(main_win, tl->loop_play_lemniscate->layout); */
+    }
+    
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_grey));
+    SDL_Rect tctbrect = tl->timecode_tb->layout->rect;
+    SDL_RenderDrawLine(main_win->rend, tctbrect.x + tctbrect.w, tctbrect.y, tctbrect.x + tctbrect.w, tctbrect.y + tctbrect.h);
     /* Draw t=0 */
     if (tl->display_offset_sframes < 0) {
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
@@ -511,7 +539,26 @@ static int timeline_draw(Timeline *tl)
     /* SDL_RenderFillRect(main_win->rend, &tl->track_area->rect); */
     /* layout_draw(main_win, tl->track_area); */
     tl->needs_redraw = false;
+
+    /* Layout *tracks_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area"); */
+    /* if (tracks_area) { */
+    /* 	Layout *selected_lt = tracks_area->children[tl->layout_selector]; */
+    /* 	if (selected_lt) { */
+    /* 	    fprintf(stderr, "SELECTOR: %d, %s\n", tl->layout_selector, selected_lt->name); */
+    /* 	    SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255); */
+    /* 	    SDL_RenderDrawRect(main_win->rend, &selected_lt->rect); */
+    /* 	} else { */
+    /* 	    fprintf(stderr, "NONE\n"); */
+    /* 	} */
+    /* } else { */
+    /* 	fprintf(stderr, "No track and automations\n"); */
+    /* } */
     return 1;
+
+
+
+
+    
     /* tl->needs_redraw = false; */
 
 }
@@ -563,12 +610,12 @@ void project_draw()
 	control_bar_draw(proj);
 	textbox_draw(proj->timeline_label);
     }
-    if (main_win->active_tab_view) {
+    if (main_win->active_tabview) {
 	if (timeline_redrawn) {
 	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(grey_mask));
 	    SDL_RenderFillRect(main_win->rend, &proj->layout->rect);
 	}
-	tab_view_draw(main_win->active_tab_view);
+	tabview_draw(main_win->active_tabview);
     }
 
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
@@ -581,7 +628,7 @@ void project_draw()
     window_draw_modals(main_win);
     window_draw_menus(main_win);
 
-    proj->timelines[proj->active_tl_index]->needs_redraw = false;
+    tl->needs_redraw = false;
 
     window_end_draw(main_win);
 }

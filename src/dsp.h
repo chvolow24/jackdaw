@@ -1,26 +1,10 @@
 /*****************************************************************************************************************
-  Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation | built on SDL (https://libsdl.org/)
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
 ******************************************************************************************************************
 
-  Copyright (C) 2023 Charlie Volow
+  Copyright (C) 2023-2025 Charlie Volow
   
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files (the "Software"), to deal
-  in the Software without restriction, including without limitation the rights
-  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  copies of the Software, and to permit persons to whom the Software is
-  furnished to do so, subject to the following conditions:
-  
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
-  
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-  SOFTWARE.
+  Jackdaw is licensed under the GNU General Public License.
 
 *****************************************************************************************************************/
 
@@ -30,6 +14,7 @@
 #include <complex.h>
 #include <stdio.h>
 #include <stdint.h>
+#include "endpoint.h"
 #include "SDL.h"
 
 #define DEFAULT_FILTER_LEN 128
@@ -42,6 +27,7 @@ typedef enum filter_type {
 } FilterType;
 
 typedef struct fir_filter {
+    bool initialized;
     FilterType type;
     double cutoff_freq_unscaled; /* For gui components and automations */
     double cutoff_freq; /* 0 < cutoff_freq < 0.5 */
@@ -52,17 +38,27 @@ typedef struct fir_filter {
     double *frequency_response_mag;
     double *overlap_buffer_L;
     double *overlap_buffer_R;
-    uint16_t impulse_response_len;
+    uint16_t impulse_response_len; /* Only modified in callbacks */
+    uint16_t impulse_response_len_internal;
+    /* uint16_t impulse_response_len_internal; */
     uint16_t frequency_response_len;
     uint16_t overlap_len;
     pthread_mutex_t lock;
 
     Track *track;
+
+    Endpoint type_ep;
+    Endpoint cutoff_ep;
+    Endpoint bandwidth_ep;
+    Endpoint impulse_response_len_ep;
+
     /* SDL_mutex *lock;audio.c */
 } FIRFilter;
 
 typedef struct delay_line {
-    int32_t len;
+    bool initialized;
+    int32_t len_msec; /* For endpoint / GUI components */
+    int32_t len; /* Sample frames */
     double amp;
     double stereo_offset;
     int32_t max_len;
@@ -74,14 +70,21 @@ typedef struct delay_line {
     double *buf_R;
     double *cpy_buf;
     pthread_mutex_t lock;
+
+    Track *track;
+
+    Endpoint len_ep;
+    Endpoint amp_ep;
+    Endpoint stereo_offset_ep;
+
     /* SDL_mutex *lock; */
 } DelayLine;
 
 /* Initialize the dsp subsystem. All this does currently is to populate the nth roots of unity for n < ROU_MAX_DEGREE */
 void init_dsp();
 
-/* Create an empty FIR filter and allocate space for its buffers. MUST be initialized with 'set_filter_params'*/
-FIRFilter *filter_create(FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len);
+/* Init an empty FIR filter and allocate space for its buffers. Params MUST be initialized with 'set_filter_params'*/
+void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len);
 
 /* Bandwidth param only required for band-pass and band-cut filters */
 void filter_set_params(FIRFilter *filter, FilterType type,  double cutoff, double bandwidth);
@@ -96,7 +99,7 @@ void filter_set_type(FIRFilter *filter, FilterType t);
 void filter_set_impulse_response_len(FIRFilter *f, int new_len);
 
 /* Destry a FIRFilter and associated memory */
-void filter_destroy(FIRFilter *filter);
+void filter_deinit(FIRFilter *filter);
 
 /* void apply_track_filter(Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array); */
 void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array);
@@ -105,7 +108,7 @@ void FFT(double *A, double complex *B, int n);
 void get_real_component(double complex *A, double *B, int n);
 void get_magnitude(double complex *A, double *B, int len);
 
-void delay_line_init(DelayLine *dl, uint32_t sample_rate);
+void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate);
 void delay_line_set_params(DelayLine *dl, double amp, int32_t len);
 void delay_line_clear(DelayLine *dl);
 

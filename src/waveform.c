@@ -1,26 +1,10 @@
 /*****************************************************************************************************************
-  Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation | built on SDL (https://libsdl.org/)
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
 ******************************************************************************************************************
 
-  Copyright (C) 2023 Charlie Volow
+  Copyright (C) 2023-2025 Charlie Volow
   
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files (the "Software"), to deal
-  in the Software without restriction, including without limitation the rights
-  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  copies of the Software, and to permit persons to whom the Software iso
-  furnished to do so, subject to the following conditions:
-  
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
-  
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-  SOFTWARE.
+  Jackdaw is licensed under the GNU General Public License.
 
 *****************************************************************************************************************/
 
@@ -83,27 +67,25 @@ void waveform_destroy_logscale(struct logscale *la)
     free(la);
 }
 
+double amp_to_logscaled(double amp)
+{
+    static const double alpha = 80.0;
+    return log10(1 + alpha * amp) / log10(1 + alpha);
+}
+
 /* Draw an array of floats (e.g. frequencies) on a log scale */
 void waveform_draw_freq_domain(struct logscale *la)
 {
     if (la->color) {
 	SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(la->color));
     }
-    /* static double epsilon = 1e-12; */
-    /* double min_db = 20.0f * log10(epsilon); */
-    /* double max_db = 20.0f * log10(1.0f); */
-    /* double db_range = max_db - min_db; */
-    double scale = 1.0f / log(2.0f);
     double btm_y = la->container->y + (double)la->container->h;
-    /* double db = 20.0f * log10(epsilon + la->array[1]); */
-    /* double last_y = btm_y - ((db - min_db) / db_range) * la->container->h; */
-    double last_y = btm_y - log(1 + la->array[1]) * scale * la->container->h;
+    double last_y = btm_y - (amp_to_logscaled(la->array[0]) * la->container->h);
     double current_y = btm_y;
     for (int i=2; i<la->num_items; i+=la->step) {
 	int last_x = la->x_pos_cache[i/la->step-1];
-	/* db = 20.0f * log10(epsilon + la->array[i]); */
-	/* current_y = btm_y - ((db - min_db) / db_range) * la->container->h; */
-	current_y = btm_y - log(1 + la->array[i]) * scale * la->container->h;
+	double scaled = amp_to_logscaled(la->array[i]);
+	current_y = btm_y - scaled * la->container->h;
 	SDL_RenderDrawLine(main_win->rend, last_x, last_y, la->x_pos_cache[i/la->step], current_y);
 	/* fprintf(stdout, "Draw %d %f %d %f\n", last_x, last_y, la->x_pos_cache[i/la->step], current_y); */
 	last_y = current_y;
@@ -221,10 +203,17 @@ void waveform_draw_freq_plot(struct freq_plot *fp)
 {
     SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
     SDL_RenderFillRect(main_win->rend, &fp->container->rect);
-    
+
+    if (fp->related_obj_lock) {
+	pthread_mutex_lock(fp->related_obj_lock);
+    }
     for (int i=0; i<fp->num_plots; i++) {
 	waveform_draw_freq_domain(fp->plots[i]);
     }
+    if (fp->related_obj_lock) {
+	pthread_mutex_unlock(fp->related_obj_lock);
+    }
+
 
     SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 70);
     int top_y = fp->container->rect.y;
@@ -247,6 +236,7 @@ static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, 
     
     if (sfpp <= 0) {
 	fprintf(stderr, "Error in waveform_draw_channel: sfpp<=0\n");
+	breakfn();
 	return;
     }
 
@@ -366,6 +356,7 @@ static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t
     float sfpp = (double) buflen / w;
     if (sfpp <= 0) {
 	fprintf(stderr, "Error in waveform_draw_channel: sfpp<=0\n");
+	breakfn();
 	return;
     }
 
@@ -392,10 +383,11 @@ static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t
 	    
 	    int sfpp_safe = round(sfpp) < SFPP_SAFE ? round(sfpp) : SFPP_SAFE;
 	    for (int i=0; i<sfpp_safe; i++) {
-		if (sample_i + i >= buflen) {
+		int sample_i_rounded = (int)round(sample_i) + i;
+		if (sample_i_rounded >= buflen) {
 		    break;
 		}
-		float sample = channel[(int)round(sample_i) + i];
+		float sample = channel[sample_i_rounded];
 		if (sample > max_amp_pos) {
 		    max_amp_pos = sample;
 		} else if (sample < max_amp_neg) {

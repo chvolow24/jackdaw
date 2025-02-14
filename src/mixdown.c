@@ -1,35 +1,20 @@
 /*****************************************************************************************************************
-  Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation | built on SDL (https://libsdl.org/)
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
 ******************************************************************************************************************
 
-  Copyright (C) 2023 Charlie Volow
+  Copyright (C) 2023-2025 Charlie Volow
   
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files (the "Software"), to deal
-  in the Software without restriction, including without limitation the rights
-  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  copies of the Software, and to permit persons to whom the Software is
-  furnished to do so, subject to the following conditions:
-  
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
-  
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-  SOFTWARE.
+  Jackdaw is licensed under the GNU General Public License.
 
 *****************************************************************************************************************/
 
 /*****************************************************************************************************************
     mixdown.c
 
-    * Get sampels from tracks/clips for playback or export
+    * Get samples from tracks/clips for playback or export
  *****************************************************************************************************************/
 
+#include <math.h>
 #include <pthread.h>
 #include "automation.h"
 #include "dsp.h"
@@ -39,61 +24,13 @@
 
 extern Project *proj;
 
-/* /\* Query track clips and return audio sample representing a given point in the timeline.  */
-/* channel is 0 for left or mono, 1 for right *\/ */
-/* static float get_track_sample(Track *track, uint8_t channel, int32_t tl_pos_sframes) */
-/* { */
-/*     if (track->muted || track->solo_muted) { */
-/*         return 0; */
-/*     } */
-
-/*     float sample = 0; */
-
-
-/*     for (int i=0; i<track->num_clips; i++) { */
-/*         ClipRef *cr = (track->clips)[i]; */
-
-/* 	/\* TODO: reinstate this!! *\/ */
-/*         /\* if (cr->clip->recording) { *\/ */
-/*             /\* continue; *\/ */
-/*         /\* } *\/ */
-	
-/*         float *clip_buf = (channel == 0) ? cr->clip->L : cr->clip->R; */
-/*         int32_t pos_in_clip_sframes = tl_pos_sframes - cr->pos_sframes; */
-/*         // fprintf(stderr, "Pos in clip: %d\n", pos_in_clip_sframes); */
-/*         if (pos_in_clip_sframes >= 0 && pos_in_clip_sframes < cr->clip->len_sframes) { */
-/*             /\* if (pos_in_clip_sframes < cr->start_ramp_len) { *\/ */
-/*             /\*     float ramp_value = (float) pos_in_clip_sframes / clip->start_ramp_len; *\/ */
-/*             /\*     sample += ramp_value * clip_buf[pos_in_clip_sframes]; *\/ */
-/*             /\* } else if (pos_in_clip_sframes > clip->len_sframes - clip->end_ramp_len) { *\/ */
-/*             /\*     float ramp_value = (float) (clip->len_sframes - pos_in_clip_sframes) / clip->end_ramp_len; *\/ */
-/*             /\*     // ramp_value *= ramp_value; *\/ */
-/*             /\*     // ramp_value *= ramp_value; *\/ */
-/*             /\*     // ramp_value *= ramp_value; *\/ */
-/*             /\*     // fprintf(stderr, "(END RAMP) Pos in clip: %d; scale: %f\n", pos_in_clip, ramp_value); *\/ */
-/*             /\*     // fprintf(stderr, "\t Sample pre & post: %d, %d\n", (clip->post_proc)[pos_in_clip], (int16_t) ((clip->post_proc)[pos_in_clip] * ramp_value)); *\/ */
-/*             /\*     // sample += (int16_t) ((clip->post_proc)[pos_in_clip] * ramp_value); *\/ */
-/*             /\*     sample += ramp_value * clip_buf[pos_in_clip_sframes]; *\/ */
-/*             /\* } else { *\/ */
-
-/*                 sample += clip_buf[pos_in_clip_sframes]; */
-/*             /\* } *\/ */
-/*         } */
-/*     } */
-
-/*     return sample; */
-/* } */
-
 float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32_t start_pos_sframes, uint32_t len_sframes, float step)
 {
     uint32_t chunk_bytelen = sizeof(float) * len_sframes;
-    /* float *chunk = calloc(1, chunk_bytelen); */
     memset(chunk, '\0', chunk_bytelen);
     if (track->muted || track->solo_muted) {
-        /* return chunk; */
 	return 0.0f;
     }
-    // uint32_t end_pos_sframes = start_pos_sframes + len_sframes;
 
     /************************* VOL/PAN AUTOMATION *************************/
     Automation *vol_auto = NULL;
@@ -114,86 +51,98 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	else if (a->type == AUTO_DEL_AMP) delay_amp = a;
 	else if (a->type == AUTO_PLAY_SPEED) play_speed = a;
     }
+
+    float vol_vals[len_sframes];
+    float pan_vals[len_sframes];
+
+    float playspeed_rolloff = 1.0;
+    float fabs_playspeed = fabs(proj->play_speed);
+    /* Check for proj->playing to ensure write wav is not broken */
+    if (proj->playing && fabs(proj->play_speed) < 0.01) {
+	playspeed_rolloff = fabs_playspeed * 100.0f;
+    }
+
     
-    if (vol_auto) {
-	if (vol_auto->write) {
-	    /* if (!vol_auto->current) { */
-	    /* 	vol_auto->current = automation_get_segment(vol_auto, start_pos_sframes); */
-	    /* } */
-	    
-	} else if (vol_auto->read) {
-	    float vol_init = automation_get_value(vol_auto, start_pos_sframes, step).float_v;
-	    track->vol = vol_init;
-	    slider_reset(track->vol_ctrl);
+    if (vol_auto && !vol_auto->write && vol_auto->read) {
+	float vol_init = automation_get_value(vol_auto, start_pos_sframes, step).float_v;
+	endpoint_write(&track->vol_ep, (Value){.float_v = vol_init}, true, true, true, false);
+	automation_get_range(vol_auto, vol_vals, len_sframes, start_pos_sframes, step); 
+    } else {
+	Value vol_val = endpoint_safe_read(&track->vol_ep, NULL);
+	for (int i=0; i<len_sframes; i++) {
+	    vol_vals[i] = vol_val.float_v;
 	}
     }
-    if (pan_auto) {
-	if (pan_auto->write) {
-	    /* if (!pan_auto->current) { */
-	    /* 	pan_auto->current = automation_get_segment(pan_auto, start_pos_sframes); */
-	    /* } */
-	    /* Value pan; */
-	    /* pan.float_v = track->pan; */
-	    /* automation_insert_maybe(pan_auto, pan_auto->current, pan, start_pos_sframes, chunk_end, step); */
-	} else if (pan_auto->read) {
-	    float pan_init = automation_get_value(pan_auto, start_pos_sframes, step).float_v;
-	    track->pan = pan_init;
-	    slider_reset(track->pan_ctrl);
-	}
-    }
-    /* if (pan_auto && pan_auto->read) { */
-    /* } */
-    bool bandwidth_set = false;
-    bool cutoff_set = false;
-    double cutoff_hz;
-    double bandwidth_hz;
-    if (fir_filter_cutoff && fir_filter_cutoff->read && !fir_filter_cutoff->write) {
-	double cutoff_raw = automation_get_value(fir_filter_cutoff, start_pos_sframes, step).double_v;
-	cutoff_hz = dsp_scale_freq_to_hz(cutoff_raw);
-	cutoff_set = true;
-    }
-    if (fir_filter_bandwidth && fir_filter_bandwidth->read && !fir_filter_bandwidth->write) {
-	double bandwidth_raw = automation_get_value(fir_filter_bandwidth, start_pos_sframes, step).double_v;
-	bandwidth_hz = dsp_scale_freq_to_hz(bandwidth_raw);
-	bandwidth_set = true;
-    }
-    if (play_speed && play_speed->read && !play_speed->write) {
-	proj->play_speed = (proj->play_speed / fabs(proj->play_speed)) * automation_get_value(play_speed, start_pos_sframes, step).float_v;
-    }
-    FIRFilter *f;
-    if ((f = track->fir_filter)) {
-	if (cutoff_set && bandwidth_set) {
-	    FilterType t = f->type;
-	    filter_set_params_hz(f, t, cutoff_hz, bandwidth_hz);
-	} else if (cutoff_set) {
-	    filter_set_cutoff_hz(f, cutoff_hz);
-	} else if (bandwidth_set) {
-	    filter_set_bandwidth_hz(f, bandwidth_hz);
+    if (pan_auto && !pan_auto->write && pan_auto->read) {
+	float pan_init = automation_get_value(pan_auto, start_pos_sframes, step).float_v;
+	endpoint_write(&track->pan_ep, (Value){.float_v = pan_init}, true, true, true, false);
+	automation_get_range(pan_auto, pan_vals, len_sframes, start_pos_sframes, step);
+    } else {
+	Value pan_val = endpoint_safe_read(&track->pan_ep, NULL);
+	for (int i=0; i<len_sframes; i++) {
+	    pan_vals[i] = pan_val.float_v;
 	}
     }
 
-    if (track->delay_line_active) {
-	int32_t del_time = track->delay_line.len;
-	double del_amp = track->delay_line.amp;
-	bool del_line_edit = false;
+    if (channel == 0) {
+	if (fir_filter_cutoff && fir_filter_cutoff->read && !fir_filter_cutoff->write) {
+	    Value cutoff_raw = automation_get_value(fir_filter_cutoff, start_pos_sframes, step);
+	    endpoint_write(&track->fir_filter.cutoff_ep, cutoff_raw, true, true, true, false);
+	}
+	if (fir_filter_bandwidth && fir_filter_bandwidth->read && !fir_filter_bandwidth->write) {
+	    Value bandwidth_raw = automation_get_value(fir_filter_bandwidth, start_pos_sframes, step);
+	    endpoint_write(&track->fir_filter.bandwidth_ep, bandwidth_raw, true, true, true, false);
+	}
 	if (delay_time && delay_time->read && !delay_time->write) {
-	    del_time = automation_get_value(delay_time, start_pos_sframes, step).int32_v;
-	    del_line_edit = true;
+	    Value del_time = automation_get_value(delay_time, start_pos_sframes, step);
+
+	    /* int32_t del_time_msec = (double)del_time.int32_v * 1000.0 / proj->sample_rate; */
+	    endpoint_write(&track->delay_line.len_ep, del_time, true, true, true, false);
 	}
 	if (delay_amp && delay_amp->read && !delay_amp->write) {
-	    del_amp = automation_get_value(delay_amp, start_pos_sframes, step).double_v;
-	    del_line_edit = true;
+	    Value del_amp = automation_get_value(delay_amp, start_pos_sframes, step);
+	    endpoint_write(&track->delay_line.amp_ep, del_amp, true, true, true, false);
 	}
-	if (del_line_edit) {
-	    /* fprintf(stdout, "DEL TIME: %d\n", del_time); */
-	    /* fprintf(stderr, "DEL TIME: %d\n", del_time); */
-	    if (del_time < 0) {
-		fprintf(stderr, "ERROR: del time read value negative: %d\n", del_time);
-	    } else {
-		delay_line_set_params(&track->delay_line, del_amp, del_time);
-	    }
+	if (play_speed && play_speed->read && !play_speed->write) {
+	    float play_speed_val = (proj->play_speed / fabs(proj->play_speed)) * automation_get_value(play_speed, start_pos_sframes, step).float_v;
+	    endpoint_write(&proj->play_speed_ep, (Value){.float_v = play_speed_val}, true, true, true, false);
 	}
     }
+    /* FIRFilter *f = &track->fir_filter; */
+    
+    /* if (f->frequency_response && channel == 0) { */
+    /* 	if (cutoff_set && bandwidth_set) { */
+    /* 	    FilterType t = f->type; */
+    /* 	    filter_set_params_hz(f, t, cutoff_hz, bandwidth_hz); */
+    /* 	} else if (cutoff_set) { */
+    /* 	    filter_set_cutoff_hz(f, cutoff_hz); */
+    /* 	} else if (bandwidth_set) { */
+    /* 	    filter_set_bandwidth_hz(f, bandwidth_hz); */
+    /* 	} */
+    /* } */
+
+    /* if (track->delay_line_active && channel == 0) { */
+    /* 	int32_t del_time = track->delay_line.len; */
+    /* 	double del_amp = track->delay_line.amp; */
+    /* 	bool del_line_edit = false; */
+    /* 	if (delay_time && delay_time->read && !delay_time->write) { */
+    /* 	    del_time = automation_get_value(delay_time, start_pos_sframes, step).int32_v; */
+    /* 	    del_line_edit = true; */
+    /* 	} */
+    /* 	if (delay_amp && delay_amp->read && !delay_amp->write) { */
+    /* 	    del_amp = automation_get_value(delay_amp, start_pos_sframes, step).double_v; */
+    /* 	    del_line_edit = true; */
+    /* 	} */
+    /* 	if (del_line_edit) { */
+    /* 	    /\* fprintf(stdout, "DEL TIME: %d\n", del_time); *\/ */
+    /* 	    /\* fprintf(stderr, "DEL TIME: %d\n", del_time); *\/ */
+    /* 	    if (del_time < 0) { */
+    /* 		fprintf(stderr, "ERROR: del time read value negative: %d\n", del_time); */
+    /* 	    } else { */
+    /* 		delay_line_set_params(&track->delay_line, del_amp, del_time); */
+    /* 	    } */
+    /* 	} */
+    /* } */
 
     /**********************************************************************/
     /* bool clip_read = false; */
@@ -232,35 +181,43 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	/* float pan_scale = (channel == 0) ? (track->pan - 0.5) * 2 : track->pan * 2; */
 
 	/* double rpan = track->pan < */
-	int32_t abs_pos = start_pos_sframes;
+	/* int32_t abs_pos = start_pos_sframes; */
 	while (chunk_i < len_sframes) {
 	    
 	    /* Clip overlaps */
 	    if (pos_in_clip_sframes >= 0 && pos_in_clip_sframes < cr_len) {
-		float vol;
-		if (vol_auto && vol_auto->read && !vol_auto->write) {
-		    vol = automation_get_value(vol_auto, abs_pos, step).float_v;
-		} else {
-		    vol = track->vol;
-		}
-		float raw_pan;
-		if (pan_auto && pan_auto->read && !pan_auto->write) {
-		    raw_pan = automation_get_value(pan_auto, abs_pos, step).float_v;
-		} else {
-		    raw_pan = track->pan;
-		}
-						
+		/* float vol; */
+		/* if (vol_auto && vol_auto->read && !vol_auto->write) { */
+		/*     vol = automation_get_value(vol_auto, abs_pos, step).float_v; */
+		/* } else { */
+		/*     /\* vol = track->vol; *\/		     */
+		/*     Value volval = endpoint_safe_read(&track->vol_ep, NULL); */
+		/*     vol = volval.float_v; */
+		/* } */
+		/* float raw_pan; */
+		/* if (pan_auto && pan_auto->read && !pan_auto->write) { */
+		/*     raw_pan = automation_get_value(pan_auto, abs_pos, step).float_v; */
+		/* } else { */
+		/*     raw_pan = track->pan; */
+		/* } */
+		float vol = vol_vals[chunk_i];
+		float raw_pan = pan_vals[chunk_i];
 		double pan_scale = channel == 0 ?
 		    raw_pan <= 0.5 ? 1 : (1.0f - raw_pan) * 2
 		    : raw_pan >= 0.5 ? 1 : raw_pan * 2;
-
-		chunk[chunk_i] += clip_buf[(int32_t)pos_in_clip_sframes + cr->in_mark_sframes] * vol * pan_scale;
+		/* static const float coeffs[] = {0.1, 0.2, 0.3, 0.2, 0.1, -0.09, -0.18, -0.1, -0.05}; */
+		/* static float filterbuf[9]; */
+		
+		float add = clip_buf[(int32_t)pos_in_clip_sframes + cr->in_mark_sframes] * vol * pan_scale * playspeed_rolloff;
+		/* add = do_filter(add, filterbuf, coeffs, 9); */
+		chunk[chunk_i] += add;
+		
 		total_amp += fabs(chunk[chunk_i]);
 	    }
 	    pos_in_clip_sframes += step;
 	    /* fprintf(stdout, "Chunk %d: %f\n", chunk_i, chunk[chunk_i]); */
 	    chunk_i++;
-	    abs_pos += step;
+	    /* abs_pos += step; */
 	}	
 	pthread_mutex_unlock(&cr->lock);
 	/* clip_read = true; */
@@ -269,6 +226,14 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
     return total_amp;
 }
 
+
+clock_t start;
+double pre_track;
+double track_subtotals[255];
+double filter;
+double after_track;
+double grand_total;
+
 /* 
 Sum track samples over a chunk of timeline and return an array of samples. from_mark_in indicates that samples
 should be collected from the in mark rather than from the play head.
@@ -276,6 +241,8 @@ should be collected from the in mark rather than from the play head.
 float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t len_sframes, int32_t start_pos_sframes, float step)
 {
 
+    start = clock();
+    /* clock_t start = clock(); */
     uint32_t chunk_len_bytes = sizeof(float) * len_sframes;
     /* float *mixdown = malloc(chunk_len_bytes); */
     memset(mixdown, '\0', chunk_len_bytes);
@@ -284,23 +251,38 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
         exit(1);
     }
 
+    int32_t end_pos_sframes = start_pos_sframes + len_sframes * step;
+    for (uint8_t i=0; i<tl->num_click_tracks; i++) {
+	ClickTrack *tt = tl->click_tracks[i];
+	click_track_mix_metronome(tt, mixdown, len_sframes, start_pos_sframes, end_pos_sframes, step);
+    }
+
     /* long unsigned track_mixdown_time = 0; */
     /* long unsigned track_filter_time = 0; */
+    pre_track += (double)(clock() - start) / CLOCKS_PER_SEC;
+    
     for (uint8_t t=0; t<tl->num_tracks; t++) {
 	bool audio_in_track = false;
         Track *track = tl->tracks[t];
 
 	float track_chunk[len_sframes];
 
+	start = clock();
         float track_chunk_amp = get_track_channel_chunk(track, track_chunk, channel, start_pos_sframes, len_sframes, step);
+	track_subtotals[t] += ((double)clock() - start) / CLOCKS_PER_SEC;
+	
 
 	if (track_chunk_amp > AMP_EPSILON) { /* Checks if any clip audio available */
 	    audio_in_track = true;
 	}
 
+	start = clock();
 	if (audio_in_track && track->fir_filter_active) { /* Only apply FIR filter if there is audio */
-	    apply_filter(track->fir_filter, track, channel, len_sframes, track_chunk);
+	    apply_filter(&track->fir_filter, track, channel, len_sframes, track_chunk);
 	}
+	filter += ((double)clock() - start) / CLOCKS_PER_SEC;
+
+	start = clock();
 	float del_line_total_amp = 0.0f;
 	if (track->delay_line_active) {
 	    DelayLine *dl = &track->delay_line;
@@ -356,7 +338,6 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 	if (del_line_total_amp > AMP_EPSILON) { /* There is something to play back */
 	    audio_in_track = true;
 	}
-	
 	if (audio_in_track || t == tl->num_tracks - 1) {
 	    for (uint32_t i=0; i<len_sframes; i++) {
 		/* mixdown[i] += track_chunk[i] * pan * track->vol_ctrl->value; */
@@ -373,12 +354,9 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 		}
 	    }
 	}
+	after_track += ((double)clock() - start) / CLOCKS_PER_SEC;
 
-	
-        /* free(track_chunk); */
     }
-    /* fprintf(stdout, "\tMixdown: %lu\n\tFilter: %lu\n", track_mixdown_time, track_filter_time); */
-
-
     return mixdown;
+    /* fprintf(stderr, "MIXDOWN TOTAL DUR: %f\n", 1000 * ((double)clock() - start)/ CLOCKS_PER_SEC); */
 }

@@ -25,6 +25,7 @@
 - global:
   - C-m		: menu
   - C-h		: menu
+  - <esc>	: escape
   - C-q		: quit
   - C-z		: undo
   - C-y		: redo
@@ -32,6 +33,8 @@
   - S-f		: show_output_freq_domain
   - C-s		: save_project
   - C-o		: open_file
+  - A-S-<del>	: chaotic_user_test
+  - C-S-p	: start_api_server
 - menu_nav:
   - n		: menu_next_item
   - p		: menu_previous_item
@@ -66,9 +69,11 @@
   - q		: tl_rewind
   - K-l		: tl_play_slow
   - K-j		: tl_rewind_slow
-  - C-l		: tl_play_slow
-  - C-j		: tl_rewind_slow
   - S-k		: tl_pause
+  - [		: tl_move_playhead_left
+  - ]		: tl_move_playhead_right
+  - S-[		: tl_move_playhead_left_slow
+  - S-]		: tl_move_playhead_right_slow
   - <left>	: tl_nudge_left
   - <right>	: tl_nudge_right
   - S-<left>	: tl_small_nudge_left
@@ -88,7 +93,14 @@
   - S-u		: tl_goto_zero
   - S-j		: tl_goto_previous_clip_boundary
   - S-l		: tl_goto_next_clip_boundary
+  - C-l		: tl_goto_next_beat
+  - C-j		: tl_goto_prev_beat
+  - C-S-l	: tl_goto_next_subdiv
+  - C-S-j	: tl_goto_prev_subdiv
+  - A-S-l	: tl_goto_next_measure
+  - A-S-j	: tl_goto_prev_measure
   - S-z		: tl_bring_rear_clip_to_front
+  - C-8		: tl_toggle_loop_playback
   - C-S-o	: tl_set_default_out
   - C-t		: tl_track_add
   - 1		: tl_track_select_1
@@ -109,6 +121,7 @@
   - S-p		: tl_move_track_up
   - S-f		: tl_move_track_down
   - S-d		: tl_move_track_up
+  - -		: tl_track_or_tracks_minimize
   - <spc>	: tl_track_activate_selected
   - <ret>	: tl_track_activate_selected
   - C-r		: tl_track_rename
@@ -127,6 +140,8 @@
   - C-v		: tl_paste_grabbed_clips
   - C-S-r	: tl_rename_clip_at_cursor
   - r		: tl_record
+  - C-S-t	: tl_click_track_add
+  - t		: tl_click_track_set_tempo
   - C-1		: tl_load_clip_at_cursor_to_source
   - S-1		: tl_activate_source_mode
   - b		: tl_drop_from_source
@@ -178,7 +193,8 @@
 - text_edit:
   - <ret>	: text_edit_escape
   - <tab>	: text_edit_escape
-  - <esc>	: text_edit_escape
+  - <esc>	: text_edit_full_escape
+  - S-<tab>	: text_edit_escape
   - <del>	: text_edit_backspace
   - <left>	: text_edit_cursor_left
   - <right>	: text_edit_cursor_right
@@ -187,12 +203,18 @@
   - C-f		: text_edit_cursor_right
   - C-a		: text_edit_select_all
 - tabview:
+  - S-n		: tabview_next_escape
+  - S-p		: tabview_previous_escape
+  - S-f		: tabview_next_escape
+  - S-d		: tabview_previous_escape
   - <tab>	: tabview_next_escape
   - S-<tab>	: tabview_previous_escape
   - <ret>	: tabview_enter
   - h		: tabview_left
   - ;		: tabview_right
+  - S-j		: tabview_previous_tab
   - S-h		: tabview_previous_tab
+  - S-l		: tabview_next_tab
   - S-;		: tabview_next_tab
   - g		: tabview_escape
   - <esc>	: tabview_escape

@@ -16,41 +16,55 @@ A free, open-source, keyboard-focused digital audio workstation (DAW). Written i
     1. [Menus](#menus)
 	2. [Timeline navigation and playback](#timeline-navigation-and-playback)
 	     1. [Playback](#playback)
-		 2. [Translate / zoom](#translate--zoom)
-		 3. [Track selector](#track-selector)
-		 4. ["Cursor"](#cursor)
-		 5. [Marks and jump-to](#marks-and-jump-to)
-		 6. [Scrolling](#scrolling)
+		 2. [Scrubbing / play speed](#scrubbing--play-speed)
+		 3. [Translate / zoom](#translate--zoom)
+		 4. [Move playhead](#move-playhead)
+		 5. [Track selector](#track-selector)
+		 6. ["Cursor"](#cursor)
+		 7. [Marks and jump-to](#marks-and-jump-to)
+		 8. [Scrolling](#scrolling)
+		 9. [Loop playback](#loop-playback)
 	3. [Recording](#recording)
-	4. [Tracks](#tracks)
+	4. [Audio Tracks](#audio-tracks)
 		 1. [Activating / deactivating tracks](#activating--deactivating-tracks)
 		 2. [Muting / soloing](#muting--soloing)
 		 3. [Adjusting volume / pan](#adjusting-volume--pan)
 		 4. [Setting track input](#setting-track-input)
 		 5. [Reordering tracks](#reordering-tracks)
+		 6. [Minimizing tracks](#minimizing-tracks)
 		 6. [Renaming tracks](#renaming-tracks)
 			 1. [Editing text](#editing-text)
 	5. [Clips](#clips)
 		 1. ["Clips" vs "Clip references"](#technical-note-clips-vs-clip-references)
 		 2. ["Grabbing" and moving clips](#grabbing-and-moving-clips)
-		 3. [Cutting clips](#cutting-clips)
-		 4. [Renaming clips](#renaming-clips)
-	6. [Sample mode / Source mode](#sample-mode--source-mode)
-	7. [Project navigation / multiple timelines](#project-navigation--multiple-timelines)
-	8. [Opening and saving files](#opening-and-saving-files)
-	9. [Track effects](#track-effects)
+		 3. [Clip overlap](#clip-overlap)
+		 4. [Cutting clips](#cutting-clips)
+		 5. [Renaming clips](#renaming-clips)
+	6. [Click tracks](#click-tracks)
+		 1. [Time signatures](#time-signatures)
+		 2. [Click track segments](#click-track-segments)
+		 3. [Metronome](#metronome)
+		 4. [Set tempo](#set-tempo)
+		 5. [Grid navigation](#grid-navigation)
+	7. [Sample mode / Source mode](#sample-mode--source-mode)
+	8. [Project navigation / multiple timelines](#project-navigation--multiple-timelines)
+	9. [Opening and saving files](#opening-and-saving-files)
+	10. [Track effects](#track-effects)
 		 1. [FIR filter](#fir-filter)
 		 2. [Delay line](#delay-line)
-	10. [Automation](#automation)
+	11. [Automation](#automation)
 	     1. [Adding keyframes with the mouse](#adding-keyframes-with-the-mouse)
 		 2. [Writing (adding keyframes automatically)](#writing-adding-keyframes-automatically)
 		 3. [Deleting keyframes](#deleting-keyframes)
-	11. [Undo / redo](#undo--redo)
-	12. [Special audio inputs](#special-audio-inputs)
+	12. [Undo / redo](#undo--redo)
+	dlfkjglnafpdjknp
+	13. [Special audio inputs](#special-audio-inputs)
 		 1. [Jackdaw out](#jackdaw-out)
 		 2. [Pure data](#pure-data)
+	14. [API](#api)
+		 1. [Starting the server](#starting-the-server)
+		 2. [Request syntax](#request-syntax)
 8. [Function reference](#function-reference)
-	
 
 ## Disclaimer
 
@@ -244,12 +258,18 @@ Timeline navigation functions are all within easy reach of your right hand:
 <kbd>k</kbd> : **pause**<br>
 <kbd>l</kbd> : **play** (multiple taps to play fast)<br>
 
-#### Dynamic playspeed adjustment
+### Scrubbing / play speed
 
-In addition to the keyboard functions listed above, you can also adjust the playback speed dynamically (if already playing back) with the mousewheel or trackpad:
+You can use the mousewheel or trackpad to achieve finer control over playback.
 
-<kbd>S-\<scroll\></kbd> : **adjust speed (fine)**<br>
-<kbd>C-S-\<scroll\></kbd> : **adjust speed (coarse)**<br>
+> [!NOTE]
+> These functions work best on trackpads with multi-finger touch detection, like those on macbooks.
+
+<kbd>S-\<scroll horizontal\></kbd> : **scrub (fine)**<br>
+<kbd>C-S-\<scroll horizontal\></kbd> : **scrub (coarse)**<br>
+
+<kbd>S-\<scroll vertical\></kbd> : **adjust speed (fine)**<br>
+<kbd>C-S-\<scroll vertical\></kbd> : **adjust speed (coarse)**<br>
 
 
 ### Translate / zoom
@@ -261,6 +281,15 @@ In addition to the keyboard functions listed above, you can also adjust the play
 <kbd>C-\<scroll\></kbd> : **zoom in or out**<br>
 
 These zoom functions will center on the current playhead position. Using the mousewheel/trackpad to zoom will center the zoom on the current mouse position. 
+
+### Move playhead
+<kbd>[</kbd> : **move playhead left**<br>
+<kbd>]</kbd> : **move playhead right**<br>
+
+<kbd>S-]</kbd> : **move playhead left (slow)**<br>
+<kbd>S-[</kbd> : **move playhead right (slow)**<br>
+
+Press and hold these commands to move the playhead around without playing back audio. The amount moved is relative to the window width, not a fixed time amount (unlike playback/rewind).
 
 ### Track selector
 
@@ -305,6 +334,17 @@ When you move the track selector with <kbd>n</kbd> and <kbd>p</kbd>, the timelin
 
 Holding <kbd>Cmd</kbd> or <kbd>Ctrl</kbd> and scrolling on the timeline will zoom in or out.
 
+
+### Loop playback
+
+You can play back a marked section of the timelines (see [section](#marks-and-jump-to) above) in a loop by enabling loop playback.
+
+<kbd>C-8</kbd> : **Enable / disable loop playback**<br>
+
+<img src="assets/readme_imgs/loop_playback.gif" width="75%" />
+
+Future versions of jackdaw will include more sophisticated looping mechanisms.
+
 ## Recording
 
 <kbd>r</kbd> : **start or stop recording**<br>
@@ -313,7 +353,7 @@ When you hit <kbd>r</kbd>, audio recording will begin on all [activated](#activa
 
 You can record from multiple audio devices at once, simply by setting different inputs on different tracks, activating each of those tracks, and hitting <kbd>r</kbd>.
 
-## Tracks
+## Audio Tracks
 
 In the current version of jackdaw (v0.4.0) all tracks are stereo audio tracks.
 
@@ -372,6 +412,11 @@ If you hold down shift while moving the track selector up or down, the selected 
 <kbd>S-p</kbd> : **Move selected track up**<br>
 
 <img src="assets/readme_imgs/move_track.gif" width="75%" />
+
+### Minimizing tracks
+
+<kbd>-</kbd> : **Minimize / expand selected track(s)**<br>
+
 
 ### Renaming tracks
 
@@ -435,6 +480,16 @@ If clip dragging is enabled, an indication will appear in the status bar at the 
 
 Moving the track selector will pull all currently-dragging clips along with it.
 
+### Clip overlap
+
+Audio from overlapping clips on the same track is simply added; i.e. audio from both clips will be played.
+
+If you need to grab or otherwise alter a clip that is buried under an overlapping clip, you can bring it to the "front" with <kbd>S-z</kbd>
+
+<kbd>S-z</kbd> : **Bring rear clip at cursor to front**<br>
+
+<img src="assets/readme_imgs/bring_clip_to_front.gif" width="75%" />
+
 ### Cutting clips
 
 <kbd>S-c</kbd> : **Cut clips at cursor**<br>
@@ -448,6 +503,75 @@ This will cut any clips on the currently selected track at the current playhead 
 <kbd>C-S-r</kbd> : **Rename clip at cursor**<br>
 
 See <a href = "#editing-text">"Editing text"</a> for more on text edit mode.
+
+## Click tracks
+
+You can add click tracks to your project to create a "grid."
+
+<kbd>C-S-t</kbd> : **Add click track**<br>
+
+Click tracks fundamentally comprise a series of one or more *segments*, each of which can have its own tempo and time signature. A lot of music will only require a single click track and single time signature, but jackdaw allows you to create many click tracks, each of which can have many segments.
+
+<kbd>S-t</kbd> : **Edit click track**<br>
+
+Edit the click track and segment at cursor with <kbd>S-t</kbd>, or by clicking the pencil icon on the left of the track.
+
+<img src="assets/readme_imgs/click_track_add.gif" width="75%" />
+
+Then, <kbd>\<tab\></kbd> through the fields to modify any of the track parameters and "Submit" to confirm your changes to the time signature and tempo. (Changes to the track name do not need to be submitted.
+
+### Time signatures
+
+Jackdaw doesn't use conventional time signatures because they're confusing and limited. Instead, you specify first the number of "beats" (coarse divisions of a measure) and then the number of subdivisions in each of those beats. So a 4/4 time signature, which has 4 beats, could be defined as 4 + 4 + 4 + 4 if you want sixteenth-note resolution, or 2 + 2 + 2 + 2 if you only want eighth-note resolution. 6/8 typically has *two* beats, and would be defined as 3 + 3.
+
+It is therefore very easy to define additive meters, like the Bulgarian Gankino horo (4 + 3 + 4):
+
+<img src="assets/readme_imgs/additive_meter.gif" width="75%" />
+
+
+### Click track segments
+
+If you need to change tempo or time signature partway through a song, you can do so by adding new click track segments.
+
+To do so, **cut** the click track with <kbd>S-c</kbd>. (Note that this is the same function you would use to cut a clip, but if a click track is selected, it will cut the click track instead.
+
+<img src="assets/readme_imgs/cut_click_track.gif" width="75%" />
+
+Now, you can modify each of the segments individually. When editing a segment, you can specify whether you want the end position to remain fixed, or the number of measures. If the number of measures is fixed, the end position of the segment may move, and all the segments to the right will move with it.
+
+You can click and drag the boundaries between click track segments to reposition them, and you can delete a segment with <kbd>\<del\></kbd>
+
+<img src="assets/readme_imgs/edit_segment_bounds.gif" width="75%" />
+
+While dragging, the segment boundary will automatically snap to the previous segment's subdivisions. Hold <kbd>\<shift\></kbd> to disable the snapping.
+
+### Metronome
+
+Each click track has a metronome which is on by default. You can mute the click track exactly as you would an audio track (select the track and then <kbd>m</kbd>, and adjust the volume of the metronome exactly as you would adjust the volume of an audio track (<kbd>S--</kbd> and <kbd>S-=</kbd>).
+
+### Set tempo
+
+You can quickly set the tempo of the click segment at cursor with <kbd>t</kbd>
+
+<img src="assets/readme_imgs/set_tempo.gif" width="75%" />
+
+### Grid navigation
+
+Click tracks can be moved up and down on the timeline exactly like audio tracks: with <kbd>S-n</kbd> and <kbd>S-p</kbd>.
+
+All of the audio tracks directly *below* a given click track are governed by that click track. In the current version of jackdaw (v0.5.0) this is only relevant when using the following navigation functions:
+
+<kbd>C-j</kbd> : **Go to previous beat**<br>
+<kbd>C-l</kbd> : **Go to next beat**<br>
+
+<kbd>C-S-j</kbd> : **Go to previous subdivision**<br>
+<kbd>C-S-k</kbd> : **Go to next subdivision**<br>
+
+<kbd>A-S-j</kbd> : **Go to previous measure**<br>
+<kbd>A-S-k</kbd> : **Go to next measure**<br>
+
+<img src="assets/readme_imgs/click_track_navigation.gif" width="75%" />
+
 
 ## Sample mode / Source mode
 
@@ -601,9 +725,6 @@ When an automation track is selected, you can delete a range of keyframes by mar
 
 Jackdaw retains a 100-event long history of user events. Generally, any changes to the project state -- those that would affect the saved `.jdaw` file -- can be undone. Actions that only affect the superficial state of the program cannot.
 
-> [!CAUTION]
-> In the current jackdaw version (v0.4.0), track volume and pan adjustments, as well as adjustments to track effect parameters (e.g. FIR filter cutoff frequency) cannot be undone. This is a technical limitation and will be fixed in a future version of jackdaw.
-
 Objects that you delete will not be permanently deleted until the program is closed or the deletion event drops off the end of the event history.
 
 Jackdaw undo is *linear.* That means that if you undo some number of changes, and then make a new change, you will lose the ability to redo those previously-undone events.
@@ -634,17 +755,74 @@ I have provided the source code for `pd_jackdaw~` here (`pd_jackdaw/pd_jackdaw.c
 
 The `pd_jackdaw~` objects inlets are for the left and right channels of audio. If jackdaw is open and a `pd_jackdaw~` object is created, the two programs will do a handshake (exchange a series of signals) before setting up a block of shared memory, which they use to exchange audio data. If DSP is enabled in Pd and a track input is set to "Pure data" in jackdaw, you should be able to record audio directly from Pd just as you would from a microphone.
 
+## API
+
+> [!NOTE]
+> This is an experimental feature and will be developed further in future versions of jackdaw.
+
+Jackdaw can run a UDP server to allow external programs (pure data, for instance, or your own programs) to modify project parameters like the volume on a given track, or a filter effect's cutoff frequency.
+
+### Starting the server
+
+<kbd>C-S-p</kbd> : **Start API server**<br>
+
+You will be prompted to select a port number. If the port is in use or otherwise invalid, an error message will appear at the bottom-right part of the screen. If there is no error, you can assume that the server is currently running on the selected port.
+
+### Request syntax
+
+Requests must be ASCII strings that follow the general format:
+```
+<route> <value>
+``` 
+
+The `<route>` parameter describes a path to the desired parameter. Global parameters like the playback speed are identified at the top level, i.e. `/play_speed`. Parameters related to tracks must be routed through the timeline, then the track, each by name, and finally the name of the parameter. 
+
+So if you want to access the volume parameter on a track called "Synth" on a timeline called "Main" (the default), the route would be:
+
+```
+/main/synth/vol
+```
+
+Note that uppercase characters in the names are lowered. Non-alphanumeric characters are replaced with an underscore. 
+
+Here are some example requests:
+
+`/main/track_1/pan 0.2`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--> set pan on track 1 to 0.2 (0.0 == L, 1.0 = R)
+
+`/scratch_pad/kick/filter_cutoff_freq 0.2`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--> on the "scratch pad" timeline, set the "kick" track filter cutoff freq to 2% of nyquist (range 0.0 -> 1.0)
+
+
+`/main/lead_synth/delay_line_len 600`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--> set the delay line effect time to 600ms
+
+
+The currently-available endpoints are:
+
+```
+/play_speed
+/<timeline>/<track>/vol
+/<timeline>/<track>/pan
+/<timeline>/<track>/filter_cutoff_freq
+/<timeline>/<track>/filter_bandwidth
+/<timeline>/<track>/delay_line_len
+/<timeline>/<track>/delay_line_amp
+/<timeline>/<track>/delay_line_stereo_offset
+```
+
+Most applications for the API will involve sending UDP messages over localhost, but messages can also be sent over a network. 
 
 # Function reference
 
 ### global mode
 - Summon menu : <kbd>C-m</kbd>, <kbd>C-h</kbd>
+- Escape : <kbd>\<esc\></kbd>
 - Quit : <kbd>C-q</kbd>
 - Undo : <kbd>C-z</kbd>
 - Redo : <kbd>C-y</kbd>, <kbd>C-S-z</kbd>
 - Show output spectrum : <kbd>S-f</kbd>
 - Save Project : <kbd>C-s</kbd>
 - Open File (.wav or .jdaw) : <kbd>C-o</kbd>
+- Start API server : <kbd>C-S-p</kbd>
+- Chaotic user test (debug only) : <kbd>A-S-\<del\></kbd>
 ### menu_nav mode
 - Next item : <kbd>n</kbd>, <kbd>f</kbd>
 - Previous item : <kbd>p</kbd>, <kbd>d</kbd>
@@ -657,14 +835,18 @@ The `pd_jackdaw~` objects inlets are for the left and right channels of audio. I
 - Move menu down : <kbd>\<down\></kbd>
 - Move menu right : <kbd>\<right\></kbd>
 - Move menu left : <kbd>\<left\></kbd>
-- go back (dismiss) : <kbd>\<del\></kbd>, <kbd>m</kbd>, <kbd>h</kbd>, <kbd>\<esc\></kbd>
+- go back (dismiss) : <kbd>\<del\></kbd>, <kbd>m</kbd>, <kbd>h</kbd>, <kbd>\<esc\></kbd>, <kbd>g</kbd>
 ### timeline mode
 #### Playback / Record
 - Play : <kbd>l</kbd>, <kbd>e</kbd>
 - Pause : <kbd>k</kbd>, <kbd>w</kbd>, <kbd>S-k</kbd>
 - Rewind : <kbd>j</kbd>, <kbd>q</kbd>
-- Play slow : <kbd>K-l</kbd>, <kbd>C-l</kbd>
-- Rewind slow : <kbd>K-j</kbd>, <kbd>C-j</kbd>
+- Play slow : <kbd>K-l</kbd>
+- Rewind slow : <kbd>K-j</kbd>
+- Move playhead left : <kbd>[</kbd>
+- Move playhead rigth : <kbd>]</kbd>
+- Move playhead left (slow) : <kbd>S-[</kbd>
+- Move playhead right (slow) : <kbd>S-]</kbd>
 - Nudge play position left (500 samples) : <kbd>\<left\></kbd>
 - Nudge play position right (500 samples) : <kbd>\<right\></kbd>
 - Nudge play position left (100 samples) : <kbd>S-\<left\></kbd>
@@ -678,6 +860,7 @@ The `pd_jackdaw~` objects inlets are for the left and right channels of audio. I
 - Toggle automation read : <kbd>S-r</kbd>
 - Move selected track down : <kbd>S-n</kbd>, <kbd>S-f</kbd>
 - Move selected track up : <kbd>S-p</kbd>, <kbd>S-d</kbd>
+- Minimize selected track(s) : <kbd>-</kbd>
 - Move view right : <kbd>;</kbd>
 - Move view left : <kbd>h</kbd>
 - Zoom out : <kbd>,</kbd>
@@ -688,8 +871,16 @@ The `pd_jackdaw~` objects inlets are for the left and right channels of audio. I
 - Go to In : <kbd>S-i</kbd>
 - Go to Out : <kbd>S-o</kbd>
 - Go to t=0 : <kbd>S-u</kbd>
-- Go to clip start : <kbd>S-j</kbd>
-- Go to clip end : <kbd>S-l</kbd>
+- Go to previous clip boundary : <kbd>S-j</kbd>
+- Go to next clip boundary : <kbd>S-l</kbd>
+- Go to next beat : <kbd>C-l</kbd>
+- Go to prev beat : <kbd>C-j</kbd>
+- Go to next subdiv : <kbd>C-S-l</kbd>
+- Go to prev subdiv : <kbd>C-S-j</kbd>
+- Go to next measure : <kbd>A-S-l</kbd>
+- Go to prev measure : <kbd>A-S-j</kbd>
+- Bring rear clip at cursor to front : <kbd>S-z</kbd>
+- Toggle loop playback : <kbd>C-8</kbd>
 #### Output
 - Set default audio output : <kbd>C-S-o</kbd>
 #### Tracks
@@ -706,6 +897,9 @@ The `pd_jackdaw~` objects inlets are for the left and right channels of audio. I
 - Activate track 7 : <kbd>7</kbd>
 - Activate track 8 : <kbd>8</kbd>
 - Activate track 9 : <kbd>9</kbd>
+#### Tempo tracks
+- Add tempo track : <kbd>C-S-t</kbd>
+- Set tempo at cursor : <kbd>t</kbd>
 #### Track settings
 - Open track settings : <kbd>S-t</kbd>
 - Mute or unmute selected track(s) : <kbd>m</kbd>
@@ -720,8 +914,11 @@ The `pd_jackdaw~` objects inlets are for the left and right channels of audio. I
 - Add automation to track : <kbd>C-a</kbd>
 #### Clips
 - Grab clip at cursor : <kbd>g</kbd>
+- Grab clips in marked range : <kbd>S-g</kbd>
+- Copy grabbed clips : <kbd>C-c</kbd>
+- Paste grabbed clips : <kbd>C-v</kbd>
 - Start or stop dragging clips : <kbd>C-k</kbd>
-- Cut clip at cursor : <kbd>S-c</kbd>
+- Cut : <kbd>S-c</kbd>
 - Rename clip at cursor : <kbd>C-S-r</kbd>
 - Delete : <kbd>\<del\></kbd>
 #### Sample mode
@@ -753,25 +950,27 @@ The `pd_jackdaw~` objects inlets are for the left and right channels of audio. I
 - Go to next item (escape DirNav) : <kbd>\<tab\></kbd>, <kbd>S-n</kbd>, <kbd>S-f</kbd>
 - Go to previous item (escape DirNav) : <kbd>S-\<tab\></kbd>, <kbd>S-p</kbd>, <kbd>S-d</kbd>
 - Select item : <kbd>\<ret\></kbd>, <kbd>\<spc\></kbd>
-- Dismiss modal window : <kbd>m</kbd>, <kbd>h</kbd>, <kbd>\<esc\></kbd>
+- Dismiss modal window : <kbd>m</kbd>, <kbd>h</kbd>, <kbd>g</kbd>, <kbd>\<esc\></kbd>
 - Submit form : <kbd>C-\<ret\></kbd>
 ### text_edit mode
-- Escape text edit : <kbd>\<ret\></kbd>, <kbd>\<tab\></kbd>, <kbd>\<esc\></kbd>
+- Escape text edit : <kbd>\<ret\></kbd>, <kbd>\<tab\></kbd>, <kbd>S-\<tab\></kbd>
+- Escape text edit : <kbd>\<esc\></kbd>
 - Backspace : <kbd>\<del\></kbd>
 - Move cursor right : <kbd>\<right\></kbd>, <kbd>C-f</kbd>
 - Move cursor left : <kbd>\<left\></kbd>, <kbd>C-d</kbd>, <kbd>C-b</kbd>
 - Select all : <kbd>C-a</kbd>
 ### tabview mode
-- Next element : <kbd>\<tab\></kbd>
-- Previous element : <kbd>S-\<tab\></kbd>
+- Next element : <kbd>S-n</kbd>, <kbd>S-f</kbd>, <kbd>\<tab\></kbd>
+- Previous element : <kbd>S-p</kbd>, <kbd>S-d</kbd>, <kbd>S-\<tab\></kbd>
 - Select : <kbd>\<ret\></kbd>
 - Move left : <kbd>h</kbd>
 - Move right : <kbd>;</kbd>
-- Next tab : <kbd>S-;</kbd>
-- Previous tab : <kbd>S-h</kbd>
+- Next tab : <kbd>S-l</kbd>, <kbd>S-;</kbd>
+- Previous tab : <kbd>S-j</kbd>, <kbd>S-h</kbd>
+- Close tab view : <kbd>g</kbd>, <kbd>\<esc\></kbd>
 
 ...
 
-[ LAST UPDATED 2024-11-13 WEDNESDAY ]
+[ LAST UPDATED 2025-02-14 FRIDAY ]
 
 ...

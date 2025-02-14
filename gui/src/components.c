@@ -1,6 +1,6 @@
-#include "SDL_render.h"
 #include "color.h"
 #include "components.h"
+#include "endpoint.h"
 #include "geometry.h"
 #include "input.h"
 #include "layout.h"
@@ -18,7 +18,11 @@ extern Window *main_win;
 #define RADIO_BUTTON_LEFT_COL_W 10
 #define SLIDER_MAX_LABEL_COUNTDOWN 80
 #define SLIDER_NUDGE_PROP 0.01
-#define BUTTON_COLOR_CHANGE_STD_DELAY 400
+#define BUTTON_COLOR_CHANGE_STD_DELAY 20
+
+#define TEXTENTRY_V_PAD 4
+#define TEXTENTRY_H_PAD 8
+
 
 /* SDL_Color fslider_bckgrnd = {60, 60, 60, 255}; */
 /* SDL_Color fslider_bar_container_bckgrnd =  {190, 190, 190, 255}; */
@@ -28,30 +32,39 @@ SDL_Color slider_bckgrnd = {60, 60, 60, 255};
 SDL_Color slider_bar_container_bckgrnd =  {40, 40, 40, 248};
 SDL_Color slider_bar_color = {12, 107, 249, 250};
 
+SDL_Color textentry_background = (SDL_Color) {200, 200, 200, 255};
+SDL_Color textentry_text_color = (SDL_Color) {0, 0, 0, 255};
+
+
 SDL_Color tgl_bckgrnd = {110, 110, 110, 255};
 
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_clear;
-
-
+extern SDL_Color color_global_grey;
 /* Slider fslider_create(Layout *layout, SliderOrientation orientation, SliderType type, SliderStrFn *fn) */
 Slider *slider_create(
     Layout *layout,
-    void *value,
-    ValType val_type,
+    Endpoint *ep,
+    Value min,
+    Value max,
+    /* void *value, */
+    /* ValType val_type, */
     enum slider_orientation orientation,
     enum slider_style style,
     LabelStrFn label_str_fn,
     /* SliderStrFn *create_label_fn, */
-    ComponentFn action,
-    void *target,
+    /* ComponentFn action, */
+    /* void *target, */
     Draggable *drag_context)
 
 {
     Slider *s = calloc(1, sizeof(Slider));
+    s->ep = ep;
+    s->min = min;
+    s->max = max;
     /* s->create_label = create_label_fn; */
-    s->action = action;
-    s->target = target;
+    /* s->action = action; */
+    /* s->target = target; */
     s->layout = layout;
     Layout *bar_container = layout_add_child(layout);
     layout_set_name(bar_container, "bar_container");
@@ -59,7 +72,8 @@ Slider *slider_create(
     label->rect.x = layout->rect.x + layout->rect.w;
     label->rect.y = layout->rect.y;
     layout_set_values_from_rect(label);
-    s->label = label_create(0, label, label_str_fn, value, val_type, main_win);
+    s->label = label_create(0, label, label_str_fn, ep->val, ep->val_type, main_win);
+    s->label->parent_obj_lt  = s->layout;
     s->drag_context = drag_context;
     /* if (create_label_fn) { */
     /* 	create_label_fn(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, value, val_type); */
@@ -118,28 +132,35 @@ Slider *slider_create(
 	}
     }
 
-    jdaw_val_set_min(&(s->min), val_type);
-    jdaw_val_set_max(&(s->max), val_type);
-    s->val_type = val_type;
-    s->value = value;
+    /* if (ep->restrict_range) { */
+    /* 	s->min = ep->min; */
+    /* 	s->max = ep->max; */
+    /* } else { */
+    /* 	jdaw_val_set_min(&(s->min), ep->val_type); */
+    /* 	jdaw_val_set_max(&(s->max), ep->val_type); */
+    /* } */
+    /* s->val_type = ep->val_type; */
+    /* s->value = ep->value; */
     s->orientation = orientation;
     s->style = style;
     return s;
 }
 
-void slider_set_value(Slider *s, Value val)
-{
-    jdaw_val_set_ptr(s->value, s->val_type, val);
-    slider_reset(s);
-}
+/* Calls endpoint_write */
+/* void slider_set_value(Slider *s, Value val, ) */
+/* { */
+/*     endpoint_write(s->ep, val, true, true, true, false); */
+/*     /\* jdaw_val_set_ptr(s->value, s->val_type, val); *\/ */
+/*     slider_reset(s); */
+/* } */
 
 void slider_set_range(Slider *s, Value min, Value max)
 {
-    s->min = min;
-    s->max = max;
+/*     s->min = min; */
+/*     s->max = max; */
 }
 
-Value slider_val_from_coord(Slider *s, int coord_pix)
+static Value slider_val_from_coord(Slider *s, int coord_pix)
 {
     double proportion;
     switch (s->orientation) {
@@ -150,23 +171,21 @@ Value slider_val_from_coord(Slider *s, int coord_pix)
 	proportion = ((double)coord_pix - s->layout->rect.x) / s->layout->rect.w;
 	break;
     }
-    Value range = jdaw_val_sub(s->max, s->min, s->val_type);
-    Value val_proportion = jdaw_val_scale(range, proportion, s->val_type);
-    Value ret = jdaw_val_add(val_proportion, s->min, s->val_type);
+    Value range = jdaw_val_sub(s->max, s->min, s->ep->val_type);
+    Value val_proportion = jdaw_val_scale(range, proportion, s->ep->val_type);
+    Value ret = jdaw_val_add(val_proportion, s->min, s->ep->val_type);
     return ret;
-
 }
 
 
 void layout_write(FILE *f, Layout *lt, int indent);
-void slider_reset(Slider *s)
+Value slider_reset(Slider *s)
 {
-    Value range = jdaw_val_sub(s->max, s->min, s->val_type);
-    Value slider_val;
-    /* Value slider_val = jdaw_val_from_ptr(&slider_val, s->val_type); */
-    jdaw_val_set(&slider_val, s->val_type, s->value);
-    Value filled = jdaw_val_sub(slider_val, s->min, s->val_type);
-    double filled_prop = jdaw_val_div_double(filled, range, s->val_type);
+    Value range = jdaw_val_sub(s->max, s->min, s->ep->val_type);
+    Value slider_val = endpoint_safe_read(s->ep, NULL);
+    Value filled = jdaw_val_sub(slider_val, s->min, s->ep->val_type);
+    double filled_prop = jdaw_val_div_double(filled, range, s->ep->val_type);
+    /* fprintf(stderr, "Filled prop? %f\n", filled_prop); */
     switch (s->style) {
     case SLIDER_FILL:
 	switch (s->orientation) {
@@ -185,25 +204,12 @@ void slider_reset(Slider *s)
 	    *(s->val_dim) = filled_prop;
 	    break;
 	case SLIDER_VERTICAL:
-	    
-	    /* layout_reset(s->layout->children[0]); */
 	    *(s->val_dim) = 1 - filled_prop;
 	    break;
 	}
     }
-    /* if (s->editing) { */
-    /* 	if (s->create_label) { */
-    /* 	    s->create_label(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, s->value, s->val_type); */
-    /* 	/\* amp_to_dbstr(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, *(s->value)); *\/ */
-    /* 	/\* snprintf(s->label_str, SLIDER_LABEL_STRBUFLEN - 1, "%f", *(s->value)); *\/ */
-    /* 	    /\* textbox_size_to_fit(s->label, SLIDER_LABEL_H_PAD, SLIDER_LABEL_V_PAD); *\/ */
-    /* 	    textbox_reset_full(s->label); */
-    /* 	} */
-    /* } */
-    /* layout_write(stdout, s->layout, 0); */
     layout_reset(s->layout);
-    
-    /* fprintf(stdout, "Bar rect: %d %d %d %d\n", s->bar_rect->x, s->bar_rect->y, s->bar_rect->w, s->bar_rect->h); */
+    return slider_val;
 }    
 
 
@@ -218,17 +224,7 @@ void slider_draw(Slider *s)
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(slider_bar_color));
     SDL_RenderFillRect(main_win->rend, s->bar_rect);
 
-    /* fprintf(stdout, "DRAWING textbox label w disp val: %s\n", s->label->text->display_value); */
-    /* fprintf(stdout, "Str? %s\n", s->label_str); */
-
     label_draw(s->label);
-    /* if (s->editing && s->label) { */
-    /* 	textbox_draw(s->label); */
-    /* 	s->label_countdown--; */
-    /* 	if (s->label_countdown == 0) { */
-    /* 	    s->editing = false; */
-    /* 	} */
-    /* } */
 }
 
 void slider_destroy(Slider *s)
@@ -245,61 +241,114 @@ void slider_std_labelmaker(char *dst, size_t dstsize, void *value, ValType type)
     jdaw_valptr_set_str(dst, dstsize, value, type, 2);
 }
 
-void slider_edit_made(Slider *slider)
+/* void slider_edit_made(Slider *slider) */
+/* { */
+/*     label_reset(slider->label); */
+/* } */
+
+
+bool slider_mouse_click(Slider *slider, Window *win)
 {
-    label_reset(slider->label);
+    if (SDL_PointInRect(&main_win->mousep, &slider->layout->rect) && win->i_state & I_STATE_MOUSE_L) {
+	int dim = slider->orientation == SLIDER_VERTICAL ? main_win->mousep.y : main_win->mousep.x;
+	Value newval = slider_val_from_coord(slider, dim);
+	endpoint_start_continuous_change(slider->ep, false, (Value)0, slider->ep->owner_thread, newval);
+	slider_reset(slider);
+
+	/* slider_reset(slider); */
+	/* slider_edit_made(slider); */
+	slider->drag_context->component = (void *)slider;
+	slider->drag_context->type = DRAG_SLIDER;
+	return true;
+    }
+    return false;
+}
+
+bool slider_mouse_motion(Slider *slider, Window *win)
+{
+    int dim, mindim, maxdim;
+    switch (slider->orientation) {
+    case SLIDER_VERTICAL:
+	dim = main_win->mousep.y;
+	mindim = slider->layout->rect.y;
+	maxdim = slider->layout->rect.y + slider->layout->rect.h;
+	break;
+    case SLIDER_HORIZONTAL:
+	dim = main_win->mousep.x;
+	mindim = slider->layout->rect.x;
+	maxdim = slider->layout->rect.x + slider->layout->rect.w;
+	break;
+    }
+    /* int dim = slider->orientation == SLIDER_VERTICAL ? main_win->mousep.y : main_win->mousep.x; */
+    /* int mindim = slider->orientation == SLIDER_ */
+    bool restrict_range = slider->ep->restrict_range;
+    if (slider->disallow_unsafe_mode || !(win->i_state & I_STATE_SHIFT && win->i_state & I_STATE_CMDCTRL)) {
+	if (dim < mindim) dim = mindim;
+	if (dim > maxdim) dim = maxdim;
+    } else {
+	status_set_errstr("SLIDER UNSAFE MODE (release ctrl/shift to return to safety!)");
+	slider->ep->restrict_range = false;
+    }
+    Value newval = slider_val_from_coord(slider, dim);
+    endpoint_write(slider->ep, newval, true, true, true, false);
+    slider->ep->restrict_range = restrict_range;
+    /* jdaw_val_set_ptr(slider->value, slider->val_type, newval); */
+    /* if (slider->action) */
+    /* 	slider->action((void *)slider, slider->target); */
+    /* track->vol = newval.float_v; */
+    Value val = slider_reset(slider);
+    label_reset(slider->label, val);
+    /* slider_edit_made(slider); */
+    /* proj->vol_changing = true; */
+    return true;
 }
 
 void slider_nudge_right(Slider *slider)
 {
-    Value range = jdaw_val_sub(slider->max, slider->min, slider->val_type);
+    Value range = jdaw_val_sub(slider->max, slider->min, slider->ep->val_type);
     static const double slider_nudge_prop = SLIDER_NUDGE_PROP;
-    Value nudge_amt = jdaw_val_scale(range, slider_nudge_prop, slider->val_type);
-    Value val = jdaw_val_from_ptr(slider->value, slider->val_type);
-    val = jdaw_val_add(val, nudge_amt, slider->val_type);
-    if (jdaw_val_less_than(slider->max, val, slider->val_type)) {
+    Value nudge_amt = jdaw_val_scale(range, slider_nudge_prop, slider->ep->val_type);
+    Value val = endpoint_safe_read(slider->ep, NULL);
+    val = jdaw_val_add(val, nudge_amt, slider->ep->val_type);
+    if (jdaw_val_less_than(slider->max, val, slider->ep->val_type)) {
 	val = slider->max;
     }
-    jdaw_val_set_ptr(slider->value, slider->val_type, val);
-    slider_reset(slider);
-    if (slider->action) slider->action((void *)slider, slider->target);
+    endpoint_write(slider->ep, val, true, true, true, true);
 }
 
 void slider_nudge_left(Slider *slider)
 {
-    Value range = jdaw_val_sub(slider->max, slider->min, slider->val_type);
+    Value range = jdaw_val_sub(slider->max, slider->min, slider->ep->val_type);
     static const double slider_nudge_prop = SLIDER_NUDGE_PROP;
-    Value nudge_amt = jdaw_val_scale(range, slider_nudge_prop, slider->val_type);
-    Value val = jdaw_val_from_ptr(slider->value, slider->val_type);
-    val = jdaw_val_sub(val, nudge_amt, slider->val_type);
-    if (jdaw_val_less_than(val, slider->min, slider->val_type)) {
-	val = slider->min;
-    }
-    jdaw_val_set_ptr(slider->value, slider->val_type, val);
-    slider_reset(slider);
-    if (slider->action) slider->action((void *)slider, slider->target);
-}
-
-static void slider_scroll(Slider *slider, int scroll_value)
-{
-    /* fprintf(stderr, "SCROLL VALUE: %d\n", scroll_value); */
-    static const int MAX_SCROLL = 60;
-    Value range = jdaw_val_sub(slider->max, slider->min, slider->val_type);
-    double slider_nudge_prop = (double)scroll_value / MAX_SCROLL;
-    /* fprintf(stderr, "OK scroll nudge prop %f\n", slider_nudge_prop); */
-    Value nudge_amt = jdaw_val_scale(range, slider_nudge_prop, slider->val_type);
-    Value val = jdaw_val_from_ptr(slider->value, slider->val_type);
-    val = jdaw_val_sub(val, nudge_amt, slider->val_type);
-    if (jdaw_val_less_than(val, slider->min, slider->val_type)) {
-	val = slider->min;
-    } else if (jdaw_val_less_than(slider->max, val, slider->val_type)) {
+    Value nudge_amt = jdaw_val_scale(range, slider_nudge_prop, slider->ep->val_type);
+    Value val = endpoint_safe_read(slider->ep, NULL);
+    val = jdaw_val_sub(val, nudge_amt, slider->ep->val_type);
+    if (jdaw_val_less_than(slider->max, val, slider->ep->val_type)) {
 	val = slider->max;
     }
-    jdaw_val_set_ptr(slider->value, slider->val_type, val);
-    slider_reset(slider);
-    if (slider->action) slider->action((void *)slider, slider->target);
-    
+    endpoint_write(slider->ep, val, true, true, true, true);
 }
+
+/* static void slider_scroll(Slider *slider, int scroll_value) */
+/* { */
+/*     /\* fprintf(stderr, "SCROLL VALUE: %d\n", scroll_value); *\/ */
+/*     static const int MAX_SCROLL = 60; */
+/*     Value range = jdaw_val_sub(slider->max, slider->min, slider->val_type); */
+/*     double slider_nudge_prop = (double)scroll_value / MAX_SCROLL; */
+/*     /\* fprintf(stderr, "OK scroll nudge prop %f\n", slider_nudge_prop); *\/ */
+/*     Value nudge_amt = jdaw_val_scale(range, slider_nudge_prop, slider->val_type); */
+/*     Value val = jdaw_val_from_ptr(slider->value, slider->val_type); */
+/*     val = jdaw_val_sub(val, nudge_amt, slider->val_type); */
+/*     if (jdaw_val_less_than(val, slider->min, slider->val_type)) { */
+/* 	val = slider->min; */
+/*     } else if (jdaw_val_less_than(slider->max, val, slider->val_type)) { */
+/* 	val = slider->max; */
+/*     } */
+/*     jdaw_val_set_ptr(slider->value, slider->val_type, val); */
+/*     slider_reset(slider); */
+/*     if (slider->action) slider->action((void *)slider, slider->target); */
+    
+/* } */
 /* static int timed_hide_slider_label(void *data) */
 /* { */
 /*     Slider *fs = (Slider *)data; */
@@ -334,7 +383,6 @@ static void slider_scroll(Slider *slider, int scroll_value)
 
 /* Button */
 
-
 Button *button_create(
     Layout *lt,
     char *text,
@@ -352,6 +400,7 @@ Button *button_create(
     button->tb->corner_radius = BUTTON_CORNER_RADIUS;
     textbox_set_trunc(button->tb, false);
     textbox_set_border(button->tb, text_color, 1);
+    textbox_set_style(button->tb, BUTTON_CLASSIC);
     textbox_set_text_color(button->tb, text_color);
     textbox_set_background_color(button->tb, background_color);
     textbox_set_align(button->tb, CENTER);
@@ -392,6 +441,9 @@ void symbol_button_draw(SymbolButton *sbutton)
 
 void button_destroy(Button *button)
 {
+    if (button->animation) {
+	project_dequeue_animation(button->animation);
+    }
     textbox_destroy(button->tb);
     free(button);
 }
@@ -401,6 +453,17 @@ void symbol_button_destroy(SymbolButton *sbutton)
     free(sbutton);
 }
 
+extern Project *proj;
+extern void project_active_tl_redraw(Project *proj);
+static void button_end_animation(void *arg1, void *arg2)
+{
+    Button *b = (Button *)arg1;
+    SDL_Color *c = (SDL_Color *)arg2;
+    textbox_set_background_color(b->tb, c);
+    project_active_tl_redraw(proj);
+    b->animation = NULL;
+    
+}
 void button_press_color_change(
     Button *button,
     SDL_Color *temp_color,
@@ -409,7 +472,67 @@ void button_press_color_change(
     void *callback_target)
 {
     textbox_set_background_color(button->tb, temp_color);
-    textbox_schedule_color_change(button->tb, BUTTON_COLOR_CHANGE_STD_DELAY, return_color, false, callback, callback_target);
+    
+    button->animation = project_queue_animation(NULL, button_end_animation, (void *)button, (void *)return_color, BUTTON_COLOR_CHANGE_STD_DELAY);
+    /* textbox_schedule_color_change(button->tb, BUTTON_COLOR_CHANGE_STD_DELAY, return_color, false, callback, callback_target); */
+}
+
+
+TextEntry *textentry_create(
+    Layout *lt,
+    char *value_handle,
+    int buf_len,
+    Font *font,
+    uint8_t text_size,
+    int (*validation)(Text *txt, char input),
+    int (*completion)(Text *txt, void *target),
+    void *completion_target,
+    Window *win) {
+
+
+    TextEntry *te = calloc(1, sizeof(TextEntry));
+    te->tb = textbox_create_from_str(value_handle, lt, font, text_size, win);
+    /* textbox_set_text_color(te->tb, &textentry_text_color); */
+    /* textbox_set_background_color(te->tb, &textentry_background); */
+    /* textbox_set_border(te->tb, &color_global_black, 1); */
+    /* textbox_size_to_fit_v(te->tb, TEXTENTRY_V_PAD); */
+    textbox_set_align(te->tb, CENTER_LEFT);
+    textbox_set_pad(te->tb, 8, 0);
+    /* textbox_set_(te->tb, TEXTENTRY_H_PAD, TEXTENTRY_V_PAD); */
+    /* textbox_size_to_fit(te->tb, TEXTENTRY_H_PAD, TEXTENTRY_V_PAD); */
+    textbox_reset_full(te->tb);
+    te->tb->text->validation = validation;
+    te->tb->text->completion = completion;
+    te->tb->text->max_len = buf_len;
+    te->tb->text->completion_target = completion_target;
+    return te;
+}
+
+void textentry_destroy(TextEntry *te)
+{
+    textbox_destroy(te->tb);
+    free(te);
+}
+
+void textentry_draw(TextEntry *te)
+{
+    textbox_draw(te->tb);    
+}
+
+void textentry_reset(TextEntry *te)
+{
+    textbox_reset_full(te->tb);
+}
+
+extern void (*project_draw)(void);
+void textentry_edit(TextEntry *te)
+{
+    txt_edit(te->tb->text, project_draw);
+}
+
+void textentry_complete_edit(TextEntry *te)
+{
+    txt_stop_editing(te->tb->text);
 }
 
 /* Toggle */
@@ -471,15 +594,17 @@ RadioButton *radio_button_create(
     Layout *lt,
     int text_size,
     SDL_Color *text_color,
-    void *target,
-    ComponentFn action,
+    Endpoint *ep,
+    /* void *target, */
+    /* ComponentFn action, */
     const char **item_names,
     uint8_t num_items
     )
 {
     RadioButton *rb = calloc(1, sizeof(RadioButton));
-    rb->action = action;
-    rb->target = target;
+    rb->ep = ep;
+    /* rb->action = action; */
+    /* rb->target = target; */
     rb->num_items = num_items;
     rb->layout = lt;
     /* Layout manipulation */
@@ -530,6 +655,17 @@ RadioButton *radio_button_create(
     return rb;
 }
 
+void radio_button_reset_from_endpoint(RadioButton *rb)
+{
+    /* if (!rb->target) return; */
+    Value val = endpoint_safe_read(rb->ep, NULL);
+    rb->selected_item = val.int_v;
+    if (rb->selected_item > rb->num_items) {
+	rb->selected_item = 0;
+	fprintf(stderr, "Error: unable to set radio button from target valu");
+    }
+}
+
 
 void radio_button_draw(RadioButton *rb)
 {
@@ -539,9 +675,10 @@ void radio_button_draw(RadioButton *rb)
 	int r = (circle_container->rect.w >> 1) - RADIO_BUTTON_RAD_PAD;
 	int orig_x = circle_container->rect.x + RADIO_BUTTON_RAD_PAD;
 	int orig_y = circle_container->rect.y + RADIO_BUTTON_RAD_PAD;
-	
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(slider_bar_container_bckgrnd));
 	geom_fill_circle(main_win->rend, orig_x, orig_y, r);
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_grey));
+	geom_draw_circle(main_win->rend, orig_x, orig_y, r);
 	if (i==rb->selected_item) {
 	    r -= RADIO_BUTTON_RAD_PAD;
 	    orig_x += RADIO_BUTTON_RAD_PAD;
@@ -558,15 +695,37 @@ void radio_cycle_back(RadioButton *rb)
 	rb->selected_item--;
     else
 	rb->selected_item = rb->num_items - 1;
-    if (rb->action) rb->action((void *)rb, rb->target);
+    
+    endpoint_write(rb->ep, (Value){.int_v = rb->selected_item}, true, true, true, true);
+    /* if (rb->action) rb->action((void *)rb, rb->target); */
 }
 
 void radio_cycle(RadioButton *rb)
 {
     rb->selected_item++;
     rb->selected_item %= rb->num_items;
-    if (rb->action) rb->action((void *)rb, rb->target);
+    
+    endpoint_write(rb->ep, (Value){.int_v = rb->selected_item}, true, true, true, true);
+    /* if (rb->action) rb->action((void *)rb, rb->target); */
 }
+
+bool radio_click(RadioButton *rb, Window *Win)
+{
+    if (SDL_PointInRect(&main_win->mousep, &rb->layout->rect)) {
+	for (uint8_t i = 0; i<rb->num_items; i++) {
+	    if (SDL_PointInRect(&main_win->mousep, &(rb->layout->children[i]->rect))) {
+		rb->selected_item = i;
+		endpoint_write(rb->ep, (Value){.int_v = rb->selected_item}, true, true, true, true);
+		/* if (rb->action) { */
+		/*     rb->action((void *)rb, rb->target); */
+		/* } */
+		return true;
+	    }
+	}
+    }
+    return false;
+}
+
 
 void radio_destroy(RadioButton *rb)
 {
@@ -643,83 +802,20 @@ void canvas_destroy(Canvas *c)
 
 /* Mouse functions */
 
+typedef struct click_segment ClickSegment;
+bool click_track_mouse_motion(ClickSegment *s, Window *win);
 bool draggable_mouse_motion(Draggable *draggable, Window *win)
 {
-
     switch (draggable->type) {
     case DRAG_SLIDER:
 	return slider_mouse_motion((Slider *)draggable->component, win);
 	break;
+    case DRAG_CLICK_SEG_BOUND:
+	return click_track_mouse_motion((ClickSegment *)draggable->component, win);
     }
     return false;
 }
 
-bool slider_mouse_click(Slider *slider, Window *win)
-{
-    if (SDL_PointInRect(&main_win->mousep, &slider->layout->rect) && win->i_state & I_STATE_MOUSE_L) {
-	int dim = slider->orientation == SLIDER_VERTICAL ? main_win->mousep.y : main_win->mousep.x;
-	Value newval = slider_val_from_coord(slider, dim);
-	jdaw_val_set_ptr(slider->value, slider->val_type, newval);
-	if (slider->action)
-		slider->action((void *)slider, slider->target);
-	slider_reset(slider);
-	slider_edit_made(slider);
-	slider->drag_context->component = (void *)slider;
-	slider->drag_context->type = DRAG_SLIDER;
-	return true;
-    }
-    return false;
-}
-
-bool slider_mouse_motion(Slider *slider, Window *win)
-{
-    int dim, mindim, maxdim;
-    switch (slider->orientation) {
-    case SLIDER_VERTICAL:
-	dim = main_win->mousep.y;
-	mindim = slider->layout->rect.y;
-	maxdim = slider->layout->rect.y + slider->layout->rect.h;
-	break;
-    case SLIDER_HORIZONTAL:
-	dim = main_win->mousep.x;
-	mindim = slider->layout->rect.x;
-	maxdim = slider->layout->rect.x + slider->layout->rect.w;
-	break;
-    }
-    /* int dim = slider->orientation == SLIDER_VERTICAL ? main_win->mousep.y : main_win->mousep.x; */
-    /* int mindim = slider->orientation == SLIDER_ */
-    if (!(win->i_state & I_STATE_SHIFT && win->i_state & I_STATE_CMDCTRL)) {
-	if (dim < mindim) dim = mindim;
-	if (dim > maxdim) dim = maxdim;
-    } else {
-	status_set_errstr("SLIDER UNSAFE MODE (release ctrl/shift to return to safety!)");
-    }
-    Value newval = slider_val_from_coord(slider, dim);
-    jdaw_val_set_ptr(slider->value, slider->val_type, newval);
-    if (slider->action)
-	slider->action((void *)slider, slider->target);
-    /* track->vol = newval.float_v; */
-    slider_reset(slider);
-    slider_edit_made(slider);
-    /* proj->vol_changing = true; */
-    return true;
-}
-
-bool radio_click(RadioButton *rb, Window *Win)
-{
-    if (SDL_PointInRect(&main_win->mousep, &rb->layout->rect)) {
-	for (uint8_t i = 0; i<rb->num_items; i++) {
-	    if (SDL_PointInRect(&main_win->mousep, &(rb->layout->children[i]->rect))) {
-		rb->selected_item = i;
-		if (rb->action) {
-		    rb->action((void *)rb, rb->target);
-		}
-		return true;
-	    }
-	}
-    }
-    return false;
-}
 
 bool toggle_click(Toggle *toggle, Window *win)
 {
@@ -757,18 +853,20 @@ bool symbol_button_click(SymbolButton *sbutton, Window *win)
 void draggable_handle_scroll(Draggable *d, int x, int y)
 {
 
-    switch (d->type) {
-    case DRAG_SLIDER: {
-	Slider *s = (Slider *)d->component;
-	if (abs(x) > abs(y) && s->orientation == SLIDER_HORIZONTAL) {
-	    slider_scroll(s, x);
-	} else {
-	    if (abs(x) > abs(y))
-		slider_scroll(s, x);
-	    else
-		slider_scroll(s, -1 * y);
-	}
-    }
-	break;
-    }
+/*     switch (d->type) { */
+/*     case DRAG_SLIDER: { */
+/* 	Slider *s = (Slider *)d->component; */
+/* 	if (abs(x) > abs(y) && s->orientation == SLIDER_HORIZONTAL) { */
+/* 	    slider_scroll(s, x); */
+/* 	} else { */
+/* 	    if (abs(x) > abs(y)) */
+/* 		slider_scroll(s, x); */
+/* 	    else */
+/* 		slider_scroll(s, -1 * y); */
+/* 	} */
+/*     } */
+/* 	break; */
+/*     default: */
+/* 	break; */
+/*     } */
 }

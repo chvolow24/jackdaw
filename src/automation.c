@@ -1,26 +1,10 @@
 /*****************************************************************************************************************
-  Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation | built on SDL (https://libsdl.org/)
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
 ******************************************************************************************************************
 
-  Copyright (C) 2023 Charlie Volow
+  Copyright (C) 2023-2025 Charlie Volow
   
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files (the "Software"), to deal
-  in the Software without restriction, including without limitation the rights
-  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  copies of the Software, and to permit persons to whom the Software is
-  furnished to do so, subject to the following conditions:
-  
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
-  
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-  SOFTWARE.
+  Jackdaw is licensed under the GNU General Public License.
 
 *****************************************************************************************************************/
 
@@ -35,6 +19,7 @@
 
 #include "automation.h"
 #include "color.h"
+#include "endpoint.h"
 #include "input.h"
 #include "layout.h"
 #include "layout_xml.h"
@@ -74,8 +59,12 @@ extern SDL_Color color_global_light_grey;
 extern SDL_Color color_global_dropdown_green;
 extern SDL_Color color_global_quickref_button_blue;
 /* SDL_Color automation_bckgrnd = {0, 25, 26, 255}; */
-SDL_Color automation_console_bckgrnd = {110, 110, 110, 255};
-SDL_Color automation_bckgrnd = {90, 100, 120, 255};
+/* SDL_Color automation_console_bckgrnd = {110, 110, 110, 255}; */
+/* SDL_Color automation_console_bckgrnd = {90, 100, 120, 255}; */
+
+SDL_Color automation_console_bckgrnd = {90, 100, 110, 255};
+SDL_Color automation_bckgrnd = {70, 80, 90, 255};
+
 
 const char *AUTOMATION_LABELS[] = {
     "Volume",
@@ -260,6 +249,7 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	a->target_val = &track->vol;
 	base_kf_val.float_v = track->vol;
 	automation_insert_keyframe_at(a, 0, base_kf_val);
+	endpoint_bind_automation(&track->vol_ep, a);
 	break;
     case AUTO_PAN:
 	a->val_type = JDAW_FLOAT;
@@ -269,47 +259,62 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	a->target_val = &track->pan;
 	base_kf_val.float_v = track->pan;
 	automation_insert_keyframe_at(a, 0, base_kf_val);
+	endpoint_bind_automation(&track->pan_ep, a);
 	/* automation_insert_keyframe_at(a, NULL, base_kf_val, 0); */
 	break;
     case AUTO_FIR_FILTER_CUTOFF:
-	if (!track->fir_filter) {
+
+	/* 	if (!track->fir_filter.frequency_response) { */
+	/*     Project *proj_loc = track->tl->proj; */
+	/*     int ir_len = proj_loc->fourier_len_sframes/4; */
+	/*     filter_init(&track->fir_filter, LOWPASS, ir_len, proj_loc->fourier_len_sframes * 2); */
+	/*     track->fir_filter.track = track; */
+	/*     filter_set_params_hz(&track->fir_filter, LOWPASS, 1000, 1000); */
+	/*     track->fir_filter_active = false; */
+	/* } */
+
+	if (!track->fir_filter.initialized) {
 	    track_add_default_filter(track);
 	}
 	a->val_type = JDAW_DOUBLE;
-	a->target_val = &track->fir_filter->cutoff_freq_unscaled;
+	a->target_val = &track->fir_filter.cutoff_freq_unscaled;
 	a->min.double_v = 0.0;
 	a->max.double_v = 1.0;
 	a->range.double_v = 1.0;
 	base_kf_val.double_v = 1.0;
 	automation_insert_keyframe_at(a, 0, base_kf_val);
+	endpoint_bind_automation(&track->fir_filter.cutoff_ep, a);
 	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
 	break;
     case AUTO_FIR_FILTER_BANDWIDTH:
-	if (!track->fir_filter) {
+	if (!track->fir_filter.frequency_response) {
 	    track_add_default_filter(track);
 	}
 	a->val_type = JDAW_DOUBLE;
-	a->target_val = &track->fir_filter->bandwidth_unscaled;
+	a->target_val = &track->fir_filter.bandwidth_unscaled;
 	a->min.double_v = 0.0;
 	a->max.double_v = 1.0;
 	a->range.double_v = 1.0;
 	base_kf_val.double_v = 0.5;
 	automation_insert_keyframe_at(a, 0, base_kf_val);
+	endpoint_bind_automation(&track->fir_filter.bandwidth_ep, a);
 	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
 	break;
     case AUTO_DEL_TIME:
-	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line, track->tl->proj->sample_rate);
-	a->val_type = JDAW_INT32;
-	a->min.int32_v = 10;
-	a->max.int32_v = track->tl->proj->sample_rate * DELAY_LINE_MAX_LEN_S;
-	a->range.int32_v = a->max.int32_v - 10;
-	a->target_val = &track->delay_line.len;
-	base_kf_val.int32_v = track->tl->proj->sample_rate / 2;
+	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line, track, track->tl->proj->sample_rate);
+	a->val_type = JDAW_INT16;
+	a->min.int16_v = 1;
+	a->max.int16_v = DELAY_LINE_MAX_LEN_S * 1000;//track->tl->proj->sample_rate * DELAY_LINE_MAX_LEN_S;
+	a->range.int16_v = a->max.int16_v - 1;
+	a->target_val = &track->delay_line.len_msec;
+	base_kf_val.int16_v = 100;
 	automation_insert_keyframe_at(a, 0, base_kf_val);
+	endpoint_bind_automation(&track->delay_line.len_ep, a);
 	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
 
 	break;
     case AUTO_DEL_AMP:
+	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line, track, track->tl->proj->sample_rate);
 	a->val_type = JDAW_DOUBLE;
 	a->target_val = &track->delay_line.amp;
 	a->min.double_v = 0.0;
@@ -317,6 +322,7 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	a->range.double_v = 1.0;
 	base_kf_val.double_v = 0.5;
 	automation_insert_keyframe_at(a, 0, base_kf_val);
+	endpoint_bind_automation(&track->delay_line.amp_ep, a);
 	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
 	break;
     case AUTO_PLAY_SPEED:
@@ -327,6 +333,7 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	a->target_val = &track->tl->proj->play_speed;
 	base_kf_val.float_v = 1.0f;
 	automation_insert_keyframe_at(a, 0, base_kf_val);
+	endpoint_bind_automation(&proj->play_speed_ep, a);
 	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
 	break;
     default:
@@ -359,7 +366,7 @@ static int add_auto_form(void *mod_v, void *nullarg)
 	switch ((el = modal->els[i])->type) {
 	case MODAL_EL_RADIO:
 	    t = ((RadioButton *)el->obj)->selected_item;
-	    track = ((RadioButton *)el->obj)->target;
+	    track = ((RadioButton *)el->obj)->ep->xarg1;
 	    break;
 	default:
 	    break;
@@ -385,11 +392,27 @@ void track_add_new_automation(Track *track)
     Modal *m = modal_create(lt);
     /* Automation *a = track_add_automation_internal(track, AUTO_VOL); */
     modal_add_header(m, "Add automation to track", &color_global_light_grey, 4);
+
+    static int automation_selection = 0;
+    static Endpoint automation_selection_ep = {0};
+    if (automation_selection_ep.local_id == NULL) {
+	endpoint_init(
+	    &automation_selection_ep,
+	    &automation_selection,
+	    JDAW_INT,
+	    "",
+	    "",
+	    JDAW_THREAD_MAIN,
+	    NULL, NULL, NULL,
+	    track, NULL,NULL,NULL);
+    }
+    automation_selection_ep.xarg1 = (void *)track;
     modal_add_radio(
 	m,
 	&color_global_light_grey,
-	(void *)track,
-	NULL,
+	/* (void *)track, */
+	&automation_selection_ep,
+	/* NULL, */
 	AUTOMATION_LABELS,
 	sizeof(AUTOMATION_LABELS) / sizeof(const char *));
     modal_add_button(m, "Add", add_auto_form);
@@ -399,35 +422,82 @@ void track_add_new_automation(Track *track)
 }
 
 
-static void keyframe_labelmaker(char *dst, size_t dstsize, void *target, ValType t)
-{
-    Automation *a = (Automation *)target;
-    Timeline *tl = a->track->tl;
-    Keyframe *k = tl->dragging_keyframe;
-    if (!k) return;
-    char valstr[dstsize];
-    /* char tcstr[dstsize]; */
-    switch(a->type) {
-    case AUTO_VOL:
-    case AUTO_DEL_AMP:
-    case AUTO_PLAY_SPEED:
-	jdaw_val_set_str(valstr, dstsize, k->value, a->val_type, 2);
-    break;
-    case AUTO_PAN: 
-        label_pan(valstr, dstsize, k->value.float_v);
-	break;
-    case AUTO_FIR_FILTER_CUTOFF:
-    case AUTO_FIR_FILTER_BANDWIDTH:
-	label_freq_raw_to_hz(valstr, dstsize, k->value.double_v);
-	break;
-    case AUTO_DEL_TIME:
-	label_time_samples_to_msec(valstr, dstsize, k->value.int32_v, proj->sample_rate);
-	break;
-    }
-    /* timecode_str_at(tcstr, dstsize, k->pos); */
-    snprintf(dst, dstsize, "%s", valstr);
+/* TODO: replace keyframe labels with standard labelfns */
+/* static float amp_to_db(float amp) */
+/* { */
+/*     return (20.0f * log10(amp)); */
+/* } */
 
-}
+/* static void a_label_freq_raw_to_hz(char *dst, size_t dstsize, double raw) */
+/* { */
+/*     double hz = dsp_scale_freq_to_hz(raw); */
+/*     snprintf(dst, dstsize, "%.0f Hz", hz); */
+/*     snprintf(dst, dstsize, "hi"); */
+/*     dst[dstsize - 1] = '\0'; */
+/* } */
+/* static void a_label_time_samples_to_msec(char *dst, size_t dstsize, int32_t samples, int sample_rate) */
+/* { */
+    
+/*     int msec = (double)samples * 1000 / sample_rate; */
+/*     snprintf(dst, dstsize, "%d ms", msec); */
+/* } */
+
+
+/* static void a_label_amp_to_dbstr(char *dst, size_t dstsize, float amp) */
+/* { */
+/*     int max_float_chars = dstsize - 2; */
+/*     if (max_float_chars < 1) { */
+/* 	fprintf(stderr, "Error: no room for dbstr\n"); */
+/* 	dst[0] = '\0'; */
+/* 	return; */
+/*     } */
+/*     snprintf(dst, max_float_chars, "%.2f", amp_to_db(amp)); */
+/*     strcat(dst, " dB"); */
+/* } */
+
+/* static void a_label_pan(char *dst, size_t dstsize, float pan) */
+/* { */
+/*     if (pan < 0.5) { */
+/* 	snprintf(dst, dstsize, "%.1f%% L", (0.5 - pan) * 200); */
+/*     } else if (pan > 0.5) { */
+/* 	snprintf(dst, dstsize, "%.1f%% R", (pan - 0.5) * 200); */
+/*     } else { */
+/* 	snprintf(dst, dstsize, "C"); */
+/*     } */
+/* } */
+
+
+
+/* /\* static void keyframe_labelmaker(char *dst, size_t dstsize, void *target, ValType t) *\/ */
+/* static void keyframe_labelmaker(char *dst, size_t dstsize, void *target, ValType t) */
+/* { */
+/*     Automation *a = (Automation *)target; */
+/*     Timeline *tl = a->track->tl; */
+/*     Keyframe *k = tl->dragging_keyframe; */
+/*     if (!k) return; */
+/*     char valstr[dstsize]; */
+/*     /\* char tcstr[dstsize]; *\/ */
+/*     switch(a->type) { */
+/*     case AUTO_VOL: */
+/*     case AUTO_DEL_AMP: */
+/*     case AUTO_PLAY_SPEED: */
+/* 	jdaw_val_set_str(valstr, dstsize, k->value, a->val_type, 2); */
+/*     break; */
+/*     case AUTO_PAN:  */
+/*         a_label_pan(valstr, dstsize, k->value.float_v); */
+/* 	break; */
+/*     case AUTO_FIR_FILTER_CUTOFF: */
+/*     case AUTO_FIR_FILTER_BANDWIDTH: */
+/* 	a_label_freq_raw_to_hz(valstr, dstsize, k->value.double_v); */
+/* 	break; */
+/*     case AUTO_DEL_TIME: */
+/* 	a_label_time_samples_to_msec(valstr, dstsize, k->value.int32_v, proj->sample_rate); */
+/* 	break; */
+/*     } */
+/*     /\* timecode_str_at(tcstr, dstsize, k->pos); *\/ */
+/*     snprintf(dst, dstsize, "%s", valstr); */
+
+/* } */
 
 bool automation_toggle_read(Automation *a)
 {
@@ -488,6 +558,16 @@ static int button_write_action(void *self_v, void *xarg)
     return 0;
 }
 
+LabelStrFn auto_labelfns[] = {
+    label_amp_to_dbstr, /* Vol */
+    label_pan, /* Pan */
+    label_freq_raw_to_hz, /* FIR Filter Cutoff */
+    label_freq_raw_to_hz, /* FIR Filter Bandwidth */
+    label_msec,
+    label_amp_to_dbstr,
+    NULL
+};
+
 void automation_show(Automation *a)
 {
     a->shown = true;
@@ -542,6 +622,7 @@ void automation_show(Automation *a)
 	    );
         textbox_set_border(button->tb, &color_global_black, 1);
 	button->tb->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
+	textbox_set_style(button->tb, BUTTON_DARK);
 	a->read_button = button;
 	
 	tb_lt = layout_get_child_by_name_recursive(lt, "write");
@@ -558,8 +639,9 @@ void automation_show(Automation *a)
 	    );
 	textbox_set_border(button->tb, &color_global_black, 1);
 	button->tb->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
+	textbox_set_style(button->tb, BUTTON_DARK);
 	a->write_button = button;
-	a->keyframe_label = label_create(0, a->layout, keyframe_labelmaker, a, 0, main_win);
+	a->keyframe_label = label_create(0, a->layout, auto_labelfns[a->type], a, a->val_type, main_win);
     } else {
 	a->layout->h.value = AUTOMATION_LT_H;
 	a->layout->y.value = AUTOMATION_LT_Y;
@@ -822,7 +904,7 @@ Keyframe *automation_insert_keyframe_at(
 static void automation_reset_cache(Automation *a, int32_t pos)
 {
     if (!a->current) {
-	if (a->keyframes[0].pos < pos) {
+	if (a->keyframes[0].pos <= pos) {
 	    a->current = a->keyframes;
 	} else {
 	    goto describe;
@@ -850,44 +932,15 @@ describe:
 
 static Keyframe *automation_check_get_cache(Automation *a, int32_t pos)
 {
-    /* automation_reset_cache(a, pos); */
-    /* return a->current; */
-    /* if (a->keyframes[a->current].pos > pos) { */
-    /* 	/\* fprintf(stderr, "Cache pos greater than current, so must reset\n"); *\/ */
-    /* 	automation_reset_cache(a, pos); */
-    /* 	return a->current; */
-    /* } */
-    /* if (a->current == a->num_keyframes - 1) { */
-    /* 	/\* fprintf(stderr, "We're at the end\n"); *\/ */
-    /* 	automation_reset_cache(a, pos); */
-    /* 	return a->current; */
-    /* } */
-    /* if (a->keyframes[a->current + 1].pos > pos) { */
-    /* 	/\* fprintf(stderr, "We're OK!\n"); *\/ */
-    /* 	return a->current; */
-    /* } */
+    pthread_mutex_lock(&a->lock);
     automation_reset_cache(a, pos);
-    /* return a->current; */
+    pthread_mutex_unlock(&a->lock);
     return a->current;
-    
-    /* bool cache_valid = false; */
-    /* int32_t current_pos = a->keyframes[a->current].pos; */
-    /* if (current_pos <= pos) { */
-    /* 	if (a->current + 1 < a->num_keyframes && a->keyframes[a->current + 1].pos > pos) { */
-    /* 	    cache_valid = true; */
-    /* 	} */
-	
-    /* } */
-    /* if (!cache_valid) { */
-    /* 	automation_reset_cache(a, pos); */
-    /* } */
 }
 
 static Value automation_value_at(Automation *a, int32_t pos)
 {
-    pthread_mutex_lock(&a->lock);
     Keyframe *current = automation_check_get_cache(a, pos);
-    pthread_mutex_unlock(&a->lock);
     if (!current) return a->keyframes[0].value;
     int32_t pos_rel = pos - current->pos;
     double scalar = (double)pos_rel / current->m_fwd.dx;
@@ -896,30 +949,74 @@ static Value automation_value_at(Automation *a, int32_t pos)
 }
 
 
-/* void keyframe_remove_at(Automation *a, int16_t pos) */
-/* void keyframe_remove(Keyframe *k) */
-/* { */
-/*     /\* if (k == k->automation->first) return; *\/ */
-/*     /\* if (k->prev) { *\/ */
-/*     /\*     k->prev->next = k->next; *\/ */
-/*     /\* 	keyframe_recalculate_m(k->prev, k->automation->val_type); *\/ */
-/*     /\* } *\/ */
-/*     /\* if (k->next) *\/ */
-/*     /\* 	k->next->prev = k->prev; *\/ */
-/*     /\* /\\* if (k == k->automation->first) *\\/ *\/ */
-/*     /\* /\\* 	return; *\\/ *\/ */
-/*     /\* /\\* 	/\\\* k->automation->first = k->next; *\\\/ *\\/ *\/ */
-/*     /\* if (k == k->automation->last)  *\/ */
-/*     /\* 	k->automation->last = k->prev; *\/ */
+void automation_get_range(Automation *a, void *dst, int dst_len, int32_t start_pos, float step)
+{
+    size_t arr_incr = jdaw_val_type_size(a->val_type);
+    void *arr_ptr = dst;
 
-/*     /\* keyframe_destroy(k); *\/ */
-/* } */
+    bool rev = step < 0.0;
+    int32_t end_pos = start_pos + (int32_t)(dst_len * step);
+    double pos = (double)start_pos;
+    Keyframe *current = automation_check_get_cache(a, start_pos);
+    int32_t next_kf_pos = rev ? end_pos - 1 : end_pos + 1;
+    
+    if (!current) { /* no need to worry about reverse case; if condition will never be met*/
+	next_kf_pos = a->keyframes[0].pos;
+	while (arr_ptr < dst + dst_len * arr_incr) {
+	    jdaw_val_set_ptr(arr_ptr, a->val_type, a->keyframes[0].value);
+	    arr_ptr += arr_incr;
+	    pos += step;
+	    if (pos >= next_kf_pos) {
+		current = a->keyframes;
+		next_kf_pos = end_pos + 1;
+		goto do_remainder_of_array;
+		/* break; */
+	    }
+	}
+	return; /* Completed array before first keyframe */
+	
+    }
 
+do_remainder_of_array:
+    if (rev) {
+	if (current > a->keyframes) {
+	    next_kf_pos = (current - 1)->pos;
+	}
+    } else {
+	if (current - a->keyframes < a->num_keyframes - 1) {
+	    next_kf_pos = (current + 1)->pos;
+	}
+    }
+
+    while (arr_ptr < dst + dst_len * arr_incr) {
+	int32_t pos_rel = pos - current->pos;
+	double scalar = (double)pos_rel / current->m_fwd.dx;
+	Value val = jdaw_val_add(current->value, jdaw_val_scale(current->m_fwd.dy, scalar, a->val_type), a->val_type);
+	jdaw_val_set_ptr(arr_ptr, a->val_type, val);
+	arr_ptr += arr_incr;
+	pos += step;
+	if ((!rev && pos >= next_kf_pos) || (rev && pos <= next_kf_pos)) {
+	    current = rev ? current - 1 : current + 1;
+	    if (rev) {
+		if (current > a->keyframes) {
+		    next_kf_pos = (current - 1)->pos;
+		} else {
+		    next_kf_pos = end_pos - 1;
+		}
+	    } else {
+		if (current - a->keyframes < a->num_keyframes - 1) {
+		    next_kf_pos = (current + 1)->pos;
+		} else {
+		    next_kf_pos = end_pos + 1;
+		}
+	    }
+	}
+    }
+    
+}
 
 static void keyframe_remove(Keyframe *k)
 {
-    /* fprintf(stderr, "REMOVE %p\n", k); */
-    /* fprintf(stderr, "REMOVE %d\n", k->pos); */
     if (k == k->automation->keyframes) return; /* Don't remove last keyframe */
     Automation *a = k->automation;
     a->track->tl->needs_redraw= true;
@@ -1207,10 +1304,10 @@ set_ghost:
     return NULL;
 }
 
-void automation_do_write(Automation *a, int32_t pos, int32_t end_pos, float step)
+void automation_do_write(Automation *a, Value v, int32_t pos, int32_t end_pos, float step)
 {
-    Value v;
-    jdaw_val_set(&v, a->val_type, a->target_val);
+    /* Value v; */
+    /* jdaw_val_set(&v, a->val_type, a->target_val); */
     automation_insert_maybe(a, v, pos, end_pos, step);
 }
 
@@ -1273,14 +1370,17 @@ Value inline automation_get_value(Automation *a, int32_t pos, float direction)
     return automation_value_at(a, pos);
 }
 
+void automation_get_value_range(Automation *a, int32_t start_pos, void *dst_arr, int num_items, float step)
+{
+    
+}
+
 void automation_draw(Automation *a)
 {
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(automation_bckgrnd));
     SDL_RenderFillRect(main_win->rend, a->bckgrnd_rect);
-    
+        
     SDL_RenderSetClipRect(main_win->rend, a->bckgrnd_rect);
-
-
     /* Draw KCLIPS */
 
     /* static SDL_Color homebckgrnd = {200, 200, 255, 50}; */
@@ -1338,7 +1438,7 @@ void automation_draw(Automation *a)
 	/* k = k->next; */
     }
     SDL_RenderSetClipRect(main_win->rend, NULL);
-    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(automation_bckgrnd));
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(automation_console_bckgrnd));
     SDL_RenderFillRect(main_win->rend, a->console_rect);
 
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(a->track->color));
@@ -1348,12 +1448,23 @@ void automation_draw(Automation *a)
     button_draw(a->read_button);
     button_draw(a->write_button);
     label_draw(a->keyframe_label);
+
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_grey));
+    SDL_Rect ltrect = a->layout->rect;
+    ltrect.x = a->console_rect->x;
+    SDL_RenderDrawRect(main_win->rend, &ltrect);
+    ltrect.x += 1;
+    ltrect.y += 1;
+    ltrect.h -= 2;
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
+    SDL_RenderDrawRect(main_win->rend, &ltrect);
+		     
 }
 
 static void automation_editing(Automation *a, Keyframe *k, int x, int y)
 {
     label_move(a->keyframe_label, x - 50, y - 50);
-    label_reset(a->keyframe_label);   
+    label_reset(a->keyframe_label, k->value);   
 }
 
 
@@ -1868,7 +1979,8 @@ void user_tl_pause(void *nullarg);
 /*     keyframe_recalculate_m(a, kcr->last - a->keyframes); */
 /* } */
 
-void automation_record(Automation *a)
+
+bool automation_record(Automation *a)
 {
     /* static int32_t start_pos = 0; */
     /* static Keyframe *cache; */
@@ -1926,6 +2038,7 @@ void automation_record(Automation *a)
 	/*     0, 0, false, false); */
 	user_tl_pause(NULL);
     }
+    return write;
 }
 
 void automation_clear_cache(Automation *a)
@@ -2024,6 +2137,75 @@ bool automation_handle_delete(Automation *a)
     return false;
 }
 
+int track_select_next_automation(Track *t)
+{
+    if (t->num_automations == 0) return -1;
+    while (t->selected_automation < t->num_automations) {
+	t->selected_automation++;
+	if (t->selected_automation == t->num_automations) {
+	    t->selected_automation -= 1;
+	    break;
+	} else if (t->automations[t->selected_automation]->shown) {
+	    break;
+	} else if (t->selected_automation == t->num_automations - 1) {
+	    t->selected_automation = -1;
+	    break;
+	}
+    }
+    return t->selected_automation;
+}
+
+int track_select_prev_automation(Track *t)
+{
+    if (t->num_automations == 0) return -1;
+    while (t->selected_automation > -1) {
+	t->selected_automation--;
+	if (t->selected_automation == -1) {
+	    break;
+	} else if (t->automations[t->selected_automation]->shown) {
+	    break;
+	} else if (t->selected_automation == 0) {
+	    t->selected_automation = -1;
+	    break;
+	}
+    }
+    return t->selected_automation;
+}
+
+int track_select_last_shown_automation(Track *t)
+{
+    if (t->num_automations == 0) return -1;
+    int i = t->num_automations - 1;
+    for (; i>=0; i--) {
+	if (t->automations[i]->shown) {
+	    break;
+	}
+    }
+    if (i==0 && !t->automations[i]->shown) {
+	t->selected_automation = -1;
+    } else {
+	t->selected_automation = i;
+    }
+    return t->selected_automation;
+}
+
+int track_select_first_shown_automation(Track *t)
+{
+    if (t->num_automations == 0) return -1;
+    int i=0;
+    for (; i<t->num_automations-1; i++) {
+	if (t->automations[i]->shown) {
+	    break;
+	}
+    }
+    if (i==t->num_automations-1 && !t->automations[i]->shown) {
+	t->selected_automation = -1;
+    } else {
+	t->selected_automation = i;
+    }
+    return t->selected_automation;
+}
+
 TEST_FN_DEF(track_automation_order,
 	{
 	    bool a_index_fault = false;
@@ -2111,3 +2293,10 @@ TEST_FN_DEF(layout_num_children, {
 	}
 	return ret;
     }, Layout *lt);
+
+
+
+void automation_endpoint_write(Endpoint *ep, Value val, int32_t play_pos)
+{
+    /* automation_do_write(ep->automation, val, play_pos, play_pos + 10000, ep->automation->track->tl->proj->play_speed); */
+}

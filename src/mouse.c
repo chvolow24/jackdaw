@@ -1,26 +1,10 @@
 /*****************************************************************************************************************
-  Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation | built on SDL (https://libsdl.org/)
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
 ******************************************************************************************************************
 
-  Copyright (C) 2023 Charlie Volow
+  Copyright (C) 2023-2025 Charlie Volow
   
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files (the "Software"), to deal
-  in the Software without restriction, including without limitation the rights
-  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  copies of the Software, and to permit persons to whom the Software is
-  furnished to do so, subject to the following conditions:
-  
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
-  
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-  SOFTWARE.
+  Jackdaw is licensed under the GNU General Public License.
 
 *****************************************************************************************************************/
 
@@ -86,7 +70,7 @@ static bool mouse_triage_click_track(uint8_t button, Track *track)
 	    track_mute(track);
 	    return true;
 	}
-	if (SDL_PointInRect(&main_win->mousep, &track->tb_name->layout->rect)) {
+	if (SDL_PointInRect(&main_win->mousep, &track->tb_name->tb->layout->rect)) {
 	    track_rename(track);
 	    return true;
 	}
@@ -149,6 +133,10 @@ static void mouse_triage_click_timeline(uint8_t button)
 		return;
 	    }
 	}
+    }
+    for (uint8_t i=0; i<tl->num_click_tracks; i++) {
+	ClickTrack *tt = tl->click_tracks[i];
+	if (click_track_triage_click(button, tt)) return;
     }
     if (SDL_PointInRect(&main_win->mousep, proj->audio_rect)) {
 	mouse_triage_click_audiorect(tl, button);
@@ -284,9 +272,9 @@ bool mouse_triage_click_page()
 bool mouse_triage_click_tabview()
 {
     TabView *tv;
-    if ((tv = main_win->active_tab_view)) {
-	if (!tab_view_mouse_click(tv)) {
-	    tab_view_close(tv);
+    if ((tv = main_win->active_tabview)) {
+	if (!tabview_mouse_click(tv)) {
+	    tabview_close(tv);
 	} else {
 	    return true;
 	}
@@ -300,8 +288,8 @@ bool mouse_triage_motion_tabview()
 	draggable_mouse_motion(&proj->dragged_component, main_win);
 	return true;
     }
-    if ((tv = main_win->active_tab_view)) {
-	return tab_view_mouse_motion(tv);
+    if ((tv = main_win->active_tabview)) {
+	return tabview_mouse_motion(tv);
     }
     return false;
 }

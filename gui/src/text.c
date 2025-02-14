@@ -1,26 +1,10 @@
 /*****************************************************************************************************************
-  Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation | built on SDL (https://libsdl.org/)
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
 ******************************************************************************************************************
 
-  Copyright (C) 2023 Charlie Volow
+  Copyright (C) 2023-2025 Charlie Volow
 3  
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files (the "Software"), to deal
-  in the Software without restriction, including without limitation the rights
-  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  copies of the Software, and to permit persons to whom the Software is
-  furnished to do so, subject to the following conditions:
-  
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
-  
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-  SOFTWARE.
+  Jackdaw is licensed under the GNU General Public License.
 
 *****************************************************************************************************************/
 
@@ -355,27 +339,29 @@ void txt_edit(Text *txt, void (*draw_fn) (void))
 
 void txt_stop_editing(Text *txt)
 {
-    if (txt->completion && txt->completion(txt) != 0) {
-	return;
-    }
+    if (!main_win->txt_editing) return;
+    main_win->txt_editing = NULL; /* Set this FIRST to avoid infinite loop in completion */
     txt->show_cursor = false;
     /* txt->truncate = save_truncate; */
     txt_set_value(txt, txt->display_value);
-    main_win->txt_editing = NULL;
+    /* main_win->txt_editing = NULL; */
     SDL_StopTextInput();
     window_pop_mode(main_win);
+    if (txt->completion && txt->completion(txt, txt->completion_target) != 0) {
+	return;
+    }
 }
 
-
+static int txt_check_len(Text *txt, int len);
 void txt_input_event_handler(Text *txt, SDL_Event *e)
 {
     char input = e->text.text[0];
-    if (txt->validation && txt->validation(txt, input) != 0) {
-	/* fprintf(stdout, "\a\n"); */
-    } else {
-	handle_char(txt, input);
-	txt_reset_drawable(txt);
-    }
+    #ifndef LT_DEV_MODE
+    if (txt_check_len(txt, txt->max_len) != 0) return;
+    if (txt->validation && txt->validation(txt, input) != 0) return;
+    #endif
+    handle_char(txt, input);
+    txt_reset_drawable(txt);
 }
 
 void txt_edit_backspace(Text *txt)
@@ -893,17 +879,37 @@ void txt_area_draw(TextArea *txtarea)
 }
 
 
+
 #ifndef LAYOUT_BUILD
-int txt_name_validation(Text *txt, char input)
+
+static int txt_check_len(Text *txt, int len)
 {
-    if (strlen(txt->display_value) >= MAX_NAMELENGTH - 1) {
+    if (strlen(txt->display_value) - (txt->cursor_end_pos - txt->cursor_start_pos) >= len - 1) {
 	char buf[255];
-	snprintf(buf, 255, "Name cannot exceed %d characters", MAX_NAMELENGTH - 1);
+	snprintf(buf, 255, "Field cannot exceed %d characters", len - 1);
 	status_set_errstr(buf);
 	return 1;
-    } else {
-	return 0;
     }
+    return 0;
+}
+
+int txt_name_validation(Text *txt, char input)
+{
+    return txt_check_len(txt, MAX_NAMELENGTH);
+}
+
+int txt_integer_validation(Text *txt, char input)
+{
+    /* if (strlen(txt->display_value) - (txt->cursor_end_pos - txt->cursor_start_pos) >= txt->max_len - 1) { */
+    /* 	char buf[255]; */
+    /* 	snprintf(buf, 255, "Field cannot exceed %d characters", txt->max_len - 1); */
+    /* 	status_set_errstr(buf); */
+    /* 	return 1; */
+    if (input < '0' || input > '9') {
+	status_set_errstr("Only integer values allowed");
+	return 1;
+    }
+    return 0;
 }
 
 #endif

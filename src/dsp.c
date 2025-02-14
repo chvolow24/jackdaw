@@ -1,26 +1,10 @@
 /*****************************************************************************************************************
-  Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation | built on SDL (https://libsdl.org/)
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
 ******************************************************************************************************************
 
-  Copyright (C) 2023 Charlie Volow
+  Copyright (C) 2023-2025 Charlie Volow
   
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files (the "Software"), to deal
-  in the Software without restriction, including without limitation the rights
-  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  copies of the Software, and to permit persons to whom the Software is
-  furnished to do so, subject to the following conditions:
-  
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
-  
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-  SOFTWARE.
+  Jackdaw is licensed under the GNU General Public License.
 
 *****************************************************************************************************************/
 
@@ -34,6 +18,7 @@
 
 #include <complex.h>
 #include <stdint.h>
+#include "endpoint_callbacks.h"
 #include "project.h"
 #include "pthread.h"
 #include "dsp.h"
@@ -262,41 +247,111 @@ static double bandcut_IR(int x, int offset, double center_freq, double bandwidth
 static void FIR_filter_alloc_buffers(FIRFilter *filter)
 {
     pthread_mutex_lock(&filter->lock);
+
+    int max_irlen = filter->track->tl->proj->fourier_len_sframes;
+    if (!filter->impulse_response)
+	filter->impulse_response = calloc(1, sizeof(double) * max_irlen);
+
+    if (!filter->frequency_response)
+	filter->frequency_response = calloc(1, sizeof(double complex) * filter->frequency_response_len);
+
+    if (!filter->frequency_response_mag)
+	filter->frequency_response_mag = calloc(1, sizeof(double) * filter->frequency_response_len);
+
+    /* filter->overlap_len =  = 1; */
+    if (!filter->overlap_buffer_L)
+	filter->overlap_buffer_L = calloc(1, sizeof(double) * max_irlen - 1);
+    if (!filter->overlap_buffer_R)
+	filter->overlap_buffer_R = calloc(1, sizeof(double) * max_irlen - 1);
+
+	
     /* SDL_LockMutex(filter->lock); */
-    if (filter->impulse_response) free(filter->impulse_response);
-    filter->impulse_response = calloc(1, sizeof(double) * filter->impulse_response_len);
-    if (filter->frequency_response) free(filter->frequency_response);
-    filter->frequency_response = calloc(1, sizeof(double complex) * filter->frequency_response_len);
-    if (filter->frequency_response_mag) free(filter->frequency_response_mag);
-    filter->frequency_response_mag = calloc(1, sizeof(double) * filter->frequency_response_len);
-    filter->overlap_len = filter->impulse_response_len - 1;
-    if (filter->overlap_buffer_L) free(filter->overlap_buffer_L);
-    filter->overlap_buffer_L = calloc(1, sizeof(double) * filter->overlap_len);
-    if (filter->overlap_buffer_R) free(filter->overlap_buffer_R);
-    filter->overlap_buffer_R = calloc(1, sizeof(double) * filter->overlap_len);
+    /* if (filter->impulse_response) free(filter->impulse_response); */
+    /* filter->impulse_response = calloc(1, sizeof(double) * filter->impulse_response_len); */
+    /* if (filter->frequency_response) free(filter->frequency_response); */
+    /* filter->frequency_response = calloc(1, sizeof(double complex) * filter->frequency_response_len); */
+    /* if (filter->frequency_response_mag) free(filter->frequency_response_mag); */
+    /* filter->frequency_response_mag = calloc(1, sizeof(double) * filter->frequency_response_len); */
+    /* filter->overlap_len = filter->impulse_response_len - 1; */
+    /* if (filter->overlap_buffer_L) free(filter->overlap_buffer_L); */
+    /* filter->overlap_buffer_L = calloc(1, sizeof(double) * filter->overlap_len); */
+    /* if (filter->overlap_buffer_R) free(filter->overlap_buffer_R); */
+    /* filter->overlap_buffer_R = calloc(1, sizeof(double) * filter->overlap_len); */
     pthread_mutex_unlock(&filter->lock);
     /* pthread_mutex_unlock(&filter->lock); */
 
 }
-FIRFilter *filter_create(FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len) 
+void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len) 
 {
-    FIRFilter *filter = calloc(1, sizeof(FIRFilter));
-    if (!filter) {
-        fprintf(stderr, "Error: unable to allocate space for FIR Filter\n");
-        return NULL;
-    }
+    pthread_mutex_init(&filter->lock, NULL);
     filter->type = type;
+    filter->track = track;
+    filter->impulse_response_len_internal = impulse_response_len;
     filter->impulse_response_len = impulse_response_len;
     filter->frequency_response_len = frequency_response_len;
     FIR_filter_alloc_buffers(filter);
-    pthread_mutex_init(&filter->lock, NULL);
-    /* filter->lock = SDL_CreateMutex(); */
-    return filter;
+
+    filter->cutoff_freq = 0.02;
+    filter->bandwidth = 0.1;
+    filter_set_impulse_response_len(filter, impulse_response_len);
+    /* filter_set_params(filter, LOWPASS, 0.02, 0.1); */
+    
+    endpoint_init(
+	&filter->cutoff_ep,
+	&filter->cutoff_freq_unscaled,
+	JDAW_DOUBLE,
+	"filter_cutoff_freq",
+	"undo/redo adj filter cutoff",
+	JDAW_THREAD_DSP,
+	filter_cutoff_gui_cb, NULL, filter_cutoff_dsp_cb,
+        filter, NULL, NULL, NULL);
+    endpoint_set_allowed_range(
+	&filter->cutoff_ep,
+	(Value){.double_v = 0.0},
+	(Value){.double_v = 1.0});
+    api_endpoint_register(&filter->cutoff_ep, &filter->track->api_node);
+
+    endpoint_init(
+	&filter->bandwidth_ep,
+	&filter->bandwidth_unscaled,
+	JDAW_DOUBLE,
+	"filter_bandwidth",
+	"undo/redo adj filter bandwidth",
+	JDAW_THREAD_DSP,
+	filter_bandwidth_gui_cb, NULL, filter_bandwidth_dsp_cb,
+	filter, NULL, NULL, NULL);
+    api_endpoint_register(&filter->bandwidth_ep, &filter->track->api_node);
+
+    endpoint_init(
+	&filter->impulse_response_len_ep,
+	&filter->impulse_response_len_internal,
+	JDAW_UINT16,
+	"filter_irlen",
+	"undo/redo adj filter impulse resp len",
+	JDAW_THREAD_DSP,
+	filter_irlen_gui_cb, NULL, filter_irlen_dsp_cb,
+	filter, NULL, NULL, NULL);
+    api_endpoint_register(&filter->impulse_response_len_ep, &filter->track->api_node);
+
+    endpoint_init(
+	&filter->type_ep,
+	&filter->type,
+	JDAW_INT,
+	"type",
+	"undo/redo set filter type",
+	JDAW_THREAD_DSP,
+	filter_type_gui_cb, NULL, filter_type_dsp_cb,
+	filter, NULL, NULL, NULL);
+    filter->initialized = true;
 }
+
+extern pthread_t DSP_THREAD_ID;
+extern Project *proj;
 
 /* Bandwidth param only required for band-pass and band-cut filters */
 void filter_set_params(FIRFilter *filter, FilterType type, double cutoff, double bandwidth)
 {
+    /* DSP_THREAD_ONLY_WHEN_ACTIVE("filter_set_params"); */
     pthread_mutex_lock(&filter->lock);
     filter->type = type;
     filter->cutoff_freq = cutoff;
@@ -344,7 +399,6 @@ void filter_set_params(FIRFilter *filter, FilterType type, double cutoff, double
     FFT_unscaled(IR_zero_padded, filter->frequency_response, filter->frequency_response_len);
     get_magnitude(filter->frequency_response, filter->frequency_response_mag, filter->frequency_response_len);
     pthread_mutex_unlock(&filter->lock);
-
     /* free(IR_zero_padded); */
 }
 
@@ -385,15 +439,15 @@ void filter_set_bandwidth_hz(FIRFilter *f, double bandwidth_h)
 
 void filter_set_impulse_response_len(FIRFilter *f, int new_len)
 {
+    /* DSP_THREAD_ONLY_WHEN_ACTIVE("filter_set_params"); */
     f->impulse_response_len = new_len;
-    FIR_filter_alloc_buffers(f);
+    f->overlap_len = new_len - 1;
     double cutoff = f->cutoff_freq;
     double bandwidth = f->bandwidth;
     FilterType t = f->type;
     filter_set_params(f, t, cutoff, bandwidth);
     memset(f->overlap_buffer_L, '\0', f->overlap_len * sizeof(double));
     memset(f->overlap_buffer_R, '\0', f->overlap_len * sizeof(double));
-	      
 }
 
 void filter_set_type(FIRFilter *f, FilterType t)
@@ -403,7 +457,7 @@ void filter_set_type(FIRFilter *f, FilterType t)
     filter_set_params(f, t, cutoff, bandwidth);
 }
 
-void filter_destroy(FIRFilter *filter) 
+void filter_deinit(FIRFilter *filter) 
 {
     if (filter->frequency_response) {
         free(filter->frequency_response);
@@ -426,7 +480,7 @@ void filter_destroy(FIRFilter *filter)
     pthread_mutex_destroy(&filter->lock);
 	/* SDL_DestroyMutex(filter->lock); */
     /* } */
-    free(filter);
+    /* free(filter); */
 }
 
 
@@ -443,14 +497,17 @@ void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chu
     for (uint16_t i=0; i<padded_len; i++) {
         if (i<chunk_size) {
             padded_chunk[i] = sample_array[i];
+	    /* CLIP AMPLITUDE FIRST -- sounds more boring if you do :) */
+	    /* if (padded_chunk[i] > 1.0) padded_chunk[i] = 1.0; */
+	    /* else if (padded_chunk[i] < -1.0) padded_chunk[i] = -1.0; */	    
         } else {
             padded_chunk[i] = 0.0;
         }
 
     }
     double complex freq_domain[padded_len];
+
     FFT(padded_chunk,freq_domain, padded_len);
-    /* free(padded_chunk); */
     for (uint16_t i=0; i<padded_len; i++) {
         freq_domain[i] *= filter->frequency_response[i];
     }
@@ -461,10 +518,8 @@ void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chu
     get_magnitude(freq_domain, *freq_mag_ptr, padded_len);
     double complex time_domain[padded_len];
     IFFT(freq_domain, time_domain, padded_len);
-    /* free(freq_domain); */
     double real[padded_len];
     get_real_component(time_domain, real, padded_len);
-    /* free(time_domain); */
 
     for (uint16_t i=0; i<chunk_size + filter->overlap_len; i++) {
         if (i<chunk_size) {
@@ -554,10 +609,10 @@ void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chu
 void track_add_default_filter(Track *track)
 {
     int ir_len = track->tl->proj->fourier_len_sframes/4;
-    track->fir_filter = filter_create(LOWPASS, ir_len, track->tl->proj->fourier_len_sframes * 2);
-    track->fir_filter->track = track;
-    filter_set_params_hz(track->fir_filter, LOWPASS, 1000, 1000);
-    track->fir_filter_active = false;
+    filter_init(&track->fir_filter, track, LOWPASS, ir_len, track->tl->proj->fourier_len_sframes * 2);
+    track->fir_filter.track = track;
+    filter_set_params_hz(&track->fir_filter, LOWPASS, 1000, 1000);
+    track->fir_filter_active = true;
 }
 
 
@@ -566,8 +621,13 @@ void track_add_default_filter(Track *track)
  *****************************************************************************************************************/
 
 
-void delay_line_init(DelayLine *dl, uint32_t sample_rate)
+void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate)
 {
+    if (dl->buf_L) {
+	fprintf(stderr, "ERROR: attempt to reinitialize delay line.\n");
+	return;
+    }
+    dl->track = track;
     dl->pos_L = 0;
     dl->pos_R = 0;
     dl->amp = 0.0;
@@ -579,6 +639,44 @@ void delay_line_init(DelayLine *dl, uint32_t sample_rate)
     dl->buf_L = calloc(dl->max_len, sizeof(double));
     dl->buf_R = calloc(dl->max_len, sizeof(double));
     dl->cpy_buf = calloc(dl->max_len, sizeof(double));
+
+    endpoint_init(
+	&dl->len_ep,
+	&dl->len_msec,
+	JDAW_INT16,
+	"delay_line_len",
+	"undo/redo adj delay time",
+	JDAW_THREAD_DSP,
+	delay_line_len_gui_cb, NULL, delay_line_len_dsp_cb,
+	/* NULL, NULL, delay_line_len_dsp_cb, */
+	(void *)dl, NULL, NULL, NULL);
+    endpoint_set_allowed_range(&dl->len_ep, (Value){.int16_v=0}, (Value){.int16_v=1000});
+    api_endpoint_register(&dl->len_ep, &dl->track->api_node);
+
+    endpoint_init(
+	&dl->amp_ep,
+	&dl->amp,
+	JDAW_DOUBLE,
+	"delay_line_amp",
+	"undo/redo adj delay amp",
+	JDAW_THREAD_DSP,
+	/* delay_line_amp_gui_cb, NULL, NULL, */
+	delay_line_amp_gui_cb, NULL, NULL,
+	(void *)dl, NULL, NULL, NULL);
+    endpoint_set_allowed_range(&dl->amp_ep, (Value){.double_v=0.0}, (Value){.double_v=0.99});
+    api_endpoint_register(&dl->amp_ep, &dl->track->api_node);
+    
+    endpoint_init(
+	&dl->stereo_offset_ep,
+	&dl->stereo_offset,
+	JDAW_DOUBLE,
+	"delay_line_stereo_offset",
+	"undo/redo adj delay stereo offset",
+	JDAW_THREAD_DSP,
+	delay_line_stereo_offset_gui_cb, NULL, NULL,
+	NULL, NULL, NULL, NULL);
+    endpoint_set_allowed_range(&dl->stereo_offset_ep, (Value){.double_v=0.0}, (Value){.double_v=1.0});    
+    api_endpoint_register(&dl->stereo_offset_ep, &dl->track->api_node);
 }
 
 /*

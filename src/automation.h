@@ -1,26 +1,10 @@
 /*****************************************************************************************************************
-  Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation | built on SDL (https://libsdl.org/)
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
 ******************************************************************************************************************
 
-  Copyright (C) 2023 Charlie Volow
+  Copyright (C) 2023-2025 Charlie Volow
   
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files (the "Software"), to deal
-  in the Software without restriction, including without limitation the rights
-  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  copies of the Software, and to permit persons to whom the Software is
-  furnished to do so, subject to the following conditions:
-  
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
-  
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-  SOFTWARE.
+  Jackdaw is licensed under the GNU General Public License.
 
 *****************************************************************************************************************/
 
@@ -50,6 +34,7 @@ typedef struct timeline Timeline;
 
 typedef struct automation Automation;
 typedef struct keyframe Keyframe;
+typedef struct endpoint Endpoint;
 /* typedef struct keyframe_clip KClip; */
 
 typedef struct automation_slope {
@@ -95,6 +80,8 @@ typedef struct automation {
     Value min;
     Value range;
     void *target_val;
+
+    Endpoint *endpoint;
     
     bool read;
     bool write;
@@ -165,6 +152,7 @@ Automation *track_add_automation(Track *track, AutomationType type);
 
     
 Value automation_get_value(Automation *a, int32_t pos, float direction);
+void automation_get_range(Automation *a, void *dst, int dst_len, int32_t start_pos, float step);
 void automation_draw(Automation *a);
 Keyframe *automation_insert_keyframe_at(
     Automation *a,
@@ -188,7 +176,7 @@ void automation_delete(Automation *a);
 /*     int32_t pos, */
 /*     int32_t chunk_end_pos, */
 /*     float direction); */
-void automation_do_write(Automation *a, int32_t pos, int32_t end_pos, float step);
+void automation_do_write(Automation *a, Value v, int32_t pos, int32_t end_pos, float step);
 void automation_reset_keyframe_x(Automation *a);
 /* Keyframe *automation_get_segment(Automation *a, int32_t at); */
 
@@ -200,13 +188,20 @@ void track_automations_hide_all(Track *track);
 void automation_unset_dragging_kf(Timeline *tl);
 bool automation_triage_click(uint8_t button, Automation *a);
 bool automations_triage_motion(Timeline *tl, int xrel, int yrel);
-void automation_record(Automation *a);
+bool automation_record(Automation *a);
 bool automation_handle_delete(Automation *a);
 bool automation_toggle_read(Automation *a);
 /* void keyframe_delete(Keyframe *k); */
 void keyframe_delete(Keyframe *k);
+int track_select_next_automation(Track *t);
+int track_select_prev_automation(Track *t);
+int track_select_first_shown_automation(Track *t);
+int track_select_last_shown_automation(Track *t);
 
 TEST_FN_DECL(track_automation_order, Track *track);
 TEST_FN_DECL(automation_keyframe_order, Automation *a);
 TEST_FN_DECL(automation_index, Automation *a);
+
+typedef struct endpoint Endpoint;
+void automation_endpoint_write(Endpoint *ep, Value val, int32_t play_pos);
 #endif

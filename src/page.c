@@ -1,26 +1,10 @@
 /*****************************************************************************************************************
-  Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation | built on SDL (https://libsdl.org/)
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
 ******************************************************************************************************************
 
-  Copyright (C) 2023 Charlie Volow
+  Copyright (C) 2023-2025 Charlie Volow
   
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files (the "Software"), to deal
-  in the Software without restriction, including without limitation the rights
-  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  copies of the Software, and to permit persons to whom the Software is
-  furnished to do so, subject to the following conditions:
-  
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
-  
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-  SOFTWARE.
+  Jackdaw is licensed under the GNU General Public License.
 
 *****************************************************************************************************************/
 
@@ -51,7 +35,7 @@ extern SDL_Color color_global_black;
 extern Window *main_win;
 extern Project *proj;
 
-TabView *tab_view_create(const char *title, Layout *parent_lt, Window *win)
+TabView *tabview_create(const char *title, Layout *parent_lt, Window *win)
 {
     TabView *tv = calloc(1, sizeof(Page));
     tv->title = title;
@@ -132,7 +116,7 @@ Page *tab_view_add_page(
 }
 
 
-void tab_view_destroy(TabView *tv)
+void tabview_destroy(TabView *tv)
 {
     for (uint8_t i=0; i<tv->num_tabs; i++) {
 	page_destroy(tv->tabs[i]);
@@ -183,6 +167,7 @@ static void page_el_destroy(PageEl *el)
 	textbox_destroy((Textbox *)el->component);
 	break;
     case EL_TEXTENTRY:
+	textentry_destroy((TextEntry *)el->component);
 	break;
     case EL_SLIDER:
 	slider_destroy((Slider *)el->component);
@@ -212,6 +197,9 @@ static void page_el_destroy(PageEl *el)
 }
 void page_destroy(Page *page)
 {
+    if (page->win->txt_editing) {
+	txt_stop_editing(page->win->txt_editing);
+    }
     for (uint8_t i=0; i<page->num_elements; i++) {
 	page_el_destroy(page->elements[i]);
     }
@@ -228,6 +216,7 @@ static void page_el_reset(PageEl *el)
 	textbox_reset_full(el->component);
 	break;
     case EL_TEXTENTRY:
+	textentry_reset(el->component);
 	break;
     case EL_SLIDER:
 	slider_reset(el->component);
@@ -293,17 +282,34 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	break;
 	
     case EL_TEXTENTRY:
+	el->component = (void *)textentry_create(
+	    el->layout,
+	    params.textentry_p.value_handle,
+	    params.textentry_p.buf_len,
+	    params.textentry_p.font,
+	    params.textentry_p.text_size,
+	    params.textentry_p.validation,
+	    params.textentry_p.completion,
+	    params.textentry_p.completion_target,
+	    page->win);
 	break;
     case EL_SLIDER:
 	el->component = (void *)slider_create(
 	    el->layout,
-	    params.slider_p.value,
-	    params.slider_p.val_type,
+	    params.slider_p.ep,
+	    params.slider_p.min,
+	    params.slider_p.max,
 	    params.slider_p.orientation,
 	    params.slider_p.style,
 	    params.slider_p.create_label_fn,
-	    params.slider_p.action,
-	    params.slider_p.target,
+	    /* el->layout, */
+	    /* params.slider_p.value, */
+	    /* params.slider_p.val_type, */
+	    /* params.slider_p.orientation, */
+	    /* params.slider_p.style, */
+	    /* params.slider_p.create_label_fn, */
+	    /* params.slider_p.action, */
+	    /* params.slider_p.target, */
 	    &proj->dragged_component);
 	break;
     case EL_RADIO:
@@ -311,8 +317,9 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	    el->layout,
 	    params.radio_p.text_size,
 	    params.radio_p.text_color,
-	    params.radio_p.target,
-	    params.radio_p.action,
+	    params.radio_p.ep,
+	    /* params.radio_p.target, */
+	    /* params.radio_p.action, */
 	    params.radio_p.item_names,
 	    params.radio_p.num_items);
 	break;
@@ -421,6 +428,9 @@ void page_reset(Page *page)
     for (uint8_t i=0; i<page->num_elements; i++) {
 	page_el_reset(page->elements[i]);
     }
+    /* if (page->selectable_els[page->selected_i]->type == EL_TEXTENTRY) { */
+    /* 	textentry_edit(page->selectable_els[page->selected_i]); */
+    /* } */
 }
 
 static bool page_element_mouse_motion(PageEl *el, Window *win)
@@ -473,6 +483,11 @@ static bool page_element_mouse_click(PageEl *el, Window *win)
     case EL_TEXTBOX:
 	break;
     case EL_TEXTENTRY:
+	if (win->txt_editing) {
+	    textentry_complete_edit((TextEntry *)el->component);
+	} else {
+	    textentry_edit((TextEntry *)el->component);
+	}
 	break;
     case EL_SLIDER:
 	return slider_mouse_click((Slider *)el->component, win);
@@ -524,7 +539,7 @@ void tab_view_reset(TabView *tv)
     layout_reset(tv->layout);
 }
 
-bool tab_view_mouse_click(TabView *tv)
+bool tabview_mouse_click(TabView *tv)
 {
     if (SDL_PointInRect(&tv->win->mousep, &tv->layout->children[0]->rect)) {
 	for (uint8_t i=0; i<tv->num_tabs; i++) {
@@ -542,7 +557,7 @@ bool tab_view_mouse_click(TabView *tv)
     return false;	    
 }
 
-bool tab_view_mouse_motion(TabView *tv)
+bool tabview_mouse_motion(TabView *tv)
 {
     /* if (SDL_PointInRect(&tv->win->mousep, &tv->layout->children[1]->rect)) { */
     if (SDL_PointInRect(&tv->win->mousep, &tv->layout->children[1]->rect)) {
@@ -563,6 +578,7 @@ static void page_el_draw(PageEl *el)
 	textbox_draw((Textbox *)el->component);
 	break;
     case EL_TEXTENTRY:
+	textentry_draw((TextEntry *)el->component);
 	break;
     case EL_SLIDER:
 	slider_draw((Slider *)el->component);
@@ -627,7 +643,7 @@ void page_draw(Page *page)
     /* } */
 }
 
-static inline void tab_view_draw_inner(TabView *tv, uint8_t i)
+static inline void tabview_draw_inner(TabView *tv, uint8_t i)
 {
     Page *page = tv->tabs[i];
     Textbox *tb = tv->labels[i];
@@ -644,19 +660,19 @@ static inline void tab_view_draw_inner(TabView *tv, uint8_t i)
     SDL_RenderDrawLine(tv->win->rend, left_x, y, right_x - 1, y);
 }
 
-void tab_view_draw(TabView *tv)
+void tabview_draw(TabView *tv)
 {
     for (uint8_t i=tv->num_tabs - 1; i>tv->current_tab; i--) {
-        tab_view_draw_inner(tv, i);
+        tabview_draw_inner(tv, i);
 
     }
     for (uint8_t i=0; i<=tv->current_tab; i++) {
 	if (i == tv->current_tab) {
 	    page_draw(tv->tabs[i]);
 	}
-	tab_view_draw_inner(tv, i);
-
+	tabview_draw_inner(tv, i);
     }
+    /* layout_draw(main_win, tv->layout); */
 
     /* page = tv->tabs[tv->current_tab]; */
     /* tb = tv->labels[tv->current_tab]; */
@@ -668,6 +684,34 @@ void tab_view_draw(TabView *tv)
 
 /* page_create(const char *title, const char *layout_filepath, Layout *parent_lt, SDL_Color *background_color, Window *win) -> Page * */
 
+static void page_el_select(PageEl *el)
+{
+    if (!el) return;
+    if (el->type == EL_TEXTENTRY) {
+	textentry_edit((TextEntry *)el->component);
+    }
+}
+static void page_el_deselect(PageEl *el)
+{
+    if (!el) return;
+    if (el->type == EL_TEXTENTRY) {
+	textentry_complete_edit((TextEntry *)el->component);
+    }
+}
+
+static void tabview_select_el(TabView *tv)
+{
+    Page *current = tv->tabs[tv->current_tab];
+    if (current->num_selectable == 0) return;
+    page_el_select(current->selectable_els[current->selected_i]);   
+}
+static void tabview_deselect_el(TabView *tv)
+{
+    Page *current = tv->tabs[tv->current_tab];
+    if (current->num_selectable == 0) return;
+    page_el_deselect(current->selectable_els[current->selected_i]);
+}
+
 void page_activate(Page *page)
 {
     Window *win = page->win;
@@ -677,7 +721,7 @@ void page_activate(Page *page)
     win->active_page = page;
 }
 
-void tab_view_activate(TabView *tv)
+void tabview_activate(TabView *tv)
 {
     Window *win = tv->win;
     if (win->num_modals  > 0) {
@@ -686,11 +730,16 @@ void tab_view_activate(TabView *tv)
     while (win->num_menus > 0) {
 	window_pop_menu(win);
     }
-    if (win->active_tab_view) {
-	tab_view_destroy(win->active_tab_view);
+    if (win->active_tabview) {
+	tabview_destroy(win->active_tabview);
     }
-    win->active_tab_view = tv;
+    
+    win->active_tabview = tv;
     window_push_mode(tv->win, TABVIEW);
+
+    tabview_select_el(tv);
+    /* Page *current = tv->tabs[tv->current_tab]; */
+    /* page_el_select(current->selectable_els[current->selected_i]); */
 }
 
 void page_close(Page *page)
@@ -698,54 +747,90 @@ void page_close(Page *page)
     page->win->active_page = NULL;
     page_destroy(page);
 }
-void tab_view_close(TabView *tv)
+void tabview_close(TabView *tv)
 {
+    tabview_deselect_el(tv);
     while (tv->win->num_menus > 0) {
 	window_pop_menu(tv->win);
     }
     window_pop_mode(tv->win);
-    tv->win->active_tab_view = NULL;
-    tab_view_destroy(tv);
+    tv->win->active_tabview = NULL;
+    tabview_destroy(tv);
 }
 
-void tab_view_next_tab(TabView *tv)
+void tabview_next_tab(TabView *tv)
 {
+    tabview_deselect_el(tv);
     if (tv->current_tab < tv->num_tabs - 1)
 	tv->current_tab++;
     else tv->current_tab = 0;
+    tabview_select_el(tv);
 }
 
-void tab_view_previous_tab(TabView *tv)
+void tabview_previous_tab(TabView *tv)
 {
+    tabview_deselect_el(tv);
     if (tv->current_tab > 0)
 	tv->current_tab--;
     else tv->current_tab = tv->num_tabs - 1;
+    tabview_select_el(tv);
 }
 
 /* NAVIGATION FUNCTIONS */
+
+/* static void check_move_off_textentry(Page *page) */
+/* { */
+/*     PageEl *from = page->selectable_els[page->selected_i]; */
+/*     if (from->type == EL_TEXTENTRY) { */
+/* 	textentry_complete_edit((TextEntry *)from->component); */
+/*     } */
+/* } */
+
+/* static void check_move_to_textentry(Page *page) */
+/* { */
+/*     PageEl *to = page->selectable_els[page->selected_i]; */
+/*     if (to->type == EL_TEXTENTRY) { */
+/* 	textentry_edit((TextEntry *)to->component); */
+/*     } */
+/* } */
+    
 void page_next_escape(Page *page)
 {
+    page_el_deselect(page->selectable_els[page->selected_i]);
+    /* check_move_off_textentry(page); */
     if (page->selected_i < page->num_selectable - 1)
 	page->selected_i++;
     else page->selected_i = 0;
+    page_el_select(page->selectable_els[page->selected_i]);
 }
 
 void page_previous_escape(Page *page)
 {
+    page_el_deselect(page->selectable_els[page->selected_i]);
     if (page->selected_i > 0)
 	page->selected_i--;
     else page->selected_i = page->num_selectable - 1;
+    page_el_select(page->selectable_els[page->selected_i]);
 }
 
 void page_enter(Page *page)
 {
     PageEl *el = page->selectable_els[page->selected_i];
+    if (!el) return;
     switch (el->type) {
     case EL_TOGGLE:
 	toggle_toggle((Toggle *)el->component);
 	break;
     case EL_RADIO:
 	radio_cycle((RadioButton *)el->component);
+	break;
+    case EL_BUTTON: {
+	Button *b = (Button *)el->component;
+	b->action(b, b->target);
+	break;
+    }
+    case EL_TEXTENTRY:
+	break;
     default:
 	break;
     }
@@ -762,6 +847,7 @@ void page_previous(Page *page)
 void page_right(Page *page)
 {
     PageEl *el = page->selectable_els[page->selected_i];
+    if (!el) return;
     switch (el->type) {
     case EL_SLIDER:
 	slider_nudge_right((Slider *)el->component);
@@ -774,6 +860,7 @@ void page_right(Page *page)
 void page_left(Page *page)
 {
     PageEl *el = page->selectable_els[page->selected_i];
+    if (!el) return;
     switch (el->type) {
     case EL_SLIDER:
 	slider_nudge_left((Slider *)el->component);
@@ -793,4 +880,29 @@ PageEl *page_get_el_by_id(Page *page, const char *id)
     }
     return el;
 }
+
+void page_select_el_by_id(Page *page, const char *id)
+{
+    if (page->num_selectable == 0) return;
+    while (strcmp(page->selectable_els[page->selected_i]->id, id) != 0) {
+	page->selected_i++;
+	if (page->selected_i >= page->num_selectable) {
+	    page->selected_i = 0;
+	    break;
+	}
+    }
+}
+
+
+void tabview_clear_all_contents(TabView *tv)
+{
+    for (int i=0; i<tv->num_tabs; i++) {
+	page_destroy(tv->tabs[i]);
+	textbox_destroy(tv->labels[i]);
+    }
+    tv->num_tabs = 0;
+    /* tv->current_tab = 0; */
+}
+
+
     

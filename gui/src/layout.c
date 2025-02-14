@@ -1,36 +1,16 @@
 /*****************************************************************************************************************
-  Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation | built on SDL (https://libsdl.org/)
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
 ******************************************************************************************************************
 
-  Copyright (C) 2023 Charlie Volow
+  Copyright (C) 2023-2025 Charlie Volow
   
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files (the "Software"), to deal
-  in the Software without restriction, including without limitation the rights
-  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  copies of the Software, and to permit persons to whom the Software is
-  furnished to do so, subject to the following conditions:
-  
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
-  
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-  SOFTWARE.
+  Jackdaw is licensed under the GNU General Public License.
 
 *****************************************************************************************************************/
 #include <limits.h>
 #include "layout.h"
 #include "text.h"
 #include "window.h"
-
-#ifndef LT_DEV_MODE
-#define LT_DEV_MODE 1
-#endif
 
 #define TXT_H 40
 #define SNAP_TOLERANCE 7
@@ -107,21 +87,33 @@ void layout_get_dimval_str(Dimension *dim, char *dst, int maxlen)
 static Layout *get_last_sibling(Layout *lt)
 {
     Layout *ret = NULL;
-    if (lt->parent && lt->index > 0) {
-	return lt->parent->children[lt->index - 1];
+    int index = lt->index - 1;
+    if (lt->parent && index >= 0) {
+	while (index > 0 && lt->parent->children[index] == PRGRM_INTERNAL) {
+	    index--;
+	}
+	ret = lt->parent->children[index];
+	
     }
     return ret;
 }
 
 Layout *layout_iterate_siblings(Layout *from, int direction)
 {
+    Layout *test = from;
     if (direction == 1) {
-	if (from->parent && from->index < from->parent->num_children - 1) {
-	    return from->parent->children[from->index + 1];
+	while (test->parent && test->index < test->parent->num_children - 1) {
+	    test = test->parent->children[test->index + 1];
+	    if (test->type != PRGRM_INTERNAL) {
+		return test;
+	    }
 	}
     } else if (direction == -1) {
-	if (from->parent && from->index > 0) {
-	    return from->parent->children[from->index - 1];
+	while (test->parent && test->index > 0) {
+	    test = test->parent->children[test->index - 1];
+	    if (test->type != PRGRM_INTERNAL) {
+		return test;
+	    }
 	}
     }
     return from;
@@ -129,9 +121,16 @@ Layout *layout_iterate_siblings(Layout *from, int direction)
 
 Layout *layout_get_first_child(Layout *parent)
 {
-    if (parent->num_children > 0) {
-	return parent->children[0];
+    int i=0;
+    while (i<parent->num_children) {
+	if (parent->children[i]->type != PRGRM_INTERNAL) {
+	    return parent->children[i];
+	}
+	i++;
     }
+    /* if (parent->num_children > 0) { */
+    /* 	return parent->children[0]; */
+    /* } */
     return parent;
 }
 	    
@@ -817,15 +816,17 @@ int set_rect_wh(Layout *lt)
 	break;
     case COMPLEMENT: {
 	if (!lt->parent) break;
-	Layout *last_sibling = lt->parent->children[lt->index - 1];
-	while (last_sibling && last_sibling->w.type == COMPLEMENT && last_sibling->index > 0) {
-	    last_sibling = last_sibling->parent->children[last_sibling->index - 1];
+	if (lt->index > 0) {
+	    Layout *last_sibling = lt->parent->children[lt->index - 1];
+	    while (last_sibling && last_sibling->w.type == COMPLEMENT && last_sibling->index > 0) {
+		last_sibling = last_sibling->parent->children[last_sibling->index - 1];
+	    }
+	    if (!last_sibling) {
+		fprintf(stderr, "Error: layout %s has type dim COMPLEMENT but no last sibling\n", lt->name);
+		return 0;
+	    }
+	    lt->rect.w = lt->parent->rect.w - last_sibling->rect.w;
 	}
-	if (!last_sibling) {
-	    fprintf(stderr, "Error: layout %s has type dim COMPLEMENT but no last sibling\n", lt->name);
-	    return 0;
-	}
-	lt->rect.w = lt->parent->rect.w - last_sibling->rect.w;
 	break;
     }
     case STACK:
@@ -878,7 +879,6 @@ void reset_iterations(LayoutIterator *iter);
 /* New iterative implementation */
 void layout_force_reset(Layout *lt)
 {
-    /* fprintf(stdout, "\t\tLT FORCE RESET\n"); */
     if (lt->hidden) {
 	return;
     }
@@ -894,8 +894,9 @@ void layout_force_reset(Layout *lt)
 	    fprintf(stderr, "Error: failed to set xy on %s\n", lt->name);
 	}
 
-	if (lt->namelabel) {
-	    lt->label_rect = (SDL_Rect) {lt->rect.x, lt->rect.y - TXT_H, 0, 0};
+	if (lt->namelabel && lt->label_lt) {
+	    lt->label_lt->rect = (SDL_Rect) {lt->rect.x, lt->rect.y - TXT_H, 0, 0};
+	    layout_set_values_from_rect(lt->label_lt);
 	    txt_reset_display_value(lt->namelabel);
 	}
 	if (lt->iterator) {
@@ -940,8 +941,9 @@ void layout_reset(Layout *lt)
             fprintf(stderr, "Error: failed to set xy on %s\n", lt->name);
         }
     }
-    lt->label_rect = (SDL_Rect) {lt->rect.x, lt->rect.y - TXT_H, 0, 0};
-    if (lt->namelabel) {	
+    if (lt->namelabel && lt->label_lt) {
+	lt->label_lt->rect = (SDL_Rect) {lt->rect.x, lt->rect.y - TXT_H, 0, 0};
+	layout_set_values_from_rect(lt->label_lt);
 	txt_reset_display_value(lt->namelabel);
     }
     if (!main_win || !main_win->layout) {
@@ -954,7 +956,7 @@ void layout_reset(Layout *lt)
     padded_win.h += WINDOW_PAD * 2;
 
     if (SDL_HasIntersection(&lt->rect, &padded_win)) {
-	for (uint8_t i=0; i<lt->num_children; i++) {
+	for (int16_t i=0; i<lt->num_children; i++) {
 	    Layout *child = lt->children[i];
 	    layout_reset(child);
 	}
@@ -973,7 +975,9 @@ Layout *layout_create()
     }
 	
     /* TTF_Font *open_sans_12 = ttf_get_font_at_size(main_win->std_font, 12); */
-    Layout *lt = malloc(sizeof(Layout));
+    Layout *lt = calloc(1, sizeof(Layout));
+    lt->children_arr_len = 4;
+    lt->children = calloc(4, sizeof(Layout *));
     lt->num_children = 0;
     lt->index = 0;
     lt->name[0] = 'L';
@@ -982,7 +986,7 @@ Layout *layout_create()
     lt->selected = false;
     lt->type = NORMAL;
     lt->iterator = NULL;
-    memset(lt->children, '\0', sizeof(Layout *) * MAX_CHILDREN);
+    /* memset(lt->children, '\0', sizeof(Layout *) * MAX_CHILDREN); */
 
     lt->x.type = REL;
     lt->y.type = REL;
@@ -996,14 +1000,9 @@ Layout *layout_create()
     // lt->internal = false;
     lt->parent = NULL;
     lt->rect = (SDL_Rect) {0,0,0,0};
-    lt->label_rect = (SDL_Rect) {0,0,0,0};
-    if (LT_DEV_MODE) {
-	/* lt->label_layout_add_child( */
-	lt->namelabel = NULL;
-	/* lt->namelabel = txt_create_from_str(lt->name, MAX_LT_NAMELEN, &(lt->label_rect), main_win->std_font, 12, color_global_white, CENTER_LEFT, false, main_win); */
-    } else {
-	lt->namelabel = NULL;
-    }
+
+    lt->namelabel = NULL;
+    lt->label_lt = NULL;
     lt->hidden = false;
 
     lt->scroll_offset_v = 0;
@@ -1017,22 +1016,24 @@ void delete_iterator(LayoutIterator *iter);
 
 static void layout_destroy_inner(Layout *lt)
 {
+    if (lt->namelabel) {
+	txt_destroy(lt->namelabel);
+    }
+
     if (lt->type == TEMPLATE && lt->iterator) {
         delete_iterator(lt->iterator);
 	lt->iterator = NULL;
     }
-    for (uint8_t i=0; i<lt->num_children; i++) {
+    for (int16_t i=0; i<lt->num_children; i++) {
         layout_destroy_inner(lt->children[i]);
     }
-    if (lt->namelabel) {
-	txt_destroy(lt->namelabel);
-    }
+    free(lt->children);
     free(lt); 
 }
 void layout_destroy(Layout *lt)
 {
     if (lt->parent && lt->type != ITERATION) {
-        for (uint8_t i=lt->index; i<lt->parent->num_children - 1; i++) {
+        for (int16_t i=lt->index; i<lt->parent->num_children - 1; i++) {
             lt->parent->children[i] = lt->parent->children[i + 1];
             lt->parent->children[i]->index--;
         }
@@ -1060,7 +1061,10 @@ Layout *layout_create_from_window(Window *win)
     lt->w = (Dimension) {ABS, (float)win->h_pix / main_win->dpi_scale_factor};
 
     lt->rect = (SDL_Rect) {0, 0, win->w_pix, win->h_pix};
-    lt->label_rect = (SDL_Rect) {lt->rect.x, lt->rect.y - TXT_H, 0, 0};
+    if (lt->namelabel && lt->label_lt) {
+	lt->label_lt->rect = (SDL_Rect) {lt->rect.x, lt->rect.y - TXT_H, 0, 0};
+	layout_set_values_from_rect(lt->label_lt);
+    }
     lt->index = 0;
     snprintf(lt->name, 5, "main");
     return lt;
@@ -1085,12 +1089,41 @@ void layout_reset_from_window(Layout *lt, Window *win)
     /* fprintf(stdout, "NEW LT: %d, %d, %d %d, rect: %d %d %d %d\n", lt->x.value.intval, lt->y.value.intval, lt->w.value.intval, lt->h.value.intval, lt->rect.x, lt->rect.y, lt->rect.w, lt->rect.h); */
 }
 
+void layout_realloc_children_maybe(Layout *parent)
+{
+    if (parent->num_children == parent->children_arr_len) {
+	if (parent->num_children == MAX_CHILDREN) {
+	    fprintf(stderr, "CRITICAL ERROR: layout \"%s\"has %d children\n", parent->name, MAX_CHILDREN);
+	    exit(1);
+	}
+	parent->children_arr_len *= 2;
+	if (parent->children_arr_len > MAX_CHILDREN) {
+	    parent->children_arr_len = MAX_CHILDREN;
+	}
+	parent->children = realloc(parent->children, parent->children_arr_len * sizeof(Layout *));
+    }
+}
+
 Layout *layout_add_child(Layout *parent)
 {
+    layout_realloc_children_maybe(parent);
     Layout *child = layout_create();
     child->parent = parent;
     parent->children[parent->num_children] = child;
+
+
+    /* UGHHH */
+    /* int index = 0; */
+    /* for (int i=0; i<parent->num_children; i++) { */
+    /* 	if (parent->children[i]->type != PRGRM_INTERNAL) { */
+    /* 	    index++; */
+    /* 	} */
+    /* } */
+    /* child->index = index; */
+
     child->index = parent->num_children;
+    
+    /* fprintf(stderr, "ADDING CHILD w index %d\n", index); */
     parent->num_children++;
     snprintf(child->name, 32, "%s_child%d", parent->name, parent->num_children);
     // fprintf(stderr, "\t->done add child\n");
@@ -1122,6 +1155,7 @@ Layout *layout_add_complementary_child(Layout *parent, RectMem comp_rm)
 void layout_reparent(Layout *child, Layout *parent)
 {
     child->parent = parent;
+    layout_realloc_children_maybe(parent);
     parent->children[parent->num_children] = child;
     child->index = parent->num_children;
     parent->num_children++;
@@ -1176,7 +1210,7 @@ void layout_set_default_dims(Layout *lt)
 }
 Layout *layout_get_child_by_name(Layout *lt, const char *name)
 {
-    for (uint8_t i=0; i<lt->num_children; i++) {
+    for (int16_t i=0; i<lt->num_children; i++) {
         if (strcmp(lt->children[i]->name, name) == 0) {
             return lt->children[i];
         }
@@ -1191,7 +1225,7 @@ Layout *layout_get_child_by_name_recursive(Layout *lt, const char *name)
     if (strcmp(lt->name, name) == 0) {
         ret = lt;
     } else {
-        for (uint8_t i=0; i<lt->num_children; i++) {
+        for (int16_t i=0; i<lt->num_children; i++) {
             ret = layout_get_child_by_name_recursive(lt->children[i], name);
             if (ret) {
                 break;
@@ -1261,7 +1295,7 @@ void layout_size_to_fit_children(Layout *lt, bool fixed_origin, int padding)
     int min_y = main_win->layout->rect.h;
     int max_y = 0;
     int right, bottom;
-    for (uint8_t i=0; i<lt->num_children; i++) {
+    for (int16_t i=0; i<lt->num_children; i++) {
 	Layout *child = lt->children[i];
 	if (child->rect.x < min_x) min_x = child->rect.x;
 	if (child->rect.y < min_y) min_y = child->rect.y;
@@ -1284,7 +1318,7 @@ void layout_size_to_fit_children_h(Layout *lt, bool fixed_origin, int padding)
     /* int min_y = main_win->layout->rect.h; */
     /* int max_y = 0; */
     int right;
-    for (uint8_t i=0; i<lt->num_children; i++) {
+    for (int16_t i=0; i<lt->num_children; i++) {
 	Layout *child = lt->children[i];
 	if (child->rect.x < min_x) min_x = child->rect.x;
 	/* if (child->rect.y < min_y) min_y = child->rect.y; */
@@ -1307,7 +1341,7 @@ void layout_size_to_fit_children_v(Layout *lt, bool fixed_origin, int padding)
     int min_y = INT_MAX;
     int max_y = INT_MIN;
     int bottom;
-    for (uint8_t i=0; i<lt->num_children; i++) {
+    for (int16_t i=0; i<lt->num_children; i++) {
 	Layout *child = lt->children[i];
 	if (child->rect.y < min_y) min_y = child->rect.y;
 	if ((bottom = child->rect.y + child->rect.h) > max_y) max_y = bottom;
@@ -1350,7 +1384,6 @@ LayoutIterator *copy_iterator(LayoutIterator *to_copy)
     copy->scrollable = to_copy->scrollable;
     /* TODO: copy the iterations! */
     for (int i=0; i<to_copy->num_iterations; i++) {
-	fprintf(stderr, "\tCopy iteration %d/%d\n", i, to_copy->num_iterations);
 	Layout *iter_copy = layout_copy(to_copy->iterations[i], NULL);
 	copy->iterations[i] = iter_copy;
     }
@@ -1438,18 +1471,16 @@ static void add_iteration(LayoutIterator *iter)
 
 static void remove_iteration(LayoutIterator *iter) 
 {
-    fprintf(stderr, "Remove iteration from %s\n", iter->template->name);
     if (iter->num_iterations > 0) {
-	fprintf(stderr, "->deleting %p, not %p\n", iter->iterations[iter->num_iterations-1], iter->template);
         layout_destroy(iter->iterations[iter->num_iterations - 1]);
 	iter->num_iterations--;
     }
 }
 
-void layout_remove_iter_at(LayoutIterator *iter, uint8_t at)
+void layout_remove_iter_at(LayoutIterator *iter, int16_t at)
 {
     layout_destroy(iter->iterations[at]);
-    for (uint8_t i=at + 1; i<iter->num_iterations; i++) {
+    for (int16_t i=at + 1; i<iter->num_iterations; i++) {
 	iter->iterations[i-1] = iter->iterations[i];
     }
     iter->num_iterations--;
@@ -1459,11 +1490,9 @@ void layout_remove_iter_at(LayoutIterator *iter, uint8_t at)
 void layout_remove_child(Layout *child)
 {
     Layout *parent = child->parent;
-    /* fprintf(stdout, "Remove child at index %d\n", child->index); */
     if (!parent) return;
     if (parent->num_children == 0) return;
     for (int i=child->index + 1; i<parent->num_children; i++) {
-	/* fprintf(stdout, "\tmoving index %d -> %d\n", i, i-1); */
 	parent->children[i - 1] = parent->children[i];
 	parent->children[i - 1]->index--;
     }
@@ -1472,10 +1501,12 @@ void layout_remove_child(Layout *child)
     child->parent = NULL;
 }
 
-void layout_insert_child_at(Layout *child, Layout *parent, uint8_t index)
+void layout_insert_child_at(Layout *child, Layout *parent, int16_t index)
 {
     child->parent = parent;
     if (!parent) return;
+    layout_realloc_children_maybe(parent);
+
     while (index > parent->num_children) index--;
     child->index = index;
     for (int i=parent->num_children; i>index; i--) {
@@ -1672,10 +1703,11 @@ void layout_draw(Window *win, Layout *lt)
 
     if (lt->selected) {
 	if (lt->namelabel) {
+	    SDL_RenderDrawRect(win->rend, &(lt->namelabel->container->rect));
 	    txt_draw(lt->namelabel);
 	}
 	    
-        SDL_RenderDrawRect(win->rend, &(lt->label_rect));
+        /* SDL_RenderDrawRect(win->rend, &(lt->label_lt->rect)); */
     }
     SDL_RenderDrawRect(win->rend, &(lt->rect));
 
@@ -1689,10 +1721,61 @@ void layout_draw(Window *win, Layout *lt)
     }
 
 
-    for (uint8_t i=0; i<lt->num_children; i++) {
+    for (int16_t i=0; i<lt->num_children; i++) {
         layout_draw(win, lt->children[i]);
     }
 
+}
+
+
+#ifdef LT_DEV_MODE
+void layout_select(Layout *lt)
+{
+    lt->label_lt = calloc(1, sizeof(Layout));
+    lt->label_lt->x.type = REL;
+    lt->label_lt->y.type = REL;
+    lt->label_lt->w.type = ABS;
+    lt->label_lt->h.type = ABS;
+    lt->label_lt->children_arr_len = 4;
+    lt->label_lt->children = calloc(4, sizeof(Layout *));
+    /* lt->label_lt->w.value = 100.0; */
+    /* lt->label_lt->h.value = 24.0; */
+    layout_reparent(lt->label_lt, lt); 
+    lt->label_lt->type = PRGRM_INTERNAL;
+
+    lt->label_lt->rect = (SDL_Rect) {lt->rect.x, lt->rect.y - TXT_H, 200, 38};
+    layout_set_values_from_rect(lt->label_lt);
+
+
+    /* lt->namelabel = NULL; */
+    lt->namelabel = txt_create_from_str(lt->name, MAX_LT_NAMELEN, lt->label_lt, main_win->std_font, 12, color_global_white, CENTER_LEFT, false, main_win);
+    lt->selected = true;
+    layout_reset(lt);
+}
+
+void layout_deselect(Layout *lt)
+{
+    if (lt->namelabel) {
+	txt_destroy(lt->namelabel);
+	lt->namelabel = NULL;
+	lt->label_lt = NULL;
+    }
+    lt->selected = false;
+}
+
+
+#endif
+
+int layout_test_indices_recursive(Layout *lt)
+{
+    for (int i=0; i<lt->num_children; i++) {
+	Layout *child = lt->children[i];
+	if (child->index != i) {
+	    return 1;
+	}
+	layout_test_indices_recursive(child);	
+    }
+    return 0;
 }
 
 

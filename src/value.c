@@ -1,3 +1,4 @@
+#include "type_serialize.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -320,6 +321,46 @@ Value jdaw_val_mult(Value a, Value b, ValType vt)
     return ret;
 }
 
+Value jdaw_val_negate(Value a, ValType vt)
+{
+    switch (vt) {
+    case JDAW_FLOAT:
+	a.float_v *= -1;
+	break;
+    case JDAW_DOUBLE:
+	a.double_v *= -1;
+	break;
+    case JDAW_INT:
+	a.int_v *= -1;
+	break;
+    case JDAW_UINT8:
+	a.uint8_v *= -1;
+	break;
+    case JDAW_UINT16:
+	a.uint16_v *= -1;
+	break;
+    case JDAW_UINT32:
+	a.uint32_v *= -1;
+	break;
+    case JDAW_INT8:
+	a.int8_v *= -1;
+	break;
+    case JDAW_INT16:
+	a.int16_v *= -1;
+	break;
+    case JDAW_INT32:
+	a.int32_v *= -1;
+	break;
+    case JDAW_BOOL:
+	a.bool_v = !a.bool_v;
+	break;
+    default:
+	break;
+
+    }
+    return a;    
+}
+
 
 Value jdaw_val_div(Value a, Value b, ValType vt)
 {
@@ -590,7 +631,7 @@ bool jdaw_val_equal(Value a, Value b, ValType type)
     case JDAW_FLOAT:
 	return fabs(fabs(a.float_v) - fabs(b.float_v)) < epsilon;
     case JDAW_DOUBLE:
-	return fabs(fabs(a.double_v) - fabs(b.float_v)) < epsilon;
+	return fabs(fabs(a.double_v) - fabs(b.double_v)) < epsilon;
     case JDAW_INT:
 	return a.int_v == b.int_v;
     case JDAW_UINT8:
@@ -641,7 +682,95 @@ bool jdaw_val_sign_match(Value a, Value b, ValType type)
     }
 }
 
-void jdaw_val_serialize(Value v, ValType type, FILE *f, uint8_t dstsize)
+/* Variable size, depending on type */
+void jdaw_val_serialize(FILE *f, Value v, ValType type)
+{
+    uint8_t type_byte = (uint8_t)type;
+    fwrite(&type_byte, 1, 1, f);
+    switch (type) {
+    case JDAW_FLOAT:
+	float_ser40_le(f, v.float_v);
+	break;
+    case JDAW_DOUBLE:
+	float_ser40_le(f, v.double_v);
+	break;
+    case JDAW_INT:
+        int_ser_le(f, &v.int_v);
+	break;
+    case JDAW_UINT8:
+	fwrite(&v.uint8_v, 1, 1, f);
+	break;
+    case JDAW_UINT16:
+	uint16_ser_le(f, &v.uint16_v);
+	break;	
+    case JDAW_UINT32:
+	uint32_ser_le(f, &v.uint32_v);
+	break;
+    case JDAW_INT8:
+	fwrite(&v.int8_v, 1, 1, f);
+	break;
+    case JDAW_INT16:
+	int16_ser_le(f, &v.int16_v);
+	break;
+    case JDAW_INT32:
+	int32_ser_le(f, &v.int32_v);
+	break;
+    case JDAW_BOOL: {
+	uint8_t bool_byte = (uint8_t)(v.bool_v);
+	fwrite(&bool_byte, 1, 1, f);
+    }
+	break;
+    default:
+	break;
+    }
+}
+
+Value jdaw_val_deserialize(FILE *f)
+{
+    uint8_t type_byte;
+    fread(&type_byte, 1, 1, f);
+    ValType type = (ValType)((int)type_byte);
+    Value ret = {0};
+    switch (type) {
+    case JDAW_FLOAT:
+	ret.float_v = float_deser40_le(f);
+	break;
+    case JDAW_DOUBLE:
+	ret.double_v = float_deser40_le(f);
+	break;
+    case JDAW_INT:
+        ret.int_v = int_deser_le(f);
+	break;
+    case JDAW_UINT8:
+	ret.uint8_v = fread(&ret.uint8_v, 1, 1, f);
+	break;
+    case JDAW_UINT16:
+	ret.uint16_v = uint16_deser_le(f);
+	break;	
+    case JDAW_UINT32:
+	ret.uint32_v = uint32_deser_le(f);
+	break;
+    case JDAW_INT8:
+	fread(&ret.int8_v, 1, 1, f);
+	break;
+    case JDAW_INT16:
+	ret.int16_v = int16_deser_le(f);
+	break;
+    case JDAW_INT32:
+	ret.int32_v = int32_deser_le(f);
+	break;
+    case JDAW_BOOL: {
+	uint8_t bool_byte;
+	fread(&bool_byte, 1, 1, f);
+	ret.bool_v = (bool)bool_byte;
+    }	
+	break;
+    default:
+	break;
+    }
+    return ret;
+}
+void jdaw_val_serialize_OLD(Value v, ValType type, FILE *f, uint8_t dstsize)
 {
 
     char dst[dstsize + 1];
@@ -684,9 +813,87 @@ void jdaw_val_serialize(Value v, ValType type, FILE *f, uint8_t dstsize)
 }
 
 
+void jdaw_val_to_str(char *dst, size_t dstsize, Value v, ValType type, int decimal_places)
+{
+    switch (type) {
+    case JDAW_FLOAT:
+	snprintf(dst, dstsize, "%.*f", decimal_places, v.float_v);
+	break;
+    case JDAW_DOUBLE:
+	snprintf(dst, dstsize, "%.*f", decimal_places, v.double_v);
+	break;
+    case JDAW_INT:
+	snprintf(dst, dstsize, "%d", v.int_v);
+	break;
+    case JDAW_UINT8:
+	snprintf(dst, dstsize, "%d", v.uint8_v);
+	break;
+    case JDAW_UINT16:
+	snprintf(dst, dstsize, "%d", v.uint16_v);
+	break;	
+    case JDAW_UINT32:
+	snprintf(dst, dstsize, "%d", v.uint32_v);
+	break;
+    case JDAW_INT8:
+	snprintf(dst, dstsize, "%d", v.int8_v);
+	break;
+    case JDAW_INT16:
+	snprintf(dst, dstsize, "%d", v.int16_v);
+	break;
+    case JDAW_INT32:
+	snprintf(dst, dstsize, "%d", v.int32_v);
+	break;
+    case JDAW_BOOL:
+	snprintf(dst, dstsize, "%d", v.bool_v);
+	break;
+    default:
+	break;
+    }
+}
+
+Value jdaw_val_from_str(const char *str, ValType type)
+{
+    Value ret;
+    switch (type) {
+    case JDAW_FLOAT:
+	ret.float_v = atof(str);
+	break;
+    case JDAW_DOUBLE:
+	ret.double_v = atof(str);
+	break;
+    case JDAW_INT:
+	ret.int_v = atoi(str);
+	break;
+    case JDAW_UINT8:
+	ret.uint8_v = atoi(str);
+	break;
+    case JDAW_UINT16:
+	ret.uint16_v = atoi(str);
+	break;
+    case JDAW_UINT32:
+	ret.uint32_v = atoi(str);
+	break;
+    case JDAW_INT8:
+	ret.int8_v = atoi(str);
+	break;
+    case JDAW_INT16:
+	ret.int16_v = atoi(str);
+	break;
+    case JDAW_INT32:
+	ret.int32_v = atoi(str);
+	break;
+    case JDAW_BOOL:
+	ret.bool_v = atoi(str);
+	break;
+    default:
+	break;
+    }
+    return ret;
+}
 
 
-Value jdaw_val_deserialize(FILE *f, uint8_t size, ValType type)
+
+Value jdaw_val_deserialize_OLD(FILE *f, uint8_t size, ValType type)
 {
     char buf[size + 1];
     fread(buf, 1, size, f);
@@ -728,4 +935,63 @@ Value jdaw_val_deserialize(FILE *f, uint8_t size, ValType type)
 	break;
     }
     return ret;
+}
+
+
+bool jdaw_val_in_range(Value test, Value min, Value max, ValType type)
+{
+    switch (type) {
+    case JDAW_FLOAT:
+	return min.float_v <= test.float_v && test.float_v <= max.float_v;
+    case JDAW_DOUBLE:
+	return min.double_v <= test.double_v && test.double_v <= max.double_v;
+    case JDAW_INT:
+	return min.int_v <= test.int_v && test.int_v <= max.double_v;
+    case JDAW_UINT8:
+	return min.uint8_v <= test.uint8_v && test.uint8_v <= max.uint8_v;
+    case JDAW_UINT16:
+	return min.uint16_v <= test.uint16_v && test.uint16_v <= max.uint16_v;
+    case JDAW_UINT32:
+	return min.uint32_v <= test.uint32_v && test.uint32_v <= max.uint32_v;
+    case JDAW_INT8:
+	return min.int8_v <= test.int8_v && test.int8_v <= max.int8_v;
+    case JDAW_INT16:
+	return min.int16_v <= test.int16_v && test.int16_v <= max.int16_v;
+    case JDAW_INT32:
+	return min.int32_v <= test.int32_v && test.int32_v <= max.int32_v;
+    case JDAW_BOOL:
+	true;
+    default:
+	return 0;
+	break;
+    }
+}
+
+size_t jdaw_val_type_size(ValType type)
+{
+    switch (type) {
+    case JDAW_FLOAT:
+	return sizeof(float);
+    case JDAW_DOUBLE:
+	return sizeof(double);
+    case JDAW_INT:
+	return sizeof(int);
+    case JDAW_UINT8:
+	return sizeof(uint8_t);
+    case JDAW_UINT16:
+	return sizeof(uint16_t);
+    case JDAW_UINT32:
+	return sizeof(uint32_t);
+    case JDAW_INT8:
+	return sizeof(int8_t);
+    case JDAW_INT16:
+	return sizeof(int16_t);
+    case JDAW_INT32:
+	return sizeof(int32_t);
+    case JDAW_BOOL:
+	return sizeof(bool);
+    default:
+	return 0;
+	break;
+    }
 }

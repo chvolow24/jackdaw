@@ -3,16 +3,11 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "assets.h"
 #include "SDL.h"
 #include "SDL_ttf.h"
 /* #include "window.h" */
-#define TTF_PATH INSTALL_DIR "/assets/ttf/"
-#define OPEN_SANS_PATH TTF_PATH "OpenSans-Regular.ttf"
-#define OPEN_SANS_BOLD_PATH TTF_PATH "OpenSans-Bold.ttf"
-#define LTSUPERIOR_PATH TTF_PATH "LTSuperiorMono-Regular.otf"
-#define LTSUPERIOR_BOLD_PATH TTF_PATH "LTSuperiorMono-Bold.otf"
-#define NOTO_SANS_SYMBOLS2_PATH TTF_PATH "NotoSansSymbols2-Regular.ttf"
-#define NOTO_SANS_MATH_PATH TTF_PATH "NotoSansMath-Regular.ttf"
+
 /* #define OPEN_SANS_PATH INSTALL_DIR "/assets/ttf/NotoSansSymbols2-Regular.ttf" */
 /* #define OPEN_SANS_BOLD_PATH OPEN_SANS_PATH */
 /* #define LTSUPERIOR_PATH OPEN_SANS_PATH */
@@ -31,6 +26,52 @@
 #define STD_FONT_ARRLEN 11
 
 #define TXTAREA_MAX_LINES 255
+
+
+#define txt_int_range_completion(minval, maxval)			\
+	int txt_int_range_completion_##minval##_##maxval(Text *txt, void *arg) { \
+	    int value = atoi(txt->value_handle);			\
+	    bool err = false;						\
+	    if (value < minval) {						\
+		snprintf(txt->value_handle, txt->max_len, "%d", minval);	\
+		txt_reset_display_value(txt);					\
+		err = true;						\
+	    } else if (value > maxval) {					\
+		snprintf(txt->value_handle, txt->max_len, "%d", maxval);	\
+		txt_reset_display_value(txt);					\
+		err = true;						\
+	    }								\
+	    if (err) {							\
+	        char buf[255];						\
+		snprintf(buf, 255, "Allowed range: %d - %d", minval, maxval); \
+		status_set_errstr(buf);					\
+		return 1;						\
+	    }							        \
+	     return 0;							\
+	}								\
+
+
+/* #define txt_int_validation_range(txt, input, minval, maxval) \ */
+/* 	int txt_int_validation_range_##minval##_##maxval(Text *txt, char input) { \ */
+/* 	    char buf[255];						\ */
+/* 	    if (input < '0' || input > '9') {				\ */
+/* 		status_set_errstr("Only integer values allowed");	\ */
+/* 		return 1;						\ */
+/* 	    }								\ */
+/* 	    if (strlen(txt->display_value) - (txt->cursor_end_pos - txt->cursor_start_pos) >= txt->max_len - 1) { \ */
+/* 		snprintf(buf, 255, "Field cannot exceed %d characters", txt->max_len - 1); \ */
+/* 		return 1;						\ */
+/* 	    }								\ */
+/* 	    snprintf(buf, 255, "%s", txt->display_value);\ */
+/* 	    snprintf(buf + txt->cursor_start_pos, 255, "%s%c", txt->display_value + txt->cursor_end_pos, input);	\ */
+/* 	    int val = atoi(buf);					\ */
+/* 	    fprintf(stderr, "BUf: %s: val: %d\n", buf, val);		\ */
+/* 	    if (val < minval || val > maxval) {				\ */
+/* 		status_set_errstr("Values must fall in range " #minval " - " #maxval); \ */
+/* 		return 1;						\ */
+/* 	    }								\ */
+/* 	    return 0;							\ */
+/* 	}								\ */
 
 
 typedef struct window Window;
@@ -105,7 +146,8 @@ typedef struct text {
     SDL_Texture *texture;
 
     int (*validation)(Text *self, char input);
-    int (*completion)(Text *self);
+    int (*completion)(Text *self, void *obj);
+    void *completion_target;
     /* int (*submit_validation)(Text *self); */
     /* pthread_mutex_t draw_lock; */
 } Text;
@@ -219,5 +261,6 @@ void txt_area_destroy(TextArea *ta);
 void ttf_destroy_font(Font *font);
 
 int txt_name_validation(Text *txt, char input);
+int txt_integer_validation(Text *txt, char input);
 
 #endif

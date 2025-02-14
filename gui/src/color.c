@@ -22,3 +22,5 @@ SDL_Color color_global_cerulean_pale = {100, 190, 255, 100};
 SDL_Color color_global_dropdown_green = {20, 100, 40, 255};
 SDL_Color color_global_x_red = {200, 0, 0, 255};
 SDL_Color color_global_min_yellow = {200, 90, 0, 255};
+
+SDL_Color color_global_click_track = {10, 30, 25, 255};

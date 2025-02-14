@@ -9,7 +9,7 @@
 #define MAX_TAGNAME_LEN 32
 #define MAX_SUBTAGS 256
 #define MAX_ATTRS 32
-#define TABSPACES 4
+#define TABSPACES 2
 
 typedef struct attr {
     char *name;

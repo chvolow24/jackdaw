@@ -10,11 +10,14 @@
 
 #define WINDOW_MAX_MODES 8
 #define WINDOW_MAX_MODALS 8
+#define WINDOW_MAX_DEFERRED_DRAW_OPS 64
 
 typedef struct menu Menu;
 typedef struct modal Modal;
 typedef struct page Page;
 typedef struct tab_view TabView;
+
+typedef void (*DeferredDraw)(void *obj);
 
 /* typedef enum input_mode : uint8_t InputMode; */
 typedef struct window {
@@ -48,11 +51,16 @@ typedef struct window {
     uint8_t num_modals;
 
     Page *active_page;
-    TabView *active_tab_view;
+    TabView *active_tabview;
 
     bool screenrecording;
 
     Text *txt_editing;
+
+    DeferredDraw deferred_draw_ops[WINDOW_MAX_DEFERRED_DRAW_OPS];
+    void *deferred_draw_objs[WINDOW_MAX_DEFERRED_DRAW_OPS];
+    uint8_t num_deferred_draw_ops;
+
 } Window;
 
 /* Create a new Window struct and initialize all members */
@@ -87,6 +95,9 @@ void window_start_draw(Window *win, SDL_Color *bckgrnd_color);
 
 /* End a frame draw operation */
 void window_end_draw(Window *win);
+
+/* Queue an operation to be drawn at the END of a frame draw */
+void window_defer_draw(Window *win, void (*draw_op)(void *), void *obj);
 
 /* Set a window's main layout */
 void window_set_layout(Window *win, Layout *layout);

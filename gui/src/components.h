@@ -1,6 +1,7 @@
 #ifndef JDAW_GUI_COMPONENTS
 #define JDAW_GUI_COMPONENTS
 
+/* #include "endpoint.h" */
 #include "label.h"
 #include "layout.h"
 #include "symbol.h"
@@ -14,22 +15,21 @@
 #define RADIO_BUTTON_LEFT_W 24
 #define RADIO_BUTTON_RAD_PAD (3 * main_win->dpi_scale_factor);
 
-
 #define SLIDER_LABEL_H_PAD 4
 #define SLIDER_LABEL_V_PAD 2
-
-
 
 /*****************************************/
 /************ Definitions ****************/
 /*****************************************/
 
 typedef int (*ComponentFn)(void *self, void *target);
+typedef struct endpoint Endpoint;
 
 typedef struct button {
     Textbox *tb;
     ComponentFn action;
-    void *target;    
+    void *target;
+    Animation *animation;
 } Button;
 
 typedef struct symbol_button {
@@ -50,14 +50,12 @@ typedef struct toggle {
 typedef struct text_entry TextEntry;
 typedef struct text_entry {
     Textbox *tb;
-    Textbox *label;
-    /* void (*validation)(TextEntry *self, void *xarg); */
-    /* void (*completion)(TextEntry *self, void *xarg); */
+    /* Textbox *label; */
     ComponentFn action;
     void *target;
 } TextEntry;
 
-typedef void (SliderStrFn)(char *dst, size_t dstsize, void *value, ValType type);
+/* typedef void (SliderStrFn)(char *dst, size_t dstsize, void *value, ValType type); */
  
 enum slider_orientation {
     SLIDER_HORIZONTAL,
@@ -70,7 +68,8 @@ enum slider_style {
 };
 
 enum drag_comp_type {
-    DRAG_SLIDER
+    DRAG_SLIDER,
+    DRAG_CLICK_SEG_BOUND
 };
 
 typedef struct draggable {
@@ -81,8 +80,9 @@ typedef struct draggable {
 typedef struct radio_button {
     Layout *layout;
     Textbox *items[RADIO_BUTTON_MAX_ITEMS];
-    void *target;
-    ComponentFn action;
+    Endpoint *ep;
+    /* void *target; */
+    /* ComponentFn action; */
     /* void (*external_action)(int selected_i, void *target); */
     uint8_t num_items;
     uint8_t selected_item;
@@ -101,8 +101,9 @@ typedef struct waveform {
 
 typedef struct slider {
     Layout *layout;
-    ValType val_type;
-    void *value;
+    Endpoint *ep;
+    /* ValType val_type; */
+    /* void *value; */
     Value min, max;
     enum slider_orientation orientation;
     enum slider_style style;
@@ -113,12 +114,13 @@ typedef struct slider {
     /* Textbox *label; */
     /* char label_str[SLIDER_LABEL_STRBUFLEN]; */
     /* SliderStrFn *create_label; */
-    ComponentFn action;
-    void *target;
+    /* ComponentFn action; */
+    /* void *target; */
     /* int label_countdown; */
     Label *label;
     Draggable *drag_context;
 
+    bool disallow_unsafe_mode;
 
 } Slider;
 
@@ -143,14 +145,14 @@ void draggable_handle_scroll(Draggable *d, int x, int y);
 
 Slider *slider_create(
     Layout *layout,
-    void *value,
-    ValType val_type,
+    Endpoint *ep,
+    Value min, Value max,
     enum slider_orientation orientation,
     enum slider_style style,
     LabelStrFn set_str_fn,
     /* SliderStrFn *create_label_fn, */
-    ComponentFn action,
-    void *target,
+    /* ComponentFn action, */
+    /* void *target, */
     Draggable *drag_context);
 /*     Layout *layout, */
 /*     SliderOrientation orientation, */
@@ -161,14 +163,23 @@ Slider *slider_create(
 /* void fslider_draw(FSlider *fs); */
 /* float fslider_val_from_coord(FSlider *fs, int coord_pix); */
 /* void fslider_destroy(FSlider *fs); */
-void slider_set_value(Slider *s, Value val);
-void slider_set_range(Slider *s, Value min, Value max);
-void slider_reset(Slider *s);
+
+
+/* void slider_set_value(Slider *s, Value val); */
+/* void slider_set_range(Slider *s, Value min, Value max); */
+
+Value slider_reset(Slider *s);
 void slider_draw(Slider *s);
-Value slider_val_from_coord(Slider *s, int coord_pix);
+bool slider_mouse_click(Slider *slider, Window *win);
+bool slider_mouse_motion(Slider *slider, Window *win);
 void slider_destroy(Slider *s);
-SliderStrFn slider_std_labelmaker;
-void slider_edit_made(Slider *slider);
+
+
+void slider_std_labelmaker(char *dst, size_t dstsize, void *value, ValType type);
+/* LabelStrFn slider_std_labelmaker; */
+/* SliderStrFn slider_std_labelmaker; */
+/* Value slider_val_from_coord(Slider *s, int coord_pix); */
+/* void slider_edit_made(Slider *slider); */
 void slider_nudge_right(Slider *slider);
 void slider_nudge_left(Slider *slider);
 
@@ -211,18 +222,38 @@ void symbol_button_draw(SymbolButton *sbutton);
 void symbol_button_destroy(SymbolButton *sbutton);
 bool symbol_button_click(SymbolButton *sbutton, Window *win);
 
+/* Textentry */
+
+TextEntry *textentry_create(
+    Layout *lt,
+    char *value_handle,
+    int buf_len,
+    Font *font,
+    uint8_t text_size,
+    int (*validation)(Text *txt, char input),
+    int (*completion)(Text *txt, void *target),
+    void *completion_target,
+    Window *win);
+
+void textentry_destroy(TextEntry *te);
+void textentry_draw(TextEntry *te);
+void textentry_reset(TextEntry *te);
+void textentry_edit(TextEntry *te);
+void textentry_complete_edit(TextEntry *te);
+
 /* Radio button */
 RadioButton *radio_button_create(
     Layout *layout,
     int text_size,
     SDL_Color *text_color,
-    void *target,
-    ComponentFn action,
+    Endpoint *ep,
+    /* void *target, */
+    /* ComponentFn action, */
     /* void (*external_action)(int selected_i, void *target), */
     const char **item_names,
     uint8_t num_items
     );
-
+void radio_button_reset_from_endpoint(RadioButton *rb);
 void radio_button_draw(RadioButton *rb);
 bool radio_click(RadioButton *rb, Window *Win);
 void radio_destroy(RadioButton *rb);
@@ -257,8 +288,6 @@ bool toggle_click(Toggle *toggle, Window *win);
 
 /* Mouse functions */
 bool draggable_mouse_motion(Draggable *draggable, Window *win);
-bool slider_mouse_click(Slider *slider, Window *win);
-bool slider_mouse_motion(Slider *slider, Window *win);
 bool toggle_mouse_click(Toggle *toggle, Window *win);
 bool button_click(Button *button, Window *win);
 

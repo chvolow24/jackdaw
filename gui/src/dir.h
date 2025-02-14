@@ -14,10 +14,6 @@
 #include "color.h"
 #include "textbox.h"
 
-#ifndef INSTALL_DIR
-#define INSTALL_DIR "."
-#endif
-
 #define MAX_DIRS 255
 #define MAX_FILES 255
 #define MAX_PATHLEN 255

@@ -1,26 +1,10 @@
 /*****************************************************************************************************************
-  Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation | built on SDL (https://libsdl.org/)
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
 ******************************************************************************************************************
 
-  Copyright (C) 2023 Charlie Volow
+  Copyright (C) 2023-2025 Charlie Volow
   
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files (the "Software"), to deal
-  in the Software without restriction, including without limitation the rights
-  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  copies of the Software, and to permit persons to whom the Software is
-  furnished to do so, subject to the following conditions:
-  
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
-  
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-  SOFTWARE.
+  Jackdaw is licensed under the GNU General Public License.
 
 *****************************************************************************************************************/
 
@@ -93,13 +77,17 @@ typedef struct tab_view {
 } TabView;
 
 struct slider_params {
-    void *value;
-    ValType val_type;
+    
+    /* void *value; */
+    /* ValType val_type; */
+    Endpoint *ep;
+    Value min;
+    Value max;
     enum slider_orientation orientation;
     enum slider_style style;
-    SliderStrFn *create_label_fn;
-    ComponentFn action;
-    void *target;
+    LabelStrFn create_label_fn;
+    /* ComponentFn action; */
+    /* void *target; */
 };
 
 struct textbox_params {
@@ -118,11 +106,13 @@ struct textarea_params {
 };
 
 struct textentry_params {
-    char *init_val;
+    char *value_handle;
+    int buf_len;
     Font *font;
     uint8_t text_size;
     int (*validation)(Text *txt, char input);
-    ComponentFn completion;
+    int (*completion)(Text *txt, void *target);
+    void *completion_target;
 };
 
 struct freqplot_params {
@@ -147,8 +137,9 @@ struct button_params {
 struct radio_params {
     int text_size;
     SDL_Color *text_color;
-    void *target;
-    ComponentFn action;
+    Endpoint *ep;
+    /* void *target; */
+    /* ComponentFn action; */
     const char **item_names;
     uint8_t num_items;
 };
@@ -191,10 +182,10 @@ typedef union page_el_params {
 
 /* TabView methods */
 
-TabView *tab_view_create(const char *title, Layout *parent_lt, Window *win);
-void tab_view_destroy(TabView *tv);
-void tab_view_activate(TabView *tv);
-void tab_view_close(TabView *tv);
+TabView *tabview_create(const char *title, Layout *parent_lt, Window *win);
+void tabview_destroy(TabView *tv);
+void tabview_activate(TabView *tv);
+void tabview_close(TabView *tv);
 Page *tab_view_add_page(
     TabView *tv,
     const char *page_title,
@@ -203,10 +194,10 @@ Page *tab_view_add_page(
     SDL_Color *text_color,
     Window *win);
 
-bool tab_view_mouse_click(TabView *tv);
-bool tab_view_mouse_motion(TabView *tv);
-void tab_view_next_tab(TabView *tv);
-void tab_view_previous_tab(TabView *tv);
+bool tabview_mouse_click(TabView *tv);
+bool tabview_mouse_motion(TabView *tv);
+void tabview_next_tab(TabView *tv);
+void tabview_previous_tab(TabView *tv);
 
 /* Page methods */
 
@@ -249,7 +240,7 @@ void tab_view_reset(TabView *tv);
 /* Draw functions */
 
 void page_draw(Page *page);
-void tab_view_draw(TabView *tv);
+void tabview_draw(TabView *tv);
 
 void page_activate(Page *page);
 void page_close(Page *page);
@@ -263,5 +254,8 @@ void page_left(Page *page);
 void page_enter(Page *page);
 
 PageEl *page_get_el_by_id(Page *page, const char *id);
+void page_select_el_by_id(Page *page, const char *id);
+
+void tabview_clear_all_contents(TabView *tv);
 
 #endif

@@ -1,26 +1,10 @@
 /*****************************************************************************************************************
-  Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation | built on SDL (https://libsdl.org/)
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
 ******************************************************************************************************************
 
-  Copyright (C) 2023 Charlie Volow
+  Copyright (C) 2023-2025 Charlie Volow
   
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files (the "Software"), to deal
-  in the Software without restriction, including without limitation the rights
-  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  copies of the Software, and to permit persons to whom the Software is
-  furnished to do so, subject to the following conditions:
-  
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
-  
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-  SOFTWARE.
+  Jackdaw is licensed under the GNU General Public License.
 
 *****************************************************************************************************************/
 
@@ -46,10 +30,12 @@
 #include "page.h"
 #include "panel.h"
 #include "project.h"
+#include "project_endpoint_ops.h"
 #include "project_draw.h"
 #include "screenrecord.h"
 #include "settings.h"
 #include "status.h"
+#include "tempo.h"
 #include "timeline.h"
 #include "transport.h"
 #include "user_event.h"
@@ -59,15 +45,6 @@
 
 #define MAX_MODES 8
 #define STICK_DELAY_MS 500
-
-
-#define TOP_MODE (main_win->modes[main_win->num_modes - 1])
-
-
-#ifndef INSTALL_DIR
-#define INSTALL_DIR "."
-#endif
-
 
 extern Window *main_win;
 extern SDL_Color color_global_black;
@@ -79,69 +56,7 @@ extern SDL_Color freq_R_color;
 
 extern Project *proj;
 
-/* extern volatile bool CANCEL_THREADS; */
-
-static void stop_update_track_vol_pan()
-{
-    proj->vol_changing = false;
-    proj->pan_changing = false;
-}
-
-
-static void update_track_vol_pan()
-{
-    /* fprintf(stdout, "%p, %p\n", proj->vol_changing, proj->pan_changing); */
-    if (!proj->vol_changing && !proj->pan_changing) {
-	return;
-    }
-    Timeline *tl = proj->timelines[proj->active_tl_index];
-    bool had_active_track = false;
-    Track *selected_track = tl->tracks[tl->track_selector];
-    /* if (proj->vol_changing) { */
-    for (int i=0; i<tl->num_tracks; i++) {
-	Track *trk = tl->tracks[i];
-	if (trk->active) {
-	    had_active_track = true;
-	    if (proj->vol_changing) {
-		/* hide_slider_label(trk->vol_ctrl); */
-		trk->vol_ctrl->editing = true;
-		if (proj->vol_up) {
-		    track_increment_vol(trk);
-		} else {
-		    track_decrement_vol(trk);
-		}
-	    }
-	    if (proj->pan_changing) {
-		/* hide_slider_label */
-		trk->pan_ctrl->editing = true;
-		if (proj->pan_right) {
-		    track_increment_pan(trk);
-		} else {
-		    track_decrement_pan(trk);
-		}
-	    }
-	}
-    }
-    if (!had_active_track) {
-	if (proj->vol_changing) {
-	    if (proj->vol_up) {
-		track_increment_vol(selected_track);
-	    } else {
-		track_decrement_vol(selected_track);
-	    }
-	    selected_track->vol_ctrl->editing = true;
-	}
-	if (proj->pan_changing) {
-	    if (proj->pan_right) {
-		track_increment_pan(selected_track);
-	    } else {
-		track_decrement_pan(selected_track);
-	    }
-	    selected_track->pan_ctrl->editing = true;
-	}
-    }
-    tl->needs_redraw = true;
-}
+extern pthread_t DSP_THREAD_ID;
 
 /* TODO: SDL bug workaround. I haven't been able to get this to work reliably cross-platform. */
 /* https://discourse.libsdl.org/t/window-event-at-initiation-of-window-resize/50963/3 */
@@ -155,13 +70,13 @@ static void update_track_vol_pan()
 /* } */
 
 void user_global_quit(void *);
-
 void loop_project_main()
 {
     /* clock_t start, end; */
     /* uint8_t frame_ctr = 0; */
     /* float fps = 0; */
 
+    /* layout_force_reset(proj->layout); */
     Layout *temp_scrolling_lt = NULL;
     Layout *scrolling_lt = NULL;
     UserFn *input_fn = NULL;
@@ -178,8 +93,8 @@ void loop_project_main()
 
     bool first_frame = true;
     int wheel_event_recency = 0;
+    int play_speed_scroll_recency = 60;
     while (!(main_win->i_state & I_STATE_QUIT)) {
-	/* fprintf(stdout, "About to poll...\n"); */
 	while (SDL_PollEvent(&e)) {
 	    /* fprintf(stdout, "Polled!\n"); */
 	    switch (e.type) {
@@ -231,6 +146,7 @@ void loop_project_main()
 		}
 		break;
 	    }
+		break;
 	    case SDL_TEXTINPUT:
 		if (main_win->txt_editing) {
 		    txt_input_event_handler(main_win->txt_editing, &e);
@@ -244,8 +160,6 @@ void loop_project_main()
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LCTRL:
 		case SDL_SCANCODE_RCTRL:
-		    /* modal_reset(test_modal); */
-		    /* layout_reset(main_win->layout); */
 		    main_win->i_state |= I_STATE_CMDCTRL;
 		    break;
 		case SDL_SCANCODE_LSHIFT:
@@ -256,35 +170,6 @@ void loop_project_main()
 		case SDL_SCANCODE_RALT:
 		    main_win->i_state |= I_STATE_META;
 		    break;
- 		/* case SDL_SCANCODE_6: { */
-		/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
-		/*     Track *track = tl->tracks[tl->track_selector]; */
-		/*     track_add_new_automation(track); */
-		/*     /\* if (track->num_automations == 0) { *\/ */
-		/*     /\* 	track_add_automation(track, AUTO_VOL); *\/ */
-		/*     /\* } else if (track->num_automations == 1) { *\/ */
-		/*     /\* 	track_add_automation(track, AUTO_PAN); *\/ */
-		/*     /\* } else if (track->num_automations == 2) { *\/ */
-		/*     /\* 	track_add_automation(track, AUTO_PLAY_SPEED); *\/ */
-		/*     /\* } else if (track->num_automations == 3) { *\/ */
-		/*     /\* 	/\\* track_add_automation(track, AUTO_PLAY_SPEED); *\\/ *\/ */
-		/*     /\* 	track_add_automation(track, AUTO_FIR_FILTER_CUTOFF); *\/ */
-		/*     /\* } else if (track->num_automations == 4) { *\/ */
-		/*     /\* 	track_add_automation(track, AUTO_DEL_TIME); *\/ */
-		/*     /\* } else if (track->num_automations == 5) { *\/ */
-		/*     /\* 	/\\* track *\\/ *\/ */
-		/*     /\* 	track_add_automation(track, AUTO_DEL_AMP); *\/ */
-		/*     /\* } *\/ */
-			    
-		/*     track_automations_show_all(track); */
-
-
-		/* } break; */
-		/* case SDL_SCANCODE_X: */
-		/*     if (main_win->i_state & I_STATE_CMDCTRL) { */
-		/* 	main_win->i_state |= I_STATE_C_X; */
-		/*     } */
-		/*     break; */
 	        case SDL_SCANCODE_K:
 		    if (main_win->i_state & I_STATE_K) {
 			break;
@@ -293,19 +178,7 @@ void loop_project_main()
 		    }
 		    /* No break */
 		default:
-		    /* fprintf(stdout, "== SDLK_ */
-		    /* i_state = triage_keypdown(i_state, e.key.keysym.scancode); */
 		    input_fn  = input_get(main_win->i_state, e.key.keysym.sym);
-		    /* if (main_win->modes[main_win->num_modes - 1] == TEXT_EDIT) break; /\* Text Edit mode blocks all other modes *\/ */
-		    /* if (!input_fn) { */
-		    /* 	for (int i=main_win->num_modes - 1; i>=0; i--) { */
-		    /* 	    input_fn = input_get(main_win->i_state, e.key.keysym.sym); */
-		    /* 	    if (input_fn) { */
-		    /* 		break; */
-		    /* 	    } */
-		    /* 	} */
-		    /* } */
-		    /* fprintf(stdout, "Input fn? %p, do fn? %p\n", input_fn, input_fn->do_fn); */
 		    if (input_fn && input_fn->do_fn) {
 			char *keycmd_str = input_get_keycmd_str(main_win->i_state, e.key.keysym.sym);
 			status_set_callstr(keycmd_str);
@@ -351,7 +224,10 @@ void loop_project_main()
 		    }
 		    break;
 		default:
-		    stop_update_track_vol_pan();
+		    project_flush_ongoing_changes(proj, JDAW_THREAD_MAIN);
+		    project_flush_ongoing_changes(proj, JDAW_THREAD_DSP);
+		    proj->playhead_do_incr = false;
+		    /* stop_update_track_vol_pan(); */
 		    break;
 		}
 		break;
@@ -368,7 +244,23 @@ void loop_project_main()
 		    temp_scrolling_lt = modal_scrollable;
 		} else if (main_win->modes[main_win->num_modes - 1] == TIMELINE || main_win->modes[main_win->num_modes - 1] == TABVIEW) {
 		    if (main_win->i_state & I_STATE_SHIFT) {
-			timeline_play_speed_adj(e.wheel.preciseY);
+			if (fabs(e.wheel.preciseY) > fabs(e.wheel.preciseX)) {
+			    timeline_play_speed_adj(e.wheel.preciseY);
+			    if (!proj->playing) transport_start_playback();
+			} else {
+			    play_speed_scroll_recency = 0;
+			    if (!proj->playing) transport_start_playback();
+			    Value old_speed = endpoint_safe_read(&proj->play_speed_ep, NULL);
+			    if (main_win->i_state & I_STATE_CMDCTRL) {
+				float new_speed = (old_speed.float_v + e.wheel.preciseX) / 2;
+				endpoint_write(&proj->play_speed_ep, (Value){.float_v = new_speed}, true, true, true, false);				
+			    } else {
+				float new_speed = (old_speed.float_v + e.wheel.preciseX / 3.0) / 2;
+				endpoint_write(&proj->play_speed_ep, (Value){.float_v = new_speed}, true, true, true, false);				
+			    }
+
+			    /* timeline_scroll_playhead(e.wheel.preciseX); */
+			}
 			/* if (main_win->i_state & I_STATE_CMDCTRL) */
 			/*     /\* if (main_win->i_state & I_STATE_META) { *\/ */
 			/*     /\* 	Timeline *tl = proj->timelines[0]; *\/ */
@@ -477,6 +369,9 @@ void loop_project_main()
 		} else if (e.button.button == SDL_BUTTON_RIGHT) {
 		    main_win->i_state &= ~I_STATE_MOUSE_R;
 		}
+		project_flush_ongoing_changes(proj, JDAW_THREAD_MAIN);
+		project_flush_ongoing_changes(proj, JDAW_THREAD_DSP);
+
 		/* if (proj->currently_editing_slider) { */
 		/*     EventFn undofn; */
 		/*     EventFn redofn; */
@@ -535,12 +430,13 @@ void loop_project_main()
 	    }
 		
 	} /* End event handling */
-
-
 	Timeline *tl = proj->timelines[proj->active_tl_index];
 	wheel_event_recency++;
 	if (wheel_event_recency == INT_MAX)
 	    wheel_event_recency = 0;
+	play_speed_scroll_recency++;
+	if (play_speed_scroll_recency == INT_MAX)
+	    wheel_event_recency = 100;
 	if (scrolling_lt) {
 	    if (animate_step % 1 == 0) {
 		/* fingersdown = SDL_GetNumTouchFingers(-1); */
@@ -556,9 +452,27 @@ void loop_project_main()
 	}
 	
 	first_frame = false;
+	
+	if (fingersdown > 0 && play_speed_scroll_recency > 4 && play_speed_scroll_recency < 20) {
+	    Value old_speed = endpoint_safe_read(&proj->play_speed_ep, NULL);
+	    float new_speed = old_speed.float_v / 3.0;
+	    if (fabs(new_speed) < 1E-6) {
+		transport_stop_playback();
+		play_speed_scroll_recency = 20;
+		
+	    } else {
+		endpoint_write(&proj->play_speed_ep, (Value){.float_v = new_speed}, true, true, true, false);
+	    }
+
+	}
+	
 	if (proj->play_speed != 0 && !proj->source_mode) {
 	    timeline_catchup(tl);
 	    timeline_set_timecode(tl);
+	    for (int i=0; i<tl->num_click_tracks; i++) {
+		int bar, beat, subdiv;
+		click_track_bar_beat_subdiv(tl->click_tracks[i], tl->play_pos_sframes, &bar, &beat, &subdiv, NULL, true);
+	    }
 	}
 
 	if (animate_step == 255) {
@@ -566,8 +480,13 @@ void loop_project_main()
 	} else {
 	    animate_step++;
 	}
+        project_animations_do_frame();
 
-	update_track_vol_pan();
+	if (proj->playhead_do_incr) {
+	    timeline_scroll_playhead(proj->playhead_frame_incr);
+	}
+
+	/* update_track_vol_pan(); */
 
 	if (main_win->txt_editing) {
 	    if (main_win->txt_editing->cursor_countdown == 0) {
@@ -584,7 +503,10 @@ void loop_project_main()
 	    transport_recording_update_cliprects();
 	}
 	status_frame();
-	
+
+	project_do_ongoing_changes(proj, JDAW_THREAD_MAIN);
+	project_flush_val_changes(proj, JDAW_THREAD_MAIN);
+	project_flush_callbacks(proj, JDAW_THREAD_MAIN);
 	project_draw();
 
 
@@ -613,7 +535,8 @@ void loop_project_main()
 		    if (a->write) {
 			/* if (!a->current) a->current = automation_get_segment(a, play_pos_adj); */
 			int32_t frame_dur = proj->sample_rate * proj->play_speed / 30.0;
-			automation_do_write(a, play_pos_adj, play_pos_adj + frame_dur, proj->play_speed);
+			Value val = endpoint_safe_read(a->endpoint, NULL);
+			automation_do_write(a, val, play_pos_adj, play_pos_adj + frame_dur, proj->play_speed);
 		    }
 		    /* if (a->num_kclips > 0) { */
 		    /* 	kclipref_move(a->kclips, 500); */
@@ -624,24 +547,15 @@ void loop_project_main()
 		
 	    }
 	}
+
     end_auto_write:
 
 	
-	
-	/* window_end_draw(main_win); */
-	/**********************************************/
-
 	SDL_Delay(1);
 
-        /* end = clock(); */
-	/* fps += (float)CLOCKS_PER_SEC / (end - start); */
-	/* start = end; */
-	/* if (frame_ctr > 250) { */
-	/*     fps /= 250; */
-	/*     fprintf(stdout, "FPS: %f\n", fps); */
-	/*     frame_ctr = 0; */
-	/* } else { */
-	/*     frame_ctr++; */
-	/* } */
+
+	if (proj->do_tests) {
+	    TEST_FN_CALL(chaotic_user, &proj->do_tests, 60 * 10); /* 10s of really dumb tests */
+	}
     }
 }

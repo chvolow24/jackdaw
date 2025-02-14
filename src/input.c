@@ -1,26 +1,10 @@
 /*****************************************************************************************************************
-  Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation | built on SDL (https://libsdl.org/)
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
 ******************************************************************************************************************
 
-  Copyright (C) 2023 Charlie Volow
+  Copyright (C) 2023-2025 Charlie Volow
   
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files (the "Software"), to deal
-  in the Software without restriction, including without limitation the rights
-  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  copies of the Software, and to permit persons to whom the Software is
-  furnished to do so, subject to the following conditions:
-  
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
-  
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-  SOFTWARE.
+  Jackdaw is licensed under the GNU General Public License.
 
 *****************************************************************************************************************/
 
@@ -42,12 +26,12 @@
 #include "userfn.h"
 
 #define not_whitespace_char(c) (c != ' ' && c != '\n' && c != '\t')
-#define is_whitespace_char(c) (c == ' ' || c == '\n' || c == '\t')
+#define is_whitespace_char(c) ((c) == ' ' || (c) == '\n' || (c) == '\t')
 
 #define FN_REFERENCE_FILENAME "fn_reference.md"
 
-Mode *modes[NUM_INPUT_MODES];
-KeybNode *input_hash_table[INPUT_HASH_SIZE];
+static Mode *modes[NUM_INPUT_MODES];
+static KeybNode *input_hash_table[INPUT_HASH_SIZE];
 /* KeybNode *input_keyup_hash_table[INPUT_KEYUP_HASH_SIZE]; */
 extern Window *main_win;
 
@@ -110,7 +94,6 @@ static Mode *mode_create(InputMode im)
     Mode *mode = malloc(sizeof(Mode));
     mode->name = input_mode_str(im);
     mode->num_subcats = 0;
-    fprintf(stdout, "Inserting mode %s at index %d\n", mode->name, im);
     modes[im] = mode;	
     return mode;
 }
@@ -135,6 +118,10 @@ static ModeSubcat *mode_add_subcat(Mode *mode, const char *name)
 
 static void mode_subcat_add_fn(ModeSubcat *ms, UserFn *fn)
 {
+    if (ms->num_fns == MAX_MODE_SUBCAT_FNS) {
+	fprintf(stderr, "Reached maximum number of functions per subcat \"%s\"\n", ms->name);
+	exit(1);
+    }
     ms->fns[ms->num_fns] = fn;
     ms->num_fns++;
 }
@@ -174,6 +161,12 @@ static void mode_load_global()
 	"Summon menu",
 	user_global_menu);
     mode_subcat_add_fn(mc, fn);
+
+    fn = create_user_fn(
+	"escape",
+	"Escape",
+	user_global_escape);
+    mode_subcat_add_fn(mc, fn);
     
     fn = create_user_fn(
 	"quit",
@@ -212,6 +205,17 @@ static void mode_load_global()
 	user_global_open_file);
     mode_subcat_add_fn(mc, fn);
 
+    fn = create_user_fn(
+	"start_api_server",
+	"Start API server",
+	user_global_start_server);
+    mode_subcat_add_fn(mc, fn);
+
+    fn = create_user_fn(
+	"chaotic_user_test",
+	"Chaotic user test (debug only)",
+	user_global_chaotic_user_test);
+    mode_subcat_add_fn(mc, fn);
     /* fn = create_user_fn( */
     /* 	"start_or_stop_screenrecording", */
     /* 	"Start or stop screenrecording", */
@@ -250,7 +254,6 @@ static void mode_load_menu_nav()
 	user_menu_nav_prev_sctn);
     mode_subcat_add_fn(mc, fn);
 
-    
     fn = create_user_fn(
 	"menu_choose_item",
 	"Choose item",
@@ -342,6 +345,30 @@ static void mode_load_timeline()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
+	"tl_move_playhead_left",
+	"Move playhead left",
+	user_tl_move_playhead_left);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_move_playhead_right",
+	"Move playhead rigth",
+	user_tl_move_playhead_right);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_move_playhead_left_slow",
+	"Move playhead left (slow)",
+	user_tl_move_playhead_left_slow);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_move_playhead_right_slow",
+	"Move playhead right (slow)",
+	user_tl_move_playhead_right_slow);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
 	"tl_nudge_left",
 	"Nudge play position left (500 samples)",
 	user_tl_nudge_left);
@@ -416,6 +443,12 @@ static void mode_load_timeline()
 	"tl_move_track_up",
 	"Move selected track up",
 	user_tl_move_track_up);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_track_or_tracks_minimize",
+	"Minimize selected track(s)",
+	user_tl_tracks_minimize);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
@@ -510,9 +543,51 @@ static void mode_load_timeline()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
+	"tl_goto_next_beat",
+	"Go to next beat",
+	user_tl_goto_next_beat);
+    mode_subcat_add_fn(sc, fn);
+    
+    fn = create_user_fn(
+	"tl_goto_prev_beat",
+	"Go to prev beat",
+	user_tl_goto_prev_beat);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_goto_next_subdiv",
+	"Go to next subdiv",
+	user_tl_goto_next_subdiv);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_goto_prev_subdiv",
+	"Go to prev subdiv",
+	user_tl_goto_prev_subdiv);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_goto_next_measure",
+	"Go to next measure",
+	user_tl_goto_next_measure);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_goto_prev_measure",
+	"Go to prev measure",
+	user_tl_goto_prev_measure);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
 	"tl_bring_rear_clip_to_front",
 	"Bring rear clip at cursor to front",
 	user_tl_bring_rear_clip_to_front);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_toggle_loop_playback",
+	"Toggle loop playback",
+	user_tl_toggle_loop_playback);
     mode_subcat_add_fn(sc, fn);
 
     /* Audio output */
@@ -605,6 +680,32 @@ static void mode_load_timeline()
         user_tl_track_select_9);
     mode_subcat_add_fn(sc, fn);
 
+    /* Tempo tracks */
+    sc = mode_add_subcat(mode, "Tempo tracks");
+
+    fn = create_user_fn(
+	"tl_click_track_add",
+	"Add tempo track",
+        user_tl_click_track_add);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_click_track_set_tempo",
+	"Set tempo at cursor",
+	user_tl_click_track_set_tempo);
+    mode_subcat_add_fn(sc, fn);
+
+    /* fn = create_user_fn( */
+    /* 	"tl_click_track_cut", */
+    /* 	"Cut tempo track at cursor", */
+    /* 	user_tl_click_track_cut); */
+    /* mode_subcat_add_fn(sc, fn); */
+
+    /* fn = create_user_fn( */
+    /* 	"tl_click_track_set_tempo", */
+    /* 	"Set tempo at cursor", */
+    /* 	user_tl_click_track_set_tempo); */
+    /* mode_subcat_add_fn(sc, fn); */
 
     /* Track settings */
     sc = mode_add_subcat(mode, "Track settings");
@@ -725,7 +826,7 @@ static void mode_load_timeline()
 
     fn = create_user_fn(
 	"tl_cut_clipref",
-	"Cut clip at cursor",
+	"Cut",
 	user_tl_cut_clipref);
     mode_subcat_add_fn(sc, fn);
 
@@ -949,6 +1050,12 @@ void mode_load_text_edit()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
+	"text_edit_full_escape",
+	"Escape text edit",
+	user_text_edit_full_escape);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
 	"text_edit_backspace",
 	"Backspace",
 	user_text_edit_backspace);
@@ -1054,25 +1161,22 @@ static int input_hash(uint16_t i_state, SDL_Keycode key)
 char *input_get_keycmd_str(uint16_t i_state, SDL_Keycode keycode);
 
 UserFn *input_get(uint16_t i_state, SDL_Keycode keycode)
-{
-    /* fprintf(stdout, "KEYCMD STR: %s\n", input_get_keycmd_str(i_state, keycode)); */
+{    
     int hash = input_hash(i_state, keycode);
-
     int win_mode_i = main_win->num_modes - 1;
     InputMode mode = main_win->modes[win_mode_i];
-    while (win_mode_i >= 0) {
-	/* fprintf(stdout, "TESTING MODE: %s\n", input_mode_strs[mode]); */
-	KeybNode *node = input_hash_table[hash];
-	/* char *keycmd_str = input_get_keycmd_str(i_state, keycode); */
-	/* fprintf(stdout, "KEYCMD: %s\n", keycmd_str); */
-	/* free(keycmd_str); */
+    while (win_mode_i >= -1) {
+	KeybNode *init_node = input_hash_table[hash];
+	KeybNode *node = init_node;
 	if (!node) {
 	    return NULL;
 	}
 	while (1) {
-	    /* fprintf(stdout, "Modes: %d, %d; i_state: %d, %d; key: %d, %d\n", mode, node->kb->mode, i_state, node->kb->i_state, keycode, node->kb->keycode); */
-	    if ((node->kb->mode == mode || node->kb->mode == GLOBAL) && node->kb->i_state == i_state && node->kb->keycode == keycode) {
-		/* fprintf(stdout, "\t->Good!\n"); */
+	    /* if ((node->kb->mode == mode || node->kb->mode == GLOBAL) && node->kb->i_state == i_state && node->kb->keycode == keycode) { */
+	    if ((node->kb->mode == mode) && node->kb->i_state == i_state && node->kb->keycode == keycode) {
+		if (node->kb->mode == GLOBAL && mode == TEXT_EDIT) {
+		    txt_stop_editing(main_win->txt_editing);
+		}
 		return node->kb->fn;
 	    } else if (node->next) {
 		node = node->next;
@@ -1080,9 +1184,13 @@ UserFn *input_get(uint16_t i_state, SDL_Keycode keycode)
 		break;
 	    }
 	}
-	if (mode == TEXT_EDIT) return NULL;
+	if (mode == TEXT_EDIT) return NULL; /* No "sieve" for text edit mode */
 	win_mode_i--;
-	mode = main_win->modes[win_mode_i];
+	if (win_mode_i < 0) {
+	    mode = GLOBAL;
+	} else {
+	    mode = main_win->modes[win_mode_i];
+	}
     }
     return NULL;
 }
@@ -1297,14 +1405,19 @@ static int check_next_line_indent(FILE *f)
     char c;
     int ret = 0;
     while (fgetc(f) != '\n') {}
-    while (is_whitespace_char((c = fgetc(f)))) {
+    /* while (is_whitespace_char((c = fgetc(f)))) { */
+    while (1) {
+	c = fgetc(f);
 	if (c == EOF) {
 	    return -1;
+	}
+	if (!is_whitespace_char(c)) {
+	    ungetc(c, f);
+	    return ret;
 	}
 	ret++;
     }
     ungetc(c, f);
-    return ret;
     
 }
 
@@ -1500,6 +1613,8 @@ void input_load_keybinding_config(const char *filepath)
 	    uint16_t i_state = 0;
 	    SDL_Keycode key = 0;
 	    UserFn *fn = NULL;
+
+
 	    
 	    int next_line_indent;
 	    
@@ -1509,8 +1624,13 @@ void input_load_keybinding_config(const char *filepath)
 	    } else if (next_line_indent == 0) {
 		break;
 	    }
-
-	    while ((c = fgetc(f)) == '-' || c == ' ' || c == '\t') {}
+	    
+	    while ((c = fgetc(f)) == ' ' || c == '\t' || c == '\n') {}
+	    if (c != '-') {
+		fprintf(stderr, "YAML parse error; expected '-' and got '%c'\n", c);
+		exit(1);
+	    }
+	    while ((c = fgetc(f)) == ' ' || c == '\t') {}
 	    
 	    /* Get input pattern */
 	    i = 0;
@@ -1521,7 +1641,7 @@ void input_load_keybinding_config(const char *filepath)
 	    } while (c != ':' && c != ' ' && c != '\t');
 	    buf[i] = '\0';
 	    input_read_keycmd(buf, &i_state, &key);
-	    /* fprintf(stdout, "BUF: %s\n", buf); */
+	    
 	    while ((c = fgetc(f)) == ' ' || c == '\t' || c == ':') {}
 
 	    /* Get fn id*/

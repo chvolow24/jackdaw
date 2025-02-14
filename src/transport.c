@@ -1,26 +1,10 @@
 /*****************************************************************************************************************
-  Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation | built on SDL (https://libsdl.org/)
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
 ******************************************************************************************************************
 
-  Copyright (C) 2023 Charlie Volow
+  Copyright (C) 2023-2025 Charlie Volow
   
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files (the "Software"), to deal
-  in the Software without restriction, including without limitation the rights
-  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  copies of the Software, and to permit persons to whom the Software is
-  furnished to do so, subject to the following conditions:
-  
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
-  
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-  SOFTWARE.
+  Jackdaw is licensed under the GNU General Public License.
 
 *****************************************************************************************************************/
 
@@ -31,14 +15,13 @@
     * Playback and recording
  *****************************************************************************************************************/
 
-#include <pthread.h>
-#include <string.h>
 #include <unistd.h>
 #include "audio_connection.h"
 #include "dsp.h"
 #include "user_event.h"
 #include "mixdown.h"
 #include "project.h"
+#include "project_endpoint_ops.h"
 #include "pure_data.h"
 #include "status.h"
 #include "timeline.h"
@@ -50,6 +33,8 @@ extern Project *proj;
 extern SDL_Color color_global_red;
 extern SDL_Color color_global_play_green;
 extern SDL_Color color_global_quickref_button_blue;
+extern pthread_t DSP_THREAD_ID;
+extern pthread_t CURRENT_THREAD_ID;
 
 void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type);
 void transport_record_callback(void* user_data, uint8_t *stream, int len)
@@ -108,6 +93,7 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
 	/* fprintf(stdout, "Leftover: %d\n", dev->rec_buf_len_samples - (dev->write_bufpos_samples + stream_len_samples)); */
 	for (int i=proj->active_clip_index; i<proj->num_clips; i++) {
 	    Clip *clip = proj->clips[i];
+	    if (!clip->recorded_from) continue;
 	    if (clip->recorded_from->type == DEVICE && &clip->recorded_from->c.device == dev) {	
 		copy_conn_buf_to_clip(clip, DEVICE);
 	    }
@@ -202,7 +188,9 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 
 static void *transport_dsp_thread_fn(void *arg)
 {
-    /* fprintf(stdout, "\t\tSTART dsp thread\n"); */
+    DSP_THREAD_ID = pthread_self();
+    CURRENT_THREAD_ID = DSP_THREAD_ID;
+    
     Timeline *tl = (Timeline *)arg;
     
     if (pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL) != 0) {
@@ -218,24 +206,14 @@ static void *transport_dsp_thread_fn(void *arg)
     int N = len / proj->chunk_size_sframes;
     bool init = true;
     while (1) {
-	/* clock_t a,b; */
-	/* a = clock(); */
-
-	/* fprintf(stdout, "START DSP thread iter\n"); */
 	pthread_testcancel();
 	float play_speed = proj->play_speed;
 
 	/* GET MIXDOWN */
-	/* fprintf(stdout, "MIXDOWN:  */
-	/* clock_t am, bm; */
-	/* am = clock(); */
 	get_mixdown_chunk(tl, buf_L, 0, len, tl->read_pos_sframes, proj->play_speed);
 	get_mixdown_chunk(tl, buf_R, 1, len, tl->read_pos_sframes, proj->play_speed);
-	/* bm = clock(); */
-	/* fprintf(stdout, "\tmixdown: %lu\n", bm-am); */
 
 	/* DSP */
-
 	double dL[len];
 	double dR[len];
 	for (int i=0; i<len; i++) {
@@ -246,14 +224,35 @@ static void *transport_dsp_thread_fn(void *arg)
 	double complex rfreq[len];
 	FFT(dL, lfreq, len);
 	FFT(dR, rfreq, len);
-    /* double *ok = malloc(sizeof(double) * proj->chunk_size_sframes); */
+
 	get_magnitude(lfreq, proj->output_L_freq, len);
 	get_magnitude(rfreq, proj->output_R_freq, len);
 
-
-
-	/* Copy buffer */
+	/* Move the read (DSP) pos */
 	tl->read_pos_sframes += len * play_speed;
+
+	if (tl->proj->loop_play) {
+	    int32_t loop_len = tl->out_mark_sframes - tl->in_mark_sframes;
+	    if (loop_len > 0) {
+		int64_t remainder = tl->read_pos_sframes - tl->out_mark_sframes;
+		/* int32_t remainder = tl->read_pos_sframes - tl->out_mark_sframes; */
+		if (remainder > 0) {
+		    if (remainder > loop_len) remainder = 0;
+		    tl->read_pos_sframes = tl->in_mark_sframes + remainder;
+		}
+	    }
+	}
+
+	/* if (proj->loop_play && tl->out_mark_sframes > tl->in_mark_sframes) { */
+	/*     int32_t remainder = tl->read_pos_sframes - tl->out_mark_sframes; */
+	/*     if (remainder > 0) { */
+	/* 	int32_t new_pos = tl->in_mark_sframes + remainder; */
+	/* 	if (new_pos > tl->out_mark_sframes) new_pos = tl->in_mark_sframes; */
+	/* 	tl->read_pos_sframes = new_pos; */
+	/*     } */
+	/* } */
+
+	/* Copy buffer */	
 	for (int i=0; i<N; i++) {
 	    sem_wait(tl->writable_chunks);
 	}
@@ -265,6 +264,7 @@ static void *transport_dsp_thread_fn(void *arg)
 	for (uint16_t i=proj->active_clip_index; i<proj->num_clips; i++) {
 	    Clip *clip = proj->clips[i];
 	    AudioConn *conn = clip->recorded_from;
+	    if (!conn) continue;
 	    if (conn->type == JACKDAW) {
 		/* if (conn->c.jdaw.write_bufpos_sframes + len < conn->c.jdaw.rec_buf_len_sframes) { */
 		memcpy(conn->c.jdaw.rec_buffer_L + conn->c.jdaw.write_bufpos_sframes, buf_L, sizeof(float) * len);
@@ -289,9 +289,10 @@ static void *transport_dsp_thread_fn(void *arg)
 	    sem_post(tl->unpause_sem);
 	    init = false;
 	}
-	/* fprintf(stdout, "END DSP THREAD iter\n"); */
-	/* b = clock(); */
-	/* fprintf(stdout, "DSP time: %lu\n", b-a); */
+
+	project_do_ongoing_changes(proj, JDAW_THREAD_DSP);
+	project_flush_val_changes(proj, JDAW_THREAD_DSP);
+	project_flush_callbacks(proj, JDAW_THREAD_DSP);
     }
     return NULL;
 }
@@ -484,7 +485,6 @@ void transport_start_recording()
 	/* device_open(proj, dev); */
 	/* device_start_recording(dev); */
     }
-    fprintf(stdout, "OPENED ALL DEVICES TO RECORD\n");
     for (uint8_t i=0; i<num_conns_to_activate; i++) {
 	conn = conns_to_activate[i];
 	audioconn_start_recording(conn);
@@ -613,14 +613,21 @@ void transport_stop_recording()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
     tl->needs_redraw = true;
-    ClipRef **created_clips = calloc(tl->num_tracks, sizeof(ClipRef *));
-    uint8_t num_created = 0;
+    ClipRef **created_clips = calloc(tl->num_tracks * 2, sizeof(ClipRef *));
+    uint16_t num_created = 0;
     for (uint16_t i=proj->active_clip_index; i<proj->num_clips; i++) {
 	Clip *clip = proj->clips[i];
-	for (uint16_t j=0; j<clip->num_refs; j++) {
-	    ClipRef *ref = clip->refs[j];
-	    created_clips[num_created] = ref;
-	    num_created++;
+	if (clip->len_sframes == 0) {
+	    clip_destroy(clip);
+	} else {
+	    for (uint16_t j=0; j<clip->num_refs; j++) {
+		ClipRef *ref = clip->refs[j];
+		if (num_created >= tl->num_tracks * 2 - 1) {
+		    created_clips = realloc(created_clips, num_created * 2 * sizeof(ClipRef *));
+		}
+		created_clips[num_created] = ref;
+		num_created++;
+	    }
 	}
     }
     created_clips = realloc(created_clips, num_created * sizeof(ClipRef *));
@@ -657,6 +664,10 @@ void transport_stop_recording()
 	Clip *clip = proj->clips[proj->active_clip_index];
 	/* fprintf(stdout, "CLIP BUFFERS: %p, %p\n", clip->L, clip->R); */
 	/* exit(0); */
+	if (!clip->recorded_from) {
+	    proj->active_clip_index++;
+	    continue;
+	}
 	switch (clip->recorded_from->type) {
 	case DEVICE:
 	    copy_conn_buf_to_clip(clip, DEVICE);
@@ -670,6 +681,7 @@ void transport_stop_recording()
 	    break;
 	    
 	}
+	fprintf(stderr, "SETTING %s rec to false\n", clip->name);
 	clip->recording = false;
 	proj->active_clip_index++;
     }
@@ -690,13 +702,13 @@ void transport_set_mark(Timeline *tl, bool in)
 	} else {
 	    tl->out_mark_sframes = tl->play_pos_sframes;
 	}
+	timeline_reset_loop_play_lemniscate(tl);
     } else {
 	if (in) {
 	    proj->src_in_sframes = proj->src_play_pos_sframes;
 	} else {
 	    proj->src_out_sframes = proj->src_play_pos_sframes;
 	}
-		
     }
     tl->needs_redraw = true;
 }
@@ -709,12 +721,13 @@ void transport_set_mark_to(Timeline *tl, int32_t pos, bool in)
 	} else {
 	    tl->out_mark_sframes = pos;
 	}
+	timeline_reset_loop_play_lemniscate(tl);
     } else if (proj->source_mode) {
 	if (in) {
 	    proj->src_in_sframes = pos;
 	} else {
 	    proj->src_out_sframes = pos;
-	}	
+	}
     }
 }
 
@@ -734,6 +747,7 @@ void transport_recording_update_cliprects()
 	/* fprintf(stdout, "updating %d/%d\n", i, proj->num_clips); */
 	Clip *clip = proj->clips[i];
 
+	if (!clip->recorded_from) continue; /* E.g. wav loaded during recording */
 	switch(clip->recorded_from->type) {
 	case DEVICE:
 	    clip->len_sframes = clip->recorded_from->c.device.write_bufpos_samples / clip->channels + clip->write_bufpos_sframes;

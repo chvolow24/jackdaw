@@ -1,16 +1,20 @@
 #ifndef JDAW_GUI_USERFN_H
 #define JDAW_GUI_USERFN_H
 
+#include "test.h"
 
 void user_global_menu(void *nullarg);
+void user_global_escape(void *nullarg);
 void user_global_quit(void *nullarg);
 void user_global_undo(void *nullarg);
 void user_global_redo(void *nullarg);
 void user_global_show_output_freq_domain(void *nullarg);
 void user_global_save_project(void *nullarg);
 void user_global_open_file(void *nullarg);
-void user_global_start_or_stop_screenrecording(void *nullarg);
+void user_global_start_server(void *nullarg);
 
+void user_global_start_or_stop_screenrecording(void *nullarg);
+void user_global_chaotic_user_test(void *nullarg);
 
 
 void user_menu_nav_next_item(void *nullarg);
@@ -34,6 +38,10 @@ void user_tl_pause(void *nullarg);
 void user_tl_rewind(void *nullarg);
 void user_tl_play_slow(void *nullarg);
 void user_tl_rewind_slow(void *nullarg);
+void user_tl_move_playhead_left(void *nullarg);
+void user_tl_move_playhead_right(void *nullarg);
+void user_tl_move_playhead_left_slow(void *nullarg);
+void user_tl_move_playhead_right_slow(void *nullarg);
 void user_tl_nudge_left(void *nullarg);
 void user_tl_nudge_right(void *nullarg);
 void user_tl_small_nudge_left(void *nullarg);
@@ -51,6 +59,17 @@ void user_tl_goto_mark_in(void *nullarg);
 void user_tl_goto_zero(void *nullarg);
 void user_tl_goto_previous_clip_boundary(void *nullarg);
 void user_tl_goto_next_clip_boundary(void *nullarg);
+
+void user_tl_goto_next_beat(void *nullarg);
+void user_tl_goto_prev_beat(void *nullarg);
+void user_tl_goto_next_subdiv(void *nullarg);
+void user_tl_goto_prev_subdiv(void *nullarg);
+void user_tl_goto_next_measure(void *nullarg);
+void user_tl_goto_prev_measure(void *nullarg);
+
+void user_tl_bring_rear_clip_to_front(void *nullarg);
+
+void user_tl_toggle_loop_playback(void *nullarg);
 void user_tl_bring_rear_clip_to_front(void *nullarg);
 /* void user_tl_play_drag(void *nullarg); */
 /* void user_tl_rewind_drag(void *nullarg); */
@@ -74,16 +93,24 @@ void user_tl_track_selector_up(void *nullarg);
 void user_tl_track_selector_down(void *nullarg);
 void user_tl_move_track_up(void *nullarg);
 void user_tl_move_track_down(void *nullarg);
+void user_tl_tracks_minimize(void *nullarg);
 void user_tl_track_activate_selected(void *nullarg);
 void user_tl_track_rename(void *nullarg);
 void user_tl_track_toggle_in(void *nullarg);
 void user_tl_track_set_in(void *nullarg);
 void user_tl_track_add_filter(void *nullarg);
-void user_tl_track_destroy(void *nullarg);
+/* void user_tl_track_destroy(void *nullarg); */
 void user_tl_track_delete(void *nullarg);
+
+void user_tl_click_track_add(void *nullarg);
+void user_tl_click_track_cut(void *nullarg);
+void user_tl_click_track_set_tempo(void *nullarg);
+
+
 void user_tl_track_show_hide_automations(void *nullarg);
 void user_tl_track_add_automation(void *nullarg);
 void user_tl_track_automation_toggle_read(void *nullarg);
+
 
 void user_tl_track_open_settings(void *nullarg);
 void user_tl_mute(void *nullarg);
@@ -140,6 +167,7 @@ void user_modal_submit_form(void *nullarg);
 
 
 void user_text_edit_escape(void *nullarg);
+void user_text_edit_full_escape(void *nullarg);
 void user_text_edit_backspace(void *nullarg);
 void user_text_edit_cursor_right(void *nullarg);
 void user_text_edit_cursor_left(void *nullarg);
@@ -156,4 +184,3 @@ void user_tabview_previous_tab(void *nullarg);
 void user_tabview_escape(void *nullarg);
 
 #endif
-

@@ -1,26 +1,10 @@
 /*****************************************************************************************************************
-  Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation | built on SDL (https://libsdl.org/)
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
 ******************************************************************************************************************
 
-  Copyright (C) 2023 Charlie Volow
+  Copyright (C) 2023-2025 Charlie Volow
   
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files (the "Software"), to deal
-  in the Software without restriction, including without limitation the rights
-  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  copies of the Software, and to permit persons to whom the Software iso
-  furnished to do so, subject to the following conditions:
-  
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
-  
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-  SOFTWARE.
+  Jackdaw is licensed under the GNU General Public License.
 
 *****************************************************************************************************************/
 
@@ -37,10 +21,13 @@
 #include <string.h>
 #include <semaphore.h>
 #include <fcntl.h>
+#include "assets.h"
 #include "audio_connection.h"
 #include "color.h"
 #include "components.h"
 #include "dsp.h"
+#include "endpoint.h"
+#include "endpoint_callbacks.h"
 #include "input.h"
 #include "layout.h"
 #include "layout_xml.h"
@@ -57,22 +44,9 @@
 #include "waveform.h"
 #include "window.h"
 
-#ifndef INSTALL_DIR
-#define INSTALL_DIR "."
-#endif
-
-#define LAYOUT_PATH INSTALL_DIR "/assets/layouts"
-#define MAIN_LT_PATH LAYOUT_PATH "/jackdaw_main_layout.xml"
-#define TRACK_LT_PATH LAYOUT_PATH "/track_template.xml"
-#define QUICKREF_LT_PATH LAYOUT_PATH "/quickref.xml"
-#define SOURCE_AREA_LT_PATH LAYOUT_PATH "/source_area.xml"
-#define OUTPUT_PANEL_LT_PATH LAYOUT_PATH "/output_panel.xml"
-#define OUTPUT_SPECTRUM_LT_PATH LAYOUT_PATH "/output_spectrum.xml"
-
 #define DEFAULT_SFPP 600
 #define CR_RECT_V_PAD (4 * main_win->dpi_scale_factor)
 #define NUM_TRACK_COLORS 7
-
 
 #define CLIPREF_NAMELABEL_H 20
 #define CLIPREF_NAMELABEL_H_PAD 8
@@ -86,10 +60,6 @@
 #define STATUS_BAR_H (14 * main_win->dpi_scale_factor)
 #define STATUS_BAR_H_PAD (10 * main_win->dpi_scale_factor);
 
-#define TRACK_VOL_STEP 0.03
-#define TRACK_PAN_STEP 0.01
-
-
 #define SEM_NAME_UNPAUSE "/tl_%d_unpause_sem"
 #define SEM_NAME_WRITABLE_CHUNKS "/tl_%d_writable_chunks"
 #define SEM_NAME_READABLE_CHUNKS "/tl_%d_readable_chunks"
@@ -97,6 +67,8 @@
 #define PLAYSPEED_ADJUST_SCALAR_LARGE 0.1f
 #define PLAYSPEED_ADJUST_SCALAR_SMALL 0.015f
 
+#define PLAYHEAD_ADJUST_SCALAR_LARGE 0.001f;
+#define PLAYHEAD_ADJUST_SCALAR_SMALL 0.00015f
 
 extern Window *main_win;
 extern Project *proj;
@@ -153,7 +125,11 @@ uint8_t project_add_timeline(Project *proj, char *name)
     new_tl->index = proj->num_timelines;
     Layout *tl_lt = layout_get_child_by_name_recursive(proj->layout, "timeline");
     if (new_tl->index != 0) {
-	Layout *cpy = layout_copy(tl_lt, tl_lt->parent);
+	Layout *main_lt_fresh = layout_read_from_xml(MAIN_LT_PATH);
+	Layout *new_tl_lt = layout_get_child_by_name_recursive(main_lt_fresh, "timeline");
+	Layout *cpy = layout_copy(new_tl_lt, tl_lt->parent);
+	layout_destroy(main_lt_fresh);
+	/* Layout *cpy = layout_copy(tl_lt, tl_lt->parent); */
 	new_tl->layout = cpy;
     } else {
 	new_tl->layout = tl_lt;
@@ -176,13 +152,32 @@ uint8_t project_add_timeline(Project *proj, char *name)
     new_tl->timecode_tb = textbox_create_from_str(
 	new_tl->timecode.str,
 	tc_lt,
-	main_win->std_font,
-	18,
+	main_win->mono_bold_font,
+	16,
 	main_win);
     textbox_set_background_color(new_tl->timecode_tb, &color_global_black);
     textbox_set_text_color(new_tl->timecode_tb, &color_global_white);
     textbox_set_trunc(new_tl->timecode_tb, false);
 
+    Layout *ruler_lt = layout_get_child_by_name_recursive(new_tl->layout, "ruler");
+    Layout *lemniscate_lt = layout_add_child(ruler_lt);
+    lemniscate_lt->h.type = SCALE;
+    lemniscate_lt->h.value = 1.0;
+    lemniscate_lt->w.type = ABS;
+    lemniscate_lt->w.value = 500.0;
+    lemniscate_lt->x.type = ABS;
+    lemniscate_lt->x.value = 0.0;
+    layout_force_reset(lemniscate_lt);
+    new_tl->loop_play_lemniscate = textbox_create_from_str(
+	"∞",
+	lemniscate_lt,
+	main_win->std_font,
+	24,
+	main_win);
+    textbox_set_background_color(new_tl->loop_play_lemniscate, &color_global_clear);
+    textbox_set_text_color(new_tl->loop_play_lemniscate, &color_global_white);
+    textbox_reset_full(new_tl->loop_play_lemniscate);
+    
     new_tl->buf_L = calloc(1, sizeof(float) * proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS);
     new_tl->buf_R = calloc(1, sizeof(float) * proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS);
     new_tl->buf_write_pos = 0;
@@ -243,14 +238,19 @@ retry3:
     new_tl->needs_redraw = true;
     proj->timelines[proj->num_timelines] = new_tl;
     proj->num_timelines++;
+
+    api_node_register(&new_tl->api_node, &new_tl->proj->server.api_root, new_tl->name);
+    
     return proj->num_timelines - 1; /* Return the new timeline index */
 }
 
 static void timeline_destroy(Timeline *tl, bool displace_in_proj)
 {
     for (uint8_t i=0; i<tl->num_tracks; i++) {
-	/* fprintf(stdout, "DESTROYING track %d/%d\n", i, tl->num_tracks); */
 	track_destroy(tl->tracks[i], false);
+    }
+    for (uint8_t i=0; i<tl->num_click_tracks; i++) {
+	click_track_destroy(tl->click_tracks[i]);
     }
     /* tl->proj->num_timelines--; */
     if (displace_in_proj) {
@@ -268,6 +268,7 @@ static void timeline_destroy(Timeline *tl, bool displace_in_proj)
     if (tl->buf_R) free(tl->buf_R);
 
     if (tl->timecode_tb) textbox_destroy(tl->timecode_tb);
+    if (tl->loop_play_lemniscate) textbox_destroy(tl->loop_play_lemniscate);
 
     if (sem_close(tl->unpause_sem) != 0) perror("Sem close");
     if (sem_close(tl->writable_chunks) != 0) perror("Sem close");
@@ -300,6 +301,7 @@ void project_destroy(Project *proj)
 	transport_stop_playback();
     }
 
+    /* api_quit(proj); */
     user_event_history_destroy(&proj->history);
     /* fprintf(stdout, "PROJECT_DESTROY num tracks: %d\n", proj->timelines[0]->num_tracks); */
     for (uint16_t i=0; i<proj->num_clips; i++) {
@@ -329,6 +331,11 @@ void project_destroy(Project *proj)
     if (proj->status_bar.call) textbox_destroy(proj->status_bar.call);
     if (proj->status_bar.dragstat) textbox_destroy(proj->status_bar.dragstat);
     if (proj->status_bar.error) textbox_destroy(proj->status_bar.error);
+
+    project_destroy_animations(proj);
+    project_destroy_metronomes(proj);
+    project_loading_screen_deinit(proj);
+
     free(proj);
 }
 
@@ -426,69 +433,15 @@ Project *project_create(
 
 
     project_init_audio_conns(proj);
-
-
-
-
-
-    
-    /* Layout *out_label_lt, *out_value_lt; */
-    /* out_label_lt = layout_get_child_by_name_recursive(proj->layout, "default_out_label"); */
-    /* out_value_lt = layout_get_child_by_name_recursive(proj->layout, "default_out_value"); */
-    /* proj->tb_out_label = textbox_create_from_str( */
-    /* 	"Default Out:", */
-    /* 	out_label_lt, */
-    /* 	main_win->bold_font, */
-    /* 	12, */
-    /* 	main_win); */
-    /* /\* fprintf(stdout, "PROJ %p out label %p\n", proj, proj->tb_out_label); *\/ */
-    /* textbox_set_align(proj->tb_out_label, CENTER_LEFT); */
-    /* textbox_set_background_color(proj->tb_out_label, &color_global_clear); */
-    /* textbox_set_text_color(proj->tb_out_label, &color_global_white); */
-    
-    /* proj->tb_out_value = textbox_create_from_str( */
-    /* 	(char *)proj->playback_conn->name, */
-    /* 	out_value_lt, */
-    /* 	main_win->std_font, */
-    /* 	12, */
-    /* 	main_win); */
-    /* textbox_set_align(proj->tb_out_value, CENTER_LEFT); */
-    /* proj->tb_out_value->corner_radius = 6; */
-    /* /\* textbox_set_align(proj->tb_out_value, CENTER); *\/ */
-    /* int saved_w = proj->tb_out_value->layout->rect.w / main_win->dpi_scale_factor; */
-    /* textbox_size_to_fit(proj->tb_out_value, 2, 1); */
-    /* textbox_set_fixed_w(proj->tb_out_value, saved_w - 10); */
-    /* textbox_set_border(proj->tb_out_value, &color_global_black, 1); */
-
-    /* Layout *output_l_lt, *output_r_lt; */
-    /* output_l_lt = layout_get_child_by_name_recursive(proj->layout, "out_waveform_left"); */
-    /* output_r_lt = layout_get_child_by_name_recursive(proj->layout, "out_waveform_right"); */
-
-    /* proj->outwav_l_rect = &output_l_lt->rect; */
-    /* proj->outwav_r_rect = &output_r_lt->rect; */
-
-
-
+    project_init_metronomes(proj);
 
     Layout *panels_layout = layout_get_child_by_name_recursive(control_bar_layout, "panel_area");
     project_init_panels(proj, panels_layout);
-
-
     
-    /* Layout *status_bar_lt = layout_add_child(proj->layout); */
-    /* layout_set_name(status_bar_lt, "status_bar"); */
     Layout *status_bar_lt = layout_get_child_by_name_recursive(proj->layout, "status_bar");
     Layout *draglt = layout_add_child(status_bar_lt);
     Layout *calllt = layout_add_child(status_bar_lt);
     Layout *errlt = layout_add_child(status_bar_lt);
-    /* calllt->w.type = SCALE; */
-    /* errlt->w.type = SCALE; */
-    /* calllt->w.value.floatval = 1.0; */
-    /* errlt->w.value.floatval = 1.0f; */ 
-    /* status_bar_lt->y.type = REVREL; */
-    /* status_bar_lt->w.type = SCALE; */
-    /* status_bar_lt->w.value.floatval = 1.0; */
-    /* status_bar_lt->h.value.intval = STATUS_BAR_H; */
     proj->status_bar.layout = status_bar_lt;
 
     draglt->h.type = SCALE;
@@ -544,6 +497,41 @@ Project *project_create(
     proj->bun_patty_bun[0] = &hamburger_lt->children[0]->children[0]->rect;
     proj->bun_patty_bun[1] = &hamburger_lt->children[1]->children[0]->rect;
     proj->bun_patty_bun[2] = &hamburger_lt->children[2]->children[0]->rect;
+
+
+    
+    int err;
+    /* if ((err = pthread_mutex_init(&proj->animation_lock, NULL)) != 0) { */
+    /* 	fprintf(stderr, "Error initializing animation mutex: %s\n", strerror(err)); */
+    /* 	exit(1); */
+    /* } */
+
+    if ((err = pthread_mutex_init(&proj->queued_val_changes_lock, NULL)) != 0) {
+	fprintf(stderr, "Error initializing queued val changes mutex: %s\n", strerror(err));
+	exit(1);
+    }
+    if ((err = pthread_mutex_init(&proj->queued_callback_lock, NULL)) != 0) {
+	fprintf(stderr, "Error initializing queued callback mutex: %s\n", strerror(err));
+	exit(1);
+    }
+    if ((err = pthread_mutex_init(&proj->ongoing_changes_lock, NULL)) != 0) {
+	fprintf(stderr, "Error initializing ongoing changes mutex: %s\n", strerror(err));
+	exit(1);
+    }
+    /* Initialize endpoints */
+    endpoint_init(
+	&proj->play_speed_ep,
+	&proj->play_speed,
+	JDAW_FLOAT,
+	"play_speed",
+	"undo/redo play speed adj",
+	JDAW_THREAD_MAIN,
+	play_speed_gui_cb, NULL, NULL,
+	NULL, NULL, NULL, NULL);
+    
+    api_endpoint_register(&proj->play_speed_ep, &proj->server.api_root);			  
+    /* api_start_server(proj, 9302); */
+
     return proj;
 }
 
@@ -690,6 +678,7 @@ static inline void project_init_output_panel(Page *output, Project *proj)
 	"panel_out_value",
 	"default_out_value");
     textbox_set_trunc(((Button *)el->component)->tb, true);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
     
     void **output_L, **output_R;
     output_L = (void *)&(proj->output_L);
@@ -763,7 +752,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
     p.button_p.text_size = 14;
     /* q->add_track = create_button_from_params(button_lt, b); */
     
-    page_add_el_custom_layout(
+    PageEl *el = page_add_el_custom_layout(
 	quickref1,
 	EL_BUTTON,
 	p,
@@ -771,12 +760,13 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row1,
 	"add_track",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
 
     p.button_p.action = quickref_record;
     p.button_p.set_str = "r ⏺";
     /* q->record = create_button_from_params(button_lt, b); */
-    page_add_el_custom_layout(
+    el = page_add_el_custom_layout(
 	quickref1,
 	EL_BUTTON,
 	p,
@@ -784,6 +774,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row1,
 	"record",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
 
     /* /\* ROW 2 *\/ */
@@ -791,7 +782,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
     p.button_p.font = main_win->mono_font;
     p.button_p.action = quickref_left;
     p.button_p.set_str = "h ←";
-    page_add_el_custom_layout(
+    el = page_add_el_custom_layout(
 	quickref1,
 	EL_BUTTON,
 	p,
@@ -799,6 +790,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row2,
 	"left",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->left = create_button_from_params(button_lt, b); */
 
@@ -806,7 +798,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
     p.button_p.font = main_win->symbolic_font;
     p.button_p.action = quickref_rewind;
     p.button_p.set_str = "j ⏴";
-    page_add_el_custom_layout(
+    el = page_add_el_custom_layout(
 	quickref1,
 	EL_BUTTON,
 	p,
@@ -814,13 +806,15 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row2,
 	"rewind",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
+    
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->rewind = create_button_from_params(button_lt, b); */
 
     /* button_lt = create_quickref_button_lt(row2); */
     p.button_p.action = quickref_pause;
     p.button_p.set_str = "k ⏸";
-    page_add_el_custom_layout(
+    el = page_add_el_custom_layout(
 	quickref1,
 	EL_BUTTON,
 	p,
@@ -828,6 +822,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row2,
 	"pause",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->pause = create_button_from_params(button_lt, b); */
 
@@ -835,7 +830,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
     p.button_p.action = quickref_play;
     p.button_p.set_str = "l ⏵";
 
-    page_add_el_custom_layout(
+    el = page_add_el_custom_layout(
 	quickref1,
 	EL_BUTTON,
 	p,
@@ -843,6 +838,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row2,
 	"play",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* Q->play = create_button_from_params(button_lt, b); */
 
@@ -851,7 +847,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
     p.button_p.action = quickref_right;
     p.button_p.set_str = "; →";
 
-    page_add_el_custom_layout(
+    el = page_add_el_custom_layout(
 	quickref1,
 	EL_BUTTON,
 	p,
@@ -859,6 +855,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row2,
 	"right",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->right = create_button_from_params(button_lt, b); */
 
@@ -869,7 +866,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
     p.button_p.action = quickref_next;
     p.button_p.set_str = "n ↓";
 
-    page_add_el_custom_layout(
+    el = page_add_el_custom_layout(
 	quickref1,
 	EL_BUTTON,
 	p,
@@ -877,6 +874,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row3,
 	"next",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->next = create_button_from_params(button_lt, b); */
 
@@ -884,7 +882,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
     p.button_p.action = quickref_previous;
     p.button_p.set_str = "p ↑";
 
-    page_add_el_custom_layout(
+    el = page_add_el_custom_layout(
 	quickref1,
 	EL_BUTTON,
 	p,
@@ -892,6 +890,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row3,
 	"previous",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->previous = create_button_from_params(button_lt, b); */
 
@@ -900,7 +899,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
     p.button_p.font = main_win->symbolic_font;
     p.button_p.action = quickref_zoom_out;
     p.button_p.set_str = ", 🔍-";
-    page_add_el_custom_layout(
+    el = page_add_el_custom_layout(
 	quickref1,
 	EL_BUTTON,
 	p,
@@ -908,13 +907,14 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row3,
 	"zoom_out",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->zoom_out = create_button_from_params(button_lt, b); */
 
     /* button_lt = create_quickref_button_lt(row3); */
     p.button_p.action = quickref_zoom_in;
     p.button_p.set_str = ". 🔍+";
-    page_add_el_custom_layout(
+    el = page_add_el_custom_layout(
 	quickref1,
 	EL_BUTTON,
 	p,
@@ -922,6 +922,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row3,
 	"zoom_in",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
 
     
@@ -955,7 +956,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
     p.button_p.action = quickref_open_file;
     p.button_p.text_size = 12;
     p.button_p.set_str = "Open file (C-o)";
-    page_add_el_custom_layout(
+    el = page_add_el_custom_layout(
 	quickref2,
 	EL_BUTTON,
 	p,
@@ -963,12 +964,13 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row1,
 	"open_file",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
 
 
     p.button_p.action = quickref_save;
     p.button_p.set_str = "Save (C-s)";
-    page_add_el_custom_layout(
+    el = page_add_el_custom_layout(
 	quickref2,
 	EL_BUTTON,
 	p,
@@ -976,13 +978,14 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row1,
 	"save",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
 
 
     p.button_p.action = quickref_export_wav;
     p.button_p.set_str = "Export wav (S-w)";
     
-    page_add_el_custom_layout(
+    el = page_add_el_custom_layout(
 	quickref2,
 	EL_BUTTON,
 	p,
@@ -990,12 +993,13 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row2,
 	"export_wav",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
 
     p.button_p.action = quickref_track_settings;
     p.button_p.set_str = "Track settings (S-t)";
 
-    page_add_el_custom_layout(
+    el = page_add_el_custom_layout(
 	quickref2,
 	EL_BUTTON,
 	p,
@@ -1003,6 +1007,7 @@ static inline void project_init_quickref_panels(Page *quickref1, Page *quickref2
 	row3,
 	"track_settings",
 	create_quickref_button_lt);
+    textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
 	/* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
 }
 
@@ -1230,34 +1235,6 @@ void project_init_audio_conns(Project *proj)
 
 /* /\* Type: `void (*)(char *, size_t, ValType, void *)`   *\/ */
 
-
-static void slider_label_amp_to_dbstr(char *dst, size_t dstsize, void *value, ValType type)
-{
-    float amp = type == JDAW_DOUBLE ? *(double *)value : *(float *)value;
-    label_amp_to_dbstr(dst, dstsize, amp);
-    /* int max_float_chars = dstsize - 2; */
-    /* if (max_float_chars < 1) { */
-    /* 	fprintf(stderr, "Error: no room for dbstr\n"); */
-    /* 	dst[0] = '\0'; */
-    /* 	return; */
-    /* } */
-    /* snprintf(dst, max_float_chars, "%.2f", amp_to_db(amp)); */
-    /* strcat(dst, " dB"); */
-}
-
-static void slider_label_pan(char *dst, size_t dstsize, void *value, ValType type)
-{
-    float val = *(float *)value;
-    label_pan(dst, dstsize, val);
-    /* if (val < 0.5) {	 */
-    /* 	snprintf(dst, dstsize, "%.1f%% L", (0.5 - val) * 200); */
-    /* } else if (val > 0.5) { */
-    /* 	snprintf(dst, dstsize, "%.1f%% R", (val - 0.5) * 200); */
-    /* } else { */
-    /* 	snprintf(dst, dstsize, "C"); */
-    /* } */
-}
-
 /* static void slider_label_plain_str(char *dst, size_t dstsize, void *value, ValType type) */
 /* { */
 /*     double value_d = type == JDAW_DOUBLE ? *(double *)value : *(float *)value; */
@@ -1295,10 +1272,16 @@ static NEW_EVENT_FN(redo_rename_object, "redo rename object")
 /* } */
     
 
-static int name_completion(Text *txt)
-{
+static int name_completion(Text *txt, void *obj)
+{   
     Value nullval = {.int_v = 0};
     char *old_value = strdup(txt->cached_value);
+
+    if (obj) {
+	APINode *node = (APINode *)obj;
+	api_node_renamed(node);
+    }
+    
     user_event_push(
 	&proj->history,
 	undo_rename_object,
@@ -1332,6 +1315,92 @@ void timeline_rectify_track_area(Timeline *tl)
 {
     layout_force_reset(tl->track_area);
     layout_size_to_fit_children_v(tl->track_area, true, 0);
+}
+
+void timeline_rectify_track_indices(Timeline *tl)
+{
+    if (tl->layout_selector >= tl->track_area->num_children) {
+	tl->layout_selector = tl->track_area->num_children - 1;
+    }
+    if (tl->layout_selector < 0 && tl->track_area->num_children > 0) {
+	tl->layout_selector = 0;
+    }
+
+    /* fprintf(stderr, "Rectify\n"); */
+    int click_track_index = 0;
+    int track_index = 0;
+    
+    Track *track_stack[tl->num_tracks];
+    ClickTrack *click_track_stack[tl->num_click_tracks];
+    
+    for (int i=0; i<tl->track_area->num_children; i++) {
+	Layout *lt = tl->track_area->children[i];
+	bool is_selected_lt = i == tl->layout_selector;
+	for (uint8_t j=0; j<tl->num_tracks; j++) {
+	    Track *track = tl->tracks[j];
+	    if (track->layout == lt) {
+		track_stack[track_index] = track;
+		track->tl_rank = track_index;
+		if (is_selected_lt) {
+		    tl->track_selector = track_index;
+		    tl->click_track_selector = -1;
+		}
+		track_index++;
+		break;
+	    }
+	}
+	for (uint8_t j=0; j<tl->num_click_tracks; j++) {
+	    ClickTrack *tt = tl->click_tracks[j];
+	    if (tt->layout == lt) {
+		click_track_stack[click_track_index] = tt;
+		tt->index = click_track_index;
+		if (is_selected_lt) {
+		    tl->click_track_selector = click_track_index;
+		    tl->track_selector = -1;
+		}
+		click_track_index++;
+		break;
+	    }
+	}
+    }
+    /* fprintf(stderr, "->LT selector: %d\n", tl->layout_selector); */
+    /* fprintf(stderr, "->track selector: %d\n", tl->track_selector); */
+    /* fprintf(stderr, "->tt selector: %d\n", tl->click_track_selector); */
+    memcpy(tl->tracks, track_stack, sizeof(Track *) * tl->num_tracks);
+    memcpy(tl->click_tracks, click_track_stack, sizeof(ClickTrack *) * tl->num_click_tracks);
+    tl->needs_redraw = true;
+}
+
+Track *timeline_selected_track(Timeline *tl)
+{
+    if (tl->num_tracks == 0 || tl->track_selector < 0) {
+	return NULL;
+    } else if (tl->track_selector > tl->num_tracks - 1) {
+	fprintf(stderr, "ERROR: track selector points past end of tracks arr\n");
+	exit(1);
+    } else {
+	return tl->tracks[tl->track_selector];
+    }
+}
+
+ClickTrack *timeline_selected_click_track(Timeline *tl)
+{
+    if (tl->num_click_tracks == 0 || tl->click_track_selector < 0) {
+	return NULL;
+    } else if (tl->click_track_selector > tl->num_click_tracks - 1) {
+	fprintf(stderr, "ERROR: tempo track selector points past end of tracks arr\n");
+	exit(1);
+    } else {
+	return tl->click_tracks[tl->click_track_selector];
+    }
+}
+
+Layout *timeline_selected_layout(Timeline *tl)
+{
+    if (tl->layout_selector >= 0 && tl->layout_selector < tl->track_area->num_children) {
+	return tl->track_area->children[tl->layout_selector];
+    }
+    return NULL;
 }
 
 static void track_reset_full(Track *track);
@@ -1373,11 +1442,48 @@ Track *timeline_add_track(Timeline *tl)
     } else {
 	track_color_index = 0;
     }
+
+    /* API */
+
+    api_node_register(&track->api_node, &track->tl->api_node, track->name);
+    
+    endpoint_init(
+	&track->vol_ep,
+	&track->vol,
+	JDAW_FLOAT,
+	"vol",
+	"undo/redo adjust track volume",
+	JDAW_THREAD_DSP,
+	track_slider_cb,
+	NULL, NULL,
+	&track->vol_ctrl, track->tl,
+	NULL, NULL);
+    endpoint_set_allowed_range(
+	&track->vol_ep,
+	(Value){.float_v=0.0},
+	(Value){.float_v=TRACK_VOL_MAX});
+
+
+    endpoint_init(
+	&track->pan_ep,
+	&track->pan,
+	JDAW_FLOAT,
+	"pan",
+	"undo/redo adj track pan",
+	JDAW_THREAD_DSP,
+	track_slider_cb,
+	NULL, NULL,
+	&track->pan_ctrl, track->tl,
+	NULL, NULL);
+    endpoint_set_allowed_range(
+	&track->pan_ep,
+	(Value){.float_v = 0.0},
+	(Value){.float_v = 1.0});
     
     /* Layout *track_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area"); */
     Layout *track_template = layout_read_xml_to_lt(tl->track_area, TRACK_LT_PATH);
     track->layout = track_template;
-
+    
     track->inner_layout = track_template->children[0];
     timeline_rectify_track_area(tl);
     /* fprintf(stdout, "tracks area h: %d/%d\n", tl->track_area->h.value.intval, tl->track_area->rect.h); */
@@ -1418,19 +1524,31 @@ Track *timeline_add_track(Timeline *tl)
     textbox_set_pad(track->tb_pan_label, TRACK_NAME_H_PAD, 0);
     textbox_set_trunc(track->tb_pan_label, false);
 
-    track->tb_name = textbox_create_from_str(
-        track->name,
+    track->tb_name = textentry_create(
 	name,
+	track->name,
+	MAX_NAMELENGTH,
 	main_win->bold_font,
 	14,
+	NULL,
+	name_completion,
+	&track->api_node,
 	main_win);
-    textbox_set_align(track->tb_name, CENTER_LEFT);
-    textbox_set_pad(track->tb_name, 4, 0);
-    textbox_set_border(track->tb_name, &color_global_black, 1);
+    /* track->tb_name = textbox_create_from_str( */
+    /*     track->name, */
+    /* 	name, */
+    /* 	main_win->bold_font, */
+    /* 	14, */
+    /* 	main_win); */
+    Textbox *track_tb = track->tb_name->tb;
+
+    textbox_set_align(track_tb, CENTER_LEFT);
+    textbox_set_pad(track_tb, 4, 0);
+    textbox_set_border(track_tb, &color_global_black, 1);
     textbox_set_trunc(track->tb_vol_label, false);
     /* textbox_reset_full(track->tb_name); */
-    track->tb_name->text->validation = txt_name_validation;
-    track->tb_name->text->completion = name_completion;
+    /* track->tb_name->text->validation = txt_name_validation; */
+    /* track->tb_name->text->completion = name_completion; */
 
     
     track->tb_input_label = textbox_create_from_str(
@@ -1458,6 +1576,7 @@ Track *timeline_add_track(Timeline *tl)
     /* textbox_set_trunc(track->tb_input_name, true); */
     /* textbox_set_fixed_w(track->tb_input_name, saved_w); */
     textbox_set_border(track->tb_input_name, &color_global_black, 1);
+    textbox_set_style(track->tb_input_name, BUTTON_CLASSIC);
 
     
     track->tb_mute_button = textbox_create_from_str(
@@ -1469,6 +1588,7 @@ Track *timeline_add_track(Timeline *tl)
     track->tb_mute_button->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
     textbox_set_border(track->tb_mute_button, &color_global_black, 1);
     textbox_set_background_color(track->tb_mute_button, &color_mute_solo_grey);
+    textbox_set_style(track->tb_mute_button, BUTTON_CLASSIC);
     /* textbox_reset_full(track->tb_mute_button); */
 
     track->tb_solo_button = textbox_create_from_str(
@@ -1480,6 +1600,7 @@ Track *timeline_add_track(Timeline *tl)
     track->tb_solo_button->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
     textbox_set_border(track->tb_solo_button, &color_global_black, 1);
     textbox_set_background_color(track->tb_solo_button, &color_mute_solo_grey);
+    textbox_set_style(track->tb_solo_button, BUTTON_CLASSIC);
     /* textbox_reset_full(track->tb_solo_button); */
 
 
@@ -1493,21 +1614,32 @@ Track *timeline_add_track(Timeline *tl)
     /* vol_ctrl_lt->h.value.intval = vol_ctrl_row->h.value.intval - TRACK_CTRL_SLIDER_V_PAD * 2; */
     /* layout_set_values_from_rect(vol_ctrl_lt); */
     track->vol = 1.0f;
+
     track->vol_ctrl = slider_create(
 	vol_ctrl_lt,
-	(void *)(&track->vol),
-	JDAW_FLOAT,
+	&track->vol_ep,
+	(Value){.float_v = 0.0f},
+	(Value){.float_v = TRACK_VOL_MAX},
 	SLIDER_HORIZONTAL,
 	SLIDER_FILL,
-	&slider_label_amp_to_dbstr,
-	NULL,
-	NULL,
+	&label_amp_to_dbstr,
 	&tl->proj->dragged_component);
-    SliderStrFn t;
-    Value min, max;
-    min.float_v = 0.0f;
-    max.float_v = TRACK_VOL_MAX;
-    slider_set_range(track->vol_ctrl, min, max);
+    /* track->vol_ep.xarg1 = track->vol_ctrl; */
+    /* track->vol_ctrl = slider_create( */
+    /* 	vol_ctrl_lt, */
+    /* 	(void *)(&track->vol), */
+    /* 	JDAW_FLOAT, */
+    /* 	SLIDER_HORIZONTAL, */
+    /* 	SLIDER_FILL, */
+    /* 	&slider_label_amp_to_dbstr, */
+    /* 	NULL, */
+    /* 	NULL, */
+    /* 	&tl->proj->dragged_component); */
+    /* SliderStrFn t; */
+    /* Value min, max; */
+    /* min.float_v = 0.0f; */
+    /* max.float_v = TRACK_VOL_MAX; */
+    /* slider_set_range(track->vol_ctrl, min, max); */
 
     Layout *pan_ctrl_row = layout_get_child_by_name_recursive(track->inner_layout, "pan_slider");
     Layout *pan_ctrl_lt = layout_add_child(pan_ctrl_row);
@@ -1519,16 +1651,27 @@ Track *timeline_add_track(Timeline *tl)
     /* pan_ctrl_lt->h.value.intval = pan_ctrl_row->h.value.intval - TRACK_CTRL_SLIDER_V_PAD * 2; */
     /* /\* layout_set_values_from_rect(pan_ctrl_lt); *\/ */
     track->pan = 0.5f;
+    /* track->pan_ctrl = slider_create( */
+    /* 	pan_ctrl_lt, */
+    /* 	&track->pan, */
+    /* 	JDAW_FLOAT, */
+    /* 	SLIDER_HORIZONTAL, */
+    /* 	SLIDER_TICK, */
+    /* 	slider_label_pan, */
+    /* 	NULL, */
+    /* 	NULL, */
+    /* 	&tl->proj->dragged_component); */
     track->pan_ctrl = slider_create(
 	pan_ctrl_lt,
-	&track->pan,
-	JDAW_FLOAT,
+	&track->pan_ep,
+	(Value){.float_v = 0.0f},
+	(Value){.float_v = 1.0f},
 	SLIDER_HORIZONTAL,
 	SLIDER_TICK,
-	slider_label_pan,
-	NULL,
-	NULL,
+	label_pan,
 	&tl->proj->dragged_component);
+    track->pan_ctrl->disallow_unsafe_mode = true;
+    /* track->pan_ep.xarg1 = track->pan_ctrl; */
 
     /* slider_reset(track->vol_ctrl); */
     /* slider_reset(track->pan_ctrl); */
@@ -1548,9 +1691,14 @@ Track *timeline_add_track(Timeline *tl)
     track->selected_automation = -1;
     track->console_rect = &(layout_get_child_by_name_recursive(track->inner_layout, "track_console")->rect);
     track->colorbar = &(layout_get_child_by_name_recursive(track->inner_layout, "colorbar")->rect);
-    
-    track_reset_full(track);
 
+
+    track_reset_full(track);
+    if (tl->layout_selector < 0) tl->layout_selector = 0;
+    timeline_rectify_track_indices(tl);
+
+    api_endpoint_register(&track->vol_ep, &track->api_node);
+    api_endpoint_register(&track->pan_ep, &track->api_node);
     return track;
 }
 
@@ -1637,7 +1785,7 @@ static void clipref_remove_from_track(ClipRef *cr)
 	    
 	}
     }
-    track->num_clips--;
+    if (displace) track->num_clips--; /* else not found! */
 }
 
 void clipref_displace(ClipRef *cr, int displace_by)
@@ -1675,7 +1823,7 @@ void clipref_move_to_track(ClipRef *cr, Track *target)
 
 static void track_reset_full(Track *track)
 {
-    textbox_reset_full(track->tb_name);
+    textbox_reset_full(track->tb_name->tb);
     textbox_reset_full(track->tb_input_label);
     textbox_reset_full(track->tb_mute_button);
     textbox_reset_full(track->tb_solo_button);
@@ -1764,11 +1912,33 @@ ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sfr
     return cr;
 }
 
+void timeline_reset_loop_play_lemniscate(Timeline *tl)
+{
+    if (tl->in_mark_sframes >= tl->out_mark_sframes) return;
+    int in_x = timeline_get_draw_x(tl, tl->in_mark_sframes);
+    int out_x = timeline_get_draw_x(tl, tl->out_mark_sframes);
+    layout_reset(tl->loop_play_lemniscate->layout);
+
+    tl->loop_play_lemniscate->layout->rect.x = in_x;
+    tl->loop_play_lemniscate->layout->rect.w = out_x - in_x;
+    layout_set_values_from_rect(tl->loop_play_lemniscate->layout);
+    textbox_reset(tl->loop_play_lemniscate);
+    tl->needs_redraw = true;
+    
+}
+
 void timeline_reset_full(Timeline *tl)
 {
     for (int i=0; i<tl->num_tracks; i++) {
 	track_reset_full(tl->tracks[i]);
     }
+    layout_reset(tl->layout);
+    if (tl->proj->loop_play) {
+	timeline_reset_loop_play_lemniscate(tl);
+    }
+
+    tl->needs_redraw = true;
+
 }
 
 void timeline_reset(Timeline *tl, bool rescaled)
@@ -1777,7 +1947,12 @@ void timeline_reset(Timeline *tl, bool rescaled)
     for (int i=0; i<tl->num_tracks; i++) {
 	track_reset(tl->tracks[i], rescaled);
     }
+
     layout_reset(tl->layout);
+    if (tl->proj->loop_play) {
+	timeline_reset_loop_play_lemniscate(tl);
+    }
+
     tl->needs_redraw = true;
 }
 
@@ -1787,7 +1962,7 @@ void track_increment_vol(Track *track)
     if (track->vol > track->vol_ctrl->max.float_v) {
 	track->vol = track->vol_ctrl->max.float_v;
     }
-    slider_edit_made(track->vol_ctrl);
+    /* slider_edit_made(track->vol_ctrl); */
     slider_reset(track->vol_ctrl);
 }
 void track_decrement_vol(Track *track)
@@ -1796,7 +1971,7 @@ void track_decrement_vol(Track *track)
     if (track->vol < 0.0f) {
 	track->vol = 0.0f;
     }
-    slider_edit_made(track->vol_ctrl);
+    /* slider_edit_made(track->vol_ctrl); */
     slider_reset(track->vol_ctrl);
 }
 
@@ -1806,7 +1981,7 @@ void track_increment_pan(Track *track)
     if (track->pan > 1.0f) {
 	track->pan = 1.0f;
     }
-    slider_edit_made(track->pan_ctrl);
+    /* slider_edit_made(track->pan_ctrl); */
     slider_reset(track->pan_ctrl);
 }
 
@@ -1816,15 +1991,19 @@ void track_decrement_pan(Track *track)
     if (track->pan < 0.0f) {
 	track->pan = 0.0f;
     }
-    slider_edit_made(track->pan_ctrl);
+    /* slider_edit_made(track->pan_ctrl); */
     slider_reset(track->pan_ctrl);
 }
 
 /* SDL_Color mute_red = {255, 0, 0, 100}; */
 /* SDL_Color solo_yellow = {255, 200, 0, 130}; */
 
-SDL_Color mute_red = {255, 0, 0, 130};
-SDL_Color solo_yellow = {255, 200, 0, 130};
+/* SDL_Color mute_red = {255, 0, 0, 130}; */
+/* SDL_Color solo_yellow = {255, 200, 0, 130}; */
+
+SDL_Color mute_red = {240, 80, 80, 255};
+SDL_Color solo_yellow = {255, 200, 50, 255};
+
 extern SDL_Color textbox_default_bckgrnd_clr;
 
 bool track_mute(Track *track)
@@ -1949,7 +2128,12 @@ void track_or_tracks_solo(Timeline *tl, Track *opt_track)
 	}
     }
     if (!has_active_track || opt_track) {
-	track = opt_track ? opt_track : tl->tracks[tl->track_selector];
+	track = opt_track ? opt_track : timeline_selected_track(tl);
+	if (!track) {
+	    status_set_errstr("No track selected to solo");
+	    return;
+	}
+
 	if (track_solo(track)) {
 	    all_solo = false;
 	    solo_count++;
@@ -2006,7 +2190,7 @@ void track_or_tracks_mute(Timeline *tl)
     Track *muted_tracks[MAX_TRACKS];
     uint8_t num_muted = 0;
     
-    if (tl->num_tracks == 0) return;
+    /* if (tl->num_tracks == 0) return; */
     bool has_active_track = false;
     bool all_muted = true;
     Track *track;
@@ -2024,7 +2208,14 @@ void track_or_tracks_mute(Timeline *tl)
 	}
     }
     if (!has_active_track) {
-	track = tl->tracks[tl->track_selector];
+	track = timeline_selected_track(tl);
+	if (!track) {
+	    ClickTrack *tt = timeline_selected_click_track(tl);
+	    if (tt) {
+		click_track_mute_unmute(tt);
+	    }
+	    return;
+	}
 	track_mute(track);
 	muted_tracks[num_muted] = track;
 	num_muted++;
@@ -2117,7 +2308,8 @@ void track_set_input(Track *track)
 void project_draw();
 void track_rename(Track *track)
 {
-    txt_edit(track->tb_name->text, project_draw);
+    textentry_edit(track->tb_name);
+    /* txt_edit(track->tb_name->text, project_draw); */
     main_win->i_state = 0;
 }
 
@@ -2153,27 +2345,45 @@ static void timeline_remove_track(Track *track)
     tl->num_tracks--;
     if (tl->num_tracks > 0 && tl->track_selector > tl->num_tracks - 1) tl->track_selector = tl->num_tracks - 1;
     timeline_rectify_track_area(tl);
+    timeline_rectify_track_indices(tl);
     /* layout_size_to_fit_children_v(tl->track_area, true, 0); */
 }
 
-static void timeline_insert_track_at(Track *track, uint8_t index)
+static void timeline_reinsert_track(Track *track)
 {
     Timeline *tl = track->tl;
-    /* for (int i=0; i<tl->num_tracks; i++) { */
-    /* 	fprintf(stdout, "\t\t%d: Track index %d named \"%s\"\n", i, tl->tracks[i]->tl_rank, tl->tracks[i]->name); */
-    /* } */
-    while (index > tl->num_tracks) index--;
-    /* fprintf(stdout, "->adj ind: %d\n", index); */
-    for (uint8_t i=tl->num_tracks; i>index; i--) {
-	/* fprintf(stdout, "\tmoving track %d->%d\n", i-1, i); */
-	tl->tracks[i] = tl->tracks[i - 1];
-	tl->tracks[i]->tl_rank = i;
+    for (int i=tl->num_tracks; i>track->tl_rank; i--) {
+	tl->tracks[i] = tl->tracks[i-1];
     }
-    layout_insert_child_at(track->layout, tl->track_area, index);
-    tl->tracks[index] = track;
-    track->tl_rank = index;
+    tl->tracks[track->tl_rank] = track;
     tl->num_tracks++;
+    layout_insert_child_at(track->layout, tl->track_area, track->layout->index);
+    tl->layout_selector = track->layout->index;
+    timeline_rectify_track_indices(tl);
+    timeline_rectify_track_area(tl);
 }
+
+/* static void timeline_insert_track_at(Track *track, uint8_t index) */
+/* { */
+/*     Timeline *tl = track->tl; */
+/*     /\* for (int i=0; i<tl->num_tracks; i++) { *\/ */
+/*     /\* 	fprintf(stdout, "\t\t%d: Track index %d named \"%s\"\n", i, tl->tracks[i]->tl_rank, tl->tracks[i]->name); *\/ */
+/*     /\* } *\/ */
+/*     while (index > tl->num_tracks) index--; */
+/*     /\* fprintf(stdout, "->adj ind: %d\n", index); *\/ */
+/*     for (uint8_t i=tl->num_tracks; i>index; i--) { */
+/* 	/\* fprintf(stdout, "\tmoving track %d->%d\n", i-1, i); *\/ */
+/* 	tl->tracks[i] = tl->tracks[i - 1]; */
+/* 	tl->tracks[i]->tl_rank = i; */
+/*     } */
+/*     layout_insert_child_at(track->layout, tl->track_area, index); */
+/*     tl->tracks[index] = track; */
+/*     track->tl_rank = index; */
+/*     tl->num_tracks++; */
+/*     timeline_rectify_track_indices(tl); */
+/* } */
+
+
 void track_delete(Track *track)
 {
     track->deleted = true;
@@ -2184,7 +2394,8 @@ void track_delete(Track *track)
 void track_undelete(Track *track)
 {
     track->deleted = false;
-    timeline_insert_track_at(track, track->tl_rank);
+    /* timeline_insert_track_at(track, track->tl_rank); */
+    timeline_reinsert_track(track);
     timeline_reset(track->tl, false);
 }
 void track_destroy(Track *track, bool displace)
@@ -2210,7 +2421,8 @@ void track_destroy(Track *track, bool displace)
     /* fprintf(stdout, "Ok deleted all clips\n"); */
     slider_destroy(track->vol_ctrl);
     slider_destroy(track->pan_ctrl);
-    textbox_destroy(track->tb_name);
+    textentry_destroy(track->tb_name);
+    /* textbox_destroy(track->tb_name); */
     textbox_destroy(track->tb_input_label);
     textbox_destroy(track->tb_input_name);
     textbox_destroy(track->tb_vol_label);
@@ -2234,7 +2446,7 @@ void track_destroy(Track *track, bool displace)
 	/* timeline_reset(tl); */
 	/* layout_reset(tl->layout); */
     }
-    if (track->fir_filter) filter_destroy(track->fir_filter);
+    filter_deinit(&track->fir_filter);
     if (track->delay_line.buf_L) free(track->delay_line.buf_L);
     if (track->delay_line.buf_R) free(track->delay_line.buf_R);
     if (track->delay_line.cpy_buf) free(track->delay_line.cpy_buf);
@@ -2298,7 +2510,9 @@ void clipref_destroy(ClipRef *cr, bool displace_in_clip)
 	    track->clips[i-1] = track->clips[i];
 	}
     }
-    track->num_clips--;
+    if (displace) {
+	track->num_clips--; /* else not found! */
+    }
     /* fprintf(stdout, "\t->Track %d now has %d clips\n", track->tl_rank, track->num_clips); */
 
     if (displace_in_clip) {
@@ -2498,6 +2712,13 @@ void timeline_delete(Timeline *tl, bool from_undo)
 
 
 void timeline_push_grabbed_clip_move_event(Timeline *tl);
+void timeline_cache_grabbed_clip_offsets(Timeline *tl)
+{
+    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
+	tl->grabbed_clip_pos_cache[i].track_offset = tl->grabbed_clips[i]->track->tl_rank - tl->track_selector;
+    }
+}
+
 void timeline_cache_grabbed_clip_positions(Timeline *tl)
 {
     if (!tl->grabbed_clip_cache_initialized) {
@@ -2508,6 +2729,7 @@ void timeline_cache_grabbed_clip_positions(Timeline *tl)
     for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
 	tl->grabbed_clip_pos_cache[i].track = tl->grabbed_clips[i]->track;
 	tl->grabbed_clip_pos_cache[i].pos = tl->grabbed_clips[i]->pos_sframes;
+	/* tl->grabbed_clip_pos_cache[i].track_offset = tl->grabbed_clips[i]->track->tl_rank - tl->track_selector; */
     }
     tl->grabbed_clip_cache_pushed = false;
 }
@@ -2651,8 +2873,12 @@ void timeline_delete_grabbed_cliprefs(Timeline *tl)
 
 int32_t clipref_len(ClipRef *cr)
 {
-    if (cr->out_mark_sframes <= cr->in_mark_sframes) {
-	return cr->clip->len_sframes;
+    if (cr->out_mark_sframes < cr->in_mark_sframes) {
+	fprintf(stderr, "ERROR: clipref has negative length\n");
+	breakfn();
+	return 0;
+    /* } else if (cr->out_mark_sframes == cr->in_mark_sframes) { */
+    /* 	return cr->clip->len_sframes; */
     } else {
 	return cr->out_mark_sframes - cr->in_mark_sframes;
     }
@@ -2672,7 +2898,7 @@ ClipRef *clipref_at_cursor_in_track(Track *track)
 void clipref_bring_to_front()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
-    Track *track = tl->tracks[tl->track_selector];
+    Track *track = timeline_selected_track(tl);
     if (!track) return;
     /* bool displace = false; */
     ClipRef *to_move = NULL;
@@ -2701,7 +2927,7 @@ bool clipref_marked(Timeline *tl, ClipRef *cr)
 ClipRef *clipref_at_cursor()
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
-    Track *track = tl->tracks[tl->track_selector];
+    Track *track = timeline_selected_track(tl);
     if (!track) return NULL;
     
     /* Reverse iter to ensure top-most clip is returned in case of overlap */
@@ -2717,7 +2943,7 @@ ClipRef *clipref_at_cursor()
 ClipRef *clipref_before_cursor(int32_t *pos_dst)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
-    Track *track = tl->tracks[tl->track_selector];
+    Track *track = timeline_selected_track(tl);
     if (!track) return NULL;
     if (track->num_clips == 0) return NULL;
     ClipRef *ret = NULL;
@@ -2737,7 +2963,7 @@ ClipRef *clipref_before_cursor(int32_t *pos_dst)
 ClipRef *clipref_after_cursor(int32_t *pos_dst)
 {
     Timeline *tl = proj->timelines[proj->active_tl_index];
-    Track *track = tl->tracks[tl->track_selector];
+    Track *track = timeline_selected_track(tl);
     if (!track) return NULL;
     if (track->num_clips == 0) return NULL;
     ClipRef *ret = NULL;
@@ -2822,6 +3048,7 @@ static ClipRef *clipref_cut(ClipRef *cr, int32_t cut_pos_rel)
     if (!new) {
 	return NULL;
     }
+    if (cut_pos_rel < 0) return NULL;
     new->in_mark_sframes = cr->in_mark_sframes + cut_pos_rel;
     new->out_mark_sframes = cr->out_mark_sframes == 0 ? clipref_len(cr) : cr->out_mark_sframes;
     Value orig_end_pos = {.int32_v = cr->out_mark_sframes};
@@ -2844,77 +3071,85 @@ static ClipRef *clipref_cut(ClipRef *cr, int32_t cut_pos_rel)
 
 
 
-void timeline_cut_clipref_at_cursor(Timeline *tl)
+void timeline_cut_at_cursor(Timeline *tl)
 {
-    Track *track = tl->tracks[tl->track_selector];
-    if (!track) return;
-    ClipRef *cr = clipref_at_cursor();
-    if (!cr) {
-	status_set_errstr("Error: no clip at cursor");
-	return;
-    }
-    if (tl->play_pos_sframes > cr->pos_sframes && tl->play_pos_sframes < cr->pos_sframes + clipref_len(cr)) {
-	clipref_cut(cr, tl->play_pos_sframes - cr->pos_sframes);
+    Track *track = timeline_selected_track(tl);
+    if (track) {
+	status_cat_callstr(" clipref at cursor");
+	ClipRef *cr = clipref_at_cursor();
+	if (!cr) {
+	    status_set_errstr("Error: no clip at cursor");
+	    return;
+	}
+	if (tl->play_pos_sframes > cr->pos_sframes && tl->play_pos_sframes < cr->pos_sframes + clipref_len(cr)) {
+	    clipref_cut(cr, tl->play_pos_sframes - cr->pos_sframes);
+	}
+    } else {
+	timeline_cut_click_track_at_cursor(tl);
+	status_cat_callstr(" tempo track at cursor");
+
     }
 }
 
 
-static NEW_EVENT_FN(undo_redo_move_track, "undo/redo move track")
-    Track *track = (Track *)obj1;
-    int direction = val1.int_v;
-    timeline_move_track(track->tl, track, direction, true);
-}
-void timeline_move_track(Timeline *tl, Track *track, int direction, bool from_undo)
-{
-    int old_pos = track->tl_rank;
-    int new_pos = old_pos + direction;
-    if (new_pos < 0 || new_pos >= tl->num_tracks) return;
+/* static NEW_EVENT_FN(undo_redo_move_track, "undo/redo move track") */
+/*     Track *track = (Track *)obj1; */
+/*     int direction = val1.int_v; */
+/*     timeline_move_track(track->tl, track, direction, true); */
+/* } */
 
-    Track *displaced = tl->tracks[new_pos];
-    tl->tracks[new_pos] = track;
-    tl->tracks[old_pos] = displaced;
-    displaced->tl_rank = track->tl_rank;
+/* void timeline_move_track(Timeline *tl, Track *track, int direction, bool from_undo) */
+/* { */
+/*     int old_pos = track->tl_rank; */
+/*     int new_pos = old_pos + direction; */
+/*     if (new_pos < 0 || new_pos >= tl->num_tracks) return; */
 
-    /* Layout *displaced_layout = displaced->layout; */
-    /* Layout *track_layout = track->layout; */
+/*     Track *displaced = tl->tracks[new_pos]; */
+/*     tl->tracks[new_pos] = track; */
+/*     tl->tracks[old_pos] = displaced; */
+/*     displaced->tl_rank = track->tl_rank; */
 
-    /* displaced_layout->parent->children[displaced_layout->index] = track_layout; */
-    /* displaced_layout->parent->children[track_layout->index] = displaced_layout; */
-    /* int saved_i = displaced_layout->index; */
-    /* displaced_layout->index = track_layout->index; */
-    /* track_layout->index = saved_i; */
-    layout_swap_children(displaced->layout, track->layout);
+/*     /\* Layout *displaced_layout = displaced->layout; *\/ */
+/*     /\* Layout *track_layout = track->layout; *\/ */
+
+/*     /\* displaced_layout->parent->children[displaced_layout->index] = track_layout; *\/ */
+/*     /\* displaced_layout->parent->children[track_layout->index] = displaced_layout; *\/ */
+/*     /\* int saved_i = displaced_layout->index; *\/ */
+/*     /\* displaced_layout->index = track_layout->index; *\/ */
+/*     /\* track_layout->index = saved_i; *\/ */
+/*     layout_swap_children(displaced->layout, track->layout); */
     
-    track->tl_rank = new_pos;
-    tl->track_selector = track->tl_rank;
-    timeline_reset(tl, false);
+/*     track->tl_rank = new_pos; */
+/*     tl->track_selector = track->tl_rank; */
+/*     timeline_reset(tl, false); */
 
-    if (!from_undo) {
-	Value direction_forward = {.int_v = direction};
-	Value direction_reverse = {.int_v = direction * -1};
-	user_event_push(
-	    &proj->history,
-	    undo_redo_move_track,
-	    undo_redo_move_track,
-	    NULL,
-	    NULL,
-	    (void *)track,
-	    NULL,
-	    direction_reverse,
-	    direction_reverse,
-	    direction_forward,
-	    direction_forward,
-	    0, 0, false, false);
-    }
-}
+/*     if (!from_undo) { */
+/* 	Value direction_forward = {.int_v = direction}; */
+/* 	Value direction_reverse = {.int_v = direction * -1}; */
+/* 	user_event_push( */
+/* 	    &proj->history, */
+/* 	    undo_redo_move_track, */
+/* 	    undo_redo_move_track, */
+/* 	    NULL, */
+/* 	    NULL, */
+/* 	    (void *)track, */
+/* 	    NULL, */
+/* 	    direction_reverse, */
+/* 	    direction_reverse, */
+/* 	    direction_forward, */
+/* 	    direction_forward, */
+/* 	    0, 0, false, false); */
+/*     } */
+/* } */
 
+static void track_move_automation(Automation *a, int direction, bool from_undo);
 NEW_EVENT_FN(undo_redo_move_automation, "undo/redo move automation")
     Automation *a = (Automation *)obj1;
     int direction = val1.int_v;
     track_move_automation(a, direction, true);
 }
 
-void track_move_automation(Automation *a, int direction, bool from_undo)
+static void track_move_automation(Automation *a, int direction, bool from_undo)
 {
     TEST_FN_CALL(automation_index, a);
     Track *track = a->track;
@@ -2949,6 +3184,75 @@ void track_move_automation(Automation *a, int direction, bool from_undo)
 	}
     }
     TEST_FN_CALL(track_automation_order, track);
+}
+
+static void timeline_move_track_at_index(Timeline *tl, int index, int direction, bool from_undo);
+NEW_EVENT_FN(undo_redo_move_track_at_index, "undo/redo move track")
+    int direction = val1.int_v;
+    int index = val2.int_v;
+    Timeline *tl = (Timeline *)obj1;
+    timeline_move_track_at_index(tl, index, direction, true);
+
+}
+
+static void timeline_move_track_at_index(Timeline *tl, int index, int direction, bool from_undo)
+{
+    Layout *sel = tl->track_area->children[index];
+    Layout *swap = tl->track_area->children[index + direction];
+    layout_swap_children(sel, swap);
+    layout_force_reset(tl->track_area);
+    timeline_rectify_track_indices(tl);
+
+    if (!from_undo) {
+	Value undo_dir = {.int_v = -1 * direction};
+	Value redo_dir = {.int_v = direction};
+	Value undo_index = {.int_v = index + direction};
+	Value redo_index = {.int_v = index};
+	user_event_push(
+	    &proj->history,
+	    undo_redo_move_track_at_index,
+	    undo_redo_move_track_at_index,
+	    NULL, NULL,
+	    (void *)tl,
+	    NULL,
+	    undo_dir, undo_index,
+	    redo_dir, redo_index,
+	    0, 0, false, false);
+    }
+
+
+    /* Track *sel_track = timeline_selected_track(tl); */
+    /* if (sel_track) { */
+    /* 	timeline_refocus_track(tl, sel_track, direction > 0); */
+    /* } else { */
+    /* 	ClickTrack *sel_tt = timeline_selected_click_track(tl); */
+    /* 	timeline_refocus_click_track(tl, sel_tt, direction > 0); */
+    /* } */
+}
+
+void timeline_move_track_or_automation(Timeline *tl, int direction)
+{
+    
+    Track *t = timeline_selected_track(tl);
+    if (t && t->num_automations > 0 && t->selected_automation >= 0) {
+	track_move_automation(t->automations[t->selected_automation], direction, false);
+	return;
+    }
+    int new_pos;
+    if ((new_pos = tl->layout_selector + direction) < 0 || new_pos > tl->track_area->num_children - 1)
+	return;
+    timeline_move_track_at_index(tl, tl->layout_selector, direction, false);
+    tl->layout_selector += direction;
+    timeline_rectify_track_indices(tl);
+    t = timeline_selected_track(tl);
+    if (t) {
+	timeline_refocus_track(tl, t, direction > 0);
+    } else {
+	ClickTrack *tt = timeline_selected_click_track(tl);
+	timeline_refocus_click_track(tl, tt, direction > 0);
+    }
+    timeline_reset(tl, false);
+    tl->needs_redraw = true;
 }
 
 static void select_out_onclick(void *arg)
@@ -2998,33 +3302,7 @@ void project_set_chunk_size(uint16_t new_chunk_size)
     }
     transport_stop_playback();
     proj->chunk_size_sframes = new_chunk_size;
-
-    
-    /* if (proj->output_L) free(proj->output_L); */
-    /* if (proj->output_R) free(proj->output_R); */
-    /* proj->output_L = calloc(1, sizeof(float) * new_chunk_size); */
-    /* proj->output_R = calloc(1, sizeof(float) * new_chunk_size); */
-    /* if (proj->output_L_freq) free(proj->output_L_freq); */
-    /* if (proj->output_R_freq) free(proj->output_R_freq); */
-    /* proj->output_L_freq = calloc(1, sizeof(double) * new_chunk_size); */
-    /* proj->output_R_freq = calloc(1, sizeof(double) * new_chunk_size); */
-
-
-
-
-/* proj->output_len = new_chunk_size; */
-    /* for (uint8_t i=0; i<proj->num_timelines; i++) { */
-    /* 	Timeline *tl = proj->timelines[i]; */
-    /* 	if (tl->mixdown_L) free(tl->mixdown_L); */
-    /* 	if (tl->mixdown_R) free(tl->mixdown_R); */
-    /* 	tl->mixdown_L = calloc(1, sizeof(float) * new_chunk_size); */
-    /* 	tl->mixdown_R = calloc(1, sizeof(float) * new_chunk_size); */
-    /* } */
     for (uint8_t i=0; i<proj->num_record_conns; i++) {
-	/* AudioConn *c = proj->record_conns[i]; */
-	/* if (c->open) { */
-	/*     audioconn_close(c); */
-	/* } */
 	audioconn_reset_chunk_size(proj->record_conns[i], new_chunk_size);
     }
     for (uint8_t i=0; i<proj->num_playback_conns; i++) {
@@ -3038,17 +3316,8 @@ void project_set_chunk_size(uint16_t new_chunk_size)
 
 }
 
-
-
-bool timeline_refocus_track(Timeline *tl, Track *track, bool at_bottom)
+static bool refocus_track_lt(Timeline *tl, Layout *lt, Layout *inner, bool at_bottom)
 {
-    Layout *lt, *inner;
-    lt = track->layout;
-    if (track->selected_automation > 0) {
-	inner = track->automations[track->selected_automation]->layout;
-    } else {
-	inner = track->layout;
-    }
     int y_diff = inner->rect.y - lt->parent->rect.y;
     int audio_rect_h_by_2 = tl->proj->audio_rect->h / 2;
     if (lt->rect.y + lt->rect.h > proj->audio_rect->y + proj->audio_rect->h || lt->rect.y < proj->audio_rect->y) {
@@ -3062,6 +3331,25 @@ bool timeline_refocus_track(Timeline *tl, Track *track, bool at_bottom)
 	return true;
     }
     return false;
+}
+
+bool timeline_refocus_click_track(Timeline *tl, ClickTrack *tt, bool at_bottom)
+{
+    Layout *lt = tt->layout;
+    return refocus_track_lt(tl, lt, lt, at_bottom);
+}	
+
+bool timeline_refocus_track(Timeline *tl, Track *track, bool at_bottom)
+{
+    Layout *lt, *inner;
+    lt = track->layout;
+    if (track->selected_automation > 0) {
+	inner = track->automations[track->selected_automation]->layout;
+    } else {
+	inner = track->layout;
+    }
+    return refocus_track_lt(tl, lt, inner, at_bottom);
+
 }
 
 
@@ -3082,14 +3370,15 @@ void timeline_play_speed_set(double new_speed)
 void timeline_play_speed_mult(double scale_factor)
 {
     double new_speed = proj->play_speed * scale_factor;
-    timeline_play_speed_set(new_speed);
+    if (fabs(new_speed) > MAX_PLAY_SPEED) {
+	timeline_play_speed_set(proj->play_speed);
+    } else {
+	timeline_play_speed_set(new_speed);
+    }
 }
 
 void timeline_play_speed_adj(double dim)
 {
-    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
-    /* double old_speed = proj->play_speed; */
-
     double new_speed = proj->play_speed;
     if (main_win->i_state & I_STATE_CMDCTRL) {
 	new_speed += dim * PLAYSPEED_ADJUST_SCALAR_LARGE;
@@ -3097,9 +3386,75 @@ void timeline_play_speed_adj(double dim)
 	new_speed += dim * PLAYSPEED_ADJUST_SCALAR_SMALL;
     }
     timeline_play_speed_set(new_speed);
-    /* /\* If speed crosses the zero line, need to invalidate direction-dependent caches *\/ */
-    /* if (proj->play_speed * old_speed < 0.0) { */
-    /* 	timeline_set_play_position(tl->play_pos_sframes); */
-    /* } */
-    /* status_stat_playspeed(); */
 }
+
+void timeline_scroll_playhead(double dim)
+{
+    Timeline *tl = proj->timelines[proj->active_tl_index];
+    if (main_win->i_state & I_STATE_CMDCTRL) {
+	dim *= proj->sample_rate * tl->sample_frames_per_pixel * PLAYHEAD_ADJUST_SCALAR_LARGE;
+    } else {
+	dim *= proj->sample_rate * tl->sample_frames_per_pixel * PLAYHEAD_ADJUST_SCALAR_SMALL;
+    }
+    int32_t new_pos = tl->play_pos_sframes + dim;
+    timeline_set_play_position(proj->timelines[proj->active_tl_index], new_pos);
+}
+
+
+void project_active_tl_redraw(Project *proj)
+{
+    proj->timelines[proj->active_tl_index]->needs_redraw = true;
+}
+
+bool track_minimize(Track *t)
+{
+    t->minimized = !t->minimized;
+    if (t->minimized) {
+	if (t->num_automations > 0) {
+	    track_automations_hide_all(t);
+	}
+	t->layout->h.value = 31.0;
+	t->inner_layout->h.value = 31.0;
+    } else {
+	t->layout->h.value = 96.0;
+	t->inner_layout->h.value = 96.0;
+    }
+
+    return t->minimized;
+}
+
+void timeline_minimize_track_or_tracks(Timeline *tl)
+{
+    bool some_active = false;
+    bool to_min = false;
+    bool from_min = false;
+    for (uint8_t i=0; i<tl->num_tracks; i++) {
+	Track *t = tl->tracks[i];
+	if (t->active) {
+	    some_active = true;
+	    if (track_minimize(t)) {
+		to_min = true;
+	    } else {
+		from_min = true;
+	    }
+	}
+    }
+    if (!some_active) {
+	Track *t = timeline_selected_track(tl);
+	if (t) track_minimize(t);
+    } else if (to_min && from_min) {
+	for (uint8_t i=0; i<tl->num_tracks; i++) {
+	    Track *t = tl->tracks[i];
+	    if (t->active && !t->minimized) {
+		track_minimize(t);
+	    }
+	}
+    }
+    timeline_rectify_track_area(tl);
+    timeline_reset(tl, false);
+
+}
+
+
+
+

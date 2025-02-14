@@ -1,26 +1,10 @@
 /*****************************************************************************************************************
-  Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation | built on SDL (https://libsdl.org/)
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
 ******************************************************************************************************************
 
-  Copyright (C) 2023 Charlie Volow
+  Copyright (C) 2023-2025 Charlie Volow
   
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files (the "Software"), to deal
-  in the Software without restriction, including without limitation the rights
-  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  copies of the Software, and to permit persons to whom the Software is
-  furnished to do so, subject to the following conditions:
-  
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
-  
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-  SOFTWARE.
+  Jackdaw is licensed under the GNU General Public License.
 
 *****************************************************************************************************************/
 
@@ -35,6 +19,9 @@
 #include <stdint.h>
 #include <time.h>
 #include "project.h"
+#include "project_endpoint_ops.h"
+#include "tempo.h"
+#include "thread_safety.h"
 #include "timeline.h"
 #include "transport.h"
 
@@ -44,6 +31,8 @@
 
 /* extern Project *proj; */
 extern Window *main_win;
+extern pthread_t MAIN_THREAD_ID;
+extern pthread_t DSP_THREAD_ID;
 
 /* int timeline_get_draw_x(int32_t abs_x); */
 
@@ -59,11 +48,11 @@ int timeline_get_draw_x(Timeline *tl, int32_t abs_x)
 {
     /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
     if (tl->sample_frames_per_pixel != 0) {
-        float precise = (float)tl->proj->audio_rect->x + ((float)abs_x - (float)tl->display_offset_sframes) / (float)tl->sample_frames_per_pixel;
+        double precise = (double)tl->proj->audio_rect->x + ((double)abs_x - (double)tl->display_offset_sframes) / (double)tl->sample_frames_per_pixel;
         return (int) round(precise);
     } else {
         fprintf(stderr, "Error: proj tl sfpp value 0\n");
-	exit(0);
+	exit(1);
         /* return 0; */
     }
 }
@@ -80,13 +69,13 @@ int timeline_get_draw_w(Timeline *tl, int32_t abs_w)
     }
 }
 
-float timeline_get_draw_w_precise(Timeline *tl, int32_t abs_w)
+static double timeline_get_draw_w_precise(Timeline *tl, int32_t abs_w)
 {
     /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
     if (tl->sample_frames_per_pixel != 0) {
-	return (float) abs_w / tl->sample_frames_per_pixel;
+	return (double) abs_w / tl->sample_frames_per_pixel;
     }
-    return 0.0f;
+    return 0.0;
 }
  
 /* Get a length in sample frames from a given draw width */
@@ -104,22 +93,22 @@ void timeline_scroll_horiz(Timeline *tl, int scroll_by)
     timeline_reset(tl, false);
 }
 
-float timeline_get_leftmost_seconds(Timeline *tl)
+double timeline_get_leftmost_seconds(Timeline *tl)
 {
     /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
-    return (float) tl->display_offset_sframes / tl->proj->sample_rate;
+    return (double) tl->display_offset_sframes / tl->proj->sample_rate;
 }
 
-float timeline_get_second_w(Timeline *tl)
+double timeline_get_second_w(Timeline *tl)
 {
     return timeline_get_draw_w_precise(tl, tl->proj->sample_rate);
     /* return ret <= 0 ? 1 : ret; */
 }
 
-float timeline_first_second_tick_x(Timeline *tl, int *first_second)
+double timeline_first_second_tick_x(Timeline *tl, int *first_second)
 {
-    float lms = timeline_get_leftmost_seconds(tl);
-    float dec = lms - floor(lms);
+    double lms = timeline_get_leftmost_seconds(tl);
+    double dec = lms - floor(lms);
     *first_second = (int)floor(lms) + 1;
     return timeline_get_second_w(tl) * (1 - dec);
     /* return 1 - (timeline_get_second_w() * dec) + proj->audio_rect->x; */
@@ -181,6 +170,11 @@ void timecode_str_at(Timeline *tl, char *dst, size_t dstsize, int32_t pos)
     snprintf(dst, dstsize, "%c%02d:%02d:%02d:%05d", sign, hours, minutes, seconds, frames);
 }
 
+
+/* Called in two scenarios:
+   1. timeline_set_play_position() (i.e., when playhead jumps)
+   2. project_loop(), while play speed != 0
+*/
 void timeline_set_timecode(Timeline *tl)
 {
     /* if (!proj) { */
@@ -223,12 +217,20 @@ static void track_handle_playhead_jump(Track *track)
     }
 }
 
-
 /* Invalidates continuous-play-dependent caches.
-   Use this any time a "jump" occurrs */
+   Use this any time a "jump" occurs */
 void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes)
 {
-    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
+    MAIN_THREAD_ONLY("timeline_set_play_position");
+
+    if (tl->play_pos_sframes == abs_pos_sframes) return;
+    
+    int32_t pos_diff = abs_pos_sframes - tl->play_pos_sframes;
+    
+    if (tl->proj->dragging && tl->num_grabbed_clips > 0) {
+	timeline_cache_grabbed_clip_positions(tl);
+    }
+
     tl->play_pos_sframes = abs_pos_sframes;
     tl->read_pos_sframes = abs_pos_sframes;
     int x = timeline_get_draw_x(tl, tl->play_pos_sframes);
@@ -240,27 +242,54 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes)
     for (uint8_t i=0; i<tl->num_tracks; i++) {
 	track_handle_playhead_jump(tl->tracks[i]);
     }
-    /* timeline_set_timecode(tl); */
+    timeline_set_timecode(tl);
+    for (int i=0; i<tl->num_click_tracks; i++) {	
+	click_track_bar_beat_subdiv(tl->click_tracks[i], tl->play_pos_sframes, NULL, NULL, NULL, NULL, true);
+    }
+    if (tl->proj->dragging && tl->num_grabbed_clips > 0) {
+	for (int i=0; i<tl->num_grabbed_clips; i++) {
+	    tl->grabbed_clips[i]->pos_sframes += pos_diff;
+	}
+	timeline_push_grabbed_clip_move_event(tl);
+    }
     timeline_reset(tl, false);
+
 }
-
-
 
 void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes)
 {
-    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
-    tl->play_pos_sframes += move_by_sframes;
-    clock_gettime(CLOCK_MONOTONIC, &tl->play_pos_moved_at);
-    if (tl->proj->dragging) {
-	for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
-	    ClipRef *cr = tl->grabbed_clips[i];
-	    cr->pos_sframes += move_by_sframes;
-	    /* clipref_reset(cr); */
+    RESTRICT_NOT_DSP("timeline_move_play_position");
+    RESTRICT_NOT_MAIN("timeline_move_play_position");
+
+    static const int32_t end_tl_buffer = 96000 * 30; /* 30 seconds at max sample rate*/
+    
+    int64_t new_pos = (int64_t)tl->play_pos_sframes + move_by_sframes;
+    if (tl->proj->loop_play) {
+	int32_t loop_len = tl->out_mark_sframes - tl->in_mark_sframes;
+	if (loop_len > 0) {
+	    int64_t remainder = new_pos - tl->out_mark_sframes;
+	    if (remainder > 0) {
+		if (remainder > loop_len) remainder = 0;
+		new_pos = tl->in_mark_sframes + remainder;
+	    }
+	}
+    }
+    if (new_pos > INT32_MAX - end_tl_buffer || new_pos < INT32_MIN + end_tl_buffer) {
+	/* fprintf(stderr, "CMPS (to %d, %d) %d %d\n", INT32_MAX, INT32_MIN, new_pos > INT32_MAX, new_pos < INT32_MIN); */
+	if (tl->proj->playing) transport_stop_playback();
+	status_set_errstr("reached end of timeline");
+    } else {
+	tl->play_pos_sframes = new_pos;
+	clock_gettime(CLOCK_MONOTONIC, &tl->play_pos_moved_at);
+	if (tl->proj->dragging) {
+	    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
+		ClipRef *cr = tl->grabbed_clips[i];
+		cr->pos_sframes += move_by_sframes;
+		/* clipref_reset(cr); */
+	    }
 	}
     }
     tl->needs_redraw = true;
-    
-    /* timeline_set_timecode(); */
 }
 
 
@@ -283,4 +312,15 @@ void timeline_catchup(Timeline *tl)
 	tl->display_offset_sframes = tl->play_pos_sframes - timeline_get_abs_w_sframes(tl, catchup_w);
 	timeline_reset(tl, false);
     }
+}
+
+int32_t timeline_get_play_pos_now(Timeline *tl)
+{
+    if (!tl->proj->playing) {
+	return tl->play_pos_sframes;
+    }
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    double elapsed_s = now.tv_sec + ((double)now.tv_nsec / 1e9) - tl->play_pos_moved_at.tv_sec - ((double)tl->play_pos_moved_at.tv_nsec / 1e9);
+    return tl->play_pos_sframes + elapsed_s * tl->proj->sample_rate * tl->proj->play_speed;
 }

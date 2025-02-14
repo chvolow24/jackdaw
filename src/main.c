@@ -1,26 +1,10 @@
 /*****************************************************************************************************************
-  Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation | built on SDL (https://libsdl.org/)
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
 ******************************************************************************************************************
 
-  Copyright (C) 2023 Charlie Volow
+  Copyright (C) 2023-2025 Charlie Volow
   
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files (the "Software"), to deal
-  in the Software without restriction, including without limitation the rights
-  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  copies of the Software, and to permit persons to whom the Software is
-  furnished to do so, subject to the following conditions:
-  
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
-  
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-  SOFTWARE.
+  Jackdaw is licensed under the GNU General Public License.
 
 *****************************************************************************************************************/
 
@@ -32,12 +16,14 @@
  *****************************************************************************************************************/
 
 /* #include <sys/param.h> */
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include "SDL.h"
 #include "SDL_ttf.h"
+#include "assets.h"
 #include "dir.h"
 #include "dsp.h"
 #include "input.h"
@@ -46,6 +32,7 @@
 #include "project.h"
 #include "pure_data.h"
 #include "symbol.h"
+#include "tempo.h"
 #include "text.h"
 #include "transport.h"
 #include "wav.h"
@@ -56,19 +43,12 @@
 
 #define LT_DEV_MODE 0
 
-#ifndef INSTALL_DIR
-#define INSTALL_DIR "."
-#endif
-
-/* #define WINDOW_DEFAULT_W 900 */
 #define WINDOW_DEFAULT_W 1093
 #define WINDOW_DEFAULT_H 650
-/* #define OPEN_SANS_PATH INSTALL_DIR "/assets/ttf/OpenSans-Regular.ttf" */
-#define DEFAULT_KEYBIND_CFG_PATH INSTALL_DIR "/assets/key_bindings/default.yaml"
 
-#define DEFAULT_PROJ_AUDIO_SETTINGS 2, 96000, AUDIO_S16SYS, 1024, 2048
+#define DEFAULT_PROJ_AUDIO_SETTINGS 2, 96000, AUDIO_S16SYS, DEFAULT_AUDIO_CHUNK_LEN_SFRAMES, DEFAULT_FOURIER_LEN_SFRAMES
 
-const char *JACKDAW_VERSION = "0.4.3";
+const char *JACKDAW_VERSION = "0.5.0";
 char DIRPATH_SAVED_PROJ[MAX_PATHLEN];
 char DIRPATH_OPEN_FILE[MAX_PATHLEN];
 char DIRPATH_EXPORT[MAX_PATHLEN];
@@ -76,16 +56,19 @@ char DIRPATH_EXPORT[MAX_PATHLEN];
 bool SYS_BYTEORDER_LE = false;
 volatile bool CANCEL_THREADS = false;
 
-Window *main_win;
+Window *main_win = NULL;
 Project *proj = NULL;
-/* char *saved_proj_path = NULL; */
+
+extern pthread_t MAIN_THREAD_ID;
+extern pthread_t DSP_THREAD_ID;
+extern pthread_t CURRENT_THREAD_ID;
 
 static void get_native_byte_order()
 {
     #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     SYS_BYTEORDER_LE = true;
     #else
-    sys_byteorder_le = false;
+    SYS_BYTEORDER_LE = false;
     #endif
 }
 
@@ -108,8 +91,12 @@ static void init_SDL()
     SDL_StopTextInput();
 }
 
+
 static void init()
 {
+    fprintf(stderr, "Initializing SDL and subsystems...\n");
+    MAIN_THREAD_ID = pthread_self();
+    CURRENT_THREAD_ID = MAIN_THREAD_ID;
     init_SDL();
     get_native_byte_order();
     input_init_hash_table();
@@ -125,12 +112,13 @@ static void init()
     }
     strcpy(DIRPATH_OPEN_FILE, DIRPATH_SAVED_PROJ);
     strcpy(DIRPATH_EXPORT, DIRPATH_SAVED_PROJ);
-    /* fprintf(stdout, "Initializing dsp...\n"); */
     init_dsp();
+    fprintf(stderr, "\t...done.\n");
 }
 
 static void quit()
 {
+    api_quit(proj);
     CANCEL_THREADS = true;
     pd_signal_termination_of_jackdaw();
     if (proj->recording) {
@@ -154,59 +142,13 @@ Project *jdaw_read_file(const char *path);
 extern bool connection_open;
 
 
-/* void value_serialize_test() */
-/* { */
-/*     char dst[17]; */
-/*     double test = 1.2345678987654321; */
-    
-/*     snprintf(dst, 16, "%.16g", test); */
-/*     fprintf(stderr, "Dst: %s\n", dst); */
-
-/*     FILE *f = fopen("hello.txt", "w"); */
-/*     ValType t = JDAW_FLOAT; */
-/*     Value a; */
-/*     a.float_v = 3.141593456789098765456789; */
-/*     jdaw_val_serialize(a, t, f, 16); */
-/*     a.float_v = -3.141593456789098765456789; */
-/*     jdaw_val_serialize(a, t, f, 16); */
-/*     t = JDAW_BOOL; */
-/*     a.bool_v = true; */
-/*     jdaw_val_serialize(a, t, f, 16); */
-/*     a.double_v = 3.141593456789098765456789; */
-/*     t = JDAW_DOUBLE; */
-/*     jdaw_val_serialize(a, t, f, 16); */
-/*     fclose(f); */
-    
-    
-/*     f = fopen("hello.txt", "r"); */
-/*     a = jdaw_val_deserialize(f, 16, JDAW_FLOAT); */
-/*     fprintf(stderr, "A: %.16g\n", a.float_v); */
-/*     a = jdaw_val_deserialize(f, 16, JDAW_FLOAT); */
-/*     fprintf(stderr, "A: %.16g\n", a.float_v); */
-/*     a = jdaw_val_deserialize(f, 16, JDAW_BOOL); */
-/*     fprintf(stderr, "A: %d\n", a.bool_v); */
-/*     a = jdaw_val_deserialize(f, 16, JDAW_DOUBLE); */
-/*     fprintf(stderr, "A: %f\n", a.double_v); */
-/*     fclose(f); */
-    
-
-/* } */
+static const char *license_text = "Copyright (C) 2023-2025 Charlie Volow\nThis program is free software: you can redistribute it and/or modify \nit under the terms of the GNU General Public License as published by \nthe Free Software Foundation, either version 3 of the License, or \n(at your option) any later version. \n\nThis program is distributed in the hope that it will be useful,\nbut WITHOUT ANY WARRANTY; without even the implied warranty of\nMERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\nGNU General Public License for more details.";
 
 int main(int argc, char **argv)
 {
-
-    /* value_serialize_test(); */
-    /* return 1; */
-    /* SDL_Rect test = {0, 0, 1000, 1000}; */
-    /* struct logscale_array *la = waveform_create_logscale(NULL, 512, &test); */
-    /* fprintf(stdout, "Interval : %f\n", la->interval); */
-    /* /\* dir_tests(); *\/ */
-    /* exit(0); */
-    fprintf(stdout, "\n\nJACKDAW (version %s)\nby Charlie Volow\n\n", JACKDAW_VERSION);
+    fprintf(stdout, "\n\nJACKDAW (version %s)\nby Charlie Volow\n\nhttps://jackdaw-audio.net/\n\n%s\n\n", JACKDAW_VERSION, license_text);
     
     init();
-
-    /* pd_open_shared_memory(); */
 
     char *file_to_open = NULL;
     bool invoke_open_wav_file = false;
@@ -259,6 +201,7 @@ int main(int argc, char **argv)
     /* Create project here */
 
     if (invoke_open_jdaw_file) {
+	fprintf(stderr, "Opening \"%s\"...\n", file_to_open);
 	proj = jdaw_read_file(file_to_open);
 	if (proj) {
 	    char *realpath_ret;
@@ -277,16 +220,17 @@ int main(int argc, char **argv)
 	    }
 	}
     } else {
+	fprintf(stderr, "Creating new project...\n");
 	proj = project_create("project.jdaw", DEFAULT_PROJ_AUDIO_SETTINGS);
     }
-
-    
     if (!proj && invoke_open_jdaw_file) {
 	fprintf(stderr, "Error: unable to open project \"%s\".\n", file_to_open);
 	exit(1);
     } else if (!proj) {
 	fprintf(stderr, "Critical error: unable to create project\n");
+	exit(1);
     }
+    fprintf(stderr, "\t...done\n");
 
     if (invoke_open_wav_file) {
 	Track *track = timeline_add_track(proj->timelines[0]);
@@ -305,16 +249,10 @@ int main(int argc, char **argv)
 	    free(filepath);
 
 	}
-	
-
     }
-    /* timeline_add_track(proj->timelines[0]); */
-    /* timeline_add_track(proj->timelines[0]); */
-    /* timeline_add_track(proj->timelines[0]); */
-
-
     loop_project_main();
     
     quit();
+    fprintf(stderr, "See ya later!\n");
     
 }

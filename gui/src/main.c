@@ -1,32 +1,17 @@
 /*****************************************************************************************************************
-  Jackdaw | a stripped-down, keyboard-focused Digital Audio Workstation | built on SDL (https://libsdl.org/)
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
 ******************************************************************************************************************
 
-  Copyright (C) 2023 Charlie Volow
+  Copyright (C) 2023-2025 Charlie Volow
   
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files (the "Software"), to deal
-  in the Software without restriction, including without limitation the rights
-  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  copies of the Software, and to permit persons to whom the Software is
-  furnished to do so, subject to the following conditions:
-  
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
-  
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-  SOFTWARE.
+  Jackdaw is licensed under the GNU General Public License.
 
 *****************************************************************************************************************/
 
 #include <stdio.h>
 #include <stdbool.h>
 #include <time.h>
+#include "assets.h"
 #include "SDL.h"
 #include "draw.h"
 #include "layout.h"
@@ -42,13 +27,6 @@
 #include "test.h"
 
 #define LT_DEV_MODE 1
-
-#ifndef INSTALL_DIR
-#define INSTALL_DIR "."
-#endif
-
-#define PARAM_LT_PATH INSTALL_DIR "/gui/template_lts/param_lt.xml"
-#define OPENFILE_LT_PATH INSTALL_DIR "/gui/template_lts/openfile.xml"
 
 #define CLICK_EDGE_DIST_TOLERANCE 10
 #define MAX_LTS 255
@@ -145,6 +123,10 @@ int point_dist_from_rect(SDL_Point p, SDL_Rect r, Edge *edge_arg)
 
 }
 
+void layout_deselect(Layout *lt);
+void layout_select(Layout *lt);
+int layout_test_indices_recursive(Layout *lt);
+
 void get_clicked_layout(SDL_Point p, Layout *top_level, int *distance, Layout **ret, Edge *edge, Corner *corner)
 {
     if (top_level->type == PRGRM_INTERNAL || top_level->type == ITERATION) {
@@ -168,7 +150,8 @@ void get_clicked_layout(SDL_Point p, Layout *top_level, int *distance, Layout **
     if  (tmp_distance < *distance) {
         *distance = tmp_distance;
         if (*ret) {
-            (*ret)->selected = false;
+	    layout_deselect(*ret);
+            /* (*ret)->selected = false; */
         }
         *ret = top_level;
         *edge = edge_internal;
@@ -204,10 +187,12 @@ static void reset_clicked_lt(Layout *to)
 {
     if (clicked_lt != to) {
 	if (clicked_lt) {
-	    clicked_lt->selected = false;
+	    layout_deselect(clicked_lt);
+	    /* clicked_lt->selected = false; */
 	}
 	clicked_lt = to;
-	clicked_lt->selected = true;
+	layout_select(clicked_lt);
+	/* clicked_lt->selected = true; */
     }
 }
 
@@ -323,13 +308,16 @@ int main(int argc, char** argv)
                 if (crnr != NONECRNR) {
                     layout_clicked = true;
                     layout_corner_clicked = true;
-                    clicked_lt->selected = true;
+		    layout_select(clicked_lt);
+                    /* clicked_lt->selected = true; */
                 } else if (dist < CLICK_EDGE_DIST_TOLERANCE) {
                     layout_clicked = true;
-                    clicked_lt->selected = true;
+		    layout_select(clicked_lt);
+                    /* clicked_lt->selected = true; */
                 } else {
                     // fprintf(stderr, "Falsifying layout clicked\n");
-                    clicked_lt->selected = false;
+		    layout_deselect(clicked_lt);
+                    /* clicked_lt->selected = false; */
 		    clicked_lt = NULL;
                     layout_clicked = false;
                 }
@@ -513,6 +501,11 @@ int main(int argc, char** argv)
 		    /*     clicked_lt->selected = true; */
 		    /* } */
 		    break;
+		case SDL_SCANCODE_W:
+		    if (layout_clicked && clicked_lt) {
+			layout_write(stderr, clicked_lt, 0);
+		    }
+		    break;
 		case SDL_SCANCODE_LEFTBRACKET:
 		    reset_clicked_lt(layout_iterate_siblings(clicked_lt, -1));
 		    break;
@@ -561,6 +554,7 @@ int main(int argc, char** argv)
         SDL_Delay(1);
 	/* fprintf(stderr, "Layout clicked: %d (%p)\n", layout_clicked, clicked_lt); */
 
+	layout_test_indices_recursive(main_lt);
 	if (screen_record) {
 	    if (i % 12 == 0) {
 		screenshot_index++;

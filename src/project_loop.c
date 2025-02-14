@@ -156,9 +156,6 @@ void loop_project_main()
 		scrolling_lt = NULL;
 		temp_scrolling_lt = NULL;
 		switch (e.key.keysym.scancode) {
-		case SDL_SCANCODE_6:
-		    click_segment_at_cursor_fprint(stderr, proj->timelines[proj->active_tl_index]);
-		    break;
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LCTRL:

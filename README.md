@@ -57,7 +57,6 @@ A free, open-source, keyboard-focused digital audio workstation (DAW). Written i
 		 2. [Writing (adding keyframes automatically)](#writing-adding-keyframes-automatically)
 		 3. [Deleting keyframes](#deleting-keyframes)
 	12. [Undo / redo](#undo--redo)
-	dlfkjglnafpdjknp
 	13. [Special audio inputs](#special-audio-inputs)
 		 1. [Jackdaw out](#jackdaw-out)
 		 2. [Pure data](#pure-data)

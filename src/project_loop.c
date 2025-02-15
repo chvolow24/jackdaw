@@ -94,6 +94,7 @@ void loop_project_main()
     bool first_frame = true;
     int wheel_event_recency = 0;
     int play_speed_scroll_recency = 60;
+    bool scrub_block = false;
     while (!(main_win->i_state & I_STATE_QUIT)) {
 	while (SDL_PollEvent(&e)) {
 	    /* fprintf(stdout, "Polled!\n"); */
@@ -156,6 +157,18 @@ void loop_project_main()
 		scrolling_lt = NULL;
 		temp_scrolling_lt = NULL;
 		switch (e.key.keysym.scancode) {
+		/* case SDL_SCANCODE_6: { */
+		/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
+		/*     ClipRef *cr = clipref_at_cursor(); */
+		/*     if (cr) { */
+		/* 	Clip *c = cr->clip; */
+		/* 	free(c->R); */
+		/* 	c->R = malloc(sizeof(float) * c->len_sframes); */
+		/* 	memcpy(c->R, c->L, sizeof(float) * c->len_sframes); */
+		/* 	timeline_reset_full(tl); */
+		/*     } */
+		/* } */
+		/*     break; */
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LCTRL:
@@ -245,9 +258,10 @@ void loop_project_main()
 		} else if (main_win->modes[main_win->num_modes - 1] == TIMELINE || main_win->modes[main_win->num_modes - 1] == TABVIEW) {
 		    if (main_win->i_state & I_STATE_SHIFT) {
 			if (fabs(e.wheel.preciseY) > fabs(e.wheel.preciseX)) {
+			    scrub_block = true;
 			    timeline_play_speed_adj(e.wheel.preciseY);
 			    if (!proj->playing) transport_start_playback();
-			} else {
+			} else if (!scrub_block) {
 			    play_speed_scroll_recency = 0;
 			    if (!proj->playing) transport_start_playback();
 			    Value old_speed = endpoint_safe_read(&proj->play_speed_ep, NULL);
@@ -407,11 +421,12 @@ void loop_project_main()
 		break;
 	    case SDL_FINGERUP:
 		fingersdown = SDL_GetNumTouchFingers(-1);
-		if (fingersdown == 0 && wheel_event_recency < 2)
-		    scrolling_lt = temp_scrolling_lt;
-		/* } else { */
-		/*     scrolling_lt = NULL; */
-		/* } */
+		if (fingersdown == 0) {
+		    if (wheel_event_recency < 2) {
+			scrolling_lt = temp_scrolling_lt;
+		    }
+		    scrub_block = false;
+		}
 		break;
 	    case SDL_FINGERDOWN:
 	        fingersdown = SDL_GetNumTouchFingers(-1);
@@ -453,7 +468,7 @@ void loop_project_main()
 	
 	first_frame = false;
 	
-	if (fingersdown > 0 && play_speed_scroll_recency > 4 && play_speed_scroll_recency < 20) {
+	if (!scrub_block && fingersdown > 0 && play_speed_scroll_recency > 4 && play_speed_scroll_recency < 20) {
 	    Value old_speed = endpoint_safe_read(&proj->play_speed_ep, NULL);
 	    float new_speed = old_speed.float_v / 3.0;
 	    if (fabs(new_speed) < 1E-6) {

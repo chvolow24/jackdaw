@@ -6,9 +6,9 @@
   <children>
     <Layout name="title" type="NORMAL">
       <x>REL 0</x>
-      <y>REL 10</y>
+      <y>REL 16</y>
       <w>SCALE 1.000000</w>
-      <h>REL 40</h>
+      <h>REL 30</h>
       <children>
       </children>
     </Layout>

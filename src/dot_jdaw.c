@@ -21,6 +21,7 @@
 #include "tempo.h"
 #include "transport.h"
 #include "type_serialize.h"
+#include "loading.h"
 
 /* #define BYTEORDER_FATAL fprintf(stderr, "Fatal error (TODO): big-endian byte order not supported\n"); exit(1); */
 #define OLD_FLOAT_SER_W 16
@@ -77,6 +78,8 @@ void jdaw_write_project(const char *path)
         fprintf(stderr, "No project to save. Exiting.\n");
         return;
     }
+    project_set_loading_screen("Saving project", "Writing project settings...", true);
+			   
     FILE* f = fopen(path, "wb");
 
     if (!f) {
@@ -99,14 +102,18 @@ void jdaw_write_project(const char *path)
     uint8_ser(f, &proj->num_timelines);
     /* fwrite(&proj->num_timelines, 1, 1, f); */
 
+    project_loading_screen_update("Writing clip data...", 0.1);
     fprintf(stderr, "Serializing %d audio clips...\n", proj->num_clips);
     for (uint16_t i=0; i<proj->num_clips; i++) {
+	project_loading_screen_update(NULL, 0.1 + 0.8 * (float)i/proj->num_clips);
 	jdaw_write_clip(f, proj->clips[i], i);
     }
+    project_loading_screen_update("Writing timelines...", 0.9);
     fprintf(stderr, "\t...done.\nSerializing %d timelines...\n", proj->num_timelines);
     for (uint8_t i=0; i<proj->num_timelines; i++) {
 	jdaw_write_timeline(f, proj->timelines[i]);
     }
+    project_loading_screen_deinit(proj);
     fprintf(stderr, "\t...done.\n");
     /* fwrite(&(proj->tl->num_tracks), 1, 1, f); */
     /* for (uint8_t i=0; i<proj->tl->num_tracks; i++) { */

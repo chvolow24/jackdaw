@@ -140,29 +140,38 @@ static void jdaw_write_clip(FILE *f, Clip *clip, int index)
         fprintf(stderr, "Error: unable to allocate space for clip_samples\n");
         exit(1);
     }
-    float clipped_sample;
+    /* float clipped_sample; */
     if (clip->channels == 2) {
         for (uint32_t i=0; i<len_samples; i+=2) {
-	    clipped_sample = clip->L[i/2];
-	    if (clipped_sample > 1.0f) clipped_sample = 1.0f;
-	    else if (clipped_sample < -1.0f) clipped_sample = -1.0f;
-            clip_samples[i] = clipped_sample * INT16_MAX;
-	    clipped_sample = clip->R[i/2];
-	    if (clipped_sample > 1.0f) clipped_sample = 1.0f;
-	    else if (clipped_sample < -1.0f) clipped_sample = -1.0f;
-            clip_samples[i+1] = clipped_sample * INT16_MAX;
+	    /* float sample = clip->L[i/2]; */
+	    clip_samples[i] = clip->L[i/2] * INT16_MAX;
+	    /* sample = clip->R[i/2]; */
+	    clip_samples[i+1] = clip->R[i/2] * INT16_MAX;
+	    /* clipped_sample = clip->L[i/2]; */
+	    /* if (clipped_sample > 1.0f) clipped_sample = 1.0f; */
+	    /* else if (clipped_sample < -1.0f) clipped_sample = -1.0f; */
+            /* clip_samples[i] = clipped_sample * INT16_MAX; */
+	    /* clipped_sample = clip->R[i/2]; */
+	    /* if (clipped_sample > 1.0f) clipped_sample = 1.0f; */
+	    /* else if (clipped_sample < -1.0f) clipped_sample = -1.0f; */
+            /* clip_samples[i+1] = clipped_sample * INT16_MAX; */
         }
     } else if (clip->channels == 1) {
 
         for (uint32_t i=0; i<len_samples; i++) {
-	    clipped_sample = clip->L[i];
-	    if (clipped_sample > 1.0f) clipped_sample = 1.0f;
-	    else if (clipped_sample < -1.0f) clipped_sample = -1.0f;
-	    clip_samples[i] = (int16_t)(clip->L[i] * INT16_MAX);
+	    clip_samples[i] = clip->L[i] * INT16_MAX;
+	    /* clipped_sample = clip->L[i]; */
+	    /* if (clipped_sample > 1.0f) clipped_sample = 1.0f; */
+	    /* else if (clipped_sample < -1.0f) clipped_sample = -1.0f; */
+	    /* clip_samples[i] = (int16_t)(clip->L[i] * INT16_MAX); */
         }
     }
-    for (uint32_t i=0; i<clip->len_sframes * clip->channels; i++) {
-	int16_ser_le(f, clip_samples + i);
+    if (SYS_BYTEORDER_LE) {
+	fwrite(clip_samples, 2, len_samples, f);
+    } else {
+	for (uint32_t i=0; i<clip->len_sframes * clip->channels; i++) {
+	    int16_ser_le(f, clip_samples + i);
+	}
     }
     /* fwrite(clip_samples, 2, clip->len_sframes * clip->channels, f); */
     free(clip_samples);

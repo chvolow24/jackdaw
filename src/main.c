@@ -35,6 +35,7 @@
 #include "tempo.h"
 #include "text.h"
 #include "transport.h"
+#include "trie.h" /* Testing */
 #include "wav.h"
 #include "waveform.h"
 #include "window.h"
@@ -146,6 +147,10 @@ static const char *license_text = "Copyright (C) 2023-2025 Charlie Volow\nThis p
 
 int main(int argc, char **argv)
 {
+
+    /* trie_tests(); */
+    /* return 0; */
+    
     fprintf(stdout, "\n\nJACKDAW (version %s)\nby Charlie Volow\n\nhttps://jackdaw-audio.net/\n\n%s\n\n", JACKDAW_VERSION, license_text);
     
     init();

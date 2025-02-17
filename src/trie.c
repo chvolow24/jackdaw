@@ -14,15 +14,14 @@
     * simple trie implementation for function lookup
     * all lowercase
  *****************************************************************************************************************/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "trie.h"
 
-void trie_init(Trie *trie)
+void trie_init(TrieNode *head)
 {
-    memset(trie, '\0', sizeof(Trie));
+    memset(head, '\0', sizeof(TrieNode));
 }
 
 static char lower_validate_char(char c)
@@ -30,29 +29,23 @@ static char lower_validate_char(char c)
     if (c >= 'A' && c <= 'Z') {
 	return c - 'A' + 'a';
     } else if (c < 'a' || c > 'z') {
-	fprintf(stderr, "Error in trie: alpha characters only");
+	fprintf(stderr, "Error in trie: alpha characters only\n");
 	return '\0';
     }
     return c;
 }
 
-void trie_insert_word(Trie *trie, char *word, void *ex_obj)
+void trie_insert_word(TrieNode *trie, char *word, void *ex_obj)
 {
-    char c = word[0];
-    c = lower_validate_char(c);
-    if (!c) return;
-    TrieNode **node = trie->head_nodes + (c - 'a');
-    if (!*node) {
-	*node = calloc(1, sizeof(TrieNode));
-	(*node)->c = c;
-    }
-    word++;
+    char c;
+    TrieNode **node = &trie;
     while ((c = *word) != '\0') {
 	c = lower_validate_char(c);
+	if (!c) return;
 	node = (*node)->children + c - 'a';
 	if (!*node) {
 	    *node = calloc(1, sizeof(TrieNode));
-	    (*node)->c = c;
+	    /* (*node)->c = c; */
 	}
 	word++;
     }
@@ -61,19 +54,13 @@ void trie_insert_word(Trie *trie, char *word, void *ex_obj)
     }
 }
 
-void *trie_lookup_word(Trie *trie, char *word)
+void *trie_lookup_word(TrieNode *trie, char *word)
 {
-    char c = word[0];
-    c = lower_validate_char(c);
-    if (!c) return NULL;
-    
-    TrieNode **node = trie->head_nodes + (c - 'a');
-    if (!*node) {
-	return NULL;
-    }
-    word++;
+    char c;
+    TrieNode **node = &trie;
     while ((c = *word) != '\0') {
 	c = lower_validate_char(c);
+	if (!c) return NULL;
 	node = (*node)->children + c - 'a';
 	if (!*node) {
 	    return NULL;
@@ -86,8 +73,23 @@ void *trie_lookup_word(Trie *trie, char *word)
     return NULL;
 }
 
+/* If root node not heap-allocated, second arg should be false */
+void trie_destroy(TrieNode *node, bool free_current_node)
+{
+    for (int i=0; i<26; i++) {
+	TrieNode *child;
+	if ((child = node->children[i])) {
+	    trie_destroy(node->children[i], true);
+	    if (!free_current_node) {
+		node->children[i] = NULL;
+	    }
+	}
+    }
+    if (free_current_node) free(node);
+}
 
-Trie glob_trie;
+
+TrieNode glob_trie;
 
 static void lookup_print(char *word)
 {
@@ -115,6 +117,8 @@ void trie_tests()
     lookup_print("theretilly");
     lookup_print("there");
     lookup_print("tHere");
+    trie_destroy(&glob_trie, false);
+
 }
 
 

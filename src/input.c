@@ -20,6 +20,7 @@
 
 #include <string.h>
 #include <stdbool.h>
+#include "function_lookup.h"
 #include "input.h"
 #include "layout.h"
 #include "menu.h"
@@ -124,6 +125,7 @@ static void mode_subcat_add_fn(ModeSubcat *ms, UserFn *fn)
     }
     ms->fns[ms->num_fns] = fn;
     ms->num_fns++;
+    fn_lookup_index_fn(fn);
 }
 
 static UserFn *create_user_fn(

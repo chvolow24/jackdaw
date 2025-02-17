@@ -55,12 +55,12 @@ void fn_lookup_index_fn(UserFn *fn)
 	    void *obj = trie_lookup_word(&FN_TRIE, word);
 	    if (obj) {
 		FnList *fnl = (FnList *)obj;
-		fprintf(stderr, "ADDING WORD TO LIST: %s\n", word);
+		/* fprintf(stderr, "ADDING WORD TO LIST: %s\n", word); */
 		add_fn_to_list(fnl, fn);
 	    } else {
 		FnList *fnl = create_fn_list();
 		add_fn_to_list(fnl, fn);
-		fprintf(stderr, "INSERTING WORD: %s\n", word);
+		/* fprintf(stderr, "INSERTING WORD: %s\n", word); */
 		trie_insert_word(&FN_TRIE, word, fnl);
 	    }
 	    *cursor = ' ';
@@ -71,6 +71,20 @@ void fn_lookup_index_fn(UserFn *fn)
     }
 }
 
+
+void TEST_lookup_print_all_matches(const char *word)
+{
+    void *objs[255];
+    int num = trie_gather_completion_objs(&FN_TRIE, word, objs, 255);
+
+    for (int i=0; i<num; i++) {
+	fprintf(stderr, "\n");
+	FnList *fnl = objs[i];
+	for (int i=0; i<fnl->num_fns; i++) {
+	    fprintf(stderr, "FN: %s\n", fnl->fns[i]->fn_display_name);
+	}
+    }
+}
 /* UserFn *fn_lookup_search_fn() */
 /* { */
     

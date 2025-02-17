@@ -28,4 +28,8 @@ typedef struct fn_list {
 
 void fn_lookup_index_fn(UserFn *fn);
 
+/* void lookup_print_all_matches(const char *word); */
+
+void TEST_lookup_print_all_matches(const char *word);
+
 #endif

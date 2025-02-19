@@ -44,6 +44,7 @@ TLinesItem *create_autocomplete_tline(void ***current_item, Layout *container, v
     line->tb->layout->w.type = SCALE;
 
     (*a_loc)++;
+    textbox_reset(line->tb);
     
     return line;
 }

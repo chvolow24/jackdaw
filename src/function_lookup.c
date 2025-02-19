@@ -156,8 +156,10 @@ static int update_records_fn(AutoCompletion *ac, struct autocompletion_item **it
 	    }
 	    fprintf(stderr, "\tCheck %s: %sfound\n", ((UserFn*)obj1)->fn_display_name, found ? "" : "NOT ");
 	    if (!found) {
-		fprintf(stderr, "\t->\"%s\" NOT FOUND! moving items starting at \"%s\" to \"%s\"\n", ((UserFn *)obj1)->fn_display_name, (items_loc + i + 1)->str, (items_loc + i)->str);
-		memmove(items_loc + i, items_loc + i + 1, (num_fns - i - 1) * sizeof(void *));
+		if (i<num_fns - 1) {
+		    fprintf(stderr, "\t->\"%s\" NOT FOUND! moving items starting at \"%s\" to \"%s\"\n", ((UserFn *)obj1)->fn_display_name, (items_loc + i + 1)->str, (items_loc + i)->str);
+		    memmove(items_loc + i, items_loc + i + 1, (num_fns - i - 1) * sizeof(struct autocompletion));
+		}
 		num_fns--;
 		i--;
 	    }

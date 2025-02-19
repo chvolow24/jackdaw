@@ -121,6 +121,7 @@ int trie_gather_completion_objs(TrieNode *node, const char *word, void **dst, in
     memcpy(completion_buf, word, len);
     
     node = trie_lookup_word_leaf(node, word);
+    if (!node) return 0;
     int dst_lens[] = {0, dst_max_len};
     trie_completion_recursive(node, completion_buf, len, 255, foreach_add_to_obj_list, &dst, dst_lens);
     return dst_lens[0];

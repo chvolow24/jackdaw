@@ -159,13 +159,14 @@ void loop_project_main()
 		temp_scrolling_lt = NULL;
 		switch (e.key.keysym.scancode) {
 		case SDL_SCANCODE_6: {
-		    const char *words[] = {"ad", "tr", "ti"};
-		    static int word_i = 0;
+		    create_global_ac();
+		    /* const char *words[] = {"a", "b", "c"}; */
+		    /* static int word_i = 0; */
 
-		    TEST_lookup_print_all_matches(words[word_i]);
+		    /* TEST_lookup_print_all_matches(words[word_i]); */
 		    
-		    word_i++;
-		    word_i %= 3;
+		    /* word_i++; */
+		    /* word_i %= 3; */
 		}
 		    break;   
 		/* case SDL_SCANCODE_6: { */

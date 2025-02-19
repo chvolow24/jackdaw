@@ -146,7 +146,9 @@ typedef struct text {
     SDL_Texture *texture;
 
     int (*validation)(Text *self, char input);
+    int (*after_edit)(Text *self, void *obj);
     int (*completion)(Text *self, void *obj);
+    void *after_edit_target;
     void *completion_target;
     /* int (*submit_validation)(Text *self); */
     /* pthread_mutex_t draw_lock; */

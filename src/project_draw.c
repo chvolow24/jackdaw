@@ -601,6 +601,10 @@ static void control_bar_draw(Project *proj)
 extern SDL_Color color_global_x_red;
 extern SDL_Color color_global_dropdown_green;
 extern SDL_Color color_global_min_yellow;
+
+typedef struct auto_completion AutoCompletion;
+void autocompletion_draw(AutoCompletion *ac);
+extern AutoCompletion *GLOBAL_AC;
 void project_draw()
 {
     window_start_draw(main_win, NULL);
@@ -629,6 +633,10 @@ void project_draw()
     window_draw_menus(main_win);
 
     tl->needs_redraw = false;
+
+    if (GLOBAL_AC) {
+	autocompletion_draw(GLOBAL_AC);
+    }
 
     window_end_draw(main_win);
 }

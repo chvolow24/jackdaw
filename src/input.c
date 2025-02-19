@@ -631,7 +631,7 @@ static void mode_load_timeline()
     
     fn = create_user_fn(
 	"tl_track_select_1",
-	"Select track 1",
+	"Activate track 1",
         user_tl_track_select_1);
     mode_subcat_add_fn(sc, fn);
 
@@ -687,7 +687,7 @@ static void mode_load_timeline()
 
     fn = create_user_fn(
 	"tl_click_track_add",
-	"Add tempo track",
+	"Add click track",
         user_tl_click_track_add);
     mode_subcat_add_fn(sc, fn);
 

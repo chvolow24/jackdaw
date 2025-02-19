@@ -3,7 +3,7 @@
 ******************************************************************************************************************
 
   Copyright (C) 2023-2025 Charlie Volow
-3  
+
   Jackdaw is licensed under the GNU General Public License.
 
 *****************************************************************************************************************/
@@ -361,12 +361,19 @@ void txt_input_event_handler(Text *txt, SDL_Event *e)
     if (txt->validation && txt->validation(txt, input) != 0) return;
     #endif
     handle_char(txt, input);
+    if (txt->after_edit) {
+	txt->after_edit(txt, txt->after_edit_target);
+    }
     txt_reset_drawable(txt);
 }
 
 void txt_edit_backspace(Text *txt)
 {
     handle_backspace(txt);
+    if (txt->after_edit) {
+	txt->after_edit(txt, txt->after_edit_target);
+    }
+
 }
 
 void txt_edit_move_cursor(Text *txt, bool left)

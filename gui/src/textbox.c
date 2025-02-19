@@ -366,8 +366,12 @@ TextLines *textlines_create(
     Layout *container, void *x_arg)
 {
     uint16_t num_items_after_filter = 0;
-    for (uint16_t i=0; i<num_items; i++) {
-	if (filter(items[i], x_arg)) num_items_after_filter++;
+    if (filter) {
+	for (uint16_t i=0; i<num_items; i++) {
+	    if (filter(items[i], x_arg)) num_items_after_filter++;
+	}
+    } else {
+	num_items_after_filter = num_items;
     }
 
     TextLines *tlines = calloc(1, sizeof(TextLines));
@@ -407,6 +411,7 @@ void textlines_destroy(TextLines *tlines)
 	}
     }
     free(tlines->items);
+    layout_destroy(tlines->container);
     free(tlines);
 }
 
@@ -415,5 +420,5 @@ void textlines_draw(TextLines *tlines)
     for (uint16_t i=0; i<tlines->num_items; i++) {
 	textbox_draw(tlines->items[i]->tb);
     }
-    layout_destroy(tlines->container);
+    /* layout_destroy(tlines->container); */
 }

@@ -18,7 +18,7 @@
 
 extern Window *main_win;
 
-#define AUTOCOMPLETE_LINE_SPACING 2
+#define AUTOCOMPLETE_LINE_SPACING 3
 
 TLinesItem *create_autocomplete_tline(void ***current_item, Layout *container, void *xarg, int (*filter)(void *item, void *xarg))
 {
@@ -34,12 +34,13 @@ TLinesItem *create_autocomplete_tline(void ***current_item, Layout *container, v
     Layout *lt = layout_add_child(container);
     lt->y.type = STACK;
     lt->y.value = AUTOCOMPLETE_LINE_SPACING;
-    lt->h.value = 50;
+    lt->h.value = 70;
     lt->w.value = 500;
     
-    line->tb = textbox_create_from_str(item.str, lt, main_win->bold_font, 14, main_win);
+    line->tb = textbox_create_from_str(item.str, lt, main_win->mono_bold_font, 16, main_win);
     textbox_set_align(line->tb, CENTER_LEFT);
-    textbox_size_to_fit(line->tb, 0, 0);
+    textbox_set_pad(line->tb, 4, 1);
+    textbox_size_to_fit(line->tb, 4, 1);
     line->tb->layout->w.value = 1.0;
     line->tb->layout->w.type = SCALE;
 
@@ -93,11 +94,11 @@ static int autocompletion_te_afteredit(Text *self, void *xarg)
 }
 
 
-AutoCompletion *autocompletion_create(Layout *layout, int update_records(AutoCompletion *self, struct autocompletion_item **dst_loc))
+void autocompletion_init(AutoCompletion *ac, Layout *layout, int update_records(AutoCompletion *self, struct autocompletion_item **dst_loc))
     /* struct autocompletion_item *items, */
     /* int num_items) */
 {
-    AutoCompletion *ac = calloc(1, sizeof(AutoCompletion));
+    /* AutoCompletion *ac = calloc(1, sizeof(AutoCompletion)); */
     
     ac->layout = layout;
     ac->update_records = update_records;
@@ -113,7 +114,7 @@ AutoCompletion *autocompletion_create(Layout *layout, int update_records(AutoCom
 	ac->entry_buf,
 	AUTOCOMPLETE_ENTRY_BUFLEN,
 	main_win->mono_bold_font,
-	14,
+	16,
 	NULL, NULL, NULL,
 	main_win);
     ac->entry->tb->text->after_edit = autocompletion_te_afteredit;
@@ -128,7 +129,6 @@ AutoCompletion *autocompletion_create(Layout *layout, int update_records(AutoCom
     /* 	create_autocomplete_tline, */
     /* 	lines_lt, */
     /* 	NULL); */
-    return ac;   
 }
 
 void autocompletion_draw(AutoCompletion *ac)

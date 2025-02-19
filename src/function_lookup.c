@@ -52,7 +52,7 @@ void fn_lookup_index_fn(UserFn *fn)
     char c;
     while (1) {
 	c = *cursor;
-        if (c == ' ' || c == '/' || c == '\0') {
+        if (c == ' ' || c == '/' || c == '\0' || c == '.' || c == '(' || c == ')') {
 	    *cursor = '\0';
 	    void *obj = trie_lookup_word(&FN_TRIE, word);
 	    if (obj) {
@@ -98,7 +98,7 @@ void TEST_lookup_print_all_matches(const char *word)
 static int update_records_fn(AutoCompletion *ac, struct autocompletion_item **items_dst)
 {
 
-    fprintf(stderr, "\n\n\n\nUPDATE RECORDS\n");
+    /* fprintf(stderr, "\n\n\n\nUPDATE RECORDS\n"); */
     char *text = strdup(ac->entry->tb->text->display_value);
     if (strlen(text) == 0) {
 	free(text);
@@ -111,6 +111,7 @@ static int update_records_fn(AutoCompletion *ac, struct autocompletion_item **it
     char *tok;
     bool first_word = true;
     while ((tok = strsep(&text, " "))) {
+	/* fprintf(stderr, "TOK: %s\n", tok); */
 	if (strlen(tok) == 0) continue;
 	int num_word_matches = 0;    
 	void *objs[255];
@@ -134,7 +135,7 @@ static int update_records_fn(AutoCompletion *ac, struct autocompletion_item **it
 	    continue;
 	} 
 	num_word_matches = trie_gather_completion_objs(&FN_TRIE, tok, objs, 255);
-	fprintf(stderr, "NUM FNS BEFORE FILTER: %d. Tok: %s. Num words: %d\n", num_fns, tok, num_word_matches);
+	/* fprintf(stderr, "NUM FNS BEFORE FILTER: %d. Tok: %s. Num words: %d\n", num_fns, tok, num_word_matches); */
 	UserFn *tok_fns[255];
 	int num_tok_fns = 0;
 	for (int i=0; i<num_word_matches; i++) {
@@ -154,10 +155,10 @@ static int update_records_fn(AutoCompletion *ac, struct autocompletion_item **it
 		    break;
 		}
 	    }
-	    fprintf(stderr, "\tCheck %s: %sfound\n", ((UserFn*)obj1)->fn_display_name, found ? "" : "NOT ");
+	    /* fprintf(stderr, "\tCheck %s: %sfound\n", ((UserFn*)obj1)->fn_display_name, found ? "" : "NOT "); */
 	    if (!found) {
 		if (i<num_fns - 1) {
-		    fprintf(stderr, "\t->\"%s\" NOT FOUND! moving items starting at \"%s\" to \"%s\"\n", ((UserFn *)obj1)->fn_display_name, (items_loc + i + 1)->str, (items_loc + i)->str);
+		    /* fprintf(stderr, "\t->\"%s\" NOT FOUND! moving items starting at \"%s\" to \"%s\"\n", ((UserFn *)obj1)->fn_display_name, (items_loc + i + 1)->str, (items_loc + i)->str); */
 		    memmove(items_loc + i, items_loc + i + 1, (num_fns - i - 1) * sizeof(struct autocompletion));
 		}
 		num_fns--;
@@ -172,7 +173,7 @@ static int update_records_fn(AutoCompletion *ac, struct autocompletion_item **it
     return num_fns;
 }
 
-AutoCompletion *GLOBAL_AC;
+AutoCompletion GLOBAL_AC;
 extern Window *main_win;
 void create_global_ac()
 {
@@ -180,11 +181,12 @@ void create_global_ac()
     Layout *ac_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(ac_lt);
     layout_force_reset(ac_lt);
-    GLOBAL_AC = autocompletion_create(
+    autocompletion_init(
+	&GLOBAL_AC,
 	ac_lt,
 	update_records_fn);
 
-    textentry_edit(GLOBAL_AC->entry);
+    textentry_edit(GLOBAL_AC.entry);
 
 }
 /* UserFn *fn_lookup_search_fn() */

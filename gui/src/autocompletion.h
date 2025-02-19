@@ -40,7 +40,7 @@ typedef struct autocompletion {
     int selection; /* -1 if in textentry, otherwise index of selected line */
 } AutoCompletion;
 
-AutoCompletion *autocompletion_create(Layout *layout, int update_records(AutoCompletion *self, struct autocompletion_item **items_arr_p));
+void autocompletion_init(AutoCompletion *ac, Layout *layout, int update_records(AutoCompletion *self, struct autocompletion_item **items_arr_p));
 void autocompletion_draw(AutoCompletion *ac);
 
 #endif

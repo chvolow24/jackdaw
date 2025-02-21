@@ -71,7 +71,7 @@ typedef struct user_event {
 
 
 typedef struct user_event_history {
-    UserEvent *most_recent;
+    /* UserEvent *most_recent; */
     UserEvent *oldest;
     UserEvent *next_undo;
     int len;

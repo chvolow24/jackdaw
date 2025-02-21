@@ -203,7 +203,7 @@ static void mode_load_global()
 
     fn = create_user_fn(
 	"open_file",
-	"Open File (.wav or .jdaw)",
+	"Open file (.wav or .jdaw)",
 	user_global_open_file);
     mode_subcat_add_fn(mc, fn);
 
@@ -354,7 +354,7 @@ static void mode_load_timeline()
 
     fn = create_user_fn(
 	"tl_move_playhead_right",
-	"Move playhead rigth",
+	"Move playhead right",
 	user_tl_move_playhead_right);
     mode_subcat_add_fn(sc, fn);
 

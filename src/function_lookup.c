@@ -178,15 +178,15 @@ extern Window *main_win;
 void create_global_ac()
 {
 
-    Layout *ac_lt = layout_add_child(main_win->layout);
-    layout_set_default_dims(ac_lt);
-    layout_force_reset(ac_lt);
-    autocompletion_init(
-	&GLOBAL_AC,
-	ac_lt,
-	update_records_fn);
+    /* Layout *ac_lt = layout_add_child(main_win->layout); */
+    /* layout_set_default_dims(ac_lt); */
+    /* layout_force_reset(ac_lt); */
+    /* autocompletion_init( */
+    /* 	&GLOBAL_AC, */
+    /* 	ac_lt, */
+    /* 	update_records_fn); */
 
-    textentry_edit(GLOBAL_AC.entry);
+    /* textentry_edit(GLOBAL_AC.entry); */
 
 }
 /* UserFn *fn_lookup_search_fn() */

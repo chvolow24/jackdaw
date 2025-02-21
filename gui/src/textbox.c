@@ -7,6 +7,8 @@
 #define TXTBX_DEFAULT_RAD 0
 #define TXTBX_DEFAULT_MAXLEN 255
 
+#define MAX_TLINES 1024
+
 SDL_Color textbox_default_bckgrnd_clr = (SDL_Color) {240, 240, 240, 255};
 SDL_Color textbox_default_txt_clr = (SDL_Color) {0, 0, 0, 255};
 SDL_Color textbox_default_border_clr = (SDL_Color) {100, 100, 100, 255};
@@ -357,58 +359,91 @@ void textbox_set_style(Textbox *tb, enum textbox_style style)
 /* } */
 
 /* #include "dir.h" */
-
+void breakfn();
 TextLines *textlines_create(
-    void **items,
+    void *src_items,
+    size_t item_width,
     uint16_t num_items,
-    int (*filter)(void *item, void *x_arg),
-    TLinesItem *(*create_item)(void ***curent_item, Layout *container, void *x_arg, int (*filter)(void *item, void *x_arg)),
-    Layout *container, void *x_arg)
+    CreateTline create_line,
+    TlinesFilter filter,
+    Layout *container,
+    void *x_arg)
+
 {
-    uint16_t num_items_after_filter = 0;
-    if (filter) {
-	for (uint16_t i=0; i<num_items; i++) {
-	    if (filter(items[i], x_arg)) num_items_after_filter++;
-	}
-    } else {
-	num_items_after_filter = num_items;
-    }
-
+    breakfn();
     TextLines *tlines = calloc(1, sizeof(TextLines));
-    tlines->items = calloc(num_items_after_filter, sizeof(TLinesItem *));
-    tlines->num_items = num_items_after_filter;
+    tlines->items = calloc(MAX_TLINES, sizeof(TLinesItem));
     tlines->container = container;
-
-    uint16_t line_i = 0;
-    for (uint16_t i=0; i<num_items; i++) {
-	TLinesItem *item = create_item(&items, container, x_arg, filter);
-	if (item) {
-	    tlines->items[line_i] = item;
-	    /* fprintf(stdout, "Item %d = %s\n", i, ((DirPath *)tlines->items[line_i]->obj)->path); */
-	    line_i++;
-	    /* i++; */
+    void *current_item = src_items;
+    int dst_i = 0;
+    for (int i=0; i<num_items; i++) {
+	if (filter(current_item, x_arg)) {
+	    breakfn();
+	    create_line(tlines, tlines->items + dst_i, current_item, x_arg);
+	    dst_i++;
 	}
+	char *moveptr = (char *)current_item;
+	moveptr += item_width;
+	current_item = (void *)moveptr;
     }
+    breakfn();
+    tlines->items = realloc(tlines->items, dst_i * sizeof(TLinesItem));
+    tlines->num_items = dst_i;
     layout_force_reset(tlines->container);
     layout_size_to_fit_children(tlines->container, true, 0);
-    return tlines;
+    return tlines;   
 }
 
-static void textlines_el_destroy(TLinesItem *el)
-{
-    if (el->tb) {
-	textbox_destroy(el->tb);
-    }
-    free(el);
-}
+
+/* TextLines *textlines_create( */
+/*     void **items, */
+/*     uint16_t num_items, */
+/*     int (*filter)(void *item, void *x_arg), */
+/*     TLinesItem *(*create_item)(void ***curent_item, Layout *container, void *x_arg, int (*filter)(void *item, void *x_arg)), */
+/*     Layout *container, void *x_arg) */
+/* { */
+/*     uint16_t num_items_after_filter = 0; */
+/*     if (filter) { */
+/* 	for (uint16_t i=0; i<num_items; i++) { */
+/* 	    if (filter(items[i], x_arg)) num_items_after_filter++; */
+/* 	} */
+/*     } else { */
+/* 	num_items_after_filter = num_items; */
+/*     } */
+
+/*     TextLines *tlines = calloc(1, sizeof(TextLines)); */
+/*     tlines->items = calloc(num_items_after_filter, sizeof(TLinesItem *)); */
+/*     tlines->num_items = num_items_after_filter; */
+/*     tlines->container = container; */
+
+/*     uint16_t line_i = 0; */
+/*     for (uint16_t i=0; i<num_items; i++) { */
+/* 	TLinesItem *item = create_item(&items, container, x_arg, filter); */
+/* 	if (item) { */
+/* 	    tlines->items[line_i] = item; */
+/* 	    /\* fprintf(stdout, "Item %d = %s\n", i, ((DirPath *)tlines->items[line_i]->obj)->path); *\/ */
+/* 	    line_i++; */
+/* 	    /\* i++; *\/ */
+/* 	} */
+/*     } */
+/*     layout_force_reset(tlines->container); */
+/*     layout_size_to_fit_children(tlines->container, true, 0); */
+/*     return tlines; */
+/* } */
+
+/* static void textlines_el_destroy(TLinesItem *el) */
+/* { */
+/*     if (el->tb) { */
+/* 	textbox_destroy(el->tb); */
+/*     } */
+/*     /\* free(el); *\/ */
+/* } */
 
 void textlines_destroy(TextLines *tlines)
 {
     for (uint16_t i=0; i<tlines->num_items; i++) {
-	TLinesItem *item = NULL;
-	if ((item = tlines->items[i])) {
-	    textlines_el_destroy(item);
-	}
+	TLinesItem *item = tlines->items + i;
+	textbox_destroy(item->tb);
     }
     free(tlines->items);
     layout_destroy(tlines->container);
@@ -418,7 +453,7 @@ void textlines_destroy(TextLines *tlines)
 void textlines_draw(TextLines *tlines)
 {
     for (uint16_t i=0; i<tlines->num_items; i++) {
-	textbox_draw(tlines->items[i]->tb);
+	textbox_draw(tlines->items[i].tb);
     }
     /* layout_destroy(tlines->container); */
 }

@@ -231,18 +231,18 @@ DirPath *dir_select(DirPath *dp, DirPath *new)
 
 static int qsort_dirnav_cmp(const void *tl1_v, const void*tl2_v)
 {
-    TLinesItem *tl1 = *((TLinesItem **)tl1_v);
-    TLinesItem *tl2 = *((TLinesItem **)tl2_v);
+    TLinesItem *tl1 = (TLinesItem *)tl1_v;
+    TLinesItem *tl2 = (TLinesItem *)tl2_v;
     return strcmp(((DirPath *)tl1->obj)->path, ((DirPath *)tl2->obj)->path);
 }
 
 void sort_dn_lines(DirNav *dn)
 {
-    qsort(dn->lines->items, dn->lines->num_items, sizeof(TLinesItem *), qsort_dirnav_cmp);
+    qsort(dn->lines->items, dn->lines->num_items, sizeof(TLinesItem), qsort_dirnav_cmp);
     Layout *lines_container = dn->lines->container;
     TLinesItem *tli = NULL;
     for (uint16_t i=0; i<dn->lines->num_items; i++) {
-	tli = dn->lines->items[i];
+	tli = dn->lines->items + i;
 	tli->tb->layout = lines_container->children[i];
 	tli->tb->text->container = tli->tb->layout;
 	tli->tb->text->text_lt = tli->tb->layout->children[0];
@@ -252,7 +252,7 @@ void sort_dn_lines(DirNav *dn)
 
 
 /* int i=0; */
-static TLinesItem *dir_to_tline(void ***current_item_v, Layout *container, void *dn_v, int (*filter)(void *item, void *x_arg))
+static TLinesItem *dir_to_tline_OLD(void ***current_item_v, Layout *container, void *dn_v, int (*filter)(void *item, void *x_arg))
 {
     /* fprintf(stdout, "Call %d to dir_to_tline\n", i); */
     /* i++; */
@@ -306,6 +306,49 @@ static TLinesItem *dir_to_tline(void ***current_item_v, Layout *container, void 
     return item;
 }
 
+
+static void dir_to_tline(
+    TextLines *tlines,
+    TLinesItem *current_line,
+    const void *current_item,
+    void *xarg)
+    
+{
+    /* fprintf(stdout, "Call %d to dir_to_tline\n", i); */
+    /* i++; */
+    /* DirNav *dn = (DirNav *)dn_v; */
+    /* DirPath ***dps_loc = (DirPath ***)current_item_v; */
+    /* DirPath **dps = *dps_loc; */
+    DirNav *dn = (DirNav *)xarg;
+    DirPath *dp = *(DirPath **)current_item;
+    TLinesItem *item = current_line;
+    /* TLinesItem *item = calloc(1, sizeof(TLinesItem)); */
+
+    item->obj = (void *)dp;
+    Layout *lt = layout_add_child(tlines->container);
+    lt->y.type = STACK;
+    lt->y.value = DIRNAV_LINE_SPACING;
+    lt->h.value = 50;
+    lt->w.value = 500;
+    
+    item->tb = textbox_create_from_str(path_get_tail(dp->path), lt, main_win->bold_font, 12, main_win);
+    /* textbox_set_pad(item->tb, 0, 4); */
+    textbox_set_align(item->tb, CENTER_LEFT);
+    textbox_size_to_fit(item->tb, 0, 0);
+    item->tb->layout->w.value = 1.0;
+    item->tb->layout->w.type = SCALE;
+    textbox_reset_full(item->tb);
+    SDL_Color *txt_clr =
+	/* filter_val == -1 ? */
+	/* dp->type == DT_DIR ? &color_dir_unavailable : &color_file_unavailable : */
+	dp->type == DT_DIR ? &color_dir : &color_file;
+    textbox_set_text_color(item->tb, txt_clr);
+    textbox_set_background_color(item->tb, &color_global_clear);
+    dn->num_lines++;
+    /* dn->lines->num_items++; */
+}
+
+
 /* static bool dir_to_tline_filter(void *item, void *x_arg) */
 /* { */
 /*     DirPath *dp = (DirPath *)item; */
@@ -319,7 +362,10 @@ static TLinesItem *dir_to_tline(void ***current_item_v, Layout *container, void 
 /* } */
 
 void layout_write(FILE *f, Layout *lt, int indent);
-DirNav *dirnav_create(const char *dir_name, Layout *lt, int (*dir_to_tline_filter)(void *item, void *x_arg))
+DirNav *dirnav_create(
+    const char *dir_name,
+    Layout *lt,
+    TlinesFilter tlines_filter)
 {
     DirPath *dp = dirpath_open(dir_name);
     if (!dp) {
@@ -334,7 +380,7 @@ DirNav *dirnav_create(const char *dir_name, Layout *lt, int (*dir_to_tline_filte
 
     DirNav *dn = calloc(1, sizeof(DirNav));
     dn->dirpath = dp;
-    dn->dir_to_tline_filter = dir_to_tline_filter;
+    dn->dir_to_tline_filter = tlines_filter;
     dn->layout = lt;
     strcpy(lt->name, "dirnav_lt");
     Layout *inner = layout_add_child(lt);
@@ -353,16 +399,32 @@ DirNav *dirnav_create(const char *dir_name, Layout *lt, int (*dir_to_tline_filte
     lines_container->h.value = 1.0;
     lines_container->w.type = SCALE;
     lines_container->h.type = SCALE;
-    dn->lines = textlines_create((void **)dn->dirpath->entries, dp->num_entries, dir_to_tline_filter, dir_to_tline, lines_container, (void *)dn);
+    /* dn->lines = textlines_create( */
+    /* 	(void **)dn->dirpath->entries, */
+    /* 	dp->num_entries, */
+    /* 	dir_to_tline_filter, */
+    /* 	dir_to_tline, */
+    /* 	lines_container, */
+    /* 	(void *)dn); */
+    dn->lines = textlines_create(
+	(void *)dn->dirpath->entries,
+	sizeof(DirPath *),
+	dp->num_entries,
+	dir_to_tline,
+	tlines_filter,
+	lines_container,
+	(void *)dn);
+	
+    
     dn->lines->num_items = dn->num_lines;
     sort_dn_lines(dn);
     /* qsort(dn->lines->items, dn->lines->num_items, sizeof(TLinesItem *), qsort_dirnav_cmp); */
 
 
-    TLinesItem *sel = dn->lines->items[dn->current_line];
+    TLinesItem *sel = dn->lines->items + dn->current_line;
     SDL_Color sel_clr = (((DirPath *)sel->obj)->type == DT_DIR) ? color_dir_selected : color_file_selected;
     /* sel_clr = (SDL_Color) {255, 255, 255, 255}; */
-    textbox_set_text_color(dn->lines->items[dn->current_line]->tb, &sel_clr);
+    textbox_set_text_color((dn->lines->items +dn->current_line)->tb, &sel_clr);
     textbox_set_background_color(sel->tb, &color_highlighted_bckgrnd);
     textbox_reset_full(sel->tb);
 
@@ -412,22 +474,21 @@ void dirnav_destroy(DirNav *dn)
 extern SDL_Color control_bar_bckgrnd;
 void dirnav_draw(DirNav *dn)
 {
-    /* layout_reset(dn->layout); */
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
     SDL_RenderFillRect(main_win->rend, &dn->layout->rect);
-    /* SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255); */
-    /* SDL_RenderDrawRect(main_win->rend, &dn->lines->container->rect); */
+    
     Layout *inner = layout_get_child_by_name_recursive(dn->layout, "dirnav_lines_container");
     SDL_RenderSetClipRect(main_win->rend, &inner->rect);
-    for (uint8_t i=0; i<dn->lines->num_items; i++) {
-	TLinesItem *tli = NULL;
-	/* fprintf(stdout, "Dn draw %s, %s\n", dn->lines->items[i]->tb->text->value_handle, dn->lines->items[i]->tb->text->display_value); */
-	if ((tli = dn->lines->items[i]) == NULL || tli->tb == NULL) {
-	    continue;
-	}
-	textbox_reset_full(tli->tb);
-	textbox_draw(tli->tb);
-    }
+    textlines_draw(dn->lines);
+    /* for (uint8_t i=0; i<dn->lines->num_items; i++) { */
+    /* 	TLinesItem *tli = NULL; */
+    /* 	/\* fprintf(stdout, "Dn draw %s, %s\n", dn->lines->items[i]->tb->text->value_handle, dn->lines->items[i]->tb->text->display_value); *\/ */
+    /* 	if ((tli = dn->lines->items + i) == NULL || tli->tb == NULL) { */
+    /* 	    continue; */
+    /* 	} */
+    /* 	textbox_reset_full(tli->tb); */
+    /* 	textbox_draw(tli->tb); */
+    /* } */
     SDL_RenderSetClipRect(main_win->rend, &main_win->layout->rect);
     if (dn->current_path_tb) {
 	textbox_draw(dn->current_path_tb);
@@ -447,11 +508,11 @@ void dirnav_draw(DirNav *dn)
 TLinesItem *dirnav_select_item(DirNav *dn, uint16_t i)
 {
     if (i<dn->num_lines && i>= 0) {
-	TLinesItem *current = dn->lines->items[dn->current_line];
+	TLinesItem *current = dn->lines->items + dn->current_line;
 	textbox_set_background_color(current->tb, &color_global_clear);
 	textbox_reset_full(current->tb);
 	dn->current_line = i;
-	current = dn->lines->items[dn->current_line];
+	current = dn->lines->items + dn->current_line;
 	textbox_set_background_color(current->tb, &color_highlighted_bckgrnd);
 	layout_reset(dn->layout);
 	return current;
@@ -498,7 +559,7 @@ void dirnav_previous(DirNav *dn)
 
 void dirnav_select(DirNav *dn)
 {
-    DirPath *selected = (DirPath *)dn->lines->items[dn->current_line]->obj;
+    DirPath *selected = (DirPath *)(dn->lines->items + dn->current_line)->obj;
     if (selected->type == DT_DIR) {
 	DirPath *new = dir_select(dn->dirpath, selected);
 	if (!new) {
@@ -506,7 +567,7 @@ void dirnav_select(DirNav *dn)
 	    return;
 	}
 	dn->dirpath = new;
-	Layout *lines_container = dn->lines->container;
+	Layout *lines_container = layout_copy(dn->lines->container, dn->lines->container->parent);
 	textlines_destroy(dn->lines);
 	dn->num_lines = 0;
 	dn->current_line = 0;
@@ -530,12 +591,27 @@ void dirnav_select(DirNav *dn)
 	/* 	fprintf(stdout, "destroy!\n"); */
 	/* 	layout_destroy(lines_container->children[i]); */
 	/* } */
-	dn->lines = textlines_create((void **)dn->dirpath->entries, dn->dirpath->num_entries, dn->dir_to_tline_filter, dir_to_tline, lines_container, (void *)dn);
+	dn->lines = textlines_create(
+	    (void *)dn->dirpath->entries,
+	    sizeof(DirPath *),
+	    dn->dirpath->num_entries,
+	    dir_to_tline,
+	    dn->dir_to_tline_filter,
+	    lines_container,
+	    (void *)dn);
+	    
+	/* dn->lines = textlines_create( */
+	/*     (void **)dn->dirpath->entries, */
+	/*     dn->dirpath->num_entries, */
+	/*     dn->dir_to_tline_filter, */
+	/*     dir_to_tline, */
+	/*     lines_container, */
+	/*     (void *)dn); */
 	sort_dn_lines(dn);
-	TLinesItem *sel = dn->lines->items[dn->current_line];
+	TLinesItem *sel = dn->lines->items + dn->current_line;
 	SDL_Color sel_clr = (((DirPath *)sel->obj)->type == DT_DIR) ? color_dir_selected : color_file_selected;
 	/* sel_clr = (SDL_Color) {255, 255, 255, 255}; */
-	textbox_set_text_color(dn->lines->items[dn->current_line]->tb, &sel_clr);
+	textbox_set_text_color((dn->lines->items + dn->current_line)->tb, &sel_clr);
 	textbox_set_background_color(sel->tb, &color_highlighted_bckgrnd);
 	textbox_reset_full(sel->tb);
 	textbox_set_value_handle(dn->current_path_tb, new->path);
@@ -548,7 +624,7 @@ void dirnav_select(DirNav *dn)
 void dirnav_triage_click(DirNav *dn, SDL_Point *mousep)
 {
     for (uint16_t i=0; i<dn->num_lines; i++) {
-	TLinesItem *line = dn->lines->items[i];
+	TLinesItem *line = dn->lines->items + i;
 	if (SDL_PointInRect(mousep, &line->tb->layout->rect)) {
 	    dn->current_line = i;
 	    dirnav_select(dn);

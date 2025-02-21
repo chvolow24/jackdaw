@@ -611,7 +611,7 @@ bool modal_triage_mouse(Modal *modal, SDL_Point *mousep, bool click)
 	} else if (el->type == MODAL_EL_DIRNAV) {
 	    DirNav *dn = (DirNav *)(el->obj);
 	    for (uint16_t i=0; i<dn->lines->num_items; i++) {
-		TLinesItem *item = dn->lines->items[i];
+		TLinesItem *item = dn->lines->items + i;
 		if (SDL_PointInRect(mousep, &item->tb->layout->rect)) {
 		    dirnav_select_item(dn, i);
 		}

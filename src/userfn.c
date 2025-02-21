@@ -256,7 +256,7 @@ static int dir_to_tline_filter_save(void *dp_v, void *dn_v)
 	    strcmp(ext, "jdaw") == 0 ||
 	    strcmp(ext, "WAV") == 0 ||
 	    strcmp(ext, "JDAW") == 0) {
-	    return -1;
+	    return 1;
 	} else {
 	    return 0;
 	}
@@ -267,28 +267,40 @@ static int dir_to_tline_filter_save(void *dp_v, void *dn_v)
 
 static int dir_to_tline_filter_open(void *dp_v, void *dn_v)
 {
-    DirPath *dp = (DirPath *)dp_v;
+    DirPath *dp = *(DirPath **)dp_v;
+    if (dp->hidden) {
+	fprintf(stderr, "(fail hidden) dp path: %s\n", dp->path);
+	return 0;
+    }
+
     if (dp->type != DT_DIR) {
 	char *dotpos = strrchr(dp->path, '.');
 	if (!dotpos) {
-	    return false;
+	    fprintf(stderr, "(fail no dot) dp path: %s\n", dp->path);
+	    return 0;
 	}
 	char *ext = dotpos + 1;
 	if (
-	    strncmp("wav", ext, 3) != 0 &&
-	    strncmp("jdaw", ext, 4) != 0 &&
-	    strncmp("WAV", ext, 3) != 0 &&
-	    strncmp("JDAW", ext, 4) != 0)
-	    return false;
-    } else {
-	if (strcmp(dp->path, ".") == 0) {
-	    return false;
+	    strncmp("wav", ext, 3) == 0 ||
+	    strncmp("jdaw", ext, 4) == 0 ||
+	    strncmp("WAV", ext, 3) == 0 ||
+	    strncmp("JDAW", ext, 4) == 0) {
+	    fprintf(stderr, "PASS dp path: %s\n", dp->path);
+	    return 1;
 	}
+	fprintf(stderr, "(fail all other files) dp path: %s\n", dp->path);
+	return 0;
+    } else {
+	fprintf(stderr, "PASS DIR dp path: %s\n", dp->path);
+	return 1;
     }
-    if (dp->hidden) {
-	return false;
-    }
-    return true;
+    /* else { */
+    /* 	if (strcmp(dp->path, ".") == 0) { */
+    /* 	    fprintf(stderr, "(fail) dp path: %s\n", dp->path); */
+    /* 	    return 1; */
+    /* 	} */
+    /* } */
+    /* return 0; */
     
 }
 

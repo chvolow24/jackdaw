@@ -49,7 +49,7 @@ typedef struct text_lines_item {
 } TLinesItem;
 
 typedef struct text_lines {
-    TLinesItem **items;
+    TLinesItem *items;
     uint16_t num_items;
     Layout *container;
 } TextLines;
@@ -102,11 +102,17 @@ void textbox_set_style(Textbox *tb, enum textbox_style style);
 /*     ComponentFn color_change_callback, */
 /*     void *color_change_callback_target); */
 
+typedef void (*CreateTline)(TextLines *tlines, TLinesItem *current_line, const void *src_item, void *xarg);
+typedef int (*TlinesFilter)(void *item, void *x_arg);
+
 TextLines *textlines_create(
-    void **items,
+    void *src_items,
+    size_t item_width,
     uint16_t num_items,
-    int (*filter)(void *item, void *x_arg),
-    TLinesItem *(*create_item)(void ***curent_item, Layout *container, void *x_arg, int (*filter)(void *item, void *x_arg)),
+    CreateTline create_line,
+    TlinesFilter filter,
+    /* int (*filter)(void *item, void *x_arg), */
+    /* TLinesItem *(*create_item)(void ***curent_item, Layout *container, void *x_arg, int (*filter)(void *item, void *x_arg)), */
     Layout *container,
     void *x_arg);
 void textlines_draw(TextLines *tlines);

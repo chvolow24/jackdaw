@@ -67,10 +67,12 @@ static void autocompletion_update_lines(AutoCompletion *ac, struct autocompletio
     ac->selection = -1;
 
     ac->lines = textlines_create(
-        (void **)items,
+	(void *)items,
+	sizeof(struct autocompletion_item),	
 	num_items,
+	ac->create_tline,
 	NULL,
-	create_autocomplete_tline,
+	/* create_autocomplete_tline, */
 	lines_lt,
 	NULL);
 }
@@ -94,14 +96,26 @@ static int autocompletion_te_afteredit(Text *self, void *xarg)
 }
 
 
-void autocompletion_init(AutoCompletion *ac, Layout *layout, int update_records(AutoCompletion *self, struct autocompletion_item **dst_loc))
-    /* struct autocompletion_item *items, */
-    /* int num_items) */
+TLinesItem *create_autocomplete_tline(
+    void ***current_item,
+    Layout *container,
+    void *xarg,
+    int (*filter)(void *item, void *xarg));
+
+void autocompletion_init(
+    AutoCompletion *ac,
+    Layout *layout,
+    int update_records(AutoCompletion *self, struct autocompletion_item **dst_loc),
+    CreateTline create_tline,
+    TlinesFilter tline_filter)
+
 {
     /* AutoCompletion *ac = calloc(1, sizeof(AutoCompletion)); */
     
     ac->layout = layout;
     ac->update_records = update_records;
+    ac->create_tline = create_tline;
+    ac->tline_filter = tline_filter;
     /* ac->items = items; */
     
     Layout *entry_lt = layout_add_child(layout);

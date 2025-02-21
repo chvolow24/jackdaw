@@ -148,13 +148,12 @@ UserEvent *user_event_push(
 	    history->len--;
 	}
 	history->oldest = e;
-	history->most_recent = e;
 	
     /* Second case: history is not initialized */
     } else if (!history->oldest) {
 	history->oldest = e;
     /* Third case: history is initialized, but we're not at the front */
-    } else if (history->next_undo != history->most_recent) {
+    } else if (history->next_undo->next) {
 	UserEvent *iter = history->next_undo->next;
 	UserEvent *next = iter->next;
 	while (iter) {
@@ -182,7 +181,6 @@ UserEvent *user_event_push(
     }
 
     history->next_undo = e;
-    history->most_recent = e;
     
     e->index = history->len;
     history->len++;

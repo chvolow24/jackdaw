@@ -20,35 +20,80 @@ extern Window *main_win;
 
 #define AUTOCOMPLETE_LINE_SPACING 3
 
-TLinesItem *create_autocomplete_tline(void ***current_item, Layout *container, void *xarg, int (*filter)(void *item, void *xarg))
-{
+/* TLinesItem *create_autocomplete_tline(void ***current_item, Layout *container, void *xarg, int (*filter)(void *item, void *xarg)) */
+/* { */
    
-    struct autocompletion_item **a_loc = (struct autocompletion_item **)current_item;
-    struct autocompletion_item *arr = *a_loc;
-    /* fprintf(stderr, "(%s %p)\n", items->str, items->obj); */
-    struct autocompletion_item item = arr[0];
+/*     struct autocompletion_item **a_loc = (struct autocompletion_item **)current_item; */
+/*     struct autocompletion_item *arr = *a_loc; */
+/*     /\* fprintf(stderr, "(%s %p)\n", items->str, items->obj); *\/ */
+/*     struct autocompletion_item item = arr[0]; */
     
-    TLinesItem *line = calloc(1, sizeof(TLinesItem));
-    line->obj = item.obj;
+/*     TLinesItem *line = calloc(1, sizeof(TLinesItem)); */
+/*     line->obj = item.obj; */
 
-    Layout *lt = layout_add_child(container);
+/*     Layout *lt = layout_add_child(container); */
+/*     lt->y.type = STACK; */
+/*     lt->y.value = AUTOCOMPLETE_LINE_SPACING; */
+/*     lt->h.value = 70; */
+/*     lt->w.value = 500; */
+    
+/*     line->tb = textbox_create_from_str(item.str, lt, main_win->mono_bold_font, 16, main_win); */
+/*     textbox_set_align(line->tb, CENTER_LEFT); */
+/*     textbox_set_pad(line->tb, 4, 1); */
+/*     textbox_size_to_fit(line->tb, 4, 1); */
+/*     line->tb->layout->w.value = 1.0; */
+/*     line->tb->layout->w.type = SCALE; */
+
+/*     (*a_loc)++; */
+/*     textbox_reset(line->tb); */
+    
+/*     return line; */
+/* } */
+
+void breakfn();
+
+extern SDL_Color color_global_red;
+static void create_autocomplete_tline(
+    TextLines *tlines,
+    TLinesItem *current_line,
+    const void *src_item,
+    void *x_arg)
+{
+    /* struct autocompletion_item **a_loc = (struct autocompletion_item **)current_item; */
+    /* struct autocompletion_item *arr = *a_loc; */
+    /* /\* fprintf(stderr, "(%s %p)\n", items->str, items->obj); *\/ */
+    /* struct autocompletion_item item = arr[0]; */
+    struct autocompletion_item *item = (struct autocompletion_item *)src_item;
+    
+
+    AutoCompletion *ac = (AutoCompletion *)x_arg;
+    
+    current_line->obj = item->obj;
+
+    Layout *lt = layout_add_child(tlines->container);
     lt->y.type = STACK;
     lt->y.value = AUTOCOMPLETE_LINE_SPACING;
     lt->h.value = 70;
     lt->w.value = 500;
-    
-    line->tb = textbox_create_from_str(item.str, lt, main_win->mono_bold_font, 16, main_win);
-    textbox_set_align(line->tb, CENTER_LEFT);
-    textbox_set_pad(line->tb, 4, 1);
-    textbox_size_to_fit(line->tb, 4, 1);
-    line->tb->layout->w.value = 1.0;
-    line->tb->layout->w.type = SCALE;
 
-    (*a_loc)++;
-    textbox_reset(line->tb);
-    
-    return line;
+    ac->selection = 4;
+    current_line->tb = textbox_create_from_str(item->str, lt, main_win->mono_bold_font, 16, main_win);
+    if (current_line - tlines->items == ac->selection) {
+	static SDL_Color c = {255, 0, 0, 255};
+	breakfn();
+	textbox_set_background_color(current_line->tb, &c);
+	
+    }
+    textbox_set_align(current_line->tb, CENTER_LEFT);
+    textbox_set_pad(current_line->tb, 4, 1);
+    textbox_size_to_fit(current_line->tb, 4, 1);
+    current_line->tb->layout->w.value = 1.0;
+    current_line->tb->layout->w.type = SCALE;
+
+
+    textbox_reset(current_line->tb);
 }
+
 
 static void autocompletion_update_lines(AutoCompletion *ac, struct autocompletion_item *items, int num_items)
 {
@@ -70,11 +115,11 @@ static void autocompletion_update_lines(AutoCompletion *ac, struct autocompletio
 	(void *)items,
 	sizeof(struct autocompletion_item),	
 	num_items,
-	ac->create_tline,
-	NULL,
+	create_autocomplete_tline,
+	ac->tline_filter,
 	/* create_autocomplete_tline, */
 	lines_lt,
-	NULL);
+	&ac->selection);
 }
 
 static int autocompletion_te_afteredit(Text *self, void *xarg)
@@ -96,17 +141,11 @@ static int autocompletion_te_afteredit(Text *self, void *xarg)
 }
 
 
-TLinesItem *create_autocomplete_tline(
-    void ***current_item,
-    Layout *container,
-    void *xarg,
-    int (*filter)(void *item, void *xarg));
 
 void autocompletion_init(
     AutoCompletion *ac,
     Layout *layout,
     int update_records(AutoCompletion *self, struct autocompletion_item **dst_loc),
-    CreateTline create_tline,
     TlinesFilter tline_filter)
 
 {
@@ -114,7 +153,6 @@ void autocompletion_init(
     
     ac->layout = layout;
     ac->update_records = update_records;
-    ac->create_tline = create_tline;
     ac->tline_filter = tline_filter;
     /* ac->items = items; */
     

@@ -175,18 +175,37 @@ static int update_records_fn(AutoCompletion *ac, struct autocompletion_item **it
 
 AutoCompletion GLOBAL_AC;
 extern Window *main_win;
+
+extern void user_global_save_project(void *);
+int fn_lookup_filter(void *current_item, void *x_arg)
+{
+    struct autocompletion_item *item = (struct autocompletion_item *)current_item;
+    UserFn *fn = item->obj;
+    if (input_function_is_accessible(fn, main_win)) {
+	return 1;
+    }
+    return 0;
+    /* if (fn->mode->im == GLOBAL) return 1; */
+    /* for (int i=main_win->num_modes - 1; i--;) { */
+    /* 	InputMode im = main_win->modes[i]; */
+    /* 	if (im == fn->mode->im) return 1; */
+    /* } */
+    /* return 0; */
+}
+
 void create_global_ac()
 {
 
-    /* Layout *ac_lt = layout_add_child(main_win->layout); */
-    /* layout_set_default_dims(ac_lt); */
-    /* layout_force_reset(ac_lt); */
-    /* autocompletion_init( */
-    /* 	&GLOBAL_AC, */
-    /* 	ac_lt, */
-    /* 	update_records_fn); */
+    Layout *ac_lt = layout_add_child(main_win->layout);
+    layout_set_default_dims(ac_lt);
+    layout_force_reset(ac_lt);
+    autocompletion_init(
+	&GLOBAL_AC,
+	ac_lt,
+	update_records_fn,
+	fn_lookup_filter);
 
-    /* textentry_edit(GLOBAL_AC.entry); */
+    textentry_edit(GLOBAL_AC.entry);
 
 }
 /* UserFn *fn_lookup_search_fn() */

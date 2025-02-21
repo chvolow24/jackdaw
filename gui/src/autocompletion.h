@@ -34,7 +34,6 @@ typedef struct autocompletion {
     TextEntry *entry;
     TextLines *lines;
     int (*update_records)(AutoCompletion *self, struct autocompletion_item **items_arr_p);
-    CreateTline create_tline;
     TlinesFilter tline_filter;
 
     /* TLinesItem *(*create_tline)(void ***, Layout *, void *, int (*filter)(void *item, void *arg)); */
@@ -48,7 +47,6 @@ void autocompletion_init(
     AutoCompletion *ac,
     Layout *layout,
     int update_records(AutoCompletion *self, struct autocompletion_item **dst_loc),
-    CreateTline create_tline,
     TlinesFilter filter);
     /* TLinesItem *(create_tline)(void ***, Layout *, void *, int (*filter)(void *item, void *arg)), */
     /* int (*filter)(void *item, void *xarg)); */

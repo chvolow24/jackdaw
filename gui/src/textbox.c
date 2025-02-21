@@ -359,7 +359,7 @@ void textbox_set_style(Textbox *tb, enum textbox_style style)
 /* } */
 
 /* #include "dir.h" */
-void breakfn();
+
 TextLines *textlines_create(
     void *src_items,
     size_t item_width,
@@ -370,15 +370,18 @@ TextLines *textlines_create(
     void *x_arg)
 
 {
-    breakfn();
     TextLines *tlines = calloc(1, sizeof(TextLines));
     tlines->items = calloc(MAX_TLINES, sizeof(TLinesItem));
     tlines->container = container;
     void *current_item = src_items;
     int dst_i = 0;
     for (int i=0; i<num_items; i++) {
-	if (filter(current_item, x_arg)) {
-	    breakfn();
+	if (filter) {
+	    if (filter(current_item, x_arg)) {
+		create_line(tlines, tlines->items + dst_i, current_item, x_arg);
+		dst_i++;
+	    }
+	} else {
 	    create_line(tlines, tlines->items + dst_i, current_item, x_arg);
 	    dst_i++;
 	}
@@ -386,7 +389,6 @@ TextLines *textlines_create(
 	moveptr += item_width;
 	current_item = (void *)moveptr;
     }
-    breakfn();
     tlines->items = realloc(tlines->items, dst_i * sizeof(TLinesItem));
     tlines->num_items = dst_i;
     layout_force_reset(tlines->container);

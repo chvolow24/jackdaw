@@ -92,16 +92,17 @@ InputMode input_mode_from_str(char *str)
 
 static Mode *mode_create(InputMode im)
 {
-    Mode *mode = malloc(sizeof(Mode));
+    Mode *mode = calloc(1, sizeof(Mode));
     mode->name = input_mode_str(im);
     mode->num_subcats = 0;
+    mode->im = im;
     modes[im] = mode;	
     return mode;
 }
 
 static ModeSubcat *mode_add_subcat(Mode *mode, const char *name)
 {
-    ModeSubcat *sc = malloc(sizeof(ModeSubcat));
+    ModeSubcat *sc = calloc(1, sizeof(ModeSubcat));
     if (!sc) {
 	fprintf(stderr, "Error: failed to allocate memory\n");
 	exit(1);
@@ -114,6 +115,7 @@ static ModeSubcat *mode_add_subcat(Mode *mode, const char *name)
     mode->num_subcats++;
     sc->name = name;
     sc->num_fns = 0;
+    sc->mode = mode;
     return sc;
 }
 
@@ -125,6 +127,7 @@ static void mode_subcat_add_fn(ModeSubcat *ms, UserFn *fn)
     }
     ms->fns[ms->num_fns] = fn;
     ms->num_fns++;
+    fn->mode = ms->mode;
     fn_lookup_index_fn(fn);
 }
 
@@ -1149,6 +1152,7 @@ void input_init_mode_load_all()
     mode_load_tabview();
 }
 
+
 void input_init_hash_table()
 {
     memset(input_hash_table, '\0', INPUT_HASH_SIZE * sizeof(KeybNode*));
@@ -1351,14 +1355,18 @@ UserFn *input_get_fn_by_id(char *id, InputMode im)
 void input_bind_fn(UserFn *fn, uint16_t i_state, SDL_Keycode keycode, InputMode mode)
 {
     int hash = input_hash(i_state, keycode);
+    fn->hashes[fn->num_hashes] = hash;
+    fn->i_states[fn->num_hashes] = i_state;
+    fn->keycodes[fn->num_hashes] = keycode;
+    fn->num_hashes++;
     /* fprintf(stdout, "Binding input %s in mode %s. Root: %p\n", input_get_keycmd_str(i_state, keycode), input_mode_str(mode), &input_hash_table[hash]); */
     KeybNode *keyb_node = input_hash_table[hash];
     /* KeybNode *last = NULL; */
-    Keybinding *kb = malloc(sizeof(Keybinding));
+    Keybinding *kb = calloc(1, sizeof(Keybinding));
     /* UserFn *user_fn = NULL; */
     if (!keyb_node) {
 	/* fprintf(stdout, "\t->first slot empty\n"); */
-	keyb_node = malloc(sizeof(KeybNode));
+	keyb_node = calloc(1, sizeof(KeybNode));
 	keyb_node->kb = kb;
 	keyb_node->next = NULL;
 	input_hash_table[hash] = keyb_node;
@@ -1369,7 +1377,7 @@ void input_bind_fn(UserFn *fn, uint16_t i_state, SDL_Keycode keycode, InputMode 
 		/* last = keyb_node; */
 		keyb_node = keyb_node->next;
 	    } else {
-		keyb_node->next = malloc(sizeof(KeybNode));
+		keyb_node->next = calloc(1, sizeof(KeybNode));
 		keyb_node = keyb_node->next;
 		/* fprintf(stdout, "\t->inserting at %p\n", &keyb_node); */
 		/* kb = malloc(sizeof(Keybinding)); */
@@ -1670,6 +1678,44 @@ void input_load_keybinding_config(const char *filepath)
 	}
 
     }
+}
+
+
+/*
+
+  FOR EACH MODE, from top:
+      - Fn has matching mode? GOOD
+      - Fn does not have matching mode? HM
+          - Fn exists with same hash IN MODE?
+
+ */
+bool input_function_is_accessible(UserFn *fn, Window *win)
+{
+    InputMode keyb_blocks[16];
+    int num_keyb_blocks = 0;
+    for (int i=0; i<fn->num_hashes; i++) {
+	int hash = fn->hashes[i];
+	KeybNode *kn = input_hash_table[hash];
+	while (kn) {
+	    if (kn->kb->fn != fn && kn->kb->i_state == fn->i_states[i] && kn->kb->keycode == fn->keycodes[i]) {
+		keyb_blocks[num_keyb_blocks] = kn->kb->fn->mode->im;
+		num_keyb_blocks++;
+	    }
+	    kn = kn->next;
+	}
+    }
+    for (int i=win->num_modes-1; i>=0; i--) {
+	InputMode im = win->modes[i];
+	if (fn->mode->im == im) return true;
+	else {
+	    for (int i=0; i<num_keyb_blocks; i++) {
+		if (keyb_blocks[i] == im) {
+		    return false; /* Blocked in sieve */
+		}
+	    }
+	}
+    }
+    return false;
 }
 
 

@@ -33,6 +33,8 @@
 #define MAX_MODE_SUBCATS 16
 #define MAX_MODE_SUBCAT_FNS 64
 
+#define MAX_FN_KEYBS 8
+
 /* Input state bitmasks */
 #define I_STATE_QUIT 0x01
 #define I_STATE_SHIFT 0x02
@@ -44,6 +46,7 @@
 #define I_STATE_C_X 0x80
 #define I_STATE_K 0x100
 
+typedef struct mode Mode;
 
 typedef struct user_fn {
     const char *fn_id;
@@ -51,18 +54,25 @@ typedef struct user_fn {
     char annotation[MAX_ANNOT_STRLEN];
     bool is_toggle;
     void (*do_fn)(void *arg);
+    Mode *mode;
+    int hashes[MAX_FN_KEYBS];
+    uint16_t i_states[MAX_FN_KEYBS];
+    SDL_Keycode keycodes[MAX_FN_KEYBS];
+    int num_hashes;
 } UserFn;
 
 typedef struct mode_subcat {
     const char *name;
     UserFn *fns[MAX_MODE_SUBCAT_FNS];
     uint8_t num_fns;
+    Mode *mode;
 } ModeSubcat;
 
 typedef struct mode {
     const char *name;
     ModeSubcat *subcats[MAX_MODE_SUBCATS];
     uint8_t num_subcats;
+    InputMode im;
 } Mode;
 
 
@@ -116,6 +126,8 @@ void input_quit();
 
 /* Write a markdown function describing available modes and functions */
 void input_create_function_reference();
+
+bool input_function_is_accessible(UserFn *fn, Window *win);
 
 #endif
 

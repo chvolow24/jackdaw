@@ -246,10 +246,10 @@ UserFn *input_get_fn_by_id(char *id, InputMode im)
 void input_bind_fn(UserFn *fn, uint16_t i_state, SDL_Keycode keycode, InputMode mode)
 {
     int hash = input_hash(i_state, keycode);
-    fn->hashes[fn->num_hashes] = hash;
-    fn->i_states[fn->num_hashes] = i_state;
-    fn->keycodes[fn->num_hashes] = keycode;
-    fn->num_hashes++;
+    /* fn->hashes[fn->num_hashes] = hash; */
+    /* fn->i_states[fn->num_hashes] = i_state; */
+    /* fn->keycodes[fn->num_hashes] = keycode; */
+    /* fn->num_hashes++; */
     /* fprintf(stdout, "Binding input %s in mode %s. Root: %p\n", input_get_keycmd_str(i_state, keycode), input_mode_str(mode), &input_hash_table[hash]); */
     KeybNode *keyb_node = INPUT_HASH_TABLE[hash];
     /* KeybNode *last = NULL; */
@@ -281,7 +281,10 @@ void input_bind_fn(UserFn *fn, uint16_t i_state, SDL_Keycode keycode, InputMode 
     kb->mode = mode;
     kb->i_state = i_state;
     kb->keycode = keycode;
+    kb->hash = hash;
     kb->keycmd_str = input_get_keycmd_str(i_state, keycode);
+    fn->key_bindings[fn->num_keybindings] = kb;
+    fn->num_keybindings++;
     if (fn->annotation[0] == '\0') {
 	strcat(fn->annotation, kb->keycmd_str);
     } else {
@@ -574,11 +577,13 @@ bool input_function_is_accessible(UserFn *fn, Window *win)
 {
     InputMode keyb_blocks[16];
     int num_keyb_blocks = 0;
-    for (int i=0; i<fn->num_hashes; i++) {
-	int hash = fn->hashes[i];
+    for (int i=0; i<fn->num_keybindings; i++) {
+	Keybinding *kb = fn->key_bindings[i];
+	int hash = kb->hash;
+	/* int hash = fn->hashes[i]; */
 	KeybNode *kn = INPUT_HASH_TABLE[hash];
 	while (kn) {
-	    if (kn->kb->fn != fn && kn->kb->i_state == fn->i_states[i] && kn->kb->keycode == fn->keycodes[i]) {
+	    if (kn->kb != kb && kn->kb->i_state == kb->i_state && kn->kb->keycode == kb->keycode) {
 		keyb_blocks[num_keyb_blocks] = kn->kb->fn->mode->im;
 		num_keyb_blocks++;
 	    }

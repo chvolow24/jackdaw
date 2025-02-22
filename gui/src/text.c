@@ -144,8 +144,11 @@ void txt_reset_drawable(Text *txt)
 	txt->text_lt->rect.y = txt->container->rect.y + (int) round((float)txt->container->rect.h / 2.0 - (float) txt->text_lt->rect.h / 2.0);
 	break;
     case CENTER_RIGHT:
+	/* fprintf(stderr, "\n"); */
+	/* fprintf(stderr, "Container x: %d, container rect w: %d, txt lt w: %d\n", txt->container->rect.x, txt->container->rect.w, txt->text_lt->rect.w); */
 	txt->text_lt->rect.x = txt->container->rect.x + txt->container->rect.w - txt->text_lt->rect.w - txt->h_pad * txt->win->dpi_scale_factor;
 	txt->text_lt->rect.y = txt->container->rect.y + (int) round((float)txt->container->rect.h / 2.0 - (float) txt->text_lt->rect.h / 2.0);
+	break;
 
     }
     layout_set_values_from_rect(txt->text_lt);

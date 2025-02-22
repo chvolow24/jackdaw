@@ -408,6 +408,9 @@ void window_push_modal(Window *win, Modal *modal)
     if (win->active_page) {
 	page_close(win->active_page);
     }
+    if (win->ac_active) {
+	autocompletion_escape();
+    }
     while (win->num_menus > 0) {
 	window_pop_menu(win);
     }

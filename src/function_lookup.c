@@ -203,9 +203,9 @@ void function_lookup()
 	ac_lt,
 	update_records_fn,
 	fn_lookup_filter);
-    main_win->ac_active = true;
     textentry_edit(main_win->ac.entry);
     window_push_mode(main_win, AUTOCOMPLETE_LIST);
+    main_win->ac_active = true;
 
 }
 /* UserFn *fn_lookup_search_fn() */

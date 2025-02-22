@@ -33,6 +33,8 @@ bool mouse_triage_motion_page();
 bool mouse_triage_click_page();
 bool mouse_triage_click_tabview();
 bool mouse_triage_motion_tabview();
+void mouse_triage_motion_autocompletion();
+void mouse_triage_click_autocompletion();
 
 
 #endif

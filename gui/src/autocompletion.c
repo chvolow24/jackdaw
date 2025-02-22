@@ -15,9 +15,9 @@
  *****************************************************************************************************************/
 
 #include "autocompletion.h"
+#include "geometry.h"
 
 #define AUTOCOMPLETE_LINE_SPACING 3
-
 
 extern Window *main_win;
 extern SDL_Color color_global_white;
@@ -63,12 +63,7 @@ static void create_autocomplete_tline(
     const void *src_item,
     void *x_arg)
 {
-    /* struct autocompletion_item **a_loc = (struct autocompletion_item **)current_item; */
-    /* struct autocompletion_item *arr = *a_loc; */
-    /* /\* fprintf(stderr, "(%s %p)\n", items->str, items->obj); *\/ */
-    /* struct autocompletion_item item = arr[0]; */
     struct autocompletion_item *item = (struct autocompletion_item *)src_item;
-    
 
     AutoCompletion *ac = (AutoCompletion *)x_arg;
     
@@ -84,11 +79,7 @@ static void create_autocomplete_tline(
     current_line->tb = textbox_create_from_str(item->str, lt, main_win->mono_bold_font, 16, main_win);
     
     if (current_line - tlines->items == ac->selection) {
-	/* static SDL_Color c = {255, 0, 0, 255}; */
-
         textbox_set_background_color(current_line->tb, &highlighted_line);
-	/* textbox_set_background_color( */
-	
     } else {
         textbox_set_background_color(current_line->tb, &color_global_clear);
     }
@@ -99,9 +90,38 @@ static void create_autocomplete_tline(
     textbox_size_to_fit(current_line->tb, 4, 1);
     current_line->tb->layout->w.value = 1.0;
     current_line->tb->layout->w.type = SCALE;
-
-
+    layout_reset(lt);
     textbox_reset(current_line->tb);
+    
+
+
+    
+    /* TODO: move tline creation out of autocompletion and into
+       calling functions. Need caller-specific logic for addtl tbs */
+    Layout *right_item = layout_add_child(lt);
+    right_item->w.type = SCALE;
+    right_item->w.value = 1.0;
+    right_item->h.type = SCALE;
+    right_item->h.value = 1.0;
+    
+    layout_reset(right_item);
+
+    UserFn *fn = (UserFn *)item->obj;
+    Textbox *keycmd = textline_add_addtl_tb(
+	current_line,
+	fn->annotation,
+	right_item,
+	main_win->mono_font,
+	16,
+	main_win);
+    textbox_set_align(keycmd, CENTER_RIGHT);
+    textbox_set_pad(keycmd, 10, 1);
+    textbox_set_text_color(keycmd, &color_global_white);
+    textbox_set_background_color(keycmd, &color_global_clear);
+    textbox_reset(keycmd);
+	
+	
+
 }
 
 
@@ -112,9 +132,10 @@ static void autocompletion_update_lines(AutoCompletion *ac, struct autocompletio
 	ac->lines = NULL;
     }
 
-    Layout *lines_lt = layout_add_child(ac->layout);
+    Layout *lines_lt = layout_add_child(ac->inner_layout);
 
     lines_lt->y.type = STACK;
+    lines_lt->y.value = 10.0;
     lines_lt->w.type = SCALE;
     lines_lt->w.value = 1.0;
     lines_lt->h.value = 500;
@@ -131,7 +152,14 @@ static void autocompletion_update_lines(AutoCompletion *ac, struct autocompletio
 	lines_lt,
 	&ac->selection);
 
-    layout_size_to_fit_children_v(ac->layout, true, 0);
+    layout_size_to_fit_children_v(ac->inner_layout, true, 0);
+    layout_size_to_fit_children_v(ac->outer_layout, true, 20);
+
+
+    /* /\* Add scroll pad *\/ */
+    /* ac->lines->container->rect.h += ac->layout->rect.h; */
+    /* layout_set_values_from_rect(ac->lines->container); */
+
 }
 
 static int autocompletion_te_afteredit(Text *self, void *xarg)
@@ -161,12 +189,13 @@ void autocompletion_init(
     TlinesFilter tline_filter)
 
 {
-    ac->layout = layout;
+    ac->outer_layout = layout;
+    ac->inner_layout = layout_add_child(ac->outer_layout);
     ac->update_records = update_records;
     ac->tline_filter = tline_filter;
     /* ac->items = items; */
     
-    Layout *entry_lt = layout_add_child(layout);
+    Layout *entry_lt = layout_add_child(ac->inner_layout);
     entry_lt->w.type = SCALE;
     entry_lt->w.value = 1.0;
     entry_lt->h.value = 20.0;
@@ -182,7 +211,11 @@ void autocompletion_init(
     ac->entry->tb->text->after_edit = autocompletion_te_afteredit;
     ac->entry->tb->text->after_edit_target = ac;
 
-    layout_force_reset(ac->layout);
+
+    layout_pad(ac->inner_layout, 20, 20);
+    layout_force_reset(ac->outer_layout);
+
+    
 
 
     /* ac->lines = textlines_create( */
@@ -198,19 +231,22 @@ void autocompletion_deinit(AutoCompletion *ac)
 {
     if (ac->lines) textlines_destroy(ac->lines);
     textentry_destroy(ac->entry);
-    layout_destroy(ac->layout);
+    layout_destroy(ac->outer_layout);
 }
 
 void autocompletion_draw(AutoCompletion *ac)
 {
     SDL_SetRenderDrawColor(main_win->rend, 30, 30, 30, 255);
-    SDL_RenderFillRect(main_win->rend, &ac->layout->rect);
+    geom_fill_rounded_rect(main_win->rend, &ac->outer_layout->rect, STD_CORNER_RAD);
+    /* SDL_RenderFillRect(main_win->rend, &ac->outer_layout->rect); */
 
-    
-    textentry_draw(ac->entry);
+    SDL_RenderSetClipRect(main_win->rend, &ac->inner_layout->rect);
     if (ac->lines) {
 	textlines_draw(ac->lines);
     }
+    SDL_RenderSetClipRect(main_win->rend, NULL);
+
+    textentry_draw(ac->entry);
 }
 
 void autocompletion_reset_selection(AutoCompletion *ac, int new_sel)
@@ -234,9 +270,16 @@ void autocompletion_reset_selection(AutoCompletion *ac, int new_sel)
     }
 
 }
+void autocompletion_escape()
+{
+    main_win->ac_active = false;
+    window_pop_mode(main_win);
+    txt_stop_editing(main_win->txt_editing);
+}
 
 void autocompletion_select(AutoCompletion *ac)
 {
+    autocompletion_escape();
     if (ac->selection >= 0) {
 	TLinesItem item = ac->lines->items[ac->selection];
 	UserFn *fn = item.obj;
@@ -244,4 +287,61 @@ void autocompletion_select(AutoCompletion *ac)
     }
     /* ac->select(ac); */
 }
+bool autocompletion_triage_mouse_motion(AutoCompletion *ac)
+{
+    if (!SDL_PointInRect(&main_win->mousep, &ac->inner_layout->rect)) return false;
+    if (!ac->lines) return false;
+    
+    if (SDL_PointInRect(&main_win->mousep, &ac->lines->container->rect)) {
+	int y_diff = main_win->mousep.y - ac->lines->container->rect.y;
+	int line_h = ac->lines->items[0].tb->layout->rect.h;
+	int line_spacing = AUTOCOMPLETE_LINE_SPACING * main_win->dpi_scale_factor;
+	int item = y_diff / (line_h + line_spacing);
+	if (item >= 0 && item < ac->lines->num_items) {
+	    autocompletion_reset_selection(ac, item);
+	}
+	/* for (int i=item; i<ac->lines->num_items; i++) { */
+	/*     TLinesItem *item = ac->lines->items + i; */
+	/*     if (SDL_PointInRect(&main_win->mousep, &item->tb->layout->rect)) { */
+	/* 	autocompletion_reset_selection(ac, i); */
+	/* 	break; */
+	/*     } */
+	/* } */
+    }
+    return true;
+}
 
+
+bool autocompletion_triage_mouse_click(AutoCompletion *ac)
+{
+    if (!SDL_PointInRect(&main_win->mousep, &ac->inner_layout->rect)) {
+	autocompletion_escape();
+    }
+    if (SDL_PointInRect(&main_win->mousep, &ac->lines->container->rect)) {
+	int y_diff = main_win->mousep.y - ac->lines->container->rect.y;
+	int line_h = ac->lines->items[0].tb->layout->rect.h;
+	int line_spacing = AUTOCOMPLETE_LINE_SPACING * main_win->dpi_scale_factor;
+	int item = y_diff / (line_h + line_spacing);
+	if (item >= 0 && item < ac->lines->num_items) {
+	    autocompletion_reset_selection(ac, item);
+	    autocompletion_select(ac);
+	}
+    }
+
+    return true;
+}
+
+
+Layout *autocompletion_scroll(int y, bool dynamic)
+{
+    AutoCompletion *ac = &main_win->ac;
+    SDL_Rect padded = ac->lines->container->rect;
+    /* Add scroll pad */
+    padded.h += ac->inner_layout->rect.h;
+
+    if (SDL_PointInRect(&main_win->mousep, &padded)) {
+	layout_scroll(ac->lines->container, 0, y, dynamic);
+	return ac->lines->container;
+    }
+    return NULL;;
+}

@@ -135,6 +135,9 @@ void loop_project_main()
 		case MENU_NAV:
 		    mouse_triage_motion_menu();
 		    break;
+		case AUTOCOMPLETE_LIST:
+		    mouse_triage_motion_autocompletion();
+		    break;
 		case TIMELINE:
 		    if (!mouse_triage_motion_page() && !mouse_triage_motion_tabview()) {
 			mouse_triage_motion_timeline(e.motion.xrel, e.motion.yrel);
@@ -367,6 +370,9 @@ void loop_project_main()
 		    break;
 		case MODAL:
 		    mouse_triage_click_modal(e.button.button);
+		    break;
+		case AUTOCOMPLETE_LIST:
+		    mouse_triage_click_autocompletion();
 		    break;
 		case TEXT_EDIT:
 		    if (!mouse_triage_click_text_edit(e.button.button)) {

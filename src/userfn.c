@@ -2743,9 +2743,7 @@ void user_autocomplete_previous(void *nullarg)
 
 void user_autocomplete_escape(void *nullarg)
 {
-    main_win->ac_active = false;
-    window_pop_mode(main_win);
-    txt_stop_editing(main_win->txt_editing);
+    autocompletion_escape();
     Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;
 }
@@ -2757,8 +2755,10 @@ void user_autocomplete_select(void *nullarg)
 	window_pop_mode(main_win);
 	return;
     }
-    user_autocomplete_escape(NULL);
+    /* user_autocomplete_escape(NULL); */
     AutoCompletion *ac = &main_win->ac;
     autocompletion_select(ac);
+    Timeline *tl = ACTIVE_TL;
+    tl->needs_redraw = true;
 }
 

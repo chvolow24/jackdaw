@@ -46,7 +46,7 @@ typedef enum input_mode {
 #define TOP_MODE (main_win->modes[main_win->num_modes - 1])
 
 typedef struct mode Mode;
-
+typedef struct keybinding Keybinding;
 typedef struct user_fn {
     const char *fn_id;
     const char *fn_display_name;
@@ -54,10 +54,14 @@ typedef struct user_fn {
     bool is_toggle;
     void (*do_fn)(void *arg);
     Mode *mode;
-    int hashes[MAX_FN_KEYBS];
-    uint16_t i_states[MAX_FN_KEYBS];
-    SDL_Keycode keycodes[MAX_FN_KEYBS];
-    int num_hashes;
+
+    Keybinding *key_bindings[MAX_FN_KEYBS];
+    int num_keybindings;
+    /* int hashes[MAX_FN_KEYBS]; */
+    
+    /* uint16_t i_states[MAX_FN_KEYBS]; */
+    /* SDL_Keycode keycodes[MAX_FN_KEYBS]; */
+    /* int num_hashes; */
 } UserFn;
 
 typedef struct mode_subcat {

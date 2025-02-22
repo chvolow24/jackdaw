@@ -16,7 +16,8 @@ typedef struct autocompletion AutoCompletion;
 typedef int (*TlinesFilter)(void *, void *);
 
 typedef struct autocompletion {
-    Layout *layout;
+    Layout *outer_layout;
+    Layout *inner_layout;
     char entry_buf[AUTOCOMPLETE_ENTRY_BUFLEN];
     TextEntry *entry;
     TextLines *lines;

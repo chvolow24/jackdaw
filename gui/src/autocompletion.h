@@ -41,5 +41,8 @@ void autocompletion_draw(AutoCompletion *ac);
 
 void autocompletion_reset_selection(AutoCompletion *ac, int new_sel);
 void autocompletion_select(AutoCompletion *ac);
-
+void autocompletion_escape();
+bool autocompletion_triage_mouse_motion(AutoCompletion *ac);
+bool autocompletion_triage_mouse_click(AutoCompletion *ac);
+Layout *autocompletion_scroll(int y, bool dynamic);
 #endif

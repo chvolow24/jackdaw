@@ -7,6 +7,7 @@
 #define MAX_MENU_SCTN_LEN 64
 #define MAX_MENU_SECTIONS 16
 #define MAX_MENU_COLUMNS 8
+#define MAX_ADDTL_TBS 16
 
 typedef int (*ComponentFn)(void *self, void *target);
 /*
@@ -46,6 +47,8 @@ typedef struct text_lines_item {
     Textbox *tb;
     void *obj;
     void *(*action)(void *self, void *target);
+    Textbox *addtl_tbs[MAX_ADDTL_TBS];
+    int num_addtl_tbs;
 } TLinesItem;
 
 typedef struct text_lines {
@@ -117,5 +120,13 @@ TextLines *textlines_create(
     void *x_arg);
 void textlines_draw(TextLines *tlines);
 void textlines_destroy(TextLines *tlines);
+
+Textbox *textline_add_addtl_tb(
+    TLinesItem *line,
+    const char *set_str,
+    Layout *lt,
+    Font *font,
+    uint8_t text_size,
+    Window *win);
 
 #endif

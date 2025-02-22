@@ -47,6 +47,7 @@ typedef struct keybinding {
     uint16_t i_state;
     SDL_Keycode keycode;
     char *keycmd_str; /* E.g. "C-t", "C-S-3" */
+    int hash;
 
     /* Modifiable pointer to UserFn struct */
     UserFn *fn;

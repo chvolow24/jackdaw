@@ -14,6 +14,7 @@
     * Functions related to mouse clicks
  *****************************************************************************************************************/
 
+#include "autocompletion.h"
 #include "input.h"
 #include "menu.h"
 #include "modal.h"
@@ -226,8 +227,23 @@ void mouse_triage_click_modal(uint8_t button)
     }
 }
 
+void mouse_triage_motion_autocompletion()
+{
+    if (!main_win->ac_active) return;
+    autocompletion_triage_mouse_motion(&main_win->ac);
+}
+
+void mouse_triage_click_autocompletion()
+{
+    if (!main_win->ac_active) return;
+    autocompletion_triage_mouse_click(&main_win->ac);
+}
+
 Layout *mouse_triage_wheel(int x, int y, bool dynamic)
 {
+    if (main_win->ac_active) {
+	return autocompletion_scroll(y, dynamic);
+    }
     if (main_win->num_modals == 0) return NULL;
     Modal *top_modal = main_win->modals[main_win->num_modals -1];
     if (top_modal) {

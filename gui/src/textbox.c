@@ -441,10 +441,37 @@ TextLines *textlines_create(
 /*     /\* free(el); *\/ */
 /* } */
 
+
+Textbox *textline_add_addtl_tb(
+    TLinesItem *line,
+    const char *set_str,
+    Layout *lt,
+    Font *font,
+    uint8_t text_size,
+    Window *win)
+{
+    if (line->num_addtl_tbs == MAX_ADDTL_TBS) {
+	fprintf(stderr, "Error: max additl tbs already added\n");
+	return NULL;
+    }
+    Textbox *new = textbox_create_from_str(
+	set_str,
+	lt,
+	font,
+	text_size,
+	win);
+    line->addtl_tbs[line->num_addtl_tbs] = new;
+    line->num_addtl_tbs++;
+    return new;
+}
+
 void textlines_destroy(TextLines *tlines)
 {
-    for (uint16_t i=0; i<tlines->num_items; i++) {
+    for (int i=0; i<tlines->num_items; i++) {
 	TLinesItem *item = tlines->items + i;
+	for (int i=0; i<item->num_addtl_tbs; i++) {
+	    textbox_destroy(item->addtl_tbs[i]);
+	}
 	textbox_destroy(item->tb);
     }
     free(tlines->items);
@@ -452,10 +479,17 @@ void textlines_destroy(TextLines *tlines)
     free(tlines);
 }
 
+extern Window *main_win;
 void textlines_draw(TextLines *tlines)
 {
-    for (uint16_t i=0; i<tlines->num_items; i++) {
-	textbox_draw(tlines->items[i].tb);
+    for (int i=0; i<tlines->num_items; i++) {
+	TLinesItem *item = tlines->items + i;
+	textbox_draw(item->tb);
+	for (int i=0; i<item->num_addtl_tbs; i++) {
+	    textbox_draw(item->addtl_tbs[i]);
+	    /* layout_draw(main_win, item->addtl_tbs[i]->layout); */
+	    /* layout_write(stderr, item->addtl_tbs[i]->layout->parent, 0); */
+	}
     }
     /* layout_destroy(tlines->container); */
 }

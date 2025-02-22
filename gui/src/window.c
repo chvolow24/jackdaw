@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include "SDL.h"
 #include "SDL_render.h"
+#include "autocompletion.h"
 #include "color.h"
 #include "layout.h"
 #include "menu.h"
@@ -299,6 +300,7 @@ Layout *layout_create_from_window(Window *win);
 void layout_destroy(Layout *lt);
 void window_destroy(Window *win)
 {
+    autocompletion_deinit(&win->ac);
     if (win->std_font) {
 	ttf_destroy_font(win->std_font);
     }

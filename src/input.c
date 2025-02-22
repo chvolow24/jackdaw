@@ -589,6 +589,7 @@ bool input_function_is_accessible(UserFn *fn, Window *win)
 	InputMode im;
 	if (i == -1) im = GLOBAL;
 	else im = win->modes[i];
+	if (im == TEXT_EDIT) continue;
 	if (fn->mode->im == im) return true;
 	else {
 	    for (int i=0; i<num_keyb_blocks; i++) {

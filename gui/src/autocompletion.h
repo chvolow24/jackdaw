@@ -35,6 +35,8 @@ void autocompletion_init(
     /* TLinesItem *(create_tline)(void ***, Layout *, void *, int (*filter)(void *item, void *arg)), */
     /* int (*filter)(void *item, void *xarg)); */
 
+void autocompletion_deinit(AutoCompletion *ac);
+
 void autocompletion_draw(AutoCompletion *ac);
 
 void autocompletion_reset_selection(AutoCompletion *ac, int new_sel);

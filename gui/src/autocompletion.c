@@ -80,7 +80,7 @@ static void create_autocomplete_tline(
     lt->h.value = 70;
     lt->w.value = 500;
 
-    ac->selection = 4;
+    ac->selection = -1;
     current_line->tb = textbox_create_from_str(item->str, lt, main_win->mono_bold_font, 16, main_win);
     
     if (current_line - tlines->items == ac->selection) {
@@ -161,8 +161,6 @@ void autocompletion_init(
     TlinesFilter tline_filter)
 
 {
-    /* AutoCompletion *ac = calloc(1, sizeof(AutoCompletion)); */
-    fprintf(stderr, "INITING ac at %p, win %p\n", ac, main_win);
     ac->layout = layout;
     ac->update_records = update_records;
     ac->tline_filter = tline_filter;
@@ -172,7 +170,7 @@ void autocompletion_init(
     entry_lt->w.type = SCALE;
     entry_lt->w.value = 1.0;
     entry_lt->h.value = 20.0;
-    /* sprintf(ac->entry_buf, "example"); */
+    sprintf(ac->entry_buf, "Start typing to search...");
     ac->entry = textentry_create(
 	entry_lt,
 	ac->entry_buf,
@@ -194,6 +192,13 @@ void autocompletion_init(
     /* 	create_autocomplete_tline, */
     /* 	lines_lt, */
     /* 	NULL); */
+}
+
+void autocompletion_deinit(AutoCompletion *ac)
+{
+    if (ac->lines) textlines_destroy(ac->lines);
+    textentry_destroy(ac->entry);
+    layout_destroy(ac->layout);
 }
 
 void autocompletion_draw(AutoCompletion *ac)
@@ -225,7 +230,6 @@ void autocompletion_reset_selection(AutoCompletion *ac, int new_sel)
 	if (new_sel >=0) {
 	    Textbox *new = ac->lines->items[new_sel].tb;
 	    textbox_set_background_color(new, &highlighted_line);
-	    
 	}
     }
 

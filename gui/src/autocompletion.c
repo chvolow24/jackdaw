@@ -16,9 +16,13 @@
 
 #include "autocompletion.h"
 
-extern Window *main_win;
-
 #define AUTOCOMPLETE_LINE_SPACING 3
+
+
+extern Window *main_win;
+extern SDL_Color color_global_white;
+extern SDL_Color color_global_clear;
+
 
 /* TLinesItem *create_autocomplete_tline(void ***current_item, Layout *container, void *xarg, int (*filter)(void *item, void *xarg)) */
 /* { */
@@ -50,7 +54,7 @@ extern Window *main_win;
 /*     return line; */
 /* } */
 
-void breakfn();
+static SDL_Color highlighted_line = {100, 60, 10, 255};
 
 extern SDL_Color color_global_red;
 static void create_autocomplete_tline(
@@ -78,12 +82,18 @@ static void create_autocomplete_tline(
 
     ac->selection = 4;
     current_line->tb = textbox_create_from_str(item->str, lt, main_win->mono_bold_font, 16, main_win);
+    
     if (current_line - tlines->items == ac->selection) {
-	static SDL_Color c = {255, 0, 0, 255};
-	breakfn();
-	textbox_set_background_color(current_line->tb, &c);
+	/* static SDL_Color c = {255, 0, 0, 255}; */
+
+        textbox_set_background_color(current_line->tb, &highlighted_line);
+	/* textbox_set_background_color( */
 	
+    } else {
+        textbox_set_background_color(current_line->tb, &color_global_clear);
     }
+    
+    textbox_set_text_color(current_line->tb, &color_global_white);
     textbox_set_align(current_line->tb, CENTER_LEFT);
     textbox_set_pad(current_line->tb, 4, 1);
     textbox_size_to_fit(current_line->tb, 4, 1);
@@ -120,6 +130,8 @@ static void autocompletion_update_lines(AutoCompletion *ac, struct autocompletio
 	/* create_autocomplete_tline, */
 	lines_lt,
 	&ac->selection);
+
+    layout_size_to_fit_children_v(ac->layout, true, 0);
 }
 
 static int autocompletion_te_afteredit(Text *self, void *xarg)
@@ -150,7 +162,7 @@ void autocompletion_init(
 
 {
     /* AutoCompletion *ac = calloc(1, sizeof(AutoCompletion)); */
-    
+    fprintf(stderr, "INITING ac at %p, win %p\n", ac, main_win);
     ac->layout = layout;
     ac->update_records = update_records;
     ac->tline_filter = tline_filter;
@@ -171,7 +183,8 @@ void autocompletion_init(
 	main_win);
     ac->entry->tb->text->after_edit = autocompletion_te_afteredit;
     ac->entry->tb->text->after_edit_target = ac;
-    
+
+    layout_force_reset(ac->layout);
 
 
     /* ac->lines = textlines_create( */
@@ -185,11 +198,46 @@ void autocompletion_init(
 
 void autocompletion_draw(AutoCompletion *ac)
 {
-    layout_force_reset(ac->layout);
+    SDL_SetRenderDrawColor(main_win->rend, 30, 30, 30, 255);
+    SDL_RenderFillRect(main_win->rend, &ac->layout->rect);
+
+    
     textentry_draw(ac->entry);
     if (ac->lines) {
 	textlines_draw(ac->lines);
     }
 }
 
+void autocompletion_reset_selection(AutoCompletion *ac, int new_sel)
+{
+    int old_sel = ac->selection;
+    if (new_sel >= ac->lines->num_items) {
+	new_sel = ac->lines->num_items - 1;
+    } else if (new_sel < -1) {
+	new_sel = -1;
+    }
+    if (new_sel != old_sel) {
+	ac->selection = new_sel;
+	if (old_sel >=0) {
+	    Textbox *old = ac->lines->items[old_sel].tb;
+	    textbox_set_background_color(old, &color_global_clear);            
+	}
+	if (new_sel >=0) {
+	    Textbox *new = ac->lines->items[new_sel].tb;
+	    textbox_set_background_color(new, &highlighted_line);
+	    
+	}
+    }
+
+}
+
+void autocompletion_select(AutoCompletion *ac)
+{
+    if (ac->selection >= 0) {
+	TLinesItem item = ac->lines->items[ac->selection];
+	UserFn *fn = item.obj;
+	fn->do_fn(fn);
+    }
+    /* ac->select(ac); */
+}
 

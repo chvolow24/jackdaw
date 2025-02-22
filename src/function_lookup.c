@@ -173,10 +173,10 @@ static int update_records_fn(AutoCompletion *ac, struct autocompletion_item **it
     return num_fns;
 }
 
-AutoCompletion GLOBAL_AC;
+/* AutoCompletion GLOBAL_AC; */
 extern Window *main_win;
 
-extern void user_global_save_project(void *);
+/* extern void user_global_save_project(void *); */
 int fn_lookup_filter(void *current_item, void *x_arg)
 {
     struct autocompletion_item *item = (struct autocompletion_item *)current_item;
@@ -195,17 +195,17 @@ int fn_lookup_filter(void *current_item, void *x_arg)
 
 void create_global_ac()
 {
-
     Layout *ac_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(ac_lt);
     layout_force_reset(ac_lt);
     autocompletion_init(
-	&GLOBAL_AC,
+	&main_win->ac,
 	ac_lt,
 	update_records_fn,
 	fn_lookup_filter);
-
-    textentry_edit(GLOBAL_AC.entry);
+    main_win->ac_active = true;
+    textentry_edit(main_win->ac.entry);
+    window_push_mode(main_win, AUTOCOMPLETE_LIST);
 
 }
 /* UserFn *fn_lookup_search_fn() */

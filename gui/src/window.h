@@ -4,6 +4,8 @@
 #define MAX_WINDOW_MENUS 8
 
 #include "SDL.h"
+
+#include "autocompletion_struct.h"
 #include "input_mode.h"
 #include "text.h"
 
@@ -16,6 +18,7 @@ typedef struct menu Menu;
 typedef struct modal Modal;
 typedef struct page Page;
 typedef struct tab_view TabView;
+/* typedef struct autocompletion AutoCompletion; */
 
 typedef void (*DeferredDraw)(void *obj);
 
@@ -52,6 +55,11 @@ typedef struct window {
 
     Page *active_page;
     TabView *active_tabview;
+
+    AutoCompletion ac;
+    bool ac_active;
+
+    /* AutoCompletion ac; */
 
     bool screenrecording;
 

@@ -19,28 +19,12 @@
 
 #include "components.h"
 #include "textbox.h"
+#include "autocompletion_struct.h" /* annoying */
 
-#define AUTOCOMPLETE_ENTRY_BUFLEN 64
 
-struct autocompletion_item {
-    const char *str;
-    void *obj;
-};
 
-typedef struct autocompletion AutoCompletion;
-typedef struct autocompletion {
-    Layout *layout;
-    char entry_buf[AUTOCOMPLETE_ENTRY_BUFLEN];
-    TextEntry *entry;
-    TextLines *lines;
-    int (*update_records)(AutoCompletion *self, struct autocompletion_item **items_arr_p);
-    TlinesFilter tline_filter;
 
-    /* TLinesItem *(*create_tline)(void ***, Layout *, void *, int (*filter)(void *item, void *arg)); */
-    /* int (*tline_filter)(void *item, void *xarg); */
-    
-    int selection; /* -1 if in textentry, otherwise index of selected line */
-} AutoCompletion;
+/* typedef struct autocompletion AutoCompxletion; */
 
 /* void autocompletion_init(AutoCompletion *ac, Layout *layout, int update_records(AutoCompletion *self, struct autocompletion_item **items_arr_p)); */
 void autocompletion_init(
@@ -52,5 +36,8 @@ void autocompletion_init(
     /* int (*filter)(void *item, void *xarg)); */
 
 void autocompletion_draw(AutoCompletion *ac);
+
+void autocompletion_reset_selection(AutoCompletion *ac, int new_sel);
+void autocompletion_select(AutoCompletion *ac);
 
 #endif

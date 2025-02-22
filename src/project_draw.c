@@ -16,7 +16,7 @@
     * main draw function called in project_loop.c
  *****************************************************************************************************************/
 
-
+#include "autocompletion.h"
 #include "color.h"
 #include "dsp.h"
 #include "geometry.h"
@@ -602,10 +602,7 @@ extern SDL_Color color_global_x_red;
 extern SDL_Color color_global_dropdown_green;
 extern SDL_Color color_global_min_yellow;
 
-#include "autocompletion.h"
-/* typedef struct auto_completion AutoCompletion; */
-void autocompletion_draw(AutoCompletion *ac);
-extern AutoCompletion GLOBAL_AC;
+
 void project_draw()
 {
     window_start_draw(main_win, NULL);
@@ -636,8 +633,8 @@ void project_draw()
     tl->needs_redraw = false;
 
 
-    if (GLOBAL_AC.layout) {
-	autocompletion_draw(&GLOBAL_AC);
+    if (main_win->ac_active) {
+	autocompletion_draw(&main_win->ac);
     }
 
     window_end_draw(main_win);

@@ -158,8 +158,8 @@ void loop_project_main()
 		scrolling_lt = NULL;
 		temp_scrolling_lt = NULL;
 		switch (e.key.keysym.scancode) {
-		case SDL_SCANCODE_6: {
-		    create_global_ac();
+		/* case SDL_SCANCODE_6: { */
+		/*     create_global_ac(); */
 		    /* const char *words[] = {"a", "b", "c"}; */
 		    /* static int word_i = 0; */
 
@@ -167,8 +167,8 @@ void loop_project_main()
 		    
 		    /* word_i++; */
 		    /* word_i %= 3; */
-		}
-		    break;   
+		/* } */
+		/*     break;    */
 		/* case SDL_SCANCODE_6: { */
 		/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
 		/*     ClipRef *cr = clipref_at_cursor(); */

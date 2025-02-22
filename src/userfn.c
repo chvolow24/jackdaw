@@ -2,8 +2,10 @@
 #include <sys/param.h>
 #include "SDL_events.h"
 #include "audio_connection.h"
+#include "autocompletion.h"
 #include "dir.h"
 #include "endpoint.h"
+#include "function_lookup.h"
 #include "project_endpoint_ops.h"
 #include "input.h"
 /* #include "loading */
@@ -474,6 +476,11 @@ void user_global_open_file(void *nullarg)
     /* openfile->submit_form = submit_openfile_form; */
     window_push_modal(main_win, openfile);
     modal_reset(openfile);
+}
+
+void user_global_function_lookup(void *nullarg)
+{
+    function_lookup();
 }
 
 /* void user_global_start_or_stop_screenrecording(void *nullarg) */
@@ -2709,3 +2716,49 @@ void user_tabview_escape(void *nullarg)
 	return;
     }
 }
+
+void user_autocomplete_next(void *nullarg)
+{
+    if (!main_win->ac_active) {
+	fprintf(stderr, "Error: in AC mode without active ac\n");
+	window_pop_mode(main_win);
+	return;
+    }
+
+    AutoCompletion *ac = &main_win->ac;
+    autocompletion_reset_selection(ac, ac->selection + 1);
+}
+void user_autocomplete_previous(void *nullarg)
+{
+    if (!main_win->ac_active) {
+	fprintf(stderr, "Error: in AC mode without active ac\n");
+	window_pop_mode(main_win);
+	return;
+    }
+
+    AutoCompletion *ac = &main_win->ac;
+    autocompletion_reset_selection(ac, ac->selection - 1);
+
+}
+
+void user_autocomplete_escape(void *nullarg)
+{
+    main_win->ac_active = false;
+    window_pop_mode(main_win);
+    txt_stop_editing(main_win->txt_editing);
+    Timeline *tl = ACTIVE_TL;
+    tl->needs_redraw = true;
+}
+
+void user_autocomplete_select(void *nullarg)
+{
+    if (!main_win->ac_active) {
+	fprintf(stderr, "Error: in AC mode without active ac\n");
+	window_pop_mode(main_win);
+	return;
+    }
+    user_autocomplete_escape(NULL);
+    AutoCompletion *ac = &main_win->ac;
+    autocompletion_select(ac);
+}
+

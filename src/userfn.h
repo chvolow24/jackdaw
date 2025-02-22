@@ -12,7 +12,7 @@ void user_global_show_output_freq_domain(void *nullarg);
 void user_global_save_project(void *nullarg);
 void user_global_open_file(void *nullarg);
 void user_global_start_server(void *nullarg);
-
+void user_global_function_lookup(void *nullarg);
 void user_global_start_or_stop_screenrecording(void *nullarg);
 void user_global_chaotic_user_test(void *nullarg);
 
@@ -182,5 +182,11 @@ void user_tabview_right(void *nullarg);
 void user_tabview_next_tab(void *nullarg);
 void user_tabview_previous_tab(void *nullarg);
 void user_tabview_escape(void *nullarg);
+
+void user_autocomplete_next(void *nullarg);
+void user_autocomplete_previous(void *nullarg);
+void user_autocomplete_select(void *nullarg);
+void user_autocomplete_escape(void *nullarg);
+
 
 #endif

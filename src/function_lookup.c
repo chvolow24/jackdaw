@@ -193,7 +193,7 @@ int fn_lookup_filter(void *current_item, void *x_arg)
     /* return 0; */
 }
 
-void create_global_ac()
+void function_lookup()
 {
     Layout *ac_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(ac_lt);

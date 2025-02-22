@@ -177,6 +177,12 @@ static void mode_load_global()
     mode_subcat_add_fn(mc, fn);
 
     fn = create_user_fn(
+	"function_lookup",
+	"Function lookup",
+	user_global_function_lookup);
+    mode_subcat_add_fn(mc, fn);
+
+    fn = create_user_fn(
 	"chaotic_user_test",
 	"Chaotic user test (debug only)",
 	user_global_chaotic_user_test);
@@ -1103,42 +1109,6 @@ static void mode_load_tabview()
 }
 
 
-#include "autocompletion.h"
-extern Window *main_win;
-void user_autocomplete_next(void *nullarg)
-{
-    if (!main_win->ac_active) {
-	fprintf(stderr, "Error: in AC mode without active ac\n");
-	window_pop_mode(main_win);
-	return;
-    }
-
-    AutoCompletion *ac = &main_win->ac;
-    autocompletion_reset_selection(ac, ac->selection + 1);
-}
-void user_autocomplete_previous(void *nullarg)
-{
-    if (!main_win->ac_active) {
-	fprintf(stderr, "Error: in AC mode without active ac\n");
-	window_pop_mode(main_win);
-	return;
-    }
-
-    AutoCompletion *ac = &main_win->ac;
-    autocompletion_reset_selection(ac, ac->selection - 1);
-
-}
-
-void user_autocomplete_select(void *nullarg)
-{
-    if (!main_win->ac_active) {
-	fprintf(stderr, "Error: in AC mode without active ac\n");
-	window_pop_mode(main_win);
-	return;
-    }
-    AutoCompletion *ac = &main_win->ac;
-    autocompletion_select(ac);
-}
 
 
 static void mode_load_autocomplete_list()
@@ -1164,6 +1134,11 @@ static void mode_load_autocomplete_list()
 	user_autocomplete_select);
     mode_subcat_add_fn(sc, fn);
 
+    fn = create_user_fn(
+	"autocomplete_escape",
+	"Escape autocomplete list",
+	user_autocomplete_escape);
+    mode_subcat_add_fn(sc, fn);
 }
 
 

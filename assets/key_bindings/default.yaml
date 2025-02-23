@@ -45,7 +45,6 @@
   - <left>	: menu_translate_left
   - <right>	: menu_translate_right
   - <ret>     	: menu_choose_item
-  - <spc>	: menu_choose_item
   - k		: menu_choose_item
   - <del>     	: menu_dismiss
   - C-n	      	: menu_next_section
@@ -183,7 +182,6 @@
   - S-f		: modal_next_escape
   - S-d		: modal_previous_escape
   - <ret>	: modal_select
-  - <spc>	: modal_select
   - m		: modal_dismiss
   - h		: modal_dismiss
   - g		: modal_dismiss

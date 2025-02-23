@@ -197,6 +197,7 @@ void function_lookup()
 {
     Layout *ac_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(ac_lt);
+    ac_lt->h.value = 60.0;
     layout_force_reset(ac_lt);
     autocompletion_init(
 	&main_win->ac,

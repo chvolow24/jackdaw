@@ -138,7 +138,7 @@ static void autocompletion_update_lines(AutoCompletion *ac, struct autocompletio
     lines_lt->y.value = 10.0;
     lines_lt->w.type = SCALE;
     lines_lt->w.value = 1.0;
-    lines_lt->h.value = 500;
+    /* lines_lt->h.value = 500; */
     layout_force_reset(lines_lt);
     ac->selection = -1;
 
@@ -153,6 +153,10 @@ static void autocompletion_update_lines(AutoCompletion *ac, struct autocompletio
 	&ac->selection);
 
     layout_size_to_fit_children_v(ac->inner_layout, true, 0);
+    if (ac->inner_layout->rect.y + ac->inner_layout->rect.h > main_win->h_pix) {
+	ac->inner_layout->rect.h = main_win->h_pix - ac->inner_layout->rect.y - 60;
+    }
+
     layout_size_to_fit_children_v(ac->outer_layout, true, 20);
 
 

@@ -2625,6 +2625,108 @@ void clip_destroy(Clip *clip)
     free(clip);
 }
 
+static void clip_split_stereo_to_mono(Clip *to_split, Clip **new_L, Clip **new_R)
+{
+    *new_L = project_add_clip(to_split->recorded_from, to_split->target);
+    *new_R = project_add_clip(to_split->recorded_from, to_split->target);
+
+    (*new_L)->recording = false;
+    (*new_R)->recording = false;
+    (*new_L)->channels = 1;
+    (*new_R)->channels = 1;
+    
+    (*new_L)->L = malloc(to_split->len_sframes * sizeof(float));
+    (*new_R)->L = malloc(to_split->len_sframes * sizeof(float));
+    
+    memcpy((*new_L)->L, to_split->L, to_split->len_sframes * sizeof(float));
+    memcpy((*new_R)->L, to_split->R, to_split->len_sframes * sizeof(float));
+
+
+    (*new_L)->len_sframes = to_split->len_sframes;
+    (*new_R)->len_sframes = to_split->len_sframes;
+    proj->active_clip_index+=2;
+}
+
+NEW_EVENT_FN(undo_split_cr, "undo split stereo clip to mono")
+    ClipRef **crs = (ClipRef **)obj1;
+    ClipRef *orig = crs[0];
+    ClipRef *new_L = crs[1];
+    ClipRef *new_R = crs[2];
+    clipref_delete(new_L);
+    clipref_delete(new_R);
+    clipref_undelete(orig);
+}
+
+
+NEW_EVENT_FN(redo_split_cr, "redo split stereo clip to mono")
+    ClipRef **crs = (ClipRef **)obj1;
+    ClipRef *orig = crs[0];
+    ClipRef *new_L = crs[1];
+    ClipRef *new_R = crs[2];
+    clipref_delete(orig);
+    clipref_undelete(new_L);
+    clipref_undelete(new_R);
+}
+
+NEW_EVENT_FN(dispose_split_cr, "")
+    ClipRef **crs = (ClipRef **)obj1;
+    ClipRef *orig = crs[0];
+    clipref_destroy(orig, true);
+}
+
+NEW_EVENT_FN(dispose_forward_split_cr, "")
+    ClipRef **crs = (ClipRef **)obj1;
+    ClipRef *new_L = crs[1];
+    ClipRef *new_R = crs[2];
+    clipref_destroy(new_L, true);
+    clipref_destroy(new_R, true);
+}
+
+
+
+int clipref_split_stereo_to_mono(ClipRef *cr, ClipRef **new_L_dst, ClipRef **new_R_dst)
+{
+    Track *t = cr->track;
+    if (t->tl_rank == t->tl->num_tracks - 1) {
+	fprintf(stderr, "Error! No room to split clip reference. Create a new track below.\n");
+	return 0;
+    }
+    
+    Clip *clip_L, *clip_R;
+    clip_split_stereo_to_mono(cr->clip, &clip_L, &clip_R);
+
+    Track *next_track = t->tl->tracks[t->tl_rank + 1];
+
+    ClipRef *new_L, *new_R;
+    new_L = track_create_clip_ref(t, clip_L, cr->pos_sframes, true);
+    new_R = track_create_clip_ref(next_track, clip_R, cr->pos_sframes, true);
+    if (new_L_dst) *new_L_dst = new_L;
+    if (new_R_dst) *new_R_dst = new_R;
+    clipref_delete(cr);
+
+
+    ClipRef **crs = malloc(3 * sizeof(ClipRef *));
+    crs[0] = cr;
+    crs[1] = new_L;
+    crs[2] = new_R;
+
+    Clip **clips = malloc(2* sizeof(Clip *));
+    clips[0] = clip_L;
+    clips[1] = clip_R;
+    
+    user_event_push(
+	&proj->history,
+	undo_split_cr,
+	redo_split_cr,
+	dispose_split_cr, dispose_forward_split_cr,
+	crs, clips,
+	(Value){0}, (Value){0},
+	(Value){0}, (Value){0},
+	0, 0,
+	true, true);
+    return 1;
+}
+
 
 static void timeline_reinsert(Timeline *tl)
 {
@@ -2852,7 +2954,6 @@ void timeline_delete_grabbed_cliprefs(Timeline *tl)
 	clipref_delete(cr);
 	deleted_cliprefs[i] = cr;
     }
-
     Value num = {.uint8_v = tl->num_grabbed_clips};
     user_event_push(
 	&proj->history,

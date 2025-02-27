@@ -529,7 +529,7 @@ TTF_Font *ttf_open_font(const char* path, int size, Window *win)
 /*     TTF_CloseFont(font); */
 /* } */
 
-Font *ttf_init_font(const char *path, Window *win)
+Font *ttf_init_font(const char *path, Window *win, int style)
 {
     Font *font = malloc(sizeof(Font));
     int sizes[] = STD_FONT_SIZES;
@@ -540,6 +540,7 @@ Font *ttf_init_font(const char *path, Window *win)
     }
     for (int i=0; i<STD_FONT_ARRLEN; i++) {;
 	font->ttf_array[i] = ttf_open_font(path, sizes[i], win);
+        TTF_SetFontStyle(font->ttf_array[i], style);
     }
     return font;
 }

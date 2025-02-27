@@ -48,7 +48,7 @@
 #include "user_event.h"
 
 #define DEFAULT_FOURIER_LEN_SFRAMES 2048
-#define DEFAULT_AUDIO_CHUNK_LEN_SFRAMES 1024
+#define DEFAULT_AUDIO_CHUNK_LEN_SFRAMES 512
 
 
 #define MAX_TRACKS 255
@@ -495,6 +495,7 @@ void clipref_reset(ClipRef *cr, bool rescaled);
 
 void clipref_displace(ClipRef *cr, int displace_by);
 void clipref_move_to_track(ClipRef *cr, Track *target);
+int clipref_split_stereo_to_mono(ClipRef *cr, ClipRef **new_L, ClipRef **new_R);
 
 void track_increment_vol(Track *track);
 void track_decrement_vol(Track *track);

@@ -1099,6 +1099,11 @@ static NEW_EVENT_FN(add_track_redo, "redo add track")
     track_undelete(track);
 }
 
+static NEW_EVENT_FN(add_track_dispose_forward, "")
+    Track *track = (Track *)obj1;
+    track_destroy(track, false);
+}
+
 void user_tl_add_track(void *nullarg)
 {
     if (!proj) {
@@ -1123,7 +1128,7 @@ void user_tl_add_track(void *nullarg)
 	&proj->history,
 	add_track_undo,
 	add_track_redo,
-	NULL, NULL,
+	NULL, add_track_dispose_forward,
 	(void *)track,
 	NULL,
 	nullval, nullval, nullval, nullval,
@@ -2131,10 +2136,8 @@ void user_tl_drop_from_source(void *nullarg)
 	Value nullval = {.int_v = 0};
 	user_event_push(
 	    &proj->history,
-	    undo_drop,
-	    redo_drop,
-	    NULL,
-	    dispose_forward_drop,
+	    undo_drop, redo_drop,
+	    NULL, dispose_forward_drop,
 	    (void *)cr, NULL,
 	    nullval, nullval, nullval, nullval,
 	    0, 0, false, false);
@@ -2165,9 +2168,8 @@ static void user_tl_drop_savedn_from_source(int n)
 	Value nullval = {.int_v = 0};
 	user_event_push(
 	    &proj->history,
-	    undo_drop,
-	    redo_drop,
-	    NULL, NULL,
+	    undo_drop, redo_drop,
+	    NULL, dispose_forward_drop,
 	    (void *)cr, NULL,
 	    nullval, nullval, nullval, nullval,
 	    0, 0, false, false);

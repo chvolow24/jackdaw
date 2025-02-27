@@ -21,6 +21,10 @@
 #define TTF_PATH INSTALL_DIR "/assets/ttf/"
 #define OPEN_SANS_PATH TTF_PATH "OpenSans-Regular.ttf"
 #define OPEN_SANS_BOLD_PATH TTF_PATH "OpenSans-Bold.ttf"
+
+/* #define OPEN_SANS_PATH TTF_PATH "Overpass-VariableFont_wght.ttf" */
+/* #define OPEN_SANS_BOLD_PATH TTF_PATH "Overpass-VariableFont_wght.ttf" */
+
 #define LTSUPERIOR_PATH TTF_PATH "LTSuperiorMono-Regular.otf"
 #define LTSUPERIOR_BOLD_PATH TTF_PATH "LTSuperiorMono-Bold.otf"
 #define NOTO_SANS_SYMBOLS2_PATH TTF_PATH "NotoSansSymbols2-Regular.ttf"

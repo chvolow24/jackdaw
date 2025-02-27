@@ -70,6 +70,8 @@ extern pthread_t DSP_THREAD_ID;
 /*     return 0; */
 /* } */
 
+void filter_set_IR(FIRFilter *filter, float *ir_in, int ir_len);
+
 void user_global_quit(void *);
 void loop_project_main()
 {
@@ -162,6 +164,16 @@ void loop_project_main()
 		temp_scrolling_lt = NULL;
 		switch (e.key.keysym.scancode) {
 		/* case SDL_SCANCODE_6: { */
+		/*     ClipRef *cr = clipref_at_cursor(); */
+		/*     if (cr) { */
+		/* 	FIRFilter *f = &cr->track->fir_filter; */
+		/* 	Clip *c = cr->clip; */
+		/* 	int32_t pos = cr->track->tl->play_pos_sframes - cr->pos_sframes; */
+		/* 	filter_set_IR(f, c->L + pos, 2048); */
+		/*     } */
+		/* } */
+		    break;
+		/* case SDL_SCANCODE_6: { */
 		/*     create_global_ac(); */
 		    /* const char *words[] = {"a", "b", "c"}; */
 		    /* static int word_i = 0; */
@@ -172,18 +184,22 @@ void loop_project_main()
 		    /* word_i %= 3; */
 		/* } */
 		/*     break;    */
-		/* case SDL_SCANCODE_6: { */
-		/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
-		/*     ClipRef *cr = clipref_at_cursor(); */
-		/*     if (cr) { */
-		/* 	Clip *c = cr->clip; */
-		/* 	free(c->R); */
-		/* 	c->R = malloc(sizeof(float) * c->len_sframes); */
-		/* 	memcpy(c->R, c->L, sizeof(float) * c->len_sframes); */
-		/* 	timeline_reset_full(tl); */
-		/*     } */
-		/* } */
-		/*     break; */
+
+		case SDL_SCANCODE_6: {
+		    Timeline *tl = proj->timelines[proj->active_tl_index];
+		    ClipRef *cr = clipref_at_cursor();
+		    if (cr) {
+			ClipRef *new1, *new2;
+			clipref_split_stereo_to_mono(cr, &new1, &new2);
+			/* cr->clip->channels = 1; */
+			/* Clip *c = cr->clip; */
+			/* free(c->R); */
+			/* c->R = malloc(sizeof(float) * c->len_sframes); */
+			/* memcpy(c->R, c->L, sizeof(float) * c->len_sframes); */
+			timeline_reset_full(tl);
+		    }
+		}
+		    break;
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LCTRL:

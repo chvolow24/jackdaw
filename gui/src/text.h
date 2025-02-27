@@ -229,7 +229,8 @@ void txt_reset_display_value(Text *txt);
 TTF_Font *ttf_open_font(const char* path, int size, Window *win);
 
 /* Initialze an array of TTF fonts at standard font sizes */
-Font *ttf_init_font(const char *path, Window *win);
+/* Font *ttf_init_font(const char *path, Window *win); */
+Font *ttf_init_font(const char *path, Window *win, int style);
 
 /* Re-initialize a font (if the DPI scale factor has changed) */
 void ttf_reset_dpi_scale_factor(Font *font);

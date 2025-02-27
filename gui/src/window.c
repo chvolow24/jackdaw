@@ -115,12 +115,15 @@ void window_check_monitor_dpi(Window *win)
 void window_assign_font(Window *win, const char *font_path, FontType type)
 {
     Font **font_to_init;
+
+    int style = TTF_STYLE_NORMAL;
     switch (type) {
     case REG:
 	font_to_init = &win->std_font;
 	break;
     case BOLD:
 	font_to_init = &win->bold_font;
+	style = TTF_STYLE_BOLD;
 	break;
     case MONO:
         font_to_init = &win->mono_font;
@@ -135,7 +138,7 @@ void window_assign_font(Window *win, const char *font_path, FontType type)
 	font_to_init = &win->mathematical_font;
 	break;
     }
-    *font_to_init = ttf_init_font(font_path, win);
+    *font_to_init = ttf_init_font(font_path, win, style);
     if (!(*font_to_init)) {
 	fprintf(stderr, "Failed to initialize font at %s\n", font_path);
 	exit(1);
@@ -300,7 +303,9 @@ Layout *layout_create_from_window(Window *win);
 void layout_destroy(Layout *lt);
 void window_destroy(Window *win)
 {
-    autocompletion_deinit(&win->ac);
+    if (win->ac_active) {
+	autocompletion_deinit(&win->ac);
+    }
     if (win->std_font) {
 	ttf_destroy_font(win->std_font);
     }

@@ -26,7 +26,7 @@
 
 #define TAU (6.283185307179586476925286766559)
 #define PI (3.1415926535897932384626433832795)
-#define ROU_MAX_DEGREE 13
+#define ROU_MAX_DEGREE 14
 double complex *roots_of_unity[ROU_MAX_DEGREE];
 
 /* extern Project *proj; */
@@ -400,6 +400,24 @@ void filter_set_params(FIRFilter *filter, FilterType type, double cutoff, double
     get_magnitude(filter->frequency_response, filter->frequency_response_mag, filter->frequency_response_len);
     pthread_mutex_unlock(&filter->lock);
     /* free(IR_zero_padded); */
+}
+
+void filter_set_IR(FIRFilter *filter, float *ir_in, int ir_len)
+{
+    filter_set_impulse_response_len(filter, ir_len);
+    pthread_mutex_lock(&filter->lock);
+    double ir_zero_padded[filter->frequency_response_len];
+    for (int i=0; i<filter->frequency_response_len; i++) {
+	if (i < ir_len) {
+	    ir_zero_padded[i] = ir_in[i] * hamming(i, ir_len);
+	} else {
+	    ir_zero_padded[i] = 0;
+	}
+    }
+    FFT_unscaled(ir_zero_padded, filter->frequency_response, filter->frequency_response_len);
+    get_magnitude(filter->frequency_response, filter->frequency_response_mag, filter->frequency_response_len);
+    pthread_mutex_unlock(&filter->lock);
+
 }
 
 void filter_set_params_hz(FIRFilter *filter, FilterType type, double cutoff_hz, double bandwidth_hz)

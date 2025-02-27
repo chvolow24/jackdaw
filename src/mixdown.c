@@ -176,7 +176,9 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	    pthread_mutex_unlock(&cr->lock);
 	    continue;
 	}
-	float *clip_buf = (channel == 0) ? cr->clip->L : cr->clip->R;
+	float *clip_buf =
+	    cr->clip->channels == 1 ? cr->clip->L :
+	    channel == 0 ? cr->clip->L : cr->clip->R;
 	int16_t chunk_i = 0;
 	/* float pan_scale = (channel == 0) ? (track->pan - 0.5) * 2 : track->pan * 2; */
 
@@ -227,12 +229,12 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 }
 
 
-clock_t start;
-double pre_track;
-double track_subtotals[255];
-double filter;
-double after_track;
-double grand_total;
+/* clock_t start; */
+/* double pre_track; */
+/* double track_subtotals[255]; */
+/* double filter; */
+/* double after_track; */
+/* double grand_total; */
 
 /* 
 Sum track samples over a chunk of timeline and return an array of samples. from_mark_in indicates that samples
@@ -241,7 +243,7 @@ should be collected from the in mark rather than from the play head.
 float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t len_sframes, int32_t start_pos_sframes, float step)
 {
 
-    start = clock();
+    /* start = clock(); */
     /* clock_t start = clock(); */
     uint32_t chunk_len_bytes = sizeof(float) * len_sframes;
     /* float *mixdown = malloc(chunk_len_bytes); */
@@ -259,7 +261,7 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 
     /* long unsigned track_mixdown_time = 0; */
     /* long unsigned track_filter_time = 0; */
-    pre_track += (double)(clock() - start) / CLOCKS_PER_SEC;
+    /* pre_track += (double)(clock() - start) / CLOCKS_PER_SEC; */
     
     for (uint8_t t=0; t<tl->num_tracks; t++) {
 	bool audio_in_track = false;
@@ -267,22 +269,22 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 
 	float track_chunk[len_sframes];
 
-	start = clock();
+	/* start = clock(); */
         float track_chunk_amp = get_track_channel_chunk(track, track_chunk, channel, start_pos_sframes, len_sframes, step);
-	track_subtotals[t] += ((double)clock() - start) / CLOCKS_PER_SEC;
+	/* track_subtotals[t] += ((double)clock() - start) / CLOCKS_PER_SEC; */
 	
 
 	if (track_chunk_amp > AMP_EPSILON) { /* Checks if any clip audio available */
 	    audio_in_track = true;
 	}
 
-	start = clock();
+	/* start = clock(); */
 	if (audio_in_track && track->fir_filter_active) { /* Only apply FIR filter if there is audio */
 	    apply_filter(&track->fir_filter, track, channel, len_sframes, track_chunk);
 	}
-	filter += ((double)clock() - start) / CLOCKS_PER_SEC;
+	/* filter += ((double)clock() - start) / CLOCKS_PER_SEC; */
 
-	start = clock();
+	/* start = clock(); */
 	float del_line_total_amp = 0.0f;
 	if (track->delay_line_active) {
 	    DelayLine *dl = &track->delay_line;
@@ -354,7 +356,7 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 		}
 	    }
 	}
-	after_track += ((double)clock() - start) / CLOCKS_PER_SEC;
+	/* after_track += ((double)clock() - start) / CLOCKS_PER_SEC; */
 
     }
     return mixdown;

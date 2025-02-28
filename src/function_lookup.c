@@ -26,9 +26,16 @@
 
 static TrieNode FN_TRIE;
 
+static void free_fn_list(void *obj)
+{
+    FnList *fnl = (FnList *)obj;
+    free(fnl->fns);
+    free(fnl);
+}
+
 void function_lookup_deinit()
 {
-    trie_destroy(&FN_TRIE, false, true);
+    trie_destroy(&FN_TRIE, false, free_fn_list);
 }
 
 static FnList *create_fn_list()

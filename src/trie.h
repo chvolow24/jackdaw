@@ -34,7 +34,7 @@ void *trie_lookup_word(TrieNode *trie, char *word);
 int trie_gather_completion_objs(TrieNode *node, const char *word, void **dst, int dst_max_len);
 
 /* Root note may not be heap-allocated, so second arg should be false */
-void trie_destroy(TrieNode *node, bool free_current_node, bool free_obj);
+void trie_destroy(TrieNode *node, bool free_current_node, void free_obj_fn(void *));
 
 void trie_tests();
 

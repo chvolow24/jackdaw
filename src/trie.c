@@ -128,20 +128,20 @@ int trie_gather_completion_objs(TrieNode *node, const char *word, void **dst, in
 }
 
 /* If root node not heap-allocated, second arg should be false */
-void trie_destroy(TrieNode *node, bool free_current_node, bool free_obj)
+void trie_destroy(TrieNode *node, bool free_current_node, void free_obj_fn(void *))
 {
     for (int i=0; i<26; i++) {
 	TrieNode *child;
 	if ((child = node->children[i])) {
-	    trie_destroy(node->children[i], true, free_obj);
+	    trie_destroy(node->children[i], true, free_obj_fn);
 	    if (!free_current_node) {
 		node->children[i] = NULL;
 	    }
 	}
     }
     if (free_current_node) {
-	if (free_obj && node->ex_obj) {
-	    free(node->ex_obj);
+	if (free_obj_fn && node->ex_obj) {
+	    free_obj_fn(node->ex_obj);
 	}
 	free(node);
     }

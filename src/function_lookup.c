@@ -59,7 +59,8 @@ static void add_fn_to_list(FnList *fnl, UserFn *fn)
 
 void fn_lookup_index_fn(UserFn *fn)
 {
-    char *word = strdup(fn->fn_display_name);
+    char *to_free = strdup(fn->fn_display_name);
+    char *word = to_free;
     char *cursor = word;
     char c;
     while (1) {
@@ -83,6 +84,7 @@ void fn_lookup_index_fn(UserFn *fn)
 	}
 	cursor++;
     }
+    free(to_free);
 }
 
 

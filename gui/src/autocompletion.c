@@ -173,11 +173,6 @@ static int autocompletion_te_afteredit(Text *self, void *xarg)
     if (ac->update_records) {
 	struct autocompletion_item *dst = NULL;
 	int num_records = ac->update_records(ac, &dst);
-	/* fprintf(stderr, "\nNUM RECORDS: %d\n", num_records); */
-	/* for (int i=0; i<num_records; i++) { */
-	/*     fprintf(stderr, "%d: %s\n", i, dst[i].str); */
-	/* } */
-
 	autocompletion_update_lines(ac, dst, num_records);
 	if (dst) free(dst);
     }

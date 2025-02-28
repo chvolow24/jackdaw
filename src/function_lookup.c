@@ -113,7 +113,8 @@ static int update_records_fn(AutoCompletion *ac, struct autocompletion_item **it
 {
 
     /* fprintf(stderr, "\n\n\n\nUPDATE RECORDS\n"); */
-    char *text = strdup(ac->entry->tb->text->display_value);
+    char *to_free = strdup(ac->entry->tb->text->display_value);
+    char *text = to_free;
     if (strlen(text) == 0) {
 	free(text);
 	return 0;
@@ -178,7 +179,7 @@ static int update_records_fn(AutoCompletion *ac, struct autocompletion_item **it
 	    }
 	}
     }
-    free(text);
+    free(to_free);
 
     *items_dst = calloc(num_fns, sizeof(struct autocompletion_item));
     memcpy(*items_dst, items_loc, num_fns * sizeof(struct autocompletion_item));

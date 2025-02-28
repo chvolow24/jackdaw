@@ -28,7 +28,7 @@ static TrieNode FN_TRIE;
 
 void function_lookup_deinit()
 {
-    trie_destroy(&FN_TRIE, false);
+    trie_destroy(&FN_TRIE, false, true);
 }
 
 static FnList *create_fn_list()
@@ -48,6 +48,7 @@ static void add_fn_to_list(FnList *fnl, UserFn *fn)
     fnl->fns[fnl->num_fns] = fn;
     fnl->num_fns++;
 }
+
 
 void fn_lookup_index_fn(UserFn *fn)
 {

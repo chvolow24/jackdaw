@@ -180,7 +180,7 @@ static int autocompletion_te_afteredit(Text *self, void *xarg)
 }
 
 
-
+/* TODO: put "prompt_str" as arg ("start typing to search" */
 void autocompletion_init(
     AutoCompletion *ac,
     Layout *layout,

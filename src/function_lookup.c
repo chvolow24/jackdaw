@@ -214,11 +214,13 @@ void function_lookup()
     layout_set_default_dims(ac_lt);
     ac_lt->h.value = 60.0;
     layout_force_reset(ac_lt);
-    autocompletion_init(
-	&main_win->ac,
-	ac_lt,
-	update_records_fn,
-	fn_lookup_filter);
+    if (!main_win->ac.outer_layout) {
+	autocompletion_init(
+	    &main_win->ac,
+	    ac_lt,
+	    update_records_fn,
+	    fn_lookup_filter);
+    }
     textentry_edit(main_win->ac.entry);
     window_push_mode(main_win, AUTOCOMPLETE_LIST);
     main_win->ac_active = true;

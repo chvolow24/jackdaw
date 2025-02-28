@@ -188,6 +188,7 @@ void autocompletion_init(
     TlinesFilter tline_filter)
 
 {
+    autocompletion_deinit(ac);
     ac->outer_layout = layout;
     ac->inner_layout = layout_add_child(ac->outer_layout);
     ac->update_records = update_records;

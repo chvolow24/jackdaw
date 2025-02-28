@@ -104,6 +104,7 @@ void user_tl_track_delete(void *nullarg);
 
 void user_tl_click_track_add(void *nullarg);
 void user_tl_click_track_cut(void *nullarg);
+void user_tl_split_stereo_clipref(void *nullarg);
 void user_tl_click_track_set_tempo(void *nullarg);
 
 

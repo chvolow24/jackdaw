@@ -802,6 +802,12 @@ static void mode_load_timeline()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
+	"tl_split_stereo_clipref",
+	"Split stereo clip at cursor to mono",
+	user_tl_split_stereo_clipref);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
 	"tl_rename_clip_at_cursor",
 	"Rename clip at cursor",
 	user_tl_rename_clip_at_cursor);

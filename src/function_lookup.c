@@ -26,6 +26,10 @@
 
 static TrieNode FN_TRIE;
 
+void function_lookup_deinit()
+{
+    trie_destroy(&FN_TRIE, false);
+}
 
 static FnList *create_fn_list()
 {

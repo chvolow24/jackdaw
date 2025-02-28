@@ -942,9 +942,9 @@ void user_tl_set_mark_in(void *nullarg)
     user_event_push(
 	&proj->history,
 	undo_redo_set_mark,
-	undo_redo_set_mark,
 	NULL, NULL,
 	(void *)&tl->in_mark_sframes,
+	undo_redo_set_mark,
 	(void *)tl,
 	old_mark, old_mark,
 	new_mark, new_mark,
@@ -2033,6 +2033,14 @@ void user_tl_cut_clipref(void *nullarg)
     Timeline *tl = ACTIVE_TL;
     timeline_cut_at_cursor(tl);
     tl->needs_redraw = true;
+}
+
+void user_tl_split_stereo_clipref(void *nullarg)
+{
+    ClipRef *cr = clipref_at_cursor();
+    if (cr) {
+	clipref_split_stereo_to_mono(cr, NULL, NULL);
+    }
 }
 
 void user_tl_load_clip_at_cursor_to_src(void *nullarg)

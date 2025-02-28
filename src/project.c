@@ -1715,8 +1715,13 @@ Clip *project_add_clip(AudioConn *conn, Track *target)
     }
     Clip *clip = calloc(1, sizeof(Clip));
 
+    clip->channels = 2;
     if (conn) {
 	clip->recorded_from = conn;
+	if (conn->type == DEVICE) {
+	    clip->channels = conn->c.device.spec.channels;
+	}
+
     }
     if (target) {
 	/* fprintf(stdout, "\t->target? %p\n", clip->target); */
@@ -1731,7 +1736,7 @@ Clip *project_add_clip(AudioConn *conn, Track *target)
     } else {
 	snprintf(clip->name, sizeof(clip->name), "anonymous");
     }
-    clip->channels = proj->channels;
+    /* clip->channels = proj->channels; */
     proj->clips[proj->num_clips] = clip;
     proj->num_clips++;
     return clip;
@@ -1761,7 +1766,7 @@ void clipref_reset(ClipRef *cr, bool rescaled)
     layout_reset(cr->layout);
     textbox_reset_full(cr->label);
     /* if (rescaled) { */
-	cr->waveform_redraw = true;
+    cr->waveform_redraw = true;
     /* } */
     /* cr->rect.x = timeline_get_draw_x(cr->pos_sframes); */
     /* uint32_t cr_len = cr->in_mark_sframes >= cr->out_mark_sframes */
@@ -2686,9 +2691,13 @@ NEW_EVENT_FN(dispose_forward_split_cr, "")
 
 int clipref_split_stereo_to_mono(ClipRef *cr, ClipRef **new_L_dst, ClipRef **new_R_dst)
 {
+    if (cr->clip->channels != 2) {
+	fprintf(stderr, "Error: clip must have two channels to be split\n");
+	return 0;
+    }
     Track *t = cr->track;
     if (t->tl_rank == t->tl->num_tracks - 1) {
-	fprintf(stderr, "Error! No room to split clip reference. Create a new track below.\n");
+	fprintf(stderr, "Error: No room to split clip reference. Create a new track below.\n");
 	return 0;
     }
     
@@ -2702,6 +2711,11 @@ int clipref_split_stereo_to_mono(ClipRef *cr, ClipRef **new_L_dst, ClipRef **new
     new_R = track_create_clip_ref(next_track, clip_R, cr->pos_sframes, true);
     if (new_L_dst) *new_L_dst = new_L;
     if (new_R_dst) *new_R_dst = new_R;
+    snprintf(new_L->name, MAX_NAMELENGTH, "%s L", cr->name);
+    snprintf(new_R->name, MAX_NAMELENGTH, "%s R", cr->name);
+
+    new_L->out_mark_sframes = new_L->clip->len_sframes;
+    new_R->out_mark_sframes = new_R->clip->len_sframes;
     clipref_delete(cr);
 
 
@@ -2724,6 +2738,7 @@ int clipref_split_stereo_to_mono(ClipRef *cr, ClipRef **new_L_dst, ClipRef **new
 	(Value){0}, (Value){0},
 	0, 0,
 	true, true);
+    timeline_reset_full(t->tl);
     return 1;
 }
 

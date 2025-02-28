@@ -26,6 +26,7 @@
 #include "assets.h"
 #include "dir.h"
 #include "dsp.h"
+#include "function_lookup.h"
 #include "input.h"
 #include "layout.h"
 #include "layout_xml.h"
@@ -134,6 +135,7 @@ static void quit()
 	window_destroy(main_win);
     }
     input_quit();
+    function_lookup_deinit();
     SDL_Quit();
 }
 

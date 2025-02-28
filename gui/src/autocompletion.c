@@ -203,7 +203,7 @@ void autocompletion_init(
     entry_lt->w.type = SCALE;
     entry_lt->w.value = 1.0;
     entry_lt->h.value = 20.0;
-    sprintf(ac->entry_buf, "Start typing to search...");
+    snprintf(ac->entry_buf, AUTOCOMPLETE_ENTRY_BUFLEN, "Start typing to search...");
     ac->entry = textentry_create(
 	entry_lt,
 	ac->entry_buf,
@@ -233,9 +233,18 @@ void autocompletion_init(
 
 void autocompletion_deinit(AutoCompletion *ac)
 {
-    if (ac->lines) textlines_destroy(ac->lines);
-    textentry_destroy(ac->entry);
-    layout_destroy(ac->outer_layout);
+    if (ac->lines) {
+	textlines_destroy(ac->lines);
+	ac->lines = NULL;
+    }
+    if (ac->entry) {
+	textentry_destroy(ac->entry);
+	ac->entry = NULL;
+    }
+    if (ac->outer_layout) {
+	layout_destroy(ac->outer_layout);
+	ac->outer_layout = NULL;
+    }
 }
 
 void autocompletion_draw(AutoCompletion *ac)

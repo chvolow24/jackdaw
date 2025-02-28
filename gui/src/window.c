@@ -303,9 +303,9 @@ Layout *layout_create_from_window(Window *win);
 void layout_destroy(Layout *lt);
 void window_destroy(Window *win)
 {
-    if (win->ac_active) {
-	autocompletion_deinit(&win->ac);
-    }
+    /* if (win->ac_active) { */
+    autocompletion_deinit(&win->ac);
+    /* } */
     if (win->std_font) {
 	ttf_destroy_font(win->std_font);
     }

@@ -388,13 +388,13 @@ static void mode_load_timeline()
 
     fn = create_user_fn(
 	"tl_track_selector_up",
-	"Move track selector up",
+	"Previous track (move selector up)",
         user_tl_track_selector_up);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"tl_track_selector_down",
-	"Move track selector down",
+	"Next track (move selector down)",
         user_tl_track_selector_down);
     mode_subcat_add_fn(sc, fn);
 
@@ -521,7 +521,7 @@ static void mode_load_timeline()
     
     fn = create_user_fn(
 	"tl_goto_prev_beat",
-	"Go to prev beat",
+	"Go to previous beat",
 	user_tl_goto_prev_beat);
     mode_subcat_add_fn(sc, fn);
 
@@ -533,7 +533,7 @@ static void mode_load_timeline()
 
     fn = create_user_fn(
 	"tl_goto_prev_subdiv",
-	"Go to prev subdiv",
+	"Go to previous subdiv",
 	user_tl_goto_prev_subdiv);
     mode_subcat_add_fn(sc, fn);
 
@@ -545,7 +545,7 @@ static void mode_load_timeline()
 
     fn = create_user_fn(
 	"tl_goto_prev_measure",
-	"Go to prev measure",
+	"Go to previous measure",
 	user_tl_goto_prev_measure);
     mode_subcat_add_fn(sc, fn);
 

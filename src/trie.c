@@ -139,10 +139,10 @@ void trie_destroy(TrieNode *node, bool free_current_node, void free_obj_fn(void 
 	    }
 	}
     }
+    if (free_obj_fn && node->ex_obj) {
+	free_obj_fn(node->ex_obj);
+    }
     if (free_current_node) {
-	if (free_obj_fn && node->ex_obj) {
-	    free_obj_fn(node->ex_obj);
-	}
 	free(node);
     }
 }

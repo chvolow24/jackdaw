@@ -29,7 +29,7 @@ typedef struct trienode {
 } TrieNode;
 
 
-void trie_insert_word(TrieNode *trie, char *word, void *ex_obj);
+int trie_insert_word(TrieNode *trie, char *word, void *ex_obj);
 void *trie_lookup_word(TrieNode *trie, char *word);
 int trie_gather_completion_objs(TrieNode *node, const char *word, void **dst, int dst_max_len);
 

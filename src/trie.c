@@ -39,13 +39,13 @@ static char lower_validate_char(char c)
     return c;
 }
 
-void trie_insert_word(TrieNode *trie, char *word, void *ex_obj)
+int trie_insert_word(TrieNode *trie, char *word, void *ex_obj)
 {
     char c;
     TrieNode **node = &trie;
     while ((c = *word) != '\0') {
 	c = lower_validate_char(c);
-	if (!c) return;
+	if (!c) return 0;
 	node = (*node)->children + c - 'a';
 	if (!*node) {
 	    *node = calloc(1, sizeof(TrieNode));
@@ -56,6 +56,7 @@ void trie_insert_word(TrieNode *trie, char *word, void *ex_obj)
     if (*node) {
 	(*node)->ex_obj = ex_obj;
     }
+    return 1;
 }
 
 TrieNode *trie_lookup_word_leaf(TrieNode *trie, const char *word)

@@ -76,7 +76,10 @@ void fn_lookup_index_fn(UserFn *fn)
 		FnList *fnl = create_fn_list();
 		add_fn_to_list(fnl, fn);
 		/* fprintf(stderr, "INSERTING WORD: %s\n", word); */
-		trie_insert_word(&FN_TRIE, word, fnl);
+		if (!trie_insert_word(&FN_TRIE, word, fnl)) {
+		    free(fnl->fns);
+		    free(fnl);
+		}
 	    }
 	    *cursor = ' ';
 	    word = cursor + 1;

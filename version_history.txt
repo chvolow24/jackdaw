@@ -1,5 +1,11 @@
 This is an informal document tracking jackdaw version updates. 
 
+v0.5.1
+       - function lookup (autocomplete dropdown, bound to <spc>)
+       - split stereo clip to mono
+       - significant refactor or TextLines to simplify interface
+       - filter_set_IR function for arbitrary IR (currently inaccessible)
+
 v0.5.0
        - click tracks, click track settings, metronomes, etc.
        - stack of track *layout*, not tracks (to accommodate click tracks)

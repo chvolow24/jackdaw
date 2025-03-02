@@ -13,8 +13,9 @@ A free, open-source, keyboard-focused digital audio workstation (DAW). Written i
 5. [Keyboard command shorthand](#keyboard-command-shorthand)
 6. [Quickstart (getting comfortable)](#quickstart-getting-comfortable) 
 7. [User manual](#user-manual)
-    1. [Menus](#menus)
-	2. [Timeline navigation and playback](#timeline-navigation-and-playback)
+    1. [Function lookup](#function-lookup)
+    2. [Menus](#menus)
+	3. [Timeline navigation and playback](#timeline-navigation-and-playback)
 	     1. [Playback](#playback)
 		 2. [Scrubbing / play speed](#scrubbing--play-speed)
 		 3. [Translate / zoom](#translate--zoom)
@@ -24,8 +25,8 @@ A free, open-source, keyboard-focused digital audio workstation (DAW). Written i
 		 7. [Marks and jump-to](#marks-and-jump-to)
 		 8. [Scrolling](#scrolling)
 		 9. [Loop playback](#loop-playback)
-	3. [Recording](#recording)
-	4. [Audio Tracks](#audio-tracks)
+	4. [Recording](#recording)
+	5. [Audio Tracks](#audio-tracks)
 		 1. [Activating / deactivating tracks](#activating--deactivating-tracks)
 		 2. [Muting / soloing](#muting--soloing)
 		 3. [Adjusting volume / pan](#adjusting-volume--pan)
@@ -34,33 +35,33 @@ A free, open-source, keyboard-focused digital audio workstation (DAW). Written i
 		 6. [Minimizing tracks](#minimizing-tracks)
 		 6. [Renaming tracks](#renaming-tracks)
 			 1. [Editing text](#editing-text)
-	5. [Clips](#clips)
+	6. [Clips](#clips)
 		 1. ["Clips" vs "Clip references"](#technical-note-clips-vs-clip-references)
 		 2. ["Grabbing" and moving clips](#grabbing-and-moving-clips)
 		 3. [Clip overlap](#clip-overlap)
 		 4. [Cutting clips](#cutting-clips)
 		 5. [Renaming clips](#renaming-clips)
-	6. [Click tracks](#click-tracks)
+	7. [Click tracks](#click-tracks)
 		 1. [Time signatures](#time-signatures)
 		 2. [Click track segments](#click-track-segments)
 		 3. [Metronome](#metronome)
 		 4. [Set tempo](#set-tempo)
 		 5. [Grid navigation](#grid-navigation)
-	7. [Sample mode / Source mode](#sample-mode--source-mode)
-	8. [Project navigation / multiple timelines](#project-navigation--multiple-timelines)
-	9. [Opening and saving files](#opening-and-saving-files)
-	10. [Track effects](#track-effects)
+	8. [Sample mode / Source mode](#sample-mode--source-mode)
+	9. [Project navigation / multiple timelines](#project-navigation--multiple-timelines)
+	10. [Opening and saving files](#opening-and-saving-files)
+	11. [Track effects](#track-effects)
 		 1. [FIR filter](#fir-filter)
 		 2. [Delay line](#delay-line)
-	11. [Automation](#automation)
+	12. [Automation](#automation)
 	     1. [Adding keyframes with the mouse](#adding-keyframes-with-the-mouse)
 		 2. [Writing (adding keyframes automatically)](#writing-adding-keyframes-automatically)
 		 3. [Deleting keyframes](#deleting-keyframes)
-	12. [Undo / redo](#undo--redo)
-	13. [Special audio inputs](#special-audio-inputs)
+	13. [Undo / redo](#undo--redo)
+	14. [Special audio inputs](#special-audio-inputs)
 		 1. [Jackdaw out](#jackdaw-out)
 		 2. [Pure data](#pure-data)
-	14. [API](#api)
+	15. [API](#api)
 		 1. [Starting the server](#starting-the-server)
 		 2. [Request syntax](#request-syntax)
 8. [Function reference](#function-reference)
@@ -240,13 +241,19 @@ You will be prompted to enter a project name (which must include the `.jdaw` ext
 
 # User manual
 
+## Function lookup
+
+Jackdaw's user interface is built around keyboard commands, but you don't need to remember or look up these commands to use it. Hit the spacebar (<kbd>\<spc\></kbd>) to open an autocomplete dropdown list of available commands. You can start typing one or more keywords to see a list of matching commands. Use <kbd>\<tab\></kbd> to navigate down through the list, <kbd>S-\<tab\> to navigate up, <kbd>\<ret\></kbd> to select an item, and <kbd>\<esc\></kbd> to escape without selecting an item.
+
+Each entry in the list includes the display name of the command on the left, and the bound keyboard command on the right.
+
+<img src="assets/readme_imgs/function_lookup.gif" width="75%" />
+
 ## Menus
 
-**At any time**, you can summon a menu with a list of available actions (and keyboard shortcuts) with <kbd>C-m</kbd> or <kbd>C-h</kbd> ("m" for menu, "h" for help). The menu will display a taxonomy of the available user actions. Navigate with <kbd>n</kbd>, <kbd>p</kbd> to move the selection up or down, and <kbd>j</kbd> and <kbd>l</kbd> to move left and right between columns. Then use <kbd>\<ret\></kbd> to select. Use <kbd>m</kbd> (or <kbd>h</kbd> or <kbd>\<esc\></kbd>) to dismiss the menu.
+You can also summon a menu with a list of available actions organized by category with <kbd>C-m</kbd> or <kbd>C-h</kbd> ("m" for menu, "h" for help). Navigate with <kbd>n</kbd>, <kbd>p</kbd> to move the selection up or down, and <kbd>j</kbd> and <kbd>l</kbd> to move left and right between columns. Then use <kbd>\<ret\></kbd> to select. Use <kbd>m</kbd> (or <kbd>h</kbd> or <kbd>\<esc\></kbd>) to dismiss the menu.
 
 You can also summon the menu by clicking on the "hamburger" in the upper-right corner of the window.
-
-Summoning these menus when in doubt is the best way to learn the available keyboard shortcuts. 
 
 ## Timeline navigation and playback
 
@@ -817,17 +824,18 @@ Most applications for the API will involve sending UDP messages over localhost, 
 - Quit : <kbd>C-q</kbd>
 - Undo : <kbd>C-z</kbd>
 - Redo : <kbd>C-y</kbd>, <kbd>C-S-z</kbd>
-- Show output spectrum : <kbd>S-f</kbd>
+- Show output spectrum : <kbd></kbd>
 - Save Project : <kbd>C-s</kbd>
-- Open File (.wav or .jdaw) : <kbd>C-o</kbd>
+- Open file (.wav or .jdaw) : <kbd>C-o</kbd>
 - Start API server : <kbd>C-S-p</kbd>
+- Function lookup : <kbd>\<spc\></kbd>
 - Chaotic user test (debug only) : <kbd>A-S-\<del\></kbd>
 ### menu_nav mode
 - Next item : <kbd>n</kbd>, <kbd>f</kbd>
 - Previous item : <kbd>p</kbd>, <kbd>d</kbd>
 - Next section : <kbd>C-n</kbd>, <kbd>C-f</kbd>, <kbd>C-\<up\></kbd>
 - Previous section : <kbd>C-p</kbd>, <kbd>C-d</kbd>, <kbd>C-\<down\></kbd>
-- Choose item : <kbd>\<ret\></kbd>, <kbd>\<spc\></kbd>, <kbd>k</kbd>
+- Choose item : <kbd>\<ret\></kbd>, <kbd>k</kbd>
 - Column right : <kbd>l</kbd>
 - Column left : <kbd>j</kbd>
 - Move menu up : <kbd>\<up\></kbd>
@@ -843,7 +851,7 @@ Most applications for the API will involve sending UDP messages over localhost, 
 - Play slow : <kbd>K-l</kbd>
 - Rewind slow : <kbd>K-j</kbd>
 - Move playhead left : <kbd>[</kbd>
-- Move playhead rigth : <kbd>]</kbd>
+- Move playhead right : <kbd>]</kbd>
 - Move playhead left (slow) : <kbd>S-[</kbd>
 - Move playhead right (slow) : <kbd>S-]</kbd>
 - Nudge play position left (500 samples) : <kbd>\<left\></kbd>
@@ -854,8 +862,8 @@ Most applications for the API will involve sending UDP messages over localhost, 
 - Move one sample right : <kbd>C-S-\<right\></kbd>
 - Record (start or stop) : <kbd>r</kbd>
 #### Timeline navigation
-- Move track selector up : <kbd>p</kbd>, <kbd>d</kbd>
-- Move track selector down : <kbd>n</kbd>, <kbd>f</kbd>
+- Previous track (move selector up) : <kbd>p</kbd>, <kbd>d</kbd>
+- Next track (move selector down) : <kbd>n</kbd>, <kbd>f</kbd>
 - Toggle automation read : <kbd>S-r</kbd>
 - Move selected track down : <kbd>S-n</kbd>, <kbd>S-f</kbd>
 - Move selected track up : <kbd>S-p</kbd>, <kbd>S-d</kbd>
@@ -873,21 +881,21 @@ Most applications for the API will involve sending UDP messages over localhost, 
 - Go to previous clip boundary : <kbd>S-j</kbd>
 - Go to next clip boundary : <kbd>S-l</kbd>
 - Go to next beat : <kbd>C-l</kbd>
-- Go to prev beat : <kbd>C-j</kbd>
+- Go to previous beat : <kbd>C-j</kbd>
 - Go to next subdiv : <kbd>C-S-l</kbd>
-- Go to prev subdiv : <kbd>C-S-j</kbd>
+- Go to previous subdiv : <kbd>C-S-j</kbd>
 - Go to next measure : <kbd>A-S-l</kbd>
-- Go to prev measure : <kbd>A-S-j</kbd>
+- Go to previous measure : <kbd>A-S-j</kbd>
 - Bring rear clip at cursor to front : <kbd>S-z</kbd>
 - Toggle loop playback : <kbd>C-8</kbd>
 #### Output
 - Set default audio output : <kbd>C-S-o</kbd>
 #### Tracks
 - Add Track : <kbd>C-t</kbd>
-- Activate/deactivate selected track : <kbd>\<spc\></kbd>, <kbd>\<ret\></kbd>
+- Activate/deactivate selected track : <kbd>\<ret\></kbd>
 - Activate/deactivate all tracks : <kbd>`</kbd>
 - Delete selected track or automation : <kbd>C-\<del\></kbd>
-- Select track 1 : <kbd>1</kbd>
+- Activate track 1 : <kbd>1</kbd>
 - Activate track 2 : <kbd>2</kbd>
 - Activate track 3 : <kbd>3</kbd>
 - Activate track 4 : <kbd>4</kbd>
@@ -897,7 +905,7 @@ Most applications for the API will involve sending UDP messages over localhost, 
 - Activate track 8 : <kbd>8</kbd>
 - Activate track 9 : <kbd>9</kbd>
 #### Tempo tracks
-- Add tempo track : <kbd>C-S-t</kbd>
+- Add click track : <kbd>C-S-t</kbd>
 - Set tempo at cursor : <kbd>t</kbd>
 #### Track settings
 - Open track settings : <kbd>S-t</kbd>
@@ -918,6 +926,7 @@ Most applications for the API will involve sending UDP messages over localhost, 
 - Paste grabbed clips : <kbd>C-v</kbd>
 - Start or stop dragging clips : <kbd>C-k</kbd>
 - Cut : <kbd>S-c</kbd>
+- Split stereo clip at cursor to mono : <kbd></kbd>
 - Rename clip at cursor : <kbd>C-S-r</kbd>
 - Delete : <kbd>\<del\></kbd>
 #### Sample mode
@@ -948,7 +957,7 @@ Most applications for the API will involve sending UDP messages over localhost, 
 - Go to previous item : <kbd>p</kbd>, <kbd>d</kbd>
 - Go to next item (escape DirNav) : <kbd>\<tab\></kbd>, <kbd>S-n</kbd>, <kbd>S-f</kbd>
 - Go to previous item (escape DirNav) : <kbd>S-\<tab\></kbd>, <kbd>S-p</kbd>, <kbd>S-d</kbd>
-- Select item : <kbd>\<ret\></kbd>, <kbd>\<spc\></kbd>
+- Select item : <kbd>\<ret\></kbd>
 - Dismiss modal window : <kbd>m</kbd>, <kbd>h</kbd>, <kbd>g</kbd>, <kbd>\<esc\></kbd>
 - Submit form : <kbd>C-\<ret\></kbd>
 ### text_edit mode
@@ -967,9 +976,14 @@ Most applications for the API will involve sending UDP messages over localhost, 
 - Next tab : <kbd>S-l</kbd>, <kbd>S-;</kbd>
 - Previous tab : <kbd>S-j</kbd>, <kbd>S-h</kbd>
 - Close tab view : <kbd>g</kbd>, <kbd>\<esc\></kbd>
+### autocomplete_list mode
+- Next item : <kbd>\<tab\></kbd>
+- Previous item : <kbd>S-\<tab\></kbd>
+- Select item : <kbd>\<ret\></kbd>
+- Escape autocomplete list : <kbd>\<esc\></kbd>
 
 ...
 
-[ LAST UPDATED 2025-02-14 FRIDAY ]
+[ LAST UPDATED 2025-03-02 SUNDAY ]
 
 ...

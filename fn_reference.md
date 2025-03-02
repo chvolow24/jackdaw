@@ -4,17 +4,18 @@
 - Quit : <kbd>C-q</kbd>
 - Undo : <kbd>C-z</kbd>
 - Redo : <kbd>C-y</kbd>, <kbd>C-S-z</kbd>
-- Show output spectrum : <kbd>S-f</kbd>
+- Show output spectrum : <kbd></kbd>
 - Save Project : <kbd>C-s</kbd>
-- Open File (.wav or .jdaw) : <kbd>C-o</kbd>
+- Open file (.wav or .jdaw) : <kbd>C-o</kbd>
 - Start API server : <kbd>C-S-p</kbd>
+- Function lookup : <kbd>\<spc\></kbd>
 - Chaotic user test (debug only) : <kbd>A-S-\<del\></kbd>
 ### menu_nav mode
 - Next item : <kbd>n</kbd>, <kbd>f</kbd>
 - Previous item : <kbd>p</kbd>, <kbd>d</kbd>
 - Next section : <kbd>C-n</kbd>, <kbd>C-f</kbd>, <kbd>C-\<up\></kbd>
 - Previous section : <kbd>C-p</kbd>, <kbd>C-d</kbd>, <kbd>C-\<down\></kbd>
-- Choose item : <kbd>\<ret\></kbd>, <kbd>\<spc\></kbd>, <kbd>k</kbd>
+- Choose item : <kbd>\<ret\></kbd>, <kbd>k</kbd>
 - Column right : <kbd>l</kbd>
 - Column left : <kbd>j</kbd>
 - Move menu up : <kbd>\<up\></kbd>
@@ -30,7 +31,7 @@
 - Play slow : <kbd>K-l</kbd>
 - Rewind slow : <kbd>K-j</kbd>
 - Move playhead left : <kbd>[</kbd>
-- Move playhead rigth : <kbd>]</kbd>
+- Move playhead right : <kbd>]</kbd>
 - Move playhead left (slow) : <kbd>S-[</kbd>
 - Move playhead right (slow) : <kbd>S-]</kbd>
 - Nudge play position left (500 samples) : <kbd>\<left\></kbd>
@@ -41,8 +42,8 @@
 - Move one sample right : <kbd>C-S-\<right\></kbd>
 - Record (start or stop) : <kbd>r</kbd>
 #### Timeline navigation
-- Move track selector up : <kbd>p</kbd>, <kbd>d</kbd>
-- Move track selector down : <kbd>n</kbd>, <kbd>f</kbd>
+- Previous track (move selector up) : <kbd>p</kbd>, <kbd>d</kbd>
+- Next track (move selector down) : <kbd>n</kbd>, <kbd>f</kbd>
 - Toggle automation read : <kbd>S-r</kbd>
 - Move selected track down : <kbd>S-n</kbd>, <kbd>S-f</kbd>
 - Move selected track up : <kbd>S-p</kbd>, <kbd>S-d</kbd>
@@ -60,21 +61,21 @@
 - Go to previous clip boundary : <kbd>S-j</kbd>
 - Go to next clip boundary : <kbd>S-l</kbd>
 - Go to next beat : <kbd>C-l</kbd>
-- Go to prev beat : <kbd>C-j</kbd>
+- Go to previous beat : <kbd>C-j</kbd>
 - Go to next subdiv : <kbd>C-S-l</kbd>
-- Go to prev subdiv : <kbd>C-S-j</kbd>
+- Go to previous subdiv : <kbd>C-S-j</kbd>
 - Go to next measure : <kbd>A-S-l</kbd>
-- Go to prev measure : <kbd>A-S-j</kbd>
+- Go to previous measure : <kbd>A-S-j</kbd>
 - Bring rear clip at cursor to front : <kbd>S-z</kbd>
 - Toggle loop playback : <kbd>C-8</kbd>
 #### Output
 - Set default audio output : <kbd>C-S-o</kbd>
 #### Tracks
 - Add Track : <kbd>C-t</kbd>
-- Activate/deactivate selected track : <kbd>\<spc\></kbd>, <kbd>\<ret\></kbd>
+- Activate/deactivate selected track : <kbd>\<ret\></kbd>
 - Activate/deactivate all tracks : <kbd>`</kbd>
 - Delete selected track or automation : <kbd>C-\<del\></kbd>
-- Select track 1 : <kbd>1</kbd>
+- Activate track 1 : <kbd>1</kbd>
 - Activate track 2 : <kbd>2</kbd>
 - Activate track 3 : <kbd>3</kbd>
 - Activate track 4 : <kbd>4</kbd>
@@ -84,7 +85,7 @@
 - Activate track 8 : <kbd>8</kbd>
 - Activate track 9 : <kbd>9</kbd>
 #### Tempo tracks
-- Add tempo track : <kbd>C-S-t</kbd>
+- Add click track : <kbd>C-S-t</kbd>
 - Set tempo at cursor : <kbd>t</kbd>
 #### Track settings
 - Open track settings : <kbd>S-t</kbd>
@@ -105,6 +106,7 @@
 - Paste grabbed clips : <kbd>C-v</kbd>
 - Start or stop dragging clips : <kbd>C-k</kbd>
 - Cut : <kbd>S-c</kbd>
+- Split stereo clip at cursor to mono : <kbd></kbd>
 - Rename clip at cursor : <kbd>C-S-r</kbd>
 - Delete : <kbd>\<del\></kbd>
 #### Sample mode
@@ -135,7 +137,7 @@
 - Go to previous item : <kbd>p</kbd>, <kbd>d</kbd>
 - Go to next item (escape DirNav) : <kbd>\<tab\></kbd>, <kbd>S-n</kbd>, <kbd>S-f</kbd>
 - Go to previous item (escape DirNav) : <kbd>S-\<tab\></kbd>, <kbd>S-p</kbd>, <kbd>S-d</kbd>
-- Select item : <kbd>\<ret\></kbd>, <kbd>\<spc\></kbd>
+- Select item : <kbd>\<ret\></kbd>
 - Dismiss modal window : <kbd>m</kbd>, <kbd>h</kbd>, <kbd>g</kbd>, <kbd>\<esc\></kbd>
 - Submit form : <kbd>C-\<ret\></kbd>
 ### text_edit mode
@@ -154,3 +156,8 @@
 - Next tab : <kbd>S-l</kbd>, <kbd>S-;</kbd>
 - Previous tab : <kbd>S-j</kbd>, <kbd>S-h</kbd>
 - Close tab view : <kbd>g</kbd>, <kbd>\<esc\></kbd>
+### autocomplete_list mode
+- Next item : <kbd>\<tab\></kbd>
+- Previous item : <kbd>S-\<tab\></kbd>
+- Select item : <kbd>\<ret\></kbd>
+- Escape autocomplete list : <kbd>\<esc\></kbd>

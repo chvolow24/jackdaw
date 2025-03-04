@@ -150,10 +150,11 @@ void loop_project_main()
 		double xprop = 2.0 * e.motion.x / main_win->w_pix;
 		double yprop = 2.0 * e.motion.y / main_win->h_pix;
 
+		xprop = pow(xprop, 4.0);
 		yprop  = 1 - yprop;
 		yprop *= 20;
 		yprop -= 1;
-		double bandwidth = xprop / 10;
+		double bandwidth = xprop / 2;
 		if (yprop < 0.0) {
 		    bandwidth *= 10;
 		    yprop = 0.0;

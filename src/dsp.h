@@ -20,6 +20,10 @@
 #define DEFAULT_FILTER_LEN 128
 #define DELAY_LINE_MAX_LEN_S 1
 
+#define TAU (6.283185307179586476925286766559)
+#define PI (3.1415926535897932384626433832795)
+
+
 typedef struct track Track;
 
 typedef enum filter_type {

@@ -24,8 +24,6 @@
 #include "dsp.h"
 
 
-#define TAU (6.283185307179586476925286766559)
-#define PI (3.1415926535897932384626433832795)
 #define ROU_MAX_DEGREE 14
 double complex *roots_of_unity[ROU_MAX_DEGREE];
 

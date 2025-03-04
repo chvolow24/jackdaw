@@ -600,10 +600,13 @@ static void control_bar_draw(Project *proj)
 }
 
 
-extern SDL_Color color_global_x_red;
-extern SDL_Color color_global_dropdown_green;
-extern SDL_Color color_global_min_yellow;
+/* extern SDL_Color color_global_x_red; */
+/* extern SDL_Color color_global_dropdown_green; */
+/* extern SDL_Color color_global_min_yellow; */
 
+/* extern double freq_resp[]; */
+/* extern int freq_resp_len; */
+extern struct freq_plot *eqfp;
 
 void project_draw()
 {
@@ -639,7 +642,18 @@ void project_draw()
 	autocompletion_draw(&main_win->ac);
     }
 
+    
+    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_white)); */
+    /* for (int i=0; i<freq_resp_len; i++) { */
+    /* 	int x = main_win->w_pix * i / freq_resp_len; */
+    /* 	int y = main_win->h_pix - (main_win->h_pix * (freq_resp[i]) / 20); */
+    /* 	SDL_RenderDrawPoint(main_win->rend, x, y); */
+    /* } */
+    if (eqfp) {
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
+	SDL_RenderFillRect(main_win->rend, &eqfp->container->rect);
+	waveform_draw_freq_plot(eqfp);
+    }
+
     window_end_draw(main_win);
 }
-
-

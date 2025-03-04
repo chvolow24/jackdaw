@@ -21,7 +21,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "dsp.h"
 #include "iir.h"
+#include "waveform.h"
+
+extern SDL_Color color_global_white;
+extern Window *main_win;
 
 void iir_init(IIRFilter *f, int degree)
 {
@@ -75,6 +80,7 @@ double iir_sample(IIRFilter *f, double in)
 
 /* SET COEFFS */
 
+
 /* Joshua D. Reiss, IEEE TRANSACTIONS ON AUDIO, SPEECH, AND LANGUAGE PROCESSING, VOL. 19, NO. 6, AUGUST 2011  */
 static int reiss_2011(double freq, double amp, double bandwidth, double complex *dst)
 {
@@ -114,12 +120,55 @@ static int reiss_2011(double freq, double amp, double bandwidth, double complex 
 }
 
 
+
+const int freq_resp_len = 90000;
+double freq_resp[freq_resp_len];
+struct freq_plot *eqfp;
+Layout *fp_container = NULL;
 void iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double bandwidth)
 {
     double complex pole_zero[2];
-    if (reiss_2011(freq, amp, bandwidth, pole_zero) < 0) {
+    if (reiss_2011(freq * PI, amp, bandwidth, pole_zero) < 0) {
 	return;
     }
+
+    
+    for (int i=0; i<freq_resp_len; i++) {
+	double prop = (double)i / freq_resp_len;
+	double complex pole1 = pole_zero[0];
+	double complex pole2 = conj(pole1);
+	double complex zero1 = pole_zero[1];
+	double complex zero2 = conj(zero1);
+
+	double theta = PI * prop; 
+	double complex z = cos(theta) + I * sin(theta);
+	freq_resp[i] = ((zero1 - z) * (zero2 - z)) / ((pole1 - z) * (pole2 - z));
+
+	int steps[] = {1};
+	double *arrs[] = {freq_resp};
+	SDL_Color *colors[] = {&color_global_white};
+	if (!fp_container) {
+	    fp_container = layout_add_child(main_win->layout);
+	    layout_set_default_dims(fp_container);
+	    layout_force_reset(fp_container);
+	    eqfp = waveform_create_freq_plot(
+		arrs,
+		1,
+		colors,
+		steps,
+		freq_resp_len,
+		fp_container);
+
+	} else {
+	    /* waveform_reset_freq_plot(eqfp); */
+	}
+
+	
+	    
+	    
+	
+    }
+    
 
     iir->A[0] = 1.0;
     iir->A[1] = -2 * creal(pole_zero[1]);

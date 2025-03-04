@@ -76,19 +76,31 @@ double iir_sample(IIRFilter *f, double in)
 /* SET COEFFS */
 
 /* Joshua D. Reiss, IEEE TRANSACTIONS ON AUDIO, SPEECH, AND LANGUAGE PROCESSING, VOL. 19, NO. 6, AUGUST 2011  */
-static void reiss_2011(double freq, double amp, double bandwidth, double complex *dst)
+static int reiss_2011(double freq, double amp, double bandwidth, double complex *dst)
 {
     double cosw = cos(freq);
-    double tanbdiv2 = tan(bandwidth / 2
-	);
+    double tanbdiv2 = tan(bandwidth / 2);
     double tansqbdiv2 = pow(tanbdiv2, 2.0);
     double sinsqw = pow(sin(freq), 2.0);
 
     double zero_term1 = cosw / (1 + amp * tanbdiv2);
     double pole_term1 = cosw / (1 + tanbdiv2);
 
-    double zero_term2_num = sqrt(sinsqw - (pow(amp, 2) * tansqbdiv2));
+    double sqrt_arg = sinsqw - (pow(amp, 2) * tansqbdiv2);
+    if (sqrt_arg < 0.0) {
+	fprintf(stderr, "ERROR! Cannot set at params\n");
+	return -1;
+    }
+    /* double zero_term2_num = sqrt(sinsqw - (pow(amp, 2) * tansqbdiv2)); */
+
+    double zero_term2_num = sqrt(sqrt_arg);
     double zero_term2_denom = 1 + amp * tanbdiv2;
+
+    sqrt_arg = sinsqw - tansqbdiv2;
+    if (sqrt_arg < 0.0) {
+	fprintf(stderr, "ERROR! Cannot set at params\n");
+	return -1;
+    }
 
     double pole_term2_num = sqrt(sinsqw - tansqbdiv2);
     double pole_term2_denom = 1 + tanbdiv2;
@@ -98,13 +110,16 @@ static void reiss_2011(double freq, double amp, double bandwidth, double complex
 
     dst[0] = pole_term1 + pole_term2;
     dst[1] = zero_term1 + zero_term2;
+    return 0;
 }
 
 
 void iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double bandwidth)
 {
     double complex pole_zero[2];
-    reiss_2011(freq, amp, bandwidth, pole_zero);
+    if (reiss_2011(freq, amp, bandwidth, pole_zero) < 0) {
+	return;
+    }
 
     iir->A[0] = 1.0;
     iir->A[1] = -2 * creal(pole_zero[1]);
@@ -114,7 +129,7 @@ void iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double ba
     iir->B[1] = -1 * pow(cabs(pole_zero[0]), 2);
 
 
-    fprintf(stderr, "IIR SET PEAKNOTCH\n");
+    fprintf(stderr, "IIR SET PEAKNOTCH from %f %f %f\n", freq, amp, bandwidth);
     fprintf(stderr, "%f, %f, %f\n", iir->A[0], iir->A[1], iir->A[2]);
     fprintf(stderr, "%f, %f\n", iir->B[0], iir->B[1]);
 

@@ -18,6 +18,7 @@
 #include <pthread.h>
 #include "automation.h"
 #include "dsp.h"
+#include "eq.h"
 #include "project.h"
 #include "iir.h"
 
@@ -25,20 +26,19 @@
 
 extern Project *proj;
 
-IIRFilter iir;
-int inited = 0;
+extern EQ glob_eq;
+
+/* IIRFilter iir; */
+/* int inited = 0; */
 float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32_t start_pos_sframes, uint32_t len_sframes, float step)
 {
 
-    if (!inited) {
-	iir_init(&iir, 2, 2);
-	/* iir_set_coeffs(iir, A, B); */
-	iir_set_coeffs_peaknotch(&iir, 0.04, 50.0, 0.001);
-	inited = 1;
-    }
-
-
-    
+    /* if (!inited) { */
+    /* 	iir_init(&iir, 2, 2); */
+    /* 	/\* iir_set_coeffs(iir, A, B); *\/ */
+    /* 	iir_set_coeffs_peaknotch(&iir, 0.04, 50.0, 0.001); */
+    /* 	inited = 1; */
+    /* } */    
     uint32_t chunk_bytelen = sizeof(float) * len_sframes;
     memset(chunk, '\0', chunk_bytelen);
     if (track->muted || track->solo_muted) {
@@ -226,7 +226,8 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 		float sample = clip_buf[(int32_t)pos_in_clip_sframes + cr->in_mark_sframes];
 		/* sample = tanh(20 * sample) / 20; */
 		float add = sample * vol * pan_scale * playspeed_rolloff;
-		add = iir_sample(&iir, add, channel);
+		add = iir_group_sample(&glob_eq.group, add, channel);
+		/* add = iir_sample(&iir, add, channel); */
 		/* add = do_filter(add, filterbuf, coeffs, 9); */
 		chunk[chunk_i] += add;
 		

@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "dsp.h"
+#include "page.h"
 #include "project.h"
 #include "iir.h"
 #include "waveform.h"
@@ -39,11 +40,15 @@ void iir_init(IIRFilter *f, int degree, int num_channels)
     f->B = calloc(degree, sizeof(double));
     f->memIn = calloc(num_channels, sizeof(double *));
     f->memOut = calloc(num_channels, sizeof(double *));
+    /* f->pole_zero = calloc(degree, sizeof(double complex)); */
     for (int i=0; i<num_channels; i++) {	    
 	f->memIn[i] = calloc(degree, sizeof(double));
 	f->memOut[i] = calloc(degree, sizeof(double));
     }
     f->A[0] = 1;
+    for (int i=0; i<IIR_FREQPLOT_RESOLUTION; i++) {
+	f->freq_resp[i] = 1.0;
+    }
 }
 
 void iir_deinit(IIRFilter *f)
@@ -156,20 +161,10 @@ static int reiss_2011(double freq, double amp, double bandwidth, double complex 
 
 
 
-extern Project *proj;
-const int freq_resp_len = DEFAULT_FOURIER_LEN_SFRAMES / 2;
-const int FRLENSCAL = 1;
-double freq_resp[freq_resp_len * FRLENSCAL];
-struct freq_plot *eqfp;
-Layout *fp_container = NULL;
-double complex pole_zero[2];
-
 void waveform_update_logscale(struct logscale *la, double *array, int num_items, int step, SDL_Rect *container);
 
-static double amp_from_freq(double freq_raw, void *xarg)
+static double biquad_amp_from_freq(double freq_raw, double complex *pole_zero)
 {
-    static const double MAX = 20.0;
-    double complex *pole_zero = xarg;
     double complex pole1 = pole_zero[0];
     double complex pole2 = conj(pole1);
     double complex zero1 = pole_zero[1];
@@ -177,78 +172,65 @@ static double amp_from_freq(double freq_raw, void *xarg)
 
     double theta = PI * freq_raw;
     double complex z = cos(theta) + I * sin(theta);
-    return ((zero1 - z) * (zero2 - z)) / ((pole1 - z) * (pole2 - z)) / MAX;
+    return ((zero1 - z) * (zero2 - z)) / ((pole1 - z) * (pole2 - z));
 
 }
 
-
-#define IIR_FREQPLOT_RESOLUTION 1000
 void iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double bandwidth)
 {
     double complex pole_zero[2];
     int safety = 0;
     int test = 0;
-    fprintf(stderr, "COEFFS: %f %f %f || %f %f\n", iir->A[0], iir->A[1], iir->A[2], iir->B[0], iir->B[1]);
-    fprintf(stderr, "MEM: %f %f || %f %f\n", iir->memIn[0][0], iir->memIn[0][1], iir->memOut[0][0], iir->memOut[0][1]);
+    /* fprintf(stderr, "COEFFS: %f %f %f || %f %f\n", iir->A[0], iir->A[1], iir->A[2], iir->B[0], iir->B[1]); */
+    /* fprintf(stderr, "MEM: %f %f || %f %f\n", iir->memIn[0][0], iir->memIn[0][1], iir->memOut[0][0], iir->memOut[0][1]); */
     
     while ((test = reiss_2011(freq * PI, amp, bandwidth, pole_zero)) < 0) {
 	if (test == -1) {
 	    /* fprintf(stderr, "IMAG!!!!\n"); */
 	} else if (test == -2) {
-	    fprintf(stderr, "INF!!!!\n");
+	    /* fprintf(stderr, "INF!!!!\n"); */
 	    return;
 	} else if (test == -3) {
-	    fprintf(stderr, "POLE ERROR!\n");
+	    /* fprintf(stderr, "POLE ERROR!\n"); */
 	    return;
 	}
 	    
 	bandwidth *= 0.9;
 	safety++;
-	if (safety > 1000) {
-	    fprintf(stderr, "ABORT ABORT ABORT!\n");
+	if (safety > 5000) {
+	    fprintf(stderr, "ABORT: IIR parameters unstable, cannot be recovered\n");
 	    exit(0);
 	}
     }
 
-    /* Track *t = timeline_selected_track(proj->timelines[proj->active_tl_index]); */
-
-
-
-    /* for (int i=0; i<freq_resp_len * FRLENSCAL; i++) { */
-    /* 	double prop = (double)i / (freq_resp_len * FRLENSCAL); */
-    /* 	double complex pole1 = pole_zero[0]; */
-    /* 	double complex pole2 = conj(pole1); */
-    /* 	double complex zero1 = pole_zero[1]; */
-    /* 	double complex zero2 = conj(zero1); */
-
-    /* 	double theta = PI * prop;  */
-    /* 	double complex z = cos(theta) + I * sin(theta); */
-    /* 	freq_resp[i] = ((zero1 - z) * (zero2 - z)) / ((pole1 - z) * (pole2 - z)); */
-    /* 	/\* if (i<5) { *\/ */
-    /* 	/\*     fprintf(stderr, "FREQ RESP %d: %f\n", i, freq_resp[i]); *\/ */
-    /* 	/\* } *\/ */
-    /* } */
-    int steps[] = {1, 1, 1};
-    double *arrs[] = {freq_resp, proj->output_L_freq, proj->output_R_freq};
-    SDL_Color *colors[] = {&color_global_white, &freq_L_color, &freq_R_color};
-    if (!fp_container) {
-	fp_container = layout_add_child(main_win->layout);
-	layout_set_default_dims(fp_container);
-	layout_force_reset(fp_container);
-	eqfp = waveform_create_freq_plot(
-	    arrs,
-	    3,
-	    colors,
-	    steps,
-	    freq_resp_len,
-	    fp_container);
-
-	waveform_update_logscale(eqfp->plots[0], freq_resp, freq_resp_len * FRLENSCAL, 1, &eqfp->container->rect);
-	logscale_set_range(eqfp->plots[0], 0.0, 20.0);
-	/* eqfp->num_items = freq_resp_len_long; */
-	/* waveform_reset_freq_plot(eqfp); */
-
+    if (iir->fp) {
+	for (int i=0; i<IIR_FREQPLOT_RESOLUTION; i++) {
+	    double prop = (double) i / IIR_FREQPLOT_RESOLUTION;
+	    int nsub1 = iir->fp->num_items - 1;
+	    double input = pow(nsub1, prop) / nsub1;
+	    iir->freq_resp[i] = biquad_amp_from_freq(input, pole_zero);
+	}
     }
+    /* iir->pole_zero[0] = pole_zero[0]; */
+    /* iir->pole_zero[1] = pole_zero[1]; */
+
+    /* DO FREQ PLOTTING */
+    /* int steps[] = {1, 1}; */
+    /* double *arrs[] = {proj->output_L_freq, proj->output_R_freq}; */
+    /* SDL_Color *colors[] = {&freq_L_color, &freq_R_color}; */
+    /* if (!fp_container) { */
+    /* 	fp_container = layout_add_child(main_win->layout); */
+    /* 	layout_set_default_dims(fp_container); */
+    /* 	layout_force_reset(fp_container); */
+    /* 	eqfp = waveform_create_freq_plot( */
+    /* 	    arrs, */
+    /* 	    2, */
+    /* 	    colors, */
+    /* 	    steps, */
+    /* 	    freq_resp_len, */
+    /* 	    fp_container); */
+
+    /* } */
     
 
     iir->A[0] = 1.0;
@@ -258,14 +240,16 @@ void iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double ba
     iir->B[0] = 2 * creal(pole_zero[0]);
     iir->B[1] = -1 * pow(cabs(pole_zero[0]), 2);
 
-    if (iir->fp) {
-	waveform_freq_plot_add_linear_plot(iir->fp, IIR_FREQPLOT_RESOLUTION, &color_global_white, amp_from_freq, pole_zero);
-    }
-    if (eqfp && eqfp->num_linear_plots == 0) {
-	waveform_freq_plot_add_linear_plot(eqfp, IIR_FREQPLOT_RESOLUTION, &color_global_white, amp_from_freq, pole_zero);
-    } else if (eqfp) {
-	waveform_freq_plot_update_linear_plot(eqfp, amp_from_freq, pole_zero);
-    }
+    /* if (iir->fp) { */
+    /* 	waveform_freq_plot_add_linear_plot(iir->fp, IIR_FREQPLOT_RESOLUTION, &color_global_white, amp_from_freq, pole_zero); */
+    /* } */
+    /* if (eqfp && eqfp->num_linear_plots == 0) { */
+    /* 	waveform_freq_plot_add_linear_plot(eqfp, IIR_FREQPLOT_RESOLUTION, &color_global_white, amp_from_freq, pole_zero); */
+    /* 	eqfp->linear_plot_mins[0] = 0.0; */
+    /* 	eqfp->linear_plot_ranges[0] = 20.0; */
+    /* } else if (eqfp) { */
+    /* 	waveform_freq_plot_update_linear_plot(eqfp, amp_from_freq, pole_zero); */
+    /* } */
 
 
 
@@ -289,6 +273,7 @@ void iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double ba
 void iir_group_init(IIRGroup *group, int num_filters, int degree, int num_channels)
 {
     group->filters = calloc(num_filters, sizeof(IIRFilter));
+    group->num_filters = num_filters;
     for (int i=0; i<num_filters; i++) {
 	iir_init(group->filters + i, degree, num_channels);
     }
@@ -311,3 +296,14 @@ double iir_group_sample(IIRGroup *group, double in, int channel)
     return in;
 }
 
+void iir_group_update_freq_resp(IIRGroup *group)
+{
+    /* fprintf(stderr, "UPDATE freq resp\n"); */
+    if (!group->fp) return;
+    for (int i=0; i<IIR_FREQPLOT_RESOLUTION; i++) {
+	group->freq_resp[i] = group->filters[0].freq_resp[i];
+	for (int f=1; f<group->num_filters; f++) {
+	    group->freq_resp[i] *= group->filters[f].freq_resp[i];
+	}
+    }
+}

@@ -37,6 +37,7 @@ struct logscale {
     SDL_Color *color;
 };
 
+
 struct freq_plot {
     struct logscale **plots;
     double **arrays;
@@ -49,6 +50,8 @@ struct freq_plot {
     int num_linear_plots;
     int linear_plot_lens[MAX_LINEAR_PLOTS];
     SDL_Color *linear_plot_colors[MAX_LINEAR_PLOTS];
+    double linear_plot_mins[MAX_LINEAR_PLOTS];
+    double linear_plot_ranges[MAX_LINEAR_PLOTS];
     
     Layout *container;
     int num_tics;
@@ -78,9 +81,9 @@ void waveform_draw_freq_plot(struct freq_plot *fp);
 void waveform_draw_all_channels_generic(void **channels, ValType type, uint8_t num_channels, uint32_t buflen, SDL_Rect *rect, int min_x, int max_x);
 
 double waveform_freq_plot_freq_from_x_abs(struct freq_plot *fp, int abs_x);
-double waveform_freq_plot_amp_from_x_abs(struct freq_plot *fp, int abs_y, int arr_i);
-void waveform_freq_plot_add_linear_plot(struct freq_plot *fp, int len, SDL_Color *color, double calculate_point(double input, void *xarg), void *xarg);
-void waveform_freq_plot_update_linear_plot(struct freq_plot *fp, double calculate_point(double input, void *xarg), void *xarg);
-
+double waveform_freq_plot_amp_from_x_abs(struct freq_plot *fp, int abs_y, int arr_i, bool linear_plot);
+/* void waveform_freq_plot_add_linear_plot(struct freq_plot *fp, int len, SDL_Color *color, double calculate_point(double input, void *xarg), void *xarg); */
+/* void waveform_freq_plot_update_linear_plot(struct freq_plot *fp, double calculate_point(double input, void *xarg), void *xarg); */
+void waveform_freq_plot_add_linear_plot(struct freq_plot *fp, int len, double *arr, SDL_Color *color);
 void logscale_set_range(struct logscale *l, double min, double max);
 #endif

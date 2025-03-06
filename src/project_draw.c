@@ -19,6 +19,7 @@
 #include "autocompletion.h"
 #include "color.h"
 #include "dsp.h"
+#include "eq.h"
 #include "geometry.h"
 #include "input.h"
 #include "layout.h"
@@ -606,9 +607,11 @@ static void control_bar_draw(Project *proj)
 
 /* extern double freq_resp[]; */
 /* extern int freq_resp_len; */
-extern struct freq_plot *eqfp;
-extern double freq_resp[];
-extern double complex pole_zero[];
+/* extern struct freq_plot *eqfp; */
+/* extern double freq_resp[]; */
+/* extern double complex pole_zero[]; */
+extern EQ glob_eq;
+void eq_tests_create();
 
 void project_draw()
 {
@@ -644,32 +647,36 @@ void project_draw()
 	autocompletion_draw(&main_win->ac);
     }
 
-    
+
+    if (!glob_eq.fp) {
+	eq_tests_create();
+    }
+    waveform_draw_freq_plot(glob_eq.fp);
     /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_white)); */
     /* for (int i=0; i<freq_resp_len; i++) { */
     /* 	int x = main_win->w_pix * i / freq_resp_len; */
     /* 	int y = main_win->h_pix - (main_win->h_pix * (freq_resp[i]) / 20); */
     /* 	SDL_RenderDrawPoint(main_win->rend, x, y); */
     /* } */
-    if (eqfp) {
-	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
-	SDL_RenderFillRect(main_win->rend, &eqfp->container->rect);
-	waveform_draw_freq_plot(eqfp);
-	/* SDL_SetRenderDrawColor(main_win->rend, 0, 255, 0, 255); */
-	/* for (int x=eqfp->container->rect.x; x<eqfp->container->rect.x + eqfp->container->rect.w; x++) { */
-	/*     double freq_raw = waveform_freq_plot_freq_from_x_abs(eqfp, x); */
-	/*     double complex pole1 = pole_zero[0]; */
-	/*     double complex pole2 = conj(pole1); */
-	/*     double complex zero1 = pole_zero[1]; */
-	/*     double complex zero2 = conj(zero1); */
+    /* if (eqfp) { */
+    /* 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black)); */
+    /* 	SDL_RenderFillRect(main_win->rend, &eqfp->container->rect); */
+    /* 	waveform_draw_freq_plot(eqfp); */
+    /* 	/\* SDL_SetRenderDrawColor(main_win->rend, 0, 255, 0, 255); *\/ */
+    /* 	/\* for (int x=eqfp->container->rect.x; x<eqfp->container->rect.x + eqfp->container->rect.w; x++) { *\/ */
+    /* 	/\*     double freq_raw = waveform_freq_plot_freq_from_x_abs(eqfp, x); *\/ */
+    /* 	/\*     double complex pole1 = pole_zero[0]; *\/ */
+    /* 	/\*     double complex pole2 = conj(pole1); *\/ */
+    /* 	/\*     double complex zero1 = pole_zero[1]; *\/ */
+    /* 	/\*     double complex zero2 = conj(zero1); *\/ */
 
-	/*     double theta = PI * freq_raw;  */
-	/*     double complex z = cos(theta) + I * sin(theta); */
-	/*     double magnitude = ((zero1 - z) * (zero2 - z)) / ((pole1 - z) * (pole2 - z)); */
-	/*     fprintf(stderr, "FREQ: %f, theta %f, z: %f+%fi, X: %d, mag: %f\n", freq_raw, theta, creal(z), cimag(z), x, magnitude); */
-	/*     SDL_RenderDrawPoint(main_win->rend, x, eqfp->container->rect.y + eqfp->container->rect.h - magnitude * eqfp->container->rect.h); */
-	/* } */
-    }
+    /* 	/\*     double theta = PI * freq_raw;  *\/ */
+    /* 	/\*     double complex z = cos(theta) + I * sin(theta); *\/ */
+    /* 	/\*     double magnitude = ((zero1 - z) * (zero2 - z)) / ((pole1 - z) * (pole2 - z)); *\/ */
+    /* 	/\*     fprintf(stderr, "FREQ: %f, theta %f, z: %f+%fi, X: %d, mag: %f\n", freq_raw, theta, creal(z), cimag(z), x, magnitude); *\/ */
+    /* 	/\*     SDL_RenderDrawPoint(main_win->rend, x, eqfp->container->rect.y + eqfp->container->rect.h - magnitude * eqfp->container->rect.h); *\/ */
+    /* 	/\* } *\/ */
+    /* } */
 
     window_end_draw(main_win);
 }

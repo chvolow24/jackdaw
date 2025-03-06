@@ -23,6 +23,7 @@
 #include "components.h"
 #include "draw.h"
 #include "dsp.h"
+#include "eq.h"
 #include "function_lookup.h"
 #include "input.h"
 #include "layout.h"
@@ -71,12 +72,7 @@ extern pthread_t DSP_THREAD_ID;
 /* } */
 
 #include "iir.h"
-extern IIRFilter iir;
-extern int inited;
-extern struct freq_plot *eqfp;
-double bandwidth_scalar = 0.5;
-double freq_raw, amp_raw;
-extern double freq_resp[];
+extern EQ glob_eq;
 
 void filter_set_IR(FIRFilter *filter, float *ir_in, int ir_len);
 
@@ -137,53 +133,65 @@ void loop_project_main()
 		}
 		break;
 	    case SDL_MOUSEMOTION: {
-		if (eqfp) {
-		    double bandwidth = freq_raw * bandwidth_scalar;
-		    if (main_win->i_state & I_STATE_CMDCTRL) {
-			bandwidth_scalar += (double)e.motion.yrel / 100;
-			if (bandwidth_scalar < 0 ) bandwidth_scalar = 0.0;
-			fprintf(stderr, "BW SCALAR: %f\n", bandwidth_scalar);
-			iir_set_coeffs_peaknotch(&iir, freq_raw, amp_raw, bandwidth);
+		static double bandwidth_scalar = 0.4;
+		static double freq_raw = 0.253;
+	        static double amp_raw = 2.0;
+
+		if (main_win->i_state * I_STATE_CMDCTRL) {
+		    bandwidth_scalar += (double)e.motion.yrel / 100;
+		    eq_set_peak(&glob_eq, 3, freq_raw, amp_raw, bandwidth_scalar * freq_raw);
+		    break;
+		}
+		freq_raw = waveform_freq_plot_freq_from_x_abs(glob_eq.fp, e.motion.x * main_win->dpi_scale_factor);
+		amp_raw = waveform_freq_plot_amp_from_x_abs(glob_eq.fp, e.motion.y * main_win->dpi_scale_factor, 0, true);
+		eq_set_peak(&glob_eq, 3, freq_raw, amp_raw, bandwidth_scalar * freq_raw);
+		
+		/* if (eqfp) { */
+		/*     double bandwidth = freq_raw * bandwidth_scalar; */
+		/*     if (main_win->i_state & I_STATE_CMDCTRL) { */
+		/* 	bandwidth_scalar += (double)e.motion.yrel / 100; */
+		/* 	if (bandwidth_scalar < 0 ) bandwidth_scalar = 0.0; */
+		/* 	fprintf(stderr, "BW SCALAR: %f\n", bandwidth_scalar); */
+		/* 	iir_set_coeffs_peaknotch(&iir, freq_raw, amp_raw, bandwidth); */
 			
-			break;
-		    }
+		/* 	break; */
+		/*     } */
 
-		    freq_raw = waveform_freq_plot_freq_from_x_abs(eqfp, e.motion.x * main_win->dpi_scale_factor);
+		/*     freq_raw = waveform_freq_plot_freq_from_x_abs(eqfp, e.motion.x * main_win->dpi_scale_factor); */
 
-		    amp_raw = waveform_freq_plot_amp_from_x_abs(eqfp, e.motion.y * main_win->dpi_scale_factor, 0);
-		    fprintf(stderr, "AMP raw: %f\n", amp_raw);
-		    for (int channel =0; channel < 2; channel++) {
-			if (!inited) {
-			    fprintf(stderr, "INITING CHANNEL %d, filter at %p\n", channel, &iir);
-			    /* double A[] = {1, -1.9781447870471984, 0.9978788059141444}; */
-			    /* double B[] = {1.918821765339674, -0.9379639763484257}; */
-			    iir_init(&iir, 2, 2);
-			    /* iir_set_coeffs(iir, A, B); */
-			    /* iir_set_coeffs_peaknotch(iir, 0.04, 50.0, 0.001); */
-			    inited = 1;
-			}
-		    }
+		/*     amp_raw = waveform_freq_plot_amp_from_x_abs(eqfp, e.motion.y * main_win->dpi_scale_factor, 0, true); */
+		/*     for (int channel =0; channel < 2; channel++) { */
+		/* 	if (!inited) { */
+		/* 	    fprintf(stderr, "INITING CHANNEL %d, filter at %p\n", channel, &iir); */
+		/* 	    /\* double A[] = {1, -1.9781447870471984, 0.9978788059141444}; *\/ */
+		/* 	    /\* double B[] = {1.918821765339674, -0.9379639763484257}; *\/ */
+		/* 	    iir_init(&iir, 2, 2); */
+		/* 	    /\* iir_set_coeffs(iir, A, B); *\/ */
+		/* 	    /\* iir_set_coeffs_peaknotch(iir, 0.04, 50.0, 0.001); *\/ */
+		/* 	    inited = 1; */
+		/* 	} */
+		/*     } */
 
-		    double xprop = 2.0 * e.motion.x / main_win->w_pix;
-		    double yprop = 2.0 * e.motion.y / main_win->h_pix;
+		/*     double xprop = 2.0 * e.motion.x / main_win->w_pix; */
+		/*     double yprop = 2.0 * e.motion.y / main_win->h_pix; */
 
-		    xprop = pow(xprop, 4.0);
-		    yprop  = 1 - yprop;
-		    yprop *= 20;
-		    yprop -= 1;
+		/*     xprop = pow(xprop, 4.0); */
+		/*     yprop  = 1 - yprop; */
+		/*     yprop *= 20; */
+		/*     yprop -= 1; */
 
 		
-		    if (yprop < 0.0) {
-			/* bandwidth *= 10; */
-			yprop = 0.0;
-		    }
+		/*     if (yprop < 0.0) { */
+		/* 	/\* bandwidth *= 10; *\/ */
+		/* 	yprop = 0.0; */
+		/*     } */
 		    
-		    /* fprintf(stderr, "%f, %f\n", xprop, yprop); */
-		    if (freq_raw < 0) freq_raw = 0.0;
-		    if (freq_raw > 1.0) freq_raw = 1.0;
-		    if (amp_raw < 0.0) amp_raw = 0.0;
-		    iir_set_coeffs_peaknotch(&iir, freq_raw, amp_raw, bandwidth);
-		}
+		/*     /\* fprintf(stderr, "%f, %f\n", xprop, yprop); *\/ */
+		/*     if (freq_raw < 0) freq_raw = 0.0; */
+		/*     if (freq_raw > 1.0) freq_raw = 1.0; */
+		/*     if (amp_raw < 0.0) amp_raw = 0.0; */
+		/*     iir_set_coeffs_peaknotch(&iir, freq_raw, amp_raw, bandwidth); */
+		/* } */
 		
 		window_set_mouse_point(main_win, e.motion.x, e.motion.y);
 		switch (TOP_MODE) {

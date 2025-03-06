@@ -103,7 +103,7 @@ void waveform_draw_freq_domain(struct logscale *la)
     double last_y = btm_y - (amp_to_logscaled(raw_amp) * la->container->h);
     int last_x = la->x_pos_cache[0];
     /* fprintf(stderr, "START last y: %f, current_y: %f\n", ladoublest_y, current_y); */
-    for (int i=la->step; i<la->num_items; i+=la->step) {
+    for (int i=la->step * 2; i<la->num_items; i+=la->step) {
 	/* int last_x = la->x_pos_cache[i/la->step-1]; */
 	raw_amp = (la->array[i] - la->min) / la->range;
 	scaled = amp_to_logscaled(raw_amp);
@@ -222,24 +222,25 @@ void waveform_freq_plot_update_linear_plot(struct freq_plot *fp, double calculat
     }
  
 }
-void waveform_freq_plot_add_linear_plot(struct freq_plot *fp, int len, SDL_Color *color, double calculate_point(double input, void *xarg), void *xarg)
+void waveform_freq_plot_add_linear_plot(struct freq_plot *fp, int len, double *arr, SDL_Color *color)
 {
     if (fp->num_linear_plots == MAX_LINEAR_PLOTS) {
 	fprintf(stderr, "ERROR: already reached max num linear plots %d\n", MAX_LINEAR_PLOTS);
 	return;
     }
-    int nsub1 = fp->num_items - 1;
-    double *plot = malloc(len * sizeof(double));
-    for (int i=0; i<len; i++) {
-	double prop = (double)i/len;
-	double input = pow(nsub1, prop) / nsub1;
-	plot[i] = calculate_point(input, xarg);
-    }
-    fp->linear_plots[fp->num_linear_plots] = plot;
+    /* int nsub1 = fp->num_items - 1; */
+    /* double *plot = malloc(len * sizeof(double)); */
+    /* for (int i=0; i<len; i++) { */
+    /* 	double prop = (double)i/len; */
+    /* 	double input = pow(nsub1, prop) / nsub1; */
+    /* 	plot[i] = calculate_point(input, xarg); */
+    /* } */
+    fp->linear_plots[fp->num_linear_plots] = arr;
     fp->linear_plot_lens[fp->num_linear_plots] = len;
     fp->linear_plot_colors[fp->num_linear_plots] = color;
+    fp->linear_plot_mins[0] = 0.0;
+    fp->linear_plot_ranges[0] = 1.0;
     fp->num_linear_plots++;
-
 }
 
 void waveform_destroy_freq_plot(struct freq_plot *fp)
@@ -271,15 +272,27 @@ static void waveform_draw_linear_plot(struct freq_plot *fp, int index)
     SDL_Color *color = fp->linear_plot_colors[index];
     SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(color));
 
+    double min = fp->linear_plot_mins[index];
+    double range = fp->linear_plot_ranges[index];
+    
     int btm_y = fp->container->rect.y + fp->container->rect.h;
     int h = fp->container->rect.h;
     int left_x = fp->container->rect.x;
     int w = fp->container->rect.w;
+
     int i=0;
+    int last_x = left_x;
+    int last_y;
     do {
 	int x = left_x + (double)i * w / len;
-	int y = btm_y - h * (amp_to_logscaled(plot[i]));
-	SDL_RenderDrawPoint(main_win->rend, x, y);
+	double raw_amp = (plot[i] - min) / range;
+	/* fprintf(stderr, "%d: %f\n", i, raw_amp); */
+	int y = btm_y - h * (amp_to_logscaled(raw_amp));
+	if (i > 0) {
+	    SDL_RenderDrawLine(main_win->rend, x, y, last_x, last_y);
+	}
+	last_x = x;
+	last_y = y;
 	i++;
     } while (i < len);
 }
@@ -329,20 +342,26 @@ double waveform_freq_plot_freq_from_x_abs(struct freq_plot *fp, int abs_x)
     return waveform_freq_plot_freq_from_x_rel(fp, abs_x - fp->container->rect.x);
 }
 
-double waveform_freq_plot_amp_from_x_rel(struct freq_plot *fp, int rel_y, int arr_i)
+double waveform_freq_plot_amp_from_x_rel(struct freq_plot *fp, int rel_y, int arr_i, bool linear_plot)
 {
-    struct logscale *l = fp->plots[arr_i];
+    double min, range;
+    if (linear_plot) {
+	min = fp->linear_plot_mins[arr_i];
+	range = fp->linear_plot_ranges[arr_i];
+    } else {
+	struct logscale *l = fp->plots[arr_i];
+	min = l->min;
+	range = l->range;
+    }
     double yprop = ((double)fp->container->rect.h - rel_y) / fp->container->rect.h;
 
-    return l->min + l->range * amp_from_logscaled(yprop);
-    
+    return min + range * amp_from_logscaled(yprop);    
 }
 
-double waveform_freq_plot_amp_from_x_abs(struct freq_plot *fp, int abs_y, int arr_i)
+double waveform_freq_plot_amp_from_x_abs(struct freq_plot *fp, int abs_y, int arr_i, bool linear_plot)
 {
-    return waveform_freq_plot_amp_from_x_rel(fp, abs_y - fp->container->rect.y, arr_i);
+    return waveform_freq_plot_amp_from_x_rel(fp, abs_y - fp->container->rect.y, arr_i, linear_plot);
 }
-
 
 static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, int w, int amp_h_max, int center_y)
 {

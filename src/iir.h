@@ -20,6 +20,10 @@
 #ifndef JDAW_IIR_H
 #define JDAW_IIR_H
 
+#include <complex.h>
+
+#define IIR_FREQPLOT_RESOLUTION 1000
+
 typedef struct iir_filter {
     int degree;
     int num_channels;
@@ -27,13 +31,20 @@ typedef struct iir_filter {
     double *B; /* output delay coeffs */
     double **memIn;
     double **memOut;
-    double *freq_resp;
+
     struct freq_plot *fp;
+    double freq_resp[IIR_FREQPLOT_RESOLUTION];
+    
+    /* double complex *pole_zero; */
+
 } IIRFilter;
 
 typedef struct iir_group {
     int num_filters;
     IIRFilter *filters;
+
+    struct freq_plot *fp;
+    double freq_resp[IIR_FREQPLOT_RESOLUTION];
 } IIRGroup;
 
 
@@ -47,5 +58,6 @@ void iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double ba
 void iir_group_init(IIRGroup *group, int num_filters, int degree, int num_channels);
 void iir_group_deinit(IIRGroup *group);
 double iir_group_sample(IIRGroup *group, double in, int channel);
+void iir_group_update_freq_resp(IIRGroup *group);
 
 #endif

@@ -497,7 +497,11 @@ static bool page_element_mouse_click(PageEl *el, Window *win)
 	return toggle_click((Toggle *)el->component, win);
     case EL_WAVEFORM:
 	break;
-    case EL_FREQ_PLOT:
+    case EL_FREQ_PLOT: {
+	double freq_raw = waveform_freq_plot_freq_from_x_abs(el->component, win->mousep.x);
+	struct freq_plot *fp = (struct freq_plot *)el->component;
+	
+    }
 	break;
     case EL_BUTTON:
 	return button_click((Button *)el->component, win);

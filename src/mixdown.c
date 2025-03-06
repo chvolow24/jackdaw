@@ -25,20 +25,16 @@
 
 extern Project *proj;
 
-IIRFilter iirs[2];
-int inited[2] = {0, 0};
+IIRFilter iir;
+int inited = 0;
 float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32_t start_pos_sframes, uint32_t len_sframes, float step)
 {
 
-    IIRFilter *iir = iirs + channel;
-    if (!inited[channel]) {
-	fprintf(stderr, "INITING CHANNEL %d, filter at %p\n", channel, &iir);
-	/* double A[] = {1, -1.9781447870471984, 0.9978788059141444}; */
-	/* double B[] = {1.918821765339674, -0.9379639763484257}; */
-	iir_init(iir, 2);
+    if (!inited) {
+	iir_init(&iir, 2, 2);
 	/* iir_set_coeffs(iir, A, B); */
-	iir_set_coeffs_peaknotch(iir, 0.04, 50.0, 0.001);
-	inited[channel] = 1;
+	iir_set_coeffs_peaknotch(&iir, 0.04, 50.0, 0.001);
+	inited = 1;
     }
 
 
@@ -230,7 +226,7 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 		float sample = clip_buf[(int32_t)pos_in_clip_sframes + cr->in_mark_sframes];
 		/* sample = tanh(20 * sample) / 20; */
 		float add = sample * vol * pan_scale * playspeed_rolloff;
-		add = iir_sample(iir, add);
+		add = iir_sample(&iir, add, channel);
 		/* add = do_filter(add, filterbuf, coeffs, 9); */
 		chunk[chunk_i] += add;
 		

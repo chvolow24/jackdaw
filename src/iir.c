@@ -22,26 +22,50 @@
 #include <stdlib.h>
 #include <string.h>
 #include "dsp.h"
+#include "project.h"
 #include "iir.h"
 #include "waveform.h"
 
 extern SDL_Color color_global_white;
 extern Window *main_win;
+extern SDL_Color freq_L_color;
+extern SDL_Color freq_R_color;
 
-void iir_init(IIRFilter *f, int degree)
+void iir_init(IIRFilter *f, int degree, int num_channels)
 {
     f->degree = degree;
+    f->num_channels = num_channels;
     f->A = calloc(degree + 1, sizeof(double));
     f->B = calloc(degree, sizeof(double));
-    f->memIn = calloc(degree, sizeof(double));
-    f->memOut = calloc(degree, sizeof(double));
+    f->memIn = calloc(num_channels, sizeof(double *));
+    f->memOut = calloc(num_channels, sizeof(double *));
+    for (int i=0; i<num_channels; i++) {	    
+	f->memIn[i] = calloc(degree, sizeof(double));
+	f->memOut[i] = calloc(degree, sizeof(double));
+    }
     f->A[0] = 1;
 }
 
 void iir_deinit(IIRFilter *f)
 {
-    if (f->A) free(f->A);
-    if (f->B) free(f->B);
+    if (f->A) {
+	free(f->A);
+	f->A = NULL;
+    }
+    if (f->B) {
+	free(f->B);
+	f->B = NULL;
+    }
+    if (f->memIn && f->memOut) {
+	for (int i=0; i<f->num_channels; i++) {
+	    free(f->memIn[i]);
+	    free(f->memOut[i]);
+	}
+	free(f->memIn);
+	free(f->memOut);
+	f->memIn = NULL;
+	f->memOut = NULL;
+    }
 }
 
 void iir_set_coeffs(IIRFilter *f, double *A_in, double *B_in)
@@ -52,26 +76,17 @@ void iir_set_coeffs(IIRFilter *f, double *A_in, double *B_in)
 
 
 /* Apply the filter */
-double iir_sample(IIRFilter *f, double in)
+double iir_sample(IIRFilter *f, double in, int channel)
 {
     double out = in * f->A[0];
     for (int i=0; i<f->degree; i++) {
-	out += f->A[i + 1] * f->memIn[i];
-	out += f->B[i] * f->memOut[i];
+	out += f->A[i + 1] * f->memIn[channel][i];
+	out += f->B[i] * f->memOut[channel][i];
     }
-    memmove(f->memIn + 1, f->memIn, sizeof(double) * (f->degree - 1));
-    memmove(f->memOut + 1, f->memOut, sizeof(double) * (f->degree - 1));
-    f->memIn[0] = in;
-    f->memOut[0] = out;
-    /* fprintf(stderr, "%f -> %f\n", in, out); */
-    /* for (int i=0; i<f->degree; i++) { */
-    /* 	fprintf(stderr, "%f, ", f->memIn[i]); */
-    /* } */
-    /* fprintf(stderr, "\n"); */
-    /* for (int i=0; i<f->degree; i++) { */
-    /* 	fprintf(stderr, "%f, ", f->memOut[i]); */
-    /* } */
-    /* fprintf(stderr, "\n"); */
+    memmove(f->memIn[channel] + 1, f->memIn[channel], sizeof(double) * (f->degree - 1));
+    memmove(f->memOut[channel] + 1, f->memOut[channel], sizeof(double) * (f->degree - 1));
+    f->memIn[channel][0] = in;
+    f->memOut[channel][0] = out;
 	   
     return out;
 }
@@ -94,7 +109,8 @@ static int reiss_2011(double freq, double amp, double bandwidth, double complex 
 
     double sqrt_arg = sinsqw - (pow(amp, 2) * tansqbdiv2);
     if (sqrt_arg < 0.0) {
-	fprintf(stderr, "ERROR! Cannot set at params\n");
+	fprintf(stderr, "SINSQ: %f; pow amp2 tansqbdiv2: %f\n", sinsqw, (pow(amp, 2) * tansqbdiv2));
+	/* fprintf(stderr, "ERROR! Cannot set at params\n"); */
 	return -1;
     }
     /* double zero_term2_num = sqrt(sinsqw - (pow(amp, 2) * tansqbdiv2)); */
@@ -104,7 +120,8 @@ static int reiss_2011(double freq, double amp, double bandwidth, double complex 
 
     sqrt_arg = sinsqw - tansqbdiv2;
     if (sqrt_arg < 0.0) {
-	fprintf(stderr, "ERROR! Cannot set at params\n");
+	fprintf(stderr, "SECOND: SINSQ: %f; tansqbdiv2: %f\n", sinsqw, tansqbdiv2);
+	/* fprintf(stderr, "ERROR! Cannot set at params\n"); */
 	return -1;
     }
 
@@ -121,20 +138,34 @@ static int reiss_2011(double freq, double amp, double bandwidth, double complex 
 
 
 
-const int freq_resp_len = 90000;
-double freq_resp[freq_resp_len];
+extern Project *proj;
+const int freq_resp_len = DEFAULT_FOURIER_LEN_SFRAMES / 2;
+const int FRLENSCAL = 1;
+double freq_resp[freq_resp_len * FRLENSCAL];
 struct freq_plot *eqfp;
 Layout *fp_container = NULL;
+
+void waveform_update_logscale(struct logscale *la, double *array, int num_items, int step, SDL_Rect *container);
 void iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double bandwidth)
 {
     double complex pole_zero[2];
-    if (reiss_2011(freq * PI, amp, bandwidth, pole_zero) < 0) {
-	return;
+    int safety = 0;
+    while (reiss_2011(freq * PI, amp, bandwidth, pole_zero) < 0) {
+	if (safety < 2) {
+	    fprintf(stderr, "\t->Adj %f->\n", bandwidth);
+	}
+	bandwidth *= 0.9;
+	safety++;
+	if (safety > 1000) {
+	    fprintf(stderr, "ABORT ABORT ABORT!\n");
+	    exit(0);
+	}
     }
 
-    
-    for (int i=0; i<freq_resp_len; i++) {
-	double prop = (double)i / freq_resp_len;
+    /* Track *t = timeline_selected_track(proj->timelines[proj->active_tl_index]); */
+   
+    for (int i=0; i<freq_resp_len * FRLENSCAL; i++) {
+	double prop = (double)i / (freq_resp_len * FRLENSCAL);
 	double complex pole1 = pole_zero[0];
 	double complex pole2 = conj(pole1);
 	double complex zero1 = pole_zero[1];
@@ -143,30 +174,30 @@ void iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double ba
 	double theta = PI * prop; 
 	double complex z = cos(theta) + I * sin(theta);
 	freq_resp[i] = ((zero1 - z) * (zero2 - z)) / ((pole1 - z) * (pole2 - z));
+	/* if (i<5) { */
+	/*     fprintf(stderr, "FREQ RESP %d: %f\n", i, freq_resp[i]); */
+	/* } */
+    }
+    int steps[] = {1, 1, 1};
+    double *arrs[] = {freq_resp, proj->output_L_freq, proj->output_R_freq};
+    SDL_Color *colors[] = {&color_global_white, &freq_L_color, &freq_R_color};
+    if (!fp_container) {
+	fp_container = layout_add_child(main_win->layout);
+	layout_set_default_dims(fp_container);
+	layout_force_reset(fp_container);
+	eqfp = waveform_create_freq_plot(
+	    arrs,
+	    3,
+	    colors,
+	    steps,
+	    freq_resp_len,
+	    fp_container);
 
-	int steps[] = {1};
-	double *arrs[] = {freq_resp};
-	SDL_Color *colors[] = {&color_global_white};
-	if (!fp_container) {
-	    fp_container = layout_add_child(main_win->layout);
-	    layout_set_default_dims(fp_container);
-	    layout_force_reset(fp_container);
-	    eqfp = waveform_create_freq_plot(
-		arrs,
-		1,
-		colors,
-		steps,
-		freq_resp_len,
-		fp_container);
+	waveform_update_logscale(eqfp->plots[0], freq_resp, freq_resp_len * FRLENSCAL, 1, &eqfp->container->rect);
+	logscale_set_range(eqfp->plots[0], 0.0, 20.0);
+	/* eqfp->num_items = freq_resp_len_long; */
+	/* waveform_reset_freq_plot(eqfp); */
 
-	} else {
-	    /* waveform_reset_freq_plot(eqfp); */
-	}
-
-	
-	    
-	    
-	
     }
     
 
@@ -178,19 +209,45 @@ void iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double ba
     iir->B[1] = -1 * pow(cabs(pole_zero[0]), 2);
 
 
-    fprintf(stderr, "IIR SET PEAKNOTCH from %f %f %f\n", freq, amp, bandwidth);
-    fprintf(stderr, "%f, %f, %f\n", iir->A[0], iir->A[1], iir->A[2]);
-    fprintf(stderr, "%f, %f\n", iir->B[0], iir->B[1]);
+    /* fprintf(stderr, "IIR SET PEAKNOTCH from %f %f %f\n", freq, amp, bandwidth); */
+    /* fprintf(stderr, "%f, %f, %f\n", iir->A[0], iir->A[1], iir->A[2]); */
+    /* fprintf(stderr, "%f, %f\n", iir->B[0], iir->B[1]); */
 
     /* coeffs from pole and zero (assume */    
 }
 
-void iir_filter_tests()
+/* void iir_filter_tests() */
+/* { */
+/*     IIRFilter f; */
+/*     double freq = 0.1; */
+/*     double bandwidth = 0.01; */
+/*     double amp = 10.0; */
+/*     iir_init(&f, 2); */
+/*     iir_set_coeffs_peaknotch(&f, freq, amp, bandwidth); */
+/* } */
+
+void iir_group_init(IIRGroup *group, int num_filters, int degree, int num_channels)
 {
-    IIRFilter f;
-    double freq = 0.1;
-    double bandwidth = 0.01;
-    double amp = 10.0;
-    iir_init(&f, 2);
-    iir_set_coeffs_peaknotch(&f, freq, amp, bandwidth);
+    group->filters = calloc(num_filters, sizeof(IIRFilter));
+    for (int i=0; i<num_filters; i++) {
+	iir_init(group->filters + i, degree, num_channels);
+    }
 }
+
+void iir_group_deinit(IIRGroup *group)
+{
+    for (int i=0; i<group->num_filters; i++) {
+	iir_deinit(group->filters + i);
+    }
+    free(group->filters);
+    group->filters = NULL;
+}
+
+double iir_group_sample(IIRGroup *group, double in, int channel)
+{
+    for (int i=0; i<group->num_filters; i++) {
+	in = iir_sample(group->filters + i, in, channel);
+    }
+    return in;
+}
+

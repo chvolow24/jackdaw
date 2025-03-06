@@ -47,7 +47,11 @@ void waveform_update_logscale(struct logscale *la, double *array, int num_items,
     double lognsub1 = log(num_items - 1);
     for (int i=0; i<la->num_items; i+=step) {
 	double x = i==0? 0 : la->container->w * log(i) / lognsub1;
-	/* fprintf(stdout, "X %d: %f\n", i, x); */
+
+	/* x / la->container->w = log(base nsub1)(i); */
+	/* xprop = log(base nsub1)(i); */
+	/* nsub ^ xprop = i; */
+	/* /\* fprintf(stdout, "X %d: %f\n", i, x); *\/ */
 	la->x_pos_cache[i/step] = (int)round(x) + container->x;
     }
 }
@@ -57,8 +61,16 @@ static struct logscale *waveform_create_logscale(double *array, int num_items, S
 {
     struct logscale *la = calloc(1, sizeof(struct logscale));
     la->color = color;
+    la->min = 0.0;
+    la->range = 1.0;
     waveform_update_logscale(la, array, num_items, step, container);
     return la;
+}
+
+void logscale_set_range(struct logscale *l, double min, double max)
+{
+    l->min = min;
+    l->range = max - min;
 }
 
 void waveform_destroy_logscale(struct logscale *la)
@@ -67,10 +79,15 @@ void waveform_destroy_logscale(struct logscale *la)
     free(la);
 }
 
+static const double alpha = 80.0;
 double amp_to_logscaled(double amp)
 {
-    static const double alpha = 80.0;
-    return log10(1 + alpha * amp) / log10(1 + alpha);
+    return log(1 + alpha * amp) / log(1 + alpha);
+}
+
+double amp_from_logscaled(double from)
+{
+    return (pow(1 + alpha, from) - 1) / alpha;
 }
 
 /* Draw an array of floats (e.g. frequencies) on a log scale */
@@ -80,12 +97,16 @@ void waveform_draw_freq_domain(struct logscale *la)
 	SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(la->color));
     }
     double btm_y = la->container->y + (double)la->container->h;
-    double last_y = btm_y - (amp_to_logscaled(la->array[0]) * la->container->h);
-    double current_y = btm_y;
-    for (int i=2; i<la->num_items; i+=la->step) {
+    double raw_amp = (la->array[0] - la->min) / la->range;
+    double scaled = amp_to_logscaled(raw_amp);
+    double last_y = btm_y - (amp_to_logscaled(raw_amp) * la->container->h);
+    
+    /* fprintf(stderr, "START last y: %f, current_y: %f\n", ladoublest_y, current_y); */
+    for (int i=la->step; i<la->num_items; i+=la->step) {
 	int last_x = la->x_pos_cache[i/la->step-1];
-	double scaled = amp_to_logscaled(la->array[i]);
-	current_y = btm_y - scaled * la->container->h;
+	raw_amp = (la->array[i] - la->min) / la->range;
+	scaled = amp_to_logscaled(raw_amp);
+	double current_y = btm_y - scaled * la->container->h;
 	SDL_RenderDrawLine(main_win->rend, last_x, last_y, la->x_pos_cache[i/la->step], current_y);
 	/* fprintf(stdout, "Draw %d %f %d %f\n", last_x, last_y, la->x_pos_cache[i/la->step], current_y); */
 	last_y = current_y;
@@ -215,7 +236,7 @@ void waveform_draw_freq_plot(struct freq_plot *fp)
     }
 
 
-    SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 70);
+    SDL_SetRenderDrawColor(main_win->rend, 200, 200, 255, 80);
     int top_y = fp->container->rect.y;
     int btm_y = top_y + fp->container->rect.h;
     for (int i=0; i<fp->num_tics; i++) {
@@ -227,6 +248,32 @@ void waveform_draw_freq_plot(struct freq_plot *fp)
 	/* fprintf(stdout, "%d %d %d %d\n", r.x, r.y, r.w, r.h);  */
 	textbox_draw(fp->labels[i]);
     }
+}
+
+double waveform_freq_plot_freq_from_x_rel(struct freq_plot *fp, int rel_x)
+{
+    double nsub1 = fp->num_items - 1;
+    double xprop = (double)rel_x / fp->container->rect.w;
+    return pow(nsub1, xprop) / nsub1;
+}
+
+double waveform_freq_plot_freq_from_x_abs(struct freq_plot *fp, int abs_x)
+{
+    return waveform_freq_plot_freq_from_x_rel(fp, abs_x - fp->container->rect.x);
+}
+
+double waveform_freq_plot_amp_from_x_rel(struct freq_plot *fp, int rel_y, int arr_i)
+{
+    struct logscale *l = fp->plots[arr_i];
+    double yprop = ((double)fp->container->rect.h - rel_y) / fp->container->rect.h;
+
+    return l->min + l->range * amp_from_logscaled(yprop);
+    
+}
+
+double waveform_freq_plot_amp_from_x_abs(struct freq_plot *fp, int abs_y, int arr_i)
+{
+    return waveform_freq_plot_amp_from_x_rel(fp, abs_y - fp->container->rect.y, arr_i);
 }
 
 

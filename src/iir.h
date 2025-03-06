@@ -22,18 +22,29 @@
 
 typedef struct iir_filter {
     int degree;
+    int num_channels;
     double *A; /* input delay coeffs */
     double *B; /* output delay coeffs */
-    double *memIn;
-    double *memOut;
+    double **memIn;
+    double **memOut;
+    double *freq_resp;
 } IIRFilter;
 
+typedef struct iir_group {
+    int num_filters;
+    IIRFilter *filters;
+} IIRGroup;
 
-void iir_init(IIRFilter *f, int degree);
+
+void iir_init(IIRFilter *f, int degree, int num_channels);
 void iir_deinit(IIRFilter *f);
 void iir_set_coeffs(IIRFilter *f, double *A_in, double *B_in);
-double iir_sample(IIRFilter *f, double in);
-
+double iir_sample(IIRFilter *f, double in, int channel);
 void iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double bandwidth);
+
+
+void iir_group_init(IIRGroup *group, int num_filters, int degree, int num_channels);
+void iir_group_deinit(IIRGroup *group);
+double iir_group_sample(IIRGroup *group, double in, int channel);
 
 #endif

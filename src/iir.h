@@ -28,6 +28,7 @@ typedef struct iir_filter {
     double **memIn;
     double **memOut;
     double *freq_resp;
+    struct freq_plot *fp;
 } IIRFilter;
 
 typedef struct iir_group {

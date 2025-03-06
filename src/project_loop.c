@@ -76,6 +76,7 @@ extern int inited;
 extern struct freq_plot *eqfp;
 double bandwidth_scalar = 0.5;
 double freq_raw, amp_raw;
+extern double freq_resp[];
 
 void filter_set_IR(FIRFilter *filter, float *ir_in, int ir_len);
 
@@ -143,6 +144,7 @@ void loop_project_main()
 			if (bandwidth_scalar < 0 ) bandwidth_scalar = 0.0;
 			fprintf(stderr, "BW SCALAR: %f\n", bandwidth_scalar);
 			iir_set_coeffs_peaknotch(&iir, freq_raw, amp_raw, bandwidth);
+			
 			break;
 		    }
 

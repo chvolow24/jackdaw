@@ -83,6 +83,7 @@ double iir_sample(IIRFilter *f, double in, int channel)
 	out += f->A[i + 1] * f->memIn[channel][i];
 	out += f->B[i] * f->memOut[channel][i];
     }
+    if (!isnormal(out)) out = 0.0;
     memmove(f->memIn[channel] + 1, f->memIn[channel], sizeof(double) * (f->degree - 1));
     memmove(f->memOut[channel] + 1, f->memOut[channel], sizeof(double) * (f->degree - 1));
     f->memIn[channel][0] = in;
@@ -109,7 +110,7 @@ static int reiss_2011(double freq, double amp, double bandwidth, double complex 
 
     double sqrt_arg = sinsqw - (pow(amp, 2) * tansqbdiv2);
     if (sqrt_arg < 0.0) {
-	fprintf(stderr, "SINSQ: %f; pow amp2 tansqbdiv2: %f\n", sinsqw, (pow(amp, 2) * tansqbdiv2));
+	/* fprintf(stderr, "SINSQ: %f; pow amp2 tansqbdiv2: %f\n", sinsqw, (pow(amp, 2) * tansqbdiv2)); */
 	/* fprintf(stderr, "ERROR! Cannot set at params\n"); */
 	return -1;
     }
@@ -117,22 +118,39 @@ static int reiss_2011(double freq, double amp, double bandwidth, double complex 
 
     double zero_term2_num = sqrt(sqrt_arg);
     double zero_term2_denom = 1 + amp * tanbdiv2;
+    double pole_term2_denom = 1 + tanbdiv2;
+    
+    const static double epsilon = 0.001;
+    if (fabs(zero_term2_denom) < epsilon) return -2;
+    if (fabs(pole_term2_denom) < epsilon) return -2;
 
+    
     sqrt_arg = sinsqw - tansqbdiv2;
     if (sqrt_arg < 0.0) {
-	fprintf(stderr, "SECOND: SINSQ: %f; tansqbdiv2: %f\n", sinsqw, tansqbdiv2);
+	/* fprintf(stderr, "SECOND: SINSQ: %f; tansqbdiv2: %f\n", sinsqw, tansqbdiv2); */
 	/* fprintf(stderr, "ERROR! Cannot set at params\n"); */
 	return -1;
     }
 
     double pole_term2_num = sqrt(sinsqw - tansqbdiv2);
-    double pole_term2_denom = 1 + tanbdiv2;
+
 
     double complex zero_term2 = I * zero_term2_num / zero_term2_denom;
     double complex pole_term2 = I * pole_term2_num / pole_term2_denom;
 
-    dst[0] = pole_term1 + pole_term2;
-    dst[1] = zero_term1 + zero_term2;
+    double complex pole = pole_term1 + pole_term2;
+    double complex zero = zero_term1 + zero_term2;
+
+    fprintf(stderr, "polezero: %f+%fi, %f+%fi\n", creal(pole), cimag(pole), creal(zero), cimag(zero));
+    if (cabs(pole) >= 1.0) {
+	fprintf(stderr, "ERROR ERROR ERROR! Pole outside unit Coicle!\n");
+	/* exit(1); */
+	return -3;
+    }
+    
+    dst[0] = pole;
+    dst[1] = zero;
+    
     return 0;
 }
 
@@ -144,16 +162,46 @@ const int FRLENSCAL = 1;
 double freq_resp[freq_resp_len * FRLENSCAL];
 struct freq_plot *eqfp;
 Layout *fp_container = NULL;
+double complex pole_zero[2];
 
 void waveform_update_logscale(struct logscale *la, double *array, int num_items, int step, SDL_Rect *container);
+
+static double amp_from_freq(double freq_raw, void *xarg)
+{
+    static const double MAX = 20.0;
+    double complex *pole_zero = xarg;
+    double complex pole1 = pole_zero[0];
+    double complex pole2 = conj(pole1);
+    double complex zero1 = pole_zero[1];
+    double complex zero2 = conj(zero1);
+
+    double theta = PI * freq_raw;
+    double complex z = cos(theta) + I * sin(theta);
+    return ((zero1 - z) * (zero2 - z)) / ((pole1 - z) * (pole2 - z)) / MAX;
+
+}
+
+
+#define IIR_FREQPLOT_RESOLUTION 1000
 void iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double bandwidth)
 {
     double complex pole_zero[2];
     int safety = 0;
-    while (reiss_2011(freq * PI, amp, bandwidth, pole_zero) < 0) {
-	if (safety < 2) {
-	    fprintf(stderr, "\t->Adj %f->\n", bandwidth);
+    int test = 0;
+    fprintf(stderr, "COEFFS: %f %f %f || %f %f\n", iir->A[0], iir->A[1], iir->A[2], iir->B[0], iir->B[1]);
+    fprintf(stderr, "MEM: %f %f || %f %f\n", iir->memIn[0][0], iir->memIn[0][1], iir->memOut[0][0], iir->memOut[0][1]);
+    
+    while ((test = reiss_2011(freq * PI, amp, bandwidth, pole_zero)) < 0) {
+	if (test == -1) {
+	    /* fprintf(stderr, "IMAG!!!!\n"); */
+	} else if (test == -2) {
+	    fprintf(stderr, "INF!!!!\n");
+	    return;
+	} else if (test == -3) {
+	    fprintf(stderr, "POLE ERROR!\n");
+	    return;
 	}
+	    
 	bandwidth *= 0.9;
 	safety++;
 	if (safety > 1000) {
@@ -163,21 +211,23 @@ void iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double ba
     }
 
     /* Track *t = timeline_selected_track(proj->timelines[proj->active_tl_index]); */
-   
-    for (int i=0; i<freq_resp_len * FRLENSCAL; i++) {
-	double prop = (double)i / (freq_resp_len * FRLENSCAL);
-	double complex pole1 = pole_zero[0];
-	double complex pole2 = conj(pole1);
-	double complex zero1 = pole_zero[1];
-	double complex zero2 = conj(zero1);
 
-	double theta = PI * prop; 
-	double complex z = cos(theta) + I * sin(theta);
-	freq_resp[i] = ((zero1 - z) * (zero2 - z)) / ((pole1 - z) * (pole2 - z));
-	/* if (i<5) { */
-	/*     fprintf(stderr, "FREQ RESP %d: %f\n", i, freq_resp[i]); */
-	/* } */
-    }
+
+
+    /* for (int i=0; i<freq_resp_len * FRLENSCAL; i++) { */
+    /* 	double prop = (double)i / (freq_resp_len * FRLENSCAL); */
+    /* 	double complex pole1 = pole_zero[0]; */
+    /* 	double complex pole2 = conj(pole1); */
+    /* 	double complex zero1 = pole_zero[1]; */
+    /* 	double complex zero2 = conj(zero1); */
+
+    /* 	double theta = PI * prop;  */
+    /* 	double complex z = cos(theta) + I * sin(theta); */
+    /* 	freq_resp[i] = ((zero1 - z) * (zero2 - z)) / ((pole1 - z) * (pole2 - z)); */
+    /* 	/\* if (i<5) { *\/ */
+    /* 	/\*     fprintf(stderr, "FREQ RESP %d: %f\n", i, freq_resp[i]); *\/ */
+    /* 	/\* } *\/ */
+    /* } */
     int steps[] = {1, 1, 1};
     double *arrs[] = {freq_resp, proj->output_L_freq, proj->output_R_freq};
     SDL_Color *colors[] = {&color_global_white, &freq_L_color, &freq_R_color};
@@ -207,6 +257,16 @@ void iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double ba
 
     iir->B[0] = 2 * creal(pole_zero[0]);
     iir->B[1] = -1 * pow(cabs(pole_zero[0]), 2);
+
+    if (iir->fp) {
+	waveform_freq_plot_add_linear_plot(iir->fp, IIR_FREQPLOT_RESOLUTION, &color_global_white, amp_from_freq, pole_zero);
+    }
+    if (eqfp && eqfp->num_linear_plots == 0) {
+	waveform_freq_plot_add_linear_plot(eqfp, IIR_FREQPLOT_RESOLUTION, &color_global_white, amp_from_freq, pole_zero);
+    } else if (eqfp) {
+	waveform_freq_plot_update_linear_plot(eqfp, amp_from_freq, pole_zero);
+    }
+
 
 
     /* fprintf(stderr, "IIR SET PEAKNOTCH from %f %f %f\n", freq, amp, bandwidth); */

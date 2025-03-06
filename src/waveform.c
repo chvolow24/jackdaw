@@ -47,6 +47,7 @@ void waveform_update_logscale(struct logscale *la, double *array, int num_items,
     double lognsub1 = log(num_items - 1);
     for (int i=0; i<la->num_items; i+=step) {
 	double x = i==0? 0 : la->container->w * log(i) / lognsub1;
+	/* double x = la->container->w * log(i + 1) / lognsub1; */
 
 	/* x / la->container->w = log(base nsub1)(i); */
 	/* xprop = log(base nsub1)(i); */
@@ -100,14 +101,16 @@ void waveform_draw_freq_domain(struct logscale *la)
     double raw_amp = (la->array[0] - la->min) / la->range;
     double scaled = amp_to_logscaled(raw_amp);
     double last_y = btm_y - (amp_to_logscaled(raw_amp) * la->container->h);
-    
+    int last_x = la->x_pos_cache[0];
     /* fprintf(stderr, "START last y: %f, current_y: %f\n", ladoublest_y, current_y); */
     for (int i=la->step; i<la->num_items; i+=la->step) {
-	int last_x = la->x_pos_cache[i/la->step-1];
+	/* int last_x = la->x_pos_cache[i/la->step-1]; */
 	raw_amp = (la->array[i] - la->min) / la->range;
 	scaled = amp_to_logscaled(raw_amp);
 	double current_y = btm_y - scaled * la->container->h;
-	SDL_RenderDrawLine(main_win->rend, last_x, last_y, la->x_pos_cache[i/la->step], current_y);
+	int current_x = la->x_pos_cache[i/la->step];
+	SDL_RenderDrawLine(main_win->rend, last_x, last_y, current_x, current_y);
+	last_x = current_x;
 	/* fprintf(stdout, "Draw %d %f %d %f\n", last_x, last_y, la->x_pos_cache[i/la->step], current_y); */
 	last_y = current_y;
     }
@@ -143,7 +146,10 @@ void waveform_reset_freq_plot(struct freq_plot *fp)
     };
     fp->num_labels = 0;
     while (1) {
-
+	/* tics[num_tics] = left_x + w * (log(omega / nyquist) / lognsub1); */
+	/* double omega_raw = omega / nyquist; */
+	/* double xprop = log((fp->num_items - 1) * omega_raw) / lognsub1; */
+	/* tics[num_tics] = left_x + w * xprop; */
 	tics[num_tics] = left_x + w * (1.0f + (log(omega) - lognyq) / lognsub1);
 	if (omega == 60 || omega == 100 || omega == 200 || omega == 1000 || omega == 2000 || omega == 10000) {
 	    Layout *tb_lt = layout_add_child(fp->container);
@@ -200,6 +206,42 @@ struct freq_plot *waveform_create_freq_plot(double **arrays, int num_plots, SDL_
     return fp;
 }
 
+double get_sample_fn(struct freq_plot *fp, void *xarg);
+
+
+
+void waveform_freq_plot_update_linear_plot(struct freq_plot *fp, double calculate_point(double input, void *xarg), void *xarg)
+{
+    double *plot = fp->linear_plots[0];
+    int len = fp->linear_plot_lens[0];
+    int nsub1 = fp->num_items - 1;
+    for (int i=0; i<len; i++) {
+	double prop = (double)i/len;
+	double input = pow(nsub1, prop) / nsub1;
+	plot[i] = calculate_point(input, xarg);
+    }
+ 
+}
+void waveform_freq_plot_add_linear_plot(struct freq_plot *fp, int len, SDL_Color *color, double calculate_point(double input, void *xarg), void *xarg)
+{
+    if (fp->num_linear_plots == MAX_LINEAR_PLOTS) {
+	fprintf(stderr, "ERROR: already reached max num linear plots %d\n", MAX_LINEAR_PLOTS);
+	return;
+    }
+    int nsub1 = fp->num_items - 1;
+    double *plot = malloc(len * sizeof(double));
+    for (int i=0; i<len; i++) {
+	double prop = (double)i/len;
+	double input = pow(nsub1, prop) / nsub1;
+	plot[i] = calculate_point(input, xarg);
+    }
+    fp->linear_plots[fp->num_linear_plots] = plot;
+    fp->linear_plot_lens[fp->num_linear_plots] = len;
+    fp->linear_plot_colors[fp->num_linear_plots] = color;
+    fp->num_linear_plots++;
+
+}
+
 void waveform_destroy_freq_plot(struct freq_plot *fp)
 {
     if (fp->tic_cache) {
@@ -207,8 +249,10 @@ void waveform_destroy_freq_plot(struct freq_plot *fp)
     }
     for (int i=0; i<fp->num_plots; i++) {
 	waveform_destroy_logscale(fp->plots[i]);
-
     }
+    for (int i=0; i<fp->num_linear_plots; i++) {
+	free(fp->linear_plots[i]);
+    }	
     for (int i=0; i<fp->num_labels; i++) {
 	textbox_destroy(fp->labels[i]);
     }
@@ -218,6 +262,26 @@ void waveform_destroy_freq_plot(struct freq_plot *fp)
     layout_destroy(fp->container);
     free(fp->plots);
     free(fp);
+}
+
+static void waveform_draw_linear_plot(struct freq_plot *fp, int index)
+{
+    double *plot = fp->linear_plots[index];
+    int len = fp->linear_plot_lens[index];
+    SDL_Color *color = fp->linear_plot_colors[index];
+    SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(color));
+
+    int btm_y = fp->container->rect.y + fp->container->rect.h;
+    int h = fp->container->rect.h;
+    int left_x = fp->container->rect.x;
+    int w = fp->container->rect.w;
+    int i=0;
+    do {
+	int x = left_x + (double)i * w / len;
+	int y = btm_y - h * (amp_to_logscaled(plot[i]));
+	SDL_RenderDrawPoint(main_win->rend, x, y);
+	i++;
+    } while (i < len);
 }
 
 void waveform_draw_freq_plot(struct freq_plot *fp)
@@ -230,6 +294,9 @@ void waveform_draw_freq_plot(struct freq_plot *fp)
     }
     for (int i=0; i<fp->num_plots; i++) {
 	waveform_draw_freq_domain(fp->plots[i]);
+    }
+    for (int i=0; i<fp->num_linear_plots; i++) {
+	waveform_draw_linear_plot(fp, i);
     }
     if (fp->related_obj_lock) {
 	pthread_mutex_unlock(fp->related_obj_lock);

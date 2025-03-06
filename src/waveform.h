@@ -20,6 +20,8 @@
 #ifndef JDAW_WAVEFORM_H
 #define JDAW_WAVEFORM_H
 
+#define MAX_LINEAR_PLOTS 10
+
 #include "textbox.h"
 #include "value.h"
 #include "window.h"
@@ -42,6 +44,12 @@ struct freq_plot {
     int *steps;
     int num_plots;
     int num_items;
+
+    double *linear_plots[MAX_LINEAR_PLOTS];
+    int num_linear_plots;
+    int linear_plot_lens[MAX_LINEAR_PLOTS];
+    SDL_Color *linear_plot_colors[MAX_LINEAR_PLOTS];
+    
     Layout *container;
     int num_tics;
     int *tic_cache;
@@ -71,6 +79,8 @@ void waveform_draw_all_channels_generic(void **channels, ValType type, uint8_t n
 
 double waveform_freq_plot_freq_from_x_abs(struct freq_plot *fp, int abs_x);
 double waveform_freq_plot_amp_from_x_abs(struct freq_plot *fp, int abs_y, int arr_i);
+void waveform_freq_plot_add_linear_plot(struct freq_plot *fp, int len, SDL_Color *color, double calculate_point(double input, void *xarg), void *xarg);
+void waveform_freq_plot_update_linear_plot(struct freq_plot *fp, double calculate_point(double input, void *xarg), void *xarg);
 
 void logscale_set_range(struct logscale *l, double min, double max);
 #endif

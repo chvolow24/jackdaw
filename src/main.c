@@ -149,9 +149,6 @@ static const char *license_text = "Copyright (C) 2023-2025 Charlie Volow\nThis p
 
 int main(int argc, char **argv)
 {
-
-    /* trie_tests(); */
-    /* return 0; */
     
     fprintf(stdout, "\n\nJACKDAW (version %s)\nby Charlie Volow\n\nhttps://jackdaw-audio.net/\n\n%s\n\n", JACKDAW_VERSION, license_text);
     
@@ -182,7 +179,7 @@ int main(int argc, char **argv)
 	if (strncmp("wav", ext, 3) * strcmp("WAV", ext) == 0) {
 	    fprintf(stderr, "Passed WAV file.\n");
 	    invoke_open_wav_file = true;
-	} else if (strncmp("jdaw", ext, 4) * strcmp("JDAW", ext) == 0) {
+	} else if (strncmp("jdaw", ext, 4) * strcmp("JDAW", ext) * strcmp("bak", ext)  == 0) {
 	    fprintf(stderr, "Passed JDAW file.\n");
 	    invoke_open_jdaw_file = true;
 	} else {

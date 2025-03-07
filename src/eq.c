@@ -76,6 +76,6 @@ void eq_tests_create()
     eq_create_freq_plot(&glob_eq, fp_cont);
 
     /* void iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double bandwidth) */
-    eq_set_peak(&glob_eq, 0, 0.01, 10.0, 0.01);
-    eq_set_peak(&glob_eq, 1, 0.3, 14, 0.3);
+    eq_set_peak(&glob_eq, 0, 0.01, 2.0, 0.01);
+    eq_set_peak(&glob_eq, 1, 0.3, 0.03, 0.3);
 }

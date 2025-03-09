@@ -71,11 +71,6 @@ extern pthread_t DSP_THREAD_ID;
 /*     return 0; */
 /* } */
 
-#include "iir.h"
-extern EQ glob_eq;
-
-void filter_set_IR(FIRFilter *filter, float *ir_in, int ir_len);
-
 void user_global_quit(void *);
 void loop_project_main()
 {
@@ -102,6 +97,7 @@ void loop_project_main()
     int wheel_event_recency = 0;
     int play_speed_scroll_recency = 60;
     bool scrub_block = false;
+    main_win->current_event = &e;
     while (!(main_win->i_state & I_STATE_QUIT)) {
 	while (SDL_PollEvent(&e)) {
 	    /* fprintf(stdout, "Polled!\n"); */
@@ -133,18 +129,27 @@ void loop_project_main()
 		}
 		break;
 	    case SDL_MOUSEMOTION: {
-		static double bandwidth_scalar = 0.4;
-		static double freq_raw = 0.253;
-	        static double amp_raw = 2.0;
+		window_set_mouse_point(main_win, e.motion.x, e.motion.y);
 
-		if (main_win->i_state * I_STATE_CMDCTRL) {
-		    bandwidth_scalar += (double)e.motion.yrel / 100;
-		    eq_set_peak(&glob_eq, 3, freq_raw, amp_raw, bandwidth_scalar * freq_raw);
-		    break;
-		}
-		freq_raw = waveform_freq_plot_freq_from_x_abs(glob_eq.fp, e.motion.x * main_win->dpi_scale_factor);
-		amp_raw = waveform_freq_plot_amp_from_x_abs(glob_eq.fp, e.motion.y * main_win->dpi_scale_factor, 0, true);
-		eq_set_peak(&glob_eq, 3, freq_raw, amp_raw, bandwidth_scalar * freq_raw);
+		
+		/* static double bandwidth_scalar = 0.4; */
+		/* static double freq_raw = 0.253; */
+	        /* static double amp_raw = 2.0; */
+
+		/* if (main_win->i_state & I_STATE_MOUSE_L) { */
+		/*     if (main_win->i_state * I_STATE_CMDCTRL) { */
+		/* 	/\* bandwidth_scalar += (double)e.motion.yrel / 100; *\/ */
+		/* 	eq_set_filter_from_mouse(&glob_eq, filter_selector, main_win->mousep); */
+		/* 	/\* eq_set_peak(&glob_eq, filter_selector, freq_raw, amp_raw, bandwidth_scalar * freq_raw); *\/ */
+		/* 	break; */
+		/*     } */
+		/*     /\* freq_raw = waveform_freq_plot_freq_from_x_abs(glob_eq.fp, e.motion.x * main_win->dpi_scale_factor); *\/ */
+		/*     /\* amp_raw = waveform_freq_plot_amp_from_x_abs(glob_eq.fp, e.motion.y * main_win->dpi_scale_factor, 0, true); *\/ */
+		/*     eq_set_filter_from_mouse(&glob_eq, filter_selector, main_win->mousep); */
+		/* } */
+                /* eq_set_peak(&glob_eq, filter_selector, freq_raw, amp_raw, bandwidth_scalar * freq_raw); */
+		/* glob_eq.ctrls[filter_selector].x = e.motion.x * main_win->dpi_scale_factor; */
+		/* glob_eq.ctrls[filter_selector].y = e.motion.y * main_win->dpi_scale_factor; */
 		
 		/* if (eqfp) { */
 		/*     double bandwidth = freq_raw * bandwidth_scalar; */
@@ -193,7 +198,7 @@ void loop_project_main()
 		/*     iir_set_coeffs_peaknotch(&iir, freq_raw, amp_raw, bandwidth); */
 		/* } */
 		
-		window_set_mouse_point(main_win, e.motion.x, e.motion.y);
+
 		switch (TOP_MODE) {
 		case MODAL:
 		    mouse_triage_motion_modal();
@@ -227,6 +232,11 @@ void loop_project_main()
 		scrolling_lt = NULL;
 		temp_scrolling_lt = NULL;
 		switch (e.key.keysym.scancode) {
+		/* case SDL_SCANCODE_6: { */
+		/*     filter_selector++; */
+		/*     filter_selector %=4; */
+		/* } */
+		    /* break; */
 		/* case SDL_SCANCODE_6: { */
 		/*     ClipRef *cr = clipref_at_cursor(); */
 		/*     if (cr) { */

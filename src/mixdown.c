@@ -26,10 +26,6 @@
 
 extern Project *proj;
 
-extern EQ glob_eq;
-
-/* IIRFilter iir; */
-/* int inited = 0; */
 float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32_t start_pos_sframes, uint32_t len_sframes, float step)
 {
 
@@ -226,7 +222,9 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 		float sample = clip_buf[(int32_t)pos_in_clip_sframes + cr->in_mark_sframes];
 		/* sample = tanh(20 * sample) / 20; */
 		float add = sample * vol * pan_scale * playspeed_rolloff;
-		add = iir_group_sample(&glob_eq.group, add, channel);
+		/* add = iir_group_sample(&glob_eq.group, add, channel); */
+		add = eq_sample(&track->eq, add, channel);
+		/* add = iir_group_sample(&track->eq.group, add, channel); */
 		/* add = iir_sample(&iir, add, channel); */
 		/* add = do_filter(add, filterbuf, coeffs, 9); */
 		chunk[chunk_i] += add;

@@ -69,7 +69,8 @@ enum slider_style {
 
 enum drag_comp_type {
     DRAG_SLIDER,
-    DRAG_CLICK_SEG_BOUND
+    DRAG_CLICK_SEG_BOUND,
+    DRAG_EQ_FILTER_NODE
 };
 
 typedef struct draggable {

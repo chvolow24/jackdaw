@@ -190,6 +190,8 @@ static void page_el_destroy(PageEl *el)
     case EL_CANVAS:
 	canvas_destroy((Canvas *)el->component);
 	break;
+    case EL_EQ_PLOT:
+	eq_destroy_freq_plot((EQ *)el->component);
     default:
 	break;
     }
@@ -367,6 +369,13 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	    params.canvas_p.draw_arg1,
 	    params.canvas_p.draw_arg2);
 	break;
+    case EL_EQ_PLOT: {
+	EQ *eq = params.eq_plot_p.eq;
+	el->component = (void *)eq;
+	if (!eq->fp) {
+	    eq_create_freq_plot(eq, el->layout);
+	}
+    }
     default:
 	break;
     }
@@ -497,14 +506,19 @@ static bool page_element_mouse_click(PageEl *el, Window *win)
 	return toggle_click((Toggle *)el->component, win);
     case EL_WAVEFORM:
 	break;
-    case EL_FREQ_PLOT: {
-	double freq_raw = waveform_freq_plot_freq_from_x_abs(el->component, win->mousep.x);
-	struct freq_plot *fp = (struct freq_plot *)el->component;
+    /* case EL_FREQ_PLOT: { */
+    /* 	double freq_raw = waveform_freq_plot_freq_from_x_abs(el->component, win->mousep.x); */
+    /* 	struct freq_plot *fp = (struct freq_plot *)el->component; */
 	
-    }
-	break;
+    /* } */
+    /* 	break; */
     case EL_BUTTON:
 	return button_click((Button *)el->component, win);
+	break;
+    case EL_EQ_PLOT: {
+	EQ *eq = el->component;
+	return eq_mouse_click(eq, win->mousep);
+	}
 	break;
     default:
 	break;
@@ -604,6 +618,9 @@ static void page_el_draw(PageEl *el)
 	break;
     case EL_CANVAS:
 	canvas_draw((Canvas *)el->component);
+	break;
+    case EL_EQ_PLOT:
+	eq_draw((EQ *)el->component);
 	break;
     default:
 	break;

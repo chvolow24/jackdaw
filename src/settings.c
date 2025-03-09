@@ -18,6 +18,7 @@
 #include <pthread.h>
 #include "assets.h"
 #include "dsp.h"
+#include "eq.h"
 #include "label.h"
 #include "page.h"
 #include "project.h"
@@ -303,10 +304,32 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     page = tab_view_add_page(
 	tv,
 	"EQ (coming soon)",
-	DELAY_LINE_LT_PATH,
+	EQ_LT_PATH,
 	page_colors + 2,
 	&color_global_white,
 	main_win);
+
+    p.textbox_p.font = main_win->mono_bold_font;
+    p.textbox_p.text_size = LABEL_STD_FONT_SIZE;
+    p.textbox_p.win = main_win;
+
+    p.textbox_p.set_str = "Enable EQ";
+    el = page_add_el(page, EL_TEXTBOX, p, "track_settings_eq_toggle_label", "toggle_label");
+    tb=el->component;
+    textbox_set_trunc(tb, false);
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+
+
+    p.toggle_p.value = &track->eq.active;
+    p.toggle_p.target = NULL;
+    p.toggle_p.action = NULL;
+    page_add_el(page, EL_TOGGLE, p, "track_settings_eq_toggle", "toggle_eq_on");
+    
+
+    p.eq_plot_p.eq = &track->eq;
+    page_add_el(page, EL_EQ_PLOT, p, "track_settings_eq_plot", "eq_plot");
+
 }
 
 TabView *settings_track_tabview_create(Track *track)

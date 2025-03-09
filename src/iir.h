@@ -24,7 +24,16 @@
 
 #define IIR_FREQPLOT_RESOLUTION 1000
 
+typedef enum iir_filter_type {
+    IIR_PEAKNOTCH=0,
+    IIR_LOWSHELF=1,
+    IIR_HIGHSHELF=2,
+    IIR_LOWPASS=3,
+    IIR_HIGHPASS=4
+} IIRFilterType;
+
 typedef struct iir_filter {
+    IIRFilterType type;
     int degree;
     int num_channels;
     double *A; /* input delay coeffs */
@@ -52,7 +61,8 @@ void iir_init(IIRFilter *f, int degree, int num_channels);
 void iir_deinit(IIRFilter *f);
 void iir_set_coeffs(IIRFilter *f, double *A_in, double *B_in);
 double iir_sample(IIRFilter *f, double in, int channel);
-void iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double bandwidth);
+/* void iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double bandwidth); */
+int iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double bandwidth, double *legal_bandwidth_scalar);
 
 
 void iir_group_init(IIRGroup *group, int num_filters, int degree, int num_channels);

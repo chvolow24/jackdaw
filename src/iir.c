@@ -169,11 +169,12 @@ static double biquad_amp_from_freq(double freq_raw, double complex *pole_zero)
 
 }
 
-void iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double bandwidth)
+int iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double bandwidth, double *legal_bandwidth_scalar)
 {
     double complex pole_zero[2];
     int safety = 0;
     int test = 0;
+    int ret = 0;
     /* fprintf(stderr, "COEFFS: %f %f %f || %f %f\n", iir->A[0], iir->A[1], iir->A[2], iir->B[0], iir->B[1]); */
     /* fprintf(stderr, "MEM: %f %f || %f %f\n", iir->memIn[0][0], iir->memIn[0][1], iir->memOut[0][0], iir->memOut[0][1]); */
     
@@ -182,10 +183,10 @@ void iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double ba
 	    /* fprintf(stderr, "IMAG!!!!\n"); */
 	} else if (test == -2) {
 	    /* fprintf(stderr, "INF!!!!\n"); */
-	    return;
+	    return -1;
 	} else if (test == -3) {
 	    /* fprintf(stderr, "POLE ERROR!\n"); */
-	    return;
+	    return -3;
 	}
 	    
 	bandwidth *= 0.9;
@@ -194,6 +195,10 @@ void iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double ba
 	    fprintf(stderr, "ABORT: IIR parameters unstable, cannot be recovered\n");
 	    exit(0);
 	}
+	ret = 1;
+    }
+    if (ret == 1 && legal_bandwidth_scalar) {
+	*legal_bandwidth_scalar = bandwidth / freq;
     }
 
     if (iir->fp) {
@@ -232,6 +237,7 @@ void iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double ba
 
     iir->B[0] = 2 * creal(pole_zero[0]);
     iir->B[1] = -1 * pow(cabs(pole_zero[0]), 2);
+    return ret;
 }
 
 void iir_group_init(IIRGroup *group, int num_filters, int degree, int num_channels)

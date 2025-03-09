@@ -21,6 +21,7 @@
 #define JDAW_PAGE_H
 
 #include "components.h"
+#include "eq.h"
 #include "layout.h"
 #include "textbox.h"
 #include "value.h"
@@ -43,7 +44,8 @@ typedef enum page_el_type {
     EL_WAVEFORM,
     EL_FREQ_PLOT,
     EL_BUTTON,
-    EL_CANVAS
+    EL_CANVAS,
+    EL_EQ_PLOT
 } PageElType;
 
 typedef struct page_element {
@@ -165,6 +167,10 @@ struct canvas_params {
     void *draw_arg2;
 };
 
+struct eq_plot_params {
+    EQ *eq;
+};
+
 typedef union page_el_params {
     struct slider_params slider_p;
     struct textbox_params textbox_p;
@@ -176,6 +182,7 @@ typedef union page_el_params {
     struct radio_params radio_p;
     struct waveform_params waveform_p;
     struct canvas_params canvas_p;
+    struct eq_plot_params eq_plot_p;
 } PageElParams;
 
 

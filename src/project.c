@@ -26,6 +26,7 @@
 #include "color.h"
 #include "components.h"
 #include "dsp.h"
+#include "eq.h"
 #include "endpoint.h"
 #include "endpoint_callbacks.h"
 #include "input.h"
@@ -1443,6 +1444,8 @@ Track *timeline_add_track(Timeline *tl)
 	track_color_index = 0;
     }
 
+    eq_init(&track->eq);
+
     /* API */
 
     api_node_register(&track->api_node, &track->tl->api_node, track->name);
@@ -2417,6 +2420,8 @@ void track_destroy(Track *track, bool displace)
 	    clipref_destroy_no_displace(track->clips[i]);
 	}
     }
+
+    eq_deinit(&track->eq);
     /* fprintf(stdout, "OK deleted all crs, now clips\n"); */
     /* while (num_clips_to_destroy > 0) { */
     /* 	/\* fprintf(stdout, "Deleting clip\n"); *\/ */

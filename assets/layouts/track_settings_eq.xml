@@ -1,0 +1,72 @@
+<Layout name="track_settings_eq" type="NORMAL">
+  <x>REL 0</x>
+  <y>REL 0</y>
+  <w>SCALE 1.000000</w>
+  <h>SCALE 1.000000</h>
+  <children>
+    <Layout name="toggle_area" type="NORMAL">
+      <x>SCALE 0.060000</x>
+      <y>SCALE 0.056632</y>
+      <w>REL 303</w>
+      <h>REL 31</h>
+      <children>
+        <Layout name="toggle_eq_on" type="NORMAL">
+          <x>REL 0</x>
+          <y>REL 0</y>
+          <w>REL 20</w>
+          <h>REL 20</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="toggle_label" type="NORMAL">
+          <x>REL 37</x>
+          <y>REL 0</y>
+          <w>REL 266</w>
+          <h>REL 20</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+    <Layout name="eq_plot" type="NORMAL">
+      <x>SCALE 0.060000</x>
+      <y>SCALE 0.386530</y>
+      <w>SCALE 0.850000</w>
+      <h>SCALE 0.535139</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="track_selection" type="NORMAL">
+      <x>REVREL 10</x>
+      <y>SCALE 0.056632</y>
+      <w>SCALE 0.256667</w>
+      <h>SCALE 0.046200</h>
+      <children>
+        <Layout name="track_name" type="NORMAL">
+          <x>STACK 0</x>
+          <y>REL 0</y>
+          <w>REL 100</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="track_previous" type="NORMAL">
+          <x>STACK 4</x>
+          <y>REL 0</y>
+          <w>REL 100</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="track_next" type="NORMAL">
+          <x>STACK 4</x>
+          <y>REL 0</y>
+          <w>REL 100</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+  </children>
+</Layout>

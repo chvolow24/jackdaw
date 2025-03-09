@@ -210,18 +210,18 @@ double get_sample_fn(struct freq_plot *fp, void *xarg);
 
 
 
-void waveform_freq_plot_update_linear_plot(struct freq_plot *fp, double calculate_point(double input, void *xarg), void *xarg)
-{
-    double *plot = fp->linear_plots[0];
-    int len = fp->linear_plot_lens[0];
-    int nsub1 = fp->num_items - 1;
-    for (int i=0; i<len; i++) {
-	double prop = (double)i/len;
-	double input = pow(nsub1, prop) / nsub1;
-	plot[i] = calculate_point(input, xarg);
-    }
+/* void waveform_freq_plot_update_linear_plot(struct freq_plot *fp, double calculate_point(double input, void *xarg), void *xarg) */
+/* { */
+/*     double *plot = fp->linear_plots[0]; */
+/*     int len = fp->linear_plot_lens[0]; */
+/*     int nsub1 = fp->num_items - 1; */
+/*     for (int i=0; i<len; i++) { */
+/* 	double prop = (double)i/len; */
+/* 	double input = pow(nsub1, prop) / nsub1; */
+/* 	plot[i] = calculate_point(input, xarg); */
+/*     } */
  
-}
+/* } */
 void waveform_freq_plot_add_linear_plot(struct freq_plot *fp, int len, double *arr, SDL_Color *color)
 {
     if (fp->num_linear_plots == MAX_LINEAR_PLOTS) {
@@ -238,8 +238,8 @@ void waveform_freq_plot_add_linear_plot(struct freq_plot *fp, int len, double *a
     fp->linear_plots[fp->num_linear_plots] = arr;
     fp->linear_plot_lens[fp->num_linear_plots] = len;
     fp->linear_plot_colors[fp->num_linear_plots] = color;
-    fp->linear_plot_mins[0] = 0.0;
-    fp->linear_plot_ranges[0] = 1.0;
+    fp->linear_plot_mins[fp->num_linear_plots] = 0.0;
+    fp->linear_plot_ranges[fp->num_linear_plots] = 1.0;
     fp->num_linear_plots++;
 }
 
@@ -251,9 +251,9 @@ void waveform_destroy_freq_plot(struct freq_plot *fp)
     for (int i=0; i<fp->num_plots; i++) {
 	waveform_destroy_logscale(fp->plots[i]);
     }
-    for (int i=0; i<fp->num_linear_plots; i++) {
-	free(fp->linear_plots[i]);
-    }	
+    /* for (int i=0; i<fp->num_linear_plots; i++) { */
+    /* 	free(fp->linear_plots[i]); */
+    /* }	 */
     for (int i=0; i<fp->num_labels; i++) {
 	textbox_destroy(fp->labels[i]);
     }
@@ -337,6 +337,13 @@ double waveform_freq_plot_freq_from_x_rel(struct freq_plot *fp, int rel_x)
     return pow(nsub1, xprop) / nsub1;
 }
 
+int waveform_freq_plot_x_abs_from_freq(struct freq_plot *fp, double freq_raw)
+{
+    
+    double xprop = log(freq_raw * (fp->num_items - 1)) / log(fp->num_items - 1);
+    return fp->container->rect.x + xprop * fp->container->rect.w;
+	
+}
 double waveform_freq_plot_freq_from_x_abs(struct freq_plot *fp, int abs_x)
 {
     return waveform_freq_plot_freq_from_x_rel(fp, abs_x - fp->container->rect.x);
@@ -356,6 +363,22 @@ double waveform_freq_plot_amp_from_x_rel(struct freq_plot *fp, int rel_y, int ar
     double yprop = ((double)fp->container->rect.h - rel_y) / fp->container->rect.h;
 
     return min + range * amp_from_logscaled(yprop);    
+}
+
+int waveform_freq_plot_y_abs_from_amp(struct freq_plot *fp, double amp, int arr_i, bool linear_plot)
+{
+    double min, range;
+    if (linear_plot) {
+	min = fp->linear_plot_mins[arr_i];
+	range = fp->linear_plot_ranges[arr_i];
+    } else {
+	struct logscale *l = fp->plots[arr_i];
+	min = l->min;
+	range = l->range;
+    }
+
+    double yprop = amp_to_logscaled((amp - min) / range);
+    return fp->container->rect.y + fp->container->rect.h - fp->container->rect.h * yprop;
 }
 
 double waveform_freq_plot_amp_from_x_abs(struct freq_plot *fp, int abs_y, int arr_i, bool linear_plot)

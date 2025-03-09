@@ -1,6 +1,7 @@
 #include "color.h"
 #include "components.h"
 #include "endpoint.h"
+#include "eq.h"
 #include "geometry.h"
 #include "input.h"
 #include "layout.h"
@@ -812,6 +813,9 @@ bool draggable_mouse_motion(Draggable *draggable, Window *win)
 	break;
     case DRAG_CLICK_SEG_BOUND:
 	return click_track_mouse_motion((ClickSegment *)draggable->component, win);
+    case DRAG_EQ_FILTER_NODE:
+	eq_mouse_motion((EQFilterCtrl *)draggable->component, win);
+	return true;
     }
     return false;
 }

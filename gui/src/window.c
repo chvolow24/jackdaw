@@ -304,7 +304,9 @@ void layout_destroy(Layout *lt);
 void window_destroy(Window *win)
 {
     /* if (win->ac_active) { */
+    #ifndef LAYOUT_BUILD
     autocompletion_deinit(&win->ac);
+    #endif
     /* } */
     if (win->std_font) {
 	ttf_destroy_font(win->std_font);
@@ -413,9 +415,11 @@ void window_push_modal(Window *win, Modal *modal)
     if (win->active_page) {
 	page_close(win->active_page);
     }
+    #ifndef LAYOUT_BUILD
     if (win->ac_active) {
 	autocompletion_escape();
     }
+    #endif
     while (win->num_menus > 0) {
 	window_pop_menu(win);
     }

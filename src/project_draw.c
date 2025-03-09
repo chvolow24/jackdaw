@@ -611,6 +611,7 @@ static void control_bar_draw(Project *proj)
 /* extern double freq_resp[]; */
 /* extern double complex pole_zero[]; */
 extern EQ glob_eq;
+void eq_draw();
 void eq_tests_create();
 
 void project_draw()
@@ -648,10 +649,13 @@ void project_draw()
     }
 
 
-    if (!glob_eq.fp) {
-	eq_tests_create();
-    }
-    waveform_draw_freq_plot(glob_eq.fp);
+    /* if (!glob_eq.fp) { */
+    /* 	eq_tests_create(); */
+    /* } */
+    /* waveform_draw_freq_plot(glob_eq.fp); */
+    /* eq_draw(&glob_eq); */
+
+    
     /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_white)); */
     /* for (int i=0; i<freq_resp_len; i++) { */
     /* 	int x = main_win->w_pix * i / freq_resp_len; */

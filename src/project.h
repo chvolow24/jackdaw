@@ -38,6 +38,7 @@
 #include "automation.h"
 #include "components.h"
 #include "dsp.h"
+#include "eq.h"
 #include "endpoint.h"
 #include "loading.h"
 #include "panel.h"
@@ -126,6 +127,8 @@ typedef struct track {
 
     double *buf_L_freq_mag;
     double *buf_R_freq_mag;
+
+    EQ eq;
 
     FIRFilter fir_filter;
     bool fir_filter_active;

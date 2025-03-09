@@ -15,6 +15,7 @@
 #define CLICK_TRACK_LT_PATH LAYOUT_PATH "/click_track_template.xml"
 #define FIR_FILTER_LT_PATH LAYOUT_PATH "/track_settings_fir_filter.xml"
 #define DELAY_LINE_LT_PATH LAYOUT_PATH "/track_settings_delay_line.xml"
+#define EQ_LT_PATH LAYOUT_PATH "/track_settings_eq.xml"
 #define CLICK_TRACK_SETTINGS_LT_PATH LAYOUT_PATH "/click_track_settings.xml"
 #define LOADING_SCREEN_LT_PATH LAYOUT_PATH "/loading_screen.xml"
 

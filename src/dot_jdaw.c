@@ -17,6 +17,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "file_backup.h"
 #include "project.h"
 #include "tempo.h"
 #include "transport.h"
@@ -78,8 +79,15 @@ void jdaw_write_project(const char *path)
         fprintf(stderr, "No project to save. Exiting.\n");
         return;
     }
+
+
+    if (file_exists(path)) {
+	/* project_loading_screen_update("Backing up existing file...", 0.1); */
+	file_backup(path);
+    }
+
     project_set_loading_screen("Saving project", "Writing project settings...", true);
-			   
+    
     FILE* f = fopen(path, "wb");
 
     if (!f) {
@@ -102,7 +110,7 @@ void jdaw_write_project(const char *path)
     uint8_ser(f, &proj->num_timelines);
     /* fwrite(&proj->num_timelines, 1, 1, f); */
 
-    project_loading_screen_update("Writing clip data...", 0.1);
+    project_loading_screen_update("Writing clip data...", 0.2);
     fprintf(stderr, "Serializing %d audio clips...\n", proj->num_clips);
     for (uint16_t i=0; i<proj->num_clips; i++) {
 	project_loading_screen_update(NULL, 0.1 + 0.8 * (float)i/proj->num_clips);

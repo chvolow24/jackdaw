@@ -115,8 +115,6 @@ static int reiss_2011(double freq, double amp, double bandwidth, double complex 
 
     double sqrt_arg = sinsqw - (pow(amp, 2) * tansqbdiv2);
     if (sqrt_arg < 0.0) {
-	/* fprintf(stderr, "SINSQ: %f; pow amp2 tansqbdiv2: %f\n", sinsqw, (pow(amp, 2) * tansqbdiv2)); */
-	/* fprintf(stderr, "ERROR! Cannot set at params\n"); */
 	return -1;
     }
     /* double zero_term2_num = sqrt(sinsqw - (pow(amp, 2) * tansqbdiv2)); */
@@ -132,8 +130,6 @@ static int reiss_2011(double freq, double amp, double bandwidth, double complex 
     
     sqrt_arg = sinsqw - tansqbdiv2;
     if (sqrt_arg < 0.0) {
-	/* fprintf(stderr, "SECOND: SINSQ: %f; tansqbdiv2: %f\n", sinsqw, tansqbdiv2); */
-	/* fprintf(stderr, "ERROR! Cannot set at params\n"); */
 	return -1;
     }
 
@@ -146,10 +142,7 @@ static int reiss_2011(double freq, double amp, double bandwidth, double complex 
     double complex pole = pole_term1 + pole_term2;
     double complex zero = zero_term1 + zero_term2;
 
-    fprintf(stderr, "polezero: %f+%fi, %f+%fi\n", creal(pole), cimag(pole), creal(zero), cimag(zero));
     if (cabs(pole) >= 1.0) {
-	fprintf(stderr, "ERROR ERROR ERROR! Pole outside unit Coicle!\n");
-	/* exit(1); */
 	return -3;
     }
     
@@ -239,36 +232,7 @@ void iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double ba
 
     iir->B[0] = 2 * creal(pole_zero[0]);
     iir->B[1] = -1 * pow(cabs(pole_zero[0]), 2);
-
-    /* if (iir->fp) { */
-    /* 	waveform_freq_plot_add_linear_plot(iir->fp, IIR_FREQPLOT_RESOLUTION, &color_global_white, amp_from_freq, pole_zero); */
-    /* } */
-    /* if (eqfp && eqfp->num_linear_plots == 0) { */
-    /* 	waveform_freq_plot_add_linear_plot(eqfp, IIR_FREQPLOT_RESOLUTION, &color_global_white, amp_from_freq, pole_zero); */
-    /* 	eqfp->linear_plot_mins[0] = 0.0; */
-    /* 	eqfp->linear_plot_ranges[0] = 20.0; */
-    /* } else if (eqfp) { */
-    /* 	waveform_freq_plot_update_linear_plot(eqfp, amp_from_freq, pole_zero); */
-    /* } */
-
-
-
-    /* fprintf(stderr, "IIR SET PEAKNOTCH from %f %f %f\n", freq, amp, bandwidth); */
-    /* fprintf(stderr, "%f, %f, %f\n", iir->A[0], iir->A[1], iir->A[2]); */
-    /* fprintf(stderr, "%f, %f\n", iir->B[0], iir->B[1]); */
-
-    /* coeffs from pole and zero (assume */    
 }
-
-/* void iir_filter_tests() */
-/* { */
-/*     IIRFilter f; */
-/*     double freq = 0.1; */
-/*     double bandwidth = 0.01; */
-/*     double amp = 10.0; */
-/*     iir_init(&f, 2); */
-/*     iir_set_coeffs_peaknotch(&f, freq, amp, bandwidth); */
-/* } */
 
 void iir_group_init(IIRGroup *group, int num_filters, int degree, int num_channels)
 {

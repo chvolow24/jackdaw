@@ -280,11 +280,11 @@ static int dir_to_tline_filter_open(void *dp_v, void *dn_v)
 	    return 0;
 	}
 	char *ext = dotpos + 1;
-	if (
-	    strncmp("wav", ext, 3) == 0 ||
-	    strncmp("jdaw", ext, 4) == 0 ||
-	    strncmp("WAV", ext, 3) == 0 ||
-	    strncmp("JDAW", ext, 4) == 0) {
+	if (strncmp("wav", ext, 3) *
+	    strncmp("jdaw", ext, 4) *
+	    strncmp("WAV", ext, 3) *
+	    strncmp("JDAW", ext, 4) *
+	    strncmp("bak", ext, 3) == 0) {
 	    return 1;
 	}
 	return 0;
@@ -424,7 +424,7 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 	    0, 0, false, false);
 	    
 	
-    } else if (strcmp("jdaw", ext) * strcmp("JDAW", ext) == 0) {
+    } else if (strcmp("jdaw", ext) * strcmp("JDAW", ext) * strcmp("bak", ext) == 0) {
 	fprintf(stdout, "Jdaw file selected\n");
 	if (proj->recording) transport_stop_recording();
 	else if (proj->playing) transport_stop_playback();

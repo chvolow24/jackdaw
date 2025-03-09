@@ -115,7 +115,9 @@ static float *get_source_mode_chunk(uint8_t channel, float *chunk, uint32_t len_
      /* if (!chunk) { */
      /* 	 fprintf(stderr, "Error: unable to allocate chunk from source clip\n"); */
      /* } */
-     float *src_buffer = channel == 0 ? proj->src_clip->L : proj->src_clip->R;
+     
+     float *src_buffer = proj->src_clip->channels == 1 ? proj->src_clip->L :
+	 channel == 0 ? proj->src_clip->L : proj->src_clip->R;
 
 
      for (uint32_t i=0; i<len_sframes; i++) {
@@ -175,7 +177,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 
 
     if (proj->source_mode) {
-	proj->src_play_pos_sframes += proj->src_play_speed * stream_len_samples / proj->channels;
+	proj->src_play_pos_sframes += proj->src_play_speed * stream_len_samples / proj->src_clip->channels;
 	if (proj->src_play_pos_sframes < 0 || proj->src_play_pos_sframes > proj->src_clip->len_sframes) {
 	    proj->src_play_pos_sframes = 0;
 	}

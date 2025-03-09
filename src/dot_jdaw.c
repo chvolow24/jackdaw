@@ -80,14 +80,13 @@ void jdaw_write_project(const char *path)
         return;
     }
 
-    project_set_loading_screen("Saving project", "Writing project settings...", true);
-
 
     if (file_exists(path)) {
-	project_loading_screen_update("Backing up existing file...", 0.1);
+	/* project_loading_screen_update("Backing up existing file...", 0.1); */
 	file_backup(path);
     }
-    
+
+    project_set_loading_screen("Saving project", "Writing project settings...", true);
     
     FILE* f = fopen(path, "wb");
 

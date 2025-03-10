@@ -211,8 +211,17 @@ double eq_sample(EQ *eq, double in, int channel)
 	}
     }
     return in;
-
     /* return iir_group_sample(&eq->group, in, channel); */
+}
+
+void eq_advance(EQ *eq, int channel)
+{
+    for (int i=0; i<eq->group.num_filters; i++) {
+	if (eq->ctrls[i].filter_active) {
+	    iir_advance(eq->group.filters + i, channel);
+	}
+    }
+
 }
 
 void eq_draw(EQ *eq)

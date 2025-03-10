@@ -88,13 +88,21 @@ double iir_sample(IIRFilter *f, double in, int channel)
 	out += f->A[i + 1] * f->memIn[channel][i];
 	out += f->B[i] * f->memOut[channel][i];
     }
-    if (!isnormal(out)) out = 0.0;
+    /* if (!isnormal(out)) out = 0.0; */
     memmove(f->memIn[channel] + 1, f->memIn[channel], sizeof(double) * (f->degree - 1));
     memmove(f->memOut[channel] + 1, f->memOut[channel], sizeof(double) * (f->degree - 1));
     f->memIn[channel][0] = in;
     f->memOut[channel][0] = out;
 	   
     return out;
+}
+
+void iir_advance(IIRFilter *f, int channel)
+{
+    memmove(f->memIn[channel] + 1, f->memIn[channel], sizeof(double) * (f->degree - 1));
+    memmove(f->memOut[channel] + 1, f->memOut[channel], sizeof(double) * (f->degree - 1));
+    f->memIn[channel][0] = 0.0;
+    f->memOut[channel][0] = 0.0;
 }
 
 

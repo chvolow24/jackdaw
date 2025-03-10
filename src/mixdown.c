@@ -22,7 +22,7 @@
 #include "project.h"
 #include "iir.h"
 
-#define AMP_EPSILON 0.00001f
+#define AMP_EPSILON 1e-7f
 
 extern Project *proj;
 
@@ -238,6 +238,10 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	}	
 	pthread_mutex_unlock(&cr->lock);
 	/* clip_read = true; */
+    }
+
+    if (fabs(total_amp) < AMP_EPSILON) {
+	eq_advance(&track->eq, channel);
     }
 
     return total_amp;

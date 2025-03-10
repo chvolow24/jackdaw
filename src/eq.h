@@ -59,5 +59,6 @@ bool eq_mouse_click(EQ *eq, SDL_Point mousep);
 void eq_mouse_motion(EQFilterCtrl *ctrl, Window *win);
 void eq_draw(EQ *eq);
 double eq_sample(EQ *eq, double in, int channel);
+void eq_advance(EQ *eq, int channel);
 
 #endif

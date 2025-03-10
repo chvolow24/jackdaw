@@ -118,10 +118,43 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     static SDL_Color page_colors[] = {
 	{30, 80, 80, 255},
 	{50, 50, 80, 255},
-	{70, 40, 70, 255}
+	/* {70, 40, 70, 255} */
+	{43, 43, 55, 255}
     };
 
     Page *page = tab_view_add_page(
+	tv,
+	"Equalizer",
+	EQ_LT_PATH,
+	page_colors + 2,
+	&color_global_white,
+	main_win);
+
+
+    PageElParams p;
+    p.textbox_p.font = main_win->mono_bold_font;
+    p.textbox_p.text_size = LABEL_STD_FONT_SIZE;
+    p.textbox_p.win = main_win;
+
+    p.textbox_p.set_str = "Enable EQ";
+    PageEl *el = page_add_el(page, EL_TEXTBOX, p, "track_settings_eq_toggle_label", "toggle_label");
+    Textbox *tb = el->component;
+    textbox_set_trunc(tb, false);
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+
+
+    p.toggle_p.value = &track->eq.active;
+    p.toggle_p.target = NULL;
+    p.toggle_p.action = NULL;
+    page_add_el(page, EL_TOGGLE, p, "track_settings_eq_toggle", "toggle_eq_on");
+    
+
+    p.eq_plot_p.eq = &track->eq;
+    page_add_el(page, EL_EQ_PLOT, p, "track_settings_eq_plot", "eq_plot");
+
+
+    page = tab_view_add_page(
 	tv,
 	"FIR Filter",
 	FIR_FILTER_LT_PATH,
@@ -129,15 +162,13 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 	&color_global_white,
 	main_win);
 
-    PageElParams p;
-
     p.textbox_p.font = main_win->mono_bold_font;
     p.textbox_p.text_size = LABEL_STD_FONT_SIZE;
     p.textbox_p.set_str = "Bandwidth:";
     p.textbox_p.win = page->win;
-    PageEl *el = page_add_el(page, EL_TEXTBOX, p, "track_settings_filter_bandwidth_label", "bandwidth_label");
+    el = page_add_el(page, EL_TEXTBOX, p, "track_settings_filter_bandwidth_label", "bandwidth_label");
 
-    Textbox *tb = el->component;
+    tb = el->component;
     textbox_set_align(tb, CENTER_LEFT);
     textbox_reset_full(tb);
 
@@ -301,34 +332,6 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     
     create_track_selection_area(page, track);
 	
-    page = tab_view_add_page(
-	tv,
-	"EQ (coming soon)",
-	EQ_LT_PATH,
-	page_colors + 2,
-	&color_global_white,
-	main_win);
-
-    p.textbox_p.font = main_win->mono_bold_font;
-    p.textbox_p.text_size = LABEL_STD_FONT_SIZE;
-    p.textbox_p.win = main_win;
-
-    p.textbox_p.set_str = "Enable EQ";
-    el = page_add_el(page, EL_TEXTBOX, p, "track_settings_eq_toggle_label", "toggle_label");
-    tb=el->component;
-    textbox_set_trunc(tb, false);
-    textbox_set_align(tb, CENTER_LEFT);
-    textbox_reset_full(tb);
-
-
-    p.toggle_p.value = &track->eq.active;
-    p.toggle_p.target = NULL;
-    p.toggle_p.action = NULL;
-    page_add_el(page, EL_TOGGLE, p, "track_settings_eq_toggle", "toggle_eq_on");
-    
-
-    p.eq_plot_p.eq = &track->eq;
-    page_add_el(page, EL_EQ_PLOT, p, "track_settings_eq_plot", "eq_plot");
 
 }
 

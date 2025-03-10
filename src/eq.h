@@ -22,14 +22,15 @@
 #include "iir.h"
 
 
-#define EQ_DEFAULT_NUM_FILTERS 4
+#define EQ_DEFAULT_NUM_FILTERS 6
 #define EQ_DEFAULT_CHANNELS 2
 #define EQ_MAX_AMPLITUDE 20.0
-#define EQ_CTRL_RAD 12
+#define EQ_CTRL_RAD (6 * main_win->dpi_scale_factor)
 
 typedef struct eq EQ;
 typedef struct eq_filter_ctrl {
     EQ *eq;
+    bool filter_active;
     int index;
     double freq_raw;
     double amp_raw;

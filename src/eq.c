@@ -299,18 +299,17 @@ void eq_advance(EQ *eq, int channel)
 
 void eq_draw(EQ *eq)
 {
-    const int raddiv2 = (double)EQ_CTRL_RAD / 2;
     waveform_draw_freq_plot(eq->fp);
     for (int i=0; i<EQ_DEFAULT_NUM_FILTERS; i++) {
 	if (eq->active && eq->ctrls[i].filter_active) {
 	    SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand((EQ_CTRL_COLORS_LIGHT + i)));
-	    geom_fill_circle(main_win->rend, eq->ctrls[i].x - raddiv2 * main_win->dpi_scale_factor, eq->ctrls[i].y - raddiv2 * main_win->dpi_scale_factor, EQ_CTRL_RAD);
+	    geom_fill_circle(main_win->rend, eq->ctrls[i].x - EQ_CTRL_RAD, eq->ctrls[i].y - EQ_CTRL_RAD, EQ_CTRL_RAD);
 	    SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand((EQ_CTRL_COLORS + i)));
 	} else {
 	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_grey));
 	}
 	
-	geom_draw_circle(main_win->rend, eq->ctrls[i].x - raddiv2 * main_win->dpi_scale_factor, eq->ctrls[i].y - raddiv2 * main_win->dpi_scale_factor, EQ_CTRL_RAD);
+	geom_draw_circle(main_win->rend, eq->ctrls[i].x - EQ_CTRL_RAD, eq->ctrls[i].y - EQ_CTRL_RAD, EQ_CTRL_RAD);
 	/* geom_draw_circle(main_win->rend, eq->ctrls[i].x - 2.0 * radmin1div2, eq->ctrls[i].y - 2.0 * radmin1div2, radmin1); */
     }
 }

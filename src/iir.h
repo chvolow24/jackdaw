@@ -22,7 +22,7 @@
 
 #include <complex.h>
 
-#define IIR_FREQPLOT_RESOLUTION 1000
+#define IIR_FREQPLOT_RESOLUTION 1600
 
 typedef enum iir_filter_type {
     IIR_PEAKNOTCH=0,

@@ -54,6 +54,42 @@ static SDL_Color EQ_CTRL_COLORS_LIGHT[] = {
 /* EQ glob_eq; */
 static void eq_set_peak(EQ *eq, int filter_index, double freq_raw, double amp_raw, double bandwidth);
 
+
+/* endpoint_init(Endpoint *ep, void *val, */
+/* 	      ValType t, */
+/* 	      const char *local_id, */
+/* 	      const char *undo_str, */
+/* 	      enum jdaw_thread owner_thread, */
+/* 	      EndptCb gui_cb, */
+/* 	      EndptCb proj_cb, */
+/* 	      EndptCb dsp_cb, */
+/* 	      void *xarg1, void *xarg2, void *xarg3, void *xarg4) -> int */
+
+static void eq_dsp_cb(Endpoint *ep)
+{
+    EQ *eq = ep->xarg1;
+    EQFilterCtrl *ctrl = ep->xarg2;
+    eq_set_peak(eq, ctrl->index, ctrl->freq_raw, ctrl->amp_raw, ctrl->bandwidth_scalar * ctrl->freq_raw);
+}
+
+static void eq_gui_cb(Endpoint *ep)
+{
+    EQ *eq = ep->xarg1;
+    EQFilterCtrl *ctrl = ep->xarg2;
+    ctrl->x = waveform_freq_plot_x_abs_from_freq(eq->fp, ctrl->freq_raw);
+    ctrl->y = waveform_freq_plot_y_abs_from_amp(eq->fp, ctrl->amp_raw, 0, true);
+    iir_group_update_freq_resp(&eq->group);
+}
+/* void eq_freq_dsp_cb(Endpoint *ep) */
+/* { */
+/*     EQ *eq = ep->xarg1; */
+/*     EQFilterCtrl *ctrl = ep->xarg2; */
+    
+/* } */
+
+
+
+EndptCb test;
 void eq_init(EQ *eq)
 {
     double nsub1 = (double)proj->fourier_len_sframes / 2 - 1;
@@ -64,6 +100,34 @@ void eq_init(EQ *eq)
 	eq->ctrls[i].amp_raw = 1.0;
 	eq->ctrls[i].eq = eq;
 	eq->ctrls[i].index = i;
+	endpoint_init(
+	    &eq->ctrls[i].amp_ep,
+	    &eq->ctrls[i].amp_raw,
+	    JDAW_DOUBLE,
+	    "eq_peak_amp",
+	    "undo set eq filter peak",
+	    JDAW_THREAD_DSP,
+	    eq_gui_cb, NULL, eq_dsp_cb,
+	    (void*)eq, (void*)(eq->ctrls + i), NULL, NULL);
+	endpoint_init(
+	    &eq->ctrls[i].freq_ep,
+	    &eq->ctrls[i].freq_raw,
+	    JDAW_DOUBLE,
+	    "eq_peak_freq",
+	    "undo set eq filter freq",
+	    JDAW_THREAD_DSP,
+	    eq_gui_cb, NULL, eq_dsp_cb,
+	    (void*)eq, (void*)(eq->ctrls + i), NULL, NULL);
+	endpoint_init(
+	    &eq->ctrls[i].bandwidth_scalar_ep,
+	    &eq->ctrls[i].bandwidth_scalar,
+	    JDAW_DOUBLE,
+	    "eq_bandwidth_scalar",
+	    "undo set eq filter bandwidth",
+	    JDAW_THREAD_DSP,
+	    eq_gui_cb, NULL, eq_dsp_cb,
+	    (void*)eq, (void*)(eq->ctrls + i), NULL, NULL);
+
     }
 }
 
@@ -87,7 +151,6 @@ static void eq_set_peak(EQ *eq, int filter_index, double freq_raw, double amp_ra
 	/* fprintf(stderr, "RESETTING BW SCALAR: %f->%f\n", eq->ctrls[filter_index].bandwidth_scalar, bandwidth_scalar_adj); */
 	eq->ctrls[filter_index].bandwidth_scalar = bandwidth_scalar_adj;
     }
-    iir_group_update_freq_resp(&eq->group);
 }
 
 
@@ -100,14 +163,19 @@ static void eq_set_filter_from_mouse(EQ *eq, int filter_index, SDL_Point mousep)
 	double freq_raw = waveform_freq_plot_freq_from_x_abs(eq->fp, mousep.x);
 	double amp_raw;
 	if (main_win->i_state & I_STATE_SHIFT) {
+	    /* endpoint_write(&eq->ctrls[filter_index].amp_ep, (Value){.double_v = 0.0}, true, true, true, false); */
 	    amp_raw = 1.0;
-	    eq->ctrls[filter_index].y = waveform_freq_plot_y_abs_from_amp(eq->fp, 1.0, 0, true);
+	    /* eq->ctrls[filter_index].y = waveform_freq_plot_y_abs_from_amp(eq->fp, 1.0, 0, true); */
 	} else {
 	    amp_raw = waveform_freq_plot_amp_from_x_abs(eq->fp, mousep.y, 0, true);
 	}
-	eq->ctrls[filter_index].freq_raw = freq_raw;
-	eq->ctrls[filter_index].amp_raw = amp_raw;
-	eq_set_peak(eq, filter_index, freq_raw, amp_raw, eq->ctrls[filter_index].bandwidth_scalar * freq_raw);
+	endpoint_start_continuous_change(&eq->ctrls[filter_index].amp_ep, false, (Value){0}, JDAW_THREAD_DSP, (Value){.double_v = amp_raw});
+	endpoint_start_continuous_change(&eq->ctrls[filter_index].freq_ep, false, (Value){0}, JDAW_THREAD_DSP, (Value){.double_v = freq_raw});
+	endpoint_write(&eq->ctrls[filter_index].amp_ep, (Value){.double_v = amp_raw}, true, true, true, false);
+	endpoint_write(&eq->ctrls[filter_index].freq_ep, (Value){.double_v = freq_raw}, true, true, true, false);
+	/* eq->ctrls[filter_index].freq_raw = freq_raw; */
+	/* eq->ctrls[filter_index].amp_raw = amp_raw; */
+	/* eq_set_peak(eq, filter_index, freq_raw, amp_raw, eq->ctrls[filter_index].bandwidth_scalar * freq_raw); */
     }
 	break;
     default:
@@ -120,10 +188,15 @@ void eq_mouse_motion(EQFilterCtrl *ctrl, Window *win)
 {
     EQ *eq = ctrl->eq;
     if (win->i_state & I_STATE_CMDCTRL) {
-	ctrl->bandwidth_scalar += (double)win->current_event->motion.yrel / 100.0;
-	if (ctrl->bandwidth_scalar < 0.001) ctrl->bandwidth_scalar = 0.005;
-	SDL_Point p = {ctrl->x, ctrl->y};
-	eq_set_filter_from_mouse(eq, ctrl->index, p);
+	double new_bw_scalar = ctrl->bandwidth_scalar + (double)win->current_event->motion.yrel / 100.0;
+	if (new_bw_scalar < 0.001) new_bw_scalar = 0.005;
+	if (!ctrl->bandwidth_scalar_ep.changing) {
+	    endpoint_start_continuous_change(&ctrl->bandwidth_scalar_ep, false, (Value){0}, JDAW_THREAD_DSP, (Value){.double_v = new_bw_scalar});
+	} else {
+	    endpoint_write(&ctrl->bandwidth_scalar_ep, (Value){.double_v = new_bw_scalar}, true, true, true, false);
+	}
+	/* SDL_Point p = {ctrl->x, ctrl->y}; */
+	/* eq_set_filter_from_mouse(eq, ctrl->index, p); */
     } else {
 	eq_set_filter_from_mouse(eq, ctrl->index, win->mousep);
     }

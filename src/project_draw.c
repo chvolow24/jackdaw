@@ -33,6 +33,7 @@
 #include "waveform.h"
 
 /* #define BACKGROUND_ACTIVE */
+#define MAX_WF_FRAME_DRAW_TIME 0.01
 
 extern Window *main_win;
 extern Project *proj;
@@ -156,8 +157,12 @@ extern Symbol *SYMBOL_TABLE[];
 /*     /\* } *\/ */
 /* } */
 
+static double FRAME_WF_DRAW_TIME = 0.0;
+static bool internal_tl_needs_redraw = false;
+
 static void clipref_draw_waveform(ClipRef *cr)
 {
+    /* fprintf(stderr, "->->cr waveform draw %s\n", cr->name); */
     if (cr->waveform_redraw && cr->waveform_texture) {
 	SDL_DestroyTexture(cr->waveform_texture);
 	cr->waveform_texture = NULL;
@@ -203,16 +208,28 @@ static void clipref_draw_waveform(ClipRef *cr)
 	
     }
     if (onscreen_rect.w <= 0) return;
+    /* static double T_create_texture = 0.0; */
+    /* static double T_other_ops = 0.0; */
+    /* static double T_draw_waveform = 0.0; */
+    /* static double T_copy = 0.0; */
+    /* clock_t c; */
     if (!cr->waveform_texture) {
+	if (FRAME_WF_DRAW_TIME > MAX_WF_FRAME_DRAW_TIME) {
+	    internal_tl_needs_redraw = true;
+	    return;
+	}
 	SDL_Texture *saved_targ = SDL_GetRenderTarget(main_win->rend);
 	/* SDL_Rect onscreen_rect = cr->layout->rect; */
 
+	/* c = clock(); */
 	cr->waveform_texture = SDL_CreateTexture(main_win->rend, 0, SDL_TEXTUREACCESS_TARGET, onscreen_rect.w, onscreen_rect.h);
+	/* T_create_texture += ((double)clock() - c)/CLOCKS_PER_SEC; */
 	if (!cr->waveform_texture) {
 	    fprintf(stderr, "Error: unable to create waveform texture. %s\n", SDL_GetError());
 	    fprintf(stderr, "Attempted to create with dims: %d, %d\n", onscreen_rect.w, onscreen_rect.h);
 	    exit(1);
 	}
+	/* c = clock(); */
 	SDL_SetTextureBlendMode(cr->waveform_texture, SDL_BLENDMODE_BLEND);
 	SDL_SetRenderTarget(main_win->rend, cr->waveform_texture);
 	SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 0);
@@ -231,10 +248,25 @@ static void clipref_draw_waveform(ClipRef *cr)
 	    channels[1] = cr->clip->R + cr->in_mark_sframes + start_pos;
 	}
 	SDL_Rect waveform_container = {0, 0, onscreen_rect.w, onscreen_rect.h};
+	/* T_other_ops += ((double)clock() - c)/CLOCKS_PER_SEC; */
+	/* c= clock(); */
+	/* fprintf(stderr, "\t%f\n", FRAME_WF_DRAW_TIME); */
+
+	clock_t c = clock();
 	waveform_draw_all_channels_generic((void **)channels, JDAW_FLOAT, num_channels, end_pos - start_pos, &waveform_container, 0, onscreen_rect.w);
+	FRAME_WF_DRAW_TIME += ((double)clock() - c) / CLOCKS_PER_SEC;
+	    /* fprintf(stderr, "WF: %fms\n", FRAME_WF_DRAW_TIME * 1000); */
+	/* T_draw_waveform += ((double)clock() - c)/CLOCKS_PER_SEC; */
 	SDL_SetRenderTarget(main_win->rend, saved_targ);
     }
+    /* c = clock(); */
     SDL_RenderCopy(main_win->rend, cr->waveform_texture, NULL, &onscreen_rect);
+    /* T_copy += ((double)clock() - c)/CLOCKS_PER_SEC; */
+
+    /* if (T_draw_waveform > 10.00) { */
+    /* 	fprintf(stderr, "OTHER: %f\nWAVEFORM: %f\nCOPY: %f\nCREATE: %f\n", T_other_ops, T_draw_waveform, T_copy, T_create_texture); */
+    /* 	exit(0); */
+    /* } */
 }
 
 static void clipref_draw(ClipRef *cr)
@@ -418,11 +450,13 @@ void fill_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const regist
 void fill_quadrant_complement(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad);
 static int timeline_draw(Timeline *tl)
 {
+    FRAME_WF_DRAW_TIME = 0.0;
     /* Only redraw the timeline if necessary */
     if (!tl->needs_redraw && !proj->recording && !main_win->txt_editing && !(main_win->i_state & I_STATE_MOUSE_L)) {
 	/* fprintf(stderr, "SKIP!\n"); */
 	return 0;
     }
+    /* fprintf(stderr, "TL DRAW\n"); */
     /* fprintf(stderr, "Tl redraw? %d\n", tl->needs_redraw); */
     /* static int i=0; */
     /* fprintf(stdout, "TL draw %d\n", i); */
@@ -541,7 +575,12 @@ static int timeline_draw(Timeline *tl)
     /* SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 10); */
     /* SDL_RenderFillRect(main_win->rend, &tl->track_area->rect); */
     /* layout_draw(main_win, tl->track_area); */
-    tl->needs_redraw = false;
+    if (internal_tl_needs_redraw) {
+	tl->needs_redraw = true;
+	internal_tl_needs_redraw = false;
+    } else {
+	tl->needs_redraw = false;
+    }
 
     /* Layout *tracks_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area"); */
     /* if (tracks_area) { */
@@ -641,7 +680,7 @@ void project_draw()
     window_draw_modals(main_win);
     window_draw_menus(main_win);
 
-    tl->needs_redraw = false;
+    /* tl->needs_redraw = false; */
 
 
     if (main_win->ac_active) {

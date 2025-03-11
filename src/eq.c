@@ -92,7 +92,12 @@ static void eq_gui_cb(Endpoint *ep)
 EndptCb test;
 void eq_init(EQ *eq)
 {
-    double nsub1 = (double)proj->fourier_len_sframes / 2 - 1;
+    double nsub1;
+    if (proj) {
+	nsub1 = (double)proj->fourier_len_sframes / 2 - 1;
+    } else {
+	nsub1 = (double)DEFAULT_FOURIER_LEN_SFRAMES / 2 - 1;
+    }
     iir_group_init(&eq->group, EQ_DEFAULT_NUM_FILTERS, 2, EQ_DEFAULT_CHANNELS); /* STEREO, 4 PEAK, BIQUAD */
     for (int i=0; i<EQ_DEFAULT_NUM_FILTERS; i++) {
 	eq->ctrls[i].bandwidth_scalar = 0.15;

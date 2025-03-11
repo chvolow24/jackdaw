@@ -70,6 +70,13 @@ SDL_Color clip_ref_grabbed_bckgrnd = {50, 230, 150, 230};
 SDL_Color clip_ref_home_bckgrnd = {90, 180, 245, 200};
 SDL_Color clip_ref_home_grabbed_bckgrnd = {120, 210, 255, 230};
 
+/******************** DARKER ********************/
+/* SDL_Color clip_ref_bckgrnd = {5, 145, 85, 200}; */
+/* SDL_Color clip_ref_grabbed_bckgrnd = {10, 180, 110, 230}; */
+/* SDL_Color clip_ref_home_bckgrnd = {45, 135, 200, 200}; */
+/* SDL_Color clip_ref_home_grabbed_bckgrnd = {75, 165, 210, 230}; */
+/****************************************************/
+
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;
 extern SDL_Color color_global_grey;

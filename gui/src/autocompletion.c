@@ -327,7 +327,7 @@ bool autocompletion_triage_mouse_click(AutoCompletion *ac)
 	autocompletion_escape();
 	return false;
     }
-    if (SDL_PointInRect(&main_win->mousep, &ac->lines->container->rect)) {
+    if (ac->lines && SDL_PointInRect(&main_win->mousep, &ac->lines->container->rect)) {
 	int y_diff = main_win->mousep.y - ac->lines->container->rect.y;
 	int line_h = ac->lines->items[0].tb->layout->rect.h;
 	int line_spacing = AUTOCOMPLETE_LINE_SPACING * main_win->dpi_scale_factor;
@@ -336,9 +336,10 @@ bool autocompletion_triage_mouse_click(AutoCompletion *ac)
 	    autocompletion_reset_selection(ac, item);
 	    autocompletion_select(ac);
 	}
+	return true;
     }
 
-    return true;
+    return false;
 }
 
 

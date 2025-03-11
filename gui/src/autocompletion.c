@@ -325,6 +325,7 @@ bool autocompletion_triage_mouse_click(AutoCompletion *ac)
 {
     if (!SDL_PointInRect(&main_win->mousep, &ac->inner_layout->rect)) {
 	autocompletion_escape();
+	return false;
     }
     if (SDL_PointInRect(&main_win->mousep, &ac->lines->container->rect)) {
 	int y_diff = main_win->mousep.y - ac->lines->container->rect.y;

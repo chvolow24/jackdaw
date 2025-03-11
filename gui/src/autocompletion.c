@@ -346,6 +346,7 @@ bool autocompletion_triage_mouse_click(AutoCompletion *ac)
 Layout *autocompletion_scroll(int y, bool dynamic)
 {
     AutoCompletion *ac = &main_win->ac;
+    if (!ac->lines) return NULL;
     SDL_Rect padded = ac->lines->container->rect;
     /* Add scroll pad */
     padded.h += ac->inner_layout->rect.h;
@@ -354,5 +355,5 @@ Layout *autocompletion_scroll(int y, bool dynamic)
 	layout_scroll(ac->lines->container, 0, y, dynamic);
 	return ac->lines->container;
     }
-    return NULL;;
+    return NULL;
 }

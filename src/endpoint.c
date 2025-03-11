@@ -118,6 +118,7 @@ int endpoint_write(
     bool run_dsp_cb,
     bool undoable)
 {
+    /* fprintf(stderr, "WRITING to ep %s\n", ep->local_id); */
     int ret = 0;
     if (ep->restrict_range) {
 	if (jdaw_val_less_than(new_val, ep->min, ep->val_type)) {

@@ -61,6 +61,7 @@ static PageEl *track_settings_get_el(const char *id)
     return ret;
 }
 
+
 void filter_cutoff_gui_cb(Endpoint *ep)
 {
     PageEl *el = track_settings_get_el("track_settings_filter_cutoff_slider");
@@ -131,6 +132,32 @@ void filter_type_dsp_cb(Endpoint *ep)
     FilterType t = (FilterType)val.int_v;
     filter_set_type(f, t);
     
+}
+
+/* void saturation_gain_gui_cb(Endpoint *ep) */
+/* { */
+/*     PageEl *el = track_settings_get_el("track_settings_saturation_gain"); */
+/*     if (!el) return; */
+/*     Slider *s = (Slider *)el->component; */
+/*     Value val = slider_reset(s); */
+/*     label_reset(s->label, val); */
+
+    
+/* } */
+/* void saturation_type_gui_cb(Endpoint *ep) */
+/* { */
+/*     PageEl *el = track_settings_get_el("track_settings_saturation_type"); */
+/*     if (!el) return; */
+/*     radio_button_reset_from_endpoint((RadioButton *)el->component);    */
+/* } */
+
+void track_settings_page_el_gui_cb(Endpoint *ep)
+{
+    const char *el_id = ep->xarg4;
+    PageEl *el = track_settings_get_el(el_id);
+    if (!el) return;
+    fprintf(stderr, "RESETTING EL!!!!\n");
+    page_el_reset(el);
 }
 
 

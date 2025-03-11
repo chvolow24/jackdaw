@@ -209,7 +209,7 @@ void page_destroy(Page *page)
     free(page);
 }
 
-static void page_el_reset(PageEl *el)
+void page_el_reset(PageEl *el)
 {
     switch (el->type) {
     case EL_TEXTAREA:

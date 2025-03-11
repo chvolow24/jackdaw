@@ -265,4 +265,6 @@ void page_select_el_by_id(Page *page, const char *id);
 
 void tabview_clear_all_contents(TabView *tv);
 
+void page_el_reset(PageEl *el);
+
 #endif

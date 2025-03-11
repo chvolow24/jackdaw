@@ -57,6 +57,15 @@ static int toggle_delay_line_target_action(void *self_v, void *target)
     delay_line_clear(dl);
     return 0;
 }
+
+static int toggle_saturation_gain_comp(void *self_v, void *target)
+{
+    Saturation *s = (Saturation *)target;
+    /* fprintf(stderr, "WRITING TYPE: %d\n", s->type); */
+    endpoint_write(&s->gain_comp_ep, (Value){.bool_v = s->do_gain_comp}, true, true, true, true);
+    return 0;
+
+}
 static int previous_track(void *self_v, void *target)
 {
     user_tl_track_selector_up(NULL);
@@ -358,9 +367,9 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     textbox_reset_full(tb);
 
 
-    p.toggle_p.value = &track->saturation.gain_comp;
-    p.toggle_p.action = NULL;
-    p.toggle_p.target = NULL;
+    p.toggle_p.value = &track->saturation.do_gain_comp;
+    p.toggle_p.action = toggle_saturation_gain_comp;
+    p.toggle_p.target = &track->saturation;
     el = page_add_el(page, EL_TOGGLE, p, "track_settings_saturation_gain_comp_toggle", "toggle_gain_comp");
 
     p.textbox_p.set_str = "Gain compensation";
@@ -382,15 +391,31 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     textbox_reset_full(tb);
 
     
-    p.slider_p.ep = &track->saturation.amp_ep;
+    p.slider_p.ep = &track->saturation.gain_ep;
     p.slider_p.min = (Value){.double_v = 0.0};
     p.slider_p.max = (Value){.double_v = 50.0};
     p.slider_p.create_label_fn = NULL;
     p.slider_p.style = SLIDER_FILL;
     p.slider_p.orientation = SLIDER_HORIZONTAL;
-    el = page_add_el(page, EL_SLIDER, p, "track_settings_saturation_amp_slider", "amp_slider");
+    el = page_add_el(page, EL_SLIDER, p, "track_settings_saturation_gain_slider", "amp_slider");
     sl = el->component;
     slider_reset(sl);
+
+    static const char * saturation_type_names[] = {
+	"Hyperbolic (tanh)",
+	"Logistic"
+    };
+    
+    p.radio_p.text_size = RADIO_STD_FONT_SIZE;
+    p.radio_p.text_color = &color_global_white;
+    p.radio_p.ep = &track->saturation.type_ep;
+    p.radio_p.item_names = saturation_type_names;
+    p.radio_p.num_items = 2;
+    
+    el = page_add_el(page, EL_RADIO, p, "track_settings_saturation_type", "type_radio");
+    radio = el->component;
+    radio->selected_item = (uint8_t)0;
+
 
     create_track_selection_area(page, track);
     /* sl->disallow_unsafe_mode = true; */

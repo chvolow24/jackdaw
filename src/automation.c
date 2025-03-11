@@ -958,6 +958,7 @@ void automation_get_range(Automation *a, void *dst, int dst_len, int32_t start_p
     int32_t end_pos = start_pos + (int32_t)(dst_len * step);
     double pos = (double)start_pos;
     Keyframe *current = automation_check_get_cache(a, start_pos);
+    
     int32_t next_kf_pos = rev ? end_pos - 1 : end_pos + 1;
     
     if (!current) { /* no need to worry about reverse case; if condition will never be met*/

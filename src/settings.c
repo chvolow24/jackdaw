@@ -119,7 +119,8 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 	{30, 80, 80, 255},
 	{50, 50, 80, 255},
 	/* {70, 40, 70, 255} */
-	{43, 43, 55, 255}
+	{43, 43, 55, 255},
+	{100, 40, 40, 255},
     };
 
     Page *page = tab_view_add_page(
@@ -152,6 +153,8 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 
     p.eq_plot_p.eq = &track->eq;
     page_add_el(page, EL_EQ_PLOT, p, "track_settings_eq_plot", "eq_plot");
+
+    create_track_selection_area(page, track);
 
 
     page = tab_view_add_page(
@@ -331,6 +334,73 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     sl->disallow_unsafe_mode = true;
     
     create_track_selection_area(page, track);
+
+    page = tab_view_add_page(
+	tv,
+	"Saturation",
+	SATURATION_LT_PATH,
+	page_colors + 3,
+	&color_global_white,
+	main_win);
+
+    p.toggle_p.value = &track->saturation.active;
+    p.toggle_p.action = NULL;
+    p.toggle_p.target = NULL;
+    el = page_add_el(page, EL_TOGGLE, p, "track_settings_saturation_toggle", "toggle_saturation");
+
+    p.textbox_p.set_str = "Saturation on";
+    p.textbox_p.font = main_win->mono_bold_font;
+    p.textbox_p.text_size = LABEL_STD_FONT_SIZE;
+    p.textbox_p.win = main_win;
+    tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "track_settings_saturation_toggle_label", "toggle_label")->component);
+    textbox_set_background_color(tb, NULL);
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+
+
+    p.toggle_p.value = &track->saturation.gain_comp;
+    p.toggle_p.action = NULL;
+    p.toggle_p.target = NULL;
+    el = page_add_el(page, EL_TOGGLE, p, "track_settings_saturation_gain_comp_toggle", "toggle_gain_comp");
+
+    p.textbox_p.set_str = "Gain compensation";
+    p.textbox_p.font = main_win->mono_bold_font;
+    p.textbox_p.text_size = LABEL_STD_FONT_SIZE;
+    p.textbox_p.win = main_win;
+    tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "track_settings_saturation_toggle_label", "toggle_gain_comp_label")->component);
+    textbox_set_background_color(tb, NULL);
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+
+    p.textbox_p.set_str = "Gain";
+    p.textbox_p.font = main_win->mono_bold_font;
+    p.textbox_p.text_size = LABEL_STD_FONT_SIZE;
+    p.textbox_p.win = main_win;
+    tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "track_settings_saturation_gain_label", "amp_label")->component);
+    textbox_set_background_color(tb, NULL);
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+
+    
+    p.slider_p.ep = &track->saturation.amp_ep;
+    p.slider_p.min = (Value){.double_v = 0.0};
+    p.slider_p.max = (Value){.double_v = 50.0};
+    p.slider_p.create_label_fn = NULL;
+    p.slider_p.style = SLIDER_FILL;
+    p.slider_p.orientation = SLIDER_HORIZONTAL;
+    el = page_add_el(page, EL_SLIDER, p, "track_settings_saturation_amp_slider", "amp_slider");
+    sl = el->component;
+    slider_reset(sl);
+
+    create_track_selection_area(page, track);
+    /* sl->disallow_unsafe_mode = true; */
+
+
+
+    
+
+
+
 	
 
 }

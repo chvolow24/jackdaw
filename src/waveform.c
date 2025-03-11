@@ -280,21 +280,36 @@ static void waveform_draw_linear_plot(struct freq_plot *fp, int index)
     int left_x = fp->container->rect.x;
     int w = fp->container->rect.w;
 
-    int i=0;
-    int last_x = left_x;
     int last_y;
-    do {
-	int x = left_x + (double)i * w / len;
-	double raw_amp = (plot[i] - min) / range;
-	/* fprintf(stderr, "%d: %f\n", i, raw_amp); */
-	int y = btm_y - h * (amp_to_logscaled(raw_amp));
-	if (i > 0) {
-	    SDL_RenderDrawLine(main_win->rend, x, y, last_x, last_y);
+    int last_x;
+    int y;
+    int x;
+    
+    for (int i=0; i<len; i++) {
+	if (i==0) {
+	    last_x = left_x;
+	    last_y = btm_y - h * amp_to_logscaled((plot[0] - min) / range);
+	    continue;
 	}
+	x = left_x + (double)i * w / (len - 1);
+	y = btm_y - h * amp_to_logscaled((plot[i] - min) / range);
+	SDL_RenderDrawLine(main_win->rend, x, y, last_x, last_y);
 	last_x = x;
 	last_y = y;
-	i++;
-    } while (i < len);
+    }
+    /* int i=0; */
+    /* int last_x = left_x; */
+    /* int last_y = (plot[0] - min) */
+    /* do { */
+    /* 	int x = left_x + (double)(i+1) * w / len; */
+    /* 	double raw_amp = (plot[i] - min) / range; */
+    /* 	/\* fprintf(stderr, "%d: %f\n", i, raw_amp); *\/ */
+    /* 	int y = btm_y - h * (amp_to_logscaled(raw_amp)); */
+    /* 	SDL_RenderDrawLine(main_win->rend, x, y, last_x, last_y); */
+    /* 	last_x = x; */
+    /* 	last_y = y; */
+    /* 	i++; */
+    /* } while (i < len); */
 }
 
 void waveform_draw_freq_plot(struct freq_plot *fp)

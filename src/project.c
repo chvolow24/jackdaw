@@ -1446,6 +1446,8 @@ Track *timeline_add_track(Timeline *tl)
 
     eq_init(&track->eq);
 
+    saturation_init(&track->saturation);
+
     /* API */
 
     api_node_register(&track->api_node, &track->tl->api_node, track->name);

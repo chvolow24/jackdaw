@@ -28,6 +28,7 @@ extern SDL_Color freq_L_color;
 extern SDL_Color freq_R_color;
 extern SDL_Color color_global_white;
 extern SDL_Color color_global_grey;
+SDL_Color grey_clear = {200, 200, 200, 100};
 
 extern Window *main_win;
 
@@ -250,6 +251,11 @@ void eq_create_freq_plot(EQ *eq, Layout *container)
     waveform_freq_plot_add_linear_plot(eq->fp, IIR_FREQPLOT_RESOLUTION, eq->group.freq_resp, &color_global_white);
     eq->fp->linear_plot_ranges[0] = EQ_MAX_AMPLITUDE;
     eq->fp->linear_plot_mins[0] = 0.0;
+    static double ones[] = {1.0, 1.0, 1,0};
+    waveform_freq_plot_add_linear_plot(eq->fp, 3, ones, &grey_clear);
+    eq->fp->linear_plot_ranges[1] = EQ_MAX_AMPLITUDE;
+    eq->fp->linear_plot_mins[1] = 0.0;
+
     iir_group_update_freq_resp(&eq->group);
     for (int i=0; i<EQ_DEFAULT_NUM_FILTERS; i++) {
 	eq->ctrls[i].x = waveform_freq_plot_x_abs_from_freq(eq->fp, eq->ctrls[i].freq_raw);

@@ -44,6 +44,7 @@
 #include "panel.h"
 #include "tempo.h"
 #include "thread_safety.h"
+#include "saturation.h"
 #include "status.h"
 #include "textbox.h"
 #include "user_event.h"
@@ -129,6 +130,8 @@ typedef struct track {
     double *buf_R_freq_mag;
 
     EQ eq;
+
+    Saturation saturation;
 
     FIRFilter fir_filter;
     bool fir_filter_active;

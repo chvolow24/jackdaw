@@ -325,8 +325,9 @@ bool autocompletion_triage_mouse_click(AutoCompletion *ac)
 {
     if (!SDL_PointInRect(&main_win->mousep, &ac->inner_layout->rect)) {
 	autocompletion_escape();
+	return false;
     }
-    if (SDL_PointInRect(&main_win->mousep, &ac->lines->container->rect)) {
+    if (ac->lines && SDL_PointInRect(&main_win->mousep, &ac->lines->container->rect)) {
 	int y_diff = main_win->mousep.y - ac->lines->container->rect.y;
 	int line_h = ac->lines->items[0].tb->layout->rect.h;
 	int line_spacing = AUTOCOMPLETE_LINE_SPACING * main_win->dpi_scale_factor;
@@ -335,15 +336,17 @@ bool autocompletion_triage_mouse_click(AutoCompletion *ac)
 	    autocompletion_reset_selection(ac, item);
 	    autocompletion_select(ac);
 	}
+	return true;
     }
 
-    return true;
+    return false;
 }
 
 
 Layout *autocompletion_scroll(int y, bool dynamic)
 {
     AutoCompletion *ac = &main_win->ac;
+    if (!ac->lines) return NULL;
     SDL_Rect padded = ac->lines->container->rect;
     /* Add scroll pad */
     padded.h += ac->inner_layout->rect.h;
@@ -352,5 +355,5 @@ Layout *autocompletion_scroll(int y, bool dynamic)
 	layout_scroll(ac->lines->container, 0, y, dynamic);
 	return ac->lines->container;
     }
-    return NULL;;
+    return NULL;
 }

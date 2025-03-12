@@ -11,6 +11,9 @@ enum jdaw_thread {
     JDAW_THREAD_OTHER=2
 };
 
+extern pthread_t MAIN_THREAD_ID;
+extern pthread_t DSP_THREAD_ID;
+
 #ifdef TESTBUILD
 #define RESTRICT_NOT_MAIN(name) \
     if (pthread_self() == MAIN_THREAD_ID) { \

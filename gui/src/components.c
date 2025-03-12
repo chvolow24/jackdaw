@@ -585,6 +585,10 @@ void toggle_draw(Toggle *tgl)
 bool toggle_toggle(Toggle *toggle)
 {
     *(toggle->value) = !(*toggle->value);
+    if (toggle->action) {
+	toggle->action((void *)toggle, toggle->target);
+    }
+
     return toggle->value;
 }
 
@@ -825,9 +829,9 @@ bool toggle_click(Toggle *toggle, Window *win)
 {
     if (SDL_PointInRect(&main_win->mousep, &toggle->layout->rect)) {
 	toggle_toggle(toggle);
-	if (toggle->action) {
-	    toggle->action((void *)toggle, toggle->target);
-	}
+	/* if (toggle->action) { */
+	/*     toggle->action((void *)toggle, toggle->target); */
+	/* } */
 	return true;
     }
     return false;

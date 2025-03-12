@@ -308,7 +308,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     textbox_reset_full(tb);
 
     p.textbox_p.set_str = "Stereo offset";
-    tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "track_settings_delay_stereo_offset", "stereo_offset_label")->component);
+    tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "track_settings_delay_stereo_offset", "del_stereo_offset_label")->component);
     textbox_set_background_color(tb, NULL);
     textbox_set_align(tb, CENTER_LEFT);
     textbox_reset_full(tb);
@@ -337,7 +337,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     p.slider_p.max = (Value){.double_v = 0.0};
     p.slider_p.max = (Value){.double_v = 1.0};
 
-    el = page_add_el(page, EL_SLIDER, p, "track_settings_delay_stereo_offset_slider", "stereo_offset_slider");
+    el = page_add_el(page, EL_SLIDER, p, "track_settings_delay_stereo_offset_slider", "del_stereo_offset_slider");
     sl = el->component;
     slider_reset(sl);
     sl->disallow_unsafe_mode = true;
@@ -403,7 +403,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 
     static const char * saturation_type_names[] = {
 	"Hyperbolic (tanh)",
-	"Logistic"
+	"Exponential"
     };
     
     p.radio_p.text_size = RADIO_STD_FONT_SIZE;
@@ -414,7 +414,8 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     
     el = page_add_el(page, EL_RADIO, p, "track_settings_saturation_type", "type_radio");
     radio = el->component;
-    radio->selected_item = (uint8_t)0;
+    radio_button_reset_from_endpoint(radio);
+    /* radio->selected_item = (uint8_t)0; */
 
 
     create_track_selection_area(page, track);

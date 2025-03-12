@@ -676,6 +676,7 @@ void track_automations_hide_all(Track *track)
 	    layout_reset(lt);
 	}
     }
+    track->selected_automation = -1;
     track->automation_dropdown->symbol = SYMBOL_TABLE[SYMBOL_DROPDOWN];
     layout_size_to_fit_children_v(track->layout, true, 0);
     timeline_reset(track->tl, false);
@@ -2140,18 +2141,29 @@ bool automation_handle_delete(Automation *a)
 
 int track_select_next_automation(Track *t)
 {
-    if (t->num_automations == 0) return -1;
-    while (t->selected_automation < t->num_automations) {
+    while (1) {
 	t->selected_automation++;
-	if (t->selected_automation == t->num_automations) {
-	    t->selected_automation -= 1;
-	    break;
+	
+	/* Advanced past end */
+	if (t->selected_automation > t->num_automations - 1) {
+	    
+	    /* More tracks below */
+	    if (t->layout->index < t->layout->parent->num_children - 1) {
+		t->selected_automation = -1;
+		break;
+	    } else {
+		/* Stay where we are */
+		t->selected_automation--;
+		break;
+	    }
 	} else if (t->automations[t->selected_automation]->shown) {
 	    break;
 	} else if (t->selected_automation == t->num_automations - 1) {
+	    /* At last automation, but it is not shown */
 	    t->selected_automation = -1;
 	    break;
 	}
+	/* Keep advancing if selected automation is not shown */
     }
     return t->selected_automation;
 }

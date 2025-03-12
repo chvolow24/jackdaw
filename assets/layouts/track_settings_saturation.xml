@@ -29,33 +29,25 @@
       </children>
     </Layout>
     <Layout name="slider_area" type="NORMAL">
-      <x>SCALE 0.060000</x>
-      <y>SCALE 0.197932</y>
-      <w>SCALE 0.523333</w>
-      <h>SCALE 0.392171</h>
+      <x>SCALE 0.06</x>
+      <y>STACK 10</y>
+      <w>SCALE 0.5</w>
+      <h>ABS 60</h>
       <children>
-        <Layout name="slider_area" type="NORMAL">
+        <Layout name="amp_label" type="NORMAL">
           <x>REL 0</x>
           <y>STACK 0</y>
           <w>SCALE 1.000000</w>
-          <h>SCALE 0.378531</h>
+          <h>SCALE 0.5</h>
           <children>
-            <Layout name="amp_label" type="NORMAL">
-              <x>REL 0</x>
-              <y>STACK 0</y>
-              <w>SCALE 1.000000</w>
-              <h>REL 50</h>
-              <children>
-              </children>
-            </Layout>
-            <Layout name="amp_slider" type="NORMAL">
-              <x>REL 0</x>
-              <y>STACK 0</y>
-              <w>SCALE 1.000000</w>
-              <h>REL 50</h>
-              <children>
-              </children>
-            </Layout>
+          </children>
+        </Layout>
+        <Layout name="amp_slider" type="NORMAL">
+          <x>REL 0</x>
+          <y>STACK 0</y>
+          <w>SCALE 1.000000</w>
+          <h>SCALE 0.5</h>
+          <children>
           </children>
         </Layout>
       </children>
@@ -117,10 +109,10 @@
       </children>
     </Layout>
     <Layout name="type_radio" type="NORMAL">
-      <x>REL 72</x>
+      <x>SCALE 0.06</x>
       <y>REL 196</y>
       <w>REL 303</w>
-      <h>REL 166</h>
+      <h>REL 80</h>
       <children>
       </children>
     </Layout>

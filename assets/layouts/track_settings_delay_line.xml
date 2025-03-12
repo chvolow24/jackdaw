@@ -1,189 +1,160 @@
 <Layout name="track_settings_delay_line" type="NORMAL">
-    <x>REL 0</x>
-    <y>REL 0</y>
-    <w>SCALE 1.000000</w>
-    <h>SCALE 1.000000</h>
-    <index>0</index>
-    <children>
-        <Layout name="toggle_area" type="NORMAL">
-            <x>SCALE 0.060000</x>
-            <y>SCALE 0.056464</y>
-            <w>REL 303</w>
-            <h>REL 20</h>
-            <index>0</index>
-            <children>
-                <Layout name="toggle_delay" type="NORMAL">
-                    <x>REL 0</x>
-                    <y>REL 0</y>
-                    <w>REL 20</w>
-                    <h>REL 20</h>
-                    <index>0</index>
-                    <children>
-                    </children>
-                </Layout>
-                <Layout name="toggle_label" type="NORMAL">
-                    <x>REL 37</x>
-                    <y>REL 0</y>
-                    <w>REL 266</w>
-                    <h>REL 20</h>
-                    <index>1</index>
-                    <children>
-                    </children>
-                </Layout>
-            </children>
+  <x>REL 0</x>
+  <y>REL 0</y>
+  <w>SCALE 1.000000</w>
+  <h>SCALE 1.000000</h>
+  <children>
+    <Layout name="toggle_area" type="NORMAL">
+      <x>SCALE 0.060000</x>
+      <y>SCALE 0.056464</y>
+      <w>REL 303</w>
+      <h>REL 20</h>
+      <children>
+        <Layout name="toggle_delay" type="NORMAL">
+          <x>REL 0</x>
+          <y>REL 0</y>
+          <w>REL 20</w>
+          <h>REL 20</h>
+          <children>
+          </children>
         </Layout>
-        <Layout name="filter_type" type="NORMAL">
-            <x>SCALE 0.622500</x>
-            <y>SCALE 0.121154</y>
-            <w>SCALE 0.287500</w>
-            <h>SCALE 0.392308</h>
-            <index>1</index>
-            <children>
-            </children>
+        <Layout name="toggle_label" type="NORMAL">
+          <x>REL 37</x>
+          <y>REL 0</y>
+          <w>REL 266</w>
+          <h>REL 20</h>
+          <children>
+          </children>
         </Layout>
-        <Layout name="slider_area" type="NORMAL">
-            <x>SCALE 0.060000</x>
-            <y>SCALE 0.121100</y>
-            <w>SCALE 0.523333</w>
-            <h>SCALE 0.392273</h>
-            <index>2</index>
-            <children>
-                <Layout name="slider_area_cutoff" type="NORMAL">
-                    <x>REL 0</x>
-                    <y>STACK 0</y>
-                    <w>SCALE 1.000000</w>
-                    <h>SCALE 0.250000</h>
-                    <index>0</index>
-                    <children>
-                        <Layout name="del_time_label" type="NORMAL">
-                            <x>REL 0</x>
-                            <y>STACK 0</y>
-                            <w>SCALE 1.000000</w>
-                            <h>SCALE 0.500000</h>
-                            <index>0</index>
-                            <children>
-                            </children>
-                        </Layout>
-                        <Layout name="del_time_slider" type="NORMAL">
-                            <x>REL 0</x>
-                            <y>STACK 0</y>
-                            <w>SCALE 1.000000</w>
-                            <h>SCALE 0.500000</h>
-                            <index>1</index>
-                            <children>
-                            </children>
-                        </Layout>
-                    </children>
-                </Layout>
-                <Layout name="slider_area_child1" type="NORMAL">
-                    <x>REL 0</x>
-                    <y>STACK 0</y>
-                    <w>SCALE 1.000000</w>
-                    <h>SCALE 0.250000</h>
-                    <index>1</index>
-                    <children>
-                        <Layout name="del_amp_label" type="NORMAL">
-                            <x>REL 0</x>
-                            <y>STACK 0</y>
-                            <w>SCALE 1.000000</w>
-                            <h>SCALE 0.500000</h>
-                            <index>0</index>
-                            <children>
-                            </children>
-                        </Layout>
-                        <Layout name="del_amp_slider" type="NORMAL">
-                            <x>REL 0</x>
-                            <y>STACK 0</y>
-                            <w>SCALE 1.000000</w>
-                            <h>SCALE 0.500000</h>
-                            <index>1</index>
-                            <children>
-                            </children>
-                        </Layout>
-                    </children>
-                </Layout>
-                <Layout name="slider_area" type="NORMAL">
-                    <x>REL 0</x>
-                    <y>STACK 0</y>
-                    <w>SCALE 1.000000</w>
-                    <h>SCALE 0.250951</h>
-                    <index>2</index>
-                    <children>
-                        <Layout name="stereo_offset_label" type="NORMAL">
-                            <x>REL 0</x>
-                            <y>STACK 0</y>
-                            <w>SCALE 1.000000</w>
-                            <h>SCALE 0.500000</h>
-                            <index>0</index>
-                            <children>
-                            </children>
-                        </Layout>
-                        <Layout name="stereo_offset_slider" type="NORMAL">
-                            <x>REL 0</x>
-                            <y>STACK 0</y>
-                            <w>SCALE 1.000000</w>
-                            <h>SCALE 0.500000</h>
-                            <index>1</index>
-                            <children>
-                            </children>
-                        </Layout>
-                    </children>
-                </Layout>
-                <Layout name="slider_area" type="NORMAL">
-                    <x>REL 0</x>
-                    <y>STACK 0</y>
-                    <w>SCALE 1.000000</w>
-                    <h>SCALE 0.250000</h>
-                    <index>3</index>
-                    <children>
-                    </children>
-                </Layout>
-            </children>
+      </children>
+    </Layout>
+    <Layout name="filter_type" type="NORMAL">
+      <x>SCALE 0.622500</x>
+      <y>REL 82</y>
+      <w>SCALE 0.287500</w>
+      <h>ABS 267</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="slider_area" type="NORMAL">
+      <x>SCALE 0.060000</x>
+      <y>REL 82</y>
+      <w>SCALE 0.523333</w>
+      <h>ABS 267</h>
+      <children>
+        <Layout name="slider_area_cutoff" type="NORMAL">
+          <x>REL 0</x>
+          <y>STACK 0</y>
+          <w>SCALE 1.000000</w>
+          <h>REL 60</h>
+          <children>
+            <Layout name="del_time_label" type="NORMAL">
+              <x>REL 0</x>
+              <y>STACK 0</y>
+              <w>SCALE 1.000000</w>
+              <h>SCALE 0.500000</h>
+              <children>
+              </children>
+            </Layout>
+            <Layout name="del_time_slider" type="NORMAL">
+              <x>REL 0</x>
+              <y>STACK 0</y>
+              <w>SCALE 1.000000</w>
+              <h>SCALE 0.500000</h>
+              <children>
+              </children>
+            </Layout>
+          </children>
         </Layout>
-        <Layout name="waveform" type="NORMAL">
-            <x>SCALE 0.060000</x>
-            <y>SCALE 0.557692</y>
-            <w>SCALE 0.850000</w>
-            <h>SCALE 0.367308</h>
-            <index>3</index>
-            <children>
-            </children>
+        <Layout name="slider_area_amp" type="NORMAL">
+          <x>REL 0</x>
+          <y>STACK 0</y>
+          <w>SCALE 1.000000</w>
+          <h>REL 60</h>
+          <children>
+            <Layout name="del_amp_label" type="NORMAL">
+              <x>REL 0</x>
+              <y>STACK 0</y>
+              <w>SCALE 1.000000</w>
+              <h>SCALE 0.500000</h>
+              <children>
+              </children>
+            </Layout>
+            <Layout name="del_amp_slider" type="NORMAL">
+              <x>REL 0</x>
+              <y>STACK 0</y>
+              <w>SCALE 1.000000</w>
+              <h>SCALE 0.500000</h>
+              <children>
+              </children>
+            </Layout>
+          </children>
         </Layout>
-        <Layout name="track_selection" type="NORMAL">
-            <x>REVREL 10</x>
-            <y>SCALE 0.056632</y>
-            <w>SCALE 0.256667</w>
-            <h>SCALE 0.046200</h>
-            <index>4</index>
-            <children>
-                <Layout name="track_name" type="NORMAL">
-                    <x>STACK 0</x>
-                    <y>REL 0</y>
-                    <w>REL 100</w>
-                    <h>SCALE 1.000000</h>
-                    <index>0</index>
-                    <children>
-                    </children>
-                </Layout>
-                <Layout name="track_previous" type="NORMAL">
-                    <x>STACK 4</x>
-                    <y>REL 0</y>
-                    <w>REL 100</w>
-                    <h>SCALE 1.000000</h>
-                    <index>1</index>
-                    <children>
-                    </children>
-                </Layout>
-                <Layout name="track_next" type="NORMAL">
-                    <x>STACK 4</x>
-                    <y>REL 0</y>
-                    <w>REL 100</w>
-                    <h>SCALE 1.000000</h>
-                    <index>2</index>
-                    <children>
-                    </children>
-                </Layout>
-            </children>
+        <Layout name="slider_area_stereo_offset" type="NORMAL">
+          <x>REL 0</x>
+          <y>STACK 0</y>
+          <w>SCALE 1.000000</w>
+          <h>REL 60</h>
+          <children>
+            <Layout name="del_stereo_offset_label" type="NORMAL">
+              <x>REL 0</x>
+              <y>STACK 0</y>
+              <w>SCALE 1.000000</w>
+              <h>SCALE 0.500000</h>
+              <children>
+              </children>
+            </Layout>
+            <Layout name="del_stereo_offset_slider" type="NORMAL">
+              <x>REL 0</x>
+              <y>STACK 0</y>
+              <w>SCALE 1.000000</w>
+              <h>SCALE 0.500000</h>
+              <children>
+              </children>
+            </Layout>
+          </children>
         </Layout>
-    </children>
+      </children>
+    </Layout>
+    <Layout name="waveform" type="NORMAL">
+      <x>SCALE 0.060000</x>
+      <y>SCALE 0.557692</y>
+      <w>SCALE 0.850000</w>
+      <h>SCALE 0.367308</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="track_selection" type="NORMAL">
+      <x>REVREL 10</x>
+      <y>SCALE 0.056632</y>
+      <w>SCALE 0.256667</w>
+      <h>SCALE 0.046200</h>
+      <children>
+        <Layout name="track_name" type="NORMAL">
+          <x>STACK 0</x>
+          <y>REL 0</y>
+          <w>REL 100</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="track_previous" type="NORMAL">
+          <x>STACK 4</x>
+          <y>REL 0</y>
+          <w>REL 100</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="track_next" type="NORMAL">
+          <x>STACK 4</x>
+          <y>REL 0</y>
+          <w>REL 100</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+  </children>
 </Layout>

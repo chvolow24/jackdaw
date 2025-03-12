@@ -24,7 +24,7 @@
 
 typedef enum saturation_type {
     SAT_TANH=0,
-    SAT_LOGISTIC=1
+    SAT_EXPONENTIAL=1
 
 } SaturationType;
 
@@ -35,6 +35,7 @@ typedef struct saturation {
     double gain;
     bool do_gain_comp;
     double gain_comp_val;
+    /* double exponential_gain_comp_val; */
     Endpoint gain_ep;
     Endpoint gain_comp_ep;
     Endpoint type_ep;

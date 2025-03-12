@@ -81,15 +81,21 @@ static double saturation_sample_tanh_no_gain_comp(Saturation *s, double in)
     return tanh(in * s->gain);
 }
 
-static double saturation_sample_logistic(Saturation *s, double in)
+static double saturation_sample_exponential_no_gain_comp(Saturation *s, double in)
 {
-    return s->gain_comp_val * (2.0 / (1 + exp(in * -1 * s->gain)) - 1);
+    /* return tanh(2 * in * s->gain - pow(in * s->gain, 3.0) / 3.0); */
+    int sign = in < 0 ? -1 : 1;
+    return sign * (1.0-exp(-1 * fabs(in * s->gain)));
+    /* return 2.0 / (1 + exp(in * -2 * s->gain)) - 1; */
+}
+static double saturation_sample_exponential(Saturation *s, double in)
+{
+    return saturation_sample_exponential_no_gain_comp(s, in) * s->gain_comp_val;
+    /* return sign * (1.0-exp(-1 * fabs(in * s->gain))); */
+    /* return s->logistic_gain_comp_val * s->gain_comp_val * (2.0 / (1 + exp(in * -2 * s->gain)) - 1); */
 }
 
-static double saturation_sample_logistic_no_gain_comp(Saturation *s, double in)
-{
-    return 2.0 / (1 + exp(in * -1 * s->gain)) - 1;
-}
+
 
 void saturation_set_gain(Saturation *s, double gain)
 {
@@ -103,8 +109,8 @@ void saturation_set_type(Saturation *s, SaturationType t)
     case SAT_TANH:
 	s->sample_fn = s->do_gain_comp ? saturation_sample_tanh : saturation_sample_tanh_no_gain_comp;
 	break;
-    case SAT_LOGISTIC:
-	s->sample_fn = s->do_gain_comp ? saturation_sample_logistic : saturation_sample_logistic_no_gain_comp;
+    case SAT_EXPONENTIAL:
+	s->sample_fn = s->do_gain_comp ? saturation_sample_exponential : saturation_sample_exponential_no_gain_comp;
 	break;
     default:
 	break;

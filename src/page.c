@@ -711,6 +711,7 @@ static void page_el_select(PageEl *el)
     if (el->type == EL_TEXTENTRY) {
 	textentry_edit((TextEntry *)el->component);
     }
+    
 }
 static void page_el_deselect(PageEl *el)
 {
@@ -839,6 +840,7 @@ void page_enter(Page *page)
     PageEl *el = page->selectable_els[page->selected_i];
     if (!el) return;
     switch (el->type) {
+
     case EL_TOGGLE:
 	toggle_toggle((Toggle *)el->component);
 	break;

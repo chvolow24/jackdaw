@@ -231,9 +231,14 @@ Automation *track_add_automation(Track *track, AutomationType type)
 
     int ret;
     if ((ret = pthread_mutex_init(&a->lock, NULL) != 0)) {
-	fprintf(stderr, "Error initializing lock: %s\n", strerror(ret));
+	fprintf(stderr, "Error initializing automation lock: %s\n", strerror(ret));
 	exit(1);
     }
+    if ((ret = pthread_mutex_init(&a->keyframe_arr_lock, NULL) != 0)) {
+	fprintf(stderr, "Error initializing keyframe arr lock: %s\n", strerror(ret));
+	exit(1);
+    }
+
     
     /* a->kclips_arr_len = KCLIPS_ARR_INITLEN; */
     /* a->kclips = calloc(KCLIPS_ARR_INITLEN, sizeof(KClipRef)); */
@@ -776,6 +781,8 @@ static void automation_reset_pointers(Automation *a, uint16_t displace_from, uin
 
 static long keyframe_arr_resize(Automation *a)
 {
+    MAIN_THREAD_ONLY();
+    pthread_mutex_lock(&a->keyframe_arr_lock);
     Keyframe *old_base_ptr = a->keyframes;
     a->keyframe_arrlen *= 2;
     a->keyframes = realloc(a->keyframes, a->keyframe_arrlen * sizeof(Keyframe));
@@ -794,8 +801,8 @@ static long keyframe_arr_resize(Automation *a)
     /* 	    kc->first = (Keyframe *)((char *)kc->first + migration_bytes); */
     /* 	}	 */
     /* } */
+    pthread_mutex_unlock(&a->keyframe_arr_lock);
     return migration_bytes;
-
 }
 
 Keyframe *automation_insert_keyframe_at(
@@ -951,6 +958,7 @@ static Value automation_value_at(Automation *a, int32_t pos)
 
 void automation_get_range(Automation *a, void *dst, int dst_len, int32_t start_pos, float step)
 {
+    pthread_mutex_lock(&a->keyframe_arr_lock);
     size_t arr_incr = jdaw_val_type_size(a->val_type);
     void *arr_ptr = dst;
 
@@ -973,8 +981,8 @@ void automation_get_range(Automation *a, void *dst, int dst_len, int32_t start_p
 		/* break; */
 	    }
 	}
+	pthread_mutex_unlock(&a->keyframe_arr_lock);
 	return; /* Completed array before first keyframe */
-	
     }
 
 do_remainder_of_array:
@@ -1012,6 +1020,7 @@ do_remainder_of_array:
 	    }
 	}
     }
+    pthread_mutex_unlock(&a->keyframe_arr_lock);
     
 }
 

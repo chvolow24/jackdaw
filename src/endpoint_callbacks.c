@@ -156,7 +156,6 @@ void track_settings_page_el_gui_cb(Endpoint *ep)
     const char *el_id = ep->xarg4;
     PageEl *el = track_settings_get_el(el_id);
     if (!el) return;
-    fprintf(stderr, "RESETTING EL!!!!\n");
     page_el_reset(el);
 }
 

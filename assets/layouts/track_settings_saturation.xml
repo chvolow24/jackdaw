@@ -6,7 +6,7 @@
   <children>
     <Layout name="toggle_area" type="NORMAL">
       <x>SCALE 0.060000</x>
-      <y>SCALE 0.102659</y>
+      <y>SCALE 0.127770</y>
       <w>REL 303</w>
       <h>REL 20</h>
       <children>
@@ -30,7 +30,7 @@
     </Layout>
     <Layout name="slider_area" type="NORMAL">
       <x>SCALE 0.060000</x>
-      <y>SCALE 0.141064</y>
+      <y>SCALE 0.197932</y>
       <w>SCALE 0.523333</w>
       <h>SCALE 0.392171</h>
       <children>

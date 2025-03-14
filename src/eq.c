@@ -70,7 +70,7 @@ static void eq_dsp_cb(Endpoint *ep)
 {
     EQ *eq = ep->xarg1;
     EQFilterCtrl *ctrl = ep->xarg2;
-    eq_set_peak(eq, ctrl->index, ctrl->freq_raw, ctrl->amp_raw, ctrl->bandwidth_scalar * ctrl->freq_raw);
+    eq_set_peak(eq, ctrl->index, ctrl->freq_amp_raw[0], ctrl->freq_amp_raw[1], ctrl->bandwidth_scalar * ctrl->freq_amp_raw[0]);
 }
 
 static void eq_gui_cb(Endpoint *ep)
@@ -78,8 +78,8 @@ static void eq_gui_cb(Endpoint *ep)
     EQ *eq = ep->xarg1;
     EQFilterCtrl *ctrl = ep->xarg2;
     if (eq->fp) {
-	ctrl->x = waveform_freq_plot_x_abs_from_freq(eq->fp, ctrl->freq_raw);
-	ctrl->y = waveform_freq_plot_y_abs_from_amp(eq->fp, ctrl->amp_raw, 0, true);
+	ctrl->x = waveform_freq_plot_x_abs_from_freq(eq->fp, ctrl->freq_amp_raw[0]);
+	ctrl->y = waveform_freq_plot_y_abs_from_amp(eq->fp, ctrl->freq_amp_raw[1], 0, true);
     }
     iir_group_update_freq_resp(&eq->group);
 }
@@ -109,8 +109,8 @@ void eq_init(EQ *eq)
     iir_group_init(&eq->group, EQ_DEFAULT_NUM_FILTERS, 2, EQ_DEFAULT_CHANNELS); /* STEREO, 4 PEAK, BIQUAD */
     for (int i=0; i<EQ_DEFAULT_NUM_FILTERS; i++) {
 	eq->ctrls[i].bandwidth_scalar = 0.15;
-	eq->ctrls[i].freq_raw = pow(nsub1, 0.15 + 0.15 * i) / nsub1;
-	eq->ctrls[i].amp_raw = 1.0;
+	eq->ctrls[i].freq_amp_raw[0] = pow(nsub1, 0.15 + 0.15 * i) / nsub1;
+	eq->ctrls[i].freq_amp_raw[1] = 1.0;
 	eq->ctrls[i].eq = eq;
 	eq->ctrls[i].index = i;
 	eq->ctrls[i].label = label_create(
@@ -126,7 +126,7 @@ void eq_init(EQ *eq)
 	    
 	endpoint_init(
 	    &eq->ctrls[i].amp_ep,
-	    &eq->ctrls[i].amp_raw,
+	    &eq->ctrls[i].freq_amp_raw + 1,
 	    JDAW_DOUBLE,
 	    "eq_peak_amp",
 	    "undo set eq filter peak",
@@ -135,7 +135,7 @@ void eq_init(EQ *eq)
 	    (void*)eq, (void*)(eq->ctrls + i), NULL, NULL);
 	endpoint_init(
 	    &eq->ctrls[i].freq_ep,
-	    &eq->ctrls[i].freq_raw,
+	    &eq->ctrls[i].freq_amp_raw,
 	    JDAW_DOUBLE,
 	    "eq_peak_freq",
 	    "undo set eq filter freq",
@@ -153,7 +153,7 @@ void eq_init(EQ *eq)
 	    (void*)eq, (void*)(eq->ctrls + i), NULL, NULL);
 	endpoint_init(
 	    &eq->ctrls[i].freq_amp_ep,
-	    &eq->ctrls[i].freq_raw,
+	    &eq->ctrls[i].freq_amp_raw,
 	    JDAW_DOUBLE_PAIR,
 	    "eq_freq_and_amp",
 	    "undo set eq freq/amp",
@@ -286,8 +286,8 @@ void eq_create_freq_plot(EQ *eq, Layout *container)
 
     iir_group_update_freq_resp(&eq->group);
     for (int i=0; i<EQ_DEFAULT_NUM_FILTERS; i++) {
-	eq->ctrls[i].x = waveform_freq_plot_x_abs_from_freq(eq->fp, eq->ctrls[i].freq_raw);
-	eq->ctrls[i].y = waveform_freq_plot_y_abs_from_amp(eq->fp, eq->ctrls[i].amp_raw, 0, true);
+	eq->ctrls[i].x = waveform_freq_plot_x_abs_from_freq(eq->fp, eq->ctrls[i].freq_amp_raw[0]);
+	eq->ctrls[i].y = waveform_freq_plot_y_abs_from_amp(eq->fp, eq->ctrls[i].freq_amp_raw[1], 0, true);
     }
 }
 

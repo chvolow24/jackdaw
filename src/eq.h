@@ -33,8 +33,9 @@ typedef struct eq_filter_ctrl {
     EQ *eq;
     bool filter_active;
     int index;
-    double freq_raw;
-    double amp_raw;
+    double freq_amp_raw[2];
+    /* double freq_raw; */
+    /* double amp_raw; */
     double bandwidth_scalar; /* Bandwidth = bandwidth_scalar * freq_raw */
     Endpoint freq_ep;
     Endpoint amp_ep;

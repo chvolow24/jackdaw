@@ -239,7 +239,7 @@ void slider_destroy(Slider *s)
 /* void (SliderStrFn)(char *dst, size_t dstsize, void *value, ValType type); */
 void slider_std_labelmaker(char *dst, size_t dstsize, void *value, ValType type)
 {
-    jdaw_valptr_set_str(dst, dstsize, value, type, 2);
+    jdaw_valptr_to_str(dst, dstsize, value, type, 2);
 }
 
 /* void slider_edit_made(Slider *slider) */

@@ -89,6 +89,11 @@ static void eq_gui_cb(Endpoint *ep)
 /* } */
 
 
+void eq_ctrl_label_fn(char *dst, size_t dstsize, Value val, ValType type)
+{
+    
+}
+
 
 EndptCb test;
 void eq_init(EQ *eq)
@@ -106,6 +111,17 @@ void eq_init(EQ *eq)
 	eq->ctrls[i].amp_raw = 1.0;
 	eq->ctrls[i].eq = eq;
 	eq->ctrls[i].index = i;
+	eq->ctrls[i].label = label_create(
+	    EQ_CTRL_LABEL_BUFLEN,
+	    main_win->layout,
+	    eq_ctrl_label_fn,
+	    eq->ctrls + i,
+	    JDAW_DOUBLE,
+	    main_win);
+	
+	    
+	    
+	    
 	endpoint_init(
 	    &eq->ctrls[i].amp_ep,
 	    &eq->ctrls[i].amp_raw,
@@ -133,7 +149,15 @@ void eq_init(EQ *eq)
 	    JDAW_THREAD_DSP,
 	    eq_gui_cb, NULL, eq_dsp_cb,
 	    (void*)eq, (void*)(eq->ctrls + i), NULL, NULL);
-
+	endpoint_init(
+	    &eq->ctrls[i].freq_amp_ep,
+	    &eq->ctrls[i].freq_raw,
+	    JDAW_DOUBLE_PAIR,
+	    "eq_freq_and_amp",
+	    "undo set eq freq/amp",
+	    JDAW_THREAD_DSP,
+	    eq_gui_cb, NULL, eq_dsp_cb,
+	    (void *)eq, (void *)(eq->ctrls + i), NULL, NULL);
     }
 }
 
@@ -175,13 +199,14 @@ static void eq_set_filter_from_mouse(EQ *eq, int filter_index, SDL_Point mousep)
 	} else {
 	    amp_raw = waveform_freq_plot_amp_from_x_abs(eq->fp, mousep.y, 0, true);
 	}
-	endpoint_start_continuous_change(&eq->ctrls[filter_index].amp_ep, false, (Value){0}, JDAW_THREAD_DSP, (Value){.double_v = amp_raw});
-	endpoint_start_continuous_change(&eq->ctrls[filter_index].freq_ep, false, (Value){0}, JDAW_THREAD_DSP, (Value){.double_v = freq_raw});
-	endpoint_write(&eq->ctrls[filter_index].amp_ep, (Value){.double_v = amp_raw}, true, true, true, false);
-	endpoint_write(&eq->ctrls[filter_index].freq_ep, (Value){.double_v = freq_raw}, true, true, true, false);
-	/* eq->ctrls[filter_index].freq_raw = freq_raw; */
-	/* eq->ctrls[filter_index].amp_raw = amp_raw; */
-	/* eq_set_peak(eq, filter_index, freq_raw, amp_raw, eq->ctrls[filter_index].bandwidth_scalar * freq_raw); */
+
+	endpoint_start_continuous_change(&eq->ctrls[filter_index].freq_amp_ep, false, (Value){0}, JDAW_THREAD_DSP, (Value){.double_pair_v = {freq_raw, amp_raw}});
+	endpoint_write(&eq->ctrls[filter_index].freq_amp_ep, (Value){.double_pair_v = {freq_raw, amp_raw}}, true, true, true, false);
+	/* endpoint_start_continuous_change(&eq->ctrls[filter_index].amp_ep, false, (Value){0}, JDAW_THREAD_DSP, (Value){.double_v = amp_raw}); */
+	/* endpoint_start_continuous_change(&eq->ctrls[filter_index].freq_ep, false, (Value){0}, JDAW_THREAD_DSP, (Value){.double_v = freq_raw}); */
+	/* endpoint_write(&eq->ctrls[filter_index].amp_ep, (Value){.double_v = amp_raw}, true, true, true, false); */
+	/* endpoint_write(&eq->ctrls[filter_index].freq_ep, (Value){.double_v = freq_raw}, true, true, true, false); */
+
     }
 	break;
     default:

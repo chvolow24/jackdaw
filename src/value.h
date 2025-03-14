@@ -17,6 +17,7 @@
      (src_type) == JDAW_INT16 ? (end_type)(val).int16_v : \
      (src_type) == JDAW_INT32 ? (end_type)(val).int32_v : \
      (src_type) == JDAW_BOOL ? (end_type)(val).bool_v : \
+     (src_type) == JDAW_DOUBLE_PAIR ? (end_type)(val).double_pair_v :	\
      0 )
 
 /* #define JDAW_VALPTR_CAST(valptr, type) \ */
@@ -42,7 +43,8 @@ typedef enum value_type {
     JDAW_INT8 = 6,
     JDAW_INT16 = 7,
     JDAW_INT32 = 8,
-    JDAW_BOOL = 9
+    JDAW_BOOL = 9,
+    JDAW_DOUBLE_PAIR = 10
 } ValType;
 
 typedef union value {
@@ -56,6 +58,7 @@ typedef union value {
     int16_t int16_v;
     int32_t int32_v;
     bool bool_v;
+    double double_pair_v[2];
 } Value;
 
 Value jdaw_val_from_ptr(void *ptr, ValType vt);
@@ -70,13 +73,13 @@ Value jdaw_val_mult(Value a, Value b, ValType vt);
 Value jdaw_val_div(Value a, Value b, ValType vt);
 Value jdaw_val_scale(Value a, double scalar, ValType vt);
 double jdaw_val_div_double(Value a, Value b, ValType vt);
-void jdaw_valptr_set_str(char *dst, size_t dstsize, void *value, ValType type, int decimal_places);
-void jdaw_val_set_str(char *dst, size_t dstsize, Value value, ValType type, int decimal_places);
+void jdaw_valptr_to_str(char *dst, size_t dstsize, void *value, ValType type, int decimal_places);
+void jdaw_val_to_str(char *dst, size_t dstsize, Value value, ValType type, int decimal_places);
 bool jdaw_val_less_than(Value a, Value b, ValType type);
 bool jdaw_val_is_zero(Value a, ValType type);
 bool jdaw_val_equal(Value a, Value b, ValType type);
 bool jdaw_val_sign_match(Value a, Value b, ValType type);
-void jdaw_val_to_str(char *dst, size_t dstsize, Value v, ValType type, int decimal_places);
+/* void jdaw_val_to_str(char *dst, size_t dstsize, Value v, ValType type, int decimal_places); */
 Value jdaw_val_from_str(const char *str, ValType type);
 
 bool jdaw_val_in_range(Value test, Value min, Value max, ValType type);

@@ -184,6 +184,7 @@ static void iir_reset_freq_resp(IIRFilter *iir)
 	int nsub1 = iir->fp->num_items - 1;
 	double input = pow(nsub1, prop) / nsub1;
 	iir->freq_resp[i] = biquad_amp_from_freq(input, iir->pole_zero);
+	iir->freq_resp_stale = false;
     }
 }
 
@@ -294,7 +295,6 @@ void iir_group_update_freq_resp(IIRGroup *group)
     for (int i=0; i<group->num_filters; i++) {
 	if (group->filters[i].freq_resp_stale) {
 	    iir_reset_freq_resp(group->filters + i);
-	    /* iir_ */
 	}
     }
     for (int i=0; i<IIR_FREQPLOT_RESOLUTION; i++) {

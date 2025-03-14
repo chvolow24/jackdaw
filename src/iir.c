@@ -177,16 +177,26 @@ static double biquad_amp_from_freq(double freq_raw, double complex *pole_zero)
 
 }
 
+static void iir_reset_freq_resp(IIRFilter *iir)
+{
+    for (int i=0; i<IIR_FREQPLOT_RESOLUTION; i++) {
+	double prop = (double) i / IIR_FREQPLOT_RESOLUTION;
+	int nsub1 = iir->fp->num_items - 1;
+	double input = pow(nsub1, prop) / nsub1;
+	iir->freq_resp[i] = biquad_amp_from_freq(input, iir->pole_zero);
+    }
+}
+
 int iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double bandwidth, double *legal_bandwidth_scalar)
 {
-    double complex pole_zero[2];
+    /* double complex pole_zero[2]; */
     int safety = 0;
     int test = 0;
     int ret = 0;
     /* fprintf(stderr, "COEFFS: %f %f %f || %f %f\n", iir->A[0], iir->A[1], iir->A[2], iir->B[0], iir->B[1]); */
     /* fprintf(stderr, "MEM: %f %f || %f %f\n", iir->memIn[0][0], iir->memIn[0][1], iir->memOut[0][0], iir->memOut[0][1]); */
     
-    while ((test = reiss_2011(freq * PI, amp, bandwidth, pole_zero)) < 0) {
+    while ((test = reiss_2011(freq * PI, amp, bandwidth, iir->pole_zero)) < 0) {
 	if (test == -1) {
 	    /* fprintf(stderr, "IMAG!!!!\n"); */
 	} else if (test == -2) {
@@ -210,12 +220,15 @@ int iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double ban
     }
 
     if (iir->fp) {
-	for (int i=0; i<IIR_FREQPLOT_RESOLUTION; i++) {
-	    double prop = (double) i / IIR_FREQPLOT_RESOLUTION;
-	    int nsub1 = iir->fp->num_items - 1;
-	    double input = pow(nsub1, prop) / nsub1;
-	    iir->freq_resp[i] = biquad_amp_from_freq(input, pole_zero);
-	}
+	iir_reset_freq_resp(iir);
+	/* for (int i=0; i<IIR_FREQPLOT_RESOLUTION; i++) { */
+	/*     double prop = (double) i / IIR_FREQPLOT_RESOLUTION; */
+	/*     int nsub1 = iir->fp->num_items - 1; */
+	/*     double input = pow(nsub1, prop) / nsub1; */
+	/*     iir->freq_resp[i] = biquad_amp_from_freq(input, iir->pole_zero); */
+	/* } */
+    } else {
+	iir->freq_resp_stale = true;
     }
     /* iir->pole_zero[0] = pole_zero[0]; */
     /* iir->pole_zero[1] = pole_zero[1]; */
@@ -240,11 +253,11 @@ int iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double ban
     
 
     iir->A[0] = 1.0;
-    iir->A[1] = -2 * creal(pole_zero[1]);
-    iir->A[2] = pow(cabs(pole_zero[1]), 2);
+    iir->A[1] = -2 * creal(iir->pole_zero[1]);
+    iir->A[2] = pow(cabs(iir->pole_zero[1]), 2);
 
-    iir->B[0] = 2 * creal(pole_zero[0]);
-    iir->B[1] = -1 * pow(cabs(pole_zero[0]), 2);
+    iir->B[0] = 2 * creal(iir->pole_zero[0]);
+    iir->B[1] = -1 * pow(cabs(iir->pole_zero[0]), 2);
     return ret;
 }
 
@@ -278,6 +291,12 @@ void iir_group_update_freq_resp(IIRGroup *group)
 {
     /* fprintf(stderr, "UPDATE freq resp\n"); */
     if (!group->fp) return;
+    for (int i=0; i<group->num_filters; i++) {
+	if (group->filters[i].freq_resp_stale) {
+	    iir_reset_freq_resp(group->filters + i);
+	    /* iir_ */
+	}
+    }
     for (int i=0; i<IIR_FREQPLOT_RESOLUTION; i++) {
 	group->freq_resp[i] = group->filters[0].freq_resp[i];
 	for (int f=1; f<group->num_filters; f++) {

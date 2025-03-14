@@ -275,14 +275,15 @@ void endpoint_start_continuous_change(
 {
     if (ep->changing) return;
     ep->changing = true;
+    ep->cached_val = endpoint_safe_read(ep, NULL);
     ep->cached_owner = endpoint_get_owner(ep);
     endpoint_set_owner(ep, thread);
 
-    endpoint_write(ep, new_value, true, true, true, true);
+    endpoint_write(ep, new_value, true, true, true, false);
 
     ep->do_auto_incr = do_auto_incr;
     ep->incr = incr;
-    ep->cached_val = endpoint_safe_read(ep, NULL);
+
     
     project_add_ongoing_change(proj, ep, thread);
 }

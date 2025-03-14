@@ -21,6 +21,7 @@
 #define JDAW_IIR_H
 
 #include <complex.h>
+#include <stdbool.h>
 
 #define IIR_FREQPLOT_RESOLUTION 1600
 
@@ -43,15 +44,15 @@ typedef struct iir_filter {
 
     struct freq_plot *fp;
     double freq_resp[IIR_FREQPLOT_RESOLUTION];
-    
-    /* double complex *pole_zero; */
+
+    bool freq_resp_stale;
+    double complex pole_zero[2];
 
 } IIRFilter;
 
 typedef struct iir_group {
     int num_filters;
     IIRFilter *filters;
-
     struct freq_plot *fp;
     double freq_resp[IIR_FREQPLOT_RESOLUTION];
 } IIRGroup;

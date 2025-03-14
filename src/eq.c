@@ -77,8 +77,10 @@ static void eq_gui_cb(Endpoint *ep)
 {
     EQ *eq = ep->xarg1;
     EQFilterCtrl *ctrl = ep->xarg2;
-    ctrl->x = waveform_freq_plot_x_abs_from_freq(eq->fp, ctrl->freq_raw);
-    ctrl->y = waveform_freq_plot_y_abs_from_amp(eq->fp, ctrl->amp_raw, 0, true);
+    if (eq->fp) {
+	ctrl->x = waveform_freq_plot_x_abs_from_freq(eq->fp, ctrl->freq_raw);
+	ctrl->y = waveform_freq_plot_y_abs_from_amp(eq->fp, ctrl->amp_raw, 0, true);
+    }
     iir_group_update_freq_resp(&eq->group);
 }
 /* void eq_freq_dsp_cb(Endpoint *ep) */
@@ -273,6 +275,7 @@ void eq_create_freq_plot(EQ *eq, Layout *container)
     for (int i=0; i<eq->group.num_filters; i++) {
 	eq->group.filters[i].fp = eq->fp;
     }
+    iir_group_update_freq_resp(&eq->group);
     waveform_freq_plot_add_linear_plot(eq->fp, IIR_FREQPLOT_RESOLUTION, eq->group.freq_resp, &color_global_white);
     eq->fp->linear_plot_ranges[0] = EQ_MAX_AMPLITUDE;
     eq->fp->linear_plot_mins[0] = 0.0;
@@ -292,6 +295,10 @@ void eq_destroy_freq_plot(EQ *eq)
 {
     waveform_destroy_freq_plot(eq->fp);
     eq->fp = NULL;
+    for (int i=0; i<eq->group.num_filters; i++) {
+	eq->group.filters[i].fp = NULL;
+    }
+    eq->group.fp = NULL;
 }
 
 

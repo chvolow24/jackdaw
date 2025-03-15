@@ -218,5 +218,9 @@
 - autocomplete_list:
   - <tab>	: autocomplete_next
   - S-<tab>	: autocomplete_previous
+  - <down>	: autocomplete_next
+  - <up>	: autocomplete_previous
+  - C-n		: autocomplete_next
+  - C-p		: autocomplete_previous
   - <ret>	: autocomplete_select
   - <esc>	: autocomplete_escape

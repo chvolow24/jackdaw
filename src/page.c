@@ -224,6 +224,7 @@ void page_el_reset(PageEl *el)
 	slider_reset(el->component);
 	break;
     case EL_RADIO:
+	radio_button_reset_from_endpoint(el->component);
 	break;
     case EL_TOGGLE:
 	break;

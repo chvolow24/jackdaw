@@ -420,15 +420,6 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 
     create_track_selection_area(page, track);
     /* sl->disallow_unsafe_mode = true; */
-
-
-
-    
-
-
-
-	
-
 }
 
 TabView *settings_track_tabview_create(Track *track)

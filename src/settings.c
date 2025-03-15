@@ -392,9 +392,9 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 
     
     p.slider_p.ep = &track->saturation.gain_ep;
-    p.slider_p.min = (Value){.double_v = 0.0};
+    p.slider_p.min = (Value){.double_v = 1.0};
     p.slider_p.max = (Value){.double_v = 50.0};
-    p.slider_p.create_label_fn = NULL;
+    p.slider_p.create_label_fn = label_amp_to_dbstr;
     p.slider_p.style = SLIDER_FILL;
     p.slider_p.orientation = SLIDER_HORIZONTAL;
     el = page_add_el(page, EL_SLIDER, p, "track_settings_saturation_gain_slider", "amp_slider");

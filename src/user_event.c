@@ -247,6 +247,10 @@ void user_event_undo_set_value(
     case JDAW_BOOL:
 	*(bool *)obj1 = old_value.bool_v;
 	break;
+    case JDAW_DOUBLE_PAIR:
+	*(double *)obj1 = old_value.double_pair_v[0];
+	*((double *)obj1 + 1) = old_value.double_pair_v[1];
+	break;
     }
 }
 
@@ -286,6 +290,10 @@ void user_event_redo_set_value(
 	break;
     case JDAW_BOOL:
 	*(bool *)obj1 = new_value.bool_v;
+	break;
+    case JDAW_DOUBLE_PAIR:
+	*(double *)obj1 = new_value.double_pair_v[0];
+	*((double *)obj1 + 1) = new_value.double_pair_v[1];
 	break;
     }
 }

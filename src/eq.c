@@ -20,6 +20,7 @@
 #include "eq.h"
 #include "iir.h"
 #include "input.h"
+#include "label.h"
 #include "project.h"
 #include "waveform.h"
 
@@ -80,6 +81,9 @@ static void eq_gui_cb(Endpoint *ep)
     if (eq->fp) {
 	ctrl->x = waveform_freq_plot_x_abs_from_freq(eq->fp, ctrl->freq_amp_raw[0]);
 	ctrl->y = waveform_freq_plot_y_abs_from_amp(eq->fp, ctrl->freq_amp_raw[1], 0, true);
+	Value v = {.double_pair_v = {ctrl->freq_amp_raw[0], ctrl->freq_amp_raw[1]}};
+	label_move(ctrl->label, ctrl->x + 10 * main_win->dpi_scale_factor, ctrl->y - 10 * main_win->dpi_scale_factor);
+	label_reset(ctrl->label, v);
     }
     iir_group_update_freq_resp(&eq->group);
 }
@@ -93,7 +97,14 @@ static void eq_gui_cb(Endpoint *ep)
 
 void eq_ctrl_label_fn(char *dst, size_t dstsize, Value val, ValType type)
 {
-    
+    /* label_freq_raw_to_hz(dst, dstsize, freq, JDAW_DOUBLE); */
+    int hz = val.double_pair_v[0] * proj->sample_rate / 2;
+    size_t written = snprintf(dst, dstsize, "%d Hz, ", hz);
+    dstsize -= written;
+    dst += written;
+    Value amp = (Value){.double_v = val.double_pair_v[1]};
+    label_amp_to_dbstr(dst, dstsize, amp, JDAW_DOUBLE);
+    /* fprintf(stderr, "LABLE: %s\n", dst); */
 }
 
 
@@ -121,7 +132,6 @@ void eq_init(EQ *eq)
 	    JDAW_DOUBLE,
 	    main_win);
 	
-	    
 	    
 	    
 	endpoint_init(
@@ -179,6 +189,7 @@ static void eq_set_peak(EQ *eq, int filter_index, double freq_raw, double amp_ra
     IIRFilter *iir = eq->group.filters + filter_index;
     double bandwidth_scalar_adj;
     int ret = iir_set_coeffs_peaknotch(iir, freq_raw, amp_raw, bandwidth, &bandwidth_scalar_adj);
+    /* int ret = iir_set_coeffs_shelving(iir, freq_raw, amp_raw, bandwidth) */
     if (ret == 1) {
 	/* fprintf(stderr, "RESETTING BW SCALAR: %f->%f\n", eq->ctrls[filter_index].bandwidth_scalar, bandwidth_scalar_adj); */
 	eq->ctrls[filter_index].bandwidth_scalar = bandwidth_scalar_adj;
@@ -351,6 +362,7 @@ void eq_draw(EQ *eq)
 	} else {
 	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_grey));
 	}
+	label_draw(eq->ctrls[i].label);
 	
 	geom_draw_circle(main_win->rend, eq->ctrls[i].x - EQ_CTRL_RAD, eq->ctrls[i].y - EQ_CTRL_RAD, EQ_CTRL_RAD);
 	/* geom_draw_circle(main_win->rend, eq->ctrls[i].x - 2.0 * radmin1div2, eq->ctrls[i].y - 2.0 * radmin1div2, radmin1); */

@@ -262,6 +262,41 @@ int iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double ban
     return ret;
 }
 
+
+int iir_set_coeffs_shelving(IIRFilter *iir, double freq_raw, double amp_raw, double Q)
+{
+
+    fprintf(stderr, "FREQ: %f, AMP: %f Q: %f\n", freq_raw, amp_raw, Q);
+    double K = tan(PI * freq_raw);
+    double V0 = amp_raw;
+    double root2 = 1/Q;
+    double b0 = (1 + sqrt(V0)*root2*K + V0*(pow(K, 2))) / (1 + root2*K + pow(K, 2));
+    double b1 =             (2 * (V0*pow(K, 2) - 1) ) / (1 + root2*K + pow(K, 2));
+    double b2 = (1 - sqrt(V0)*root2*K + V0*pow(K, 2)) / (1 + root2*K + pow(K, 2));
+    double a1 =                (2 * (pow(K, 2) - 1) ) / (1 + root2*K + pow(K, 2));
+    double a2 =             (1 - root2*K + pow(K, 2)) / (1 + root2*K + pow(K, 2));
+
+    iir->A[0] = 1.0;
+    iir->A[1] = a1;
+    iir->A[2] = a2;
+    iir->B[0] = b0;
+    iir->B[1] = b1;
+    if (iir->fp) {
+	iir_reset_freq_resp(iir);
+	/* for (int i=0; i<IIR_FREQPLOT_RESOLUTION; i++) { */
+	/*     double prop = (double) i / IIR_FREQPLOT_RESOLUTION; */
+	/*     int nsub1 = iir->fp->num_items - 1; */
+	/*     double input = pow(nsub1, prop) / nsub1; */
+	/*     iir->freq_resp[i] = biquad_amp_from_freq(input, iir->pole_zero); */
+	/* } */
+    } else {
+	iir->freq_resp_stale = true;
+    }
+
+    /* iir->B[2] = b2; */
+    return 0;
+}
+
 void iir_group_init(IIRGroup *group, int num_filters, int degree, int num_channels)
 {
     group->filters = calloc(num_filters, sizeof(IIRFilter));

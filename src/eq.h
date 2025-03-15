@@ -59,6 +59,7 @@ typedef struct eq {
 void eq_init(EQ *eq);
 void eq_deinit(EQ *eq);
 void eq_create_freq_plot(EQ *eq, Layout *container);
+void eq_set_filter_from_ctrl(EQ *eq, int index);
 void eq_destroy_freq_plot(EQ *eq);
 /* void eq_set_filter_from_mouse(EQ *eq, int filter_index, SDL_Point mousep); */
 bool eq_mouse_click(EQ *eq, SDL_Point mousep);

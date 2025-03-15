@@ -17,6 +17,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "eq.h"
 #include "file_backup.h"
 #include "project.h"
 #include "tempo.h"
@@ -45,7 +46,7 @@ const static char hdr_keyf[] = {'K', 'E', 'Y', 'F'};
 const static char hdr_click[] = {'C', 'L', 'C', 'K'};
 const static char hdr_click_segm[] = {'C', 'T', 'S', 'G'};
 
-const static char current_file_spec_version[] = {'0','.','1','5','1'};
+const static char current_file_spec_version[] = {'0','0','.','1','6'};
 /* const static float current_file_spec_version_f = 0.11f; */
 
 /* const static char nullterm = '\0'; */
@@ -282,6 +283,25 @@ static void jdaw_write_track(FILE *f, Track *track)
     } else {
 	fseek(f, 14, SEEK_CUR);
     }
+
+    /* SATURATION */
+    fwrite(&track->saturation.active, 1, 1, f);
+    float_ser40_le(f, track->saturation.gain);
+    fwrite(&track->saturation.do_gain_comp, 1, 1, f);
+    uint8_t type_byte = (uint8_t)track->saturation.type;
+    uint8_ser(f, &type_byte);
+
+    /* EQ */
+    fwrite(&track->eq.active, 1, 1, f);
+    uint8_t num_filters = EQ_DEFAULT_NUM_FILTERS;
+    uint8_ser(f, &num_filters);
+    for (int i=0; i<num_filters; i++) {
+	EQFilterCtrl *ctrl = track->eq.ctrls + i;
+	float_ser40_le(f, ctrl->freq_amp_raw[0]);
+	float_ser40_le(f, ctrl->freq_amp_raw[1]);
+	float_ser40_le(f, ctrl->bandwidth_scalar);
+    }
+    
 	/* fwrite(&track->delay_line.len, 4, 1, f); */
 	/* snprintf(float_value_buffer, STD_FLOAT_SER_W, "%f", track->delay_line.stereo_offset); */
 	/* fwrite(float_value_buffer, STD_FLOAT_SER_W, 1, f); */
@@ -845,6 +865,24 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 		fseek(f, 14, SEEK_CUR);
 	    }
 	}
+	if (read_file_spec_version >= 0.16f) {
+	    track->saturation.active = uint8_deser(f);
+	    saturation_set_gain(&track->saturation, float_deser40_le(f));
+	    track->saturation.do_gain_comp = uint8_deser(f);
+	    saturation_set_type(&track->saturation, uint8_deser(f));
+
+	    track->eq.active = uint8_deser(f);
+	    uint8_t num_filters = uint8_deser(f);
+	    for (int i=0; i<num_filters; i++) {
+		EQFilterCtrl *ctrl = track->eq.ctrls + i;
+		ctrl->freq_amp_raw[0] = float_deser40_le(f);
+		ctrl->freq_amp_raw[1] = float_deser40_le(f);
+		ctrl->bandwidth_scalar = float_deser40_le(f);
+		/* TODO: set peak based on filter type, not like this */
+		eq_set_filter_from_ctrl(&track->eq, i);
+	    }
+	}
+	
     }
     return 0;
 }

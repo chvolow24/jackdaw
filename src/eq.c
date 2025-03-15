@@ -196,6 +196,21 @@ static void eq_set_peak(EQ *eq, int filter_index, double freq_raw, double amp_ra
     }
 }
 
+void eq_set_filter_from_ctrl(EQ *eq, int index)
+{
+    EQFilterCtrl *ctrl = eq->ctrls + index;
+    IIRFilter *filter = eq->group.filters + index;
+    switch(filter->type) {
+    case IIR_PEAKNOTCH:
+	eq_set_peak(eq, index, ctrl->freq_amp_raw[0], ctrl->freq_amp_raw[1], ctrl->freq_amp_raw[0] * ctrl->bandwidth_scalar);
+	/* iir_set_coeffs_peaknotch(filter, ctrl->freq_amp_raw[0], ctrl->freq_amp_raw[1], ctrl->freq_amp_raw[0] * ctrl->bandwidth_scalar, NULL); */
+	break;
+    default:
+	break;
+    }
+    
+}
+
 
 static void eq_set_filter_from_mouse(EQ *eq, int filter_index, SDL_Point mousep)
 {

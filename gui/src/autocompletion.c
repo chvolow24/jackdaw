@@ -261,6 +261,7 @@ void autocompletion_draw(AutoCompletion *ac)
 void autocompletion_reset_selection(AutoCompletion *ac, int new_sel)
 {
     int old_sel = ac->selection;
+    if (!ac->lines) return;
     if (new_sel >= ac->lines->num_items) {
 	new_sel = ac->lines->num_items - 1;
     } else if (new_sel < -1) {
@@ -289,6 +290,7 @@ void autocompletion_escape()
 void autocompletion_select(AutoCompletion *ac)
 {
     autocompletion_escape();
+    if (!ac->lines) return;
     if (ac->selection >= 0) {
 	TLinesItem item = ac->lines->items[ac->selection];
 	UserFn *fn = item.obj;

@@ -119,7 +119,7 @@ static void api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size)
 	lowered[strlen(str)] = '\0';
 	offset += snprintf(dst + offset, dst_size - offset, "/%s", lowered);
 	num_components--;
-    }   
+    }
 }
 
 /* dbj2: http://www.cse.yorku.ca/~oz/hash.html */
@@ -230,7 +230,7 @@ static void *server_threadfn(void *arg)
 						 
 	/* fprintf(stderr, "SA family: %d", sa.sa_family); */
 	/* fprintf(stderr, "HOST family: %d\n", ); */
-	fprintf(stderr, "Rec: %s\n", buffer);
+	/* fprintf(stderr, "Rec: %s\n", buffer); */
 
 	int val_offset = 0;
 	for (int i=0; i<strlen(buffer); i++) {
@@ -241,12 +241,18 @@ static void *server_threadfn(void *arg)
 		buffer[i] = '\0';
 	    }
 	}
-	fprintf(stderr, "Val string: %s\n", buffer + val_offset);
+	/* fprintf(stderr, "Val string: %s\n", buffer + val_offset); */
 
 	Endpoint *ep = api_endpoint_get(buffer);
 	if (ep) {
+	    fprintf(stderr, "REC: %s\n", buffer);
+	    char dst[255];
+	    api_endpoint_get_route(ep, dst, 255);
+	    fprintf(stderr, "ROUTE: %s\n", dst);
 	    Value new_val = jdaw_val_from_str(buffer + val_offset, ep->val_type);
 	    endpoint_write(ep, new_val, true, true, true, false);
+	} else {
+	    fprintf(stderr, "not found: %s\n", buffer);
 	}
 
 

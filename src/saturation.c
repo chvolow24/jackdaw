@@ -51,6 +51,7 @@ void saturation_init(Saturation *s)
 	JDAW_THREAD_DSP,
 	track_settings_page_el_gui_cb, NULL, saturation_gain_cb,
 	(void *)s, NULL, NULL, (void *)"track_settings_saturation_gain_slider");
+    api_endpoint_register(&s->gain_ep, &s->track->api_node);
     endpoint_init(
 	&s->gain_comp_ep,
 	&s->do_gain_comp,

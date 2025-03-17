@@ -1444,13 +1444,14 @@ Track *timeline_add_track(Timeline *tl)
 	track_color_index = 0;
     }
 
+    api_node_register(&track->api_node, &track->tl->api_node, track->name);
+
     eq_init(&track->eq);
 
+    track->saturation.track = track;
     saturation_init(&track->saturation);
 
     /* API */
-
-    api_node_register(&track->api_node, &track->tl->api_node, track->name);
     
     endpoint_init(
 	&track->vol_ep,

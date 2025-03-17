@@ -40,6 +40,7 @@ typedef struct saturation {
     Endpoint gain_comp_ep;
     Endpoint type_ep;
     double (*sample_fn)(Saturation *s, double in);
+    Track *track;
 } Saturation;
 
 

@@ -219,11 +219,12 @@ void automation_delete(Automation *a)
 	0, 0, false, false);
 }
 
-Automation *track_add_automation(Track *track, AutomationType type)
+/* Endpoint MUST have min, max, and default set */
+static Automation *track_add_automation_from_endpoint(Track *track, Endpoint *ep)
 {
     Automation *a = calloc(1, sizeof(Automation));
     a->track = track;
-    a->type = type;
+    a->type = AUTO_ENDPOINT;
     a->read = true;
     a->index = track->num_automations;
     a->keyframe_arrlen = KEYFRAMES_ARR_INITLEN;
@@ -240,110 +241,117 @@ Automation *track_add_automation(Track *track, AutomationType type)
     }
 
     
-    /* a->kclips_arr_len = KCLIPS_ARR_INITLEN; */
-    /* a->kclips = calloc(KCLIPS_ARR_INITLEN, sizeof(KClipRef)); */
     track->automations[track->num_automations] = a;
     track->num_automations++;
-    Value base_kf_val;
-    switch (type) {
-    case AUTO_VOL:
-	a->val_type = JDAW_FLOAT;
-	a->min.float_v = 0.0f;
-	a->max.float_v = TRACK_VOL_MAX;
-	a->range.float_v = TRACK_VOL_MAX;
-	a->target_val = &track->vol;
-	base_kf_val.float_v = track->vol;
-	automation_insert_keyframe_at(a, 0, base_kf_val);
-	endpoint_bind_automation(&track->vol_ep, a);
-	break;
-    case AUTO_PAN:
-	a->val_type = JDAW_FLOAT;
-	a->min.float_v = 0.0f;
-	a->max.float_v = 1.0f;
-	a->range.float_v = 1.0f;
-	a->target_val = &track->pan;
-	base_kf_val.float_v = track->pan;
-	automation_insert_keyframe_at(a, 0, base_kf_val);
-	endpoint_bind_automation(&track->pan_ep, a);
-	/* automation_insert_keyframe_at(a, NULL, base_kf_val, 0); */
-	break;
-    case AUTO_FIR_FILTER_CUTOFF:
 
-	/* 	if (!track->fir_filter.frequency_response) { */
-	/*     Project *proj_loc = track->tl->proj; */
-	/*     int ir_len = proj_loc->fourier_len_sframes/4; */
-	/*     filter_init(&track->fir_filter, LOWPASS, ir_len, proj_loc->fourier_len_sframes * 2); */
-	/*     track->fir_filter.track = track; */
-	/*     filter_set_params_hz(&track->fir_filter, LOWPASS, 1000, 1000); */
-	/*     track->fir_filter_active = false; */
-	/* } */
+    a->val_type = ep->val_type;
+    a->min = ep->min;
+    a->max = ep->max;
+    a->range = jdaw_val_sub(ep->max, ep->min, ep->val_type);
+    a->target_val = ep->val;
+    Value base_kf_val = ep->default_val;
+    automation_insert_keyframe_at(a, 0, base_kf_val);
+    endpoint_bind_automation(ep, a);
+    /* /\* a->min.float_v = ep-> *\/ */
+    /* switch (type) { */
+    /* case AUTO_VOL: */
+    /* 	a->val_type = JDAW_FLOAT; */
+    /* 	a->min.float_v = 0.0f; */
+    /* 	a->max.float_v = TRACK_VOL_MAX; */
+    /* 	a->range.float_v = TRACK_VOL_MAX; */
+    /* 	a->target_val = &track->vol; */
+    /* 	base_kf_val.float_v = track->vol; */
+    /* 	automation_insert_keyframe_at(a, 0, base_kf_val); */
+    /* 	endpoint_bind_automation(&track->vol_ep, a); */
+    /* 	break; */
+    /* case AUTO_PAN: */
+    /* 	a->val_type = JDAW_FLOAT; */
+    /* 	a->min.float_v = 0.0f; */
+    /* 	a->max.float_v = 1.0f; */
+    /* 	a->range.float_v = 1.0f; */
+    /* 	a->target_val = &track->pan; */
+    /* 	base_kf_val.float_v = track->pan; */
+    /* 	automation_insert_keyframe_at(a, 0, base_kf_val); */
+    /* 	endpoint_bind_automation(&track->pan_ep, a); */
+    /* 	/\* automation_insert_keyframe_at(a, NULL, base_kf_val, 0); *\/ */
+    /* 	break; */
+    /* case AUTO_FIR_FILTER_CUTOFF: */
 
-	if (!track->fir_filter.initialized) {
-	    track_add_default_filter(track);
-	}
-	a->val_type = JDAW_DOUBLE;
-	a->target_val = &track->fir_filter.cutoff_freq_unscaled;
-	a->min.double_v = 0.0;
-	a->max.double_v = 1.0;
-	a->range.double_v = 1.0;
-	base_kf_val.double_v = 1.0;
-	automation_insert_keyframe_at(a, 0, base_kf_val);
-	endpoint_bind_automation(&track->fir_filter.cutoff_ep, a);
-	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
-	break;
-    case AUTO_FIR_FILTER_BANDWIDTH:
-	if (!track->fir_filter.frequency_response) {
-	    track_add_default_filter(track);
-	}
-	a->val_type = JDAW_DOUBLE;
-	a->target_val = &track->fir_filter.bandwidth_unscaled;
-	a->min.double_v = 0.0;
-	a->max.double_v = 1.0;
-	a->range.double_v = 1.0;
-	base_kf_val.double_v = 0.5;
-	automation_insert_keyframe_at(a, 0, base_kf_val);
-	endpoint_bind_automation(&track->fir_filter.bandwidth_ep, a);
-	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
-	break;
-    case AUTO_DEL_TIME:
-	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line, track, track->tl->proj->sample_rate);
-	a->val_type = JDAW_INT16;
-	a->min.int16_v = 1;
-	a->max.int16_v = DELAY_LINE_MAX_LEN_S * 1000;//track->tl->proj->sample_rate * DELAY_LINE_MAX_LEN_S;
-	a->range.int16_v = a->max.int16_v - 1;
-	a->target_val = &track->delay_line.len_msec;
-	base_kf_val.int16_v = 100;
-	automation_insert_keyframe_at(a, 0, base_kf_val);
-	endpoint_bind_automation(&track->delay_line.len_ep, a);
-	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
+    /* 	/\* 	if (!track->fir_filter.frequency_response) { *\/ */
+    /* 	/\*     Project *proj_loc = track->tl->proj; *\/ */
+    /* 	/\*     int ir_len = proj_loc->fourier_len_sframes/4; *\/ */
+    /* 	/\*     filter_init(&track->fir_filter, LOWPASS, ir_len, proj_loc->fourier_len_sframes * 2); *\/ */
+    /* 	/\*     track->fir_filter.track = track; *\/ */
+    /* 	/\*     filter_set_params_hz(&track->fir_filter, LOWPASS, 1000, 1000); *\/ */
+    /* 	/\*     track->fir_filter_active = false; *\/ */
+    /* 	/\* } *\/ */
 
-	break;
-    case AUTO_DEL_AMP:
-	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line, track, track->tl->proj->sample_rate);
-	a->val_type = JDAW_DOUBLE;
-	a->target_val = &track->delay_line.amp;
-	a->min.double_v = 0.0;
-	a->max.double_v = 1.0;
-	a->range.double_v = 1.0;
-	base_kf_val.double_v = 0.5;
-	automation_insert_keyframe_at(a, 0, base_kf_val);
-	endpoint_bind_automation(&track->delay_line.amp_ep, a);
-	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
-	break;
-    case AUTO_PLAY_SPEED:
-	a->val_type = JDAW_FLOAT;
-	a->min.float_v = 0.05;
-	a->max.float_v = 5.0;
-	a->range.float_v = 5.0 - 0.05;
-	a->target_val = &track->tl->proj->play_speed;
-	base_kf_val.float_v = 1.0f;
-	automation_insert_keyframe_at(a, 0, base_kf_val);
-	endpoint_bind_automation(&proj->play_speed_ep, a);
-	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
-	break;
-    default:
-	break;
-    }
+    /* 	if (!track->fir_filter.initialized) { */
+    /* 	    track_add_default_filter(track); */
+    /* 	} */
+    /* 	a->val_type = JDAW_DOUBLE; */
+    /* 	a->target_val = &track->fir_filter.cutoff_freq_unscaled; */
+    /* 	a->min.double_v = 0.0; */
+    /* 	a->max.double_v = 1.0; */
+    /* 	a->range.double_v = 1.0; */
+    /* 	base_kf_val.double_v = 1.0; */
+    /* 	automation_insert_keyframe_at(a, 0, base_kf_val); */
+    /* 	endpoint_bind_automation(&track->fir_filter.cutoff_ep, a); */
+    /* 	/\* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); *\/ */
+    /* 	break; */
+    /* case AUTO_FIR_FILTER_BANDWIDTH: */
+    /* 	if (!track->fir_filter.frequency_response) { */
+    /* 	    track_add_default_filter(track); */
+    /* 	} */
+    /* 	a->val_type = JDAW_DOUBLE; */
+    /* 	a->target_val = &track->fir_filter.bandwidth_unscaled; */
+    /* 	a->min.double_v = 0.0; */
+    /* 	a->max.double_v = 1.0; */
+    /* 	a->range.double_v = 1.0; */
+    /* 	base_kf_val.double_v = 0.5; */
+    /* 	automation_insert_keyframe_at(a, 0, base_kf_val); */
+    /* 	endpoint_bind_automation(&track->fir_filter.bandwidth_ep, a); */
+    /* 	/\* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); *\/ */
+    /* 	break; */
+    /* case AUTO_DEL_TIME: */
+    /* 	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line, track, track->tl->proj->sample_rate); */
+    /* 	a->val_type = JDAW_INT16; */
+    /* 	a->min.int16_v = 1; */
+    /* 	a->max.int16_v = DELAY_LINE_MAX_LEN_S * 1000;//track->tl->proj->sample_rate * DELAY_LINE_MAX_LEN_S; */
+    /* 	a->range.int16_v = a->max.int16_v - 1; */
+    /* 	a->target_val = &track->delay_line.len_msec; */
+    /* 	base_kf_val.int16_v = 100; */
+    /* 	automation_insert_keyframe_at(a, 0, base_kf_val); */
+    /* 	endpoint_bind_automation(&track->delay_line.len_ep, a); */
+    /* 	/\* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); *\/ */
+
+    /* 	break; */
+    /* case AUTO_DEL_AMP: */
+    /* 	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line, track, track->tl->proj->sample_rate); */
+    /* 	a->val_type = JDAW_DOUBLE; */
+    /* 	a->target_val = &track->delay_line.amp; */
+    /* 	a->min.double_v = 0.0; */
+    /* 	a->max.double_v = 1.0; */
+    /* 	a->range.double_v = 1.0; */
+    /* 	base_kf_val.double_v = 0.5; */
+    /* 	automation_insert_keyframe_at(a, 0, base_kf_val); */
+    /* 	endpoint_bind_automation(&track->delay_line.amp_ep, a); */
+    /* 	/\* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); *\/ */
+    /* 	break; */
+    /* case AUTO_PLAY_SPEED: */
+    /* 	a->val_type = JDAW_FLOAT; */
+    /* 	a->min.float_v = 0.05; */
+    /* 	a->max.float_v = 5.0; */
+    /* 	a->range.float_v = 5.0 - 0.05; */
+    /* 	a->target_val = &track->tl->proj->play_speed; */
+    /* 	base_kf_val.float_v = 1.0f; */
+    /* 	automation_insert_keyframe_at(a, 0, base_kf_val); */
+    /* 	endpoint_bind_automation(&proj->play_speed_ep, a); */
+    /* 	/\* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); *\/ */
+    /* 	break; */
+    /* default: */
+    /* 	break; */
+    /* } */
     track->automation_dropdown->background_color = &color_global_dropdown_green;
 
     Value nullval;
@@ -358,32 +366,149 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	0, 0, false, false);
 	
     return a;
+
 }
+
+
+Automation *track_add_automation(Track *track, AutomationType type)
+{
+    Automation *a = NULL;
+    switch (type) {
+    case AUTO_VOL:
+	a = track_add_automation_from_endpoint(track, &track->vol_ep);
+	break;
+    case AUTO_PAN:
+	a = track_add_automation_from_endpoint(track, &track->pan_ep);
+	/* automation_insert_keyframe_at(a, NULL, base_kf_val, 0); */
+	break;
+    case AUTO_FIR_FILTER_CUTOFF:
+	a = track_add_automation_from_endpoint(track, &track->fir_filter.cutoff_ep);
+	break;
+    case AUTO_FIR_FILTER_BANDWIDTH:
+	a = track_add_automation_from_endpoint(track, &track->fir_filter.bandwidth_ep);
+	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
+	break;
+    /* case AUTO_DEL_TIME: */
+    /* 	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line, track, track->tl->proj->sample_rate); */
+    /* 	a->val_type = JDAW_INT16; */
+    /* 	a->min.int16_v = 1; */
+    /* 	a->max.int16_v = DELAY_LINE_MAX_LEN_S * 1000;//track->tl->proj->sample_rate * DELAY_LINE_MAX_LEN_S; */
+    /* 	a->range.int16_v = a->max.int16_v - 1; */
+    /* 	a->target_val = &track->delay_line.len_msec; */
+    /* 	base_kf_val.int16_v = 100; */
+    /* 	automation_insert_keyframe_at(a, 0, base_kf_val); */
+    /* 	endpoint_bind_automation(&track->delay_line.len_ep, a); */
+    /* 	/\* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); *\/ */
+
+    /* 	break; */
+    /* case AUTO_DEL_AMP: */
+    /* 	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line, track, track->tl->proj->sample_rate); */
+    /* 	a->val_type = JDAW_DOUBLE; */
+    /* 	a->target_val = &track->delay_line.amp; */
+    /* 	a->min.double_v = 0.0; */
+    /* 	a->max.double_v = 1.0; */
+    /* 	a->range.double_v = 1.0; */
+    /* 	base_kf_val.double_v = 0.5; */
+    /* 	automation_insert_keyframe_at(a, 0, base_kf_val); */
+    /* 	endpoint_bind_automation(&track->delay_line.amp_ep, a); */
+    /* 	/\* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); *\/ */
+    /* 	break; */
+    /* case AUTO_PLAY_SPEED: */
+    /* 	a->val_type = JDAW_FLOAT; */
+    /* 	a->min.float_v = 0.05; */
+    /* 	a->max.float_v = 5.0; */
+    /* 	a->range.float_v = 5.0 - 0.05; */
+    /* 	a->target_val = &track->tl->proj->play_speed; */
+    /* 	base_kf_val.float_v = 1.0f; */
+    /* 	automation_insert_keyframe_at(a, 0, base_kf_val); */
+    /* 	endpoint_bind_automation(&proj->play_speed_ep, a); */
+    /* 	/\* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); *\/ */
+    /* 	break; */
+    default:
+	break;
+    }
+    track->automation_dropdown->background_color = &color_global_dropdown_green;
+    a->type = type;
+    return a;
+    /* Automation *a = calloc(1, sizeof(Automation)); */
+    /* a->track = track; */
+    /* a->type = type; */
+    /* a->read = true; */
+    /* a->index = track->num_automations; */
+    /* a->keyframe_arrlen = KEYFRAMES_ARR_INITLEN; */
+    /* a->keyframes = calloc(a->keyframe_arrlen, sizeof(Keyframe)); */
+
+    /* int ret; */
+    /* if ((ret = pthread_mutex_init(&a->lock, NULL) != 0)) { */
+    /* 	fprintf(stderr, "Error initializing automation lock: %s\n", strerror(ret)); */
+    /* 	exit(1); */
+    /* } */
+    /* if ((ret = pthread_mutex_init(&a->keyframe_arr_lock, NULL) != 0)) { */
+    /* 	fprintf(stderr, "Error initializing keyframe arr lock: %s\n", strerror(ret)); */
+    /* 	exit(1); */
+    /* } */
+
+    
+    /* /\* a->kclips_arr_len = KCLIPS_ARR_INITLEN; *\/ */
+    /* /\* a->kclips = calloc(KCLIPS_ARR_INITLEN, sizeof(KClipRef)); *\/ */
+    /* track->automations[track->num_automations] = a; */
+    /* track->num_automations++; */
+    /* Value base_kf_val; */
+    /* switch (type) { */
+
+    /* Value nullval; */
+    /* memset(&nullval, '\0', sizeof(Value)); */
+    /* user_event_push( */
+    /* 	&track->tl->proj->history, */
+    /* 	undo_add_automation, */
+    /* 	redo_add_automation, */
+    /* 	NULL, NULL, */
+    /* 	(void *)a, NULL, */
+    /* 	nullval, nullval, nullval, nullval, */
+    /* 	0, 0, false, false); */
+	
+    /* return a; */
+}
+
 
 
 static int add_auto_form(void *mod_v, void *nullarg)
 {
     Modal *modal = (Modal *)mod_v;
     ModalEl *el;
-    AutomationType t = 0;
+    /* AutomationType t = 0; */
     Track *track = NULL;
+    int ep_index = -1;
     for (uint8_t i=0; i<modal->num_els; i++) {
 	switch ((el = modal->els[i])->type) {
 	case MODAL_EL_RADIO:
-	    t = ((RadioButton *)el->obj)->selected_item;
+	    ep_index = ((RadioButton *)el->obj)->selected_item;
+	    /* t = ((RadioButton *)el->obj)->selected_item; */
 	    track = ((RadioButton *)el->obj)->ep->xarg1;
 	    break;
 	default:
 	    break;
 	}
     }
+
+    if (!track || ep_index < 0) {
+	fprintf(stderr, "Error: illegal value for ep_index or no track in auto_add_form\n");
+	exit(1);
+    }
+    Endpoint *ep = track->api_node.endpoints[ep_index];
     for (uint8_t i=0; i<track->num_automations; i++) {
-	if (track->automations[i]->type == t) {
+	if (track->automations[i]->endpoint == ep) {
 	    status_set_errstr("Track already has an automation of that type");
 	    return 1;
 	}
+	    
+	/* if (track->automations[i]->ep =  */
+	/* if (track->automations[i]->type == t) { */
+	/*     status_set_errstr("Track already has an automation of that type"); */
+	/*     return 1; */
+	/* } */
     }
-    Automation *a = track_add_automation(track, t);
+    Automation *a = track_add_automation_from_endpoint(track, ep);
     track_automations_show_all(track);
     track->selected_automation = a->index;
     window_pop_modal(main_win);
@@ -412,14 +537,26 @@ void track_add_new_automation(Track *track)
 	    track, NULL,NULL,NULL);
     }
     automation_selection_ep.xarg1 = (void *)track;
+
+    APINode node = track->api_node;
+    Endpoint *items[node.num_endpoints];
+    const char *item_labels[node.num_endpoints];
+    for (int i=0; i<node.num_endpoints; i++) {
+	items[i] = node.endpoints[i];
+	item_labels[i] = node.endpoints[i]->display_name;
+    }
+    
     modal_add_radio(
 	m,
 	&color_global_light_grey,
 	/* (void *)track, */
 	&automation_selection_ep,
 	/* NULL, */
-	AUTOMATION_LABELS,
-	sizeof(AUTOMATION_LABELS) / sizeof(const char *));
+	item_labels,
+	/* AUTOMATION_LABELS, */	
+	/* sizeof(AUTOMATION_LABELS) / sizeof(const char *)); */
+	node.num_endpoints);
+    
     modal_add_button(m, "Add", add_auto_form);
     window_push_modal(main_win, m);
     modal_reset(m);
@@ -597,7 +734,8 @@ void automation_show(Automation *a)
 	/* fprintf(stderr, "A type int val: %d\n", a->type); */
 	/* fprintf(stderr, "Corresponding label: %s\n", AUTOMATION_LABELS[a->type]); */
 	a->label = textbox_create_from_str(
-	    AUTOMATION_LABELS[a->type],
+	    a->endpoint->display_name,
+	    /* AUTOMATION_LABELS[a->type], */
 	    tb_lt,
 	    main_win->mono_bold_font,
 	    12,
@@ -646,7 +784,8 @@ void automation_show(Automation *a)
 	button->tb->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
 	textbox_set_style(button->tb, BUTTON_DARK);
 	a->write_button = button;
-	a->keyframe_label = label_create(0, a->layout, auto_labelfns[a->type], a, a->val_type, main_win);
+	/* a->keyframe_label = label_create(0, a->layout, auto_labelfns[a->type], a, a->val_type, main_win); */
+	a->keyframe_label = label_create(0, a->layout, a->endpoint->label_fn, a, a->endpoint->val_type, main_win);
     } else {
 	a->layout->h.value = AUTOMATION_LT_H;
 	a->layout->y.value = AUTOMATION_LT_Y;
@@ -1381,10 +1520,10 @@ Value inline automation_get_value(Automation *a, int32_t pos, float direction)
     return automation_value_at(a, pos);
 }
 
-void automation_get_value_range(Automation *a, int32_t start_pos, void *dst_arr, int num_items, float step)
-{
+/* void automation_get_value_range(Automation *a, int32_t start_pos, void *dst_arr, int num_items, float step) */
+/* { */
     
-}
+/* } */
 
 void automation_draw(Automation *a)
 {
@@ -1455,10 +1594,13 @@ void automation_draw(Automation *a)
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(a->track->color));
     SDL_RenderFillRect(main_win->rend, a->color_bar_rect);
 
+    /* SDL_RenderSetClipRect(main_win->rend, a->console_rect); */
     textbox_draw(a->label);
     button_draw(a->read_button);
     button_draw(a->write_button);
     label_draw(a->keyframe_label);
+
+    /* SDL_RenderSetClipRect(main_win->rend, NULL); */
 
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_grey));
     SDL_Rect ltrect = a->layout->rect;

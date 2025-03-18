@@ -646,20 +646,6 @@ static void control_bar_draw(Project *proj)
     }
 }
 
-
-/* extern SDL_Color color_global_x_red; */
-/* extern SDL_Color color_global_dropdown_green; */
-/* extern SDL_Color color_global_min_yellow; */
-
-/* extern double freq_resp[]; */
-/* extern int freq_resp_len; */
-/* extern struct freq_plot *eqfp; */
-/* extern double freq_resp[]; */
-/* extern double complex pole_zero[]; */
-extern EQ glob_eq;
-void eq_draw();
-void eq_tests_create();
-
 void project_draw()
 {
     window_start_draw(main_win, NULL);

@@ -134,10 +134,10 @@ typedef struct track {
     Saturation saturation;
 
     FIRFilter fir_filter;
-    bool fir_filter_active;
+    /* bool fir_filter_active; */
     
     DelayLine delay_line;
-    bool delay_line_active;
+    /* bool delay_line_active; */
 
     Automation *automations[MAX_TRACK_AUTOMATIONS];
     uint8_t num_automations;

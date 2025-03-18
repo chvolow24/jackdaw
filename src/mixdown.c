@@ -59,7 +59,30 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	else if (a->type == AUTO_DEL_TIME) delay_time = a;
 	else if (a->type == AUTO_DEL_AMP) delay_amp = a;
 	else if (a->type == AUTO_PLAY_SPEED) play_speed = a;
+	if (a->endpoint == &track->vol_ep) vol_auto = a;
+	else if (a->endpoint == &track->pan_ep) pan_auto = a;
+	else if (a->endpoint == &track->fir_filter.cutoff_ep) fir_filter_cutoff = a;
+	else if (a->endpoint == &track->fir_filter.bandwidth_ep) fir_filter_bandwidth = a;
+	else if (a->endpoint == &track->delay_line.len_ep) delay_time = a;
+	else if (a->endpoint == &track->delay_line.amp_ep) delay_amp = a;
     }
+
+
+    /* TESTING GENERIC APPROACH */
+    for (int i=0; i<track->num_automations; i++) {
+	Automation *a = track->automations[i];
+	if (a->read && !a->write && a->endpoint) {
+	    Value val = automation_get_value(a, start_pos_sframes, step);	    
+	    endpoint_write(a->endpoint, val, true, true, true, false);
+	}
+    }
+    /* for (int i=0; i<track->api_node.num_endpoints; i++) { */
+    /* 	Endpoint *ep = track->api_node.endpoints[i]; */
+    /* 	if (ep->automation && ep->automation->read && !ep->automation->write) { */
+    /* 	    Value val = automation_get_value(ep->automation, start_pos_sframes, step); */
+    /* 	    endpoint_write(ep, val, true, true, true, false); */
+    /* 	} */
+    /* } */
 
     float vol_vals[len_sframes];
     float pan_vals[len_sframes];
@@ -300,14 +323,14 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 	}
 
 	/* start = clock(); */
-	if (audio_in_track && track->fir_filter_active) { /* Only apply FIR filter if there is audio */
+	if (audio_in_track && track->fir_filter.active) { /* Only apply FIR filter if there is audio */
 	    apply_filter(&track->fir_filter, track, channel, len_sframes, track_chunk);
 	}
 	/* filter += ((double)clock() - start) / CLOCKS_PER_SEC; */
 
 	/* start = clock(); */
 	float del_line_total_amp = 0.0f;
-	if (track->delay_line_active) {
+	if (track->delay_line.active) {
 	    DelayLine *dl = &track->delay_line;
 	    pthread_mutex_lock(&dl->lock);
 	    double *del_line = channel == 0 ? dl->buf_L : dl->buf_R;

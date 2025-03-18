@@ -31,6 +31,7 @@ typedef enum filter_type {
 } FilterType;
 
 typedef struct fir_filter {
+    bool active;
     bool initialized;
     FilterType type;
     double cutoff_freq_unscaled; /* For gui components and automations */
@@ -60,6 +61,7 @@ typedef struct fir_filter {
 } FIRFilter;
 
 typedef struct delay_line {
+    bool active;
     bool initialized;
     int32_t len_msec; /* For endpoint / GUI components */
     int32_t len; /* Sample frames */
@@ -119,5 +121,5 @@ void delay_line_clear(DelayLine *dl);
 double dsp_scale_freq_to_hz(double freq_unscaled);
 
 
-void track_add_default_filter(Track *track);
+/* void track_add_default_filter(Track *track); */
 #endif

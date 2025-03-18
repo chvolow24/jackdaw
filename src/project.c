@@ -525,7 +525,7 @@ Project *project_create(
 	&proj->play_speed,
 	JDAW_FLOAT,
 	"play_speed",
-	"undo/redo play speed adj",
+	"Play speed",
 	JDAW_THREAD_MAIN,
 	play_speed_gui_cb, NULL, NULL,
 	NULL, NULL, NULL, NULL);
@@ -1450,6 +1450,11 @@ Track *timeline_add_track(Timeline *tl)
 
     track->saturation.track = track;
     saturation_init(&track->saturation);
+    int ir_len = track->tl->proj->fourier_len_sframes/4;
+    int fr_len = track->tl->proj->fourier_len_sframes * 2;
+    filter_init(&track->fir_filter, track, LOWPASS, ir_len, fr_len);
+
+    delay_line_init(&track->delay_line, track, track->tl->proj->sample_rate);
 
     /* API */
     
@@ -1458,7 +1463,7 @@ Track *timeline_add_track(Timeline *tl)
 	&track->vol,
 	JDAW_FLOAT,
 	"vol",
-	"undo/redo adjust track volume",
+	"Track volume",
 	JDAW_THREAD_DSP,
 	track_slider_cb,
 	NULL, NULL,
@@ -1469,13 +1474,19 @@ Track *timeline_add_track(Timeline *tl)
 	(Value){.float_v=0.0},
 	(Value){.float_v=TRACK_VOL_MAX});
 
+    endpoint_set_default_value(&track->vol_ep, (Value){.float_v = 1.0});
+    endpoint_set_label_fn(&track->vol_ep, label_amp_to_dbstr);
+    api_endpoint_register(&track->vol_ep, &track->api_node);
+
+
+
 
     endpoint_init(
 	&track->pan_ep,
 	&track->pan,
 	JDAW_FLOAT,
 	"pan",
-	"undo/redo adj track pan",
+	"Track pan",
 	JDAW_THREAD_DSP,
 	track_slider_cb,
 	NULL, NULL,
@@ -1485,6 +1496,9 @@ Track *timeline_add_track(Timeline *tl)
 	&track->pan_ep,
 	(Value){.float_v = 0.0},
 	(Value){.float_v = 1.0});
+    endpoint_set_default_value(&track->pan_ep, (Value){.float_v = 0.5});
+    endpoint_set_label_fn(&track->pan_ep, label_pan);
+    api_endpoint_register(&track->pan_ep, &track->api_node);
     
     /* Layout *track_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area"); */
     Layout *track_template = layout_read_xml_to_lt(tl->track_area, TRACK_LT_PATH);
@@ -1703,8 +1717,10 @@ Track *timeline_add_track(Timeline *tl)
     if (tl->layout_selector < 0) tl->layout_selector = 0;
     timeline_rectify_track_indices(tl);
 
-    api_endpoint_register(&track->vol_ep, &track->api_node);
-    api_endpoint_register(&track->pan_ep, &track->api_node);
+    api_endpoint_register(&track->saturation.gain_ep, &track->saturation.track->api_node);
+    api_endpoint_register(&track->eq.ctrls[0].freq_ep, &track->api_node);
+    api_endpoint_register(&track->eq.ctrls[0].amp_ep, &track->api_node);
+
     return track;
 }
 

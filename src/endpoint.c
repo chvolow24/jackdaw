@@ -35,7 +35,7 @@ int endpoint_init(
     void *val,
     ValType t,
     const char *local_id,
-    const char *undo_str,
+    const char *display_name,
     enum jdaw_thread owner_thread,
     EndptCb gui_cb,
     EndptCb proj_cb,
@@ -46,7 +46,7 @@ int endpoint_init(
     ep->val = val;
     ep->val_type = t;
     ep->local_id = local_id;
-    ep->undo_str = undo_str;
+    ep->display_name = display_name;
     ep->owner_thread = owner_thread;
     ep->gui_callback = gui_cb;
     ep->proj_callback = proj_cb;
@@ -75,6 +75,16 @@ void endpoint_set_allowed_range(Endpoint *ep, Value min, Value max)
     ep->restrict_range = true;
 }
 
+void endpoint_set_default_value(Endpoint *ep, Value default_val)
+{
+    ep->default_val = default_val;
+}
+
+void endpoint_set_label_fn(Endpoint *ep, LabelStrFn fn)
+{
+    ep->label_fn = fn;
+}
+
 /* int enpoint_add_callback(Endpoint *ep, EndptCb fn, enum jdaw_thread thread) */
 /* { */
 /*     if (ep->num_callbacks == MAX_ENDPOINT_CALLBACKS) { */
@@ -101,7 +111,7 @@ NEW_EVENT_FN(undo_redo_endpoint_write, "")
 	false);
 
     char statstr_fmt[255];						
-    snprintf(statstr_fmt, 255, "(%d/%d) %s", proj->history.len - self->index, proj->history.len, ep->undo_str);
+    snprintf(statstr_fmt, 255, "(%d/%d) undo/redo adj %s", proj->history.len - self->index, proj->history.len, ep->display_name);
     status_set_undostr(statstr_fmt);
 }
 

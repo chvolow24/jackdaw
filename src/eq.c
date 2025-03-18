@@ -16,6 +16,7 @@
  *****************************************************************************************************************/
 
 #include "color.h"
+#include "endpoint.h"
 #include "geometry.h"
 #include "eq.h"
 #include "iir.h"
@@ -71,6 +72,7 @@ static void eq_dsp_cb(Endpoint *ep)
 {
     EQ *eq = ep->xarg1;
     EQFilterCtrl *ctrl = ep->xarg2;
+    fprintf(stderr, "FREQ AMP: %f %f\n", ctrl->freq_amp_raw[0], ctrl->freq_amp_raw[1]);
     eq_set_peak(eq, ctrl->index, ctrl->freq_amp_raw[0], ctrl->freq_amp_raw[1], ctrl->bandwidth_scalar * ctrl->freq_amp_raw[0]);
 }
 
@@ -136,28 +138,45 @@ void eq_init(EQ *eq)
 	    
 	endpoint_init(
 	    &eq->ctrls[i].amp_ep,
-	    &eq->ctrls[i].freq_amp_raw + 1,
+	    &eq->ctrls[i].freq_amp_raw[1],
 	    JDAW_DOUBLE,
 	    "eq_peak_amp",
-	    "undo set eq filter peak",
+	    "EQ filter amp",
 	    JDAW_THREAD_DSP,
 	    eq_gui_cb, NULL, eq_dsp_cb,
 	    (void*)eq, (void*)(eq->ctrls + i), NULL, NULL);
+	endpoint_set_allowed_range(
+	    &eq->ctrls[i].amp_ep,
+	    (Value){.double_v = 0.0},
+	    (Value){.double_v = 20.0});
+	endpoint_set_default_value(
+	    &eq->ctrls[i].amp_ep,
+	    (Value){.double_v = 1.0});
+
 	endpoint_init(
 	    &eq->ctrls[i].freq_ep,
 	    &eq->ctrls[i].freq_amp_raw,
 	    JDAW_DOUBLE,
 	    "eq_peak_freq",
-	    "undo set eq filter freq",
+	    "EQ filter freq",
 	    JDAW_THREAD_DSP,
 	    eq_gui_cb, NULL, eq_dsp_cb,
 	    (void*)eq, (void*)(eq->ctrls + i), NULL, NULL);
+	endpoint_set_allowed_range(
+	    &eq->ctrls[i].freq_ep,
+	    (Value){.double_v = 0.0},
+	    (Value){.double_v = 1.0});
+	endpoint_set_default_value(
+	    &eq->ctrls[i].freq_ep,
+	    (Value){.double_v = 0.1});
+
+	
 	endpoint_init(
 	    &eq->ctrls[i].bandwidth_scalar_ep,
 	    &eq->ctrls[i].bandwidth_scalar,
 	    JDAW_DOUBLE,
 	    "eq_bandwidth_scalar",
-	    "undo set eq filter bandwidth",
+	    "EQ filter bandwidth",
 	    JDAW_THREAD_DSP,
 	    eq_gui_cb, NULL, eq_dsp_cb,
 	    (void*)eq, (void*)(eq->ctrls + i), NULL, NULL);
@@ -166,7 +185,7 @@ void eq_init(EQ *eq)
 	    &eq->ctrls[i].freq_amp_raw,
 	    JDAW_DOUBLE_PAIR,
 	    "eq_freq_and_amp",
-	    "undo set eq freq/amp",
+	    "EQ filter freq/amp",
 	    JDAW_THREAD_DSP,
 	    eq_gui_cb, NULL, eq_dsp_cb,
 	    (void *)eq, (void *)(eq->ctrls + i), NULL, NULL);

@@ -47,17 +47,20 @@ void saturation_init(Saturation *s)
 	&s->gain,
 	JDAW_DOUBLE,
 	"saturation_gain",
-	"undo adj saturation gain",
+	"Saturation gain",
 	JDAW_THREAD_DSP,
 	track_settings_page_el_gui_cb, NULL, saturation_gain_cb,
 	(void *)s, NULL, NULL, (void *)"track_settings_saturation_gain_slider");
-    api_endpoint_register(&s->gain_ep, &s->track->api_node);
+    endpoint_set_allowed_range(&s->gain_ep, (Value){.double_v = 1.0}, (Value){.double_v = SATURATION_MAX_GAIN});
+    endpoint_set_default_value(&s->gain_ep, (Value){.double_v = 1.0});
+    endpoint_set_label_fn(&s->gain_ep, label_amp_to_dbstr);
+    
     endpoint_init(
 	&s->gain_comp_ep,
 	&s->do_gain_comp,
 	JDAW_BOOL,
 	"saturation_gain_comp",
-	"undo toggle saturation gain comp",
+	"Saturation gain comp",
 	JDAW_THREAD_DSP,
 	NULL, NULL, saturation_do_gain_comp_cb,
 	(void *)s, NULL, NULL, NULL);
@@ -66,10 +69,10 @@ void saturation_init(Saturation *s)
 	&s->type,
 	JDAW_BOOL,
 	"saturation_type",
-	"undo change saturation type",
+	"Saturation type",
 	JDAW_THREAD_DSP,
 	track_settings_page_el_gui_cb, NULL, saturation_type_cb,
-	(void *)s, NULL, NULL, (void *)"track_settings_saturation_type");    
+	(void *)s, NULL, NULL, (void *)"track_settings_saturation_type");
 }
 
 static double saturation_sample_tanh(Saturation *s, double in)

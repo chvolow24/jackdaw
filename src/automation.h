@@ -50,7 +50,9 @@ typedef enum automation_type {
     AUTO_FIR_FILTER_BANDWIDTH = 3,
     AUTO_DEL_TIME = 4,
     AUTO_DEL_AMP = 5,
-    AUTO_PLAY_SPEED = 6
+    AUTO_PLAY_SPEED = 6,
+    AUTO_ENDPOINT = 7
+    
 } AutomationType;
 
 typedef struct keyframe {

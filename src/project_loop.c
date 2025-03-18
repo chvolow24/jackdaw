@@ -659,6 +659,7 @@ void loop_project_main()
 			/* if (!a->current) a->current = automation_get_segment(a, play_pos_adj); */
 			int32_t frame_dur = proj->sample_rate * proj->play_speed / 30.0;
 			Value val = endpoint_safe_read(a->endpoint, NULL);
+			/* fprintf(stderr, "READ FLOATVAL (%s): %f\n", a->endpoint->local_id, val.float_v); */
 			automation_do_write(a, val, play_pos_adj, play_pos_adj + frame_dur, proj->play_speed);
 		    }
 		    /* if (a->num_kclips > 0) { */

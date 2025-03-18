@@ -108,17 +108,17 @@ static void create_track_selection_area(Page *page, Track *track)
 
 void settings_track_tabview_set_track(TabView *tv, Track *track)
 {
-    if (!track->fir_filter.frequency_response) {
-	Project *proj_loc = track->tl->proj;
-	int ir_len = proj_loc->fourier_len_sframes/4;
-	if (!track->fir_filter.initialized)
-	    filter_init(&track->fir_filter, track, LOWPASS, ir_len, proj_loc->fourier_len_sframes * 2);
-	track->fir_filter_active = false;
-    }
-    if (!track->delay_line.buf_L) {
-	delay_line_init(&track->delay_line, track, proj->sample_rate);
-	/* delay_line_set_params(&track->delay_line, 0.3, 10000); */
-    }
+    /* if (!track->fir_filter.frequency_response) { */
+    /* 	Project *proj_loc = track->tl->proj; */
+    /* 	int ir_len = proj_loc->fourier_len_sframes/4; */
+    /* 	if (!track->fir_filter.initialized) */
+    /* 	    filter_init(&track->fir_filter, track, LOWPASS, ir_len, proj_loc->fourier_len_sframes * 2); */
+    /* 	track->fir_filter_active = false; */
+    /* } */
+    /* if (!track->delay_line.buf_L) { */
+    /* 	delay_line_init(&track->delay_line, track, proj->sample_rate); */
+    /* 	/\* delay_line_set_params(&track->delay_line, 0.3, 10000); *\/ */
+    /* } */
 
     FIRFilter *f = &track->fir_filter;
 
@@ -205,7 +205,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     textbox_set_align(tb, CENTER_LEFT);
     textbox_reset_full(tb);
 
-    p.toggle_p.value = &track->fir_filter_active;
+    p.toggle_p.value = &track->fir_filter.active;
     p.toggle_p.target = NULL;
     p.toggle_p.action = NULL;
     page_add_el(page, EL_TOGGLE, p, "track_settings_filter_toggle", "toggle_filter_on");
@@ -281,7 +281,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 	&color_global_white,
 	main_win);
 
-    p.toggle_p.value = &track->delay_line_active;
+    p.toggle_p.value = &track->delay_line.active;
     p.toggle_p.action = toggle_delay_line_target_action;
     p.toggle_p.target = (void *)(&track->delay_line);
     el = page_add_el(page, EL_TOGGLE, p, "track_settings_delay_toggle", "toggle_delay");
@@ -393,7 +393,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     
     p.slider_p.ep = &track->saturation.gain_ep;
     p.slider_p.min = (Value){.double_v = 1.0};
-    p.slider_p.max = (Value){.double_v = 50.0};
+    p.slider_p.max = (Value){.double_v = SATURATION_MAX_GAIN};
     p.slider_p.create_label_fn = label_amp_to_dbstr;
     p.slider_p.style = SLIDER_FILL;
     p.slider_p.orientation = SLIDER_HORIZONTAL;

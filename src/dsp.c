@@ -299,7 +299,7 @@ void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impu
 	&filter->cutoff_freq_unscaled,
 	JDAW_DOUBLE,
 	"filter_cutoff_freq",
-	"undo/redo adj filter cutoff",
+	"Filter cutoff",
 	JDAW_THREAD_DSP,
 	filter_cutoff_gui_cb, NULL, filter_cutoff_dsp_cb,
         filter, NULL, NULL, NULL);
@@ -307,6 +307,8 @@ void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impu
 	&filter->cutoff_ep,
 	(Value){.double_v = 0.0},
 	(Value){.double_v = 1.0});
+    endpoint_set_default_value(&filter->cutoff_ep, (Value){.double_v = 0.1});
+    endpoint_set_label_fn(&filter->cutoff_ep, label_freq_raw_to_hz);
     api_endpoint_register(&filter->cutoff_ep, &filter->track->api_node);
 
     endpoint_init(
@@ -314,10 +316,16 @@ void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impu
 	&filter->bandwidth_unscaled,
 	JDAW_DOUBLE,
 	"filter_bandwidth",
-	"undo/redo adj filter bandwidth",
+	"Filter bandwidth",
 	JDAW_THREAD_DSP,
 	filter_bandwidth_gui_cb, NULL, filter_bandwidth_dsp_cb,
 	filter, NULL, NULL, NULL);
+    endpoint_set_allowed_range(
+	&filter->bandwidth_ep,
+	(Value){.double_v = 0.0},
+	(Value){.double_v = 1.0});
+    endpoint_set_default_value(&filter->bandwidth_ep, (Value){.double_v = 0.1});
+    endpoint_set_label_fn(&filter->bandwidth_ep, label_freq_raw_to_hz);
     api_endpoint_register(&filter->bandwidth_ep, &filter->track->api_node);
 
     endpoint_init(
@@ -325,22 +333,35 @@ void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impu
 	&filter->impulse_response_len_internal,
 	JDAW_UINT16,
 	"filter_irlen",
-	"undo/redo adj filter impulse resp len",
+	"Filter impulse resp len",
 	JDAW_THREAD_DSP,
 	filter_irlen_gui_cb, NULL, filter_irlen_dsp_cb,
 	filter, NULL, NULL, NULL);
-    api_endpoint_register(&filter->impulse_response_len_ep, &filter->track->api_node);
+    endpoint_set_allowed_range(
+	&filter->impulse_response_len_ep,
+	(Value){.uint16_v = 4},
+	(Value){.uint16_v = filter->track->tl->proj->fourier_len_sframes});
+    /* endpoint_set_default_value(&filter->impulse_response_len_ep, (Value){.double_v = 0.1}); */
+    /* endpoint_set_label_fn(&filter->impulse_response_len_ep, label_msec); */
+    /* api_endpoint_register(&filter->impulse_response_len_ep, &filter->track->api_node); */
+
 
     endpoint_init(
 	&filter->type_ep,
 	&filter->type,
 	JDAW_INT,
 	"type",
-	"undo/redo set filter type",
+	"Filter type",
 	JDAW_THREAD_DSP,
 	filter_type_gui_cb, NULL, filter_type_dsp_cb,
 	filter, NULL, NULL, NULL);
+
+    
+    filter_set_params_hz(&track->fir_filter, LOWPASS, 1000, 1000); /* Defaults */
+
+    
     filter->initialized = true;
+
 }
 
 extern pthread_t DSP_THREAD_ID;
@@ -622,14 +643,14 @@ void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chu
 
 /* } */
 
-void track_add_default_filter(Track *track)
-{
-    int ir_len = track->tl->proj->fourier_len_sframes/4;
-    filter_init(&track->fir_filter, track, LOWPASS, ir_len, track->tl->proj->fourier_len_sframes * 2);
-    track->fir_filter.track = track;
-    filter_set_params_hz(&track->fir_filter, LOWPASS, 1000, 1000);
-    track->fir_filter_active = true;
-}
+/* void track_add_default_filter(Track *track) */
+/* { */
+/*     int ir_len = track->tl->proj->fourier_len_sframes/4; */
+/*     filter_init(&track->fir_filter, track, LOWPASS, ir_len, track->tl->proj->fourier_len_sframes * 2); */
+/*     track->fir_filter.track = track; */
+/*     filter_set_params_hz(&track->fir_filter, LOWPASS, 1000, 1000); */
+/*     track->fir_filter_active = true; */
+/* } */
 
 
 /*****************************************************************************************************************
@@ -661,12 +682,13 @@ void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate)
 	&dl->len_msec,
 	JDAW_INT16,
 	"delay_line_len",
-	"undo/redo adj delay time",
+	"Delay time",
 	JDAW_THREAD_DSP,
 	delay_line_len_gui_cb, NULL, delay_line_len_dsp_cb,
 	/* NULL, NULL, delay_line_len_dsp_cb, */
 	(void *)dl, NULL, NULL, NULL);
     endpoint_set_allowed_range(&dl->len_ep, (Value){.int16_v=0}, (Value){.int16_v=1000});
+    endpoint_set_label_fn(&dl->len_ep, label_msec);
     api_endpoint_register(&dl->len_ep, &dl->track->api_node);
 
     endpoint_init(
@@ -674,12 +696,13 @@ void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate)
 	&dl->amp,
 	JDAW_DOUBLE,
 	"delay_line_amp",
-	"undo/redo adj delay amp",
+	"Delay amp",
 	JDAW_THREAD_DSP,
 	/* delay_line_amp_gui_cb, NULL, NULL, */
 	delay_line_amp_gui_cb, NULL, NULL,
 	(void *)dl, NULL, NULL, NULL);
     endpoint_set_allowed_range(&dl->amp_ep, (Value){.double_v=0.0}, (Value){.double_v=0.99});
+    endpoint_set_label_fn(&dl->amp_ep, label_amp_to_dbstr);
     api_endpoint_register(&dl->amp_ep, &dl->track->api_node);
     
     endpoint_init(
@@ -687,11 +710,12 @@ void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate)
 	&dl->stereo_offset,
 	JDAW_DOUBLE,
 	"delay_line_stereo_offset",
-	"undo/redo adj delay stereo offset",
+	"Delay stereo offset",
 	JDAW_THREAD_DSP,
 	delay_line_stereo_offset_gui_cb, NULL, NULL,
 	NULL, NULL, NULL, NULL);
-    endpoint_set_allowed_range(&dl->stereo_offset_ep, (Value){.double_v=0.0}, (Value){.double_v=1.0});    
+    endpoint_set_allowed_range(&dl->stereo_offset_ep, (Value){.double_v=0.0}, (Value){.double_v=1.0});
+    /* endpoint_set_label_fn(&dl->stereo_offset_ep, label_amp_); */
     api_endpoint_register(&dl->stereo_offset_ep, &dl->track->api_node);
 }
 

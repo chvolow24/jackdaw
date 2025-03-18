@@ -262,10 +262,10 @@ static void jdaw_write_track(FILE *f, Track *track)
     }
     
     /* TRCK_FX */
-    fwrite(&track->fir_filter_active, 1, 1, f);
+    fwrite(&track->fir_filter.active, 1, 1, f);
     
     FIRFilter *filter = &track->fir_filter;
-    if (track->fir_filter_active && (filter = &track->fir_filter)) {
+    if (track->fir_filter.active && (filter = &track->fir_filter)) {
 	uint8_t type_byte = (uint8_t)(filter->type);
 	fwrite(&type_byte, 1, 1, f);
 	float_ser40_le(f, filter->cutoff_freq);
@@ -275,8 +275,8 @@ static void jdaw_write_track(FILE *f, Track *track)
 	fseek(f, 13, SEEK_CUR);
 
     }
-    fwrite(&track->delay_line_active, 1, 1, f);
-    if (track->delay_line_active) {
+    fwrite(&track->delay_line.active, 1, 1, f);
+    if (track->delay_line.active) {
 	int32_ser_le(f, &track->delay_line.len);
 	float_ser40_le(f, track->delay_line.stereo_offset);
 	float_ser40_le(f, track->delay_line.amp);
@@ -798,8 +798,8 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
     }
     if (read_file_spec_version >= 00.11f) {
 	/* fread(&track->fir_filter_active, 1, 1, f); */
-	track->fir_filter_active = (bool)uint8_deser(f);
-	if (track->fir_filter_active) {
+	track->fir_filter.active = (bool)uint8_deser(f);
+	if (track->fir_filter.active) {
 	    uint8_t type_byte;
 	    FilterType type;
 	    double cutoff_freq;
@@ -821,12 +821,12 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 		bandwidth = float_deser40_le(f);
 		impulse_response_len = uint16_deser_le(f);
 	    }
-	    filter_init(
-		&track->fir_filter,
-		track,
-		type,
-		impulse_response_len,
-		tl->proj->fourier_len_sframes * 2);
+	    /* filter_init( */
+	    /* 	&track->fir_filter, */
+	    /* 	track, */
+	    /* 	type, */
+	    /* 	impulse_response_len, */
+	    /* 	tl->proj->fourier_len_sframes * 2); */
 	    filter_set_params(&track->fir_filter, type, cutoff_freq, bandwidth);
 	} else {
 	    if (read_file_spec_version < 0.15f) {
@@ -835,9 +835,9 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 		fseek(f, 13, SEEK_CUR);
 	    }
 	}
-	track->delay_line_active = (bool)uint8_deser(f);
+	track->delay_line.active = (bool)uint8_deser(f);
 	/* fread(&track->delay_line_active, 1, 1, f); */
-	if (track->delay_line_active) {
+	if (track->delay_line.active) {
 	    int32_t len;
 	    double amp;
 	    double stereo_offset;
@@ -854,7 +854,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 		amp = float_deser40_le(f);
 		stereo_offset = float_deser40_le(f);
 	    }
-	    delay_line_init(&track->delay_line, track, tl->proj->sample_rate);
+	    /* delay_line_init(&track->delay_line, track, tl->proj->sample_rate); */
 	    delay_line_set_params(&track->delay_line, amp, len);
 	    track->delay_line.stereo_offset = stereo_offset;
 	} else {

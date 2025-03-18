@@ -22,6 +22,8 @@
 #include <stdbool.h>
 #include "endpoint.h"
 
+#define SATURATION_MAX_GAIN 40.0
+
 typedef enum saturation_type {
     SAT_TANH=0,
     SAT_EXPONENTIAL=1

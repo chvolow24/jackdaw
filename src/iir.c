@@ -88,12 +88,13 @@ double iir_sample(IIRFilter *f, double in, int channel)
 	out += f->A[i + 1] * f->memIn[channel][i];
 	out += f->B[i] * f->memOut[channel][i];
     }
-    /* if (!isnormal(out)) out = 0.0; */
+
     memmove(f->memIn[channel] + 1, f->memIn[channel], sizeof(double) * (f->degree - 1));
     memmove(f->memOut[channel] + 1, f->memOut[channel], sizeof(double) * (f->degree - 1));
+				    
     f->memIn[channel][0] = in;
     f->memOut[channel][0] = out;
-	   
+    
     return out;
 }
 
@@ -103,6 +104,14 @@ void iir_advance(IIRFilter *f, int channel)
     memmove(f->memOut[channel] + 1, f->memOut[channel], sizeof(double) * (f->degree - 1));
     f->memIn[channel][0] = 0.0;
     f->memOut[channel][0] = 0.0;
+}
+
+void iir_clear(IIRFilter *f)
+{
+    for (int i=0; i<f->num_channels; i++) {
+	memset(f->memIn[i], '\0', f->degree * sizeof(double));
+	memset(f->memOut[i], '\0', f->degree * sizeof(double));
+    }
 }
 
 
@@ -337,5 +346,12 @@ void iir_group_update_freq_resp(IIRGroup *group)
 	for (int f=1; f<group->num_filters; f++) {
 	    group->freq_resp[i] *= group->filters[f].freq_resp[i];
 	}
+    }
+}
+
+void iir_group_clear(IIRGroup *group)
+{
+    for (int i=0; i<group->num_filters; i++) {
+	iir_clear(group->filters + i);
     }
 }

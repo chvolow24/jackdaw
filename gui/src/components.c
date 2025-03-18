@@ -698,8 +698,8 @@ void radio_cycle_back(RadioButton *rb)
 {
     if (rb->selected_item > 0)
 	rb->selected_item--;
-    else
-	rb->selected_item = rb->num_items - 1;
+    /* else */
+    /* 	rb->selected_item = rb->num_items - 1; */
     
     endpoint_write(rb->ep, (Value){.int_v = rb->selected_item}, true, true, true, true);
     /* if (rb->action) rb->action((void *)rb, rb->target); */
@@ -707,8 +707,9 @@ void radio_cycle_back(RadioButton *rb)
 
 void radio_cycle(RadioButton *rb)
 {
+    if (rb->selected_item == rb->num_items - 1) return;
     rb->selected_item++;
-    rb->selected_item %= rb->num_items;
+    /* rb->selected_item %= rb->num_items; */
     
     endpoint_write(rb->ep, (Value){.int_v = rb->selected_item}, true, true, true, true);
     /* if (rb->action) rb->action((void *)rb, rb->target); */

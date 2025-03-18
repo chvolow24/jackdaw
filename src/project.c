@@ -1446,18 +1446,7 @@ Track *timeline_add_track(Timeline *tl)
 
     api_node_register(&track->api_node, &track->tl->api_node, track->name);
 
-    eq_init(&track->eq);
-
-    track->saturation.track = track;
-    saturation_init(&track->saturation);
-    int ir_len = track->tl->proj->fourier_len_sframes/4;
-    int fr_len = track->tl->proj->fourier_len_sframes * 2;
-    filter_init(&track->fir_filter, track, LOWPASS, ir_len, fr_len);
-
-    delay_line_init(&track->delay_line, track, track->tl->proj->sample_rate);
-
-    /* API */
-    
+        
     endpoint_init(
 	&track->vol_ep,
 	&track->vol,
@@ -1478,10 +1467,7 @@ Track *timeline_add_track(Timeline *tl)
     endpoint_set_label_fn(&track->vol_ep, label_amp_to_dbstr);
     api_endpoint_register(&track->vol_ep, &track->api_node);
 
-
-
-
-    endpoint_init(
+        endpoint_init(
 	&track->pan_ep,
 	&track->pan,
 	JDAW_FLOAT,
@@ -1499,6 +1485,24 @@ Track *timeline_add_track(Timeline *tl)
     endpoint_set_default_value(&track->pan_ep, (Value){.float_v = 0.5});
     endpoint_set_label_fn(&track->pan_ep, label_pan);
     api_endpoint_register(&track->pan_ep, &track->api_node);
+
+
+
+    track->eq.track = track;
+    eq_init(&track->eq);
+
+    track->saturation.track = track;
+    saturation_init(&track->saturation);
+    int ir_len = track->tl->proj->fourier_len_sframes/4;
+    int fr_len = track->tl->proj->fourier_len_sframes * 2;
+    filter_init(&track->fir_filter, track, LOWPASS, ir_len, fr_len);
+
+    delay_line_init(&track->delay_line, track, track->tl->proj->sample_rate);
+
+
+
+
+
     
     /* Layout *track_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area"); */
     Layout *track_template = layout_read_xml_to_lt(tl->track_area, TRACK_LT_PATH);
@@ -1718,8 +1722,6 @@ Track *timeline_add_track(Timeline *tl)
     timeline_rectify_track_indices(tl);
 
     api_endpoint_register(&track->saturation.gain_ep, &track->saturation.track->api_node);
-    api_endpoint_register(&track->eq.ctrls[0].freq_ep, &track->api_node);
-    api_endpoint_register(&track->eq.ctrls[0].amp_ep, &track->api_node);
 
     return track;
 }

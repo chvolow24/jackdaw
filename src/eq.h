@@ -37,6 +37,7 @@ typedef struct eq_filter_ctrl {
     /* double freq_raw; */
     /* double amp_raw; */
     double bandwidth_scalar; /* Bandwidth = bandwidth_scalar * freq_raw */
+    double freq_exp;
     Endpoint freq_ep;
     Endpoint amp_ep;
     Endpoint freq_amp_ep;
@@ -53,6 +54,7 @@ typedef struct eq {
     struct freq_plot *fp;
     EQFilterCtrl ctrls[EQ_DEFAULT_NUM_FILTERS];
     int current_ctrl;
+    Track *track;
 } EQ;
 
 /* void eq_set_peak(EQ *eq, int filter_index, double freq_raw, double amp_raw, double bandwidth); */
@@ -67,5 +69,6 @@ void eq_mouse_motion(EQFilterCtrl *ctrl, Window *win);
 void eq_draw(EQ *eq);
 double eq_sample(EQ *eq, double in, int channel);
 void eq_advance(EQ *eq, int channel);
+void eq_clear(EQ *eq);
 
 #endif

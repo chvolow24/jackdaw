@@ -72,8 +72,16 @@ static void eq_dsp_cb(Endpoint *ep)
 {
     EQ *eq = ep->xarg1;
     EQFilterCtrl *ctrl = ep->xarg2;
-    fprintf(stderr, "FREQ AMP: %f %f\n", ctrl->freq_amp_raw[0], ctrl->freq_amp_raw[1]);
     eq_set_peak(eq, ctrl->index, ctrl->freq_amp_raw[0], ctrl->freq_amp_raw[1], ctrl->bandwidth_scalar * ctrl->freq_amp_raw[0]);
+}
+
+static void eq_freq_dsp_cb(Endpoint *ep)
+{
+    EQ *eq = ep->xarg1;
+    EQFilterCtrl *ctrl = ep->xarg2;
+    int flen = eq->track->tl->proj->fourier_len_sframes / 2;
+    ctrl->freq_amp_raw[0] = pow(flen, ctrl->freq_exp) / flen;
+    eq_dsp_cb(ep);
 }
 
 static void eq_gui_cb(Endpoint *ep)
@@ -133,15 +141,16 @@ void eq_init(EQ *eq)
 	    eq->ctrls + i,
 	    JDAW_DOUBLE,
 	    main_win);
-	
-	    
-	    
+
+	char buf[255];
+	snprintf(buf, 255, "EQ filter %d amp", i + 1);
+	const char *display_name = strdup(buf);
 	endpoint_init(
 	    &eq->ctrls[i].amp_ep,
 	    &eq->ctrls[i].freq_amp_raw[1],
 	    JDAW_DOUBLE,
 	    "eq_peak_amp",
-	    "EQ filter amp",
+	    display_name,
 	    JDAW_THREAD_DSP,
 	    eq_gui_cb, NULL, eq_dsp_cb,
 	    (void*)eq, (void*)(eq->ctrls + i), NULL, NULL);
@@ -153,14 +162,18 @@ void eq_init(EQ *eq)
 	    &eq->ctrls[i].amp_ep,
 	    (Value){.double_v = 1.0});
 
+	memset(buf, '\0', 255);
+	snprintf(buf, 255, "EQ filter %d freq", i + 1);
+	display_name = strdup(buf);
+
 	endpoint_init(
 	    &eq->ctrls[i].freq_ep,
-	    &eq->ctrls[i].freq_amp_raw,
+	    &eq->ctrls[i].freq_exp,
 	    JDAW_DOUBLE,
 	    "eq_peak_freq",
-	    "EQ filter freq",
+	    display_name,
 	    JDAW_THREAD_DSP,
-	    eq_gui_cb, NULL, eq_dsp_cb,
+	    eq_gui_cb, NULL, eq_freq_dsp_cb,
 	    (void*)eq, (void*)(eq->ctrls + i), NULL, NULL);
 	endpoint_set_allowed_range(
 	    &eq->ctrls[i].freq_ep,
@@ -169,6 +182,10 @@ void eq_init(EQ *eq)
 	endpoint_set_default_value(
 	    &eq->ctrls[i].freq_ep,
 	    (Value){.double_v = 0.1});
+
+	api_endpoint_register(&eq->ctrls[i].freq_ep, &eq->track->api_node);
+	api_endpoint_register(&eq->ctrls[i].amp_ep, &eq->track->api_node);
+
 
 	
 	endpoint_init(
@@ -365,14 +382,12 @@ void eq_destroy_freq_plot(EQ *eq)
 double eq_sample(EQ *eq, double in, int channel)
 {
     if (!eq->active) return in;
-
     for (int i=0; i<eq->group.num_filters; i++) {
 	if (eq->ctrls[i].filter_active) {
 	    in = iir_sample(eq->group.filters + i, in, channel);
 	}
     }
     return in;
-    /* return iir_group_sample(&eq->group, in, channel); */
 }
 
 void eq_advance(EQ *eq, int channel)
@@ -401,4 +416,10 @@ void eq_draw(EQ *eq)
 	geom_draw_circle(main_win->rend, eq->ctrls[i].x - EQ_CTRL_RAD, eq->ctrls[i].y - EQ_CTRL_RAD, EQ_CTRL_RAD);
 	/* geom_draw_circle(main_win->rend, eq->ctrls[i].x - 2.0 * radmin1div2, eq->ctrls[i].y - 2.0 * radmin1div2, radmin1); */
     }
+}
+
+
+void eq_clear(EQ *eq)
+{
+    iir_group_clear(&eq->group);
 }

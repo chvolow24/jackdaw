@@ -212,9 +212,8 @@ static void track_handle_playhead_jump(Track *track)
     for (uint8_t i =0; i<track->num_automations; i++) {
 	Automation *a = track->automations[i];
 	automation_clear_cache(a);
-	/* a->current = NULL; */
-	/* a->ghost_valid = false; */
     }
+    eq_clear(&track->eq);
 }
 
 /* Invalidates continuous-play-dependent caches.

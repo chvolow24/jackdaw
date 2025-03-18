@@ -72,6 +72,7 @@ void iir_group_init(IIRGroup *group, int num_filters, int degree, int num_channe
 void iir_group_deinit(IIRGroup *group);
 double iir_group_sample(IIRGroup *group, double in, int channel);
 void iir_group_update_freq_resp(IIRGroup *group);
+void iir_group_clear(IIRGroup *group);
 void iir_advance(IIRFilter *f, int channel);
 
 #endif

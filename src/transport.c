@@ -313,9 +313,6 @@ void transport_start_playback()
 	Track *track = tl->tracks[i];
 	for (uint8_t a=0; a<track->num_automations; a++) {
 	    automation_clear_cache(track->automations[a]);
-	    /* fprintf(stderr, "RESETTTTTTTT\n"); */
-	    /* track->automations[a]->current = NULL; */
-	    /* /\* track->automation[a]-> *\/ */
 	}
     }
     

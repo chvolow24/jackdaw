@@ -37,11 +37,13 @@ typedef struct eq_filter_ctrl {
     /* double freq_raw; */
     /* double amp_raw; */
     double bandwidth_scalar; /* Bandwidth = bandwidth_scalar * freq_raw */
+    double bandwidth_preferred;
     double freq_exp;
     Endpoint freq_ep;
     Endpoint amp_ep;
     Endpoint freq_amp_ep;
     Endpoint bandwidth_scalar_ep;
+    Endpoint bandwidth_preferred_ep;
     int x;
     int y;
     char label_str[EQ_CTRL_LABEL_BUFLEN];

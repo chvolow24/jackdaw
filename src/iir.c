@@ -334,7 +334,6 @@ double iir_group_sample(IIRGroup *group, double in, int channel)
 
 void iir_group_update_freq_resp(IIRGroup *group)
 {
-    /* fprintf(stderr, "UPDATE freq resp\n"); */
     if (!group->fp) return;
     for (int i=0; i<group->num_filters; i++) {
 	if (group->filters[i].freq_resp_stale) {

@@ -154,9 +154,10 @@ void eq_init(EQ *eq)
 	    JDAW_DOUBLE,
 	    main_win);
 
-	char buf[255];
+	static char buf[255];
 	snprintf(buf, 255, "EQ filter %d amp", i + 1);
-	const char *display_name = strdup(buf);
+	char *display_name = strdup(buf);
+	eq->ctrls[i].amp_ep_display_name = display_name;
 	endpoint_init(
 	    &eq->ctrls[i].amp_ep,
 	    &eq->ctrls[i].freq_amp_raw[1],
@@ -177,6 +178,7 @@ void eq_init(EQ *eq)
 	memset(buf, '\0', 255);
 	snprintf(buf, 255, "EQ filter %d freq", i + 1);
 	display_name = strdup(buf);
+	eq->ctrls[i].freq_ep_display_name = display_name;
 
 	endpoint_init(
 	    &eq->ctrls[i].freq_ep,
@@ -217,6 +219,7 @@ void eq_init(EQ *eq)
 
 	snprintf(buf, 255, "EQ filter %d bandwidth", i + 1);
 	display_name = strdup(buf);
+	eq->ctrls[i].bandwidth_ep_display_name = display_name;
 
 	endpoint_init(
 	    &eq->ctrls[i].bandwidth_preferred_ep,
@@ -247,7 +250,17 @@ void eq_init(EQ *eq)
 
 void eq_deinit(EQ *eq)
 {
+    for (int i=0; i<eq->group.num_filters; i++) {
+	EQFilterCtrl *ctrl = eq->ctrls + i;
+	label_destroy(ctrl->label);
+	if (ctrl->freq_ep_display_name) free(ctrl->freq_ep_display_name);
+	if (ctrl->amp_ep_display_name) free(ctrl->amp_ep_display_name);
+	if (ctrl->bandwidth_ep_display_name) free(ctrl->bandwidth_ep_display_name);
+    }
+
     iir_group_deinit(&eq->group);
+    if (eq->fp) waveform_destroy_freq_plot(eq->fp);
+    
 }
 
 static void eq_set_peak(EQ *eq, int filter_index, double freq_raw, double amp_raw, double bandwidth)

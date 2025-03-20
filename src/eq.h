@@ -48,6 +48,9 @@ typedef struct eq_filter_ctrl {
     int y;
     char label_str[EQ_CTRL_LABEL_BUFLEN];
     Label *label;
+    char *amp_ep_display_name;
+    char *freq_ep_display_name;
+    char *bandwidth_ep_display_name;
 } EQFilterCtrl;
 
 typedef struct eq {

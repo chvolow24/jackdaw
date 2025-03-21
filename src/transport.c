@@ -680,7 +680,7 @@ void transport_stop_recording()
 	    break;
 	    
 	}
-	fprintf(stderr, "SETTING %s rec to false\n", clip->name);
+	/* fprintf(stderr, "SETTING %s rec to false\n", clip->name); */
 	clip->recording = false;
 	proj->active_clip_index++;
     }

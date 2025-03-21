@@ -163,6 +163,13 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     p.eq_plot_p.eq = &track->eq;
     page_add_el(page, EL_EQ_PLOT, p, "track_settings_eq_plot", "eq_plot");
 
+    p.textarea_p.font = main_win->mono_bold_font;
+    p.textarea_p.color = color_global_white;
+    p.textarea_p.text_size = 12;
+    p.textarea_p.win = main_win;
+    p.textarea_p.value = "Click and drag the circles to set peaks or notches.\n \nHold cmd or ctrl and drag up or down to set the filter bandwidth.\n \nAdditional filter types (shelving, lowpass, highpass) will be added in future versions of jackdaw.";
+    page_add_el(page, EL_TEXTAREA, p, "track_settings_eq_desc", "description");
+
     create_track_selection_area(page, track);
 
 

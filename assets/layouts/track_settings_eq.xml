@@ -68,5 +68,13 @@
         </Layout>
       </children>
     </Layout>
+    <Layout name="description" type="NORMAL">
+      <x>SCALE 0.059748</x>
+      <y>SCALE 0.135714</y>
+      <w>SCALE 0.727763</w>
+      <h>SCALE 0.222321</h>
+      <children>
+      </children>
+    </Layout>
   </children>
 </Layout>

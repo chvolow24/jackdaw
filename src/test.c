@@ -8,7 +8,8 @@ void breakfn()
 }
 
 extern Window *main_win;
-
+void user_text_edit_escape(void *nullarg);
+void user_autocomplete_escape(void *nullarg);
 
 TEST_FN_DEF(
     chaotic_user,
@@ -64,11 +65,16 @@ TEST_FN_DEF(
 	
 	    e.type = SDL_KEYUP;
 	    SDL_PushEvent(&e);
-	    
+
 	    /* char *keycmd_str = input_get_keycmd_str(i_state, key); */
 	    /* fprintf(stderr, "%s\n", keycmd_str); */
 	    /* free(keycmd_str); */
 	}
 	/* fprintf(stderr, "\n\n\n\n"); */
+	if (main_win->modes[main_win->num_modes - 1] == TEXT_EDIT) {
+	    user_text_edit_escape(NULL);
+	} else if (main_win->modes[main_win->num_modes - 1] == AUTOCOMPLETE_LIST) {
+	   user_autocomplete_escape(NULL);
+	}
 	return 0;
     } , bool *run_tests, uint64_t max_num_frames);

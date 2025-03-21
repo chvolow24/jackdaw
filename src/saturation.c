@@ -121,11 +121,19 @@ void saturation_set_type(Saturation *s, SaturationType t)
     }
 }
 
-double saturation_sample(Saturation *s, double in)
+static double saturation_sample(Saturation *s, double in)
 {
     if (!s->active) return in;
     return s->sample_fn(s, in);
     /* return tanh(in * s->amp); */
+}
+
+void saturation_buf_apply(Saturation *s, float *buf, int len, int channel_unused)
+{
+    if (!s->active) return;
+    for (int i=0; i<len; i++) {
+	buf[i] = saturation_sample(s, buf[i]);
+    }
 }
 
 /* TODO:

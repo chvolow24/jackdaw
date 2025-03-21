@@ -72,7 +72,8 @@ void eq_destroy_freq_plot(EQ *eq);
 bool eq_mouse_click(EQ *eq, SDL_Point mousep);
 void eq_mouse_motion(EQFilterCtrl *ctrl, Window *win);
 void eq_draw(EQ *eq);
-double eq_sample(EQ *eq, double in, int channel);
+/* double eq_sample(EQ *eq, double in, int channel); */
+void eq_buf_apply(EQ *eq, float *buf, int len, int channel);
 void eq_advance(EQ *eq, int channel);
 void eq_clear(EQ *eq);
 

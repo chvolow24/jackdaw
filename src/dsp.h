@@ -108,7 +108,8 @@ void filter_set_impulse_response_len(FIRFilter *f, int new_len);
 void filter_deinit(FIRFilter *filter);
 
 /* void apply_track_filter(Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array); */
-void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array);
+/* void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array); */
+void filter_buf_apply(FIRFilter *f, float *buf, int len, int channel);
 
 void FFT(double *A, double complex *B, int n);
 void get_real_component(double complex *A, double *B, int n);

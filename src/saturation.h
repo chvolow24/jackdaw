@@ -49,7 +49,8 @@ typedef struct saturation {
 void saturation_init(Saturation *s);
 void saturation_set_gain(Saturation *s, double gain);
 void saturation_set_type(Saturation *s, SaturationType t);
-double saturation_sample(Saturation *s, double in);
+/* double saturation_sample(Saturation *s, double in); */
+void saturation_buf_apply(Saturation *s, float *buf, int len, int channel_unused);
 
 
 #endif

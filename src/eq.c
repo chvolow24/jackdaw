@@ -428,15 +428,23 @@ void eq_destroy_freq_plot(EQ *eq)
 /*     eq_set_peak(&glob_eq, 1, 0.3, 0.03, 0.3); */
 /* } */
 
-double eq_sample(EQ *eq, double in, int channel)
+static double eq_sample(EQ *eq, double in, int channel)
 {
-    if (!eq->active) return in;
+    /* if (!eq->active) return in; */
     for (int i=0; i<eq->group.num_filters; i++) {
 	if (eq->ctrls[i].filter_active) {
 	    in = iir_sample(eq->group.filters + i, in, channel);
 	}
     }
     return in;
+}
+
+void eq_buf_apply(EQ *eq, float *buf, int len, int channel)
+{
+    if (!eq->active) return;
+    for (int i=0; i<len; i++) {
+	buf[i] = eq_sample(eq, buf[i], channel);
+    }
 }
 
 void eq_advance(EQ *eq, int channel)

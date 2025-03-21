@@ -23,8 +23,7 @@ TEST_FN_DEF(
 	    *run_tests = false;
 	    main_win->i_state = 0;
 	    return 0;
-	}
-    
+	}    
 
 	uint16_t i_state = 0;
 	int statestat = rand() % 5;

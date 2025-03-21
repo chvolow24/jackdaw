@@ -26,15 +26,34 @@
 
 extern Project *proj;
 
+
+static void float_buf_mult(float *main, float *by, int32_t len_sframes)
+{
+    for (int32_t i=0; i<len_sframes; i++) {
+	main[i] *= by[i];
+    }
+}
+static void make_pan_chunk(float *pan_vals, int32_t len_sframes, uint8_t channel) 
+{
+    /* double pan_scale = channel == 0 ? */
+    /* 	raw_pan <= 0.5 ? 1 : (1.0f - raw_pan) * 2 */
+    /* 	: raw_pan >= 0.5 ? 1 : raw_pan * 2; */
+
+    if (channel == 0) {
+	for (int i=0; i<len_sframes; i++) {
+	    pan_vals[i] = pan_vals[i] <= 0.5f ? 1.0f : (1.0f - pan_vals[i]) * 2;
+	}
+    } else {
+	for (int i=0; i<len_sframes; i++) {
+	    pan_vals[i] = pan_vals[i] >= 0.5f ? 1.0f :  pan_vals[i] * 2;
+	}
+    }
+}
+
+
 float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32_t start_pos_sframes, uint32_t len_sframes, float step)
 {
 
-    /* if (!inited) { */
-    /* 	iir_init(&iir, 2, 2); */
-    /* 	/\* iir_set_coeffs(iir, A, B); *\/ */
-    /* 	iir_set_coeffs_peaknotch(&iir, 0.04, 50.0, 0.001); */
-    /* 	inited = 1; */
-    /* } */
     uint32_t chunk_bytelen = sizeof(float) * len_sframes;
     memset(chunk, '\0', chunk_bytelen);
     if (track->muted || track->solo_muted) {
@@ -44,31 +63,15 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
     /************************* VOL/PAN AUTOMATION *************************/
     Automation *vol_auto = NULL;
     Automation *pan_auto = NULL;
-    Automation *fir_filter_cutoff = NULL;
-    Automation *fir_filter_bandwidth = NULL;
-    Automation *delay_time = NULL;
-    Automation *delay_amp = NULL;
-    Automation *play_speed = NULL;
-
+    
     for (uint8_t i=0; i<track->num_automations; i++) {
 	Automation *a = track->automations[i];
 	if (a->type == AUTO_VOL) vol_auto = a;
 	else if (a->type == AUTO_PAN) pan_auto = a;
-	else if (a->type == AUTO_FIR_FILTER_CUTOFF) fir_filter_cutoff = a;
-	else if (a->type == AUTO_FIR_FILTER_BANDWIDTH) fir_filter_bandwidth = a;
-	else if (a->type == AUTO_DEL_TIME) delay_time = a;
-	else if (a->type == AUTO_DEL_AMP) delay_amp = a;
-	else if (a->type == AUTO_PLAY_SPEED) play_speed = a;
 	if (a->endpoint == &track->vol_ep) vol_auto = a;
 	else if (a->endpoint == &track->pan_ep) pan_auto = a;
-	else if (a->endpoint == &track->fir_filter.cutoff_ep) fir_filter_cutoff = a;
-	else if (a->endpoint == &track->fir_filter.bandwidth_ep) fir_filter_bandwidth = a;
-	else if (a->endpoint == &track->delay_line.len_ep) delay_time = a;
-	else if (a->endpoint == &track->delay_line.amp_ep) delay_amp = a;
     }
 
-
-    /* TESTING GENERIC APPROACH */
     for (int i=0; i<track->num_automations; i++) {
 	Automation *a = track->automations[i];
 	if (a->read && !a->write && a->endpoint) {
@@ -76,110 +79,48 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	    endpoint_write(a->endpoint, val, true, true, true, false);
 	}
     }
-    /* for (int i=0; i<track->api_node.num_endpoints; i++) { */
-    /* 	Endpoint *ep = track->api_node.endpoints[i]; */
-    /* 	if (ep->automation && ep->automation->read && !ep->automation->write) { */
-    /* 	    Value val = automation_get_value(ep->automation, start_pos_sframes, step); */
-    /* 	    endpoint_write(ep, val, true, true, true, false); */
-    /* 	} */
-    /* } */
 
     float vol_vals[len_sframes];
     float pan_vals[len_sframes];
 
     float playspeed_rolloff = 1.0;
     float fabs_playspeed = fabs(proj->play_speed);
-    /* Check for proj->playing to ensure write wav is not broken */
+    
     if (proj->playing && fabs(proj->play_speed) < 0.01) {
 	playspeed_rolloff = fabs_playspeed * 100.0f;
     }
 
-    
+    /* Construct volume buffer for linear scaling */
     if (vol_auto && !vol_auto->write && vol_auto->read) {
-	float vol_init = automation_get_value(vol_auto, start_pos_sframes, step).float_v;
-	endpoint_write(&track->vol_ep, (Value){.float_v = vol_init}, true, true, true, false);
-	automation_get_range(vol_auto, vol_vals, len_sframes, start_pos_sframes, step); 
+	automation_get_range(vol_auto, vol_vals, len_sframes, start_pos_sframes, step);
+	for (int i=0; i<len_sframes; i++) {
+	    vol_vals[i] *= playspeed_rolloff;
+	}
     } else {
 	Value vol_val = endpoint_safe_read(&track->vol_ep, NULL);
 	for (int i=0; i<len_sframes; i++) {
-	    vol_vals[i] = vol_val.float_v;
+	    vol_vals[i] = vol_val.float_v * playspeed_rolloff;;
 	}
     }
+
+    /* Construct pan buffer for linear scaling */
     if (pan_auto && !pan_auto->write && pan_auto->read) {
-	float pan_init = automation_get_value(pan_auto, start_pos_sframes, step).float_v;
-	endpoint_write(&track->pan_ep, (Value){.float_v = pan_init}, true, true, true, false);
 	automation_get_range(pan_auto, pan_vals, len_sframes, start_pos_sframes, step);
+	make_pan_chunk(pan_vals, len_sframes, channel);
     } else {
 	Value pan_val = endpoint_safe_read(&track->pan_ep, NULL);
+	float pan_scale = pan_val.float_v;
+	pan_scale = channel == 0 ?
+	    pan_scale <= 0.5 ? 1.0 : (1.0f - pan_scale) * 2 :
+	    pan_scale >= 0.5 ? 1.0 : pan_scale * 2;
 	for (int i=0; i<len_sframes; i++) {
-	    pan_vals[i] = pan_val.float_v;
+	    pan_vals[i] = pan_scale;
 	}
     }
-
-    if (channel == 0) {
-	if (fir_filter_cutoff && fir_filter_cutoff->read && !fir_filter_cutoff->write) {
-	    Value cutoff_raw = automation_get_value(fir_filter_cutoff, start_pos_sframes, step);
-	    endpoint_write(&track->fir_filter.cutoff_ep, cutoff_raw, true, true, true, false);
-	}
-	if (fir_filter_bandwidth && fir_filter_bandwidth->read && !fir_filter_bandwidth->write) {
-	    Value bandwidth_raw = automation_get_value(fir_filter_bandwidth, start_pos_sframes, step);
-	    endpoint_write(&track->fir_filter.bandwidth_ep, bandwidth_raw, true, true, true, false);
-	}
-	if (delay_time && delay_time->read && !delay_time->write) {
-	    Value del_time = automation_get_value(delay_time, start_pos_sframes, step);
-
-	    /* int32_t del_time_msec = (double)del_time.int32_v * 1000.0 / proj->sample_rate; */
-	    endpoint_write(&track->delay_line.len_ep, del_time, true, true, true, false);
-	}
-	if (delay_amp && delay_amp->read && !delay_amp->write) {
-	    Value del_amp = automation_get_value(delay_amp, start_pos_sframes, step);
-	    endpoint_write(&track->delay_line.amp_ep, del_amp, true, true, true, false);
-	}
-	if (play_speed && play_speed->read && !play_speed->write) {
-	    float play_speed_val = (proj->play_speed / fabs(proj->play_speed)) * automation_get_value(play_speed, start_pos_sframes, step).float_v;
-	    endpoint_write(&proj->play_speed_ep, (Value){.float_v = play_speed_val}, true, true, true, false);
-	}
-    }
-    /* FIRFilter *f = &track->fir_filter; */
-    
-    /* if (f->frequency_response && channel == 0) { */
-    /* 	if (cutoff_set && bandwidth_set) { */
-    /* 	    FilterType t = f->type; */
-    /* 	    filter_set_params_hz(f, t, cutoff_hz, bandwidth_hz); */
-    /* 	} else if (cutoff_set) { */
-    /* 	    filter_set_cutoff_hz(f, cutoff_hz); */
-    /* 	} else if (bandwidth_set) { */
-    /* 	    filter_set_bandwidth_hz(f, bandwidth_hz); */
-    /* 	} */
-    /* } */
-
-    /* if (track->delay_line_active && channel == 0) { */
-    /* 	int32_t del_time = track->delay_line.len; */
-    /* 	double del_amp = track->delay_line.amp; */
-    /* 	bool del_line_edit = false; */
-    /* 	if (delay_time && delay_time->read && !delay_time->write) { */
-    /* 	    del_time = automation_get_value(delay_time, start_pos_sframes, step).int32_v; */
-    /* 	    del_line_edit = true; */
-    /* 	} */
-    /* 	if (delay_amp && delay_amp->read && !delay_amp->write) { */
-    /* 	    del_amp = automation_get_value(delay_amp, start_pos_sframes, step).double_v; */
-    /* 	    del_line_edit = true; */
-    /* 	} */
-    /* 	if (del_line_edit) { */
-    /* 	    /\* fprintf(stdout, "DEL TIME: %d\n", del_time); *\/ */
-    /* 	    /\* fprintf(stderr, "DEL TIME: %d\n", del_time); *\/ */
-    /* 	    if (del_time < 0) { */
-    /* 		fprintf(stderr, "ERROR: del time read value negative: %d\n", del_time); */
-    /* 	    } else { */
-    /* 		delay_line_set_params(&track->delay_line, del_amp, del_time); */
-    /* 	    } */
-    /* 	} */
-    /* } */
-
-    /**********************************************************************/
-    /* bool clip_read = false; */
 
     float total_amp = 0.0f;
+
+    /* Get data from clip sources */
     for (uint16_t i=0; i<track->num_clips; i++) {
 	ClipRef *cr = track->clips[i];
 	if (!cr) {
@@ -220,46 +161,24 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	    
 	    /* Clip overlaps */
 	    if (pos_in_clip_sframes >= 0 && pos_in_clip_sframes < cr_len) {
-		/* float vol; */
-		/* if (vol_auto && vol_auto->read && !vol_auto->write) { */
-		/*     vol = automation_get_value(vol_auto, abs_pos, step).float_v; */
-		/* } else { */
-		/*     /\* vol = track->vol; *\/		     */
-		/*     Value volval = endpoint_safe_read(&track->vol_ep, NULL); */
-		/*     vol = volval.float_v; */
-		/* } */
-		/* float raw_pan; */
-		/* if (pan_auto && pan_auto->read && !pan_auto->write) { */
-		/*     raw_pan = automation_get_value(pan_auto, abs_pos, step).float_v; */
-		/* } else { */
-		/*     raw_pan = track->pan; */
-		/* } */
-		float vol = vol_vals[chunk_i];
-		float raw_pan = pan_vals[chunk_i];
-		double pan_scale = channel == 0 ?
-		    raw_pan <= 0.5 ? 1 : (1.0f - raw_pan) * 2
-		    : raw_pan >= 0.5 ? 1 : raw_pan * 2;
-		/* static const float coeffs[] = {0.1, 0.2, 0.3, 0.2, 0.1, -0.09, -0.18, -0.1, -0.05}; */
-		/* static float filterbuf[9]; */
-
 		float sample = clip_buf[(int32_t)pos_in_clip_sframes + cr->in_mark_sframes];
-		/* sample = tanh(20 * sample) / 20; */
-		sample = saturation_sample(&track->saturation, sample);
+
+		/* sample = saturation_sample(&track->saturation, sample); */
 		/* if (chunk_i == 0) { */
 		/*     clock_t c = clock(); */
 		/*     fprintf(stderr, "%d: SAMPLE before: %f (%lu)\n", channel, sample, c); */
 		/* } */
-		sample = eq_sample(&track->eq, sample, channel);
+		/* sample = eq_sample(&track->eq, sample, channel); */
 		/* if (chunk_i == 0) { */
 		/*     fprintf(stderr, "%d: SAMPLE: %f\n", channel, sample); */
 		/* } */
-		float add = sample * vol * pan_scale * playspeed_rolloff;
+		/* float add = sample * vol * pan_scale * playspeed_rolloff; */
 		/* add = iir_group_sample(&glob_eq.group, add, channel); */
 		/* add = eq_sample(&track->eq, add, channel); */
 		/* add = iir_group_sample(&track->eq.group, add, channel); */
 		/* add = iir_sample(&iir, add, channel); */
 		/* add = do_filter(add, filterbuf, coeffs, 9); */
-		chunk[chunk_i] += add;
+		chunk[chunk_i] += sample;
 		total_amp += fabs(chunk[chunk_i]);
 	    }
 	    pos_in_clip_sframes += step;
@@ -273,6 +192,12 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 
     if (total_amp < AMP_EPSILON) {
 	eq_advance(&track->eq, channel);
+    } else {
+	eq_buf_apply(&track->eq, chunk, len_sframes, channel);
+	filter_buf_apply(&track->fir_filter, chunk, len_sframes, channel);
+	saturation_buf_apply(&track->saturation, chunk, len_sframes, channel);
+	float_buf_mult(chunk, vol_vals, len_sframes);
+	float_buf_mult(chunk, pan_vals, len_sframes);
     }
 
     return total_amp;
@@ -330,7 +255,7 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 
 	/* start = clock(); */
 	if (audio_in_track && track->fir_filter.active) { /* Only apply FIR filter if there is audio */
-	    apply_filter(&track->fir_filter, track, channel, len_sframes, track_chunk);
+	    /* apply_filter(&track->fir_filter, track, channel, len_sframes, track_chunk); */
 	}
 	/* filter += ((double)clock() - start) / CLOCKS_PER_SEC; */
 

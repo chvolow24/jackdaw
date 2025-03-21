@@ -523,8 +523,8 @@ void filter_deinit(FIRFilter *filter)
 
 
 
-/* Destructive; replaces values in sample_array */
-void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array)
+/* Destructive; replaces values in sample_array. Legacy fn called by new standard prototype filter_buf_apply */
+static void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array)
 {
     pthread_mutex_lock(&filter->lock);
     /* SDL_LockMutex(filter->lock); */
@@ -571,6 +571,12 @@ void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chu
     pthread_mutex_unlock(&filter->lock);
 }
 
+/* Apply a FIR filter to a float buffer */
+void filter_buf_apply(FIRFilter *f, float *buf, int len, int channel)
+{
+    if (!f->active) return;
+    apply_filter(f, f->track, channel, len, buf);
+}
 
 /* void ___apply_track_filter(Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array)  */
 /* { */

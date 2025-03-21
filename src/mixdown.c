@@ -196,6 +196,7 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	eq_buf_apply(&track->eq, chunk, len_sframes, channel);
 	filter_buf_apply(&track->fir_filter, chunk, len_sframes, channel);
 	saturation_buf_apply(&track->saturation, chunk, len_sframes, channel);
+	delay_line_buf_apply(&track->delay_line, chunk, len_sframes, channel);
 	float_buf_mult(chunk, vol_vals, len_sframes);
 	float_buf_mult(chunk, pan_vals, len_sframes);
     }
@@ -260,61 +261,64 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 	/* filter += ((double)clock() - start) / CLOCKS_PER_SEC; */
 
 	/* start = clock(); */
-	float del_line_total_amp = 0.0f;
-	if (track->delay_line.active) {
-	    DelayLine *dl = &track->delay_line;
-	    pthread_mutex_lock(&dl->lock);
-	    double *del_line = channel == 0 ? dl->buf_L : dl->buf_R;
-	    int32_t *del_line_pos = channel == 0 ? &dl->pos_L : &dl->pos_R;
-	    for (int16_t i=0; i<len_sframes; i++) {
-		double track_sample = track_chunk[i];
-		int32_t pos = *del_line_pos;
-		if (channel == 0) {
-		    pos -= dl->stereo_offset * dl->len;
-		    if (pos < 0) {
-			pos += dl->len;
-		    }
-		    /* pos %= dl->len; */
-		}
-		track_chunk[i] += del_line[pos];
-		del_line_total_amp += fabs(del_line[pos]);
-		/* int tap = *del_line_pos - 1025; */
-		/* if (tap < 0) tap = dl->len + tap; */
-		/* track_chunk[i] += del_line[tap]; */
-		/* tap -= 2031; */
-		/* if (tap < 0) tap = dl->len + tap; */
-		/* track_chunk[i] += del_line[tap]; */
-		/* tap -= 3000; */
-		/* if (tap < 0) tap = dl->len + tap; */
-		/* track_chunk[i] += del_line[tap]; */
-		/* tap -= 2044; */
-		/* if (tap < 0) tap = dl->len + tap; */
-		/* track_chunk[i] += del_line[tap]; */
-		
-		del_line[*del_line_pos] += track_sample;
-		del_line[*del_line_pos] *= dl->amp;
 
-		/* clip delay line */
-		if (del_line[*del_line_pos] > 1.0) del_line[*del_line_pos] = 1.0;
-		else if (del_line[*del_line_pos] < -1.0) del_line[*del_line_pos] = -1.0;
+	/* TODO: correct conditional clipping after applying delay line */
+	float del_line_total_amp = 1.0f;
+	
+	/* if (track->delay_line.active) { */
+	/*     DelayLine *dl = &track->delay_line; */
+	/*     pthread_mutex_lock(&dl->lock); */
+	/*     double *del_line = channel == 0 ? dl->buf_L : dl->buf_R; */
+	/*     int32_t *del_line_pos = channel == 0 ? &dl->pos_L : &dl->pos_R; */
+	/*     for (int16_t i=0; i<len_sframes; i++) { */
+	/* 	double track_sample = track_chunk[i]; */
+	/* 	int32_t pos = *del_line_pos; */
+	/* 	if (channel == 0) { */
+	/* 	    pos -= dl->stereo_offset * dl->len; */
+	/* 	    if (pos < 0) { */
+	/* 		pos += dl->len; */
+	/* 	    } */
+	/* 	    /\* pos %= dl->len; *\/ */
+	/* 	} */
+	/* 	track_chunk[i] += del_line[pos]; */
+	/* 	del_line_total_amp += fabs(del_line[pos]); */
+	/* 	/\* int tap = *del_line_pos - 1025; *\/ */
+	/* 	/\* if (tap < 0) tap = dl->len + tap; *\/ */
+	/* 	/\* track_chunk[i] += del_line[tap]; *\/ */
+	/* 	/\* tap -= 2031; *\/ */
+	/* 	/\* if (tap < 0) tap = dl->len + tap; *\/ */
+	/* 	/\* track_chunk[i] += del_line[tap]; *\/ */
+	/* 	/\* tap -= 3000; *\/ */
+	/* 	/\* if (tap < 0) tap = dl->len + tap; *\/ */
+	/* 	/\* track_chunk[i] += del_line[tap]; *\/ */
+	/* 	/\* tap -= 2044; *\/ */
+	/* 	/\* if (tap < 0) tap = dl->len + tap; *\/ */
+	/* 	/\* track_chunk[i] += del_line[tap]; *\/ */
 		
-		/* fprintf(stdout, "Del pos vs len? %d %d\n", *del_line_pos, dl.len); */
-		if (*del_line_pos + 1 >= dl->len) {
-		    /* fprintf(stdout, "\tSETTING zero\n"); */
-		    *del_line_pos = 0;
-		} else {
-		    /* fprintf(stdout, "\tinc %d->", *del_line_pos); */
-		    (*del_line_pos)++;
-		    /* fprintf(stdout, "%d\n", *del_line_pos); */
-		}
-		/* fprintf(stdout, "del line pos: %d\n", *del_line_pos); */
-	    }
-	    pthread_mutex_unlock(&dl->lock);
-	}
+	/* 	del_line[*del_line_pos] += track_sample; */
+	/* 	del_line[*del_line_pos] *= dl->amp; */
 
-	if (del_line_total_amp > AMP_EPSILON) { /* There is something to play back */
-	    audio_in_track = true;
-	}
+	/* 	/\* clip delay line *\/ */
+	/* 	if (del_line[*del_line_pos] > 1.0) del_line[*del_line_pos] = 1.0; */
+	/* 	else if (del_line[*del_line_pos] < -1.0) del_line[*del_line_pos] = -1.0; */
+		
+	/* 	/\* fprintf(stdout, "Del pos vs len? %d %d\n", *del_line_pos, dl.len); *\/ */
+	/* 	if (*del_line_pos + 1 >= dl->len) { */
+	/* 	    /\* fprintf(stdout, "\tSETTING zero\n"); *\/ */
+	/* 	    *del_line_pos = 0; */
+	/* 	} else { */
+	/* 	    /\* fprintf(stdout, "\tinc %d->", *del_line_pos); *\/ */
+	/* 	    (*del_line_pos)++; */
+	/* 	    /\* fprintf(stdout, "%d\n", *del_line_pos); *\/ */
+	/* 	} */
+	/* 	/\* fprintf(stdout, "del line pos: %d\n", *del_line_pos); *\/ */
+	/*     } */
+	/*     pthread_mutex_unlock(&dl->lock); */
+	/* } */
+
+	/* if (del_line_total_amp > AMP_EPSILON) { /\* There is something to play back *\/ */
+	/*     audio_in_track = true; */
+	/* } */
 	if (audio_in_track || t == tl->num_tracks - 1) {
 	    for (uint32_t i=0; i<len_sframes; i++) {
 		/* mixdown[i] += track_chunk[i] * pan * track->vol_ctrl->value; */

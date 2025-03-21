@@ -786,6 +786,40 @@ void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
     pthread_mutex_unlock(&dl->lock);
 }
 
+void delay_line_buf_apply(DelayLine *dl, float *buf, int len, int channel)
+{
+    if (!dl->active) return;
+
+    pthread_mutex_lock(&dl->lock);
+    double *del_line = channel == 0 ? dl->buf_L : dl->buf_R;
+    int32_t *del_line_pos = channel == 0 ? &dl->pos_L : &dl->pos_R;
+    for (int i=0; i<len; i++) {
+	double track_sample = buf[i];
+	int32_t pos = *del_line_pos;
+	if (channel == 0) {
+	    pos -= dl->stereo_offset * dl->len;
+	    if (pos < 0) {
+		pos += dl->len;
+	    }
+	}
+	buf[i] += del_line[pos];
+		
+	del_line[*del_line_pos] += track_sample;
+	del_line[*del_line_pos] *= dl->amp;
+
+	/* clip delay line */
+	if (del_line[*del_line_pos] > 1.0) del_line[*del_line_pos] = 1.0;	
+	else if (del_line[*del_line_pos] < -1.0) del_line[*del_line_pos] = -1.0;
+		
+	if (*del_line_pos + 1 >= dl->len) {
+	    *del_line_pos = 0;
+	} else {
+	    (*del_line_pos)++;
+	}
+    }
+    pthread_mutex_unlock(&dl->lock);
+}
+
 void delay_line_clear(DelayLine *dl)
 {
     memset(dl->buf_L, '\0', dl->len * sizeof(double));

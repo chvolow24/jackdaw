@@ -943,9 +943,9 @@ void user_tl_set_mark_in(void *nullarg)
     user_event_push(
 	&proj->history,
 	undo_redo_set_mark,
+	undo_redo_set_mark,
 	NULL, NULL,
 	(void *)&tl->in_mark_sframes,
-	undo_redo_set_mark,
 	(void *)tl,
 	old_mark, old_mark,
 	new_mark, new_mark,

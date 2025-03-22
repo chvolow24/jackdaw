@@ -232,6 +232,12 @@ void loop_project_main()
 		scrolling_lt = NULL;
 		temp_scrolling_lt = NULL;
 		switch (e.key.keysym.scancode) {
+		case SDL_SCANCODE_6: {
+		    Timeline *tl = proj->timelines[proj->active_tl_index];
+		    Track* sel = timeline_selected_track(tl);
+		    track_set_bus_out(sel, tl->tracks[0]);
+		}
+		    break;
 		/* case SDL_SCANCODE_6: { */
 		/*     filter_selector++; */
 		/*     filter_selector %=4; */

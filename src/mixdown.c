@@ -27,6 +27,13 @@
 extern Project *proj;
 
 
+static void float_buf_add(float *main, float *add, int32_t len_sframes)
+{
+    for (int32_t i=0; i<len_sframes; i++) {
+	main[i] += add[i];
+    }
+}
+
 static void float_buf_mult(float *main, float *by, int32_t len_sframes)
 {
     for (int32_t i=0; i<len_sframes; i++) {
@@ -153,41 +160,28 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	    cr->clip->channels == 1 ? cr->clip->L :
 	    channel == 0 ? cr->clip->L : cr->clip->R;
 	int16_t chunk_i = 0;
-	/* float pan_scale = (channel == 0) ? (track->pan - 0.5) * 2 : track->pan * 2; */
-
-	/* double rpan = track->pan < */
-	/* int32_t abs_pos = start_pos_sframes; */
-	while (chunk_i < len_sframes) {
-	    
+	
+	while (chunk_i < len_sframes) {    
 	    /* Clip overlaps */
 	    if (pos_in_clip_sframes >= 0 && pos_in_clip_sframes < cr_len) {
 		float sample = clip_buf[(int32_t)pos_in_clip_sframes + cr->in_mark_sframes];
-
-		/* sample = saturation_sample(&track->saturation, sample); */
-		/* if (chunk_i == 0) { */
-		/*     clock_t c = clock(); */
-		/*     fprintf(stderr, "%d: SAMPLE before: %f (%lu)\n", channel, sample, c); */
-		/* } */
-		/* sample = eq_sample(&track->eq, sample, channel); */
-		/* if (chunk_i == 0) { */
-		/*     fprintf(stderr, "%d: SAMPLE: %f\n", channel, sample); */
-		/* } */
-		/* float add = sample * vol * pan_scale * playspeed_rolloff; */
-		/* add = iir_group_sample(&glob_eq.group, add, channel); */
-		/* add = eq_sample(&track->eq, add, channel); */
-		/* add = iir_group_sample(&track->eq.group, add, channel); */
-		/* add = iir_sample(&iir, add, channel); */
-		/* add = do_filter(add, filterbuf, coeffs, 9); */
 		chunk[chunk_i] += sample;
 		total_amp += fabs(chunk[chunk_i]);
 	    }
 	    pos_in_clip_sframes += step;
-	    /* fprintf(stdout, "Chunk %d: %f\n", chunk_i, chunk[chunk_i]); */
 	    chunk_i++;
-	    /* abs_pos += step; */
 	}	
 	pthread_mutex_unlock(&cr->lock);
-	/* clip_read = true; */
+    }
+
+    float bus_buf[len_sframes];
+    for (uint8_t i=0; i<track->num_bus_ins; i++) {
+	Track *bus_in = track->bus_ins[i];
+	float amp = get_track_channel_chunk(bus_in, bus_buf, channel, start_pos_sframes, len_sframes, step);
+	if (amp > 0.0) {
+	    float_buf_add(chunk, bus_buf, len_sframes);
+	    total_amp += amp;
+	}
     }
 
     if (total_amp < AMP_EPSILON) {
@@ -243,6 +237,11 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 	bool audio_in_track = false;
         Track *track = tl->tracks[t];
 
+	/* Track will be processed as a bus in */
+	if (track->bus_out) {
+	    continue;
+	}
+	
 	float track_chunk[len_sframes];
 
 	/* start = clock(); */
@@ -255,15 +254,15 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 	}
 
 	/* start = clock(); */
-	if (audio_in_track && track->fir_filter.active) { /* Only apply FIR filter if there is audio */
-	    /* apply_filter(&track->fir_filter, track, channel, len_sframes, track_chunk); */
-	}
+	/* if (audio_in_track && track->fir_filter.active) { /\* Only apply FIR filter if there is audio *\/ */
+	/*     apply_filter(&track->fir_filter, track, channel, len_sframes, track_chunk); */
+	/* } */
 	/* filter += ((double)clock() - start) / CLOCKS_PER_SEC; */
 
 	/* start = clock(); */
 
 	/* TODO: correct conditional clipping after applying delay line */
-	float del_line_total_amp = 1.0f;
+	/* float del_line_total_amp = 1.0f; */
 	
 	/* if (track->delay_line.active) { */
 	/*     DelayLine *dl = &track->delay_line; */

@@ -56,6 +56,7 @@
 #define MAX_TRACKS 255
 #define MAX_NAMELENGTH 64
 #define MAX_TRACK_CLIPS 2048
+#define MAX_TRACK_BUS_INS MAX_TRACKS
 #define MAX_ACTIVE_CLIPS 255
 #define MAX_ACTIVE_TRACKS 255
 #define MAX_CLIP_REFS 2048
@@ -172,6 +173,13 @@ typedef struct track {
     Endpoint solo_ep;
     Endpoint vol_ep;
     Endpoint pan_ep;
+
+
+    /* Routing */
+    Track *bus_out;
+    Track **bus_ins;
+    uint8_t bus_ins_arrlen;
+    uint8_t num_bus_ins;
     // SDL_Rect *vol_bar;
     // SDL_Rect *pan_bar;
     // SDL_Rect *in_bar;
@@ -513,7 +521,7 @@ void track_solomute(Track *track);
 void track_unsolomute(Track *track);
 void track_set_input(Track *track);
 void track_rename(Track *track);
-void clipref_rename(ClipRef *cr);
+void track_set_bus_out(Track *track, Track *bus_out);
 void track_delete(Track *track);
 void track_undelete(Track *track);
 void track_destroy(Track *track, bool displace);
@@ -526,6 +534,7 @@ ClipRef *clipref_at_cursor_in_track(Track *track);
 ClipRef *clipref_before_cursor(int32_t *pos_dst);
 ClipRef *clipref_after_cursor(int32_t *pos_dst);
 void clipref_bring_to_front();
+void clipref_rename(ClipRef *cr);
 void timeline_ungrab_all_cliprefs(Timeline *tl);
 void clipref_grab(ClipRef *cr);
 void clipref_ungrab(ClipRef *cr);

@@ -2412,6 +2412,37 @@ static void timeline_reinsert_track(Track *track)
 /*     timeline_rectify_track_indices(tl); */
 /* } */
 
+void track_set_bus_out(Track *track, Track *bus_out)
+{
+    /* Check for cycles */
+    Track *test = bus_out;
+    while (test) {
+	if (test == track) {
+	    fprintf(stderr, "Error: circular route\n");
+	    return;
+	}
+	test = test->bus_out;
+    }
+
+    track->bus_out = bus_out;
+    if (bus_out->num_bus_ins + 1 >= bus_out->bus_ins_arrlen) {
+	if (bus_out->bus_ins_arrlen == 0) {
+	    bus_out->bus_ins_arrlen = 4;
+	    bus_out->bus_ins = calloc(bus_out->bus_ins_arrlen, sizeof(Track *));
+ 	} else {
+	    bus_out->bus_ins_arrlen *= 2;
+	    bus_out->bus_ins = realloc(bus_out->bus_ins, bus_out->bus_ins_arrlen * sizeof(Track *));
+	}
+    }
+    bus_out->bus_ins[bus_out->num_bus_ins] = track;
+    bus_out->num_bus_ins++;
+	
+    for (int i=0; i<bus_out->num_bus_ins; i++) {
+	fprintf(stderr, "%d Track \"%s\" has bus in: \"%s\"\n", i, bus_out->name, bus_out->bus_ins[i]->name);
+    }
+}
+
+
 
 void track_delete(Track *track)
 {

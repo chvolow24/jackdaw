@@ -159,6 +159,7 @@ void wav_write_mixdown(const char *filepath)
 
     project_set_loading_screen("Exporting WAV file...", "Creating mixdown and applying effects...", true);
     uint32_t loading_screen_modulus = chunks / 100;
+    if (loading_screen_modulus <= 0) loading_screen_modulus = 1;
     for (uint32_t c=0; c<chunks; c++) {
 	if (c % loading_screen_modulus == 0) {
 	    if (project_loading_screen_update(NULL, 0.9 * (float)c/chunks) != 0) {
@@ -311,6 +312,7 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
         wav_cvt.needed = 1;
 
 	int loading_screen_modulus = audio_len_bytes / WAV_READ_CK_LEN_BYTES / 100;
+	if (loading_screen_modulus <= 0) loading_screen_modulus = 1;
 	while (read_pos < audio_len_bytes) {
 	    if (read_pos % loading_screen_modulus == 0) {
 		if (project_loading_screen_update("Reading file data...", 0.8 * (float)read_pos/audio_len_bytes) != 0) {

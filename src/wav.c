@@ -233,7 +233,7 @@ int32_t wav_load(Project *proj, const char *filename, float **L, float **R)
 	    /* fprintf(stdout, "Audio len bytes: %"PRIu32" wav cvt len: %d\n", audio_len_bytes, wav_cvt.len); */
 	    size_t alloc_len = (size_t)len * wav_cvt.len_mult;
 	    /* fprintf(stdout, "Alloc len: %lu pos: %d/%d\n", alloc_len, read_pos, audio_len_bytes); */
-	    wav_cvt.buf = malloc(alloc_len);
+	    wav_cvt.buf = calloc(1, alloc_len);
 	    if (!wav_cvt.buf) {
 		fprintf(stderr, "ERROR: unable to allocate space for conversion buffer\n");
 		exit(1);
@@ -345,7 +345,7 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
 	    size_t alloc_len = (size_t)len * wav_cvt.len_mult;
 	    fprintf(stderr, "Alloc len: %ld (len mult: %d)\n", alloc_len, wav_cvt.len_mult);
 	    /* fprintf(stdout, "Alloc len: %lu pos: %d/%d\n", alloc_len, read_pos, audio_len_bytes); */
-	    wav_cvt.buf = malloc(alloc_len);
+	    wav_cvt.buf = calloc(1, alloc_len);
 	    if (!wav_cvt.buf) {
 		fprintf(stderr, "ERROR: unable to allocate space for conversion buffer\n");
 		exit(1);

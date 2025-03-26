@@ -25,6 +25,9 @@
 #include "project.h"
 #include "waveform.h"
 
+
+#define DEFAULT_BANDWIDTH_SCALAR 3.0
+
 extern Project *proj;
 extern SDL_Color freq_L_color;
 extern SDL_Color freq_R_color;
@@ -140,8 +143,8 @@ void eq_init(EQ *eq)
     }
     iir_group_init(&eq->group, EQ_DEFAULT_NUM_FILTERS, 2, EQ_DEFAULT_CHANNELS); /* STEREO, 4 PEAK, BIQUAD */
     for (int i=0; i<EQ_DEFAULT_NUM_FILTERS; i++) {
-	eq->ctrls[i].bandwidth_scalar = 0.15;
-	eq->ctrls[i].bandwidth_preferred = 0.15;
+	eq->ctrls[i].bandwidth_scalar = DEFAULT_BANDWIDTH_SCALAR;
+	eq->ctrls[i].bandwidth_preferred = DEFAULT_BANDWIDTH_SCALAR;
 	eq->ctrls[i].freq_amp_raw[0] = pow(nsub1, 0.15 + 0.15 * i) / nsub1;
 	eq->ctrls[i].freq_amp_raw[1] = 1.0;
 	eq->ctrls[i].eq = eq;
@@ -236,7 +239,7 @@ void eq_init(EQ *eq)
 	    (Value){.double_v = 1.0});
 	endpoint_set_default_value(
 	    &eq->ctrls[i].bandwidth_preferred_ep,
-	    (Value){.double_v = 0.15});
+	    (Value){.double_v = 0.4});
 
 	if (i < 2) {
 	    api_endpoint_register(&eq->ctrls[i].freq_ep, &eq->track->api_node);

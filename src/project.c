@@ -2412,9 +2412,25 @@ static void timeline_reinsert_track(Track *track)
 /*     timeline_rectify_track_indices(tl); */
 /* } */
 
+static void track_remove_bus_out(Track *track)
+{
+    if (!track->bus_out) return;
+    for (int i=0; i<track->bus_out->num_bus_ins; i++) {
+	if (track->bus_out->bus_ins[i] == track) {
+	    memmove(track->bus_out->bus_ins + i, track->bus_out->bus_ins + i + 1, (track->bus_out->num_bus_ins - i - 1) * sizeof(Track *));
+	    track->bus_out->num_bus_ins--;
+	    return;
+	}
+    }
+}
+
 void track_set_bus_out(Track *track, Track *bus_out)
 {
     /* Check for cycles */
+
+    if (track->bus_out == bus_out) return;
+    else if (track->bus_out) track_remove_bus_out(track);
+    
     Track *test = bus_out;
     while (test) {
 	if (test == track) {

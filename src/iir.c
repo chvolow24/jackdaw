@@ -98,6 +98,13 @@ double iir_sample(IIRFilter *f, double in, int channel)
     return out;
 }
 
+void iir_buf_apply(IIRFilter *f, float *buf, int len, int channel)
+{
+    for (int i=0; i<len; i++) {
+	buf[i] = iir_sample(f, buf[i], channel);
+    }
+}
+
 void iir_advance(IIRFilter *f, int channel)
 {
     memmove(f->memIn[channel] + 1, f->memIn[channel], sizeof(double) * (f->degree - 1));

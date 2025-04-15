@@ -22,8 +22,10 @@
 
 #include <complex.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #define IIR_FREQPLOT_RESOLUTION 1600
+#define IIR_MAX_DEGREE 10
 
 typedef enum iir_filter_type {
     IIR_PEAKNOTCH=0,
@@ -46,7 +48,13 @@ typedef struct iir_filter {
     double freq_resp[IIR_FREQPLOT_RESOLUTION];
 
     bool freq_resp_stale;
-    double complex pole_zero[2];
+    /* double complex pole_zero[2]; */
+    double complex poles[IIR_MAX_DEGREE];
+    uint8_t num_poles;
+    double complex zeros[IIR_MAX_DEGREE];
+    uint8_t num_zeros;
+
+    double complex normalization_constant;
 
 } IIRFilter;
 
@@ -67,6 +75,7 @@ void iir_buf_apply(IIRFilter *f, float *buf, int len, int channel);
 int iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double bandwidth, double *legal_bandwidth_scalar);
 /* void iir_set_coeffs_shelving(IIRFilter *iir, double freq_raw, double amp_raw, double Q); */
 int iir_set_coeffs_shelving(IIRFilter *iir, double freq_raw, double amp_raw, double Q);
+int iir_set_coeffs_lowpass(IIRFilter *iir, double freq);
 
 
 void iir_group_init(IIRGroup *group, int num_filters, int degree, int num_channels);

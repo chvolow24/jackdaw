@@ -415,6 +415,8 @@ void filter_set_params(FIRFilter *filter, FilterType type, double cutoff, double
     /* 	fprintf(stdout, "Allocating freq response\n"); */
     /* 	filter->frequency_response = malloc(sizeof(double complex) * filter->frequency_response_len); */
     /* } */
+
+
     FFT_unscaled(IR_zero_padded, filter->frequency_response, filter->frequency_response_len);
     get_magnitude(filter->frequency_response, filter->frequency_response_mag, filter->frequency_response_len);
     pthread_mutex_unlock(&filter->lock);

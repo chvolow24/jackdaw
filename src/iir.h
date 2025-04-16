@@ -76,6 +76,7 @@ int iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double ban
 /* void iir_set_coeffs_shelving(IIRFilter *iir, double freq_raw, double amp_raw, double Q); */
 /* int iir_set_coeffs_shelving(IIRFilter *iir, double freq_raw, double amp_raw, double Q); */
 int iir_set_coeffs_lowpass(IIRFilter *iir, double freq);
+int iir_set_coeffs_highpass(IIRFilter *iir, double freq);
 int iir_set_coeffs_lowshelf(IIRFilter *iir, double freq, double amp);
 
 

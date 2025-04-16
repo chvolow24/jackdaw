@@ -277,10 +277,10 @@ static void eq_set_peak(EQ *eq, int filter_index, double freq_raw, double amp_ra
     IIRFilter *iir = eq->group.filters + filter_index;
     double bandwidth_scalar_adj;
     int ret;
-    if (filter_index > 1)
+    if (filter_index > 0)
 	ret = iir_set_coeffs_peaknotch(iir, freq_raw, amp_raw, bandwidth, &bandwidth_scalar_adj);
     else
-	ret = iir_set_coeffs_lowshelf(iir, freq_raw, amp_raw);
+	ret = iir_set_coeffs_highpass(iir, freq_raw);
     if (ret == 1) {
 	/* fprintf(stderr, "RESETTING BW SCALAR: %f->%f\n", eq->ctrls[filter_index].bandwidth_scalar, bandwidth_scalar_adj); */
 	eq->ctrls[filter_index].bandwidth_scalar = bandwidth_scalar_adj;

@@ -181,7 +181,7 @@ static int reiss_2011(double freq, double amp, double bandwidth, double complex 
 
 void waveform_update_logscale(struct logscale *la, double *array, int num_items, int step, SDL_Rect *container);
 
-static double biquad_amp_from_freq(double freq_raw, double complex *pole, double complex *zero)
+static double biquad_amp_from_freq(double freq_raw, double complex *pole, double complex *zero, double complex *normalization_constant)
 {
     double complex pole1 = pole[0];
     double complex pole2 = conj(pole1);
@@ -190,18 +190,8 @@ static double biquad_amp_from_freq(double freq_raw, double complex *pole, double
 
     double theta = PI * freq_raw;
     double complex z = cos(theta) + I * sin(theta);
-
-    /* fprintf(stderr, "\n\tpol1: %f + %fi (mag %f)\n", creal(pole1), cimag(pole1), cabs(pole1)); */
-    /* fprintf(stderr, "\tpol2: %f + %fi (mag %f)\n", creal(pole2), cimag(pole2), cabs(pole2)); */
-
-    /* fprintf(stderr, "\tzero1: %f + %fi (mag %f)\n", creal(zero1), cimag(zero1), cabs(zero1)); */
-    /* fprintf(stderr, "\tzero2: %f + %fi (mag %f)\n", creal(zero2), cimag(zero2), cabs(zero2)); */
-
-    double complex ret = ((zero1 - z) * (zero2 - z)) / ((pole1 - z) * (pole2 - z));
-    /* fprintf(stderr, "\tret: %f + %fi (mag %f)\n", creal(ret), cimag(ret), cabs(ret)); */
+    double complex ret = *normalization_constant * ((zero1 - z) * (zero2 - z)) / ((pole1 - z) * (pole2 - z));
     return cabs(ret);
-    /* return ((zero1 - z) * (zero2 - z)) / ((pole1 - z) * (pole2 - z)); */
-
 }
 
 static void iir_reset_freq_resp(IIRFilter *iir)
@@ -210,9 +200,26 @@ static void iir_reset_freq_resp(IIRFilter *iir)
 	double prop = (double) i / IIR_FREQPLOT_RESOLUTION;
 	int nsub1 = iir->fp->num_items - 1;
 	double input = pow(nsub1, prop) / nsub1;
-	iir->freq_resp[i] = biquad_amp_from_freq(input, iir->poles, iir->zeros) * iir->normalization_constant;
+	iir->freq_resp[i] = biquad_amp_from_freq(input, iir->poles, iir->zeros, &iir->normalization_constant);
 	iir->freq_resp_stale = false;
     }
+}
+
+void biquad_normalize_and_set_coeffs(IIRFilter *iir, double complex norm_freq, double norm_amp)
+{
+
+    double complex H1 = ((norm_freq - iir->zeros[0]) * (norm_freq - conj(iir->zeros[0]))) / ((norm_freq - iir->poles[0]) * (norm_freq - conj(iir->poles[0])));
+    iir->normalization_constant = norm_amp / H1;
+
+    /* fprint(stderr, "NORM CONST: %f\n", creal(iir->normalization_constant)); */
+    /* fprintf(stderr, "NORM %f + %fi (mag %f)\n", creal(iir->normalization_constant), cimag(iir->normalization_constant), cabs(iir->normalization_constant)); */
+    
+    iir->A[0] = iir->normalization_constant;
+    iir->A[1] = -2 * creal(iir->zeros[0]) * iir->normalization_constant;
+    iir->A[2] = pow(cabs(iir->zeros[0]), 2) * iir->normalization_constant;
+
+    iir->B[0] = 2 * creal(iir->poles[0]);
+    iir->B[1] = -1 * pow(cabs(iir->poles[0]), 2);
 }
 
 int iir_set_coeffs_lowpass(IIRFilter *iir, double freq)
@@ -220,71 +227,50 @@ int iir_set_coeffs_lowpass(IIRFilter *iir, double freq)
     freq *= PI;
     double freq_prewarp = 2 * tan(freq / 2);
 
-    fprintf(stderr, "freq in: %f; prewarp: %f\n", freq, freq_prewarp);
-
     double complex exp_term = cexp(I * 3 * PI / 4);
-    fprintf(stderr, "EXP TERM: %f + %fi (mag %f)\n", creal(exp_term), cimag(exp_term), cabs(exp_term));
-    double complex exp_term_scaled = freq_prewarp * exp_term;
-    fprintf(stderr, "EXP TERM: scaled %f + %fi (mag %f)\n", creal(exp_term_scaled), cimag(exp_term_scaled), cabs(exp_term_scaled));
     double complex p0 = (2 + freq_prewarp * exp_term) / (2 - freq_prewarp * exp_term);
     /* double complex p1 = conj(p0); */
 
-    fprintf(stderr, "Pole & %f + %fi (mag %f)\n", creal(p0), cimag(p0), cabs(p0));
     iir->poles[0] = p0;
     iir->zeros[0] = -1;
     iir->num_poles = 1;
     iir->num_zeros = 1;
 
-
-    double complex H1 = ((1 - -1) * (1 - -1)) / ((1 - p0) * (1 - conj(p0)));
-    iir->normalization_constant = 1 / H1;
-    fprintf(stderr, "NORM %f + %fi (mag %f)\n", creal(iir->normalization_constant), cimag(iir->normalization_constant), cabs(iir->normalization_constant));
-
-    iir->A[0] = iir->normalization_constant;
-    iir->A[1] = -2 * creal(iir->zeros[0]) * iir->normalization_constant;
-    iir->A[2] = pow(cabs(iir->zeros[0]), 2) * iir->normalization_constant;
-
-    iir->B[0] = 2 * creal(iir->poles[0]);
-    iir->B[1] = -1 * pow(cabs(iir->poles[0]), 2);
-
-    /* iir->A[0] = 1.0; */
-    /* iir->A[1] = -2 * creal(iir->zeros[0]); */
-    /* iir->A[2] = pow(cabs(iir->zeros[0]), 2); */
-
-    /* iir->B[0] = -2; */
-    /* iir->B[1] = 1; */
-    /* iir->B[0] = 2 * creal(iir->poles[0]); */
-    /* iir->B[1] = -1 * pow(cabs(iir->poles[0]), 2); */
-
-    
-    /* iir->A[0] = 1; */
-    /* iir->A[1] = -2 * creal(p0); */
-    /* iir->A[2] = -1 * pow(cabs(p0), 2.0); */
-
-    /* iir->B[0] = -2; */
-    /* iir->B[1] = 1; */
-    
-    /* fprintf(stderr, "FREQ IN: %f\n", freq); */
-    /* freq /= 2; */
-    /* const double ita = 1.0/ tan(PI * freq); */
-    /* const double q = sqrt(2.0); */
-    /* double b0 = 1.0 / (1.0 + q*ita + ita*ita); */
-    /* double b1= 2*b0; */
-    /* double b2= b0; */
-    /* double a1 = 2.0 * (ita*ita - 1.0) * b0; */
-    /* double a2 = -(1.0 - q*ita + ita*ita) * b0; */
-    /* double B[2] = {a1, a2}; */
-    /* double A[3] = {b0, b1, b2}; */
-    /* iir_set_coeffs(iir, A, B); */
+    biquad_normalize_and_set_coeffs(iir, 1, 1);
 
     if (iir->fp) {
 	iir_reset_freq_resp(iir);
     } else {
 	iir->freq_resp_stale = true;
     }
-
     return 0;
 }
+
+int iir_set_coeffs_lowshelf(IIRFilter *iir, double freq, double amp)
+{
+    freq *= PI;
+    double freq_prewarp = 2 * tan(freq / 2);
+
+    double complex exp_term = cexp(I * 3 * PI / 4);
+    double complex p0 = (2 + freq_prewarp * exp_term) / (2 - freq_prewarp * exp_term);
+    /* double complex p1 = conj(p0); */
+    double complex scaled_exp = freq_prewarp * exp_term * sqrt(amp);
+    double complex z0 = (2 + scaled_exp) / (2 - scaled_exp);
+    iir->poles[0] = p0;
+    iir->zeros[0] = z0;
+    iir->num_poles = 1;
+    iir->num_zeros = 1;
+
+    biquad_normalize_and_set_coeffs(iir, 1, amp);
+
+    if (iir->fp) {
+	iir_reset_freq_resp(iir);
+    } else {
+	iir->freq_resp_stale = true;
+    }
+    return 0;
+}
+
 
 int iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double bandwidth, double *legal_bandwidth_scalar)
 {
@@ -292,8 +278,7 @@ int iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double ban
     int safety = 0;
     int test = 0;
     int ret = 0;
-    /* fprintf(stderr, "COEFFS: %f %f %f || %f %f\n", iir->A[0], iir->A[1], iir->A[2], iir->B[0], iir->B[1]); */
-    /* fprintf(stderr, "MEM: %f %f || %f %f\n", iir->memIn[0][0], iir->memIn[0][1], iir->memOut[0][0], iir->memOut[0][1]); */
+    
     iir->num_poles = 1;
     iir->num_zeros = 1;
     while ((test = reiss_2011(freq * PI, amp, bandwidth, iir->poles, iir->zeros)) < 0) {
@@ -321,50 +306,11 @@ int iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double ban
 
     if (iir->fp) {
 	iir_reset_freq_resp(iir);
-	/* for (int i=0; i<IIR_FREQPLOT_RESOLUTION; i++) { */
-	/*     double prop = (double) i / IIR_FREQPLOT_RESOLUTION; */
-	/*     int nsub1 = iir->fp->num_items - 1; */
-	/*     double input = pow(nsub1, prop) / nsub1; */
-	/*     iir->freq_resp[i] = biquad_amp_from_freq(input, iir->pole_zero); */
-	/* } */
     } else {
 	iir->freq_resp_stale = true;
     }
-    /* iir->pole_zero[0] = pole_zero[0]; */
-    /* iir->pole_zero[1] = pole_zero[1]; */
-
-    /* DO FREQ PLOTTING */
-    /* int steps[] = {1, 1}; */
-    /* double *arrs[] = {proj->output_L_freq, proj->output_R_freq}; */
-    /* SDL_Color *colors[] = {&freq_L_color, &freq_R_color}; */
-    /* if (!fp_container) { */
-    /* 	fp_container = layout_add_child(main_win->layout); */
-    /* 	layout_set_default_dims(fp_container); */
-    /* 	layout_force_reset(fp_container); */
-    /* 	eqfp = waveform_create_freq_plot( */
-    /* 	    arrs, */
-    /* 	    2, */
-    /* 	    colors, */
-    /* 	    steps, */
-    /* 	    freq_resp_len, */
-    /* 	    fp_container); */
-
-    /* } */
-    
-
-    /* iir->A[0] = 1.0; */
-    /* iir->A[1] = -2 * creal(iir->pole_zero[1]); */
-    /* iir->A[2] = pow(cabs(iir->pole_zero[1]), 2); */
-
-    /* iir->B[0] = 2 * creal(iir->pole_zero[0]); */
-    /* iir->B[1] = -1 * pow(cabs(iir->pole_zero[0]), 2); */
-
-    iir->A[0] = 1.0;
-    iir->A[1] = -2 * creal(iir->zeros[0]);
-    iir->A[2] = pow(cabs(iir->zeros[0]), 2);
-
-    iir->B[0] = 2 * creal(iir->poles[0]);
-    iir->B[1] = -1 * pow(cabs(iir->poles[0]), 2);
+    /* iir->normalization_constant = 1.0; */
+    biquad_normalize_and_set_coeffs(iir, 1, 1);
     return ret;
 }
 

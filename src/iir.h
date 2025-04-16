@@ -74,8 +74,9 @@ void iir_buf_apply(IIRFilter *f, float *buf, int len, int channel);
 /* void iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double bandwidth); */
 int iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double bandwidth, double *legal_bandwidth_scalar);
 /* void iir_set_coeffs_shelving(IIRFilter *iir, double freq_raw, double amp_raw, double Q); */
-int iir_set_coeffs_shelving(IIRFilter *iir, double freq_raw, double amp_raw, double Q);
+/* int iir_set_coeffs_shelving(IIRFilter *iir, double freq_raw, double amp_raw, double Q); */
 int iir_set_coeffs_lowpass(IIRFilter *iir, double freq);
+int iir_set_coeffs_lowshelf(IIRFilter *iir, double freq, double amp);
 
 
 void iir_group_init(IIRGroup *group, int num_filters, int degree, int num_channels);

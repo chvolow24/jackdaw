@@ -277,10 +277,10 @@ static void eq_set_peak(EQ *eq, int filter_index, double freq_raw, double amp_ra
     IIRFilter *iir = eq->group.filters + filter_index;
     double bandwidth_scalar_adj;
     int ret;
-    if (filter_index != 0)
+    if (filter_index > 1)
 	ret = iir_set_coeffs_peaknotch(iir, freq_raw, amp_raw, bandwidth, &bandwidth_scalar_adj);
     else
-	ret = iir_set_coeffs_lowpass(iir, freq_raw);
+	ret = iir_set_coeffs_lowshelf(iir, freq_raw, amp_raw);
     if (ret == 1) {
 	/* fprintf(stderr, "RESETTING BW SCALAR: %f->%f\n", eq->ctrls[filter_index].bandwidth_scalar, bandwidth_scalar_adj); */
 	eq->ctrls[filter_index].bandwidth_scalar = bandwidth_scalar_adj;
@@ -337,6 +337,8 @@ static void eq_set_filter_from_mouse(EQ *eq, int filter_index, SDL_Point mousep)
 void eq_mouse_motion(EQFilterCtrl *ctrl, Window *win)
 {
     EQ *eq = ctrl->eq;
+    if (!eq->fp) return;
+    if (!SDL_PointInRect(&win->mousep, &eq->fp->container->rect)) return;
     if (win->i_state & I_STATE_CMDCTRL) {
 	double new_bw_scalar = ctrl->bandwidth_scalar + (double)win->current_event->motion.yrel / 100.0;
 	if (new_bw_scalar < 0.001) new_bw_scalar = 0.005;

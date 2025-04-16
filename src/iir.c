@@ -296,6 +296,32 @@ int iir_set_coeffs_lowshelf(IIRFilter *iir, double freq, double amp)
     return 0;
 }
 
+int iir_set_coeffs_highshelf(IIRFilter *iir, double freq, double amp)
+{
+    freq *= PI;
+    double freq_prewarp = 2 * tan(freq / 2);
+
+    double complex exp_term = cexp(I * 3 * PI / 4);
+    double complex p0 = (2 + freq_prewarp * exp_term) / (2 - freq_prewarp * exp_term);
+    /* double complex p1 = conj(p0); */
+    double complex scaled_exp = freq_prewarp * exp_term / sqrt(amp);
+    double complex z0 = (2 + scaled_exp) / (2 - scaled_exp);
+    iir->poles[0] = p0;
+    iir->zeros[0] = z0;
+    iir->num_poles = 1;
+    iir->num_zeros = 1;
+
+    biquad_normalize_and_set_coeffs(iir, 1, 1);
+
+    if (iir->fp) {
+	iir_reset_freq_resp(iir);
+    } else {
+	iir->freq_resp_stale = true;
+    }
+    return 0;
+}
+
+
 
 
 int iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double bandwidth, double *legal_bandwidth_scalar)

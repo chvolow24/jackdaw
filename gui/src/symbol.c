@@ -1,3 +1,4 @@
+#include <complex.h>
 #include "SDL_render.h"
 #include "color.h" 
 #include "geometry.h"
@@ -9,7 +10,7 @@
 #define SYMBOL_FILTER_DIM_SCALAR 3
 #define SYMBOL_FILTER_PAD 6
 
-Symbol *SYMBOL_TABLE[7];
+Symbol *SYMBOL_TABLE[8];
 
 static void x_draw_fn(void *self)
 {
@@ -194,7 +195,39 @@ static void highshelf_draw_fn(void *self)
 	last_y_down = y_down;
     }
     geom_draw_rounded_rect(s->window->rend, &outer_rect, s->corner_rad_pix);
+}
 
+int reiss_2011(double freq, double amp, double bandwidth, double complex *pole_dst, double complex *zero_dst);
+
+static void peaknotch_draw_fn(void *self)
+{
+    Symbol *s = (Symbol *)self;
+
+    double complex pole, zero;
+    reiss_2011(M_PI / 2, 2.0, 0.35, &pole, &zero);
+
+    /* int corner_r = SYMBOL_DEFAULT_CORNER_R * SYMBOL_FILTER_DIM_SCALAR * s->window->dpi_scale_factor; */
+    int pad = SYMBOL_FILTER_PAD * s->window->dpi_scale_factor;
+    SDL_Rect outer_rect = {0, 0, s->x_dim_pix, s->y_dim_pix};
+    SDL_Rect inner_rect = {pad, pad, s->x_dim_pix - pad * 2, s->y_dim_pix - pad * 2};
+    /* SDL_Rect inner_rect = { */
+    int mid_y = s->y_dim_pix / 2;
+    int last_y_up = mid_y;
+    int last_y_down = mid_y;
+    SDL_SetRenderDrawColor(s->window->rend, 255, 255, 255, 255);
+    for (int x=pad; x<pad + inner_rect.w; x++) {
+        double complex x_freq = cexp(I * M_PI * (double)(x - pad) / inner_rect.w);
+	double y_prop = 0.86 - cabs(((zero - x_freq) * (conj(zero) - x_freq)) / ((pole - x_freq) * (conj(pole) - x_freq)));
+	int y_up = mid_y + y_prop * inner_rect.h / 2;
+	int y_down = mid_y - y_prop * inner_rect.h / 2;
+	if (x != pad) {
+	    SDL_RenderDrawLine(s->window->rend, x-1, last_y_up, x, y_up);
+	    SDL_RenderDrawLine(s->window->rend, x-1, last_y_down, x, y_down);
+	}
+	last_y_up = y_up;
+	last_y_down = y_down;
+    }
+    geom_draw_rounded_rect(s->window->rend, &outer_rect, s->corner_rad_pix);    
 }
 
 
@@ -247,6 +280,12 @@ void init_symbol_table(Window *win)
 	filter_dim,
 	filter_rad,
 	highshelf_draw_fn);
+    SYMBOL_TABLE[7] = symbol_create(
+	win,
+	filter_dim,
+	filter_dim,
+	filter_rad,
+	peaknotch_draw_fn);
 }
 
 

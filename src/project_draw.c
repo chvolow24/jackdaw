@@ -733,12 +733,21 @@ void project_draw()
     layout_set_default_dims(sblt2);
     sblt->w.value = SYMBOL_STD_DIM * 3;
     sblt->h.value = SYMBOL_STD_DIM * 3;
-    sblt->y.value += 400;
+    sblt->y.value += 150;
     layout_force_reset(sblt);
 
     SymbolButton *sb2 = symbol_button_create(sblt, SYMBOL_TABLE[6], NULL, NULL, &bckgrnd);
     symbol_button_draw(sb2);
     symbol_button_destroy(sb2);
+
+
+    sblt->y.value += 150;
+    layout_force_reset(sblt);
+
+    SymbolButton *sb3 = symbol_button_create(sblt, SYMBOL_TABLE[7], NULL, NULL, &bckgrnd);
+    symbol_button_draw(sb3);
+    symbol_button_destroy(sb3);
+    
 
 
     window_end_draw(main_win);

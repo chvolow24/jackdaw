@@ -128,7 +128,7 @@ void iir_clear(IIRFilter *f)
 
 
 /* Joshua D. Reiss, IEEE TRANSACTIONS ON AUDIO, SPEECH, AND LANGUAGE PROCESSING, VOL. 19, NO. 6, AUGUST 2011  */
-static int reiss_2011(double freq, double amp, double bandwidth, double complex *pole_dst, double complex *zero_dst)
+int reiss_2011(double freq, double amp, double bandwidth, double complex *pole_dst, double complex *zero_dst)
 {
     double cosw = cos(freq);
     double tanbdiv2 = tan(bandwidth / 2);

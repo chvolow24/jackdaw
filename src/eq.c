@@ -37,7 +37,7 @@ SDL_Color grey_clear = {200, 200, 200, 100};
 
 extern Window *main_win;
 
-static SDL_Color EQ_CTRL_COLORS[] = {
+SDL_Color EQ_CTRL_COLORS[] = {
     {255, 10, 10, 255},
     {255, 220, 0, 255},
     {10, 255, 10, 255},
@@ -46,7 +46,7 @@ static SDL_Color EQ_CTRL_COLORS[] = {
     {10, 10, 255, 255},
 };
 
-static SDL_Color EQ_CTRL_COLORS_LIGHT[] = {
+SDL_Color EQ_CTRL_COLORS_LIGHT[] = {
     {255, 10, 10, 100},
     {255, 220, 0, 100},
     {10, 255, 10, 100},
@@ -132,7 +132,8 @@ void eq_ctrl_label_fn(char *dst, size_t dstsize, Value val, ValType type)
 }
 
 
-EndptCb test;
+/* EndptCb test; */
+
 void eq_init(EQ *eq)
 {
     double nsub1;
@@ -338,7 +339,12 @@ void eq_mouse_motion(EQFilterCtrl *ctrl, Window *win)
 {
     EQ *eq = ctrl->eq;
     if (!eq->fp) return;
-    if (!SDL_PointInRect(&win->mousep, &eq->fp->container->rect)) return;
+    SDL_Rect rect = eq->fp->container->rect;
+    SDL_Point write_point = win->mousep;
+    if (write_point.x < rect.x)  write_point.x = rect.x;
+    else if (write_point.x > rect.x + rect.w) write_point.x = rect.x + rect.w - 1;
+    if (write_point.y < rect.y) write_point.y = rect.y;
+    else if (write_point.y > rect.y + rect.h) write_point.y = rect.y + rect.h - 1;
     if (win->i_state & I_STATE_CMDCTRL) {
 	double new_bw_scalar = ctrl->bandwidth_scalar + (double)win->current_event->motion.yrel / 100.0;
 	if (new_bw_scalar < 0.001) new_bw_scalar = 0.005;
@@ -350,7 +356,7 @@ void eq_mouse_motion(EQFilterCtrl *ctrl, Window *win)
 	/* SDL_Point p = {ctrl->x, ctrl->y}; */
 	/* eq_set_filter_from_mouse(eq, ctrl->index, p); */
     } else {
-	eq_set_filter_from_mouse(eq, ctrl->index, win->mousep);
+	eq_set_filter_from_mouse(eq, ctrl->index, write_point);
     }
 
 }
@@ -359,7 +365,7 @@ bool eq_mouse_click(EQ *eq, SDL_Point mousep)
 {
     int click_tolerance = 20 * main_win->dpi_scale_factor;
     int min_dist = click_tolerance;
-    int clicked_i;
+    int clicked_i = -1;
     for (int i=0; i<EQ_DEFAULT_NUM_FILTERS; i++) {
 	int x_dist = abs(mousep.x - eq->ctrls[i].x);
 	if (x_dist < min_dist) {
@@ -367,6 +373,9 @@ bool eq_mouse_click(EQ *eq, SDL_Point mousep)
 	    clicked_i = i;
 	}
     }
+    if (clicked_i < 0) return false;
+    eq->selected_ctrl = clicked_i;
+    
     if (min_dist < click_tolerance) {
 	eq_set_filter_from_mouse(eq, clicked_i, mousep);
 	proj->dragged_component.component = eq->ctrls + clicked_i;
@@ -479,6 +488,9 @@ void eq_draw(EQ *eq)
 	label_draw(eq->ctrls[i].label);
 	
 	geom_draw_circle(main_win->rend, eq->ctrls[i].x - EQ_CTRL_RAD, eq->ctrls[i].y - EQ_CTRL_RAD, EQ_CTRL_RAD);
+	if (i == eq->selected_ctrl) {
+	    geom_draw_circle(main_win->rend, eq->ctrls[i].x - EQ_SEL_CTRL_RAD, eq->ctrls[i].y - EQ_SEL_CTRL_RAD, EQ_SEL_CTRL_RAD);
+	}
 	/* geom_draw_circle(main_win->rend, eq->ctrls[i].x - 2.0 * radmin1div2, eq->ctrls[i].y - 2.0 * radmin1div2, radmin1); */
     }
 }

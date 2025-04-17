@@ -44,10 +44,10 @@ TabView *tabview_create(const char *title, Layout *parent_lt, Window *win)
     tv_lt->h.type = SCALE;
     tv_lt->x.type = SCALE;
     tv_lt->y.type = SCALE;
-    tv_lt->x.value = 0.1;
-    tv_lt->y.value = 0.1;
-    tv_lt->w.value = 0.8;
-    tv_lt->h.value = 0.8;
+    tv_lt->x.value = 0.05;
+    tv_lt->y.value = 0.05;
+    tv_lt->w.value = 0.9;
+    tv_lt->h.value = 0.9;
 
     tv->layout = tv_lt;
     tv->win = win;

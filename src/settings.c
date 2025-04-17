@@ -17,9 +17,12 @@
 
 #include <pthread.h>
 #include "assets.h"
+#include "color.h"
 #include "dsp.h"
 #include "eq.h"
+#include "geometry.h"
 #include "label.h"
+#include "layout.h"
 #include "page.h"
 #include "project.h"
 #include "textbox.h"
@@ -43,6 +46,9 @@ extern SDL_Color color_global_light_grey;
 extern SDL_Color color_global_quickref_button_blue;
 extern SDL_Color freq_L_color;
 extern SDL_Color freq_R_color;
+
+extern SDL_Color EQ_CTRL_COLORS[];
+extern SDL_Color EQ_CTRL_COLORS_LIGHT[];
 
 /* static struct freq_plot *current_fp; */
 Waveform *current_waveform;
@@ -106,6 +112,18 @@ static void create_track_selection_area(Page *page, Track *track)
     el = page_add_el(page, EL_BUTTON, p, "track_settings_next_track", "track_next");
 }
 
+static void eq_ctrl_canvas_draw_fn(void *arg1, void *arg2)
+{
+    EQ *eq = (EQ *)arg1;
+    int sel = eq->selected_ctrl;
+    Layout *canvas_lt = arg2;
+
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(EQ_CTRL_COLORS_LIGHT[sel]));
+    geom_draw_rect_thick(main_win->rend, &canvas_lt->rect, 3, main_win->dpi_scale_factor);
+    
+
+}
+
 void settings_track_tabview_set_track(TabView *tv, Track *track)
 {
     /* if (!track->fir_filter.frequency_response) { */
@@ -163,14 +181,53 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     p.eq_plot_p.eq = &track->eq;
     page_add_el(page, EL_EQ_PLOT, p, "track_settings_eq_plot", "eq_plot");
 
-    p.textarea_p.font = main_win->mono_bold_font;
-    p.textarea_p.color = color_global_white;
-    p.textarea_p.text_size = 12;
-    p.textarea_p.win = main_win;
-    p.textarea_p.value = "Click and drag the circles to set peaks or notches.\n \nHold cmd or ctrl and drag up or down to set the filter bandwidth.\n \nAdditional filter types (shelving, lowpass, highpass) will be added in future versions of jackdaw.";
-    page_add_el(page, EL_TEXTAREA, p, "track_settings_eq_desc", "description");
+    /* p.textarea_p.font = main_win->mono_bold_font; */
+    /* p.textarea_p.color = color_global_white; */
+    /* p.textarea_p.text_size = 12; */
+    /* p.textarea_p.win = main_win; */
+    /* p.textarea_p.value = "Click and drag the circles to set peaks or notches.\n \nHold cmd or ctrl and drag up or down to set the filter bandwidth.\n \nAdditional filter types (shelving, lowpass, highpass) will be added in future versions of jackdaw."; */
+    /* page_add_el(page, EL_TEXTAREA, p, "track_settings_eq_desc", "description"); */
 
     create_track_selection_area(page, track);
+
+    Layout *filter_tabs = layout_get_child_by_name_recursive(page->layout, "filter_tabs");
+    char lt_name[2];
+    for (int i=0; i<EQ_DEFAULT_NUM_FILTERS; i++) {
+	Layout *tab_lt = layout_add_child(filter_tabs);
+	tab_lt->h.type = SCALE;
+	tab_lt->h.value = 1.0;
+	tab_lt->w.value = 50.0;
+	tab_lt->x.type = STACK;
+	tab_lt->x.value = 0;
+	snprintf(lt_name, 2, "%d", i);
+	p.textbox_p.font = main_win->mono_bold_font;
+	p.textbox_p.text_size = 14;
+	p.textbox_p.set_str = lt_name;
+	p.textbox_p.win = main_win;
+	layout_set_name(tab_lt, lt_name);
+	layout_reset(tab_lt);
+	el = page_add_el(
+	    page,
+	    EL_TEXTBOX,
+	    p,
+	    "",
+	    lt_name);
+	Textbox *tab_tb = el->component;
+	textbox_set_border(tab_tb, EQ_CTRL_COLORS_LIGHT + i, 3);
+	    
+    }
+    Layout *canvas_lt = layout_get_child_by_name_recursive(page->layout, "ctrl_canvas");
+    p.canvas_p.draw_fn = eq_ctrl_canvas_draw_fn;
+    p.canvas_p.draw_arg1 = &track->eq;
+    p.canvas_p.draw_arg2 = canvas_lt;
+   
+    page_add_el(
+	page,
+	EL_CANVAS,
+	p,
+	"",
+	"ctrl_canvas");
+   
 
 
     page = tab_view_add_page(

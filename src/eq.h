@@ -26,6 +26,7 @@
 #define EQ_DEFAULT_CHANNELS 2
 #define EQ_MAX_AMPLITUDE 20.0
 #define EQ_CTRL_RAD (6 * main_win->dpi_scale_factor)
+#define EQ_SEL_CTRL_RAD (10 * main_win->dpi_scale_factor)
 #define EQ_CTRL_LABEL_BUFLEN 32
 
 typedef struct eq EQ;
@@ -58,7 +59,7 @@ typedef struct eq {
     IIRGroup group;
     struct freq_plot *fp;
     EQFilterCtrl ctrls[EQ_DEFAULT_NUM_FILTERS];
-    int current_ctrl;
+    int selected_ctrl;
     Track *track;
 } EQ;
 

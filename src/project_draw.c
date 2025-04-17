@@ -712,42 +712,7 @@ void project_draw()
     /* 	/\*     fprintf(stderr, "FREQ: %f, theta %f, z: %f+%fi, X: %d, mag: %f\n", freq_raw, theta, creal(z), cimag(z), x, magnitude); *\/ */
     /* 	/\*     SDL_RenderDrawPoint(main_win->rend, x, eqfp->container->rect.y + eqfp->container->rect.h - magnitude * eqfp->container->rect.h); *\/ */
     /* 	/\* } *\/ */
-    /* } */
-    Symbol *s = SYMBOL_TABLE[5];
-    /* SDL_Rect test = {400, 400, s->x_dim_pix, s->y_dim_pix}; */
-    SDL_Color bckgrnd = {100, 25, 100, 255};
-    /* symbol_draw_w_bckgrnd(SYMBOL_TABLE[5], &test, &bckgrnd); */
-    /* /\* symbol_draw(SYMBOL_TABLE[5], &test); *\/ */
-    
-    Layout *sblt = layout_add_child(main_win->layout);
-    layout_set_default_dims(sblt);
-    sblt->w.value = SYMBOL_STD_DIM * 3;
-    sblt->h.value = SYMBOL_STD_DIM * 3;
-    layout_force_reset(sblt);
-
-    SymbolButton *sb = symbol_button_create(sblt, s, NULL, NULL, &bckgrnd);
-    symbol_button_draw(sb);
-    symbol_button_destroy(sb);
-    
-    Layout *sblt2 = layout_add_child(main_win->layout);
-    layout_set_default_dims(sblt2);
-    sblt->w.value = SYMBOL_STD_DIM * 3;
-    sblt->h.value = SYMBOL_STD_DIM * 3;
-    sblt->y.value += 150;
-    layout_force_reset(sblt);
-
-    SymbolButton *sb2 = symbol_button_create(sblt, SYMBOL_TABLE[6], NULL, NULL, &bckgrnd);
-    symbol_button_draw(sb2);
-    symbol_button_destroy(sb2);
-
-
-    sblt->y.value += 150;
-    layout_force_reset(sblt);
-
-    SymbolButton *sb3 = symbol_button_create(sblt, SYMBOL_TABLE[7], NULL, NULL, &bckgrnd);
-    symbol_button_draw(sb3);
-    symbol_button_destroy(sb3);
-    
+    /* } */    
 
 
     window_end_draw(main_win);

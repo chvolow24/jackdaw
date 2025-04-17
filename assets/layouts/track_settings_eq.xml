@@ -68,12 +68,28 @@
         </Layout>
       </children>
     </Layout>
-    <Layout name="description" type="NORMAL">
-      <x>SCALE 0.059748</x>
-      <y>SCALE 0.135714</y>
-      <w>SCALE 0.727763</w>
-      <h>SCALE 0.222321</h>
+    <Layout name="ctrl" type="NORMAL">
+      <x>SCALE 0.059583</x>
+      <y>SCALE 0.115495</y>
+      <w>SCALE 0.850417</w>
+      <h>SCALE 0.250359</h>
       <children>
+        <Layout name="filter_tabs" type="NORMAL">
+          <x>REL 1</x>
+          <y>STACK 5</y>
+          <w>REL 591</w>
+          <h>REL 24</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="ctrl_canvas" type="NORMAL">
+          <x>REL 1</x>
+          <y>STACK 0</y>
+          <w>REL 395</w>
+          <h>COMPLEMENT 0</h>
+          <children>
+          </children>
+        </Layout>
       </children>
     </Layout>
   </children>

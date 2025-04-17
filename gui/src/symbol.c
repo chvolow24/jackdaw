@@ -7,7 +7,8 @@
 #define SYMBOL_DEFAULT_PAD 4
 #define SYMBOL_DEFAULT_CORNER_R 4
 #define SYMBOL_DEFAULT_THICKNESS 3
-#define SYMBOL_FILTER_DIM_SCALAR 3
+#define SYMBOL_FILTER_DIM_SCALAR_H 3
+#define SYMBOL_FILTER_DIM_SCALAR_V 2.5
 #define SYMBOL_FILTER_PAD 6
 
 Symbol *SYMBOL_TABLE[8];
@@ -207,7 +208,7 @@ static void peaknotch_draw_fn(void *self)
     reiss_2011(M_PI / 2, 2.0, 0.35, &pole, &zero);
 
     /* int corner_r = SYMBOL_DEFAULT_CORNER_R * SYMBOL_FILTER_DIM_SCALAR * s->window->dpi_scale_factor; */
-    int pad = SYMBOL_FILTER_PAD * s->window->dpi_scale_factor;
+    int pad = (SYMBOL_FILTER_PAD - 1) * s->window->dpi_scale_factor;
     SDL_Rect outer_rect = {0, 0, s->x_dim_pix, s->y_dim_pix};
     SDL_Rect inner_rect = {pad, pad, s->x_dim_pix - pad * 2, s->y_dim_pix - pad * 2};
     /* SDL_Rect inner_rect = { */
@@ -235,7 +236,8 @@ static void peaknotch_draw_fn(void *self)
 void init_symbol_table(Window *win)
 {
     int std_dim = SYMBOL_STD_DIM * win->dpi_scale_factor;
-    int filter_dim = SYMBOL_STD_DIM * 3 * win->dpi_scale_factor;
+    int filter_dim_x = SYMBOL_STD_DIM * SYMBOL_FILTER_DIM_SCALAR_H * win->dpi_scale_factor;
+    int filter_dim_y = SYMBOL_STD_DIM * SYMBOL_FILTER_DIM_SCALAR_V * win->dpi_scale_factor;
     int std_rad = SYMBOL_DEFAULT_CORNER_R * win->dpi_scale_factor;
     int filter_rad = SYMBOL_DEFAULT_CORNER_R * 3 * win->dpi_scale_factor;
     SYMBOL_TABLE[0] = symbol_create(
@@ -270,20 +272,20 @@ void init_symbol_table(Window *win)
 	keyframe_draw_fn);
     SYMBOL_TABLE[5] = symbol_create(
 	win,
-	filter_dim,
-	filter_dim,
+	filter_dim_x,
+	filter_dim_y,
 	filter_rad,
 	lowshelf_draw_fn);
     SYMBOL_TABLE[6] = symbol_create(
 	win,
-	filter_dim,
-	filter_dim,
+	filter_dim_x,
+	filter_dim_y,
 	filter_rad,
 	highshelf_draw_fn);
     SYMBOL_TABLE[7] = symbol_create(
 	win,
-	filter_dim,
-	filter_dim,
+	filter_dim_x,
+	filter_dim_y,
 	filter_rad,
 	peaknotch_draw_fn);
 }
@@ -322,9 +324,9 @@ void symbol_quit(Window *win)
 
 }
 
-
 void symbol_draw(Symbol *s, SDL_Rect *dst)
 {
+    
     if (!s->texture || s->redraw) {
 	if (s->texture) {
 	    SDL_DestroyTexture(s->texture);

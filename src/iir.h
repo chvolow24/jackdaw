@@ -31,8 +31,6 @@ typedef enum iir_filter_type {
     IIR_PEAKNOTCH=0,
     IIR_LOWSHELF=1,
     IIR_HIGHSHELF=2,
-    IIR_LOWPASS=3,
-    IIR_HIGHPASS=4
 } IIRFilterType;
 
 typedef struct iir_filter {
@@ -73,10 +71,8 @@ double iir_sample(IIRFilter *f, double in, int channel);
 void iir_buf_apply(IIRFilter *f, float *buf, int len, int channel);
 /* void iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double bandwidth); */
 int iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double bandwidth, double *legal_bandwidth_scalar);
-/* void iir_set_coeffs_shelving(IIRFilter *iir, double freq_raw, double amp_raw, double Q); */
-/* int iir_set_coeffs_shelving(IIRFilter *iir, double freq_raw, double amp_raw, double Q); */
-int iir_set_coeffs_lowpass(IIRFilter *iir, double freq);
-int iir_set_coeffs_highpass(IIRFilter *iir, double freq);
+/* int iir_set_coeffs_lowpass(IIRFilter *iir, double freq); */
+/* int iir_set_coeffs_highpass(IIRFilter *iir, double freq); */
 int iir_set_coeffs_lowshelf(IIRFilter *iir, double freq, double amp);
 int iir_set_coeffs_highshelf(IIRFilter *iir, double freq, double amp);
 

@@ -521,6 +521,10 @@ static bool page_element_mouse_click(PageEl *el, Window *win)
 	return eq_mouse_click(eq, win->mousep);
 	}
 	break;
+    case EL_CANVAS: {
+	Canvas *c = (Canvas *)el->component;
+	return c->on_click(c, c->draw_arg1, c->draw_arg2);
+    }
     default:
 	break;
     }

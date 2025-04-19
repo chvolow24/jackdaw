@@ -124,11 +124,12 @@ typedef struct slider {
     bool disallow_unsafe_mode;
 
 } Slider;
-
+typedef struct canvas Canvas;
 typedef struct canvas {
     Layout *layout;
     void (*draw_fn)(void *, void *);
     void *draw_arg1, *draw_arg2;
+    bool (*on_click)(Canvas *self, void *xarg1, void *xarg2);
 } Canvas;
 
 

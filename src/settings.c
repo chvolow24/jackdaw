@@ -120,8 +120,12 @@ static void eq_ctrl_canvas_draw_fn(void *arg1, void *arg2)
 
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(EQ_CTRL_COLORS_LIGHT[sel]));
     geom_draw_rect_thick(main_win->rend, &canvas_lt->rect, 3, main_win->dpi_scale_factor);
-    
-
+}
+static bool eq_ctrl_canvas_onclick(Canvas *self, void *xarg1, void *xarg2)
+{
+    /* Layout *filter_tab =  */
+    layout_write(stderr, self->layout, 0);
+    return false;
 }
 
 void settings_track_tabview_set_track(TabView *tv, Track *track)
@@ -221,12 +225,14 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     p.canvas_p.draw_arg1 = &track->eq;
     p.canvas_p.draw_arg2 = canvas_lt;
    
-    page_add_el(
+    el = page_add_el(
 	page,
 	EL_CANVAS,
 	p,
 	"",
 	"ctrl_canvas");
+    Canvas *canvas = el->component;
+    canvas->on_click = eq_ctrl_canvas_onclick;
    
 
 

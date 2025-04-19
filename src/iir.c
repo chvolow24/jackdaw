@@ -207,9 +207,14 @@ static void iir_reset_freq_resp(IIRFilter *iir)
 
 void biquad_normalize_and_set_coeffs(IIRFilter *iir, double complex norm_freq, double norm_amp)
 {
+    static double epsilon = 1e-9;
 
-    double complex H1 = ((norm_freq - iir->zeros[0]) * (norm_freq - conj(iir->zeros[0]))) / ((norm_freq - iir->poles[0]) * (norm_freq - conj(iir->poles[0])));
-    iir->normalization_constant = norm_amp / H1;
+    double complex H = ((norm_freq - iir->zeros[0]) * (norm_freq - conj(iir->zeros[0]))) / ((norm_freq - iir->poles[0]) * (norm_freq - conj(iir->poles[0])));
+
+    if (cabs(H) < epsilon) 
+	iir->normalization_constant = 1.0;
+    else 
+	iir->normalization_constant = norm_amp / H;
 
     /* fprint(stderr, "NORM CONST: %f\n", creal(iir->normalization_constant)); */
     /* fprintf(stderr, "NORM %f + %fi (mag %f)\n", creal(iir->normalization_constant), cimag(iir->normalization_constant), cabs(iir->normalization_constant)); */
@@ -261,7 +266,7 @@ int iir_set_coeffs_highpass(IIRFilter *iir, double freq)
     iir->num_zeros = 1;
 
     biquad_normalize_and_set_coeffs(iir, 0, 1);
-
+    
     if (iir->fp) {
 	iir_reset_freq_resp(iir);
     } else {
@@ -273,20 +278,28 @@ int iir_set_coeffs_highpass(IIRFilter *iir, double freq)
 
 int iir_set_coeffs_lowshelf(IIRFilter *iir, double freq, double amp)
 {
+    static const double epsilon = 1e-9;
     freq *= PI;
     double freq_prewarp = 2 * tan(freq / 2);
 
     double complex exp_term = cexp(I * 3 * PI / 4);
     double complex p0 = (2 + freq_prewarp * exp_term) / (2 - freq_prewarp * exp_term);
-    /* double complex p1 = conj(p0); */
-    double complex scaled_exp = freq_prewarp * exp_term * sqrt(amp);
-    double complex z0 = (2 + scaled_exp) / (2 - scaled_exp);
+    double complex z0;
+    if (fabs(amp) - 0.0 > epsilon) {   
+	double complex scaled_exp = freq_prewarp * exp_term * sqrt(amp);
+	z0 = (2 + scaled_exp) / (2 - scaled_exp);
+    } else {
+	z0 = 1; /* Highpass case */
+    }
     iir->poles[0] = p0;
     iir->zeros[0] = z0;
     iir->num_poles = 1;
     iir->num_zeros = 1;
 
+    fprintf(stderr, "\nfreq: %f; amp: %f; pole: %f+%fi, zero: %f+%fi\n", freq, amp, creal(p0), cimag(p0), creal(z0), cimag(z0));
     biquad_normalize_and_set_coeffs(iir, 1, amp);
+    fprintf(stderr, "norm: %f+%fi\n", creal(iir->normalization_constant), cimag(iir->normalization_constant));
+
 
     if (iir->fp) {
 	iir_reset_freq_resp(iir);
@@ -298,21 +311,27 @@ int iir_set_coeffs_lowshelf(IIRFilter *iir, double freq, double amp)
 
 int iir_set_coeffs_highshelf(IIRFilter *iir, double freq, double amp)
 {
+    static const double epsilon = 1e-9;
     freq *= PI;
     double freq_prewarp = 2 * tan(freq / 2);
 
     double complex exp_term = cexp(I * 3 * PI / 4);
     double complex p0 = (2 + freq_prewarp * exp_term) / (2 - freq_prewarp * exp_term);
-    /* double complex p1 = conj(p0); */
-    double complex scaled_exp = freq_prewarp * exp_term / sqrt(amp);
-    double complex z0 = (2 + scaled_exp) / (2 - scaled_exp);
+    double complex z0;
+    if (fabs(amp) - 0.0 > epsilon) {	
+	double complex scaled_exp = freq_prewarp * exp_term / sqrt(amp);
+	z0 = (2 + scaled_exp) / (2 - scaled_exp);
+    } else { /* Lowpass case */
+	z0 = -1;
+    }
     iir->poles[0] = p0;
     iir->zeros[0] = z0;
     iir->num_poles = 1;
     iir->num_zeros = 1;
 
+    /* fprintf(stderr, "\nfreq: %f; amp: %f; pole: %f+%fi, zero: %f+%fi\n", freq, amp, creal(p0), cimag(p0), creal(z0), cimag(z0)); */
     biquad_normalize_and_set_coeffs(iir, 1, 1);
-
+    /* fprintf(stderr, "norm: %f+%fi\n", creal(iir->normalization_constant), cimag(iir->normalization_constant)); */
     if (iir->fp) {
 	iir_reset_freq_resp(iir);
     } else {

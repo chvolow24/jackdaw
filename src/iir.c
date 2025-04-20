@@ -296,9 +296,9 @@ int iir_set_coeffs_lowshelf(IIRFilter *iir, double freq, double amp)
     iir->num_poles = 1;
     iir->num_zeros = 1;
 
-    fprintf(stderr, "\nfreq: %f; amp: %f; pole: %f+%fi, zero: %f+%fi\n", freq, amp, creal(p0), cimag(p0), creal(z0), cimag(z0));
+    /* fprintf(stderr, "\nfreq: %f; amp: %f; pole: %f+%fi, zero: %f+%fi\n", freq, amp, creal(p0), cimag(p0), creal(z0), cimag(z0)); */
     biquad_normalize_and_set_coeffs(iir, 1, amp);
-    fprintf(stderr, "norm: %f+%fi\n", creal(iir->normalization_constant), cimag(iir->normalization_constant));
+    /* fprintf(stderr, "norm: %f+%fi\n", creal(iir->normalization_constant), cimag(iir->normalization_constant)); */
 
 
     if (iir->fp) {

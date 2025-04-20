@@ -82,11 +82,11 @@
           <children>
           </children>
         </Layout>
-        <Layout name="ctrl_canvas" type="NORMAL">
-          <x>REL 1</x>
+        <Layout name="type_selector" type="NORMAL">
+          <x>REL 0</x>
           <y>STACK 0</y>
-          <w>REL 395</w>
-          <h>COMPLEMENT 0</h>
+          <w>REL 598</w>
+          <h>REL 146</h>
           <children>
           </children>
         </Layout>

@@ -57,27 +57,14 @@ SDL_Color EQ_CTRL_COLORS_LIGHT[] = {
 
 
 
-/* EQ glob_eq; */
-static void eq_set_peak(EQ *eq, int filter_index, double freq_raw, double amp_raw, double bandwidth);
-
-
-/* endpoint_init(Endpoint *ep, void *val, */
-/* 	      ValType t, */
-/* 	      const char *local_id, */
-/* 	      const char *undo_str, */
-/* 	      enum jdaw_thread owner_thread, */
-/* 	      EndptCb gui_cb, */
-/* 	      EndptCb proj_cb, */
-/* 	      EndptCb dsp_cb, */
-/* 	      void *xarg1, void *xarg2, void *xarg3, void *xarg4) -> int */
-
 static void eq_dsp_cb(Endpoint *ep)
 {
     EQ *eq = ep->xarg1;
     EQFilterCtrl *ctrl = ep->xarg2;
 
     ctrl->bandwidth_scalar = ctrl->bandwidth_preferred;
-    eq_set_peak(eq, ctrl->index, ctrl->freq_amp_raw[0], ctrl->freq_amp_raw[1], ctrl->bandwidth_scalar * ctrl->freq_amp_raw[0]);
+    eq_set_filter_from_ctrl(eq, eq->selected_ctrl);
+    /* eq_set_peak(eq, ctrl->index, ctrl->freq_amp_raw[0], ctrl->freq_amp_raw[1], ctrl->bandwidth_scalar * ctrl->freq_amp_raw[0]); */
 }
 
 static void eq_freq_dsp_cb(Endpoint *ep)
@@ -267,40 +254,74 @@ void eq_deinit(EQ *eq)
     
 }
 
-static void eq_set_peak(EQ *eq, int filter_index, double freq_raw, double amp_raw, double bandwidth)
-{
-    static const double epsilon = 1e-9;
-    if (fabs(amp_raw - 1.0) < epsilon) {
-	eq->ctrls[filter_index].filter_active = false;
-    } else {
-	eq->ctrls[filter_index].filter_active = true;
-    }
-    IIRFilter *iir = eq->group.filters + filter_index;
-    double bandwidth_scalar_adj;
-    int ret;
-    if (filter_index > 0)
-	ret = iir_set_coeffs_peaknotch(iir, freq_raw, amp_raw, bandwidth, &bandwidth_scalar_adj);
-    else
-	ret = iir_set_coeffs_lowshelf(iir, freq_raw, amp_raw);
-    if (ret == 1) {
-	/* fprintf(stderr, "RESETTING BW SCALAR: %f->%f\n", eq->ctrls[filter_index].bandwidth_scalar, bandwidth_scalar_adj); */
-	eq->ctrls[filter_index].bandwidth_scalar = bandwidth_scalar_adj;
-    }
-}
+/* static void eq_set_peak(EQ *eq, int filter_index, double freq_raw, double amp_raw, double bandwidth) */
+/* { */
+/*     static const double epsilon = 1e-9; */
+/*     if (fabs(amp_raw - 1.0) < epsilon) { */
+/* 	eq->ctrls[filter_index].filter_active = false; */
+/*     } else { */
+/* 	eq->ctrls[filter_index].filter_active = true; */
+/*     } */
+/*     IIRFilter *iir = eq->group.filters + filter_index; */
+/*     double bandwidth_scalar_adj; */
+/*     int ret; */
+/*     ret = iir_set_coeffs_peaknotch(iir, freq_raw, amp_raw, bandwidth, &bandwidth_scalar_adj); */
+/*     /\* if (filter_index > 0) *\/ */
+/*     /\* else *\/ */
+/*     /\* 	ret = iir_set_coeffs_lowshelf(iir, freq_raw, amp_raw); *\/ */
+/*     if (ret == 1) { */
+/* 	/\* fprintf(stderr, "RESETTING BW SCALAR: %f->%f\n", eq->ctrls[filter_index].bandwidth_scalar, bandwidth_scalar_adj); *\/ */
+/* 	eq->ctrls[filter_index].bandwidth_scalar = bandwidth_scalar_adj; */
+/*     } */
+/* } */
 
 void eq_set_filter_from_ctrl(EQ *eq, int index)
 {
     EQFilterCtrl *ctrl = eq->ctrls + index;
     IIRFilter *filter = eq->group.filters + index;
+
+    double freq_raw = ctrl->freq_amp_raw[0];
+    double amp_raw = ctrl->freq_amp_raw[1];
+    static const double epsilon = 1e-9;
+    if (fabs(amp_raw - 1.0) < epsilon) {
+	eq->ctrls[index].filter_active = false;
+    } else {
+	eq->ctrls[index].filter_active = true;
+    }
+
     switch(filter->type) {
-    case IIR_PEAKNOTCH:
-	eq_set_peak(eq, index, ctrl->freq_amp_raw[0], ctrl->freq_amp_raw[1], ctrl->freq_amp_raw[0] * ctrl->bandwidth_scalar);
+    case IIR_PEAKNOTCH: {
+
+	double bandwidth_scalar_adj;
+	double bandwidth = ctrl->bandwidth_scalar * freq_raw;
+	int ret = iir_set_coeffs_peaknotch(filter, freq_raw, amp_raw, bandwidth, &bandwidth_scalar_adj);
+	/* if (filter_index > 0) */
+	/* else */
+	/* 	ret = iir_set_coeffs_lowshelf(iir, freq_raw, amp_raw); */
+	if (ret == 1) {
+	    /* fprintf(stderr, "RESETTING BW SCALAR: %f->%f\n", eq->ctrls[filter_index].bandwidth_scalar, bandwidth_scalar_adj); */
+	    eq->ctrls[index].bandwidth_scalar = bandwidth_scalar_adj;
+	}
+	/* eq_set_peak(eq, index, ctrl->freq_amp_raw[0], ctrl->freq_amp_raw[1], ctrl->freq_amp_raw[0] * ctrl->bandwidth_scalar); */
 	/* iir_set_coeffs_peaknotch(filter, ctrl->freq_amp_raw[0], ctrl->freq_amp_raw[1], ctrl->freq_amp_raw[0] * ctrl->bandwidth_scalar, NULL); */
+    }
+	break;
+    case IIR_LOWSHELF:
+	iir_set_coeffs_lowshelf(filter, freq_raw, amp_raw);
+	break;
+    case IIR_HIGHSHELF:
+	iir_set_coeffs_highshelf(filter, freq_raw, amp_raw);
 	break;
     default:
 	break;
     }
-    
+}
+
+void eq_set_filter_type(EQ *eq, IIRFilterType t)
+{
+    eq->group.filters[eq->selected_ctrl].type = t;
+    eq_set_filter_from_ctrl(eq, eq->selected_ctrl);
+    iir_group_update_freq_resp(&eq->group);
 }
 
 
@@ -308,10 +329,10 @@ static void eq_set_filter_from_mouse(EQ *eq, int filter_index, SDL_Point mousep)
 {
     eq->ctrls[filter_index].x = mousep.x;
     eq->ctrls[filter_index].y = mousep.y;
-    switch(eq->group.filters[filter_index].type) {
-    case IIR_PEAKNOTCH: {
-	double freq_raw = waveform_freq_plot_freq_from_x_abs(eq->fp, mousep.x);
-	double amp_raw;
+    double freq_raw = waveform_freq_plot_freq_from_x_abs(eq->fp, mousep.x);
+    double amp_raw;
+    /* switch(eq->group.filters[filter_index].type) { */
+    /* case IIR_PEAKNOTCH: { */
 	if (main_win->i_state & I_STATE_SHIFT) {
 	    /* endpoint_write(&eq->ctrls[filter_index].amp_ep, (Value){.double_v = 0.0}, true, true, true, false); */
 	    amp_raw = 1.0;
@@ -327,11 +348,11 @@ static void eq_set_filter_from_mouse(EQ *eq, int filter_index, SDL_Point mousep)
 	/* endpoint_write(&eq->ctrls[filter_index].amp_ep, (Value){.double_v = amp_raw}, true, true, true, false); */
 	/* endpoint_write(&eq->ctrls[filter_index].freq_ep, (Value){.double_v = freq_raw}, true, true, true, false); */
 
-    }
-	break;
-    default:
-	break;
-    }   
+    /* } */
+    /* 	break; */
+    /* default: */
+    /* 	break; */
+    /* }    */
 }
 
 

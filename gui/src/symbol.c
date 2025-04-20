@@ -4,13 +4,6 @@
 #include "geometry.h"
 #include "symbol.h"
 
-#define SYMBOL_DEFAULT_PAD 4
-#define SYMBOL_DEFAULT_CORNER_R 4
-#define SYMBOL_DEFAULT_THICKNESS 3
-#define SYMBOL_FILTER_DIM_SCALAR_H 3
-#define SYMBOL_FILTER_DIM_SCALAR_V 2.5
-#define SYMBOL_FILTER_PAD 6
-
 Symbol *SYMBOL_TABLE[8];
 
 static void x_draw_fn(void *self)

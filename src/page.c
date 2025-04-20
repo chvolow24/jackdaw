@@ -192,6 +192,10 @@ static void page_el_destroy(PageEl *el)
 	break;
     case EL_EQ_PLOT:
 	eq_destroy_freq_plot((EQ *)el->component);
+	break;
+    case EL_SYMBOL_BUTTON:
+	symbol_button_destroy((SymbolButton *)el->component);
+	break;
     default:
 	break;
     }
@@ -249,6 +253,7 @@ static inline bool el_is_selectable(PageElType type)
     case EL_SLIDER:
     case EL_TEXTENTRY:
     case EL_TOGGLE:
+    case EL_SYMBOL_BUTTON:
 	return true;
     default:
 	return false;
@@ -377,6 +382,15 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	    eq_create_freq_plot(eq, el->layout);
 	}
     }
+	break;
+    case EL_SYMBOL_BUTTON:
+	el->component = (void *)symbol_button_create(
+	    el->layout,
+	    params.sbutton_p.s,
+	    params.sbutton_p.action,
+	    params.sbutton_p.target,
+	    params.sbutton_p.background_color);
+	break;
     default:
 	break;
     }
@@ -525,6 +539,11 @@ static bool page_element_mouse_click(PageEl *el, Window *win)
 	Canvas *c = (Canvas *)el->component;
 	return c->on_click(c, c->draw_arg1, c->draw_arg2);
     }
+    case EL_SYMBOL_BUTTON: {
+	SymbolButton *sb = (SymbolButton *)el->component;
+	return symbol_button_click(sb, main_win);
+    }
+	break;
     default:
 	break;
     }
@@ -626,6 +645,9 @@ static void page_el_draw(PageEl *el)
 	break;
     case EL_EQ_PLOT:
 	eq_draw((EQ *)el->component);
+	break;
+    case EL_SYMBOL_BUTTON:
+	symbol_button_draw((SymbolButton *)el->component);
 	break;
     default:
 	break;
@@ -858,6 +880,11 @@ void page_enter(Page *page)
 	break;
     }
     case EL_TEXTENTRY:
+	break;
+    case EL_SYMBOL_BUTTON: {
+	SymbolButton *sb = (SymbolButton *)el->component;
+	sb->action(sb, sb->target);
+    }
 	break;
     default:
 	break;

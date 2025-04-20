@@ -45,7 +45,8 @@ typedef enum page_el_type {
     EL_FREQ_PLOT,
     EL_BUTTON,
     EL_CANVAS,
-    EL_EQ_PLOT
+    EL_EQ_PLOT,
+    EL_SYMBOL_BUTTON,
 } PageElType;
 
 typedef struct page_element {
@@ -171,6 +172,13 @@ struct eq_plot_params {
     EQ *eq;
 };
 
+struct symbol_button_params {
+    Symbol *s;
+    ComponentFn action;
+    void *target;
+    SDL_Color *background_color;
+};
+
 typedef union page_el_params {
     struct slider_params slider_p;
     struct textbox_params textbox_p;
@@ -183,6 +191,7 @@ typedef union page_el_params {
     struct waveform_params waveform_p;
     struct canvas_params canvas_p;
     struct eq_plot_params eq_plot_p;
+    struct symbol_button_params sbutton_p;
 } PageElParams;
 
 

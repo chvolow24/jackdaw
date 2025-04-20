@@ -5,6 +5,14 @@
 
 #define SYMBOL_STD_DIM 16
 
+#define SYMBOL_DEFAULT_PAD 4
+#define SYMBOL_DEFAULT_CORNER_R 4
+#define SYMBOL_DEFAULT_THICKNESS 3
+#define SYMBOL_FILTER_DIM_SCALAR_H 3
+#define SYMBOL_FILTER_DIM_SCALAR_V 2.5
+#define SYMBOL_FILTER_PAD 6
+
+
 typedef struct symbol {
     Window *window;
     int x_dim_pix;

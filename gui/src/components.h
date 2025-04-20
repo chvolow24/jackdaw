@@ -38,6 +38,7 @@ typedef struct symbol_button {
     void *target;
     Layout *layout;
     SDL_Color *background_color;
+    Value stashed_val;
 } SymbolButton;
 
 typedef struct toggle {

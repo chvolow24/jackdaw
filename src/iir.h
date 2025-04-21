@@ -66,6 +66,7 @@ typedef struct iir_group {
 
 void iir_init(IIRFilter *f, int degree, int num_channels);
 void iir_deinit(IIRFilter *f);
+void iir_set_neutral_freq_resp(IIRFilter *iir);
 void iir_set_coeffs(IIRFilter *f, double *A_in, double *B_in);
 double iir_sample(IIRFilter *f, double in, int channel);
 void iir_buf_apply(IIRFilter *f, float *buf, int len, int channel);

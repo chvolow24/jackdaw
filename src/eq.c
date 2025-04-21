@@ -308,6 +308,26 @@ void eq_deinit(EQ *eq)
 /*     } */
 /* } */
 
+void eq_select_ctrl(EQ *eq, int index)
+{
+    eq->selected_ctrl = index;
+    eq->selected_filter_active = eq->ctrls[eq->selected_ctrl].filter_active;
+}
+
+void eq_toggle_selected_filter_active(EQ *eq)
+{
+    bool *b = &eq->ctrls[eq->selected_ctrl].filter_active;
+    *b = !*b;
+    eq->selected_filter_active = *b;
+    if (!*b) {
+	iir_set_neutral_freq_resp(eq->group.filters + eq->selected_ctrl);
+    } else {
+	eq_set_filter_from_ctrl(eq, eq->selected_ctrl);
+    }
+    iir_group_update_freq_resp(&eq->group);
+}
+
+
 void eq_set_filter_from_ctrl(EQ *eq, int index)
 {
     EQFilterCtrl *ctrl = eq->ctrls + index;
@@ -318,8 +338,10 @@ void eq_set_filter_from_ctrl(EQ *eq, int index)
     static const double epsilon = 1e-9;
     if (fabs(amp_raw - 1.0) < epsilon) {
 	eq->ctrls[index].filter_active = false;
+	eq_select_ctrl(eq, index);
     } else {
 	eq->ctrls[index].filter_active = true;
+	eq_select_ctrl(eq, index);
     }
 
     switch(filter->type) {
@@ -357,7 +379,6 @@ void eq_set_filter_type(EQ *eq, IIRFilterType t)
     iir_group_update_freq_resp(&eq->group);
 }
 
-
 static void eq_set_filter_from_mouse(EQ *eq, int filter_index, SDL_Point mousep)
 {
     eq->ctrls[filter_index].x = mousep.x;
@@ -388,7 +409,6 @@ static void eq_set_filter_from_mouse(EQ *eq, int filter_index, SDL_Point mousep)
     /* }    */
 }
 
-
 void eq_mouse_motion(EQFilterCtrl *ctrl, Window *win)
 {
     EQ *eq = ctrl->eq;
@@ -412,7 +432,6 @@ void eq_mouse_motion(EQFilterCtrl *ctrl, Window *win)
     } else {
 	eq_set_filter_from_mouse(eq, ctrl->index, write_point);
     }
-
 }
 
 bool eq_mouse_click(EQ *eq, SDL_Point mousep)
@@ -428,7 +447,8 @@ bool eq_mouse_click(EQ *eq, SDL_Point mousep)
 	}
     }
     if (clicked_i < 0) return false;
-    eq->selected_ctrl = clicked_i;
+    eq_select_ctrl(eq, clicked_i);
+    /* eq->selected_ctrl = clicked_i; */
     /* endpoint_write(&eq->selected_ctrl_ep, (Value){.int_v = clicked_i}, true, true, true, false); */
     
     /* eq->selected_ctrl = clicked_i; */
@@ -546,6 +566,7 @@ void eq_draw(EQ *eq)
 	
 	geom_draw_circle(main_win->rend, eq->ctrls[i].x - EQ_CTRL_RAD, eq->ctrls[i].y - EQ_CTRL_RAD, EQ_CTRL_RAD);
 	if (i == eq->selected_ctrl) {
+	    SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255);
 	    geom_draw_circle(main_win->rend, eq->ctrls[i].x - EQ_SEL_CTRL_RAD, eq->ctrls[i].y - EQ_SEL_CTRL_RAD, EQ_SEL_CTRL_RAD);
 	}
 	/* geom_draw_circle(main_win->rend, eq->ctrls[i].x - 2.0 * radmin1div2, eq->ctrls[i].y - 2.0 * radmin1div2, radmin1); */

@@ -53,6 +53,7 @@ extern SDL_Color EQ_CTRL_COLORS[];
 extern SDL_Color EQ_CTRL_COLORS_LIGHT[];
 
 SDL_Color filter_selected_clr = {50, 50, 200, 255};
+SDL_Color filter_selected_inactive = {100, 100, 100, 100};
 
 /* static struct freq_plot *current_fp; */
 Waveform *current_waveform;
@@ -138,7 +139,11 @@ void filter_tabs_canvas_draw(void *draw_arg1, void *draw_arg2)
 	/* fprintf(stderr, "check %d\n", i); */
 	if (i == eq->selected_ctrl) {
 	    /* fprintf(stderr, "found !\n"); */
-	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(EQ_CTRL_COLORS_LIGHT[i]));
+	    if (eq->ctrls[eq->selected_ctrl].filter_active) {
+		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(EQ_CTRL_COLORS_LIGHT[i]));
+	    } else {
+		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(filter_selected_inactive));
+	    }
 	    SDL_RenderFillRect(main_win->rend, &filter_tabs->children[i]->rect);
 	    break;
 	}
@@ -163,12 +168,23 @@ bool filter_tabs_onclick(SDL_Point p, Canvas *self, void *draw_arg1, void *draw_
     Layout *filter_tabs = draw_arg2;
     for (int i=0; i<filter_tabs->num_children; i++) {
 	if (SDL_PointInRect(&p, &filter_tabs->children[i]->rect)) {
-	    eq->selected_ctrl = i;
+	    eq_select_ctrl(eq, i);
+	    /* eq->selected_ctrl = i; */
 	    return true;
 	    break;
 	}
     }
     return false;    
+}
+
+int filter_active_toggle(void *self, void *target)
+{
+    EQ *eq = target;
+    eq_toggle_selected_filter_active(eq);
+    /* Toggle *t = self; */
+    /* bool val = *t->value; */
+    /* eq->ctrls[eq->selected_ctrl].filter_active = val; */
+    return 0;
 }
 
 void settings_track_tabview_set_track(TabView *tv, Track *track)
@@ -233,8 +249,6 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     /* p.textarea_p.value = "Click and drag the circles to set peaks or notches.\n \nHold cmd or ctrl and drag up or down to set the filter bandwidth.\n \nAdditional filter types (shelving, lowpass, highpass) will be added in future versions of jackdaw."; */
     /* page_add_el(page, EL_TEXTAREA, p, "track_settings_eq_desc", "description"); */
 
-    create_track_selection_area(page, track);
-
     Layout *filter_tabs = layout_get_child_by_name_recursive(page->layout, "filter_tabs");
     
     p.canvas_p.draw_arg1 = &track->eq;
@@ -275,13 +289,25 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 	Textbox *tab_tb = el->component;
 	textbox_set_border(tab_tb, EQ_CTRL_COLORS + i, 1);
 
-	/* Layout *canvas_lt = layout_duplicate(tab_lt); */
     }
-    /* Layout *tab_canvas = layout_copy(filter_tabs, filter_tabs->parent); */
+    /* memset(&p, '\0', sizeof(p)); */
 
-    /* el =  */
+    p.toggle_p.action = filter_active_toggle;
+    p.toggle_p.target = &track->eq;
+    p.toggle_p.value = &track->eq.selected_filter_active;
+    page_add_el(page, EL_TOGGLE, p, "", "filter_active_toggle");
 
-    memset(&p, '\0', sizeof(p));
+    p.textbox_p.font = main_win->mono_font;
+    p.textbox_p.text_size = 14;
+    p.textbox_p.set_str = "Selected filter active";
+    p.textbox_p.win = main_win;
+
+    el = page_add_el(page, EL_TEXTBOX, p, "", "filter_active_toggle_label");
+    tb = el->component;
+    textbox_set_trunc(tb, false);
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+
 
     Layout *button_container = layout_get_child_by_name_recursive(page->layout, "type_selector");
 
@@ -300,7 +326,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     Layout *button_lt = layout_add_child(button_container);
     layout_set_name(button_lt, "lowshelf_btn");
     button_lt->x.type = STACK;
-    button_lt->x.value = 20.0;
+    button_lt->x.value = 0.0;
     button_lt->w.value = SYMBOL_STD_DIM * SYMBOL_FILTER_DIM_SCALAR_H;
     button_lt->h.value = SYMBOL_STD_DIM * SYMBOL_FILTER_DIM_SCALAR_V;
     layout_reset(button_lt);
@@ -357,6 +383,8 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 	"highshelf_btn");
     ((SymbolButton *)el->component)->stashed_val.int_v = IIR_HIGHSHELF;
 
+
+    create_track_selection_area(page, track);
 
     memset(&p, '\0', sizeof(p));
 

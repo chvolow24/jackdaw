@@ -206,6 +206,13 @@ static void iir_reset_freq_resp(IIRFilter *iir)
     }
 }
 
+void iir_set_neutral_freq_resp(IIRFilter *iir)
+{
+    for (int i=0; i<IIR_FREQPLOT_RESOLUTION; i++) {
+	iir->freq_resp[i] = 1 + 0*I;
+    }
+}
+
 void biquad_normalize_and_set_coeffs(IIRFilter *iir, double complex norm_freq, double norm_amp)
 {
     static double epsilon = 1e-9;

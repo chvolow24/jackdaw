@@ -60,6 +60,7 @@ typedef struct eq {
     struct freq_plot *fp;
     EQFilterCtrl ctrls[EQ_DEFAULT_NUM_FILTERS];
     int selected_ctrl;
+    bool selected_filter_active;
     /* Endpoint selected_ctrl_ep; */
     Track *track;
 } EQ;
@@ -70,6 +71,8 @@ void eq_deinit(EQ *eq);
 void eq_create_freq_plot(EQ *eq, Layout *container);
 void eq_set_filter_from_ctrl(EQ *eq, int index);
 void eq_set_filter_type(EQ *eq, IIRFilterType t);
+void eq_toggle_selected_filter_active(EQ *eq);
+void eq_select_ctrl(EQ *eq, int index);
 void eq_destroy_freq_plot(EQ *eq);
 /* void eq_set_filter_from_mouse(EQ *eq, int filter_index, SDL_Point mousep); */
 bool eq_mouse_click(EQ *eq, SDL_Point mousep);
@@ -79,5 +82,6 @@ void eq_draw(EQ *eq);
 void eq_buf_apply(EQ *eq, float *buf, int len, int channel);
 void eq_advance(EQ *eq, int channel);
 void eq_clear(EQ *eq);
+
 
 #endif

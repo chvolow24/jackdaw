@@ -55,6 +55,22 @@ SDL_Color EQ_CTRL_COLORS_LIGHT[] = {
     {10, 10, 255, 100}
 };
 
+/* static void eq_filter_selection_gui_cb(Endpoint *ep) */
+/* { */
+/*     EQ *eq = ep->xarg1; */
+/*     int sel = endpoint_safe_read(ep, NULL).int_v; */
+/*     TabView *tv = main_win->active_tabview; */
+/*     if (!tv) return; */
+/*     Page *page = tv->tabs[tv->current_tab]; */
+/*     char id[12]; */
+/*     snprintf(id, 12, "filter_tab%d\n", sel); */
+/*     PageEl *el = page_get_el_by_id(page, id); */
+/*     if (!el) { */
+/* 	fprintf(stderr, "Error: cannot find tab"); */
+/*     } */
+    
+
+/* } */
 
 
 static void eq_dsp_cb(Endpoint *ep)
@@ -130,6 +146,23 @@ void eq_init(EQ *eq)
 	nsub1 = (double)DEFAULT_FOURIER_LEN_SFRAMES / 2 - 1;
     }
     iir_group_init(&eq->group, EQ_DEFAULT_NUM_FILTERS, 2, EQ_DEFAULT_CHANNELS); /* STEREO, 4 PEAK, BIQUAD */
+
+    eq->group.filters[0].type = IIR_LOWSHELF;
+    eq->group.filters[EQ_DEFAULT_NUM_FILTERS - 1].type = IIR_HIGHSHELF;
+    /* endpoint_init(&eq->selected_ctrl_ep, */
+    /* 		  &eq->selected_ctrl, */
+    /* 		  JDAW_INT, */
+    /* 		  "", */
+    /* 		  "", */
+    /* 		  JDAW_THREAD_DSP, */
+    /* 		  eq_filter_selection_gui_cb, */
+    /* 		  NULL, */
+    /* 		  NULL, */
+    /* 		  eq, NULL, NULL, NULL); */
+		  
+		  
+		  
+		  
     for (int i=0; i<EQ_DEFAULT_NUM_FILTERS; i++) {
 	eq->ctrls[i].bandwidth_scalar = DEFAULT_BANDWIDTH_SCALAR;
 	eq->ctrls[i].bandwidth_preferred = DEFAULT_BANDWIDTH_SCALAR;
@@ -319,7 +352,7 @@ void eq_set_filter_from_ctrl(EQ *eq, int index)
 
 void eq_set_filter_type(EQ *eq, IIRFilterType t)
 {
-    eq->group.filters[eq->selected_ctrl].type = t;
+    eq->group.filters[eq->selected_ctrl].type = t;    
     eq_set_filter_from_ctrl(eq, eq->selected_ctrl);
     iir_group_update_freq_resp(&eq->group);
 }
@@ -396,6 +429,9 @@ bool eq_mouse_click(EQ *eq, SDL_Point mousep)
     }
     if (clicked_i < 0) return false;
     eq->selected_ctrl = clicked_i;
+    /* endpoint_write(&eq->selected_ctrl_ep, (Value){.int_v = clicked_i}, true, true, true, false); */
+    
+    /* eq->selected_ctrl = clicked_i; */
     
     if (min_dist < click_tolerance) {
 	eq_set_filter_from_mouse(eq, clicked_i, mousep);

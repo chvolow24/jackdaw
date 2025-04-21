@@ -60,6 +60,7 @@ typedef struct eq {
     struct freq_plot *fp;
     EQFilterCtrl ctrls[EQ_DEFAULT_NUM_FILTERS];
     int selected_ctrl;
+    /* Endpoint selected_ctrl_ep; */
     Track *track;
 } EQ;
 

@@ -116,28 +116,59 @@ static void create_track_selection_area(Page *page, Track *track)
     el = page_add_el(page, EL_BUTTON, p, "track_settings_next_track", "track_next");
 }
 
-/* static void eq_ctrl_canvas_draw_fn(void *arg1, void *arg2) */
-/* { */
-/*     EQ *eq = (EQ *)arg1; */
-/*     int sel = eq->selected_ctrl; */
-/*     Layout *canvas_lt = arg2; */
-
-/*     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(EQ_CTRL_COLORS_LIGHT[sel])); */
-/*     geom_draw_rect_thick(main_win->rend, &canvas_lt->rect, 3, main_win->dpi_scale_factor); */
-/* } */
-/* static bool eq_ctrl_canvas_onclick(Canvas *self, void *xarg1, void *xarg2) */
-/* { */
-/*     /\* Layout *filter_tab =  *\/ */
-/*     layout_write(stderr, self->layout, 0); */
-/*     return false; */
-/* } */
-
 int filter_type_button_action(void *self, void *target)
 {
     SymbolButton *sb = self;
     EQ *eq = target;
     eq_set_filter_type(eq, sb->stashed_val.int_v);
     return 0;
+}
+
+/* int filter_selector_button_action(void *self, void *target) */
+/* { */
+/*     Button *b = self; */
+/*     EQ *eq = target; */
+/* } */
+
+void filter_tabs_canvas_draw(void *draw_arg1, void *draw_arg2)
+{
+    EQ *eq = draw_arg1;
+    Layout *filter_tabs = draw_arg2;
+    for (int i=0; i<filter_tabs->num_children; i++) {
+	/* fprintf(stderr, "check %d\n", i); */
+	if (i == eq->selected_ctrl) {
+	    /* fprintf(stderr, "found !\n"); */
+	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(EQ_CTRL_COLORS_LIGHT[i]));
+	    SDL_RenderFillRect(main_win->rend, &filter_tabs->children[i]->rect);
+	    break;
+	}
+    }    
+}
+
+void filter_type_selector_canvas_draw(void *draw_arg1, void *draw_arg2)
+{
+    EQ *eq = draw_arg1;
+    Layout *selector_lt = draw_arg2;
+    IIRFilterType t = eq->group.filters[eq->selected_ctrl].type;
+    Layout *sbutton_lt = selector_lt->children[t];
+    /* SDL_Rect r = sbutton_lt->rect; */
+    /* fprintf(stderr, "Found layout to draw: %p, %d %d %d %d\n", sbutton_lt, r.x, r.y, r.w, r.h); */
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(filter_selected_clr));
+    geom_fill_rounded_rect(main_win->rend, &sbutton_lt->rect, SYMBOL_TABLE[7]->corner_rad_pix);
+}
+
+bool filter_tabs_onclick(SDL_Point p, Canvas *self, void *draw_arg1, void *draw_arg2)
+{
+    EQ *eq = draw_arg1;
+    Layout *filter_tabs = draw_arg2;
+    for (int i=0; i<filter_tabs->num_children; i++) {
+	if (SDL_PointInRect(&p, &filter_tabs->children[i]->rect)) {
+	    eq->selected_ctrl = i;
+	    return true;
+	    break;
+	}
+    }
+    return false;    
 }
 
 void settings_track_tabview_set_track(TabView *tv, Track *track)
@@ -205,7 +236,21 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     create_track_selection_area(page, track);
 
     Layout *filter_tabs = layout_get_child_by_name_recursive(page->layout, "filter_tabs");
+    
+    p.canvas_p.draw_arg1 = &track->eq;
+    p.canvas_p.draw_arg2 = filter_tabs;
+    p.canvas_p.draw_fn = filter_tabs_canvas_draw;
+    el = page_add_el(
+	page,
+	EL_CANVAS,
+	p,
+	"",
+	"filter_tabs");
+    ((Canvas *)el->component)->on_click = filter_tabs_onclick;
+
     char lt_name[2];
+    /* static const char *tab_ids[] = */
+    /* 	{"filter_tab1", "filter_tab2", "filter_tab3", "filter_tab4", "filter_tab5", "filter_tab6"}; */
     for (int i=0; i<EQ_DEFAULT_NUM_FILTERS; i++) {
 	Layout *tab_lt = layout_add_child(filter_tabs);
 	tab_lt->h.type = SCALE;
@@ -214,6 +259,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 	tab_lt->x.type = STACK;
 	tab_lt->x.value = 0;
 	snprintf(lt_name, 2, "%d", i);
+	/* p.button_p. */
 	p.textbox_p.font = main_win->mono_bold_font;
 	p.textbox_p.text_size = 14;
 	p.textbox_p.set_str = lt_name;
@@ -227,18 +273,34 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 	    "",
 	    lt_name);
 	Textbox *tab_tb = el->component;
-	textbox_set_border(tab_tb, EQ_CTRL_COLORS_LIGHT + i, 3);
-	    
+	textbox_set_border(tab_tb, EQ_CTRL_COLORS + i, 1);
+
+	/* Layout *canvas_lt = layout_duplicate(tab_lt); */
     }
+    /* Layout *tab_canvas = layout_copy(filter_tabs, filter_tabs->parent); */
+
+    /* el =  */
 
     memset(&p, '\0', sizeof(p));
 
     Layout *button_container = layout_get_child_by_name_recursive(page->layout, "type_selector");
-    
+
+    p.canvas_p.draw_arg1 = &track->eq;
+    p.canvas_p.draw_arg2 = button_container;
+    p.canvas_p.draw_fn = filter_type_selector_canvas_draw;
+    el = page_add_el(
+	page,
+	EL_CANVAS,
+	p,
+	"",
+	"type_selector");
+    /* ((Canvas *)el->component)->on_click = filter_tabs_onclick; */
+
+
     Layout *button_lt = layout_add_child(button_container);
     layout_set_name(button_lt, "lowshelf_btn");
     button_lt->x.type = STACK;
-    button_lt->x.value = 5.0;
+    button_lt->x.value = 20.0;
     button_lt->w.value = SYMBOL_STD_DIM * SYMBOL_FILTER_DIM_SCALAR_H;
     button_lt->h.value = SYMBOL_STD_DIM * SYMBOL_FILTER_DIM_SCALAR_V;
     layout_reset(button_lt);
@@ -253,30 +315,12 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 	"lowshelf_btn",
 	"lowshelf_btn");
     ((SymbolButton *)el->component)->stashed_val.int_v = IIR_LOWSHELF;
-    
-    button_lt = layout_add_child(button_container);
-    layout_set_name(button_lt, "highshelf_btn");
-    button_lt->x.type = STACK;
-    button_lt->x.value = 5.0;
-    button_lt->w.value = SYMBOL_STD_DIM * SYMBOL_FILTER_DIM_SCALAR_H;
-    button_lt->h.value = SYMBOL_STD_DIM * SYMBOL_FILTER_DIM_SCALAR_V;
-    layout_reset(button_lt);
-    p.sbutton_p.action = filter_type_button_action;
-    p.sbutton_p.target = &track->eq;
-    p.sbutton_p.s = SYMBOL_TABLE[6];
-    p.sbutton_p.background_color = NULL;
-    el = page_add_el(
-	page,
-	EL_SYMBOL_BUTTON,
-	p,
-	"highshelf_btn",
-	"highshelf_btn");
-    ((SymbolButton *)el->component)->stashed_val.int_v = IIR_HIGHSHELF;
+
 
     button_lt = layout_add_child(button_container);
     layout_set_name(button_lt, "peaknotch_btn");
     button_lt->x.type = STACK;
-    button_lt->x.value = 5.0;
+    button_lt->x.value = 20.0;
     button_lt->w.value = SYMBOL_STD_DIM * SYMBOL_FILTER_DIM_SCALAR_H;
     button_lt->h.value = SYMBOL_STD_DIM * SYMBOL_FILTER_DIM_SCALAR_V;
     layout_reset(button_lt);
@@ -293,26 +337,28 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 
     ((SymbolButton *)el->component)->stashed_val.int_v = IIR_PEAKNOTCH;
 
+        
+    button_lt = layout_add_child(button_container);
+    layout_set_name(button_lt, "highshelf_btn");
+    button_lt->x.type = STACK;
+    button_lt->x.value = 20.0;
+    button_lt->w.value = SYMBOL_STD_DIM * SYMBOL_FILTER_DIM_SCALAR_H;
+    button_lt->h.value = SYMBOL_STD_DIM * SYMBOL_FILTER_DIM_SCALAR_V;
+    layout_reset(button_lt);
+    p.sbutton_p.action = filter_type_button_action;
+    p.sbutton_p.target = &track->eq;
+    p.sbutton_p.s = SYMBOL_TABLE[6];
+    p.sbutton_p.background_color = NULL;
+    el = page_add_el(
+	page,
+	EL_SYMBOL_BUTTON,
+	p,
+	"highshelf_btn",
+	"highshelf_btn");
+    ((SymbolButton *)el->component)->stashed_val.int_v = IIR_HIGHSHELF;
+
+
     memset(&p, '\0', sizeof(p));
-
-
-	
-    /* Layout * */
-    /* Layout *canvas_lt = layout_get_child_by_name_recursive(page->layout, "ctrl_canvas"); */
-    /* p.canvas_p.draw_fn = eq_ctrl_canvas_draw_fn; */
-    /* p.canvas_p.draw_arg1 = &track->eq; */
-    /* p.canvas_p.draw_arg2 = canvas_lt; */
-   
-    /* el = page_add_el( */
-    /* 	page, */
-    /* 	EL_CANVAS, */
-    /* 	p, */
-    /* 	"", */
-    /* 	"ctrl_canvas"); */
-    /* Canvas *canvas = el->component; */
-    /* canvas->on_click = eq_ctrl_canvas_onclick; */
-   
-
 
     page = tab_view_add_page(
 	tv,

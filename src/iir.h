@@ -28,8 +28,8 @@
 #define IIR_MAX_DEGREE 10
 
 typedef enum iir_filter_type {
-    IIR_PEAKNOTCH=0,
-    IIR_LOWSHELF=1,
+    IIR_LOWSHELF=0,
+    IIR_PEAKNOTCH=1,
     IIR_HIGHSHELF=2,
 } IIRFilterType;
 

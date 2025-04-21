@@ -41,6 +41,7 @@ void iir_init(IIRFilter *f, int degree, int num_channels)
     f->normalization_constant = 1.0;
     f->memIn = calloc(num_channels, sizeof(double *));
     f->memOut = calloc(num_channels, sizeof(double *));
+    f->type = IIR_PEAKNOTCH;
     /* f->pole_zero = calloc(degree, sizeof(double complex)); */
     for (int i=0; i<num_channels; i++) {	    
 	f->memIn[i] = calloc(degree, sizeof(double));
@@ -375,13 +376,15 @@ int iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double ban
 	*legal_bandwidth_scalar = bandwidth / freq;
     }
 
+    biquad_normalize_and_set_coeffs(iir, 1, 1);
+    
     if (iir->fp) {
 	iir_reset_freq_resp(iir);
     } else {
 	iir->freq_resp_stale = true;
     }
     /* iir->normalization_constant = 1.0; */
-    biquad_normalize_and_set_coeffs(iir, 1, 1);
+
     return ret;
 }
 

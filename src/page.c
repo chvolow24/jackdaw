@@ -537,8 +537,10 @@ static bool page_element_mouse_click(PageEl *el, Window *win)
 	break;
     case EL_CANVAS: {
 	Canvas *c = (Canvas *)el->component;
-	return c->on_click(c, c->draw_arg1, c->draw_arg2);
+	if (c->on_click) 
+	    return c->on_click(win->mousep, c, c->draw_arg1, c->draw_arg2);
     }
+	break;
     case EL_SYMBOL_BUTTON: {
 	SymbolButton *sb = (SymbolButton *)el->component;
 	return symbol_button_click(sb, main_win);

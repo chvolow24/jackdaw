@@ -69,13 +69,13 @@
       </children>
     </Layout>
     <Layout name="ctrl" type="NORMAL">
-      <x>SCALE 0.059583</x>
-      <y>SCALE 0.115495</y>
+      <x>SCALE 0.060000</x>
+      <y>SCALE 0.117647</y>
       <w>SCALE 0.850417</w>
       <h>SCALE 0.250359</h>
       <children>
         <Layout name="filter_tabs" type="NORMAL">
-          <x>REL 1</x>
+          <x>REL 0</x>
           <y>STACK 5</y>
           <w>REL 591</w>
           <h>REL 24</h>
@@ -84,9 +84,9 @@
         </Layout>
         <Layout name="type_selector" type="NORMAL">
           <x>REL 0</x>
-          <y>STACK 0</y>
-          <w>REL 598</w>
-          <h>REL 146</h>
+          <y>STACK 33</y>
+          <w>REL 481</w>
+          <h>REL 113</h>
           <children>
           </children>
         </Layout>

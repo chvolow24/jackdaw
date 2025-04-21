@@ -69,9 +69,9 @@
       </children>
     </Layout>
     <Layout name="ctrl" type="NORMAL">
-      <x>SCALE 0.10000</x>
-      <y>SCALE 0.117647</y>
-      <w>SCALE 0.850417</w>
+      <x>SCALE 0.239583</x>
+      <y>SCALE 0.083931</y>
+      <w>SCALE 0.526667</w>
       <h>SCALE 0.250359</h>
       <children>
         <Layout name="filter_tabs" type="NORMAL">
@@ -84,32 +84,31 @@
         </Layout>
         <Layout name="filter_active_toggle_area" type="NORMAL">
           <x>REL 20</x>
-          <y>STACK 12</y>
+          <y>STACK 16</y>
           <w>REL 481</w>
           <h>REL 21</h>
           <children>
-	    <Layout name="filter_active_toggle" type="NORMAL">
+            <Layout name="filter_active_toggle" type="NORMAL">
               <x>REL 0</x>
               <y>REL 0</y>
               <w>REL 20</w>
               <h>REL 20</h>
               <children>
               </children>
-	    </Layout>
-	    <Layout name="filter_active_toggle_label" type="NORMAL">
+            </Layout>
+            <Layout name="filter_active_toggle_label" type="NORMAL">
               <x>STACK 10</x>
               <y>REL 0</y>
               <w>REL 20</w>
               <h>REL 20</h>
               <children>
               </children>
-	    </Layout>
-
+            </Layout>
           </children>
         </Layout>
         <Layout name="type_selector" type="NORMAL">
           <x>REL 20</x>
-          <y>STACK 12</y>
+          <y>STACK 16</y>
           <w>REL 481</w>
           <h>REL 113</h>
           <children>

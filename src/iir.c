@@ -348,6 +348,42 @@ int iir_set_coeffs_highshelf(IIRFilter *iir, double freq, double amp)
     return 0;
 }
 
+int iir_set_coeffs_lowpass_chebyshev(IIRFilter *iir, double freq, double amp)
+{
+    /* static const double epsilon = 1e-9; */
+    double ripple = amp;
+    freq *= PI;
+    double freq_prewarp = 2 * tan(freq / 2);
+
+    double complex exp_term = csqrt(-2.0 + (2.0 / ripple) * I);
+    double complex exp_term_scaled = exp_term * freq_prewarp;
+    double complex p0 = (2 - exp_term_scaled) / (2 + exp_term_scaled);    
+    /* double complex exp_term = cexp(I * 3 * PI / 4); */
+    /* double complex p0 = (2 + freq_prewarp * exp_term) / (2 - freq_prewarp * exp_term); */
+    /* double complex z0; */
+    /* if (fabs(amp) - 0.0 > epsilon) {	 */
+    /* 	double complex scaled_exp = freq_prewarp * exp_term / sqrt(amp); */
+    /* 	z0 = (2 + scaled_exp) / (2 - scaled_exp); */
+    /* } else { /\* Lowpass case *\/ */
+    /* 	z0 = -1; */
+    /* } */
+    iir->poles[0] = p0;
+    iir->zeros[0] = -1;
+    iir->num_poles = 1;
+    iir->num_zeros = 1;
+
+    /* fprintf(stderr, "\nfreq: %f; amp: %f; pole: %f+%fi, zero: %f+%fi\n", freq, amp, creal(p0), cimag(p0), creal(z0), cimag(z0)); */
+    biquad_normalize_and_set_coeffs(iir, 1, 1);
+    /* fprintf(stderr, "norm: %f+%fi\n", creal(iir->normalization_constant), cimag(iir->normalization_constant)); */
+    if (iir->fp) {
+	iir_reset_freq_resp(iir);
+    } else {
+	iir->freq_resp_stale = true;
+    }
+    return 0;
+}
+
+
 
 
 

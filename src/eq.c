@@ -145,7 +145,7 @@ void eq_init(EQ *eq)
     } else {
 	nsub1 = (double)DEFAULT_FOURIER_LEN_SFRAMES / 2 - 1;
     }
-    iir_group_init(&eq->group, EQ_DEFAULT_NUM_FILTERS, 2, EQ_DEFAULT_CHANNELS); /* STEREO, 4 PEAK, BIQUAD */
+    iir_group_init(&eq->group, EQ_DEFAULT_NUM_FILTERS, 2, EQ_DEFAULT_CHANNELS); /* STEREO, BIQUAD */
 
     eq->group.filters[0].type = IIR_LOWSHELF;
     eq->group.filters[EQ_DEFAULT_NUM_FILTERS - 1].type = IIR_HIGHSHELF;
@@ -364,9 +364,12 @@ void eq_set_filter_from_ctrl(EQ *eq, int index)
     case IIR_LOWSHELF:
 	iir_set_coeffs_lowshelf(filter, freq_raw, amp_raw);
 	break;
-    case IIR_HIGHSHELF:
-	iir_set_coeffs_highshelf(filter, freq_raw, amp_raw);
+    case IIR_HIGHSHELF: {
+	IIRFilter *filter2 = eq->group.filters + index + 1;
+	iir_set_coeffs_highshelf_double(filter, filter2, freq_raw, amp_raw);
+	/* iir_set_coeffs_highshelf(filter, freq_raw, amp_raw); */
 	break;
+    }
     default:
 	break;
     }

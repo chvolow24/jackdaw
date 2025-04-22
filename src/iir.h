@@ -76,6 +76,7 @@ int iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double ban
 /* int iir_set_coeffs_highpass(IIRFilter *iir, double freq); */
 int iir_set_coeffs_lowshelf(IIRFilter *iir, double freq, double amp);
 int iir_set_coeffs_highshelf(IIRFilter *iir, double freq, double amp);
+int iir_set_coeffs_highshelf_double(IIRFilter *iir1, IIRFilter *iir2, double freq, double amp);
 
 
 void iir_group_init(IIRGroup *group, int num_filters, int degree, int num_channels);

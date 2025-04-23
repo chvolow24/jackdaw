@@ -446,8 +446,8 @@ int iir_set_coeffs_highshelf_double(IIRFilter *iir1, IIRFilter *iir2, double fre
     double freq_prewarp = 2 * tan(freq / 2);
 
     double ripple = amp;
-    double complex G1 = csqrt((-2 + csqrt((2 * ripple + 2 * I) / ripple))/4);
-    double complex G2 = csqrt((-2 - csqrt((2 * ripple + 2 * I) / ripple))/4);
+    double complex G1 = 1 * csqrt((-2 + csqrt((2 * ripple + 2 * I) / ripple))/4);
+    double complex G2 = 1 * csqrt((-2 - csqrt((2 * ripple + 2 * I) / ripple))/4);
     double complex p0 = (2 - freq_prewarp * G1) / (2 + freq_prewarp * G1);
     double complex p1 = (2 - freq_prewarp * G2) / (2 + freq_prewarp * G2);
     double complex z0 = -1;

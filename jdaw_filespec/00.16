@@ -91,6 +91,8 @@ TRCK_FX	      1			bool			  eq active
 TRCK_FX	      1			uint8_t			  num eq filters
 
 [MULTIPLE PER TRACK]
+EQ_FILTER     1			bool			  filter active
+EQ_FILTER     1			uint8_t			  filter type
 EQ_FILTER     5			double			  freq raw
 EQ_FILTER     5			double			  amp raw
 EQ_FILTER     5			double			  bandwidth scalar

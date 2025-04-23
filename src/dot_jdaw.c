@@ -297,6 +297,9 @@ static void jdaw_write_track(FILE *f, Track *track)
     uint8_ser(f, &num_filters);
     for (int i=0; i<num_filters; i++) {
 	EQFilterCtrl *ctrl = track->eq.ctrls + i;
+	fwrite(&ctrl->filter_active, 1, 1, f);
+	type_byte = (uint8_t)track->eq.group.filters[i].type;
+	uint8_ser(f, &type_byte);
 	float_ser40_le(f, ctrl->freq_amp_raw[0]);
 	float_ser40_le(f, ctrl->freq_amp_raw[1]);
 	float_ser40_le(f, ctrl->bandwidth_scalar);
@@ -875,6 +878,9 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 	    uint8_t num_filters = uint8_deser(f);
 	    for (int i=0; i<num_filters; i++) {
 		EQFilterCtrl *ctrl = track->eq.ctrls + i;
+		ctrl->filter_active = uint8_deser(f);
+		IIRFilterType t = (int)uint8_deser(f);
+		track->eq.group.filters[i].type = t;
 		ctrl->freq_amp_raw[0] = float_deser40_le(f);
 		ctrl->freq_amp_raw[1] = float_deser40_le(f);
 		ctrl->bandwidth_scalar = float_deser40_le(f);

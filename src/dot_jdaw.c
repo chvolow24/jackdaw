@@ -884,8 +884,9 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 		ctrl->freq_amp_raw[0] = float_deser40_le(f);
 		ctrl->freq_amp_raw[1] = float_deser40_le(f);
 		ctrl->bandwidth_scalar = float_deser40_le(f);
-		/* TODO: set peak based on filter type, not like this */
-		eq_set_filter_from_ctrl(&track->eq, i);
+		if (ctrl->filter_active) {
+		    eq_set_filter_from_ctrl(&track->eq, i);
+		}
 	    }
 	}
 	

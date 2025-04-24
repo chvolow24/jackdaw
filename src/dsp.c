@@ -788,10 +788,10 @@ void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
     pthread_mutex_unlock(&dl->lock);
 }
 
-void delay_line_buf_apply(DelayLine *dl, float *buf, int len, int channel)
+double delay_line_buf_apply(DelayLine *dl, float *buf, int len, int channel)
 {
-    if (!dl->active) return;
-
+    double output_amp = 0.0;
+    if (!dl->active) return output_amp;
     pthread_mutex_lock(&dl->lock);
     double *del_line = channel == 0 ? dl->buf_L : dl->buf_R;
     int32_t *del_line_pos = channel == 0 ? &dl->pos_L : &dl->pos_R;
@@ -805,7 +805,7 @@ void delay_line_buf_apply(DelayLine *dl, float *buf, int len, int channel)
 	    }
 	}
 	buf[i] += del_line[pos];
-		
+	output_amp += fabs(buf[i]);
 	del_line[*del_line_pos] += track_sample;
 	del_line[*del_line_pos] *= dl->amp;
 
@@ -820,6 +820,7 @@ void delay_line_buf_apply(DelayLine *dl, float *buf, int len, int channel)
 	}
     }
     pthread_mutex_unlock(&dl->lock);
+    return output_amp;
 }
 
 void delay_line_clear(DelayLine *dl)

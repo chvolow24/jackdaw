@@ -118,7 +118,7 @@ void get_magnitude(double complex *A, double *B, int len);
 void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate);
 void delay_line_set_params(DelayLine *dl, double amp, int32_t len);
 void delay_line_clear(DelayLine *dl);
-void delay_line_buf_apply(DelayLine *dl, float *buf, int len, int channel);
+double delay_line_buf_apply(DelayLine *dl, float *buf, int len, int channel);
 
 double dsp_scale_freq_to_hz(double freq_unscaled);
 

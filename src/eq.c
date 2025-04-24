@@ -365,9 +365,9 @@ void eq_set_filter_from_ctrl(EQ *eq, int index)
 	iir_set_coeffs_lowshelf(filter, freq_raw, amp_raw);
 	break;
     case IIR_HIGHSHELF: {
-	IIRFilter *filter2 = eq->group.filters + index + 1;
-	iir_set_coeffs_highshelf_double(filter, filter2, freq_raw, amp_raw);
-	/* iir_set_coeffs_highshelf(filter, freq_raw, amp_raw); */
+	/* IIRFilter *filter2 = eq->group.filters + index + 1; */
+	/* iir_set_coeffs_highshelf_double(filter, filter2, freq_raw, amp_raw); */
+	iir_set_coeffs_highshelf(filter, freq_raw, amp_raw);
 	break;
     }
     default:

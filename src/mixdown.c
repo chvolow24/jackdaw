@@ -193,26 +193,12 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	eq_buf_apply(&track->eq, chunk, len_sframes, channel);
 	filter_buf_apply(&track->fir_filter, chunk, len_sframes, channel);
 	saturation_buf_apply(&track->saturation, chunk, len_sframes, channel);
-	delay_line_buf_apply(&track->delay_line, chunk, len_sframes, channel);
-
-	/* if (!lowp_inited) { */
-	/*     iir_init(&lowp_test, 1, 2); */
-	/*     double A[] = {0.001, 0.0}; */
-	/*     double B[] = {0.999}; */
-	/*     iir_set_coeffs(&lowp_test, A, B); */
-	/*     lowp_inited = true; */
-	/* } */
-
-	/* iir_buf_apply(&lowp_test, chunk, len_sframes, channel); */
-
-
-
-	
-
+    }
+    
+    total_amp += delay_line_buf_apply(&track->delay_line, chunk, len_sframes, channel);
+    if (total_amp > AMP_EPSILON) {
 	float_buf_mult(chunk, vol_vals, len_sframes);
 	float_buf_mult(chunk, pan_vals, len_sframes);
-	
-
     }
 
     return total_amp;

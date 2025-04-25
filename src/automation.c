@@ -220,7 +220,7 @@ void automation_delete(Automation *a)
 }
 
 /* Endpoint MUST have min, max, and default set */
-static Automation *track_add_automation_from_endpoint(Track *track, Endpoint *ep)
+Automation *track_add_automation_from_endpoint(Track *track, Endpoint *ep)
 {
     Automation *a = calloc(1, sizeof(Automation));
     a->track = track;
@@ -388,6 +388,7 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	a = track_add_automation_from_endpoint(track, &track->fir_filter.bandwidth_ep);
 	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
 	break;
+	
     /* case AUTO_DEL_TIME: */
     /* 	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line, track, track->tl->proj->sample_rate); */
     /* 	a->val_type = JDAW_INT16; */
@@ -425,10 +426,11 @@ Automation *track_add_automation(Track *track, AutomationType type)
     /* 	/\* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); *\/ */
     /* 	break; */
     default:
+	a = track_add_automation_from_endpoint(track, &track->vol_ep);
 	break;
     }
     track->automation_dropdown->background_color = &color_global_dropdown_green;
-    a->type = type;
+    if (a) a->type = type;
     return a;
     /* Automation *a = calloc(1, sizeof(Automation)); */
     /* a->track = track; */

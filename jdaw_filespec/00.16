@@ -136,7 +136,9 @@ CLIP_REF      4                 uint32_t                  clipref end ramp len (
 
 [MULTIPLE PER TRACK]
 TRCK_AUTO     4			char[4]			  "AUTO"
-TRCK_AUTO     1			uint8_t			  automation type
+TRCK_AUTO     1			uint8_t			  automation type [DEPRECATED]
+* TRCK_AUTO   1			uint8_t			  endpoint local id name length
+* TRCK_AUTO   0-255		char[]			  endpoint local id
 TRCK_AUTO     1			uint8_t			  val_type
 TRCK_AUTO     1-64		Value			  min
 TRCK_AUTO     1-64		Value			  max
@@ -149,5 +151,7 @@ TRCK_AUTO     2			uint16_t	          num keyframes
 AUTO_KF	      4			char[4]			  "KEYF"
 AUTO_KF	      4			int32_t			  position (sample frames)
 AUTO_KF	      1-64		Value			  value
+
+* these fields only appear if the automation type is AUTO_ENDPOINT
 
 *********************************************************************************/

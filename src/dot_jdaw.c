@@ -382,6 +382,11 @@ static void jdaw_write_automation(FILE *f, Automation *a)
     /* Automation type */
     uint8_t type_byte = (uint8_t)a->type;
     fwrite(&type_byte, 1, 1, f);
+    if (type_byte == AUTO_ENDPOINT) {
+	uint8_t ep_loc_id_len = strlen(a->endpoint->local_id);
+        uint8_ser(f, &ep_loc_id_len);
+	fwrite(a->endpoint->local_id, 1, ep_loc_id_len, f);
+    }
     /* Value type */
     type_byte = (uint8_t)a->val_type;
     fwrite(&type_byte, 1, 1, f);
@@ -941,8 +946,25 @@ static int jdaw_read_automation(FILE *f, Track *track)
     }
 
     uint8_t type_byte = uint8_deser(f);
+
+    Automation *a = NULL;
     AutomationType t = (AutomationType)type_byte;
-    Automation *a = track_add_automation(track, t);
+    if (t == AUTO_ENDPOINT) {
+	uint8_t ep_loc_id_read_len = uint8_deser(f);
+	char loc_id[ep_loc_id_read_len];
+	fread(loc_id, 1, ep_loc_id_read_len, f);
+	for (int i=0; i<track->api_node.num_endpoints; i++) {
+	    Endpoint *ep = track->api_node.endpoints[i];
+	    int ep_loc_len = strlen(ep->local_id);
+	    if (ep_loc_len == ep_loc_id_read_len && strncmp(ep->local_id, loc_id, ep_loc_len) == 0) {
+		a = track_add_automation_from_endpoint(track, ep);
+		break;
+	    }
+	}
+	/* fwrite(a->endpoint->local_id, 1, ep_loc_id_len, f); */
+    } else {
+	a = track_add_automation(track, t);
+    }
     a->val_type = (ValType)uint8_deser(f);
 
     if (read_file_spec_version < 0.15f) {

@@ -152,6 +152,7 @@ void track_add_new_automation(Track *track);
 
 /* To prompt user for automation type, use "track_add_new_automation" instead */
 Automation *track_add_automation(Track *track, AutomationType type);
+Automation *track_add_automation_from_endpoint(Track *track, Endpoint *ep);
 
     
 Value automation_get_value(Automation *a, int32_t pos, float direction);

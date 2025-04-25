@@ -476,7 +476,7 @@ void eq_create_freq_plot(EQ *eq, Layout *container)
 	2,
 	colors,
 	steps,
-	proj->fourier_len_sframes,
+	proj->fourier_len_sframes / 2,
 	container);
 
     eq->group.fp = eq->fp;

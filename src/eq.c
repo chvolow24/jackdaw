@@ -79,7 +79,7 @@ static void eq_dsp_cb(Endpoint *ep)
     EQFilterCtrl *ctrl = ep->xarg2;
 
     ctrl->bandwidth_scalar = ctrl->bandwidth_preferred;
-    eq_set_filter_from_ctrl(eq, eq->selected_ctrl);
+    eq_set_filter_from_ctrl(eq, ctrl - eq->ctrls);
     /* eq_set_peak(eq, ctrl->index, ctrl->freq_amp_raw[0], ctrl->freq_amp_raw[1], ctrl->bandwidth_scalar * ctrl->freq_amp_raw[0]); */
 }
 
@@ -476,7 +476,7 @@ void eq_create_freq_plot(EQ *eq, Layout *container)
 	2,
 	colors,
 	steps,
-	proj->fourier_len_sframes / 2,
+	proj->fourier_len_sframes,
 	container);
 
     eq->group.fp = eq->fp;

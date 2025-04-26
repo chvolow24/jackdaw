@@ -212,10 +212,18 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 /* double after_track; */
 /* double grand_total; */
 
+
+extern Window *main_win;
+
 /* 
 Sum track samples over a chunk of timeline and return an array of samples. from_mark_in indicates that samples
 should be collected from the in mark rather than from the play head.
 */
+
+#include "envelope_follower.h"
+EnvelopeFollower ef;
+double env_global;
+
 float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t len_sframes, int32_t start_pos_sframes, float step)
 {
 
@@ -234,10 +242,6 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 	ClickTrack *tt = tl->click_tracks[i];
 	click_track_mix_metronome(tt, mixdown, len_sframes, start_pos_sframes, end_pos_sframes, step);
     }
-
-    /* long unsigned track_mixdown_time = 0; */
-    /* long unsigned track_filter_time = 0; */
-    /* pre_track += (double)(clock() - start) / CLOCKS_PER_SEC; */
     
     for (uint8_t t=0; t<tl->num_tracks; t++) {
 	bool audio_in_track = false;
@@ -250,98 +254,58 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 	
 	float track_chunk[len_sframes];
 
-	/* start = clock(); */
         float track_chunk_amp = get_track_channel_chunk(track, track_chunk, channel, start_pos_sframes, len_sframes, step);
-	/* track_subtotals[t] += ((double)clock() - start) / CLOCKS_PER_SEC; */
 	
-
 	if (track_chunk_amp > AMP_EPSILON) { /* Checks if any clip audio available */
 	    audio_in_track = true;
 	}
-
-	/* start = clock(); */
-	/* if (audio_in_track && track->fir_filter.active) { /\* Only apply FIR filter if there is audio *\/ */
-	/*     apply_filter(&track->fir_filter, track, channel, len_sframes, track_chunk); */
-	/* } */
-	/* filter += ((double)clock() - start) / CLOCKS_PER_SEC; */
-
-	/* start = clock(); */
-
-	/* TODO: correct conditional clipping after applying delay line */
-	/* float del_line_total_amp = 1.0f; */
-	
-	/* if (track->delay_line.active) { */
-	/*     DelayLine *dl = &track->delay_line; */
-	/*     pthread_mutex_lock(&dl->lock); */
-	/*     double *del_line = channel == 0 ? dl->buf_L : dl->buf_R; */
-	/*     int32_t *del_line_pos = channel == 0 ? &dl->pos_L : &dl->pos_R; */
-	/*     for (int16_t i=0; i<len_sframes; i++) { */
-	/* 	double track_sample = track_chunk[i]; */
-	/* 	int32_t pos = *del_line_pos; */
-	/* 	if (channel == 0) { */
-	/* 	    pos -= dl->stereo_offset * dl->len; */
-	/* 	    if (pos < 0) { */
-	/* 		pos += dl->len; */
-	/* 	    } */
-	/* 	    /\* pos %= dl->len; *\/ */
-	/* 	} */
-	/* 	track_chunk[i] += del_line[pos]; */
-	/* 	del_line_total_amp += fabs(del_line[pos]); */
-	/* 	/\* int tap = *del_line_pos - 1025; *\/ */
-	/* 	/\* if (tap < 0) tap = dl->len + tap; *\/ */
-	/* 	/\* track_chunk[i] += del_line[tap]; *\/ */
-	/* 	/\* tap -= 2031; *\/ */
-	/* 	/\* if (tap < 0) tap = dl->len + tap; *\/ */
-	/* 	/\* track_chunk[i] += del_line[tap]; *\/ */
-	/* 	/\* tap -= 3000; *\/ */
-	/* 	/\* if (tap < 0) tap = dl->len + tap; *\/ */
-	/* 	/\* track_chunk[i] += del_line[tap]; *\/ */
-	/* 	/\* tap -= 2044; *\/ */
-	/* 	/\* if (tap < 0) tap = dl->len + tap; *\/ */
-	/* 	/\* track_chunk[i] += del_line[tap]; *\/ */
-		
-	/* 	del_line[*del_line_pos] += track_sample; */
-	/* 	del_line[*del_line_pos] *= dl->amp; */
-
-	/* 	/\* clip delay line *\/ */
-	/* 	if (del_line[*del_line_pos] > 1.0) del_line[*del_line_pos] = 1.0; */
-	/* 	else if (del_line[*del_line_pos] < -1.0) del_line[*del_line_pos] = -1.0; */
-		
-	/* 	/\* fprintf(stdout, "Del pos vs len? %d %d\n", *del_line_pos, dl.len); *\/ */
-	/* 	if (*del_line_pos + 1 >= dl->len) { */
-	/* 	    /\* fprintf(stdout, "\tSETTING zero\n"); *\/ */
-	/* 	    *del_line_pos = 0; */
-	/* 	} else { */
-	/* 	    /\* fprintf(stdout, "\tinc %d->", *del_line_pos); *\/ */
-	/* 	    (*del_line_pos)++; */
-	/* 	    /\* fprintf(stdout, "%d\n", *del_line_pos); *\/ */
-	/* 	} */
-	/* 	/\* fprintf(stdout, "del line pos: %d\n", *del_line_pos); *\/ */
-	/*     } */
-	/*     pthread_mutex_unlock(&dl->lock); */
-	/* } */
-
-	/* if (del_line_total_amp > AMP_EPSILON) { /\* There is something to play back *\/ */
-	/*     audio_in_track = true; */
-	/* } */
 	if (audio_in_track || t == tl->num_tracks - 1) {
 	    for (uint32_t i=0; i<len_sframes; i++) {
-		/* mixdown[i] += track_chunk[i] * pan * track->vol_ctrl->value; */
 		mixdown[i] += track_chunk[i];
-		/* fprintf(stdout, "Track chunk %d: %f\n", i, track_chunk[i]); */
 		if (t == tl->num_tracks - 1) {
 		    if (mixdown[i] > 1.0f) {
 			mixdown[i] = 1.0f;
-			/* fprintf(stdout, "Clip up mixdown\n"); */
 		    } else if (mixdown[i] < -1.0f) {
 			mixdown[i] = -1.0f;
-			/* fprintf(stdout, "Clip down mixdown\n"); */
 		    }
 		}
 	    }
 	}
+
+	/* static int i=0; */
+	if (audio_in_track
+	    && timeline_selected_track(track->tl) == track
+	    && main_win->active_tabview) {
+	    /* fprintf(stderr, "TRACK %d doing FFT on track output... %d\n", track->tl_rank, i); */
+	    float input[len_sframes * 2];
+	    memset(input + len_sframes, '\0', len_sframes * sizeof(float));
+	    memcpy(input, track_chunk, len_sframes * sizeof(float));
+	    
+	    double complex freq[len_sframes * 2];
+
+	    /* FFTf(input, freq, len_sframes * 2); */
+	    FFTf(input, freq, len_sframes * 2);
+
+	    double *dst_buf = channel == 0 ? track->buf_L_freq_mag : track->buf_R_freq_mag;
+	    get_magnitude(freq, dst_buf, len_sframes * 2);
+	    /* i++; */
+	    /* get_magnitude(freqR, track->buf_R_freq_mag, len_sframes); */
+	}
+
 	/* after_track += ((double)clock() - start) / CLOCKS_PER_SEC; */
 
+    }
+
+    static bool env_inited = false;
+    if (!env_inited) {
+	envelope_follower_set_times_msec(&ef, 0.0, 500, proj->sample_rate);
+    }
+    if (channel == 0) {
+	for (int i=0; i<len_sframes; i++) {
+	    float env = envelope_follower_sample(&ef, mixdown[i]);
+	    env_global = env;
+	    fprintf(stderr, "Env: %f\n", env);
+	}
     }
     return mixdown;
     /* fprintf(stderr, "MIXDOWN TOTAL DUR: %f\n", 1000 * ((double)clock() - start)/ CLOCKS_PER_SEC); */

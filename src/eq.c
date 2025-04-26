@@ -215,7 +215,7 @@ void eq_init(EQ *eq)
 	    (void*)eq, (void*)(eq->ctrls + i), NULL, NULL);
 	endpoint_set_allowed_range(
 	    &eq->ctrls[i].freq_ep,
-	    (Value){.double_v = 0.0},
+	    (Value){.double_v = -1.0},
 	    (Value){.double_v = 1.0});
 	endpoint_set_default_value(
 	    &eq->ctrls[i].freq_ep,
@@ -468,7 +468,8 @@ bool eq_mouse_click(EQ *eq, SDL_Point mousep)
 void eq_create_freq_plot(EQ *eq, Layout *container)
 {
     int steps[] = {1, 1};
-    double *arrs[] = {proj->output_L_freq, proj->output_R_freq};
+    double *arrs[] = {eq->track->buf_L_freq_mag, eq->track->buf_R_freq_mag};
+    /* double *arrs[] = {proj->output_L_freq, proj->output_R_freq}; */
     SDL_Color *colors[] = {&freq_L_color, &freq_R_color};
 
     eq->fp = waveform_create_freq_plot(
@@ -476,7 +477,7 @@ void eq_create_freq_plot(EQ *eq, Layout *container)
 	2,
 	colors,
 	steps,
-	proj->fourier_len_sframes / 2,
+	proj->fourier_len_sframes,
 	container);
 
     eq->group.fp = eq->fp;
@@ -508,22 +509,6 @@ void eq_destroy_freq_plot(EQ *eq)
     }
     eq->group.fp = NULL;
 }
-
-
-/* void eq_tests_create() */
-/* { */
-/*     Layout *fp_cont = layout_add_child(main_win->layout); */
-/*     layout_set_default_dims(fp_cont); */
-
-/*     layout_force_reset(fp_cont); */
-    
-/*     eq_init(&glob_eq); */
-/*     eq_create_freq_plot(&glob_eq, fp_cont); */
-
-/*     /\* void iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double bandwidth) *\/ */
-/*     eq_set_peak(&glob_eq, 0, 0.01, 2.0, 0.01); */
-/*     eq_set_peak(&glob_eq, 1, 0.3, 0.03, 0.3); */
-/* } */
 
 static double eq_sample(EQ *eq, double in, int channel)
 {

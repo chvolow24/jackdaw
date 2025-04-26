@@ -95,6 +95,38 @@ void FFT(double *A, double complex *B, int n)
     }
 }
 
+static void FFT_innerf(float *A, double complex *B, int n, int offset, int increment)
+{
+    if (n==1) {
+        B[0] = A[offset] + 0 * I;
+        return;
+    }
+
+    int halfn = n>>1;
+    int degree = log2(n);
+    double complex *X = roots_of_unity[degree];
+    int doubleinc = increment << 1;
+    double complex Beven[halfn];
+    double complex Bodd[halfn];
+    FFT_innerf(A, Beven, halfn, offset, doubleinc);
+    FFT_innerf(A, Bodd, halfn, offset + increment, doubleinc);
+    for (int k=0; k<halfn; k++) {
+        double complex odd_part_by_x = Bodd[k] * conj(X[k]);
+        B[k] = Beven[k] + odd_part_by_x;
+        B[k + halfn] = Beven[k] - odd_part_by_x;
+    }
+}
+
+
+void FFTf(float *A, double complex *B, int n)
+{
+    FFT_innerf(A, B, n, 0, 1);
+
+    for (int k=0; k<n; k++) {
+        B[k]/=n;
+    }
+}
+
 
 /* I'm not sure why using an "unscaled" version of the FFT appears to work when getting the frequency response
 for the FIR filters defined below (e.g. "bandpass_IR()"). The normal, scaled version produces values that are
@@ -160,6 +192,15 @@ void get_real_component(double complex *A, double *B, int len)
         B[i] = creal(A[i]);
     }
 }
+void get_real_componentf(double complex *A, float *B, int len)
+{
+    /* double *B = (double *)malloc(sizeof(double) * len); */
+    for (int i=0; i<len; i++) {
+        // std::cout << "Complex: " << A[i].real() << " + " << A[i].imag() << std::endl;
+        B[i] = creal(A[i]);
+    }
+}
+
 
 /* Hamming window function */
 static double hamming(int x, int lenw)
@@ -258,9 +299,9 @@ static void FIR_filter_alloc_buffers(FIRFilter *filter)
 
     /* filter->overlap_len =  = 1; */
     if (!filter->overlap_buffer_L)
-	filter->overlap_buffer_L = calloc(1, sizeof(double) * max_irlen - 1);
+	filter->overlap_buffer_L = calloc(1, sizeof(float) * max_irlen - 1);
     if (!filter->overlap_buffer_R)
-	filter->overlap_buffer_R = calloc(1, sizeof(double) * max_irlen - 1);
+	filter->overlap_buffer_R = calloc(1, sizeof(float) * max_irlen - 1);
 
 	
     /* SDL_LockMutex(filter->lock); */
@@ -485,8 +526,8 @@ void filter_set_impulse_response_len(FIRFilter *f, int new_len)
     double bandwidth = f->bandwidth;
     FilterType t = f->type;
     filter_set_params(f, t, cutoff, bandwidth);
-    memset(f->overlap_buffer_L, '\0', f->overlap_len * sizeof(double));
-    memset(f->overlap_buffer_R, '\0', f->overlap_len * sizeof(double));
+    memset(f->overlap_buffer_L, '\0', f->overlap_len * sizeof(float));
+    memset(f->overlap_buffer_R, '\0', f->overlap_len * sizeof(float));
 }
 
 void filter_set_type(FIRFilter *f, FilterType t)
@@ -530,46 +571,29 @@ static void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint1
 {
     pthread_mutex_lock(&filter->lock);
     /* SDL_LockMutex(filter->lock); */
-    double *overlap_buffer = channel == 0 ? filter->overlap_buffer_L : filter->overlap_buffer_R;
+    float *overlap_buffer = channel == 0 ? filter->overlap_buffer_L : filter->overlap_buffer_R;
     uint16_t padded_len = filter->frequency_response_len;
-    double padded_chunk[padded_len];
-    for (uint16_t i=0; i<padded_len; i++) {
-        if (i<chunk_size) {
-            padded_chunk[i] = sample_array[i];
-	    /* CLIP AMPLITUDE FIRST -- sounds more boring if you do :) */
-	    /* if (padded_chunk[i] > 1.0) padded_chunk[i] = 1.0; */
-	    /* else if (padded_chunk[i] < -1.0) padded_chunk[i] = -1.0; */	    
-        } else {
-            padded_chunk[i] = 0.0;
-        }
+    float padded_chunk[padded_len];
+    memset(padded_chunk + chunk_size, '\0', (padded_len - chunk_size) * sizeof(float));
+    memcpy(padded_chunk, sample_array, chunk_size * sizeof(float));
 
-    }
     double complex freq_domain[padded_len];
 
-    FFT(padded_chunk,freq_domain, padded_len);
+    FFTf(padded_chunk,freq_domain, padded_len);
     for (uint16_t i=0; i<padded_len; i++) {
         freq_domain[i] *= filter->frequency_response[i];
     }
-    double **freq_mag_ptr = channel == 0 ? &track->buf_L_freq_mag : &track->buf_R_freq_mag;
-    if (!(*freq_mag_ptr)) {
-	*freq_mag_ptr = calloc(padded_len, sizeof(double));
-    }
-    get_magnitude(freq_domain, *freq_mag_ptr, padded_len);
     double complex time_domain[padded_len];
     IFFT(freq_domain, time_domain, padded_len);
-    double real[padded_len];
-    get_real_component(time_domain, real, padded_len);
+    float real[padded_len];
+    get_real_componentf(time_domain, real, padded_len);
 
-    for (uint16_t i=0; i<chunk_size + filter->overlap_len; i++) {
-        if (i<chunk_size) {
-            sample_array[i] = real[i];
-            if (i<filter->overlap_len) {
-                sample_array[i] += overlap_buffer[i];
-            }
-        } else {
-            overlap_buffer[i-chunk_size] = real[i];
-        }
+    memcpy(sample_array, real, chunk_size * sizeof(float));
+    for (int i=0; i<filter->overlap_len; i++) {
+        sample_array[i] += overlap_buffer[i];
     }
+
+    memcpy(overlap_buffer, real + chunk_size, filter->overlap_len * sizeof(float));
     pthread_mutex_unlock(&filter->lock);
 }
 

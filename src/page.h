@@ -273,6 +273,7 @@ PageEl *page_get_el_by_id(Page *page, const char *id);
 void page_select_el_by_id(Page *page, const char *id);
 
 void tabview_clear_all_contents(TabView *tv);
+const char *tabview_active_tab_title(TabView *tv);
 
 void page_el_reset(PageEl *el);
 

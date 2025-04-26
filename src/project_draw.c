@@ -646,6 +646,8 @@ static void control_bar_draw(Project *proj)
     }
 }
 
+double env_global;
+
 void project_draw()
 {
     window_start_draw(main_win, NULL);
@@ -712,7 +714,17 @@ void project_draw()
     /* 	/\*     fprintf(stderr, "FREQ: %f, theta %f, z: %f+%fi, X: %d, mag: %f\n", freq_raw, theta, creal(z), cimag(z), x, magnitude); *\/ */
     /* 	/\*     SDL_RenderDrawPoint(main_win->rend, x, eqfp->container->rect.y + eqfp->container->rect.h - magnitude * eqfp->container->rect.h); *\/ */
     /* 	/\* } *\/ */
-    /* } */    
+    /* } */
+
+    SDL_Rect env_rect = {200, 200, 500, 500};
+    SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 90);
+    SDL_RenderDrawRect(main_win->rend, &env_rect);
+    int chg = 500 - env_global * 500;
+    env_rect.y+= chg;
+    env_rect.h-= chg;
+    SDL_RenderFillRect(main_win->rend, &env_rect);
+    
+    
 
 
     window_end_draw(main_win);

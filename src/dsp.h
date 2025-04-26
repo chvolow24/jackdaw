@@ -41,8 +41,8 @@ typedef struct fir_filter {
     double *impulse_response;
     double complex *frequency_response;
     double *frequency_response_mag;
-    double *overlap_buffer_L;
-    double *overlap_buffer_R;
+    float *overlap_buffer_L;
+    float *overlap_buffer_R;
     uint16_t impulse_response_len; /* Only modified in callbacks */
     uint16_t impulse_response_len_internal;
     /* uint16_t impulse_response_len_internal; */
@@ -112,6 +112,7 @@ void filter_deinit(FIRFilter *filter);
 void filter_buf_apply(FIRFilter *f, float *buf, int len, int channel);
 
 void FFT(double *A, double complex *B, int n);
+void FFTf(float *A, double complex *B, int n);
 void get_real_component(double complex *A, double *B, int n);
 void get_magnitude(double complex *A, double *B, int len);
 

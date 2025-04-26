@@ -1495,6 +1495,8 @@ Track *timeline_add_track(Timeline *tl)
     saturation_init(&track->saturation);
     int ir_len = track->tl->proj->fourier_len_sframes/4;
     int fr_len = track->tl->proj->fourier_len_sframes * 2;
+    track->buf_L_freq_mag = calloc(fr_len, sizeof(double));
+    track->buf_R_freq_mag = calloc(fr_len, sizeof(double));
     filter_init(&track->fir_filter, track, LOWPASS, ir_len, fr_len);
 
     delay_line_init(&track->delay_line, track, track->tl->proj->sample_rate);

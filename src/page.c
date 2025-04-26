@@ -962,4 +962,10 @@ void tabview_clear_all_contents(TabView *tv)
 }
 
 
+const char *tabview_active_tab_title(TabView *tv)
+{
+    Page *p = tv->tabs[tv->current_tab];
+    return p->title;
+}
+
     

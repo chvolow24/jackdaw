@@ -220,10 +220,9 @@ Sum track samples over a chunk of timeline and return an array of samples. from_
 should be collected from the in mark rather than from the play head.
 */
 
-#include "envelope_follower.h"
-EnvelopeFollower ef;
-EnvelopeFollower ef2;
-double env_global;
+#include "compressor.h"
+Compressor comp_L;
+Compressor comp_R;
 
 float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t len_sframes, int32_t start_pos_sframes, float step)
 {
@@ -261,43 +260,49 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 	    audio_in_track = true;
 	}
 	if (track->tl_rank == 0) {
-	    EnvelopeFollower *efl = channel == 0? &ef : &ef2;
+	    Compressor *c = channel == 0? &comp_L : &comp_R;
+	    /* EnvelopeFollower *efl = channel == 0? &ef : &ef2; */
 	    static bool env_inited = false;
 	    if (!env_inited) {
-		envelope_follower_set_times_msec(&ef, 10.0, 200.0, proj->sample_rate);
-		envelope_follower_set_times_msec(&ef2, 10.0, 200.0, proj->sample_rate);
+		compressor_set_times_msec(&comp_L, 1.0, 100.0, proj->sample_rate);
+		compressor_set_times_msec(&comp_R, 1.0, 100.0, proj->sample_rate);
+		compressor_set_threshold(&comp_L, 0.1);
+		compressor_set_threshold(&comp_R, 0.1);
+		compressor_set_m(&comp_L, 0.1);
+		compressor_set_m(&comp_R, 0.1);
 	    }
-	    /* if (channel == 0) { */
-	    float env;
-	    static float thresh = 0.1;
-	    static float ratio = 0.0001;
-	    for (int i=0; i<len_sframes; i++) {
-		env = envelope_follower_sample(efl, track_chunk[i]);
-		if (channel == 0) 
-		    env_global = env;
-		/* int sign = track_chunk[i] >= 0.0 ? 1 : -1; */
-		/* float overshoot = env - thresh; */
-		float overshoot = env - thresh;
-		if (overshoot > 0.0f) {
-			overshoot *= ratio;
-			float desired_env = thresh + overshoot;
-			float gain_reduc = desired_env / env;
-			/* fprintf(stderr, "Before: %f GR: %f\n", track_chunk[i], gain_reduc); */
-			track_chunk[i] *= gain_reduc;
-			/* fprintf(stderr, "After: %f\n", track_chunk[i]); */
-			/* track_chunk[i] = sign * (thresh + ratio * (sample_abs - thresh)); */
-		    /* track_chunk[i] *= ratio; */
-		    /* track_chunk[i] =  */
-		    /* overshoot = fabs(track_chunk[i]) - thresh; */
-		    /* if (overshoot > 0.0) { */
-		    /*     fprintf(stderr, "\nBEFORE %f (overshoot %f)\n", track_chunk[i], overshoot); */
-		    /*     track_chunk[i] = sign * (thresh + overshoot * 1.0); */
-		    /*     fprintf(stderr, "AFTER %f\n", track_chunk[i]); */
-		    /* } */
-		    /* track_chunk[i] = 0.5 +  */
-		}
-		/* fprintf(stderr, "Env: %f\n", env); */
-	    }
+	    compressor_buf_apply(c, track_chunk, len_sframes);
+	    /* /\* if (channel == 0) { *\/ */
+	    /* float env; */
+	    /* static float thresh = 0.3; */
+	    /* static float ratio = 0.0000001; */
+	    /* for (int i=0; i<len_sframes; i++) { */
+	    /* 	env = envelope_follower_sample(efl, track_chunk[i]); */
+	    /* 	if (channel == 0)  */
+	    /* 	    env_global = env; */
+	    /* 	/\* int sign = track_chunk[i] >= 0.0 ? 1 : -1; *\/ */
+	    /* 	/\* float overshoot = env - thresh; *\/ */
+	    /* 	float overshoot = env - thresh; */
+	    /* 	if (overshoot > 0.0f) { */
+	    /* 		overshoot *= ratio; */
+	    /* 		float desired_env = thresh + overshoot; */
+	    /* 		float gain_reduc = desired_env / env; */
+	    /* 		/\* fprintf(stderr, "Before: %f GR: %f\n", track_chunk[i], gain_reduc); *\/ */
+	    /* 		track_chunk[i] *= gain_reduc; */
+	    /* 		/\* fprintf(stderr, "After: %f\n", track_chunk[i]); *\/ */
+	    /* 		/\* track_chunk[i] = sign * (thresh + ratio * (sample_abs - thresh)); *\/ */
+	    /* 	    /\* track_chunk[i] *= ratio; *\/ */
+	    /* 	    /\* track_chunk[i] =  *\/ */
+	    /* 	    /\* overshoot = fabs(track_chunk[i]) - thresh; *\/ */
+	    /* 	    /\* if (overshoot > 0.0) { *\/ */
+	    /* 	    /\*     fprintf(stderr, "\nBEFORE %f (overshoot %f)\n", track_chunk[i], overshoot); *\/ */
+	    /* 	    /\*     track_chunk[i] = sign * (thresh + overshoot * 1.0); *\/ */
+	    /* 	    /\*     fprintf(stderr, "AFTER %f\n", track_chunk[i]); *\/ */
+	    /* 	    /\* } *\/ */
+	    /* 	    /\* track_chunk[i] = 0.5 +  *\/ */
+	    /* 	} */
+	    /* 	/\* fprintf(stderr, "Env: %f\n", env); *\/ */
+	    /* } */
 	    /* Track *t2 = tl->tracks[1]; */
 	    /* if (t2) { */
 	    /*     endpoint_write(&t2->eq.ctrls[0].freq_ep, (Value){.double_v = 1.0 -  pow(env, 0.3)}, true, true, true, false); */

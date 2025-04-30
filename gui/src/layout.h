@@ -7,8 +7,9 @@
 #include "text.h"
 #include "window.h"
 
-#define MAX_CHILDREN INT16_MAX
+#define MAX_LT_CHILDREN INT64_MAX
 #define MAX_LT_NAMELEN 64
+#define MAX_LT_ITERATIONS 32
 
 #define LAYOUT_SCROLL_SCALAR 8
 
@@ -81,9 +82,9 @@ typedef struct layout {
     Layout *parent;
     Layout *cached_parent;
     Layout **children;
-    int16_t num_children;
-    int16_t children_arr_len;
-    int16_t index;
+    int64_t num_children;
+    int64_t children_arr_len;
+    int64_t index;
     Layout *label_lt;
     /* SDL_Rect label_rect; */
     Text *namelabel;
@@ -112,7 +113,7 @@ typedef struct layout_iterator {
     Layout *template;
     IteratorType type;
     int16_t num_iterations;
-    Layout *iterations[MAX_CHILDREN];
+    Layout *iterations[MAX_LT_ITERATIONS];
     bool scrollable;
     float scroll_offset;
     float scroll_momentum;

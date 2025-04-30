@@ -118,6 +118,8 @@ static DirPath *dirpath_create(const char *dirpath)
 {
     DirPath *dp = calloc(1, sizeof(DirPath));
     strncpy(dp->path, dirpath, MAX_PATHLEN);
+    dp->entries_arrlen = DIR_INIT_ARRLEN;
+    dp->entries = calloc(DIR_INIT_ARRLEN, sizeof(DirPath *));
     /* fprintf(stdout, "CREATING %p w %s\n", dp, dirpath); */
     return dp;
 }
@@ -135,9 +137,10 @@ static DirPath *dirpath_create(const char *dirpath)
 /* } */
 static void dirpath_destroy(DirPath *dp)
 {
-    for (uint8_t i=0; i<dp->num_entries; i++) {
+    for (uint32_t i=0; i<dp->num_entries; i++) {
 	dirpath_destroy(dp->entries[i]);
     }
+    free(dp->entries);
     free(dp);
 }
 
@@ -162,6 +165,19 @@ DirPath *dirpath_open(const char *dirpath)
 	}
 	DirPath *subdir = dirpath_create(buf);
 	if (subdir) {
+	    if (dp->num_entries == dp->entries_arrlen) {
+		if (dp->entries_arrlen == MAX_DIR_ENTRIES) {
+		    fprintf(stderr, "Error: directory has too many entries (> %d)\n", MAX_DIR_ENTRIES);
+		    break;		    
+		} else if (dp->entries_arrlen * 2 > MAX_DIR_ENTRIES) {
+		    dp->entries_arrlen = MAX_DIR_ENTRIES;
+		    dp->entries = realloc(dp->entries, dp->entries_arrlen * sizeof(DirPath *));
+		} else {
+		    dp->entries_arrlen *= 2;
+		    dp->entries = realloc(dp->entries, dp->entries_arrlen * sizeof(DirPath *));
+		}
+	    } 
+
 	    char *tail = path_get_tail((char *)subdir->path);
 	    if (strncmp(tail, ".", 1) == 0 && strncmp(tail, "..", 2) !=0)  {
 		subdir->hidden = true;
@@ -241,7 +257,7 @@ void sort_dn_lines(DirNav *dn)
     qsort(dn->lines->items, dn->lines->num_items, sizeof(TLinesItem), qsort_dirnav_cmp);
     Layout *lines_container = dn->lines->container;
     TLinesItem *tli = NULL;
-    for (uint16_t i=0; i<dn->lines->num_items; i++) {
+    for (uint32_t i=0; i<dn->lines->num_items; i++) {
 	tli = dn->lines->items + i;
 	tli->tb->layout = lines_container->children[i];
 	tli->tb->text->container = tli->tb->layout;
@@ -505,7 +521,7 @@ void dirnav_draw(DirNav *dn)
 /* void layout_write(FILE *f, Layout *lt, int indent); */
 
 
-TLinesItem *dirnav_select_item(DirNav *dn, uint16_t i)
+TLinesItem *dirnav_select_item(DirNav *dn, uint32_t i)
 {
     if (i<dn->num_lines && i>= 0) {
 	TLinesItem *current = dn->lines->items + dn->current_line;
@@ -575,7 +591,7 @@ void dirnav_select(DirNav *dn)
 	/*     layout_destroy(dn->layout->children[i]); */
 	/* } */
 	/* Layout *inner = layout_get_child_by_name_recursive(dn->layout, "dirnav_lines_container"); */
-	for (uint8_t i=0; i<lines_container->num_children; i++) {
+	for (uint32_t i=0; i<lines_container->num_children; i++) {
 	    layout_destroy(lines_container->children[i]);
 	}
 	/* Layout *inner = layout_add_child(dn->layout); */
@@ -623,7 +639,7 @@ void dirnav_select(DirNav *dn)
 
 void dirnav_triage_click(DirNav *dn, SDL_Point *mousep)
 {
-    for (uint16_t i=0; i<dn->num_lines; i++) {
+    for (uint32_t i=0; i<dn->num_lines; i++) {
 	TLinesItem *line = dn->lines->items + i;
 	if (SDL_PointInRect(mousep, &line->tb->layout->rect)) {
 	    dn->current_line = i;

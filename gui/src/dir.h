@@ -14,8 +14,9 @@
 #include "color.h"
 #include "textbox.h"
 
-#define MAX_DIRS 255
-#define MAX_FILES 255
+#define MAX_DIR_ENTRIES UINT32_MAX
+#define DIR_INIT_ARRLEN 32
+/* #define MAX_FILES UINT32_MAX */
 #define MAX_PATHLEN 255
 #define MAX_DIRNAV_TXTLEN
 
@@ -31,8 +32,8 @@ typedef struct dirnav {
     Textbox *current_path_tb;
     char current_path_str[MAX_PATHLEN];
     TextLines *lines;
-    uint16_t num_lines;
-    uint16_t current_line;
+    uint32_t num_lines;
+    uint32_t current_line;
     int (*dir_to_tline_filter)(void *item, void *x_arg);
     void (*file_select_action)(DirNav *self, DirPath *dp);
 } DirNav;
@@ -40,8 +41,9 @@ typedef struct dirnav {
 typedef struct dirpath {
     char path[MAX_PATHLEN];
     uint8_t type; /* E.g. DT_DIR, DT_REG */
-    DirPath *entries[MAX_DIRS];
-    uint8_t num_entries;
+    DirPath **entries;//[MAX_DIRS];
+    uint32_t num_entries;
+    uint32_t entries_arrlen;
     bool hidden;
     /* uint8_t num_files; */
     /* uint8_t num_dirs; */
@@ -58,7 +60,7 @@ char *path_get_tail(char *pathname);
 DirNav *dirnav_create(const char *dir_name, Layout *lt, int (*dir_to_tline_filter)(void *dp_v, void *dn_v));
 void dirnav_draw(DirNav *dn);
 void dirnav_destroy(DirNav *dn);
-TLinesItem *dirnav_select_item(DirNav *dn, uint16_t i);
+TLinesItem *dirnav_select_item(DirNav *dn, uint32_t i);
 void dirnav_next(DirNav *dn);
 void dirnav_previous(DirNav *dn);
 void dirnav_select(DirNav *dn);

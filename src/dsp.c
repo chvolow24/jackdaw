@@ -201,7 +201,7 @@ void get_real_componentf(double complex *A, float *B, int len)
 
 
 /* Hamming window function */
-static double hamming(int x, int lenw)
+double hamming(int x, int lenw)
 {
     return 0.54 - 0.46 * cos(TAU * x / lenw);
 }

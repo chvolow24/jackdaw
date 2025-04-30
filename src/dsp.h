@@ -115,6 +115,7 @@ void FFT(double *A, double complex *B, int n);
 void FFTf(float *A, double complex *B, int n);
 void get_real_component(double complex *A, double *B, int n);
 void get_magnitude(double complex *A, double *B, int len);
+double hamming(int x, int lenw);
 
 void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate);
 void delay_line_set_params(DelayLine *dl, double amp, int32_t len);

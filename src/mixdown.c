@@ -333,7 +333,10 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 	    
 	    double complex freq[len_sframes * 2];
 
-	    /* FFTf(input, freq, len_sframes * 2); */
+
+	    for (int i=0; i<len_sframes; i++) {
+		input[i] *= hamming(i, len_sframes);
+	    }
 	    FFTf(input, freq, len_sframes * 2);
 
 	    double *dst_buf = channel == 0 ? track->buf_L_freq_mag : track->buf_R_freq_mag;

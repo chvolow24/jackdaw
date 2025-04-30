@@ -278,7 +278,6 @@ static void *transport_dsp_thread_fn(void *arg)
 		break;
 	    }
 	}
-
 	
 	tl->buf_write_pos += len;
 	if (tl->buf_write_pos >= len * RING_BUF_LEN_FFT_CHUNKS) {
@@ -291,7 +290,7 @@ static void *transport_dsp_thread_fn(void *arg)
 	    sem_post(tl->unpause_sem);
 	    init = false;
 	}
-
+	
 	project_do_ongoing_changes(proj, JDAW_THREAD_DSP);
 	project_flush_val_changes(proj, JDAW_THREAD_DSP);
 	project_flush_callbacks(proj, JDAW_THREAD_DSP);
@@ -375,10 +374,13 @@ void transport_stop_playback()
 	sem_post(tl->writable_chunks);
 	sem_post(tl->readable_chunks);
     }
-    /* fprintf(stdout, "RESETTING SEMS from tl %p\n", tl); */
+
+    /* Exhaust all sems */
     while (sem_trywait(tl->unpause_sem) == 0) {};
     while (sem_trywait(tl->writable_chunks) == 0) {};
     while (sem_trywait(tl->readable_chunks) == 0) {};
+
+    /* Reset writeable chunks sem */
     for (int i=0; i<proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS / proj->chunk_size_sframes; i++) {
 	/* fprintf(stdout, "\t->reinitiailizing writable chunks\n"); */
 	sem_post(tl->writable_chunks);

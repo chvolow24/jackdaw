@@ -717,7 +717,7 @@ void project_draw()
     /* 	/\* } *\/ */
     /* } */
 
-    SDL_Rect env_rect = {200, 200, 500, 500};
+    SDL_Rect env_rect = {1000, 500, 500, 500};
 
     compressor_draw(&comp_L, &env_rect);
     /* float env_global = comp_L.gain_reduction; */

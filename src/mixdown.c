@@ -264,12 +264,12 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 	    /* EnvelopeFollower *efl = channel == 0? &ef : &ef2; */
 	    static bool env_inited = false;
 	    if (!env_inited) {
-		compressor_set_times_msec(&comp_L, 1.0, 100.0, proj->sample_rate);
-		compressor_set_times_msec(&comp_R, 1.0, 100.0, proj->sample_rate);
-		compressor_set_threshold(&comp_L, 0.1);
-		compressor_set_threshold(&comp_R, 0.1);
-		compressor_set_m(&comp_L, 0.1);
-		compressor_set_m(&comp_R, 0.1);
+		compressor_set_times_msec(&comp_L, 1, 100.0, proj->sample_rate);
+		compressor_set_times_msec(&comp_R, 1, 100.0, proj->sample_rate);
+		compressor_set_threshold(&comp_L, 0.2);
+		compressor_set_threshold(&comp_R, 0.2);
+		compressor_set_m(&comp_L, 0.5);
+		compressor_set_m(&comp_R, 0.5);
 	    }
 	    compressor_buf_apply(c, track_chunk, len_sframes);
 	    /* /\* if (channel == 0) { *\/ */

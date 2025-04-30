@@ -41,15 +41,13 @@ void init_dsp()
     FFT and helper functions
  *****************************************************************************************************************/
 
-
+/* 6.283185 */
 static double complex *gen_FFT_X(int n)
 {
     double complex *X = (double complex *)malloc(sizeof(double complex) * n);
-    double theta_increment = TAU / n;
-    double theta = 0;
     for (int i=0; i<n; i++) {
+	double theta = TAU * i / n;
         X[i] = cos(theta) + I * sin(theta);
-        theta += theta_increment;
     }
     return X;
 }

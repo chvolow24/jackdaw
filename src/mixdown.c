@@ -17,10 +17,11 @@
 #include <math.h>
 #include <pthread.h>
 #include "automation.h"
-#include "dsp.h"
-#include "eq.h"
+/* #include "dsp.h" */
+#include "effect.h"
+/* #include "eq.h" */
 #include "project.h"
-#include "iir.h"
+/* #include "iir.h" */
 
 #define AMP_EPSILON 1e-7f
 
@@ -187,15 +188,16 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	}
     }
 
-    if (total_amp < AMP_EPSILON) {
-	eq_advance(&track->eq, channel);
-    } else {
-	eq_buf_apply(&track->eq, chunk, len_sframes, channel);
-	filter_buf_apply(&track->fir_filter, chunk, len_sframes, channel);
-	saturation_buf_apply(&track->saturation, chunk, len_sframes, channel);
-    }
+    /* if (total_amp < AMP_EPSILON) { */
+    /* 	eq_advance(&track->eq, channel); */
+    /* } else { */
+    /* 	eq_buf_apply(&track->eq, chunk, len_sframes, channel); */
+    /* 	filter_buf_apply(&track->fir_filter, chunk, len_sframes, channel); */
+    /* 	saturation_buf_apply(&track->saturation, chunk, len_sframes, channel); */
+    /* } */
     
-    total_amp += delay_line_buf_apply(&track->delay_line, chunk, len_sframes, channel);
+    /* total_amp += delay_line_buf_apply(&track->delay_line, chunk, len_sframes, channel); */
+    total_amp = effect_chain_buf_apply(track->effects, track->num_effects, chunk, len_sframes, channel, total_amp);
     if (total_amp > AMP_EPSILON) {
 	float_buf_mult(chunk, vol_vals, len_sframes);
 	float_buf_mult(chunk, pan_vals, len_sframes);
@@ -220,9 +222,9 @@ Sum track samples over a chunk of timeline and return an array of samples. from_
 should be collected from the in mark rather than from the play head.
 */
 
-#include "compressor.h"
-Compressor comp_L;
-Compressor comp_R;
+/* #include "compressor.h" */
+/* Compressor comp_L; */
+/* Compressor comp_R; */
 
 float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t len_sframes, int32_t start_pos_sframes, float step)
 {
@@ -260,18 +262,18 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 	    audio_in_track = true;
 	}
 	if (track->tl_rank == 0) {
-	    Compressor *c = channel == 0? &comp_L : &comp_R;
-	    /* EnvelopeFollower *efl = channel == 0? &ef : &ef2; */
-	    static bool env_inited = false;
-	    if (!env_inited) {
-		compressor_set_times_msec(&comp_L, 1, 100.0, proj->sample_rate);
-		compressor_set_times_msec(&comp_R, 1, 100.0, proj->sample_rate);
-		compressor_set_threshold(&comp_L, 0.2);
-		compressor_set_threshold(&comp_R, 0.2);
-		compressor_set_m(&comp_L, 0.5);
-		compressor_set_m(&comp_R, 0.5);
-	    }
-	    compressor_buf_apply(c, track_chunk, len_sframes);
+	    /* Compressor *c = channel == 0? &comp_L : &comp_R; */
+	    /* /\* EnvelopeFollower *efl = channel == 0? &ef : &ef2; *\/ */
+	    /* static bool env_inited = false; */
+	    /* if (!env_inited) { */
+	    /* 	compressor_set_times_msec(&comp_L, 1, 100.0, proj->sample_rate); */
+	    /* 	compressor_set_times_msec(&comp_R, 1, 100.0, proj->sample_rate); */
+	    /* 	compressor_set_threshold(&comp_L, 0.2); */
+	    /* 	compressor_set_threshold(&comp_R, 0.2); */
+	    /* 	compressor_set_m(&comp_L, 0.5); */
+	    /* 	compressor_set_m(&comp_R, 0.5); */
+	    /* } */
+	    /* compressor_buf_apply(c, track_chunk, len_sframes); */
 	    /* /\* if (channel == 0) { *\/ */
 	    /* float env; */
 	    /* static float thresh = 0.3; */

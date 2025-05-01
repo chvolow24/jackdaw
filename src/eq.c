@@ -521,12 +521,22 @@ static double eq_sample(EQ *eq, double in, int channel)
     return in;
 }
 
-void eq_buf_apply(EQ *eq, float *buf, int len, int channel)
+float eq_buf_apply(void *eq_v, float *buf, int len, int channel, float input_amp)
 {
-    if (!eq->active) return;
+    static float amp_epsilon = 1e-7f;
+    EQ *eq = eq_v;
+    if (!eq->active) {
+	return input_amp;
+    } else if (input_amp < amp_epsilon) {
+	eq_advance(eq, channel);
+	return input_amp;
+    }
+    float output_amp = 0.0;
     for (int i=0; i<len; i++) {
 	buf[i] = eq_sample(eq, buf[i], channel);
+	output_amp += fabs(buf[i]);
     }
+    return output_amp;
 }
 
 void eq_advance(EQ *eq, int channel)

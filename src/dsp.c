@@ -596,10 +596,16 @@ static void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint1
 }
 
 /* Apply a FIR filter to a float buffer */
-void filter_buf_apply(FIRFilter *f, float *buf, int len, int channel)
+float filter_buf_apply(void *f_v, float *buf, int len, int channel, float input_amp)
 {
-    if (!f->active) return;
+    FIRFilter *f = f_v;
+    if (!f->active) return input_amp;
     apply_filter(f, f->track, channel, len, buf);
+    float output_amp = 0.0;
+    for (int i=0; i<len; i++) {
+	output_amp += fabs(buf[i]);
+    }
+    return output_amp;
 }
 
 /* void ___apply_track_filter(Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array)  */
@@ -810,9 +816,10 @@ void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
     pthread_mutex_unlock(&dl->lock);
 }
 
-double delay_line_buf_apply(DelayLine *dl, float *buf, int len, int channel)
+float delay_line_buf_apply(void *dl_v, float *buf, int len, int channel, float input_amp)
 {
-    double output_amp = 0.0;
+    DelayLine *dl = dl_v;
+    float output_amp = 0.0f;
     if (!dl->active) return output_amp;
     pthread_mutex_lock(&dl->lock);
     double *del_line = channel == 0 ? dl->buf_L : dl->buf_R;

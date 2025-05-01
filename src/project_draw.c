@@ -646,8 +646,8 @@ static void control_bar_draw(Project *proj)
     }
 }
 
-#include "compressor.h"
-extern Compressor comp_L;
+/* #include "compressor.h" */
+/* extern Compressor comp_L; */
 
 void project_draw()
 {
@@ -717,9 +717,9 @@ void project_draw()
     /* 	/\* } *\/ */
     /* } */
 
-    SDL_Rect env_rect = {1000, 500, 500, 500};
+    /* SDL_Rect env_rect = {1000, 500, 500, 500}; */
 
-    compressor_draw(&comp_L, &env_rect);
+    /* compressor_draw(&comp_L, &env_rect); */
     /* float env_global = comp_L.gain_reduction; */
     /* SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 90); */
     /* SDL_RenderDrawRect(main_win->rend, &env_rect); */

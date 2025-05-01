@@ -38,6 +38,7 @@
 #include "automation.h"
 #include "components.h"
 #include "dsp.h"
+#include "effect.h"
 #include "eq.h"
 #include "endpoint.h"
 #include "loading.h"
@@ -65,7 +66,8 @@
 #define MAX_PROJ_AUDIO_CONNS 255
 #define MAX_PROJ_CLIPS 2048
 #define MAX_GRABBED_CLIPS 255
-#define MAX_TRACK_FILTERS 4
+/* #define MAX_TRACK_FILTERS 4 */
+#define MAX_TRACK_EFFECTS 16
 
 #define TRACK_VOL_STEP 0.03f
 #define TRACK_PAN_STEP 0.01f
@@ -130,6 +132,10 @@ typedef struct track {
     double *buf_L_freq_mag;
     double *buf_R_freq_mag;
 
+
+    Effect effects[MAX_TRACK_EFFECTS];
+    uint8_t num_effects;
+    
     EQ eq;
 
     Saturation saturation;

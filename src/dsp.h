@@ -109,7 +109,8 @@ void filter_deinit(FIRFilter *filter);
 
 /* void apply_track_filter(Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array); */
 /* void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array); */
-void filter_buf_apply(FIRFilter *f, float *buf, int len, int channel);
+/* void filter_buf_apply(FIRFilter *f, float *buf, int len, int channel); */
+float filter_buf_apply(void *f_v, float *buf, int len, int channel, float input_amp);
 
 void FFT(double *A, double complex *B, int n);
 void FFTf(float *A, double complex *B, int n);
@@ -120,7 +121,8 @@ double hamming(int x, int lenw);
 void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate);
 void delay_line_set_params(DelayLine *dl, double amp, int32_t len);
 void delay_line_clear(DelayLine *dl);
-double delay_line_buf_apply(DelayLine *dl, float *buf, int len, int channel);
+float delay_line_buf_apply(void *dl_v, float *buf, int len, int channel, float input_amp);
+/* double delay_line_buf_apply(DelayLine *dl, float *buf, int len, int channel); */
 
 double dsp_scale_freq_to_hz(double freq_unscaled);
 

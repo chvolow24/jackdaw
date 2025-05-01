@@ -128,12 +128,16 @@ static double saturation_sample(Saturation *s, double in)
     /* return tanh(in * s->amp); */
 }
 
-void saturation_buf_apply(Saturation *s, float *buf, int len, int channel_unused)
+float saturation_buf_apply(void *saturation_v, float *buf, int len, int channel_unused, float input_amp)
 {
-    if (!s->active) return;
+    Saturation *s = saturation_v;
+    if (!s->active) return input_amp;
+    float output_amp = 0.0f;
     for (int i=0; i<len; i++) {
 	buf[i] = saturation_sample(s, buf[i]);
+	output_amp += fabs(buf[i]);
     }
+    return output_amp;
 }
 
 /* TODO:

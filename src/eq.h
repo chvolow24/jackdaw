@@ -79,7 +79,7 @@ bool eq_mouse_click(EQ *eq, SDL_Point mousep);
 void eq_mouse_motion(EQFilterCtrl *ctrl, Window *win);
 void eq_draw(EQ *eq);
 /* double eq_sample(EQ *eq, double in, int channel); */
-void eq_buf_apply(EQ *eq, float *buf, int len, int channel);
+float eq_buf_apply(void *eq_v, float *buf, int len, int channel, float input_amp);
 void eq_advance(EQ *eq, int channel);
 void eq_clear(EQ *eq);
 

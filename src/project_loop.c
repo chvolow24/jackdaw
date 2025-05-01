@@ -34,6 +34,7 @@
 #include "project.h"
 #include "project_endpoint_ops.h"
 #include "project_draw.h"
+#include "saturation.h"
 #include "screenrecord.h"
 #include "settings.h"
 #include "status.h"
@@ -235,9 +236,18 @@ void loop_project_main()
 		case SDL_SCANCODE_6: {
 		    Timeline *tl = proj->timelines[proj->active_tl_index];
 		    Track* sel = timeline_selected_track(tl);
-		    track_set_bus_out(sel, tl->tracks[0]);
+		    Effect *e = track_add_effect(sel, EFFECT_SATURATION);
+		    Saturation *s = e->obj;
+		    s->active = true;
+		    saturation_set_gain(s, 20.0);
+		    
 		}
-		    break;
+		/* case SDL_SCANCODE_6: { */
+		/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
+		/*     Track* sel = timeline_selected_track(tl); */
+		/*     track_set_bus_out(sel, tl->tracks[0]); */
+		/* } */
+		/*     break; */
 		/* case SDL_SCANCODE_6: { */
 		/*     filter_selector++; */
 		/*     filter_selector %=4; */

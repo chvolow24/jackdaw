@@ -47,6 +47,8 @@
 #define MAX_MODES 8
 #define STICK_DELAY_MS 500
 
+#define IDLE_AFTER_N_FRAMES 100
+
 extern Window *main_win;
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;
@@ -98,20 +100,14 @@ void loop_project_main()
     int wheel_event_recency = 0;
     int play_speed_scroll_recency = 60;
     bool scrub_block = false;
+
+    int frames_since_event = 0;
     while (!(main_win->i_state & I_STATE_QUIT)) {
 	while (SDL_PollEvent(&e)) {
-	    /* fprintf(stdout, "Polled!\n"); */
+	    frames_since_event = 0;
 	    switch (e.type) {
 	    case SDL_QUIT:
-		/* proj->quit_count++; */
-		/* if (proj->quit_count > 1) { */
-		/*     main_win->i_state |= I_STATE_QUIT; */
-		/* } else if (proj->quit_count == 0) { */
-		    user_global_quit(NULL);
-		/* } else { */
-		/*     proj->quit_count++; */
-		/* } */
-		/* main_win->i_state |= I_STATE_QUIT; */
+		user_global_quit(NULL);
 		break;
 	    case SDL_WINDOWEVENT:
 		if (e.window.event == SDL_WINDOWEVENT_RESIZED) {
@@ -121,10 +117,8 @@ void loop_project_main()
 		break;
 	    case SDL_AUDIODEVICEADDED:
 	    case SDL_AUDIODEVICEREMOVED:
-		/* fprintf(stdout, "%s iscapture: %d, %d\n", e.type == SDL_AUDIODEVICEADDED ? "ADDED device" : "REMOVED device", e.adevice.iscapture, e.adevice.which); */
 		if (!first_frame) {
 		    if (proj->recording) transport_stop_recording();
-		    /* transport_stop_playback(); */
 		    audioconn_handle_connection_event(e.adevice.which, e.adevice.iscapture, e.adevice.type);
 		}
 		break;
@@ -303,23 +297,7 @@ void loop_project_main()
 				float new_speed = (old_speed.float_v + e.wheel.preciseX / 3.0) / 2;
 				endpoint_write(&proj->play_speed_ep, (Value){.float_v = new_speed}, true, true, true, false);				
 			    }
-
-			    /* timeline_scroll_playhead(e.wheel.preciseX); */
 			}
-			/* if (main_win->i_state & I_STATE_CMDCTRL) */
-			/*     /\* if (main_win->i_state & I_STATE_META) { *\/ */
-			/*     /\* 	Timeline *tl = proj->timelines[0]; *\/ */
-			/*     /\* 	Track *track = tl->tracks[0]; *\/ */
-			/*     /\* 	double current_cutoff = track->fir_filter->cutoff_freq; *\/ */
-			/*     /\* 	FilterType type = track->fir_filter->type; *\/ */
-			/*     /\* 	double filter_adj = 0.001; *\/ */
-			/*     /\* 	filter_set_params(track->fir_filter, type, current_cutoff + filter_adj * e.wheel.y, 0.05); *\/ */
-			/*     /\* } else  *\/ */
-			/*     proj->play_speed += e.wheel.y * PLAYSPEED_ADJUST_SCALAR_LARGE; */
-			/* else  */
-			/*     proj->play_speed += e.wheel.y * PLAYSPEED_ADJUST_SCALAR_SMALL; */
-			
-			/* status_stat_playspeed(); */
 		    } else {
 			bool allow_scroll = true;
 			double scroll_x = e.wheel.preciseX * LAYOUT_SCROLL_SCALAR;
@@ -336,32 +314,7 @@ void loop_project_main()
 				layout_scroll(tl->track_area, 0, scroll_y, fingersdown);
 				timeline_reset(tl, false);
 			    }
-			    /* temp_scrolling_lt = proj->timelines[proj->active_tl_index]->track_area; */
-			    /* temp_scrolling_lt->scroll_momentum_v = scroll_y; */
 			}
-
-
-			
-			/* timeline_reset(proj->timelines[proj->active_tl_index]); */
-
-
-			
-			/* layout_reset(proj->timelines[proj->active_tl_index]->track_area); */
-			/* layout_reset(proj->track_area); */
-			/* if (allow_scroll) { */
-			/*     if (fabs(scroll_x) > fabs(scroll_y)) { */
-			/* 	scroll_y = 0; */
-			/*     } else { */
-			/* 	scroll_x = 0; */
-			/*     } */
-			/*     temp_scrolling_lt = layout_handle_scroll( */
-			/* 	main_win->layout, */
-			/* 	&main_win->mousep, */
-			/* 	scroll_x, */
-			/* 	scroll_y, */
-			/* 	fingersdown); */
-			/*     timeline_reset(proj->timelines[proj->active_tl_index]); */
-			/* } */
 		    }
 		}
 	    }
@@ -419,39 +372,6 @@ void loop_project_main()
 		}
 		project_flush_ongoing_changes(proj, JDAW_THREAD_MAIN);
 		project_flush_ongoing_changes(proj, JDAW_THREAD_DSP);
-
-		/* if (proj->currently_editing_slider) { */
-		/*     EventFn undofn; */
-		/*     EventFn redofn; */
-		/*     switch (proj->cached_slider_type) { */
-		/*     case SLIDER_TARGET_TRACK_VOL: */
-		/* 	undofn = undo_set_track_vol; */
-		/* 	redofn = redo_set_track_vol; */
-		/* 	break; */
-		/*     case SLIDER_TARGET_TRACK_PAN: */
-		/* 	undofn = undo_set_track_pan; */
-		/* 	redofn = redo_set_track_pan; */
-		/* 	break; */
-		/*     case SLIDER_TARGET_TRACK_EFFECT_PARAM: */
-		/* 	undofn = undo_set_track_effect_param; */
-		/* 	redofn = redo_set_track_effect_param; */
-		/* 	break; */
-		/*     } */
-		/*     Slider *s = proj->currently_editing_slider; */
-		/*     Value v_old = proj->cached_slider_val; */
-		/*     Value v_new = jdaw_val_from_ptr(s->value, s->val_type); */
-		/*     user_event_push( */
-		/* 	&proj->history, */
-		/* 	undofn, */
-		/* 	redofn, */
-		/* 	NULL, NULL, */
-		/* 	proj->currently_editing_slider->value, */
-		/* 	NULL, */
-		/* 	v_old, v_old, v_new, v_new, */
-		/* 	s->val_type, s->val_type, false, false); */
-			
-		/*     proj->currently_editing_slider = NULL; */
-		/* } */
 		break;
 	    case SDL_FINGERUP:
 		fingersdown = SDL_GetNumTouchFingers(-1);
@@ -479,6 +399,14 @@ void loop_project_main()
 	    }
 		
 	} /* End event handling */
+
+	if (!proj->playing && frames_since_event >= IDLE_AFTER_N_FRAMES) {
+	    goto end_frame;
+	} else {
+	    frames_since_event++;
+	}
+
+	
 	Timeline *tl = proj->timelines[proj->active_tl_index];
 	wheel_event_recency++;
 	if (wheel_event_recency == INT_MAX)
@@ -540,6 +468,7 @@ void loop_project_main()
 	if (main_win->txt_editing) {
 	    if (main_win->txt_editing->cursor_countdown == 0) {
 		main_win->txt_editing->cursor_countdown = CURSOR_COUNTDOWN_MAX;
+
 	    } else {
 		main_win->txt_editing->cursor_countdown--;
 	    }
@@ -574,7 +503,7 @@ void loop_project_main()
 	    clock_gettime(CLOCK_MONOTONIC, &now);
 	    double elapsed_s = now.tv_sec + ((double)now.tv_nsec / 1e9) - tl->play_pos_moved_at.tv_sec - ((double)tl->play_pos_moved_at.tv_nsec / 1e9);
 	    if (elapsed_s > 0.05) {
-		goto end_auto_write;
+		goto end_frame;
 	    }
 	    int32_t play_pos_adj = tl->play_pos_sframes + elapsed_s * proj->sample_rate * proj->play_speed;
 	    for (uint8_t i=0; i<tl->num_tracks; i++) {
@@ -597,14 +526,16 @@ void loop_project_main()
 	    }
 	}
 
-    end_auto_write:
-
-	
-	SDL_Delay(1);
-
-
 	if (proj->do_tests) {
 	    TEST_FN_CALL(chaotic_user, &proj->do_tests, 60 * 10); /* 10s of really dumb tests */
+	}
+
+    end_frame:
+
+	if (frames_since_event >= IDLE_AFTER_N_FRAMES) {
+	    SDL_Delay(100);
+	} else {
+	    SDL_Delay(1);
 	}
     }
 }

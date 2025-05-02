@@ -136,14 +136,14 @@ typedef struct track {
     Effect effects[MAX_TRACK_EFFECTS];
     uint8_t num_effects;
     
-    EQ eq;
+    /* EQ eq; */
 
-    Saturation saturation;
+    /* Saturation saturation; */
 
-    FIRFilter fir_filter;
+    /* FIRFilter fir_filter; */
     /* bool fir_filter_active; */
     
-    DelayLine delay_line;
+    /* DelayLine delay_line; */
     /* bool delay_line_active; */
 
     Automation *automations[MAX_TRACK_AUTOMATIONS];

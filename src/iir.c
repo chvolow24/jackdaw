@@ -394,7 +394,7 @@ int iir_set_coeffs_lowshelf(IIRFilter *iir, double freq, double amp)
 
 int iir_set_coeffs_highshelf_double_butterworth(IIRFilter *iir1, IIRFilter *iir2, double freq, double amp)
 {
-    static const double epsilon = 1e-9;
+    /* static const double epsilon = 1e-9; */
     freq *= PI;
     double freq_prewarp = 2 * tan(freq / 2);
 

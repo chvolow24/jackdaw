@@ -232,16 +232,21 @@ void loop_project_main()
 	    case SDL_KEYDOWN: {
 		scrolling_lt = NULL;
 		temp_scrolling_lt = NULL;
+		static int i=2;
 		switch (e.key.keysym.scancode) {
 		case SDL_SCANCODE_6: {
 		    Timeline *tl = proj->timelines[proj->active_tl_index];
 		    Track* sel = timeline_selected_track(tl);
-		    Effect *e = track_add_effect(sel, EFFECT_SATURATION);
-		    Saturation *s = e->obj;
-		    s->active = true;
-		    saturation_set_gain(s, 20.0);
+		    Effect *e = track_add_effect(sel, i);
+		    fprintf(stderr, "Applying %s\n", effect_type_str(i));
+		    /* Saturation *s = e->obj; */
+		    /* s->active = true; */
+		    /* saturation_set_gain(s, 20.0); */
+		    i++;
+		    i%=4;
 		    
 		}
+		    break;
 		/* case SDL_SCANCODE_6: { */
 		/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
 		/*     Track* sel = timeline_selected_track(tl); */

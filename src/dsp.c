@@ -396,7 +396,7 @@ void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impu
 	filter, NULL, NULL, NULL);
 
     
-    filter_set_params_hz(&track->fir_filter, LOWPASS, 1000, 1000); /* Defaults */
+    filter_set_params_hz(filter, LOWPASS, 1000, 1000); /* Defaults */
 
     
     filter->initialized = true;

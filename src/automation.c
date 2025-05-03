@@ -374,20 +374,20 @@ Automation *track_add_automation(Track *track, AutomationType type)
 {
     Automation *a = NULL;
     switch (type) {
-    case AUTO_VOL:
-	a = track_add_automation_from_endpoint(track, &track->vol_ep);
-	break;
-    case AUTO_PAN:
-	a = track_add_automation_from_endpoint(track, &track->pan_ep);
-	/* automation_insert_keyframe_at(a, NULL, base_kf_val, 0); */
-	break;
-    case AUTO_FIR_FILTER_CUTOFF:
-	a = track_add_automation_from_endpoint(track, &track->fir_filter.cutoff_ep);
-	break;
-    case AUTO_FIR_FILTER_BANDWIDTH:
-	a = track_add_automation_from_endpoint(track, &track->fir_filter.bandwidth_ep);
-	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
-	break;
+    /* case AUTO_VOL: */
+    /* 	a = track_add_automation_from_endpoint(track, &track->vol_ep); */
+    /* 	break; */
+    /* case AUTO_PAN: */
+    /* 	a = track_add_automation_from_endpoint(track, &track->pan_ep); */
+    /* 	/\* automation_insert_keyframe_at(a, NULL, base_kf_val, 0); *\/ */
+    /* 	break; */
+    /* case AUTO_FIR_FILTER_CUTOFF: */
+    /* 	a = track_add_automation_from_endpoint(track, &track->fir_filter.cutoff_ep); */
+    /* 	break; */
+    /* case AUTO_FIR_FILTER_BANDWIDTH: */
+    /* 	a = track_add_automation_from_endpoint(track, &track->fir_filter.bandwidth_ep); */
+    /* 	/\* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); *\/ */
+    /* 	break; */
 	
     /* case AUTO_DEL_TIME: */
     /* 	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line, track, track->tl->proj->sample_rate); */

@@ -468,6 +468,10 @@ bool eq_mouse_click(EQ *eq, SDL_Point mousep)
 void eq_create_freq_plot(EQ *eq, Layout *container)
 {
     int steps[] = {1, 1};
+    
+    if (!eq->track->buf_L_freq_mag) eq->track->buf_L_freq_mag = calloc(eq->track->tl->proj->fourier_len_sframes * 2, sizeof(double));
+    if (!eq->track->buf_R_freq_mag) eq->track->buf_R_freq_mag = calloc(eq->track->tl->proj->fourier_len_sframes * 2, sizeof(double));
+
     double *arrs[] = {eq->track->buf_L_freq_mag, eq->track->buf_R_freq_mag};
     /* double *arrs[] = {proj->output_L_freq, proj->output_R_freq}; */
     SDL_Color *colors[] = {&freq_L_color, &freq_R_color};
@@ -479,6 +483,7 @@ void eq_create_freq_plot(EQ *eq, Layout *container)
 	steps,
 	proj->fourier_len_sframes,
 	container);
+    waveform_reset_freq_plot(eq->fp);
 
     eq->group.fp = eq->fp;
     for (int i=0; i<eq->group.num_filters; i++) {

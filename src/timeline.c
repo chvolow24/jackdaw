@@ -213,7 +213,7 @@ static void track_handle_playhead_jump(Track *track)
 	Automation *a = track->automations[i];
 	automation_clear_cache(a);
     }
-    eq_clear(&track->eq);
+    /* eq_clear(&track->eq); */
 }
 
 /* Invalidates continuous-play-dependent caches.

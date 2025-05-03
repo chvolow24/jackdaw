@@ -1488,18 +1488,18 @@ Track *timeline_add_track(Timeline *tl)
 
 
 
-    track->eq.track = track;
-    eq_init(&track->eq);
+    /* track->eq.track = track; */
+    /* eq_init(&track->eq); */
 
-    track->saturation.track = track;
-    saturation_init(&track->saturation);
-    int ir_len = track->tl->proj->fourier_len_sframes/4;
-    int fr_len = track->tl->proj->fourier_len_sframes * 2;
-    track->buf_L_freq_mag = calloc(fr_len, sizeof(double));
-    track->buf_R_freq_mag = calloc(fr_len, sizeof(double));
-    filter_init(&track->fir_filter, track, LOWPASS, ir_len, fr_len);
+    /* track->saturation.track = track; */
+    /* saturation_init(&track->saturation); */
+    /* int ir_len = track->tl->proj->fourier_len_sframes/4; */
+    /* int fr_len = track->tl->proj->fourier_len_sframes * 2; */
+    /* track->buf_L_freq_mag = calloc(fr_len, sizeof(double)); */
+    /* track->buf_R_freq_mag = calloc(fr_len, sizeof(double)); */
+    /* filter_init(&track->fir_filter, track, LOWPASS, ir_len, fr_len); */
 
-    delay_line_init(&track->delay_line, track, track->tl->proj->sample_rate);
+    /* delay_line_init(&track->delay_line, track, track->tl->proj->sample_rate); */
 
 
 
@@ -1723,7 +1723,7 @@ Track *timeline_add_track(Timeline *tl)
     if (tl->layout_selector < 0) tl->layout_selector = 0;
     timeline_rectify_track_indices(tl);
 
-    api_endpoint_register(&track->saturation.gain_ep, &track->saturation.track->api_node);
+    /* api_endpoint_register(&track->saturation.gain_ep, &track->saturation.track->api_node); */
 
     return track;
 }
@@ -2491,7 +2491,7 @@ void track_destroy(Track *track, bool displace)
 	}
     }
 
-    eq_deinit(&track->eq);
+    /* eq_deinit(&track->eq); */
     /* fprintf(stdout, "OK deleted all crs, now clips\n"); */
     /* while (num_clips_to_destroy > 0) { */
     /* 	/\* fprintf(stdout, "Deleting clip\n"); *\/ */
@@ -2526,12 +2526,14 @@ void track_destroy(Track *track, bool displace)
 	/* timeline_reset(tl); */
 	/* layout_reset(tl->layout); */
     }
-    filter_deinit(&track->fir_filter);
-    if (track->delay_line.buf_L) free(track->delay_line.buf_L);
-    if (track->delay_line.buf_R) free(track->delay_line.buf_R);
-    if (track->delay_line.cpy_buf) free(track->delay_line.cpy_buf);
+    
+    /* filter_deinit(&track->fir_filter); */
+    /* if (track->delay_line.buf_L) free(track->delay_line.buf_L); */
+    /* if (track->delay_line.buf_R) free(track->delay_line.buf_R); */
+    /* if (track->delay_line.cpy_buf) free(track->delay_line.cpy_buf); */
     /* if (track->delay_line.lock) SDL_DestroyMutex(track->delay_line.lock); */
-    pthread_mutex_destroy(&track->delay_line.lock);
+    /* pthread_mutex_destroy(&track->delay_line.lock); */
+    
     if (track->buf_L_freq_mag) free(track->buf_L_freq_mag);
     if (track->buf_R_freq_mag) free(track->buf_R_freq_mag);
     if (track->automation_dropdown) symbol_button_destroy(track->automation_dropdown);

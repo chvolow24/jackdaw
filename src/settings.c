@@ -60,8 +60,8 @@ Waveform *current_waveform;
 
 /* static double unscale_freq(double scaled) */
 /* { */
-/*     return log(scaled * proj->sample_rate) / log(proj->sample_rate); */
 /* } */
+/*     return log(scaled * proj->sample_rate) / log(proj->sample_rate); */
 /* static int toggle_delay_line_target_action(void *self_v, void *target) */
 /* { */
 /*     DelayLine *dl = (DelayLine *)target; */

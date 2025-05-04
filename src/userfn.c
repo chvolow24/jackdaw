@@ -1694,6 +1694,21 @@ void user_tl_track_pan_right(void *nullarg)
     /* tl->needs_redraw = true; */
 }
 
+void user_tl_track_add_effect(void *nullarg)
+{
+    TABVIEW_BLOCK(add automation);
+    Timeline *tl = ACTIVE_TL;
+    Track *track = timeline_selected_track(tl);
+    if (track) {
+	track_add_new_effect(track);
+	/* track_add_new_automation(track); */
+	/* track_automations_show_all(track); */
+    } else {
+	status_set_errstr(NO_TRACK_ERRSTR);
+    }
+}
+
+
 void user_tl_track_open_settings(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;
@@ -1703,6 +1718,11 @@ void user_tl_track_open_settings(void *nullarg)
 	return;
     }
     Track *track = timeline_selected_track(tl);
+    if (track->num_effects == 0) {
+	user_tl_track_add_effect(NULL);
+	return;
+    }
+
     if (track) {
 	TabView *tv = settings_track_tabview_create(track);
 	tabview_activate(tv);
@@ -1711,6 +1731,8 @@ void user_tl_track_open_settings(void *nullarg)
 	timeline_click_track_edit(tl);
     }
 }
+
+
 
 void user_tl_track_add_automation(void *nullarg)
 {

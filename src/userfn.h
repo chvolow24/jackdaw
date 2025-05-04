@@ -114,6 +114,7 @@ void user_tl_track_automation_toggle_read(void *nullarg);
 
 
 void user_tl_track_open_settings(void *nullarg);
+void user_tl_track_add_effect(void *nullarg);
 void user_tl_mute(void *nullarg);
 void user_tl_solo(void *nullarg);
 void user_tl_track_vol_up(void *nullarg);

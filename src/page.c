@@ -377,7 +377,6 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	break;
     case EL_EQ_PLOT: {
 	EQ *eq = params.eq_plot_p.eq;
-	fprintf(stderr, "ADDING Eq freqplot, but ptr is %p\n", eq->fp);
 	el->component = (void *)eq;
 	if (!eq->fp) {
 	    eq_create_freq_plot(eq, el->layout);

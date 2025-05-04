@@ -682,6 +682,12 @@ static void mode_load_timeline()
     sc = mode_add_subcat(mode, "Track settings");
 
     fn = create_user_fn(
+	"tl_track_add_effect",
+	"Add effect to track",
+	user_tl_track_add_effect);
+    mode_subcat_add_fn(sc, fn);
+    
+    fn = create_user_fn(
 	"tl_track_open_settings",
 	"Open track settings",
 	user_tl_track_open_settings);

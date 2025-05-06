@@ -25,6 +25,7 @@
 
 
 typedef struct track Track;
+typedef struct effect Effect;
 
 typedef enum filter_type {
     LOWPASS=0, HIGHPASS=1, BANDPASS=2, BANDCUT=3
@@ -43,6 +44,10 @@ typedef struct fir_filter {
     double *frequency_response_mag;
     float *overlap_buffer_L;
     float *overlap_buffer_R;
+    double *output_freq_mag_L;
+    double *output_freq_mag_R;
+    /* float *freq_mag_L; */
+    /* float *freq_mag_R; */
     uint16_t impulse_response_len; /* Only modified in callbacks */
     uint16_t impulse_response_len_internal;
     /* uint16_t impulse_response_len_internal; */
@@ -56,6 +61,8 @@ typedef struct fir_filter {
     Endpoint cutoff_ep;
     Endpoint bandwidth_ep;
     Endpoint impulse_response_len_ep;
+
+    Effect *effect;
 
     /* SDL_mutex *lock;audio.c */
 } FIRFilter;
@@ -82,6 +89,8 @@ typedef struct delay_line {
     Endpoint len_ep;
     Endpoint amp_ep;
     Endpoint stereo_offset_ep;
+
+    Effect *effect;
 
     /* SDL_mutex *lock; */
 } DelayLine;

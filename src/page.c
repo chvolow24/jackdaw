@@ -209,6 +209,13 @@ void page_destroy(Page *page)
     for (uint8_t i=0; i<page->num_elements; i++) {
 	page_el_destroy(page->elements[i]);
     }
+    if (page->linked_obj) {
+	switch(page->linked_obj_type) {
+	case PAGE_EFFECT:
+	    ((Effect *)page->linked_obj)->page = NULL;
+	    break;
+	}
+    }
     layout_destroy(page->layout);
     free(page);
 }
@@ -788,6 +795,7 @@ void tabview_activate(TabView *tv)
     win->active_tabview = tv;
     window_push_mode(tv->win, TABVIEW);
 
+    tv->tabs[tv->current_tab]->onscreen = true;
     tabview_select_el(tv);
     /* Page *current = tv->tabs[tv->current_tab]; */
     /* page_el_select(current->selectable_els[current->selected_i]); */
@@ -811,20 +819,24 @@ void tabview_close(TabView *tv)
 
 void tabview_next_tab(TabView *tv)
 {
+    tv->tabs[tv->current_tab]->onscreen = false;
     tabview_deselect_el(tv);
     if (tv->current_tab < tv->num_tabs - 1)
 	tv->current_tab++;
-    else tv->current_tab = 0;
+    else tv->current_tab = 0;   
     tabview_select_el(tv);
+    tv->tabs[tv->current_tab]->onscreen = true;
 }
 
 void tabview_previous_tab(TabView *tv)
 {
+    tv->tabs[tv->current_tab]->onscreen = false;
     tabview_deselect_el(tv);
     if (tv->current_tab > 0)
 	tv->current_tab--;
     else tv->current_tab = tv->num_tabs - 1;
     tabview_select_el(tv);
+    tv->tabs[tv->current_tab]->onscreen = true;
 }
 
 /* NAVIGATION FUNCTIONS */

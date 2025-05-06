@@ -301,6 +301,13 @@ static void FIR_filter_alloc_buffers(FIRFilter *filter)
     if (!filter->overlap_buffer_R)
 	filter->overlap_buffer_R = calloc(1, sizeof(float) * max_irlen - 1);
 
+    if (!filter->output_freq_mag_L)
+	filter->output_freq_mag_L = calloc(filter->frequency_response_len, sizeof(double));
+
+    if (!filter->output_freq_mag_R)
+	filter->output_freq_mag_R = calloc(filter->frequency_response_len, sizeof(double));
+
+
 	
     /* SDL_LockMutex(filter->lock); */
     /* if (filter->impulse_response) free(filter->impulse_response); */
@@ -554,6 +561,12 @@ void filter_deinit(FIRFilter *filter)
     if (filter->frequency_response_mag) {
 	free(filter->frequency_response_mag);
     }
+    if (filter->output_freq_mag_L) {
+	free(filter->output_freq_mag_L);
+    }
+    if (filter->output_freq_mag_R) {
+	free(filter->output_freq_mag_R);
+    }
     /* if (filter->lock) { */
     pthread_mutex_destroy(&filter->lock);
 	/* SDL_DestroyMutex(filter->lock); */
@@ -578,13 +591,27 @@ static void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint1
     double complex freq_domain[padded_len];
 
     FFTf(padded_chunk,freq_domain, padded_len);
+    
+    /* Apply filter via multiplication in freq domain */
     for (uint16_t i=0; i<padded_len; i++) {
         freq_domain[i] *= filter->frequency_response[i];
     }
+
+    /* Populate magnitude buffers for display in freq plot */
+    if (filter->effect && filter->effect->page && filter->effect->page->onscreen) {
+	double *dst = channel == 0 ? filter->output_freq_mag_L : filter->output_freq_mag_R;
+	get_magnitude(freq_domain, dst, padded_len);
+	/* fprintf(stderr, "onscreen\n"); */
+    /* } else { */
+    /* 	fprintf(stderr, "(skip)\n"); */
+    }
+
     double complex time_domain[padded_len];
     IFFT(freq_domain, time_domain, padded_len);
     float real[padded_len];
     get_real_componentf(time_domain, real, padded_len);
+
+    /* if (filter-> */
 
     memcpy(sample_array, real, chunk_size * sizeof(float));
     for (int i=0; i<filter->overlap_len; i++) {
@@ -605,6 +632,7 @@ float filter_buf_apply(void *f_v, float *buf, int len, int channel, float input_
     for (int i=0; i<len; i++) {
 	output_amp += fabs(buf[i]);
     }
+    
     return output_amp;
 }
 

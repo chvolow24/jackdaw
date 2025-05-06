@@ -49,6 +49,10 @@ typedef enum page_el_type {
     EL_SYMBOL_BUTTON,
 } PageElType;
 
+enum linked_obj_type {
+    PAGE_EFFECT=0
+};
+
 typedef struct page_element {
     const char *id;
     PageElType type;
@@ -67,6 +71,10 @@ typedef struct page {
     SDL_Color *background_color;
     SDL_Color *text_color;
     Window *win;
+
+    enum linked_obj_type linked_obj_type;
+    void *linked_obj;
+    bool onscreen;
 } Page;
 
 typedef struct tab_view {

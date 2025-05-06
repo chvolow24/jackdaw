@@ -337,12 +337,14 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 
 
 	    for (int i=0; i<len_sframes; i++) {
-		input[i] *= hamming(i, len_sframes);
+		input[i] *= 2.0 * hamming(i, len_sframes);
 	    }
 	    FFTf(input, freq, len_sframes * 2);
 
-	    double *dst_buf = channel == 0 ? track->buf_L_freq_mag : track->buf_R_freq_mag;
-	    get_magnitude(freq, dst_buf, len_sframes * 2);
+	    double **dst_buf = channel == 0 ? &track->buf_L_freq_mag : &track->buf_R_freq_mag;
+	    if (!*dst_buf) *dst_buf = malloc(len_sframes * 2 * sizeof(double));
+	    
+	    get_magnitude(freq, *dst_buf, len_sframes * 2);
 	    /* i++; */
 	    /* get_magnitude(freqR, track->buf_R_freq_mag, len_sframes); */
 	}

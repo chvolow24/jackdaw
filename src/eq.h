@@ -29,6 +29,9 @@
 #define EQ_SEL_CTRL_RAD (10 * main_win->dpi_scale_factor)
 #define EQ_CTRL_LABEL_BUFLEN 32
 
+
+typedef struct effect Effect;
+
 typedef struct eq EQ;
 typedef struct eq_filter_ctrl {
     EQ *eq;
@@ -57,12 +60,16 @@ typedef struct eq_filter_ctrl {
 typedef struct eq {
     bool active;
     IIRGroup group;
+    double *output_freq_mag_L;
+    double *output_freq_mag_R;
     struct freq_plot *fp;
     EQFilterCtrl ctrls[EQ_DEFAULT_NUM_FILTERS];
     int selected_ctrl;
     bool selected_filter_active;
     /* Endpoint selected_ctrl_ep; */
     Track *track;
+
+    Effect *effect;
 } EQ;
 
 /* void eq_set_peak(EQ *eq, int filter_index, double freq_raw, double amp_raw, double bandwidth); */

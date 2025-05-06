@@ -139,6 +139,8 @@ void eq_ctrl_label_fn(char *dst, size_t dstsize, Value val, ValType type)
 
 void eq_init(EQ *eq)
 {
+    eq->output_freq_mag_L = calloc(eq->track->tl->proj->fourier_len_sframes * 2, sizeof(double));
+    eq->output_freq_mag_R = calloc(eq->track->tl->proj->fourier_len_sframes * 2, sizeof(double));
     double nsub1;
     if (proj) {
 	nsub1 = (double)proj->fourier_len_sframes / 2 - 1;
@@ -274,6 +276,8 @@ void eq_init(EQ *eq)
 
 void eq_deinit(EQ *eq)
 {
+    free(eq->output_freq_mag_L);
+    free(eq->output_freq_mag_R);
     for (int i=0; i<eq->group.num_filters; i++) {
 	EQFilterCtrl *ctrl = eq->ctrls + i;
 	label_destroy(ctrl->label);
@@ -281,7 +285,6 @@ void eq_deinit(EQ *eq)
 	if (ctrl->amp_ep_display_name) free(ctrl->amp_ep_display_name);
 	if (ctrl->bandwidth_ep_display_name) free(ctrl->bandwidth_ep_display_name);
     }
-
     iir_group_deinit(&eq->group);
     if (eq->fp) waveform_destroy_freq_plot(eq->fp);
     
@@ -469,10 +472,13 @@ void eq_create_freq_plot(EQ *eq, Layout *container)
 {
     int steps[] = {1, 1};
     
-    if (!eq->track->buf_L_freq_mag) eq->track->buf_L_freq_mag = calloc(eq->track->tl->proj->fourier_len_sframes * 2, sizeof(double));
-    if (!eq->track->buf_R_freq_mag) eq->track->buf_R_freq_mag = calloc(eq->track->tl->proj->fourier_len_sframes * 2, sizeof(double));
+    /* if (!eq->track->buf_L_output_freq_mag) eq->track->buf_L_output_freq_mag = calloc(eq->track->tl->proj->fourier_len_sframes * 2, sizeof(double)); */
+    /* if (!eq->track->buf_R_output_freq_mag) eq->track->buf_R_output_freq_mag = calloc(eq->track->tl->proj->fourier_len_sframes * 2, sizeof(double)); */
 
-    double *arrs[] = {eq->track->buf_L_freq_mag, eq->track->buf_R_freq_mag};
+    /* double *arrs[] = {eq->track->buf_L_output_freq_mag, eq->track->buf_R_output_freq_mag}; */
+
+    double *arrs[] = {eq->output_freq_mag_L, eq->output_freq_mag_R};
+    
     /* double *arrs[] = {proj->output_L_freq, proj->output_R_freq}; */
     SDL_Color *colors[] = {&freq_L_color, &freq_R_color};
 
@@ -541,6 +547,22 @@ float eq_buf_apply(void *eq_v, float *buf, int len, int channel, float input_amp
 	buf[i] = eq_sample(eq, buf[i], channel);
 	output_amp += fabs(buf[i]);
     }
+
+    /* IFF Freq Plot is onscreen, reset frequency magnitude spectrum */
+    if (eq->effect->page && eq->effect->page->onscreen) {
+	float fft_input[len * 2];
+	memset(fft_input + len, '\0', len * sizeof(float));
+	memcpy(fft_input, buf, len * sizeof(float));
+	for (int i=0; i<len; i++) {
+	    fft_input[i] *= 2.0 * hamming(i, len);
+	}
+	double complex freq[len * 2];
+	FFTf(fft_input, freq, len * 2);
+	double *dst = channel == 0 ? eq->output_freq_mag_L : eq->output_freq_mag_R;
+	get_magnitude(freq, dst, len * 2);
+    }
+
+    
     return output_amp;
 }
 

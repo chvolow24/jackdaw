@@ -30,6 +30,8 @@ typedef enum saturation_type {
 
 } SaturationType;
 
+typedef struct effect Effect;
+
 typedef struct saturation Saturation;
 typedef struct saturation {
     bool active;
@@ -43,6 +45,8 @@ typedef struct saturation {
     Endpoint type_ep;
     double (*sample_fn)(Saturation *s, double in);
     Track *track;
+
+    Effect *effect;
 } Saturation;
 
 

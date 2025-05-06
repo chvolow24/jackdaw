@@ -27,3 +27,5 @@ gifframes
 *.mov
 todo.org
 *.bak
+license_extract.py
+projects/

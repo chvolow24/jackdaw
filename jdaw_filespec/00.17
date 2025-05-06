@@ -1,0 +1,167 @@
+/**************************** .JDAW VERSION 00.17 FILE SPEC ***********************************
+
+    ALL INTEGERS SERIALIZED IN LITTLE-ENDIAN BYTE ORDER
+
+    FLOATS AND DOUBLES SERIALIZED IN 5 BYTE REGIONS:
+        - 8-bit exponent +
+        - 32-bit scaled integral mantissa
+
+===========================================================================================================
+SCTN          LEN IN BYTES      TYPE                      FIELD NAME OR VALUE
+===========================================================================================================
+[SINGLE]
+HDR           4                 char[4]                   "JDAW"
+HDR           8                 char[8]                   " VERSION"
+
+[SINGLE]
+PROJ          5                 char[5]                   file spec version (e.g. "00.01")
+PROJ          1                 uint8_t                   project name length
+PROJ          0-255             char[]                    project name
+PROJ          1                 uint8_t                   channels
+PROJ          4                 uint32_t                  sample rate
+PROJ          2                 uint16_t                  chunk size (power of 2)
+PROJ          2                 SDL_AudioFormat (16bit)   SDL Audio Format
+PROJ	      2			uint16_t		  number of clips
+PROJ	      1			uint8_t			  number of timelines
+
+[MULTIPLE PER PROJECT]
+CLIP	      4			char[4]			  "CLIP"
+CLIP	      1			uint8_t			  clip name length
+CLIP	      0-255		char[]			  clip name
+CLIP	      1			uint8_t			  clip index
+CLIP	      1			uint8_t			  num channels
+CLIP	      4			uint32_t	          length (sample frames)
+CLIP	      4			char[4]			  "data"
+CLIP_DATA     ?			int16_t[]		  CLIP SAMPLE DATA
+
+[MULTIPLE PER PROJECT]
+TL	      8			char[8]			  "TIMELINE"
+TL	      1			uint8_t			  timeline name length
+TL	      0-255		char[]	                  timeline name
+TL	      2			int16_t 	          num tracks (incl track && click tracks)
+
+
+.................................................
+NOTE:
+Tracks and Click Tracks are interspersed, written
+in the order they appear on the timeline. The he-
+aders "TRCK" and "CLCK" are therefore crucial for
+deserialization.
+.................................................
+
+[MULTIPLE PER TIMELINE]
+TRCK   	      4                 char[4]                   "TRCK"
+TRCK  	      1                 uint8_t                   track name length
+TRCK	      0-255             char[]                    track name
+TRCK	      4			uint8_t[4]		  color			       
+TRCK	      5			float			  vol
+TRCK          5			float			  pan
+TRCK	      1                 bool			  muted
+TRCK	      1                 bool			  soloed
+TRCK 	      1                 bool			  solo muted
+TRCK	      1			bool			  minimized
+TRCK   	      2                 uint16_t                  num cliprefs
+
+....................................
+...[CLIP_REFs GO HERE; SEE BELOW]...
+....................................
+
+TRCK	      1			uint8_t			  num_automations
+
+.....................................
+...[TRCK_AUTOs GO HERE; SEE BELOW]...
+.....................................
+
+TRCK	      1			uint8_t			  num_effects
+
+.......................................
+...[TRCK_EFFECTS GO HERE; SEE BELOW]...
+.......................................
+
+TL	      1			uint8_t			  num click tracks
+
+CLICK         4			char[4]	       		  "CLCK"
+CLICK         1			uint8_t			  click track name length
+CLICK	      0-255		char[]			  click track name
+CLICK	      5			float			  metronome vol
+CLICK	      1			bool			  muted
+
+[MULTIPLE PER CLICK TRACK]
+CLICK_SEG     5			char[5]			  "CTSG"
+CLICK_SEG     4			int32_t			  start pos
+CLICK_SEG     4			int32_t			  end pos
+CLICK_SEG     2			int16_t			  first measure index
+CLICK_SEG     4			int32_t			  num measures
+CLICK_SEG     2			int16_t			  tempo (bpm)
+CLICK_SEG     1			uint8_t			  num beats
+CLICK_SEG     1-13		uint8_t[]	 	  beat subdiv lens
+CLICK_SEG     1			bool			  more segments
+
+
+.................................................................................
+.................................................................................
+.................................................................................
+
+[MULTIPLE PER TRACK]
+CLIP_REF      7                 char[7]			  "CLIPREF"
+CLIP_REF      1                 uint8_t			  clipref name length
+CLIP_REF      0-255             char[]			  clipref name
+CLIP_REF      1			bool			  is 'home'
+CLIP_REF      1			uint8_t			  source clip index
+CLIP_REF      4                 int32_t                   position in timeline (sample frames)
+CLIP_REF      4                 uint32_t                  in mark (sframes)
+CLIP_REF      4			uint32_t		  out mark (sframes)
+CLIP_REF      4                 uint32_t                  clipref start ramp len (sframes)
+CLIP_REF      4                 uint32_t                  clipref end ramp len (sframes)
+
+[MULTIPLE PER TRACK]
+TRCK_AUTO     4			char[4]			  "AUTO"
+TRCK_AUTO     1			uint8_t			  automation type [DEPRECATED]
+* TRCK_AUTO   1			uint8_t			  endpoint local id name length
+* TRCK_AUTO   0-255		char[]			  endpoint local id
+TRCK_AUTO     1			uint8_t			  val_type
+TRCK_AUTO     1-64		Value			  min
+TRCK_AUTO     1-64		Value			  max
+TRCK_AUTO     1-64		Value			  range
+TRCK_AUTO     1			bool			  read
+TRCK_AUTO     1			bool			  shown
+TRCK_AUTO     2			uint16_t	          num keyframes
+
+[MULTIPLE PER AUTOMATION]
+AUTO_KF	      4			char[4]			  "KEYF"
+AUTO_KF	      4			int32_t			  position (sample frames)
+AUTO_KF	      1-64		Value			  value
+
+* these fields only appear if the automation type is AUTO_ENDPOINT
+
+TRCK_FX	      4	    	      	char[4]			  "EFCT"	    	      	
+TRCK_FX	      1			uint8_t			  effect type
+
+ONE OF:
+FIR_FILTER    1			bool			  fir filter active
+FIR_FILTER    1			uint8_t			  fir filter type
+FIR_FILTER    5			double			  fir filter cutoff_freq
+FIR_FILTER    16		double			  fir filter bandwidth
+FIR_FILTER    2			uint16_t       		  fir filter impulse_response_len
+
+DELAY	      1			bool			  delay line active
+DELAY	      4			int32_t			  delay line len
+DELAY	      16		double			  delay line stereo_offset
+DELAY	      16		double			  delay line amp
+
+SATURATION    1			bool			  saturation active
+SATURATION    5			double			  saturation gain
+SATURATION    1			bool			  saturation do gain comp
+SATURATION    1			uint8_t			  saturation type
+
+EQ	      1			bool			  eq active
+EQ	      1			uint8_t			  num eq filters
+[MULTIPLE PER EQ]
+EQ_FILTER     1			bool			  filter active
+EQ_FILTER     1			uint8_t			  filter type
+EQ_FILTER     5			double			  freq raw
+EQ_FILTER     5			double			  amp raw
+EQ_FILTER     5			double			  bandwidth scalar
+
+
+*********************************************************************************/

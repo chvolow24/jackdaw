@@ -50,8 +50,9 @@ Effect *track_add_effect(Track *track, EffectType type)
 	fprintf(stderr, "Error: track has maximum number of effects (%d)\n", MAX_TRACK_EFFECTS);
 	return NULL;
     }
-    
-    Effect *e = &track->effects[track->num_effects];
+    Effect *e = calloc(1, sizeof(Effect));
+    track->effects[track->num_effects] = e;
+    /* Effect *e = &track->effects[track->num_effects];p */
     e->type = type;
     switch(type) {
     case EFFECT_EQ:
@@ -92,6 +93,7 @@ Effect *track_add_effect(Track *track, EffectType type)
 
     track->num_effects++;
     e->track = track;
+    fprintf(stderr, "Alloc'd new effect ptr %p track num: %d\n", e, track->num_effects);
     return e;
 }
 
@@ -169,15 +171,15 @@ static float effect_buf_apply(Effect *e, float *buf, int len, int channel, float
     return e->buf_apply(e->obj, buf, len, channel, input_amp);
 }
 
-float effect_chain_buf_apply(Effect *e, int num_effects, float *buf, int len, int channel, float input_amp)
+float effect_chain_buf_apply(Effect **effects, int num_effects, float *buf, int len, int channel, float input_amp)
 {
     static float amp_epsilon = 1e-7f;
     float output = input_amp;
     for (int i=0; i<num_effects; i++) {
+	Effect *e = effects[i];
 	if (e->operate_on_empty_buf || fabs(input_amp) > amp_epsilon) {
 	    output = effect_buf_apply(e, buf, len, channel, input_amp);
 	}
-	e++;
     }
     return output;
 }
@@ -255,8 +257,10 @@ TabView *track_effects_tabview_create(Track *track)
 {
     TabView *tv = tabview_create("Track Effects", proj->layout, main_win);
     for (int i=0; i<track->num_effects; i++) {
-	effect_add_page(track->effects + i, tv);
+	effect_add_page(track->effects[i], tv);
     }
+    tv->related_array = &track->effects;
+    tv->related_array_el_size = sizeof(Effect *);
     return tv;
 
 }

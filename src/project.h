@@ -133,7 +133,7 @@ typedef struct track {
     double *buf_R_freq_mag;
 
 
-    Effect effects[MAX_TRACK_EFFECTS];
+    Effect *effects[MAX_TRACK_EFFECTS];
     uint8_t num_effects;
     
     /* EQ eq; */

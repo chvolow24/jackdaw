@@ -2740,6 +2740,22 @@ void user_tabview_previous_tab(void *nullarg)
      }
 }
 
+void user_tabview_move_current_tab_left(void *nullarg)
+{
+     TabView *tv = main_win->active_tabview;
+     if (tv) {
+	 tabview_move_current_tab_left(tv);
+     }
+}
+
+void user_tabview_move_current_tab_right(void *nullarg)
+{
+     TabView *tv = main_win->active_tabview;
+     if (tv) {
+	 tabview_move_current_tab_right(tv);
+     }
+}
+
 void user_tabview_escape(void *nullarg)
 {
     Timeline *tl = ACTIVE_TL;

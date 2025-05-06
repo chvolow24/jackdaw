@@ -1114,6 +1114,19 @@ static void mode_load_tabview()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
+	"tabview_move_current_tab_left",
+	"Move current tab left",
+	user_tabview_move_current_tab_left);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tabview_move_current_tab_right",
+	"Move current tab right",
+	user_tabview_move_current_tab_right);
+    mode_subcat_add_fn(sc, fn);
+
+
+    fn = create_user_fn(
 	"tabview_escape",
 	"Close tab view",
 	user_tabview_escape);

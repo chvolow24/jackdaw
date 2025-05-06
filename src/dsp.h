@@ -23,6 +23,8 @@
 #define TAU (6.283185307179586476925286766559)
 #define PI (3.1415926535897932384626433832795)
 
+#define HAMMING_SCALAR 1.851852
+
 
 typedef struct track Track;
 typedef struct effect Effect;
@@ -112,6 +114,8 @@ void filter_set_bandwidth_hz(FIRFilter *filter, double cutoff);
 void filter_set_type(FIRFilter *filter, FilterType t);
 
 void filter_set_impulse_response_len(FIRFilter *f, int new_len);
+
+void filter_set_arbitrary_IR(FIRFilter *filter, float *ir_in, int ir_len);
 
 /* Destry a FIRFilter and associated memory */
 void filter_deinit(FIRFilter *filter);

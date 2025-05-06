@@ -86,14 +86,14 @@ Page *tab_view_add_page(
 	text_color,
 	win);
     tv->tabs[tv->num_tabs] = page;
+    if (tv->num_tabs == 0) {
+	tv->layout->children[0]->x.value = TAB_R * 2;
+    }
+
     Layout *tab_lt = layout_add_child(tv->layout->children[0]);
     tab_lt->x.type = STACK;
     tab_lt->y.value = 0;
-    if (tv->num_tabs == 0) {
-	tab_lt->x.value = TAB_H_SPACING + TAB_R * 2;
-    } else {
-	tab_lt->x.value = TAB_H_SPACING;
-    }
+    tab_lt->x.value = TAB_H_SPACING;
     tab_lt->h.type = SCALE;
     tab_lt->h.value = 1.0f;
 
@@ -115,6 +115,23 @@ Page *tab_view_add_page(
 
 }
 
+static void tabview_deselect_el(TabView *tv);
+static void tabview_select_el(TabView *tv);
+
+Page *tabview_select_tab(TabView *tv, int i)
+{
+    if (i >= tv->num_tabs) return NULL;
+    if (i < 0) return NULL;
+    tabview_deselect_el(tv);
+    fprintf(stderr, "\nSetting el %d (%s) onscreen FALSE\n", tv->current_tab, tv->tabs[tv->current_tab]->title);
+    fprintf(stderr, "Setting el %d (%s) onscreen TRUE\n", i, tv->tabs[i]->title);
+    tv->tabs[tv->current_tab]->onscreen = false;
+    tv->current_tab = i;
+    Page *p = tv->tabs[i];
+    p->onscreen = true;
+    tabview_select_el(tv);
+    return p;    
+}
 
 void tabview_destroy(TabView *tv)
 {
@@ -596,7 +613,10 @@ bool tabview_mouse_click(TabView *tv)
 	for (uint8_t i=0; i<tv->num_tabs; i++) {
 	    Textbox *tb = tv->labels[i];
 	    if (SDL_PointInRect(&tv->win->mousep, &tb->layout->rect)) {
-		tv->current_tab = i;
+		tabview_select_tab(tv, i);
+		/* tv->tabs[tv->current_tab]->onscreen = false; */
+		/* tv->current_tab = i; */
+		/* tv->tabs[i]->onscreen = true; */
 		tab_view_reset(tv);
 		return true;
 	    }
@@ -794,7 +814,6 @@ void tabview_activate(TabView *tv)
     
     win->active_tabview = tv;
     window_push_mode(tv->win, TABVIEW);
-
     tv->tabs[tv->current_tab]->onscreen = true;
     tabview_select_el(tv);
     /* Page *current = tv->tabs[tv->current_tab]; */
@@ -819,25 +838,86 @@ void tabview_close(TabView *tv)
 
 void tabview_next_tab(TabView *tv)
 {
-    tv->tabs[tv->current_tab]->onscreen = false;
-    tabview_deselect_el(tv);
-    if (tv->current_tab < tv->num_tabs - 1)
-	tv->current_tab++;
-    else tv->current_tab = 0;   
-    tabview_select_el(tv);
-    tv->tabs[tv->current_tab]->onscreen = true;
+    tabview_select_tab(tv, tv->current_tab + 1);
+    /* tv->tabs[tv->current_tab]->onscreen = false; */
+    /* tabview_deselect_el(tv); */
+    /* if (tv->current_tab < tv->num_tabs - 1) */
+    /* 	tv->current_tab++; */
+    /* else tv->current_tab = 0;    */
+    /* tabview_select_el(tv); */
+    /* tv->tabs[tv->current_tab]->onscreen = true; */
 }
 
 void tabview_previous_tab(TabView *tv)
 {
-    tv->tabs[tv->current_tab]->onscreen = false;
-    tabview_deselect_el(tv);
-    if (tv->current_tab > 0)
-	tv->current_tab--;
-    else tv->current_tab = tv->num_tabs - 1;
-    tabview_select_el(tv);
-    tv->tabs[tv->current_tab]->onscreen = true;
+    tabview_select_tab(tv, tv->current_tab - 1);
+    /* tv->tabs[tv->current_tab]->onscreen = false; */
+    /* tabview_deselect_el(tv); */
+    /* if (tv->current_tab > 0) */
+    /* 	tv->current_tab--; */
+    /* else tv->current_tab = tv->num_tabs - 1; */
+    /* tabview_select_el(tv); */
+    /* tv->tabs[tv->current_tab]->onscreen = true; */
 }
+
+
+static void tabview_swap_adjacent_tabs(TabView *tv, int current, int new)
+{
+    Textbox *displaced_label = tv->labels[new];
+    Textbox *current_label = tv->labels[current];
+    layout_swap_children(displaced_label->layout, current_label->layout);
+    
+    Page *displaced_page = tv->tabs[new];
+    tv->labels[new] = tv->labels[current];
+    tv->tabs[new] = tv->tabs[current];
+    tv->labels[current] = displaced_label;
+    tv->tabs[current] = displaced_page;
+    layout_reset(tv->layout);
+    proj->timelines[proj->active_tl_index]->needs_redraw = true;
+
+    if (tv->related_array) {
+	char *new_addr = (char *)tv->related_array + new * tv->related_array_el_size;
+	char *current_addr = (char *)tv->related_array + current * tv->related_array_el_size;
+
+	void *displaced_obj = malloc(tv->related_array_el_size);
+	memcpy(displaced_obj, new_addr, tv->related_array_el_size);
+	memmove(new_addr, current_addr, tv->related_array_el_size);
+	memcpy(current_addr, displaced_obj, tv->related_array_el_size);	
+    }
+
+}
+void tabview_move_current_tab_left(TabView *tv)
+{
+    int current;
+    int new;
+    if ((current = tv->current_tab) == 0) return;
+    new = current - 1;
+
+    tabview_swap_adjacent_tabs(tv, current, new);
+    tabview_select_tab(tv, new);
+    /* Textbox *displaced_label = tv->labels[current - 1]; */
+    /* float displaced_label_x = displaced_label->layout->x.value; */
+    /* displaced_label->layout->x.value = tv->labels[current]->layout->x.value; */
+    /* tv->labels[current]->layout */
+    /* Page *displaced_page = tv->tabs[current - 1]; */
+    /* tv->labels[current - 1] = tv->labels[current]; */
+    /* tv->tabs[current - 1] = tv->tabs[current]; */
+    /* tv->labels[current] = displaced_label; */
+    /* tv->tabs[current] = displaced_page; */
+}
+
+void tabview_move_current_tab_right(TabView *tv)
+{
+
+    int current;
+    int new;
+    if ((current = tv->current_tab) == tv->num_tabs - 1) return;
+    new = current + 1;
+
+    tabview_swap_adjacent_tabs(tv, current, new);
+    tabview_select_tab(tv, new);
+}
+
 
 /* NAVIGATION FUNCTIONS */
 

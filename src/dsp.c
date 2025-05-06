@@ -203,6 +203,7 @@ void get_real_componentf(double complex *A, float *B, int len)
 /* Hamming window function */
 double hamming(int x, int lenw)
 {
+    
     return 0.54 - 0.46 * cos(TAU * x / lenw);
 }
 
@@ -469,7 +470,7 @@ void filter_set_params(FIRFilter *filter, FilterType type, double cutoff, double
     /* free(IR_zero_padded); */
 }
 
-void filter_set_IR(FIRFilter *filter, float *ir_in, int ir_len)
+void filter_set_arbitrary_IR(FIRFilter *filter, float *ir_in, int ir_len)
 {
     filter_set_impulse_response_len(filter, ir_len);
     pthread_mutex_lock(&filter->lock);
@@ -597,21 +598,20 @@ static void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint1
         freq_domain[i] *= filter->frequency_response[i];
     }
 
-    /* Populate magnitude buffers for display in freq plot */
+    /* Populate magnitude buffers for display in freq plot.
+       To avoid slowdown, the same frequency response that is used in
+       the application of the filter is used here, without windowing or
+       compensatory scaling. This frequency plot will therefore look
+       more jagged than the one displayed on an EQ effect */
     if (filter->effect && filter->effect->page && filter->effect->page->onscreen) {
 	double *dst = channel == 0 ? filter->output_freq_mag_L : filter->output_freq_mag_R;
 	get_magnitude(freq_domain, dst, padded_len);
-	/* fprintf(stderr, "onscreen\n"); */
-    /* } else { */
-    /* 	fprintf(stderr, "(skip)\n"); */
     }
 
     double complex time_domain[padded_len];
     IFFT(freq_domain, time_domain, padded_len);
     float real[padded_len];
     get_real_componentf(time_domain, real, padded_len);
-
-    /* if (filter-> */
 
     memcpy(sample_array, real, chunk_size * sizeof(float));
     for (int i=0; i<filter->overlap_len; i++) {

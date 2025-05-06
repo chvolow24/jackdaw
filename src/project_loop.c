@@ -234,19 +234,19 @@ void loop_project_main()
 		temp_scrolling_lt = NULL;
 		static int i=2;
 		switch (e.key.keysym.scancode) {
-		case SDL_SCANCODE_6: {
-		    Timeline *tl = proj->timelines[proj->active_tl_index];
-		    Track* sel = timeline_selected_track(tl);
-		    Effect *e = track_add_effect(sel, i);
-		    fprintf(stderr, "Applying %s\n", effect_type_str(i));
-		    /* Saturation *s = e->obj; */
-		    /* s->active = true; */
-		    /* saturation_set_gain(s, 20.0); */
-		    i++;
-		    i%=4;
+		/* case SDL_SCANCODE_6: { */
+		/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
+		/*     Track* sel = timeline_selected_track(tl); */
+		/*     Effect *e = track_add_effect(sel, i); */
+		/*     fprintf(stderr, "Applying %s\n", effect_type_str(i)); */
+		/*     /\* Saturation *s = e->obj; *\/ */
+		/*     /\* s->active = true; *\/ */
+		/*     /\* saturation_set_gain(s, 20.0); *\/ */
+		/*     i++; */
+		/*     i%=4; */
 		    
-		}
-		    break;
+		/* } */
+		/*     break; */
 		/* case SDL_SCANCODE_6: { */
 		/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
 		/*     Track* sel = timeline_selected_track(tl); */
@@ -258,16 +258,16 @@ void loop_project_main()
 		/*     filter_selector %=4; */
 		/* } */
 		    /* break; */
-		/* case SDL_SCANCODE_6: { */
-		/*     ClipRef *cr = clipref_at_cursor(); */
-		/*     if (cr) { */
-		/* 	FIRFilter *f = &cr->track->fir_filter; */
-		/* 	Clip *c = cr->clip; */
-		/* 	int32_t pos = cr->track->tl->play_pos_sframes - cr->pos_sframes; */
-		/* 	filter_set_IR(f, c->L + pos, 2048); */
-		/*     } */
-		/* } */
-		    /* break; */
+		case SDL_SCANCODE_6: {
+		    ClipRef *cr = clipref_at_cursor();
+		    if (cr) {
+			FIRFilter *f = cr->track->effects[0]->obj;
+			Clip *c = cr->clip;
+			int32_t pos = cr->track->tl->play_pos_sframes - cr->pos_sframes;
+			filter_set_arbitrary_IR(f, c->L + pos, 2048);
+		    }
+		}
+		    break;
 		/* case SDL_SCANCODE_6: { */
 		/*     create_global_ac(); */
 		    /* const char *words[] = {"a", "b", "c"}; */

@@ -85,6 +85,9 @@ typedef struct tab_view {
     uint8_t current_tab;
     Layout *layout;
     Window *win;
+
+    void *related_array;
+    size_t related_array_el_size;
 } TabView;
 
 struct slider_params {
@@ -222,6 +225,10 @@ bool tabview_mouse_click(TabView *tv);
 bool tabview_mouse_motion(TabView *tv);
 void tabview_next_tab(TabView *tv);
 void tabview_previous_tab(TabView *tv);
+
+void tabview_move_current_tab_left(TabView *tv);
+void tabview_move_current_tab_right(TabView *tv);
+    
 void tabview_clear_all_contents(TabView *tv);
 const char *tabview_active_tab_title(TabView *tv);
 

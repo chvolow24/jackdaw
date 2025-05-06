@@ -214,6 +214,10 @@
   - S-h		: tabview_previous_tab
   - S-l		: tabview_next_tab
   - S-;		: tabview_next_tab
+  - C-S-j	: tabview_move_current_tab_left
+  - C-S-l	: tabview_move_current_tab_right
+  - C-S-h	: tabview_move_current_tab_left
+  - C-S-;	: tabview_move_current_tab_right
   - g		: tabview_escape
   - <esc>	: tabview_escape
 - autocomplete_list:

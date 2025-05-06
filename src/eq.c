@@ -217,7 +217,7 @@ void eq_init(EQ *eq)
 	    (void*)eq, (void*)(eq->ctrls + i), NULL, NULL);
 	endpoint_set_allowed_range(
 	    &eq->ctrls[i].freq_ep,
-	    (Value){.double_v = -1.0},
+	    (Value){.double_v = 0.0},
 	    (Value){.double_v = 1.0});
 	endpoint_set_default_value(
 	    &eq->ctrls[i].freq_ep,

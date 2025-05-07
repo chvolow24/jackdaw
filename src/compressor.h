@@ -20,35 +20,35 @@
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include "endpoint.h"
 #include "SDL.h"
 #include "envelope_follower.h"
 
 typedef struct effect Effect;
 
 typedef struct compressor {
-    EnvelopeFollower ef;
+    EnvelopeFollower ef[2];
+    float gain_reduction[2];
+    float env[2];
+    bool active;
     float threshold;
     float m; /* Equal to one over the ratio */
     float makeup_gain;
-    float gain_reduction;
-    float env;
     
     Effect *effect;
-    /* double m_static; /\* Equal to one over the ratio *\/ */
-    /* double threshold; */
-    /* int32_t attack_sframes; */
-    /* int32_t decay_sframes; */
-    
-    /* double m_temp; */
-    /* double m_incr; */
-    /* int32_t attack_ctr; */
-    /* int32_t decay_ctr; */
-    /* bool in_attack; */
-    /* bool in_decay; */
+
+    float attack_time;
+    float release_time;
+    Endpoint attack_time_ep;
+    Endpoint release_time_ep;
+    Endpoint threshold_ep;
+    Endpoint ratio_ep;
+    Endpoint makeup_gain_ep;
 } Compressor;
 
 /* Per-sample operation */
 /* static inline float compressor_sample_gain_reduction(Compressor *c, float in); */
+void compressor_init(Compressor *c);
 float compressor_buf_apply(void *compressor_v, float *buf, int len, int channel, float input_amp);
 void compressor_set_times_msec(Compressor *c, double attack_msec, double release_msec, double sample_rate);
 void compressor_set_threshold(Compressor *c, float thresh);

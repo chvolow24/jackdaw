@@ -269,7 +269,7 @@ static void jdaw_write_track(FILE *f, Track *track)
     /* FX */
     uint8_ser(f, &track->num_effects);
     for (int i=0; i<track->num_effects; i++) {
-	jdaw_write_effect(f, track->effects + i);
+	jdaw_write_effect(f, track->effects[i]);
     }
 }
 

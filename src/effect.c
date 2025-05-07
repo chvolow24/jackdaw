@@ -87,6 +87,7 @@ Effect *track_add_effect(Track *track, EffectType type)
     case EFFECT_COMPRESSOR:
 	e->obj = calloc(1, sizeof(Compressor));
 	((Compressor *)e->obj)->effect = e;
+	compressor_init(e->obj);
 	e->buf_apply = compressor_buf_apply;
 	break;	
     }
@@ -244,7 +245,7 @@ Page *effect_add_page(Effect *e, TabView *tv)
 	p = add_saturation_page(e->obj, t, tv);
 	break;
     case EFFECT_COMPRESSOR:
-	/* p = add_compressor_page(e->obj, t, tv); */
+	p = add_compressor_page(e->obj, t, tv);
 	break;	
     }
     p->linked_obj = e;
@@ -266,6 +267,7 @@ TabView *track_effects_tabview_create(Track *track)
 }
 
 void filter_tabs_canvas_draw(void *draw_arg1, void *draw_arg2);
+static void compressor_canvas_draw(void *draw_arg1, void *draw_arg2);
 bool filter_tabs_onclick(SDL_Point p, Canvas *self, void *draw_arg1, void *draw_arg2);
 int filter_active_toggle(void *self, void *target);
 void filter_type_selector_canvas_draw(void *draw_arg1, void *draw_arg2);
@@ -726,6 +728,118 @@ Page *add_saturation_page(Saturation *s, Track *track, TabView *tv)
     return page;
 }
 
+Page *add_compressor_page(Compressor *c, Track *track, TabView *tv)
+{
+    Page *page = tab_view_add_page(
+	tv,
+	"Compressor",
+	COMPRESSOR_LT_PATH,
+	page_colors,
+	&color_global_white,
+	main_win);
+
+    PageElParams p;
+    p.toggle_p.value = &c->active;
+    p.toggle_p.action = NULL;
+    p.toggle_p.target = NULL;
+    PageEl *el = page_add_el(page, EL_TOGGLE, p, "track_settings_comp_toggle", "toggle_comp");
+
+    p.textbox_p.set_str = "Compressor on";
+    p.textbox_p.font = main_win->mono_bold_font;
+    p.textbox_p.text_size = LABEL_STD_FONT_SIZE;
+    p.textbox_p.win = main_win;
+    Textbox *tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "", "toggle_label")->component);
+    textbox_set_background_color(tb, NULL);
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+
+    p.textbox_p.set_str = "Attack time (ms)";
+    tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "", "attack_label")->component);
+    textbox_set_background_color(tb, NULL);
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+    
+    p.textbox_p.set_str = "Release time (ms)";
+    tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "", "release_label")->component);
+    textbox_set_background_color(tb, NULL);
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+
+    p.textbox_p.set_str = "Threshold";
+    tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "", "threshold_label")->component);
+    textbox_set_background_color(tb, NULL);
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+
+    p.textbox_p.set_str = "Ratio";
+    tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "", "ratio_label")->component);
+    textbox_set_background_color(tb, NULL);
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+
+    p.textbox_p.set_str = "Makeup gain";
+    tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "", "makeup_gain_label")->component);
+    textbox_set_background_color(tb, NULL);
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+
+    
+    p.slider_p.create_label_fn = NULL;
+    p.slider_p.style = SLIDER_TICK;
+    p.slider_p.orientation = SLIDER_HORIZONTAL;
+    p.slider_p.ep = &c->attack_time_ep;
+    p.slider_p.min = (Value){.float_v = 0.0};
+    p.slider_p.max = (Value){.float_v = 200.0};
+    p.slider_p.create_label_fn = label_msec;
+    el = page_add_el(page, EL_SLIDER, p, "track_settings_comp_attack_slider", "attack_slider");
+
+    Slider *sl = el->component;
+    /* /\* sl->disallow_unsafe_mode = true; *\/ */
+    slider_reset(sl);
+    
+    p.slider_p.create_label_fn = NULL;
+    p.slider_p.ep = &c->release_time_ep;
+    p.slider_p.min = (Value){.float_v = 0.0};
+    p.slider_p.max = (Value){.float_v = 2000.0};
+    el = page_add_el(page, EL_SLIDER, p, "track_settings_comp_release_slider", "release_slider");
+
+    p.slider_p.ep = &c->threshold_ep;
+    p.slider_p.min = (Value){.float_v = 0.0};
+    p.slider_p.max = (Value){.float_v = 1.0};
+    el = page_add_el(page, EL_SLIDER, p, "track_settings_comp_threshold_slider", "threshold_slider");
+    sl = el->component;
+    slider_reset(sl);
+
+    p.slider_p.ep = &c->ratio_ep;
+    p.slider_p.min = (Value){.float_v = 0.0};
+    p.slider_p.max = (Value){.float_v = 1.0};
+    el = page_add_el(page, EL_SLIDER, p, "track_settings_comp_ratio_slider", "ratio_slider");
+    sl = el->component;
+    slider_reset(sl);
+
+    p.slider_p.ep = &c->makeup_gain_ep;
+    p.slider_p.min = (Value){.float_v = 1.0};
+    p.slider_p.max = (Value){.float_v = 10.0};
+    el = page_add_el(page, EL_SLIDER, p, "track_settings_makeup_gain_slider", "makeup_gain_slider");
+    sl = el->component;
+    slider_reset(sl);
+
+    Layout *comp_draw_lt = layout_get_child_by_name_recursive(page->layout, "comp_display");
+    p.canvas_p.draw_arg1 = c;
+    p.canvas_p.draw_arg2 = comp_draw_lt;
+    p.canvas_p.draw_fn = compressor_canvas_draw;
+
+    page_add_el(page, EL_CANVAS, p, "", "comp_display");
+    
+
+
+    /* sl->disallow_unsafe_mode = true; */
+    
+    create_track_selection_area(page, track);
+    return page;
+
+}
+
 
 
 /**************************************************************************/
@@ -779,6 +893,13 @@ void filter_tabs_canvas_draw(void *draw_arg1, void *draw_arg2)
 	    break;
 	}
     }    
+}
+
+static void compressor_canvas_draw(void *draw_arg1, void *draw_arg2)
+{
+    Compressor *c = draw_arg1;
+    Layout *display_lt = draw_arg2;
+    compressor_draw(c, &display_lt->rect);
 }
 
 

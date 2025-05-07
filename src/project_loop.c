@@ -232,7 +232,6 @@ void loop_project_main()
 	    case SDL_KEYDOWN: {
 		scrolling_lt = NULL;
 		temp_scrolling_lt = NULL;
-		static int i=2;
 		switch (e.key.keysym.scancode) {
 		/* case SDL_SCANCODE_6: { */
 		/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */

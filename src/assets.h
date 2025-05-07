@@ -17,6 +17,7 @@
 #define DELAY_LINE_LT_PATH LAYOUT_PATH "/track_settings_delay_line.xml"
 #define EQ_LT_PATH LAYOUT_PATH "/track_settings_eq.xml"
 #define SATURATION_LT_PATH LAYOUT_PATH "/track_settings_saturation.xml"
+#define COMPRESSOR_LT_PATH LAYOUT_PATH "/track_settings_compressor.xml"
 #define CLICK_TRACK_SETTINGS_LT_PATH LAYOUT_PATH "/click_track_settings.xml"
 #define LOADING_SCREEN_LT_PATH LAYOUT_PATH "/loading_screen.xml"
 

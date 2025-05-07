@@ -123,8 +123,6 @@ Page *tabview_select_tab(TabView *tv, int i)
     if (i >= tv->num_tabs) return NULL;
     if (i < 0) return NULL;
     tabview_deselect_el(tv);
-    fprintf(stderr, "\nSetting el %d (%s) onscreen FALSE\n", tv->current_tab, tv->tabs[tv->current_tab]->title);
-    fprintf(stderr, "Setting el %d (%s) onscreen TRUE\n", i, tv->tabs[i]->title);
     tv->tabs[tv->current_tab]->onscreen = false;
     tv->current_tab = i;
     Page *p = tv->tabs[i];

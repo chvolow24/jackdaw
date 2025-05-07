@@ -17,7 +17,9 @@
 
 #include <stdio.h>
 #include "compressor.h"
+#include "endpoint_callbacks.h"
 #include "geometry.h"
+#include "project.h"
 #include "window.h"
 
 #define COMP_GRAPH_R 4
@@ -38,14 +40,18 @@ extern Window *main_win;
 /*     else return 1.0; */
 /* } */
 
+/* Type: `void (*)(Endpoint *) (aka void (*)(struct endpoint *))`   */
+
+
 float compressor_buf_apply(void *compressor_v, float *buf, int len, int channel, float input_amp)
 {
     Compressor *c = compressor_v;
+    if (!c->active) return input_amp;
     float gain_reduc;
     float env;
     float output_amp = 0.0f;
     for (int i=0; i<len; i++) {
-	env = envelope_follower_sample(&c->ef, buf[i]);
+	env = envelope_follower_sample(&c->ef[channel], buf[i]);
 	float overshoot = env - c->threshold;
 	if (overshoot > 0.0f) {
 	    overshoot *= c->m;
@@ -58,15 +64,16 @@ float compressor_buf_apply(void *compressor_v, float *buf, int len, int channel,
 	output_amp += fabs(buf[i]);
 	
     }
-    c->gain_reduction = gain_reduc;
-    c->env = env;
+    c->gain_reduction[channel] = gain_reduc;
+    c->env[channel] = env;
     return output_amp;
     
 }
 
 void compressor_set_times_msec(Compressor *c, double attack_msec, double release_msec, double sample_rate)
 {
-    envelope_follower_set_times_msec(&c->ef, attack_msec, release_msec, sample_rate);
+    envelope_follower_set_times_msec(&c->ef[0], attack_msec, release_msec, sample_rate);
+    envelope_follower_set_times_msec(&c->ef[1], attack_msec, release_msec, sample_rate);
 }
 
 void compressor_set_threshold(Compressor *c, float thresh)
@@ -98,7 +105,7 @@ void compressor_draw(Compressor *c, SDL_Rect *target)
     SDL_RenderDrawLine(main_win->rend, x_vertex, y_vertex, target->x + target->w, end_y);
 
     bool overdriven = false;
-    float env = c->env;
+    float env = c->env[0];
     if (env > 1.0) {
 	env = 1.0;
 	overdriven = true;
@@ -127,4 +134,71 @@ void compressor_draw(Compressor *c, SDL_Rect *target)
 
 
 }
+
+
+extern Project *proj;
+void comp_times_dsp_cb(Endpoint *ep)
+{
+    Compressor *c = (Compressor *)ep->xarg1;
+    compressor_set_times_msec(c, c->attack_time, c->release_time, proj->sample_rate);
+}
+void compressor_init(Compressor *c)
+{
+    c->attack_time = 3.0;
+    c->release_time = 200.0;
+    c->makeup_gain = 1.0;
+    c->m = 0.5;
+    c->threshold = 0.5;
+    endpoint_init(
+	&c->attack_time_ep,
+	&c->attack_time,
+	JDAW_FLOAT,
+	"attack_time",
+	"Attack time",
+	JDAW_THREAD_DSP,
+	track_settings_page_el_gui_cb, NULL, comp_times_dsp_cb,
+	c, NULL, NULL, "track_settings_comp_attack_slider");
+
+    endpoint_init(
+	&c->release_time_ep,
+	&c->release_time,
+	JDAW_FLOAT,
+	"release_time",
+	"Release time",
+	JDAW_THREAD_DSP,
+	track_settings_page_el_gui_cb, NULL, comp_times_dsp_cb,
+	c, NULL, NULL, "track_settings_comp_release_slider");
+
+    endpoint_init(
+	&c->threshold_ep,
+	&c->threshold,
+	JDAW_FLOAT,
+	"threshold",
+	"Threshold",
+	JDAW_THREAD_DSP,
+	track_settings_page_el_gui_cb, NULL, NULL,
+	NULL, NULL, NULL, "track_settings_comp_threshold_slider");
+    
+    endpoint_init(
+	&c->ratio_ep,
+	&c->m,
+	JDAW_FLOAT,
+	"ratio",
+	"Ratio",
+	JDAW_THREAD_DSP,
+	track_settings_page_el_gui_cb, NULL, NULL,
+	NULL, NULL, NULL, "track_settings_comp_ratio_slider");
+
+    endpoint_init(
+	&c->makeup_gain_ep,
+	&c->makeup_gain,
+	JDAW_FLOAT,
+	"makeup_gain",
+	"Makeup gain",
+	JDAW_THREAD_DSP,
+	track_settings_page_el_gui_cb, NULL, NULL,
+	NULL, NULL, NULL, "track_settings_makeup_gain_slider");
+}
+
+
 /* envelope_follower_set_times_msec(&ef, 10.0, 200.0, proj->sample_rate); */

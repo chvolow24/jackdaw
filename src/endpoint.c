@@ -138,9 +138,7 @@ int endpoint_write(
 	}
     }
 
-    fprintf(stderr, "Ep %s, New val (float): %f\n", ep->local_id, new_val.float_v);
     bool val_changed = !jdaw_val_equal(ep->last_write_val, new_val, ep->val_type);
-    fprintf(stderr, "val changed? %d, write occurred? %d\n", val_changed, ep->write_has_occurred);
     if (!val_changed && ep->write_has_occurred) return 0;
     if (!ep->write_has_occurred) {
 	ep->last_write_val = endpoint_safe_read(ep, NULL);
@@ -151,7 +149,6 @@ int endpoint_write(
     if (on_thread(owner) || (!proj->playing && owner == JDAW_THREAD_DSP)) {
 	pthread_mutex_lock(&ep->val_lock);
 	jdaw_val_set_ptr(ep->val, ep->val_type, new_val);
-	fprintf(stderr, "Directly set val!\n");
 	if (ep->automation && ep->automation->write) {
 	    Timeline *tl = proj->timelines[proj->active_tl_index];
 	    int32_t tl_now = timeline_get_play_pos_now(tl);

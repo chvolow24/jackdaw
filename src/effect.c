@@ -219,6 +219,7 @@ static SDL_Color page_colors[] = {
     /* {70, 40, 70, 255} */
     {43, 43, 55, 255},
     {100, 40, 40, 255},
+    {94, 58, 61, 255},
 };
 
 Page *add_eq_page(EQ *eq, Track *t, TabView *tv);
@@ -734,7 +735,7 @@ Page *add_compressor_page(Compressor *c, Track *track, TabView *tv)
 	tv,
 	"Compressor",
 	COMPRESSOR_LT_PATH,
-	page_colors,
+	page_colors + 4,
 	&color_global_white,
 	main_win);
 

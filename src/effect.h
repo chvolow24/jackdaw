@@ -22,8 +22,6 @@
 #include "api.h"
 #include "compressor.h"
 #include "eq.h"
-#include "dsp.h"
-/* #include "project.h" */
 #include "saturation.h"
 
 

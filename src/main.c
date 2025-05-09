@@ -25,7 +25,7 @@
 #include "SDL_ttf.h"
 #include "assets.h"
 #include "dir.h"
-#include "dsp.h"
+#include "dsp_utils.h"
 #include "function_lookup.h"
 #include "input.h"
 #include "layout.h"
@@ -48,7 +48,7 @@
 #define WINDOW_DEFAULT_W 1093
 #define WINDOW_DEFAULT_H 650
 
-#define DEFAULT_PROJ_AUDIO_SETTINGS 2, 96000, AUDIO_S16SYS, DEFAULT_AUDIO_CHUNK_LEN_SFRAMES, DEFAULT_FOURIER_LEN_SFRAMES
+#define DEFAULT_PROJ_AUDIO_SETTINGS 2, DEFAULT_SAMPLE_RATE, AUDIO_S16SYS, DEFAULT_AUDIO_CHUNK_LEN_SFRAMES, DEFAULT_FOURIER_LEN_SFRAMES
 
 const char *JACKDAW_VERSION = "0.5.1";
 char DIRPATH_SAVED_PROJ[MAX_PATHLEN];

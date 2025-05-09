@@ -37,7 +37,7 @@
 #include "api.h"
 #include "automation.h"
 #include "components.h"
-#include "dsp.h"
+/* #include "dsp.h" */
 #include "effect.h"
 #include "eq.h"
 #include "endpoint.h"
@@ -50,8 +50,6 @@
 #include "textbox.h"
 #include "user_event.h"
 
-#define DEFAULT_FOURIER_LEN_SFRAMES 2048
-#define DEFAULT_AUDIO_CHUNK_LEN_SFRAMES 512
 
 
 #define MAX_TRACKS 255

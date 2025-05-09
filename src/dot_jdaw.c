@@ -17,10 +17,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "dsp.h"
+/* #include "dsp.h" */
+#include "delay_line.h"
 #include "effect.h"
 #include "eq.h"
 #include "file_backup.h"
+#include "fir_filter.h"
 #include "project.h"
 #include "tempo.h"
 #include "transport.h"

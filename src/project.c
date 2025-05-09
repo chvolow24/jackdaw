@@ -25,7 +25,8 @@
 #include "audio_connection.h"
 #include "color.h"
 #include "components.h"
-#include "dsp.h"
+/* #include "dsp.h" */
+#include "endpoint_callbacks.h"
 #include "eq.h"
 #include "endpoint.h"
 #include "endpoint_callbacks.h"

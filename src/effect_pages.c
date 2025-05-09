@@ -17,8 +17,11 @@
 
 
 #include "color.h"
+#include "delay_line.h"
+#include "fir_filter.h"
 #include "geometry.h"
 #include "project.h"
+#include "saturation.h"
 #include "waveform.h"
 
 #define LABEL_STD_FONT_SIZE 12

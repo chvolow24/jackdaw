@@ -18,7 +18,7 @@
 
 #include "autocompletion.h"
 #include "color.h"
-#include "dsp.h"
+/* #include "dsp.h" */
 #include "eq.h"
 #include "geometry.h"
 #include "input.h"

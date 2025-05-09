@@ -16,6 +16,8 @@
  *****************************************************************************************************************/
 
 #include "color.h"
+#include "consts.h"
+#include "dsp_utils.h"
 #include "endpoint.h"
 #include "geometry.h"
 #include "eq.h"

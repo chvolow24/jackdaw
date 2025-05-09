@@ -22,8 +22,9 @@
 #include "automation.h"
 #include "components.h"
 #include "draw.h"
-#include "dsp.h"
+/* #include "dsp.h" */
 #include "eq.h"
+#include "fir_filter.h"
 #include "function_lookup.h"
 #include "input.h"
 #include "layout.h"

@@ -19,7 +19,9 @@
 #include "assets.h"
 #include "color.h"
 /* #include "eq.h" */
+#include "delay_line.h"
 #include "effect.h"
+#include "fir_filter.h"
 /* #include "geometry.h" */
 #include "modal.h"
 #include "project.h"

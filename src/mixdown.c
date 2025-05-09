@@ -17,6 +17,7 @@
 #include <math.h>
 #include <pthread.h>
 #include "automation.h"
+#include "dsp_utils.h"
 /* #include "dsp.h" */
 #include "effect.h"
 /* #include "eq.h" */

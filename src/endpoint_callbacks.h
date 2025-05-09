@@ -22,16 +22,14 @@
 void play_speed_gui_cb(Endpoint *ep);
 void track_slider_cb(Endpoint *ep);
 
-void filter_cutoff_dsp_cb(Endpoint *ep);
-void filter_cutoff_gui_cb(Endpoint *ep);
+/* void filter_cutoff_gui_cb(Endpoint *ep); */
 
-void filter_bandwidth_dsp_cb(Endpoint *ep);
-void filter_bandwidth_gui_cb(Endpoint *ep);
+/* void filter_bandwidth_gui_cb(Endpoint *ep); */
 
-void filter_irlen_dsp_cb(Endpoint *ep);
-void filter_irlen_gui_cb(Endpoint *ep);
-void filter_type_gui_cb(Endpoint *ep);
-void filter_type_dsp_cb(Endpoint *ep);
+/* void filter_irlen_gui_cb(Endpoint *ep); */
+
+
+/* void filter_type_gui_cb(Endpoint *ep); */
 
 void delay_line_len_dsp_cb(Endpoint *ep);
 void delay_line_len_gui_cb(Endpoint *ep);

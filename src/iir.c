@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "dsp.h"
+#include "dsp_utils.h"
 #include "page.h"
 #include "project.h"
 #include "iir.h"

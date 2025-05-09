@@ -17,7 +17,8 @@
 
 #include <unistd.h>
 #include "audio_connection.h"
-#include "dsp.h"
+/* #include "dsp.h" */
+#include "dsp_utils.h"
 #include "user_event.h"
 #include "mixdown.h"
 #include "project.h"

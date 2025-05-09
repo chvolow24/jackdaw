@@ -18,7 +18,7 @@
 #include <pthread.h>
 #include "assets.h"
 #include "color.h"
-#include "dsp.h"
+/* #include "dsp.h" */
 #include "eq.h"
 #include "geometry.h"
 #include "label.h"

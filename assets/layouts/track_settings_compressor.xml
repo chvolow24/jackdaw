@@ -31,8 +31,8 @@
     <Layout name="comp_display" type="NORMAL">
       <x>SCALE 0.624167</x>
       <y>REL 112</y>
-      <w>ABS 300</w>
-      <h>ABS 300</h>
+      <w>ABS 250</w>
+      <h>ABS 250</h>
       <children>
       </children>
     </Layout>

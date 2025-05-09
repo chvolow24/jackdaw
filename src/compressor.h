@@ -28,7 +28,7 @@ typedef struct effect Effect;
 
 typedef struct compressor {
     EnvelopeFollower ef[2];
-    float gain_reduction[2];
+    float gain_scalar[2];
     float env[2];
     bool active;
     float threshold;
@@ -39,6 +39,7 @@ typedef struct compressor {
 
     float attack_time;
     float release_time;
+    float ratio;
     Endpoint attack_time_ep;
     Endpoint release_time_ep;
     Endpoint threshold_ep;

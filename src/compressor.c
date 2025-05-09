@@ -47,7 +47,7 @@ float compressor_buf_apply(void *compressor_v, float *buf, int len, int channel,
 {
     Compressor *c = compressor_v;
     if (!c->active) return input_amp;
-    float gain_reduc;
+    float amp_scalar;
     float env;
     float output_amp = 0.0f;
     for (int i=0; i<len; i++) {
@@ -55,8 +55,8 @@ float compressor_buf_apply(void *compressor_v, float *buf, int len, int channel,
 	float overshoot = env - c->threshold;
 	if (overshoot > 0.0f) {
 	    overshoot *= c->m;
-	    gain_reduc = (c->threshold + overshoot) / env;
-	    buf[i] *= gain_reduc;
+	    amp_scalar = (c->threshold + overshoot) / env;
+	    buf[i] *= amp_scalar;
 	    buf[i] *= c->makeup_gain;
 	} else {
 	    buf[i] *= c->makeup_gain;
@@ -64,7 +64,7 @@ float compressor_buf_apply(void *compressor_v, float *buf, int len, int channel,
 	output_amp += fabs(buf[i]);
 	
     }
-    c->gain_reduction[channel] = gain_reduc;
+    c->gain_scalar[channel] = amp_scalar;
     c->env[channel] = env;
     return output_amp;
     
@@ -88,7 +88,7 @@ void compressor_set_m(Compressor *c, float m)
 
 void compressor_draw(Compressor *c, SDL_Rect *target)
 {
-    SDL_SetRenderDrawColor(main_win->rend, 0, 0, 10, 255);
+    SDL_SetRenderDrawColor(main_win->rend, 0, 15, 20, 255);
     SDL_RenderFillRect(main_win->rend, target);
     SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255);
     SDL_RenderDrawRect(main_win->rend, target);
@@ -104,6 +104,9 @@ void compressor_draw(Compressor *c, SDL_Rect *target)
     int end_y = y_vertex - (c->m * (target->w - vertex_rel));
     SDL_RenderDrawLine(main_win->rend, x_vertex, y_vertex, target->x + target->w, end_y);
 
+
+    
+
     bool overdriven = false;
     float env = c->env[0];
     if (env > 1.0) {
@@ -117,6 +120,35 @@ void compressor_draw(Compressor *c, SDL_Rect *target)
     } else {
 	env_y = target->y + target->h - env_x_rel;
     }
+
+    bool under_env = true;
+    for (int x_rel=vertex_rel; x_rel<target->w; x_rel++) {
+
+	int top_y = target->y + (target->h - x_rel);
+	int btm_y = target->y + target->h - vertex_rel - (x_rel - vertex_rel) * c->m;
+	
+	if (under_env && x_rel > env_x_rel) {
+	    under_env = false;
+	    SDL_SetRenderDrawColor(main_win->rend, 245, 245, 255, 50);
+	} else if (under_env) {
+	    int green = 255 - 255 * ((float)btm_y - top_y) / target->w;
+	    /* int green, red; */
+	    /* float prop = ((float)btm_y - top_y) / target->h; */
+	    /* if (prop > 0.5) { */
+	    /* 	red = 255; */
+	    /* 	green = 255 - 255 * (prop - 0.5f) * 2.0f; */
+	    /* } else { */
+	    /* 	green = 255; */
+	    /* 	red = 255 * (prop * 2.0f); */
+	    /* } */
+	    /* int green = 255 - 255.0f *   */
+	    SDL_SetRenderDrawColor(main_win->rend, 255, green, 0, 180);
+	}
+	/* int btm_y = target->y + (x_rel - vertex_rel) * c->m; */
+	SDL_RenderDrawLine(main_win->rend, x_rel + target->x, top_y, x_rel + target->x, btm_y - 1);
+    }
+
+    
     if (overdriven) {
 	SDL_SetRenderDrawColor(main_win->rend, 255, 100, 100, 255);
     } else {
@@ -139,16 +171,29 @@ void compressor_draw(Compressor *c, SDL_Rect *target)
 extern Project *proj;
 void comp_times_dsp_cb(Endpoint *ep)
 {
-    Compressor *c = (Compressor *)ep->xarg1;
+    Compressor *c = ep->xarg1;
     compressor_set_times_msec(c, c->attack_time, c->release_time, proj->sample_rate);
 }
+
+void comp_ratio_dsp_cb(Endpoint *ep)
+{
+    Compressor *c = ep->xarg1;
+    c->m = 1.0f - c->ratio;
+}
+
 void compressor_init(Compressor *c)
 {
     c->attack_time = 3.0;
     c->release_time = 200.0;
+    if (proj) {
+	compressor_set_times_msec(c, c->attack_time, c->release_time, proj->sample_rate);
+    } else {
+	compressor_set_times_msec(c, c->attack_time, c->release_time, 96000);
+    }
     c->makeup_gain = 1.0;
+    c->ratio = 0.5;
     c->m = 0.5;
-    c->threshold = 0.5;
+    c->threshold = 0.2;
     endpoint_init(
 	&c->attack_time_ep,
 	&c->attack_time,
@@ -181,13 +226,13 @@ void compressor_init(Compressor *c)
     
     endpoint_init(
 	&c->ratio_ep,
-	&c->m,
+	&c->ratio,
 	JDAW_FLOAT,
 	"ratio",
 	"Ratio",
 	JDAW_THREAD_DSP,
-	track_settings_page_el_gui_cb, NULL, NULL,
-	NULL, NULL, NULL, "track_settings_comp_ratio_slider");
+	track_settings_page_el_gui_cb, NULL, comp_ratio_dsp_cb,
+        c, NULL, NULL, "track_settings_comp_ratio_slider");
 
     endpoint_init(
 	&c->makeup_gain_ep,

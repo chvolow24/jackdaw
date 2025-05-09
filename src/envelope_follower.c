@@ -23,3 +23,4 @@ float envelope_follower_sample(EnvelopeFollower *e, float in)
     e->prev_out = out;
     return out;
 }
+

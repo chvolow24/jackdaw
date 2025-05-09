@@ -821,6 +821,7 @@ Page *add_compressor_page(Compressor *c, Track *track, TabView *tv)
     p.slider_p.ep = &c->makeup_gain_ep;
     p.slider_p.min = (Value){.float_v = 1.0};
     p.slider_p.max = (Value){.float_v = 10.0};
+    p.slider_p.style = SLIDER_FILL;
     el = page_add_el(page, EL_SLIDER, p, "track_settings_makeup_gain_slider", "makeup_gain_slider");
     sl = el->component;
     slider_reset(sl);

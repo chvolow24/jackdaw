@@ -537,6 +537,7 @@ void track_add_new_automation(Track *track)
 	    JDAW_THREAD_MAIN,
 	    NULL, NULL, NULL,
 	    track, NULL,NULL,NULL);
+	automation_selection_ep.block_undo = true;
     }
     automation_selection_ep.xarg1 = (void *)track;
 

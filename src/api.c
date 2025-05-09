@@ -151,6 +151,10 @@ Endpoint *api_endpoint_get(const char *route)
 }
 
 static void api_hash_node_destroy(APIHashNode *ahn);
+
+/* This function called in the text "name_completion" function.
+   Any TextEntry with this completion will call it upon edit, assuming
+   that the completion_target is the api node */
 void api_node_renamed(APINode *an)
 {
     for (int i=0; i<an->num_endpoints; i++) {

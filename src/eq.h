@@ -18,6 +18,7 @@
 #ifndef JDAW_EQ_H
 #define JDAW_EQ_H
 
+#include "api.h"
 #include "endpoint.h"
 #include "iir.h"
 
@@ -43,6 +44,8 @@ typedef struct eq_filter_ctrl {
     double bandwidth_scalar; /* Bandwidth = bandwidth_scalar * freq_raw */
     double bandwidth_preferred;
     double freq_exp;
+
+    APINode api_node;
     Endpoint freq_ep;
     Endpoint amp_ep;
     Endpoint freq_amp_ep;

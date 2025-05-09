@@ -264,11 +264,11 @@ void eq_init(EQ *eq)
 	    &eq->ctrls[i].bandwidth_preferred_ep,
 	    (Value){.double_v = 0.4});
 
-	if (i < 2) {
-	    api_endpoint_register(&eq->ctrls[i].freq_ep, &eq->track->api_node);
-	    api_endpoint_register(&eq->ctrls[i].amp_ep, &eq->track->api_node);
-	    api_endpoint_register(&eq->ctrls[i].bandwidth_preferred_ep, &eq->track->api_node);
-	}
+	/* if (i < 2) { */
+	api_endpoint_register(&eq->ctrls[i].freq_ep, &eq->effect->api_node);
+	api_endpoint_register(&eq->ctrls[i].amp_ep, &eq->effect->api_node);
+	api_endpoint_register(&eq->ctrls[i].bandwidth_preferred_ep, &eq->effect->api_node);
+	/* } */
 
 
     }

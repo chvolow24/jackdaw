@@ -9,6 +9,8 @@
 #define MAX_MENU_COLUMNS 8
 #define MAX_ADDTL_TBS 16
 
+#define MAX_NAMELENGTH 64
+
 typedef int (*ComponentFn)(void *self, void *target);
 /*
   Textbox layout must have "text" target

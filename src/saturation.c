@@ -54,6 +54,7 @@ void saturation_init(Saturation *s)
     endpoint_set_allowed_range(&s->gain_ep, (Value){.double_v = 1.0}, (Value){.double_v = SATURATION_MAX_GAIN});
     endpoint_set_default_value(&s->gain_ep, (Value){.double_v = 1.0});
     endpoint_set_label_fn(&s->gain_ep, label_amp_to_dbstr);
+    api_endpoint_register(&s->gain_ep, &s->effect->api_node);
     
     endpoint_init(
 	&s->gain_comp_ep,

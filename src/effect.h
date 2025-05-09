@@ -1,21 +1,42 @@
+/*****************************************************************************************************************
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
+******************************************************************************************************************
+
+  Copyright (C) 2023-2025 Charlie Volow
+  
+  Jackdaw is licensed under the GNU General Public License.
+
+*****************************************************************************************************************/
+
+/*****************************************************************************************************************
+    effect.h
+
+    * abstract representation of effects
+    * each effect contains a pointer to the specific effect object
+ *****************************************************************************************************************/
+
+
 #ifndef JDAW_EFFECT_H
 #define JDAW_EFFECT_H
 
+#include "api.h"
 #include "compressor.h"
 #include "eq.h"
 #include "dsp.h"
 /* #include "project.h" */
 #include "saturation.h"
 
+
 /* #define NUM_EFFECT_TYPES 5 */
 typedef struct track Track;
 
 typedef enum effect_type {
-    EFFECT_EQ=0,
-    EFFECT_FIR_FILTER=1,
-    EFFECT_DELAY=2,
-    EFFECT_SATURATION=3,
-    EFFECT_COMPRESSOR=4
+    EFFECT_EQ,
+    EFFECT_FIR_FILTER,
+    EFFECT_DELAY,
+    EFFECT_SATURATION,
+    EFFECT_COMPRESSOR,
+    NUM_EFFECT_TYPES
 } EffectType;
 
 typedef struct effect {
@@ -25,6 +46,8 @@ typedef struct effect {
     bool operate_on_empty_buf;
     Page *page;
     Track *track;
+    char name[MAX_NAMELENGTH];
+    APINode api_node;
 } Effect;
 const char *effect_type_str(EffectType type);
 

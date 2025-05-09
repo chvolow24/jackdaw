@@ -55,6 +55,7 @@ int endpoint_init(
     ep->xarg2 = xarg2;
     ep->xarg3 = xarg3;
     ep->xarg4 = xarg4;
+    ep->block_undo = false;
 
     int err;
     if ((err = pthread_mutex_init(&ep->val_lock, NULL)) != 0) {
@@ -102,6 +103,7 @@ NEW_EVENT_FN(undo_redo_endpoint_write, "")
     bool run_gui_cb = cb_bf & 0b001;
     bool run_proj_cb = cb_bf & 0b010;
     bool run_dsp_cb = cb_bf & 0b100;
+fprintf(stderr, "undo %s %s\n", ep->local_id, ep->display_name);
     endpoint_write(
 	ep,
 	val1,
@@ -208,7 +210,7 @@ int endpoint_write(
     /* } */
     
     /* Undo */
-    if (undoable) {
+    if (undoable && !ep->block_undo) {
 	if (!on_main) {
 	    fprintf(stderr, "UH OH can't push event fn on thread that is not main\n");
 	    return -1;

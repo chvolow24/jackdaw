@@ -55,7 +55,6 @@
 
 
 #define MAX_TRACKS 255
-#define MAX_NAMELENGTH 64
 #define MAX_TRACK_CLIPS 2048
 #define MAX_TRACK_BUS_INS MAX_TRACKS
 #define MAX_ACTIVE_CLIPS 255
@@ -135,6 +134,8 @@ typedef struct track {
 
     Effect *effects[MAX_TRACK_EFFECTS];
     uint8_t num_effects;
+
+    uint8_t num_effects_per_type[NUM_EFFECT_TYPES];
     
     /* EQ eq; */
 

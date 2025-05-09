@@ -97,6 +97,8 @@ typedef struct endpoint {
 
     const char *local_id;
     const char *display_name;
+
+    bool block_undo;
     /* const char *undo_str; */
 
     void *xarg1;

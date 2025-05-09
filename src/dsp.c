@@ -61,7 +61,7 @@ static void init_roots_of_unity()
 }
 
 
-static void FFT_inner(double *A, double complex *B, int n, int offset, int increment)
+static void FFT_inner(double *restrict A, double complex *restrict B, int n, int offset, int increment)
 {
     if (n==1) {
         B[0] = A[offset] + 0 * I;
@@ -93,7 +93,7 @@ void FFT(double *A, double complex *B, int n)
     }
 }
 
-static void FFT_innerf(float *A, double complex *B, int n, int offset, int increment)
+static void FFT_innerf(float *restrict A, double complex *restrict B, int n, int offset, int increment)
 {
     if (n==1) {
         B[0] = A[offset] + 0 * I;
@@ -134,7 +134,7 @@ static void FFT_unscaled(double *A, double complex *B, int n)
     FFT_inner(A, B, n, 0, 1);
 }
 
-static double complex *IFFT_inner(double complex *A, double complex *B, int n, int offset, int increment)
+static double complex *IFFT_inner(double complex *restrict A, double complex *restrict B, int n, int offset, int increment)
 {
     /* double complex *B = (double complex *)malloc(sizeof(double complex) * n); */
 
@@ -174,7 +174,7 @@ static void IFFT(double complex *A, double complex *B, int n)
 /* } */
 
 
-void get_magnitude(double complex *A, double *B, int len) 
+void get_magnitude(double complex *restrict A, double *restrict B, int len) 
 {
     /* double *B = (double *)malloc(sizeof(double) * len); */
     for (int i=0; i<len; i++) {
@@ -182,7 +182,7 @@ void get_magnitude(double complex *A, double *B, int len)
     }
 }
 
-void get_real_component(double complex *A, double *B, int len)
+void get_real_component(double complex *restrict A, double *restrict B, int len)
 {
     /* double *B = (double *)malloc(sizeof(double) * len); */
     for (int i=0; i<len; i++) {
@@ -190,7 +190,7 @@ void get_real_component(double complex *A, double *B, int len)
         B[i] = creal(A[i]);
     }
 }
-void get_real_componentf(double complex *A, float *B, int len)
+void get_real_componentf(double complex *restrict A, float *restrict B, int len)
 {
     /* double *B = (double *)malloc(sizeof(double) * len); */
     for (int i=0; i<len; i++) {
@@ -356,7 +356,7 @@ void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impu
 	(Value){.double_v = 1.0});
     endpoint_set_default_value(&filter->cutoff_ep, (Value){.double_v = 0.1});
     endpoint_set_label_fn(&filter->cutoff_ep, label_freq_raw_to_hz);
-    api_endpoint_register(&filter->cutoff_ep, &filter->track->api_node);
+    api_endpoint_register(&filter->cutoff_ep, &filter->effect->api_node);
 
     endpoint_init(
 	&filter->bandwidth_ep,
@@ -373,7 +373,7 @@ void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impu
 	(Value){.double_v = 1.0});
     endpoint_set_default_value(&filter->bandwidth_ep, (Value){.double_v = 0.1});
     endpoint_set_label_fn(&filter->bandwidth_ep, label_freq_raw_to_hz);
-    api_endpoint_register(&filter->bandwidth_ep, &filter->track->api_node);
+    api_endpoint_register(&filter->bandwidth_ep, &filter->effect->api_node);
 
     endpoint_init(
 	&filter->impulse_response_len_ep,
@@ -390,7 +390,7 @@ void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impu
 	(Value){.uint16_v = filter->track->tl->proj->fourier_len_sframes});
     /* endpoint_set_default_value(&filter->impulse_response_len_ep, (Value){.double_v = 0.1}); */
     /* endpoint_set_label_fn(&filter->impulse_response_len_ep, label_msec); */
-    /* api_endpoint_register(&filter->impulse_response_len_ep, &filter->track->api_node); */
+    /* api_endpoint_register(&filter->impulse_response_len_ep, &filter->effect->api_node); */
 
 
     endpoint_init(
@@ -753,7 +753,7 @@ void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate)
 	(void *)dl, NULL, NULL, NULL);
     endpoint_set_allowed_range(&dl->len_ep, (Value){.int16_v=0}, (Value){.int16_v=1000});
     endpoint_set_label_fn(&dl->len_ep, label_msec);
-    api_endpoint_register(&dl->len_ep, &dl->track->api_node);
+    api_endpoint_register(&dl->len_ep, &dl->effect->api_node);
 
     endpoint_init(
 	&dl->amp_ep,
@@ -767,7 +767,7 @@ void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate)
 	(void *)dl, NULL, NULL, NULL);
     endpoint_set_allowed_range(&dl->amp_ep, (Value){.double_v=0.0}, (Value){.double_v=0.99});
     endpoint_set_label_fn(&dl->amp_ep, label_amp_to_dbstr);
-    api_endpoint_register(&dl->amp_ep, &dl->track->api_node);
+    api_endpoint_register(&dl->amp_ep, &dl->effect->api_node);
     
     endpoint_init(
 	&dl->stereo_offset_ep,
@@ -780,7 +780,7 @@ void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate)
 	NULL, NULL, NULL, NULL);
     endpoint_set_allowed_range(&dl->stereo_offset_ep, (Value){.double_v=0.0}, (Value){.double_v=1.0});
     /* endpoint_set_label_fn(&dl->stereo_offset_ep, label_amp_); */
-    api_endpoint_register(&dl->stereo_offset_ep, &dl->track->api_node);
+    api_endpoint_register(&dl->stereo_offset_ep, &dl->effect->api_node);
 }
 
 /*

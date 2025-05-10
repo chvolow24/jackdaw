@@ -54,7 +54,7 @@ typedef struct fir_filter {
     /* uint16_t impulse_response_len_internal; */
     uint16_t frequency_response_len;
     uint16_t overlap_len;
-    pthread_mutex_t lock;
+    /* pthread_mutex_t lock; */
 
     Track *track;
 

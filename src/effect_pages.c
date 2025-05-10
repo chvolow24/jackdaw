@@ -399,8 +399,8 @@ Page *add_fir_filter_page(FIRFilter *f, Track *track, TabView *tv)
     p.freqplot_p.num_arrays = 3;
 
     el = page_add_el(page, EL_FREQ_PLOT, p, "track_settings_filter_freq_plot", "freq_plot");
-    struct freq_plot *plot = el->component;
-    plot->related_obj_lock = &f->lock;
+    /* struct freq_plot *plot = el->component; */
+    /* plot->related_obj_lock = &f->lock; */
 
     create_track_selection_area(page, track);
     return page;

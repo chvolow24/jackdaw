@@ -130,7 +130,7 @@ void filter_type_dsp_cb(Endpoint *ep)
 /* Create an empty FIR filter and allocate space for its buffers. MUST be initialized with 'set_filter_params'*/
 static void FIR_filter_alloc_buffers(FIRFilter *filter)
 {
-    pthread_mutex_lock(&filter->lock);
+    /* pthread_mutex_lock(&filter->lock); */
 
     int max_irlen = filter->track->tl->proj->fourier_len_sframes;
     if (!filter->impulse_response)
@@ -168,13 +168,13 @@ static void FIR_filter_alloc_buffers(FIRFilter *filter)
     /* filter->overlap_buffer_L = calloc(1, sizeof(double) * filter->overlap_len); */
     /* if (filter->overlap_buffer_R) free(filter->overlap_buffer_R); */
     /* filter->overlap_buffer_R = calloc(1, sizeof(double) * filter->overlap_len); */
-    pthread_mutex_unlock(&filter->lock);
+    /* pthread_mutex_unlock(&filter->lock); */
     /* pthread_mutex_unlock(&filter->lock); */
 
 }
 void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len) 
 {
-    pthread_mutex_init(&filter->lock, NULL);
+    /* pthread_mutex_init(&filter->lock, NULL); */
     filter->type = type;
     filter->track = track;
     filter->impulse_response_len_internal = impulse_response_len;
@@ -268,7 +268,7 @@ extern Project *proj;
 void filter_set_params(FIRFilter *filter, FilterType type, double cutoff, double bandwidth)
 {
     /* DSP_THREAD_ONLY_WHEN_ACTIVE("filter_set_params"); */
-    pthread_mutex_lock(&filter->lock);
+    /* pthread_mutex_lock(&filter->lock); */
     filter->type = type;
     filter->cutoff_freq = cutoff;
     filter->bandwidth = bandwidth;
@@ -316,14 +316,14 @@ void filter_set_params(FIRFilter *filter, FilterType type, double cutoff, double
 
     FFT_unscaled(IR_zero_padded, filter->frequency_response, filter->frequency_response_len);
     get_magnitude(filter->frequency_response, filter->frequency_response_mag, filter->frequency_response_len);
-    pthread_mutex_unlock(&filter->lock);
+    /* pthread_mutex_unlock(&filter->lock); */
     /* free(IR_zero_padded); */
 }
 
 void filter_set_arbitrary_IR(FIRFilter *filter, float *ir_in, int ir_len)
 {
     filter_set_impulse_response_len(filter, ir_len);
-    pthread_mutex_lock(&filter->lock);
+    /* pthread_mutex_lock(&filter->lock); */
     double ir_zero_padded[filter->frequency_response_len];
     for (int i=0; i<filter->frequency_response_len; i++) {
 	if (i < ir_len) {
@@ -334,7 +334,7 @@ void filter_set_arbitrary_IR(FIRFilter *filter, float *ir_in, int ir_len)
     }
     FFT_unscaled(ir_zero_padded, filter->frequency_response, filter->frequency_response_len);
     get_magnitude(filter->frequency_response, filter->frequency_response_mag, filter->frequency_response_len);
-    pthread_mutex_unlock(&filter->lock);
+    /* pthread_mutex_unlock(&filter->lock); */
 
 }
 
@@ -419,7 +419,7 @@ void filter_deinit(FIRFilter *filter)
 	free(filter->output_freq_mag_R);
     }
     /* if (filter->lock) { */
-    pthread_mutex_destroy(&filter->lock);
+    /* pthread_mutex_destroy(&filter->lock); */
 	/* SDL_DestroyMutex(filter->lock); */
     /* } */
     /* free(filter); */
@@ -431,7 +431,7 @@ void filter_deinit(FIRFilter *filter)
 /* Destructive; replaces values in sample_array. Legacy fn called by new standard prototype filter_buf_apply */
 static void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array)
 {
-    pthread_mutex_lock(&filter->lock);
+    /* pthread_mutex_lock(&filter->lock); */
     /* SDL_LockMutex(filter->lock); */
     float *overlap_buffer = channel == 0 ? filter->overlap_buffer_L : filter->overlap_buffer_R;
     uint16_t padded_len = filter->frequency_response_len;
@@ -469,7 +469,7 @@ static void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint1
     }
 
     memcpy(overlap_buffer, real + chunk_size, filter->overlap_len * sizeof(float));
-    pthread_mutex_unlock(&filter->lock);
+    /* pthread_mutex_unlock(&filter->lock); */
 }
 
 /* Apply a FIR filter to a float buffer */

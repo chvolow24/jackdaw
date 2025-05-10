@@ -26,7 +26,7 @@ void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate)
     dl->amp = 0.0;
     dl->len = 5000;
     dl->stereo_offset = 0;
-    pthread_mutex_init(&dl->lock, NULL);
+    /* pthread_mutex_init(&dl->lock, NULL); */
     /* dl->lock = SDL_CreateMutex(); */
     dl->max_len = DELAY_LINE_MAX_LEN_S * sample_rate;
     dl->buf_L = calloc(dl->max_len, sizeof(double));
@@ -111,7 +111,7 @@ void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
     /* if (!dl->buf_L) { */
     /* 	delay_line_init(dl, sample_rate); */
     /* } */
-    pthread_mutex_lock(&dl->lock);
+    /* pthread_mutex_lock(&dl->lock); */
     /* if (len > proj->sample_rate) { */
     /* 	fprintf(stderr, "UH OH: len = %d\n", len); */
     /* 	exit(1); */
@@ -135,7 +135,7 @@ void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
 	/* dl->pos_R = 0; */
     }
     dl->amp = amp;
-    pthread_mutex_unlock(&dl->lock);
+    /* pthread_mutex_unlock(&dl->lock); */
 }
 
 float delay_line_buf_apply(void *dl_v, float *buf, int len, int channel, float input_amp)
@@ -143,7 +143,7 @@ float delay_line_buf_apply(void *dl_v, float *buf, int len, int channel, float i
     DelayLine *dl = dl_v;
     float output_amp = 0.0f;
     if (!dl->active) return output_amp;
-    pthread_mutex_lock(&dl->lock);
+    /* pthread_mutex_lock(&dl->lock); */
     double *del_line = channel == 0 ? dl->buf_L : dl->buf_R;
     int32_t *del_line_pos = channel == 0 ? &dl->pos_L : &dl->pos_R;
     for (int i=0; i<len; i++) {
@@ -170,7 +170,7 @@ float delay_line_buf_apply(void *dl_v, float *buf, int len, int channel, float i
 	    (*del_line_pos)++;
 	}
     }
-    pthread_mutex_unlock(&dl->lock);
+    /* pthread_mutex_unlock(&dl->lock); */
     return output_amp;
 }
 

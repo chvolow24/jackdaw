@@ -36,7 +36,7 @@ typedef struct delay_line {
     double *buf_L;
     double *buf_R;
     double *cpy_buf;
-    pthread_mutex_t lock;
+    /* pthread_mutex_t lock; */
 
     Track *track;
 

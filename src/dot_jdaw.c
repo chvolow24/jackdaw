@@ -283,6 +283,8 @@ static void jdaw_write_eq(FILE *f, EQ *eq);
 static void jdaw_write_effect(FILE *f, Effect *e)
 {
     fwrite(hdr_trck_efct, 1, 4, f);
+    uint8_t type_byte = e->type;
+    uint8_ser(f, &type_byte);
     switch(e->type) {
     case EFFECT_EQ:
 	jdaw_write_eq(f, e->obj);

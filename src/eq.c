@@ -164,112 +164,119 @@ void eq_init(EQ *eq)
     /* 		  NULL, */
     /* 		  eq, NULL, NULL, NULL); */
 		  
-		  
-		  
-		  
+
+    static char api_ctrl_node_names[EQ_DEFAULT_NUM_FILTERS][12];
+		  		  
     for (int i=0; i<EQ_DEFAULT_NUM_FILTERS; i++) {
-	eq->ctrls[i].bandwidth_scalar = DEFAULT_BANDWIDTH_SCALAR;
-	eq->ctrls[i].bandwidth_preferred = DEFAULT_BANDWIDTH_SCALAR;
-	eq->ctrls[i].freq_amp_raw[0] = pow(nsub1, 0.15 + 0.15 * i) / nsub1;
-	eq->ctrls[i].freq_amp_raw[1] = 1.0;
-	eq->ctrls[i].eq = eq;
-	eq->ctrls[i].index = i;
-	eq->ctrls[i].label = label_create(
+	EQFilterCtrl *ctrl = eq->ctrls + i;
+	ctrl->bandwidth_scalar = DEFAULT_BANDWIDTH_SCALAR;
+	ctrl->bandwidth_preferred = DEFAULT_BANDWIDTH_SCALAR;
+	ctrl->freq_amp_raw[0] = pow(nsub1, 0.15 + 0.15 * i) / nsub1;
+	ctrl->freq_amp_raw[1] = 1.0;
+	ctrl->eq = eq;
+	ctrl->index = i;
+	ctrl->label = label_create(
 	    EQ_CTRL_LABEL_BUFLEN,
 	    main_win->layout,
 	    eq_ctrl_label_fn,
-	    eq->ctrls + i,
+	    ctrl,
 	    JDAW_DOUBLE,
 	    main_win);
 
 	static char buf[255];
 	snprintf(buf, 255, "EQ filter %d amp", i + 1);
 	char *display_name = strdup(buf);
-	eq->ctrls[i].amp_ep_display_name = display_name;
+	ctrl->amp_ep_display_name = display_name;
+
+
+	snprintf(api_ctrl_node_names[i], 10, "eq_filter_%d", i);
+
+	api_node_register(&ctrl->api_node, &eq->effect->api_node, api_ctrl_node_names[i]);
+	
 	endpoint_init(
-	    &eq->ctrls[i].amp_ep,
-	    &eq->ctrls[i].freq_amp_raw[1],
+	    &ctrl->amp_ep,
+	    &ctrl->freq_amp_raw[1],
 	    JDAW_DOUBLE,
-	    "eq_peak_amp",
+	    "amp",
 	    display_name,
 	    JDAW_THREAD_DSP,
 	    eq_gui_cb, NULL, eq_dsp_cb,
-	    (void*)eq, (void*)(eq->ctrls + i), NULL, NULL);
+	    (void*)eq, (void*)(ctrl), NULL, NULL);
 	endpoint_set_allowed_range(
-	    &eq->ctrls[i].amp_ep,
+	    &ctrl->amp_ep,
 	    (Value){.double_v = 0.0},
 	    (Value){.double_v = 20.0});
 	endpoint_set_default_value(
-	    &eq->ctrls[i].amp_ep,
+	    &ctrl->amp_ep,
 	    (Value){.double_v = 1.0});
 
 	memset(buf, '\0', 255);
 	snprintf(buf, 255, "EQ filter %d freq", i + 1);
 	display_name = strdup(buf);
-	eq->ctrls[i].freq_ep_display_name = display_name;
+	ctrl->freq_ep_display_name = display_name;
 
 	endpoint_init(
-	    &eq->ctrls[i].freq_ep,
-	    &eq->ctrls[i].freq_exp,
+	    &ctrl->freq_ep,
+	    &ctrl->freq_exp,
 	    JDAW_DOUBLE,
-	    "eq_peak_freq",
+	    "freq",
 	    display_name,
 	    JDAW_THREAD_DSP,
 	    eq_gui_cb, NULL, eq_freq_dsp_cb,
-	    (void*)eq, (void*)(eq->ctrls + i), NULL, NULL);
+	    (void*)eq, (void*)(ctrl), NULL, NULL);
 	endpoint_set_allowed_range(
-	    &eq->ctrls[i].freq_ep,
+	    &ctrl->freq_ep,
 	    (Value){.double_v = 0.0},
 	    (Value){.double_v = 1.0});
 	endpoint_set_default_value(
-	    &eq->ctrls[i].freq_ep,
+	    &ctrl->freq_ep,
 	    (Value){.double_v = 0.1});
 	
 	endpoint_init(
-	    &eq->ctrls[i].bandwidth_scalar_ep,
-	    &eq->ctrls[i].bandwidth_scalar,
+	    &ctrl->bandwidth_scalar_ep,
+	    &ctrl->bandwidth_scalar,
 	    JDAW_DOUBLE,
-	    "eq_bandwidth_scalar",
+	    "bandwidth_scalar",
 	    "EQ filter bandwidth",
 	    JDAW_THREAD_DSP,
 	    eq_gui_cb, NULL, eq_bandwidth_scalar_dsp_cb,
-	    (void*)eq, (void*)(eq->ctrls + i), NULL, NULL);
+	    (void*)eq, (void*)(ctrl), NULL, NULL);
 	endpoint_init(
-	    &eq->ctrls[i].freq_amp_ep,
-	    &eq->ctrls[i].freq_amp_raw,
+	    &ctrl->freq_amp_ep,
+	    &ctrl->freq_amp_raw,
 	    JDAW_DOUBLE_PAIR,
-	    "eq_freq_and_amp",
+	    "freq_and_amp",
 	    "EQ filter freq/amp",
 	    JDAW_THREAD_DSP,
 	    eq_gui_cb, NULL, eq_dsp_cb,
-	    (void *)eq, (void *)(eq->ctrls + i), NULL, NULL);
+	    (void *)eq, (void *)(ctrl), NULL, NULL);
 
 
 	snprintf(buf, 255, "EQ filter %d bandwidth", i + 1);
 	display_name = strdup(buf);
-	eq->ctrls[i].bandwidth_ep_display_name = display_name;
+	ctrl->bandwidth_ep_display_name = display_name;
 
 	endpoint_init(
-	    &eq->ctrls[i].bandwidth_preferred_ep,
-	    &eq->ctrls[i].bandwidth_preferred,
+	    &ctrl->bandwidth_preferred_ep,
+	    &ctrl->bandwidth_preferred,
 	    JDAW_DOUBLE,
-	    "eq_bandwidth_preferred",
+	    "bandwidth_preferred",
 	    display_name,
 	    JDAW_THREAD_DSP,
 	    eq_gui_cb, NULL, eq_dsp_cb,
-	    (void*)eq, (void*)(eq->ctrls + i), NULL, NULL);
+	    (void*)eq, (void*)(ctrl), NULL, NULL);
 	endpoint_set_allowed_range(
-	    &eq->ctrls[i].bandwidth_preferred_ep,
+	    &ctrl->bandwidth_preferred_ep,
 	    (Value){.double_v = 0.0},
 	    (Value){.double_v = 1.0});
 	endpoint_set_default_value(
-	    &eq->ctrls[i].bandwidth_preferred_ep,
+	    &ctrl->bandwidth_preferred_ep,
 	    (Value){.double_v = 0.4});
 
 	/* if (i < 2) { */
-	api_endpoint_register(&eq->ctrls[i].freq_ep, &eq->effect->api_node);
-	api_endpoint_register(&eq->ctrls[i].amp_ep, &eq->effect->api_node);
-	api_endpoint_register(&eq->ctrls[i].bandwidth_preferred_ep, &eq->effect->api_node);
+	api_endpoint_register(&ctrl->freq_ep, &ctrl->api_node);
+	api_endpoint_register(&ctrl->amp_ep, &ctrl->api_node);
+	api_endpoint_register(&ctrl->bandwidth_preferred_ep, &ctrl->api_node);
 	/* } */
 
 

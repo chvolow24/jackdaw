@@ -473,6 +473,7 @@ Automation *track_add_automation(Track *track, AutomationType type)
 }
 
 
+static void track_add_automation_from_api_node(Track *track, APINode *node);
 
 static int add_auto_form(void *mod_v, void *nullarg)
 {
@@ -480,6 +481,7 @@ static int add_auto_form(void *mod_v, void *nullarg)
     ModalEl *el;
     /* AutomationType t = 0; */
     Track *track = NULL;
+    APINode *node = NULL;
     int ep_index = -1;
     for (uint8_t i=0; i<modal->num_els; i++) {
 	switch ((el = modal->els[i])->type) {
@@ -487,6 +489,7 @@ static int add_auto_form(void *mod_v, void *nullarg)
 	    ep_index = ((RadioButton *)el->obj)->selected_item;
 	    /* t = ((RadioButton *)el->obj)->selected_item; */
 	    track = ((RadioButton *)el->obj)->ep->xarg1;
+	    node = ((RadioButton *)el->obj)->ep->xarg2;
 	    break;
 	default:
 	    break;
@@ -497,28 +500,94 @@ static int add_auto_form(void *mod_v, void *nullarg)
 	fprintf(stderr, "Error: illegal value for ep_index or no track in auto_add_form\n");
 	exit(1);
     }
-    Endpoint *ep = track->api_node.endpoints[ep_index];
-    for (uint8_t i=0; i<track->num_automations; i++) {
-	if (track->automations[i]->endpoint == ep) {
-	    status_set_errstr("Track already has an automation of that type");
-	    return 1;
-	}
+    if (ep_index < node->num_endpoints) {
+	Endpoint *ep = node->endpoints[ep_index];
+	for (uint8_t i=0; i<track->num_automations; i++) {
+	    if (track->automations[i]->endpoint == ep) {
+		status_set_errstr("Track already has an automation of that type");
+		return 1;
+	    }
 	    
-	/* if (track->automations[i]->ep =  */
-	/* if (track->automations[i]->type == t) { */
-	/*     status_set_errstr("Track already has an automation of that type"); */
-	/*     return 1; */
-	/* } */
+	    /* if (track->automations[i]->ep =  */
+	    /* if (track->automations[i]->type == t) { */
+	    /*     status_set_errstr("Track already has an automation of that type"); */
+	    /*     return 1; */
+	    /* } */
+	}
+	Automation *a = track_add_automation_from_endpoint(track, ep);
+	track_automations_show_all(track);
+	track->selected_automation = a->index;
+	window_pop_modal(main_win);
+    } else {
+	fprintf(stderr, "Item index is %d; num eps is %d\n", ep_index, track->api_node.num_endpoints);
+	APINode *subnode = node->children[ep_index - node->num_endpoints];
+	fprintf(stderr, "OK NODE: %p:\n", subnode);
+	window_pop_modal(main_win);
+	track_add_automation_from_api_node(track, subnode);
     }
-    Automation *a = track_add_automation_from_endpoint(track, ep);
-    track_automations_show_all(track);
-    track->selected_automation = a->index;
-    window_pop_modal(main_win);
     return 0;
+}
+
+static void track_add_automation_from_api_node(Track *track, APINode *node)
+{
+    Layout *lt = layout_add_child(track->tl->proj->layout);
+    layout_set_default_dims(lt);
+    Modal *m = modal_create(lt);
+    /* Automation *a = track_add_automation_internal(track, AUTO_VOL); */
+    modal_add_header(m, "Add automation to track", &color_global_light_grey, 4);
+    static int automation_selection = 0;
+    static Endpoint automation_selection_ep = {0};
+    if (automation_selection_ep.local_id == NULL) {
+	endpoint_init(
+	    &automation_selection_ep,
+	    &automation_selection,
+	    JDAW_INT,
+	    "",
+	    "",
+	    JDAW_THREAD_MAIN,
+	    NULL, NULL, NULL,
+	    track, NULL,NULL,NULL);
+	automation_selection_ep.block_undo = true;
+    }
+    automation_selection_ep.xarg1 = (void *)track;
+    automation_selection_ep.xarg2 = (void *)node;
+
+    /* APINode node = track->api_node; */
+    /* Endpoint *items[node->num_endpoints + node->num_children]; */
+
+    void *items[node->num_endpoints + node->num_children];
+    const char *item_labels[node->num_endpoints + node->num_children];
+    for (int i=0; i<node->num_endpoints; i++) {
+	items[i] = node->endpoints[i];
+	item_labels[i] = node->endpoints[i]->display_name;
+    }
+    for (int i=0; i<node->num_children; i++) {
+	items[node->num_endpoints + i] = node->children[i];
+	item_labels[node->num_endpoints + i] = node->children[i]->obj_name;
+    }
+    
+    modal_add_radio(
+	m,
+	&color_global_light_grey,
+	/* (void *)track, */
+	&automation_selection_ep,
+	/* NULL, */
+	item_labels,
+	/* AUTOMATION_LABELS, */	
+	/* sizeof(AUTOMATION_LABELS) / sizeof(const char *)); */
+	node->num_endpoints + node->num_children);
+    
+    modal_add_button(m, "Add", add_auto_form);
+    window_push_modal(main_win, m);
+    modal_reset(m);
+    modal_move_onto(m);
+
 }
 
 void track_add_new_automation(Track *track)
 {
+    track_add_automation_from_api_node(track, &track->api_node);
+    return;
     Layout *lt = layout_add_child(track->tl->proj->layout);
     layout_set_default_dims(lt);
     Modal *m = modal_create(lt);

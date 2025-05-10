@@ -20,13 +20,20 @@
 #include "dsp_utils.h"
 /* #include "endpoint_callbacks.h" */
 #include "project.h"
-#include "pthread.h"
 
 
 #define ROU_MAX_DEGREE 14
 double complex *roots_of_unity[ROU_MAX_DEGREE];
 
-/* extern Project *proj; */
+
+
+
+
+
+/*****************************************************************************************************************
+    Buffer arithmetic
+ *****************************************************************************************************************/
+
 
 static void init_roots_of_unity();
 
@@ -34,6 +41,35 @@ void init_dsp()
 {
     init_roots_of_unity();
 }
+
+void float_buf_add(float *restrict a, float *restrict b, int len)
+{
+    for (int i=0; i<len; i++) {
+	a[i] += b[i];
+    }
+}
+
+void float_buf_add_to(float *restrict a, float *restrict b, float *restrict sum, int len)
+{
+    for (int i=0; i<len; i++) {
+	sum[i] = a[i] + b[i];
+    }
+}
+
+void float_buf_mult(float *restrict a, float *restrict b, int len)
+{
+    for (int i=0; i<len; i++) {
+	a[i] *= b[i];
+    }    
+}
+
+void float_buf_mult_to(float *restrict a, float *restrict b, float *restrict product, int len)
+{
+    for (int i=0; i<len; i++) {
+	product[i] = a[i] * b[i];
+    }        
+}
+
 
 
 /*****************************************************************************************************************
@@ -163,19 +199,9 @@ void IFFT(double complex *restrict A, double complex *restrict B, int n)
     IFFT_inner(A, B, n, 0, 1);
 }
 
-/* static void IFFT_real_input(double *A_real, double complex *B, int n) */
-/* { */
-/*     double complex A[n]; */
-/*     for (int i=0; i<n; i++) { */
-/*         A[i] = A_real[i] + 0 * I; */
-/*     } */
-/*     IFFT(A, B, n); */
-/* } */
-
 
 void get_magnitude(double complex *restrict A, double *restrict B, int len) 
 {
-    /* double *B = (double *)malloc(sizeof(double) * len); */
     for (int i=0; i<len; i++) {
         B[i] = cabs(A[i]);
     }
@@ -183,17 +209,13 @@ void get_magnitude(double complex *restrict A, double *restrict B, int len)
 
 void get_real_component(double complex *restrict A, double *restrict B, int len)
 {
-    /* double *B = (double *)malloc(sizeof(double) * len); */
     for (int i=0; i<len; i++) {
-        // std::cout << "Complex: " << A[i].real() << " + " << A[i].imag() << std::endl;
         B[i] = creal(A[i]);
     }
 }
 void get_real_componentf(double complex *restrict A, float *restrict B, int len)
 {
-    /* double *B = (double *)malloc(sizeof(double) * len); */
     for (int i=0; i<len; i++) {
-        // std::cout << "Complex: " << A[i].real() << " + " << A[i].imag() << std::endl;
         B[i] = creal(A[i]);
     }
 }
@@ -211,3 +233,4 @@ double dsp_scale_freq_to_hz(double freq_unscaled)
     double sample_rate = proj ? proj->sample_rate : DEFAULT_SAMPLE_RATE;
     return pow(10.0, log10(sample_rate / 2.0) * freq_unscaled);
 }
+

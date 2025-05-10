@@ -32,19 +32,19 @@
 extern Project *proj;
 
 
-static void float_buf_add(float *main, float *add, int32_t len_sframes)
-{
-    for (int32_t i=0; i<len_sframes; i++) {
-	main[i] += add[i];
-    }
-}
+/* static void float_buf_add(float *main, float *add, int32_t len_sframes) */
+/* { */
+/*     for (int32_t i=0; i<len_sframes; i++) { */
+/* 	main[i] += add[i]; */
+/*     } */
+/* } */
 
-static void float_buf_mult(float *main, float *by, int32_t len_sframes)
-{
-    for (int32_t i=0; i<len_sframes; i++) {
-	main[i] *= by[i];
-    }
-}
+/* static void float_buf_mult(float *main, float *by, int32_t len_sframes) */
+/* { */
+/*     for (int32_t i=0; i<len_sframes; i++) { */
+/* 	main[i] *= by[i]; */
+/*     } */
+/* } */
 static void make_pan_chunk(float *pan_vals, int32_t len_sframes, uint8_t channel) 
 {
     /* double pan_scale = channel == 0 ? */
@@ -262,97 +262,47 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 	if (track_chunk_amp > AMP_EPSILON) { /* Checks if any clip audio available */
 	    audio_in_track = true;
 	}
-	if (track->tl_rank == 0) {
-	    /* Compressor *c = channel == 0? &comp_L : &comp_R; */
-	    /* /\* EnvelopeFollower *efl = channel == 0? &ef : &ef2; *\/ */
-	    /* static bool env_inited = false; */
-	    /* if (!env_inited) { */
-	    /* 	compressor_set_times_msec(&comp_L, 1, 100.0, proj->sample_rate); */
-	    /* 	compressor_set_times_msec(&comp_R, 1, 100.0, proj->sample_rate); */
-	    /* 	compressor_set_threshold(&comp_L, 0.2); */
-	    /* 	compressor_set_threshold(&comp_R, 0.2); */
-	    /* 	compressor_set_m(&comp_L, 0.5); */
-	    /* 	compressor_set_m(&comp_R, 0.5); */
-	    /* } */
-	    /* compressor_buf_apply(c, track_chunk, len_sframes); */
-	    /* /\* if (channel == 0) { *\/ */
-	    /* float env; */
-	    /* static float thresh = 0.3; */
-	    /* static float ratio = 0.0000001; */
-	    /* for (int i=0; i<len_sframes; i++) { */
-	    /* 	env = envelope_follower_sample(efl, track_chunk[i]); */
-	    /* 	if (channel == 0)  */
-	    /* 	    env_global = env; */
-	    /* 	/\* int sign = track_chunk[i] >= 0.0 ? 1 : -1; *\/ */
-	    /* 	/\* float overshoot = env - thresh; *\/ */
-	    /* 	float overshoot = env - thresh; */
-	    /* 	if (overshoot > 0.0f) { */
-	    /* 		overshoot *= ratio; */
-	    /* 		float desired_env = thresh + overshoot; */
-	    /* 		float gain_reduc = desired_env / env; */
-	    /* 		/\* fprintf(stderr, "Before: %f GR: %f\n", track_chunk[i], gain_reduc); *\/ */
-	    /* 		track_chunk[i] *= gain_reduc; */
-	    /* 		/\* fprintf(stderr, "After: %f\n", track_chunk[i]); *\/ */
-	    /* 		/\* track_chunk[i] = sign * (thresh + ratio * (sample_abs - thresh)); *\/ */
-	    /* 	    /\* track_chunk[i] *= ratio; *\/ */
-	    /* 	    /\* track_chunk[i] =  *\/ */
-	    /* 	    /\* overshoot = fabs(track_chunk[i]) - thresh; *\/ */
-	    /* 	    /\* if (overshoot > 0.0) { *\/ */
-	    /* 	    /\*     fprintf(stderr, "\nBEFORE %f (overshoot %f)\n", track_chunk[i], overshoot); *\/ */
-	    /* 	    /\*     track_chunk[i] = sign * (thresh + overshoot * 1.0); *\/ */
-	    /* 	    /\*     fprintf(stderr, "AFTER %f\n", track_chunk[i]); *\/ */
-	    /* 	    /\* } *\/ */
-	    /* 	    /\* track_chunk[i] = 0.5 +  *\/ */
-	    /* 	} */
-	    /* 	/\* fprintf(stderr, "Env: %f\n", env); *\/ */
-	    /* } */
-	    /* Track *t2 = tl->tracks[1]; */
-	    /* if (t2) { */
-	    /*     endpoint_write(&t2->eq.ctrls[0].freq_ep, (Value){.double_v = 1.0 -  pow(env, 0.3)}, true, true, true, false); */
-	    /* } */
+	if (audio_in_track) {
+	    float_buf_add(mixdown, track_chunk, len_sframes);
 	}
-
-	if (audio_in_track || t == tl->num_tracks - 1) {
-	    for (uint32_t i=0; i<len_sframes; i++) {
-		mixdown[i] += track_chunk[i];
-		if (t == tl->num_tracks - 1) {
-		    if (mixdown[i] > 1.0f) {
-			mixdown[i] = 1.0f;
-		    } else if (mixdown[i] < -1.0f) {
-			mixdown[i] = -1.0f;
-		    }
-		}
-	    }
-	}
-
-	/* static int i=0; */
-	if (audio_in_track
-	    && timeline_selected_track(track->tl) == track
-	    && main_win->active_tabview) {
-	    /* fprintf(stderr, "TRACK %d doing FFT on track output... %d\n", track->tl_rank, i); */
-	    float input[len_sframes * 2];
-	    memset(input + len_sframes, '\0', len_sframes * sizeof(float));
-	    memcpy(input, track_chunk, len_sframes * sizeof(float));
+	/* if (audio_in_track */
+	/*     && timeline_selected_track(track->tl) == track */
+	/*     && main_win->active_tabview) { */
+	/*     /\* fprintf(stderr, "TRACK %d doing FFT on track output... %d\n", track->tl_rank, i); *\/ */
+	/*     float input[len_sframes * 2]; */
+	/*     memset(input + len_sframes, '\0', len_sframes * sizeof(float)); */
+	/*     memcpy(input, track_chunk, len_sframes * sizeof(float)); */
 	    
-	    double complex freq[len_sframes * 2];
+	/*     double complex freq[len_sframes * 2]; */
 
 
-	    for (int i=0; i<len_sframes; i++) {
-		input[i] *= 2.0 * hamming(i, len_sframes);
-	    }
-	    FFTf(input, freq, len_sframes * 2);
+	/*     for (int i=0; i<len_sframes; i++) { */
+	/* 	input[i] *= 2.0 * hamming(i, len_sframes); */
+	/*     } */
+	/*     FFTf(input, freq, len_sframes * 2); */
 
-	    double **dst_buf = channel == 0 ? &track->buf_L_freq_mag : &track->buf_R_freq_mag;
-	    if (!*dst_buf) *dst_buf = malloc(len_sframes * 2 * sizeof(double));
+	/*     double **dst_buf = channel == 0 ? &track->buf_L_freq_mag : &track->buf_R_freq_mag; */
+	/*     if (!*dst_buf) *dst_buf = malloc(len_sframes * 2 * sizeof(double)); */
 	    
-	    get_magnitude(freq, *dst_buf, len_sframes * 2);
-	    /* i++; */
-	    /* get_magnitude(freqR, track->buf_R_freq_mag, len_sframes); */
-	}
+	/*     get_magnitude(freq, *dst_buf, len_sframes * 2); */
+	/*     /\* i++; *\/ */
+	/*     /\* get_magnitude(freqR, track->buf_R_freq_mag, len_sframes); *\/ */
+	/* } */
 
 	/* after_track += ((double)clock() - start) / CLOCKS_PER_SEC; */
 
     }
+
+    
+
+    for (uint32_t i=0; i<len_sframes; i++) {
+	if (mixdown[i] > 1.0f) {
+	    mixdown[i] = 1.0f;
+	} else if (mixdown[i] < -1.0f) {
+	    mixdown[i] = -1.0f;
+	}
+    }
+
     return mixdown;
     /* fprintf(stderr, "MIXDOWN TOTAL DUR: %f\n", 1000 * ((double)clock() - start)/ CLOCKS_PER_SEC); */
 }

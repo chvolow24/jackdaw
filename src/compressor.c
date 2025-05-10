@@ -17,12 +17,19 @@
 
 #include <stdio.h>
 #include "compressor.h"
+#include "consts.h"
 #include "endpoint_callbacks.h"
 #include "geometry.h"
 #include "project.h"
 #include "window.h"
 
 #define COMP_GRAPH_R 4
+
+#define COMP_DEFAULT_ATTACK 5.0f
+#define COMP_DEFAULT_RELEASE 50.0f
+#define COMP_DEFAULT_RATIO 0.5f
+#define COMP_DEFAULT_THRESHOLD 0.2f
+#define COMP_MAX_MAKEUP_GAIN 10.0f
 
 extern Window *main_win;
 
@@ -183,17 +190,17 @@ void comp_ratio_dsp_cb(Endpoint *ep)
 
 void compressor_init(Compressor *c)
 {
-    c->attack_time = 3.0;
-    c->release_time = 200.0;
+    c->attack_time = COMP_DEFAULT_ATTACK;
+    c->release_time = COMP_DEFAULT_RELEASE;
     if (proj) {
 	compressor_set_times_msec(c, c->attack_time, c->release_time, proj->sample_rate);
     } else {
-	compressor_set_times_msec(c, c->attack_time, c->release_time, 96000);
+	compressor_set_times_msec(c, c->attack_time, c->release_time, DEFAULT_SAMPLE_RATE);
     }
     c->makeup_gain = 1.0;
-    c->ratio = 0.5;
-    c->m = 0.5;
-    c->threshold = 0.2;
+    c->ratio = COMP_DEFAULT_RATIO;
+    c->m = 1.0 - c->ratio;
+    c->threshold = COMP_DEFAULT_THRESHOLD;
     endpoint_init(
 	&c->attack_time_ep,
 	&c->attack_time,
@@ -202,7 +209,11 @@ void compressor_init(Compressor *c)
 	"Attack time",
 	JDAW_THREAD_DSP,
 	track_settings_page_el_gui_cb, NULL, comp_times_dsp_cb,
-	c, NULL, NULL, "track_settings_comp_attack_slider");
+	c, NULL, &c->effect->page, "track_settings_comp_attack_slider");
+
+    endpoint_set_allowed_range(&c->attack_time_ep, (Value){.float_v=0.0f}, (Value){.float_v=200.0f});
+    endpoint_set_default_value(&c->attack_time_ep, (Value){.float_v=COMP_DEFAULT_ATTACK});
+    api_endpoint_register(&c->attack_time_ep, &c->effect->api_node);
 
     endpoint_init(
 	&c->release_time_ep,
@@ -212,7 +223,11 @@ void compressor_init(Compressor *c)
 	"Release time",
 	JDAW_THREAD_DSP,
 	track_settings_page_el_gui_cb, NULL, comp_times_dsp_cb,
-	c, NULL, NULL, "track_settings_comp_release_slider");
+	c, NULL, &c->effect->page, "track_settings_comp_release_slider");
+    endpoint_set_allowed_range(&c->release_time_ep, (Value){.float_v=0.0f}, (Value){.float_v=2000.0f});
+    endpoint_set_default_value(&c->release_time_ep, (Value){.float_v=COMP_DEFAULT_RELEASE});
+    api_endpoint_register(&c->release_time_ep, &c->effect->api_node);
+
 
     endpoint_init(
 	&c->threshold_ep,
@@ -222,7 +237,11 @@ void compressor_init(Compressor *c)
 	"Threshold",
 	JDAW_THREAD_DSP,
 	track_settings_page_el_gui_cb, NULL, NULL,
-	NULL, NULL, NULL, "track_settings_comp_threshold_slider");
+	NULL, NULL, &c->effect->page, "track_settings_comp_threshold_slider");
+    endpoint_set_allowed_range(&c->threshold_ep, (Value){.float_v=0.0f}, (Value){.float_v=1.0f});
+    endpoint_set_default_value(&c->threshold_ep, (Value){.float_v=COMP_DEFAULT_THRESHOLD});
+    api_endpoint_register(&c->threshold_ep, &c->effect->api_node);
+
     
     endpoint_init(
 	&c->ratio_ep,
@@ -232,7 +251,11 @@ void compressor_init(Compressor *c)
 	"Ratio",
 	JDAW_THREAD_DSP,
 	track_settings_page_el_gui_cb, NULL, comp_ratio_dsp_cb,
-        c, NULL, NULL, "track_settings_comp_ratio_slider");
+        c, NULL, &c->effect->page, "track_settings_comp_ratio_slider");
+    endpoint_set_allowed_range(&c->ratio_ep, (Value){.float_v=0.0f}, (Value){.float_v=1.0f});
+    endpoint_set_default_value(&c->ratio_ep, (Value){.float_v=COMP_DEFAULT_RATIO});
+    api_endpoint_register(&c->ratio_ep, &c->effect->api_node);
+
 
     endpoint_init(
 	&c->makeup_gain_ep,
@@ -242,7 +265,11 @@ void compressor_init(Compressor *c)
 	"Makeup gain",
 	JDAW_THREAD_DSP,
 	track_settings_page_el_gui_cb, NULL, NULL,
-	NULL, NULL, NULL, "track_settings_makeup_gain_slider");
+	NULL, NULL, &c->effect->page, "track_settings_makeup_gain_slider");
+    endpoint_set_allowed_range(&c->makeup_gain_ep, (Value){.float_v=1.0f}, (Value){.float_v=COMP_MAX_MAKEUP_GAIN});
+    endpoint_set_default_value(&c->makeup_gain_ep, (Value){.float_v=1.0f});
+    api_endpoint_register(&c->makeup_gain_ep, &c->effect->api_node);
+
 }
 
 

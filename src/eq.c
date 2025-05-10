@@ -189,7 +189,7 @@ void eq_init(EQ *eq)
 	ctrl->amp_ep_display_name = display_name;
 
 
-	snprintf(api_ctrl_node_names[i], 10, "eq_filter_%d", i);
+	snprintf(api_ctrl_node_names[i], 12, "eq_filter_%d", i + 1);
 
 	api_node_register(&ctrl->api_node, &eq->effect->api_node, api_ctrl_node_names[i]);
 	

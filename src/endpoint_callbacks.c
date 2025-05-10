@@ -41,60 +41,61 @@ void track_slider_cb(Endpoint *ep)
 }
 
 
-static PageEl *track_settings_get_el(const char *id)
-{
-    TabView *tv = main_win->active_tabview;
-    if (!tv) return NULL;
-    PageEl *ret = NULL;
-    for (int i=0; i<tv->num_tabs; i++) {
-	Page *tab = tv->tabs[i];
-	if ((ret = page_get_el_by_id(tab, id))) {
-	    break;
-	}
-    }
-    return ret;
-}
+
+/* static PageEl *track_settings_get_el(const char *id) */
+/* { */
+/*     TabView *tv = main_win->active_tabview; */
+/*     if (!tv) return NULL; */
+/*     PageEl *ret = NULL; */
+/*     for (int i=0; i<tv->num_tabs; i++) { */
+/* 	Page *tab = tv->tabs[i]; */
+/* 	if ((ret = page_get_el_by_id(tab, id))) { */
+/* 	    break; */
+/* 	} */
+/*     } */
+/*     return ret; */
+/* } */
 
 
-void filter_cutoff_gui_cb(Endpoint *ep)
-{
-    PageEl *el = track_settings_get_el("track_settings_filter_cutoff_slider");
-    if (!el) return;
-    Slider *s = (Slider *)el->component;
-    Value val = slider_reset(s);
-    label_reset(s->label, val);
-}
+/* void filter_cutoff_gui_cb(Endpoint *ep) */
+/* { */
+/*     /\* PageEl *el = track_settings_get_el("track_settings_filter_cutoff_slider"); *\/ */
+/*     if (!el) return; */
+/*     Slider *s = (Slider *)el->component; */
+/*     Value val = slider_reset(s); */
+/*     label_reset(s->label, val); */
+/* } */
 
 
-void filter_bandwidth_gui_cb(Endpoint *ep)
-{
-    PageEl *el = track_settings_get_el("track_settings_filter_bandwidth_slider");
-    if (!el) return;
-    Slider *s = (Slider *)el->component;
-    Value val = slider_reset(s);
-    label_reset(s->label, val);
-}
+/* void filter_bandwidth_gui_cb(Endpoint *ep) */
+/* { */
+/*     PageEl *el = track_settings_get_el("track_settings_filter_bandwidth_slider"); */
+/*     if (!el) return; */
+/*     Slider *s = (Slider *)el->component; */
+/*     Value val = slider_reset(s); */
+/*     label_reset(s->label, val); */
+/* } */
 
-/* void settings_reset_freq_plot(struct freq_plot *fp,  */
+/* /\* void settings_reset_freq_plot(struct freq_plot *fp,  *\/ */
 
-void filter_irlen_gui_cb(Endpoint *ep)
-{
+/* void filter_irlen_gui_cb(Endpoint *ep) */
+/* { */
     
-    PageEl *el = track_settings_get_el("track_settings_filter_irlen_slider");
-    if (el) {
-	Slider *s = (Slider *)el->component;
-	Value val = slider_reset(s);
-	label_reset(s->label, val);
-    }
-}
+/*     PageEl *el = track_settings_get_el("track_settings_filter_irlen_slider"); */
+/*     if (el) { */
+/* 	Slider *s = (Slider *)el->component; */
+/* 	Value val = slider_reset(s); */
+/* 	label_reset(s->label, val); */
+/*     } */
+/* } */
 
-void filter_type_gui_cb(Endpoint *ep)
-{
-    PageEl *el = track_settings_get_el("track_settings_filter_type_radio");
-    if (!el) return;
-    radio_button_reset_from_endpoint((RadioButton *)el->component);   
+/* void filter_type_gui_cb(Endpoint *ep) */
+/* { */
+/*     PageEl *el = track_settings_get_el("track_settings_filter_type_radio"); */
+/*     if (!el) return; */
+/*     radio_button_reset_from_endpoint((RadioButton *)el->component);    */
     
-}
+/* } */
 
 /* void saturation_gain_gui_cb(Endpoint *ep) */
 /* { */
@@ -115,9 +116,25 @@ void filter_type_gui_cb(Endpoint *ep)
 
 void track_settings_page_el_gui_cb(Endpoint *ep)
 {
+    /* if (!main_win->active_tabview) return; */
+
+    Page **page_loc = ep->xarg3;
+    if (!page_loc) {
+	fprintf(stderr, "Error: track settings callback: endpoint does not contain page loc in third xarg\n");
+	return;
+    }
+    Page *page = *page_loc;
+    if (!page) {
+	/* fprintf(stderr, "(page not active)\n"); */
+	return;
+    }
     const char *el_id = ep->xarg4;
-    PageEl *el = track_settings_get_el(el_id);
-    if (!el) return;
+
+    PageEl *el = page_get_el_by_id(page, el_id);
+    if (!el) {
+	fprintf(stderr, "Error: gui callback for endpoint \"%s\" failed; page element not found.\n", ep->display_name);
+	return;
+    }
     page_el_reset(el);
 }
 
@@ -132,39 +149,39 @@ void track_settings_page_el_gui_cb(Endpoint *ep)
 
 /* } */
 
-void delay_line_len_gui_cb(Endpoint *ep)
-{
-    PageEl *el = track_settings_get_el("track_settings_delay_time_slider");
-    if (el) {
-	Slider *s = (Slider *)el->component;
-	Value val = slider_reset(s);
-	label_reset(s->label, val);
+/* void delay_line_len_gui_cb(Endpoint *ep) */
+/* { */
+/*     PageEl *el = track_settings_get_el("track_settings_delay_time_slider"); */
+/*     if (el) { */
+/* 	Slider *s = (Slider *)el->component; */
+/* 	Value val = slider_reset(s); */
+/* 	label_reset(s->label, val); */
 
-    }
+/*     } */
 
-}
+/* } */
 
-void delay_line_amp_gui_cb(Endpoint *ep)
-{
-    PageEl *el = track_settings_get_el("track_settings_delay_amp_slider");
-    if (el) {
-	Slider *s = (Slider *)el->component;
-	Value val = slider_reset(s);
-	label_reset(s->label, val);
+/* void delay_line_amp_gui_cb(Endpoint *ep) */
+/* { */
+/*     PageEl *el = track_settings_get_el("track_settings_delay_amp_slider"); */
+/*     if (el) { */
+/* 	Slider *s = (Slider *)el->component; */
+/* 	Value val = slider_reset(s); */
+/* 	label_reset(s->label, val); */
 
-    }
-}
+/*     } */
+/* } */
 
-void delay_line_stereo_offset_gui_cb(Endpoint *ep)
-{
-    PageEl *el = track_settings_get_el("track_settings_delay_stereo_offset_slider");
-    if (el) {
-	Slider *s = (Slider *)el->component;
-	Value val = slider_reset(s);
-	label_reset(s->label, val);
-    }
+/* void delay_line_stereo_offset_gui_cb(Endpoint *ep) */
+/* { */
+/*     PageEl *el = track_settings_get_el("track_settings_delay_stereo_offset_slider"); */
+/*     if (el) { */
+/* 	Slider *s = (Slider *)el->component; */
+/* 	Value val = slider_reset(s); */
+/* 	label_reset(s->label, val); */
+/*     } */
     
-}
+/* } */
 
 void click_track_ebb_gui_cb(Endpoint *ep)
 {

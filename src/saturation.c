@@ -49,7 +49,8 @@ void saturation_init(Saturation *s)
 	"saturation_gain",
 	"Saturation gain",
 	JDAW_THREAD_DSP,
-	track_settings_page_el_gui_cb, NULL, saturation_gain_cb,
+	track_settings_page_el_gui_cb, NULL,
+	saturation_gain_cb,
 	(void *)s, NULL, NULL, (void *)"track_settings_saturation_gain_slider");
     endpoint_set_allowed_range(&s->gain_ep, (Value){.double_v = 1.0}, (Value){.double_v = SATURATION_MAX_GAIN});
     endpoint_set_default_value(&s->gain_ep, (Value){.double_v = 1.0});

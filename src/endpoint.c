@@ -27,9 +27,6 @@
 typedef struct project Project;
 extern Project *proj;
 
-/* int project_queue_callback(Project *proj, Endpoint *ep, EndptCb cb, enum jdaw_thread thread); */
-/* int project_queue_val_change(Project *proj, Endpoint *ep, Value new_val); */
-
 int endpoint_init(
     Endpoint *ep,
     void *val,

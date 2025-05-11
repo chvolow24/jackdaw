@@ -20,6 +20,7 @@
 #include "api.h"
 #include "endpoint.h"
 #include "project.h"
+#include "value.h"
 
 
 #define API_HASH_TABLE_SIZE 1024
@@ -371,6 +372,23 @@ void api_node_print_all_routes(APINode *node)
     for (int i=0; i<node->num_children; i++) {
         api_node_print_all_routes(node->children[i]);
     }
+}
+
+void api_node_print_routes_with_values(APINode *node)
+{
+    int dstlen = 255;
+    char dst[dstlen];
+    char valdst[dstlen];
+    for (int i=0; i<node->num_endpoints; i++) {
+	api_endpoint_get_route(node->endpoints[i], dst, dstlen);
+	ValType t;
+	jdaw_val_to_str(valdst, dstlen, endpoint_safe_read(node->endpoints[i], &t), t, 5);
+	fprintf(stderr, "%s %s\n", dst, valdst);
+    }
+    for (int i=0; i<node->num_children; i++) {
+        api_node_print_routes_with_values(node->children[i]);
+    }
+    
 }
 
 void api_table_print()

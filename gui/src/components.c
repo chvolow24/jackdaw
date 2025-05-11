@@ -739,6 +739,7 @@ void radio_destroy(RadioButton *rb)
 	textbox_destroy(rb->items[i]);
     }
     layout_destroy(rb->layout);
+    if (rb->dynamic_text) free(rb->dynamic_text);
     free(rb);
 
 }

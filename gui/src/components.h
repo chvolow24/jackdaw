@@ -88,7 +88,8 @@ typedef struct radio_button {
     /* void (*external_action)(int selected_i, void *target); */
     uint8_t num_items;
     uint8_t selected_item;
-    SDL_Color *text_color; 
+    SDL_Color *text_color;
+    char *dynamic_text;
 } RadioButton;
 
 typedef struct waveform {

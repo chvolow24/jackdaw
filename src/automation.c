@@ -557,26 +557,33 @@ static void track_add_automation_from_api_node(Track *track, APINode *node)
 
     void *items[node->num_endpoints + node->num_children];
     const char *item_labels[node->num_endpoints + node->num_children];
+
+    char *dynamic_text = NULL;
+    if (node->num_children > 0)
+	dynamic_text = calloc(node->num_children * 64, sizeof(char));
+    char *child_node_item = dynamic_text;
+
     for (int i=0; i<node->num_endpoints; i++) {
 	items[i] = node->endpoints[i];
 	item_labels[i] = node->endpoints[i]->display_name;
     }
     for (int i=0; i<node->num_children; i++) {
 	items[node->num_endpoints + i] = node->children[i];
-	item_labels[node->num_endpoints + i] = node->children[i]->obj_name;
+	int num_chars_printed = snprintf(child_node_item, 64, "%s...", node->children[i]->obj_name);
+	child_node_item[num_chars_printed] = '\0';
+	item_labels[node->num_endpoints + i] = child_node_item;
+	child_node_item += num_chars_printed + 1;
     }
     
-    modal_add_radio(
+    ModalEl *el = modal_add_radio(
 	m,
 	&color_global_light_grey,
-	/* (void *)track, */
 	&automation_selection_ep,
-	/* NULL, */
 	item_labels,
-	/* AUTOMATION_LABELS, */	
-	/* sizeof(AUTOMATION_LABELS) / sizeof(const char *)); */
 	node->num_endpoints + node->num_children);
-    
+
+    RadioButton *rb = el->obj;
+    rb->dynamic_text = dynamic_text;
     modal_add_button(m, "Add", add_auto_form);
     window_push_modal(main_win, m);
     modal_reset(m);

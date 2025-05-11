@@ -1718,12 +1718,13 @@ void user_tl_track_open_settings(void *nullarg)
 	return;
     }
     Track *track = timeline_selected_track(tl);
-    if (track->num_effects == 0) {
-	user_tl_track_add_effect(NULL);
-	return;
-    }
 
     if (track) {
+	if (track->num_effects == 0) {
+	    user_tl_track_add_effect(NULL);
+	    return;
+	}
+
 	TabView *tv = settings_track_tabview_create(track);
 	tabview_activate(tv);
 	tl->needs_redraw = true;

@@ -69,6 +69,7 @@ void api_node_renamed(APINode *node);
 int api_start_server(Project *proj, int port);
     
 void api_node_print_all_routes(APINode *node);
+void api_node_print_routes_with_values(APINode *node);
 void api_table_print();
 void api_quit(Project *proj);
 /* void api_hash_table_destroy(); */

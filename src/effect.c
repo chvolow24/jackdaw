@@ -111,7 +111,7 @@ Effect *track_add_effect(Track *track, EffectType type)
 	break;
     }
 
-    api_node_print_all_routes(&track->api_node);
+    api_node_print_routes_with_values(&track->api_node);
     
     return e;
 }

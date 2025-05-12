@@ -111,7 +111,7 @@ Effect *track_add_effect(Track *track, EffectType type)
 	break;
     }
 
-    api_node_print_routes_with_values(&track->api_node);
+    /* api_node_print_routes_with_values(&track->api_node); */
     
     return e;
 }
@@ -207,4 +207,29 @@ float effect_chain_buf_apply(Effect **effects, int num_effects, float *buf, int 
 	}
     }
     return output;
+}
+
+void effect_destroy(Effect *e)
+{
+    switch(e->type) {
+    case EFFECT_EQ:
+	eq_deinit((EQ *)e->obj);
+	break;
+    case EFFECT_FIR_FILTER:
+	filter_deinit((FIRFilter *)e->obj);
+	break;
+    case EFFECT_DELAY:
+	delay_line_deinit((DelayLine *)e->obj);
+	break;
+    case EFFECT_SATURATION:
+	/* saturation_deinit(e->obj); */
+	break;
+    case EFFECT_COMPRESSOR:
+	/* compressor_deinit(((Compressor *)e->obj); */
+	break;
+    default:
+	break;
+    }
+	free(e->obj);
+	free(e);
 }

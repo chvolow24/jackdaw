@@ -179,3 +179,11 @@ void delay_line_clear(DelayLine *dl)
     memset(dl->buf_L, '\0', dl->len * sizeof(double));
     memset(dl->buf_R, '\0', dl->len * sizeof(double));
 }
+
+
+void delay_line_deinit(DelayLine *dl)
+{
+    if (dl->buf_L) free(dl->buf_L);
+    if (dl->buf_R) free(dl->buf_R);
+    if (dl->cpy_buf) free(dl->cpy_buf);	
+}

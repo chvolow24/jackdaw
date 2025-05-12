@@ -142,6 +142,14 @@ float saturation_buf_apply(void *saturation_v, float *buf, int len, int channel_
     return output_amp;
 }
 
+
+void saturation_deinit(Saturation *s)
+{
+    /* TODO: de-register endpoints ?*/
+}
+
+
+
 /* TODO:
    - calculate gain comp whenever amp is set
    - fn pointer for sample calc, modified when type is changed

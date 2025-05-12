@@ -595,51 +595,6 @@ void track_add_new_automation(Track *track)
 {
     track_add_automation_from_api_node(track, &track->api_node);
     return;
-    Layout *lt = layout_add_child(track->tl->proj->layout);
-    layout_set_default_dims(lt);
-    Modal *m = modal_create(lt);
-    /* Automation *a = track_add_automation_internal(track, AUTO_VOL); */
-    modal_add_header(m, "Add automation to track", &color_global_light_grey, 4);
-
-    static int automation_selection = 0;
-    static Endpoint automation_selection_ep = {0};
-    if (automation_selection_ep.local_id == NULL) {
-	endpoint_init(
-	    &automation_selection_ep,
-	    &automation_selection,
-	    JDAW_INT,
-	    "",
-	    "",
-	    JDAW_THREAD_MAIN,
-	    NULL, NULL, NULL,
-	    track, NULL,NULL,NULL);
-	automation_selection_ep.block_undo = true;
-    }
-    automation_selection_ep.xarg1 = (void *)track;
-
-    APINode node = track->api_node;
-    Endpoint *items[node.num_endpoints];
-    const char *item_labels[node.num_endpoints];
-    for (int i=0; i<node.num_endpoints; i++) {
-	items[i] = node.endpoints[i];
-	item_labels[i] = node.endpoints[i]->display_name;
-    }
-    
-    modal_add_radio(
-	m,
-	&color_global_light_grey,
-	/* (void *)track, */
-	&automation_selection_ep,
-	/* NULL, */
-	item_labels,
-	/* AUTOMATION_LABELS, */	
-	/* sizeof(AUTOMATION_LABELS) / sizeof(const char *)); */
-	node.num_endpoints);
-    
-    modal_add_button(m, "Add", add_auto_form);
-    window_push_modal(main_win, m);
-    modal_reset(m);
-    modal_move_onto(m);
 }
 
 

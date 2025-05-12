@@ -31,7 +31,7 @@ extern volatile bool CANCEL_THREADS;
 static struct api_hash_node *api_hash_table[API_HASH_TABLE_SIZE] = {0};
 
 static unsigned long api_hash_route(const char *route);
-static void api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size);
+int api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size);
 
 
 static void api_endpoint_insert_into_table(Endpoint *ep)
@@ -95,7 +95,7 @@ static char make_idchar(char c)
 }
 
 
-static void api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size)
+int api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size)
 {
     char *components[MAX_ROUTE_DEPTH];
     int num_components = 0;
@@ -121,6 +121,7 @@ static void api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size)
 	offset += snprintf(dst + offset, dst_size - offset, "/%s", lowered);
 	num_components--;
     }
+    return offset;
 }
 
 /* dbj2: http://www.cse.yorku.ca/~oz/hash.html */

@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 /* #include "dsp.h" */
+#include "compressor.h"
 #include "delay_line.h"
 #include "effect.h"
 #include "eq.h"
@@ -262,23 +263,27 @@ static void jdaw_write_track(FILE *f, Track *track)
 	jdaw_write_clipref(f, track->clips[i]);
     }
 
+
+    /* Effects */
+    uint8_ser(f, &track->num_effects);
+    for (int i=0; i<track->num_effects; i++) {
+	jdaw_write_effect(f, track->effects[i]);
+    }
+
+    /* Automations */
     uint8_ser(f, &track->num_automations);
     for (uint8_t i=0; i<track->num_automations; i++) {
 	jdaw_write_automation(f, track->automations[i]);
     }
     
 
-    /* FX */
-    uint8_ser(f, &track->num_effects);
-    for (int i=0; i<track->num_effects; i++) {
-	jdaw_write_effect(f, track->effects[i]);
-    }
 }
 
 static void jdaw_write_fir_filter(FILE *f, FIRFilter *filter);
 static void jdaw_write_delay(FILE *f, DelayLine *dl);
 static void jdaw_write_saturation(FILE *f, Saturation *s);
 static void jdaw_write_eq(FILE *f, EQ *eq);
+static void jdaw_write_compressor(FILE *f, Compressor *compressor);
 
 static void jdaw_write_effect(FILE *f, Effect *e)
 {
@@ -297,6 +302,9 @@ static void jdaw_write_effect(FILE *f, Effect *e)
 	break;
     case EFFECT_SATURATION:
 	jdaw_write_saturation(f, e->obj);
+	break;
+    case EFFECT_COMPRESSOR:
+	jdaw_write_compressor(f, e->obj);
 	break;
     default:
 	break;
@@ -345,6 +353,16 @@ static void jdaw_write_eq(FILE *f, EQ *eq)
 	float_ser40_le(f, ctrl->freq_amp_raw[1]);
 	float_ser40_le(f, ctrl->bandwidth_scalar);
     }
+}
+
+static void jdaw_write_compressor(FILE *f, Compressor *c)
+{
+    fwrite(&c->active, 1, 1, f);
+    float_ser40_le(f, c->attack_time);
+    float_ser40_le(f, c->release_time);
+    float_ser40_le(f, c->threshold);
+    float_ser40_le(f, c->m);
+    float_ser40_le(f, c->makeup_gain);
 }
 
 
@@ -416,9 +434,10 @@ static void jdaw_write_automation(FILE *f, Automation *a)
     uint8_t type_byte = (uint8_t)a->type;
     fwrite(&type_byte, 1, 1, f);
     if (type_byte == AUTO_ENDPOINT) {
-	uint8_t ep_loc_id_len = strlen(a->endpoint->local_id);
-        uint8_ser(f, &ep_loc_id_len);
-	fwrite(a->endpoint->local_id, 1, ep_loc_id_len, f);
+	char route[255];
+	uint8_t route_len = api_endpoint_get_route(a->endpoint, route, 255);
+        uint8_ser(f, &route_len);
+	fwrite(route, 1, route_len, f);
     }
     /* Value type */
     type_byte = (uint8_t)a->val_type;
@@ -831,13 +850,15 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 	}
 	num_cliprefs--;
     }
-    if (read_file_spec_version >= 00.13f) {
-	uint8_t num_automations = uint8_deser(f);
-	while (num_automations > 0) {
-	    if (jdaw_read_automation(f, track) != 0) {
-		return 1;
+    if (read_file_spec_version < 00.17) {
+	if (read_file_spec_version >= 00.13f) {
+	    uint8_t num_automations = uint8_deser(f);
+	    while (num_automations > 0) {
+		if (jdaw_read_automation(f, track) != 0) {
+		    return 1;
+		}
+		num_automations--;
 	    }
-	    num_automations--;
 	}
     }
     if (read_file_spec_version >= 00.11f) {
@@ -944,6 +965,14 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 		    return ret;
 		}
 	    }
+	    uint8_t num_automations = uint8_deser(f);
+	    while (num_automations > 0) {
+		if (jdaw_read_automation(f, track) != 0) {
+		    return 1;
+		}
+		num_automations--;
+	    }
+
 	}	
     }
     return 0;
@@ -953,6 +982,7 @@ static int jdaw_read_fir_filter(FILE *f, FIRFilter *filter);
 static int jdaw_read_delay(FILE *f, DelayLine *dl);
 static int jdaw_read_saturation(FILE *f, Saturation *s);
 static int jdaw_read_eq(FILE *f, EQ *eq);
+static int jdaw_read_compressor(FILE *f, Compressor *c);
 
 
 static int jdaw_read_effect(FILE *f, Track *track)
@@ -978,6 +1008,9 @@ static int jdaw_read_effect(FILE *f, Track *track)
 	break;
     case EFFECT_SATURATION:
 	jdaw_read_saturation(f, e->obj);
+	break;
+    case EFFECT_COMPRESSOR:
+	jdaw_read_compressor(f, e->obj);
 	break;
     default:
 	break;
@@ -1043,6 +1076,20 @@ static int jdaw_read_eq(FILE *f, EQ *eq)
     return 0;
 }
 
+static int jdaw_read_compressor(FILE *f, Compressor *c)
+{
+    c->active = uint8_deser(f);
+    float attack = float_deser40_le(f);
+    float release = float_deser40_le(f);
+    c->attack_time = attack;
+    c->release_time = release;
+    compressor_set_times_msec(c, attack, release, c->effect->track->tl->proj->sample_rate);
+    c->threshold = float_deser40_le(f);
+    compressor_set_m(c, float_deser40_le(f));
+    c->makeup_gain = float_deser40_le(f);
+    return 0;
+}
+
 
 static int jdaw_read_clipref(FILE *f, Track *track)
 {
@@ -1095,20 +1142,32 @@ static int jdaw_read_automation(FILE *f, Track *track)
     Automation *a = NULL;
     AutomationType t = (AutomationType)type_byte;
     if (t == AUTO_ENDPOINT) {
-	uint8_t ep_loc_id_read_len = uint8_deser(f);
-	char loc_id[ep_loc_id_read_len];
-	fread(loc_id, 1, ep_loc_id_read_len, f);
-	for (int i=0; i<track->api_node.num_endpoints; i++) {
-	    Endpoint *ep = track->api_node.endpoints[i];
-	    int ep_loc_len = strlen(ep->local_id);
-	    if (ep_loc_len == ep_loc_id_read_len && strncmp(ep->local_id, loc_id, ep_loc_len) == 0) {
-		a = track_add_automation_from_endpoint(track, ep);
-		break;
-	    }
+	uint8_t route_len = uint8_deser(f);
+	char route[route_len + 1];	
+	fread(route, 1, route_len, f);
+	route[route_len] = '\0';
+
+
+	Endpoint *ep = api_endpoint_get(route);
+	if (ep) {
+	    a = track_add_automation_from_endpoint(track, ep);
+	} else {
+	    fprintf(stderr, "Could not get ep with route %s\n", route);
 	}
+	/* for (int i=0; i<track->api_node.num_endpoints; i++) { */
+	/*     Endpoint *ep = track->api_node.endpoints[i]; */
+	/*     int ep_loc_len = strlen(ep->local_id); */
+	/*     if (ep_loc_len == ep_loc_id_read_len && strncmp(ep->local_id, loc_id, ep_loc_len) == 0) { */
+	/* 	a = track_add_automation_from_endpoint(track, ep); */
+	/* 	break; */
+	/*     } */
+	/* } */
 	/* fwrite(a->endpoint->local_id, 1, ep_loc_id_len, f); */
     } else {
 	a = track_add_automation(track, t);
+    }
+    if (!a) {
+	return 1;
     }
     a->val_type = (ValType)uint8_deser(f);
 

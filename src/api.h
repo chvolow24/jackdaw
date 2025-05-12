@@ -62,6 +62,7 @@ typedef struct api_hash_node {
 
 void api_endpoint_register(Endpoint *ep, APINode *parent);
 Endpoint *api_endpoint_get(const char *route);
+int api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size);
 void api_node_register(APINode *node, APINode *parent, char *obj_name);
 void api_node_renamed(APINode *node);
 /* static void api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size); */

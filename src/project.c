@@ -2479,27 +2479,18 @@ void track_undelete(Track *track)
 }
 void track_destroy(Track *track, bool displace)
 {
-    /* Clip *clips_to_destroy[MAX_PROJ_CLIPS]; */
-    /* uint8_t num_clips_to_destroy = 0; */
     for (uint16_t i=0; i<track->num_clips; i++) {
 	ClipRef *cr = track->clips[i];
 	if (cr) {
-	    /* if (cr->home) { */
-	    /* 	clips_to_destroy[num_clips_to_destroy] = cr->clip; */
-	    /* 	num_clips_to_destroy++; */
-	    /* } */
 	    clipref_destroy_no_displace(track->clips[i]);
 	}
     }
-
-    /* eq_deinit(&track->eq); */
-    /* fprintf(stdout, "OK deleted all crs, now clips\n"); */
-    /* while (num_clips_to_destroy > 0) { */
-    /* 	/\* fprintf(stdout, "Deleting clip\n"); *\/ */
-    /* 	clip_destroy(clips_to_destroy[num_clips_to_destroy - 1]); */
-    /* 	num_clips_to_destroy--; */
-    /* } */
-    /* fprintf(stdout, "Ok deleted all clips\n"); */
+    for (int i=0; i<track->num_automations; i++) {
+	automation_destroy(track->automations[i]);
+    }
+    for (int i=0; i<track->num_effects; i++) {
+	effect_destroy(track->effects[i]);
+    }
     slider_destroy(track->vol_ctrl);
     slider_destroy(track->pan_ctrl);
     textentry_destroy(track->tb_name);

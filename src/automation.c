@@ -97,6 +97,8 @@ void automation_destroy(Automation *a)
 	textbox_destroy(a->label);
     if (a->keyframe_label)
 	label_destroy(a->keyframe_label);
+    if (a->endpoint)
+	a->endpoint->automation = NULL;
     button_destroy(a->read_button);
     button_destroy(a->write_button);
     if (a->layout)

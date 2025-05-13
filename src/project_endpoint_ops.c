@@ -72,7 +72,6 @@ void project_flush_val_changes(Project *proj, enum jdaw_thread thread)
 	project_queue_callback(proj, deferred_eps[i], deferred_cbs[i], deferred_threads[i]);
     }
     num_deferred = 0;
-
 }
 
 int project_queue_callback(Project *proj, Endpoint *ep, EndptCb cb, enum jdaw_thread thread)

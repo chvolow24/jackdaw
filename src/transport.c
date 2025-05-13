@@ -296,6 +296,7 @@ static void *transport_dsp_thread_fn(void *arg)
 	project_flush_val_changes(proj, JDAW_THREAD_DSP);
 	project_flush_callbacks(proj, JDAW_THREAD_DSP);
     }
+
     return NULL;
 }
 
@@ -393,6 +394,11 @@ void transport_stop_playback()
     /* fprintf(stdout, "Cancelled!\n"); */
     proj->src_play_speed = 0.0f;
     proj->play_speed = 0.0f;
+
+    project_do_ongoing_changes(proj, JDAW_THREAD_DSP);
+    project_flush_val_changes(proj, JDAW_THREAD_DSP);
+    project_flush_callbacks(proj, JDAW_THREAD_DSP);
+
     
     PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_play");
     Textbox *play_button = ((Button *)el->component)->tb;

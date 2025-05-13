@@ -227,7 +227,7 @@ void eq_init(EQ *eq)
 	endpoint_set_allowed_range(
 	    &ctrl->freq_ep,
 	    (Value){.double_v = 0.0},
-	    (Value){.double_v = 1.0});
+	    (Value){.double_v = 0.999});
 	endpoint_set_default_value(
 	    &ctrl->freq_ep,
 	    (Value){.double_v = 0.1});
@@ -267,7 +267,7 @@ void eq_init(EQ *eq)
 	    (void*)eq, (void*)(ctrl), NULL, NULL);
 	endpoint_set_allowed_range(
 	    &ctrl->bandwidth_preferred_ep,
-	    (Value){.double_v = 0.0},
+	    (Value){.double_v = 0.001},
 	    (Value){.double_v = 1.0});
 	endpoint_set_default_value(
 	    &ctrl->bandwidth_preferred_ep,

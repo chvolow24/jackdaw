@@ -100,7 +100,7 @@ NEW_EVENT_FN(undo_redo_endpoint_write, "")
     bool run_gui_cb = cb_bf & 0b001;
     bool run_proj_cb = cb_bf & 0b010;
     bool run_dsp_cb = cb_bf & 0b100;
-fprintf(stderr, "undo %s %s\n", ep->local_id, ep->display_name);
+/* fprintf(stderr, "undo %s %s\n", ep->local_id, ep->display_name); */
     endpoint_write(
 	ep,
 	val1,
@@ -127,7 +127,7 @@ int endpoint_write(
     bool run_dsp_cb,
     bool undoable)
 {
-    /* fprintf(stderr, "WRITING to ep %s\n", ep->local_id); */
+    /* fprintf(stderr, "WRITE %s\n", ep->local_id); */
     int ret = 0;
     if (ep->restrict_range) {
 	if (jdaw_val_less_than(new_val, ep->min, ep->val_type)) {
@@ -145,6 +145,7 @@ int endpoint_write(
     bool async_change_will_occur = false;
     /* Value change */
     enum jdaw_thread owner = endpoint_get_owner(ep);
+    /* fprintf(stderr, "Owner? %d.. on owner? %d !proj->playing && owner == JDAW_THREAD_DSP %d?\n", owner, on_thread(owner), !proj->playing && owner == JDAW_THREAD_DSP); */
     if (on_thread(owner) || (!proj->playing && owner == JDAW_THREAD_DSP)) {
 	pthread_mutex_lock(&ep->val_lock);
 	jdaw_val_set_ptr(ep->val, ep->val_type, new_val);
@@ -160,6 +161,7 @@ int endpoint_write(
 	/*     jdaw_val_set_ptr(ep->val, ep->val_type, new_val); */
 	/*     pthread_mutex_unlock(&ep->lock);	     */
 	/* } else { */
+	/* fprintf(stderr, "queueing...\n"); */
 	project_queue_val_change(proj, ep, new_val, run_gui_cb);
 	async_change_will_occur = true;
 	ret = 1;
@@ -285,8 +287,8 @@ void endpoint_start_continuous_change(
     if (ep->changing) return;
     ep->changing = true;
     ep->cached_val = endpoint_safe_read(ep, NULL);
-    ep->cached_owner = endpoint_get_owner(ep);
-    endpoint_set_owner(ep, thread);
+    /* ep->cached_owner = endpoint_get_owner(ep); */
+    /* endpoint_set_owner(ep, thread); */
 
     endpoint_write(ep, new_value, true, true, true, false);
 
@@ -306,7 +308,7 @@ void endpoint_continuous_change_do_incr(Endpoint *ep)
 
 void endpoint_stop_continuous_change(Endpoint *ep)
 {
-    endpoint_set_owner(ep, ep->cached_owner);
+    /* endpoint_set_owner(ep, ep->cached_owner); */
     uint8_t callback_bitfield = 0b111;
     /* callback_bitfield |= 0b001; */
     /* if (run_proj_cb) callback_bitfield |= 0b010; */

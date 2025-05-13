@@ -1113,7 +1113,7 @@ void user_tl_add_track(void *nullarg)
     }
     Timeline *tl = ACTIVE_TL;
     Track *track = timeline_add_track(tl);
-    
+    if (!track) return;
     PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_add_track");
     Button *btn = (Button *)el->component;
     button_press_color_change(

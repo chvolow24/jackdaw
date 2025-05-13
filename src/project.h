@@ -81,7 +81,7 @@
 
 #define PROJ_NUM_METRONOMES 1
 
-#define MAX_QUEUED_OPS 64
+#define MAX_QUEUED_OPS 255
 #define MAX_ANIMATIONS 64
 
 typedef struct project Project;

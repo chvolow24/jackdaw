@@ -1429,6 +1429,7 @@ static int auto_dropdown_action(void *self, void *xarg)
 
 Track *timeline_add_track(Timeline *tl)
 {
+    if (tl->num_tracks == MAX_TRACKS) return NULL;
     Track *track = calloc(1, sizeof(Track));
     tl->tracks[tl->num_tracks] = track;
     track->tl_rank = tl->num_tracks++;

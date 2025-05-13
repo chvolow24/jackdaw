@@ -251,10 +251,10 @@ static void *server_threadfn(void *arg)
 
 	Endpoint *ep = api_endpoint_get(buffer);
 	if (ep) {
-	    fprintf(stderr, "REC: %s\n", buffer);
+	    /* fprintf(stderr, "REC: %s\n", buffer); */
 	    char dst[255];
 	    api_endpoint_get_route(ep, dst, 255);
-	    fprintf(stderr, "ROUTE: %s\n", dst);
+	    /* fprintf(stderr, "ROUTE: %s\n", dst); */
 	    Value new_val = jdaw_val_from_str(buffer + val_offset, ep->val_type);
 	    endpoint_write(ep, new_val, true, true, true, false);
 	} else {

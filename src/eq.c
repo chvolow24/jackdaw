@@ -350,10 +350,10 @@ void eq_set_filter_from_ctrl(EQ *eq, int index)
     static const double epsilon = 1e-9;
     if (fabs(amp_raw - 1.0) < epsilon) {
 	eq->ctrls[index].filter_active = false;
-	eq_select_ctrl(eq, index);
+	/* eq_select_ctrl(eq, index); */
     } else {
 	eq->ctrls[index].filter_active = true;
-	eq_select_ctrl(eq, index);
+	/* eq_select_ctrl(eq, index); */
     }
 
     switch(filter->type) {

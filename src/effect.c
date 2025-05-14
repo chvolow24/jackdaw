@@ -45,10 +45,45 @@ const char *effect_type_str(EffectType type)
     return effect_type_strings[type];
 }
 
+/* static void track_effect_order_gui_cb(Endpoint *ep) */
+/* { */
+/*     Value v = endpoint_safe_read(ep, NULL); */
+/*     int swap_i = (int)v.double_pair_v[0]; */
+/*     int swap_j = (int)v.double_pair_v[1]; */
+
+/*     /\* fprintf(stderr, "GUI CB: %d %d\n", swap_i, swap_j); *\/ */
+/*     TabView *tv = main_win->active_tabview; */
+/*     if (tv && strcmp(tv->title, "Track Effects") == 0) { */
+/* 	tabview_swap_adjacent_tabs(tv, swap_i, swap_j); */
+/*     } */
+/* } */
+
+/* static void track_effect_order_dsp_cb(Endpoint *ep) */
+/* { */
+/*     Effect **effects = ep->xarg1; */
+/*     Value v = endpoint_safe_read(ep, NULL); */
+/*     int swap_i = (int)v.double_pair_v[0]; */
+/*     int swap_j = (int)v.double_pair_v[1]; */
+/*     Effect *dst = effects[swap_j]; */
+/*     effects[swap_j] = effects[swap_i]; */
+/*     effects[swap_i] = dst; */
+    
+/* } */
 
 Effect *track_add_effect(Track *track, EffectType type)
 {
 
+    /* if (track->num_effects == 0) { */
+    /* 	endpoint_init( */
+    /* 	    &track->effect_order_swap_ep, */
+    /* 	    &track->order_swap_indices, */
+    /* 	    JDAW_DOUBLE_PAIR, */
+    /* 	    "effect_order_swap", */
+    /* 	    "", */
+    /* 	    JDAW_THREAD_DSP, */
+    /* 	    track_effect_order_gui_cb, NULL, track_effect_order_dsp_cb, */
+    /* 	    &track->effects, NULL, NULL, NULL); */
+    /* } */
     if (track->num_effects == MAX_TRACK_EFFECTS) {
 	fprintf(stderr, "Error: track has maximum number of effects (%d)\n", MAX_TRACK_EFFECTS);
 	return NULL;

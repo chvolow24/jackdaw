@@ -859,7 +859,7 @@ void tabview_previous_tab(TabView *tv)
 }
 
 
-static void tabview_swap_adjacent_tabs(TabView *tv, int current, int new)
+void tabview_swap_adjacent_tabs(TabView *tv, int current, int new, bool apply_swapfn)
 {
     Textbox *displaced_label = tv->labels[new];
     Textbox *current_label = tv->labels[current];
@@ -873,15 +873,18 @@ static void tabview_swap_adjacent_tabs(TabView *tv, int current, int new)
     layout_reset(tv->layout);
     proj->timelines[proj->active_tl_index]->needs_redraw = true;
 
-    if (tv->related_array) {
-	char *new_addr = (char *)tv->related_array + new * tv->related_array_el_size;
-	char *current_addr = (char *)tv->related_array + current * tv->related_array_el_size;
-
-	void *displaced_obj = malloc(tv->related_array_el_size);
-	memcpy(displaced_obj, new_addr, tv->related_array_el_size);
-	memmove(new_addr, current_addr, tv->related_array_el_size);
-	memcpy(current_addr, displaced_obj, tv->related_array_el_size);	
+    if (apply_swapfn && tv->swap_fn) {
+	tv->swap_fn(tv->swap_fn_target, current, new);
     }
+    /* if (tv->related_array) { */
+    /* 	char *new_addr = (char *)tv->related_array + new * tv->related_array_el_size; */
+    /* 	char *current_addr = (char *)tv->related_array + current * tv->related_array_el_size; */
+
+    /* 	void *displaced_obj = malloc(tv->related_array_el_size); */
+    /* 	memcpy(displaced_obj, new_addr, tv->related_array_el_size); */
+    /* 	memmove(new_addr, current_addr, tv->related_array_el_size); */
+    /* 	memcpy(current_addr, displaced_obj, tv->related_array_el_size);	 */
+    /* } */
 
 }
 void tabview_move_current_tab_left(TabView *tv)
@@ -891,7 +894,7 @@ void tabview_move_current_tab_left(TabView *tv)
     if ((current = tv->current_tab) == 0) return;
     new = current - 1;
 
-    tabview_swap_adjacent_tabs(tv, current, new);
+    tabview_swap_adjacent_tabs(tv, current, new, true);
     tabview_select_tab(tv, new);
     /* Textbox *displaced_label = tv->labels[current - 1]; */
     /* float displaced_label_x = displaced_label->layout->x.value; */
@@ -912,7 +915,7 @@ void tabview_move_current_tab_right(TabView *tv)
     if ((current = tv->current_tab) == tv->num_tabs - 1) return;
     new = current + 1;
 
-    tabview_swap_adjacent_tabs(tv, current, new);
+    tabview_swap_adjacent_tabs(tv, current, new, true);
     tabview_select_tab(tv, new);
 }
 

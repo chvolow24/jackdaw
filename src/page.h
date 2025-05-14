@@ -86,8 +86,10 @@ typedef struct tab_view {
     Layout *layout;
     Window *win;
 
-    void *related_array;
-    size_t related_array_el_size;
+    /* void *related_array; */
+    void (*swap_fn)(void *array, int swap_i, int swap_j);
+    void *swap_fn_target;
+    /* size_t related_array_el_size; */
 } TabView;
 
 struct slider_params {
@@ -226,6 +228,8 @@ bool tabview_mouse_motion(TabView *tv);
 void tabview_next_tab(TabView *tv);
 void tabview_previous_tab(TabView *tv);
 
+
+void tabview_swap_adjacent_tabs(TabView *tv, int current, int new, bool apply_swapfn);
 void tabview_move_current_tab_left(TabView *tv);
 void tabview_move_current_tab_right(TabView *tv);
     

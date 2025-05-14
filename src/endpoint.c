@@ -172,15 +172,12 @@ int endpoint_write(
     bool on_main = on_thread(JDAW_THREAD_MAIN);
     if (run_dsp_cb && ep->dsp_callback) {
 	if (on_thread(JDAW_THREAD_DSP)) {
-	    /* fprintf(stderr, "DSP CALLBACK SYNCHRONOUS\n"); */
 	    ep->dsp_callback(ep);
 	} else {
 	    if (proj->playing) {
-		/* fprintf(stderr, "DSP CALLBACK scheduled.....\n"); */
 		project_queue_callback(proj, ep, ep->dsp_callback, JDAW_THREAD_DSP);
 		async_change_will_occur = true;
 	    } else {
-		/* fprintf(stderr, "DSP CALLBACK SYNCHRONOUS\n"); */
 		ep->dsp_callback(ep);
 	    }
 	}	
@@ -216,9 +213,10 @@ int endpoint_write(
 	}
 	/* if (!jdaw_val_equal(old_val, new_val, ep->val_type)) { */
 	    uint8_t callback_bitfield = 0;
-	    if (run_gui_cb) callback_bitfield |= 0b001;
-	    if (run_proj_cb) callback_bitfield |= 0b010;
-	    if (run_dsp_cb) callback_bitfield |= 0b100;
+	    /* if (run_gui_cb) callback_bitfield |= 0b001; */
+	    /* if (run_proj_cb) callback_bitfield |= 0b010; */
+	    /* if (run_dsp_cb) callback_bitfield |= 0b100; */
+	    callback_bitfield = 0b111;
 	    Value cb_matrix = {.uint8_v = callback_bitfield};
 	    user_event_push(
 		&proj->history,

@@ -132,8 +132,9 @@ typedef struct track {
 
     Effect *effects[MAX_TRACK_EFFECTS];
     uint8_t num_effects;
-
     uint8_t num_effects_per_type[NUM_EFFECT_TYPES];
+    /* double order_swap_indices[2]; /\* exploting existence of double_pair jdaw val type *\/ */
+    /* Endpoint effect_order_swap_ep; */
     
     /* EQ eq; */
 

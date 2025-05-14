@@ -89,14 +89,53 @@ Page *effect_add_page(Effect *e, TabView *tv)
     return p;
 }
 
+static void track_effects_swap_pair(Track *track, int swap_i, int swap_j, bool from_undo);
+
+NEW_EVENT_FN(undo_redo_swap_effect_order, "undo/redo change effect order")
+    Track *track = obj1;
+    int swap_i = val1.double_pair_v[0];
+    int swap_j = val1.double_pair_v[1];
+    track_effects_swap_pair(track, swap_i, swap_j, true);
+}
+
+static void track_effects_swap_pair(Track *track, int swap_i, int swap_j, bool from_undo)
+{
+    Effect *displaced = track->effects[swap_i];
+    track->effects[swap_i] = track->effects[swap_j];
+    track->effects[swap_j] = displaced;
+    if (!from_undo) {
+	user_event_push(
+	    &proj->history,
+	    undo_redo_swap_effect_order,undo_redo_swap_effect_order, NULL, NULL,
+	    track, NULL,
+	    (Value){.double_pair_v = {swap_j, swap_i}}, (Value){0},
+	    (Value){.double_pair_v = {swap_i, swap_j}}, (Value){0},
+	    0, 0,
+	    false, false);
+    } else {
+	TabView *tv = main_win->active_tabview;
+	if (tv && strcmp(tv->title, "Track Effects") == 0) {
+	    tabview_swap_adjacent_tabs(tv, swap_i, swap_j, false);
+	}
+    }
+
+}
+
+static void swapfn(void *target, int swap_i, int swap_j)
+{
+    Track *track = target;
+    track_effects_swap_pair(track, swap_i, swap_j, false);
+	
+}
+
 TabView *track_effects_tabview_create(Track *track)
 {
     TabView *tv = tabview_create("Track Effects", proj->layout, main_win);
     for (int i=0; i<track->num_effects; i++) {
 	effect_add_page(track->effects[i], tv);
     }
-    tv->related_array = &track->effects;
-    tv->related_array_el_size = sizeof(Effect *);
+    tv->swap_fn = swapfn;
+    tv->swap_fn_target = track;
     return tv;
 
 }

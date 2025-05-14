@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include "compressor.h"
 #include "consts.h"
+#include "endpoint.h"
 #include "endpoint_callbacks.h"
 #include "geometry.h"
 #include "project.h"
@@ -53,7 +54,7 @@ extern Window *main_win;
 float compressor_buf_apply(void *compressor_v, float *buf, int len, int channel, float input_amp)
 {
     Compressor *c = compressor_v;
-    if (!c->active) return input_amp;
+    /* if (!c->active) return input_amp; */
     float amp_scalar;
     float env;
     float output_amp = 0.0f;
@@ -188,6 +189,16 @@ void comp_ratio_dsp_cb(Endpoint *ep)
     c->m = 1.0f - c->ratio;
 }
 
+static void ratio_labelfn(char *dst, size_t dstsize, Value v, ValType type)
+{
+    float r = v.float_v;
+    r = 1.0f-r;
+    int num = (int)(1.0f/r);
+    snprintf(dst, dstsize, "%d:1", num);
+}
+
+
+
 void compressor_init(Compressor *c)
 {
     c->attack_time = COMP_DEFAULT_ATTACK;
@@ -201,6 +212,21 @@ void compressor_init(Compressor *c)
     c->ratio = COMP_DEFAULT_RATIO;
     c->m = 1.0 - c->ratio;
     c->threshold = COMP_DEFAULT_THRESHOLD;
+
+    /* endpoint_init( */
+    /* 	&c->active_ep, */
+    /* 	&c->active, */
+    /* 	JDAW_BOOL, */
+    /* 	"compressor_active", */
+    /* 	"Compressor active", */
+    /* 	JDAW_THREAD_DSP, */
+    /* 	track_settings_page_el_gui_cb, NULL, NULL, */
+    /* 	c, NULL, &c->effect->page, "track_settings_comp_active_toggle"); */
+    /* endpoint_set_default_value(&c->attack_time_ep, (Value){.float_v=}); */
+    /* endpoint_set_label_fn(&c->attack_time_ep, label_msec); */
+    /* api_endpoint_register(&c->active_ep, &c->effect->api_node); */
+	
+    
     endpoint_init(
 	&c->attack_time_ep,
 	&c->attack_time,
@@ -213,6 +239,7 @@ void compressor_init(Compressor *c)
 
     endpoint_set_allowed_range(&c->attack_time_ep, (Value){.float_v=0.0f}, (Value){.float_v=200.0f});
     endpoint_set_default_value(&c->attack_time_ep, (Value){.float_v=COMP_DEFAULT_ATTACK});
+    endpoint_set_label_fn(&c->attack_time_ep, label_msec);
     api_endpoint_register(&c->attack_time_ep, &c->effect->api_node);
 
     endpoint_init(
@@ -226,6 +253,7 @@ void compressor_init(Compressor *c)
 	c, NULL, &c->effect->page, "track_settings_comp_release_slider");
     endpoint_set_allowed_range(&c->release_time_ep, (Value){.float_v=0.0f}, (Value){.float_v=2000.0f});
     endpoint_set_default_value(&c->release_time_ep, (Value){.float_v=COMP_DEFAULT_RELEASE});
+    endpoint_set_label_fn(&c->attack_time_ep, label_msec);
     api_endpoint_register(&c->release_time_ep, &c->effect->api_node);
 
 
@@ -254,8 +282,8 @@ void compressor_init(Compressor *c)
         c, NULL, &c->effect->page, "track_settings_comp_ratio_slider");
     endpoint_set_allowed_range(&c->ratio_ep, (Value){.float_v=0.0f}, (Value){.float_v=1.0f});
     endpoint_set_default_value(&c->ratio_ep, (Value){.float_v=COMP_DEFAULT_RATIO});
+    endpoint_set_label_fn(&c->ratio_ep, ratio_labelfn);
     api_endpoint_register(&c->ratio_ep, &c->effect->api_node);
-
 
     endpoint_init(
 	&c->makeup_gain_ep,

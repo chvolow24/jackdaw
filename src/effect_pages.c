@@ -153,6 +153,13 @@ static double unscale_freq(double scaled);
 static int toggle_delay_line_target_action(void *self_v, void *target);
 static int toggle_saturation_gain_comp(void *self_v, void *target);
 
+/* static int toggle_eq_active(void *self_v, void *target); */
+/* static int toggle_fir_filter_active(void *self_v, void *target); */
+/* static int toggle_delay_line_active(void *self_v, void *target); */
+/* static int toggle_saturation_active(void *self_v, void *target); */
+/* static int toggle_compressor_active(void *self_v, void *target); */
+
+
 Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
 {
     Page *page = tab_view_add_page(
@@ -176,9 +183,10 @@ Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
     textbox_set_align(tb, CENTER_LEFT);
     textbox_reset_full(tb);
 
-    p.toggle_p.value = &eq->active;
-    p.toggle_p.target = NULL;
-    p.toggle_p.action = NULL;
+    /* p.toggle_p.value = &eq->active; */
+    /* p.toggle_p.target = NULL; */
+    /* p.toggle_p.action = NULL; */
+    p.toggle_p.ep = &eq->effect->active_ep;
     page_add_el(page, EL_TOGGLE, p, "track_settings_eq_toggle", "toggle_eq_on");
     
 
@@ -235,9 +243,10 @@ Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
     }
     /* memset(&p, '\0', sizeof(p)); */
 
-    p.toggle_p.action = filter_active_toggle;
-    p.toggle_p.target = eq;
-    p.toggle_p.value = &eq->selected_filter_active;
+    /* p.toggle_p.action = filter_active_toggle; */
+    /* p.toggle_p.target = eq; */
+    /* p.toggle_p.value = &eq->selected_filter_active; */
+    p.toggle_p.ep = &eq->effect->active_ep;
     page_add_el(page, EL_TOGGLE, p, "", "filter_active_toggle");
 
     p.textbox_p.font = main_win->mono_font;
@@ -373,9 +382,10 @@ Page *add_fir_filter_page(FIRFilter *f, Track *track, TabView *tv)
     textbox_set_align(tb, CENTER_LEFT);
     textbox_reset_full(tb);
 
-    p.toggle_p.value = &f->active;
-    p.toggle_p.target = NULL;
-    p.toggle_p.action = NULL;
+    /* p.toggle_p.value = &f->active; */
+    /* p.toggle_p.target = NULL; */
+    /* p.toggle_p.action = NULL; */
+    p.toggle_p.ep = &f->effect->active_ep;
     page_add_el(page, EL_TOGGLE, p, "track_settings_filter_toggle", "toggle_filter_on");
     
     f->cutoff_freq_unscaled = unscale_freq(f->cutoff_freq);
@@ -456,9 +466,10 @@ Page *add_delay_page(DelayLine *d, Track *track, TabView *tv)
 	main_win);
 
     PageElParams p;
-    p.toggle_p.value = &d->active;
-    p.toggle_p.action = toggle_delay_line_target_action;
-    p.toggle_p.target = (void *)(d);
+    /* p.toggle_p.value = &d->active; */
+    /* p.toggle_p.action = toggle_delay_line_target_action; */
+    /* p.toggle_p.target = (void *)(d); */
+    p.toggle_p.ep = &d->effect->active_ep;
     PageEl *el = page_add_el(page, EL_TOGGLE, p, "track_settings_delay_toggle", "toggle_delay");
 
     p.textbox_p.set_str = "Delay line on";
@@ -533,9 +544,10 @@ Page *add_saturation_page(Saturation *s, Track *track, TabView *tv)
 	main_win);
 
     PageElParams p;
-    p.toggle_p.value = &s->active;
-    p.toggle_p.action = NULL;
-    p.toggle_p.target = NULL;
+    /* p.toggle_p.value = &s->active; */
+    /* p.toggle_p.action = NULL; */
+    /* p.toggle_p.target = NULL; */
+    p.toggle_p.ep = &s->effect->active_ep;
     PageEl *el = page_add_el(page, EL_TOGGLE, p, "track_settings_saturation_toggle", "toggle_saturation");
 
     p.textbox_p.set_str = "Saturation on";
@@ -548,9 +560,10 @@ Page *add_saturation_page(Saturation *s, Track *track, TabView *tv)
     textbox_reset_full(tb);
 
 
-    p.toggle_p.value = &s->do_gain_comp;
-    p.toggle_p.action = toggle_saturation_gain_comp;
-    p.toggle_p.target = s;
+    /* p.toggle_p.value = &s->do_gain_comp; */
+    /* p.toggle_p.action = toggle_saturation_gain_comp; */
+    /* p.toggle_p.target = s; */
+    p.toggle_p.ep = &s->effect->active_ep;
     el = page_add_el(page, EL_TOGGLE, p, "track_settings_saturation_gain_comp_toggle", "toggle_gain_comp");
 
     p.textbox_p.set_str = "Gain compensation";
@@ -614,9 +627,10 @@ Page *add_compressor_page(Compressor *c, Track *track, TabView *tv)
 	main_win);
 
     PageElParams p;
-    p.toggle_p.value = &c->active;
-    p.toggle_p.action = NULL;
-    p.toggle_p.target = NULL;
+    /* p.toggle_p.value = &c->active; */
+    /* p.toggle_p.action = NULL; */
+    /* p.toggle_p.target = NULL; */
+    p.toggle_p.ep = &c->effect->active_ep;
     PageEl *el = page_add_el(page, EL_TOGGLE, p, "track_settings_comp_toggle", "toggle_comp");
 
     p.textbox_p.set_str = "Compressor on";
@@ -688,6 +702,7 @@ Page *add_compressor_page(Compressor *c, Track *track, TabView *tv)
     p.slider_p.ep = &c->ratio_ep;
     p.slider_p.min = (Value){.float_v = 0.0};
     p.slider_p.max = (Value){.float_v = 1.0};
+    p.slider_p.create_label_fn = c->ratio_ep.label_fn;
     el = page_add_el(page, EL_SLIDER, p, "track_settings_comp_ratio_slider", "ratio_slider");
     sl = el->component;
     slider_reset(sl);
@@ -856,5 +871,28 @@ static int toggle_saturation_gain_comp(void *self_v, void *target)
     /* fprintf(stderr, "WRITING TYPE: %d\n", s->type); */
     endpoint_write(&s->gain_comp_ep, (Value){.bool_v = s->do_gain_comp}, true, true, true, true);
     return 0;
-
 }
+
+
+
+
+/* static int toggle_eq_active(void *self_v, void *target) */
+/* { */
+    
+/* } */
+/* static int toggle_fir_filter_active(void *self_v, void *target) */
+/* { */
+
+/* } */
+/* static int toggle_delay_line_active(void *self_v, void *target) */
+/* { */
+
+/* } */
+/* static int toggle_saturation_active(void *self_v, void *target) */
+/* { */
+
+/* } */
+/* static int toggle_compressor_active(void *self_v, void *target) */
+/* { */
+
+/* } */

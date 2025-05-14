@@ -125,7 +125,7 @@ void saturation_set_type(Saturation *s, SaturationType t)
 
 static double saturation_sample(Saturation *s, double in)
 {
-    if (!s->active) return in;
+    /* if (!s->active) return in; */
     return s->sample_fn(s, in);
     /* return tanh(in * s->amp); */
 }
@@ -133,7 +133,7 @@ static double saturation_sample(Saturation *s, double in)
 float saturation_buf_apply(void *saturation_v, float *buf, int len, int channel_unused, float input_amp)
 {
     Saturation *s = saturation_v;
-    if (!s->active) return input_amp;
+    /* if (!s->active) return input_amp; */
     float output_amp = 0.0f;
     for (int i=0; i<len; i++) {
 	buf[i] = saturation_sample(s, buf[i]);
@@ -143,10 +143,10 @@ float saturation_buf_apply(void *saturation_v, float *buf, int len, int channel_
 }
 
 
-void saturation_deinit(Saturation *s)
-{
-    /* TODO: de-register endpoints ?*/
-}
+/* void saturation_deinit(Saturation *s) */
+/* { */
+/*     /\* TODO: de-register endpoints ? *\/ */
+/* } */
 
 
 

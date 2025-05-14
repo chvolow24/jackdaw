@@ -33,7 +33,7 @@ typedef enum filter_type {
 } FilterType;
 
 typedef struct fir_filter {
-    bool active;
+    /* bool active; */
     bool initialized;
     FilterType type;
     double cutoff_freq_unscaled; /* For gui components and automations */

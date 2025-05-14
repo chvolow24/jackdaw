@@ -477,8 +477,12 @@ Value jdaw_val_scale(Value a, double scalar, ValType vt)
     case JDAW_INT32:
 	ret.int32_v = (int32_t)((double)a.int32_v * scalar);
 	break;
-    case JDAW_BOOL:
-	ret.bool_v = a.bool_v * scalar;
+    case JDAW_BOOL: {
+	if (scalar > -0.5 && scalar < 0.5)
+	    ret.bool_v = false;
+	else 
+	    ret.bool_v = true;
+    }
 	break;
     case JDAW_DOUBLE_PAIR:
 	ret.double_pair_v[0] = a.double_pair_v[0] * scalar;

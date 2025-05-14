@@ -248,7 +248,11 @@ Automation *track_add_automation_from_endpoint(Track *track, Endpoint *ep)
 
     a->val_type = ep->val_type;
     a->min = ep->min;
-    a->max = ep->max;
+    if (a->val_type == JDAW_BOOL) a->min = (Value){.bool_v = false};
+    else a->min = ep->min;
+    if (a->val_type == JDAW_BOOL) a->max = (Value){.bool_v = true};
+    else a->max = ep->max;
+    /* a->max = ep->max; */
     a->range = jdaw_val_sub(ep->max, ep->min, ep->val_type);
     a->target_val = ep->val;
     Value base_kf_val = ep->default_val;
@@ -884,7 +888,11 @@ static void keyframe_set_y_prop(Automation *a, uint16_t insert_i)
 {
     Keyframe *k = a->keyframes + insert_i;
     Value v = jdaw_val_sub(k->value, a->min, a->val_type);
-    k->draw_y_prop = jdaw_val_div_double(v, a->range, a->val_type);
+    if (a->val_type == JDAW_BOOL) {
+	k->draw_y_prop = v.bool_v ? 1.0f : 0.0f;
+    } else {
+	k->draw_y_prop = jdaw_val_div_double(v, a->range, a->val_type);
+    }
 }
 
 static void keyframe_move(Keyframe *k, int32_t new_pos, Value new_value)
@@ -1125,8 +1133,10 @@ static Value automation_value_at(Automation *a, int32_t pos)
 {
     Keyframe *current = automation_check_get_cache(a, pos);
     if (!current) return a->keyframes[0].value;
+    if (a->val_type == JDAW_BOOL) return current->value;
     int32_t pos_rel = pos - current->pos;
     double scalar = (double)pos_rel / current->m_fwd.dx;
+    /* fprintf(stderr, "Scalar: %f\n", scalar); */
     Value ret = jdaw_val_add(current->value, jdaw_val_scale(current->m_fwd.dy, scalar, a->val_type), a->val_type);
     return ret;
 }
@@ -1610,14 +1620,32 @@ void automation_draw(Automation *a)
 		SDL_RenderDrawRect(main_win->rend, &r);
 	    }
 	}
-	if (last_y != 0 && segment_intersects_screen(prev->draw_x, k->draw_x)) {
-	    SDL_RenderDrawLine(main_win->rend, prev->draw_x, last_y, k->draw_x, y);
-	}
-	if (k == first && k->draw_x > 0) {
-	    SDL_RenderDrawLine(main_win->rend, 0, y, k->draw_x, y);
-	}
-        if (k == last && k->draw_x < main_win->w_pix) {
-	    SDL_RenderDrawLine(main_win->rend, k->draw_x, y, main_win->w_pix, y);
+	if (a->val_type == JDAW_BOOL) {
+	    if (k->value.bool_v) {
+		SDL_SetRenderDrawColor(main_win->rend, 0, 255, 0, 30);
+	    } else {
+		SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 30);
+	    }
+	    SDL_Rect fill_rect;
+	    fill_rect.x = k->draw_x;
+	    if (k - a->keyframes < a->num_keyframes - 1) {
+		fill_rect.w = (k + 1)->draw_x - k->draw_x;
+	    } else {
+		fill_rect.w = main_win->w_pix - k->draw_x;
+	    }
+	    fill_rect.y = a->layout->rect.y;
+	    fill_rect.h = a->layout->rect.h;
+	    SDL_RenderFillRect(main_win->rend, &fill_rect);
+	} else {
+	    if (last_y != 0 && segment_intersects_screen(prev->draw_x, k->draw_x)) {
+		SDL_RenderDrawLine(main_win->rend, prev->draw_x, last_y, k->draw_x, y);
+	    }
+	    if (k == first && k->draw_x > 0) {
+		SDL_RenderDrawLine(main_win->rend, 0, y, k->draw_x, y);
+	    }
+	    if (k == last && k->draw_x < main_win->w_pix) {
+		SDL_RenderDrawLine(main_win->rend, k->draw_x, y, main_win->w_pix, y);
+	    }
 	}
 
 	last_y = y;

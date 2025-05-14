@@ -142,7 +142,7 @@ float delay_line_buf_apply(void *dl_v, float *buf, int len, int channel, float i
 {
     DelayLine *dl = dl_v;
     float output_amp = 0.0f;
-    if (!dl->active) return output_amp;
+    /* if (!dl->active) return input_amp; */
     /* pthread_mutex_lock(&dl->lock); */
     double *del_line = channel == 0 ? dl->buf_L : dl->buf_R;
     int32_t *del_line_pos = channel == 0 ? &dl->pos_L : &dl->pos_R;

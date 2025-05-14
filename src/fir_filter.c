@@ -476,7 +476,7 @@ static void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint1
 float filter_buf_apply(void *f_v, float *buf, int len, int channel, float input_amp)
 {
     FIRFilter *f = f_v;
-    if (!f->active) return input_amp;
+    /* if (!f->active) return input_amp; */
     apply_filter(f, f->track, channel, len, buf);
     float output_amp = 0.0;
     for (int i=0; i<len; i++) {

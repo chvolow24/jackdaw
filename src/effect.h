@@ -45,6 +45,8 @@ typedef struct effect {
     Page *page;
     Track *track;
     char name[MAX_NAMELENGTH];
+    bool active;
+    Endpoint active_ep;
     APINode api_node;
 } Effect;
 const char *effect_type_str(EffectType type);

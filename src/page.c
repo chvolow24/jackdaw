@@ -354,11 +354,12 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	    params.radio_p.num_items);
 	break;
     case EL_TOGGLE:
-	el->component = (void *)toggle_create(
+	el->component = (void *)toggle_create_from_endpoint(
 	    el->layout,
-	    params.toggle_p.value,
-	    params.toggle_p.action,
-	    params.toggle_p.target);
+	    params.toggle_p.ep);
+	    /* params.toggle_p.value, */
+	    /* params.toggle_p.action, */
+	    /* params.toggle_p.target); */
 	break;
     case EL_WAVEFORM:
 	el->component = (void *)waveform_create(

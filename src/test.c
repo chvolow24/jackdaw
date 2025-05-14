@@ -3,6 +3,8 @@
 #include "input.h"
 #include "test.h"
 
+#define MAX_TEXT_EDIT_CHARS 24
+
 void breakfn()
 {
 }
@@ -35,6 +37,8 @@ TEST_FN_DEF(
 	main_win->i_state = i_state;
 	
 	int num_events = rand() % 10; /* Max 10 per frame */
+
+	static int text_edit_chars = 0;
 	for (int i=0; i<num_events; i++) {
 
 	    int key = rand() % (127 - 32) + 32;
@@ -71,7 +75,12 @@ TEST_FN_DEF(
 	}
 	/* fprintf(stderr, "\n\n\n\n"); */
 	if (main_win->modes[main_win->num_modes - 1] == TEXT_EDIT) {
-	    user_text_edit_escape(NULL);
+	    if (text_edit_chars >= MAX_TEXT_EDIT_CHARS) {
+		user_text_edit_escape(NULL);
+		text_edit_chars = 0;
+	    } else {
+		text_edit_chars += num_events;
+	    }
 	} else if (main_win->modes[main_win->num_modes - 1] == AUTOCOMPLETE_LIST) {
 	   user_autocomplete_escape(NULL);
 	}

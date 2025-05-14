@@ -626,6 +626,9 @@ void transport_stop_recording()
     for (uint16_t i=proj->active_clip_index; i<proj->num_clips; i++) {
 	Clip *clip = proj->clips[i];
 	if (clip->len_sframes == 0) {
+	    for (int i=0; i<clip->num_refs; i++) {
+		if (clip->refs[i]->grabbed) clipref_ungrab(clip->refs[i]);
+	    }
 	    clip_destroy(clip);
 	} else {
 	    for (uint16_t j=0; j<clip->num_refs; j++) {

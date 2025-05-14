@@ -45,45 +45,9 @@ const char *effect_type_str(EffectType type)
     return effect_type_strings[type];
 }
 
-/* static void track_effect_order_gui_cb(Endpoint *ep) */
-/* { */
-/*     Value v = endpoint_safe_read(ep, NULL); */
-/*     int swap_i = (int)v.double_pair_v[0]; */
-/*     int swap_j = (int)v.double_pair_v[1]; */
-
-/*     /\* fprintf(stderr, "GUI CB: %d %d\n", swap_i, swap_j); *\/ */
-/*     TabView *tv = main_win->active_tabview; */
-/*     if (tv && strcmp(tv->title, "Track Effects") == 0) { */
-/* 	tabview_swap_adjacent_tabs(tv, swap_i, swap_j); */
-/*     } */
-/* } */
-
-/* static void track_effect_order_dsp_cb(Endpoint *ep) */
-/* { */
-/*     Effect **effects = ep->xarg1; */
-/*     Value v = endpoint_safe_read(ep, NULL); */
-/*     int swap_i = (int)v.double_pair_v[0]; */
-/*     int swap_j = (int)v.double_pair_v[1]; */
-/*     Effect *dst = effects[swap_j]; */
-/*     effects[swap_j] = effects[swap_i]; */
-/*     effects[swap_i] = dst; */
-    
-/* } */
 
 Effect *track_add_effect(Track *track, EffectType type)
 {
-
-    /* if (track->num_effects == 0) { */
-    /* 	endpoint_init( */
-    /* 	    &track->effect_order_swap_ep, */
-    /* 	    &track->order_swap_indices, */
-    /* 	    JDAW_DOUBLE_PAIR, */
-    /* 	    "effect_order_swap", */
-    /* 	    "", */
-    /* 	    JDAW_THREAD_DSP, */
-    /* 	    track_effect_order_gui_cb, NULL, track_effect_order_dsp_cb, */
-    /* 	    &track->effects, NULL, NULL, NULL); */
-    /* } */
     if (track->num_effects == MAX_TRACK_EFFECTS) {
 	fprintf(stderr, "Error: track has maximum number of effects (%d)\n", MAX_TRACK_EFFECTS);
 	return NULL;
@@ -146,6 +110,18 @@ Effect *track_add_effect(Track *track, EffectType type)
 	break;
     }
 
+    endpoint_init(
+	&e->active_ep,
+	&e->active,
+	JDAW_BOOL,
+	"effect_active",
+	"Effect active",
+	JDAW_THREAD_DSP,
+	NULL, NULL, NULL,
+	NULL, NULL, NULL, NULL);
+    endpoint_set_default_value(&e->active_ep, (Value){.bool_v = true});
+    api_endpoint_register(&e->active_ep, &e->api_node);
+	
     /* api_node_print_routes_with_values(&track->api_node); */
     
     return e;
@@ -181,15 +157,6 @@ void track_add_new_effect(Track *track)
 	effect_selection_ep.block_undo = true;
     }
     effect_selection_ep.xarg1 = (void *)track;
-
-    
-    /* APINode node = track->api_node; */
-    /* Endpoint *items[node.num_endpoints]; */
-    /* const char *item_labels[node.num_endpoints]; */
-    /* for (int i=0; i<node.num_endpoints; i++) { */
-    /* 	items[i] = node.endpoints[i]; */
-    /* 	item_labels[i] = node.endpoints[i]->display_name; */
-    /* } */
     
     modal_add_radio(
 	m,
@@ -228,6 +195,7 @@ static int add_effect_form(void *mod_v, void *nullarg)
 
 static float effect_buf_apply(Effect *e, float *buf, int len, int channel, float input_amp)
 {
+    /* if (!e->active) return input_amp; */
     return e->buf_apply(e->obj, buf, len, channel, input_amp);
 }
 
@@ -237,7 +205,7 @@ float effect_chain_buf_apply(Effect **effects, int num_effects, float *buf, int 
     float output = input_amp;
     for (int i=0; i<num_effects; i++) {
 	Effect *e = effects[i];
-	if (e->operate_on_empty_buf || fabs(input_amp) > amp_epsilon) {
+	if (e->active && (e->operate_on_empty_buf || fabs(input_amp) > amp_epsilon)) {
 	    output = effect_buf_apply(e, buf, len, channel, input_amp);
 	}
     }

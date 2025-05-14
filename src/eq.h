@@ -61,7 +61,7 @@ typedef struct eq_filter_ctrl {
 } EQFilterCtrl;
 
 typedef struct eq {
-    bool active;
+    /* bool active; */
     IIRGroup group;
     double *output_freq_mag_L;
     double *output_freq_mag_R;

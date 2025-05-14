@@ -34,7 +34,7 @@ typedef struct effect Effect;
 
 typedef struct saturation Saturation;
 typedef struct saturation {
-    bool active;
+    /* bool active; */
     SaturationType type;
     double gain;
     bool do_gain_comp;

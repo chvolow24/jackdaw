@@ -30,7 +30,7 @@ typedef struct compressor {
     EnvelopeFollower ef[2];
     float gain_scalar[2];
     float env[2];
-    bool active;
+    /* bool active; */
     float threshold;
     float m; /* Equal to one over the ratio */
     float makeup_gain;
@@ -40,6 +40,7 @@ typedef struct compressor {
     float attack_time;
     float release_time;
     float ratio;
+    /* Endpoint  active_ep; */
     Endpoint attack_time_ep;
     Endpoint release_time_ep;
     Endpoint threshold_ep;

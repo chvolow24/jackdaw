@@ -538,6 +538,24 @@ void textentry_complete_edit(TextEntry *te)
 
 /* Toggle */
 
+Toggle *toggle_create_from_endpoint(Layout *lt, Endpoint *ep)
+{
+    Layout *inner = layout_add_child(lt);
+    inner->w.type = SCALE;
+    inner->h.type = SCALE;
+    inner->w.value = 0.90;
+    inner->h.value = 0.90;
+    layout_force_reset(lt);
+    layout_center_agnostic(inner, true, true);
+    /* layout_center_agnostic(outer, true, true); */
+    Toggle *tgl = calloc(1, sizeof(Toggle));
+    tgl->endpoint = ep;
+    tgl->value = ep->val;
+    tgl->layout = lt;
+    return tgl;
+
+}
+
 Toggle *toggle_create(Layout *lt, bool *value, ComponentFn action, void *target)
 {
     Layout *inner = layout_add_child(lt);
@@ -584,12 +602,18 @@ void toggle_draw(Toggle *tgl)
 
 bool toggle_toggle(Toggle *toggle)
 {
-    *(toggle->value) = !(*toggle->value);
-    if (toggle->action) {
-	toggle->action((void *)toggle, toggle->target);
-    }
+    if (toggle->endpoint) {
+	bool current = endpoint_safe_read(toggle->endpoint, NULL).bool_v;
+	endpoint_write(toggle->endpoint, (Value){.bool_v = !current}, true, true, true, true);
+	return !current;
+    } else {
+	*(toggle->value) = !(*toggle->value);
+	if (toggle->action) {
+	    toggle->action((void *)toggle, toggle->target);
+	}
 
-    return toggle->value;
+	return toggle->value;
+    }
 }
 
 

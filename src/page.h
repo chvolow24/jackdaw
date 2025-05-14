@@ -46,7 +46,8 @@ typedef enum page_el_type {
     EL_BUTTON,
     EL_CANVAS,
     EL_EQ_PLOT,
-    EL_SYMBOL_BUTTON,
+    EL_SYMBOL_BUTTON
+    /* EL_TOGGLE_EP */
 } PageElType;
 
 enum linked_obj_type {
@@ -161,9 +162,14 @@ struct radio_params {
 };
 
 struct toggle_params {
-    bool *value;
-    ComponentFn action;
-    void *target;
+    Endpoint *ep;
+    /* bool *value; */
+    /* ComponentFn action; */
+    /* void *target; */
+};
+
+struct toggle_ep_params {
+    Endpoint *ep;
 };
 
 struct waveform_params {
@@ -205,6 +211,7 @@ typedef union page_el_params {
     struct canvas_params canvas_p;
     struct eq_plot_params eq_plot_p;
     struct symbol_button_params sbutton_p;
+    struct toggle_ep_params toggle_ep_p;
 } PageElParams;
 
 

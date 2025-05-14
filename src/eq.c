@@ -546,10 +546,12 @@ float eq_buf_apply(void *eq_v, float *buf, int len, int channel, float input_amp
     
     static float amp_epsilon = 1e-7f;
     EQ *eq = eq_v;
-    
-    if (!eq->active) {
+
+
+/*    if (!eq->active) {
 	return input_amp;
-    } else if (input_amp < amp_epsilon) {
+	} else */
+    if (input_amp < amp_epsilon) {
 	eq_advance(eq, channel);
 	return input_amp;
     }
@@ -594,7 +596,7 @@ void eq_draw(EQ *eq)
 {
     waveform_draw_freq_plot(eq->fp);
     for (int i=0; i<EQ_DEFAULT_NUM_FILTERS; i++) {
-	if (eq->active && eq->ctrls[i].filter_active) {
+	if (eq->effect->active && eq->ctrls[i].filter_active) {
 	    SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand((EQ_CTRL_COLORS_LIGHT + i)));
 	    geom_fill_circle(main_win->rend, eq->ctrls[i].x - EQ_CTRL_RAD, eq->ctrls[i].y - EQ_CTRL_RAD, EQ_CTRL_RAD);
 	    SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand((EQ_CTRL_COLORS + i)));

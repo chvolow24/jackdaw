@@ -46,6 +46,8 @@ typedef struct toggle {
     ComponentFn action;
     void *target;
     Layout *layout;
+
+    Endpoint *endpoint; /* Optional */
 } Toggle;
 
 typedef struct text_entry TextEntry;
@@ -283,6 +285,7 @@ void waveform_draw(Waveform *w);
 /* Toggle */
 
 Toggle *toggle_create(Layout *lt, bool *value, ComponentFn action, void *target);
+Toggle *toggle_create_from_endpoint(Layout *lt, Endpoint *ep);
 void toggle_destroy(Toggle *toggle);
 /* Returns the new value of the toggle */
 bool toggle_toggle(Toggle *toggle);

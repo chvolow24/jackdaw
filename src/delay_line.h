@@ -22,7 +22,7 @@
 #include "dsp_utils.h"
 
 typedef struct delay_line {
-    bool active;
+    /* bool active; */
     bool initialized;
     int32_t len_msec; /* For endpoint / GUI components */
     int32_t len; /* Sample frames */

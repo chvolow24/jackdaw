@@ -313,7 +313,7 @@ static void jdaw_write_effect(FILE *f, Effect *e)
 
 static void jdaw_write_fir_filter(FILE *f, FIRFilter *filter)
 {
-    fwrite(&filter->active, 1, 1, f);    
+    fwrite(&filter->effect->active, 1, 1, f);    
     uint8_t type_byte = (uint8_t)(filter->type);
     fwrite(&type_byte, 1, 1, f);
     float_ser40_le(f, filter->cutoff_freq);
@@ -323,7 +323,7 @@ static void jdaw_write_fir_filter(FILE *f, FIRFilter *filter)
 
 static void jdaw_write_delay(FILE *f, DelayLine *dl)
 {
-    fwrite(&dl->active, 1, 1, f);
+    fwrite(&dl->effect->active, 1, 1, f);
     int32_ser_le(f, &dl->len);
     float_ser40_le(f, dl->stereo_offset);
     float_ser40_le(f, dl->amp);
@@ -331,7 +331,7 @@ static void jdaw_write_delay(FILE *f, DelayLine *dl)
 
 static void jdaw_write_saturation(FILE *f, Saturation *s)
 {
-    fwrite(&s->active, 1, 1, f);
+    fwrite(&s->effect->active, 1, 1, f);
     float_ser40_le(f, s->gain);
     fwrite(&s->do_gain_comp, 1, 1, f);
     uint8_t type_byte = (uint8_t)s->type;
@@ -341,7 +341,7 @@ static void jdaw_write_saturation(FILE *f, Saturation *s)
 
 static void jdaw_write_eq(FILE *f, EQ *eq)
 {
-    fwrite(&eq->active, 1, 1, f);
+    fwrite(&eq->effect->active, 1, 1, f);
     uint8_t num_filters = EQ_DEFAULT_NUM_FILTERS;
     uint8_ser(f, &num_filters);
     for (int i=0; i<num_filters; i++) {
@@ -357,7 +357,7 @@ static void jdaw_write_eq(FILE *f, EQ *eq)
 
 static void jdaw_write_compressor(FILE *f, Compressor *c)
 {
-    fwrite(&c->active, 1, 1, f);
+    fwrite(&c->effect->active, 1, 1, f);
     float_ser40_le(f, c->attack_time);
     float_ser40_le(f, c->release_time);
     float_ser40_le(f, c->threshold);
@@ -941,7 +941,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 		uint8_t eq_active = uint8_deser(f);
 		e = track_add_effect(track, EFFECT_EQ);
 		EQ *eq = e->obj;
-		eq->active = eq_active;
+		eq->effect->active = eq_active;
 		uint8_t num_filters = uint8_deser(f);
 		for (int i=0; i<num_filters; i++) {
 		    EQFilterCtrl *ctrl = eq->ctrls + i;
@@ -1020,7 +1020,7 @@ static int jdaw_read_effect(FILE *f, Track *track)
 
 static int jdaw_read_fir_filter(FILE *f, FIRFilter *filter)
 {
-    filter->active = uint8_deser(f);
+    filter->effect->active = uint8_deser(f);
     uint8_t type_byte;
     FilterType type;
     double cutoff_freq;
@@ -1046,12 +1046,12 @@ static int jdaw_read_delay(FILE *f, DelayLine *dl)
     stereo_offset = float_deser40_le(f);
     delay_line_set_params(dl, amp, len);
     dl->stereo_offset = stereo_offset;
-    dl->active = delay_line_active;
+    dl->effect->active = delay_line_active;
     return 0;
 }
 static int jdaw_read_saturation(FILE *f, Saturation *s)
 {
-    s->active = uint8_deser(f);
+    s->effect->active = uint8_deser(f);
     saturation_set_gain(s, float_deser40_le(f));
     s->do_gain_comp = uint8_deser(f);
     saturation_set_type(s, uint8_deser(f));
@@ -1059,7 +1059,7 @@ static int jdaw_read_saturation(FILE *f, Saturation *s)
 }
 static int jdaw_read_eq(FILE *f, EQ *eq)
 {
-    eq->active = uint8_deser(f);
+    eq->effect->active = uint8_deser(f);
     uint8_t num_filters = uint8_deser(f);
     for (int i=0; i<num_filters; i++) {
 	EQFilterCtrl *ctrl = eq->ctrls + i;
@@ -1078,7 +1078,7 @@ static int jdaw_read_eq(FILE *f, EQ *eq)
 
 static int jdaw_read_compressor(FILE *f, Compressor *c)
 {
-    c->active = uint8_deser(f);
+    c->effect->active = uint8_deser(f);
     float attack = float_deser40_le(f);
     float release = float_deser40_le(f);
     c->attack_time = attack;

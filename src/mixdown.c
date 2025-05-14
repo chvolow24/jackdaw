@@ -84,11 +84,13 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	else if (a->endpoint == &track->pan_ep) pan_auto = a;
     }
 
-    for (int i=0; i<track->num_automations; i++) {
-	Automation *a = track->automations[i];
-	if (a->read && !a->write && a->endpoint) {
-	    Value val = automation_get_value(a, start_pos_sframes, step);	    
-	    endpoint_write(a->endpoint, val, true, true, true, false);
+    if (channel == 0) {
+	for (int i=0; i<track->num_automations; i++) {
+	    Automation *a = track->automations[i];
+	    if (a->read && !a->write && a->endpoint) {
+		Value val = automation_get_value(a, start_pos_sframes, step);	    
+		endpoint_write(a->endpoint, val, true, true, true, false);
+	    }
 	}
     }
 

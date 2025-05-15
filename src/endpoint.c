@@ -53,6 +53,8 @@ int endpoint_init(
     ep->xarg3 = xarg3;
     ep->xarg4 = xarg4;
     ep->block_undo = false;
+    jdaw_val_set_min(&ep->min, t);
+    jdaw_val_set_max(&ep->max, t);
 
     int err;
     if ((err = pthread_mutex_init(&ep->val_lock, NULL)) != 0) {

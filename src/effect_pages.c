@@ -563,7 +563,7 @@ Page *add_saturation_page(Saturation *s, Track *track, TabView *tv)
     /* p.toggle_p.value = &s->do_gain_comp; */
     /* p.toggle_p.action = toggle_saturation_gain_comp; */
     /* p.toggle_p.target = s; */
-    p.toggle_p.ep = &s->effect->active_ep;
+    p.toggle_p.ep = &s->gain_comp_ep;
     el = page_add_el(page, EL_TOGGLE, p, "track_settings_saturation_gain_comp_toggle", "toggle_gain_comp");
 
     p.textbox_p.set_str = "Gain compensation";
@@ -679,22 +679,25 @@ Page *add_compressor_page(Compressor *c, Track *track, TabView *tv)
     p.slider_p.ep = &c->attack_time_ep;
     p.slider_p.min = (Value){.float_v = 0.0};
     p.slider_p.max = (Value){.float_v = 200.0};
-    p.slider_p.create_label_fn = label_msec;
+    p.slider_p.create_label_fn = c->attack_time_ep.label_fn;
+    /* p.slider_p.create_label_fn = label_msec; */
     el = page_add_el(page, EL_SLIDER, p, "track_settings_comp_attack_slider", "attack_slider");
 
     Slider *sl = el->component;
     /* /\* sl->disallow_unsafe_mode = true; *\/ */
     slider_reset(sl);
     
-    p.slider_p.create_label_fn = NULL;
+
     p.slider_p.ep = &c->release_time_ep;
     p.slider_p.min = (Value){.float_v = 0.0};
     p.slider_p.max = (Value){.float_v = 2000.0};
+    p.slider_p.create_label_fn = c->release_time_ep.label_fn;
     el = page_add_el(page, EL_SLIDER, p, "track_settings_comp_release_slider", "release_slider");
 
     p.slider_p.ep = &c->threshold_ep;
     p.slider_p.min = (Value){.float_v = 0.0};
     p.slider_p.max = (Value){.float_v = 1.0};
+    p.slider_p.create_label_fn = c->threshold_ep.label_fn;
     el = page_add_el(page, EL_SLIDER, p, "track_settings_comp_threshold_slider", "threshold_slider");
     sl = el->component;
     slider_reset(sl);
@@ -711,6 +714,7 @@ Page *add_compressor_page(Compressor *c, Track *track, TabView *tv)
     p.slider_p.min = (Value){.float_v = 1.0};
     p.slider_p.max = (Value){.float_v = 10.0};
     p.slider_p.style = SLIDER_FILL;
+    p.slider_p.create_label_fn = c->makeup_gain_ep.label_fn;
     el = page_add_el(page, EL_SLIDER, p, "track_settings_makeup_gain_slider", "makeup_gain_slider");
     sl = el->component;
     slider_reset(sl);

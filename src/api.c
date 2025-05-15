@@ -124,6 +124,37 @@ int api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size)
     return offset;
 }
 
+/* "until" sets upper limit (exclusive) on tree navigation */
+int api_endpoint_get_route_until(Endpoint *ep, char *dst, size_t dst_size, APINode *until)
+{
+    char *components[MAX_ROUTE_DEPTH];
+    int num_components = 0;
+
+    components[num_components] = (char *)ep->local_id;
+    num_components++;
+    APINode *node = ep->parent;
+    while (node && node->parent && node != until) {
+	components[num_components] = node->obj_name;
+	num_components++;
+	node = node->parent;
+    }
+
+    num_components--;
+    int offset = 0;
+    while (num_components >= 0) {
+	char *str = components[num_components];
+	char lowered[dst_size];
+	for (int i=0; i<strlen(str); i++) {
+	    lowered[i] = make_idchar(str[i]);
+	}
+	lowered[strlen(str)] = '\0';
+	offset += snprintf(dst + offset, dst_size - offset, "/%s", lowered);
+	num_components--;
+    }
+    return offset;
+}
+
+
 /* dbj2: http://www.cse.yorku.ca/~oz/hash.html */
 static unsigned long api_hash_route(const char *route)
 {

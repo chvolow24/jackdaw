@@ -960,6 +960,7 @@ void click_track_goto_prox_beat(ClickTrack *tt, int direction, enum beat_promine
     set_beat_prominence(s, &bp_test, bar, beat, subdiv);
     
     while (safety < 10000 && bp_test > bp) {
+	fprintf(stderr, "BP_TEST: %d (cmp %d)\n", bp_test, bp);
 	if (direction > 0) {
 	    do_increment(s, &bar, &beat, &subdiv);
 	} else {

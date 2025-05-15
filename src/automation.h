@@ -74,6 +74,7 @@ typedef struct keyframe {
 /* typedef struct keyframe_clipref KClipRef; */
 
 typedef struct automation {
+    char name[MAX_NAMELENGTH];
     Track *track;
     int index;
     AutomationType type;

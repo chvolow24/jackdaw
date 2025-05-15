@@ -1063,12 +1063,12 @@ void user_tl_goto_prev_beat(void *nullarg)
 
 void user_tl_goto_next_subdiv(void *nullarg)
 {
-    tl_goto_prox_click(ACTIVE_TL, 1, BP_SUBDIV);
+    tl_goto_prox_click(ACTIVE_TL, 1, BP_SUBDIV2);
 }
 
 void user_tl_goto_prev_subdiv(void *nullarg)
 {
-    tl_goto_prox_click(ACTIVE_TL, -1, BP_SUBDIV);
+    tl_goto_prox_click(ACTIVE_TL, -1, BP_SUBDIV2);
 }
 
 void user_tl_goto_next_measure(void *nullarg)
@@ -2428,6 +2428,13 @@ void DEPRECATED_user_tl_cliprefs_destroy(void *nullarg)
 
 void user_tl_delete_generic(void *nullarg)
 {
+    TabView *tv;
+    if ((tv = main_win->active_tabview) && strcmp(tv->title, "Track Effects") == 0) {
+	Page *active = tv->tabs[tv->current_tab];
+	Effect *e = active->linked_obj;
+	effect_delete(e, false);
+	return;
+    }
     if (proj->recording) transport_stop_recording();
     Timeline *tl = ACTIVE_TL;
     Track *t;

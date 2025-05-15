@@ -1147,12 +1147,13 @@ static int jdaw_read_automation(FILE *f, Track *track)
 	fread(route, 1, route_len, f);
 	route[route_len] = '\0';
 
-
+	/* fprintf(stderr, "AUTO ROUTE: %s\n", route); */
 	Endpoint *ep = api_endpoint_get(route);
 	if (ep) {
 	    a = track_add_automation_from_endpoint(track, ep);
 	} else {
 	    fprintf(stderr, "Could not get ep with route %s\n", route);
+	    return 1;
 	}
 	/* for (int i=0; i<track->api_node.num_endpoints; i++) { */
 	/*     Endpoint *ep = track->api_node.endpoints[i]; */
@@ -1181,15 +1182,17 @@ static int jdaw_read_automation(FILE *f, Track *track)
 	a->range = jdaw_val_deserialize(f);
     }
     bool read = (bool)uint8_deser(f);
-    if (!read) {
-	automation_toggle_read(a);
-    }
     /* TODO: figure out how to initialize this */
-    a->shown = uint8_deser(f);
+    a->shown = (bool)uint8_deser(f);
     if (a->shown) {
 	automation_show(a);
     }
+    if (!read) {
+	automation_toggle_read(a);
+    }
+
     uint16_t num_keyframes = uint16_deser_le(f);
+    fprintf(stderr, "num_keyframes: %d\n", num_keyframes);
     
     a->num_keyframes = 0;
     

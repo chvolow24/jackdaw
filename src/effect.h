@@ -58,6 +58,7 @@ Effect *track_add_effect(Track *t, EffectType type);
 void track_add_new_effect(Track *track);
     
 float effect_chain_buf_apply(Effect **e, int num_effects, float *buf, int len, int channel, float input_amp);
+void effect_delete(Effect *e, bool from_undo);
 void effect_destroy(Effect *e);
 
 #endif

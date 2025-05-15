@@ -24,6 +24,7 @@
 #include "fir_filter.h"
 /* #include "geometry.h" */
 #include "modal.h"
+#include "page.h"
 #include "project.h"
 /* #include "waveform.h" */
 
@@ -105,6 +106,7 @@ Effect *track_add_effect(Track *track, EffectType type)
 	((Compressor *)e->obj)->effect = e;
 	compressor_init(e->obj);
 	e->buf_apply = compressor_buf_apply;
+	e->operate_on_empty_buf = true;
 	break;
     default:
 	break;
@@ -210,6 +212,74 @@ float effect_chain_buf_apply(Effect **effects, int num_effects, float *buf, int 
 	}
     }
     return output;
+}
+
+void effect_delete(Effect *e, bool from_undo);
+static void effect_reinsert(Effect *e, int index)
+{
+    Track *track = e->track;
+
+    int num_to_move = track->num_effects - index;
+    memmove(track->effects + index + 1, track->effects + index, num_to_move * sizeof(Effect *));
+    track->effects[index] = e;
+    track->num_effects++;
+    TabView *tv;
+    if ((tv = main_win->active_tabview) && strcmp(tv->title, "Track Effects") == 0) {
+	/* tabview_close(tv); */
+	user_tl_track_open_settings(NULL);
+	user_tl_track_open_settings(NULL);
+    }
+}
+
+NEW_EVENT_FN(undo_effect_delete, "undo delete effect")
+    Effect *e = obj1;
+    effect_reinsert(e, val1.int_v);
+}
+
+NEW_EVENT_FN(redo_effect_delete, "redo delete effect")
+    effect_delete(obj1, true);
+}
+
+NEW_EVENT_FN(dispose_effect_delete, "")
+    effect_destroy(obj1);
+}
+
+
+void effect_delete(Effect *e, bool from_undo)
+{
+    Track *track = e->track;
+    bool displace = false;
+    int index;
+    for (int i=0; i<track->num_effects; i++) {
+	if (e == track->effects[i]) {
+	    displace = true;
+	    index = i;
+	} else if (displace) {
+	    track->effects[i - 1] = track->effects[i];
+	}
+    }
+    
+    track->num_effects--;
+    if (!from_undo) {
+	user_event_push(
+	    &proj->history,
+	    undo_effect_delete,
+	    redo_effect_delete,
+	    dispose_effect_delete,
+	    NULL,
+	    e, NULL,
+	    (Value){.int_v = index}, (Value){0},
+	    (Value){.int_v = index}, (Value){0},
+	    0, 0, false, false);
+    }
+    TabView *tv;
+    if ((tv = main_win->active_tabview) && strcmp(tv->title, "Track Effects") == 0) {
+	/* tabview_close(tv); */
+	user_tl_track_open_settings(NULL);
+	if (track->num_effects > 0) 
+	    user_tl_track_open_settings(NULL);
+    }
+
 }
 
 void effect_destroy(Effect *e)

@@ -193,8 +193,8 @@ static void ratio_labelfn(char *dst, size_t dstsize, Value v, ValType type)
 {
     float r = v.float_v;
     r = 1.0f-r;
-    int num = (int)(1.0f/r);
-    snprintf(dst, dstsize, "%d:1", num);
+    float num = 1.0f/r;
+    snprintf(dst, dstsize, "%.2f:1",num);
 }
 
 
@@ -253,7 +253,7 @@ void compressor_init(Compressor *c)
 	c, NULL, &c->effect->page, "track_settings_comp_release_slider");
     endpoint_set_allowed_range(&c->release_time_ep, (Value){.float_v=0.0f}, (Value){.float_v=2000.0f});
     endpoint_set_default_value(&c->release_time_ep, (Value){.float_v=COMP_DEFAULT_RELEASE});
-    endpoint_set_label_fn(&c->attack_time_ep, label_msec);
+    endpoint_set_label_fn(&c->release_time_ep, label_msec);
     api_endpoint_register(&c->release_time_ep, &c->effect->api_node);
 
 
@@ -268,6 +268,7 @@ void compressor_init(Compressor *c)
 	NULL, NULL, &c->effect->page, "track_settings_comp_threshold_slider");
     endpoint_set_allowed_range(&c->threshold_ep, (Value){.float_v=0.0f}, (Value){.float_v=1.0f});
     endpoint_set_default_value(&c->threshold_ep, (Value){.float_v=COMP_DEFAULT_THRESHOLD});
+    endpoint_set_label_fn(&c->threshold_ep, label_amp_to_dbstr);
     api_endpoint_register(&c->threshold_ep, &c->effect->api_node);
 
     
@@ -296,6 +297,7 @@ void compressor_init(Compressor *c)
 	NULL, NULL, &c->effect->page, "track_settings_makeup_gain_slider");
     endpoint_set_allowed_range(&c->makeup_gain_ep, (Value){.float_v=1.0f}, (Value){.float_v=COMP_MAX_MAKEUP_GAIN});
     endpoint_set_default_value(&c->makeup_gain_ep, (Value){.float_v=1.0f});
+    endpoint_set_label_fn(&c->makeup_gain_ep, label_amp_to_dbstr);
     api_endpoint_register(&c->makeup_gain_ep, &c->effect->api_node);
 
 }

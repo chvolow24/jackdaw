@@ -66,6 +66,8 @@ void saturation_init(Saturation *s)
 	JDAW_THREAD_DSP,
 	NULL, NULL, saturation_do_gain_comp_cb,
 	(void *)s, NULL, NULL, NULL);
+    endpoint_set_default_value(&s->gain_comp_ep, (Value){.bool_v = true});
+    api_endpoint_register(&s->gain_comp_ep, &s->effect->api_node);
     endpoint_init(
 	&s->type_ep,
 	&s->type,

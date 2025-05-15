@@ -39,7 +39,6 @@ typedef struct saturation {
     double gain;
     bool do_gain_comp;
     double gain_comp_val;
-    /* double exponential_gain_comp_val; */
     Endpoint gain_ep;
     Endpoint gain_comp_ep;
     Endpoint type_ep;

@@ -38,7 +38,7 @@ void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate)
 	&dl->len_msec,
 	JDAW_INT16,
 	"delay_line_len",
-	"Delay time",
+	"Time (ms)",
 	JDAW_THREAD_DSP,
 	track_settings_page_el_gui_cb, NULL, delay_line_len_dsp_cb,
 	/* NULL, NULL, delay_line_len_dsp_cb, */
@@ -52,7 +52,7 @@ void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate)
 	&dl->amp,
 	JDAW_DOUBLE,
 	"delay_line_amp",
-	"Delay amp",
+	"Amp",
 	JDAW_THREAD_DSP,
 	/* delay_line_amp_gui_cb, NULL, NULL, */
 	track_settings_page_el_gui_cb, NULL, NULL,
@@ -67,7 +67,7 @@ void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate)
 	&dl->stereo_offset,
 	JDAW_DOUBLE,
 	"delay_line_stereo_offset",
-	"Delay stereo offset",
+	"Stereo offset",
 	JDAW_THREAD_DSP,
 	track_settings_page_el_gui_cb, NULL, NULL,
 	/* delay_line_stereo_offset_gui_cb, NULL, NULL, */

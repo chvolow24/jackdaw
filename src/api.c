@@ -32,7 +32,8 @@ static struct api_hash_node *api_hash_table[API_HASH_TABLE_SIZE] = {0};
 
 static unsigned long api_hash_route(const char *route);
 int api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size);
-
+static APIHashNode **api_endpoint_get_hash_node(const char *route);
+static void api_hash_node_destroy(APIHashNode *ahn);
 
 static void api_endpoint_insert_into_table(Endpoint *ep)
 {
@@ -69,7 +70,6 @@ void api_endpoint_register(Endpoint *ep, APINode *parent)
     ep->parent = parent;
 
     api_endpoint_insert_into_table(ep);
-
 }
 
 
@@ -85,6 +85,102 @@ void api_node_register(APINode *node, APINode *parent, char *obj_name)
     node->parent = parent;
 }
 
+
+void api_node_deregister_internal(APINode *node, bool remove_from_parent)
+{
+    fprintf(stderr, "\n\nDEREGISTER node %s\n", node->obj_name);
+    if (node->parent && remove_from_parent && node->parent->num_children > 0) {
+	bool displace = false;
+	for (int i=0; i<node->parent->num_children; i++) {
+	    APINode *sibling = node->parent->children[i];
+	    if (sibling == node) displace = true;
+	    else if (displace) {
+		node->parent->children[i - 1] = node->parent->children[i];
+	    }
+	}
+	node->parent->num_children--;
+	fprintf(stderr, "Node %s children:\n", node->parent->obj_name);
+	for (int i=0; i<node->parent->num_children; i++) {
+	    fprintf(stderr, "\t->%s\n", node->parent->children[i]->obj_name);
+	}
+    }
+    for (int i=0; i<node->num_endpoints; i++) {
+	Endpoint *ep = node->endpoints[i];
+	char route[255];
+	api_endpoint_get_route(ep, route, 255);
+	APIHashNode **ahn = api_endpoint_get_hash_node(route);
+	if (ahn) {
+	    (*ahn)->deregistered = true;
+	    /* if ((*ahn)->prev) { */
+	    /* 	(*ahn)->prev->next = (*ahn)->next; */
+	    /* 	if ((*ahn)->next) { */
+	    /* 	    (*ahn)->next->prev = (*ahn)->prev; */
+	    /* 	} */
+	    /* 	/\* api_hash_node_destroy(*ahn); *\/ */
+	    /* 	/\* *ahn = NULL; *\/ */
+	    /* } else if ((*ahn)->next) { */
+	    /* 	(*ahn)->next->prev = NULL; */
+	    /* 	APIHashNode *to_destroy = *ahn; */
+	    /* 	*ahn = (*ahn)->next; */
+	    /* 	api_hash_node_destroy(to_destroy); */
+	    /* } else { */
+	    /* 	api_hash_node_destroy(*ahn); */
+	    /* 	*ahn = NULL; */
+	    /* } */
+	    /* /\* (*ahn)->deregistered = true; *\/ */
+	}
+    }
+    for (int i=0; i<node->num_children; i++) {
+	api_node_deregister_internal(node->children[i], false);
+    }
+
+}
+void api_node_deregister(APINode *node)
+{
+    api_node_deregister_internal(node, true);
+}
+
+static void api_node_reregister_internal(APINode *node, bool reinsert_into_parent)
+{
+    fprintf(stderr, "\n\nREREGISTER node %s\n", node->obj_name);
+    if (reinsert_into_parent && node->parent) {
+	node->parent->children[node->parent->num_children] = node;
+	node->parent->num_children++;
+    }
+    for (int i=0; i<node->num_endpoints; i++) {
+	Endpoint *ep = node->endpoints[i];
+	char route[255];
+	api_endpoint_get_route(ep, route, 255);
+	APIHashNode **ahn = api_endpoint_get_hash_node(route);
+	if (ahn) {
+	    (*ahn)->deregistered = false;
+	}
+    }
+    for (int i=0; i<node->num_children; i++) {
+	api_node_reregister_internal(node->children[i], false);
+    }
+}
+
+void api_node_reregister(APINode *node)
+{
+    api_node_reregister_internal(node, true);
+}
+
+/* void api_node_destroy(APINode *node) */
+/* { */
+/*     for (int i=0; i<node->num_endpoints; i++) { */
+/* 	Endpoint *ep = node->endpoints[i]; */
+/* 	char route[255]; */
+/* 	api_endpoint_get_route(ep, route, 255); */
+/* 	APIHashNode **ahn = api_endpoint_get_hash_node(route); */
+/* 	if (ahn) { */
+/* 	    (*ahn)->deregistered = true; */
+/* 	} */
+/*     } */
+/*     for (int i=0; i<node->num_children; i++) { */
+/* 	api_node_deregister(node->children[i]); */
+/*     } */
+/* } */
 
 static char make_idchar(char c)
 {
@@ -154,6 +250,42 @@ int api_endpoint_get_route_until(Endpoint *ep, char *dst, size_t dst_size, APINo
     return offset;
 }
 
+int api_endpoint_get_display_route_until(Endpoint *ep, char *dst, size_t dst_size, APINode *until)
+{
+    char *components[MAX_ROUTE_DEPTH];
+    int num_components = 0;
+
+    components[num_components] = (char *)ep->display_name;
+    num_components++;
+    APINode *node = ep->parent;
+    while (node && node->parent && node != until) {
+	components[num_components] = node->obj_name;
+	num_components++;
+	node = node->parent;
+    }
+
+    num_components--;
+    int offset = 0;
+    bool first = true;
+    while (num_components >= 0) {
+	char *str = components[num_components];
+	/* char lowered[dst_size]; */
+	/* for (int i=0; i<strlen(str); i++) { */
+	/*     lowered[i] = make_idchar(str[i]); */
+	/* } */
+        /* str[strlen(str)] = '\0'; */
+	if (first) {
+	    offset += snprintf(dst + offset, dst_size - offset, "%s", str);
+	    first = false;
+	} else {
+	    offset += snprintf(dst + offset, dst_size - offset, " / %s", str);
+	}
+	num_components--;
+    }
+    return offset;
+}
+
+
 
 /* dbj2: http://www.cse.yorku.ca/~oz/hash.html */
 static unsigned long api_hash_route(const char *route)
@@ -166,21 +298,44 @@ static unsigned long api_hash_route(const char *route)
     return hash % API_HASH_TABLE_SIZE;
 }
 
-Endpoint *api_endpoint_get(const char *route)
+static APIHashNode **api_endpoint_get_hash_node(const char *route)
 {
     unsigned long hash = api_hash_route(route);
-    APIHashNode *ahn = api_hash_table[hash];
-    if (!ahn) return NULL;
-    if (!ahn->next) return ahn->ep;
+    APIHashNode **ahn = api_hash_table + hash;
+    if (!*ahn) return NULL;
+    if (!(*ahn)->next && !(*ahn)->deregistered) return ahn;
     while (1) {
-	if (strcmp(ahn->route, route) == 0) {
-	    return ahn->ep;
-	} else if (ahn->next) {
-	    ahn = ahn->next;
+	if (!(*ahn)->deregistered && strcmp((*ahn)->route, route) == 0) {
+	    return ahn;
+	} else if ((*ahn)->next) {
+	    ahn = &(*ahn)->next;
 	} else {
 	    return NULL;
 	}
     }
+    
+}
+
+Endpoint *api_endpoint_get(const char *route)
+{
+    APIHashNode **ahn = api_endpoint_get_hash_node(route);
+    if (ahn) {
+	return (*ahn)->ep;
+    }
+    return NULL;
+    /* unsigned long hash = api_hash_route(route); */
+    /* APIHashNode *ahn = api_hash_table[hash]; */
+    /* if (!ahn) return NULL; */
+    /* if (!ahn->next) return ahn->ep; */
+    /* while (1) { */
+    /* 	if (strcmp(ahn->route, route) == 0) { */
+    /* 	    return ahn->ep; */
+    /* 	} else if (ahn->next) { */
+    /* 	    ahn = ahn->next; */
+    /* 	} else { */
+    /* 	    return NULL; */
+    /* 	} */
+    /* } */
 }
 
 static void api_hash_node_destroy(APIHashNode *ahn);

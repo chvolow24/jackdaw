@@ -139,6 +139,14 @@ void eq_ctrl_label_fn(char *dst, size_t dstsize, Value val, ValType type)
 
 /* EndptCb test; */
 
+void eq_toggle_selected_filter_active(EQ *eq);
+
+static void selected_filter_active_cb(Endpoint *ep)
+{
+    EQ *eq = ep->xarg1;
+    eq_toggle_selected_filter_active(eq);
+}
+
 void eq_init(EQ *eq)
 {
     eq->output_freq_mag_L = calloc(eq->track->tl->proj->fourier_len_sframes * 2, sizeof(double));
@@ -163,6 +171,18 @@ void eq_init(EQ *eq)
     /* 		  NULL, */
     /* 		  NULL, */
     /* 		  eq, NULL, NULL, NULL); */
+
+    endpoint_init(
+	&eq->selected_filter_active_ep,
+	&eq->selected_filter_active,
+	JDAW_BOOL,
+	"selected_filter_active",
+	"",
+        JDAW_THREAD_DSP,
+	NULL, NULL, selected_filter_active_cb,
+	eq, NULL, NULL, NULL);
+    eq->selected_filter_active_ep.block_undo = true;
+	
 		  
 
     static char api_ctrl_node_names[EQ_DEFAULT_NUM_FILTERS][12];
@@ -183,22 +203,24 @@ void eq_init(EQ *eq)
 	    JDAW_DOUBLE,
 	    main_win);
 
-	static char buf[255];
-	snprintf(buf, 255, "EQ filter %d amp", i + 1);
-	char *display_name = strdup(buf);
-	ctrl->amp_ep_display_name = display_name;
+	/* static char buf[255]; */
+	/* snprintf(buf, 255, "EQ filter %d amp", i + 1); */
+	/* char *display_name = strdup(buf); */
+	/* ctrl->amp_ep_display_name = display_name; */
 
 
-	snprintf(api_ctrl_node_names[i], 12, "EQ filter %d", i + 1);
+	snprintf(api_ctrl_node_names[i], 12, "Filter %d", i + 1);
 
 	api_node_register(&ctrl->api_node, &eq->effect->api_node, api_ctrl_node_names[i]);
-	
+
+	    
 	endpoint_init(
 	    &ctrl->amp_ep,
 	    &ctrl->freq_amp_raw[1],
 	    JDAW_DOUBLE,
 	    "amp",
-	    display_name,
+	    "Amp",
+	    /* display_name, */
 	    JDAW_THREAD_DSP,
 	    eq_gui_cb, NULL, eq_dsp_cb,
 	    (void*)eq, (void*)(ctrl), NULL, NULL);
@@ -210,17 +232,18 @@ void eq_init(EQ *eq)
 	    &ctrl->amp_ep,
 	    (Value){.double_v = 1.0});
 
-	memset(buf, '\0', 255);
-	snprintf(buf, 255, "EQ filter %d freq", i + 1);
-	display_name = strdup(buf);
-	ctrl->freq_ep_display_name = display_name;
+	/* memset(buf, '\0', 255); */
+	/* snprintf(buf, 255, "EQ filter %d freq", i + 1); */
+	/* display_name = strdup(buf); */
+	/* ctrl->freq_ep_display_name = display_name; */
 
 	endpoint_init(
 	    &ctrl->freq_ep,
 	    &ctrl->freq_exp,
 	    JDAW_DOUBLE,
 	    "freq",
-	    display_name,
+	    "Freq",
+	    /* display_name, */
 	    JDAW_THREAD_DSP,
 	    eq_gui_cb, NULL, eq_freq_dsp_cb,
 	    (void*)eq, (void*)(ctrl), NULL, NULL);
@@ -237,7 +260,8 @@ void eq_init(EQ *eq)
 	    &ctrl->bandwidth_scalar,
 	    JDAW_DOUBLE,
 	    "bandwidth_scalar",
-	    "EQ filter bandwidth",
+	    "bandwidth_scalar_raw",
+	    /* "EQ filter bandwidth", */
 	    JDAW_THREAD_DSP,
 	    eq_gui_cb, NULL, eq_bandwidth_scalar_dsp_cb,
 	    (void*)eq, (void*)(ctrl), NULL, NULL);
@@ -246,22 +270,24 @@ void eq_init(EQ *eq)
 	    &ctrl->freq_amp_raw,
 	    JDAW_DOUBLE_PAIR,
 	    "freq_and_amp",
-	    "EQ filter freq/amp",
+	    "Freq and Amp",
+	    /* "EQ filter freq/amp", */
 	    JDAW_THREAD_DSP,
 	    eq_gui_cb, NULL, eq_dsp_cb,
 	    (void *)eq, (void *)(ctrl), NULL, NULL);
 
 
-	snprintf(buf, 255, "EQ filter %d bandwidth", i + 1);
-	display_name = strdup(buf);
-	ctrl->bandwidth_ep_display_name = display_name;
+	/* snprintf(buf, 255, "EQ filter %d bandwidth", i + 1); */
+	/* display_name = strdup(buf); */
+	/* ctrl->bandwidth_ep_display_name = display_name; */
 
 	endpoint_init(
 	    &ctrl->bandwidth_preferred_ep,
 	    &ctrl->bandwidth_preferred,
 	    JDAW_DOUBLE,
 	    "bandwidth_preferred",
-	    display_name,
+	    "Bandwidth",
+	    /* display_name, */
 	    JDAW_THREAD_DSP,
 	    eq_gui_cb, NULL, eq_dsp_cb,
 	    (void*)eq, (void*)(ctrl), NULL, NULL);
@@ -273,10 +299,28 @@ void eq_init(EQ *eq)
 	    &ctrl->bandwidth_preferred_ep,
 	    (Value){.double_v = 0.4});
 
+
+	/* snprintf(buf, 255, "EQ filter %d active", i + 1); */
+	/* display_name = strdup(buf); */
+	/* ctrl->filter_active_ep_display_name = display_name; */
+
+	/* endpoint_init( */
+	/*     &ctrl->filter_active_ep, */
+	/*     &ctrl->filter_active, */
+	/*     JDAW_BOOL, */
+	/*     "filter_active", */
+	/*     display_name, */
+	/*     JDAW_THREAD_DSP, */
+	/*     NULL, NULL, NULL, */
+	/*     NULL, NULL, NULL, NULL); */
+
+
 	/* if (i < 2) { */
 	api_endpoint_register(&ctrl->freq_ep, &ctrl->api_node);
 	api_endpoint_register(&ctrl->amp_ep, &ctrl->api_node);
 	api_endpoint_register(&ctrl->bandwidth_preferred_ep, &ctrl->api_node);
+	/* api_endpoint_register(&ctrl->filter_active_ep, &ctrl->api_node); */
+	/* api_endpoint_register(&ctrl->filter_active_ep, &ctrl->api_node); */
 	/* } */
 
 
@@ -290,9 +334,10 @@ void eq_deinit(EQ *eq)
     for (int i=0; i<eq->group.num_filters; i++) {
 	EQFilterCtrl *ctrl = eq->ctrls + i;
 	label_destroy(ctrl->label);
-	if (ctrl->freq_ep_display_name) free(ctrl->freq_ep_display_name);
-	if (ctrl->amp_ep_display_name) free(ctrl->amp_ep_display_name);
-	if (ctrl->bandwidth_ep_display_name) free(ctrl->bandwidth_ep_display_name);
+	/* if (ctrl->freq_ep_display_name) free(ctrl->freq_ep_display_name); */
+	/* if (ctrl->amp_ep_display_name) free(ctrl->amp_ep_display_name); */
+	/* if (ctrl->bandwidth_ep_display_name) free(ctrl->bandwidth_ep_display_name); */
+	/* if (ctrl->filter_active_ep_display_name) free(ctrl->filter_active_ep_display_name); */
     }
     iir_group_deinit(&eq->group);
     if (eq->fp) waveform_destroy_freq_plot(eq->fp);
@@ -323,14 +368,15 @@ void eq_deinit(EQ *eq)
 void eq_select_ctrl(EQ *eq, int index)
 {
     eq->selected_ctrl = index;
-    eq->selected_filter_active = eq->ctrls[eq->selected_ctrl].filter_active;
+    endpoint_write(&eq->selected_filter_active_ep, (Value){.bool_v = eq->ctrls[eq->selected_ctrl].filter_active}, true, true, true, false);
+    /* eq->selected_filter_active = eq->ctrls[eq->selected_ctrl].filter_active; */
 }
 
 void eq_toggle_selected_filter_active(EQ *eq)
 {
     bool *b = &eq->ctrls[eq->selected_ctrl].filter_active;
-    *b = !*b;
-    eq->selected_filter_active = *b;
+    *b = eq->selected_filter_active;
+    /* eq->selected_filter_active = *b; */
     if (!*b) {
 	iir_set_neutral_freq_resp(eq->group.filters + eq->selected_ctrl);
     } else {
@@ -462,7 +508,6 @@ bool eq_mouse_click(EQ *eq, SDL_Point mousep)
 	}
     }
     if (clicked_i < 0) return false;
-    eq_select_ctrl(eq, clicked_i);
     /* eq->selected_ctrl = clicked_i; */
     /* endpoint_write(&eq->selected_ctrl_ep, (Value){.int_v = clicked_i}, true, true, true, false); */
     
@@ -472,6 +517,7 @@ bool eq_mouse_click(EQ *eq, SDL_Point mousep)
 	eq_set_filter_from_mouse(eq, clicked_i, mousep);
 	proj->dragged_component.component = eq->ctrls + clicked_i;
 	proj->dragged_component.type = DRAG_EQ_FILTER_NODE;
+	eq_select_ctrl(eq, clicked_i);
 	return true;
     }
     return false;

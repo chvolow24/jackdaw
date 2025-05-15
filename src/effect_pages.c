@@ -223,7 +223,7 @@ Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
 	tab_lt->w.value = 50.0;
 	tab_lt->x.type = STACK;
 	tab_lt->x.value = 0;
-	snprintf(lt_name, 2, "%d", i);
+	snprintf(lt_name, 2, "%d", i + 1);
 	/* p.button_p. */
 	p.textbox_p.font = main_win->mono_bold_font;
 	p.textbox_p.text_size = 14;
@@ -246,7 +246,7 @@ Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
     /* p.toggle_p.action = filter_active_toggle; */
     /* p.toggle_p.target = eq; */
     /* p.toggle_p.value = &eq->selected_filter_active; */
-    p.toggle_p.ep = &eq->effect->active_ep;
+    p.toggle_p.ep = &eq->selected_filter_active_ep;
     page_add_el(page, EL_TOGGLE, p, "", "filter_active_toggle");
 
     p.textbox_p.font = main_win->mono_font;

@@ -208,7 +208,11 @@ static void *transport_dsp_thread_fn(void *arg)
 
     int N = len / proj->chunk_size_sframes;
     bool init = true;
+
+    clock_t performance_timer;
+    double last_t;
     while (1) {
+	performance_timer = clock();
 	pthread_testcancel();
 	float play_speed = proj->play_speed;
 
@@ -295,6 +299,12 @@ static void *transport_dsp_thread_fn(void *arg)
 	project_do_ongoing_changes(proj, JDAW_THREAD_DSP);
 	project_flush_val_changes(proj, JDAW_THREAD_DSP);
 	project_flush_callbacks(proj, JDAW_THREAD_DSP);
+	double time = ((double)clock() - performance_timer) / CLOCKS_PER_SEC;
+	double alloc_time = (double)proj->fourier_len_sframes / proj->sample_rate;
+	double out = 0.9 * last_t + 0.1 * (time / alloc_time);
+	/* fprintf(stderr, "STRESS: %f\n", out); */
+	last_t = out;
+	
     }
 
     return NULL;

@@ -138,7 +138,6 @@ int endpoint_write(
 	    new_val = ep->max;
 	}
     }
-
     bool val_changed = !jdaw_val_equal(ep->last_write_val, new_val, ep->val_type);
     if (!val_changed && ep->write_has_occurred) return 0;
     if (!ep->write_has_occurred) {

@@ -106,7 +106,8 @@ void automation_destroy(Automation *a)
     free(a);
 }
 
-static void automation_remove(Automation *a)
+/* automation_delete is higher-level and should be used where possible */
+void automation_remove(Automation *a)
 {
     Track *track = a->track;
     track->tl->needs_redraw = true;
@@ -123,11 +124,8 @@ static void automation_remove(Automation *a)
 	    if (displace) {
 		track->automations[i]->index--;
 		track->automations[i - 1] = track->automations[i];
-	    }
-	    
-	    
+	    }  
 	}
-	
     }
     layout_reset(a->layout);
     layout_size_to_fit_children_v(a->track->layout, true, 0);
@@ -151,7 +149,7 @@ static void automation_remove(Automation *a)
     TEST_FN_CALL(track_automation_order, track);
 }
 
-static void automation_reinsert(Automation *a)
+void automation_reinsert(Automation *a)
 {    
     Track *track = a->track;
     track->tl->needs_redraw = true;
@@ -236,7 +234,7 @@ Automation *track_add_automation_from_endpoint(Track *track, Endpoint *ep)
     a->val_type = ep->val_type;
     a->range = jdaw_val_sub(ep->max, ep->min, ep->val_type);
     /* snprintf(a->name, MAX_NAMELENGTH, "%s", api_endpoint_get_route_until(ep, &track->api_node)); */
-    api_endpoint_get_route_until(ep, a->name, MAX_NAMELENGTH, &track->api_node);
+    api_endpoint_get_display_route_until(ep, a->name, MAX_NAMELENGTH, &track->api_node);
 
     int ret;
     if ((ret = pthread_mutex_init(&a->lock, NULL) != 0)) {

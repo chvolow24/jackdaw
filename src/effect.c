@@ -47,6 +47,21 @@ const char *effect_type_str(EffectType type)
 }
 
 
+void effect_delete(Effect *e, bool from_undo);
+static void effect_reinsert(Effect *e, int index);
+
+NEW_EVENT_FN(undo_add_effect, "undo_add_effect")
+    effect_delete(obj1, true);
+}
+
+NEW_EVENT_FN(redo_add_effect, "redo_add_effect")
+    effect_reinsert(obj1, val1.int_v);
+}
+
+NEW_EVENT_FN(dispose_forward_add_effect, "")
+    effect_destroy(obj1);
+}
+
 Effect *track_add_effect(Track *track, EffectType type)
 {
     if (track->num_effects == MAX_TRACK_EFFECTS) {
@@ -116,13 +131,22 @@ Effect *track_add_effect(Track *track, EffectType type)
 	&e->active_ep,
 	&e->active,
 	JDAW_BOOL,
-	"effect_active",
-	"Effect active",
+	"active",
+	"Active",
 	JDAW_THREAD_DSP,
 	NULL, NULL, NULL,
 	NULL, NULL, NULL, NULL);
     endpoint_set_default_value(&e->active_ep, (Value){.bool_v = true});
     api_endpoint_register(&e->active_ep, &e->api_node);
+
+    user_event_push(
+	&proj->history,
+	undo_add_effect, redo_add_effect,
+	NULL, dispose_forward_add_effect,
+	e, NULL,
+	(Value){0}, (Value){0},
+	(Value){.int_v = track->num_effects - 1}, (Value){0},
+	0,0,false,false);
 	
     /* api_node_print_routes_with_values(&track->api_node); */
     
@@ -214,7 +238,8 @@ float effect_chain_buf_apply(Effect **effects, int num_effects, float *buf, int 
     return output;
 }
 
-void effect_delete(Effect *e, bool from_undo);
+
+static void undelete_related_automations(APINode *node);
 static void effect_reinsert(Effect *e, int index)
 {
     Track *track = e->track;
@@ -229,11 +254,12 @@ static void effect_reinsert(Effect *e, int index)
 	user_tl_track_open_settings(NULL);
 	user_tl_track_open_settings(NULL);
     }
+    api_node_reregister(&e->api_node);
+    undelete_related_automations(&e->api_node);
 }
 
 NEW_EVENT_FN(undo_effect_delete, "undo delete effect")
-    Effect *e = obj1;
-    effect_reinsert(e, val1.int_v);
+    effect_reinsert(obj1, val1.int_v);
 }
 
 NEW_EVENT_FN(redo_effect_delete, "redo delete effect")
@@ -243,6 +269,34 @@ NEW_EVENT_FN(redo_effect_delete, "redo delete effect")
 NEW_EVENT_FN(dispose_effect_delete, "")
     effect_destroy(obj1);
 }
+
+
+static void delete_related_automations(APINode *node)
+{
+    for (int i=0; i<node->num_endpoints; i++) {
+	Endpoint *ep = node->endpoints[i];
+	if (ep->automation) {
+	    automation_remove(ep->automation);
+	}
+    }
+    for (int i=0; i<node->num_children; i++) {
+	delete_related_automations(node->children[i]);
+    }
+}
+
+static void undelete_related_automations(APINode *node)
+{
+    for (int i=0; i<node->num_endpoints; i++) {
+	Endpoint *ep = node->endpoints[i];
+	if (ep->automation) {
+	    automation_reinsert(ep->automation);
+	}
+    }
+    for (int i=0; i<node->num_children; i++) {
+	undelete_related_automations(node->children[i]);
+    }
+}
+
 
 
 void effect_delete(Effect *e, bool from_undo)
@@ -272,6 +326,8 @@ void effect_delete(Effect *e, bool from_undo)
 	    (Value){.int_v = index}, (Value){0},
 	    0, 0, false, false);
     }
+    api_node_deregister(&e->api_node);
+    delete_related_automations(&e->api_node);
     TabView *tv;
     if ((tv = main_win->active_tabview) && strcmp(tv->title, "Track Effects") == 0) {
 	/* tabview_close(tv); */

@@ -163,6 +163,9 @@ Keyframe *automation_insert_keyframe_at(
     Automation *a,
     int32_t pos,
     Value val);
+
+void automation_remove(Automation *a);
+void automation_reinsert(Automation *a);
 void automation_delete(Automation *a);
 void automation_destroy(Automation *a);
 /* Keyframe *automation_insert_keyframe_after( */

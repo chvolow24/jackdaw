@@ -1454,7 +1454,7 @@ Track *timeline_add_track(Timeline *tl)
 	&track->vol,
 	JDAW_FLOAT,
 	"vol",
-	"Track volume",
+	"Vol",
 	JDAW_THREAD_DSP,
 	track_slider_cb,
 	NULL, NULL,
@@ -1474,7 +1474,7 @@ Track *timeline_add_track(Timeline *tl)
 	&track->pan,
 	JDAW_FLOAT,
 	"pan",
-	"Track pan",
+	"Pan",
 	JDAW_THREAD_DSP,
 	track_slider_cb,
 	NULL, NULL,
@@ -2468,8 +2468,15 @@ void track_delete(Track *track)
 {
     track->deleted = true;
     Timeline *tl = track->tl;
+    /* fprintf(stderr, "\n\nBEFORE:\n"); */
+    api_node_print_all_routes(&tl->api_node);
     timeline_remove_track(track);
+    api_node_deregister(&track->api_node);
     timeline_reset(tl, false);
+    /* fprintf(stderr, "\nAFTER:\n"); */
+    api_node_print_all_routes(&tl->api_node);
+
+    /* api_node_print_all_routes(&tl->api_node); */
 }
 void track_undelete(Track *track)
 {
@@ -2477,6 +2484,11 @@ void track_undelete(Track *track)
     /* timeline_insert_track_at(track, track->tl_rank); */
     timeline_reinsert_track(track);
     timeline_reset(track->tl, false);
+    api_node_reregister(&track->api_node);
+    /* fprintf(stderr, "\nAFTER UNDELETE:\n"); */
+    api_node_print_all_routes(&track->tl->api_node);
+
+    
 }
 void track_destroy(Track *track, bool displace)
 {

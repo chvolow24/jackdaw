@@ -46,6 +46,7 @@ typedef struct eq_filter_ctrl {
     double freq_exp;
 
     APINode api_node;
+    /* Endpoint filter_active_ep; */
     Endpoint freq_ep;
     Endpoint amp_ep;
     Endpoint freq_amp_ep;
@@ -55,9 +56,10 @@ typedef struct eq_filter_ctrl {
     int y;
     char label_str[EQ_CTRL_LABEL_BUFLEN];
     Label *label;
-    char *amp_ep_display_name;
-    char *freq_ep_display_name;
-    char *bandwidth_ep_display_name;
+    /* char *amp_ep_display_name; */
+    /* char *freq_ep_display_name; */
+    /* char *bandwidth_ep_display_name; */
+    /* char *filter_active_ep_display_name; */
 } EQFilterCtrl;
 
 typedef struct eq {
@@ -69,7 +71,7 @@ typedef struct eq {
     EQFilterCtrl ctrls[EQ_DEFAULT_NUM_FILTERS];
     int selected_ctrl;
     bool selected_filter_active;
-    /* Endpoint selected_ctrl_ep; */
+    Endpoint selected_filter_active_ep;
     Track *track;
 
     Effect *effect;

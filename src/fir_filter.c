@@ -192,7 +192,7 @@ void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impu
 	&filter->cutoff_freq_unscaled,
 	JDAW_DOUBLE,
 	"filter_cutoff_freq",
-	"Filter cutoff",
+	"Cutoff Freq",
 	JDAW_THREAD_DSP,
 	track_settings_page_el_gui_cb, NULL, filter_cutoff_dsp_cb,
 	/* filter_cutoff_gui_cb, NULL, filter_cutoff_dsp_cb, */
@@ -210,7 +210,7 @@ void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impu
 	&filter->bandwidth_unscaled,
 	JDAW_DOUBLE,
 	"filter_bandwidth",
-	"Filter bandwidth",
+	"Bandwidth",
 	JDAW_THREAD_DSP,
 	/* filter_bandwidth_gui_cb, NULL, filter_bandwidth_dsp_cb, */
 	track_settings_page_el_gui_cb, NULL, filter_bandwidth_dsp_cb,
@@ -228,7 +228,7 @@ void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impu
 	&filter->impulse_response_len_internal,
 	JDAW_UINT16,
 	"filter_irlen",
-	"Filter impulse resp len",
+	"IR Length",
 	JDAW_THREAD_DSP,
 	/* filter_irlen_gui_cb, NULL, filter_irlen_dsp_cb, */
 	track_settings_page_el_gui_cb, NULL, filter_irlen_dsp_cb,
@@ -247,7 +247,7 @@ void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impu
 	&filter->type,
 	JDAW_INT,
 	"type",
-	"Filter type",
+	"Type",
 	JDAW_THREAD_DSP,
 	/* filter_type_gui_cb, NULL, filter_type_dsp_cb, */
 	track_settings_page_el_gui_cb, NULL, filter_type_dsp_cb,

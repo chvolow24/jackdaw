@@ -239,7 +239,6 @@ float effect_chain_buf_apply(Effect **effects, int num_effects, float *buf, int 
 }
 
 
-static void undelete_related_automations(APINode *node);
 static void effect_reinsert(Effect *e, int index)
 {
     Track *track = e->track;
@@ -260,18 +259,19 @@ static void effect_reinsert(Effect *e, int index)
 
 NEW_EVENT_FN(undo_effect_delete, "undo delete effect")
     effect_reinsert(obj1, val1.int_v);
-    Automation **related_automations = obj2;
+    /* Automation **related_automations = obj2; */
 
-    fprintf(stderr, "LIST IN UNDO:\n\t");
-    for (int i=0; i<val2.int_v; i++) {
-	fprintf(stderr, "%p, ", related_automations[i]);
-    }
-    fprintf(stderr, "\n");
+    /* fprintf(stderr, "LIST IN UNDO:\n\t"); */
+    /* for (int i=0; i<val2.int_v; i++) { */
+    /* 	fprintf(stderr, "%p, ", related_automations[i]); */
+    /* } */
+    /* fprintf(stderr, "\n"); */
 
-    for (int i=0; i<val2.int_v; i++) {
-	Automation *a = related_automations[i];
-	automation_reinsert(a);
-    }
+    /* for (int i=0; i<val2.int_v; i++) { */
+    /* 	Automation *a = related_automations[i]; */
+    /* 	if (!a->deleted) */
+    /* 	    automation_reinsert(a); */
+    /* } */
 }
 
 NEW_EVENT_FN(redo_effect_delete, "redo delete effect")
@@ -313,51 +313,51 @@ NEW_EVENT_FN(dispose_effect_delete, "")
 /*     } */
 /* } */
 
-int get_related_automations(APINode *node, Automation ***list_loc, int *arr_size, int num_items)
-{
-    if (*arr_size < 4) *arr_size = 4;
-    if (!*list_loc) {
-	(*list_loc) = calloc(*arr_size, sizeof(Automation *));
-    }
-    for (int i=0; i<node->num_endpoints; i++) {
-	Endpoint *ep = node->endpoints[i];
-	if (ep->automation) {
-	    (*list_loc)[num_items] = ep->automation;
-	    num_items++;
-	    /* (*num_items)++; */
-	    if (num_items == *arr_size) {
-		*arr_size *= 2;
-		*list_loc = realloc(*list_loc, *arr_size * sizeof(Automation *));
-	    }
-	    /* automation_reinsert(ep->automation); */
-	}
-    }
-    /* fprintf(stderr, "LIST BEFORE RECURSIVE CALL, arrlen: %d, (%lu bytes, %lu pointers):\n\t", *arr_size, sizeof(*list_loc), sizeof(*list_loc) / sizeof(Automation *)); */
-    fprintf(stderr, "Array members before arr_size access:\n\t");
-    for (int i=0; i<num_items; i++) {
-	fprintf(stderr, "%p, ", (*list_loc)[i]);
-    }
-    fprintf(stderr, "\n");
-    fprintf(stderr, "Array members after arr_size access: (arr_size = %d)\n\t", *arr_size);
-    for (int i=0; i<num_items; i++) {
-	fprintf(stderr, "%p, ", (*list_loc)[i]);
-    }
-    fprintf(stderr, "\n");
+/* int get_related_automations(APINode *node, Automation ***list_loc, int *arr_size, int num_items) */
+/* { */
+/*     if (*arr_size < 4) *arr_size = 4; */
+/*     if (!*list_loc) { */
+/* 	(*list_loc) = calloc(*arr_size, sizeof(Automation *)); */
+/*     } */
+/*     for (int i=0; i<node->num_endpoints; i++) { */
+/* 	Endpoint *ep = node->endpoints[i]; */
+/* 	if (ep->automation) { */
+/* 	    (*list_loc)[num_items] = ep->automation; */
+/* 	    num_items++; */
+/* 	    /\* (*num_items)++; *\/ */
+/* 	    if (num_items == *arr_size) { */
+/* 		*arr_size *= 2; */
+/* 		*list_loc = realloc(*list_loc, *arr_size * sizeof(Automation *)); */
+/* 	    } */
+/* 	    /\* automation_reinsert(ep->automation); *\/ */
+/* 	} */
+/*     } */
+/*     /\* fprintf(stderr, "LIST BEFORE RECURSIVE CALL, arrlen: %d, (%lu bytes, %lu pointers):\n\t", *arr_size, sizeof(*list_loc), sizeof(*list_loc) / sizeof(Automation *)); *\/ */
+/*     fprintf(stderr, "Array members before arr_size access:\n\t"); */
+/*     for (int i=0; i<num_items; i++) { */
+/* 	fprintf(stderr, "%p, ", (*list_loc)[i]); */
+/*     } */
+/*     fprintf(stderr, "\n"); */
+/*     fprintf(stderr, "Array members after arr_size access: (arr_size = %d)\n\t", *arr_size); */
+/*     for (int i=0; i<num_items; i++) { */
+/* 	fprintf(stderr, "%p, ", (*list_loc)[i]); */
+/*     } */
+/*     fprintf(stderr, "\n"); */
 
-    breakfn();
+/*     breakfn(); */
 
-    /* for (int i=0; i<node->num_children; i++) { */
-    /* 	num_items = get_related_automations(node->children[i], list_loc, arr_size, num_items); */
-    /* } */
-    fprintf(stderr, "LIST BEFORE RETURN, arrlen: %d, (%lu bytes, %lu pointers):\n\t", *arr_size, sizeof(*list_loc), sizeof(*list_loc) / sizeof(Automation *));
-    for (int i=0; i<num_items; i++) {
-	fprintf(stderr, "%p, ", (*list_loc)[i]);
-    }
-    fprintf(stderr, "\n");
+/*     for (int i=0; i<node->num_children; i++) { */
+/* 	num_items = get_related_automations(node->children[i], list_loc, arr_size, num_items); */
+/*     } */
+/*     fprintf(stderr, "LIST BEFORE RETURN, arrlen: %d, (%lu bytes, %lu pointers):\n\t", *arr_size, sizeof(*list_loc), sizeof(*list_loc) / sizeof(Automation *)); */
+/*     for (int i=0; i<num_items; i++) { */
+/* 	fprintf(stderr, "%p, ", (*list_loc)[i]); */
+/*     } */
+/*     fprintf(stderr, "\n"); */
 
-    return num_items;
+/*     return num_items; */
 
-}
+/* } */
 
 
 
@@ -376,23 +376,30 @@ void effect_delete(Effect *e, bool from_undo)
     }
     
     track->num_effects--;
-    Automation **related_automations = NULL;
-    int arr_size = 4;
-    int num_related_automations = get_related_automations(&e->api_node, &related_automations, &arr_size, 0);
+    /* Automation **related_automations = NULL; */
+    /* int arr_size = 4; */
+    /* int num_related_automations = get_related_automations(&e->api_node, &related_automations, &arr_size, 0); */
 
-    breakfn();
-    fprintf(stderr, "%d related automations\n", num_related_automations);
-    for (int i=0; i<num_related_automations; i++) {
-	Automation *a = related_automations[i];
-	automation_remove(a);
-    }
-    fprintf(stderr, "LIST AFTER REMOVING RETURN:\n\t");
-    for (int i=0; i<num_related_automations; i++) {
-	fprintf(stderr, "%p, ", related_automations[i]);
-    }
-    fprintf(stderr, "\n");
+    /* fprintf(stderr, "LIST IN DELETE:\n\t"); */
+    /* for (int i=0; i<num_related_automations; i++) { */
+    /* 	fprintf(stderr, "%p, ", related_automations[i]); */
+    /* } */
+    /* fprintf(stderr, "\n"); */
 
-    
+    /* /\* breakfn(); *\/ */
+    /* /\* fprintf(stderr, "%d related automations\n", num_related_automations); *\/ */
+    /* for (int i=0; i<num_related_automations; i++) { */
+    /* 	Automation *a = related_automations[i]; */
+    /* 	automation_remove(a); */
+    /* } */
+    /* fprintf(stderr, "LIST AFTER REMOVING RETURN:\n\t"); */
+    /* for (int i=0; i<num_related_automations; i++) { */
+    /* 	fprintf(stderr, "%p, ", related_automations[i]); */
+    /* } */
+    /* fprintf(stderr, "\n"); */
+
+    void *related_automations = NULL;
+    int num_related_automations = 0;
     if (!from_undo) {
 	user_event_push(
 	    &proj->history,

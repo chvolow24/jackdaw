@@ -106,6 +106,9 @@ void api_node_deregister_internal(APINode *node, bool remove_from_parent)
     }
     for (int i=0; i<node->num_endpoints; i++) {
 	Endpoint *ep = node->endpoints[i];
+	if (ep->automation) {
+	    automation_remove(ep->automation);
+	}
 	char route[255];
 	api_endpoint_get_route(ep, route, 255);
 	APIHashNode **ahn = api_endpoint_get_hash_node(route);
@@ -142,13 +145,15 @@ void api_node_deregister(APINode *node)
 
 static void api_node_reregister_internal(APINode *node, bool reinsert_into_parent)
 {
-    fprintf(stderr, "\n\nREREGISTER node %s\n", node->obj_name);
     if (reinsert_into_parent && node->parent) {
 	node->parent->children[node->parent->num_children] = node;
 	node->parent->num_children++;
     }
     for (int i=0; i<node->num_endpoints; i++) {
 	Endpoint *ep = node->endpoints[i];
+	if (ep->automation && !ep->automation->deleted) {
+	    automation_reinsert(ep->automation);
+	}
 	char route[255];
 	api_endpoint_get_route(ep, route, 255);
 	APIHashNode **ahn = api_endpoint_get_hash_node(route);

@@ -119,6 +119,7 @@ typedef struct automation {
     Textbox *label;
 
     bool deleted;
+    bool removed;
     
     Label *keyframe_label;
     

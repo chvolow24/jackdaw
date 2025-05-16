@@ -258,15 +258,15 @@ void loop_project_main()
 		/*     filter_selector %=4; */
 		/* } */
 		    /* break; */
-		case SDL_SCANCODE_6: {
-		    ClipRef *cr = clipref_at_cursor();
-		    if (cr) {
-			FIRFilter *f = cr->track->effects[0]->obj;
-			Clip *c = cr->clip;
-			int32_t pos = cr->track->tl->play_pos_sframes - cr->pos_sframes;
-			filter_set_arbitrary_IR(f, c->L + pos, 2048);
-		    }
-		}
+		/* case SDL_SCANCODE_6: { */
+		/*     ClipRef *cr = clipref_at_cursor(); */
+		/*     if (cr) { */
+		/* 	FIRFilter *f = cr->track->effects[0]->obj; */
+		/* 	Clip *c = cr->clip; */
+		/* 	int32_t pos = cr->track->tl->play_pos_sframes - cr->pos_sframes; */
+		/* 	filter_set_arbitrary_IR(f, c->L + pos, 2048); */
+		/*     } */
+		/* } */
 		    break;
 		/* case SDL_SCANCODE_6: { */
 		/*     create_global_ac(); */

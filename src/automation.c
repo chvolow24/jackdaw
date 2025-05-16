@@ -109,8 +109,9 @@ void automation_destroy(Automation *a)
 /* automation_delete is higher-level and should be used where possible */
 void automation_remove(Automation *a)
 {
-    if (a->deleted) return;
-    a->deleted = true;
+    /* if (a->deleted) return; */
+    if (a->removed) return;
+    a->removed = true;
     Track *track = a->track;
     track->tl->needs_redraw = true;
     bool displace = false;
@@ -153,8 +154,9 @@ void automation_remove(Automation *a)
 
 void automation_reinsert(Automation *a)
 {
-    if (!a->deleted) return;
-    a->deleted = false;
+    if (a->index > a->track->num_automations) a->index = a->track->num_automations;
+    a->removed = false;
+    /* a->deleted = false; */
     Track *track = a->track;
     track->tl->needs_redraw = true;
     for (int16_t i=track->num_automations; i>=0; i--) {
@@ -186,10 +188,12 @@ void automation_reinsert(Automation *a)
 
 NEW_EVENT_FN(undo_add_automation, "undo add automation")
     Automation *a = (Automation *)obj1;
+    a->deleted = true;
     automation_remove(a);
 }
 NEW_EVENT_FN(redo_add_automation, "redo add automation")
     Automation *a = (Automation *)obj1;
+    a->deleted = false;
     automation_reinsert(a);
 }
 
@@ -200,17 +204,20 @@ NEW_EVENT_FN(dispose_delete_automation, "")
 
 NEW_EVENT_FN(undo_delete_automation, "undo delete automation")
     Automation *a = (Automation *)obj1;
+    a->deleted = false;
     automation_reinsert(a);
 }
 
 NEW_EVENT_FN(redo_delete_automation, "redo delete automation")
     Automation *a = (Automation *)obj1;
+    a->deleted = true;
     automation_remove(a);
 }
 
 void automation_delete(Automation *a)
 {
     automation_remove(a);
+    a->deleted = true;
     Value nullval;
     memset(&nullval, '\0', sizeof(Value));
     user_event_push(

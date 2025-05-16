@@ -115,9 +115,10 @@ typedef struct automation {
     /* KClipRef *kclips; */
     /* uint16_t num_kclips; */
     /* uint16_t kclips_arr_len; */
-    
     bool shown;
     Textbox *label;
+
+    bool deleted;
     
     Label *keyframe_label;
     

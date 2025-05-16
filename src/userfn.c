@@ -2432,6 +2432,7 @@ void user_tl_delete_generic(void *nullarg)
     if ((tv = main_win->active_tabview) && strcmp(tv->title, "Track Effects") == 0) {
 	Page *active = tv->tabs[tv->current_tab];
 	Effect *e = active->linked_obj;
+	status_cat_callstr(" effect");
 	effect_delete(e, false);
 	return;
     }

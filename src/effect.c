@@ -255,15 +255,31 @@ static void effect_reinsert(Effect *e, int index)
 	user_tl_track_open_settings(NULL);
     }
     api_node_reregister(&e->api_node);
-    undelete_related_automations(&e->api_node);
+    /* undelete_related_automations(&e->api_node); */
 }
 
 NEW_EVENT_FN(undo_effect_delete, "undo delete effect")
     effect_reinsert(obj1, val1.int_v);
+    Automation **related_automations = obj2;
+
+    fprintf(stderr, "LIST IN UNDO:\n\t");
+    for (int i=0; i<val2.int_v; i++) {
+	fprintf(stderr, "%p, ", related_automations[i]);
+    }
+    fprintf(stderr, "\n");
+
+    for (int i=0; i<val2.int_v; i++) {
+	Automation *a = related_automations[i];
+	automation_reinsert(a);
+    }
 }
 
 NEW_EVENT_FN(redo_effect_delete, "redo delete effect")
     effect_delete(obj1, true);
+    /* for (int i=0; i<val2.int_v; i++) { */
+    /* 	Automation *a = related_automations[i]; */
+    /* } */
+
 }
 
 NEW_EVENT_FN(dispose_effect_delete, "")
@@ -271,30 +287,76 @@ NEW_EVENT_FN(dispose_effect_delete, "")
 }
 
 
-static void delete_related_automations(APINode *node)
-{
-    for (int i=0; i<node->num_endpoints; i++) {
-	Endpoint *ep = node->endpoints[i];
-	if (ep->automation) {
-	    automation_remove(ep->automation);
-	}
-    }
-    for (int i=0; i<node->num_children; i++) {
-	delete_related_automations(node->children[i]);
-    }
-}
+/* static void delete_related_automations(APINode *node) */
+/* { */
+/*     for (int i=0; i<node->num_endpoints; i++) { */
+/* 	Endpoint *ep = node->endpoints[i]; */
+/* 	if (ep->automation) { */
+/* 	    automation_remove(ep->automation); */
+/* 	} */
+/*     } */
+/*     for (int i=0; i<node->num_children; i++) { */
+/* 	delete_related_automations(node->children[i]); */
+/*     } */
+/* } */
 
-static void undelete_related_automations(APINode *node)
+/* static void undelete_related_automations(APINode *node) */
+/* { */
+/*     for (int i=0; i<node->num_endpoints; i++) { */
+/* 	Endpoint *ep = node->endpoints[i]; */
+/* 	if (ep->automation) { */
+/* 	    automation_reinsert(ep->automation); */
+/* 	} */
+/*     } */
+/*     for (int i=0; i<node->num_children; i++) { */
+/* 	undelete_related_automations(node->children[i]); */
+/*     } */
+/* } */
+
+int get_related_automations(APINode *node, Automation ***list_loc, int *arr_size, int num_items)
 {
+    if (*arr_size < 4) *arr_size = 4;
+    if (!*list_loc) {
+	(*list_loc) = calloc(*arr_size, sizeof(Automation *));
+    }
     for (int i=0; i<node->num_endpoints; i++) {
 	Endpoint *ep = node->endpoints[i];
 	if (ep->automation) {
-	    automation_reinsert(ep->automation);
+	    (*list_loc)[num_items] = ep->automation;
+	    num_items++;
+	    /* (*num_items)++; */
+	    if (num_items == *arr_size) {
+		*arr_size *= 2;
+		*list_loc = realloc(*list_loc, *arr_size * sizeof(Automation *));
+	    }
+	    /* automation_reinsert(ep->automation); */
 	}
     }
-    for (int i=0; i<node->num_children; i++) {
-	undelete_related_automations(node->children[i]);
+    /* fprintf(stderr, "LIST BEFORE RECURSIVE CALL, arrlen: %d, (%lu bytes, %lu pointers):\n\t", *arr_size, sizeof(*list_loc), sizeof(*list_loc) / sizeof(Automation *)); */
+    fprintf(stderr, "Array members before arr_size access:\n\t");
+    for (int i=0; i<num_items; i++) {
+	fprintf(stderr, "%p, ", (*list_loc)[i]);
     }
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Array members after arr_size access: (arr_size = %d)\n\t", *arr_size);
+    for (int i=0; i<num_items; i++) {
+	fprintf(stderr, "%p, ", (*list_loc)[i]);
+    }
+    fprintf(stderr, "\n");
+
+    breakfn();
+
+    /* for (int i=0; i<node->num_children; i++) { */
+    /* 	num_items = get_related_automations(node->children[i], list_loc, arr_size, num_items); */
+    /* } */
+    fprintf(stderr, "LIST BEFORE RETURN, arrlen: %d, (%lu bytes, %lu pointers):\n\t", *arr_size, sizeof(*list_loc), sizeof(*list_loc) / sizeof(Automation *));
+    for (int i=0; i<num_items; i++) {
+	fprintf(stderr, "%p, ", (*list_loc)[i]);
+    }
+    fprintf(stderr, "\n");
+
+    return num_items;
+
 }
 
 
@@ -314,6 +376,23 @@ void effect_delete(Effect *e, bool from_undo)
     }
     
     track->num_effects--;
+    Automation **related_automations = NULL;
+    int arr_size = 4;
+    int num_related_automations = get_related_automations(&e->api_node, &related_automations, &arr_size, 0);
+
+    breakfn();
+    fprintf(stderr, "%d related automations\n", num_related_automations);
+    for (int i=0; i<num_related_automations; i++) {
+	Automation *a = related_automations[i];
+	automation_remove(a);
+    }
+    fprintf(stderr, "LIST AFTER REMOVING RETURN:\n\t");
+    for (int i=0; i<num_related_automations; i++) {
+	fprintf(stderr, "%p, ", related_automations[i]);
+    }
+    fprintf(stderr, "\n");
+
+    
     if (!from_undo) {
 	user_event_push(
 	    &proj->history,
@@ -321,13 +400,14 @@ void effect_delete(Effect *e, bool from_undo)
 	    redo_effect_delete,
 	    dispose_effect_delete,
 	    NULL,
-	    e, NULL,
-	    (Value){.int_v = index}, (Value){0},
-	    (Value){.int_v = index}, (Value){0},
+	    e, related_automations,
+	    (Value){.int_v = index}, (Value){.int_v = num_related_automations},
+	    (Value){.int_v = index}, (Value){.int_v = num_related_automations},
 	    0, 0, false, false);
     }
     api_node_deregister(&e->api_node);
-    delete_related_automations(&e->api_node);
+
+    /* delete_related_automations(&e->api_node); */
     TabView *tv;
     if ((tv = main_win->active_tabview) && strcmp(tv->title, "Track Effects") == 0) {
 	/* tabview_close(tv); */

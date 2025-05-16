@@ -109,6 +109,8 @@ void automation_destroy(Automation *a)
 /* automation_delete is higher-level and should be used where possible */
 void automation_remove(Automation *a)
 {
+    if (a->deleted) return;
+    a->deleted = true;
     Track *track = a->track;
     track->tl->needs_redraw = true;
     bool displace = false;
@@ -150,7 +152,9 @@ void automation_remove(Automation *a)
 }
 
 void automation_reinsert(Automation *a)
-{    
+{
+    if (!a->deleted) return;
+    a->deleted = false;
     Track *track = a->track;
     track->tl->needs_redraw = true;
     for (int16_t i=track->num_automations; i>=0; i--) {

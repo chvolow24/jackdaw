@@ -820,7 +820,6 @@ Value jdaw_val_deserialize(FILE *f)
     fread(&type_byte, 1, 1, f);
     ValType type = (ValType)((int)type_byte);
     Value ret = {0};
-    fprintf(stderr, "Type: %d, %d\n", type_byte, type);
     switch (type) {
     case JDAW_FLOAT:
 	ret.float_v = float_deser40_le(f);

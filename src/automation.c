@@ -14,6 +14,11 @@
     * All operations related to track automation
  *****************************************************************************************************************/
 
+/* NOTE on automation<>endpoints and automation->deleted:
+   (see automation.h)
+*/
+
+
 #include <pthread.h>
 #include <stdlib.h>
 
@@ -352,44 +357,6 @@ Automation *track_add_automation(Track *track, AutomationType type)
     track->automation_dropdown->background_color = &color_global_dropdown_green;
     if (a) a->type = type;
     return a;
-    /* Automation *a = calloc(1, sizeof(Automation)); */
-    /* a->track = track; */
-    /* a->type = type; */
-    /* a->read = true; */
-    /* a->index = track->num_automations; */
-    /* a->keyframe_arrlen = KEYFRAMES_ARR_INITLEN; */
-    /* a->keyframes = calloc(a->keyframe_arrlen, sizeof(Keyframe)); */
-
-    /* int ret; */
-    /* if ((ret = pthread_mutex_init(&a->lock, NULL) != 0)) { */
-    /* 	fprintf(stderr, "Error initializing automation lock: %s\n", strerror(ret)); */
-    /* 	exit(1); */
-    /* } */
-    /* if ((ret = pthread_mutex_init(&a->keyframe_arr_lock, NULL) != 0)) { */
-    /* 	fprintf(stderr, "Error initializing keyframe arr lock: %s\n", strerror(ret)); */
-    /* 	exit(1); */
-    /* } */
-
-    
-    /* /\* a->kclips_arr_len = KCLIPS_ARR_INITLEN; *\/ */
-    /* /\* a->kclips = calloc(KCLIPS_ARR_INITLEN, sizeof(KClipRef)); *\/ */
-    /* track->automations[track->num_automations] = a; */
-    /* track->num_automations++; */
-    /* Value base_kf_val; */
-    /* switch (type) { */
-
-    /* Value nullval; */
-    /* memset(&nullval, '\0', sizeof(Value)); */
-    /* user_event_push( */
-    /* 	&track->tl->proj->history, */
-    /* 	undo_add_automation, */
-    /* 	redo_add_automation, */
-    /* 	NULL, NULL, */
-    /* 	(void *)a, NULL, */
-    /* 	nullval, nullval, nullval, nullval, */
-    /* 	0, 0, false, false); */
-	
-    /* return a; */
 }
 
 
@@ -517,84 +484,6 @@ void track_add_new_automation(Track *track)
     return;
 }
 
-
-/* TODO: replace keyframe labels with standard labelfns */
-/* static float amp_to_db(float amp) */
-/* { */
-/*     return (20.0f * log10(amp)); */
-/* } */
-
-/* static void a_label_freq_raw_to_hz(char *dst, size_t dstsize, double raw) */
-/* { */
-/*     double hz = dsp_scale_freq_to_hz(raw); */
-/*     snprintf(dst, dstsize, "%.0f Hz", hz); */
-/*     snprintf(dst, dstsize, "hi"); */
-/*     dst[dstsize - 1] = '\0'; */
-/* } */
-/* static void a_label_time_samples_to_msec(char *dst, size_t dstsize, int32_t samples, int sample_rate) */
-/* { */
-    
-/*     int msec = (double)samples * 1000 / sample_rate; */
-/*     snprintf(dst, dstsize, "%d ms", msec); */
-/* } */
-
-
-/* static void a_label_amp_to_dbstr(char *dst, size_t dstsize, float amp) */
-/* { */
-/*     int max_float_chars = dstsize - 2; */
-/*     if (max_float_chars < 1) { */
-/* 	fprintf(stderr, "Error: no room for dbstr\n"); */
-/* 	dst[0] = '\0'; */
-/* 	return; */
-/*     } */
-/*     snprintf(dst, max_float_chars, "%.2f", amp_to_db(amp)); */
-/*     strcat(dst, " dB"); */
-/* } */
-
-/* static void a_label_pan(char *dst, size_t dstsize, float pan) */
-/* { */
-/*     if (pan < 0.5) { */
-/* 	snprintf(dst, dstsize, "%.1f%% L", (0.5 - pan) * 200); */
-/*     } else if (pan > 0.5) { */
-/* 	snprintf(dst, dstsize, "%.1f%% R", (pan - 0.5) * 200); */
-/*     } else { */
-/* 	snprintf(dst, dstsize, "C"); */
-/*     } */
-/* } */
-
-
-
-/* /\* static void keyframe_labelmaker(char *dst, size_t dstsize, void *target, ValType t) *\/ */
-/* static void keyframe_labelmaker(char *dst, size_t dstsize, void *target, ValType t) */
-/* { */
-/*     Automation *a = (Automation *)target; */
-/*     Timeline *tl = a->track->tl; */
-/*     Keyframe *k = tl->dragging_keyframe; */
-/*     if (!k) return; */
-/*     char valstr[dstsize]; */
-/*     /\* char tcstr[dstsize]; *\/ */
-/*     switch(a->type) { */
-/*     case AUTO_VOL: */
-/*     case AUTO_DEL_AMP: */
-/*     case AUTO_PLAY_SPEED: */
-/* 	jdaw_val_set_str(valstr, dstsize, k->value, a->val_type, 2); */
-/*     break; */
-/*     case AUTO_PAN:  */
-/*         a_label_pan(valstr, dstsize, k->value.float_v); */
-/* 	break; */
-/*     case AUTO_FIR_FILTER_CUTOFF: */
-/*     case AUTO_FIR_FILTER_BANDWIDTH: */
-/* 	a_label_freq_raw_to_hz(valstr, dstsize, k->value.double_v); */
-/* 	break; */
-/*     case AUTO_DEL_TIME: */
-/* 	a_label_time_samples_to_msec(valstr, dstsize, k->value.int32_v, proj->sample_rate); */
-/* 	break; */
-/*     } */
-/*     /\* timecode_str_at(tcstr, dstsize, k->pos); *\/ */
-/*     snprintf(dst, dstsize, "%s", valstr); */
-
-/* } */
-
 bool automation_toggle_read(Automation *a)
 {
     Track *track = a->track;
@@ -679,16 +568,12 @@ void automation_show(Automation *a)
 	a->color_bar_rect = &color_bar->rect;
 	Layout *main = layout_get_child_by_name_recursive(lt, "main");
 	a->bckgrnd_rect = &main->rect;
-	/* layout_write(stdout, track->layout, 0); */
-	/* exit(0); */
 	layout_insert_child_at(lt, a->track->layout, a->track->layout->num_children);
 	layout_size_to_fit_children_v(a->track->layout, true, 0);
 
 	Layout *tb_lt = layout_get_child_by_name_recursive(lt, "label");
 	layout_reset(tb_lt);
 
-	/* fprintf(stderr, "A type int val: %d\n", a->type); */
-	/* fprintf(stderr, "Corresponding label: %s\n", AUTOMATION_LABELS[a->type]); */
 	a->label = textbox_create_from_str(
 	    a->name,
 	    /* a->endpoint->display_name, */

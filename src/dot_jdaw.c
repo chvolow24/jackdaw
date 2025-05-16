@@ -1192,7 +1192,6 @@ static int jdaw_read_automation(FILE *f, Track *track)
     }
 
     uint16_t num_keyframes = uint16_deser_le(f);
-    fprintf(stderr, "num_keyframes: %d\n", num_keyframes);
     
     a->num_keyframes = 0;
     

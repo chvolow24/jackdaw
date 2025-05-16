@@ -235,6 +235,10 @@ void loop_project_main()
 		temp_scrolling_lt = NULL;
 		switch (e.key.keysym.scancode) {
 		/* case SDL_SCANCODE_6: { */
+		/*     do_interpolation = !do_interpolation; */
+		/* } */
+		/*     break; */
+		/* case SDL_SCANCODE_6: { */
 		/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
 		/*     Track* sel = timeline_selected_track(tl); */
 		/*     Effect *e = track_add_effect(sel, i); */

@@ -62,7 +62,6 @@ static void make_pan_chunk(float *pan_vals, int32_t len_sframes, uint8_t channel
     }
 }
 
-
 float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32_t start_pos_sframes, uint32_t len_sframes, float step)
 {
 
@@ -171,7 +170,16 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	while (chunk_i < len_sframes) {    
 	    /* Clip overlaps */
 	    if (pos_in_clip_sframes >= 0 && pos_in_clip_sframes < cr_len) {
-		float sample = clip_buf[(int32_t)pos_in_clip_sframes + cr->in_mark_sframes];
+		float sample;
+		float clip_index_f = pos_in_clip_sframes + cr->in_mark_sframes;
+		if (fabs(step) != 1.0f) {
+		    int index_left = (int)floor(clip_index_f);
+		    float diff_left = clip_index_f - (float)index_left;
+		    float diff = clip_buf[index_left + 1] - clip_buf[index_left];
+		    sample = clip_buf[index_left] + diff_left * diff;
+		} else {
+		    sample = clip_buf[(int)clip_index_f];
+		}
 		chunk[chunk_i] += sample;
 		total_amp += fabs(chunk[chunk_i]);
 	    }

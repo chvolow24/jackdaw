@@ -315,11 +315,15 @@ void layout_set_values_from_rect(Layout *lt)
     case COMPLEMENT:
 	break;
     case STACK: {
-	Layout *last_sibling = get_last_sibling(lt);
-	if (last_sibling) {
-	    lt->y.value = ((float)y - last_sibling->rect.y - last_sibling->rect.h) / main_win->dpi_scale_factor;
+	if (lt->parent) {
+	    Layout *last_sibling = get_last_sibling(lt);
+	    if (last_sibling) {
+		lt->y.value = ((float)y - last_sibling->rect.y - last_sibling->rect.h) / main_win->dpi_scale_factor;
+	    } else {
+		lt->y.value = ((float)y - lt->parent->rect.y) / main_win->dpi_scale_factor;
+	    }
 	} else {
-	    lt->y.value = ((float)y - lt->parent->rect.y) / main_win->dpi_scale_factor;
+	    lt->y.value = (float)y / main_win->dpi_scale_factor;
 	}
     }
 	break;

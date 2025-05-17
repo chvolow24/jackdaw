@@ -2469,12 +2469,12 @@ void track_delete(Track *track)
     track->deleted = true;
     Timeline *tl = track->tl;
     /* fprintf(stderr, "\n\nBEFORE:\n"); */
-    api_node_print_all_routes(&tl->api_node);
+    /* api_node_print_all_routes(&tl->api_node); */
     timeline_remove_track(track);
     api_node_deregister(&track->api_node);
     timeline_reset(tl, false);
     /* fprintf(stderr, "\nAFTER:\n"); */
-    api_node_print_all_routes(&tl->api_node);
+    /* api_node_print_all_routes(&tl->api_node); */
 
     /* api_node_print_all_routes(&tl->api_node); */
 }
@@ -2486,7 +2486,7 @@ void track_undelete(Track *track)
     timeline_reset(track->tl, false);
     api_node_reregister(&track->api_node);
     /* fprintf(stderr, "\nAFTER UNDELETE:\n"); */
-    api_node_print_all_routes(&track->tl->api_node);
+    /* api_node_print_all_routes(&track->tl->api_node); */
 
     
 }

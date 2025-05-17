@@ -159,6 +159,7 @@ void automation_remove(Automation *a)
 
 void automation_reinsert(Automation *a)
 {
+    if (!a->removed) return;
     if (a->index > a->track->num_automations) a->index = a->track->num_automations;
     a->removed = false;
     /* a->deleted = false; */

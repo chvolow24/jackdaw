@@ -88,7 +88,6 @@ void api_node_register(APINode *node, APINode *parent, char *obj_name)
 
 void api_node_deregister_internal(APINode *node, bool remove_from_parent)
 {
-    fprintf(stderr, "\n\nDEREGISTER node %s\n", node->obj_name);
     if (node->parent && remove_from_parent && node->parent->num_children > 0) {
 	bool displace = false;
 	for (int i=0; i<node->parent->num_children; i++) {
@@ -99,14 +98,14 @@ void api_node_deregister_internal(APINode *node, bool remove_from_parent)
 	    }
 	}
 	node->parent->num_children--;
-	fprintf(stderr, "Node %s children:\n", node->parent->obj_name);
-	for (int i=0; i<node->parent->num_children; i++) {
-	    fprintf(stderr, "\t->%s\n", node->parent->children[i]->obj_name);
-	}
+	/* fprintf(stderr, "Node %s children:\n", node->parent->obj_name); */
+	/* for (int i=0; i<node->parent->num_children; i++) { */
+	/*     fprintf(stderr, "\t->%s\n", node->parent->children[i]->obj_name); */
+	/* } */
     }
     for (int i=0; i<node->num_endpoints; i++) {
 	Endpoint *ep = node->endpoints[i];
-	if (ep->automation) {
+	if (ep->automation && !ep->automation->track->deleted) {
 	    automation_remove(ep->automation);
 	}
 	char route[255];
@@ -559,7 +558,7 @@ void api_node_print_all_routes(APINode *node)
     for (int i=0; i<node->num_endpoints; i++) {
 	api_endpoint_get_route(node->endpoints[i], dst, dstlen);
 	fprintf(stderr, "%s\n", dst);
-	fprintf(stderr, "\t->hash: %lu\n", api_hash_route(dst));
+	/* fprintf(stderr, "\t->hash: %lu\n", api_hash_route(dst)); */
     }
     for (int i=0; i<node->num_children; i++) {
         api_node_print_all_routes(node->children[i]);

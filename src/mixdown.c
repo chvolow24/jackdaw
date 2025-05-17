@@ -169,7 +169,7 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	
 	while (chunk_i < len_sframes) {    
 	    /* Clip overlaps */
-	    if (pos_in_clip_sframes >= 0 && pos_in_clip_sframes < cr_len) {
+	    if (pos_in_clip_sframes >= 0 && pos_in_clip_sframes < cr_len - 1) { /* Truncate last sample to allow for interpolation */
 		float sample;
 		float clip_index_f = pos_in_clip_sframes + cr->in_mark_sframes;
 		if (fabs(step) != 1.0f) {

@@ -613,6 +613,9 @@ bool tabview_mouse_click(TabView *tv)
 	    Textbox *tb = tv->labels[i];
 	    if (SDL_PointInRect(&tv->win->mousep, &tb->layout->rect)) {
 		tabview_select_tab(tv, i);
+		proj->dragged_component.component = tv;
+		proj->dragged_component.type = DRAG_TABVIEW_TAB;
+
 		/* tv->tabs[tv->current_tab]->onscreen = false; */
 		/* tv->current_tab = i; */
 		/* tv->tabs[i]->onscreen = true; */
@@ -636,6 +639,7 @@ bool tabview_mouse_motion(TabView *tv)
     /* } */
     return false;    
 }
+
 
 
 static void page_el_draw(PageEl *el)
@@ -1061,5 +1065,19 @@ const char *tabview_active_tab_title(TabView *tv)
     Page *p = tv->tabs[tv->current_tab];
     return p->title;
 }
+
+void tabview_tab_drag(TabView *tv)
+{
+    for (int i=0; i<tv->num_tabs; i++) {
+	SDL_Rect *r = &tv->labels[i]->layout->rect;
+	if (SDL_PointInRect(&main_win->mousep, r)) {
+	    if (abs(i - tv->current_tab) == 1) {
+		tabview_swap_adjacent_tabs(tv, tv->current_tab, i, true);
+		tabview_select_tab(tv, i);
+	    }
+	}        
+    }
+}
+
 
     

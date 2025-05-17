@@ -243,6 +243,8 @@ void tabview_move_current_tab_right(TabView *tv);
 void tabview_clear_all_contents(TabView *tv);
 const char *tabview_active_tab_title(TabView *tv);
 
+void tabview_tab_drag(TabView *tv);
+
 
 /* Page methods */
 

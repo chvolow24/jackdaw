@@ -15,6 +15,23 @@
     * Provide an interface for writing and reading automations
  *****************************************************************************************************************/
 
+/* NOTE on automation<>endpoints and automation->deleted:
+
+   When an automation's linked endpoint is deregistered (e.g. when an
+   effect is deleted), the automation should be removed from the timeline.
+   When the endpoint is re-registered, the automation should be reinserted.
+   But, not if the automation was separately deleted by the user.
+   
+   Automations are "deleted" when the user deleted them, or when their
+   creation is undone. automation->deleted is used to indicate whether,
+   when a related object is reinstated (an effect is undeleted), the
+   automations should be reinserted onto the timeline as well.
+
+   automation->removed simply indicates whether or not the automation
+   appears on the timeline.
+
+ */
+
 
 #ifndef JDAW_AUTOMATION_H
 #define JDAW_AUTOMATION_H
@@ -117,9 +134,9 @@ typedef struct automation {
     /* uint16_t kclips_arr_len; */
     bool shown;
     Textbox *label;
-
-    bool deleted;
-    bool removed;
+    
+    bool deleted; /* see note above (top of file) */
+    bool removed; /* see note above (top of file) */
     
     Label *keyframe_label;
     

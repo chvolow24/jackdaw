@@ -835,6 +835,7 @@ void canvas_destroy(Canvas *c)
 
 typedef struct click_segment ClickSegment;
 bool click_track_mouse_motion(ClickSegment *s, Window *win);
+void tabview_tab_drag(TabView *tv, Window *win);
 bool draggable_mouse_motion(Draggable *draggable, Window *win)
 {
     switch (draggable->type) {
@@ -845,6 +846,9 @@ bool draggable_mouse_motion(Draggable *draggable, Window *win)
 	return click_track_mouse_motion((ClickSegment *)draggable->component, win);
     case DRAG_EQ_FILTER_NODE:
 	eq_mouse_motion((EQFilterCtrl *)draggable->component, win);
+	return true;
+    case DRAG_TABVIEW_TAB:
+	tabview_tab_drag((TabView *)draggable->component, win);
 	return true;
     }
     return false;

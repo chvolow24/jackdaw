@@ -172,7 +172,24 @@ Page *tabview_select_tab(TabView *tv, int i)
     if (tv->ellipsis_right_inserted && i > tv->rightmost_index) {
 	tabview_reset(tv, tv->rightmost_index + 1);
     } else if (tv->ellipsis_left_inserted && i < tv->leftmost_index) {
-	tabview_reset(tv, 0);
+	int leftmost = tv->leftmost_index - 1;
+	int w = 0;
+	while (1) {
+	    w += tv->labels[leftmost]->layout->rect.w;
+	    if (leftmost == 0) break;
+	    if (w > tv->layout->rect.w - tv->ellipsis_left->layout->rect.w * 2 - TAB_MARGIN_LEFT * 2 * main_win->dpi_scale_factor) {
+		leftmost++;
+		break;
+	    }
+	    leftmost--;
+	}
+	/* while (leftmost > 0 && w < tv->layout->rect.w - tv->ellipsis_left->layout->rect.w * 2 - TAB_MARGIN_LEFT * 2 * main_win->dpi_scale_factor) { */
+	/*     w += tv->labels[leftmost]->layout->rect.w; */
+	/*     leftmost--; */
+	/*     /\* fprintf(stderr, "Leftmost: %d, w: %d\n", leftmost, w); *\/ */
+	/* } */
+	fprintf(stderr, "\n\nRESET LEFTMOST %d\n", leftmost);
+	tabview_reset(tv, leftmost);
     }
     return p;    
 }
@@ -685,13 +702,14 @@ void tabview_reset(TabView *tv, uint8_t leftmost_index)
 	/* Layout *leftmost_lt = tv->labels[tv->leftmost_index]->layout; */
 	/* leftmost_lt->rect.x = TAB_MARGIN_LEFT + tv->ellipsis_left->layout->rect.w; */
 	/* layout_set_values_from_rect(leftmost_lt); */
-	layout_reset(tv->tabs_container);
+	/* layout_reset(tv->tabs_container); */
 	/* fprintf(stderr, "Lt x: %d\n", tv->ellipsis_left->layout->rect.x); */
+	layout_reset(tv->tabs_container);
 	tv->ellipsis_left_inserted = true;
     } else {
 	tv->ellipsis_left_inserted = false;
     }
-    layout_reset(tv->layout);
+
 
 
     bool overflow = false;
@@ -699,6 +717,7 @@ void tabview_reset(TabView *tv, uint8_t leftmost_index)
 	if (label_overflows(tv, i)) {
 	    tv->rightmost_index = i == 0 ? 0 : i-1;
 	    int insertion_point = tv->ellipsis_left_inserted ? tv->rightmost_index + 2 : tv->rightmost_index + 1;
+	    fprintf(stderr, "Insertion point is %d (rightmost %d + %d)\n", insertion_point, tv->rightmost_index, tv->ellipsis_left_inserted ? 2 : 1);
 	    layout_insert_child_at(tv->ellipsis_right->layout, tv->tabs_container, insertion_point);
 	    layout_reset(tv->tabs_container);
 	    tv->ellipsis_right_inserted = true;

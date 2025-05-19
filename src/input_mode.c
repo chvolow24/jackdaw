@@ -651,8 +651,8 @@ static void mode_load_timeline()
         user_tl_track_select_9);
     mode_subcat_add_fn(sc, fn);
 
-    /* Tempo tracks */
-    sc = mode_add_subcat(mode, "Tempo tracks");
+    /* Click tracks */
+    sc = mode_add_subcat(mode, "Click tracks");
 
     fn = create_user_fn(
 	"tl_click_track_add",

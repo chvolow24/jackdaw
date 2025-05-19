@@ -814,7 +814,7 @@ static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv,
 
     tabview_clear_all_contents(tv);
     
-    Page *page = tab_view_add_page(
+    Page *page = tabview_add_page(
 	tv,
 	"Click track config",
 	CLICK_TRACK_SETTINGS_LT_PATH,

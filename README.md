@@ -51,8 +51,12 @@ A free, open-source, keyboard-focused digital audio workstation (DAW). Written i
 	9. [Project navigation / multiple timelines](#project-navigation--multiple-timelines)
 	10. [Opening and saving files](#opening-and-saving-files)
 	11. [Track effects](#track-effects)
-		 1. [FIR filter](#fir-filter)
-		 2. [Delay line](#delay-line)
+	     1. [Adding, ordering, and removing effects](#adding-ordering-and-removing-effects)
+		 2. [EQ](#eq)
+		 3. [FIR Filter](#fir-filter)
+		 4. [Delay line](#delay-line)
+		 5. [Saturation](#saturation)
+		 6. [Compressor](#compressor)
 	12. [Automation](#automation)
 	     1. [Adding keyframes with the mouse](#adding-keyframes-with-the-mouse)
 		 2. [Writing (adding keyframes automatically)](#writing-adding-keyframes-automatically)
@@ -648,11 +652,18 @@ Like everything else about jackdaw, the `.jdaw` file format is open and is descr
 
 ## Track effects
 
-Only two track effects are available now, but more will be available soon. A track effect is applied only to clips on the "effected" track. In other words, these are "insert" effects; "sends" will be added in a later version of jackdaw.
+### Adding, removing, and reordering effects
 
+Up to 
+
+<kbd>S-e</kbd> : **Add effect to track**<br>
 <kbd>S-t</kbd> : **Open track effects**<br>
 
-You might choose to navigate the tab view with your mouse, but it can be done with the keyboard as well. A single element on a page (e.g. slider, toggle, button) is selected, and the selection can be changes with <kbd>\<tab\></kbd>. Actions can be performed on the currently-selected 
+
+
+#### Tab view navigation
+
+You can navigate the "tab view" with the mouse or with the keyboard:
 
 <kbd>\<tab\></kbd> : **Cycle through page elements**<br>
 <kbd>S-\<tab\></kbd> : **Cycle through page elements in reverse**<br>
@@ -662,8 +673,18 @@ You might choose to navigate the tab view with your mouse, but it can be done wi
 
 You can also navigate to other tabs:
 
-<kbd>S-h</kbd> : **Tab left**<br>
-<kbd>S-;</kbd> : **Tab right**<br>
+<kbd>S-j</kbd> : **Tab left**<br>
+<kbd>S-l</kbd> : **Tab right**<br>
+
+And reorder the tabs:
+
+<kbd>C-S-j</kbd> : **Move current tab left**<br>
+<kbd>C-S-l</kbd> : **Move current tab right**<br>
+
+
+
+
+
 
 ### FIR filter
 

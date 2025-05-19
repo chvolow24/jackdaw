@@ -52,6 +52,7 @@ TabView *tabview_create(const char *title, Layout *parent_lt, Window *win)
     tv->layout = tv_lt;
     tv->win = win;
     Layout *tabs_container = layout_add_child(tv_lt);
+    tv->tabs_container = tabs_container;
     Layout *page_container = layout_add_child(tv_lt);
     tabs_container->w.type = SCALE;
     page_container->w.type = SCALE;
@@ -60,10 +61,49 @@ TabView *tabview_create(const char *title, Layout *parent_lt, Window *win)
     tabs_container->h.value = TAB_H;
     page_container->y.value = TAB_H;
     page_container->h.type = COMPLEMENT;
+
+
+
+    /* Add ellipsis tabs */
+    Layout *ellipsis_left_lt = layout_add_child(tv->tabs_container);
+    ellipsis_left_lt->x.type = STACK;
+    ellipsis_left_lt->y.value = 0;
+    ellipsis_left_lt->x.value = TAB_H_SPACING;
+    ellipsis_left_lt->h.type = SCALE;
+    ellipsis_left_lt->h.value = 1.0f;
+    layout_reset(tv->layout);
+    
+    Textbox *ellipsis_left = textbox_create_from_str("...", ellipsis_left_lt, tv->win->mono_bold_font, 14, tv->win);
+    textbox_set_background_color(ellipsis_left, &color_global_clear);
+    textbox_set_text_color(ellipsis_left, &color_global_white);
+    textbox_size_to_fit_h(ellipsis_left, 20);
+    textbox_reset_full(ellipsis_left);
+    tv->ellipsis_left = ellipsis_left;
+    layout_remove_child(ellipsis_left_lt);
+
+
+    Layout *ellipsis_right_lt = layout_add_child(tv->tabs_container);
+    ellipsis_right_lt->x.type = STACK;
+    ellipsis_right_lt->y.value = 0;
+    ellipsis_right_lt->x.value = TAB_H_SPACING;
+    ellipsis_right_lt->h.type = SCALE;
+    ellipsis_right_lt->h.value = 1.0f;
+    layout_reset(tv->layout);
+    
+    Textbox *ellipsis_right = textbox_create_from_str("...", ellipsis_right_lt, tv->win->mono_bold_font, 14, tv->win);
+    textbox_set_background_color(ellipsis_right, &color_global_clear);
+    textbox_set_text_color(ellipsis_right, &color_global_white);
+    textbox_size_to_fit_h(ellipsis_right, 20);
+    textbox_reset_full(ellipsis_right);
+    tv->ellipsis_right = ellipsis_right;
+    layout_remove_child(ellipsis_right_lt);
+
+
+
     return tv;
 }
 
-Page *tab_view_add_page(
+Page *tabview_add_page(
     TabView *tv,
     const char *page_title,
     const char *layout_filepath,
@@ -87,10 +127,10 @@ Page *tab_view_add_page(
 	win);
     tv->tabs[tv->num_tabs] = page;
     if (tv->num_tabs == 0) {
-	tv->layout->children[0]->x.value = TAB_R * 2;
+	tv->layout->children[0]->x.value = TAB_MARGIN_LEFT;
     }
 
-    Layout *tab_lt = layout_add_child(tv->layout->children[0]);
+    Layout *tab_lt = layout_add_child(tv->tabs_container);
     tab_lt->x.type = STACK;
     tab_lt->y.value = 0;
     tab_lt->x.value = TAB_H_SPACING;
@@ -101,8 +141,6 @@ Page *tab_view_add_page(
     /* layout_force_reset(tv->layout); */
 
     layout_reset(tv->layout);
-
-
     
     Textbox *tab_tb = textbox_create_from_str((char *)page_title, tab_lt, tv->win->mono_bold_font, 14, tv->win);
     textbox_set_background_color(tab_tb, &color_global_clear);
@@ -111,6 +149,9 @@ Page *tab_view_add_page(
     textbox_reset_full(tab_tb);
     tv->labels[tv->num_tabs] = tab_tb;
     tv->num_tabs++;
+    tabview_reset(tv, tv->leftmost_index);
+
+    
     return page;
 
 }
@@ -128,6 +169,11 @@ Page *tabview_select_tab(TabView *tv, int i)
     Page *p = tv->tabs[i];
     p->onscreen = true;
     tabview_select_el(tv);
+    if (tv->ellipsis_right_inserted && i > tv->rightmost_index) {
+	tabview_reset(tv, tv->rightmost_index + 1);
+    } else if (tv->ellipsis_left_inserted && i < tv->leftmost_index) {
+	tabview_reset(tv, 0);
+    }
     return p;    
 }
 
@@ -601,9 +647,75 @@ bool page_mouse_click(Page *page, Window *win)
 
 }
 
-void tab_view_reset(TabView *tv)
+static inline bool label_overflows(TabView *tv, uint8_t index)
 {
+    Textbox *label = tv->labels[index];
+    return label->layout->rect.x + label->layout->rect.w + tv->ellipsis_right->layout->rect.w + TAB_MARGIN_LEFT  > tv->layout->rect.x + tv->layout->rect.w;
+}
+
+/* Check for visual overflow and add ellipsis tabs if necessary */
+void tabview_reset(TabView *tv, uint8_t leftmost_index)
+{
+    /* fprintf(stderr, "\nParent layout w: %d; this w: %d\n", tv->layout->parent->rect.w, tv->layout->rect.w); */
+    /* layout_reset(tv->layout); */
+    /* fprintf(stderr, "Parent layout w: %d; this w: %d\n", tv->layout->parent->rect.w, tv->layout->rect.w); */
+    /* layout_force_reset(tv->layout); */
+    /* fprintf(stderr, "Parent layout w: %d; this w: %d\n", tv->layout->parent->rect.w, tv->layout->rect.w); */
+    if (tv->ellipsis_right_inserted) {
+    	layout_remove_child(tv->ellipsis_right->layout);
+    }
+    if (tv->ellipsis_left_inserted) {
+	layout_remove_child(tv->ellipsis_left->layout);
+    }
+    layout_reset(tv->tabs_container);
+
+
+    tv->leftmost_index = leftmost_index;
+    /* if (leftmost_index && !tv->ellipsis_left_inserted) { */
+    if (leftmost_index) {
+	layout_insert_child_at(tv->ellipsis_left->layout, tv->tabs_container, tv->leftmost_index);
+	tv->ellipsis_left->layout->rect.x = tv->tabs_container->rect.x + TAB_MARGIN_LEFT / main_win->dpi_scale_factor;
+	/* fprintf(stderr, "\nLt x: %d vs %d\n", tv->ellipsis_left->layout->rect.x, tv->tabs_container->rect.x); */
+	/* fprintf(stderr, "lt x dim: %f\n", tv->ellipsis_left->layout->x.value); */
+	   
+	layout_set_values_from_rect(tv->ellipsis_left->layout);
+	/* fprintf(stderr, "lt x dim: %f\n", tv->ellipsis_left->layout->x.value); */
+	/* fprintf(stderr, "Lt x: %d\n", tv->ellipsis_left->layout->rect.x); */
+	    
+	/* Layout *leftmost_lt = tv->labels[tv->leftmost_index]->layout; */
+	/* leftmost_lt->rect.x = TAB_MARGIN_LEFT + tv->ellipsis_left->layout->rect.w; */
+	/* layout_set_values_from_rect(leftmost_lt); */
+	layout_reset(tv->tabs_container);
+	/* fprintf(stderr, "Lt x: %d\n", tv->ellipsis_left->layout->rect.x); */
+	tv->ellipsis_left_inserted = true;
+    } else {
+	tv->ellipsis_left_inserted = false;
+    }
     layout_reset(tv->layout);
+
+
+    bool overflow = false;
+    for (int i=tv->leftmost_index; i<tv->num_tabs; i++) {
+	if (label_overflows(tv, i)) {
+	    tv->rightmost_index = i == 0 ? 0 : i-1;
+	    int insertion_point = tv->ellipsis_left_inserted ? tv->rightmost_index + 2 : tv->rightmost_index + 1;
+	    layout_insert_child_at(tv->ellipsis_right->layout, tv->tabs_container, insertion_point);
+	    layout_reset(tv->tabs_container);
+	    tv->ellipsis_right_inserted = true;
+	    overflow = true;
+	    break;
+	}
+    }
+    if (overflow) {
+	fprintf(stderr, "OVERFLOW\n");
+    }
+    if (!overflow) {
+	tv->ellipsis_right_inserted = false;
+	tv->rightmost_index = tv->num_tabs - 1;
+    }
+    proj->timelines[proj->active_tl_index]->needs_redraw = true;
+    fprintf(stderr, "RESET DONE\nSet? %d-%d\nIndices: %d-%d\n", tv->ellipsis_left_inserted, tv->ellipsis_right_inserted, tv->leftmost_index, tv->rightmost_index); 
+    
 }
 
 bool tabview_mouse_click(TabView *tv)
@@ -619,7 +731,7 @@ bool tabview_mouse_click(TabView *tv)
 		/* tv->tabs[tv->current_tab]->onscreen = false; */
 		/* tv->current_tab = i; */
 		/* tv->tabs[i]->onscreen = true; */
-		tab_view_reset(tv);
+		/* tabview_reset(tv); */
 		return true;
 	    }
 	}
@@ -633,7 +745,7 @@ bool tabview_mouse_click(TabView *tv)
 bool tabview_mouse_motion(TabView *tv)
 {
     /* if (SDL_PointInRect(&tv->win->mousep, &tv->layout->children[1]->rect)) { */
-    if (SDL_PointInRect(&tv->win->mousep, &tv->layout->children[1]->rect)) {
+    if (SDL_PointInRect(&tv->win->mousep, &tv->tabs_container->rect)) {
 	return page_mouse_motion(tv->tabs[tv->current_tab], tv->win);
     }
     /* } */
@@ -730,6 +842,11 @@ static inline void tabview_draw_inner(TabView *tv, uint8_t i)
     SDL_SetRenderDrawColor(tv->win->rend, sdl_colorp_expand(page->background_color));
     geom_fill_tab(tv->win->rend, &tb->layout->rect, TAB_R, tv->win->dpi_scale_factor);
     textbox_draw(tb);
+    if (i != tv->current_tab) {
+	SDL_SetRenderDrawColor(tv->win->rend, 50, 50, 50, 120);
+	geom_fill_tab(tv->win->rend, &tb->layout->rect, TAB_R, tv->win->dpi_scale_factor);
+    }
+
     SDL_SetRenderDrawColor(tv->win->rend, 160, 160, 160, 255);
     geom_draw_rounded_rect(tv->win->rend, &page->layout->rect, TAB_R * tv->win->dpi_scale_factor);
     geom_draw_tab(tv->win->rend, &tb->layout->rect, TAB_R, tv->win->dpi_scale_factor);
@@ -740,13 +857,39 @@ static inline void tabview_draw_inner(TabView *tv, uint8_t i)
     SDL_RenderDrawLine(tv->win->rend, left_x, y, right_x - 1, y);
 }
 
+static inline void draw_ellipsis_tab(TabView *tv, Textbox *tb)
+{
+    static SDL_Color ellipsis_bckgrnd = {50, 50, 50, 255};
+    SDL_SetRenderDrawColor(tv->win->rend, sdl_color_expand(ellipsis_bckgrnd));
+    geom_fill_tab(tv->win->rend, &tb->layout->rect, TAB_R, tv->win->dpi_scale_factor);
+    textbox_draw(tb);
+    SDL_SetRenderDrawColor(tv->win->rend, 160, 160, 160, 255);
+    /* geom_draw_rounded_rect(tv->win->rend, &page->layout->rect, TAB_R * tv->win->dpi_scale_factor); */
+    geom_draw_tab(tv->win->rend, &tb->layout->rect, TAB_R, tv->win->dpi_scale_factor);
+    /* SDL_SetRenderDrawColor(tv->win->rend, sdl_colorp_expand(page->background_color)); */
+    SDL_SetRenderDrawColor(tv->win->rend, sdl_color_expand(ellipsis_bckgrnd));
+    int left_x = tb->layout->rect.x - TAB_R * tv->win->dpi_scale_factor;
+    int right_x = left_x + tb->layout->rect.w + 2 * TAB_R * tv->win->dpi_scale_factor;
+    int y = tb->layout->rect.y + tb->layout->rect.h;
+    SDL_RenderDrawLine(tv->win->rend, left_x, y, right_x - 1, y);
+}
+
 void tabview_draw(TabView *tv)
 {
-    for (uint8_t i=tv->num_tabs - 1; i>tv->current_tab; i--) {
-        tabview_draw_inner(tv, i);
-
+    if (tv->ellipsis_left_inserted) {
+	draw_ellipsis_tab(tv, tv->ellipsis_left);
+	/* textbox_draw(tv->ellipsis_left); */
     }
-    for (uint8_t i=0; i<=tv->current_tab; i++) {
+    if (tv->ellipsis_right_inserted) {
+	draw_ellipsis_tab(tv, tv->ellipsis_right);
+	/* textbox_draw(tv->ellipsis_right); */
+    }
+
+    uint8_t right_start = tv->ellipsis_right_inserted ? tv->rightmost_index : tv->num_tabs - 1;
+    for (uint8_t i=right_start; i>tv->current_tab; i--) {
+        tabview_draw_inner(tv, i);
+    }
+    for (uint8_t i=tv->leftmost_index; i<=tv->current_tab; i++) {
 	if (i == tv->current_tab) {
 	    page_draw(tv->tabs[i]);
 	}
@@ -924,6 +1067,39 @@ void tabview_move_current_tab_right(TabView *tv)
     tabview_select_tab(tv, new);
 }
 
+void tabview_clear_all_contents(TabView *tv)
+{
+    for (int i=0; i<tv->num_tabs; i++) {
+	page_destroy(tv->tabs[i]);
+	textbox_destroy(tv->labels[i]);
+    }
+    tv->num_tabs = 0;
+    /* tv->current_tab = 0; */
+}
+
+
+const char *tabview_active_tab_title(TabView *tv)
+{
+    Page *p = tv->tabs[tv->current_tab];
+    return p->title;
+}
+
+void tabview_tab_drag(TabView *tv)
+{
+    for (int i=0; i<tv->num_tabs; i++) {
+	SDL_Rect *r = &tv->labels[i]->layout->rect;
+	int mousex = main_win->mousep.x;
+	/* if (SDL_PointInRect(&main_win->mousep, r)) { */
+	if (mousex > r->x && mousex < r->x + r->w) {
+	    if (abs(i - tv->current_tab) == 1) {
+		tabview_swap_adjacent_tabs(tv, tv->current_tab, i, true);
+		tabview_select_tab(tv, i);
+	    }
+	}        
+    }
+}
+
+
 
 /* NAVIGATION FUNCTIONS */
 
@@ -1049,35 +1225,6 @@ void page_select_el_by_id(Page *page, const char *id)
 }
 
 
-void tabview_clear_all_contents(TabView *tv)
-{
-    for (int i=0; i<tv->num_tabs; i++) {
-	page_destroy(tv->tabs[i]);
-	textbox_destroy(tv->labels[i]);
-    }
-    tv->num_tabs = 0;
-    /* tv->current_tab = 0; */
-}
-
-
-const char *tabview_active_tab_title(TabView *tv)
-{
-    Page *p = tv->tabs[tv->current_tab];
-    return p->title;
-}
-
-void tabview_tab_drag(TabView *tv)
-{
-    for (int i=0; i<tv->num_tabs; i++) {
-	SDL_Rect *r = &tv->labels[i]->layout->rect;
-	if (SDL_PointInRect(&main_win->mousep, r)) {
-	    if (abs(i - tv->current_tab) == 1) {
-		tabview_swap_adjacent_tabs(tv, tv->current_tab, i, true);
-		tabview_select_tab(tv, i);
-	    }
-	}        
-    }
-}
 
 
     

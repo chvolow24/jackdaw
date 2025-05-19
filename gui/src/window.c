@@ -207,6 +207,10 @@ void window_resize_passive(Window *win, int w, int h)
     if (win->layout) {
 	layout_reset_from_window(win->layout, win);
     }
+    if (win->active_tabview) {
+	tabview_reset(win->active_tabview, win->active_tabview->leftmost_index);
+    }
+
  
 }
 

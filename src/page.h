@@ -32,6 +32,7 @@
 #define TAB_H 32
 #define PAGE_R 14
 #define TAB_R PAGE_R
+#define TAB_MARGIN_LEFT (TAB_R * 2)
 #define TAB_H_SPACING 0
 
 typedef enum page_el_type {
@@ -81,11 +82,20 @@ typedef struct page {
 typedef struct tab_view {
     const char *title;
     Page *tabs[MAX_TABS];
-    Textbox *labels[MAX_TABS];
+    Textbox *labels[MAX_TABS + 2]; /* add space for ellipsis tabs */
+    Textbox *ellipsis_left;
+    Textbox *ellipsis_right;
+    bool ellipsis_left_inserted;
+    bool ellipsis_right_inserted;
+    
     uint8_t num_tabs;
     uint8_t current_tab;
     Layout *layout;
+    Layout *tabs_container;
     Window *win;
+
+    uint8_t leftmost_index; /* Set in reset function */
+    uint8_t rightmost_index; /* Calculated in reset function */
 
     /* void *related_array; */
     void (*swap_fn)(void *array, int swap_i, int swap_j);
@@ -222,7 +232,7 @@ TabView *tabview_create(const char *title, Layout *parent_lt, Window *win);
 void tabview_destroy(TabView *tv);
 void tabview_activate(TabView *tv);
 void tabview_close(TabView *tv);
-Page *tab_view_add_page(
+Page *tabview_add_page(
     TabView *tv,
     const char *page_title,
     const char *layout_filepath,
@@ -282,7 +292,7 @@ bool page_mouse_click(Page *page, Window *win);
 /* Reset functions */
 
 void page_reset(Page *page);
-void tab_view_reset(TabView *tv);
+void tabview_reset(TabView *tv, uint8_t leftmost_index);
 
 /* Draw functions */
 

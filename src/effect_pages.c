@@ -162,7 +162,7 @@ static int toggle_saturation_gain_comp(void *self_v, void *target);
 
 Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
 {
-    Page *page = tab_view_add_page(
+    Page *page = tabview_add_page(
 	tv,
 	eq->effect->name,
 	/* "Equalizer", */
@@ -342,7 +342,7 @@ Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
 
 Page *add_fir_filter_page(FIRFilter *f, Track *track, TabView *tv)
 {
-    Page *page = tab_view_add_page(
+    Page *page = tabview_add_page(
 	tv,
 	f->effect->name,
 	FIR_FILTER_LT_PATH,
@@ -457,7 +457,7 @@ Page *add_fir_filter_page(FIRFilter *f, Track *track, TabView *tv)
 
 Page *add_delay_page(DelayLine *d, Track *track, TabView *tv)
 {
-    Page *page = tab_view_add_page(
+    Page *page = tabview_add_page(
 	tv,
         d->effect->name,
 	DELAY_LINE_LT_PATH,
@@ -535,7 +535,7 @@ Page *add_delay_page(DelayLine *d, Track *track, TabView *tv)
 
 Page *add_saturation_page(Saturation *s, Track *track, TabView *tv)
 {
-    Page *page = tab_view_add_page(
+    Page *page = tabview_add_page(
 	tv,
 	s->effect->name,
 	SATURATION_LT_PATH,
@@ -618,7 +618,7 @@ Page *add_saturation_page(Saturation *s, Track *track, TabView *tv)
 
 Page *add_compressor_page(Compressor *c, Track *track, TabView *tv)
 {
-    Page *page = tab_view_add_page(
+    Page *page = tabview_add_page(
 	tv,
 	c->effect->name,
 	COMPRESSOR_LT_PATH,

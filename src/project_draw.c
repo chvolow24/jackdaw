@@ -428,7 +428,7 @@ static void ruler_draw(Timeline *tl)
     double sw = timeline_get_second_w(tl);
     int line_len;
     while (x < proj->audio_rect->x + proj->audio_rect->w) {
-    /* while (x < tl->layout->rect.x + tl->layout->rect.w) { */
+	/* while (x < tl->layout->rect.x + tl->layout->rect.w) { */
         if (x > proj->audio_rect->x) {
 	    if (second % 60 == 0) {
 		line_len = 20 * main_win->dpi_scale_factor;
@@ -441,16 +441,14 @@ static void ruler_draw(Timeline *tl)
 	    } else {
 		line_len = 5;
 	    }
-            SDL_RenderDrawLine(main_win->rend, round(x), tl->layout->rect.y, round(x), tl->layout->rect.y + line_len);
+	    SDL_RenderDrawLine(main_win->rend, round(x), tl->layout->rect.y, round(x), tl->layout->rect.y + line_len);
         }
         x += sw;
 	second++;
         if (x > proj->audio_rect->x + proj->audio_rect->w) {
             break;
         }
-    }    
-
-    
+    }
 }
 
 void fill_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad);

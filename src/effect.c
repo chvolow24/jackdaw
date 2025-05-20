@@ -71,8 +71,11 @@ Effect *track_add_effect(Track *track, EffectType type)
     Effect *e = calloc(1, sizeof(Effect));
     e->type = type;
     e->track = track;
+    e->active = true;
+    pthread_mutex_lock(&track->effect_chain_lock);
     track->effects[track->num_effects] = e;
     track->num_effects++;
+    pthread_mutex_unlock(&track->effect_chain_lock);
    
 
     int num_effects_of_type = track->num_effects_per_type[type];
@@ -227,14 +230,17 @@ static float effect_buf_apply(Effect *e, float *buf, int len, int channel, float
 
 float effect_chain_buf_apply(Effect **effects, int num_effects, float *buf, int len, int channel, float input_amp)
 {
+    if (num_effects == 0) return input_amp;
     static float amp_epsilon = 1e-7f;
     float output = input_amp;
+    pthread_mutex_lock(&(effects[0]->track->effect_chain_lock));
     for (int i=0; i<num_effects; i++) {
 	Effect *e = effects[i];
 	if (e->active && (e->operate_on_empty_buf || fabs(input_amp) > amp_epsilon)) {
 	    output = effect_buf_apply(e, buf, len, channel, input_amp);
 	}
     }
+    pthread_mutex_unlock(&(effects[0]->track->effect_chain_lock));
     return output;
 }
 
@@ -244,9 +250,13 @@ static void effect_reinsert(Effect *e, int index)
     Track *track = e->track;
 
     int num_to_move = track->num_effects - index;
+    
+    pthread_mutex_lock(&track->effect_chain_lock);
     memmove(track->effects + index + 1, track->effects + index, num_to_move * sizeof(Effect *));
     track->effects[index] = e;
     track->num_effects++;
+    pthread_mutex_unlock(&track->effect_chain_lock);
+    
     TabView *tv;
     if ((tv = main_win->active_tabview) && strcmp(tv->title, "Track Effects") == 0) {
 	/* tabview_close(tv); */

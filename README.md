@@ -654,16 +654,16 @@ Like everything else about jackdaw, the `.jdaw` file format is open and is descr
 
 ### Adding, removing, and reordering effects
 
-Up to 
+Up to 16 effects can be added to a given track. 
 
 <kbd>S-e</kbd> : **Add effect to track**<br>
 <kbd>S-t</kbd> : **Open track effects**<br>
 
-
+The effects are displayed in a "tab view." The order in which the effects are processed is determined by the order of the tabs.
 
 #### Tab view navigation
 
-You can navigate the "tab view" with the mouse or with the keyboard:
+You can navigate the tab view with the mouse or with the keyboard:
 
 <kbd>\<tab\></kbd> : **Cycle through page elements**<br>
 <kbd>S-\<tab\></kbd> : **Cycle through page elements in reverse**<br>
@@ -700,7 +700,7 @@ The frequency response of the filter is shown. When the filter is active, and pl
 
 ### Delay line
 
-The delay line is a simpler effect and has three parameters: time, amplitude, and "stereo offset." As in any delay line, the delay time is the amount of time between echoes, and the amplitude is the relative amplitude of each successive echo. "Stereo offset" delays playback of the delay line buffer in the left channel by some proportion of the delay line length, expressed as a value between 0.0 and 1.0. In other words, with a nonzero stereo offset, you will hear echoes at different times in your left and right ears.
+The delay line is a simpler effect and has three parameters: time, amplitude, and "stereo offset." As in any delay line, the delay time is the ount of time between echoes, and the amplitude is the relative amplitude of each successive echo. "Stereo offset" delays playback of the delay line buffer in the left channel by some proportion of the delay line length, expressed as a value between 0.0 and 1.0. In other words, with a nonzero stereo offset, you will hear echoes at different times in your left and right ears.
 
 Dynamic changes to the delay line length during playback are accomplished by "squeezing" or "stretching" the existing delay line buffer into the space of the new-length buffer. The squeezing and stretching produce pitch-shifting effects which are better experienced than described.
 

@@ -1446,6 +1446,11 @@ Track *timeline_add_track(Timeline *tl)
 	track_color_index = 0;
     }
 
+    int err = pthread_mutex_init(&track->effect_chain_lock, NULL);
+    if (err != 0) {
+	fprintf(stderr, "Error initializing effect chain lock: %s\n", strerror(err));
+    }
+
     api_node_register(&track->api_node, &track->tl->api_node, track->name);
 
         

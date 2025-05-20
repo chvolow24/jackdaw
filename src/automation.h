@@ -42,7 +42,7 @@
 #include "textbox.h"
 #include "value.h"
 
-#define MAX_TRACK_AUTOMATIONS 8
+#define MAX_TRACK_AUTOMATIONS 16
 /* #define KCLIPS_ARR_INITLEN 4 */
 #define KEYFRAMES_ARR_INITLEN 4
 

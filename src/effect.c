@@ -85,7 +85,7 @@ Effect *track_add_effect(Track *track, EffectType type)
 	snprintf(e->name, MAX_NAMELENGTH, "%s %d", effect_type_str(type), num_effects_of_type + 1);
     }
     track->num_effects_per_type[type]++;
-    fprintf(stderr, "Effect name: %s\n", e->name);
+    /* fprintf(stderr, "Effect name: %s\n", e->name); */
     
     api_node_register(&e->api_node, &track->api_node, e->name);
     
@@ -218,6 +218,10 @@ static int add_effect_form(void *mod_v, void *nullarg)
     window_pop_modal(main_win);
     if (e) {
 	user_tl_track_open_settings(NULL);
+	TabView *tv = main_win->active_tabview;
+	if (tv) {
+	    tabview_select_tab(tv, tv->num_tabs - 1);
+	}
     }
     return 0;
 }

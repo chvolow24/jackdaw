@@ -254,6 +254,7 @@ void tabview_clear_all_contents(TabView *tv);
 const char *tabview_active_tab_title(TabView *tv);
 
 void tabview_tab_drag(TabView *tv);
+Page *tabview_select_tab(TabView *tv, int i);
 
 
 /* Page methods */

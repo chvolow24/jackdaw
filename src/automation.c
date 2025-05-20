@@ -104,8 +104,10 @@ void automation_destroy(Automation *a)
 	label_destroy(a->keyframe_label);
     if (a->endpoint)
 	a->endpoint->automation = NULL;
-    button_destroy(a->read_button);
-    button_destroy(a->write_button);
+    if (a->read_button)
+	button_destroy(a->read_button);
+    if (a->write_button)
+	button_destroy(a->write_button);
     if (a->layout)
 	layout_destroy(a->layout);
     free(a);
@@ -239,6 +241,10 @@ void automation_delete(Automation *a)
 /* Endpoint MUST have min, max, and default set */
 Automation *track_add_automation_from_endpoint(Track *track, Endpoint *ep)
 {
+    if (track->num_automations == MAX_TRACK_AUTOMATIONS) {
+	status_set_errstr("Error: reached maximum number of automations per track\n");
+	return NULL;
+    }
     Automation *a = calloc(1, sizeof(Automation));
     a->track = track;
     a->type = AUTO_ENDPOINT;
@@ -298,6 +304,10 @@ Automation *track_add_automation_from_endpoint(Track *track, Endpoint *ep)
 
 Automation *track_add_automation(Track *track, AutomationType type)
 {
+    if (track->num_automations == MAX_TRACK_AUTOMATIONS) {
+	status_set_errstr("Error: reached maximum number of automations per track\n");
+	return NULL;
+    }
     Automation *a = NULL;
     switch (type) {
     /* case AUTO_VOL: */
@@ -403,13 +413,14 @@ static int add_auto_form(void *mod_v, void *nullarg)
 	    /* } */
 	}
 	Automation *a = track_add_automation_from_endpoint(track, ep);
+	if (!a) return 1;
 	track_automations_show_all(track);
 	track->selected_automation = a->index;
 	window_pop_modal(main_win);
     } else {
-	fprintf(stderr, "Item index is %d; num eps is %d\n", ep_index, track->api_node.num_endpoints);
+	/* fprintf(stderr, "Item index is %d; num eps is %d\n", ep_index, track->api_node.num_endpoints); */
 	APINode *subnode = node->children[ep_index - node->num_endpoints];
-	fprintf(stderr, "OK NODE: %p:\n", subnode);
+	/* fprintf(stderr, "OK NODE: %p:\n", subnode); */
 	window_pop_modal(main_win);
 	track_add_automation_from_api_node(track, subnode);
     }

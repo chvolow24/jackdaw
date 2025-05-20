@@ -114,12 +114,16 @@
   - `		: tl_track_activate_all
   - n		: tl_track_selector_down
   - p		: tl_track_selector_up
+  - <down>	: tl_track_selector_down
+  - <up>	: tl_track_selector_up
   - f		: tl_track_selector_down
   - d		: tl_track_selector_up
   - S-n		: tl_move_track_down
   - S-p		: tl_move_track_up
   - S-f		: tl_move_track_down
   - S-d		: tl_move_track_up
+  - S-<down>	: tl_move_track_selector_down
+  - S-<up>	: tl_move_track_selector_up  
   - -		: tl_track_or_tracks_minimize
   - <ret>	: tl_track_activate_selected
   - C-r		: tl_track_rename
@@ -176,12 +180,16 @@
   - p		: modal_previous
   - f		: modal_next
   - d		: modal_previous
+  - <down>	: modal_next
+  - <up>	: modal_previous
   - <tab>	: modal_next_escape
   - S-<tab>	: modal_previous_escape
   - S-n		: modal_next_escape
   - S-p		: modal_previous_escape
   - S-f		: modal_next_escape
   - S-d		: modal_previous_escape
+  - S-<down>	: modal_next_escape
+  - S-<up>	: modal_previous_escape
   - <ret>	: modal_select
   - m		: modal_dismiss
   - h		: modal_dismiss
@@ -203,6 +211,8 @@
 - tabview:
   - S-n		: tabview_next_escape
   - S-p		: tabview_previous_escape
+  - S-<down>	: tabview_next_escape
+  - S-<up>	: tabview_previous_escape
   - S-f		: tabview_next_escape
   - S-d		: tabview_previous_escape
   - <tab>	: tabview_next_escape

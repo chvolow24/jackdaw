@@ -147,7 +147,7 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	    pthread_mutex_unlock(&cr->lock);
 	    continue;
 	}
-	float pos_in_clip_sframes = start_pos_sframes - cr->pos_sframes;
+	double pos_in_clip_sframes = start_pos_sframes - cr->pos_sframes;
 	int32_t end_pos = pos_in_clip_sframes + (step * len_sframes);
 	int32_t min, max;
 	if (end_pos >= pos_in_clip_sframes) {
@@ -171,11 +171,11 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	    /* Clip overlaps */
 	    if (pos_in_clip_sframes >= 0 && pos_in_clip_sframes < cr_len - 1) { /* Truncate last sample to allow for interpolation */
 		float sample;
-		float clip_index_f = pos_in_clip_sframes + (float)cr->in_mark_sframes;
+		double clip_index_f = pos_in_clip_sframes + (double)cr->in_mark_sframes;
 		if (fabs(step) != 1.0f) {
 		    int index_left = (int)floor(clip_index_f);
-		    float diff_left = clip_index_f - (float)index_left;
-		    float diff = clip_buf[index_left + 1] - clip_buf[index_left];
+		    double diff_left = clip_index_f - (double)index_left;
+		    double diff = clip_buf[index_left + 1] - clip_buf[index_left];
 		    sample = clip_buf[index_left] + diff_left * diff;
 		} else {
 		    sample = clip_buf[(int)clip_index_f];

@@ -71,12 +71,7 @@ Effect *track_add_effect(Track *track, EffectType type)
     Effect *e = calloc(1, sizeof(Effect));
     e->type = type;
     e->track = track;
-    e->active = true;
-    pthread_mutex_lock(&track->effect_chain_lock);
-    track->effects[track->num_effects] = e;
-    track->num_effects++;
-    pthread_mutex_unlock(&track->effect_chain_lock);
-   
+    /* e->active = true;    */
 
     int num_effects_of_type = track->num_effects_per_type[type];
     if (num_effects_of_type == 0) {
@@ -148,8 +143,17 @@ Effect *track_add_effect(Track *track, EffectType type)
 	NULL, dispose_forward_add_effect,
 	e, NULL,
 	(Value){0}, (Value){0},
-	(Value){.int_v = track->num_effects - 1}, (Value){0},
+	(Value){.int_v = track->num_effects}, (Value){0},
 	0,0,false,false);
+
+    pthread_mutex_lock(&track->effect_chain_lock);
+    track->effects[track->num_effects] = e;
+    track->num_effects++;
+    e->active = true;
+    pthread_mutex_unlock(&track->effect_chain_lock);
+
+    /* endpoint_write(&e->active_ep, (Value){.bool_v = true}, true, true, true, false); */
+
 	
     /* api_node_print_routes_with_values(&track->api_node); */
     

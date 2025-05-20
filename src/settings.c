@@ -77,17 +77,17 @@ Waveform *current_waveform;
 /*     return 0; */
 
 /* } */
-static int previous_track(void *self_v, void *target)
-{
-    user_tl_track_selector_up(NULL);
-    return 0;
-}
+/* static int previous_track(void *self_v, void *target) */
+/* { */
+/*     user_tl_track_selector_up(NULL); */
+/*     return 0; */
+/* } */
 
-static int next_track(void *self_v, void *target)
-{
-    user_tl_track_selector_down(NULL);
-    return 0;
-}
+/* static int next_track(void *self_v, void *target) */
+/* { */
+/*     user_tl_track_selector_down(NULL); */
+/*     return 0; */
+/* } */
 
 /* static void create_track_selection_area(Page *page, Track *track) */
 /* { */

@@ -150,8 +150,8 @@ static void create_track_selection_area(Page *page, Track *track);
 static int next_track(void *self_v, void *target);
 static int previous_track(void *self_v, void *target);
 static double unscale_freq(double scaled);
-static int toggle_delay_line_target_action(void *self_v, void *target);
-static int toggle_saturation_gain_comp(void *self_v, void *target);
+/* static int toggle_delay_line_target_action(void *self_v, void *target); */
+/* static int toggle_saturation_gain_comp(void *self_v, void *target); */
 
 /* static int toggle_eq_active(void *self_v, void *target); */
 /* static int toggle_fir_filter_active(void *self_v, void *target); */
@@ -862,20 +862,20 @@ static double unscale_freq(double scaled)
 }
 
 
-static int toggle_delay_line_target_action(void *self_v, void *target)
-{
-    DelayLine *dl = (DelayLine *)target;
-    delay_line_clear(dl);
-    return 0;
-}
+/* static int toggle_delay_line_target_action(void *self_v, void *target) */
+/* { */
+/*     DelayLine *dl = (DelayLine *)target; */
+/*     delay_line_clear(dl); */
+/*     return 0; */
+/* } */
 
-static int toggle_saturation_gain_comp(void *self_v, void *target)
-{
-    Saturation *s = (Saturation *)target;
-    /* fprintf(stderr, "WRITING TYPE: %d\n", s->type); */
-    endpoint_write(&s->gain_comp_ep, (Value){.bool_v = s->do_gain_comp}, true, true, true, true);
-    return 0;
-}
+/* static int toggle_saturation_gain_comp(void *self_v, void *target) */
+/* { */
+/*     Saturation *s = (Saturation *)target; */
+/*     /\* fprintf(stderr, "WRITING TYPE: %d\n", s->type); *\/ */
+/*     endpoint_write(&s->gain_comp_ep, (Value){.bool_v = s->do_gain_comp}, true, true, true, true); */
+/*     return 0; */
+/* } */
 
 
 

@@ -681,15 +681,31 @@ And reorder the tabs:
 <kbd>C-S-j</kbd> : **Move current tab left**<br>
 <kbd>C-S-l</kbd> : **Move current tab right**<br>
 
+<img src="assets/readme_imgs/add_reorder_effects.gif" width="75%" />
 
+### EQ
 
+The EQ effect contains 6 configurable filters. Each can be set to one of the following types:
 
+1. Low-shelf / Highpass
+2. Peak / Notch
+3. High-shelf / Lowpass
 
+The leftmost filter is low-shelf by default, the rightmost is high-shelf, and the others are peak/notch. Any given filter can be changed to any type by clicking the symbols representing the filter types.
+
+The filter frequencies and amplitudes are modified by clicking and dragging the nodes on the spectral display:
+
+<img src="assets/readme_imgs/eq_adj_filters.gif" width="75%" />
+
+The bandwidth of a peak-notch filter can be adjusted by holding down `cmd` or `ctrl` and dragging the mouse up or down.
+
+Each filter is a biquad infinite impulse response (IIR) filter. The low-shelf/high-shelf filters are based on the continuous-time Butterworth filter, and the peak/notch filters are implemented based on Joshua D. Reiss, ["Design of Audio Parametric Equalizer Filters
+Directly in the Digital Domain", IEEE TRANSACTIONS ON AUDIO, SPEECH, AND LANGUAGE PROCESSING, VOL. 19, NO. 6, AUGUST 2011](https://www.eecs.qmul.ac.uk/~josh/documents/2011/Reiss-2011-TASLP-ParametricEqualisers.pdf).
 
 
 ### FIR filter
 
-The FIR ("finite impulse response") filter effect is an FFT-based "[windowed-sinc](https://www.analog.com/media/en/technical-documentation/dsp-book/dsp_book_Ch16.pdf)" filter. It can be configured to have a low-pass, high-pass, band-pass, or band-cut frequency response. The cutoff frequency and bandwidth are adjustable parameters, as is the length of the impulse response. This last parameter affects the "steepness" of the frequency response curve. 
+The FIR ("finite impulse response") filter is an FFT-based "[windowed-sinc](https://www.analog.com/media/en/technical-documentation/dsp-book/dsp_book_Ch16.pdf)" filter. It can be configured to have a low-pass, high-pass, band-pass, or band-cut frequency response. The cutoff frequency and bandwidth are adjustable parameters, as is the length of the impulse response. This last parameter affects the "steepness" of the frequency response curve. 
 
 > [!NOTE]
 > This is a computationally expensive effect. Applying FIR filters to many tracks may begin to cause audio playback issues if there is audio on those tracks that needs to be processed. (My 2020 macbook air maxes out at around 45.)
@@ -701,9 +717,11 @@ The frequency response of the filter is shown. When the filter is active, and pl
 
 ### Delay line
 
-The delay line is a simpler effect and has three parameters: time, amplitude, and "stereo offset." As in any delay line, the delay time is the ount of time between echoes, and the amplitude is the relative amplitude of each successive echo. "Stereo offset" delays playback of the delay line buffer in the left channel by some proportion of the delay line length, expressed as a value between 0.0 and 1.0. In other words, with a nonzero stereo offset, you will hear echoes at different times in your left and right ears.
+The delay line has three parameters: time, amplitude, and "stereo offset." The delay time is the amount of time between echoes, and the amplitude is the relative amplitude of each successive echo. "Stereo offset" delays playback of the delay line buffer in the left channel by some proportion of the delay line length, expressed as a value between 0.0 and 1.0. In other words, with a nonzero stereo offset, you will hear echoes at different times in the left and right channels.
 
-Dynamic changes to the delay line length during playback are accomplished by "squeezing" or "stretching" the existing delay line buffer into the space of the new-length buffer. The squeezing and stretching produce pitch-shifting effects which are better experienced than described.
+### Saturation
+
+The saturation effect does simple sample-wise wave shaping, rounding off the tops and bottoms of the signal peaks as they approach 1.0 and -1.0. There are two types available: the common `tanh` function, and and exponential function that behaves similarly. 
 
 ## Automation
 

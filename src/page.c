@@ -723,6 +723,9 @@ void tabview_reset(TabView *tv, uint8_t leftmost_index)
 	tv->ellipsis_right_inserted = false;
 	tv->rightmost_index = tv->num_tabs - 1;
     }
+
+    /* Page *page = tv->tabs[tv->current_tab]; */
+    /* page_reset(page); */
     proj->timelines[proj->active_tl_index]->needs_redraw = true;
 }
 
@@ -1110,12 +1113,14 @@ void tabview_tab_drag(TabView *tv)
 	&& mousex < tv->ellipsis_left->layout->rect.x + tv->ellipsis_left->layout->rect.w) {
 	tabview_swap_adjacent_tabs(tv, tv->current_tab, tv->current_tab - 1, true);
 	tabview_select_tab(tv, tv->current_tab - 1);
+	proj->dragged_component.component = NULL;
 	return;
     }
     if (tv->ellipsis_right_inserted && mousex > tv->ellipsis_right->layout->rect.x
 	&& mousex < tv->ellipsis_right->layout->rect.x + tv->ellipsis_right->layout->rect.w) {
 	tabview_swap_adjacent_tabs(tv, tv->current_tab, tv->current_tab + 1, true);
 	tabview_select_tab(tv, tv->current_tab + 1);
+	proj->dragged_component.component = NULL;
 	return;
     }
 

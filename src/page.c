@@ -183,12 +183,6 @@ Page *tabview_select_tab(TabView *tv, int i)
 	    }
 	    leftmost--;
 	}
-	/* while (leftmost > 0 && w < tv->layout->rect.w - tv->ellipsis_left->layout->rect.w * 2 - TAB_MARGIN_LEFT * 2 * main_win->dpi_scale_factor) { */
-	/*     w += tv->labels[leftmost]->layout->rect.w; */
-	/*     leftmost--; */
-	/*     /\* fprintf(stderr, "Leftmost: %d, w: %d\n", leftmost, w); *\/ */
-	/* } */
-	fprintf(stderr, "\n\nRESET LEFTMOST %d\n", leftmost);
 	tabview_reset(tv, leftmost);
     }
     return p;    
@@ -717,7 +711,7 @@ void tabview_reset(TabView *tv, uint8_t leftmost_index)
 	if (label_overflows(tv, i)) {
 	    tv->rightmost_index = i == 0 ? 0 : i-1;
 	    int insertion_point = tv->ellipsis_left_inserted ? tv->rightmost_index + 2 : tv->rightmost_index + 1;
-	    fprintf(stderr, "Insertion point is %d (rightmost %d + %d)\n", insertion_point, tv->rightmost_index, tv->ellipsis_left_inserted ? 2 : 1);
+	    /* fprintf(stderr, "Insertion point is %d (rightmost %d + %d)\n", insertion_point, tv->rightmost_index, tv->ellipsis_left_inserted ? 2 : 1); */
 	    layout_insert_child_at(tv->ellipsis_right->layout, tv->tabs_container, insertion_point);
 	    layout_reset(tv->tabs_container);
 	    tv->ellipsis_right_inserted = true;
@@ -725,22 +719,28 @@ void tabview_reset(TabView *tv, uint8_t leftmost_index)
 	    break;
 	}
     }
-    if (overflow) {
-	fprintf(stderr, "OVERFLOW\n");
-    }
     if (!overflow) {
 	tv->ellipsis_right_inserted = false;
 	tv->rightmost_index = tv->num_tabs - 1;
     }
     proj->timelines[proj->active_tl_index]->needs_redraw = true;
-    fprintf(stderr, "RESET DONE\nSet? %d-%d\nIndices: %d-%d\n", tv->ellipsis_left_inserted, tv->ellipsis_right_inserted, tv->leftmost_index, tv->rightmost_index); 
-    
 }
 
 bool tabview_mouse_click(TabView *tv)
 {
     if (SDL_PointInRect(&tv->win->mousep, &tv->layout->children[0]->rect)) {
-	for (uint8_t i=0; i<tv->num_tabs; i++) {
+	if (tv->ellipsis_left_inserted && SDL_PointInRect(&tv->win->mousep, &tv->ellipsis_left->layout->rect)) {
+	    tabview_select_tab(tv, tv->leftmost_index - 1);
+	    return true;
+	}
+	if (tv->ellipsis_right_inserted && SDL_PointInRect(&tv->win->mousep, &tv->ellipsis_right->layout->rect)) {
+	    tabview_select_tab(tv, tv->rightmost_index + 1);
+	    return true;
+	}
+
+	uint8_t start_bound = tv->ellipsis_left_inserted ? tv->leftmost_index : 0;
+	uint8_t end_bound = tv->ellipsis_right_inserted ? tv->rightmost_index + 1 : tv->num_tabs;
+	for (uint8_t i=start_bound; i<end_bound; i++) {
 	    Textbox *tb = tv->labels[i];
 	    if (SDL_PointInRect(&tv->win->mousep, &tb->layout->rect)) {
 		tabview_select_tab(tv, i);
@@ -1105,9 +1105,22 @@ const char *tabview_active_tab_title(TabView *tv)
 
 void tabview_tab_drag(TabView *tv)
 {
+    int mousex = main_win->mousep.x;
+    if (tv->ellipsis_left_inserted && mousex > tv->ellipsis_left->layout->rect.x
+	&& mousex < tv->ellipsis_left->layout->rect.x + tv->ellipsis_left->layout->rect.w) {
+	tabview_swap_adjacent_tabs(tv, tv->current_tab, tv->current_tab - 1, true);
+	tabview_select_tab(tv, tv->current_tab - 1);
+	return;
+    }
+    if (tv->ellipsis_right_inserted && mousex > tv->ellipsis_right->layout->rect.x
+	&& mousex < tv->ellipsis_right->layout->rect.x + tv->ellipsis_right->layout->rect.w) {
+	tabview_swap_adjacent_tabs(tv, tv->current_tab, tv->current_tab + 1, true);
+	tabview_select_tab(tv, tv->current_tab + 1);
+	return;
+    }
+
     for (int i=0; i<tv->num_tabs; i++) {
 	SDL_Rect *r = &tv->labels[i]->layout->rect;
-	int mousex = main_win->mousep.x;
 	/* if (SDL_PointInRect(&main_win->mousep, r)) { */
 	if (mousex > r->x && mousex < r->x + r->w) {
 	    if (abs(i - tv->current_tab) == 1) {

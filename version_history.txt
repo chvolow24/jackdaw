@@ -10,6 +10,7 @@ v0.6.0 (Wed May 21 15:24:21 MDT 2025)
 	- automations + API tree
 		- automations can be added for any endpoint registered to the track's API node
 		- de-registering an API node (e.g. deleting an effect) removes it related automations
+	- automations for boolean values (e.g. Effect active)
 	- parametric EQ effect
 		- direct form I IIR implementation (direct form II to be implemented later as optimization)
 		- peak/notch filters from Reiss 2011 (full citation in readme)

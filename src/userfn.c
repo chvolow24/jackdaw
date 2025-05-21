@@ -493,6 +493,12 @@ void user_global_chaotic_user_test(void *nullarg)
     proj->do_tests = true;
 }
 
+void api_node_print_all_routes(APINode *node);
+void user_global_api_print_all_routes(void *nullarg)
+{
+    api_node_print_all_routes(&proj->server.api_root);
+}
+
 static void menu_nav_mode_error()
 {
     fprintf(stderr, "ERROR: in mode menu_nav, no menu on main window");

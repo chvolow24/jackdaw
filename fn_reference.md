@@ -10,6 +10,7 @@
 - Start API server : <kbd>C-S-p</kbd>
 - Function lookup : <kbd>\<spc\></kbd>
 - Chaotic user test (debug only) : <kbd>A-S-\<del\></kbd>
+- Print all API routes : <kbd></kbd>
 ### menu_nav mode
 - Next item : <kbd>n</kbd>, <kbd>f</kbd>
 - Previous item : <kbd>p</kbd>, <kbd>d</kbd>
@@ -42,8 +43,8 @@
 - Move one sample right : <kbd>C-S-\<right\></kbd>
 - Record (start or stop) : <kbd>r</kbd>
 #### Timeline navigation
-- Previous track (move selector up) : <kbd>p</kbd>, <kbd>d</kbd>
-- Next track (move selector down) : <kbd>n</kbd>, <kbd>f</kbd>
+- Previous track (move selector up) : <kbd>p</kbd>, <kbd>\<up\></kbd>, <kbd>d</kbd>
+- Next track (move selector down) : <kbd>n</kbd>, <kbd>\<down\></kbd>, <kbd>f</kbd>
 - Toggle automation read : <kbd>S-r</kbd>
 - Move selected track down : <kbd>S-n</kbd>, <kbd>S-f</kbd>
 - Move selected track up : <kbd>S-p</kbd>, <kbd>S-d</kbd>
@@ -84,10 +85,11 @@
 - Activate track 7 : <kbd>7</kbd>
 - Activate track 8 : <kbd>8</kbd>
 - Activate track 9 : <kbd>9</kbd>
-#### Tempo tracks
+#### Click tracks
 - Add click track : <kbd>C-S-t</kbd>
 - Set tempo at cursor : <kbd>t</kbd>
 #### Track settings
+- Add effect to track : <kbd>S-e</kbd>
 - Open track settings : <kbd>S-t</kbd>
 - Mute or unmute selected track(s) : <kbd>m</kbd>
 - Solo or unsolo selected track(s) : <kbd>s</kbd>
@@ -133,10 +135,10 @@
 - Set In Mark (source) : <kbd>i</kbd>, <kbd>S-i</kbd>
 - Set Out Mark (source) : <kbd>o</kbd>, <kbd>S-o</kbd>
 ### modal mode
-- Go to next item : <kbd>n</kbd>, <kbd>f</kbd>
-- Go to previous item : <kbd>p</kbd>, <kbd>d</kbd>
-- Go to next item (escape DirNav) : <kbd>\<tab\></kbd>, <kbd>S-n</kbd>, <kbd>S-f</kbd>
-- Go to previous item (escape DirNav) : <kbd>S-\<tab\></kbd>, <kbd>S-p</kbd>, <kbd>S-d</kbd>
+- Go to next item : <kbd>n</kbd>, <kbd>f</kbd>, <kbd>\<down\></kbd>
+- Go to previous item : <kbd>p</kbd>, <kbd>d</kbd>, <kbd>\<up\></kbd>
+- Go to next item (escape DirNav) : <kbd>\<tab\></kbd>, <kbd>S-n</kbd>, <kbd>S-f</kbd>, <kbd>S-\<down\></kbd>
+- Go to previous item (escape DirNav) : <kbd>S-\<tab\></kbd>, <kbd>S-p</kbd>, <kbd>S-d</kbd>, <kbd>S-\<up\></kbd>
 - Select item : <kbd>\<ret\></kbd>
 - Dismiss modal window : <kbd>m</kbd>, <kbd>h</kbd>, <kbd>g</kbd>, <kbd>\<esc\></kbd>
 - Submit form : <kbd>C-\<ret\></kbd>
@@ -148,16 +150,18 @@
 - Move cursor left : <kbd>\<left\></kbd>, <kbd>C-d</kbd>, <kbd>C-b</kbd>
 - Select all : <kbd>C-a</kbd>
 ### tabview mode
-- Next element : <kbd>S-n</kbd>, <kbd>S-f</kbd>, <kbd>\<tab\></kbd>
-- Previous element : <kbd>S-p</kbd>, <kbd>S-d</kbd>, <kbd>S-\<tab\></kbd>
+- Next element : <kbd>S-n</kbd>, <kbd>S-\<down\></kbd>, <kbd>S-f</kbd>, <kbd>\<tab\></kbd>
+- Previous element : <kbd>S-p</kbd>, <kbd>S-\<up\></kbd>, <kbd>S-d</kbd>, <kbd>S-\<tab\></kbd>
 - Select : <kbd>\<ret\></kbd>
 - Move left : <kbd>h</kbd>
 - Move right : <kbd>;</kbd>
 - Next tab : <kbd>S-l</kbd>, <kbd>S-;</kbd>
 - Previous tab : <kbd>S-j</kbd>, <kbd>S-h</kbd>
+- Move current tab left : <kbd>C-S-j</kbd>, <kbd>C-S-h</kbd>
+- Move current tab right : <kbd>C-S-l</kbd>, <kbd>C-S-;</kbd>
 - Close tab view : <kbd>g</kbd>, <kbd>\<esc\></kbd>
 ### autocomplete_list mode
-- Next item : <kbd>\<tab\></kbd>
-- Previous item : <kbd>S-\<tab\></kbd>
+- Next item : <kbd>\<tab\></kbd>, <kbd>\<down\></kbd>, <kbd>C-n</kbd>
+- Previous item : <kbd>S-\<tab\></kbd>, <kbd>\<up\></kbd>, <kbd>C-p</kbd>
 - Select item : <kbd>\<ret\></kbd>
 - Escape autocomplete list : <kbd>\<esc\></kbd>

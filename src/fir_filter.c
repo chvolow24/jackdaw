@@ -191,8 +191,8 @@ void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impu
 	&filter->cutoff_ep,
 	&filter->cutoff_freq_unscaled,
 	JDAW_DOUBLE,
-	"filter_cutoff_freq",
-	"Cutoff Freq",
+	"freq",
+	"Cutoff or center freq",
 	JDAW_THREAD_DSP,
 	track_settings_page_el_gui_cb, NULL, filter_cutoff_dsp_cb,
 	/* filter_cutoff_gui_cb, NULL, filter_cutoff_dsp_cb, */
@@ -209,7 +209,7 @@ void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impu
 	&filter->bandwidth_ep,
 	&filter->bandwidth_unscaled,
 	JDAW_DOUBLE,
-	"filter_bandwidth",
+	"bandwidth",
 	"Bandwidth",
 	JDAW_THREAD_DSP,
 	/* filter_bandwidth_gui_cb, NULL, filter_bandwidth_dsp_cb, */

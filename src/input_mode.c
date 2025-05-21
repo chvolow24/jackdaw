@@ -187,6 +187,12 @@ static void mode_load_global()
 	"Chaotic user test (debug only)",
 	user_global_chaotic_user_test);
     mode_subcat_add_fn(mc, fn);
+
+    fn = create_user_fn(
+	"api_print_all_routes",
+	"Print all API routes",
+	user_global_api_print_all_routes);
+    mode_subcat_add_fn(mc, fn);
     /* fn = create_user_fn( */
     /* 	"start_or_stop_screenrecording", */
     /* 	"Start or stop screenrecording", */

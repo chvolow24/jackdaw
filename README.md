@@ -842,29 +842,69 @@ Here are some example requests:
 
 `/main/track_1/pan 0.2`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--> set pan on track 1 to 0.2 (0.0 == L, 1.0 = R)
 
-`/scratch_pad/kick/filter_cutoff_freq 0.2`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--> on the "scratch pad" timeline, set the "kick" track filter cutoff freq to 2% of nyquist (range 0.0 -> 1.0)
+`/scratch_pad/kick/fir_filter/freq 0.2`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--> on the "scratch pad" timeline, set the "kick" track filter cutoff freq to 2% of nyquist (range 0.0 -> 1.0)
 
 
-`/main/lead_synth/delay_line_len 600`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--> set the delay line effect time to 600ms
+`/main/lead_synth/delay/len 600`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--> set the delay line effect time to 600ms
 
 
 The currently-available endpoints are:
 
 ```
 /play_speed
-/<timeline>/<track>/vol
-/<timeline>/<track>/pan
-/<timeline>/<track>/filter_cutoff_freq
-/<timeline>/<track>/filter_bandwidth
-/<timeline>/<track>/delay_line_len
-/<timeline>/<track>/delay_line_amp
-/<timeline>/<track>/delay_line_stereo_offset
+/<timeline name>/<track name>/vol
+/<timeline name>/<track name>/pan
+/<timeline name>/<track name>/<effect name>/[<effect substructure>/]<effect parameter name>
+```
+
+You can print a list of available routes to the console with the `api_print_all_routes` function (accessible via menus or function lookup).
+
+Example output:
+
+```
+/play_speed
+/main/track_1/vol
+/main/track_1/pan
+/main/track_1/delay/delay_line_len
+/main/track_1/delay/delay_line_amp
+/main/track_1/delay/delay_line_stereo_offset
+/main/track_1/delay/active
+/main/track_1/delay_2/delay_line_len
+/main/track_1/delay_2/delay_line_amp
+/main/track_1/delay_2/delay_line_stereo_offset
+/main/track_1/delay_2/active
+/main/track_1/compressor/attack_time
+/main/track_1/compressor/release_time
+/main/track_1/compressor/threshold
+/main/track_1/compressor/ratio
+/main/track_1/compressor/makeup_gain
+/main/track_1/compressor/active
+/main/synth/vol
+/main/synth/pan
+/main/synth/equalizer/active
+/main/synth/equalizer/filter_1/freq
+/main/synth/equalizer/filter_1/amp
+/main/synth/equalizer/filter_1/bandwidth_preferred
+/main/synth/equalizer/filter_2/freq
+/main/synth/equalizer/filter_2/amp
+/main/synth/equalizer/filter_2/bandwidth_preferred
+/main/synth/equalizer/filter_3/freq
+/main/synth/equalizer/filter_3/amp
+/main/synth/equalizer/filter_3/bandwidth_preferred
+/main/synth/equalizer/filter_4/freq
+/main/synth/equalizer/filter_4/amp
+/main/synth/equalizer/filter_4/bandwidth_preferred
+/main/synth/equalizer/filter_5/freq
+/main/synth/equalizer/filter_5/amp
+/main/synth/equalizer/filter_5/bandwidth_preferred
+/main/synth/equalizer/filter_6/freq
+/main/synth/equalizer/filter_6/amp
+/main/synth/equalizer/filter_6/bandwidth_preferred
 ```
 
 Most applications for the API will involve sending UDP messages over localhost, but messages can also be sent over a network. 
 
 # Function reference
-
 ### global mode
 - Summon menu : <kbd>C-m</kbd>, <kbd>C-h</kbd>
 - Escape : <kbd>\<esc\></kbd>
@@ -877,6 +917,7 @@ Most applications for the API will involve sending UDP messages over localhost, 
 - Start API server : <kbd>C-S-p</kbd>
 - Function lookup : <kbd>\<spc\></kbd>
 - Chaotic user test (debug only) : <kbd>A-S-\<del\></kbd>
+- Print all API routes : <kbd></kbd>
 ### menu_nav mode
 - Next item : <kbd>n</kbd>, <kbd>f</kbd>
 - Previous item : <kbd>p</kbd>, <kbd>d</kbd>
@@ -909,8 +950,8 @@ Most applications for the API will involve sending UDP messages over localhost, 
 - Move one sample right : <kbd>C-S-\<right\></kbd>
 - Record (start or stop) : <kbd>r</kbd>
 #### Timeline navigation
-- Previous track (move selector up) : <kbd>p</kbd>, <kbd>d</kbd>
-- Next track (move selector down) : <kbd>n</kbd>, <kbd>f</kbd>
+- Previous track (move selector up) : <kbd>p</kbd>, <kbd>\<up\></kbd>, <kbd>d</kbd>
+- Next track (move selector down) : <kbd>n</kbd>, <kbd>\<down\></kbd>, <kbd>f</kbd>
 - Toggle automation read : <kbd>S-r</kbd>
 - Move selected track down : <kbd>S-n</kbd>, <kbd>S-f</kbd>
 - Move selected track up : <kbd>S-p</kbd>, <kbd>S-d</kbd>
@@ -951,10 +992,11 @@ Most applications for the API will involve sending UDP messages over localhost, 
 - Activate track 7 : <kbd>7</kbd>
 - Activate track 8 : <kbd>8</kbd>
 - Activate track 9 : <kbd>9</kbd>
-#### Tempo tracks
+#### Click tracks
 - Add click track : <kbd>C-S-t</kbd>
 - Set tempo at cursor : <kbd>t</kbd>
 #### Track settings
+- Add effect to track : <kbd>S-e</kbd>
 - Open track settings : <kbd>S-t</kbd>
 - Mute or unmute selected track(s) : <kbd>m</kbd>
 - Solo or unsolo selected track(s) : <kbd>s</kbd>
@@ -1000,10 +1042,10 @@ Most applications for the API will involve sending UDP messages over localhost, 
 - Set In Mark (source) : <kbd>i</kbd>, <kbd>S-i</kbd>
 - Set Out Mark (source) : <kbd>o</kbd>, <kbd>S-o</kbd>
 ### modal mode
-- Go to next item : <kbd>n</kbd>, <kbd>f</kbd>
-- Go to previous item : <kbd>p</kbd>, <kbd>d</kbd>
-- Go to next item (escape DirNav) : <kbd>\<tab\></kbd>, <kbd>S-n</kbd>, <kbd>S-f</kbd>
-- Go to previous item (escape DirNav) : <kbd>S-\<tab\></kbd>, <kbd>S-p</kbd>, <kbd>S-d</kbd>
+- Go to next item : <kbd>n</kbd>, <kbd>f</kbd>, <kbd>\<down\></kbd>
+- Go to previous item : <kbd>p</kbd>, <kbd>d</kbd>, <kbd>\<up\></kbd>
+- Go to next item (escape DirNav) : <kbd>\<tab\></kbd>, <kbd>S-n</kbd>, <kbd>S-f</kbd>, <kbd>S-\<down\></kbd>
+- Go to previous item (escape DirNav) : <kbd>S-\<tab\></kbd>, <kbd>S-p</kbd>, <kbd>S-d</kbd>, <kbd>S-\<up\></kbd>
 - Select item : <kbd>\<ret\></kbd>
 - Dismiss modal window : <kbd>m</kbd>, <kbd>h</kbd>, <kbd>g</kbd>, <kbd>\<esc\></kbd>
 - Submit form : <kbd>C-\<ret\></kbd>
@@ -1015,22 +1057,24 @@ Most applications for the API will involve sending UDP messages over localhost, 
 - Move cursor left : <kbd>\<left\></kbd>, <kbd>C-d</kbd>, <kbd>C-b</kbd>
 - Select all : <kbd>C-a</kbd>
 ### tabview mode
-- Next element : <kbd>S-n</kbd>, <kbd>S-f</kbd>, <kbd>\<tab\></kbd>
-- Previous element : <kbd>S-p</kbd>, <kbd>S-d</kbd>, <kbd>S-\<tab\></kbd>
+- Next element : <kbd>S-n</kbd>, <kbd>S-\<down\></kbd>, <kbd>S-f</kbd>, <kbd>\<tab\></kbd>
+- Previous element : <kbd>S-p</kbd>, <kbd>S-\<up\></kbd>, <kbd>S-d</kbd>, <kbd>S-\<tab\></kbd>
 - Select : <kbd>\<ret\></kbd>
 - Move left : <kbd>h</kbd>
 - Move right : <kbd>;</kbd>
 - Next tab : <kbd>S-l</kbd>, <kbd>S-;</kbd>
 - Previous tab : <kbd>S-j</kbd>, <kbd>S-h</kbd>
+- Move current tab left : <kbd>C-S-j</kbd>, <kbd>C-S-h</kbd>
+- Move current tab right : <kbd>C-S-l</kbd>, <kbd>C-S-;</kbd>
 - Close tab view : <kbd>g</kbd>, <kbd>\<esc\></kbd>
 ### autocomplete_list mode
-- Next item : <kbd>\<tab\></kbd>
-- Previous item : <kbd>S-\<tab\></kbd>
+- Next item : <kbd>\<tab\></kbd>, <kbd>\<down\></kbd>, <kbd>C-n</kbd>
+- Previous item : <kbd>S-\<tab\></kbd>, <kbd>\<up\></kbd>, <kbd>C-p</kbd>
 - Select item : <kbd>\<ret\></kbd>
 - Escape autocomplete list : <kbd>\<esc\></kbd>
 
 ...
 
-[ LAST UPDATED 2025-03-02 SUNDAY ]
+[ LAST UPDATED 2025-05-21 WEDNESDAY ]
 
 ...

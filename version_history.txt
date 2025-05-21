@@ -1,53 +1,77 @@
 This is an informal document tracking jackdaw version updates. 
 
+
+v0.6.0 (Wed May 21 15:24:21 MDT 2025)
+	- dynamic track effects chains
+		- S-e to add effects to track; no effects by default
+		- put effects in any order by reordering tabs in tab view
+		- delete effects
+		- multiple effects per type
+	- automations + API tree
+		- automations can be added for any endpoint registered to the track's API node
+		- de-registering an API node (e.g. deleting an effect) removes it related automations
+	- parametric EQ effect
+		- direct form I IIR implementation (direct form II to be implemented later as optimization)
+		- peak/notch filters from Reiss 2011 (full citation in readme)
+		- high-shelf / low-shelf based on continuous-time Butterworth
+	- saturation effect (simple sample-wise wave-shaping)
+	- compressor effect
+	- waveform draw optimization (hard limit waveform draw time per frame)
+	- bug fixes in autocompletion, clipref name serialization,
+	- basic audio signal routing (not accessible to user)
+	- linear interpolation for playspeed != 1.0
+	- trivial DSP optimizations
+	- .jdaw version 00.17
+
+
 v0.5.1
-       - function lookup (autocomplete dropdown, bound to <spc>)
-       - split stereo clip to mono
-       - significant refactor or TextLines to simplify interface
-       - filter_set_IR function for arbitrary IR (currently inaccessible)
+	- function lookup (autocomplete dropdown, bound to <spc>)
+	- split  stereo clip to mono
+	- significant refactor or TextLines to simplify interface
+	- filter_set_IR function for arbitrary IR (currently inaccessible)
 
 v0.5.0
-       - click tracks, click track settings, metronomes, etc.
-       - stack of track *layout*, not tracks (to accommodate click tracks)
-       - loop playback
-       - scroll playhead (bracket keys)
-       - scrubbing
-       - endpoints / concurrency model
-       - API / UDP server
-       - loading screens (for file I/O)
-       - log-scaled frequency spectrum amplitudes
-       - "Animation" interface for label and button presses (no extra GUI threads, labels disappear after an appropriate interval)
-       - deferred draw operations (for labels, e.g.)
-       - component refactor (sliders and radio buttons bind to endpoints)
-       - layout program bug fixes
-       - changes to the input mode sieve; no fallthrough for text edit mode	
-       - .jdaw filespec v00.15
-       - integer serialization handling endianness
-       - correct float serialization
-       
+	- click tracks, click track settings, metronomes, etc.
+	- stack of track *layout*, not tracks (to accommodate click tracks)
+	- loop playback
+	- scroll playhead (bracket keys)
+	- scrubbing
+	- endpoints / concurrency model
+	- API / UDP server
+	- loading screens (for file I/O)
+	- log-scaled frequency spectrum amplitudes
+	- "Animation" interface for label and button presses (no extra GUI threads, labels disappear after an appropriate interval)
+	- deferred draw operations (for labels, e.g.)
+	- component refactor (sliders and radio buttons bind to endpoints)
+	- layout program bug fixes
+	- changes to the input mode sieve; no fallthrough for text edit mode
+	- .jdaw filespec v00.15
+	- integer serialization handling endianness
+	- correct float serialization
+
 ----
 v0.4.3 (Tue Dec 10 15:27:38 EST 2024)
-       - store ALL layout dimension values as floats, never ints
-       - (int dimensions causes aliasing problems in text rendering on high-DPI displays, when text dimensions were an odd value in pixels)
-       - add "escape"/"dismiss" options for tabview and modal modes
-       - handle error cutting when no clip at cursor
+	- store ALL layout dimension values as floats, never ints
+	- (int dimensions causes aliasing problems in text rendering on high-DPI displays, when text dimensions were an odd value in pixels)
+	- add "escape"/"dismiss" options for tabview and modal modes
+	- handle error cutting when no clip at cursor
 
 v0.4.2 (Sun Dec  1 10:15:42 EST 2024)
-       - grab clips in markes range (S-g)
-       - bring clip at rear to front (S-z)
-       - move to next/prev clip boundary (S-l, S-j)
-       - update timeline display on any playhead jump
-       - don't rely on global "proj" obj for effect loads
-       - clip delay line amp values
-       - cut top clip only
-       - refine play speed scroll adj (use preciseY)
-       - fix deadlock in playback (esp. on proj destroy)
-       - fix scroll layout state management
+	- grab clips in markes range (S-g)
+	- bring clip at rear to front (S-z)
+	- move to next/prev clip boundary (S-l, S-j)
+	- update timeline display on any playhead jump
+	- don't rely on global "proj" obj for effect loads
+	- clip delay line amp values
+	- cut top clip only
+	- refine play speed scroll adj (use preciseY)
+	- fix deadlock in playback (esp. on proj destroy)
+	- fix scroll layout state management
 
 v0.4.1 (Fri Nov 29 21:48:08 EST 2024)
-       - add clipref copy/paste functionality (undocumented)
-       - allow 2048 cliprefs per track
-       - allow 2048 cliprefs per clip
-       - update .jdaw filespec to version 00.14 to account for new uint_16s
+	- add clipref copy/paste functionality (undocumented)
+	- allow 2048 cliprefs per track
+	- allow 2048 cliprefs per clip
+	- update .jdaw filespec to version 00.14 to account for new uint_16s
 
 v0.4.0 (...)

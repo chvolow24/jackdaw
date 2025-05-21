@@ -27,15 +27,12 @@
 typedef struct project Project;
 extern Project *proj;
 
-/* int project_queue_callback(Project *proj, Endpoint *ep, EndptCb cb, enum jdaw_thread thread); */
-/* int project_queue_val_change(Project *proj, Endpoint *ep, Value new_val); */
-
 int endpoint_init(
     Endpoint *ep,
     void *val,
     ValType t,
     const char *local_id,
-    const char *undo_str,
+    const char *display_name,
     enum jdaw_thread owner_thread,
     EndptCb gui_cb,
     EndptCb proj_cb,
@@ -46,7 +43,7 @@ int endpoint_init(
     ep->val = val;
     ep->val_type = t;
     ep->local_id = local_id;
-    ep->undo_str = undo_str;
+    ep->display_name = display_name;
     ep->owner_thread = owner_thread;
     ep->gui_callback = gui_cb;
     ep->proj_callback = proj_cb;
@@ -55,6 +52,9 @@ int endpoint_init(
     ep->xarg2 = xarg2;
     ep->xarg3 = xarg3;
     ep->xarg4 = xarg4;
+    ep->block_undo = false;
+    jdaw_val_set_min(&ep->min, t);
+    jdaw_val_set_max(&ep->max, t);
 
     int err;
     if ((err = pthread_mutex_init(&ep->val_lock, NULL)) != 0) {
@@ -75,6 +75,16 @@ void endpoint_set_allowed_range(Endpoint *ep, Value min, Value max)
     ep->restrict_range = true;
 }
 
+void endpoint_set_default_value(Endpoint *ep, Value default_val)
+{
+    ep->default_val = default_val;
+}
+
+void endpoint_set_label_fn(Endpoint *ep, LabelStrFn fn)
+{
+    ep->label_fn = fn;
+}
+
 /* int enpoint_add_callback(Endpoint *ep, EndptCb fn, enum jdaw_thread thread) */
 /* { */
 /*     if (ep->num_callbacks == MAX_ENDPOINT_CALLBACKS) { */
@@ -92,6 +102,7 @@ NEW_EVENT_FN(undo_redo_endpoint_write, "")
     bool run_gui_cb = cb_bf & 0b001;
     bool run_proj_cb = cb_bf & 0b010;
     bool run_dsp_cb = cb_bf & 0b100;
+/* fprintf(stderr, "undo %s %s\n", ep->local_id, ep->display_name); */
     endpoint_write(
 	ep,
 	val1,
@@ -101,7 +112,7 @@ NEW_EVENT_FN(undo_redo_endpoint_write, "")
 	false);
 
     char statstr_fmt[255];						
-    snprintf(statstr_fmt, 255, "(%d/%d) %s", proj->history.len - self->index, proj->history.len, ep->undo_str);
+    snprintf(statstr_fmt, 255, "(%d/%d) undo/redo adj %s", proj->history.len - self->index, proj->history.len, ep->display_name);
     status_set_undostr(statstr_fmt);
 }
 
@@ -118,6 +129,7 @@ int endpoint_write(
     bool run_dsp_cb,
     bool undoable)
 {
+    /* fprintf(stderr, "WRITE %s\n", ep->local_id); */
     int ret = 0;
     if (ep->restrict_range) {
 	if (jdaw_val_less_than(new_val, ep->min, ep->val_type)) {
@@ -126,7 +138,6 @@ int endpoint_write(
 	    new_val = ep->max;
 	}
     }
-
     bool val_changed = !jdaw_val_equal(ep->last_write_val, new_val, ep->val_type);
     if (!val_changed && ep->write_has_occurred) return 0;
     if (!ep->write_has_occurred) {
@@ -135,6 +146,7 @@ int endpoint_write(
     bool async_change_will_occur = false;
     /* Value change */
     enum jdaw_thread owner = endpoint_get_owner(ep);
+    /* fprintf(stderr, "Owner? %d.. on owner? %d !proj->playing && owner == JDAW_THREAD_DSP %d?\n", owner, on_thread(owner), !proj->playing && owner == JDAW_THREAD_DSP); */
     if (on_thread(owner) || (!proj->playing && owner == JDAW_THREAD_DSP)) {
 	pthread_mutex_lock(&ep->val_lock);
 	jdaw_val_set_ptr(ep->val, ep->val_type, new_val);
@@ -150,6 +162,7 @@ int endpoint_write(
 	/*     jdaw_val_set_ptr(ep->val, ep->val_type, new_val); */
 	/*     pthread_mutex_unlock(&ep->lock);	     */
 	/* } else { */
+	/* fprintf(stderr, "queueing...\n"); */
 	project_queue_val_change(proj, ep, new_val, run_gui_cb);
 	async_change_will_occur = true;
 	ret = 1;
@@ -160,15 +173,12 @@ int endpoint_write(
     bool on_main = on_thread(JDAW_THREAD_MAIN);
     if (run_dsp_cb && ep->dsp_callback) {
 	if (on_thread(JDAW_THREAD_DSP)) {
-	    /* fprintf(stderr, "DSP CALLBACK SYNCHRONOUS\n"); */
 	    ep->dsp_callback(ep);
 	} else {
 	    if (proj->playing) {
-		/* fprintf(stderr, "DSP CALLBACK scheduled.....\n"); */
 		project_queue_callback(proj, ep, ep->dsp_callback, JDAW_THREAD_DSP);
 		async_change_will_occur = true;
 	    } else {
-		/* fprintf(stderr, "DSP CALLBACK SYNCHRONOUS\n"); */
 		ep->dsp_callback(ep);
 	    }
 	}	
@@ -197,16 +207,17 @@ int endpoint_write(
     /* } */
     
     /* Undo */
-    if (undoable) {
+    if (undoable && !ep->block_undo) {
 	if (!on_main) {
 	    fprintf(stderr, "UH OH can't push event fn on thread that is not main\n");
 	    return -1;
 	}
 	/* if (!jdaw_val_equal(old_val, new_val, ep->val_type)) { */
 	    uint8_t callback_bitfield = 0;
-	    if (run_gui_cb) callback_bitfield |= 0b001;
-	    if (run_proj_cb) callback_bitfield |= 0b010;
-	    if (run_dsp_cb) callback_bitfield |= 0b100;
+	    /* if (run_gui_cb) callback_bitfield |= 0b001; */
+	    /* if (run_proj_cb) callback_bitfield |= 0b010; */
+	    /* if (run_dsp_cb) callback_bitfield |= 0b100; */
+	    callback_bitfield = 0b111;
 	    Value cb_matrix = {.uint8_v = callback_bitfield};
 	    user_event_push(
 		&proj->history,
@@ -274,14 +285,15 @@ void endpoint_start_continuous_change(
 {
     if (ep->changing) return;
     ep->changing = true;
-    ep->cached_owner = endpoint_get_owner(ep);
-    endpoint_set_owner(ep, thread);
+    ep->cached_val = endpoint_safe_read(ep, NULL);
+    /* ep->cached_owner = endpoint_get_owner(ep); */
+    /* endpoint_set_owner(ep, thread); */
 
-    endpoint_write(ep, new_value, true, true, true, true);
+    endpoint_write(ep, new_value, true, true, true, false);
 
     ep->do_auto_incr = do_auto_incr;
     ep->incr = incr;
-    ep->cached_val = endpoint_safe_read(ep, NULL);
+
     
     project_add_ongoing_change(proj, ep, thread);
 }
@@ -295,7 +307,7 @@ void endpoint_continuous_change_do_incr(Endpoint *ep)
 
 void endpoint_stop_continuous_change(Endpoint *ep)
 {
-    endpoint_set_owner(ep, ep->cached_owner);
+    /* endpoint_set_owner(ep, ep->cached_owner); */
     uint8_t callback_bitfield = 0b111;
     /* callback_bitfield |= 0b001; */
     /* if (run_proj_cb) callback_bitfield |= 0b010; */

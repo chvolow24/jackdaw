@@ -187,6 +187,12 @@ static void mode_load_global()
 	"Chaotic user test (debug only)",
 	user_global_chaotic_user_test);
     mode_subcat_add_fn(mc, fn);
+
+    fn = create_user_fn(
+	"api_print_all_routes",
+	"Print all API routes",
+	user_global_api_print_all_routes);
+    mode_subcat_add_fn(mc, fn);
     /* fn = create_user_fn( */
     /* 	"start_or_stop_screenrecording", */
     /* 	"Start or stop screenrecording", */
@@ -651,8 +657,8 @@ static void mode_load_timeline()
         user_tl_track_select_9);
     mode_subcat_add_fn(sc, fn);
 
-    /* Tempo tracks */
-    sc = mode_add_subcat(mode, "Tempo tracks");
+    /* Click tracks */
+    sc = mode_add_subcat(mode, "Click tracks");
 
     fn = create_user_fn(
 	"tl_click_track_add",
@@ -681,6 +687,12 @@ static void mode_load_timeline()
     /* Track settings */
     sc = mode_add_subcat(mode, "Track settings");
 
+    fn = create_user_fn(
+	"tl_track_add_effect",
+	"Add effect to track",
+	user_tl_track_add_effect);
+    mode_subcat_add_fn(sc, fn);
+    
     fn = create_user_fn(
 	"tl_track_open_settings",
 	"Open track settings",
@@ -1106,6 +1118,19 @@ static void mode_load_tabview()
 	"Previous tab",
 	user_tabview_previous_tab);
     mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tabview_move_current_tab_left",
+	"Move current tab left",
+	user_tabview_move_current_tab_left);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tabview_move_current_tab_right",
+	"Move current tab right",
+	user_tabview_move_current_tab_right);
+    mode_subcat_add_fn(sc, fn);
+
 
     fn = create_user_fn(
 	"tabview_escape",

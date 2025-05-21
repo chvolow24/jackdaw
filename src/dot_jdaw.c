@@ -17,7 +17,13 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+/* #include "dsp.h" */
+#include "compressor.h"
+#include "delay_line.h"
+#include "effect.h"
+#include "eq.h"
 #include "file_backup.h"
+#include "fir_filter.h"
 #include "project.h"
 #include "tempo.h"
 #include "transport.h"
@@ -44,8 +50,9 @@ const static char hdr_auto[] = {'A', 'U', 'T', 'O'};
 const static char hdr_keyf[] = {'K', 'E', 'Y', 'F'};
 const static char hdr_click[] = {'C', 'L', 'C', 'K'};
 const static char hdr_click_segm[] = {'C', 'T', 'S', 'G'};
+const static char hdr_trck_efct[] = {'E', 'F', 'C', 'T'};
 
-const static char current_file_spec_version[] = {'0','.','1','5','1'};
+const static char current_file_spec_version[] = {'0','0','.','1','7'};
 /* const static float current_file_spec_version_f = 0.11f; */
 
 /* const static char nullterm = '\0'; */
@@ -231,6 +238,7 @@ static void jdaw_write_timeline(FILE *f, Timeline *tl)
 
 static void jdaw_write_clipref(FILE *f, ClipRef *cr);
 static void jdaw_write_automation(FILE *f, Automation *a);
+static void jdaw_write_effect(FILE *f, Effect *e);
 
 static void jdaw_write_track(FILE *f, Track *track)
 {
@@ -255,43 +263,109 @@ static void jdaw_write_track(FILE *f, Track *track)
 	jdaw_write_clipref(f, track->clips[i]);
     }
 
+
+    /* Effects */
+    uint8_ser(f, &track->num_effects);
+    for (int i=0; i<track->num_effects; i++) {
+	jdaw_write_effect(f, track->effects[i]);
+    }
+
+    /* Automations */
     uint8_ser(f, &track->num_automations);
     for (uint8_t i=0; i<track->num_automations; i++) {
 	jdaw_write_automation(f, track->automations[i]);
     }
     
-    /* TRCK_FX */
-    fwrite(&track->fir_filter_active, 1, 1, f);
-    
-    FIRFilter *filter = &track->fir_filter;
-    if (track->fir_filter_active && (filter = &track->fir_filter)) {
-	uint8_t type_byte = (uint8_t)(filter->type);
-	fwrite(&type_byte, 1, 1, f);
-	float_ser40_le(f, filter->cutoff_freq);
-	float_ser40_le(f, filter->bandwidth);
-        uint16_ser_le(f, &filter->impulse_response_len);
-    } else {
-	fseek(f, 13, SEEK_CUR);
 
-    }
-    fwrite(&track->delay_line_active, 1, 1, f);
-    if (track->delay_line_active) {
-	int32_ser_le(f, &track->delay_line.len);
-	float_ser40_le(f, track->delay_line.stereo_offset);
-	float_ser40_le(f, track->delay_line.amp);
-    } else {
-	fseek(f, 14, SEEK_CUR);
-    }
-	/* fwrite(&track->delay_line.len, 4, 1, f); */
-	/* snprintf(float_value_buffer, STD_FLOAT_SER_W, "%f", track->delay_line.stereo_offset); */
-	/* fwrite(float_value_buffer, STD_FLOAT_SER_W, 1, f); */
-	/* snprintf(float_value_buffer, STD_FLOAT_SER_W, "%f", track->delay_line.amp); */
-	/* fwrite(float_value_buffer, 1, STD_FLOAT_SER_W, f); */
-    /* } else { */
-	/* fseek(f, 36, SEEK_CUR); */
-    /* } */
-    
 }
+
+static void jdaw_write_fir_filter(FILE *f, FIRFilter *filter);
+static void jdaw_write_delay(FILE *f, DelayLine *dl);
+static void jdaw_write_saturation(FILE *f, Saturation *s);
+static void jdaw_write_eq(FILE *f, EQ *eq);
+static void jdaw_write_compressor(FILE *f, Compressor *compressor);
+
+static void jdaw_write_effect(FILE *f, Effect *e)
+{
+    fwrite(hdr_trck_efct, 1, 4, f);
+    uint8_t type_byte = e->type;
+    uint8_ser(f, &type_byte);
+    switch(e->type) {
+    case EFFECT_EQ:
+	jdaw_write_eq(f, e->obj);
+	break;
+    case EFFECT_FIR_FILTER:
+	jdaw_write_fir_filter(f, e->obj);
+	break;
+    case EFFECT_DELAY:
+	jdaw_write_delay(f, e->obj);
+	break;
+    case EFFECT_SATURATION:
+	jdaw_write_saturation(f, e->obj);
+	break;
+    case EFFECT_COMPRESSOR:
+	jdaw_write_compressor(f, e->obj);
+	break;
+    default:
+	break;
+    }
+}
+
+static void jdaw_write_fir_filter(FILE *f, FIRFilter *filter)
+{
+    fwrite(&filter->effect->active, 1, 1, f);    
+    uint8_t type_byte = (uint8_t)(filter->type);
+    fwrite(&type_byte, 1, 1, f);
+    float_ser40_le(f, filter->cutoff_freq);
+    float_ser40_le(f, filter->bandwidth);
+    uint16_ser_le(f, &filter->impulse_response_len);
+}
+
+static void jdaw_write_delay(FILE *f, DelayLine *dl)
+{
+    fwrite(&dl->effect->active, 1, 1, f);
+    int32_ser_le(f, &dl->len);
+    float_ser40_le(f, dl->stereo_offset);
+    float_ser40_le(f, dl->amp);
+}
+
+static void jdaw_write_saturation(FILE *f, Saturation *s)
+{
+    fwrite(&s->effect->active, 1, 1, f);
+    float_ser40_le(f, s->gain);
+    fwrite(&s->do_gain_comp, 1, 1, f);
+    uint8_t type_byte = (uint8_t)s->type;
+    uint8_ser(f, &type_byte);
+
+}
+
+static void jdaw_write_eq(FILE *f, EQ *eq)
+{
+    fwrite(&eq->effect->active, 1, 1, f);
+    uint8_t num_filters = EQ_DEFAULT_NUM_FILTERS;
+    uint8_ser(f, &num_filters);
+    for (int i=0; i<num_filters; i++) {
+	EQFilterCtrl *ctrl = eq->ctrls + i;
+	fwrite(&ctrl->filter_active, 1, 1, f);
+	uint8_t type_byte = (uint8_t)eq->group.filters[i].type;
+	uint8_ser(f, &type_byte);
+	float_ser40_le(f, ctrl->freq_amp_raw[0]);
+	float_ser40_le(f, ctrl->freq_amp_raw[1]);
+	float_ser40_le(f, ctrl->bandwidth_scalar);
+    }
+}
+
+static void jdaw_write_compressor(FILE *f, Compressor *c)
+{
+    fwrite(&c->effect->active, 1, 1, f);
+    float_ser40_le(f, c->attack_time);
+    float_ser40_le(f, c->release_time);
+    float_ser40_le(f, c->threshold);
+    float_ser40_le(f, c->m);
+    float_ser40_le(f, c->makeup_gain);
+}
+
+
 
 static void jdaw_write_click_segment(FILE *f, ClickSegment *s);
 static void jdaw_write_click_track(FILE *f, ClickTrack *ct)
@@ -359,6 +433,12 @@ static void jdaw_write_automation(FILE *f, Automation *a)
     /* Automation type */
     uint8_t type_byte = (uint8_t)a->type;
     fwrite(&type_byte, 1, 1, f);
+    if (type_byte == AUTO_ENDPOINT) {
+	char route[255];
+	uint8_t route_len = api_endpoint_get_route(a->endpoint, route, 255);
+        uint8_ser(f, &route_len);
+	fwrite(route, 1, route_len, f);
+    }
     /* Value type */
     type_byte = (uint8_t)a->val_type;
     fwrite(&type_byte, 1, 1, f);
@@ -692,6 +772,9 @@ static int jdaw_read_timeline(FILE *f, Project *proj_loc)
 
 static int jdaw_read_clipref(FILE *f, Track *track);
 static int jdaw_read_automation(FILE *f, Track *track);
+static int jdaw_read_effect(FILE *f, Track *track);
+
+
 static int jdaw_read_track(FILE *f, Timeline *tl)
 {
     char hdr_buffer[4];
@@ -767,87 +850,246 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 	}
 	num_cliprefs--;
     }
-    if (read_file_spec_version >= 00.13f) {
-	uint8_t num_automations = uint8_deser(f);
-	while (num_automations > 0) {
-	    if (jdaw_read_automation(f, track) != 0) {
-		return 1;
+    if (read_file_spec_version < 00.17) {
+	if (read_file_spec_version >= 00.13f) {
+	    uint8_t num_automations = uint8_deser(f);
+	    while (num_automations > 0) {
+		if (jdaw_read_automation(f, track) != 0) {
+		    return 1;
+		}
+		num_automations--;
 	    }
-	    num_automations--;
 	}
     }
     if (read_file_spec_version >= 00.11f) {
-	/* fread(&track->fir_filter_active, 1, 1, f); */
-	track->fir_filter_active = (bool)uint8_deser(f);
-	if (track->fir_filter_active) {
-	    uint8_t type_byte;
-	    FilterType type;
-	    double cutoff_freq;
-	    double bandwidth;
-	    uint16_t impulse_response_len;
+	if (read_file_spec_version < 00.17f) {
+	    Effect *e;
+	    uint8_t fir_filter_active = uint8_deser(f);
+	    if (fir_filter_active) {
+		uint8_t type_byte;
+		FilterType type;
+		double cutoff_freq;
+		double bandwidth;
+		uint16_t impulse_response_len;
 	
-	    fread(&type_byte, 1, 1, f);
-	    type = (FilterType)type_byte;
+		fread(&type_byte, 1, 1, f);
+		type = (FilterType)type_byte;
 
-	    if (read_file_spec_version < 0.15f) {
-		fread(floatvals, 1, OLD_FLOAT_SER_W, f);
-		floatvals[OLD_FLOAT_SER_W] = '\0';
-		cutoff_freq = atof(floatvals);
-		fread(floatvals, 1, OLD_FLOAT_SER_W, f);
-		bandwidth = atof(floatvals);
-		fread(&impulse_response_len, 2, 1, f);
+		if (read_file_spec_version < 0.15f) {
+		    fread(floatvals, 1, OLD_FLOAT_SER_W, f);
+		    floatvals[OLD_FLOAT_SER_W] = '\0';
+		    cutoff_freq = atof(floatvals);
+		    fread(floatvals, 1, OLD_FLOAT_SER_W, f);
+		    bandwidth = atof(floatvals);
+		    fread(&impulse_response_len, 2, 1, f);
+		} else {
+		    cutoff_freq = float_deser40_le(f);
+		    bandwidth = float_deser40_le(f);
+		    impulse_response_len = uint16_deser_le(f);
+		}
+		e = track_add_effect(track, EFFECT_FIR_FILTER);
+		filter_set_impulse_response_len(e->obj, impulse_response_len);
+		filter_set_params(e->obj, type, cutoff_freq, bandwidth);
+
 	    } else {
-		cutoff_freq = float_deser40_le(f);
-		bandwidth = float_deser40_le(f);
-		impulse_response_len = uint16_deser_le(f);
+		if (read_file_spec_version < 0.15f) {
+		    fseek(f, 35, SEEK_CUR);
+		} else {
+		    fseek(f, 13, SEEK_CUR);
+		}
 	    }
-	    filter_init(
-		&track->fir_filter,
-		track,
-		type,
-		impulse_response_len,
-		tl->proj->fourier_len_sframes * 2);
-	    filter_set_params(&track->fir_filter, type, cutoff_freq, bandwidth);
-	} else {
-	    if (read_file_spec_version < 0.15f) {
-		fseek(f, 35, SEEK_CUR);
+	    uint8_t delay_line_active = uint8_deser(f);
+	    if (delay_line_active) {
+		int32_t len;
+		double amp;
+		double stereo_offset;
+		if (read_file_spec_version < 0.15f) {
+		    fread(&len, 4, 1, f);
+		    fread(&floatvals, 1, OLD_FLOAT_SER_W, f);
+		    floatvals[OLD_FLOAT_SER_W] = '\0';
+		    stereo_offset = atof(floatvals);
+		    fread(floatvals, 1, OLD_FLOAT_SER_W, f);
+		    floatvals[OLD_FLOAT_SER_W] = '\0';
+		    amp = atof(floatvals);
+		} else {
+		    len = int32_deser_le(f);
+		    amp = float_deser40_le(f);
+		    stereo_offset = float_deser40_le(f);
+		}
+		e = track_add_effect(track, EFFECT_DELAY);
+		delay_line_set_params(e->obj, amp, len);
+		((DelayLine *)e->obj)->stereo_offset = stereo_offset;
 	    } else {
-		fseek(f, 13, SEEK_CUR);
+		if (read_file_spec_version < 0.15f) {
+		    fseek(f, 36, SEEK_CUR);
+		} else {
+		    fseek(f, 14, SEEK_CUR);
+		}
 	    }
-	}
-	track->delay_line_active = (bool)uint8_deser(f);
-	/* fread(&track->delay_line_active, 1, 1, f); */
-	if (track->delay_line_active) {
-	    int32_t len;
-	    double amp;
-	    double stereo_offset;
-	    if (read_file_spec_version < 0.15f) {
-		fread(&len, 4, 1, f);
-		fread(&floatvals, 1, OLD_FLOAT_SER_W, f);
-		floatvals[OLD_FLOAT_SER_W] = '\0';
-		stereo_offset = atof(floatvals);
-		fread(floatvals, 1, OLD_FLOAT_SER_W, f);
-		floatvals[OLD_FLOAT_SER_W] = '\0';
-		amp = atof(floatvals);
-	    } else {
-		len = int32_deser_le(f);
-		amp = float_deser40_le(f);
-		stereo_offset = float_deser40_le(f);
+	    if (read_file_spec_version >= 0.16f) {
+		uint8_t saturation_active = uint8_deser(f);
+		if (saturation_active) {
+		    e = track_add_effect(track, EFFECT_SATURATION);
+		    Saturation *s = e->obj;
+		    saturation_set_gain(s, float_deser40_le(f));
+		    s->do_gain_comp = uint8_deser(f);
+		    saturation_set_type(s, uint8_deser(f));
+		} else {
+		    fseek(f, 7, SEEK_CUR);
+		}
+		
+		uint8_t eq_active = uint8_deser(f);
+		e = track_add_effect(track, EFFECT_EQ);
+		EQ *eq = e->obj;
+		eq->effect->active = eq_active;
+		uint8_t num_filters = uint8_deser(f);
+		for (int i=0; i<num_filters; i++) {
+		    EQFilterCtrl *ctrl = eq->ctrls + i;
+		    fprintf(stderr, "Reading filter %d/%d, ctrl %p\n", i,num_filters, ctrl);
+		    ctrl->filter_active = uint8_deser(f);
+		    IIRFilterType t = (int)uint8_deser(f);
+		    eq->group.filters[i].type = t;
+		    ctrl->freq_amp_raw[0] = float_deser40_le(f);
+		    ctrl->freq_amp_raw[1] = float_deser40_le(f);
+		    ctrl->bandwidth_scalar = float_deser40_le(f);
+		    if (ctrl->filter_active) {
+			eq_set_filter_from_ctrl(eq, i);
+		    }
+		}
 	    }
-	    delay_line_init(&track->delay_line, track, tl->proj->sample_rate);
-	    delay_line_set_params(&track->delay_line, amp, len);
-	    track->delay_line.stereo_offset = stereo_offset;
-	} else {
-	    /* delay_line_init(&track->delay_line, track, tl->proj->sample_rate); */
-	    if (read_file_spec_version < 0.15f) {
-		fseek(f, 36, SEEK_CUR);
-	    } else {
-		fseek(f, 14, SEEK_CUR);
+	} else { /* READ FILE SPEC >= 00.17 */
+	    uint8_t num_effects = uint8_deser(f);
+	    for (int i=0; i<num_effects; i++) {
+		int ret = jdaw_read_effect(f, track);
+		if (ret != 0) {
+		    return ret;
+		}
 	    }
+	    uint8_t num_automations = uint8_deser(f);
+	    while (num_automations > 0) {
+		if (jdaw_read_automation(f, track) != 0) {
+		    return 1;
+		}
+		num_automations--;
+	    }
+
+	}	
+    }
+    return 0;
+}
+
+static int jdaw_read_fir_filter(FILE *f, FIRFilter *filter);
+static int jdaw_read_delay(FILE *f, DelayLine *dl);
+static int jdaw_read_saturation(FILE *f, Saturation *s);
+static int jdaw_read_eq(FILE *f, EQ *eq);
+static int jdaw_read_compressor(FILE *f, Compressor *c);
+
+
+static int jdaw_read_effect(FILE *f, Track *track)
+{
+    char hdr_buffer[4];
+    fread(hdr_buffer, 1, 4, f);
+    if (strncmp(hdr_buffer, hdr_trck_efct, 4) != 0) {
+	fprintf(stderr, "Error: .jdaw parsing error: \"EFCT\" indicator missing\n");
+        return 1;
+    }
+
+    EffectType type = (EffectType)uint8_deser(f);
+    Effect *e = track_add_effect(track, type);
+    switch(type) {
+    case EFFECT_EQ:
+	jdaw_read_eq(f, e->obj);
+	break;
+    case EFFECT_FIR_FILTER:
+	jdaw_read_fir_filter(f, e->obj);
+	break;
+    case EFFECT_DELAY:
+	jdaw_read_delay(f, e->obj);
+	break;
+    case EFFECT_SATURATION:
+	jdaw_read_saturation(f, e->obj);
+	break;
+    case EFFECT_COMPRESSOR:
+	jdaw_read_compressor(f, e->obj);
+	break;
+    default:
+	break;
+    }
+    return 0;
+}
+
+static int jdaw_read_fir_filter(FILE *f, FIRFilter *filter)
+{
+    filter->effect->active = uint8_deser(f);
+    uint8_t type_byte;
+    FilterType type;
+    double cutoff_freq;
+    double bandwidth;
+    uint16_t impulse_response_len;
+    fread(&type_byte, 1, 1, f);
+    type = (FilterType)type_byte;
+    cutoff_freq = float_deser40_le(f);
+    bandwidth = float_deser40_le(f);
+    impulse_response_len = uint16_deser_le(f);
+    filter_set_impulse_response_len(filter, impulse_response_len);
+    filter_set_params(filter, type, cutoff_freq, bandwidth);
+    return 0;
+}
+static int jdaw_read_delay(FILE *f, DelayLine *dl)
+{
+    uint8_t delay_line_active = uint8_deser(f);
+    int32_t len;
+    double amp;
+    double stereo_offset;
+    len = int32_deser_le(f);
+    amp = float_deser40_le(f);
+    stereo_offset = float_deser40_le(f);
+    delay_line_set_params(dl, amp, len);
+    dl->stereo_offset = stereo_offset;
+    dl->effect->active = delay_line_active;
+    return 0;
+}
+static int jdaw_read_saturation(FILE *f, Saturation *s)
+{
+    s->effect->active = uint8_deser(f);
+    saturation_set_gain(s, float_deser40_le(f));
+    s->do_gain_comp = uint8_deser(f);
+    saturation_set_type(s, uint8_deser(f));
+    return 0;
+}
+static int jdaw_read_eq(FILE *f, EQ *eq)
+{
+    eq->effect->active = uint8_deser(f);
+    uint8_t num_filters = uint8_deser(f);
+    for (int i=0; i<num_filters; i++) {
+	EQFilterCtrl *ctrl = eq->ctrls + i;
+	ctrl->filter_active = uint8_deser(f);
+	IIRFilterType t = (int)uint8_deser(f);
+	eq->group.filters[i].type = t;
+	ctrl->freq_amp_raw[0] = float_deser40_le(f);
+	ctrl->freq_amp_raw[1] = float_deser40_le(f);
+	ctrl->bandwidth_scalar = float_deser40_le(f);
+	if (ctrl->filter_active) {
+	    eq_set_filter_from_ctrl(eq, i);
 	}
     }
     return 0;
 }
+
+static int jdaw_read_compressor(FILE *f, Compressor *c)
+{
+    c->effect->active = uint8_deser(f);
+    float attack = float_deser40_le(f);
+    float release = float_deser40_le(f);
+    c->attack_time = attack;
+    c->release_time = release;
+    compressor_set_times_msec(c, attack, release, c->effect->track->tl->proj->sample_rate);
+    c->threshold = float_deser40_le(f);
+    compressor_set_m(c, float_deser40_le(f));
+    c->makeup_gain = float_deser40_le(f);
+    return 0;
+}
+
 
 static int jdaw_read_clipref(FILE *f, Track *track)
 {
@@ -873,6 +1115,7 @@ static int jdaw_read_clipref(FILE *f, Track *track)
     Clip *clip = track->tl->proj->clips[src_clip_index];
     ClipRef *cr = track_create_clip_ref(track, clip, 0, clipref_home);
 
+    strncpy(cr->name, clipref_name, clipref_namelen + 1);
     cr->pos_sframes = int32_deser_le(f);
     cr->in_mark_sframes = uint32_deser_le(f);
     cr->out_mark_sframes = uint32_deser_le(f);
@@ -895,8 +1138,38 @@ static int jdaw_read_automation(FILE *f, Track *track)
     }
 
     uint8_t type_byte = uint8_deser(f);
+
+    Automation *a = NULL;
     AutomationType t = (AutomationType)type_byte;
-    Automation *a = track_add_automation(track, t);
+    if (t == AUTO_ENDPOINT) {
+	uint8_t route_len = uint8_deser(f);
+	char route[route_len + 1];	
+	fread(route, 1, route_len, f);
+	route[route_len] = '\0';
+
+	/* fprintf(stderr, "AUTO ROUTE: %s\n", route); */
+	Endpoint *ep = api_endpoint_get(route);
+	if (ep) {
+	    a = track_add_automation_from_endpoint(track, ep);
+	} else {
+	    fprintf(stderr, "Could not get ep with route %s\n", route);
+	    return 1;
+	}
+	/* for (int i=0; i<track->api_node.num_endpoints; i++) { */
+	/*     Endpoint *ep = track->api_node.endpoints[i]; */
+	/*     int ep_loc_len = strlen(ep->local_id); */
+	/*     if (ep_loc_len == ep_loc_id_read_len && strncmp(ep->local_id, loc_id, ep_loc_len) == 0) { */
+	/* 	a = track_add_automation_from_endpoint(track, ep); */
+	/* 	break; */
+	/*     } */
+	/* } */
+	/* fwrite(a->endpoint->local_id, 1, ep_loc_id_len, f); */
+    } else {
+	a = track_add_automation(track, t);
+    }
+    if (!a) {
+	return 1;
+    }
     a->val_type = (ValType)uint8_deser(f);
 
     if (read_file_spec_version < 0.15f) {
@@ -909,14 +1182,15 @@ static int jdaw_read_automation(FILE *f, Track *track)
 	a->range = jdaw_val_deserialize(f);
     }
     bool read = (bool)uint8_deser(f);
-    if (!read) {
-	automation_toggle_read(a);
-    }
     /* TODO: figure out how to initialize this */
-    a->shown = uint8_deser(f);
+    a->shown = (bool)uint8_deser(f);
     if (a->shown) {
 	automation_show(a);
     }
+    if (!read) {
+	automation_toggle_read(a);
+    }
+
     uint16_t num_keyframes = uint16_deser_le(f);
     
     a->num_keyframes = 0;

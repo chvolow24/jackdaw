@@ -25,7 +25,9 @@
 #include "audio_connection.h"
 #include "color.h"
 #include "components.h"
-#include "dsp.h"
+/* #include "dsp.h" */
+#include "endpoint_callbacks.h"
+#include "eq.h"
 #include "endpoint.h"
 #include "endpoint_callbacks.h"
 #include "input.h"
@@ -524,7 +526,7 @@ Project *project_create(
 	&proj->play_speed,
 	JDAW_FLOAT,
 	"play_speed",
-	"undo/redo play speed adj",
+	"Play speed",
 	JDAW_THREAD_MAIN,
 	play_speed_gui_cb, NULL, NULL,
 	NULL, NULL, NULL, NULL);
@@ -1427,6 +1429,7 @@ static int auto_dropdown_action(void *self, void *xarg)
 
 Track *timeline_add_track(Timeline *tl)
 {
+    if (tl->num_tracks == MAX_TRACKS) return NULL;
     Track *track = calloc(1, sizeof(Track));
     tl->tracks[tl->num_tracks] = track;
     track->tl_rank = tl->num_tracks++;
@@ -1443,16 +1446,20 @@ Track *timeline_add_track(Timeline *tl)
 	track_color_index = 0;
     }
 
-    /* API */
+    int err = pthread_mutex_init(&track->effect_chain_lock, NULL);
+    if (err != 0) {
+	fprintf(stderr, "Error initializing effect chain lock: %s\n", strerror(err));
+    }
 
     api_node_register(&track->api_node, &track->tl->api_node, track->name);
-    
+
+        
     endpoint_init(
 	&track->vol_ep,
 	&track->vol,
 	JDAW_FLOAT,
 	"vol",
-	"undo/redo adjust track volume",
+	"Vol",
 	JDAW_THREAD_DSP,
 	track_slider_cb,
 	NULL, NULL,
@@ -1463,13 +1470,16 @@ Track *timeline_add_track(Timeline *tl)
 	(Value){.float_v=0.0},
 	(Value){.float_v=TRACK_VOL_MAX});
 
+    endpoint_set_default_value(&track->vol_ep, (Value){.float_v = 1.0});
+    endpoint_set_label_fn(&track->vol_ep, label_amp_to_dbstr);
+    api_endpoint_register(&track->vol_ep, &track->api_node);
 
-    endpoint_init(
+        endpoint_init(
 	&track->pan_ep,
 	&track->pan,
 	JDAW_FLOAT,
 	"pan",
-	"undo/redo adj track pan",
+	"Pan",
 	JDAW_THREAD_DSP,
 	track_slider_cb,
 	NULL, NULL,
@@ -1479,6 +1489,29 @@ Track *timeline_add_track(Timeline *tl)
 	&track->pan_ep,
 	(Value){.float_v = 0.0},
 	(Value){.float_v = 1.0});
+    endpoint_set_default_value(&track->pan_ep, (Value){.float_v = 0.5});
+    endpoint_set_label_fn(&track->pan_ep, label_pan);
+    api_endpoint_register(&track->pan_ep, &track->api_node);
+
+
+
+    /* track->eq.track = track; */
+    /* eq_init(&track->eq); */
+
+    /* track->saturation.track = track; */
+    /* saturation_init(&track->saturation); */
+    /* int ir_len = track->tl->proj->fourier_len_sframes/4; */
+    /* int fr_len = track->tl->proj->fourier_len_sframes * 2; */
+    /* track->buf_L_freq_mag = calloc(fr_len, sizeof(double)); */
+    /* track->buf_R_freq_mag = calloc(fr_len, sizeof(double)); */
+    /* filter_init(&track->fir_filter, track, LOWPASS, ir_len, fr_len); */
+
+    /* delay_line_init(&track->delay_line, track, track->tl->proj->sample_rate); */
+
+
+
+
+
     
     /* Layout *track_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area"); */
     Layout *track_template = layout_read_xml_to_lt(tl->track_area, TRACK_LT_PATH);
@@ -1697,8 +1730,8 @@ Track *timeline_add_track(Timeline *tl)
     if (tl->layout_selector < 0) tl->layout_selector = 0;
     timeline_rectify_track_indices(tl);
 
-    api_endpoint_register(&track->vol_ep, &track->api_node);
-    api_endpoint_register(&track->pan_ep, &track->api_node);
+    /* api_endpoint_register(&track->saturation.gain_ep, &track->saturation.track->api_node); */
+
     return track;
 }
 
@@ -2388,13 +2421,67 @@ static void timeline_reinsert_track(Track *track)
 /*     timeline_rectify_track_indices(tl); */
 /* } */
 
+static void track_remove_bus_out(Track *track)
+{
+    if (!track->bus_out) return;
+    for (int i=0; i<track->bus_out->num_bus_ins; i++) {
+	if (track->bus_out->bus_ins[i] == track) {
+	    memmove(track->bus_out->bus_ins + i, track->bus_out->bus_ins + i + 1, (track->bus_out->num_bus_ins - i - 1) * sizeof(Track *));
+	    track->bus_out->num_bus_ins--;
+	    return;
+	}
+    }
+}
+
+void track_set_bus_out(Track *track, Track *bus_out)
+{
+    /* Check for cycles */
+
+    if (track->bus_out == bus_out) return;
+    else if (track->bus_out) track_remove_bus_out(track);
+    
+    Track *test = bus_out;
+    while (test) {
+	if (test == track) {
+	    fprintf(stderr, "Error: circular route\n");
+	    return;
+	}
+	test = test->bus_out;
+    }
+
+    track->bus_out = bus_out;
+    if (bus_out->num_bus_ins + 1 >= bus_out->bus_ins_arrlen) {
+	if (bus_out->bus_ins_arrlen == 0) {
+	    bus_out->bus_ins_arrlen = 4;
+	    bus_out->bus_ins = calloc(bus_out->bus_ins_arrlen, sizeof(Track *));
+ 	} else {
+	    bus_out->bus_ins_arrlen *= 2;
+	    bus_out->bus_ins = realloc(bus_out->bus_ins, bus_out->bus_ins_arrlen * sizeof(Track *));
+	}
+    }
+    bus_out->bus_ins[bus_out->num_bus_ins] = track;
+    bus_out->num_bus_ins++;
+	
+    for (int i=0; i<bus_out->num_bus_ins; i++) {
+	fprintf(stderr, "%d Track \"%s\" has bus in: \"%s\"\n", i, bus_out->name, bus_out->bus_ins[i]->name);
+    }
+}
+
+
 
 void track_delete(Track *track)
 {
     track->deleted = true;
     Timeline *tl = track->tl;
+    /* fprintf(stderr, "\n\nBEFORE:\n"); */
+    /* api_node_print_all_routes(&tl->api_node); */
     timeline_remove_track(track);
+    api_node_deregister(&track->api_node);
     timeline_reset(tl, false);
+    /* fprintf(stderr, "\nAFTER:\n"); */
+    /* api_node_print_all_routes(&tl->api_node); */
+
+    /* api_node_print_all_routes(&tl->api_node); */
 }
 void track_undelete(Track *track)
 {
@@ -2402,28 +2489,26 @@ void track_undelete(Track *track)
     /* timeline_insert_track_at(track, track->tl_rank); */
     timeline_reinsert_track(track);
     timeline_reset(track->tl, false);
+    api_node_reregister(&track->api_node);
+    /* fprintf(stderr, "\nAFTER UNDELETE:\n"); */
+    /* api_node_print_all_routes(&track->tl->api_node); */
+
+    
 }
 void track_destroy(Track *track, bool displace)
 {
-    /* Clip *clips_to_destroy[MAX_PROJ_CLIPS]; */
-    /* uint8_t num_clips_to_destroy = 0; */
     for (uint16_t i=0; i<track->num_clips; i++) {
 	ClipRef *cr = track->clips[i];
 	if (cr) {
-	    /* if (cr->home) { */
-	    /* 	clips_to_destroy[num_clips_to_destroy] = cr->clip; */
-	    /* 	num_clips_to_destroy++; */
-	    /* } */
 	    clipref_destroy_no_displace(track->clips[i]);
 	}
     }
-    /* fprintf(stdout, "OK deleted all crs, now clips\n"); */
-    /* while (num_clips_to_destroy > 0) { */
-    /* 	/\* fprintf(stdout, "Deleting clip\n"); *\/ */
-    /* 	clip_destroy(clips_to_destroy[num_clips_to_destroy - 1]); */
-    /* 	num_clips_to_destroy--; */
-    /* } */
-    /* fprintf(stdout, "Ok deleted all clips\n"); */
+    for (int i=0; i<track->num_automations; i++) {
+	automation_destroy(track->automations[i]);
+    }
+    for (int i=0; i<track->num_effects; i++) {
+	effect_destroy(track->effects[i]);
+    }
     slider_destroy(track->vol_ctrl);
     slider_destroy(track->pan_ctrl);
     textentry_destroy(track->tb_name);
@@ -2451,12 +2536,14 @@ void track_destroy(Track *track, bool displace)
 	/* timeline_reset(tl); */
 	/* layout_reset(tl->layout); */
     }
-    filter_deinit(&track->fir_filter);
-    if (track->delay_line.buf_L) free(track->delay_line.buf_L);
-    if (track->delay_line.buf_R) free(track->delay_line.buf_R);
-    if (track->delay_line.cpy_buf) free(track->delay_line.cpy_buf);
+    
+    /* filter_deinit(&track->fir_filter); */
+    /* if (track->delay_line.buf_L) free(track->delay_line.buf_L); */
+    /* if (track->delay_line.buf_R) free(track->delay_line.buf_R); */
+    /* if (track->delay_line.cpy_buf) free(track->delay_line.cpy_buf); */
     /* if (track->delay_line.lock) SDL_DestroyMutex(track->delay_line.lock); */
-    pthread_mutex_destroy(&track->delay_line.lock);
+    /* pthread_mutex_destroy(&track->delay_line.lock); */
+    
     if (track->buf_L_freq_mag) free(track->buf_L_freq_mag);
     if (track->buf_R_freq_mag) free(track->buf_R_freq_mag);
     if (track->automation_dropdown) symbol_button_destroy(track->automation_dropdown);

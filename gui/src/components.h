@@ -38,6 +38,7 @@ typedef struct symbol_button {
     void *target;
     Layout *layout;
     SDL_Color *background_color;
+    Value stashed_val;
 } SymbolButton;
 
 typedef struct toggle {
@@ -45,6 +46,8 @@ typedef struct toggle {
     ComponentFn action;
     void *target;
     Layout *layout;
+
+    Endpoint *endpoint; /* Optional */
 } Toggle;
 
 typedef struct text_entry TextEntry;
@@ -69,7 +72,9 @@ enum slider_style {
 
 enum drag_comp_type {
     DRAG_SLIDER,
-    DRAG_CLICK_SEG_BOUND
+    DRAG_CLICK_SEG_BOUND,
+    DRAG_EQ_FILTER_NODE,
+    DRAG_TABVIEW_TAB
 };
 
 typedef struct draggable {
@@ -86,7 +91,8 @@ typedef struct radio_button {
     /* void (*external_action)(int selected_i, void *target); */
     uint8_t num_items;
     uint8_t selected_item;
-    SDL_Color *text_color; 
+    SDL_Color *text_color;
+    char *dynamic_text;
 } RadioButton;
 
 typedef struct waveform {
@@ -123,11 +129,12 @@ typedef struct slider {
     bool disallow_unsafe_mode;
 
 } Slider;
-
+typedef struct canvas Canvas;
 typedef struct canvas {
     Layout *layout;
     void (*draw_fn)(void *, void *);
     void *draw_arg1, *draw_arg2;
+    bool (*on_click)(SDL_Point mousep, Canvas *self, void *xarg1, void *xarg2);
 } Canvas;
 
 
@@ -279,6 +286,7 @@ void waveform_draw(Waveform *w);
 /* Toggle */
 
 Toggle *toggle_create(Layout *lt, bool *value, ComponentFn action, void *target);
+Toggle *toggle_create_from_endpoint(Layout *lt, Endpoint *ep);
 void toggle_destroy(Toggle *toggle);
 /* Returns the new value of the toggle */
 bool toggle_toggle(Toggle *toggle);

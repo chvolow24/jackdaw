@@ -69,6 +69,8 @@ typedef struct window {
     void *deferred_draw_objs[WINDOW_MAX_DEFERRED_DRAW_OPS];
     uint8_t num_deferred_draw_ops;
 
+    SDL_Event *current_event;
+
 } Window;
 
 /* Create a new Window struct and initialize all members */

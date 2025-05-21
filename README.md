@@ -51,8 +51,12 @@ A free, open-source, keyboard-focused digital audio workstation (DAW). Written i
 	9. [Project navigation / multiple timelines](#project-navigation--multiple-timelines)
 	10. [Opening and saving files](#opening-and-saving-files)
 	11. [Track effects](#track-effects)
-		 1. [FIR filter](#fir-filter)
-		 2. [Delay line](#delay-line)
+	     1. [Adding, ordering, and removing effects](#adding-ordering-and-removing-effects)
+		 2. [EQ](#eq)
+		 3. [FIR Filter](#fir-filter)
+		 4. [Delay line](#delay-line)
+		 5. [Saturation](#saturation)
+		 6. [Compressor](#compressor)
 	12. [Automation](#automation)
 	     1. [Adding keyframes with the mouse](#adding-keyframes-with-the-mouse)
 		 2. [Writing (adding keyframes automatically)](#writing-adding-keyframes-automatically)
@@ -72,7 +76,7 @@ Jackdaw is a work in progress and has not been officially "released." What's ava
 
 ## OS compatibility
 
-Jackdaw is compatibile with macOS and Linux. 
+Jackdaw is compatible with macOS and Linux. 
 
 Jackdaw currently depends on POSIX system APIs for threading and synchronization, directory navigation, timing, and inter-process communication.
 
@@ -243,9 +247,9 @@ You will be prompted to enter a project name (which must include the `.jdaw` ext
 
 ## Function lookup
 
-Jackdaw's user interface is built around keyboard commands, but you don't need to remember or look up these commands to use it. Hit the spacebar (<kbd>\<spc\></kbd>) to open an autocomplete dropdown list of available commands. You can start typing one or more keywords to see a list of matching commands. Use <kbd>\<tab\></kbd> to navigate down through the list, <kbd>S-\<tab\> to navigate up, <kbd>\<ret\></kbd> to select an item, and <kbd>\<esc\></kbd> to escape without selecting an item.
+Jackdaw's user interface is built around keyboard commands, but you don't need to memorize them. Hit the spacebar (<kbd>\<spc\></kbd>) to open an autocomplete dropdown list of available commands. You can start typing one or more keywords to see a list of matching commands. Use <kbd>\<tab\></kbd> to navigate down through the list, <kbd>S-\<tab\></kbd> to navigate up, <kbd>\<ret\></kbd> to select an item, and <kbd>\<esc\></kbd> to escape without selecting an item.
 
-Each entry in the list includes the display name of the command on the left, and the bound keyboard command on the right.
+Each entry in the list includes the display name of the command on the left, and the bound keyboard command on the right. (See "[Keyboard command shorthand](#keyboard-command-shorthand)" above if these confuse you.)
 
 <img src="assets/readme_imgs/function_lookup.gif" width="75%" />
 
@@ -474,7 +478,7 @@ Clips that have been "grabbed" can be deleted or moved around on the timeline.
 
 <kbd>g</kbd> : **Grab clips at cursor(s)**<br>
 
-Using this function will grab any clips that intersect the playhead position on the currently selected track OR all active tracks. If all interesecting clips are already grabbed, the function will un-grab all clips.
+Using this function will grab any clips that intersect the playhead position on the currently selected track OR all active tracks. If all intersecting clips are already grabbed, the function will un-grab all clips.
 
 A clip can also be "grabbed" with <kbd>C-\<click\></kbd>.
 
@@ -648,11 +652,18 @@ Like everything else about jackdaw, the `.jdaw` file format is open and is descr
 
 ## Track effects
 
-Only two track effects are available now, but more will be available soon. A track effect is applied only to clips on the "effected" track. In other words, these are "insert" effects; "sends" will be added in a later version of jackdaw.
+### Adding, ordering, and removing effects
 
+Up to 16 effects can be added to a given track. 
+
+<kbd>S-e</kbd> : **Add effect to track**<br>
 <kbd>S-t</kbd> : **Open track effects**<br>
 
-You might choose to navigate the tab view with your mouse, but it can be done with the keyboard as well. A single element on a page (e.g. slider, toggle, button) is selected, and the selection can be changes with <kbd>\<tab\></kbd>. Actions can be performed on the currently-selected 
+The effects are displayed in a "tab view." The order in which the effects are processed is determined by the order of the tabs.
+
+#### Tab view navigation
+
+You can navigate the tab view with the mouse or with the keyboard:
 
 <kbd>\<tab\></kbd> : **Cycle through page elements**<br>
 <kbd>S-\<tab\></kbd> : **Cycle through page elements in reverse**<br>
@@ -662,15 +673,46 @@ You might choose to navigate the tab view with your mouse, but it can be done wi
 
 You can also navigate to other tabs:
 
-<kbd>S-h</kbd> : **Tab left**<br>
-<kbd>S-;</kbd> : **Tab right**<br>
+<kbd>S-j</kbd> : **Tab left**<br>
+<kbd>S-l</kbd> : **Tab right**<br>
+
+And reorder the tabs:
+
+<kbd>C-S-j</kbd> : **Move current tab left**<br>
+<kbd>C-S-l</kbd> : **Move current tab right**<br>
+
+<img src="assets/readme_imgs/add_reorder_effects.gif" width="75%" />
+
+You can also click the tabs, and click and drag to reorder them.
+
+To remove an effect, simply hit `del` or `backspace` while the effect is selected in the tab view. Associated automation tracks will be removed as well, and will be reinstated if the deletion is undone.
+
+### EQ
+
+The EQ effect contains 6 configurable filters. Each can be set to one of the following types:
+
+1. Low-shelf / Highpass
+2. Peak / Notch
+3. High-shelf / Lowpass
+
+The leftmost filter is low-shelf by default, the rightmost is high-shelf, and the others are peak/notch. Any given filter can be changed to any type by clicking the symbols representing the filter types.
+
+The filter frequencies and amplitudes are modified by clicking and dragging the nodes on the spectral display:
+
+<img src="assets/readme_imgs/eq_adj_filters.gif" width="75%" />
+
+The bandwidth of a peak-notch filter can be adjusted by holding down `cmd` or `ctrl` and dragging the mouse up or down.
+
+Each filter is a biquad infinite impulse response (IIR) filter. The low-shelf/high-shelf filters are based on the continuous-time Butterworth filter, and the peak/notch filters are implemented based on Joshua D. Reiss, ["Design of Audio Parametric Equalizer Filters
+Directly in the Digital Domain", IEEE TRANSACTIONS ON AUDIO, SPEECH, AND LANGUAGE PROCESSING, VOL. 19, NO. 6, AUGUST 2011](https://www.eecs.qmul.ac.uk/~josh/documents/2011/Reiss-2011-TASLP-ParametricEqualisers.pdf).
+
 
 ### FIR filter
 
-The FIR ("finite impulse response") filter effect is an FFT-based "[windowed-sinc](https://www.analog.com/media/en/technical-documentation/dsp-book/dsp_book_Ch16.pdf)" filter. It can be configured to have a low-pass, high-pass, band-pass, or band-cut frequency response. The cutoff frequency and bandwidth are adjustable parameters, as is the length of the impulse response. This last parameter affects the "steepness" of the frequency response curve. 
+The FIR ("finite impulse response") filter is an FFT-based "[windowed-sinc](https://www.analog.com/media/en/technical-documentation/dsp-book/dsp_book_Ch16.pdf)" filter. It can be configured to have a low-pass, high-pass, band-pass, or band-cut frequency response. The cutoff frequency and bandwidth are adjustable parameters, as is the length of the impulse response. This last parameter affects the "steepness" of the frequency response curve. 
 
 > [!NOTE]
-> This is a computationally expensive effect. Applying FIR filters to many tracks may begin to cause audio playback issues if there is audio on those tracks that needs to be processed. (My 2020 macbook air maxes out at around 45.)
+> This is a computationally expensive effect.
 
 The frequency response of the filter is shown. When the filter is active, and playback is occurring, the frequency domain of the filtered audio track is also shown.
 
@@ -679,22 +721,27 @@ The frequency response of the filter is shown. When the filter is active, and pl
 
 ### Delay line
 
-The delay line is a simpler effect and has three parameters: time, amplitude, and "stereo offset." As in any delay line, the delay time is the amount of time between echoes, and the amplitude is the relative amplitude of each successive echo. "Stereo offset" delays playback of the delay line buffer in the left channel by some proportion of the delay line length, expressed as a value between 0.0 and 1.0. In other words, with a nonzero stereo offset, you will hear echoes at different times in your left and right ears.
+The delay line has three parameters: time, amplitude, and "stereo offset." The delay time is the amount of time between echoes, and the amplitude is the relative amplitude of each successive echo. "Stereo offset" delays playback of the delay line buffer in the left channel by some proportion of the delay line length, expressed as a value between 0.0 and 1.0. In other words, with a nonzero stereo offset, you will hear echoes at different times in the left and right channels.
 
-Dynamic changes to the delay line length during playback are accomplished by "squeezing" or "stretching" the existing delay line buffer into the space of the new-length buffer. The squeezing and stretching produce pitch-shifting effects which are better experienced than described.
+### Saturation
+
+The saturation effect does simple sample-wise wave shaping. There are two types available: the common `tanh` function, and and exponential function that behaves similarly. Though often indistinguishable, the exponential function produces more high-frequency content than `tanh`, which is a noticeable difference when the input signal is low-passed.
+
+The gain parameter simply adjust the gain of the input signal (resulting in more wave shaping), and "gain compensation" will attenuate the output to more closely approximate the input.
+
+An active saturation effect with zero gain placed at the end of a track's effect chain is a good way to prevent digital clipping.
+
+### Compressor
+
+A standard digital peak-sensing compressor. Details of dynamic range compression are not discussed here.
+
+In the visualization, the x position of the blue dot represents the current amplitude envelope value, and the y position represents the corresponding output amplitude (before make-up gain is applied). The color gradient reflects the amount of gain reduction currently applied by the compressor.
+
+<img src="assets/readme_imgs/comp.gif" width="75%" />
 
 ## Automation
 
-Automation is available for the following track* parameters:
-- Volume
-- Pan
-- FIR Filter cutoff frequency
-- FIR Filter bandwidth
-- Delay line length
-- Delay line amplitude
-- Play speed
-
-*Play speed is a global parameter, not a track parameter. If play speed automation is added to multiple tracks, only the last of them will be read.
+Mix automation is available for the track volume and pan, as well as most parameters related to any effects currently applied to the track.
 
 <kbd>C-a</kbd> : **Add automation to track**<br>
 <kbd>a</kbd> : **Show / hide track automations**<br>
@@ -713,7 +760,7 @@ Use <kbd>C-\<click\></kbd> to add a keyframe to an automation track. You can the
 
 While an automation is in "write" mode, any changes to the automated parameter will be recorded on the automation track during playback. Any existing keyframes intersecting with the newly-written portion will be overwritten.
 
-The easest way to accomplish this is to "record" on the automation track exactly as you would on an audio track: navigate the cursor to the automation track with <kbd>n</kbd> and <kbd>p</kbd> (or <kbd>f</kbd> and <kbd>d</kbd>) and hit <kbd>r</kbd> to start recording. Hit <kbd>r</kbd> again to stop.
+The easiest way to accomplish this is to "record" on the automation track exactly as you would on an audio track: navigate the cursor to the automation track with <kbd>n</kbd> and <kbd>p</kbd> (or <kbd>f</kbd> and <kbd>d</kbd>) and hit <kbd>r</kbd> to start recording. Hit <kbd>r</kbd> again to stop.
 
 <kbd>r</kbd> : **Start / stop recording automation** (when automation track selected)<br>
 
@@ -795,29 +842,69 @@ Here are some example requests:
 
 `/main/track_1/pan 0.2`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--> set pan on track 1 to 0.2 (0.0 == L, 1.0 = R)
 
-`/scratch_pad/kick/filter_cutoff_freq 0.2`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--> on the "scratch pad" timeline, set the "kick" track filter cutoff freq to 2% of nyquist (range 0.0 -> 1.0)
+`/scratch_pad/kick/fir_filter/freq 0.2`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--> on the "scratch pad" timeline, set the "kick" track filter cutoff freq to 2% of nyquist (range 0.0 -> 1.0)
 
 
-`/main/lead_synth/delay_line_len 600`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--> set the delay line effect time to 600ms
+`/main/lead_synth/delay/len 600`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--> set the delay line effect time to 600ms
 
 
-The currently-available endpoints are:
+The currently-available endpoints are, generically:
 
 ```
 /play_speed
-/<timeline>/<track>/vol
-/<timeline>/<track>/pan
-/<timeline>/<track>/filter_cutoff_freq
-/<timeline>/<track>/filter_bandwidth
-/<timeline>/<track>/delay_line_len
-/<timeline>/<track>/delay_line_amp
-/<timeline>/<track>/delay_line_stereo_offset
+/<timeline name>/<track name>/vol
+/<timeline name>/<track name>/pan
+/<timeline name>/<track name>/<effect name>/[<effect substructure>/]<effect parameter name>
+```
+
+You can print a list of available routes to the console with the `api_print_all_routes` function (accessible via menus or function lookup).
+
+Example output:
+
+```
+/play_speed
+/main/track_1/vol
+/main/track_1/pan
+/main/track_1/delay/delay_line_len
+/main/track_1/delay/delay_line_amp
+/main/track_1/delay/delay_line_stereo_offset
+/main/track_1/delay/active
+/main/track_1/delay_2/delay_line_len
+/main/track_1/delay_2/delay_line_amp
+/main/track_1/delay_2/delay_line_stereo_offset
+/main/track_1/delay_2/active
+/main/track_1/compressor/attack_time
+/main/track_1/compressor/release_time
+/main/track_1/compressor/threshold
+/main/track_1/compressor/ratio
+/main/track_1/compressor/makeup_gain
+/main/track_1/compressor/active
+/main/synth/vol
+/main/synth/pan
+/main/synth/equalizer/active
+/main/synth/equalizer/filter_1/freq
+/main/synth/equalizer/filter_1/amp
+/main/synth/equalizer/filter_1/bandwidth_preferred
+/main/synth/equalizer/filter_2/freq
+/main/synth/equalizer/filter_2/amp
+/main/synth/equalizer/filter_2/bandwidth_preferred
+/main/synth/equalizer/filter_3/freq
+/main/synth/equalizer/filter_3/amp
+/main/synth/equalizer/filter_3/bandwidth_preferred
+/main/synth/equalizer/filter_4/freq
+/main/synth/equalizer/filter_4/amp
+/main/synth/equalizer/filter_4/bandwidth_preferred
+/main/synth/equalizer/filter_5/freq
+/main/synth/equalizer/filter_5/amp
+/main/synth/equalizer/filter_5/bandwidth_preferred
+/main/synth/equalizer/filter_6/freq
+/main/synth/equalizer/filter_6/amp
+/main/synth/equalizer/filter_6/bandwidth_preferred
 ```
 
 Most applications for the API will involve sending UDP messages over localhost, but messages can also be sent over a network. 
 
 # Function reference
-
 ### global mode
 - Summon menu : <kbd>C-m</kbd>, <kbd>C-h</kbd>
 - Escape : <kbd>\<esc\></kbd>
@@ -830,6 +917,7 @@ Most applications for the API will involve sending UDP messages over localhost, 
 - Start API server : <kbd>C-S-p</kbd>
 - Function lookup : <kbd>\<spc\></kbd>
 - Chaotic user test (debug only) : <kbd>A-S-\<del\></kbd>
+- Print all API routes : <kbd></kbd>
 ### menu_nav mode
 - Next item : <kbd>n</kbd>, <kbd>f</kbd>
 - Previous item : <kbd>p</kbd>, <kbd>d</kbd>
@@ -862,8 +950,8 @@ Most applications for the API will involve sending UDP messages over localhost, 
 - Move one sample right : <kbd>C-S-\<right\></kbd>
 - Record (start or stop) : <kbd>r</kbd>
 #### Timeline navigation
-- Previous track (move selector up) : <kbd>p</kbd>, <kbd>d</kbd>
-- Next track (move selector down) : <kbd>n</kbd>, <kbd>f</kbd>
+- Previous track (move selector up) : <kbd>p</kbd>, <kbd>\<up\></kbd>, <kbd>d</kbd>
+- Next track (move selector down) : <kbd>n</kbd>, <kbd>\<down\></kbd>, <kbd>f</kbd>
 - Toggle automation read : <kbd>S-r</kbd>
 - Move selected track down : <kbd>S-n</kbd>, <kbd>S-f</kbd>
 - Move selected track up : <kbd>S-p</kbd>, <kbd>S-d</kbd>
@@ -904,10 +992,11 @@ Most applications for the API will involve sending UDP messages over localhost, 
 - Activate track 7 : <kbd>7</kbd>
 - Activate track 8 : <kbd>8</kbd>
 - Activate track 9 : <kbd>9</kbd>
-#### Tempo tracks
+#### Click tracks
 - Add click track : <kbd>C-S-t</kbd>
 - Set tempo at cursor : <kbd>t</kbd>
 #### Track settings
+- Add effect to track : <kbd>S-e</kbd>
 - Open track settings : <kbd>S-t</kbd>
 - Mute or unmute selected track(s) : <kbd>m</kbd>
 - Solo or unsolo selected track(s) : <kbd>s</kbd>
@@ -953,10 +1042,10 @@ Most applications for the API will involve sending UDP messages over localhost, 
 - Set In Mark (source) : <kbd>i</kbd>, <kbd>S-i</kbd>
 - Set Out Mark (source) : <kbd>o</kbd>, <kbd>S-o</kbd>
 ### modal mode
-- Go to next item : <kbd>n</kbd>, <kbd>f</kbd>
-- Go to previous item : <kbd>p</kbd>, <kbd>d</kbd>
-- Go to next item (escape DirNav) : <kbd>\<tab\></kbd>, <kbd>S-n</kbd>, <kbd>S-f</kbd>
-- Go to previous item (escape DirNav) : <kbd>S-\<tab\></kbd>, <kbd>S-p</kbd>, <kbd>S-d</kbd>
+- Go to next item : <kbd>n</kbd>, <kbd>f</kbd>, <kbd>\<down\></kbd>
+- Go to previous item : <kbd>p</kbd>, <kbd>d</kbd>, <kbd>\<up\></kbd>
+- Go to next item (escape DirNav) : <kbd>\<tab\></kbd>, <kbd>S-n</kbd>, <kbd>S-f</kbd>, <kbd>S-\<down\></kbd>
+- Go to previous item (escape DirNav) : <kbd>S-\<tab\></kbd>, <kbd>S-p</kbd>, <kbd>S-d</kbd>, <kbd>S-\<up\></kbd>
 - Select item : <kbd>\<ret\></kbd>
 - Dismiss modal window : <kbd>m</kbd>, <kbd>h</kbd>, <kbd>g</kbd>, <kbd>\<esc\></kbd>
 - Submit form : <kbd>C-\<ret\></kbd>
@@ -968,22 +1057,24 @@ Most applications for the API will involve sending UDP messages over localhost, 
 - Move cursor left : <kbd>\<left\></kbd>, <kbd>C-d</kbd>, <kbd>C-b</kbd>
 - Select all : <kbd>C-a</kbd>
 ### tabview mode
-- Next element : <kbd>S-n</kbd>, <kbd>S-f</kbd>, <kbd>\<tab\></kbd>
-- Previous element : <kbd>S-p</kbd>, <kbd>S-d</kbd>, <kbd>S-\<tab\></kbd>
+- Next element : <kbd>S-n</kbd>, <kbd>S-\<down\></kbd>, <kbd>S-f</kbd>, <kbd>\<tab\></kbd>
+- Previous element : <kbd>S-p</kbd>, <kbd>S-\<up\></kbd>, <kbd>S-d</kbd>, <kbd>S-\<tab\></kbd>
 - Select : <kbd>\<ret\></kbd>
 - Move left : <kbd>h</kbd>
 - Move right : <kbd>;</kbd>
 - Next tab : <kbd>S-l</kbd>, <kbd>S-;</kbd>
 - Previous tab : <kbd>S-j</kbd>, <kbd>S-h</kbd>
+- Move current tab left : <kbd>C-S-j</kbd>, <kbd>C-S-h</kbd>
+- Move current tab right : <kbd>C-S-l</kbd>, <kbd>C-S-;</kbd>
 - Close tab view : <kbd>g</kbd>, <kbd>\<esc\></kbd>
 ### autocomplete_list mode
-- Next item : <kbd>\<tab\></kbd>
-- Previous item : <kbd>S-\<tab\></kbd>
+- Next item : <kbd>\<tab\></kbd>, <kbd>\<down\></kbd>, <kbd>C-n</kbd>
+- Previous item : <kbd>S-\<tab\></kbd>, <kbd>\<up\></kbd>, <kbd>C-p</kbd>
 - Select item : <kbd>\<ret\></kbd>
 - Escape autocomplete list : <kbd>\<esc\></kbd>
 
 ...
 
-[ LAST UPDATED 2025-03-02 SUNDAY ]
+[ LAST UPDATED 2025-05-21 WEDNESDAY ]
 
 ...

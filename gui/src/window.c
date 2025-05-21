@@ -207,6 +207,10 @@ void window_resize_passive(Window *win, int w, int h)
     if (win->layout) {
 	layout_reset_from_window(win->layout, win);
     }
+    if (win->active_tabview) {
+	tabview_reset(win->active_tabview, win->active_tabview->leftmost_index);
+    }
+
  
 }
 
@@ -304,7 +308,9 @@ void layout_destroy(Layout *lt);
 void window_destroy(Window *win)
 {
     /* if (win->ac_active) { */
+    #ifndef LAYOUT_BUILD
     autocompletion_deinit(&win->ac);
+    #endif
     /* } */
     if (win->std_font) {
 	ttf_destroy_font(win->std_font);
@@ -413,9 +419,11 @@ void window_push_modal(Window *win, Modal *modal)
     if (win->active_page) {
 	page_close(win->active_page);
     }
+    #ifndef LAYOUT_BUILD
     if (win->ac_active) {
 	autocompletion_escape();
     }
+    #endif
     while (win->num_menus > 0) {
 	window_pop_menu(win);
     }

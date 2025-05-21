@@ -18,7 +18,8 @@
 
 #include "autocompletion.h"
 #include "color.h"
-#include "dsp.h"
+/* #include "dsp.h" */
+#include "eq.h"
 #include "geometry.h"
 #include "input.h"
 #include "layout.h"
@@ -32,6 +33,7 @@
 #include "waveform.h"
 
 /* #define BACKGROUND_ACTIVE */
+#define MAX_WF_FRAME_DRAW_TIME 0.01
 
 extern Window *main_win;
 extern Project *proj;
@@ -67,6 +69,13 @@ SDL_Color clip_ref_bckgrnd = {20, 200, 120, 200};
 SDL_Color clip_ref_grabbed_bckgrnd = {50, 230, 150, 230};
 SDL_Color clip_ref_home_bckgrnd = {90, 180, 245, 200};
 SDL_Color clip_ref_home_grabbed_bckgrnd = {120, 210, 255, 230};
+
+/******************** DARKER ********************/
+/* SDL_Color clip_ref_bckgrnd = {5, 145, 85, 200}; */
+/* SDL_Color clip_ref_grabbed_bckgrnd = {10, 180, 110, 230}; */
+/* SDL_Color clip_ref_home_bckgrnd = {45, 135, 200, 200}; */
+/* SDL_Color clip_ref_home_grabbed_bckgrnd = {75, 165, 210, 230}; */
+/****************************************************/
 
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;
@@ -155,8 +164,12 @@ extern Symbol *SYMBOL_TABLE[];
 /*     /\* } *\/ */
 /* } */
 
+static double FRAME_WF_DRAW_TIME = 0.0;
+static bool internal_tl_needs_redraw = false;
+
 static void clipref_draw_waveform(ClipRef *cr)
 {
+    /* fprintf(stderr, "->->cr waveform draw %s\n", cr->name); */
     if (cr->waveform_redraw && cr->waveform_texture) {
 	SDL_DestroyTexture(cr->waveform_texture);
 	cr->waveform_texture = NULL;
@@ -202,16 +215,28 @@ static void clipref_draw_waveform(ClipRef *cr)
 	
     }
     if (onscreen_rect.w <= 0) return;
+    /* static double T_create_texture = 0.0; */
+    /* static double T_other_ops = 0.0; */
+    /* static double T_draw_waveform = 0.0; */
+    /* static double T_copy = 0.0; */
+    /* clock_t c; */
     if (!cr->waveform_texture) {
+	if (FRAME_WF_DRAW_TIME > MAX_WF_FRAME_DRAW_TIME) {
+	    internal_tl_needs_redraw = true;
+	    return;
+	}
 	SDL_Texture *saved_targ = SDL_GetRenderTarget(main_win->rend);
 	/* SDL_Rect onscreen_rect = cr->layout->rect; */
 
+	/* c = clock(); */
 	cr->waveform_texture = SDL_CreateTexture(main_win->rend, 0, SDL_TEXTUREACCESS_TARGET, onscreen_rect.w, onscreen_rect.h);
+	/* T_create_texture += ((double)clock() - c)/CLOCKS_PER_SEC; */
 	if (!cr->waveform_texture) {
 	    fprintf(stderr, "Error: unable to create waveform texture. %s\n", SDL_GetError());
 	    fprintf(stderr, "Attempted to create with dims: %d, %d\n", onscreen_rect.w, onscreen_rect.h);
 	    exit(1);
 	}
+	/* c = clock(); */
 	SDL_SetTextureBlendMode(cr->waveform_texture, SDL_BLENDMODE_BLEND);
 	SDL_SetRenderTarget(main_win->rend, cr->waveform_texture);
 	SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 0);
@@ -230,10 +255,25 @@ static void clipref_draw_waveform(ClipRef *cr)
 	    channels[1] = cr->clip->R + cr->in_mark_sframes + start_pos;
 	}
 	SDL_Rect waveform_container = {0, 0, onscreen_rect.w, onscreen_rect.h};
+	/* T_other_ops += ((double)clock() - c)/CLOCKS_PER_SEC; */
+	/* c= clock(); */
+	/* fprintf(stderr, "\t%f\n", FRAME_WF_DRAW_TIME); */
+
+	clock_t c = clock();
 	waveform_draw_all_channels_generic((void **)channels, JDAW_FLOAT, num_channels, end_pos - start_pos, &waveform_container, 0, onscreen_rect.w);
+	FRAME_WF_DRAW_TIME += ((double)clock() - c) / CLOCKS_PER_SEC;
+	    /* fprintf(stderr, "WF: %fms\n", FRAME_WF_DRAW_TIME * 1000); */
+	/* T_draw_waveform += ((double)clock() - c)/CLOCKS_PER_SEC; */
 	SDL_SetRenderTarget(main_win->rend, saved_targ);
     }
+    /* c = clock(); */
     SDL_RenderCopy(main_win->rend, cr->waveform_texture, NULL, &onscreen_rect);
+    /* T_copy += ((double)clock() - c)/CLOCKS_PER_SEC; */
+
+    /* if (T_draw_waveform > 10.00) { */
+    /* 	fprintf(stderr, "OTHER: %f\nWAVEFORM: %f\nCOPY: %f\nCREATE: %f\n", T_other_ops, T_draw_waveform, T_copy, T_create_texture); */
+    /* 	exit(0); */
+    /* } */
 }
 
 static void clipref_draw(ClipRef *cr)
@@ -388,7 +428,7 @@ static void ruler_draw(Timeline *tl)
     double sw = timeline_get_second_w(tl);
     int line_len;
     while (x < proj->audio_rect->x + proj->audio_rect->w) {
-    /* while (x < tl->layout->rect.x + tl->layout->rect.w) { */
+	/* while (x < tl->layout->rect.x + tl->layout->rect.w) { */
         if (x > proj->audio_rect->x) {
 	    if (second % 60 == 0) {
 		line_len = 20 * main_win->dpi_scale_factor;
@@ -401,27 +441,27 @@ static void ruler_draw(Timeline *tl)
 	    } else {
 		line_len = 5;
 	    }
-            SDL_RenderDrawLine(main_win->rend, round(x), tl->layout->rect.y, round(x), tl->layout->rect.y + line_len);
+	    SDL_RenderDrawLine(main_win->rend, round(x), tl->layout->rect.y, round(x), tl->layout->rect.y + line_len);
         }
         x += sw;
 	second++;
         if (x > proj->audio_rect->x + proj->audio_rect->w) {
             break;
         }
-    }    
-
-    
+    }
 }
 
 void fill_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad);
 void fill_quadrant_complement(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad);
 static int timeline_draw(Timeline *tl)
 {
+    FRAME_WF_DRAW_TIME = 0.0;
     /* Only redraw the timeline if necessary */
     if (!tl->needs_redraw && !proj->recording && !main_win->txt_editing && !(main_win->i_state & I_STATE_MOUSE_L)) {
 	/* fprintf(stderr, "SKIP!\n"); */
 	return 0;
     }
+    /* fprintf(stderr, "TL DRAW\n"); */
     /* fprintf(stderr, "Tl redraw? %d\n", tl->needs_redraw); */
     /* static int i=0; */
     /* fprintf(stdout, "TL draw %d\n", i); */
@@ -540,7 +580,12 @@ static int timeline_draw(Timeline *tl)
     /* SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 10); */
     /* SDL_RenderFillRect(main_win->rend, &tl->track_area->rect); */
     /* layout_draw(main_win, tl->track_area); */
-    tl->needs_redraw = false;
+    if (internal_tl_needs_redraw) {
+	tl->needs_redraw = true;
+	internal_tl_needs_redraw = false;
+    } else {
+	tl->needs_redraw = false;
+    }
 
     /* Layout *tracks_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area"); */
     /* if (tracks_area) { */
@@ -599,11 +644,8 @@ static void control_bar_draw(Project *proj)
     }
 }
 
-
-extern SDL_Color color_global_x_red;
-extern SDL_Color color_global_dropdown_green;
-extern SDL_Color color_global_min_yellow;
-
+/* #include "compressor.h" */
+/* extern Compressor comp_L; */
 
 void project_draw()
 {
@@ -632,14 +674,60 @@ void project_draw()
     window_draw_modals(main_win);
     window_draw_menus(main_win);
 
-    tl->needs_redraw = false;
+    /* tl->needs_redraw = false; */
 
 
     if (main_win->ac_active) {
 	autocompletion_draw(&main_win->ac);
     }
 
+
+    /* if (!glob_eq.fp) { */
+    /* 	eq_tests_create(); */
+    /* } */
+    /* waveform_draw_freq_plot(glob_eq.fp); */
+    /* eq_draw(&glob_eq); */
+
+    
+    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_white)); */
+    /* for (int i=0; i<freq_resp_len; i++) { */
+    /* 	int x = main_win->w_pix * i / freq_resp_len; */
+    /* 	int y = main_win->h_pix - (main_win->h_pix * (freq_resp[i]) / 20); */
+    /* 	SDL_RenderDrawPoint(main_win->rend, x, y); */
+    /* } */
+    /* if (eqfp) { */
+    /* 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black)); */
+    /* 	SDL_RenderFillRect(main_win->rend, &eqfp->container->rect); */
+    /* 	waveform_draw_freq_plot(eqfp); */
+    /* 	/\* SDL_SetRenderDrawColor(main_win->rend, 0, 255, 0, 255); *\/ */
+    /* 	/\* for (int x=eqfp->container->rect.x; x<eqfp->container->rect.x + eqfp->container->rect.w; x++) { *\/ */
+    /* 	/\*     double freq_raw = waveform_freq_plot_freq_from_x_abs(eqfp, x); *\/ */
+    /* 	/\*     double complex pole1 = pole_zero[0]; *\/ */
+    /* 	/\*     double complex pole2 = conj(pole1); *\/ */
+    /* 	/\*     double complex zero1 = pole_zero[1]; *\/ */
+    /* 	/\*     double complex zero2 = conj(zero1); *\/ */
+
+    /* 	/\*     double theta = PI * freq_raw;  *\/ */
+    /* 	/\*     double complex z = cos(theta) + I * sin(theta); *\/ */
+    /* 	/\*     double magnitude = ((zero1 - z) * (zero2 - z)) / ((pole1 - z) * (pole2 - z)); *\/ */
+    /* 	/\*     fprintf(stderr, "FREQ: %f, theta %f, z: %f+%fi, X: %d, mag: %f\n", freq_raw, theta, creal(z), cimag(z), x, magnitude); *\/ */
+    /* 	/\*     SDL_RenderDrawPoint(main_win->rend, x, eqfp->container->rect.y + eqfp->container->rect.h - magnitude * eqfp->container->rect.h); *\/ */
+    /* 	/\* } *\/ */
+    /* } */
+
+    /* SDL_Rect env_rect = {1000, 500, 500, 500}; */
+
+    /* compressor_draw(&comp_L, &env_rect); */
+    /* float env_global = comp_L.gain_reduction; */
+    /* SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 90); */
+    /* SDL_RenderDrawRect(main_win->rend, &env_rect); */
+    /* int chg = 500 - env_global * 500; */
+    /* env_rect.y+= chg; */
+    /* env_rect.h-= chg; */
+    /* SDL_RenderFillRect(main_win->rend, &env_rect); */
+    
+    
+
+
     window_end_draw(main_win);
 }
-
-

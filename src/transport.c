@@ -17,7 +17,8 @@
 
 #include <unistd.h>
 #include "audio_connection.h"
-#include "dsp.h"
+/* #include "dsp.h" */
+#include "dsp_utils.h"
 #include "user_event.h"
 #include "mixdown.h"
 #include "project.h"
@@ -207,7 +208,11 @@ static void *transport_dsp_thread_fn(void *arg)
 
     int N = len / proj->chunk_size_sframes;
     bool init = true;
+
+    clock_t performance_timer;
+    double last_t;
     while (1) {
+	performance_timer = clock();
 	pthread_testcancel();
 	float play_speed = proj->play_speed;
 
@@ -278,7 +283,6 @@ static void *transport_dsp_thread_fn(void *arg)
 		break;
 	    }
 	}
-
 	
 	tl->buf_write_pos += len;
 	if (tl->buf_write_pos >= len * RING_BUF_LEN_FFT_CHUNKS) {
@@ -291,11 +295,18 @@ static void *transport_dsp_thread_fn(void *arg)
 	    sem_post(tl->unpause_sem);
 	    init = false;
 	}
-
+	
 	project_do_ongoing_changes(proj, JDAW_THREAD_DSP);
 	project_flush_val_changes(proj, JDAW_THREAD_DSP);
 	project_flush_callbacks(proj, JDAW_THREAD_DSP);
+	double time = ((double)clock() - performance_timer) / CLOCKS_PER_SEC;
+	double alloc_time = (double)proj->fourier_len_sframes / proj->sample_rate;
+	double out = 0.9 * last_t + 0.1 * (time / alloc_time);
+	/* fprintf(stderr, "STRESS: %f\n", out); */
+	last_t = out;
+	
     }
+
     return NULL;
 }
 
@@ -313,9 +324,6 @@ void transport_start_playback()
 	Track *track = tl->tracks[i];
 	for (uint8_t a=0; a<track->num_automations; a++) {
 	    automation_clear_cache(track->automations[a]);
-	    /* fprintf(stderr, "RESETTTTTTTT\n"); */
-	    /* track->automations[a]->current = NULL; */
-	    /* /\* track->automation[a]-> *\/ */
 	}
     }
     
@@ -378,10 +386,13 @@ void transport_stop_playback()
 	sem_post(tl->writable_chunks);
 	sem_post(tl->readable_chunks);
     }
-    /* fprintf(stdout, "RESETTING SEMS from tl %p\n", tl); */
+
+    /* Exhaust all sems */
     while (sem_trywait(tl->unpause_sem) == 0) {};
     while (sem_trywait(tl->writable_chunks) == 0) {};
     while (sem_trywait(tl->readable_chunks) == 0) {};
+
+    /* Reset writeable chunks sem */
     for (int i=0; i<proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS / proj->chunk_size_sframes; i++) {
 	/* fprintf(stdout, "\t->reinitiailizing writable chunks\n"); */
 	sem_post(tl->writable_chunks);
@@ -393,6 +404,11 @@ void transport_stop_playback()
     /* fprintf(stdout, "Cancelled!\n"); */
     proj->src_play_speed = 0.0f;
     proj->play_speed = 0.0f;
+
+    project_do_ongoing_changes(proj, JDAW_THREAD_DSP);
+    project_flush_val_changes(proj, JDAW_THREAD_DSP);
+    project_flush_callbacks(proj, JDAW_THREAD_DSP);
+
     
     PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_play");
     Textbox *play_button = ((Button *)el->component)->tb;
@@ -620,6 +636,9 @@ void transport_stop_recording()
     for (uint16_t i=proj->active_clip_index; i<proj->num_clips; i++) {
 	Clip *clip = proj->clips[i];
 	if (clip->len_sframes == 0) {
+	    for (int i=0; i<clip->num_refs; i++) {
+		if (clip->refs[i]->grabbed) clipref_ungrab(clip->refs[i]);
+	    }
 	    clip_destroy(clip);
 	} else {
 	    for (uint16_t j=0; j<clip->num_refs; j++) {
@@ -683,7 +702,7 @@ void transport_stop_recording()
 	    break;
 	    
 	}
-	fprintf(stderr, "SETTING %s rec to false\n", clip->name);
+	/* fprintf(stderr, "SETTING %s rec to false\n", clip->name); */
 	clip->recording = false;
 	proj->active_clip_index++;
     }

@@ -1,0 +1,120 @@
+<Layout name="track_settings_saturation" type="NORMAL">
+  <x>REL 0</x>
+  <y>REL 0</y>
+  <w>SCALE 1.000000</w>
+  <h>SCALE 1.000000</h>
+  <children>
+    <Layout name="toggle_area" type="NORMAL">
+      <x>SCALE 0.060000</x>
+      <y>SCALE 0.127770</y>
+      <w>REL 303</w>
+      <h>REL 20</h>
+      <children>
+        <Layout name="toggle_gain_comp" type="NORMAL">
+          <x>REL 0</x>
+          <y>REL 0</y>
+          <w>REL 20</w>
+          <h>REL 20</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="toggle_gain_comp_label" type="NORMAL">
+          <x>REL 37</x>
+          <y>REL 0</y>
+          <w>REL 266</w>
+          <h>REL 20</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+    <Layout name="slider_area" type="NORMAL">
+      <x>SCALE 0.06</x>
+      <y>STACK 10</y>
+      <w>SCALE 0.5</w>
+      <h>ABS 60</h>
+      <children>
+        <Layout name="amp_label" type="NORMAL">
+          <x>REL 0</x>
+          <y>STACK 0</y>
+          <w>SCALE 1.000000</w>
+          <h>SCALE 0.5</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="amp_slider" type="NORMAL">
+          <x>REL 0</x>
+          <y>STACK 0</y>
+          <w>SCALE 1.000000</w>
+          <h>SCALE 0.5</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+    <Layout name="track_selection" type="NORMAL">
+      <x>REVREL 10</x>
+      <y>SCALE 0.056632</y>
+      <w>SCALE 0.256667</w>
+      <h>SCALE 0.046200</h>
+      <children>
+        <Layout name="track_name" type="NORMAL">
+          <x>STACK 0</x>
+          <y>REL 0</y>
+          <w>REL 100</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="track_previous" type="NORMAL">
+          <x>STACK 4</x>
+          <y>REL 0</y>
+          <w>REL 100</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="track_next" type="NORMAL">
+          <x>STACK 4</x>
+          <y>REL 0</y>
+          <w>REL 100</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+    <Layout name="toggle_area" type="NORMAL">
+      <x>SCALE 0.060000</x>
+      <y>SCALE 0.056464</y>
+      <w>REL 303</w>
+      <h>REL 20</h>
+      <children>
+        <Layout name="toggle_saturation" type="NORMAL">
+          <x>REL 0</x>
+          <y>REL 0</y>
+          <w>REL 20</w>
+          <h>REL 20</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="toggle_label" type="NORMAL">
+          <x>REL 37</x>
+          <y>REL 0</y>
+          <w>REL 266</w>
+          <h>REL 20</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+    <Layout name="type_radio" type="NORMAL">
+      <x>SCALE 0.06</x>
+      <y>REL 196</y>
+      <w>REL 303</w>
+      <h>REL 80</h>
+      <children>
+      </children>
+    </Layout>
+  </children>
+</Layout>

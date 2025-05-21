@@ -21,6 +21,7 @@
 #define JDAW_PAGE_H
 
 #include "components.h"
+#include "eq.h"
 #include "layout.h"
 #include "textbox.h"
 #include "value.h"
@@ -31,6 +32,7 @@
 #define TAB_H 32
 #define PAGE_R 14
 #define TAB_R PAGE_R
+#define TAB_MARGIN_LEFT (TAB_R * 2)
 #define TAB_H_SPACING 0
 
 typedef enum page_el_type {
@@ -43,8 +45,15 @@ typedef enum page_el_type {
     EL_WAVEFORM,
     EL_FREQ_PLOT,
     EL_BUTTON,
-    EL_CANVAS
+    EL_CANVAS,
+    EL_EQ_PLOT,
+    EL_SYMBOL_BUTTON
+    /* EL_TOGGLE_EP */
 } PageElType;
+
+enum linked_obj_type {
+    PAGE_EFFECT=0
+};
 
 typedef struct page_element {
     const char *id;
@@ -64,16 +73,34 @@ typedef struct page {
     SDL_Color *background_color;
     SDL_Color *text_color;
     Window *win;
+
+    enum linked_obj_type linked_obj_type;
+    void *linked_obj;
+    bool onscreen;
 } Page;
 
 typedef struct tab_view {
     const char *title;
     Page *tabs[MAX_TABS];
-    Textbox *labels[MAX_TABS];
+    Textbox *labels[MAX_TABS + 2]; /* add space for ellipsis tabs */
+    Textbox *ellipsis_left;
+    Textbox *ellipsis_right;
+    bool ellipsis_left_inserted;
+    bool ellipsis_right_inserted;
+    
     uint8_t num_tabs;
     uint8_t current_tab;
     Layout *layout;
+    Layout *tabs_container;
     Window *win;
+
+    uint8_t leftmost_index; /* Set in reset function */
+    uint8_t rightmost_index; /* Calculated in reset function */
+
+    /* void *related_array; */
+    void (*swap_fn)(void *array, int swap_i, int swap_j);
+    void *swap_fn_target;
+    /* size_t related_array_el_size; */
 } TabView;
 
 struct slider_params {
@@ -145,9 +172,14 @@ struct radio_params {
 };
 
 struct toggle_params {
-    bool *value;
-    ComponentFn action;
-    void *target;
+    Endpoint *ep;
+    /* bool *value; */
+    /* ComponentFn action; */
+    /* void *target; */
+};
+
+struct toggle_ep_params {
+    Endpoint *ep;
 };
 
 struct waveform_params {
@@ -165,6 +197,17 @@ struct canvas_params {
     void *draw_arg2;
 };
 
+struct eq_plot_params {
+    EQ *eq;
+};
+
+struct symbol_button_params {
+    Symbol *s;
+    ComponentFn action;
+    void *target;
+    SDL_Color *background_color;
+};
+
 typedef union page_el_params {
     struct slider_params slider_p;
     struct textbox_params textbox_p;
@@ -176,6 +219,9 @@ typedef union page_el_params {
     struct radio_params radio_p;
     struct waveform_params waveform_p;
     struct canvas_params canvas_p;
+    struct eq_plot_params eq_plot_p;
+    struct symbol_button_params sbutton_p;
+    struct toggle_ep_params toggle_ep_p;
 } PageElParams;
 
 
@@ -186,7 +232,7 @@ TabView *tabview_create(const char *title, Layout *parent_lt, Window *win);
 void tabview_destroy(TabView *tv);
 void tabview_activate(TabView *tv);
 void tabview_close(TabView *tv);
-Page *tab_view_add_page(
+Page *tabview_add_page(
     TabView *tv,
     const char *page_title,
     const char *layout_filepath,
@@ -198,6 +244,18 @@ bool tabview_mouse_click(TabView *tv);
 bool tabview_mouse_motion(TabView *tv);
 void tabview_next_tab(TabView *tv);
 void tabview_previous_tab(TabView *tv);
+
+
+void tabview_swap_adjacent_tabs(TabView *tv, int current, int new, bool apply_swapfn);
+void tabview_move_current_tab_left(TabView *tv);
+void tabview_move_current_tab_right(TabView *tv);
+    
+void tabview_clear_all_contents(TabView *tv);
+const char *tabview_active_tab_title(TabView *tv);
+
+void tabview_tab_drag(TabView *tv);
+Page *tabview_select_tab(TabView *tv, int i);
+
 
 /* Page methods */
 
@@ -235,7 +293,7 @@ bool page_mouse_click(Page *page, Window *win);
 /* Reset functions */
 
 void page_reset(Page *page);
-void tab_view_reset(TabView *tv);
+void tabview_reset(TabView *tv, uint8_t leftmost_index);
 
 /* Draw functions */
 
@@ -256,6 +314,6 @@ void page_enter(Page *page);
 PageEl *page_get_el_by_id(Page *page, const char *id);
 void page_select_el_by_id(Page *page, const char *id);
 
-void tabview_clear_all_contents(TabView *tv);
+void page_el_reset(PageEl *el);
 
 #endif

@@ -114,18 +114,23 @@
   - `		: tl_track_activate_all
   - n		: tl_track_selector_down
   - p		: tl_track_selector_up
+  - <down>	: tl_track_selector_down
+  - <up>	: tl_track_selector_up
   - f		: tl_track_selector_down
   - d		: tl_track_selector_up
   - S-n		: tl_move_track_down
   - S-p		: tl_move_track_up
   - S-f		: tl_move_track_down
   - S-d		: tl_move_track_up
+  - S-<down>	: tl_move_track_selector_down
+  - S-<up>	: tl_move_track_selector_up  
   - -		: tl_track_or_tracks_minimize
   - <ret>	: tl_track_activate_selected
   - C-r		: tl_track_rename
   - C-S-i	: tl_track_set_in
   - C-<del>	: tl_track_delete
   - S-t		: tl_track_open_settings
+  - S-e		: tl_track_add_effect
   - a		: tl_track_show_hide_automations
   - C-a		: tl_track_add_automation
   - S-r		: tl_track_automation_toggle_read
@@ -175,12 +180,16 @@
   - p		: modal_previous
   - f		: modal_next
   - d		: modal_previous
+  - <down>	: modal_next
+  - <up>	: modal_previous
   - <tab>	: modal_next_escape
   - S-<tab>	: modal_previous_escape
   - S-n		: modal_next_escape
   - S-p		: modal_previous_escape
   - S-f		: modal_next_escape
   - S-d		: modal_previous_escape
+  - S-<down>	: modal_next_escape
+  - S-<up>	: modal_previous_escape
   - <ret>	: modal_select
   - m		: modal_dismiss
   - h		: modal_dismiss
@@ -202,6 +211,8 @@
 - tabview:
   - S-n		: tabview_next_escape
   - S-p		: tabview_previous_escape
+  - S-<down>	: tabview_next_escape
+  - S-<up>	: tabview_previous_escape
   - S-f		: tabview_next_escape
   - S-d		: tabview_previous_escape
   - <tab>	: tabview_next_escape
@@ -213,10 +224,18 @@
   - S-h		: tabview_previous_tab
   - S-l		: tabview_next_tab
   - S-;		: tabview_next_tab
+  - C-S-j	: tabview_move_current_tab_left
+  - C-S-l	: tabview_move_current_tab_right
+  - C-S-h	: tabview_move_current_tab_left
+  - C-S-;	: tabview_move_current_tab_right
   - g		: tabview_escape
   - <esc>	: tabview_escape
 - autocomplete_list:
   - <tab>	: autocomplete_next
   - S-<tab>	: autocomplete_previous
+  - <down>	: autocomplete_next
+  - <up>	: autocomplete_previous
+  - C-n		: autocomplete_next
+  - C-p		: autocomplete_previous
   - <ret>	: autocomplete_select
   - <esc>	: autocomplete_escape

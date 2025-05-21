@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <time.h>
+#include "consts.h"
 #include "project.h"
 #include "project_endpoint_ops.h"
 #include "tempo.h"
@@ -212,9 +213,8 @@ static void track_handle_playhead_jump(Track *track)
     for (uint8_t i =0; i<track->num_automations; i++) {
 	Automation *a = track->automations[i];
 	automation_clear_cache(a);
-	/* a->current = NULL; */
-	/* a->ghost_valid = false; */
     }
+    /* eq_clear(&track->eq); */
 }
 
 /* Invalidates continuous-play-dependent caches.
@@ -261,7 +261,7 @@ void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes)
     RESTRICT_NOT_DSP("timeline_move_play_position");
     RESTRICT_NOT_MAIN("timeline_move_play_position");
 
-    static const int32_t end_tl_buffer = 96000 * 30; /* 30 seconds at max sample rate*/
+    static const int32_t end_tl_buffer = DEFAULT_SAMPLE_RATE * 30; /* 30 seconds at dmax sample rate*/
     
     int64_t new_pos = (int64_t)tl->play_pos_sframes + move_by_sframes;
     if (tl->proj->loop_play) {

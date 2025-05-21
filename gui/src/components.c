@@ -1,6 +1,7 @@
 #include "color.h"
 #include "components.h"
 #include "endpoint.h"
+#include "eq.h"
 #include "geometry.h"
 #include "input.h"
 #include "layout.h"
@@ -238,7 +239,7 @@ void slider_destroy(Slider *s)
 /* void (SliderStrFn)(char *dst, size_t dstsize, void *value, ValType type); */
 void slider_std_labelmaker(char *dst, size_t dstsize, void *value, ValType type)
 {
-    jdaw_valptr_set_str(dst, dstsize, value, type, 2);
+    jdaw_valptr_to_str(dst, dstsize, value, type, 2);
 }
 
 /* void slider_edit_made(Slider *slider) */
@@ -537,6 +538,24 @@ void textentry_complete_edit(TextEntry *te)
 
 /* Toggle */
 
+Toggle *toggle_create_from_endpoint(Layout *lt, Endpoint *ep)
+{
+    Layout *inner = layout_add_child(lt);
+    inner->w.type = SCALE;
+    inner->h.type = SCALE;
+    inner->w.value = 0.90;
+    inner->h.value = 0.90;
+    layout_force_reset(lt);
+    layout_center_agnostic(inner, true, true);
+    /* layout_center_agnostic(outer, true, true); */
+    Toggle *tgl = calloc(1, sizeof(Toggle));
+    tgl->endpoint = ep;
+    tgl->value = ep->val;
+    tgl->layout = lt;
+    return tgl;
+
+}
+
 Toggle *toggle_create(Layout *lt, bool *value, ComponentFn action, void *target)
 {
     Layout *inner = layout_add_child(lt);
@@ -583,8 +602,18 @@ void toggle_draw(Toggle *tgl)
 
 bool toggle_toggle(Toggle *toggle)
 {
-    *(toggle->value) = !(*toggle->value);
-    return toggle->value;
+    if (toggle->endpoint) {
+	bool current = endpoint_safe_read(toggle->endpoint, NULL).bool_v;
+	endpoint_write(toggle->endpoint, (Value){.bool_v = !current}, true, true, true, true);
+	return !current;
+    } else {
+	*(toggle->value) = !(*toggle->value);
+	if (toggle->action) {
+	    toggle->action((void *)toggle, toggle->target);
+	}
+
+	return toggle->value;
+    }
 }
 
 
@@ -693,8 +722,8 @@ void radio_cycle_back(RadioButton *rb)
 {
     if (rb->selected_item > 0)
 	rb->selected_item--;
-    else
-	rb->selected_item = rb->num_items - 1;
+    /* else */
+    /* 	rb->selected_item = rb->num_items - 1; */
     
     endpoint_write(rb->ep, (Value){.int_v = rb->selected_item}, true, true, true, true);
     /* if (rb->action) rb->action((void *)rb, rb->target); */
@@ -702,8 +731,9 @@ void radio_cycle_back(RadioButton *rb)
 
 void radio_cycle(RadioButton *rb)
 {
+    if (rb->selected_item == rb->num_items - 1) return;
     rb->selected_item++;
-    rb->selected_item %= rb->num_items;
+    /* rb->selected_item %= rb->num_items; */
     
     endpoint_write(rb->ep, (Value){.int_v = rb->selected_item}, true, true, true, true);
     /* if (rb->action) rb->action((void *)rb, rb->target); */
@@ -733,6 +763,7 @@ void radio_destroy(RadioButton *rb)
 	textbox_destroy(rb->items[i]);
     }
     layout_destroy(rb->layout);
+    if (rb->dynamic_text) free(rb->dynamic_text);
     free(rb);
 
 }
@@ -804,6 +835,7 @@ void canvas_destroy(Canvas *c)
 
 typedef struct click_segment ClickSegment;
 bool click_track_mouse_motion(ClickSegment *s, Window *win);
+void tabview_tab_drag(TabView *tv, Window *win);
 bool draggable_mouse_motion(Draggable *draggable, Window *win)
 {
     switch (draggable->type) {
@@ -812,6 +844,12 @@ bool draggable_mouse_motion(Draggable *draggable, Window *win)
 	break;
     case DRAG_CLICK_SEG_BOUND:
 	return click_track_mouse_motion((ClickSegment *)draggable->component, win);
+    case DRAG_EQ_FILTER_NODE:
+	eq_mouse_motion((EQFilterCtrl *)draggable->component, win);
+	return true;
+    case DRAG_TABVIEW_TAB:
+	tabview_tab_drag((TabView *)draggable->component, win);
+	return true;
     }
     return false;
 }
@@ -821,9 +859,9 @@ bool toggle_click(Toggle *toggle, Window *win)
 {
     if (SDL_PointInRect(&main_win->mousep, &toggle->layout->rect)) {
 	toggle_toggle(toggle);
-	if (toggle->action) {
-	    toggle->action((void *)toggle, toggle->target);
-	}
+	/* if (toggle->action) { */
+	/*     toggle->action((void *)toggle, toggle->target); */
+	/* } */
 	return true;
     }
     return false;

@@ -86,16 +86,20 @@ void layout_get_dimval_str(Dimension *dim, char *dst, int maxlen)
 
 static Layout *get_last_sibling(Layout *lt)
 {
-    Layout *ret = NULL;
+    if (!lt->parent) return NULL;
+    /* Layout *ret; */
     int index = lt->index - 1;
-    if (lt->parent && index >= 0) {
-	while (index > 0 && lt->parent->children[index] == PRGRM_INTERNAL) {
-	    index--;
-	}
-	ret = lt->parent->children[index];
-	
+    Layout *ret = NULL;
+    while (index >= 0 && (ret = lt->parent->children[index])->type == PRGRM_INTERNAL) {
+	index--;
     }
-    return ret;
+    if (index < 0) return NULL;
+
+    if (ret && ret->type != PRGRM_INTERNAL) {
+	return ret;
+    } else {
+	return NULL;
+    }
 }
 
 Layout *layout_iterate_siblings(Layout *from, int direction)
@@ -311,11 +315,15 @@ void layout_set_values_from_rect(Layout *lt)
     case COMPLEMENT:
 	break;
     case STACK: {
-	Layout *last_sibling = get_last_sibling(lt);
-	if (last_sibling) {
-	    lt->y.value = ((float)y - last_sibling->rect.y - last_sibling->rect.h) / main_win->dpi_scale_factor;
+	if (lt->parent) {
+	    Layout *last_sibling = get_last_sibling(lt);
+	    if (last_sibling) {
+		lt->y.value = ((float)y - last_sibling->rect.y - last_sibling->rect.h) / main_win->dpi_scale_factor;
+	    } else {
+		lt->y.value = ((float)y - lt->parent->rect.y) / main_win->dpi_scale_factor;
+	    }
 	} else {
-	    lt->y.value = ((float)y - lt->parent->rect.y) / main_win->dpi_scale_factor;
+	    lt->y.value = (float)y / main_win->dpi_scale_factor;
 	}
     }
 	break;

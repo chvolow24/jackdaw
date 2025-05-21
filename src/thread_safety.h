@@ -58,9 +58,9 @@ extern pthread_t DSP_THREAD_ID;
 
 #if defined(HAVE_THREAD_LOCAL)
     #define JDAW_THREAD_LOCAL thread_local
-#elsif defined(HAVE__THREAD_LOCAL)
+#elif defined(HAVE__THREAD_LOCAL)
     #define JDAW_THREAD_LOCAL _Thread_local
-#elsif defined(HAVE___THREAD)
+#elif defined(HAVE___THREAD)
     #define JDAW_THREAD_LOCAL __thread
 #else
     #define JDAW_THREAD_LOCAL

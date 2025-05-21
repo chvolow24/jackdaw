@@ -14,6 +14,11 @@
     * All operations related to track automation
  *****************************************************************************************************************/
 
+/* NOTE on automation<>endpoints and automation->deleted:
+   (see automation.h)
+*/
+
+
 #include <pthread.h>
 #include <stdlib.h>
 
@@ -97,15 +102,23 @@ void automation_destroy(Automation *a)
 	textbox_destroy(a->label);
     if (a->keyframe_label)
 	label_destroy(a->keyframe_label);
-    button_destroy(a->read_button);
-    button_destroy(a->write_button);
+    if (a->endpoint)
+	a->endpoint->automation = NULL;
+    if (a->read_button)
+	button_destroy(a->read_button);
+    if (a->write_button)
+	button_destroy(a->write_button);
     if (a->layout)
 	layout_destroy(a->layout);
     free(a);
 }
 
-static void automation_remove(Automation *a)
+/* automation_delete is higher-level and should be used where possible */
+void automation_remove(Automation *a)
 {
+    /* if (a->deleted) return; */
+    if (a->removed) return;
+    a->removed = true;
     Track *track = a->track;
     track->tl->needs_redraw = true;
     bool displace = false;
@@ -121,11 +134,8 @@ static void automation_remove(Automation *a)
 	    if (displace) {
 		track->automations[i]->index--;
 		track->automations[i - 1] = track->automations[i];
-	    }
-	    
-	    
+	    }  
 	}
-	
     }
     layout_reset(a->layout);
     layout_size_to_fit_children_v(a->track->layout, true, 0);
@@ -149,8 +159,12 @@ static void automation_remove(Automation *a)
     TEST_FN_CALL(track_automation_order, track);
 }
 
-static void automation_reinsert(Automation *a)
-{    
+void automation_reinsert(Automation *a)
+{
+    if (!a->removed) return;
+    if (a->index > a->track->num_automations) a->index = a->track->num_automations;
+    a->removed = false;
+    /* a->deleted = false; */
     Track *track = a->track;
     track->tl->needs_redraw = true;
     for (int16_t i=track->num_automations; i>=0; i--) {
@@ -182,10 +196,12 @@ static void automation_reinsert(Automation *a)
 
 NEW_EVENT_FN(undo_add_automation, "undo add automation")
     Automation *a = (Automation *)obj1;
+    a->deleted = true;
     automation_remove(a);
 }
 NEW_EVENT_FN(redo_add_automation, "redo add automation")
     Automation *a = (Automation *)obj1;
+    a->deleted = false;
     automation_reinsert(a);
 }
 
@@ -196,17 +212,20 @@ NEW_EVENT_FN(dispose_delete_automation, "")
 
 NEW_EVENT_FN(undo_delete_automation, "undo delete automation")
     Automation *a = (Automation *)obj1;
+    a->deleted = false;
     automation_reinsert(a);
 }
 
 NEW_EVENT_FN(redo_delete_automation, "redo delete automation")
     Automation *a = (Automation *)obj1;
+    a->deleted = true;
     automation_remove(a);
 }
 
 void automation_delete(Automation *a)
 {
     automation_remove(a);
+    a->deleted = true;
     Value nullval;
     memset(&nullval, '\0', sizeof(Value));
     user_event_push(
@@ -219,15 +238,26 @@ void automation_delete(Automation *a)
 	0, 0, false, false);
 }
 
-Automation *track_add_automation(Track *track, AutomationType type)
+/* Endpoint MUST have min, max, and default set */
+Automation *track_add_automation_from_endpoint(Track *track, Endpoint *ep)
 {
+    if (track->num_automations == MAX_TRACK_AUTOMATIONS) {
+	status_set_errstr("Error: reached maximum number of automations per track\n");
+	return NULL;
+    }
     Automation *a = calloc(1, sizeof(Automation));
     a->track = track;
-    a->type = type;
+    a->type = AUTO_ENDPOINT;
     a->read = true;
     a->index = track->num_automations;
     a->keyframe_arrlen = KEYFRAMES_ARR_INITLEN;
     a->keyframes = calloc(a->keyframe_arrlen, sizeof(Keyframe));
+    a->min = ep->min;
+    a->max = ep->max;
+    a->val_type = ep->val_type;
+    a->range = jdaw_val_sub(ep->max, ep->min, ep->val_type);
+    /* snprintf(a->name, MAX_NAMELENGTH, "%s", api_endpoint_get_route_until(ep, &track->api_node)); */
+    api_endpoint_get_display_route_until(ep, a->name, MAX_NAMELENGTH, &track->api_node);
 
     int ret;
     if ((ret = pthread_mutex_init(&a->lock, NULL) != 0)) {
@@ -240,110 +270,20 @@ Automation *track_add_automation(Track *track, AutomationType type)
     }
 
     
-    /* a->kclips_arr_len = KCLIPS_ARR_INITLEN; */
-    /* a->kclips = calloc(KCLIPS_ARR_INITLEN, sizeof(KClipRef)); */
     track->automations[track->num_automations] = a;
     track->num_automations++;
-    Value base_kf_val;
-    switch (type) {
-    case AUTO_VOL:
-	a->val_type = JDAW_FLOAT;
-	a->min.float_v = 0.0f;
-	a->max.float_v = TRACK_VOL_MAX;
-	a->range.float_v = TRACK_VOL_MAX;
-	a->target_val = &track->vol;
-	base_kf_val.float_v = track->vol;
-	automation_insert_keyframe_at(a, 0, base_kf_val);
-	endpoint_bind_automation(&track->vol_ep, a);
-	break;
-    case AUTO_PAN:
-	a->val_type = JDAW_FLOAT;
-	a->min.float_v = 0.0f;
-	a->max.float_v = 1.0f;
-	a->range.float_v = 1.0f;
-	a->target_val = &track->pan;
-	base_kf_val.float_v = track->pan;
-	automation_insert_keyframe_at(a, 0, base_kf_val);
-	endpoint_bind_automation(&track->pan_ep, a);
-	/* automation_insert_keyframe_at(a, NULL, base_kf_val, 0); */
-	break;
-    case AUTO_FIR_FILTER_CUTOFF:
 
-	/* 	if (!track->fir_filter.frequency_response) { */
-	/*     Project *proj_loc = track->tl->proj; */
-	/*     int ir_len = proj_loc->fourier_len_sframes/4; */
-	/*     filter_init(&track->fir_filter, LOWPASS, ir_len, proj_loc->fourier_len_sframes * 2); */
-	/*     track->fir_filter.track = track; */
-	/*     filter_set_params_hz(&track->fir_filter, LOWPASS, 1000, 1000); */
-	/*     track->fir_filter_active = false; */
-	/* } */
-
-	if (!track->fir_filter.initialized) {
-	    track_add_default_filter(track);
-	}
-	a->val_type = JDAW_DOUBLE;
-	a->target_val = &track->fir_filter.cutoff_freq_unscaled;
-	a->min.double_v = 0.0;
-	a->max.double_v = 1.0;
-	a->range.double_v = 1.0;
-	base_kf_val.double_v = 1.0;
-	automation_insert_keyframe_at(a, 0, base_kf_val);
-	endpoint_bind_automation(&track->fir_filter.cutoff_ep, a);
-	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
-	break;
-    case AUTO_FIR_FILTER_BANDWIDTH:
-	if (!track->fir_filter.frequency_response) {
-	    track_add_default_filter(track);
-	}
-	a->val_type = JDAW_DOUBLE;
-	a->target_val = &track->fir_filter.bandwidth_unscaled;
-	a->min.double_v = 0.0;
-	a->max.double_v = 1.0;
-	a->range.double_v = 1.0;
-	base_kf_val.double_v = 0.5;
-	automation_insert_keyframe_at(a, 0, base_kf_val);
-	endpoint_bind_automation(&track->fir_filter.bandwidth_ep, a);
-	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
-	break;
-    case AUTO_DEL_TIME:
-	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line, track, track->tl->proj->sample_rate);
-	a->val_type = JDAW_INT16;
-	a->min.int16_v = 1;
-	a->max.int16_v = DELAY_LINE_MAX_LEN_S * 1000;//track->tl->proj->sample_rate * DELAY_LINE_MAX_LEN_S;
-	a->range.int16_v = a->max.int16_v - 1;
-	a->target_val = &track->delay_line.len_msec;
-	base_kf_val.int16_v = 100;
-	automation_insert_keyframe_at(a, 0, base_kf_val);
-	endpoint_bind_automation(&track->delay_line.len_ep, a);
-	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
-
-	break;
-    case AUTO_DEL_AMP:
-	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line, track, track->tl->proj->sample_rate);
-	a->val_type = JDAW_DOUBLE;
-	a->target_val = &track->delay_line.amp;
-	a->min.double_v = 0.0;
-	a->max.double_v = 1.0;
-	a->range.double_v = 1.0;
-	base_kf_val.double_v = 0.5;
-	automation_insert_keyframe_at(a, 0, base_kf_val);
-	endpoint_bind_automation(&track->delay_line.amp_ep, a);
-	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
-	break;
-    case AUTO_PLAY_SPEED:
-	a->val_type = JDAW_FLOAT;
-	a->min.float_v = 0.05;
-	a->max.float_v = 5.0;
-	a->range.float_v = 5.0 - 0.05;
-	a->target_val = &track->tl->proj->play_speed;
-	base_kf_val.float_v = 1.0f;
-	automation_insert_keyframe_at(a, 0, base_kf_val);
-	endpoint_bind_automation(&proj->play_speed_ep, a);
-	/* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); */
-	break;
-    default:
-	break;
-    }
+    a->val_type = ep->val_type;
+    if (a->val_type == JDAW_BOOL) a->min = (Value){.bool_v = false};
+    else a->min = ep->min;
+    if (a->val_type == JDAW_BOOL) a->max = (Value){.bool_v = true};
+    else a->max = ep->max;
+    /* a->max = ep->max; */
+    a->range = jdaw_val_sub(ep->max, ep->min, ep->val_type);
+    a->target_val = ep->val;
+    Value base_kf_val = ep->default_val;
+    automation_insert_keyframe_at(a, 0, base_kf_val);
+    endpoint_bind_automation(ep, a);
     track->automation_dropdown->background_color = &color_global_dropdown_green;
 
     Value nullval;
@@ -358,46 +298,142 @@ Automation *track_add_automation(Track *track, AutomationType type)
 	0, 0, false, false);
 	
     return a;
+
 }
 
+
+Automation *track_add_automation(Track *track, AutomationType type)
+{
+    if (track->num_automations == MAX_TRACK_AUTOMATIONS) {
+	status_set_errstr("Error: reached maximum number of automations per track\n");
+	return NULL;
+    }
+    Automation *a = NULL;
+    switch (type) {
+    /* case AUTO_VOL: */
+    /* 	a = track_add_automation_from_endpoint(track, &track->vol_ep); */
+    /* 	break; */
+    /* case AUTO_PAN: */
+    /* 	a = track_add_automation_from_endpoint(track, &track->pan_ep); */
+    /* 	/\* automation_insert_keyframe_at(a, NULL, base_kf_val, 0); *\/ */
+    /* 	break; */
+    /* case AUTO_FIR_FILTER_CUTOFF: */
+    /* 	a = track_add_automation_from_endpoint(track, &track->fir_filter.cutoff_ep); */
+    /* 	break; */
+    /* case AUTO_FIR_FILTER_BANDWIDTH: */
+    /* 	a = track_add_automation_from_endpoint(track, &track->fir_filter.bandwidth_ep); */
+    /* 	/\* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); *\/ */
+    /* 	break; */
+	
+    /* case AUTO_DEL_TIME: */
+    /* 	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line, track, track->tl->proj->sample_rate); */
+    /* 	a->val_type = JDAW_INT16; */
+    /* 	a->min.int16_v = 1; */
+    /* 	a->max.int16_v = DELAY_LINE_MAX_LEN_S * 1000;//track->tl->proj->sample_rate * DELAY_LINE_MAX_LEN_S; */
+    /* 	a->range.int16_v = a->max.int16_v - 1; */
+    /* 	a->target_val = &track->delay_line.len_msec; */
+    /* 	base_kf_val.int16_v = 100; */
+    /* 	automation_insert_keyframe_at(a, 0, base_kf_val); */
+    /* 	endpoint_bind_automation(&track->delay_line.len_ep, a); */
+    /* 	/\* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); *\/ */
+
+    /* 	break; */
+    /* case AUTO_DEL_AMP: */
+    /* 	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line, track, track->tl->proj->sample_rate); */
+    /* 	a->val_type = JDAW_DOUBLE; */
+    /* 	a->target_val = &track->delay_line.amp; */
+    /* 	a->min.double_v = 0.0; */
+    /* 	a->max.double_v = 1.0; */
+    /* 	a->range.double_v = 1.0; */
+    /* 	base_kf_val.double_v = 0.5; */
+    /* 	automation_insert_keyframe_at(a, 0, base_kf_val); */
+    /* 	endpoint_bind_automation(&track->delay_line.amp_ep, a); */
+    /* 	/\* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); *\/ */
+    /* 	break; */
+    /* case AUTO_PLAY_SPEED: */
+    /* 	a->val_type = JDAW_FLOAT; */
+    /* 	a->min.float_v = 0.05; */
+    /* 	a->max.float_v = 5.0; */
+    /* 	a->range.float_v = 5.0 - 0.05; */
+    /* 	a->target_val = &track->tl->proj->play_speed; */
+    /* 	base_kf_val.float_v = 1.0f; */
+    /* 	automation_insert_keyframe_at(a, 0, base_kf_val); */
+    /* 	endpoint_bind_automation(&proj->play_speed_ep, a); */
+    /* 	/\* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); *\/ */
+    /* 	break; */
+    default:
+	a = track_add_automation_from_endpoint(track, &track->vol_ep);
+	break;
+    }
+    track->automation_dropdown->background_color = &color_global_dropdown_green;
+    if (a) a->type = type;
+    return a;
+}
+
+
+static void track_add_automation_from_api_node(Track *track, APINode *node);
 
 static int add_auto_form(void *mod_v, void *nullarg)
 {
     Modal *modal = (Modal *)mod_v;
     ModalEl *el;
-    AutomationType t = 0;
+    /* AutomationType t = 0; */
     Track *track = NULL;
+    APINode *node = NULL;
+    int ep_index = -1;
     for (uint8_t i=0; i<modal->num_els; i++) {
 	switch ((el = modal->els[i])->type) {
 	case MODAL_EL_RADIO:
-	    t = ((RadioButton *)el->obj)->selected_item;
+	    ep_index = ((RadioButton *)el->obj)->selected_item;
+	    /* t = ((RadioButton *)el->obj)->selected_item; */
 	    track = ((RadioButton *)el->obj)->ep->xarg1;
+	    node = ((RadioButton *)el->obj)->ep->xarg2;
 	    break;
 	default:
 	    break;
 	}
     }
-    for (uint8_t i=0; i<track->num_automations; i++) {
-	if (track->automations[i]->type == t) {
-	    status_set_errstr("Track already has an automation of that type");
-	    return 1;
-	}
+
+    if (!track || ep_index < 0) {
+	fprintf(stderr, "Error: illegal value for ep_index or no track in auto_add_form\n");
+	exit(1);
     }
-    Automation *a = track_add_automation(track, t);
-    track_automations_show_all(track);
-    track->selected_automation = a->index;
-    window_pop_modal(main_win);
+    if (ep_index < node->num_endpoints) {
+	Endpoint *ep = node->endpoints[ep_index];
+	for (uint8_t i=0; i<track->num_automations; i++) {
+	    if (track->automations[i]->endpoint == ep) {
+		status_set_errstr("Track already has an automation of that type");
+		return 1;
+	    }
+	    
+	    /* if (track->automations[i]->ep =  */
+	    /* if (track->automations[i]->type == t) { */
+	    /*     status_set_errstr("Track already has an automation of that type"); */
+	    /*     return 1; */
+	    /* } */
+	}
+	Automation *a = track_add_automation_from_endpoint(track, ep);
+	if (!a) return 1;
+	track_automations_show_all(track);
+	track->selected_automation = a->index;
+	window_pop_modal(main_win);
+    } else {
+	/* fprintf(stderr, "Item index is %d; num eps is %d\n", ep_index, track->api_node.num_endpoints); */
+	APINode *subnode = node->children[ep_index - node->num_endpoints];
+	/* fprintf(stderr, "OK NODE: %p:\n", subnode); */
+	window_pop_modal(main_win);
+	track_add_automation_from_api_node(track, subnode);
+    }
     return 0;
 }
 
-void track_add_new_automation(Track *track)
+static void track_add_automation_from_api_node(Track *track, APINode *node)
 {
     Layout *lt = layout_add_child(track->tl->proj->layout);
     layout_set_default_dims(lt);
     Modal *m = modal_create(lt);
     /* Automation *a = track_add_automation_internal(track, AUTO_VOL); */
     modal_add_header(m, "Add automation to track", &color_global_light_grey, 4);
-
     static int automation_selection = 0;
     static Endpoint automation_selection_ep = {0};
     if (automation_selection_ep.local_id == NULL) {
@@ -410,99 +446,55 @@ void track_add_new_automation(Track *track)
 	    JDAW_THREAD_MAIN,
 	    NULL, NULL, NULL,
 	    track, NULL,NULL,NULL);
+	automation_selection_ep.block_undo = true;
     }
     automation_selection_ep.xarg1 = (void *)track;
-    modal_add_radio(
+    automation_selection_ep.xarg2 = (void *)node;
+
+    /* APINode node = track->api_node; */
+    /* Endpoint *items[node->num_endpoints + node->num_children]; */
+
+    void *items[node->num_endpoints + node->num_children];
+    const char *item_labels[node->num_endpoints + node->num_children];
+
+    char *dynamic_text = NULL;
+    if (node->num_children > 0)
+	dynamic_text = calloc(node->num_children * 64, sizeof(char));
+    char *child_node_item = dynamic_text;
+
+    for (int i=0; i<node->num_endpoints; i++) {
+	items[i] = node->endpoints[i];
+	item_labels[i] = node->endpoints[i]->display_name;
+    }
+    for (int i=0; i<node->num_children; i++) {
+	items[node->num_endpoints + i] = node->children[i];
+	int num_chars_printed = snprintf(child_node_item, 64, "%s...", node->children[i]->obj_name);
+	child_node_item[num_chars_printed] = '\0';
+	item_labels[node->num_endpoints + i] = child_node_item;
+	child_node_item += num_chars_printed + 1;
+    }
+    
+    ModalEl *el = modal_add_radio(
 	m,
 	&color_global_light_grey,
-	/* (void *)track, */
 	&automation_selection_ep,
-	/* NULL, */
-	AUTOMATION_LABELS,
-	sizeof(AUTOMATION_LABELS) / sizeof(const char *));
+	item_labels,
+	node->num_endpoints + node->num_children);
+
+    RadioButton *rb = el->obj;
+    rb->dynamic_text = dynamic_text;
     modal_add_button(m, "Add", add_auto_form);
     window_push_modal(main_win, m);
     modal_reset(m);
     modal_move_onto(m);
+
 }
 
-
-/* TODO: replace keyframe labels with standard labelfns */
-/* static float amp_to_db(float amp) */
-/* { */
-/*     return (20.0f * log10(amp)); */
-/* } */
-
-/* static void a_label_freq_raw_to_hz(char *dst, size_t dstsize, double raw) */
-/* { */
-/*     double hz = dsp_scale_freq_to_hz(raw); */
-/*     snprintf(dst, dstsize, "%.0f Hz", hz); */
-/*     snprintf(dst, dstsize, "hi"); */
-/*     dst[dstsize - 1] = '\0'; */
-/* } */
-/* static void a_label_time_samples_to_msec(char *dst, size_t dstsize, int32_t samples, int sample_rate) */
-/* { */
-    
-/*     int msec = (double)samples * 1000 / sample_rate; */
-/*     snprintf(dst, dstsize, "%d ms", msec); */
-/* } */
-
-
-/* static void a_label_amp_to_dbstr(char *dst, size_t dstsize, float amp) */
-/* { */
-/*     int max_float_chars = dstsize - 2; */
-/*     if (max_float_chars < 1) { */
-/* 	fprintf(stderr, "Error: no room for dbstr\n"); */
-/* 	dst[0] = '\0'; */
-/* 	return; */
-/*     } */
-/*     snprintf(dst, max_float_chars, "%.2f", amp_to_db(amp)); */
-/*     strcat(dst, " dB"); */
-/* } */
-
-/* static void a_label_pan(char *dst, size_t dstsize, float pan) */
-/* { */
-/*     if (pan < 0.5) { */
-/* 	snprintf(dst, dstsize, "%.1f%% L", (0.5 - pan) * 200); */
-/*     } else if (pan > 0.5) { */
-/* 	snprintf(dst, dstsize, "%.1f%% R", (pan - 0.5) * 200); */
-/*     } else { */
-/* 	snprintf(dst, dstsize, "C"); */
-/*     } */
-/* } */
-
-
-
-/* /\* static void keyframe_labelmaker(char *dst, size_t dstsize, void *target, ValType t) *\/ */
-/* static void keyframe_labelmaker(char *dst, size_t dstsize, void *target, ValType t) */
-/* { */
-/*     Automation *a = (Automation *)target; */
-/*     Timeline *tl = a->track->tl; */
-/*     Keyframe *k = tl->dragging_keyframe; */
-/*     if (!k) return; */
-/*     char valstr[dstsize]; */
-/*     /\* char tcstr[dstsize]; *\/ */
-/*     switch(a->type) { */
-/*     case AUTO_VOL: */
-/*     case AUTO_DEL_AMP: */
-/*     case AUTO_PLAY_SPEED: */
-/* 	jdaw_val_set_str(valstr, dstsize, k->value, a->val_type, 2); */
-/*     break; */
-/*     case AUTO_PAN:  */
-/*         a_label_pan(valstr, dstsize, k->value.float_v); */
-/* 	break; */
-/*     case AUTO_FIR_FILTER_CUTOFF: */
-/*     case AUTO_FIR_FILTER_BANDWIDTH: */
-/* 	a_label_freq_raw_to_hz(valstr, dstsize, k->value.double_v); */
-/* 	break; */
-/*     case AUTO_DEL_TIME: */
-/* 	a_label_time_samples_to_msec(valstr, dstsize, k->value.int32_v, proj->sample_rate); */
-/* 	break; */
-/*     } */
-/*     /\* timecode_str_at(tcstr, dstsize, k->pos); *\/ */
-/*     snprintf(dst, dstsize, "%s", valstr); */
-
-/* } */
+void track_add_new_automation(Track *track)
+{
+    track_add_automation_from_api_node(track, &track->api_node);
+    return;
+}
 
 bool automation_toggle_read(Automation *a)
 {
@@ -514,7 +506,9 @@ bool automation_toggle_read(Automation *a)
 	textbox_set_text_color(a->read_button->tb, &color_global_white);
 	track->automation_dropdown->background_color = &color_global_play_green;
     } else {
-	textbox_set_background_color(a->read_button->tb, &color_global_grey);
+	if (a->read_button) {
+	    textbox_set_background_color(a->read_button->tb, &color_global_grey);
+	}
 	for (uint8_t i=0; i<track->num_automations; i++) {
 	    if (track->automations[i]->read) {
 		track->some_automations_read = true;
@@ -586,18 +580,16 @@ void automation_show(Automation *a)
 	a->color_bar_rect = &color_bar->rect;
 	Layout *main = layout_get_child_by_name_recursive(lt, "main");
 	a->bckgrnd_rect = &main->rect;
-	/* layout_write(stdout, track->layout, 0); */
-	/* exit(0); */
 	layout_insert_child_at(lt, a->track->layout, a->track->layout->num_children);
 	layout_size_to_fit_children_v(a->track->layout, true, 0);
 
 	Layout *tb_lt = layout_get_child_by_name_recursive(lt, "label");
 	layout_reset(tb_lt);
 
-	/* fprintf(stderr, "A type int val: %d\n", a->type); */
-	/* fprintf(stderr, "Corresponding label: %s\n", AUTOMATION_LABELS[a->type]); */
 	a->label = textbox_create_from_str(
-	    AUTOMATION_LABELS[a->type],
+	    a->name,
+	    /* a->endpoint->display_name, */
+	    /* AUTOMATION_LABELS[a->type], */
 	    tb_lt,
 	    main_win->mono_bold_font,
 	    12,
@@ -646,7 +638,8 @@ void automation_show(Automation *a)
 	button->tb->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
 	textbox_set_style(button->tb, BUTTON_DARK);
 	a->write_button = button;
-	a->keyframe_label = label_create(0, a->layout, auto_labelfns[a->type], a, a->val_type, main_win);
+	/* a->keyframe_label = label_create(0, a->layout, auto_labelfns[a->type], a, a->val_type, main_win); */
+	a->keyframe_label = label_create(0, a->layout, a->endpoint->label_fn, a, a->endpoint->val_type, main_win);
     } else {
 	a->layout->h.value = AUTOMATION_LT_H;
 	a->layout->y.value = AUTOMATION_LT_Y;
@@ -681,6 +674,7 @@ void track_automations_hide_all(Track *track)
 	    layout_reset(lt);
 	}
     }
+    track->selected_automation = -1;
     track->automation_dropdown->symbol = SYMBOL_TABLE[SYMBOL_DROPDOWN];
     layout_size_to_fit_children_v(track->layout, true, 0);
     timeline_reset(track->tl, false);
@@ -708,7 +702,11 @@ static void keyframe_set_y_prop(Automation *a, uint16_t insert_i)
 {
     Keyframe *k = a->keyframes + insert_i;
     Value v = jdaw_val_sub(k->value, a->min, a->val_type);
-    k->draw_y_prop = jdaw_val_div_double(v, a->range, a->val_type);
+    if (a->val_type == JDAW_BOOL) {
+	k->draw_y_prop = v.bool_v ? 1.0f : 0.0f;
+    } else {
+	k->draw_y_prop = jdaw_val_div_double(v, a->range, a->val_type);
+    }
 }
 
 static void keyframe_move(Keyframe *k, int32_t new_pos, Value new_value)
@@ -949,8 +947,10 @@ static Value automation_value_at(Automation *a, int32_t pos)
 {
     Keyframe *current = automation_check_get_cache(a, pos);
     if (!current) return a->keyframes[0].value;
+    if (a->val_type == JDAW_BOOL) return current->value;
     int32_t pos_rel = pos - current->pos;
     double scalar = (double)pos_rel / current->m_fwd.dx;
+    /* fprintf(stderr, "Scalar: %f\n", scalar); */
     Value ret = jdaw_val_add(current->value, jdaw_val_scale(current->m_fwd.dy, scalar, a->val_type), a->val_type);
     return ret;
 }
@@ -966,6 +966,7 @@ void automation_get_range(Automation *a, void *dst, int dst_len, int32_t start_p
     int32_t end_pos = start_pos + (int32_t)(dst_len * step);
     double pos = (double)start_pos;
     Keyframe *current = automation_check_get_cache(a, start_pos);
+    
     int32_t next_kf_pos = rev ? end_pos - 1 : end_pos + 1;
     
     if (!current) { /* no need to worry about reverse case; if condition will never be met*/
@@ -1379,10 +1380,10 @@ Value inline automation_get_value(Automation *a, int32_t pos, float direction)
     return automation_value_at(a, pos);
 }
 
-void automation_get_value_range(Automation *a, int32_t start_pos, void *dst_arr, int num_items, float step)
-{
+/* void automation_get_value_range(Automation *a, int32_t start_pos, void *dst_arr, int num_items, float step) */
+/* { */
     
-}
+/* } */
 
 void automation_draw(Automation *a)
 {
@@ -1433,16 +1434,33 @@ void automation_draw(Automation *a)
 		SDL_RenderDrawRect(main_win->rend, &r);
 	    }
 	}
-	if (last_y != 0 && segment_intersects_screen(prev->draw_x, k->draw_x)) {
-	    SDL_RenderDrawLine(main_win->rend, prev->draw_x, last_y, k->draw_x, y);
+	if (a->val_type == JDAW_BOOL) {
+	    if (k->value.bool_v) {
+		SDL_SetRenderDrawColor(main_win->rend, 0, 255, 0, 30);
+	    } else {
+		SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 30);
+	    }
+	    SDL_Rect fill_rect;
+	    fill_rect.x = k->draw_x;
+	    if (k - a->keyframes < a->num_keyframes - 1) {
+		fill_rect.w = (k + 1)->draw_x - k->draw_x;
+	    } else {
+		fill_rect.w = main_win->w_pix - k->draw_x;
+	    }
+	    fill_rect.y = a->layout->rect.y;
+	    fill_rect.h = a->layout->rect.h;
+	    SDL_RenderFillRect(main_win->rend, &fill_rect);
+	} else {
+	    if (last_y != 0 && segment_intersects_screen(prev->draw_x, k->draw_x)) {
+		SDL_RenderDrawLine(main_win->rend, prev->draw_x, last_y, k->draw_x, y);
+	    }
+	    if (k == first && k->draw_x > 0) {
+		SDL_RenderDrawLine(main_win->rend, 0, y, k->draw_x, y);
+	    }
+	    if (k == last && k->draw_x < main_win->w_pix) {
+		SDL_RenderDrawLine(main_win->rend, k->draw_x, y, main_win->w_pix, y);
+	    }
 	}
-	if (k == first && k->draw_x > 0) {
-	    SDL_RenderDrawLine(main_win->rend, 0, y, k->draw_x, y);
-	}
-        if (k == last && k->draw_x < main_win->w_pix) {
-	    SDL_RenderDrawLine(main_win->rend, k->draw_x, y, main_win->w_pix, y);
-	}
-
 	last_y = y;
 	/* k = k->next; */
     }
@@ -1453,10 +1471,19 @@ void automation_draw(Automation *a)
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(a->track->color));
     SDL_RenderFillRect(main_win->rend, a->color_bar_rect);
 
-    textbox_draw(a->label);
+    /* SDL_RenderSetClipRect(main_win->rend, a->console_rect); */
+    if (a->index != a->track->selected_automation) {
+	SDL_RenderSetClipRect(main_win->rend, a->console_rect);
+	textbox_draw(a->label);
+	SDL_RenderSetClipRect(main_win->rend, NULL);
+    } else {
+	textbox_draw(a->label);
+    }
     button_draw(a->read_button);
     button_draw(a->write_button);
     label_draw(a->keyframe_label);
+
+    /* SDL_RenderSetClipRect(main_win->rend, NULL); */
 
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_grey));
     SDL_Rect ltrect = a->layout->rect;
@@ -1714,7 +1741,7 @@ static void automation_push_write_event(Automation *a)
 bool automation_triage_click(uint8_t button, Automation *a)
 {
     if (!a->shown) return false;
-    int click_tolerance = 10 * main_win->dpi_scale_factor;;
+    int click_tolerance = 10 * main_win->dpi_scale_factor;
     /* int32_t epsilon = 10000; */
     if (SDL_PointInRect(&main_win->mousep, &a->layout->rect)) {
 	if (button_click(a->read_button, main_win)) return true;
@@ -2148,18 +2175,29 @@ bool automation_handle_delete(Automation *a)
 
 int track_select_next_automation(Track *t)
 {
-    if (t->num_automations == 0) return -1;
-    while (t->selected_automation < t->num_automations) {
+    while (1) {
 	t->selected_automation++;
-	if (t->selected_automation == t->num_automations) {
-	    t->selected_automation -= 1;
-	    break;
+	
+	/* Advanced past end */
+	if (t->selected_automation > t->num_automations - 1) {
+	    
+	    /* More tracks below */
+	    if (t->layout->index < t->layout->parent->num_children - 1) {
+		t->selected_automation = -1;
+		break;
+	    } else {
+		/* Stay where we are */
+		t->selected_automation--;
+		break;
+	    }
 	} else if (t->automations[t->selected_automation]->shown) {
 	    break;
 	} else if (t->selected_automation == t->num_automations - 1) {
+	    /* At last automation, but it is not shown */
 	    t->selected_automation = -1;
 	    break;
 	}
+	/* Keep advancing if selected automation is not shown */
     }
     return t->selected_automation;
 }

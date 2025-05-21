@@ -1,0 +1,200 @@
+<Layout name="track_settings_compressor" type="NORMAL">
+  <x>REL 0</x>
+  <y>REL 0</y>
+  <w>SCALE 1.000000</w>
+  <h>SCALE 1.000000</h>
+  <children>
+    <Layout name="toggle_area" type="NORMAL">
+      <x>SCALE 0.060000</x>
+      <y>SCALE 0.056464</y>
+      <w>REL 303</w>
+      <h>REL 20</h>
+      <children>
+        <Layout name="toggle_comp" type="NORMAL">
+          <x>REL 0</x>
+          <y>REL 0</y>
+          <w>REL 20</w>
+          <h>REL 20</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="toggle_label" type="NORMAL">
+          <x>REL 37</x>
+          <y>REL 0</y>
+          <w>REL 266</w>
+          <h>REL 20</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+    <Layout name="comp_display" type="NORMAL">
+      <x>SCALE 0.624167</x>
+      <y>REL 112</y>
+      <w>ABS 250</w>
+      <h>ABS 250</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="slider_area" type="NORMAL">
+      <x>SCALE 0.060000</x>
+      <y>REL 82</y>
+      <w>SCALE 0.538333</w>
+      <h>ABS 369</h>
+      <children>
+        <Layout name="slider_area_attack" type="NORMAL">
+          <x>REL 0</x>
+          <y>STACK 0</y>
+          <w>SCALE 1.000000</w>
+          <h>REL 60</h>
+          <children>
+            <Layout name="attack_label" type="NORMAL">
+              <x>REL 0</x>
+              <y>STACK 0</y>
+              <w>SCALE 1.000000</w>
+              <h>SCALE 0.500000</h>
+              <children>
+              </children>
+            </Layout>
+            <Layout name="attack_slider" type="NORMAL">
+              <x>REL 0</x>
+              <y>STACK 0</y>
+              <w>SCALE 1.000000</w>
+              <h>SCALE 0.500000</h>
+              <children>
+              </children>
+            </Layout>
+          </children>
+        </Layout>
+        <Layout name="slider_area_release" type="NORMAL">
+          <x>REL 0</x>
+          <y>STACK 0</y>
+          <w>SCALE 1.000000</w>
+          <h>REL 60</h>
+          <children>
+            <Layout name="release_label" type="NORMAL">
+              <x>REL 0</x>
+              <y>STACK 0</y>
+              <w>SCALE 1.000000</w>
+              <h>SCALE 0.500000</h>
+              <children>
+              </children>
+            </Layout>
+            <Layout name="release_slider" type="NORMAL">
+              <x>REL 0</x>
+              <y>STACK 0</y>
+              <w>SCALE 1.000000</w>
+              <h>SCALE 0.500000</h>
+              <children>
+              </children>
+            </Layout>
+          </children>
+        </Layout>
+        <Layout name="slider_area_threshold" type="NORMAL">
+          <x>REL 0</x>
+          <y>STACK 0</y>
+          <w>SCALE 1.000000</w>
+          <h>REL 60</h>
+          <children>
+            <Layout name="threshold_label" type="NORMAL">
+              <x>REL 0</x>
+              <y>STACK 0</y>
+              <w>SCALE 1.000000</w>
+              <h>SCALE 0.500000</h>
+              <children>
+              </children>
+            </Layout>
+            <Layout name="threshold_slider" type="NORMAL">
+              <x>REL 0</x>
+              <y>STACK 0</y>
+              <w>SCALE 1.000000</w>
+              <h>SCALE 0.500000</h>
+              <children>
+              </children>
+            </Layout>
+          </children>
+        </Layout>
+        <Layout name="slider_area_ratio" type="NORMAL">
+          <x>REL 0</x>
+          <y>STACK 0</y>
+          <w>SCALE 1.000000</w>
+          <h>REL 60</h>
+          <children>
+            <Layout name="ratio_label" type="NORMAL">
+              <x>REL 0</x>
+              <y>STACK 0</y>
+              <w>SCALE 1.000000</w>
+              <h>SCALE 0.500000</h>
+              <children>
+              </children>
+            </Layout>
+            <Layout name="ratio_slider" type="NORMAL">
+              <x>REL 0</x>
+              <y>STACK 0</y>
+              <w>SCALE 1.000000</w>
+              <h>SCALE 0.500000</h>
+              <children>
+              </children>
+            </Layout>
+          </children>
+        </Layout>
+        <Layout name="slider_area_makeup_gain" type="NORMAL">
+          <x>REL 0</x>
+          <y>STACK 0</y>
+          <w>SCALE 1.000000</w>
+          <h>REL 60</h>
+          <children>
+            <Layout name="makeup_gain_label" type="NORMAL">
+              <x>REL 0</x>
+              <y>STACK 0</y>
+              <w>SCALE 1.000000</w>
+              <h>SCALE 0.500000</h>
+              <children>
+              </children>
+            </Layout>
+            <Layout name="makeup_gain_slider" type="NORMAL">
+              <x>REL 0</x>
+              <y>STACK 0</y>
+              <w>SCALE 1.000000</w>
+              <h>SCALE 0.500000</h>
+              <children>
+              </children>
+            </Layout>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+    <Layout name="track_selection" type="NORMAL">
+      <x>REVREL 10</x>
+      <y>SCALE 0.056632</y>
+      <w>SCALE 0.256667</w>
+      <h>SCALE 0.046200</h>
+      <children>
+        <Layout name="track_name" type="NORMAL">
+          <x>STACK 0</x>
+          <y>REL 0</y>
+          <w>REL 100</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="track_previous" type="NORMAL">
+          <x>STACK 4</x>
+          <y>REL 0</y>
+          <w>REL 100</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="track_next" type="NORMAL">
+          <x>STACK 4</x>
+          <y>REL 0</y>
+          <w>REL 100</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+  </children>
+</Layout>

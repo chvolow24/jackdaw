@@ -25,7 +25,7 @@
 #include "SDL_ttf.h"
 #include "assets.h"
 #include "dir.h"
-#include "dsp.h"
+#include "dsp_utils.h"
 #include "function_lookup.h"
 #include "input.h"
 #include "layout.h"
@@ -48,9 +48,9 @@
 #define WINDOW_DEFAULT_W 1093
 #define WINDOW_DEFAULT_H 650
 
-#define DEFAULT_PROJ_AUDIO_SETTINGS 2, 96000, AUDIO_S16SYS, DEFAULT_AUDIO_CHUNK_LEN_SFRAMES, DEFAULT_FOURIER_LEN_SFRAMES
+#define DEFAULT_PROJ_AUDIO_SETTINGS 2, DEFAULT_SAMPLE_RATE, AUDIO_S16SYS, DEFAULT_AUDIO_CHUNK_LEN_SFRAMES, DEFAULT_FOURIER_LEN_SFRAMES
 
-const char *JACKDAW_VERSION = "0.5.1";
+const char *JACKDAW_VERSION = "0.6.0";
 char DIRPATH_SAVED_PROJ[MAX_PATHLEN];
 char DIRPATH_OPEN_FILE[MAX_PATHLEN];
 char DIRPATH_EXPORT[MAX_PATHLEN];
@@ -147,9 +147,10 @@ extern bool connection_open;
 
 static const char *license_text = "Copyright (C) 2023-2025 Charlie Volow\nThis program is free software: you can redistribute it and/or modify \nit under the terms of the GNU General Public License as published by \nthe Free Software Foundation, either version 3 of the License, or \n(at your option) any later version. \n\nThis program is distributed in the hope that it will be useful,\nbut WITHOUT ANY WARRANTY; without even the implied warranty of\nMERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\nGNU General Public License for more details.";
 
+
+double hamming(int x, int lenw);
 int main(int argc, char **argv)
 {
-    
     fprintf(stdout, "\n\nJACKDAW (version %s)\nby Charlie Volow\n\nhttps://jackdaw-audio.net/\n\n%s\n\n", JACKDAW_VERSION, license_text);
     
     init();

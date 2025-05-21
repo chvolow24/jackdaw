@@ -8,8 +8,12 @@
 
 *****************************************************************************************************************/
 
-#ifndef JDAW_DSP_H
-#define JDAW_DSP_H
+/*****************************************************************************************************************
+    fir_filter.h
+
+    * 
+    * 
+*****************************************************************************************************************/
 
 #include <complex.h>
 #include <stdio.h>
@@ -20,13 +24,16 @@
 #define DEFAULT_FILTER_LEN 128
 #define DELAY_LINE_MAX_LEN_S 1
 
+
 typedef struct track Track;
+typedef struct effect Effect;
 
 typedef enum filter_type {
     LOWPASS=0, HIGHPASS=1, BANDPASS=2, BANDCUT=3
 } FilterType;
 
 typedef struct fir_filter {
+    /* bool active; */
     bool initialized;
     FilterType type;
     double cutoff_freq_unscaled; /* For gui components and automations */
@@ -36,14 +43,18 @@ typedef struct fir_filter {
     double *impulse_response;
     double complex *frequency_response;
     double *frequency_response_mag;
-    double *overlap_buffer_L;
-    double *overlap_buffer_R;
+    float *overlap_buffer_L;
+    float *overlap_buffer_R;
+    double *output_freq_mag_L;
+    double *output_freq_mag_R;
+    /* float *freq_mag_L; */
+    /* float *freq_mag_R; */
     uint16_t impulse_response_len; /* Only modified in callbacks */
     uint16_t impulse_response_len_internal;
     /* uint16_t impulse_response_len_internal; */
     uint16_t frequency_response_len;
     uint16_t overlap_len;
-    pthread_mutex_t lock;
+    /* pthread_mutex_t lock; */
 
     Track *track;
 
@@ -52,36 +63,11 @@ typedef struct fir_filter {
     Endpoint bandwidth_ep;
     Endpoint impulse_response_len_ep;
 
+    Effect *effect;
+
     /* SDL_mutex *lock;audio.c */
 } FIRFilter;
 
-typedef struct delay_line {
-    bool initialized;
-    int32_t len_msec; /* For endpoint / GUI components */
-    int32_t len; /* Sample frames */
-    double amp;
-    double stereo_offset;
-    int32_t max_len;
-    
-    /* int32_t read_pos; */
-    int32_t pos_L;
-    int32_t pos_R;
-    double *buf_L;
-    double *buf_R;
-    double *cpy_buf;
-    pthread_mutex_t lock;
-
-    Track *track;
-
-    Endpoint len_ep;
-    Endpoint amp_ep;
-    Endpoint stereo_offset_ep;
-
-    /* SDL_mutex *lock; */
-} DelayLine;
-
-/* Initialize the dsp subsystem. All this does currently is to populate the nth roots of unity for n < ROU_MAX_DEGREE */
-void init_dsp();
 
 /* Init an empty FIR filter and allocate space for its buffers. Params MUST be initialized with 'set_filter_params'*/
 void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len);
@@ -98,22 +84,12 @@ void filter_set_type(FIRFilter *filter, FilterType t);
 
 void filter_set_impulse_response_len(FIRFilter *f, int new_len);
 
+void filter_set_arbitrary_IR(FIRFilter *filter, float *ir_in, int ir_len);
+
 /* Destry a FIRFilter and associated memory */
 void filter_deinit(FIRFilter *filter);
 
 /* void apply_track_filter(Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array); */
-void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array);
-
-void FFT(double *A, double complex *B, int n);
-void get_real_component(double complex *A, double *B, int n);
-void get_magnitude(double complex *A, double *B, int len);
-
-void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate);
-void delay_line_set_params(DelayLine *dl, double amp, int32_t len);
-void delay_line_clear(DelayLine *dl);
-
-double dsp_scale_freq_to_hz(double freq_unscaled);
-
-
-void track_add_default_filter(Track *track);
-#endif
+/* void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array); */
+/* void filter_buf_apply(FIRFilter *f, float *buf, int len, int channel); */
+float filter_buf_apply(void *f_v, float *buf, int len, int channel, float input_amp);

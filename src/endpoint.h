@@ -82,6 +82,7 @@ typedef struct endpoint {
     bool restrict_range;
     Value min;
     Value max;
+    Value default_val;
     /* struct endpt_cb callbacks[MAX_ENDPOINT_CALLBACKS]; */
     /* uint8_t num_callbacks; */
     
@@ -95,7 +96,10 @@ typedef struct endpoint {
     enum jdaw_thread cached_owner;
 
     const char *local_id;
-    const char *undo_str;
+    const char *display_name;
+
+    bool block_undo;
+    /* const char *undo_str; */
 
     void *xarg1;
     void *xarg2;
@@ -109,6 +113,7 @@ typedef struct endpoint {
 
     /* Bindings */
     Automation *automation;
+    LabelStrFn label_fn;
 
     /* API */
     APINode *parent;
@@ -120,7 +125,8 @@ int endpoint_init(
     void *val,
     ValType t,
     const char *local_id,
-    const char *undo_str,
+    const char *display_name,
+    /* const char *undo_str, */
     enum jdaw_thread owner_thread,
     EndptCb gui_cb,
     EndptCb proj_cb,
@@ -129,7 +135,7 @@ int endpoint_init(
     void *xarg3, void *xarg4);
 
 void endpoint_set_allowed_range(Endpoint *ep, Value min, Value max);
-
+void endpoint_set_default_value(Endpoint *ep, Value default_val);
 /* int endpoint_add_callback( */
 /*     Endpoint *ep, */
 /*     EndptCb fn, */
@@ -163,5 +169,6 @@ void endpoint_stop_continuous_change(Endpoint *ep);
 /* int endpoint_register(Endpoint *ep, Jackdaw_API *api); */
 
 void endpoint_bind_automation(Endpoint *ep, Automation *a);
+void endpoint_set_label_fn(Endpoint *ep, LabelStrFn fn);
 
 #endif

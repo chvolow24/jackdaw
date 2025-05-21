@@ -52,6 +52,7 @@ void project_flush_val_changes(Project *proj, enum jdaw_thread thread)
     Timeline *tl = proj->timelines[proj->active_tl_index];
     int32_t tl_now = timeline_get_play_pos_now(tl);
     pthread_mutex_lock(&proj->queued_val_changes_lock);
+    /* fprintf(stderr, "Flush %d val changes on thread %s\n", proj->num_queued_val_changes[thread], thread==JDAW_THREAD_DSP ? "DSP" : "Main"); */
     for (int i=0; i<proj->num_queued_val_changes[thread]; i++) {
 	struct queued_val_change *qvc = &proj->queued_val_changes[thread][i];
 	Endpoint *ep = qvc->ep;
@@ -72,7 +73,6 @@ void project_flush_val_changes(Project *proj, enum jdaw_thread thread)
 	project_queue_callback(proj, deferred_eps[i], deferred_cbs[i], deferred_threads[i]);
     }
     num_deferred = 0;
-
 }
 
 int project_queue_callback(Project *proj, Endpoint *ep, EndptCb cb, enum jdaw_thread thread)

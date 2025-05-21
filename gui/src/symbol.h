@@ -5,10 +5,19 @@
 
 #define SYMBOL_STD_DIM 16
 
+#define SYMBOL_DEFAULT_PAD 4
+#define SYMBOL_DEFAULT_CORNER_R 4
+#define SYMBOL_DEFAULT_THICKNESS 3
+#define SYMBOL_FILTER_DIM_SCALAR_H 3
+#define SYMBOL_FILTER_DIM_SCALAR_V 2.5
+#define SYMBOL_FILTER_PAD 6
+
+
 typedef struct symbol {
     Window *window;
     int x_dim_pix;
     int y_dim_pix;
+    int corner_rad_pix;
     SDL_Texture *texture;
     void (*draw_fn)(void *self);
     bool redraw;
@@ -28,9 +37,11 @@ Symbol *symbol_create(
     Window *win,
     int x_dim_pix,
     int y_dim_pix,
+    int corner_rad_pix,
     void (*draw_fn)(void *));
 void symbol_draw(Symbol *symbol, SDL_Rect *dst);
-void symbol_draw_w_bckgrnd(Symbol *symbol, SDL_Rect *dst, SDL_Color *bckgrnd);
+/* void symbol_draw_w_bckgrnd(Symbol *symbol, SDL_Rect *dst, SDL_Color *bckgrnd); */
+void symbol_draw_w_bckgrnd(Symbol *s, SDL_Rect *dst, SDL_Color *bckgrnd);
 
 
 #endif

@@ -37,23 +37,24 @@
 #include "api.h"
 #include "automation.h"
 #include "components.h"
-#include "dsp.h"
+/* #include "dsp.h" */
+#include "effect.h"
+#include "eq.h"
 #include "endpoint.h"
 #include "loading.h"
 #include "panel.h"
 #include "tempo.h"
 #include "thread_safety.h"
+#include "saturation.h"
 #include "status.h"
 #include "textbox.h"
 #include "user_event.h"
 
-#define DEFAULT_FOURIER_LEN_SFRAMES 2048
-#define DEFAULT_AUDIO_CHUNK_LEN_SFRAMES 512
 
 
 #define MAX_TRACKS 255
-#define MAX_NAMELENGTH 64
 #define MAX_TRACK_CLIPS 2048
+#define MAX_TRACK_BUS_INS MAX_TRACKS
 #define MAX_ACTIVE_CLIPS 255
 #define MAX_ACTIVE_TRACKS 255
 #define MAX_CLIP_REFS 2048
@@ -62,7 +63,8 @@
 #define MAX_PROJ_AUDIO_CONNS 255
 #define MAX_PROJ_CLIPS 2048
 #define MAX_GRABBED_CLIPS 255
-#define MAX_TRACK_FILTERS 4
+/* #define MAX_TRACK_FILTERS 4 */
+#define MAX_TRACK_EFFECTS 16
 
 #define TRACK_VOL_STEP 0.03f
 #define TRACK_PAN_STEP 0.01f
@@ -79,7 +81,7 @@
 
 #define PROJ_NUM_METRONOMES 1
 
-#define MAX_QUEUED_OPS 64
+#define MAX_QUEUED_OPS 255
 #define MAX_ANIMATIONS 64
 
 typedef struct project Project;
@@ -127,11 +129,23 @@ typedef struct track {
     double *buf_L_freq_mag;
     double *buf_R_freq_mag;
 
-    FIRFilter fir_filter;
-    bool fir_filter_active;
+
+    Effect *effects[MAX_TRACK_EFFECTS];
+    uint8_t num_effects;
+    uint8_t num_effects_per_type[NUM_EFFECT_TYPES];
+    pthread_mutex_t effect_chain_lock;
+    /* double order_swap_indices[2]; /\* exploting existence of double_pair jdaw val type *\/ */
+    /* Endpoint effect_order_swap_ep; */
     
-    DelayLine delay_line;
-    bool delay_line_active;
+    /* EQ eq; */
+
+    /* Saturation saturation; */
+
+    /* FIRFilter fir_filter; */
+    /* bool fir_filter_active; */
+    
+    /* DelayLine delay_line; */
+    /* bool delay_line_active; */
 
     Automation *automations[MAX_TRACK_AUTOMATIONS];
     uint8_t num_automations;
@@ -166,6 +180,13 @@ typedef struct track {
     Endpoint solo_ep;
     Endpoint vol_ep;
     Endpoint pan_ep;
+
+
+    /* Routing */
+    Track *bus_out;
+    Track **bus_ins;
+    uint8_t bus_ins_arrlen;
+    uint8_t num_bus_ins;
     // SDL_Rect *vol_bar;
     // SDL_Rect *pan_bar;
     // SDL_Rect *in_bar;
@@ -507,7 +528,7 @@ void track_solomute(Track *track);
 void track_unsolomute(Track *track);
 void track_set_input(Track *track);
 void track_rename(Track *track);
-void clipref_rename(ClipRef *cr);
+void track_set_bus_out(Track *track, Track *bus_out);
 void track_delete(Track *track);
 void track_undelete(Track *track);
 void track_destroy(Track *track, bool displace);
@@ -520,6 +541,7 @@ ClipRef *clipref_at_cursor_in_track(Track *track);
 ClipRef *clipref_before_cursor(int32_t *pos_dst);
 ClipRef *clipref_after_cursor(int32_t *pos_dst);
 void clipref_bring_to_front();
+void clipref_rename(ClipRef *cr);
 void timeline_ungrab_all_cliprefs(Timeline *tl);
 void clipref_grab(ClipRef *cr);
 void clipref_ungrab(ClipRef *cr);

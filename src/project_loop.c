@@ -22,7 +22,9 @@
 #include "automation.h"
 #include "components.h"
 #include "draw.h"
-#include "dsp.h"
+/* #include "dsp.h" */
+#include "eq.h"
+#include "fir_filter.h"
 #include "function_lookup.h"
 #include "input.h"
 #include "layout.h"
@@ -33,6 +35,7 @@
 #include "project.h"
 #include "project_endpoint_ops.h"
 #include "project_draw.h"
+#include "saturation.h"
 #include "screenrecord.h"
 #include "settings.h"
 #include "status.h"
@@ -70,8 +73,6 @@ extern pthread_t DSP_THREAD_ID;
 /*     return 0; */
 /* } */
 
-void filter_set_IR(FIRFilter *filter, float *ir_in, int ir_len);
-
 void user_global_quit(void *);
 void loop_project_main()
 {
@@ -98,6 +99,7 @@ void loop_project_main()
     int wheel_event_recency = 0;
     int play_speed_scroll_recency = 60;
     bool scrub_block = false;
+    main_win->current_event = &e;
     while (!(main_win->i_state & I_STATE_QUIT)) {
 	while (SDL_PollEvent(&e)) {
 	    /* fprintf(stdout, "Polled!\n"); */
@@ -130,6 +132,75 @@ void loop_project_main()
 		break;
 	    case SDL_MOUSEMOTION: {
 		window_set_mouse_point(main_win, e.motion.x, e.motion.y);
+
+		
+		/* static double bandwidth_scalar = 0.4; */
+		/* static double freq_raw = 0.253; */
+	        /* static double amp_raw = 2.0; */
+
+		/* if (main_win->i_state & I_STATE_MOUSE_L) { */
+		/*     if (main_win->i_state * I_STATE_CMDCTRL) { */
+		/* 	/\* bandwidth_scalar += (double)e.motion.yrel / 100; *\/ */
+		/* 	eq_set_filter_from_mouse(&glob_eq, filter_selector, main_win->mousep); */
+		/* 	/\* eq_set_peak(&glob_eq, filter_selector, freq_raw, amp_raw, bandwidth_scalar * freq_raw); *\/ */
+		/* 	break; */
+		/*     } */
+		/*     /\* freq_raw = waveform_freq_plot_freq_from_x_abs(glob_eq.fp, e.motion.x * main_win->dpi_scale_factor); *\/ */
+		/*     /\* amp_raw = waveform_freq_plot_amp_from_x_abs(glob_eq.fp, e.motion.y * main_win->dpi_scale_factor, 0, true); *\/ */
+		/*     eq_set_filter_from_mouse(&glob_eq, filter_selector, main_win->mousep); */
+		/* } */
+                /* eq_set_peak(&glob_eq, filter_selector, freq_raw, amp_raw, bandwidth_scalar * freq_raw); */
+		/* glob_eq.ctrls[filter_selector].x = e.motion.x * main_win->dpi_scale_factor; */
+		/* glob_eq.ctrls[filter_selector].y = e.motion.y * main_win->dpi_scale_factor; */
+		
+		/* if (eqfp) { */
+		/*     double bandwidth = freq_raw * bandwidth_scalar; */
+		/*     if (main_win->i_state & I_STATE_CMDCTRL) { */
+		/* 	bandwidth_scalar += (double)e.motion.yrel / 100; */
+		/* 	if (bandwidth_scalar < 0 ) bandwidth_scalar = 0.0; */
+		/* 	fprintf(stderr, "BW SCALAR: %f\n", bandwidth_scalar); */
+		/* 	iir_set_coeffs_peaknotch(&iir, freq_raw, amp_raw, bandwidth); */
+			
+		/* 	break; */
+		/*     } */
+
+		/*     freq_raw = waveform_freq_plot_freq_from_x_abs(eqfp, e.motion.x * main_win->dpi_scale_factor); */
+
+		/*     amp_raw = waveform_freq_plot_amp_from_x_abs(eqfp, e.motion.y * main_win->dpi_scale_factor, 0, true); */
+		/*     for (int channel =0; channel < 2; channel++) { */
+		/* 	if (!inited) { */
+		/* 	    fprintf(stderr, "INITING CHANNEL %d, filter at %p\n", channel, &iir); */
+		/* 	    /\* double A[] = {1, -1.9781447870471984, 0.9978788059141444}; *\/ */
+		/* 	    /\* double B[] = {1.918821765339674, -0.9379639763484257}; *\/ */
+		/* 	    iir_init(&iir, 2, 2); */
+		/* 	    /\* iir_set_coeffs(iir, A, B); *\/ */
+		/* 	    /\* iir_set_coeffs_peaknotch(iir, 0.04, 50.0, 0.001); *\/ */
+		/* 	    inited = 1; */
+		/* 	} */
+		/*     } */
+
+		/*     double xprop = 2.0 * e.motion.x / main_win->w_pix; */
+		/*     double yprop = 2.0 * e.motion.y / main_win->h_pix; */
+
+		/*     xprop = pow(xprop, 4.0); */
+		/*     yprop  = 1 - yprop; */
+		/*     yprop *= 20; */
+		/*     yprop -= 1; */
+
+		
+		/*     if (yprop < 0.0) { */
+		/* 	/\* bandwidth *= 10; *\/ */
+		/* 	yprop = 0.0; */
+		/*     } */
+		    
+		/*     /\* fprintf(stderr, "%f, %f\n", xprop, yprop); *\/ */
+		/*     if (freq_raw < 0) freq_raw = 0.0; */
+		/*     if (freq_raw > 1.0) freq_raw = 1.0; */
+		/*     if (amp_raw < 0.0) amp_raw = 0.0; */
+		/*     iir_set_coeffs_peaknotch(&iir, freq_raw, amp_raw, bandwidth); */
+		/* } */
+		
+
 		switch (TOP_MODE) {
 		case MODAL:
 		    mouse_triage_motion_modal();
@@ -164,15 +235,43 @@ void loop_project_main()
 		temp_scrolling_lt = NULL;
 		switch (e.key.keysym.scancode) {
 		/* case SDL_SCANCODE_6: { */
-		/*     ClipRef *cr = clipref_at_cursor(); */
-		/*     if (cr) { */
-		/* 	FIRFilter *f = &cr->track->fir_filter; */
-		/* 	Clip *c = cr->clip; */
-		/* 	int32_t pos = cr->track->tl->play_pos_sframes - cr->pos_sframes; */
-		/* 	filter_set_IR(f, c->L + pos, 2048); */
-		/*     } */
+		/*     do_interpolation = !do_interpolation; */
+		/* } */
+		/*     break; */
+		/* case SDL_SCANCODE_6: { */
+		/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
+		/*     Track* sel = timeline_selected_track(tl); */
+		/*     Effect *e = track_add_effect(sel, i); */
+		/*     fprintf(stderr, "Applying %s\n", effect_type_str(i)); */
+		/*     /\* Saturation *s = e->obj; *\/ */
+		/*     /\* s->active = true; *\/ */
+		/*     /\* saturation_set_gain(s, 20.0); *\/ */
+		/*     i++; */
+		/*     i%=4; */
+		    
+		/* } */
+		/*     break; */
+		/* case SDL_SCANCODE_6: { */
+		/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
+		/*     Track* sel = timeline_selected_track(tl); */
+		/*     track_set_bus_out(sel, tl->tracks[0]); */
+		/* } */
+		/*     break; */
+		/* case SDL_SCANCODE_6: { */
+		/*     filter_selector++; */
+		/*     filter_selector %=4; */
 		/* } */
 		    /* break; */
+		/* case SDL_SCANCODE_6: { */
+		/*     ClipRef *cr = clipref_at_cursor(); */
+		/*     if (cr) { */
+		/* 	FIRFilter *f = cr->track->effects[0]->obj; */
+		/* 	Clip *c = cr->clip; */
+		/* 	int32_t pos = cr->track->tl->play_pos_sframes - cr->pos_sframes; */
+		/* 	filter_set_arbitrary_IR(f, c->L + pos, 2048); */
+		/*     } */
+		/* } */
+		    break;
 		/* case SDL_SCANCODE_6: { */
 		/*     create_global_ac(); */
 		    /* const char *words[] = {"a", "b", "c"}; */
@@ -585,6 +684,7 @@ void loop_project_main()
 			/* if (!a->current) a->current = automation_get_segment(a, play_pos_adj); */
 			int32_t frame_dur = proj->sample_rate * proj->play_speed / 30.0;
 			Value val = endpoint_safe_read(a->endpoint, NULL);
+			/* fprintf(stderr, "READ FLOATVAL (%s): %f\n", a->endpoint->local_id, val.float_v); */
 			automation_do_write(a, val, play_pos_adj, play_pos_adj + frame_dur, proj->play_speed);
 		    }
 		    /* if (a->num_kclips > 0) { */

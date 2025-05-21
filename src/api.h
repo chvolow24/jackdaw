@@ -58,17 +58,25 @@ typedef struct api_hash_node {
     struct api_hash_node *prev;
     unsigned long index;
     char *route;
+    bool deregistered;
 } APIHashNode;
 
 void api_endpoint_register(Endpoint *ep, APINode *parent);
 Endpoint *api_endpoint_get(const char *route);
+int api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size);
+int api_endpoint_get_route_until(Endpoint *ep, char *dst, size_t dst_size, APINode *until);
+int api_endpoint_get_display_route_until(Endpoint *ep, char *dst, size_t dst_size, APINode *until);
 void api_node_register(APINode *node, APINode *parent, char *obj_name);
+void api_node_deregister(APINode *node);
+void api_node_reregister(APINode *node);
+/* void api_node_deregister(APINode *node); */
 void api_node_renamed(APINode *node);
 /* static void api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size); */
 
 int api_start_server(Project *proj, int port);
     
 void api_node_print_all_routes(APINode *node);
+void api_node_print_routes_with_values(APINode *node);
 void api_table_print();
 void api_quit(Project *proj);
 /* void api_hash_table_destroy(); */

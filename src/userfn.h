@@ -15,6 +15,7 @@ void user_global_start_server(void *nullarg);
 void user_global_function_lookup(void *nullarg);
 void user_global_start_or_stop_screenrecording(void *nullarg);
 void user_global_chaotic_user_test(void *nullarg);
+void user_global_api_print_all_routes(void *nullarg);
 
 
 void user_menu_nav_next_item(void *nullarg);
@@ -114,6 +115,7 @@ void user_tl_track_automation_toggle_read(void *nullarg);
 
 
 void user_tl_track_open_settings(void *nullarg);
+void user_tl_track_add_effect(void *nullarg);
 void user_tl_mute(void *nullarg);
 void user_tl_solo(void *nullarg);
 void user_tl_track_vol_up(void *nullarg);
@@ -182,6 +184,9 @@ void user_tabview_left(void *nullarg);
 void user_tabview_right(void *nullarg);
 void user_tabview_next_tab(void *nullarg);
 void user_tabview_previous_tab(void *nullarg);
+void user_tabview_move_current_tab_left(void *nullarg);
+void user_tabview_move_current_tab_right(void *nullarg);
+    
 void user_tabview_escape(void *nullarg);
 
 void user_autocomplete_next(void *nullarg);

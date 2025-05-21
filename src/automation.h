@@ -15,6 +15,23 @@
     * Provide an interface for writing and reading automations
  *****************************************************************************************************************/
 
+/* NOTE on automation<>endpoints and automation->deleted:
+
+   When an automation's linked endpoint is deregistered (e.g. when an
+   effect is deleted), the automation should be removed from the timeline.
+   When the endpoint is re-registered, the automation should be reinserted.
+   But, not if the automation was separately deleted by the user.
+   
+   Automations are "deleted" when the user deleted them, or when their
+   creation is undone. automation->deleted is used to indicate whether,
+   when a related object is reinstated (an effect is undeleted), the
+   automations should be reinserted onto the timeline as well.
+
+   automation->removed simply indicates whether or not the automation
+   appears on the timeline.
+
+ */
+
 
 #ifndef JDAW_AUTOMATION_H
 #define JDAW_AUTOMATION_H
@@ -25,7 +42,7 @@
 #include "textbox.h"
 #include "value.h"
 
-#define MAX_TRACK_AUTOMATIONS 8
+#define MAX_TRACK_AUTOMATIONS 16
 /* #define KCLIPS_ARR_INITLEN 4 */
 #define KEYFRAMES_ARR_INITLEN 4
 
@@ -50,7 +67,9 @@ typedef enum automation_type {
     AUTO_FIR_FILTER_BANDWIDTH = 3,
     AUTO_DEL_TIME = 4,
     AUTO_DEL_AMP = 5,
-    AUTO_PLAY_SPEED = 6
+    AUTO_PLAY_SPEED = 6,
+    AUTO_ENDPOINT = 7
+    
 } AutomationType;
 
 typedef struct keyframe {
@@ -72,6 +91,7 @@ typedef struct keyframe {
 /* typedef struct keyframe_clipref KClipRef; */
 
 typedef struct automation {
+    char name[MAX_NAMELENGTH];
     Track *track;
     int index;
     AutomationType type;
@@ -112,9 +132,11 @@ typedef struct automation {
     /* KClipRef *kclips; */
     /* uint16_t num_kclips; */
     /* uint16_t kclips_arr_len; */
-    
     bool shown;
     Textbox *label;
+    
+    bool deleted; /* see note above (top of file) */
+    bool removed; /* see note above (top of file) */
     
     Label *keyframe_label;
     
@@ -150,6 +172,7 @@ void track_add_new_automation(Track *track);
 
 /* To prompt user for automation type, use "track_add_new_automation" instead */
 Automation *track_add_automation(Track *track, AutomationType type);
+Automation *track_add_automation_from_endpoint(Track *track, Endpoint *ep);
 
     
 Value automation_get_value(Automation *a, int32_t pos, float direction);
@@ -159,7 +182,11 @@ Keyframe *automation_insert_keyframe_at(
     Automation *a,
     int32_t pos,
     Value val);
+
+void automation_remove(Automation *a);
+void automation_reinsert(Automation *a);
 void automation_delete(Automation *a);
+void automation_destroy(Automation *a);
 /* Keyframe *automation_insert_keyframe_after( */
 /*     Automation *automation, */
 /*     Keyframe *insert_after, */

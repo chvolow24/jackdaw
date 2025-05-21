@@ -123,7 +123,7 @@ static int update_records_fn(AutoCompletion *ac, struct autocompletion_item **it
 	return 0;
     }
 
-    struct autocompletion_item items_loc[255];
+    struct autocompletion_item items_loc[1024];
     int num_fns = 0;
 
     char *tok;

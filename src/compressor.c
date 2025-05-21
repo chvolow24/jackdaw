@@ -291,7 +291,7 @@ void compressor_init(Compressor *c)
 	&c->makeup_gain,
 	JDAW_FLOAT,
 	"makeup_gain",
-	"Makeup gain",
+	"Make-up gain",
 	JDAW_THREAD_DSP,
 	track_settings_page_el_gui_cb, NULL, NULL,
 	NULL, NULL, &c->effect->page, "track_settings_makeup_gain_slider");

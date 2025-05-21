@@ -76,7 +76,7 @@ Jackdaw is a work in progress and has not been officially "released." What's ava
 
 ## OS compatibility
 
-Jackdaw is compatibile with macOS and Linux. 
+Jackdaw is compatible with macOS and Linux. 
 
 Jackdaw currently depends on POSIX system APIs for threading and synchronization, directory navigation, timing, and inter-process communication.
 
@@ -478,7 +478,7 @@ Clips that have been "grabbed" can be deleted or moved around on the timeline.
 
 <kbd>g</kbd> : **Grab clips at cursor(s)**<br>
 
-Using this function will grab any clips that intersect the playhead position on the currently selected track OR all active tracks. If all interesecting clips are already grabbed, the function will un-grab all clips.
+Using this function will grab any clips that intersect the playhead position on the currently selected track OR all active tracks. If all intersecting clips are already grabbed, the function will un-grab all clips.
 
 A clip can also be "grabbed" with <kbd>C-\<click\></kbd>.
 
@@ -652,7 +652,7 @@ Like everything else about jackdaw, the `.jdaw` file format is open and is descr
 
 ## Track effects
 
-### Adding, removing, and reordering effects
+### Adding, ordering, and removing effects
 
 Up to 16 effects can be added to a given track. 
 
@@ -683,6 +683,10 @@ And reorder the tabs:
 
 <img src="assets/readme_imgs/add_reorder_effects.gif" width="75%" />
 
+You can also click the tabs, and click and drag to reorder them.
+
+To remove an effect, simply hit `del` or `backspace` while the effect is selected in the tab view. Associated automation tracks will be removed as well, and will be reinstated if the deletion is undone.
+
 ### EQ
 
 The EQ effect contains 6 configurable filters. Each can be set to one of the following types:
@@ -708,7 +712,7 @@ Directly in the Digital Domain", IEEE TRANSACTIONS ON AUDIO, SPEECH, AND LANGUAG
 The FIR ("finite impulse response") filter is an FFT-based "[windowed-sinc](https://www.analog.com/media/en/technical-documentation/dsp-book/dsp_book_Ch16.pdf)" filter. It can be configured to have a low-pass, high-pass, band-pass, or band-cut frequency response. The cutoff frequency and bandwidth are adjustable parameters, as is the length of the impulse response. This last parameter affects the "steepness" of the frequency response curve. 
 
 > [!NOTE]
-> This is a computationally expensive effect. Applying FIR filters to many tracks may begin to cause audio playback issues if there is audio on those tracks that needs to be processed. (My 2020 macbook air maxes out at around 45.)
+> This is a computationally expensive effect.
 
 The frequency response of the filter is shown. When the filter is active, and playback is occurring, the frequency domain of the filtered audio track is also shown.
 
@@ -721,20 +725,23 @@ The delay line has three parameters: time, amplitude, and "stereo offset." The d
 
 ### Saturation
 
-The saturation effect does simple sample-wise wave shaping, rounding off the tops and bottoms of the signal peaks as they approach 1.0 and -1.0. There are two types available: the common `tanh` function, and and exponential function that behaves similarly. 
+The saturation effect does simple sample-wise wave shaping. There are two types available: the common `tanh` function, and and exponential function that behaves similarly. Though often indistinguishable, the exponential function produces more high-frequency content than `tanh`, which is a noticeable difference when the input signal is low-passed.
+
+The gain parameter simply adjust the gain of the input signal (resulting in more wave shaping), and "gain compensation" will attenuate the output to more closely approximate the input.
+
+An active saturation effect with zero gain placed at the end of a track's effect chain is a good way to prevent digital clipping.
+
+### Compressor
+
+A standard digital peak-sensing compressor. Details of dynamic range compression are not discussed here.
+
+In the visualization, the x position of the blue dot represents the current amplitude envelope value, and the y position represents the corresponding output amplitude (before make-up gain is applied). The color gradient reflects the amount of gain reduction currently applied by the compressor.
+
+<img src="assets/readme_imgs/comp.gif" width="75%" />
 
 ## Automation
 
-Automation is available for the following track* parameters:
-- Volume
-- Pan
-- FIR Filter cutoff frequency
-- FIR Filter bandwidth
-- Delay line length
-- Delay line amplitude
-- Play speed
-
-*Play speed is a global parameter, not a track parameter. If play speed automation is added to multiple tracks, only the last of them will be read.
+Mix automation is available for the track volume and pan, as well as most parameters related to any effects currently applied to the track.
 
 <kbd>C-a</kbd> : **Add automation to track**<br>
 <kbd>a</kbd> : **Show / hide track automations**<br>
@@ -753,7 +760,7 @@ Use <kbd>C-\<click\></kbd> to add a keyframe to an automation track. You can the
 
 While an automation is in "write" mode, any changes to the automated parameter will be recorded on the automation track during playback. Any existing keyframes intersecting with the newly-written portion will be overwritten.
 
-The easest way to accomplish this is to "record" on the automation track exactly as you would on an audio track: navigate the cursor to the automation track with <kbd>n</kbd> and <kbd>p</kbd> (or <kbd>f</kbd> and <kbd>d</kbd>) and hit <kbd>r</kbd> to start recording. Hit <kbd>r</kbd> again to stop.
+The easiest way to accomplish this is to "record" on the automation track exactly as you would on an audio track: navigate the cursor to the automation track with <kbd>n</kbd> and <kbd>p</kbd> (or <kbd>f</kbd> and <kbd>d</kbd>) and hit <kbd>r</kbd> to start recording. Hit <kbd>r</kbd> again to stop.
 
 <kbd>r</kbd> : **Start / stop recording automation** (when automation track selected)<br>
 

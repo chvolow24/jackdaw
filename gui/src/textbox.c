@@ -7,7 +7,7 @@
 #define TXTBX_DEFAULT_RAD 0
 #define TXTBX_DEFAULT_MAXLEN 255
 
-#define MAX_TLINES 1024
+/* #define MAX_TLINES UINT32_MAX */
 
 SDL_Color textbox_default_bckgrnd_clr = (SDL_Color) {240, 240, 240, 255};
 SDL_Color textbox_default_txt_clr = (SDL_Color) {0, 0, 0, 255};
@@ -363,7 +363,7 @@ void textbox_set_style(Textbox *tb, enum textbox_style style)
 TextLines *textlines_create(
     void *src_items,
     size_t item_width,
-    uint16_t num_items,
+    uint32_t num_items,
     CreateTline create_line,
     TlinesFilter filter,
     Layout *container,
@@ -371,7 +371,9 @@ TextLines *textlines_create(
 
 {
     TextLines *tlines = calloc(1, sizeof(TextLines));
-    tlines->items = calloc(MAX_TLINES, sizeof(TLinesItem));
+    tlines->items = calloc(num_items, sizeof(TLinesItem));
+    /* tlines->items_arrlen = num_items; */
+    /* tlines->items = calloc(MAX_TLINES, sizeof(TLinesItem)); */
     tlines->container = container;
     void *current_item = src_items;
     int dst_i = 0;

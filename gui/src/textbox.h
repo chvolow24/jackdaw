@@ -55,7 +55,8 @@ typedef struct text_lines_item {
 
 typedef struct text_lines {
     TLinesItem *items;
-    uint16_t num_items;
+    uint32_t num_items;
+    /* uint32_t items_arrlen; */
     Layout *container;
 } TextLines;
 
@@ -113,7 +114,7 @@ typedef int (*TlinesFilter)(void *item, void *x_arg);
 TextLines *textlines_create(
     void *src_items,
     size_t item_width,
-    uint16_t num_items,
+    uint32_t num_items,
     CreateTline create_line,
     TlinesFilter filter,
     /* int (*filter)(void *item, void *x_arg), */

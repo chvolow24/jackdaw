@@ -247,9 +247,9 @@ You will be prompted to enter a project name (which must include the `.jdaw` ext
 
 ## Function lookup
 
-Jackdaw's user interface is built around keyboard commands, but you don't need to remember or look up these commands to use it. Hit the spacebar (<kbd>\<spc\></kbd>) to open an autocomplete dropdown list of available commands. You can start typing one or more keywords to see a list of matching commands. Use <kbd>\<tab\></kbd> to navigate down through the list, <kbd>S-\<tab\> to navigate up, <kbd>\<ret\></kbd> to select an item, and <kbd>\<esc\></kbd> to escape without selecting an item.
+Jackdaw's user interface is built around keyboard commands, but you don't need to memorize them. Hit the spacebar (<kbd>\<spc\></kbd>) to open an autocomplete dropdown list of available commands. You can start typing one or more keywords to see a list of matching commands. Use <kbd>\<tab\></kbd> to navigate down through the list, <kbd>S-\<tab\></kbd> to navigate up, <kbd>\<ret\></kbd> to select an item, and <kbd>\<esc\></kbd> to escape without selecting an item.
 
-Each entry in the list includes the display name of the command on the left, and the bound keyboard command on the right.
+Each entry in the list includes the display name of the command on the left, and the bound keyboard command on the right. (See "[Keyboard command shorthand](#keyboard-command-shorthand)" above if these confuse you.)
 
 <img src="assets/readme_imgs/function_lookup.gif" width="75%" />
 

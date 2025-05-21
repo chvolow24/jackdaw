@@ -844,15 +844,20 @@ int filter_type_button_action(void *self, void *target)
 void user_tl_track_selector_up(void *);
 void user_tl_track_selector_down(void *);
 
+void user_tl_track_open_settings(void *);
 static int previous_track(void *self_v, void *target)
 {
+    user_tl_track_open_settings(NULL);
     user_tl_track_selector_up(NULL);
+    user_tl_track_open_settings(NULL);
     return 0;
 }
 
 static int next_track(void *self_v, void *target)
 {
+    user_tl_track_open_settings(NULL);
     user_tl_track_selector_down(NULL);
+    user_tl_track_open_settings(NULL);
     return 0;
 }
 

@@ -1306,7 +1306,7 @@ void user_tl_track_selector_up(void *nullarg)
 	}
 	TabView *tv;
 	if ((tv = main_win->active_tabview)) {
-	    if (strcmp(tv->title, "Track Settings") == 0) {
+	    if (strcmp(tv->title, "Track Effects") == 0) {
 		settings_track_tabview_set_track(tv, selected);
 	    }
 	}
@@ -1384,7 +1384,7 @@ void user_tl_track_selector_down(void *nullarg)
 	}
 	TabView *tv;
 	if ((tv = main_win->active_tabview)) {
-	    if (strcmp(tv->title, "Track Settings") == 0) {
+	    if (strcmp(tv->title, "Track Effects") == 0) {
 		settings_track_tabview_set_track(tv, selected);
 	    }
 	}

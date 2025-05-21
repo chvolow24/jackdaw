@@ -848,7 +848,7 @@ Here are some example requests:
 `/main/lead_synth/delay/len 600`<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--> set the delay line effect time to 600ms
 
 
-The currently-available endpoints are:
+The currently-available endpoints are, generically:
 
 ```
 /play_speed

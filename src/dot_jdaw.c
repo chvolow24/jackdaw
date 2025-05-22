@@ -213,7 +213,8 @@ static void jdaw_write_timeline(FILE *f, Timeline *tl)
 
     /* Write number of tracks + click tracks */
 
-    int16_ser_le(f, &tl->track_area->num_children);
+    int16_t track_area_num_children = (int16_t)tl->track_area->num_children;
+    int16_ser_le(f, &track_area_num_children);
     
     for (uint16_t i=0; i<tl->track_area->num_children; i++) {
 	tl->layout_selector = i;

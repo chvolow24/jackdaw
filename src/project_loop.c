@@ -630,7 +630,7 @@ void loop_project_main()
 
     end_frame:
 
-	if (frames_since_event >= IDLE_AFTER_N_FRAMES) {
+	if (!proj->playing && frames_since_event >= IDLE_AFTER_N_FRAMES) {
 	    SDL_Delay(100);
 	} else {
 	    SDL_Delay(1);

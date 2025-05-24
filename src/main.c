@@ -30,6 +30,7 @@
 #include "input.h"
 #include "layout.h"
 #include "layout_xml.h"
+#include "portmidi.h"
 #include "project.h"
 #include "pure_data.h"
 #include "symbol.h"
@@ -96,6 +97,7 @@ static void init_SDL()
 
 static void init()
 {
+    Pm_Initialize();
     fprintf(stderr, "Initializing SDL and subsystems...\n");
     MAIN_THREAD_ID = pthread_self();
     CURRENT_THREAD_ID = MAIN_THREAD_ID;

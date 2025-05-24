@@ -3,7 +3,12 @@ SRC_DIR := src
 BUILD_DIR := build
 GUI_SRC_DIR := gui/src
 GUI_BUILD_DIR := gui/build
-CFLAGS := -Wall -Wno-unused-command-line-argument -I$(SRC_DIR) -I$(GUI_SRC_DIR) -I/usr/include/SDL2 `sdl2-config --libs --cflags` -lSDL2 -lSDL2_ttf -lpthread -lm -DINSTALL_DIR=\"`pwd`\"
+CFLAGS := -Wall -Wno-unused-command-line-argument -I$(SRC_DIR) -I$(GUI_SRC_DIR) \
+	-I/usr/include/SDL2 `sdl2-config --libs --cflags` -lSDL2 -lSDL2_ttf \
+	-lpthread -lm -DINSTALL_DIR=\"`pwd`\" \
+	-Iportmidi/pm_common \
+	-Lportmidi/build -lportmidi \
+	-Wl,-rpath,./portmidi/build
 CFLAGS_JDAW_ONLY := -DLT_DEV_MODE=0
 CFLAGS_LT_ONLY := -DLT_DEV_MODE=1 -DLAYOUT_BUILD=1
 CFLAGS_PROD := -O3
@@ -25,7 +30,18 @@ LT_OBJS := $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(LT_SRCS_ALL))
 EXEC := jackdaw
 LT_EXEC := layout
 
+PORTMIDI_LIB = portmidi/build/libportmidi.dylib
+
 all: $(EXEC)
+
+$(PORTMIDI_LIB) :
+	cd portmidi && \
+	mkdir -p build && \
+	cd build && \
+	cmake .. -DCMAKE_BUILD_TYPE=Release && \
+	make 
+
+
 .PHONY: debug
 
 # Default to production flags
@@ -41,7 +57,7 @@ ifeq ($(MAKECMDGOALS),layout)
 endif
 
 
-$(EXEC): $(OBJS) $(GUI_OBJS)
+$(EXEC): $(OBJS) $(GUI_OBJS) $(PORTMIDI_LIB)
 	$(CC) -o $@ $^ $(CFLAGS) $(CFLAGS_ADDTL) $(CFLAGS_JDAW_ONLY)
 
 debug: $(OBJS) $(GUI_OBJS)

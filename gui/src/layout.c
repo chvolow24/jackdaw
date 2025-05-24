@@ -1101,7 +1101,7 @@ void layout_realloc_children_maybe(Layout *parent)
 {
     if (parent->num_children == parent->children_arr_len) {
 	if (parent->num_children == MAX_LT_CHILDREN) {
-	    fprintf(stderr, "CRITICAL ERROR: layout \"%s\"has %d children\n", parent->name, MAX_LT_CHILDREN);
+	    fprintf(stderr, "CRITICAL ERROR: layout \"%s\"has %lld children\n", parent->name, MAX_LT_CHILDREN);
 	    exit(1);
 	}
 	parent->children_arr_len *= 2;

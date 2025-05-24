@@ -1230,7 +1230,9 @@ int32_t click_track_bar_beat_subdiv(ClickTrack *tt, int32_t pos, int *bar_p, int
 
 
     /* Set destination pointer values */
+    #ifdef TESTBUILD
 set_dst_values:
+    #endif
     if (bar_p && beat_p && subdiv_p) {
 	*bar_p = measure;
 	*beat_p = beat;

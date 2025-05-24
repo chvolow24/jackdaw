@@ -2266,7 +2266,7 @@ TEST_FN_DEF(track_automation_order,
 		fprintf(stderr, "Fault (%d, %d) in track \"%s\"\n", a_index_fault, layout_index_fault, track->name);
 		for (uint8_t i=0; i<track->num_automations; i++) {
 		    Automation *a = track->automations[i];
-		    fprintf(stderr, "i: %d, index: %d, layout: %d\n",i, a->index, a->layout->index);
+		    fprintf(stderr, "i: %d, index: %d, layout: %lld\n",i, a->index, a->layout->index);
 		}
 		return 1;
 	    }
@@ -2333,7 +2333,7 @@ TEST_FN_DEF(layout_num_children, {
 	for (uint8_t i=0; i<lt->num_children; i++) {
 	    Layout *child = lt->children[i];
 	    if (!child) {
-		fprintf(stderr, "EXCESS children on layout %s: %d\n", lt->name, lt->num_children);
+		fprintf(stderr, "EXCESS children on layout %s: %lld\n", lt->name, lt->num_children);
 		return 1;
 	    }
 	    ret += layout_num_children(child);

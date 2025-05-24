@@ -20,6 +20,7 @@
 #include "api.h"
 #include "endpoint.h"
 #include "project.h"
+#include "string.h"
 #include "value.h"
 
 

@@ -266,63 +266,6 @@ void sort_dn_lines(DirNav *dn)
     }
 }
 
-
-/* int i=0; */
-static TLinesItem *dir_to_tline_OLD(void ***current_item_v, Layout *container, void *dn_v, int (*filter)(void *item, void *x_arg))
-{
-    /* fprintf(stdout, "Call %d to dir_to_tline\n", i); */
-    /* i++; */
-    DirNav *dn = (DirNav *)dn_v;
-    DirPath ***dps_loc = (DirPath ***)current_item_v;
-    DirPath **dps = *dps_loc;
-    DirPath *dp = dps[0];
-    int filter_val;
-    if (!dp) {
-	fprintf(stderr, "ERROR: null at addr %p\n",*current_item_v);
-	(*dps_loc)++;
-	return NULL;	
-    }
-    if ((filter_val = filter(dp, dn_v)) == 0) {
-	/* fprintf(stdout, "Item did not match filter\n"); */
-	(*dps_loc)++;
-	return NULL;
-    }
-
-    /* if ((!dn->show_dirs && dp->type == DT_DIR) || (!dn->show_files && dp->type != DT_DIR)) { */
-    /* 	/\* dn->lines->num_items++; *\/ */
-    /* 	fprintf(stdout, "Skipping\n"); */
-    /* 	/\* dn->num_lines++; *\/ */
-    /* 	(*dps_loc)++; */
-    /* 	return NULL; */
-    /* } */
-    TLinesItem *item = calloc(1, sizeof(TLinesItem));
-    item->obj = (void *)dp;
-    Layout *lt = layout_add_child(container);
-    lt->y.type = STACK;
-    lt->y.value = DIRNAV_LINE_SPACING;
-    lt->h.value = 50;
-    lt->w.value = 500;
-    
-    item->tb = textbox_create_from_str(path_get_tail(dp->path), lt, main_win->bold_font, 12, main_win);
-    /* textbox_set_pad(item->tb, 0, 4); */
-    textbox_set_align(item->tb, CENTER_LEFT);
-    textbox_size_to_fit(item->tb, 0, 0);
-    item->tb->layout->w.value = 1.0;
-    item->tb->layout->w.type = SCALE;
-    textbox_reset_full(item->tb);
-    SDL_Color *txt_clr =
-	filter_val == -1 ?
-	dp->type == DT_DIR ? &color_dir_unavailable : &color_file_unavailable :
-	dp->type == DT_DIR ? &color_dir : &color_file;
-    textbox_set_text_color(item->tb, txt_clr);
-    textbox_set_background_color(item->tb, &color_global_clear);
-    dn->num_lines++;
-    /* dn->lines->num_items++; */
-    (*dps_loc)++;
-    return item;
-}
-
-
 static void dir_to_tline(
     TextLines *tlines,
     TLinesItem *current_line,

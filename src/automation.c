@@ -454,7 +454,7 @@ static void track_add_automation_from_api_node(Track *track, APINode *node)
     /* APINode node = track->api_node; */
     /* Endpoint *items[node->num_endpoints + node->num_children]; */
 
-    void *items[node->num_endpoints + node->num_children];
+    /* void *items[node->num_endpoints + node->num_children]; */
     const char *item_labels[node->num_endpoints + node->num_children];
 
     char *dynamic_text = NULL;
@@ -463,11 +463,11 @@ static void track_add_automation_from_api_node(Track *track, APINode *node)
     char *child_node_item = dynamic_text;
 
     for (int i=0; i<node->num_endpoints; i++) {
-	items[i] = node->endpoints[i];
+	/* items[i] = node->endpoints[i]; */
 	item_labels[i] = node->endpoints[i]->display_name;
     }
     for (int i=0; i<node->num_children; i++) {
-	items[node->num_endpoints + i] = node->children[i];
+	/* items[node->num_endpoints + i] = node->children[i]; */
 	int num_chars_printed = snprintf(child_node_item, 64, "%s...", node->children[i]->obj_name);
 	child_node_item[num_chars_printed] = '\0';
 	item_labels[node->num_endpoints + i] = child_node_item;

@@ -37,7 +37,6 @@
 #include "tempo.h"
 #include "text.h"
 #include "transport.h"
-#include "trie.h" /* Testing */
 #include "wav.h"
 #include "waveform.h"
 #include "window.h"
@@ -97,7 +96,6 @@ static void init_SDL()
 
 static void init()
 {
-    Pm_Initialize();
     fprintf(stderr, "Initializing SDL and subsystems...\n");
     MAIN_THREAD_ID = pthread_self();
     CURRENT_THREAD_ID = MAIN_THREAD_ID;
@@ -117,6 +115,10 @@ static void init()
     strcpy(DIRPATH_OPEN_FILE, DIRPATH_SAVED_PROJ);
     strcpy(DIRPATH_EXPORT, DIRPATH_SAVED_PROJ);
     init_dsp();
+    PmError err = Pm_Initialize();
+    if (err != pmNoError) {
+	fprintf(stderr, "Error initializing PortMidi: %d\n", err);
+    }
     fprintf(stderr, "\t...done.\n");
 }
 
@@ -138,6 +140,10 @@ static void quit()
     }
     function_lookup_deinit();
     input_quit();
+    PmError err = Pm_Terminate();
+    if (err != pmNoError) {
+	fprintf(stderr, "Error terminating PortMidi: %d\n", err);
+    }
     SDL_Quit();
 }
 

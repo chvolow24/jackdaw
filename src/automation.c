@@ -1803,7 +1803,7 @@ bool automation_triage_click(uint8_t button, Automation *a)
 			undo_insert_keyframe,
 			redo_insert_keyframe,
 			NULL, NULL,
-			a, index,
+			a, NULL,
 			indexval, nullval,
 			posval, k->value,
 			0, 0, false, false);

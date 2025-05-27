@@ -42,6 +42,7 @@
 #include "eq.h"
 #include "endpoint.h"
 #include "loading.h"
+#include "midi_io.h"
 #include "panel.h"
 #include "tempo.h"
 #include "thread_safety.h"
@@ -375,6 +376,9 @@ typedef struct project {
     uint8_t num_record_conns;
     AudioConn *playback_conns[MAX_PROJ_AUDIO_CONNS];
     uint8_t num_playback_conns;
+
+    struct midi midi;
+    bool midi_initialized;
 
     /* Audio settings */
     AudioConn *playback_conn;

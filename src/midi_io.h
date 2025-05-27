@@ -21,7 +21,7 @@
 #include <stdbool.h>
 #include "portmidi.h"
 
-#define PM_EVENT_BUF_NUM_EVENTS 32
+#define PM_EVENT_BUF_NUM_EVENTS 64
 #define MAX_MIDI_DEVICES 6
 
 #if defined(__APPLE__) && defined(__MACH__)
@@ -29,6 +29,9 @@
 #elif defined(__linux__)
 #define MIDI_INTERFACE_NAME "ALSA"
 #endif
+
+int midi_io_init();
+void midi_io_deinit(void);
 
 typedef struct midi_device {
     int32_t latency; /* Applicable for output devices only */
@@ -38,12 +41,16 @@ typedef struct midi_device {
     const PmDeviceInfo *info;
 } MIDIDevice;
 
+/* One instance stored on Project */
+struct midi {
+    MIDIDevice in;
+    MIDIDevice out;
+};
+
 /* returns number of devices available */
 int midi_device_populate_list(MIDIDevice *devices);
-
-/* return 0 on success */
-int midi_device_create_jackdaw_out(MIDIDevice *dst);
-
+int midi_create_virtual_devices(struct midi *midi);
+void midi_close_virtual_devices(struct midi *midi);
 
 
 #endif

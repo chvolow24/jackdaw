@@ -122,8 +122,8 @@
   - S-p		: tl_move_track_up
   - S-f		: tl_move_track_down
   - S-d		: tl_move_track_up
-  - S-<down>	: tl_move_track_selector_down
-  - S-<up>	: tl_move_track_selector_up  
+  - S-<down>	: tl_move_track_down
+  - S-<up>	: tl_move_track_up
   - -		: tl_track_or_tracks_minimize
   - <ret>	: tl_track_activate_selected
   - C-r		: tl_track_rename

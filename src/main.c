@@ -30,7 +30,7 @@
 #include "input.h"
 #include "layout.h"
 #include "layout_xml.h"
-#include "portmidi.h"
+#include "midi_io.h"
 #include "project.h"
 #include "pure_data.h"
 #include "symbol.h"
@@ -114,11 +114,8 @@ static void init()
     }
     strcpy(DIRPATH_OPEN_FILE, DIRPATH_SAVED_PROJ);
     strcpy(DIRPATH_EXPORT, DIRPATH_SAVED_PROJ);
+    midi_io_init();
     init_dsp();
-    PmError err = Pm_Initialize();
-    if (err != pmNoError) {
-	fprintf(stderr, "Error initializing PortMidi: %d\n", err);
-    }
     fprintf(stderr, "\t...done.\n");
 }
 
@@ -140,10 +137,7 @@ static void quit()
     }
     function_lookup_deinit();
     input_quit();
-    PmError err = Pm_Terminate();
-    if (err != pmNoError) {
-	fprintf(stderr, "Error terminating PortMidi: %d\n", err);
-    }
+    midi_io_deinit();
     SDL_Quit();
 }
 

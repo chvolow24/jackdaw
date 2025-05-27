@@ -295,6 +295,8 @@ static void timeline_destroy(Timeline *tl, bool displace_in_proj)
 }
 
 static void clip_destroy_no_displace(Clip *clip);
+void project_deinit_midi(Project *proj);
+
 void project_destroy(Project *proj)
 {
     if (proj->recording) {
@@ -337,6 +339,7 @@ void project_destroy(Project *proj)
     project_destroy_animations(proj);
     project_destroy_metronomes(proj);
     project_loading_screen_deinit(proj);
+    project_deinit_midi(proj);
 
     free(proj);
 }
@@ -350,6 +353,7 @@ void project_reset_tl_label(Project *proj)
 
 static void project_init_panels(Project *proj, Layout *lt);
 void project_init_audio_conns(Project *proj);
+int project_init_midi(Project *proj);
 /* void project_init_quickref(Project *proj, Layout *control_bar_layout); */
 Project *project_create(
     char *name,
@@ -435,6 +439,7 @@ Project *project_create(
 
 
     project_init_audio_conns(proj);
+    proj->midi_initialized = project_init_midi(proj) == 0;
     project_init_metronomes(proj);
 
     Layout *panels_layout = layout_get_child_by_name_recursive(control_bar_layout, "panel_area");
@@ -1226,6 +1231,17 @@ void project_init_audio_conns(Project *proj)
     if (proj->playback_conn->available && audioconn_open(proj, proj->playback_conn) != 0) {
 	fprintf(stderr, "Error: failed to open default audio conn \"%s\". More info: %s\n", proj->playback_conn->name, SDL_GetError());
     }
+}
+
+int project_init_midi(Project *proj)
+{
+    int ret = midi_create_virtual_devices(&proj->midi);
+    return ret;
+}
+
+void project_deinit_midi(Project *proj)
+{
+    midi_close_virtual_devices(&proj->midi);
 }
 
 

@@ -1,6 +1,8 @@
 #include "color.h"
+#include "consts.h"
 #include "panel.h"
 #include "session.h"
+#include "waveform.h"
 #include "userfn.h"
 
 extern Window *main_win;
@@ -112,7 +114,7 @@ typedef int (*ComponentFn)(void *self, void *target);
 
 int set_output_compfn(void *self, void *target)
 {
-    session_set_default_out();
+    session_set_default_out(NULL);
     return 0;
 }
 static inline void session_init_output_panel(Page *output, Session *session)
@@ -153,12 +155,12 @@ static inline void session_init_output_panel(Page *output, Session *session)
     textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
     
     void **output_L, **output_R;
-    output_L = (void *)&(proj->output_L);
-    output_R = (void *)&(proj->output_R);
+    output_L = (void *)&(session->proj.output_L);
+    output_R = (void *)&(session->proj.output_R);
     p.waveform_p.background_color = &colors.black;
     p.waveform_p.plot_color = &colors.white;
     p.waveform_p.num_channels = 1;
-    p.waveform_p.len = proj->fourier_len_sframes;
+    p.waveform_p.len = DEFAULT_FOURIER_LEN_SFRAMES;
     p.waveform_p.type = JDAW_FLOAT;
     p.waveform_p.channels = output_L;
     page_add_el(
@@ -482,3 +484,210 @@ static inline void session_init_quickref_panels(Page *quickref1, Page *quickref2
     textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
 	/* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
 }
+
+
+struct source_area_draw_arg {
+    SDL_Rect *source_area_rect;
+    SDL_Rect *source_clip_rect;
+};
+
+extern SDL_Color clip_ref_home_bckgrnd;
+extern SDL_Color timeline_marked_bckgrnd;
+
+static void source_area_draw(void *arg1, void *arg2)
+{
+    struct source_area_draw_arg *arg = (struct source_area_draw_arg *)arg1;
+    SDL_Rect *source_clip_rect = arg->source_clip_rect;
+    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(source_mode_bckgrnd)); */
+    /* SDL_RenderFillRect(main_win->rend, source_rect); */
+    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_white)); */
+    /* SDL_RenderDrawRect(main_win->rend, source_rect); */
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_home_bckgrnd));
+    SDL_RenderDrawRect(main_win->rend, source_clip_rect);
+    Session *session = session_get();
+    if (session->source_mode.src_clip) {
+	SDL_RenderFillRect(main_win->rend, source_clip_rect);
+
+	/* Draw src clip waveform */
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
+	uint8_t num_channels = session->source_mode.src_clip->channels;
+	float *channels[num_channels];
+	channels[0] = session->source_mode.src_clip->L;
+	if (num_channels > 1) {
+	    channels[1] = session->source_mode.src_clip->R;
+	}
+	waveform_draw_all_channels(channels, num_channels, session->source_mode.src_clip->len_sframes, source_clip_rect);
+	/* draw_waveform_to_rect(session->src_clip->L, session->src_clip->len_sframes, session->source_clip_rect); */
+	
+	/* Draw play head line */
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.white));
+	int ph_y = source_clip_rect->y;
+	/* int tri_y = tl->session->ruler_rect->y; */
+	int play_head_x = source_clip_rect->x + source_clip_rect->w * session->source_mode.src_play_pos_sframes / session->source_mode.src_clip->len_sframes;
+	SDL_RenderDrawLine(main_win->rend, play_head_x, ph_y, play_head_x, ph_y + source_clip_rect->h);
+
+	/* /\* Draw play head triangle *\/ */
+	int tri_x1 = play_head_x;
+	int tri_x2 = play_head_x;
+	/* int ph_y = tl->rect.y; */
+	for (int i=0; i<PLAYHEAD_TRI_H; i++) {
+	    SDL_RenderDrawLine(main_win->rend, tri_x1, ph_y, tri_x2, ph_y);
+	    ph_y -= 1;
+	    tri_x2 += 1;
+	    tri_x1 -= 1;
+	}
+
+	/* draw mark in */
+	int in_x, out_x = -1;
+
+	in_x = source_clip_rect->x + source_clip_rect->w * session->source_mode.src_in_sframes / session->source_mode.src_clip->len_sframes;
+	int i_tri_x2 = in_x;
+	ph_y = source_clip_rect->y;
+	for (int i=0; i<PLAYHEAD_TRI_H; i++) {
+	    SDL_RenderDrawLine(main_win->rend, in_x, ph_y, i_tri_x2, ph_y);
+	    ph_y -= 1;
+	    i_tri_x2 += 1;
+	}
+
+	/* draw mark out */
+
+	out_x = source_clip_rect->x + source_clip_rect->w * session->source_mode.src_out_sframes / session->source_mode.src_clip->len_sframes;
+	int o_tri_x2 = out_x;
+	ph_y = source_clip_rect->y;
+	for (int i=0; i<PLAYHEAD_TRI_H; i++) {
+	    SDL_RenderDrawLine(main_win->rend, out_x, ph_y, o_tri_x2, ph_y);
+	    ph_y -= 1;
+	    o_tri_x2 -= 1;
+	}
+	if (in_x < out_x && out_x != 0) {
+	    SDL_Rect in_out = (SDL_Rect) {in_x, source_clip_rect->y, out_x - in_x, source_clip_rect->h};
+	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(timeline_marked_bckgrnd));
+	    SDL_RenderFillRect(main_win->rend, &(in_out));
+	}
+    }
+}
+
+
+static inline void session_init_source_area(Page *source_area, Session *session)
+{
+    PageElParams p;
+
+    // source_clip_name
+    p.textbox_p.font = main_win->std_font;
+    p.textbox_p.text_size = 14;
+    p.textbox_p.win = main_win;
+    p.textbox_p.set_str = "(no source clip)";
+
+    PageEl *el = page_add_el(
+	source_area,
+	EL_TEXTBOX,
+	p,
+	"panel_source_clip_name_tb",
+	"source_clip_name");
+    Textbox *tb = (Textbox *)el->component;
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_set_background_color(tb, NULL);
+    /* textbox_set_text_color(session->source_name_tb,  */
+
+    static struct source_area_draw_arg draw_arg;
+    p.canvas_p.draw_fn = source_area_draw;
+    p.canvas_p.draw_arg1 = &draw_arg;
+    el = page_add_el(
+	source_area,
+	EL_CANVAS,
+	p,
+	"panel_source_canvas",
+	"source_area");
+    Layout *source_area_lt = el->layout;
+    Layout *clip_lt = layout_get_child_by_name_recursive(source_area_lt, "source_clip");
+    draw_arg.source_area_rect = &source_area_lt->rect;
+    draw_arg.source_clip_rect = &clip_lt->rect;
+
+}
+
+static inline void session_init_output_spectrum(Page *output_spectrum, Session *session)
+{
+    
+    double *arrays[] = {
+	session->proj.output_L_freq,
+	session->proj.output_R_freq
+    };
+    int steps[] = {1, 1};
+    SDL_Color *plot_colors[] = {&colors.freq_L, &colors.freq_R, &colors.white};
+    PageElParams p;
+    p.freqplot_p.arrays = arrays;
+    p.freqplot_p.steps = steps;
+    p.freqplot_p.num_arrays = 2;
+    p.freqplot_p.num_items = session->proj.fourier_len_sframes / 2;
+    p.freqplot_p.colors = plot_colors;
+    /* Project *saved_glob_proj = proj; */
+    /* proj = proj_loc; /\* Not great *\/ */
+    page_add_el(
+	output_spectrum,
+	EL_FREQ_PLOT,
+	p,
+	"panel_output_freqplot",
+	"freqplot");
+    /* proj=saved_glob_proj; /\* Not great *\/ */
+}
+
+
+void session_init_panels(Session *session, Layout *lt)
+{
+    PanelArea *pa = panel_area_create(lt, main_win);
+    session->gui.panels = pa;
+    panel_area_add_panel(pa);
+    panel_area_add_panel(pa);
+    panel_area_add_panel(pa);
+    panel_area_add_panel(pa);
+
+    Page *output_panel = panel_area_add_page(
+	pa,
+	"Output",
+	OUTPUT_PANEL_LT_PATH,
+	NULL,
+	&colors.white,
+	main_win);
+    
+    Page *quickref1 = panel_area_add_page(
+	pa,
+	"Quickref 1",
+	QUICKREF_LT_PATH,
+	NULL,
+	&colors.white,
+	main_win);
+    Page *quickref2 = panel_area_add_page(
+	pa,
+	"Quickref 2",
+	QUICKREF_LT_PATH,
+	NULL,
+	&colors.white,
+	main_win);
+
+    Page *source_area = panel_area_add_page(
+	pa,
+	"Sample source",
+	SOURCE_AREA_LT_PATH,
+	NULL,
+	&colors.white,
+	main_win);
+
+    Page *output_spectrum = panel_area_add_page(
+	pa,
+	"Output spectrum",
+	OUTPUT_SPECTRUM_LT_PATH,
+	NULL,
+	&colors.white,
+	main_win);
+
+
+    session_init_quickref_panels(quickref1, quickref2);
+    session_init_output_panel(output_panel, session);
+    session_init_source_area(source_area, session);
+    session_init_output_spectrum(output_spectrum, session);
+    panel_select_page(pa, 0, 0);
+    panel_select_page(pa, 1, 1);
+    panel_select_page(pa, 2, 2);
+    panel_select_page(pa, 3, 3);
+}
+

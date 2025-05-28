@@ -30,17 +30,14 @@
 
 #define PD_BUFLEN_CHUNKS 1024
 
-extern Project *proj;
 
-
-
-int query_audio_connections(Project *proj, int iscapture)
+int query_audio_connections(Session *session, int iscapture)
 {
     AudioConn **conn_list;
     if (iscapture) {
-	conn_list = proj->record_conns;
+	conn_list = session->audio_io.record_conns;
     } else {
-	conn_list = proj->playback_conns;
+	conn_list = session->audio_io.playback_conns;
     }
 
     AudioConn *default_conn = calloc(sizeof(AudioConn), 1);
@@ -140,7 +137,7 @@ int query_audio_connections(Project *proj, int iscapture)
 void transport_playback_callback(void *user_data, uint8_t *stream, int len);
 void transport_record_callback(void *user_data, uint8_t *stream, int len);
 
-int audioconn_open(Project *proj, AudioConn *conn)
+int audioconn_open(Session *session, AudioConn *conn)
 {
     switch (conn->type) {
     case DEVICE: {
@@ -151,8 +148,8 @@ int audioconn_open(Project *proj, AudioConn *conn)
 
 	/* Project determines high-level audio settings */
 	device->spec.format = AUDIO_S16LSB;
-	device->spec.samples = proj->chunk_size_sframes;
-	device->spec.freq = proj->sample_rate;
+	device->spec.samples = session->proj.chunk_size_sframes;
+	device->spec.freq = session->proj.sample_rate;
 	device->spec.callback = conn->iscapture ? transport_record_callback : transport_playback_callback;
 	device->spec.userdata = conn;
 	/* device->spec.channels = 2; /\* TODO: channel count flexibility *\/ */
@@ -174,7 +171,7 @@ int audioconn_open(Project *proj, AudioConn *conn)
 	    /* fprintf(stdout, "Dev %s\n:ch %d, freq %d, format %d (== %d)\n", device->name, obtained.channels, obtained.freq, obtained.format, AUDIO_S16LSB); */
 	    /* exit(1); */
 	    /* device->rec_buf_len_samples = proj->sample_rate * DEVICE_BUFLEN_SECONDS * device->spec.channels; */
-	    device->rec_buf_len_samples = DEVICE_BUFLEN_CHUNKS * proj->chunk_size_sframes * proj->channels;
+	    device->rec_buf_len_samples = DEVICE_BUFLEN_CHUNKS * session->proj.chunk_size_sframes * session->proj.channels;
 	    uint32_t device_buf_len_bytes = device->rec_buf_len_samples * sizeof(int16_t);
 	    if (!device->rec_buffer) {
 		device->rec_buffer = malloc(device_buf_len_bytes);
@@ -191,7 +188,7 @@ int audioconn_open(Project *proj, AudioConn *conn)
 	PdConn *pdconn = &conn->c.pd;
 	if (conn->iscapture) {
 	    if (!pdconn->rec_buffer_L) {
-		pdconn->rec_buf_len_sframes = PD_BUFLEN_CHUNKS * proj->chunk_size_sframes;
+		pdconn->rec_buf_len_sframes = PD_BUFLEN_CHUNKS * session->proj.chunk_size_sframes;
 		if (!pdconn->rec_buffer_L) pdconn->rec_buffer_L = malloc(sizeof(float) * pdconn->rec_buf_len_sframes);
 		if (!pdconn->rec_buffer_R) pdconn->rec_buffer_R = malloc(sizeof(float) * pdconn->rec_buf_len_sframes);
 		fprintf(stdout, "allocated %d samples in buf\n", pdconn->rec_buf_len_sframes);
@@ -208,7 +205,7 @@ int audioconn_open(Project *proj, AudioConn *conn)
 	break;
     case JACKDAW:
 	if (conn->iscapture) {
-	    conn->c.jdaw.rec_buf_len_sframes = PD_BUFLEN_CHUNKS * proj->chunk_size_sframes;
+	    conn->c.jdaw.rec_buf_len_sframes = PD_BUFLEN_CHUNKS * session->proj.chunk_size_sframes;
 	    if (!conn->c.jdaw.rec_buffer_L) conn->c.jdaw.rec_buffer_L = malloc(sizeof(float) * conn->c.jdaw.rec_buf_len_sframes);
 	    if (!conn->c.jdaw.rec_buffer_R) conn->c.jdaw.rec_buffer_R = malloc(sizeof(float) * conn->c.jdaw.rec_buf_len_sframes);
 	}
@@ -402,19 +399,20 @@ void audioconn_start_recording(AudioConn *conn)
 
 void audioconn_handle_connection_event(int index_or_id, int iscapture, int event_type)
 {
+    Session *session = session_get();
     fprintf(stdout, "\n\nEvent: %s device %s with id %d\n", iscapture ? "recording" : "playback", event_type == SDL_AUDIODEVICEREMOVED ? "removed" : "added", index_or_id);
     fprintf(stdout, "\n\tCurrent project playback devices:\n");
-    for (uint8_t i=0; i<proj->num_playback_conns; i++) {
-	fprintf(stdout, "\t\tID %d: %s\n", proj->playback_conns[i]->c.device.id, proj->playback_conns[i]->name);
+    for (uint8_t i=0; i<session->audio_io.num_playback_conns; i++) {
+	fprintf(stdout, "\t\tID %d: %s\n", session->audio_io.playback_conns[i]->c.device.id, session->audio_io.playback_conns[i]->name);
     }
     fprintf(stdout, "\n\tCurrent project record devices:\n");
-    for (uint8_t i=0; i<proj->num_record_conns; i++) {
-	fprintf(stdout, "\t\tID %d: %s\n", proj->record_conns[i]->c.device.id, proj->record_conns[i]->name);
+    for (uint8_t i=0; i<session->audio_io.num_record_conns; i++) {
+	fprintf(stdout, "\t\tID %d: %s\n", session->audio_io.record_conns[i]->c.device.id, session->audio_io.record_conns[i]->name);
     }
 
-    /* fprintf(stdout,src/ "current playback device id: %d\n", proj->playback_conn->c.device.id); */
-    AudioConn **arr = iscapture ? proj->record_conns : proj->playback_conns;
-    uint8_t *num_previous = iscapture ? &proj->num_record_conns : &proj->num_playback_conns;
+    /* fprintf(stdout,src/ "current playback device id: %d\n", session->audio_io.playback_conn->c.device.id); */
+    AudioConn **arr = iscapture ? session->audio_io.record_conns : session->audio_io.playback_conns;
+    uint8_t *num_previous = iscapture ? &session->audio_io.num_record_conns : &session->audio_io.num_playback_conns;
     if (event_type == SDL_AUDIODEVICEREMOVED) {
 	AudioConn *removed_conn = NULL;
 	uint8_t remove_at = 0;
@@ -483,8 +481,8 @@ void audioconn_handle_connection_event(int index_or_id, int iscapture, int event
 	    /* if (!replacement) replacement = arr[0]; */
 	    AudioConn *replacement = arr[0];
 	    if (iscapture) {
-		for (uint8_t i=0; i<proj->num_timelines; i++) {
-		    Timeline *tl = proj->timelines[i];
+		for (uint8_t i=0; i<session->proj.num_timelines; i++) {
+		    Timeline *tl = session->proj.timelines[i];
 		    for (uint8_t j=0; j<tl->num_tracks; j++) {
 			Track *track = tl->tracks[j];
 			if (track->input == removed_conn) {
@@ -494,12 +492,12 @@ void audioconn_handle_connection_event(int index_or_id, int iscapture, int event
 		    }
 		}
 	    } else {
-		if (proj->playback_conn == removed_conn) {
-		    proj->playback_conn = replacement;
-		    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_out_value");
+		if (session->audio_io.playback_conn == removed_conn) {
+		    session->audio_io.playback_conn = replacement;
+		    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_out_value");
 		    textbox_set_value_handle(((Button *)el->component)->tb, replacement->name);
-		    if (audioconn_open(proj, proj->playback_conn) != 0) {
-			fprintf(stderr, "Error: failed to open default audio conn \"%s\". More info: %s\n", proj->playback_conn->name, SDL_GetError());
+		    if (audioconn_open(session, session->audio_io.playback_conn) != 0) {
+			fprintf(stderr, "Error: failed to open default audio conn \"%s\". More info: %s\n", session->audio_io.playback_conn->name, SDL_GetError());
 		    }
 		}
 	    }
@@ -550,11 +548,56 @@ void audioconn_reset_chunk_size(AudioConn *c, uint16_t new_chunk_size)
 
 void session_init_audio_conns(Session *session)
 {
-    session->audio_io.num_playback_conns = query_audio_connections(proj, 0);
-    session->audio_io.num_record_conns = query_audio_connections(proj, 1);
-    /* session->audio_io.playback_conns[session->audio_io.playback_con_id] = proj->playback_conns[0]; */
-    if (session->audio_io.playback_conn->available && audioconn_open(proj, session->audio_io.playback_conn) != 0) {
+    session->audio_io.num_playback_conns = query_audio_connections(session, 0);
+    session->audio_io.num_record_conns = query_audio_connections(session, 1);
+    /* session->audio_io.playback_conns[session->audio_io.playback_con_id] = session->audio_io.playback_conns[0]; */
+    if (session->audio_io.playback_conn->available && audioconn_open(session, session->audio_io.playback_conn) != 0) {
 	fprintf(stderr, "Error: failed to open default audio conn \"%s\". More info: %s\n", session->audio_io.playback_conn->name, SDL_GetError());
     }
 }
 
+#include "menu.h"
+extern Window *main_win;
+
+static void select_out_onclick(void *arg)
+{
+    Session *session = session_get();
+    int index = *((int *)arg);
+    audioconn_close(session->audio_io.playback_conn);
+    session->audio_io.playback_conn = session->audio_io.playback_conns[index];
+    if (audioconn_open(session, session->audio_io.playback_conn) != 0) {
+	fprintf(stderr, "Error: failed to open default audio conn \"%s\". More info: %s\n", session->audio_io.playback_conn->name, SDL_GetError());
+	status_set_errstr("Error: failed to open default audio conn \"%s\"");
+    }
+    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_out_value");
+    textbox_set_value_handle(((Button *)el->component)->tb, session->audio_io.playback_conn->name);
+    window_pop_menu(main_win);
+    Timeline *tl = session->proj.timelines[session->proj.active_tl_index];
+    tl->needs_redraw = true;
+    /* window_pop_mode(main_win); */
+}
+
+void session_set_default_out(void *nullarg)
+{
+    Session *session = session_get();
+    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_out_value");
+    SDL_Rect *rect = &((Button *)el->component)->tb->layout->rect;
+    Menu *menu = menu_create_at_point(rect->x, rect->y);
+    MenuColumn *c = menu_column_add(menu, "");
+    MenuSection *sc = menu_section_add(c, "");
+    for (int i=0; i<session->audio_io.num_playback_conns; i++) {
+	AudioConn *conn = session->audio_io.playback_conns[i];
+	/* fprintf(stdout, "Conn index: %d\n", conn->index); */
+	if (conn->available) {
+	    menu_item_add(
+		sc,
+		conn->name,
+		" ",
+		select_out_onclick,
+		&(conn->index));
+	}
+    }
+    menu_add_header(menu,"", "Select the default audio output.\n\n'n' to select next item; 'p' to select previous item.");
+    /* menu_reset_layout(menu); */
+    window_add_menu(main_win, menu);
+}

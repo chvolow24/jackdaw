@@ -27,7 +27,7 @@
 #define MAX_CONN_NAMELENGTH 64
 /* #include "project.h" */
 
-typedef struct project Project;
+/* typedef struct project Project; */
 typedef struct clip Clip;
 typedef struct audio_device AudioDevice;
 
@@ -94,8 +94,9 @@ typedef struct audio_conn {
 
 
 /* int query_audio_conns(Project *proj, int iscapture); */
-int query_audio_connections(Project *proj, int iscapture);
-int audioconn_open(Project *proj, AudioConn *conn);
+typedef struct session Session;
+int query_audio_connections(Session *session, int iscapture);
+int audioconn_open(Session *session, AudioConn *conn);
 void audioconn_close(AudioConn *conn);
 void audioconn_start_playback(AudioConn *conn);
 void audioconn_stop_playback(AudioConn *conn);
@@ -112,12 +113,6 @@ void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type);
 
 typedef struct session Session;
 void session_init_audio_conns(Session *session);
-/* int query_audio_devices(Project *proj, int iscapture); */
-/* int device_open(Project *proj, AudioDevice *device); */
-/* void device_start_playback(AudioDevice *dev); */
-/* void device_stop_playback(AudioDevice *dev); */
-/* /\* Pause the device, and then close it. Record devices remain closed. *\/ */
-/* void device_stop_recording(AudioDevice *dev); */
-/* void device_start_recording(AudioDevice *dev); */
+void session_set_default_out(void *nullarg);
 
 #endif

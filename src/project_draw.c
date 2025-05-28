@@ -47,7 +47,6 @@ extern Project *proj;
 SDL_Color track_bckgrnd = {120, 130, 150, 255};
 SDL_Color track_bckgrnd_active = {190, 190, 180, 255};
 
-
 SDL_Color source_mode_bckgrnd = {0, 20, 40, 255};
 /* SDL_Color track_bckgrnd_active = {170, 130, 130, 255}; */
 /* SDL_Color track_bckgrnd_active = {220, 210, 170, 255}; */

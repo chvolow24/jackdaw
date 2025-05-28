@@ -36,6 +36,10 @@ struct colors {
     SDL_Color x_red;
     SDL_Color min_yellow;
     SDL_Color click_track;
+
+    SDL_Color freq_L;
+    SDL_Color freq_R;
+
 };
 
 

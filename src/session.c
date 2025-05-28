@@ -1,11 +1,10 @@
 #include "assets.h"
 #include "color.h"
+#include "endpoint_callbacks.h"
 #include "layout_xml.h"
 #include "session.h"
 #include "transport.h"
 /* #include "window.h" */
-
-
 
 #define STATUS_BAR_H (14 * main_win->dpi_scale_factor)
 #define STATUS_BAR_H_PAD (10 * main_win->dpi_scale_factor);
@@ -21,6 +20,7 @@ Session *session_get()
     return session;
 }
 
+static void session_hamburger_init(Session *session);
 
 Session *session_create()
 {
@@ -57,68 +57,52 @@ Session *session_create()
     session_init_midi(session);
     session_init_metronomes(session);
     
+    /* Init panels after proj initialized ! */
+    /* session_init_panels(session); */
+
+    session_hamburger_init(session);
+
+    int err;
+
+    if ((err = pthread_mutex_init(&session->queued_ops.queued_val_changes_lock, NULL)) != 0) {
+	fprintf(stderr, "Error initializing queued val changes mutex: %s\n", strerror(err));
+	exit(1);
+    }
+    if ((err = pthread_mutex_init(&session->queued_ops.queued_callback_lock, NULL)) != 0) {
+	fprintf(stderr, "Error initializing queued callback mutex: %s\n", strerror(err));
+	exit(1);
+    }
+    if ((err = pthread_mutex_init(&session->queued_ops.ongoing_changes_lock, NULL)) != 0) {
+	fprintf(stderr, "Error initializing ongoing changes mutex: %s\n", strerror(err));
+	exit(1);
+    }
+
+    endpoint_init(
+	&session->playback.play_speed,
+	JDAW_FLOAT,
+	"play_speed",
+	"Play speed",
+	JDAW_THREAD_MAIN,
+	play_speed_gui_cb, NULL, NULL,
+	NULL, NULL, NULL, NULL);
+    
+    api_endpoint_register(&proj->play_speed_ep, &proj->server.api_root);			  
+
+    
     return session;
 }
 
-static void session_init_panels(Project *proj, Layout *lt)
+
+static void session_hamburger_init(Session *session)
 {
-    PanelArea *pa = panel_area_create(lt, main_win);
-    proj->panels = pa;
-    panel_area_add_panel(pa);
-    panel_area_add_panel(pa);
-    panel_area_add_panel(pa);
-    panel_area_add_panel(pa);
+    Layout *hamburger_lt = layout_get_child_by_name_recursive(session->gui.layout, "hamburger");
 
-    Page *output_panel = panel_area_add_page(
-	pa,
-	"Output",
-	OUTPUT_PANEL_LT_PATH,
-	NULL,
-	&color_global_white,
-	main_win);
-    
-    Page *quickref1 = panel_area_add_page(
-	pa,
-	"Quickref 1",
-	QUICKREF_LT_PATH,
-	NULL,
-	&color_global_white,
-	main_win);
-    Page *quickref2 = panel_area_add_page(
-	pa,
-	"Quickref 2",
-	QUICKREF_LT_PATH,
-	NULL,
-	&color_global_white,
-	main_win);
+    session->gui.hamburger = &hamburger_lt->rect;
+    session->gui.bun_patty_bun[0] = &hamburger_lt->children[0]->children[0]->rect;
+    session->gui.bun_patty_bun[1] = &hamburger_lt->children[1]->children[0]->rect;
+    session->gui.bun_patty_bun[2] = &hamburger_lt->children[2]->children[0]->rect;
 
-    Page *source_area = panel_area_add_page(
-	pa,
-	"Sample source",
-	SOURCE_AREA_LT_PATH,
-	NULL,
-	&color_global_white,
-	main_win);
-
-    Page *output_spectrum = panel_area_add_page(
-	pa,
-	"Output spectrum",
-	OUTPUT_SPECTRUM_LT_PATH,
-	NULL,
-	&color_global_white,
-	main_win);
-
-
-    project_init_quickref_panels(quickref1, quickref2);
-    project_init_output_panel(output_panel, proj);
-    project_init_source_area(source_area, proj);
-    project_init_output_spectrum(output_spectrum, proj);
-    panel_select_page(pa, 0, 0);
-    panel_select_page(pa, 1, 1);
-    panel_select_page(pa, 2, 2);
-    panel_select_page(pa, 3, 3);
 }
-
 
 
 static void session_status_bar_init(Session *session)
@@ -199,11 +183,10 @@ void session_destroy()
 	audioconn_destroy(session->audio_io.playback_conns[i]);
     }
 
-
     textbox_destroy(session->gui.timeline_label);
-    panel_area_destroy(session->gui.panels);
-
-        
+    
+    if (session->gui.panels) panel_area_destroy(session->gui.panels);
+    
     if (session->status_bar.call) textbox_destroy(session->status_bar.call);
     if (session->status_bar.dragstat) textbox_destroy(session->status_bar.dragstat);
     if (session->status_bar.error) textbox_destroy(session->status_bar.error);
@@ -213,8 +196,8 @@ void session_destroy()
     session_loading_screen_deinit(session);
     session_deinit_midi(session);
 
-    Layout *panels_layout = layout_get_child_by_name_recursive(session->gui.layout, "panel_area");
-    project_init_panels(proj, panels_layout);
+    /* Layout *panels_layout = layout_get_child_by_name_recursive(session->gui.layout, "panel_area"); */
+    /* project_init_panels(proj, panels_layout); */
 
     session_status_bar_init(session);
 

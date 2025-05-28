@@ -5,6 +5,7 @@
 #include "loading.h"
 #include "midi_io.h"
 #include "panel.h"
+#include "project.h"
 #include "status.h"
 #include "tempo.h"
 #include "user_event.h"
@@ -136,7 +137,7 @@ typedef struct session {
     struct session_gui gui;
     struct playback playback;
 
-    Project *proj;
+    Project proj;
     
 } Session;
 

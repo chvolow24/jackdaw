@@ -1,28 +1,4 @@
-#include "SDL.h"
-
-struct colors {
-    SDL_Color white;
-    SDL_Color black;
-    SDL_Color clear;
-    SDL_Color grey;
-    SDL_Color light_grey;
-    SDL_Color red;
-    SDL_Color green;
-    SDL_Color blue;
-    SDL_Color yellow;
-    SDL_Color quickref_button_blue;
-    SDL_Color quickref_button_pressed;
-    SDL_Color play_green;
-    SDL_Color undo_purple;
-    SDL_Color cerulean;
-    SDL_Color cerulean_pale;
-
-
-    SDL_Color dropdown_green;
-    SDL_Color x_red;
-    SDL_Color min_yellow;
-    SDL_Color click_track;
-};
+#include "color.h"
 
 const struct colors colors = {
     .white = {255, 255, 255, 255},
@@ -44,7 +20,10 @@ const struct colors colors = {
     .dropdown_green = {20, 100, 40, 255},
     .x_red = {200, 0, 0, 255},
     .min_yellow = {200, 90, 0, 255},
-    .click_track = {10, 30, 25, 255}
+    .click_track = {10, 30, 25, 255},
+    .freq_L = {130, 255, 255, 255},
+    .freq_R = {255, 255, 130, 220},
+
 
 };
 

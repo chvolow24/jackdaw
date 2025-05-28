@@ -89,11 +89,6 @@ extern Symbol *SYMBOL_TABLE[];
 SDL_Color color_mute_solo_grey = {210, 210, 210, 255};
 
 
-
-SDL_Color freq_L_color = {130, 255, 255, 255};
-SDL_Color freq_R_color = {255, 255, 130, 220};
-
-
 /* Alternating bright colors to easily distinguish tracks */
 uint8_t track_color_index = 0;
 SDL_Color track_colors[7] = {
@@ -398,33 +393,10 @@ Project *project_create(
     /* strcpy(proj->status_bar.errstr, "Uh oh! this is an call!\n"); */
     /* strcpy(proj->status_bar.errorstr, "Ok error str\n"); */
 
-    Layout *hamburger_lt = layout_get_child_by_name_recursive(control_bar_layout, "hamburger");
-
-    proj->hamburger = &hamburger_lt->rect;
-    proj->bun_patty_bun[0] = &hamburger_lt->children[0]->children[0]->rect;
-    proj->bun_patty_bun[1] = &hamburger_lt->children[1]->children[0]->rect;
-    proj->bun_patty_bun[2] = &hamburger_lt->children[2]->children[0]->rect;
 
 
     
-    int err;
-    /* if ((err = pthread_mutex_init(&proj->animation_lock, NULL)) != 0) { */
-    /* 	fprintf(stderr, "Error initializing animation mutex: %s\n", strerror(err)); */
-    /* 	exit(1); */
-    /* } */
 
-    if ((err = pthread_mutex_init(&proj->queued_val_changes_lock, NULL)) != 0) {
-	fprintf(stderr, "Error initializing queued val changes mutex: %s\n", strerror(err));
-	exit(1);
-    }
-    if ((err = pthread_mutex_init(&proj->queued_callback_lock, NULL)) != 0) {
-	fprintf(stderr, "Error initializing queued callback mutex: %s\n", strerror(err));
-	exit(1);
-    }
-    if ((err = pthread_mutex_init(&proj->ongoing_changes_lock, NULL)) != 0) {
-	fprintf(stderr, "Error initializing ongoing changes mutex: %s\n", strerror(err));
-	exit(1);
-    }
     /* Initialize endpoints */
     endpoint_init(
 	&proj->play_speed_ep,
@@ -447,205 +419,6 @@ Project *project_create(
 extern SDL_Color source_mode_bckgrnd;
 extern SDL_Color clip_ref_home_bckgrnd;
 extern SDL_Color timeline_marked_bckgrnd;
-struct source_area_draw_arg {
-    SDL_Rect *source_area_rect;
-    SDL_Rect *source_clip_rect;
-};
-
-static void source_area_draw(void *arg1, void *arg2)
-{
-    struct source_area_draw_arg *arg = (struct source_area_draw_arg *)arg1;
-    SDL_Rect *source_clip_rect = arg->source_clip_rect;
-    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(source_mode_bckgrnd)); */
-    /* SDL_RenderFillRect(main_win->rend, source_rect); */
-    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_white)); */
-    /* SDL_RenderDrawRect(main_win->rend, source_rect); */
-    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_home_bckgrnd));
-    SDL_RenderDrawRect(main_win->rend, source_clip_rect);
-    if (proj->src_clip) {
-	SDL_RenderFillRect(main_win->rend, source_clip_rect);
-
-	/* Draw src clip waveform */
-	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
-	uint8_t num_channels = proj->src_clip->channels;
-	float *channels[num_channels];
-	channels[0] = proj->src_clip->L;
-	if (num_channels > 1) {
-	    channels[1] = proj->src_clip->R;
-	}
-	waveform_draw_all_channels(channels, num_channels, proj->src_clip->len_sframes, source_clip_rect);
-	/* draw_waveform_to_rect(proj->src_clip->L, proj->src_clip->len_sframes, proj->source_clip_rect); */
-	
-	/* Draw play head line */
-	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_white));
-	int ph_y = source_clip_rect->y;
-	/* int tri_y = tl->proj->ruler_rect->y; */
-	int play_head_x = source_clip_rect->x + source_clip_rect->w * proj->src_play_pos_sframes / proj->src_clip->len_sframes;
-	SDL_RenderDrawLine(main_win->rend, play_head_x, ph_y, play_head_x, ph_y + source_clip_rect->h);
-
-	/* /\* Draw play head triangle *\/ */
-	int tri_x1 = play_head_x;
-	int tri_x2 = play_head_x;
-	/* int ph_y = tl->rect.y; */
-	for (int i=0; i<PLAYHEAD_TRI_H; i++) {
-	    SDL_RenderDrawLine(main_win->rend, tri_x1, ph_y, tri_x2, ph_y);
-	    ph_y -= 1;
-	    tri_x2 += 1;
-	    tri_x1 -= 1;
-	}
-
-	/* draw mark in */
-	int in_x, out_x = -1;
-
-	in_x = source_clip_rect->x + source_clip_rect->w * proj->src_in_sframes / proj->src_clip->len_sframes;
-	int i_tri_x2 = in_x;
-	ph_y = source_clip_rect->y;
-	for (int i=0; i<PLAYHEAD_TRI_H; i++) {
-	    SDL_RenderDrawLine(main_win->rend, in_x, ph_y, i_tri_x2, ph_y);
-	    ph_y -= 1;
-	    i_tri_x2 += 1;
-	}
-
-	/* draw mark out */
-
-	out_x = source_clip_rect->x + source_clip_rect->w * proj->src_out_sframes / proj->src_clip->len_sframes;
-	int o_tri_x2 = out_x;
-	ph_y = source_clip_rect->y;
-	for (int i=0; i<PLAYHEAD_TRI_H; i++) {
-	    SDL_RenderDrawLine(main_win->rend, out_x, ph_y, o_tri_x2, ph_y);
-	    ph_y -= 1;
-	    o_tri_x2 -= 1;
-	}
-
-	    
-	if (in_x < out_x && out_x != 0) {
-	    SDL_Rect in_out = (SDL_Rect) {in_x, source_clip_rect->y, out_x - in_x, source_clip_rect->h};
-	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(timeline_marked_bckgrnd));
-	    SDL_RenderFillRect(main_win->rend, &(in_out));
-	}
-    }
-
-}
-static inline void project_init_source_area(Page *source_area, Project *proj)
-{
-    PageElParams p;
-
-    // source_clip_name
-    p.textbox_p.font = main_win->std_font;
-    p.textbox_p.text_size = 14;
-    p.textbox_p.win = main_win;
-    p.textbox_p.set_str = "(no source clip)";
-
-    PageEl *el = page_add_el(
-	source_area,
-	EL_TEXTBOX,
-	p,
-	"panel_source_clip_name_tb",
-	"source_clip_name");
-    Textbox *tb = (Textbox *)el->component;
-    textbox_set_align(tb, CENTER_LEFT);
-    textbox_set_background_color(tb, NULL);
-    /* textbox_set_text_color(proj->source_name_tb,  */
-
-    static struct source_area_draw_arg draw_arg;
-    p.canvas_p.draw_fn = source_area_draw;
-    p.canvas_p.draw_arg1 = &draw_arg;
-    el = page_add_el(
-	source_area,
-	EL_CANVAS,
-	p,
-	"panel_source_canvas",
-	"source_area");
-    Layout *source_area_lt = el->layout;
-    Layout *clip_lt = layout_get_child_by_name_recursive(source_area_lt, "source_clip");
-    draw_arg.source_area_rect = &source_area_lt->rect;
-    draw_arg.source_clip_rect = &clip_lt->rect;
-
-}
-
-static inline void project_init_output_spectrum(Page *output_spectrum, Project *proj_loc)
-{
-    double *arrays[] = {
-	proj_loc->output_L_freq,
-	proj_loc->output_R_freq
-    };
-    int steps[] = {1, 1};
-    SDL_Color *plot_colors[] = {&freq_L_color, &freq_R_color, &color_global_white};
-    PageElParams p;
-    p.freqplot_p.arrays = arrays;
-    p.freqplot_p.steps = steps;
-    p.freqplot_p.num_arrays = 2;
-    p.freqplot_p.num_items = proj_loc->fourier_len_sframes / 2;
-    p.freqplot_p.colors = plot_colors;
-    Project *saved_glob_proj = proj;
-    proj = proj_loc; /* Not great */
-    page_add_el(
-	output_spectrum,
-	EL_FREQ_PLOT,
-	p,
-	"panel_output_freqplot",
-	"freqplot");
-    proj=saved_glob_proj; /* Not great */
-}
-
-static void project_init_panels(Project *proj, Layout *lt)
-{
-    PanelArea *pa = panel_area_create(lt, main_win);
-    proj->panels = pa;
-    panel_area_add_panel(pa);
-    panel_area_add_panel(pa);
-    panel_area_add_panel(pa);
-    panel_area_add_panel(pa);
-
-    Page *output_panel = panel_area_add_page(
-	pa,
-	"Output",
-	OUTPUT_PANEL_LT_PATH,
-	NULL,
-	&color_global_white,
-	main_win);
-    
-    Page *quickref1 = panel_area_add_page(
-	pa,
-	"Quickref 1",
-	QUICKREF_LT_PATH,
-	NULL,
-	&color_global_white,
-	main_win);
-    Page *quickref2 = panel_area_add_page(
-	pa,
-	"Quickref 2",
-	QUICKREF_LT_PATH,
-	NULL,
-	&color_global_white,
-	main_win);
-
-    Page *source_area = panel_area_add_page(
-	pa,
-	"Sample source",
-	SOURCE_AREA_LT_PATH,
-	NULL,
-	&color_global_white,
-	main_win);
-
-    Page *output_spectrum = panel_area_add_page(
-	pa,
-	"Output spectrum",
-	OUTPUT_SPECTRUM_LT_PATH,
-	NULL,
-	&color_global_white,
-	main_win);
-
-
-    project_init_quickref_panels(quickref1, quickref2);
-    project_init_output_panel(output_panel, proj);
-    project_init_source_area(source_area, proj);
-    project_init_output_spectrum(output_spectrum, proj);
-    panel_select_page(pa, 0, 0);
-    panel_select_page(pa, 1, 1);
-    panel_select_page(pa, 2, 2);
-    panel_select_page(pa, 3, 3);
-}
 
 
 
@@ -2876,46 +2649,6 @@ void timeline_move_track_or_automation(Timeline *tl, int direction)
     }
     timeline_reset(tl, false);
     tl->needs_redraw = true;
-}
-
-static void select_out_onclick(void *arg)
-{
-    int index = *((int *)arg);
-    audioconn_close(proj->playback_conn);
-    proj->playback_conn = proj->playback_conns[index];
-    if (audioconn_open(proj, proj->playback_conn) != 0) {
-	fprintf(stderr, "Error: failed to open default audio conn \"%s\". More info: %s\n", proj->playback_conn->name, SDL_GetError());
-	status_set_errstr("Error: failed to open default audio conn \"%s\"");
-    }
-    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_out_value");
-    textbox_set_value_handle(((Button *)el->component)->tb, proj->playback_conn->name);
-    window_pop_menu(main_win);
-    Timeline *tl = proj->timelines[proj->active_tl_index];
-    tl->needs_redraw = true;
-    /* window_pop_mode(main_win); */
-}
-void project_set_default_out(void *nullarg)
-{
-    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_out_value");
-    SDL_Rect *rect = &((Button *)el->component)->tb->layout->rect;
-    Menu *menu = menu_create_at_point(rect->x, rect->y);
-    MenuColumn *c = menu_column_add(menu, "");
-    MenuSection *sc = menu_section_add(c, "");
-    for (int i=0; i<proj->num_playback_conns; i++) {
-	AudioConn *conn = proj->playback_conns[i];
-	/* fprintf(stdout, "Conn index: %d\n", conn->index); */
-	if (conn->available) {
-	    menu_item_add(
-		sc,
-		conn->name,
-		" ",
-		select_out_onclick,
-		&(conn->index));
-	}
-    }
-    menu_add_header(menu,"", "Select the default audio output.\n\n'n' to select next item; 'p' to select previous item.");
-    /* menu_reset_layout(menu); */
-    window_add_menu(main_win, menu);
 }
 
 void project_set_chunk_size(uint16_t new_chunk_size)

@@ -22,7 +22,6 @@ struct colors {
     SDL_Color x_red;
     SDL_Color min_yellow;
     SDL_Color click_track;
-
 };
 
 const struct colors colors = {

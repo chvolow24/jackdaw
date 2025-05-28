@@ -109,6 +109,9 @@ void audioconn_destroy(AudioConn *conn);
 void audioconn_reset_chunk_size(AudioConn *conn, uint16_t new_chunk_size);
 
 void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type);
+
+typedef struct session Session;
+void session_init_audio_conns(Session *session);
 /* int query_audio_devices(Project *proj, int iscapture); */
 /* int device_open(Project *proj, AudioDevice *device); */
 /* void device_start_playback(AudioDevice *dev); */

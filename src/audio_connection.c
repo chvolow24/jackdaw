@@ -21,6 +21,7 @@
 #include "audio_connection.h"
 #include "project.h"
 #include "pure_data.h"
+#include "session.h"
 #include "status.h"
 
 
@@ -546,65 +547,14 @@ void audioconn_reset_chunk_size(AudioConn *c, uint16_t new_chunk_size)
     }
 
 }
-void ___audioconn_handle_connection_event(int id, int iscapture, int event_type)
+
+void session_init_audio_conns(Session *session)
 {
-    /* if (!proj) { */
-    /* 	return; */
-    /* } */
-    /* const char *eventstr = event_type == SDL_AUDIODEVICEREMOVED ? "closed" : "added"; */
-    /* AudioConn **arr = iscapture ? proj->record_conns : proj->playback_conns; */
-    /* int num_conns = iscapture ? proj->num_record_conns - 1 : proj->num_playback_conns; */
-    /* AudioConn *conn; */
-    /* if (event_type == SDL_AUDIODEVICEREMOVED) { */
-    /* 	for (uint8_t i=0; i<num_conns; i++) { */
-    /* 	    conn = arr[i]; */
-    /* 	    if (conn->c.device.id == id) break; */
-    /* 	    else conn = NULL; */
-    /* 	} */
-    /* 	if (conn) { */
-    /* 	    conn->available = false; */
-    /* 	    fprintf(stdout, "%d Audio Connection to %s (id %d) has been %s\n", iscapture, conn->name, id, eventstr); */
-    /* 	    AudioConn *replacement = NULL; */
-    /* 	    for (uint8_t i=0; i<num_conns; i++) { */
-    /* 		if (arr[i]->available) { */
-    /* 		    replacement = arr[i]; */
-    /* 		    break; */
-    /* 		} */
-    /* 	    } */
-    /* 	    fprintf(stdout, "Replacement? %s\n", replacement->name); */
-    /* 	    if (replacement) { */
-    /* 		if (conn == proj->playback_conn) { */
-    /* 		    proj->playback_conn = replacement; */
-    /* 		    if (audioconn_open(proj, proj->playback_conn) != 0) { */
-    /* 			fprintf(stderr, "Error: failed to open default audio conn \"%s\". More info: %s\n", proj->playback_conn->name, SDL_GetError()); */
-    /* 		    } */
-    /* 		    textbox_set_value_handle(proj->tb_out_value, proj->playback_conn->name); */
-    /* 		} */
-    /* 		for (uint8_t i=0; i<proj->num_timelines; i++) { */
-    /* 		    Timeline *tl = proj->timelines[i]; */
-    /* 		    for (uint8_t j=0; j<tl->num_tracks; j++) { */
-    /* 			Track *track = tl->tracks[j]; */
-    /* 			if (conn == track->input) { */
-    /* 			    track->input = replacement; */
-    /* 			    textbox_set_value_handle(track->tb_input_name, track->input->name); */
-    /* 			} */
-    /* 		    } */
-    /* 		    timeline_reset_full(tl); */
-    /* 		} */
-    /* 	    } */
-    /* 	} else { */
-    /* 	    fprintf(stderr, "%d ERROR: audio device id %d can't be %s: out of range\n", iscapture, id, eventstr); */
-    /* 	    return; */
-    /* 	} */
-    /* } else { */
-    /* 	/\* char *name = SDL_GetAudioDeviceName(id, iscapture); /\\* In the case that a device is added, 'id' refers to index, not SDL_AudioDeviceID *\\/ *\/ */
-    /* 	AudioConn *new = audio_conn_create_device(id, iscapture); */
-    /* 	new->name = SDL_GetAudioDeviceName(new->index, iscapture); */
-    /* 	fprintf(stdout, "Audio device %s added\n", new->name); */
-    /* 	if (iscapture) { */
-    /* 	    proj->record_conns[proj->num_record_conns] = new; */
-    /* 	    proj->num_record_conns++; */
-    /* 	} */
-	
-    /* } */
+    session->audio_io.num_playback_conns = query_audio_connections(proj, 0);
+    session->audio_io.num_record_conns = query_audio_connections(proj, 1);
+    /* session->audio_io.playback_conns[session->audio_io.playback_con_id] = proj->playback_conns[0]; */
+    if (session->audio_io.playback_conn->available && audioconn_open(proj, session->audio_io.playback_conn) != 0) {
+	fprintf(stderr, "Error: failed to open default audio conn \"%s\". More info: %s\n", session->audio_io.playback_conn->name, SDL_GetError());
+    }
 }
+

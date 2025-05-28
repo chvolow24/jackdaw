@@ -1,12 +1,20 @@
+#include "assets.h"
+#include "color.h"
 #include "layout_xml.h"
 #include "session.h"
 #include "transport.h"
 /* #include "window.h" */
 
+
+
+#define STATUS_BAR_H (14 * main_win->dpi_scale_factor)
+#define STATUS_BAR_H_PAD (10 * main_win->dpi_scale_factor);
+
 static Session *session = NULL;
 extern Window *main_win;
 
-extern SDL_Color color_global_clear;
+/* extern SDL_Color color_global_clear; */
+extern struct colors colors;
 
 Session *session_get()
 {
@@ -32,7 +40,7 @@ Session *session_create()
     session->gui.control_bar_rect = &control_bar_layout->rect;
     session->gui.ruler_rect = &(layout_get_child_by_name_recursive(session->gui.layout, "ruler")->rect);
     Layout *timeline_label_lt = layout_get_child_by_name_recursive(session->gui.layout, "timeline_label");
-    strcpy(session->gui.timeline_label_str, "Timeline 1: \"Main\"");
+    /* strcpy(session->gui.timeline_label_str, "Timeline 1: \"Main\""); */
     session->gui.timeline_label = textbox_create_from_str(
 	session->gui.timeline_label_str,
 	timeline_label_lt,
@@ -41,10 +49,132 @@ Session *session_create()
 	main_win
 	);
     textbox_set_text_color(session->gui.timeline_label, &timeline_label_txt_color);
-    textbox_set_background_color(session->gui.timeline_label, &color_global_clear);
-    textbox_set_align(session->timeline_label, CENTER_LEFT);
+    textbox_set_background_color(session->gui.timeline_label, &colors.clear);
+    textbox_set_align(session->gui.timeline_label, CENTER_LEFT);
 
+
+    session_init_audio_conns(session);
+    session_init_midi(session);
+    session_init_metronomes(session);
+    
     return session;
+}
+
+static void session_init_panels(Project *proj, Layout *lt)
+{
+    PanelArea *pa = panel_area_create(lt, main_win);
+    proj->panels = pa;
+    panel_area_add_panel(pa);
+    panel_area_add_panel(pa);
+    panel_area_add_panel(pa);
+    panel_area_add_panel(pa);
+
+    Page *output_panel = panel_area_add_page(
+	pa,
+	"Output",
+	OUTPUT_PANEL_LT_PATH,
+	NULL,
+	&color_global_white,
+	main_win);
+    
+    Page *quickref1 = panel_area_add_page(
+	pa,
+	"Quickref 1",
+	QUICKREF_LT_PATH,
+	NULL,
+	&color_global_white,
+	main_win);
+    Page *quickref2 = panel_area_add_page(
+	pa,
+	"Quickref 2",
+	QUICKREF_LT_PATH,
+	NULL,
+	&color_global_white,
+	main_win);
+
+    Page *source_area = panel_area_add_page(
+	pa,
+	"Sample source",
+	SOURCE_AREA_LT_PATH,
+	NULL,
+	&color_global_white,
+	main_win);
+
+    Page *output_spectrum = panel_area_add_page(
+	pa,
+	"Output spectrum",
+	OUTPUT_SPECTRUM_LT_PATH,
+	NULL,
+	&color_global_white,
+	main_win);
+
+
+    project_init_quickref_panels(quickref1, quickref2);
+    project_init_output_panel(output_panel, proj);
+    project_init_source_area(source_area, proj);
+    project_init_output_spectrum(output_spectrum, proj);
+    panel_select_page(pa, 0, 0);
+    panel_select_page(pa, 1, 1);
+    panel_select_page(pa, 2, 2);
+    panel_select_page(pa, 3, 3);
+}
+
+
+
+static void session_status_bar_init(Session *session)
+{
+
+    Layout *status_bar_lt = layout_get_child_by_name_recursive(session->gui.layout, "status_bar");
+    Layout *draglt = layout_add_child(status_bar_lt);
+    Layout *calllt = layout_add_child(status_bar_lt);
+    Layout *errlt = layout_add_child(status_bar_lt);
+    session->status_bar.layout = status_bar_lt;
+
+    draglt->h.type = SCALE;
+    draglt->h.value = 1.0f;
+    draglt->y.value = 0.0f;
+    draglt->x.type = REL;
+    draglt->x.value = STATUS_BAR_H_PAD;
+    draglt->w.value = 0.0f;
+
+    calllt->h.type = SCALE;
+    calllt->h.value = 1.0f;
+    calllt->y.value = 0.0f;
+    calllt->x.type = STACK;
+    calllt->x.value = STATUS_BAR_H_PAD;
+    calllt->w.value = 500.0f;
+
+
+    errlt->h.type = SCALE;
+    errlt->h.value = 1.0f;
+    errlt->y.value = 0.0f;
+    errlt->x.type = REVREL;
+    errlt->x.value = STATUS_BAR_H_PAD;
+    errlt->w.value = 500.0f;
+
+    session->status_bar.call = textbox_create_from_str(session->status_bar.callstr, calllt, main_win->mono_bold_font, 14, main_win);
+    textbox_set_trunc(session->status_bar.call, false);
+    textbox_set_text_color(session->status_bar.call, &colors.light_grey);
+    textbox_set_background_color(session->status_bar.call, &colors.clear);
+    textbox_set_align(session->status_bar.call, CENTER_LEFT);
+
+    session->status_bar.dragstat = textbox_create_from_str(session->status_bar.dragstr, draglt, main_win->mono_bold_font, 14, main_win);
+    textbox_set_trunc(session->status_bar.dragstat, false);
+    textbox_set_text_color(session->status_bar.dragstat, &colors.green);
+    textbox_set_background_color(session->status_bar.dragstat, &colors.clear);
+    textbox_set_align(session->status_bar.dragstat, CENTER_LEFT);
+    
+    session->status_bar.error = textbox_create_from_str(session->status_bar.errstr, errlt, main_win->mono_bold_font, 14, main_win);
+    textbox_set_trunc(session->status_bar.error, false);
+    textbox_set_text_color(session->status_bar.error, &colors.red);
+    textbox_set_background_color(session->status_bar.error, &colors.clear);
+    textbox_set_align(session->status_bar.error, CENTER_LEFT);
+    /* textbox_size_to_fit(session->status_bar.call, 0, 0); */
+    /* textbox_size_to_fit(session->status_bar.error, 0, 0); */
+    textbox_reset_full(session->status_bar.error);
+    textbox_reset_full(session->status_bar.dragstat);
+    textbox_reset_full(session->status_bar.call);
+
 }
 
 void session_destroy()
@@ -69,10 +199,6 @@ void session_destroy()
 	audioconn_destroy(session->audio_io.playback_conns[i]);
     }
 
-    free(session->output_L);
-    free(session->output_R);
-    free(session->output_L_freq);
-    free(session->output_R_freq);
 
     textbox_destroy(session->gui.timeline_label);
     panel_area_destroy(session->gui.panels);
@@ -86,5 +212,10 @@ void session_destroy()
     session_destroy_metronomes(session);
     session_loading_screen_deinit(session);
     session_deinit_midi(session);
+
+    Layout *panels_layout = layout_get_child_by_name_recursive(session->gui.layout, "panel_area");
+    project_init_panels(proj, panels_layout);
+
+    session_status_bar_init(session);
 
 }

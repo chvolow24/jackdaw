@@ -18,8 +18,8 @@ struct audio_io {
     uint8_t num_record_conns;
     AudioConn *playback_conns[MAX_SESSION_AUDIO_CONNS];
     uint8_t num_playback_conns;
-    /* AudioConn *playback_conn; */
-    uint8_t playback_conn_index;
+    AudioConn *playback_conn;
+    /* uint8_t playback_conn_index; */
 };
 
 struct midi_io {
@@ -119,10 +119,6 @@ struct playback {
 typedef struct session {
     struct audio_io audio_io;
     struct midi_io midi_io;
-    float *output_L;
-    float *output_R;
-    double *output_L_freq;
-    double *output_R_freq;
     pthread_t dsp_thread;
     UserEventHistory history;
     struct playhead_scroll playhead_scroll;

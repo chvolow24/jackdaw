@@ -344,6 +344,13 @@ typedef struct project {
     uint16_t num_clips;
     uint16_t active_clip_index;
 
+    /* Output buffers */
+    float *output_L;
+    float *output_R;
+    double *output_L_freq;
+    double *output_R_freq;
+    
+
 } Project;
 
 Project *project_create(

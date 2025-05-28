@@ -19,16 +19,16 @@ typedef struct loading_screen {
 } LoadingScreen;
 
 
-void project_set_loading_screen(
+void session_set_loading_screen(
     const char *title,
     const char *subtitle,
     bool draw_progress_bar);
 
-int project_loading_screen_update(
+int session_loading_screen_update(
     const char *subtitle,
     float progress);
 
-void project_loading_screen_deinit(Project *proj);
+void session_loading_screen_deinit(Session *session);
 
 #endif
 

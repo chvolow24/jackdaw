@@ -17,6 +17,7 @@
 
 #include <stdlib.h>
 #include "project.h"
+#include "session.h"
 #include "status.h"
 #include "user_event.h"
 
@@ -101,7 +102,8 @@ void user_event_history_destroy(UserEventHistory *history)
 }
 
 UserEvent *user_event_push(
-    UserEventHistory *history,
+    
+    /* UserEventHistory *history, */
     EventFn undo_fn,
     EventFn redo_fn,
     EventFn dispose_fn,
@@ -118,6 +120,8 @@ UserEvent *user_event_push(
     bool free_obj2
     )
 {
+    Session *session = session_get();
+    UserEventHistory *history = &session->history;
     if (!proj) return NULL;
     UserEvent *e = calloc(1, sizeof(UserEvent));
     e->undo = undo_fn;

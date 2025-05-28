@@ -17,8 +17,9 @@
 
 #include <stdlib.h>
 #include "animation.h"
-#include "project.h"
-extern Project *proj;
+/* #include "project.h" */
+/* extern Project *proj; */
+#include "session.h"
 
 static Animation *animation_create(
     FrameOp frame_op,
@@ -122,7 +123,7 @@ static void animation_destroy(Animation *a)
     free(a);
 }
 
-Animation *project_queue_animation(
+Animation *session_queue_animation(
     FrameOp frame_op,
     EndOp end_op,
     void *arg1, void *arg2,
@@ -137,9 +138,10 @@ Animation *project_queue_animation(
     /* get_bt_alloc(new); */
 
     /* pthread_mutex_lock(&proj->animation_lock); */
-    Animation *node = proj->animations;
+    Session *session = session_get();
+    Animation *node = session->animations;
     if (!node) {
-	proj->animations = new;
+	session->animations = new;
 	/* pthread_mutex_unlock(&proj->animation_lock); */
 	return new;
     }
@@ -154,13 +156,14 @@ Animation *project_queue_animation(
 
 
 
-void project_dequeue_animation(Animation *a)
+void session_dequeue_animation(Animation *a)
 {
     /* print_bt(a); */
     /* /\* print_bt_alloc(a); *\/ */
     /* get_bt(a); */
+    Session *session = session_get();
     if (!a->prev) {
-	proj->animations = a->next;
+	session->animations = a->next;
     } else {
 	a->prev->next = a->next;
     }
@@ -172,10 +175,11 @@ void project_dequeue_animation(Animation *a)
 }
 
 
-void project_animations_do_frame()
+void session_animations_do_frame()
 {
     /* pthread_mutex_lock(&proj->animation_lock); */
-    Animation *a = proj->animations;
+    Session *session = session_get();
+    Animation *a = session->animations;
     while (a) {
 	if (a->frame_op)
 	    a->frame_op(a->arg1, a->arg2);
@@ -195,7 +199,7 @@ void project_animations_do_frame()
 	    /* 	} */
 	    /* } */
 	    Animation *next  = a->next;
-	    project_dequeue_animation(a);
+	    session_dequeue_animation(a);
 	    /* animation_destroy(a); */
 	    a = next;
 	    
@@ -207,12 +211,12 @@ void project_animations_do_frame()
     /* pthread_mutex_unlock(&proj->animation_lock); */
 }
 
-void project_destroy_animations(Project *proj)
+void session_destroy_animations(Session *session)
 {
-    Animation *a = proj->animations;
+    Animation *a = session->animations;
     while (a) {
 	Animation *next = a->next;
-	project_dequeue_animation(a);
+	session_dequeue_animation(a);
 	/* animation_destroy(a); */
 	a = next;
     }

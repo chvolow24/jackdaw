@@ -239,7 +239,7 @@ void ttf_reset_dpi_scale_factor(Font *font);
 TTF_Font *ttf_get_font_at_size(Font *font, int size);
 
 /* Set a text color and refresh the drawable elements */
-void txt_set_color(Text *txt, SDL_Color *clr);
+void txt_set_color(Text *txt, const SDL_Color *clr);
 
 /* Set text pad values and refresh drawable elements */
 void txt_set_pad(Text *txt, int h_pad, int v_pad);

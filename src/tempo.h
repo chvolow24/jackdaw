@@ -151,8 +151,9 @@ void click_track_mute_unmute(ClickTrack *t);
 void click_track_increment_vol(ClickTrack *tt);
 void click_track_decrement_vol(ClickTrack *tt);
 void click_track_delete_segment_at_cursor(ClickTrack *ct);
-void project_init_metronomes(Project *proj);
-void project_destroy_metronomes(Project *proj);
+/* void project_init_metronomes(Project *proj); */
+void session_init_metronomes(Session *session);
+void session_destroy_metronomes(Session *session);
 void click_track_mix_metronome(ClickTrack *tt, float *mixdown_buf, int32_t mixdown_buf_len, int32_t tl_start_pos_sframes, int32_t tl_end_pos_sframes, float step);
 bool click_track_triage_click(uint8_t button, ClickTrack *t);
 

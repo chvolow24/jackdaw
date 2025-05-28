@@ -27,9 +27,10 @@
 /* #define EVENT_FN_DECL(name) void name(UserEvent *, void *, void *, Value, Value); */
 #define NEW_EVENT_FN(name, statstr)	\
     void name(UserEvent *self, void *obj1, void *obj2, Value val1, Value val2, ValType type1, ValType type2) { \
+    Session *session = session_get(); \
     if (strlen(statstr) > 0) { \
         char statstr_fmt[255];						\
-        snprintf(statstr_fmt, 255, "(%d/%d) %s", proj->history.len - self->index, proj->history.len, statstr); \
+        snprintf(statstr_fmt, 255, "(%d/%d) %s", session->history.len - self->index, session->history.len, statstr); \
         status_set_undostr(statstr_fmt); \
     } \
 
@@ -82,7 +83,6 @@ int user_event_do_undo(UserEventHistory *history);
 int user_event_do_redo(UserEventHistory *history);
 
 UserEvent *user_event_push(
-    UserEventHistory *history,
     EventFn undo_fn,
     EventFn redo_fn,
     EventFn dispose_fn,

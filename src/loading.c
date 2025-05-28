@@ -2,10 +2,9 @@
 #include "geometry.h"
 #include "menu.h"
 #include "layout_xml.h"
-#include "project.h"
+#include "session.h"
 #include "textbox.h"
 
-extern Project *proj;
 extern Window *main_win;
 
 extern SDL_Color menu_std_clr_inner_border;
@@ -13,9 +12,9 @@ extern SDL_Color menu_std_clr_outer_border;
 
 static const SDL_Color txt_clr = {10, 245, 10, 255};
 
-void project_loading_screen_deinit(Project *proj)
+void session_loading_screen_deinit(Session *session)
 {
-    LoadingScreen *ls = &proj->loading_screen;
+    LoadingScreen *ls = &session->loading_screen;
     if (ls->title_tb) textbox_destroy(ls->title_tb);
     if (ls->subtitle_tb) textbox_destroy(ls->subtitle_tb);
     ls->title_tb = NULL;
@@ -72,12 +71,13 @@ static void loading_screen_init(
 }
 
 
-void project_set_loading_screen(
+void session_set_loading_screen(
     const char *title,
     const char *subtitle,
     bool draw_progress_bar)
 {
-    LoadingScreen *ls = &proj->loading_screen;
+    Session *session = session_get();
+    LoadingScreen *ls = &session->loading_screen;
     loading_screen_init(ls, title, subtitle, draw_progress_bar);
 
     window_start_draw(main_win, NULL);
@@ -124,12 +124,13 @@ static void loading_screen_draw(LoadingScreen *ls)
 
 
 /* Return 1 to abort operation */
-int project_loading_screen_update(
+int session_loading_screen_update(
     const char *subtitle,
     float progress)
 {
     /* return 0; */
-    LoadingScreen *ls = &proj->loading_screen;
+    Session *session = session_get();
+    LoadingScreen *ls = &session->loading_screen;
     ls->progress = progress;
     if (subtitle) {
 	strncpy(ls->subtitle, subtitle, MAX_LOADSTR_LEN);

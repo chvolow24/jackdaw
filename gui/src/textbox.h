@@ -83,9 +83,9 @@ void textbox_size_to_fit(Textbox *tb, int w_pad, int v_pad);
 void textbox_size_to_fit_v(Textbox *tb, int v_pad);
 void textbox_size_to_fit_h(Textbox *tb, int h_pad);
 void textbox_set_fixed_w(Textbox *tb, int fixed_w);
-void textbox_set_text_color(Textbox *tb, SDL_Color *clr);
+void textbox_set_text_color(Textbox *tb, const SDL_Color *clr);
 void textbox_set_trunc(Textbox *tb, bool trunc);
-void textbox_set_text_color(Textbox *tb, SDL_Color *clr);
+/* void textbox_set_text_color(Textbox *tb, SDL_Color *clr); */
 void textbox_set_background_color(Textbox *tb, SDL_Color *clr);
 void textbox_set_border_color(Textbox *tb, SDL_Color *clr);
 void textbox_set_border(Textbox *tb, SDL_Color *color, int thickness);

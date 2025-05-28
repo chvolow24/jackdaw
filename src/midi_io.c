@@ -16,6 +16,7 @@
 
 #include "midi_io.h"
 #include "portmidi.h"
+#include "session.h"
 
 int midi_device_populate_list(MIDIDevice *devices)
 {
@@ -91,38 +92,54 @@ void midi_io_deinit(void)
     }
 }
 
-int midi_create_virtual_devices(struct midi *midi)
+int midi_create_virtual_devices(struct midi_io *midi_io)
 {
-    int ret = midi_device_create_jackdaw_out(&midi->out);
+    int ret = midi_device_create_jackdaw_out(&midi_io->out);
     if (ret < 0) {
 	fprintf(stderr, "Error creating jackdaw midi out\n");
 	return ret;
     }
-    ret = midi_device_create_jackdaw_in(&midi->in);
+    
+    ret = midi_device_create_jackdaw_in(&midi_io->in);
+    
     if (ret < 0) {
 	fprintf(stderr, "Error creating jackdaw midi in\n");
 	return ret;
     }
-    PmError err = Pm_OpenInput(&midi->in.stream, midi->in.id, NULL, PM_EVENT_BUF_NUM_EVENTS, NULL, NULL);
+    
+    PmError err = Pm_OpenInput(&midi_io->in.stream, midi_io->in.id, NULL, PM_EVENT_BUF_NUM_EVENTS, NULL, NULL);
     if (err != pmNoError) {
 	fprintf(stderr, "Error opening jackdaw midi in! %d\n", err);
     }
-    err = Pm_OpenOutput(&midi->out.stream, midi->out.id, NULL, PM_EVENT_BUF_NUM_EVENTS, NULL, NULL, 0);
+    err = Pm_OpenOutput(&midi_io->out.stream, midi_io->out.id, NULL, PM_EVENT_BUF_NUM_EVENTS, NULL, NULL, 0);
     if (err != pmNoError) {
 	fprintf(stderr, "Error opening jackdaw midi out! %d\n", err);
     }
     return ret;
 }
 
-void midi_close_virtual_devices(struct midi *midi)
+void midi_close_virtual_devices(struct midi_io *midi_io)
 {
-    PmError err = Pm_Close(midi->in.stream);
+    PmError err = Pm_Close(midi_io->in.stream);
     if (err != pmNoError) {
 	fprintf(stderr, "Error closing input device: %s\n", Pm_GetErrorText(err));
     }
-    err = Pm_Close(midi->out.stream);
+    err = Pm_Close(midi_io->out.stream);
     if (err != pmNoError) {
 	fprintf(stderr, "Error closing output device: %s\n", Pm_GetErrorText(err));
     }
 
 }
+
+int session_init_midi(Session *session)
+{
+    int ret = midi_create_virtual_devices(&session->midi_io);
+    return ret;
+}
+
+void session_deinit_midi(Session *session)
+{
+    midi_close_virtual_devices(&session->midi_io);
+}
+
+

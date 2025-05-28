@@ -31,6 +31,7 @@
 #include "layout_xml.h"
 #include "modal.h"
 #include "project.h"
+#include "session.h"
 #include "tempo.h"
 #include "test.h"
 #include "timeline.h"
@@ -51,9 +52,9 @@ extern SDL_Color color_global_play_green;
 
 extern pthread_t MAIN_THREAD_ID;
 
-void project_init_metronomes(Project *proj)
+void session_init_metronomes(Session *session)
 {
-    Metronome *m = &proj->metronomes[0];
+    Metronome *m = &session->metronomes[0];
     m->name = "standard";
 
     float *L, *R;    
@@ -79,10 +80,10 @@ void project_init_metronomes(Project *proj)
     m->buf_lens[1] = buf_len;
 }
 
-void project_destroy_metronomes(Project *proj)
+void session_destroy_metronomes(Session *session)
 {
     for (int i=0; i<PROJ_NUM_METRONOMES; i++) {
-	Metronome *m = proj->metronomes + i;
+	Metronome *m = session->metronomes + i;
 	if (m->buffers[0])
 	    free(m->buffers[0]);
 	if (m->buffers[1])
@@ -439,7 +440,8 @@ ClickTrack *timeline_add_click_track(Timeline *tl)
     ClickTrack *t = calloc(1, sizeof(ClickTrack));
     snprintf(t->name, MAX_NAMELENGTH, "click_track_%d", tl->num_click_tracks + 1);
     t->tl = tl;
-    t->metronome = &tl->proj->metronomes[0];
+    Session *session = session_get();
+    t->metronome = &session->metronomes[0];
     snprintf(t->num_beats_str, 3, "4");
     for (int i=0; i<MAX_BEATS_PER_BAR; i++) {
 	snprintf(t->subdiv_len_strs[i], 2, "4");
@@ -562,7 +564,7 @@ ClickTrack *timeline_add_click_track(Timeline *tl)
 	/* NULL, */
 	/* NULL, */
 	/* NULL, */
-	&tl->proj->dragged_component);
+	&session->dragged_component);
     slider_reset(t->metronome_vol_slider);
     /* Value min, max; */
     /* min.float_v = 0.0f; */
@@ -584,7 +586,6 @@ ClickTrack *timeline_add_click_track(Timeline *tl)
     /* layout_reset(lt); */
     Value nullval = {.int_v = 0};
     user_event_push(
-	&proj->history,
 	undo_add_click_track,
 	redo_add_click_track,
 	NULL,
@@ -665,7 +666,6 @@ static void click_segment_set_tempo(ClickSegment *s, unsigned int new_tempo, enu
 	Value new_val = {.int_v = new_tempo};
 	Value ebb = {.int_v = (int)(s->track->end_bound_behavior)};
 	user_event_push(
-	    &proj->history,
 	    undo_redo_set_tempo,
 	    undo_redo_set_tempo,
 	    NULL, NULL,
@@ -797,7 +797,6 @@ static void click_track_delete(ClickTrack *tt, bool from_undo)
     Value nullval = {.int_v = 0};
     if (!from_undo) {
 	user_event_push(
-	    &proj->history,
 	    undo_delete_click_track,
 	    redo_delete_click_track,
 	    dispose_delete_click_track,
@@ -914,7 +913,6 @@ void timeline_cut_click_track_at_cursor(Timeline *tl)
     Value cut_pos = {.int32_v = tl->play_pos_sframes};
     Value new_seg_duration = {.int32_v = s->next ? s->next->start_pos - s->start_pos : -1};
     user_event_push(
-	&proj->history,
 	undo_cut_click_track, redo_cut_click_track,
 	NULL, dispose_forward_cut_click_track,
 	(void *)tt, (void *)s,
@@ -1032,7 +1030,8 @@ void click_track_goto_prox_beat(ClickTrack *tt, int direction, enum beat_promine
 static void click_track_deferred_draw(void *click_track_v)
 {
     ClickTrack *tt = (ClickTrack *)click_track_v;
-    SDL_Rect *audio_rect = tt->tl->proj->audio_rect;
+    Session *session = session_get();
+    SDL_Rect *audio_rect = session->gui.audio_rect;
     /* SDL_Rect cliprect = *audio_rect; */
     /* cliprect.w += cliprect.x; */
     /* cliprect.x = 0; */
@@ -1431,7 +1430,6 @@ static void click_track_delete_segment_at(ClickTrack *ct, int32_t at, bool from_
 
     if (!from_undo) {
 	user_event_push(
-	    &proj->history,
 	    undo_delete_click_segment,
 	    redo_delete_click_segment,
 	    dispose_delete_click_segment, NULL,
@@ -1495,9 +1493,10 @@ bool click_track_triage_click(uint8_t button, ClickTrack *t)
 	}
 	s = s->next;
     }
+    Session *session = session_get();
     if (final) {
-	proj->dragged_component.component = final;
-	proj->dragged_component.type = DRAG_CLICK_SEG_BOUND;
+	session->dragged_component.component = final;
+	session->dragged_component.type = DRAG_CLICK_SEG_BOUND;
 	Value current_val = endpoint_safe_read(&final->start_pos_ep, NULL);
 	endpoint_start_continuous_change(&final->start_pos_ep, false, (Value)0, JDAW_THREAD_MAIN, current_val);
 	return true;

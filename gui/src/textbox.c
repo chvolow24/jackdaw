@@ -268,7 +268,7 @@ void textbox_set_trunc(Textbox *tb, bool trunc)
     txt_reset_display_value(tb->text);
 }
 
-void textbox_set_text_color(Textbox *tb, SDL_Color *clr)
+void textbox_set_text_color(Textbox *tb, const SDL_Color *clr)
 {
     /* txt_set_color also resets the text drawables */
     txt_set_color(tb->text, clr);

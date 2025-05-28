@@ -21,6 +21,7 @@
 #include <stdbool.h>
 #include "portmidi.h"
 
+
 #define PM_EVENT_BUF_NUM_EVENTS 64
 #define MAX_MIDI_DEVICES 6
 
@@ -42,15 +43,15 @@ typedef struct midi_device {
 } MIDIDevice;
 
 /* One instance stored on Project */
-struct midi {
-    MIDIDevice in;
-    MIDIDevice out;
-};
 
 /* returns number of devices available */
 int midi_device_populate_list(MIDIDevice *devices);
-int midi_create_virtual_devices(struct midi *midi);
-void midi_close_virtual_devices(struct midi *midi);
+/* int midi_create_virtual_devices(struct midi_io *midi); */
+/* void midi_close_virtual_devices(struct midi_io *midi); */
+
+typedef struct session Session;
+int session_init_midi(Session *session);
+int session_deinit_midi(Session *session);
 
 
 #endif

@@ -37,6 +37,7 @@
 #include "page.h"
 #include "panel.h"
 #include "project.h"
+#include "session.h"
 #include "status.h"
 #include "text.h"
 #include "textbox.h"
@@ -73,7 +74,8 @@
 #define PLAYHEAD_ADJUST_SCALAR_SMALL 0.00015f
 
 extern Window *main_win;
-extern Project *proj;
+/* extern Project *proj; */
+
 extern SDL_Color color_global_black;
 extern SDL_Color color_global_white;
 extern SDL_Color color_global_clear;
@@ -125,7 +127,8 @@ uint8_t project_add_timeline(Project *proj, char *name)
     strcpy(new_tl->name, name);
     new_tl->proj = proj;
     new_tl->index = proj->num_timelines;
-    Layout *tl_lt = layout_get_child_by_name_recursive(proj->layout, "timeline");
+    Session *session = session_get();
+    Layout *tl_lt = layout_get_child_by_name_recursive(session->gui.layout, "timeline");
     if (new_tl->index != 0) {
 	Layout *main_lt_fresh = layout_read_from_xml(MAIN_LT_PATH);
 	Layout *new_tl_lt = layout_get_child_by_name_recursive(main_lt_fresh, "timeline");
@@ -241,7 +244,7 @@ retry3:
     proj->timelines[proj->num_timelines] = new_tl;
     proj->num_timelines++;
 
-    api_node_register(&new_tl->api_node, &new_tl->proj->server.api_root, new_tl->name);
+    api_node_register(&new_tl->api_node, &session->server.api_root, new_tl->name);
     
     return proj->num_timelines - 1; /* Return the new timeline index */
 }
@@ -255,6 +258,7 @@ static void timeline_destroy(Timeline *tl, bool displace_in_proj)
 	click_track_destroy(tl->click_tracks[i]);
     }
     /* tl->proj->num_timelines--; */
+    Project *proj = tl->proj;
     if (displace_in_proj) {
 	bool displace = false;
 	for (uint8_t i=0; i<proj->num_timelines; i++) {
@@ -295,18 +299,9 @@ static void timeline_destroy(Timeline *tl, bool displace_in_proj)
 }
 
 static void clip_destroy_no_displace(Clip *clip);
-void project_deinit_midi(Project *proj);
 
 void project_destroy(Project *proj)
 {
-    if (proj->recording) {
-	transport_stop_recording();
-    } else {
-	transport_stop_playback();
-    }
-
-    /* api_quit(proj); */
-    user_event_history_destroy(&proj->history);
     /* fprintf(stdout, "PROJECT_DESTROY num tracks: %d\n", proj->timelines[0]->num_tracks); */
     for (uint16_t i=0; i<proj->num_clips; i++) {
 	clip_destroy_no_displace(proj->clips[i]);
@@ -315,40 +310,15 @@ void project_destroy(Project *proj)
     for (uint8_t i=0; i<proj->num_timelines; i++) {
 	timeline_destroy(proj->timelines[i], false);
     }
-
-    for (uint8_t i=0; i<proj->num_record_conns; i++) {
-	audioconn_destroy(proj->record_conns[i]);
-    }
-    for (uint8_t i=0; i<proj->num_playback_conns; i++) {
-	audioconn_destroy(proj->playback_conns[i]);
-    }
-
-    free(proj->output_L);
-    free(proj->output_R);
-    free(proj->output_L_freq);
-    free(proj->output_R_freq);
-
-    textbox_destroy(proj->timeline_label);
-
-    panel_area_destroy(proj->panels);
-    
-    if (proj->status_bar.call) textbox_destroy(proj->status_bar.call);
-    if (proj->status_bar.dragstat) textbox_destroy(proj->status_bar.dragstat);
-    if (proj->status_bar.error) textbox_destroy(proj->status_bar.error);
-
-    project_destroy_animations(proj);
-    project_destroy_metronomes(proj);
-    project_loading_screen_deinit(proj);
-    project_deinit_midi(proj);
-
     free(proj);
 }
 
 void project_reset_tl_label(Project *proj)
 {
+    Session *session = session_get();
     Timeline *tl = proj->timelines[proj->active_tl_index];
-    snprintf(proj->timeline_label_str, PROJ_TL_LABEL_BUFLEN, "Timeline %d: \"%s\"\n", proj->active_tl_index + 1, tl->name);
-    textbox_reset_full(proj->timeline_label);
+    snprintf(session->gui.timeline_label_str, MAX_NAMELENGTH, "Timeline %d: \"%s\"\n", proj->active_tl_index + 1, tl->name);
+    textbox_reset_full(session->gui.timeline_label);
 }
 
 static void project_init_panels(Project *proj, Layout *lt);
@@ -374,8 +344,8 @@ Project *project_create(
 	exit(1);
     }
     
-    window_set_layout(main_win, layout_create_from_window(main_win));
-    layout_read_xml_to_lt(main_win->layout, MAIN_LT_PATH);
+
+
     
     strcpy(proj->name, name);
     char win_title_buf[MAX_NAMELENGTH];
@@ -1231,17 +1201,6 @@ void project_init_audio_conns(Project *proj)
     if (proj->playback_conn->available && audioconn_open(proj, proj->playback_conn) != 0) {
 	fprintf(stderr, "Error: failed to open default audio conn \"%s\". More info: %s\n", proj->playback_conn->name, SDL_GetError());
     }
-}
-
-int project_init_midi(Project *proj)
-{
-    int ret = midi_create_virtual_devices(&proj->midi);
-    return ret;
-}
-
-void project_deinit_midi(Project *proj)
-{
-    midi_close_virtual_devices(&proj->midi);
 }
 
 

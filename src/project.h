@@ -76,13 +76,10 @@
 #define BUBBLE_CORNER_RADIUS 6
 #define MUTE_SOLO_BUTTON_CORNER_RADIUS 4
 
-#define PROJ_TL_LABEL_BUFLEN 50
-
 #define PLAYHEAD_TRI_H (10 * main_win->dpi_scale_factor)
 
 #define PROJ_NUM_METRONOMES 1
 
-#define MAX_QUEUED_OPS 255
 #define MAX_ANIMATIONS 64
 
 typedef struct project Project;
@@ -274,7 +271,6 @@ typedef struct timeline {
     sem_t *readable_chunks;
     sem_t *writable_chunks;
     sem_t *unpause_sem;
-    pthread_t mixdown_thread;
     
     Track *tracks[MAX_TRACKS];  
     uint8_t num_tracks;
@@ -328,60 +324,15 @@ typedef struct timeline {
 } Timeline;
 
 
-struct status_bar {
-    Layout *layout;
-    char errstr[MAX_STATUS_STRLEN];
-    char callstr[MAX_STATUS_STRLEN];
-    char dragstr[MAX_STATUS_STRLEN];
-    Textbox *error;
-    Textbox *call;
-    Textbox *dragstat;
-    int stat_timer;
-    int call_timer;
-    int err_timer;
-};
-
-
-/* for sample mode */
-struct drop_save {
-    Clip *clip;
-    int32_t in;
-    int32_t out;
-};
-
-struct queued_val_change {
-    Endpoint *ep;
-    Value new_val;
-    bool run_gui_cb;
-};
-
 /* A Jackdaw project. Only one can be active at a time. Can persist on disk as a .jdaw file (see dot_jdaw.c, dot_jdaw.h) */
 typedef struct project {
+    
     char name[MAX_NAMELENGTH];
     Timeline *timelines[MAX_PROJ_TIMELINES];
     uint8_t num_timelines;
     uint8_t active_tl_index;
-    char timeline_label_str[PROJ_TL_LABEL_BUFLEN];
-    Textbox *timeline_label;
-    
-    float play_speed;
-    Endpoint play_speed_ep;
-    bool loop_play;
-    bool dragging;
-    bool recording;
-    bool playing;
-    Automation *automation_recording;
-
-    AudioConn *record_conns[MAX_PROJ_AUDIO_CONNS];
-    uint8_t num_record_conns;
-    AudioConn *playback_conns[MAX_PROJ_AUDIO_CONNS];
-    uint8_t num_playback_conns;
-
-    struct midi midi;
-    bool midi_initialized;
 
     /* Audio settings */
-    AudioConn *playback_conn;
     uint8_t channels;
     uint32_t sample_rate; //samples per second
     SDL_AudioFormat fmt;
@@ -393,100 +344,6 @@ typedef struct project {
     uint16_t num_clips;
     uint16_t active_clip_index;
 
-    /* Src */
-    bool source_mode;
-    Clip *src_clip;
-    int32_t src_play_pos_sframes;
-    int32_t src_in_sframes;
-    int32_t src_out_sframes;
-    float src_play_speed;
-
-    /* Panel area */
-    PanelArea *panels;
-
-    /* Audio output */
-    float *output_L;
-    float *output_R;
-    /* uint16_t output_len; */
-
-    double *output_L_freq;
-    double *output_R_freq;
-
-
-    /* DSP thread */
-    pthread_t dsp_thread;
-
-    struct freq_plot *freq_domain_plot;
-
-    /* In-progress events */
-    float playhead_frame_incr;
-    bool playhead_do_incr;
-    /* bool vol_changing; */
-    /* bool vol_up; */
-    /* bool pan_changing; */
-    /* bool pan_right; */
-    /* bool show_output_freq_domain; */
-
-    Draggable dragged_component;
-    /* Slider *currently_editing_slider; */
-    /* Value cached_slider_val; */
-    /* enum slider_target_type cached_slider_type; */
-
-    /* Event History (undo/redo) */
-    UserEventHistory history;
-
-    /* Quitting */
-    int quit_count;
-
-    /* Metronomes */
-    Metronome metronomes[PROJ_NUM_METRONOMES];
-
-    /* GUI Members */
-    Layout *layout;
-    SDL_Rect *audio_rect;
-    SDL_Rect *control_bar_rect;
-    SDL_Rect *ruler_rect;
-    SDL_Rect *console_column_rect;
-    SDL_Rect *hamburger;
-    SDL_Rect *bun_patty_bun[3];
-    Textbox *source_name_tb;
-
-    /* Status bar */
-    struct status_bar status_bar;
-
-    /* Loading Screen */
-    LoadingScreen loading_screen;
-
-    /* Source mode state */
-    struct drop_save saved_drops[5];
-    uint8_t num_dropped;
-
-
-    /* Animations */
-    Animation *animations;
-    /* pthread_mutex_t animation_lock; */
-
-    /* Endpoints API */
-    struct api_server server;
-    /* APINode api_root; */
-    /* bool server_active; */
-    /* int server_port; */
-    
-    struct queued_val_change queued_val_changes[NUM_JDAW_THREADS][MAX_QUEUED_OPS];
-    uint8_t num_queued_val_changes[NUM_JDAW_THREADS];
-    pthread_mutex_t queued_val_changes_lock;
-    
-    EndptCb queued_callbacks[NUM_JDAW_THREADS][MAX_QUEUED_OPS];
-    Endpoint *queued_callback_args[NUM_JDAW_THREADS][MAX_QUEUED_OPS];
-    uint8_t num_queued_callbacks[NUM_JDAW_THREADS];
-    pthread_mutex_t queued_callback_lock;
-
-    Endpoint *ongoing_changes[NUM_JDAW_THREADS][MAX_QUEUED_OPS];
-    uint8_t num_ongoing_changes[NUM_JDAW_THREADS];
-    pthread_mutex_t ongoing_changes_lock;
-
-
-    bool do_tests;
 } Project;
 
 Project *project_create(

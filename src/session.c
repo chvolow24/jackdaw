@@ -78,6 +78,7 @@ Session *session_create()
     }
 
     endpoint_init(
+	&session->playback.play_speed_ep,
 	&session->playback.play_speed,
 	JDAW_FLOAT,
 	"play_speed",
@@ -86,7 +87,7 @@ Session *session_create()
 	play_speed_gui_cb, NULL, NULL,
 	NULL, NULL, NULL, NULL);
     
-    api_endpoint_register(&proj->play_speed_ep, &proj->server.api_root);			  
+    api_endpoint_register(&session->playback.play_speed_ep, &session->server.api_root);			  
 
     
     return session;

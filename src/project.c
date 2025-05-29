@@ -73,16 +73,6 @@
 extern Window *main_win;
 
 extern struct colors colors;
-/* extern Project *proj; */
-
-/* extern SDL_Color color_global_black; */
-/* extern SDL_Color color_global_white; */
-/* extern SDL_Color color_global_clear; */
-/* extern SDL_Color color_global_red; */
-/* extern SDL_Color color_global_green; */
-/* extern SDL_Color color_global_light_grey; */
-/* extern SDL_Color color_global_quickref_button_blue; */
-/* extern SDL_Color color_global_grey; */
 
 extern Symbol *SYMBOL_TABLE[];
 
@@ -371,8 +361,8 @@ Project *project_create(
     /* 	); */
 
     /* textbox_set_align(proj->source_name_tb, CENTER_LEFT); */
-    /* textbox_set_background_color(proj->source_name_tb, &color_global_clear); */
-    /* textbox_set_text_color(proj->source_name_tb, &color_global_white); */
+    /* textbox_set_background_color(proj->source_name_tb, &colors.clear); */
+    /* textbox_set_text_color(proj->source_name_tb, &colors.white); */
 
     project_add_timeline(proj, "Main");
     project_reset_tl_label(proj);
@@ -398,17 +388,6 @@ Project *project_create(
     
 
     /* Initialize endpoints */
-    endpoint_init(
-	&proj->play_speed_ep,
-	&proj->play_speed,
-	JDAW_FLOAT,
-	"play_speed",
-	"Play speed",
-	JDAW_THREAD_MAIN,
-	play_speed_gui_cb, NULL, NULL,
-	NULL, NULL, NULL, NULL);
-    
-    api_endpoint_register(&proj->play_speed_ep, &proj->server.api_root);			  
     /* api_start_server(proj, 9302); */
 
     return proj;
@@ -478,7 +457,6 @@ static int name_completion(Text *txt, void *obj)
     }
     
     user_event_push(
-	&proj->history,
 	undo_rename_object,
 	redo_rename_object,
 	NULL, NULL,
@@ -631,7 +609,8 @@ Track *timeline_add_track(Timeline *tl)
 
     track->channels = tl->proj->channels;
 
-    track->input = tl->proj->record_conns[0];
+    Session *session = session_get();
+    track->input = session->audio_io.record_conns[0];
     track->color = track_colors[track_color_index];
     if (track_color_index < NUM_TRACK_COLORS -1) {
 	track_color_index++;
@@ -734,7 +713,7 @@ Track *timeline_add_track(Timeline *tl)
 	main_win->bold_font,
 	12,
 	main_win);
-    textbox_set_background_color(track->tb_vol_label, &color_global_clear);
+    textbox_set_background_color(track->tb_vol_label, &colors.clear);
     textbox_set_align(track->tb_vol_label, CENTER_LEFT);
     textbox_set_pad(track->tb_vol_label, TRACK_NAME_H_PAD, 0);
     textbox_set_trunc(track->tb_vol_label, false);
@@ -745,7 +724,7 @@ Track *timeline_add_track(Timeline *tl)
 	main_win->bold_font,
 	12,
 	main_win);
-    textbox_set_background_color(track->tb_pan_label, &color_global_clear);
+    textbox_set_background_color(track->tb_pan_label, &colors.clear);
     textbox_set_align(track->tb_pan_label, CENTER_LEFT);
     textbox_set_pad(track->tb_pan_label, TRACK_NAME_H_PAD, 0);
     textbox_set_trunc(track->tb_pan_label, false);
@@ -770,7 +749,7 @@ Track *timeline_add_track(Timeline *tl)
 
     textbox_set_align(track_tb, CENTER_LEFT);
     textbox_set_pad(track_tb, 4, 0);
-    textbox_set_border(track_tb, &color_global_black, 1);
+    textbox_set_border(track_tb, &colors.black, 1);
     textbox_set_trunc(track->tb_vol_label, false);
     /* textbox_reset_full(track->tb_name); */
     /* track->tb_name->text->validation = txt_name_validation; */
@@ -783,7 +762,7 @@ Track *timeline_add_track(Timeline *tl)
 	main_win->bold_font,
 	12,
 	main_win);
-    textbox_set_background_color(track->tb_input_label, &color_global_clear);
+    textbox_set_background_color(track->tb_input_label, &colors.clear);
     textbox_set_align(track->tb_input_label, CENTER_LEFT);
     textbox_set_pad(track->tb_input_label, TRACK_NAME_H_PAD, 0);
 
@@ -801,7 +780,7 @@ Track *timeline_add_track(Timeline *tl)
     /* textbox_size_to_fit(track->tb_input_name, 10, 0); */
     /* textbox_set_trunc(track->tb_input_name, true); */
     /* textbox_set_fixed_w(track->tb_input_name, saved_w); */
-    textbox_set_border(track->tb_input_name, &color_global_black, 1);
+    textbox_set_border(track->tb_input_name, &colors.black, 1);
     textbox_set_style(track->tb_input_name, BUTTON_CLASSIC);
 
     
@@ -812,7 +791,7 @@ Track *timeline_add_track(Timeline *tl)
 	14,
 	main_win);
     track->tb_mute_button->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
-    textbox_set_border(track->tb_mute_button, &color_global_black, 1);
+    textbox_set_border(track->tb_mute_button, &colors.black, 1);
     textbox_set_background_color(track->tb_mute_button, &color_mute_solo_grey);
     textbox_set_style(track->tb_mute_button, BUTTON_CLASSIC);
     /* textbox_reset_full(track->tb_mute_button); */
@@ -824,7 +803,7 @@ Track *timeline_add_track(Timeline *tl)
 	14,
 	main_win);
     track->tb_solo_button->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
-    textbox_set_border(track->tb_solo_button, &color_global_black, 1);
+    textbox_set_border(track->tb_solo_button, &colors.black, 1);
     textbox_set_background_color(track->tb_solo_button, &color_mute_solo_grey);
     textbox_set_style(track->tb_solo_button, BUTTON_CLASSIC);
     /* textbox_reset_full(track->tb_solo_button); */
@@ -849,7 +828,7 @@ Track *timeline_add_track(Timeline *tl)
 	SLIDER_HORIZONTAL,
 	SLIDER_FILL,
 	&label_amp_to_dbstr,
-	&tl->proj->dragged_component);
+	&session->dragged_component);
     /* track->vol_ep.xarg1 = track->vol_ctrl; */
     /* track->vol_ctrl = slider_create( */
     /* 	vol_ctrl_lt, */
@@ -895,7 +874,7 @@ Track *timeline_add_track(Timeline *tl)
 	SLIDER_HORIZONTAL,
 	SLIDER_TICK,
 	label_pan,
-	&tl->proj->dragged_component);
+	&session->dragged_component);
     track->pan_ctrl->disallow_unsafe_mode = true;
     /* track->pan_ep.xarg1 = track->pan_ctrl; */
 
@@ -908,7 +887,7 @@ Track *timeline_add_track(Timeline *tl)
 	auto_dropdown_action,
 	(void *)track,
 	NULL);
-    track->automation_dropdown->background_color = &color_global_grey;
+    track->automation_dropdown->background_color = &colors.grey;
     auto_dropdown_lt->w.value = (float)track->automation_dropdown->symbol->x_dim_pix / main_win->dpi_scale_factor;
     auto_dropdown_lt->h.value = (float)track->automation_dropdown->symbol->y_dim_pix / main_win->dpi_scale_factor;
     auto_dropdown_lt->x.value += 4.0f;
@@ -931,12 +910,14 @@ Track *timeline_add_track(Timeline *tl)
 
 void project_clear_active_clips()
 {
-    proj->active_clip_index = proj->num_clips;
+    Session *session = session_get();
+    session->proj.active_clip_index = session->proj.num_clips;
 }
 
 Clip *project_add_clip(AudioConn *conn, Track *target)
 {
-    if (proj->num_clips == MAX_PROJ_CLIPS) {
+    Session *session = session_get();
+    if (session->proj.num_clips == MAX_PROJ_CLIPS) {
 	return NULL;
     }
     Clip *clip = calloc(1, sizeof(Clip));
@@ -955,7 +936,7 @@ Clip *project_add_clip(AudioConn *conn, Track *target)
     }
     
     if (!target && conn) {
-	snprintf(clip->name, sizeof(clip->name), "%s_rec_%d", conn->name, proj->num_clips); /* TODO: Fix this */
+	snprintf(clip->name, sizeof(clip->name), "%s_rec_%d", conn->name, session->proj.num_clips); /* TODO: Fix this */
     } else if (target) {
 	snprintf(clip->name, sizeof(clip->name), "%s take %d", target->name, target->num_takes + 1);
 	target->num_takes++;
@@ -963,8 +944,8 @@ Clip *project_add_clip(AudioConn *conn, Track *target)
 	snprintf(clip->name, sizeof(clip->name), "anonymous");
     }
     /* clip->channels = proj->channels; */
-    proj->clips[proj->num_clips] = clip;
-    proj->num_clips++;
+    session->proj.clips[session->proj.num_clips] = clip;
+    session->proj.num_clips++;
     return clip;
 }
 
@@ -1133,7 +1114,7 @@ ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sfr
 
     textbox_set_align(cr->label, CENTER_LEFT);
     textbox_set_background_color(cr->label, NULL);
-    textbox_set_text_color(cr->label, &color_global_light_grey);
+    textbox_set_text_color(cr->label, &colors.light_grey);
 	/* textbox_size_to_fit(cr->label, CLIPREF_NAMELABEL_H_PAD, CLIPREF_NAMELABEL_V_PAD); */
 
     /* fprintf(stdout, "Clip num refs: %d\n", clip->num_refs); */
@@ -1163,8 +1144,10 @@ void timeline_reset_full(Timeline *tl)
     for (int i=0; i<tl->num_tracks; i++) {
 	track_reset_full(tl->tracks[i]);
     }
+
+    Session *session = session_get();
     layout_reset(tl->layout);
-    if (tl->proj->loop_play) {
+    if (session->playback.loop_play) {
 	timeline_reset_loop_play_lemniscate(tl);
     }
 
@@ -1180,7 +1163,8 @@ void timeline_reset(Timeline *tl, bool rescaled)
     }
 
     layout_reset(tl->layout);
-    if (tl->proj->loop_play) {
+    Session *session = session_get();
+    if (session->playback.loop_play) {
 	timeline_reset_loop_play_lemniscate(tl);
     }
 
@@ -1393,7 +1377,6 @@ void track_or_tracks_solo(Timeline *tl, Track *opt_track)
 	Value num = {.uint8_v = num_tracks_to_solo};
 	Value solocount = {.uint8_v = solo_count};
 	user_event_push(
-	    &proj->history,
 	    undo_redo_tracks_solo,
 	    undo_redo_tracks_solo,
 	    NULL,
@@ -1468,7 +1451,6 @@ void track_or_tracks_mute(Timeline *tl)
 	memcpy(undo_packet, muted_tracks, num_muted * sizeof(Track *));
 	Value num = {.uint8_v = num_muted};
 	user_event_push(
-	    &proj->history,
 	    undo_redo_tracks_mute,
 	    undo_redo_tracks_mute,
 	    NULL,
@@ -1501,6 +1483,7 @@ static void track_set_in_onclick(void *void_arg)
     textbox_set_value_handle(arg->track->tb_input_name, arg->track->input->name);
 
     window_pop_menu(main_win);
+    Project *proj = &session_get()->proj;
     Timeline *tl = proj->timelines[proj->active_tl_index];
     tl->needs_redraw = true;
     /* window_pop_mode(main_win); */
@@ -1513,8 +1496,9 @@ void track_set_input(Track *track)
     Menu *menu = menu_create_at_point(rect->x, rect->y);
     MenuColumn *c = menu_column_add(menu, "");
     MenuSection *sc = menu_section_add(c, "");
-    
-    for (int i=0; i<proj->num_record_conns; i++) {
+    /* Project *proj = &session_get()->proj; */
+    Session *session = session_get();
+    for (int i=0; i<session->audio_io.num_record_conns; i++) {
 	struct track_in_arg *arg = malloc(sizeof(struct track_in_arg));
 	arg->track = track;
 	arg->conn = proj->record_conns[i];

@@ -146,8 +146,8 @@ int endpoint_write(
     bool async_change_will_occur = false;
     /* Value change */
     enum jdaw_thread owner = endpoint_get_owner(ep);
-    /* fprintf(stderr, "Owner? %d.. on owner? %d !proj->playing && owner == JDAW_THREAD_DSP %d?\n", owner, on_thread(owner), !proj->playing && owner == JDAW_THREAD_DSP); */
-    if (on_thread(owner) || (!proj->playing && owner == JDAW_THREAD_DSP)) {
+    /* fprintf(stderr, "Owner? %d.. on owner? %d !session->playback.playing && owner == JDAW_THREAD_DSP %d?\n", owner, on_thread(owner), !session->playback.playing && owner == JDAW_THREAD_DSP); */
+    if (on_thread(owner) || (!session->playback.playing && owner == JDAW_THREAD_DSP)) {
 	pthread_mutex_lock(&ep->val_lock);
 	jdaw_val_set_ptr(ep->val, ep->val_type, new_val);
 	if (ep->automation && ep->automation->write) {
@@ -157,7 +157,7 @@ int endpoint_write(
 	}
 	pthread_mutex_unlock(&ep->val_lock);
     } else {
-	/* if (!proj->playing && ep->owner_thread == JDAW_THREAD_DSP) { */
+	/* if (!session->playback.playing && ep->owner_thread == JDAW_THREAD_DSP) { */
 	/*     pthread_mutex_lock(&ep->lock); */
 	/*     jdaw_val_set_ptr(ep->val, ep->val_type, new_val); */
 	/*     pthread_mutex_unlock(&ep->lock);	     */
@@ -175,7 +175,7 @@ int endpoint_write(
 	if (on_thread(JDAW_THREAD_DSP)) {
 	    ep->dsp_callback(ep);
 	} else {
-	    if (proj->playing) {
+	    if (session->playback.playing) {
 		project_queue_callback(proj, ep, ep->dsp_callback, JDAW_THREAD_DSP);
 		async_change_will_occur = true;
 	    } else {

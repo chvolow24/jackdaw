@@ -34,7 +34,7 @@ extern pthread_t DSP_THREAD_ID;
     }
 
 #define DSP_THREAD_ONLY_WHEN_ACTIVE(name) \
-    if (proj->playing && pthread_self() != DSP_THREAD_ID) { \
+    if (session->playback.playing && pthread_self() != DSP_THREAD_ID) { \
         fprintf(stderr, "Error: fn %s called outside DSP thread while proj playing", #name); \
 	breakfn(); \
 	exit(1);\

@@ -21,6 +21,7 @@
 #include "page.h"
 #include "panel.h"
 #include "project.h"
+#include "session.h"
 #include "timeline.h"
 #include "userfn.h"
 
@@ -122,6 +123,7 @@ static void mouse_triage_motion_audiorect(Timeline *tl)
 
 static void mouse_triage_click_timeline(uint8_t button)
 {
+    Session *session = session_get();
     Timeline *tl = proj->timelines[proj->active_tl_index];
 
     for (uint8_t i=0; i<tl->num_tracks; i++) {
@@ -139,7 +141,7 @@ static void mouse_triage_click_timeline(uint8_t button)
 	ClickTrack *tt = tl->click_tracks[i];
 	if (click_track_triage_click(button, tt)) return;
     }
-    if (SDL_PointInRect(&main_win->mousep, proj->audio_rect)) {
+    if (SDL_PointInRect(&main_win->mousep, session->gui.audio_rect)) {
 	mouse_triage_click_audiorect(tl, button);
 	/* return; */
     }
@@ -147,13 +149,12 @@ static void mouse_triage_click_timeline(uint8_t button)
 
 static void mouse_triage_click_control_bar(uint8_t button)
 {
-    /* if (SDL_PointInRect(&main_win->mousep, &proj->tb_out_value->layout->rect)) { */
-	/* user_tl_set_default_out(NULL); */
-    if (SDL_PointInRect(&main_win->mousep, proj->hamburger)) {
+    Session *session = session_get();
+    if (SDL_PointInRect(&main_win->mousep, session->gui.hamburger)) {
 	user_global_menu(NULL);
 	return;
-    } else if (SDL_PointInRect(&main_win->mousep, &proj->panels->layout->rect)) {
-	panel_area_mouse_click(proj->panels);
+    } else if (SDL_PointInRect(&main_win->mousep, &session->gui.panels->layout->rect)) {
+	panel_area_mouse_click(session->gui.panels);
     }
 }
 
@@ -169,13 +170,13 @@ void mouse_triage_click_project(uint8_t button)
 
 void mouse_triage_motion_timeline(int xrel, int yrel)
 {
-    if (proj->dragged_component.component) {
-	draggable_mouse_motion(&proj->dragged_component, main_win);
+    if (session->dragged_component.component) {
+	draggable_mouse_motion(&session->dragged_component, main_win);
 	return;
     }
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (automations_triage_motion(tl, xrel, yrel)) return;
-    if (SDL_PointInRect(&main_win->mousep, proj->audio_rect)) {
+    if (SDL_PointInRect(&main_win->mousep, session->gui.audio_rect)) {
 	mouse_triage_motion_audiorect(tl);
 	return;
     }
@@ -267,8 +268,8 @@ bool mouse_triage_click_text_edit(uint8_t button)
 bool mouse_triage_motion_page()
 {
     Page *page;
-    if (proj->dragged_component.component) {
-	draggable_mouse_motion(&proj->dragged_component, main_win);
+    if (session->dragged_component.component) {
+	draggable_mouse_motion(&session->dragged_component, main_win);
 	return true;
     }
     if ((page = main_win->active_page)) {
@@ -300,8 +301,8 @@ bool mouse_triage_click_tabview()
 bool mouse_triage_motion_tabview()
 {
     TabView *tv;
-    if (proj->dragged_component.component) {
-	draggable_mouse_motion(&proj->dragged_component, main_win);
+    if (session->dragged_component.component) {
+	draggable_mouse_motion(&session->dragged_component, main_win);
 	return true;
     }
     if ((tv = main_win->active_tabview)) {

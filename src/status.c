@@ -141,7 +141,7 @@ void status_stat_playspeed()
 {
     /* fprintf(stdout, "stat playspeed\n"); */
     char buf[64];
-    snprintf(buf, sizeof(buf), "Play speed: %0.3f",proj->play_speed);
+    snprintf(buf, sizeof(buf), "Play speed: %0.3f",session->playback.play_speed);
     status_set_statstr(buf);
 }
 

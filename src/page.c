@@ -23,6 +23,7 @@
 #include "project.h"
 #include "layout.h"
 #include "layout_xml.h"
+#include "session.h"
 #include "textbox.h"
 #include "value.h"
 #include "waveform.h"
@@ -397,7 +398,7 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	    /* params.slider_p.create_label_fn, */
 	    /* params.slider_p.action, */
 	    /* params.slider_p.target, */
-	    &proj->dragged_component);
+	    &session->dragged_component);
 	break;
     case EL_RADIO:
 	el->component = (void *)radio_button_create(
@@ -747,8 +748,8 @@ bool tabview_mouse_click(TabView *tv)
 	    Textbox *tb = tv->labels[i];
 	    if (SDL_PointInRect(&tv->win->mousep, &tb->layout->rect)) {
 		tabview_select_tab(tv, i);
-		proj->dragged_component.component = tv;
-		proj->dragged_component.type = DRAG_TABVIEW_TAB;
+		session->dragged_component.component = tv;
+		session->dragged_component.type = DRAG_TABVIEW_TAB;
 
 		/* tv->tabs[tv->current_tab]->onscreen = false; */
 		/* tv->current_tab = i; */
@@ -1108,19 +1109,20 @@ const char *tabview_active_tab_title(TabView *tv)
 
 void tabview_tab_drag(TabView *tv)
 {
+    Session *session = session_get();
     int mousex = main_win->mousep.x;
     if (tv->ellipsis_left_inserted && mousex > tv->ellipsis_left->layout->rect.x
 	&& mousex < tv->ellipsis_left->layout->rect.x + tv->ellipsis_left->layout->rect.w) {
 	tabview_swap_adjacent_tabs(tv, tv->current_tab, tv->current_tab - 1, true);
 	tabview_select_tab(tv, tv->current_tab - 1);
-	proj->dragged_component.component = NULL;
+	session->dragged_component.component = NULL;
 	return;
     }
     if (tv->ellipsis_right_inserted && mousex > tv->ellipsis_right->layout->rect.x
 	&& mousex < tv->ellipsis_right->layout->rect.x + tv->ellipsis_right->layout->rect.w) {
 	tabview_swap_adjacent_tabs(tv, tv->current_tab, tv->current_tab + 1, true);
 	tabview_select_tab(tv, tv->current_tab + 1);
-	proj->dragged_component.component = NULL;
+	session->dragged_component.component = NULL;
 	return;
     }
 

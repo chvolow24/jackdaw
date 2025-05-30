@@ -116,8 +116,8 @@ extern Symbol *SYMBOL_TABLE[];
 /*     /\*     int last_sample_y = wav_y; *\/ */
 /*     /\*     int sample_y = wav_y; *\/ */
 /*     /\*     for (int i=0; i<cr_len-1; i+=cr->track->tl->sample_frames_per_pixel) { *\/ */
-/*     /\*         if (wav_x > proj->audio_rect->x) { *\/ */
-/*     /\*             if (wav_x >= proj->audio_rect->x + proj->audio_rect->w) { *\/ */
+/*     /\*         if (wav_x > session->gui.audio_rect->x) { *\/ */
+/*     /\*             if (wav_x >= session->gui.audio_rect->x + session->gui.audio_rect->w) { *\/ */
 /*     /\*                 break; *\/ */
 /*     /\*             } *\/ */
 /*     /\*             sample = cr->clip->L[i + cr->in_mark_sframes]; *\/ */
@@ -143,7 +143,7 @@ extern Symbol *SYMBOL_TABLE[];
 
 /*     /\*     int i=0; *\/ */
 /*     /\*     while (i<cr_len) { *\/ */
-/*     /\*         if (wav_x > proj->audio_rect->x && wav_x < proj->audio_rect->x + proj->audio_rect->w) { *\/ */
+/*     /\*         if (wav_x > session->gui.audio_rect->x && wav_x < session->gui.audio_rect->x + session->gui.audio_rect->w) { *\/ */
 /*     /\*             sample_l = cr->clip->L[i + cr->in_mark_sframes]; *\/ */
 /*     /\*             sample_r = cr->clip->R[i + cr->in_mark_sframes]; *\/ */
 /*     /\*             sample_y_l = wav_y_l + sample_l * cr->rect.h / 4; *\/ */
@@ -332,7 +332,7 @@ static void track_draw(Track *track)
     if (track->deleted) {
 	return;
     }
-    if (track->inner_layout->rect.y + track->inner_layout->rect.h < proj->audio_rect->y || track->inner_layout->rect.y > main_win->layout->rect.h) {
+    if (track->inner_layout->rect.y + track->inner_layout->rect.h < session->gui.audio_rect->y || track->inner_layout->rect.y > main_win->layout->rect.h) {
 	goto automations_draw;
     }
     if (track->active) {
@@ -385,7 +385,7 @@ static void track_draw(Track *track)
 automations_draw:
     for (uint8_t i=0; i<track->num_automations; i++) {
 	Automation *a = track->automations[i];
-	if (a->shown && a->layout->rect.y + a->layout->rect.h > proj->audio_rect->y && a->layout->rect.y < proj->audio_rect->y + proj->audio_rect->h) {
+	if (a->shown && a->layout->rect.y + a->layout->rect.h > session->gui.audio_rect->y && a->layout->rect.y < session->gui.audio_rect->y + session->gui.audio_rect->h) {
 	    automation_draw(a);
 	    if (i == track->selected_automation) {
 		SDL_Rect auto_console_bar = {
@@ -426,9 +426,9 @@ static void ruler_draw(Timeline *tl)
     double x = tl->proj->ruler_rect->x + timeline_first_second_tick_x(tl, &second);
     double sw = timeline_get_second_w(tl);
     int line_len;
-    while (x < proj->audio_rect->x + proj->audio_rect->w) {
+    while (x < session->gui.audio_rect->x + session->gui.audio_rect->w) {
 	/* while (x < tl->layout->rect.x + tl->layout->rect.w) { */
-        if (x > proj->audio_rect->x) {
+        if (x > session->gui.audio_rect->x) {
 	    if (second % 60 == 0) {
 		line_len = 20 * main_win->dpi_scale_factor;
 	    } else if (second % 30 == 0) {
@@ -444,7 +444,7 @@ static void ruler_draw(Timeline *tl)
         }
         x += sw;
 	second++;
-        if (x > proj->audio_rect->x + proj->audio_rect->w) {
+        if (x > session->gui.audio_rect->x + session->gui.audio_rect->w) {
             break;
         }
     }
@@ -456,7 +456,7 @@ static int timeline_draw(Timeline *tl)
 {
     FRAME_WF_DRAW_TIME = 0.0;
     /* Only redraw the timeline if necessary */
-    if (!tl->needs_redraw && !proj->recording && !main_win->txt_editing && !(main_win->i_state & I_STATE_MOUSE_L)) {
+    if (!tl->needs_redraw && !session->playback.recording && !main_win->txt_editing && !(main_win->i_state & I_STATE_MOUSE_L)) {
 	/* fprintf(stderr, "SKIP!\n"); */
 	return 0;
     }
@@ -508,7 +508,7 @@ static int timeline_draw(Timeline *tl)
     if (tl->display_offset_sframes < 0) {
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
         int zero_x = timeline_get_draw_x(tl, 0);
-        SDL_RenderDrawLine(main_win->rend, zero_x, proj->audio_rect->y, zero_x, proj->audio_rect->y + proj->audio_rect->h);
+        SDL_RenderDrawLine(main_win->rend, zero_x, session->gui.audio_rect->y, zero_x, session->gui.audio_rect->y + session->gui.audio_rect->h);
     }
 
     /* Draw play head line */
@@ -518,7 +518,7 @@ static int timeline_draw(Timeline *tl)
     /* int tri_y = tl->proj->ruler_rect->y; */
     if (tl->play_pos_sframes >= tl->display_offset_sframes) {
         int play_head_x = timeline_get_draw_x(tl, tl->play_pos_sframes);
-        SDL_RenderDrawLine(main_win->rend, play_head_x, ph_y, play_head_x, tl->proj->audio_rect->y + tl->proj->audio_rect->h);
+        SDL_RenderDrawLine(main_win->rend, play_head_x, ph_y, play_head_x, tl->session->gui.audio_rect->y + tl->session->gui.audio_rect->h);
 
         /* Draw play head triangle */
         int tri_x1 = play_head_x;
@@ -535,7 +535,7 @@ static int timeline_draw(Timeline *tl)
     /* draw mark in */
     int in_x, out_x = -1;
 
-    if (tl->in_mark_sframes >= tl->display_offset_sframes && tl->in_mark_sframes < tl->display_offset_sframes + timeline_get_abs_w_sframes(tl, proj->audio_rect->w)) {
+    if (tl->in_mark_sframes >= tl->display_offset_sframes && tl->in_mark_sframes < tl->display_offset_sframes + timeline_get_abs_w_sframes(tl, session->gui.audio_rect->w)) {
         in_x = timeline_get_draw_x(tl, tl->in_mark_sframes);
         int i_tri_x2 = in_x;
 	ph_y = tl->proj->ruler_rect->y + PLAYHEAD_TRI_H;
@@ -546,13 +546,13 @@ static int timeline_draw(Timeline *tl)
             i_tri_x2 += 1;
         }
     } else if (tl->in_mark_sframes < tl->display_offset_sframes) {
-        in_x = proj->audio_rect->x;
+        in_x = session->gui.audio_rect->x;
     } else {
 	in_x = tl->layout->rect.w;
     }
 
     /* draw mark out */
-    if (tl->out_mark_sframes > tl->display_offset_sframes && tl->out_mark_sframes < tl->display_offset_sframes + timeline_get_abs_w_sframes(tl, proj->audio_rect->w)) {
+    if (tl->out_mark_sframes > tl->display_offset_sframes && tl->out_mark_sframes < tl->display_offset_sframes + timeline_get_abs_w_sframes(tl, session->gui.audio_rect->w)) {
         out_x = timeline_get_draw_x(tl, tl->out_mark_sframes);
         int o_tri_x1 = out_x;
 	ph_y =  tl->proj->ruler_rect->y + PLAYHEAD_TRI_H;
@@ -561,13 +561,13 @@ static int timeline_draw(Timeline *tl)
             ph_y -= 1;
             o_tri_x1 -= 1;
         }
-    } else if (tl->out_mark_sframes > tl->display_offset_sframes + timeline_get_abs_w_sframes(tl, proj->audio_rect->w)) {
-        out_x = proj->audio_rect->x + proj->audio_rect->w;
+    } else if (tl->out_mark_sframes > tl->display_offset_sframes + timeline_get_abs_w_sframes(tl, session->gui.audio_rect->w)) {
+        out_x = session->gui.audio_rect->x + session->gui.audio_rect->w;
     }
 
     /* draw marked region */
     if (in_x < out_x && out_x > 0 && in_x < tl->layout->rect.w) {
-        SDL_Rect in_out = (SDL_Rect) {in_x, proj->audio_rect->y, out_x - in_x, proj->audio_rect->h};
+        SDL_Rect in_out = (SDL_Rect) {in_x, session->gui.audio_rect->y, out_x - in_x, session->gui.audio_rect->h};
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(timeline_marked_bckgrnd));
         SDL_RenderFillRect(main_win->rend, &(in_out));
     }
@@ -615,10 +615,10 @@ static void control_bar_draw(Project *proj)
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
     SDL_RenderFillRect(main_win->rend, proj->control_bar_rect);
 
-    panel_area_draw(proj->panels);
+    panel_area_draw(session->gui.panels);
         
     /* DRAW HAMBURGER */
-    SDL_Rect mask = *proj->hamburger;
+    SDL_Rect mask = *session->gui.hamburger;
     mask.x -= 20;
     mask.w += 40;
     mask.y -= 20;

@@ -311,9 +311,8 @@ void project_reset_tl_label(Project *proj)
     textbox_reset_full(session->gui.timeline_label);
 }
 
-static void project_init_panels(Project *proj, Layout *lt);
-void project_init_audio_conns(Project *proj);
-int project_init_midi(Project *proj);
+/* void project_init_audio_conns(Project *proj); */
+/* int project_init_midi(Project *proj); */
 /* void project_init_quickref(Project *proj, Layout *control_bar_layout); */
 Project *project_create(
     char *name,
@@ -839,7 +838,7 @@ Track *timeline_add_track(Timeline *tl)
     /* 	&slider_label_amp_to_dbstr, */
     /* 	NULL, */
     /* 	NULL, */
-    /* 	&tl->proj->dragged_component); */
+    /* 	&tl->session->dragged_component); */
     /* SliderStrFn t; */
     /* Value min, max; */
     /* min.float_v = 0.0f; */
@@ -865,7 +864,7 @@ Track *timeline_add_track(Timeline *tl)
     /* 	slider_label_pan, */
     /* 	NULL, */
     /* 	NULL, */
-    /* 	&tl->proj->dragged_component); */
+    /* 	&tl->session->dragged_component); */
     track->pan_ctrl = slider_create(
 	pan_ctrl_lt,
 	&track->pan_ep,
@@ -1501,7 +1500,7 @@ void track_set_input(Track *track)
     for (int i=0; i<session->audio_io.num_record_conns; i++) {
 	struct track_in_arg *arg = malloc(sizeof(struct track_in_arg));
 	arg->track = track;
-	arg->conn = proj->record_conns[i];
+	arg->conn = session->audio_io.record_conns[i];
 	if (arg->conn->available) {
 	    MenuItem *item = menu_item_add(
 		sc,
@@ -1550,7 +1549,8 @@ static void timeline_remove_track(Track *track)
 	    clipref_ungrab(clip);
 	}
     }
-    if (proj->dragging) status_stat_drag();
+    Session *session = session_get();
+    if (session->dragging) status_stat_drag();
     for (uint8_t i=track->tl_rank + 1; i<tl->num_tracks; i++) {
 	Track *t = tl->tracks[i];
 	tl->tracks[i-1] = t;
@@ -1838,15 +1838,16 @@ static void clip_destroy_no_displace(Clip *clip)
 	ClipRef *cr = clip->refs[i];
 	clipref_destroy(cr, false);
     }
-    if (clip == proj->src_clip) {
-	proj->src_clip = NULL;
+    Session *session = session_get();
+    if (clip == session->source_mode.src_clip) {
+	session->source_mode.src_clip = NULL;
     }
     
     if (clip->L) free(clip->L);
     if (clip->R) free(clip->R);
 
-    for (uint8_t i=0; i<proj->num_dropped; i++) {
-	Clip **dropped_clip = &(proj->saved_drops[i].clip);
+    for (uint8_t i=0; i<session->source_mode.num_dropped; i++) {
+	Clip **dropped_clip = &(session->source_mode.saved_drops[i].clip);
 	if (*dropped_clip == clip) {
 	    *dropped_clip = NULL;
 	}
@@ -1863,11 +1864,13 @@ void clip_destroy(Clip *clip)
 	ClipRef *cr = clip->refs[i];
 	clipref_destroy(cr, false);
     }
-    if (clip == proj->src_clip) {
-	proj->src_clip = NULL;
+    Session *session = session_get();
+    if (clip == session->source_mode.src_clip) {
+	session->source_mode.src_clip = NULL;
     }
     bool displace = false;
     /* int num_displaced = 0; */
+    Project *proj = &session->proj;
     for (uint16_t i=0; i<proj->num_clips; i++) {
 	if (proj->clips[i] == clip) {
 	    /* fprintf(stdout, "\tFOUND clip at pos %d\n", i); */
@@ -1884,8 +1887,8 @@ void clip_destroy(Clip *clip)
     if (clip->L) free(clip->L);
     if (clip->R) free(clip->R);
 
-    for (uint8_t i=0; i<proj->num_dropped; i++) {
-	Clip **dropped_clip = &(proj->saved_drops[i].clip);
+    for (uint8_t i=0; i<session->source_mode.num_dropped; i++) {
+	Clip **dropped_clip = &(session->source_mode.saved_drops[i].clip);
 	if (*dropped_clip == clip) {
 	    *dropped_clip = NULL;
 	}
@@ -1913,7 +1916,8 @@ static void clip_split_stereo_to_mono(Clip *to_split, Clip **new_L, Clip **new_R
 
     (*new_L)->len_sframes = to_split->len_sframes;
     (*new_R)->len_sframes = to_split->len_sframes;
-    proj->active_clip_index+=2;
+    Session *session = session_get();
+    session->proj.active_clip_index+=2;
 }
 
 NEW_EVENT_FN(undo_split_cr, "undo split stereo clip to mono")
@@ -1993,7 +1997,6 @@ int clipref_split_stereo_to_mono(ClipRef *cr, ClipRef **new_L_dst, ClipRef **new
     clips[1] = clip_R;
     
     user_event_push(
-	&proj->history,
 	undo_split_cr,
 	redo_split_cr,
 	dispose_split_cr, dispose_forward_split_cr,
@@ -2010,6 +2013,7 @@ int clipref_split_stereo_to_mono(ClipRef *cr, ClipRef **new_L_dst, ClipRef **new
 static void timeline_reinsert(Timeline *tl)
 {
     /* Timeline *currently_active = proj->timelines[proj->active_tl_index]; */
+    Project *proj = tl->proj;
     for (uint8_t i=proj->num_timelines; i>tl->index; i--) {
 	proj->timelines[i] = proj->timelines[i-1];
 	proj->timelines[i]->index++;
@@ -2041,16 +2045,17 @@ NEW_EVENT_FN(dispose_delete_timeline, "")
 
 void timeline_switch(uint8_t new_tl_index)
 {
-    Timeline *current = proj->timelines[proj->active_tl_index];
+    Session *session = session_get();
+    Timeline *current = session->proj.timelines[session->proj.active_tl_index];
     current->layout->hidden = true;
 
-    proj->active_tl_index = new_tl_index;
-    Timeline *new = proj->timelines[new_tl_index];
+    session->proj.active_tl_index = new_tl_index;
+    Timeline *new = session->proj.timelines[new_tl_index];
     new->layout->hidden = false;
     
     /* Concession to bad design */
-    proj->audio_rect = &(layout_get_child_by_name_recursive(new->layout, "audio_rect")->rect);
-    proj->ruler_rect = &(layout_get_child_by_name_recursive(new->layout, "ruler")->rect);
+    session->gui.audio_rect = &(layout_get_child_by_name_recursive(new->layout, "audio_rect")->rect);
+    session->gui.ruler_rect = &(layout_get_child_by_name_recursive(new->layout, "ruler")->rect);
     
     new->needs_redraw = true;
     project_reset_tl_label(new->proj);
@@ -2062,6 +2067,7 @@ void timeline_delete(Timeline *tl, bool from_undo)
 	status_set_errstr("Cannot delete sole timeline on project.");
 	return;
     }
+    Project *proj = &session_get()->proj;
     for (uint8_t i=tl->index; i<proj->num_timelines - 1; i++) {
 	proj->timelines[i] = proj->timelines[i+1];
 	proj->timelines[i]->index--;
@@ -2078,7 +2084,6 @@ void timeline_delete(Timeline *tl, bool from_undo)
     if (!from_undo) {
 	Value nullval = {.int_v = 0.0};
         user_event_push(
-	    &proj->history,
 	    undo_delete_timeline,
 	    redo_delete_timeline,
 	    dispose_delete_timeline,
@@ -2170,7 +2175,6 @@ void timeline_push_grabbed_clip_move_event(Timeline *tl)
     Value num = {.uint8_v = tl->num_grabbed_clips};
 
     user_event_push(
-	&proj->history,
 	undo_move_clips,
 	redo_move_clips,
 	NULL,
@@ -2235,7 +2239,6 @@ void timeline_delete_grabbed_cliprefs(Timeline *tl)
     }
     Value num = {.uint8_v = tl->num_grabbed_clips};
     user_event_push(
-	&proj->history,
 	undo_delete_clips,
 	redo_delete_clips,
 	dispose_delete_clips,
@@ -2277,6 +2280,7 @@ ClipRef *clipref_at_cursor_in_track(Track *track)
 
 void clipref_bring_to_front()
 {
+    Project *proj = &session_get()->proj;
     Timeline *tl = proj->timelines[proj->active_tl_index];
     Track *track = timeline_selected_track(tl);
     if (!track) return;
@@ -2306,6 +2310,7 @@ bool clipref_marked(Timeline *tl, ClipRef *cr)
 
 ClipRef *clipref_at_cursor()
 {
+    Project *proj = &session_get()->proj;
     Timeline *tl = proj->timelines[proj->active_tl_index];
     Track *track = timeline_selected_track(tl);
     if (!track) return NULL;
@@ -2322,6 +2327,7 @@ ClipRef *clipref_at_cursor()
 
 ClipRef *clipref_before_cursor(int32_t *pos_dst)
 {
+    Project *proj = &session_get()->proj;
     Timeline *tl = proj->timelines[proj->active_tl_index];
     Track *track = timeline_selected_track(tl);
     if (!track) return NULL;
@@ -2342,6 +2348,7 @@ ClipRef *clipref_before_cursor(int32_t *pos_dst)
 
 ClipRef *clipref_after_cursor(int32_t *pos_dst)
 {
+    Project *proj = &session_get()->proj;
     Timeline *tl = proj->timelines[proj->active_tl_index];
     Track *track = timeline_selected_track(tl);
     if (!track) return NULL;
@@ -2437,7 +2444,6 @@ static ClipRef *clipref_cut(ClipRef *cr, int32_t cut_pos_rel)
 
     Value cut_pos = {.int32_v = cr->out_mark_sframes};
     user_event_push(
-	&proj->history,
 	undo_cut_clipref,
 	redo_cut_clipref,
 	NULL,
@@ -2552,7 +2558,6 @@ static void track_move_automation(Automation *a, int direction, bool from_undo)
 	    Value undo_dir = {.int_v = -1 * direction};
 	    Value redo_dir = {.int_v = direction};
 	    user_event_push(
-		&proj->history,
 		undo_redo_move_automation,
 		undo_redo_move_automation,
 		NULL, NULL,
@@ -2589,7 +2594,6 @@ static void timeline_move_track_at_index(Timeline *tl, int index, int direction,
 	Value undo_index = {.int_v = index + direction};
 	Value redo_index = {.int_v = index};
 	user_event_push(
-	    &proj->history,
 	    undo_redo_move_track_at_index,
 	    undo_redo_move_track_at_index,
 	    NULL, NULL,
@@ -2637,30 +2641,33 @@ void timeline_move_track_or_automation(Timeline *tl, int direction)
 
 void project_set_chunk_size(uint16_t new_chunk_size)
 {
-    if (proj->recording) {
+    Session *session = session_get();
+    if (session->playback.recording) {
 	transport_stop_recording();
     }
     transport_stop_playback();
+    Project *proj = &session_get()->proj;
     proj->chunk_size_sframes = new_chunk_size;
-    for (uint8_t i=0; i<proj->num_record_conns; i++) {
-	audioconn_reset_chunk_size(proj->record_conns[i], new_chunk_size);
+    for (uint8_t i=0; i<session->audio_io.num_record_conns; i++) {
+	audioconn_reset_chunk_size(session->audio_io.record_conns[i], new_chunk_size);
     }
-    for (uint8_t i=0; i<proj->num_playback_conns; i++) {
-	audioconn_reset_chunk_size(proj->playback_conns[i], new_chunk_size);
+    for (uint8_t i=0; i<session->audio_io.num_playback_conns; i++) {
+	audioconn_reset_chunk_size(session->audio_io.playback_conns[i], new_chunk_size);
     }
-    audioconn_open(proj, proj->playback_conn);
-    if (proj->freq_domain_plot) {
-	waveform_destroy_freq_plot(proj->freq_domain_plot);
-	proj->freq_domain_plot = NULL;
+    audioconn_open(session, session->audio_io.playback_conn);
+    if (session->gui.freq_domain_plot) {
+	waveform_destroy_freq_plot(session->gui.freq_domain_plot);
+	session->gui.freq_domain_plot = NULL;
     }
 
 }
 
 static bool refocus_track_lt(Timeline *tl, Layout *lt, Layout *inner, bool at_bottom)
 {
+    Session *session = session_get();
     int y_diff = inner->rect.y - lt->parent->rect.y;
-    int audio_rect_h_by_2 = tl->proj->audio_rect->h / 2;
-    if (lt->rect.y + lt->rect.h > proj->audio_rect->y + proj->audio_rect->h || lt->rect.y < proj->audio_rect->y) {
+    int audio_rect_h_by_2 = session->gui.audio_rect->h / 2;
+    if (lt->rect.y + lt->rect.h > session->gui.audio_rect->y + session->gui.audio_rect->h || lt->rect.y < session->gui.audio_rect->y) {
 	if (at_bottom) {
 	    lt->parent->scroll_offset_v = -1 * (y_diff - audio_rect_h_by_2) / main_win->dpi_scale_factor;
 	} else {
@@ -2695,12 +2702,14 @@ bool timeline_refocus_track(Timeline *tl, Track *track, bool at_bottom)
 
 void timeline_play_speed_set(double new_speed)
 {
+    Session *session = session_get();
+    Project *proj = &session_get()->proj;
     Timeline *tl = proj->timelines[proj->active_tl_index];
-    double old_speed = proj->play_speed;
-    proj->play_speed = new_speed;
+    double old_speed = session->playback.play_speed;
+    session->playback.play_speed = new_speed;
     
     /* If speed crosses the zero line, need to invalidate direction-dependent caches */
-    if (proj->play_speed * old_speed < 0.0) {
+    if (session->playback.play_speed * old_speed < 0.0) {
 	timeline_set_play_position(tl, tl->play_pos_sframes);
     }
     
@@ -2709,9 +2718,10 @@ void timeline_play_speed_set(double new_speed)
 }
 void timeline_play_speed_mult(double scale_factor)
 {
-    double new_speed = proj->play_speed * scale_factor;
+    Session *session = session_get();
+    double new_speed = session->playback.play_speed * scale_factor;
     if (fabs(new_speed) > MAX_PLAY_SPEED) {
-	timeline_play_speed_set(proj->play_speed);
+	timeline_play_speed_set(session->playback.play_speed);
     } else {
 	timeline_play_speed_set(new_speed);
     }
@@ -2719,7 +2729,8 @@ void timeline_play_speed_mult(double scale_factor)
 
 void timeline_play_speed_adj(double dim)
 {
-    double new_speed = proj->play_speed;
+    Session *session = session_get();
+    double new_speed = session->playback.play_speed;
     if (main_win->i_state & I_STATE_CMDCTRL) {
 	new_speed += dim * PLAYSPEED_ADJUST_SCALAR_LARGE;
     } else {
@@ -2730,6 +2741,7 @@ void timeline_play_speed_adj(double dim)
 
 void timeline_scroll_playhead(double dim)
 {
+    Project *proj = &session_get()->proj;
     Timeline *tl = proj->timelines[proj->active_tl_index];
     if (main_win->i_state & I_STATE_CMDCTRL) {
 	dim *= proj->sample_rate * tl->sample_frames_per_pixel * PLAYHEAD_ADJUST_SCALAR_LARGE;

@@ -37,6 +37,7 @@
 #include "project_draw.h"
 #include "saturation.h"
 #include "screenrecord.h"
+#include "session.h"
 #include "settings.h"
 #include "status.h"
 #include "tempo.h"
@@ -78,6 +79,7 @@ extern pthread_t DSP_THREAD_ID;
 void user_global_quit(void *);
 void loop_project_main()
 {
+    Session *session = session_get();
     /* clock_t start, end; */
     /* uint8_t frame_ctr = 0; */
     /* float fps = 0; */
@@ -118,7 +120,7 @@ void loop_project_main()
 	    case SDL_AUDIODEVICEADDED:
 	    case SDL_AUDIODEVICEREMOVED:
 		if (!first_frame) {
-		    if (proj->recording) transport_stop_recording();
+		    if (session->playback.recording) transport_stop_recording();
 		    audioconn_handle_connection_event(e.adevice.which, e.adevice.iscapture, e.adevice.type);
 		}
 		break;
@@ -346,22 +348,23 @@ void loop_project_main()
 		    break;
 		case SDL_SCANCODE_K:
 		    main_win->i_state &= ~I_STATE_K;
-		    /* proj->play_speed = 0; */
-		    /* proj->src_play_speed = 0; */
+		    /* session->playback.play_speed = 0; */
+		    /* session->source_mode.src_play_speed = 0; */
 		    /* transport_stop_playback(); */
 		    break;
 		case SDL_SCANCODE_J:
 		case SDL_SCANCODE_L:
 		    if (main_win->i_state & I_STATE_K) {
-			proj->play_speed = 0;
-			proj->src_play_speed = 0;
+			session->playback.play_speed = 0;
+			session->source_mode.src_play_speed = 0;
 			transport_stop_playback();
 		    }
 		    break;
 		default:
 		    project_flush_ongoing_changes(proj, JDAW_THREAD_MAIN);
 		    project_flush_ongoing_changes(proj, JDAW_THREAD_DSP);
-		    proj->playhead_do_incr = false;
+
+		    session->playhead_scroll.playhead_do_incr = false;
 		    /* stop_update_track_vol_pan(); */
 		    break;
 		}
@@ -369,8 +372,8 @@ void loop_project_main()
 	    case SDL_MOUSEWHEEL: {
 		Timeline *tl = proj->timelines[proj->active_tl_index];
 		tl->needs_redraw = true;
-		if (proj->dragged_component.component) {
-		    draggable_handle_scroll(&proj->dragged_component, e.wheel.x, e.wheel.y);
+		if (session->dragged_component.component) {
+		    draggable_handle_scroll(&session->dragged_component, e.wheel.x, e.wheel.y);
 		    break;
 		}
 		wheel_event_recency = 0;
@@ -382,24 +385,24 @@ void loop_project_main()
 			if (fabs(e.wheel.preciseY) > fabs(e.wheel.preciseX)) {
 			    scrub_block = true;
 			    timeline_play_speed_adj(e.wheel.preciseY);
-			    if (!proj->playing) transport_start_playback();
+			    if (!session->playback.playing) transport_start_playback();
 			} else if (!scrub_block) {
 			    play_speed_scroll_recency = 0;
-			    if (!proj->playing) transport_start_playback();
-			    Value old_speed = endpoint_safe_read(&proj->play_speed_ep, NULL);
+			    if (!session->playback.playing) transport_start_playback();
+			    Value old_speed = endpoint_safe_read(&session->playback.play_speed_ep, NULL);
 			    if (main_win->i_state & I_STATE_CMDCTRL) {
 				float new_speed = (old_speed.float_v + e.wheel.preciseX) / 2;
-				endpoint_write(&proj->play_speed_ep, (Value){.float_v = new_speed}, true, true, true, false);				
+				endpoint_write(&session->playback.play_speed_ep, (Value){.float_v = new_speed}, true, true, true, false);				
 			    } else {
 				float new_speed = (old_speed.float_v + e.wheel.preciseX / 3.0) / 2;
-				endpoint_write(&proj->play_speed_ep, (Value){.float_v = new_speed}, true, true, true, false);				
+				endpoint_write(&session->playback.play_speed_ep, (Value){.float_v = new_speed}, true, true, true, false);				
 			    }
 			}
 		    } else {
 			bool allow_scroll = true;
 			double scroll_x = e.wheel.preciseX * LAYOUT_SCROLL_SCALAR;
 			double scroll_y = e.wheel.preciseY * LAYOUT_SCROLL_SCALAR;
-			if (SDL_PointInRect(&main_win->mousep, proj->audio_rect)) {
+			if (SDL_PointInRect(&main_win->mousep, session->gui.audio_rect)) {
 			    if (main_win->i_state & I_STATE_CMDCTRL) {
 				double scale_factor = pow(SFPP_STEP, e.wheel.y);
 				timeline_rescale(tl, scale_factor, true);
@@ -462,7 +465,7 @@ void loop_project_main()
 		temp_scrolling_lt = NULL;
 		if (e.button.button == SDL_BUTTON_LEFT) {
 		    main_win->i_state &= ~I_STATE_MOUSE_L;
-		    proj->dragged_component.component = NULL;
+		    session->dragged_component.component = NULL;
 		    automation_unset_dragging_kf(proj->timelines[proj->active_tl_index]);
 		} else if (e.button.button == SDL_BUTTON_RIGHT) {
 		    main_win->i_state &= ~I_STATE_MOUSE_R;
@@ -497,7 +500,7 @@ void loop_project_main()
 		
 	} /* End event handling */
 
-	if (!proj->playing && frames_since_event >= IDLE_AFTER_N_FRAMES) {
+	if (!session->playback.playing && frames_since_event >= IDLE_AFTER_N_FRAMES) {
 	    goto end_frame;
 	} else {
 	    frames_since_event++;
@@ -528,19 +531,19 @@ void loop_project_main()
 	first_frame = false;
 	
 	if (!scrub_block && fingersdown > 0 && play_speed_scroll_recency > 4 && play_speed_scroll_recency < 20) {
-	    Value old_speed = endpoint_safe_read(&proj->play_speed_ep, NULL);
+	    Value old_speed = endpoint_safe_read(&session->playback.play_speed_ep, NULL);
 	    float new_speed = old_speed.float_v / 3.0;
 	    if (fabs(new_speed) < 1E-6) {
 		transport_stop_playback();
 		play_speed_scroll_recency = 20;
 		
 	    } else {
-		endpoint_write(&proj->play_speed_ep, (Value){.float_v = new_speed}, true, true, true, false);
+		endpoint_write(&session->playback.play_speed_ep, (Value){.float_v = new_speed}, true, true, true, false);
 	    }
 
 	}
 	
-	if (proj->play_speed != 0 && !proj->source_mode) {
+	if (session->playback.play_speed != 0 && !proj->source_mode) {
 	    timeline_catchup(tl);
 	    timeline_set_timecode(tl);
 	    for (int i=0; i<tl->num_click_tracks; i++) {
@@ -570,11 +573,11 @@ void loop_project_main()
 		main_win->txt_editing->cursor_countdown--;
 	    }
 	}
-	/* if (proj->recording) { */
+	/* if (session->playback.recording) { */
 	/*     transport_recording_update_cliprects(); */
 	/* } */
 
-	if (proj->recording) {
+	if (session->playback.recording) {
 	    transport_recording_update_cliprects();
 	}
 	status_frame();
@@ -594,7 +597,7 @@ void loop_project_main()
 	/* layout_draw(main_win, main_win->layout); */
 	/**********************/
 
-	if (proj->playing) {
+	if (session->playback.playing) {
 	    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
 	    struct timespec now;
 	    clock_gettime(CLOCK_MONOTONIC, &now);
@@ -602,17 +605,17 @@ void loop_project_main()
 	    if (elapsed_s > 0.05) {
 		goto end_frame;
 	    }
-	    int32_t play_pos_adj = tl->play_pos_sframes + elapsed_s * proj->sample_rate * proj->play_speed;
+	    int32_t play_pos_adj = tl->play_pos_sframes + elapsed_s * proj->sample_rate * session->playback.play_speed;
 	    for (uint8_t i=0; i<tl->num_tracks; i++) {
 		Track *track = tl->tracks[i];
 		for (uint8_t ai=0; ai<track->num_automations; ai++) {
 		    Automation *a = track->automations[ai];
 		    if (a->write) {
 			/* if (!a->current) a->current = automation_get_segment(a, play_pos_adj); */
-			int32_t frame_dur = proj->sample_rate * proj->play_speed / 30.0;
+			int32_t frame_dur = proj->sample_rate * session->playback.play_speed / 30.0;
 			Value val = endpoint_safe_read(a->endpoint, NULL);
 			/* fprintf(stderr, "READ FLOATVAL (%s): %f\n", a->endpoint->local_id, val.float_v); */
-			automation_do_write(a, val, play_pos_adj, play_pos_adj + frame_dur, proj->play_speed);
+			automation_do_write(a, val, play_pos_adj, play_pos_adj + frame_dur, session->playback.play_speed);
 		    }
 		    /* if (a->num_kclips > 0) { */
 		    /* 	kclipref_move(a->kclips, 500); */
@@ -630,7 +633,7 @@ void loop_project_main()
 
     end_frame:
 
-	if (!proj->playing && frames_since_event >= IDLE_AFTER_N_FRAMES) {
+	if (!session->playback.playing && frames_since_event >= IDLE_AFTER_N_FRAMES) {
 	    SDL_Delay(100);
 	} else {
 	    SDL_Delay(1);

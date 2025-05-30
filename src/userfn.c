@@ -13,6 +13,7 @@
 #include "modal.h"
 #include "panel.h"
 #include "project.h"
+#include "session.h"
 #include "settings.h"
 #include "status.h"
 #include "test.h"
@@ -26,7 +27,7 @@
 #define TL_DEFAULT_XSCROLL 60
 #define SLOW_PLAYBACK_SPEED 0.2f
 
-#define ACTIVE_TL (proj->timelines[proj->active_tl_index])
+#define ACTIVE_TL (session->proj.timelines[proj->active_tl_index])
 /* #define ACTIVE_TRACK(timeline) (tl->tracks[tl->track_selector]) */
 #define TRACK_AUTO_SELECTED(track) (track->num_automations != 0 && track->selected_automation != -1)
 #define TABVIEW_BLOCK(str)	    \
@@ -58,6 +59,7 @@ extern SDL_Color color_global_quickref_button_blue;
 int quickref_button_press_callback(void *self_v, void *target)
 {
     /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;
     return 0;
@@ -86,7 +88,8 @@ static int quit_yes_action(void *self, void *xarg)
 void user_modal_dismiss(void *nullarg);
 static int quit_no_action(void *self, void *xarg)
 {
-    proj->quit_count = 0;
+    Session *session = session_get();    
+    session->quit_count = 0;
     /* user_modal_dismiss(NULL); */
     if (main_win->num_modals > 0)
 	window_pop_modal(main_win);
@@ -101,7 +104,8 @@ void user_tl_activate_source_mode(void *nullarg);
 /* Escape a confusing or illegal program state */
 void user_global_escape(void *nullarg)
 {
-    if (proj->source_mode) {
+    Session *session = session_get();
+    if (session->source_mode.source_mode) {
 	user_tl_activate_source_mode(NULL);
     } else if (main_win->num_modes > 1) {
 	window_pop_mode(main_win);
@@ -113,7 +117,8 @@ void user_global_escape(void *nullarg)
 
 void user_global_quit(void *nullarg)
 {
-    if (proj->quit_count == 0) {
+    Session *session = session_get();
+    if (session->quit_count == 0) {
 	Layout *lt = layout_add_child(main_win->layout);
 	layout_set_default_dims(lt);
 	Modal *m = modal_create(lt);
@@ -123,35 +128,39 @@ void user_global_quit(void *nullarg)
 	m->x->action = quit_no_action;
 	modal_reset(m);
 	window_push_modal(main_win, m);
-    } else if (proj->quit_count > 1) {
+    } else if (session->quit_count > 1) {
 	quit_yes_action(NULL, NULL);
     }
-    proj->quit_count++;
+    session->quit_count++;
 
     /* exit(0); //TODO: add the i_state to window (or proj?) to quit naturally. */
 }
 
 void user_global_undo(void *nullarg)
 {
-    user_event_do_undo(&proj->history);
+    Session *session = session_get();
+    user_event_do_undo(&session->history);
     timeline_reset(ACTIVE_TL, false);
 }
 
 void user_global_redo(void *nullarg)
 {
-    user_event_do_redo(&proj->history);
+    Session *session = session_get();
+    user_event_do_redo(&session->history);
     timeline_reset(ACTIVE_TL, false);
 }
 
 void user_global_show_output_freq_domain(void *nullarg)
 {
     /* proj->show_output_freq_domain = !proj->show_output_freq_domain; */
-    panel_page_refocus(proj->panels, "Output spectrum", 0);
+    Session *session = session_get();
+    panel_page_refocus(session->gui.panels, "Output spectrum", 0);
 }
 
 
 static int submit_server_form(void *mod_v, void *target)
 {
+    Session *session = session_get();
     int port = atoi((char *)((Modal *)mod_v)->stashed_obj);
     fprintf(stderr, "STARTING SERVER ON PORT: %d\n", port);
     if (api_start_server(proj, port) == 0) {
@@ -197,6 +206,7 @@ void user_global_start_server(void *nullarg)
 int path_updir_name(char *pathname);
 static int submit_save_as_form(void *mod_v, void *target)
 {
+    Session *session = session_get();
     Modal *modal = (Modal *)mod_v;
     char *name;
     char *dirpath;
@@ -388,6 +398,7 @@ static NEW_EVENT_FN(dispose_forward_load_wav, "")
 Project *jdaw_read_file(char *path);
 static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 {
+    Session *session = session_get();
     char *dotpos = strrchr(dp->path, '.');
     if (!dotpos) {
 	status_set_errstr("Cannot open file without a .jdaw or .wav extension");
@@ -415,7 +426,7 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 	}
 	Value nullval = {.int_v = 0};
 	user_event_push(
-	    &proj->history,
+	    
 	    undo_load_wav,
 	    redo_load_wav,
 	    NULL, dispose_forward_load_wav,
@@ -426,18 +437,21 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 	
     } else if (strcmp("jdaw", ext) * strcmp("JDAW", ext) * strcmp("bak", ext) == 0) {
 	fprintf(stdout, "Jdaw file selected\n");
-	if (proj->recording) transport_stop_recording();
-	else if (proj->playing) transport_stop_playback();
+	if (session->playback.recording) transport_stop_recording();
+	else if (session->playback.playing) transport_stop_playback();
 	api_quit(proj);
 	Project *new_proj = jdaw_read_file(dp->path);
 	if (new_proj) {
 	    project_destroy(proj);
 	    proj = new_proj;
 	    /* layout_destroy(main_win->layout); */
-	    main_win->layout = new_proj->layout;
+
+
+	    
+	    main_win->layout = session->gui.layout;
 	    layout_reset(main_win->layout);
 	    /* window_resize_passive(main_win, , main_win->h_pix); */
-	    /* layout_force_reset(new_proj->layout); */
+	    /* layout_force_reset(new_session->gui.layout); */
 
 	} else {
 	    status_set_errstr("Error opening jdaw project");
@@ -490,13 +504,15 @@ void user_global_function_lookup(void *nullarg)
 
 void user_global_chaotic_user_test(void *nullarg)
 {
-    proj->do_tests = true;
+    Session *session = session_get(); 
+    session->do_tests = true;
 }
 
 void api_node_print_all_routes(APINode *node);
 void user_global_api_print_all_routes(void *nullarg)
 {
-    api_node_print_all_routes(&proj->server.api_root);
+    Session *session = session_get();
+    api_node_print_all_routes(&session->server.api_root);
 }
 
 static void menu_nav_mode_error()
@@ -633,6 +649,7 @@ void user_menu_nav_choose_item(void *nullarg)
 
 void user_menu_translate_up(void *nullarg)
 {
+    Session *session = session_get();
     Menu *m = window_top_menu(main_win);
     if (!m) {
 	fprintf(stderr, "No menu on main window\n");	
@@ -645,6 +662,7 @@ void user_menu_translate_up(void *nullarg)
 
 void user_menu_translate_down(void *nullarg)
 {
+    Session *session = session_get();
     Menu *m = window_top_menu(main_win);
     if (!m) {
 	fprintf(stderr, "No menu on main window\n");	
@@ -658,6 +676,7 @@ void user_menu_translate_down(void *nullarg)
 
 void user_menu_translate_left(void *nullarg)
 {
+    Session *session = session_get();
     Menu *m = window_top_menu(main_win);
     if (!m) {
 	fprintf(stderr, "No menu on main window\n");	
@@ -670,6 +689,7 @@ void user_menu_translate_left(void *nullarg)
 
 void user_menu_translate_right(void *nullarg)
 {
+    Session *session = session_get();
     Menu *m = window_top_menu(main_win);
     if (!m) {
 	fprintf(stderr, "No menu on main window\n");	
@@ -682,6 +702,7 @@ void user_menu_translate_right(void *nullarg)
 
 void user_menu_dismiss(void *nullarg)
 {
+    Session *session = session_get();
     window_pop_menu(main_win);
     Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;
@@ -690,25 +711,26 @@ void user_menu_dismiss(void *nullarg)
 
 void user_tl_play(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    if (proj->dragging && !proj->playing && tl->num_grabbed_clips > 0) {
+    if (session->dragging && !session->playback.playing && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
     bool started = false;
-    if (proj->play_speed <= 0.0f) {
-	/* proj->play_speed = 1.0f; */
+    if (session->playback.play_speed <= 0.0f) {
+	/* session->playback.play_speed = 1.0f; */
 	timeline_play_speed_set(1.0);
     } else if (!started) {
 	timeline_play_speed_mult(2.0);
-	/* /\* proj->play_speed *= 2.0f; *\/ */
+	/* /\* session->playback.play_speed *= 2.0f; *\/ */
 	/* status_stat_playspeed(); */
     }
 
-    if (!proj->playing) {
+    if (!session->playback.playing) {
 	started = true;
 	transport_start_playback();
     }
-    /* PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_play"); */
+    /* PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_play"); */
     /* Button *btn = (Button *)el->component; */
     /* button_press_color_change( */
     /* 	btn, */
@@ -720,11 +742,11 @@ void user_tl_play(void *nullarg)
 
 void user_tl_pause(void *nullarg)
 {
-
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    proj->play_speed = 0;
+    session->playback.play_speed = 0;
     transport_stop_playback();
-    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_pause");
+    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_pause");
     Button *btn = (Button *)el->component;
     button_press_color_change(
 	btn,
@@ -734,28 +756,28 @@ void user_tl_pause(void *nullarg)
 	NULL);
 
     tl->needs_redraw = true;
-    if (proj->dragging && tl->num_grabbed_clips > 0) {
+    if (session->dragging && tl->num_grabbed_clips > 0) {
 	timeline_push_grabbed_clip_move_event(tl);
     }
 }
 
 void user_tl_rewind(void *nullarg)
 {
-
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    if (proj->dragging && !proj->playing && tl->num_grabbed_clips > 0) {
+    if (session->dragging && !session->playback.playing && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
-    if (proj->play_speed >= 0.0f) {
+    if (session->playback.play_speed >= 0.0f) {
 	timeline_play_speed_set(-1.0);
-	/* proj->play_speed = -1.0f; */
+	/* session->playback.play_speed = -1.0f; */
 	transport_start_playback();
     } else {
 	timeline_play_speed_mult(2.0);
-	/* proj->play_speed *= 2.0f; */
+	/* session->playback.play_speed *= 2.0f; */
 	/* status_stat_playspeed(); */
     }
-    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_rewind");
+    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_rewind");
     Button *btn = (Button *)el->component;
     button_press_color_change(
 	btn,
@@ -767,33 +789,36 @@ void user_tl_rewind(void *nullarg)
 
 void user_tl_play_slow(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    if (proj->dragging && !proj->playing && tl->num_grabbed_clips > 0) {
+    if (session->dragging && !session->playback.playing && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
     timeline_play_speed_set(SLOW_PLAYBACK_SPEED);
-    /* proj->play_speed = SLOW_PLAYBACK_SPEED; */
+    /* session->playback.play_speed = SLOW_PLAYBACK_SPEED; */
     /* status_stat_playspeed(); */
     transport_start_playback();
 }
 
 void user_tl_rewind_slow(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    if (proj->dragging && !proj->playing && tl->num_grabbed_clips > 0) {
+    if (session->dragging && !session->playback.playing && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
     timeline_play_speed_set(-1 * SLOW_PLAYBACK_SPEED);
-    /* proj->play_speed = -1 * SLOW_PLAYBACK_SPEED; */
+    /* session->playback.play_speed = -1 * SLOW_PLAYBACK_SPEED; */
     /* status_stat_playspeed(); */
     transport_start_playback();
 }
 
 static void playhead_incr(float by)
 {
-    if (!proj->playhead_do_incr) {
-	proj->playhead_do_incr = true;
-	proj->playhead_frame_incr = by;
+    Session *session = session_get();
+    if (!session->playhead_scroll.playhead_do_incr) {
+	session->playhead_scroll.playhead_do_incr = true;
+	session->playhead_scroll.playhead_frame_incr = by;
     }
 }
 
@@ -820,44 +845,51 @@ void user_tl_move_playhead_right_slow(void *nullarg)
 
 void user_tl_nudge_left(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     timeline_set_play_position(tl, tl->play_pos_sframes - 500);
 }
 
 void user_tl_nudge_right(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     timeline_set_play_position(tl, tl->play_pos_sframes + 500);
 }
 
 void user_tl_small_nudge_left(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     timeline_set_play_position(tl, tl->play_pos_sframes - 100);
 }
 
 void user_tl_small_nudge_right(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     timeline_set_play_position(tl, tl->play_pos_sframes + 100);
 }
 
 void user_tl_one_sample_left(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     timeline_set_play_position(tl, tl->play_pos_sframes - 1);
 }
 
 void user_tl_one_sample_right(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     timeline_set_play_position(tl, tl->play_pos_sframes + 1);
 }
 
 void user_tl_move_right(void *nullarg)
 {
+    Session *session = session_get();
     timeline_scroll_horiz(ACTIVE_TL, TL_DEFAULT_XSCROLL);
-    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_right");
+    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_right");
     Button *btn = (Button *)el->component;
     button_press_color_change(
 	btn,
@@ -869,8 +901,9 @@ void user_tl_move_right(void *nullarg)
 
 void user_tl_move_left(void *nullarg)
 {
+    Session *session = session_get();
     timeline_scroll_horiz(ACTIVE_TL, TL_DEFAULT_XSCROLL * -1);
-    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_left");
+    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_left");
     Button *btn = (Button *)el->component;
     button_press_color_change(
 	btn,
@@ -882,8 +915,9 @@ void user_tl_move_left(void *nullarg)
 
 void user_tl_zoom_in(void *nullarg)
 {
+    Session *session = session_get();
     timeline_rescale(ACTIVE_TL, 1.2, false);
-    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_zoom_in");
+    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_zoom_in");
     Button *btn = (Button *)el->component;
     button_press_color_change(
 	btn,
@@ -895,9 +929,10 @@ void user_tl_zoom_in(void *nullarg)
 
 void user_tl_zoom_out(void *nullarg)
 {
+    Session *session = session_get();
     timeline_rescale(ACTIVE_TL, 0.8, false);
 
-    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_zoom_out");
+    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_zoom_out");
     Button *btn = (Button *)el->component;
     button_press_color_change(
 	btn,
@@ -922,13 +957,14 @@ static NEW_EVENT_FN(undo_redo_set_mark, "undo/redo set mark")
 
 void user_tl_set_mark_out(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     Value old_mark = {.int32_v = tl->out_mark_sframes};
     transport_set_mark(tl, false);
     Value new_mark = {.int32_v = tl->out_mark_sframes};
 
     user_event_push(
-	&proj->history,
+	
 	undo_redo_set_mark,
 	undo_redo_set_mark,
 	NULL, NULL,
@@ -940,6 +976,7 @@ void user_tl_set_mark_out(void *nullarg)
 }
 void user_tl_set_mark_in(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
 
     Value old_mark = {.int32_v = tl->in_mark_sframes};
@@ -947,7 +984,7 @@ void user_tl_set_mark_in(void *nullarg)
     Value new_mark = {.int32_v = tl->in_mark_sframes};
 
     user_event_push(
-	&proj->history,
+	
 	undo_redo_set_mark,
 	undo_redo_set_mark,
 	NULL, NULL,
@@ -960,18 +997,21 @@ void user_tl_set_mark_in(void *nullarg)
 
 void user_tl_goto_mark_out(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     transport_goto_mark(tl, false);
 }
 
 void user_tl_goto_mark_in(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     transport_goto_mark(tl, true);
 }
 
 void user_tl_goto_zero(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     timeline_set_play_position(tl, 0);
     tl->display_offset_sframes = 0;
@@ -980,11 +1020,13 @@ void user_tl_goto_zero(void *nullarg)
 
 void user_tl_toggle_loop_playback(void *nullarg)
 {
-    proj->loop_play = !proj->loop_play;
+    Session *session = session_get();
+    session->playback.loop_play = !session->playback.loop_play;
 }
 
 void user_tl_goto_previous_clip_boundary(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     if (timeline_selected_track(tl)) {
 	ClipRef *cr = clipref_at_cursor();
@@ -1016,6 +1058,7 @@ void user_tl_goto_previous_clip_boundary(void *nullarg)
 
 void user_tl_goto_next_clip_boundary(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     if (timeline_selected_track(tl)) {
 	ClipRef *cr = clipref_at_cursor();
@@ -1059,31 +1102,37 @@ static void tl_goto_prox_click(Timeline *tl, int direction, enum beat_prominence
 
 void user_tl_goto_next_beat(void *nullarg)
 {
+    Session *session = session_get();
     tl_goto_prox_click(ACTIVE_TL, 1, BP_BEAT);
 }
 
 void user_tl_goto_prev_beat(void *nullarg)
 {
+    Session *session = session_get();
     tl_goto_prox_click(ACTIVE_TL,-1, BP_BEAT);
 }
 
 void user_tl_goto_next_subdiv(void *nullarg)
 {
+    Session *session = session_get();
     tl_goto_prox_click(ACTIVE_TL, 1, BP_SUBDIV2);
 }
 
 void user_tl_goto_prev_subdiv(void *nullarg)
 {
+    Session *session = session_get();
     tl_goto_prox_click(ACTIVE_TL, -1, BP_SUBDIV2);
 }
 
 void user_tl_goto_next_measure(void *nullarg)
 {
+    Session *session = session_get();
     tl_goto_prox_click(ACTIVE_TL, 1, BP_MEASURE);
 }
 
 void user_tl_goto_prev_measure(void *nullarg)
 {
+    Session *session = session_get();
     tl_goto_prox_click(ACTIVE_TL, -1, BP_MEASURE);
 }
 
@@ -1113,14 +1162,11 @@ static NEW_EVENT_FN(add_track_dispose_forward, "")
 
 void user_tl_add_track(void *nullarg)
 {
-    if (!proj) {
-	fprintf(stderr, "Error: user call to add track w/o global project\n");
-	exit(1);
-    }
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     Track *track = timeline_add_track(tl);
     if (!track) return;
-    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_add_track");
+    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_add_track");
     Button *btn = (Button *)el->component;
     button_press_color_change(
 	btn,
@@ -1132,7 +1178,7 @@ void user_tl_add_track(void *nullarg)
 
     Value nullval = {.int_v = 0};
     user_event_push(
-	&proj->history,
+	
 	add_track_undo,
 	add_track_redo,
 	NULL, add_track_dispose_forward,
@@ -1145,6 +1191,7 @@ void user_tl_add_track(void *nullarg)
 
 static void track_select_n(int n)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     if (tl->num_tracks <= n) return;
     Track *track = tl->tracks[n];
@@ -1228,6 +1275,7 @@ static void deactivate_all_tracks(Timeline *tl)
 
 void user_tl_track_activate_all(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     if (activate_all_tracks(tl)) {
 	deactivate_all_tracks(tl);
@@ -1264,6 +1312,7 @@ void user_tl_track_activate_all(void *nullarg)
 
 void user_tl_track_selector_up(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     Track *selected = timeline_selected_track(tl);
 
@@ -1287,7 +1336,7 @@ void user_tl_track_selector_up(void *nullarg)
 	    /*  Select last shown automation */
 	    track_select_last_shown_automation(selected);
 	}
-	if (proj->dragging && tl->num_grabbed_clips > 0) {
+	if (session->dragging && tl->num_grabbed_clips > 0) {
 	    timeline_cache_grabbed_clip_positions(tl);
 	    bool some_clip_moved = false;
 	    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
@@ -1330,7 +1379,7 @@ button_animation_and_exit:
 
     tl->needs_redraw = true;
 
-    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_previous");
+    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_previous");
     Button *btn = (Button *)el->component;
     button_press_color_change(
 	btn,
@@ -1342,6 +1391,7 @@ button_animation_and_exit:
 
 void user_tl_track_selector_down(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     Track *selected = timeline_selected_track(tl);
 
@@ -1370,7 +1420,7 @@ void user_tl_track_selector_down(void *nullarg)
 	if (prev_selected && selected != prev_selected) {
 	    selected->selected_automation = -1;
 	}
-	if (proj->dragging && tl->num_grabbed_clips > 0) {
+	if (session->dragging && tl->num_grabbed_clips > 0) {
 	    timeline_cache_grabbed_clip_positions(tl);
 	    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
 		int offset = tl->grabbed_clip_pos_cache[i].track_offset;
@@ -1411,7 +1461,7 @@ button_animation_and_exit:
     /* if (selected) timeline_refocus_track(tl, selected, true); */
     tl->needs_redraw = true;
 
-    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_next");
+    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_next");
     Button *btn = (Button *)el->component;
     button_press_color_change(
 	btn,
@@ -1460,22 +1510,26 @@ button_animation_and_exit:
 
 void user_tl_move_track_up(void *nullarg)
 {
+    Session *session = session_get();
     timeline_move_track_or_automation(ACTIVE_TL, -1);
 }
 
 void user_tl_move_track_down(void *nullarg)
 {
+    Session *session = session_get();
     timeline_move_track_or_automation(ACTIVE_TL, 1);
 }
 
 void user_tl_tracks_minimize(void *nullarg)
 {
+    Session *session = session_get();
     timeline_minimize_track_or_tracks(ACTIVE_TL);
 }
 
 
 void user_tl_track_activate_selected(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     if (tl->track_selector >= 0) {
 	track_select_n(tl->track_selector);
@@ -1485,6 +1539,7 @@ void user_tl_track_activate_selected(void *nullarg)
 void project_draw(void *nullarg);
 void user_tl_track_rename(void *nullarg)
 {
+    Session *session = session_get();
     /* window_pop_menu(main_win); */
     /* window_pop_mode(main_win); */
     Timeline *tl = ACTIVE_TL;
@@ -1508,6 +1563,7 @@ void user_tl_rename_clip_at_cursor(void *nullarg)
 
 void user_tl_track_set_in(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     Track *track = timeline_selected_track(tl);
     if (!track) {
@@ -1533,8 +1589,9 @@ static NEW_EVENT_FN(dispose_track_delete, "")
 
 void user_tl_track_delete(void *nullarg)
 {
+    Session *session = session_get();
     TABVIEW_BLOCK(delete track);
-    if (proj->recording) transport_stop_recording();
+    if (session->playback.recording) transport_stop_recording();
     Timeline *tl = ACTIVE_TL;
     Track *track = timeline_selected_track(tl);
     if (track) {
@@ -1550,7 +1607,7 @@ void user_tl_track_delete(void *nullarg)
 	}
 	Value nullval = {.int_v = 0};
 	user_event_push(
-	    &proj->history,
+	    
 	    undo_track_delete,
 	    redo_track_delete,
 	    dispose_track_delete, NULL,
@@ -1568,11 +1625,13 @@ void user_tl_track_delete(void *nullarg)
 
 void user_tl_mute(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     track_or_tracks_mute(tl);
 }
 void user_tl_solo(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     track_or_tracks_solo(tl, NULL);
     /* tl->needs_redraw = true; */
@@ -1582,6 +1641,7 @@ static Value vol_incr = {.float_v = 0.04};
 static Value pan_incr = {.float_v = 0.02};
 void user_tl_track_vol_up(void *nullarg)
 {
+    Session *session = session_get();
 
     /* if (proj->vol_changing) return; */
     /* proj->vol_changing = true; */
@@ -1621,6 +1681,7 @@ void user_tl_track_vol_up(void *nullarg)
 
 void user_tl_track_vol_down(void *nullarg)
 {
+    Session *session = session_get();
     /* if (proj->vol_changing) return; */
     /* proj->vol_changing = true; */
     /* proj->vol_up = false; */
@@ -1650,6 +1711,7 @@ void user_tl_track_vol_down(void *nullarg)
 
 void user_tl_track_pan_left(void *nullarg)
 {
+    Session *session = session_get();
     /* Timeline *tl = ACTIVE_TL; */
     /* /\* if (tl->num_tracks ==0) return; *\/ */
     /* if (proj->pan_changing) return; */
@@ -1677,6 +1739,7 @@ void user_tl_track_pan_left(void *nullarg)
 
 void user_tl_track_pan_right(void *nullarg)
 {
+    Session *session = session_get();
     bool has_active_track = false;
     Timeline *tl = ACTIVE_TL;
     for (int i=0; i<tl->num_tracks; i++) {
@@ -1702,6 +1765,7 @@ void user_tl_track_pan_right(void *nullarg)
 
 void user_tl_track_add_effect(void *nullarg)
 {
+    Session *session = session_get();
     TABVIEW_BLOCK(add automation);
     Timeline *tl = ACTIVE_TL;
     Track *track = timeline_selected_track(tl);
@@ -1717,6 +1781,7 @@ void user_tl_track_add_effect(void *nullarg)
 
 void user_tl_track_open_settings(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     if (main_win->active_tabview) {
 	tabview_close(main_win->active_tabview);
@@ -1743,6 +1808,7 @@ void user_tl_track_open_settings(void *nullarg)
 
 void user_tl_track_add_automation(void *nullarg)
 {
+    Session *session = session_get();
     TABVIEW_BLOCK(add automation);
     Timeline *tl = ACTIVE_TL;
     Track *track = timeline_selected_track(tl);
@@ -1756,6 +1822,7 @@ void user_tl_track_add_automation(void *nullarg)
 
 void user_tl_track_show_hide_automations(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     Track *track = timeline_selected_track(tl);
     if (!track) {
@@ -1783,6 +1850,7 @@ void user_tl_track_show_hide_automations(void *nullarg)
 
 void user_tl_track_automation_toggle_read(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     Track *track = timeline_selected_track(tl);
     if (!track) {
@@ -1799,14 +1867,15 @@ void user_tl_track_automation_toggle_read(void *nullarg)
 
 void user_tl_record(void *nullarg)
 {
-    if (proj->recording) {
+    Session *session = session_get();
+    if (session->playback.recording) {
 	transport_stop_recording();
 	return;
     }
 
-    if (proj->automation_recording) {
-	automation_record(proj->automation_recording);
-	proj->automation_recording = NULL;
+    if (session->automation_recording) {
+	automation_record(session->automation_recording);
+	session->automation_recording = NULL;
 	return;
     }
     Timeline *tl = ACTIVE_TL;
@@ -1818,7 +1887,7 @@ void user_tl_record(void *nullarg)
     if (sel_track && sel_track->selected_automation >= 0) {
 	Automation *sel_auto = sel_track->automations[sel_track->selected_automation];
 	automation_record(sel_auto);
-	proj->automation_recording = sel_auto;
+	session->automation_recording = sel_auto;
 	tl->needs_redraw = true;
 	return;
     }
@@ -1829,6 +1898,7 @@ void user_tl_record(void *nullarg)
 
 void user_tl_click_track_add(void *nullarg)
 {
+    Session *session = session_get();
     timeline_add_click_track(ACTIVE_TL);
 }
 
@@ -1839,11 +1909,13 @@ void user_tl_click_track_add(void *nullarg)
 
 void user_tl_click_track_set_tempo(void *nullarg)
 {
+    Session *session = session_get();
     timeline_click_track_set_tempo_at_cursor(ACTIVE_TL);
 }
 
 void user_tl_clipref_grab_ungrab(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;
     if (tl->num_tracks == 0) return;
@@ -1890,11 +1962,11 @@ void user_tl_clipref_grab_ungrab(void *nullarg)
 	for (uint8_t i=0; i<num_clips; i++) {
 	    clipref_grab(clips_to_grab[i]);
 	}
-	if (proj->dragging && proj->playing) {
+	if (session->dragging && session->playback.playing) {
 	    timeline_cache_grabbed_clip_positions(tl);
 	}
     } else {
-	if (proj->dragging && proj->playing) {
+	if (session->dragging && session->playback.playing) {
 	    timeline_push_grabbed_clip_move_event(tl);
 	}
 	for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
@@ -1904,7 +1976,7 @@ void user_tl_clipref_grab_ungrab(void *nullarg)
 	tl->num_grabbed_clips = 0;
     }
     
-    if (proj->dragging) {
+    if (session->dragging) {
 	status_stat_drag();
     }
     
@@ -1914,7 +1986,7 @@ void user_tl_clipref_grab_ungrab(void *nullarg)
     /* 	memcpy(clips, undo_crs, num_undo_crs * sizeof(ClipRef *)); */
     /* 	Value num = {.uint8_v = num_undo_crs}; */
     /* 	user_event_push( */
-    /* 	    &proj->history, */
+    /* 	     */
     /* 	    undo_redo_grab_clips, */
     /* 	    undo_redo_grab_clips, */
     /* 	    NULL, */
@@ -1932,7 +2004,7 @@ void user_tl_clipref_grab_ungrab(void *nullarg)
     
     /* if (tl->num_grabbed_clips > 0) { */
 
-    /* 	if (proj->playing && proj->dragging) */
+    /* 	if (session->playback.playing && session->dragging) */
     /* 	    timeline_push_grabbed_clip_move_event(tl); */
     /* } */
     /* tl->needs_redraw = true; */
@@ -1940,6 +2012,7 @@ void user_tl_clipref_grab_ungrab(void *nullarg)
 
 void user_tl_grab_marked_range(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     bool had_active_track = false;
     for (uint8_t i=0; i<tl->num_tracks; i++) {
@@ -1969,6 +2042,7 @@ void user_tl_grab_marked_range(void *nullarg)
 
 void user_tl_copy_grabbed_clips(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     memcpy(tl->clipboard, tl->grabbed_clips, sizeof(ClipRef *) * tl->num_grabbed_clips);
     tl->num_clips_in_clipboard = tl->num_grabbed_clips;
@@ -2000,6 +2074,7 @@ NEW_EVENT_FN(dispose_forward_paste_grabbed_clips, "redo paste grabbed clips")
 
 void user_tl_paste_grabbed_clips(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     timeline_ungrab_all_cliprefs(tl);
     if (tl->num_clips_in_clipboard == 0) {
@@ -2034,7 +2109,7 @@ void user_tl_paste_grabbed_clips(void *nullarg)
 
     Value num = {.uint8_v = actual_num};
     user_event_push(
-	&proj->history,
+	
 	undo_paste_grabbed_clips,
 	redo_paste_grabbed_clips,
 	NULL, dispose_forward_paste_grabbed_clips,
@@ -2046,11 +2121,12 @@ void user_tl_paste_grabbed_clips(void *nullarg)
 
 void user_tl_toggle_drag(void *nullarg)
 {
-    proj->dragging = !proj->dragging;
+    Session *session = session_get();
+    session->dragging = !session->dragging;
     status_stat_drag();
     Timeline *tl = ACTIVE_TL;
-    if (proj->playing) {
-	if (proj->dragging) {
+    if (session->playback.playing) {
+	if (session->dragging) {
 	    timeline_cache_grabbed_clip_positions(tl);
 	} else {
 	    timeline_push_grabbed_clip_move_event(tl);
@@ -2060,6 +2136,7 @@ void user_tl_toggle_drag(void *nullarg)
 
 void user_tl_cut_clipref(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     timeline_cut_at_cursor(tl);
     tl->needs_redraw = true;
@@ -2075,37 +2152,39 @@ void user_tl_split_stereo_clipref(void *nullarg)
 
 void user_tl_load_clip_at_cursor_to_src(void *nullarg)
 {
+    Session *session = session_get();
     /* Timeline *tl = ACTIVE_TL; */
     ClipRef *cr = clipref_at_cursor();
     if (cr && !cr->clip->recording) {
-	proj->src_clip = cr->clip;
-	proj->src_in_sframes = cr->in_mark_sframes;
-	proj->src_play_pos_sframes = 0;
-	proj->src_out_sframes = cr->out_mark_sframes;
-	/* fprintf(stdout, "Src clip name? %s\n", proj->src_clip->name); */
-	/* txt_set_value_handle(proj->source_name_tb->text, proj->src_clip->name); */
+	session->source_mode.src_clip = cr->clip;
+	session->source_mode.src_in_sframes = cr->in_mark_sframes;
+	session->source_mode.src_play_pos_sframes = 0;
+	session->source_mode.src_out_sframes = cr->out_mark_sframes;
+	/* fprintf(stdout, "Src clip name? %s\n", session->source_mode.src_clip->name); */
+	/* txt_set_value_handle(proj->source_name_tb->text, session->source_mode.src_clip->name); */
 	Timeline *tl = ACTIVE_TL;
 	tl->needs_redraw = true;
-	PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_source_clip_name_tb");
+	PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_source_clip_name_tb");
 	Textbox *tb = (Textbox *)el->component;
 	textbox_set_value_handle(tb, cr->clip->name);
-	panel_page_refocus(proj->panels, "Sample source", 1);
+	panel_page_refocus(session->gui.panels, "Sample source", 1);
     }
 
 }
 
 void user_tl_activate_source_mode(void *nullarg)
 {
-    if (!proj->source_mode) {
-	if (proj->src_clip) {
-	    proj->source_mode = true;
+    Session *session = session_get();
+    if (!session->source_mode.source_mode) {
+	if (session->source_mode.src_clip) {
+	    session->source_mode.source_mode = true;
 	    window_push_mode(main_win, SOURCE);
-	    panel_page_refocus(proj->panels, "Sample source", 1);
+	    panel_page_refocus(session->gui.panels, "Sample source", 1);
 	} else {
 	    status_set_errstr("Load a clip to source before activating source mode");
 	}
     } else {
-	proj->source_mode = false;
+	session->source_mode.source_mode = false;
 	window_pop_mode(main_win);
     }
     Timeline *tl = ACTIVE_TL;
@@ -2120,7 +2199,7 @@ void user_tl_activate_source_mode(void *nullarg)
 /*     clock_gettime(CLOCK_MONOTONIC, &now); */
 /*     struct realtime_tick pb = proj->playback_conn->callback_time; */
 /*     double elapsed_pb_chunk_ms = TIMESPEC_DIFF_MS(now, pb.ts); */
-/*     int32_t tl_pos_now = pb.timeline_pos + (int32_t)((elapsed_pb_chunk_ms - latency_est_ms) * proj->sample_rate * proj->play_speed / 1000.0f); */
+/*     int32_t tl_pos_now = pb.timeline_pos + (int32_t)((elapsed_pb_chunk_ms - latency_est_ms) * proj->sample_rate * session->playback.play_speed / 1000.0f); */
 /*     return tl_pos_now; */
 /* } */
 
@@ -2141,6 +2220,7 @@ static NEW_EVENT_FN(dispose_forward_drop, "")
 
 void user_tl_drop_from_source(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     if (tl->num_tracks == 0) return;
     Track *track = timeline_selected_track(tl);
@@ -2148,32 +2228,32 @@ void user_tl_drop_from_source(void *nullarg)
 	status_set_errstr(NO_TRACK_ERRSTR);
 	return;
     }
-    if (proj->src_clip) {
-	/* int32_t drop_pos = tl->play_pos_sframes - proj->play_speed * 2 * proj->chunk_size_sframes; */
-	if (proj->src_in_sframes >= proj->src_out_sframes) return;
+    if (session->source_mode.src_clip) {
+	/* int32_t drop_pos = tl->play_pos_sframes - session->playback.play_speed * 2 * proj->chunk_size_sframes; */
+	if (session->source_mode.src_in_sframes >= session->source_mode.src_out_sframes) return;
 	int32_t drop_pos = tl->play_pos_sframes;
 	/* int32_t drop_pos = get_drop_pos(); */
-	ClipRef *cr = track_create_clip_ref(track, proj->src_clip, drop_pos, false);
+	ClipRef *cr = track_create_clip_ref(track, session->source_mode.src_clip, drop_pos, false);
 	if (!cr) return;
-	cr->in_mark_sframes = proj->src_in_sframes;
-	cr->out_mark_sframes = proj->src_out_sframes;
+	cr->in_mark_sframes = session->source_mode.src_in_sframes;
+	cr->out_mark_sframes = session->source_mode.src_out_sframes;
 	clipref_reset(cr, true);
 	struct drop_save current_drop = (struct drop_save){cr->clip, cr->in_mark_sframes, cr->out_mark_sframes};
-	/* struct drop_save drop_zero =  proj->saved_drops[0]; */
+	/* struct drop_save drop_zero =  session->source_mode.saved_drops[0]; */
 	/* fprintf(stdout, "Current: %p, %d, %d\nzero: %p, %d, %d\n", current_drop.clip, current_drop.in, current_drop.out, drop_zero.clip, drop_zero.in, drop_zero.out); */
-	if (proj->num_dropped == 0 || memcmp(&current_drop, &(proj->saved_drops[0]), sizeof(struct drop_save)) != 0) {
+	if (session->source_mode.num_dropped == 0 || memcmp(&current_drop, &(session->source_mode.saved_drops[0]), sizeof(struct drop_save)) != 0) {
 	    for (int i=4; i>0; i--) {
-		proj->saved_drops[i] = proj->saved_drops[i-1];
+		session->source_mode.saved_drops[i] = session->source_mode.saved_drops[i-1];
 	    }
-	    /* memcpy(proj->saved_drops + 1, proj->saved_drops, 3 * sizeof(struct drop_save)); */
-	    proj->saved_drops[0] = (struct drop_save){cr->clip, cr->in_mark_sframes, cr->out_mark_sframes};
-	    if (proj->num_dropped <= 4) proj->num_dropped++;
-	    /* fprintf(stdout, "MET condition, num dropped: %d\n", proj->num_dropped); */
+	    /* memcpy(session->source_mode.saved_drops + 1, session->source_mode.saved_drops, 3 * sizeof(struct drop_save)); */
+	    session->source_mode.saved_drops[0] = (struct drop_save){cr->clip, cr->in_mark_sframes, cr->out_mark_sframes};
+	    if (session->source_mode.num_dropped <= 4) session->source_mode.num_dropped++;
+	    /* fprintf(stdout, "MET condition, num dropped: %d\n", session->source_mode.num_dropped); */
 	}
 	tl->needs_redraw = true;
 	Value nullval = {.int_v = 0};
 	user_event_push(
-	    &proj->history,
+	    
 	    undo_drop, redo_drop,
 	    NULL, dispose_forward_drop,
 	    (void *)cr, NULL,
@@ -2185,15 +2265,16 @@ void user_tl_drop_from_source(void *nullarg)
 
 static void user_tl_drop_savedn_from_source(int n)
 {
-    if (n < proj->num_dropped) {
-	/* fprintf(stdout, "N: %d, num dropped: %d\n", n, proj->num_dropped); */
+    Session *session = session_get();
+    if (n < session->source_mode.num_dropped) {
+	/* fprintf(stdout, "N: %d, num dropped: %d\n", n, session->source_mode.num_dropped); */
 	Timeline *tl = ACTIVE_TL;
 	if (tl->num_tracks == 0) return;
 	Track *track = timeline_selected_track(tl);
 	if (!track) return;
-	struct drop_save drop = proj->saved_drops[n];
+	struct drop_save drop = session->source_mode.saved_drops[n];
 	if (!drop.clip) return;
-	/* int32_t drop_pos = tl->play_pos_sframes - proj->play_speed * 2 * proj->chunk_size_sframes; */
+	/* int32_t drop_pos = tl->play_pos_sframes - session->playback.play_speed * 2 * proj->chunk_size_sframes; */
 	int32_t drop_pos = tl->play_pos_sframes;
 	/* int32_t drop_pos = get_drop_pos(); */
 	ClipRef *cr = track_create_clip_ref(track, drop.clip, drop_pos, false);
@@ -2205,7 +2286,7 @@ static void user_tl_drop_savedn_from_source(int n)
 	tl->needs_redraw = true;
 	Value nullval = {.int_v = 0};
 	user_event_push(
-	    &proj->history,
+	    
 	    undo_drop, redo_drop,
 	    NULL, dispose_forward_drop,
 	    (void *)cr, NULL,
@@ -2234,6 +2315,7 @@ void user_tl_drop_saved4_from_source(void *nullarg)
 
 static int new_tl_submit_form(void *mod_v, void *target)
 {
+    Session *session = session_get();
     Modal *mod = (Modal *)mod_v;
     for (uint8_t i=0; i<mod->num_els; i++) {
 	ModalEl *el = mod->els[i];
@@ -2250,7 +2332,8 @@ static int new_tl_submit_form(void *mod_v, void *target)
 
 void user_tl_add_new_timeline(void *nullarg)
 {
-    if (proj->recording) transport_stop_recording(); else  transport_stop_playback();
+    Session *session = session_get();
+    if (session->playback.recording) transport_stop_recording(); else  transport_stop_playback();
     
     ACTIVE_TL->layout->hidden = true;
     proj->active_tl_index = project_add_timeline(proj, "New Timeline");
@@ -2276,8 +2359,9 @@ void user_tl_add_new_timeline(void *nullarg)
 
 void user_tl_previous_timeline(void *nullarg)
 {
+    Session *session = session_get();
     if (proj->active_tl_index > 0) {
-	if (proj->recording) transport_stop_recording(); else  transport_stop_playback();
+	if (session->playback.recording) transport_stop_recording(); else  transport_stop_playback();
 	timeline_switch(proj->active_tl_index - 1);
     } else {
 	status_set_errstr("No timeline to the left.");
@@ -2286,8 +2370,9 @@ void user_tl_previous_timeline(void *nullarg)
 
 void user_tl_next_timeline(void *nullarg)
 {
+    Session *session = session_get();
     if (proj->active_tl_index < proj->num_timelines - 1) {
-	if (proj->recording) transport_stop_recording(); else  transport_stop_playback();
+	if (session->playback.recording) transport_stop_recording(); else  transport_stop_playback();
 	timeline_switch(proj->active_tl_index + 1);
 	/* ACTIVE_TL->layout->hidden = true; */
 	/* proj->active_tl_index++; */
@@ -2302,6 +2387,7 @@ void user_tl_next_timeline(void *nullarg)
 
 void user_tl_delete_timeline(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     timeline_delete(tl, false);
 }
@@ -2329,6 +2415,7 @@ void user_tl_delete_timeline(void *nullarg)
 
 static int submit_save_wav_form(void *mod_v, void *target)
 {
+    Session *session = session_get();
     Modal *modal = (Modal *)mod_v;
     char *name;
     char *dirpath;
@@ -2422,11 +2509,12 @@ void user_tl_write_mixdown_to_wav(void *nullarg)
 /* Deprecated; replaced by user_tl_cliprefs_delete */
 void DEPRECATED_user_tl_cliprefs_destroy(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     if (tl) {
 	timeline_destroy_grabbed_cliprefs(tl);
     }
-    if (proj->dragging) {
+    if (session->dragging) {
 	status_stat_drag();
     }
     tl->needs_redraw = true;
@@ -2434,6 +2522,7 @@ void DEPRECATED_user_tl_cliprefs_destroy(void *nullarg)
 
 void user_tl_delete_generic(void *nullarg)
 {
+    Session *session = session_get();
     TabView *tv;
     if ((tv = main_win->active_tabview) && strcmp(tv->title, "Track Effects") == 0) {
 	Page *active = tv->tabs[tv->current_tab];
@@ -2442,7 +2531,7 @@ void user_tl_delete_generic(void *nullarg)
 	effect_delete(e, false);
 	return;
     }
-    if (proj->recording) transport_stop_recording();
+    if (session->playback.recording) transport_stop_recording();
     Timeline *tl = ACTIVE_TL;
     Track *t;
     ClickTrack *ct;
@@ -2470,7 +2559,7 @@ void user_tl_delete_generic(void *nullarg)
 	    status_cat_callstr(" grabbed clip(s)");
 	    timeline_delete_grabbed_cliprefs(tl);
 	}
-	if (proj->dragging) {
+	if (session->dragging) {
 	    status_stat_drag();
 	}
     }
@@ -2481,54 +2570,61 @@ void user_tl_delete_generic(void *nullarg)
 
 void user_source_play(void *nullarg)
 {
-    if (proj->src_play_speed <= 0.0f) {
-	proj->src_play_speed = 1.0f;
+    Session *session = session_get();
+    if (session->source_mode.src_play_speed <= 0.0f) {
+	session->source_mode.src_play_speed = 1.0f;
 	transport_start_playback();
     } else {
-	proj->src_play_speed *= 2.0f;
+	session->source_mode.src_play_speed *= 2.0f;
 	status_stat_playspeed();
     }
 }
 
 void user_source_pause(void *nullarg)
 {
-    proj->src_play_speed = 0;
+    Session *session = session_get();
+    session->source_mode.src_play_speed = 0;
     transport_stop_playback();
 }
 
 void user_source_rewind(void *nullarg)
 {
-    if (proj->src_play_speed >= 0.0f) {
-	proj->src_play_speed = -1.0f;
+    Session *session = session_get();
+    if (session->source_mode.src_play_speed >= 0.0f) {
+	session->source_mode.src_play_speed = -1.0f;
 	transport_start_playback();
     } else {
-	proj->src_play_speed *= 2.0f;
+	session->source_mode.src_play_speed *= 2.0f;
 	status_stat_playspeed();
     }
 }
 
 void user_source_play_slow(void *nullarg)
 {
-    proj->src_play_speed = SLOW_PLAYBACK_SPEED;
+    Session *session = session_get();
+    session->source_mode.src_play_speed = SLOW_PLAYBACK_SPEED;
     status_stat_playspeed();
     transport_start_playback();
 }
 
 void user_source_rewind_slow(void *nullarg)
 {
-    proj->src_play_speed = -1 * SLOW_PLAYBACK_SPEED;
+    Session *session = session_get();
+    session->source_mode.src_play_speed = -1 * SLOW_PLAYBACK_SPEED;
     status_stat_playspeed();
     transport_start_playback();
 }
 
 void user_source_set_in_mark(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     transport_set_mark(tl, true);
 }
 
 void user_source_set_out_mark(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     transport_set_mark(tl, false);
 }
@@ -2581,6 +2677,7 @@ void user_modal_select(void *nullarg)
 
 void user_modal_dismiss(void *nullarg)
 {
+    Session *session = session_get();
     while (main_win->num_menus > 0) {
 	window_pop_menu(main_win);
     }
@@ -2604,6 +2701,7 @@ void user_modal_submit_form(void *nullarg)
 
 void user_text_edit_escape(void *nullarg)
 {
+    Session *session = session_get();
     if (main_win->txt_editing) {
 	txt_stop_editing(main_win->txt_editing);
     }
@@ -2631,6 +2729,7 @@ void user_text_edit_escape(void *nullarg)
 
 void user_text_edit_full_escape(void *nullarg)
 {
+    Session *session = session_get();
     if (main_win->txt_editing) {
 	txt_stop_editing(main_win->txt_editing);
     }
@@ -2773,6 +2872,7 @@ void user_tabview_move_current_tab_right(void *nullarg)
 
 void user_tabview_escape(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     if (main_win->active_tabview) {
 	tabview_close(main_win->active_tabview);
@@ -2807,6 +2907,7 @@ void user_autocomplete_previous(void *nullarg)
 
 void user_autocomplete_escape(void *nullarg)
 {
+    Session *session = session_get();
     autocompletion_escape();
     Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;
@@ -2814,6 +2915,7 @@ void user_autocomplete_escape(void *nullarg)
 
 void user_autocomplete_select(void *nullarg)
 {
+    Session *session = session_get();
     if (!main_win->ac_active) {
 	fprintf(stderr, "Error: in AC mode without active ac\n");
 	window_pop_mode(main_win);

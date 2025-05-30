@@ -24,16 +24,11 @@
 #include "project.h"
 #include "project_endpoint_ops.h"
 #include "pure_data.h"
+#include "session.h"
 #include "status.h"
 #include "timeline.h"
 #include "transport.h"
-#include "wav.h"
 
-
-extern Project *proj;
-extern SDL_Color color_global_red;
-extern SDL_Color color_global_play_green;
-extern SDL_Color color_global_quickref_button_blue;
 extern pthread_t DSP_THREAD_ID;
 extern pthread_t CURRENT_THREAD_ID;
 
@@ -53,7 +48,9 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
     /* 	    proj->playback_conn->callback_clock.timeline_pos, */
     /* 	    conn->callback_clock.clock, */
     /* 	    conn->callback_clock.timeline_pos); */
-	    
+
+    Session *session = session_get();
+    Project *proj = &session->proj;
 
     if (!conn->current_clip_repositioned) {
         struct timespec now;
@@ -71,7 +68,7 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
 	double record_latency_ms = (double)1000.0f * 64.0 / proj->sample_rate;
 	double playback_latency_ms = est_latency_mult * record_latency_ms;
 
-	struct realtime_tick pb_cb_tick = proj->playback_conn->callback_time;
+	struct realtime_tick pb_cb_tick = session->audio_io.playback_conn->callback_time;
 	double elapsed_pb_chunk_ms = TIMESPEC_DIFF_MS(now, pb_cb_tick.ts) - playback_latency_ms;
 
 	int32_t tl_pos_now = pb_cb_tick.timeline_pos + (int32_t)(elapsed_pb_chunk_ms * proj->sample_rate / 1000.0f);
@@ -116,14 +113,15 @@ static float *get_source_mode_chunk(uint8_t channel, float *chunk, uint32_t len_
      /* if (!chunk) { */
      /* 	 fprintf(stderr, "Error: unable to allocate chunk from source clip\n"); */
      /* } */
+     Session *session = session_get();
      
-     float *src_buffer = proj->src_clip->channels == 1 ? proj->src_clip->L :
-	 channel == 0 ? proj->src_clip->L : proj->src_clip->R;
+     float *src_buffer = session->source_mode.src_clip->channels == 1 ? session->source_mode.src_clip->L :
+	 channel == 0 ? session->source_mode.src_clip->L : session->source_mode.src_clip->R;
 
 
      for (uint32_t i=0; i<len_sframes; i++) {
 	 int sample_i = (int) (i * step + start_pos_sframes);
-	 if (sample_i < proj->src_clip->len_sframes && sample_i > 0) {
+	 if (sample_i < session->source_mode.src_clip->len_sframes && sample_i > 0) {
 	     chunk[i] = src_buffer[sample_i];
 	 } else {
 	     chunk[i] = 0;
@@ -136,9 +134,11 @@ void transport_recording_update_cliprects();
 
 void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 {
+    Session *session = session_get();
     /* fprintf(stdout, "\nSTART cb\n"); */
     /* clock_t a,b; */
     /* a = clock(); */
+    Project *proj = &session->proj;
     Timeline *tl = proj->timelines[proj->active_tl_index];
     AudioConn *conn = (AudioConn *)user_data;
     clock_gettime(CLOCK_MONOTONIC, &(conn->callback_time.ts));
@@ -149,9 +149,9 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     uint32_t len_sframes = stream_len_samples / proj->channels;
     float chunk_L[len_sframes];
     float chunk_R[len_sframes];
-    if (proj->source_mode) {
-	get_source_mode_chunk(0, chunk_L, len_sframes, proj->src_play_pos_sframes, proj->src_play_speed);
-	get_source_mode_chunk(1, chunk_R, len_sframes, proj->src_play_pos_sframes, proj->src_play_speed);
+    if (session->source_mode.source_mode) {
+	get_source_mode_chunk(0, chunk_L, len_sframes, session->source_mode.src_play_pos_sframes, session->source_mode.src_play_speed);
+	get_source_mode_chunk(1, chunk_R, len_sframes, session->source_mode.src_play_pos_sframes, session->source_mode.src_play_speed);
     } else {
 	int wait_count = 0;
 	while (sem_trywait(tl->readable_chunks) != 0) {
@@ -177,20 +177,21 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     }
 
 
-    if (proj->source_mode) {
-	proj->src_play_pos_sframes += proj->src_play_speed * stream_len_samples / proj->src_clip->channels;
-	if (proj->src_play_pos_sframes < 0 || proj->src_play_pos_sframes > proj->src_clip->len_sframes) {
-	    proj->src_play_pos_sframes = 0;
+    if (session->source_mode.source_mode) {
+	session->source_mode.src_play_pos_sframes += session->source_mode.src_play_speed * stream_len_samples / session->source_mode.src_clip->channels;
+	if (session->source_mode.src_play_pos_sframes < 0 || session->source_mode.src_play_pos_sframes > session->source_mode.src_clip->len_sframes) {
+	    session->source_mode.src_play_pos_sframes = 0;
 	}
 	tl->needs_redraw = true;
 
     } else {
-	timeline_move_play_position(tl, proj->play_speed * stream_len_samples / proj->channels);
+	timeline_move_play_position(tl, session->playback.play_speed * stream_len_samples / proj->channels);
     }
 }
 
 static void *transport_dsp_thread_fn(void *arg)
 {
+    Session *session = session_get();
     DSP_THREAD_ID = pthread_self();
     CURRENT_THREAD_ID = DSP_THREAD_ID;
     
@@ -201,12 +202,12 @@ static void *transport_dsp_thread_fn(void *arg)
 	exit(1);
     }
 
-    int len = proj->fourier_len_sframes;
+    int len = tl->proj->fourier_len_sframes;
     /* pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL); */
     float buf_L[len];
     float buf_R[len];
 
-    int N = len / proj->chunk_size_sframes;
+    int N = len / tl->proj->chunk_size_sframes;
     bool init = true;
 
     clock_t performance_timer;
@@ -214,11 +215,11 @@ static void *transport_dsp_thread_fn(void *arg)
     while (1) {
 	performance_timer = clock();
 	pthread_testcancel();
-	float play_speed = proj->play_speed;
+	float play_speed = session->playback.play_speed;
 
 	/* GET MIXDOWN */
-	get_mixdown_chunk(tl, buf_L, 0, len, tl->read_pos_sframes, proj->play_speed);
-	get_mixdown_chunk(tl, buf_R, 1, len, tl->read_pos_sframes, proj->play_speed);
+	get_mixdown_chunk(tl, buf_L, 0, len, tl->read_pos_sframes, session->playback.play_speed);
+	get_mixdown_chunk(tl, buf_R, 1, len, tl->read_pos_sframes, session->playback.play_speed);
 
 	/* DSP */
 	double dL[len];
@@ -232,13 +233,13 @@ static void *transport_dsp_thread_fn(void *arg)
 	FFT(dL, lfreq, len);
 	FFT(dR, rfreq, len);
 
-	get_magnitude(lfreq, proj->output_L_freq, len);
-	get_magnitude(rfreq, proj->output_R_freq, len);
+	get_magnitude(lfreq, tl->proj->output_L_freq, len);
+	get_magnitude(rfreq, tl->proj->output_R_freq, len);
 
 	/* Move the read (DSP) pos */
 	tl->read_pos_sframes += len * play_speed;
 
-	if (tl->proj->loop_play) {
+	if (session->playback.loop_play) {
 	    int32_t loop_len = tl->out_mark_sframes - tl->in_mark_sframes;
 	    if (loop_len > 0) {
 		int64_t remainder = tl->read_pos_sframes - tl->out_mark_sframes;
@@ -250,7 +251,7 @@ static void *transport_dsp_thread_fn(void *arg)
 	    }
 	}
 
-	/* if (proj->loop_play && tl->out_mark_sframes > tl->in_mark_sframes) { */
+	/* if (session->playback.loop_play && tl->out_mark_sframes > tl->in_mark_sframes) { */
 	/*     int32_t remainder = tl->read_pos_sframes - tl->out_mark_sframes; */
 	/*     if (remainder > 0) { */
 	/* 	int32_t new_pos = tl->in_mark_sframes + remainder; */
@@ -265,11 +266,11 @@ static void *transport_dsp_thread_fn(void *arg)
 	}
 	memcpy(tl->buf_L + tl->buf_write_pos, buf_L, sizeof(float) * len);
 	memcpy(tl->buf_R + tl->buf_write_pos, buf_R, sizeof(float) * len);
-	memcpy(proj->output_L, buf_L, sizeof(float) * len);
-	memcpy(proj->output_R, buf_R, sizeof(float) * len);
+	memcpy(tl->proj->output_L, buf_L, sizeof(float) * len);
+	memcpy(tl->proj->output_R, buf_R, sizeof(float) * len);
 
-	for (uint16_t i=proj->active_clip_index; i<proj->num_clips; i++) {
-	    Clip *clip = proj->clips[i];
+	for (uint16_t i=tl->proj->active_clip_index; i<tl->proj->num_clips; i++) {
+	    Clip *clip = tl->proj->clips[i];
 	    AudioConn *conn = clip->recorded_from;
 	    if (!conn) continue;
 	    if (conn->type == JACKDAW) {
@@ -315,8 +316,8 @@ static void *transport_dsp_thread_fn(void *arg)
 /* extern int16_t del_line_len; */
 void transport_start_playback()
 {   
-    if (proj->playing) return;
-    proj->playing = true;
+    if (session->playback.playing) return;
+    session->playback.playing = true;
     Timeline *tl = proj->timelines[proj->active_tl_index];
     tl->read_pos_sframes = tl->play_pos_sframes;
 
@@ -370,7 +371,7 @@ void transport_start_playback()
     sem_wait(tl->unpause_sem);
     audioconn_start_playback(proj->playback_conn);
 
-    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_play");
+    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_play");
     Textbox *play_button = ((Button *)el->component)->tb;
     textbox_set_background_color(play_button, &color_global_play_green);
 }
@@ -399,18 +400,18 @@ void transport_stop_playback()
     }
     tl->buf_read_pos = 0;
     tl->buf_write_pos = 0;
-    proj->playing = false;
+    session->playback.playing = false;
     /* pthread_kill(proj->dsp_thread, SIGINT); */
     /* fprintf(stdout, "Cancelled!\n"); */
-    proj->src_play_speed = 0.0f;
-    proj->play_speed = 0.0f;
+    session->source_mode.src_play_speed = 0.0f;
+    session->playback.play_speed = 0.0f;
 
     project_do_ongoing_changes(proj, JDAW_THREAD_DSP);
     project_flush_val_changes(proj, JDAW_THREAD_DSP);
     project_flush_callbacks(proj, JDAW_THREAD_DSP);
 
     
-    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_play");
+    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_play");
     Textbox *play_button = ((Button *)el->component)->tb;
     textbox_set_background_color(play_button, &color_global_quickref_button_blue);
 
@@ -419,7 +420,7 @@ void transport_stop_playback()
 void transport_start_recording()
 {
     transport_stop_playback();
-    /* proj->play_speed = 1.0f; */
+    /* session->playback.play_speed = 1.0f; */
     timeline_play_speed_set(1.0);
     transport_start_playback();
 
@@ -507,10 +508,10 @@ void transport_start_recording()
 	conn = conns_to_activate[i];
 	audioconn_start_recording(conn);
     }
-    proj->recording = true;
+    session->playback.recording = true;
 
 
-    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_record");
+    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_record");
     Textbox *record_button = ((Button *)el->component)->tb;
     textbox_set_background_color(record_button, &color_global_red);
     /* pd_jackdaw_record_get_block(); */
@@ -654,7 +655,7 @@ void transport_stop_recording()
     created_clips = realloc(created_clips, num_created * sizeof(ClipRef *));
     Value num_created_v = {.uint8_v = num_created};
     user_event_push(
-	&proj->history,
+	
 	undo_record_new_clips,
 	redo_record_new_clips,
 	NULL,
@@ -679,7 +680,7 @@ void transport_stop_recording()
 	    conn->active = false;
 	}
     }
-    proj->recording = false;
+    session->playback.recording = false;
 
     while (proj->active_clip_index < proj->num_clips) {
 	Clip *clip = proj->clips[proj->active_clip_index];
@@ -710,14 +711,14 @@ void transport_stop_recording()
     while (num_conns_to_close > 0) {
 	audioconn_close(conns_to_close[--num_conns_to_close]);
     }
-    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_record");
+    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_record");
     Textbox *record_button = ((Button *)el->component)->tb;
     textbox_set_background_color(record_button, &color_global_quickref_button_blue );
 }
 
 void transport_set_mark(Timeline *tl, bool in)
 {
-    if (!proj->source_mode) {
+    if (!session->source_mode.source_mode) {
 	if (in) {
 	    tl->in_mark_sframes = tl->play_pos_sframes;
 	} else {
@@ -726,9 +727,9 @@ void transport_set_mark(Timeline *tl, bool in)
 	timeline_reset_loop_play_lemniscate(tl);
     } else {
 	if (in) {
-	    proj->src_in_sframes = proj->src_play_pos_sframes;
+	    session->source_mode.src_in_sframes = session->source_mode.src_play_pos_sframes;
 	} else {
-	    proj->src_out_sframes = proj->src_play_pos_sframes;
+	    session->source_mode.src_out_sframes = session->source_mode.src_play_pos_sframes;
 	}
     }
     tl->needs_redraw = true;
@@ -743,11 +744,11 @@ void transport_set_mark_to(Timeline *tl, int32_t pos, bool in)
 	    tl->out_mark_sframes = pos;
 	}
 	timeline_reset_loop_play_lemniscate(tl);
-    } else if (proj->source_mode) {
+    } else if (session->source_mode.source_mode) {
 	if (in) {
-	    proj->src_in_sframes = pos;
+	    session->source_mode.src_in_sframes = pos;
 	} else {
-	    proj->src_out_sframes = pos;
+	    session->source_mode.src_out_sframes = pos;
 	}
     }
 }

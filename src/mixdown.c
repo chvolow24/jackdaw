@@ -97,9 +97,9 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
     float pan_vals[len_sframes];
 
     float playspeed_rolloff = 1.0;
-    float fabs_playspeed = fabs(proj->play_speed);
+    float fabs_playspeed = fabs(session->playback.play_speed);
     
-    if (proj->playing && fabs(proj->play_speed) < 0.01) {
+    if (session->playback.playing && fabs(session->playback.play_speed) < 0.01) {
 	playspeed_rolloff = fabs_playspeed * 100.0f;
     }
 

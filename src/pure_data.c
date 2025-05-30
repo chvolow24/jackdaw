@@ -256,7 +256,7 @@ void *pd_jackdaw_record_on_thread(void *arg)
     PdConn *pdconn = &conn->c.pd;
     while (1) {
 	/* fprintf(stdout, "about to check proj rec\n"); */
-	if (!proj->recording) {
+	if (!session->playback.recording) {
 	    break;
 	}
 	while (sem_trywait(audio_buffers_write_sem) == 0) {};

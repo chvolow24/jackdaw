@@ -132,6 +132,7 @@ typedef struct session {
     struct queued_ops queued_ops;
     bool do_tests;
     Draggable dragged_component;
+    bool dragging;
     struct source_mode source_mode;
     Automation *automation_recording;
     struct session_gui gui;

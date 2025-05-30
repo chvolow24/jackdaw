@@ -17,18 +17,14 @@
 
 #include <pthread.h>
 #include "assets.h"
-#include "color.h"
-/* #include "dsp.h" */
 #include "eq.h"
-#include "geometry.h"
-#include "label.h"
 #include "layout.h"
 #include "page.h"
 #include "project.h"
+#include "session.h"
 #include "textbox.h"
 #include "timeline.h"
 #include "userfn.h"
-#include "waveform.h"
 
 #ifndef INSTALL_DIR
 #define INSTALL_DIR "."
@@ -653,7 +649,7 @@ TabView *track_effects_tabview_create(Track *track);
 TabView *settings_track_tabview_create(Track *track)
 {
     return track_effects_tabview_create(track);
-    /* TabView *tv = tabview_create("Track Settings", proj->layout, main_win); */
+    /* TabView *tv = tabview_create("Track Settings", session->gui.layout, main_win); */
     /* settings_track_tabview_set_track(tv, track); */
     /* layout_force_reset(tv->layout); */
     /* return tv; */
@@ -728,7 +724,6 @@ static int time_sig_submit_button_action(void *self, void *s_v)
 
     Value ebb = {.int_v = tt->end_bound_behavior};
     user_event_push(
-	&proj->history,
 	undo_redo_set_segment_params,
 	undo_redo_set_segment_params,
 	NULL, NULL,
@@ -1126,10 +1121,11 @@ void click_track_populate_settings_tabview(ClickTrack *tt, TabView *tv)
 
 void timeline_click_track_edit(Timeline *tl)
 {
+    Session *session = session_get();
     ClickTrack *tt = timeline_selected_click_track(tl);
     if (!tt) return;
 
-    TabView *tv = tabview_create("Track Settings", proj->layout, main_win);
+    TabView *tv = tabview_create("Track Settings", session->gui.layout, main_win);
     click_track_populate_settings_tabview(tt, tv);
 
     tabview_activate(tv);

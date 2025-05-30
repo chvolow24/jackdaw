@@ -374,7 +374,7 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
 	return NULL;
     }
     Clip *clip = project_add_clip(NULL, track);
-    if (!proj->recording)
+    if (!session->playback.recording)
 	proj->active_clip_index++;
     
     clip->len_sframes = buf_len_samples / track->channels;

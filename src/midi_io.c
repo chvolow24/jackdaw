@@ -45,6 +45,7 @@ static int midi_device_create_jackdaw_out(MIDIDevice *dst)
 	fprintf(stderr, "Error: device name \"%s\" invalid or already in use\n", device_name);
 	return -1;
     }
+    fprintf(stderr, "Create virtual in return code: %d\n", err);
     PmDeviceID id = err;
     dst->id = id;
     dst->info = Pm_GetDeviceInfo(id);
@@ -65,6 +66,7 @@ static int midi_device_create_jackdaw_in(MIDIDevice *dst)
 	fprintf(stderr, "Error: device name \"%s\" invalid or already in use\n", device_name);
 	return -1;
     }
+    fprintf(stderr, "Create virtual in return code: %d\n", err);
     PmDeviceID id = err;
     dst->id = id;
     dst->info = Pm_GetDeviceInfo(id);
@@ -101,7 +103,7 @@ int midi_create_virtual_devices(struct midi_io *midi_io)
     }
     
     ret = midi_device_create_jackdaw_in(&midi_io->in);
-    
+
     if (ret < 0) {
 	fprintf(stderr, "Error creating jackdaw midi in\n");
 	return ret;

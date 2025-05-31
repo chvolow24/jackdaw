@@ -17,12 +17,13 @@
 
 #include <unistd.h>
 #include "audio_connection.h"
+#include "color.h"
 /* #include "dsp.h" */
 #include "dsp_utils.h"
 #include "user_event.h"
 #include "mixdown.h"
 #include "project.h"
-#include "project_endpoint_ops.h"
+#include "session_endpoint_ops.h"
 #include "pure_data.h"
 #include "session.h"
 #include "status.h"
@@ -31,6 +32,7 @@
 
 extern pthread_t DSP_THREAD_ID;
 extern pthread_t CURRENT_THREAD_ID;
+extern struct colors colors;
 
 void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type);
 void transport_record_callback(void* user_data, uint8_t *stream, int len)
@@ -38,14 +40,14 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
     AudioConn *conn = (AudioConn *)user_data;
     AudioDevice *dev = &conn->c.device;
 
-    /* double time_diff = 1000.0f * ((double)conn->callback_clock.clock - proj->playback_conn->callback_clock.clock) / CLOCKS_PER_SEC; */
+    /* double time_diff = 1000.0f * ((double)conn->callback_clock.clock - session->audio_io.playback_conn->callback_clock.clock) / CLOCKS_PER_SEC; */
     /* fprintf(stdout, "TIME DIFF ms: %f\n", time_diff); */
 
 
     
     /* fprintf(stdout, "Playback: %ld, %d; Record: %ld, %d\n", */
-    /* 	    proj->playback_conn->callback_clock.clock, */
-    /* 	    proj->playback_conn->callback_clock.timeline_pos, */
+    /* 	    session->audio_io.playback_conn->callback_clock.clock, */
+    /* 	    session->audio_io.playback_conn->callback_clock.timeline_pos, */
     /* 	    conn->callback_clock.clock, */
     /* 	    conn->callback_clock.timeline_pos); */
 
@@ -139,7 +141,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     /* clock_t a,b; */
     /* a = clock(); */
     Project *proj = &session->proj;
-    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Timeline *tl = ACTIVE_TL;
     AudioConn *conn = (AudioConn *)user_data;
     clock_gettime(CLOCK_MONOTONIC, &(conn->callback_time.ts));
     conn->callback_time.timeline_pos = tl->play_pos_sframes + (tl->buf_read_pos % (proj->fourier_len_sframes / proj->chunk_size_sframes));
@@ -297,11 +299,11 @@ static void *transport_dsp_thread_fn(void *arg)
 	    init = false;
 	}
 	
-	project_do_ongoing_changes(proj, JDAW_THREAD_DSP);
-	project_flush_val_changes(proj, JDAW_THREAD_DSP);
-	project_flush_callbacks(proj, JDAW_THREAD_DSP);
+	session_do_ongoing_changes(session, JDAW_THREAD_DSP);
+	session_flush_val_changes(session, JDAW_THREAD_DSP);
+	session_flush_callbacks(session, JDAW_THREAD_DSP);
 	double time = ((double)clock() - performance_timer) / CLOCKS_PER_SEC;
-	double alloc_time = (double)proj->fourier_len_sframes / proj->sample_rate;
+	double alloc_time = (double)session->proj.fourier_len_sframes / session->proj.sample_rate;
 	double out = 0.9 * last_t + 0.1 * (time / alloc_time);
 	/* fprintf(stderr, "STRESS: %f\n", out); */
 	last_t = out;
@@ -315,10 +317,11 @@ static void *transport_dsp_thread_fn(void *arg)
 /* extern double *del_line_l, *del_line_r; */
 /* extern int16_t del_line_len; */
 void transport_start_playback()
-{   
+{
+    Session *session = session_get();
     if (session->playback.playing) return;
     session->playback.playing = true;
-    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Timeline *tl = ACTIVE_TL;
     tl->read_pos_sframes = tl->play_pos_sframes;
 
     for (uint8_t i=0; i<tl->num_tracks; i++) {
@@ -352,7 +355,7 @@ void transport_start_playback()
 
     /* Set stack size */
     size_t orig_stack_size;
-    size_t desired_stack_size = 2 * sizeof(double) * proj->sample_rate;
+    size_t desired_stack_size = 2 * sizeof(double) * session->proj.sample_rate;
     int page_size = getpagesize();
     int num_pages = desired_stack_size / page_size;
     desired_stack_size = num_pages * page_size;
@@ -364,24 +367,25 @@ void transport_start_playback()
 	    fprintf(stderr, "pthread_attr_setstacksize: %s\n", strerror(ret));
 	}
     }
-    if ((ret = pthread_create(&proj->dsp_thread, &attr, transport_dsp_thread_fn, (void *)tl)) != 0) {
+    if ((ret = pthread_create(&session->dsp_thread, &attr, transport_dsp_thread_fn, (void *)tl)) != 0) {
 	fprintf(stderr, "pthread_create: %s\n", strerror(ret));
     }
 
     sem_wait(tl->unpause_sem);
-    audioconn_start_playback(proj->playback_conn);
+    audioconn_start_playback(session->audio_io.playback_conn);
 
     PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_play");
     Textbox *play_button = ((Button *)el->component)->tb;
-    textbox_set_background_color(play_button, &color_global_play_green);
+    textbox_set_background_color(play_button, &colors.play_green);
 }
 
 void transport_stop_playback()
 {
-    Timeline *tl = proj->timelines[proj->active_tl_index];
-    audioconn_stop_playback(proj->playback_conn);
+    Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
+    audioconn_stop_playback(session->audio_io.playback_conn);
 
-    if (proj->dsp_thread) pthread_cancel(proj->dsp_thread);
+    if (session->dsp_thread) pthread_cancel(session->dsp_thread);
     /* Unblock DSP thread */
     for (int i=0; i<512; i++) {
 	sem_post(tl->writable_chunks);
@@ -394,7 +398,7 @@ void transport_stop_playback()
     while (sem_trywait(tl->readable_chunks) == 0) {};
 
     /* Reset writeable chunks sem */
-    for (int i=0; i<proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS / proj->chunk_size_sframes; i++) {
+    for (int i=0; i<session->proj.fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS / session->proj.chunk_size_sframes; i++) {
 	/* fprintf(stdout, "\t->reinitiailizing writable chunks\n"); */
 	sem_post(tl->writable_chunks);
     }
@@ -406,14 +410,14 @@ void transport_stop_playback()
     session->source_mode.src_play_speed = 0.0f;
     session->playback.play_speed = 0.0f;
 
-    project_do_ongoing_changes(proj, JDAW_THREAD_DSP);
-    project_flush_val_changes(proj, JDAW_THREAD_DSP);
-    project_flush_callbacks(proj, JDAW_THREAD_DSP);
+    session_do_ongoing_changes(session, JDAW_THREAD_DSP);
+    session_flush_val_changes(session, JDAW_THREAD_DSP);
+    session_flush_callbacks(session, JDAW_THREAD_DSP);
 
     
     PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_play");
     Textbox *play_button = ((Button *)el->component)->tb;
-    textbox_set_background_color(play_button, &color_global_quickref_button_blue);
+    textbox_set_background_color(play_button, &colors.quickref_button_blue);
 
 }
 
@@ -426,7 +430,8 @@ void transport_start_recording()
 
     AudioConn *conns_to_activate[MAX_PROJ_AUDIO_CONNS];
     uint8_t num_conns_to_activate = 0;
-    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
     tl->record_from_sframes = tl->play_pos_sframes;
     AudioConn *conn;
     /* for (int i=0; i<proj->num_record_conns; i++) { */
@@ -449,7 +454,7 @@ void transport_start_recording()
 		conn->active = true;
 		conns_to_activate[num_conns_to_activate] = conn;
 		num_conns_to_activate++;
-		if (audioconn_open(proj, conn) != 0) {
+		if (audioconn_open(session, conn) != 0) {
 		    fprintf(stderr, "Error opening audio device to record\n");
 		    return;
 		}
@@ -478,7 +483,7 @@ void transport_start_recording()
 	    conn->active = true;
 	    conns_to_activate[num_conns_to_activate] = conn;
 	    num_conns_to_activate++;
-	    if (audioconn_open(proj, conn) != 0) {
+	    if (audioconn_open(session, conn) != 0) {
 		fprintf(stderr, "Error opening audio device to record\n");
 		exit(1);
 	    }
@@ -498,7 +503,7 @@ void transport_start_recording()
     for (uint8_t i=0; i<num_conns_to_activate; i++) {
 	conn = conns_to_activate[i];
 	if (!conn->open) {
-	    audioconn_open(proj, conn);
+	    audioconn_open(session, conn);
 	}
 	conn->c.device.write_bufpos_samples = 0;
 	/* device_open(proj, dev); */
@@ -513,7 +518,7 @@ void transport_start_recording()
 
     PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_record");
     Textbox *record_button = ((Button *)el->component)->tb;
-    textbox_set_background_color(record_button, &color_global_red);
+    textbox_set_background_color(record_button, &colors.red);
     /* pd_jackdaw_record_get_block(); */
 
 }
@@ -630,12 +635,13 @@ static NEW_EVENT_FN(dispose_forward_record_new_clips, "")
 
 void transport_stop_recording()
 {
-    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;
     ClipRef **created_clips = calloc(tl->num_tracks * 2, sizeof(ClipRef *));
     uint16_t num_created = 0;
-    for (uint16_t i=proj->active_clip_index; i<proj->num_clips; i++) {
-	Clip *clip = proj->clips[i];
+    for (uint16_t i=session->proj.active_clip_index; i<session->proj.num_clips; i++) {
+	Clip *clip = session->proj.clips[i];
 	if (clip->len_sframes == 0) {
 	    for (int i=0; i<clip->num_refs; i++) {
 		if (clip->refs[i]->grabbed) clipref_ungrab(clip->refs[i]);
@@ -671,8 +677,8 @@ void transport_stop_recording()
     AudioConn *conn;
     AudioConn *conns_to_close[64];
     uint8_t num_conns_to_close = 0;
-    for (int i=0; i<proj->num_record_conns; i++) {
-	if ((conn = proj->record_conns[i]) && conn->active) {
+    for (int i=0; i<session->audio_io.num_record_conns; i++) {
+	if ((conn = session->audio_io.record_conns[i]) && conn->active) {
 	    audioconn_stop_recording(conn);
 	    conns_to_close[num_conns_to_close] = conn;
 	    num_conns_to_close++;
@@ -682,12 +688,12 @@ void transport_stop_recording()
     }
     session->playback.recording = false;
 
-    while (proj->active_clip_index < proj->num_clips) {
-	Clip *clip = proj->clips[proj->active_clip_index];
+    while (session->proj.active_clip_index < session->proj.num_clips) {
+	Clip *clip = session->proj.clips[session->proj.active_clip_index];
 	/* fprintf(stdout, "CLIP BUFFERS: %p, %p\n", clip->L, clip->R); */
 	/* exit(0); */
 	if (!clip->recorded_from) {
-	    proj->active_clip_index++;
+	    session->proj.active_clip_index++;
 	    continue;
 	}
 	switch (clip->recorded_from->type) {
@@ -705,7 +711,7 @@ void transport_stop_recording()
 	}
 	/* fprintf(stderr, "SETTING %s rec to false\n", clip->name); */
 	clip->recording = false;
-	proj->active_clip_index++;
+	session->proj.active_clip_index++;
     }
 
     while (num_conns_to_close > 0) {
@@ -713,11 +719,12 @@ void transport_stop_recording()
     }
     PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_record");
     Textbox *record_button = ((Button *)el->component)->tb;
-    textbox_set_background_color(record_button, &color_global_quickref_button_blue );
+    textbox_set_background_color(record_button, &colors.quickref_button_blue );
 }
 
 void transport_set_mark(Timeline *tl, bool in)
 {
+    Session *session = session_get();
     if (!session->source_mode.source_mode) {
 	if (in) {
 	    tl->in_mark_sframes = tl->play_pos_sframes;
@@ -737,6 +744,7 @@ void transport_set_mark(Timeline *tl, bool in)
 
 void transport_set_mark_to(Timeline *tl, int32_t pos, bool in)
 {
+    Session *session = session_get();
     if (tl) {
 	if (in) {
 	    tl->in_mark_sframes = pos;
@@ -764,10 +772,11 @@ void transport_goto_mark(Timeline *tl, bool in)
 
 void transport_recording_update_cliprects()
 {
+    Session *session = session_get();
     /* fprintf(stdout, "update clip rects...\n"); */
-    for (int i=proj->active_clip_index; i<proj->num_clips; i++) {
+    for (int i=session->proj.active_clip_index; i<session->proj.num_clips; i++) {
 	/* fprintf(stdout, "updating %d/%d\n", i, proj->num_clips); */
-	Clip *clip = proj->clips[i];
+	Clip *clip = session->proj.clips[i];
 
 	if (!clip->recorded_from) continue; /* E.g. wav loaded during recording */
 	switch(clip->recorded_from->type) {

@@ -21,7 +21,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "endpoint.h"
-#include "SDL.h"
 #include "envelope_follower.h"
 
 typedef struct effect Effect;

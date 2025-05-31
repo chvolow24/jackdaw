@@ -1,17 +1,13 @@
-#include "audio_connection.h"
 #include "color.h"
 #include "menu.h"
 #include "panel.h"
-#include "project.h"
 #include "layout.h"
-#include "status.h"
 
 #define PANEL_H_SPACING 10
 #define PANEL_LABEL_PAD 6
 /* #define PANEL_LABEL_DIVIDER_PAD (8 * pa->win->dpi_scale_factor) */
 
-extern SDL_Color color_global_cerulean;
-extern SDL_Color color_global_cerulean_pale;
+extern struct colors colors;
 
 PanelArea *panel_area_create(Layout *lt, Window *win)
 {
@@ -101,7 +97,7 @@ Page *panel_select_page(PanelArea *pa, uint8_t panel_i, uint8_t new_selection)
     textbox_set_value_handle(panel->selector, name);
     textbox_size_to_fit(panel->selector, 0, PANEL_LABEL_PAD);
     textbox_set_background_color(panel->selector, NULL);
-    textbox_set_text_color(panel->selector, &color_global_cerulean);
+    textbox_set_text_color(panel->selector, &colors.cerulean);
     textbox_reset_full(panel->selector);
 
     layout_force_reset(pa->layout);
@@ -132,7 +128,7 @@ void panel_area_draw(PanelArea *pa)
     for (uint8_t i=0; i<pa->num_panels; i++) {
 	panel_draw(pa->panels[i]);
  	if (i != pa->num_panels - 1) {
-	    SDL_SetRenderDrawColor(pa->win->rend, sdl_color_expand(color_global_cerulean_pale));
+	    SDL_SetRenderDrawColor(pa->win->rend, sdl_color_expand(colors.cerulean_pale));
 	    SDL_Rect rect = pa->panels[i]->layout->rect;
 	    SDL_RenderDrawLine(pa->win->rend, rect.x + rect.w, rect.y, rect.x + rect.w, rect.y + rect.h);
 	}

@@ -17,9 +17,11 @@
 *****************************************************************************************************************/
 
 
+#include "consts.h"
 #include "dsp_utils.h"
 /* #include "endpoint_callbacks.h" */
 #include "project.h"
+#include "session.h"
 
 
 #define ROU_MAX_DEGREE 14
@@ -230,7 +232,8 @@ double hamming(int x, int lenw)
 extern Project *proj;
 double dsp_scale_freq_to_hz(double freq_unscaled)
 {
-    double sample_rate = proj ? proj->sample_rate : DEFAULT_SAMPLE_RATE;
+    Session *session = session_get();
+    double sample_rate = proj ? session->proj.sample_rate : DEFAULT_SAMPLE_RATE;
     return pow(10.0, log10(sample_rate / 2.0) * freq_unscaled);
 }
 

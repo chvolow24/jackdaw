@@ -138,11 +138,13 @@ typedef struct session {
     struct session_gui gui;
     struct playback playback;
 
+    bool proj_initialized;
     Project proj;
     
 } Session;
 
 
+Session *session_create();
 Session *session_get();
 
 #endif

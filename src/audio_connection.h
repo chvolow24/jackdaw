@@ -23,7 +23,6 @@
 #include <time.h>
 #include "SDL.h"
 
-
 #define MAX_CONN_NAMELENGTH 64
 /* #include "project.h" */
 

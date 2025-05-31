@@ -17,9 +17,8 @@
 /* #include "dsp.h" */
 #include "endpoint_callbacks.h"
 #include "page.h"
-#include "project_endpoint_ops.h"
+#include "session_endpoint_ops.h"
 #include "status.h"
-#include "waveform.h"
 
 
 

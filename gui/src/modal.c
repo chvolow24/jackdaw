@@ -1,3 +1,4 @@
+#include "color.h"
 #include "dir.h"
 #include "geometry.h"
 #include "modal.h"
@@ -22,12 +23,12 @@
 
 
 extern Window *main_win;
+extern struct colors colors;
 
-extern SDL_Color color_global_black;
-extern SDL_Color color_global_clear;
-extern SDL_Color color_global_white;
+
+
 extern SDL_Color control_bar_bckgrnd;
-extern SDL_Color color_global_light_grey;
+
 
 extern SDL_Color menu_std_clr_inner_border;
 extern SDL_Color menu_std_clr_outer_border;
@@ -54,7 +55,7 @@ SDL_Color modal_color_border_outer = (SDL_Color){10, 10, 10, 255};
 SDL_Color modal_color_border_selected = (SDL_Color) {10, 10, 155, 255};
 SDL_Color modal_button_color = (SDL_Color) {200, 200, 200, 255};
 
-extern SDL_Color color_global_red;
+
 
 
 void user_modal_dismiss(void *nullarg);
@@ -81,7 +82,7 @@ Modal *modal_create(Layout *lt)
 	    SYMBOL_TABLE[SYMBOL_X],
 	    modal_x_action,
 	    NULL,
-	    &color_global_red);
+	    &colors.red);
     }
 
     /* Layout *padded = layout_add_child(lt); */
@@ -170,8 +171,8 @@ static ModalEl *modal_add_text(Modal *modal, Font *font, int font_size, SDL_Colo
     el->type = MODAL_EL_TEXT;
     /* el->selectable = false; */
     Textbox *tb = textbox_create_from_str(text, el->layout, font, font_size, main_win);
-    textbox_set_border(tb, &color_global_clear, 0);
-    textbox_set_background_color(tb, &color_global_clear);
+    textbox_set_border(tb, &colors.clear, 0);
+    textbox_set_background_color(tb, &colors.clear);
     textbox_set_text_color(tb, color);
     textbox_set_align(tb, align);
     /* Text *txt = txt_create_from_str(text, strlen(text), &el->layout->rect, font, font_size, *color, align, truncate, main_win); */
@@ -236,8 +237,8 @@ ModalEl *modal_add_p(Modal *modal, const char *text, SDL_Color *color)
 
 ModalEl *modal_add_dirnav(Modal *modal, const char *dirpath, int (*dir_to_tline_filter)(void *dp_v, void *dn_v))
 {
-    /* modal_add_header(modal, "- DirNav -", &color_global_black, 4); */
-    /* modal_add_p(modal, "n (f) - next item\np (d) - previous item\n<ret> (<spc>) - drill down\nS-n (S-f) - escape DirNav next\nS-p (S-d) - escape DirNav previous", &color_global_black); */
+    /* modal_add_header(modal, "- DirNav -", &colors.black, 4); */
+    /* modal_add_p(modal, "n (f) - next item\np (d) - previous item\n<ret> (<spc>) - drill down\nS-n (S-f) - escape DirNav next\nS-p (S-d) - escape DirNav previous", &colors.black); */
     ModalEl *el = modal_add_el(modal);
     el->layout->y.value = MODAL_V_PADDING_TIGHT;
     modal->selectable_indices[modal->num_selectable] = modal->num_els -1;
@@ -260,7 +261,7 @@ ModalEl *modal_add_button(Modal *modal, char *text, ComponentFn action)
     modal->selectable_indices[modal->num_selectable] = modal->num_els - 1;
     modal->num_selectable++;
     el->layout->w.type = ABS;
-    Button *button = button_create(el->layout, text, action, NULL, main_win->std_font, 14,  &color_global_black, &modal_button_color);
+    Button *button = button_create(el->layout, text, action, NULL, main_win->std_font, 14,  &colors.black, &modal_button_color);
     layout_center_agnostic(el->layout, true, false);
     textbox_reset_full(button->tb);
     el->obj = (void *)button;
@@ -353,7 +354,7 @@ ModalEl *modal_add_radio(
 /* 	SYMBOL_TABLE[SYMBOL_X], */
 /* 	NULL, */
 /* 	NULL, */
-/* 	&color_global_red); */
+/* 	&colors.red); */
 
 /* } */
 
@@ -455,7 +456,7 @@ void modal_draw(Modal *modal)
     if (modal->num_selectable > 0) {
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(modal_color_border_selected));
 	geom_draw_rect_thick(main_win->rend, &modal->els[modal->selectable_indices[modal->selected_i]]->layout->rect, 2, main_win->dpi_scale_factor);
-	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_light_grey));
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.light_grey));
 	SDL_RenderDrawRect(main_win->rend, &modal->els[modal->selectable_indices[modal->selected_i]]->layout->rect);
 	/* SDL_Rect r = modal->els[modal->selectable_indices[modal->selected_i]]->layout->rect; */
 	/* fprintf(stdout, "R: %d %d %d %d\n", r.x, r.y, r.w, r.h); */

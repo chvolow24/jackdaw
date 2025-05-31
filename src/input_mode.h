@@ -21,7 +21,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "SDL.h"
 
 #define MAX_ANNOT_STRLEN 255
 #define MAX_MODE_SUBCATS 16

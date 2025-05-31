@@ -22,35 +22,13 @@
 #include "effect.h"
 /* #include "eq.h" */
 #include "project.h"
+#include "session.h"
 /* #include "iir.h" */
 
 #define AMP_EPSILON 1e-7f
 
-/* IIRFilter lowp_test; */
-/* bool lowp_inited = false; */
-
-extern Project *proj;
-
-
-/* static void float_buf_add(float *main, float *add, int32_t len_sframes) */
-/* { */
-/*     for (int32_t i=0; i<len_sframes; i++) { */
-/* 	main[i] += add[i]; */
-/*     } */
-/* } */
-
-/* static void float_buf_mult(float *main, float *by, int32_t len_sframes) */
-/* { */
-/*     for (int32_t i=0; i<len_sframes; i++) { */
-/* 	main[i] *= by[i]; */
-/*     } */
-/* } */
 static void make_pan_chunk(float *pan_vals, int32_t len_sframes, uint8_t channel) 
 {
-    /* double pan_scale = channel == 0 ? */
-    /* 	raw_pan <= 0.5 ? 1 : (1.0f - raw_pan) * 2 */
-    /* 	: raw_pan >= 0.5 ? 1 : raw_pan * 2; */
-
     if (channel == 0) {
 	for (int i=0; i<len_sframes; i++) {
 	    pan_vals[i] = pan_vals[i] <= 0.5f ? 1.0f : (1.0f - pan_vals[i]) * 2;
@@ -65,6 +43,7 @@ static void make_pan_chunk(float *pan_vals, int32_t len_sframes, uint8_t channel
 float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32_t start_pos_sframes, uint32_t len_sframes, float step)
 {
 
+    Session *session = session_get();
     uint32_t chunk_bytelen = sizeof(float) * len_sframes;
     memset(chunk, '\0', chunk_bytelen);
     if (track->muted || (track->solo_muted && !track->bus_out)) {
@@ -139,7 +118,7 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	if (!cr) {
 	    continue;
 	}
-	if (proj->dragging && cr->grabbed) {
+	if (session->dragging && cr->grabbed) {
 	    continue;
 	}
 	pthread_mutex_lock(&cr->lock);

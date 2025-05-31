@@ -17,6 +17,7 @@
 
 #include <pthread.h>
 #include "assets.h"
+#include "color.h"
 #include "eq.h"
 #include "layout.h"
 #include "page.h"
@@ -33,17 +34,11 @@
 #define LABEL_STD_FONT_SIZE 12
 #define RADIO_STD_FONT_SIZE 14
 
-extern Project *proj;
 extern Window *main_win;
 
 extern Symbol *SYMBOL_TABLE[];
 
-extern SDL_Color color_global_white;
-extern SDL_Color color_global_black;
-extern SDL_Color color_global_light_grey;
-extern SDL_Color color_global_quickref_button_blue;
-extern SDL_Color freq_L_color;
-extern SDL_Color freq_R_color;
+extern struct colors colors;
 
 extern SDL_Color EQ_CTRL_COLORS[];
 extern SDL_Color EQ_CTRL_COLORS_LIGHT[];
@@ -57,7 +52,7 @@ Waveform *current_waveform;
 /* static double unscale_freq(double scaled) */
 /* { */
 /* } */
-/*     return log(scaled * proj->sample_rate) / log(proj->sample_rate); */
+/*     return log(scaled * session->proj.sample_rate) / log(session->proj.sample_rate); */
 /* static int toggle_delay_line_target_action(void *self_v, void *target) */
 /* { */
 /*     DelayLine *dl = (DelayLine *)target; */
@@ -103,8 +98,8 @@ Waveform *current_waveform;
 /*     p.button_p.font = main_win->mono_bold_font; */
 /*     p.button_p.win = main_win; */
 /*     p.button_p.text_size = 16; */
-/*     p.button_p.background_color = &color_global_light_grey; */
-/*     p.button_p.text_color = &color_global_black; */
+/*     p.button_p.background_color = &colors.light_grey; */
+/*     p.button_p.text_color = &colors.black; */
 /*     p.button_p.action = previous_track; */
 /*     el = page_add_el(page, EL_BUTTON, p, "track_settings_prev_track", "track_previous"); */
 
@@ -198,7 +193,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 /*     /\* 	track->fir_filter_active = false; *\/ */
 /*     /\* } *\/ */
 /*     /\* if (!track->delay_line.buf_L) { *\/ */
-/*     /\* 	delay_line_init(&track->delay_line, track, proj->sample_rate); *\/ */
+/*     /\* 	delay_line_init(&track->delay_line, track, session->proj.sample_rate); *\/ */
 /*     /\* 	/\\* delay_line_set_params(&track->delay_line, 0.3, 10000); *\\/ *\/ */
 /*     /\* } *\/ */
 
@@ -219,7 +214,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 /* 	"Equalizer", */
 /* 	EQ_LT_PATH, */
 /* 	page_colors + 2, */
-/* 	&color_global_white, */
+/* 	&colors.white, */
 /* 	main_win); */
 
 /*     PageElParams p; */
@@ -244,7 +239,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 /*     page_add_el(page, EL_EQ_PLOT, p, "track_settings_eq_plot", "eq_plot"); */
 
 /*     /\* p.textarea_p.font = main_win->mono_bold_font; *\/ */
-/*     /\* p.textarea_p.color = color_global_white; *\/ */
+/*     /\* p.textarea_p.color = colors.white; *\/ */
 /*     /\* p.textarea_p.text_size = 12; *\/ */
 /*     /\* p.textarea_p.win = main_win; *\/ */
 /*     /\* p.textarea_p.value = "Click and drag the circles to set peaks or notches.\n \nHold cmd or ctrl and drag up or down to set the filter bandwidth.\n \nAdditional filter types (shelving, lowpass, highpass) will be added in future versions of jackdaw."; *\/ */
@@ -394,7 +389,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 /* 	"FIR Filter", */
 /* 	FIR_FILTER_LT_PATH, */
 /* 	page_colors, */
-/* 	&color_global_white, */
+/* 	&colors.white, */
 /* 	main_win); */
 
 /*     p.textbox_p.font = main_win->mono_bold_font; */
@@ -465,7 +460,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 /*     }; */
     
 /*     p.radio_p.text_size = RADIO_STD_FONT_SIZE; */
-/*     p.radio_p.text_color = &color_global_white; */
+/*     p.radio_p.text_color = &colors.white; */
 /*     p.radio_p.ep = &f->type_ep; */
 /*     p.radio_p.item_names = item_names; */
 /*     p.radio_p.num_items = 4; */
@@ -483,7 +478,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 /* 	f->frequency_response_mag */
 /*     };	 */
 /*     int steps[] = {1, 1, 1}; */
-/*     SDL_Color *plot_colors[] = {&freq_L_color, &freq_R_color, &color_global_white}; */
+/*     SDL_Color *plot_colors[] = {&colors.freq_L, &colors.freq_R, &colors.white}; */
 /*     p.freqplot_p.arrays = arrays; */
 /*     p.freqplot_p.colors =  plot_colors; */
 /*     p.freqplot_p.steps = steps; */
@@ -501,7 +496,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 /* 	"Delay line", */
 /* 	DELAY_LINE_LT_PATH, */
 /* 	page_colors + 1, */
-/* 	&color_global_white, */
+/* 	&colors.white, */
 /* 	main_win); */
 
 /*     p.toggle_p.value = &track->delay_line.active; */
@@ -572,7 +567,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 /* 	"Saturation", */
 /* 	SATURATION_LT_PATH, */
 /* 	page_colors + 3, */
-/* 	&color_global_white, */
+/* 	&colors.white, */
 /* 	main_win); */
 
 /*     p.toggle_p.value = &track->saturation.active; */
@@ -630,7 +625,7 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
 /*     }; */
     
 /*     p.radio_p.text_size = RADIO_STD_FONT_SIZE; */
-/*     p.radio_p.text_color = &color_global_white; */
+/*     p.radio_p.text_color = &colors.white; */
 /*     p.radio_p.ep = &track->saturation.type_ep; */
 /*     p.radio_p.item_names = saturation_type_names; */
 /*     p.radio_p.num_items = 2; */
@@ -816,7 +811,7 @@ static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv,
 	"Click track config",
 	CLICK_TRACK_SETTINGS_LT_PATH,
 	page_colors,
-	&color_global_white,
+	&colors.white,
 	main_win);
     if (tv->current_tab >= tv->num_tabs) {
 	tv->current_tab = 0;
@@ -1020,7 +1015,7 @@ static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv,
 	/* p.radio_p.target = (void *)&tt->end_bound_behavior; */
 	p.radio_p.num_items = 2;
 	p.radio_p.text_size = 14;
-	p.radio_p.text_color = &color_global_white;
+	p.radio_p.text_color = &colors.white;
 	p.radio_p.item_names = (const char **)options;
 
 	el = page_add_el(
@@ -1047,9 +1042,9 @@ static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv,
     p.button_p.action = time_sig_submit_button_action;
     p.button_p.target = (void *)s;
     p.button_p.font = main_win->mono_bold_font;
-    p.button_p.text_color = &color_global_black;
+    p.button_p.text_color = &colors.black;
     p.button_p.text_size = 14;
-    p.button_p.background_color = &color_global_light_grey;
+    p.button_p.background_color = &colors.light_grey;
     p.button_p.win = main_win;
     p.button_p.set_str = "Submit";
     el = page_add_el(
@@ -1092,9 +1087,9 @@ static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv,
 	p.button_p.font = main_win->mono_font;
 	p.button_p.win = page->win;
 	p.button_p.target = NULL;
-	p.button_p.text_color = &color_global_white;
+	p.button_p.text_color = &colors.white;
 	p.button_p.text_size = 14;
-	p.button_p.background_color = &color_global_quickref_button_blue;
+	p.button_p.background_color = &colors.quickref_button_blue;
 	p.button_p.target = s;
 
     }

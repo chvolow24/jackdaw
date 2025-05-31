@@ -35,13 +35,13 @@ Positions	Sample Value	    Description
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include "SDL.h"
 #include "dir.h"
 #include "project.h"
 #include "mixdown.h"
 #include "transport.h"
+#include "session.h"
 #include "status.h"
-extern Project *proj;
+
 
 #define WAV_READ_CK_LEN_BYTES 1000000
 
@@ -51,6 +51,8 @@ static void write_wav_header(FILE *f, uint32_t num_samples, uint16_t bits_per_sa
     // int bps = 16;
 
     /* RIFF chunk descriptor */
+    Session *session = session_get();
+    Project *proj = &session->proj;
     const static char spec[] = {'R','I','F','F'};
     uint32_t file_size = 44 + num_samples * (bits_per_sample / 8);
     const static char ftype[] = {'W','A','V','E'};
@@ -86,6 +88,9 @@ static void write_wav_header(FILE *f, uint32_t num_samples, uint16_t bits_per_sa
 
 static void write_wav(const char *fname, int16_t *samples, uint32_t num_samples, uint16_t bits_per_sample, uint8_t channels)
 {
+    Session *session = session_get();
+    Project *proj = &session->proj;
+    
     fprintf(stderr, "Write wav, num_samples: %d, chanels: %d, bitspsamle: %d\n", num_samples, channels, bits_per_sample);
     FILE* f = fopen(fname, "wb");
     if (!f) {
@@ -141,7 +146,10 @@ const char *get_fmt_str(SDL_AudioFormat f)
 
 void wav_write_mixdown(const char *filepath)
 {
-    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Session *session = session_get();
+    Project *proj = &session->proj;
+
+    Timeline *tl = ACTIVE_TL;
     /* reset_overlap_buffers(); */
     /* fprintf(stdout, "Chunk size sframes: %d, chan: %d, sr: %d\n", proj->chunk_size_sframes, proj->channels, proj->sample_rate); */
     uint16_t chunk_len_sframes = proj->fourier_len_sframes;
@@ -157,12 +165,12 @@ void wav_write_mixdown(const char *filepath)
     float *samples_L = malloc(sizeof(float) * chunk_len_sframes);
     float *samples_R = malloc(sizeof(float) * chunk_len_sframes);
 
-    project_set_loading_screen("Exporting WAV file...", "Creating mixdown and applying effects...", true);
+    session_set_loading_screen("Exporting WAV file...", "Creating mixdown and applying effects...", true);
     uint32_t loading_screen_modulus = chunks / 100;
     if (loading_screen_modulus <= 0) loading_screen_modulus = 1;
     for (uint32_t c=0; c<chunks; c++) {
 	if (c % loading_screen_modulus == 0) {
-	    if (project_loading_screen_update(NULL, 0.9 * (float)c/chunks) != 0) {
+	    if (session_loading_screen_update(NULL, 0.9 * (float)c/chunks) != 0) {
 		free(samples);
 		free(samples_L);
 		free(samples_R);
@@ -193,11 +201,11 @@ void wav_write_mixdown(const char *filepath)
     free(samples_L);
     free(samples_R);
 
-    project_loading_screen_update("Writing file...", 0.95);
+    session_loading_screen_update("Writing file...", 0.95);
 
     write_wav(filepath, samples, len_samples, 16, proj->channels);
     free(samples);
-    project_loading_screen_deinit(proj);
+    session_loading_screen_deinit();
 }
 
 
@@ -287,6 +295,9 @@ int32_t wav_load(Project *proj, const char *filename, float **L, float **R)
 
 ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos) {
     if (track->num_clips == MAX_TRACK_CLIPS) return NULL;
+    Session *session = session_get();
+    Project *proj = &session->proj;
+
     SDL_AudioSpec wav_spec;
     uint8_t* audio_buf = NULL;
     uint32_t audio_len_bytes = 0;
@@ -297,7 +308,7 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
     /* write_wav("TEST_WAV.wav", audio_buf, audio_len_bytes / 2, 16, 2); */
     /* exit(0); */
 
-    project_set_loading_screen("Importing WAV...", NULL, true);
+    session_set_loading_screen("Importing WAV...", NULL, true);
 
     SDL_AudioCVT wav_cvt;
     int ret = SDL_BuildAudioCVT(&wav_cvt, wav_spec.format, wav_spec.channels, wav_spec.freq, proj->fmt, proj->channels, proj->sample_rate);
@@ -315,7 +326,7 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
 	if (loading_screen_modulus <= 0) loading_screen_modulus = 1;
 	while (read_pos < audio_len_bytes) {
 	    if (read_pos % loading_screen_modulus == 0) {
-		if (project_loading_screen_update("Reading file data...", 0.8 * (float)read_pos/audio_len_bytes) != 0) {
+		if (session_loading_screen_update("Reading file data...", 0.8 * (float)read_pos/audio_len_bytes) != 0) {
 		    fprintf(stderr, "WAV load aborted\n");
 		    status_set_errstr("WAV load aborted");
 		    SDL_FreeWAV(audio_buf);
@@ -340,7 +351,7 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
 	    memcpy(wav_cvt.buf, audio_buf + read_pos, len);
 	    if (SDL_ConvertAudio(&wav_cvt) < 0) {
 		fprintf(stderr, "Error: Unable to convert audio. %s\n", SDL_GetError());
-		project_loading_screen_deinit(proj);
+		session_loading_screen_deinit();
 		return NULL;
 	    }
 	    if (!final_buffer) {
@@ -360,7 +371,7 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
 	final_buffer_len = audio_len_bytes;
     } else {
         fprintf(stderr, "Error: unexpected return value for SDL_BuildAudioCVT.\n");
-	project_loading_screen_deinit(proj);
+	session_loading_screen_deinit();
         return NULL;
     }
 
@@ -374,6 +385,7 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
 	return NULL;
     }
     Clip *clip = project_add_clip(NULL, track);
+    
     if (!session->playback.recording)
 	proj->active_clip_index++;
     
@@ -383,10 +395,10 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
     int16_t *src_buf = (int16_t *)final_buffer;
 
 
-    project_loading_screen_update("Converting audio samples to native format...", 0.8);
+    session_loading_screen_update("Converting audio samples to native format...", 0.8);
     for (uint32_t i=0; i<buf_len_samples - 2; i+=2) {
 	if (i % 5000000 == 0) {
-	    if (project_loading_screen_update(NULL, 0.8 + 0.2 * (float)i / buf_len_samples) != 0) {
+	    if (session_loading_screen_update(NULL, 0.8 + 0.2 * (float)i / buf_len_samples) != 0) {
 		fprintf(stderr, "WAV load aborted\n");
 		status_set_errstr("WAV load aborted");
 		clip_destroy(clip);
@@ -408,7 +420,7 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
     strncpy(clip->name, path_get_tail(filename_modifiable), MAX_NAMELENGTH);
     strncpy(cr->name, path_get_tail(filename_modifiable), MAX_NAMELENGTH);
     free(filename_modifiable);
-    project_loading_screen_deinit(proj);
+    session_loading_screen_deinit();
     timeline_reset(track->tl, false);
     return cr;
 }

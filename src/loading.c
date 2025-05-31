@@ -1,6 +1,5 @@
 #include "color.h"
 #include "geometry.h"
-#include "menu.h"
 #include "layout_xml.h"
 #include "session.h"
 #include "textbox.h"
@@ -12,8 +11,9 @@ extern SDL_Color menu_std_clr_outer_border;
 
 static const SDL_Color txt_clr = {10, 245, 10, 255};
 
-void session_loading_screen_deinit(Session *session)
+void session_loading_screen_deinit()
 {
+    Session *session = session_get();
     LoadingScreen *ls = &session->loading_screen;
     if (ls->title_tb) textbox_destroy(ls->title_tb);
     if (ls->subtitle_tb) textbox_destroy(ls->subtitle_tb);

@@ -10,8 +10,7 @@
 
 #include <stdbool.h>
 #include <string.h>
-#include "SDL.h"
-#include "SDL_ttf.h"
+#include "color.h"
 #include "layout.h"
 #include "lt_params.h"
 #include "openfile.h"
@@ -37,10 +36,11 @@ extern bool show_openfile;
 //extern TTF_Font *open_sans;
 extern LTParams *lt_params;
 extern OpenFile *openfile;
+extern struct colors colors;
 
 
 
-extern SDL_Color color_global_clear;
+
 
 
 
@@ -78,7 +78,7 @@ void draw_openfile_dialogue()
 
 void layout_draw_main()
 {
-    window_start_draw(main_win, &color_global_clear);
+    window_start_draw(main_win, &colors.clear);
     /* SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 0); */
     /* SDL_RenderClear(main_win->rend); */
     layout_draw(main_win, main_lt);

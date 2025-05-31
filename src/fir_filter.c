@@ -23,9 +23,11 @@
     the frequency response of the filters.
  *****************************************************************************************************************/
 
+#include "consts.h"
 #include "dsp_utils.h"
 #include "endpoint_callbacks.h"
 #include "fir_filter.h"
+#include "page.h"
 #include "project.h"
 
 static double lowpass_IR(int x, int offset, double cutoff)

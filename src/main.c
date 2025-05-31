@@ -24,21 +24,20 @@
 #include "SDL.h"
 #include "SDL_ttf.h"
 #include "assets.h"
+#include "consts.h"
 #include "dir.h"
 #include "dsp_utils.h"
 #include "function_lookup.h"
 #include "input.h"
-#include "layout.h"
-#include "layout_xml.h"
 #include "midi_io.h"
 #include "project.h"
 #include "pure_data.h"
+#include "session.h"
 #include "symbol.h"
 #include "tempo.h"
 #include "text.h"
 #include "transport.h"
 #include "wav.h"
-#include "waveform.h"
 #include "window.h"
 
 #include "audio_connection.h"
@@ -121,16 +120,17 @@ static void init()
 
 static void quit()
 {
-    api_quit(proj);
+    Session *session = session_get();
+    api_quit();
     CANCEL_THREADS = true;
     pd_signal_termination_of_jackdaw();
-    if (proj->recording) {
+    if (session->playback.recording) {
 	transport_stop_recording();
     }
     transport_stop_playback();
     /* Sleep to allow DSP thread to exit */
     SDL_Delay(100);
-    project_destroy(proj);
+    project_deinit(proj);
     symbol_quit(main_win);
     if (main_win) {
 	window_destroy(main_win);
@@ -207,10 +207,11 @@ int main(int argc, char **argv)
     
     /* Create project here */
 
+    Session *session = session_create();
     if (invoke_open_jdaw_file) {
 	fprintf(stderr, "Opening \"%s\"...\n", file_to_open);
 	proj = jdaw_read_file(file_to_open);
-	if (proj) {
+	if (session->proj_initialized) {
 	    char *realpath_ret;
 	    if (!(realpath_ret = realpath(file_to_open, NULL))) {
 		perror("Error in realpath");
@@ -228,14 +229,12 @@ int main(int argc, char **argv)
 	}
     } else {
 	fprintf(stderr, "Creating new project...\n");
-	proj = project_create("project.jdaw", DEFAULT_PROJ_AUDIO_SETTINGS);
-    }
-    if (!proj && invoke_open_jdaw_file) {
-	fprintf(stderr, "Error: unable to open project \"%s\".\n", file_to_open);
-	exit(1);
-    } else if (!proj) {
-	fprintf(stderr, "Critical error: unable to create project\n");
-	exit(1);
+	int ret = project_init(&session->proj, "project.jdaw", DEFAULT_PROJ_AUDIO_SETTINGS);
+	session->proj_initialized = true;
+	if (ret != 0) {
+	    fprintf(stderr, "Error: unable to open project \"%s\".\n", file_to_open);
+	    exit(1);
+	}
     }
     fprintf(stderr, "\t...done\n");
 

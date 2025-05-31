@@ -17,11 +17,11 @@
  *****************************************************************************************************************/
 
 #include "color.h"
+#include "project.h"
+#include "session.h"
 #include "textbox.h"
 #include "waveform.h"
-#include "SDL_render.h"
 #include "window.h"
-#include "project.h"
 
 /* Non-integral so that individual channel draws on a timeline fall
    reliably to one side or the other, despite float error */
@@ -30,11 +30,9 @@
 
 #define FREQ_PLOT_MAX_TICS 255
 
-extern Project *proj;
-extern Window *main_win;
 
-extern SDL_Color color_global_black;
-extern SDL_Color color_global_white;
+extern Window *main_win;
+extern struct colors colors;
 
 void waveform_update_logscale(struct logscale *la, double *array, int num_items, int step, SDL_Rect *container)
 {
@@ -119,7 +117,7 @@ void waveform_draw_freq_domain(struct logscale *la)
 
 void waveform_reset_freq_plot(struct freq_plot *fp)
 {
-
+    Session *session = session_get();
     for (int i=0; i<fp->num_plots; i++) {
 	struct logscale *ls;
 	if ((ls = fp->plots[i])) waveform_destroy_logscale(ls);
@@ -130,7 +128,7 @@ void waveform_reset_freq_plot(struct freq_plot *fp)
     }
     int tics[FREQ_PLOT_MAX_TICS];
     int num_tics = 0;
-    double nyquist = (double)proj->sample_rate / 2;
+    double nyquist = (double)session->proj.sample_rate / 2;
     double lognyq  = log(nyquist);
     int left_x = fp->container->rect.x;
     int w = fp->container->rect.w;
@@ -164,8 +162,8 @@ void waveform_reset_freq_plot(struct freq_plot *fp)
 	    tb_lt->rect.x = tics[num_tics] - tb_lt->rect.w / 2;
 	    tb_lt->rect.y = fp->container->rect.y;
 	    layout_set_values_from_rect(tb_lt);
-	    textbox_set_background_color(tb, &color_global_black);
-	    textbox_set_text_color(tb, &color_global_white);
+	    textbox_set_background_color(tb, &colors.black);
+	    textbox_set_text_color(tb, &colors.white);
 	    textbox_reset_full(tb);
 	}
 	num_tics++;

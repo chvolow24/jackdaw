@@ -51,7 +51,7 @@ int midi_device_populate_list(MIDIDevice *devices);
 
 typedef struct session Session;
 int session_init_midi(Session *session);
-int session_deinit_midi(Session *session);
+void session_deinit_midi(Session *session);
 
 
 #endif

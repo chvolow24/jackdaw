@@ -30,11 +30,11 @@
 #include "layout_xml.h"
 #include "modal.h"
 #include "project.h"
+#include "session.h"
 #include "status.h"
 #include "symbol.h"
 #include "test.h"
 #include "timeline.h"
-#include "transport.h"
 #include "value.h"
 
 #define KEYFRAME_DIAG 21
@@ -48,21 +48,21 @@
 #define AUTOMATION_LT_FILEPATH INSTALL_DIR "/assets/layouts/track_automation.xml"
 
 extern Window *main_win;
-extern Project *proj;
+extern struct colors colors;
 
 extern Symbol *SYMBOL_TABLE[];
 
 extern SDL_Color console_bckgrnd;
 extern SDL_Color control_bar_bckgrnd;
 extern SDL_Color color_mute_solo_grey;
-extern SDL_Color color_global_black;
-extern SDL_Color color_global_white;
-extern SDL_Color color_global_grey;
-extern SDL_Color color_global_red;
-extern SDL_Color color_global_play_green;
-extern SDL_Color color_global_light_grey;
-extern SDL_Color color_global_dropdown_green;
-extern SDL_Color color_global_quickref_button_blue;
+
+
+
+
+
+
+
+
 /* SDL_Color automation_bckgrnd = {0, 25, 26, 255}; */
 /* SDL_Color automation_console_bckgrnd = {110, 110, 110, 255}; */
 /* SDL_Color automation_console_bckgrnd = {90, 100, 120, 255}; */
@@ -148,7 +148,7 @@ void automation_remove(Automation *a)
     /* timeline_reset(track->tl, false); */
     track->num_automations--;
     if (!some_read || track->num_automations == 0) {
-	track->automation_dropdown->background_color = &color_global_grey;
+	track->automation_dropdown->background_color = &colors.grey;
     }
     if (track->num_automations == 0) {
 	track->selected_automation = -1;
@@ -185,7 +185,7 @@ void automation_reinsert(Automation *a)
 	    track_automations_show_all(track);
 	    TEST_FN_CALL(track_automation_order, track);
 	    if (a->read) {
-		track->automation_dropdown->background_color = &color_global_dropdown_green;
+		track->automation_dropdown->background_color = &colors.dropdown_green;
 	    }
 	    return;
 	}
@@ -229,7 +229,7 @@ void automation_delete(Automation *a)
     Value nullval;
     memset(&nullval, '\0', sizeof(Value));
     user_event_push(
-	&proj->history,
+	
 	undo_delete_automation,
 	redo_delete_automation,
 	dispose_delete_automation, NULL,
@@ -284,12 +284,11 @@ Automation *track_add_automation_from_endpoint(Track *track, Endpoint *ep)
     Value base_kf_val = ep->default_val;
     automation_insert_keyframe_at(a, 0, base_kf_val);
     endpoint_bind_automation(ep, a);
-    track->automation_dropdown->background_color = &color_global_dropdown_green;
+    track->automation_dropdown->background_color = &colors.dropdown_green;
 
     Value nullval;
     memset(&nullval, '\0', sizeof(Value));
     user_event_push(
-	&track->tl->proj->history,
 	undo_add_automation,
 	redo_add_automation,
 	NULL, NULL,
@@ -326,10 +325,10 @@ Automation *track_add_automation(Track *track, AutomationType type)
     /* 	break; */
 	
     /* case AUTO_DEL_TIME: */
-    /* 	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line, track, track->tl->proj->sample_rate); */
+    /* 	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line, track, track->tl->session->proj.sample_rate); */
     /* 	a->val_type = JDAW_INT16; */
     /* 	a->min.int16_v = 1; */
-    /* 	a->max.int16_v = DELAY_LINE_MAX_LEN_S * 1000;//track->tl->proj->sample_rate * DELAY_LINE_MAX_LEN_S; */
+    /* 	a->max.int16_v = DELAY_LINE_MAX_LEN_S * 1000;//track->tl->session->proj.sample_rate * DELAY_LINE_MAX_LEN_S; */
     /* 	a->range.int16_v = a->max.int16_v - 1; */
     /* 	a->target_val = &track->delay_line.len_msec; */
     /* 	base_kf_val.int16_v = 100; */
@@ -339,7 +338,7 @@ Automation *track_add_automation(Track *track, AutomationType type)
 
     /* 	break; */
     /* case AUTO_DEL_AMP: */
-    /* 	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line, track, track->tl->proj->sample_rate); */
+    /* 	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line, track, track->tl->session->proj.sample_rate); */
     /* 	a->val_type = JDAW_DOUBLE; */
     /* 	a->target_val = &track->delay_line.amp; */
     /* 	a->min.double_v = 0.0; */
@@ -355,17 +354,17 @@ Automation *track_add_automation(Track *track, AutomationType type)
     /* 	a->min.float_v = 0.05; */
     /* 	a->max.float_v = 5.0; */
     /* 	a->range.float_v = 5.0 - 0.05; */
-    /* 	a->target_val = &track->tl->proj->play_speed; */
+    /* 	a->target_val = &track->tl->session->playback.play_speed; */
     /* 	base_kf_val.float_v = 1.0f; */
     /* 	automation_insert_keyframe_at(a, 0, base_kf_val); */
-    /* 	endpoint_bind_automation(&proj->play_speed_ep, a); */
+    /* 	endpoint_bind_automation(&session->playback.play_speed_ep, a); */
     /* 	/\* automation_insert_keyframe_after(a, NULL, base_kf_val, 0); *\/ */
     /* 	break; */
     default:
 	a = track_add_automation_from_endpoint(track, &track->vol_ep);
 	break;
     }
-    track->automation_dropdown->background_color = &color_global_dropdown_green;
+    track->automation_dropdown->background_color = &colors.dropdown_green;
     if (a) a->type = type;
     return a;
 }
@@ -429,11 +428,12 @@ static int add_auto_form(void *mod_v, void *nullarg)
 
 static void track_add_automation_from_api_node(Track *track, APINode *node)
 {
-    Layout *lt = layout_add_child(track->tl->proj->layout);
+    Session *session = session_get();
+    Layout *lt = layout_add_child(session->gui.layout);
     layout_set_default_dims(lt);
     Modal *m = modal_create(lt);
     /* Automation *a = track_add_automation_internal(track, AUTO_VOL); */
-    modal_add_header(m, "Add automation to track", &color_global_light_grey, 4);
+    modal_add_header(m, "Add automation to track", &colors.light_grey, 4);
     static int automation_selection = 0;
     static Endpoint automation_selection_ep = {0};
     if (automation_selection_ep.local_id == NULL) {
@@ -476,7 +476,7 @@ static void track_add_automation_from_api_node(Track *track, APINode *node)
     
     ModalEl *el = modal_add_radio(
 	m,
-	&color_global_light_grey,
+	&colors.light_grey,
 	&automation_selection_ep,
 	item_labels,
 	node->num_endpoints + node->num_children);
@@ -502,12 +502,12 @@ bool automation_toggle_read(Automation *a)
     a->read = !(a->read);
     if (a->read) {
 	track->some_automations_read = true;
-	textbox_set_background_color(a->read_button->tb, &color_global_play_green);
-	textbox_set_text_color(a->read_button->tb, &color_global_white);
-	track->automation_dropdown->background_color = &color_global_play_green;
+	textbox_set_background_color(a->read_button->tb, &colors.play_green);
+	textbox_set_text_color(a->read_button->tb, &colors.white);
+	track->automation_dropdown->background_color = &colors.play_green;
     } else {
 	if (a->read_button) {
-	    textbox_set_background_color(a->read_button->tb, &color_global_grey);
+	    textbox_set_background_color(a->read_button->tb, &colors.grey);
 	}
 	for (uint8_t i=0; i<track->num_automations; i++) {
 	    if (track->automations[i]->read) {
@@ -516,7 +516,7 @@ bool automation_toggle_read(Automation *a)
 	    }
 	}
 	track->some_automations_read = false;
-	track->automation_dropdown->background_color = &color_global_grey;
+	track->automation_dropdown->background_color = &colors.grey;
 	track->some_automations_read = false;
 
     }
@@ -527,12 +527,12 @@ static void automation_set_write(Automation *a, bool to)
 {
     a->write = to;
     if (a->write) {
-	textbox_set_background_color(a->write_button->tb, &color_global_red);
-	/* textbox_set_text_color(a->write_button->tb, &color_global_white); */
+	textbox_set_background_color(a->write_button->tb, &colors.red);
+	/* textbox_set_text_color(a->write_button->tb, &colors.white); */
     } else {
-	/* textbox_set_background_color(a->write_button->tb, &color_global_quickref_button_blue); */
-	textbox_set_background_color(a->write_button->tb, &color_global_grey);
-	/* textbox_set_text_color(a->write_button->tb, &color_global_black); */
+	/* textbox_set_background_color(a->write_button->tb, &colors.quickref_button_blue); */
+	textbox_set_background_color(a->write_button->tb, &colors.grey);
+	/* textbox_set_text_color(a->write_button->tb, &colors.black); */
     }
 }
 
@@ -596,9 +596,9 @@ void automation_show(Automation *a)
 	    main_win);
 	/* a->label->corner_radius = BUBBLE_CORNER_RADIUS; */
 	textbox_set_trunc(a->label, false);
-	textbox_set_background_color(a->label,  &color_global_quickref_button_blue);
-	textbox_set_text_color(a->label, &color_global_white);
-	/* textbox_set_border(a->label, &color_global_white, 1); */
+	textbox_set_background_color(a->label,  &colors.quickref_button_blue);
+	textbox_set_text_color(a->label, &colors.white);
+	/* textbox_set_border(a->label, &colors.white, 1); */
 	a->label->corner_radius = BUTTON_CORNER_RADIUS;
 	textbox_size_to_fit(a->label, 10, 3);
 	/* textbox_set_align(a->label, CENTER_LEFT); */
@@ -614,10 +614,10 @@ void automation_show(Automation *a)
 	    (void *)a,
 	    main_win->mono_bold_font,
 	    12,
-	    &color_global_white,
-	    &color_global_play_green
+	    &colors.white,
+	    &colors.play_green
 	    );
-        textbox_set_border(button->tb, &color_global_black, 1);
+        textbox_set_border(button->tb, &colors.black, 1);
 	button->tb->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
 	textbox_set_style(button->tb, BUTTON_DARK);
 	a->read_button = button;
@@ -631,10 +631,10 @@ void automation_show(Automation *a)
 	    (void *)a,
 	    main_win->mono_bold_font,
 	    12,
-	    &color_global_white,
-	    &color_global_grey
+	    &colors.white,
+	    &colors.grey
 	    );
-	textbox_set_border(button->tb, &color_global_black, 1);
+	textbox_set_border(button->tb, &colors.black, 1);
 	button->tb->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
 	textbox_set_style(button->tb, BUTTON_DARK);
 	a->write_button = button;
@@ -1186,6 +1186,7 @@ static Keyframe *automation_insert_maybe(
     float direction)
 {
     if (direction < 0.0) return NULL;
+    Session *session = session_get();
 
     /* fprintf(stderr, "INSERT maybe\n"); */
     /* Check for insersection with kclips and exit early if intersect */
@@ -1203,7 +1204,7 @@ static Keyframe *automation_insert_maybe(
     static const double diff_prop_thresh = 1e-15;
     /* static const double m_prop_thresh = 0.05; */
     static const double m_prop_thresh = 4.0;
-    /* double m_prop_thresh = m_prop_thresh_unscaled / ((double)proj->sample_rate / 96000.0); */
+    /* double m_prop_thresh = m_prop_thresh_unscaled / ((double)session->proj.sample_rate / 96000.0); */
 
 
     /* Calculate deviance from predicted value */
@@ -1282,12 +1283,12 @@ static Keyframe *automation_insert_maybe(
 		/* Value pm = jdaw_val_scale(val_diff, 1000.0f / (pos - a->current->pos), a->val_type); */
 		/* fprintf(stderr, "\tpos - current_pos: %d; pp_m_fwd_dx: %d\n", pos - a->current->pos, pp->m_fwd.dx); */
 		/* Divide dx by sample rate to get dx in seconds */
-		/* double pp_dx_s = (double)pp->m_fwd.dx / proj->sample_rate; */
-		/* double p_dx_s = (double)(pos - a->current->pos) / proj->sample_rate; */
+		/* double pp_dx_s = (double)pp->m_fwd.dx / session->proj.sample_rate; */
+		/* double p_dx_s = (double)(pos - a->current->pos) / session->proj.sample_rate; */
 		/* /\* fprintf(stderr, "\tppdx pdx s: %f, %f\n", pp_dx_s, p_dx_s); *\/ */
 		/* fprintf(stderr, "\tppdy, pdy: %f, %f\n",  */
-		Value ppm = jdaw_val_scale(pp->m_fwd.dy, (double)proj->sample_rate / pp->m_fwd.dx, a->val_type);
-		Value pm = jdaw_val_scale(val_diff, (double)proj->sample_rate / (double)(pos - a->current->pos), a->val_type);
+		Value ppm = jdaw_val_scale(pp->m_fwd.dy, (double)session->proj.sample_rate / pp->m_fwd.dx, a->val_type);
+		Value pm = jdaw_val_scale(val_diff, (double)session->proj.sample_rate / (double)(pos - a->current->pos), a->val_type);
 
 		/* fprintf(stderr, "\tpm, ppm: %f, %f\n", pm.float_v, ppm.float_v); */
 		diff = jdaw_val_sub(ppm, pm, a->val_type);
@@ -1485,14 +1486,14 @@ void automation_draw(Automation *a)
 
     /* SDL_RenderSetClipRect(main_win->rend, NULL); */
 
-    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_grey));
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.grey));
     SDL_Rect ltrect = a->layout->rect;
     ltrect.x = a->console_rect->x;
     SDL_RenderDrawRect(main_win->rend, &ltrect);
     ltrect.x += 1;
     ltrect.y += 1;
     ltrect.h -= 2;
-    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
     SDL_RenderDrawRect(main_win->rend, &ltrect);
 		     
 }
@@ -1562,7 +1563,7 @@ void automation_unset_dragging_kf(Timeline *tl)
 	    Value cache_pos_val = {.int32_v = tl->dragging_kf_cache_pos};
 	    Value new_pos_val = {.int32_v = k->pos};
 	    user_event_push(
-		&proj->history,
+		
 		undo_redo_move_keyframe,
 		undo_redo_move_keyframe,
 		NULL, NULL,
@@ -1727,7 +1728,7 @@ static void automation_push_write_event(Automation *a)
     Value redo_cache_len = {.uint16_v = a->num_keyframes};
     Value zero = {.uint16_v = 0};
     user_event_push(
-	&proj->history,
+	
 	undo_redo_automation_write,
 	undo_redo_automation_write,
 	NULL, NULL,
@@ -1799,7 +1800,7 @@ bool automation_triage_click(uint8_t button, Automation *a)
 		    /* *index = k - a->keyframes; */
 		    memset(&nullval, '\0', sizeof(Value));
 		    user_event_push(
-			&proj->history,
+			
 			undo_insert_keyframe,
 			redo_insert_keyframe,
 			NULL, NULL,
@@ -1839,7 +1840,7 @@ void user_tl_pause(void *nullarg);
 /* { */
 /*     if (end_pos <= start_pos) return NULL; */
 
-/*     end_pos += proj->sample_rate / 60.0; */
+/*     end_pos += session->proj.sample_rate / 60.0; */
 /*     Keyframe *first = automation_get_segment(a, start_pos); */
 /*     if (!first) first = a->keyframes; */
 /*     if (first < a->keyframes + a->num_keyframes) first++; else return NULL; */
@@ -2063,7 +2064,7 @@ bool automation_record(Automation *a)
 	/* Value redo_cache_len = {.uint16_v = a->num_keyframes}; */
 	/* Value zero = {.uint16_v = 0}; */
 	/* user_event_push( */
-	/*     &proj->history, */
+	/*      */
 	/*     undo_redo_automation_write, */
 	/*     undo_redo_automation_write, */
 	/*     NULL, NULL, */
@@ -2104,7 +2105,7 @@ void keyframe_delete(Keyframe *k)
     Value nullval;
     memset(&nullval, '\0', sizeof(Value));
     user_event_push(
-	&proj->history,
+	
 	undo_delete_keyframe,
 	redo_delete_keyframe,
 	NULL, NULL,
@@ -2345,5 +2346,5 @@ TEST_FN_DEF(layout_num_children, {
 
 void automation_endpoint_write(Endpoint *ep, Value val, int32_t play_pos)
 {
-    /* automation_do_write(ep->automation, val, play_pos, play_pos + 10000, ep->automation->track->tl->proj->play_speed); */
+    /* automation_do_write(ep->automation, val, play_pos, play_pos + 10000, ep->automation->track->tl->session->playback.play_speed); */
 }

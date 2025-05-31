@@ -17,7 +17,6 @@
  *****************************************************************************************************************/
 
 #include "endpoint_callbacks.h"
-#include "page.h"
 #include "text.h"
 #include "thread_safety.h"
 
@@ -25,7 +24,6 @@
 #include "assets.h"
 #include "color.h"
 #include "components.h"
-#include "geometry.h"
 #include "input.h"
 #include "layout.h"
 #include "layout_xml.h"
@@ -33,21 +31,20 @@
 #include "project.h"
 #include "session.h"
 #include "tempo.h"
-#include "test.h"
 #include "timeline.h"
 #include "user_event.h"
 #include "wav.h"
 
 extern Window *main_win;
 extern Project *proj;
-extern SDL_Color color_global_click_track;
-extern SDL_Color color_global_light_grey;
-extern SDL_Color color_global_black;
-extern SDL_Color color_global_white;
-extern SDL_Color color_global_quickref_button_blue;
+
+
+extern struct colors colors;
+
+
 extern SDL_Color control_bar_bckgrnd;
 extern SDL_Color mute_red;
-extern SDL_Color color_global_play_green;
+
 /* extern SDL_Color color_button_light_text; */
 
 extern pthread_t MAIN_THREAD_ID;
@@ -507,8 +504,8 @@ ClickTrack *timeline_add_click_track(Timeline *tl)
 	14,
 	main_win);
     textbox_set_align(t->readout, CENTER_LEFT);
-    textbox_set_background_color(t->readout, &color_global_black);
-    textbox_set_text_color(t->readout, &color_global_white);
+    textbox_set_background_color(t->readout, &colors.black);
+    textbox_set_text_color(t->readout, &colors.white);
     /* textbox_size_to_fit_v(t->readout, 4); */
     /* layout_center_agnostic(t->readout->layout, false, true); */
     textbox_set_pad(t->readout, 10, 0);
@@ -528,11 +525,11 @@ ClickTrack *timeline_add_click_track(Timeline *tl)
 	16,
 	main_win);
     t->edit_button->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
-    textbox_set_text_color(t->edit_button, &color_global_white);
-    textbox_set_background_color(t->edit_button, &color_global_quickref_button_blue);
-    /* textbox_set_border(t->edit_button, &color_global_black, 1); */
+    textbox_set_text_color(t->edit_button, &colors.white);
+    textbox_set_background_color(t->edit_button, &colors.quickref_button_blue);
+    /* textbox_set_border(t->edit_button, &colors.black, 1); */
     t->edit_button->corner_radius = BUTTON_CORNER_RADIUS;
-    textbox_set_border(t->edit_button, &color_global_white, 1);
+    textbox_set_border(t->edit_button, &colors.white, 1);
     
     Layout *metro_button_lt = layout_get_child_by_name_recursive(t->layout, "metronome_button");
     t->metronome_button = textbox_create_from_str(
@@ -541,9 +538,9 @@ ClickTrack *timeline_add_click_track(Timeline *tl)
 	main_win->bold_font,
 	14,
 	main_win);
-    textbox_set_background_color(t->metronome_button, &color_global_play_green);
+    textbox_set_background_color(t->metronome_button, &colors.play_green);
     t->metronome_button->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
-    textbox_set_border(t->metronome_button, &color_global_black, 1);
+    textbox_set_border(t->metronome_button, &colors.black, 1);
     /* textbox_set_background_color(track->tb_mute_button, &color_mute_solo_grey); */
 
 
@@ -712,7 +709,7 @@ void timeline_click_track_set_tempo_at_cursor(Timeline *tl)
     Modal *mod = modal_create(mod_lt);
     static char tempo_str[TEMPO_STRLEN];
     snprintf(tempo_str, TEMPO_STRLEN, "%d", s->cfg.bpm);
-    modal_add_header(mod, "Set tempo:", &color_global_light_grey, 4);
+    modal_add_header(mod, "Set tempo:", &colors.light_grey, 4);
     ModalEl *el = modal_add_textentry(
 	mod,
 	tempo_str,
@@ -743,7 +740,7 @@ void timeline_click_track_set_tempo_at_cursor(Timeline *tl)
 	/* TODO: FIX THIS */
 	el = modal_add_radio(
 	    mod,
-	    &color_global_white,
+	    &colors.white,
 	    /* NULL, */
 	    &tt->end_bound_behavior_ep,
 	    /* &tt->end_bound_behavior, */
@@ -1048,10 +1045,10 @@ void click_track_draw(ClickTrack *tt)
     Timeline *tl = tt->tl;
     SDL_Rect ttr = tt->layout->rect;
     
-    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_click_track));
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.click_track));
     SDL_RenderFillRect(main_win->rend, &ttr);
 
-    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_black));
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
     SDL_RenderFillRect(main_win->rend, tt->console_rect);
 
 
@@ -1364,7 +1361,7 @@ void click_track_mute_unmute(ClickTrack *t)
     if (t->muted) {
 	textbox_set_background_color(t->metronome_button, &mute_red);
     } else {
-	textbox_set_background_color(t->metronome_button, &color_global_play_green);
+	textbox_set_background_color(t->metronome_button, &colors.play_green);
     }
     t->tl->needs_redraw = true;
 }
@@ -1457,6 +1454,7 @@ static void timeline_select_click_track(Timeline *tl, ClickTrack *ct)
 /* Mouse click */
 bool click_track_triage_click(uint8_t button, ClickTrack *t)
 {
+    Session *session = session_get();
     if (!SDL_PointInRect(&main_win->mousep, &t->layout->rect)) {
 	return false;
     }
@@ -1472,7 +1470,7 @@ bool click_track_triage_click(uint8_t button, ClickTrack *t)
     }
     if (SDL_PointInRect(&main_win->mousep, t->console_rect)) {
 	if (SDL_PointInRect(&main_win->mousep, &t->edit_button->layout->rect)) {
-	    Timeline *tl = proj->timelines[proj->active_tl_index];
+	    Timeline *tl = ACTIVE_TL;
 	    timeline_select_click_track(tl, t);
 	    timeline_click_track_edit(tl);
 	    return true;
@@ -1493,7 +1491,6 @@ bool click_track_triage_click(uint8_t button, ClickTrack *t)
 	}
 	s = s->next;
     }
-    Session *session = session_get();
     if (final) {
 	session->dragged_component.component = final;
 	session->dragged_component.type = DRAG_CLICK_SEG_BOUND;

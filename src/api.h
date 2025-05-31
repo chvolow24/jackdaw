@@ -31,7 +31,7 @@
 
 typedef struct endpoint Endpoint;
 typedef struct api_node APINode;
-typedef struct project Project;
+typedef struct session Session;
 
 typedef struct api_node {
     APINode *parent;
@@ -73,12 +73,12 @@ void api_node_reregister(APINode *node);
 void api_node_renamed(APINode *node);
 /* static void api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size); */
 
-int api_start_server(Project *proj, int port);
+int api_start_server(int port);
     
 void api_node_print_all_routes(APINode *node);
 void api_node_print_routes_with_values(APINode *node);
 void api_table_print();
-void api_quit(Project *proj);
+void api_quit();
 /* void api_hash_table_destroy(); */
 
 /* void api_node_renamed(APINode *api); */

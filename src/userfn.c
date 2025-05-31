@@ -1,12 +1,13 @@
- #include <stdio.h>
+#include <stdio.h>
 #include <sys/param.h>
 #include "SDL_events.h"
 #include "audio_connection.h"
 #include "autocompletion.h"
 #include "dir.h"
+#include "dot_jdaw.h"
 #include "endpoint.h"
 #include "function_lookup.h"
-#include "project_endpoint_ops.h"
+#include "session_endpoint_ops.h"
 #include "input.h"
 /* #include "loading */
 #include "menu.h"
@@ -26,8 +27,8 @@
 #define MENU_MOVE_BY 40
 #define TL_DEFAULT_XSCROLL 60
 #define SLOW_PLAYBACK_SPEED 0.2f
+#define NO_TRACK_ERRSTR "No track. Add new with C-t"
 
-#define ACTIVE_TL (session->proj.timelines[proj->active_tl_index])
 /* #define ACTIVE_TRACK(timeline) (tl->tracks[tl->track_selector]) */
 #define TRACK_AUTO_SELECTED(track) (track->num_automations != 0 && track->selected_automation != -1)
 #define TABVIEW_BLOCK(str)	    \
@@ -37,28 +38,17 @@
     }
 
 extern Window *main_win;
-extern Project *proj;
+
 extern Mode **modes;
+extern struct colors colors;
 
 extern char DIRPATH_SAVED_PROJ[MAX_PATHLEN];
 extern char DIRPATH_OPEN_FILE[MAX_PATHLEN];
 extern char DIRPATH_EXPORT[MAX_PATHLEN];
 
-/* extern SDL_Color color_global_black; */
-/* extern SDL_Color color_global_grey; */
-/* extern SDL_Color color_global_white; */
-/* extern SDL_Color control_bar_bckgrnd; */
-
-extern SDL_Color color_global_light_grey;
-extern SDL_Color color_global_quickref_button_pressed;
-extern SDL_Color color_global_quickref_button_blue;
-/* extern SDL_Color color_global_white; */
-
-#define NO_TRACK_ERRSTR "No track. Add new with C-t"
-
 int quickref_button_press_callback(void *self_v, void *target)
 {
-    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
+    /* Timeline *tl = ACTIVE_TL; */
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;
@@ -122,7 +112,7 @@ void user_global_quit(void *nullarg)
 	Layout *lt = layout_add_child(main_win->layout);
 	layout_set_default_dims(lt);
 	Modal *m = modal_create(lt);
-	modal_add_header(m, "Really quit?", &color_global_light_grey, 3);
+	modal_add_header(m, "Really quit?", &colors.light_grey, 3);
 	modal_add_button(m, "Yes", quit_yes_action);
 	modal_add_button(m, "No", quit_no_action);
 	m->x->action = quit_no_action;
@@ -163,7 +153,7 @@ static int submit_server_form(void *mod_v, void *target)
     Session *session = session_get();
     int port = atoi((char *)((Modal *)mod_v)->stashed_obj);
     fprintf(stderr, "STARTING SERVER ON PORT: %d\n", port);
-    if (api_start_server(proj, port) == 0) {
+    if (api_start_server(port) == 0) {
 	window_pop_modal(main_win);
 	ACTIVE_TL->needs_redraw = true;
 	return 0;
@@ -181,8 +171,8 @@ void user_global_start_server(void *nullarg)
     Layout *mod_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(mod_lt);
     Modal *m = modal_create(mod_lt);
-    modal_add_header(m, "Start server", &color_global_light_grey, 3);
-    modal_add_header(m, "Run a UDP server on port:", &color_global_light_grey, 5);
+    modal_add_header(m, "Start server", &colors.light_grey, 3);
+    modal_add_header(m, "Run a UDP server on port:", &colors.light_grey, 5);
     static char port[6] = {'9', '3', '0', '2'};
     modal_add_textentry(
 	m,
@@ -356,20 +346,21 @@ static int file_ext_completion_jdaw(Text *txt, void *obj)
 }
 void user_global_save_project(void *nullarg)
 {
+    Session *session = session_get(); 
     Layout *mod_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(mod_lt);
     Modal *save_as = modal_create(mod_lt);
-    modal_add_header(save_as, "Save as:", &color_global_light_grey, 3);
-    modal_add_header(save_as, "Project name:", &color_global_light_grey, 5);
+    modal_add_header(save_as, "Save as:", &colors.light_grey, 3);
+    modal_add_header(save_as, "Project name:", &colors.light_grey, 5);
     modal_add_textentry(
 	save_as,
-	proj->name,
+	session->proj.name,
 	MAX_NAMELENGTH,
 	txt_name_validation,
 	file_ext_completion_jdaw,
 	NULL);
-    modal_add_p(save_as, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-<tab>\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &color_global_light_grey);
-    modal_add_header(save_as, "Project location:", &color_global_light_grey, 5);
+    modal_add_p(save_as, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-<tab>\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &colors.light_grey);
+    modal_add_header(save_as, "Project location:", &colors.light_grey, 5);
     modal_add_dirnav(save_as, DIRPATH_SAVED_PROJ, dir_to_tline_filter_save);
     modal_add_button(save_as, "Save", submit_save_as_form);
     save_as->submit_form = submit_save_as_form;
@@ -395,7 +386,6 @@ static NEW_EVENT_FN(dispose_forward_load_wav, "")
 }
 
 
-Project *jdaw_read_file(char *path);
 static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 {
     Session *session = session_get();
@@ -439,24 +429,16 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 	fprintf(stdout, "Jdaw file selected\n");
 	if (session->playback.recording) transport_stop_recording();
 	else if (session->playback.playing) transport_stop_playback();
-	api_quit(proj);
-	Project *new_proj = jdaw_read_file(dp->path);
-	if (new_proj) {
-	    project_destroy(proj);
-	    proj = new_proj;
-	    /* layout_destroy(main_win->layout); */
-
-
-	    
-	    main_win->layout = session->gui.layout;
-	    layout_reset(main_win->layout);
-	    /* window_resize_passive(main_win, , main_win->h_pix); */
-	    /* layout_force_reset(new_session->gui.layout); */
-
+	api_quit();
+	Project new_proj;
+	int ret = jdaw_read_file(&new_proj, dp->path);
+	if (ret == 0) {
+	    project_deinit(&session->proj);
+	    session->proj = new_proj;
+	    timeline_reset_full(session->proj.timelines[0]);
 	} else {
 	    status_set_errstr("Error opening jdaw project");
 	}
-	timeline_reset_full(proj->timelines[0]);
     }
     char *last_slash_pos = strrchr(dp->path, '/');
     if (last_slash_pos) {
@@ -479,11 +461,11 @@ void user_global_open_file(void *nullarg)
     Layout *mod_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(mod_lt);
     Modal *openfile = modal_create(mod_lt);
-    modal_add_header(openfile, "Open file:", &color_global_light_grey, 3);
-    /* modal_add_header(openfile, "Project name:", &color_global_light_grey, 5); */
+    modal_add_header(openfile, "Open file:", &colors.light_grey, 3);
+    /* modal_add_header(openfile, "Project name:", &colors.light_grey, 5); */
     /* modal_add_textentry(openfile, proj->name); */
-    /* modal_add_p(openfile, "\t\t\t^\t\tS-p (S-d)\t\t\t\tv\t\tS-n (S-d)", &color_global_black); */
-    /* modal_add_header(openfile, "Project location:", &color_global_light_grey, 5); */
+    /* modal_add_p(openfile, "\t\t\t^\t\tS-p (S-d)\t\t\t\tv\t\tS-n (S-d)", &colors.black); */
+    /* modal_add_header(openfile, "Project location:", &colors.light_grey, 5); */
     ModalEl *dirnav_el = modal_add_dirnav(openfile, DIRPATH_OPEN_FILE, dir_to_tline_filter_open);
     DirNav *dn = (DirNav *)dirnav_el->obj;
     dn->file_select_action = openfile_file_select_action;
@@ -734,8 +716,8 @@ void user_tl_play(void *nullarg)
     /* Button *btn = (Button *)el->component; */
     /* button_press_color_change( */
     /* 	btn, */
-    /* 	&color_global_quickref_button_pressed, */
-    /* 	&color_global_quickref_button_blue, */
+    /* 	&colors.quickref_button_pressed, */
+    /* 	&colors.quickref_button_blue, */
     /* 	quickref_button_press_callback, */
     /* 	NULL); */
 }
@@ -750,8 +732,8 @@ void user_tl_pause(void *nullarg)
     Button *btn = (Button *)el->component;
     button_press_color_change(
 	btn,
-	&color_global_quickref_button_pressed,
-	&color_global_quickref_button_blue,
+	&colors.quickref_button_pressed,
+	&colors.quickref_button_blue,
 	quickref_button_press_callback,
 	NULL);
 
@@ -781,8 +763,8 @@ void user_tl_rewind(void *nullarg)
     Button *btn = (Button *)el->component;
     button_press_color_change(
 	btn,
-	&color_global_quickref_button_pressed,
-	&color_global_quickref_button_blue,
+	&colors.quickref_button_pressed,
+	&colors.quickref_button_blue,
 	quickref_button_press_callback,
 	NULL);
 }
@@ -893,8 +875,8 @@ void user_tl_move_right(void *nullarg)
     Button *btn = (Button *)el->component;
     button_press_color_change(
 	btn,
-	&color_global_quickref_button_pressed,
-	&color_global_quickref_button_blue,
+	&colors.quickref_button_pressed,
+	&colors.quickref_button_blue,
 	quickref_button_press_callback,
 	NULL);
 }
@@ -907,8 +889,8 @@ void user_tl_move_left(void *nullarg)
     Button *btn = (Button *)el->component;
     button_press_color_change(
 	btn,
-	&color_global_quickref_button_pressed,
-	&color_global_quickref_button_blue,
+	&colors.quickref_button_pressed,
+	&colors.quickref_button_blue,
 	quickref_button_press_callback,
 	NULL);
 }
@@ -921,8 +903,8 @@ void user_tl_zoom_in(void *nullarg)
     Button *btn = (Button *)el->component;
     button_press_color_change(
 	btn,
-	&color_global_quickref_button_pressed,
-	&color_global_quickref_button_blue,
+	&colors.quickref_button_pressed,
+	&colors.quickref_button_blue,
 	quickref_button_press_callback,
 	NULL);
 }
@@ -936,8 +918,8 @@ void user_tl_zoom_out(void *nullarg)
     Button *btn = (Button *)el->component;
     button_press_color_change(
 	btn,
-	&color_global_quickref_button_pressed,
-	&color_global_quickref_button_blue,
+	&colors.quickref_button_pressed,
+	&colors.quickref_button_blue,
 	quickref_button_press_callback,
 	NULL);
 }
@@ -1142,7 +1124,7 @@ void user_tl_bring_rear_clip_to_front(void *nullarg)
 }
 
 void user_tl_set_default_out(void *nullarg) {
-    project_set_default_out(proj);
+    session_set_default_out(session_get());
 }
 
 static NEW_EVENT_FN(add_track_undo, "undo add track")
@@ -1170,8 +1152,8 @@ void user_tl_add_track(void *nullarg)
     Button *btn = (Button *)el->component;
     button_press_color_change(
 	btn,
-	&color_global_quickref_button_pressed,
-	&color_global_quickref_button_blue,
+	&colors.quickref_button_pressed,
+	&colors.quickref_button_blue,
 	quickref_button_press_callback,
 	NULL);
     tl->needs_redraw = true;
@@ -1383,8 +1365,8 @@ button_animation_and_exit:
     Button *btn = (Button *)el->component;
     button_press_color_change(
 	btn,
-	&color_global_quickref_button_pressed,
-	&color_global_quickref_button_blue,
+	&colors.quickref_button_pressed,
+	&colors.quickref_button_blue,
 	quickref_button_press_callback,
 	NULL);  
 }
@@ -1465,8 +1447,8 @@ button_animation_and_exit:
     Button *btn = (Button *)el->component;
     button_press_color_change(
 	btn,
-	&color_global_quickref_button_pressed,
-	&color_global_quickref_button_blue,
+	&colors.quickref_button_pressed,
+	&colors.quickref_button_blue,
 	quickref_button_press_callback,
 	NULL);  
 }
@@ -2197,7 +2179,7 @@ void user_tl_activate_source_mode(void *nullarg)
 /*     double latency_est_ms = 44.0f; */
 /*     struct timespec now; */
 /*     clock_gettime(CLOCK_MONOTONIC, &now); */
-/*     struct realtime_tick pb = proj->playback_conn->callback_time; */
+/*     struct realtime_tick pb = session->audio_io.playback_conn->callback_time; */
 /*     double elapsed_pb_chunk_ms = TIMESPEC_DIFF_MS(now, pb.ts); */
 /*     int32_t tl_pos_now = pb.timeline_pos + (int32_t)((elapsed_pb_chunk_ms - latency_est_ms) * proj->sample_rate * session->playback.play_speed / 1000.0f); */
 /*     return tl_pos_now; */
@@ -2320,7 +2302,7 @@ static int new_tl_submit_form(void *mod_v, void *target)
     for (uint8_t i=0; i<mod->num_els; i++) {
 	ModalEl *el = mod->els[i];
 	if (el->type == MODAL_EL_TEXTENTRY) {
-	    project_reset_tl_label(proj);
+	    project_reset_tl_label(&session->proj);
 	    break;
 	}
     }
@@ -2336,13 +2318,13 @@ void user_tl_add_new_timeline(void *nullarg)
     if (session->playback.recording) transport_stop_recording(); else  transport_stop_playback();
     
     ACTIVE_TL->layout->hidden = true;
-    proj->active_tl_index = project_add_timeline(proj, "New Timeline");
-    project_reset_tl_label(proj);
+    session->proj.active_tl_index = project_add_timeline(&session->proj, "New Timeline");
+    project_reset_tl_label(&session->proj);
 
     Layout *mod_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(mod_lt);
     Modal *mod = modal_create(mod_lt);
-    modal_add_header(mod, "Create new timeline:", &color_global_light_grey, 5);
+    modal_add_header(mod, "Create new timeline:", &colors.light_grey, 5);
     modal_add_textentry(
 	mod,
 	ACTIVE_TL->name,
@@ -2360,9 +2342,9 @@ void user_tl_add_new_timeline(void *nullarg)
 void user_tl_previous_timeline(void *nullarg)
 {
     Session *session = session_get();
-    if (proj->active_tl_index > 0) {
+    if (session->proj.active_tl_index > 0) {
 	if (session->playback.recording) transport_stop_recording(); else  transport_stop_playback();
-	timeline_switch(proj->active_tl_index - 1);
+	timeline_switch(session->proj.active_tl_index - 1);
     } else {
 	status_set_errstr("No timeline to the left.");
     }
@@ -2371,9 +2353,10 @@ void user_tl_previous_timeline(void *nullarg)
 void user_tl_next_timeline(void *nullarg)
 {
     Session *session = session_get();
-    if (proj->active_tl_index < proj->num_timelines - 1) {
+    if (session->proj.active_tl_index < session->proj.num_timelines - 1) {
 	if (session->playback.recording) transport_stop_recording(); else  transport_stop_playback();
-	timeline_switch(proj->active_tl_index + 1);
+
+	timeline_switch(session->proj.active_tl_index + 1);
 	/* ACTIVE_TL->layout->hidden = true; */
 	/* proj->active_tl_index++; */
 	/* ACTIVE_TL->layout->hidden = false; */
@@ -2399,12 +2382,12 @@ void user_tl_delete_timeline(void *nullarg)
 /*     Layout *mod_lt = layout_add_child(main_win->layout); */
 /*     layout_set_default_dims(mod_lt); */
 /*     Modal *save_as = modal_create(mod_lt); */
-/*     modal_add_header(save_as, "Save as:", &color_global_light_grey, 3); */
-/*     modal_add_header(save_as, "Project name:", &color_global_light_grey, 5); */
+/*     modal_add_header(save_as, "Save as:", &colors.light_grey, 3); */
+/*     modal_add_header(save_as, "Project name:", &colors.light_grey, 5); */
 /*     modal_add_textentry(save_as, proj->name); */
-/*     modal_add_p(save_as, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-p\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &color_global_black); */
-/*     /\* modal_add_op(save_as, "\t\t(type <ret> to accept name)", &color_global_light_grey); *\/ */
-/*     modal_add_header(save_as, "Project location:", &color_global_light_grey, 5); */
+/*     modal_add_p(save_as, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-p\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &colors.black); */
+/*     /\* modal_add_op(save_as, "\t\t(type <ret> to accept name)", &colors.light_grey); *\/ */
+/*     modal_add_header(save_as, "Project location:", &colors.light_grey, 5); */
 /*     modal_add_dirnav(save_as, DIRPATH_SAVED_PROJ, dir_to_tline_filter_save); */
 /*     save_as->submit_form = submit_save_as_form; */
 /*     window_push_modal(main_win, save_as); */
@@ -2468,17 +2451,18 @@ static int submit_save_wav_form(void *mod_v, void *target)
 
 void user_tl_write_mixdown_to_wav(void *nullarg)
 {
+    Session *session = session_get();
     Layout *mod_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(mod_lt);
     Modal *save_wav = modal_create(mod_lt);
-    modal_add_header(save_wav, "Export WAV", &color_global_light_grey, 3);
-    modal_add_p(save_wav, "Export a mixdown of the current timeline, from the in-mark to the out-mark, in .wav format.", &color_global_light_grey);
-    modal_add_header(save_wav, "Filename:", &color_global_light_grey, 5);
+    modal_add_header(save_wav, "Export WAV", &colors.light_grey, 3);
+    modal_add_p(save_wav, "Export a mixdown of the current timeline, from the in-mark to the out-mark, in .wav format.", &colors.light_grey);
+    modal_add_header(save_wav, "Filename:", &colors.light_grey, 5);
     static char wavfilename[MAX_NAMELENGTH];
     /* char *wavfilename = malloc(sizeof(char) * 255); */
     int i=0;
     char c;
-    while ((c = proj->name[i]) != '.' && c != '\0') {
+    while ((c = session->proj.name[i]) != '.' && c != '\0') {
 	wavfilename[i] = c;
 	i++;
     }
@@ -2492,9 +2476,9 @@ void user_tl_write_mixdown_to_wav(void *nullarg)
 	file_ext_completion_wav,
 	NULL);
     
-    modal_add_p(save_wav, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-<tab>\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &color_global_light_grey);
-    /* modal_add_op(save_wav, "\t\t(type <ret> to accept name)", &color_global_light_grey); */
-    modal_add_header(save_wav, "Location:", &color_global_light_grey, 5);
+    modal_add_p(save_wav, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-<tab>\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &colors.light_grey);
+    /* modal_add_op(save_wav, "\t\t(type <ret> to accept name)", &colors.light_grey); */
+    modal_add_header(save_wav, "Location:", &colors.light_grey, 5);
     modal_add_dirnav(save_wav, DIRPATH_EXPORT, dir_to_tline_filter_save);
     modal_add_button(save_wav, "Save .wav file", submit_save_wav_form);
     /* save_as->submit_form = submit_save_as_form; */

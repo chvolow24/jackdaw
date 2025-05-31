@@ -5,8 +5,6 @@
 
 #include "loading.h"
 
-extern Project *proj;
-
 bool file_exists(const char *filepath)
 {
     return access(filepath, F_OK) == 0;
@@ -42,7 +40,7 @@ int file_copy(const char *read_filepath, const char *write_filepath)
     while ((c = fgetc(fr)) != EOF) {
 	/* fprintf(stderr, "Byte i: %lu, mod: %lu fs: %lu", byte_i, byte_i % byte_mod, file_size_bytes); */
 	if (byte_i % byte_mod == 0) {
-	    project_loading_screen_update(NULL, (double)byte_i / file_size_bytes);
+	    session_loading_screen_update(NULL, (double)byte_i / file_size_bytes);
 	}
 	byte_i++;
 	fputc(c, fw);
@@ -56,7 +54,7 @@ int file_copy(const char *read_filepath, const char *write_filepath)
 void file_backup(const char *filepath)
 {
 
-    project_set_loading_screen("Overwrite backup", "Backing up existing file...", false);
+    session_set_loading_screen("Overwrite backup", "Backing up existing file...", false);
     const char *bak = ".bak";
     int buflen = strlen(filepath) + strlen(bak) + 1;
     char buf[buflen];
@@ -67,8 +65,8 @@ void file_backup(const char *filepath)
     }
     
     /* if (file_copy(filepath, (const char *)buf) != 0) { */
-    /* 	project_loading_screen_deinit(proj); */
+    /* 	session_loading_screen_deinit(proj); */
     /* 	fprintf(stderr, "Error: failed to backup file \"%s\".", filepath); */
     /* } */
-    project_loading_screen_deinit(proj);
+    session_loading_screen_deinit();
 }

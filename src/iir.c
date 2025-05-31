@@ -21,16 +21,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "dsp_utils.h"
-#include "page.h"
-#include "project.h"
+#include "consts.h"
 #include "iir.h"
 #include "waveform.h"
 
-extern SDL_Color color_global_white;
+
 extern Window *main_win;
-extern SDL_Color freq_L_color;
-extern SDL_Color freq_R_color;
 
 void iir_init(IIRFilter *f, int degree, int num_channels)
 {

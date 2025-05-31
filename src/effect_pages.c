@@ -22,7 +22,7 @@
 #include "geometry.h"
 #include "project.h"
 #include "saturation.h"
-#include "waveform.h"
+#include "session.h"
 
 #define LABEL_STD_FONT_SIZE 12
 #define RADIO_STD_FONT_SIZE 14
@@ -33,12 +33,10 @@ extern Project *proj;
 extern SDL_Color EQ_CTRL_COLORS[];
 extern SDL_Color EQ_CTRL_COLORS_LIGHT[];
 
-extern SDL_Color color_global_black;
-extern SDL_Color color_global_white;
-extern SDL_Color color_global_light_grey;
-extern SDL_Color color_global_white;
-extern SDL_Color freq_L_color;
-extern SDL_Color freq_R_color;
+extern struct colors colors;
+
+
+
 
 SDL_Color filter_selected_clr = {50, 50, 200, 255};
 SDL_Color filter_selected_inactive = {100, 100, 100, 100};
@@ -105,7 +103,7 @@ static void track_effects_swap_pair(Track *track, int swap_i, int swap_j, bool f
     track->effects[swap_j] = displaced;
     if (!from_undo) {
 	user_event_push(
-	    &proj->history,
+	    
 	    undo_redo_swap_effect_order,undo_redo_swap_effect_order, NULL, NULL,
 	    track, NULL,
 	    (Value){.double_pair_v = {swap_j, swap_i}}, (Value){0},
@@ -130,7 +128,8 @@ static void swapfn(void *target, int swap_i, int swap_j)
 
 TabView *track_effects_tabview_create(Track *track)
 {
-    TabView *tv = tabview_create("Track Effects", proj->layout, main_win);
+    Session *session = session_get();
+    TabView *tv = tabview_create("Track Effects", session->gui.layout, main_win);
     for (int i=0; i<track->num_effects; i++) {
 	effect_add_page(track->effects[i], tv);
     }
@@ -168,7 +167,7 @@ Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
 	/* "Equalizer", */
 	EQ_LT_PATH,
 	page_colors + 2,
-	&color_global_white,
+	&colors.white,
 	main_win);
 
     PageElParams p;
@@ -194,7 +193,7 @@ Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
     page_add_el(page, EL_EQ_PLOT, p, "track_settings_eq_plot", "eq_plot");
 
     /* p.textarea_p.font = main_win->mono_bold_font; */
-    /* p.textarea_p.color = color_global_white; */
+    /* p.textarea_p.color = colors.white; */
     /* p.textarea_p.text_size = 12; */
     /* p.textarea_p.win = main_win; */
     /* p.textarea_p.value = "Click and drag the circles to set peaks or notches.\n \nHold cmd or ctrl and drag up or down to set the filter bandwidth.\n \nAdditional filter types (shelving, lowpass, highpass) will be added in future versions of jackdaw."; */
@@ -347,7 +346,7 @@ Page *add_fir_filter_page(FIRFilter *f, Track *track, TabView *tv)
 	f->effect->name,
 	FIR_FILTER_LT_PATH,
 	page_colors,
-	&color_global_white,
+	&colors.white,
 	main_win);
 
     PageElParams p;
@@ -420,7 +419,7 @@ Page *add_fir_filter_page(FIRFilter *f, Track *track, TabView *tv)
     };
     
     p.radio_p.text_size = RADIO_STD_FONT_SIZE;
-    p.radio_p.text_color = &color_global_white;
+    p.radio_p.text_color = &colors.white;
     p.radio_p.ep = &f->type_ep;
     p.radio_p.item_names = item_names;
     p.radio_p.num_items = 4;
@@ -440,7 +439,7 @@ Page *add_fir_filter_page(FIRFilter *f, Track *track, TabView *tv)
 	f->frequency_response_mag
     };	
     int steps[] = {1, 1, 1};
-    SDL_Color *plot_colors[] = {&freq_L_color, &freq_R_color, &color_global_white};
+    SDL_Color *plot_colors[] = {&colors.freq_L, &colors.freq_R, &colors.white};
     p.freqplot_p.arrays = arrays;
     p.freqplot_p.colors =  plot_colors;
     p.freqplot_p.steps = steps;
@@ -462,7 +461,7 @@ Page *add_delay_page(DelayLine *d, Track *track, TabView *tv)
         d->effect->name,
 	DELAY_LINE_LT_PATH,
 	page_colors + 1,
-	&color_global_white,
+	&colors.white,
 	main_win);
 
     PageElParams p;
@@ -540,7 +539,7 @@ Page *add_saturation_page(Saturation *s, Track *track, TabView *tv)
 	s->effect->name,
 	SATURATION_LT_PATH,
 	page_colors + 3,
-	&color_global_white,
+	&colors.white,
 	main_win);
 
     PageElParams p;
@@ -601,7 +600,7 @@ Page *add_saturation_page(Saturation *s, Track *track, TabView *tv)
     };
     
     p.radio_p.text_size = RADIO_STD_FONT_SIZE;
-    p.radio_p.text_color = &color_global_white;
+    p.radio_p.text_color = &colors.white;
     p.radio_p.ep = &s->type_ep;
     p.radio_p.item_names = saturation_type_names;
     p.radio_p.num_items = 2;
@@ -623,7 +622,7 @@ Page *add_compressor_page(Compressor *c, Track *track, TabView *tv)
 	c->effect->name,
 	COMPRESSOR_LT_PATH,
 	page_colors + 4,
-	&color_global_white,
+	&colors.white,
 	main_win);
 
     PageElParams p;
@@ -760,8 +759,8 @@ static void create_track_selection_area(Page *page, Track *track)
     p.button_p.font = main_win->mono_bold_font;
     p.button_p.win = main_win;
     p.button_p.text_size = 16;
-    p.button_p.background_color = &color_global_light_grey;
-    p.button_p.text_color = &color_global_black;
+    p.button_p.background_color = &colors.light_grey;
+    p.button_p.text_color = &colors.black;
     p.button_p.action = previous_track;
     el = page_add_el(page, EL_BUTTON, p, "track_settings_prev_track", "track_previous");
 
@@ -863,7 +862,8 @@ static int next_track(void *self_v, void *target)
 
 static double unscale_freq(double scaled)
 {
-    return log(scaled * proj->sample_rate) / log(proj->sample_rate);
+    Session *session = session_get();
+    return log(scaled * session->proj.sample_rate) / log(session->proj.sample_rate);
 }
 
 

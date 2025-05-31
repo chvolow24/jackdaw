@@ -2,7 +2,7 @@
 #ifndef JDAW_LOADING_H
 #define JDAW_LOADING_H
 
-#include "endpoint.h"
+#include "textbox.h"
 
 #define MAX_LOADSTR_LEN 255
 
@@ -28,7 +28,7 @@ int session_loading_screen_update(
     const char *subtitle,
     float progress);
 
-void session_loading_screen_deinit(Session *session);
+void session_loading_screen_deinit();
 
 #endif
 

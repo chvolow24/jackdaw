@@ -170,7 +170,7 @@ int audioconn_open(Session *session, AudioConn *conn)
 	if (conn->iscapture) {
 	    /* fprintf(stdout, "Dev %s\n:ch %d, freq %d, format %d (== %d)\n", device->name, obtained.channels, obtained.freq, obtained.format, AUDIO_S16LSB); */
 	    /* exit(1); */
-	    /* device->rec_buf_len_samples = proj->sample_rate * DEVICE_BUFLEN_SECONDS * device->spec.channels; */
+	    /* device->rec_buf_len_samples = session->proj.sample_rate * DEVICE_BUFLEN_SECONDS * device->spec.channels; */
 	    device->rec_buf_len_samples = DEVICE_BUFLEN_CHUNKS * session->proj.chunk_size_sframes * session->proj.channels;
 	    uint32_t device_buf_len_bytes = device->rec_buf_len_samples * sizeof(int16_t);
 	    if (!device->rec_buffer) {
@@ -572,7 +572,7 @@ static void select_out_onclick(void *arg)
     PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_out_value");
     textbox_set_value_handle(((Button *)el->component)->tb, session->audio_io.playback_conn->name);
     window_pop_menu(main_win);
-    Timeline *tl = session->proj.timelines[session->proj.active_tl_index];
+    Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;
     /* window_pop_mode(main_win); */
 }

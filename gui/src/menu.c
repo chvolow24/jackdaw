@@ -1,6 +1,5 @@
 #include "color.h"
 #include "geometry.h"
-#include "draw.h"
 #include "menu.h"
 #include "text.h"
 #include "textbox.h"
@@ -15,7 +14,7 @@
 
 #define MENU_STD_CORNER_RAD STD_CORNER_RAD
 
-extern SDL_Color color_global_clear;
+
 extern Window *main_win;
 
 SDL_Color menu_std_clr_inner_border = (SDL_Color) {200, 200, 200, 200};
@@ -28,6 +27,7 @@ SDL_Color menu_std_clr_sctn_div = (SDL_Color) {200, 200, 200, 250};
 
 SDL_Color color_clear = (SDL_Color) {0, 0, 0, 0};
 
+extern struct colors colors;
 /* int menu_std_border_rad = 24; */
 
 	
@@ -249,8 +249,8 @@ MenuItem *menu_item_add(
     item->tb->text->align = CENTER_LEFT;
     textbox_set_trunc(item->tb, false);
     textbox_set_text_color(item->tb, &menu_std_clr_txt);
-    textbox_set_background_color(item->tb, &color_global_clear);
-    textbox_set_border_color(item->tb, &color_global_clear);
+    textbox_set_background_color(item->tb, &colors.clear);
+    textbox_set_border_color(item->tb, &colors.clear);
     
 
     /* Create and initialize annotation tb */
@@ -266,8 +266,8 @@ MenuItem *menu_item_add(
 	item->annot_tb->text->align = CENTER_RIGHT;
 	textbox_set_trunc(item->annot_tb, false);
 	textbox_set_text_color(item->annot_tb, &menu_std_clr_annot_txt);
-	textbox_set_background_color(item->annot_tb, &color_global_clear);
-	textbox_set_border_color(item->annot_tb, &color_global_clear);
+	textbox_set_background_color(item->annot_tb, &colors.clear);
+	textbox_set_border_color(item->annot_tb, &colors.clear);
     }
 
 

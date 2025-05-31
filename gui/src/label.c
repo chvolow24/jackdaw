@@ -1,11 +1,12 @@
 #include "animation.h"
+#include "color.h"
 #include "label.h"
 #include "layout.h"
+#include "session.h"
 #include "value.h"
 
-extern SDL_Color color_global_black;
-
 extern Window *main_win;
+extern struct colors colors;
 
 static void std_str_fn(char *dst, size_t dstsize, Value v, ValType t)
 {
@@ -39,7 +40,7 @@ Label *label_create(
     l->countdown_max = LABEL_COUNTDOWN_MAX;
     l->val_type = t;
 
-    textbox_set_border(l->tb, &color_global_black, 2);
+    textbox_set_border(l->tb, &colors.black, 2);
     textbox_set_trunc(l->tb, false);
     textbox_size_to_fit(l->tb, LABEL_H_PAD, LABEL_V_PAD);
 
@@ -82,13 +83,14 @@ static void animation_frame_op(void *arg1, void *arg2)
 }
 static void animation_end_op(void *arg1, void *arg2)
 {
+    Session *session = session_get();
     Label *l = (Label *)arg1;
     if (l->countdown_timer <= 0) {
 	l->animation_running = false;
-	Timeline *tl = proj->timelines[proj->active_tl_index];
+	Timeline *tl = ACTIVE_TL;
 	tl->needs_redraw = true;
     } else {
-	l->animation = project_queue_animation(
+	l->animation = session_queue_animation(
 	    animation_frame_op, animation_end_op,
 	    (void *)l, NULL,
 	    l->countdown_timer);
@@ -113,7 +115,7 @@ void label_reset(Label *label, Value v)
     }
     label->countdown_timer = label->countdown_max;
     if (!label->animation_running) {
-	label->animation = project_queue_animation(
+	label->animation = session_queue_animation(
 	    animation_frame_op, animation_end_op,
 	    (void *)label, NULL,
 	    label->countdown_max);
@@ -127,7 +129,7 @@ void label_destroy(Label *label)
 {
     if (label->animation_running) {
 	Animation *a = label->animation;
-	project_dequeue_animation(a);
+	session_dequeue_animation(a);
     }
     free(label->str);
     textbox_destroy(label->tb);

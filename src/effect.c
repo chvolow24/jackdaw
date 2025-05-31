@@ -15,23 +15,18 @@
     * each effect contains a pointer to the specific effect object
  *****************************************************************************************************************/
 
-
-#include "assets.h"
 #include "color.h"
-/* #include "eq.h" */
 #include "delay_line.h"
 #include "effect.h"
 #include "fir_filter.h"
-/* #include "geometry.h" */
 #include "modal.h"
 #include "page.h"
 #include "project.h"
-/* #include "waveform.h" */
+#include "session.h"
 
-extern Project *proj;
 extern Window *main_win;
 
-extern SDL_Color color_global_light_grey;
+extern struct colors colors;
 
 static const char *effect_type_strings[] = {
     "Equalizer",
@@ -138,7 +133,7 @@ Effect *track_add_effect(Track *track, EffectType type)
     api_endpoint_register(&e->active_ep, &e->api_node);
 
     user_event_push(
-	&proj->history,
+	
 	undo_add_effect, redo_add_effect,
 	NULL, dispose_forward_add_effect,
 	e, NULL,
@@ -165,15 +160,16 @@ static int add_effect_form(void *mod_v, void *nullarg);
 /* Higher-level function, called from userfn to create modal */
 void track_add_new_effect(Track *track)
 {
+    Session *session = session_get();
     if (track->num_effects == MAX_TRACK_EFFECTS) {
 	fprintf(stderr, "Track num effects: %d. Max: %d\n", track->num_effects, MAX_TRACK_EFFECTS);
 	status_set_errstr("Error: reached maximum number of effects per track.");
 	return;
     }
-    Layout *lt = layout_add_child(track->tl->proj->layout);
+    Layout *lt = layout_add_child(session->gui.layout);
     layout_set_default_dims(lt);
     Modal *m = modal_create(lt);
-    modal_add_header(m, "Add effect to track", &color_global_light_grey, 4);
+    modal_add_header(m, "Add effect to track", &colors.light_grey, 4);
 
     static int effect_selection = 0;
     static Endpoint effect_selection_ep = {0};
@@ -193,7 +189,7 @@ void track_add_new_effect(Track *track)
     
     modal_add_radio(
 	m,
-	&color_global_light_grey,
+	&colors.light_grey,
 	/* (void *)track, */
 	&effect_selection_ep,
 	/* NULL, */
@@ -420,7 +416,7 @@ void effect_delete(Effect *e, bool from_undo)
     int num_related_automations = 0;
     if (!from_undo) {
 	user_event_push(
-	    &proj->history,
+	    
 	    undo_effect_delete,
 	    redo_effect_delete,
 	    dispose_effect_delete,

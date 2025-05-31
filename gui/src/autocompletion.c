@@ -15,14 +15,13 @@
  *****************************************************************************************************************/
 
 #include "autocompletion.h"
+#include "color.h"
 #include "geometry.h"
 
 #define AUTOCOMPLETE_LINE_SPACING 3
 
 extern Window *main_win;
-extern SDL_Color color_global_white;
-extern SDL_Color color_global_clear;
-
+extern struct colors colors;
 
 /* TLinesItem *create_autocomplete_tline(void ***current_item, Layout *container, void *xarg, int (*filter)(void *item, void *xarg)) */
 /* { */
@@ -56,7 +55,7 @@ extern SDL_Color color_global_clear;
 
 static SDL_Color highlighted_line = {100, 60, 10, 255};
 
-extern SDL_Color color_global_red;
+
 static void create_autocomplete_tline(
     TextLines *tlines,
     TLinesItem *current_line,
@@ -81,10 +80,10 @@ static void create_autocomplete_tline(
     if (current_line - tlines->items == ac->selection) {
         textbox_set_background_color(current_line->tb, &highlighted_line);
     } else {
-        textbox_set_background_color(current_line->tb, &color_global_clear);
+        textbox_set_background_color(current_line->tb, &colors.clear);
     }
     
-    textbox_set_text_color(current_line->tb, &color_global_white);
+    textbox_set_text_color(current_line->tb, &colors.white);
     textbox_set_align(current_line->tb, CENTER_LEFT);
     textbox_set_pad(current_line->tb, 4, 1);
     textbox_size_to_fit(current_line->tb, 4, 1);
@@ -116,8 +115,8 @@ static void create_autocomplete_tline(
 	main_win);
     textbox_set_align(keycmd, CENTER_RIGHT);
     textbox_set_pad(keycmd, 10, 1);
-    textbox_set_text_color(keycmd, &color_global_white);
-    textbox_set_background_color(keycmd, &color_global_clear);
+    textbox_set_text_color(keycmd, &colors.white);
+    textbox_set_background_color(keycmd, &colors.clear);
     textbox_reset(keycmd);
 	
 	
@@ -271,7 +270,7 @@ void autocompletion_reset_selection(AutoCompletion *ac, int new_sel)
 	ac->selection = new_sel;
 	if (old_sel >=0) {
 	    Textbox *old = ac->lines->items[old_sel].tb;
-	    textbox_set_background_color(old, &color_global_clear);            
+	    textbox_set_background_color(old, &colors.clear);            
 	}
 	if (new_sel >=0) {
 	    Textbox *new = ac->lines->items[new_sel].tb;

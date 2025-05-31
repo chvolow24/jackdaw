@@ -25,19 +25,19 @@
 #include "input.h"
 #include "label.h"
 #include "project.h"
+#include "session.h"
 #include "waveform.h"
 
 
 #define DEFAULT_BANDWIDTH_SCALAR 3.0
 
-extern Project *proj;
-extern SDL_Color freq_L_color;
-extern SDL_Color freq_R_color;
-extern SDL_Color color_global_white;
-extern SDL_Color color_global_grey;
+extern Window *main_win;
+extern struct colors colors;
+
+
+
 SDL_Color grey_clear = {200, 200, 200, 100};
 
-extern Window *main_win;
 
 SDL_Color EQ_CTRL_COLORS[] = {
     {255, 10, 10, 255},
@@ -127,7 +127,8 @@ static void eq_gui_cb(Endpoint *ep)
 void eq_ctrl_label_fn(char *dst, size_t dstsize, Value val, ValType type)
 {
     /* label_freq_raw_to_hz(dst, dstsize, freq, JDAW_DOUBLE); */
-    int hz = val.double_pair_v[0] * proj->sample_rate / 2;
+    Session *session = session_get();
+    int hz = val.double_pair_v[0] * session->proj.sample_rate / 2;
     size_t written = snprintf(dst, dstsize, "%d Hz, ", hz);
     dstsize -= written;
     dst += written;
@@ -149,11 +150,12 @@ static void selected_filter_active_cb(Endpoint *ep)
 
 void eq_init(EQ *eq)
 {
+    Session *session = session_get();
     eq->output_freq_mag_L = calloc(eq->track->tl->proj->fourier_len_sframes * 2, sizeof(double));
     eq->output_freq_mag_R = calloc(eq->track->tl->proj->fourier_len_sframes * 2, sizeof(double));
     double nsub1;
-    if (proj) {
-	nsub1 = (double)proj->fourier_len_sframes / 2 - 1;
+    if (session->proj_initialized) {
+	nsub1 = (double)session->proj.fourier_len_sframes / 2 - 1;
     } else {
 	nsub1 = (double)DEFAULT_FOURIER_LEN_SFRAMES / 2 - 1;
     }
@@ -497,6 +499,7 @@ void eq_mouse_motion(EQFilterCtrl *ctrl, Window *win)
 
 bool eq_mouse_click(EQ *eq, SDL_Point mousep)
 {
+    Session *session = session_get();
     int click_tolerance = 20 * main_win->dpi_scale_factor;
     int min_dist = click_tolerance;
     int clicked_i = -1;
@@ -515,8 +518,8 @@ bool eq_mouse_click(EQ *eq, SDL_Point mousep)
     
     if (min_dist < click_tolerance) {
 	eq_set_filter_from_mouse(eq, clicked_i, mousep);
-	proj->dragged_component.component = eq->ctrls + clicked_i;
-	proj->dragged_component.type = DRAG_EQ_FILTER_NODE;
+	session->dragged_component.component = eq->ctrls + clicked_i;
+	session->dragged_component.type = DRAG_EQ_FILTER_NODE;
 	eq_select_ctrl(eq, clicked_i);
 	return true;
     }
@@ -535,14 +538,15 @@ void eq_create_freq_plot(EQ *eq, Layout *container)
     double *arrs[] = {eq->output_freq_mag_L, eq->output_freq_mag_R};
     
     /* double *arrs[] = {proj->output_L_freq, proj->output_R_freq}; */
-    SDL_Color *colors[] = {&freq_L_color, &freq_R_color};
+    SDL_Color *fcolors[] = {&colors.freq_L, &colors.freq_R};
 
+    Session *session = session_get();
     eq->fp = waveform_create_freq_plot(
 	arrs,
 	2,
-	colors,
+	fcolors,
 	steps,
-	proj->fourier_len_sframes,
+	session->proj.fourier_len_sframes,
 	container);
     waveform_reset_freq_plot(eq->fp);
 
@@ -551,7 +555,7 @@ void eq_create_freq_plot(EQ *eq, Layout *container)
 	eq->group.filters[i].fp = eq->fp;
     }
     iir_group_update_freq_resp(&eq->group);
-    waveform_freq_plot_add_linear_plot(eq->fp, IIR_FREQPLOT_RESOLUTION, eq->group.freq_resp, &color_global_white);
+    waveform_freq_plot_add_linear_plot(eq->fp, IIR_FREQPLOT_RESOLUTION, eq->group.freq_resp, &colors.white);
     eq->fp->linear_plot_ranges[0] = EQ_MAX_AMPLITUDE;
     eq->fp->linear_plot_mins[0] = 0.0;
     static double ones[] = {1.0, 1.0, 1,0};
@@ -647,7 +651,7 @@ void eq_draw(EQ *eq)
 	    geom_fill_circle(main_win->rend, eq->ctrls[i].x - EQ_CTRL_RAD, eq->ctrls[i].y - EQ_CTRL_RAD, EQ_CTRL_RAD);
 	    SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand((EQ_CTRL_COLORS + i)));
 	} else {
-	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_grey));
+	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.grey));
 	}
 	label_draw(eq->ctrls[i].label);
 	

@@ -185,7 +185,7 @@ static inline void session_init_output_panel(Page *output, Session *session)
 
     
     /* proj->tb_out_value = textbox_create_from_str( */
-    /* 	(char *)proj->playback_conn->name, */
+    /* 	(char *)session->audio_io.playback_conn->name, */
     /* 	out_value_lt, */
     /* 	main_win->std_font, */
     /* 	12, */
@@ -199,8 +199,8 @@ static inline void session_init_output_panel(Page *output, Session *session)
     /* textbox_set_border(proj->tb_out_value, &colors.black, 1); */
 
     /* Layout *output_l_lt, *output_r_lt; */
-    /* output_l_lt = layout_get_child_by_name_recursive(proj->layout, "out_waveform_left"); */
-    /* output_r_lt = layout_get_child_by_name_recursive(proj->layout, "out_waveform_right"); */
+    /* output_l_lt = layout_get_child_by_name_recursive(session->gui.layout, "out_waveform_left"); */
+    /* output_r_lt = layout_get_child_by_name_recursive(session->gui.layout, "out_waveform_right"); */
 
     /* proj->outwav_l_rect = &output_l_lt->rect; */
     /* proj->outwav_r_rect = &output_r_lt->rect; */
@@ -500,7 +500,7 @@ static void source_area_draw(void *arg1, void *arg2)
     SDL_Rect *source_clip_rect = arg->source_clip_rect;
     /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(source_mode_bckgrnd)); */
     /* SDL_RenderFillRect(main_win->rend, source_rect); */
-    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_white)); */
+    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.white)); */
     /* SDL_RenderDrawRect(main_win->rend, source_rect); */
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_home_bckgrnd));
     SDL_RenderDrawRect(main_win->rend, source_clip_rect);

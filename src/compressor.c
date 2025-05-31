@@ -22,6 +22,7 @@
 #include "endpoint_callbacks.h"
 #include "geometry.h"
 #include "project.h"
+#include "session.h"
 #include "window.h"
 
 #define COMP_GRAPH_R 4
@@ -179,8 +180,9 @@ void compressor_draw(Compressor *c, SDL_Rect *target)
 extern Project *proj;
 void comp_times_dsp_cb(Endpoint *ep)
 {
+    Session *session = session_get();
     Compressor *c = ep->xarg1;
-    compressor_set_times_msec(c, c->attack_time, c->release_time, proj->sample_rate);
+    compressor_set_times_msec(c, c->attack_time, c->release_time, session->proj.sample_rate);
 }
 
 void comp_ratio_dsp_cb(Endpoint *ep)
@@ -201,10 +203,11 @@ static void ratio_labelfn(char *dst, size_t dstsize, Value v, ValType type)
 
 void compressor_init(Compressor *c)
 {
+    Session *session = session_get();
     c->attack_time = COMP_DEFAULT_ATTACK;
     c->release_time = COMP_DEFAULT_RELEASE;
-    if (proj) {
-	compressor_set_times_msec(c, c->attack_time, c->release_time, proj->sample_rate);
+    if (session->proj_initialized) {
+	compressor_set_times_msec(c, c->attack_time, c->release_time, session->proj.sample_rate);
     } else {
 	compressor_set_times_msec(c, c->attack_time, c->release_time, DEFAULT_SAMPLE_RATE);
     }
@@ -303,4 +306,4 @@ void compressor_init(Compressor *c)
 }
 
 
-/* envelope_follower_set_times_msec(&ef, 10.0, 200.0, proj->sample_rate); */
+/* envelope_follower_set_times_msec(&ef, 10.0, 200.0, session->proj.sample_rate); */

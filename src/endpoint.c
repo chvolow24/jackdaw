@@ -19,13 +19,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include "endpoint.h"
-#include "project_endpoint_ops.h"
+#include "session_endpoint_ops.h"
 #include "timeline.h"
 #include "status.h"
 #include "value.h"
 
 typedef struct project Project;
-extern Project *proj;
 
 int endpoint_init(
     Endpoint *ep,
@@ -112,7 +111,7 @@ NEW_EVENT_FN(undo_redo_endpoint_write, "")
 	false);
 
     char statstr_fmt[255];						
-    snprintf(statstr_fmt, 255, "(%d/%d) undo/redo adj %s", proj->history.len - self->index, proj->history.len, ep->display_name);
+    snprintf(statstr_fmt, 255, "(%d/%d) undo/redo adj %s", session->history.len - self->index, session->history.len, ep->display_name);
     status_set_undostr(statstr_fmt);
 }
 
@@ -129,6 +128,7 @@ int endpoint_write(
     bool run_dsp_cb,
     bool undoable)
 {
+    Session *session = session_get();
     /* fprintf(stderr, "WRITE %s\n", ep->local_id); */
     int ret = 0;
     if (ep->restrict_range) {
@@ -151,7 +151,7 @@ int endpoint_write(
 	pthread_mutex_lock(&ep->val_lock);
 	jdaw_val_set_ptr(ep->val, ep->val_type, new_val);
 	if (ep->automation && ep->automation->write) {
-	    Timeline *tl = proj->timelines[proj->active_tl_index];
+	    Timeline *tl = ACTIVE_TL;
 	    int32_t tl_now = timeline_get_play_pos_now(tl);
 	    automation_endpoint_write(ep, new_val, tl_now);
 	}
@@ -163,7 +163,7 @@ int endpoint_write(
 	/*     pthread_mutex_unlock(&ep->lock);	     */
 	/* } else { */
 	/* fprintf(stderr, "queueing...\n"); */
-	project_queue_val_change(proj, ep, new_val, run_gui_cb);
+	session_queue_val_change(session, ep, new_val, run_gui_cb);
 	async_change_will_occur = true;
 	ret = 1;
 	/* } */
@@ -176,7 +176,7 @@ int endpoint_write(
 	    ep->dsp_callback(ep);
 	} else {
 	    if (session->playback.playing) {
-		project_queue_callback(proj, ep, ep->dsp_callback, JDAW_THREAD_DSP);
+		session_queue_callback(session, ep, ep->dsp_callback, JDAW_THREAD_DSP);
 		async_change_will_occur = true;
 	    } else {
 		ep->dsp_callback(ep);
@@ -187,7 +187,7 @@ int endpoint_write(
 	if (on_main)
 	    ep->proj_callback(ep);
 	else {
-	    project_queue_callback(proj, ep, ep->proj_callback, JDAW_THREAD_MAIN);
+	    session_queue_callback(session, ep, ep->proj_callback, JDAW_THREAD_MAIN);
 	}
     }
 
@@ -195,7 +195,7 @@ int endpoint_write(
 	if (on_main) {
 	    ep->gui_callback(ep);
 	} else {
-	    project_queue_callback(proj, ep, ep->gui_callback, JDAW_THREAD_MAIN);
+	    session_queue_callback(session, ep, ep->gui_callback, JDAW_THREAD_MAIN);
 	}
     }
     
@@ -203,7 +203,7 @@ int endpoint_write(
     /* 	if (on_main) */
     /* 	    ep->gui_callback(ep); */
     /* 	else */
-    /* 	    project_queue_callback(proj, ep, ep->gui_callback, JDAW_THREAD_MAIN); */
+    /* 	    session_queue_callback(proj, ep, ep->gui_callback, JDAW_THREAD_MAIN); */
     /* } */
     
     /* Undo */
@@ -220,7 +220,7 @@ int endpoint_write(
 	    callback_bitfield = 0b111;
 	    Value cb_matrix = {.uint8_v = callback_bitfield};
 	    user_event_push(
-		&proj->history,
+		
 		undo_redo_endpoint_write,
 		undo_redo_endpoint_write,
 		NULL, NULL,
@@ -294,8 +294,8 @@ void endpoint_start_continuous_change(
     ep->do_auto_incr = do_auto_incr;
     ep->incr = incr;
 
-    
-    project_add_ongoing_change(proj, ep, thread);
+    Session *session = session_get();
+    session_add_ongoing_change(session, ep, thread);
 }
 
 void endpoint_continuous_change_do_incr(Endpoint *ep)
@@ -316,7 +316,7 @@ void endpoint_stop_continuous_change(Endpoint *ep)
     Value current_val = jdaw_val_from_ptr(ep->val, ep->val_type);
     if (!jdaw_val_equal(current_val, ep->cached_val, ep->val_type)) {
 	user_event_push(
-	    &proj->history,
+	    
 	    undo_redo_endpoint_write,
 	    undo_redo_endpoint_write,
 	    NULL, NULL,

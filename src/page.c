@@ -28,13 +28,8 @@
 #include "value.h"
 #include "waveform.h"
 
-
-extern SDL_Color color_global_clear;
-extern SDL_Color color_global_white;
-extern SDL_Color color_global_black;
-
 extern Window *main_win;
-extern Project *proj;
+extern struct colors colors;
 
 TabView *tabview_create(const char *title, Layout *parent_lt, Window *win)
 {
@@ -75,8 +70,8 @@ TabView *tabview_create(const char *title, Layout *parent_lt, Window *win)
     layout_reset(tv->layout);
     
     Textbox *ellipsis_left = textbox_create_from_str("...", ellipsis_left_lt, tv->win->mono_bold_font, 14, tv->win);
-    textbox_set_background_color(ellipsis_left, &color_global_clear);
-    textbox_set_text_color(ellipsis_left, &color_global_white);
+    textbox_set_background_color(ellipsis_left, &colors.clear);
+    textbox_set_text_color(ellipsis_left, &colors.white);
     textbox_size_to_fit_h(ellipsis_left, 20);
     textbox_reset_full(ellipsis_left);
     tv->ellipsis_left = ellipsis_left;
@@ -92,8 +87,8 @@ TabView *tabview_create(const char *title, Layout *parent_lt, Window *win)
     layout_reset(tv->layout);
     
     Textbox *ellipsis_right = textbox_create_from_str("...", ellipsis_right_lt, tv->win->mono_bold_font, 14, tv->win);
-    textbox_set_background_color(ellipsis_right, &color_global_clear);
-    textbox_set_text_color(ellipsis_right, &color_global_white);
+    textbox_set_background_color(ellipsis_right, &colors.clear);
+    textbox_set_text_color(ellipsis_right, &colors.white);
     textbox_size_to_fit_h(ellipsis_right, 20);
     textbox_reset_full(ellipsis_right);
     tv->ellipsis_right = ellipsis_right;
@@ -144,7 +139,7 @@ Page *tabview_add_page(
     layout_reset(tv->layout);
     
     Textbox *tab_tb = textbox_create_from_str((char *)page_title, tab_lt, tv->win->mono_bold_font, 14, tv->win);
-    textbox_set_background_color(tab_tb, &color_global_clear);
+    textbox_set_background_color(tab_tb, &colors.clear);
     textbox_set_text_color(tab_tb, text_color);
     textbox_size_to_fit_h(tab_tb, 20);
     textbox_reset_full(tab_tb);
@@ -343,6 +338,7 @@ static inline bool el_is_selectable(PageElType type)
 
 void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 {
+    Session *session = session_get();
     if (el->component) {
 	free(el->component);
     }
@@ -668,6 +664,7 @@ static inline bool label_overflows(TabView *tv, uint8_t index)
 /* Check for visual overflow and add ellipsis tabs if necessary */
 void tabview_reset(TabView *tv, uint8_t leftmost_index)
 {
+    Session *session = session_get();
     /* fprintf(stderr, "\nParent layout w: %d; this w: %d\n", tv->layout->parent->rect.w, tv->layout->rect.w); */
     /* layout_reset(tv->layout); */
     /* fprintf(stderr, "Parent layout w: %d; this w: %d\n", tv->layout->parent->rect.w, tv->layout->rect.w); */
@@ -727,11 +724,12 @@ void tabview_reset(TabView *tv, uint8_t leftmost_index)
 
     /* Page *page = tv->tabs[tv->current_tab]; */
     /* page_reset(page); */
-    proj->timelines[proj->active_tl_index]->needs_redraw = true;
+    ACTIVE_TL->needs_redraw = true;
 }
 
 bool tabview_mouse_click(TabView *tv)
 {
+    Session *session = session_get();
     if (SDL_PointInRect(&tv->win->mousep, &tv->layout->children[0]->rect)) {
 	if (tv->ellipsis_left_inserted && SDL_PointInRect(&tv->win->mousep, &tv->ellipsis_left->layout->rect)) {
 	    tabview_select_tab(tv, tv->leftmost_index - 1);
@@ -839,7 +837,7 @@ void page_draw(Page *page)
 	temp.h -= brdrtt;
 	/* static SDL_Color brdrclr = {25, 25, 25, 255}; */
 
-	SDL_SetRenderDrawColor(page->win->rend, sdl_color_expand(color_global_black));
+	SDL_SetRenderDrawColor(page->win->rend, sdl_color_expand(colors.black));
 	geom_draw_rounded_rect_thick(page->win->rend, &temp, 7, TAB_R * page->win->dpi_scale_factor, page->win->dpi_scale_factor);
     }
     for (uint8_t i=0; i<page->num_elements; i++) {
@@ -1032,6 +1030,7 @@ void tabview_previous_tab(TabView *tv)
 
 void tabview_swap_adjacent_tabs(TabView *tv, int current, int new, bool apply_swapfn)
 {
+    Session *session = session_get();
     Textbox *displaced_label = tv->labels[new];
     Textbox *current_label = tv->labels[current];
     layout_swap_children(displaced_label->layout, current_label->layout);
@@ -1042,7 +1041,7 @@ void tabview_swap_adjacent_tabs(TabView *tv, int current, int new, bool apply_sw
     tv->labels[current] = displaced_label;
     tv->tabs[current] = displaced_page;
     layout_reset(tv->layout);
-    proj->timelines[proj->active_tl_index]->needs_redraw = true;
+    ACTIVE_TL->needs_redraw = true;
 
     if (apply_swapfn && tv->swap_fn) {
 	tv->swap_fn(tv->swap_fn_target, current, new);

@@ -19,7 +19,7 @@
 #ifndef DELAY_LINE_H
 #define DELAY_LINE_H
 
-#include "dsp_utils.h"
+#include "project.h"
 
 typedef struct delay_line {
     /* bool active; */

@@ -1,4 +1,3 @@
-#include "animation.h"
 #include "geometry.h"
 #include "text.h"
 #include "textbox.h"
@@ -12,10 +11,10 @@
 SDL_Color textbox_default_bckgrnd_clr = (SDL_Color) {240, 240, 240, 255};
 SDL_Color textbox_default_txt_clr = (SDL_Color) {0, 0, 0, 255};
 SDL_Color textbox_default_border_clr = (SDL_Color) {100, 100, 100, 255};
-extern SDL_Color color_global_clear;
-extern SDL_Color color_global_black;
-extern SDL_Color color_global_green;
-extern SDL_Color color_global_grey;
+
+
+
+
 #ifndef LAYOUT_BUILD
 extern volatile bool CANCEL_THREADS;
 #endif
@@ -345,13 +344,13 @@ void textbox_set_style(Textbox *tb, enum textbox_style style)
 /* { */
 /*     switch (style) { */
 /*     case BLANK: */
-/* 	textbox_set_background_color(tb, &color_global_clear); */
-/* 	textbox_set_border(tb, &color_global_clear, 0); */
+/* 	textbox_set_background_color(tb, &colors.clear); */
+/* 	textbox_set_border(tb, &colors.clear, 0); */
 /* 	break; */
 /*     case NUMBOX: */
-/* 	textbox_set_background_color(tb, &color_global_black); */
-/* 	textbox_set_text_color(tb, &color_global_green); */
-/* 	textbox_set_border(tb, &color_global_grey, 2); */
+/* 	textbox_set_background_color(tb, &colors.black); */
+/* 	textbox_set_text_color(tb, &colors.green); */
+/* 	textbox_set_border(tb, &colors.grey, 2); */
 /* 	tb->text->font = tb->text->win->mono_bold_font; */
 /* 	break; */
 /*     } */

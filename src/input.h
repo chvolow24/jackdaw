@@ -20,7 +20,6 @@
 #define JDAW_GUI_INPUT_STATE_H
 
 #include <stdint.h>
-#include "SDL.h"
 
 #include "menu.h"
 #include "input_mode.h"

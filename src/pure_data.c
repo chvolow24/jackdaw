@@ -11,7 +11,7 @@
 
 #include "audio_connection.h"
 #include "project.h"
-#include "transport.h"
+#include "session.h"
 /* #include "pure_data.h" */
 
 #define MAX_SEMNAME 255
@@ -236,6 +236,7 @@ extern Project *proj;
 void *pd_jackdaw_record_on_thread(void *arg)
 {
 
+    Session *session = session_get();
     fprintf(stdout, "PD JACKDAW RECORD ON THREAD\n");
     AudioConn *conn = (AudioConn *)arg;
     /* SDL_Delay(10); */

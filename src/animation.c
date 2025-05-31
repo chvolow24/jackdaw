@@ -17,8 +17,6 @@
 
 #include <stdlib.h>
 #include "animation.h"
-/* #include "project.h" */
-/* extern Project *proj; */
 #include "session.h"
 
 static Animation *animation_create(

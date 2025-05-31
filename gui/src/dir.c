@@ -10,9 +10,8 @@
 char SAVED_PROJ_DIRPATH[MAX_PATHLEN];
 
 extern Window *main_win;
-extern SDL_Color color_global_black;
-extern SDL_Color color_global_white;
-extern SDL_Color color_global_clear;
+
+extern struct colors colors;
 
 SDL_Color color_dir = (SDL_Color) {10, 255, 100, 255};
 SDL_Color color_file = (SDL_Color) {10, 100, 255, 255};
@@ -302,7 +301,7 @@ static void dir_to_tline(
 	/* dp->type == DT_DIR ? &color_dir_unavailable : &color_file_unavailable : */
 	dp->type == DT_DIR ? &color_dir : &color_file;
     textbox_set_text_color(item->tb, txt_clr);
-    textbox_set_background_color(item->tb, &color_global_clear);
+    textbox_set_background_color(item->tb, &colors.clear);
     dn->num_lines++;
     /* dn->lines->num_items++; */
 }
@@ -390,8 +389,8 @@ DirNav *dirnav_create(
     Layout *pathname_lt = layout_add_child(dn->layout);
     dn->current_path_tb = textbox_create_from_str((char *)dir_name, pathname_lt, main_win->bold_font, 12, main_win);
     textbox_set_align(dn->current_path_tb, CENTER_LEFT);
-    textbox_set_background_color(dn->current_path_tb, &color_global_clear);
-    textbox_set_text_color(dn->current_path_tb, &color_global_white);
+    textbox_set_background_color(dn->current_path_tb, &colors.clear);
+    textbox_set_text_color(dn->current_path_tb, &colors.white);
     textbox_size_to_fit_v(dn->current_path_tb, 0);
     /* lt->h.value += pathname_lt->h.value; */
     pathname_lt->x.value = 5;
@@ -468,7 +467,7 @@ TLinesItem *dirnav_select_item(DirNav *dn, uint32_t i)
 {
     if (i<dn->num_lines && i>= 0) {
 	TLinesItem *current = dn->lines->items + dn->current_line;
-	textbox_set_background_color(current->tb, &color_global_clear);
+	textbox_set_background_color(current->tb, &colors.clear);
 	textbox_reset_full(current->tb);
 	dn->current_line = i;
 	current = dn->lines->items + dn->current_line;

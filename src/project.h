@@ -33,23 +33,15 @@
 #include <semaphore.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include "animation.h"
 #include "api.h"
 #include "automation.h"
 #include "components.h"
-/* #include "dsp.h" */
 #include "effect.h"
 #include "eq.h"
 #include "endpoint.h"
-#include "loading.h"
-#include "midi_io.h"
-#include "panel.h"
 #include "tempo.h"
-#include "thread_safety.h"
 #include "saturation.h"
-#include "status.h"
 #include "textbox.h"
-#include "user_event.h"
 
 
 
@@ -81,6 +73,8 @@
 #define PROJ_NUM_METRONOMES 1
 
 #define MAX_ANIMATIONS 64
+
+#define ACTIVE_TL (session->proj.timelines[session->proj.active_tl_index])
 
 typedef struct project Project;
 typedef struct timeline Timeline;
@@ -353,7 +347,8 @@ typedef struct project {
 
 } Project;
 
-Project *project_create(
+int project_init(
+    Project *proj,
     char *name,
     uint8_t channels,
     uint32_t sample_rate,
@@ -428,9 +423,9 @@ void timeline_delete_grabbed_cliprefs(Timeline *tl);
 void timeline_cut_at_cursor(Timeline *tl);
 /* void timeline_move_track(Timeline *tl, Track *track, int direction, bool from_undo); */
 void timeline_switch(uint8_t new_tl_index);
-void project_destroy(Project *proj);
+void project_deinit(Project *proj);
 
-void project_set_default_out(void *nullarg);
+void session_set_default_out(void *nullarg);
 
 /* void track_move_automation(Automation *a, int direction, bool from_undo); */
 void timeline_move_track_or_automation(Timeline *tl, int direction);

@@ -1,17 +1,19 @@
+#include "consts.h"
 #include "delay_line.h"
 #include "endpoint_callbacks.h"
+#include "session.h"
 
 void delay_line_set_params(DelayLine *dl, double amp, int32_t len);
 
-extern Project *proj;
 void delay_line_len_dsp_cb(Endpoint *ep)
 {
-    double sample_rate = proj ? proj->sample_rate : DEFAULT_SAMPLE_RATE;
+    Session *session = session_get();
+    double sample_rate = session->proj_initialized ? session->proj.sample_rate : DEFAULT_SAMPLE_RATE;
     DelayLine *dl = (DelayLine *)ep->xarg1;
     int16_t val_msec = endpoint_safe_read(ep, NULL).int16_v;
     int32_t len_sframes = (int32_t)((double)val_msec * sample_rate / 1000.0);
     delay_line_set_params(dl, dl->amp, len_sframes);
-    /* project_queue_callback(proj, ep, secondary_delay_line_gui_cb, JDAW_THREAD_MAIN); */
+    /* session_queue_callback(proj, ep, secondary_delay_line_gui_cb, JDAW_THREAD_MAIN); */
 }
 
 void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate)
@@ -112,7 +114,7 @@ void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
     /* 	delay_line_init(dl, sample_rate); */
     /* } */
     /* pthread_mutex_lock(&dl->lock); */
-    /* if (len > proj->sample_rate) { */
+    /* if (len > session->proj.sample_rate) { */
     /* 	fprintf(stderr, "UH OH: len = %d\n", len); */
     /* 	exit(1); */
     /* 	return; */

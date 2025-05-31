@@ -12,7 +12,6 @@
 static Session *session = NULL;
 extern Window *main_win;
 
-/* extern SDL_Color color_global_clear; */
 extern struct colors colors;
 
 Session *session_get()
@@ -194,7 +193,7 @@ void session_destroy()
 
     session_destroy_animations(session);
     session_destroy_metronomes(session);
-    session_loading_screen_deinit(session);
+    session_loading_screen_deinit();
     session_deinit_midi(session);
 
     /* Layout *panels_layout = layout_get_child_by_name_recursive(session->gui.layout, "panel_area"); */

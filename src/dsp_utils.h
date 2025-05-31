@@ -23,15 +23,6 @@
 #include <complex.h>
 #include <stdio.h>
 #include <stdint.h>
-#include "consts.h"
-#include "effect.h"
-#include "endpoint.h"
-
-#define DEFAULT_FILTER_LEN 128
-#define DELAY_LINE_MAX_LEN_S 1
-
-
-#define HAMMING_SCALAR 1.851852
 
 /* Initialize the dsp subsystem. All this does currently is to populate the nth roots of unity for n < ROU_MAX_DEGREE */
 void init_dsp();

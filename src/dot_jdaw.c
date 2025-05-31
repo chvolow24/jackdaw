@@ -19,12 +19,14 @@
 #include <stdlib.h>
 /* #include "dsp.h" */
 #include "compressor.h"
+#include "consts.h"
 #include "delay_line.h"
 #include "effect.h"
 #include "eq.h"
 #include "file_backup.h"
 #include "fir_filter.h"
 #include "project.h"
+#include "session.h"
 #include "tempo.h"
 #include "transport.h"
 #include "type_serialize.h"
@@ -33,7 +35,7 @@
 /* #define BYTEORDER_FATAL fprintf(stderr, "Fatal error (TODO): big-endian byte order not supported\n"); exit(1); */
 #define OLD_FLOAT_SER_W 16
 
-extern Project *proj;
+
 extern bool SYS_BYTEORDER_LE;
 extern const char *JACKDAW_VERSION;
 /* extern JDAW_Color black; */
@@ -80,8 +82,11 @@ static void debug_print_bytes_around(FILE *f)
 static void jdaw_write_clip(FILE *f, Clip *clip, int index);
 static void jdaw_write_timeline(FILE *f, Timeline *tl);
 
+static Project *proj;
 void jdaw_write_project(const char *path) 
 {
+    Session *session = session_get();
+    proj = &session->proj;
     if (!proj) {
         fprintf(stderr, "No project to save. Exiting.\n");
         return;
@@ -89,11 +94,11 @@ void jdaw_write_project(const char *path)
 
 
     if (file_exists(path)) {
-	/* project_loading_screen_update("Backing up existing file...", 0.1); */
+	/* session_loading_screen_update("Backing up existing file...", 0.1); */
 	file_backup(path);
     }
 
-    project_set_loading_screen("Saving project", "Writing project settings...", true);
+    session_set_loading_screen("Saving project", "Writing project settings...", true);
     
     FILE* f = fopen(path, "wb");
 
@@ -117,18 +122,18 @@ void jdaw_write_project(const char *path)
     uint8_ser(f, &proj->num_timelines);
     /* fwrite(&proj->num_timelines, 1, 1, f); */
 
-    project_loading_screen_update("Writing clip data...", 0.2);
+    session_loading_screen_update("Writing clip data...", 0.2);
     fprintf(stderr, "Serializing %d audio clips...\n", proj->num_clips);
     for (uint16_t i=0; i<proj->num_clips; i++) {
-	project_loading_screen_update(NULL, 0.1 + 0.8 * (float)i/proj->num_clips);
+	session_loading_screen_update(NULL, 0.1 + 0.8 * (float)i/proj->num_clips);
 	jdaw_write_clip(f, proj->clips[i], i);
     }
-    project_loading_screen_update("Writing timelines...", 0.9);
+    session_loading_screen_update("Writing timelines...", 0.9);
     fprintf(stderr, "\t...done.\nSerializing %d timelines...\n", proj->num_timelines);
     for (uint8_t i=0; i<proj->num_timelines; i++) {
 	jdaw_write_timeline(f, proj->timelines[i]);
     }
-    project_loading_screen_deinit(proj);
+    session_loading_screen_deinit();
     fprintf(stderr, "\t...done.\n");
     /* fwrite(&(proj->tl->num_tracks), 1, 1, f); */
     /* for (uint8_t i=0; i<proj->tl->num_tracks; i++) { */
@@ -478,13 +483,13 @@ static Project *proj_reading;
 
 
 const char *get_fmt_str(SDL_AudioFormat f);
-Project *jdaw_read_file(const char *path)
+int jdaw_read_file(Project *dst, const char *path)
 {
     
     FILE *f = fopen(path, "r");
     if (!f) {
         fprintf(stderr, "Error: could not find project file at path %s\n", path);
-        return NULL;
+        return -1;
     }
     char hdr_buffer[9];
     fread(hdr_buffer, 1, 4, f);
@@ -492,7 +497,7 @@ Project *jdaw_read_file(const char *path)
     if (strncmp(hdr_buffer, hdr_jdaw, 4) != 0) {
         fprintf(stderr, "Error: unable to read file. 'JDAW' specifier missing %s\n", path);
         /* free(proj); */
-        return NULL;
+        return -1;
     }
 
     /* Check whether " VERSION" specifier exists to get the file spec version. If not, reset buffer position */
@@ -502,7 +507,7 @@ Project *jdaw_read_file(const char *path)
     hdr_buffer[8] = '\0';
     if (strncmp(hdr_buffer, hdr_version, 8) != 0) {
 	fprintf(stderr, "Error: \"VERSION\" specifier missing in .jdaw file\n");
-	return NULL;
+	return -1;
     }
     fread(hdr_buffer, 1, 5, f);
     hdr_buffer[5] = '\0';
@@ -511,7 +516,7 @@ Project *jdaw_read_file(const char *path)
     if (read_file_spec_version < 00.10f) {
 	fprintf(stderr, "Error: .jdaw file version %s is not compatible with the current jackdaw version (%s). You may need to downgrade to open this file.\n", hdr_buffer, JACKDAW_VERSION);
         /* free(proj); */
-	return NULL;
+	return -1;
     }
 
     uint8_t proj_namelen;
@@ -553,7 +558,10 @@ Project *jdaw_read_file(const char *path)
 	    channels,
 	    sample_rate,
 	    get_fmt_str(fmt));
-    proj_reading = project_create(
+
+    
+    project_init(
+	dst,
 	project_name,
 	channels,
 	sample_rate,
@@ -561,6 +569,8 @@ Project *jdaw_read_file(const char *path)
 	chunk_size,
 	DEFAULT_FOURIER_LEN_SFRAMES
 	);
+
+    proj_reading = dst;
 
     
     proj_reading->num_timelines = 0;
@@ -582,14 +592,14 @@ Project *jdaw_read_file(const char *path)
 
     /* timeline_reset(proj->timelines[0]); */
     fclose(f);
-    return proj_reading;
+    return 0;
     
 jdaw_parse_error:
     debug_print_bytes_around(f);
     fclose(f);
     fprintf(stderr, "Error parsing .jdaw file at %s, filespec version %05.2f\n", path, read_file_spec_version);
     /* project_destroy(proj_loc); */
-    return NULL;
+    return -1;
     
 }
 

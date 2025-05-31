@@ -28,6 +28,7 @@ extern Window *main_win;
 /* SDL_Color fslider_bckgrnd = {60, 60, 60, 255}; */
 /* SDL_Color fslider_bar_container_bckgrnd =  {190, 190, 190, 255}; */
 /* SDL_Color fslider_bar_color = {20, 20, 120, 255}; */
+extern struct colors colors;
 
 SDL_Color slider_bckgrnd = {60, 60, 60, 255};
 SDL_Color slider_bar_container_bckgrnd =  {40, 40, 40, 248};
@@ -36,12 +37,10 @@ SDL_Color slider_bar_color = {12, 107, 249, 250};
 SDL_Color textentry_background = (SDL_Color) {200, 200, 200, 255};
 SDL_Color textentry_text_color = (SDL_Color) {0, 0, 0, 255};
 
-
 SDL_Color tgl_bckgrnd = {110, 110, 110, 255};
 
-extern SDL_Color color_global_black;
-extern SDL_Color color_global_clear;
-extern SDL_Color color_global_grey;
+
+
 /* Slider fslider_create(Layout *layout, SliderOrientation orientation, SliderType type, SliderStrFn *fn) */
 Slider *slider_create(
     Layout *layout,
@@ -86,7 +85,7 @@ Slider *slider_create(
 
     /* textbox_size_to_fit(s->label, SLIDER_LABEL_H_PAD, SLIDER_LABEL_V_PAD); */
     /* textbox_set_pad(s->label, SLIDER_LABEL_H_PAD, SLIDER_LABEL_V_PAD); */
-    /* textbox_set_border(s->label, &color_global_black, 2); */
+    /* textbox_set_border(s->label, &colors.black, 2); */
     /* textbox_set_trunc(s->label, false); */
     /* layout_reset(layout); */
     /* bar_container->x.value.intval = SLIDER_INNER_PAD; */
@@ -368,7 +367,7 @@ void slider_nudge_left(Slider *slider)
 
 /* static void stop_update_track_vol_pan() */
 /* { */
-/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
+/*     Timeline *tl = ACTIVE_TL; */
 /*     Track *trk = NULL; */
 /*     for (int i=0; i<tl->num_tracks; i++) { */
 /* 	trk = tl->tracks[i]; */
@@ -443,7 +442,7 @@ void symbol_button_draw(SymbolButton *sbutton)
 void button_destroy(Button *button)
 {
     if (button->animation) {
-	project_dequeue_animation(button->animation);
+	session_dequeue_animation(button->animation);
     }
     textbox_destroy(button->tb);
     free(button);
@@ -454,14 +453,13 @@ void symbol_button_destroy(SymbolButton *sbutton)
     free(sbutton);
 }
 
-extern Project *proj;
-extern void project_active_tl_redraw(Project *proj);
+extern void project_active_tl_redraw();
 static void button_end_animation(void *arg1, void *arg2)
 {
     Button *b = (Button *)arg1;
     SDL_Color *c = (SDL_Color *)arg2;
     textbox_set_background_color(b->tb, c);
-    project_active_tl_redraw(proj);
+    project_active_tl_redraw();
     b->animation = NULL;
     
 }
@@ -474,7 +472,7 @@ void button_press_color_change(
 {
     textbox_set_background_color(button->tb, temp_color);
     
-    button->animation = project_queue_animation(NULL, button_end_animation, (void *)button, (void *)return_color, BUTTON_COLOR_CHANGE_STD_DELAY);
+    button->animation = session_queue_animation(NULL, button_end_animation, (void *)button, (void *)return_color, BUTTON_COLOR_CHANGE_STD_DELAY);
     /* textbox_schedule_color_change(button->tb, BUTTON_COLOR_CHANGE_STD_DELAY, return_color, false, callback, callback_target); */
 }
 
@@ -495,7 +493,7 @@ TextEntry *textentry_create(
     te->tb = textbox_create_from_str(value_handle, lt, font, text_size, win);
     /* textbox_set_text_color(te->tb, &textentry_text_color); */
     /* textbox_set_background_color(te->tb, &textentry_background); */
-    /* textbox_set_border(te->tb, &color_global_black, 1); */
+    /* textbox_set_border(te->tb, &colors.black, 1); */
     /* textbox_size_to_fit_v(te->tb, TEXTENTRY_V_PAD); */
     textbox_set_align(te->tb, CENTER_LEFT);
     textbox_set_pad(te->tb, 8, 0);
@@ -706,7 +704,7 @@ void radio_button_draw(RadioButton *rb)
 	int orig_y = circle_container->rect.y + RADIO_BUTTON_RAD_PAD;
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(slider_bar_container_bckgrnd));
 	geom_fill_circle(main_win->rend, orig_x, orig_y, r);
-	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_grey));
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.grey));
 	geom_draw_circle(main_win->rend, orig_x, orig_y, r);
 	if (i==rb->selected_item) {
 	    r -= RADIO_BUTTON_RAD_PAD;

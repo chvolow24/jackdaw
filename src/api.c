@@ -19,7 +19,7 @@
 #include <errno.h>
 #include "api.h"
 #include "endpoint.h"
-#include "project.h"
+#include "session.h"
 #include "string.h"
 #include "value.h"
 
@@ -385,36 +385,34 @@ void api_node_renamed(APINode *an)
 /* extern Project *proj; */
 static void *server_threadfn(void *arg)
 {
-    /* int port = *(int *)arg; */
-    Project *proj = (Project *)arg;
-    int port = proj->server.port;
-    /* socklen_t len = sizeof(proj->server.servaddr); */
-    if ((proj->server.sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+    Session *session = session_get();
+    int port = session->server.port;
+    if ((session->server.sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 	perror("Socket creation failed");
 	exit(1);
     }
 
-    memset(&proj->server.servaddr, 0, sizeof(proj->server.servaddr));
+    memset(&session->server.servaddr, 0, sizeof(session->server.servaddr));
 
-    proj->server.servaddr.sin_family = AF_INET;
-    proj->server.servaddr.sin_addr.s_addr = INADDR_ANY;
-    proj->server.servaddr.sin_port = htons(port);
+    session->server.servaddr.sin_family = AF_INET;
+    session->server.servaddr.sin_addr.s_addr = INADDR_ANY;
+    session->server.servaddr.sin_port = htons(port);
 
-    if (bind(proj->server.sockfd, (const struct sockaddr *)&proj->server.servaddr, sizeof(proj->server.servaddr)) < 0) {
+    if (bind(session->server.sockfd, (const struct sockaddr *)&session->server.servaddr, sizeof(session->server.servaddr)) < 0) {
 	/* perror("Bind failed"); */
-	proj->server.active = false;
-        pthread_mutex_unlock(&proj->server.setup_lock);
+	session->server.active = false;
+        pthread_mutex_unlock(&session->server.setup_lock);
 	return NULL;
     }
     char buffer[1024];
-    proj->server.active = true;
-    pthread_mutex_unlock(&proj->server.setup_lock);
-    while (proj->server.active) {
+    session->server.active = true;
+    pthread_mutex_unlock(&session->server.setup_lock);
+    while (session->server.active) {
 	struct sockaddr_in cliaddr;
 	memset(&cliaddr, '\0', sizeof(cliaddr));
 	socklen_t len = sizeof(cliaddr);
 	memset(buffer, '\0', sizeof(buffer));
-	if (recvfrom(proj->server.sockfd, (char *)buffer, 1024, 0, (struct sockaddr *)&cliaddr, &len) < 0) {
+	if (recvfrom(session->server.sockfd, (char *)buffer, 1024, 0, (struct sockaddr *)&cliaddr, &len) < 0) {
 	    perror("recvfrom");
 	    exit(1);
 	}
@@ -422,7 +420,7 @@ static void *server_threadfn(void *arg)
 
 	/* struct sockaddr_in client_info = *(struct sockaddr_in *)&sa; */
 	/* fprintf(stderr, "CLI: %d, %d\n", ntohs(client_info.sin_port), client_info.sin_addr.s_addr); */
-	/* fprintf(stderr, "HOST: %d, %d\n", ntohs(proj->server.servaddr.sin_port), proj->server.servaddr.sin_addr.s_addr); */
+	/* fprintf(stderr, "HOST: %d, %d\n", ntohs(session->server.servaddr.sin_port), session->server.servaddr.sin_addr.s_addr); */
 						 
 						 
 	/* fprintf(stderr, "SA family: %d", sa.sa_family); */
@@ -455,43 +453,44 @@ static void *server_threadfn(void *arg)
 
 	/* Send response */
 	char *msg = ep ? "200 OK;" : "Error: endpoint not found";
-	if (sendto(proj->server.sockfd, msg, strlen(msg), 0, (struct sockaddr *)&cliaddr, sizeof(cliaddr)) == -1) {
+	if (sendto(session->server.sockfd, msg, strlen(msg), 0, (struct sockaddr *)&cliaddr, sizeof(cliaddr)) == -1) {
 	    perror("sendto");
 	}
 
     }
-    if (close(proj->server.sockfd) != 0) {
+    if (close(session->server.sockfd) != 0) {
 	perror("Error closing socket:");
     }
     fprintf(stderr, "Exiting server threadfn\n");
-    /* proj->server.active = false; */
+    /* session->server.active = false; */
     return NULL;
 
 }
 
 
-static void api_teardown_server(Project *proj);
+static void api_teardown_server();
 
 /* Server */
-int api_start_server(Project *proj, int port)
+int api_start_server(int port)
 {
-    if (proj->server.active) {
-	fprintf(stderr, "Server already active on port %d. Tearing down.\n", proj->server.port);
-	api_teardown_server(proj);
+    Session *session = session_get();
+    if (session->server.active) {
+	fprintf(stderr, "Server already active on port %d. Tearing down.\n", session->server.port);
+	api_teardown_server();
     }
-    pthread_mutex_init(&proj->server.setup_lock, NULL);
-    pthread_mutex_lock(&proj->server.setup_lock);
+    pthread_mutex_init(&session->server.setup_lock, NULL);
+    pthread_mutex_lock(&session->server.setup_lock);
     static pthread_t servthread;
-    proj->server.port = port;
-    pthread_create(&servthread, NULL, server_threadfn, (void *)proj);
-    pthread_mutex_lock(&proj->server.setup_lock);
-    if (!proj->server.active) {
+    session->server.port = port;
+    pthread_create(&servthread, NULL, server_threadfn, NULL);
+    pthread_mutex_lock(&session->server.setup_lock);
+    if (!session->server.active) {
 	perror("Server setup failed: ");
 	return 1;
     }
 
     fprintf(stderr, "Server active on port %d\n", port);
-    proj->server.thread_id = servthread;
+    session->server.thread_id = servthread;
 
     return 0;
 }
@@ -522,18 +521,19 @@ static void api_hash_table_destroy()
     }
 }
 
-static void api_teardown_server(Project *proj)
+static void api_teardown_server()
 {
-    fprintf(stderr, "Tearing down server running on port %d. Sending quit message...\n", proj->server.port);
-    proj->server.active = false;
+    Session *session = session_get();
+    fprintf(stderr, "Tearing down server running on port %d. Sending quit message...\n", session->server.port);
+    session->server.active = false;
     for (int i=0; i<5; i++) {
 	char *msg = "quit";
-	if (sendto(proj->server.sockfd, msg, strlen(msg), 0, (struct sockaddr *)&proj->server.servaddr, sizeof(proj->server.servaddr)) == -1) {
+	if (sendto(session->server.sockfd, msg, strlen(msg), 0, (struct sockaddr *)&session->server.servaddr, sizeof(session->server.servaddr)) == -1) {
 	    perror("sendto");
 	    exit(1);
 	}
     }
-    int err = pthread_join(proj->server.thread_id, NULL);
+    int err = pthread_join(session->server.thread_id, NULL);
     if (err != 0) {
 	fprintf(stderr, "Error in pthread join: %s\n", err == EINVAL ? "Value specified by rehad is not joinable" : err == ESRCH ? "No thread found" : err == EDEADLK ? "Deadlock detected, or value of thread specifies this (calling) thread" : "Unknown error");
     }
@@ -541,9 +541,10 @@ static void api_teardown_server(Project *proj)
     
 }
 
-void api_quit(Project *proj)
+void api_quit()
 {
-    if (proj->server.active) api_teardown_server(proj);
+    Session *session = session_get();
+    if (session->server.active) api_teardown_server();
     api_hash_table_destroy();
 }
 

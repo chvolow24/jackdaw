@@ -17,25 +17,18 @@
 
 
 #include <time.h>
-#include "SDL.h"
 #include "audio_connection.h"
 #include "automation.h"
 #include "components.h"
-#include "draw.h"
-/* #include "dsp.h" */
 #include "eq.h"
 #include "fir_filter.h"
 #include "function_lookup.h"
 #include "input.h"
 #include "layout.h"
-#include "modal.h"
 #include "mouse.h"
-#include "page.h"
-#include "panel.h"
 #include "project.h"
-#include "project_endpoint_ops.h"
+#include "session_endpoint_ops.h"
 #include "project_draw.h"
-#include "saturation.h"
 #include "screenrecord.h"
 #include "session.h"
 #include "settings.h"
@@ -43,9 +36,7 @@
 #include "tempo.h"
 #include "timeline.h"
 #include "transport.h"
-#include "user_event.h"
 #include "value.h"
-#include "waveform.h"
 #include "window.h"
 
 #define MAX_MODES 8
@@ -54,12 +45,7 @@
 #define IDLE_AFTER_N_FRAMES 100
 
 extern Window *main_win;
-extern SDL_Color color_global_black;
-extern SDL_Color color_global_white;
-extern SDL_Color color_global_grey;
 
-extern SDL_Color freq_L_color;
-extern SDL_Color freq_R_color;
 
 extern Project *proj;
 
@@ -84,7 +70,7 @@ void loop_project_main()
     /* uint8_t frame_ctr = 0; */
     /* float fps = 0; */
 
-    /* layout_force_reset(proj->layout); */
+    /* layout_force_reset(session->gui.layout); */
     Layout *temp_scrolling_lt = NULL;
     Layout *scrolling_lt = NULL;
     UserFn *input_fn = NULL;
@@ -114,7 +100,7 @@ void loop_project_main()
 	    case SDL_WINDOWEVENT:
 		if (e.window.event == SDL_WINDOWEVENT_RESIZED) {
 		    window_resize_passive(main_win, e.window.data1, e.window.data2);
-		    proj->timelines[proj->active_tl_index]->needs_redraw = true;
+		    ACTIVE_TL->needs_redraw = true;
 		}
 		break;
 	    case SDL_AUDIODEVICEADDED:
@@ -233,7 +219,7 @@ void loop_project_main()
 		/* } */
 		/*     break; */
 		/* case SDL_SCANCODE_6: { */
-		/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
+		/*     Timeline *tl = ACTIVE_TL; */
 		/*     Track* sel = timeline_selected_track(tl); */
 		/*     Effect *e = track_add_effect(sel, i); */
 		/*     fprintf(stderr, "Applying %s\n", effect_type_str(i)); */
@@ -246,7 +232,7 @@ void loop_project_main()
 		/* } */
 		/*     break; */
 		/* case SDL_SCANCODE_6: { */
-		/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
+		/*     Timeline *tl = ACTIVE_TL; */
 		/*     Track* sel = timeline_selected_track(tl); */
 		/*     track_set_bus_out(sel, tl->tracks[0]); */
 		/* } */
@@ -279,7 +265,7 @@ void loop_project_main()
 		/*     break;    */
 
 		/* case SDL_SCANCODE_6: { */
-		/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
+		/*     Timeline *tl = ACTIVE_TL; */
 		/*     ClipRef *cr = clipref_at_cursor(); */
 		/*     if (cr) { */
 		/* 	ClipRef *new1, *new2; */
@@ -323,7 +309,7 @@ void loop_project_main()
 			status_cat_callstr(" : ");
 			status_cat_callstr(input_fn->fn_display_name);
 			input_fn->do_fn(NULL);
-			/* timeline_reset(proj->timelines[proj->active_tl_index]); */
+			/* timeline_reset(ACTIVE_TL); */
 		    }
 		    break;
 		}
@@ -361,8 +347,8 @@ void loop_project_main()
 		    }
 		    break;
 		default:
-		    project_flush_ongoing_changes(proj, JDAW_THREAD_MAIN);
-		    project_flush_ongoing_changes(proj, JDAW_THREAD_DSP);
+		    session_flush_ongoing_changes(session, JDAW_THREAD_MAIN);
+		    session_flush_ongoing_changes(session, JDAW_THREAD_DSP);
 
 		    session->playhead_scroll.playhead_do_incr = false;
 		    /* stop_update_track_vol_pan(); */
@@ -370,7 +356,7 @@ void loop_project_main()
 		}
 		break;
 	    case SDL_MOUSEWHEEL: {
-		Timeline *tl = proj->timelines[proj->active_tl_index];
+		Timeline *tl = ACTIVE_TL;
 		tl->needs_redraw = true;
 		if (session->dragged_component.component) {
 		    draggable_handle_scroll(&session->dragged_component, e.wheel.x, e.wheel.y);
@@ -466,12 +452,12 @@ void loop_project_main()
 		if (e.button.button == SDL_BUTTON_LEFT) {
 		    main_win->i_state &= ~I_STATE_MOUSE_L;
 		    session->dragged_component.component = NULL;
-		    automation_unset_dragging_kf(proj->timelines[proj->active_tl_index]);
+		    automation_unset_dragging_kf(ACTIVE_TL);
 		} else if (e.button.button == SDL_BUTTON_RIGHT) {
 		    main_win->i_state &= ~I_STATE_MOUSE_R;
 		}
-		project_flush_ongoing_changes(proj, JDAW_THREAD_MAIN);
-		project_flush_ongoing_changes(proj, JDAW_THREAD_DSP);
+		session_flush_ongoing_changes(session, JDAW_THREAD_MAIN);
+		session_flush_ongoing_changes(session, JDAW_THREAD_DSP);
 		break;
 	    case SDL_FINGERUP:
 		fingersdown = SDL_GetNumTouchFingers(-1);
@@ -507,7 +493,7 @@ void loop_project_main()
 	}
 
 	
-	Timeline *tl = proj->timelines[proj->active_tl_index];
+	Timeline *tl = ACTIVE_TL;
 	wheel_event_recency++;
 	if (wheel_event_recency == INT_MAX)
 	    wheel_event_recency = 0;
@@ -543,7 +529,7 @@ void loop_project_main()
 
 	}
 	
-	if (session->playback.play_speed != 0 && !proj->source_mode) {
+	if (session->playback.play_speed != 0 && !session->source_mode.source_mode) {
 	    timeline_catchup(tl);
 	    timeline_set_timecode(tl);
 	    for (int i=0; i<tl->num_click_tracks; i++) {
@@ -557,10 +543,10 @@ void loop_project_main()
 	} else {
 	    animate_step++;
 	}
-        project_animations_do_frame();
+        session_animations_do_frame();
 
-	if (proj->playhead_do_incr) {
-	    timeline_scroll_playhead(proj->playhead_frame_incr);
+	if (session->playhead_scroll.playhead_do_incr) {
+	    timeline_scroll_playhead(session->playhead_scroll.playhead_frame_incr);
 	}
 
 	/* update_track_vol_pan(); */
@@ -582,9 +568,9 @@ void loop_project_main()
 	}
 	status_frame();
 
-	project_do_ongoing_changes(proj, JDAW_THREAD_MAIN);
-	project_flush_val_changes(proj, JDAW_THREAD_MAIN);
-	project_flush_callbacks(proj, JDAW_THREAD_MAIN);
+	session_do_ongoing_changes(session, JDAW_THREAD_MAIN);
+	session_flush_val_changes(session, JDAW_THREAD_MAIN);
+	session_flush_callbacks(session, JDAW_THREAD_MAIN);
 	project_draw();
 
 
@@ -598,21 +584,21 @@ void loop_project_main()
 	/**********************/
 
 	if (session->playback.playing) {
-	    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
+	    /* Timeline *tl = ACTIVE_TL; */
 	    struct timespec now;
 	    clock_gettime(CLOCK_MONOTONIC, &now);
 	    double elapsed_s = now.tv_sec + ((double)now.tv_nsec / 1e9) - tl->play_pos_moved_at.tv_sec - ((double)tl->play_pos_moved_at.tv_nsec / 1e9);
 	    if (elapsed_s > 0.05) {
 		goto end_frame;
 	    }
-	    int32_t play_pos_adj = tl->play_pos_sframes + elapsed_s * proj->sample_rate * session->playback.play_speed;
+	    int32_t play_pos_adj = tl->play_pos_sframes + elapsed_s * session->proj.sample_rate * session->playback.play_speed;
 	    for (uint8_t i=0; i<tl->num_tracks; i++) {
 		Track *track = tl->tracks[i];
 		for (uint8_t ai=0; ai<track->num_automations; ai++) {
 		    Automation *a = track->automations[ai];
 		    if (a->write) {
 			/* if (!a->current) a->current = automation_get_segment(a, play_pos_adj); */
-			int32_t frame_dur = proj->sample_rate * session->playback.play_speed / 30.0;
+			int32_t frame_dur = session->proj.sample_rate * session->playback.play_speed / 30.0;
 			Value val = endpoint_safe_read(a->endpoint, NULL);
 			/* fprintf(stderr, "READ FLOATVAL (%s): %f\n", a->endpoint->local_id, val.float_v); */
 			automation_do_write(a, val, play_pos_adj, play_pos_adj + frame_dur, session->playback.play_speed);
@@ -627,8 +613,8 @@ void loop_project_main()
 	    }
 	}
 
-	if (proj->do_tests) {
-	    TEST_FN_CALL(chaotic_user, &proj->do_tests, 60 * 10); /* 10s of really dumb tests */
+	if (session->do_tests) {
+	    TEST_FN_CALL(chaotic_user, &session->do_tests, 60 * 10); /* 10s of really dumb tests */
 	}
 
     end_frame:

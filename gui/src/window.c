@@ -8,12 +8,12 @@
 
 *****************************************************************************************************************/
 #include <stdio.h>
-#include "SDL.h"
 #include "SDL_render.h"
 #include "autocompletion.h"
 #include "color.h"
 #include "layout.h"
 #include "menu.h"
+#include "session.h"
 #include "text.h"
 #include "window.h"
 #include "modal.h"
@@ -404,12 +404,13 @@ void window_pop_mode(Window *win)
 #include "page.h"
 void window_push_modal(Window *win, Modal *modal)
 {
+    Session *session = session_get();
     while (win->num_modals > 0) {
 	window_pop_modal(win);
     }
     
     #ifndef LAYOUT_BUILD
-    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;
     #endif
     

@@ -26,7 +26,7 @@
 /* extern SDL_Color white; */
 //extern TTF_Font *open_sans;
 
-extern SDL_Color color_global_white;
+
 
 extern Window *main_win;
 
@@ -1756,7 +1756,7 @@ void layout_select(Layout *lt)
 
 
     /* lt->namelabel = NULL; */
-    lt->namelabel = txt_create_from_str(lt->name, MAX_LT_NAMELEN, lt->label_lt, main_win->std_font, 12, color_global_white, CENTER_LEFT, false, main_win);
+    lt->namelabel = txt_create_from_str(lt->name, MAX_LT_NAMELEN, lt->label_lt, main_win->std_font, 12, colors.white, CENTER_LEFT, false, main_win);
     lt->selected = true;
     layout_reset(lt);
 }

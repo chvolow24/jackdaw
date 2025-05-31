@@ -34,8 +34,6 @@
 #include "layout.h"
 #include "layout_xml.h"
 #include "menu.h"
-#include "page.h"
-#include "panel.h"
 #include "project.h"
 #include "session.h"
 #include "status.h"
@@ -43,7 +41,6 @@
 #include "textbox.h"
 #include "timeline.h"
 #include "transport.h"
-#include "userfn.h"
 #include "waveform.h"
 #include "window.h"
 
@@ -133,7 +130,7 @@ uint8_t project_add_timeline(Project *proj, char *name)
     new_tl->track_area->num_children = 0;
 
     
-    /* new_tl->layout = layout_get_child_by_name_recursive(proj->layout, "timeline"); */
+    /* new_tl->layout = layout_get_child_by_name_recursive(session->gui.layout, "timeline"); */
     
     new_tl->sample_frames_per_pixel = DEFAULT_SFPP;
     strcpy(new_tl->timecode.str, "+00:00:00:00000");
@@ -284,7 +281,7 @@ static void timeline_destroy(Timeline *tl, bool displace_in_proj)
 
 static void clip_destroy_no_displace(Clip *clip);
 
-void project_destroy(Project *proj)
+void project_deinit(Project *proj)
 {
     /* fprintf(stdout, "PROJECT_DESTROY num tracks: %d\n", proj->timelines[0]->num_tracks); */
     for (uint16_t i=0; i<proj->num_clips; i++) {
@@ -299,14 +296,12 @@ void project_destroy(Project *proj)
     free(proj->output_R);
     free(proj->output_L_freq);
     free(proj->output_R_freq);
-
-    free(proj);
 }
 
 void project_reset_tl_label(Project *proj)
 {
     Session *session = session_get();
-    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Timeline *tl = ACTIVE_TL;
     snprintf(session->gui.timeline_label_str, MAX_NAMELENGTH, "Timeline %d: \"%s\"\n", proj->active_tl_index + 1, tl->name);
     textbox_reset_full(session->gui.timeline_label);
 }
@@ -314,7 +309,8 @@ void project_reset_tl_label(Project *proj)
 /* void project_init_audio_conns(Project *proj); */
 /* int project_init_midi(Project *proj); */
 /* void project_init_quickref(Project *proj, Layout *control_bar_layout); */
-Project *project_create(
+int project_init(
+    Project *proj,
     char *name,
     uint8_t channels,
     uint32_t sample_rate,
@@ -323,14 +319,10 @@ Project *project_create(
     uint16_t fourier_len_sframes
     )
 {
-    Project *proj = calloc(1, sizeof(Project));
-    if (!proj) {
-	fprintf(stderr, "Error: unable to allocate space for project.\n");
-	exit(1);
-    }
+    /* Project *proj = calloc(1, sizeof(Project)); */
     if (strlen(name) > MAX_NAMELENGTH - 1) {
 	fprintf(stderr, "Error: project name exceeds max len (%d)\n", MAX_NAMELENGTH);
-	exit(1);
+	return -1;
     }
     
 
@@ -347,7 +339,7 @@ Project *project_create(
     proj->fmt = fmt;
     proj->chunk_size_sframes = chunk_size_sframes;
     proj->fourier_len_sframes = fourier_len_sframes;
-    /* Layout *source_lt = layout_get_child_by_name_recursive(proj->layout, "source_area"); */
+    /* Layout *source_lt = layout_get_child_by_name_recursive(session->gui.layout, "source_area"); */
     /* proj->source_rect = &source_lt->rect; */
     /* proj->source_clip_rect = &(layout_get_child_by_name_recursive(source_lt, "source_clip")->rect); */
     /* Layout *src_name_lt = layout_get_child_by_name_recursive(source_lt, "source_clip_name"); */
@@ -379,8 +371,8 @@ Project *project_create(
 
     
 
-    /* strcpy(proj->status_bar.errstr, "Uh oh! this is an call!\n"); */
-    /* strcpy(proj->status_bar.errorstr, "Ok error str\n"); */
+    /* strcpy(session->status_bar.errstr, "Uh oh! this is an call!\n"); */
+    /* strcpy(session->status_bar.errorstr, "Ok error str\n"); */
 
 
 
@@ -389,7 +381,7 @@ Project *project_create(
     /* Initialize endpoints */
     /* api_start_server(proj, 9302); */
 
-    return proj;
+    return 0;
 }
 
 
@@ -471,7 +463,7 @@ static int name_completion(Text *txt, void *obj)
 /*     Value nullval = {.int_v = 0}; */
 /*     char *old_value = strdup(txt->cached_value); */
 /*     user_event_push( */
-/* 	&proj->history, */
+/* 	 */
 /* 	undo_rename_object, */
 /* 	redo_rename_object, */
 /* 	NULL, NULL, */
@@ -677,7 +669,7 @@ Track *timeline_add_track(Timeline *tl)
     /* track->buf_R_freq_mag = calloc(fr_len, sizeof(double)); */
     /* filter_init(&track->fir_filter, track, LOWPASS, ir_len, fr_len); */
 
-    /* delay_line_init(&track->delay_line, track, track->tl->proj->sample_rate); */
+    /* delay_line_init(&track->delay_line, track, track->tl->session->proj.sample_rate); */
 
 
 
@@ -1474,6 +1466,7 @@ struct track_in_arg {
 };
 static void track_set_in_onclick(void *void_arg)
 {
+    Session *session = session_get();
     /* struct select_dev_onclick_arg *carg = (struct select_dev_onclick_arg *)arg; */
     /* Track *track = carg->track; */
     /* AudioConn *dev = carg->new_in; */
@@ -1482,8 +1475,7 @@ static void track_set_in_onclick(void *void_arg)
     textbox_set_value_handle(arg->track->tb_input_name, arg->track->input->name);
 
     window_pop_menu(main_win);
-    Project *proj = &session_get()->proj;
-    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;
     /* window_pop_mode(main_win); */
 }
@@ -2012,7 +2004,7 @@ int clipref_split_stereo_to_mono(ClipRef *cr, ClipRef **new_L_dst, ClipRef **new
 
 static void timeline_reinsert(Timeline *tl)
 {
-    /* Timeline *currently_active = proj->timelines[proj->active_tl_index]; */
+    /* Timeline *currently_active = ACTIVE_TL; */
     Project *proj = tl->proj;
     for (uint8_t i=proj->num_timelines; i>tl->index; i--) {
 	proj->timelines[i] = proj->timelines[i-1];
@@ -2046,7 +2038,7 @@ NEW_EVENT_FN(dispose_delete_timeline, "")
 void timeline_switch(uint8_t new_tl_index)
 {
     Session *session = session_get();
-    Timeline *current = session->proj.timelines[session->proj.active_tl_index];
+    Timeline *current = ACTIVE_TL;
     current->layout->hidden = true;
 
     session->proj.active_tl_index = new_tl_index;
@@ -2077,7 +2069,7 @@ void timeline_delete(Timeline *tl, bool from_undo)
 	proj->active_tl_index--;
     }
     timeline_switch(proj->active_tl_index);
-    /* Timeline *active = proj->timelines[proj->active_tl_index]; */
+    /* Timeline *active = ACTIVE_TL; */
     /* active->layout->hidden = false; */
     /* project_reset_tl_label(proj); */
     /* active->needs_redraw = true; */
@@ -2280,8 +2272,8 @@ ClipRef *clipref_at_cursor_in_track(Track *track)
 
 void clipref_bring_to_front()
 {
-    Project *proj = &session_get()->proj;
-    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
     Track *track = timeline_selected_track(tl);
     if (!track) return;
     /* bool displace = false; */
@@ -2310,8 +2302,8 @@ bool clipref_marked(Timeline *tl, ClipRef *cr)
 
 ClipRef *clipref_at_cursor()
 {
-    Project *proj = &session_get()->proj;
-    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
     Track *track = timeline_selected_track(tl);
     if (!track) return NULL;
     
@@ -2327,8 +2319,8 @@ ClipRef *clipref_at_cursor()
 
 ClipRef *clipref_before_cursor(int32_t *pos_dst)
 {
-    Project *proj = &session_get()->proj;
-    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
     Track *track = timeline_selected_track(tl);
     if (!track) return NULL;
     if (track->num_clips == 0) return NULL;
@@ -2348,8 +2340,8 @@ ClipRef *clipref_before_cursor(int32_t *pos_dst)
 
 ClipRef *clipref_after_cursor(int32_t *pos_dst)
 {
-    Project *proj = &session_get()->proj;
-    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
     Track *track = timeline_selected_track(tl);
     if (!track) return NULL;
     if (track->num_clips == 0) return NULL;
@@ -2513,7 +2505,7 @@ void timeline_cut_at_cursor(Timeline *tl)
 /* 	Value direction_forward = {.int_v = direction}; */
 /* 	Value direction_reverse = {.int_v = direction * -1}; */
 /* 	user_event_push( */
-/* 	    &proj->history, */
+/* 	     */
 /* 	    undo_redo_move_track, */
 /* 	    undo_redo_move_track, */
 /* 	    NULL, */
@@ -2703,8 +2695,7 @@ bool timeline_refocus_track(Timeline *tl, Track *track, bool at_bottom)
 void timeline_play_speed_set(double new_speed)
 {
     Session *session = session_get();
-    Project *proj = &session_get()->proj;
-    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Timeline *tl = ACTIVE_TL;
     double old_speed = session->playback.play_speed;
     session->playback.play_speed = new_speed;
     
@@ -2741,21 +2732,22 @@ void timeline_play_speed_adj(double dim)
 
 void timeline_scroll_playhead(double dim)
 {
-    Project *proj = &session_get()->proj;
-    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
     if (main_win->i_state & I_STATE_CMDCTRL) {
-	dim *= proj->sample_rate * tl->sample_frames_per_pixel * PLAYHEAD_ADJUST_SCALAR_LARGE;
+	dim *= session->proj.sample_rate * tl->sample_frames_per_pixel * PLAYHEAD_ADJUST_SCALAR_LARGE;
     } else {
-	dim *= proj->sample_rate * tl->sample_frames_per_pixel * PLAYHEAD_ADJUST_SCALAR_SMALL;
+	dim *= session->proj.sample_rate * tl->sample_frames_per_pixel * PLAYHEAD_ADJUST_SCALAR_SMALL;
     }
     int32_t new_pos = tl->play_pos_sframes + dim;
-    timeline_set_play_position(proj->timelines[proj->active_tl_index], new_pos);
+    timeline_set_play_position(ACTIVE_TL, new_pos);
 }
 
 
 void project_active_tl_redraw(Project *proj)
 {
-    proj->timelines[proj->active_tl_index]->needs_redraw = true;
+    Session *session = session_get();
+    ACTIVE_TL->needs_redraw = true;
 }
 
 bool track_minimize(Track *t)

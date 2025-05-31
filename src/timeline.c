@@ -20,7 +20,7 @@
 #include <time.h>
 #include "consts.h"
 #include "project.h"
-#include "project_endpoint_ops.h"
+#include "session_endpoint_ops.h"
 #include "session.h"
 #include "tempo.h"
 #include "thread_safety.h"
@@ -41,16 +41,18 @@ extern pthread_t DSP_THREAD_ID;
 /* Get the timeline position value -- in sample frames -- from a draw x coordinate  */
 int32_t timeline_get_abspos_sframes(Timeline *tl, int draw_x)
 {
-    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
-    return (draw_x - tl->session->gui.audio_rect->x) * tl->sample_frames_per_pixel + tl->display_offset_sframes;
+    Session *session = session_get();
+    /* Timeline *tl = ACTIVE_TL; */
+    return (draw_x - session->gui.audio_rect->x) * tl->sample_frames_per_pixel + tl->display_offset_sframes;
 }
 
 /* Get the current draw x coordinate for a given timeline offset value (sample frames) */
 int timeline_get_draw_x(Timeline *tl, int32_t abs_x)
 {
-    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
+    /* Timeline *tl = ACTIVE_TL; */
+    Session *session = session_get();
     if (tl->sample_frames_per_pixel != 0) {
-        double precise = (double)tl->session->gui.audio_rect->x + ((double)abs_x - (double)tl->display_offset_sframes) / (double)tl->sample_frames_per_pixel;
+        double precise = (double)session->gui.audio_rect->x + ((double)abs_x - (double)tl->display_offset_sframes) / (double)tl->sample_frames_per_pixel;
         return (int) round(precise);
     } else {
         fprintf(stderr, "Error: proj tl sfpp value 0\n");
@@ -62,7 +64,7 @@ int timeline_get_draw_x(Timeline *tl, int32_t abs_x)
 /* Get a draw width from a given length in sample frames */
 int timeline_get_draw_w(Timeline *tl, int32_t abs_w)
 {
-    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
+    /* Timeline *tl = ACTIVE_TL; */
     if (tl->sample_frames_per_pixel != 0) {
         return abs_w / tl->sample_frames_per_pixel;
     } else {
@@ -73,7 +75,7 @@ int timeline_get_draw_w(Timeline *tl, int32_t abs_w)
 
 static double timeline_get_draw_w_precise(Timeline *tl, int32_t abs_w)
 {
-    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
+    /* Timeline *tl = ACTIVE_TL; */
     if (tl->sample_frames_per_pixel != 0) {
 	return (double) abs_w / tl->sample_frames_per_pixel;
     }
@@ -83,13 +85,13 @@ static double timeline_get_draw_w_precise(Timeline *tl, int32_t abs_w)
 /* Get a length in sample frames from a given draw width */
 int32_t timeline_get_abs_w_sframes(Timeline *tl, int draw_w)
 {
-    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
+    /* Timeline *tl = ACTIVE_TL; */
     return draw_w * tl->sample_frames_per_pixel;
 }
 
 void timeline_scroll_horiz(Timeline *tl, int scroll_by)
 {
-    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
+    /* Timeline *tl = ACTIVE_TL; */
     int32_t new_offset = tl->display_offset_sframes + timeline_get_abs_w_sframes(tl, scroll_by);
     tl->display_offset_sframes = new_offset;
     timeline_reset(tl, false);
@@ -97,7 +99,7 @@ void timeline_scroll_horiz(Timeline *tl, int scroll_by)
 
 double timeline_get_leftmost_seconds(Timeline *tl)
 {
-    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
+    /* Timeline *tl = ACTIVE_TL; */
     return (double) tl->display_offset_sframes / tl->proj->sample_rate;
 }
 
@@ -119,7 +121,7 @@ double timeline_first_second_tick_x(Timeline *tl, int *first_second)
 void timeline_rescale(Timeline *tl, double sfpp_scale_factor, bool on_mouse)
 {
    if (sfpp_scale_factor == 1.0f) return;
-    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
+    /* Timeline *tl = ACTIVE_TL; */
     int32_t center_abs_pos = 0;
     if (on_mouse) {
 	center_abs_pos = timeline_get_abspos_sframes(tl, main_win->mousep.x);
@@ -184,7 +186,7 @@ void timeline_set_timecode(Timeline *tl)
     /*     exit(1); */
     /* } */
 
-    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
+    /* Timeline *tl = ACTIVE_TL; */
     char sign = tl->play_pos_sframes < 0 ? '-' : '+';
     uint32_t abs_play_pos = abs(tl->play_pos_sframes);
     uint8_t seconds, minutes, hours;
@@ -223,19 +225,20 @@ static void track_handle_playhead_jump(Track *track)
 void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes)
 {
     MAIN_THREAD_ONLY("timeline_set_play_position");
+    Session *session = session_get();
 
     if (tl->play_pos_sframes == abs_pos_sframes) return;
     
     int32_t pos_diff = abs_pos_sframes - tl->play_pos_sframes;
     
-    if (tl->proj->dragging && tl->num_grabbed_clips > 0) {
+    if (session->dragging && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
 
     tl->play_pos_sframes = abs_pos_sframes;
     tl->read_pos_sframes = abs_pos_sframes;
     int x = timeline_get_draw_x(tl, tl->play_pos_sframes);
-    SDL_Rect *audio_rect = tl->session->gui.audio_rect;
+    SDL_Rect *audio_rect = session->gui.audio_rect;
     if (x < audio_rect->x || x > audio_rect->x + audio_rect->w) {
 	int diff = x - (audio_rect->x + audio_rect->w / 2);
 	tl->display_offset_sframes += timeline_get_abs_w_sframes(tl, diff);
@@ -247,7 +250,7 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes)
     for (int i=0; i<tl->num_click_tracks; i++) {	
 	click_track_bar_beat_subdiv(tl->click_tracks[i], tl->play_pos_sframes, NULL, NULL, NULL, NULL, true);
     }
-    if (tl->proj->dragging && tl->num_grabbed_clips > 0) {
+    if (session->dragging && tl->num_grabbed_clips > 0) {
 	for (int i=0; i<tl->num_grabbed_clips; i++) {
 	    tl->grabbed_clips[i]->pos_sframes += pos_diff;
 	}
@@ -261,11 +264,12 @@ void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes)
 {
     RESTRICT_NOT_DSP("timeline_move_play_position");
     RESTRICT_NOT_MAIN("timeline_move_play_position");
+    Session *session = session_get();
 
     static const int32_t end_tl_buffer = DEFAULT_SAMPLE_RATE * 30; /* 30 seconds at dmax sample rate*/
     
     int64_t new_pos = (int64_t)tl->play_pos_sframes + move_by_sframes;
-    if (tl->proj->loop_play) {
+    if (session->playback.loop_play) {
 	int32_t loop_len = tl->out_mark_sframes - tl->in_mark_sframes;
 	if (loop_len > 0) {
 	    int64_t remainder = new_pos - tl->out_mark_sframes;
@@ -277,12 +281,12 @@ void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes)
     }
     if (new_pos > INT32_MAX - end_tl_buffer || new_pos < INT32_MIN + end_tl_buffer) {
 	/* fprintf(stderr, "CMPS (to %d, %d) %d %d\n", INT32_MAX, INT32_MIN, new_pos > INT32_MAX, new_pos < INT32_MIN); */
-	if (tl->session->playback.playing) transport_stop_playback();
+	if (session->playback.playing) transport_stop_playback();
 	status_set_errstr("reached end of timeline");
     } else {
 	tl->play_pos_sframes = new_pos;
 	clock_gettime(CLOCK_MONOTONIC, &tl->play_pos_moved_at);
-	if (tl->proj->dragging) {
+	if (session->dragging) {
 	    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
 		ClipRef *cr = tl->grabbed_clips[i];
 		cr->pos_sframes += move_by_sframes;
@@ -296,7 +300,7 @@ void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes)
 
 void timeline_catchup(Timeline *tl)
 {
-    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
+    /* Timeline *tl = ACTIVE_TL; */
     int tl_draw_x;
     /* uint32_t move_by_sframes; */
     int catchup_w = TIMELINE_CATCHUP_W;
@@ -307,10 +311,10 @@ void timeline_catchup(Timeline *tl)
     /* while (catchup_w > session->gui.audio_rect->w / 2 && catchup_w > 10) { */
     /* 	catchup_w /= 2; */
     /* } */
-    if ((tl_draw_x = timeline_get_draw_x(tl, tl->play_pos_sframes)) > tl->session->gui.audio_rect->x + tl->session->gui.audio_rect->w) {
-	tl->display_offset_sframes = tl->play_pos_sframes - timeline_get_abs_w_sframes(tl, tl->session->gui.audio_rect->w - catchup_w);
+    if ((tl_draw_x = timeline_get_draw_x(tl, tl->play_pos_sframes)) > session->gui.audio_rect->x + session->gui.audio_rect->w) {
+	tl->display_offset_sframes = tl->play_pos_sframes - timeline_get_abs_w_sframes(tl, session->gui.audio_rect->w - catchup_w);
 	timeline_reset(tl, false);
-    } else if (tl_draw_x < tl->session->gui.audio_rect->x) {
+    } else if (tl_draw_x < session->gui.audio_rect->x) {
 	tl->display_offset_sframes = tl->play_pos_sframes - timeline_get_abs_w_sframes(tl, catchup_w);
 	timeline_reset(tl, false);
     }
@@ -318,11 +322,12 @@ void timeline_catchup(Timeline *tl)
 
 int32_t timeline_get_play_pos_now(Timeline *tl)
 {
-    if (!tl->session->playback.playing) {
+    Session *session = session_get();
+    if (!session->playback.playing) {
 	return tl->play_pos_sframes;
     }
     struct timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
     double elapsed_s = now.tv_sec + ((double)now.tv_nsec / 1e9) - tl->play_pos_moved_at.tv_sec - ((double)tl->play_pos_moved_at.tv_nsec / 1e9);
-    return tl->play_pos_sframes + elapsed_s * tl->proj->sample_rate * tl->session->playback.play_speed;
+    return tl->play_pos_sframes + elapsed_s * tl->proj->sample_rate * session->playback.play_speed;
 }

@@ -24,7 +24,6 @@
 #include "input.h"
 #include "layout.h"
 #include "menu.h"
-#include "userfn.h"
 
 #define not_whitespace_char(c) (c != ' ' && c != '\n' && c != '\t')
 #define is_whitespace_char(c) ((c) == ' ' || (c) == '\n' || (c) == '\t')

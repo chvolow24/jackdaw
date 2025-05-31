@@ -30,11 +30,11 @@ LT_OBJS := $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(LT_SRCS_ALL))
 EXEC := jackdaw
 LT_EXEC := layout
 
-PORTMIDI_LIB = portmidi/build/libportmidi.dylib
+# PORTMIDI_LIB = portmidi/build/libportmidi
 
 all: $(EXEC)
 
-$(PORTMIDI_LIB) :
+.PHONY portmidi_target:
 	cd portmidi && \
 	mkdir -p build && \
 	cd build && \
@@ -57,8 +57,8 @@ ifeq ($(MAKECMDGOALS),layout)
 endif
 
 
-$(EXEC): $(OBJS) $(GUI_OBJS) $(PORTMIDI_LIB)
-	$(CC) -o $@ $^ $(CFLAGS) $(CFLAGS_ADDTL) $(CFLAGS_JDAW_ONLY)
+$(EXEC): portmidi_target $(OBJS) $(GUI_OBJS)
+	$(CC) -o $@ $(filter-out portmidi_target,$^) $(CFLAGS) $(CFLAGS_ADDTL) $(CFLAGS_JDAW_ONLY)
 
 debug: $(OBJS) $(GUI_OBJS)
 	$(CC) -o $(EXEC) $^ $(CFLAGS) $(CFLAGS_ADDTL)

@@ -28,8 +28,6 @@
 #define RADIO_STD_FONT_SIZE 14
 
 extern Window *main_win;
-extern Project *proj;
-
 extern SDL_Color EQ_CTRL_COLORS[];
 extern SDL_Color EQ_CTRL_COLORS_LIGHT[];
 
@@ -341,6 +339,7 @@ Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
 
 Page *add_fir_filter_page(FIRFilter *f, Track *track, TabView *tv)
 {
+    Session *session = session_get();
     Page *page = tabview_add_page(
 	tv,
 	f->effect->name,
@@ -403,7 +402,7 @@ Page *add_fir_filter_page(FIRFilter *f, Track *track, TabView *tv)
     p.slider_p.ep = &f->impulse_response_len_ep;
 
     p.slider_p.min = (Value){.int_v = 4};
-    p.slider_p.max = (Value){.int_v = proj->fourier_len_sframes};
+    p.slider_p.max = (Value){.int_v = session->proj.fourier_len_sframes};
     p.slider_p.create_label_fn = NULL;
     el = page_add_el(page, EL_SLIDER, p, "track_settings_filter_irlen_slider",  "irlen_slider");    
     Slider *sl = (Slider *)el->component;

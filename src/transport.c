@@ -215,6 +215,7 @@ static void *transport_dsp_thread_fn(void *arg)
     clock_t performance_timer;
     double last_t;
     while (1) {
+	clock_t cd = clock();
 	performance_timer = clock();
 	pthread_testcancel();
 	float play_speed = session->playback.play_speed;
@@ -222,6 +223,9 @@ static void *transport_dsp_thread_fn(void *arg)
 	/* GET MIXDOWN */
 	get_mixdown_chunk(tl, buf_L, 0, len, tl->read_pos_sframes, session->playback.play_speed);
 	get_mixdown_chunk(tl, buf_R, 1, len, tl->read_pos_sframes, session->playback.play_speed);
+	double timed = (((double)clock() - cd)/CLOCKS_PER_SEC);
+	fprintf(stderr, "Mixdown: %f\n", timed * 1000);
+	cd = clock();
 
 	/* DSP */
 	double dL[len];
@@ -238,6 +242,11 @@ static void *transport_dsp_thread_fn(void *arg)
 	get_magnitude(lfreq, tl->proj->output_L_freq, len);
 	get_magnitude(rfreq, tl->proj->output_R_freq, len);
 
+	timed = (((double)clock() - cd)/CLOCKS_PER_SEC);
+	fprintf(stderr, "DSP: %f\n", timed * 1000);
+	cd = clock();
+	
+
 	/* Move the read (DSP) pos */
 	tl->read_pos_sframes += len * play_speed;
 
@@ -252,6 +261,10 @@ static void *transport_dsp_thread_fn(void *arg)
 		}
 	    }
 	}
+	timed = (((double)clock() - cd)/CLOCKS_PER_SEC);
+	fprintf(stderr, "loop: %f\n", timed * 1000);
+	cd = clock();
+
 
 	/* if (session->playback.loop_play && tl->out_mark_sframes > tl->in_mark_sframes) { */
 	/*     int32_t remainder = tl->read_pos_sframes - tl->out_mark_sframes; */
@@ -266,6 +279,11 @@ static void *transport_dsp_thread_fn(void *arg)
 	for (int i=0; i<N; i++) {
 	    sem_wait(tl->writable_chunks);
 	}
+	timed = (((double)clock() - cd)/CLOCKS_PER_SEC);
+	fprintf(stderr, "sem: %f\n", timed * 1000);
+	cd = clock();
+
+	
 	memcpy(tl->buf_L + tl->buf_write_pos, buf_L, sizeof(float) * len);
 	memcpy(tl->buf_R + tl->buf_write_pos, buf_R, sizeof(float) * len);
 	memcpy(tl->proj->output_L, buf_L, sizeof(float) * len);
@@ -286,6 +304,10 @@ static void *transport_dsp_thread_fn(void *arg)
 		break;
 	    }
 	}
+	timed = (((double)clock() - cd)/CLOCKS_PER_SEC);
+	fprintf(stderr, "clips: %f\n", timed * 1000);
+	cd = clock();
+
 	
 	tl->buf_write_pos += len;
 	if (tl->buf_write_pos >= len * RING_BUF_LEN_FFT_CHUNKS) {
@@ -298,14 +320,24 @@ static void *transport_dsp_thread_fn(void *arg)
 	    sem_post(tl->unpause_sem);
 	    init = false;
 	}
+	timed = (((double)clock() - cd)/CLOCKS_PER_SEC);
+	fprintf(stderr, "cleanup: %f\n", timed * 1000);
+	cd = clock();
+
 	
 	session_do_ongoing_changes(session, JDAW_THREAD_DSP);
 	session_flush_val_changes(session, JDAW_THREAD_DSP);
 	session_flush_callbacks(session, JDAW_THREAD_DSP);
+
+	timed = (((double)clock() - cd)/CLOCKS_PER_SEC);
+	fprintf(stderr, "ongoing: %f\n", timed * 1000);
+	cd = clock();
+
+	
 	double time = ((double)clock() - performance_timer) / CLOCKS_PER_SEC;
 	double alloc_time = (double)session->proj.fourier_len_sframes / session->proj.sample_rate;
 	double out = 0.9 * last_t + 0.1 * (time / alloc_time);
-	/* fprintf(stderr, "STRESS: %f\n", out); */
+	fprintf(stderr, "STRESS: %f\n", out);
 	last_t = out;
 	
     }

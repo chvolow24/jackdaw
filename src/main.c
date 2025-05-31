@@ -28,6 +28,7 @@
 #include "dir.h"
 #include "dsp_utils.h"
 #include "function_lookup.h"
+#include "init_panels.h"
 #include "input.h"
 #include "midi_io.h"
 #include "project.h"
@@ -47,7 +48,7 @@
 #define WINDOW_DEFAULT_W 1093
 #define WINDOW_DEFAULT_H 650
 
-#define DEFAULT_PROJ_AUDIO_SETTINGS 2, DEFAULT_SAMPLE_RATE, AUDIO_S16SYS, DEFAULT_AUDIO_CHUNK_LEN_SFRAMES, DEFAULT_FOURIER_LEN_SFRAMES
+#define DEFAULT_PROJ_AUDIO_SETTINGS 2, DEFAULT_SAMPLE_RATE, DEFAULT_SAMPLE_FORMAT, DEFAULT_AUDIO_CHUNK_LEN_SFRAMES, DEFAULT_FOURIER_LEN_SFRAMES
 
 const char *JACKDAW_VERSION = "0.6.0";
 char DIRPATH_SAVED_PROJ[MAX_PATHLEN];
@@ -238,6 +239,7 @@ int main(int argc, char **argv)
     }
     fprintf(stderr, "\t...done\n");
 
+    session_init_panels(session);
     if (invoke_open_wav_file) {
 	Track *track = timeline_add_track(proj->timelines[0]);
 	wav_load_to_track(track, file_to_open, 0);

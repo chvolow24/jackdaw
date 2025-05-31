@@ -35,6 +35,7 @@ Positions	Sample Value	    Description
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include "consts.h"
 #include "dir.h"
 #include "project.h"
 #include "mixdown.h"
@@ -209,8 +210,9 @@ void wav_write_mixdown(const char *filepath)
 }
 
 
-int32_t wav_load(Project *proj, const char *filename, float **L, float **R)
+int32_t wav_load(const char *filename, float **L, float **R)
 {
+    Session *session = session_get();
     SDL_AudioSpec wav_spec;
     uint8_t *audio_buf = NULL;
     uint32_t audio_len_bytes = 0;
@@ -219,7 +221,21 @@ int32_t wav_load(Project *proj, const char *filename, float **L, float **R)
 	return 0;
     }
     SDL_AudioCVT wav_cvt;
-    int ret = SDL_BuildAudioCVT(&wav_cvt, wav_spec.format, wav_spec.channels, wav_spec.freq, proj->fmt, proj->channels, proj->sample_rate);
+
+    SDL_AudioFormat fmt;
+    int channels;
+    int sample_rate;
+    if (session->proj_initialized) {
+	fmt = session->proj.fmt;
+	channels = session->proj.channels;
+	sample_rate = session->proj.sample_rate;
+    } else {
+	fmt = DEFAULT_SAMPLE_FORMAT;
+	channels = 2;
+	sample_rate = DEFAULT_SAMPLE_RATE;
+    }
+    
+    int ret = SDL_BuildAudioCVT(&wav_cvt, wav_spec.format, wav_spec.channels, wav_spec.freq, fmt, channels, sample_rate);
     uint8_t *final_buffer = NULL;
     int final_buffer_len;
 
@@ -275,7 +291,7 @@ int32_t wav_load(Project *proj, const char *filename, float **L, float **R)
     SDL_FreeWAV(audio_buf);
 
     uint32_t buf_len_samples = final_buffer_len / sizeof(int16_t);
-    uint32_t buf_len_sframes = buf_len_samples / proj->channels;
+    uint32_t buf_len_sframes = buf_len_samples / channels;
     if (buf_len_samples < 3) {
 	fprintf(stderr, "Error: cannot read wav file.\n");
 	status_set_errstr("Error reading wav file.");

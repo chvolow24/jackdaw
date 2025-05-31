@@ -36,7 +36,7 @@
 #include "wav.h"
 
 extern Window *main_win;
-extern Project *proj;
+
 
 
 extern struct colors colors;
@@ -55,7 +55,7 @@ void session_init_metronomes(Session *session)
     m->name = "standard";
 
     float *L, *R;    
-    int32_t buf_len = wav_load(proj, METRONOME_STD_HIGH_PATH, &L, &R);
+    int32_t buf_len = wav_load(METRONOME_STD_HIGH_PATH, &L, &R);
     if (buf_len == 0) {
 	fprintf(stderr, "Error: unable to load metronome buffer at %s\n", METRONOME_STD_LOW_PATH);
 	exit(1);
@@ -66,7 +66,7 @@ void session_init_metronomes(Session *session)
     m->buffers[0] = L;
     m->buf_lens[0] = buf_len;
     
-    buf_len = wav_load(proj, METRONOME_STD_LOW_PATH, &L, &R);
+    buf_len = wav_load(METRONOME_STD_LOW_PATH, &L, &R);
     if (buf_len == 0) {
 	fprintf(stderr, "Error: unable to load metronome buffer at %s\n", METRONOME_STD_LOW_PATH);
 	exit(1);
@@ -1520,11 +1520,12 @@ static int32_t click_segment_get_nearest_beat_pos(ClickTrack *ct, int32_t start_
 }
 void click_track_mouse_motion(ClickSegment *s, Window *win)
 {
+    Session *session = session_get();
     int32_t tl_pos = timeline_get_abspos_sframes(s->track->tl, win->mousep.x);
     if (!(main_win->i_state & I_STATE_SHIFT)) {
 	tl_pos = click_segment_get_nearest_beat_pos(s->track, tl_pos);
     }
-    if (tl_pos < 0 || (s->prev && tl_pos < s->prev->start_pos + proj->sample_rate / 100)) {
+    if (tl_pos < 0 || (s->prev && tl_pos < s->prev->start_pos + session->proj.sample_rate / 100)) {
 	return;
     }
     endpoint_write(&s->start_pos_ep, (Value){.int32_v = tl_pos}, true, true, true, false);
@@ -1532,7 +1533,7 @@ void click_track_mouse_motion(ClickSegment *s, Window *win)
 }
    
 
-extern Project *proj;
+
 
 
 void click_segment_fprint(FILE *f, ClickSegment *s)

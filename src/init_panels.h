@@ -4,6 +4,6 @@
 typedef struct session Session;
 typedef struct layout Layout;
 
-void session_init_panels(Session *session, Layout *lt);
+void session_init_panels(Session *session);
 
 #endif

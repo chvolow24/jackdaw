@@ -632,8 +632,9 @@ static inline void session_init_output_spectrum(Page *output_spectrum, Session *
 }
 
 
-void session_init_panels(Session *session, Layout *lt)
+void session_init_panels(Session *session)
 {
+    Layout *lt = layout_get_child_by_name_recursive(session->gui.layout, "panel_area");  
     PanelArea *pa = panel_area_create(lt, main_win);
     session->gui.panels = pa;
     panel_area_add_panel(pa);

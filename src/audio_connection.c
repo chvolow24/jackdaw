@@ -19,6 +19,7 @@
 #include <pthread.h>
 /* #include <semaphore.h> */
 #include "audio_connection.h"
+#include "consts.h"
 #include "project.h"
 #include "pure_data.h"
 #include "session.h"
@@ -147,11 +148,20 @@ int audioconn_open(Session *session, AudioConn *conn)
 	SDL_zero(device->spec);
 
 	/* Project determines high-level audio settings */
-	device->spec.format = AUDIO_S16LSB;
-	device->spec.samples = session->proj.chunk_size_sframes;
-	device->spec.freq = session->proj.sample_rate;
+	if (session->proj_initialized) {
+	    device->spec.format = session->proj.fmt;
+	    device->spec.samples = session->proj.chunk_size_sframes;
+	    device->spec.freq = session->proj.sample_rate;
+	    device->spec.channels = session->proj.channels;
+	} else {
+	    device->spec.format = DEFAULT_SAMPLE_FORMAT;
+	    device->spec.samples = DEFAULT_AUDIO_CHUNK_LEN_SFRAMES;
+	    device->spec.freq = DEFAULT_SAMPLE_RATE;
+	    device->spec.channels = 2;
+	}
 	device->spec.callback = conn->iscapture ? transport_record_callback : transport_playback_callback;
 	device->spec.userdata = conn;
+
 	/* device->spec.channels = 2; /\* TODO: channel count flexibility *\/ */
 
 	/* for (int i=0; i<10; i++) { */
@@ -550,7 +560,7 @@ void session_init_audio_conns(Session *session)
 {
     session->audio_io.num_playback_conns = query_audio_connections(session, 0);
     session->audio_io.num_record_conns = query_audio_connections(session, 1);
-    /* session->audio_io.playback_conns[session->audio_io.playback_con_id] = session->audio_io.playback_conns[0]; */
+    session->audio_io.playback_conn = session->audio_io.playback_conns[0];
     if (session->audio_io.playback_conn->available && audioconn_open(session, session->audio_io.playback_conn) != 0) {
 	fprintf(stderr, "Error: failed to open default audio conn \"%s\". More info: %s\n", session->audio_io.playback_conn->name, SDL_GetError());
     }

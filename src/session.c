@@ -20,6 +20,7 @@ Session *session_get()
 }
 
 static void session_hamburger_init(Session *session);
+static void session_status_bar_init(Session *session);
 
 Session *session_create()
 {
@@ -86,7 +87,8 @@ Session *session_create()
 	play_speed_gui_cb, NULL, NULL,
 	NULL, NULL, NULL, NULL);
     
-    api_endpoint_register(&session->playback.play_speed_ep, &session->server.api_root);			  
+    api_endpoint_register(&session->playback.play_speed_ep, &session->server.api_root);
+    session_status_bar_init(session);
 
     
     return session;
@@ -199,6 +201,6 @@ void session_destroy()
     /* Layout *panels_layout = layout_get_child_by_name_recursive(session->gui.layout, "panel_area"); */
     /* project_init_panels(proj, panels_layout); */
 
-    session_status_bar_init(session);
+    /* session_status_bar_deinit(session); */
 
 }

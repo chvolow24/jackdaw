@@ -26,6 +26,7 @@
 #include "assets.h"
 #include "consts.h"
 #include "dir.h"
+#include "dot_jdaw.h"
 #include "dsp_utils.h"
 #include "function_lookup.h"
 #include "init_panels.h"
@@ -59,7 +60,6 @@ bool SYS_BYTEORDER_LE = false;
 volatile bool CANCEL_THREADS = false;
 
 Window *main_win = NULL;
-Project *proj = NULL;
 
 extern pthread_t MAIN_THREAD_ID;
 extern pthread_t DSP_THREAD_ID;
@@ -131,7 +131,7 @@ static void quit()
     transport_stop_playback();
     /* Sleep to allow DSP thread to exit */
     SDL_Delay(100);
-    project_deinit(proj);
+    session_destroy();
     symbol_quit(main_win);
     if (main_win) {
 	window_destroy(main_win);
@@ -143,7 +143,6 @@ static void quit()
 }
 
 void loop_project_main();
-Project *jdaw_read_file(const char *path);
 
 extern bool connection_open;
 
@@ -211,7 +210,18 @@ int main(int argc, char **argv)
     Session *session = session_create();
     if (invoke_open_jdaw_file) {
 	fprintf(stderr, "Opening \"%s\"...\n", file_to_open);
-	proj = jdaw_read_file(file_to_open);
+	int ret = jdaw_read_file(&session->proj, file_to_open);
+	if (ret == 0) {
+	    session->proj_initialized = true;
+	    /* TODO: handle audio format disagreements more elegantly */
+	    AudioConn *output = session->audio_io.playback_conn;
+	    if (output->open) {
+		audioconn_close(output);
+		audioconn_open(session, output);
+	    }
+	} else {
+	    session->proj_initialized = false;
+	}
 	if (session->proj_initialized) {
 	    char *realpath_ret;
 	    if (!(realpath_ret = realpath(file_to_open, NULL))) {
@@ -224,8 +234,8 @@ int main(int argc, char **argv)
 		}
 		free(realpath_ret);
 	    }
-	    for (int i=0; i<proj->num_timelines; i++) {
-		timeline_reset_full(proj->timelines[i]);
+	    for (int i=0; i<session->proj.num_timelines; i++) {
+		timeline_reset_full(session->proj.timelines[i]);
 	    }
 	}
     } else {
@@ -241,7 +251,7 @@ int main(int argc, char **argv)
 
     session_init_panels(session);
     if (invoke_open_wav_file) {
-	Track *track = timeline_add_track(proj->timelines[0]);
+	Track *track = timeline_add_track(session->proj.timelines[0]);
 	wav_load_to_track(track, file_to_open, 0);
 	char *filepath = realpath(file_to_open, NULL);
 	if (!filepath) {

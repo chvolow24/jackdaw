@@ -44,6 +44,7 @@ struct session_gui {
     SDL_Rect *bun_patty_bun[3];
     Textbox *source_name_tb;
 
+    bool panels_initialized;
     PanelArea *panels;
 };
 
@@ -146,5 +147,6 @@ typedef struct session {
 
 Session *session_create();
 Session *session_get();
+void session_destroy();
 
 #endif

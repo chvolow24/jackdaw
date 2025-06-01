@@ -18,7 +18,6 @@
 #include <stdlib.h>
 #include "project.h"
 #include "session.h"
-#include "status.h"
 #include "user_event.h"
 
 extern Project *proj;
@@ -121,8 +120,9 @@ UserEvent *user_event_push(
     )
 {
     Session *session = session_get();
+    if (!session) return NULL;
+    if (!session->proj_initialized) return NULL;
     UserEventHistory *history = &session->history;
-    if (!proj) return NULL;
     UserEvent *e = calloc(1, sizeof(UserEvent));
     e->undo = undo_fn;
     e->redo = redo_fn;

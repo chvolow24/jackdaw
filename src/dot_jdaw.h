@@ -25,8 +25,8 @@
 void write_jdaw_file(const char *path);
 
 /* Open a .jdaw file at the directory pointed to by 'path', and return a pointer to the built Project struct */
-Project *open_jdaw_file(const char *path);
+/* Project *open_jdaw_file(const char *path); */
 
-int jdaw_read_file(Project *proj, const char *filepath);
+int jdaw_read_file(Project *dst, const char *filepath);
 
 #endif

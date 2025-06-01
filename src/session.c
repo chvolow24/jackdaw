@@ -198,9 +198,20 @@ void session_destroy()
     session_loading_screen_deinit();
     session_deinit_midi(session);
 
+
+    if (session->proj_initialized) {
+	project_deinit(&session->proj);
+    }
     /* Layout *panels_layout = layout_get_child_by_name_recursive(session->gui.layout, "panel_area"); */
     /* project_init_panels(proj, panels_layout); */
 
     /* session_status_bar_deinit(session); */
+    session = NULL;
 
 }
+
+
+
+
+
+

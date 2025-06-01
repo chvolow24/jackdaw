@@ -676,18 +676,27 @@ void user_tl_track_selector_up(void *nullarg);
 void user_tl_track_selector_down(void *nullarg);
 static void local_track_selector_down()
 {
-    Project *sg = proj;
-    proj = proj_reading;
+    Session *session = session_get();
+    /* Project *sg = proj; */
+    /* proj = proj_reading; */
+    Project saved = session->proj;
+    session->proj = *proj_reading;
     user_tl_track_selector_down(NULL);
-    proj = sg;
+    session->proj = saved;
 
 }
 static void local_track_selector_up()
 {
-    Project *sg = proj;
-    proj = proj_reading;
+    Session *session = session_get();
+    Project saved = session->proj;
+    session->proj = *proj_reading;
     user_tl_track_selector_up(NULL);
-    proj = sg;
+    session->proj = saved;
+
+    /* Project *sg = proj; */
+    /* proj = proj_reading; */
+    
+    /* proj = sg; */
 }
 static void local_move_track_down()
 {

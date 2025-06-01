@@ -690,5 +690,6 @@ void session_init_panels(Session *session)
     panel_select_page(pa, 1, 1);
     panel_select_page(pa, 2, 2);
     panel_select_page(pa, 3, 3);
+    session->gui.panels_initialized = true;
 }
 

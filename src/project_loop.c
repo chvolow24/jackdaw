@@ -102,6 +102,7 @@ void loop_project_main()
     int play_speed_scroll_recency = 60;
     bool scrub_block = false;
     int frames_since_event = 0;
+    main_win->current_event = &e;
     while (!(main_win->i_state & I_STATE_QUIT)) {
 	while (SDL_PollEvent(&e)) {
 	    frames_since_event = 0;

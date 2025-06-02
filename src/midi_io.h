@@ -69,5 +69,8 @@ typedef struct session Session;
 int session_init_midi(Session *session);
 void session_deinit_midi(Session *session);
 
+/* Called at init time, but can be used to refresh the list */
+void session_populate_midi_device_lists(Session *session);
+
 
 #endif

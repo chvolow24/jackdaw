@@ -142,11 +142,22 @@ static void open_output(MIDIDevice *device)
     else fprintf(stderr, "Successfully opened %s\n", device->info->name);
 }
 
-static void session_populate_midi_device_lists(Session *session)
+void session_populate_midi_device_lists(Session *session)
 {
+    
+    /* PortMidi will only know about newly-connected devices when
+       Pm_Initialize is called again :( */
+    Pm_Terminate();
+    midi_close_virtual_devices(&session->midi_io);
+    Pm_Initialize();
+    midi_create_virtual_devices(&session->midi_io);
+    
+    session->midi_io.num_inputs = 0;
+    session->midi_io.num_outputs = 0;
     MIDIDevice devices[MAX_MIDI_DEVICES * 2];
     memset(devices, '\0', sizeof(devices));
     int num = populate_global_midi_device_list(devices);
+    fprintf(stderr, "found %d\n", num);
     if (num < 0) {
 	fprintf(stderr, "Error collecting midi device list. Errno: %d\n", num);
     } else {
@@ -158,11 +169,11 @@ static void session_populate_midi_device_lists(Session *session)
 	    } else {
 		session->midi_io.outputs[session->midi_io.num_outputs] = *device;
 		session->midi_io.num_outputs++;
-		if (strcmp(device->info->name, "Nord Piano 5 MIDI Input") == 0) {
-		    fprintf(stderr, "^^^^opening device Nord Piano 5\n");
-		    session->midi_io.primary_output = session->midi_io.outputs + session->midi_io.num_outputs - 1;
-		    open_output(session->midi_io.primary_output);
-		}
+		/* if (strcmp(device->info->name, "Nord Piano 5 MIDI Input") == 0) { */
+		/*     fprintf(stderr, "^^^^opening device Nord Piano 5\n"); */
+		/*     session->midi_io.primary_output = session->midi_io.outputs + session->midi_io.num_outputs - 1; */
+		/*     open_output(session->midi_io.primary_output); */
+		/* } */
 	    }
 	}
     }
@@ -172,7 +183,7 @@ static void session_populate_midi_device_lists(Session *session)
 int session_init_midi(Session *session)
 {
     int ret = midi_create_virtual_devices(&session->midi_io);
-    session_populate_midi_device_lists(session);			      
+    session_populate_midi_device_lists(session);
     return ret;
 }
 

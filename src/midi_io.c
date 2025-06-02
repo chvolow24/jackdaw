@@ -18,15 +18,15 @@
 #include "portmidi.h"
 #include "session.h"
 
-int midi_device_populate_list(MIDIDevice *devices)
+static int populate_global_midi_device_list(MIDIDevice *devices)
 {
     int num_devices = Pm_CountDevices();
-
-    for (int i=0; i<num_devices; i++) {
-	MIDIDevice d = devices[i];
-	d.info = Pm_GetDeviceInfo(i);
-	d.stream = NULL;
-	d.latency = 0;
+     for (int i=0; i<num_devices; i++) {
+	MIDIDevice *d = devices + i;
+	d->id = i;
+	d->info = Pm_GetDeviceInfo(i);
+	d->stream = NULL;
+	d->latency = 0;
     }
     return num_devices;
 }
@@ -80,6 +80,7 @@ int midi_io_init(void)
     if (err != pmNoError) {
 	fprintf(stderr, "Error initializing PortMidi: %d\n", err);
     }
+    
     return err;
 
     /* MIDIDevice jackdaw_midi_out, jackdaw_midi_in; */
@@ -94,7 +95,7 @@ void midi_io_deinit(void)
     }
 }
 
-int midi_create_virtual_devices(struct midi_io *midi_io)
+static int midi_create_virtual_devices(struct midi_io *midi_io)
 {
     int ret = midi_device_create_jackdaw_out(&midi_io->out);
     if (ret < 0) {
@@ -120,7 +121,7 @@ int midi_create_virtual_devices(struct midi_io *midi_io)
     return ret;
 }
 
-void midi_close_virtual_devices(struct midi_io *midi_io)
+static void midi_close_virtual_devices(struct midi_io *midi_io)
 {
     PmError err = Pm_Close(midi_io->in.stream);
     if (err != pmNoError) {
@@ -133,9 +134,45 @@ void midi_close_virtual_devices(struct midi_io *midi_io)
 
 }
 
+
+static void open_output(MIDIDevice *device)
+{
+    PmError err = Pm_OpenOutput(&device->stream, device->id, NULL, PM_EVENT_BUF_NUM_EVENTS, NULL, NULL, MIDI_OUTPUT_LATENCY);
+    if (err != pmNoError) fprintf(stderr, "Error opening output device, code %d: %s\n", err, Pm_GetErrorText(err));
+    else fprintf(stderr, "Successfully opened %s\n", device->info->name);
+}
+
+static void session_populate_midi_device_lists(Session *session)
+{
+    MIDIDevice devices[MAX_MIDI_DEVICES * 2];
+    memset(devices, '\0', sizeof(devices));
+    int num = populate_global_midi_device_list(devices);
+    if (num < 0) {
+	fprintf(stderr, "Error collecting midi device list. Errno: %d\n", num);
+    } else {
+	for (int i=0; i<num; i++) {
+	    MIDIDevice *device = devices + i;
+	    if (device->info->input) {
+		session->midi_io.inputs[session->midi_io.num_inputs] = *device;
+		session->midi_io.num_inputs++;
+	    } else {
+		session->midi_io.outputs[session->midi_io.num_outputs] = *device;
+		session->midi_io.num_outputs++;
+		if (strcmp(device->info->name, "Nord Piano 5 MIDI Input") == 0) {
+		    fprintf(stderr, "^^^^opening device Nord Piano 5\n");
+		    session->midi_io.primary_output = session->midi_io.outputs + session->midi_io.num_outputs - 1;
+		    open_output(session->midi_io.primary_output);
+		}
+	    }
+	}
+    }
+
+}
+
 int session_init_midi(Session *session)
 {
     int ret = midi_create_virtual_devices(&session->midi_io);
+    session_populate_midi_device_lists(session);			      
     return ret;
 }
 

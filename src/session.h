@@ -23,13 +23,6 @@ struct audio_io {
     /* uint8_t playback_conn_index; */
 };
 
-struct midi_io {
-    MIDIDevice in;
-    bool in_active;
-    MIDIDevice out;
-    bool out_active;
-};
-
 struct session_gui {
     char timeline_label_str[MAX_NAMELENGTH];
     Textbox *timeline_label;

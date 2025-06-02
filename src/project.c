@@ -1460,23 +1460,31 @@ void track_or_tracks_mute(Timeline *tl)
     
 }
 
+enum track_in_type {
+    AUDIO_CONN,
+    MIDI_DEVICE,
+};
 struct track_in_arg {
     Track *track;
-    AudioConn *conn;
+    void *obj;
+    enum track_in_type type;
 };
 static void track_set_in_onclick(void *void_arg)
 {
     Session *session = session_get();
-    /* struct select_dev_onclick_arg *carg = (struct select_dev_onclick_arg *)arg; */
-    /* Track *track = carg->track; */
-    /* AudioConn *dev = carg->new_in; */
     struct track_in_arg *arg = (struct track_in_arg *)void_arg;
-    arg->track->input = arg->conn;
-    textbox_set_value_handle(arg->track->tb_input_name, arg->track->input->name);
+    switch (arg->type) {
+    case AUDIO_CONN:
+	arg->track->input = arg->obj;
+	textbox_set_value_handle(arg->track->tb_input_name, arg->track->input->name);
 
-    window_pop_menu(main_win);
-    Timeline *tl = ACTIVE_TL;
-    tl->needs_redraw = true;
+	window_pop_menu(main_win);
+	Timeline *tl = ACTIVE_TL;
+	tl->needs_redraw = true;
+	break;
+    case MIDI_DEVICE:
+	break;
+    }
     /* window_pop_mode(main_win); */
 }
 
@@ -1491,19 +1499,36 @@ void track_set_input(Track *track)
     Session *session = session_get();
     for (int i=0; i<session->audio_io.num_record_conns; i++) {
 	struct track_in_arg *arg = malloc(sizeof(struct track_in_arg));
+	AudioConn *conn = session->audio_io.record_conns[i];
 	arg->track = track;
-	arg->conn = session->audio_io.record_conns[i];
-	if (arg->conn->available) {
+	arg->obj = conn;
+	arg->type = AUDIO_CONN;
+	if (conn->available) {
 	    MenuItem *item = menu_item_add(
 		sc,
-		arg->conn->name,
-		" ",
+		conn->name,
+		"(Audio)",
 		track_set_in_onclick,
 		arg);
 	    item->free_target_on_destroy = true;
 	}
     }
-    menu_add_header(menu,"", "Select audio input for track.\n\n'n' to select next item; 'p' to select previous item.");
+    for (int i=0; i<session->midi_io.num_inputs; i++) {
+	MIDIDevice *device = session->midi_io.inputs + i;
+	struct track_in_arg *arg = malloc(sizeof(struct track_in_arg));
+	arg->type = MIDI_DEVICE;
+	arg->obj = device;
+	arg->track = track;
+	MenuItem *item = menu_item_add(
+	    sc,
+	    device->info->name,
+	    "(MIDI)",
+	    track_set_in_onclick,
+	    arg);
+	item->free_target_on_destroy = true;
+	
+    }
+    menu_add_header(menu,"", "Select track input");
     window_add_menu(main_win, menu);
     int move_by_y = 0;
     if ((move_by_y = y + menu->layout->rect.h - main_win->layout->rect.h) > 0) {

@@ -24,6 +24,7 @@
 
 #define PM_EVENT_BUF_NUM_EVENTS 64
 #define MAX_MIDI_DEVICES 6
+#define MIDI_OUTPUT_LATENCY 0
 
 #if defined(__APPLE__) && defined(__MACH__)
 #define MIDI_INTERFACE_NAME "CoreMIDI"
@@ -42,10 +43,25 @@ typedef struct midi_device {
     const PmDeviceInfo *info;
 } MIDIDevice;
 
+struct midi_io {
+    MIDIDevice in;
+    bool in_active;
+    MIDIDevice out;
+    bool out_active;
+    
+    MIDIDevice inputs[MAX_MIDI_DEVICES];
+    uint8_t num_inputs;
+    MIDIDevice outputs[MAX_MIDI_DEVICES];
+    uint8_t num_outputs;
+
+    MIDIDevice *primary_output;
+};
+
+
 /* One instance stored on Project */
 
 /* returns number of devices available */
-int midi_device_populate_list(MIDIDevice *devices);
+/* int midi_device_populate_list(MIDIDevice *devices); */
 /* int midi_create_virtual_devices(struct midi_io *midi); */
 /* void midi_close_virtual_devices(struct midi_io *midi); */
 

@@ -19,7 +19,6 @@
 #include <time.h>
 #include "audio_connection.h"
 #include "automation.h"
-#include "components.h"
 #include "eq.h"
 #include "fir_filter.h"
 #include "function_lookup.h"
@@ -27,16 +26,14 @@
 #include "layout.h"
 #include "mouse.h"
 #include "project.h"
-#include "session_endpoint_ops.h"
 #include "project_draw.h"
 #include "screenrecord.h"
+#include "session_endpoint_ops.h"
 #include "session.h"
 #include "settings.h"
-#include "status.h"
 #include "tempo.h"
 #include "timeline.h"
 #include "transport.h"
-#include "value.h"
 #include "window.h"
 
 #define MAX_MODES 8
@@ -214,6 +211,35 @@ void loop_project_main()
 	    case SDL_KEYDOWN: {
 		scrolling_lt = NULL;
 		temp_scrolling_lt = NULL;
+		/* PmMessage m; */
+		/* uint8_t status = main_win->i_state & I_STATE_SHIFT ? 0x80 : 0x90; */
+		/* /\* status = status == 0x90 ? 0x80 : 0x90; *\/ */
+		/* uint8_t velocity = 50; */
+		/* uint8_t note = e.key.keysym.sym; */
+		/* m = Pm_Message(status, note, velocity); */
+		/* PmEvent pme; */
+		/* pme.message = m; */
+		/* pme.timestamp = 0; */
+		/* if (session->midi_io.primary_output) { */
+		/*     session->midi_io.primary_output->buffer[0] = pme; */
+		/*     status = 0x80; */
+		/*     m = Pm_Message(status, note, velocity); */
+		/*     pme.message = m; */
+		/*     session->midi_io.primary_output->buffer[1] = pme; */
+		/*     PmError err = Pm_Write( */
+		/* 	session->midi_io.primary_output->stream, */
+		/* 	session->midi_io.primary_output->buffer, */
+		/* 	2); */
+		/*     if (err == TRUE) { */
+		/* 	fprintf(stderr, "Sent! note %d, velocity %d, type %#xh\n", note, velocity, status); */
+		/*     } else if (err == FALSE) { */
+		/* 	fprintf(stderr, "uhhh note %d, velocity %d, type %#x\n", note, velocity, status); */
+		/*     } else { */
+		/* 	fprintf(stderr, "ERROR (%s) note %d, velocity %d, type %#x\n", Pm_GetErrorText(err), note, velocity, status); */
+		/*     } */
+			    
+		/* } */
+
 		switch (e.key.keysym.scancode) {
 		/* case SDL_SCANCODE_6: { */
 		/*     do_interpolation = !do_interpolation; */
@@ -252,7 +278,7 @@ void loop_project_main()
 		/* 	filter_set_arbitrary_IR(f, c->L + pos, 2048); */
 		/*     } */
 		/* } */
-		    break;
+		    /* break; */
 		/* case SDL_SCANCODE_6: { */
 		/*     create_global_ac(); */
 		    /* const char *words[] = {"a", "b", "c"}; */

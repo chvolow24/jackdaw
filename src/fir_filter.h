@@ -11,8 +11,10 @@
 /*****************************************************************************************************************
     fir_filter.h
 
-    * 
-    * 
+    * Finite Impulse Response (FIR) filters
+    * lowpass, highpass, bandpass, and band-cut frequency response types available
+    * frequency response implemented via windowed sinc method
+    * filters applied via block convolution
 *****************************************************************************************************************/
 
 #include <complex.h>

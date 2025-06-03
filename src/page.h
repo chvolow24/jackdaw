@@ -12,8 +12,9 @@
 /*****************************************************************************************************************
     page.h
 
-    * Define Page and TabView structs
-    * Interface for creation of dynamic GUIs with accompanying Layout files
+    * Page and TabView GUI objects
+    * TabView is a collection of Pages accessible via tabs
+    * Pages created from stored layout xml files (assets/layouts)
  *****************************************************************************************************************/
 
 

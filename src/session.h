@@ -1,3 +1,23 @@
+/*****************************************************************************************************************
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
+******************************************************************************************************************
+
+  Copyright (C) 2023-2025 Charlie Volow
+  
+  Jackdaw is licensed under the GNU General Public License.
+
+*****************************************************************************************************************/
+
+
+/*****************************************************************************************************************
+    session.h
+
+    * dumping ground for "global" program state
+    * contains a single active Project
+    * session_get() must be called by all functions that access or modify the global state
+    * (successor to global Project *proj, deprecated after v0.6.0)
+ *****************************************************************************************************************/
+
 #ifndef JDAW_SESSION_H
 #define JDAW_SESSION_H
 

@@ -11,7 +11,10 @@
 /*****************************************************************************************************************
     api.h
 
-    * typedefs supporting jackdaw UDP API
+    * create and maintain data structures related to UDP API
+    * setup and teardown UDP server
+    * triage messages sent via UDP
+
  *****************************************************************************************************************/
 
 #include <arpa/inet.h>

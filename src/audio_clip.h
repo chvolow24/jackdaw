@@ -9,47 +9,46 @@
 *****************************************************************************************************************/
 
 /*****************************************************************************************************************
-    clipref.h
+    audio_clip.h
 
-    * a ClipRef is a reference to an audio clip (Clip) or MIDI clip (MIDIClip) on the timeline
-    * audio- and MIDI-specific interfaces in audio_clip.h and MIDI_clip.h
+    * container for all persistent linear PCM audio data
+    * referenced on timeline as ClipRef (see clipref.h)
+    * can be recorded directly from a audio device (audio_conn.h)
+    * MIDI counterpart in midi_clip.h
 *****************************************************************************************************************/
 
-#ifndef JDAW_TRACK_CLIP_H
-#define JDAW_TRACK_CLIP_H
+#ifndef JDAW_AUDIO_CLIP_H
+#define JDAW_AUDIO_CLIP_H
 
 #include "textbox.h"
 
-enum clip_type {
-    CLIP_AUDIO,
-    CLIP_MIDI
-};
-
+typedef struct clip_ref ClipRef;
 typedef struct track Track;
+typedef struct audio_conn AudioConn;
 
-typedef struct clip_ref {
+typedef struct clip {
     char name[MAX_NAMELENGTH];
-    enum clip_type type;
-    void *source_clip;
     bool deleted;
-    bool grabbed;
-    int32_t tl_pos;
-    int32_t start_in_clip;
-    int32_t end_in_clip;
+    uint8_t channels;
+    uint32_t len_sframes;
+    /* ClipRef *refs[MAX_CLIP_REFS]; */
+    /* uint16_t num_refs; */
+    
+    ClipRef **refs;
+    uint16_t num_refs;
+    uint16_t refs_alloc_len;
+    
+    float *L;
+    float *R;
+    uint32_t write_bufpos_sframes;
+    /* Recording in */
+    Track *target;
+    bool recording;
+    AudioConn *recorded_from;
+    
+} Clip;
 
-    Track *track;
 
-    Layout *layout;
-    Textbox *label;
-
-    /* Audio only */
-    SDL_Texture *waveform_texture;
-    pthread_mutex_t waveform_texture_lock;
-    pthread_mutex_t lock;
-    bool waveform_redraw;
-} ClipRef;
-
-void tclip_reset(ClipRef *tc, bool rescaled);
-void tclip_ungrab(ClipRef *tc);
+void clip_destroy(Clip *clip);
 
 #endif

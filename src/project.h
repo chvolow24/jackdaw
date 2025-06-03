@@ -12,6 +12,7 @@
     project.h
 
     * Project, Timeline, and Track definitions
+    * and related interfaces
 
 *****************************************************************************************************************/
 
@@ -39,7 +40,7 @@
 #include "effect.h"
 #include "eq.h"
 #include "endpoint.h"
-#include "midi_note.h"
+/* #include "midi_note.h" */
 #include "tempo.h"
 #include "track_clip.h"
 #include "saturation.h"
@@ -105,7 +106,7 @@ typedef struct track {
     Timeline *tl; /* Parent timeline */
     uint8_t tl_rank;
 
-    TrackClip **clips;
+    ClipRef **clips;
     uint16_t num_clips;
     uint16_t clips_alloc_len;
     /* ClipRef *clips[MAX_TRACK_CLIPS]; */
@@ -201,54 +202,54 @@ typedef struct track {
     // SDL_Rect *in_bar;
 } Track;
 
-typedef struct clip_ref {
-    char name[MAX_NAMELENGTH];
-    bool deleted;
-    int32_t pos_sframes;
-    uint32_t in_mark_sframes;
-    uint32_t out_mark_sframes;
-    uint32_t start_ramp_len;
-    uint32_t end_ramp_len;
-    Clip *clip;
-    Track *track;
-    bool home;
-    bool grabbed;
+/* typedef struct clip_ref { */
+/*     char name[MAX_NAMELENGTH]; */
+/*     bool deleted; */
+/*     int32_t pos_sframes; */
+/*     uint32_t in_mark_sframes; */
+/*     uint32_t out_mark_sframes; */
+/*     uint32_t start_ramp_len; */
+/*     uint32_t end_ramp_len; */
+/*     Clip *clip; */
+/*     Track *track; */
+/*     bool home; */
+/*     bool grabbed; */
 
-    Layout *layout;
-    /* SDL_Rect rect; */
-    pthread_mutex_t lock;
-    Textbox *label;
+/*     Layout *layout; */
+/*     /\* SDL_Rect rect; *\/ */
+/*     pthread_mutex_t lock; */
+/*     Textbox *label; */
 
-    SDL_Texture *waveform_texture;
-    pthread_mutex_t waveform_texture_lock;
-    bool waveform_redraw;
-} ClipRef;
+/*     SDL_Texture *waveform_texture; */
+/*     pthread_mutex_t waveform_texture_lock; */
+/*     bool waveform_redraw; */
+/* } ClipRef; */
     
-typedef struct clip {
-    char name[MAX_NAMELENGTH];
-    bool deleted;
-    uint8_t channels;
-    uint32_t len_sframes;
-    /* ClipRef *refs[MAX_CLIP_REFS]; */
-    /* uint16_t num_refs; */
+/* typedef struct clip { */
+/*     char name[MAX_NAMELENGTH]; */
+/*     bool deleted; */
+/*     uint8_t channels; */
+/*     uint32_t len_sframes; */
+/*     /\* ClipRef *refs[MAX_CLIP_REFS]; *\/ */
+/*     /\* uint16_t num_refs; *\/ */
     
-    ClipRef **refs;
-    uint16_t num_refs;
-    uint16_t refs_alloc_len;
+/*     ClipRef **refs; */
+/*     uint16_t num_refs; */
+/*     uint16_t refs_alloc_len; */
     
-    float *L;
-    float *R;
-    uint32_t write_bufpos_sframes;
-    /* Recording in */
-    Track *target;
-    bool recording;
-    AudioConn *recorded_from;
+/*     float *L; */
+/*     float *R; */
+/*     uint32_t write_bufpos_sframes; */
+/*     /\* Recording in *\/ */
+/*     Track *target; */
+/*     bool recording; */
+/*     AudioConn *recorded_from; */
 
-    /* /\* Xfade *\/ */
-    /* uint32_t start_ramp_len_sframes; */
-    /* uint32_t end_ramp_len_sframes; */
+/*     /\* /\\* Xfade *\\/ *\/ */
+/*     /\* uint32_t start_ramp_len_sframes; *\/ */
+/*     /\* uint32_t end_ramp_len_sframes; *\/ */
     
-} Clip;
+/* } Clip; */
 
 typedef struct timecode {
     uint8_t hours;
@@ -307,13 +308,13 @@ typedef struct timeline {
     Project *proj;
 
     /* ClipRef *grabbed_clips[MAX_GRABBED_CLIPS]; */
-    TrackClip *grabbed_clips[MAX_GRABBED_CLIPS];
+    ClipRef *grabbed_clips[MAX_GRABBED_CLIPS];
     uint8_t num_grabbed_clips;
     struct track_and_pos grabbed_clip_pos_cache[MAX_GRABBED_CLIPS];
     bool grabbed_clip_cache_initialized;
     bool grabbed_clip_cache_pushed;
 
-    TrackClip *clipboard[MAX_GRABBED_CLIPS];
+    ClipRef *clipboard[MAX_GRABBED_CLIPS];
     /* ClipRef *clipboard[MAX_GRABBED_CLIPS]; */
     uint8_t num_clips_in_clipboard;
 
@@ -394,18 +395,18 @@ Layout *timeline_selected_layout(Timeline *tl);
 void timeline_reset_full(Timeline *tl);
 void timeline_reset(Timeline *tl, bool rescaled);
 Clip *project_add_clip(AudioConn *dev, Track *target);
-ClipRef *track_add_clipref(Track *track, Clip *clip, int32_t record_from_sframes, bool home);
-MIDIClipRef *track_add_midiclipref(Track *track, MIDIClip *clip, int32_t record_from_sframes);
-int32_t clipref_len(ClipRef *cr);
-bool clipref_marked(Timeline *tl, ClipRef *cr);
+/* ClipRef *track_add_clipref(Track *track, Clip *clip, int32_t record_from_sframes, bool home); */
+/* MIDIClipRef *track_add_midiclipref(Track *track, MIDIClip *clip, int32_t record_from_sframes); */
+/* int32_t clipref_len(ClipRef *cr); */
+/* bool clipref_marked(Timeline *tl, ClipRef *cr); */
 /* int32_t clip_ref_len(ClipRef *cr); */
 /* void clipref_reset(ClipRef *cr); */
-void clipref_reset(ClipRef *cr, bool rescaled);
-void midi_clipref_reset(MIDIClipRef *mcr, bool rescaled);
+/* void clipref_reset(ClipRef *cr, bool rescaled); */
+/* void midi_clipref_reset(MIDIClipRef *mcr, bool rescaled); */
 
-void clipref_displace(ClipRef *cr, int displace_by);
-void clipref_move_to_track(ClipRef *cr, Track *target);
-int clipref_split_stereo_to_mono(ClipRef *cr, ClipRef **new_L, ClipRef **new_R);
+/* void clipref_displace(ClipRef *cr, int displace_by); */
+/* void clipref_move_to_track(ClipRef *cr, Track *target); */
+/* int clipref_split_stereo_to_mono(ClipRef *cr, ClipRef **new_L, ClipRef **new_R); */
 
 void track_increment_vol(Track *track);
 void track_decrement_vol(Track *track);
@@ -425,20 +426,20 @@ void track_destroy(Track *track, bool displace);
 void track_or_tracks_solo(Timeline *tl, Track *opt_track);
 void track_or_tracks_mute(Timeline *tl);
 
-ClipRef *clipref_at_cursor();
-ClipRef *clipref_at_cursor_in_track(Track *track);
-ClipRef *clipref_before_cursor(int32_t *pos_dst);
-ClipRef *clipref_after_cursor(int32_t *pos_dst);
-void clipref_bring_to_front();
-void clipref_rename(ClipRef *cr);
-void timeline_ungrab_all_cliprefs(Timeline *tl);
-void clipref_grab(ClipRef *cr);
-void clipref_ungrab(ClipRef *cr);
-void clipref_destroy(ClipRef *cr, bool);
-void clipref_destroy_no_displace(ClipRef *cr);
-void clipref_delete(ClipRef *cr);
-void clipref_undelete(ClipRef *cr);
-void clip_destroy(Clip *clip);
+/* ClipRef *clipref_at_cursor(); */
+/* ClipRef *clipref_at_cursor_in_track(Track *track); */
+/* ClipRef *clipref_before_cursor(int32_t *pos_dst); */
+/* ClipRef *clipref_after_cursor(int32_t *pos_dst); */
+/* void clipref_bring_to_front(); */
+/* void clipref_rename(ClipRef *cr); */
+/* void timeline_ungrab_all_cliprefs(Timeline *tl); */
+/* void clipref_grab(ClipRef *cr); */
+/* void clipref_ungrab(ClipRef *cr); */
+/* void clipref_destroy(ClipRef *cr, bool); */
+/* void clipref_destroy_no_displace(ClipRef *cr); */
+/* void clipref_delete(ClipRef *cr); */
+/* void clipref_undelete(ClipRef *cr); */
+/* void clip_destroy(Clip *clip); */
 void timeline_delete(Timeline *tl, bool from_undo);
 void timeline_cache_grabbed_clip_offsets(Timeline *tl);
 void timeline_cache_grabbed_clip_positions(Timeline *tl);

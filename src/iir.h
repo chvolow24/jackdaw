@@ -12,9 +12,8 @@
 /*****************************************************************************************************************
     iir.h
 
-    * Define types related to infinite impulse response filters
-    * Filters are stateful
-    * Interface for parameter adjustment and sample- or buffer-wise application
+    * Infinite Impulse Response (IIR) filters
+    * interface for parameter adjustment and sample- or buffer-wise application
  *****************************************************************************************************************/
 
 #ifndef JDAW_IIR_H

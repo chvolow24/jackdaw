@@ -12,8 +12,14 @@
 /*****************************************************************************************************************
     status.h
 
-    * write text to the project status bar
- *****************************************************************************************************************/
+    * write messages to the project status bar (bottom of screen)
+    * several distinct message types:
+        - errors (errstr)
+        - user function calls (callstr)
+        - undo/redos (undostr)
+        - playback speed changes
+        - clip drag state (clipref.h)
+*****************************************************************************************************************/
 
 #ifndef JDAW_STATUS_H
 

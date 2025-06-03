@@ -8,19 +8,10 @@
 
 *****************************************************************************************************************/
 
-/*****************************************************************************************************************
-    endpoint_callbacks.c
-
-    * Definitions of all endpoint callback functions
- *****************************************************************************************************************/
-
-/* #include "dsp.h" */
 #include "endpoint_callbacks.h"
 #include "page.h"
 #include "session_endpoint_ops.h"
 #include "status.h"
-
-
 
 extern Project *proj;
 extern Window *main_win;

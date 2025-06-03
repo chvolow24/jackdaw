@@ -8,6 +8,8 @@
 
 *****************************************************************************************************************/
 
+#ifdef UNDEF_DEPRECATED
+
 #ifndef JDAW_THEME_H
 #define JDAW_THEME_H
 
@@ -20,5 +22,7 @@ typedef struct jdaw_color {
 } JDAW_Color;
 
 SDL_Color get_color(JDAW_Color *color);
+
+#endif
 
 #endif

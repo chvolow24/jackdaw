@@ -11,8 +11,8 @@
 /*****************************************************************************************************************
     eq.h
 
-    * Parametric EQ
-    * Implemented as IIR group and accompanying freq plot
+    * cascaded biquad Parametric EQ
+    * Implemented as IIR group (see iir.h) and accompanying freq plot
  *****************************************************************************************************************/
 
 #ifndef JDAW_EQ_H

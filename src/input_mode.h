@@ -12,7 +12,8 @@
 /*****************************************************************************************************************
     input_mode.h
 
-    * Define input mode enum, listing available input modes
+    * define input mode enum, listing available input modes
+    * create all user function objects at start time (mode_load_all())
  *****************************************************************************************************************/
 
 

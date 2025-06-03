@@ -11,8 +11,9 @@
 /*****************************************************************************************************************
     animation.h
 
-    * Typedefs related to "animations"
- *****************************************************************************************************************/
+    * GUI-related operations that must occur every frame
+    * each animation has a timer that is decremented every frame
+*****************************************************************************************************************/
 
 #ifndef JDAW_ANIMATION_H
 #define JDAW_ANIMATION_H

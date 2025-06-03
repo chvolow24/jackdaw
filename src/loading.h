@@ -1,3 +1,23 @@
+/*****************************************************************************************************************
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
+******************************************************************************************************************
+
+  Copyright (C) 2023-2025 Charlie Volow
+  
+  Jackdaw is licensed under the GNU General Public License.
+
+*****************************************************************************************************************/
+
+/*****************************************************************************************************************
+    loading.h
+
+    * loading screens for long-running operations
+    * optional progress bar
+    * session_loading_screen_update() polls for available SDL_Events,
+      preventing the program from appearing unresponsive
+    * BUT session_loading_screen_update() MUST BE USED JUDICIOUSLY lest
+      it significantly slow the already-long-running operations under its auspices
+ *****************************************************************************************************************/
 
 #ifndef JDAW_LOADING_H
 #define JDAW_LOADING_H

@@ -8,14 +8,6 @@
 
 *****************************************************************************************************************/
 
-
-/*****************************************************************************************************************
-    project.c
-
-    * functions modifying project-related structures that do not belong elsewhere
-    * timeline.c contains operations related to visualizing time onscreen
- *****************************************************************************************************************/
-
 #include <errno.h>
 #include <pthread.h>
 #include <string.h>
@@ -571,7 +563,7 @@ Track *timeline_add_track(Timeline *tl)
     track->channels = tl->proj->channels;
 
     track->clips_alloc_len = 16;
-    track->clips = calloc(track->clips_alloc_len, sizeof(TrackClip *));
+    track->clips = calloc(track->clips_alloc_len, sizeof(ClipRef *));
 
     Session *session = session_get();
     track->input = session->audio_io.record_conns[0];
@@ -1831,110 +1823,18 @@ void track_destroy(Track *track, bool displace)
     free(track);
 }
 
-void clipref_delete(ClipRef *cr)
-{
-    if (cr->grabbed) {
-	clipref_ungrab(cr);
-    }
-    cr->track->tl->needs_redraw = true;
-    cr->deleted = true;
-    clipref_remove_from_track(cr);
-}
+/* void clipref_delete(ClipRef *cr) */
+/* { */
+/*     if (cr->grabbed) { */
+/* 	clipref_ungrab(cr); */
+/*     } */
+/*     cr->track->tl->needs_redraw = true; */
+/*     cr->deleted = true; */
+/*     clipref_remove_from_track(cr); */
+/* } */
 
-void clipref_undelete(ClipRef *cr)
-{
-    cr->track->tl->needs_redraw = true;
-    cr->deleted = false;
-    clipref_insert_on_track(cr, cr->track);
-}
 
-static void clipref_check_and_remove_from_clipboard(ClipRef *cr)
-{
-    /* fprintf(stderr, "handling destruction CHECK AND REMOVE\n"); */
-    Timeline *tl = cr->track->tl;
-    bool displace = false;
-    for (int i=0; i<tl->num_clips_in_clipboard; i++) {
-	if (tl->clipboard[i] == cr) {
-	    displace = true;
-	    /* fprintf(stderr, "Found %p==%p at index %d\n", cr, tl->clipboard[i], i); */
-	} else if (displace) {
-	    /* fprintf(stderr, "\tMoving index %d->%d\n", i, i-1); */
-	    tl->clipboard[i-1] = tl->clipboard[i];
-	}
-    }
-    if (displace) {
-	tl->num_clips_in_clipboard--;
-	/* fprintf(stderr, "removed!\n"); */
-    }
-}
 
-void clipref_destroy(ClipRef *cr, bool displace_in_clip)
-{
-    Track *track = cr->track;
-    Clip *clip = cr->clip;
-
-    clipref_check_and_remove_from_clipboard(cr);
-
-    bool displace = false;
-    for (uint16_t i=0; i<track->num_clips; i++) {
-	if (track->clips[i] == cr) {
-	    displace = true;
-	} else if (displace && i>0) {
-	    track->clips[i-1] = track->clips[i];
-	}
-    }
-    if (displace) {
-	track->num_clips--; /* else not found! */
-    }
-    /* fprintf(stdout, "\t->Track %d now has %d clips\n", track->tl_rank, track->num_clips); */
-
-    if (displace_in_clip) {
-	displace = false;
-	for (uint16_t i=0; i<clip->num_refs; i++) {
-	    if (cr == clip->refs[i]) displace = true;
-	    else if (displace) {
-		clip->refs[i-1] = clip->refs[i];
-	    }
-	}
-	clip->num_refs--;
-	/* fprintf(stdout, "\t->Clip at %p now has %d refs\n", clip, clip->num_refs); */
-    }
-
-    /* TODO: keep clips around */
-    if (clip->num_refs == 0) {
-	clip_destroy(clip);
-    }
-    textbox_destroy(cr->label);
-    /* SDL_DestroyMutex(cr->lock); */
-    pthread_mutex_destroy(&cr->lock);
-    if (cr->waveform_texture)
-	SDL_DestroyTexture(cr->waveform_texture);
-    free(cr);
-}
-void clipref_destroy_no_displace(ClipRef *cr)
-{
-    clipref_check_and_remove_from_clipboard(cr);
-    /* fprintf(stdout, "Clipref destroy no displace %s\n", cr->name); */
-    bool displace = false;
-    for (uint16_t i=0; i<cr->clip->num_refs; i++) {
-	ClipRef *test = cr->clip->refs[i];
-	if (test == cr) displace = true;
-	else if (displace) {
-	    cr->clip->refs[i-1] = cr->clip->refs[i];
-	}
-    }
-    cr->clip->num_refs--;
-    /* TODO: keep clips around */
-    if (cr->clip->num_refs == 0) {
-	clip_destroy(cr->clip);
-    }
-    pthread_mutex_destroy(&cr->lock);
-    /* SDL_DestroyMutex(cr->lock); */
-    textbox_destroy(cr->label);
-    if (cr->waveform_texture)
-	SDL_DestroyTexture(cr->waveform_texture);
-    free(cr);
-}
 
 static void clip_destroy_no_displace(Clip *clip)
 {
@@ -2444,64 +2344,7 @@ ClipRef *clipref_at_cursor()
     }
     return NULL;
 }
-ClipRef *clipref_at_cursor()
-{
-    Session *session = session_get();
-    Timeline *tl = ACTIVE_TL;
-    Track *track = timeline_selected_track(tl);
-    if (!track) return NULL;
-    
-    /* Reverse iter to ensure top-most clip is returned in case of overlap */
-    for (int i=track->num_clips -1; i>=0; i--) {
-	ClipRef *cr = track->clips[i];
-	if (cr->pos_sframes <= tl->play_pos_sframes && cr->pos_sframes + clipref_len(cr) >= tl->play_pos_sframes) {
-	    return cr;
-	}
-    }
-    return NULL;
-}
 
-ClipRef *clipref_before_cursor(int32_t *pos_dst)
-{
-    Session *session = session_get();
-    Timeline *tl = ACTIVE_TL;
-    Track *track = timeline_selected_track(tl);
-    if (!track) return NULL;
-    if (track->num_clips == 0) return NULL;
-    ClipRef *ret = NULL;
-    int32_t end = INT32_MIN;
-    for (int i=0; i<track->num_clips; i++) {
-	ClipRef *cr = track->clips[i];
-	int32_t cr_end = cr->pos_sframes + clipref_len(cr);
-	if (cr_end < tl->play_pos_sframes && cr_end >= end) {
-	    ret = cr;
-	    end = cr_end;
-	}
-    }
-    *pos_dst = end;
-    return ret;
-}
-
-ClipRef *clipref_after_cursor(int32_t *pos_dst)
-{
-    Session *session = session_get();
-    Timeline *tl = ACTIVE_TL;
-    Track *track = timeline_selected_track(tl);
-    if (!track) return NULL;
-    if (track->num_clips == 0) return NULL;
-    ClipRef *ret = NULL;
-    int32_t start = INT32_MAX;
-    for (int i=0; i<track->num_clips; i++) {
-	ClipRef *cr = track->clips[i];
-	int32_t cr_start = cr->pos_sframes;
-	if (cr_start > tl->play_pos_sframes && cr_start <= start) {
-	    start = cr_start;
-	    *pos_dst = cr_start;
-	    ret = cr;
-	}
-    }
-    return ret;
-}
 
 /* void clipref_grab(ClipRef *cr) */
 /* { */
@@ -2543,75 +2386,34 @@ void timeline_ungrab_all_cliprefs(Timeline *tl)
 }
 
 
-static NEW_EVENT_FN(undo_cut_clipref, "undo cut clip")
-    ClipRef *cr1 = (ClipRef *)obj1;
-    ClipRef *cr2 = (ClipRef *)obj2;
-    cr1->out_mark_sframes = val2.int32_v;
-    clipref_reset(cr1, true);
-    clipref_delete(cr2);
-}
-
-static NEW_EVENT_FN(redo_cut_clipref, "redo cut clip")
-    ClipRef *cr1 = (ClipRef *)obj1;
-    ClipRef *cr2 = (ClipRef *)obj2;
-    clipref_undelete(cr2);
-    cr1->out_mark_sframes = val1.int32_v;
-    clipref_reset(cr1, true);
-    /* clipref_reset(cr2); */
-}
-
-static NEW_EVENT_FN(cut_clip_dispose_forward, "")
-    clipref_destroy_no_displace((ClipRef *)obj2);
-}
-
     
-static ClipRef *clipref_cut(ClipRef *cr, int32_t cut_pos_rel)
-{
-    ClipRef *new = track_add_clipref(cr->track, cr->clip, cr->pos_sframes + cut_pos_rel, false);
-    if (!new) {
-	return NULL;
-    }
-    if (cut_pos_rel < 0) return NULL;
-    new->in_mark_sframes = cr->in_mark_sframes + cut_pos_rel;
-    new->out_mark_sframes = cr->out_mark_sframes == 0 ? clipref_len(cr) : cr->out_mark_sframes;
-    Value orig_end_pos = {.int32_v = cr->out_mark_sframes};
-    cr->out_mark_sframes = cr->out_mark_sframes == 0 ? cut_pos_rel : cr->out_mark_sframes - (clipref_len(cr) - cut_pos_rel);
-    track_reset(cr->track, true);
+/* static ClipRef *clipref_cut(ClipRef *cr, int32_t cut_pos_rel) */
+/* { */
+/*     ClipRef *new = track_add_clipref(cr->track, cr->clip, cr->pos_sframes + cut_pos_rel, false); */
+/*     if (!new) { */
+/* 	return NULL; */
+/*     } */
+/*     if (cut_pos_rel < 0) return NULL; */
+/*     new->in_mark_sframes = cr->in_mark_sframes + cut_pos_rel; */
+/*     new->out_mark_sframes = cr->out_mark_sframes == 0 ? clipref_len(cr) : cr->out_mark_sframes; */
+/*     Value orig_end_pos = {.int32_v = cr->out_mark_sframes}; */
+/*     cr->out_mark_sframes = cr->out_mark_sframes == 0 ? cut_pos_rel : cr->out_mark_sframes - (clipref_len(cr) - cut_pos_rel); */
+/*     track_reset(cr->track, true); */
 
-    Value cut_pos = {.int32_v = cr->out_mark_sframes};
-    user_event_push(
-	undo_cut_clipref,
-	redo_cut_clipref,
-	NULL,
-	cut_clip_dispose_forward,
-	cr, new,
-	cut_pos, orig_end_pos, cut_pos, orig_end_pos,
-	0, 0, false, false);
+/*     Value cut_pos = {.int32_v = cr->out_mark_sframes}; */
+/*     user_event_push( */
+/* 	undo_cut_clipref, */
+/* 	redo_cut_clipref, */
+/* 	NULL, */
+/* 	cut_clip_dispose_forward, */
+/* 	cr, new, */
+/* 	cut_pos, orig_end_pos, cut_pos, orig_end_pos, */
+/* 	0, 0, false, false); */
 
-    return new;
-}
+/*     return new; */
+/* } */
 
 
-
-void timeline_cut_at_cursor(Timeline *tl)
-{
-    Track *track = timeline_selected_track(tl);
-    if (track) {
-	status_cat_callstr(" clipref at cursor");
-	ClipRef *cr = clipref_at_cursor();
-	if (!cr) {
-	    status_set_errstr("Error: no clip at cursor");
-	    return;
-	}
-	if (tl->play_pos_sframes > cr->pos_sframes && tl->play_pos_sframes < cr->pos_sframes + clipref_len(cr)) {
-	    clipref_cut(cr, tl->play_pos_sframes - cr->pos_sframes);
-	}
-    } else {
-	timeline_cut_click_track_at_cursor(tl);
-	status_cat_callstr(" tempo track at cursor");
-
-    }
-}
 
 
 /* static NEW_EVENT_FN(undo_redo_move_track, "undo/redo move track") */

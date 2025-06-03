@@ -12,7 +12,8 @@
 /*****************************************************************************************************************
     input.h
 
-    * Define types related to user input, keybindings, and input modes
+    * bind UserFn objects (input_mode.h) to key bindings at start time
+    * hash user inputs to find related functions
  *****************************************************************************************************************/
 
 

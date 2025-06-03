@@ -17,7 +17,6 @@
 
 #include "project.h"
 #include "endpoint.h"
-#include "modal.h"
 
 void play_speed_gui_cb(Endpoint *ep);
 void track_slider_cb(Endpoint *ep);

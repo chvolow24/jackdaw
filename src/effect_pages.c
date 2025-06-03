@@ -11,6 +11,7 @@
 /*****************************************************************************************************************
     effect_pages.c
 
+    * (no header file)
     * horrible procedural construction of GUI pages for effects
     * this is why they invented HTML
  *****************************************************************************************************************/
@@ -32,9 +33,6 @@ extern SDL_Color EQ_CTRL_COLORS[];
 extern SDL_Color EQ_CTRL_COLORS_LIGHT[];
 
 extern struct colors colors;
-
-
-
 
 SDL_Color filter_selected_clr = {50, 50, 200, 255};
 SDL_Color filter_selected_inactive = {100, 100, 100, 100};

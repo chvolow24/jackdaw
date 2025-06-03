@@ -8,6 +8,16 @@
 
 *****************************************************************************************************************/
 
+
+/*****************************************************************************************************************
+    timeline.c
+
+    * operations related to timeline positions
+    * translate between draw coordinates and absolute positions
+      (time values in sample frames)
+    * other timeline operations in project.h
+ *****************************************************************************************************************/
+
 #ifndef JDAW_TIMELINE_H
 #define JDAW_TIMELINE_H
 

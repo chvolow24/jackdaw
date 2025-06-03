@@ -1,3 +1,22 @@
+/*****************************************************************************************************************
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
+******************************************************************************************************************
+
+  Copyright (C) 2023-2025 Charlie Volow
+  
+  Jackdaw is licensed under the GNU General Public License.
+
+*****************************************************************************************************************/
+
+
+/*****************************************************************************************************************
+    thread_safety.h
+
+    * define standard jackdaw execution thread identifiers
+    * test-only guardrails for restricted functions
+*****************************************************************************************************************/
+
+
 #ifndef JDAW_THREAD_SAFETY_H
 #define JDAW_THREAD_SAFETY_H
 

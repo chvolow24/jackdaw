@@ -12,7 +12,8 @@
 /*****************************************************************************************************************
     session_endpoint_ops.h
 
-    * project-level functions managing operations related to the Endpoints API
+    * session-level functions managing operations related to the Endpoints API
+    * see endpoints.h for motivation/context
  *****************************************************************************************************************/
 
 

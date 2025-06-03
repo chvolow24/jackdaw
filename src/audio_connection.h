@@ -12,7 +12,8 @@
 /*****************************************************************************************************************
     audio_connection.h
 
-    * Typedef structs for audio connections (e.g. devices)
+    * Query for available audio connections
+    * Open and close individual audio connections
  *****************************************************************************************************************/
 
 

@@ -275,6 +275,53 @@ static void clipref_draw_waveform(ClipRef *cr)
     /* } */
 }
 
+static void midi_clipref_draw(MIDIClipRef *mcr)
+{
+    Session *session = session_get();
+    if (mcr->deleted) {
+	return;
+    }
+    if (mcr->grabbed && session->dragging) {
+	midi_clipref_reset(mcr, false);
+    }
+    /* Only check horizontal out-of-bounds; track handles vertical */
+    if (mcr->layout->rect.x > main_win->w_pix || mcr->layout->rect.x + mcr->layout->rect.w < 0) {
+	return;
+    }
+
+    /* if (cr->home) { */
+    /* 	if (cr->grabbed) { */
+    /* 	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_home_grabbed_bckgrnd)); */
+    /* 	} else { */
+    /* 	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_home_bckgrnd)); */
+    /* 	} */
+    /* } else { */
+    /* 	if (cr->grabbed) { */
+    /* 	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_grabbed_bckgrnd)); */
+    /* 	} else { */
+    /* 	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_bckgrnd)); */
+    /* 	} */
+    /* } */
+
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(midi_clipref_color));
+    
+    SDL_RenderFillRect(main_win->rend, &mcr->layout->rect);
+    /* if (!mcr->clip->recording) { */
+    /* 	clipref_draw_waveform(); */
+    /* } */
+
+    int border = mcr->grabbed ? 3 : 2;
+	
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
+    geom_draw_rect_thick(main_win->rend, &mcr->layout->rect, border, main_win->dpi_scale_factor);
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.white));    
+    geom_draw_rect_thick(main_win->rend, &mcr->layout->rect, border / 2, main_win->dpi_scale_factor);
+    if (mcr->label) {
+	textbox_draw(mcr->label);
+    }
+
+}
+
 static void clipref_draw(ClipRef *cr)
 {
     /* clipref_reset(cr); */
@@ -348,6 +395,11 @@ static void track_draw(Track *track)
     for (uint16_t i=0; i<track->num_clips; i++) {
 	clipref_draw(track->clips[i]);
     }
+
+    for (uint16_t i=0; i<track->num_midi_cliprefs; i++) {
+	midi_clipref_draw(track->midi_cliprefs[i]);
+    }
+
     /* Left mask */
     SDL_Rect l_mask = {0, track->layout->rect.y, track->console_rect->x, track->layout->rect.h};
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(timeline_bckgrnd));

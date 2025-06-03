@@ -16,6 +16,7 @@
  *****************************************************************************************************************/
 
 
+#ifdef THIS_IS_NOT_DEFINED
 #ifndef JDAW_NOTE_H
 
 #include <stdint.h>
@@ -48,4 +49,5 @@ typedef struct midi_clip_ref {
 
 
 
+#endif
 #endif

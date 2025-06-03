@@ -500,7 +500,7 @@ void transport_start_recording()
 		conn->current_clip_repositioned = false;
 	    }
 	    /* Clip ref is created as "home", meaning clip data itself is associated with this ref */
-	    track_create_clip_ref(track, clip, tl->record_from_sframes, home);
+	    track_add_clipref(track, clip, tl->record_from_sframes, home);
 	}
     }
     if (no_tracks_active) {
@@ -529,7 +529,7 @@ void transport_start_recording()
 	    conn->current_clip_repositioned = false;
 	}
 	/* Clip ref is created as "home", meaning clip data itself is associated with this ref */
-	track_create_clip_ref(track, clip, tl->record_from_sframes, home);
+	track_add_clipref(track, clip, tl->record_from_sframes, home);
     }
 
     for (uint8_t i=0; i<num_conns_to_activate; i++) {

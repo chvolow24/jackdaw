@@ -429,7 +429,7 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
     final_buffer = NULL;
     src_buf = NULL;
     /* free(wav_cvt.buf); */
-    ClipRef *cr = track_create_clip_ref(track, clip, start_pos, true);
+    ClipRef *cr = track_add_clipref(track, clip, start_pos, true);
     if (!cr) return NULL;
     cr->out_mark_sframes = clip->len_sframes;
     char *filename_modifiable = strdup(filename);

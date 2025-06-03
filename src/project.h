@@ -11,9 +11,9 @@
 /*****************************************************************************************************************
     project.h
 
-    * Define DAW-specific data structures
-	* All structs can be accessed through a single Project struct
- *****************************************************************************************************************/
+    * Project, Timeline, and Track definitions
+
+*****************************************************************************************************************/
 
 /*
 	Type rules:
@@ -39,7 +39,9 @@
 #include "effect.h"
 #include "eq.h"
 #include "endpoint.h"
+#include "midi_note.h"
 #include "tempo.h"
+#include "track_clip.h"
 #include "saturation.h"
 #include "textbox.h"
 
@@ -51,6 +53,7 @@
 #define MAX_ACTIVE_CLIPS 255
 #define MAX_ACTIVE_TRACKS 255
 #define MAX_CLIP_REFS 2048
+/* #define MAX_MIDI_REFS 2048 */
 #define MAX_CLIPBOARD_CLIPS 255
 #define MAX_PROJ_TIMELINES 255
 #define MAX_PROJ_AUDIO_CONNS 255
@@ -85,6 +88,11 @@ typedef struct clip_ref ClipRef;
 /* typedef struct fir_filter FIRFilter; */
 /* typedef struct delay_line DelayLine; */
 
+enum track_in_type {
+    AUDIO_CONN,
+    MIDI_DEVICE,
+};
+
 typedef struct track {
     char name[MAX_NAMELENGTH];
     bool deleted;
@@ -97,13 +105,22 @@ typedef struct track {
     Timeline *tl; /* Parent timeline */
     uint8_t tl_rank;
 
-    ClipRef *clips[MAX_TRACK_CLIPS];
+    TrackClip **clips;
     uint16_t num_clips;
+    uint16_t clips_alloc_len;
+    /* ClipRef *clips[MAX_TRACK_CLIPS]; */
+    /* uint16_t num_clips; */
+
+    /* MIDIClipRef **midi_cliprefs; */
+    /* uint16_t num_midi_cliprefs; */
+    /* uint16_t midi_cliprefs_alloc_len; */
     /* uint8_t num_grabbed_clips; */
 
     uint16_t num_takes;
 
-    AudioConn *input;
+    /* AudioConn *input; */
+    void *input;
+    enum track_in_type input_type;
     AudioConn *output;
 
     float vol; /* 0.0 - 1.0 attenuation only */
@@ -212,8 +229,13 @@ typedef struct clip {
     bool deleted;
     uint8_t channels;
     uint32_t len_sframes;
-    ClipRef *refs[MAX_CLIP_REFS];
+    /* ClipRef *refs[MAX_CLIP_REFS]; */
+    /* uint16_t num_refs; */
+    
+    ClipRef **refs;
     uint16_t num_refs;
+    uint16_t refs_alloc_len;
+    
     float *L;
     float *R;
     uint32_t write_bufpos_sframes;
@@ -284,13 +306,15 @@ typedef struct timeline {
     
     Project *proj;
 
-    ClipRef *grabbed_clips[MAX_GRABBED_CLIPS];
+    /* ClipRef *grabbed_clips[MAX_GRABBED_CLIPS]; */
+    TrackClip *grabbed_clips[MAX_GRABBED_CLIPS];
     uint8_t num_grabbed_clips;
     struct track_and_pos grabbed_clip_pos_cache[MAX_GRABBED_CLIPS];
     bool grabbed_clip_cache_initialized;
     bool grabbed_clip_cache_pushed;
 
-    ClipRef *clipboard[MAX_GRABBED_CLIPS];
+    TrackClip *clipboard[MAX_GRABBED_CLIPS];
+    /* ClipRef *clipboard[MAX_GRABBED_CLIPS]; */
     uint8_t num_clips_in_clipboard;
 
     /* Clip *clip_clipboard[MAX_CLIPBOARD_CLIPS]; */
@@ -370,12 +394,14 @@ Layout *timeline_selected_layout(Timeline *tl);
 void timeline_reset_full(Timeline *tl);
 void timeline_reset(Timeline *tl, bool rescaled);
 Clip *project_add_clip(AudioConn *dev, Track *target);
-ClipRef *track_create_clip_ref(Track *track, Clip *clip, int32_t record_from_sframes, bool home);
+ClipRef *track_add_clipref(Track *track, Clip *clip, int32_t record_from_sframes, bool home);
+MIDIClipRef *track_add_midiclipref(Track *track, MIDIClip *clip, int32_t record_from_sframes);
 int32_t clipref_len(ClipRef *cr);
 bool clipref_marked(Timeline *tl, ClipRef *cr);
 /* int32_t clip_ref_len(ClipRef *cr); */
 /* void clipref_reset(ClipRef *cr); */
 void clipref_reset(ClipRef *cr, bool rescaled);
+void midi_clipref_reset(MIDIClipRef *mcr, bool rescaled);
 
 void clipref_displace(ClipRef *cr, int displace_by);
 void clipref_move_to_track(ClipRef *cr, Track *target);
@@ -441,4 +467,8 @@ void timeline_scroll_playhead(double dim);
 void timeline_reset_loop_play_lemniscate(Timeline *tl);
 bool track_minimize(Track *t);
 void timeline_minimize_track_or_tracks(Timeline *tl);
+
+/* Completion function for renameable proj objects */
+int project_obj_name_completion(Text *txt, void *obj);
+
 #endif

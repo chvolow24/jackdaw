@@ -1133,7 +1133,7 @@ static int jdaw_read_clipref(FILE *f, Track *track)
     bool clipref_home = uint8_deser(f);
     uint8_t src_clip_index = uint8_deser(f);
     Clip *clip = track->tl->proj->clips[src_clip_index];
-    ClipRef *cr = track_create_clip_ref(track, clip, 0, clipref_home);
+    ClipRef *cr = track_add_clipref(track, clip, 0, clipref_home);
 
     strncpy(cr->name, clipref_name, clipref_namelen + 1);
     cr->pos_sframes = int32_deser_le(f);

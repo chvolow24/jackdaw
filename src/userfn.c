@@ -2080,7 +2080,7 @@ void user_tl_paste_grabbed_clips(void *nullarg)
 	ClipRef *cr = tl->clipboard[i];
 	if (!cr->deleted && !cr->track->deleted) {
 	    int32_t offset = cr->pos_sframes - leftmost;
-	    ClipRef *copy = track_create_clip_ref(cr->track, cr->clip, tl->play_pos_sframes + offset, false);
+	    ClipRef *copy = track_add_clipref(cr->track, cr->clip, tl->play_pos_sframes + offset, false);
 	    if (!copy) continue;
 	    snprintf(copy->name, MAX_NAMELENGTH, "%s copy", cr->name);
 	    copy->in_mark_sframes = cr->in_mark_sframes;
@@ -2219,7 +2219,7 @@ void user_tl_drop_from_source(void *nullarg)
 	if (session->source_mode.src_in_sframes >= session->source_mode.src_out_sframes) return;
 	int32_t drop_pos = tl->play_pos_sframes;
 	/* int32_t drop_pos = get_drop_pos(); */
-	ClipRef *cr = track_create_clip_ref(track, session->source_mode.src_clip, drop_pos, false);
+	ClipRef *cr = track_add_clipref(track, session->source_mode.src_clip, drop_pos, false);
 	if (!cr) return;
 	cr->in_mark_sframes = session->source_mode.src_in_sframes;
 	cr->out_mark_sframes = session->source_mode.src_out_sframes;
@@ -2263,7 +2263,7 @@ static void user_tl_drop_savedn_from_source(int n)
 	/* int32_t drop_pos = tl->play_pos_sframes - session->playback.play_speed * 2 * proj->chunk_size_sframes; */
 	int32_t drop_pos = tl->play_pos_sframes;
 	/* int32_t drop_pos = get_drop_pos(); */
-	ClipRef *cr = track_create_clip_ref(track, drop.clip, drop_pos, false);
+	ClipRef *cr = track_add_clipref(track, drop.clip, drop_pos, false);
 	if (!cr) return;
 	cr->in_mark_sframes = drop.in;
 	cr->out_mark_sframes = drop.out;

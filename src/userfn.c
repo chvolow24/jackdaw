@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <sys/param.h>
 #include "SDL_events.h"
+#include "audio_clip.h"
 #include "audio_connection.h"
 #include "autocompletion.h"
+#include "clipref.h"
 #include "dir.h"
 #include "dot_jdaw.h"
 #include "endpoint.h"
@@ -1014,10 +1016,10 @@ void user_tl_goto_previous_clip_boundary(void *nullarg)
 	ClipRef *cr = clipref_at_cursor();
 	int32_t pos;
 	if (cr) {
-	    if (cr->pos_sframes == tl->play_pos_sframes) {
+	    if (cr->tl_pos == tl->play_pos_sframes) {
 		goto goto_previous_clip;
 	    }
-	    timeline_set_play_position(tl, cr->pos_sframes);
+	    timeline_set_play_position(tl, cr->tl_pos);
 	    timeline_reset(tl, false);
 	} else {
 	goto_previous_clip:
@@ -1046,10 +1048,10 @@ void user_tl_goto_next_clip_boundary(void *nullarg)
 	ClipRef *cr = clipref_at_cursor();
 	int32_t pos;
 	if (cr) {
-	    if (cr->pos_sframes + clipref_len(cr) == tl->play_pos_sframes) {
+	    if (cr->tl_pos + clipref_len(cr) == tl->play_pos_sframes) {
 		goto goto_next_clip;
 	    }
-	    timeline_set_play_position(tl, cr->pos_sframes + clipref_len(cr));
+	    timeline_set_play_position(tl, cr->tl_pos + clipref_len(cr));
 	    timeline_reset(tl, false);
 	} else {
 	goto_next_clip:
@@ -2067,10 +2069,10 @@ void user_tl_paste_grabbed_clips(void *nullarg)
 	status_set_errstr("No clips copied to clipboard");
 	return;
     }
-    int32_t leftmost = tl->clipboard[0]->pos_sframes;
+    int32_t leftmost = tl->clipboard[0]->tl_pos;
     for (int i=0; i<tl->num_clips_in_clipboard; i++) {
 	ClipRef *cr = tl->clipboard[i];
-	if (cr->pos_sframes < leftmost) leftmost = cr->pos_sframes;
+	if (cr->tl_pos < leftmost) leftmost = cr->tl_pos;
     }
 
     
@@ -2079,14 +2081,18 @@ void user_tl_paste_grabbed_clips(void *nullarg)
     for (int i=0; i<tl->num_clips_in_clipboard; i++) {
 	ClipRef *cr = tl->clipboard[i];
 	if (!cr->deleted && !cr->track->deleted) {
-	    int32_t offset = cr->pos_sframes - leftmost;
-	    ClipRef *copy = track_add_clipref(cr->track, cr->clip, tl->play_pos_sframes + offset, false);
+	    int32_t offset = cr->tl_pos - leftmost;
+	    ClipRef *copy = clipref_create(
+		cr->track,
+		tl->play_pos_sframes + offset,
+		CLIP_AUDIO,
+		cr->source_clip);
 	    if (!copy) continue;
 	    snprintf(copy->name, MAX_NAMELENGTH, "%s copy", cr->name);
-	    copy->in_mark_sframes = cr->in_mark_sframes;
-	    copy->out_mark_sframes = cr->out_mark_sframes;
-	    copy->start_ramp_len = cr->start_ramp_len;
-	    copy->end_ramp_len = cr->end_ramp_len;
+	    copy->start_in_clip = cr->start_in_clip;
+	    copy->end_in_clip = cr->end_in_clip;
+	    /* copy->start_ramp_len = cr->start_ramp_len; */
+	    /* copy->end_ramp_len = cr->end_ramp_len; */
 	    clipref_grab(copy);
 	    undo_cache[actual_num] = copy;
 	    actual_num++;
@@ -2141,18 +2147,20 @@ void user_tl_load_clip_at_cursor_to_src(void *nullarg)
     Session *session = session_get();
     /* Timeline *tl = ACTIVE_TL; */
     ClipRef *cr = clipref_at_cursor();
-    if (cr && !cr->clip->recording) {
-	session->source_mode.src_clip = cr->clip;
-	session->source_mode.src_in_sframes = cr->in_mark_sframes;
+    Clip *clip = NULL;
+    if (cr->type == CLIP_AUDIO) clip = cr->source_clip;
+    if (cr && clip && !clip->recording) {
+	session->source_mode.src_clip = clip;
+	session->source_mode.src_in_sframes = cr->start_in_clip;
 	session->source_mode.src_play_pos_sframes = 0;
-	session->source_mode.src_out_sframes = cr->out_mark_sframes;
+	session->source_mode.src_out_sframes = cr->end_in_clip;
 	/* fprintf(stdout, "Src clip name? %s\n", session->source_mode.src_clip->name); */
 	/* txt_set_value_handle(proj->source_name_tb->text, session->source_mode.src_clip->name); */
 	Timeline *tl = ACTIVE_TL;
 	tl->needs_redraw = true;
 	PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_source_clip_name_tb");
 	Textbox *tb = (Textbox *)el->component;
-	textbox_set_value_handle(tb, cr->clip->name);
+	textbox_set_value_handle(tb, clip->name);
 	panel_page_refocus(session->gui.panels, "Sample source", 1);
     }
 
@@ -2219,12 +2227,17 @@ void user_tl_drop_from_source(void *nullarg)
 	if (session->source_mode.src_in_sframes >= session->source_mode.src_out_sframes) return;
 	int32_t drop_pos = tl->play_pos_sframes;
 	/* int32_t drop_pos = get_drop_pos(); */
-	ClipRef *cr = track_add_clipref(track, session->source_mode.src_clip, drop_pos, false);
+	/* ClipRef *cr = track_add_clipref(track, session->source_mode.src_clip, drop_pos, false); */
+	ClipRef *cr = clipref_create(
+	    track,
+	    drop_pos,
+	    CLIP_AUDIO,
+	    session->source_mode.src_clip);
 	if (!cr) return;
-	cr->in_mark_sframes = session->source_mode.src_in_sframes;
-	cr->out_mark_sframes = session->source_mode.src_out_sframes;
+	cr->start_in_clip = session->source_mode.src_in_sframes;
+	cr->end_in_clip = session->source_mode.src_out_sframes;
 	clipref_reset(cr, true);
-	struct drop_save current_drop = (struct drop_save){cr->clip, cr->in_mark_sframes, cr->out_mark_sframes};
+	struct drop_save current_drop = (struct drop_save){cr->source_clip, cr->start_in_clip, cr->end_in_clip};
 	/* struct drop_save drop_zero =  session->source_mode.saved_drops[0]; */
 	/* fprintf(stdout, "Current: %p, %d, %d\nzero: %p, %d, %d\n", current_drop.clip, current_drop.in, current_drop.out, drop_zero.clip, drop_zero.in, drop_zero.out); */
 	if (session->source_mode.num_dropped == 0 || memcmp(&current_drop, &(session->source_mode.saved_drops[0]), sizeof(struct drop_save)) != 0) {
@@ -2232,7 +2245,7 @@ void user_tl_drop_from_source(void *nullarg)
 		session->source_mode.saved_drops[i] = session->source_mode.saved_drops[i-1];
 	    }
 	    /* memcpy(session->source_mode.saved_drops + 1, session->source_mode.saved_drops, 3 * sizeof(struct drop_save)); */
-	    session->source_mode.saved_drops[0] = (struct drop_save){cr->clip, cr->in_mark_sframes, cr->out_mark_sframes};
+	    session->source_mode.saved_drops[0] = (struct drop_save){cr->source_clip, cr->start_in_clip, cr->end_in_clip};
 	    if (session->source_mode.num_dropped <= 4) session->source_mode.num_dropped++;
 	    /* fprintf(stdout, "MET condition, num dropped: %d\n", session->source_mode.num_dropped); */
 	}
@@ -2263,10 +2276,10 @@ static void user_tl_drop_savedn_from_source(int n)
 	/* int32_t drop_pos = tl->play_pos_sframes - session->playback.play_speed * 2 * proj->chunk_size_sframes; */
 	int32_t drop_pos = tl->play_pos_sframes;
 	/* int32_t drop_pos = get_drop_pos(); */
-	ClipRef *cr = track_add_clipref(track, drop.clip, drop_pos, false);
+	ClipRef *cr = clipref_create(track, drop_pos, CLIP_AUDIO, drop.clip);
 	if (!cr) return;
-	cr->in_mark_sframes = drop.in;
-	cr->out_mark_sframes = drop.out;
+	cr->start_in_clip = drop.in;
+	cr->end_in_clip = drop.out;
 	clipref_reset(cr, true);
 
 	tl->needs_redraw = true;

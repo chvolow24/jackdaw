@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 /* #include "dsp.h" */
+#include "audio_clip.h"
+#include "clipref.h"
 #include "compressor.h"
 #include "consts.h"
 #include "delay_line.h"
@@ -25,6 +27,7 @@
 #include "type_serialize.h"
 #include "loading.h"
 
+#ifdef THIS_IS_NOT_DEFINED
 /* #define BYTEORDER_FATAL fprintf(stderr, "Fatal error (TODO): big-endian byte order not supported\n"); exit(1); */
 #define OLD_FLOAT_SER_W 16
 
@@ -418,7 +421,7 @@ static void jdaw_write_clipref(FILE *f, ClipRef *cr)
     uint8_ser(f, &src_clip_index);
     /* fwrite(&src_clip_index, 1, 1, f); */
 
-    int32_ser_le(f, &cr->pos_sframes);
+    int32_ser_le(f, &cr->tl_pos);
     uint32_ser_le(f, &cr->in_mark_sframes);
     uint32_ser_le(f, &cr->out_mark_sframes);
     uint32_ser_le(f, &cr->start_ramp_len);
@@ -1129,7 +1132,7 @@ static int jdaw_read_clipref(FILE *f, Track *track)
     ClipRef *cr = track_add_clipref(track, clip, 0, clipref_home);
 
     strncpy(cr->name, clipref_name, clipref_namelen + 1);
-    cr->pos_sframes = int32_deser_le(f);
+    cr->tl_pos = int32_deser_le(f);
     cr->in_mark_sframes = uint32_deser_le(f);
     cr->out_mark_sframes = uint32_deser_le(f);
     cr->start_ramp_len = uint32_deser_le(f);
@@ -1295,4 +1298,19 @@ static int jdaw_read_click_segment(FILE *f, ClickTrack *ct, bool *more_segments)
     }
     *more_segments = (bool)uint8_deser(f);
     return 0;
+}
+
+
+#endif
+
+
+typedef struct project Project;
+int jdaw_read_file(Project *dst, const char *path)
+{
+    return 0;
+}
+
+void jdaw_write_project(const char *path)
+{
+
 }

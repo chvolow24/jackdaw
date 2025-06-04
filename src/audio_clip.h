@@ -50,5 +50,7 @@ typedef struct clip {
 
 
 void clip_destroy(Clip *clip);
+void clip_destroy_no_displace(Clip *clip);
+void clip_split_stereo_to_mono(Clip *to_split, Clip **new_L, Clip **new_R);
 
 #endif

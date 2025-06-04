@@ -35,6 +35,8 @@ Positions	Sample Value	    Description
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include "audio_clip.h"
+#include "clipref.h"
 #include "consts.h"
 #include "dir.h"
 #include "project.h"
@@ -400,7 +402,7 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
 	status_set_errstr("Error reading wav file.");
 	return NULL;
     }
-    Clip *clip = project_add_clip(NULL, track);
+    Clip *clip = clip_create(NULL, track);
     
     if (!session->playback.recording)
 	proj->active_clip_index++;
@@ -429,9 +431,9 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
     final_buffer = NULL;
     src_buf = NULL;
     /* free(wav_cvt.buf); */
-    ClipRef *cr = track_add_clipref(track, clip, start_pos, true);
+    ClipRef *cr = clipref_create(track, start_pos, CLIP_AUDIO, clip);
     if (!cr) return NULL;
-    cr->out_mark_sframes = clip->len_sframes;
+    cr->end_in_clip = clip->len_sframes;
     char *filename_modifiable = strdup(filename);
     strncpy(clip->name, path_get_tail(filename_modifiable), MAX_NAMELENGTH);
     strncpy(cr->name, path_get_tail(filename_modifiable), MAX_NAMELENGTH);

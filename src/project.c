@@ -14,7 +14,9 @@
 #include <semaphore.h>
 #include <fcntl.h>
 #include "assets.h"
+#include "audio_clip.h"
 #include "audio_connection.h"
+#include "clipref.h"
 #include "color.h"
 #include "components.h"
 /* #include "dsp.h" */
@@ -26,7 +28,7 @@
 #include "layout.h"
 #include "layout_xml.h"
 #include "menu.h"
-#include "midi_note.h"
+/* #include "midi_note.h" */
 #include "project.h"
 #include "session.h"
 #include "status.h"
@@ -272,7 +274,7 @@ static void timeline_destroy(Timeline *tl, bool displace_in_proj)
     free(tl);
 }
 
-static void clip_destroy_no_displace(Clip *clip);
+/* static void clip_destroy_no_displace(Clip *clip); */
 
 void project_deinit(Project *proj)
 {
@@ -878,47 +880,12 @@ void project_clear_active_clips()
     session->proj.active_clip_index = session->proj.num_clips;
 }
 
-Clip *project_add_clip(AudioConn *conn, Track *target)
-{
-    Session *session = session_get();
-    if (session->proj.num_clips == MAX_PROJ_CLIPS) {
-	return NULL;
-    }
-    Clip *clip = calloc(1, sizeof(Clip));
-
-    clip->channels = 2;
-    if (conn) {
-	clip->recorded_from = conn;
-	if (conn->type == DEVICE) {
-	    clip->channels = conn->c.device.spec.channels;
-	}
-
-    }
-    if (target) {
-	/* fprintf(stdout, "\t->target? %p\n", clip->target); */
-	clip->target = target;
-    }
-    
-    if (!target && conn) {
-	snprintf(clip->name, sizeof(clip->name), "%s_rec_%d", conn->name, session->proj.num_clips); /* TODO: Fix this */
-    } else if (target) {
-	snprintf(clip->name, sizeof(clip->name), "%s take %d", target->name, target->num_takes + 1);
-	target->num_takes++;
-    } else {
-	snprintf(clip->name, sizeof(clip->name), "anonymous");
-    }
-    /* clip->channels = proj->channels; */
-    session->proj.clips[session->proj.num_clips] = clip;
-    session->proj.num_clips++;
-    return clip;
-}
-
 /* int32_t clip_ref_len(ClipRef *cr) */
 /* { */
-/*     if (cr->out_mark_sframes <= cr->in_mark_sframes) { */
+/*     if (cr->out_mark_sframes <= cr->start_in_clip) { */
 /* 	return cr->clip->len_sframes; */
 /*     } else { */
-/* 	return cr->out_mark_sframes - cr->in_mark_sframes; */
+/* 	return cr->out_mark_sframes - cr->start_in_clip; */
 /*     } */
 /* } */
 
@@ -930,7 +897,7 @@ Clip *project_add_clip(AudioConn *conn, Track *target)
 /*     uint32_t cr_len = 96000; */
 /*     /\* uint32_t cr_len = mcr->start_in_clip >= mcr->end_in_clip *\/ */
 /*     /\* 	? mcr->clip->len_sframes *\/ */
-/*     /\* 	: cr->out_mark_sframes - cr->in_mark_sframes; *\/ */
+/*     /\* 	: cr->out_mark_sframes - cr->start_in_clip; *\/ */
 /*     mcr->layout->rect.w = timeline_get_draw_w(mcr->track->tl, cr_len); */
 /*     mcr->layout->rect.y = mcr->track->inner_layout->rect.y + CR_RECT_V_PAD; */
 /*     mcr->layout->rect.h = mcr->track->inner_layout->rect.h - 2 * CR_RECT_V_PAD; */
@@ -944,10 +911,10 @@ Clip *project_add_clip(AudioConn *conn, Track *target)
 /* void clipref_reset(ClipRef *cr, bool rescaled) */
 /* { */
 
-/*     cr->layout->rect.x = timeline_get_draw_x(cr->track->tl, cr->pos_sframes); */
-/*     uint32_t cr_len = cr->in_mark_sframes >= cr->out_mark_sframes */
+/*     cr->layout->rect.x = timeline_get_draw_x(cr->track->tl, cr->tl_pos); */
+/*     uint32_t cr_len = cr->start_in_clip >= cr->out_mark_sframes */
 /* 	? cr->clip->len_sframes */
-/* 	: cr->out_mark_sframes - cr->in_mark_sframes; */
+/* 	: cr->out_mark_sframes - cr->start_in_clip; */
 /*     cr->layout->rect.w = timeline_get_draw_w(cr->track->tl, cr_len); */
 /*     cr->layout->rect.y = cr->track->inner_layout->rect.y + CR_RECT_V_PAD; */
 /*     cr->layout->rect.h = cr->track->inner_layout->rect.h - 2 * CR_RECT_V_PAD; */
@@ -957,10 +924,10 @@ Clip *project_add_clip(AudioConn *conn, Track *target)
 /*     /\* if (rescaled) { *\/ */
 /*     cr->waveform_redraw = true; */
 /*     /\* } *\/ */
-/*     /\* cr->rect.x = timeline_get_draw_x(cr->pos_sframes); *\/ */
-/*     /\* uint32_t cr_len = cr->in_mark_sframes >= cr->out_mark_sframes *\/ */
+/*     /\* cr->rect.x = timeline_get_draw_x(cr->tl_pos); *\/ */
+/*     /\* uint32_t cr_len = cr->start_in_clip >= cr->out_mark_sframes *\/ */
 /*     /\* 	? cr->clip->len_sframes *\/ */
-/*     /\* 	: cr->out_mark_sframes - cr->in_mark_sframes; *\/ */
+/*     /\* 	: cr->out_mark_sframes - cr->start_in_clip; *\/ */
 /*     /\* cr->rect.w = timeline_get_draw_w(cr_len); *\/ */
 /*     /\* cr->rect.y = cr->track->inner_layout->rect.y + CR_RECT_V_PAD; *\/ */
 /*     /\* cr->rect.h = cr->track->layout->rect.h - 2 * CR_RECT_V_PAD; *\/ */
@@ -1026,7 +993,7 @@ static void track_reset_full(Track *track)
     textbox_reset_full(track->tb_input_label);
     textbox_reset_full(track->tb_input_name);
     for (uint16_t i=0; i<track->num_clips; i++) {
-	tclip_reset(track->clips[i], true);
+	clipref_reset(track->clips[i], true);
     }
     /* for (uint16_t i=0; i<track->num_clips; i++) { */
     /* 	clipref_reset(track->clips[i], true); */
@@ -1039,11 +1006,10 @@ static void track_reset_full(Track *track)
 }
     
 
-static void track_reset(Track *track, bool rescaled)
+void track_reset(Track *track, bool rescaled)
 {
-
     for (uint16_t i=0; i<track->num_clips; i++) {
-	tclip_reset(track->clips[i], rescaled);
+	clipref_reset(track->clips[i], rescaled);
     }
 
     /* for (uint16_t i=0; i<track->num_clips; i++) { */
@@ -1062,130 +1028,6 @@ static void track_reset(Track *track, bool rescaled)
 	}
     }
 }
-
-/* MIDIClipRef *track_add_midiclipref(Track *track, MIDIClip *clip, int32_t record_from_sframes) */
-/* { */
-/*     if (track->num_midi_cliprefs == MAX_TRACK_CLIPS) { */
-/* 	char errstr[MAX_STATUS_STRLEN]; */
-/* 	snprintf(errstr, MAX_STATUS_STRLEN, "Track cannot have more than %d midi clips", MAX_TRACK_CLIPS); */
-/* 	status_set_errstr(errstr); */
-/* 	return NULL; */
-/*     } */
-/*     if (clip->num_refs == MAX_CLIP_REFS) { */
-/* 	char errstr[MAX_STATUS_STRLEN]; */
-/* 	snprintf(errstr, MAX_STATUS_STRLEN, "MIDI clip cannot have more than %d references", MAX_CLIP_REFS); */
-/* 	status_set_errstr(errstr); */
-/* 	return NULL; */
-/*     } */
-/*     MIDIClipRef *mcr = calloc(1, sizeof(MIDIClipRef)); */
-/*     mcr->layout = layout_add_child(track->inner_layout); */
-/*     mcr->layout->h.type = SCALE; */
-/*     mcr->layout->h.value = 0.96; */
-/*     if (clip->num_refs > 0) { */
-/* 	snprintf(mcr->name, MAX_NAMELENGTH, "%s ref %d", clip->name, clip->num_refs); */
-/*     } else { */
-/* 	snprintf(mcr->name, MAX_NAMELENGTH, "%s", clip->name); */
-/*     } */
-/*     /\* pthread_mutex_init(&cr->lock, NULL); *\/ */
-/*     /\* cr->lock = SDL_CreateMutex(); *\/ */
-/*     /\* SDL_LockMutex(cr->lock); *\/ */
-/*     /\* pthread_mutex_lock(&cr->lock); *\/ */
-/*     if (track->num_midi_cliprefs + 1 >= track->midi_cliprefs_alloc_len) { */
-/* 	track->midi_cliprefs_alloc_len *= 2; */
-/* 	track->midi_cliprefs = realloc(track->midi_cliprefs, track->midi_cliprefs_alloc_len * sizeof(MIDIClipRef *)); */
-/*     } */
-/*     track->midi_cliprefs[track->num_midi_cliprefs] = mcr; */
-/*     track->num_midi_cliprefs++; */
-/*     mcr->tl_pos = record_from_sframes; */
-/*     mcr->clip = clip; */
-/*     mcr->track = track; */
-/*     /\* cr->home = home; *\/ */
-
-/*     Layout *label_lt = layout_add_child(mcr->layout); */
-/*     label_lt->x.value = CLIPREF_NAMELABEL_H_PAD; */
-/*     label_lt->y.value = CLIPREF_NAMELABEL_V_PAD; */
-/*     label_lt->w.type = SCALE; */
-/*     label_lt->w.value = 0.8f; */
-/*     label_lt->h.value = CLIPREF_NAMELABEL_H; */
-/*     mcr->label = textbox_create_from_str(mcr->name, label_lt, main_win->mono_bold_font, 12, main_win); */
-/*     mcr->label->text->validation = txt_name_validation; */
-/*     mcr->label->text->completion = project_obj_name_completion; */
-
-/*     textbox_set_align(mcr->label, CENTER_LEFT); */
-/*     textbox_set_background_color(mcr->label, NULL); */
-/*     textbox_set_text_color(mcr->label, &colors.light_grey); */
-/* 	/\* textbox_size_to_fit(cr->label, CLIPREF_NAMELABEL_H_PAD, CLIPREF_NAMELABEL_V_PAD); *\/ */
-
-/*     /\* fprintf(stdout, "Clip num refs: %d\n", clip->num_refs); *\/ */
-/*     if (clip->num_refs + 1 >= clip->refs_alloc_len) { */
-/* 	clip->refs_alloc_len *= 2; */
-/* 	clip->refs = realloc(clip->refs, clip->refs_alloc_len * sizeof(MIDIClipRef *)); */
-/*     } */
-/*     clip->refs[clip->num_refs] = mcr; */
-/*     clip->num_refs++; */
-/*     /\* pthread_mutex_unlock(&cr->lock); *\/ */
-/*     return mcr; */
- 
-    
-/* } */
-
-/* ClipRef *track_add_clipref(Track *track, Clip *clip, int32_t record_from_sframes, bool home) */
-/* { */
-
-/*     if (track->num_clips == MAX_TRACK_CLIPS) { */
-/* 	char errstr[MAX_STATUS_STRLEN]; */
-/* 	snprintf(errstr, MAX_STATUS_STRLEN, "Track cannot have more than %d clips", MAX_TRACK_CLIPS); */
-/* 	status_set_errstr(errstr); */
-/* 	return NULL; */
-/*     } */
-/*     if (clip->num_refs == MAX_CLIP_REFS) { */
-/* 	char errstr[MAX_STATUS_STRLEN]; */
-/* 	snprintf(errstr, MAX_STATUS_STRLEN, "Audio clip cannot have more than %d references", MAX_TRACK_CLIPS); */
-/* 	status_set_errstr(errstr); */
-/* 	return NULL; */
-/*     } */
-/*     /\* fprintf(stdout, "track %s create clipref\n", track->name); *\/ */
-/*     ClipRef *cr = calloc(1, sizeof(ClipRef)); */
-/*     cr->layout = layout_add_child(track->inner_layout); */
-/*     cr->layout->h.type = SCALE; */
-/*     cr->layout->h.value = 0.96; */
-/*     if (clip->num_refs > 0) { */
-/* 	snprintf(cr->name, MAX_NAMELENGTH, "%s ref %d", clip->name, clip->num_refs); */
-/*     } else { */
-/* 	snprintf(cr->name, MAX_NAMELENGTH, "%s", clip->name); */
-/*     } */
-/*     pthread_mutex_init(&cr->lock, NULL); */
-/*     /\* cr->lock = SDL_CreateMutex(); *\/ */
-/*     /\* SDL_LockMutex(cr->lock); *\/ */
-/*     pthread_mutex_lock(&cr->lock); */
-/*     track->clips[track->num_clips] = cr; */
-/*     track->num_clips++; */
-/*     cr->pos_sframes = record_from_sframes; */
-/*     cr->clip = clip; */
-/*     cr->track = track; */
-/*     cr->home = home; */
-
-/*     Layout *label_lt = layout_add_child(cr->layout); */
-/*     label_lt->x.value = CLIPREF_NAMELABEL_H_PAD; */
-/*     label_lt->y.value = CLIPREF_NAMELABEL_V_PAD; */
-/*     label_lt->w.type = SCALE; */
-/*     label_lt->w.value = 0.8f; */
-/*     label_lt->h.value = CLIPREF_NAMELABEL_H; */
-/*     cr->label = textbox_create_from_str(cr->name, label_lt, main_win->mono_bold_font, 12, main_win); */
-/*     cr->label->text->validation = txt_name_validation; */
-/*     cr->label->text->completion = project_obj_name_completion; */
-
-/*     textbox_set_align(cr->label, CENTER_LEFT); */
-/*     textbox_set_background_color(cr->label, NULL); */
-/*     textbox_set_text_color(cr->label, &colors.light_grey); */
-/* 	/\* textbox_size_to_fit(cr->label, CLIPREF_NAMELABEL_H_PAD, CLIPREF_NAMELABEL_V_PAD); *\/ */
-
-/*     /\* fprintf(stdout, "Clip num refs: %d\n", clip->num_refs); *\/ */
-/*     clip->refs[clip->num_refs] = cr; */
-/*     clip->num_refs++; */
-/*     pthread_mutex_unlock(&cr->lock); */
-/*     return cr; */
-/* } */
 
 void timeline_reset_loop_play_lemniscate(Timeline *tl)
 {
@@ -1615,7 +1457,7 @@ void track_set_input(Track *track)
     }
 }
 
-void project_draw();
+
 void track_rename(Track *track)
 {
     textentry_edit(track->tb_name);
@@ -1623,19 +1465,7 @@ void track_rename(Track *track)
     main_win->i_state = 0;
 }
 
-void clipref_rename(ClipRef *cr)
-{
-    txt_edit(cr->label->text, project_draw);
-    main_win->i_state = 0;
-}
 
-
-void clipref_destroy(ClipRef *cr, bool displace_in_clip);
-void clipref_destroy_no_displace(ClipRef *cr);
-void clip_destroy(Clip *clip);
-
-
-void clipref_ungrab(ClipRef *cr);
 static void timeline_remove_track(Track *track)
 {
     Timeline *tl = track->tl;
@@ -1673,26 +1503,6 @@ static void timeline_reinsert_track(Track *track)
     timeline_rectify_track_indices(tl);
     timeline_rectify_track_area(tl);
 }
-
-/* static void timeline_insert_track_at(Track *track, uint8_t index) */
-/* { */
-/*     Timeline *tl = track->tl; */
-/*     /\* for (int i=0; i<tl->num_tracks; i++) { *\/ */
-/*     /\* 	fprintf(stdout, "\t\t%d: Track index %d named \"%s\"\n", i, tl->tracks[i]->tl_rank, tl->tracks[i]->name); *\/ */
-/*     /\* } *\/ */
-/*     while (index > tl->num_tracks) index--; */
-/*     /\* fprintf(stdout, "->adj ind: %d\n", index); *\/ */
-/*     for (uint8_t i=tl->num_tracks; i>index; i--) { */
-/* 	/\* fprintf(stdout, "\tmoving track %d->%d\n", i-1, i); *\/ */
-/* 	tl->tracks[i] = tl->tracks[i - 1]; */
-/* 	tl->tracks[i]->tl_rank = i; */
-/*     } */
-/*     layout_insert_child_at(track->layout, tl->track_area, index); */
-/*     tl->tracks[index] = track; */
-/*     track->tl_rank = index; */
-/*     tl->num_tracks++; */
-/*     timeline_rectify_track_indices(tl); */
-/* } */
 
 static void track_remove_bus_out(Track *track)
 {
@@ -1740,8 +1550,6 @@ void track_set_bus_out(Track *track, Track *bus_out)
     }
 }
 
-
-
 void track_delete(Track *track)
 {
     track->deleted = true;
@@ -1756,6 +1564,7 @@ void track_delete(Track *track)
 
     /* api_node_print_all_routes(&tl->api_node); */
 }
+
 void track_undelete(Track *track)
 {
     track->deleted = false;
@@ -1768,6 +1577,7 @@ void track_undelete(Track *track)
 
     
 }
+
 void track_destroy(Track *track, bool displace)
 {
     for (uint16_t i=0; i<track->num_clips; i++) {
@@ -1816,202 +1626,14 @@ void track_destroy(Track *track, bool displace)
     /* if (track->delay_line.cpy_buf) free(track->delay_line.cpy_buf); */
     /* if (track->delay_line.lock) SDL_DestroyMutex(track->delay_line.lock); */
     /* pthread_mutex_destroy(&track->delay_line.lock); */
-    
+
+    free(track->clips);
     if (track->buf_L_freq_mag) free(track->buf_L_freq_mag);
     if (track->buf_R_freq_mag) free(track->buf_R_freq_mag);
     if (track->automation_dropdown) symbol_button_destroy(track->automation_dropdown);
     free(track);
 }
 
-/* void clipref_delete(ClipRef *cr) */
-/* { */
-/*     if (cr->grabbed) { */
-/* 	clipref_ungrab(cr); */
-/*     } */
-/*     cr->track->tl->needs_redraw = true; */
-/*     cr->deleted = true; */
-/*     clipref_remove_from_track(cr); */
-/* } */
-
-
-
-
-static void clip_destroy_no_displace(Clip *clip)
-{
-    for (uint16_t i=0; i<clip->num_refs; i++) {
-	ClipRef *cr = clip->refs[i];
-	clipref_destroy(cr, false);
-    }
-    Session *session = session_get();
-    if (clip == session->source_mode.src_clip) {
-	session->source_mode.src_clip = NULL;
-    }
-    
-    if (clip->L) free(clip->L);
-    if (clip->R) free(clip->R);
-
-    for (uint8_t i=0; i<session->source_mode.num_dropped; i++) {
-	Clip **dropped_clip = &(session->source_mode.saved_drops[i].clip);
-	if (*dropped_clip == clip) {
-	    *dropped_clip = NULL;
-	}
-    }
-    free(clip);
-}
-
-void clip_destroy(Clip *clip)
-{
-    /* fprintf(stdout, "CLIP DESTROY %s, num refs: %d\n", clip->name,  clip->num_refs); */
-    /* fprintf(stdout, "DESTROYING CLIP %p, num: %d\n", clip, proj->num_clips); */
-    for (uint16_t i=0; i<clip->num_refs; i++) {
-	/* fprintf(stdout, "About to destroy clipref\n"); */
-	ClipRef *cr = clip->refs[i];
-	clipref_destroy(cr, false);
-    }
-    Session *session = session_get();
-    if (clip == session->source_mode.src_clip) {
-	session->source_mode.src_clip = NULL;
-    }
-    bool displace = false;
-    /* int num_displaced = 0; */
-    Project *proj = &session->proj;
-    for (uint16_t i=0; i<proj->num_clips; i++) {
-	if (proj->clips[i] == clip) {
-	    /* fprintf(stdout, "\tFOUND clip at pos %d\n", i); */
-	    displace=true;
-	} else if (displace && i > 0) {
-	    /* fprintf(stdout, "\tmoving clip %p from pos %d to %d\n", proj->clips[i], i, i-1); */
-	    proj->clips[i-1] = proj->clips[i];
-	    /* num_displaced++; */
-	}
-    }
-    /* fprintf(stdout, "\t->num displaced: %d\n", num_displaced); */
-    proj->num_clips--;
-    proj->active_clip_index = proj->num_clips;
-    if (clip->L) free(clip->L);
-    if (clip->R) free(clip->R);
-
-    for (uint8_t i=0; i<session->source_mode.num_dropped; i++) {
-	Clip **dropped_clip = &(session->source_mode.saved_drops[i].clip);
-	if (*dropped_clip == clip) {
-	    *dropped_clip = NULL;
-	}
-    }
-
-    free(clip);
-}
-
-static void clip_split_stereo_to_mono(Clip *to_split, Clip **new_L, Clip **new_R)
-{
-    *new_L = project_add_clip(to_split->recorded_from, to_split->target);
-    *new_R = project_add_clip(to_split->recorded_from, to_split->target);
-
-    (*new_L)->recording = false;
-    (*new_R)->recording = false;
-    (*new_L)->channels = 1;
-    (*new_R)->channels = 1;
-    
-    (*new_L)->L = malloc(to_split->len_sframes * sizeof(float));
-    (*new_R)->L = malloc(to_split->len_sframes * sizeof(float));
-    
-    memcpy((*new_L)->L, to_split->L, to_split->len_sframes * sizeof(float));
-    memcpy((*new_R)->L, to_split->R, to_split->len_sframes * sizeof(float));
-
-
-    (*new_L)->len_sframes = to_split->len_sframes;
-    (*new_R)->len_sframes = to_split->len_sframes;
-    Session *session = session_get();
-    session->proj.active_clip_index+=2;
-}
-
-NEW_EVENT_FN(undo_split_cr, "undo split stereo clip to mono")
-    ClipRef **crs = (ClipRef **)obj1;
-    ClipRef *orig = crs[0];
-    ClipRef *new_L = crs[1];
-    ClipRef *new_R = crs[2];
-    clipref_delete(new_L);
-    clipref_delete(new_R);
-    clipref_undelete(orig);
-}
-
-
-NEW_EVENT_FN(redo_split_cr, "redo split stereo clip to mono")
-    ClipRef **crs = (ClipRef **)obj1;
-    ClipRef *orig = crs[0];
-    ClipRef *new_L = crs[1];
-    ClipRef *new_R = crs[2];
-    clipref_delete(orig);
-    clipref_undelete(new_L);
-    clipref_undelete(new_R);
-}
-
-NEW_EVENT_FN(dispose_split_cr, "")
-    ClipRef **crs = (ClipRef **)obj1;
-    ClipRef *orig = crs[0];
-    clipref_destroy(orig, true);
-}
-
-NEW_EVENT_FN(dispose_forward_split_cr, "")
-    ClipRef **crs = (ClipRef **)obj1;
-    ClipRef *new_L = crs[1];
-    ClipRef *new_R = crs[2];
-    clipref_destroy(new_L, true);
-    clipref_destroy(new_R, true);
-}
-
-
-
-int clipref_split_stereo_to_mono(ClipRef *cr, ClipRef **new_L_dst, ClipRef **new_R_dst)
-{
-    if (cr->clip->channels != 2) {
-	fprintf(stderr, "Error: clip must have two channels to be split\n");
-	return 0;
-    }
-    Track *t = cr->track;
-    if (t->tl_rank == t->tl->num_tracks - 1) {
-	fprintf(stderr, "Error: No room to split clip reference. Create a new track below.\n");
-	return 0;
-    }
-    
-    Clip *clip_L, *clip_R;
-    clip_split_stereo_to_mono(cr->clip, &clip_L, &clip_R);
-
-    Track *next_track = t->tl->tracks[t->tl_rank + 1];
-
-    ClipRef *new_L, *new_R;
-    new_L = track_add_clipref(t, clip_L, cr->pos_sframes, true);
-    new_R = track_add_clipref(next_track, clip_R, cr->pos_sframes, true);
-    if (new_L_dst) *new_L_dst = new_L;
-    if (new_R_dst) *new_R_dst = new_R;
-    snprintf(new_L->name, MAX_NAMELENGTH, "%s L", cr->name);
-    snprintf(new_R->name, MAX_NAMELENGTH, "%s R", cr->name);
-
-    new_L->out_mark_sframes = new_L->clip->len_sframes;
-    new_R->out_mark_sframes = new_R->clip->len_sframes;
-    clipref_delete(cr);
-
-
-    ClipRef **crs = malloc(3 * sizeof(ClipRef *));
-    crs[0] = cr;
-    crs[1] = new_L;
-    crs[2] = new_R;
-
-    Clip **clips = malloc(2* sizeof(Clip *));
-    clips[0] = clip_L;
-    clips[1] = clip_R;
-    
-    user_event_push(
-	undo_split_cr,
-	redo_split_cr,
-	dispose_split_cr, dispose_forward_split_cr,
-	crs, clips,
-	(Value){0}, (Value){0},
-	(Value){0}, (Value){0},
-	0, 0,
-	true, true);
-    timeline_reset_full(t->tl);
-    return 1;
-}
 
 
 static void timeline_reinsert(Timeline *tl)
@@ -2118,7 +1740,7 @@ void timeline_cache_grabbed_clip_positions(Timeline *tl)
     }
     for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
 	tl->grabbed_clip_pos_cache[i].track = tl->grabbed_clips[i]->track;
-	tl->grabbed_clip_pos_cache[i].pos = tl->grabbed_clips[i]->pos_sframes;
+	tl->grabbed_clip_pos_cache[i].pos = tl->grabbed_clips[i]->tl_pos;
 	/* tl->grabbed_clip_pos_cache[i].track_offset = tl->grabbed_clips[i]->track->tl_rank - tl->track_selector; */
     }
     tl->grabbed_clip_cache_pushed = false;
@@ -2132,7 +1754,7 @@ static NEW_EVENT_FN(undo_move_clips, "undo move clips")
     for (uint8_t i = 0; i<num; i++) {
 	if (!positions[i].track) break;
 	clipref_move_to_track(cliprefs[i], positions[i].track);
-	cliprefs[i]->pos_sframes = positions[i].pos;
+	cliprefs[i]->tl_pos = positions[i].pos;
 	clipref_reset(cliprefs[i], false);
     }
     Timeline *tl = cliprefs[0]->track->tl;
@@ -2147,7 +1769,7 @@ static NEW_EVENT_FN(redo_move_clips, "redo move clips")
     for (uint8_t i = 0; i<num; i++) {
 	if (!positions[i].track) break;
 	clipref_move_to_track(cliprefs[i], positions[i + num].track);
-	cliprefs[i]->pos_sframes = positions[i + num].pos;
+	cliprefs[i]->tl_pos = positions[i + num].pos;
 	clipref_reset(cliprefs[i], false);
     }
     Timeline *tl = cliprefs[0]->track->tl;
@@ -2174,7 +1796,7 @@ void timeline_push_grabbed_clip_move_event(Timeline *tl)
 	positions[i].pos = tl->grabbed_clip_pos_cache[i].pos;
 	/* redo pos */
 	positions[i + tl->num_grabbed_clips].track = cliprefs[i]->track;
-	positions[i + tl->num_grabbed_clips].pos = cliprefs[i]->pos_sframes;
+	positions[i + tl->num_grabbed_clips].pos = cliprefs[i]->tl_pos;
     }
     Value num = {.uint8_v = tl->num_grabbed_clips};
 
@@ -2193,21 +1815,10 @@ void timeline_push_grabbed_clip_move_event(Timeline *tl)
 /* Deprecated; replaced by timeline_delete_grabbed_cliprefs */
 void timeline_destroy_grabbed_cliprefs(Timeline *tl)
 {
-    /* Clip *clips_to_destroy[255]; */
-    /* uint8_t num_clips_to_destroy = 0; */
-    /* fprintf(stdout, "Num grabbed clips to destroy: %d\n", tl->num_grabbed_clips); */
     while (tl->num_grabbed_clips > 0) {
 	ClipRef *cr = tl->grabbed_clips[--tl->num_grabbed_clips];
-	/* if (cr->home) { */
-	/*     clips_to_destroy[num_clips_to_destroy] = cr->clip; */
-	/*     num_clips_to_destroy++; */
-	/* } */
 	clipref_destroy(cr, true);
     }
-    /* while (num_clips_to_destroy > 0) { */
-    /* 	clip_destroy(clips_to_destroy[--num_clips_to_destroy]);	      */
-    /* } */
-    /* fprintf(stdout, "Deleted all grabbed cliprefs and clips\n"); */
 }
 
 static NEW_EVENT_FN(undo_delete_clips, "undo delete clips")
@@ -2257,126 +1868,6 @@ void timeline_delete_grabbed_cliprefs(Timeline *tl)
     tl->num_grabbed_clips = 0;
 }
 
-
-int32_t clipref_len(ClipRef *cr)
-{
-    if (cr->out_mark_sframes < cr->in_mark_sframes) {
-	fprintf(stderr, "ERROR: clipref has negative length\n");
-	breakfn();
-	return 0;
-    /* } else if (cr->out_mark_sframes == cr->in_mark_sframes) { */
-    /* 	return cr->clip->len_sframes; */
-    } else {
-	return cr->out_mark_sframes - cr->in_mark_sframes;
-    }
-}
-
-ClipRef *clipref_at_cursor_in_track(Track *track)
-{
-    for (int i=track->num_clips-1; i>=0; i--) {
-	ClipRef *cr = track->clips[i];
-	if (cr->pos_sframes <= track->tl->play_pos_sframes && cr->pos_sframes + clipref_len(cr) >= track->tl->play_pos_sframes) {
-	    return cr;
-	}
-    }
-    return NULL;
-}
-
-void clipref_bring_to_front()
-{
-    Session *session = session_get();
-    Timeline *tl = ACTIVE_TL;
-    Track *track = timeline_selected_track(tl);
-    if (!track) return;
-    /* bool displace = false; */
-    ClipRef *to_move = NULL;
-    for (int i=0; i<track->num_clips; i++) {
-	ClipRef *cr = track->clips[i];
-	if (!to_move && cr->pos_sframes <= tl->play_pos_sframes && cr->pos_sframes + clipref_len(cr) >= tl->play_pos_sframes) {
-	    to_move = cr;
-	} else if (to_move) {
-	    track->clips[i-1] = track->clips[i];
-	    if (i == track->num_clips - 1) {
-		track->clips[i] = to_move;
-	    }
-	}
-    }
-    tl->needs_redraw = true;
-}
-
-bool clipref_marked(Timeline *tl, ClipRef *cr)
-{
-    if (tl->in_mark_sframes >= tl->out_mark_sframes) return false;
-    int32_t cr_end = cr->pos_sframes + clipref_len(cr);
-    if (cr_end >= tl->in_mark_sframes && cr->pos_sframes <= tl->out_mark_sframes) return true;
-    return false;
-}
-
-ClipRef *clipref_at_cursor()
-{
-    Session *session = session_get();
-    Timeline *tl = ACTIVE_TL;
-    Track *track = timeline_selected_track(tl);
-    if (!track) return NULL;
-    
-    /* Reverse iter to ensure top-most clip is returned in case of overlap */
-    for (int i=track->num_clips -1; i>=0; i--) {
-	ClipRef *cr = track->clips[i];
-	if (cr->pos_sframes <= tl->play_pos_sframes && cr->pos_sframes + clipref_len(cr) >= tl->play_pos_sframes) {
-	    return cr;
-	}
-    }
-    return NULL;
-}
-ClipRef *clipref_at_cursor()
-{
-    Session *session = session_get();
-    Timeline *tl = ACTIVE_TL;
-    Track *track = timeline_selected_track(tl);
-    if (!track) return NULL;
-    
-    /* Reverse iter to ensure top-most clip is returned in case of overlap */
-    for (int i=track->num_clips -1; i>=0; i--) {
-	ClipRef *cr = track->clips[i];
-	if (cr->pos_sframes <= tl->play_pos_sframes && cr->pos_sframes + clipref_len(cr) >= tl->play_pos_sframes) {
-	    return cr;
-	}
-    }
-    return NULL;
-}
-
-
-/* void clipref_grab(ClipRef *cr) */
-/* { */
-/*     Timeline *tl = cr->track->tl; */
-/*     if (tl->num_grabbed_clips == MAX_GRABBED_CLIPS) { */
-/* 	char errstr[MAX_STATUS_STRLEN]; */
-/* 	snprintf(errstr, MAX_STATUS_STRLEN, "Cannot grab >%d clips", MAX_GRABBED_CLIPS); */
-/* 	status_set_errstr(errstr); */
-/* 	return; */
-/*     } */
-
-/*     tl->grabbed_clips[tl->num_grabbed_clips] = cr; */
-/*     tl->num_grabbed_clips++; */
-/*     cr->grabbed = true; */
-/* } */
-
-void clipref_ungrab(ClipRef *cr)
-{
-    Timeline *tl = cr->track->tl;
-    bool displace = false;
-    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
-	if (displace) {
-	    tl->grabbed_clips[i - 1] = tl->grabbed_clips[i];
-	} else if (cr == tl->grabbed_clips[i]) {
-	    displace = true;
-	}
-    }
-    cr->grabbed = false;
-    tl->num_grabbed_clips--;
-    status_stat_drag();
-}
-
 void timeline_ungrab_all_cliprefs(Timeline *tl)
 {
     for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
@@ -2384,87 +1875,6 @@ void timeline_ungrab_all_cliprefs(Timeline *tl)
     }
     tl->num_grabbed_clips = 0;
 }
-
-
-    
-/* static ClipRef *clipref_cut(ClipRef *cr, int32_t cut_pos_rel) */
-/* { */
-/*     ClipRef *new = track_add_clipref(cr->track, cr->clip, cr->pos_sframes + cut_pos_rel, false); */
-/*     if (!new) { */
-/* 	return NULL; */
-/*     } */
-/*     if (cut_pos_rel < 0) return NULL; */
-/*     new->in_mark_sframes = cr->in_mark_sframes + cut_pos_rel; */
-/*     new->out_mark_sframes = cr->out_mark_sframes == 0 ? clipref_len(cr) : cr->out_mark_sframes; */
-/*     Value orig_end_pos = {.int32_v = cr->out_mark_sframes}; */
-/*     cr->out_mark_sframes = cr->out_mark_sframes == 0 ? cut_pos_rel : cr->out_mark_sframes - (clipref_len(cr) - cut_pos_rel); */
-/*     track_reset(cr->track, true); */
-
-/*     Value cut_pos = {.int32_v = cr->out_mark_sframes}; */
-/*     user_event_push( */
-/* 	undo_cut_clipref, */
-/* 	redo_cut_clipref, */
-/* 	NULL, */
-/* 	cut_clip_dispose_forward, */
-/* 	cr, new, */
-/* 	cut_pos, orig_end_pos, cut_pos, orig_end_pos, */
-/* 	0, 0, false, false); */
-
-/*     return new; */
-/* } */
-
-
-
-
-/* static NEW_EVENT_FN(undo_redo_move_track, "undo/redo move track") */
-/*     Track *track = (Track *)obj1; */
-/*     int direction = val1.int_v; */
-/*     timeline_move_track(track->tl, track, direction, true); */
-/* } */
-
-/* void timeline_move_track(Timeline *tl, Track *track, int direction, bool from_undo) */
-/* { */
-/*     int old_pos = track->tl_rank; */
-/*     int new_pos = old_pos + direction; */
-/*     if (new_pos < 0 || new_pos >= tl->num_tracks) return; */
-
-/*     Track *displaced = tl->tracks[new_pos]; */
-/*     tl->tracks[new_pos] = track; */
-/*     tl->tracks[old_pos] = displaced; */
-/*     displaced->tl_rank = track->tl_rank; */
-
-/*     /\* Layout *displaced_layout = displaced->layout; *\/ */
-/*     /\* Layout *track_layout = track->layout; *\/ */
-
-/*     /\* displaced_layout->parent->children[displaced_layout->index] = track_layout; *\/ */
-/*     /\* displaced_layout->parent->children[track_layout->index] = displaced_layout; *\/ */
-/*     /\* int saved_i = displaced_layout->index; *\/ */
-/*     /\* displaced_layout->index = track_layout->index; *\/ */
-/*     /\* track_layout->index = saved_i; *\/ */
-/*     layout_swap_children(displaced->layout, track->layout); */
-    
-/*     track->tl_rank = new_pos; */
-/*     tl->track_selector = track->tl_rank; */
-/*     timeline_reset(tl, false); */
-
-/*     if (!from_undo) { */
-/* 	Value direction_forward = {.int_v = direction}; */
-/* 	Value direction_reverse = {.int_v = direction * -1}; */
-/* 	user_event_push( */
-/* 	     */
-/* 	    undo_redo_move_track, */
-/* 	    undo_redo_move_track, */
-/* 	    NULL, */
-/* 	    NULL, */
-/* 	    (void *)track, */
-/* 	    NULL, */
-/* 	    direction_reverse, */
-/* 	    direction_reverse, */
-/* 	    direction_forward, */
-/* 	    direction_forward, */
-/* 	    0, 0, false, false); */
-/*     } */
-/* } */
 
 static void track_move_automation(Automation *a, int direction, bool from_undo);
 NEW_EVENT_FN(undo_redo_move_automation, "undo/redo move automation")

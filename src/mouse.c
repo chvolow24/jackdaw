@@ -9,6 +9,7 @@
 *****************************************************************************************************************/
 
 #include "autocompletion.h"
+#include "clipref.h"
 #include "input.h"
 #include "menu.h"
 #include "modal.h"

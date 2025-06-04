@@ -10,7 +10,9 @@
 
 #include <math.h>
 #include <pthread.h>
+#include "audio_clip.h"
 #include "automation.h"
+#include "clipref.h"
 #include "dsp_utils.h"
 /* #include "dsp.h" */
 #include "effect.h"
@@ -115,12 +117,18 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	if (session->dragging && cr->grabbed) {
 	    continue;
 	}
+	Clip *clip = NULL;
+	if (cr->type == CLIP_AUDIO) clip = cr->source_clip;
+	
+	if (!clip) continue; /* TODO: Handle MIDI clips here */
+
+
 	pthread_mutex_lock(&cr->lock);
-	if (cr->clip->recording) {
+	if (clip && clip->recording) {
 	    pthread_mutex_unlock(&cr->lock);
 	    continue;
 	}
-	double pos_in_clip_sframes = start_pos_sframes - cr->pos_sframes;
+	double pos_in_clip_sframes = start_pos_sframes - cr->tl_pos;
 	int32_t end_pos = pos_in_clip_sframes + (step * len_sframes);
 	int32_t min, max;
 	if (end_pos >= pos_in_clip_sframes) {
@@ -136,15 +144,15 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	    continue;
 	}
 	float *clip_buf =
-	    cr->clip->channels == 1 ? cr->clip->L :
-	    channel == 0 ? cr->clip->L : cr->clip->R;
+	    clip->channels == 1 ? clip->L :
+	    channel == 0 ? clip->L : clip->R;
 	int16_t chunk_i = 0;
 	
 	while (chunk_i < len_sframes) {    
 	    /* Clip overlaps */
 	    if (pos_in_clip_sframes >= 0 && pos_in_clip_sframes < cr_len - 1) { /* Truncate last sample to allow for interpolation */
 		float sample;
-		double clip_index_f = pos_in_clip_sframes + (double)cr->in_mark_sframes;
+		double clip_index_f = pos_in_clip_sframes + (double)cr->start_in_clip;
 		if (fabs(step) != 1.0f) {
 		    int index_left = (int)floor(clip_index_f);
 		    double diff_left = clip_index_f - (double)index_left;

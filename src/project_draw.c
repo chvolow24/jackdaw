@@ -8,8 +8,10 @@
 
 *****************************************************************************************************************/
 
+#include "audio_clip.h"
 #include "autocompletion.h"
 #include "color.h"
+#include "clipref.h"
 /* #include "dsp.h" */
 #include "geometry.h"
 #include "input.h"
@@ -23,12 +25,9 @@
 #include "waveform.h"
 
 /* #define BACKGROUND_ACTIVE */
-#define MAX_WF_FRAME_DRAW_TIME 0.01
 
 extern Window *main_win;
-
 extern struct colors colors;
-
 
 
 /******************** DARKER ********************/
@@ -60,6 +59,12 @@ SDL_Color clip_ref_bckgrnd = {20, 200, 120, 200};
 SDL_Color clip_ref_grabbed_bckgrnd = {50, 230, 150, 230};
 SDL_Color clip_ref_home_bckgrnd = {90, 180, 245, 200};
 SDL_Color clip_ref_home_grabbed_bckgrnd = {120, 210, 255, 230};
+
+/* SDL_Color midi_clipref_color = {255, 195, 210, 200}; */
+/* SDL_Color midi_clipref_color = {196,149,167, 200}; */
+/* SDL_Color midi_clipref_color = {255, 207, 236, 200}; */
+SDL_Color midi_clipref_color = {237,204,232,200};
+SDL_Color midi_clipref_color_grabbed = {255,219,249,230};
 
 /******************** DARKER ********************/
 /* SDL_Color clip_ref_bckgrnd = {5, 145, 85, 200}; */
@@ -155,165 +160,7 @@ extern Symbol *SYMBOL_TABLE[];
 /*     /\* } *\/ */
 /* } */
 
-static double FRAME_WF_DRAW_TIME = 0.0;
-static bool internal_tl_needs_redraw = false;
-
-static void clipref_draw_waveform(ClipRef *cr)
-{
-    /* fprintf(stderr, "->->cr waveform draw %s\n", cr->name); */
-    if (cr->waveform_redraw && cr->waveform_texture) {
-	SDL_DestroyTexture(cr->waveform_texture);
-	cr->waveform_texture = NULL;
-	cr->waveform_redraw = false;
-    }
-    int32_t cr_len = clipref_len(cr);
-    int32_t start_pos = 0;
-    int32_t end_pos = cr_len;
-    if (end_pos - start_pos == 0) {
-	cr->out_mark_sframes = cr->clip->len_sframes;
-	cr_len = clipref_len(cr);
-	end_pos = cr_len;
-	fprintf(stderr, "Clip ref len error, likely related to older project file. Applying fix and moving on.\n");
-	/* breakfn(); */
-	/* return; */
-    }
-    double sfpp = cr->track->tl->sample_frames_per_pixel;
-    SDL_Rect onscreen_rect = cr->layout->rect;
-    if (onscreen_rect.x > main_win->w_pix) return;
-    if (onscreen_rect.x + onscreen_rect.w < 0) return;
-    if (onscreen_rect.x < 0) {
-	start_pos = sfpp * -1 * onscreen_rect.x;
-	if (start_pos < 0 || start_pos > clipref_len(cr)) {
-	    fprintf(stderr, "ERROR: start pos is %d\n", start_pos);
-	    fprintf(stderr, "vs len: %d\n", start_pos - cr_len);
-	    fprintf(stderr, "Clipref: %s\n", cr->name);
-	    breakfn();
-	    return;
-	    /* exit(1); */
-	}
-	onscreen_rect.w += onscreen_rect.x;
-	onscreen_rect.x = 0;
-    }
-    if (onscreen_rect.x + onscreen_rect.w > main_win->w_pix) {
-	
-	if (end_pos <= start_pos || end_pos > cr_len) {
-	    fprintf(stderr, "ERROR: end pos is %d\n", end_pos);
-	    breakfn();
-	    return;
-	}
-	onscreen_rect.w = main_win->w_pix - onscreen_rect.x;
-	end_pos = start_pos + sfpp * onscreen_rect.w;
-	
-    }
-    if (onscreen_rect.w <= 0) return;
-    /* static double T_create_texture = 0.0; */
-    /* static double T_other_ops = 0.0; */
-    /* static double T_draw_waveform = 0.0; */
-    /* static double T_copy = 0.0; */
-    /* clock_t c; */
-    if (!cr->waveform_texture) {
-	if (FRAME_WF_DRAW_TIME > MAX_WF_FRAME_DRAW_TIME) {
-	    internal_tl_needs_redraw = true;
-	    return;
-	}
-	SDL_Texture *saved_targ = SDL_GetRenderTarget(main_win->rend);
-	/* SDL_Rect onscreen_rect = cr->layout->rect; */
-
-	/* c = clock(); */
-	cr->waveform_texture = SDL_CreateTexture(main_win->rend, 0, SDL_TEXTUREACCESS_TARGET, onscreen_rect.w, onscreen_rect.h);
-	/* T_create_texture += ((double)clock() - c)/CLOCKS_PER_SEC; */
-	if (!cr->waveform_texture) {
-	    fprintf(stderr, "Error: unable to create waveform texture. %s\n", SDL_GetError());
-	    fprintf(stderr, "Attempted to create with dims: %d, %d\n", onscreen_rect.w, onscreen_rect.h);
-	    exit(1);
-	}
-	/* c = clock(); */
-	SDL_SetTextureBlendMode(cr->waveform_texture, SDL_BLENDMODE_BLEND);
-	SDL_SetRenderTarget(main_win->rend, cr->waveform_texture);
-	SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 0);
-	SDL_RenderClear(main_win->rend);
-	
-	/* Do waveform draw here */
-	SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
-	uint8_t num_channels = cr->clip->channels;
-	float *channels[num_channels];
-	/* uint32_t cr_len_sframes = clipref_len(cr); */
-	if (!cr->clip->L) {
-	    return;
-	}
-	channels[0] = cr->clip->L + cr->in_mark_sframes + start_pos;
-	if (num_channels > 1) {
-	    channels[1] = cr->clip->R + cr->in_mark_sframes + start_pos;
-	}
-	SDL_Rect waveform_container = {0, 0, onscreen_rect.w, onscreen_rect.h};
-	/* T_other_ops += ((double)clock() - c)/CLOCKS_PER_SEC; */
-	/* c= clock(); */
-	/* fprintf(stderr, "\t%f\n", FRAME_WF_DRAW_TIME); */
-
-	clock_t c = clock();
-	waveform_draw_all_channels_generic((void **)channels, JDAW_FLOAT, num_channels, end_pos - start_pos, &waveform_container, 0, onscreen_rect.w);
-	FRAME_WF_DRAW_TIME += ((double)clock() - c) / CLOCKS_PER_SEC;
-	    /* fprintf(stderr, "WF: %fms\n", FRAME_WF_DRAW_TIME * 1000); */
-	/* T_draw_waveform += ((double)clock() - c)/CLOCKS_PER_SEC; */
-	SDL_SetRenderTarget(main_win->rend, saved_targ);
-    }
-    /* c = clock(); */
-    SDL_RenderCopy(main_win->rend, cr->waveform_texture, NULL, &onscreen_rect);
-    /* T_copy += ((double)clock() - c)/CLOCKS_PER_SEC; */
-
-    /* if (T_draw_waveform > 10.00) { */
-    /* 	fprintf(stderr, "OTHER: %f\nWAVEFORM: %f\nCOPY: %f\nCREATE: %f\n", T_other_ops, T_draw_waveform, T_copy, T_create_texture); */
-    /* 	exit(0); */
-    /* } */
-}
-
-static void midi_clipref_draw(MIDIClipRef *mcr)
-{
-    Session *session = session_get();
-    if (mcr->deleted) {
-	return;
-    }
-    if (mcr->grabbed && session->dragging) {
-	midi_clipref_reset(mcr, false);
-    }
-    /* Only check horizontal out-of-bounds; track handles vertical */
-    if (mcr->layout->rect.x > main_win->w_pix || mcr->layout->rect.x + mcr->layout->rect.w < 0) {
-	return;
-    }
-
-    /* if (cr->home) { */
-    /* 	if (cr->grabbed) { */
-    /* 	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_home_grabbed_bckgrnd)); */
-    /* 	} else { */
-    /* 	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_home_bckgrnd)); */
-    /* 	} */
-    /* } else { */
-    /* 	if (cr->grabbed) { */
-    /* 	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_grabbed_bckgrnd)); */
-    /* 	} else { */
-    /* 	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_bckgrnd)); */
-    /* 	} */
-    /* } */
-
-    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(midi_clipref_color));
-    
-    SDL_RenderFillRect(main_win->rend, &mcr->layout->rect);
-    /* if (!mcr->clip->recording) { */
-    /* 	clipref_draw_waveform(); */
-    /* } */
-
-    int border = mcr->grabbed ? 3 : 2;
-	
-    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
-    geom_draw_rect_thick(main_win->rend, &mcr->layout->rect, border, main_win->dpi_scale_factor);
-    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.white));    
-    geom_draw_rect_thick(main_win->rend, &mcr->layout->rect, border / 2, main_win->dpi_scale_factor);
-    if (mcr->label) {
-	textbox_draw(mcr->label);
-    }
-
-}
-
+void clipref_draw_waveform(ClipRef *cr);
 static void clipref_draw(ClipRef *cr)
 {
     /* clipref_reset(cr); */
@@ -329,25 +176,33 @@ static void clipref_draw(ClipRef *cr)
 	return;
     }
 
-    if (cr->home) {
-	if (cr->grabbed) {
-	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_home_grabbed_bckgrnd));
+    if (cr->type == CLIP_AUDIO) {
+	if (cr->home) {
+	    if (cr->grabbed) {
+		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_home_grabbed_bckgrnd));
+	    } else {
+		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_home_bckgrnd));
+	    }
 	} else {
-	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_home_bckgrnd));
+	    if (cr->grabbed) {
+		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_grabbed_bckgrnd));
+	    } else {
+		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_bckgrnd));
+	    }
 	}
     } else {
 	if (cr->grabbed) {
-	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_grabbed_bckgrnd));
+	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(midi_clipref_color_grabbed));
 	} else {
-	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_bckgrnd));
+	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(midi_clipref_color));
 	}
     }
     SDL_RenderFillRect(main_win->rend, &cr->layout->rect);
-    if (!cr->clip->recording) {
+    if (cr->type == CLIP_AUDIO && !((Clip *)cr->source_clip)->recording) {
 	clipref_draw_waveform(cr);
     }
 
-    int border = cr->grabbed ? 3 : 2;
+    int border = cr->grabbed ? 4 : 3;
 	
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
     geom_draw_rect_thick(main_win->rend, &cr->layout->rect, border, main_win->dpi_scale_factor);
@@ -387,11 +242,7 @@ static void track_draw(Track *track)
     for (uint16_t i=0; i<track->num_clips; i++) {
 	clipref_draw(track->clips[i]);
     }
-
-    for (uint16_t i=0; i<track->num_midi_cliprefs; i++) {
-	midi_clipref_draw(track->midi_cliprefs[i]);
-    }
-
+    
     /* Left mask */
     SDL_Rect l_mask = {0, track->layout->rect.y, track->console_rect->x, track->layout->rect.h};
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(timeline_bckgrnd));
@@ -499,6 +350,121 @@ static void ruler_draw(Timeline *tl)
 
 void fill_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad);
 void fill_quadrant_complement(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad);
+
+#define MAX_WF_FRAME_DRAW_TIME 0.01
+static double FRAME_WF_DRAW_TIME = 0.0;
+static bool internal_tl_needs_redraw = false;
+
+void clipref_draw_waveform(ClipRef *cr)
+{
+    Clip *clip = cr->source_clip;
+    if (cr->waveform_redraw && cr->waveform_texture) {
+	SDL_DestroyTexture(cr->waveform_texture);
+	cr->waveform_texture = NULL;
+	cr->waveform_redraw = false;
+    }
+    int32_t cr_len = clipref_len(cr);
+    int32_t start_pos = 0;
+    int32_t end_pos = cr_len;
+    if (end_pos - start_pos == 0) {
+	cr->end_in_clip = clip->len_sframes;
+	cr_len = clipref_len(cr);
+	end_pos = cr_len;
+	fprintf(stderr, "Clip ref len error, likely related to older project file. Applying fix and moving on.\n");
+	/* breakfn(); */
+	/* return; */
+    }
+    double sfpp = cr->track->tl->sample_frames_per_pixel;
+    SDL_Rect onscreen_rect = cr->layout->rect;
+    if (onscreen_rect.x > main_win->w_pix) return;
+    if (onscreen_rect.x + onscreen_rect.w < 0) return;
+    if (onscreen_rect.x < 0) {
+	start_pos = sfpp * -1 * onscreen_rect.x;
+	if (start_pos < 0 || start_pos > clipref_len(cr)) {
+	    fprintf(stderr, "ERROR: start pos is %d\n", start_pos);
+	    fprintf(stderr, "vs len: %d\n", start_pos - cr_len);
+	    fprintf(stderr, "Clipref: %s\n", cr->name);
+	    breakfn();
+	    return;
+	    /* exit(1); */
+	}
+	onscreen_rect.w += onscreen_rect.x;
+	onscreen_rect.x = 0;
+    }
+    if (onscreen_rect.x + onscreen_rect.w > main_win->w_pix) {
+	
+	if (end_pos <= start_pos || end_pos > cr_len) {
+	    fprintf(stderr, "ERROR: end pos is %d\n", end_pos);
+	    breakfn();
+	    return;
+	}
+	onscreen_rect.w = main_win->w_pix - onscreen_rect.x;
+	end_pos = start_pos + sfpp * onscreen_rect.w;
+	
+    }
+    if (onscreen_rect.w <= 0) return;
+    /* static double T_create_texture = 0.0; */
+    /* static double T_other_ops = 0.0; */
+    /* static double T_draw_waveform = 0.0; */
+    /* static double T_copy = 0.0; */
+    /* clock_t c; */
+    if (!cr->waveform_texture) {
+	if (FRAME_WF_DRAW_TIME > MAX_WF_FRAME_DRAW_TIME) {
+	    internal_tl_needs_redraw = true;
+	    return;
+	}
+	SDL_Texture *saved_targ = SDL_GetRenderTarget(main_win->rend);
+	/* SDL_Rect onscreen_rect = cr->layout->rect; */
+
+	/* c = clock(); */
+	cr->waveform_texture = SDL_CreateTexture(main_win->rend, 0, SDL_TEXTUREACCESS_TARGET, onscreen_rect.w, onscreen_rect.h);
+	/* T_create_texture += ((double)clock() - c)/CLOCKS_PER_SEC; */
+	if (!cr->waveform_texture) {
+	    fprintf(stderr, "Error: unable to create waveform texture. %s\n", SDL_GetError());
+	    fprintf(stderr, "Attempted to create with dims: %d, %d\n", onscreen_rect.w, onscreen_rect.h);
+	    exit(1);
+	}
+	/* c = clock(); */
+	SDL_SetTextureBlendMode(cr->waveform_texture, SDL_BLENDMODE_BLEND);
+	SDL_SetRenderTarget(main_win->rend, cr->waveform_texture);
+	SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 0);
+	SDL_RenderClear(main_win->rend);
+	
+	/* Do waveform draw here */
+	SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
+	uint8_t num_channels = clip->channels;
+	float *channels[num_channels];
+	/* uint32_t cr_len_sframes = clipref_len(cr); */
+	if (!clip->L) {
+	    return;
+	}
+	channels[0] = clip->L + cr->start_in_clip + start_pos;
+	if (num_channels > 1) {
+	    channels[1] = clip->R + cr->start_in_clip + start_pos;
+	}
+	SDL_Rect waveform_container = {0, 0, onscreen_rect.w, onscreen_rect.h};
+	/* T_other_ops += ((double)clock() - c)/CLOCKS_PER_SEC; */
+	/* c= clock(); */
+	/* fprintf(stderr, "\t%f\n", FRAME_WF_DRAW_TIME); */
+
+	clock_t c = clock();
+	waveform_draw_all_channels_generic((void **)channels, JDAW_FLOAT, num_channels, end_pos - start_pos, &waveform_container, 0, onscreen_rect.w);
+	FRAME_WF_DRAW_TIME += ((double)clock() - c) / CLOCKS_PER_SEC;
+	    /* fprintf(stderr, "WF: %fms\n", FRAME_WF_DRAW_TIME * 1000); */
+	/* T_draw_waveform += ((double)clock() - c)/CLOCKS_PER_SEC; */
+	SDL_SetRenderTarget(main_win->rend, saved_targ);
+    }
+    /* c = clock(); */
+    SDL_RenderCopy(main_win->rend, cr->waveform_texture, NULL, &onscreen_rect);
+    /* T_copy += ((double)clock() - c)/CLOCKS_PER_SEC; */
+
+    /* if (T_draw_waveform > 10.00) { */
+    /* 	fprintf(stderr, "OTHER: %f\nWAVEFORM: %f\nCOPY: %f\nCREATE: %f\n", T_other_ops, T_draw_waveform, T_copy, T_create_texture); */
+    /* 	exit(0); */
+    /* } */
+}
+
+
 static int timeline_draw(Timeline *tl)
 {
     FRAME_WF_DRAW_TIME = 0.0;

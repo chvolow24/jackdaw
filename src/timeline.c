@@ -19,6 +19,7 @@
 #include <stdint.h>
 #include <time.h>
 #include "consts.h"
+#include "clipref.h"
 #include "project.h"
 #include "session_endpoint_ops.h"
 #include "session.h"
@@ -252,7 +253,7 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes)
     }
     if (session->dragging && tl->num_grabbed_clips > 0) {
 	for (int i=0; i<tl->num_grabbed_clips; i++) {
-	    tl->grabbed_clips[i]->pos_sframes += pos_diff;
+	    tl->grabbed_clips[i]->tl_pos += pos_diff;
 	}
 	timeline_push_grabbed_clip_move_event(tl);
     }
@@ -289,7 +290,7 @@ void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes)
 	if (session->dragging) {
 	    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
 		ClipRef *cr = tl->grabbed_clips[i];
-		cr->pos_sframes += move_by_sframes;
+		cr->tl_pos += move_by_sframes;
 		/* clipref_reset(cr); */
 	    }
 	}

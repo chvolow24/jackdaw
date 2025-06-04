@@ -42,7 +42,7 @@
 #include "endpoint.h"
 /* #include "midi_note.h" */
 #include "tempo.h"
-#include "track_clip.h"
+/* #include "track_clip.h" */
 #include "saturation.h"
 #include "textbox.h"
 
@@ -394,7 +394,7 @@ Layout *timeline_selected_layout(Timeline *tl);
 
 void timeline_reset_full(Timeline *tl);
 void timeline_reset(Timeline *tl, bool rescaled);
-Clip *project_add_clip(AudioConn *dev, Track *target);
+Clip *clip_create(AudioConn *dev, Track *target);
 /* ClipRef *track_add_clipref(Track *track, Clip *clip, int32_t record_from_sframes, bool home); */
 /* MIDIClipRef *track_add_midiclipref(Track *track, MIDIClip *clip, int32_t record_from_sframes); */
 /* int32_t clipref_len(ClipRef *cr); */
@@ -444,6 +444,7 @@ void timeline_delete(Timeline *tl, bool from_undo);
 void timeline_cache_grabbed_clip_offsets(Timeline *tl);
 void timeline_cache_grabbed_clip_positions(Timeline *tl);
 void timeline_push_grabbed_clip_move_event(Timeline *tl);
+void timeline_ungrab_all_cliprefs(Timeline *tl);
 /* Deprecated; replaced by timeline_delete_grabbed_cliprefs */
 void timeline_destroy_grabbed_cliprefs(Timeline *tl);
 void timeline_delete_grabbed_cliprefs(Timeline *tl);

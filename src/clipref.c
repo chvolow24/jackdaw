@@ -8,12 +8,13 @@
 
 *****************************************************************************************************************/
 
+#include "audio_clip.h"
+#include "clipref.h"
 #include "color.h"
-#include "geometry.h"
+#include "midi_clip.h"
 /* #include "project.h" */
 #include "session.h"
 #include "timeline.h"
-#include "track_clip.h"
 
 #define CLIPREF_NAMELABEL_H 20
 #define CLIPREF_NAMELABEL_H_PAD 8
@@ -24,7 +25,7 @@
 extern Window *main_win;
 extern struct colors colors;
 
-ClipRef *clipref_add(
+ClipRef *clipref_create(
     Track *track,
     int32_t tl_pos,
     enum clip_type type,
@@ -36,12 +37,12 @@ ClipRef *clipref_add(
     cr->tl_pos = tl_pos;
     cr->type = type;
     cr->source_clip = source_clip;
-    ClipRef *cr = NULL;
-    MIDIClipRef *mcr = NULL;
+    /* ClipRef *cr = NULL; */
+    /* MIDIClipRef *mcr = NULL; */
     switch (type) {
     case CLIP_AUDIO: {
 	Clip *aclip = source_clip;
-	cr = calloc(1, sizeof(ClipRef));
+	/* cr = calloc(1, sizeof(ClipRef)); */
 	pthread_mutex_init(&cr->lock, NULL);
 	pthread_mutex_lock(&cr->lock);
 
@@ -51,6 +52,7 @@ ClipRef *clipref_add(
 	}
 	aclip->refs[aclip->num_refs] = cr;
 	aclip->num_refs++;
+	if (aclip->num_refs == 1) cr->home =true;
 	if (aclip->num_refs > 0) {
 	    snprintf(cr->name, MAX_NAMELENGTH, "%s ref %d", aclip->name, aclip->num_refs + 1);
 	} else {
@@ -61,13 +63,13 @@ ClipRef *clipref_add(
 	break;
     case CLIP_MIDI: {
 	MIDIClip *mclip = source_clip;
-	mcr = calloc(1, sizeof(MIDIClipRef));
-	cr->obj = mcr;
+	/* mcr = calloc(1, sizeof(MIDIClipRef)); */
+	/* cr->obj = mcr; */
 	if (mclip->num_refs == mclip->refs_alloc_len) {
 	    mclip->refs_alloc_len *= 2;
 	    mclip->refs = realloc(mclip->refs, mclip->refs_alloc_len * sizeof(Clip *));
 	}
-	mclip->refs[mclip->num_refs] = mcr;
+	mclip->refs[mclip->num_refs] = cr;
 	mclip->num_refs++;
 
 	if (mclip->num_refs > 0) {
@@ -98,41 +100,53 @@ ClipRef *clipref_add(
     label_lt->w.type = SCALE;
     label_lt->w.value = 0.8f;
     label_lt->h.value = CLIPREF_NAMELABEL_H;
-    cr->label = textbox_create_from_str(cr->name, label_lt, main_win->mono_bold_font, 12, main_win);
+    cr->label = textbox_create_from_str(
+	cr->name,
+	label_lt,
+	main_win->mono_bold_font,
+	12,
+	main_win);
     cr->label->text->validation = txt_name_validation;
     cr->label->text->completion = project_obj_name_completion;
 
     textbox_set_align(cr->label, CENTER_LEFT);
     textbox_set_background_color(cr->label, NULL);
-    textbox_set_text_color(cr->label, &colors.light_grey);
+    if (type == CLIP_AUDIO) {
+	textbox_set_text_color(cr->label, &colors.white);
+	/* textbox_set_text_color(cr->label, &colors.light_grey); */
+    } else if (type == CLIP_MIDI) {
+	textbox_set_text_color(cr->label, &colors.dark_brown);
+    }
     /* textbox_size_to_fit(cr->label, CLIPREF_NAMELABEL_H_PAD, CLIPREF_NAMELABEL_V_PAD); */
     /* fprintf(stdout, "Clip num refs: %d\n", clip->num_refs); */
     /* clip->refs[clip->num_refs] = cr; */
     /* clip->num_refs++; */
     /* pthread_mutex_unlock(&cr->lock); */
-    if (cr) {
-	pthread_mutex_unlock(&cr->lock);
-    }
     if (track->num_clips == track->clips_alloc_len) {
 	track->clips_alloc_len *= 2;
 	track->clips = realloc(track->clips, track->clips_alloc_len * sizeof(ClipRef *));
     }
     track->clips[track->num_clips] = cr;
+    track->num_clips++;
+    if (cr->type == CLIP_AUDIO) {
+	pthread_mutex_unlock(&cr->lock);
+    }
+
 
     return cr;
 }
 
-int32_t clipref_len(ClipRef *cr);
-int32_t midi_clipref_len(MIDIClipRef *mcr);
-void clipref_draw_waveform(ClipRef *cr);
-
 int32_t clipref_len(ClipRef *cr)
 {
-    swith(cr->type) {
-    case CLIP_AUDIO:
-	return clipref_len(cr->obj);
-    case CLIP_MIDI:
-	return midi_clipref_len(cr->obj);
+    if (cr->end_in_clip == 0) {
+	switch(cr->type) {
+	case CLIP_AUDIO:
+	    return ((Clip *)(cr->source_clip))->len_sframes;
+	case CLIP_MIDI:
+	    return ((MIDIClip *)cr->source_clip)->len_sframes;
+	}
+    } else {
+	return cr->end_in_clip - cr->start_in_clip;
     }
 }
 
@@ -151,73 +165,7 @@ void clipref_reset(ClipRef *cr, bool rescaled)
     textbox_reset_full(cr->label);
     /* if (rescaled) { */
     if (cr->type == CLIP_AUDIO) {
-	((ClipRef *)cr->obj)->waveform_redraw = true;
-    }
-}
-
-void clipref_draw(ClipRef *cr)
-{
-    if (cr->deleted) {
-	return;
-    }
-    Session *session = session_get();
-    ClipRef *cr = NULL;
-    MIDIClipRef *mcr = NULL;
-    swicrh (cr->type) {
-    case CLIP_AUDIO:
-	cr = cr->obj;
-	break;
-    case CLIP_MIDI:
-	mcr = cr->obj;
-	break;
-    }
-
-    
-    if (cr->grabbed && session->dragging) {
-	clipref_reset(cr, false);
-    }
-    /* Only check horizontal out-of-bounds; track handles vertical */
-    if (cr->layout->rect.x > main_win->w_pix || cr->layout->rect.x + cr->layout->rect.w < 0) {
-	return;
-    }
-
-    if (mcr) {
-	static const SDL_Color midi_clipref_color = {200, 10, 100, 230};
-	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(midi_clipref_color));
-    } else {
-	static const SDL_Color clip_ref_bckgrnd = {20, 200, 120, 200};
-	static const SDL_Color clip_ref_grabbed_bckgrnd = {50, 230, 150, 230};
-	static const SDL_Color clip_ref_home_bckgrnd = {90, 180, 245, 200};
-	static const SDL_Color clip_ref_home_grabbed_bckgrnd = {120, 210, 255, 230};
-	ClipRef *cr = cr->obj;
-	if (cr->home) {
-	    if (cr->grabbed) {
-		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_home_grabbed_bckgrnd));
-	    } else {
-		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_home_bckgrnd));
-	    }
-	} else {
-	    if (cr->grabbed) {
-		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_grabbed_bckgrnd));
-	    } else {
-		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_bckgrnd));
-	    }
-	}
-    }
-    SDL_RenderFillRect(main_win->rend, &cr->layout->rect);
-
-    if (cr &&!cr->clip->recording) {
-	clipref_draw_waveform(cr);
-    }
-
-    int border = cr->grabbed ? 3 : 2;
-	
-    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
-    geom_draw_rect_thick(main_win->rend, &cr->layout->rect, border, main_win->dpi_scale_factor);
-    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.white));    
-    geom_draw_rect_thick(main_win->rend, &cr->layout->rect, border / 2, main_win->dpi_scale_factor);
-    if (cr->label) {
-	textbox_draw(cr->label);
+	cr->waveform_redraw = true;
     }
 }
 
@@ -270,6 +218,7 @@ static void clipref_insert_on_track(ClipRef *cr, Track *target)
     target->num_clips++;
     cr->track = target;    
 }
+
 
 void clipref_move_to_track(ClipRef *cr, Track *target)
 {
@@ -352,6 +301,16 @@ ClipRef *clipref_at_cursor()
     return NULL;
 }
 
+ClipRef *clipref_at_cursor_in_track(Track *track)
+{
+    for (int i=track->num_clips-1; i>=0; i--) {
+	ClipRef *cr = track->clips[i];
+	if (cr->tl_pos <= track->tl->play_pos_sframes && cr->tl_pos + clipref_len(cr) >= track->tl->play_pos_sframes) {
+	    return cr;
+	}
+    }
+    return NULL;
+}
 
 ClipRef *clipref_before_cursor(int32_t *pos_dst)
 {
@@ -450,15 +409,15 @@ static void clipref_check_and_remove_from_clipboard(ClipRef *cr)
     }
 }
 
-void midi_clipref_destroy(MIDIClipRef *mcr);
+/* void midi_clipref_destroy(MIDIClipRef *mcr); */
 void midi_clip_destroy(MIDIClip *mc);
-void clipref_destroy(ClipRef *cr);
+/* void clipref_destroy(ClipRef *cr); */
 void clipref_destroy(ClipRef *cr, bool displace_in_clip)
 {
     Track *track = cr->track;
     Clip *clip = NULL;
     MIDIClip *mclip = NULL;
-    swicrh (cr->type) {
+    switch (cr->type) {
     case CLIP_AUDIO:
 	clip = cr->source_clip;
 	break;
@@ -486,7 +445,7 @@ void clipref_destroy(ClipRef *cr, bool displace_in_clip)
 	displace = false;
 	if (clip) {
 	    for (uint16_t i=0; i<clip->num_refs; i++) {
-		if (cr->obj == clip->refs[i]) displace = true;
+		if (cr == clip->refs[i]) displace = true;
 		else if (displace) {
 		    clip->refs[i-1] = clip->refs[i];
 		}
@@ -495,10 +454,10 @@ void clipref_destroy(ClipRef *cr, bool displace_in_clip)
 	    if (clip->num_refs == 0) {
 		clip_destroy(clip);
 	    }
-	    clipref_destroy(cr->obj);
+	    /* clipref_destroy(cr, true); */
 	} else if (mclip) {
 	    for (uint16_t i=0; i<mclip->num_refs; i++) {
-		if (cr->obj == mclip->refs[i]) displace = true;
+		if (cr == mclip->refs[i]) displace = true;
 		else if (displace) {
 		    mclip->refs[i-1] = mclip->refs[i];
 		}
@@ -507,7 +466,7 @@ void clipref_destroy(ClipRef *cr, bool displace_in_clip)
 	    if (mclip->num_refs == 0) {
 		midi_clip_destroy(mclip);
 	    }
-	    midi_clipref_destroy(cr->obj);
+	    /* midi_clipref_destroy(cr->obj); */
 	}
 	/* fprintf(stdout, "\t->Clip at %p now has %d refs\n", clip, clip->num_refs); */
     }
@@ -521,27 +480,56 @@ void clipref_destroy(ClipRef *cr, bool displace_in_clip)
 }
 void clipref_destroy_no_displace(ClipRef *cr)
 {
-    /* clipref_check_and_remove_from_clipboard(cr); */
-    /* /\* fprintf(stdout, "TrackClip destroy no displace %s\n", cr->name); *\/ */
-    /* bool displace = false; */
-    /* for (uint16_t i=0; i<cr->clip->num_refs; i++) { */
-    /* 	TrackClip *test = cr->clip->refs[i]; */
-    /* 	if (test == cr) displace = true; */
-    /* 	else if (displace) { */
-    /* 	    cr->clip->refs[i-1] = cr->clip->refs[i]; */
-    /* 	} */
-    /* } */
-    /* cr->clip->num_refs--; */
-    /* /\* TODO: keep clips around *\/ */
-    /* if (cr->clip->num_refs == 0) { */
-    /* 	clip_destroy(cr->clip); */
-    /* } */
-    /* pthread_mutex_destroy(&cr->lock); */
-    /* /\* SDL_DestroyMutex(cr->lock); *\/ */
-    /* textbox_destroy(cr->label); */
-    /* if (cr->waveform_texture) */
-    /* 	SDL_DestroyTexture(cr->waveform_texture); */
-    /* free(cr); */
+    clipref_check_and_remove_from_clipboard(cr);
+    Clip *clip = NULL;
+    MIDIClip *mclip = NULL;
+    switch (cr->type) {
+    case CLIP_AUDIO:
+	clip = cr->source_clip;
+	break;
+    case CLIP_MIDI:
+	mclip = cr->source_clip;
+	break;
+    }
+    /* fprintf(stdout, "TrackClip destroy no displace %s\n", cr->name); */
+    bool displace = false;
+    if (clip) {
+	for (uint16_t i=0; i<clip->num_refs; i++) {
+	    ClipRef *test = clip->refs[i];
+	    if (test == cr) displace = true;
+	    else if (displace) {
+		clip->refs[i-1] = clip->refs[i];
+	    }
+	}
+	clip->num_refs--;
+	
+	/* TODO: reconsider this; prompt user? */
+	if (clip->num_refs == 0) {
+	    clip_destroy(clip);
+	}
+
+    } else if (mclip) {
+	for (uint16_t i=0; i<mclip->num_refs; i++) {
+	    ClipRef *test = mclip->refs[i];
+	    if (test == cr) displace = true;
+	    else if (displace) {
+		mclip->refs[i-1] = mclip->refs[i];
+	    }
+	}
+	mclip->num_refs--;
+	if (mclip->num_refs == 0) {
+	    midi_clip_destroy(mclip);
+	}
+
+	
+    }
+    /* TODO: keep clips around */
+    pthread_mutex_destroy(&cr->lock);
+    /* SDL_DestroyMutex(cr->lock); */
+    textbox_destroy(cr->label);
+    if (cr->waveform_texture)
+	SDL_DestroyTexture(cr->waveform_texture);
+    free(cr);
 }
 
 
@@ -553,8 +541,8 @@ static NEW_EVENT_FN(dispose_forward_cut_clipref, "")
 void track_reset(Track *, bool);
 static ClipRef *clipref_cut(ClipRef *cr, int32_t cut_pos_rel)
 {
-    /* TrackClip *new = clipref_add(cr->track, cr->clip, cr->pos_sframes + cut_pos_rel, false); */
-    ClipRef *new = clipref_add(cr->track, cr->tl_pos + cut_pos_rel, cr->type, cr->source_clip);
+    /* TrackClip *new = clipref_add(cr->track, cr->clip, cr->tl_pos + cut_pos_rel, false); */
+    ClipRef *new = clipref_create(cr->track, cr->tl_pos + cut_pos_rel, cr->type, cr->source_clip);
     if (!new) {
 	return NULL;
     }
@@ -590,10 +578,122 @@ void timeline_cut_at_cursor(Timeline *tl)
 	    return;
 	}
 	if (tl->play_pos_sframes > cr->tl_pos && tl->play_pos_sframes < cr->tl_pos + clipref_len(cr)) {
-	    clipref__cut(cr, tl->play_pos_sframes - cr->tl_pos);
+	    clipref_cut(cr, tl->play_pos_sframes - cr->tl_pos);
 	}
     } else {
 	timeline_cut_click_track_at_cursor(tl);
 	status_cat_callstr(" tempo track at cursor");
     }
 }
+
+
+
+NEW_EVENT_FN(undo_split_cr, "undo split stereo clip to mono")
+    ClipRef **crs = (ClipRef **)obj1;
+    ClipRef *orig = crs[0];
+    ClipRef *new_L = crs[1];
+    ClipRef *new_R = crs[2];
+    clipref_delete(new_L);
+    clipref_delete(new_R);
+    clipref_undelete(orig);
+}
+
+NEW_EVENT_FN(redo_split_cr, "redo split stereo clip to mono")
+    ClipRef **crs = (ClipRef **)obj1;
+    ClipRef *orig = crs[0];
+    ClipRef *new_L = crs[1];
+    ClipRef *new_R = crs[2];
+    clipref_delete(orig);
+    clipref_undelete(new_L);
+    clipref_undelete(new_R);
+}
+
+NEW_EVENT_FN(dispose_split_cr, "")
+    ClipRef **crs = (ClipRef **)obj1;
+    ClipRef *orig = crs[0];
+    clipref_destroy(orig, true);
+}
+
+NEW_EVENT_FN(dispose_forward_split_cr, "")
+    ClipRef **crs = (ClipRef **)obj1;
+    ClipRef *new_L = crs[1];
+    ClipRef *new_R = crs[2];
+    clipref_destroy(new_L, true);
+    clipref_destroy(new_R, true);
+}
+
+int clipref_split_stereo_to_mono(ClipRef *cr, ClipRef **new_L_dst, ClipRef **new_R_dst)
+{
+    if (cr->type == CLIP_MIDI) {
+	fprintf(stderr, "Error: cannot split midi clip\n");
+	return -1;
+    }
+    Clip *clip = cr->source_clip;
+    if (clip->channels != 2) {
+	fprintf(stderr, "Error: clip must have two channels to be split\n");
+	return 0;
+    }
+    Track *t = cr->track;
+    if (t->tl_rank == t->tl->num_tracks - 1) {
+	fprintf(stderr, "Error: No room to split clip reference. Create a new track below.\n");
+	return 0;
+    }
+    
+    Clip *clip_L, *clip_R;
+    clip_split_stereo_to_mono(clip, &clip_L, &clip_R);
+
+    Track *next_track = t->tl->tracks[t->tl_rank + 1];
+
+    ClipRef *new_L, *new_R;
+    new_L = clipref_create(t, cr->tl_pos, CLIP_AUDIO, clip_L);
+    new_R = clipref_create(next_track, cr->tl_pos, CLIP_AUDIO, clip_R);
+    /* new_L = track_add_clipref(t, clip_L, cr->tl_pos, true); */
+    /* new_R = track_add_clipref(next_track, clip_R, cr->tl_pos, true); */
+    if (new_L_dst) *new_L_dst = new_L;
+    if (new_R_dst) *new_R_dst = new_R;
+    snprintf(new_L->name, MAX_NAMELENGTH, "%s L", cr->name);
+    snprintf(new_R->name, MAX_NAMELENGTH, "%s R", cr->name);
+
+    new_L->end_in_clip = clip_L->len_sframes;
+    new_R->end_in_clip = clip_R->len_sframes;
+    clipref_delete(cr);
+
+
+    ClipRef **crs = malloc(3 * sizeof(ClipRef *));
+    crs[0] = cr;
+    crs[1] = new_L;
+    crs[2] = new_R;
+
+    Clip **clips = malloc(2* sizeof(Clip *));
+    clips[0] = clip_L;
+    clips[1] = clip_R;
+    
+    user_event_push(
+	undo_split_cr,
+	redo_split_cr,
+	dispose_split_cr, dispose_forward_split_cr,
+	crs, clips,
+	(Value){0}, (Value){0},
+	(Value){0}, (Value){0},
+	0, 0,
+	true, true);
+    timeline_reset_full(t->tl);
+    return 1;
+}
+
+bool clipref_marked(Timeline *tl, ClipRef *cr)
+{
+    if (tl->in_mark_sframes >= tl->out_mark_sframes) return false;
+    int32_t cr_end = cr->tl_pos + clipref_len(cr);
+    if (cr_end >= tl->in_mark_sframes && cr->tl_pos <= tl->out_mark_sframes) return true;
+    return false;
+}
+
+void project_draw();
+void clipref_rename(ClipRef *cr)
+{
+    /* TODO: replace with TextEntry */
+    txt_edit(cr->label->text, project_draw);
+    main_win->i_state = 0;
+}
+

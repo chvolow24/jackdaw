@@ -16,7 +16,9 @@
  *****************************************************************************************************************/
 
 #include <unistd.h>
+#include "audio_clip.h"
 #include "audio_connection.h"
+#include "clipref.h"
 #include "color.h"
 /* #include "dsp.h" */
 #include "dsp_utils.h"
@@ -78,7 +80,7 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
 	
 	for (uint16_t i=0; i<conn->current_clip->num_refs; i++) {
 	    ClipRef *cr = conn->current_clip->refs[i];
-	    cr->pos_sframes = tl_pos_rec_chunk;
+	    cr->tl_pos = tl_pos_rec_chunk;
 	}
 	conn->current_clip_repositioned = true;
     }
@@ -478,7 +480,7 @@ void transport_start_recording()
     for (uint8_t i=0; i<tl->num_tracks; i++) {
 	Track *track = tl->tracks[i];
 	Clip *clip = NULL;
-	bool home = false;
+	/* bool home = false; */
 	if (track->active) {
 	    no_tracks_active = false;
 	    conn = track->input;
@@ -490,9 +492,9 @@ void transport_start_recording()
 		    fprintf(stderr, "Error opening audio device to record\n");
 		    return;
 		}
-		clip = project_add_clip(conn, track);
+		clip = clip_create(conn, track);
 		clip->recording = true;
-		home = true;
+		/* home = true; */
 		conn->current_clip = clip;
 		conn->current_clip_repositioned = false;
 	    } else {
@@ -500,7 +502,7 @@ void transport_start_recording()
 		conn->current_clip_repositioned = false;
 	    }
 	    /* Clip ref is created as "home", meaning clip data itself is associated with this ref */
-	    track_add_clipref(track, clip, tl->record_from_sframes, home);
+	    clipref_create(track, tl->record_from_sframes, CLIP_AUDIO, clip);
 	}
     }
     if (no_tracks_active) {
@@ -509,7 +511,7 @@ void transport_start_recording()
 	    return;
 	}
 	Clip *clip = NULL;
-	bool home = false;
+	/* bool home = false; */
 	conn = track->input;
 	if (!(conn->active)) {
 	    conn->active = true;
@@ -519,9 +521,9 @@ void transport_start_recording()
 		fprintf(stderr, "Error opening audio device to record\n");
 		exit(1);
 	    }
-	    clip = project_add_clip(conn, track);
+	    clip = clip_create(conn, track);
 	    clip->recording = true;
-	    home = true;
+	    /* home = true; */
 	    conn->current_clip = clip;
 	    conn->current_clip_repositioned = false;
 	} else {
@@ -529,7 +531,7 @@ void transport_start_recording()
 	    conn->current_clip_repositioned = false;
 	}
 	/* Clip ref is created as "home", meaning clip data itself is associated with this ref */
-	track_add_clipref(track, clip, tl->record_from_sframes, home);
+	clipref_create(track, tl->record_from_sframes, CLIP_AUDIO, clip);
     }
 
     for (uint8_t i=0; i<num_conns_to_activate; i++) {
@@ -825,7 +827,7 @@ void transport_recording_update_cliprects()
 
 	for (uint16_t j=0; j<clip->num_refs; j++) {
 	    ClipRef *cr = clip->refs[j];
-	    cr->out_mark_sframes = clip->len_sframes;
+	    cr->end_in_clip = clip->len_sframes;
 	    clipref_reset(cr, false);
 	}
     }

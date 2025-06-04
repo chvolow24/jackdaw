@@ -20,12 +20,13 @@
 #include <time.h>
 #include "audio_connection.h"
 #include "automation.h"
+#include "clipref.h"
 #include "eq.h"
 #include "fir_filter.h"
 #include "function_lookup.h"
 #include "input.h"
 #include "layout.h"
-#include "midi_note.h"
+#include "midi_clip.h"
 #include "mouse.h"
 #include "project.h"
 #include "project_draw.h"
@@ -177,13 +178,22 @@ void loop_project_main()
 		switch (e.key.keysym.scancode) {
 		case SDL_SCANCODE_6: {
 		    static MIDIClip mclip;
-		    mclip.num_refs= 0;
-		    mclip.refs_alloc_len = 16;
-		    mclip.refs = calloc(16, sizeof(MIDIClipRef *));
-		    strncpy(mclip.name, "Midi clip!", 64);
+		    memset(&mclip, '\0', sizeof(mclip));
+		    if (!mclip.refs) {
+			mclip.refs_alloc_len = 6;
+			mclip.refs = calloc(6, sizeof(ClipRef *));
+		    }
+		    breakfn();
+		    sprintf(mclip.name, "mclip!");
+		    mclip.len_sframes = 96000;
 		    Timeline *tl = ACTIVE_TL;
-		    Track *track = timeline_selected_track(tl);
-		    track_add_midiclipref(track, &mclip, tl->play_pos_sframes);		    
+		    Track *t = timeline_selected_track(tl);
+		    clipref_create(
+			t,
+			tl->play_pos_sframes,
+			CLIP_MIDI,
+			&mclip);
+			
 		}
 		    break;
 		/* case SDL_SCANCODE_6: { */
@@ -219,7 +229,7 @@ void loop_project_main()
 		/*     if (cr) { */
 		/* 	FIRFilter *f = cr->track->effects[0]->obj; */
 		/* 	Clip *c = cr->clip; */
-		/* 	int32_t pos = cr->track->tl->play_pos_sframes - cr->pos_sframes; */
+		/* 	int32_t pos = cr->track->tl->play_pos_sframes - cr->tl_pos; */
 		/* 	filter_set_arbitrary_IR(f, c->L + pos, 2048); */
 		/*     } */
 		/* } */

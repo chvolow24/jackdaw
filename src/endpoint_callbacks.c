@@ -9,6 +9,7 @@
 *****************************************************************************************************************/
 
 #include "endpoint_callbacks.h"
+#include "modal.h"
 #include "page.h"
 #include "session_endpoint_ops.h"
 #include "status.h"

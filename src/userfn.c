@@ -2085,7 +2085,7 @@ void user_tl_paste_grabbed_clips(void *nullarg)
 	    ClipRef *copy = clipref_create(
 		cr->track,
 		tl->play_pos_sframes + offset,
-		CLIP_AUDIO,
+		cr->type,
 		cr->source_clip);
 	    if (!copy) continue;
 	    snprintf(copy->name, MAX_NAMELENGTH, "%s copy", cr->name);

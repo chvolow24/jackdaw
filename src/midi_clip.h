@@ -68,4 +68,6 @@ typedef struct midi_clip {
 /*     Textbox *label; */
 /* } MIDIClipRef; */
 
+void midi_clip_add_note(MIDIClip *mc, int note_val, int velocity, int32_t start_rel, int32_t end_rel);
+
 #endif

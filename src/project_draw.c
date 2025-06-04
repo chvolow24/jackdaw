@@ -16,6 +16,7 @@
 #include "geometry.h"
 #include "input.h"
 #include "layout.h"
+#include "midi_clip.h"
 #include "page.h"
 #include "project.h"
 #include "session.h"
@@ -202,8 +203,27 @@ static void clipref_draw(ClipRef *cr)
 	clipref_draw_waveform(cr);
     }
 
-    int border = cr->grabbed ? 4 : 3;
-	
+
+    if (cr->type == CLIP_MIDI) {
+	static const int midi_piano_range = 108 - 20;
+	float note_height_nominal = (float)cr->layout->rect.h / midi_piano_range;
+	float true_note_height = note_height_nominal * 2;
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.dark_brown));
+	MIDIClip *mclip = cr->source_clip;
+	for (int i=0; i<mclip->num_notes; i++) {
+	    Note *note = mclip->notes + i;
+	    int32_t note_start = note->start_rel + cr->tl_pos;
+	    int32_t note_end = note->end_rel + cr->tl_pos;
+	    int x = timeline_get_draw_x(cr->track->tl, note_start);
+	    int w = timeline_get_draw_x(cr->track->tl, note_end) - x;
+	    int piano_note = note->note - 20;
+	    int y = cr->layout->rect.y + (midi_piano_range - piano_note) * note_height_nominal;
+	    SDL_Rect note_rect = {x, y - true_note_height / 2, w, true_note_height};
+	    SDL_RenderFillRect(main_win->rend, &note_rect);
+	}
+    }
+    
+    int border = cr->grabbed ? 4 : 3;	
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
     geom_draw_rect_thick(main_win->rend, &cr->layout->rect, border, main_win->dpi_scale_factor);
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.white));    

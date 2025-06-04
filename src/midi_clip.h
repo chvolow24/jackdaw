@@ -27,7 +27,8 @@
 #include "textbox.h"
 
 #define INIT_NUM_NOTES 16
-#define MAX_MIDI_CLIP_REFS
+/* #define MAX_MIDI_CLIP_REFS (INT16_MAX - 1) */
+#define MAX_NUM_NOTES (INT32_MAX - 1)
 
 typedef struct track Track;
 /* typedef struct midi_clip_ref MIDIClipRef; */
@@ -69,5 +70,6 @@ typedef struct midi_clip {
 /* } MIDIClipRef; */
 
 void midi_clip_add_note(MIDIClip *mc, int note_val, int velocity, int32_t start_rel, int32_t end_rel);
+int32_t midi_clipref_check_get_first_note(ClipRef *cr);
 
 #endif

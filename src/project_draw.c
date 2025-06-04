@@ -61,11 +61,9 @@ SDL_Color clip_ref_grabbed_bckgrnd = {50, 230, 150, 230};
 SDL_Color clip_ref_home_bckgrnd = {90, 180, 245, 200};
 SDL_Color clip_ref_home_grabbed_bckgrnd = {120, 210, 255, 230};
 
-/* SDL_Color midi_clipref_color = {255, 195, 210, 200}; */
-/* SDL_Color midi_clipref_color = {196,149,167, 200}; */
-/* SDL_Color midi_clipref_color = {255, 207, 236, 200}; */
 SDL_Color midi_clipref_color = {237,204,232,200};
 SDL_Color midi_clipref_color_grabbed = {255,219,249,230};
+
 
 /******************** DARKER ********************/
 /* SDL_Color clip_ref_bckgrnd = {5, 145, 85, 200}; */
@@ -73,13 +71,6 @@ SDL_Color midi_clipref_color_grabbed = {255,219,249,230};
 /* SDL_Color clip_ref_home_bckgrnd = {45, 135, 200, 200}; */
 /* SDL_Color clip_ref_home_grabbed_bckgrnd = {75, 165, 210, 230}; */
 /****************************************************/
-
-
-
-
-
-
-
 
 extern SDL_Color timeline_label_txt_color;
 
@@ -203,27 +194,34 @@ static void clipref_draw(ClipRef *cr)
 	clipref_draw_waveform(cr);
     }
 
+    int border = cr->grabbed ? 4 : 3;	
 
     if (cr->type == CLIP_MIDI) {
-	static const int midi_piano_range = 108 - 20;
-	float note_height_nominal = (float)cr->layout->rect.h / midi_piano_range;
+	static const int midi_piano_range = 88;
+	float top_y = cr->layout->rect.y + border * main_win->dpi_scale_factor;
+	float cr_h = cr->layout->rect.h - (border *main_win->dpi_scale_factor * 2);
+	float note_height_nominal = cr_h / midi_piano_range;
 	float true_note_height = note_height_nominal * 2;
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.dark_brown));
 	MIDIClip *mclip = cr->source_clip;
-	for (int i=0; i<mclip->num_notes; i++) {
+	int32_t first_note = midi_clipref_check_get_first_note(cr);
+	if (first_note<0) goto end_draw_notes;
+	for (int32_t i=first_note; i<mclip->num_notes; i++) {
 	    Note *note = mclip->notes + i;
-	    int32_t note_start = note->start_rel + cr->tl_pos;
-	    int32_t note_end = note->end_rel + cr->tl_pos;
-	    int x = timeline_get_draw_x(cr->track->tl, note_start);
-	    int w = timeline_get_draw_x(cr->track->tl, note_end) - x;
-	    int piano_note = note->note - 20;
-	    int y = cr->layout->rect.y + (midi_piano_range - piano_note) * note_height_nominal;
+	    if (cr->end_in_clip && note->start_rel > cr->end_in_clip) break;
+	    int piano_note = note->note - 21;
+	    if (piano_note < 0 || piano_note > midi_piano_range) continue;
+	    int32_t note_start = note->start_rel - cr->start_in_clip + cr->tl_pos;
+	    int32_t note_end = note->end_rel - cr->start_in_clip + cr->tl_pos;
+	    float x = timeline_get_draw_x(cr->track->tl, note_start);
+	    float w = timeline_get_draw_x(cr->track->tl, note_end) - x;
+	    float y = top_y + (midi_piano_range - piano_note) * note_height_nominal;
 	    SDL_Rect note_rect = {x, y - true_note_height / 2, w, true_note_height};
 	    SDL_RenderFillRect(main_win->rend, &note_rect);
 	}
     }
+    end_draw_notes:
     
-    int border = cr->grabbed ? 4 : 3;	
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
     geom_draw_rect_thick(main_win->rend, &cr->layout->rect, border, main_win->dpi_scale_factor);
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.white));    

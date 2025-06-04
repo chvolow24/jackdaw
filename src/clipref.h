@@ -15,9 +15,10 @@
     * audio- and MIDI-specific interfaces in audio_clip.h and MIDI_clip.h
 *****************************************************************************************************************/
 
-#ifndef JDAW_TRACK_CLIP_H
-#define JDAW_TRACK_CLIP_H
+#ifndef JDAW_CLIPREF_H
+#define JDAW_CLIPREF_H
 
+#include "note.h"
 #include "textbox.h"
 
 enum clip_type {
@@ -49,6 +50,9 @@ typedef struct clip_ref {
     pthread_mutex_t waveform_texture_lock;
     pthread_mutex_t lock;
     bool waveform_redraw;
+
+    /* MIDI only */
+    int32_t first_note; /* index of the first note in clip, or -1 if invalid */
 } ClipRef;
 
 

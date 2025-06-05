@@ -9,6 +9,8 @@
 *****************************************************************************************************************/
 
 #include "midi_io.h"
+#include "midi_clip.h"
+#include "note.h"
 #include "portmidi.h"
 #include "porttime.h"
 #include "session.h"
@@ -203,6 +205,7 @@ int midi_device_open(MIDIDevice *d)
 	    PM_EVENT_BUF_NUM_EVENTS,
 	    NULL,
 	    NULL);
+	d->record_start = Pt_Time();
     } else {
 	Pm_OpenOutput(
 	    &d->stream,
@@ -220,11 +223,22 @@ int midi_device_open(MIDIDevice *d)
     return err;
 }
 
+int midi_device_close(MIDIDevice *d)
+{
+    PmError err = Pm_Close(d->stream);
+    if (err != pmNoError) {
+	fprintf(stderr, "Error closing device %s: %s\n", d->info->name, Pm_GetErrorText(err));
+    }
+    return err;
+}
+
 
 void midi_device_record_chunk(MIDIDevice *d)
 {
     if (!d->info || !d->info->opened) return;
 
+    Session *session = session_get();
+    /* Timeline *tl = ACTIVE_TL; */
     int num_read = Pm_Read(
 	d->stream,
 	d->buffer,
@@ -239,13 +253,23 @@ void midi_device_record_chunk(MIDIDevice *d)
 	PmEvent e = d->buffer[i];
 	fprintf(stderr, "EVENT %d/%d, timestamp: %d (rel %d)\n", i, num_read, e.timestamp, current_time - e.timestamp);
 	uint8_t status = Pm_MessageStatus(e.message);
-	uint8_t data1 = Pm_MessageData1(e.message);
-	uint8_t data2 = Pm_MessageData2(e.message);
+	uint8_t note_val = Pm_MessageData1(e.message);
+	uint8_t velocity = Pm_MessageData2(e.message);
 	uint8_t msg_type = status >> 4;
 	const char *type_name = msg_type == 9 ? "NOTE ON" :
 	    msg_type == 8 ? "NOTE OFF" : "UNKNOWN";
 	uint8_t channel = (status & 0xF);
-	fprintf(stderr, "\t%s %d velocity %d channel %d\n", type_name, data1, data2, channel);
+	/* fprintf(stderr, "\t%s %d velocity %d channel %d\n", type_name, data1, data2, channel); */
+	int32_t pos_rel = (e.timestamp - d->record_start) * session->proj.sample_rate / 1000;
+	if (msg_type == 9 && d->current_clip) {
+	    Note *unclosed = d->unclosed_notes + note_val;
+	    unclosed->note = note_val;
+	    unclosed->velocity = velocity;
+	    unclosed->start_rel = pos_rel;
+	} else if (msg_type == 8 && d->current_clip) {
+	    Note *unclosed = d->unclosed_notes + note_val;
+	    midi_clip_add_note(d->current_clip, note_val, unclosed->velocity, unclosed->start_rel, pos_rel);
+	}
     }
     
 }

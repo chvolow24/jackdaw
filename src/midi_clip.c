@@ -53,6 +53,7 @@ TEST_FN_DEF(check_note_order, {
 		fprintf(stderr, "Error: MIDI clip note order error at indices %d,%d, clip %s\n", i-1, i, mclip->name);
 		return 1;
 	    }
+	    /* fprintf(stderr, "NOTE: %d/%d, note %d, velocity %d, start: %d\n", i, mclip->num_notes, note->note, note->velocity, note->end_rel); */
 	    start_rel = note->start_rel;
 	}
 	return 0;
@@ -86,7 +87,8 @@ void midi_clip_add_note(MIDIClip *mc, int note_val, int velocity, int32_t start_
 int32_t midi_clipref_check_get_first_note(ClipRef *cr)
 {
     MIDIClip *clip = cr->source_clip;
-    
+
+    if (cr->first_note == -1) cr->first_note = 0;
     while (cr->first_note > 0 && clip->notes[cr->first_note].start_rel > cr->start_in_clip) {
 	cr->first_note--;
     }

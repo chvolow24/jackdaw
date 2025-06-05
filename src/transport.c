@@ -788,6 +788,12 @@ void transport_stop_recording()
     while (num_conns_to_close > 0) {
 	audioconn_close(conns_to_close[--num_conns_to_close]);
     }
+    for (int i=0; i<session->midi_io.num_inputs; i++) {
+	MIDIDevice *d = session->midi_io.inputs + i;
+	if (!d->info->is_virtual) {
+	    midi_device_close(d);
+	}
+    }
     PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_record");
     Textbox *record_button = ((Button *)el->component)->tb;
     textbox_set_background_color(record_button, &colors.quickref_button_blue );

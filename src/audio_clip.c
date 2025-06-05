@@ -12,6 +12,8 @@
 #include "clipref.h"
 #include "session.h"
 
+#define DEFAULT_REFS_ALLOC_LEN 2
+
 Clip *clip_create(AudioConn *conn, Track *target)
 {
     Session *session = session_get();
@@ -33,7 +35,7 @@ Clip *clip_create(AudioConn *conn, Track *target)
 	clip->target = target;
     }
 
-    clip->refs_alloc_len = 4;
+    clip->refs_alloc_len = DEFAULT_REFS_ALLOC_LEN;
     clip->refs = calloc(clip->refs_alloc_len, sizeof(ClipRef *));
     
     if (!target && conn) {

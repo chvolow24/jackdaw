@@ -40,13 +40,10 @@
 #include "effect.h"
 #include "eq.h"
 #include "endpoint.h"
-/* #include "midi_note.h" */
+#include "midi_clip.h"
 #include "tempo.h"
-/* #include "track_clip.h" */
 #include "saturation.h"
 #include "textbox.h"
-
-
 
 #define MAX_TRACKS 255
 #define MAX_TRACK_CLIPS 2048
@@ -59,6 +56,7 @@
 #define MAX_PROJ_TIMELINES 255
 #define MAX_PROJ_AUDIO_CONNS 255
 #define MAX_PROJ_CLIPS 2048
+#define MAX_PROJ_MIDI_CLIPS MAX_PROJ_CLIPS
 #define MAX_GRABBED_CLIPS 255
 /* #define MAX_TRACK_FILTERS 4 */
 #define MAX_TRACK_EFFECTS 16
@@ -362,6 +360,10 @@ typedef struct project {
     Clip *clips[MAX_PROJ_CLIPS];
     uint16_t num_clips;
     uint16_t active_clip_index;
+
+    MIDIClip *midi_clips[MAX_PROJ_MIDI_CLIPS];
+    uint16_t num_midi_clips;
+    uint16_t active_midi_clip_index;
 
     /* Output buffers */
     float *output_L;

@@ -10,6 +10,7 @@
 
 #include "midi_io.h"
 #include "portmidi.h"
+#include "porttime.h"
 #include "session.h"
 
 static int populate_global_midi_device_list(MIDIDevice *devices)
@@ -129,12 +130,12 @@ static void midi_close_virtual_devices(struct midi_io *midi_io)
 }
 
 
-static void open_output(MIDIDevice *device)
-{
-    PmError err = Pm_OpenOutput(&device->stream, device->id, NULL, PM_EVENT_BUF_NUM_EVENTS, NULL, NULL, MIDI_OUTPUT_LATENCY);
-    if (err != pmNoError) fprintf(stderr, "Error opening output device, code %d: %s\n", err, Pm_GetErrorText(err));
-    else fprintf(stderr, "Successfully opened %s\n", device->info->name);
-}
+/* static void open_output(MIDIDevice *device) */
+/* { */
+/*     PmError err = Pm_OpenOutput(&device->stream, device->id, NULL, PM_EVENT_BUF_NUM_EVENTS, NULL, NULL, MIDI_OUTPUT_LATENCY); */
+/*     if (err != pmNoError) fprintf(stderr, "Error opening output device, code %d: %s\n", err, Pm_GetErrorText(err)); */
+/*     else fprintf(stderr, "Successfully opened %s\n", device->info->name); */
+/* } */
 
 void session_populate_midi_device_lists(Session *session)
 {
@@ -186,4 +187,65 @@ void session_deinit_midi(Session *session)
     midi_close_virtual_devices(&session->midi_io);
 }
 
+int midi_device_open(MIDIDevice *d)
+{
+    if (!d->info) {
+	return -1;
+	fprintf(stderr, "Error: cannot open device. 'info' is missing.\n");
+    }
 
+    PmError err = pmNoError;
+    if (d->info->input) {
+	Pm_OpenInput(
+	    &d->stream,
+	    d->id,
+	    NULL,
+	    PM_EVENT_BUF_NUM_EVENTS,
+	    NULL,
+	    NULL);
+    } else {
+	Pm_OpenOutput(
+	    &d->stream,
+	    d->id,
+	    NULL,
+	    PM_EVENT_BUF_NUM_EVENTS,
+	    NULL,
+	    NULL,
+	    0); /* TODO: figure out latency */
+
+    }
+    if (err != pmNoError) {
+	fprintf(stderr, "Error opening device %s: %s\n", d->info->name, Pm_GetErrorText(err));
+    }
+    return err;
+}
+
+
+void midi_device_record_chunk(MIDIDevice *d)
+{
+    if (!d->info || !d->info->opened) return;
+
+    int num_read = Pm_Read(
+	d->stream,
+	d->buffer,
+	sizeof(d->buffer) / sizeof(PmEvent));
+
+    if (num_read < 0) {
+	fprintf(stderr, "Error: midi record error: %s\n", Pm_GetErrorText(num_read));
+    }
+
+    PmTimestamp current_time = Pt_Time();
+    for (int i=0; i<num_read; i++) {
+	PmEvent e = d->buffer[i];
+	fprintf(stderr, "EVENT %d/%d, timestamp: %d (rel %d)\n", i, num_read, e.timestamp, current_time - e.timestamp);
+	uint8_t status = Pm_MessageStatus(e.message);
+	uint8_t data1 = Pm_MessageData1(e.message);
+	uint8_t data2 = Pm_MessageData2(e.message);
+	uint8_t msg_type = status >> 4;
+	const char *type_name = msg_type == 9 ? "NOTE ON" :
+	    msg_type == 8 ? "NOTE OFF" : "UNKNOWN";
+	uint8_t channel = (status & 0xF);
+	fprintf(stderr, "\t%s %d velocity %d channel %d\n", type_name, data1, data2, channel);
+    }
+    
+}

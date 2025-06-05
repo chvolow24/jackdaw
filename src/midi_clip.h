@@ -23,6 +23,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "midi_io.h"
 #include "note.h"
 #include "textbox.h"
 
@@ -52,6 +53,8 @@ typedef struct midi_clip {
     uint16_t num_refs;
     uint16_t refs_alloc_len;
     bool recording;
+
+    MIDIDevice *recorded_from;
 } MIDIClip;
 
 /* typedef struct midi_clip_ref { */
@@ -68,6 +71,10 @@ typedef struct midi_clip {
 /*     Layout *layout; */
 /*     Textbox *label; */
 /* } MIDIClipRef; */
+
+/* Mirrors audio_clip_create */
+MIDIClip *midi_clip_create(MIDIDevice *device, Track *target);
+
 
 void midi_clip_add_note(MIDIClip *mc, int note_val, int velocity, int32_t start_rel, int32_t end_rel);
 int32_t midi_clipref_check_get_first_note(ClipRef *cr);

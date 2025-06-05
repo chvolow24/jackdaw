@@ -1385,6 +1385,7 @@ static void track_set_in_onclick(void *void_arg)
     struct track_in_arg *arg = (struct track_in_arg *)void_arg;
     switch (arg->type) {
     case AUDIO_CONN: {
+	arg->track->input_type = AUDIO_CONN;
 	AudioConn *conn = arg->obj;
 	arg->track->input = conn;
 	textbox_set_value_handle(arg->track->tb_input_name, conn->name);
@@ -1394,6 +1395,7 @@ static void track_set_in_onclick(void *void_arg)
     }
 	break;
     case MIDI_DEVICE: {
+	arg->track->input_type = MIDI_DEVICE;
 	MIDIDevice *device = arg->obj;
 	arg->track->input = arg->obj;
 	textbox_set_value_handle(arg->track->tb_input_name, device->info->name);

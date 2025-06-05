@@ -35,12 +35,15 @@
 int midi_io_init();
 void midi_io_deinit(void);
 
+typedef struct midi_clip MIDIClip;
+
 typedef struct midi_device {
     int32_t latency; /* Applicable for output devices only */
     PmDeviceID id;
     PmStream *stream;
     PmEvent buffer[PM_EVENT_BUF_NUM_EVENTS];
     const PmDeviceInfo *info;
+    MIDIClip *current_clip;
 } MIDIDevice;
 
 struct midi_io {
@@ -72,5 +75,7 @@ void session_deinit_midi(Session *session);
 /* Called at init time, but can be used to refresh the list */
 void session_populate_midi_device_lists(Session *session);
 
+int midi_device_open(MIDIDevice *d);
+void midi_device_record_chunk(MIDIDevice *d);
 
 #endif

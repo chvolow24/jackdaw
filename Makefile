@@ -6,6 +6,7 @@ GUI_BUILD_DIR := gui/build
 CFLAGS := -Wall -Wno-unused-command-line-argument -I$(SRC_DIR) -I$(GUI_SRC_DIR) \
 	-I/usr/include/SDL2 `sdl2-config --libs --cflags` -lSDL2 -lSDL2_ttf \
 	-lpthread -lm -DINSTALL_DIR=\"`pwd`\" \
+	-Iportmidi/porttime \
 	-Iportmidi/pm_common \
 	-Lportmidi/build -lportmidi \
 	-Wl,-rpath,./portmidi/build

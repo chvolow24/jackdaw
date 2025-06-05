@@ -22,13 +22,13 @@
 #include "color.h"
 /* #include "dsp.h" */
 #include "dsp_utils.h"
+#include "midi_clip.h"
 #include "user_event.h"
 #include "mixdown.h"
 #include "project.h"
 #include "session_endpoint_ops.h"
 #include "pure_data.h"
 #include "session.h"
-#include "status.h"
 #include "timeline.h"
 #include "transport.h"
 
@@ -310,6 +310,17 @@ static void *transport_dsp_thread_fn(void *arg)
 	/* fprintf(stderr, "clips: %f\n", timed * 1000); */
 	/* cd = clock(); */
 
+
+        /* TODO: scrutinize! */
+	for (int i=session->proj.active_midi_clip_index; i<session->proj.num_midi_clips; i++) {
+	    MIDIClip *mclip = session->proj.midi_clips[i];
+	    if (!mclip->recorded_from) continue;
+	    mclip->len_sframes += len;
+	    MIDIDevice *d = mclip->recorded_from;
+	    midi_device_record_chunk(d);
+	}
+
+
 	
 	tl->buf_write_pos += len;
 	if (tl->buf_write_pos >= len * RING_BUF_LEN_FFT_CHUNKS) {
@@ -479,18 +490,61 @@ void transport_start_recording()
     bool no_tracks_active = true;
     for (uint8_t i=0; i<tl->num_tracks; i++) {
 	Track *track = tl->tracks[i];
-	Clip *clip = NULL;
+	/* Clip *clip = NULL; */
 	/* bool home = false; */
 	if (track->active) {
 	    no_tracks_active = false;
+	    if (track->input_type == AUDIO_CONN) {
+		Clip *clip = NULL;
+		AudioConn *conn = track->input;
+		if (!(conn->active)) {
+		    conn->active = true;
+		    conns_to_activate[num_conns_to_activate] = conn;
+		    num_conns_to_activate++;
+		    if (audioconn_open(session, conn) != 0) {
+			fprintf(stderr, "Error opening audio device to record\n");
+			return;
+		    }
+		    clip = clip_create(conn, track);
+		    clip->recording = true;
+		    /* home = true; */
+		    conn->current_clip = clip;
+		    conn->current_clip_repositioned = false;
+		} else {
+		    clip = conn->current_clip;
+		    conn->current_clip_repositioned = false;
+		}
+		clipref_create(track, tl->record_from_sframes, CLIP_AUDIO, clip);
+	    } else if (track->input_type == MIDI_DEVICE) {
+		MIDIDevice *mdevice = track->input;
+		if (!mdevice->info->opened) {
+		    midi_device_open(mdevice);
+		}
+		MIDIClip *mclip = midi_clip_create(mdevice, track);
+		mclip->recording = true;
+		mdevice->current_clip = mclip;
+		/* conn->current_clip_repositioned = false; */
+		clipref_create(track, tl->record_from_sframes, CLIP_MIDI, mclip);
+	    }
+	}
+    }
+    if (no_tracks_active) {
+	Track *track = tl->tracks[tl->track_selector];
+	if (!track) {
+	    return;
+	}
+	/* Clip *clip = NULL; */
+	/* bool home = false; */
+	if (track->input_type == AUDIO_CONN) {
 	    conn = track->input;
+	    Clip *clip = NULL;
 	    if (!(conn->active)) {
 		conn->active = true;
 		conns_to_activate[num_conns_to_activate] = conn;
 		num_conns_to_activate++;
 		if (audioconn_open(session, conn) != 0) {
 		    fprintf(stderr, "Error opening audio device to record\n");
-		    return;
+		    exit(1);
 		}
 		clip = clip_create(conn, track);
 		clip->recording = true;
@@ -503,35 +557,17 @@ void transport_start_recording()
 	    }
 	    /* Clip ref is created as "home", meaning clip data itself is associated with this ref */
 	    clipref_create(track, tl->record_from_sframes, CLIP_AUDIO, clip);
-	}
-    }
-    if (no_tracks_active) {
-	Track *track = tl->tracks[tl->track_selector];
-	if (!track) {
-	    return;
-	}
-	Clip *clip = NULL;
-	/* bool home = false; */
-	conn = track->input;
-	if (!(conn->active)) {
-	    conn->active = true;
-	    conns_to_activate[num_conns_to_activate] = conn;
-	    num_conns_to_activate++;
-	    if (audioconn_open(session, conn) != 0) {
-		fprintf(stderr, "Error opening audio device to record\n");
-		exit(1);
+	} else if (track->input_type == MIDI_DEVICE) {
+	    MIDIDevice *mdevice = track->input;
+	    if (!mdevice->info->opened) {
+		midi_device_open(mdevice);
 	    }
-	    clip = clip_create(conn, track);
-	    clip->recording = true;
-	    /* home = true; */
-	    conn->current_clip = clip;
-	    conn->current_clip_repositioned = false;
-	} else {
-	    clip = conn->current_clip;
-	    conn->current_clip_repositioned = false;
+	    MIDIClip *mclip = midi_clip_create(mdevice, track);
+	    mclip->recording = true;
+	    mdevice->current_clip = mclip;
+	    /* conn->current_clip_repositioned = false; */
+	    clipref_create(track, tl->record_from_sframes, CLIP_MIDI, mclip);
 	}
-	/* Clip ref is created as "home", meaning clip data itself is associated with this ref */
-	clipref_create(track, tl->record_from_sframes, CLIP_AUDIO, clip);
     }
 
     for (uint8_t i=0; i<num_conns_to_activate; i++) {
@@ -747,6 +783,7 @@ void transport_stop_recording()
 	clip->recording = false;
 	session->proj.active_clip_index++;
     }
+    session->proj.active_midi_clip_index = session->proj.num_midi_clips;
 
     while (num_conns_to_close > 0) {
 	audioconn_close(conns_to_close[--num_conns_to_close]);
@@ -804,6 +841,7 @@ void transport_goto_mark(Timeline *tl, bool in)
     }
 }
 
+/* Called in main thread to update clipref GUIs */
 void transport_recording_update_cliprects()
 {
     Session *session = session_get();
@@ -828,6 +866,16 @@ void transport_recording_update_cliprects()
 	for (uint16_t j=0; j<clip->num_refs; j++) {
 	    ClipRef *cr = clip->refs[j];
 	    cr->end_in_clip = clip->len_sframes;
+	    clipref_reset(cr, false);
+	}
+    }
+    for (int i=session->proj.active_midi_clip_index; i<session->proj.num_midi_clips; i++) {
+	/* fprintf(stdout, "updating %d/%d\n", i, proj->num_clips); */
+	MIDIClip *mclip = session->proj.midi_clips[i];
+
+	for (uint16_t j=0; j<mclip->num_refs; j++) {
+	    ClipRef *cr = mclip->refs[j];
+	    cr->end_in_clip = mclip->len_sframes;
 	    clipref_reset(cr, false);
 	}
     }

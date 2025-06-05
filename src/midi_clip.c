@@ -1,6 +1,43 @@
 #include "clipref.h"
 #include "midi_clip.h"
 #include "test.h"
+#include "session.h"
+
+#define DEFAULT_NOTES_ALLOC_LEN 16
+#define DEFAULT_REFS_ALLOC_LEN 2
+
+MIDIClip *midi_clip_create(MIDIDevice *device, Track *target)
+{
+    Session *session = session_get();
+    if (session->proj.num_midi_clips == MAX_PROJ_MIDI_CLIPS) {
+	return NULL;
+    }
+    MIDIClip *mclip = calloc(1, sizeof(MIDIClip));
+    if (device) {
+	mclip->recorded_from = device;
+    }
+    mclip->notes_alloc_len = DEFAULT_NOTES_ALLOC_LEN;
+    mclip->notes = calloc(mclip->notes_alloc_len, sizeof(Note));
+
+    mclip->refs_alloc_len = DEFAULT_REFS_ALLOC_LEN;
+    mclip->refs = calloc(mclip->refs_alloc_len, sizeof(ClipRef *));
+    
+
+    if (!target && device) {
+	snprintf(mclip->name, sizeof(mclip->name), "%s_rec_%d", device->info->name, session->proj.num_clips); /* TODO: Fix this */
+    } else if (target) {
+	snprintf(mclip->name, sizeof(mclip->name), "%s take %d", target->name, target->num_takes + 1);
+	target->num_takes++;
+    } else {
+	snprintf(mclip->name, sizeof(mclip->name), "anonymous");
+    }
+
+    session->proj.midi_clips[session->proj.num_midi_clips] = mclip;
+    session->proj.num_midi_clips++;
+    fprintf(stderr, "IN CREATE num midi clips = %d (ADDR VALUE: %p)\n", session->proj.num_midi_clips, &session->proj.num_midi_clips);
+    return mclip;
+
+}
 
 void midi_clip_destroy(MIDIClip *mc)
 {

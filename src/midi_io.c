@@ -251,7 +251,6 @@ void midi_device_record_chunk(MIDIDevice *d)
     PmTimestamp current_time = Pt_Time();
     for (int i=0; i<num_read; i++) {
 	PmEvent e = d->buffer[i];
-	fprintf(stderr, "EVENT %d/%d, timestamp: %d (rel %d)\n", i, num_read, e.timestamp, current_time - e.timestamp);
 	uint8_t status = Pm_MessageStatus(e.message);
 	uint8_t note_val = Pm_MessageData1(e.message);
 	uint8_t velocity = Pm_MessageData2(e.message);
@@ -260,12 +259,14 @@ void midi_device_record_chunk(MIDIDevice *d)
 	    msg_type == 8 ? "NOTE OFF" : "UNKNOWN";
 	uint8_t channel = (status & 0xF);
 	/* fprintf(stderr, "\t%s %d velocity %d channel %d\n", type_name, data1, data2, channel); */
-	int32_t pos_rel = (e.timestamp - d->record_start) * session->proj.sample_rate / 1000;
+	int32_t pos_rel = ((double)e.timestamp - d->record_start) * (double)session->proj.sample_rate / 1000.0;
+	fprintf(stderr, "EVENT %d/%d, timestamp: %d (rel %d) pos rel %d (record start %d)\n", i, num_read, e.timestamp, current_time - e.timestamp, pos_rel, d->record_start);
 	if (msg_type == 9 && d->current_clip) {
 	    Note *unclosed = d->unclosed_notes + note_val;
 	    unclosed->note = note_val;
 	    unclosed->velocity = velocity;
 	    unclosed->start_rel = pos_rel;
+	    fprintf(stderr, "\tadding unclosed pitch %d\n", unclosed->note);
 	} else if (msg_type == 8 && d->current_clip) {
 	    Note *unclosed = d->unclosed_notes + note_val;
 	    midi_clip_add_note(d->current_clip, note_val, unclosed->velocity, unclosed->start_rel, pos_rel);

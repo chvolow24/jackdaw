@@ -80,6 +80,7 @@ void midi_clip_add_note(MIDIClip *mc, int note_val, int velocity, int32_t start_
     note->start_rel = start_rel;
     note->end_rel = end_rel;
     mc->num_notes++;
+    fprintf(stderr, "NOTE ADDED %d num notes: %d, start rel: %d end rel: %d\n",note_val, mc->num_notes, start_rel, end_rel);
     TEST_FN_CALL(check_note_order, mc);
 }
 

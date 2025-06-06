@@ -1412,7 +1412,11 @@ static void track_set_in_onclick(void *void_arg)
 void track_set_input(Track *track)
 {
     /* Session *session = session_get(); */
-    session_populate_midi_device_lists(session_get());
+
+    /* ugh */
+    /* session_populate_midi_device_lists(session_get()); */
+
+    
     SDL_Rect *rect = &(track->tb_input_name->layout->rect);
     int y = rect->y;
     Menu *menu = menu_create_at_point(rect->x, rect->y);

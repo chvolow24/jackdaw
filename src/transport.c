@@ -29,6 +29,7 @@
 #include "session_endpoint_ops.h"
 #include "pure_data.h"
 #include "session.h"
+#include "synth.h"
 #include "timeline.h"
 #include "transport.h"
 
@@ -225,6 +226,10 @@ static void *transport_dsp_thread_fn(void *arg)
 	/* GET MIXDOWN */
 	get_mixdown_chunk(tl, buf_L, 0, len, tl->read_pos_sframes, session->playback.play_speed);
 	get_mixdown_chunk(tl, buf_R, 1, len, tl->read_pos_sframes, session->playback.play_speed);
+
+	synth_add_buf(&session->synth, buf_L, 0, len);
+	synth_add_buf(&session->synth, buf_R, 1, len);
+	
 	/* double timed = (((double)clock() - cd)/CLOCKS_PER_SEC); */
 	/* fprintf(stderr, "Mixdown: %f\n", timed * 1000); */
 	/* cd = clock(); */

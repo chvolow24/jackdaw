@@ -10,8 +10,6 @@
 
 #include "note.h"
 
-
-
 const double MTOF[] = {
     8.176,
     8.662,

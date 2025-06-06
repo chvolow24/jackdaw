@@ -144,10 +144,16 @@ void session_populate_midi_device_lists(Session *session)
     
     /* PortMidi will only know about newly-connected devices when
        Pm_Initialize is called again :( */
-    Pm_Terminate();
-    midi_close_virtual_devices(&session->midi_io);
-    Pm_Initialize();
-    midi_create_virtual_devices(&session->midi_io);
+    /* PmError err = Pm_Close(session->midi_io.in.stream); */
+    /* fprintf(stderr, "Err closing? %s\n", Pm_GetErrorText(err)); */
+    /* err = Pm_Close(session->midi_io.out.stream); */
+    /* fprintf(stderr, "Err closing? %s\n", Pm_GetErrorText(err)); */
+    /* err = Pm_Close(session->synth.device.stream); */
+    /* fprintf(stderr, "SYNTH Err closing? %s\n", Pm_GetErrorText(err)); */
+    /* Pm_Terminate(); */
+    /* midi_close_virtual_devices(&session->midi_io); */
+    /* Pm_Initialize(); */
+    /* midi_create_virtual_devices(&session->midi_io); */
     
     session->midi_io.num_inputs = 0;
     session->midi_io.num_outputs = 0;
@@ -174,6 +180,9 @@ void session_populate_midi_device_lists(Session *session)
 	    }
 	}
     }
+    /* synth_create_virtual_device(&session->synth); */
+    synth_init_defaults(&session->synth);
+
 
 }
 
@@ -255,22 +264,28 @@ void midi_device_record_chunk(MIDIDevice *d)
 	uint8_t note_val = Pm_MessageData1(e.message);
 	uint8_t velocity = Pm_MessageData2(e.message);
 	uint8_t msg_type = status >> 4;
-	const char *type_name = msg_type == 9 ? "NOTE ON" :
-	    msg_type == 8 ? "NOTE OFF" : "UNKNOWN";
-	uint8_t channel = (status & 0xF);
+	/* uint8_t channel = (status & 0xF); */
 	/* fprintf(stderr, "\t%s %d velocity %d channel %d\n", type_name, data1, data2, channel); */
 	int32_t pos_rel = ((double)e.timestamp - d->record_start) * (double)session->proj.sample_rate / 1000.0;
-	fprintf(stderr, "EVENT %d/%d, timestamp: %d (rel %d) pos rel %d (record start %d)\n", i, num_read, e.timestamp, current_time - e.timestamp, pos_rel, d->record_start);
+	/* fprintf(stderr, "EVENT %d/%d, timestamp: %d (rel %d) pos rel %d (record start %d)\n", i, num_read, e.timestamp, current_time - e.timestamp, pos_rel, d->record_start); */
 	if (msg_type == 9 && d->current_clip) {
 	    Note *unclosed = d->unclosed_notes + note_val;
 	    unclosed->note = note_val;
 	    unclosed->velocity = velocity;
 	    unclosed->start_rel = pos_rel;
-	    fprintf(stderr, "\tadding unclosed pitch %d\n", unclosed->note);
+	    /* fprintf(stderr, "\tadding unclosed pitch %d\n", unclosed->note); */
 	} else if (msg_type == 8 && d->current_clip) {
 	    Note *unclosed = d->unclosed_notes + note_val;
 	    midi_clip_add_note(d->current_clip, note_val, unclosed->velocity, unclosed->start_rel, pos_rel);
 	}
     }
+    
+    /* Write directly to syth :| */
+
+    
+    /* PmError err = Pm_Write(session->synth.device.stream, session->synth.device.buffer, num_read); */
+    /* fprintf(stderr, "%s\n", Pm_GetErrorText(err)); */
+    memcpy(session->synth.events, d->buffer, sizeof(PmEvent) * num_read);
+    session->synth.num_events += num_read;
     
 }

@@ -27,6 +27,7 @@
 #include "panel.h"
 #include "project.h"
 #include "status.h"
+#include "synth.h"
 #include "tempo.h"
 #include "user_event.h"
 
@@ -151,6 +152,8 @@ typedef struct session {
     Automation *automation_recording;
     struct session_gui gui;
     struct playback playback;
+
+    Synth synth;
 
     bool proj_initialized;
     Project proj;

@@ -99,7 +99,6 @@ Session *session_create()
     
     api_endpoint_register(&session->playback.play_speed_ep, &session->server.api_root);
     session_status_bar_init(session);
-
     
     return session;
 }

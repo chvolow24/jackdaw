@@ -166,6 +166,9 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	memcpy(chunk_L, tl->buf_L + tl->buf_read_pos, sizeof(float) * len_sframes);
 	memcpy(chunk_R, tl->buf_R + tl->buf_read_pos, sizeof(float) * len_sframes);
 	sem_post(tl->writable_chunks);
+	synth_add_buf(&session->synth, chunk_L, 0, len_sframes);
+	synth_add_buf(&session->synth, chunk_R, 1, len_sframes);
+
 	tl->buf_read_pos += len_sframes;
 	if (tl->buf_read_pos >= proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS) {
 	    tl->buf_read_pos = 0;
@@ -226,9 +229,6 @@ static void *transport_dsp_thread_fn(void *arg)
 	/* GET MIXDOWN */
 	get_mixdown_chunk(tl, buf_L, 0, len, tl->read_pos_sframes, session->playback.play_speed);
 	get_mixdown_chunk(tl, buf_R, 1, len, tl->read_pos_sframes, session->playback.play_speed);
-
-	synth_add_buf(&session->synth, buf_L, 0, len);
-	synth_add_buf(&session->synth, buf_R, 1, len);
 	
 	/* double timed = (((double)clock() - cd)/CLOCKS_PER_SEC); */
 	/* fprintf(stderr, "Mixdown: %f\n", timed * 1000); */

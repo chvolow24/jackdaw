@@ -16,9 +16,10 @@ void synth_init_defaults(Synth *s)
 	s->voices[i].oscs[0].amp = 0.2;
 	s->voices[i].synth = s;
 	s->voices[i].available = true;
+	/* s->voices[i].amp_env_stage =  */
     }
     s->amp_env.a = 96 * 8;
-    s->amp_env.d = 0;
+    s->amp_env.d = 96 * 500;
     s->amp_env.s = 0.2;
     s->amp_env.r = 96 * 500;
 }
@@ -85,39 +86,88 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
     for (int i=0; i<v->synth->num_oscs; i++) {
 	Osc *osc = v->oscs + i;
 	/* fprintf(stderr, "\t\tosc %d, start rel %d end rel %d\n", i, v->note_start_rel, v->note_end_rel); */
-	int32_t start_rel = v->note_start_rel;
-	int32_t end_rel = v->note_end_rel;
+	/* int32_t start_rel = v->note_start_rel; */
+	/* int32_t end_rel = v->note_end_rel; */
 	for (int i=0; i<len; i++) {
 	    float sample = osc_sample(osc, channel, 2);
-	    /* fprintf(stderr, "\t\t\tsample start end %d %d\n", start_rel, end_rel); */
-	    if (start_rel < v->synth->amp_env.a) {
-		/* fprintf(stderr, "\t\t\t\tAttack!\n"); */
-		sample *= (float)start_rel / v->synth->amp_env.a;
-	    } else if (start_rel < v->synth->amp_env.a + v->synth->amp_env.d) {
-		/* fprintf(stderr, "\t\t\t\tDecay!\n"); */
-		sample *= v->synth->amp_env.s + (float)(start_rel - v->synth->amp_env.a) / v->synth->amp_env.d;
-	    } else if (end_rel < 0) {
-		sample *= v->synth->amp_env.s;
-		/* fprintf(stderr, "\t\t\t\tSustain! * %f\n", v->synth->amp_env.s); */
-	    } else if (end_rel < v->synth->amp_env.r) {
-		/* fprintf(stderr, "Num %d - %d\n", v->synth->amp_env.r, end_rel); */
-		sample *= v->synth->amp_env.s * (float)(v->synth->amp_env.r - end_rel) / v->synth->amp_env.r;
-		/* fprintf(stderr, "\t\t\t\tRelease!\n"); */
-	    } else {
-		v->available = true;
-		/* fprintf(stderr, "Passed ADSR!\n"); */
-		return; /* We've passed ADSR */
+	    float env = 1.0f;
+	    if (v->note_end_rel[channel] == 0) {
+		v->amp_env_stage[channel] = 3;
+		v->release_start_env[channel] = v->last_env[channel];
+		v->env_remaining[channel] = v->synth->amp_env.r;
 	    }
+	    
+	    if (v->env_remaining[channel] == 0) {
+		v->amp_env_stage[channel]++;
+		switch (v->amp_env_stage[channel]) {
+		case 1:
+		    v->env_remaining[channel] = v->synth->amp_env.d;
+		    break;
+		case 2:
+		    v->env_remaining[channel] = -1;
+		    env = v->synth->amp_env.s;
+		    break;
+		case 3:
+		    v->env_remaining[channel] = v->synth->amp_env.r;
+		    break;
+		case 4:
+		    v->available = true;
+		    return; /* We've passed ADSR */
+		}		
+	    }
+	    switch(v->amp_env_stage[channel]) {
+	    case 0:
+		env = (float)(v->synth->amp_env.a - v->env_remaining[channel]) / v->synth->amp_env.a;
+		break;
+	    case 1:
+		env = v->synth->amp_env.s + (float)(v->env_remaining[channel]) / v->synth->amp_env.d;
+		break;
+	    case 2:
+		env = v->synth->amp_env.s;
+		break;
+	    case 3:
+		env = v->release_start_env[channel] - v->release_start_env[channel] * (float)(v->synth->amp_env.r - v->env_remaining[channel]) / v->synth->amp_env.r;
+		break;
+	    }
+	    sample *= env;
 	    buf[i] += sample;
-	    start_rel++;
-	    end_rel++;
+	    v->last_env[channel] = env;
+	    v->env_remaining[channel]--;
+	    v->note_end_rel[channel]--;
+	    v->note_start_rel[channel]--;
+	    /* if (channel == 0) { */
+	    /* 	fprintf(stderr, "Env stage %d, remaining %d\n", v->amp_env_stage[channel], v->env_remaining[channel]); */
+	    /* } */
 	}
+	    /* if (start_rel < v->synth->amp_env.a) { */
+	    /* 	/\* fprintf(stderr, "\t\t\t\tAttack!\n"); *\/ */
+	    /* 	sample *= (float)start_rel / v->synth->amp_env.a; */
+	    /* } else if (start_rel < v->synth->amp_env.a + v->synth->amp_env.d) { */
+	    /* 	/\* fprintf(stderr, "\t\t\t\tDecay!\n"); *\/ */
+	    /* 	sample *= v->synth->amp_env.s + (float)(start_rel - v->synth->amp_env.a) / v->synth->amp_env.d; */
+	    /* } else if (end_rel < 0) { */
+	    /* 	sample *= v->synth->amp_env.s; */
+	    /* 	/\* fprintf(stderr, "\t\t\t\tSustain! * %f\n", v->synth->amp_env.s); *\/ */
+	    /* } else if (end_rel < v->synth->amp_env.r) { */
+	    /* 	/\* fprintf(stderr, "Num %d - %d\n", v->synth->amp_env.r, end_rel); *\/ */
+	    /* 	sample *= v->synth->amp_env.s * (float)(v->synth->amp_env.r - end_rel) / v->synth->amp_env.r; */
+	    /* 	/\* fprintf(stderr, "\t\t\t\tRelease!\n"); *\/ */
+	    /* } else { */
+	    /* 	v->available = true; */
+	    /* 	/\* fprintf(stderr, "Passed ADSR!\n"); *\/ */
+	    /* 	return; /\* We've passed ADSR *\/ */
+
+	    /* } */
+	    /* buf[i] += sample; */
+	    /* start_rel++; */
+	    /* end_rel++; */
+	/* } */
 
 	/* v->note_start_rel += len; */
-	if (channel == 1) {
-	    v->note_start_rel += len;
-	    v->note_end_rel += len;
-	}
+	/* if (channel == 1) { */
+	/*     v->note_start_rel += len; */
+	/*     v->note_end_rel += len; */
+	/* } */
     }
 }
 
@@ -148,6 +198,7 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len)
     /* 	return; */
     /* } */
     /* int num_read = Pm_Read(s->device.stream, s->device.buffer, PM_EVENT_BUF_NUM_EVENTS); */
+    if (channel != 0) goto get_buffer;
     if (s->num_events > 0)
 	fprintf(stderr, "\t->Read %d events from synth\n", s->num_events);
     for (int i=0; i<s->num_events; i++) {
@@ -161,6 +212,7 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len)
 	if (i == 0) start = e.timestamp;
 	int32_t pos_rel = ((double)e.timestamp - start) * (double)session->proj.sample_rate / 1000.0;
 	/* fprintf(stderr, "EVENT %d/%d, timestamp: %d (rel %d) pos rel %d (record start %d)\n", i, num_read, e.timestamp, current_time - e.timestamp, pos_rel, d->record_start); */
+	if (velocity == 0) msg_type =8;
 	if (msg_type == 8) {
 	    /* HANDLE NOTE OFF */
 	    fprintf(stderr, "note off received, val %d\n", note_val);
@@ -169,7 +221,8 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len)
 		if (!v->available && v->note_val == note_val) {
 		    fprintf(stderr, "v%d noteval %d\n", i, v->note_val);
 		    fprintf(stderr, "SETTING END REL!\n");
-		    v->note_end_rel = 0;
+		    v->note_end_rel[0] = 0;
+		    v->note_end_rel[1] = 0;
 		    break;
 		}		
 	    }
@@ -178,9 +231,15 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len)
 		SynthVoice *v = s->voices + i;
 		if (v->available) {
 		    synth_voice_set_note(v, note_val);
-		    v->note_start_rel = 0;
-		    v->note_end_rel = INT32_MIN;
+		    v->note_start_rel[0] = 0;
+		    v->note_start_rel[1] = 0;
+		    v->note_end_rel[0] = INT32_MIN;
+		    v->note_end_rel[1] = INT32_MIN;
 		    v->available = false;
+		    v->amp_env_stage[0] = 0;
+		    v->amp_env_stage[1] = 0;
+		    v->env_remaining[0] = s->amp_env.a;
+		    v->env_remaining[1] = s->amp_env.a;
 		    fprintf(stderr, "Setting voice %d to not available !\n", i);
 		    break;
 		}
@@ -188,6 +247,8 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len)
 	}
     }
     s->num_events = 0;
+
+get_buffer:
 
     /* SECOND: get buffers from voices */
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {

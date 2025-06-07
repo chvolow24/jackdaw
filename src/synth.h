@@ -33,10 +33,14 @@ typedef struct synth Synth;
 typedef struct synth_voice {
     Osc oscs[SYNTHVOICE_NUM_OSCS];
     uint8_t note_val;
-    int32_t note_start_rel; /* relative to start of current chunk */
-    int32_t note_end_rel; /* relative to start of current chunk */
+    int32_t note_start_rel[2]; /* relative to start of current chunk */
+    int32_t note_end_rel[2]; /* relative to start of current chunk */
     Synth *synth;
     bool available;
+    uint8_t amp_env_stage[2];
+    int32_t env_remaining[2];
+    float release_start_env[2];
+    float last_env[2];
 } SynthVoice;
 
 typedef struct adsr {

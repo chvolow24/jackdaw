@@ -1400,6 +1400,7 @@ static void track_set_midi_out_onclick(void *arg_v)
     } else {
 	track->midi_out = arg->obj;
     }
+    timeline_check_set_midi_monitoring();
     window_pop_menu(main_win);
     Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;
@@ -1423,8 +1424,10 @@ static void track_set_in_onclick(void *void_arg)
     case MIDI_DEVICE: {
 	arg->track->input_type = MIDI_DEVICE;
 	MIDIDevice *device = arg->obj;
+	midi_device_open(device);
 	arg->track->input = arg->obj;
 	textbox_set_value_handle(arg->track->tb_input_name, device->info->name);
+	timeline_check_set_midi_monitoring();
 	window_pop_menu(main_win);
 	Timeline *tl = ACTIVE_TL;
 	tl->needs_redraw = true;
@@ -1438,7 +1441,12 @@ static void track_set_in_onclick(void *void_arg)
 void track_set_midi_out(Track *track)
 {
     Session *session = session_get();
-    session_populate_midi_device_lists(session_get());
+
+    /* Refresh device list: skip for now :( */
+    /* session_populate_midi_device_lists(session_get()); */
+
+
+    
     /* SDL_Rect *rect = &(track->tb_input_name->layout->rect); */
     /* int y = rect->y; */
     Menu *menu = menu_create_at_point(track->layout->rect.x + track->layout->rect.w / 2, track->layout->rect.y);
@@ -1473,7 +1481,7 @@ void track_set_midi_out(Track *track)
 	"(softsynth)",
 	track_set_midi_out_onclick,
 	arg);
-    
+    item->free_target_on_destroy = true;
     menu_add_header(menu, "", "Select track midi out");
     window_add_menu(main_win, menu);
     /* int move_by_y = 0; */
@@ -1487,8 +1495,10 @@ void track_set_input(Track *track)
 {
     Session *session = session_get();
 
-    /* ugh */
-    session_populate_midi_device_lists(session_get());
+    /* Refresh device list: skip for now :( */
+    /* session_populate_midi_device_lists(session_get()); */
+
+    
     SDL_Rect *rect = &(track->tb_input_name->layout->rect);
     int y = rect->y;
     Menu *menu = menu_create_at_point(rect->x, rect->y);
@@ -1535,6 +1545,27 @@ void track_set_input(Track *track)
     }
 }
 
+/* Use on the selected track to set session monitoring info */
+void timeline_check_set_midi_monitoring()
+{
+    Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
+    Track *track = timeline_selected_track(tl);
+    if (track && track->input_type == MIDI_DEVICE && track->midi_out && track->midi_out_type == MIDI_OUT_SYNTH) {
+	session->midi_io.monitor_synth = track->midi_out;
+	session->midi_io.monitor_device = track->input;
+	audioconn_start_playback(session->audio_io.playback_conn);
+	fprintf(stderr, "monitoring!!\n");
+    } else {
+	session->midi_io.monitor_synth = NULL;
+	session->midi_io.monitor_device = NULL;
+	/* Only close output audio device if project is not playing from timeline */
+	if (!session->playback.playing) {
+	    audioconn_stop_playback(session->audio_io.playback_conn);
+	}
+	fprintf(stderr, "NO Monitor\n");
+    }
+}
 
 void track_rename(Track *track)
 {
@@ -1637,6 +1668,7 @@ void track_delete(Track *track)
     timeline_remove_track(track);
     api_node_deregister(&track->api_node);
     timeline_reset(tl, false);
+    timeline_check_set_midi_monitoring();
     /* fprintf(stderr, "\nAFTER:\n"); */
     /* api_node_print_all_routes(&tl->api_node); */
 
@@ -1650,6 +1682,7 @@ void track_undelete(Track *track)
     timeline_reinsert_track(track);
     timeline_reset(track->tl, false);
     api_node_reregister(&track->api_node);
+    timeline_check_set_midi_monitoring();
     /* fprintf(stderr, "\nAFTER UNDELETE:\n"); */
     /* api_node_print_all_routes(&track->tl->api_node); */
 

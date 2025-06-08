@@ -85,6 +85,7 @@ typedef struct audio_conn {
     bool open;
     bool active;
     bool available;
+    bool playing;
     Clip *current_clip; /* The clip currently being recorded, if applicable */
     bool current_clip_repositioned;
     struct realtime_tick callback_time;

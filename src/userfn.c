@@ -1373,6 +1373,7 @@ button_animation_and_exit:
 	    quickref_button_press_callback,
 	    NULL);
     }
+    timeline_check_set_midi_monitoring();
 }
 
 void user_tl_track_selector_down(void *nullarg)
@@ -1457,6 +1458,7 @@ button_animation_and_exit:
 	    quickref_button_press_callback,
 	    NULL);
     }
+    timeline_check_set_midi_monitoring();
 }
 
 /* Moves automation track if applicable */

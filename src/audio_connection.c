@@ -44,6 +44,7 @@ int query_audio_connections(Session *session, int iscapture)
 	default_conn->name[MAX_CONN_NAMELENGTH - 1] = '\0';
 	fprintf(stdout, "Found default %s device: \"%s\"\n", iscapture ? "capture" : "playback", default_conn->name);
 	default_conn->open = false;
+	/* default_conn->playing = false; */
 	default_conn->active = false;
 	default_conn->available = true;
 	default_conn->index = 0;
@@ -320,10 +321,12 @@ static void device_start_playback(AudioDevice *dev)
 
 void audioconn_start_playback(AudioConn *conn)
 {
+    
     if (!conn->available) {
 	status_set_errstr("No audio can be played through this device.");
 	return;
     }
+    if (conn->playing) return;
     switch (conn->type) {
     case DEVICE:
 	device_start_playback(&conn->c.device);
@@ -333,6 +336,7 @@ void audioconn_start_playback(AudioConn *conn)
     case JACKDAW:
 	break;
     }
+    conn->playing = true;
 }
 
 static void device_stop_playback(AudioDevice *dev)
@@ -342,6 +346,7 @@ static void device_stop_playback(AudioDevice *dev)
 
 void audioconn_stop_playback(AudioConn *conn)
 {
+    if (!conn->playing) return;
     switch (conn->type) {
     case DEVICE:
 	device_stop_playback(&conn->c.device);
@@ -351,6 +356,7 @@ void audioconn_stop_playback(AudioConn *conn)
     case JACKDAW:
 	break;
     }
+    conn->playing = false;
 }
 
 static void device_stop_recording(AudioDevice *dev)

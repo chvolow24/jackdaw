@@ -139,15 +139,22 @@ static void midi_close_virtual_devices(struct midi_io *midi_io)
 /*     else fprintf(stderr, "Successfully opened %s\n", device->info->name); */
 /* } */
 
+int pop_list_calls = 0;
+
 void session_populate_midi_device_lists(Session *session)
 {
-    
+
+    if (pop_list_calls != 0) {
+	fprintf(stderr, "panic panic panic!\n");
+	exit(1);
+    }
+    pop_list_calls++;
     /* PortMidi will only know about newly-connected devices when
-       Pm_Initialize is called again :( */
-    midi_close_virtual_devices(&session->midi_io);
-    Pm_Terminate();
-    Pm_Initialize();
-    midi_create_virtual_devices(&session->midi_io);
+       Pm_Initialize is called again :( */   
+    /* midi_close_virtual_devices(&session->midi_io); */
+    /* Pm_Terminate(); */
+    /* Pm_Initialize(); */
+    /* midi_create_virtual_devices(&session->midi_io); */
     
     session->midi_io.num_inputs = 0;
     session->midi_io.num_outputs = 0;
@@ -162,6 +169,7 @@ void session_populate_midi_device_lists(Session *session)
 	    MIDIDevice *device = devices + i;
 	    if (device->info->input) {
 		session->midi_io.inputs[session->midi_io.num_inputs] = *device;
+		midi_device_open(session->midi_io.inputs + session->midi_io.num_inputs);
 		session->midi_io.num_inputs++;
 	    } else {
 		session->midi_io.outputs[session->midi_io.num_outputs] = *device;
@@ -198,6 +206,7 @@ int midi_device_open(MIDIDevice *d)
 	return -1;
 	fprintf(stderr, "Error: cannot open device. 'info' is missing.\n");
     }
+    if (d->info->opened) return 0;
 
     PmError err = pmNoError;
     if (d->info->input) {
@@ -220,6 +229,7 @@ int midi_device_open(MIDIDevice *d)
 	    0); /* TODO: figure out latency */
 
     }
+    fprintf(stderr, "OPENED DEVICE %p %s -- %d -- %p\n", d, d->info->name, d->info->opened, d->stream);
     if (err != pmNoError) {
 	fprintf(stderr, "Error opening device %s: %s\n", d->info->name, Pm_GetErrorText(err));
     }
@@ -228,6 +238,7 @@ int midi_device_open(MIDIDevice *d)
 
 int midi_device_close(MIDIDevice *d)
 {
+    if (!d->info->opened) return 0;
     PmError err = Pm_Close(d->stream);
     if (err != pmNoError) {
 	fprintf(stderr, "Error closing device %s: %s\n", d->info->name, Pm_GetErrorText(err));
@@ -237,8 +248,12 @@ int midi_device_close(MIDIDevice *d)
 
 void midi_device_read(MIDIDevice *d)
 {
+    /* fprintf(stderr, "opened? %d\n", d->info->opened); */
     if (!d->info || !d->info->opened) return;
 
+    if (d->num_unconsumed_events > 0) {
+	fprintf(stderr, "Error: overwriting unconsumed events on device \"%s\"\n", d->info->name);
+    }
     Session *session = session_get();
     /* Timeline *tl = ACTIVE_TL; */
     int num_read = Pm_Read(
@@ -248,30 +263,43 @@ void midi_device_read(MIDIDevice *d)
 
     if (num_read < 0) {
 	fprintf(stderr, "Error: midi record error: %s\n", Pm_GetErrorText(num_read));
-    }
-
-    /* PmTimestamp current_time = Pt_Time(); */
-    for (int i=0; i<num_read; i++) {
-	PmEvent e = d->buffer[i];
-	uint8_t status = Pm_MessageStatus(e.message);
-	uint8_t note_val = Pm_MessageData1(e.message);
-	uint8_t velocity = Pm_MessageData2(e.message);
-	uint8_t msg_type = status >> 4;
-	/* uint8_t channel = (status & 0xF); */
-	/* fprintf(stderr, "\t%s %d velocity %d channel %d\n", type_name, data1, data2, channel); */
-	int32_t pos_rel = ((double)e.timestamp - d->record_start) * (double)session->proj.sample_rate / 1000.0;
-	/* fprintf(stderr, "EVENT %d/%d, timestamp: %d (rel %d) pos rel %d (record start %d)\n", i, num_read, e.timestamp, current_time - e.timestamp, pos_rel, d->record_start); */
-	if (msg_type == 9 && d->current_clip) {
-	    Note *unclosed = d->unclosed_notes + note_val;
-	    unclosed->note = note_val;
-	    unclosed->velocity = velocity;
-	    unclosed->start_rel = pos_rel;
-	    /* fprintf(stderr, "\tadding unclosed pitch %d\n", unclosed->note); */
-	} else if (msg_type == 8 && d->current_clip) {
-	    Note *unclosed = d->unclosed_notes + note_val;
-	    midi_clip_add_note(d->current_clip, note_val, unclosed->velocity, unclosed->start_rel, pos_rel);
+	fprintf(stderr, "Args passed: device: %p, d->stream %p, d->buffer %p\n", d, d->stream, d->buffer);
+	Session *session = session_get();
+	for (int i=0; i<session->midi_io.num_inputs; i++) {
+	    MIDIDevice *dl = session->midi_io.inputs + i;
+	    fprintf(stderr, "INPUT %d/%d: %p, %s stream %p", i, session->midi_io.num_inputs, dl, dl->info->name, dl->stream);
+	    if (dl == d) {
+		fprintf(stderr, " <---\n");
+	    } else {
+		fprintf(stderr, "\n");
+	    }
 	}
+	exit(1);
+	return;
     }
+    d->num_unconsumed_events = num_read;
+    /* PmTimestamp current_time = Pt_Time(); */
+    /* for (int i=0; i<num_read; i++) { */
+    /* 	PmEvent e = d->buffer[i]; */
+    /* 	uint8_t status = Pm_MessageStatus(e.message); */
+    /* 	uint8_t note_val = Pm_MessageData1(e.message); */
+    /* 	uint8_t velocity = Pm_MessageData2(e.message); */
+    /* 	uint8_t msg_type = status >> 4; */
+    /* 	/\* uint8_t channel = (status & 0xF); *\/ */
+    /* 	/\* fprintf(stderr, "\t%s %d velocity %d channel %d\n", type_name, data1, data2, channel); *\/ */
+    /* 	int32_t pos_rel = ((double)e.timestamp - d->record_start) * (double)session->proj.sample_rate / 1000.0; */
+    /* 	/\* fprintf(stderr, "EVENT %d/%d, timestamp: %d (rel %d) pos rel %d (record start %d)\n", i, num_read, e.timestamp, current_time - e.timestamp, pos_rel, d->record_start); *\/ */
+    /* 	if (msg_type == 9 && d->current_clip) { */
+    /* 	    Note *unclosed = d->unclosed_notes + note_val; */
+    /* 	    unclosed->note = note_val; */
+    /* 	    unclosed->velocity = velocity; */
+    /* 	    unclosed->start_rel = pos_rel; */
+    /* 	    /\* fprintf(stderr, "\tadding unclosed pitch %d\n", unclosed->note); *\/ */
+    /* 	} else if (msg_type == 8 && d->current_clip) { */
+    /* 	    Note *unclosed = d->unclosed_notes + note_val; */
+    /* 	    midi_clip_add_note(d->current_clip, note_val, unclosed->velocity, unclosed->start_rel, pos_rel); */
+    /* 	} */
+    /* } */
 }
 
 

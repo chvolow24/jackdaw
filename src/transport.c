@@ -137,6 +137,13 @@ static float *get_source_mode_chunk(uint8_t channel, float *chunk, uint32_t len_
 
 void transport_recording_update_cliprects();
 
+static inline float clip(float f)
+{
+    if (f > 1.0) return 1.0;
+    if (f < -1.0) return 1.0;
+    return f;
+}
+
 void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 {
     Session *session = session_get();
@@ -154,30 +161,51 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     uint32_t len_sframes = stream_len_samples / proj->channels;
     float chunk_L[len_sframes];
     float chunk_R[len_sframes];
-    if (session->source_mode.source_mode) {
-	get_source_mode_chunk(0, chunk_L, len_sframes, session->source_mode.src_play_pos_sframes, session->source_mode.src_play_speed);
-	get_source_mode_chunk(1, chunk_R, len_sframes, session->source_mode.src_play_pos_sframes, session->source_mode.src_play_speed);
-    } else {
-	int wait_count = 0;
-	while (sem_trywait(tl->readable_chunks) != 0) {
-	    wait_count++;
-	    if (wait_count > 100) return;
-	}
-	memcpy(chunk_L, tl->buf_L + tl->buf_read_pos, sizeof(float) * len_sframes);
-	memcpy(chunk_R, tl->buf_R + tl->buf_read_pos, sizeof(float) * len_sframes);
-	sem_post(tl->writable_chunks);
-	for (int i=0; i<session->midi_io.num_synths; i++) {
-	    Synth *s = session->midi_io.synths[i];
-	    if (s->monitor) {
-		synth_add_buf(s, chunk_L, 0, len_sframes);
-		synth_add_buf(s, chunk_R, 1, len_sframes);
+    memset(chunk_L, '\0', sizeof(chunk_L));
+    memset(chunk_R, '\0', sizeof(chunk_L));
+    
+    /* Gather data from timeline, generated in DSP threadfn */
+    if (session->playback.playing) {
+	if (session->source_mode.source_mode) {
+	    get_source_mode_chunk(0, chunk_L, len_sframes, session->source_mode.src_play_pos_sframes, session->source_mode.src_play_speed);
+	    get_source_mode_chunk(1, chunk_R, len_sframes, session->source_mode.src_play_pos_sframes, session->source_mode.src_play_speed);
+	} else {
+	    int wait_count = 0;
+	    while (sem_trywait(tl->readable_chunks) != 0) {
+		wait_count++;
+		if (wait_count > 100) return;
+	    }
+	    memcpy(chunk_L, tl->buf_L + tl->buf_read_pos, sizeof(float) * len_sframes);
+	    memcpy(chunk_R, tl->buf_R + tl->buf_read_pos, sizeof(float) * len_sframes);
+	    sem_post(tl->writable_chunks);
+	    /* for (int i=0; i<session->midi_io.num_synths; i++) { */
+	    /* 	Synth *s = session->midi_io.synths[i]; */
+	    /* 	if (s->monitor) { */
+	    /* 	    synth_add_buf(s, chunk_L, 0, len_sframes); */
+	    /* 	    synth_add_buf(s, chunk_R, 1, len_sframes); */
+	    /* 	} */
+	    /* } */
+
+	    tl->buf_read_pos += len_sframes;
+	    if (tl->buf_read_pos >= proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS) {
+		tl->buf_read_pos = 0;
 	    }
 	}
+    }
 
-	tl->buf_read_pos += len_sframes;
-	if (tl->buf_read_pos >= proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS) {
-	    tl->buf_read_pos = 0;
+    /* Check for monitor synth */
+    MIDIDevice *d = session->midi_io.monitor_device;
+    Synth *s = session->midi_io.monitor_synth;
+    if (d && s && !d->recording) {
+	midi_device_read(d);
+	if (d->num_unconsumed_events > 0) {
+	    fprintf(stderr, "%d unconsumed!\n", d->num_unconsumed_events);
 	}
+	memcpy(s->events, d->buffer, d->num_unconsumed_events * sizeof(PmEvent));
+	s->num_events = d->num_unconsumed_events;
+	d->num_unconsumed_events = 0;
+	synth_add_buf(s, chunk_L, 0, len_sframes);
+	synth_add_buf(s, chunk_R, 1, len_sframes);
     }
 
     int16_t *stream_fmt = (int16_t *)stream;
@@ -185,8 +213,8 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     {
 	float val_L = chunk_L[i/2];
 	float val_R = chunk_R[i/2];
-	stream_fmt[i] = (int16_t) (val_L * INT16_MAX);
-	stream_fmt[i+1] = (int16_t) (val_R * INT16_MAX);
+	stream_fmt[i] = (int16_t)(clip(val_L) * INT16_MAX);
+	stream_fmt[i+1] = (int16_t)(clip(val_R) * INT16_MAX);
     }
 
 
@@ -322,19 +350,19 @@ static void *transport_dsp_thread_fn(void *arg)
 
 
         /* TODO: scrutinize! */
-	for (int i=0; i<session->midi_io.num_inputs; i++) {
-	    MIDIDevice *d = session->midi_io.inputs + i;
-	    if (d->info->opened) {
-		midi_device_read(d);
-	    }
-	}
-	for (int i=session->proj.active_midi_clip_index; i<session->proj.num_midi_clips; i++) {
-	    MIDIClip *mclip = session->proj.midi_clips[i];
-	    if (!mclip->recorded_from) continue;
-	    mclip->len_sframes += len;
-	    MIDIDevice *d = mclip->recorded_from;
-	    midi_device_record_chunk(d);
-	}
+	/* for (int i=0; i<session->midi_io.num_inputs; i++) { */
+	/*     MIDIDevice *d = session->midi_io.inputs + i; */
+	/*     if (d->info->opened) { */
+	/* 	midi_device_read(d); */
+	/*     } */
+	/* } */
+	/* for (int i=session->proj.active_midi_clip_index; i<session->proj.num_midi_clips; i++) { */
+	/*     MIDIClip *mclip = session->proj.midi_clips[i]; */
+	/*     if (!mclip->recorded_from) continue; */
+	/*     mclip->len_sframes += len; */
+	/*     MIDIDevice *d = mclip->recorded_from; */
+	/*     midi_device_record_chunk(d); */
+	/* } */
 
 
 	
@@ -533,9 +561,7 @@ void transport_start_recording()
 		clipref_create(track, tl->record_from_sframes, CLIP_AUDIO, clip);
 	    } else if (track->input_type == MIDI_DEVICE) {
 		MIDIDevice *mdevice = track->input;
-		if (!mdevice->info->opened) {
-		    midi_device_open(mdevice);
-		}
+		midi_device_open(mdevice);
 		MIDIClip *mclip = midi_clip_create(mdevice, track);
 		mclip->recording = true;
 		mdevice->current_clip = mclip;
@@ -575,9 +601,7 @@ void transport_start_recording()
 	    clipref_create(track, tl->record_from_sframes, CLIP_AUDIO, clip);
 	} else if (track->input_type == MIDI_DEVICE) {
 	    MIDIDevice *mdevice = track->input;
-	    if (!mdevice->info->opened) {
-		midi_device_open(mdevice);
-	    }
+	    midi_device_open(mdevice);
 	    MIDIClip *mclip = midi_clip_create(mdevice, track);
 	    mclip->recording = true;
 	    mdevice->current_clip = mclip;
@@ -804,12 +828,12 @@ void transport_stop_recording()
     while (num_conns_to_close > 0) {
 	audioconn_close(conns_to_close[--num_conns_to_close]);
     }
-    for (int i=0; i<session->midi_io.num_inputs; i++) {
-	MIDIDevice *d = session->midi_io.inputs + i;
-	if (!d->info->is_virtual) {
-	    midi_device_close(d);
-	}
-    }
+    /* for (int i=0; i<session->midi_io.num_inputs; i++) { */
+    /* 	MIDIDevice *d = session->midi_io.inputs + i; */
+    /* 	if (!d->info->is_virtual) { */
+    /* 	    midi_device_close(d); */
+    /* 	} */
+    /* } */
     PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_record");
     Textbox *record_button = ((Button *)el->component)->tb;
     textbox_set_background_color(record_button, &colors.quickref_button_blue );

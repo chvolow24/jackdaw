@@ -465,6 +465,8 @@ void timeline_delete_grabbed_cliprefs(Timeline *tl);
 void timeline_cut_at_cursor(Timeline *tl);
 /* void timeline_move_track(Timeline *tl, Track *track, int direction, bool from_undo); */
 void timeline_switch(uint8_t new_tl_index);
+
+void timeline_check_set_midi_monitoring();
 void project_deinit(Project *proj);
 
 void session_set_default_out(void *nullarg);

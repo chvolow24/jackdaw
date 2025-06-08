@@ -48,10 +48,12 @@ typedef struct midi_device {
     PmDeviceID id;
     PmStream *stream;
     PmEvent buffer[PM_EVENT_BUF_NUM_EVENTS];
+    uint8_t num_unconsumed_events;
     const PmDeviceInfo *info;
     MIDIClip *current_clip;
 
     PmTimestamp record_start;
+    bool recording;
 
     Note unclosed_notes[128]; /* lookup table by note value */
 } MIDIDevice;
@@ -69,8 +71,11 @@ struct midi_io {
 
     MIDIDevice *primary_output;
 
-    Synth *synths[MAX_SYNTHS];
-    uint8_t num_synths;
+    /* Synth *synths[MAX_SYNTHS]; */
+    /* uint8_t num_synths; */
+
+    Synth *monitor_synth;
+    MIDIDevice *monitor_device;
 };
 
 
@@ -90,6 +95,7 @@ void session_populate_midi_device_lists(Session *session);
 
 int midi_device_open(MIDIDevice *d);
 int midi_device_close(MIDIDevice *d);
-void midi_device_record_chunk(MIDIDevice *d);
+void midi_device_read(MIDIDevice *d);
+/* void midi_device_record_chunk(MIDIDevice *d); */
 
 #endif

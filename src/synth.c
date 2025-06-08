@@ -25,7 +25,7 @@ Synth *synth_create()
     s->amp_env.s = 0.5;
     s->amp_env.r = 96 * 200;
     s->monitor = true;
-    session->midi_io.synths[session->midi_io.num_synths] = s;
+    /* session->midi_io.synths[session->midi_io.num_synths] = s; */
     return s;
 }
 

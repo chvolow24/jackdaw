@@ -133,6 +133,12 @@ typedef struct track {
     enum midi_out_type midi_out_type;
     Synth *synth; /* Pointer will be duplicated in midi_out */
 
+    PmEvent note_offs[128];
+    uint8_t note_offs_write_i;
+    uint8_t note_offs_read_i;
+
+
+
     float vol; /* 0.0 - 1.0 attenuation only */
     float pan; /* 0.0 pan left; 0.5 center; 1.0 pan right */
     Slider *vol_ctrl;

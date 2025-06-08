@@ -8,6 +8,7 @@
 
 *****************************************************************************************************************/
 
+#include "clipref.h"
 #include "midi_io.h"
 #include "midi_clip.h"
 #include "note.h"
@@ -300,6 +301,92 @@ void midi_device_read(MIDIDevice *d)
     /* 	    midi_clip_add_note(d->current_clip, note_val, unclosed->velocity, unclosed->start_rel, pos_rel); */
     /* 	} */
     /* } */
+}
+
+
+/* Return the number of events written */
+int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max_len, int32_t chunk_tl_start, int32_t chunk_tl_end)
+{
+    if (cr->type == CLIP_AUDIO) return 0;
+    int32_t chunk_len = chunk_tl_end - chunk_tl_start;
+    MIDIClip *mclip = cr->source_clip;
+    int32_t note_i = midi_clipref_check_get_first_note(cr);
+    PmEvent e;
+    PmEvent e_off;
+    int event_buf_index = 0;
+    /* const static int note_off_buflen = 128; */
+    /* static PmEvent note_offs_array_base[note_off_buflen]; */
+    /* static PmEvent *note_offs = note_offs_array_base; */
+    /* static int num_note_offs = 0; */
+    Track *track = cr->track;
+    while (note_i < mclip->num_notes) {
+	Note *note = mclip->notes + note_i;
+	int32_t note_start_tl_pos = note->start_rel + cr->tl_pos - cr->start_in_clip;
+	int32_t note_end_tl_pos = note->end_rel + cr->tl_pos - cr->start_in_clip;
+	/* If note on not in chunk, break */
+	if (note_start_tl_pos < chunk_tl_start) {
+	    note_i++;
+	    continue;
+	} else if (note_start_tl_pos >= chunk_tl_end) {
+	    break;
+	}
+	e.message = Pm_Message(0x90, note->note, note->velocity);
+	e.timestamp = note_start_tl_pos;
+	/* Insert any earlier note offs first */
+
+	while (1) {
+	    if (track->note_offs_read_i == track->note_offs_write_i) {
+		break;
+	    } else if (track->note_offs_read_i == 128) {
+		track->note_offs_read_i = 0;
+	    }
+		
+	    PmEvent note_off = track->note_offs[track->note_offs_read_i];
+	    if (note_off.timestamp < e.timestamp) {
+		/* Insert note off */
+		event_buf[event_buf_index] = note_off;
+		event_buf_index++;
+		track->note_offs_read_i++;
+	    } else {
+		break;
+	    }
+	}
+	/* Now insert then note on */
+	event_buf[event_buf_index] = e;
+	event_buf_index++;
+
+	e_off.message = Pm_Message(0x80, note->note, note->velocity);
+	e_off.timestamp = note_end_tl_pos;
+	if (track->note_offs_write_i + 1 == track->note_offs_read_i) {
+	    fprintf(stderr, "Error! reached end of buf, cannot write\n");
+	} else {
+	    track->note_offs[track->note_offs_write_i] = e_off;
+	    track->note_offs_write_i++;
+	}
+	
+	if (event_buf_index > event_buf_max_len) break;
+	note_i++;
+    }
+
+    while (1) {
+	if (track->note_offs_read_i == track->note_offs_write_i) {
+	    break;
+	} else if (track->note_offs_read_i == 128) {
+	    track->note_offs_read_i = 0;
+	}
+		
+	PmEvent note_off = track->note_offs[track->note_offs_read_i];
+	if (note_off.timestamp < chunk_tl_end) {
+	    /* Insert note off */
+	    event_buf[event_buf_index] = note_off;
+	    event_buf_index++;
+	    track->note_offs_read_i++;
+	} else {
+	    break;
+	}
+
+    }
+    return event_buf_index;
 }
 
 

@@ -218,16 +218,18 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len)
     for (int i=0; i<s->num_events; i++) {
 	/* PmEvent e = s->device.buffer[i]; */
 	PmEvent e = s->events[i];
+	PmTimestamp ts = e.timestamp;
 	uint8_t status = Pm_MessageStatus(e.message);
 	uint8_t note_val = Pm_MessageData1(e.message);
 	uint8_t velocity = Pm_MessageData2(e.message);
-	uint8_t msg_type = status >> 4;
+	uint8_t msg_type = status;
 
+	/* fprintf(stderr, "\t\tIN SYNTH msg%d/%d %x, %d, %d (%s)\n", i, s->num_events, status, note_val, velocity, msg_type == 0x80 ? "OFF" : msg_type == 0x90 ? "ON" : "ERROR"); */
 	/* if (i == 0) start = e.timestamp; */
 	/* int32_t pos_rel = ((double)e.timestamp - start) * (double)session->proj.sample_rate / 1000.0; */
 	/* fprintf(stderr, "EVENT %d/%d, timestamp: %d (rel %d) pos rel %d (record start %d)\n", i, num_read, e.timestamp, current_time - e.timestamp, pos_rel, d->record_start); */
 	if (velocity == 0) msg_type = 8;
-	if (msg_type == 8) {
+	if (msg_type == 0x80) {
 	    /* HANDLE NOTE OFF */
 	    fprintf(stderr, "note off received, val %d\n", note_val);
 	    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
@@ -237,12 +239,13 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len)
 		    fprintf(stderr, "SETTING END REL!\n");
 		    v->note_end_rel[0] = 0;
 		    v->note_end_rel[1] = 0;
-		}		
+		}
 	    }
-	} else if (msg_type == 9) {
+	} else if (msg_type == 0x90) {
 	    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 		SynthVoice *v = s->voices + i;
 		if (v->available) {
+		    fprintf(stderr, "SETTINGS VOICE %d PITCH %d\n", i, note_val);
 		    synth_voice_set_note(v, note_val, velocity);
 		    v->note_start_rel[0] = 0;
 		    v->note_start_rel[1] = 0;
@@ -268,6 +271,8 @@ get_buffer:
     /* SECOND: get buffers from voices */
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	SynthVoice *v = s->voices + i;
+	fprintf(stderr, "\t\tADDING BUF voice %d\n", i);
 	synth_voice_add_buf(v, buf, len, channel);		
     }    
 }
+

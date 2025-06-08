@@ -96,6 +96,8 @@ void session_populate_midi_device_lists(Session *session);
 int midi_device_open(MIDIDevice *d);
 int midi_device_close(MIDIDevice *d);
 void midi_device_read(MIDIDevice *d);
+typedef struct clip_ref ClipRef;
+int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max_len, int32_t chunk_tl_start, int32_t chunk_tl_end);
 /* void midi_device_record_chunk(MIDIDevice *d); */
 
 #endif

@@ -17,8 +17,10 @@
 /* #include "dsp.h" */
 #include "effect.h"
 /* #include "eq.h" */
+#include "midi_io.h"
 #include "project.h"
 #include "session.h"
+#include "synth.h"
 /* #include "iir.h" */
 
 #define AMP_EPSILON 1e-7f
@@ -118,13 +120,14 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	    continue;
 	}
 	Clip *clip = NULL;
+	MIDIClip *mclip = NULL;
 	if (cr->type == CLIP_AUDIO) clip = cr->source_clip;
+	else if (cr->type == CLIP_MIDI) mclip = cr->source_clip;
 	
-	if (!clip) continue; /* TODO: Handle MIDI clips here */
-
+	/* if (!clip) continue; /\* TODO: Handle MIDI clips here *\/ */
 
 	pthread_mutex_lock(&cr->lock);
-	if (clip && clip->recording) {
+	if ((clip && clip->recording) || (mclip && mclip->recording)) {
 	    pthread_mutex_unlock(&cr->lock);
 	    continue;
 	}
@@ -143,30 +146,61 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	    pthread_mutex_unlock(&cr->lock);
 	    continue;
 	}
-	float *clip_buf =
-	    clip->channels == 1 ? clip->L :
-	    channel == 0 ? clip->L : clip->R;
-	int16_t chunk_i = 0;
-	
-	while (chunk_i < len_sframes) {    
-	    /* Clip overlaps */
-	    if (pos_in_clip_sframes >= 0 && pos_in_clip_sframes < cr_len - 1) { /* Truncate last sample to allow for interpolation */
-		float sample;
-		double clip_index_f = pos_in_clip_sframes + (double)cr->start_in_clip;
-		if (fabs(step) != 1.0f) {
-		    int index_left = (int)floor(clip_index_f);
-		    double diff_left = clip_index_f - (double)index_left;
-		    double diff = clip_buf[index_left + 1] - clip_buf[index_left];
-		    sample = clip_buf[index_left] + diff_left * diff;
-		} else {
-		    sample = clip_buf[(int)clip_index_f];
+	int num_events = 0;
+	if (channel == 0 && mclip) {
+	    PmEvent events[255];
+	    num_events = midi_clipref_output_chunk(cr, events, 255, start_pos_sframes, start_pos_sframes + len_sframes);
+	    if (track->midi_out) {
+		switch(track->midi_out_type) {
+		case MIDI_OUT_SYNTH: {
+		    Synth *synth = track->midi_out;
+		    memcpy(synth->events, events, sizeof(PmEvent) * num_events);
+		    synth->num_events = num_events;
 		}
-		chunk[chunk_i] += sample;
-		total_amp += fabs(chunk[chunk_i]);
+		    break;
+		case MIDI_OUT_DEVICE:
+		    break;
+		}
 	    }
-	    pos_in_clip_sframes += step;
-	    chunk_i++;
-	}	
+
+	    fprintf(stderr, "%d events sent!\n", num_events);
+	}
+	if (track->midi_out) {
+	    switch(track->midi_out_type) {
+	    case MIDI_OUT_SYNTH: {
+		Synth *synth = track->midi_out;
+		synth_add_buf(synth, chunk, channel, len_sframes);
+		total_amp = 1.0;
+	    }
+		break;
+	    case MIDI_OUT_DEVICE:
+		break;
+	    }
+	}
+	if (clip) {
+	    float *clip_buf =
+		clip->channels == 1 ? clip->L :
+		channel == 0 ? clip->L : clip->R;
+	    int16_t chunk_i = 0;
+	    while (chunk_i < len_sframes) {
+		if (pos_in_clip_sframes >= 0 && pos_in_clip_sframes < cr_len - 1) { /* Truncate last sample to allow for interpolation */
+		    float sample;
+		    double clip_index_f = pos_in_clip_sframes + (double)cr->start_in_clip;
+		    if (fabs(step) != 1.0f) {
+			int index_left = (int)floor(clip_index_f);
+			double diff_left = clip_index_f - (double)index_left;
+			double diff = clip_buf[index_left + 1] - clip_buf[index_left];
+			sample = clip_buf[index_left] + diff_left * diff;
+		    } else {
+			sample = clip_buf[(int)clip_index_f];
+		    }
+		    chunk[chunk_i] += sample;
+		    total_amp += fabs(chunk[chunk_i]);
+		}
+		pos_in_clip_sframes += step;
+		chunk_i++;
+	    }
+	}
 	pthread_mutex_unlock(&cr->lock);
     }
 
@@ -179,7 +213,6 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	    total_amp += amp;
 	}
     }
-
     /* if (total_amp < AMP_EPSILON) { */
     /* 	eq_advance(&track->eq, channel); */
     /* } else { */

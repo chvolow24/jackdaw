@@ -183,7 +183,6 @@ void loop_project_main()
 			mclip.refs_alloc_len = 6;
 			mclip.refs = calloc(6, sizeof(ClipRef *));
 		    }
-		    breakfn();
 		    sprintf(mclip.name, "mclip!");
 		    mclip.len_sframes = 96000;
 

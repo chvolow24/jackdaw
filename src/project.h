@@ -43,6 +43,7 @@
 #include "midi_clip.h"
 #include "tempo.h"
 #include "saturation.h"
+#include "synth.h"
 #include "textbox.h"
 
 #define MAX_TRACKS 255
@@ -92,6 +93,11 @@ enum track_in_type {
     MIDI_DEVICE,
 };
 
+enum midi_out_type {
+    MIDI_OUT_DEVICE,
+    MIDI_OUT_SYNTH
+};
+
 typedef struct track {
     char name[MAX_NAMELENGTH];
     bool deleted;
@@ -121,6 +127,11 @@ typedef struct track {
     void *input;
     enum track_in_type input_type;
     AudioConn *output;
+
+
+    void *midi_out;
+    enum midi_out_type midi_out_type;
+    Synth *synth; /* Pointer will be duplicated in midi_out */
 
     float vol; /* 0.0 - 1.0 attenuation only */
     float pan; /* 0.0 pan left; 0.5 center; 1.0 pan right */
@@ -419,6 +430,7 @@ bool track_solo(Track *track);
 void track_solomute(Track *track);
 void track_unsolomute(Track *track);
 void track_set_input(Track *track);
+void track_set_midi_out(Track *track);
 void track_rename(Track *track);
 void track_set_bus_out(Track *track, Track *bus_out);
 void track_delete(Track *track);

@@ -166,8 +166,13 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	memcpy(chunk_L, tl->buf_L + tl->buf_read_pos, sizeof(float) * len_sframes);
 	memcpy(chunk_R, tl->buf_R + tl->buf_read_pos, sizeof(float) * len_sframes);
 	sem_post(tl->writable_chunks);
-	synth_add_buf(&session->synth, chunk_L, 0, len_sframes);
-	synth_add_buf(&session->synth, chunk_R, 1, len_sframes);
+	for (int i=0; i<session->midi_io.num_synths; i++) {
+	    Synth *s = session->midi_io.synths[i];
+	    if (s->monitor) {
+		synth_add_buf(s, chunk_L, 0, len_sframes);
+		synth_add_buf(s, chunk_R, 1, len_sframes);
+	    }
+	}
 
 	tl->buf_read_pos += len_sframes;
 	if (tl->buf_read_pos >= proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS) {
@@ -317,6 +322,12 @@ static void *transport_dsp_thread_fn(void *arg)
 
 
         /* TODO: scrutinize! */
+	for (int i=0; i<session->midi_io.num_inputs; i++) {
+	    MIDIDevice *d = session->midi_io.inputs + i;
+	    if (d->info->opened) {
+		midi_device_read(d);
+	    }
+	}
 	for (int i=session->proj.active_midi_clip_index; i<session->proj.num_midi_clips; i++) {
 	    MIDIClip *mclip = session->proj.midi_clips[i];
 	    if (!mclip->recorded_from) continue;

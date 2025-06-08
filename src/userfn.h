@@ -99,6 +99,7 @@ void user_tl_track_activate_selected(void *nullarg);
 void user_tl_track_rename(void *nullarg);
 void user_tl_track_toggle_in(void *nullarg);
 void user_tl_track_set_in(void *nullarg);
+void user_tl_track_set_midi_out(void *nullarg);
 void user_tl_track_add_filter(void *nullarg);
 /* void user_tl_track_destroy(void *nullarg); */
 void user_tl_track_delete(void *nullarg);

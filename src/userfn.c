@@ -1560,6 +1560,18 @@ void user_tl_track_set_in(void *nullarg)
     track_set_input(track);
 }
 
+
+void user_tl_track_set_midi_out(void *nullarg)
+{
+    Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
+    Track *track = timeline_selected_track(tl);
+    if (!track) {
+	return;
+    }
+    track_set_midi_out(track);
+}
+
 static NEW_EVENT_FN(undo_track_delete, "undo delete track")
     Track *track = (Track *)obj1;
     track_undelete(track);

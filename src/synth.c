@@ -5,26 +5,30 @@
 
 extern double MTOF[];
 
-
-
-void synth_init_defaults(Synth *s)
+Synth *synth_create()
 {
+    Session *session = session_get();
+    Synth *s = calloc(1, sizeof(Synth));
     s->num_oscs = 1;
     /* s->osc_types[0] = WS_SINE; */
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
-	s->voices[i].oscs[0].type = WS_SINE;
+	s->voices[i].oscs[0].type = WS_SAW;
 	s->voices[i].oscs[0].amp = 0.2;
+
+	
 	s->voices[i].synth = s;
 	s->voices[i].available = true;
 	/* s->voices[i].amp_env_stage =  */
     }
-    s->amp_env.a = 96 * 8;
-    s->amp_env.d = 96 * 500;
-    s->amp_env.s = 0.2;
-    s->amp_env.r = 96 * 500;
+    s->amp_env.a = 96 * 1;
+    s->amp_env.d = 96 * 20;
+    s->amp_env.s = 0.5;
+    s->amp_env.r = 96 * 200;
+    s->monitor = true;
+    session->midi_io.synths[session->midi_io.num_synths] = s;
+    return s;
 }
 
-int call_count = 0;
 /* int synth_create_virtual_device(Synth *s) */
 /* { */
 /*     if (call_count > 0) { */
@@ -69,6 +73,22 @@ static float osc_sample(Osc *osc, int channel, int num_channels)
     case WS_SINE:
 	sample = sin(TAU * osc->phase[channel]);
 	break;
+    case WS_SQUARE:
+	sample = osc->phase[channel] < 0.5 ? -1.0 : 1.0;
+	break;
+    case WS_TRI:
+	sample =
+	    osc->phase[channel] <= 0.25 ?
+	        osc->phase[channel] * 4.0f :
+	    osc->phase[channel] <= 0.5f ?
+	        (0.5f - osc->phase[channel]) * 4.0 :
+	    osc->phase[channel] <= 0.75f ?
+	        (osc->phase[channel] - 0.5f) * -4.0 :
+	        (1.0f - osc->phase[channel]) * -4.0;
+        break;
+    case WS_SAW:
+	sample = 2.0f * osc->phase[channel] - 1.0;
+	break;
     default:
 	sample = 0.0;
     }
@@ -78,6 +98,7 @@ static float osc_sample(Osc *osc, int channel, int num_channels)
     }
     return sample * osc->amp;
 }
+
 
 static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int channel)
 {
@@ -120,7 +141,8 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 		env = (float)(v->synth->amp_env.a - v->env_remaining[channel]) / v->synth->amp_env.a;
 		break;
 	    case 1:
-		env = v->synth->amp_env.s + (float)(v->env_remaining[channel]) / v->synth->amp_env.d;
+		/* env = v->synth->amp_env.s + (float)(v->env_remaining[channel]) / v->synth->amp_env.d; */
+		env = v->synth->amp_env.s + ((float)v->env_remaining[channel] / v->synth->amp_env.d) * (1.0f - v->synth->amp_env.s);
 		break;
 	    case 2:
 		env = v->synth->amp_env.s;
@@ -129,8 +151,9 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 		env = v->release_start_env[channel] - v->release_start_env[channel] * (float)(v->synth->amp_env.r - v->env_remaining[channel]) / v->synth->amp_env.r;
 		break;
 	    }
-	    sample *= env;
-	    buf[i] += sample;
+	    sample *= env * (float)v->velocity / 127.f;
+ 	    buf[i] += sample;
+	    buf[i] = tanh(buf[i]);
 	    v->last_env[channel] = env;
 	    v->env_remaining[channel]--;
 	    v->note_end_rel[channel]--;
@@ -177,27 +200,18 @@ static void osc_set_freq(Osc *osc, double freq_hz)
     osc->freq = freq_hz;
     osc->sample_phase_incr = freq_hz / session->proj.sample_rate;    
 }
-static void synth_voice_set_note(SynthVoice *v, uint8_t note_val)
+static void synth_voice_set_note(SynthVoice *v, uint8_t note_val, uint8_t velocity)
 {
     v->note_val = note_val;
     for (int i=0; i<v->synth->num_oscs; i++) {
 	osc_set_freq(v->oscs + i, MTOF[note_val]);
     }
+    v->velocity = velocity;
 }
 
 void synth_add_buf(Synth *s, float *buf, int channel, int32_t len)
 {
-    Session *session = session_get();
-    /* int err = 0; */
-
     /* FIRST: Update synth state from available MIDI data */
-    PmTimestamp start;
-    /* if (!s->device.info || !s->device.info->opened) { */
-    /* 	fprintf(stderr, "Error: synth virtual device not opened\n"); */
-    /* 	exit(1); */
-    /* 	return; */
-    /* } */
-    /* int num_read = Pm_Read(s->device.stream, s->device.buffer, PM_EVENT_BUF_NUM_EVENTS); */
     if (channel != 0) goto get_buffer;
     if (s->num_events > 0)
 	fprintf(stderr, "\t->Read %d events from synth\n", s->num_events);
@@ -209,10 +223,10 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len)
 	uint8_t velocity = Pm_MessageData2(e.message);
 	uint8_t msg_type = status >> 4;
 
-	if (i == 0) start = e.timestamp;
-	int32_t pos_rel = ((double)e.timestamp - start) * (double)session->proj.sample_rate / 1000.0;
+	/* if (i == 0) start = e.timestamp; */
+	/* int32_t pos_rel = ((double)e.timestamp - start) * (double)session->proj.sample_rate / 1000.0; */
 	/* fprintf(stderr, "EVENT %d/%d, timestamp: %d (rel %d) pos rel %d (record start %d)\n", i, num_read, e.timestamp, current_time - e.timestamp, pos_rel, d->record_start); */
-	if (velocity == 0) msg_type =8;
+	if (velocity == 0) msg_type = 8;
 	if (msg_type == 8) {
 	    /* HANDLE NOTE OFF */
 	    fprintf(stderr, "note off received, val %d\n", note_val);
@@ -223,14 +237,13 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len)
 		    fprintf(stderr, "SETTING END REL!\n");
 		    v->note_end_rel[0] = 0;
 		    v->note_end_rel[1] = 0;
-		    break;
 		}		
 	    }
 	} else if (msg_type == 9) {
 	    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 		SynthVoice *v = s->voices + i;
 		if (v->available) {
-		    synth_voice_set_note(v, note_val);
+		    synth_voice_set_note(v, note_val, velocity);
 		    v->note_start_rel[0] = 0;
 		    v->note_start_rel[1] = 0;
 		    v->note_end_rel[0] = INT32_MIN;
@@ -240,6 +253,8 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len)
 		    v->amp_env_stage[1] = 0;
 		    v->env_remaining[0] = s->amp_env.a;
 		    v->env_remaining[1] = s->amp_env.a;
+		    v->oscs[0].phase[0] = 0.0;
+		    v->oscs[0].phase[1] = 0.0;
 		    fprintf(stderr, "Setting voice %d to not available !\n", i);
 		    break;
 		}

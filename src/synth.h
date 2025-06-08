@@ -33,6 +33,7 @@ typedef struct synth Synth;
 typedef struct synth_voice {
     Osc oscs[SYNTHVOICE_NUM_OSCS];
     uint8_t note_val;
+    uint8_t velocity;
     int32_t note_start_rel[2]; /* relative to start of current chunk */
     int32_t note_end_rel[2]; /* relative to start of current chunk */
     Synth *synth;
@@ -56,10 +57,13 @@ typedef struct synth {
     ADSR amp_env;
     PmEvent events[PM_EVENT_BUF_NUM_EVENTS];
     int num_events;
+    
+    bool monitor;
 } Synth;
 
 /* int synth_create_virtual_device(Synth *s); */
-void synth_init_defaults(Synth *s);
+/* void synth_init_defaults(Synth *s); */
+Synth *synth_create();
 void synth_add_buf(Synth *s, float *buf, int channel, int32_t len);
 
 #endif

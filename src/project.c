@@ -1379,6 +1379,32 @@ struct track_in_arg {
     void *obj;
     enum track_in_type type;
 };
+
+struct midi_out_arg {
+    Track *track;
+    void *obj;
+    enum midi_out_type type;
+};
+
+static void track_set_midi_out_onclick(void *arg_v)
+{
+    Session *session = session_get();
+    struct midi_out_arg *arg = arg_v;
+    Track *track = arg->track;
+    track->midi_out_type = arg->type;
+    if (arg->type == MIDI_OUT_SYNTH) {
+	if (!track->synth) {
+	    track->synth = synth_create();
+	}
+	track->midi_out = track->synth;
+    } else {
+	track->midi_out = arg->obj;
+    }
+    window_pop_menu(main_win);
+    Timeline *tl = ACTIVE_TL;
+    tl->needs_redraw = true;
+}
+
 static void track_set_in_onclick(void *void_arg)
 {
     Session *session = session_get();
@@ -1409,21 +1435,67 @@ static void track_set_in_onclick(void *void_arg)
     /* window_pop_mode(main_win); */
 }
 
+void track_set_midi_out(Track *track)
+{
+    Session *session = session_get();
+    session_populate_midi_device_lists(session_get());
+    /* SDL_Rect *rect = &(track->tb_input_name->layout->rect); */
+    /* int y = rect->y; */
+    Menu *menu = menu_create_at_point(track->layout->rect.x + track->layout->rect.w / 2, track->layout->rect.y);
+    MenuColumn *c = menu_column_add(menu, "");
+    MenuSection *sc = menu_section_add(c, "");
+    /* Project *proj = &session_get()->proj; */
+    /* Session *session = session_get(); */
+    for (int i=0; i<session->midi_io.num_outputs; i++) {
+	struct midi_out_arg *arg = malloc(sizeof(struct midi_out_arg));
+	MIDIDevice *d = session->midi_io.outputs + i;
+	arg->track = track;
+	arg->obj = d;
+	arg->type = MIDI_OUT_DEVICE;
+
+	MenuItem *item = menu_item_add(
+	    sc,
+	    d->info->name,
+	    "(device)",
+	    track_set_midi_out_onclick,
+	    /* track_set_in_onclick, */
+	    arg);
+	
+	    item->free_target_on_destroy = true;
+    }
+
+    struct midi_out_arg *arg = malloc(sizeof(struct midi_out_arg));
+    arg->track = track;
+    arg->type = MIDI_OUT_SYNTH;
+    MenuItem *item = menu_item_add(
+	sc,
+	"Jackdaw Synth",
+	"(softsynth)",
+	track_set_midi_out_onclick,
+	arg);
+    
+    menu_add_header(menu, "", "Select track midi out");
+    window_add_menu(main_win, menu);
+    /* int move_by_y = 0; */
+    /* if ((move_by_y = y + menu->layout->rect.h - main_win->layout->rect.h) > 0) { */
+    /* 	menu_translate(menu, 0, -1 * move_by_y / main_win->dpi_scale_factor); */
+    /* } */
+}
+    
+
 void track_set_input(Track *track)
 {
-    /* Session *session = session_get(); */
+    Session *session = session_get();
 
     /* ugh */
-    /* session_populate_midi_device_lists(session_get()); */
-
-    
+    session_populate_midi_device_lists(session_get());
     SDL_Rect *rect = &(track->tb_input_name->layout->rect);
     int y = rect->y;
     Menu *menu = menu_create_at_point(rect->x, rect->y);
     MenuColumn *c = menu_column_add(menu, "");
     MenuSection *sc = menu_section_add(c, "");
     /* Project *proj = &session_get()->proj; */
-    Session *session = session_get();
+    /* Session *session = session_get(); */
     for (int i=0; i<session->audio_io.num_record_conns; i++) {
 	struct track_in_arg *arg = malloc(sizeof(struct track_in_arg));
 	AudioConn *conn = session->audio_io.record_conns[i];

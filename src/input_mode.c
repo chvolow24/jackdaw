@@ -771,6 +771,13 @@ static void mode_load_timeline()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
+	"tl_track_set_midi_out",
+	"Set track midi out",
+	user_tl_track_set_midi_out);
+    mode_subcat_add_fn(sc, fn);
+
+
+    fn = create_user_fn(
 	"tl_track_show_hide_automations",
 	"Show or hide all track automations",
 	user_tl_track_show_hide_automations);

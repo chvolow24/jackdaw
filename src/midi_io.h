@@ -21,12 +21,15 @@
 #include <stdbool.h>
 #include "portmidi.h"
 #include "note.h"
+/* #include "synth.h" */
 
 
 #define MAX_UNCLOSED_NOTES 64
 #define PM_EVENT_BUF_NUM_EVENTS 64
-#define MAX_MIDI_DEVICES 6
+#define MAX_MIDI_DEVICES 16
 #define MIDI_OUTPUT_LATENCY 0
+
+#define MAX_SYNTHS 16
 
 #if defined(__APPLE__) && defined(__MACH__)
 #define MIDI_INTERFACE_NAME "CoreMIDI"
@@ -38,6 +41,7 @@ int midi_io_init();
 void midi_io_deinit(void);
 
 typedef struct midi_clip MIDIClip;
+typedef struct synth Synth;
 
 typedef struct midi_device {
     int32_t latency; /* Applicable for output devices only */
@@ -64,6 +68,9 @@ struct midi_io {
     uint8_t num_outputs;
 
     MIDIDevice *primary_output;
+
+    Synth *synths[MAX_SYNTHS];
+    uint8_t num_synths;
 };
 
 

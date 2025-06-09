@@ -187,19 +187,19 @@ void loop_project_main()
 		    mclip.len_sframes = 96000;
 
 		    /* midi_clip_add_note(&mclip, 94, 127, 10000, 19000); */
-		    midi_clip_add_note(&mclip, 60, 127, 1000, 10000);
-		    midi_clip_add_note(&mclip, 64, 127, 10000, 20000);
-		    midi_clip_add_note(&mclip, 67, 127, 20000, 30000);
-		    midi_clip_add_note(&mclip, 60, 127, 30000, 80000);
-		    midi_clip_add_note(&mclip, 64, 127, 30000, 80000);
-		    midi_clip_add_note(&mclip, 67, 127, 30000, 80000);
+		    /* midi_clip_add_note(&mclip, 60, 127, 1000, 10000); */
+		    /* midi_clip_add_note(&mclip, 64, 127, 10000, 20000); */
+		    /* midi_clip_add_note(&mclip, 67, 127, 20000, 30000); */
+		    /* midi_clip_add_note(&mclip, 60, 127, 30000, 80000); */
+		    /* midi_clip_add_note(&mclip, 64, 127, 30000, 80000); */
+		    /* midi_clip_add_note(&mclip, 67, 127, 30000, 80000); */
 
 		    int32_t start = 1000;
 		    int32_t end = 10000;
-		    for (int i=0; i<128; i+=5) {
+		    for (int i=25; i<25 + 80; i+=3) {
 			midi_clip_add_note(&mclip, i, 127, start, end);
-			start += 200;
-			end += 200;
+			start += 3000;
+			end += 3000;
 		    }
 
 		    /* midi_clip_add_note(&mclip, 78, 127, 3, 1000); */

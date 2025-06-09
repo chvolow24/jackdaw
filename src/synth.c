@@ -117,6 +117,10 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 		v->release_start_env[channel] = v->last_env[channel];
 		v->env_remaining[channel] = v->synth->amp_env.r;
 	    }
+	    if (v->note_start_rel[channel] > 0) {
+		v->note_start_rel[channel]++;
+		continue;
+	    }
 	    
 	    if (v->env_remaining[channel] == 0) {
 		v->amp_env_stage[channel]++;
@@ -209,7 +213,7 @@ static void synth_voice_set_note(SynthVoice *v, uint8_t note_val, uint8_t veloci
     v->velocity = velocity;
 }
 
-void synth_add_buf(Synth *s, float *buf, int channel, int32_t len)
+void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, int32_t tl_start)
 {
     /* FIRST: Update synth state from available MIDI data */
     if (channel != 0) goto get_buffer;
@@ -247,8 +251,9 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len)
 		if (v->available) {
 		    fprintf(stderr, "SETTINGS VOICE %d PITCH %d\n", i, note_val);
 		    synth_voice_set_note(v, note_val, velocity);
-		    v->note_start_rel[0] = 0;
-		    v->note_start_rel[1] = 0;
+		    fprintf(stderr, "NOTE TL START: %d, START REL: %d\n", e.timestamp, tl_start - e.timestamp);
+		    v->note_start_rel[0] = tl_start - e.timestamp;
+		    v->note_start_rel[1] = tl_start - e.timestamp;
 		    v->note_end_rel[0] = INT32_MIN;
 		    v->note_end_rel[1] = INT32_MIN;
 		    v->available = false;
@@ -271,7 +276,6 @@ get_buffer:
     /* SECOND: get buffers from voices */
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	SynthVoice *v = s->voices + i;
-	fprintf(stderr, "\t\tADDING BUF voice %d\n", i);
 	synth_voice_add_buf(v, buf, len, channel);		
     }    
 }

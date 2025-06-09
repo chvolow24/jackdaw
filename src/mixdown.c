@@ -147,9 +147,11 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	    continue;
 	}
 	int num_events = 0;
-	if (channel == 0 && mclip) {
+	if (channel == 0 && mclip && step > 0.0) {
+
 	    PmEvent events[255];
 	    num_events = midi_clipref_output_chunk(cr, events, 255, start_pos_sframes, start_pos_sframes + len_sframes);
+
 	    if (track->midi_out) {
 		switch(track->midi_out_type) {
 		case MIDI_OUT_SYNTH: {
@@ -169,8 +171,8 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	    switch(track->midi_out_type) {
 	    case MIDI_OUT_SYNTH: {
 		Synth *synth = track->midi_out;
-		synth_add_buf(synth, chunk, channel, len_sframes);
-		total_amp = 1.0;
+		synth_add_buf(synth, chunk, channel, len_sframes, start_pos_sframes);
+		total_amp += 1.0;
 	    }
 		break;
 	    case MIDI_OUT_DEVICE:

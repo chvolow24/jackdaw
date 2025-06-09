@@ -362,6 +362,8 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 	} else {
 	    track->note_offs[track->note_offs_write_i] = e_off;
 	    track->note_offs_write_i++;
+	    if (track->note_offs_write_i == 128)
+		track->note_offs_write_i = 0;
 	}
 	
 	if (event_buf_index > event_buf_max_len) break;

@@ -8,6 +8,8 @@
 #define SYNTH_NUM_VOICES 32
 #define SYNTHVOICE_NUM_OSCS 40 /* 4 base oscillators, up to 5 per base for detune */
 
+/* #define SYNTH_EVENT_BUF_SIZE 512 */
+
 typedef enum wave_shape {
     WS_SINE,
     WS_SQUARE,
@@ -55,15 +57,20 @@ typedef struct synth {
     SynthVoice voices[SYNTH_NUM_VOICES];
     uint8_t num_oscs;
     ADSR amp_env;
-    PmEvent events[128];
-    int num_events;
+    /* PmEvent events[SYNTH_EVENT_BUF_SIZE]; */
+    /* int num_events; */
     
     bool monitor;
+    bool allow_voice_stealing;
 } Synth;
 
 /* int synth_create_virtual_device(Synth *s); */
 /* void synth_init_defaults(Synth *s); */
 Synth *synth_create();
-void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, int32_t tl_start);
+/* void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, int32_t tl_start); */
+/* void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, int32_t tl_start, bool send_immediate, float step); */
+void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start, bool send_immediate);
+void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step);
+void synth_close_all_notes(Synth *s);
 
 #endif

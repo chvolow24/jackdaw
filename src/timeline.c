@@ -20,6 +20,7 @@
 #include <time.h>
 #include "consts.h"
 #include "clipref.h"
+#include "midi_io.h"
 #include "project.h"
 #include "session_endpoint_ops.h"
 #include "session.h"
@@ -228,7 +229,7 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes)
     MAIN_THREAD_ONLY("timeline_set_play_position");
     Session *session = session_get();
 
-    if (tl->play_pos_sframes == abs_pos_sframes) return;
+    /* if (tl->play_pos_sframes == abs_pos_sframes) return; */
     
     int32_t pos_diff = abs_pos_sframes - tl->play_pos_sframes;
     
@@ -257,6 +258,8 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes)
 	}
 	timeline_push_grabbed_clip_move_event(tl);
     }
+
+    timeline_flush_unclosed_midi_notes();
     timeline_reset(tl, false);
 
 }

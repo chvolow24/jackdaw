@@ -8,7 +8,10 @@
 
 *****************************************************************************************************************/
 
-#include "note.h"
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
 const double MTOF[] = {
     8.176,
@@ -140,3 +143,8 @@ const double MTOF[] = {
     11839.820,
     12543.850
 };
+
+double mtof_calc(double m)
+{
+    return 440.0 * pow(2.0, ((m - 69.0) / 12.0));
+}

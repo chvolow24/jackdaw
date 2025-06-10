@@ -196,7 +196,7 @@ void loop_project_main()
 
 		    int32_t start = 1000;
 		    int32_t end = 10000;
-		    for (int i=25; i<25 + 80; i+=3) {
+		    for (int i=25; i<25 + 80; i+=5) {
 			midi_clip_add_note(&mclip, i, 127, start, end);
 			start += 3000;
 			end += 3000;

@@ -38,11 +38,11 @@ static void make_pan_chunk(float *pan_vals, int32_t len_sframes, uint8_t channel
     }
 }
 
-float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32_t start_pos_sframes, uint32_t len_sframes, float step)
+float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32_t start_pos_sframes, uint32_t output_chunk_len_sframes, float step)
 {
 
     Session *session = session_get();
-    uint32_t chunk_bytelen = sizeof(float) * len_sframes;
+    uint32_t chunk_bytelen = sizeof(float) * output_chunk_len_sframes;
     memset(chunk, '\0', chunk_bytelen);
     if (track->muted || (track->solo_muted && !track->bus_out)) {
 	return 0.0f;
@@ -70,8 +70,8 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	}
     }
 
-    float vol_vals[len_sframes];
-    float pan_vals[len_sframes];
+    float vol_vals[output_chunk_len_sframes];
+    float pan_vals[output_chunk_len_sframes];
 
     float playspeed_rolloff = 1.0;
     float fabs_playspeed = fabs(session->playback.play_speed);
@@ -82,28 +82,28 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 
     /* Construct volume buffer for linear scaling */
     if (vol_auto && !vol_auto->write && vol_auto->read) {
-	automation_get_range(vol_auto, vol_vals, len_sframes, start_pos_sframes, step);
-	for (int i=0; i<len_sframes; i++) {
+	automation_get_range(vol_auto, vol_vals, output_chunk_len_sframes, start_pos_sframes, step);
+	for (int i=0; i<output_chunk_len_sframes; i++) {
 	    vol_vals[i] *= playspeed_rolloff;
 	}
     } else {
 	Value vol_val = endpoint_safe_read(&track->vol_ep, NULL);
-	for (int i=0; i<len_sframes; i++) {
+	for (int i=0; i<output_chunk_len_sframes; i++) {
 	    vol_vals[i] = vol_val.float_v * playspeed_rolloff;;
 	}
     }
 
     /* Construct pan buffer for linear scaling */
     if (pan_auto && !pan_auto->write && pan_auto->read) {
-	automation_get_range(pan_auto, pan_vals, len_sframes, start_pos_sframes, step);
-	make_pan_chunk(pan_vals, len_sframes, channel);
+	automation_get_range(pan_auto, pan_vals, output_chunk_len_sframes, start_pos_sframes, step);
+	make_pan_chunk(pan_vals, output_chunk_len_sframes, channel);
     } else {
 	Value pan_val = endpoint_safe_read(&track->pan_ep, NULL);
 	float pan_scale = pan_val.float_v;
 	pan_scale = channel == 0 ?
 	    pan_scale <= 0.5 ? 1.0 : (1.0f - pan_scale) * 2 :
 	    pan_scale >= 0.5 ? 1.0 : pan_scale * 2;
-	for (int i=0; i<len_sframes; i++) {
+	for (int i=0; i<output_chunk_len_sframes; i++) {
 	    pan_vals[i] = pan_scale;
 	}
     }
@@ -125,6 +125,7 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	else if (cr->type == CLIP_MIDI) mclip = cr->source_clip;
 	
 	/* if (!clip) continue; /\* TODO: Handle MIDI clips here *\/ */
+	if (mclip && mclip->recording) continue;
 
 	pthread_mutex_lock(&cr->lock);
 	if ((clip && clip->recording) || (mclip && mclip->recording)) {
@@ -132,7 +133,7 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	    continue;
 	}
 	double pos_in_clip_sframes = start_pos_sframes - cr->tl_pos;
-	int32_t end_pos = pos_in_clip_sframes + (step * len_sframes);
+	int32_t end_pos = pos_in_clip_sframes + (step * output_chunk_len_sframes);
 	int32_t min, max;
 	if (end_pos >= pos_in_clip_sframes) {
 	    min = pos_in_clip_sframes;
@@ -149,15 +150,17 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	int num_events = 0;
 	if (channel == 0 && mclip && step > 0.0) {
 
-	    PmEvent events[255];
-	    num_events = midi_clipref_output_chunk(cr, events, 255, start_pos_sframes, start_pos_sframes + len_sframes);
-
-	    if (track->midi_out) {
+	    PmEvent events[256];
+	    num_events = midi_clipref_output_chunk(cr, events, 256, start_pos_sframes, start_pos_sframes + (float)output_chunk_len_sframes * step);
+	    fprintf(stderr, "Output %d events\n", num_events);
+	    
+	    if (track->midi_out && step > 0.0) {
 		switch(track->midi_out_type) {
 		case MIDI_OUT_SYNTH: {
 		    Synth *synth = track->midi_out;
-		    memcpy(synth->events, events, sizeof(PmEvent) * num_events);
-		    synth->num_events = num_events;
+		    synth_feed_midi(synth, events, num_events, channel, start_pos_sframes);
+		    /* memcpy(synth->events, events, sizeof(PmEvent) * num_events); */
+		    /* synth->num_events = num_events; */
 		}
 		    break;
 		case MIDI_OUT_DEVICE:
@@ -165,26 +168,14 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 		}
 	    }
 
-	    fprintf(stderr, "%d events sent!\n", num_events);
-	}
-	if (track->midi_out) {
-	    switch(track->midi_out_type) {
-	    case MIDI_OUT_SYNTH: {
-		Synth *synth = track->midi_out;
-		synth_add_buf(synth, chunk, channel, len_sframes, start_pos_sframes);
-		total_amp += 1.0;
-	    }
-		break;
-	    case MIDI_OUT_DEVICE:
-		break;
-	    }
+	    /* fprintf(stderr, "%d events sent! (%d-%d)\n", num_events, start_pos_sframes, (int32_t)((float)start_pos_sframes + output_chunk_len_sframes * step)); */
 	}
 	if (clip) {
 	    float *clip_buf =
 		clip->channels == 1 ? clip->L :
 		channel == 0 ? clip->L : clip->R;
 	    int16_t chunk_i = 0;
-	    while (chunk_i < len_sframes) {
+	    while (chunk_i < output_chunk_len_sframes) {
 		if (pos_in_clip_sframes >= 0 && pos_in_clip_sframes < cr_len - 1) { /* Truncate last sample to allow for interpolation */
 		    float sample;
 		    double clip_index_f = pos_in_clip_sframes + (double)cr->start_in_clip;
@@ -205,13 +196,28 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	}
 	pthread_mutex_unlock(&cr->lock);
     }
+    if (track->midi_out && track->midi_out != session->midi_io.monitor_synth) {
+    /* if (track->midi_out && !session->playback.recording) { */
+	switch(track->midi_out_type) {
+	case MIDI_OUT_SYNTH: {
+	    Synth *synth = track->midi_out;
+	    synth_add_buf(synth, chunk, channel, output_chunk_len_sframes, step);
+	    /* synth_add_buf(synth, chunk, channel, output_chunk_len_sframes, start_pos_sframes, false, step); */
+	    total_amp += 1.0;
+	}
+	    break;
+	case MIDI_OUT_DEVICE:
+	    break;
+	}
+    }
 
-    float bus_buf[len_sframes];
+
+    float bus_buf[output_chunk_len_sframes];
     for (uint8_t i=0; i<track->num_bus_ins; i++) {
 	Track *bus_in = track->bus_ins[i];
-	float amp = get_track_channel_chunk(bus_in, bus_buf, channel, start_pos_sframes, len_sframes, step);
+	float amp = get_track_channel_chunk(bus_in, bus_buf, channel, start_pos_sframes, output_chunk_len_sframes, step);
 	if (amp > 0.0) {
-	    float_buf_add(chunk, bus_buf, len_sframes);
+	    float_buf_add(chunk, bus_buf, output_chunk_len_sframes);
 	    total_amp += amp;
 	}
     }
@@ -224,10 +230,10 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
     /* } */
     
     /* total_amp += delay_line_buf_apply(&track->delay_line, chunk, len_sframes, channel); */
-    total_amp = effect_chain_buf_apply(track->effects, track->num_effects, chunk, len_sframes, channel, total_amp);
+    total_amp = effect_chain_buf_apply(track->effects, track->num_effects, chunk, output_chunk_len_sframes, channel, total_amp);
     if (total_amp > AMP_EPSILON) {
-	float_buf_mult(chunk, vol_vals, len_sframes);
-	float_buf_mult(chunk, pan_vals, len_sframes);
+	float_buf_mult(chunk, vol_vals, output_chunk_len_sframes);
+	float_buf_mult(chunk, pan_vals, output_chunk_len_sframes);
     }
 
     return total_amp;

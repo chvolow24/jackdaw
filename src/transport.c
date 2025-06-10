@@ -25,6 +25,7 @@
 #include "midi_clip.h"
 #include "user_event.h"
 #include "mixdown.h"
+#include "porttime.h"
 #include "project.h"
 #include "session_endpoint_ops.h"
 #include "pure_data.h"
@@ -196,16 +197,22 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     /* Check for monitor synth */
     MIDIDevice *d = session->midi_io.monitor_device;
     Synth *s = session->midi_io.monitor_synth;
-    if (d && s && !d->recording) {
+    if (d && s) {
+	/* fprintf(stderr, "DOING CHUNK\n"); */
 	midi_device_read(d);
-	if (d->num_unconsumed_events > 0) {
-	    fprintf(stderr, "%d unconsumed!\n", d->num_unconsumed_events);
+	/* if (d->num_unconsumed_events > 0) { */
+	/*     fprintf(stderr, "%d unconsumed!\n", d->num_unconsumed_events); */
+	/* } */
+	/* memcpy(s->events, d->buffer, d->num_unconsumed_events * sizeof(PmEvent)); */
+	/* s->num_events = d->num_unconsumed_events; */
+	synth_feed_midi(s, d->buffer, d->num_unconsumed_events, 0, true);
+	if (d->current_clip && d->current_clip->recording) {
+	    midi_device_record_chunk(d);
+	    d->current_clip->len_sframes += len_sframes;
 	}
-	memcpy(s->events, d->buffer, d->num_unconsumed_events * sizeof(PmEvent));
-	s->num_events = d->num_unconsumed_events;
 	d->num_unconsumed_events = 0;
-	synth_add_buf(s, chunk_L, 0, len_sframes);
-	synth_add_buf(s, chunk_R, 1, len_sframes);
+	synth_add_buf(s, chunk_L, 0, len_sframes, 1.0); /* TL Pos ignored */
+	synth_add_buf(s, chunk_R, 1, len_sframes, 1.0); /* TL Pos ignored */
     }
 
     int16_t *stream_fmt = (int16_t *)stream;
@@ -561,9 +568,13 @@ void transport_start_recording()
 		clipref_create(track, tl->record_from_sframes, CLIP_AUDIO, clip);
 	    } else if (track->input_type == MIDI_DEVICE) {
 		MIDIDevice *mdevice = track->input;
+		mdevice->recording = true;
 		midi_device_open(mdevice);
 		MIDIClip *mclip = midi_clip_create(mdevice, track);
+		mdevice->record_start = Pt_Time();
+		fprintf(stderr, "Setting record start? %d\n", mdevice->record_start);
 		mclip->recording = true;
+		/* mclilen_sframesp-> */
 		mdevice->current_clip = mclip;
 		/* conn->current_clip_repositioned = false; */
 		clipref_create(track, tl->record_from_sframes, CLIP_MIDI, mclip);
@@ -605,6 +616,9 @@ void transport_start_recording()
 	    MIDIClip *mclip = midi_clip_create(mdevice, track);
 	    mclip->recording = true;
 	    mdevice->current_clip = mclip;
+	    mdevice->record_start = Pt_Time();
+	    fprintf(stderr, "Setting record start? %d\n", mdevice->record_start);
+
 	    /* conn->current_clip_repositioned = false; */
 	    clipref_create(track, tl->record_from_sframes, CLIP_MIDI, mclip);
 	}
@@ -781,7 +795,6 @@ void transport_stop_recording()
 	num_created_v,num_created_v,num_created_v,num_created_v,
 	0, 0, true, false);
 	    
-	    
 
     transport_stop_playback();
     AudioConn *conn;
@@ -823,7 +836,13 @@ void transport_stop_recording()
 	clip->recording = false;
 	session->proj.active_clip_index++;
     }
-    session->proj.active_midi_clip_index = session->proj.num_midi_clips;
+    while (session->proj.active_midi_clip_index < session->proj.num_midi_clips) {
+	MIDIClip *mclip = session->proj.midi_clips[session->proj.active_midi_clip_index];
+	mclip->recording = false;
+	mclip->recorded_from->recording = false;
+	session->proj.active_midi_clip_index++;
+    }
+
 
     while (num_conns_to_close > 0) {
 	audioconn_close(conns_to_close[--num_conns_to_close]);

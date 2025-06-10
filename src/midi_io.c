@@ -255,7 +255,7 @@ void midi_device_read(MIDIDevice *d)
     if (d->num_unconsumed_events > 0) {
 	fprintf(stderr, "Error: overwriting unconsumed events on device \"%s\"\n", d->info->name);
     }
-    Session *session = session_get();
+    /* Session *session = session_get(); */
     /* Timeline *tl = ACTIVE_TL; */
     int num_read = Pm_Read(
 	d->stream,
@@ -275,7 +275,7 @@ void midi_device_read(MIDIDevice *d)
 		fprintf(stderr, "\n");
 	    }
 	}
-	exit(1);
+	/* exit(1); */
 	return;
     }
     d->num_unconsumed_events = num_read;
@@ -319,10 +319,14 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
     /* static PmEvent *note_offs = note_offs_array_base; */
     /* static int num_note_offs = 0; */
     Track *track = cr->track;
+    int32_t clipref_end = cr->tl_pos + clipref_len(cr);
     while (note_i < mclip->num_notes) {
 	Note *note = mclip->notes + note_i;
 	int32_t note_start_tl_pos = note->start_rel + cr->tl_pos - cr->start_in_clip;
 	int32_t note_end_tl_pos = note->end_rel + cr->tl_pos - cr->start_in_clip;
+	if (note_end_tl_pos >= clipref_end) {
+	    note_end_tl_pos = clipref_end - 1;
+	}
 	/* If note on not in chunk, break */
 	if (note_start_tl_pos < chunk_tl_start) {
 	    note_i++;
@@ -333,7 +337,7 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 	e.message = Pm_Message(0x90, note->note, note->velocity);
 	e.timestamp = note_start_tl_pos;
 	/* Insert any earlier note offs first */
-
+	bool event_buf_full = false;
 	while (1) {
 	    if (track->note_offs_read_i == track->note_offs_write_i) {
 		break;
@@ -344,16 +348,25 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 	    PmEvent note_off = track->note_offs[track->note_offs_read_i];
 	    if (note_off.timestamp < e.timestamp) {
 		/* Insert note off */
-		event_buf[event_buf_index] = note_off;
-		event_buf_index++;
+		if (event_buf_index + 1 < event_buf_max_len) {
+		    event_buf[event_buf_index] = note_off;
+		    event_buf_index++;
+		} else {
+		    event_buf_full = true;
+		    break;
+		}
 		track->note_offs_read_i++;
 	    } else {
 		break;
 	    }
 	}
 	/* Now insert then note on */
-	event_buf[event_buf_index] = e;
-	event_buf_index++;
+	if (!event_buf_full) {
+	    event_buf[event_buf_index] = e;
+	    event_buf_index++;
+	} else {
+	    break;
+	}
 
 	e_off.message = Pm_Message(0x80, note->note, note->velocity);
 	e_off.timestamp = note_end_tl_pos;
@@ -366,7 +379,10 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 		track->note_offs_write_i = 0;
 	}
 	
-	if (event_buf_index > event_buf_max_len) break;
+	if (event_buf_index >= event_buf_max_len) {
+	    fprintf(stderr, "Warning: Losing notes\n");
+	    break;
+	}
 	note_i++;
     }
 
@@ -380,9 +396,13 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 	PmEvent note_off = track->note_offs[track->note_offs_read_i];
 	if (note_off.timestamp < chunk_tl_end) {
 	    /* Insert note off */
-	    event_buf[event_buf_index] = note_off;
-	    event_buf_index++;
-	    track->note_offs_read_i++;
+	    if (event_buf_index < event_buf_max_len) {
+		event_buf[event_buf_index] = note_off;
+		event_buf_index++;
+		track->note_offs_read_i++;
+	    } else {
+		break;
+	    }
 	} else {
 	    break;
 	}
@@ -394,30 +414,17 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 
 void midi_device_record_chunk(MIDIDevice *d)
 {
-    if (!d->info || !d->info->opened) return;
-
+    if (!d->current_clip) return;
     Session *session = session_get();
-    /* Timeline *tl = ACTIVE_TL; */
-    int num_read = Pm_Read(
-	d->stream,
-	d->buffer,
-	sizeof(d->buffer) / sizeof(PmEvent));
-
-    if (num_read < 0) {
-	fprintf(stderr, "Error: midi record error: %s\n", Pm_GetErrorText(num_read));
-    }
-
-    PmTimestamp current_time = Pt_Time();
-    for (int i=0; i<num_read; i++) {
+    /* PmTimestamp current_time = Pt_Time(); */
+    for (int i=0; i<d->num_unconsumed_events; i++) {
 	PmEvent e = d->buffer[i];
 	uint8_t status = Pm_MessageStatus(e.message);
 	uint8_t note_val = Pm_MessageData1(e.message);
 	uint8_t velocity = Pm_MessageData2(e.message);
 	uint8_t msg_type = status >> 4;
-	/* uint8_t channel = (status & 0xF); */
-	/* fprintf(stderr, "\t%s %d velocity %d channel %d\n", type_name, data1, data2, channel); */
 	int32_t pos_rel = ((double)e.timestamp - d->record_start) * (double)session->proj.sample_rate / 1000.0;
-	/* fprintf(stderr, "EVENT %d/%d, timestamp: %d (rel %d) pos rel %d (record start %d)\n", i, num_read, e.timestamp, current_time - e.timestamp, pos_rel, d->record_start); */
+	fprintf(stderr, "EVENT %d/%d, timestamp: %d pos rel %d (record start %d)\n", i, d->num_unconsumed_events, e.timestamp, pos_rel, d->record_start);
 	if (msg_type == 9 && d->current_clip) {
 	    Note *unclosed = d->unclosed_notes + note_val;
 	    unclosed->note = note_val;
@@ -426,18 +433,44 @@ void midi_device_record_chunk(MIDIDevice *d)
 	    /* fprintf(stderr, "\tadding unclosed pitch %d\n", unclosed->note); */
 	} else if (msg_type == 8 && d->current_clip) {
 	    Note *unclosed = d->unclosed_notes + note_val;
-	    if (d->current_clip)
-		midi_clip_add_note(d->current_clip, note_val, unclosed->velocity, unclosed->start_rel, pos_rel);
-	    
+	    /* if (d->current_clip) */
+	    fprintf(stderr, "ADDING NOTE! %d, pos rel: %d\n", note_val, pos_rel);
+	    midi_clip_add_note(d->current_clip, note_val, unclosed->velocity, unclosed->start_rel, pos_rel); 
 	}
     }
     
     /* Write directly to syth :| */
-
-    
     /* PmError err = Pm_Write(session->synth.device.stream, session->synth.device.buffer, num_read); */
     /* fprintf(stderr, "%s\n", Pm_GetErrorText(err)); */
     /* memcpy(session->synth.events, d->buffer, sizeof(PmEvent) * num_read); */
     /* session->synth.num_events += num_read; */
     
+}
+
+
+
+static void track_flush_unclosed_midi_notes(Track *track)
+{
+    if (!track->midi_out) return;
+    switch(track->midi_out_type) {
+    case MIDI_OUT_DEVICE:
+	break;
+    case MIDI_OUT_SYNTH:
+	fprintf(stderr, "CLOSING ALL NOTES ON SYNTH!!!!!!!!\n");
+	synth_close_all_notes(track->midi_out);
+	break;
+	
+    }
+    track->note_offs_read_i = 0;
+    track->note_offs_write_i = 0;
+}
+void timeline_flush_unclosed_midi_notes()
+{
+    Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
+    for (int i=0; i<tl->num_tracks; i++) {
+	Track *track = tl->tracks[i];
+	track_flush_unclosed_midi_notes(track);
+	
+    }
 }

@@ -58,6 +58,12 @@ void float_buf_mult_to(float *restrict a, float *restrict b, float *restrict pro
 	product[i] = a[i] * b[i];
     }        
 }
+void float_buf_mult_const(float *restrict a, float by, int len)
+{
+    for (int i=0; i<len; i++) {
+	a[i] *= by;
+    }
+}
 
 
 

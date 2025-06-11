@@ -152,7 +152,7 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 
 	    PmEvent events[256];
 	    num_events = midi_clipref_output_chunk(cr, events, 256, start_pos_sframes, start_pos_sframes + (float)output_chunk_len_sframes * step);
-	    fprintf(stderr, "Output %d events\n", num_events);
+	    /* fprintf(stderr, "Output %d events in mixdown, cr %s, start_pos %d\n", num_events, cr->name, start_pos_sframes); */
 	    
 	    if (track->midi_out && step > 0.0) {
 		switch(track->midi_out_type) {

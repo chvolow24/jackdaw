@@ -184,7 +184,7 @@ void loop_project_main()
 			mclip.refs = calloc(6, sizeof(ClipRef *));
 		    }
 		    sprintf(mclip.name, "mclip!");
-		    mclip.len_sframes = 96000;
+		    /* mclip.len_sframes = 96000; */
 
 		    /* midi_clip_add_note(&mclip, 94, 127, 10000, 19000); */
 		    /* midi_clip_add_note(&mclip, 60, 127, 1000, 10000); */
@@ -194,12 +194,25 @@ void loop_project_main()
 		    /* midi_clip_add_note(&mclip, 64, 127, 30000, 80000); */
 		    /* midi_clip_add_note(&mclip, 67, 127, 30000, 80000); */
 
-		    int32_t start = 1000;
-		    int32_t end = 10000;
-		    for (int i=25; i<25 + 80; i+=5) {
-			midi_clip_add_note(&mclip, i, 127, start, end);
-			start += 3000;
-			end += 3000;
+		    int32_t start = 96000 * 5;
+		    /* int32_t end = 10000; */
+		    midi_clip_add_note(&mclip, 69, 108, 100, 100 + 96000);
+		    srand(time(NULL));
+		    mclip.len_sframes = 96000 * 5;
+		    for (int i=0; i<900; i++) {
+			int32_t dur = rand() % 30000;
+			int32_t interval = rand() % 11 + 1;
+			int32_t t_interval = rand() % 5000 + 1000;
+			uint8_t velocity = rand() % 128;
+			for (int i=25; i<25 + 80; i+=interval) {
+			    interval += rand() % 4 - 2;
+			    if (interval <= 0) interval += rand() %4 + 1;
+			    midi_clip_add_note(&mclip, i, velocity, start, start + dur);
+			    start += t_interval;;
+			    /* end += 3000; */
+			    /* mclip.len_sframes += t_interval; */
+			    mclip.len_sframes += t_interval;
+			}
 		    }
 
 		    /* midi_clip_add_note(&mclip, 78, 127, 3, 1000); */

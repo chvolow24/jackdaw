@@ -2,8 +2,9 @@
 #define JDAW_SYNTH_H
 
 #include <stdint.h>
+#include "adsr.h"
 #include "midi_io.h"
-#include "consts.h"
+/* #include "consts.h" */
 
 #define SYNTH_NUM_VOICES 32
 #define SYNTHVOICE_NUM_OSCS 40 /* 4 base oscillators, up to 5 per base for detune */
@@ -36,27 +37,28 @@ typedef struct synth_voice {
     Osc oscs[SYNTHVOICE_NUM_OSCS];
     uint8_t note_val;
     uint8_t velocity;
-    int32_t note_start_rel[2]; /* relative to start of current chunk */
-    int32_t note_end_rel[2]; /* relative to start of current chunk */
+    /* int32_t note_start_rel[2]; /\* relative to start of current chunk *\/ */
+    /* int32_t note_end_rel[2]; /\* relative to start of current chunk *\/ */
     Synth *synth;
     bool available;
-    uint8_t amp_env_stage[2];
-    int32_t env_remaining[2];
-    float release_start_env[2];
-    float last_env[2];
+    ADSRState amp_env[2]; /* L and R */
+    /* uint8_t amp_env_stage[2]; */
+    /* int32_t env_remaining[2]; */
+    /* float release_start_env[2]; */
+    /* float last_env[2]; */
 } SynthVoice;
 
-typedef struct adsr {
-    int32_t a; /* Sample frames */
-    int32_t d; /* Sample frames */
-    float s; /* raw amplitude */
-    int32_t r; /* Sample frames */
-} ADSR;
+/* typedef struct adsr { */
+/*     int32_t a; /\* Sample frames *\/ */
+/*     int32_t d; /\* Sample frames *\/ */
+/*     float s; /\* raw amplitude *\/ */
+/*     int32_t r; /\* Sample frames *\/ */
+/* } ADSR; */
 
 typedef struct synth {
     SynthVoice voices[SYNTH_NUM_VOICES];
     uint8_t num_oscs;
-    ADSR amp_env;
+    ADSRParams amp_env;
     /* PmEvent events[SYNTH_EVENT_BUF_SIZE]; */
     /* int num_events; */
     

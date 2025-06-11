@@ -42,6 +42,7 @@ double dsp_scale_freq_to_hz(double freq_unscaled);
 void float_buf_add(float *restrict a, float *restrict b, int len);
 void float_buf_add_to(float *restrict a, float *restrict b, float *restrict sum, int len);
 void float_buf_mult(float *restrict a, float *restrict b, int len);
+void float_buf_mult_const(float *restrict a, float by, int len);
 void float_buf_mult_to(float *restrict a, float *restrict b, float *restrict product, int len);
 
 

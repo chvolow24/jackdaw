@@ -207,6 +207,7 @@ static double double_biquad_amp_from_freq(double freq_raw, double complex *pole,
 
 static void iir_reset_freq_resp(IIRFilter *iir)
 {
+    if (!iir->fp) return;
     if (iir->num_poles == 1) {
 	for (int i=0; i<IIR_FREQPLOT_RESOLUTION; i++) {
 	    double prop = (double) i / IIR_FREQPLOT_RESOLUTION;

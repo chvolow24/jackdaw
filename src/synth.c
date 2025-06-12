@@ -11,7 +11,7 @@ Synth *synth_create()
 {
     /* Session *session = session_get(); */
     Synth *s = calloc(1, sizeof(Synth));
-    s->num_oscs = 2;
+    /* s->num_base_oscs = 2; */
     /* s->osc_types[0] = WS_SINE; */
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	s->voices[i].oscs[0].type = WS_TRI;
@@ -124,7 +124,7 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 {
     if (v->available) return;
     /* fprintf(stderr, "\tvoice %ld has data\n", v - v->synth->voices); */
-    for (int i=0; i<v->synth->num_oscs; i++) {
+    for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
 	/* fprintf(stderr, "\t\tvoice %ld osc %d\n", v - v->synth->voices, i); */
 	Osc *osc = v->oscs + i;
 	/* fprintf(stderr, "\t\tosc %d, start rel %d end rel %d\n", i, v->note_start_rel, v->note_end_rel); */
@@ -137,7 +137,7 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 	enum adsr_stage amp_stage = adsr_buf_apply(&v->amp_env[channel], osc_buf, len);
 	if (amp_stage == ADSR_OVERRUN) {
 	    v->available = true;
-	    fprintf(stderr, "\tFREEING VOICE %ld (env overrun)\n", v - v->synth->voices);
+	    /* fprintf(stderr, "\tFREEING VOICE %ld (env overrun)\n", v - v->synth->voices); */
 	    /* return; */
 	}
 	for (int i=0; i<len; i++) {
@@ -205,7 +205,7 @@ static void osc_set_freq(Osc *osc, double freq_hz)
 static void synth_voice_set_note(SynthVoice *v, uint8_t note_val, uint8_t velocity)
 {
     v->note_val = note_val;
-    for (int i=0; i<v->synth->num_oscs; i++) {
+    for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
 	/* osc_set_freq(v->oscs + i, MTOF[note_val]); */
 	osc_set_freq(v->oscs + i, mtof_calc(note_val));
     }
@@ -216,7 +216,7 @@ static void synth_voice_set_note(SynthVoice *v, uint8_t note_val, uint8_t veloci
 
 static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, int32_t start_rel)
 {
-    fprintf(stderr, "ASSIGNING VOICE %ld\n", v - v->synth->voices);
+    /* fprintf(stderr, "ASSIGNING VOICE %ld\n", v - v->synth->voices); */
     synth_voice_set_note(v, note, velocity);
     /* v->note_start_rel[0] = start_rel; */
     /* v->note_start_rel[1] = start_rel; */

@@ -24,6 +24,7 @@
 #include "eq.h"
 #include "fir_filter.h"
 #include "function_lookup.h"
+#include "iir.h"
 #include "input.h"
 #include "layout.h"
 #include "midi_clip.h"
@@ -177,6 +178,18 @@ void loop_project_main()
 
 		switch (e.key.keysym.scancode) {
 		case SDL_SCANCODE_6: {
+		    /* FILE *file = fopen("biquad_freq_sweep.csv", "w"); */
+		    /* IIRFilter f; */
+		    /* memset(&f, '\0', sizeof(f)); */
+		    /* iir_init(&f, 2, 2); */
+		    /* fprintf(file, "a0,a1,a2,b0,b1\n"); */
+		    /* for (int i=0; i<100; i++) { */
+		    /* 	iir_set_coeffs_lowpass_chebyshev(&f, (float)i/100, 100.4); */
+		    /* 	fprintf(file, "%f,%f,%f,%f,%f\n", f.A[0], f.A[1], f.A[2], f.B[0], f.B[1]); */
+		    /* } */
+		    /* fclose(file); */
+		    /* exit(0); */
+		    
 		    static MIDIClip mclip;
 		    memset(&mclip, '\0', sizeof(mclip));
 		    if (!mclip.refs) {

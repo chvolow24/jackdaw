@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "adsr.h"
-#include "dsp_utils.h"
 
 
 void adsr_set_params(
@@ -61,7 +60,8 @@ void adsr_start_release(ADSRState *s, int32_t after)
 
 /* int Id=0; */
 
-enum adsr_stage adsr_buf_apply(ADSRState *s, float *buf, int32_t buf_len)
+/* Fill a foat buffer with envelope values and return the end state */
+enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_len)
 {
     /* fprintf(stderr, "BUF APPLY len %d\n", buf_len); */
     /* fprintf(stderr, "\t\t\tadsr buf apply\n"); */
@@ -83,31 +83,37 @@ enum adsr_stage adsr_buf_apply(ADSRState *s, float *buf, int32_t buf_len)
 	    s->env_remaining -= stage_len;
 	    break;
 	case ADSR_A:
-	    float_buf_mult(
-		buf + buf_i,
-		s->params->a_ramp + s->params->a - s->env_remaining,
-		stage_len);
+	    memcpy(buf + buf_i, s->params->a_ramp + s->params->a - s->env_remaining, stage_len * sizeof(float));
+	    /* float_buf_mult( */
+	    /* 	buf + buf_i, */
+	    /* 	s->params->a_ramp + s->params->a - s->env_remaining, */
+	    /* 	stage_len); */
 	    s->env_remaining -= stage_len;
 	    break;
 	case ADSR_D:
- 	    float_buf_mult(
-		buf + buf_i,
-		s->params->d_ramp + s->params->d - s->env_remaining,
-		stage_len);
+	    memcpy(buf + buf_i, s->params->d_ramp + s->params->d - s->env_remaining, stage_len * sizeof(float));
+ 	    /* float_buf_mult( */
+	    /* 	buf + buf_i, */
+	    /* 	s->params->d_ramp + s->params->d - s->env_remaining, */
+	    /* 	stage_len); */
 	    s->env_remaining -= stage_len;
 	    break;
 	case ADSR_S:
-	    float_buf_mult_const(
-		buf + buf_i,
-		s->params->s,
-		stage_len);
+	    for (int32_t i=0; i<stage_len; i++) {
+		buf[buf_i + i] = s->params->s;
+	    }
+	    /* memset(buf + buf_i, s->params->s,  */
+	    /* float_buf_mult_const( */
+	    /* 	buf + buf_i, */
+	    /* 	s->params->s, */
+	    /* 	stage_len); */
 	    s->env_remaining -= stage_len;
 	    s->s_time += stage_len;
 	    break;
 	case ADSR_R: {
 	    for (int i=0; i<stage_len; i++) {
 		float env = (double)s->env_remaining * s->release_start_env / (double)s->params->r;
-		buf[i] *= env;
+		buf[i] = env;
 		s->env_remaining--;
 	    }
 	}

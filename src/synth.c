@@ -1,6 +1,7 @@
 #include <portmidi.h>
 #include <porttime.h>
 #include "adsr.h"
+#include "dsp_utils.h"
 #include "consts.h"
 #include "synth.h"
 #include "session.h"
@@ -11,24 +12,64 @@ Synth *synth_create()
 {
     /* Session *session = session_get(); */
     Synth *s = calloc(1, sizeof(Synth));
+
+    s->base_oscs[0].active = true;
+    s->base_oscs[0].type = WS_SAW;
+    s->base_oscs[0].amp = 0.2;
+    s->base_oscs[0].pan = 0.5;
+    s->base_oscs[0].octave = 0;
+    s->base_oscs[0].tune_coarse = 0;
+    s->base_oscs[0].tune_fine = 0;
+    s->base_oscs[0].detune.num_voices = 4;
+    s->base_oscs[0].detune.cents = 5;
+    s->base_oscs[0].detune.relative_amp = 0.9;
+    s->base_oscs[0].detune.stereo_spread = 1.0;
+
+    s->base_oscs[1].active = true;
+    s->base_oscs[1].type = WS_SAW;
+    s->base_oscs[1].amp = 0.2;
+    s->base_oscs[1].pan = 0.5;
+    s->base_oscs[1].octave = -1;
+    s->base_oscs[1].tune_coarse = 0;
+    s->base_oscs[1].tune_fine = 0;
+    s->base_oscs[1].detune.num_voices = 4;
+    s->base_oscs[1].detune.cents = 5;
+    s->base_oscs[1].detune.relative_amp = 0.9;
+    s->base_oscs[1].detune.stereo_spread = 1.0;
+
+    s->base_oscs[2].active = true;
+    s->base_oscs[2].type = WS_SINE;
+    s->base_oscs[2].amp = 0.2;
+    s->base_oscs[2].pan = 0.5;
+    s->base_oscs[2].octave = -2;
+    s->base_oscs[2].tune_coarse = 0;
+    s->base_oscs[2].tune_fine = 0;
+    s->base_oscs[2].detune.num_voices = 0;
+    /* s->base_oscs[2].detune.cents = 5; */
+    /* s->base_oscs[2].detune.relative_amp = 0.9; */
+    /* s->base_oscs[2].detune.stereo_spread = 1.0; */
+
+
     /* s->num_base_oscs = 2; */
     /* s->osc_types[0] = WS_SINE; */
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
-	s->voices[i].oscs[0].type = WS_TRI;
-	s->voices[i].oscs[0].amp = 0.1;
-	s->voices[i].oscs[1].type = WS_TRI;
-	s->voices[i].oscs[1].amp = 0.1;
+    /* 	s->voices[i].oscs[0].type = WS_TRI; */
+    /* 	s->voices[i].oscs[0].amp = 0.1; */
+    /* 	s->voices[i].oscs[1].type = WS_TRI; */
+    /* 	s->voices[i].oscs[1].amp = 0.1; */
 
 	s->voices[i].synth = s;
 	s->voices[i].available = true;
-
 	s->voices[i].amp_env[0].params = &s->amp_env;
 	s->voices[i].amp_env[1].params = &s->amp_env;
-	/* s->voices[i].amp_env_stage =  */
+
+    /* 	s->voices[i].amp_env[0].params = &s->amp_env; */
+    /* 	s->voices[i].amp_env[1].params = &s->amp_env; */
+    /* 	/\* s->voices[i].amp_env_stage =  *\/ */
     }
     adsr_set_params(
 	&s->amp_env,
-	96 * 8,
+	96 * 40,
 	96 * 400,
 	0.2,
 	96 * 1000,
@@ -125,16 +166,25 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
     if (v->available) return;
     /* fprintf(stderr, "\tvoice %ld has data\n", v - v->synth->voices); */
     for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
+	OscCfg *cfg = v->synth->base_oscs + i;
+	if (!cfg->active) continue;
 	/* fprintf(stderr, "\t\tvoice %ld osc %d\n", v - v->synth->voices, i); */
 	Osc *osc = v->oscs + i;
-	/* fprintf(stderr, "\t\tosc %d, start rel %d end rel %d\n", i, v->note_start_rel, v->note_end_rel); */
-	/* int32_t start_rel = v->note_start_rel; */
-	/* int32_t end_rel = v->note_end_rel; */
 	float osc_buf[len];
 	for (int i=0; i<len; i++) {
 	    osc_buf[i] = osc_sample(osc, channel, 2, step);
 	}
-	enum adsr_stage amp_stage = adsr_buf_apply(&v->amp_env[channel], osc_buf, len);
+	for (int j=0; j<cfg->detune.num_voices; j++) {
+	    Osc *detune_voice = v->oscs + i + 4 * (j + 1);
+	    for (int i=0; i<len; i++) {
+		/* fprintf(stderr, "adding detune voice %d/%d\n", j, cfg->detune.num_voices); */
+		osc_buf[i] += osc_sample(detune_voice, channel, 2, step);
+	    }
+	}
+	/* for (int j=0; j< */
+	float amp_env[len];
+	enum adsr_stage amp_stage = adsr_get_chunk(&v->amp_env[channel], amp_env, len);
+	float_buf_mult(osc_buf, amp_env, len);
 	if (amp_stage == ADSR_OVERRUN) {
 	    v->available = true;
 	    /* fprintf(stderr, "\tFREEING VOICE %ld (env overrun)\n", v - v->synth->voices); */
@@ -202,22 +252,60 @@ static void osc_set_freq(Osc *osc, double freq_hz)
     osc->freq = freq_hz;
     osc->sample_phase_incr = freq_hz / session->proj.sample_rate;    
 }
-static void synth_voice_set_note(SynthVoice *v, uint8_t note_val, uint8_t velocity)
-{
-    v->note_val = note_val;
-    for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
-	/* osc_set_freq(v->oscs + i, MTOF[note_val]); */
-	osc_set_freq(v->oscs + i, mtof_calc(note_val));
-    }
-    osc_set_freq(v->oscs + 1, mtof_calc((double)note_val + 0.02));
-    /* fprintf(stderr, "OSC 1 %f OSC 2: %f\n", v->oscs[0].freq, v->oscs[1].freq); */
-    v->velocity = velocity;
-}
+/* static void synth_voice_set_note(SynthVoice *v, uint8_t note_val, uint8_t velocity) */
+/* { */
+/*     v->note_val = note_val; */
+/*     for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) { */
+/* 	/\* osc_set_freq(v->oscs + i, MTOF[note_val]); *\/ */
+/* 	osc_set_freq(v->oscs + i, mtof_calc(note_val)); */
+/*     } */
+/*     osc_set_freq(v->oscs + 1, mtof_calc((double)note_val + 0.02)); */
+/*     /\* fprintf(stderr, "OSC 1 %f OSC 2: %f\n", v->oscs[0].freq, v->oscs[1].freq); *\/ */
+/*     v->velocity = velocity; */
+/* } */
 
 static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, int32_t start_rel)
 {
-    /* fprintf(stderr, "ASSIGNING VOICE %ld\n", v - v->synth->voices); */
-    synth_voice_set_note(v, note, velocity);
+    /* srand(time(NULL)); */
+    Synth *synth = v->synth;
+    v->note_val = note;
+    for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
+	OscCfg *cfg = synth->base_oscs + i;
+	if (!cfg->active) continue;	
+	Osc *osc = v->oscs + i;
+	double base_midi_note = note + cfg->octave * 12 + cfg->tune_coarse + cfg->tune_fine / 100.0f;
+	osc->amp = cfg->amp;
+	osc->pan = cfg->pan;
+	osc->type = cfg->type;
+	osc->phase[0] = 0.0;
+	osc->phase[1] = 0.0;
+	/* osc_set_freq(v->oscs + i, MTOF[note_val]); */
+	osc_set_freq(osc, mtof_calc(base_midi_note));
+	fprintf(stderr, "BASE NOTE: %f\n", base_midi_note);
+	for (int j=0; j<cfg->detune.num_voices; j++) {
+	    Osc *detune_voice = v->oscs + i + SYNTH_NUM_BASE_OSCS * (j + 1);
+	    detune_voice->type = cfg->type;
+	    double detune_midi_note =
+		j % 2 == 0 ?
+		base_midi_note - cfg->detune.cents /100.0f * (j + 1) :
+		base_midi_note + cfg->detune.cents /100.0f * (j + 1);
+	    fprintf(stderr, "DETUNE MIDI NOTE: %f\n", detune_midi_note);
+	    osc_set_freq(detune_voice, mtof_calc(detune_midi_note));
+	    detune_voice->amp = osc->amp * cfg->detune.relative_amp;
+	    detune_voice->pan =
+		j % 2 == 0 ?
+		0.5f + (j + 1) * cfg->detune.stereo_spread / 2.0f / (float)cfg->detune.num_voices :
+		0.5f - (j + 1) * cfg->detune.stereo_spread / 2.0f / (float)cfg->detune.num_voices;
+	    detune_voice->phase[0] = 0.0;
+	    detune_voice->phase[1] = 0.0;
+	    /* int randomized_pan_index = rand() % cfg->detune.num_voices; */	    
+	    
+	}
+    }
+    /* osc_set_freq(v->oscs + 1, mtof_calc((double)note + 0.02)); */
+    /* fprintf(stderr, "OSC 1 %f OSC 2: %f\n", v->oscs[0].freq, v->oscs[1].freq); */
+    v->velocity = velocity;
+
     /* v->note_start_rel[0] = start_rel; */
     /* v->note_start_rel[1] = start_rel; */
     /* v->note_end_rel[0] = INT32_MIN; */
@@ -229,13 +317,13 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
     /* v->amp_env_stage[1] = 0; */
     /* v->env_remaining[0] = v->synth->amp_env.a; */
     /* v->env_remaining[1] = v->synth->amp_env.a; */
-    v->oscs[0].phase[0] = 0.0;
-    v->oscs[0].phase[1] = 0.0;
-    v->oscs[1].phase[0] = 0.0;
-    v->oscs[1].phase[0] = 0.0;
+    /* v->oscs[0].phase[0] = 0.0; */
+    /* v->oscs[0].phase[1] = 0.0; */
+    /* v->oscs[1].phase[0] = 0.0; */
+    /* v->oscs[1].phase[0] = 0.0; */
     
-    v->oscs[0].pan = 0.4;
-    v->oscs[1].pan = 0.6;
+    /* v->oscs[0].pan = 0.4; */
+    /* v->oscs[1].pan = 0.6; */
     
 
 }

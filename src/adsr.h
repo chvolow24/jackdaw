@@ -41,12 +41,13 @@ typedef struct adsr_state {
 
 
 void adsr_set_params(ADSRParams *p, int32_t a, int32_t d, float s, int32_t r, float ramp_exp);
-void adsr_get_chunk(ADSRState *adsr, float *dst, int dst_len);
-void adsr_apply_chunk(ADSRState *adsr, float *buf, int buf_len);
+/* void adsr_get_chunk(ADSRState *adsr, float *dst, int dst_len); */
+/* void adsr_apply_chunk(ADSRState *adsr, float *buf, int buf_len); */
 void adsr_init(ADSRState *s, int32_t after);
 void adsr_start_release(ADSRState *s, int32_t after);
 float adsr_sample(ADSRState *s, bool *is_finished);
-enum adsr_stage adsr_buf_apply(ADSRState *s, float *buf, int32_t buf_len);
+/* enum adsr_stage adsr_buf_apply(ADSRState *s, float *buf, int32_t buf_len); */
+enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_len);
 int32_t adsr_query_position(ADSRState *s);
 
 

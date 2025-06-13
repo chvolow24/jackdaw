@@ -52,20 +52,25 @@ typedef struct synth_voice {
 /*     int32_t r; /\* Sample frames *\/ */
 /* } ADSR; */
 
+struct detune_cfg {
+    int num_voices; /* always even -- central frequency and sidebands on either side */
+    float cents; /* divergence from central pitch of first voice, or between center pitches if even */
+    float relative_amp; /* 1.0 for same amp as main voice */
+    float stereo_spread; /* 0.0 all centered; 1.0 full range */
+
+};
 typedef struct osc_cfg OscCfg;
 typedef struct osc_cfg {
     bool active;
     WaveShape type;
     float amp;
+    float pan;
     int octave;
     int tune_coarse; /* semitones */
-    float tune_fine; /* cents */
+    float tune_fine; /* cents, -50-50 */
 
     /* Detune info */
-    int detune_voices;
-    float cents; /* divergence from central pitch of first voice, or between center pitches if even */
-    float relative_amp; /* 1.0 for same amp as main voice */
-    float stereo_spread; /* 0.0 all centered; 1.0 full range */
+    struct detune_cfg detune;
 
     /* If modulation pointers are not null, do not add audio data directly from this osc */
     OscCfg *mod_freq_of;
@@ -99,3 +104,10 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step);
 void synth_close_all_notes(Synth *s);
 
 #endif
+
+
+/*
+
+ |  + + + + | + + + + | + + + + | + + + + |
+
+ */

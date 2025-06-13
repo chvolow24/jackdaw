@@ -25,6 +25,7 @@ typedef enum wave_shape {
 
 float WAV_TABLES[NUM_WAVE_SHAPES];
 
+typedef struct osc Osc;
 typedef struct osc {
     WaveShape type;
     double phase[2];
@@ -32,6 +33,8 @@ typedef struct osc {
     double freq;
     float amp;
     float pan;
+    Osc *freq_modulator;
+    Osc *amp_modulator;
 } Osc;
 
 typedef struct synth Synth;
@@ -102,6 +105,8 @@ Synth *synth_create();
 void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start, bool send_immediate);
 void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step);
 void synth_close_all_notes(Synth *s);
+
+void synth_base_osc_set_freq_modulator(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg);
 
 #endif
 

@@ -14,37 +14,54 @@ Synth *synth_create()
     Synth *s = calloc(1, sizeof(Synth));
 
     s->base_oscs[0].active = true;
-    s->base_oscs[0].type = WS_SAW;
-    s->base_oscs[0].amp = 0.2;
+    s->base_oscs[0].type = WS_SINE;
+    s->base_oscs[0].amp = 0.1;
     s->base_oscs[0].pan = 0.5;
     s->base_oscs[0].octave = 0;
     s->base_oscs[0].tune_coarse = 0;
     s->base_oscs[0].tune_fine = 0;
-    s->base_oscs[0].detune.num_voices = 4;
-    s->base_oscs[0].detune.cents = 5;
-    s->base_oscs[0].detune.relative_amp = 0.9;
+    s->base_oscs[0].detune.num_voices = 3;
+    s->base_oscs[0].detune.cents = 2;
+    s->base_oscs[0].detune.relative_amp = 0.5;
     s->base_oscs[0].detune.stereo_spread = 1.0;
 
     s->base_oscs[1].active = true;
-    s->base_oscs[1].type = WS_SAW;
-    s->base_oscs[1].amp = 0.2;
+    s->base_oscs[1].type = WS_SINE;
+    s->base_oscs[1].amp = 0.05;
     s->base_oscs[1].pan = 0.5;
-    s->base_oscs[1].octave = -1;
+    s->base_oscs[1].octave = -2;
     s->base_oscs[1].tune_coarse = 0;
-    s->base_oscs[1].tune_fine = 0;
-    s->base_oscs[1].detune.num_voices = 4;
-    s->base_oscs[1].detune.cents = 5;
-    s->base_oscs[1].detune.relative_amp = 0.9;
-    s->base_oscs[1].detune.stereo_spread = 1.0;
+    s->base_oscs[1].tune_fine = 9;
+    s->base_oscs[1].detune.num_voices = 0;
 
     s->base_oscs[2].active = true;
-    s->base_oscs[2].type = WS_SINE;
+    s->base_oscs[2].type = WS_SAW;
     s->base_oscs[2].amp = 0.2;
     s->base_oscs[2].pan = 0.5;
     s->base_oscs[2].octave = -2;
     s->base_oscs[2].tune_coarse = 0;
     s->base_oscs[2].tune_fine = 0;
-    s->base_oscs[2].detune.num_voices = 0;
+    s->base_oscs[2].detune.num_voices = 4;
+    s->base_oscs[2].detune.cents = 10;
+    s->base_oscs[2].detune.relative_amp = 0.5;
+    s->base_oscs[2].detune.stereo_spread = 1.0;
+
+
+     
+    /* s->base_oscs[1].detune.cents = 6; */
+    /* s->base_oscs[1].detune.relative_amp = 0.9; */
+    /* s->base_oscs[1].detune.stereo_spread = 1.0; */
+
+    synth_base_osc_set_freq_modulator(s, s->base_oscs + 0, s->base_oscs + 1);
+
+    /* s->base_oscs[2].active = true; */
+    /* s->base_oscs[2].type = WS_SINE; */
+    /* s->base_oscs[2].amp = 0.2; */
+    /* s->base_oscs[2].pan = 0.5; */
+    /* s->base_oscs[2].octave = -2; */
+    /* s->base_oscs[2].tune_coarse = 0; */
+    /* s->base_oscs[2].tune_fine = 0; */
+    /* s->base_oscs[2].detune.num_voices = 0; */
     /* s->base_oscs[2].detune.cents = 5; */
     /* s->base_oscs[2].detune.relative_amp = 0.9; */
     /* s->base_oscs[2].detune.stereo_spread = 1.0; */
@@ -121,7 +138,17 @@ Synth *synth_create()
 /*     return id; */
 /* } */
 
-static inline float osc_sample(Osc *osc, int channel, int num_channels, float step)
+/* Osc LFO = { */
+/*     WS_SINE, */
+/*     {0.0, 0.0}, */
+/*     0.005, */
+/*     0, */
+/*     0.2, */
+/*     0.5, */
+/*     NULL, */
+/*     NULL */
+/* }; */
+static float osc_sample(Osc *osc, int channel, int num_channels, float step)
 {
     float sample;
     switch(osc->type) {
@@ -147,7 +174,13 @@ static inline float osc_sample(Osc *osc, int channel, int num_channels, float st
     default:
 	sample = 0.0;
     }
-    osc->phase[channel] += osc->sample_phase_incr * step;
+    if (osc->freq_modulator) {
+	float fmod_sample = osc_sample(osc->freq_modulator, channel, num_channels, step);
+	/* fprintf(stderr, "Phase incr: %f fmod: %f\n", osc->sample_phase_incr, fmod_sample); */
+	osc->phase[channel] += osc->sample_phase_incr * (step + fmod_sample);
+    } else {
+	osc->phase[channel] += osc->sample_phase_incr * step;
+    }
     if (osc->phase[channel] > 1.0) {
 	osc->phase[channel] -= 1.0;
     }
@@ -168,6 +201,7 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
     for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
 	OscCfg *cfg = v->synth->base_oscs + i;
 	if (!cfg->active) continue;
+	if (cfg->mod_freq_of || cfg->mod_amp_of) continue;
 	/* fprintf(stderr, "\t\tvoice %ld osc %d\n", v - v->synth->voices, i); */
 	Osc *osc = v->oscs + i;
 	float osc_buf[len];
@@ -175,9 +209,9 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 	    osc_buf[i] = osc_sample(osc, channel, 2, step);
 	}
 	for (int j=0; j<cfg->detune.num_voices; j++) {
-	    Osc *detune_voice = v->oscs + i + 4 * (j + 1);
+	    Osc *detune_voice = v->oscs + i + SYNTH_NUM_BASE_OSCS * (j + 1);
 	    for (int i=0; i<len; i++) {
-		/* fprintf(stderr, "adding detune voice %d/%d\n", j, cfg->detune.num_voices); */
+		/* fprintf(stderr, "adding detune voice %d/%d, freq %f\n", j, cfg->detune.num_voices, detune_voice->freq); */
 		osc_buf[i] += osc_sample(detune_voice, channel, 2, step);
 	    }
 	}
@@ -191,7 +225,7 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 	    /* return; */
 	}
 	for (int i=0; i<len; i++) {
-	    buf[i] += tanh(osc_buf[i] * (float)v->velocity / 127.0f);
+	    buf[i] += osc_buf[i] * (float)v->velocity / 127.0f;
 	}
 	
 	/* for (int i=0; i<len; i++) { */
@@ -244,6 +278,9 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 	/*     v->note_end_rel += len; */
 	/* } */
     }
+    /* for (int i=0; i<len; i++) { */
+    /* 	buf[i] = tanh(buf[i]); */
+    /* } */
 }
 
 static void osc_set_freq(Osc *osc, double freq_hz)
@@ -279,6 +316,7 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
 	osc->type = cfg->type;
 	osc->phase[0] = 0.0;
 	osc->phase[1] = 0.0;
+	/* osc->freq_modulator = &LFO; */
 	/* osc_set_freq(v->oscs + i, MTOF[note_val]); */
 	osc_set_freq(osc, mtof_calc(base_midi_note));
 	fprintf(stderr, "BASE NOTE: %f\n", base_midi_note);
@@ -287,15 +325,17 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
 	    detune_voice->type = cfg->type;
 	    double detune_midi_note =
 		j % 2 == 0 ?
-		base_midi_note - cfg->detune.cents /100.0f * (j + 1) :
-		base_midi_note + cfg->detune.cents /100.0f * (j + 1);
-	    fprintf(stderr, "DETUNE MIDI NOTE: %f\n", detune_midi_note);
+		base_midi_note - cfg->detune.cents / 100.0f * (j + 1) :
+		base_midi_note + cfg->detune.cents / 100.0f * (j + 1);
+	    fprintf(stderr, "DETUNE MIDI NOTE: %f (detune cents? %f /100? %f\n", detune_midi_note, cfg->detune.cents, cfg->detune.cents / 100.0f);
 	    osc_set_freq(detune_voice, mtof_calc(detune_midi_note));
 	    detune_voice->amp = osc->amp * cfg->detune.relative_amp;
 	    detune_voice->pan =
 		j % 2 == 0 ?
-		0.5f + (j + 1) * cfg->detune.stereo_spread / 2.0f / (float)cfg->detune.num_voices :
-		0.5f - (j + 1) * cfg->detune.stereo_spread / 2.0f / (float)cfg->detune.num_voices;
+		osc->pan + (j + 1) * cfg->detune.stereo_spread / 2.0f / (float)cfg->detune.num_voices :
+		osc->pan - (j + 1) * cfg->detune.stereo_spread / 2.0f / (float)cfg->detune.num_voices;
+	    if (detune_voice->pan > 1.0) detune_voice->pan = 1.0;
+	    if (detune_voice->pan < 0.0) detune_voice->pan = 0.0;
 	    detune_voice->phase[0] = 0.0;
 	    detune_voice->phase[1] = 0.0;
 	    /* int randomized_pan_index = rand() % cfg->detune.num_voices; */	    
@@ -326,6 +366,38 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
     /* v->oscs[1].pan = 0.6; */
     
 
+}
+
+void synth_base_osc_set_freq_modulator(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg)
+{
+    
+    if (!carrier_cfg) return;
+    int carrier_i = carrier_cfg - s->base_oscs;
+    if (!modulator_cfg) {
+	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+	    SynthVoice *v = s->voices + i;
+	    for (int j=carrier_i; j<SYNTHVOICE_NUM_OSCS; j+= SYNTH_NUM_BASE_OSCS) {
+		Osc *osc = v->oscs + j;
+		osc->freq_modulator = NULL;
+	    }
+	}
+    } else {
+	modulator_cfg->mod_freq_of = carrier_cfg;
+	carrier_cfg->freq_mod_by = modulator_cfg;
+	int modulator_i = modulator_cfg - s->base_oscs;
+	
+	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+	    SynthVoice *v = s->voices + i;
+	    Osc *modulator = v->oscs + modulator_i;
+	    Osc *carrier = v->oscs + carrier_i;
+	    carrier->freq_modulator = modulator;
+	    /* Don't do detune voices */
+	/*     for (int j=carrier_i; j<SYNTHVOICE_NUM_OSCS; j+= SYNTH_NUM_BASE_OSCS) { */
+	/* 	Osc *osc = v->oscs + j; */
+	/* 	osc->freq_modulator = modulator; */
+	/*     } */
+	}
+    }
 }
 
 void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start, bool send_immediate)

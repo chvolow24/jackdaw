@@ -8,96 +8,54 @@
 
 extern double MTOF[];
 
-Synth *synth_create()
+Synth *synth_create(Track *parent_track)
 {
     /* Session *session = session_get(); */
     Synth *s = calloc(1, sizeof(Synth));
+    s->track = parent_track;
+    /* synth_base_osc_set_freq_modulator(s, s->base_oscs + 0, s->base_oscs + 1); */
+    /* synth_base_osc_set_freq_modulator(s, s->base_oscs + 2, s->base_oscs + 3); */
 
-    s->base_oscs[0].active = true;
-    s->base_oscs[0].type = WS_SINE;
-    s->base_oscs[0].amp = 0.1;
-    s->base_oscs[0].pan = 0.5;
-    s->base_oscs[0].octave = 0;
-    s->base_oscs[0].tune_coarse = 0;
-    s->base_oscs[0].tune_fine = 0;
-    s->base_oscs[0].detune.num_voices = 3;
-    s->base_oscs[0].detune.cents = 2;
-    s->base_oscs[0].detune.relative_amp = 0.5;
-    s->base_oscs[0].detune.stereo_spread = 1.0;
-
-    s->base_oscs[1].active = true;
-    s->base_oscs[1].type = WS_SINE;
-    s->base_oscs[1].amp = 0.05;
-    s->base_oscs[1].pan = 0.5;
-    s->base_oscs[1].octave = -2;
-    s->base_oscs[1].tune_coarse = 0;
-    s->base_oscs[1].tune_fine = 9;
-    s->base_oscs[1].detune.num_voices = 0;
-
-    s->base_oscs[2].active = true;
-    s->base_oscs[2].type = WS_SAW;
-    s->base_oscs[2].amp = 0.2;
-    s->base_oscs[2].pan = 0.5;
-    s->base_oscs[2].octave = -2;
-    s->base_oscs[2].tune_coarse = 0;
-    s->base_oscs[2].tune_fine = 0;
-    s->base_oscs[2].detune.num_voices = 4;
-    s->base_oscs[2].detune.cents = 10;
-    s->base_oscs[2].detune.relative_amp = 0.5;
-    s->base_oscs[2].detune.stereo_spread = 1.0;
-
-
-     
-    /* s->base_oscs[1].detune.cents = 6; */
-    /* s->base_oscs[1].detune.relative_amp = 0.9; */
-    /* s->base_oscs[1].detune.stereo_spread = 1.0; */
-
-    synth_base_osc_set_freq_modulator(s, s->base_oscs + 0, s->base_oscs + 1);
-
-    /* s->base_oscs[2].active = true; */
-    /* s->base_oscs[2].type = WS_SINE; */
-    /* s->base_oscs[2].amp = 0.2; */
-    /* s->base_oscs[2].pan = 0.5; */
-    /* s->base_oscs[2].octave = -2; */
-    /* s->base_oscs[2].tune_coarse = 0; */
-    /* s->base_oscs[2].tune_fine = 0; */
-    /* s->base_oscs[2].detune.num_voices = 0; */
-    /* s->base_oscs[2].detune.cents = 5; */
-    /* s->base_oscs[2].detune.relative_amp = 0.9; */
-    /* s->base_oscs[2].detune.stereo_spread = 1.0; */
-
-
-    /* s->num_base_oscs = 2; */
-    /* s->osc_types[0] = WS_SINE; */
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
-    /* 	s->voices[i].oscs[0].type = WS_TRI; */
-    /* 	s->voices[i].oscs[0].amp = 0.1; */
-    /* 	s->voices[i].oscs[1].type = WS_TRI; */
-    /* 	s->voices[i].oscs[1].amp = 0.1; */
-
 	s->voices[i].synth = s;
 	s->voices[i].available = true;
 	s->voices[i].amp_env[0].params = &s->amp_env;
 	s->voices[i].amp_env[1].params = &s->amp_env;
-
-    /* 	s->voices[i].amp_env[0].params = &s->amp_env; */
-    /* 	s->voices[i].amp_env[1].params = &s->amp_env; */
-    /* 	/\* s->voices[i].amp_env_stage =  *\/ */
     }
     adsr_set_params(
 	&s->amp_env,
-	96 * 40,
+	96 * 8,
 	96 * 400,
 	0.2,
-	96 * 1000,
-	2.0);
-    /* s->amp_env.a = 96 * 1; */
-    /* s->amp_env.d = 96 * 100; */
-    /* s->amp_env.s = 0.5; */
-    /* s->amp_env.r = 96 * 500; */
+	96 * 500,
+	3.0);
     s->monitor = true;
     s->allow_voice_stealing = true;
-    /* session->midi_io.synths[session->midi_io.num_synths] = s; */
+
+    for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
+	OscCfg *cfg = s->base_oscs + i;
+	endpoint_init(
+	    &cfg->active_ep,
+	    &cfg->active,
+	    JDAW_BOOL,
+	    "active",
+	    "Active",
+	    JDAW_THREAD_DSP,
+	    
+	    /*
+	      endpoint_init(Endpoint *ep,
+	      void *val,
+	      ValType t,
+	      const char *local_id,
+	      const char *display_name,
+	      enum jdaw_thread owner_thread,
+	      EndptCb gui_cb,
+	      EndptCb proj_cb,
+	      EndptCb dsp_cb,
+	      void *xarg1, void *xarg2, void *xarg3, void *xarg4) -> int */
+	    
+    }
+
     return s;
 }
 
@@ -208,7 +166,7 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 	for (int i=0; i<len; i++) {
 	    osc_buf[i] = osc_sample(osc, channel, 2, step);
 	}
-	for (int j=0; j<cfg->detune.num_voices; j++) {
+	for (int j=0; j<cfg->unison.num_voices; j++) {
 	    Osc *detune_voice = v->oscs + i + SYNTH_NUM_BASE_OSCS * (j + 1);
 	    for (int i=0; i<len; i++) {
 		/* fprintf(stderr, "adding detune voice %d/%d, freq %f\n", j, cfg->detune.num_voices, detune_voice->freq); */
@@ -320,20 +278,20 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
 	/* osc_set_freq(v->oscs + i, MTOF[note_val]); */
 	osc_set_freq(osc, mtof_calc(base_midi_note));
 	fprintf(stderr, "BASE NOTE: %f\n", base_midi_note);
-	for (int j=0; j<cfg->detune.num_voices; j++) {
+	for (int j=0; j<cfg->unison.num_voices; j++) {
 	    Osc *detune_voice = v->oscs + i + SYNTH_NUM_BASE_OSCS * (j + 1);
 	    detune_voice->type = cfg->type;
 	    double detune_midi_note =
 		j % 2 == 0 ?
-		base_midi_note - cfg->detune.cents / 100.0f * (j + 1) :
-		base_midi_note + cfg->detune.cents / 100.0f * (j + 1);
-	    fprintf(stderr, "DETUNE MIDI NOTE: %f (detune cents? %f /100? %f\n", detune_midi_note, cfg->detune.cents, cfg->detune.cents / 100.0f);
+		base_midi_note - cfg->unison.detune_cents / 100.0f * (j + 1) :
+		base_midi_note + cfg->unison.detune_cents / 100.0f * (j + 1);
+	    fprintf(stderr, "DETUNE MIDI NOTE: %f (detune cents? %f /100? %f\n", detune_midi_note, cfg->unison.detune_cents, cfg->unison.detune_cents / 100.0f);
 	    osc_set_freq(detune_voice, mtof_calc(detune_midi_note));
-	    detune_voice->amp = osc->amp * cfg->detune.relative_amp;
+	    detune_voice->amp = osc->amp * cfg->unison.relative_amp;
 	    detune_voice->pan =
 		j % 2 == 0 ?
-		osc->pan + (j + 1) * cfg->detune.stereo_spread / 2.0f / (float)cfg->detune.num_voices :
-		osc->pan - (j + 1) * cfg->detune.stereo_spread / 2.0f / (float)cfg->detune.num_voices;
+		osc->pan + (j + 1) * cfg->unison.stereo_spread / 2.0f / (float)cfg->unison.num_voices :
+		osc->pan - (j + 1) * cfg->unison.stereo_spread / 2.0f / (float)cfg->unison.num_voices;
 	    if (detune_voice->pan > 1.0) detune_voice->pan = 1.0;
 	    if (detune_voice->pan < 0.0) detune_voice->pan = 0.0;
 	    detune_voice->phase[0] = 0.0;

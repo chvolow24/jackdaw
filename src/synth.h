@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 #include "adsr.h"
+#include "api.h"
+#include "endpoint.h"
 #include "iir.h"
 #include "midi_io.h"
 /* #include "consts.h" */
@@ -15,6 +17,7 @@
 /* #define SYNTH_EVENT_BUF_SIZE 512 */
 
 typedef enum wave_shape {
+    WS_NONE,
     WS_SINE,
     WS_SQUARE,
     WS_TRI,
@@ -55,11 +58,15 @@ typedef struct synth_voice {
 /*     int32_t r; /\* Sample frames *\/ */
 /* } ADSR; */
 
-struct detune_cfg {
+struct unison_cfg {
     int num_voices; /* always even -- central frequency and sidebands on either side */
-    float cents; /* divergence from central pitch of first voice, or between center pitches if even */
+    float detune_cents; /* divergence from central pitch of first voice, or between center pitches if even */
     float relative_amp; /* 1.0 for same amp as main voice */
     float stereo_spread; /* 0.0 all centered; 1.0 full range */
+    Endpoint unison_num_voices_ep;
+    Endpoint unison_detune_cents_ep;
+    Endpoint unison_relative_amp_ep;
+    Endpoint unison_stereo_spread_ep;
 
 };
 typedef struct osc_cfg OscCfg;
@@ -73,7 +80,7 @@ typedef struct osc_cfg {
     float tune_fine; /* cents, -50-50 */
 
     /* Detune info */
-    struct detune_cfg detune;
+    struct unison_cfg unison;
 
     /* If modulation pointers are not null, do not add audio data directly from this osc */
     OscCfg *mod_freq_of;
@@ -81,6 +88,17 @@ typedef struct osc_cfg {
 
     OscCfg *freq_mod_by;
     OscCfg *amp_mod_by;
+
+    Endpoint active_ep;
+    Endpoint type_ep;
+    Endpoint amp_ep;
+    Endpoint pan_ep;
+    Endpoint octave_ep;
+    Endpoint tune_coarse_ep;
+    Endpoint tune_fine_ep;
+    
+    /* Endpoint  */
+    APINode api_node;
     
 } OscCfg;
 
@@ -95,6 +113,8 @@ typedef struct synth {
     
     bool monitor;
     bool allow_voice_stealing;
+
+    Track *track;
 } Synth;
 
 /* int synth_create_virtual_device(Synth *s); */

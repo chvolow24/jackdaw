@@ -682,6 +682,40 @@ RadioButton *radio_button_create(
     return rb;
 }
 
+SymbolRadio *symbol_radio_create(
+    Layout *lt,
+    Symbol **symbols,
+    uint8_t num_items,
+    Endpoint *ep,
+    bool align_horizontal,
+    int padding,
+    SDL_Color select_color)
+{
+    SymbolRadio *sr = calloc(1, sizeof(SymbolRadio));
+    sr->ep = ep;
+    sr->num_items = num_items;
+    sr->layout = lt;
+    sr->ep = ep;
+    memcpy(sr->symbols, symbols, num_items * sizeof(Symbol *));
+
+    for (int i=0; i<num_items; i++) {
+	Layout *item_lt = layout_add_child(lt);
+	if (align_horizontal) {
+	    item_lt->x.type = STACK;
+	    item_lt->y.type = REL;
+	} else {
+	    item_lt->x.type = REL;
+	    item_lt->y.type = STACK;
+	}
+	item_lt->x.value = padding;
+	item_lt->y.value = padding;
+	item_lt->w.value = symbols[i]->x_dim_pix / main_win->dpi_scale_factor;
+	item_lt->h.value = symbols[i]->y_dim_pix / main_win->dpi_scale_factor;	
+    }
+    return sr;
+
+}
+
 void radio_button_reset_from_endpoint(RadioButton *rb)
 {
     /* if (!rb->target) return; */

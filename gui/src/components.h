@@ -95,6 +95,15 @@ typedef struct radio_button {
     char *dynamic_text;
 } RadioButton;
 
+typedef struct symbol_radio {
+    Layout *layout;
+    Symbol *symbols[RADIO_BUTTON_MAX_ITEMS];
+    Endpoint *ep;
+    uint8_t num_items;
+    uint8_t selected_item;
+    SDL_Color sel_color;
+} SymbolRadio;
+
 typedef struct waveform {
     Layout *layout;
     void **channels;
@@ -266,7 +275,6 @@ bool radio_click(RadioButton *rb, Window *Win);
 void radio_destroy(RadioButton *rb);
 void radio_cycle(RadioButton *rb);
 void radio_cycle_back(RadioButton *rb);
-
 
 
 /* Waveform */

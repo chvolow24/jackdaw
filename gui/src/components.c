@@ -682,40 +682,6 @@ RadioButton *radio_button_create(
     return rb;
 }
 
-SymbolRadio *symbol_radio_create(
-    Layout *lt,
-    Symbol **symbols,
-    uint8_t num_items,
-    Endpoint *ep,
-    bool align_horizontal,
-    int padding,
-    SDL_Color select_color)
-{
-    SymbolRadio *sr = calloc(1, sizeof(SymbolRadio));
-    sr->ep = ep;
-    sr->num_items = num_items;
-    sr->layout = lt;
-    sr->ep = ep;
-    memcpy(sr->symbols, symbols, num_items * sizeof(Symbol *));
-
-    for (int i=0; i<num_items; i++) {
-	Layout *item_lt = layout_add_child(lt);
-	if (align_horizontal) {
-	    item_lt->x.type = STACK;
-	    item_lt->y.type = REL;
-	} else {
-	    item_lt->x.type = REL;
-	    item_lt->y.type = STACK;
-	}
-	item_lt->x.value = padding;
-	item_lt->y.value = padding;
-	item_lt->w.value = symbols[i]->x_dim_pix / main_win->dpi_scale_factor;
-	item_lt->h.value = symbols[i]->y_dim_pix / main_win->dpi_scale_factor;	
-    }
-    return sr;
-
-}
-
 void radio_button_reset_from_endpoint(RadioButton *rb)
 {
     /* if (!rb->target) return; */
@@ -799,6 +765,101 @@ void radio_destroy(RadioButton *rb)
     free(rb);
 
 }
+
+
+/* Symbol Radio button */
+
+SymbolRadio *symbol_radio_create(
+    Layout *lt,
+    Symbol **symbols,
+    uint8_t num_items,
+    Endpoint *ep,
+    bool align_horizontal,
+    int padding,
+    SDL_Color *sel_color,
+    SDL_Color *unsel_color)
+{
+    SymbolRadio *sr = calloc(1, sizeof(SymbolRadio));
+    sr->ep = ep;
+    sr->num_items = num_items;
+    sr->layout = lt;
+    sr->ep = ep;
+    sr->sel_color = sel_color;
+    sr->unsel_color = unsel_color;
+    memcpy(sr->symbols, symbols, num_items * sizeof(Symbol *));
+
+    for (int i=0; i<num_items; i++) {
+	Layout *item_lt = layout_add_child(lt);
+	if (align_horizontal) {
+	    item_lt->x.type = STACK;
+	    item_lt->y.type = REL;
+	} else {
+	    item_lt->x.type = REL;
+	    item_lt->y.type = STACK;
+	}
+	item_lt->x.value = padding;
+	item_lt->y.value = padding;
+	item_lt->w.value = symbols[i]->x_dim_pix / main_win->dpi_scale_factor;
+	item_lt->h.value = symbols[i]->y_dim_pix / main_win->dpi_scale_factor;	
+    }
+    return sr;
+
+}
+
+void symbol_radio_reset_from_endpoint(SymbolRadio *sr)
+{
+    Value val = endpoint_safe_read(sr->ep, NULL);
+    sr->selected_item = val.int_v;
+}
+
+void symbol_radio_draw(SymbolRadio *sr)
+{
+    for (uint8_t i=0; i<sr->num_items; i++) {
+	Layout *lt = sr->layout->children[i];
+
+	if (i==sr->selected_item)
+	    symbol_draw_w_bckgrnd(sr->symbols[i], &lt->rect, sr->unsel_color);
+	else
+	    symbol_draw_w_bckgrnd(sr->symbols[i], &lt->rect, sr->sel_color);
+    }
+}
+
+void symbol_radio_cycle_back(SymbolRadio *sr)
+{
+    if (sr->selected_item > 0)
+	sr->selected_item--;
+    endpoint_write(sr->ep, (Value){.int_v = sr->selected_item}, true, true, true, true);
+}
+
+void symbol_radio_cycle(SymbolRadio *sr)
+{
+    if (sr->selected_item == sr->num_items - 1) return;
+    sr->selected_item++;
+    endpoint_write(sr->ep, (Value){.int_v = sr->selected_item}, true, true, true, true);
+}
+
+bool symbol_radio_click(SymbolRadio *sr, Window *Win)
+{
+    if (SDL_PointInRect(&main_win->mousep, &sr->layout->rect)) {
+	for (uint8_t i = 0; i<sr->num_items; i++) {
+	    if (SDL_PointInRect(&main_win->mousep, &(sr->layout->children[i]->rect))) {
+		sr->selected_item = i;
+		endpoint_write(sr->ep, (Value){.int_v = sr->selected_item}, true, true, true, true);
+		return true;
+	    }
+	}
+    }
+    return false;
+}
+
+void symbol_radio_destroy(SymbolRadio *sr)
+{
+    layout_destroy(sr->layout);
+    free(sr);
+}
+
+
+
 
 
 /* Waveform */

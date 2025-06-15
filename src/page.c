@@ -256,6 +256,9 @@ static void page_el_destroy(PageEl *el)
     case EL_SYMBOL_BUTTON:
 	symbol_button_destroy((SymbolButton *)el->component);
 	break;
+    case EL_SYMBOL_RADIO:
+	symbol_radio_destroy((SymbolRadio *)el->component);
+	break;
     default:
 	break;
     }
@@ -321,6 +324,7 @@ static inline bool el_is_selectable(PageElType type)
     case EL_TEXTENTRY:
     case EL_TOGGLE:
     case EL_SYMBOL_BUTTON:
+    case EL_SYMBOL_RADIO:
 	return true;
     default:
 	return false;
@@ -459,6 +463,17 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	    params.sbutton_p.action,
 	    params.sbutton_p.target,
 	    params.sbutton_p.background_color);
+	break;
+    case EL_SYMBOL_RADIO:
+	el->component = symbol_radio_create(
+	    el->layout,
+	    params.sradio_p.symbols,
+	    params.sradio_p.num_items,
+	    params.sradio_p.ep,
+	    params.sradio_p.align_horizontal,
+	    params.sradio_p.padding,
+	    params.sradio_p.sel_color,
+	    params.sradio_p.unsel_color);
 	break;
     default:
 	break;
@@ -599,10 +614,8 @@ static bool page_element_mouse_click(PageEl *el, Window *win)
     case EL_BUTTON:
 	return button_click((Button *)el->component, win);
 	break;
-    case EL_EQ_PLOT: {
-	EQ *eq = el->component;
-	return eq_mouse_click(eq, win->mousep);
-	}
+    case EL_EQ_PLOT:
+	return eq_mouse_click(el->component, win->mousep);
 	break;
     case EL_CANVAS: {
 	Canvas *c = (Canvas *)el->component;
@@ -610,10 +623,10 @@ static bool page_element_mouse_click(PageEl *el, Window *win)
 	    return c->on_click(win->mousep, c, c->draw_arg1, c->draw_arg2);
     }
 	break;
-    case EL_SYMBOL_BUTTON: {
-	SymbolButton *sb = (SymbolButton *)el->component;
-	return symbol_button_click(sb, main_win);
-    }
+    case EL_SYMBOL_BUTTON:
+	return symbol_button_click(el->component, main_win);
+    case EL_SYMBOL_RADIO:
+	return symbol_radio_click(el->component, main_win);
 	break;
     default:
 	break;
@@ -805,6 +818,9 @@ static void page_el_draw(PageEl *el)
 	break;
     case EL_SYMBOL_BUTTON:
 	symbol_button_draw((SymbolButton *)el->component);
+	break;
+    case EL_SYMBOL_RADIO:
+	symbol_radio_draw(el->component);
 	break;
     default:
 	break;
@@ -1191,6 +1207,9 @@ void page_enter(Page *page)
 	SymbolButton *sb = (SymbolButton *)el->component;
 	sb->action(sb, sb->target);
     }
+	break;
+    case EL_SYMBOL_RADIO:
+	symbol_radio_cycle(el->component);
 	break;
     default:
 	break;

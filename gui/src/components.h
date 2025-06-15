@@ -101,7 +101,8 @@ typedef struct symbol_radio {
     Endpoint *ep;
     uint8_t num_items;
     uint8_t selected_item;
-    SDL_Color sel_color;
+    SDL_Color *sel_color;
+    SDL_Color *unsel_color;
 } SymbolRadio;
 
 typedef struct waveform {
@@ -276,6 +277,25 @@ void radio_destroy(RadioButton *rb);
 void radio_cycle(RadioButton *rb);
 void radio_cycle_back(RadioButton *rb);
 
+
+/* Symbol radio */
+
+SymbolRadio *symbol_radio_create(
+    Layout *lt,
+    Symbol **symbols,
+    uint8_t num_items,
+    Endpoint *ep,
+    bool align_horizontal,
+    int padding,
+    SDL_Color *sel_color,
+    SDL_Color *unsel_color);
+
+void symbol_radio_reset_from_endpoint(SymbolRadio *sr);
+void symbol_radio_draw(SymbolRadio *sr);
+void symbol_radio_cycle_back(SymbolRadio *sr);
+void symbol_radio_cycle(SymbolRadio *sr);
+bool symbol_radio_click(SymbolRadio *sr, Window *Win);
+void symbol_radio_destroy(SymbolRadio *sr);
 
 /* Waveform */
 

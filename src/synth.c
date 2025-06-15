@@ -34,13 +34,13 @@ Synth *synth_create(Track *parent_track)
 
     for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
 	OscCfg *cfg = s->base_oscs + i;
-	endpoint_init(
-	    &cfg->active_ep,
-	    &cfg->active,
-	    JDAW_BOOL,
-	    "active",
-	    "Active",
-	    JDAW_THREAD_DSP,
+	/* endpoint_init( */
+	/*     &cfg->active_ep, */
+	/*     &cfg->active, */
+	/*     JDAW_BOOL, */
+	/*     "active", */
+	/*     "Active", */
+	/*     JDAW_THREAD_DSP, */
 	    
 	    /*
 	      endpoint_init(Endpoint *ep,

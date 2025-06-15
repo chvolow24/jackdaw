@@ -21,6 +21,8 @@
 #define CLICK_TRACK_SETTINGS_LT_PATH LAYOUT_PATH "/click_track_settings.xml"
 #define LOADING_SCREEN_LT_PATH LAYOUT_PATH "/loading_screen.xml"
 
+#define SYNTH_OSCS_LT_PATH LAYOUT_PATH "/synth_oscs.xml"
+
 #define TTF_PATH INSTALL_DIR "/assets/ttf/"
 #define OPEN_SANS_PATH TTF_PATH "OpenSans-Regular.ttf"
 #define OPEN_SANS_BOLD_PATH TTF_PATH "OpenSans-Bold.ttf"

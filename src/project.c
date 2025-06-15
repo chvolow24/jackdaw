@@ -1394,7 +1394,7 @@ static void track_set_midi_out_onclick(void *arg_v)
     track->midi_out_type = arg->type;
     if (arg->type == MIDI_OUT_SYNTH) {
 	if (!track->synth) {
-	    track->synth = synth_create();
+	    track->synth = synth_create(track);
 	}
 	track->midi_out = track->synth;
     } else {

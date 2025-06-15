@@ -1227,19 +1227,31 @@ Layout *layout_get_child_by_name(Layout *lt, const char *name)
 }
 
 
-Layout *layout_get_child_by_name_recursive(Layout *lt, const char *name)
+Layout *layout_get_child_by_name_recursive_internal(Layout *lt, const char *name)
 {
     Layout *ret = NULL;
     if (strcmp(lt->name, name) == 0) {
         ret = lt;
     } else {
         for (int16_t i=0; i<lt->num_children; i++) {
-            ret = layout_get_child_by_name_recursive(lt->children[i], name);
+            ret = layout_get_child_by_name_recursive_internal(lt->children[i], name);
             if (ret) {
                 break;
             }
         }
     }
+    return ret;
+}
+
+Layout *layout_get_child_by_name_recursive(Layout *lt, const char *name)
+{
+    Layout *ret = layout_get_child_by_name_recursive_internal(lt, name);
+    #ifdef TESTBUILD
+    if (!ret) {
+	fprintf(stderr, "FATAL ERROR: layout \"%s\" has no child named \"%s\"\n", lt->name, name);
+	exit(1);
+    }
+    #endif
     return ret;
 }
 

@@ -63,6 +63,7 @@ extern pthread_t DSP_THREAD_ID;
 /*     return 0; */
 /* } */
 
+TabView *synth_tabview_create(Track *track);
 void user_global_quit(void *);
 void loop_project_main()
 {
@@ -177,7 +178,16 @@ void loop_project_main()
 		/* } */
 
 		switch (e.key.keysym.scancode) {
+		case SDL_SCANCODE_5: {
+		    Timeline *tl = ACTIVE_TL;
+		    Track *t = timeline_selected_track(tl);
+		    TabView *tv = synth_tabview_create(t);
+		    tabview_activate(tv);
+
+		}
+		    break;
 		case SDL_SCANCODE_6: {
+
 		    /* FILE *file = fopen("biquad_freq_sweep.csv", "w"); */
 		    /* IIRFilter f; */
 		    /* memset(&f, '\0', sizeof(f)); */

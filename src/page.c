@@ -357,6 +357,9 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	    params.textbox_p.win);
 	textbox_set_background_color(tb, NULL);
 	textbox_set_text_color(tb, page->text_color);
+	textbox_set_trunc(tb, false);
+	textbox_set_align(tb, CENTER_LEFT);
+	textbox_reset_full(tb);
 	el->component = (void *)tb;
 	    }
 	break;
@@ -495,6 +498,7 @@ PageEl *page_add_el(
 	el->layout = layout_get_child_by_name_recursive(page->layout, layout_name);
 	if (!el->layout) {
 	    fprintf(stdout, "Error in layout at %s; unable to find child named %s\n", page->layout->name, layout_name);
+	    exit(1);
 	}
     } else {
 	el->layout = layout_add_child(page->layout);

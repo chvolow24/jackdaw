@@ -119,7 +119,7 @@ typedef struct synth {
 
 /* int synth_create_virtual_device(Synth *s); */
 /* void synth_init_defaults(Synth *s); */
-Synth *synth_create();
+Synth *synth_create(Track *track);
 /* void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, int32_t tl_start); */
 /* void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, int32_t tl_start, bool send_immediate, float step); */
 void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start, bool send_immediate);

@@ -861,7 +861,14 @@ void page_draw(Page *page)
 	}
     }
     /* static bool sf = false; */
-    /* layout_draw(page->win, page->layout); */
+    layout_draw(page->win, page->layout);
+    
+    if (strcmp(page->title, "Oscillators") == 0) {
+	Layout *lt = layout_get_child_by_name_recursive(page->layout, "4coarse_label");
+	SDL_SetRenderDrawColor(main_win->rend, 255, 255, 0, 50);
+	SDL_RenderFillRect(main_win->rend, &lt->rect);
+    }
+
     /* if (!sf) { */
     /* 	FILE *f = fopen("test.xml", "w"); */
     /* 	layout_write(f, page->layout, 0); */

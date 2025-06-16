@@ -8,6 +8,7 @@
 
 *****************************************************************************************************************/
 #include <limits.h>
+#include "color.h"
 #include "layout.h"
 #include "text.h"
 #include "window.h"
@@ -25,6 +26,7 @@
 /* extern Layout *main_lt; */
 /* extern SDL_Color white; */
 //extern TTF_Font *open_sans;
+extern struct colors colors;
 
 
 
@@ -824,17 +826,19 @@ int set_rect_wh(Layout *lt)
 	break;
     case COMPLEMENT: {
 	if (!lt->parent) break;
-	if (lt->index > 0) {
-	    Layout *last_sibling = lt->parent->children[lt->index - 1];
-	    while (last_sibling && last_sibling->w.type == COMPLEMENT && last_sibling->index > 0) {
-		last_sibling = last_sibling->parent->children[last_sibling->index - 1];
-	    }
+	/* if (lt->index > 0) { */
+	Layout *last_sibling = get_last_sibling(lt);
+	    /* Layout *last_sibling = lt->parent->children[lt->index - 1]; */
+	    /* while (last_sibling && last_sibling->w.type == COMPLEMENT && last_sibling->index > 0) { */
+	    /* 	last_sibling = last_sibling->parent->children[last_sibling->index - 1]; */
+	    /* } */
 	    if (!last_sibling) {
 		fprintf(stderr, "Error: layout %s has type dim COMPLEMENT but no last sibling\n", lt->name);
 		return 0;
 	    }
+	    /* fprintf(stderr, "PARENT W: %d, LS W: %d\n", lt->parent->rect.w, last_sibling->rect.w); */
 	    lt->rect.w = lt->parent->rect.w - last_sibling->rect.w;
-	}
+	/* } */
 	break;
     }
     case STACK:

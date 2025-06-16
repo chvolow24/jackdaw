@@ -1,0 +1,424 @@
+<Layout name="synth_oscs" type="NORMAL">
+  <x>REL 0</x>
+  <y>REL 0</y>
+  <w>SCALE 1.000000</w>
+  <h>SCALE 1.000000</h>
+  <children>
+    <Layout name="master_amp_label" type="NORMAL">
+      <x>REL 48</x>
+      <y>REL 16</y>
+      <w>REL 50</w>
+      <h>REL 23</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="master_amp_slider" type="NORMAL">
+      <x>STACK 15</x>
+      <y>REL 16</y>
+      <w>REL 200</w>
+      <h>REL 23</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="master_pan_label" type="NORMAL">
+      <x>REL 340</x>
+      <y>REL 16</y>
+      <w>REL 50</w>
+      <h>REL 23</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="master_pan_slider" type="NORMAL">
+      <x>STACK 15</x>
+      <y>REL 16</y>
+      <w>REL 200</w>
+      <h>REL 23</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="osc1_panel" type="NORMAL">
+      <x>REL 48</x>
+      <y>REL 58</y>
+      <w>REL 349</w>
+      <h>REL 244</h>
+      <children>
+        <Layout name="osc1_label" type="NORMAL">
+          <x>SCALE 0.036232</x>
+          <y>REL 11</y>
+          <w>SCALE 0.207246</w>
+          <h>REL 21</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="1type_radio" type="NORMAL">
+          <x>SCALE 0.281159</x>
+          <y>REL 11</y>
+          <w>SCALE 0.657971</w>
+          <h>REL 21</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="vol_pan" type="NORMAL">
+          <x>SCALE 0.036232</x>
+          <y>REL 42</y>
+          <w>SCALE 0.902899</w>
+          <h>REL 21</h>
+          <children>
+            <Layout name="1vol_label" type="NORMAL">
+              <x>SCALE 0.000000</x>
+              <y>REL 0</y>
+              <w>SCALE 0.117175</w>
+              <h>REL 21</h>
+              <children>
+              </children>
+            </Layout>
+            <Layout name="1vol_slider" type="NORMAL">
+              <x>SCALE 0.117175</x>
+              <y>REL 0</y>
+              <w>SCALE 0.346709</w>
+              <h>REL 21</h>
+              <children>
+              </children>
+            </Layout>
+            <Layout name="1pan_label" type="NORMAL">
+              <x>SCALE 0.500803</x>
+              <y>REL 0</y>
+              <w>SCALE 0.104334</w>
+              <h>REL 21</h>
+              <children>
+              </children>
+            </Layout>
+            <Layout name="1pan_slider" type="NORMAL">
+              <x>SCALE 0.605136</x>
+              <y>REL 0</y>
+              <w>SCALE 0.394864</w>
+              <h>REL 21</h>
+              <children>
+              </children>
+            </Layout>
+          </children>
+        </Layout>
+        <Layout name="tune_panel" type="NORMAL">
+          <x>SCALE 0.035061</x>
+          <y>REL 70</y>
+          <w>SCALE 0.417683</w>
+          <h>REL 102</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="unison_panel" type="NORMAL">
+          <x>SCALE 0.486281</x>
+          <y>REL 70</y>
+          <w>SCALE 0.452744</w>
+          <h>REL 102</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="freq_mod_row" type="NORMAL">
+          <x>REL 13</x>
+          <y>REL 183</y>
+          <w>SCALE 0.902579</w>
+          <h>REL 21</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="amp_mod_row" type="NORMAL">
+          <x>REL 12</x>
+          <y>REL 214</y>
+          <w>REL 316</w>
+          <h>REL 21</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+    <Layout name="osc2_panel" type="NORMAL">
+      <x>REL 415</x>
+      <y>REL 58</y>
+      <w>REL 349</w>
+      <h>REL 244</h>
+      <children>
+        <Layout name="osc2_label" type="NORMAL">
+          <x>SCALE 0.036232</x>
+          <y>REL 11</y>
+          <w>SCALE 0.207246</w>
+          <h>REL 21</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="2type_radio" type="NORMAL">
+          <x>SCALE 0.281159</x>
+          <y>REL 11</y>
+          <w>SCALE 0.657971</w>
+          <h>REL 21</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="vol_pan" type="NORMAL">
+          <x>SCALE 0.036232</x>
+          <y>REL 42</y>
+          <w>SCALE 0.902899</w>
+          <h>REL 21</h>
+          <children>
+            <Layout name="2vol_label" type="NORMAL">
+              <x>SCALE 0.000000</x>
+              <y>REL 0</y>
+              <w>SCALE 0.117175</w>
+              <h>REL 21</h>
+              <children>
+              </children>
+            </Layout>
+            <Layout name="2vol_slider" type="NORMAL">
+              <x>SCALE 0.117175</x>
+              <y>REL 0</y>
+              <w>SCALE 0.346709</w>
+              <h>REL 21</h>
+              <children>
+              </children>
+            </Layout>
+            <Layout name="2pan_label" type="NORMAL">
+              <x>SCALE 0.500803</x>
+              <y>REL 0</y>
+              <w>SCALE 0.104334</w>
+              <h>REL 21</h>
+              <children>
+              </children>
+            </Layout>
+            <Layout name="2pan_slider" type="NORMAL">
+              <x>SCALE 0.605136</x>
+              <y>REL 0</y>
+              <w>SCALE 0.394864</w>
+              <h>REL 21</h>
+              <children>
+              </children>
+            </Layout>
+          </children>
+        </Layout>
+        <Layout name="tune_panel" type="NORMAL">
+          <x>SCALE 0.035061</x>
+          <y>REL 70</y>
+          <w>SCALE 0.417683</w>
+          <h>REL 102</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="unison_panel" type="NORMAL">
+          <x>SCALE 0.486281</x>
+          <y>REL 70</y>
+          <w>SCALE 0.452744</w>
+          <h>REL 102</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="freq_mod_row" type="NORMAL">
+          <x>REL 13</x>
+          <y>REL 183</y>
+          <w>SCALE 0.902579</w>
+          <h>REL 21</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="amp_mod_row" type="NORMAL">
+          <x>REL 12</x>
+          <y>REL 214</y>
+          <w>REL 316</w>
+          <h>REL 21</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+    <Layout name="osc3_panel" type="NORMAL">
+      <x>REL 48</x>
+      <y>REL 308</y>
+      <w>REL 349</w>
+      <h>REL 244</h>
+      <children>
+        <Layout name="osc3_label" type="NORMAL">
+          <x>SCALE 0.036232</x>
+          <y>REL 11</y>
+          <w>SCALE 0.207246</w>
+          <h>REL 21</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="3type_radio" type="NORMAL">
+          <x>SCALE 0.281159</x>
+          <y>REL 11</y>
+          <w>SCALE 0.657971</w>
+          <h>REL 21</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="vol_pan" type="NORMAL">
+          <x>SCALE 0.036232</x>
+          <y>REL 42</y>
+          <w>SCALE 0.902899</w>
+          <h>REL 21</h>
+          <children>
+            <Layout name="3vol_label" type="NORMAL">
+              <x>SCALE 0.000000</x>
+              <y>REL 0</y>
+              <w>SCALE 0.117175</w>
+              <h>REL 21</h>
+              <children>
+              </children>
+            </Layout>
+            <Layout name="3vol_slider" type="NORMAL">
+              <x>SCALE 0.117175</x>
+              <y>REL 0</y>
+              <w>SCALE 0.346709</w>
+              <h>REL 21</h>
+              <children>
+              </children>
+            </Layout>
+            <Layout name="3pan_label" type="NORMAL">
+              <x>SCALE 0.500803</x>
+              <y>REL 0</y>
+              <w>SCALE 0.104334</w>
+              <h>REL 21</h>
+              <children>
+              </children>
+            </Layout>
+            <Layout name="3pan_slider" type="NORMAL">
+              <x>SCALE 0.605136</x>
+              <y>REL 0</y>
+              <w>SCALE 0.394864</w>
+              <h>REL 21</h>
+              <children>
+              </children>
+            </Layout>
+          </children>
+        </Layout>
+        <Layout name="tune_panel" type="NORMAL">
+          <x>SCALE 0.035061</x>
+          <y>REL 70</y>
+          <w>SCALE 0.417683</w>
+          <h>REL 102</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="unison_panel" type="NORMAL">
+          <x>SCALE 0.486281</x>
+          <y>REL 70</y>
+          <w>SCALE 0.452744</w>
+          <h>REL 102</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="freq_mod_row" type="NORMAL">
+          <x>REL 13</x>
+          <y>REL 183</y>
+          <w>SCALE 0.902579</w>
+          <h>REL 21</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="amp_mod_row" type="NORMAL">
+          <x>REL 12</x>
+          <y>REL 214</y>
+          <w>REL 316</w>
+          <h>REL 21</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+    <Layout name="osc4_panel" type="NORMAL">
+      <x>REL 415</x>
+      <y>REL 308</y>
+      <w>REL 349</w>
+      <h>REL 244</h>
+      <children>
+        <Layout name="osc4_label" type="NORMAL">
+          <x>SCALE 0.036232</x>
+          <y>REL 11</y>
+          <w>SCALE 0.207246</w>
+          <h>REL 21</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="4type_radio" type="NORMAL">
+          <x>SCALE 0.281159</x>
+          <y>REL 11</y>
+          <w>SCALE 0.657971</w>
+          <h>REL 21</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="vol_pan" type="NORMAL">
+          <x>SCALE 0.036232</x>
+          <y>REL 42</y>
+          <w>SCALE 0.902899</w>
+          <h>REL 21</h>
+          <children>
+            <Layout name="4vol_label" type="NORMAL">
+              <x>SCALE 0.000000</x>
+              <y>REL 0</y>
+              <w>SCALE 0.117175</w>
+              <h>REL 21</h>
+              <children>
+              </children>
+            </Layout>
+            <Layout name="4vol_slider" type="NORMAL">
+              <x>SCALE 0.117175</x>
+              <y>REL 0</y>
+              <w>SCALE 0.346709</w>
+              <h>REL 21</h>
+              <children>
+              </children>
+            </Layout>
+            <Layout name="4pan_label" type="NORMAL">
+              <x>SCALE 0.500803</x>
+              <y>REL 0</y>
+              <w>SCALE 0.104334</w>
+              <h>REL 21</h>
+              <children>
+              </children>
+            </Layout>
+            <Layout name="3pan_slider" type="NORMAL">
+              <x>SCALE 0.605136</x>
+              <y>REL 0</y>
+              <w>SCALE 0.394864</w>
+              <h>REL 21</h>
+              <children>
+              </children>
+            </Layout>
+          </children>
+        </Layout>
+        <Layout name="tune_panel" type="NORMAL">
+          <x>SCALE 0.035061</x>
+          <y>REL 70</y>
+          <w>SCALE 0.417683</w>
+          <h>REL 102</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="unison_panel" type="NORMAL">
+          <x>SCALE 0.486281</x>
+          <y>REL 70</y>
+          <w>SCALE 0.452744</w>
+          <h>REL 102</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="freq_mod_row" type="NORMAL">
+          <x>REL 13</x>
+          <y>REL 183</y>
+          <w>SCALE 0.902579</w>
+          <h>REL 21</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="amp_mod_row" type="NORMAL">
+          <x>REL 12</x>
+          <y>REL 214</y>
+          <w>REL 316</w>
+          <h>REL 21</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+  </children>
+</Layout>

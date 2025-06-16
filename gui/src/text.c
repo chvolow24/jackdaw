@@ -10,10 +10,11 @@
 
 #include <string.h>
 
-#include "draw.h"
+/* #include "draw.h" */
 #include "text.h"
+#include "textbox.h"
 #include "layout.h"
-#include "project.h"
+/* #include "project.h" */
 #include "status.h"
 #include "window.h"
 
@@ -355,7 +356,9 @@ void txt_stop_editing(Text *txt)
     }
 }
 
+#ifndef LAYOUT_BUILD
 static int txt_check_len(Text *txt, int len);
+#endif
 void txt_input_event_handler(Text *txt, SDL_Event *e)
 {
     char input = e->text.text[0];

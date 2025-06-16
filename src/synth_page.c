@@ -94,9 +94,19 @@ static void add_osc_page(TabView *tv, Track *track)
 
     p.textbox_p.set_str = "Coarse:";
     el = page_add_el(page,EL_TEXTBOX,p,"","1coarse_label");
+    layout_size_to_fit_children_h(el->layout, true, 0);
     el = page_add_el(page,EL_TEXTBOX,p,"","2coarse_label");
+    layout_size_to_fit_children_h(el->layout, true, 0);
     el = page_add_el(page,EL_TEXTBOX,p,"","3coarse_label");
+    layout_size_to_fit_children_h(el->layout, true, 0);
     el = page_add_el(page,EL_TEXTBOX,p,"","4coarse_label");
+    layout_size_to_fit_children_h(el->layout, true, 0);
+    /* layout_write(stderr, el->layout, 0); */
+    /* fprintf(stderr, "\n\n Parent!\n"); */
+    /* FILE *fl = fopen("l.xml", "w"); */
+    /* layout_write(fl, el->layout->parent,0); */
+    /* fclose(fl); */
+    /* exit(1); */
 
     p.textbox_p.set_str = "Fine:";
     el = page_add_el(page,EL_TEXTBOX,p,"","1fine_label");
@@ -120,9 +130,13 @@ static void add_osc_page(TabView *tv, Track *track)
 
     p.textbox_p.set_str = "Rel Vol:";
     el = page_add_el(page,EL_TEXTBOX,p,"","1unison_relative_amp_label");
+    layout_size_to_fit_children_h(el->layout, true, 0);
     el = page_add_el(page,EL_TEXTBOX,p,"","2unison_relative_amp_label");
+    layout_size_to_fit_children_h(el->layout, true, 0);
     el = page_add_el(page,EL_TEXTBOX,p,"","3unison_relative_amp_label");
+    layout_size_to_fit_children_h(el->layout, true, 0);
     el = page_add_el(page,EL_TEXTBOX,p,"","4unison_relative_amp_label");
+    layout_size_to_fit_children_h(el->layout, true, 0);
     
     p.textbox_p.set_str = "Stereo:";
     el = page_add_el(page,EL_TEXTBOX,p,"","1unison_stereo_spread_label");
@@ -130,6 +144,7 @@ static void add_osc_page(TabView *tv, Track *track)
     el = page_add_el(page,EL_TEXTBOX,p,"","3unison_stereo_spread_label");
     el = page_add_el(page,EL_TEXTBOX,p,"","4unison_stereo_spread_label");
 
+    layout_force_reset(page->layout);
 
 
 	
@@ -171,10 +186,11 @@ static void page_fill_out_layout(Page *page)
 	    snprintf(name, 255, "%d%s_label", o+1, i==0 ? "octave" : i==1 ? "coarse" : "fine");
 	    layout_set_name(label_lt, name);
 	    Layout *slider_lt = layout_add_child(row_lt);
-	    slider_lt->w.type = SCALE;
-	    slider_lt->w.value = 0.7;
+	    slider_lt->w.type = COMPLEMENT;
+	    /* slider_lt->w.type = SCALE; */
+	    /* slider_lt->w.value = 0.7; */
 	    slider_lt->h.type = SCALE;
-	    slider_lt->h.value = 0.7;
+	    slider_lt->h.value = 0.525;
 	    slider_lt->x.type = STACK;
 	    slider_lt->y.type = SCALE;
 	    slider_lt->y.value = 0.15;
@@ -192,7 +208,7 @@ static void page_fill_out_layout(Page *page)
 
 	    Layout *label_lt = layout_add_child(row_lt);
 	    label_lt->w.type = SCALE;
-	    label_lt->w.value = 0.3;
+	    label_lt->w.value = 0.4;
 	    label_lt->h.type = SCALE;
 	    label_lt->h.value = 1.0;
 	    snprintf(name, 255, "%d%s_label", o+1, i==0 ? "unison_num_voices" : i==1 ? "unison_detune_cents" : i==2 ?  "unison_relative_amp" : "unison_stereo_spread");
@@ -200,8 +216,9 @@ static void page_fill_out_layout(Page *page)
 
 
 	    Layout *slider_lt = layout_add_child(row_lt);
-	    slider_lt->w.type = SCALE;
-	    slider_lt->w.value = 0.7;
+	    /* slider_lt->w.type = SCALE; */
+	    slider_lt->w.type = COMPLEMENT;
+	    /* slider_lt->w.value = 0.7; */
 	    slider_lt->h.type = SCALE;
 	    slider_lt->h.value = 0.7;
 	    slider_lt->x.type = STACK;

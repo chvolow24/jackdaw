@@ -188,7 +188,7 @@ void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impu
 	"freq",
 	"Cutoff or center freq",
 	JDAW_THREAD_DSP,
-	track_settings_page_el_gui_cb, NULL, filter_cutoff_dsp_cb,
+	page_el_gui_cb, NULL, filter_cutoff_dsp_cb,
 	/* filter_cutoff_gui_cb, NULL, filter_cutoff_dsp_cb, */
         filter, NULL, &filter->effect->page, "track_settings_filter_cutoff_slider");
     endpoint_set_allowed_range(
@@ -207,7 +207,7 @@ void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impu
 	"Bandwidth",
 	JDAW_THREAD_DSP,
 	/* filter_bandwidth_gui_cb, NULL, filter_bandwidth_dsp_cb, */
-	track_settings_page_el_gui_cb, NULL, filter_bandwidth_dsp_cb,
+	page_el_gui_cb, NULL, filter_bandwidth_dsp_cb,
 	filter, NULL, &filter->effect->page, "track_settings_filter_bandwidth_slider");
     endpoint_set_allowed_range(
 	&filter->bandwidth_ep,
@@ -225,7 +225,7 @@ void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impu
 	"IR Length",
 	JDAW_THREAD_DSP,
 	/* filter_irlen_gui_cb, NULL, filter_irlen_dsp_cb, */
-	track_settings_page_el_gui_cb, NULL, filter_irlen_dsp_cb,
+	page_el_gui_cb, NULL, filter_irlen_dsp_cb,
 	filter, NULL, &filter->effect->page, "track_settings_filter_irlen_slider");
     endpoint_set_allowed_range(
 	&filter->impulse_response_len_ep,
@@ -244,7 +244,7 @@ void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impu
 	"Type",
 	JDAW_THREAD_DSP,
 	/* filter_type_gui_cb, NULL, filter_type_dsp_cb, */
-	track_settings_page_el_gui_cb, NULL, filter_type_dsp_cb,
+	page_el_gui_cb, NULL, filter_type_dsp_cb,
 	filter, NULL, &filter->effect->page, "track_settings_filter_type_radio");
 
     

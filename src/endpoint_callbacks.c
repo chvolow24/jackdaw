@@ -105,7 +105,7 @@ void track_slider_cb(Endpoint *ep)
 /*     radio_button_reset_from_endpoint((RadioButton *)el->component);    */
 /* } */
 
-void track_settings_page_el_gui_cb(Endpoint *ep)
+void page_el_gui_cb(Endpoint *ep)
 {
     /* if (!main_win->active_tabview) return; */
 
@@ -123,7 +123,7 @@ void track_settings_page_el_gui_cb(Endpoint *ep)
 
     PageEl *el = page_get_el_by_id(page, el_id);
     if (!el) {
-	fprintf(stderr, "Error: gui callback for endpoint \"%s\" failed; page element not found.\n", ep->display_name);
+	fprintf(stderr, "Error: gui callback for endpoint \"%s\" failed; page element with id \"%s\" not found in page \"%s\".\n", ep->display_name, el_id, page->title);
 	return;
     }
     page_el_reset(el);

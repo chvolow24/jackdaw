@@ -63,10 +63,16 @@ struct unison_cfg {
     float detune_cents; /* divergence from central pitch of first voice, or between center pitches if even */
     float relative_amp; /* 1.0 for same amp as main voice */
     float stereo_spread; /* 0.0 all centered; 1.0 full range */
-    Endpoint unison_num_voices_ep;
-    Endpoint unison_detune_cents_ep;
-    Endpoint unison_relative_amp_ep;
-    Endpoint unison_stereo_spread_ep;
+    Endpoint num_voices_ep;
+    Endpoint detune_cents_ep;
+    Endpoint relative_amp_ep;
+    Endpoint stereo_spread_ep;
+    
+    char *num_voices_id;
+    char *detune_cents_id;
+    char *relative_amp_id;
+    char *stereo_spread_id;
+
 
 };
 typedef struct osc_cfg OscCfg;
@@ -96,13 +102,21 @@ typedef struct osc_cfg {
     Endpoint octave_ep;
     Endpoint tune_coarse_ep;
     Endpoint tune_fine_ep;
+
+    char *active_id;
+    char *type_id;
+    char *amp_id;
+    char *pan_id;
+    char *octave_id;
+    char *tune_coarse_id;
+    char *tune_fine_id;
     
-    /* Endpoint  */
+    /* Endpoint  */    
     APINode api_node;
     
 } OscCfg;
 
-typedef struct synth {    
+typedef struct synth {
     SynthVoice voices[SYNTH_NUM_VOICES];    
     OscCfg base_oscs[SYNTH_NUM_BASE_OSCS];    
     ADSRParams amp_env;
@@ -113,8 +127,12 @@ typedef struct synth {
     
     bool monitor;
     bool allow_voice_stealing;
+    Page *osc_page; /* For GUI callback targeting */
 
     Track *track;
+
+    Endpoint vol_ep;
+    Endpoint pan_ep;
 } Synth;
 
 /* int synth_create_virtual_device(Synth *s); */

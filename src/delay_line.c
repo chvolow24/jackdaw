@@ -52,7 +52,7 @@ void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate)
 	"len",
 	"Time (ms)",
 	JDAW_THREAD_DSP,
-	track_settings_page_el_gui_cb, NULL, delay_line_len_dsp_cb,
+	page_el_gui_cb, NULL, delay_line_len_dsp_cb,
 	/* NULL, NULL, delay_line_len_dsp_cb, */
 	(void *)dl, NULL, &dl->effect->page, "track_settings_delay_time_slider");
     endpoint_set_allowed_range(&dl->len_ep, (Value){.int16_v=0}, (Value){.int16_v=1000});
@@ -67,7 +67,7 @@ void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate)
 	"Amp",
 	JDAW_THREAD_DSP,
 	/* delay_line_amp_gui_cb, NULL, NULL, */
-	track_settings_page_el_gui_cb, NULL, NULL,
+	page_el_gui_cb, NULL, NULL,
 	/* delay_line_amp_gui_cb, NULL, NULL, */
 	(void *)dl, NULL, &dl->effect->page, "track_settings_delay_amp_slider");
     endpoint_set_allowed_range(&dl->amp_ep, (Value){.double_v=0.0}, (Value){.double_v=0.99});
@@ -81,7 +81,7 @@ void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate)
 	"stereo_offset",
 	"Stereo offset",
 	JDAW_THREAD_DSP,
-	track_settings_page_el_gui_cb, NULL, NULL,
+	page_el_gui_cb, NULL, NULL,
 	/* delay_line_stereo_offset_gui_cb, NULL, NULL, */
 	NULL, NULL, &dl->effect->page, "track_settings_delay_stereo_offset_slider");
     endpoint_set_allowed_range(&dl->stereo_offset_ep, (Value){.double_v=0.0}, (Value){.double_v=1.0});

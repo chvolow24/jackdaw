@@ -34,7 +34,7 @@ static void add_osc_page(TabView *tv, Track *track)
     static SDL_Color osc_bckgrnd = {40, 40, 40, 255};
     Page *page = tabview_add_page(tv, "Oscillators", SYNTH_OSCS_LT_PATH, &osc_bckgrnd, &colors.white, main_win);
 
-
+    s->osc_page = page;
     /* Fill out layout */
     page_fill_out_layout(page);
 
@@ -45,52 +45,57 @@ static void add_osc_page(TabView *tv, Track *track)
 
     p.textbox_p.font = main_win->mono_bold_font;
     p.textbox_p.text_size = 14;
-    p.textbox_p.set_str = "Vol:";
     p.textbox_p.win = main_win;
-    el = page_add_el(page,EL_TEXTBOX,p,"","master_amp_label");
+
+    p.textbox_p.set_str = "Vol:";
+    page_add_el(page,EL_TEXTBOX,p,"","master_amp_label");
     
     p.textbox_p.set_str = "Pan:";
-    el = page_add_el(page,EL_TEXTBOX,p,"","master_pan_label");
+    page_add_el(page,EL_TEXTBOX,p,"","master_pan_label");
 
     p.textbox_p.font = main_win->mono_font;
     p.textbox_p.set_str = "Osc 1";
-    el = page_add_el(page,EL_TEXTBOX,p,"","osc1_label");
+    page_add_el(page,EL_TEXTBOX,p,"","osc1_label");
 
     p.textbox_p.set_str = "Osc 2";
-    el = page_add_el(page,EL_TEXTBOX,p,"","osc2_label");
+    page_add_el(page,EL_TEXTBOX,p,"","osc2_label");
 
     p.textbox_p.set_str = "Osc 3";
-    el = page_add_el(page,EL_TEXTBOX,p,"","osc3_label");
+    page_add_el(page,EL_TEXTBOX,p,"","osc3_label");
 
     p.textbox_p.set_str = "Osc 4";
-    el = page_add_el(page,EL_TEXTBOX,p,"","osc4_label");
+    page_add_el(page,EL_TEXTBOX,p,"","osc4_label");
 
     p.textbox_p.set_str = "Vol:";
-    el = page_add_el(page,EL_TEXTBOX,p,"","1vol_label");
-    el = page_add_el(page,EL_TEXTBOX,p,"","2vol_label");
-    el = page_add_el(page,EL_TEXTBOX,p,"","3vol_label");
-    el = page_add_el(page,EL_TEXTBOX,p,"","4vol_label");
+    page_add_el(page,EL_TEXTBOX,p,"","1vol_label");
+    page_add_el(page,EL_TEXTBOX,p,"","2vol_label");
+    page_add_el(page,EL_TEXTBOX,p,"","3vol_label");
+    page_add_el(page,EL_TEXTBOX,p,"","4vol_label");
 
     Textbox *tb;
     p.textbox_p.set_str = "Pan:";
-    el = page_add_el(page,EL_TEXTBOX,p,"","1pan_label");
+    page_add_el(page,EL_TEXTBOX,p,"","1pan_label");
     /* tb = el->component; */
     /* textbox_set_trunc(tb, false); */
-    el = page_add_el(page,EL_TEXTBOX,p,"","2pan_label");
+    page_add_el(page,EL_TEXTBOX,p,"","2pan_label");
     /* tb = el->component; */
     /* textbox_set_trunc(tb, false); */
-    el = page_add_el(page,EL_TEXTBOX,p,"","3pan_label");
+    page_add_el(page,EL_TEXTBOX,p,"","3pan_label");
     /* tb = el->component; */
     /* textbox_set_trunc(tb, false); */
-    el = page_add_el(page,EL_TEXTBOX,p,"","4pan_label");
+    page_add_el(page,EL_TEXTBOX,p,"","4pan_label");
     /* tb = el->component; */
     /* textbox_set_trunc(tb, false); */
 
-    p.textbox_p.set_str = "Oct:";
+    p.textbox_p.set_str = "Octave:";
     el = page_add_el(page,EL_TEXTBOX,p,"","1octave_label");
+    layout_size_to_fit_children_h(el->layout, true, 0);
     el = page_add_el(page,EL_TEXTBOX,p,"","2octave_label");
+    layout_size_to_fit_children_h(el->layout, true, 0);
     el = page_add_el(page,EL_TEXTBOX,p,"","3octave_label");
+    layout_size_to_fit_children_h(el->layout, true, 0);
     el = page_add_el(page,EL_TEXTBOX,p,"","4octave_label");
+    layout_size_to_fit_children_h(el->layout, true, 0);
 
     p.textbox_p.set_str = "Coarse:";
     el = page_add_el(page,EL_TEXTBOX,p,"","1coarse_label");
@@ -101,6 +106,7 @@ static void add_osc_page(TabView *tv, Track *track)
     layout_size_to_fit_children_h(el->layout, true, 0);
     el = page_add_el(page,EL_TEXTBOX,p,"","4coarse_label");
     layout_size_to_fit_children_h(el->layout, true, 0);
+    layout_reset(page->layout);
     /* layout_write(stderr, el->layout, 0); */
     /* fprintf(stderr, "\n\n Parent!\n"); */
     /* FILE *fl = fopen("l.xml", "w"); */
@@ -109,24 +115,24 @@ static void add_osc_page(TabView *tv, Track *track)
     /* exit(1); */
 
     p.textbox_p.set_str = "Fine:";
-    el = page_add_el(page,EL_TEXTBOX,p,"","1fine_label");
-    el = page_add_el(page,EL_TEXTBOX,p,"","2fine_label");
-    el = page_add_el(page,EL_TEXTBOX,p,"","3fine_label");
-    el = page_add_el(page,EL_TEXTBOX,p,"","4fine_label");
+    page_add_el(page,EL_TEXTBOX,p,"","1fine_label");
+    page_add_el(page,EL_TEXTBOX,p,"","2fine_label");
+    page_add_el(page,EL_TEXTBOX,p,"","3fine_label");
+    page_add_el(page,EL_TEXTBOX,p,"","4fine_label");
 
 
     p.textbox_p.set_str = "Voices:";
-    el = page_add_el(page,EL_TEXTBOX,p,"","1unison_num_voices_label");
-    el = page_add_el(page,EL_TEXTBOX,p,"","2unison_num_voices_label");
-    el = page_add_el(page,EL_TEXTBOX,p,"","3unison_num_voices_label");
-    el = page_add_el(page,EL_TEXTBOX,p,"","4unison_num_voices_label");
+    page_add_el(page,EL_TEXTBOX,p,"","1unison_num_voices_label");
+    page_add_el(page,EL_TEXTBOX,p,"","2unison_num_voices_label");
+    page_add_el(page,EL_TEXTBOX,p,"","3unison_num_voices_label");
+    page_add_el(page,EL_TEXTBOX,p,"","4unison_num_voices_label");
 
 
     p.textbox_p.set_str = "Detune:";
-    el = page_add_el(page,EL_TEXTBOX,p,"","1unison_detune_cents_label");
-    el = page_add_el(page,EL_TEXTBOX,p,"","2unison_detune_cents_label");
-    el = page_add_el(page,EL_TEXTBOX,p,"","3unison_detune_cents_label");
-    el = page_add_el(page,EL_TEXTBOX,p,"","4unison_detune_cents_label");
+    page_add_el(page,EL_TEXTBOX,p,"","1unison_detune_cents_label");
+    page_add_el(page,EL_TEXTBOX,p,"","2unison_detune_cents_label");
+    page_add_el(page,EL_TEXTBOX,p,"","3unison_detune_cents_label");
+    page_add_el(page,EL_TEXTBOX,p,"","4unison_detune_cents_label");
 
     p.textbox_p.set_str = "Rel Vol:";
     el = page_add_el(page,EL_TEXTBOX,p,"","1unison_relative_amp_label");
@@ -137,12 +143,154 @@ static void add_osc_page(TabView *tv, Track *track)
     layout_size_to_fit_children_h(el->layout, true, 0);
     el = page_add_el(page,EL_TEXTBOX,p,"","4unison_relative_amp_label");
     layout_size_to_fit_children_h(el->layout, true, 0);
+    layout_reset(page->layout);
     
     p.textbox_p.set_str = "Stereo:";
-    el = page_add_el(page,EL_TEXTBOX,p,"","1unison_stereo_spread_label");
-    el = page_add_el(page,EL_TEXTBOX,p,"","2unison_stereo_spread_label");
-    el = page_add_el(page,EL_TEXTBOX,p,"","3unison_stereo_spread_label");
-    el = page_add_el(page,EL_TEXTBOX,p,"","4unison_stereo_spread_label");
+    page_add_el(page,EL_TEXTBOX,p,"","1unison_stereo_spread_label");
+    page_add_el(page,EL_TEXTBOX,p,"","2unison_stereo_spread_label");
+    page_add_el(page,EL_TEXTBOX,p,"","3unison_stereo_spread_label");
+    page_add_el(page,EL_TEXTBOX,p,"","4unison_stereo_spread_label");
+
+
+    p.slider_p.orientation = SLIDER_HORIZONTAL;
+    p.slider_p.style = SLIDER_FILL;
+    /* page_el_params_slider_from_ep(&p, &s->vol_ep); */
+
+    /* page_add_el(page,EL_SLIDER,p,"synth_vol_slider","master_amp_slider"); */
+
+    /* page_el_params_slider_from_ep(&p, &s->pan_ep); */
+    /* page_add_el(page,EL_SLIDER,p,"synth_pan_slider","master_pan_slider"); */
+    /* for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) { */
+    OscCfg *cfg = s->base_oscs;
+	
+    page_el_params_slider_from_ep(&p, &cfg->amp_ep);	
+    page_add_el(page,EL_SLIDER,p,"1vol","1vol_slider");
+
+    p.slider_p.style = SLIDER_TICK;
+    page_el_params_slider_from_ep(&p, &cfg->pan_ep);
+    page_add_el(page,EL_SLIDER,p,"1pan","1pan_slider");
+    
+    page_el_params_slider_from_ep(&p, &cfg->octave_ep);
+    page_add_el(page,EL_SLIDER,p,"1octave","1octave_slider");
+
+    page_el_params_slider_from_ep(&p, &cfg->tune_coarse_ep);
+    page_add_el(page,EL_SLIDER,p,"1tune_coarse","1coarse_slider");
+
+    page_el_params_slider_from_ep(&p, &cfg->tune_fine_ep);
+    page_add_el(page,EL_SLIDER,p,"1tune_fine","1fine_slider");
+
+    p.slider_p.style = SLIDER_FILL;
+    page_el_params_slider_from_ep(&p, &cfg->unison.num_voices_ep);
+    page_add_el(page,EL_SLIDER,p,"1num_voices","1unison_num_voices_slider");
+
+    page_el_params_slider_from_ep(&p, &cfg->unison.detune_cents_ep);
+    page_add_el(page,EL_SLIDER,p,"1detune_cents","1unison_detune_cents_slider");
+    
+    page_el_params_slider_from_ep(&p, &cfg->unison.relative_amp_ep);
+    page_add_el(page,EL_SLIDER,p,"1relative_amp","1unison_relative_amp_slider");
+
+    page_el_params_slider_from_ep(&p, &cfg->unison.stereo_spread_ep);
+    page_add_el(page,EL_SLIDER,p,"1stereo_spread","1unison_stereo_spread_slider");
+
+
+
+    cfg++;
+    page_el_params_slider_from_ep(&p, &cfg->amp_ep);	
+    page_add_el(page,EL_SLIDER,p,"2vol","2vol_slider");
+
+    p.slider_p.style = SLIDER_TICK;
+    page_el_params_slider_from_ep(&p, &cfg->pan_ep);
+    page_add_el(page,EL_SLIDER,p,"2pan","2pan_slider");
+    
+    page_el_params_slider_from_ep(&p, &cfg->octave_ep);
+    page_add_el(page,EL_SLIDER,p,"2octave","2octave_slider");
+
+    page_el_params_slider_from_ep(&p, &cfg->tune_coarse_ep);
+    page_add_el(page,EL_SLIDER,p,"2tune_coarse","2coarse_slider");
+
+    page_el_params_slider_from_ep(&p, &cfg->tune_fine_ep);
+    page_add_el(page,EL_SLIDER,p,"2tune_fine","2fine_slider");
+
+    p.slider_p.style = SLIDER_FILL;
+    page_el_params_slider_from_ep(&p, &cfg->unison.num_voices_ep);
+    page_add_el(page,EL_SLIDER,p,"2num_voices","2unison_num_voices_slider");
+
+    page_el_params_slider_from_ep(&p, &cfg->unison.detune_cents_ep);
+    page_add_el(page,EL_SLIDER,p,"2detune_cents","2unison_detune_cents_slider");
+
+    page_el_params_slider_from_ep(&p, &cfg->unison.relative_amp_ep);
+    page_add_el(page,EL_SLIDER,p,"2relative_amp","2unison_relative_amp_slider");
+
+    page_el_params_slider_from_ep(&p, &cfg->unison.stereo_spread_ep);
+    page_add_el(page,EL_SLIDER,p,"2stereo_spread","2unison_stereo_spread_slider");
+
+
+    cfg++;
+    page_el_params_slider_from_ep(&p, &cfg->amp_ep);	
+    page_add_el(page,EL_SLIDER,p,"3vol","3vol_slider");
+
+    p.slider_p.style = SLIDER_TICK;
+    page_el_params_slider_from_ep(&p, &cfg->pan_ep);
+    page_add_el(page,EL_SLIDER,p,"3pan","3pan_slider");
+    
+    page_el_params_slider_from_ep(&p, &cfg->octave_ep);
+    page_add_el(page,EL_SLIDER,p,"3octave","3octave_slider");
+
+    page_el_params_slider_from_ep(&p, &cfg->tune_coarse_ep);
+    page_add_el(page,EL_SLIDER,p,"3tune_coarse","3coarse_slider");
+
+    page_el_params_slider_from_ep(&p, &cfg->tune_fine_ep);
+    page_add_el(page,EL_SLIDER,p,"3tune_fine","3fine_slider");
+
+    p.slider_p.style = SLIDER_FILL;
+    page_el_params_slider_from_ep(&p, &cfg->unison.num_voices_ep);
+    page_add_el(page,EL_SLIDER,p,"3num_voices","3unison_num_voices_slider");
+
+    page_el_params_slider_from_ep(&p, &cfg->unison.detune_cents_ep);
+    page_add_el(page,EL_SLIDER,p,"3detune_cents","3unison_detune_cents_slider");
+
+    page_el_params_slider_from_ep(&p, &cfg->unison.relative_amp_ep);
+    page_add_el(page,EL_SLIDER,p,"3relative_amp","3unison_relative_amp_slider");
+
+    page_el_params_slider_from_ep(&p, &cfg->unison.stereo_spread_ep);
+    page_add_el(page,EL_SLIDER,p,"3stereo_spread","3unison_stereo_spread_slider");
+
+
+    cfg++;
+    page_el_params_slider_from_ep(&p, &cfg->amp_ep);	
+    page_add_el(page,EL_SLIDER,p,"4vol","4vol_slider");
+
+    p.slider_p.style = SLIDER_TICK;
+    page_el_params_slider_from_ep(&p, &cfg->pan_ep);
+    page_add_el(page,EL_SLIDER,p,"4pan","4pan_slider");
+    
+    page_el_params_slider_from_ep(&p, &cfg->octave_ep);
+    page_add_el(page,EL_SLIDER,p,"4octave","4octave_slider");
+
+    page_el_params_slider_from_ep(&p, &cfg->tune_coarse_ep);
+    page_add_el(page,EL_SLIDER,p,"4tune_coarse","4coarse_slider");
+
+    page_el_params_slider_from_ep(&p, &cfg->tune_fine_ep);
+    page_add_el(page,EL_SLIDER,p,"4tune_fine","4fine_slider");
+
+    
+    p.slider_p.style = SLIDER_FILL;
+    page_el_params_slider_from_ep(&p, &cfg->unison.num_voices_ep);
+    page_add_el(page,EL_SLIDER,p,"4num_voices","4unison_num_voices_slider");
+
+    page_el_params_slider_from_ep(&p, &cfg->unison.detune_cents_ep);
+    page_add_el(page,EL_SLIDER,p,"4detune_cents","4unison_detune_cents_slider");
+
+    page_el_params_slider_from_ep(&p, &cfg->unison.relative_amp_ep);
+    page_add_el(page,EL_SLIDER,p,"4relative_amp","4unison_relative_amp_slider");
+
+    page_el_params_slider_from_ep(&p, &cfg->unison.stereo_spread_ep);
+    page_add_el(page,EL_SLIDER,p,"4stereo_spread","4unison_stereo_spread_slider");
+
+
+    /* } */
+
+
 
     layout_force_reset(page->layout);
 

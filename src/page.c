@@ -860,19 +860,14 @@ void page_draw(Page *page)
 	    geom_draw_rect_thick(page->win->rend, &r, 2, 2);
 	}
     }
-    /* static bool sf = false; */
-    layout_draw(page->win, page->layout);
-    
-    if (strcmp(page->title, "Oscillators") == 0) {
-	Layout *lt = layout_get_child_by_name_recursive(page->layout, "4coarse_label");
-	SDL_SetRenderDrawColor(main_win->rend, 255, 255, 0, 50);
-	SDL_RenderFillRect(main_win->rend, &lt->rect);
-    }
-
-    /* if (!sf) { */
-    /* 	FILE *f = fopen("test.xml", "w"); */
+    /* if (strcmp(page->title, "Oscillators") == 0) { */
+    /* 	FILE *f = fopen("t.xml", "w"); */
+	
+    /* 	layout_draw(page->win, page->layout); */
     /* 	layout_write(f, page->layout, 0); */
+    /* 	exit(1); */
     /* } */
+    
 }
 
 static inline void tabview_draw_inner(TabView *tv, uint8_t i)
@@ -1266,6 +1261,7 @@ PageEl *page_get_el_by_id(Page *page, const char *id)
     PageEl *el = NULL;
     for (uint8_t i=0; i<page->num_elements; i++) {
 	el = page->elements[i];
+	/* fprintf(stderr, "\t->cmp %s %s\n", el->id, id); */
 	if (strcmp(el->id, id) == 0) break;
 	else if (i == page->num_elements - 1) el = NULL;
     }
@@ -1282,6 +1278,14 @@ void page_select_el_by_id(Page *page, const char *id)
 	    break;
 	}
     }
+}
+
+void page_el_params_slider_from_ep(union page_el_params *p, Endpoint *ep)
+{
+    p->slider_p.ep = ep;
+    p->slider_p.min = ep->min;
+    p->slider_p.max = ep->max;
+    p->slider_p.create_label_fn = ep->label_fn;
 }
 
 

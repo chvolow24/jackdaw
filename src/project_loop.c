@@ -179,8 +179,10 @@ void loop_project_main()
 
 		switch (e.key.keysym.scancode) {
 		case SDL_SCANCODE_5: {
+		    breakfn();
 		    Timeline *tl = ACTIVE_TL;
 		    Track *t = timeline_selected_track(tl);
+		    if (!t->synth) t->synth = synth_create(t);
 		    TabView *tv = synth_tabview_create(t);
 		    tabview_activate(tv);
 

@@ -2,17 +2,33 @@
 #include <porttime.h>
 #include "adsr.h"
 #include "dsp_utils.h"
+#include "endpoint.h"
+#include "endpoint_callbacks.h"
 #include "consts.h"
 #include "synth.h"
 #include "session.h"
 
 extern double MTOF[];
 
-Synth *synth_create(Track *parent_track)
+void synth_osc_vol_dsp_cb(Endpoint *ep)
+{
+    OscCfg *cfg = ep->xarg1;
+    float vol = endpoint_safe_read(ep, NULL).float_v;
+    fprintf(stderr, "DSP CB vol? %f\n", vol);
+    if (vol > 1e-9) cfg->active = true;
+    else cfg->active = false;
+}
+
+Synth *synth_create(Track *track)
 {
     /* Session *session = session_get(); */
     Synth *s = calloc(1, sizeof(Synth));
-    s->track = parent_track;
+    s->track = track;
+
+    s->base_oscs[0].active = true;
+    for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
+	s->base_oscs[i].type = WS_SINE;
+    }
     /* synth_base_osc_set_freq_modulator(s, s->base_oscs + 0, s->base_oscs + 1); */
     /* synth_base_osc_set_freq_modulator(s, s->base_oscs + 2, s->base_oscs + 3); */
 
@@ -32,15 +48,214 @@ Synth *synth_create(Track *parent_track)
     s->monitor = true;
     s->allow_voice_stealing = true;
 
+    /* endpoint_init( */
+    /* 	&s->vol_ep, */
+    /* 	&s->, */
+	
+
+    static char synth_osc_names[SYNTH_NUM_BASE_OSCS][6];
+    
     for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
 	OscCfg *cfg = s->base_oscs + i;
-	/* endpoint_init( */
-	/*     &cfg->active_ep, */
-	/*     &cfg->active, */
-	/*     JDAW_BOOL, */
-	/*     "active", */
-	/*     "Active", */
-	/*     JDAW_THREAD_DSP, */
+
+	const char *fmt = "%dactive";
+	int len = strlen(fmt);
+	cfg->active_id = malloc(len);
+	snprintf(cfg->active_id, len, fmt, i+1);
+
+	fmt = "%dtype";
+	len = strlen(fmt);
+	cfg->type_id = malloc(len);
+	snprintf(cfg->type_id, len, fmt, i+1);
+
+	fmt = "%dvol";
+	len = strlen(fmt);
+	cfg->amp_id = malloc(len);
+	snprintf(cfg->amp_id, len, fmt, i+1);
+
+	fmt = "%dpan";
+	len = strlen(fmt);
+	cfg->pan_id = malloc(len);
+	snprintf(cfg->pan_id, len, fmt, i+1);
+
+	fmt = "%doctave";
+	len = strlen(fmt);
+	cfg->octave_id = malloc(len);
+	snprintf(cfg->octave_id, len, fmt, i+1);
+
+	fmt = "%dtune_coarse";
+	len = strlen(fmt);
+	cfg->tune_coarse_id = malloc(len);
+	snprintf(cfg->tune_coarse_id, len, fmt, i+1);
+
+	fmt = "%dtune_fine";
+	len = strlen(fmt);
+	cfg->tune_fine_id = malloc(len);
+	snprintf(cfg->tune_fine_id, len, fmt, i+1);
+
+	fmt = "%dnum_voices";
+	len = strlen(fmt);
+	cfg->unison.num_voices_id = malloc(len);
+	snprintf(cfg->unison.num_voices_id, len, fmt, i+1);
+
+	fmt = "%ddetune_cents";
+	len = strlen(fmt);
+	cfg->unison.detune_cents_id = malloc(len);
+	snprintf(cfg->unison.detune_cents_id, len, fmt, i+1);
+
+	fmt = "%drelative_amp";
+	len = strlen(fmt);
+	cfg->unison.relative_amp_id = malloc(len);
+	snprintf(cfg->unison.relative_amp_id, len, fmt, i+1);
+
+	fmt = "%dstereo_spread";
+	len = strlen(fmt);
+	cfg->unison.stereo_spread_id = malloc(len);
+	snprintf(cfg->unison.stereo_spread_id, len, fmt, i+1);
+	
+	snprintf(synth_osc_names[i], 6, "Osc %d", i+1);
+	api_node_register(&cfg->api_node, &track->api_node, synth_osc_names[i]);
+	endpoint_init(
+	    &cfg->active_ep,
+	    &cfg->active,
+	    JDAW_BOOL,
+	    "active",
+	    "Active",
+	    JDAW_THREAD_DSP,
+	    page_el_gui_cb, NULL, NULL,
+	    NULL, NULL, &s->osc_page, cfg->active_id);
+	bool default_val = i==0 ? true : false;
+	endpoint_set_default_value(
+	    &cfg->active_ep,
+	    (Value){.bool_v = default_val});
+
+	
+	api_endpoint_register(&cfg->active_ep, &cfg->api_node);
+
+
+	endpoint_init(
+	    &cfg->amp_ep,
+	    &cfg->amp,
+	    JDAW_FLOAT,
+	    "vol",
+	    "Vol",
+	    JDAW_THREAD_DSP,
+	    page_el_gui_cb, NULL, synth_osc_vol_dsp_cb,
+	    cfg, NULL, &s->osc_page, cfg->amp_id);
+	endpoint_set_default_value(&cfg->amp_ep, (Value){.float_v = 0.5f});
+	endpoint_set_allowed_range(&cfg->amp_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
+	api_endpoint_register(&cfg->amp_ep, &cfg->api_node);
+
+	endpoint_init(
+	    &cfg->pan_ep,
+	    &cfg->pan,
+	    JDAW_FLOAT,
+	    "pan",
+	    "Pan",
+	    JDAW_THREAD_DSP,
+	    page_el_gui_cb, NULL, NULL,
+	    NULL, NULL, &s->osc_page, cfg->pan_id);
+	endpoint_set_default_value(&cfg->pan_ep, (Value){.float_v = 0.5f});
+	endpoint_set_allowed_range(&cfg->pan_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
+	api_endpoint_register(&cfg->pan_ep, &cfg->api_node);
+
+	endpoint_init(
+	    &cfg->octave_ep,
+	    &cfg->octave,
+	    JDAW_INT,
+	    "octave",
+	    "Octave",
+	    JDAW_THREAD_DSP,
+	    page_el_gui_cb, NULL, NULL,
+	    NULL, NULL, &s->osc_page, cfg->octave_id);
+	endpoint_set_default_value(&cfg->octave_ep, (Value){.int_v = 0});
+	endpoint_set_allowed_range(&cfg->octave_ep, (Value){.int_v = -6}, (Value){.int_v = 6});
+	api_endpoint_register(&cfg->octave_ep, &cfg->api_node);
+
+	endpoint_init(
+	    &cfg->tune_coarse_ep,
+	    &cfg->tune_coarse,
+	    JDAW_INT,
+	    "tune_coarse",
+	    "Coarse tune",
+	    JDAW_THREAD_DSP,
+	    page_el_gui_cb, NULL, NULL,
+	    NULL, NULL, &s->osc_page, cfg->tune_coarse_id);
+	endpoint_set_default_value(&cfg->tune_coarse_ep, (Value){.int_v = 0});
+	endpoint_set_allowed_range(&cfg->tune_coarse_ep, (Value){.int_v = -11}, (Value){.int_v = 11});
+	api_endpoint_register(&cfg->tune_coarse_ep, &cfg->api_node);
+	
+	endpoint_init(
+	    &cfg->tune_fine_ep,
+	    &cfg->tune_fine,
+	    JDAW_FLOAT,
+	    "tune_fine",
+	    "Fine tune",
+	    JDAW_THREAD_DSP,
+	    page_el_gui_cb, NULL, NULL,
+	    NULL, NULL, &s->osc_page, cfg->tune_fine_id);
+	endpoint_set_default_value(&cfg->tune_fine_ep, (Value){.float_v = 0.0f});
+	endpoint_set_allowed_range(&cfg->tune_fine_ep, (Value){.float_v = -100.0f}, (Value){.float_v = 100.0f});
+	api_endpoint_register(&cfg->tune_fine_ep, &cfg->api_node);
+
+	endpoint_init(
+	    &cfg->unison.num_voices_ep,
+	    &cfg->unison.num_voices,
+	    JDAW_INT,
+	    "unison_num_voices",
+	    "Num unison voices",
+	    JDAW_THREAD_DSP,
+	    page_el_gui_cb, NULL, NULL,
+	    NULL, NULL, &s->osc_page, cfg->unison.num_voices_id);
+	endpoint_set_allowed_range(&cfg->unison.num_voices_ep, (Value){.int_v = 0}, (Value){.int_v = 4});
+	api_endpoint_register(&cfg->unison.num_voices_ep, &cfg->api_node);
+
+	endpoint_init(
+	    &cfg->unison.detune_cents_ep,
+	    &cfg->unison.detune_cents,
+	    JDAW_FLOAT,
+	    "unison_detune_cents",
+	    "Unison detune cents",
+	    JDAW_THREAD_DSP,
+	    page_el_gui_cb, NULL, NULL,
+	    NULL, NULL, &s->osc_page, cfg->unison.detune_cents_id);
+	endpoint_set_allowed_range(&cfg->unison.detune_cents_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 50.0f});
+	endpoint_set_default_value(&cfg->unison.detune_cents_ep, (Value){.float_v = 5.0f});
+	api_endpoint_register(&cfg->unison.detune_cents_ep, &cfg->api_node);
+
+	endpoint_init(
+	    &cfg->unison.relative_amp_ep,
+	    &cfg->unison.relative_amp,
+	    JDAW_FLOAT,
+	    "unison_relative_amp",
+	    "Unison relative amp",
+	    JDAW_THREAD_DSP,
+	    page_el_gui_cb, NULL, NULL,
+	    NULL, NULL, &s->osc_page, cfg->unison.relative_amp_id);
+	endpoint_set_allowed_range(&cfg->unison.relative_amp_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
+	endpoint_set_default_value(&cfg->unison.relative_amp_ep, (Value){.float_v = 0.4f});
+	api_endpoint_register(&cfg->unison.relative_amp_ep, &cfg->api_node);
+
+	endpoint_init(
+	    &cfg->unison.stereo_spread_ep,
+	    &cfg->unison.stereo_spread,
+	    JDAW_FLOAT,
+	    "unison_stereo_spread",
+	    "Unison stereo spread",
+	    JDAW_THREAD_DSP,
+	    page_el_gui_cb, NULL, NULL,
+	    NULL, NULL, &s->osc_page, cfg->unison.stereo_spread_id);
+	endpoint_set_allowed_range(&cfg->unison.stereo_spread_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 2.0f});
+	endpoint_set_default_value(&cfg->unison.stereo_spread_ep, (Value){.float_v = 0.4f});
+	api_endpoint_register(&cfg->unison.stereo_spread_ep, &cfg->api_node);
+
+
+
+
+
+
+
+	
 	    
 	    /*
 	      endpoint_init(Endpoint *ep,
@@ -441,7 +656,10 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step)
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	SynthVoice *v = s->voices + i;
 	synth_voice_add_buf(v, buf, len, channel, step);
-    }    
+    }
+    for (int i=0; i<len; i++) {
+	buf[i] = tanh(buf[i]);
+    }
 }
 
 

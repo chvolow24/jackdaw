@@ -5,6 +5,7 @@
 #include "endpoint.h"
 #include "endpoint_callbacks.h"
 #include "consts.h"
+#include "iir.h"
 #include "synth.h"
 #include "session.h"
 
@@ -35,10 +36,11 @@ Synth *synth_create(Track *track)
 	    s->base_oscs[i].type = WS_SINE;
     }
     
-    /* synth_base_osc_set_freq_modulator(s, s->base_oscs + 0, s->base_oscs + 1); */
+    synth_base_osc_set_freq_modulator(s, s->base_oscs + 0, s->base_oscs + 1);
     /* synth_base_osc_set_freq_modulator(s, s->base_oscs + 2, s->base_oscs + 3); */
 
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+	iir_init(&s->voices[i].filter, 2, 2);
 	s->voices[i].synth = s;
 	s->voices[i].available = true;
 	s->voices[i].amp_env[0].params = &s->amp_env;
@@ -57,7 +59,7 @@ Synth *synth_create(Track *track)
     /* endpoint_init( */
     /* 	&s->vol_ep, */
     /* 	&s->, */
-	
+
 
     static char synth_osc_names[SYNTH_NUM_BASE_OSCS][6];
     
@@ -482,6 +484,7 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 	/*     v->note_end_rel += len; */
 	/* } */
     }
+
     float amp_env[len];
     enum adsr_stage amp_stage = adsr_get_chunk(&v->amp_env[channel], amp_env, len);
     float_buf_mult(osc_buf, amp_env, len);
@@ -490,7 +493,18 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 	/* fprintf(stderr, "\tFREEING VOICE %ld (env overrun)\n", v - v->synth->voices); */
 	/* return; */
     }
+    Session *session = session_get();
+    IIRFilter *f = &v->filter;
     for (int i=0; i<len; i++) {
+	if (i%10 == 0) {
+	    double freq = mtof_calc(v->note_val) * 20 * amp_env[i] * amp_env[i] * amp_env[i] / session->proj.sample_rate;
+	    if (freq > 1e-8) {
+		iir_set_coeffs_lowpass_chebyshev(f, freq, 4.0);
+	    }
+	    /* iir_set_coeffs_lowpass_chebyshev(f, (mtof_calc(v->note_val) * 20 * amp_env[i] * amp_env[i] * amp_env[i]) / session->proj.sample_rate / 2.0f, 4.0); */
+
+	}
+	/* osc_buf[i] = iir_sample(f, osc_buf[i], channel); */
 	buf[i] += osc_buf[i] * (float)v->velocity / 127.0f;
     }
 

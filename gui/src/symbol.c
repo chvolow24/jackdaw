@@ -270,15 +270,24 @@ static void tri_draw_fn(void *self)
     SDL_Rect outer_rect = {0, 0, s->x_dim_pix, s->y_dim_pix};
     SDL_Rect inner_rect = {pad, pad, s->x_dim_pix - pad * 2, s->y_dim_pix - pad * 2};
     int mid_y = s->y_dim_pix / 2;
-    int last_y = mid_y;
     SDL_SetRenderDrawColor(s->window->rend, 255, 255, 255, 255);
-    for (int x=pad; x<pad + inner_rect.w; x++) {
-	int y = (double)(x - pad) / inner_rect.w < 0.5 ? inner_rect.y : inner_rect.y + inner_rect.h;
-	if (x != pad) {
-	    SDL_RenderDrawLine(s->window->rend, x-1, last_y, x, y);
-	}
-	last_y = y;
-    }
+    int x0 = pad;
+    int xincr = inner_rect.w / 4.0f;
+    int y_diff = inner_rect.h / 2.0f;
+    SDL_RenderDrawLine(s->window->rend, x0, mid_y, x0+xincr, mid_y - y_diff);
+    x0+=xincr;
+    SDL_RenderDrawLine(s->window->rend, x0, mid_y - y_diff, x0+xincr, mid_y);
+    x0+=xincr;
+    SDL_RenderDrawLine(s->window->rend, x0, mid_y, x0+xincr, mid_y + y_diff);
+    x0+=xincr;
+    SDL_RenderDrawLine(s->window->rend, x0, mid_y + y_diff, x0+xincr, mid_y);
+    /* for (int x=pad; x<pad + inner_rect.w; x++) { */
+    /* 	int y = (double)(x - pad) / inner_rect.w < 0.5 ? inner_rect.y : inner_rect.y + inner_rect.h; */
+    /* 	if (x != pad) { */
+    /* 	    SDL_RenderDrawLine(s->window->rend, x-1, last_y, x, y); */
+    /* 	} */
+    /* 	last_y = y; */
+    /* } */
     geom_draw_rounded_rect(s->window->rend, &outer_rect, s->corner_rad_pix);    
 
 }
@@ -289,15 +298,20 @@ static void saw_draw_fn(void *self)
     SDL_Rect outer_rect = {0, 0, s->x_dim_pix, s->y_dim_pix};
     SDL_Rect inner_rect = {pad, pad, s->x_dim_pix - pad * 2, s->y_dim_pix - pad * 2};
     int mid_y = s->y_dim_pix / 2;
-    int last_y = mid_y;
+    /* int last_y = mid_y; */
+    int y_diff = inner_rect.h / 2.0f;
     SDL_SetRenderDrawColor(s->window->rend, 255, 255, 255, 255);
-    for (int x=pad; x<pad + inner_rect.w; x++) {
-	int y = (double)(x - pad) / inner_rect.w < 0.5 ? inner_rect.y : inner_rect.y + inner_rect.h;
-	if (x != pad) {
-	    SDL_RenderDrawLine(s->window->rend, x-1, last_y, x, y);
-	}
-	last_y = y;
-    }
+    SDL_RenderDrawLine(s->window->rend, pad, mid_y, pad, mid_y + y_diff);
+    SDL_RenderDrawLine(s->window->rend, pad, mid_y + y_diff, inner_rect.w + pad, mid_y - y_diff);
+    SDL_RenderDrawLine(s->window->rend, inner_rect.w + pad, mid_y - y_diff, inner_rect.w + pad, mid_y);
+    
+    /* for (int x=pad; x<pad + inner_rect.w; x++) { */
+    /* 	int y = (double)(x - pad) / inner_rect.w < 0.5 ? inner_rect.y : inner_rect.y + inner_rect.h; */
+    /* 	if (x != pad) { */
+    /* 	    SDL_RenderDrawLine(s->window->rend, x-1, last_y, x, y); */
+    /* 	} */
+    /* 	last_y = y; */
+    /* } */
     geom_draw_rounded_rect(s->window->rend, &outer_rect, s->corner_rad_pix);    
 
 }

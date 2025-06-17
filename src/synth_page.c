@@ -40,7 +40,8 @@ static void add_osc_page(TabView *tv, Track *track)
     page_fill_out_layout(page);
 
 
-    
+
+    static SDL_Color sel_color = {100, 255, 150, 100};
     union page_el_params p;
     PageEl *el = NULL;
 
@@ -193,9 +194,21 @@ static void add_osc_page(TabView *tv, Track *track)
     page_el_params_slider_from_ep(&p, &cfg->unison.stereo_spread_ep);
     page_add_el(page,EL_SLIDER,p,"1stereo_spread","1unison_stereo_spread_slider");
 
+    p.sradio_p.align_horizontal = true;
+    p.sradio_p.symbols = SYMBOL_TABLE + SYMBOL_SINE;
+    p.sradio_p.num_items = 4;
+    p.sradio_p.padding = 7;
+    p.sradio_p.unsel_color = &colors.clear;
+    p.sradio_p.sel_color = &sel_color;
+    p.sradio_p.ep = &cfg->type_ep;
+    page_add_el(page,EL_SYMBOL_RADIO,p, "1type_radio","1type_radio");
 
 
+    
     cfg++;
+    p.slider_p.orientation = SLIDER_HORIZONTAL;
+    p.slider_p.style = SLIDER_FILL;
+
     page_el_params_slider_from_ep(&p, &cfg->amp_ep);	
     page_add_el(page,EL_SLIDER,p,"2vol","2vol_slider");
 
@@ -225,8 +238,21 @@ static void add_osc_page(TabView *tv, Track *track)
     page_el_params_slider_from_ep(&p, &cfg->unison.stereo_spread_ep);
     page_add_el(page,EL_SLIDER,p,"2stereo_spread","2unison_stereo_spread_slider");
 
+    p.sradio_p.align_horizontal = true;
+    p.sradio_p.symbols = SYMBOL_TABLE + SYMBOL_SINE;
+    p.sradio_p.num_items = 4;
+    p.sradio_p.padding = 7;
+    p.sradio_p.unsel_color = &colors.clear;
+    p.sradio_p.sel_color = &sel_color;
+    p.sradio_p.ep = &cfg->type_ep;
+    page_add_el(page,EL_SYMBOL_RADIO,p, "2type_radio","2type_radio");
+
+
 
     cfg++;
+    p.slider_p.orientation = SLIDER_HORIZONTAL;
+    p.slider_p.style = SLIDER_FILL;
+
     page_el_params_slider_from_ep(&p, &cfg->amp_ep);	
     page_add_el(page,EL_SLIDER,p,"3vol","3vol_slider");
 
@@ -256,8 +282,21 @@ static void add_osc_page(TabView *tv, Track *track)
     page_el_params_slider_from_ep(&p, &cfg->unison.stereo_spread_ep);
     page_add_el(page,EL_SLIDER,p,"3stereo_spread","3unison_stereo_spread_slider");
 
+    p.sradio_p.align_horizontal = true;
+    p.sradio_p.symbols = SYMBOL_TABLE + SYMBOL_SINE;
+    p.sradio_p.num_items = 4;
+    p.sradio_p.padding = 7;
+    p.sradio_p.unsel_color = &colors.clear;
+    p.sradio_p.sel_color = &sel_color;
+    p.sradio_p.ep = &cfg->type_ep;
+    page_add_el(page,EL_SYMBOL_RADIO,p, "3type_radio","3type_radio");
+
 
     cfg++;
+
+    p.slider_p.orientation = SLIDER_HORIZONTAL;
+    p.slider_p.style = SLIDER_FILL;
+
     page_el_params_slider_from_ep(&p, &cfg->amp_ep);	
     page_add_el(page,EL_SLIDER,p,"4vol","4vol_slider");
 
@@ -290,7 +329,6 @@ static void add_osc_page(TabView *tv, Track *track)
 
 
 
-    static SDL_Color sel_color = {0, 255, 0, 150};
     p.sradio_p.align_horizontal = true;
     p.sradio_p.symbols = SYMBOL_TABLE + SYMBOL_SINE;
     p.sradio_p.num_items = 4;

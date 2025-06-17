@@ -19,6 +19,7 @@
 
 #include <time.h>
 #include "audio_connection.h"
+#include "audio_clip.h"
 #include "automation.h"
 #include "clipref.h"
 #include "eq.h"
@@ -200,17 +201,6 @@ void loop_project_main()
 		    break;
 		case SDL_SCANCODE_6: {
 
-		    /* FILE *file = fopen("biquad_freq_sweep.csv", "w"); */
-		    /* IIRFilter f; */
-		    /* memset(&f, '\0', sizeof(f)); */
-		    /* iir_init(&f, 2, 2); */
-		    /* fprintf(file, "a0,a1,a2,b0,b1\n"); */
-		    /* for (int i=0; i<100; i++) { */
-		    /* 	iir_set_coeffs_lowpass_chebyshev(&f, (float)i/100, 100.4); */
-		    /* 	fprintf(file, "%f,%f,%f,%f,%f\n", f.A[0], f.A[1], f.A[2], f.B[0], f.B[1]); */
-		    /* } */
-		    /* fclose(file); */
-		    /* exit(0); */
 		    
 		    static MIDIClip mclip;
 		    memset(&mclip, '\0', sizeof(mclip));
@@ -298,12 +288,12 @@ void loop_project_main()
 		/*     ClipRef *cr = clipref_at_cursor(); */
 		/*     if (cr) { */
 		/* 	FIRFilter *f = cr->track->effects[0]->obj; */
-		/* 	Clip *c = cr->clip; */
+		/* 	Clip *c = cr->source_clip; */
 		/* 	int32_t pos = cr->track->tl->play_pos_sframes - cr->tl_pos; */
 		/* 	filter_set_arbitrary_IR(f, c->L + pos, 2048); */
 		/*     } */
 		/* } */
-		    /* break; */
+		/*     break; */
 		/* case SDL_SCANCODE_6: { */
 		/*     create_global_ac(); */
 		    /* const char *words[] = {"a", "b", "c"}; */

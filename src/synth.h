@@ -51,6 +51,8 @@ typedef struct synth_voice {
     Synth *synth;
     bool available;
     ADSRState amp_env[2]; /* L and R */
+
+    IIRFilter filter;
 } SynthVoice;
 
 /* typedef struct adsr { */
@@ -124,7 +126,6 @@ typedef struct synth {
     ADSRParams amp_env;
 
     /* Filter */
-    IIRFilter filter;
     ADSRParams filter_env;
     
     bool monitor;

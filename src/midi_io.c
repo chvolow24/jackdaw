@@ -349,7 +349,6 @@ static void track_flush_unclosed_midi_notes(Track *track)
     case MIDI_OUT_DEVICE:
 	break;
     case MIDI_OUT_SYNTH:
-	fprintf(stderr, "CLOSING ALL NOTES ON SYNTH!!!!!!!!\n");
 	synth_close_all_notes(track->midi_out);
 	break;
 	

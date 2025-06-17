@@ -492,7 +492,7 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
 	/* osc->freq_modulator = &LFO; */
 	/* osc_set_freq(v->oscs + i, MTOF[note_val]); */
 	osc_set_freq(osc, mtof_calc(base_midi_note));
-	fprintf(stderr, "BASE NOTE: %f\n", base_midi_note);
+	/* fprintf(stderr, "BASE NOTE: %f\n", base_midi_note); */
 	for (int j=0; j<cfg->unison.num_voices; j++) {
 	    Osc *detune_voice = v->oscs + i + SYNTH_NUM_BASE_OSCS * (j + 1);
 	    detune_voice->type = cfg->type;
@@ -500,7 +500,7 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
 		j % 2 == 0 ?
 		base_midi_note - cfg->unison.detune_cents / 100.0f * (j + 1) :
 		base_midi_note + cfg->unison.detune_cents / 100.0f * (j + 1);
-	    fprintf(stderr, "DETUNE MIDI NOTE: %f (detune cents? %f /100? %f\n", detune_midi_note, cfg->unison.detune_cents, cfg->unison.detune_cents / 100.0f);
+	    /* fprintf(stderr, "DETUNE MIDI NOTE: %f (detune cents? %f /100? %f\n", detune_midi_note, cfg->unison.detune_cents, cfg->unison.detune_cents / 100.0f); */
 	    osc_set_freq(detune_voice, mtof_calc(detune_midi_note));
 	    detune_voice->amp = osc->amp * cfg->unison.relative_amp;
 	    detune_voice->pan =

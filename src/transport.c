@@ -23,6 +23,7 @@
 /* #include "dsp.h" */
 #include "dsp_utils.h"
 #include "midi_clip.h"
+#include "midi_io.h"
 #include "user_event.h"
 #include "mixdown.h"
 #include "porttime.h"
@@ -305,6 +306,7 @@ static void *transport_dsp_thread_fn(void *arg)
 		if (remainder > 0) {
 		    if (remainder > loop_len) remainder = 0;
 		    tl->read_pos_sframes = tl->in_mark_sframes + remainder;
+		    timeline_flush_unclosed_midi_notes();
 		}
 	    }
 	}
@@ -401,7 +403,7 @@ static void *transport_dsp_thread_fn(void *arg)
 	double time = ((double)clock() - performance_timer) / CLOCKS_PER_SEC;
 	double alloc_time = (double)session->proj.fourier_len_sframes / session->proj.sample_rate;
 	double out = 0.9 * last_t + 0.1 * (time / alloc_time);
-	fprintf(stderr, "STRESS: %f\n", out);
+	/* fprintf(stderr, "STRESS: %f\n", out); */
 	last_t = out;
 	
     }

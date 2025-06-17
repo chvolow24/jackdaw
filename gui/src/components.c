@@ -818,9 +818,9 @@ void symbol_radio_draw(SymbolRadio *sr)
 	Layout *lt = sr->layout->children[i];
 
 	if (i==sr->selected_item)
-	    symbol_draw_w_bckgrnd(sr->symbols[i], &lt->rect, sr->unsel_color);
-	else
 	    symbol_draw_w_bckgrnd(sr->symbols[i], &lt->rect, sr->sel_color);
+	else
+	    symbol_draw_w_bckgrnd(sr->symbols[i], &lt->rect, sr->unsel_color);
     }
 }
 

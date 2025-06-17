@@ -17,7 +17,6 @@
 /* #define SYNTH_EVENT_BUF_SIZE 512 */
 
 typedef enum wave_shape {
-    WS_NONE,
     WS_SINE,
     WS_SQUARE,
     WS_TRI,
@@ -38,6 +37,9 @@ typedef struct osc {
     float pan;
     Osc *freq_modulator;
     Osc *amp_modulator;
+
+    float last_out[2];
+    float last_in[2];
 } Osc;
 
 typedef struct synth Synth;

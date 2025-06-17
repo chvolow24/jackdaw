@@ -281,7 +281,7 @@ Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
     layout_reset(button_lt);
     p.sbutton_p.action = filter_type_button_action;
     p.sbutton_p.target = eq;
-    p.sbutton_p.s = SYMBOL_TABLE[5];
+    p.sbutton_p.s = SYMBOL_TABLE[SYMBOL_LOWSHELF];
     p.sbutton_p.background_color = NULL;
     el = page_add_el(
 	page,
@@ -301,7 +301,7 @@ Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
     layout_reset(button_lt);
     p.sbutton_p.action = filter_type_button_action;
     p.sbutton_p.target = eq;
-    p.sbutton_p.s = SYMBOL_TABLE[7];
+    p.sbutton_p.s = SYMBOL_TABLE[SYMBOL_PEAKNOTCH];
     p.sbutton_p.background_color = NULL;
     el = page_add_el(
 	page,
@@ -322,7 +322,7 @@ Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
     layout_reset(button_lt);
     p.sbutton_p.action = filter_type_button_action;
     p.sbutton_p.target = eq;
-    p.sbutton_p.s = SYMBOL_TABLE[6];
+    p.sbutton_p.s = SYMBOL_TABLE[SYMBOL_HIGHSHELF];
     p.sbutton_p.background_color = NULL;
     el = page_add_el(
 	page,
@@ -828,7 +828,7 @@ void filter_type_selector_canvas_draw(void *draw_arg1, void *draw_arg2)
     /* SDL_Rect r = sbutton_lt->rect; */
     /* fprintf(stderr, "Found layout to draw: %p, %d %d %d %d\n", sbutton_lt, r.x, r.y, r.w, r.h); */
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(filter_selected_clr));
-    geom_fill_rounded_rect(main_win->rend, &sbutton_lt->rect, SYMBOL_TABLE[7]->corner_rad_pix);
+    geom_fill_rounded_rect(main_win->rend, &sbutton_lt->rect, SYMBOL_TABLE[SYMBOL_LOWSHELF]->corner_rad_pix);
 }
 
 int filter_type_button_action(void *self, void *target)

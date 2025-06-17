@@ -27,8 +27,14 @@ Synth *synth_create(Track *track)
 
     s->base_oscs[0].active = true;
     for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
-	s->base_oscs[i].type = WS_SINE;
+	s->base_oscs[i].type = WS_SAW;
+	if (i==1) {
+	    s->base_oscs[i].type = WS_SQUARE;
+	}
+	if (i==2)
+	    s->base_oscs[i].type = WS_SINE;
     }
+    
     /* synth_base_osc_set_freq_modulator(s, s->base_oscs + 0, s->base_oscs + 1); */
     /* synth_base_osc_set_freq_modulator(s, s->base_oscs + 2, s->base_oscs + 3); */
 
@@ -40,11 +46,11 @@ Synth *synth_create(Track *track)
     }
     adsr_set_params(
 	&s->amp_env,
-	96 * 8,
+	96 * 1,
 	96 * 400,
 	0.2,
 	96 * 500,
-	3.0);
+	2.0);
     s->monitor = true;
     s->allow_voice_stealing = true;
 
@@ -128,9 +134,20 @@ Synth *synth_create(Track *track)
 	endpoint_set_default_value(
 	    &cfg->active_ep,
 	    (Value){.bool_v = default_val});
-
-	
 	api_endpoint_register(&cfg->active_ep, &cfg->api_node);
+
+	endpoint_init(
+	    &cfg->type_ep,
+	    &cfg->type,
+	    JDAW_INT,
+	    "type",
+	    "Type",
+	    JDAW_THREAD_DSP,
+	    NULL, NULL, NULL,
+	    NULL, NULL, NULL, NULL);
+	endpoint_set_default_value(&cfg->type_ep, (Value){.int_v = 0});
+	endpoint_set_allowed_range(&cfg->type_ep, (Value){.int_v = 0}, (Value){.int_v = 3});
+	api_endpoint_register(&cfg->type_ep, &cfg->api_node);
 
 
 	endpoint_init(
@@ -321,6 +338,23 @@ Synth *synth_create(Track *track)
 /*     NULL, */
 /*     NULL */
 /* }; */
+
+
+/* From Paul Batchelor, https://pbat.ch/sndkit/blep/ */
+static float polyblep(float incr, float phase)
+{
+    if (phase < incr) {
+        phase /= incr;
+        return phase + phase - phase * phase - 1.0;
+    } else if(phase > 1.0 - incr) {
+        phase = (phase - 1.0) / incr;
+        return phase * phase + phase + phase + 1.0;
+    }
+
+    return 0.0;
+}
+
+bool do_blep = true;
 static float osc_sample(Osc *osc, int channel, int num_channels, float step)
 {
     float sample;
@@ -329,7 +363,11 @@ static float osc_sample(Osc *osc, int channel, int num_channels, float step)
 	sample = sin(TAU * osc->phase[channel]);
 	break;
     case WS_SQUARE:
-	sample = osc->phase[channel] < 0.5 ? -1.0 : 1.0;
+	sample = osc->phase[channel] < 0.5 ? 1.0 : -1.0;
+	if (do_blep) {
+	    sample += polyblep(osc->sample_phase_incr, osc->phase[channel]);
+	    sample -= polyblep(osc->sample_phase_incr, fmod(osc->phase[channel] + 0.5, 1.0)); 
+	}
 	break;
     case WS_TRI:
 	sample =
@@ -343,6 +381,9 @@ static float osc_sample(Osc *osc, int channel, int num_channels, float step)
         break;
     case WS_SAW:
 	sample = 2.0f * osc->phase[channel] - 1.0;
+	if (do_blep) {
+	    sample -= polyblep(osc->sample_phase_incr, osc->phase[channel]);
+	}
 	break;
     default:
 	sample = 0.0;
@@ -370,6 +411,8 @@ static float osc_sample(Osc *osc, int channel, int num_channels, float step)
 static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int channel, float step)
 {
     if (v->available) return;
+    float osc_buf[len];
+    memset(osc_buf, '\0', len * sizeof(float));
     /* fprintf(stderr, "\tvoice %ld has data\n", v - v->synth->voices); */
     for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
 	OscCfg *cfg = v->synth->base_oscs + i;
@@ -377,9 +420,8 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 	if (cfg->mod_freq_of || cfg->mod_amp_of) continue;
 	/* fprintf(stderr, "\t\tvoice %ld osc %d\n", v - v->synth->voices, i); */
 	Osc *osc = v->oscs + i;
-	float osc_buf[len];
 	for (int i=0; i<len; i++) {
-	    osc_buf[i] = osc_sample(osc, channel, 2, step);
+	    osc_buf[i] += osc_sample(osc, channel, 2, step);
 	}
 	for (int j=0; j<cfg->unison.num_voices; j++) {
 	    Osc *detune_voice = v->oscs + i + SYNTH_NUM_BASE_OSCS * (j + 1);
@@ -389,17 +431,6 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 	    }
 	}
 	/* for (int j=0; j< */
-	float amp_env[len];
-	enum adsr_stage amp_stage = adsr_get_chunk(&v->amp_env[channel], amp_env, len);
-	float_buf_mult(osc_buf, amp_env, len);
-	if (amp_stage == ADSR_OVERRUN) {
-	    v->available = true;
-	    /* fprintf(stderr, "\tFREEING VOICE %ld (env overrun)\n", v - v->synth->voices); */
-	    /* return; */
-	}
-	for (int i=0; i<len; i++) {
-	    buf[i] += osc_buf[i] * (float)v->velocity / 127.0f;
-	}
 	
 	/* for (int i=0; i<len; i++) { */
 	/*     float sample = osc_sample(osc, channel, 2, step); */
@@ -451,6 +482,19 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 	/*     v->note_end_rel += len; */
 	/* } */
     }
+    float amp_env[len];
+    enum adsr_stage amp_stage = adsr_get_chunk(&v->amp_env[channel], amp_env, len);
+    float_buf_mult(osc_buf, amp_env, len);
+    if (amp_stage == ADSR_OVERRUN) {
+	v->available = true;
+	/* fprintf(stderr, "\tFREEING VOICE %ld (env overrun)\n", v - v->synth->voices); */
+	/* return; */
+    }
+    for (int i=0; i<len; i++) {
+	buf[i] += osc_buf[i] * (float)v->velocity / 127.0f;
+    }
+
+
     /* for (int i=0; i<len; i++) { */
     /* 	buf[i] = tanh(buf[i]); */
     /* } */

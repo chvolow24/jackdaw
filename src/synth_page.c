@@ -7,6 +7,7 @@
 extern Window *main_win;
 
 extern struct colors colors;
+extern Symbol *SYMBOL_TABLE[];
 
 static void add_osc_page(TabView *tv, Track *track);
 static void add_filter_page(TabView *tv, Track *track);
@@ -288,6 +289,16 @@ static void add_osc_page(TabView *tv, Track *track)
     page_add_el(page,EL_SLIDER,p,"4stereo_spread","4unison_stereo_spread_slider");
 
 
+
+    static SDL_Color sel_color = {0, 255, 0, 150};
+    p.sradio_p.align_horizontal = true;
+    p.sradio_p.symbols = SYMBOL_TABLE + SYMBOL_SINE;
+    p.sradio_p.num_items = 4;
+    p.sradio_p.padding = 7;
+    p.sradio_p.unsel_color = &colors.clear;
+    p.sradio_p.sel_color = &sel_color;
+    p.sradio_p.ep = &cfg->type_ep;
+    page_add_el(page,EL_SYMBOL_RADIO,p,"4type_radio","4type_radio");
     /* } */
 
 

@@ -1,10 +1,11 @@
 #include <complex.h>
 #include "SDL_render.h"
-#include "color.h" 
+#include "color.h"
+#include "consts.h"
 #include "geometry.h"
 #include "symbol.h"
 
-Symbol *SYMBOL_TABLE[8];
+Symbol *SYMBOL_TABLE[NUM_SYMBOLS];
 
 static void x_draw_fn(void *self)
 {
@@ -224,7 +225,82 @@ static void peaknotch_draw_fn(void *self)
     geom_draw_rounded_rect(s->window->rend, &outer_rect, s->corner_rad_pix);    
 }
 
+static void sine_draw_fn(void *self)
+{
+    Symbol *s = self;
+    int pad = SYMBOL_WAV_PAD * s->window->dpi_scale_factor;
+    SDL_Rect outer_rect = {0, 0, s->x_dim_pix, s->y_dim_pix};
+    SDL_Rect inner_rect = {pad, pad, s->x_dim_pix - pad * 2, s->y_dim_pix - pad * 2};
+    int mid_y = s->y_dim_pix / 2;
+    int last_y = mid_y;
+    SDL_SetRenderDrawColor(s->window->rend, 255, 255, 255, 255);
+    for (int x=pad; x<pad + inner_rect.w; x++) {
+	int y = mid_y - (inner_rect.h/2.0f) * sin(TAU * ((double)(x - pad) / inner_rect.w));
+	if (x != pad) {
+	    SDL_RenderDrawLine(s->window->rend, x-1, last_y, x, y);
+	}
+	last_y = y;
+    }
+    geom_draw_rounded_rect(s->window->rend, &outer_rect, s->corner_rad_pix);    
+}
 
+static void square_draw_fn(void *self)
+{
+    Symbol *s = self;
+    int pad = SYMBOL_WAV_PAD * s->window->dpi_scale_factor;
+    SDL_Rect outer_rect = {0, 0, s->x_dim_pix, s->y_dim_pix};
+    SDL_Rect inner_rect = {pad, pad, s->x_dim_pix - pad * 2, s->y_dim_pix - pad * 2};
+    int mid_y = s->y_dim_pix / 2;
+    int last_y = mid_y;
+    SDL_SetRenderDrawColor(s->window->rend, 255, 255, 255, 255);
+    for (int x=pad; x<pad + inner_rect.w; x++) {
+	int y = (double)(x - pad) / inner_rect.w < 0.5 ? inner_rect.y : inner_rect.y + inner_rect.h;
+	if (x != pad) {
+	    SDL_RenderDrawLine(s->window->rend, x-1, last_y, x, y);
+	}
+	last_y = y;
+    }
+    geom_draw_rounded_rect(s->window->rend, &outer_rect, s->corner_rad_pix);    
+
+}
+static void tri_draw_fn(void *self)
+{
+    Symbol *s = self;
+    int pad = SYMBOL_WAV_PAD * s->window->dpi_scale_factor;
+    SDL_Rect outer_rect = {0, 0, s->x_dim_pix, s->y_dim_pix};
+    SDL_Rect inner_rect = {pad, pad, s->x_dim_pix - pad * 2, s->y_dim_pix - pad * 2};
+    int mid_y = s->y_dim_pix / 2;
+    int last_y = mid_y;
+    SDL_SetRenderDrawColor(s->window->rend, 255, 255, 255, 255);
+    for (int x=pad; x<pad + inner_rect.w; x++) {
+	int y = (double)(x - pad) / inner_rect.w < 0.5 ? inner_rect.y : inner_rect.y + inner_rect.h;
+	if (x != pad) {
+	    SDL_RenderDrawLine(s->window->rend, x-1, last_y, x, y);
+	}
+	last_y = y;
+    }
+    geom_draw_rounded_rect(s->window->rend, &outer_rect, s->corner_rad_pix);    
+
+}
+static void saw_draw_fn(void *self)
+{
+    Symbol *s = self;
+    int pad = SYMBOL_WAV_PAD * s->window->dpi_scale_factor;
+    SDL_Rect outer_rect = {0, 0, s->x_dim_pix, s->y_dim_pix};
+    SDL_Rect inner_rect = {pad, pad, s->x_dim_pix - pad * 2, s->y_dim_pix - pad * 2};
+    int mid_y = s->y_dim_pix / 2;
+    int last_y = mid_y;
+    SDL_SetRenderDrawColor(s->window->rend, 255, 255, 255, 255);
+    for (int x=pad; x<pad + inner_rect.w; x++) {
+	int y = (double)(x - pad) / inner_rect.w < 0.5 ? inner_rect.y : inner_rect.y + inner_rect.h;
+	if (x != pad) {
+	    SDL_RenderDrawLine(s->window->rend, x-1, last_y, x, y);
+	}
+	last_y = y;
+    }
+    geom_draw_rounded_rect(s->window->rend, &outer_rect, s->corner_rad_pix);    
+
+}
 
 void init_symbol_table(Window *win)
 {
@@ -233,54 +309,87 @@ void init_symbol_table(Window *win)
     int filter_dim_y = SYMBOL_STD_DIM * SYMBOL_FILTER_DIM_SCALAR_V * win->dpi_scale_factor;
     int std_rad = SYMBOL_DEFAULT_CORNER_R * win->dpi_scale_factor;
     int filter_rad = SYMBOL_DEFAULT_CORNER_R * 3 * win->dpi_scale_factor;
-    SYMBOL_TABLE[0] = symbol_create(
+    int wav_w = SYMBOL_WAV_W * win->dpi_scale_factor;
+    int wav_h = SYMBOL_WAV_H * win->dpi_scale_factor;
+    SYMBOL_TABLE[SYMBOL_X] = symbol_create(
 	win,
 	std_dim,
 	std_dim,
 	std_rad,
 	x_draw_fn);
-    SYMBOL_TABLE[1] = symbol_create(
+    SYMBOL_TABLE[SYMBOL_MINIMIZE] = symbol_create(
 	win,
 	std_dim,
 	std_dim,
 	std_rad,
 	minimize_draw_fn);
-    SYMBOL_TABLE[2] = symbol_create(
+    SYMBOL_TABLE[SYMBOL_DROPDOWN] = symbol_create(
 	win,
 	std_dim,
 	std_dim,
 	std_rad,
 	dropdown_draw_fn);
-    SYMBOL_TABLE[3] = symbol_create(
+    SYMBOL_TABLE[SYMBOL_DROPUP] = symbol_create(
 	win,
 	std_dim,
 	std_dim,
 	std_rad,
 	dropup_draw_fn);
-    SYMBOL_TABLE[4] = symbol_create(
+    SYMBOL_TABLE[SYMBOL_KEYFRAME] = symbol_create(
 	win,
 	std_dim,
 	std_dim,
 	std_rad,
 	keyframe_draw_fn);
-    SYMBOL_TABLE[5] = symbol_create(
+    SYMBOL_TABLE[SYMBOL_LOWSHELF] = symbol_create(
 	win,
 	filter_dim_x,
 	filter_dim_y,
 	filter_rad,
 	lowshelf_draw_fn);
-    SYMBOL_TABLE[6] = symbol_create(
+    SYMBOL_TABLE[SYMBOL_HIGHSHELF] = symbol_create(
 	win,
 	filter_dim_x,
 	filter_dim_y,
 	filter_rad,
 	highshelf_draw_fn);
-    SYMBOL_TABLE[7] = symbol_create(
+    SYMBOL_TABLE[SYMBOL_PEAKNOTCH] = symbol_create(
 	win,
 	filter_dim_x,
 	filter_dim_y,
 	filter_rad,
 	peaknotch_draw_fn);
+
+    SYMBOL_TABLE[SYMBOL_SINE] = symbol_create(
+	win,
+	wav_w,
+	wav_h,
+	std_rad,
+	sine_draw_fn);
+    SYMBOL_TABLE[SYMBOL_SQUARE] = symbol_create(
+	win,
+	wav_w,
+	wav_h,
+	std_rad,
+	square_draw_fn);
+    SYMBOL_TABLE[SYMBOL_TRI] = symbol_create(
+	win,
+	wav_w,
+	wav_h,
+	std_rad,
+	tri_draw_fn);
+    SYMBOL_TABLE[SYMBOL_SAW] = symbol_create(
+	win,
+	wav_w,
+	wav_h,
+	std_rad,
+	saw_draw_fn);
+
+
+
+	
+	
+	
 }
 
 

@@ -12,6 +12,11 @@
 #define SYMBOL_FILTER_DIM_SCALAR_V 2.5
 #define SYMBOL_FILTER_PAD 6
 
+#define SYMBOL_WAV_W 24
+#define SYMBOL_WAV_H 18
+#define SYMBOL_WAV_PAD 4
+
+
 
 typedef struct symbol {
     Window *window;
@@ -24,11 +29,19 @@ typedef struct symbol {
 } Symbol;
 
 enum symbol_id {
-    SYMBOL_X=0,
-    SYMBOL_MINIMIZE=1,
-    SYMBOL_DROPDOWN=2,
-    SYMBOL_DROPUP=3,
-    SYMBOL_KEYFRAME=4
+    SYMBOL_X,
+    SYMBOL_MINIMIZE,
+    SYMBOL_DROPDOWN,
+    SYMBOL_DROPUP,
+    SYMBOL_KEYFRAME,
+    SYMBOL_LOWSHELF,
+    SYMBOL_HIGHSHELF,
+    SYMBOL_PEAKNOTCH,
+    SYMBOL_SINE,
+    SYMBOL_SQUARE,
+    SYMBOL_TRI,
+    SYMBOL_SAW,
+    NUM_SYMBOLS
 };
 
 void init_symbol_table(Window *win);

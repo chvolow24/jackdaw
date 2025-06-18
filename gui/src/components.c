@@ -250,8 +250,13 @@ void slider_std_labelmaker(char *dst, size_t dstsize, void *value, ValType type)
 bool slider_mouse_click(Slider *slider, Window *win)
 {
     if (SDL_PointInRect(&main_win->mousep, &slider->layout->rect) && win->i_state & I_STATE_MOUSE_L) {
-	int dim = slider->orientation == SLIDER_VERTICAL ? main_win->mousep.y : main_win->mousep.x;
-	Value newval = slider_val_from_coord(slider, dim);
+	Value newval;
+	if (slider->ep && main_win->i_state & I_STATE_CMDCTRL) {
+	    newval = slider->ep->default_val;
+	} else {
+	    int dim = slider->orientation == SLIDER_VERTICAL ? main_win->mousep.y : main_win->mousep.x;
+	    newval = slider_val_from_coord(slider, dim);
+	}
 	endpoint_start_continuous_change(slider->ep, false, (Value)0, slider->ep->owner_thread, newval);
 	slider_reset(slider);
 
@@ -266,32 +271,37 @@ bool slider_mouse_click(Slider *slider, Window *win)
 
 bool slider_mouse_motion(Slider *slider, Window *win)
 {
-    int dim, mindim, maxdim;
-    switch (slider->orientation) {
-    case SLIDER_VERTICAL:
-	dim = main_win->mousep.y;
-	mindim = slider->layout->rect.y;
-	maxdim = slider->layout->rect.y + slider->layout->rect.h;
-	break;
-    case SLIDER_HORIZONTAL:
-	dim = main_win->mousep.x;
-	mindim = slider->layout->rect.x;
-	maxdim = slider->layout->rect.x + slider->layout->rect.w;
-	break;
-    }
-    /* int dim = slider->orientation == SLIDER_VERTICAL ? main_win->mousep.y : main_win->mousep.x; */
-    /* int mindim = slider->orientation == SLIDER_ */
-    bool restrict_range = slider->ep->restrict_range;
-    if (slider->disallow_unsafe_mode || !(win->i_state & I_STATE_SHIFT && win->i_state & I_STATE_CMDCTRL)) {
-	if (dim < mindim) dim = mindim;
-	if (dim > maxdim) dim = maxdim;
+    Value newval;
+    if (slider->ep && win->i_state & I_STATE_CMDCTRL) {
+	newval = slider->ep->default_val;
     } else {
-	status_set_errstr("SLIDER UNSAFE MODE (release ctrl/shift to return to safety!)");
-	slider->ep->restrict_range = false;
+	int dim, mindim, maxdim;
+	switch (slider->orientation) {
+	case SLIDER_VERTICAL:
+	    dim = main_win->mousep.y;
+	    mindim = slider->layout->rect.y;
+	    maxdim = slider->layout->rect.y + slider->layout->rect.h;
+	    break;
+	case SLIDER_HORIZONTAL:
+	    dim = main_win->mousep.x;
+	    mindim = slider->layout->rect.x;
+	    maxdim = slider->layout->rect.x + slider->layout->rect.w;
+	    break;
+	}
+	/* int dim = slider->orientation == SLIDER_VERTICAL ? main_win->mousep.y : main_win->mousep.x; */
+	/* int mindim = slider->orientation == SLIDER_ */
+	bool restrict_range = slider->ep->restrict_range;
+	if (slider->disallow_unsafe_mode || !(win->i_state & I_STATE_SHIFT && win->i_state & I_STATE_CMDCTRL)) {
+	    if (dim < mindim) dim = mindim;
+	    if (dim > maxdim) dim = maxdim;
+	} else {
+	    status_set_errstr("SLIDER UNSAFE MODE (release ctrl/shift to return to safety!)");
+	    slider->ep->restrict_range = false;
+	}
+	slider->ep->restrict_range = restrict_range;
+	newval = slider_val_from_coord(slider, dim);
     }
-    Value newval = slider_val_from_coord(slider, dim);
     endpoint_write(slider->ep, newval, true, true, true, false);
-    slider->ep->restrict_range = restrict_range;
     /* jdaw_val_set_ptr(slider->value, slider->val_type, newval); */
     /* if (slider->action) */
     /* 	slider->action((void *)slider, slider->target); */

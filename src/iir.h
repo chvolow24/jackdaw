@@ -85,5 +85,6 @@ double iir_group_sample(IIRGroup *group, double in, int channel);
 void iir_group_update_freq_resp(IIRGroup *group);
 void iir_group_clear(IIRGroup *group);
 void iir_advance(IIRFilter *f, int channel);
+void iir_clear(IIRFilter *f);
 
 #endif

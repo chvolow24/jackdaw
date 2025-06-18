@@ -188,7 +188,7 @@ Synth *synth_create(Track *track)
 	    page_el_gui_cb, NULL, NULL,
 	    NULL, NULL, &s->osc_page, cfg->octave_id);
 	endpoint_set_default_value(&cfg->octave_ep, (Value){.int_v = 0});
-	endpoint_set_allowed_range(&cfg->octave_ep, (Value){.int_v = -6}, (Value){.int_v = 6});
+	endpoint_set_allowed_range(&cfg->octave_ep, (Value){.int_v = -8}, (Value){.int_v = 8});
 	api_endpoint_register(&cfg->octave_ep, &cfg->api_node);
 
 	endpoint_init(
@@ -392,8 +392,7 @@ static float osc_sample(Osc *osc, int channel, int num_channels, float step)
     }
     if (osc->freq_modulator) {
 	float fmod_sample = osc_sample(osc->freq_modulator, channel, num_channels, step);
-	/* fprintf(stderr, "Phase incr: %f fmod: %f\n", osc->sample_phase_incr, fmod_sample); */
-	osc->phase[channel] += osc->sample_phase_incr * (step + fmod_sample);
+	osc->phase[channel] += osc->sample_phase_incr * (step * (1.0f + fmod_sample));
     } else {
 	osc->phase[channel] += osc->sample_phase_incr * step;
     }
@@ -498,13 +497,13 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
     for (int i=0; i<len; i++) {
 	if (i%10 == 0) {
 	    double freq = mtof_calc(v->note_val) * 20 * amp_env[i] * amp_env[i] * amp_env[i] / session->proj.sample_rate;
-	    if (freq > 1e-8) {
+	    if (freq > 1e-3) {
 		iir_set_coeffs_lowpass_chebyshev(f, freq, 4.0);
 	    }
 	    /* iir_set_coeffs_lowpass_chebyshev(f, (mtof_calc(v->note_val) * 20 * amp_env[i] * amp_env[i] * amp_env[i]) / session->proj.sample_rate / 2.0f, 4.0); */
 
 	}
-	/* osc_buf[i] = iir_sample(f, osc_buf[i], channel); */
+	osc_buf[i] = iir_sample(f, osc_buf[i], channel);
 	buf[i] += osc_buf[i] * (float)v->velocity / 127.0f;
     }
 
@@ -537,6 +536,11 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
     /* srand(time(NULL)); */
     Synth *synth = v->synth;
     v->note_val = note;
+    iir_clear(&v->filter);
+    /* memset(v->filter.memIn[0], '\0', sizeof(float) * v->filter.degree); */
+    /* memset(v->filter.memIn[1], '\0', sizeof(float) * v->filter.degree); */
+    /* memset(v->filter.memOut[0], '\0', sizeof(float) * v->filter.degree); */
+    /* memset(v->filter.memOut[1], '\0', sizeof(float) * v->filter.degree); */
     for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
 	OscCfg *cfg = synth->base_oscs + i;
 	if (!cfg->active) continue;	

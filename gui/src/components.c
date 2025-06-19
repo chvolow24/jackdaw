@@ -14,6 +14,7 @@
 #include "waveform.h"
 
 extern Window *main_win;
+extern Symbol *SYMBOL_TABLE[];
 #define SLIDER_INNER_PAD 2
 #define SLIDER_TICK_W 2
 
@@ -731,8 +732,8 @@ void radio_cycle_back(RadioButton *rb)
 {
     if (rb->selected_item > 0)
 	rb->selected_item--;
-    /* else */
-    /* 	rb->selected_item = rb->num_items - 1; */
+    else
+	rb->selected_item = rb->num_items - 1;
     
     endpoint_write(rb->ep, (Value){.int_v = rb->selected_item}, true, true, true, true);
     /* if (rb->action) rb->action((void *)rb, rb->target); */
@@ -740,9 +741,9 @@ void radio_cycle_back(RadioButton *rb)
 
 void radio_cycle(RadioButton *rb)
 {
-    if (rb->selected_item == rb->num_items - 1) return;
+    /* if (rb->selected_item == rb->num_items - 1) return; */
     rb->selected_item++;
-    /* rb->selected_item %= rb->num_items; */
+    rb->selected_item %= rb->num_items;
     
     endpoint_write(rb->ep, (Value){.int_v = rb->selected_item}, true, true, true, true);
     /* if (rb->action) rb->action((void *)rb, rb->target); */
@@ -839,13 +840,16 @@ void symbol_radio_cycle_back(SymbolRadio *sr)
 {
     if (sr->selected_item > 0)
 	sr->selected_item--;
+    else
+	sr->selected_item = sr->num_items - 1;
     endpoint_write(sr->ep, (Value){.int_v = sr->selected_item}, true, true, true, true);
 }
 
 void symbol_radio_cycle(SymbolRadio *sr)
 {
-    if (sr->selected_item == sr->num_items - 1) return;
+    /* if (sr->selected_item == sr->num_items - 1) return; */
     sr->selected_item++;
+    sr->selected_item %= sr->num_items;
     endpoint_write(sr->ep, (Value){.int_v = sr->selected_item}, true, true, true, true);
 }
 
@@ -865,7 +869,7 @@ bool symbol_radio_click(SymbolRadio *sr, Window *Win)
 
 void symbol_radio_destroy(SymbolRadio *sr)
 {
-    layout_destroy(sr->layout);
+    /* layout_destroy(sr->layout); */
     free(sr);
 }
 
@@ -1051,7 +1055,38 @@ bool dropdown_click(Dropdown *d, Window *win)
     }
 }
 
+/* Status light */
 
+StatusLight *status_light_create(Layout *lt, void *value, size_t val_size)
+{
+    StatusLight *sl = calloc(1, sizeof(StatusLight));
+    sl->layout = lt;
+    sl->value = value;
+    sl->val_size = val_size;
+    Layout *inner = layout_add_child(lt);
+    inner->rect.w = SYMBOL_TABLE[SYMBOL_STATUS_ON]->x_dim_pix;
+    inner->rect.h = inner->rect.w;
+    layout_set_values_from_rect(inner);
+    layout_center_agnostic(inner, true, true);
+    return sl;
+    
+}
+
+void status_light_draw(StatusLight *sl)
+{
+    char zero[sl->val_size];
+    memset(zero, '\0', sl->val_size * sizeof(char));
+    if (memcmp(sl->value, zero, sl->val_size) == 0) {
+	symbol_draw(SYMBOL_TABLE[SYMBOL_STATUS_OFF], &sl->layout->children[0]->rect);
+    } else {
+	symbol_draw(SYMBOL_TABLE[SYMBOL_STATUS_ON], &sl->layout->children[0]->rect);
+    }
+}
+
+void status_light_destroy(StatusLight *sl)
+{
+    free(sl);
+}
 
 
 /* Mouse functions */

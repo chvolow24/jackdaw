@@ -38,6 +38,8 @@
 - menu_nav:
   - n		: menu_next_item
   - p		: menu_previous_item
+  - <tab>	: menu_next_item
+  - S-<tab>	: menu_previous_item
   - f		: menu_next_item
   - d		: menu_previous_item
   - <up>	: menu_translate_up

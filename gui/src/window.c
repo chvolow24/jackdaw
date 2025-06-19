@@ -366,6 +366,12 @@ void window_add_menu(Window *win, Menu *menu)
 	if (win->modes[win->num_modes - 1] != MENU_NAV) {
 	    window_push_mode(win, MENU_NAV);
 	}
+	menu->sel_col = 0;
+	menu->columns[0]->sel_sctn = 0;
+	menu->columns[0]->sections[0]->sel_item = 0;
+	menu->columns[0]->sections[0]->items[0]->selected = true;
+	
+	
     } else {
 	fprintf(stderr, "Error: window already has maximum number of menus (%d)\n", win->num_menus);
     }

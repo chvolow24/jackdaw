@@ -678,6 +678,7 @@ static void control_bar_draw()
 
 /* #include "compressor.h" */
 /* extern Compressor comp_L; */
+/* static int draw_i = 0; */
 void project_draw()
 {
     Session *session = session_get();
@@ -758,8 +759,17 @@ void project_draw()
     /* env_rect.h-= chg; */
     /* SDL_RenderFillRect(main_win->rend, &env_rect); */
     
-    
-
+    /* if ((draw_i / 100) %2 == 0) { */
+    /* 	Symbol *s = SYMBOL_TABLE[SYMBOL_STATUS_ON]; */
+    /* 	SDL_Rect symbol_rect = {500, 500, s->x_dim_pix, s->y_dim_pix}; */
+    /* 	symbol_draw(s, &symbol_rect); */
+    /* } else { */
+    /* 	Symbol *s = SYMBOL_TABLE[SYMBOL_STATUS_OFF]; */
+    /* 	SDL_Rect symbol_rect = {500, 500, s->x_dim_pix, s->y_dim_pix}; */
+    /* 	symbol_draw(s, &symbol_rect); */
+	
+    /* } */
+    /* draw_i++ ; */
 
     window_end_draw(main_win);
 }

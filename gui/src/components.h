@@ -161,6 +161,12 @@ typedef struct dropdown {
     int (*selection_fn)(Dropdown *self, void *arg);
 } Dropdown;
 
+typedef struct status_light {
+    Layout *layout;
+    void *value;
+    size_t val_size;
+} StatusLight;
+
 
 
 /*****************************************/
@@ -368,5 +374,11 @@ void dropdown_draw(Dropdown *d);
 void dropdown_destroy(Dropdown *d);
 void dropdown_create_menu(Dropdown *d);
 bool dropdown_click(Dropdown *d, Window *win);
+
+/* Status light */
+
+StatusLight *status_light_create(Layout *lt, void *value, size_t val_size);
+void status_light_draw(StatusLight *sl);
+void status_light_destroy(StatusLight *sl);
 
 #endif

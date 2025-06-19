@@ -262,6 +262,9 @@ static void page_el_destroy(PageEl *el)
     case EL_DROPDOWN:
 	dropdown_destroy((Dropdown *)el->component);
 	break;
+    case EL_STATUS_LIGHT:
+	status_light_destroy(el->component);
+	break;
     default:
 	break;
     }
@@ -498,6 +501,12 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	    params.dropdown_p.num_items,
 	    params.dropdown_p.selection_fn);	    
 	break;
+    case EL_STATUS_LIGHT:
+	el->component = status_light_create(
+	    el->layout,
+	    params.slight_p.value,
+	    params.slight_p.val_size);
+	break;	    
     default:
 	break;
     }
@@ -655,6 +664,7 @@ static bool page_element_mouse_click(PageEl *el, Window *win)
     case EL_DROPDOWN:
 	return dropdown_click(el->component, main_win);
 	break;
+
     default:
 	break;
     }
@@ -851,6 +861,9 @@ static void page_el_draw(PageEl *el)
 	break;
     case EL_DROPDOWN:
 	dropdown_draw(el->component);
+	break;
+    case EL_STATUS_LIGHT:
+	status_light_draw(el->component);
 	break;
     default:
 	break;

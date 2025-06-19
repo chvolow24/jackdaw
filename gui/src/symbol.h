@@ -41,6 +41,8 @@ enum symbol_id {
     SYMBOL_SQUARE,
     SYMBOL_TRI,
     SYMBOL_SAW,
+    SYMBOL_STATUS_ON,
+    SYMBOL_STATUS_OFF,
     NUM_SYMBOLS
 };
 

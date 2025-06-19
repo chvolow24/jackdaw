@@ -15,7 +15,6 @@ void synth_osc_vol_dsp_cb(Endpoint *ep)
 {
     OscCfg *cfg = ep->xarg1;
     float vol = endpoint_safe_read(ep, NULL).float_v;
-    fprintf(stderr, "DSP CB vol? %f\n", vol);
     if (vol > 1e-9) cfg->active = true;
     else cfg->active = false;
 }

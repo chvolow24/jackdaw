@@ -51,7 +51,8 @@ typedef enum page_el_type {
     EL_EQ_PLOT,
     EL_SYMBOL_BUTTON,
     EL_SYMBOL_RADIO,
-    EL_DROPDOWN
+    EL_DROPDOWN,
+    EL_STATUS_LIGHT
     /* EL_TOGGLE_EP */
 } PageElType;
 
@@ -231,6 +232,11 @@ struct dropdown_params {
     int (*selection_fn)(Dropdown *, void *);
 };
 
+struct status_light_params {
+    void *value;
+    size_t val_size;
+};
+
 typedef union page_el_params {
     struct slider_params slider_p;
     struct textbox_params textbox_p;
@@ -247,6 +253,7 @@ typedef union page_el_params {
     struct toggle_ep_params toggle_ep_p;
     struct symbol_radio_params sradio_p;
     struct dropdown_params dropdown_p;
+    struct status_light_params slight_p;
 } PageElParams;
 
 

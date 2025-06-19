@@ -1,3 +1,4 @@
+#include "color.h"
 #include "geometry.h"
 #include "text.h"
 #include "textbox.h"
@@ -6,13 +7,14 @@
 #define TXTBX_DEFAULT_RAD 0
 #define TXTBX_DEFAULT_MAXLEN 255
 
+
 /* #define MAX_TLINES UINT32_MAX */
 
 SDL_Color textbox_default_bckgrnd_clr = (SDL_Color) {240, 240, 240, 255};
 SDL_Color textbox_default_txt_clr = (SDL_Color) {0, 0, 0, 255};
 SDL_Color textbox_default_border_clr = (SDL_Color) {100, 100, 100, 255};
 
-
+extern struct colors colors;
 
 
 #ifndef LAYOUT_BUILD
@@ -325,19 +327,28 @@ void textbox_set_value_handle(Textbox *tb, const char *new_value)
 /* Chunky buttons -- save for later, maybe */
 void textbox_set_style(Textbox *tb, enum textbox_style style)
 {
-    /* tb->border_thickness = 0; */
+    tb->border_thickness = 0;
     /* tb->border_clr = NULL; */
-    /* tb->corner_radius = 0; */
+    tb->corner_radius = 0;
 
-    /* switch (style) { */
-    /* case BUTTON_CLASSIC: */
-    /* 	tb->style = BUTTON_CLASSIC; */
-    /* 	break; */
-    /* case BUTTON_DARK: */
-    /* 	tb->style = BUTTON_DARK; */
-    /* default: */
-    /* 	break; */
-    /* } */
+    switch (style) {
+    case BUTTON_CLASSIC:
+	tb->style = BUTTON_CLASSIC;
+	break;
+    case BUTTON_DARK:
+	tb->corner_radius = BUTTON_CORNER_RADIUS;
+	/* textbox_set_trunc(tb, false); */
+	textbox_set_border(tb, &colors.dark_grey, 1);
+	/* textbox_set_style(tb, BUTTON_CLASSIC); */
+	textbox_set_text_color(tb, &colors.white);
+	textbox_set_background_color(tb, &colors.quickref_button_blue);
+	textbox_set_align(tb, CENTER);
+	textbox_size_to_fit(tb, 6, 2);
+	textbox_reset_full(tb);
+	tb->style = BUTTON_DARK;
+    default:
+	break;
+    }
 }
 
 /* void textbox_set_style(Textbox *tb, enum textbox_style style) */

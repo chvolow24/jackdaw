@@ -9,7 +9,6 @@
 #include "value.h"
 
 #define SLIDER_LABEL_STRBUFLEN 20
-#define BUTTON_CORNER_RADIUS 6
 #define RADIO_BUTTON_MAX_ITEMS 64
 #define RADIO_BUTTON_ITEM_H 24
 #define RADIO_BUTTON_LEFT_W 24
@@ -146,6 +145,21 @@ typedef struct canvas {
     void *draw_arg1, *draw_arg2;
     bool (*on_click)(SDL_Point mousep, Canvas *self, void *xarg1, void *xarg2);
 } Canvas;
+
+typedef struct dropdown Dropdown;
+typedef struct dropdown {
+    Layout *layout;
+    Textbox *tb;
+    const char *header;
+    const char *description;
+    char **item_names;
+    char **item_annotations;
+    void **item_args;
+    uint8_t num_items;
+    uint8_t selected_item;
+    /* bool free_args_on_destroy; */
+    int (*selection_fn)(Dropdown *self, void *arg);
+} Dropdown;
 
 
 
@@ -338,5 +352,21 @@ Canvas *canvas_create(
     );
 void canvas_draw(Canvas *canvas);
 void canvas_destroy(Canvas *canvas);
+
+/* Dropdown */
+
+Dropdown *dropdown_create(
+    Layout *lt,
+    const char *header,
+    char **item_names,
+    char **item_annotations,
+    void **item_args,
+    uint8_t num_items,
+    /* bool free_args_on_destroy, */
+    int (*selection_fn)(Dropdown *self, void *arg));
+void dropdown_draw(Dropdown *d);
+void dropdown_destroy(Dropdown *d);
+void dropdown_create_menu(Dropdown *d);
+bool dropdown_click(Dropdown *d, Window *win);
 
 #endif

@@ -28,18 +28,31 @@ TabView *synth_tabview_create(Track *track)
 
 static void page_fill_out_layout(Page *p);
 
+static Synth *synth_glob;
+static int fmod_selector_fn(Dropdown *d, void *inner_arg)
+{
+    int modulator_i = ((long)inner_arg >> 8) & 0xFF; /* Dropdown host */
+    int carrier_i = (long)inner_arg & 0xFF; /* Dropdown target */
+    OscCfg *modulator = synth_glob->base_oscs + modulator_i - 1;
+    OscCfg *carrier = carrier_i == 0 ? NULL : synth_glob->base_oscs + carrier_i - 1;
+    fprintf(stderr, "MOD: %p (raw i %d), CARR: %p (raw i %d)\n", modulator, modulator_i, carrier, carrier_i);
+    int ret = synth_set_freq_mod_pair(synth_glob, carrier, modulator);
+    fprintf(stderr, "RET: %d\n", ret);
+    return ret;
+
+}
+
 static void add_osc_page(TabView *tv, Track *track)
 {
     
     Synth *s = track->synth;
+    synth_glob = s;
     static SDL_Color osc_bckgrnd = {40, 40, 40, 255};
     Page *page = tabview_add_page(tv, "Oscillators", SYNTH_OSCS_LT_PATH, &osc_bckgrnd, &colors.white, main_win);
 
     s->osc_page = page;
     /* Fill out layout */
     page_fill_out_layout(page);
-
-
 
     static SDL_Color sel_color = {100, 255, 150, 100};
     union page_el_params p;
@@ -74,7 +87,6 @@ static void add_osc_page(TabView *tv, Track *track)
     page_add_el(page,EL_TEXTBOX,p,"","3vol_label");
     page_add_el(page,EL_TEXTBOX,p,"","4vol_label");
 
-    Textbox *tb;
     p.textbox_p.set_str = "Pan:";
     page_add_el(page,EL_TEXTBOX,p,"","1pan_label");
     /* tb = el->component; */
@@ -153,9 +165,25 @@ static void add_osc_page(TabView *tv, Track *track)
     page_add_el(page,EL_TEXTBOX,p,"","3unison_stereo_spread_label");
     page_add_el(page,EL_TEXTBOX,p,"","4unison_stereo_spread_label");
 
+    p.textbox_p.text_size = 12;
+    p.textbox_p.set_str = "Mod freq of:";
+    el = page_add_el(page,EL_TEXTBOX,p,"","1freq_mod_label");
+        layout_size_to_fit_children_h(el->layout, true, 0);
+    el = page_add_el(page,EL_TEXTBOX,p,"","2freq_mod_label");
+        layout_size_to_fit_children_h(el->layout, true, 0);
+    el = page_add_el(page,EL_TEXTBOX,p,"","3freq_mod_label");
+        layout_size_to_fit_children_h(el->layout, true, 0);
+    el = page_add_el(page,EL_TEXTBOX,p,"","4freq_mod_label");
+        layout_size_to_fit_children_h(el->layout, true, 0);
+        layout_reset(page->layout);
 
-    p.slider_p.orientation = SLIDER_HORIZONTAL;
-    p.slider_p.style = SLIDER_FILL;
+    p.textbox_p.set_str = "Mod amp of:";
+    page_add_el(page,EL_TEXTBOX,p,"","1amp_mod_label");
+    page_add_el(page,EL_TEXTBOX,p,"","2amp_mod_label");
+    page_add_el(page,EL_TEXTBOX,p,"","3amp_mod_label");
+    page_add_el(page,EL_TEXTBOX,p,"","4amp_mod_label");
+
+
     /* page_el_params_slider_from_ep(&p, &s->vol_ep); */
 
     /* page_add_el(page,EL_SLIDER,p,"synth_vol_slider","master_amp_slider"); */
@@ -164,6 +192,18 @@ static void add_osc_page(TabView *tv, Track *track)
     /* page_add_el(page,EL_SLIDER,p,"synth_pan_slider","master_pan_slider"); */
     /* for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) { */
     OscCfg *cfg = s->base_oscs;
+
+    p.sradio_p.align_horizontal = true;
+    p.sradio_p.symbols = SYMBOL_TABLE + SYMBOL_SINE;
+    p.sradio_p.num_items = 4;
+    p.sradio_p.padding = 7;
+    p.sradio_p.unsel_color = &colors.clear;
+    p.sradio_p.sel_color = &sel_color;
+    p.sradio_p.ep = &cfg->type_ep;
+    page_add_el(page,EL_SYMBOL_RADIO,p, "1type_radio","1type_radio");
+
+    p.slider_p.orientation = SLIDER_HORIZONTAL;
+    p.slider_p.style = SLIDER_FILL;
 	
     page_el_params_slider_from_ep(&p, &cfg->amp_ep);	
     page_add_el(page,EL_SLIDER,p,"1vol","1vol_slider");
@@ -194,6 +234,26 @@ static void add_osc_page(TabView *tv, Track *track)
     page_el_params_slider_from_ep(&p, &cfg->unison.stereo_spread_ep);
     page_add_el(page,EL_SLIDER,p,"1stereo_spread","1unison_stereo_spread_slider");
 
+    char *osc_names[] = {"(none)", "Osc2", "Osc3", "Osc4"};
+    void *dropdown_args[4];
+    for (int i=0; i<4; i++) {
+	dropdown_args[i] = (void *)((long)1 << 8);
+    }
+    dropdown_args[0] += 0; /* "none" */
+    dropdown_args[1] += 2; /* osc1 */
+    dropdown_args[2] += 3; /* osc2 */
+    dropdown_args[3] += 4; /* osc3 */
+    p.dropdown_p.header = NULL;
+    p.dropdown_p.item_names = osc_names;
+    p.dropdown_p.item_annotations = NULL;
+    p.dropdown_p.item_args = dropdown_args;
+    p.dropdown_p.num_items = 4;
+    p.dropdown_p.selection_fn = fmod_selector_fn;
+    page_add_el(page,EL_DROPDOWN,p,"1fmod_dropdown","1fmod_dropdown");
+
+    
+    cfg++;
+
     p.sradio_p.align_horizontal = true;
     p.sradio_p.symbols = SYMBOL_TABLE + SYMBOL_SINE;
     p.sradio_p.num_items = 4;
@@ -201,11 +261,8 @@ static void add_osc_page(TabView *tv, Track *track)
     p.sradio_p.unsel_color = &colors.clear;
     p.sradio_p.sel_color = &sel_color;
     p.sradio_p.ep = &cfg->type_ep;
-    page_add_el(page,EL_SYMBOL_RADIO,p, "1type_radio","1type_radio");
+    page_add_el(page,EL_SYMBOL_RADIO,p, "2type_radio","2type_radio");
 
-
-    
-    cfg++;
     p.slider_p.orientation = SLIDER_HORIZONTAL;
     p.slider_p.style = SLIDER_FILL;
 
@@ -247,9 +304,35 @@ static void add_osc_page(TabView *tv, Track *track)
     p.sradio_p.ep = &cfg->type_ep;
     page_add_el(page,EL_SYMBOL_RADIO,p, "2type_radio","2type_radio");
 
+    osc_names[1] = "Osc1";
+    for (int i=0; i<4; i++) {
+	dropdown_args[i] = (void *)((long)2 << 8);
+    }
+    dropdown_args[0] += 0; /* "none" */
+    dropdown_args[1] += 1; /* osc1 */
+    dropdown_args[2] += 3; /* osc2 */
+    dropdown_args[3] += 4; /* osc3 */
+    p.dropdown_p.header = NULL;
+    p.dropdown_p.item_names = osc_names;
+    p.dropdown_p.item_annotations = NULL;
+    p.dropdown_p.item_args = dropdown_args;
+    p.dropdown_p.num_items = 4;
+    p.dropdown_p.selection_fn = fmod_selector_fn;
+    page_add_el(page,EL_DROPDOWN,p,"2fmod_dropdown","2fmod_dropdown");
+
 
 
     cfg++;
+
+    p.sradio_p.align_horizontal = true;
+    p.sradio_p.symbols = SYMBOL_TABLE + SYMBOL_SINE;
+    p.sradio_p.num_items = 4;
+    p.sradio_p.padding = 7;
+    p.sradio_p.unsel_color = &colors.clear;
+    p.sradio_p.sel_color = &sel_color;
+    p.sradio_p.ep = &cfg->type_ep;
+    page_add_el(page,EL_SYMBOL_RADIO,p, "3type_radio","3type_radio");
+    
     p.slider_p.orientation = SLIDER_HORIZONTAL;
     p.slider_p.style = SLIDER_FILL;
 
@@ -291,8 +374,36 @@ static void add_osc_page(TabView *tv, Track *track)
     p.sradio_p.ep = &cfg->type_ep;
     page_add_el(page,EL_SYMBOL_RADIO,p, "3type_radio","3type_radio");
 
+    
+    osc_names[2] = "Osc2";
+    for (int i=0; i<4; i++) {
+	dropdown_args[i] = (void *)((long)3 << 8);
+    }
+    dropdown_args[0] += 0; /* "none" */
+    dropdown_args[1] += 1; /* osc1 */
+    dropdown_args[2] += 2; /* osc2 */
+    dropdown_args[3] += 4; /* osc3 */
+    p.dropdown_p.header = NULL;
+    p.dropdown_p.item_names = osc_names;
+    p.dropdown_p.item_annotations = NULL;
+    p.dropdown_p.item_args = dropdown_args;
+    p.dropdown_p.num_items = 4;
+    p.dropdown_p.selection_fn = fmod_selector_fn;
+    page_add_el(page,EL_DROPDOWN,p,"3fmod_dropdown","3fmod_dropdown");
+
+
 
     cfg++;
+
+    p.sradio_p.align_horizontal = true;
+    p.sradio_p.symbols = SYMBOL_TABLE + SYMBOL_SINE;
+    p.sradio_p.num_items = 4;
+    p.sradio_p.padding = 7;
+    p.sradio_p.unsel_color = &colors.clear;
+    p.sradio_p.sel_color = &sel_color;
+    p.sradio_p.ep = &cfg->type_ep;
+    page_add_el(page,EL_SYMBOL_RADIO,p, "4type_radio","4type_radio");
+
 
     p.slider_p.orientation = SLIDER_HORIZONTAL;
     p.slider_p.style = SLIDER_FILL;
@@ -329,18 +440,33 @@ static void add_osc_page(TabView *tv, Track *track)
 
 
 
-    p.sradio_p.align_horizontal = true;
-    p.sradio_p.symbols = SYMBOL_TABLE + SYMBOL_SINE;
-    p.sradio_p.num_items = 4;
-    p.sradio_p.padding = 7;
-    p.sradio_p.unsel_color = &colors.clear;
-    p.sradio_p.sel_color = &sel_color;
-    p.sradio_p.ep = &cfg->type_ep;
-    page_add_el(page,EL_SYMBOL_RADIO,p,"4type_radio","4type_radio");
-    /* } */
+    /* p.sradio_p.align_horizontal = true; */
+    /* p.sradio_p.symbols = SYMBOL_TABLE + SYMBOL_SINE; */
+    /* p.sradio_p.num_items = 4; */
+    /* p.sradio_p.padding = 7; */
+    /* p.sradio_p.unsel_color = &colors.clear; */
+    /* p.sradio_p.sel_color = &sel_color; */
+    /* p.sradio_p.ep = &cfg->type_ep; */
+    /* page_add_el(page,EL_SYMBOL_RADIO,p,"4type_radio","4type_radio"); */
+    /* /\* } *\/ */
 
-
-
+  
+    osc_names[3] = "Osc3";
+    for (int i=0; i<4; i++) {
+	dropdown_args[i] = (void *)((long)4 << 8);
+    }
+    dropdown_args[0] += 0; /* "none" */
+    dropdown_args[1] += 1; /* osc1 */
+    dropdown_args[2] += 2; /* osc2 */
+    dropdown_args[3] += 3; /* osc3 */
+    p.dropdown_p.header = NULL;
+    p.dropdown_p.item_names = osc_names;
+    p.dropdown_p.item_annotations = NULL;
+    p.dropdown_p.item_args = dropdown_args;
+    p.dropdown_p.num_items = 4;
+    p.dropdown_p.selection_fn = fmod_selector_fn;
+    page_add_el(page,EL_DROPDOWN,p,"4fmod_dropdown","4fmod_dropdown");
+    
     layout_force_reset(page->layout);
 
 
@@ -424,6 +550,36 @@ static void page_fill_out_layout(Page *page)
 	    snprintf(name, 255, "%d%s_slider", o+1, i==0 ? "unison_num_voices" : i==1 ? "unison_detune_cents" : i==2 ?  "unison_relative_amp" : "unison_stereo_spread");
 	    layout_set_name(slider_lt, name);
 	}
+	Layout *freq_mod_row = layout_get_child_by_name_recursive(page->layout, "freq_mod_row");
+	Layout *amp_mod_row = layout_get_child_by_name_recursive(page->layout, "amp_mod_row");
+	snprintf(name, 255, "%dfreq_mod_row", o+1);
+	layout_set_name(freq_mod_row, name);
+	snprintf(name, 255, "%damp_mod_row", o+1);
+	layout_set_name(amp_mod_row, name);
+	Layout *fmod_label_lt = layout_add_child(freq_mod_row);
+	Layout *amod_label_lt = layout_add_child(amp_mod_row);
+	snprintf(name, 255, "%dfreq_mod_label", o+1);
+	layout_set_name(fmod_label_lt, name);
+	snprintf(name, 255, "%damp_mod_label", o+1);
+	layout_set_name(amod_label_lt, name);
+	fmod_label_lt->h.type = SCALE;
+	fmod_label_lt->h.value = 1.0;
+	fmod_label_lt->w.value = 20.0;
+	amod_label_lt->h.type = SCALE;
+	amod_label_lt->h.value = 1.0;
+	amod_label_lt->w.value = 20.0;
+
+	Layout *fmod_dropdown = layout_add_child(freq_mod_row);
+	snprintf(name, 255, "%dfmod_dropdown", o+1);
+	layout_set_name(fmod_dropdown, name);
+	fmod_dropdown->h.type = SCALE;
+	fmod_dropdown->h.value = 1.0;
+	fmod_dropdown->x.type = STACK;
+	fmod_dropdown->x.value = 5.0;
+	fmod_dropdown->w.value = 80;
+	
+	
+	
     }
 
     layout_force_reset(page->layout);

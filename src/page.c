@@ -259,6 +259,9 @@ static void page_el_destroy(PageEl *el)
     case EL_SYMBOL_RADIO:
 	symbol_radio_destroy((SymbolRadio *)el->component);
 	break;
+    case EL_DROPDOWN:
+	dropdown_destroy((Dropdown *)el->component);
+	break;
     default:
 	break;
     }
@@ -310,6 +313,11 @@ void page_el_reset(PageEl *el)
     case EL_BUTTON:
 	textbox_reset_full(((Button *)el->component)->tb);
 	break;
+    case EL_SYMBOL_RADIO:
+	symbol_radio_reset_from_endpoint(el->component);
+	break;
+    case EL_DROPDOWN:
+	break;
     default:
 	break;
     }
@@ -325,6 +333,7 @@ static inline bool el_is_selectable(PageElType type)
     case EL_TOGGLE:
     case EL_SYMBOL_BUTTON:
     case EL_SYMBOL_RADIO:
+    case EL_DROPDOWN:
 	return true;
     default:
 	return false;
@@ -394,6 +403,7 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	    /* params.slider_p.action, */
 	    /* params.slider_p.target, */
 	    &session->dragged_component);
+	/* slider_reset(el->component); */
 	break;
     case EL_RADIO:
 	el->component = (void *)radio_button_create(
@@ -477,6 +487,16 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	    params.sradio_p.padding,
 	    params.sradio_p.sel_color,
 	    params.sradio_p.unsel_color);
+	break;
+    case EL_DROPDOWN:
+	el->component = dropdown_create(
+	    el->layout,
+	    params.dropdown_p.header,
+	    params.dropdown_p.item_names,
+	    params.dropdown_p.item_annotations,
+	    params.dropdown_p.item_args,
+	    params.dropdown_p.num_items,
+	    params.dropdown_p.selection_fn);	    
 	break;
     default:
 	break;
@@ -631,6 +651,9 @@ static bool page_element_mouse_click(PageEl *el, Window *win)
 	return symbol_button_click(el->component, main_win);
     case EL_SYMBOL_RADIO:
 	return symbol_radio_click(el->component, main_win);
+	break;
+    case EL_DROPDOWN:
+	return dropdown_click(el->component, main_win);
 	break;
     default:
 	break;
@@ -825,6 +848,9 @@ static void page_el_draw(PageEl *el)
 	break;
     case EL_SYMBOL_RADIO:
 	symbol_radio_draw(el->component);
+	break;
+    case EL_DROPDOWN:
+	dropdown_draw(el->component);
 	break;
     default:
 	break;
@@ -1178,6 +1204,8 @@ void page_next_escape(Page *page)
     if (page->selected_i < page->num_selectable - 1)
 	page->selected_i++;
     else page->selected_i = 0;
+
+    fprintf(stderr, "SELECTED I: %d/%d\n", page->selected_i, page->num_selectable);
     page_el_select(page->selectable_els[page->selected_i]);
 }
 
@@ -1216,6 +1244,9 @@ void page_enter(Page *page)
 	break;
     case EL_SYMBOL_RADIO:
 	symbol_radio_cycle(el->component);
+	break;
+    case EL_DROPDOWN:
+	dropdown_create_menu(el->component);
 	break;
     default:
 	break;

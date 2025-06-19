@@ -747,7 +747,7 @@ Track *timeline_add_track(Timeline *tl)
     /* textbox_set_trunc(track->tb_input_name, true); */
     /* textbox_set_fixed_w(track->tb_input_name, saved_w); */
     textbox_set_border(track->tb_input_name, &colors.black, 1);
-    textbox_set_style(track->tb_input_name, BUTTON_CLASSIC);
+    /* textbox_set_style(track->tb_input_name, BUTTON_CLASSIC); */
 
     
     track->tb_mute_button = textbox_create_from_str(
@@ -759,7 +759,7 @@ Track *timeline_add_track(Timeline *tl)
     track->tb_mute_button->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
     textbox_set_border(track->tb_mute_button, &colors.black, 1);
     textbox_set_background_color(track->tb_mute_button, &color_mute_solo_grey);
-    textbox_set_style(track->tb_mute_button, BUTTON_CLASSIC);
+    /* textbox_set_style(track->tb_mute_button, BUTTON_CLASSIC); */
     /* textbox_reset_full(track->tb_mute_button); */
 
     track->tb_solo_button = textbox_create_from_str(
@@ -771,7 +771,7 @@ Track *timeline_add_track(Timeline *tl)
     track->tb_solo_button->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
     textbox_set_border(track->tb_solo_button, &colors.black, 1);
     textbox_set_background_color(track->tb_solo_button, &color_mute_solo_grey);
-    textbox_set_style(track->tb_solo_button, BUTTON_CLASSIC);
+    /* textbox_set_style(track->tb_solo_button, BUTTON_CLASSIC); */
     /* textbox_reset_full(track->tb_solo_button); */
 
 

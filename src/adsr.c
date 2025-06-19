@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "adsr.h"
-
+#include "color.h"
 
 void adsr_set_params(
     ADSRParams *p,
@@ -266,5 +266,3 @@ int32_t adsr_query_position(ADSRState *s)
     }
     return pos;
 }
-
-

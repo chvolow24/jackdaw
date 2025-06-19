@@ -27,7 +27,8 @@
 #include "textbox.h"
 #include "value.h"
 
-#define MAX_ELEMENTS 64
+#define MAX_ELEMENTS 256
+#define MAX_SELECTABLE 64
 #define MAX_TABS 16
 
 #define TAB_H 32
@@ -49,7 +50,8 @@ typedef enum page_el_type {
     EL_CANVAS,
     EL_EQ_PLOT,
     EL_SYMBOL_BUTTON,
-    EL_SYMBOL_RADIO
+    EL_SYMBOL_RADIO,
+    EL_DROPDOWN
     /* EL_TOGGLE_EP */
 } PageElType;
 
@@ -67,7 +69,7 @@ typedef struct page_element {
 typedef struct page {
     const char *title;
     PageEl *elements[MAX_ELEMENTS];
-    PageEl *selectable_els[MAX_ELEMENTS];
+    PageEl *selectable_els[MAX_SELECTABLE];
     uint8_t num_elements;
     uint8_t num_selectable;
     int selected_i;
@@ -220,6 +222,15 @@ struct symbol_radio_params {
     SDL_Color *unsel_color;
 };
 
+struct dropdown_params {
+    const char *header;
+    char **item_names;
+    char **item_annotations;
+    void **item_args;
+    uint8_t num_items;
+    int (*selection_fn)(Dropdown *, void *);
+};
+
 typedef union page_el_params {
     struct slider_params slider_p;
     struct textbox_params textbox_p;
@@ -235,6 +246,7 @@ typedef union page_el_params {
     struct symbol_button_params sbutton_p;
     struct toggle_ep_params toggle_ep_p;
     struct symbol_radio_params sradio_p;
+    struct dropdown_params dropdown_p;
 } PageElParams;
 
 

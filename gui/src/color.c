@@ -6,6 +6,7 @@ const struct colors colors = {
     .clear = {0, 0, 0, 0},
     .grey = {127, 127, 127, 255},
     .light_grey = {220, 220, 220, 255},
+    .dark_grey = {64, 64, 64, 255},
     .red = {255, 0, 0, 255},
     .green = {0, 255, 0, 255},
     .blue = {0, 0, 255, 255},

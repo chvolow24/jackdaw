@@ -5,6 +5,7 @@
 #include "geometry.h"
 #include "input.h"
 #include "layout.h"
+#include "menu.h"
 #include "status.h"
 #include "symbol.h"
 #include "text.h"
@@ -803,12 +804,12 @@ SymbolRadio *symbol_radio_create(
 	if (align_horizontal) {
 	    item_lt->x.type = STACK;
 	    item_lt->y.type = REL;
+	    item_lt->x.value = padding;
 	} else {
 	    item_lt->x.type = REL;
 	    item_lt->y.type = STACK;
+	    item_lt->y.value = padding;
 	}
-	item_lt->x.value = padding;
-	item_lt->y.value = padding;
 	item_lt->w.value = symbols[i]->x_dim_pix / main_win->dpi_scale_factor;
 	item_lt->h.value = symbols[i]->y_dim_pix / main_win->dpi_scale_factor;	
     }
@@ -933,6 +934,125 @@ void canvas_destroy(Canvas *c)
 {
     free(c);
 }
+
+
+Dropdown *dropdown_create(
+    Layout *lt,
+    const char *header,
+    char **item_names,
+    char **item_annotations,
+    void **item_args,
+    uint8_t num_items,
+    /* bool free_args_on_destroy, */
+    int (*selection_fn)(Dropdown *self, void *arg))
+{
+    Dropdown *d = calloc(1, sizeof(Dropdown));
+    d->layout = lt;
+    if (!item_names) {
+	fprintf(stderr, "Error: dropdown_create: item_names cannot be null\n");
+	free(d);
+	return NULL;
+    }
+    d->item_names = calloc(num_items, sizeof(char *));
+    memcpy(d->item_names, item_names, num_items * sizeof(char *));
+    if (item_annotations) {
+	d->item_annotations = calloc(num_items, sizeof(char *));
+	memcpy(d->item_annotations, item_annotations, num_items * sizeof(char *));
+    }
+    if (item_args) {
+	d->item_args = calloc(num_items, sizeof(void *));
+	memcpy(d->item_args, item_args, num_items * sizeof(void *));
+    }
+    d->num_items = num_items;
+    /* d->free_args_on_destroy = free_args_on_destroy; */
+    d->selection_fn = selection_fn;
+    d->tb = textbox_create_from_str(
+	item_names[0],
+	lt,
+	main_win->std_font,
+	12,
+	main_win);
+    textbox_set_trunc(d->tb, false);
+    textbox_set_style(d->tb, BUTTON_DARK);
+    textbox_reset_full(d->tb);
+    return d;
+}
+
+void dropdown_draw(Dropdown *d)
+{
+    textbox_draw(d->tb);
+}
+
+void dropdown_destroy(Dropdown *d)
+{
+    free(d->item_names);
+    if (d->item_annotations) free(d->item_annotations);
+    if (d->item_args) free(d->item_args);
+    free(d);
+}
+
+struct dropdown_menu_item_arg {
+    Dropdown *d;
+    void *inner_arg;
+    int index;
+};
+
+static void dropdown_item_onclick(void *arg_v)
+{
+    struct dropdown_menu_item_arg *arg = arg_v;
+    Dropdown *d = arg->d;
+    int ret = 0;
+    if (d->selection_fn) {
+        ret = d->selection_fn(d, arg->inner_arg);
+    }
+    if (ret < 0) {
+	fprintf(stderr, "Dropdown: invalid\n");
+    } else {
+	d->selected_item = arg->index;
+	textbox_set_value_handle(d->tb, d->item_names[arg->index]);
+	textbox_reset_full(d->tb);
+    }
+    window_pop_menu(main_win);
+}
+
+
+void dropdown_create_menu(Dropdown *d)
+{
+    Menu *menu = menu_create_at_point(d->layout->rect.x, d->layout->rect.y);
+    MenuColumn *c = menu_column_add(menu, "");
+    MenuSection *s = menu_section_add(c, "");
+    for (int i=0; i<d->num_items; i++) {
+	struct dropdown_menu_item_arg *arg = malloc(sizeof(struct dropdown_menu_item_arg));
+	arg->d = d;
+	arg->inner_arg = d->item_args ? d->item_args[i] : NULL;
+	arg->index = i;
+	MenuItem *item = menu_item_add(
+	    s,
+	    d->item_names[i],
+	    d->item_annotations ? d->item_annotations[i] : NULL,
+	    dropdown_item_onclick,
+	    arg);	
+	item->free_target_on_destroy = true;
+	/* item->free_target_on_destroy = d->free_args_on_destroy; */
+    }
+    if (d->header) menu_add_header(menu, d->header, d->description);
+    window_add_menu(main_win, menu);
+    
+    /* MenuSubcat *sc = menu_add_subcat(menu, ""); */
+}
+
+bool dropdown_click(Dropdown *d, Window *win)
+{
+    if (SDL_PointInRect(&win->mousep, &d->layout->rect)) {
+	dropdown_create_menu(d);
+	return true;
+    } else {
+	return false;
+    }
+}
+
+
+
 
 /* Mouse functions */
 

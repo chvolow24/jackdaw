@@ -20,6 +20,7 @@ struct colors {
     SDL_Color clear;
     SDL_Color grey;
     SDL_Color light_grey;
+    SDL_Color dark_grey;
     SDL_Color red;
     SDL_Color green;
     SDL_Color blue;

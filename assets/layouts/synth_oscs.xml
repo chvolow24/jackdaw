@@ -6,7 +6,7 @@
   <children>
     <Layout name="master_amp_label" type="NORMAL">
       <x>REL 48</x>
-      <y>REL 24</y>
+      <y>REL 18</y>
       <w>REL 50</w>
       <h>REL 23</h>
       <children>
@@ -14,7 +14,7 @@
     </Layout>
     <Layout name="master_amp_slider" type="NORMAL">
       <x>STACK 15</x>
-      <y>REL 24</y>
+      <y>REL 18</y>
       <w>REL 200</w>
       <h>REL 23</h>
       <children>
@@ -22,7 +22,7 @@
     </Layout>
     <Layout name="master_pan_label" type="NORMAL">
       <x>REL 340</x>
-      <y>REL 24</y>
+      <y>REL 18</y>
       <w>REL 50</w>
       <h>REL 23</h>
       <children>
@@ -30,7 +30,7 @@
     </Layout>
     <Layout name="master_pan_slider" type="NORMAL">
       <x>STACK 15</x>
-      <y>REL 24</y>
+      <y>REL 18</y>
       <w>REL 200</w>
       <h>REL 23</h>
       <children>
@@ -38,7 +38,7 @@
     </Layout>
     <Layout name="osc1_panel" type="NORMAL">
       <x>REL 48</x>
-      <y>REL 58</y>
+      <y>REL 50</y>
       <w>REL 349</w>
       <h>REL 244</h>
       <children>
@@ -116,7 +116,7 @@
         </Layout>
         <Layout name="freq_mod_row" type="NORMAL">
           <x>REL 13</x>
-          <y>REL 183</y>
+          <y>STACK 6</y>
           <w>SCALE 0.902579</w>
           <h>REL 21</h>
           <children>
@@ -124,7 +124,7 @@
         </Layout>
         <Layout name="amp_mod_row" type="NORMAL">
           <x>REL 12</x>
-          <y>REL 214</y>
+          <y>STACK 6</y>
           <w>REL 316</w>
           <h>REL 21</h>
           <children>
@@ -134,7 +134,7 @@
     </Layout>
     <Layout name="osc2_panel" type="NORMAL">
       <x>REL 415</x>
-      <y>REL 58</y>
+      <y>REL 50</y>
       <w>REL 349</w>
       <h>REL 244</h>
       <children>
@@ -212,7 +212,7 @@
         </Layout>
         <Layout name="freq_mod_row" type="NORMAL">
           <x>REL 13</x>
-          <y>REL 183</y>
+          <y>STACK 6</y>
           <w>SCALE 0.902579</w>
           <h>REL 21</h>
           <children>
@@ -220,7 +220,7 @@
         </Layout>
         <Layout name="amp_mod_row" type="NORMAL">
           <x>REL 12</x>
-          <y>REL 214</y>
+          <y>STACK 6</y>
           <w>REL 316</w>
           <h>REL 21</h>
           <children>
@@ -230,7 +230,7 @@
     </Layout>
     <Layout name="osc3_panel" type="NORMAL">
       <x>REL 48</x>
-      <y>REL 308</y>
+      <y>REL 300</y>
       <w>REL 349</w>
       <h>REL 244</h>
       <children>
@@ -308,7 +308,7 @@
         </Layout>
         <Layout name="freq_mod_row" type="NORMAL">
           <x>REL 13</x>
-          <y>REL 183</y>
+          <y>STACK 6</y>
           <w>SCALE 0.902579</w>
           <h>REL 21</h>
           <children>
@@ -316,7 +316,7 @@
         </Layout>
         <Layout name="amp_mod_row" type="NORMAL">
           <x>REL 12</x>
-          <y>REL 214</y>
+          <y>STACK 6</y>
           <w>REL 316</w>
           <h>REL 21</h>
           <children>
@@ -326,7 +326,7 @@
     </Layout>
     <Layout name="osc4_panel" type="NORMAL">
       <x>REL 415</x>
-      <y>REL 308</y>
+      <y>REL 300</y>
       <w>REL 349</w>
       <h>REL 244</h>
       <children>
@@ -404,7 +404,7 @@
         </Layout>
         <Layout name="freq_mod_row" type="NORMAL">
           <x>REL 13</x>
-          <y>REL 183</y>
+          <y>STACK 6</y>
           <w>SCALE 0.902579</w>
           <h>REL 21</h>
           <children>
@@ -412,7 +412,7 @@
         </Layout>
         <Layout name="amp_mod_row" type="NORMAL">
           <x>REL 12</x>
-          <y>REL 214</y>
+          <y>STACK 6</y>
           <w>REL 316</w>
           <h>REL 21</h>
           <children>

@@ -27,6 +27,7 @@ Synth *synth_create(Track *track)
     s->track = track;
 
     s->base_oscs[0].active = true;
+    s->base_oscs[0].amp = 0.2;
     for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
 	s->base_oscs[i].type = WS_SAW;
 	if (i==1) {
@@ -36,7 +37,7 @@ Synth *synth_create(Track *track)
 	    s->base_oscs[i].type = WS_SINE;
     }
     
-    synth_base_osc_set_freq_modulator(s, s->base_oscs + 0, s->base_oscs + 1);
+    /* synth_base_osc_set_freq_modulator(s, s->base_oscs + 0, s->base_oscs + 1); */
     /* synth_base_osc_set_freq_modulator(s, s->base_oscs + 2, s->base_oscs + 3); */
 
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
@@ -65,6 +66,7 @@ Synth *synth_create(Track *track)
     
     for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
 	OscCfg *cfg = s->base_oscs + i;
+	cfg->pan = 0.5;
 
 	const char *fmt = "%dactive";
 	int len = strlen(fmt);
@@ -603,10 +605,51 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
 
 }
 
-void synth_base_osc_set_freq_modulator(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg)
+int synth_set_freq_mod_pair(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg)
 {
+    if (!modulator_cfg) {
+	fprintf(stderr, "Error: synth_set_freq_mod_pair: modulator_cfg arg is mandatory\n");
+	return -1;
+	
+    }
+    int modulator_i = modulator_cfg - s->base_oscs;
     
-    if (!carrier_cfg) return;
+    if (!carrier_cfg) {
+	modulator_cfg->mod_freq_of = NULL;
+	for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
+	    OscCfg *cfg = s->base_oscs + i;
+	    if (cfg->freq_mod_by == modulator_cfg) {
+		/* cfg is old carrier */
+		cfg->freq_mod_by = NULL;
+		for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+		    SynthVoice *v = s->voices + i;
+		    for (int j=cfg-s->base_oscs; j<SYNTHVOICE_NUM_OSCS; j+= SYNTH_NUM_BASE_OSCS) {
+			Osc *osc = v->oscs + j;
+			if (osc->freq_modulator) {
+			    osc->freq_modulator = NULL;
+			}
+		    }
+		}
+
+	    }
+	}
+	return 1;
+    } else if (carrier_cfg->freq_mod_by) {
+        status_set_errstr("Modulator already assigned to that osc");
+	return -1;
+    } else {
+	OscCfg *loop_detect = carrier_cfg;
+	while (loop_detect->mod_freq_of) {
+	    if (loop_detect->mod_freq_of == modulator_cfg) {
+		fprintf(stderr, "ERROR! loop detected!\n");
+		status_set_errstr("Invalid: modulation loop detected");
+		synth_set_freq_mod_pair(s, NULL, modulator_cfg);
+		return -2;
+	    }
+	    loop_detect = loop_detect->mod_freq_of;
+	}
+    }
+    
     int carrier_i = carrier_cfg - s->base_oscs;
     if (!modulator_cfg) {
 	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
@@ -619,7 +662,7 @@ void synth_base_osc_set_freq_modulator(Synth *s, OscCfg *carrier_cfg, OscCfg *mo
     } else {
 	modulator_cfg->mod_freq_of = carrier_cfg;
 	carrier_cfg->freq_mod_by = modulator_cfg;
-	int modulator_i = modulator_cfg - s->base_oscs;
+
 	
 	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	    SynthVoice *v = s->voices + i;
@@ -633,6 +676,7 @@ void synth_base_osc_set_freq_modulator(Synth *s, OscCfg *carrier_cfg, OscCfg *mo
 	/*     } */
 	}
     }
+    return 0;
 }
 
 void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start, bool send_immediate)

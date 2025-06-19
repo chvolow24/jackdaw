@@ -147,7 +147,8 @@ void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start
 void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step);
 void synth_close_all_notes(Synth *s);
 
-void synth_base_osc_set_freq_modulator(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg);
+/* Return 0 for success, 1 for unset (carrier NULL), < 0 for error */
+int synth_set_freq_mod_pair(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg);
 
 #endif
 

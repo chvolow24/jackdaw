@@ -328,7 +328,6 @@ automations_draw:
     if (track->tl->track_selector == track->tl_rank && track->selected_automation < 0) {
 	draw_selected_track_rect(track->layout);
     }
-
 }
 
 static void ruler_draw(Timeline *tl)
@@ -679,7 +678,6 @@ static void control_bar_draw()
 
 /* #include "compressor.h" */
 /* extern Compressor comp_L; */
-
 void project_draw()
 {
     Session *session = session_get();

@@ -1,4 +1,5 @@
 #include "color.h"
+#include "geometry.h"
 #include "layout.h"
 #include "page.h"
 #include "session.h"
@@ -42,6 +43,17 @@ static int fmod_selector_fn(Dropdown *d, void *inner_arg)
 
 }
 
+static void panel_draw(void *layout_v, void *color_v)
+{
+    Layout *layout = layout_v;
+    SDL_Color *color = color_v;
+    SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(color));
+    geom_fill_rounded_rect(main_win->rend, &layout->rect, 8 * main_win->dpi_scale_factor);
+
+    SDL_SetRenderDrawColor(main_win->rend, 100, 100, 100, 255);
+    geom_draw_rounded_rect(main_win->rend, &layout->rect, 8 * main_win->dpi_scale_factor);
+}
+
 static void add_osc_page(TabView *tv, Track *track)
 {
     
@@ -58,6 +70,36 @@ static void add_osc_page(TabView *tv, Track *track)
     union page_el_params p;
     PageEl *el = NULL;
 
+    static const SDL_Color osc_panel_colors[] = {
+	{45, 22, 28, 100},
+	{29, 36, 67, 100},
+	/* {49, 49, 49, 255}, */
+	{25, 64, 33, 100},
+	{83, 34, 44, 100}
+    };
+    p.canvas_p.draw_fn = panel_draw;
+    
+    p.canvas_p.draw_arg1 = layout_get_child_by_name_recursive(page->layout, "osc1_panel");
+    p.canvas_p.draw_arg2 = (void *)osc_panel_colors;
+    page_add_el(page,EL_CANVAS,p,"","osc1_panel");
+
+    p.canvas_p.draw_arg1 = layout_get_child_by_name_recursive(page->layout, "osc2_panel");
+    p.canvas_p.draw_arg2 = (void *)(osc_panel_colors + 1);
+    page_add_el(page,EL_CANVAS,p,"","osc2_panel");
+
+    p.canvas_p.draw_arg1 = layout_get_child_by_name_recursive(page->layout, "osc3_panel");
+    p.canvas_p.draw_arg2 = (void *)(osc_panel_colors + 2);
+    page_add_el(page,EL_CANVAS,p,"","osc3_panel");
+
+    p.canvas_p.draw_arg1 = layout_get_child_by_name_recursive(page->layout, "osc4_panel");
+    p.canvas_p.draw_arg2 = (void *)(osc_panel_colors + 3);
+    page_add_el(page,EL_CANVAS,p,"","osc4_panel");
+
+
+
+
+    
+    
     p.textbox_p.font = main_win->mono_bold_font;
     p.textbox_p.text_size = 14;
     p.textbox_p.win = main_win;

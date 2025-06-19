@@ -1218,7 +1218,6 @@ void page_next_escape(Page *page)
 	page->selected_i++;
     else page->selected_i = 0;
 
-    fprintf(stderr, "SELECTED I: %d/%d\n", page->selected_i, page->num_selectable);
     page_el_select(page->selectable_els[page->selected_i]);
 }
 

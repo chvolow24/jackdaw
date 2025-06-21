@@ -20,7 +20,8 @@
 #include "audio_connection.h"
 #include "clipref.h"
 #include "color.h"
-/* #include "dsp.h" */
+#include "consts.h"
+#include "dsp_utils.h"
 #include "dsp_utils.h"
 #include "midi_clip.h"
 #include "midi_io.h"
@@ -276,16 +277,19 @@ static void *transport_dsp_thread_fn(void *arg)
 	/* cd = clock(); */
 
 	/* DSP */
-	double dL[len];
-	double dR[len];
+	float dL[len];
+	float dR[len];
 	for (int i=0; i<len; i++) {
-	    dL[i] = (double)buf_L[i];
-	    dR[i] = (double)buf_R[i];
+	    float hamming_v = HAMMING_SCALAR * hamming(i, len);
+	    dL[i] = hamming_v * buf_L[i];
+	    dR[i] = hamming_v * buf_R[i];
 	}
 	double complex lfreq[len];
 	double complex rfreq[len];
-	FFT(dL, lfreq, len);
-	FFT(dR, rfreq, len);
+
+	FFTf(dL, lfreq, len);
+	FFTf(dR, rfreq, len);
+
 
 	get_magnitude(lfreq, tl->proj->output_L_freq, len);
 	get_magnitude(rfreq, tl->proj->output_R_freq, len);

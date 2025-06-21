@@ -122,7 +122,8 @@ typedef struct osc_cfg {
 
 typedef struct synth {
     SynthVoice voices[SYNTH_NUM_VOICES];    
-    OscCfg base_oscs[SYNTH_NUM_BASE_OSCS];    
+    OscCfg base_oscs[SYNTH_NUM_BASE_OSCS];
+    APINode api_node;
     ADSRParams amp_env;
 
     /* Filter */
@@ -131,6 +132,8 @@ typedef struct synth {
     bool monitor;
     bool allow_voice_stealing;
     Page *osc_page; /* For GUI callback targeting */
+    Page *amp_env_page;
+    Page *filter_page;
 
     Track *track;
 

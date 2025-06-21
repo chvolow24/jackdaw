@@ -1,0 +1,128 @@
+<Layout name="synth_amp_env" type="NORMAL">
+  <x>REL 0</x>
+  <y>REL 0</y>
+  <w>SCALE 1.000000</w>
+  <h>SCALE 1.000000</h>
+  <children>
+    <Layout name="row" type="NORMAL">
+      <x>SCALE 0.046667</x>
+      <y>STACK 32</y>
+      <w>SCALE 0.864167</w>
+      <h>ABS 24</h>
+      <children>
+        <Layout name="attack_label" type="NORMAL">
+          <x>REL 0</x>
+          <y>REL 0</y>
+          <w>REL 150</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="attack_slider" type="NORMAL">
+          <x>REL 150</x>
+          <y>REL 0</y>
+          <w>COMPLEMENT 1</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+    <Layout name="row" type="NORMAL">
+      <x>SCALE 0.046667</x>
+      <y>STACK 24</y>
+      <w>SCALE 0.864167</w>
+      <h>ABS 24</h>
+      <children>
+        <Layout name="decay_label" type="NORMAL">
+          <x>REL 0</x>
+          <y>REL 0</y>
+          <w>REL 150</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="decay_slider" type="NORMAL">
+          <x>REL 150</x>
+          <y>REL 0</y>
+          <w>COMPLEMENT 1</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+    <Layout name="row" type="NORMAL">
+      <x>SCALE 0.046667</x>
+      <y>STACK 24</y>
+      <w>SCALE 0.864167</w>
+      <h>ABS 24</h>
+      <children>
+        <Layout name="sustain_label" type="NORMAL">
+          <x>REL 0</x>
+          <y>REL 0</y>
+          <w>REL 150</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="sustain_slider" type="NORMAL">
+          <x>REL 150</x>
+          <y>REL 0</y>
+          <w>COMPLEMENT 1</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+    <Layout name="row" type="NORMAL">
+      <x>SCALE 0.046667</x>
+      <y>STACK 24</y>
+      <w>SCALE 0.864167</w>
+      <h>ABS 24</h>
+      <children>
+        <Layout name="release_label" type="NORMAL">
+          <x>REL 0</x>
+          <y>REL 0</y>
+          <w>REL 150</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="release_slider" type="NORMAL">
+          <x>REL 150</x>
+          <y>REL 0</y>
+          <w>COMPLEMENT 1</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+    <Layout name="row" type="NORMAL">
+      <x>SCALE 0.046667</x>
+      <y>STACK 24</y>
+      <w>SCALE 0.864167</w>
+      <h>ABS 24</h>
+      <children>
+        <Layout name="exponent_label" type="NORMAL">
+          <x>REL 0</x>
+          <y>REL 0</y>
+          <w>REL 150</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="exponent_slider" type="NORMAL">
+          <x>REL 150</x>
+          <y>REL 0</y>
+          <w>COMPLEMENT 1</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+  </children>
+</Layout>

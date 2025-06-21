@@ -22,6 +22,7 @@
 #define LOADING_SCREEN_LT_PATH LAYOUT_PATH "/loading_screen.xml"
 
 #define SYNTH_OSCS_LT_PATH LAYOUT_PATH "/synth_oscs.xml"
+#define SYNTH_AMP_ENV_LT_PATH LAYOUT_PATH "/synth_amp_env.xml"
 
 #define TTF_PATH INSTALL_DIR "/assets/ttf/"
 #define OPEN_SANS_PATH TTF_PATH "OpenSans-Regular.ttf"

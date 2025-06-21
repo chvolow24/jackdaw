@@ -3,6 +3,8 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "api.h"
+#include "endpoint.h"
 
 enum adsr_stage {
     ADSR_UNINIT,
@@ -23,6 +25,17 @@ typedef struct adsr_params {
     float *d_ramp;
 
     float ramp_exp;
+
+    APINode api_node;
+    int a_msec;
+    int d_msec;
+    float s_ep_targ;
+    int r_msec;
+    Endpoint a_ep;
+    Endpoint d_ep;
+    Endpoint s_ep;
+    Endpoint r_ep;
+    Endpoint ramp_exp_ep;
     /* float *r_ramp; */
     /* r ramp not pre-calculated bc start amp not known*/
 } ADSRParams;
@@ -36,7 +49,6 @@ typedef struct adsr_state {
     int32_t s_time;
     /* bool has_release_start; */
     /* int32_t samples_before_release_start; */
-    
 } ADSRState;
 
 

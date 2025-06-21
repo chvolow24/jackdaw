@@ -19,6 +19,42 @@ void synth_osc_vol_dsp_cb(Endpoint *ep)
     else cfg->active = false;
 }
 
+void dsp_cb_attack(Endpoint *ep)
+{
+    int msec = endpoint_safe_read(ep, NULL).int_v;
+    Session *session = session_get();
+    int32_t samples = msec * session->proj.sample_rate / 1000;
+    ADSRParams *p = ep->xarg1;
+    adsr_set_params(p, samples, p->d, p->s, p->r, p->ramp_exp);
+}
+
+void dsp_cb_decay(Endpoint *ep)
+{
+    int msec = endpoint_safe_read(ep, NULL).int_v;
+    Session *session = session_get();
+    int32_t samples = msec * session->proj.sample_rate / 1000;
+    ADSRParams *p = ep->xarg1;
+    adsr_set_params(p, p->a, samples, p->s, p->r, p->ramp_exp);
+}
+
+void dsp_cb_sustain(Endpoint *ep)
+{
+    float s = endpoint_safe_read(ep, NULL).float_v;
+    ADSRParams *p = ep->xarg1;
+    adsr_set_params(p, p->a, p->d, s, p->r, p->ramp_exp);
+}
+
+
+void dsp_cb_release(Endpoint *ep)
+{
+    int msec = endpoint_safe_read(ep, NULL).int_v;
+    Session *session = session_get();
+    int32_t samples = msec * session->proj.sample_rate / 1000;
+    ADSRParams *p = ep->xarg1;
+    adsr_set_params(p, p->a, p->d, p->s, samples, p->ramp_exp);
+}
+
+
 Synth *synth_create(Track *track)
 {
     /* Session *session = session_get(); */
@@ -59,6 +95,70 @@ Synth *synth_create(Track *track)
     /* endpoint_init( */
     /* 	&s->vol_ep, */
     /* 	&s->, */
+
+    /* endpoint_init( */
+    /* 	s->amp_env */
+
+    api_node_register(&s->api_node, &track->api_node, "synth");
+    api_node_register(&s->amp_env.api_node, &s->api_node, "amp_env");
+
+
+    endpoint_init(
+	&s->amp_env.a_ep,
+	&s->amp_env.a_msec,
+	JDAW_INT,
+	"attack",
+	"Attack",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, dsp_cb_attack,
+	&s->amp_env, NULL, &s->amp_env_page, "attack_slider");
+    endpoint_set_default_value(&s->amp_env.a_ep, (Value){.int_v = 8});
+    endpoint_set_allowed_range(&s->amp_env.a_ep, (Value){.int_v = 0}, (Value){.int_v = 2000});
+    api_endpoint_register(&s->amp_env.a_ep, &s->amp_env.api_node);
+
+    endpoint_init(
+	&s->amp_env.d_ep,
+	&s->amp_env.d_msec,
+	JDAW_INT,
+	"decay",
+	"Decay",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, dsp_cb_decay,
+	&s->amp_env, NULL, &s->amp_env_page, "decay_slider");
+    endpoint_set_default_value(&s->amp_env.d_ep, (Value){.int_v = 200});
+    endpoint_set_allowed_range(&s->amp_env.d_ep, (Value){.int_v = 0}, (Value){.int_v = 2000});
+    api_endpoint_register(&s->amp_env.d_ep, &s->amp_env.api_node);
+
+    endpoint_init(
+	&s->amp_env.s_ep,
+	&s->amp_env.s_ep_targ,
+	JDAW_FLOAT,
+	"sustain",
+	"Sustain",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, dsp_cb_sustain,
+	&s->amp_env, NULL, &s->amp_env_page, "sustain_slider");
+    endpoint_set_default_value(&s->amp_env.s_ep, (Value){.float_v = 0.4f});
+    endpoint_set_allowed_range(&s->amp_env.s_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
+    api_endpoint_register(&s->amp_env.s_ep, &s->amp_env.api_node);
+
+    endpoint_init(
+	&s->amp_env.r_ep,
+	&s->amp_env.r_msec,
+	JDAW_INT,
+	"release",
+	"Release",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, dsp_cb_release,
+	&s->amp_env, NULL, &s->amp_env_page, "release_slider");
+    endpoint_set_default_value(&s->amp_env.r_ep, (Value){.int_v = 300});
+    endpoint_set_allowed_range(&s->amp_env.r_ep, (Value){.int_v = 0}, (Value){.int_v = 2000});
+    api_endpoint_register(&s->amp_env.r_ep, &s->amp_env.api_node);
+
+
+
+
+	
 
 
     static char synth_osc_names[SYNTH_NUM_BASE_OSCS][6];
@@ -270,24 +370,6 @@ Synth *synth_create(Track *track)
 	api_endpoint_register(&cfg->unison.stereo_spread_ep, &cfg->api_node);
 
 
-
-
-
-
-
-	
-	    
-	    /*
-	      endpoint_init(Endpoint *ep,
-	      void *val,
-	      ValType t,
-	      const char *local_id,
-	      const char *display_name,
-	      enum jdaw_thread owner_thread,
-	      EndptCb gui_cb,
-	      EndptCb proj_cb,
-	      EndptCb dsp_cb,
-	      void *xarg1, void *xarg2, void *xarg3, void *xarg4) -> int */
 	    
     }
 

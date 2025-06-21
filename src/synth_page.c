@@ -1,3 +1,4 @@
+#include "assets.h"
 #include "color.h"
 #include "geometry.h"
 #include "layout.h"
@@ -12,6 +13,7 @@ extern Symbol *SYMBOL_TABLE[];
 
 static void add_osc_page(TabView *tv, Track *track);
 static void add_filter_page(TabView *tv, Track *track);
+static void add_amp_env_page(TabView *tv, Track *track);
 
 void osc_bckgrnd_draw(void *arg1, void *arg2);
 
@@ -23,6 +25,7 @@ TabView *synth_tabview_create(Track *track)
 	session->gui.layout,
 	main_win);
     add_osc_page(tv, track);
+    add_amp_env_page(tv, track);
     add_filter_page(tv, track);
     return tv;
 }
@@ -50,8 +53,8 @@ static void panel_draw(void *layout_v, void *color_v)
     SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(color));
     geom_fill_rounded_rect(main_win->rend, &layout->rect, 8 * main_win->dpi_scale_factor);
 
-    SDL_SetRenderDrawColor(main_win->rend, 100, 100, 100, 255);
-    geom_draw_rounded_rect(main_win->rend, &layout->rect, 8 * main_win->dpi_scale_factor);
+    /* SDL_SetRenderDrawColor(main_win->rend, 100, 100, 100, 255); */
+    /* geom_draw_rounded_rect(main_win->rend, &layout->rect, 8 * main_win->dpi_scale_factor); */
 }
 
 static void add_osc_page(TabView *tv, Track *track)
@@ -71,15 +74,16 @@ static void add_osc_page(TabView *tv, Track *track)
     PageEl *el = NULL;
 
     static const SDL_Color osc_panel_colors[] = {
-	{45, 22, 28, 100},
-	{29, 36, 67, 100},
+	{54, 34, 43, 120},
+	{29, 36, 67, 120},
 	/* {49, 49, 49, 255}, */
-	{25, 64, 33, 100},
-	{83, 34, 44, 100}
+	{25, 64, 33, 120},
+	{83, 54, 44, 120}
     };
     p.canvas_p.draw_fn = panel_draw;
-    
-    p.canvas_p.draw_arg1 = layout_get_child_by_name_recursive(page->layout, "osc1_panel");
+
+    Layout *osc1_panel = layout_get_child_by_name_recursive(page->layout, "osc1_panel");
+    p.canvas_p.draw_arg1 = osc1_panel;
     p.canvas_p.draw_arg2 = (void *)osc_panel_colors;
     page_add_el(page,EL_CANVAS,p,"","osc1_panel");
 
@@ -94,6 +98,11 @@ static void add_osc_page(TabView *tv, Track *track)
     p.canvas_p.draw_arg1 = layout_get_child_by_name_recursive(page->layout, "osc4_panel");
     p.canvas_p.draw_arg2 = (void *)(osc_panel_colors + 3);
     page_add_el(page,EL_CANVAS,p,"","osc4_panel");
+
+    p.canvas_p.draw_arg1 = layout_get_child_by_name_recursive(osc1_panel, "1tune_panel");
+    p.canvas_p.draw_arg2 = (void *)(osc_panel_colors + 3);
+    page_add_el(page,EL_CANVAS,p,"","1tune_panel");
+    
 
 
 
@@ -518,10 +527,62 @@ static void add_osc_page(TabView *tv, Track *track)
 
     
     layout_force_reset(page->layout);
-
-
 	
 }
+
+static void add_amp_env_page(TabView *tv, Track *track)
+{
+    Synth *s = track->synth;
+    static SDL_Color amp_bckgrnd = {30, 50, 30, 255};
+    Page *page = tabview_add_page(tv, "Amp Envelope", SYNTH_AMP_ENV_LT_PATH, &amp_bckgrnd, &colors.white, main_win);
+
+    s->amp_env_page = page;
+    
+    PageElParams p;
+    p.textbox_p.font = main_win->mono_bold_font;
+    p.textbox_p.text_size = 16;
+    p.textbox_p.win = main_win;
+
+    p.textbox_p.set_str = "Attack:";
+    page_add_el(page,EL_TEXTBOX,p,"","attack_label");
+
+    p.textbox_p.set_str = "Decay:";
+    page_add_el(page,EL_TEXTBOX,p,"","decay_label");
+
+    p.textbox_p.set_str = "Sustain:";
+    page_add_el(page,EL_TEXTBOX,p,"","sustain_label");
+
+    p.textbox_p.set_str = "Release:";
+    page_add_el(page,EL_TEXTBOX,p,"","release_label");
+
+    p.textbox_p.set_str = "Exponent:";
+    page_add_el(page,EL_TEXTBOX,p,"","exponent_label");
+
+    p.slider_p.orientation = SLIDER_HORIZONTAL;
+    p.slider_p.style = SLIDER_FILL;
+
+    page_el_params_slider_from_ep(&p, &s->amp_env.a_ep);	
+    page_add_el(page,EL_SLIDER,p,"attack_slider","attack_slider");
+
+    page_el_params_slider_from_ep(&p, &s->amp_env.d_ep);	
+    page_add_el(page,EL_SLIDER,p,"decay_slider","decay_slider");
+
+    page_el_params_slider_from_ep(&p, &s->amp_env.s_ep);	
+    page_add_el(page,EL_SLIDER,p,"sustain_slider","sustain_slider");
+
+    page_el_params_slider_from_ep(&p, &s->amp_env.r_ep);	
+    page_add_el(page,EL_SLIDER,p,"release_slider","release_slider");
+
+
+
+
+
+
+
+    
+
+}
+
 
 static void add_filter_page(TabView *tv, Track *track)
 {

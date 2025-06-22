@@ -32,6 +32,7 @@ TabView *synth_tabview_create(Track *track)
 
 static void page_fill_out_layout(Page *p);
 
+
 static Synth *synth_glob;
 static int fmod_selector_fn(Dropdown *d, void *inner_arg)
 {
@@ -41,7 +42,12 @@ static int fmod_selector_fn(Dropdown *d, void *inner_arg)
     OscCfg *carrier = carrier_i == 0 ? NULL : synth_glob->base_oscs + carrier_i - 1;
     fprintf(stderr, "MOD: %p (raw i %d), CARR: %p (raw i %d)\n", modulator, modulator_i, carrier, carrier_i);
     int ret = synth_set_freq_mod_pair(synth_glob, carrier, modulator);
-    fprintf(stderr, "RET: %d\n", ret);
+    if (modulator_i < carrier_i) {
+	modulator->fmod_dropdown_reset = carrier_i - 1;
+    } else {
+	modulator->fmod_dropdown_reset = carrier_i;
+    }
+    fprintf(stderr, "Set fmod_dropdown_reset to %d\n", modulator->fmod_dropdown_reset);
     return ret;
 
 }
@@ -310,6 +316,7 @@ static void add_osc_page(TabView *tv, Track *track)
     p.dropdown_p.item_annotations = NULL;
     p.dropdown_p.item_args = dropdown_args;
     p.dropdown_p.num_items = 4;
+    p.dropdown_p.reset_from = &cfg->fmod_dropdown_reset;
     p.dropdown_p.selection_fn = fmod_selector_fn;
     page_add_el(page,EL_DROPDOWN,p,"1fmod_dropdown","1fmod_dropdown");
 
@@ -374,6 +381,7 @@ static void add_osc_page(TabView *tv, Track *track)
     p.dropdown_p.item_annotations = NULL;
     p.dropdown_p.item_args = dropdown_args;
     p.dropdown_p.num_items = 4;
+    p.dropdown_p.reset_from = &cfg->fmod_dropdown_reset;
     p.dropdown_p.selection_fn = fmod_selector_fn;
     page_add_el(page,EL_DROPDOWN,p,"2fmod_dropdown","2fmod_dropdown");
 
@@ -439,6 +447,7 @@ static void add_osc_page(TabView *tv, Track *track)
     p.dropdown_p.item_annotations = NULL;
     p.dropdown_p.item_args = dropdown_args;
     p.dropdown_p.num_items = 4;
+    p.dropdown_p.reset_from = &cfg->fmod_dropdown_reset;
     p.dropdown_p.selection_fn = fmod_selector_fn;
     page_add_el(page,EL_DROPDOWN,p,"3fmod_dropdown","3fmod_dropdown");
 
@@ -518,6 +527,7 @@ static void add_osc_page(TabView *tv, Track *track)
     p.dropdown_p.item_annotations = NULL;
     p.dropdown_p.item_args = dropdown_args;
     p.dropdown_p.num_items = 4;
+    p.dropdown_p.reset_from = &cfg->fmod_dropdown_reset;
     p.dropdown_p.selection_fn = fmod_selector_fn;
     page_add_el(page,EL_DROPDOWN,p,"4fmod_dropdown","4fmod_dropdown");
 
@@ -526,7 +536,7 @@ static void add_osc_page(TabView *tv, Track *track)
     page_add_el(page,EL_STATUS_LIGHT,p,"4fmod_status_light","4fmod_status_light");
 
     
-    layout_force_reset(page->layout);
+    page_reset(page);
 	
 }
 
@@ -574,7 +584,7 @@ static void add_amp_env_page(TabView *tv, Track *track)
     page_add_el(page,EL_SLIDER,p,"release_slider","release_slider");
 
 
-
+    page_reset(page);
 
 
 

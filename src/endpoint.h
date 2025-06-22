@@ -76,9 +76,10 @@ typedef struct endpoint {
     
     void *val;
     ValType val_type;
-    Value last_write_val;
+    Value last_write_val; /* Set at end of write operation */
+    Value overwrite_val; /* Set at start of write operation */
     bool write_has_occurred;
-    Value cached_val;
+    Value cached_val; /* For undo */
     bool restrict_range;
     Value min;
     Value max;

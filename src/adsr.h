@@ -15,6 +15,8 @@ enum adsr_stage {
     ADSR_OVERRUN
 };
 
+typedef struct adsr_state ADSRState;
+
 typedef struct adsr_params {
     int32_t a; /* sample frames */
     int32_t d; /* sample frames */
@@ -36,6 +38,11 @@ typedef struct adsr_params {
     Endpoint s_ep;
     Endpoint r_ep;
     Endpoint ramp_exp_ep;
+
+    ADSRState **followers;
+    int num_followers;
+    int followers_arrlen;
+    
     /* float *r_ramp; */
     /* r ramp not pre-calculated bc start amp not known*/
 } ADSRParams;
@@ -53,6 +60,7 @@ typedef struct adsr_state {
 
 
 void adsr_set_params(ADSRParams *p, int32_t a, int32_t d, float s, int32_t r, float ramp_exp);
+void adsr_reset_env_remaining(ADSRParams *p, enum adsr_stage stage, int32_t delta);
 /* void adsr_get_chunk(ADSRState *adsr, float *dst, int dst_len); */
 /* void adsr_apply_chunk(ADSRState *adsr, float *buf, int buf_len); */
 void adsr_init(ADSRState *s, int32_t after);
@@ -61,6 +69,8 @@ float adsr_sample(ADSRState *s, bool *is_finished);
 /* enum adsr_stage adsr_buf_apply(ADSRState *s, float *buf, int32_t buf_len); */
 enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_len);
 int32_t adsr_query_position(ADSRState *s);
+/* void adsr_params_init(ADSRParams *p); */
+void adsr_params_add_follower(ADSRParams *p, ADSRState *follower);
 
 
 #endif

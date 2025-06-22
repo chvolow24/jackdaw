@@ -157,6 +157,7 @@ typedef struct dropdown {
     void **item_args;
     uint8_t num_items;
     uint8_t selected_item;
+    int *reset_from;
     /* bool free_args_on_destroy; */
     int (*selection_fn)(Dropdown *self, void *arg);
 } Dropdown;
@@ -368,8 +369,10 @@ Dropdown *dropdown_create(
     char **item_annotations,
     void **item_args,
     uint8_t num_items,
+    int *reset_from,
     /* bool free_args_on_destroy, */
     int (*selection_fn)(Dropdown *self, void *arg));
+void dropdown_reset(Dropdown *d);
 void dropdown_draw(Dropdown *d);
 void dropdown_destroy(Dropdown *d);
 void dropdown_create_menu(Dropdown *d);

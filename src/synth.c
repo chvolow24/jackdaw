@@ -19,22 +19,36 @@ void synth_osc_vol_dsp_cb(Endpoint *ep)
     else cfg->active = false;
 }
 
+static int msec_g = -1;
 void dsp_cb_attack(Endpoint *ep)
 {
+    int msec_prev = ep->overwrite_val.int_v;
     int msec = endpoint_safe_read(ep, NULL).int_v;
+    if (msec == msec_g) {
+	breakfn();
+	fprintf(stderr, "Error!\n");
+    }
+    msec_g = msec;
     Session *session = session_get();
-    int32_t samples = msec * session->proj.sample_rate / 1000;
+    int32_t samples_prev = (double)msec_prev * (double)session->proj.sample_rate / 1000.0;
+    int32_t samples = (double)msec * (double)session->proj.sample_rate / 1000.0;
+    
     ADSRParams *p = ep->xarg1;
-    adsr_set_params(p, samples, p->d, p->s, p->r, p->ramp_exp);
+    fprintf(stderr, "Attack samples %d (prev %d)\n", samples, samples_prev);
+    adsr_reset_env_remaining(p, ADSR_A, samples - samples_prev);
+    adsr_set_params(p, samples, p->d, p->s_ep_targ, p->r, p->ramp_exp);
 }
 
 void dsp_cb_decay(Endpoint *ep)
 {
+    int msec_prev = ep->overwrite_val.int_v;
     int msec = endpoint_safe_read(ep, NULL).int_v;
     Session *session = session_get();
+    int32_t samples_prev = msec_prev * session->proj.sample_rate / 1000;
     int32_t samples = msec * session->proj.sample_rate / 1000;
     ADSRParams *p = ep->xarg1;
-    adsr_set_params(p, p->a, samples, p->s, p->r, p->ramp_exp);
+    adsr_reset_env_remaining(p, ADSR_D, samples - samples_prev);
+    adsr_set_params(p, p->a, samples, p->s_ep_targ, p->r, p->ramp_exp);
 }
 
 void dsp_cb_sustain(Endpoint *ep)
@@ -47,11 +61,14 @@ void dsp_cb_sustain(Endpoint *ep)
 
 void dsp_cb_release(Endpoint *ep)
 {
+    int msec_prev = ep->overwrite_val.int_v;
     int msec = endpoint_safe_read(ep, NULL).int_v;
     Session *session = session_get();
     int32_t samples = msec * session->proj.sample_rate / 1000;
+    int32_t samples_prev = msec_prev * session->proj.sample_rate / 1000;
     ADSRParams *p = ep->xarg1;
-    adsr_set_params(p, p->a, p->d, p->s, samples, p->ramp_exp);
+    adsr_reset_env_remaining(p, ADSR_R, samples - samples_prev);
+    adsr_set_params(p, p->a, p->d, p->s_ep_targ, samples, p->ramp_exp);
 }
 
 
@@ -76,11 +93,14 @@ Synth *synth_create(Track *track)
     /* synth_base_osc_set_freq_modulator(s, s->base_oscs + 2, s->base_oscs + 3); */
 
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
-	iir_init(&s->voices[i].filter, 2, 2);
-	s->voices[i].synth = s;
-	s->voices[i].available = true;
-	s->voices[i].amp_env[0].params = &s->amp_env;
-	s->voices[i].amp_env[1].params = &s->amp_env;
+	SynthVoice *v = s->voices + i;
+	adsr_params_add_follower(&s->amp_env, &v->amp_env[0]);
+	adsr_params_add_follower(&s->amp_env, &v->amp_env[1]);
+	iir_init(&v->filter, 2, 2);
+	v->synth = s;
+	v->available = true;
+	v->amp_env[0].params = &s->amp_env;
+	v->amp_env[1].params = &s->amp_env;
     }
     adsr_set_params(
 	&s->amp_env,
@@ -102,6 +122,7 @@ Synth *synth_create(Track *track)
     api_node_register(&s->api_node, &track->api_node, "synth");
     api_node_register(&s->amp_env.api_node, &s->api_node, "amp_env");
 
+    /* adsr_params_init(&s->amp_env); */
 
     endpoint_init(
 	&s->amp_env.a_ep,
@@ -686,6 +707,20 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
 
 }
 
+static void fmod_carrier_unlink(Synth *s, OscCfg *carrier)
+{
+    carrier->freq_mod_by = NULL;
+    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+	SynthVoice *v = s->voices + i;
+	for (int j=carrier-s->base_oscs; j<SYNTHVOICE_NUM_OSCS; j+= SYNTH_NUM_BASE_OSCS) {
+	    Osc *osc = v->oscs + j;
+	    if (osc->freq_modulator) {
+		osc->freq_modulator = NULL;
+	    }
+	}
+    }
+}
+
 int synth_set_freq_mod_pair(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg)
 {
     if (!modulator_cfg) {
@@ -700,17 +735,9 @@ int synth_set_freq_mod_pair(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg
 	for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
 	    OscCfg *cfg = s->base_oscs + i;
 	    if (cfg->freq_mod_by == modulator_cfg) {
+		fmod_carrier_unlink(s, cfg);
 		/* cfg is old carrier */
-		cfg->freq_mod_by = NULL;
-		for (int i=0; i<SYNTH_NUM_VOICES; i++) {
-		    SynthVoice *v = s->voices + i;
-		    for (int j=cfg-s->base_oscs; j<SYNTHVOICE_NUM_OSCS; j+= SYNTH_NUM_BASE_OSCS) {
-			Osc *osc = v->oscs + j;
-			if (osc->freq_modulator) {
-			    osc->freq_modulator = NULL;
-			}
-		    }
-		}
+		/* fprintf(stderr, "Osc%d turning off light\n", (int)(cfg - s->base_oscs) + 1); */
 
 	    }
 	}
@@ -718,7 +745,7 @@ int synth_set_freq_mod_pair(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg
     } else if (carrier_cfg->freq_mod_by) {
         status_set_errstr("Modulator already assigned to that osc");
 	return -1;
-    } else {
+    } else { /* Loop detection */
 	OscCfg *loop_detect = carrier_cfg;
 	while (loop_detect->mod_freq_of) {
 	    if (loop_detect->mod_freq_of == modulator_cfg) {
@@ -730,32 +757,21 @@ int synth_set_freq_mod_pair(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg
 	    loop_detect = loop_detect->mod_freq_of;
 	}
     }
-    
+
+    if (modulator_cfg->mod_freq_of) {
+	fmod_carrier_unlink(s, modulator_cfg->mod_freq_of);
+    }
     int carrier_i = carrier_cfg - s->base_oscs;
-    if (!modulator_cfg) {
-	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
-	    SynthVoice *v = s->voices + i;
-	    for (int j=carrier_i; j<SYNTHVOICE_NUM_OSCS; j+= SYNTH_NUM_BASE_OSCS) {
-		Osc *osc = v->oscs + j;
-		osc->freq_modulator = NULL;
-	    }
-	}
-    } else {
-	modulator_cfg->mod_freq_of = carrier_cfg;
-	carrier_cfg->freq_mod_by = modulator_cfg;
+
+    modulator_cfg->mod_freq_of = carrier_cfg;
+    carrier_cfg->freq_mod_by = modulator_cfg;
 
 	
-	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
-	    SynthVoice *v = s->voices + i;
-	    Osc *modulator = v->oscs + modulator_i;
-	    Osc *carrier = v->oscs + carrier_i;
-	    carrier->freq_modulator = modulator;
-	    /* Don't do detune voices */
-	/*     for (int j=carrier_i; j<SYNTHVOICE_NUM_OSCS; j+= SYNTH_NUM_BASE_OSCS) { */
-	/* 	Osc *osc = v->oscs + j; */
-	/* 	osc->freq_modulator = modulator; */
-	/*     } */
-	}
+    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+	SynthVoice *v = s->voices + i;
+	Osc *modulator = v->oscs + modulator_i;
+	Osc *carrier = v->oscs + carrier_i;
+	carrier->freq_modulator = modulator;
     }
     return 0;
 }

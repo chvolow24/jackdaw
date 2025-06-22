@@ -229,6 +229,7 @@ struct dropdown_params {
     char **item_annotations;
     void **item_args;
     uint8_t num_items;
+    int *reset_from;
     int (*selection_fn)(Dropdown *, void *);
 };
 

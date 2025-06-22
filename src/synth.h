@@ -94,7 +94,9 @@ typedef struct osc_cfg {
 
     /* If modulation pointers are not null, do not add audio data directly from this osc */
     OscCfg *mod_freq_of;
+    int fmod_dropdown_reset;
     OscCfg *mod_amp_of;
+    int amod_dropdown_reset;
 
     OscCfg *freq_mod_by;
     OscCfg *amp_mod_by;

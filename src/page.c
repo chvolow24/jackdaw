@@ -320,6 +320,7 @@ void page_el_reset(PageEl *el)
 	symbol_radio_reset_from_endpoint(el->component);
 	break;
     case EL_DROPDOWN:
+	dropdown_reset(el->component);
 	break;
     default:
 	break;
@@ -499,6 +500,7 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	    params.dropdown_p.item_annotations,
 	    params.dropdown_p.item_args,
 	    params.dropdown_p.num_items,
+	    params.dropdown_p.reset_from,
 	    params.dropdown_p.selection_fn);	    
 	break;
     case EL_STATUS_LIGHT:

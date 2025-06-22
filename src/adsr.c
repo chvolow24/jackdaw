@@ -6,6 +6,40 @@
 #include "adsr.h"
 #include "color.h"
 
+
+void adsr_params_add_follower(ADSRParams *p, ADSRState *follower)
+{
+    if (p->followers_arrlen == 0) {
+	p->followers_arrlen = 8;
+	p->followers = calloc(p->followers_arrlen, sizeof(ADSRState *));
+    }
+    if (p->num_followers == p->followers_arrlen) {
+	if ((long)p->followers_arrlen * 2 > INT_MAX) {
+	    fprintf(stderr, "Error: num followers on ADSRParams exceeds INT_MAX\n");
+	    return;
+	}
+	p->followers_arrlen *= 2;
+	p->followers = realloc(p->followers, p->followers_arrlen * sizeof(ADSRState *));
+    }
+    p->followers[p->num_followers] = follower;
+    p->num_followers++;
+}
+
+void adsr_reset_env_remaining(ADSRParams *p, enum adsr_stage stage, int32_t delta)
+{
+    for (int i=0; i<p->num_followers; i++) {
+        ADSRState *s = p->followers[i];
+	if (s->current_stage == stage) {
+	    fprintf(stderr, "STAGE %d delta %d %d->%d\n", stage, delta, s->env_remaining, s->env_remaining + delta);
+	    s->env_remaining += delta;
+	    if (s->env_remaining < 0) {
+		fprintf(stderr, "\t\tWarn!\n");
+		s->env_remaining = 0;
+	    }
+	}
+    }
+}
+
 void adsr_set_params(
     ADSRParams *p,
     int32_t a,
@@ -14,8 +48,14 @@ void adsr_set_params(
     int32_t r,
     float ramp_exp)
 {
-    const char *thread = get_thread_name();
-    fprintf(stderr, "PARAM CALL ON THREAD %s\n", thread);
+    fprintf(stderr, "SET PARAMS %d %d %f %d\n", a, d, s, r);
+    /* const char *thread = get_thread_name(); */
+    /* fprintf(stderr, "PARAM CALL ON THREAD %s\n", thread); */
+    
+    /* First, clear all "env remaining" values */
+    /* for (int i=0; i<p->num_followers; i++) { */
+    /* 	p->followers[i]->env_remaining = 0; */
+    /* } */
     
     p->a = a;
     p->d = d;
@@ -65,8 +105,8 @@ void adsr_start_release(ADSRState *s, int32_t after)
 /* Fill a foat buffer with envelope values and return the end state */
 enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_len)
 {
-    const char *thread = get_thread_name();
-    fprintf(stderr, "\tget chunk CALL ON THREAD %s\n", thread);
+    /* const char *thread = get_thread_name(); */
+    /* fprintf(stderr, "\tget chunk CALL ON THREAD %s\n", thread); */
 
     /* fprintf(stderr, "BUF APPLY len %d\n", buf_len); */
     /* fprintf(stderr, "\t\t\tadsr buf apply\n"); */

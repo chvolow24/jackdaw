@@ -947,6 +947,7 @@ Dropdown *dropdown_create(
     char **item_annotations,
     void **item_args,
     uint8_t num_items,
+    int *reset_from,
     /* bool free_args_on_destroy, */
     int (*selection_fn)(Dropdown *self, void *arg))
 {
@@ -957,6 +958,7 @@ Dropdown *dropdown_create(
 	free(d);
 	return NULL;
     }
+    d->reset_from = reset_from;
     d->item_names = calloc(num_items, sizeof(char *));
     memcpy(d->item_names, item_names, num_items * sizeof(char *));
     if (item_annotations) {
@@ -980,6 +982,13 @@ Dropdown *dropdown_create(
     textbox_set_style(d->tb, BUTTON_DARK);
     textbox_reset_full(d->tb);
     return d;
+}
+
+void dropdown_reset(Dropdown *d)
+{
+    if (d->reset_from)
+	d->selected_item = *d->reset_from;
+    textbox_set_value_handle(d->tb, d->item_names[d->selected_item]);
 }
 
 void dropdown_draw(Dropdown *d)

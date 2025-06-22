@@ -17,17 +17,45 @@
 /* Returns 0 on success, 1 if maximum number of callbacks reached */
 int session_queue_val_change(Session *session, Endpoint *ep, Value new_val, bool run_gui_cb)
 {
+    /* fprintf(stderr, "SESSION QUEUE VAL CHANGE!\n"); */
     pthread_mutex_lock(&session->queued_ops.queued_val_changes_lock);
     enum jdaw_thread thread = endpoint_get_owner(ep);
-    if (session->queued_ops.num_queued_val_changes[thread] == MAX_QUEUED_OPS) {
-	pthread_mutex_unlock(&session->queued_ops.queued_val_changes_lock);
-	return 1;
+    struct queued_val_change qvc = {
+	ep,
+	new_val,
+	run_gui_cb
+    };
+    int num_queued = session->queued_ops.num_queued_val_changes[thread];
+    bool overwritten = false;
+    for (int i=0; i<num_queued; i++) {
+	struct queued_val_change *qvc_check = session->queued_ops.queued_val_changes[thread] + i;
+	if (qvc_check->ep == ep) {
+	    /* fprintf(stderr, "already writing to endpoint! resetting value\n"); */
+	    memcpy(qvc_check, &qvc, sizeof(struct queued_val_change));
+	    overwritten = true;
+	    break;
+	}
     }
-    struct queued_val_change *qvc = &session->queued_ops.queued_val_changes[thread][session->queued_ops.num_queued_val_changes[thread]];
-    qvc->ep = ep;
-    qvc->new_val = new_val;
-    qvc->run_gui_cb = run_gui_cb;
-    session->queued_ops.num_queued_val_changes[thread]++;
+    if (!overwritten) {
+	if (num_queued == MAX_QUEUED_OPS) {
+	    pthread_mutex_unlock(&session->queued_ops.queued_val_changes_lock);
+	    return 1;
+	}
+	/* fprintf(stderr, "adding new!\n"); */
+	memcpy(session->queued_ops.queued_val_changes[thread] + num_queued, &qvc, sizeof(struct queued_val_change));
+	session->queued_ops.num_queued_val_changes[thread]++;
+
+    }
+    /* struct queued_val_change *qvc = &session->queued_ops.queued_val_changes[thread][session->queued_ops.num_queued_val_changes[thread]]; */
+    /* qvc->ep = ep; */
+    /* qvc->new_val = new_val; */
+    /* qvc->run_gui_cb = run_gui_cb; */
+    /* for (int i=0; i<session->queued_ops.num_queued_val_changes[thread]; i++) { */
+    /* 	if (memcmp(qvc, session->queued_ops.queued_val_changes[thread] + i, sizeof(struct queued_val_change)) == 0) { */
+    /* 	    memcpy(session->queued_ops.queued_val_changes[thread] */
+    /* 	} */
+
+    /* session->queued_ops.num_queued_val_changes[thread]++; */
     pthread_mutex_unlock(&session->queued_ops.queued_val_changes_lock);
     return 0;
 }
@@ -49,6 +77,7 @@ void session_flush_val_changes(Session *session, enum jdaw_thread thread)
 	struct queued_val_change *qvc = &session->queued_ops.queued_val_changes[thread][i];
 	Endpoint *ep = qvc->ep;
 	/* Protected write */
+	fprintf(stderr, "\tVal change flush \"%s\", intval %d\n", ep->local_id, qvc->new_val.int_v);
 	pthread_mutex_lock(&ep->val_lock);
 	jdaw_val_set_ptr(ep->val, ep->val_type, qvc->new_val);
 	pthread_mutex_unlock(&ep->val_lock);
@@ -80,6 +109,16 @@ int session_queue_callback(Session *session, Endpoint *ep, EndptCb cb, enum jdaw
 	return 2;
 	/* return 2; */
     }
+    int num_queued = session->queued_ops.num_queued_callbacks[thread];
+    /* bool already_queued = false; */
+    for (int i=0; i<num_queued; i++) {
+	if (session->queued_ops.queued_callbacks[thread][i] == cb
+	    && session->queued_ops.queued_callback_args[thread][i] == ep) {
+	    fprintf(stderr, "Already queued...\n");
+	    /* already_queued = true; */
+	    goto unlock_and_exit;
+	}
+    }
     if (session->queued_ops.num_queued_callbacks[thread] == MAX_QUEUED_OPS) {
 	pthread_mutex_unlock(&session->queued_ops.queued_callback_lock);
 	return 1;
@@ -87,6 +126,7 @@ int session_queue_callback(Session *session, Endpoint *ep, EndptCb cb, enum jdaw
     session->queued_ops.queued_callbacks[thread][session->queued_ops.num_queued_callbacks[thread]] = cb;
     session->queued_ops.queued_callback_args[thread][session->queued_ops.num_queued_callbacks[thread]] = ep;
     session->queued_ops.num_queued_callbacks[thread]++;
+unlock_and_exit:
     if ((ret = pthread_mutex_unlock(&session->queued_ops.queued_callback_lock)) != 0) {
 	fprintf(stderr, "Error in session_queue_callback unlock: %s\n", strerror(ret));
     }
@@ -104,6 +144,7 @@ void session_flush_callbacks(Session *session, enum jdaw_thread thread)
     Endpoint **arg_arr = session->queued_ops.queued_callback_args[thread];
     uint8_t num = session->queued_ops.num_queued_callbacks[thread];
     for (int i=0; i<num; i++) {
+	fprintf(stderr, "\tCB flush \"%s\"\n", arg_arr[i]->local_id);
 	cb_arr[i](arg_arr[i]);
     }
     session->queued_ops.num_queued_callbacks[thread] = 0;

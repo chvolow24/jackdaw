@@ -59,9 +59,9 @@ void adsr_set_params(
     
     p->a = a;
     p->d = d;
-    if (ramp_exp > 1e-4)
-	p->s = pow(s, 1.0/ramp_exp);
-    else
+    /* if (ramp_exp > 1e-4) */
+    /* 	p->s = pow(s, 1.0/ramp_exp); */
+    /* else */
 	p->s = s;
     p->r = r;
     p->ramp_exp = ramp_exp;
@@ -77,8 +77,8 @@ void adsr_set_params(
     for (int32_t i=0; i<d; i++) {
 	float norm = (float)(d - i) / d;
 	norm = pow(norm, ramp_exp);
-	float scaled = norm * (1.0 - pow(p->s, ramp_exp));
-	float shifted = scaled + pow(p->s, ramp_exp);
+	float scaled = norm * (1.0 - p->s);
+	float shifted = scaled + p->s;
 	p->d_ramp[i] = shifted;
     }
 }
@@ -149,7 +149,7 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
 	    break;
 	case ADSR_S:
 	    for (int32_t i=0; i<stage_len; i++) {
-		buf[buf_i + i] = pow(s->params->s, s->params->ramp_exp);
+		buf[buf_i + i] = s->params->s;
 	    }
 	    /* memset(buf + buf_i, s->params->s,  */
 	    /* float_buf_mult_const( */
@@ -191,7 +191,7 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
 
 		break;
 	    case ADSR_S:
-		s->release_start_env = pow(s->params->s, s->params->ramp_exp);
+		s->release_start_env = s->params->s;
 		s->current_stage = ADSR_R;
 		s->env_remaining = s->params->r;
 		s->start_release_after = -1;

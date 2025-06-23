@@ -1,3 +1,28 @@
+/*****************************************************************************************************************
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
+******************************************************************************************************************
+
+  Copyright (C) 2023-2025 Charlie Volow
+  
+  Jackdaw is licensed under the GNU General Public License.
+
+*****************************************************************************************************************/
+
+
+/*****************************************************************************************************************
+    synth.h
+
+    * Jackdaw's built-in polyphonic synth
+    * fundamentally constructed from four "base oscillators," an amplitude envelope, and a resonant filter
+    * base oscillators (type OscCfg) control up to SYNTH_MAX_UNISON_OSCS literal oscillators per voice
+    * unison oscs under auspices of base oscillator are at voice->oscs[base_i + N * SYNTH_NUM_BASE_OSCS],
+      where N<SYNTH_MAX_UNISON_OSCS
+    * base oscs can point at eachother for frequency or amplitude modulation
+    * (in which case unison voices are ignored)
+    * ADSR envelopes described in adsr.h
+ *****************************************************************************************************************/
+
+
 #ifndef JDAW_SYNTH_H
 #define JDAW_SYNTH_H
 
@@ -11,8 +36,8 @@
 
 #define SYNTH_NUM_VOICES 32
 #define SYNTH_NUM_BASE_OSCS 4
-#define SYNTH_MAX_DETUNE_OSCS 5
-#define SYNTHVOICE_NUM_OSCS (SYNTH_NUM_BASE_OSCS * SYNTH_MAX_DETUNE_OSCS) /* 4 base oscillators, up to 5 per base for detune */
+#define SYNTH_MAX_UNISON_OSCS 5
+#define SYNTHVOICE_NUM_OSCS (SYNTH_NUM_BASE_OSCS * SYNTH_MAX_UNISON_OSCS) /* 4 base oscillators, up to 5 per base for detune */
 
 /* #define SYNTH_EVENT_BUF_SIZE 512 */
 
@@ -155,11 +180,7 @@ void synth_close_all_notes(Synth *s);
 /* Return 0 for success, 1 for unset (carrier NULL), < 0 for error */
 int synth_set_freq_mod_pair(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg);
 
+/* Return 0 for success, 1 for unset (carrier NULL), < 0 for error */
+int synth_set_amp_mod_pair(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg);
+
 #endif
-
-
-/*
-
- |  + + + + | + + + + | + + + + | + + + + |
-
- */

@@ -19,22 +19,15 @@ void synth_osc_vol_dsp_cb(Endpoint *ep)
     else cfg->active = false;
 }
 
-static int msec_g = -1;
 void dsp_cb_attack(Endpoint *ep)
 {
     int msec_prev = ep->overwrite_val.int_v;
     int msec = endpoint_safe_read(ep, NULL).int_v;
-    if (msec == msec_g) {
-	breakfn();
-	fprintf(stderr, "Error!\n");
-    }
-    msec_g = msec;
     Session *session = session_get();
     int32_t samples_prev = (double)msec_prev * (double)session->proj.sample_rate / 1000.0;
     int32_t samples = (double)msec * (double)session->proj.sample_rate / 1000.0;
     
     ADSRParams *p = ep->xarg1;
-    fprintf(stderr, "Attack samples %d (prev %d)\n", samples, samples_prev);
     adsr_reset_env_remaining(p, ADSR_A, samples - samples_prev);
     adsr_set_params(p, samples, p->d, p->s_ep_targ, p->r, p->ramp_exp);
 }
@@ -129,8 +122,8 @@ Synth *synth_create(Track *track)
     /* endpoint_init( */
     /* 	s->amp_env */
 
-    api_node_register(&s->api_node, &track->api_node, "synth");
-    api_node_register(&s->amp_env.api_node, &s->api_node, "amp_env");
+    api_node_register(&s->api_node, &track->api_node, "Synth");
+    api_node_register(&s->amp_env.api_node, &s->api_node, "Amp envelope");
 
     /* adsr_params_init(&s->amp_env); */
 
@@ -201,10 +194,7 @@ Synth *synth_create(Track *track)
     api_endpoint_register(&s->amp_env.ramp_exp_ep, &s->amp_env.api_node);
     
 
-
 	
-
-
     static char synth_osc_names[SYNTH_NUM_BASE_OSCS][6];
     
     for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
@@ -267,7 +257,7 @@ Synth *synth_create(Track *track)
 	snprintf(cfg->unison.stereo_spread_id, len, fmt, i+1);
 	
 	snprintf(synth_osc_names[i], 6, "Osc %d", i+1);
-	api_node_register(&cfg->api_node, &track->api_node, synth_osc_names[i]);
+	api_node_register(&cfg->api_node, &s->api_node, synth_osc_names[i]);
 	endpoint_init(
 	    &cfg->active_ep,
 	    &cfg->active,
@@ -411,10 +401,7 @@ Synth *synth_create(Track *track)
 	    NULL, NULL, &s->osc_page, cfg->unison.stereo_spread_id);
 	endpoint_set_allowed_range(&cfg->unison.stereo_spread_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 2.0f});
 	endpoint_set_default_value(&cfg->unison.stereo_spread_ep, (Value){.float_v = 0.4f});
-	api_endpoint_register(&cfg->unison.stereo_spread_ep, &cfg->api_node);
-
-
-	    
+	api_endpoint_register(&cfg->unison.stereo_spread_ep, &cfg->api_node);    
     }
 
     return s;
@@ -483,6 +470,7 @@ static float polyblep(float incr, float phase)
     return 0.0;
 }
 
+/* TODO: remove test global */
 bool do_blep = true;
 static float osc_sample(Osc *osc, int channel, int num_channels, float step)
 {
@@ -522,6 +510,9 @@ static float osc_sample(Osc *osc, int channel, int num_channels, float step)
 	osc->phase[channel] += osc->sample_phase_incr * (step * (1.0f + fmod_sample));
     } else {
 	osc->phase[channel] += osc->sample_phase_incr * step;
+    }
+    if (osc->amp_modulator) {
+	sample *= osc_sample(osc->amp_modulator, channel, num_channels, step);
     }
     if (osc->phase[channel] > 1.0) {
 	osc->phase[channel] -= 1.0;
@@ -744,6 +735,20 @@ static void fmod_carrier_unlink(Synth *s, OscCfg *carrier)
     }
 }
 
+static void amod_carrier_unlink(Synth *s, OscCfg *carrier)
+{
+    carrier->amp_mod_by = NULL;
+    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+	SynthVoice *v = s->voices + i;
+	for (int j=carrier-s->base_oscs; j<SYNTHVOICE_NUM_OSCS; j+= SYNTH_NUM_BASE_OSCS) {
+	    Osc *osc = v->oscs + j;
+	    if (osc->amp_modulator) {
+		osc->amp_modulator = NULL;
+	    }
+	}
+    }
+}
+
 int synth_set_freq_mod_pair(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg)
 {
     if (!modulator_cfg) {
@@ -795,6 +800,61 @@ int synth_set_freq_mod_pair(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg
 	Osc *modulator = v->oscs + modulator_i;
 	Osc *carrier = v->oscs + carrier_i;
 	carrier->freq_modulator = modulator;
+    }
+    return 0;
+}
+
+int synth_set_amp_mod_pair(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg)
+{
+    if (!modulator_cfg) {
+	fprintf(stderr, "Error: synth_set_amp_mod_pair: modulator_cfg arg is mandatory\n");
+	return -1;
+	
+    }
+    int modulator_i = modulator_cfg - s->base_oscs;
+    
+    if (!carrier_cfg) {
+	modulator_cfg->mod_amp_of = NULL;
+	for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
+	    OscCfg *cfg = s->base_oscs + i;
+	    if (cfg->amp_mod_by == modulator_cfg) {
+		amod_carrier_unlink(s, cfg);
+		/* cfg is old carrier */
+		/* fprintf(stderr, "Osc%d turning off light\n", (int)(cfg - s->base_oscs) + 1); */
+
+	    }
+	}
+	return 1;
+    } else if (carrier_cfg->amp_mod_by) {
+        status_set_errstr("Modulator already assigned to that osc");
+	return -1;
+    } else { /* Loop detection */
+	OscCfg *loop_detect = carrier_cfg;
+	while (loop_detect->mod_amp_of) {
+	    if (loop_detect->mod_amp_of == modulator_cfg) {
+		fprintf(stderr, "ERROR! loop detected!\n");
+		status_set_errstr("Invalid: modulation loop detected");
+		synth_set_amp_mod_pair(s, NULL, modulator_cfg);
+		return -2;
+	    }
+	    loop_detect = loop_detect->mod_amp_of;
+	}
+    }
+
+    if (modulator_cfg->mod_amp_of) {
+	fmod_carrier_unlink(s, modulator_cfg->mod_amp_of);
+    }
+    int carrier_i = carrier_cfg - s->base_oscs;
+
+    modulator_cfg->mod_amp_of = carrier_cfg;
+    carrier_cfg->amp_mod_by = modulator_cfg;
+
+	
+    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+	SynthVoice *v = s->voices + i;
+	Osc *modulator = v->oscs + modulator_i;
+	Osc *carrier = v->oscs + carrier_i;
+	carrier->amp_modulator = modulator;
     }
     return 0;
 }

@@ -52,6 +52,25 @@ static int fmod_selector_fn(Dropdown *d, void *inner_arg)
 
 }
 
+static int amod_selector_fn(Dropdown *d, void *inner_arg)
+{
+    int modulator_i = ((long)inner_arg >> 8) & 0xFF; /* Dropdown host */
+    int carrier_i = (long)inner_arg & 0xFF; /* Dropdown target */
+    OscCfg *modulator = synth_glob->base_oscs + modulator_i - 1;
+    OscCfg *carrier = carrier_i == 0 ? NULL : synth_glob->base_oscs + carrier_i - 1;
+    fprintf(stderr, "MOD: %p (raw i %d), CARR: %p (raw i %d)\n", modulator, modulator_i, carrier, carrier_i);
+    int ret = synth_set_amp_mod_pair(synth_glob, carrier, modulator);
+    if (modulator_i < carrier_i) {
+	modulator->amod_dropdown_reset = carrier_i - 1;
+    } else {
+	modulator->amod_dropdown_reset = carrier_i;
+    }
+    fprintf(stderr, "Set amod_dropdown_reset to %d\n", modulator->amod_dropdown_reset);
+    return ret;
+
+}
+
+
 static void panel_draw(void *layout_v, void *color_v)
 {
     Layout *layout = layout_v;
@@ -105,9 +124,9 @@ static void add_osc_page(TabView *tv, Track *track)
     p.canvas_p.draw_arg2 = (void *)(osc_panel_colors + 3);
     page_add_el(page,EL_CANVAS,p,"","osc4_panel");
 
-    p.canvas_p.draw_arg1 = layout_get_child_by_name_recursive(osc1_panel, "1tune_panel");
-    p.canvas_p.draw_arg2 = (void *)(osc_panel_colors + 3);
-    page_add_el(page,EL_CANVAS,p,"","1tune_panel");
+    /* p.canvas_p.draw_arg1 = layout_get_child_by_name_recursive(osc1_panel, "1tune_panel"); */
+    /* p.canvas_p.draw_arg2 = (void *)(osc_panel_colors + 3); */
+    /* page_add_el(page,EL_CANVAS,p,"","1tune_panel"); */
     
 
 
@@ -235,10 +254,14 @@ static void add_osc_page(TabView *tv, Track *track)
     layout_reset(page->layout);
 
     p.textbox_p.set_str = "Mod amp of:";
-    page_add_el(page,EL_TEXTBOX,p,"","1amp_mod_label");
-    page_add_el(page,EL_TEXTBOX,p,"","2amp_mod_label");
-    page_add_el(page,EL_TEXTBOX,p,"","3amp_mod_label");
-    page_add_el(page,EL_TEXTBOX,p,"","4amp_mod_label");
+    el = page_add_el(page,EL_TEXTBOX,p,"","1amp_mod_label");
+    layout_size_to_fit_children_h(el->layout, true, 0);
+    el = page_add_el(page,EL_TEXTBOX,p,"","2amp_mod_label");
+    layout_size_to_fit_children_h(el->layout, true, 0);
+    el = page_add_el(page,EL_TEXTBOX,p,"","3amp_mod_label");
+    layout_size_to_fit_children_h(el->layout, true, 0);
+    el = page_add_el(page,EL_TEXTBOX,p,"","4amp_mod_label");
+    layout_size_to_fit_children_h(el->layout, true, 0);
 
     p.textbox_p.set_str = "Is carrier:";
     el = page_add_el(page,EL_TEXTBOX,p,"","1fmod_status_light_label");
@@ -249,6 +272,16 @@ static void add_osc_page(TabView *tv, Track *track)
     layout_size_to_fit_children_h(el->layout, true, 0);
     el = page_add_el(page,EL_TEXTBOX,p,"","4fmod_status_light_label");
     layout_size_to_fit_children_h(el->layout, true, 0);
+
+    el = page_add_el(page,EL_TEXTBOX,p,"","1amod_status_light_label");
+    layout_size_to_fit_children_h(el->layout, true, 0);
+    el = page_add_el(page,EL_TEXTBOX,p,"","2amod_status_light_label");
+    layout_size_to_fit_children_h(el->layout, true, 0);
+    el = page_add_el(page,EL_TEXTBOX,p,"","3amod_status_light_label");
+    layout_size_to_fit_children_h(el->layout, true, 0);
+    el = page_add_el(page,EL_TEXTBOX,p,"","4amod_status_light_label");
+    layout_size_to_fit_children_h(el->layout, true, 0);
+
     layout_reset(page->layout);
 
 
@@ -319,10 +352,17 @@ static void add_osc_page(TabView *tv, Track *track)
     p.dropdown_p.reset_from = &cfg->fmod_dropdown_reset;
     p.dropdown_p.selection_fn = fmod_selector_fn;
     page_add_el(page,EL_DROPDOWN,p,"1fmod_dropdown","1fmod_dropdown");
+    
+    p.dropdown_p.reset_from = &cfg->amod_dropdown_reset;
+    p.dropdown_p.selection_fn = amod_selector_fn;
+    page_add_el(page,EL_DROPDOWN,p,"1amod_dropdown","1amod_dropdown");
 
     p.slight_p.value = &cfg->freq_mod_by;
     p.slight_p.val_size = sizeof(void *);
     page_add_el(page,EL_STATUS_LIGHT,p,"1fmod_status_light","1fmod_status_light");
+
+    p.slight_p.value = &cfg->amp_mod_by;
+    page_add_el(page,EL_STATUS_LIGHT,p,"1amod_status_light","1amod_status_light");
 
     cfg++;
 
@@ -385,9 +425,17 @@ static void add_osc_page(TabView *tv, Track *track)
     p.dropdown_p.selection_fn = fmod_selector_fn;
     page_add_el(page,EL_DROPDOWN,p,"2fmod_dropdown","2fmod_dropdown");
 
+    p.dropdown_p.reset_from = &cfg->amod_dropdown_reset;
+    p.dropdown_p.selection_fn = amod_selector_fn;
+    page_add_el(page,EL_DROPDOWN,p,"2amod_dropdown","2amod_dropdown");
+
     p.slight_p.value = &cfg->freq_mod_by;
     p.slight_p.val_size = sizeof(void *);
     page_add_el(page,EL_STATUS_LIGHT,p,"2fmod_status_light","2fmod_status_light");
+
+    p.slight_p.value = &cfg->amp_mod_by;
+    page_add_el(page,EL_STATUS_LIGHT,p,"2amod_status_light","2amod_status_light");
+
 
 
     cfg++;
@@ -451,9 +499,18 @@ static void add_osc_page(TabView *tv, Track *track)
     p.dropdown_p.selection_fn = fmod_selector_fn;
     page_add_el(page,EL_DROPDOWN,p,"3fmod_dropdown","3fmod_dropdown");
 
+    p.dropdown_p.reset_from = &cfg->amod_dropdown_reset;
+    p.dropdown_p.selection_fn = amod_selector_fn;
+    page_add_el(page,EL_DROPDOWN,p,"3amod_dropdown","3amod_dropdown");
+
+
     p.slight_p.value = &cfg->freq_mod_by;
     p.slight_p.val_size = sizeof(void *);
     page_add_el(page,EL_STATUS_LIGHT,p,"3fmod_status_light","3fmod_status_light");
+
+    p.slight_p.value = &cfg->amp_mod_by;
+    page_add_el(page,EL_STATUS_LIGHT,p,"3amod_status_light","3amod_status_light");
+
 
 
     cfg++;
@@ -531,9 +588,17 @@ static void add_osc_page(TabView *tv, Track *track)
     p.dropdown_p.selection_fn = fmod_selector_fn;
     page_add_el(page,EL_DROPDOWN,p,"4fmod_dropdown","4fmod_dropdown");
 
+    p.dropdown_p.reset_from = &cfg->amod_dropdown_reset;
+    p.dropdown_p.selection_fn = amod_selector_fn;
+    page_add_el(page,EL_DROPDOWN,p,"4amod_dropdown","4amod_dropdown");
+
     p.slight_p.value = &cfg->freq_mod_by;
     p.slight_p.val_size = sizeof(void *);
     page_add_el(page,EL_STATUS_LIGHT,p,"4fmod_status_light","4fmod_status_light");
+
+    p.slight_p.value = &cfg->amp_mod_by;
+    page_add_el(page,EL_STATUS_LIGHT,p,"4amod_status_light","4amod_status_light");
+
 
     
     page_reset(page);
@@ -703,6 +768,12 @@ static void page_fill_out_layout(Page *page)
 	fmod_dropdown->x.value = 5.0;
 	fmod_dropdown->w.value = 80;
 
+	Layout *amod_dropdown = layout_copy(fmod_dropdown, amp_mod_row);
+	snprintf(name, 255, "%damod_dropdown", o+1);
+	layout_set_name(amod_dropdown, name);
+
+	
+
 	Layout *fmod_status_light_label = layout_add_child(freq_mod_row);
 	snprintf(name, 255, "%dfmod_status_light_label", o+1);
 	layout_set_name(fmod_status_light_label, name);
@@ -711,6 +782,11 @@ static void page_fill_out_layout(Page *page)
 	fmod_status_light_label->x.type = STACK;
 	fmod_status_light_label->x.value = 20.0;
 	fmod_status_light_label->w.value = 50;
+
+	Layout *amod_status_light_label = layout_copy(fmod_status_light_label, amp_mod_row);
+	snprintf(name, 255, "%damod_status_light_label", o+1);
+	layout_set_name(amod_status_light_label, name);
+
 
 	Layout *fmod_status_light = layout_add_child(freq_mod_row);
 	snprintf(name, 255, "%dfmod_status_light", o+1);
@@ -721,8 +797,9 @@ static void page_fill_out_layout(Page *page)
 	fmod_status_light->x.value = 1.0;
 	fmod_status_light->w.value = 20;
 
-	
-	
+	Layout *amod_status_light = layout_copy(fmod_status_light, amp_mod_row);
+	snprintf(name, 255, "%damod_status_light", o+1);
+	layout_set_name(amod_status_light, name);	
 	
     }
 

@@ -565,8 +565,8 @@ static void add_amp_env_page(TabView *tv, Track *track)
     p.textbox_p.set_str = "Release:";
     page_add_el(page,EL_TEXTBOX,p,"","release_label");
 
-    p.textbox_p.set_str = "Exponent:";
-    page_add_el(page,EL_TEXTBOX,p,"","exponent_label");
+    p.textbox_p.set_str = "Ramp exponent:";
+    page_add_el(page,EL_TEXTBOX,p,"","ramp_exp_label");
 
     p.slider_p.orientation = SLIDER_HORIZONTAL;
     p.slider_p.style = SLIDER_FILL;
@@ -582,6 +582,10 @@ static void add_amp_env_page(TabView *tv, Track *track)
 
     page_el_params_slider_from_ep(&p, &s->amp_env.r_ep);	
     page_add_el(page,EL_SLIDER,p,"release_slider","release_slider");
+
+    page_el_params_slider_from_ep(&p, &s->amp_env.ramp_exp_ep);	
+    page_add_el(page,EL_SLIDER,p,"ramp_exp_slider","ramp_exp_slider");
+
 
 
     page_reset(page);

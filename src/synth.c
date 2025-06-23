@@ -70,6 +70,11 @@ void dsp_cb_release(Endpoint *ep)
     adsr_reset_env_remaining(p, ADSR_R, samples - samples_prev);
     adsr_set_params(p, p->a, p->d, p->s_ep_targ, samples, p->ramp_exp);
 }
+void dsp_cb_ramp_exp(Endpoint *ep)
+{
+    ADSRParams *p = ep->xarg1;
+    adsr_set_params(p, p->a, p->d, p->s_ep_targ, p->r, p->ramp_exp);
+}
 
 
 Synth *synth_create(Track *track)
@@ -102,12 +107,17 @@ Synth *synth_create(Track *track)
 	v->amp_env[0].params = &s->amp_env;
 	v->amp_env[1].params = &s->amp_env;
     }
+    s->amp_env.a_msec = 4;
+    s->amp_env.d_msec = 200;
+    s->amp_env.s_ep_targ = 0.4;
+    s->amp_env.r_msec = 400;
+    Session *session = session_get();
     adsr_set_params(
 	&s->amp_env,
-	96 * 1,
-	96 * 400,
-	0.2,
-	96 * 500,
+	session->proj.sample_rate * s->amp_env.a_msec / 1000,
+	session->proj.sample_rate * s->amp_env.d_msec / 1000,
+	s->amp_env.s_ep_targ,
+	session->proj.sample_rate * s->amp_env.r_msec / 1000,
 	2.0);
     s->monitor = true;
     s->allow_voice_stealing = true;
@@ -177,6 +187,19 @@ Synth *synth_create(Track *track)
     api_endpoint_register(&s->amp_env.r_ep, &s->amp_env.api_node);
 
 
+    endpoint_init(
+	&s->amp_env.ramp_exp_ep,
+	&s->amp_env.ramp_exp,
+	JDAW_FLOAT,
+	"ramp_exponent",
+	"Ramp exponent",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, dsp_cb_ramp_exp,
+	&s->amp_env, NULL, &s->amp_env_page, "ramp_exp_slider");
+    endpoint_set_default_value(&s->amp_env.ramp_exp_ep, (Value){.float_v = 2.0});
+    endpoint_set_allowed_range(&s->amp_env.ramp_exp_ep, (Value){.float_v = 0.01}, (Value){.float_v = 100.0});
+    api_endpoint_register(&s->amp_env.ramp_exp_ep, &s->amp_env.api_node);
+    
 
 
 	

@@ -48,7 +48,7 @@ void adsr_set_params(
     int32_t r,
     float ramp_exp)
 {
-    fprintf(stderr, "SET PARAMS %d %d %f %d\n", a, d, s, r);
+    fprintf(stderr, "SET PARAMS %d %d %f %d %f\n", a, d, s, r, ramp_exp);
     /* const char *thread = get_thread_name(); */
     /* fprintf(stderr, "PARAM CALL ON THREAD %s\n", thread); */
     
@@ -72,10 +72,14 @@ void adsr_set_params(
     p->a_ramp = malloc(sizeof(float) * a);
     p->d_ramp = malloc(sizeof(float) * d);
     for (int32_t i=0; i<a; i++) {
-	p->a_ramp[i] = (double)i / a;
+	p->a_ramp[i] = pow((double)i / a, ramp_exp);
     }
     for (int32_t i=0; i<d; i++) {
-	p->d_ramp[i] = 1.0 - (float)i * (1.0 - p->s)/d;
+	float norm = (float)(d - i) / d;
+	norm = pow(norm, ramp_exp);
+	float scaled = norm * (1.0 - pow(p->s, ramp_exp));
+	float shifted = scaled + pow(p->s, ramp_exp);
+	p->d_ramp[i] = shifted;
     }
 }
 
@@ -145,7 +149,7 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
 	    break;
 	case ADSR_S:
 	    for (int32_t i=0; i<stage_len; i++) {
-		buf[buf_i + i] = s->params->s;
+		buf[buf_i + i] = pow(s->params->s, s->params->ramp_exp);
 	    }
 	    /* memset(buf + buf_i, s->params->s,  */
 	    /* float_buf_mult_const( */
@@ -157,7 +161,8 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
 	    break;
 	case ADSR_R: {
 	    for (int i=0; i<stage_len; i++) {
-		float env = (double)s->env_remaining * s->release_start_env / (double)s->params->r;
+		float env_norm = (double)s->env_remaining / (double)s->params->r;
+		float env = s->release_start_env * pow(env_norm, s->params->ramp_exp);
 		buf[i] = env;
 		s->env_remaining--;
 	    }
@@ -186,7 +191,7 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
 
 		break;
 	    case ADSR_S:
-		s->release_start_env = s->params->s;
+		s->release_start_env = pow(s->params->s, s->params->ramp_exp);
 		s->current_stage = ADSR_R;
 		s->env_remaining = s->params->r;
 		s->start_release_after = -1;
@@ -221,74 +226,75 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
     return s->current_stage;
 }
 
-float adsr_sample(ADSRState *s, bool *is_finished)
-{
-    float env = 1.0;
-    switch(s->current_stage) {
-    case ADSR_UNINIT:
-	env = 0.0;
-	break;
-    case ADSR_A:
-	env = ((double)s->params->a - s->env_remaining) / s->params->a;
-	break;
-    case ADSR_D:
-	env = 1.0 - (double)(s->params->d - s->env_remaining) * (1.0f - s->params->s) / (double)s->params->d;
-	/* env = 1.0f + (float)s->env_remaining * (1.0f - s->params->s) / (float)s->params->d; */
-	break;
-    case ADSR_S:
-	env = s->params->s;
-	break;
-    case ADSR_R:
-	/* env = (double)s->env_remaining * s->release_start_env / (float)s->params->d; */
-	/* fprintf(stderr, "->START ENV? %f\n", s->release_start_env); */
-	/* if (s->release_start_env == 0) exit(1); */
-	env = (double)s->env_remaining * s->release_start_env / (double)s->params->r;
-	break;
-    case ADSR_OVERRUN:
-	env = 0.0;
-	break;
-    default:
-	break;       
-    }
+/* float adsr_sample(ADSRState *s, bool *is_finished) */
+/* { */
+/*     float env = 1.0; */
+/*     switch(s->current_stage) { */
+/*     case ADSR_UNINIT: */
+/* 	env = 0.0; */
+/* 	break; */
+/*     case ADSR_A: */
+/* 	env = ((double)s->params->a - s->env_remaining) / s->params->a; */
+/* 	break; */
+/*     case ADSR_D: */
+/* 	env = 1.0 - (double)(s->params->d - s->env_remaining) * (1.0f - s->params->s) / (double)s->params->d; */
+/* 	/\* env = 1.0f + (float)s->env_remaining * (1.0f - s->params->s) / (float)s->params->d; *\/ */
+/* 	break; */
+/*     case ADSR_S: */
+/* 	env = s->params->s; */
+/* 	break; */
+/*     case ADSR_R: */
+/* 	/\* env = (double)s->env_remaining * s->release_start_env / (float)s->params->d; *\/ */
+/* 	/\* fprintf(stderr, "->START ENV? %f\n", s->release_start_env); *\/ */
+/* 	/\* if (s->release_start_env == 0) exit(1); *\/ */
+/* 	env = (double)s->env_remaining * s->release_start_env / (double)s->params->r; */
+/* 	break; */
+/*     case ADSR_OVERRUN: */
+/* 	env = 0.0; */
+/* 	break; */
+/*     default: */
+/* 	break;        */
+/*     } */
 
-    /* if (Id % 100 == 0) { */
-    /* if (Id < 300 || Id % 300 == 0) { */
-    /* 	fprintf(stderr, "Stage: %d, envr: %d, env: %f\n", s->current_stage, s->env_remaining, env); */
-    /* } */
-    /* Id++; */
+/*     /\* if (Id % 100 == 0) { *\/ */
+/*     /\* if (Id < 300 || Id % 300 == 0) { *\/ */
+/*     /\* 	fprintf(stderr, "Stage: %d, envr: %d, env: %f\n", s->current_stage, s->env_remaining, env); *\/ */
+/*     /\* } *\/ */
+/*     /\* Id++; *\/ */
 
 
-    if (s->current_stage < ADSR_R) {
-	/* fprintf(stderr, "\t\tSETTING release start env in stage %d\n", s->current_stage); */
-	s->release_start_env = env;
-	/* if (s->release_start_env == 0.0f) exit(1); */
-    }
+/*     if (s->current_stage < ADSR_R) { */
+/* 	/\* fprintf(stderr, "\t\tSETTING release start env in stage %d\n", s->current_stage); *\/ */
+/* 	s->release_start_env = env; */
+/* 	/\* if (s->release_start_env == 0.0f) exit(1); *\/ */
+/*     } */
 
-    if(s->current_stage != ADSR_S)
-	s->env_remaining--;
+/*     if(s->current_stage != ADSR_S) */
+/* 	s->env_remaining--; */
     
-    /* RESET STAGES based on env_remaining */
-    if (s->env_remaining == 0) {
-	s->current_stage++;
-	switch(s->current_stage) {
-	case ADSR_D:
-	    s->env_remaining = s->params->d;
-	    break;
-	case ADSR_R:
-	    s->env_remaining = s->params->r;
-	    break;
-	case ADSR_OVERRUN:
-	    *is_finished = true;
-	    break;
-	default:
-	    s->env_remaining = -1;
-	    break;
-	}
-    }
-    if (s->params->ramp_exp > 1e-4)
-	env = pow(env, s->params->ramp_exp);
-    return env;
-}
+/*     /\* RESET STAGES based on env_remaining *\/ */
+/*     if (s->env_remaining == 0) { */
+/* 	s->current_stage++; */
+/* 	switch(s->current_stage) { */
+/* 	case ADSR_D: */
+/* 	    s->env_remaining = s->params->d; */
+/* 	    break; */
+/* 	case ADSR_R: */
+/* 	    s->env_remaining = s->params->r; */
+/* 	    break; */
+/* 	case ADSR_OVERRUN: */
+/* 	    *is_finished = true; */
+/* 	    break; */
+/* 	default: */
+/* 	    s->env_remaining = -1; */
+/* 	    break; */
+/* 	} */
+/*     } */
+/*     if (s->params->ramp_exp > 1e-4) */
+/* 	env = pow(env, s->params->ramp_exp); */
+/*     /\* fprintf(stderr, " *\/ */
+/*     return env; */
+/* } */
 
 int32_t adsr_query_position(ADSRState *s)
 {

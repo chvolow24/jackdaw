@@ -77,7 +77,7 @@ void session_flush_val_changes(Session *session, enum jdaw_thread thread)
 	struct queued_val_change *qvc = &session->queued_ops.queued_val_changes[thread][i];
 	Endpoint *ep = qvc->ep;
 	/* Protected write */
-	fprintf(stderr, "\tVal change flush \"%s\", intval %d\n", ep->local_id, qvc->new_val.int_v);
+	/* fprintf(stderr, "\tVal change flush \"%s\", intval %d\n", ep->local_id, qvc->new_val.int_v); */
 	pthread_mutex_lock(&ep->val_lock);
 	jdaw_val_set_ptr(ep->val, ep->val_type, qvc->new_val);
 	pthread_mutex_unlock(&ep->val_lock);
@@ -114,7 +114,7 @@ int session_queue_callback(Session *session, Endpoint *ep, EndptCb cb, enum jdaw
     for (int i=0; i<num_queued; i++) {
 	if (session->queued_ops.queued_callbacks[thread][i] == cb
 	    && session->queued_ops.queued_callback_args[thread][i] == ep) {
-	    fprintf(stderr, "Already queued...\n");
+	    /* fprintf(stderr, "Already queued...\n"); */
 	    /* already_queued = true; */
 	    goto unlock_and_exit;
 	}
@@ -144,7 +144,7 @@ void session_flush_callbacks(Session *session, enum jdaw_thread thread)
     Endpoint **arg_arr = session->queued_ops.queued_callback_args[thread];
     uint8_t num = session->queued_ops.num_queued_callbacks[thread];
     for (int i=0; i<num; i++) {
-	fprintf(stderr, "\tCB flush \"%s\"\n", arg_arr[i]->local_id);
+	/* fprintf(stderr, "\tCB flush \"%s\"\n", arg_arr[i]->local_id); */
 	cb_arr[i](arg_arr[i]);
     }
     session->queued_ops.num_queued_callbacks[thread] = 0;

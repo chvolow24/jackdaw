@@ -59,6 +59,7 @@ typedef struct adsr_state {
 } ADSRState;
 
 
+void adsr_endpoints_init(ADSRParams *p, Page **cb_page, APINode *parent_node, char *node_name);
 void adsr_set_params(ADSRParams *p, int32_t a, int32_t d, float s, int32_t r, float ramp_exp);
 void adsr_reset_env_remaining(ADSRParams *p, enum adsr_stage stage, int32_t delta);
 /* void adsr_get_chunk(ADSRState *adsr, float *dst, int dst_len); */

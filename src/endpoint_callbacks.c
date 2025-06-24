@@ -119,6 +119,10 @@ void page_el_gui_cb(Endpoint *ep)
 	/* fprintf(stderr, "(page not active)\n"); */
 	return;
     }
+    TabView *tv = main_win->active_tabview;
+    if (!tv || tv->tabs[tv->current_tab] != page) {
+	return;
+    }
     const char *el_id = ep->xarg4;
 
     PageEl *el = page_get_el_by_id(page, el_id);

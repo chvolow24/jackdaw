@@ -154,7 +154,16 @@ typedef struct synth {
     ADSRParams amp_env;
 
     /* Filter */
+    bool filter_active;
+    float freq_scalar;
+    float resonance;
+    float velocity_freq_scalar;
+    APINode filter_node;
     ADSRParams filter_env;
+    Endpoint filter_active_ep;
+    Endpoint freq_scalar_ep;
+    Endpoint resonance_ep;
+    Endpoint velocity_freq_scalar_ep;
     
     bool monitor;
     bool allow_voice_stealing;
@@ -166,6 +175,8 @@ typedef struct synth {
 
     Endpoint vol_ep;
     Endpoint pan_ep;
+
+    IIRFilter dc_blocker; /* internal use only */
 } Synth;
 
 /* int synth_create_virtual_device(Synth *s); */

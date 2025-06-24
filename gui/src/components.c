@@ -253,7 +253,7 @@ bool slider_mouse_click(Slider *slider, Window *win)
 {
     if (SDL_PointInRect(&main_win->mousep, &slider->layout->rect) && win->i_state & I_STATE_MOUSE_L) {
 	Value newval;
-	if (slider->ep && main_win->i_state & I_STATE_CMDCTRL) {
+	if (slider->ep && main_win->i_state & I_STATE_CMDCTRL && !(win->i_state & I_STATE_SHIFT)) {
 	    newval = slider->ep->default_val;
 	} else {
 	    int dim = slider->orientation == SLIDER_VERTICAL ? main_win->mousep.y : main_win->mousep.x;
@@ -274,7 +274,8 @@ bool slider_mouse_click(Slider *slider, Window *win)
 bool slider_mouse_motion(Slider *slider, Window *win)
 {
     Value newval;
-    if (slider->ep && win->i_state & I_STATE_CMDCTRL) {
+    bool restrict_range = slider->ep->restrict_range;
+    if (slider->ep && win->i_state & I_STATE_CMDCTRL && !(win->i_state & I_STATE_SHIFT)) {
 	newval = slider->ep->default_val;
     } else {
 	int dim, mindim, maxdim;
@@ -292,7 +293,6 @@ bool slider_mouse_motion(Slider *slider, Window *win)
 	}
 	/* int dim = slider->orientation == SLIDER_VERTICAL ? main_win->mousep.y : main_win->mousep.x; */
 	/* int mindim = slider->orientation == SLIDER_ */
-	bool restrict_range = slider->ep->restrict_range;
 	if (slider->disallow_unsafe_mode || !(win->i_state & I_STATE_SHIFT && win->i_state & I_STATE_CMDCTRL)) {
 	    if (dim < mindim) dim = mindim;
 	    if (dim > maxdim) dim = maxdim;
@@ -300,10 +300,11 @@ bool slider_mouse_motion(Slider *slider, Window *win)
 	    status_set_errstr("SLIDER UNSAFE MODE (release ctrl/shift to return to safety!)");
 	    slider->ep->restrict_range = false;
 	}
-	slider->ep->restrict_range = restrict_range;
+
 	newval = slider_val_from_coord(slider, dim);
     }
     endpoint_write(slider->ep, newval, true, true, true, false);
+    slider->ep->restrict_range = restrict_range;
     /* jdaw_val_set_ptr(slider->value, slider->val_type, newval); */
     /* if (slider->action) */
     /* 	slider->action((void *)slider, slider->target); */

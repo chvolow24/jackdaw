@@ -651,8 +651,6 @@ static void add_amp_env_page(TabView *tv, Track *track)
     page_el_params_slider_from_ep(&p, &s->amp_env.ramp_exp_ep);	
     page_add_el(page,EL_SLIDER,p,"ramp_exp_slider","ramp_exp_slider");
 
-
-
     page_reset(page);
 
 
@@ -665,6 +663,80 @@ static void add_amp_env_page(TabView *tv, Track *track)
 
 static void add_filter_page(TabView *tv, Track *track)
 {
+
+    Synth *s = track->synth;
+    static SDL_Color filter_bckgrnd = {60, 30, 20, 255};
+    Page *page = tabview_add_page(tv, "Filter", SYNTH_FILTER_LT_PATH, &filter_bckgrnd, &colors.white, main_win);
+
+    s->filter_page = page;
+
+    PageElParams p;
+
+    p.textbox_p.font = main_win->mono_bold_font;
+    p.textbox_p.text_size = 16;
+    p.textbox_p.win = main_win;
+
+    p.textbox_p.set_str = "Active:";
+    page_add_el(page,EL_TEXTBOX,p,"","active_label");
+
+    p.textbox_p.set_str = "Freq scalar:";
+    page_add_el(page,EL_TEXTBOX,p,"","freq_scalar_label");
+
+    p.textbox_p.set_str = "Velocity freq scalar:";
+    page_add_el(page,EL_TEXTBOX,p,"","velocity_freq_scalar_label");
+
+
+    p.textbox_p.set_str = "Resonance:";
+    page_add_el(page,EL_TEXTBOX,p,"","resonance_label");
+
+    p.textbox_p.set_str = "Use amp env:";
+    page_add_el(page,EL_TEXTBOX,p,"","use_amp_env_label");
+
+    p.textbox_p.set_str = "Attack:";
+    page_add_el(page,EL_TEXTBOX,p,"","attack_label");
+
+    p.textbox_p.set_str = "Decay:";
+    page_add_el(page,EL_TEXTBOX,p,"","decay_label");
+
+    p.textbox_p.set_str = "Sustain:";
+    page_add_el(page,EL_TEXTBOX,p,"","sustain_label");
+
+    p.textbox_p.set_str = "Release:";
+    page_add_el(page,EL_TEXTBOX,p,"","release_label");
+
+    p.textbox_p.set_str = "Ramp exponent:";
+    page_add_el(page,EL_TEXTBOX,p,"","ramp_exp_label");
+
+    p.slider_p.orientation = SLIDER_HORIZONTAL;
+    p.slider_p.style = SLIDER_TICK;
+
+    page_el_params_slider_from_ep(&p, &s->freq_scalar_ep);
+    page_add_el(page,EL_SLIDER,p,"freq_scalar_slider","freq_scalar_slider");
+
+    page_el_params_slider_from_ep(&p, &s->velocity_freq_scalar_ep);
+    page_add_el(page,EL_SLIDER,p,"velocity_freq_scalar_slider","velocity_freq_scalar_slider");
+
+    page_el_params_slider_from_ep(&p, &s->resonance_ep);
+    page_add_el(page,EL_SLIDER,p,"resonance_slider","resonance_slider");
+
+    page_el_params_slider_from_ep(&p, &s->filter_env.a_ep);	
+    page_add_el(page,EL_SLIDER,p,"attack_slider","attack_slider");
+
+    page_el_params_slider_from_ep(&p, &s->filter_env.d_ep);	
+    page_add_el(page,EL_SLIDER,p,"decay_slider","decay_slider");
+
+    page_el_params_slider_from_ep(&p, &s->filter_env.s_ep);	
+    page_add_el(page,EL_SLIDER,p,"sustain_slider","sustain_slider");
+
+    page_el_params_slider_from_ep(&p, &s->filter_env.r_ep);	
+    page_add_el(page,EL_SLIDER,p,"release_slider","release_slider");
+
+    page_el_params_slider_from_ep(&p, &s->filter_env.ramp_exp_ep);	
+    page_add_el(page,EL_SLIDER,p,"ramp_exp_slider","ramp_exp_slider");
+
+
+
+    page_reset(page);
 
 }
 

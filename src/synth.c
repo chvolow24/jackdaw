@@ -11,62 +11,12 @@
 
 extern double MTOF[];
 
-void synth_osc_vol_dsp_cb(Endpoint *ep)
+static void synth_osc_vol_dsp_cb(Endpoint *ep)
 {
     OscCfg *cfg = ep->xarg1;
     float vol = endpoint_safe_read(ep, NULL).float_v;
     if (vol > 1e-9) cfg->active = true;
     else cfg->active = false;
-}
-
-void dsp_cb_attack(Endpoint *ep)
-{
-    int msec_prev = ep->overwrite_val.int_v;
-    int msec = endpoint_safe_read(ep, NULL).int_v;
-    Session *session = session_get();
-    int32_t samples_prev = (double)msec_prev * (double)session->proj.sample_rate / 1000.0;
-    int32_t samples = (double)msec * (double)session->proj.sample_rate / 1000.0;
-    
-    ADSRParams *p = ep->xarg1;
-    adsr_reset_env_remaining(p, ADSR_A, samples - samples_prev);
-    adsr_set_params(p, samples, p->d, p->s_ep_targ, p->r, p->ramp_exp);
-}
-
-void dsp_cb_decay(Endpoint *ep)
-{
-    int msec_prev = ep->overwrite_val.int_v;
-    int msec = endpoint_safe_read(ep, NULL).int_v;
-    Session *session = session_get();
-    int32_t samples_prev = msec_prev * session->proj.sample_rate / 1000;
-    int32_t samples = msec * session->proj.sample_rate / 1000;
-    ADSRParams *p = ep->xarg1;
-    adsr_reset_env_remaining(p, ADSR_D, samples - samples_prev);
-    adsr_set_params(p, p->a, samples, p->s_ep_targ, p->r, p->ramp_exp);
-}
-
-void dsp_cb_sustain(Endpoint *ep)
-{
-    float s = endpoint_safe_read(ep, NULL).float_v;
-    ADSRParams *p = ep->xarg1;
-    adsr_set_params(p, p->a, p->d, s, p->r, p->ramp_exp);
-}
-
-
-void dsp_cb_release(Endpoint *ep)
-{
-    int msec_prev = ep->overwrite_val.int_v;
-    int msec = endpoint_safe_read(ep, NULL).int_v;
-    Session *session = session_get();
-    int32_t samples = msec * session->proj.sample_rate / 1000;
-    int32_t samples_prev = msec_prev * session->proj.sample_rate / 1000;
-    ADSRParams *p = ep->xarg1;
-    adsr_reset_env_remaining(p, ADSR_R, samples - samples_prev);
-    adsr_set_params(p, p->a, p->d, p->s_ep_targ, samples, p->ramp_exp);
-}
-void dsp_cb_ramp_exp(Endpoint *ep)
-{
-    ADSRParams *p = ep->xarg1;
-    adsr_set_params(p, p->a, p->d, p->s_ep_targ, p->r, p->ramp_exp);
 }
 
 
@@ -75,17 +25,27 @@ Synth *synth_create(Track *track)
     /* Session *session = session_get(); */
     Synth *s = calloc(1, sizeof(Synth));
     s->track = track;
-
+    
     s->base_oscs[0].active = true;
     s->base_oscs[0].amp = 0.2;
-    for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
-	s->base_oscs[i].type = WS_SAW;
-	if (i==1) {
-	    s->base_oscs[i].type = WS_SQUARE;
-	}
-	if (i==2)
-	    s->base_oscs[i].type = WS_SINE;
-    }
+    s->base_oscs[0].type = WS_SAW;
+
+    s->freq_scalar = 20.0f;
+    s->resonance = 4.0;
+    
+    iir_init(&s->dc_blocker, 1, 2);
+    double A[] = {1.0, -1.0};
+    double B[] = {0.999};
+    iir_set_coeffs(&s->dc_blocker, A, B);
+
+    /* for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) { */
+    /* 	s->base_oscs[i].type = WS_SAW; */
+    /* 	if (i==1) { */
+    /* 	    s->base_oscs[i].type = WS_SQUARE; */
+    /* 	} */
+    /* 	if (i==2) */
+    /* 	    s->base_oscs[i].type = WS_SINE; */
+    /* } */
     
     /* synth_base_osc_set_freq_modulator(s, s->base_oscs + 0, s->base_oscs + 1); */
     /* synth_base_osc_set_freq_modulator(s, s->base_oscs + 2, s->base_oscs + 3); */
@@ -112,6 +72,14 @@ Synth *synth_create(Track *track)
 	s->amp_env.s_ep_targ,
 	session->proj.sample_rate * s->amp_env.r_msec / 1000,
 	2.0);
+    adsr_set_params(
+	&s->filter_env,
+	session->proj.sample_rate * s->amp_env.a_msec / 1000,
+	session->proj.sample_rate * s->amp_env.d_msec / 1000,
+	s->amp_env.s_ep_targ,
+	session->proj.sample_rate * s->amp_env.r_msec / 1000,
+	2.0);
+
     s->monitor = true;
     s->allow_voice_stealing = true;
 
@@ -123,78 +91,70 @@ Synth *synth_create(Track *track)
     /* 	s->amp_env */
 
     api_node_register(&s->api_node, &track->api_node, "Synth");
-    api_node_register(&s->amp_env.api_node, &s->api_node, "Amp envelope");
+    adsr_endpoints_init(&s->amp_env, &s->amp_env_page, &s->api_node, "Amp envelope");
+    /* api_node_register(&s->amp_env.api_node, &s->api_node, "Amp envelope"); */
+    api_node_register(&s->filter_node, &s->api_node, "Filter");
+    adsr_endpoints_init(&s->filter_env, &s->filter_page, &s->filter_node, "Filter envelope");
+    /* api_node_register(&s->filter_env.api_node, &s->filter_node, "Filter envelope"); */
 
     /* adsr_params_init(&s->amp_env); */
 
-    endpoint_init(
-	&s->amp_env.a_ep,
-	&s->amp_env.a_msec,
-	JDAW_INT,
-	"attack",
-	"Attack",
-	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, dsp_cb_attack,
-	&s->amp_env, NULL, &s->amp_env_page, "attack_slider");
-    endpoint_set_default_value(&s->amp_env.a_ep, (Value){.int_v = 8});
-    endpoint_set_allowed_range(&s->amp_env.a_ep, (Value){.int_v = 0}, (Value){.int_v = 2000});
-    api_endpoint_register(&s->amp_env.a_ep, &s->amp_env.api_node);
+
 
     endpoint_init(
-	&s->amp_env.d_ep,
-	&s->amp_env.d_msec,
-	JDAW_INT,
-	"decay",
-	"Decay",
+	&s->filter_active_ep,
+	&s->filter_active,
+	JDAW_BOOL,
+	"filter_active",
+	"Filter active",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, dsp_cb_decay,
-	&s->amp_env, NULL, &s->amp_env_page, "decay_slider");
-    endpoint_set_default_value(&s->amp_env.d_ep, (Value){.int_v = 200});
-    endpoint_set_allowed_range(&s->amp_env.d_ep, (Value){.int_v = 0}, (Value){.int_v = 2000});
-    api_endpoint_register(&s->amp_env.d_ep, &s->amp_env.api_node);
+	page_el_gui_cb, NULL, NULL,
+	NULL, NULL, &s->filter_page, "filter_active_toggle");
+    endpoint_set_default_value(&s->filter_active_ep, (Value){.bool_v = true});
+    api_endpoint_register(&s->filter_active_ep, &s->filter_node);
 
     endpoint_init(
-	&s->amp_env.s_ep,
-	&s->amp_env.s_ep_targ,
+	&s->freq_scalar_ep,
+	&s->freq_scalar,
 	JDAW_FLOAT,
-	"sustain",
-	"Sustain",
+	"freq_scalar",
+	"Freq scalar",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, dsp_cb_sustain,
-	&s->amp_env, NULL, &s->amp_env_page, "sustain_slider");
-    endpoint_set_default_value(&s->amp_env.s_ep, (Value){.float_v = 0.4f});
-    endpoint_set_allowed_range(&s->amp_env.s_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
-    api_endpoint_register(&s->amp_env.s_ep, &s->amp_env.api_node);
+	page_el_gui_cb, NULL, NULL,
+	NULL, NULL, &s->filter_page, "freq_scalar_slider");
+    endpoint_set_default_value(&s->freq_scalar_ep, (Value){.float_v = 20.0f});
+    endpoint_set_allowed_range(&s->freq_scalar_ep, (Value){.float_v = 0.1}, (Value){.float_v = 100.0});
+    api_endpoint_register(&s->freq_scalar_ep, &s->filter_node);
 
     endpoint_init(
-	&s->amp_env.r_ep,
-	&s->amp_env.r_msec,
-	JDAW_INT,
-	"release",
-	"Release",
-	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, dsp_cb_release,
-	&s->amp_env, NULL, &s->amp_env_page, "release_slider");
-    endpoint_set_default_value(&s->amp_env.r_ep, (Value){.int_v = 300});
-    endpoint_set_allowed_range(&s->amp_env.r_ep, (Value){.int_v = 0}, (Value){.int_v = 2000});
-    api_endpoint_register(&s->amp_env.r_ep, &s->amp_env.api_node);
-
-
-    endpoint_init(
-	&s->amp_env.ramp_exp_ep,
-	&s->amp_env.ramp_exp,
+	&s->resonance_ep,
+	&s->resonance,
 	JDAW_FLOAT,
-	"ramp_exponent",
-	"Ramp exponent",
+	"resonance",
+	"Resonance",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, dsp_cb_ramp_exp,
-	&s->amp_env, NULL, &s->amp_env_page, "ramp_exp_slider");
-    endpoint_set_default_value(&s->amp_env.ramp_exp_ep, (Value){.float_v = 2.0});
-    endpoint_set_allowed_range(&s->amp_env.ramp_exp_ep, (Value){.float_v = 0.01}, (Value){.float_v = 100.0});
-    api_endpoint_register(&s->amp_env.ramp_exp_ep, &s->amp_env.api_node);
-    
+	page_el_gui_cb, NULL, NULL,
+	NULL, NULL, &s->filter_page, "resonance_slider");
+    endpoint_set_default_value(&s->resonance_ep, (Value){.float_v = 5.0f});
+    endpoint_set_allowed_range(&s->resonance_ep, (Value){.float_v = 1.0f}, (Value){.float_v = 50.0f});
+    api_endpoint_register(&s->resonance_ep, &s->filter_node);
 
+    s->velocity_freq_scalar = 0.5;
+    endpoint_init(
+	&s->velocity_freq_scalar_ep,
+	&s->velocity_freq_scalar,
+	JDAW_FLOAT,
+	"velocity_freq_scalar",
+	"Velocity freq scalar",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, NULL,
+	NULL, NULL, &s->filter_page, "velocity_freq_scalar_slider");
+    endpoint_set_default_value(&s->velocity_freq_scalar_ep, (Value){.float_v = 1.0});
+    endpoint_set_allowed_range(&s->velocity_freq_scalar_ep, (Value){.float_v = 0.0}, (Value){.float_v = 1.0});
+    api_endpoint_register(&s->velocity_freq_scalar_ep, &s->filter_node);
 	
+
+       
     static char synth_osc_names[SYNTH_NUM_BASE_OSCS][6];
     
     for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
@@ -512,7 +472,7 @@ static float osc_sample(Osc *osc, int channel, int num_channels, float step)
 	osc->phase[channel] += osc->sample_phase_incr * step;
     }
     if (osc->amp_modulator) {
-	sample *= osc_sample(osc->amp_modulator, channel, num_channels, step);
+	sample *= 1.0 + osc_sample(osc->amp_modulator, channel, num_channels, step);
     }
     if (osc->phase[channel] > 1.0) {
 	osc->phase[channel] -= 1.0;
@@ -549,57 +509,6 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 		osc_buf[i] += osc_sample(detune_voice, channel, 2, step);
 	    }
 	}
-	/* for (int j=0; j< */
-	
-	/* for (int i=0; i<len; i++) { */
-	/*     float sample = osc_sample(osc, channel, 2, step); */
-	/*     bool is_finished = false; */
-	/*     float env = adsr_sample(&v->amp_env[channel], &is_finished); */
-	/*     if (is_finished) { */
-	/* 	v->available = true; */
-	/* 	/\* fprintf(stderr, "Passed adsr on voice %ld\n", v - v->synth->voices); *\/ */
-	/* 	return; */
-	/*     }	 */
-	/*     sample *= env * (float)v->velocity / 127.0f; */
- 	/*     buf[i] += sample; */
-	/*     buf[i] = tanh(buf[i]); */
-	/*     /\* v->last_env[channel] = env; *\/ */
-	/*     /\* v->env_remaining[channel]--; *\/ */
-	/*     v->note_end_rel[channel]--; */
-	/*     v->note_start_rel[channel]--; */
-	/*     /\* if (channel == 0) { *\/ */
-	/*     /\* 	fprintf(stderr, "Env stage %d, remaining %d\n", v->amp_env_stage[channel], v->env_remaining[channel]); *\/ */
-	/*     /\* } *\/ */
-	/* } */
-	    /* if (start_rel < v->synth->amp_env.a) { */
-	    /* 	/\* fprintf(stderr, "\t\t\t\tAttack!\n"); *\/ */
-	    /* 	sample *= (float)start_rel / v->synth->amp_env.a; */
-	    /* } else if (start_rel < v->synth->amp_env.a + v->synth->amp_env.d) { */
-	    /* 	/\* fprintf(stderr, "\t\t\t\tDecay!\n"); *\/ */
-	    /* 	sample *= v->synth->amp_env.s + (float)(start_rel - v->synth->amp_env.a) / v->synth->amp_env.d; */
-	    /* } else if (end_rel < 0) { */
-	    /* 	sample *= v->synth->amp_env.s; */
-	    /* 	/\* fprintf(stderr, "\t\t\t\tSustain! * %f\n", v->synth->amp_env.s); *\/ */
-	    /* } else if (end_rel < v->synth->amp_env.r) { */
-	    /* 	/\* fprintf(stderr, "Num %d - %d\n", v->synth->amp_env.r, end_rel); *\/ */
-	    /* 	sample *= v->synth->amp_env.s * (float)(v->synth->amp_env.r - end_rel) / v->synth->amp_env.r; */
-	    /* 	/\* fprintf(stderr, "\t\t\t\tRelease!\n"); *\/ */
-	    /* } else { */
-	    /* 	v->available = true; */
-	    /* 	/\* fprintf(stderr, "Passed ADSR!\n"); *\/ */
-	    /* 	return; /\* We've passed ADSR *\/ */
-
-	    /* } */
-	    /* buf[i] += sample; */
-	    /* start_rel++; */
-	    /* end_rel++; */
-	/* } */
-
-	/* v->note_start_rel += len; */
-	/* if (channel == 1) { */
-	/*     v->note_start_rel += len; */
-	/*     v->note_end_rel += len; */
-	/* } */
     }
 
     float amp_env[len];
@@ -613,10 +522,13 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
     Session *session = session_get();
     IIRFilter *f = &v->filter;
     for (int i=0; i<len; i++) {
-	if (i%10 == 0) {
-	    double freq = mtof_calc(v->note_val) * 20 * amp_env[i] * amp_env[i] * amp_env[i] / session->proj.sample_rate;
+	if (i%27 == 0) { /* Update filter every 27 sample frames */
+	    double freq = mtof_calc(v->note_val) * v->synth->freq_scalar * amp_env[i] / session->proj.sample_rate;
+	    double velocity_rel = 1.0 - v->synth->velocity_freq_scalar * (127.0 - (double)v->velocity) / 126.0;
+	    freq *= velocity_rel;
+	    if (freq > 0.99f) freq = 0.99f;
 	    if (freq > 1e-3) {
-		iir_set_coeffs_lowpass_chebyshev(f, freq, 4.0);
+		iir_set_coeffs_lowpass_chebyshev(f, freq, v->synth->resonance);
 	    }
 	    /* iir_set_coeffs_lowpass_chebyshev(f, (mtof_calc(v->note_val) * 20 * amp_env[i] * amp_env[i] * amp_env[i]) / session->proj.sample_rate / 2.0f, 4.0); */
 
@@ -944,7 +856,7 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step)
 	synth_voice_add_buf(v, buf, len, channel, step);
     }
     for (int i=0; i<len; i++) {
-	buf[i] = tanh(buf[i]);
+	buf[i] = tanh(iir_sample(&s->dc_blocker, buf[i], channel));
     }
 }
 

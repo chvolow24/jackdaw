@@ -4,8 +4,131 @@
 #include <stdlib.h>
 #include <string.h>
 #include "adsr.h"
-#include "color.h"
+#include "endpoint_callbacks.h"
+#include "session.h"
+/* #include "color.h" */
 
+
+
+static void dsp_cb_attack(Endpoint *ep)
+{
+    int msec_prev = ep->overwrite_val.int_v;
+    int msec = endpoint_safe_read(ep, NULL).int_v;
+    Session *session = session_get();
+    int32_t samples_prev = (double)msec_prev * (double)session->proj.sample_rate / 1000.0;
+    int32_t samples = (double)msec * (double)session->proj.sample_rate / 1000.0;
+    
+    ADSRParams *p = ep->xarg1;
+    adsr_reset_env_remaining(p, ADSR_A, samples - samples_prev);
+    adsr_set_params(p, samples, p->d, p->s_ep_targ, p->r, p->ramp_exp);
+}
+
+static void dsp_cb_decay(Endpoint *ep)
+{
+    int msec_prev = ep->overwrite_val.int_v;
+    int msec = endpoint_safe_read(ep, NULL).int_v;
+    Session *session = session_get();
+    int32_t samples_prev = msec_prev * session->proj.sample_rate / 1000;
+    int32_t samples = msec * session->proj.sample_rate / 1000;
+    ADSRParams *p = ep->xarg1;
+    adsr_reset_env_remaining(p, ADSR_D, samples - samples_prev);
+    adsr_set_params(p, p->a, samples, p->s_ep_targ, p->r, p->ramp_exp);
+}
+
+static void dsp_cb_sustain(Endpoint *ep)
+{
+    float s = endpoint_safe_read(ep, NULL).float_v;
+    ADSRParams *p = ep->xarg1;
+    adsr_set_params(p, p->a, p->d, s, p->r, p->ramp_exp);
+}
+
+
+static void dsp_cb_release(Endpoint *ep)
+{
+    int msec_prev = ep->overwrite_val.int_v;
+    int msec = endpoint_safe_read(ep, NULL).int_v;
+    Session *session = session_get();
+    int32_t samples = msec * session->proj.sample_rate / 1000;
+    int32_t samples_prev = msec_prev * session->proj.sample_rate / 1000;
+    ADSRParams *p = ep->xarg1;
+    adsr_reset_env_remaining(p, ADSR_R, samples - samples_prev);
+    adsr_set_params(p, p->a, p->d, p->s_ep_targ, samples, p->ramp_exp);
+}
+static void dsp_cb_ramp_exp(Endpoint *ep)
+{
+    ADSRParams *p = ep->xarg1;
+    adsr_set_params(p, p->a, p->d, p->s_ep_targ, p->r, p->ramp_exp);
+}
+
+void adsr_endpoints_init(ADSRParams *p, Page **cb_page, APINode *parent_node, char *node_name)
+{
+    api_node_register(&p->api_node, parent_node, node_name);
+    endpoint_init(
+	&p->a_ep,
+	&p->a_msec,
+	JDAW_INT,
+	"attack",
+	"Attack",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, dsp_cb_attack,
+	p, NULL, cb_page, "attack_slider");
+    endpoint_set_default_value(&p->a_ep, (Value){.int_v = 8});
+    endpoint_set_allowed_range(&p->a_ep, (Value){.int_v = 0}, (Value){.int_v = 2000});
+    api_endpoint_register(&p->a_ep, &p->api_node);
+
+    endpoint_init(
+	&p->d_ep,
+	&p->d_msec,
+	JDAW_INT,
+	"decay",
+	"Decay",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, dsp_cb_decay,
+	p, NULL, cb_page, "decay_slider");
+    endpoint_set_default_value(&p->d_ep, (Value){.int_v = 200});
+    endpoint_set_allowed_range(&p->d_ep, (Value){.int_v = 0}, (Value){.int_v = 2000});
+    api_endpoint_register(&p->d_ep, &p->api_node);
+
+    endpoint_init(
+	&p->s_ep,
+	&p->s_ep_targ,
+	JDAW_FLOAT,
+	"sustain",
+	"Sustain",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, dsp_cb_sustain,
+	p, NULL, cb_page, "sustain_slider");
+    endpoint_set_default_value(&p->s_ep, (Value){.float_v = 0.4f});
+    endpoint_set_allowed_range(&p->s_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
+    api_endpoint_register(&p->s_ep, &p->api_node);
+
+    endpoint_init(
+	&p->r_ep,
+	&p->r_msec,
+	JDAW_INT,
+	"release",
+	"Release",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, dsp_cb_release,
+	p, NULL, cb_page, "release_slider");
+    endpoint_set_default_value(&p->r_ep, (Value){.int_v = 300});
+    endpoint_set_allowed_range(&p->r_ep, (Value){.int_v = 0}, (Value){.int_v = 2000});
+    api_endpoint_register(&p->r_ep, &p->api_node);
+
+
+    endpoint_init(
+	&p->ramp_exp_ep,
+	&p->ramp_exp,
+	JDAW_FLOAT,
+	"ramp_exponent",
+	"Ramp exponent",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, dsp_cb_ramp_exp,
+	p, NULL, cb_page, "ramp_exp_slider");
+    endpoint_set_default_value(&p->ramp_exp_ep, (Value){.float_v = 2.0});
+    endpoint_set_allowed_range(&p->ramp_exp_ep, (Value){.float_v = 1.0}, (Value){.float_v = 20.0});
+    api_endpoint_register(&p->ramp_exp_ep, &p->api_node);
+}
 
 void adsr_params_add_follower(ADSRParams *p, ADSRState *follower)
 {
@@ -30,10 +153,10 @@ void adsr_reset_env_remaining(ADSRParams *p, enum adsr_stage stage, int32_t delt
     for (int i=0; i<p->num_followers; i++) {
         ADSRState *s = p->followers[i];
 	if (s->current_stage == stage) {
-	    fprintf(stderr, "STAGE %d delta %d %d->%d\n", stage, delta, s->env_remaining, s->env_remaining + delta);
+	    /* fprintf(stderr, "STAGE %d delta %d %d->%d\n", stage, delta, s->env_remaining, s->env_remaining + delta); */
 	    s->env_remaining += delta;
 	    if (s->env_remaining < 0) {
-		fprintf(stderr, "\t\tWarn!\n");
+		/* fprintf(stderr, "\t\tWarn!\n"); */
 		s->env_remaining = 0;
 	    }
 	}
@@ -48,7 +171,7 @@ void adsr_set_params(
     int32_t r,
     float ramp_exp)
 {
-    fprintf(stderr, "SET PARAMS %d %d %f %d %f\n", a, d, s, r, ramp_exp);
+    /* fprintf(stderr, "SET PARAMS %d %d %f %d %f\n", a, d, s, r, ramp_exp); */
     /* const char *thread = get_thread_name(); */
     /* fprintf(stderr, "PARAM CALL ON THREAD %s\n", thread); */
     
@@ -97,11 +220,7 @@ void adsr_init(ADSRState *s, int32_t after)
 
 void adsr_start_release(ADSRState *s, int32_t after)
 {
-    /* fprintf(stderr, "\n\n\n%p RELEASE NOTE AFTER %d\n", s, after); */
     s->start_release_after = after;
-    /* if (s->current_stage >= ADSR_R) return; */
-    /* s->current_stage = ADSR_R; */
-    /* s->env_remaining = s->params->r; */
 }
 
 /* int Id=0; */

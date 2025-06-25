@@ -62,9 +62,9 @@ volatile bool CANCEL_THREADS = false;
 
 Window *main_win = NULL;
 
-extern pthread_t MAIN_THREAD_ID;
-extern pthread_t DSP_THREAD_ID;
-extern pthread_t CURRENT_THREAD_ID;
+/* extern pthread_t MAIN_THREAD_ID; */
+/* extern pthread_t DSP_THREAD_ID; */
+/* extern pthread_t CURRENT_THREAD_ID; */
 
 static void get_native_byte_order()
 {
@@ -98,8 +98,9 @@ static void init_SDL()
 static void init()
 {
     fprintf(stderr, "Initializing SDL and subsystems...\n");
-    MAIN_THREAD_ID = pthread_self();
-    CURRENT_THREAD_ID = MAIN_THREAD_ID;
+    set_thread_id(JDAW_THREAD_MAIN);
+    /* MAIN_THREAD_ID = pthread_self(); */
+    /* CURRENT_THREAD_ID = MAIN_THREAD_ID; */
     init_SDL();
     get_native_byte_order();
     input_init_hash_table();

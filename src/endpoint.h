@@ -171,5 +171,6 @@ void endpoint_stop_continuous_change(Endpoint *ep);
 
 void endpoint_bind_automation(Endpoint *ep, Automation *a);
 void endpoint_set_label_fn(Endpoint *ep, LabelStrFn fn);
+void api_node_set_owner(APINode *node, enum jdaw_thread thread);
 
 #endif

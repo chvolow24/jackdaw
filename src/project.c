@@ -1554,6 +1554,7 @@ void timeline_check_set_midi_monitoring()
     if (track && track->input_type == MIDI_DEVICE && track->midi_out && track->midi_out_type == MIDI_OUT_SYNTH) {
 	session->midi_io.monitor_synth = track->midi_out;
 	session->midi_io.monitor_device = track->input;
+	api_node_set_owner(&track->synth->api_node, JDAW_THREAD_PLAYBACK);
 	audioconn_start_playback(session->audio_io.playback_conn);
 	fprintf(stderr, "monitoring!!\n");
     } else {
@@ -1562,6 +1563,9 @@ void timeline_check_set_midi_monitoring()
 	/* Only close output audio device if project is not playing from timeline */
 	if (!session->playback.playing) {
 	    audioconn_stop_playback(session->audio_io.playback_conn);
+	}
+	if (track->synth) {
+	    api_node_set_owner(&track->synth->api_node, JDAW_THREAD_DSP);
 	}
 	fprintf(stderr, "NO Monitor\n");
     }

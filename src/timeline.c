@@ -35,8 +35,8 @@
 
 /* extern Project *proj; */
 extern Window *main_win;
-extern pthread_t MAIN_THREAD_ID;
-extern pthread_t DSP_THREAD_ID;
+/* extern pthread_t MAIN_THREAD_ID; */
+/* extern pthread_t DSP_THREAD_ID; */
 
 /* int timeline_get_draw_x(int32_t abs_x); */
 

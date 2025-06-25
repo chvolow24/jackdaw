@@ -177,7 +177,12 @@ int endpoint_write(
 	    ep->dsp_callback(ep);
 	} else {
 	    if (session->playback.playing) {
-		session_queue_callback(session, ep, ep->dsp_callback, JDAW_THREAD_DSP);
+		/* If ep owner assigned to playback thread, run DSP callbacks on that thread */
+		enum jdaw_thread dst_thread = ep->owner_thread == JDAW_THREAD_PLAYBACK ? JDAW_THREAD_PLAYBACK : JDAW_THREAD_DSP;
+		session_queue_callback(session, ep, ep->dsp_callback, dst_thread);
+		async_change_will_occur = true;
+	    } else if (session->midi_io.monitor_synth && ep->owner_thread == JDAW_THREAD_PLAYBACK) {
+		session_queue_callback(session, ep, ep->dsp_callback, JDAW_THREAD_PLAYBACK);
 		async_change_will_occur = true;
 	    } else {
 		ep->dsp_callback(ep);
@@ -334,4 +339,14 @@ void endpoint_bind_automation(Endpoint *ep, Automation *a)
 {
     ep->automation = a;
     a->endpoint = ep;
+}
+
+void api_node_set_owner(APINode *node, enum jdaw_thread thread)
+{
+    for (int i=0; i<node->num_endpoints; i++) {
+	endpoint_set_owner(node->endpoints[i], thread);
+    }
+    for (int i=0; i<node->num_children; i++) {
+	api_node_set_owner(node->children[i], thread);
+    }
 }

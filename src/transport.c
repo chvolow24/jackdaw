@@ -36,8 +36,8 @@
 #include "timeline.h"
 #include "transport.h"
 
-extern pthread_t DSP_THREAD_ID;
-extern pthread_t CURRENT_THREAD_ID;
+/* extern pthread_t DSP_THREAD_ID; */
+/* extern pthread_t CURRENT_THREAD_ID; */
 extern struct colors colors;
 
 void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type);
@@ -150,6 +150,8 @@ static inline float clip(float f)
 void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 {
     Session *session = session_get();
+    set_thread_id(JDAW_THREAD_PLAYBACK);
+    /* session->playback_thread = pthread_self(); */
     /* fprintf(stdout, "\nSTART cb\n"); */
     /* clock_t a,b; */
     /* a = clock(); */
@@ -237,13 +239,19 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     } else {
 	timeline_move_play_position(tl, session->playback.play_speed * stream_len_samples / proj->channels);
     }
+    session_do_ongoing_changes(session, JDAW_THREAD_PLAYBACK);
+    session_flush_val_changes(session, JDAW_THREAD_PLAYBACK);
+    session_flush_callbacks(session, JDAW_THREAD_PLAYBACK);
+
 }
 
 static void *transport_dsp_thread_fn(void *arg)
 {
     Session *session = session_get();
-    DSP_THREAD_ID = pthread_self();
-    CURRENT_THREAD_ID = DSP_THREAD_ID;
+    set_thread_id(JDAW_THREAD_DSP);
+    /* session->dsp_thread = pthread_self(); */
+    /* DSP_THREAD_ID = pthread_self(); */
+    /* CURRENT_THREAD_ID = DSP_THREAD_ID; */
     
     Timeline *tl = (Timeline *)arg;
     
@@ -469,7 +477,7 @@ void transport_start_playback()
 	    fprintf(stderr, "pthread_attr_setstacksize: %s\n", strerror(ret));
 	}
     }
-    if ((ret = pthread_create(&session->dsp_thread, &attr, transport_dsp_thread_fn, (void *)tl)) != 0) {
+    if ((ret = pthread_create(get_thread_addr(JDAW_THREAD_DSP), &attr, transport_dsp_thread_fn, (void *)tl)) != 0) {
 	fprintf(stderr, "pthread_create: %s\n", strerror(ret));
     }
 
@@ -487,7 +495,7 @@ void transport_stop_playback()
     Timeline *tl = ACTIVE_TL;
     audioconn_stop_playback(session->audio_io.playback_conn);
 
-    if (session->dsp_thread) pthread_cancel(session->dsp_thread);
+    pthread_cancel(*get_thread_addr(JDAW_THREAD_DSP));
     /* Unblock DSP thread */
     for (int i=0; i<512; i++) {
 	sem_post(tl->writable_chunks);

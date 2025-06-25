@@ -25,7 +25,7 @@
 #include "eq.h"
 #include "fir_filter.h"
 #include "function_lookup.h"
-#include "iir.h"
+/* #include "iir.h" */
 #include "input.h"
 #include "layout.h"
 #include "midi_clip.h"
@@ -51,7 +51,7 @@ extern Window *main_win;
 
 extern Project *proj;
 
-extern pthread_t DSP_THREAD_ID;
+/* extern pthread_t DSP_THREAD_ID; */
 
 /* TODO: SDL bug workaround. I haven't been able to get this to work reliably cross-platform. */
 /* https://discourse.libsdl.org/t/window-event-at-initiation-of-window-resize/50963/3 */

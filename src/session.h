@@ -135,7 +135,9 @@ struct playback {
 typedef struct session {
     struct audio_io audio_io;
     struct midi_io midi_io;
-    pthread_t dsp_thread;
+    /* pthread_t main_thread; */
+    /* pthread_t dsp_thread; */
+    /* pthread_t playback_thread; */
     UserEventHistory history;
     struct playhead_scroll playhead_scroll;
     int quit_count;

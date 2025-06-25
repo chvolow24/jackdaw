@@ -371,7 +371,6 @@ void api_node_renamed(APINode *an)
     for (int i=0; i<an->num_children; i++) {
 	api_node_renamed(an->children[i]);
     }
-
 }
 
 /* extern Project *proj; */

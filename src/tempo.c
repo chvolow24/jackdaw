@@ -39,7 +39,7 @@ extern SDL_Color mute_red;
 
 /* extern SDL_Color color_button_light_text; */
 
-extern pthread_t MAIN_THREAD_ID;
+/* extern pthread_t MAIN_THREAD_ID; */
 
 void session_init_metronomes(Session *session)
 {

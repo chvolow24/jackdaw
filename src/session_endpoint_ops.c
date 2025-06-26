@@ -74,7 +74,7 @@ void session_flush_val_changes(Session *session, enum jdaw_thread thread)
     pthread_mutex_lock(&session->queued_ops.queued_val_changes_lock);
     /* fprintf(stderr, "Flush %d val changes on thread %s\n", session->num_queued_val_changes[thread], thread==JDAW_THREAD_DSP ? "DSP" : "Main"); */
     for (int i=0; i<session->queued_ops.num_queued_val_changes[thread]; i++) {
-	if (i==0)     fprintf(stderr, "FLUSHING THREAD %s\n", get_thread_name());
+	/* if (i==0)     fprintf(stderr, "FLUSHING THREAD %s\n", get_thread_name()); */
 	struct queued_val_change *qvc = &session->queued_ops.queued_val_changes[thread][i];
 	Endpoint *ep = qvc->ep;
 	/* Protected write */
@@ -145,7 +145,7 @@ void session_flush_callbacks(Session *session, enum jdaw_thread thread)
     Endpoint **arg_arr = session->queued_ops.queued_callback_args[thread];
     uint8_t num = session->queued_ops.num_queued_callbacks[thread];
     for (int i=0; i<num; i++) {
-	if (i==0)     fprintf(stderr, "FLUSHING %d Callbacks thread %s\n", num, get_thread_name());
+	/* if (i==0)     fprintf(stderr, "FLUSHING %d Callbacks thread %s\n", num, get_thread_name()); */
 	/* fprintf(stderr, "\tCB flush \"%s\"\n", arg_arr[i]->local_id); */
 	cb_arr[i](arg_arr[i]);
     }

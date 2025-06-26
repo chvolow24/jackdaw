@@ -54,11 +54,15 @@ Synth *synth_create(Track *track)
 	SynthVoice *v = s->voices + i;
 	adsr_params_add_follower(&s->amp_env, &v->amp_env[0]);
 	adsr_params_add_follower(&s->amp_env, &v->amp_env[1]);
+	
+	adsr_params_add_follower(&s->filter_env, &v->filter_env[0]);
+	adsr_params_add_follower(&s->filter_env, &v->filter_env[1]);
+
 	iir_init(&v->filter, 2, 2);
 	v->synth = s;
 	v->available = true;
-	v->amp_env[0].params = &s->amp_env;
-	v->amp_env[1].params = &s->amp_env;
+	/* v->amp_env[0].params = &s->amp_env; */
+	/* v->amp_env[1].params = &s->amp_env; */
     }
     s->amp_env.a_msec = 4;
     s->amp_env.d_msec = 200;
@@ -99,8 +103,7 @@ Synth *synth_create(Track *track)
 
     /* adsr_params_init(&s->amp_env); */
 
-
-
+    s->filter_active = true;
     endpoint_init(
 	&s->filter_active_ep,
 	&s->filter_active,
@@ -152,6 +155,20 @@ Synth *synth_create(Track *track)
     endpoint_set_default_value(&s->velocity_freq_scalar_ep, (Value){.float_v = 1.0});
     endpoint_set_allowed_range(&s->velocity_freq_scalar_ep, (Value){.float_v = 0.0}, (Value){.float_v = 1.0});
     api_endpoint_register(&s->velocity_freq_scalar_ep, &s->filter_node);
+
+    s->use_amp_env = true;
+    endpoint_init(
+	&s->use_amp_env_ep,
+	&s->use_amp_env,
+	JDAW_BOOL,
+	"use_amp_env",
+	"Use amp env",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, NULL,
+	NULL, NULL, &s->filter_page, "use_amp_env_toggle");
+    endpoint_set_default_value(&s->velocity_freq_scalar_ep, (Value){.bool_v = true});
+    api_endpoint_register(&s->use_amp_env_ep, &s->filter_node);
+
 	
 
        
@@ -521,9 +538,15 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
     }
     Session *session = session_get();
     IIRFilter *f = &v->filter;
+    float filter_env[len];
+    float *filter_env_p = amp_env;
+    if (!v->synth->use_amp_env) {
+	adsr_get_chunk(&v->filter_env[channel], filter_env, len);
+	filter_env_p = filter_env;
+    }
     for (int i=0; i<len; i++) {
 	if (i%27 == 0) { /* Update filter every 27 sample frames */
-	    double freq = mtof_calc(v->note_val) * v->synth->freq_scalar * amp_env[i] / session->proj.sample_rate;
+	    double freq = mtof_calc(v->note_val) * v->synth->freq_scalar * filter_env_p[i] / session->proj.sample_rate;
 	    double velocity_rel = 1.0 - v->synth->velocity_freq_scalar * (127.0 - (double)v->velocity) / 126.0;
 	    freq *= velocity_rel;
 	    if (freq > 0.99f) freq = 0.99f;
@@ -618,6 +641,11 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
     v->available = false;
     adsr_init(v->amp_env, start_rel);
     adsr_init(v->amp_env + 1, start_rel);
+    /* if (!v->synth->use_amp_env) { */
+    adsr_init(v->filter_env, start_rel);
+    adsr_init(v->filter_env + 1, start_rel);
+    /* } */
+
     /* v->amp_env_stage[0] = 0; */
     /* v->amp_env_stage[1] = 0; */
     /* v->env_remaining[0] = v->synth->amp_env.a; */
@@ -800,6 +828,9 @@ void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start
 		    int32_t end_rel = send_immediate ? 0 : tl_start - e.timestamp;
 		    adsr_start_release(v->amp_env, end_rel);
 		    adsr_start_release(v->amp_env + 1, end_rel);
+		    adsr_start_release(v->filter_env, end_rel);
+		    adsr_start_release(v->filter_env + 1, end_rel);
+
 		}
 	    }
 	} else if (msg_type == 0x90) {
@@ -868,6 +899,9 @@ void synth_close_all_notes(Synth *s)
 	if (!v->available) {
 	    adsr_start_release(v->amp_env, 0);
 	    adsr_start_release(v->amp_env + 1, 0);
+	    adsr_start_release(v->filter_env, 0);
+	    adsr_start_release(v->filter_env + 1, 0);
+
 	}
     }
 }

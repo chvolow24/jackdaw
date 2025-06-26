@@ -74,6 +74,7 @@ void adsr_endpoints_init(ADSRParams *p, Page **cb_page, APINode *parent_node, ch
 	p, NULL, cb_page, "attack_slider");
     endpoint_set_default_value(&p->a_ep, (Value){.int_v = 8});
     endpoint_set_allowed_range(&p->a_ep, (Value){.int_v = 0}, (Value){.int_v = 2000});
+    endpoint_set_label_fn(&p->a_ep, label_msec);
     api_endpoint_register(&p->a_ep, &p->api_node);
 
     endpoint_init(
@@ -87,6 +88,7 @@ void adsr_endpoints_init(ADSRParams *p, Page **cb_page, APINode *parent_node, ch
 	p, NULL, cb_page, "decay_slider");
     endpoint_set_default_value(&p->d_ep, (Value){.int_v = 200});
     endpoint_set_allowed_range(&p->d_ep, (Value){.int_v = 0}, (Value){.int_v = 2000});
+    endpoint_set_label_fn(&p->d_ep, label_msec);
     api_endpoint_register(&p->d_ep, &p->api_node);
 
     endpoint_init(
@@ -113,6 +115,7 @@ void adsr_endpoints_init(ADSRParams *p, Page **cb_page, APINode *parent_node, ch
 	p, NULL, cb_page, "release_slider");
     endpoint_set_default_value(&p->r_ep, (Value){.int_v = 300});
     endpoint_set_allowed_range(&p->r_ep, (Value){.int_v = 0}, (Value){.int_v = 2000});
+    endpoint_set_label_fn(&p->r_ep, label_msec);
     api_endpoint_register(&p->r_ep, &p->api_node);
 
 
@@ -132,6 +135,7 @@ void adsr_endpoints_init(ADSRParams *p, Page **cb_page, APINode *parent_node, ch
 
 void adsr_params_add_follower(ADSRParams *p, ADSRState *follower)
 {
+    follower->params = p;
     if (p->followers_arrlen == 0) {
 	p->followers_arrlen = 8;
 	p->followers = calloc(p->followers_arrlen, sizeof(ADSRState *));
@@ -153,10 +157,10 @@ void adsr_reset_env_remaining(ADSRParams *p, enum adsr_stage stage, int32_t delt
     for (int i=0; i<p->num_followers; i++) {
         ADSRState *s = p->followers[i];
 	if (s->current_stage == stage) {
-	    /* fprintf(stderr, "STAGE %d delta %d %d->%d\n", stage, delta, s->env_remaining, s->env_remaining + delta); */
+	    fprintf(stderr, "STAGE %d delta %d %d->%d\n", stage, delta, s->env_remaining, s->env_remaining + delta);
 	    s->env_remaining += delta;
 	    if (s->env_remaining < 0) {
-		/* fprintf(stderr, "\t\tWarn!\n"); */
+		fprintf(stderr, "\t\tWarn!\n");
 		s->env_remaining = 0;
 	    }
 	}

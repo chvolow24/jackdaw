@@ -634,7 +634,7 @@ static void add_amp_env_page(TabView *tv, Track *track)
     page_add_el(page,EL_TEXTBOX,p,"","ramp_exp_label");
 
     p.slider_p.orientation = SLIDER_HORIZONTAL;
-    p.slider_p.style = SLIDER_FILL;
+    p.slider_p.style = SLIDER_TICK;
 
     page_el_params_slider_from_ep(&p, &s->amp_env.a_ep);	
     page_add_el(page,EL_SLIDER,p,"attack_slider","attack_slider");
@@ -642,9 +642,11 @@ static void add_amp_env_page(TabView *tv, Track *track)
     page_el_params_slider_from_ep(&p, &s->amp_env.d_ep);	
     page_add_el(page,EL_SLIDER,p,"decay_slider","decay_slider");
 
+    p.slider_p.style = SLIDER_FILL;
     page_el_params_slider_from_ep(&p, &s->amp_env.s_ep);	
     page_add_el(page,EL_SLIDER,p,"sustain_slider","sustain_slider");
 
+    p.slider_p.style = SLIDER_TICK;
     page_el_params_slider_from_ep(&p, &s->amp_env.r_ep);	
     page_add_el(page,EL_SLIDER,p,"release_slider","release_slider");
 
@@ -685,7 +687,6 @@ static void add_filter_page(TabView *tv, Track *track)
     p.textbox_p.set_str = "Velocity freq scalar:";
     page_add_el(page,EL_TEXTBOX,p,"","velocity_freq_scalar_label");
 
-
     p.textbox_p.set_str = "Resonance:";
     page_add_el(page,EL_TEXTBOX,p,"","resonance_label");
 
@@ -707,8 +708,11 @@ static void add_filter_page(TabView *tv, Track *track)
     p.textbox_p.set_str = "Ramp exponent:";
     page_add_el(page,EL_TEXTBOX,p,"","ramp_exp_label");
 
+    p.toggle_p.ep = &s->use_amp_env_ep;
+    page_add_el(page,EL_TOGGLE,p,"use_amp_env_toggle","use_amp_env_toggle");
+
     p.slider_p.orientation = SLIDER_HORIZONTAL;
-    p.slider_p.style = SLIDER_TICK;
+    p.slider_p.style = SLIDER_FILL;
 
     page_el_params_slider_from_ep(&p, &s->freq_scalar_ep);
     page_add_el(page,EL_SLIDER,p,"freq_scalar_slider","freq_scalar_slider");
@@ -719,20 +723,29 @@ static void add_filter_page(TabView *tv, Track *track)
     page_el_params_slider_from_ep(&p, &s->resonance_ep);
     page_add_el(page,EL_SLIDER,p,"resonance_slider","resonance_slider");
 
+    p.toggle_p.ep = &s->filter_active_ep;
+    page_add_el(page,EL_TOGGLE,p,"filter_active_toggle","active_toggle");
+
+    p.slider_p.orientation = SLIDER_HORIZONTAL;
+    p.slider_p.style = SLIDER_TICK;
+
     page_el_params_slider_from_ep(&p, &s->filter_env.a_ep);	
     page_add_el(page,EL_SLIDER,p,"attack_slider","attack_slider");
 
     page_el_params_slider_from_ep(&p, &s->filter_env.d_ep);	
     page_add_el(page,EL_SLIDER,p,"decay_slider","decay_slider");
 
+    p.slider_p.style = SLIDER_FILL;
     page_el_params_slider_from_ep(&p, &s->filter_env.s_ep);	
     page_add_el(page,EL_SLIDER,p,"sustain_slider","sustain_slider");
 
+    p.slider_p.style = SLIDER_TICK;
     page_el_params_slider_from_ep(&p, &s->filter_env.r_ep);	
     page_add_el(page,EL_SLIDER,p,"release_slider","release_slider");
 
     page_el_params_slider_from_ep(&p, &s->filter_env.ramp_exp_ep);	
     page_add_el(page,EL_SLIDER,p,"ramp_exp_slider","ramp_exp_slider");
+
 
 
 

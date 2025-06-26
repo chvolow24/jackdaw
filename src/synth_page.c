@@ -24,6 +24,12 @@ TabView *synth_tabview_create(Track *track)
 	"Synth settings",
 	session->gui.layout,
 	main_win);
+
+    if (!track->synth) track->synth = synth_create(track);
+    
+    track->midi_out = track->synth;
+    track->midi_out_type = MIDI_OUT_SYNTH;
+    
     add_osc_page(tv, track);
     add_amp_env_page(tv, track);
     add_filter_page(tv, track);
@@ -654,11 +660,6 @@ static void add_amp_env_page(TabView *tv, Track *track)
     page_add_el(page,EL_SLIDER,p,"ramp_exp_slider","ramp_exp_slider");
 
     page_reset(page);
-
-
-
-
-    
 
 }
 

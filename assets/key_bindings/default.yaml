@@ -130,9 +130,11 @@
   - <ret>	: tl_track_activate_selected
   - C-r		: tl_track_rename
   - C-S-i	: tl_track_set_in
+  - C-S-m	: tl_track_set_midi_out
   - C-<del>	: tl_track_delete
   - S-t		: tl_track_open_settings
   - S-e		: tl_track_add_effect
+  - S-s		: tl_track_open_synth
   - a		: tl_track_show_hide_automations
   - C-a		: tl_track_add_automation
   - S-r		: tl_track_automation_toggle_read

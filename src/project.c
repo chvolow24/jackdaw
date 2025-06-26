@@ -1441,14 +1441,9 @@ static void track_set_in_onclick(void *void_arg)
 void track_set_midi_out(Track *track)
 {
     Session *session = session_get();
-
     /* Refresh device list: skip for now :( */
     /* session_populate_midi_device_lists(session_get()); */
 
-
-    
-    /* SDL_Rect *rect = &(track->tb_input_name->layout->rect); */
-    /* int y = rect->y; */
     Menu *menu = menu_create_at_point(track->layout->rect.x + track->layout->rect.w / 2, track->layout->rect.y);
     MenuColumn *c = menu_column_add(menu, "");
     MenuSection *sc = menu_section_add(c, "");

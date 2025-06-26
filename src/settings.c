@@ -49,15 +49,15 @@ void settings_track_tabview_set_track(TabView *tv, Track *track)
     /* tabview_deactivate(tv); */
 }
 TabView *track_effects_tabview_create(Track *track);
-TabView *settings_track_tabview_create(Track *track)
-{
-    return track_effects_tabview_create(track);
-    /* TabView *tv = tabview_create("Track Settings", session->gui.layout, main_win); */
-    /* settings_track_tabview_set_track(tv, track); */
-    /* layout_force_reset(tv->layout); */
-    /* return tv; */
+/* TabView *settings_track_tabview_create(Track *track) */
+/* { */
+/*     return track_effects_tabview_create(track); */
+/*     /\* TabView *tv = tabview_create("Track Settings", session->gui.layout, main_win); *\/ */
+/*     /\* settings_track_tabview_set_track(tv, track); *\/ */
+/*     /\* layout_force_reset(tv->layout); *\/ */
+/*     /\* return tv; *\/ */
  
-}
+/* } */
 
 
 static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv, bool set_from_cfg);

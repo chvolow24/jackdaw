@@ -157,10 +157,10 @@ void adsr_reset_env_remaining(ADSRParams *p, enum adsr_stage stage, int32_t delt
     for (int i=0; i<p->num_followers; i++) {
         ADSRState *s = p->followers[i];
 	if (s->current_stage == stage) {
-	    fprintf(stderr, "STAGE %d delta %d %d->%d\n", stage, delta, s->env_remaining, s->env_remaining + delta);
+	    /* fprintf(stderr, "STAGE %d delta %d %d->%d\n", stage, delta, s->env_remaining, s->env_remaining + delta); */
 	    s->env_remaining += delta;
 	    if (s->env_remaining < 0) {
-		fprintf(stderr, "\t\tWarn!\n");
+		/* fprintf(stderr, "\t\tWarn!\n"); */
 		s->env_remaining = 0;
 	    }
 	}

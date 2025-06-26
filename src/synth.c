@@ -19,10 +19,8 @@ static void synth_osc_vol_dsp_cb(Endpoint *ep)
     else cfg->active = false;
 }
 
-
 Synth *synth_create(Track *track)
 {
-    /* Session *session = session_get(); */
     Synth *s = calloc(1, sizeof(Synth));
     s->track = track;
     
@@ -37,18 +35,6 @@ Synth *synth_create(Track *track)
     double A[] = {1.0, -1.0};
     double B[] = {0.999};
     iir_set_coeffs(&s->dc_blocker, A, B);
-
-    /* for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) { */
-    /* 	s->base_oscs[i].type = WS_SAW; */
-    /* 	if (i==1) { */
-    /* 	    s->base_oscs[i].type = WS_SQUARE; */
-    /* 	} */
-    /* 	if (i==2) */
-    /* 	    s->base_oscs[i].type = WS_SINE; */
-    /* } */
-    
-    /* synth_base_osc_set_freq_modulator(s, s->base_oscs + 0, s->base_oscs + 1); */
-    /* synth_base_osc_set_freq_modulator(s, s->base_oscs + 2, s->base_oscs + 3); */
 
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	SynthVoice *v = s->voices + i;
@@ -540,23 +526,25 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
     IIRFilter *f = &v->filter;
     float filter_env[len];
     float *filter_env_p = amp_env;
-    if (!v->synth->use_amp_env) {
+    if (v->synth->filter_active && !v->synth->use_amp_env) {
 	adsr_get_chunk(&v->filter_env[channel], filter_env, len);
 	filter_env_p = filter_env;
     }
     for (int i=0; i<len; i++) {
-	if (i%27 == 0) { /* Update filter every 27 sample frames */
-	    double freq = mtof_calc(v->note_val) * v->synth->freq_scalar * filter_env_p[i] / session->proj.sample_rate;
-	    double velocity_rel = 1.0 - v->synth->velocity_freq_scalar * (127.0 - (double)v->velocity) / 126.0;
-	    freq *= velocity_rel;
-	    if (freq > 0.99f) freq = 0.99f;
-	    if (freq > 1e-3) {
-		iir_set_coeffs_lowpass_chebyshev(f, freq, v->synth->resonance);
-	    }
-	    /* iir_set_coeffs_lowpass_chebyshev(f, (mtof_calc(v->note_val) * 20 * amp_env[i] * amp_env[i] * amp_env[i]) / session->proj.sample_rate / 2.0f, 4.0); */
+	if (v->synth->filter_active) {
+	    if (i%27 == 0) { /* Update filter every 27 sample frames */
+		double freq = mtof_calc(v->note_val) * v->synth->freq_scalar * filter_env_p[i] / session->proj.sample_rate;
+		double velocity_rel = 1.0 - v->synth->velocity_freq_scalar * (127.0 - (double)v->velocity) / 126.0;
+		freq *= velocity_rel;
+		if (freq > 0.99f) freq = 0.99f;
+		if (freq > 1e-3) {
+		    iir_set_coeffs_lowpass_chebyshev(f, freq, v->synth->resonance);
+		}
+		/* iir_set_coeffs_lowpass_chebyshev(f, (mtof_calc(v->note_val) * 20 * amp_env[i] * amp_env[i] * amp_env[i]) / session->proj.sample_rate / 2.0f, 4.0); */
 
+	    }
+	    osc_buf[i] = iir_sample(f, osc_buf[i], channel);
 	}
-	osc_buf[i] = iir_sample(f, osc_buf[i], channel);
 	buf[i] += osc_buf[i] * (float)v->velocity / 127.0f;
     }
 

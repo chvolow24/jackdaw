@@ -714,6 +714,12 @@ static void mode_load_timeline()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
+	"tl_track_open_synth",
+	"Open synth",
+	user_tl_track_open_synth);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
 	"tl_mute",
 	"Mute or unmute selected track(s)",
 	user_tl_mute);
@@ -772,10 +778,9 @@ static void mode_load_timeline()
 
     fn = create_user_fn(
 	"tl_track_set_midi_out",
-	"Set track midi out",
+	"Set track MIDI out",
 	user_tl_track_set_midi_out);
     mode_subcat_add_fn(sc, fn);
-
 
     fn = create_user_fn(
 	"tl_track_show_hide_automations",

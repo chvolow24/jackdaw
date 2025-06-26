@@ -19,9 +19,11 @@
 #include "session.h"
 #include "settings.h"
 #include "status.h"
+#include "synth_page.h"
 #include "test.h"
 #include "text.h"
 #include "textbox.h"
+#include "effect_pages.h"
 #include "transport.h"
 #include "timeline.h"
 #include "wav.h"
@@ -1798,12 +1800,31 @@ void user_tl_track_open_settings(void *nullarg)
 	    return;
 	}
 
-	TabView *tv = settings_track_tabview_create(track);
+	TabView *tv = track_effects_tabview_create(track);
 	tabview_activate(tv);
 	tl->needs_redraw = true;
     } else {
 	timeline_click_track_edit(tl);
     }
+}
+
+void user_tl_track_open_synth(void *nullarg)
+{
+    if (main_win->active_tabview) {
+	bool early_exit = false;
+	if (strcmp(main_win->active_tabview->title, "Track Synth") == 0) {
+	    early_exit = true;
+	}
+
+	tabview_close(main_win->active_tabview);
+	if (early_exit)	return;
+    }
+    Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
+    Track *track = timeline_selected_track(tl);
+    TabView *tv = synth_tabview_create(track);
+    tabview_activate(tv);
+    tl->needs_redraw = true;
 }
 
 

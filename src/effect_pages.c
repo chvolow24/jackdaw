@@ -1,21 +1,3 @@
-/*****************************************************************************************************************
-  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
-******************************************************************************************************************
-
-  Copyright (C) 2023-2025 Charlie Volow
-  
-  Jackdaw is licensed under the GNU General Public License.
-
-*****************************************************************************************************************/
-
-/*****************************************************************************************************************
-    effect_pages.c
-
-    * (no header file)
-    * horrible procedural construction of GUI pages for effects
-    * this is why they invented HTML
- *****************************************************************************************************************/
-
 #include "assets.h"
 #include "color.h"
 #include "delay_line.h"
@@ -122,6 +104,7 @@ static void swapfn(void *target, int swap_i, int swap_j)
 	
 }
 
+/* Top-level function called in userfn.c */
 TabView *track_effects_tabview_create(Track *track)
 {
     Session *session = session_get();

@@ -54,6 +54,12 @@ Synth *synth_create(Track *track)
     s->amp_env.d_msec = 200;
     s->amp_env.s_ep_targ = 0.4;
     s->amp_env.r_msec = 400;
+    
+    s->filter_env.a_msec = 4;
+    s->filter_env.d_msec = 200;
+    s->filter_env.s_ep_targ = 0.4;
+    s->filter_env.r_msec = 400;
+    
     Session *session = session_get();
     adsr_set_params(
 	&s->amp_env,
@@ -64,10 +70,10 @@ Synth *synth_create(Track *track)
 	2.0);
     adsr_set_params(
 	&s->filter_env,
-	session->proj.sample_rate * s->amp_env.a_msec / 1000,
-	session->proj.sample_rate * s->amp_env.d_msec / 1000,
-	s->amp_env.s_ep_targ,
-	session->proj.sample_rate * s->amp_env.r_msec / 1000,
+	session->proj.sample_rate * s->filter_env.a_msec / 1000,
+	session->proj.sample_rate * s->filter_env.d_msec / 1000,
+	s->filter_env.s_ep_targ,
+	session->proj.sample_rate * s->filter_env.r_msec / 1000,
 	2.0);
 
     s->monitor = true;
@@ -527,7 +533,7 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
     float filter_env[len];
     float *filter_env_p = amp_env;
     if (v->synth->filter_active && !v->synth->use_amp_env) {
-	adsr_get_chunk(&v->filter_env[channel], filter_env, len);
+	enum adsr_stage filter_stage = adsr_get_chunk(&v->filter_env[channel], filter_env, len);
 	filter_env_p = filter_env;
     }
     for (int i=0; i<len; i++) {

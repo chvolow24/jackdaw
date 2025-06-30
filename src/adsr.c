@@ -157,7 +157,7 @@ void adsr_reset_env_remaining(ADSRParams *p, enum adsr_stage stage, int32_t delt
     for (int i=0; i<p->num_followers; i++) {
         ADSRState *s = p->followers[i];
 	if (s->current_stage == stage) {
-	    /* fprintf(stderr, "STAGE %d delta %d %d->%d\n", stage, delta, s->env_remaining, s->env_remaining + delta); */
+	    /* fprintf(stderr, "p %p STAGE %d delta %d %d->%d\n", p, stage, delta, s->env_remaining, s->env_remaining + delta); */
 	    s->env_remaining += delta;
 	    if (s->env_remaining < 0) {
 		/* fprintf(stderr, "\t\tWarn!\n"); */
@@ -175,7 +175,7 @@ void adsr_set_params(
     int32_t r,
     float ramp_exp)
 {
-    /* fprintf(stderr, "SET PARAMS %d %d %f %d %f\n", a, d, s, r, ramp_exp); */
+    /* fprintf(stderr, "SET PARAMS %p %d %d %f %d %f\n", p,a, d, s, r, ramp_exp); */
     /* const char *thread = get_thread_name(); */
     /* fprintf(stderr, "PARAM CALL ON THREAD %s\n", thread); */
     

@@ -23,6 +23,9 @@ Synth *synth_create(Track *track)
 {
     Synth *s = calloc(1, sizeof(Synth));
     s->track = track;
+
+    s->vol = 1.0;
+    s->pan = 0.5;
     
     s->base_oscs[0].active = true;
     s->base_oscs[0].amp = 0.2;
@@ -79,9 +82,32 @@ Synth *synth_create(Track *track)
     s->monitor = true;
     s->allow_voice_stealing = true;
 
-    /* endpoint_init( */
-    /* 	&s->vol_ep, */
-    /* 	&s->, */
+    endpoint_init(
+	&s->vol_ep,
+	&s->vol,
+	JDAW_FLOAT,
+	"vol",
+	"Volume",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, NULL,
+	NULL, NULL, &s->osc_page, "master_amp_slider");
+    endpoint_set_default_value(&s->vol_ep, (Value){.float_v = 1.0});
+    endpoint_set_allowed_range(&s->vol_ep, (Value){.float_v = 0.0}, (Value){.float_v = 3.0});
+    api_endpoint_register(&s->vol_ep, &s->api_node);
+
+    endpoint_init(
+	&s->pan_ep,
+	&s->pan,
+	JDAW_FLOAT,
+	"pan",
+	"Pan",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, NULL,
+	NULL, NULL, &s->osc_page, "master_pan_slider");
+    endpoint_set_default_value(&s->pan_ep, (Value){.float_v = 0.5});
+    endpoint_set_allowed_range(&s->pan_ep, (Value){.float_v = 0.0}, (Value){.float_v = 1.0});
+    api_endpoint_register(&s->pan_ep, &s->api_node);
+
 
     /* endpoint_init( */
     /* 	s->amp_env */
@@ -486,13 +512,13 @@ static float osc_sample(Osc *osc, int channel, int num_channels, float step)
     if (osc->phase[channel] > 1.0) {
 	osc->phase[channel] -= 1.0;
     }
-    float pan_scale;
-    if (channel == 0) {
-	pan_scale = osc->pan <= 0.5 ? 1.0 : (1.0f - osc->pan) * 2.0f;
-    } else {
-	pan_scale = osc->pan >= 0.5 ? 1.0 : osc->pan * 2.0f;
-    }
-    return sample * osc->amp * pan_scale;
+    /* float pan_scale; */
+    /* if (channel == 0) { */
+    /* 	pan_scale = osc->pan <= 0.5 ? 1.0 : (1.0f - osc->pan) * 2.0f; */
+    /* } else { */
+    /* 	pan_scale = osc->pan >= 0.5 ? 1.0 : osc->pan * 2.0f; */
+    /* } */
+    return sample * osc->amp * pan_scale(osc->pan, channel);
 }
 
 
@@ -881,7 +907,11 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step)
 	synth_voice_add_buf(v, buf, len, channel, step);
     }
     for (int i=0; i<len; i++) {
-	buf[i] = tanh(iir_sample(&s->dc_blocker, buf[i], channel));
+	buf[i] = tanh(
+	    iir_sample(&s->dc_blocker, buf[i], channel)
+	    * s->vol
+	    * pan_scale(s->pan, channel)
+	    );
     }
 }
 

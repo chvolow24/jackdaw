@@ -49,6 +49,12 @@ typedef struct clip {
 } Clip;
 
 
+/* mandatory after alloc */
+void clip_init(Clip *clip);
+
+/* Higher-level than alloc->init */
+Clip *clip_create(AudioConn *dev, Track *target);
+
 void clip_destroy(Clip *clip);
 void clip_destroy_no_displace(Clip *clip);
 void clip_split_stereo_to_mono(Clip *to_split, Clip **new_L, Clip **new_R);

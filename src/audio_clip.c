@@ -14,6 +14,13 @@
 
 #define DEFAULT_REFS_ALLOC_LEN 2
 
+/* mandatory after alloc */
+void clip_init(Clip *clip)
+{
+    clip->refs_alloc_len = DEFAULT_REFS_ALLOC_LEN;
+    clip->refs = calloc(clip->refs_alloc_len, sizeof(ClipRef *));
+}
+
 Clip *clip_create(AudioConn *conn, Track *target)
 {
     Session *session = session_get();
@@ -35,9 +42,7 @@ Clip *clip_create(AudioConn *conn, Track *target)
 	clip->target = target;
     }
 
-    clip->refs_alloc_len = DEFAULT_REFS_ALLOC_LEN;
-    clip->refs = calloc(clip->refs_alloc_len, sizeof(ClipRef *));
-    
+    clip_init(clip);
     if (!target && conn) {
 	snprintf(clip->name, sizeof(clip->name), "%s_rec_%d", conn->name, session->proj.num_clips); /* TODO: Fix this */
     } else if (target) {

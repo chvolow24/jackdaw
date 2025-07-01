@@ -437,8 +437,12 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 	Project new_proj;
 	int ret = jdaw_read_file(&new_proj, dp->path);
 	if (ret == 0) {
-	    project_deinit(&session->proj);
+	    /* project_deinit(&session->proj); */
+	    memcpy(&session->proj, &new_proj, sizeof(Project));
 	    session->proj = new_proj;
+	    for (int i=0; i<session->proj.num_timelines; i++) {
+		session->proj.timelines[i]->proj = &session->proj;
+	    }
 	    timeline_reset_full(session->proj.timelines[0]);
 	} else {
 	    status_set_errstr("Error opening jdaw project");
@@ -1822,9 +1826,13 @@ void user_tl_track_open_synth(void *nullarg)
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     Track *track = timeline_selected_track(tl);
-    TabView *tv = synth_tabview_create(track);
-    tabview_activate(tv);
-    tl->needs_redraw = true;
+    if (track) {
+	TabView *tv = synth_tabview_create(track);
+	tabview_activate(tv);
+	tl->needs_redraw = true;
+    } else {
+	status_set_errstr("Cannot open synth: no track");
+    }
 }
 
 

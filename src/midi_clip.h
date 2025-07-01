@@ -72,9 +72,12 @@ typedef struct midi_clip {
 /*     Textbox *label; */
 /* } MIDIClipRef; */
 
-/* Mirrors audio_clip_create */
+/* Mirrors audio_clip_create; higher level than alloc->init */
 MIDIClip *midi_clip_create(MIDIDevice *device, Track *target);
 
+
+/* Mandatory initialization after allocating */
+void midi_clip_init(MIDIClip *mclip);
 
 void midi_clip_add_note(MIDIClip *mc, int note_val, int velocity, int32_t start_rel, int32_t end_rel);
 int32_t midi_clipref_check_get_first_note(ClipRef *cr);

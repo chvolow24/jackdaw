@@ -6,6 +6,16 @@
 #define DEFAULT_NOTES_ALLOC_LEN 16
 #define DEFAULT_REFS_ALLOC_LEN 2
 
+/* Mandatory initialization after allocating */
+void midi_clip_init(MIDIClip *mclip)
+{
+    mclip->notes_alloc_len = DEFAULT_NOTES_ALLOC_LEN;
+    mclip->notes = calloc(mclip->notes_alloc_len, sizeof(Note));
+
+    mclip->refs_alloc_len = DEFAULT_REFS_ALLOC_LEN;
+    mclip->refs = calloc(mclip->refs_alloc_len, sizeof(ClipRef *));
+}
+
 MIDIClip *midi_clip_create(MIDIDevice *device, Track *target)
 {
     Session *session = session_get();

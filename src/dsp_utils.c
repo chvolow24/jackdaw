@@ -230,3 +230,12 @@ double dsp_scale_freq_to_hz(double freq_unscaled)
     return pow(10.0, log10(sample_rate / 2.0) * freq_unscaled);
 }
 
+
+
+float pan_scale(float pan, int channel)
+{
+    return
+	channel == 0 ?
+	pan <= 0.5 ? 1.0f : (1.0f - pan) * 2.0f :
+	pan >= 0.5 ? 1.0 : pan * 2.0f;    
+}

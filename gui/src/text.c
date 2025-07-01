@@ -506,9 +506,9 @@ void txt_destroy(Text *txt)
     if (txt->texture) {
         SDL_DestroyTexture(txt->texture);
     }
-    if (txt->text_lt) {
-	layout_destroy(txt->text_lt);
-    }
+    /* if (txt->text_lt) { */
+    /* 	layout_destroy(txt->text_lt); */
+    /* } */
     if (txt->cached_value) {
 	free(txt->cached_value);
     }

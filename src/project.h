@@ -413,7 +413,7 @@ Layout *timeline_selected_layout(Timeline *tl);
 
 void timeline_reset_full(Timeline *tl);
 void timeline_reset(Timeline *tl, bool rescaled);
-Clip *clip_create(AudioConn *dev, Track *target);
+
 /* ClipRef *track_add_clipref(Track *track, Clip *clip, int32_t record_from_sframes, bool home); */
 /* MIDIClipRef *track_add_midiclipref(Track *track, MIDIClip *clip, int32_t record_from_sframes); */
 /* int32_t clipref_len(ClipRef *cr); */

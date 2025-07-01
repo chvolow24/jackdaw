@@ -169,12 +169,12 @@ Attr *xml_create_attr(void)
 
 Tag *xml_store_next_tag(FILE *f, long endrange)
 {
-    char *buf = malloc(256);
-    char *buf2 = malloc(256);
+    char buf[256];// = malloc(256);
+    char buf2[256];// = malloc(256);
     long start,end;
     if (xml_get_next_tag(f, buf, 256, &start, &end) == -1 || (start > endrange && endrange != -1) || end - start < 0) {
-        free(buf);
-        free(buf2);
+        /* free(buf); */
+        /* free(buf2); */
         fseek(f, start, 0);
         return NULL;
     } 
@@ -212,8 +212,8 @@ Tag *xml_store_next_tag(FILE *f, long endrange)
         ret->children[ret->num_children] = child;
         ret->num_children++;
     }
-    free(buf);
-    free(buf2);
+    /* free(buf); */
+    /* free(buf2); */
     return ret;
 }
 

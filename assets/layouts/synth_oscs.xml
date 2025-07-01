@@ -6,7 +6,7 @@
   <children>
     <Layout name="master_amp_label" type="NORMAL">
       <x>REL 48</x>
-      <y>REL 18</y>
+      <y>REL 22</y>
       <w>REL 50</w>
       <h>REL 23</h>
       <children>
@@ -14,7 +14,7 @@
     </Layout>
     <Layout name="master_amp_slider" type="NORMAL">
       <x>STACK 15</x>
-      <y>REL 18</y>
+      <y>REL 22</y>
       <w>REL 200</w>
       <h>REL 23</h>
       <children>
@@ -22,7 +22,7 @@
     </Layout>
     <Layout name="master_pan_label" type="NORMAL">
       <x>REL 340</x>
-      <y>REL 18</y>
+      <y>REL 22</y>
       <w>REL 50</w>
       <h>REL 23</h>
       <children>
@@ -30,7 +30,7 @@
     </Layout>
     <Layout name="master_pan_slider" type="NORMAL">
       <x>STACK 15</x>
-      <y>REL 18</y>
+      <y>REL 22</y>
       <w>REL 200</w>
       <h>REL 23</h>
       <children>

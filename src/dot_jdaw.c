@@ -20,6 +20,7 @@
 #include "eq.h"
 #include "file_backup.h"
 #include "fir_filter.h"
+#include "midi_clip.h"
 #include "project.h"
 #include "session.h"
 #include "tempo.h"
@@ -27,7 +28,7 @@
 #include "type_serialize.h"
 #include "loading.h"
 
-#ifdef THIS_IS_NOT_DEFINED
+/* #ifdef THIS_IS_NOT_DEFINED */
 /* #define BYTEORDER_FATAL fprintf(stderr, "Fatal error (TODO): big-endian byte order not supported\n"); exit(1); */
 #define OLD_FLOAT_SER_W 16
 
@@ -40,6 +41,7 @@ extern const char *JACKDAW_VERSION;
 const static char hdr_jdaw[] = {'J','D','A','W'};
 const static char hdr_version[] = {' ','V','E','R','S','I','O','N'};
 const static char hdr_clip[] = {'C','L','I','P'};
+const static char hdr_mclip[] = {'M','C','L','I','P'};
 const static char hdr_timeline[] = {'T','I','M','E','L','I','N','E'};
 const static char hdr_track[] = {'T','R','C','K'};
 const static char hdr_clipref[] = {'C','L','I','P','R','E','F'};
@@ -50,7 +52,7 @@ const static char hdr_click[] = {'C', 'L', 'C', 'K'};
 const static char hdr_click_segm[] = {'C', 'T', 'S', 'G'};
 const static char hdr_trck_efct[] = {'E', 'F', 'C', 'T'};
 
-const static char current_file_spec_version[] = {'0','0','.','1','7'};
+const static char current_file_spec_version[] = {'0','0','.','1','8'};
 /* const static float current_file_spec_version_f = 0.11f; */
 
 /* const static char nullterm = '\0'; */
@@ -76,6 +78,7 @@ static void debug_print_bytes_around(FILE *f)
 
 
 static void jdaw_write_clip(FILE *f, Clip *clip, int index);
+static void jdaw_write_midi_clip(FILE *f, MIDIClip *clip);
 static void jdaw_write_timeline(FILE *f, Timeline *tl);
 
 static Project *proj;
@@ -115,6 +118,7 @@ void jdaw_write_project(const char *path)
     uint16_ser_le(f, &proj->chunk_size_sframes);
     uint16_ser_le(f, (uint16_t *)&proj->fmt);
     uint16_ser_le(f, &proj->num_clips);
+    uint16_ser_le(f, &proj->num_midi_clips);
     uint8_ser(f, &proj->num_timelines);
     /* fwrite(&proj->num_timelines, 1, 1, f); */
 
@@ -123,6 +127,11 @@ void jdaw_write_project(const char *path)
     for (uint16_t i=0; i<proj->num_clips; i++) {
 	session_loading_screen_update(NULL, 0.1 + 0.8 * (float)i/proj->num_clips);
 	jdaw_write_clip(f, proj->clips[i], i);
+    }
+    session_loading_screen_update("Writing MIDI clips...", 0.2);
+    for (uint16_t i=0; i<proj->num_midi_clips; i++) {
+	session_loading_screen_update(NULL, 0.1 + 0.8 * (float)i/proj->num_midi_clips);
+	jdaw_write_midi_clip(f, proj->midi_clips[i]);
     }
     session_loading_screen_update("Writing timelines...", 0.9);
     fprintf(stderr, "\t...done.\nSerializing %d timelines...\n", proj->num_timelines);
@@ -200,6 +209,27 @@ static void jdaw_write_clip(FILE *f, Clip *clip, int index)
     free(clip_samples);
 }
 
+
+static void jdaw_write_midi_note(FILE *f, Note *note);
+static void jdaw_write_midi_clip(FILE *f, MIDIClip *mclip)
+{
+    fwrite(hdr_mclip, 1, 4, f);
+    uint8_t namelen = strlen(mclip->name);
+    uint8_ser(f, &namelen);
+    fwrite(&mclip->name, 1, namelen, f);
+    uint32_ser_le(f, &mclip->num_notes);
+    for (uint32_t i=0; i<mclip->num_notes; i++) {
+	
+    }
+}
+
+static void jdaw_write_midi_note(FILE *f, Note *note)
+{
+    uint8_ser(f, &note->note);
+    uint8_ser(f, &note->velocity);
+    int32_ser_le(f, &note->start_rel);
+    int32_ser_le(f, &note->end_rel);
+}
 
 
 static void jdaw_write_track(FILE *f, Track *track);
@@ -414,18 +444,48 @@ static void jdaw_write_clipref(FILE *f, ClipRef *cr)
     fwrite(cr->name, 1, clipref_namelen, f);
     fwrite(&cr->home, 1, 1, f);
 
-    uint8_t src_clip_index = 0;
-    while (proj->clips[src_clip_index] != cr->clip) {
-	src_clip_index++;
+    uint8_t type_byte = cr->type;
+    uint8_ser(f, &type_byte);
+    
+    int src_clip_index = -1;
+    if (cr->type == CLIP_AUDIO) {
+	for (int i=0; i<proj->num_clips; i++) {
+	    if (cr->source_clip == proj->clips[i]) {
+		src_clip_index = i;
+		break;
+	    }
+	}
+	/* while (src_clip_index < proj->num_clips && proj->clips[src_clip_index] != cr->source_clip) { */
+	/*     src_clip_index++; */
+	/* } */
+    } else {
+	/* while (src_clip_index < proj->num_midi_clips && proj->midi_clips[src_clip_index] != cr->source_clip) { */
+	/*     src_clip_index++; */
+	/* } */
+	for (int i=0; i<proj->num_midi_clips; i++) {
+	    if (cr->source_clip == proj->midi_clips[i]) {
+		src_clip_index = i;
+		break;
+	    }
+	}
+
     }
-    uint8_ser(f, &src_clip_index);
+    if (src_clip_index < 0) {
+	fprintf(stderr, "CRITICAL ERROR: clipref \"%s\" source clip not found. Src clip ptr %p, proj num clips: %d and midi clips: %d\n", cr->name, cr->source_clip, proj->num_clips, proj->num_midi_clips);
+	exit(1);
+    }
+    uint8_t src_clip_index_8 = src_clip_index;
+    uint8_ser(f, &src_clip_index_8);
     /* fwrite(&src_clip_index, 1, 1, f); */
 
     int32_ser_le(f, &cr->tl_pos);
-    uint32_ser_le(f, &cr->in_mark_sframes);
-    uint32_ser_le(f, &cr->out_mark_sframes);
-    uint32_ser_le(f, &cr->start_ramp_len);
-    uint32_ser_le(f, &cr->end_ramp_len);
+    int32_ser_le(f, &cr->start_in_clip);
+    int32_ser_le(f, &cr->end_in_clip);
+
+    /* Linear start/end ramps to be implemented later */
+    uint32_t null_ramp_val = 0;
+    uint32_ser_le(f, &null_ramp_val);
+    uint32_ser_le(f, &null_ramp_val);
 }
 
 static void jdaw_write_auto_keyframe(FILE *f, Keyframe *k);
@@ -473,6 +533,7 @@ static void jdaw_write_auto_keyframe(FILE *f, Keyframe *k)
 
 
 static int jdaw_read_clip(FILE *f, Project *proj);
+static int jdaw_read_midi_clip(FILE *f, Project *proj);
 static int jdaw_read_timeline(FILE *f, Project *proj);
 
 static Project *proj_reading;
@@ -522,6 +583,7 @@ int jdaw_read_file(Project *dst, const char *path)
     SDL_AudioFormat fmt;
     uint16_t chunk_size;
     uint16_t num_clips;
+    uint16_t num_midi_clips;
     uint8_t num_timelines;
 
     proj_namelen = uint8_deser(f);
@@ -545,6 +607,12 @@ int jdaw_read_file(Project *dst, const char *path)
     } else {
 	num_clips = uint16_deser_le(f);
 	/* fread(&num_clips, 2, 1, f); */
+    }
+
+    if (read_file_spec_version >= 0.18) {
+	num_midi_clips = uint16_deser_le(f);
+    } else {
+	num_midi_clips = 0;
     }
     
     num_timelines = uint8_deser(f);
@@ -571,7 +639,7 @@ int jdaw_read_file(Project *dst, const char *path)
     
     proj_reading->num_timelines = 0;
 
-    fprintf(stderr, "Reading clips...\n");
+    fprintf(stderr, "Reading %d clips...\n", num_clips);
     while (num_clips > 0) {
 	if (jdaw_read_clip(f, proj_reading) != 0) {
 	    goto jdaw_parse_error;
@@ -579,6 +647,16 @@ int jdaw_read_file(Project *dst, const char *path)
 	num_clips--;
     }
 
+    fprintf(stderr, "Reading %d MIDI clips...\n", num_midi_clips);
+    while (num_midi_clips > 0) {
+	if (jdaw_read_midi_clip(f, proj_reading) != 0) {
+	    goto jdaw_parse_error;
+	}
+	num_midi_clips--;
+    }
+
+
+    fprintf(stderr, "Reading Timelines...\n");
     while (num_timelines > 0) {
 	if (jdaw_read_timeline(f, proj_reading) != 0) {
 	    goto jdaw_parse_error;
@@ -609,6 +687,7 @@ static int jdaw_read_clip(FILE *f, Project *proj)
     }
 
     Clip *clip = calloc(1, sizeof(Clip));
+    clip_init(clip);
     proj->clips[proj->num_clips] = clip;
     proj->num_clips++;
     proj->active_clip_index++;
@@ -662,6 +741,48 @@ static int jdaw_read_clip(FILE *f, Project *proj)
     }
     
     free(interleaved_clip_samples);
+    return 0;
+}
+
+static int jdaw_read_midi_note(FILE *f, MIDIClip *mclip);
+
+static int jdaw_read_midi_clip(FILE *f, Project *proj)
+{
+    char hdr_buffer[5];
+    fread(hdr_buffer, 1, 5, f);
+    if (strncmp(hdr_buffer, hdr_mclip, 5) != 0) {
+	fprintf(stderr, "Error: MCLIP indicator missing.\n");
+	return 1;
+    }
+
+    uint8_t name_length;
+    MIDIClip *mclip = calloc(1, sizeof(MIDIClip));
+    fread(&name_length, 1, 1, f);
+    fread(&mclip->name, 1, name_length, f);
+    mclip->name[name_length] = '\0';
+
+    midi_clip_init(mclip);
+    mclip->num_notes = uint32_deser_le(f);
+    int err;
+    for (uint32_t i=0; i<mclip->num_notes; i++) {
+	err = jdaw_read_midi_note(f, mclip);
+	if (err != 0) {
+	    fprintf(stderr, "Error: unable to deserialize MIDI note.\n");
+	    return err;
+	}
+    }
+    return 0;
+}
+
+static int jdaw_read_midi_note(FILE *f, MIDIClip *mclip)
+{
+    uint8_t note, velocity;
+    int32_t start_rel, end_rel;
+    note = uint8_deser(f);
+    velocity = uint8_deser(f);
+    start_rel = int32_deser_le(f);
+    end_rel = int32_deser_le(f);
+    midi_clip_add_note(mclip, note, velocity, start_rel, end_rel);
     return 0;
 }
 
@@ -1127,16 +1248,45 @@ static int jdaw_read_clipref(FILE *f, Track *track)
     fread(clipref_name, 1, clipref_namelen, f);
     clipref_name[clipref_namelen] = '\0';
     bool clipref_home = uint8_deser(f);
-    uint8_t src_clip_index = uint8_deser(f);
-    Clip *clip = track->tl->proj->clips[src_clip_index];
-    ClipRef *cr = track_add_clipref(track, clip, 0, clipref_home);
+
+    ClipRef *cr = NULL;
+    if (read_file_spec_version < 00.18) {
+	uint8_t src_clip_index = uint8_deser(f);
+	Clip *clip = track->tl->proj->clips[src_clip_index];
+	cr = clipref_create(track, 0, CLIP_AUDIO, clip);
+	strncpy(cr->name, clipref_name, clipref_namelen + 1);
+    } else {
+	enum clip_type t = uint8_deser(f);
+	uint8_t src_clip_index = uint8_deser(f);
+	switch (t) {
+	case CLIP_AUDIO: {
+	    Clip *clip = track->tl->proj->clips[src_clip_index];
+	    cr = clipref_create(track, 0, CLIP_AUDIO, clip);
+	}
+	    break;
+	case CLIP_MIDI: {
+	    MIDIClip *mclip = track->tl->proj->midi_clips[src_clip_index];
+	    cr = clipref_create(track, 0, CLIP_MIDI, mclip);
+	}
+	    break;
+	default:
+	    fprintf(stderr, "Error: source clip type %d not recognized\n", t);
+	    return -1;
+	}
+    }
+    if (!cr) {
+	fprintf(stderr, "Unknown error: clipref not created\n");
+	return -1;
+    }
+
 
     strncpy(cr->name, clipref_name, clipref_namelen + 1);
     cr->tl_pos = int32_deser_le(f);
-    cr->in_mark_sframes = uint32_deser_le(f);
-    cr->out_mark_sframes = uint32_deser_le(f);
-    cr->start_ramp_len = uint32_deser_le(f);
-    cr->end_ramp_len = uint32_deser_le(f);
+    cr->start_in_clip = uint32_deser_le(f);
+    cr->end_in_clip = uint32_deser_le(f);
+    uint32_deser_le(f); /* start ramp len */
+    uint32_deser_le(f); /* end ramp len */
+
     return 0;
 }
 
@@ -1301,16 +1451,16 @@ static int jdaw_read_click_segment(FILE *f, ClickTrack *ct, bool *more_segments)
 }
 
 
-#endif
+/* #endif */
 
 
-typedef struct project Project;
-int jdaw_read_file(Project *dst, const char *path)
-{
-    return 0;
-}
+/* typedef struct project Project; */
+/* int jdaw_read_file(Project *dst, const char *path) */
+/* { */
+/*     return 0; */
+/* } */
 
-void jdaw_write_project(const char *path)
-{
+/* void jdaw_write_project(const char *path) */
+/* { */
 
-}
+/* } */

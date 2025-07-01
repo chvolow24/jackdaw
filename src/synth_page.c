@@ -136,7 +136,14 @@ static void add_osc_page(TabView *tv, Track *track)
     
 
 
+    p.slider_p.orientation = SLIDER_HORIZONTAL;
+    p.slider_p.style = SLIDER_FILL;
+    page_el_params_slider_from_ep(&p, &s->vol_ep);
+    page_add_el(page,EL_SLIDER,p,"master_amp_slider","master_amp_slider");
 
+    p.slider_p.style = SLIDER_TICK;
+    page_el_params_slider_from_ep(&p, &s->pan_ep);
+    page_add_el(page,EL_SLIDER,p,"master_pan_slider","master_pan_slider");
 
     
     

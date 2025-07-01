@@ -45,5 +45,5 @@ void float_buf_mult(float *restrict a, float *restrict b, int len);
 void float_buf_mult_const(float *restrict a, float by, int len);
 void float_buf_mult_to(float *restrict a, float *restrict b, float *restrict product, int len);
 
-
+float pan_scale(float pan, int channel);
 #endif

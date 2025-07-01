@@ -176,6 +176,8 @@ typedef struct synth {
 
     Track *track;
 
+    float vol;
+    float pan;
     Endpoint vol_ep;
     Endpoint pan_ep;
 

@@ -18,6 +18,7 @@
 
 #define API_HASH_TABLE_SIZE 1024
 #define MAX_ROUTE_DEPTH 16
+#define MAX_ROUTE_LEN 256
 
 extern volatile bool CANCEL_THREADS;
 
@@ -594,6 +595,66 @@ void api_table_print()
 		n = n->next;
 		init = false;
 	    }
+	}
+    }
+}
+
+static void api_node_serialize_recursive(FILE *f, APINode *node)
+{
+    char buf[MAX_ROUTE_LEN];
+    for (int i=0; i<node->num_endpoints; i++) {
+	Endpoint *ep = node->endpoints[i];
+	api_endpoint_get_route(ep, buf, MAX_ROUTE_LEN);
+	fprintf(f, "%s ", buf);
+	/* fwrite(buf, 1, strlen(buf), f); */
+	ValType t;
+	Value val = endpoint_safe_read(ep, &t);
+	jdaw_val_serialize(f, val, t);
+	fputc('\n', f);
+    }
+    for (int i=0; i<node->num_children; i++) {
+	api_node_serialize_recursive(f, node->children[i]);
+    }
+
+
+}
+void api_node_serialize(FILE *f, APINode *node)
+{
+    api_node_serialize_recursive(f, node);
+    fputc('\0', f);
+}
+
+void api_node_deserialize(FILE *f)
+{
+    char buf[MAX_ROUTE_LEN];
+    while (1) {
+	int c;
+	int i=0;
+	while ((c = fgetc(f)) != ' ' && c != '\0') {
+	    buf[i] = c;
+	    i++;
+	}
+	buf[i] = '\0';
+	fprintf(stderr, "ROUTE: %s\n", buf);
+	ValType t;
+	Value v = jdaw_val_deserialize(f, &t);
+	Endpoint *ep = api_endpoint_get(buf);
+	if (ep)
+	    endpoint_write(ep, v, true, true, true, false);
+	jdaw_val_to_str(buf, MAX_ROUTE_LEN, v, t, 3);
+	fprintf(stderr, "Write to %p, Val type %d == %s\n", ep, t, buf);
+	fgetc(f);
+	c = fgetc(f);
+	if (c == '\0') {
+	    /* buf[0] = fgetc(f); */
+	    /* buf[1] = fgetc(f); */
+	    /* buf[2] = fgetc(f); */
+	    /* buf[3] = fgetc(f); */
+	    /* buf[4] = '\0'; */
+	    /* fprintf(stderr, "done! next bytes: %s\n", buf); */
+	    return;
+	} else {
+	    ungetc(c, f);
 	}
     }
 }

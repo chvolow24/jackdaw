@@ -34,17 +34,17 @@
 /*      0 ) */
 
 typedef enum value_type {
-    JDAW_FLOAT = 0,
-    JDAW_DOUBLE = 1,
-    JDAW_INT = 2,
-    JDAW_UINT8 = 3,
-    JDAW_UINT16 = 4,
-    JDAW_UINT32 = 5,
-    JDAW_INT8 = 6,
-    JDAW_INT16 = 7,
-    JDAW_INT32 = 8,
-    JDAW_BOOL = 9,
-    JDAW_DOUBLE_PAIR = 10
+    JDAW_FLOAT,
+    JDAW_DOUBLE,
+    JDAW_INT,
+    JDAW_UINT8,
+    JDAW_UINT16,
+    JDAW_UINT32,
+    JDAW_INT8,
+    JDAW_INT16,
+    JDAW_INT32,
+    JDAW_BOOL,
+    JDAW_DOUBLE_PAIR
 } ValType;
 
 typedef union value {
@@ -87,7 +87,8 @@ Value jdaw_val_negate(Value a, ValType vt);
 
 
 void jdaw_val_serialize(FILE *f, Value v, ValType type);
-Value jdaw_val_deserialize(FILE *f);
+/* Value jdaw_val_deserialize(FILE *f); */
+Value jdaw_val_deserialize(FILE *f, ValType *type_dst);
 
 /* Backwards compatibility; .jdaw v < 00.15 */
 void jdaw_val_serialize_OLD(Value v, ValType type, FILE *f, uint8_t dstsize);

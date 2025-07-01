@@ -99,6 +99,10 @@ TRCK	      1			uint8_t			  num_automations
 ...[TRCK_AUTOs GO HERE; SEE BELOW]...
 .....................................
 
+TRCK	      1			bool			  track has synth
+TRCK_SYNTH    5			char[5]			  "SYNTH"
+TRCK_SYNTH    ???		???			  [synth data; see api.h]
+
 TL	      1			uint8_t			  num click tracks
 
 CLICK         4			char[4]	       		  "CLCK"

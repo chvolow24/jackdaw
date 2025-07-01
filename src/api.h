@@ -24,6 +24,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 #ifndef JDAW_API_H
@@ -80,6 +81,8 @@ int api_start_server(int port);
     
 void api_node_print_all_routes(APINode *node);
 void api_node_print_routes_with_values(APINode *node);
+void api_node_serialize(FILE *f, APINode *node);
+void api_node_deserialize(FILE *f);
 void api_table_print();
 void api_quit();
 /* void api_hash_table_destroy(); */

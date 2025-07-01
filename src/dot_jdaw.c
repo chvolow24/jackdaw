@@ -51,6 +51,7 @@ const static char hdr_keyf[] = {'K', 'E', 'Y', 'F'};
 const static char hdr_click[] = {'C', 'L', 'C', 'K'};
 const static char hdr_click_segm[] = {'C', 'T', 'S', 'G'};
 const static char hdr_trck_efct[] = {'E', 'F', 'C', 'T'};
+const static char hdr_trck_synth[] = {'S','Y','N','T','H'};
 
 const static char current_file_spec_version[] = {'0','0','.','1','8'};
 /* const static float current_file_spec_version_f = 0.11f; */
@@ -309,8 +310,12 @@ static void jdaw_write_track(FILE *f, Track *track)
     for (uint8_t i=0; i<track->num_automations; i++) {
 	jdaw_write_automation(f, track->automations[i]);
     }
-    
-
+    uint8_t has_synth = track->synth != NULL;
+    uint8_ser(f, &has_synth);
+    if (has_synth) {
+	fwrite(hdr_trck_synth, 1, 5, f);
+	api_node_serialize(f, &track->synth->api_node);
+    }
 }
 
 static void jdaw_write_fir_filter(FILE *f, FIRFilter *filter);
@@ -876,6 +881,7 @@ static int jdaw_read_timeline(FILE *f, Project *proj_loc)
     } else {
 	num_tracks = int16_deser_le(f);
     }
+    fprintf(stderr, "Reading %d tracks...\n", num_tracks);
     if (read_file_spec_version < 0.15) {
 	while (num_tracks > 0) {
 	    if (jdaw_read_track(f, tl) != 0) {
@@ -1126,7 +1132,19 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 		}
 		num_automations--;
 	    }
-
+	    if (read_file_spec_version >= 00.18) {
+		uint8_t has_synth = uint8_deser(f);
+		if (has_synth) {
+		    track->synth = synth_create(track);
+		    char buf[5];
+		    fread(buf, 1, 5, f);
+		    if (strncmp(buf, hdr_trck_synth, 5) != 0) {
+			fprintf(stderr, "Error: \"SYNTH\" header not found\n");
+			return 1;
+		    }
+		    api_node_deserialize(f);
+		}
+	    }
 	}	
     }
     return 0;
@@ -1360,9 +1378,9 @@ static int jdaw_read_automation(FILE *f, Track *track)
 	a->max = jdaw_val_deserialize_OLD(f, OLD_FLOAT_SER_W, a->val_type);
 	a->range = jdaw_val_deserialize_OLD(f, OLD_FLOAT_SER_W, a->val_type);
     } else {
-	a->min = jdaw_val_deserialize(f);
-	a->max = jdaw_val_deserialize(f);
-	a->range = jdaw_val_deserialize(f);
+	a->min = jdaw_val_deserialize(f, NULL);
+	a->max = jdaw_val_deserialize(f, NULL);
+	a->range = jdaw_val_deserialize(f, NULL);
     }
     bool read = (bool)uint8_deser(f);
     /* TODO: figure out how to initialize this */
@@ -1401,7 +1419,7 @@ static int jdaw_read_keyframe(FILE *f, Automation *a)
     if (read_file_spec_version < 0.15) {
 	val = jdaw_val_deserialize_OLD(f, OLD_FLOAT_SER_W, a->val_type);
     } else {
-	val = jdaw_val_deserialize(f);
+	val = jdaw_val_deserialize(f, NULL);
     }
     automation_insert_keyframe_at(a, pos, val);
     return 0;

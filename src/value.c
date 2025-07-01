@@ -814,11 +814,12 @@ void jdaw_val_serialize(FILE *f, Value v, ValType type)
     }
 }
 
-Value jdaw_val_deserialize(FILE *f)
+Value jdaw_val_deserialize(FILE *f, ValType *type_dst)
 {
     uint8_t type_byte;
     fread(&type_byte, 1, 1, f);
     ValType type = (ValType)((int)type_byte);
+    if (type_dst) *type_dst = type;
     Value ret = {0};
     switch (type) {
     case JDAW_FLOAT:

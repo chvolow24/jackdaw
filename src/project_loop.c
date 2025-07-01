@@ -181,6 +181,18 @@ void loop_project_main()
 		/* } */
 
 		switch (e.key.keysym.scancode) {
+		case SDL_SCANCODE_2: {
+		    FILE *f = fopen("test_ser.txt", "w");
+		    api_node_serialize(f, &session->proj.timelines[0]->api_node);
+		    fclose(f);
+
+		}
+		case SDL_SCANCODE_3: {
+		    FILE *f = fopen("test_ser.txt", "r");
+		    api_node_deserialize(f);
+		    fclose(f);
+		    break;
+		}
 		case SDL_SCANCODE_4:
 		    do_blep = !do_blep;
 		    if (do_blep) {

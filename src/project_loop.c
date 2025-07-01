@@ -201,15 +201,18 @@ void loop_project_main()
 		    break;
 		case SDL_SCANCODE_6: {
 
-		    
-		    static MIDIClip mclip;
-		    memset(&mclip, '\0', sizeof(mclip));
-		    if (!mclip.refs) {
-			mclip.refs_alloc_len = 6;
-			mclip.refs = calloc(6, sizeof(ClipRef *));
-		    }
-		    sprintf(mclip.name, "mclip!");
-		    /* mclip.len_sframes = 96000; */
+		    Timeline *tl = ACTIVE_TL;
+		    Track *track = timeline_selected_track(tl);
+		    if (!track) break;
+		    MIDIClip *mclip = midi_clip_create(NULL, track);
+		    /* midi_clip_init(mclip); */
+		    /* memset(mclip, '\0', sizeof(MIDIClip)); */
+		    /* if (!mclip->refs) { */
+		    /* 	mclip->refs_alloc_len = 6; */
+		    /* 	mclip->refs = calloc(6, sizeof(ClipRef *)); */
+		    /* } */
+		    /* sprintf(mclip->name, "mclip!"); */
+		    /* mclip->len_sframes = 96000; */
 
 		    /* midi_clip_add_note(&mclip, 94, 127, 10000, 19000); */
 		    /* midi_clip_add_note(&mclip, 60, 127, 1000, 10000); */
@@ -221,9 +224,9 @@ void loop_project_main()
 
 		    int32_t start = 96000 * 5;
 		    /* int32_t end = 10000; */
-		    midi_clip_add_note(&mclip, 69, 108, 100, 100 + 96000);
+		    midi_clip_add_note(mclip, 69, 108, 100, 100 + 96000);
 		    srand(time(NULL));
-		    mclip.len_sframes = 96000 * 5;
+		    mclip->len_sframes = 96000 * 5;
 		    for (int i=0; i<900; i++) {
 			int32_t dur = rand() % 30000;
 			int32_t interval = rand() % 11 + 1;
@@ -232,11 +235,11 @@ void loop_project_main()
 			for (int i=25; i<25 + 80; i+=interval) {
 			    interval += rand() % 4 - 2;
 			    if (interval <= 0) interval += rand() %4 + 1;
-			    midi_clip_add_note(&mclip, i, velocity, start, start + dur);
+			    midi_clip_add_note(mclip, i, velocity, start, start + dur);
 			    start += t_interval;;
 			    /* end += 3000; */
-			    /* mclip.len_sframes += t_interval; */
-			    mclip.len_sframes += t_interval;
+			    /* mclip->len_sframes += t_interval; */
+			    mclip->len_sframes += t_interval;
 			}
 		    }
 
@@ -246,13 +249,11 @@ void loop_project_main()
 		    /* midi_clip_add_note(&mclip, 96, 127, 1500, 6000); */
 		    /* midi_clip_add_note(&mclip, 95, 127, 6000, 10000); */
 
-		    Timeline *tl = ACTIVE_TL;
-		    Track *t = timeline_selected_track(tl);
 		    clipref_create(
-			t,
+			track,
 			tl->play_pos_sframes,
 			CLIP_MIDI,
-			&mclip);
+			mclip);
 			
 		}
 		    break;

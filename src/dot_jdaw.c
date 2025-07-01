@@ -213,18 +213,20 @@ static void jdaw_write_clip(FILE *f, Clip *clip, int index)
 static void jdaw_write_midi_note(FILE *f, Note *note);
 static void jdaw_write_midi_clip(FILE *f, MIDIClip *mclip)
 {
-    fwrite(hdr_mclip, 1, 4, f);
+    fwrite(hdr_mclip, 1, 5, f);
     uint8_t namelen = strlen(mclip->name);
     uint8_ser(f, &namelen);
     fwrite(&mclip->name, 1, namelen, f);
+    uint32_ser_le(f, &mclip->len_sframes);
     uint32_ser_le(f, &mclip->num_notes);
     for (uint32_t i=0; i<mclip->num_notes; i++) {
-	
+	jdaw_write_midi_note(f, mclip->notes + i);
     }
 }
 
 static void jdaw_write_midi_note(FILE *f, Note *note)
 {
+    /* fprintf(stderr, "Writing note...\n"); */
     uint8_ser(f, &note->note);
     uint8_ser(f, &note->velocity);
     int32_ser_le(f, &note->start_rel);
@@ -617,6 +619,9 @@ int jdaw_read_file(Project *dst, const char *path)
     
     num_timelines = uint8_deser(f);
 
+    session_set_loading_screen("Loading project file", "Reading audio data...", true);
+    session_loading_screen_update("Creating project...", 0.0);
+    
     fprintf(stderr, "CREATING PROJECT with settings:\n");
     fprintf(stderr, "\tchannels: %d\n\tsample_rate: %d\n\tfmt: %s\n",
 	    channels,
@@ -640,14 +645,17 @@ int jdaw_read_file(Project *dst, const char *path)
     proj_reading->num_timelines = 0;
 
     fprintf(stderr, "Reading %d clips...\n", num_clips);
-    while (num_clips > 0) {
+    for (int i=0; i<num_clips; i++) {
+    /* while (num_clips > 0) { */
+	session_loading_screen_update("Reading audio clips...", 0.8 * (float)i / num_clips);
 	if (jdaw_read_clip(f, proj_reading) != 0) {
 	    goto jdaw_parse_error;
 	}
-	num_clips--;
+	/* num_clips--; */
     }
 
     fprintf(stderr, "Reading %d MIDI clips...\n", num_midi_clips);
+    session_loading_screen_update("Reading midi clips...", 0.8);
     while (num_midi_clips > 0) {
 	if (jdaw_read_midi_clip(f, proj_reading) != 0) {
 	    goto jdaw_parse_error;
@@ -655,7 +663,7 @@ int jdaw_read_file(Project *dst, const char *path)
 	num_midi_clips--;
     }
 
-
+    session_loading_screen_update("Reading timelines...", 0.9);
     fprintf(stderr, "Reading Timelines...\n");
     while (num_timelines > 0) {
 	if (jdaw_read_timeline(f, proj_reading) != 0) {
@@ -666,12 +674,14 @@ int jdaw_read_file(Project *dst, const char *path)
 
     /* timeline_reset(proj->timelines[0]); */
     fclose(f);
+    session_loading_screen_deinit();
     return 0;
     
 jdaw_parse_error:
     debug_print_bytes_around(f);
     fclose(f);
     fprintf(stderr, "Error parsing .jdaw file at %s, filespec version %05.2f\n", path, read_file_spec_version);
+    session_loading_screen_deinit();
     /* project_destroy(proj_loc); */
     return -1;
     
@@ -757,14 +767,21 @@ static int jdaw_read_midi_clip(FILE *f, Project *proj)
 
     uint8_t name_length;
     MIDIClip *mclip = calloc(1, sizeof(MIDIClip));
+    midi_clip_init(mclip);
+
+    proj->midi_clips[proj->num_midi_clips] = mclip;
+    proj->num_midi_clips++;
+    proj->active_midi_clip_index++;
+
     fread(&name_length, 1, 1, f);
     fread(&mclip->name, 1, name_length, f);
     mclip->name[name_length] = '\0';
+    mclip->len_sframes = uint32_deser_le(f);
 
-    midi_clip_init(mclip);
-    mclip->num_notes = uint32_deser_le(f);
+    uint32_t num_notes = uint32_deser_le(f);
+    /* mclip->num_notes = uint32_deser_le(f); */
     int err;
-    for (uint32_t i=0; i<mclip->num_notes; i++) {
+    for (uint32_t i=0; i<num_notes; i++) {
 	err = jdaw_read_midi_note(f, mclip);
 	if (err != 0) {
 	    fprintf(stderr, "Error: unable to deserialize MIDI note.\n");

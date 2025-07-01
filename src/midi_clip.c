@@ -26,11 +26,12 @@ MIDIClip *midi_clip_create(MIDIDevice *device, Track *target)
     if (device) {
 	mclip->recorded_from = device;
     }
-    mclip->notes_alloc_len = DEFAULT_NOTES_ALLOC_LEN;
-    mclip->notes = calloc(mclip->notes_alloc_len, sizeof(Note));
+    midi_clip_init(mclip);
+    /* mclip->notes_alloc_len = DEFAULT_NOTES_ALLOC_LEN; */
+    /* mclip->notes = calloc(mclip->notes_alloc_len, sizeof(Note)); */
 
-    mclip->refs_alloc_len = DEFAULT_REFS_ALLOC_LEN;
-    mclip->refs = calloc(mclip->refs_alloc_len, sizeof(ClipRef *));
+    /* mclip->refs_alloc_len = DEFAULT_REFS_ALLOC_LEN; */
+    /* mclip->refs = calloc(mclip->refs_alloc_len, sizeof(ClipRef *)); */
     
 
     if (!target && device) {

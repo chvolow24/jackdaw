@@ -1,4 +1,10 @@
-/**************************** .JDAW VERSION 00.17 FILE SPEC ***********************************
+/**************************** .JDAW VERSION 00.18 FILE SPEC ***********************************
+
+   =========================================================
+    DIFF (new since 00.17)
+	- add MIDI clips (at project level)
+	- add MIDI cliprefs (branch on clipref serialize)
+   =========================================================
 
     ALL INTEGERS SERIALIZED IN LITTLE-ENDIAN BYTE ORDER
 
@@ -22,6 +28,7 @@ PROJ          4                 uint32_t                  sample rate
 PROJ          2                 uint16_t                  chunk size (power of 2)
 PROJ          2                 SDL_AudioFormat (16bit)   SDL Audio Format
 PROJ	      2			uint16_t		  number of clips
+PROJ	      2			uint16_t		  number of midi clips
 PROJ	      1			uint8_t			  number of timelines
 
 [MULTIPLE PER PROJECT]
@@ -33,6 +40,19 @@ CLIP	      1			uint8_t			  num channels
 CLIP	      4			uint32_t	          length (sample frames)
 CLIP	      4			char[4]			  "data"
 CLIP_DATA     ?			int16_t[]		  CLIP SAMPLE DATA
+
+[MULTIPLE PER PROJECT]
+MIDI_CLIP     5			char[5]			  "MCLIP"
+MIDI_CLIP     1			uin8_t			  midi clip name length
+MIDI_CLIP     0-255		char[]			  clip name
+MIDI_CLIP     4			uint32_t		  length (sample frames)
+MIDI_CLIP     4			uint32_t		  num notes
+
+[MULTIPLE PER MIDI CLIP]
+MIDI_NOTE     1			uint8_t			  note (value 0-127)
+MIDI_NOTE     1			uint8_t			  velocity
+MIDI_NOTE     4			int32_t			  start rel (sample frames from clip start)
+MIDI_NOTE     4			int32_t			  end rel (sample frames from clip start)
 
 [MULTIPLE PER PROJECT]
 TL	      8			char[8]			  "TIMELINE"
@@ -109,9 +129,10 @@ CLIP_REF      1                 uint8_t			  clipref name length
 CLIP_REF      0-255             char[]			  clipref name
 CLIP_REF      1			bool			  is 'home'
 CLIP_REF      1			uint8_t			  source clip index
+CLIP_REF      1 		uint8_t			  source clip type (audio or midi)
 CLIP_REF      4                 int32_t                   position in timeline (sample frames)
-CLIP_REF      4                 uint32_t                  in mark (sframes)
-CLIP_REF      4			uint32_t		  out mark (sframes)
+CLIP_REF      4                 int32_t                   start in clip (sframes)
+CLIP_REF      4			int32_t		  	  end in clip (sframes)
 CLIP_REF      4                 uint32_t                  clipref start ramp len (sframes)
 CLIP_REF      4                 uint32_t                  clipref end ramp len (sframes)
 

@@ -135,6 +135,12 @@ typedef struct osc_cfg {
     Endpoint tune_coarse_ep;
     Endpoint tune_fine_ep;
 
+    /* For serialization only */
+    int fmod_target; 
+    Endpoint fmod_target_ep;
+    int amod_target;
+    Endpoint amod_target_ep;
+
     char *active_id;
     char *type_id;
     char *amp_id;
@@ -142,6 +148,8 @@ typedef struct osc_cfg {
     char *octave_id;
     char *tune_coarse_id;
     char *tune_fine_id;
+    char *fmod_target_dropdown_id;
+    char *amod_target_dropdown_id;
     
     /* Endpoint  */    
     APINode api_node;

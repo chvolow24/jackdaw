@@ -282,6 +282,9 @@ void project_deinit(Project *proj)
     for (uint16_t i=0; i<proj->num_clips; i++) {
 	clip_destroy_no_displace(proj->clips[i]);
     }
+    for (uint16_t i=0; i<proj->num_midi_clips; i++) {
+	midi_clip_destroy(proj->midi_clips[i]);
+    }
 
     for (uint8_t i=0; i<proj->num_timelines; i++) {
 	timeline_destroy(proj->timelines[i], false);
@@ -1559,7 +1562,7 @@ void timeline_check_set_midi_monitoring()
 	if (!session->playback.playing) {
 	    audioconn_stop_playback(session->audio_io.playback_conn);
 	}
-	if (track->synth) {
+	if (track && track->synth) {
 	    api_node_set_owner(&track->synth->api_node, JDAW_THREAD_DSP);
 	}
 	fprintf(stderr, "NO Monitor\n");

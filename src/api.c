@@ -602,6 +602,7 @@ void api_table_print()
 static void api_node_serialize_recursive(FILE *f, APINode *node)
 {
     char buf[MAX_ROUTE_LEN];
+    fprintf(stderr, "NODE %p, parent name? %s name %s, ep: %d, children: %d\n", node, node->parent->obj_name, node->obj_name, node->num_children, node->num_endpoints);
     for (int i=0; i<node->num_endpoints; i++) {
 	Endpoint *ep = node->endpoints[i];
 	api_endpoint_get_route(ep, buf, MAX_ROUTE_LEN);
@@ -620,6 +621,7 @@ static void api_node_serialize_recursive(FILE *f, APINode *node)
 }
 void api_node_serialize(FILE *f, APINode *node)
 {
+    fprintf(stderr, "Serialize node at addr %p\n", node);
     api_node_serialize_recursive(f, node);
     fputc('\0', f);
 }

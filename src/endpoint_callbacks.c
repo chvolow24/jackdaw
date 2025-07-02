@@ -107,8 +107,6 @@ void track_slider_cb(Endpoint *ep)
 
 void page_el_gui_cb(Endpoint *ep)
 {
-    /* if (!main_win->active_tabview) return; */
-
     Page **page_loc = ep->xarg3;
     if (!page_loc) {
 	fprintf(stderr, "Error: track settings callback: endpoint does not contain page loc in third xarg\n");

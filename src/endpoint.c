@@ -52,6 +52,7 @@ int endpoint_init(
     ep->xarg3 = xarg3;
     ep->xarg4 = xarg4;
     ep->block_undo = false;
+    ep->automatable = true;
     jdaw_val_set_min(&ep->min, t);
     jdaw_val_set_max(&ep->max, t);
 
@@ -158,12 +159,6 @@ int endpoint_write(
 	}
 	pthread_mutex_unlock(&ep->val_lock);
     } else {
-	/* if (!session->playback.playing && ep->owner_thread == JDAW_THREAD_DSP) { */
-	/*     pthread_mutex_lock(&ep->lock); */
-	/*     jdaw_val_set_ptr(ep->val, ep->val_type, new_val); */
-	/*     pthread_mutex_unlock(&ep->lock);	     */
-	/* } else { */
-	/* fprintf(stderr, "queueing...\n"); */
 	session_queue_val_change(session, ep, new_val, run_gui_cb);
 	async_change_will_occur = true;
 	ret = 1;

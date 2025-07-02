@@ -6,6 +6,7 @@
 #include "endpoint_callbacks.h"
 #include "consts.h"
 #include "iir.h"
+#include "test.h"
 #include "synth.h"
 #include "session.h"
 
@@ -17,6 +18,34 @@ static void synth_osc_vol_dsp_cb(Endpoint *ep)
     float vol = endpoint_safe_read(ep, NULL).float_v;
     if (vol > 1e-9) cfg->active = true;
     else cfg->active = false;
+}
+
+static void fmod_target_dsp_cb(Endpoint *ep)
+{
+    OscCfg *cfg = ep->xarg1;
+    Synth *synth = ep->xarg2;
+    int self = cfg - synth->base_oscs;
+    int target = endpoint_safe_read(ep, NULL).int_v - 1;
+    if (self < 0 || self > 5) {
+	fprintf(stderr, "Error: osc cfg does not belong to listed synth (index %d)\n", self);
+	return;
+    }
+    if (self == target) {
+	return;
+    }
+    if (target < 0) {
+	synth_set_freq_mod_pair(synth, NULL, cfg);
+    } else {
+	synth_set_freq_mod_pair(synth, synth->base_oscs + target, cfg);
+    }
+    long modulator_i = cfg - synth->base_oscs;
+    long carrier_i = target;
+    if (modulator_i < carrier_i) {
+	cfg->fmod_dropdown_reset = carrier_i;
+    } else {
+	cfg->fmod_dropdown_reset = carrier_i + 1;
+    }
+
 }
 
 Synth *synth_create(Track *track)
@@ -113,6 +142,9 @@ Synth *synth_create(Track *track)
     /* 	s->amp_env */
 
     api_node_register(&s->api_node, &track->api_node, "Synth");
+
+    fprintf(stderr, "REGISTERING synth node to parent %p, name %s\n", &track->api_node, track->api_node.obj_name);
+    
     adsr_endpoints_init(&s->amp_env, &s->amp_env_page, &s->api_node, "Amp envelope");
     /* api_node_register(&s->amp_env.api_node, &s->api_node, "Amp envelope"); */
     api_node_register(&s->filter_node, &s->api_node, "Filter");
@@ -250,6 +282,17 @@ Synth *synth_create(Track *track)
 	len = strlen(fmt);
 	cfg->unison.stereo_spread_id = malloc(len);
 	snprintf(cfg->unison.stereo_spread_id, len, fmt, i+1);
+
+	fmt = "%dfmod_dropdown";
+	len = strlen(fmt);
+	cfg->fmod_target_dropdown_id = malloc(len);
+	snprintf(cfg->fmod_target_dropdown_id, len, fmt, i+1);
+
+	fmt = "%damod_dropdown";
+	len = strlen(fmt);
+	cfg->amod_target_dropdown_id = malloc(len);
+	snprintf(cfg->amod_target_dropdown_id, len, fmt, i+1);
+
 	
 	snprintf(synth_osc_names[i], 6, "Osc %d", i+1);
 	api_node_register(&cfg->api_node, &s->api_node, synth_osc_names[i]);
@@ -396,7 +439,21 @@ Synth *synth_create(Track *track)
 	    NULL, NULL, &s->osc_page, cfg->unison.stereo_spread_id);
 	endpoint_set_allowed_range(&cfg->unison.stereo_spread_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 2.0f});
 	endpoint_set_default_value(&cfg->unison.stereo_spread_ep, (Value){.float_v = 0.4f});
-	api_endpoint_register(&cfg->unison.stereo_spread_ep, &cfg->api_node);    
+	api_endpoint_register(&cfg->unison.stereo_spread_ep, &cfg->api_node);
+
+	endpoint_init(
+	    &cfg->fmod_target_ep,
+	    &cfg->fmod_target,
+	    JDAW_INT,
+	    "fmod_target",
+	    "Freq mod target",
+	    JDAW_THREAD_DSP,
+	    page_el_gui_cb, NULL, fmod_target_dsp_cb,
+	    cfg, s, &s->osc_page, cfg->fmod_target_dropdown_id);
+	endpoint_set_allowed_range(&cfg->fmod_target_ep, (Value){.int_v=0}, (Value){.int_v=5});
+	cfg->fmod_target_ep.automatable = false;
+	api_endpoint_register(&cfg->fmod_target_ep, &cfg->api_node);
+	    
     }
 
     return s;
@@ -751,6 +808,7 @@ int synth_set_freq_mod_pair(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg
     }
     int carrier_i = carrier_cfg - s->base_oscs;
 
+    /* fprintf(stderr, "Mod i carr i: %d %d\n", modulator_i, carrier_i); */
     modulator_cfg->mod_freq_of = carrier_cfg;
     carrier_cfg->freq_mod_by = modulator_cfg;
 

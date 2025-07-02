@@ -457,8 +457,11 @@ static void track_add_automation_from_api_node(Track *track, APINode *node)
     char *child_node_item = dynamic_text;
 
     for (int i=0; i<node->num_endpoints; i++) {
-	items[i] = node->endpoints[i];
-	item_labels[i] = node->endpoints[i]->display_name;
+	Endpoint *ep = node->endpoints[i];
+	if (ep->automatable) {
+	    items[i] = node->endpoints[i];
+	    item_labels[i] = node->endpoints[i]->display_name;
+	}
     }
     for (int i=0; i<node->num_children; i++) {
 	items[node->num_endpoints + i] = node->children[i];

@@ -113,6 +113,7 @@ typedef struct endpoint {
     bool changing;
 
     /* Bindings */
+    bool automatable;
     Automation *automation;
     LabelStrFn label_fn;
 

@@ -314,6 +314,7 @@ static void jdaw_write_track(FILE *f, Track *track)
     uint8_ser(f, &has_synth);
     if (has_synth) {
 	fwrite(hdr_trck_synth, 1, 5, f);
+	fprintf(stderr, "Call to serialize node at addr %p\n", &track->synth->api_node);
 	api_node_serialize(f, &track->synth->api_node);
     }
 }
@@ -1136,6 +1137,8 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 		uint8_t has_synth = uint8_deser(f);
 		if (has_synth) {
 		    track->synth = synth_create(track);
+		    track->midi_out = track->synth;
+		    track->midi_out_type = MIDI_OUT_SYNTH;
 		    char buf[5];
 		    fread(buf, 1, 5, f);
 		    if (strncmp(buf, hdr_trck_synth, 5) != 0) {

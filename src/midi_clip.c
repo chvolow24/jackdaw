@@ -52,8 +52,11 @@ MIDIClip *midi_clip_create(MIDIDevice *device, Track *target)
 
 void midi_clip_destroy(MIDIClip *mc)
 {
-
-
+    free(mc->notes);
+    for (int i=0; i<mc->num_refs; i++) {
+	clipref_destroy(mc->refs[i], false);
+    }
+    free(mc->refs);
 }
 
 TEST_FN_DEF(check_note_order, {

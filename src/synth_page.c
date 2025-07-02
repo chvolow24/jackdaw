@@ -46,15 +46,19 @@ static int fmod_selector_fn(Dropdown *d, void *inner_arg)
     int carrier_i = (long)inner_arg & 0xFF; /* Dropdown target */
     OscCfg *modulator = synth_glob->base_oscs + modulator_i - 1;
     OscCfg *carrier = carrier_i == 0 ? NULL : synth_glob->base_oscs + carrier_i - 1;
-    fprintf(stderr, "MOD: %p (raw i %d), CARR: %p (raw i %d)\n", modulator, modulator_i, carrier, carrier_i);
-    int ret = synth_set_freq_mod_pair(synth_glob, carrier, modulator);
-    if (modulator_i < carrier_i) {
-	modulator->fmod_dropdown_reset = carrier_i - 1;
-    } else {
-	modulator->fmod_dropdown_reset = carrier_i;
-    }
-    fprintf(stderr, "Set fmod_dropdown_reset to %d\n", modulator->fmod_dropdown_reset);
-    return ret;
+
+    int target_i = carrier_i;
+    fprintf(stderr, "WRITING INT PAIR: %d %d\n ", modulator - synth_glob->base_oscs + 1, carrier_i);
+    
+    endpoint_write(&modulator->fmod_target_ep, (Value){.int_v = target_i}, true, true, true, true);
+
+    return 0;
+
+
+    /* fprintf(stderr, "MOD: %p (raw i %d), CARR: %p (raw i %d)\n", modulator, modulator_i, carrier, carrier_i); */
+    /* int ret = synth_set_freq_mod_pair(synth_glob, carrier, modulator); */
+    /* fprintf(stderr, "Set fmod_dropdown_reset to %d\n", modulator->fmod_dropdown_reset); */
+    /* return ret; */
 
 }
 
@@ -83,7 +87,6 @@ static void panel_draw(void *layout_v, void *color_v)
     SDL_Color *color = color_v;
     SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(color));
     geom_fill_rounded_rect(main_win->rend, &layout->rect, 8 * main_win->dpi_scale_factor);
-
     /* SDL_SetRenderDrawColor(main_win->rend, 100, 100, 100, 255); */
     /* geom_draw_rounded_rect(main_win->rend, &layout->rect, 8 * main_win->dpi_scale_factor); */
 }

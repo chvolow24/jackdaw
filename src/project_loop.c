@@ -187,12 +187,13 @@ void loop_project_main()
 		    fclose(f);
 
 		}
+		    break;
 		case SDL_SCANCODE_3: {
 		    FILE *f = fopen("test_ser.txt", "r");
 		    api_node_deserialize(f);
 		    fclose(f);
-		    break;
 		}
+		    break;
 		case SDL_SCANCODE_4:
 		    do_blep = !do_blep;
 		    if (do_blep) {

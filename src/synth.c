@@ -925,10 +925,12 @@ int synth_set_amp_mod_pair(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg)
 
 	
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
-	SynthVoice *v = s->voices + i;
-	Osc *modulator = v->oscs + modulator_i;
-	Osc *carrier = v->oscs + carrier_i;
-	carrier->amp_modulator = modulator;
+	for (int j=0; j<SYNTH_MAX_UNISON_OSCS; j++) {
+	    SynthVoice *v = s->voices + i;
+	    Osc *modulator = v->oscs + modulator_i + SYNTH_NUM_BASE_OSCS * j;
+	    Osc *carrier = v->oscs + carrier_i + SYNTH_NUM_BASE_OSCS * j;
+	    carrier->amp_modulator = modulator;
+	}
     }
     return 0;
 }
@@ -967,7 +969,7 @@ void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start
 
 		}
 	    }
-	} else if (msg_type == 0x90) {
+	} else if (msg_type == 0x90) { /* Handle note on */
 	    bool note_assigned = false;
 	    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 		SynthVoice *v = s->voices + i;
@@ -980,27 +982,20 @@ void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start
 		}
 	    }
 	    if (!note_assigned) {
-		/* fprintf(stderr, "No voices remaining! Voice stealing %d\n", s->allow_voice_stealing); */
-		if (s->allow_voice_stealing) {
+		if (s->allow_voice_stealing) { /* check amp env for oldest voice */
 		    int32_t oldest_dur = 0;
 		    SynthVoice *oldest = NULL;
 		    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 			SynthVoice *v = s->voices + i;
 			if (!v->available) {
 			    int32_t dur = adsr_query_position(v->amp_env);
-			    /* fprintf(stderr, "Voice %d dur %d\n", i, dur); */
 			    if (dur > oldest_dur) {
 				oldest_dur =  dur;
 				oldest = v;
 			    }
 			}
-			/* if (v->note_start_rel[0] < note_start_rel) { */
-			/*     oldest = v; */
-			/*     note_start_rel = v->note_start_rel[0]; */
-			/* } */
 		    }
-		    if (oldest) {
-			/* fprintf(stderr, "STOLE VOICE!\n"); */
+		    if (oldest) { /* steal the oldest voice */
 			int32_t start_rel = send_immediate ? 0 : tl_start - e.timestamp;
 			synth_voice_assign_note(oldest, note_val, velocity, start_rel);
 			note_assigned = true;

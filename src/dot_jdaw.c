@@ -314,7 +314,6 @@ static void jdaw_write_track(FILE *f, Track *track)
     uint8_ser(f, &has_synth);
     if (has_synth) {
 	fwrite(hdr_trck_synth, 1, 5, f);
-	fprintf(stderr, "Call to serialize node at addr %p\n", &track->synth->api_node);
 	api_node_serialize(f, &track->synth->api_node);
     }
 }
@@ -1145,7 +1144,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 			fprintf(stderr, "Error: \"SYNTH\" header not found\n");
 			return 1;
 		    }
-		    api_node_deserialize(f);
+		    api_node_deserialize(f, &track->synth->api_node);
 		}
 	    }
 	}	
@@ -1316,7 +1315,7 @@ static int jdaw_read_clipref(FILE *f, Track *track)
 	fprintf(stderr, "Unknown error: clipref not created\n");
 	return -1;
     }
-
+    cr->home = clipref_home;
 
     strncpy(cr->name, clipref_name, clipref_namelen + 1);
     cr->tl_pos = int32_deser_le(f);

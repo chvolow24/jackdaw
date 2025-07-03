@@ -182,36 +182,45 @@ void loop_project_main()
 
 		switch (e.key.keysym.scancode) {
 		case SDL_SCANCODE_2: {
-		    FILE *f = fopen("test_ser.txt", "w");
-		    api_node_serialize(f, &session->proj.timelines[0]->api_node);
-		    fclose(f);
+		    Timeline *tl = ACTIVE_TL;
+		    Track *t = timeline_selected_track(tl);
+		    if (t && t->synth)
+			synth_write_preset_file("synth_preset.jsynth", t->synth);
+		    /* FILE *f = fopen("test_ser.txt", "w"); */
+		    /* api_node_serialize(f, &session->proj.timelines[0]->api_node); */
+		    /* fclose(f); */
 
 		}
 		    break;
 		case SDL_SCANCODE_3: {
-		    FILE *f = fopen("test_ser.txt", "r");
-		    api_node_deserialize(f);
-		    fclose(f);
-		}
-		    break;
-		case SDL_SCANCODE_4:
-		    do_blep = !do_blep;
-		    if (do_blep) {
-			fprintf(stderr, "DOING BLEP!\n");
-		    } else {
-			fprintf(stderr, "No blep...\n");
-		    }
-		    break;
-		case SDL_SCANCODE_5: {
-		    breakfn();
 		    Timeline *tl = ACTIVE_TL;
 		    Track *t = timeline_selected_track(tl);
-		    if (!t->synth) t->synth = synth_create(t);
-		    TabView *tv = synth_tabview_create(t);
-		    tabview_activate(tv);
+		    if (t && t->synth)
+			synth_read_preset_file("synth_preset.jsynth", t->synth);
 
+		    /* FILE *f = fopen("test_ser.txt", "r"); */
+		    /* api_node_deserialize(f, &session->proj.timelines[0]->api_node); */
+		    /* fclose(f); */
 		}
 		    break;
+		/* case SDL_SCANCODE_4: */
+		/*     do_blep = !do_blep; */
+		/*     if (do_blep) { */
+		/* 	fprintf(stderr, "DOING BLEP!\n"); */
+		/*     } else { */
+		/* 	fprintf(stderr, "No blep...\n"); */
+		/*     } */
+		/*     break; */
+		/* case SDL_SCANCODE_5: { */
+		/*     breakfn(); */
+		/*     Timeline *tl = ACTIVE_TL; */
+		/*     Track *t = timeline_selected_track(tl); */
+		/*     if (!t->synth) t->synth = synth_create(t); */
+		/*     TabView *tv = synth_tabview_create(t); */
+		/*     tabview_activate(tv); */
+
+		/* } */
+		/*     break; */
 		case SDL_SCANCODE_6: {
 
 		    Timeline *tl = ACTIVE_TL;

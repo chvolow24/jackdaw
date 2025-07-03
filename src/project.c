@@ -1744,6 +1744,8 @@ void track_destroy(Track *track, bool displace)
     if (track->buf_L_freq_mag) free(track->buf_L_freq_mag);
     if (track->buf_R_freq_mag) free(track->buf_R_freq_mag);
     if (track->automation_dropdown) symbol_button_destroy(track->automation_dropdown);
+
+    if (track->synth) synth_destroy(track->synth);
     free(track);
 }
 
@@ -2265,7 +2267,6 @@ void timeline_minimize_track_or_tracks(Timeline *tl)
     }
     timeline_rectify_track_area(tl);
     timeline_reset(tl, false);
-
 }
 
 

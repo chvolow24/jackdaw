@@ -186,27 +186,27 @@ static void clipref_remove_from_track(ClipRef *cr)
     if (displace) track->num_clips--; /* else not found! */
 }
 
-static void clipref_displace(ClipRef *cr, int displace_by)
-{
-    Track *track = cr->track;
-    Timeline *tl = track->tl;
-    int new_rank = track->tl_rank + displace_by;
-    if (new_rank >= 0 && new_rank < tl->num_tracks) {
-	Track *new_track = tl->tracks[new_rank];
-	clipref_remove_from_track(cr);
-	/* clipref_remove_from_track(cr); */
-	if (new_track->num_clips == new_track->clips_alloc_len) {
-	    new_track->clips_alloc_len *= 2;
-	    new_track->clips = realloc(new_track->clips, new_track->clips_alloc_len * sizeof(ClipRef *));
-	}
-	new_track->clips[new_track->num_clips] = cr;
-	new_track->num_clips++;
-	cr->track = new_track;
-	/* fprintf(stdout, "ADD CLIP TO TRACK %s, which has %d clips now\n", new_track->name, new_track->num_clips); */
+/* static void clipref_displace(ClipRef *cr, int displace_by) */
+/* { */
+/*     Track *track = cr->track; */
+/*     Timeline *tl = track->tl; */
+/*     int new_rank = track->tl_rank + displace_by; */
+/*     if (new_rank >= 0 && new_rank < tl->num_tracks) { */
+/* 	Track *new_track = tl->tracks[new_rank]; */
+/* 	clipref_remove_from_track(cr); */
+/* 	/\* clipref_remove_from_track(cr); *\/ */
+/* 	if (new_track->num_clips == new_track->clips_alloc_len) { */
+/* 	    new_track->clips_alloc_len *= 2; */
+/* 	    new_track->clips = realloc(new_track->clips, new_track->clips_alloc_len * sizeof(ClipRef *)); */
+/* 	} */
+/* 	new_track->clips[new_track->num_clips] = cr; */
+/* 	new_track->num_clips++; */
+/* 	cr->track = new_track; */
+/* 	/\* fprintf(stdout, "ADD CLIP TO TRACK %s, which has %d clips now\n", new_track->name, new_track->num_clips); *\/ */
 	
-    }
-    timeline_reset(tl, false);
-}
+/*     } */
+/*     timeline_reset(tl, false); */
+/* } */
 
 static void clipref_insert_on_track(ClipRef *cr, Track *target)
 {

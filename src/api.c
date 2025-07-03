@@ -189,6 +189,32 @@ static char make_idchar(char c)
 }
 
 
+int api_node_get_route(APINode *node, char *dst, size_t dst_size)
+{
+    char *components[MAX_ROUTE_DEPTH];
+    int num_components = 0;
+
+    while (node && node->parent) {
+	components[num_components] = node->obj_name;
+	num_components++;
+	node = node->parent;
+    }
+
+    num_components--;
+    int offset = 0;
+    while (num_components >= 0) {
+	char *str = components[num_components];
+	char lowered[dst_size];
+	for (int i=0; i<strlen(str); i++) {
+	    lowered[i] = make_idchar(str[i]);
+	}
+	lowered[strlen(str)] = '\0';
+	offset += snprintf(dst + offset, dst_size - offset, "/%s", lowered);
+	num_components--;
+    }
+    return offset;
+}
+
 int api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size)
 {
     char *components[MAX_ROUTE_DEPTH];
@@ -599,13 +625,14 @@ void api_table_print()
     }
 }
 
-static void api_node_serialize_recursive(FILE *f, APINode *node)
+static void api_node_serialize_recursive(FILE *f, APINode *root, APINode *node)
 {
     char buf[MAX_ROUTE_LEN];
-    fprintf(stderr, "NODE %p, parent name? %s name %s, ep: %d, children: %d\n", node, node->parent->obj_name, node->obj_name, node->num_children, node->num_endpoints);
+    /* fprintf(stderr, "NODE %p, parent name? %s name %s, ep: %d, children: %d\n", node, node->parent->obj_name, node->obj_name, node->num_children, node->num_endpoints); */
     for (int i=0; i<node->num_endpoints; i++) {
 	Endpoint *ep = node->endpoints[i];
-	api_endpoint_get_route(ep, buf, MAX_ROUTE_LEN);
+	api_endpoint_get_route_until(ep, buf, MAX_ROUTE_LEN, root);
+	/* fprintf(stderr, "SER ROUTE: %s\n", buf); */
 	fprintf(f, "%s ", buf);
 	/* fwrite(buf, 1, strlen(buf), f); */
 	ValType t;
@@ -614,37 +641,40 @@ static void api_node_serialize_recursive(FILE *f, APINode *node)
 	fputc('\n', f);
     }
     for (int i=0; i<node->num_children; i++) {
-	api_node_serialize_recursive(f, node->children[i]);
+	api_node_serialize_recursive(f, root, node->children[i]);
     }
 
 
 }
-void api_node_serialize(FILE *f, APINode *node)
+void api_node_serialize(FILE *f, APINode *root)
 {
-    fprintf(stderr, "Serialize node at addr %p\n", node);
-    api_node_serialize_recursive(f, node);
+    /* fprintf(stderr, "Serialize node at addr %p\n", root); */
+    api_node_serialize_recursive(f, root, root);
     fputc('\0', f);
 }
 
-void api_node_deserialize(FILE *f)
+void api_node_deserialize(FILE *f, APINode *root)
 {
-    char buf[MAX_ROUTE_LEN];
+    char route_buf[MAX_ROUTE_LEN];
+    int partial_route_len = api_node_get_route(root, route_buf, MAX_ROUTE_LEN);
+
+    /* char val_buf[128]; */
     while (1) {
 	int c;
-	int i=0;
+	int i=partial_route_len;
 	while ((c = fgetc(f)) != ' ' && c != '\0') {
-	    buf[i] = c;
+	    route_buf[i] = c;
 	    i++;
 	}
-	buf[i] = '\0';
-	fprintf(stderr, "ROUTE: %s\n", buf);
+	route_buf[i] = '\0';
+	/* fprintf(stderr, "DESER ROUTE: %s\n", route_buf); */
 	ValType t;
 	Value v = jdaw_val_deserialize(f, &t);
-	Endpoint *ep = api_endpoint_get(buf);
+	Endpoint *ep = api_endpoint_get(route_buf);
 	if (ep)
 	    endpoint_write(ep, v, true, true, true, false);
-	jdaw_val_to_str(buf, MAX_ROUTE_LEN, v, t, 3);
-	fprintf(stderr, "Write to %p, Val type %d == %s\n", ep, t, buf);
+	/* jdaw_val_to_str(route_buf, MAX_ROUTE_LEN, v, t, 3); */
+	/* fprintf(stderr, "Write to %p, Val type %d == %s\n", ep, t, route_buf); */
 	fgetc(f);
 	c = fgetc(f);
 	if (c == '\0') {
@@ -660,5 +690,3 @@ void api_node_deserialize(FILE *f)
 	}
     }
 }
-
-

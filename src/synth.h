@@ -207,4 +207,9 @@ int synth_set_freq_mod_pair(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg
 /* Return 0 for success, 1 for unset (carrier NULL), < 0 for error */
 int synth_set_amp_mod_pair(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg);
 
+void synth_destroy(Synth *s);
+
+void synth_write_preset_file(const char *filepath, Synth *s);
+void synth_read_preset_file(const char *filepath, Synth *s);
+
 #endif

@@ -1,12 +1,13 @@
 #include <portmidi.h>
 #include <porttime.h>
 #include "adsr.h"
+#include "api.h"
 #include "dsp_utils.h"
 #include "endpoint.h"
 #include "endpoint_callbacks.h"
 #include "consts.h"
 #include "iir.h"
-#include "test.h"
+/* #include "test.h" */
 #include "synth.h"
 #include "session.h"
 
@@ -573,7 +574,7 @@ static float polyblep(float incr, float phase)
 }
 
 /* TODO: remove test global */
-bool do_blep = true;
+/* bool do_blep = true; */
 static float osc_sample(Osc *osc, int channel, int num_channels, float step)
 {
     float sample;
@@ -583,10 +584,11 @@ static float osc_sample(Osc *osc, int channel, int num_channels, float step)
 	break;
     case WS_SQUARE:
 	sample = osc->phase[channel] < 0.5 ? 1.0 : -1.0;
-	if (do_blep) {
-	    sample += polyblep(osc->sample_phase_incr, osc->phase[channel]);
-	    sample -= polyblep(osc->sample_phase_incr, fmod(osc->phase[channel] + 0.5, 1.0)); 
-	}
+	/* if (do_blep) { */
+	/* BLEP */
+	sample += polyblep(osc->sample_phase_incr, osc->phase[channel]);
+	sample -= polyblep(osc->sample_phase_incr, fmod(osc->phase[channel] + 0.5, 1.0)); 
+	/* } */
 	break;
     case WS_TRI:
 	sample =
@@ -600,9 +602,10 @@ static float osc_sample(Osc *osc, int channel, int num_channels, float step)
         break;
     case WS_SAW:
 	sample = 2.0f * osc->phase[channel] - 1.0;
-	if (do_blep) {
-	    sample -= polyblep(osc->sample_phase_incr, osc->phase[channel]);
-	}
+	/* if (do_blep) { */\
+	/* BLEP */
+	sample -= polyblep(osc->sample_phase_incr, osc->phase[channel]);
+	/* } */
 	break;
     default:
 	sample = 0.0;
@@ -666,7 +669,7 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
     float filter_env[len];
     float *filter_env_p = amp_env;
     if (v->synth->filter_active && !v->synth->use_amp_env) {
-	enum adsr_stage filter_stage = adsr_get_chunk(&v->filter_env[channel], filter_env, len);
+	adsr_get_chunk(&v->filter_env[channel], filter_env, len);
 	filter_env_p = filter_env;
     }
     for (int i=0; i<len; i++) {
@@ -864,10 +867,13 @@ int synth_set_freq_mod_pair(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg
 
 	
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
-	SynthVoice *v = s->voices + i;
-	Osc *modulator = v->oscs + modulator_i;
-	Osc *carrier = v->oscs + carrier_i;
-	carrier->freq_modulator = modulator;
+	for (int j=0; j<SYNTH_MAX_UNISON_OSCS; j++) {
+	    SynthVoice *v = s->voices + i;
+	    /* fprintf(stderr, "Setting pair MOD %d CARR %d\n", modulator_i + SYNTH_NUM_BASE_OSCS * j, carrier_i + SYNTH_NUM_BASE_OSCS * j); */
+	    Osc *modulator = v->oscs + modulator_i + SYNTH_NUM_BASE_OSCS * j;
+	    Osc *carrier = v->oscs + carrier_i + SYNTH_NUM_BASE_OSCS * j;
+	    carrier->freq_modulator = modulator;
+	}
     }
     return 0;
 }
@@ -1036,4 +1042,35 @@ void synth_close_all_notes(Synth *s)
 
 	}
     }
+}
+
+void synth_write_preset_file(const char *filepath, Synth *s)
+{
+    FILE *f = fopen(filepath, "w");
+    api_node_serialize(f, &s->api_node);
+    fclose(f);
+}
+
+void synth_read_preset_file(const char *filepath, Synth *s)
+{
+    FILE *f = fopen(filepath, "r");
+    api_node_deserialize(f, &s->api_node);
+    fclose(f);
+}
+
+void synth_destroy(Synth *s)
+{
+    for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
+	OscCfg *cfg = s->base_oscs + i;
+	free(cfg->active_id);
+	free(cfg->type_id);
+	free(cfg->amp_id);
+	free(cfg->pan_id);
+	free(cfg->octave_id);
+	free(cfg->tune_coarse_id);
+	free(cfg->tune_fine_id);
+	free(cfg->fmod_target_dropdown_id);
+	free(cfg->amod_target_dropdown_id);
+    }
+    free(s);
 }

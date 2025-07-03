@@ -456,11 +456,13 @@ static void track_add_automation_from_api_node(Track *track, APINode *node)
 	dynamic_text = calloc(node->num_children * 64, sizeof(char));
     char *child_node_item = dynamic_text;
 
+    int items_i = 0;
     for (int i=0; i<node->num_endpoints; i++) {
 	Endpoint *ep = node->endpoints[i];
 	if (ep->automatable) {
-	    items[i] = node->endpoints[i];
-	    item_labels[i] = node->endpoints[i]->display_name;
+	    items[items_i] = node->endpoints[i];
+	    item_labels[items_i] = node->endpoints[i]->display_name;
+	    items_i++;
 	}
     }
     for (int i=0; i<node->num_children; i++) {
@@ -476,7 +478,7 @@ static void track_add_automation_from_api_node(Track *track, APINode *node)
 	&colors.light_grey,
 	&automation_selection_ep,
 	item_labels,
-	node->num_endpoints + node->num_children);
+	items_i + node->num_children);
 
     RadioButton *rb = el->obj;
     rb->dynamic_text = dynamic_text;

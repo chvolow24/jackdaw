@@ -33,17 +33,22 @@ static void fmod_target_dsp_cb(Endpoint *ep)
     if (self == target) {
 	return;
     }
+    int ret;
     if (target < 0) {
-	synth_set_freq_mod_pair(synth, NULL, cfg);
+	ret = synth_set_freq_mod_pair(synth, NULL, cfg);
     } else {
-	synth_set_freq_mod_pair(synth, synth->base_oscs + target, cfg);
+	ret = synth_set_freq_mod_pair(synth, synth->base_oscs + target, cfg);
     }
-    long modulator_i = cfg - synth->base_oscs;
-    long carrier_i = target;
-    if (modulator_i < carrier_i) {
-	cfg->fmod_dropdown_reset = carrier_i;
-    } else {
-	cfg->fmod_dropdown_reset = carrier_i + 1;
+    if (ret == 0) {
+	long modulator_i = cfg - synth->base_oscs;
+	long carrier_i = target;
+	if (modulator_i < carrier_i) {
+	    cfg->fmod_dropdown_reset = carrier_i;
+	} else {
+	    cfg->fmod_dropdown_reset = carrier_i + 1;
+	}
+    } else if (ret == 1) { /* carrier cfg is null */
+	cfg->fmod_dropdown_reset = 0;
     }
 
 }
@@ -765,7 +770,7 @@ static void amod_carrier_unlink(Synth *s, OscCfg *carrier)
 	}
     }
 }
-
+/* Return 0 if success */
 int synth_set_freq_mod_pair(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg)
 {
     if (!modulator_cfg) {

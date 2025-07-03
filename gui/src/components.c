@@ -1021,10 +1021,11 @@ static void dropdown_item_onclick(void *arg_v)
     }
     if (ret < 0) {
 	fprintf(stderr, "Dropdown: invalid\n");
-    } else {
-	d->selected_item = arg->index;
-	textbox_set_value_handle(d->tb, d->item_names[arg->index]);
-	textbox_reset_full(d->tb);
+    } else { /* Allow textbox reset to happen in reset fn */
+	
+	/* d->selected_item = arg->index; */
+	/* textbox_set_value_handle(d->tb, d->item_names[arg->index]); */
+	/* textbox_reset_full(d->tb); */
     }
     window_pop_menu(main_win);
 }

@@ -50,7 +50,38 @@ static void fmod_target_dsp_cb(Endpoint *ep)
     } else if (ret == 1) { /* carrier cfg is null */
 	cfg->fmod_dropdown_reset = 0;
     }
+}
 
+static void amod_target_dsp_cb(Endpoint *ep)
+{
+    OscCfg *cfg = ep->xarg1;
+    Synth *synth = ep->xarg2;
+    int self = cfg - synth->base_oscs;
+    int target = endpoint_safe_read(ep, NULL).int_v - 1;
+    if (self < 0 || self > 5) {
+	fprintf(stderr, "Error: osc cfg does not belong to listed synth (index %d)\n", self);
+	return;
+    }
+    if (self == target) {
+	return;
+    }
+    int ret;
+    if (target < 0) {
+	ret = synth_set_amp_mod_pair(synth, NULL, cfg);
+    } else {
+	ret = synth_set_amp_mod_pair(synth, synth->base_oscs + target, cfg);
+    }
+    if (ret == 0) {
+	long modulator_i = cfg - synth->base_oscs;
+	long carrier_i = target;
+	if (modulator_i < carrier_i) {
+	    cfg->amod_dropdown_reset = carrier_i;
+	} else {
+	    cfg->amod_dropdown_reset = carrier_i + 1;
+	}
+    } else if (ret == 1) { /* carrier cfg is null */
+	cfg->amod_dropdown_reset = 0;
+    }
 }
 
 Synth *synth_create(Track *track)
@@ -458,6 +489,20 @@ Synth *synth_create(Track *track)
 	endpoint_set_allowed_range(&cfg->fmod_target_ep, (Value){.int_v=0}, (Value){.int_v=5});
 	cfg->fmod_target_ep.automatable = false;
 	api_endpoint_register(&cfg->fmod_target_ep, &cfg->api_node);
+	
+	endpoint_init(
+	    &cfg->amod_target_ep,
+	    &cfg->amod_target,
+	    JDAW_INT,
+	    "amod_target",
+	    "Amp mod target",
+	    JDAW_THREAD_DSP,
+	    page_el_gui_cb, NULL, amod_target_dsp_cb,
+	    cfg, s, &s->osc_page, cfg->amod_target_dropdown_id);
+	endpoint_set_allowed_range(&cfg->amod_target_ep, (Value){.int_v=0}, (Value){.int_v=5});
+	cfg->amod_target_ep.automatable = false;
+	api_endpoint_register(&cfg->amod_target_ep, &cfg->api_node);
+
 	    
     }
 

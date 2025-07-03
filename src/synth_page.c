@@ -45,10 +45,10 @@ static int fmod_selector_fn(Dropdown *d, void *inner_arg)
     int modulator_i = ((long)inner_arg >> 8) & 0xFF; /* Dropdown host */
     int carrier_i = (long)inner_arg & 0xFF; /* Dropdown target */
     OscCfg *modulator = synth_glob->base_oscs + modulator_i - 1;
-    OscCfg *carrier = carrier_i == 0 ? NULL : synth_glob->base_oscs + carrier_i - 1;
+    /* OscCfg *carrier = carrier_i == 0 ? NULL : synth_glob->base_oscs + carrier_i - 1; */
 
     int target_i = carrier_i;
-    fprintf(stderr, "WRITING INT PAIR: %d %d\n ", modulator - synth_glob->base_oscs + 1, carrier_i);
+    /* fprintf(stderr, "WRITING INT PAIR: %d %d\n ", modulator - synth_glob->base_oscs + 1, carrier_i); */
     
     endpoint_write(&modulator->fmod_target_ep, (Value){.int_v = target_i}, true, true, true, true);
 
@@ -67,18 +67,41 @@ static int amod_selector_fn(Dropdown *d, void *inner_arg)
     int modulator_i = ((long)inner_arg >> 8) & 0xFF; /* Dropdown host */
     int carrier_i = (long)inner_arg & 0xFF; /* Dropdown target */
     OscCfg *modulator = synth_glob->base_oscs + modulator_i - 1;
-    OscCfg *carrier = carrier_i == 0 ? NULL : synth_glob->base_oscs + carrier_i - 1;
-    fprintf(stderr, "MOD: %p (raw i %d), CARR: %p (raw i %d)\n", modulator, modulator_i, carrier, carrier_i);
-    int ret = synth_set_amp_mod_pair(synth_glob, carrier, modulator);
-    if (modulator_i < carrier_i) {
-	modulator->amod_dropdown_reset = carrier_i - 1;
-    } else {
-	modulator->amod_dropdown_reset = carrier_i;
-    }
-    fprintf(stderr, "Set amod_dropdown_reset to %d\n", modulator->amod_dropdown_reset);
-    return ret;
+    /* OscCfg *carrier = carrier_i == 0 ? NULL : synth_glob->base_oscs + carrier_i - 1; */
+
+    int target_i = carrier_i;
+    /* fprintf(stderr, "WRITING INT PAIR: %d %d\n ", modulator - synth_glob->base_oscs + 1, carrier_i); */
+    
+    endpoint_write(&modulator->amod_target_ep, (Value){.int_v = target_i}, true, true, true, true);
+
+    return 0;
+
+
+    /* fprintf(stderr, "MOD: %p (raw i %d), CARR: %p (raw i %d)\n", modulator, modulator_i, carrier, carrier_i); */
+    /* int ret = synth_set_amp_mod_pair(synth_glob, carrier, modulator); */
+    /* fprintf(stderr, "Set fmod_dropdown_reset to %d\n", modulator->fmod_dropdown_reset); */
+    /* return ret; */
 
 }
+
+
+/* static int amod_selector_fn(Dropdown *d, void *inner_arg) */
+/* { */
+/*     int modulator_i = ((long)inner_arg >> 8) & 0xFF; /\* Dropdown host *\/ */
+/*     int carrier_i = (long)inner_arg & 0xFF; /\* Dropdown target *\/ */
+/*     OscCfg *modulator = synth_glob->base_oscs + modulator_i - 1; */
+/*     OscCfg *carrier = carrier_i == 0 ? NULL : synth_glob->base_oscs + carrier_i - 1; */
+/*     fprintf(stderr, "MOD: %p (raw i %d), CARR: %p (raw i %d)\n", modulator, modulator_i, carrier, carrier_i); */
+/*     int ret = synth_set_amp_mod_pair(synth_glob, carrier, modulator); */
+/*     if (modulator_i < carrier_i) { */
+/* 	modulator->amod_dropdown_reset = carrier_i - 1; */
+/*     } else { */
+/* 	modulator->amod_dropdown_reset = carrier_i; */
+/*     } */
+/*     fprintf(stderr, "Set amod_dropdown_reset to %d\n", modulator->amod_dropdown_reset); */
+/*     return ret; */
+
+/* } */
 
 
 static void panel_draw(void *layout_v, void *color_v)
@@ -719,8 +742,9 @@ static void add_filter_page(TabView *tv, Track *track)
     p.textbox_p.set_str = "Ramp exponent:";
     page_add_el(page,EL_TEXTBOX,p,"","ramp_exp_label");
 
-    p.toggle_p.ep = &s->use_amp_env_ep;
-    page_add_el(page,EL_TOGGLE,p,"use_amp_env_toggle","use_amp_env_toggle");
+
+    p.toggle_p.ep = &s->filter_active_ep;
+    page_add_el(page,EL_TOGGLE,p,"filter_active_toggle","active_toggle");
 
     p.slider_p.orientation = SLIDER_HORIZONTAL;
     p.slider_p.style = SLIDER_FILL;
@@ -734,8 +758,10 @@ static void add_filter_page(TabView *tv, Track *track)
     page_el_params_slider_from_ep(&p, &s->resonance_ep);
     page_add_el(page,EL_SLIDER,p,"resonance_slider","resonance_slider");
 
-    p.toggle_p.ep = &s->filter_active_ep;
-    page_add_el(page,EL_TOGGLE,p,"filter_active_toggle","active_toggle");
+    p.toggle_p.ep = &s->use_amp_env_ep;
+    page_add_el(page,EL_TOGGLE,p,"use_amp_env_toggle","use_amp_env_toggle");
+
+
 
     p.slider_p.orientation = SLIDER_HORIZONTAL;
     p.slider_p.style = SLIDER_TICK;

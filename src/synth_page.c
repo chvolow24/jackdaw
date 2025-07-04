@@ -1,8 +1,11 @@
 #include "assets.h"
 #include "color.h"
+#include "dir.h"
 #include "geometry.h"
 #include "layout.h"
+#include "modal.h"
 #include "page.h"
+#include "project.h"
 #include "session.h"
 #include "synth.h"
 
@@ -930,6 +933,207 @@ static void page_fill_out_layout(Page *page)
     /* layout_write(f, page->layout, 0); */
     /* fclose(f); */
     /* exit(0); */
+}
+
+static int dir_to_tline_filter_synth(void *dp_v, void *dn_v)
+{
+    DirPath *dp = *(DirPath **)dp_v;
+    if (dp->hidden) {
+	return 0;
+    }
+
+    if (dp->type != DT_DIR) {
+	char *dotpos = strrchr(dp->path, '.');
+	if (!dotpos) {
+	    return 0;
+	}
+	char *ext = dotpos + 1;
+	if (strncmp("jsynth", ext, 6) *
+	    strncmp("JSYNTH", ext, 6) == 0) {
+	    return 1;
+	}
+	return 0;
+    } else {
+	return 1;
+    }
+
+}
+
+static void synth_open_form(DirNav *dn, DirPath *dp)
+{
+    Session *session = session_get();
+    char *dotpos = strrchr(dp->path, '.');
+    if (!dotpos) {
+	status_set_errstr("Cannot open file without a .jsynth extension");
+	fprintf(stderr, "Cannot open file without a .jsynth extension\n");
+	return;
+    }
+    char *ext = dotpos + 1;
+    /* fprintf(stdout, "ext char : %c\n", *ext); */
+    if (strcmp("jsynth", ext) * strcmp("JSYNTH", ext) == 0) {
+	fprintf(stdout, "Wav file selected\n");
+	Timeline *tl = ACTIVE_TL;
+	Track *track = timeline_selected_track(tl);
+	if (!track) return;
+	if (!track->synth) return;
+	synth_read_preset_file(dp->path, track->synth);
+    } else {
+	status_set_errstr("Cannot open file without a .jsynth extension");
+	fprintf(stderr, "Cannot open file without a .jsynth extension\n");
+	return;
+
+    }
 
 
 }
+
+/* static int synth_open_form(void *mod_v, void *target) */
+/* { */
+/*     fprintf(stderr, "Opening form\n"); */
+/*     Session *session = session_get(); */
+/*     Modal *modal = mod_v; */
+/*     char *dirpath = NULL; */
+/*     for (int i=0; i<modal->num_els; i++) { */
+/* 	fprintf(stderr, "\tchecking %d/%d\n", i,  modal->num_els); */
+
+/* 	ModalEl *el = modal->els[i]; */
+/* 	switch(el->type) { */
+/* 	case MODAL_EL_DIRNAV: */
+/* 	    fprintf(stderr, "Found dirnav!\n"); */
+/* 	    dirpath = ((DirNav *)el->obj)->current_path_tb->text->value_handle; */
+/* 	    break; */
+/* 	    break; */
+/* 	default: */
+/* 	    break; */
+/* 	} */
+/*     } */
+/*     if (dirpath) { */
+/* 	Timeline *tl = ACTIVE_TL; */
+/* 	Track *track = timeline_selected_track(tl); */
+/* 	fprintf(stderr, "Selected track %p synth: %p\n", track, track->synth); */
+/* 	if (track && track->synth) { */
+/* 	    synth_read_preset_file(dirpath, track->synth); */
+/* 	} */
+/* 	window_pop_modal(main_win); */
+/* 	return 0; */
+/*     } else { */
+/* 	return -1; */
+/*     } */
+/* } */
+
+static int synth_save_form(void *mod_v, void *target)
+{
+    char full_path[MAX_NAMELENGTH];
+    Session *session = session_get();
+    Modal *modal = mod_v;
+    char *dirpath = NULL;
+    char *name = NULL;
+    for (int i=0; i<modal->num_els; i++) {
+
+	ModalEl *el = modal->els[i];
+	switch(el->type) {
+	case MODAL_EL_TEXTENTRY:
+	    name = ((TextEntry *)el->obj)->tb->text->display_value;
+	    break;
+
+	case MODAL_EL_DIRNAV:
+	    dirpath = ((DirNav *)el->obj)->current_path_tb->text->value_handle;
+	    break;
+	default:
+	    break;
+	}
+    }
+    if (dirpath && name) {
+	Timeline *tl = ACTIVE_TL;
+	Track *track = timeline_selected_track(tl);
+	if (track && track->synth) {
+	    int offset = snprintf(full_path, MAX_NAMELENGTH, "%s", dirpath);
+	    full_path[offset] = '/';
+	    offset++;
+	    offset += snprintf(full_path + offset, MAX_NAMELENGTH - offset, "%s", name);
+	    fprintf(stderr, "NAME before call? %s\n", name);
+	    synth_write_preset_file(full_path, track->synth);
+	}
+	window_pop_modal(main_win);
+	return 0;
+    } else {
+	return -1;
+    }
+}
+
+
+
+
+/* Top-level function to create modal */
+void synth_open_preset()
+{
+    Layout *layout = layout_add_child(main_win->layout);
+    layout_set_default_dims(layout);
+    
+    Modal *modal = modal_create(layout);
+    modal_add_header(modal, "Open synth preset", &colors.light_grey, 3);
+    ModalEl *el = modal_add_dirnav(modal, ".", dir_to_tline_filter_synth);
+    DirNav *dn = el->obj;
+    dn->file_select_action = synth_open_form;
+    /* modal_add_button(modal, "Open", synth_open_form); */
+    /* modal->submit_form = synth_open_form; */
+    window_push_modal(main_win, modal);
+    modal_reset(modal);
+    /* fprintf(stdout, "about to call move onto\n"); */
+    modal_move_onto(modal);
+
+    
+}
+
+static int file_ext_completion_jsynth(Text *txt, void *obj)
+{
+    char *dotpos = strrchr(txt->display_value, '.');
+    int retval = 0;
+    /* fprintf(stdout, "COMPLETION %s\n", dotpos); */
+    if (!dotpos) {
+	strcat(txt->display_value, ".jsynth");
+	txt->len = strlen(txt->display_value);
+	txt->cursor_end_pos = txt->len;
+	txt_reset_drawable(txt);
+	retval = 0;
+    } else if (strcmp(dotpos, ".jsynth") != 0 && (strcmp(dotpos, ".JSYTNH") != 0)) {
+	retval = 1;
+    }
+    if (retval == 1) {
+	txt->cursor_start_pos = dotpos + 1 - txt->display_value;
+	txt->cursor_end_pos = txt->len;
+	status_set_errstr("Export file must have \".jsynth\" extension");
+    }
+    return retval;
+}
+
+void synth_save_preset()
+{
+    Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
+    Track *track = timeline_selected_track(tl);
+    if (!track || !track->synth) {
+	return;
+    }
+    Layout *layout = layout_add_child(main_win->layout);
+    layout_set_default_dims(layout);
+    
+    Modal *modal = modal_create(layout);
+    modal_add_header(modal, "Save synth preset as:", &colors.light_grey, 3);
+    modal_add_textentry(
+	modal,
+	track->synth->preset_name,
+	MAX_NAMELENGTH,
+	txt_name_validation,
+	file_ext_completion_jsynth,
+	NULL);
+    modal_add_header(modal, "File location:", &colors.light_grey, 5);
+    modal_add_dirnav(modal, ".", dir_to_tline_filter_synth);
+    modal_add_button(modal, "Save", synth_save_form);
+    modal->submit_form = synth_save_form;
+    window_push_modal(main_win, modal);
+    modal_reset(modal);
+    /* fprintf(stdout, "about to call move onto\n"); */
+    modal_move_onto(modal);
+}
+

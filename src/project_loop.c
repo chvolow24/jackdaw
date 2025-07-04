@@ -36,6 +36,7 @@
 #include "session_endpoint_ops.h"
 #include "session.h"
 #include "settings.h"
+#include "synth_page.h"
 #include "tempo.h"
 #include "timeline.h"
 #include "transport.h"
@@ -182,25 +183,27 @@ void loop_project_main()
 
 		switch (e.key.keysym.scancode) {
 		case SDL_SCANCODE_2: {
-		    Timeline *tl = ACTIVE_TL;
-		    Track *t = timeline_selected_track(tl);
-		    if (t && t->synth)
-			synth_write_preset_file("synth_preset.jsynth", t->synth);
-		    /* FILE *f = fopen("test_ser.txt", "w"); */
-		    /* api_node_serialize(f, &session->proj.timelines[0]->api_node); */
-		    /* fclose(f); */
+		    synth_save_preset();
+		/*     Timeline *tl = ACTIVE_TL; */
+		/*     Track *t = timeline_selected_track(tl); */
+		/*     if (t && t->synth) */
+		/* 	synth_write_preset_file("synth_preset.jsynth", t->synth); */
+		/*     /\* FILE *f = fopen("test_ser.txt", "w"); *\/ */
+		/*     /\* api_node_serialize(f, &session->proj.timelines[0]->api_node); *\/ */
+		/*     /\* fclose(f); *\/ */
 
 		}
 		    break;
 		case SDL_SCANCODE_3: {
-		    Timeline *tl = ACTIVE_TL;
-		    Track *t = timeline_selected_track(tl);
-		    if (t && t->synth)
-			synth_read_preset_file("synth_preset.jsynth", t->synth);
+		    synth_open_preset();
+		/*     Timeline *tl = ACTIVE_TL; */
+		/*     Track *t = timeline_selected_track(tl); */
+		/*     if (t && t->synth) */
+		/* 	synth_read_preset_file("synth_preset.jsynth", t->synth); */
 
-		    /* FILE *f = fopen("test_ser.txt", "r"); */
-		    /* api_node_deserialize(f, &session->proj.timelines[0]->api_node); */
-		    /* fclose(f); */
+		/*     /\* FILE *f = fopen("test_ser.txt", "r"); *\/ */
+		/*     /\* api_node_deserialize(f, &session->proj.timelines[0]->api_node); *\/ */
+		/*     /\* fclose(f); *\/ */
 		}
 		    break;
 		/* case SDL_SCANCODE_4: */

@@ -8,6 +8,7 @@
 #include "consts.h"
 #include "iir.h"
 /* #include "test.h" */
+#include "modal.h"
 #include "synth.h"
 #include "session.h"
 
@@ -88,6 +89,8 @@ static void amod_target_dsp_cb(Endpoint *ep)
 Synth *synth_create(Track *track)
 {
     Synth *s = calloc(1, sizeof(Synth));
+
+    snprintf(s->preset_name, MAX_NAMELENGTH, "preset.jsynth");
     s->track = track;
 
     s->vol = 1.0;
@@ -1041,6 +1044,7 @@ void synth_close_all_notes(Synth *s)
 
 void synth_write_preset_file(const char *filepath, Synth *s)
 {
+    fprintf(stderr, "SAVING FILE AT %s\n", filepath);
     FILE *f = fopen(filepath, "w");
     api_node_serialize(f, &s->api_node);
     fclose(f);
@@ -1048,6 +1052,7 @@ void synth_write_preset_file(const char *filepath, Synth *s)
 
 void synth_read_preset_file(const char *filepath, Synth *s)
 {
+    fprintf(stderr, "OPENING FILE AT %s\n", filepath);
     FILE *f = fopen(filepath, "r");
     api_node_deserialize(f, &s->api_node);
     fclose(f);

@@ -157,6 +157,7 @@ typedef struct osc_cfg {
 } OscCfg;
 
 typedef struct synth {
+    char preset_name[MAX_NAMELENGTH];
     SynthVoice voices[SYNTH_NUM_VOICES];    
     OscCfg base_oscs[SYNTH_NUM_BASE_OSCS];
     APINode api_node;

@@ -661,7 +661,7 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 
     float amp_env[len];
     enum adsr_stage amp_stage = adsr_get_chunk(&v->amp_env[channel], amp_env, len);
-    fprintf(stderr, "GET CHUNK channel %d (env %p), end stage %d\n", channel, &v->amp_env[channel], amp_stage);
+    /* fprintf(stderr, "GET CHUNK channel %d (env %p), end stage %d\n", channel, &v->amp_env[channel], amp_stage); */
     if (amp_stage == ADSR_OVERRUN && channel == 1) {
 	v->available = true;
 	/* fprintf(stderr, "\tFREEING VOICE %ld (env overrun)\n", v - v->synth->voices); */

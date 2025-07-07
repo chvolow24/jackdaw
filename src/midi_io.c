@@ -307,9 +307,11 @@ void midi_device_read(MIDIDevice *d)
 
 void midi_device_record_chunk(MIDIDevice *d)
 {
+    fprintf(stderr, "Current clip? %p\n", d->current_clip);
     if (!d->current_clip) return;
     Session *session = session_get();
     /* PmTimestamp current_time = Pt_Time(); */
+    fprintf(stderr, "PROCESSING %d unconsumed...\n", d->num_unconsumed_events);
     for (int i=0; i<d->num_unconsumed_events; i++) {
 	PmEvent e = d->buffer[i];
 	uint8_t status = Pm_MessageStatus(e.message);

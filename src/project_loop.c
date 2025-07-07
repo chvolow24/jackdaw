@@ -25,6 +25,7 @@
 #include "eq.h"
 #include "fir_filter.h"
 #include "function_lookup.h"
+#include "midi_file.h"
 /* #include "iir.h" */
 #include "input.h"
 #include "layout.h"
@@ -182,6 +183,14 @@ void loop_project_main()
 		/* } */
 
 		switch (e.key.keysym.scancode) {
+		case SDL_SCANCODE_1: {
+		    Timeline *tl = ACTIVE_TL;
+		    Track *track = timeline_selected_track(tl);
+		    MIDIClip *mclip =midi_clip_create(NULL, track);
+		    midi_file_read("/Users/charlievolow/Downloads/Only-The-Lonely-2.mid", mclip);
+		    mclip->len_sframes = 9600000;
+		    ClipRef *cr = clipref_create(track, 0, CLIP_MIDI, mclip);
+		}
 		case SDL_SCANCODE_2: {
 		    synth_save_preset();
 		/*     Timeline *tl = ACTIVE_TL; */
@@ -225,7 +234,6 @@ void loop_project_main()
 		/* } */
 		/*     break; */
 		case SDL_SCANCODE_6: {
-
 		    Timeline *tl = ACTIVE_TL;
 		    Track *track = timeline_selected_track(tl);
 		    if (!track) break;

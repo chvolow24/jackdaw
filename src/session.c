@@ -207,11 +207,10 @@ void session_destroy()
     session_deinit_midi(session);
 
 
+    user_event_history_destroy(&session->history);
     if (session->proj_initialized) {
 	project_deinit(&session->proj);
     }
-
-    user_event_history_destroy(&session->history);
     
     session = NULL;
 

@@ -209,6 +209,7 @@ int main(int argc, char **argv)
     /* Create project here */
 
     Session *session = session_create();
+
     if (invoke_open_jdaw_file) {
 	fprintf(stderr, "Opening \"%s\"...\n", file_to_open);
 	int ret = jdaw_read_file(&session->proj, file_to_open);

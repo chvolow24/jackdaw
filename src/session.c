@@ -185,7 +185,6 @@ void session_destroy()
     }
 
     /* api_quit(proj); */
-    user_event_history_destroy(&session->history);
 
     for (uint8_t i=0; i<session->audio_io.num_record_conns; i++) {
 	audioconn_destroy(session->audio_io.record_conns[i]);
@@ -211,10 +210,9 @@ void session_destroy()
     if (session->proj_initialized) {
 	project_deinit(&session->proj);
     }
-    /* Layout *panels_layout = layout_get_child_by_name_recursive(session->gui.layout, "panel_area"); */
-    /* project_init_panels(proj, panels_layout); */
 
-    /* session_status_bar_deinit(session); */
+    user_event_history_destroy(&session->history);
+    
     session = NULL;
 
 }

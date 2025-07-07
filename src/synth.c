@@ -8,7 +8,7 @@
 #include "consts.h"
 #include "iir.h"
 /* #include "test.h" */
-#include "modal.h"
+/* #include "modal.h" */
 #include "synth.h"
 #include "session.h"
 
@@ -661,8 +661,8 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 
     float amp_env[len];
     enum adsr_stage amp_stage = adsr_get_chunk(&v->amp_env[channel], amp_env, len);
-    float_buf_mult(osc_buf, amp_env, len);
-    if (amp_stage == ADSR_OVERRUN) {
+    fprintf(stderr, "GET CHUNK channel %d (env %p), end stage %d\n", channel, &v->amp_env[channel], amp_stage);
+    if (amp_stage == ADSR_OVERRUN && channel == 1) {
 	v->available = true;
 	/* fprintf(stderr, "\tFREEING VOICE %ld (env overrun)\n", v - v->synth->voices); */
 	/* return; */
@@ -677,21 +677,29 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
     }
     for (int i=0; i<len; i++) {
 	if (v->synth->filter_active) {
-	    if (i%27 == 0) { /* Update filter every 27 sample frames */
+	    if (i%37 == 0) { /* Update filter every 37 sample frames */
 		double freq = mtof_calc(v->note_val) * v->synth->freq_scalar * filter_env_p[i] / session->proj.sample_rate;
 		double velocity_rel = 1.0 - v->synth->velocity_freq_scalar * (127.0 - (double)v->velocity) / 126.0;
 		freq *= velocity_rel;
+		/* fprintf(stderr, "Freq: %f", freq); */
 		if (freq > 0.99f) freq = 0.99f;
 		if (freq > 1e-3) {
+		    /* fprintf(stderr, "\t(set)\n"); */
 		    iir_set_coeffs_lowpass_chebyshev(f, freq, v->synth->resonance);
+		/* } else { */
+		/*     fprintf(stderr, "\t(skipped)\n"); */
 		}
+
 		/* iir_set_coeffs_lowpass_chebyshev(f, (mtof_calc(v->note_val) * 20 * amp_env[i] * amp_env[i] * amp_env[i]) / session->proj.sample_rate / 2.0f, 4.0); */
 
 	    }
 	    osc_buf[i] = iir_sample(f, osc_buf[i], channel);
 	}
-	buf[i] += osc_buf[i] * (float)v->velocity / 127.0f;
+	/* buf[i] += osc_buf[i] * (float)v->velocity / 127.0f; */
     }
+    float_buf_mult(osc_buf, amp_env, len);
+    float_buf_mult_const(osc_buf, (float)v->velocity / 127.0f, len);
+    float_buf_add(buf, osc_buf, len);
 
 
     /* for (int i=0; i<len; i++) { */

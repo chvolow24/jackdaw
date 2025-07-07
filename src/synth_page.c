@@ -962,29 +962,29 @@ static int dir_to_tline_filter_synth(void *dp_v, void *dn_v)
 static void synth_open_form(DirNav *dn, DirPath *dp)
 {
     Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
     char *dotpos = strrchr(dp->path, '.');
     if (!dotpos) {
 	status_set_errstr("Cannot open file without a .jsynth extension");
 	fprintf(stderr, "Cannot open file without a .jsynth extension\n");
-	return;
+	goto pop_modal_and_exit;
     }
     char *ext = dotpos + 1;
     /* fprintf(stdout, "ext char : %c\n", *ext); */
     if (strcmp("jsynth", ext) * strcmp("JSYNTH", ext) == 0) {
 	fprintf(stdout, "Wav file selected\n");
-	Timeline *tl = ACTIVE_TL;
 	Track *track = timeline_selected_track(tl);
-	if (!track) return;
-	if (!track->synth) return;
+	if (!track) goto pop_modal_and_exit;
+	if (!track->synth) goto pop_modal_and_exit;
 	synth_read_preset_file(dp->path, track->synth);
     } else {
 	status_set_errstr("Cannot open file without a .jsynth extension");
 	fprintf(stderr, "Cannot open file without a .jsynth extension\n");
-	return;
 
     }
-
-
+pop_modal_and_exit:
+    window_pop_modal(main_win);
+    tl->needs_redraw = true;
 }
 
 /* static int synth_open_form(void *mod_v, void *target) */
@@ -1023,11 +1023,13 @@ static void synth_open_form(DirNav *dn, DirPath *dp)
 
 static int synth_save_form(void *mod_v, void *target)
 {
-    char full_path[MAX_NAMELENGTH];
     Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
+    char full_path[MAX_NAMELENGTH];
     Modal *modal = mod_v;
     char *dirpath = NULL;
     char *name = NULL;
+
     for (int i=0; i<modal->num_els; i++) {
 
 	ModalEl *el = modal->els[i];
@@ -1043,8 +1045,8 @@ static int synth_save_form(void *mod_v, void *target)
 	    break;
 	}
     }
+    int ret;
     if (dirpath && name) {
-	Timeline *tl = ACTIVE_TL;
 	Track *track = timeline_selected_track(tl);
 	if (track && track->synth) {
 	    int offset = snprintf(full_path, MAX_NAMELENGTH, "%s", dirpath);
@@ -1054,11 +1056,14 @@ static int synth_save_form(void *mod_v, void *target)
 	    fprintf(stderr, "NAME before call? %s\n", name);
 	    synth_write_preset_file(full_path, track->synth);
 	}
-	window_pop_modal(main_win);
-	return 0;
+	ret = 0;
     } else {
-	return -1;
+	ret = -1;
     }
+    window_pop_modal(main_win);
+    tl->needs_redraw = true;
+    return ret;
+
 }
 
 

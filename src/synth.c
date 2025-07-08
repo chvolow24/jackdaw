@@ -151,6 +151,11 @@ Synth *synth_create(Track *track)
     s->monitor = true;
     s->allow_voice_stealing = true;
 
+    api_node_register(&s->api_node, &track->api_node, "Synth");
+
+    /* fprintf(stderr, "REGISTERING synth node to parent %p, name %s\n", &track->api_node, track->api_node.obj_name); */
+
+
     endpoint_init(
 	&s->vol_ep,
 	&s->vol,
@@ -181,9 +186,6 @@ Synth *synth_create(Track *track)
     /* endpoint_init( */
     /* 	s->amp_env */
 
-    api_node_register(&s->api_node, &track->api_node, "Synth");
-
-    fprintf(stderr, "REGISTERING synth node to parent %p, name %s\n", &track->api_node, track->api_node.obj_name);
     
     adsr_endpoints_init(&s->amp_env, &s->amp_env_page, &s->api_node, "Amp envelope");
     /* api_node_register(&s->amp_env.api_node, &s->api_node, "Amp envelope"); */
@@ -957,14 +959,14 @@ void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start
 	uint8_t status = Pm_MessageStatus(e.message);
 	uint8_t note_val = Pm_MessageData1(e.message);
 	uint8_t velocity = Pm_MessageData2(e.message);
-	uint8_t msg_type = status;
+	uint8_t msg_type = status >> 4;
 
 	/* fprintf(stderr, "\t\tIN SYNTH msg%d/%d %x, %d, %d (%s)\n", i, s->num_events, status, note_val, velocity, msg_type == 0x80 ? "OFF" : msg_type == 0x90 ? "ON" : "ERROR"); */
 	/* if (i == 0) start = e.timestamp; */
 	/* int32_t pos_rel = ((double)e.timestamp - start) * (double)session->proj.sample_rate / 1000.0; */
 	/* fprintf(stderr, "EVENT %d/%d, timestamp: %d\n", i, num_events, e.timestamp); */
 	if (velocity == 0) msg_type = 8;
-	if (msg_type == 0x80) {
+	if (msg_type == 8) {
 	    /* HANDLE NOTE OFF */
 	    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 		SynthVoice *v = s->voices + i;
@@ -980,7 +982,7 @@ void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start
 
 		}
 	    }
-	} else if (msg_type == 0x90) { /* Handle note on */
+	} else if (msg_type == 9) { /* Handle note on */
 	    bool note_assigned = false;
 	    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 		SynthVoice *v = s->voices + i;

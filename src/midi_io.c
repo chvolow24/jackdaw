@@ -204,10 +204,13 @@ void session_deinit_midi(Session *session)
 int midi_device_open(MIDIDevice *d)
 {
     if (!d->info) {
-	return -1;
 	fprintf(stderr, "Error: cannot open device. 'info' is missing.\n");
+	return -1;
     }
-    if (d->info->opened) return 0;
+    if (d->info->opened) {
+	fprintf(stderr, "Device already open\n");
+	return 0;
+    }
 
     PmError err = pmNoError;
     if (d->info->input) {
@@ -307,11 +310,11 @@ void midi_device_read(MIDIDevice *d)
 
 void midi_device_record_chunk(MIDIDevice *d)
 {
-    fprintf(stderr, "Current clip? %p\n", d->current_clip);
+    /* fprintf(stderr, "Current clip? %p\n", d->current_clip); */
     if (!d->current_clip) return;
     Session *session = session_get();
     /* PmTimestamp current_time = Pt_Time(); */
-    fprintf(stderr, "PROCESSING %d unconsumed...\n", d->num_unconsumed_events);
+    /* fprintf(stderr, "PROCESSING %d unconsumed...\n", d->num_unconsumed_events); */
     for (int i=0; i<d->num_unconsumed_events; i++) {
 	PmEvent e = d->buffer[i];
 	uint8_t status = Pm_MessageStatus(e.message);
@@ -319,7 +322,7 @@ void midi_device_record_chunk(MIDIDevice *d)
 	uint8_t velocity = Pm_MessageData2(e.message);
 	uint8_t msg_type = status >> 4;
 	int32_t pos_rel = ((double)e.timestamp - d->record_start) * (double)session->proj.sample_rate / 1000.0;
-	fprintf(stderr, "EVENT %d/%d, timestamp: %d pos rel %d (record start %d)\n", i, d->num_unconsumed_events, e.timestamp, pos_rel, d->record_start);
+	/* fprintf(stderr, "EVENT %d/%d, timestamp: %d pos rel %d (record start %d)\n", i, d->num_unconsumed_events, e.timestamp, pos_rel, d->record_start); */
 	if (msg_type == 9 && d->current_clip) {
 	    Note *unclosed = d->unclosed_notes + note_val;
 	    unclosed->note = note_val;
@@ -329,7 +332,7 @@ void midi_device_record_chunk(MIDIDevice *d)
 	} else if (msg_type == 8 && d->current_clip) {
 	    Note *unclosed = d->unclosed_notes + note_val;
 	    /* if (d->current_clip) */
-	    fprintf(stderr, "ADDING NOTE! %d, pos rel: %d\n", note_val, pos_rel);
+	    /* fprintf(stderr, "ADDING NOTE! %d, pos rel: %d\n", note_val, pos_rel); */
 	    midi_clip_add_note(d->current_clip, note_val, unclosed->velocity, unclosed->start_rel, pos_rel); 
 	}
     }

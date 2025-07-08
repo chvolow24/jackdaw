@@ -130,6 +130,8 @@ void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
     /* 	return; */
     /* } */
     if (dl->len != len) {
+	/* fprintf(stderr, "\t->new len %d\n", len); */
+	/* breakfn(); */
 	/* double new_buf[len]; */
 	double *new_buf = dl->cpy_buf;
 	/* double read_step = (double)dl->len / len; */

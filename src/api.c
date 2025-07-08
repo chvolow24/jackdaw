@@ -667,9 +667,15 @@ void api_node_deserialize(FILE *f, APINode *root)
 	    i++;
 	}
 	route_buf[i] = '\0';
-	/* fprintf(stderr, "DESER ROUTE: %s\n", route_buf); */
 	ValType t;
 	Value v = jdaw_val_deserialize(f, &t);
+
+	/* char str_buf[255]; */
+	/* jdaw_val_to_str(str_buf, 255, v, t, 4); */
+	/* if (strcmp(route_buf, "/main/track_2/synth/vol") == 0) { */
+	/*     breakfn(); */
+	/* } */
+	/* fprintf(stderr, "DESER %s == %s\n", route_buf, str_buf); */
 	Endpoint *ep = api_endpoint_get(route_buf);
 	if (ep)
 	    endpoint_write(ep, v, true, true, true, false);

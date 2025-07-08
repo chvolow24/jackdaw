@@ -11,7 +11,7 @@ typedef enum {
     MIDI_CHUNK_TRCK
 } MIDIChunkType;
 
-static MIDIDevice v_device;
+static MIDIDevice v_device[16];
 static uint32_t running_ts = 0;
 
 static uint32_t get_variable_length(FILE *file, int *num_bytes_dst)
@@ -89,37 +89,60 @@ static void get_midi_trck(FILE *f, int32_t len)
     while (len > 0) {
 	PmEvent e;
 	e.timestamp = running_ts;
-
 	/* fprintf(stderr, "len: %d\n", len); */
 	int num_bytes;
 	uint32_t delta_time = get_variable_length(f, &num_bytes);
-	fprintf(stderr, "\tEvent delta : %d, TS: %d\n", delta_time, e.timestamp);
 	running_ts += delta_time;
 	len -= num_bytes;	
 	uint8_t status = fgetc(f);
 	len--;
 	static uint8_t prev_status;
     done_get_status:
-	fprintf(stderr, "\tSTATUS: %x\n", status & 0xF0);
+	/* fprintf(stderr, "\tSTATUS: %x\n", status & 0xF0); */
 	
 	if (status == 0xFF) {
-	    uint8_t type = fgetc(f);	    
+	    uint8_t type = fgetc(f);
 	    uint32_t length = get_variable_length(f, &num_bytes);
-	    fseek(f, length, SEEK_CUR); /* IGNORE META EVENT */
-	    len -= num_bytes + length + 1;
+	    char buf[length + 1];
+
+	    switch (type) {
+	    case 01:		
+		fread(buf, 1, length, f);
+		buf[length] = '\0';
+		fprintf(stderr, "Text event: \"%s\"\n", buf);
+		break;
+	    case 02:
+		fprintf(stderr, "Copyright notice\n");
+		break;
+	    case 03:
+		fread(buf, 1, length, f);
+		buf[length] = '\0';
+		fprintf(stderr, "Track name: \"%s\"\n", buf);
+		break;
+	    case 04:
+		fread(buf, 1, length, f);
+		buf[length] = '\0';
+		fprintf(stderr, "Track name: \"%s\"\n", buf);
+		break;		
+
+	    default:
+		
+		fseek(f, length, SEEK_CUR); /* IGNORE META EVENT */				    
+	    }
+	    len -= (num_bytes + length + 1);
 	    fprintf(stderr, "Ignore meta event\n");
 	} else if ((status & 0xF0) == 0x90) { /* NOTE ON */
 	    uint8_t note = fgetc(f);
 	    uint8_t velocity = fgetc(f);
 	    uint8_t channel = status & 0x0F;
-	    fprintf(stderr, "\t\tChannel %d note %d vel %d\n", channel, note, velocity);
-	    len -= 3;
+	    /* fprintf(stderr, "\t\tChannel %d note %d vel %d\n", channel, note, velocity); */
+	    len -= 2;
 	    e.message = Pm_Message(status, note, velocity);
-	    v_device.buffer[v_device.num_unconsumed_events] = e;
-	    v_device.num_unconsumed_events++;
-	    if (v_device.num_unconsumed_events == PM_EVENT_BUF_NUM_EVENTS) {
-		midi_device_record_chunk(&v_device);
-		v_device.num_unconsumed_events = 0;
+	    v_device[channel].buffer[v_device[channel].num_unconsumed_events] = e;
+	    v_device[channel].num_unconsumed_events++;
+	    if (v_device[channel].num_unconsumed_events == PM_EVENT_BUF_NUM_EVENTS) {
+		midi_device_record_chunk(&v_device[channel]);
+		v_device[channel].num_unconsumed_events = 0;
 		/* fprintf(stderr, "Early return\n"); */
 		/* return; */
 		/* exit(0); */
@@ -128,16 +151,16 @@ static void get_midi_trck(FILE *f, int32_t len)
 	    uint8_t note = fgetc(f);
 	    uint8_t velocity = fgetc(f);
 	    uint8_t channel = status & 0x0F;
-	    fprintf(stderr, "\t\t(off) Channel %d note %d vel %d\n", channel, note, velocity);
-	    len -= 3;
+	    /* fprintf(stderr, "\t\t(off) Channel %d note %d vel %d\n", channel, note, velocity); */
+	    len -= 2;
 	    e.message = Pm_Message(status, note, velocity);
-	    v_device.buffer[v_device.num_unconsumed_events] = e;
-	    v_device.num_unconsumed_events++;
-	    fprintf(stderr, "NUM UNCONSUMED: %d\n", v_device.num_unconsumed_events);
-	    if (v_device.num_unconsumed_events == PM_EVENT_BUF_NUM_EVENTS) {
-		fprintf(stderr, "RECORD CHUNK!!!!!!\n");
-		midi_device_record_chunk(&v_device);
-		v_device.num_unconsumed_events = 0;
+	    v_device[channel].buffer[v_device[channel].num_unconsumed_events] = e;
+	    v_device[channel].num_unconsumed_events++;
+	    /* fprintf(stderr, "NUM UNCONSUMED: %d\n", v_device[channel].num_unconsumed_events); */
+	    if (v_device[channel].num_unconsumed_events == PM_EVENT_BUF_NUM_EVENTS) {
+		/* fprintf(stderr, "RECORD CHUNK!!!!!!\n"); */
+		midi_device_record_chunk(&v_device[channel]);
+		v_device[channel].num_unconsumed_events = 0;
 		/* fprintf(stderr, "Early return\n"); */
 		/* return; */
 		/* exit(0); */
@@ -159,7 +182,7 @@ static void get_midi_trck(FILE *f, int32_t len)
 		uint32_t length = get_variable_length(f, &num_bytes);
 		fprintf(stderr, "\t\tSYSEX HANDLED, length? %d\n", length);
 		fseek(f, length, SEEK_CUR);
-		len -= length + num_bytes;
+		len -= (length + num_bytes);
 	    }
 		break;
 	    default:
@@ -167,6 +190,7 @@ static void get_midi_trck(FILE *f, int32_t len)
 		if (status < 0x80) {
 		    fprintf(stderr, "\t...running status\n");
 		    fputc(status, f);
+		    len++;
 		    status = prev_status;
 		    goto done_get_status;
 		    continue;
@@ -183,7 +207,7 @@ static void get_midi_trck(FILE *f, int32_t len)
     
 }
 
-int midi_file_read(const char *filepath, MIDIClip *mclip)
+int midi_file_read(const char *filepath, MIDIClip **mclips)
 {
     /* if (!mclip) exit(1); */
     running_ts = 0;
@@ -193,9 +217,11 @@ int midi_file_read(const char *filepath, MIDIClip *mclip)
 	perror(NULL);
 	return -1;
     }
-    v_device.record_start = 0;
-    /* midi_clip_init(mclip); */
-    v_device.current_clip = mclip;
+    for (int i=0; i<16; i++) {
+	v_device[i].record_start = 0;
+	/* midi_clip_init(mclip); */
+	v_device[i].current_clip = mclips[i];
+    }
     MIDIChunkType t;
     uint32_t len;
     do {

@@ -479,14 +479,16 @@ Page *add_delay_page(DelayLine *d, Track *track, TabView *tv)
     textbox_set_background_color(tb, NULL);
     textbox_set_align(tb, CENTER_LEFT);
     textbox_reset_full(tb);
-    
-    p.slider_p.create_label_fn = NULL;
+
     p.slider_p.style = SLIDER_TICK;
     p.slider_p.orientation = SLIDER_HORIZONTAL;
-    p.slider_p.ep = &d->len_ep;
-    p.slider_p.min = (Value){.int32_v = 1};
-    p.slider_p.max = (Value){.int32_v = 1000};
-    p.slider_p.create_label_fn = label_msec;
+    
+    page_el_params_slider_from_ep(&p, &d->len_ep);
+    /* p.slider_p.create_label_fn = NULL; */
+    /* p.slider_p.ep = &d->len_ep; */
+    /* p.slider_p.min = (Value){.int32_v = 1}; */
+    /* p.slider_p.max = (Value){.int32_v = 1000}; */
+    /* p.slider_p.create_label_fn = label_msec; */
     el = page_add_el(page, EL_SLIDER, p, "track_settings_delay_time_slider", "del_time_slider");
 
     Slider *sl = el->component;

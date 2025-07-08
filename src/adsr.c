@@ -286,9 +286,6 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
 	    for (int i=0; i<stage_len; i++) {
 		float env_norm = (double)s->env_remaining / (double)s->params->r;
 		float env = s->release_start_env * pow(env_norm, s->params->ramp_exp);
-		if (s->env_remaining < 10) {
-		    fprintf(stderr, "%p: (rem %d): %f\n", s, s->env_remaining, env);
-		}
 		buf[i] = env;
 		s->env_remaining--;
 	    }

@@ -1552,6 +1552,16 @@ void timeline_check_set_midi_monitoring()
     if (track && track->input_type == MIDI_DEVICE && track->midi_out && track->midi_out_type == MIDI_OUT_SYNTH) {
 	session->midi_io.monitor_synth = track->midi_out;
 	session->midi_io.monitor_device = track->input;
+	MIDIDevice *d = session->midi_io.monitor_device;
+
+	/* Clear notes in system device buffer */
+	Pm_Read(d->stream, d->buffer, PM_EVENT_BUF_NUM_EVENTS);
+	d->num_unconsumed_events = 0;
+
+	/* Clear notes in synth if present */
+	Synth *synth = session->midi_io.monitor_synth;
+	synth_close_all_notes(synth);
+	
 	api_node_set_owner(&track->synth->api_node, JDAW_THREAD_PLAYBACK);
 	audioconn_start_playback(session->audio_io.playback_conn);
 	fprintf(stderr, "monitoring!!\n");

@@ -185,11 +185,22 @@ void loop_project_main()
 		switch (e.key.keysym.scancode) {
 		case SDL_SCANCODE_1: {
 		    Timeline *tl = ACTIVE_TL;
-		    Track *track = timeline_selected_track(tl);
-		    MIDIClip *mclip =midi_clip_create(NULL, track);
-		    midi_file_read("/Users/charlievolow/Downloads/Only-The-Lonely-2.mid", mclip);
-		    mclip->len_sframes = 9600000;
-		    ClipRef *cr = clipref_create(track, 0, CLIP_MIDI, mclip);
+		    MIDIClip *mclips[16];
+		    for (int i=0; i<16; i++) {
+			Track *track = tl->tracks[i];
+			MIDIClip *mclip =midi_clip_create(NULL, track);
+			mclips[i] = mclip;
+		    }
+
+		    midi_file_read("/Users/charlievolow/Downloads/Only-The-Lonely-2.mid", mclips);
+		    for (int i=0; i<16; i++) {
+			Track *track = tl->tracks[i];
+			if (mclips[i]->num_notes > 0) {
+			    mclips[i]->len_sframes = mclips[i]->notes[mclips[i]->num_notes  - 1].end_rel;
+			    ClipRef *cr = clipref_create(track, 0, CLIP_MIDI, mclips[i]);
+			    clipref_reset(cr, true);
+			}
+		    }
 		}
 		case SDL_SCANCODE_2: {
 		    synth_save_preset();

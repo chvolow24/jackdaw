@@ -212,7 +212,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	synth_feed_midi(s, d->buffer, d->num_unconsumed_events, 0, true);
 	/* fprintf(stderr, "Current clip: %p, recording? %d\n", d->current_clip, d->current_clip->recording); */
 	if (d->current_clip && d->current_clip->recording) {
-	    midi_device_record_chunk(d);
+	    midi_device_record_chunk(d, 1);
 	    d->current_clip->len_sframes += len_sframes;
 	}
 	d->num_unconsumed_events = 0;

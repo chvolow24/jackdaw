@@ -318,7 +318,8 @@ void timeline_catchup(Timeline *tl)
     if ((tl_draw_x = timeline_get_draw_x(tl, tl->play_pos_sframes)) > session->gui.audio_rect->x + session->gui.audio_rect->w) {
 	tl->display_offset_sframes = tl->play_pos_sframes - timeline_get_abs_w_sframes(tl, session->gui.audio_rect->w - catchup_w);
 	timeline_reset(tl, false);
-    } else if (tl_draw_x < session->gui.audio_rect->x) {
+    }
+    else if (tl_draw_x < session->gui.audio_rect->x) {
 	tl->display_offset_sframes = tl->play_pos_sframes - timeline_get_abs_w_sframes(tl, catchup_w);
 	timeline_reset(tl, false);
     }

@@ -192,7 +192,8 @@ void loop_project_main()
 			mclips[i] = mclip;
 		    }
 
-		    midi_file_read("/Users/charlievolow/Downloads/billie_jean.mid", mclips);
+		    /* midi_file_read("/Users/charlievolow/Downloads/billie_jean.mid", mclips); */
+		    midi_file_read("/Users/charlievolow/Downloads/Only-The-Lonely-2.mid", mclips);
 		    for (int i=0; i<16; i++) {
 			Track *track = tl->tracks[i];
 			if (mclips[i]->num_notes > 0) {

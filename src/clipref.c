@@ -53,7 +53,7 @@ ClipRef *clipref_create(
 	aclip->refs[aclip->num_refs] = cr;
 	aclip->num_refs++;
 	if (aclip->num_refs == 1) cr->home =true;
-	if (aclip->num_refs > 0) {
+	if (aclip->num_refs > 1) {
 	    snprintf(cr->name, MAX_NAMELENGTH, "%s ref %d", aclip->name, aclip->num_refs + 1);
 	} else {
 	    snprintf(cr->name, MAX_NAMELENGTH, "%s", aclip->name);
@@ -72,8 +72,8 @@ ClipRef *clipref_create(
 	mclip->refs[mclip->num_refs] = cr;
 	mclip->num_refs++;
 
-	if (mclip->num_refs > 0) {
-	    snprintf(cr->name, MAX_NAMELENGTH, "%s ref %d", mclip->name, mclip->num_refs + 1);
+	if (mclip->num_refs > 1) {
+	    snprintf(cr->name, MAX_NAMELENGTH, "%s ref %d", mclip->name, mclip->num_refs);
 	} else {
 	    snprintf(cr->name, MAX_NAMELENGTH, "%s", mclip->name);
 	}

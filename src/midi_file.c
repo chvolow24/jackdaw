@@ -4,6 +4,7 @@
 #include "midi_clip.h"
 #include "midi_io.h"
 #include "portmidi.h"
+#include "session.h"
 
 typedef enum {
     MIDI_CHUNK_UNKNOWN,
@@ -11,11 +12,22 @@ typedef enum {
     MIDI_CHUNK_TRCK
 } MIDIChunkType;
 
+struct division_fmt {
+    uint8_t fmt_bit; /* 0 for ticks per quarter, 1 for SMPTE FPS */
+    uint16_t ticks_per_quarter;
+    int8_t smpte_fmt;
+    uint8_t ticks_per_frame;
+    double sample_frames_per_division; /* OUTPUT after tempo */
+};
 static MIDIDevice v_device[16];
 
 static int channel_name_index = 0; /* Logged in text events, commonly */
 static int track_index_offset = 0;
 static uint16_t format;
+
+static struct division_fmt division_fmt;
+
+static uint32_t running_ts = 0;
 
 static uint32_t get_variable_length(FILE *file, int *num_bytes_dst)
 {
@@ -52,6 +64,16 @@ static uint16_t get_16(FILE *f)
     return ret;
 }
 
+static uint32_t get_24(FILE *f)
+{
+    uint8_t bytes[3];
+    fread(bytes, 1, 3, f);
+    uint32_t ret = (uint32_t)bytes[0] << 16;
+    ret += (uint32_t)bytes[1] << 8;
+    ret += bytes[2];
+    return ret;
+}
+
 static MIDIChunkType get_chunk_data(FILE *f, uint32_t *len)
 {
     MIDIChunkType t = MIDI_CHUNK_UNKNOWN;
@@ -69,6 +91,32 @@ static MIDIChunkType get_chunk_data(FILE *f, uint32_t *len)
     return t;
 }
 
+
+
+static int8_t twos_comp_decode(uint8_t byte)
+{
+    uint8_t negative = byte >> 7;
+    int8_t number = byte;
+    if (negative) {
+	byte--;
+	byte = ~byte; /* flip the bits */
+	number = byte * -1;
+    }
+    return number;
+}
+
+static int8_t decode_smpte_fps(uint8_t raw)
+{
+    uint8_t val7 = raw & 0x7F;
+    uint8_t val8 = val7;
+
+    if (val7 & 0b01000000) { /* convert to 8-bit twos comp */
+	val8 &= ~0b01000000; /* unset bit 6 */
+	val8 |= 0b10000000; /* set bit 7 instead */
+    }
+    return twos_comp_decode(val8);
+}
+
 /* already read "MThd" and length */
 static void get_midi_hdr(FILE *f)
 {
@@ -79,29 +127,37 @@ static void get_midi_hdr(FILE *f)
     uint16_t division = get_16(f);
     fprintf(stderr, "DIVISION: %d\n", division);
     uint8_t division_msb = division >> 15;
+    
+    division_fmt.fmt_bit = division_msb;
+    
+    uint16_t rest = division & 0x7FFF;
     fprintf(stderr, "\tmsb == %d\n", division_msb);
     if (division_msb == 0) {
-	uint16_t rest = division & 0x7FFF;
-	fprintf(stderr, "\tRest? %d\n", rest);
+	division_fmt.ticks_per_quarter = rest;	
+    } else { /* SMPTE */
+	uint8_t smpte_byte = rest >> 8;
+	division_fmt.smpte_fmt = decode_smpte_fps(smpte_byte);
+	division_fmt.ticks_per_frame = rest & 0xFF;
     }
 }
 
 /* already read MTrk and length */
 static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mclips)
 {
-    uint32_t running_ts = 0;
 
     uint32_t num_note_ons[16] = {0};
     uint32_t num_note_offs[16] = {0};
     
-    
+    uint32_t running_ts = 0;
     while (len > 0) {
 	PmEvent e;
-	e.timestamp = running_ts;
+	fprintf(stderr, "TS: running %d, %f, times %f\n",running_ts, running_ts * division_fmt.sample_frames_per_division, division_fmt.sample_frames_per_division);
+	fprintf(stderr, "TS: %d\n", e.timestamp);
 	/* fprintf(stderr, "len: %d\n", len); */
 	int num_bytes;
 	uint32_t delta_time = get_variable_length(f, &num_bytes);
 	running_ts += delta_time;
+	e.timestamp = running_ts * (uint32_t)division_fmt.sample_frames_per_division;
 	len -= num_bytes;	
 	uint8_t status = fgetc(f);
 	len--;
@@ -135,10 +191,16 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 		fprintf(stderr, "Instrument name: \"%s\"\n", buf);
 		break;
 	    case 0x20: {
-		uint8_t msb = fgetc(f);
-		uint8_t lsb = fgetc(f);
-		uint16_t channel_prefix = (msb << 8) + lsb;
+		uint16_t channel_prefix = get_16(f);
 		fprintf(stderr, "Channel prefix: %d\n", channel_prefix);
+	    }
+	    case 0x51: {
+		uint32_t tempo_us_per_quarter = get_24(f);
+		double us_per_tick = (double)tempo_us_per_quarter / (double)division_fmt.ticks_per_quarter;
+		Session *session = session_get();		
+		double frames_per_tic = us_per_tick * session->proj.sample_rate / 1000000.0;
+		division_fmt.sample_frames_per_division = frames_per_tic;
+		fprintf(stderr, "FRAMES PER TICK: %f\n", frames_per_tic);
 	    }
 		break;
 
@@ -160,7 +222,7 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 	    v_device[clip_index].buffer[v_device[clip_index].num_unconsumed_events] = e;
 	    v_device[clip_index].num_unconsumed_events++;
 	    if (v_device[clip_index].num_unconsumed_events == PM_EVENT_BUF_NUM_EVENTS) {
-		midi_device_record_chunk(&v_device[clip_index]);
+		midi_device_record_chunk(&v_device[clip_index], 0);
 		v_device[clip_index].num_unconsumed_events = 0;
 		/* fprintf(stderr, "Early return\n"); */
 		/* return; */
@@ -180,7 +242,7 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 	    /* fprintf(stderr, "NUM UNCONSUMED: %d\n", v_device[clip_index].num_unconsumed_events); */
 	    if (v_device[clip_index].num_unconsumed_events == PM_EVENT_BUF_NUM_EVENTS) {
 		/* fprintf(stderr, "RECORD CHUNK!!!!!!\n"); */
-		midi_device_record_chunk(&v_device[clip_index]);
+		midi_device_record_chunk(&v_device[clip_index], 0);
 		v_device[clip_index].num_unconsumed_events = 0;
 		/* fprintf(stderr, "Early return\n"); */
 		/* return; */
@@ -240,6 +302,7 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 int midi_file_read(const char *filepath, MIDIClip **mclips)
 {
     /* if (!mclip) exit(1); */
+    running_ts = 0;
     FILE *f = fopen(filepath, "r");
     if (!f) {
 	fprintf(stderr, "Unable to open MIDI file at %s:", filepath);

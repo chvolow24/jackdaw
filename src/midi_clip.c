@@ -136,16 +136,23 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 	int32_t note_start_tl_pos = note->start_rel + cr->tl_pos - cr->start_in_clip;
 	int32_t note_end_tl_pos = note->end_rel + cr->tl_pos - cr->start_in_clip;
 	/* fprintf(stderr, "\t\tNote i: %d, start-end: %d-%d\n", note_i, note_start_tl_pos, note_end_tl_pos); */
+	/* if (note_end_tl_pos - note_start_tl_pos == 0) { */
+	/*     fprintf(stderr, "Warn!!!! note val %d has zero dur\n", note->note); */
+	/* } */
 	if (note_end_tl_pos >= clipref_end) {
 	    note_end_tl_pos = clipref_end - 1;
 	}
-	/* If note on not in chunk, break */
+	
+	/* Skip notes that are not initiated in this chunk */
 	if (note_start_tl_pos < chunk_tl_start) {
 	    note_i++;
 	    continue;
+	/* If note starts after chunk end, skip */
 	} else if (note_start_tl_pos >= chunk_tl_end) {
 	    break;
 	}
+	
+	/* TODO: set channel */
 	e.message = Pm_Message(0x90, note->note, note->velocity);
 	e.timestamp = note_start_tl_pos;
 	/* Insert any earlier note offs first */

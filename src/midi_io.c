@@ -308,7 +308,8 @@ void midi_device_read(MIDIDevice *d)
 
 
 
-void midi_device_record_chunk(MIDIDevice *d)
+/* TS_FMT: 0 = sample_frames, 1 = msec */
+void midi_device_record_chunk(MIDIDevice *d, int ts_fmt)
 {
     /* fprintf(stderr, "Current clip? %p\n", d->current_clip); */
     if (!d->current_clip) return;
@@ -321,7 +322,15 @@ void midi_device_record_chunk(MIDIDevice *d)
 	uint8_t note_val = Pm_MessageData1(e.message);
 	uint8_t velocity = Pm_MessageData2(e.message);
 	uint8_t msg_type = status >> 4;
-	int32_t pos_rel = ((double)e.timestamp - d->record_start) * (double)session->proj.sample_rate / 1000.0;
+	int32_t pos_rel;
+	if (ts_fmt == 0) {
+	    pos_rel = e.timestamp;
+	} else if (ts_fmt == 1) { /* MSEC */
+	    pos_rel = ((double)e.timestamp - d->record_start) * (double)session->proj.sample_rate / 1000.0;
+	} else {
+	    fprintf(stderr, "Error: unrecognized ts_fmt %d\n", ts_fmt);
+	    return;
+	}
 	/* fprintf(stderr, "EVENT %d/%d, timestamp: %d pos rel %d (record start %d)\n", i, d->num_unconsumed_events, e.timestamp, pos_rel, d->record_start); */
 	if (msg_type == 9 && d->current_clip) {
 	    Note *unclosed = d->unclosed_notes + note_val;
@@ -335,8 +344,9 @@ void midi_device_record_chunk(MIDIDevice *d)
 	    /* fprintf(stderr, "ADDING NOTE! %d, pos rel: %d\n", note_val, pos_rel); */
 	    midi_clip_add_note(d->current_clip, note_val, unclosed->velocity, unclosed->start_rel, pos_rel); 
 	}
+	/* fprintf(stderr, "NOTE Abs time: %d, record start: %d, seconds: %f\n", pos_rel, d->record_start, (double)pos_rel / 96000.0); */
     }
-    
+    /* exit(0); */
     /* Write directly to syth :| */
     /* PmError err = Pm_Write(session->synth.device.stream, session->synth.device.buffer, num_read); */
     /* fprintf(stderr, "%s\n", Pm_GetErrorText(err)); */

@@ -12,7 +12,10 @@ typedef enum {
 } MIDIChunkType;
 
 static MIDIDevice v_device[16];
-static uint32_t running_ts = 0;
+
+static int channel_name_index = 0; /* Logged in text events, commonly */
+static int track_index_offset = 0;
+static uint16_t format;
 
 static uint32_t get_variable_length(FILE *file, int *num_bytes_dst)
 {
@@ -69,7 +72,7 @@ static MIDIChunkType get_chunk_data(FILE *f, uint32_t *len)
 /* already read "MThd" and length */
 static void get_midi_hdr(FILE *f)
 {
-    uint16_t format = get_16(f);
+    format = get_16(f);
     fprintf(stderr, "FORMAT: %d\n", format);
     uint16_t ntracks = get_16(f);
     fprintf(stderr, "TRACKS: %d\n", ntracks);
@@ -84,8 +87,14 @@ static void get_midi_hdr(FILE *f)
 }
 
 /* already read MTrk and length */
-static void get_midi_trck(FILE *f, int32_t len)
+static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mclips)
 {
+    uint32_t running_ts = 0;
+
+    uint32_t num_note_ons[16] = {0};
+    uint32_t num_note_offs[16] = {0};
+    
+    
     while (len > 0) {
 	PmEvent e;
 	e.timestamp = running_ts;
@@ -99,50 +108,60 @@ static void get_midi_trck(FILE *f, int32_t len)
 	static uint8_t prev_status;
     done_get_status:
 	/* fprintf(stderr, "\tSTATUS: %x\n", status & 0xF0); */
-	
+
 	if (status == 0xFF) {
 	    uint8_t type = fgetc(f);
 	    uint32_t length = get_variable_length(f, &num_bytes);
-	    char buf[length + 1];
-
+	    char *buf = malloc(length + 1);
 	    switch (type) {
-	    case 01:		
+	    case 0x01:		
 		fread(buf, 1, length, f);
 		buf[length] = '\0';
+		strncpy(mclips[channel_name_index]->name, buf, length + 1);
+		channel_name_index++;
 		fprintf(stderr, "Text event: \"%s\"\n", buf);
 		break;
-	    case 02:
+	    case 0x02:
 		fprintf(stderr, "Copyright notice\n");
 		break;
-	    case 03:
+	    case 0x03:
 		fread(buf, 1, length, f);
 		buf[length] = '\0';
 		fprintf(stderr, "Track name: \"%s\"\n", buf);
 		break;
-	    case 04:
+	    case 0x04:
 		fread(buf, 1, length, f);
 		buf[length] = '\0';
-		fprintf(stderr, "Track name: \"%s\"\n", buf);
-		break;		
+		fprintf(stderr, "Instrument name: \"%s\"\n", buf);
+		break;
+	    case 0x20: {
+		uint8_t msb = fgetc(f);
+		uint8_t lsb = fgetc(f);
+		uint16_t channel_prefix = (msb << 8) + lsb;
+		fprintf(stderr, "Channel prefix: %d\n", channel_prefix);
+	    }
+		break;
 
 	    default:
-		
+		fprintf(stderr, "Ignore meta event type %x\n", type);		
 		fseek(f, length, SEEK_CUR); /* IGNORE META EVENT */				    
 	    }
+	    free(buf);
 	    len -= (num_bytes + length + 1);
-	    fprintf(stderr, "Ignore meta event\n");
 	} else if ((status & 0xF0) == 0x90) { /* NOTE ON */
 	    uint8_t note = fgetc(f);
 	    uint8_t velocity = fgetc(f);
 	    uint8_t channel = status & 0x0F;
+	    num_note_ons[channel]++;
+	    uint8_t clip_index = format == 0 ? channel : track_index - track_index_offset;
 	    /* fprintf(stderr, "\t\tChannel %d note %d vel %d\n", channel, note, velocity); */
 	    len -= 2;
 	    e.message = Pm_Message(status, note, velocity);
-	    v_device[channel].buffer[v_device[channel].num_unconsumed_events] = e;
-	    v_device[channel].num_unconsumed_events++;
-	    if (v_device[channel].num_unconsumed_events == PM_EVENT_BUF_NUM_EVENTS) {
-		midi_device_record_chunk(&v_device[channel]);
-		v_device[channel].num_unconsumed_events = 0;
+	    v_device[clip_index].buffer[v_device[clip_index].num_unconsumed_events] = e;
+	    v_device[clip_index].num_unconsumed_events++;
+	    if (v_device[clip_index].num_unconsumed_events == PM_EVENT_BUF_NUM_EVENTS) {
+		midi_device_record_chunk(&v_device[clip_index]);
+		v_device[clip_index].num_unconsumed_events = 0;
 		/* fprintf(stderr, "Early return\n"); */
 		/* return; */
 		/* exit(0); */
@@ -151,31 +170,35 @@ static void get_midi_trck(FILE *f, int32_t len)
 	    uint8_t note = fgetc(f);
 	    uint8_t velocity = fgetc(f);
 	    uint8_t channel = status & 0x0F;
+	    num_note_offs[channel]++;
+	    uint8_t clip_index = format == 0 ? channel : track_index - track_index_offset;
 	    /* fprintf(stderr, "\t\t(off) Channel %d note %d vel %d\n", channel, note, velocity); */
 	    len -= 2;
 	    e.message = Pm_Message(status, note, velocity);
-	    v_device[channel].buffer[v_device[channel].num_unconsumed_events] = e;
-	    v_device[channel].num_unconsumed_events++;
-	    /* fprintf(stderr, "NUM UNCONSUMED: %d\n", v_device[channel].num_unconsumed_events); */
-	    if (v_device[channel].num_unconsumed_events == PM_EVENT_BUF_NUM_EVENTS) {
+	    v_device[clip_index].buffer[v_device[clip_index].num_unconsumed_events] = e;
+	    v_device[clip_index].num_unconsumed_events++;
+	    /* fprintf(stderr, "NUM UNCONSUMED: %d\n", v_device[clip_index].num_unconsumed_events); */
+	    if (v_device[clip_index].num_unconsumed_events == PM_EVENT_BUF_NUM_EVENTS) {
 		/* fprintf(stderr, "RECORD CHUNK!!!!!!\n"); */
-		midi_device_record_chunk(&v_device[channel]);
-		v_device[channel].num_unconsumed_events = 0;
+		midi_device_record_chunk(&v_device[clip_index]);
+		v_device[clip_index].num_unconsumed_events = 0;
 		/* fprintf(stderr, "Early return\n"); */
 		/* return; */
 		/* exit(0); */
 	    }
 	} else {
-	    fprintf(stderr, "IN SWITCH x 0xF0: %x\n", status & 0xF0);
+	    /* fprintf(stderr, "IN SWITCH x 0xF0: %x\n", status & 0xF0); */
 	    switch (status & 0xF0) {
 	    case 0xA0: // Aftertouch
 	    case 0xB0: // Controller
 	    case 0xE0: // Pitch bend
 		fgetc(f); fgetc(f);
+		len -= 2;
 		break;
 	    case 0xC0: // Program change
 	    case 0xD0: // Channel aftertouch
 		fgetc(f);
+		len--;
 		break;
 	    case 0xF0: {// SysEx
 		int num_bytes = 0;
@@ -195,7 +218,7 @@ static void get_midi_trck(FILE *f, int32_t len)
 		    goto done_get_status;
 		    continue;
 		} else {
-		    fprintf(stderr, "UNHANDLES status byte %x\n", status & 0xF);
+		    fprintf(stderr, "UNHANDLED status byte %x\n", status & 0xF);
 		}
 		break;
 	    }
@@ -203,20 +226,29 @@ static void get_midi_trck(FILE *f, int32_t len)
 	}
 	prev_status = status;
     }
-
+    fprintf(stderr, "TRACK index %d summary:\n", track_index);
+    uint32_t sum_note_ons = 0;
+    for (int i=0; i<16; i++) {
+	fprintf(stderr, "\tchannel %d ON: %d OFF: %d\n", i, num_note_ons[i], num_note_offs[i]);
+	sum_note_ons += num_note_ons[i];
+    }
+    if (sum_note_ons == 0) track_index_offset++;
+    
     
 }
 
 int midi_file_read(const char *filepath, MIDIClip **mclips)
 {
     /* if (!mclip) exit(1); */
-    running_ts = 0;
     FILE *f = fopen(filepath, "r");
     if (!f) {
 	fprintf(stderr, "Unable to open MIDI file at %s:", filepath);
 	perror(NULL);
 	return -1;
     }
+    
+    channel_name_index = 0;
+    
     for (int i=0; i<16; i++) {
 	v_device[i].record_start = 0;
 	/* midi_clip_init(mclip); */
@@ -224,13 +256,15 @@ int midi_file_read(const char *filepath, MIDIClip **mclips)
     }
     MIDIChunkType t;
     uint32_t len;
+    int track_index = 0;
     do {
 	t = get_chunk_data(f, &len);
 	fprintf(stderr, "Chunk of type %d, len %d\n", t, len);
 	if (t == MIDI_CHUNK_HDR) {
 	    get_midi_hdr(f);
 	} else if (t == MIDI_CHUNK_TRCK) {
-	    get_midi_trck(f, len);
+	    get_midi_trck(f, len, track_index, mclips);
+	    track_index++;
 	} else {
 	    if (fseek(f, len, SEEK_CUR) == -1) {
 		perror("fseek:");

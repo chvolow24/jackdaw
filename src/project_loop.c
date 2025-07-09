@@ -192,7 +192,7 @@ void loop_project_main()
 			mclips[i] = mclip;
 		    }
 
-		    midi_file_read("/Users/charlievolow/Downloads/Only-The-Lonely-2.mid", mclips);
+		    midi_file_read("/Users/charlievolow/Downloads/billie_jean.mid", mclips);
 		    for (int i=0; i<16; i++) {
 			Track *track = tl->tracks[i];
 			if (mclips[i]->num_notes > 0) {
@@ -202,6 +202,7 @@ void loop_project_main()
 			}
 		    }
 		}
+		    break;
 		case SDL_SCANCODE_2: {
 		    synth_save_preset();
 		/*     Timeline *tl = ACTIVE_TL; */

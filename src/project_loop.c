@@ -25,14 +25,14 @@
 #include "eq.h"
 #include "fir_filter.h"
 #include "function_lookup.h"
-#include "midi_file.h"
-/* #include "iir.h" */
 #include "input.h"
 #include "layout.h"
+#include "midi_file.h"
 #include "midi_clip.h"
 #include "mouse.h"
 #include "project.h"
 #include "project_draw.h"
+#include "prompt_user.h"
 #include "screenrecord.h"
 #include "session_endpoint_ops.h"
 #include "session.h"
@@ -68,7 +68,6 @@ extern Project *proj;
 
 TabView *synth_tabview_create(Track *track);
 void user_global_quit(void *);
-extern bool do_blep;
 
 void loop_project_main()
 {
@@ -184,6 +183,27 @@ void loop_project_main()
 
 		switch (e.key.keysym.scancode) {
 		case SDL_SCANCODE_1: {
+		    char *arr[] = {
+			"Yes",
+			"No",
+			"thing",
+			"whee:",
+			"okokokok",
+			"idf",
+			"sdoijogfgd",
+			"odfjfg",
+			"sodfjodfg",
+			"dofgijg",
+			"sdfgkjl",
+			"sdlfkjlg",
+			"WHEEEEE"};
+		    int ret = prompt_user(
+			"Do the thing?",
+			"Doing this thing will cause this thing to happen. Are you sure you want to do this thing?\n\n\n",
+			2, arr);
+		    fprintf(stderr, "returned %d!\n", ret);
+		    break;
+		    /* exit(0); */
 		    Timeline *tl = ACTIVE_TL;
 		    MIDIClip *mclips[16];
 		    for (int i=0; i<16; i++) {

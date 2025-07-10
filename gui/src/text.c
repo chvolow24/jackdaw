@@ -181,7 +181,6 @@ void txt_reset_display_value(Text *txt)
 }
 void txt_set_value_handle(Text *txt, char *set_str)
 {
-    /* fprintf(stderr, "setting text value handle to %s\n", set_str); */
     txt->value_handle = set_str;
     txt->len = strlen(set_str);
     txt_reset_display_value(txt);
@@ -751,18 +750,14 @@ void txt_area_create_lines(TextArea *txtarea)
 	txtarea->text_h = line_h;
     }
     Layout *line_template = layout_add_child(txtarea->layout);
+    line_template->y.type = STACK;
     line_template->y.value = txtarea->line_spacing;
     line_template->h.value = (float)txtarea->text_h / txtarea->win->dpi_scale_factor;
-
-
-    /* NEW */
-    line_template->y.type = STACK;
-    /* END */
-
     
     for (int i=0; i<txtarea->num_lines; i++) {
 	txtarea->layout->h.value += ((float)txtarea->text_h / txtarea->win->dpi_scale_factor) + txtarea->line_spacing;
 	/* layout_add_iter(line_template, VERTICAL, false); */
+	line_template->w.value = txtarea->line_widths[i];
 	layout_copy(line_template, txtarea->layout);
     }
     /* reset_iterations(line_template->iterator); */
@@ -784,8 +779,6 @@ TextArea *txt_area_create(const char *value, Layout *layout, Font *font, uint8_t
     txtarea->line_spacing = TXT_AREA_DEFAULT_LINE_SPACING;
     txt_area_create_lines(txtarea);
 
-    /* layout_force_reset(layout); */
-    
     return txtarea;
 }
 

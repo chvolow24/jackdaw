@@ -50,8 +50,6 @@ Textbox *textbox_create_from_str(
 	true,
 	win
 	);
-    /* textbox_reset_full(tb); */
-	
     return tb;
 }
 

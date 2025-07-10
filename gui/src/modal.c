@@ -4,9 +4,12 @@
 #include "modal.h"
 #include "textbox.h"
 
-#define MODAL_V_PADDING 5
-#define MODAL_V_PADDING_TIGHT 0
-#define MODAL_V_PADDING_BUTTON 8
+#define MODAL_X_PADDING 15
+#define MODAL_V_PADDING 10
+#define MODAL_TEXT_V_PADDING 10
+#define MODAL_V_PADDING_TIGHT 2
+#define MODAL_V_PADDING_TIGHTEST 0
+#define MODAL_V_PADDING_BUTTON 10
 #define MODAL_BOTTOM_PAD 12
 #define MODAL_FONTSIZE_H1 36
 #define MODAL_FONTSIZE_H2 24
@@ -141,9 +144,11 @@ void modal_destroy(Modal *modal)
     free(modal);
 
 }
-
+void breakfn();
 static ModalEl *modal_add_el(Modal *modal)
 {
+    breakfn();
+    layout_reset(modal->layout);
     Layout *lt = layout_add_child(modal->layout);
     if (modal->num_els == 0) {
 	lt->y.type = REL;
@@ -155,7 +160,7 @@ static ModalEl *modal_add_el(Modal *modal)
     lt->w.value = 1.0;
 
     lt->x.type = REL;
-    lt->x.value = MODAL_V_PADDING * 2;
+    lt->x.value = MODAL_X_PADDING;
     lt->w.type = PAD;
     layout_reset(lt);
     ModalEl *new_el = calloc(1, sizeof(ModalEl));
@@ -169,7 +174,6 @@ static ModalEl *modal_add_text(Modal *modal, Font *font, int font_size, SDL_Colo
 {
     ModalEl *el = modal_add_el(modal);
     el->type = MODAL_EL_TEXT;
-    /* el->selectable = false; */
     Textbox *tb = textbox_create_from_str(text, el->layout, font, font_size, main_win);
     textbox_set_border(tb, &colors.clear, 0);
     textbox_set_background_color(tb, &colors.clear);
@@ -216,12 +220,22 @@ ModalEl *modal_add_header(Modal *modal, const char *text, SDL_Color *color, int 
     
     }
     el = modal_add_text(modal, main_win->bold_font, fontsize, color, (char *)text, ta, false);
+    el->layout->y.value = MODAL_V_PADDING_TIGHT;
     layout_size_to_fit_text_v(el);
     if (level == 5) {
 	el->layout->x.value = 0;
     }
     layout_force_reset(modal->layout);
 
+    return el;
+}
+
+ModalEl *modal_add_p_custom_fontsize(Modal *modal, const char *text, SDL_Color *color, int fontsize)
+{
+    ModalEl *el = modal_add_el(modal);
+    el->type = MODAL_EL_TEXTAREA;
+    TextArea *ta = txt_area_create(text, el->layout, main_win->std_font, fontsize, *color, main_win);
+    el->obj = (void *)ta;
     return el;
 }
 
@@ -278,7 +292,7 @@ ModalEl *modal_add_textentry(
     void *completion_target)
 {
     ModalEl *el = modal_add_el(modal);
-    el->layout->y.value = MODAL_V_PADDING_TIGHT;
+    el->layout->y.value = MODAL_V_PADDING_TIGHTEST;
     modal->selectable_indices[modal->num_selectable] = modal->num_els - 1;
     modal->num_selectable++;
     el->type = MODAL_EL_TEXTENTRY;
@@ -376,8 +390,12 @@ static void modal_el_reset(ModalEl *el)
 	/* fprintf(stdout, "Reseting Textbox %s to lt %d %d %d %d\n", ((Textbox *)el->obj)->text->value_handle, ((Textbox *)el->obj)->layout->rect.x, ((Textbox *)el->obj)->layout->rect.y, ((Textbox *)el->obj)->layout->rect.w, ((Textbox *)el->obj)->layout->rect.h); */
 	textentry_reset((TextEntry *)el->obj);
 	break;
-
     case MODAL_EL_TEXTAREA:
+	/* textbox_size_to_fit((Textbox *)el->obj, 0, MODAL_V_PADDING); */
+	/* fprintf(stdout, "Reseting Textbox %s to lt %d %d %d %d\n", ((Textbox *)el->obj)->text->value_handle, ((Textbox *)el->obj)->layout->rect.x, ((Textbox *)el->obj)->layout->rect.y, ((Textbox *)el->obj)->layout->rect.w, ((Textbox *)el->obj)->layout->rect.h); */
+	layout_size_to_fit_children_v(el->layout, 0, 0);
+	layout_reset(el->layout->parent);
+	break;
     case MODAL_EL_DIRNAV:
     case MODAL_EL_BUTTON:
     case MODAL_EL_RADIO:
@@ -463,6 +481,7 @@ void modal_draw(Modal *modal)
     }
     if (modal->x) 
 	symbol_button_draw(modal->x);
+
     /* layout_draw(main_win, modal->layout); */
     /* layout_write(stdout, modal->layout, 0); */
 }

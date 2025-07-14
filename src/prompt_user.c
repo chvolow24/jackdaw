@@ -15,8 +15,9 @@ int prompt_user(const char *header, const char *description, int num_options, co
     Layout *layout = layout_add_child(main_win->layout);
     layout_set_default_dims(layout);
     Modal *modal = modal_create(layout);
-    
-    modal_add_header(modal, header, &colors.light_grey, 3);
+
+    if (header)
+	modal_add_header(modal, header, &colors.light_grey, 3);
     modal_add_p(modal, description, &colors.white);
     char *sel_buf = malloc(SEL_BUF_LEN);
     char sel_char = '1';

@@ -182,50 +182,6 @@ void loop_project_main()
 		/* } */
 
 		switch (e.key.keysym.scancode) {
-		case SDL_SCANCODE_1: {
-		    char *arr[] = {
-			"Yes",
-			"No",
-			"thing",
-			"whee:",
-			"okokokok",
-			"idf",
-			"sdoijogfgd",
-			"odfjfg",
-			"sodfjodfg",
-			"dofgijg",
-			"sdfgkjl",
-			"sdlfkjlg",
-			"WHEEEEE"};
-		    int ret = prompt_user(
-			"Do the thing?",
-			"Doing this thing will cause this thing to happen. Are you sure you want to do this thing?\n\n\n",
-			2, arr);
-		    fprintf(stderr, "returned %d!\n", ret);
-		    /* break; */
-		    /* exit(0); */
-		    Timeline *tl = ACTIVE_TL;
-		    MIDIClip *mclips[16];
-		    for (int i=0; i<16; i++) {
-			Track *track = tl->tracks[i];
-			MIDIClip *mclip =midi_clip_create(NULL, track);
-			mclips[i] = mclip;
-		    }
-
-                    midi_file_read("/Users/charlievolow/Downloads/Never-Gonna-Give-You-Up-3.mid", mclips);
-                    /* midi_file_read("/Users/charlievolow/Downloads/billie_jean.mid", mclips); */
-		    /* midi_file_read("/Users/charlievolow/Downloads/Only-The-Lonely-2.mid", mclips); */
-		    
-		    for (int i=0; i<16; i++) {
-			Track *track = tl->tracks[i];
-			if (mclips[i]->num_notes > 0) {
-			    mclips[i]->len_sframes = mclips[i]->notes[mclips[i]->num_notes  - 1].end_rel;
-			    ClipRef *cr = clipref_create(track, 0, CLIP_MIDI, mclips[i]);
-			    clipref_reset(cr, true);
-			}
-		    }
-		}
-		    break;
 		case SDL_SCANCODE_2: {
 		    synth_save_preset();
 		/*     Timeline *tl = ACTIVE_TL; */

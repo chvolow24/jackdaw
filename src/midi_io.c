@@ -337,11 +337,9 @@ void midi_device_record_chunk(MIDIDevice *d, int ts_fmt)
 	    unclosed->note = note_val;
 	    unclosed->velocity = velocity;
 	    unclosed->start_rel = pos_rel;
-	    /* fprintf(stderr, "\tadding unclosed pitch %d\n", unclosed->note); */
 	} else if (msg_type == 8 && d->current_clip) {
 	    Note *unclosed = d->unclosed_notes + note_val;
 	    /* if (d->current_clip) */
-	    /* fprintf(stderr, "ADDING NOTE! %d, pos rel: %d\n", note_val, pos_rel); */
 	    midi_clip_add_note(d->current_clip, note_val, unclosed->velocity, unclosed->start_rel, pos_rel); 
 	}
 	/* fprintf(stderr, "NOTE Abs time: %d, record start: %d, seconds: %f\n", pos_rel, d->record_start, (double)pos_rel / 96000.0); */

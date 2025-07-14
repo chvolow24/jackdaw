@@ -960,6 +960,7 @@ void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start
 	uint8_t note_val = Pm_MessageData1(e.message);
 	uint8_t velocity = Pm_MessageData2(e.message);
 	uint8_t msg_type = status >> 4;
+	uint8_t channel = status & 0x0F;
 
 	/* fprintf(stderr, "\t\tIN SYNTH msg%d/%d %x, %d, %d (%s)\n", i, s->num_events, status, note_val, velocity, msg_type == 0x80 ? "OFF" : msg_type == 0x90 ? "ON" : "ERROR"); */
 	/* if (i == 0) start = e.timestamp; */
@@ -968,6 +969,7 @@ void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start
 	if (velocity == 0) msg_type = 8;
 	if (msg_type == 8) {
 	    /* HANDLE NOTE OFF */
+	    /* fprintf(stderr, "NOTE OFF val: %d pos %d\n", note_val, e.timestamp); */
 	    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 		SynthVoice *v = s->voices + i;
 		if (!v->available && v->note_val == note_val) {
@@ -983,6 +985,7 @@ void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start
 		}
 	    }
 	} else if (msg_type == 9) { /* Handle note on */
+	    /* fprintf(stderr, "NOTE ON val: %d chan %d pos %d\n", note_val, channel, e.timestamp); */
 	    bool note_assigned = false;
 	    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 		SynthVoice *v = s->voices + i;

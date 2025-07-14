@@ -212,6 +212,8 @@ typedef struct track {
     Track **bus_ins;
     uint8_t bus_ins_arrlen;
     uint8_t num_bus_ins;
+
+    bool added_from_midi_file;
     // SDL_Rect *vol_bar;
     // SDL_Rect *pan_bar;
     // SDL_Rect *in_bar;

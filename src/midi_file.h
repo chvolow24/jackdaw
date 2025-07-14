@@ -4,6 +4,7 @@
 #include "midi_clip.h"
 
 /* int midi_file_read(const char *filepath); */
-int midi_file_read(const char *filepath, MIDIClip **mclips);
+
+int midi_file_open(const char *filepath);//, MIDIClip **mclips)
 
 #endif

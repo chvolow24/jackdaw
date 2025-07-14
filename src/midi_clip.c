@@ -75,6 +75,13 @@ TEST_FN_DEF(check_note_order, {
 
 void midi_clip_add_note(MIDIClip *mc, int note_val, int velocity, int32_t start_rel, int32_t end_rel)
 {
+    /* #ifdef TESTBUILD */
+    /* if (start_rel < 0) { */
+    /* 	fprintf(stderr, "Error: call to add note with start rel %d\n", start_rel)} */
+    /* 	exit(1); */
+    /* } */
+    /* #endif */
+    /* fprintf(stderr, "ADDING note of rel %d (end %d) to clip of num notes %d\n", start_rel, end_rel, mc->num_notes); */
     if (!mc->notes) {
 	mc->notes_alloc_len = 32;
 	mc->notes = calloc(mc->notes_alloc_len, sizeof(Note));
@@ -113,6 +120,16 @@ int32_t midi_clipref_check_get_first_note(ClipRef *cr)
     return cr->first_note;
 }
 
+int32_t note_tl_start_pos(Note *note, ClipRef *cr)
+{
+    return note->start_rel + cr->tl_pos - cr->start_in_clip;
+}
+
+int32_t note_tl_end_pos(Note *note, ClipRef *cr)
+{
+    return note->end_rel + cr->tl_pos - cr->start_in_clip;
+}
+
 
 /* Return the number of events written */
 int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max_len, int32_t chunk_tl_start, int32_t chunk_tl_end)
@@ -133,28 +150,38 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
     int32_t clipref_end = cr->tl_pos + clipref_len(cr);
     while (note_i < mclip->num_notes) {
 	Note *note = mclip->notes + note_i;
-	int32_t note_start_tl_pos = note->start_rel + cr->tl_pos - cr->start_in_clip;
-	int32_t note_end_tl_pos = note->end_rel + cr->tl_pos - cr->start_in_clip;
+	int32_t note_tl_start;
+	int32_t note_tl_end;
+	
+
+	/* Skip notes that are not initiated in this chunk */
+	if (note_tl_start_pos(note, cr) < chunk_tl_start) {
+	    if (note_i < mclip->num_notes) {
+		note_i++;
+		note++;
+	    } else {
+		break; /* No more notes */
+	    }
+	    continue;
+	/* If note starts after chunk end, skip */
+	}
+	if (note_tl_start_pos(note, cr) >= chunk_tl_end) {
+	    break;
+	}
 	/* fprintf(stderr, "\t\tNote i: %d, start-end: %d-%d\n", note_i, note_start_tl_pos, note_end_tl_pos); */
 	/* if (note_end_tl_pos - note_start_tl_pos == 0) { */
 	/*     fprintf(stderr, "Warn!!!! note val %d has zero dur\n", note->note); */
 	/* } */
-	if (note_end_tl_pos >= clipref_end) {
-	    note_end_tl_pos = clipref_end - 1;
+	note_tl_start = note_tl_start_pos(note, cr);
+	note_tl_end = note_tl_end_pos(note, cr);
+	if (note_tl_end >= clipref_end) {
+	    note_tl_end = clipref_end - 1;
 	}
-	
-	/* Skip notes that are not initiated in this chunk */
-	if (note_start_tl_pos < chunk_tl_start) {
-	    note_i++;
-	    continue;
-	/* If note starts after chunk end, skip */
-	} else if (note_start_tl_pos >= chunk_tl_end) {
-	    break;
-	}
-	
+
 	/* TODO: set channel */
 	e.message = Pm_Message(0x90, note->note, note->velocity);
-	e.timestamp = note_start_tl_pos;
+	e.timestamp = note_tl_start;
+	
 	/* Insert any earlier note offs first */
 	bool event_buf_full = false;
 	while (1) {
@@ -168,7 +195,7 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 
 		
 	    PmEvent note_off = track->note_offs[track->note_offs_read_i];
-	    if (note_off.timestamp < e.timestamp) {
+	    if (note_off.timestamp <= e.timestamp) {
 		/* Insert note off */
 		if (event_buf_index + 1 < event_buf_max_len) {
 		    event_buf[event_buf_index] = note_off;
@@ -182,7 +209,7 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 		break;
 	    }
 	}
-	/* Now insert then note on */
+	/* Now insert the note on */
 	if (!event_buf_full) {
 	    event_buf[event_buf_index] = e;
 	    event_buf_index++;
@@ -191,7 +218,7 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 	}
 
 	e_off.message = Pm_Message(0x80, note->note, note->velocity);
-	e_off.timestamp = note_end_tl_pos;
+	e_off.timestamp = note_tl_end;
 	if (track->note_offs_write_i + 1 == track->note_offs_read_i) {
 	    fprintf(stderr, "Error! reached end of buf, cannot write\n");
 	} else {

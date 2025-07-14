@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "clipref.h"
 #include "midi_clip.h"
 #include "midi_io.h"
 #include "portmidi.h"
@@ -171,9 +172,8 @@ static void get_midi_hdr(FILE *f)
 }
 
 /* Assumes already read MTrk and length value */
-static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mclips)
+static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mclips, int num_clips)
 {
-
     uint32_t num_note_ons[16] = {0};
     uint32_t num_note_offs[16] = {0};
     
@@ -207,9 +207,10 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 	    case 0x01:		
 		fread(buf, 1, length, f);
 		buf[length] = '\0';
+		fprintf(stderr, "Text event: \"%s\"\n", buf);
+		if (channel_name_index >= num_clips) break;
 		strncpy(mclips[channel_name_index]->name, buf, length + 1);
 		channel_name_index++;
-		fprintf(stderr, "Text event: \"%s\"\n", buf);
 		break;
 	    case 0x02:
 		fprintf(stderr, "Copyright notice\n");
@@ -262,24 +263,6 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 	    }
 	    free(buf);
 	    len -= (num_bytes + length + 1);
-	} else if ((status & 0xF0) == 0x90) { /* NOTE ON */
-	    uint8_t note = fgetc(f);
-	    uint8_t velocity = fgetc(f);
-	    uint8_t channel = status & 0x0F;
-	    num_note_ons[channel]++;
-	    uint8_t clip_index = file_info.format == 0 ? channel : track_index - track_index_offset;
-	    /* fprintf(stderr, "\t\tChannel %d note %d vel %d\n", channel, note, velocity); */
-	    len -= 2;
-	    e.message = Pm_Message(status, note, velocity);
-	    v_device[clip_index].buffer[v_device[clip_index].num_unconsumed_events] = e;
-	    v_device[clip_index].num_unconsumed_events++;
-	    if (v_device[clip_index].num_unconsumed_events == PM_EVENT_BUF_NUM_EVENTS) {
-		midi_device_record_chunk(&v_device[clip_index], 0);
-		v_device[clip_index].num_unconsumed_events = 0;
-		/* fprintf(stderr, "Early return\n"); */
-		/* return; */
-		/* exit(0); */
-	    }
 	} else if ((status & 0xF0) == 0x80) { /* NOTE OFF */
 	    uint8_t note = fgetc(f);
 	    uint8_t velocity = fgetc(f);
@@ -288,12 +271,40 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 	    uint8_t clip_index = file_info.format == 0 ? channel : track_index - track_index_offset;
 	    /* fprintf(stderr, "\t\t(off) Channel %d note %d vel %d\n", channel, note, velocity); */
 	    len -= 2;
+	    if (clip_index >= num_clips) {
+		break;
+	    }
+
 	    e.message = Pm_Message(status, note, velocity);
 	    v_device[clip_index].buffer[v_device[clip_index].num_unconsumed_events] = e;
 	    v_device[clip_index].num_unconsumed_events++;
+
 	    /* fprintf(stderr, "NUM UNCONSUMED: %d\n", v_device[clip_index].num_unconsumed_events); */
 	    if (v_device[clip_index].num_unconsumed_events == PM_EVENT_BUF_NUM_EVENTS) {
 		/* fprintf(stderr, "RECORD CHUNK!!!!!!\n"); */
+		midi_device_record_chunk(&v_device[clip_index], 0);
+		v_device[clip_index].num_unconsumed_events = 0;
+		/* fprintf(stderr, "Early return\n"); */
+		/* return; */
+		/* exit(0); */
+	    }
+
+	} else if ((status & 0xF0) == 0x90) { /* NOTE ON */
+	    uint8_t note = fgetc(f);
+	    uint8_t velocity = fgetc(f);
+	    uint8_t channel = status & 0x0F;
+	    num_note_ons[channel]++;
+	    uint8_t clip_index = file_info.format == 0 ? channel : track_index - track_index_offset;
+	    len -= 2;
+	    /* fprintf(stderr, "\t\tChannel %d note %d vel %d\n", channel, note, velocity); */
+	    if (clip_index >= num_clips) {
+		break;
+	    }
+
+	    e.message = Pm_Message(status, note, velocity);
+	    v_device[clip_index].buffer[v_device[clip_index].num_unconsumed_events] = e;
+	    v_device[clip_index].num_unconsumed_events++;
+	    if (v_device[clip_index].num_unconsumed_events == PM_EVENT_BUF_NUM_EVENTS) {
 		midi_device_record_chunk(&v_device[clip_index], 0);
 		v_device[clip_index].num_unconsumed_events = 0;
 		/* fprintf(stderr, "Early return\n"); */
@@ -366,8 +377,9 @@ int midi_file_open(const char *filepath)//, MIDIClip **mclips)
 	perror(NULL);
 	return -1;
     }
-    
+    memset(&file_info, '\0', sizeof(struct midi_file));
     channel_name_index = 0;
+    track_index_offset = 0;
     
     /* for (int i=0; i<16; i++) { */
     /* 	v_device[i].record_start = 0; */
@@ -384,66 +396,75 @@ int midi_file_open(const char *filepath)//, MIDIClip **mclips)
     get_midi_hdr(f);
     int num_dst_tracks;
     if (file_info.format == 0) {
-	v_device = malloc(16 * sizeof(MIDIDevice));
+	v_device = calloc(16, sizeof(MIDIDevice));
 	num_dst_tracks = 16;
     } else if (file_info.format == 1) {
-	v_device = malloc(file_info.num_tracks * sizeof(MIDIDevice));
-	num_dst_tracks = file_info.num_tracks;
+	v_device = calloc(file_info.num_tracks, sizeof(MIDIDevice));
+	num_dst_tracks = file_info.num_tracks - 1;
+    } else {
+	num_dst_tracks = 1;
     }
 
     Track *track = timeline_selected_track(tl);
+    int sel_track_i = track ? track->tl_rank : 0;
+    int num_clips = num_dst_tracks;
     /* Prompt user with track behavior */
-    if (num_dst_tracks > tl->num_tracks - (track->tl_rank)) {
+    if (num_dst_tracks > tl->num_tracks - sel_track_i) {
 	const char *option_titles[] = {
 	    "Add tracks",
-	    "Ignore additional"
+	    "Ignore extra tracks"
 	};
 	char desc[256];
 
 	if (file_info.format == 1) {
-	    snprintf(desc, 256, "The MIDI file contains %d tracks, which will not fit in the current timeline.\nWould you like to automatically add more tracks, or ignore portions of the MIDI file?", file_info.num_tracks);
+	    snprintf(desc, 256, "The MIDI file contains %d tracks, which will not fit in the current timeline.\nWould you like to automatically add more tracks, or ignore tracks that don't fit?", file_info.num_tracks);
 	    int selection = prompt_user(NULL, desc, 2, option_titles);
 	    if (selection == 0) {
-		while (tl->num_tracks - track->tl_rank < num_dst_tracks) 
-		    timeline_add_track(tl);
+		while (tl->num_tracks - sel_track_i < num_dst_tracks) {
+		    Track *t = timeline_add_track(tl);
+		    t->added_from_midi_file = true;
+		}
+
 	    } else {
-		
+		num_clips = tl->num_tracks - sel_track_i;
 	    }
 	} else if (file_info.format == 0) {
 	    /* TODO: determine behavior for multi-channel */
-	    fprintf(stderr, "Multiple channels\n");
+	    snprintf(desc, 256, "The MIDI file may contain up to 16 tracks, which will not fit in the current timeline.\nWould you like to automatically add more tracks, or ignore tracks that don't fit?");
+	    int selection = prompt_user(NULL, desc, 2, option_titles);
+	    if (selection == 0) {
+		while (tl->num_tracks - sel_track_i < num_dst_tracks)  {
+		    Track *t = timeline_add_track(tl);
+		    t->added_from_midi_file = true;
+		}
+		num_clips = 16;
+	    } else {
+		num_clips = tl->num_tracks - sel_track_i;
+	    }
 	}
-    } else {
-
     }
-    for (int i=0; i<num_dst_tracks; i++) {
-	Track *i_track = tl->tracks[track->tl_rank + i];
-	if (!i_track) {
-	    fprintf(stderr, "CRTICIAL \n");
-	    exit(1);
-	}
+    Track *dst_tracks[num_clips];
+    MIDIClip *mclips[num_clips];
+    for (int i=0; i<num_clips; i++) {
+	Track *i_track = tl->tracks[sel_track_i + i];
+	dst_tracks[i] = i_track;
 	MIDIClip *mclip = midi_clip_create(NULL, i_track);
-	
-	
-    }
-    if (!track) {
-	track = tl->tracks[0];
-    }
-    for (int i=0; i<num_dst_tracks; i++) {
+	mclips[i] = mclip;
 	v_device[i].record_start = tl->play_pos_sframes;
-	/* v_device[i].current_clip */
+	v_device[i].current_clip = mclip;	
     }
-
     
     do {
 	t = get_chunk_data(f, &len);
 	fprintf(stderr, "Chunk of type %d, len %d\n", t, len);
 	if (t == MIDI_CHUNK_HDR) {
 	    fprintf(stderr, "Error: unable to parse MIDI file \"%s\": multiple heaader chunks present\n", filepath);
+	    free(v_device);
+	    fclose(f);
 	    return -1;	    
 	    /* get_midi_hdr(f); */
 	} else if (t == MIDI_CHUNK_TRCK) {
-	    get_midi_trck(f, len, track_index, mclips);
+	    get_midi_trck(f, len, track_index, mclips, num_clips);
 	    track_index++;
 	} else {
 	    if (fseek(f, len, SEEK_CUR) == -1) {
@@ -451,14 +472,37 @@ int midi_file_open(const char *filepath)//, MIDIClip **mclips)
 	    }
 	}
     } while (t != MIDI_CHUNK_UNKNOWN);
-
     if (fgetc(f) == EOF) {
-    if (feof(f)) {
-        printf("Reached EOF.\n");
-    } else {
-        perror("Error reading file");
+	if (feof(f)) {
+	    printf("Reached EOF.\n");
+	} else {
+	    perror("Error reading file");
+	}
+
+	for (int i=0; i<num_clips; i++) {
+	    MIDIClip *mclip = mclips[i];
+	    if (mclip->num_notes == 0) {
+		midi_clip_destroy(mclip);
+		if (dst_tracks[i]->added_from_midi_file) {
+		    track_destroy(dst_tracks[i], true);
+		}
+	    } else {
+		mclip->len_sframes = mclip->notes[mclip->num_notes - 1].end_rel;
+		ClipRef *cr = clipref_create(dst_tracks[i], tl->play_pos_sframes, CLIP_MIDI, mclip);
+		clipref_reset(cr, true);
+		Track *t = dst_tracks[i];
+		if (!t->midi_out) {
+		    t->synth = synth_create(track);
+		    t->midi_out = t->synth;
+		    t->midi_out_type = MIDI_OUT_SYNTH;
+		}
+	    }
+	}
+	tl->needs_redraw = true;
     }
-}
+
     
+    free(v_device);
+    fclose(f);
     return 0;    
 }

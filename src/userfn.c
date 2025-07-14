@@ -13,6 +13,7 @@
 #include "input.h"
 /* #include "loading */
 #include "menu.h"
+#include "midi_file.h"
 #include "modal.h"
 #include "panel.h"
 #include "project.h"
@@ -288,7 +289,11 @@ static int dir_to_tline_filter_open(void *dp_v, void *dn_v)
 	    strncmp("jdaw", ext, 4) *
 	    strncmp("WAV", ext, 3) *
 	    strncmp("JDAW", ext, 4) *
-	    strncmp("bak", ext, 3) == 0) {
+	    strncmp("bak", ext, 3) *
+	    strncmp("mid", ext, 3) *
+	    strncmp("MID", ext, 3) *
+	    strncmp("midi", ext, 4) *
+	    strncmp("MIDI", ext, 4) == 0) {
 	    return 1;
 	}
 	return 0;
@@ -447,6 +452,8 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 	} else {
 	    status_set_errstr("Error opening jdaw project");
 	}
+    } else if (strncmp("mid", ext, 3) * strncmp("MID", ext, 3) == 0) {
+	midi_file_open(dp->path);
     }
     char *last_slash_pos = strrchr(dp->path, '/');
     if (last_slash_pos) {

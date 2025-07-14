@@ -1,16 +1,17 @@
 #include "SDL_events.h"
 #include "color.h"
-#include "endpoint.h"
 #include "layout.h"
 #include "modal.h"
+#include "session.h"
 #include "window.h"
 #define SEL_BUF_LEN 512
 
 extern Window *main_win;
 extern struct colors colors;
 
-int prompt_user(const char *header, const char *description, int num_options, char **option_titles)
+int prompt_user(const char *header, const char *description, int num_options, const char **option_titles)
 {
+    Session *session = session_get();
     Layout *layout = layout_add_child(main_win->layout);
     layout_set_default_dims(layout);
     Modal *modal = modal_create(layout);
@@ -56,9 +57,11 @@ int prompt_user(const char *header, const char *description, int num_options, ch
 		int sym = e.key.keysym.sym;
 		if (sym >= '1' && sym <= '9') {
 		    sel = sym - '1';
+		    if (sel >= num_options) break;
 		    i=0;
 		} else if (sym >= 'a' && sym <= 'z') {
 		    sel = 10 + sym - 'a';
+		    if (sel >= num_options) break;
 		    i=0;
 		} else {
 		    switch (e.key.keysym.scancode) {
@@ -105,5 +108,6 @@ int prompt_user(const char *header, const char *description, int num_options, ch
     free(sel_buf);
     modal->x = saved_modal_x;
     modal_destroy(modal);
+    ACTIVE_TL->needs_redraw = true;
     return sel;
 }

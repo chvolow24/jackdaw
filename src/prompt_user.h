@@ -22,6 +22,6 @@
 #ifndef JDAW_PROMPT_USER_H
 #define JDAW_PROMPT_USER_H
 
-int prompt_user(const char *header, const char *description, int num_options, char **option_titles);
+int prompt_user(const char *header, const char *description, int num_options, const char **option_titles);
 
 #endif

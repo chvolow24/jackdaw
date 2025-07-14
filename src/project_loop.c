@@ -202,7 +202,7 @@ void loop_project_main()
 			"Doing this thing will cause this thing to happen. Are you sure you want to do this thing?\n\n\n",
 			2, arr);
 		    fprintf(stderr, "returned %d!\n", ret);
-		    break;
+		    /* break; */
 		    /* exit(0); */
 		    Timeline *tl = ACTIVE_TL;
 		    MIDIClip *mclips[16];
@@ -212,8 +212,10 @@ void loop_project_main()
 			mclips[i] = mclip;
 		    }
 
-		    /* midi_file_read("/Users/charlievolow/Downloads/billie_jean.mid", mclips); */
-		    midi_file_read("/Users/charlievolow/Downloads/Only-The-Lonely-2.mid", mclips);
+                    midi_file_read("/Users/charlievolow/Downloads/Never-Gonna-Give-You-Up-3.mid", mclips);
+                    /* midi_file_read("/Users/charlievolow/Downloads/billie_jean.mid", mclips); */
+		    /* midi_file_read("/Users/charlievolow/Downloads/Only-The-Lonely-2.mid", mclips); */
+		    
 		    for (int i=0; i<16; i++) {
 			Track *track = tl->tracks[i];
 			if (mclips[i]->num_notes > 0) {

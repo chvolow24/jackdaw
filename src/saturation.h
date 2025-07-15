@@ -39,7 +39,9 @@ typedef struct saturation {
     double gain;
     bool do_gain_comp;
     double gain_comp_val;
+    double symmetry;
     Endpoint gain_ep;
+    Endpoint symmetry_ep;
     Endpoint gain_comp_ep;
     Endpoint type_ep;
     double (*sample_fn)(Saturation *s, double in);

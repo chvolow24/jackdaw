@@ -3,6 +3,7 @@
 #include "delay_line.h"
 #include "fir_filter.h"
 #include "geometry.h"
+#include "page.h"
 #include "project.h"
 #include "saturation.h"
 #include "session.h"
@@ -567,6 +568,13 @@ Page *add_saturation_page(Saturation *s, Track *track, TabView *tv)
     textbox_set_align(tb, CENTER_LEFT);
     textbox_reset_full(tb);
 
+    p.textbox_p.set_str = "Symmetry";
+    tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "track_settings_saturation_symmetry_label", "symmetry_label")->component);
+    textbox_set_background_color(tb, NULL);
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+
+
     
     p.slider_p.ep = &s->gain_ep;
     p.slider_p.min = (Value){.double_v = 1.0};
@@ -577,6 +585,10 @@ Page *add_saturation_page(Saturation *s, Track *track, TabView *tv)
     el = page_add_el(page, EL_SLIDER, p, "track_settings_saturation_gain_slider", "amp_slider");
     Slider *sl = el->component;
     slider_reset(sl);
+
+    p.slider_p.style = SLIDER_TICK;
+    page_el_params_slider_from_ep(&p, &s->symmetry_ep);
+    page_add_el(page, EL_SLIDER, p, "track_settings_saturation_symmetry_slider", "symmetry_slider");
 
     static const char * saturation_type_names[] = {
 	"Hyperbolic (tanh)",

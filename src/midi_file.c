@@ -63,6 +63,138 @@ static int channel_name_index = 0; /* Logged in text events, commonly */
 static int track_index_offset = 0;
 
 
+const char *MIDI_PC_INSTRUMENT_NAMES[] = {
+    "Acoustic grand piano",
+    "Bright acoustic piano",
+    "Electric grand piano",
+    "Honky tonk piano",
+    "Electric piano 1",
+    "Electric piano 2",
+    "Harpsicord",
+    "Clavinet",
+    "Celesta",
+    "Glockenspiel",
+    "Music box",
+    "Vibraphone",
+    "Marimba",
+    "Xylophone",
+    "Tubular bell",
+    "Dulcimer",
+    "Hammond / drawbar organ",
+    "Percussive organ",
+    "Rock organ",
+    "Church organ",
+    "Reed organ",
+    "Accordion",
+    "Harmonica",
+    "Tango accordion",
+    "Nylon string acoustic guitar",
+    "Steel string acoustic guitar",
+    "Jazz electric guitar",
+    "Clean electric guitar",
+    "Muted electric guitar",
+    "Overdriven guitar",
+    "Distortion guitar",
+    "Guitar harmonics",
+    "Acoustic bass",
+    "Fingered electric bass",
+    "Picked electric bass",
+    "Fretless bass",
+    "Slap bass 1",
+    "Slap bass 2",
+    "Synth bass 1",
+    "Synth bass 2",
+    "Violin",
+    "Viola",
+    "Cello",
+    "Contrabass",
+    "Tremolo strings",
+    "Pizzicato strings",
+    "Orchestral strings / harp",
+    "Timpani",
+    "String ensemble 1",
+    "String ensemble 2 / slow strings",
+    "Synth strings 1",
+    "Synth strings 2",
+    "Choir aahs",
+    "Voice oohs",
+    "Synth choir / voice",
+    "Orchestra hit",
+    "Trumpet",
+    "Trombone",
+    "Tuba",
+    "Muted trumpet",
+    "French horn",
+    "Brass ensemble",
+    "Synth brass 1",
+    "Synth brass 2",
+    "64 	Soprano sax",
+    "Alto sax",
+    "Tenor sax",
+    "Baritone sax",
+    "Oboe",
+    "English horn",
+    "Bassoon",
+    "Clarinet",
+    "Piccolo",
+    "Flute",
+    "Recorder",
+    "Pan flute",
+    "Bottle blow / blown bottle",
+    "Shakuhachi",
+    "Whistle",
+    "Ocarina",
+    "Synth square wave",
+    "Synth saw wave",
+    "Synth calliope",
+    "Synth chiff",
+    "Synth charang",
+    "Synth voice",
+    "Synth fifths saw",
+    "Synth brass and lead",
+    "Fantasia / new age",
+    "Warm pad",
+    "Polysynth",
+    "Space vox / choir",
+    "Bowed glass",
+    "Metal pad",
+    "Halo pad",
+    "Sweep pad",
+    "Ice rain",
+    "Soundtrack",
+    "Crystal",
+    "Atmosphere",
+    "Brightness",
+    "Goblins",
+    "Echo drops / echoes",
+    "Sci fi",
+    "Sitar",
+    "Banjo",
+    "Shamisen",
+    "Koto",
+    "Kalimba",
+    "Bag pipe",
+    "Fiddle",
+    "Shanai",
+    "Tinkle bell",
+    "Agogo",
+    "Steel drums",
+    "Woodblock",
+    "Taiko drum",
+    "Melodic tom",
+    "Synth drum",
+    "Reverse cymbal",
+    "Guitar fret noise",
+    "Breath noise",
+    "Seashore",
+    "Bird tweet",
+    "Telephone ring",
+    "Helicopter",
+    "Applause",
+    "Gunshot"
+};
+
+
 /* Utils for deserializing values */
 
 static uint32_t get_variable_length(FILE *file, int *num_bytes_dst)
@@ -169,6 +301,8 @@ static void get_midi_hdr(FILE *f)
     if (division_msb == 0) {
 	file_info.division_fmt.ticks_per_quarter = rest;	
     } else { /* SMPTE */
+	fprintf(stderr, "SMPTE format ?????\n");
+	exit(1);
 	uint8_t smpte_byte = rest >> 8;
 	file_info.division_fmt.smpte_fmt = decode_smpte_fps(smpte_byte);
 	file_info.division_fmt.ticks_per_frame = rest & 0xFF;
@@ -179,7 +313,7 @@ static void get_midi_hdr(FILE *f)
 static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mclips, int num_clips, int32_t tl_start_pos)
 {
     uint32_t num_note_ons[16] = {0};
-    uint32_t num_note_offs[16] = {0};    
+    uint32_t num_note_offs[16] = {0};
     uint64_t running_ts = 0;
     
     while (len > 0) {
@@ -189,6 +323,7 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 	/* fprintf(stderr, "len: %d\n", len); */
 	int num_bytes;
 	uint32_t delta_time = get_variable_length(f, &num_bytes);
+	/* running_division += delta_time; */
 	running_ts += delta_time * (uint32_t)file_info.division_fmt.sample_frames_per_division;
 	e.timestamp = running_ts;
 	len -= num_bytes;	
@@ -240,7 +375,7 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 		break;
 	    case 0x51: {
 		uint32_t tempo_us_per_quarter = get_24(f);
-		double bpm = 1000000.0 * 60.0 / tempo_us_per_quarter;
+		double bpm = 1000000.0 * 60.0 / (double)tempo_us_per_quarter;
 		fprintf(stderr, "BPM: %f\n", bpm);
 		ClickSegment *cs = click_track_cut_at(click_track, e.timestamp + tl_start_pos);
 		if (!cs) cs = click_track_get_segment_at_pos(click_track, e.timestamp + tl_start_pos);
@@ -333,6 +468,9 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 		len -= 2;
 		break;
 	    case 0xC0: // Program change
+		fprintf(stderr, "INSTRUMENT : %s\n", MIDI_PC_INSTRUMENT_NAMES[fgetc(f)]);
+		len--;
+		break;
 	    case 0xD0: // Channel aftertouch
 		fgetc(f);
 		len--;

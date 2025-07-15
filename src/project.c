@@ -585,6 +585,9 @@ Track *timeline_add_track(Timeline *tl)
 	fprintf(stderr, "Error initializing effect chain lock: %s\n", strerror(err));
     }
 
+    track->note_offs.size = 128;
+    track->note_offs.buf = calloc(track->note_offs.size, sizeof(PmEvent));
+    
     api_node_register(&track->api_node, &track->tl->api_node, track->name);
 
         
@@ -1716,6 +1719,7 @@ void track_destroy(Track *track, bool displace)
     for (int i=0; i<track->num_effects; i++) {
 	effect_destroy(track->effects[i]);
     }
+    free(track->note_offs.buf);
     slider_destroy(track->vol_ctrl);
     slider_destroy(track->pan_ctrl);
     textentry_destroy(track->tb_name);

@@ -98,6 +98,13 @@ enum midi_out_type {
     MIDI_OUT_SYNTH
 };
 
+struct midi_event_ring_buf {
+    int size;
+    int read_i;
+    int num_queued;
+    PmEvent *buf;
+};
+
 typedef struct track {
     char name[MAX_NAMELENGTH];
     bool deleted;
@@ -133,9 +140,10 @@ typedef struct track {
     enum midi_out_type midi_out_type;
     Synth *synth; /* Pointer will be duplicated in midi_out */
 
-    PmEvent note_offs[128];
-    uint8_t note_offs_write_i;
-    uint8_t note_offs_read_i;
+    struct midi_event_ring_buf note_offs;
+    /* PmEvent note_offs[128]; */
+    /* uint8_t note_offs_write_i; */
+    /* uint8_t note_offs_read_i; */
 
 
 

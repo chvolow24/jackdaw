@@ -252,7 +252,7 @@ Synth *synth_create(Track *track)
 	page_el_gui_cb, NULL, NULL,
 	NULL, NULL, &s->filter_page, "vel_amt_slider");
     endpoint_set_default_value(&s->vel_amt_ep, (Value){.float_v = 1.0f});
-    endpoint_set_allowed_range(&s->vel_amt_ep, (Value){.float_v = 0.00}, (Value){.float_v = 10.0});
+    endpoint_set_allowed_range(&s->vel_amt_ep, (Value){.float_v = 0.00}, (Value){.float_v = 1.0});
     api_endpoint_register(&s->vel_amt_ep, &s->filter_node);
 
     endpoint_init(
@@ -741,11 +741,14 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
     for (int i=0; i<len; i++) {
 	if (v->synth->filter_active) {
 	    if (i%37 == 0) { /* Update filter every 37 sample frames */
-		double head =
-		    v->synth->pitch_amt * mtof_calc(v->note_val) / (float)session->proj.sample_rate
-		    + v->synth->vel_amt * (v->velocity / 127.0);
-		double freq = v->synth->base_cutoff
-		    + head * v->synth->env_amt * filter_env_p[i];
+		    
+		    /* + v->synth->vel_amt * (v->velocity / 127.0); */
+		double freq =
+		    (v->synth->base_cutoff
+		     + v->synth->pitch_amt * mtof_calc(v->note_val) / (float)session->proj.sample_rate
+			)
+		    * (1.0f + (v->synth->env_amt * filter_env_p[i]))
+		    * (1.0f - (v->synth->vel_amt * (1.0 - (float)v->velocity / 127.0f)));
 		/* double freq = mtof_calc(v->note_val) * v->synth->freq_scalar * filter_env_p[i] / session->proj.sample_rate; */
 		/* double velocity_rel = 1.0 - v->synth->velocity_freq_scalar * (127.0 - (double)v->velocity) / 126.0; */
 		/* freq *= velocity_rel; */

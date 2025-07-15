@@ -9,6 +9,7 @@
 #include "iir.h"
 /* #include "test.h" */
 /* #include "modal.h" */
+#include "label.h"
 #include "synth.h"
 #include "session.h"
 
@@ -100,7 +101,11 @@ Synth *synth_create(Track *track)
     s->base_oscs[0].amp = 0.2;
     s->base_oscs[0].type = WS_SAW;
 
-    s->freq_scalar = 20.0f;
+    s->filter_active = true;
+    s->base_cutoff = 0.1f;
+    s->pitch_amt = 20.0f;
+    s->vel_amt = 1.0f;
+    s->env_amt = 1.0f;
     s->resonance = 4.0;
     
     iir_init(&s->dc_blocker, 1, 2);
@@ -208,18 +213,74 @@ Synth *synth_create(Track *track)
     endpoint_set_default_value(&s->filter_active_ep, (Value){.bool_v = true});
     api_endpoint_register(&s->filter_active_ep, &s->filter_node);
 
+
     endpoint_init(
-	&s->freq_scalar_ep,
-	&s->freq_scalar,
+	&s->base_cutoff_ep,
+	&s->base_cutoff,
 	JDAW_FLOAT,
-	"freq_scalar",
-	"Freq scalar",
+	"base_cutoff",
+	"Base cutoff",
 	JDAW_THREAD_DSP,
 	page_el_gui_cb, NULL, NULL,
-	NULL, NULL, &s->filter_page, "freq_scalar_slider");
-    endpoint_set_default_value(&s->freq_scalar_ep, (Value){.float_v = 20.0f});
-    endpoint_set_allowed_range(&s->freq_scalar_ep, (Value){.float_v = 0.1}, (Value){.float_v = 100.0});
-    api_endpoint_register(&s->freq_scalar_ep, &s->filter_node);
+	NULL, NULL, &s->filter_page, "base_cutoff_slider");
+    endpoint_set_default_value(&s->base_cutoff_ep, (Value){.float_v = 0.0f});
+    endpoint_set_allowed_range(&s->base_cutoff_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 0.2});
+    api_endpoint_register(&s->base_cutoff_ep, &s->filter_node);
+    endpoint_set_label_fn(&s->base_cutoff_ep, label_freq_raw_to_hz);
+
+    
+    endpoint_init(
+	&s->pitch_amt_ep,
+	&s->pitch_amt,
+	JDAW_FLOAT,
+	"pitch_amt",
+	"Pitch amt",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, NULL,
+	NULL, NULL, &s->filter_page, "pitch_amt_slider");
+    endpoint_set_default_value(&s->pitch_amt_ep, (Value){.float_v = 1.0f});
+    endpoint_set_allowed_range(&s->pitch_amt_ep, (Value){.float_v = 0.00}, (Value){.float_v = 10.0});
+    api_endpoint_register(&s->pitch_amt_ep, &s->filter_node);
+
+    endpoint_init(
+	&s->vel_amt_ep,
+	&s->vel_amt,
+	JDAW_FLOAT,
+	"vel_amt",
+	"Vel amt",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, NULL,
+	NULL, NULL, &s->filter_page, "vel_amt_slider");
+    endpoint_set_default_value(&s->vel_amt_ep, (Value){.float_v = 1.0f});
+    endpoint_set_allowed_range(&s->vel_amt_ep, (Value){.float_v = 0.00}, (Value){.float_v = 10.0});
+    api_endpoint_register(&s->vel_amt_ep, &s->filter_node);
+
+    endpoint_init(
+	&s->env_amt_ep,
+	&s->env_amt,
+	JDAW_FLOAT,
+	"env_amt",
+	"Pitch amt",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, NULL,
+	NULL, NULL, &s->filter_page, "env_amt_slider");
+    endpoint_set_default_value(&s->env_amt_ep, (Value){.float_v = 0.1f});
+    endpoint_set_allowed_range(&s->env_amt_ep, (Value){.float_v = 0.00}, (Value){.float_v = 1.0});
+    api_endpoint_register(&s->env_amt_ep, &s->filter_node);
+
+
+    /* endpoint_init( */
+    /* 	&s->freq_scalar_ep, */
+    /* 	&s->freq_scalar, */
+    /* 	JDAW_FLOAT, */
+    /* 	"freq_scalar", */
+    /* 	"Freq scalar", */
+    /* 	JDAW_THREAD_DSP, */
+    /* 	page_el_gui_cb, NULL, NULL, */
+    /* 	NULL, NULL, &s->filter_page, "freq_scalar_slider"); */
+    /* endpoint_set_default_value(&s->freq_scalar_ep, (Value){.float_v = 20.0f}); */
+    /* endpoint_set_allowed_range(&s->freq_scalar_ep, (Value){.float_v = 0.1}, (Value){.float_v = 100.0}); */
+    /* api_endpoint_register(&s->freq_scalar_ep, &s->filter_node); */
 
     endpoint_init(
 	&s->resonance_ep,
@@ -234,19 +295,19 @@ Synth *synth_create(Track *track)
     endpoint_set_allowed_range(&s->resonance_ep, (Value){.float_v = 1.0f}, (Value){.float_v = 50.0f});
     api_endpoint_register(&s->resonance_ep, &s->filter_node);
 
-    s->velocity_freq_scalar = 0.5;
-    endpoint_init(
-	&s->velocity_freq_scalar_ep,
-	&s->velocity_freq_scalar,
-	JDAW_FLOAT,
-	"velocity_freq_scalar",
-	"Velocity freq scalar",
-	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, NULL,
-	NULL, NULL, &s->filter_page, "velocity_freq_scalar_slider");
-    endpoint_set_default_value(&s->velocity_freq_scalar_ep, (Value){.float_v = 1.0});
-    endpoint_set_allowed_range(&s->velocity_freq_scalar_ep, (Value){.float_v = 0.0}, (Value){.float_v = 1.0});
-    api_endpoint_register(&s->velocity_freq_scalar_ep, &s->filter_node);
+    /* s->velocity_freq_scalar = 0.5; */
+    /* endpoint_init( */
+    /* 	&s->velocity_freq_scalar_ep, */
+    /* 	&s->velocity_freq_scalar, */
+    /* 	JDAW_FLOAT, */
+    /* 	"velocity_freq_scalar", */
+    /* 	"Velocity freq scalar", */
+    /* 	JDAW_THREAD_DSP, */
+    /* 	page_el_gui_cb, NULL, NULL, */
+    /* 	NULL, NULL, &s->filter_page, "velocity_freq_scalar_slider"); */
+    /* endpoint_set_default_value(&s->velocity_freq_scalar_ep, (Value){.float_v = 1.0}); */
+    /* endpoint_set_allowed_range(&s->velocity_freq_scalar_ep, (Value){.float_v = 0.0}, (Value){.float_v = 1.0}); */
+    /* api_endpoint_register(&s->velocity_freq_scalar_ep, &s->filter_node); */
 
     s->use_amp_env = true;
     endpoint_init(
@@ -258,7 +319,7 @@ Synth *synth_create(Track *track)
 	JDAW_THREAD_DSP,
 	page_el_gui_cb, NULL, NULL,
 	NULL, NULL, &s->filter_page, "use_amp_env_toggle");
-    endpoint_set_default_value(&s->velocity_freq_scalar_ep, (Value){.bool_v = true});
+    endpoint_set_default_value(&s->use_amp_env_ep, (Value){.bool_v = true});
     api_endpoint_register(&s->use_amp_env_ep, &s->filter_node);
 
 	
@@ -680,9 +741,14 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
     for (int i=0; i<len; i++) {
 	if (v->synth->filter_active) {
 	    if (i%37 == 0) { /* Update filter every 37 sample frames */
-		double freq = mtof_calc(v->note_val) * v->synth->freq_scalar * filter_env_p[i] / session->proj.sample_rate;
-		double velocity_rel = 1.0 - v->synth->velocity_freq_scalar * (127.0 - (double)v->velocity) / 126.0;
-		freq *= velocity_rel;
+		double head =
+		    v->synth->pitch_amt * mtof_calc(v->note_val) / (float)session->proj.sample_rate
+		    + v->synth->vel_amt * (v->velocity / 127.0);
+		double freq = v->synth->base_cutoff
+		    + head * v->synth->env_amt * filter_env_p[i];
+		/* double freq = mtof_calc(v->note_val) * v->synth->freq_scalar * filter_env_p[i] / session->proj.sample_rate; */
+		/* double velocity_rel = 1.0 - v->synth->velocity_freq_scalar * (127.0 - (double)v->velocity) / 126.0; */
+		/* freq *= velocity_rel; */
 		/* fprintf(stderr, "Freq: %f", freq); */
 		if (freq > 0.99f) freq = 0.99f;
 		if (freq > 1e-3) {

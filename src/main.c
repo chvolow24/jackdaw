@@ -33,6 +33,7 @@
 #include "init_panels.h"
 #include "input.h"
 #include "midi_io.h"
+#include "midi_file.h"
 #include "project.h"
 #include "pure_data.h"
 #include "session.h"
@@ -161,6 +162,7 @@ int main(int argc, char **argv)
     char *file_to_open = NULL;
     bool invoke_open_wav_file = false;
     bool invoke_open_jdaw_file = false;
+    bool invoke_open_midi_file = false;
     if (argc > 2) {
         exit(1);
     } else if (argc == 2) {
@@ -186,6 +188,9 @@ int main(int argc, char **argv)
 	} else if (strncmp("jdaw", ext, 4) * strcmp("JDAW", ext) * strcmp("bak", ext)  == 0) {
 	    fprintf(stderr, "Passed JDAW file.\n");
 	    invoke_open_jdaw_file = true;
+	} else if (
+	    strncmp("mid", ext, 3) * strncmp("MID", ext, 3) == 0) {
+	    invoke_open_midi_file = true;
 	} else {
 	unrecognized_arg:
 	    fprintf(stderr, "Error: argument \"%s\" not recognized. Pass a .jdaw or .wav file to open that file.\n", argv[1]);
@@ -267,9 +272,24 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Error: no slash in real path of opened file\n");
 	    }
 	    free(filepath);
-
+	}
+    } else if (invoke_open_midi_file) {
+	midi_file_open(file_to_open, true);
+	char *filepath = realpath(file_to_open, NULL);
+	if (!filepath) {
+	    perror("Error in realpath");
+	} else {
+	    char *last_slash_pos = strrchr(filepath, '/');
+	    if (last_slash_pos) {
+		*last_slash_pos = '\0';
+		strncpy(DIRPATH_OPEN_FILE, filepath, MAX_PATHLEN);
+	    } else {
+		fprintf(stderr, "Error: no slash in real path of opened file\n");
+	    }
+	    free(filepath);
 	}
     }
+
     loop_project_main();
     
     quit();

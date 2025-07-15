@@ -58,6 +58,7 @@
 
 #define PLAYSPEED_ADJUST_SCALAR_LARGE 0.1f
 #define PLAYSPEED_ADJUST_SCALAR_SMALL 0.015f
+#define PLAYSPEED_ADJUST_SCALAR_TINY 0.001f
 
 #define PLAYHEAD_ADJUST_SCALAR_LARGE 0.001f;
 #define PLAYHEAD_ADJUST_SCALAR_SMALL 0.00015f
@@ -2205,6 +2206,8 @@ void timeline_play_speed_adj(double dim)
     double new_speed = session->playback.play_speed;
     if (main_win->i_state & I_STATE_CMDCTRL) {
 	new_speed += dim * PLAYSPEED_ADJUST_SCALAR_LARGE;
+    } else if (main_win->i_state & I_STATE_META) {
+	new_speed += dim * PLAYSPEED_ADJUST_SCALAR_TINY;
     } else {
 	new_speed += dim * PLAYSPEED_ADJUST_SCALAR_SMALL;
     }

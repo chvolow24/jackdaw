@@ -1010,6 +1010,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 	}
 	num_cliprefs--;
     }
+    track->synth = synth_create(track);
     if (read_file_spec_version < 00.17) {
 	if (read_file_spec_version >= 00.13f) {
 	    uint8_t num_automations = uint8_deser(f);
@@ -1135,7 +1136,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 	    if (read_file_spec_version >= 00.18) {
 		uint8_t has_synth = uint8_deser(f);
 		if (has_synth) {
-		    track->synth = synth_create(track);
+		    /* track->synth = synth_create(track); */
 		    track->midi_out = track->synth;
 		    track->midi_out_type = MIDI_OUT_SYNTH;
 		    char buf[5];

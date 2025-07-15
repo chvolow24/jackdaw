@@ -856,7 +856,7 @@ static void simple_click_segment_reinsert(ClickSegment *s, int32_t segment_dur)
 
 
 
-static ClickSegment *click_track_cut_at(ClickTrack *tt, int32_t at)
+ClickSegment *click_track_cut_at(ClickTrack *tt, int32_t at)
 {
     ClickSegment *s = click_track_get_segment_at_pos(tt, at);
     uint8_t subdiv_lens[s->cfg.num_beats];

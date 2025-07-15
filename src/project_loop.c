@@ -445,6 +445,9 @@ void loop_project_main()
 			    Value old_speed = endpoint_safe_read(&session->playback.play_speed_ep, NULL);
 			    if (main_win->i_state & I_STATE_CMDCTRL) {
 				float new_speed = (old_speed.float_v + e.wheel.preciseX) / 2;
+				endpoint_write(&session->playback.play_speed_ep, (Value){.float_v = new_speed}, true, true, true, false);
+			    } else if (main_win->i_state & I_STATE_META) {
+				float new_speed = (old_speed.float_v + e.wheel.preciseX / 20.0) / 2;
 				endpoint_write(&session->playback.play_speed_ep, (Value){.float_v = new_speed}, true, true, true, false);				
 			    } else {
 				float new_speed = (old_speed.float_v + e.wheel.preciseX / 3.0) / 2;

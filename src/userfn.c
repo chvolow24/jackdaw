@@ -453,7 +453,7 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 	    status_set_errstr("Error opening jdaw project");
 	}
     } else if (strncmp("mid", ext, 3) * strncmp("MID", ext, 3) == 0) {
-	midi_file_open(dp->path);
+	midi_file_open(dp->path, false);
     }
     char *last_slash_pos = strrchr(dp->path, '/');
     if (last_slash_pos) {

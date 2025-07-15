@@ -122,7 +122,6 @@ typedef struct click_track {
     
 } ClickTrack;
 
-
 /* Timeline interface */
 ClickTrack *timeline_add_click_track(Timeline *tl);
 void timeline_cut_click_track_at_cursor(Timeline *tl);
@@ -162,5 +161,8 @@ void click_track_fprint(FILE *f, ClickTrack *tt);
 void click_segment_at_cursor_fprint(FILE *f, Timeline *tl);
 
 ClickSegment *click_track_add_segment(ClickTrack *t, int32_t start_pos, int16_t num_measures, int bpm, uint8_t num_beats, uint8_t *subdiv_lens);
+
+/* Required in MIDI file reads */
+ClickSegment *click_track_cut_at(ClickTrack *tt, int32_t at);
 
 #endif

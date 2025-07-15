@@ -7,6 +7,7 @@
 #include "portmidi.h"
 #include "prompt_user.h"
 #include "session.h"
+#include "tempo.h"
 
 
 /* Spec at https://drive.google.com/file/d/1t4jcCCKoi5HMi7YJ6skvZfKcefLhhOgU/view?u */
@@ -49,7 +50,10 @@ struct midi_file {
     struct midi_time_sig time_sig;
     struct midi_key_sig key_sig;
 };
+
 static struct midi_file file_info;
+ClickTrack *click_track;
+ClickSegment *click_segment;
 
 /* "Virtual" devices shoehorned into this process due to pre-existence of
    midi_device_record_chunk */
@@ -172,12 +176,12 @@ static void get_midi_hdr(FILE *f)
 }
 
 /* Assumes already read MTrk and length value */
-static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mclips, int num_clips)
+static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mclips, int num_clips, int32_t tl_start_pos)
 {
     uint32_t num_note_ons[16] = {0};
-    uint32_t num_note_offs[16] = {0};
+    uint32_t num_note_offs[16] = {0};    
+    uint64_t running_ts = 0;
     
-    uint32_t running_ts = 0;
     while (len > 0) {
 	PmEvent e;
 	/* fprintf(stderr, "TS: running %d, %f, times %f\n",running_ts, running_ts * division_fmt.sample_frames_per_division, division_fmt.sample_frames_per_division); */
@@ -185,8 +189,8 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 	/* fprintf(stderr, "len: %d\n", len); */
 	int num_bytes;
 	uint32_t delta_time = get_variable_length(f, &num_bytes);
-	running_ts += delta_time;
-	e.timestamp = running_ts * (uint32_t)file_info.division_fmt.sample_frames_per_division;
+	running_ts += delta_time * (uint32_t)file_info.division_fmt.sample_frames_per_division;
+	e.timestamp = running_ts;
 	len -= num_bytes;	
 	uint8_t status = fgetc(f);
 	len--;
@@ -236,6 +240,14 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 		break;
 	    case 0x51: {
 		uint32_t tempo_us_per_quarter = get_24(f);
+		double bpm = 1000000.0 * 60.0 / tempo_us_per_quarter;
+		fprintf(stderr, "BPM: %f\n", bpm);
+		ClickSegment *cs = click_track_cut_at(click_track, e.timestamp + tl_start_pos);
+		if (!cs) cs = click_track_get_segment_at_pos(click_track, e.timestamp + tl_start_pos);
+		/* if (!cs) exit(1); */
+		uint8_t subdivs[4] = {4, 4, 4, 4};
+		click_segment_set_config(cs, -1, bpm, 4, subdivs, 0);
+		/* exit(0); */
 		double us_per_tick = (double)tempo_us_per_quarter / (double)file_info.division_fmt.ticks_per_quarter;
 		Session *session = session_get();		
 		double frames_per_tic = us_per_tick * session->proj.sample_rate / 1000000.0;
@@ -366,7 +378,7 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
     
 }
 
-int midi_file_open(const char *filepath)//, MIDIClip **mclips)
+int midi_file_open(const char *filepath, bool automatically_add_tracks)//, MIDIClip **mclips)
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
@@ -377,6 +389,11 @@ int midi_file_open(const char *filepath)//, MIDIClip **mclips)
 	perror(NULL);
 	return -1;
     }
+
+    click_track = timeline_add_click_track(tl);
+
+    
+    
     memset(&file_info, '\0', sizeof(struct midi_file));
     channel_name_index = 0;
     track_index_offset = 0;
@@ -405,8 +422,7 @@ int midi_file_open(const char *filepath)//, MIDIClip **mclips)
 	num_dst_tracks = 1;
     }
 
-    Track *track = timeline_selected_track(tl);
-    int sel_track_i = track ? track->tl_rank : 0;
+    int sel_track_i = timeline_selected_track(tl) ? timeline_selected_track(tl)->tl_rank : 0;
     int num_clips = num_dst_tracks;
     /* Prompt user with track behavior */
     if (num_dst_tracks > tl->num_tracks - sel_track_i) {
@@ -418,24 +434,29 @@ int midi_file_open(const char *filepath)//, MIDIClip **mclips)
 
 	if (file_info.format == 1) {
 	    snprintf(desc, 256, "The MIDI file contains %d tracks, which will not fit in the current timeline.\nWould you like to automatically add more tracks, or ignore tracks that don't fit?", file_info.num_tracks);
-	    int selection = prompt_user(NULL, desc, 2, option_titles);
-	    if (selection == 0) {
+	    if (!automatically_add_tracks) {
+		int selection = prompt_user(NULL, desc, 2, option_titles);
+		if (selection == 0) automatically_add_tracks = true;
+	    }
+	    if (automatically_add_tracks) {
 		while (tl->num_tracks - sel_track_i < num_dst_tracks) {
 		    Track *t = timeline_add_track(tl);
-		    t->added_from_midi_file = true;
+		    t->added_from_midi_filepath = filepath;
 		}
-
 	    } else {
 		num_clips = tl->num_tracks - sel_track_i;
 	    }
 	} else if (file_info.format == 0) {
 	    /* TODO: determine behavior for multi-channel */
-	    snprintf(desc, 256, "The MIDI file may contain up to 16 tracks, which will not fit in the current timeline.\nWould you like to automatically add more tracks, or ignore tracks that don't fit?");
-	    int selection = prompt_user(NULL, desc, 2, option_titles);
-	    if (selection == 0) {
+	    if (!automatically_add_tracks) {		
+		snprintf(desc, 256, "The MIDI file may contain up to 16 tracks, which will not fit in the current timeline.\nWould you like to automatically add more tracks, or ignore tracks that don't fit?");
+		int selection = prompt_user(NULL, desc, 2, option_titles);
+		if (selection == 0) automatically_add_tracks = true;
+	    }
+	    if (automatically_add_tracks) {
 		while (tl->num_tracks - sel_track_i < num_dst_tracks)  {
 		    Track *t = timeline_add_track(tl);
-		    t->added_from_midi_file = true;
+		    t->added_from_midi_filepath = filepath;
 		}
 		num_clips = 16;
 	    } else {
@@ -464,7 +485,7 @@ int midi_file_open(const char *filepath)//, MIDIClip **mclips)
 	    return -1;	    
 	    /* get_midi_hdr(f); */
 	} else if (t == MIDI_CHUNK_TRCK) {
-	    get_midi_trck(f, len, track_index, mclips, num_clips);
+	    get_midi_trck(f, len, track_index, mclips, num_clips, tl->play_pos_sframes);
 	    track_index++;
 	} else {
 	    if (fseek(f, len, SEEK_CUR) == -1) {
@@ -483,7 +504,7 @@ int midi_file_open(const char *filepath)//, MIDIClip **mclips)
 	    MIDIClip *mclip = mclips[i];
 	    if (mclip->num_notes == 0) {
 		midi_clip_destroy(mclip);
-		if (dst_tracks[i]->added_from_midi_file) {
+		if (dst_tracks[i]->added_from_midi_filepath == filepath) {
 		    track_destroy(dst_tracks[i], true);
 		}
 	    } else {
@@ -492,16 +513,14 @@ int midi_file_open(const char *filepath)//, MIDIClip **mclips)
 		clipref_reset(cr, true);
 		Track *t = dst_tracks[i];
 		if (!t->midi_out) {
-		    t->synth = synth_create(track);
+		    t->synth = synth_create(t);
 		    t->midi_out = t->synth;
 		    t->midi_out_type = MIDI_OUT_SYNTH;
 		}
 	    }
 	}
 	tl->needs_redraw = true;
-    }
-
-    
+    }    
     free(v_device);
     fclose(f);
     return 0;    

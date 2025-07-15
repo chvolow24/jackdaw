@@ -157,6 +157,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     /* a = clock(); */
     Project *proj = &session->proj;
     Timeline *tl = ACTIVE_TL;
+    fprintf(stderr, "PLAY POS OFFSET = %d\n", tl->play_pos_sframes - tl->read_pos_sframes);
     AudioConn *conn = (AudioConn *)user_data;
     clock_gettime(CLOCK_MONOTONIC, &(conn->callback_time.ts));
     conn->callback_time.timeline_pos = tl->play_pos_sframes + (tl->buf_read_pos % (proj->fourier_len_sframes / proj->chunk_size_sframes));
@@ -238,7 +239,9 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	tl->needs_redraw = true;
 
     } else {
-	timeline_move_play_position(tl, session->playback.play_speed * stream_len_samples / proj->channels);
+	int32_t diff = tl->read_pos_sframes - tl->play_pos_sframes;
+	/* timeline_move_play_position(tl, session->playback.play_speed * stream_len_samples / proj->channels); */
+	timeline_move_play_position(tl, diff);
     }
     session_do_ongoing_changes(session, JDAW_THREAD_PLAYBACK);
     session_flush_val_changes(session, JDAW_THREAD_PLAYBACK);

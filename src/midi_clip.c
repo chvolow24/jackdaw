@@ -243,7 +243,7 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 	/* TODO: set channel */
 	e.message = Pm_Message(0x90, note->note, note->velocity);
 	e.timestamp = note_tl_start;
-	fprintf(stderr, "PREPARE to insert note %d at %d\n", note->note, note_tl_start);
+	/* fprintf(stderr, "PREPARE to insert note %d at %d\n", note->note, note_tl_start); */
 	
 	/* Insert any earlier note offs first */
 	PmEvent *note_off = NULL;
@@ -290,7 +290,7 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 	
 	/* Now insert the note on */
 
-	fprintf(stderr, "\t->OK insert\n");
+	/* fprintf(stderr, "\t->OK insert\n"); */
 	if (event_buf_index + 1 < event_buf_max_len) {
 	    event_buf[event_buf_index] = e;
 	    event_buf_index++;

@@ -157,7 +157,6 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     /* a = clock(); */
     Project *proj = &session->proj;
     Timeline *tl = ACTIVE_TL;
-    fprintf(stderr, "PLAY POS OFFSET = %d\n", tl->play_pos_sframes - tl->read_pos_sframes);
     AudioConn *conn = (AudioConn *)user_data;
     clock_gettime(CLOCK_MONOTONIC, &(conn->callback_time.ts));
     conn->callback_time.timeline_pos = tl->play_pos_sframes + (tl->buf_read_pos % (proj->fourier_len_sframes / proj->chunk_size_sframes));

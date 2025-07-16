@@ -54,6 +54,10 @@ typedef struct midi_clip {
     uint16_t refs_alloc_len;
     bool recording;
 
+    char *midi_track_name;
+    int primary_instrument;
+    const char *primary_instrument_name;
+
     MIDIDevice *recorded_from;
 } MIDIClip;
 

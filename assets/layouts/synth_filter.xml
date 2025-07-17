@@ -8,7 +8,7 @@
       <x>SCALE 0.046667</x>
       <y>STACK 32</y>
       <w>SCALE 0.864167</w>
-      <h>ABS 24</h>
+      <h>ABS 18</h>
       <children>
 	<Layout name="active_label" type="NORMAL">
           <x>REL 0</x>
@@ -21,8 +21,8 @@
         <Layout name="active_toggle" type="NORMAL">
           <x>REL 250</x>
           <y>REL 0</y>
-          <w>REL 24</w>
-          <h>REL 24</h>
+          <w>REL 18</w>
+          <h>REL 18</h>
           <children>
           </children>
         </Layout>
@@ -32,9 +32,9 @@
       <x>SCALE 0.046667</x>
       <y>STACK 32</y>
       <w>SCALE 0.864167</w>
-      <h>ABS 24</h>
+      <h>ABS 18</h>
       <children>
-        <Layout name="freq_scalar_label" type="NORMAL">
+        <Layout name="base_cutoff_label" type="NORMAL">
           <x>REL 0</x>
           <y>REL 0</y>
           <w>REL 250</w>
@@ -42,7 +42,7 @@
           <children>
           </children>
         </Layout>
-        <Layout name="freq_scalar_slider" type="NORMAL">
+        <Layout name="base_cutoff_slider" type="NORMAL">
           <x>REL 250</x>
           <y>REL 0</y>
           <w>COMPLEMENT 1</w>
@@ -54,11 +54,11 @@
     </Layout>
     <Layout name="row" type="NORMAL">
       <x>SCALE 0.046667</x>
-      <y>STACK 24</y>
+      <y>STACK 18</y>
       <w>SCALE 0.864167</w>
-      <h>ABS 24</h>
+      <h>ABS 18</h>
       <children>
-        <Layout name="velocity_freq_scalar_label" type="NORMAL">
+        <Layout name="pitch_amt_label" type="NORMAL">
           <x>REL 0</x>
           <y>REL 0</y>
           <w>REL 250</w>
@@ -66,7 +66,31 @@
           <children>
           </children>
         </Layout>
-        <Layout name="velocity_freq_scalar_slider" type="NORMAL">
+        <Layout name="pitch_amt_slider" type="NORMAL">
+          <x>REL 250</x>
+          <y>REL 0</y>
+          <w>COMPLEMENT 1</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+    <Layout name="row" type="NORMAL">
+      <x>SCALE 0.046667</x>
+      <y>STACK 18</y>
+      <w>SCALE 0.864167</w>
+      <h>ABS 18</h>
+      <children>
+        <Layout name="vel_amt_label" type="NORMAL">
+          <x>REL 0</x>
+          <y>REL 0</y>
+          <w>REL 250</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="vel_amt_slider" type="NORMAL">
           <x>REL 250</x>
           <y>REL 0</y>
           <w>COMPLEMENT 1</w>
@@ -79,9 +103,34 @@
 
     <Layout name="row" type="NORMAL">
       <x>SCALE 0.046667</x>
-      <y>STACK 24</y>
+      <y>STACK 18</y>
       <w>SCALE 0.864167</w>
-      <h>ABS 24</h>
+      <h>ABS 18</h>
+      <children>
+        <Layout name="env_amt_label" type="NORMAL">
+          <x>REL 0</x>
+          <y>REL 0</y>
+          <w>REL 250</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="env_amt_slider" type="NORMAL">
+          <x>REL 250</x>
+          <y>REL 0</y>
+          <w>COMPLEMENT 1</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+
+    <Layout name="row" type="NORMAL">
+      <x>SCALE 0.046667</x>
+      <y>STACK 18</y>
+      <w>SCALE 0.864167</w>
+      <h>ABS 18</h>
       <children>
         <Layout name="resonance_label" type="NORMAL">
           <x>REL 0</x>
@@ -103,9 +152,9 @@
     </Layout>
     <Layout name="row_use_amp_env" type="NORMAL">
       <x>SCALE 0.046667</x>
-      <y>STACK 24</y>
+      <y>STACK 18</y>
       <w>SCALE 0.864167</w>
-      <h>ABS 24</h>
+      <h>ABS 18</h>
       <children>
 	<Layout name="use_amp_env_label" type="NORMAL">
           <x>REL 0</x>
@@ -118,8 +167,8 @@
         <Layout name="use_amp_env_toggle" type="NORMAL">
           <x>REL 250</x>
           <y>REL 0</y>
-          <w>REL 24</w>
-          <h>REL 24</h>
+          <w>REL 18</w>
+          <h>REL 18</h>
           <children>
           </children>
         </Layout>
@@ -127,9 +176,9 @@
     </Layout>
     <Layout name="row" type="NORMAL">
       <x>SCALE 0.046667</x>
-      <y>STACK 24</y>
+      <y>STACK 18</y>
       <w>SCALE 0.864167</w>
-      <h>ABS 24</h>
+      <h>ABS 18</h>
       <children>
         <Layout name="attack_label" type="NORMAL">
           <x>REL 0</x>
@@ -151,9 +200,9 @@
     </Layout>
     <Layout name="row" type="NORMAL">
       <x>SCALE 0.046667</x>
-      <y>STACK 24</y>
+      <y>STACK 18</y>
       <w>SCALE 0.864167</w>
-      <h>ABS 24</h>
+      <h>ABS 18</h>
       <children>
         <Layout name="decay_label" type="NORMAL">
           <x>REL 0</x>
@@ -175,9 +224,9 @@
     </Layout>
     <Layout name="row" type="NORMAL">
       <x>SCALE 0.046667</x>
-      <y>STACK 24</y>
+      <y>STACK 18</y>
       <w>SCALE 0.864167</w>
-      <h>ABS 24</h>
+      <h>ABS 18</h>
       <children>
 	<Layout name="sustain_label" type="NORMAL">
 	  <x>REL 0</x>
@@ -199,9 +248,9 @@
     </Layout>
     <Layout name="row" type="NORMAL">
       <x>SCALE 0.046667</x>
-      <y>STACK 24</y>
+      <y>STACK 18</y>
       <w>SCALE 0.864167</w>
-      <h>ABS 24</h>
+      <h>ABS 18</h>
       <children>
         <Layout name="release_label" type="NORMAL">
           <x>REL 0</x>
@@ -223,9 +272,9 @@
     </Layout>
     <Layout name="row" type="NORMAL">
       <x>SCALE 0.046667</x>
-      <y>STACK 24</y>
+      <y>STACK 18</y>
       <w>SCALE 0.864167</w>
-      <h>ABS 24</h>
+      <h>ABS 18</h>
       <children>
         <Layout name="ramp_exp_label" type="NORMAL">
           <x>REL 0</x>

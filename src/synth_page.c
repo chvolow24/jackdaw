@@ -718,11 +718,18 @@ static void add_filter_page(TabView *tv, Track *track)
     p.textbox_p.set_str = "Active:";
     page_add_el(page,EL_TEXTBOX,p,"","active_label");
 
-    p.textbox_p.set_str = "Freq scalar:";
-    page_add_el(page,EL_TEXTBOX,p,"","freq_scalar_label");
+    p.textbox_p.set_str = "Base cutoff:";
+    page_add_el(page,EL_TEXTBOX,p,"","base_cutoff_label");
 
-    p.textbox_p.set_str = "Velocity freq scalar:";
-    page_add_el(page,EL_TEXTBOX,p,"","velocity_freq_scalar_label");
+    p.textbox_p.set_str = "Pitch amount:";
+    page_add_el(page,EL_TEXTBOX,p,"","pitch_amt_label");
+
+    p.textbox_p.set_str = "Velocity amount:";
+    page_add_el(page,EL_TEXTBOX,p,"","vel_amt_label");
+    
+    p.textbox_p.set_str = "Env amount:";
+    page_add_el(page,EL_TEXTBOX,p,"","env_amt_label");
+
 
     p.textbox_p.set_str = "Resonance:";
     page_add_el(page,EL_TEXTBOX,p,"","resonance_label");
@@ -752,11 +759,19 @@ static void add_filter_page(TabView *tv, Track *track)
     p.slider_p.orientation = SLIDER_HORIZONTAL;
     p.slider_p.style = SLIDER_FILL;
 
-    page_el_params_slider_from_ep(&p, &s->freq_scalar_ep);
-    page_add_el(page,EL_SLIDER,p,"freq_scalar_slider","freq_scalar_slider");
+    page_el_params_slider_from_ep(&p, &s->base_cutoff_ep);
+    page_add_el(page,EL_SLIDER,p,"base_cutoff_slider","base_cutoff_slider");
 
-    page_el_params_slider_from_ep(&p, &s->velocity_freq_scalar_ep);
-    page_add_el(page,EL_SLIDER,p,"velocity_freq_scalar_slider","velocity_freq_scalar_slider");
+    page_el_params_slider_from_ep(&p, &s->pitch_amt_ep);
+    page_add_el(page,EL_SLIDER,p,"pitch_amt_slider","pitch_amt_slider");
+
+    page_el_params_slider_from_ep(&p, &s->vel_amt_ep);
+    page_add_el(page,EL_SLIDER,p,"vel_amt_slider","vel_amt_slider");
+
+
+    page_el_params_slider_from_ep(&p, &s->env_amt_ep);
+    page_add_el(page,EL_SLIDER,p,"env_amt_slider","env_amt_slider");
+
 
     page_el_params_slider_from_ep(&p, &s->resonance_ep);
     page_add_el(page,EL_SLIDER,p,"resonance_slider","resonance_slider");

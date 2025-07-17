@@ -131,9 +131,71 @@ int32_t note_tl_end_pos(Note *note, ClipRef *cr)
 }
 
 
+/* static void note_off_rb_print(struct midi_event_ring_buf *rb) */
+/* { */
+/*     fprintf(stderr, "RING BUF has %d queued, read i %d....\n", rb->num_queued, rb->read_i); */
+/*     for (int i=0; i<rb->num_queued; i++) { */
+/* 	int index = (rb->read_i + i) % rb->size; */
+/* 	/\* fprintf(stderr, "\t%d/%d (index %d): %d\n", i, rb->num_queued, index, rb->buf[index].timestamp); *\/ */
+/*     } */
+/* } */
+
+static PmEvent *note_off_rb_check_pop_event(struct midi_event_ring_buf *rb, int32_t pop_if_before_or_at)
+{
+    PmEvent *ret = NULL;
+    for (int i=0; i<rb->num_queued; i++) {
+	int index = (rb->read_i + i) % rb->size;
+	if (rb->buf[index].timestamp <= pop_if_before_or_at) {
+	    ret = rb->buf + index;
+	    rb->read_i++;
+	    if (rb->read_i == rb->size) rb->read_i = 0;
+	    rb->num_queued--;
+	    break;
+	}
+    }
+    return ret;
+}
+
+static void note_off_rb_insert(struct midi_event_ring_buf *rb, PmEvent note_off)
+{
+    if (rb->num_queued == rb->size) {
+	fprintf(stderr, "Note Off buf full\n");
+	return;
+    }
+    int index = rb->read_i;
+    int place_in_queue = 0;
+    /* fprintf(stderr, "TRY insert ts %d\n", note_off.timestamp); */
+    for (int i=0; i<rb->num_queued; i++) {
+	index = (rb->read_i + i) % rb->size;
+	/* Insert here */
+	/* fprintf(stderr, "\ttest i=%d, ts %d\n", i, rb->buf[index].timestamp); */
+	if (note_off.timestamp <= rb->buf[index].timestamp) {
+	    /* fprintf(stderr, "\t\tInsert! place in queue %d\n", place_in_queue); */
+	    break;
+	}
+	place_in_queue++;
+    }
+    for (int i=rb->num_queued; i>place_in_queue; i--) {
+	index = (rb->read_i + i) % rb->size;
+	int prev_index = (rb->read_i + i - 1) % rb->size;
+	rb->buf[index] = rb->buf[prev_index];	
+    }
+    int dst_index = (rb->read_i + place_in_queue) % rb->size;
+    rb->buf[dst_index] = note_off;
+    rb->num_queued++;
+}
+
 /* Return the number of events written */
 int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max_len, int32_t chunk_tl_start, int32_t chunk_tl_end)
 {
+    struct midi_event_ring_buf *rb = &cr->track->note_offs;
+
+
+
+    bool event_buf_full = false;
+
+
+    
     if (cr->type == CLIP_AUDIO) return 0;
     /* int32_t chunk_len = chunk_tl_end - chunk_tl_start; */
     /* fprintf(stderr, "\nOutput chunk %d-%d\n", chunk_tl_start, chunk_tl_end); */
@@ -146,7 +208,7 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
     /* static PmEvent note_offs_array_base[note_off_buflen]; */
     /* static PmEvent *note_offs = note_offs_array_base; */
     /* static int num_note_offs = 0; */
-    Track *track = cr->track;
+    /* Track *track = cr->track; */
     int32_t clipref_end = cr->tl_pos + clipref_len(cr);
     while (note_i < mclip->num_notes) {
 	Note *note = mclip->notes + note_i;
@@ -181,83 +243,117 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 	/* TODO: set channel */
 	e.message = Pm_Message(0x90, note->note, note->velocity);
 	e.timestamp = note_tl_start;
+	/* fprintf(stderr, "PREPARE to insert note %d at %d\n", note->note, note_tl_start); */
 	
 	/* Insert any earlier note offs first */
-	bool event_buf_full = false;
-	while (1) {
-	    /* fprintf(stderr, "\t\t->note off check above buf indices: %d %d\n", track->note_offs_read_i, track->note_offs_write_i); */
-	    if (track->note_offs_read_i == 128) {
-		track->note_offs_read_i = 0;
-	    }
-	    if (track->note_offs_read_i == track->note_offs_write_i) {
-		break;
-	    }
-
-		
-	    PmEvent note_off = track->note_offs[track->note_offs_read_i];
-	    if (note_off.timestamp <= e.timestamp) {
-		/* Insert note off */
-		if (event_buf_index + 1 < event_buf_max_len) {
-		    event_buf[event_buf_index] = note_off;
-		    event_buf_index++;
-		} else {
-		    event_buf_full = true;
-		    break;
-		}
-		track->note_offs_read_i++;
+	PmEvent *note_off = NULL;
+	while ((note_off = note_off_rb_check_pop_event(rb, e.timestamp))) {
+	    if (event_buf_index + 1 < event_buf_max_len) {
+		event_buf[event_buf_index] = *note_off;
+		event_buf_index++;
 	    } else {
+		event_buf_full = true;
 		break;
 	    }
 	}
+
+	/* while (1) { */
+	/*     /\* fprintf(stderr, "\t\t->note off check above buf indices: %d %d\n", track->note_offs_read_i, track->note_offs_write_i); *\/ */
+	/*     /\* if (track->note_offs_read_i == 128) { *\/ */
+	/*     /\* 	track->note_offs_read_i = 0; /\\* Reset ring buffer *\\/ *\/ */
+	/*     /\* } *\/ */
+	/*     /\* if (track->note_offs_read_i == track->note_offs_write_i) { *\/ */
+	/*     /\* 	break; /\\* No queued note offs *\\/ *\/ */
+	/*     /\* } *\/ */
+
+		
+	/*     /\* PmEvent note_off = track->note_offs[track->note_offs_read_i]; *\/ */
+	/*     if (note_off.timestamp <= e.timestamp) { */
+	/* 	/\* Insert note off *\/ */
+	/* 	if (event_buf_index + 1 < event_buf_max_len) { */
+	/* 	    fprintf(stderr, "\tFirst insert OFF %d at %d!\n", Pm_MessageData1(note_off.message), note_off.timestamp); */
+	/* 	    event_buf[event_buf_index] = note_off; */
+	/* 	    event_buf_index++; */
+	/* 	} else { */
+	/* 	    event_buf_full = true; */
+	/* 	    break; */
+	/* 	} */
+	/* 	add++; /\* Dequeue the note off *\/ */
+	/* 	/\* track->note_offs_read_i++; *\/ */
+	/*     }/\*  else { *\/ */
+	/*     /\* 	break; *\/ */
+	/*     /\* } *\/ */
+	/*     track->note_offs_read_i++; */
+	/* } */
+	/* track->note_offs_read_i = saved_read_i + add; */
+
+	
 	/* Now insert the note on */
-	if (!event_buf_full) {
+
+	/* fprintf(stderr, "\t->OK insert\n"); */
+	if (event_buf_index + 1 < event_buf_max_len) {
 	    event_buf[event_buf_index] = e;
 	    event_buf_index++;
 	} else {
-	    break;
+	    event_buf_full = true;
 	}
 
+	/* And queue the note off */
+	/* TODO: channels */
 	e_off.message = Pm_Message(0x80, note->note, note->velocity);
 	e_off.timestamp = note_tl_end;
-	if (track->note_offs_write_i + 1 == track->note_offs_read_i) {
-	    fprintf(stderr, "Error! reached end of buf, cannot write\n");
-	} else {
-	    track->note_offs[track->note_offs_write_i] = e_off;
-	    track->note_offs_write_i++;
-	    if (track->note_offs_write_i == 128)
-		track->note_offs_write_i = 0;
+	if (note_tl_end <= chunk_tl_end) {
+	    if (event_buf_index < event_buf_max_len) {
+		event_buf[event_buf_index] = e;
+		event_buf_index++;
+	    } else {
+		event_buf_full = true;
+	    }
 	}
-	
-	if (event_buf_index >= event_buf_max_len) {
-	    fprintf(stderr, "Warning: Losing notes\n");
-	    break;
-	}
+	note_off_rb_insert(rb, e_off);
 	note_i++;
     }
 
-    while (1) {
-	/* fprintf(stderr, "\t\t->note off check %d %d\n", track->note_offs_read_i, track->note_offs_write_i); */
-	if (track->note_offs_read_i == 128) {
-	    track->note_offs_read_i = 0;
-	}
-	if (track->note_offs_read_i == track->note_offs_write_i) {
-	    break;
-	}
-	
-	PmEvent note_off = track->note_offs[track->note_offs_read_i];
-	if (note_off.timestamp < chunk_tl_end) {
-	    /* Insert note off */
-	    if (event_buf_index < event_buf_max_len) {
-		event_buf[event_buf_index] = note_off;
-		event_buf_index++;
-		track->note_offs_read_i++;
-	    } else {
-		break;
-	    }
+    /* Insert note offs before chunk end */
+    PmEvent *note_off;
+    while ((note_off = note_off_rb_check_pop_event(rb, chunk_tl_end))) {
+	if (event_buf_index + 1 < event_buf_max_len) {
+	    event_buf[event_buf_index] = *note_off;
+	    event_buf_index++;
 	} else {
-	    break;
+	    event_buf_full = true;
 	}
+    }
 
+    /* while (1) { */
+    /* /\* for (int i=track->note_offs_read_i; i<track->note_offs_write_i; i++) { *\/ */
+    /* 	/\* fprintf(stderr, "\t\t->note off check %d %d\n", track->note_offs_read_i, track->note_offs_write_i); *\/ */
+    /* 	if (track->note_offs_read_i == 128) { */
+    /* 	    track->note_offs_read_i = 0; */
+    /* 	} */
+    /* 	if (track->note_offs_read_i == track->note_offs_write_i) { */
+    /* 	    break; */
+    /* 	} */
+    /* 	PmEvent note_off = track->note_offs[track->note_offs_read_i]; */
+    /* 	fprintf(stderr, "\tTEST Note off index %d, %d, ts %d, chunk end: %d\n", track->note_offs_read_i, Pm_MessageData1(note_off.message), note_off.timestamp, chunk_tl_end); */
+    /* 	if (note_off.timestamp < chunk_tl_end) { */
+    /* 	    /\* Insert note off *\/ */
+    /* 	    if (event_buf_index < event_buf_max_len) { */
+    /* 		fprintf(stderr, "\tInsert REGULAR note off\n"); */
+    /* 		event_buf[event_buf_index] = note_off; */
+    /* 		event_buf_index++; */
+    /* 		add++; */
+    /* 		/\* track->note_offs_read_i++; *\/ */
+    /* 	    } else { */
+    /* 		break; */
+    /* 	    } */
+    /* 	} */
+    /* 	track->note_offs_read_i++; */
+
+    /* } */
+    /* track->note_offs_read_i = saved_read_i + add; */
+    if (event_buf_full) {
+	fprintf(stderr, "ERROR: event buf is full\n");
     }
     #ifdef TESTBUILD
     if (event_buf_index == 256) exit(1);

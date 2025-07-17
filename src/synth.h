@@ -165,16 +165,23 @@ typedef struct synth {
 
     /* Filter */
     bool filter_active;
-    float freq_scalar;
     float resonance;
-    float velocity_freq_scalar;
+    float base_cutoff;
+    float pitch_amt;
+    float vel_amt;
+    float env_amt;
+    /* float freq_scalar; */
+    /* float velocity_freq_scalar; */
     APINode filter_node;
     bool use_amp_env;
     ADSRParams filter_env;
     Endpoint filter_active_ep;
-    Endpoint freq_scalar_ep;
+    Endpoint base_cutoff_ep;
+    Endpoint pitch_amt_ep;
+    Endpoint vel_amt_ep;
+    Endpoint env_amt_ep;
     Endpoint resonance_ep;
-    Endpoint velocity_freq_scalar_ep;
+    /* Endpoint velocity_freq_scalar_ep; */
     Endpoint use_amp_env_ep;
     
     bool monitor;

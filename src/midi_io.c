@@ -366,8 +366,8 @@ static void track_flush_unclosed_midi_notes(Track *track)
 	break;
 	
     }
-    track->note_offs_read_i = 0;
-    track->note_offs_write_i = 0;
+    track->note_offs.read_i = 0;
+    track->note_offs.num_queued = 0;
 }
 void timeline_flush_unclosed_midi_notes()
 {

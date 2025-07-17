@@ -784,6 +784,8 @@ static void osc_set_freq(Osc *osc, double freq_hz)
     osc->freq = freq_hz;
     osc->sample_phase_incr = freq_hz / session->proj.sample_rate;    
 }
+
+
 /* static void synth_voice_set_note(SynthVoice *v, uint8_t note_val, uint8_t velocity) */
 /* { */
 /*     v->note_val = note_val; */
@@ -795,6 +797,19 @@ static void osc_set_freq(Osc *osc, double freq_hz)
 /*     /\* fprintf(stderr, "OSC 1 %f OSC 2: %f\n", v->oscs[0].freq, v->oscs[1].freq); *\/ */
 /*     v->velocity = velocity; */
 /* } */
+
+static void synth_voice_adjust_note(SynthVoice *v, float cents)
+{
+        for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
+	    OscCfg *cfg = v->synth->base_oscs + i;
+	    if (!cfg->active) continue;
+	    for (int j=0; j<SYNTHVOICE_NUM_OSCS; j+= SYNTH_NUM_BASE_OSCS) {
+		Osc *voice = v->oscs + j;
+		double freq_incr = mtof_calc(cents / 100.0f);
+		osc_set_freq(voice, voice->freq + freq_incr);
+	    }
+	}
+}
 
 static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, int32_t start_rel)
 {
@@ -814,8 +829,13 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
 	osc->amp = cfg->amp;
 	osc->pan = cfg->pan;
 	osc->type = cfg->type;
+
+	/* Reset phase every time? */
 	osc->phase[0] = 0.0;
 	osc->phase[1] = 0.0;
+
+
+	
 	/* osc->freq_modulator = &LFO; */
 	/* osc_set_freq(v->oscs + i, MTOF[note_val]); */
 	osc_set_freq(osc, mtof_calc(base_midi_note));
@@ -1017,6 +1037,16 @@ int synth_set_amp_mod_pair(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg)
     return 0;
 }
 
+void synth_voice_start_release(SynthVoice *v, int32_t after)
+{
+
+    adsr_start_release(v->amp_env, after);
+    adsr_start_release(v->amp_env + 1, after);
+    adsr_start_release(v->filter_env, after);
+    adsr_start_release(v->filter_env + 1, after);
+}
+
+
 void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start, bool send_immediate)
 {
     /* fprintf(stderr, "\n\nSYNTH FEED MIDI %d events tl start start: %d send immediate %d\n", num_events, tl_start, send_immediate); */
@@ -1038,19 +1068,36 @@ void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start
 	if (velocity == 0) msg_type = 8;
 	if (msg_type == 8) {
 	    /* HANDLE NOTE OFF */
-	    /* fprintf(stderr, "NOTE OFF val: %d pos %d\n", note_val, e.timestamp); */
+	    fprintf(stderr, "NOTE OFF val: %d pos %d\n", note_val, e.timestamp);
 	    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 		SynthVoice *v = s->voices + i;
 		if (!v->available && v->note_val == note_val) {
-		    /* v->note_end_rel[0] = 0; */
-		    /* v->note_end_rel[1] = 0; */
-		    /* fprintf(stderr, "START RELEASE ON VOICE %d\n", i); */
-		    int32_t end_rel = send_immediate ? 0 : tl_start - e.timestamp;
-		    adsr_start_release(v->amp_env, end_rel);
-		    adsr_start_release(v->amp_env + 1, end_rel);
-		    adsr_start_release(v->filter_env, end_rel);
-		    adsr_start_release(v->filter_env + 1, end_rel);
-
+		    fprintf(stderr, "Voice %ld\n", v - s->voices);
+		    if (v->note_off_deferred) {
+			fprintf(stderr, "\t(already deferred)\n");
+		    }
+		    if (s->pedal_depressed) {
+			if (!v->note_off_deferred) {
+			    fprintf(stderr, "NUM DEFERRED OFFS: %d\n", s->num_deferred_offs);
+			    v->note_off_deferred = true;
+			    if (s->num_deferred_offs < SYNTH_NUM_VOICES) {
+				s->deferred_offs[s->num_deferred_offs] = v;
+				s->num_deferred_offs++;
+			    } else {
+				fprintf(stderr, "ERROR: no room to defer note off\n");
+			    }
+			}
+		    } else {
+			/* v->note_end_rel[0] = 0; */
+			/* v->note_end_rel[1] = 0; */
+			/* fprintf(stderr, "START RELEASE ON VOICE %d\n", i); */
+			int32_t end_rel = send_immediate ? 0 : tl_start - e.timestamp;
+			synth_voice_start_release(v, end_rel);
+			/* adsr_start_release(v->amp_env, end_rel); */
+			/* adsr_start_release(v->amp_env + 1, end_rel); */
+			/* adsr_start_release(v->filter_env, end_rel); */
+			/* adsr_start_release(v->filter_env + 1, end_rel); */
+		    }
 		}
 	    }
 	} else if (msg_type == 9) { /* Handle note on */
@@ -1087,12 +1134,45 @@ void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start
 		    }
 		}
 	    }
+	} else if (msg_type == 0xE) { /* Pitch Bend */
+	    float pb = midi_pitch_bend_float_from_event(&e);
+	    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+		SynthVoice *v = s->voices + i;
+		if (!v->available) {
+		    enum adsr_stage stage = v->amp_env[0].current_stage;
+		    if (stage > ADSR_UNINIT && stage < ADSR_R) {
+			synth_voice_adjust_note(v, (pb - 0.5) * 200.0);
+		    }
+		}
+	    }
+	} else if (msg_type == 0xB) { /* Control change */
+	    MIDICC cc = midi_cc_from_event(&e, 0);
+	    /* fprintf(stderr, "REC'd contrl change type %d val %d\n", cc.type, cc.value); */
+	    if (cc.type == 64) {
+		s->pedal_depressed = cc.value >= 64;
+		if (!s->pedal_depressed) {
+		    int32_t end_rel = send_immediate ? 0 : tl_start - e.timestamp;
+		    for (int i=0; i<s->num_deferred_offs; i++) {
+			synth_voice_start_release(s->deferred_offs[i], end_rel);
+			fprintf(stderr, "----RElease Voice %ld\n", s->deferred_offs[i] - s->voices);
+			s->deferred_offs[i]->note_off_deferred = false;
+			s->deferred_offs[i] = NULL;
+			/* adsr_start_release(s->deferred_offs[i], end_rel); */
+		    }
+		    s->num_deferred_offs = 0;
+		}
+		/* fprintf(stderr, "DEPR? %d\n", s->pedal_depressed); */
+	    }
+
+	} else {
+	    fprintf(stderr, "UNKNOWN type %d\n", msg_type);
 	}
     }
 }
 
 void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step)
 {
+    /* fprintf(stderr, "PED? %d\n", s->pedal_depressed); */
     /* if (channel != 0) return; */
     /* fprintf(stderr, "ADD BUF\n"); */
     if (step < 0.0) step *= -1;

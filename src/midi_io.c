@@ -345,6 +345,9 @@ void midi_device_record_chunk(MIDIDevice *d, int ts_fmt)
 		midi_clip_add_note(d->current_clip, note_val, unclosed->velocity, unclosed->start_rel, pos_rel);
 		unclosed->unclosed = false;
 	    }
+	} else if (msg_type == 0xB && d->current_clip) { /* Controller */
+	    MIDICC cc = midi_cc_from_event(&e, pos_rel);
+	    midi_clip_add_cc(d->current_clip, cc);
 	}
 	/* fprintf(stderr, "NOTE Abs time: %d, record start: %d, seconds: %f\n", pos_rel, d->record_start, (double)pos_rel / 96000.0); */
     }

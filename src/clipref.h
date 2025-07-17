@@ -52,7 +52,8 @@ typedef struct clip_ref {
     bool waveform_redraw;
 
     /* MIDI only */
-    int32_t first_note; /* index of the first note in clip, or -1 if invalid */
+    int32_t first_note; /* index of the first note in clipref, or -1 if invalid */
+    int32_t first_cc; /* index of first cc */
 } ClipRef;
 
 

@@ -75,13 +75,6 @@ TEST_FN_DEF(check_note_order, {
 
 void midi_clip_add_note(MIDIClip *mc, int note_val, int velocity, int32_t start_rel, int32_t end_rel)
 {
-    /* #ifdef TESTBUILD */
-    /* if (start_rel < 0) { */
-    /* 	fprintf(stderr, "Error: call to add note with start rel %d\n", start_rel)} */
-    /* 	exit(1); */
-    /* } */
-    /* #endif */
-    /* fprintf(stderr, "ADDING note of rel %d (end %d) to clip of num notes %d\n", start_rel, end_rel, mc->num_notes); */
     if (!mc->notes) {
 	mc->notes_alloc_len = 32;
 	mc->notes = calloc(mc->notes_alloc_len, sizeof(Note));
@@ -104,6 +97,27 @@ void midi_clip_add_note(MIDIClip *mc, int note_val, int velocity, int32_t start_
     TEST_FN_CALL(check_note_order, mc);
 }
 
+void midi_clip_add_cc(MIDIClip *mc, MIDICC cc_in)
+{
+    fprintf(stderr, "(%d) ADD CC type %d val %d\n", cc_in.pos_rel, cc_in.type, cc_in.value);
+    if (!mc->ccs) {
+	mc->ccs_alloc_len = 32;
+	mc->ccs = calloc(mc->ccs_alloc_len, sizeof(MIDICC));
+    }
+    if (mc->num_ccs == mc->ccs_alloc_len) {
+	mc->ccs_alloc_len *= 2;
+	mc->ccs = realloc(mc->ccs, mc->ccs_alloc_len * sizeof(MIDICC));
+    }
+    
+    MIDICC *cc = mc->ccs + mc->num_ccs;
+    while (cc > mc->ccs && cc_in.pos_rel < (cc - 1)->pos_rel) {
+	*cc = *(cc - 1);
+	cc--;
+    }
+    *cc = cc_in;
+    mc->num_ccs++;
+}
+
 /* Return -1 if clip has no notes; otherwise, first note index */
 int32_t midi_clipref_check_get_first_note(ClipRef *cr)
 {
@@ -118,6 +132,22 @@ int32_t midi_clipref_check_get_first_note(ClipRef *cr)
     }
     if (cr->first_note == clip->num_notes) cr->first_note = -1;
     return cr->first_note;
+}
+
+/* Return -1 if clip has no ccs; otherwise, first cc index */
+int32_t midi_clipref_check_get_first_cc(ClipRef *cr)
+{
+    MIDIClip *clip = cr->source_clip;
+
+    if (cr->first_cc == -1) cr->first_cc = 0;
+    while (cr->first_cc > 0 && clip->ccs[cr->first_cc].pos_rel > cr->start_in_clip) {
+	cr->first_cc--;
+    }
+    while (cr->first_cc < clip->num_ccs && clip->ccs[cr->first_cc].pos_rel < cr->start_in_clip) {
+	cr->first_cc++;
+    }
+    if (cr->first_cc == clip->num_ccs) cr->first_cc = -1;
+    return cr->first_cc;
 }
 
 int32_t note_tl_start_pos(Note *note, ClipRef *cr)

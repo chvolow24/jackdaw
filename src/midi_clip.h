@@ -49,6 +49,15 @@ typedef struct midi_clip {
     Note *notes;
     uint32_t num_notes;
     uint32_t notes_alloc_len;
+
+    MIDICC *ccs;
+    uint32_t num_ccs;
+    uint32_t ccs_alloc_len;
+
+    MIDIPitchBend *pbs;
+    uint32_t num_pbs;
+    uint32_t pbs_alloc_len;
+    
     ClipRef **refs;
     uint16_t num_refs;
     uint16_t refs_alloc_len;
@@ -85,7 +94,9 @@ void midi_clip_init(MIDIClip *mclip);
 
 void midi_clip_add_note(MIDIClip *mc, int note_val, int velocity, int32_t start_rel, int32_t end_rel);
 int32_t midi_clipref_check_get_first_note(ClipRef *cr);
-void midi_clip_add_note(MIDIClip *mc, int note_val, int velocity, int32_t start_rel, int32_t end_rel);
+
+void midi_clip_add_cc(MIDIClip *mc, MIDICC cc_in);
+int32_t midi_clipref_check_get_first_cc(ClipRef *cr);
 
 int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max_len, int32_t chunk_tl_start, int32_t chunk_tl_end);
 

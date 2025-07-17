@@ -5,26 +5,45 @@
 #include "midi_objs.h"
 #include "string.h"
 
-
-MIDICC midi_cc_from_event(PmEvent *e, int32_t clip_or_chunk_tl_start)
+MIDICC midi_cc(uint8_t channel, uint8_t type, uint8_t value,  int32_t clip_or_chunk_tl_start)
 {
     MIDICC cc;
-    cc.pos_rel = e->timestamp - clip_or_chunk_tl_start;
+    cc.type = type;
+    cc.channel = channel;
+    cc.value = value;
+    if (cc.type >= 64 && cc.type <= 69) {
+	cc.is_switch = true;
+	cc.switch_state = cc.value;
+    }
+    
+
+}
+
+MIDICC midi_cc_from_event(PmEvent *e, int32_t pos_rel)
+{
+    MIDICC cc;
+    cc.pos_rel = pos_rel;
     uint8_t status = Pm_MessageStatus(e->message);
     cc.channel = status & 0x0F;
     cc.type = Pm_MessageData1(e->message);
     cc.value = Pm_MessageData2(e->message);
-    if (cc.type >= 64 && cc.type <=69) {
+    if (cc.type >= 64 && cc.type <= 69) {
 	cc.is_switch = true;
 	cc.switch_state = cc.value;
     }
     return cc;
 }
 
-MIDIPitchBend midi_pitch_bend_from_event(PmEvent *e, int32_t clip_or_chunk_tl_start)
+float midi_pitch_bend_float_from_event(PmEvent *e)
+{
+    uint16_t value = Pm_MessageData1(e->message) + ((Pm_MessageData2(e->message) << 8));
+    return (float)value / 16384.0f;
+}
+
+MIDIPitchBend midi_pitch_bend_from_event(PmEvent *e, int32_t pos_rel)
 {
     MIDIPitchBend pb;
-    pb.pos_rel = e->timestamp - clip_or_chunk_tl_start;
+    pb.pos_rel = pos_rel;
     uint8_t status = Pm_MessageStatus(e->message);
     pb.channel = status & 0x0F;
     pb.value = Pm_MessageData1(e->message) + ((Pm_MessageData2(e->message) << 8));
@@ -35,6 +54,9 @@ double mtof_calc(double m)
 {
     return 440.0 * pow(2.0, ((m - 69.0) / 12.0));
 }
+
+
+
 
 const double MTOF[] = {
     8.176,

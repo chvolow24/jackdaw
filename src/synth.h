@@ -78,6 +78,8 @@ typedef struct synth_voice {
     ADSRState amp_env[2]; /* L and R */
     ADSRState filter_env[2];
 
+    bool note_off_deferred;
+
     IIRFilter filter;
 } SynthVoice;
 
@@ -196,6 +198,12 @@ typedef struct synth {
     float pan;
     Endpoint vol_ep;
     Endpoint pan_ep;
+
+    bool pedal_depressed;
+
+    SynthVoice *deferred_offs[SYNTH_NUM_VOICES];
+    uint8_t num_deferred_offs;
+    /* bool deferred_note_offs[128]; */
 
     IIRFilter dc_blocker; /* internal use only */
 } Synth;

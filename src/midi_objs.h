@@ -49,7 +49,9 @@ typedef struct midi_pitch_bend {
     uint16_t value;
 } MIDIPitchBend;
 
-MIDICC midi_cc_from_event(PmEvent *e, int32_t clip_or_chunk_tl_start);
+
+float midi_pitch_bend_float_from_event(PmEvent *e);
+MIDICC midi_cc_from_event(PmEvent *e, int32_t pos_rel);
 /* void midi_cc_from_event(MIDICC *cc, PmEvent *e); */
 
 double mtof_calc(double m);

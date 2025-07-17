@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "portmidi.h"
-#include "note.h"
+#include "midi_objs.h"
 /* #include "synth.h" */
 
 

@@ -24,7 +24,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "midi_io.h"
-#include "note.h"
+#include "midi_objs.h"
 #include "textbox.h"
 
 #define INIT_NUM_NOTES 16

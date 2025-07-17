@@ -301,7 +301,7 @@ static void get_midi_hdr(FILE *f)
     file_info.division_fmt.fmt_bit = division_msb;
     
     uint16_t rest = division & 0x7FFF;
-    fprintf(stderr, "\tmsb == %d\n", division_msb);
+    /* fprintf(stderr, "\tmsb == %d\n", division_msb); */
     if (division_msb == 0) {
 	file_info.division_fmt.ticks_per_quarter = rest;	
     } else { /* SMPTE */
@@ -328,16 +328,14 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 
 	running_ts += delta_time * (uint32_t)file_info.division_fmt.sample_frames_per_division;
 	e.timestamp = running_ts;
-	if (e.timestamp < 0) {
-	    fprintf(stderr, "TS: %d\n", e.timestamp);
-	    exit(1);
-	}
 	len -= num_bytes;	
 	uint8_t status = fgetc(f);
 	len--;
 	static uint8_t prev_status;
     done_get_status:
-	fprintf(stderr, "STATUS: %x, timestamp: %d\n", status, e.timestamp);
+	(void)0;
+	uint8_t channel = status & 0x0F;
+	/* fprintf(stderr, "STATUS: %x, timestamp: %d\n", status, e.timestamp); */
 
 	if (status == 0xFF) {
 	    uint8_t type = fgetc(f);
@@ -346,7 +344,7 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 	    switch (type) {
 	    case 0x00: {
 		uint16_t sequence_number = get_16(f);
-		fprintf(stderr, "Sequence number: %d\n", sequence_number);
+		/* fprintf(stderr, "Sequence number: %d\n", sequence_number); */
 	    }
 		break;
 	    case 0x01:		
@@ -423,19 +421,19 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 	    }
 		break;
 	    default:
-		fprintf(stderr, "Ignore meta event type %x (length %d)\n", type, length);		
+		/* fprintf(stderr, "Ignore meta event type %x (length %d)\n", type, length);		 */
 		fseek(f, length, SEEK_CUR); /* IGNORE META EVENT */				    
 	    }
 	    free(buf);
 	    len -= (num_bytes + length + 1);
 	    
 	} else if ((status & 0xF0) == 0x80) { /* NOTE OFF */
-	    uint8_t note, velocity, channel;
+	    uint8_t note, velocity;
 	note_off:
 	    note = fgetc(f);
 	    velocity = fgetc(f);
-	    channel = status & 0x0F;
-	    fprintf(stderr, "\t\tHANDLE NOTE OFF stat 0x%x -- %d %d %d ts %d\n", status, note, velocity, channel, e.timestamp);
+	    /* channel = status & 0x0F; */
+	    /* fprintf(stderr, "\t\tHANDLE NOTE OFF stat 0x%x -- %d %d %d ts %d\n", status, note, velocity, channel, e.timestamp); */
 	    num_note_offs[channel]++;
 	    uint8_t clip_index = file_info.format == 0 ? channel : track_index - 1;
 	    /* fprintf(stderr, "\t\t(off) Channel %d note %d vel %d\n", channel, note, velocity); */
@@ -456,12 +454,12 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 	} else if ((status & 0xF0) == 0x90) { /* NOTE ON */
 	    uint8_t note = fgetc(f);
 	    uint8_t velocity = fgetc(f);
-	    uint8_t channel = status & 0x0F;
+	    /* uint8_t channel = status & 0x0F; */
 	    if (velocity == 0) {
 		ungetc(velocity, f);
 		ungetc(note, f);
 		status =  0x80 + channel; /* Convert to Note-off */
-		fprintf(stderr, "GOING TO NOTE OFF! %d %d %d ts %d\n", note, velocity, status & 0x0F, e.timestamp);
+		/* fprintf(stderr, "GOING TO NOTE OFF! %d %d %d ts %d\n", note, velocity, status & 0x0F, e.timestamp); */
 		goto note_off;
 		/* continue; */
 		/* goto note_off; */
@@ -494,9 +492,15 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 		fprintf(stderr, "CONTROL: %d %d\n", fgetc(f), fgetc(f));
 		break;
 
-	    case 0xE0: // Pitch bend
-		fgetc(f); fgetc(f);
+	    case 0xE0: {// Pitch bend
+		uint8_t lsb = fgetc(f);
+		uint8_t msb = fgetc(f);
+		uint16_t val = (msb << 7) + lsb;
+		float floatval = (float)val / 16384.0f;
+		fprintf(stderr, "(%d) PB channel %d float: %f\n", e.timestamp, channel, floatval);
+		/* fgetc(f); fgetc(f); */
 		len -= 2;
+	    }
 		break;
 	    case 0xC0: { // Program change
 		int pc_data = fgetc(f);
@@ -508,7 +512,7 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 			    mclip->primary_instrument_name = MIDI_PC_INSTRUMENT_NAMES[pc_data];
 			}
 		    } else if (file_info.format == 0) {
-			int channel = status & 0x0F;
+			/* int channel = status & 0x0F; */
 			/* if (channel_instruments_index < 16) { */
 			channel_instruments[channel] = pc_data;
 			    /* channel;_instruments_index++; */
@@ -539,7 +543,7 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 	    default:
 		// Handle running status
 		if (status < 0x80) {
-		    fprintf(stderr, "\t...running status, ungetting %d\n", status);
+		    /* fprintf(stderr, "\t...running status, ungetting %d\n", status); */
 		    ungetc(status, f);
 		    len++;
 		    status = prev_status;

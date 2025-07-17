@@ -18,7 +18,7 @@
 #ifndef JDAW_CLIPREF_H
 #define JDAW_CLIPREF_H
 
-#include "note.h"
+#include "midi_objs.h"
 #include "textbox.h"
 
 enum clip_type {

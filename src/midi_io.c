@@ -11,7 +11,7 @@
 #include "clipref.h"
 #include "midi_io.h"
 #include "midi_clip.h"
-#include "note.h"
+#include "midi_objs.h"
 #include "portmidi.h"
 #include "porttime.h"
 #include "session.h"
@@ -337,10 +337,14 @@ void midi_device_record_chunk(MIDIDevice *d, int ts_fmt)
 	    unclosed->note = note_val;
 	    unclosed->velocity = velocity;
 	    unclosed->start_rel = pos_rel;
+	    unclosed->unclosed = true;
 	} else if (msg_type == 8 && d->current_clip) {
 	    Note *unclosed = d->unclosed_notes + note_val;
 	    /* if (d->current_clip) */
-	    midi_clip_add_note(d->current_clip, note_val, unclosed->velocity, unclosed->start_rel, pos_rel); 
+	    if (unclosed->unclosed) {
+		midi_clip_add_note(d->current_clip, note_val, unclosed->velocity, unclosed->start_rel, pos_rel);
+		unclosed->unclosed = false;
+	    }
 	}
 	/* fprintf(stderr, "NOTE Abs time: %d, record start: %d, seconds: %f\n", pos_rel, d->record_start, (double)pos_rel / 96000.0); */
     }

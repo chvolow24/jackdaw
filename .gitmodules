@@ -1,3 +1,6 @@
 [submodule "portmidi"]
 	path = portmidi
 	url = https://github.com/PortMidi/portmidi.git
+[submodule "SDL"]
+	path = SDL
+	url = https://github.com/libsdl-org/SDL.git

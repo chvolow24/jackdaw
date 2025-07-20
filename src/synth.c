@@ -783,15 +783,17 @@ static void osc_set_freq(Osc *osc, double freq_hz)
 {
     Session *session = session_get();
     osc->freq = freq_hz;
-    osc->sample_phase_incr = freq_hz / session->proj.sample_rate;    
+    osc->sample_phase_incr = freq_hz / session->proj.sample_rate;
+
+    fprintf(stderr, "OSC %p SFI: %f, ADDTL: %f\n", osc, osc->sample_phase_incr, osc->sample_phase_incr_addtl);
 }
 
 static void osc_set_pitch_bend(Osc *osc, double freq_rat)
 {
+    fprintf(stderr, "SET PB\n");
     Session *session = session_get();
     double bend_freq = osc->freq * freq_rat;
     osc->sample_phase_incr_addtl = (bend_freq / session->proj.sample_rate) - osc->sample_phase_incr;
-    fprintf(stderr, "SPHASE: %f, ADDTL: %f\n", osc->sample_phase_incr, osc->sample_phase_incr_addtl); 
 }
 
 
@@ -1199,6 +1201,7 @@ void synth_close_all_notes(Synth *s)
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	SynthVoice *v = s->voices + i;
 	if (!v->available) {
+	    synth_voice_pitch_bend(v, 0.0);
 	    adsr_start_release(v->amp_env, 0);
 	    adsr_start_release(v->amp_env + 1, 0);
 	    adsr_start_release(v->filter_env, 0);

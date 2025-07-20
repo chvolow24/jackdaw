@@ -644,6 +644,7 @@ static float polyblep(float incr, float phase)
 static float osc_sample(Osc *osc, int channel, int num_channels, float step)
 {
     float sample;
+    double phase_incr = osc->sample_phase_incr + osc->sample_phase_incr_addtl;
     switch(osc->type) {
     case WS_SINE:
 	sample = sin(TAU * osc->phase[channel]);
@@ -652,8 +653,8 @@ static float osc_sample(Osc *osc, int channel, int num_channels, float step)
 	sample = osc->phase[channel] < 0.5 ? 1.0 : -1.0;
 	/* if (do_blep) { */
 	/* BLEP */
-	sample += polyblep(osc->sample_phase_incr, osc->phase[channel]);
-	sample -= polyblep(osc->sample_phase_incr, fmod(osc->phase[channel] + 0.5, 1.0)); 
+	sample += polyblep(phase_incr, osc->phase[channel]);
+	sample -= polyblep(phase_incr, fmod(osc->phase[channel] + 0.5, 1.0)); 
 	/* } */
 	break;
     case WS_TRI:
@@ -670,7 +671,7 @@ static float osc_sample(Osc *osc, int channel, int num_channels, float step)
 	sample = 2.0f * osc->phase[channel] - 1.0;
 	/* if (do_blep) { */\
 	/* BLEP */
-	sample -= polyblep(osc->sample_phase_incr, osc->phase[channel]);
+	sample -= polyblep(phase_incr, osc->phase[channel]);
 	/* } */
 	break;
     default:
@@ -678,9 +679,9 @@ static float osc_sample(Osc *osc, int channel, int num_channels, float step)
     }
     if (osc->freq_modulator) {
 	float fmod_sample = osc_sample(osc->freq_modulator, channel, num_channels, step);
-	osc->phase[channel] += osc->sample_phase_incr * (step * (1.0f + fmod_sample));
+	osc->phase[channel] += phase_incr * (step * (1.0f + fmod_sample));
     } else {
-	osc->phase[channel] += osc->sample_phase_incr * step;
+	osc->phase[channel] += phase_incr * step;
     }
     if (osc->amp_modulator) {
 	sample *= 1.0 + osc_sample(osc->amp_modulator, channel, num_channels, step);
@@ -785,6 +786,15 @@ static void osc_set_freq(Osc *osc, double freq_hz)
     osc->sample_phase_incr = freq_hz / session->proj.sample_rate;    
 }
 
+static void osc_set_pitch_bend(Osc *osc, double freq_rat)
+{
+    Session *session = session_get();
+    double bend_freq = osc->freq * freq_rat;
+    osc->sample_phase_incr_addtl = (bend_freq / session->proj.sample_rate) - osc->sample_phase_incr;
+    fprintf(stderr, "SPHASE: %f, ADDTL: %f\n", osc->sample_phase_incr, osc->sample_phase_incr_addtl); 
+}
+
+
 
 /* static void synth_voice_set_note(SynthVoice *v, uint8_t note_val, uint8_t velocity) */
 /* { */
@@ -798,17 +808,18 @@ static void osc_set_freq(Osc *osc, double freq_hz)
 /*     v->velocity = velocity; */
 /* } */
 
-static void synth_voice_adjust_note(SynthVoice *v, float cents)
+static void synth_voice_pitch_bend(SynthVoice *v, float cents)
 {
-        for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
-	    OscCfg *cfg = v->synth->base_oscs + i;
-	    if (!cfg->active) continue;
-	    for (int j=0; j<SYNTHVOICE_NUM_OSCS; j+= SYNTH_NUM_BASE_OSCS) {
-		Osc *voice = v->oscs + j;
-		double freq_incr = mtof_calc(cents / 100.0f);
-		osc_set_freq(voice, voice->freq + freq_incr);
-	    }
+    double freq_rat = pow(2.0, cents / 1200.0);
+    fprintf(stderr, "FREQ RAT: %f\n", freq_rat);
+    for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
+	OscCfg *cfg = v->synth->base_oscs + i;
+	if (!cfg->active) continue;
+	for (int j=0; j<SYNTHVOICE_NUM_OSCS; j+= SYNTH_NUM_BASE_OSCS) {
+	    Osc *voice = v->oscs + j;
+	    osc_set_pitch_bend(voice, freq_rat);
 	}
+    }
 }
 
 static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, int32_t start_rel)
@@ -1054,12 +1065,11 @@ void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start
     for (int i=0; i<num_events; i++) {
 	/* PmEvent e = s->device.buffer[i]; */
 	PmEvent e = events[i];
-	/* PmTimestamp ts = e.timestamp; */
 	uint8_t status = Pm_MessageStatus(e.message);
 	uint8_t note_val = Pm_MessageData1(e.message);
 	uint8_t velocity = Pm_MessageData2(e.message);
 	uint8_t msg_type = status >> 4;
-	uint8_t channel = status & 0x0F;
+	/* uint8_t channel = status & 0x0F; */
 
 	/* fprintf(stderr, "\t\tIN SYNTH msg%d/%d %x, %d, %d (%s)\n", i, s->num_events, status, note_val, velocity, msg_type == 0x80 ? "OFF" : msg_type == 0x90 ? "ON" : "ERROR"); */
 	/* if (i == 0) start = e.timestamp; */
@@ -1068,17 +1078,17 @@ void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start
 	if (velocity == 0) msg_type = 8;
 	if (msg_type == 8) {
 	    /* HANDLE NOTE OFF */
-	    fprintf(stderr, "NOTE OFF val: %d pos %d\n", note_val, e.timestamp);
+	    /* fprintf(stderr, "NOTE OFF val: %d pos %d\n", note_val, e.timestamp); */
 	    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 		SynthVoice *v = s->voices + i;
 		if (!v->available && v->note_val == note_val) {
-		    fprintf(stderr, "Voice %ld\n", v - s->voices);
-		    if (v->note_off_deferred) {
-			fprintf(stderr, "\t(already deferred)\n");
-		    }
+		    /* fprintf(stderr, "Voice %ld\n", v - s->voices); */
+		    /* if (v->note_off_deferred) { */
+		    /* 	fprintf(stderr, "\t(already deferred)\n"); */
+		    /* } */
 		    if (s->pedal_depressed) {
 			if (!v->note_off_deferred) {
-			    fprintf(stderr, "NUM DEFERRED OFFS: %d\n", s->num_deferred_offs);
+			    /* fprintf(stderr, "NUM DEFERRED OFFS: %d\n", s->num_deferred_offs); */
 			    v->note_off_deferred = true;
 			    if (s->num_deferred_offs < SYNTH_NUM_VOICES) {
 				s->deferred_offs[s->num_deferred_offs] = v;
@@ -1088,15 +1098,8 @@ void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start
 			    }
 			}
 		    } else {
-			/* v->note_end_rel[0] = 0; */
-			/* v->note_end_rel[1] = 0; */
-			/* fprintf(stderr, "START RELEASE ON VOICE %d\n", i); */
 			int32_t end_rel = send_immediate ? 0 : tl_start - e.timestamp;
 			synth_voice_start_release(v, end_rel);
-			/* adsr_start_release(v->amp_env, end_rel); */
-			/* adsr_start_release(v->amp_env + 1, end_rel); */
-			/* adsr_start_release(v->filter_env, end_rel); */
-			/* adsr_start_release(v->filter_env + 1, end_rel); */
 		    }
 		}
 	    }
@@ -1136,12 +1139,13 @@ void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start
 	    }
 	} else if (msg_type == 0xE) { /* Pitch Bend */
 	    float pb = midi_pitch_bend_float_from_event(&e);
+	    fprintf(stderr, "REC'd PITCH BEND! amt: %f, normalized: %f, normalized incorrect: %f\n", pb, pb - 0.5, pb - 1.0);
 	    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 		SynthVoice *v = s->voices + i;
 		if (!v->available) {
 		    enum adsr_stage stage = v->amp_env[0].current_stage;
 		    if (stage > ADSR_UNINIT && stage < ADSR_R) {
-			synth_voice_adjust_note(v, (pb - 0.5) * 200.0);
+			synth_voice_pitch_bend(v, (pb - 0.5) * 200.0);
 		    }
 		}
 	    }

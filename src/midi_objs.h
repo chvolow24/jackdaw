@@ -47,12 +47,23 @@ typedef struct midi_pitch_bend {
     uint8_t channel;
     int32_t pos_rel;
     uint16_t value;
+    float floatval;
+
+    uint8_t data1; /* Redundant, */
+    uint8_t data2; /* but preferred to recalculating */
+
 } MIDIPitchBend;
 
 
-float midi_pitch_bend_float_from_event(PmEvent *e);
 MIDICC midi_cc_from_event(PmEvent *e, int32_t pos_rel);
-/* void midi_cc_from_event(MIDICC *cc, PmEvent *e); */
+
+/* PmEvent note_create_event_no_ts(Note *note, bool is_note_off); */
+PmEvent note_create_event_no_ts(Note *note, uint8_t channel, bool is_note_off);
+PmEvent midi_cc_create_event_no_ts(MIDICC *cc);
+PmEvent midi_pitch_bend_create_event_no_ts(MIDIPitchBend *pb);
+
+MIDIPitchBend midi_pitch_bend_from_event(PmEvent *e, int32_t pos_rel);
+float midi_pitch_bend_float_from_event(PmEvent *e);
 
 double mtof_calc(double m);
 

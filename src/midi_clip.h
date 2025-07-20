@@ -88,7 +88,6 @@ typedef struct midi_clip {
 /* Mirrors audio_clip_create; higher level than alloc->init */
 MIDIClip *midi_clip_create(MIDIDevice *device, Track *target);
 
-
 /* Mandatory initialization after allocating */
 void midi_clip_init(MIDIClip *mclip);
 
@@ -97,6 +96,9 @@ int32_t midi_clipref_check_get_first_note(ClipRef *cr);
 
 void midi_clip_add_cc(MIDIClip *mc, MIDICC cc_in);
 int32_t midi_clipref_check_get_first_cc(ClipRef *cr);
+
+void midi_clip_add_pb(MIDIClip *mc, MIDIPitchBend pb_in);
+int32_t midi_clipref_check_get_first_pb(ClipRef *cr);
 
 int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max_len, int32_t chunk_tl_start, int32_t chunk_tl_end);
 

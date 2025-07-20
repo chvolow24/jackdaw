@@ -348,16 +348,12 @@ void midi_device_record_chunk(MIDIDevice *d, int ts_fmt)
 	} else if (msg_type == 0xB && d->current_clip) { /* Controller */
 	    MIDICC cc = midi_cc_from_event(&e, pos_rel);
 	    midi_clip_add_cc(d->current_clip, cc);
+	} else if (msg_type == 0xE) {
+	    /* fprintf(stderr, "RECORD PITCH BEND!\n"); */
+	    MIDIPitchBend pb = midi_pitch_bend_from_event(&e, pos_rel);
+	    midi_clip_add_pb(d->current_clip, pb);
 	}
-	/* fprintf(stderr, "NOTE Abs time: %d, record start: %d, seconds: %f\n", pos_rel, d->record_start, (double)pos_rel / 96000.0); */
-    }
-    /* exit(0); */
-    /* Write directly to syth :| */
-    /* PmError err = Pm_Write(session->synth.device.stream, session->synth.device.buffer, num_read); */
-    /* fprintf(stderr, "%s\n", Pm_GetErrorText(err)); */
-    /* memcpy(session->synth.events, d->buffer, sizeof(PmEvent) * num_read); */
-    /* session->synth.num_events += num_read; */
-    
+    }    
 }
 
 

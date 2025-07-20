@@ -63,6 +63,8 @@ typedef struct osc {
     Osc *freq_modulator;
     Osc *amp_modulator;
 
+    double sample_phase_incr_addtl; /* pitch bend */
+
     float last_out[2];
     float last_in[2];
 } Osc;

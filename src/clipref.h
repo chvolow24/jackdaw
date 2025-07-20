@@ -53,7 +53,8 @@ typedef struct clip_ref {
 
     /* MIDI only */
     int32_t first_note; /* index of the first note in clipref, or -1 if invalid */
-    int32_t first_cc; /* index of first cc */
+    int32_t first_cc; /* index of first control change */
+    int32_t first_pb; /* index of first pitch bend */
 } ClipRef;
 
 

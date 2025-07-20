@@ -4,6 +4,7 @@
 #include "clipref.h"
 #include "midi_clip.h"
 #include "midi_io.h"
+#include "midi_objs.h"
 #include "portmidi.h"
 #include "prompt_user.h"
 #include "session.h"
@@ -487,17 +488,26 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 		len -= 2;
 		break;
 	    case 0xB0: // Controller
-		/* fgetc(f); fgetc(f); */
+		fgetc(f); fgetc(f);
 		len -= 2;
-		fprintf(stderr, "CONTROL: %d %d\n", fgetc(f), fgetc(f));
+		/* fprintf(stderr, "CONTROL: %d %d\n", fgetc(f), fgetc(f)); */
 		break;
 
 	    case 0xE0: {// Pitch bend
 		uint8_t lsb = fgetc(f);
 		uint8_t msb = fgetc(f);
 		uint16_t val = (msb << 7) + lsb;
-		float floatval = (float)val / 16384.0f;
-		fprintf(stderr, "(%d) PB channel %d float: %f\n", e.timestamp, channel, floatval);
+		/* float floatval = (float)val / 16384.0f; */
+		/* MIDIPitchBend pb = midi_pitch_bend_from_event(&e, 0); */
+		uint8_t clip_index = file_info.format == 0 ? channel : track_index - 1;
+		e.message = Pm_Message(status, lsb, msb);
+		v_device[clip_index].buffer[v_device[clip_index].num_unconsumed_events] = e;
+		v_device[clip_index].num_unconsumed_events++;
+		if (v_device[clip_index].num_unconsumed_events == PM_EVENT_BUF_NUM_EVENTS) {
+		    midi_device_record_chunk(&v_device[clip_index], 0);
+		    v_device[clip_index].num_unconsumed_events = 0;
+		}
+
 		/* fgetc(f); fgetc(f); */
 		len -= 2;
 	    }

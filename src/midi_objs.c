@@ -86,9 +86,6 @@ double mtof_calc(double m)
     return 440.0 * pow(2.0, ((m - 69.0) / 12.0));
 }
 
-
-
-
 const double MTOF[] = {
     8.176,
     8.662,

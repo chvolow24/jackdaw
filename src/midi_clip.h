@@ -91,7 +91,7 @@ MIDIClip *midi_clip_create(MIDIDevice *device, Track *target);
 /* Mandatory initialization after allocating */
 void midi_clip_init(MIDIClip *mclip);
 
-void midi_clip_add_note(MIDIClip *mc, int note_val, int velocity, int32_t start_rel, int32_t end_rel);
+void midi_clip_add_note(MIDIClip *mc, int channel, int note_val, int velocity, int32_t start_rel, int32_t end_rel);
 int32_t midi_clipref_check_get_first_note(ClipRef *cr);
 
 void midi_clip_add_cc(MIDIClip *mc, MIDICC cc_in);
@@ -104,4 +104,10 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 
 /* Destroys all refs */
 void midi_clip_destroy(MIDIClip *mc);
+
+/* Allocates an array at dst, return number of events */
+int midi_clip_get_all_events(MIDIClip *mclip, PmEvent **dst);
+
+/* Add notes etc. */
+void midi_clip_read_events(MIDIClip *mclip, PmEvent *events, uint32_t num_events, enum midi_ts_type, int32_t ts_offset);
 #endif

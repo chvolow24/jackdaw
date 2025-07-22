@@ -43,6 +43,11 @@ void midi_io_deinit(void);
 typedef struct midi_clip MIDIClip;
 typedef struct synth Synth;
 
+enum midi_ts_type {
+    MIDI_TS_SFRAMES,
+    MIDI_TS_MSEC
+};
+
 typedef struct midi_device {
     int32_t latency; /* Applicable for output devices only */
     PmDeviceID id;
@@ -98,7 +103,7 @@ int midi_device_close(MIDIDevice *d);
 void midi_device_read(MIDIDevice *d);
 typedef struct clip_ref ClipRef;
 /* ts_fmt: 0 = sample frames, 1 = msec */
-void midi_device_record_chunk(MIDIDevice *d, int ts_fmt);
+void midi_device_record_chunk(MIDIDevice *d, enum midi_ts_type);
 int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max_len, int32_t chunk_tl_start, int32_t chunk_tl_end);
 
 void timeline_flush_unclosed_midi_notes();

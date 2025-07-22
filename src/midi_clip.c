@@ -1,5 +1,6 @@
 #include "clipref.h"
 #include "midi_clip.h"
+#include "midi_io.h"
 #include "test.h"
 #include "session.h"
 
@@ -73,7 +74,7 @@ TEST_FN_DEF(check_note_order, {
 	return 0;
     }, MIDIClip *mclip);
 
-void midi_clip_add_note(MIDIClip *mc, int note_val, int velocity, int32_t start_rel, int32_t end_rel)
+void midi_clip_add_note(MIDIClip *mc, int channel, int note_val, int velocity, int32_t start_rel, int32_t end_rel)
 {
     if (!mc->notes) {
 	mc->notes_alloc_len = 32;
@@ -89,6 +90,7 @@ void midi_clip_add_note(MIDIClip *mc, int note_val, int velocity, int32_t start_
 	*note = *(note - 1);
 	note--;
     }
+    note->channel = channel;
     note->note = note_val;
     note->velocity = velocity;
     note->start_rel = start_rel;
@@ -99,7 +101,7 @@ void midi_clip_add_note(MIDIClip *mc, int note_val, int velocity, int32_t start_
 
 void midi_clip_add_cc(MIDIClip *mc, MIDICC cc_in)
 {
-    fprintf(stderr, "(%d) ADD CC type %d val %d\n", cc_in.pos_rel, cc_in.type, cc_in.value);
+    /* fprintf(stderr, "(%d) ADD CC type %d val %d\n", cc_in.pos_rel, cc_in.type, cc_in.value); */
     if (!mc->ccs) {
 	mc->ccs_alloc_len = 32;
 	mc->ccs = calloc(mc->ccs_alloc_len, sizeof(MIDICC));
@@ -120,7 +122,7 @@ void midi_clip_add_cc(MIDIClip *mc, MIDICC cc_in)
 
 void midi_clip_add_pb(MIDIClip *mc, MIDIPitchBend pb_in)
 {
-    fprintf(stderr, "(%d) ADD PB val %d float %f\n", pb_in.pos_rel, pb_in.value, pb_in.floatval);
+    /* fprintf(stderr, "(%d) ADD PB val %d float %f\n", pb_in.pos_rel, pb_in.value, pb_in.floatval); */
     if (!mc->pbs) {
 	mc->pbs_alloc_len = 32;
 	mc->pbs = calloc(mc->pbs_alloc_len, sizeof(MIDIPitchBend));
@@ -263,18 +265,23 @@ static void note_off_rb_insert(struct midi_event_ring_buf *rb, PmEvent note_off)
     rb->num_queued++;
 }
 
-int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max_len, int32_t chunk_tl_start, int32_t chunk_tl_end)
+/* Output an array of PmEvents */
+int midi_clip_output_chunk(
+    MIDIClip *mclip,
+    int32_t *start_pos_rel,
+    const int32_t chunk_len_sframes,
+    PmEvent *event_buf,
+    int event_buf_max_len,
+    struct midi_event_ring_buf *note_offs_rb)
 {
-    if (cr->type == CLIP_AUDIO) return 0;
 
-    MIDIClip *mclip = cr->source_clip;
+    int32_t end_pos = *start_pos_rel + chunk_len_sframes;
+    if (end_pos > mclip->len_sframes) end_pos = mclip->len_sframes;
     int event_i = 0;
-
-    struct midi_event_ring_buf *rb = &cr->track->note_offs;
     
-    int32_t note_i = midi_clipref_check_get_first_note(cr);
-    int32_t cc_i = midi_clipref_check_get_first_cc(cr);
-    int32_t pb_i = midi_clipref_check_get_first_pb(cr);
+    int32_t note_i = mclip->num_notes > 0 ? 0 : -1;
+    int32_t cc_i = mclip->num_ccs > 0 ? 0 : -1;
+    int32_t pb_i = mclip->num_pbs > 0 ? 0 : -1;
 
     Note *note;
     MIDICC *cc;
@@ -302,9 +309,9 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 	bool insert_pb = false;
 	bool insert_note_off = false;
 
-	int32_t note_pos;
-	int32_t cc_pos;
-	int32_t pb_pos;
+	/* int32_t note_pos; */
+	/* int32_t cc_pos; */
+	/* int32_t pb_pos; */
 
 	while (notes_remaining) {
 	    if (note_i < 0 || note_i >= mclip->num_notes) {
@@ -313,10 +320,10 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 		break;
 	    }
 	    note = mclip->notes + note_i;
-	    if ((note_pos = note_tl_start_pos(note, cr)) >= chunk_tl_start) {
+	    if (note->start_rel >= *start_pos_rel) {
 		/* Found next note in chunk */
 		break;
-	    } else if (note_pos > chunk_tl_end) {
+	    } else if (note->start_rel > end_pos) {
 		note = NULL;
 		notes_remaining = false;
 		break;
@@ -331,10 +338,10 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 		break;
 	    }
 	    cc = mclip->ccs + cc_i;
-	    if ((cc_pos = cc_tl_pos(cc, cr)) >= chunk_tl_start) {
+	    if (cc->pos_rel >= *start_pos_rel) {
 		/* Found next CC in chunk */
 		break;
-	    } else if (cc_pos > chunk_tl_end) {
+	    } else if (cc->pos_rel > end_pos) {
 		cc = NULL;
 		ccs_remaining = false;
 	    }
@@ -348,11 +355,11 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 		break;
 	    }
 	    pb = mclip->pbs + pb_i;
-	    if ((pb_pos = pb_tl_pos(pb, cr)) >= chunk_tl_start) {
+	    if (pb->pos_rel >= *start_pos_rel) {
 		
 		/* Found first PB in chunk */
 		break;
-	    } else if (pb_pos > chunk_tl_end) {
+	    } else if (pb->pos_rel > end_pos) {
 		pb = NULL;
 		pbs_remaining = false;
 	    }
@@ -366,30 +373,30 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 	/* fprintf(stderr, "\tRUNNING TS: %d, ts: %d\n", running_ts, ts); */
 	int32_t running_ts = INT32_MAX;
 	/* fprintf(stderr, "Note pos: %d, cc_pos: %d, pb_pos: %d\n", note_pos, cc_pos, pb_pos); */
-	if (note && note_pos < running_ts) {
+	if (note && note->start_rel < running_ts) {
 	    insert_note = true;
-	    running_ts = note_pos;		
+	    running_ts = note->start_rel;		
 	}
-	if (cc && cc_pos < running_ts) {
+	if (cc && cc->pos_rel < running_ts) {
 	    insert_note = false;
 	    insert_cc = true;
-	    running_ts = cc_pos;
+	    running_ts = cc->pos_rel;
 	}
-	if (pb && pb_pos < running_ts) {
+	if (pb && pb->pos_rel < running_ts) {
 	    insert_note = false;
 	    insert_cc = false;
 	    insert_pb = true;
-	    running_ts = pb_pos;
+	    running_ts = pb->pos_rel;
 	}
 
 	/* Event exceeds chunk (still at INT32_MAX or event ts past chunk): we're done */
 
 	PmEvent *note_off = NULL;
 	/* If 'running_ts' note set by other object, use chunk end */
-	int32_t note_off_bound = running_ts > chunk_tl_end ? chunk_tl_end - 1 : running_ts;
+	int32_t note_off_bound = running_ts > end_pos ? end_pos - 1 : running_ts;
 	/* fprintf(stderr, "\t\tBound: %d; num queued? %d; read i? %d; cmp ts? %d\n", note_off_bound, rb->num_queued, rb->read_i, rb->buf[rb->read_i].timestamp); */
 	/* fprintf(stderr, "note off bound: %d\n", note_off_bound); */
-	if ((note_off = note_off_rb_check_pop_event(rb, note_off_bound))) {
+	if ((note_off = note_off_rb_check_pop_event(note_offs_rb, note_off_bound))) {
 	    /* fprintf(stderr, "\tPopped! pos %d\n", note_off->timestamp); */
 	    running_ts = note_off->timestamp;
 	    insert_note = false;
@@ -399,7 +406,7 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 	    /* exit(0); */
 	}
 
-	if (!insert_note_off && running_ts >= chunk_tl_end) {
+	if (!insert_note_off && running_ts >= end_pos) {
 	    /* fprintf(stderr, "EXIT due to running ts: %d\n", running_ts); */
 	    break;
 	}
@@ -415,10 +422,11 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 	    /* fprintf(stderr, "(%d) NOTE %d\n", running_ts, note->note); */
 	    /* Queue the note off! */
 	    PmEvent e_off = note_create_event_no_ts(note, 0, true);
-	    int32_t note_end = note_tl_end_pos(note, cr);
-	    int32_t clipref_end = cr->tl_pos + clipref_len(cr);
-	    e_off.timestamp = note_end > clipref_end - 1 ? clipref_end - 1 : note_end;
-	    note_off_rb_insert(rb, e_off);
+	    
+	    /* int32_t note_end = note_tl_end_pos(note, cr); */
+	    /* int32_t clipref_end = cr->tl_pos + clipref_len(cr); */
+	    e_off.timestamp = note->end_rel;
+	    note_off_rb_insert(note_offs_rb, e_off);
 	} else if (insert_cc) {
 	    e = midi_cc_create_event_no_ts(cc);
 	    cc_i++;
@@ -433,7 +441,7 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 	    break; /* No more events to insert */
 	}
 	e.timestamp = running_ts;
-	/* fprintf(stderr, "\tInsert event at %d\n", running_ts); */
+	fprintf(stderr, "\tInsert event at %d\n", running_ts);
 	event_buf[event_i] = e;
 	event_i++;
 	if (event_i == event_buf_max_len) {
@@ -442,7 +450,295 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 	}	
     }
     return event_i;
-}    
+}
+
+static int event_cmp(const void *obj1, const void *obj2)
+{
+    const PmEvent *e1 = obj1;
+    const PmEvent *e2 = obj2;
+    if (e1->timestamp == e2->timestamp) {
+	return Pm_MessageStatus(e1->message) - Pm_MessageStatus(e2->message);
+    }
+    return e1->timestamp - e2->timestamp;
+}
+
+void midi_clip_read_events(MIDIClip *mclip, PmEvent *events, uint32_t num_events, enum midi_ts_type ts_type, int32_t ts_offset)
+{
+    Session *session = session_get();
+    Note unclosed_notes[128];
+    for (uint32_t i=0; i<num_events; i++) {
+	PmEvent e = events[i];
+	uint8_t status = Pm_MessageStatus(e.message);
+	uint8_t channel = status & 0x0F;
+	uint8_t note_val = Pm_MessageData1(e.message);
+	uint8_t velocity = Pm_MessageData2(e.message);
+	uint8_t msg_type = status >> 4;
+	int32_t pos_rel;
+	if (ts_type == MIDI_TS_SFRAMES) {
+	    pos_rel = e.timestamp;
+	} else if (ts_type == MIDI_TS_MSEC) { /* MSEC */
+	    pos_rel = ((double)e.timestamp - ts_offset) * (double)session->proj.sample_rate / 1000.0;
+	} else {
+	    return;
+	}
+	/* fprintf(stderr, "EVENT %d/%d, timestamp: %d pos rel %d (record start %d)\n", i, d->num_unconsumed_events, e.timestamp, pos_rel, d->record_start); */
+	if (msg_type == 9) {
+	    Note *unclosed = unclosed_notes + note_val;
+	    unclosed->note = note_val;
+	    unclosed->velocity = velocity;
+	    unclosed->start_rel = pos_rel;
+	    unclosed->unclosed = true;
+	} else if (msg_type == 8) {
+	    Note *unclosed = unclosed_notes + note_val;
+	    /* if (d->current_clip) */
+	    if (unclosed->unclosed) {
+		midi_clip_add_note(mclip, channel, note_val, unclosed->velocity, unclosed->start_rel, pos_rel);
+		unclosed->unclosed = false;
+	    }
+	} else if (msg_type == 0xB) { /* Controller */
+	    MIDICC cc = midi_cc_from_event(&e, pos_rel);
+	    midi_clip_add_cc(mclip, cc);
+	} else if (msg_type == 0xE) {
+	    /* fprintf(stderr, "RECORD PITCH BEND!\n"); */
+	    MIDIPitchBend pb = midi_pitch_bend_from_event(&e, pos_rel);
+	    midi_clip_add_pb(mclip, pb);
+	}
+    }
+}
+
+int midi_clip_get_all_events(MIDIClip *mclip, PmEvent **dst)
+{
+    int alloc_len = 128;
+    int num_events = 0;
+    *dst = malloc(alloc_len * sizeof(PmEvent));
+    for (int i=0; i<mclip->num_notes; i++) {
+	Note *note = mclip->notes + i;
+	PmEvent note_on, note_off;
+	note_on.timestamp = note->start_rel;
+	note_on.message = Pm_Message(
+	    0x90 + note->channel,
+	    note->note,
+	    note->velocity);
+	note_off.timestamp = note->end_rel;
+	note_off.message = Pm_Message(
+	    0x80 + note->channel,
+	    note->note,
+	    note->velocity);
+	if (num_events + 2 >= alloc_len) {
+	    alloc_len *= 2;
+	    *dst = realloc(*dst, alloc_len * sizeof(PmEvent));
+	}
+	(*dst)[num_events] = note_on;
+	num_events++;
+	(*dst)[num_events] = note_off;
+	num_events++;
+    }
+    qsort(*dst, num_events, sizeof(PmEvent), event_cmp);
+    return num_events;
+}
+
+int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max_len, int32_t chunk_tl_start, int32_t chunk_tl_end)
+{
+    if (cr->type == CLIP_AUDIO) return 0;
+
+    MIDIClip *mclip = cr->source_clip;
+
+    struct midi_event_ring_buf *rb = &cr->track->note_offs;
+
+    int32_t start_pos = chunk_tl_start - cr->tl_pos + cr->start_in_clip;
+    /* fprintf(stderr, "GET CHUNK clip start %d\n", start_pos); */
+    int num_events = midi_clip_output_chunk(
+	mclip,
+	&start_pos,
+	chunk_tl_end - chunk_tl_start,
+	event_buf,
+	event_buf_max_len,
+	rb);
+    /* fprintf(stderr, "\tNUM EVENTS: %d\n", num_events); */
+    for (int i=0; i<num_events; i++) {
+	event_buf[i].timestamp += chunk_tl_start;
+    }
+    if (chunk_tl_end > cr->tl_pos + clipref_len(cr)) {
+	PmEvent *e;
+	while ((e = note_off_rb_check_pop_event(rb, INT32_MAX)) && num_events < event_buf_max_len) {
+	    event_buf[num_events] = *e;
+	    event_buf[num_events].timestamp += chunk_tl_start;
+	    num_events++;
+	}
+    }
+    return num_events;
+    
+    /* int32_t note_i = midi_clipref_check_get_first_note(cr); */
+    /* int32_t cc_i = midi_clipref_check_get_first_cc(cr); */
+    /* int32_t pb_i = midi_clipref_check_get_first_pb(cr); */
+
+    /* Note *note; */
+    /* MIDICC *cc; */
+    /* MIDIPitchBend *pb; */
+
+    /* bool notes_remaining = true; */
+    /* bool ccs_remaining = true; */
+    /* bool pbs_remaining = true; */
+
+    /* /\* fprintf(stderr, "\n\nCHUNK %d-%d\n", chunk_tl_start, chunk_tl_end); *\/ */
+    /* while (1) { */
+
+    /* 	/\* Get the next event: */
+    /* 	   - if obj, */
+    /* 	   - and obj ts before chunk, */
+    /* 	   - skip ahead til obj ts after chunk start */
+    /* 	   - if obj ts in chunk, */
+    /* 	   - cmp to running_ts to find min */
+    /* 	   - insert min */
+    /* 	   - repeat */
+    /* 	*\/ */
+
+    /* 	bool insert_note = false; */
+    /* 	bool insert_cc = false; */
+    /* 	bool insert_pb = false; */
+    /* 	bool insert_note_off = false; */
+
+    /* 	int32_t note_pos; */
+    /* 	int32_t cc_pos; */
+    /* 	int32_t pb_pos; */
+
+    /* 	while (notes_remaining) { */
+    /* 	    if (note_i < 0 || note_i >= mclip->num_notes) { */
+    /* 		note = NULL; */
+    /* 		notes_remaining = false; */
+    /* 		break; */
+    /* 	    } */
+    /* 	    note = mclip->notes + note_i; */
+    /* 	    if ((note_pos = note_tl_start_pos(note, cr)) >= chunk_tl_start) { */
+    /* 		/\* Found next note in chunk *\/ */
+    /* 		break; */
+    /* 	    } else if (note_pos > chunk_tl_end) { */
+    /* 		note = NULL; */
+    /* 		notes_remaining = false; */
+    /* 		break; */
+    /* 	    } */
+    /* 	    note_i++; */
+    /* 	} */
+
+    /* 	while (ccs_remaining) { */
+    /* 	    if (cc_i < 0 || cc_i >= mclip->num_ccs) { */
+    /* 		cc = NULL; */
+    /* 		ccs_remaining = false; */
+    /* 		break; */
+    /* 	    } */
+    /* 	    cc = mclip->ccs + cc_i; */
+    /* 	    if ((cc_pos = cc_tl_pos(cc, cr)) >= chunk_tl_start) { */
+    /* 		/\* Found next CC in chunk *\/ */
+    /* 		break; */
+    /* 	    } else if (cc_pos > chunk_tl_end) { */
+    /* 		cc = NULL; */
+    /* 		ccs_remaining = false; */
+    /* 	    } */
+    /* 	    cc_i++; */
+    /* 	} */
+
+    /* 	while (pbs_remaining) { */
+    /* 	    if (pb_i < 0 || pb_i >= mclip->num_pbs) { */
+    /* 		pb = NULL; */
+    /* 		pbs_remaining = false; */
+    /* 		break; */
+    /* 	    } */
+    /* 	    pb = mclip->pbs + pb_i; */
+    /* 	    if ((pb_pos = pb_tl_pos(pb, cr)) >= chunk_tl_start) { */
+		
+    /* 		/\* Found first PB in chunk *\/ */
+    /* 		break; */
+    /* 	    } else if (pb_pos > chunk_tl_end) { */
+    /* 		pb = NULL; */
+    /* 		pbs_remaining = false; */
+    /* 	    } */
+    /* 	    pb_i++; */
+    /* 	} */
+	
+	
+    /* 	/\* fprintf(stderr, "\n\nCHUNK %d - %d\n", chunk_tl_start, chunk_tl_end); *\/ */
+    /* 	/\* fprintf(stderr, "\tindices? %d %d %d\n", note_i, cc_i, pb_i); *\/ */
+    /* 	/\* fprintf(stderr, "\tobjs? %p %p %p\n", note, cc, pb); *\/ */
+    /* 	/\* fprintf(stderr, "\tRUNNING TS: %d, ts: %d\n", running_ts, ts); *\/ */
+    /* 	int32_t running_ts = INT32_MAX; */
+    /* 	/\* fprintf(stderr, "Note pos: %d, cc_pos: %d, pb_pos: %d\n", note_pos, cc_pos, pb_pos); *\/ */
+    /* 	if (note && note_pos < running_ts) { */
+    /* 	    insert_note = true; */
+    /* 	    running_ts = note_pos;		 */
+    /* 	} */
+    /* 	if (cc && cc_pos < running_ts) { */
+    /* 	    insert_note = false; */
+    /* 	    insert_cc = true; */
+    /* 	    running_ts = cc_pos; */
+    /* 	} */
+    /* 	if (pb && pb_pos < running_ts) { */
+    /* 	    insert_note = false; */
+    /* 	    insert_cc = false; */
+    /* 	    insert_pb = true; */
+    /* 	    running_ts = pb_pos; */
+    /* 	} */
+
+    /* 	/\* Event exceeds chunk (still at INT32_MAX or event ts past chunk): we're done *\/ */
+
+    /* 	PmEvent *note_off = NULL; */
+    /* 	/\* If 'running_ts' note set by other object, use chunk end *\/ */
+    /* 	int32_t note_off_bound = running_ts > chunk_tl_end ? chunk_tl_end - 1 : running_ts; */
+    /* 	/\* fprintf(stderr, "\t\tBound: %d; num queued? %d; read i? %d; cmp ts? %d\n", note_off_bound, rb->num_queued, rb->read_i, rb->buf[rb->read_i].timestamp); *\/ */
+    /* 	/\* fprintf(stderr, "note off bound: %d\n", note_off_bound); *\/ */
+    /* 	if ((note_off = note_off_rb_check_pop_event(rb, note_off_bound))) { */
+    /* 	    /\* fprintf(stderr, "\tPopped! pos %d\n", note_off->timestamp); *\/ */
+    /* 	    running_ts = note_off->timestamp; */
+    /* 	    insert_note = false; */
+    /* 	    insert_cc = false; */
+    /* 	    insert_pb = false; */
+    /* 	    insert_note_off = true; */
+    /* 	    /\* exit(0); *\/ */
+    /* 	} */
+
+    /* 	if (!insert_note_off && running_ts >= chunk_tl_end) { */
+    /* 	    /\* fprintf(stderr, "EXIT due to running ts: %d\n", running_ts); *\/ */
+    /* 	    break; */
+    /* 	} */
+
+
+
+    /* 	/\* fprintf(stderr, "\tEvent? %d %d %d %d\n", insert_note, insert_cc, insert_pb, insert_note_off); *\/ */
+    /* 	/\* Do the insertion if available *\/ */
+    /* 	PmEvent e; */
+    /* 	if (insert_note) { */
+    /* 	    e = note_create_event_no_ts(note, 0, false); */
+    /* 	    note_i++; */
+    /* 	    /\* fprintf(stderr, "(%d) NOTE %d\n", running_ts, note->note); *\/ */
+    /* 	    /\* Queue the note off! *\/ */
+    /* 	    PmEvent e_off = note_create_event_no_ts(note, 0, true); */
+    /* 	    int32_t note_end = note_tl_end_pos(note, cr); */
+    /* 	    int32_t clipref_end = cr->tl_pos + clipref_len(cr); */
+    /* 	    e_off.timestamp = note_end > clipref_end - 1 ? clipref_end - 1 : note_end; */
+    /* 	    note_off_rb_insert(rb, e_off); */
+    /* 	} else if (insert_cc) { */
+    /* 	    e = midi_cc_create_event_no_ts(cc); */
+    /* 	    cc_i++; */
+    /* 	} else if (insert_pb) { */
+    /* 	    e = midi_pitch_bend_create_event_no_ts(pb); */
+    /* 	    pb_i++; */
+    /* 	} else if (insert_note_off) { */
+    /* 	    /\* fprintf(stderr, "(%d) NOTE OFF %d\n", running_ts, Pm_MessageData1(note_off->message)); *\/ */
+    /* 	    e = *note_off; */
+    /* 	} else { */
+    /* 	    /\* fprintf(stderr, "Break! no more\n"); *\/ */
+    /* 	    break; /\* No more events to insert *\/ */
+    /* 	} */
+    /* 	e.timestamp = running_ts; */
+    /* 	/\* fprintf(stderr, "\tInsert event at %d\n", running_ts); *\/ */
+    /* 	event_buf[event_i] = e; */
+    /* 	event_i++; */
+    /* 	if (event_i == event_buf_max_len) { */
+    /* 	    /\* fprintf(stderr, "EVENT BUF FULL\n"); *\/ */
+    /* 	    break; */
+    /* 	}	 */
+    /* } */
+    /* return event_i; */
+}
 
 /* /\* Return the number of events written *\/ */
 /* int midi_clipref_output_chunk_old(ClipRef *cr, PmEvent *event_buf, int event_buf_max_len, int32_t chunk_tl_start, int32_t chunk_tl_end) */

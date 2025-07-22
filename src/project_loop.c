@@ -27,12 +27,10 @@
 #include "function_lookup.h"
 #include "input.h"
 #include "layout.h"
-#include "midi_file.h"
 #include "midi_clip.h"
 #include "mouse.h"
 #include "project.h"
 #include "project_draw.h"
-#include "prompt_user.h"
 #include "screenrecord.h"
 #include "session_endpoint_ops.h"
 #include "session.h"
@@ -248,7 +246,7 @@ void loop_project_main()
 
 		    int32_t start = 96000 * 5;
 		    /* int32_t end = 10000; */
-		    midi_clip_add_note(mclip, 69, 108, 100, 100 + 96000);
+		    midi_clip_add_note(mclip, 0, 69, 108, 100, 100 + 96000);
 		    srand(time(NULL));
 		    mclip->len_sframes = 96000 * 5;
 		    for (int i=0; i<900; i++) {
@@ -259,7 +257,7 @@ void loop_project_main()
 			for (int i=25; i<25 + 80; i+=interval) {
 			    interval += rand() % 4 - 2;
 			    if (interval <= 0) interval += rand() %4 + 1;
-			    midi_clip_add_note(mclip, i, velocity, start, start + dur);
+			    midi_clip_add_note(mclip, i, 0, velocity, start, start + dur);
 			    start += t_interval;;
 			    /* end += 3000; */
 			    /* mclip->len_sframes += t_interval; */

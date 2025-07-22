@@ -21,6 +21,8 @@
 #include "file_backup.h"
 #include "fir_filter.h"
 #include "midi_clip.h"
+#include "midi_file.h"
+#include "midi_io.h"
 #include "project.h"
 #include "session.h"
 #include "tempo.h"
@@ -53,7 +55,7 @@ const static char hdr_click_segm[] = {'C', 'T', 'S', 'G'};
 const static char hdr_trck_efct[] = {'E', 'F', 'C', 'T'};
 const static char hdr_trck_synth[] = {'S','Y','N','T','H'};
 
-const static char current_file_spec_version[] = {'0','0','.','1','8'};
+const static char current_file_spec_version[] = {'0','0','.','1','9'};
 /* const static float current_file_spec_version_f = 0.11f; */
 
 /* const static char nullterm = '\0'; */
@@ -211,29 +213,21 @@ static void jdaw_write_clip(FILE *f, Clip *clip, int index)
 }
 
 
-static void jdaw_write_midi_note(FILE *f, Note *note);
+/* static void jdaw_write_midi_note(FILE *f, Note *note); */
 static void jdaw_write_midi_clip(FILE *f, MIDIClip *mclip)
 {
     fwrite(hdr_mclip, 1, 5, f);
     uint8_t namelen = strlen(mclip->name);
     uint8_ser(f, &namelen);
-    fwrite(&mclip->name, 1, namelen, f);
+    fwrite(&mclip->name, 1, namelen, f);    
     uint32_ser_le(f, &mclip->len_sframes);
-    uint32_ser_le(f, &mclip->num_notes);
-    for (uint32_t i=0; i<mclip->num_notes; i++) {
-	jdaw_write_midi_note(f, mclip->notes + i);
-    }
-}
 
-static void jdaw_write_midi_note(FILE *f, Note *note)
-{
-    /* fprintf(stderr, "Writing note...\n"); */
-    uint8_ser(f, &note->note);
-    uint8_ser(f, &note->velocity);
-    int32_ser_le(f, &note->start_rel);
-    int32_ser_le(f, &note->end_rel);
-}
 
+    /* INSTEAD of writing objects, write midi stream */
+    PmEvent *events;
+    int num_events = midi_clip_get_all_events(mclip, &events);
+    midi_serialize_events(f, events, num_events);
+}
 
 static void jdaw_write_track(FILE *f, Track *track);
 static void jdaw_write_click_track(FILE *f, ClickTrack *ct);
@@ -616,7 +610,7 @@ int jdaw_read_file(Project *dst, const char *path)
 	/* fread(&num_clips, 2, 1, f); */
     }
 
-    if (read_file_spec_version >= 0.18) {
+    if (read_file_spec_version > 0.17) {
 	num_midi_clips = uint16_deser_le(f);
     } else {
 	num_midi_clips = 0;
@@ -783,15 +777,22 @@ static int jdaw_read_midi_clip(FILE *f, Project *proj)
     mclip->name[name_length] = '\0';
     mclip->len_sframes = uint32_deser_le(f);
 
-    uint32_t num_notes = uint32_deser_le(f);
+    /* Read MIDI stream */
     /* mclip->num_notes = uint32_deser_le(f); */
-    int err;
-    for (uint32_t i=0; i<num_notes; i++) {
-	err = jdaw_read_midi_note(f, mclip);
-	if (err != 0) {
-	    fprintf(stderr, "Error: unable to deserialize MIDI note.\n");
-	    return err;
+    if (read_file_spec_version < 0.19) {
+	uint32_t num_notes = uint32_deser_le(f);
+	int err;
+	for (uint32_t i=0; i<num_notes; i++) {
+	    err = jdaw_read_midi_note(f, mclip);
+	    if (err != 0) {
+		fprintf(stderr, "Error: unable to deserialize MIDI note.\n");
+		return err;
+	    }
 	}
+    } else {
+	PmEvent *events;
+	uint32_t num_events = midi_deserialize_events(f, &events);
+	midi_clip_read_events(mclip, events, num_events, MIDI_TS_SFRAMES, 0);
     }
     return 0;
 }
@@ -804,7 +805,7 @@ static int jdaw_read_midi_note(FILE *f, MIDIClip *mclip)
     velocity = uint8_deser(f);
     start_rel = int32_deser_le(f);
     end_rel = int32_deser_le(f);
-    midi_clip_add_note(mclip, note, velocity, start_rel, end_rel);
+    midi_clip_add_note(mclip, 0, note, velocity, start_rel, end_rel);
     return 0;
 }
 

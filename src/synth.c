@@ -698,7 +698,6 @@ static float osc_sample(Osc *osc, int channel, int num_channels, float step)
     return sample * osc->amp * pan_scale(osc->pan, channel);
 }
 
-
 static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int channel, float step)
 {
     if (v->available) return;
@@ -784,13 +783,13 @@ static void osc_set_freq(Osc *osc, double freq_hz)
     Session *session = session_get();
     osc->freq = freq_hz;
     osc->sample_phase_incr = freq_hz / session->proj.sample_rate;
-
-    fprintf(stderr, "OSC %p SFI: %f, ADDTL: %f\n", osc, osc->sample_phase_incr, osc->sample_phase_incr_addtl);
+    /* osc->sample_phase_incr_addtl = 0; */
+    /* fprintf(stderr, "OSC %p SFI: %f, ADDTL: %f\n", osc, osc->sample_phase_incr, osc->sample_phase_incr_addtl); */
 }
 
 static void osc_set_pitch_bend(Osc *osc, double freq_rat)
 {
-    fprintf(stderr, "SET PB\n");
+    /* fprintf(stderr, "SET PB\n"); */
     Session *session = session_get();
     double bend_freq = osc->freq * freq_rat;
     osc->sample_phase_incr_addtl = (bend_freq / session->proj.sample_rate) - osc->sample_phase_incr;
@@ -813,10 +812,10 @@ static void osc_set_pitch_bend(Osc *osc, double freq_rat)
 static void synth_voice_pitch_bend(SynthVoice *v, float cents)
 {
     double freq_rat = pow(2.0, cents / 1200.0);
-    fprintf(stderr, "FREQ RAT: %f\n", freq_rat);
+    /* fprintf(stderr, "FREQ RAT: %f\n", freq_rat); */
     for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
 	OscCfg *cfg = v->synth->base_oscs + i;
-	if (!cfg->active) continue;
+	/* if (!cfg->active) continue; */
 	for (int j=0; j<SYNTHVOICE_NUM_OSCS; j+= SYNTH_NUM_BASE_OSCS) {
 	    Osc *voice = v->oscs + j;
 	    osc_set_pitch_bend(voice, freq_rat);
@@ -1144,12 +1143,12 @@ void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start
 	    fprintf(stderr, "REC'd PITCH BEND! amt: %f, normalized: %f, normalized incorrect: %f\n", pb, pb - 0.5, pb - 1.0);
 	    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 		SynthVoice *v = s->voices + i;
-		if (!v->available) {
-		    enum adsr_stage stage = v->amp_env[0].current_stage;
-		    if (stage > ADSR_UNINIT && stage < ADSR_R) {
-			synth_voice_pitch_bend(v, (pb - 0.5) * 200.0);
-		    }
-		}
+		synth_voice_pitch_bend(v, 2.0f * (pb - 0.5) * 200.0);
+		/* if (!v->available) { */
+		/*     enum adsr_stage stage = v->amp_env[0].current_stage; */
+		/*     if (stage > ADSR_UNINIT) { */
+		/*     } */
+		/* } */
 	    }
 	} else if (msg_type == 0xB) { /* Control change */
 	    MIDICC cc = midi_cc_from_event(&e, 0);

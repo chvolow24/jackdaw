@@ -24,6 +24,7 @@
 #include "portmidi.h"
 
 typedef struct note {
+    uint8_t channel;
     uint8_t note;
     uint8_t velocity;
     int32_t start_rel; /* sample frames from clip start */

@@ -9,7 +9,6 @@
 #include "iir.h"
 /* #include "test.h" */
 /* #include "modal.h" */
-#include "label.h"
 #include "synth.h"
 #include "session.h"
 
@@ -814,7 +813,7 @@ static void synth_voice_pitch_bend(SynthVoice *v, float cents)
     double freq_rat = pow(2.0, cents / 1200.0);
     /* fprintf(stderr, "FREQ RAT: %f\n", freq_rat); */
     for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
-	OscCfg *cfg = v->synth->base_oscs + i;
+	/* OscCfg *cfg = v->synth->base_oscs + i; */
 	/* if (!cfg->active) continue; */
 	for (int j=0; j<SYNTHVOICE_NUM_OSCS; j+= SYNTH_NUM_BASE_OSCS) {
 	    Osc *voice = v->oscs + j;
@@ -1151,15 +1150,17 @@ void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start
 		/* } */
 	    }
 	} else if (msg_type == 0xB) { /* Control change */
-	    MIDICC cc = midi_cc_from_event(&e, 0);
+	    uint8_t type = Pm_MessageData1(e.message);
+	    uint8_t value = Pm_MessageData2(e.message);
+	    /* MIDICC cc = midi_cc_from_event(&e, 0); */
 	    /* fprintf(stderr, "REC'd contrl change type %d val %d\n", cc.type, cc.value); */
-	    if (cc.type == 64) {
-		s->pedal_depressed = cc.value >= 64;
+	    if (type == 64) {
+		s->pedal_depressed = value >= 64;
 		if (!s->pedal_depressed) {
 		    int32_t end_rel = send_immediate ? 0 : tl_start - e.timestamp;
 		    for (int i=0; i<s->num_deferred_offs; i++) {
 			synth_voice_start_release(s->deferred_offs[i], end_rel);
-			fprintf(stderr, "----RElease Voice %ld\n", s->deferred_offs[i] - s->voices);
+			/* fprintf(stderr, "----RElease Voice %ld\n", s->deferred_offs[i] - s->voices); */
 			s->deferred_offs[i]->note_off_deferred = false;
 			s->deferred_offs[i] = NULL;
 			/* adsr_start_release(s->deferred_offs[i], end_rel); */

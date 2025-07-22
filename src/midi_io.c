@@ -344,12 +344,14 @@ void midi_device_record_chunk(MIDIDevice *d, enum midi_ts_type ts_type)
 		unclosed->unclosed = false;
 	    }
 	} else if (msg_type == 0xB && d->current_clip) { /* Controller */
-	    MIDICC cc = midi_cc_from_event(&e, pos_rel);
-	    midi_clip_add_cc(d->current_clip, cc);
+	    midi_clip_add_controller_change(d->current_clip, e, pos_rel);
+	    /* MIDICC cc = midi_cc_from_event(&e, pos_rel); */
+	    /* midi_clip_add_cc(d->current_clip, cc); */
 	} else if (msg_type == 0xE) {
 	    /* fprintf(stderr, "RECORD PITCH BEND!\n"); */
-	    MIDIPitchBend pb = midi_pitch_bend_from_event(&e, pos_rel);
-	    midi_clip_add_pb(d->current_clip, pb);
+	    midi_clip_add_pitch_bend(d->current_clip, e, pos_rel);
+	    /* MIDIPitchBend pb = midi_pitch_bend_from_event(&e, pos_rel); */
+	    /* midi_clip_add_pb(d->current_clip, pb); */
 	}
     }    
 }

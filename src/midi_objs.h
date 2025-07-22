@@ -32,39 +32,76 @@ typedef struct note {
     bool unclosed; /* used in midi_device_record_chunk */
 } Note;
 
-typedef struct midi_cc {
-    uint8_t channel;
-    int32_t pos_rel;
-    uint8_t type;
-    uint8_t value;
-    bool has_lsb;
-    uint8_t value_LSB;
-    uint16_t precise_value;
-    bool is_switch;
-    bool switch_state;
-} MIDICC;
-
-typedef struct midi_pitch_bend {
-    uint8_t channel;
+typedef struct {
     int32_t pos_rel;
     uint16_t value;
     float floatval;
+} MEvent16bit;
 
-    uint8_t data1; /* Redundant, */
-    uint8_t data2; /* but preferred to recalculating */
+typedef struct {
+    int32_t pos_rel;
+    uint8_t value;
+    float floatval;
+} MEvent8bit;
 
-} MIDIPitchBend;
+
+typedef struct controller {
+    bool in_use;
+    uint8_t type;
+    uint8_t channel;
+    bool has_lsb;
+    MEvent8bit *changes;
+    MEvent16bit *changes_precise;
+    uint16_t num_changes;
+    uint16_t changes_alloc_len;
+} Controller;
+
+typedef struct {
+    uint8_t channel;
+    MEvent16bit *changes;
+    uint16_t num_changes;
+    uint16_t changes_alloc_len;
+
+} PitchBend;
 
 
-MIDICC midi_cc_from_event(PmEvent *e, int32_t pos_rel);
+/* typedef struct midi_cc { */
+/*     uint8_t channel; */
+/*     int32_t pos_rel; */
+/*     uint8_t type; */
+/*     uint8_t value; */
+/*     bool has_lsb; */
+/*     uint8_t value_LSB; */
+/*     uint16_t precise_value; */
+/*     bool is_switch; */
+/*     bool switch_state; */
+/* } MIDICC; */
+
+/* typedef struct midi_pitch_bend { */
+/*     uint8_t channel; */
+/*     int32_t pos_rel; */
+/*     uint16_t value; */
+/*     float floatval; */
+
+/*     uint8_t data1; /\* Redundant, *\/ */
+/*     uint8_t data2; /\* but preferred to recalculating *\/ */
+
+/* } MIDIPitchBend; */
+
+
+/* MIDICC midi_cc_from_event(PmEvent *e, int32_t pos_rel); */
 
 /* PmEvent note_create_event_no_ts(Note *note, bool is_note_off); */
 PmEvent note_create_event_no_ts(Note *note, uint8_t channel, bool is_note_off);
-PmEvent midi_cc_create_event_no_ts(MIDICC *cc);
-PmEvent midi_pitch_bend_create_event_no_ts(MIDIPitchBend *pb);
-
-MIDIPitchBend midi_pitch_bend_from_event(PmEvent *e, int32_t pos_rel);
+/* PmEvent midi_cc_create_event_no_ts(MIDICC *cc); */
+/* PmEvent midi_pitch_bend_create_event_no_ts(MIDIPitchBend *pb); */
+/* MIDIPitchBend midi_pitch_bend_from_event(PmEvent *e, int32_t pos_rel); */
 float midi_pitch_bend_float_from_event(PmEvent *e);
+
+void midi_controller_insert_change(Controller *c, int32_t pos, uint8_t data);
+void midi_pitch_bend_insert_change(PitchBend *pb, int32_t pos, uint8_t data1, uint8_t data2);
+PmEvent midi_controller_make_event(Controller *c, uint16_t index);
+PmEvent pitch_bend_make_event(PitchBend *pb, uint16_t index);
 
 double mtof_calc(double m);
 

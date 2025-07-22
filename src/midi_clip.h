@@ -30,6 +30,7 @@
 #define INIT_NUM_NOTES 16
 /* #define MAX_MIDI_CLIP_REFS (INT16_MAX - 1) */
 #define MAX_NUM_NOTES (INT32_MAX - 1)
+#define MIDI_NUM_CONTROLLERS 120
 
 typedef struct track Track;
 /* typedef struct midi_clip_ref MIDIClipRef; */
@@ -49,14 +50,16 @@ typedef struct midi_clip {
     Note *notes;
     uint32_t num_notes;
     uint32_t notes_alloc_len;
-    
-    MIDICC *ccs;
-    uint32_t num_ccs;
-    uint32_t ccs_alloc_len;
 
-    MIDIPitchBend *pbs;
-    uint32_t num_pbs;
-    uint32_t pbs_alloc_len;
+    Controller controllers[MIDI_NUM_CONTROLLERS];
+    PitchBend pitch_bend;
+    /* MIDICC *ccs; */
+    /* uint32_t num_ccs; */
+    /* uint32_t ccs_alloc_len; */
+
+    /* MIDIPitchBend *pbs; */
+    /* uint32_t num_pbs; */
+    /* uint32_t pbs_alloc_len; */
     
     ClipRef **refs;
     uint16_t num_refs;
@@ -94,11 +97,13 @@ void midi_clip_init(MIDIClip *mclip);
 void midi_clip_add_note(MIDIClip *mc, int channel, int note_val, int velocity, int32_t start_rel, int32_t end_rel);
 int32_t midi_clipref_check_get_first_note(ClipRef *cr);
 
-void midi_clip_add_cc(MIDIClip *mc, MIDICC cc_in);
-int32_t midi_clipref_check_get_first_cc(ClipRef *cr);
+void midi_clip_add_controller_change(MIDIClip *mclip, PmEvent e, int32_t pos);
+void midi_clip_add_pitch_bend(MIDIClip *mclip, PmEvent e, int32_t pos);
 
-void midi_clip_add_pb(MIDIClip *mc, MIDIPitchBend pb_in);
-int32_t midi_clipref_check_get_first_pb(ClipRef *cr);
+/* void midi_clip_add_cc(MIDIClip *mc, MIDICC cc_in); */
+/* int32_t midi_clipref_check_get_first_cc(ClipRef *cr); */
+/* void midi_clip_add_pb(MIDIClip *mc, MIDIPitchBend pb_in); */
+/* int32_t midi_clipref_check_get_first_pb(ClipRef *cr); */
 
 int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max_len, int32_t chunk_tl_start, int32_t chunk_tl_end);
 

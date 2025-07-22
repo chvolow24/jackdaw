@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 #include "midi_objs.h"
 
 PmEvent note_create_event_no_ts(Note *note, uint8_t channel, bool is_note_off)
@@ -12,44 +13,44 @@ PmEvent note_create_event_no_ts(Note *note, uint8_t channel, bool is_note_off)
     return e;
 }
 
-MIDICC midi_cc(uint8_t channel, uint8_t type, uint8_t value,  int32_t clip_or_chunk_tl_start)
-{
-    MIDICC cc;
-    cc.type = type;
-    cc.channel = channel;
-    cc.value = value;
-    if (cc.type >= 64 && cc.type <= 69) {
-	cc.is_switch = true;
-	cc.switch_state = cc.value;
-    }
-    return cc;
-}
+/* MIDICC midi_cc(uint8_t channel, uint8_t type, uint8_t value,  int32_t clip_or_chunk_tl_start) */
+/* { */
+/*     MIDICC cc; */
+/*     cc.type = type; */
+/*     cc.channel = channel; */
+/*     cc.value = value; */
+/*     if (cc.type >= 64 && cc.type <= 69) { */
+/* 	cc.is_switch = true; */
+/* 	cc.switch_state = cc.value; */
+/*     } */
+/*     return cc; */
+/* } */
 
-MIDICC midi_cc_from_event(PmEvent *e, int32_t pos_rel)
-{
-    MIDICC cc;
-    cc.pos_rel = pos_rel;
-    uint8_t status = Pm_MessageStatus(e->message);
-    cc.channel = status & 0x0F;
-    cc.type = Pm_MessageData1(e->message);
-    cc.value = Pm_MessageData2(e->message);
-    if (cc.type >= 64 && cc.type <= 69) {
-	cc.is_switch = true;
-	cc.switch_state = cc.value;
-    }
-    return cc;
-}
+/* MIDICC midi_cc_from_event(PmEvent *e, int32_t pos_rel) */
+/* { */
+/*     MIDICC cc; */
+/*     cc.pos_rel = pos_rel; */
+/*     uint8_t status = Pm_MessageStatus(e->message); */
+/*     cc.channel = status & 0x0F; */
+/*     cc.type = Pm_MessageData1(e->message); */
+/*     cc.value = Pm_MessageData2(e->message); */
+/*     if (cc.type >= 64 && cc.type <= 69) { */
+/* 	cc.is_switch = true; */
+/* 	cc.switch_state = cc.value; */
+/*     } */
+/*     return cc; */
+/* } */
 
-PmEvent midi_cc_create_event_no_ts(MIDICC *cc)
-{
-    PmEvent e;
-    e.message = Pm_Message(
-	0xB0 + cc->channel,
-	cc->type,
-	cc->value
-    );
-    return e;
-}
+/* PmEvent midi_cc_create_event_no_ts(MIDICC *cc) */
+/* { */
+/*     PmEvent e; */
+/*     e.message = Pm_Message( */
+/* 	0xB0 + cc->channel, */
+/* 	cc->type, */
+/* 	cc->value */
+/*     ); */
+/*     return e; */
+/* } */
 
 float midi_pitch_bend_float_from_event(PmEvent *e)
 {
@@ -57,28 +58,91 @@ float midi_pitch_bend_float_from_event(PmEvent *e)
     return (float)value / 16384.0f;
 }
 
-MIDIPitchBend midi_pitch_bend_from_event(PmEvent *e, int32_t pos_rel)
+/* MIDIPitchBend midi_pitch_bend_from_event(PmEvent *e, int32_t pos_rel) */
+/* { */
+/*     MIDIPitchBend pb; */
+/*     pb.pos_rel = pos_rel; */
+/*     uint8_t status = Pm_MessageStatus(e->message); */
+/*     pb.channel = status & 0x0F; */
+/*     pb.data1 = Pm_MessageData1(e->message); */
+/*     pb.data2 = Pm_MessageData2(e->message); */
+/*     pb.value = Pm_MessageData1(e->message) + ((Pm_MessageData2(e->message) << 7)); */
+/*     pb.floatval = (float)pb.value / 16384.0f; */
+/*     return pb; */
+/* } */
+
+/* PmEvent midi_pitch_bend_create_event_no_ts(MIDIPitchBend *pb) */
+/* { */
+/*     PmEvent e; */
+/*     e.message = Pm_Message( */
+/* 	0xE0 + pb->channel, */
+/* 	pb->data1, */
+/* 	pb->data2 */
+/*     ); */
+/*     return e; */
+/* } */
+
+void midi_controller_insert_change(Controller *c, int32_t pos, uint8_t data)
 {
-    MIDIPitchBend pb;
-    pb.pos_rel = pos_rel;
-    uint8_t status = Pm_MessageStatus(e->message);
-    pb.channel = status & 0x0F;
-    pb.data1 = Pm_MessageData1(e->message);
-    pb.data2 = Pm_MessageData2(e->message);
-    pb.value = Pm_MessageData1(e->message) + ((Pm_MessageData2(e->message) << 7));
-    pb.floatval = (float)pb.value / 16384.0f;
-    return pb;
+    if (c->num_changes >= c->changes_alloc_len) {
+	if (c->changes_alloc_len == 0) {
+	    c->changes_alloc_len = 16;
+	    c->changes = calloc(c->changes_alloc_len, sizeof(MEvent8bit));
+	} else {
+	    c->changes_alloc_len *= 2;
+	    c->changes = realloc(c->changes, c->changes_alloc_len * sizeof(MEvent8bit));
+	}
+    }
+    c->changes[c->num_changes].pos_rel = pos;
+    c->changes[c->num_changes].value = data;
+    c->changes[c->num_changes].floatval = (float)data / 128.0f;
 }
 
-PmEvent midi_pitch_bend_create_event_no_ts(MIDIPitchBend *pb)
+void midi_pitch_bend_insert_change(PitchBend *pb, int32_t pos, uint8_t data1, uint8_t data2)
+{
+    if (pb->num_changes >= pb->changes_alloc_len) {
+	if (pb->changes_alloc_len == 0) {
+	    pb->changes_alloc_len = 16;
+	    pb->changes = calloc(pb->changes_alloc_len, sizeof(MEvent8bit));
+	} else {
+	    pb->changes_alloc_len *= 2;
+	    pb->changes = realloc(pb->changes, pb->changes_alloc_len * sizeof(MEvent8bit));
+	}
+    }
+    pb->changes[pb->num_changes].pos_rel = pos;
+    int16_t value = (data1 & 0xFE) + (data2 << 7);
+    pb->changes[pb->num_changes].value = value;
+    pb->changes[pb->num_changes].floatval = (float)value / 16384.0f;
+}
+
+PmEvent midi_controller_make_event(Controller *c, uint16_t index)
 {
     PmEvent e;
+    memset(&e, '\0', sizeof(e));
+    if (c->has_lsb) {
+	fprintf(stderr, "High-precision MIDI controller messages are not implemented\n");
+	return e;
+    }
+    e.timestamp = c->changes[index].pos_rel;
+    e.message = Pm_Message(
+	0xB0 + c->channel,
+	c->type,
+	c->changes[index].value);
+    return e;
+}
+
+PmEvent pitch_bend_make_event(PitchBend *pb, uint16_t index)
+{
+    PmEvent e;
+    e.timestamp = pb->changes[index].pos_rel;
+    uint16_t value = pb->changes[index].value;
+    uint8_t value_lsb = value & 0x7F;
+    uint8_t value_msb = value >> 7;
     e.message = Pm_Message(
 	0xE0 + pb->channel,
-	pb->data1,
-	pb->data2
-    );
-    return e;
+	value_lsb,
+	value_msb);
+    return e;	
 }
 
 double mtof_calc(double m)

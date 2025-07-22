@@ -506,6 +506,7 @@ void midi_clip_read_events(MIDIClip *mclip, PmEvent *events, uint32_t num_events
     }
 }
 
+/* Allocate an array of PmEvents and sort them by timestamp */
 int midi_clip_get_all_events(MIDIClip *mclip, PmEvent **dst)
 {
     int alloc_len = 128;

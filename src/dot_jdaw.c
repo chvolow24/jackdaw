@@ -601,7 +601,7 @@ int jdaw_read_file(Project *dst, const char *path)
     chunk_size = uint16_deser_le(f);
     fmt = (SDL_AudioFormat)uint16_deser_le(f);
     
-    if (read_file_spec_version < 0.14) {
+    if (read_file_spec_version < 0.14f) {
 	uint8_t byte_num_clips;
 	fread(&byte_num_clips, 1, 1, f);
 	num_clips = byte_num_clips;
@@ -610,7 +610,7 @@ int jdaw_read_file(Project *dst, const char *path)
 	/* fread(&num_clips, 2, 1, f); */
     }
 
-    if (read_file_spec_version > 0.17) {
+    if (read_file_spec_version > 0.17f) {
 	num_midi_clips = uint16_deser_le(f);
     } else {
 	num_midi_clips = 0;
@@ -779,7 +779,7 @@ static int jdaw_read_midi_clip(FILE *f, Project *proj)
 
     /* Read MIDI stream */
     /* mclip->num_notes = uint32_deser_le(f); */
-    if (read_file_spec_version < 0.19) {
+    if (read_file_spec_version < 0.19f) {
 	uint32_t num_notes = uint32_deser_le(f);
 	int err;
 	for (uint32_t i=0; i<num_notes; i++) {
@@ -877,13 +877,13 @@ static int jdaw_read_timeline(FILE *f, Project *proj_loc)
     Timeline *tl = proj_loc->timelines[index];
 
     int16_t num_tracks;
-    if (read_file_spec_version < 0.15) {
+    if (read_file_spec_version < 0.15f) {
 	num_tracks = uint8_deser(f);
     } else {
 	num_tracks = int16_deser_le(f);
     }
     fprintf(stderr, "Reading %d tracks...\n", num_tracks);
-    if (read_file_spec_version < 0.15) {
+    if (read_file_spec_version < 0.15f) {
 	while (num_tracks > 0) {
 	    if (jdaw_read_track(f, tl) != 0) {
 		return 1;
@@ -997,7 +997,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
     }
     
     uint16_t num_cliprefs;
-    if (read_file_spec_version < 0.14) {
+    if (read_file_spec_version < 0.14f) {
 	uint8_t byte_num_cliprefs;
 	fread(&byte_num_cliprefs, 1, 1, f);
 	num_cliprefs = byte_num_cliprefs;
@@ -1012,7 +1012,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 	num_cliprefs--;
     }
     track->synth = synth_create(track);
-    if (read_file_spec_version < 00.17) {
+    if (read_file_spec_version < 00.17f) {
 	if (read_file_spec_version >= 00.13f) {
 	    uint8_t num_automations = uint8_deser(f);
 	    while (num_automations > 0) {
@@ -1134,7 +1134,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 		}
 		num_automations--;
 	    }
-	    if (read_file_spec_version >= 00.18) {
+	    if (read_file_spec_version >= 00.18f) {
 		uint8_t has_synth = uint8_deser(f);
 		if (has_synth) {
 		    /* track->synth = synth_create(track); */
@@ -1290,7 +1290,7 @@ static int jdaw_read_clipref(FILE *f, Track *track)
     bool clipref_home = uint8_deser(f);
 
     ClipRef *cr = NULL;
-    if (read_file_spec_version < 00.18) {
+    if (read_file_spec_version < 00.18f) {
 	uint8_t src_clip_index = uint8_deser(f);
 	Clip *clip = track->tl->proj->clips[src_clip_index];
 	cr = clipref_create(track, 0, CLIP_AUDIO, clip);
@@ -1421,7 +1421,7 @@ static int jdaw_read_keyframe(FILE *f, Automation *a)
     }
     int32_t pos = int32_deser_le(f);
     Value val;
-    if (read_file_spec_version < 0.15) {
+    if (read_file_spec_version < 0.15f) {
 	val = jdaw_val_deserialize_OLD(f, OLD_FLOAT_SER_W, a->val_type);
     } else {
 	val = jdaw_val_deserialize(f, NULL);

@@ -102,10 +102,10 @@ Synth *synth_create(Track *track)
     s->base_oscs[0].type = WS_SAW;
 
     s->filter_active = true;
-    s->base_cutoff = 0.1f;
-    s->pitch_amt = 10.0f;
+    s->base_cutoff = 0.01f;
+    s->pitch_amt = 5.0f;
     s->vel_amt = 0.75f;
-    s->env_amt = 1.0f;
+    s->env_amt = 5.0f;
     s->resonance = 3.0;
     
     iir_init(&s->dc_blocker, 1, 2);
@@ -224,9 +224,9 @@ Synth *synth_create(Track *track)
 	page_el_gui_cb, NULL, NULL,
 	NULL, NULL, &s->filter_page, "base_cutoff_slider");
     endpoint_set_default_value(&s->base_cutoff_ep, (Value){.float_v = 0.01f});
-    endpoint_set_allowed_range(&s->base_cutoff_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 0.2});
+    endpoint_set_allowed_range(&s->base_cutoff_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 0.2f});
     api_endpoint_register(&s->base_cutoff_ep, &s->filter_node);
-    endpoint_set_label_fn(&s->base_cutoff_ep, label_freq_raw_to_hz);
+    /* endpoint_set_label_fn(&s->base_cutoff_ep, label_freq_raw_to_hz); */
 
     
     endpoint_init(
@@ -238,7 +238,7 @@ Synth *synth_create(Track *track)
 	JDAW_THREAD_DSP,
 	page_el_gui_cb, NULL, NULL,
 	NULL, NULL, &s->filter_page, "pitch_amt_slider");
-    endpoint_set_default_value(&s->pitch_amt_ep, (Value){.float_v = 10.0f});
+    endpoint_set_default_value(&s->pitch_amt_ep, (Value){.float_v = 5.0f});
     endpoint_set_allowed_range(&s->pitch_amt_ep, (Value){.float_v = 0.00}, (Value){.float_v = 50.0});
     api_endpoint_register(&s->pitch_amt_ep, &s->filter_node);
 
@@ -264,7 +264,7 @@ Synth *synth_create(Track *track)
 	JDAW_THREAD_DSP,
 	page_el_gui_cb, NULL, NULL,
 	NULL, NULL, &s->filter_page, "env_amt_slider");
-    endpoint_set_default_value(&s->env_amt_ep, (Value){.float_v = 0.75f});
+    endpoint_set_default_value(&s->env_amt_ep, (Value){.float_v = 5.0f});
     endpoint_set_allowed_range(&s->env_amt_ep, (Value){.float_v = 0.00}, (Value){.float_v = 50.0});
     api_endpoint_register(&s->env_amt_ep, &s->filter_node);
 

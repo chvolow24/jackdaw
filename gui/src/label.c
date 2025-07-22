@@ -201,7 +201,6 @@ void label_freq_raw_to_hz(char *dst, size_t dstsize, Value v, ValType t)
     double raw = t == JDAW_FLOAT ? v.float_v : v.double_v;
     double hz = dsp_scale_freq_to_hz(raw);
     snprintf(dst, dstsize, "%.0f Hz", hz);
-    /* snprintf(dst, dstsize, "hi"); */
     dst[dstsize - 1] = '\0';
 }
 

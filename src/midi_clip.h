@@ -49,7 +49,7 @@ typedef struct midi_clip {
     Note *notes;
     uint32_t num_notes;
     uint32_t notes_alloc_len;
-
+    
     MIDICC *ccs;
     uint32_t num_ccs;
     uint32_t ccs_alloc_len;

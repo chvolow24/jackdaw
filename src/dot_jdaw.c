@@ -596,8 +596,10 @@ int jdaw_read_file(Project *dst, const char *path)
     proj_namelen = uint8_deser(f);
     fread(project_name, 1, proj_namelen, f);
     project_name[proj_namelen] = '\0';
-    if (read_file_version_older_than("0.15")) {
+    fprintf(stderr, "Project name: %s\n", project_name);
+    if (read_file_version_older_than("00.15")) {
 	/* Extraneous nullterm in older versions */
+	fprintf(stderr, "Getting extra nullterm\n");
 	char c;
 	fread(&c, 1, 1, f);
     }

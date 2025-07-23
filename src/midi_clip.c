@@ -243,9 +243,7 @@ int32_t note_tl_end_pos(Note *note, ClipRef *cr)
 /*     } */
 /* } */
 
-
-
-/* static PmEvent *note_off_rb_check_pop_event(struct midi_event_ring_buf *rb, int32_t pop_if_before_or_at) */
+/* static PmEvent *note_off_rb_check_pop_event(MIDIEventRingBuf *rb, int32_t pop_if_before_or_at) */
 /* { */
 /*     PmEvent *ret = NULL; */
 /*     for (int i=0; i<rb->num_queued; i++) { */
@@ -261,7 +259,7 @@ int32_t note_tl_end_pos(Note *note, ClipRef *cr)
 /*     return ret; */
 /* } */
 
-/* static void note_off_rb_insert(struct midi_event_ring_buf *rb, PmEvent note_off) */
+/* static void note_off_rb_insert(MIDIEventRingBuf *rb, PmEvent note_off) */
 /* { */
 /*     if (rb->num_queued == rb->size) { */
 /* 	fprintf(stderr, "Note Off buf full\n"); */
@@ -269,13 +267,10 @@ int32_t note_tl_end_pos(Note *note, ClipRef *cr)
 /*     } */
 /*     int index = rb->read_i; */
 /*     int place_in_queue = 0; */
-/*     /\* fprintf(stderr, "TRY insert ts %d\n", note_off.timestamp); *\/ */
 /*     for (int i=0; i<rb->num_queued; i++) { */
 /* 	index = (rb->read_i + i) % rb->size; */
 /* 	/\* Insert here *\/ */
-/* 	/\* fprintf(stderr, "\ttest i=%d, ts %d\n", i, rb->buf[index].timestamp); *\/ */
 /* 	if (note_off.timestamp <= rb->buf[index].timestamp) { */
-/* 	    /\* fprintf(stderr, "\t\tInsert! place in queue %d\n", place_in_queue); *\/ */
 /* 	    break; */
 /* 	} */
 /* 	place_in_queue++; */
@@ -283,7 +278,7 @@ int32_t note_tl_end_pos(Note *note, ClipRef *cr)
 /*     for (int i=rb->num_queued; i>place_in_queue; i--) { */
 /* 	index = (rb->read_i + i) % rb->size; */
 /* 	int prev_index = (rb->read_i + i - 1) % rb->size; */
-/* 	rb->buf[index] = rb->buf[prev_index];	 */
+/* 	rb->buf[index] = rb->buf[prev_index]; */
 /*     } */
 /*     int dst_index = (rb->read_i + place_in_queue) % rb->size; */
 /*     rb->buf[dst_index] = note_off; */
@@ -537,9 +532,11 @@ void midi_clip_read_events(
     }
 }
 
-static void event_buf_insert(PmEvent **dst, int *alloc_len, int *num_events, PmEvent insert)
+static void event_buf_insert(PmEvent **dst, uint32_t *alloc_len, uint32_t *num_events, PmEvent insert)
 {
-    if (*alloc_len + 1 > *num_events) {
+    /* fprintf(stderr, "EVENT BUF insert alloc len %d\n", *alloc_len); */
+    /* if (*alloc_len > 5000) exit(1); */
+    if (*num_events + 1 > *alloc_len) {
 	*alloc_len *= 2;
 	*dst = realloc(*dst, *alloc_len * sizeof(PmEvent));	
     }
@@ -547,24 +544,25 @@ static void event_buf_insert(PmEvent **dst, int *alloc_len, int *num_events, PmE
     (*num_events)++;
 }
 
-/* Allocate an array of PmEvents and sort them by timestamp */
-int midi_clip_get_events(
+/* Allocate an array of PmEvents and sort them by timestamp
+ The note off ring buffer is only required for playback (not
+for file serialization, for example */
+uint32_t midi_clip_get_events(
     MIDIClip *mclip,
     PmEvent **dst,
     int32_t start_pos,
     int32_t end_pos,
-    bool trunc_notes,
-    int32_t note_trunc_pos)
+    int32_t note_trunc_pos,
+    MIDIEventRingBuf *rb)
 {
-    int alloc_len = 128;
-    int num_events = 0;
+    uint32_t alloc_len = 128;
+    uint32_t num_events = 0;
     *dst = malloc(alloc_len * sizeof(PmEvent));
     for (int i=0; i<mclip->num_notes; i++) {
 	Note *note = mclip->notes + i;
 	/* fprintf(stderr, "\tTest start? %d\n", note->start_rel); */
 	if (note->start_rel < start_pos) continue;
 	if (note->start_rel >= end_pos) break;
-	fprintf(stderr, "\tNote at %d\n", note->start_rel);
 	PmEvent note_on, note_off;
 	note_on.timestamp = note->start_rel;
 	note_on.message = Pm_Message(
@@ -572,17 +570,25 @@ int midi_clip_get_events(
 	    note->note,
 	    note->velocity);
 	event_buf_insert(dst, &alloc_len, &num_events, note_on);
-	if (trunc_notes || note->end_rel < end_pos) {
-	    if (trunc_notes) {
-		note_off.timestamp = note_trunc_pos;
-	    } else {
-		note_off.timestamp = note->end_rel;
-	    }
-	    note_off.message = Pm_Message(
-		0x80 + note->channel,
-		note->note,
-		note->velocity);
+	if (note->end_rel > note_trunc_pos) {
+	    note_off.timestamp = note_trunc_pos;
+	} else {
+	    note_off.timestamp = note->end_rel;
+	}
+	note_off.message = Pm_Message(
+	    0x80 + note->channel,
+	    note->note,
+	    note->velocity);
+	if (rb) {
+	    midi_event_ring_buf_insert(rb, note_off);
+	} else {
 	    event_buf_insert(dst, &alloc_len, &num_events, note_off);
+	}
+    }
+    PmEvent *note_off;
+    if (rb) {
+	while ((note_off = midi_event_ring_buf_pop(rb, end_pos))) {
+	    event_buf_insert(dst, &alloc_len, &num_events, *note_off);
 	}
     }
     for (int i=0; i<MIDI_NUM_CONTROLLERS; i++) {
@@ -605,15 +611,16 @@ int midi_clip_get_events(
     return num_events;
 }
 
-int midi_clip_get_all_events(MIDIClip *mclip, PmEvent **dst)
+uint32_t midi_clip_get_all_events(MIDIClip *mclip, PmEvent **dst)
 {
-    return midi_clip_get_events(
+    uint32_t num_events = midi_clip_get_events(
 	mclip,
 	dst,
 	0,
 	mclip->len_sframes,
-	false,
-	0);
+	mclip->len_sframes,
+	NULL);
+    return num_events;
 }
 
 
@@ -625,11 +632,10 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 
     int32_t start_in_clip = chunk_tl_start - cr->tl_pos + cr->start_in_clip;
     int32_t end_in_clip = chunk_tl_end - cr->tl_pos + cr->start_in_clip;
+    /* int32_t clipref_end = cr->tl_pos + clipref_len(cr); */
 
-    bool trunc_notes = false;
     if (end_in_clip > cr->start_in_clip + clipref_len(cr)) {
 	end_in_clip = cr->start_in_clip + clipref_len(cr);
-	trunc_notes = true;	
     }
 
     PmEvent *dyn_events;
@@ -638,13 +644,13 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 	&dyn_events,
 	start_in_clip,
 	end_in_clip,
-	trunc_notes,
-	end_in_clip);
+	cr->end_in_clip == 0 ? mclip->len_sframes : cr->end_in_clip,
+	&cr->track->note_offs);
     if (num_events > event_buf_max_len) {
 	fprintf(stderr, "Error! Event buf full!\n");
 	num_events = event_buf_max_len;
     }
-    fprintf(stderr, "(%d-%d): %d events%s\n", start_in_clip, end_in_clip, num_events, trunc_notes ? " TRUNC NOTES" : "");
+    /* fprintf(stderr, "(%d-%d): %d events\n", start_in_clip, end_in_clip, num_events); */
     memcpy(event_buf, dyn_events, num_events * sizeof(PmEvent));
     free(dyn_events);
     return num_events;

@@ -64,6 +64,21 @@ typedef struct {
 
 } PitchBend;
 
+typedef struct midi_event_ring_buf {
+    int size;
+    int read_i;
+    int num_queued;
+    PmEvent *buf;
+} MIDIEventRingBuf;
+
+void midi_event_ring_buf_init(MIDIEventRingBuf *rb);
+void midi_event_ring_buf_deinit(MIDIEventRingBuf *rb);
+PmEvent *midi_event_ring_buf_pop(MIDIEventRingBuf *rb, int32_t pop_if_before_or_at);
+
+/* Events stored in ascending timestamp order
+ Return 0 on success, -1 if ring buffer is full */
+int midi_event_ring_buf_insert(MIDIEventRingBuf *rb, PmEvent e);
+
 
 /* typedef struct midi_cc { */
 /*     uint8_t channel; */
@@ -102,6 +117,10 @@ void midi_controller_insert_change(Controller *c, int32_t pos, uint8_t data);
 void midi_pitch_bend_insert_change(PitchBend *pb, int32_t pos, uint8_t data1, uint8_t data2);
 PmEvent midi_controller_make_event(Controller *c, uint16_t index);
 PmEvent pitch_bend_make_event(PitchBend *pb, uint16_t index);
+
+
+void midi_event_ring_buf_init(struct midi_event_ring_buf *rb);
+
 
 double mtof_calc(double m);
 

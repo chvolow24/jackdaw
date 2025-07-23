@@ -229,8 +229,9 @@ static void jdaw_write_midi_clip(FILE *f, MIDIClip *mclip)
 
     /* INSTEAD of writing objects, write midi stream */
     PmEvent *events;
-    int num_events = midi_clip_get_all_events(mclip, &events);
+    uint32_t num_events = midi_clip_get_all_events(mclip, &events);
     midi_serialize_events(f, events, num_events);
+    free(events);
 }
 
 static void jdaw_write_track(FILE *f, Track *track);
@@ -799,6 +800,7 @@ static int jdaw_read_midi_clip(FILE *f, Project *proj)
 	PmEvent *events;
 	uint32_t num_events = midi_deserialize_events(f, &events);
 	midi_clip_read_events(mclip, events, num_events, MIDI_TS_SFRAMES, 0);
+	free(events);
     }
     return 0;
 }
@@ -985,7 +987,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
     bool solo_muted = uint8_deser(f);
     bool minimized = false;
 
-    if (read_file_version_older_than("00.15")) {
+    if (!read_file_version_older_than("00.15")) {
 	minimized = uint8_deser(f);
     }
     

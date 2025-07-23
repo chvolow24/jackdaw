@@ -96,6 +96,7 @@ void midi_controller_insert_change(Controller *c, int32_t pos, uint8_t data)
     c->changes[c->num_changes].pos_rel = pos;
     c->changes[c->num_changes].value = data;
     c->changes[c->num_changes].floatval = (float)data / 128.0f;
+    c->num_changes++;
 }
 
 void midi_pitch_bend_insert_change(PitchBend *pb, int32_t pos, uint8_t data1, uint8_t data2)
@@ -113,6 +114,7 @@ void midi_pitch_bend_insert_change(PitchBend *pb, int32_t pos, uint8_t data1, ui
     int16_t value = (data1 & 0xFE) + (data2 << 7);
     pb->changes[pb->num_changes].value = value;
     pb->changes[pb->num_changes].floatval = (float)value / 16384.0f;
+    pb->num_changes++;
 }
 
 PmEvent midi_controller_make_event(Controller *c, uint16_t index)
@@ -144,6 +146,64 @@ PmEvent pitch_bend_make_event(PitchBend *pb, uint16_t index)
 	value_msb);
     return e;	
 }
+
+void midi_event_ring_buf_init(MIDIEventRingBuf *rb)
+{
+    memset(rb, '\0', sizeof(MIDIEventRingBuf));
+    rb->size = 128;
+    rb->buf = calloc(rb->size, sizeof(PmEvent));
+}
+
+void midi_event_ring_buf_deinit(MIDIEventRingBuf *rb)
+{
+    if (rb->buf) free(rb->buf);
+}
+
+
+/* Events stored in ascending timestamp order */
+int midi_event_ring_buf_insert(MIDIEventRingBuf *rb, PmEvent e)
+{
+    if (rb->num_queued == rb->size) {
+	fprintf(stderr, "Note Off buf full\n");
+	return -1;
+    }
+    int index = rb->read_i;
+    int place_in_queue = 0;
+    for (int i=0; i<rb->num_queued; i++) {
+	index = (rb->read_i + i) % rb->size;
+	/* Insert here */
+	if (e.timestamp <= rb->buf[index].timestamp) {
+	    break;
+	}
+	place_in_queue++;
+    }
+    for (int i=rb->num_queued; i>place_in_queue; i--) {
+	index = (rb->read_i + i) % rb->size;
+	int prev_index = (rb->read_i + i - 1) % rb->size;
+	rb->buf[index] = rb->buf[prev_index];
+    }
+    int dst_index = (rb->read_i + place_in_queue) % rb->size;
+    rb->buf[dst_index] = e;
+    rb->num_queued++;
+    return 0;
+}
+
+PmEvent *midi_event_ring_buf_pop(MIDIEventRingBuf *rb, int32_t pop_if_before_or_at)
+{
+    PmEvent *ret = NULL;
+    for (int i=0; i<rb->num_queued; i++) {
+	int index = (rb->read_i + i) % rb->size;
+	if (rb->buf[index].timestamp <= pop_if_before_or_at) {
+	    ret = rb->buf + index;
+	    rb->read_i++;
+	    if (rb->read_i == rb->size) rb->read_i = 0;
+	    rb->num_queued--;
+	    break;
+	}
+    }
+    return ret;
+}
+
 
 double mtof_calc(double m)
 {

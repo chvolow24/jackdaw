@@ -111,7 +111,7 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 void midi_clip_destroy(MIDIClip *mc);
 
 /* Allocates an array at dst, return number of events */
-int midi_clip_get_all_events(MIDIClip *mclip, PmEvent **dst);
+uint32_t midi_clip_get_all_events(MIDIClip *mclip, PmEvent **dst);
 
 /* Add notes etc. */
 void midi_clip_read_events(MIDIClip *mclip, PmEvent *events, uint32_t num_events, enum midi_ts_type, int32_t ts_offset);

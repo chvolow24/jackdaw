@@ -28,7 +28,7 @@
 #include "layout.h"
 #include "layout_xml.h"
 #include "menu.h"
-/* #include "midi_note.h" */
+#include "midi_objs.h"
 #include "project.h"
 #include "session.h"
 #include "status.h"
@@ -585,11 +585,9 @@ Track *timeline_add_track(Timeline *tl)
 	fprintf(stderr, "Error initializing effect chain lock: %s\n", strerror(err));
     }
 
-    track->note_offs.size = 128;
-    track->note_offs.buf = calloc(track->note_offs.size, sizeof(PmEvent));
-    
+    midi_event_ring_buf_init(&track->note_offs);
+   
     api_node_register(&track->api_node, &track->tl->api_node, track->name);
-
         
     endpoint_init(
 	&track->vol_ep,
@@ -1719,7 +1717,10 @@ void track_destroy(Track *track, bool displace)
     for (int i=0; i<track->num_effects; i++) {
 	effect_destroy(track->effects[i]);
     }
-    free(track->note_offs.buf);
+
+    midi_event_ring_buf_deinit(&track->note_offs);
+
+    
     slider_destroy(track->vol_ctrl);
     slider_destroy(track->pan_ctrl);
     textentry_destroy(track->tb_name);

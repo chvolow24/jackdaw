@@ -770,6 +770,7 @@ static void midi_serialize_event(FILE *f, PmEvent event)
 void midi_serialize_events(FILE *f, PmEvent *events, uint32_t num_events)
 {
     uint32_ser_le(f, &num_events);
+    fprintf(stderr, "SER %d events\n", num_events);
     for (uint32_t i=0; i<num_events; i++) {
 	midi_serialize_event(f, events[i]);
     }
@@ -784,6 +785,7 @@ static void midi_deserialize_event(FILE *f, PmEvent *dst)
 uint32_t midi_deserialize_events(FILE *f, PmEvent **events)
 {
     uint32_t num_events = uint32_deser_le(f);
+    fprintf(stderr, "DESER %d events\n", num_events);
     *events = malloc(sizeof(PmEvent) * num_events);
     for (uint32_t i=0; i<num_events; i++) {
 	midi_deserialize_event(f, (*events) + i);

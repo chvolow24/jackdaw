@@ -88,6 +88,8 @@ SDL_Color track_colors[7] = {
 
 uint8_t project_add_timeline(Project *proj, char *name)
 {
+    fprintf(stderr, "\n\nPROJECT ADD TIMELINE\n");
+    breakfn();
     if (proj->num_timelines == MAX_PROJ_TIMELINES) {
 	fprintf(stderr, "Error: project has max num timlines\n:");
 	return proj->active_tl_index;
@@ -106,17 +108,24 @@ uint8_t project_add_timeline(Project *proj, char *name)
     new_tl->index = proj->num_timelines;
     Session *session = session_get();
     Layout *tl_lt = layout_get_child_by_name_recursive(session->gui.layout, "timeline");
-    if (new_tl->index != 0) {
+    fprintf(stderr, "GOT TL LT CHILDREN: %lld, index %d\n", tl_lt->num_children, new_tl->index);
+
+
+    
+    /* if (new_tl->index != 0) { */
 	Layout *main_lt_fresh = layout_read_from_xml(MAIN_LT_PATH);
 	Layout *new_tl_lt = layout_get_child_by_name_recursive(main_lt_fresh, "timeline");
 	Layout *cpy = layout_copy(new_tl_lt, tl_lt->parent);
 	layout_destroy(main_lt_fresh);
 	/* Layout *cpy = layout_copy(tl_lt, tl_lt->parent); */
-	new_tl->layout = cpy;
-    } else {
-	new_tl->layout = tl_lt;
-    }
-    layout_reset(new_tl->layout);
+	/* new_tl->layout = cpy; */
+    /* } else { */
+	/* new_tl->layout = tl_lt; */
+    /* } */
+	breakfn();
+	/* layout_destroy(tl_lt); */
+	
+    /* layout_reset(new_tl->layout); */
     new_tl->track_area = layout_get_child_by_name_recursive(new_tl->layout, "tracks_area");
 
     /* Clear tracks in old timeline layout before copying */
@@ -315,7 +324,8 @@ int project_init(
     uint32_t sample_rate,
     SDL_AudioFormat fmt,
     uint16_t chunk_size_sframes,
-    uint16_t fourier_len_sframes
+    uint16_t fourier_len_sframes,
+    bool create_empty_timeline
     )
 {
     /* Project *proj = calloc(1, sizeof(Project)); */
@@ -354,8 +364,10 @@ int project_init(
     /* textbox_set_background_color(proj->source_name_tb, &colors.clear); */
     /* textbox_set_text_color(proj->source_name_tb, &colors.white); */
 
-    project_add_timeline(proj, "Main");
-    project_reset_tl_label(proj);
+    if (create_empty_timeline) {
+	project_add_timeline(proj, "Main");
+	project_reset_tl_label(proj);
+    }
     /* Initialize output */
     /* proj->output_len = chunk_size_sframes; */
 
@@ -556,15 +568,14 @@ static int auto_dropdown_action(void *self, void *xarg)
     }
     return 0;
 }
-
-Track *timeline_add_track(Timeline *tl)
+Track *timeline_add_track_with_name(Timeline *tl, const char *track_name)
 {
     if (tl->num_tracks == MAX_TRACKS) return NULL;
     Track *track = calloc(1, sizeof(Track));
     tl->tracks[tl->num_tracks] = track;
     track->tl_rank = tl->num_tracks++;
     track->tl = tl;
-    snprintf(track->name, sizeof(track->name), "Track %d", track->tl_rank + 1);
+    strncpy(track->name, track_name, MAX_NAMELENGTH);
 
     track->channels = tl->proj->channels;
 
@@ -876,6 +887,16 @@ Track *timeline_add_track(Timeline *tl)
     /* api_endpoint_register(&track->saturation.gain_ep, &track->saturation.track->api_node); */
 
     return track;
+
+}
+
+Track *timeline_add_track(Timeline *tl)
+{
+    if (tl->num_tracks == MAX_TRACKS) return NULL;
+    char name[MAX_NAMELENGTH];
+    snprintf(name, sizeof(name), "Track %d", tl->num_tracks + 1);
+
+    return timeline_add_track_with_name(tl, name);
 }
 
 

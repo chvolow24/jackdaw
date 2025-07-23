@@ -443,12 +443,13 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 	int ret = jdaw_read_file(&new_proj, dp->path);
 	if (ret == 0) {
 	    /* project_deinit(&session->proj); */
-	    memcpy(&session->proj, &new_proj, sizeof(Project));
-	    session->proj = new_proj;
-	    for (int i=0; i<session->proj.num_timelines; i++) {
-		session->proj.timelines[i]->proj = &session->proj;
-	    }
-	    timeline_reset_full(session->proj.timelines[0]);
+	    /* memcpy(&session->proj, &new_proj, sizeof(Project)); */
+	    /* session->proj = new_proj; */
+	    /* for (int i=0; i<session->proj.num_timelines; i++) { */
+	    /* 	session->proj.timelines[i]->proj = &session->proj; */
+	    /* } */
+	    /* timeline_reset_full(session->proj.timelines[0]); */
+	    session_set_proj(session, &new_proj);
 	} else {
 	    status_set_errstr("Error opening jdaw project");
 	}

@@ -10,7 +10,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-/* #include "dsp.h" */
 #include "audio_clip.h"
 #include "clipref.h"
 #include "compressor.h"
@@ -30,10 +29,7 @@
 #include "type_serialize.h"
 #include "loading.h"
 
-/* #ifdef THIS_IS_NOT_DEFINED */
-/* #define BYTEORDER_FATAL fprintf(stderr, "Fatal error (TODO): big-endian byte order not supported\n"); exit(1); */
 #define OLD_FLOAT_SER_W 16
-
 
 extern bool SYS_BYTEORDER_LE;
 extern const char *JACKDAW_VERSION;
@@ -56,9 +52,6 @@ const static char hdr_trck_efct[] = {'E', 'F', 'C', 'T'};
 const static char hdr_trck_synth[] = {'S','Y','N','T','H'};
 
 const static char current_file_spec_version[] = {'0','0','.','1','9'};
-/* const static float current_file_spec_version_f = 0.11f; */
-
-/* const static char nullterm = '\0'; */
 
 static char read_file_spec_version[6];
 bool read_file_version_older_than(const char *cmp_version)
@@ -164,11 +157,6 @@ static void jdaw_write_clip(FILE *f, Clip *clip, int index)
     uint8_ser(f, &index_8);
     uint8_ser(f, &clip->channels);
     uint32_ser_le(f, &clip->len_sframes);
-    /* if (SYS_BYTEORDER_LE) { */
-    /* 	fwrite(&clip->len_sframes, 4, 1, f); */
-    /* } else { */
-    /*     BYTEORDER_FATAL */
-    /* } */
 
     fwrite(hdr_data, 1, 4, f);
 
@@ -179,30 +167,14 @@ static void jdaw_write_clip(FILE *f, Clip *clip, int index)
         fprintf(stderr, "Error: unable to allocate space for clip_samples\n");
         exit(1);
     }
-    /* float clipped_sample; */
     if (clip->channels == 2) {
         for (uint32_t i=0; i<len_samples; i+=2) {
-	    /* float sample = clip->L[i/2]; */
 	    clip_samples[i] = clip->L[i/2] * INT16_MAX;
-	    /* sample = clip->R[i/2]; */
 	    clip_samples[i+1] = clip->R[i/2] * INT16_MAX;
-	    /* clipped_sample = clip->L[i/2]; */
-	    /* if (clipped_sample > 1.0f) clipped_sample = 1.0f; */
-	    /* else if (clipped_sample < -1.0f) clipped_sample = -1.0f; */
-            /* clip_samples[i] = clipped_sample * INT16_MAX; */
-	    /* clipped_sample = clip->R[i/2]; */
-	    /* if (clipped_sample > 1.0f) clipped_sample = 1.0f; */
-	    /* else if (clipped_sample < -1.0f) clipped_sample = -1.0f; */
-            /* clip_samples[i+1] = clipped_sample * INT16_MAX; */
         }
     } else if (clip->channels == 1) {
-
         for (uint32_t i=0; i<len_samples; i++) {
 	    clip_samples[i] = clip->L[i] * INT16_MAX;
-	    /* clipped_sample = clip->L[i]; */
-	    /* if (clipped_sample > 1.0f) clipped_sample = 1.0f; */
-	    /* else if (clipped_sample < -1.0f) clipped_sample = -1.0f; */
-	    /* clip_samples[i] = (int16_t)(clip->L[i] * INT16_MAX); */
         }
     }
     if (SYS_BYTEORDER_LE) {
@@ -212,7 +184,6 @@ static void jdaw_write_clip(FILE *f, Clip *clip, int index)
 	    int16_ser_le(f, clip_samples + i);
 	}
     }
-    /* fwrite(clip_samples, 2, clip->len_sframes * clip->channels, f); */
     free(clip_samples);
 }
 
@@ -260,14 +231,7 @@ static void jdaw_write_timeline(FILE *f, Timeline *tl)
 	    jdaw_write_click_track(f, ct);
 	}
     }
-    /* uint8_ser(f, &tl->num_tracks); */
-    /* for (uint8_t i=0; i<tl->num_tracks; i++) { */
-    /* 	jdaw_write_track(f, tl->tracks[i]); */
-    /* } */
-    /* uint8_ser(f, &tl->num_click_tracks); */
-    /* for (uint8_t i=0; i<tl->num_click_tracks; i++) { */
-    /* 	jdaw_write_click_track(f, tl->click_tracks[i]); */
-    /* } */
+
 }
 
 static void jdaw_write_clipref(FILE *f, ClipRef *cr);
@@ -280,7 +244,6 @@ static void jdaw_write_track(FILE *f, Track *track)
     uint8_t track_namelen = strlen(track->name);
     fwrite(&track_namelen, 1, 1, f);
     fwrite(track->name, 1, track_namelen, f);
-    /* fwrite(&nullterm, 1, 1, f); */
     fwrite(&track->color, 1, 4, f);
 
     /* vol and pan */
@@ -461,20 +424,13 @@ static void jdaw_write_clipref(FILE *f, ClipRef *cr)
 		break;
 	    }
 	}
-	/* while (src_clip_index < proj->num_clips && proj->clips[src_clip_index] != cr->source_clip) { */
-	/*     src_clip_index++; */
-	/* } */
     } else {
-	/* while (src_clip_index < proj->num_midi_clips && proj->midi_clips[src_clip_index] != cr->source_clip) { */
-	/*     src_clip_index++; */
-	/* } */
 	for (int i=0; i<proj->num_midi_clips; i++) {
 	    if (cr->source_clip == proj->midi_clips[i]) {
 		src_clip_index = i;
 		break;
 	    }
 	}
-
     }
     if (src_clip_index < 0) {
 	fprintf(stderr, "CRITICAL ERROR: clipref \"%s\" source clip not found. Src clip ptr %p, proj num clips: %d and midi clips: %d\n", cr->name, cr->source_clip, proj->num_clips, proj->num_midi_clips);
@@ -643,7 +599,8 @@ int jdaw_read_file(Project *dst, const char *path)
 	sample_rate,
 	fmt,
 	chunk_size,
-	DEFAULT_FOURIER_LEN_SFRAMES
+	DEFAULT_FOURIER_LEN_SFRAMES,
+	false
 	);
 
     proj_reading = dst;
@@ -687,7 +644,7 @@ int jdaw_read_file(Project *dst, const char *path)
 jdaw_parse_error:
     debug_print_bytes_around(f);
     fclose(f);
-    fprintf(stderr, "Error parsing .jdaw file at %s, filespec version %05.2f\n", path, read_file_spec_version);
+    fprintf(stderr, "Error parsing .jdaw file at %s, filespec version %s\n", path, read_file_spec_version);
     session_loading_screen_deinit();
     /* project_destroy(proj_loc); */
     return -1;
@@ -826,22 +783,22 @@ void user_tl_track_selector_up(void *nullarg);
 void user_tl_track_selector_down(void *nullarg);
 static void local_track_selector_down()
 {
-    Session *session = session_get();
-    /* Project *sg = proj; */
-    /* proj = proj_reading; */
-    Project saved = session->proj;
-    session->proj = *proj_reading;
-    user_tl_track_selector_down(NULL);
-    session->proj = saved;
+    /* Session *session = session_get(); */
+    /* /\* Project *sg = proj; *\/ */
+    /* /\* proj = proj_reading; *\/ */
+    /* Project saved = session->proj; */
+    /* session->proj = *proj_reading; */
+    /* user_tl_track_selector_down(NULL); */
+    /* session->proj = saved; */
 
 }
 static void local_track_selector_up()
 {
-    Session *session = session_get();
-    Project saved = session->proj;
-    session->proj = *proj_reading;
-    user_tl_track_selector_up(NULL);
-    session->proj = saved;
+    /* Session *session = session_get(); */
+    /* Project saved = session->proj; */
+    /* session->proj = *proj_reading; */
+    /* user_tl_track_selector_up(NULL); */
+    /* session->proj = saved; */
 
     /* Project *sg = proj; */
     /* proj = proj_reading; */
@@ -850,10 +807,10 @@ static void local_track_selector_up()
 }
 static void local_move_track_down()
 {
-    Project *sg = proj;
-    proj = proj_reading;
-    user_tl_move_track_down(NULL);
-    proj = sg;
+    /* Project *sg = proj; */
+    /* proj = proj_reading; */
+    /* user_tl_move_track_down(NULL); */
+    /* proj = sg; */
 }
 /* static void local_move_track_up() */
 /* { */
@@ -960,16 +917,17 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
     /* tl->tracks[tl->num_tracks] = track; */
     /* tl->num_tracks++; */
 
-    timeline_add_track(tl);
-    Track *track = tl->tracks[tl->num_tracks - 1];
 
     uint8_t track_namelen = uint8_deser(f);
-    fread(track->name, 1, track_namelen, f);
+    char name[track_namelen + 1];
+    fread(name, 1, track_namelen, f);
     if (read_file_version_older_than("00.15")) {
 	char c;
 	fread(&c, 1, 1, f);
     }
-    track->name[track_namelen] = '\0';
+    name[track_namelen] = '\0';
+    Track *track = timeline_add_track_with_name(tl, name);
+    /* Track *track = tl->tracks[tl->num_tracks - 1]; */
     fread(&track->color, 1, 4, f);
 
     char floatvals[17];
@@ -1366,7 +1324,10 @@ static int jdaw_read_automation(FILE *f, Track *track)
 	/* fprintf(stderr, "AUTO ROUTE: %s\n", route); */
 	Endpoint *ep = api_endpoint_get(route);
 	if (ep) {
+	    /* fprintf(stderr, "==> EP route? %s\n", ep->local_id); */
+	    /* user_global_api_print_all_routes(NULL); */
 	    a = track_add_automation_from_endpoint(track, ep);
+	    /* exit(0); */
 	} else {
 	    fprintf(stderr, "Could not get ep with route %s\n", route);
 	    return 1;

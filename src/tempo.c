@@ -1161,9 +1161,9 @@ int32_t click_track_bar_beat_subdiv(ClickTrack *tt, int32_t pos, int *bar_p, int
     /* int32_t prev_pos = prev_positions[tt->index]; */
     int32_t beat_pos = 0;
     
-    #ifdef TESTBUILD
+    /* #ifdef TESTBUILD */
     int ops = 0;
-    #endif
+    /* #endif */
     
     int32_t remainder = 0;
     /* if (debug) { */
@@ -1175,7 +1175,7 @@ int32_t click_track_bar_beat_subdiv(ClickTrack *tt, int32_t pos, int *bar_p, int
 	beat_pos = get_beat_pos(s, measure, beat, subdiv);
 	remainder = pos - beat_pos;
 
-	#ifdef TESTBUILD
+	/* #ifdef TESTBUILD */
 	ops++;
 	if (ops > 1000000 - 5) {
 	    if (ops > 1000000 - 3) breakfn();
@@ -1191,7 +1191,7 @@ int32_t click_track_bar_beat_subdiv(ClickTrack *tt, int32_t pos, int *bar_p, int
 		/* exit(1); */
 	    }
 	}
-	#endif
+	/* #endif */
 	
 	/* if (debug) { */
 	/*     /\* fprintf(stderr, "\t\t\tremainder: (%d - %d) %d cmp dur approx: %d\n", pos, beat_pos, remainder, s->cfg.atom_dur_approx); *\/ */
@@ -1218,9 +1218,9 @@ int32_t click_track_bar_beat_subdiv(ClickTrack *tt, int32_t pos, int *bar_p, int
 
 
     /* Set destination pointer values */
-    #ifdef TESTBUILD
+    /* #ifdef TESTBUILD */
 set_dst_values:
-    #endif
+    /* #endif */
     if (bar_p && beat_p && subdiv_p) {
 	*bar_p = measure;
 	*beat_p = beat;

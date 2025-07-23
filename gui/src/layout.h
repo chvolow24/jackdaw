@@ -3,8 +3,6 @@
 
 #include <stdio.h>
 #include <stdbool.h>
-#include "SDL.h"
-#include "text.h"
 #include "window.h"
 
 #define MAX_LT_CHILDREN INT64_MAX

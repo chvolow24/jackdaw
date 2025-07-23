@@ -164,5 +164,6 @@ typedef struct session {
 Session *session_create();
 Session *session_get();
 void session_destroy();
+void session_set_proj(Session *session, Project *new_proj);
 
 #endif

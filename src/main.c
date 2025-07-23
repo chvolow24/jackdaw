@@ -247,7 +247,11 @@ int main(int argc, char **argv)
 	}
     } else {
 	fprintf(stderr, "Creating new project...\n");
-	int ret = project_init(&session->proj, "project.jdaw", DEFAULT_PROJ_AUDIO_SETTINGS);
+	int ret = project_init(
+	    &session->proj,
+	    "project.jdaw",
+	    DEFAULT_PROJ_AUDIO_SETTINGS,
+	    true);
 	session->proj_initialized = true;
 	if (ret != 0) {
 	    fprintf(stderr, "Error: unable to open project \"%s\".\n", file_to_open);

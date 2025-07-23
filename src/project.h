@@ -210,10 +210,8 @@ typedef struct track {
     uint8_t num_bus_ins;
 
     const char* added_from_midi_filepath;
-    // SDL_Rect *vol_bar;
-    // SDL_Rect *pan_bar;
-    // SDL_Rect *in_bar;
 } Track;
+
 
 /* typedef struct clip_ref { */
 /*     char name[MAX_NAMELENGTH]; */
@@ -341,7 +339,11 @@ typedef struct timeline {
     Value dragging_kf_cache_val;
 
     /* GUI members */
+
+    /* DEPRECATE Timeline-level layout;
+       it is too complicated to swap this out when swapping projects */
     Layout *layout;
+    
     Layout *track_area;
     int32_t display_offset_sframes; // in samples frames
     int sample_frames_per_pixel;
@@ -396,7 +398,8 @@ int project_init(
     uint32_t sample_rate,
     SDL_AudioFormat fmt,
     uint16_t chunk_size_sframes,
-    uint16_t fourier_len_sframes
+    uint16_t fourier_len_sframes,
+    bool create_empty_timeline
     );
 
 /* Return the index of a timeline to switch to (new one if success) */
@@ -404,6 +407,7 @@ uint8_t project_add_timeline(Project *proj, char *name);
 void project_reset_tl_label(Project *proj);
 void project_set_chunk_size(uint16_t new_chunk_size);
 Track *timeline_add_track(Timeline *tl);
+Track *timeline_add_track_with_name(Timeline *tl, const char *track_name);
 
 Track *timeline_selected_track(Timeline *tl);
 ClickTrack *timeline_selected_click_track(Timeline *tl);

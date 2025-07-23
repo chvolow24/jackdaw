@@ -33,21 +33,24 @@ static void api_endpoint_insert_into_table(Endpoint *ep)
 {
     char route[255];
     api_endpoint_get_route(ep, route, 255);
-
+    /* fprintf(stderr, "INSERT route %s\n", route); */
     unsigned long hash_i = api_hash_route(route);
     APIHashNode *new = calloc(1, sizeof(struct api_hash_node));
     new->route = strdup(route);
     new->ep = ep;
     new->index = hash_i;
+    /* fprintf(stderr, "\t->hash: %lu\n", hash_i); */
     ep->hash_node = new;
     APIHashNode *ahn = NULL;
     if ((ahn = api_hash_table[hash_i])) {
+	/* fprintf(stderr, "\t->entry exists!\n"); */
 	while (ahn->next) {
 	    ahn = ahn->next;
 	}
 	ahn->next = new;
 	new->prev = ahn;
     } else {
+	/* fprintf(stderr, "\t->inserting...\n"); */
 	api_hash_table[hash_i] = new;
     }
 }
@@ -55,6 +58,7 @@ static void api_endpoint_insert_into_table(Endpoint *ep)
 /* Insert an endpoint into the API tree, and into the route hash table */
 void api_endpoint_register(Endpoint *ep, APINode *parent)
 {
+    /* fprintf(stderr, "REGISTER EP %s to %s\n", ep->local_id, parent->obj_name); */
     if (parent->num_endpoints == MAX_API_NODE_ENDPOINTS) {
 	fprintf(stderr, "API setup error: node \"%s\" max num endpoints\n", parent->obj_name);
 	return;

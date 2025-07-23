@@ -147,7 +147,6 @@ void modal_destroy(Modal *modal)
 void breakfn();
 static ModalEl *modal_add_el(Modal *modal)
 {
-    breakfn();
     layout_reset(modal->layout);
     Layout *lt = layout_add_child(modal->layout);
     if (modal->num_els == 0) {

@@ -71,12 +71,21 @@ void iir_set_coeffs(IIRFilter *f, double *A_in, double *B_in)
 
 
 /* Apply the filter */
+void breakfn();
 double iir_sample(IIRFilter *f, double in, int channel)
 {
     double out = in * f->A[0];
     for (int i=0; i<f->degree; i++) {
 	out += f->A[i + 1] * f->memIn[channel][i];
 	out += f->B[i] * f->memOut[channel][i];
+	#ifdef TESTBUILD
+	int fc;
+	if (fabs(out) > 5000.0 || ((fc = fpclassify(out)) != FP_ZERO && fc != FP_NORMAL)) {
+	    iir_clear(f);
+	    fprintf(stderr, "IIR cleared! outsample: %f\n", out);
+	    return 0.0;
+	}
+	#endif
 	
     }
 

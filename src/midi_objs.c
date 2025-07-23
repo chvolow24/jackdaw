@@ -150,7 +150,7 @@ PmEvent pitch_bend_make_event(PitchBend *pb, uint16_t index)
 void midi_event_ring_buf_init(MIDIEventRingBuf *rb)
 {
     memset(rb, '\0', sizeof(MIDIEventRingBuf));
-    rb->size = 128;
+    rb->size = 1024;
     rb->buf = calloc(rb->size, sizeof(PmEvent));
 }
 

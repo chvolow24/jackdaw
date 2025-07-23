@@ -11,6 +11,7 @@
 #include "assets.h"
 #include "color.h"
 #include "endpoint_callbacks.h"
+#include "init_panels.h"
 #include "layout_xml.h"
 #include "session.h"
 #include "transport.h"
@@ -214,6 +215,20 @@ void session_destroy()
     
     session = NULL;
 
+}
+
+void session_set_proj(Session *session, Project *new_proj)
+{
+    project_deinit(&session->proj);
+    memcpy(&session->proj, new_proj, sizeof(Project));
+    /* session->proj = *new_proj; */
+    session_init_panels(session);
+
+    for (int i=0; i<session->proj.num_timelines; i++) {
+	session->proj.timelines[i]->proj = &session->proj;
+    }
+    layout_force_reset(session->gui.layout);
+    timeline_reset_full(session->proj.timelines[0]);
 }
 
 

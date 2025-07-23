@@ -678,6 +678,7 @@ static float osc_sample(Osc *osc, int channel, int num_channels, float step)
     }
     if (osc->freq_modulator) {
 	float fmod_sample = osc_sample(osc->freq_modulator, channel, num_channels, step);
+	/* fprintf(stderr, "fmod sample in osc %p: %f\n", osc, fmod_sample); */
 	osc->phase[channel] += phase_incr * (step * (1.0f + fmod_sample));
     } else {
 	osc->phase[channel] += phase_incr * step;
@@ -686,8 +687,11 @@ static float osc_sample(Osc *osc, int channel, int num_channels, float step)
 	sample *= 1.0 + osc_sample(osc->amp_modulator, channel, num_channels, step);
     }
     if (osc->phase[channel] > 1.0) {
-	osc->phase[channel] -= 1.0;
+	osc->phase[channel] = osc->phase[channel] - floor(osc->phase[channel]);
+    } else if (osc->phase[channel] < 0.0) {
+	osc->phase[channel] = 1.0 + osc->phase[channel] + ceil(osc->phase[channel]);
     }
+    /* fprintf(stderr, "Osc: %p phase: %f\n", osc, osc->phase[channel]); */
     /* float pan_scale; */
     /* if (channel == 0) { */
     /* 	pan_scale = osc->pan <= 0.5 ? 1.0 : (1.0f - osc->pan) * 2.0f; */
@@ -754,7 +758,7 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 		/* fprintf(stderr, "Freq: %f", freq); */
 		if (freq > 0.99f) freq = 0.99f;
 		if (freq > 1e-3) {
-		    /* fprintf(stderr, "\t(set)\n"); */
+		    /* fprintf(stderr, "\t(set freq %f)\n", freq); */
 		    iir_set_coeffs_lowpass_chebyshev(f, freq, v->synth->resonance);
 		/* } else { */
 		/*     fprintf(stderr, "\t(skipped)\n"); */
@@ -1139,7 +1143,7 @@ void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start
 	    }
 	} else if (msg_type == 0xE) { /* Pitch Bend */
 	    float pb = midi_pitch_bend_float_from_event(&e);
-	    fprintf(stderr, "REC'd PITCH BEND! amt: %f, normalized: %f, normalized incorrect: %f\n", pb, pb - 0.5, pb - 1.0);
+	    /* fprintf(stderr, "REC'd PITCH BEND! amt: %f, normalized: %f, normalized incorrect: %f\n", pb, pb - 0.5, pb - 1.0); */
 	    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 		SynthVoice *v = s->voices + i;
 		synth_voice_pitch_bend(v, 2.0f * (pb - 0.5) * 200.0);

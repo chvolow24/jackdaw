@@ -148,7 +148,7 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	    continue;
 	}
 	int num_events = 0;
-	if (channel == 0 && mclip && step > 0.0) {
+	if (channel == 0 && mclip && step > 0.0 && fabs(step) < 50.0) {
 
 	    PmEvent events[256];
 	    num_events = midi_clipref_output_chunk(cr, events, 256, start_pos_sframes, start_pos_sframes + (float)output_chunk_len_sframes * step);

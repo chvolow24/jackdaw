@@ -645,7 +645,7 @@ static inline void session_init_output_spectrum(Page *output_spectrum, Session *
 
 void session_init_panels(Session *session)
 {
-    Layout *lt = layout_get_child_by_name_recursive(session->gui.layout, "panel_area");  
+    Layout *lt = layout_get_child_by_name_recursive(session->gui.layout, "panel_area");
     PanelArea *pa = panel_area_create(lt, main_win);
     session->gui.panels = pa;
     panel_area_add_panel(pa);
@@ -702,5 +702,10 @@ void session_init_panels(Session *session)
     panel_select_page(pa, 2, 2);
     panel_select_page(pa, 3, 3);
     session->gui.panels_initialized = true;
+}
+
+void session_deinit_panels(Session *session)
+{
+    if (session->gui.panels) panel_area_destroy(session->gui.panels);
 }
 

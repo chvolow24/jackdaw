@@ -12,6 +12,7 @@
 #include "color.h"
 #include "endpoint_callbacks.h"
 #include "init_panels.h"
+#include "layout.h"
 #include "layout_xml.h"
 #include "session.h"
 #include "transport.h"
@@ -40,6 +41,7 @@ Session *session_create()
     layout_read_xml_to_lt(main_win->layout, MAIN_LT_PATH);
 
     session->gui.layout = main_win->layout;
+    session->gui.timeline_lt = layout_get_child_by_name_recursive(session->gui.layout, "timeline");
     session->gui.audio_rect = &(layout_get_child_by_name_recursive(session->gui.layout, "audio_rect")->rect);
     session->gui.console_column_rect = &(layout_get_child_by_name_recursive(session->gui.layout, "console_column")->rect);
 
@@ -49,7 +51,7 @@ Session *session_create()
     static const SDL_Color timeline_label_txt_color = {0, 200, 100, 255};
     /* sessionect_init_quickref(session, control_bar_layout); */
     session->gui.control_bar_rect = &control_bar_layout->rect;
-    session->gui.ruler_rect = &(layout_get_child_by_name_recursive(session->gui.layout, "ruler")->rect);
+    session->gui.ruler_rect = &(layout_get_child_by_name_recursive(session->gui.timeline_lt, "ruler")->rect);
     Layout *timeline_label_lt = layout_get_child_by_name_recursive(session->gui.layout, "timeline_label");
     /* strcpy(session->gui.timeline_label_str, "Timeline 1: \"Main\""); */
     session->gui.timeline_label = textbox_create_from_str(
@@ -59,6 +61,13 @@ Session *session_create()
 	12,
 	main_win
 	);
+    /* session->gui.timecode_tb = textbox_create_from_str( */
+    /* 	NULL, */
+    /* 	tc_lt, */
+    /* 	main_win->mono_bold_font, */
+    /* 	16, */
+    /* 	main_win); */
+
     textbox_set_text_color(session->gui.timeline_label, &timeline_label_txt_color);
     textbox_set_background_color(session->gui.timeline_label, &colors.clear);
     textbox_set_align(session->gui.timeline_label, CENTER_LEFT);
@@ -195,8 +204,10 @@ void session_destroy()
     }
 
     textbox_destroy(session->gui.timeline_label);
+    textbox_destroy(session->gui.timecode_tb);
+    textbox_destroy(session->gui.loop_play_lemniscate);
     
-    if (session->gui.panels) panel_area_destroy(session->gui.panels);
+    session_deinit_panels(session);
     
     if (session->status_bar.call) textbox_destroy(session->status_bar.call);
     if (session->status_bar.dragstat) textbox_destroy(session->status_bar.dragstat);
@@ -219,15 +230,23 @@ void session_destroy()
 
 void session_set_proj(Session *session, Project *new_proj)
 {
+    if (session->playback.recording) {
+	transport_stop_recording();
+    }
+    transport_stop_playback();
+    
     project_deinit(&session->proj);
+    session_deinit_panels(session);
     memcpy(&session->proj, new_proj, sizeof(Project));
     /* session->proj = *new_proj; */
+    /* layout_reset_from_window(session->gui.layout, main_win); */
     session_init_panels(session);
 
     for (int i=0; i<session->proj.num_timelines; i++) {
 	session->proj.timelines[i]->proj = &session->proj;
     }
     layout_force_reset(session->gui.layout);
+    timeline_switch(0);
     timeline_reset_full(session->proj.timelines[0]);
 }
 

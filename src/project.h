@@ -314,7 +314,6 @@ typedef struct timeline {
     
 
     Timecode timecode;
-    Textbox *timecode_tb;
     
     Project *proj;
 
@@ -342,13 +341,12 @@ typedef struct timeline {
 
     /* DEPRECATE Timeline-level layout;
        it is too complicated to swap this out when swapping projects */
-    Layout *layout;
+    /* Layout *layout; */
     
     Layout *track_area;
     int32_t display_offset_sframes; // in samples frames
     int sample_frames_per_pixel;
     int display_v_offset;
-    Textbox *loop_play_lemniscate;
 
     bool needs_redraw;
 

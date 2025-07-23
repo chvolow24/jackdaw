@@ -440,6 +440,7 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 	else if (session->playback.playing) transport_stop_playback();
 	api_quit();
 	Project new_proj;
+	memset(&new_proj, '\0', sizeof(new_proj));
 	int ret = jdaw_read_file(&new_proj, dp->path);
 	if (ret == 0) {
 	    /* project_deinit(&session->proj); */
@@ -2385,10 +2386,10 @@ void user_tl_add_new_timeline(void *nullarg)
     Session *session = session_get();
     if (session->playback.recording) transport_stop_recording(); else  transport_stop_playback();
     
-    ACTIVE_TL->layout->hidden = true;
-    session->proj.active_tl_index = project_add_timeline(&session->proj, "New Timeline");
-    project_reset_tl_label(&session->proj);
-
+    ACTIVE_TL->track_area->hidden = true;
+    int new_index = project_add_timeline(&session->proj, "New Timeline");
+    /* project_reset_tl_label(&session->proj); */
+    timeline_switch(new_index);
     Layout *mod_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(mod_lt);
     Modal *mod = modal_create(mod_lt);

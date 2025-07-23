@@ -272,6 +272,12 @@ void panel_area_destroy(PanelArea *pa)
     for (uint8_t i=0; i<pa->num_pages; i++) {
 	page_destroy(pa->pages[i]);
     }
+    for (int i=0; i<pa->layout->num_children; i++) {
+	/* No offset to avoid list changing during deletion */
+	layout_destroy_no_offset(pa->layout->children[i]);
+    }
+    pa->layout->num_children = 0;
+ 
     free(pa);
 }
 

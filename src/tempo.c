@@ -467,7 +467,8 @@ ClickTrack *timeline_add_click_track(Timeline *tl)
 
 
     
-    Layout *click_tracks_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area");
+    /* Layout *click_tracks_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area"); */
+    Layout *click_tracks_area = tl->track_area;
     if (!click_tracks_area) {
 	fprintf(stderr, "Error: no tempo tracks area\n");
 	exit(1);
@@ -482,7 +483,7 @@ ClickTrack *timeline_add_click_track(Timeline *tl)
 
     t->layout = lt;
     layout_size_to_fit_children_v(click_tracks_area, true, 0);
-    layout_reset(tl->layout);
+    layout_reset(tl->track_area);
     tl->needs_redraw = true;
 
     layout_force_reset(lt);
@@ -1024,7 +1025,7 @@ static void click_track_deferred_draw(void *click_track_v)
     /* SDL_Rect cliprect = *audio_rect; */
     /* cliprect.w += cliprect.x; */
     /* cliprect.x = 0; */
-    if (audio_rect->y + audio_rect->h > tt->tl->layout->rect.y) {
+    if (audio_rect->y + audio_rect->h > tt->tl->track_area->rect.y) {
 	SDL_RenderSetClipRect(main_win->rend, audio_rect);
 	textbox_draw(tt->metronome_button);
 	slider_draw(tt->metronome_vol_slider);

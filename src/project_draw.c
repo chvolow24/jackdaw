@@ -359,7 +359,7 @@ static void ruler_draw(Timeline *tl)
 	    } else {
 		line_len = 5;
 	    }
-	    SDL_RenderDrawLine(main_win->rend, round(x), tl->layout->rect.y, round(x), tl->layout->rect.y + line_len);
+	    SDL_RenderDrawLine(main_win->rend, round(x), session->gui.timeline_lt->rect.y, round(x), session->gui.timeline_lt->rect.y + line_len);
         }
         x += sw;
 	second++;
@@ -504,12 +504,12 @@ static int timeline_draw(Timeline *tl)
     
     /* Draw the timeline background */
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(timeline_bckgrnd));
-    SDL_RenderFillRect(main_win->rend, &tl->layout->rect);
+    SDL_RenderFillRect(main_win->rend, &session->gui.timeline_lt->rect);
 
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(console_column_bckgrnd));
     SDL_RenderFillRect(main_win->rend, session->gui.console_column_rect);
     /* Draw tracks */
-    SDL_RenderSetClipRect(main_win->rend, &tl->layout->rect);
+    SDL_RenderSetClipRect(main_win->rend, &session->gui.timeline_lt->rect);
     for (uint8_t i=0; i<tl->num_tracks; i++) {
 	track_draw(tl->tracks[i]);
     }
@@ -528,16 +528,16 @@ static int timeline_draw(Timeline *tl)
     
     /* Draw ruler */
     ruler_draw(tl);
-    if (tl->timecode_tb) {
-	textbox_draw(tl->timecode_tb);
+    if (session->gui.timecode_tb) {
+	textbox_draw(session->gui.timecode_tb);
     }
     if (session->playback.loop_play && tl->out_mark_sframes > tl->in_mark_sframes) {
-	textbox_draw(tl->loop_play_lemniscate);
+	textbox_draw(session->gui.loop_play_lemniscate);
 	/* layout_draw(main_win, tl->loop_play_lemniscate->layout); */
     }
     
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.grey));
-    SDL_Rect tctbrect = tl->timecode_tb->layout->rect;
+    SDL_Rect tctbrect = session->gui.timecode_tb->layout->rect;
     SDL_RenderDrawLine(main_win->rend, tctbrect.x + tctbrect.w, tctbrect.y, tctbrect.x + tctbrect.w, tctbrect.y + tctbrect.h);
     /* Draw t=0 */
     if (tl->display_offset_sframes < 0) {
@@ -583,7 +583,7 @@ static int timeline_draw(Timeline *tl)
     } else if (tl->in_mark_sframes < tl->display_offset_sframes) {
         in_x = session->gui.audio_rect->x;
     } else {
-	in_x = tl->layout->rect.w;
+	in_x = session->gui.timeline_lt->rect.w;
     }
 
     /* draw mark out */
@@ -601,7 +601,7 @@ static int timeline_draw(Timeline *tl)
     }
 
     /* draw marked region */
-    if (in_x < out_x && out_x > 0 && in_x < tl->layout->rect.w) {
+    if (in_x < out_x && out_x > 0 && in_x < session->gui.timeline_lt->rect.w) {
         SDL_Rect in_out = (SDL_Rect) {in_x, session->gui.audio_rect->y, out_x - in_x, session->gui.audio_rect->h};
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(timeline_marked_bckgrnd));
         SDL_RenderFillRect(main_win->rend, &(in_out));
@@ -609,7 +609,7 @@ static int timeline_draw(Timeline *tl)
 
     if (session->source_mode.source_mode) {
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(grey_mask));
-	SDL_RenderFillRect(main_win->rend, &tl->layout->rect);
+	SDL_RenderFillRect(main_win->rend, &session->gui.timeline_lt->rect);
     }
     /* SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 10); */
     /* SDL_RenderFillRect(main_win->rend, &tl->track_area->rect); */
@@ -620,6 +620,7 @@ static int timeline_draw(Timeline *tl)
     } else {
 	tl->needs_redraw = false;
     }
+    SDL_SetRenderDrawColor(main_win->rend, 255, 255, 0, 255);
 
     /* Layout *tracks_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area"); */
     /* if (tracks_area) { */

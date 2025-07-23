@@ -291,13 +291,12 @@ void window_end_draw(Window *win)
     SDL_RenderCopy(win->rend, win->canvas, &win->canvas_src, NULL);
     SDL_RenderPresent(win->rend);
 }
-
 void window_set_layout(Window *win, Layout *layout)
 {
     layout->x.value = 0.0f;
     layout->y.value = 0.0f;
-    layout->w.value = win->w_pix;
-    layout->h.value = win->h_pix;
+    layout->w.value = win->w_pix / win->dpi_scale_factor;
+    layout->h.value = win->h_pix / win->dpi_scale_factor;
     layout_reset(layout);
     win->layout = layout;
 }

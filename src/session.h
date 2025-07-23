@@ -50,6 +50,7 @@ struct session_gui {
 
     struct freq_plot *freq_domain_plot;
     Layout *layout;
+    Layout *timeline_lt;
     SDL_Rect *audio_rect;
     SDL_Rect *control_bar_rect;
     SDL_Rect *ruler_rect;
@@ -57,6 +58,9 @@ struct session_gui {
     SDL_Rect *hamburger;
     SDL_Rect *bun_patty_bun[3];
     Textbox *source_name_tb;
+
+    Textbox *timecode_tb;
+    Textbox *loop_play_lemniscate;
 
     bool panels_initialized;
     PanelArea *panels;

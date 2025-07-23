@@ -140,7 +140,7 @@
 		</Layout>
                 <Layout name="tracks_area" type="NORMAL">
                     <x>REL 0</x>
-                    <y>STACK 0</y>
+                    <y>REL 28</y>
                     <w>SCALE 1.000000</w>
                     <h>REL 0</h>
                     <index>2</index>

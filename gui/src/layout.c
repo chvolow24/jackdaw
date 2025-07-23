@@ -1362,6 +1362,11 @@ void layout_size_to_fit_children_h(Layout *lt, bool fixed_origin, int padding)
 
 void layout_size_to_fit_children_v(Layout *lt, bool fixed_origin, int padding)
 {
+    if (lt->num_children == 0) {
+	lt->rect.h = 0;
+	layout_set_values_from_rect(lt);
+	return;
+    }
     int min_y = INT_MAX;
     int max_y = INT_MIN;
     int bottom;

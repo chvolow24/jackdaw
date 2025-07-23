@@ -88,8 +88,7 @@ SDL_Color track_colors[7] = {
 
 uint8_t project_add_timeline(Project *proj, char *name)
 {
-    fprintf(stderr, "\n\nPROJECT ADD TIMELINE\n");
-    breakfn();
+
     if (proj->num_timelines == MAX_PROJ_TIMELINES) {
 	fprintf(stderr, "Error: project has max num timlines\n:");
 	return proj->active_tl_index;
@@ -107,50 +106,80 @@ uint8_t project_add_timeline(Project *proj, char *name)
     new_tl->proj = proj;
     new_tl->index = proj->num_timelines;
     Session *session = session_get();
-    Layout *tl_lt = layout_get_child_by_name_recursive(session->gui.layout, "timeline");
-    fprintf(stderr, "GOT TL LT CHILDREN: %lld, index %d\n", tl_lt->num_children, new_tl->index);
+    /* Layout *tl_lt = layout_get_child_by_name_recursive(session->gui.layout, "timeline"); */
+    Layout *tl_lt = session->gui.timeline_lt;
 
+    /* If loading a file, session proj will have > 0 timelines and we can't use the existing one */
+    if (session->proj.num_timelines == 0) {
+	new_tl->track_area = layout_get_child_by_name_recursive(tl_lt, "tracks_area");
+    } else {
+	Layout *track_area_copy = layout_copy(session->proj.timelines[0]->track_area, session->gui.timeline_lt);
+	track_area_copy->scroll_offset_h = 0;
+	track_area_copy->scroll_offset_v = 0;
+	track_area_copy->scroll_momentum_h = 0;
+	track_area_copy->scroll_momentum_v = 0;
+	/* layout_write(stderr, track_area_copy, 0); */
+	for (int i=0; i<track_area_copy->num_children; i++) {
+	    layout_destroy_no_offset(track_area_copy->children[i]);
+	}
+	track_area_copy->num_children = 0;
+	new_tl->track_area = track_area_copy;
+	timeline_rectify_track_area(new_tl);
+	/* layout_write(stderr, track_area_copy, 0); */
 
-    
-    /* if (new_tl->index != 0) { */
-	Layout *main_lt_fresh = layout_read_from_xml(MAIN_LT_PATH);
-	Layout *new_tl_lt = layout_get_child_by_name_recursive(main_lt_fresh, "timeline");
-	Layout *cpy = layout_copy(new_tl_lt, tl_lt->parent);
-	layout_destroy(main_lt_fresh);
-	/* Layout *cpy = layout_copy(tl_lt, tl_lt->parent); */
-	/* new_tl->layout = cpy; */
-    /* } else { */
-	/* new_tl->layout = tl_lt; */
-    /* } */
-	breakfn();
-	/* layout_destroy(tl_lt); */
-	
-    /* layout_reset(new_tl->layout); */
-    new_tl->track_area = layout_get_child_by_name_recursive(new_tl->layout, "tracks_area");
-
-    /* Clear tracks in old timeline layout before copying */
-    for (int i=0; i<new_tl->track_area->num_children; i++) {
-	layout_destroy_no_offset(new_tl->track_area->children[i]);
     }
-    new_tl->track_area->num_children = 0;
+
+
+    /* TODO:
+
+       FIX NEW TIMELINE LAYOUT LOGIC
+
+    */
+
+
+
+       
+    /* /\* if (new_tl->index != 0) { *\/ */
+    /* 	Layout *main_lt_fresh = layout_read_from_xml(MAIN_LT_PATH); */
+    /* 	Layout *new_tl_lt = layout_get_child_by_name_recursive(main_lt_fresh, "timeline"); */
+    /* 	Layout *cpy = layout_copy(new_tl_lt, tl_lt->parent); */
+    /* 	layout_destroy(main_lt_fresh); */
+    /* 	/\* Layout *cpy = layout_copy(tl_lt, tl_lt->parent); *\/ */
+    /* 	/\* new_tl->layout = cpy; *\/ */
+    /* /\* } else { *\/ */
+    /* 	/\* new_tl->layout = tl_lt; *\/ */
+    /* /\* } *\/ */
+    /* 	breakfn(); */
+    /* 	/\* layout_destroy(tl_lt); *\/ */
+	
+    /* /\* layout_reset(new_tl->layout); *\/ */
+    /* new_tl->track_area = layout_get_child_by_name_recursive(new_tl->layout, "tracks_area"); */
+
+    /* /\* Clear tracks in old timeline layout before copying *\/ */
+    /* for (int i=0; i<new_tl->track_area->num_children; i++) { */
+    /* 	layout_destroy_no_offset(new_tl->track_area->children[i]); */
+    /* } */
+    /* new_tl->track_area->num_children = 0; */
 
     
     /* new_tl->layout = layout_get_child_by_name_recursive(session->gui.layout, "timeline"); */
     
     new_tl->sample_frames_per_pixel = DEFAULT_SFPP;
     strcpy(new_tl->timecode.str, "+00:00:00:00000");
-    Layout *tc_lt = layout_get_child_by_name_recursive(new_tl->layout, "timecode");
-    new_tl->timecode_tb = textbox_create_from_str(
-	new_tl->timecode.str,
-	tc_lt,
-	main_win->mono_bold_font,
-	16,
-	main_win);
-    textbox_set_background_color(new_tl->timecode_tb, &colors.black);
-    textbox_set_text_color(new_tl->timecode_tb, &colors.white);
-    textbox_set_trunc(new_tl->timecode_tb, false);
+    Layout *tc_lt = layout_get_child_by_name_recursive(tl_lt, "timecode");
+    if (!session->gui.timecode_tb) {
+	session->gui.timecode_tb = textbox_create_from_str(
+	    new_tl->timecode.str,
+	    tc_lt,
+	    main_win->mono_bold_font,
+	    16,
+	    main_win);
+	textbox_set_background_color(session->gui.timecode_tb, &colors.black);
+	textbox_set_text_color(session->gui.timecode_tb, &colors.white);
+	textbox_set_trunc(session->gui.timecode_tb, false);
+    }
 
-    Layout *ruler_lt = layout_get_child_by_name_recursive(new_tl->layout, "ruler");
+    Layout *ruler_lt = layout_get_child_by_name_recursive(tl_lt, "ruler");
     Layout *lemniscate_lt = layout_add_child(ruler_lt);
     lemniscate_lt->h.type = SCALE;
     lemniscate_lt->h.value = 1.0;
@@ -159,15 +188,17 @@ uint8_t project_add_timeline(Project *proj, char *name)
     lemniscate_lt->x.type = ABS;
     lemniscate_lt->x.value = 0.0;
     layout_force_reset(lemniscate_lt);
-    new_tl->loop_play_lemniscate = textbox_create_from_str(
-	"∞",
-	lemniscate_lt,
-	main_win->std_font,
-	24,
-	main_win);
-    textbox_set_background_color(new_tl->loop_play_lemniscate, &colors.clear);
-    textbox_set_text_color(new_tl->loop_play_lemniscate, &colors.white);
-    textbox_reset_full(new_tl->loop_play_lemniscate);
+    if (!session->gui.loop_play_lemniscate) {
+	session->gui.loop_play_lemniscate = textbox_create_from_str(
+	    "∞",
+	    lemniscate_lt,
+	    main_win->std_font,
+	    24,
+	    main_win);
+	textbox_set_background_color(session->gui.loop_play_lemniscate, &colors.clear);
+	textbox_set_text_color(session->gui.loop_play_lemniscate, &colors.white);
+	textbox_reset_full(session->gui.loop_play_lemniscate);
+    }
     
     new_tl->buf_L = calloc(1, sizeof(float) * proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS);
     new_tl->buf_R = calloc(1, sizeof(float) * proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS);
@@ -259,8 +290,8 @@ static void timeline_destroy(Timeline *tl, bool displace_in_proj)
     if (tl->buf_L) free(tl->buf_L);
     if (tl->buf_R) free(tl->buf_R);
 
-    if (tl->timecode_tb) textbox_destroy(tl->timecode_tb);
-    if (tl->loop_play_lemniscate) textbox_destroy(tl->loop_play_lemniscate);
+    /* if (tl->timecode_tb) textbox_destroy(tl->timecode_tb); */
+    /* if (tl->loop_play_lemniscate) textbox_destroy(tl->loop_play_lemniscate); */
 
     if (sem_close(tl->unpause_sem) != 0) perror("Sem close");
     if (sem_close(tl->writable_chunks) != 0) perror("Sem close");
@@ -280,7 +311,8 @@ static void timeline_destroy(Timeline *tl, bool displace_in_proj)
 	perror("Error in sem unlink");
     }
 
-    layout_destroy(tl->layout);
+    /* layout_destroy(tl->layout); */
+    layout_destroy(tl->track_area);
     free(tl);
 }
 
@@ -1058,14 +1090,16 @@ void track_reset(Track *track, bool rescaled)
 void timeline_reset_loop_play_lemniscate(Timeline *tl)
 {
     if (tl->in_mark_sframes >= tl->out_mark_sframes) return;
+
+    Session *session = session_get();
     int in_x = timeline_get_draw_x(tl, tl->in_mark_sframes);
     int out_x = timeline_get_draw_x(tl, tl->out_mark_sframes);
-    layout_reset(tl->loop_play_lemniscate->layout);
+    layout_reset(session->gui.loop_play_lemniscate->layout);
 
-    tl->loop_play_lemniscate->layout->rect.x = in_x;
-    tl->loop_play_lemniscate->layout->rect.w = out_x - in_x;
-    layout_set_values_from_rect(tl->loop_play_lemniscate->layout);
-    textbox_reset(tl->loop_play_lemniscate);
+    session->gui.loop_play_lemniscate->layout->rect.x = in_x;
+    session->gui.loop_play_lemniscate->layout->rect.w = out_x - in_x;
+    layout_set_values_from_rect(session->gui.loop_play_lemniscate->layout);
+    textbox_reset(session->gui.loop_play_lemniscate);
     tl->needs_redraw = true;
     
 }
@@ -1077,7 +1111,7 @@ void timeline_reset_full(Timeline *tl)
     }
 
     Session *session = session_get();
-    layout_reset(tl->layout);
+    layout_reset(session->gui.layout);
     if (session->playback.loop_play) {
 	timeline_reset_loop_play_lemniscate(tl);
     }
@@ -1088,13 +1122,11 @@ void timeline_reset_full(Timeline *tl)
 
 void timeline_reset(Timeline *tl, bool rescaled)
 {
-    layout_reset(tl->layout);
+    Session *session = session_get();
+    layout_reset(session->gui.layout);
     for (int i=0; i<tl->num_tracks; i++) {
 	track_reset(tl->tracks[i], rescaled);
     }
-
-    layout_reset(tl->layout);
-    Session *session = session_get();
     if (session->playback.loop_play) {
 	timeline_reset_loop_play_lemniscate(tl);
     }
@@ -1825,15 +1857,17 @@ void timeline_switch(uint8_t new_tl_index)
 {
     Session *session = session_get();
     Timeline *current = ACTIVE_TL;
-    current->layout->hidden = true;
+    current->track_area->hidden = true;
 
     session->proj.active_tl_index = new_tl_index;
     Timeline *new = session->proj.timelines[new_tl_index];
-    new->layout->hidden = false;
+    new->track_area->hidden = false;
+
+    textbox_set_value_handle(session->gui.timecode_tb, new->timecode.str);
     
-    /* Concession to bad design */
-    session->gui.audio_rect = &(layout_get_child_by_name_recursive(new->layout, "audio_rect")->rect);
-    session->gui.ruler_rect = &(layout_get_child_by_name_recursive(new->layout, "ruler")->rect);
+    /* /\* Concession to bad design *\/ */
+    /* session->gui.audio_rect = &(layout_get_child_by_name_recursive(new->track_area->parent, "audio_rect")->rect); */
+    /* session->gui.ruler_rect = &(layout_get_child_by_name_recursive(new->track_area->parent, "ruler")->rect); */
     
     new->needs_redraw = true;
     project_reset_tl_label(new->proj);

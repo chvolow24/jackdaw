@@ -205,12 +205,9 @@ void timeline_set_timecode(Timeline *tl)
     tl->timecode.seconds = seconds;
     tl->timecode.frames = frames;
     snprintf(tl->timecode.str, sizeof(tl->timecode.str), "%c%02d:%02d:%02d:%05d", sign, hours, minutes, seconds, frames);
-    if (tl->timecode_tb) {
-	/* fprintf(stdout, "Resetting tb\n"); */
-	textbox_reset_full(tl->timecode_tb);
-	/* fprintf(stdout, "TC content? \"%s\"\n", tl->timecode_tb->text->value_handle); */
-	/* fprintf(stdout, "TC disp val? \"%s\"\n", tl->timecode_tb->text->display_value); */
-	/* fprintf(stdout, "Lt w? %d\n", tl->timecode_tb->layout->rect.w); */
+    Session *session = session_get();
+    if (session->gui.timecode_tb) {
+	textbox_reset_full(session->gui.timecode_tb);
     }
 }
 static void track_handle_playhead_jump(Track *track)

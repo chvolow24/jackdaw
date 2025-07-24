@@ -753,7 +753,8 @@ int midi_file_open(const char *filepath, bool automatically_add_tracks)//, MIDIC
 	    }
 	}
 	tl->needs_redraw = true;
-    }    
+    }
+    session->proj.active_midi_clip_index += num_clips;
     free(v_device);
     fclose(f);
     return 0;    

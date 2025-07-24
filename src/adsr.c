@@ -6,6 +6,7 @@
 #include "adsr.h"
 #include "endpoint_callbacks.h"
 #include "session.h"
+#include <math.h>
 /* #include "color.h" */
 
 
@@ -224,6 +225,7 @@ void adsr_init(ADSRState *s, int32_t after)
 
 void adsr_start_release(ADSRState *s, int32_t after)
 {
+    fprintf(stderr, "\t\t\tADSR %p start release after : %d\n", s, after);
     s->start_release_after = after;
 }
 
@@ -235,7 +237,6 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
     /* const char *thread = get_thread_name(); */
     /* fprintf(stderr, "\tget chunk CALL ON THREAD %s\n", thread); */
     /* fprintf(stderr, "\t\tint %p\n", s); */
-    /* fprintf(stderr, "BUF APPLY len %d\n", buf_len); */
     /* fprintf(stderr, "\t\t\tadsr buf apply\n"); */
     int32_t buf_i = 0;
     bool skip_to_release = false;
@@ -286,7 +287,7 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
 	    for (int i=0; i<stage_len; i++) {
 		float env_norm = (double)s->env_remaining / (double)s->params->r;
 		float env = s->release_start_env * pow(env_norm, s->params->ramp_exp);
-		buf[i] = env;
+		buf[i + buf_i] = env;
 		s->env_remaining--;
 	    }
 	}
@@ -324,8 +325,11 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
 		s->start_release_after = -1;
 		break;
 	    default:
+		s->release_start_env = s->params->s;
+		s->current_stage = ADSR_R;
+		s->start_release_after = -1;
 		fprintf(stderr, "Error: env stage error: release started in stage %d\n", s->current_stage);
-		break;	
+		break;
 	    }
 	    /* fprintf(stderr, "\nSET START OF RELEASE ENV from stage %d, env rem: %d, val: %f\n", s->current_stage, s->env_remaining, s->release_start_env); */
 	    skip_to_release = false;
@@ -346,6 +350,14 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
 	s->start_release_after -= stage_len;
 	buf_i += stage_len;
     }
+    /* for (int i=0; i<buf_len; i++) { */
+    /* 	int fc = fpclassify(buf[i]); */
+    /* 	if (fc < FP_ZERO || fabs(buf[i]) > 10.0f) { */
+    /* 	    fprintf(stderr, "i %d == %f\n", i, buf[i]); */
+    /* 	    exit(1); */
+    /* 	} */
+    /* } */
+    /* fprintf(stderr, "\t\t\t\t%p current stage %d\n", s, s->current_stage); */
     return s->current_stage;
 }
 

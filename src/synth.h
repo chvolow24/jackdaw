@@ -114,6 +114,7 @@ typedef struct osc_cfg {
     bool active;
     WaveShape type;
     float amp;
+    float amp_unscaled;
     float pan;
     int octave;
     int tune_coarse; /* semitones */
@@ -174,8 +175,6 @@ typedef struct synth {
     float pitch_amt;
     float vel_amt;
     float env_amt;
-    /* float freq_scalar; */
-    /* float velocity_freq_scalar; */
     APINode filter_node;
     bool use_amp_env;
     ADSRParams filter_env;
@@ -185,7 +184,6 @@ typedef struct synth {
     Endpoint vel_amt_ep;
     Endpoint env_amt_ep;
     Endpoint resonance_ep;
-    /* Endpoint velocity_freq_scalar_ep; */
     Endpoint use_amp_env_ep;
     
     bool monitor;

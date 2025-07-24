@@ -202,6 +202,7 @@ static void clipref_draw(ClipRef *cr)
 	float cr_h = cr->layout->rect.h - (border *main_win->dpi_scale_factor * 2);
 	float note_height_nominal = cr_h / midi_piano_range;
 	float true_note_height = note_height_nominal * 2;
+	if (true_note_height < 1.0) true_note_height = 1.0;
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.dark_brown));
 	MIDIClip *mclip = cr->source_clip;
 	int32_t first_note = midi_clipref_check_get_first_note(cr);
@@ -218,7 +219,6 @@ static void clipref_draw(ClipRef *cr)
 	    float w = timeline_get_draw_x(cr->track->tl, note_end) - x;
 	    float y = top_y + (midi_piano_range - piano_note) * note_height_nominal;
 	    SDL_Rect note_rect = {x, y - true_note_height / 2, w, true_note_height};
-	    /* fprintf(stderr, "Note %d val %d rect: %d %d %d %d\n", i, note->note, note_rect.x, note_rect.y, note_rect.w, note_rect.h); */
 	    /* fprintf(stderr, "\t->start->end: %d-%d\n", note_start, note_end); */
 	    /* fprintf(stderr, "\t->(rel): %d-%d\n", note->start_rel, note->end_rel); */
 	    SDL_RenderFillRect(main_win->rend, &note_rect);

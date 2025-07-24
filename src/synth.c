@@ -17,8 +17,9 @@ extern double MTOF[];
 static void synth_osc_vol_dsp_cb(Endpoint *ep)
 {
     OscCfg *cfg = ep->xarg1;
-    float vol = endpoint_safe_read(ep, NULL).float_v;
-    if (vol > 1e-9) cfg->active = true;
+    float vol_unscaled = endpoint_safe_read(ep, NULL).float_v;
+    cfg->amp = pow(vol_unscaled, 2.0);
+    if (cfg->amp > 1e-9) cfg->active = true;
     else cfg->active = false;
 }
 
@@ -97,7 +98,8 @@ Synth *synth_create(Track *track)
     s->pan = 0.5;
     
     s->base_oscs[0].active = true;
-    s->base_oscs[0].amp = 0.2;
+    s->base_oscs[0].amp_unscaled = 0.5;
+    s->base_oscs[0].amp = 0.25;
     s->base_oscs[0].type = WS_SAW;
 
     s->filter_active = true;
@@ -429,7 +431,7 @@ Synth *synth_create(Track *track)
 
 	endpoint_init(
 	    &cfg->amp_ep,
-	    &cfg->amp,
+	    &cfg->amp_unscaled,
 	    JDAW_FLOAT,
 	    "vol",
 	    "Vol",
@@ -437,7 +439,7 @@ Synth *synth_create(Track *track)
 	    page_el_gui_cb, NULL, synth_osc_vol_dsp_cb,
 	    cfg, NULL, &s->osc_page, cfg->amp_id);
 	endpoint_set_default_value(&cfg->amp_ep, (Value){.float_v = 0.5f});
-	endpoint_set_allowed_range(&cfg->amp_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
+	endpoint_set_allowed_range(&cfg->amp_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 4.0f});
 	api_endpoint_register(&cfg->amp_ep, &cfg->api_node);
 
 	endpoint_init(
@@ -1062,10 +1064,16 @@ void synth_voice_start_release(SynthVoice *v, int32_t after)
 }
 
 
-void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start, bool send_immediate)
+void synth_feed_midi(
+    Synth *s,
+    PmEvent *events,
+    int num_events,
+    int32_t tl_start,
+    bool send_immediate)
 {
     /* fprintf(stderr, "\n\nSYNTH FEED MIDI %d events tl start start: %d send immediate %d\n", num_events, tl_start, send_immediate); */
     /* FIRST: Update synth state from available MIDI data */
+    fprintf(stderr, "SYNTH FEED MIDI tl start: %d\n", tl_start);
     for (int i=0; i<num_events; i++) {
 	/* PmEvent e = s->device.buffer[i]; */
 	PmEvent e = events[i];
@@ -1073,6 +1081,15 @@ void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start
 	uint8_t note_val = Pm_MessageData1(e.message);
 	uint8_t velocity = Pm_MessageData2(e.message);
 	uint8_t msg_type = status >> 4;
+
+	fprintf(stderr, "\tIN SYNTH:(%d) %s, pitch %d vel %d\n",
+		e.timestamp,
+		msg_type == 8 ? "note OFF" :
+		msg_type == 9 ? "note ON" :
+		"unknown",
+		Pm_MessageData1(e.message),
+		Pm_MessageData2(e.message));
+
 	/* uint8_t channel = status & 0x0F; */
 
 	/* fprintf(stderr, "\t\tIN SYNTH msg%d/%d %x, %d, %d (%s)\n", i, s->num_events, status, note_val, velocity, msg_type == 0x80 ? "OFF" : msg_type == 0x90 ? "ON" : "ERROR"); */
@@ -1082,7 +1099,7 @@ void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start
 	if (velocity == 0) msg_type = 8;
 	if (msg_type == 8) {
 	    /* HANDLE NOTE OFF */
-	    /* fprintf(stderr, "NOTE OFF val: %d pos %d\n", note_val, e.timestamp); */
+	    fprintf(stderr, "\t\tNOTE OFF val: %d pos %d\n", note_val, e.timestamp);
 	    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 		SynthVoice *v = s->voices + i;
 		if (!v->available && v->note_val == note_val) {
@@ -1102,19 +1119,20 @@ void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start
 			    }
 			}
 		    } else {
-			int32_t end_rel = send_immediate ? 0 : tl_start - e.timestamp;
+			int32_t end_rel = send_immediate ? 0 : e.timestamp - tl_start;
+			fprintf(stderr, "\t\tStart release voice %d, end rel %d\n", i, end_rel);
 			synth_voice_start_release(v, end_rel);
 		    }
 		}
 	    }
 	} else if (msg_type == 9) { /* Handle note on */
-	    /* fprintf(stderr, "NOTE ON val: %d chan %d pos %d\n", note_val, channel, e.timestamp); */
+	    fprintf(stderr, "\t\tNOTE ON val: %d pos %d\n", note_val, e.timestamp);
 	    bool note_assigned = false;
 	    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 		SynthVoice *v = s->voices + i;
 		if (v->available) {
-		    /* fprintf(stderr, "ASSIGN VOICE %d\n", i); */
-		    int32_t start_rel = send_immediate ? 0 : tl_start - e.timestamp;
+		    int32_t start_rel = send_immediate ? 0 : e.timestamp - tl_start;
+		    fprintf(stderr, "\t\tASSIGN VOICE %d, start rel %d\n", i, start_rel);
 		    synth_voice_assign_note(v, note_val, velocity, start_rel);
 		    note_assigned = true;
 		    break;
@@ -1161,7 +1179,7 @@ void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start
 	    if (type == 64) {
 		s->pedal_depressed = value >= 64;
 		if (!s->pedal_depressed) {
-		    int32_t end_rel = send_immediate ? 0 : tl_start - e.timestamp;
+		    int32_t end_rel = send_immediate ? 0 : e.timestamp - tl_start;
 		    for (int i=0; i<s->num_deferred_offs; i++) {
 			synth_voice_start_release(s->deferred_offs[i], end_rel);
 			/* fprintf(stderr, "----RElease Voice %ld\n", s->deferred_offs[i] - s->voices); */

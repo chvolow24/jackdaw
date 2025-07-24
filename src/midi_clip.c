@@ -544,9 +544,13 @@ static void event_buf_insert(PmEvent **dst, uint32_t *alloc_len, uint32_t *num_e
     (*num_events)++;
 }
 
-/* Allocate an array of PmEvents and sort them by timestamp
- The note off ring buffer is only required for playback (not
-for file serialization, for example */
+/* Allocate an array of PmEvents and sort them by timestamp.
+
+   "timestamp" here signifies the position IN THE CLIP.
+   
+   The note off ring buffer is only required for playback (not
+   for file serialization, for example.
+*/
 uint32_t midi_clip_get_events(
     MIDIClip *mclip,
     PmEvent **dst,
@@ -608,6 +612,18 @@ uint32_t midi_clip_get_events(
 	event_buf_insert(dst, &alloc_len, &num_events, e);	
     }
     qsort(*dst, num_events, sizeof(PmEvent), event_cmp);
+    /* fprintf(stderr, "Output %d events\n", num_events); */
+    /* for (int i=0; i<num_events; i++) { */
+    /* 	PmEvent e = (*dst)[i]; */
+    /* 	fprintf(stderr, "\t(%d) %s, pitch %d vel %d\n", */
+    /* 		e.timestamp, */
+    /* 		(Pm_MessageStatus(e.message) & 0xF0) == 0x80 ? "note OFF" : */
+    /* 		(Pm_MessageStatus(e.message) & 0xF0) == 0x90 ? "note ON" : */
+    /* 		"unknown", */
+    /* 		Pm_MessageData1(e.message), */
+    /* 		Pm_MessageData2(e.message)); */
+		
+    /* } */
     return num_events;
 }
 
@@ -632,7 +648,6 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 
     int32_t start_in_clip = chunk_tl_start - cr->tl_pos + cr->start_in_clip;
     int32_t end_in_clip = chunk_tl_end - cr->tl_pos + cr->start_in_clip;
-    /* int32_t clipref_end = cr->tl_pos + clipref_len(cr); */
 
     if (end_in_clip > cr->start_in_clip + clipref_len(cr)) {
 	end_in_clip = cr->start_in_clip + clipref_len(cr);
@@ -650,9 +665,13 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 	fprintf(stderr, "Error! Event buf full!\n");
 	num_events = event_buf_max_len;
     }
-    /* fprintf(stderr, "(%d-%d): %d events\n", start_in_clip, end_in_clip, num_events); */
+    /* fprintf(stderr, "(%d-%d): %d events\n", chunk_tl_start, chunk_tl_end, num_events); */
     memcpy(event_buf, dyn_events, num_events * sizeof(PmEvent));
     free(dyn_events);
+    for (int i=0; i<num_events; i++) {
+	event_buf[i].timestamp += cr->tl_pos - cr->start_in_clip;
+    }
+
     return num_events;
 }
     

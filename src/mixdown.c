@@ -158,7 +158,12 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 		switch(track->midi_out_type) {
 		case MIDI_OUT_SYNTH: {
 		    Synth *synth = track->midi_out;
-		    synth_feed_midi(synth, events, num_events, channel, start_pos_sframes);
+		    synth_feed_midi(
+			synth,
+			events,
+			num_events,
+			start_pos_sframes,
+			false);
 		    /* memcpy(synth->events, events, sizeof(PmEvent) * num_events); */
 		    /* synth->num_events = num_events; */
 		}

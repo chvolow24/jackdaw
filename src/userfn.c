@@ -209,7 +209,7 @@ static int submit_save_as_form(void *mod_v, void *target)
     for (uint8_t i=0; i<modal->num_els; i++) {
 	switch ((el = modal->els[i])->type) {
 	case MODAL_EL_TEXTENTRY:
-	    name = ((TextEntry *)el->obj)->tb->text->value_handle;
+	    name = ((TextEntry *)el->obj)->tb->text->display_value;
 	    break;
 	case MODAL_EL_DIRNAV: {
 	    DirNav *dn = (DirNav *)el->obj;

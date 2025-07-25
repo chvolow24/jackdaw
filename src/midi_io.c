@@ -332,7 +332,7 @@ void midi_device_record_chunk(MIDIDevice *d, enum midi_ts_type ts_type)
 	/* fprintf(stderr, "EVENT %d/%d, timestamp: %d pos rel %d (record start %d)\n", i, d->num_unconsumed_events, e.timestamp, pos_rel, d->record_start); */
 	if (msg_type == 9 && d->current_clip) {
 	    Note *unclosed = d->unclosed_notes + note_val;
-	    unclosed->note = note_val;
+	    unclosed->key = note_val;
 	    unclosed->velocity = velocity;
 	    unclosed->start_rel = pos_rel;
 	    unclosed->unclosed = true;

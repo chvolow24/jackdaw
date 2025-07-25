@@ -211,7 +211,7 @@ static void clipref_draw(ClipRef *cr)
 	    Note *note = mclip->notes + i;
 	    /* SDL_SetRenderDrawColor(main_win->rend, colors.dark_brown.r, colors.dark_brown.g, colors.dark_brown.b, 255 * note->velocity / 128); */
 	    if (cr->end_in_clip && note->start_rel > cr->end_in_clip) break;
-	    int piano_note = note->note - 21;
+	    int piano_note = note->key - 21;
 	    if (piano_note < 0 || piano_note > midi_piano_range) continue;
 	    int32_t note_start = note->start_rel - cr->start_in_clip + cr->tl_pos;
 	    int32_t note_end = note->end_rel - cr->start_in_clip + cr->tl_pos;

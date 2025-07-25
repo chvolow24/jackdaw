@@ -25,7 +25,7 @@
 
 typedef struct note {
     uint8_t channel;
-    uint8_t note;
+    uint8_t key;
     uint8_t velocity;
     int32_t start_rel; /* sample frames from clip start */
     int32_t end_rel; /* sample frames from clip start */

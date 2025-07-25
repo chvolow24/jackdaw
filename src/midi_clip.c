@@ -92,7 +92,7 @@ void midi_clip_add_note(MIDIClip *mc, int channel, int note_val, int velocity, i
 	note--;
     }
     note->channel = channel;
-    note->note = note_val;
+    note->key = note_val;
     note->velocity = velocity;
     note->start_rel = start_rel;
     note->end_rel = end_rel;
@@ -509,7 +509,7 @@ void midi_clip_read_events(
 	/* fprintf(stderr, "EVENT %d/%d, timestamp: %d pos rel %d (record start %d)\n", i, d->num_unconsumed_events, e.timestamp, pos_rel, d->record_start); */
 	if (msg_type == 9) {
 	    Note *unclosed = unclosed_notes + note_val;
-	    unclosed->note = note_val;
+	    unclosed->key = note_val;
 	    unclosed->velocity = velocity;
 	    unclosed->start_rel = pos_rel;
 	    unclosed->unclosed = true;
@@ -571,7 +571,7 @@ uint32_t midi_clip_get_events(
 	note_on.timestamp = note->start_rel;
 	note_on.message = Pm_Message(
 	    0x90 + note->channel,
-	    note->note,
+	    note->key,
 	    note->velocity);
 	event_buf_insert(dst, &alloc_len, &num_events, note_on);
 	if (note->end_rel > note_trunc_pos) {
@@ -581,7 +581,7 @@ uint32_t midi_clip_get_events(
 	}
 	note_off.message = Pm_Message(
 	    0x80 + note->channel,
-	    note->note,
+	    note->key,
 	    note->velocity);
 	if (rb) {
 	    midi_event_ring_buf_insert(rb, note_off);

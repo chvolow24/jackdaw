@@ -9,7 +9,7 @@ PmEvent note_create_event_no_ts(Note *note, uint8_t channel, bool is_note_off)
 {
     PmEvent e;
     uint8_t status = is_note_off ? 0x80 + channel : 0x90 + channel;
-    e.message = Pm_Message(status, note->note, note->velocity);
+    e.message = Pm_Message(status, note->key, note->velocity);
     return e;
 }
 

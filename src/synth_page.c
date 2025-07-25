@@ -646,8 +646,6 @@ static void add_osc_page(TabView *tv, Track *track)
 
     p.slight_p.value = &cfg->amp_mod_by;
     page_add_el(page,EL_STATUS_LIGHT,p,"4amod_status_light","4amod_status_light");
-
-
     
     page_reset(page);
 	
@@ -708,8 +706,8 @@ static void add_amp_env_page(TabView *tv, Track *track)
 static void add_noise_page(TabView *tv, Track *track)
 {
     Synth *s = track->synth;
-    static SDL_Color noise_bckgrnd = {100, 90, 120, 255};
-    Page *page = tabview_add_page(tv, "Noise", SYNTH_NOISE_LT_PATH, &noise_bckgrnd, &colors.black, main_win);
+    static SDL_Color noise_bckgrnd = {90, 80, 110, 255};
+    Page *page = tabview_add_page(tv, "Noise", SYNTH_NOISE_LT_PATH, &noise_bckgrnd, &colors.white, main_win);
 
     PageElParams p;
     p.textbox_p.font = main_win->mono_bold_font;

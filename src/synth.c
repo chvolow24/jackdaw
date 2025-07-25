@@ -96,6 +96,9 @@ Synth *synth_create(Track *track)
 
     s->vol = 1.0;
     s->pan = 0.5;
+    s->sync_phase = true;
+    s->noise_amt = 0.0f;
+    s->noise_apply_env = false;
     
     s->base_oscs[0].active = true;
     s->base_oscs[0].amp_unscaled = 0.5;
@@ -121,6 +124,9 @@ Synth *synth_create(Track *track)
 	
 	adsr_params_add_follower(&s->filter_env, &v->filter_env[0]);
 	adsr_params_add_follower(&s->filter_env, &v->filter_env[1]);
+	
+	adsr_params_add_follower(&s->noise_amt_env, &v->noise_amt_env[0]);
+	adsr_params_add_follower(&s->noise_amt_env, &v->noise_amt_env[1]);
 
 	iir_init(&v->filter, 2, 2);
 	v->synth = s;
@@ -137,6 +143,13 @@ Synth *synth_create(Track *track)
     s->filter_env.d_msec = 200;
     s->filter_env.s_ep_targ = 0.4;
     s->filter_env.r_msec = 400;
+
+    s->noise_amt_env.a_msec = 4;
+    s->noise_amt_env.d_msec = 200;
+    s->noise_amt_env.s_ep_targ = 0.4;
+    s->noise_amt_env.r_msec = 400;
+
+
     
     Session *session = session_get();
     adsr_set_params(
@@ -153,6 +166,14 @@ Synth *synth_create(Track *track)
 	s->filter_env.s_ep_targ,
 	session->proj.sample_rate * s->filter_env.r_msec / 1000,
 	2.0);
+    adsr_set_params(
+	&s->noise_amt_env,
+	session->proj.sample_rate * s->noise_amt_env.a_msec / 1000,
+	session->proj.sample_rate * s->noise_amt_env.d_msec / 1000,
+	s->noise_amt_env.s_ep_targ,
+	session->proj.sample_rate * s->noise_amt_env.r_msec / 1000,
+	2.0);
+
 
     s->monitor = true;
     s->allow_voice_stealing = true;
@@ -194,9 +215,10 @@ Synth *synth_create(Track *track)
 
     
     adsr_endpoints_init(&s->amp_env, &s->amp_env_page, &s->api_node, "Amp envelope");
-    /* api_node_register(&s->amp_env.api_node, &s->api_node, "Amp envelope"); */
     api_node_register(&s->filter_node, &s->api_node, "Filter");
+    api_node_register(&s->noise_node, &s->api_node, "Noise");
     adsr_endpoints_init(&s->filter_env, &s->filter_page, &s->filter_node, "Filter envelope");
+    adsr_endpoints_init(&s->noise_amt_env, &s->noise_page, &s->noise_node, "Noise envelope");
     /* api_node_register(&s->filter_env.api_node, &s->filter_node, "Filter envelope"); */
 
     /* adsr_params_init(&s->amp_env); */
@@ -295,6 +317,44 @@ Synth *synth_create(Track *track)
     endpoint_set_default_value(&s->resonance_ep, (Value){.float_v = 5.0f});
     endpoint_set_allowed_range(&s->resonance_ep, (Value){.float_v = 1.0f}, (Value){.float_v = 50.0f});
     api_endpoint_register(&s->resonance_ep, &s->filter_node);
+
+
+    endpoint_init(
+	&s->sync_phase_ep,
+	&s->sync_phase,
+	JDAW_BOOL,
+	"sync_phase",
+	"Sync phase",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, NULL,
+	NULL, NULL, &s->filter_page, "sync_phase_toggle");
+    endpoint_set_default_value(&s->sync_phase_ep, (Value){.bool_v = true});
+    api_endpoint_register(&s->sync_phase_ep, &s->api_node);
+
+    endpoint_init(
+	&s->noise_amt_ep,
+	&s->noise_amt,
+	JDAW_FLOAT,
+	"noise_amt",
+	"Noise amount",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, NULL,
+	NULL, NULL, &s->filter_page, "noise_amt_slider");
+    endpoint_set_default_value(&s->noise_amt_ep, (Value){.float_v = true});
+    api_endpoint_register(&s->noise_amt_ep, &s->noise_node);
+
+    endpoint_init(
+	&s->noise_apply_env_ep,
+	&s->noise_apply_env,
+	JDAW_BOOL,
+	"noise_apply_env",
+	"Apply noise envelope",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, NULL,
+	NULL, NULL, &s->filter_page, "noise_apply_env_toggle");
+    endpoint_set_default_value(&s->noise_apply_env_ep, (Value){.bool_v = false});
+    api_endpoint_register(&s->noise_apply_env_ep, &s->noise_node);
+
 
     /* s->velocity_freq_scalar = 0.5; */
     /* endpoint_init( */
@@ -743,7 +803,22 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 	adsr_get_chunk(&v->filter_env[channel], filter_env, len);
 	filter_env_p = filter_env;
     }
+    bool do_noise = false;
+    float noise_env[len];
+    if (v->synth->noise_amt > 1e-9) {
+	do_noise = true;
+	if (v->synth->noise_apply_env) {
+	    adsr_get_chunk(&v->noise_amt_env[channel], noise_env, len);
+	}
+    }
     for (int i=0; i<len; i++) {
+	if (do_noise) {
+	    float env = 1.0;
+	    if (v->synth->noise_apply_env) {
+		env = noise_env[i];
+	    }
+	    osc_buf[i] += env * ((float)(rand() % INT16_MAX) / INT16_MAX) * v->synth->noise_amt;
+	}
 	if (v->synth->filter_active) {
 	    if (i%37 == 0) { /* Update filter every 37 sample frames */
 		    
@@ -773,10 +848,16 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 	}
 	/* buf[i] += osc_buf[i] * (float)v->velocity / 127.0f; */
     }
+    /* if (v->synth->noise_amt > 1e-9) { */
+    /* 	float noise_buf[len]; */
+    /* 	for (int i=0; i<len; i++) { */
+    /* 	    noise_buf[i] = ((float)(rand() % INT16_MAX) / INT16_MAX) * v->synth->noise_amt; */
+    /* 	} */
+    /* 	float_buf_add(osc_buf, noise_buf, len); */
+    /* } */
     float_buf_mult(osc_buf, amp_env, len);
     float_buf_mult_const(osc_buf, (float)v->velocity / 127.0f, len);
     float_buf_add(buf, osc_buf, len);
-
 
     /* for (int i=0; i<len; i++) { */
     /* 	buf[i] = tanh(buf[i]); */
@@ -848,8 +929,10 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
 	osc->type = cfg->type;
 
 	/* Reset phase every time? */
-	osc->phase[0] = 0.0;
-	osc->phase[1] = 0.0;
+	if (synth->sync_phase) {
+	    osc->phase[0] = 0.0;
+	    osc->phase[1] = 0.0;
+	}
 
 
 	
@@ -888,11 +971,16 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
     /* v->note_end_rel[0] = INT32_MIN; */
     /* v->note_end_rel[1] = INT32_MIN; */
     v->available = false;
+    
     adsr_init(v->amp_env, start_rel);
     adsr_init(v->amp_env + 1, start_rel);
-    /* if (!v->synth->use_amp_env) { */
+
     adsr_init(v->filter_env, start_rel);
     adsr_init(v->filter_env + 1, start_rel);
+
+    adsr_init(v->noise_amt_env, start_rel);
+    adsr_init(v->noise_amt_env + 1, start_rel);
+
     /* } */
 
     /* v->amp_env_stage[0] = 0; */
@@ -1056,11 +1144,13 @@ int synth_set_amp_mod_pair(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg)
 
 void synth_voice_start_release(SynthVoice *v, int32_t after)
 {
-
     adsr_start_release(v->amp_env, after);
     adsr_start_release(v->amp_env + 1, after);
     adsr_start_release(v->filter_env, after);
     adsr_start_release(v->filter_env + 1, after);
+    adsr_start_release(v->noise_amt_env, after);
+    adsr_start_release(v->noise_amt_env + 1, after);
+
 }
 
 
@@ -1073,7 +1163,7 @@ void synth_feed_midi(
 {
     /* fprintf(stderr, "\n\nSYNTH FEED MIDI %d events tl start start: %d send immediate %d\n", num_events, tl_start, send_immediate); */
     /* FIRST: Update synth state from available MIDI data */
-    fprintf(stderr, "SYNTH FEED MIDI tl start: %d\n", tl_start);
+    /* fprintf(stderr, "SYNTH FEED MIDI tl start: %d\n", tl_start); */
     for (int i=0; i<num_events; i++) {
 	/* PmEvent e = s->device.buffer[i]; */
 	PmEvent e = events[i];
@@ -1082,13 +1172,13 @@ void synth_feed_midi(
 	uint8_t velocity = Pm_MessageData2(e.message);
 	uint8_t msg_type = status >> 4;
 
-	fprintf(stderr, "\tIN SYNTH:(%d) %s, pitch %d vel %d\n",
-		e.timestamp,
-		msg_type == 8 ? "note OFF" :
-		msg_type == 9 ? "note ON" :
-		"unknown",
-		Pm_MessageData1(e.message),
-		Pm_MessageData2(e.message));
+	/* fprintf(stderr, "\tIN SYNTH:(%d) %s, pitch %d vel %d\n", */
+	/* 	e.timestamp, */
+	/* 	msg_type == 8 ? "note OFF" : */
+	/* 	msg_type == 9 ? "note ON" : */
+	/* 	"unknown", */
+	/* 	Pm_MessageData1(e.message), */
+	/* 	Pm_MessageData2(e.message)); */
 
 	/* uint8_t channel = status & 0x0F; */
 
@@ -1099,7 +1189,7 @@ void synth_feed_midi(
 	if (velocity == 0) msg_type = 8;
 	if (msg_type == 8) {
 	    /* HANDLE NOTE OFF */
-	    fprintf(stderr, "\t\tNOTE OFF val: %d pos %d\n", note_val, e.timestamp);
+	    /* fprintf(stderr, "\t\tNOTE OFF val: %d pos %d\n", note_val, e.timestamp); */
 	    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 		SynthVoice *v = s->voices + i;
 		if (!v->available && v->note_val == note_val) {
@@ -1120,19 +1210,19 @@ void synth_feed_midi(
 			}
 		    } else {
 			int32_t end_rel = send_immediate ? 0 : e.timestamp - tl_start;
-			fprintf(stderr, "\t\tStart release voice %d, end rel %d\n", i, end_rel);
+			/* fprintf(stderr, "\t\tStart release voice %d, end rel %d\n", i, end_rel); */
 			synth_voice_start_release(v, end_rel);
 		    }
 		}
 	    }
 	} else if (msg_type == 9) { /* Handle note on */
-	    fprintf(stderr, "\t\tNOTE ON val: %d pos %d\n", note_val, e.timestamp);
+	    /* fprintf(stderr, "\t\tNOTE ON val: %d pos %d\n", note_val, e.timestamp); */
 	    bool note_assigned = false;
 	    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 		SynthVoice *v = s->voices + i;
 		if (v->available) {
 		    int32_t start_rel = send_immediate ? 0 : e.timestamp - tl_start;
-		    fprintf(stderr, "\t\tASSIGN VOICE %d, start rel %d\n", i, start_rel);
+		    /* fprintf(stderr, "\t\tASSIGN VOICE %d, start rel %d\n", i, start_rel); */
 		    synth_voice_assign_note(v, note_val, velocity, start_rel);
 		    note_assigned = true;
 		    break;
@@ -1192,8 +1282,6 @@ void synth_feed_midi(
 		/* fprintf(stderr, "DEPR? %d\n", s->pedal_depressed); */
 	    }
 
-	} else {
-	    fprintf(stderr, "UNKNOWN type %d\n", msg_type);
 	}
     }
 }
@@ -1228,7 +1316,8 @@ void synth_close_all_notes(Synth *s)
 	    adsr_start_release(v->amp_env + 1, 0);
 	    adsr_start_release(v->filter_env, 0);
 	    adsr_start_release(v->filter_env + 1, 0);
-
+	    adsr_start_release(v->noise_amt_env, 0);
+	    adsr_start_release(v->noise_amt_env + 1, 0);
 	}
     }
 }

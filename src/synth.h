@@ -79,6 +79,7 @@ typedef struct synth_voice {
     bool available;
     ADSRState amp_env[2]; /* L and R */
     ADSRState filter_env[2];
+    ADSRState noise_amt_env[2];
 
     bool note_off_deferred;
 
@@ -167,7 +168,11 @@ typedef struct synth {
     OscCfg base_oscs[SYNTH_NUM_BASE_OSCS];
     APINode api_node;
     ADSRParams amp_env;
-
+    bool sync_phase;
+    float noise_amt;
+    bool noise_apply_env;
+    ADSRParams noise_amt_env;
+    
     /* Filter */
     bool filter_active;
     float resonance;
@@ -176,6 +181,7 @@ typedef struct synth {
     float vel_amt;
     float env_amt;
     APINode filter_node;
+    APINode noise_node;
     bool use_amp_env;
     ADSRParams filter_env;
     Endpoint filter_active_ep;
@@ -185,12 +191,16 @@ typedef struct synth {
     Endpoint env_amt_ep;
     Endpoint resonance_ep;
     Endpoint use_amp_env_ep;
+    Endpoint sync_phase_ep;
+    Endpoint noise_amt_ep;
+    Endpoint noise_apply_env_ep;
     
     bool monitor;
     bool allow_voice_stealing;
     Page *osc_page; /* For GUI callback targeting */
     Page *amp_env_page;
     Page *filter_page;
+    Page *noise_page;
 
     Track *track;
 

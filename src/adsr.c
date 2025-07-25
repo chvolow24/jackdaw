@@ -225,7 +225,7 @@ void adsr_init(ADSRState *s, int32_t after)
 
 void adsr_start_release(ADSRState *s, int32_t after)
 {
-    fprintf(stderr, "\t\t\tADSR %p start release after : %d\n", s, after);
+    /* fprintf(stderr, "\t\t\tADSR %p start release after : %d\n", s, after); */
     s->start_release_after = after;
 }
 

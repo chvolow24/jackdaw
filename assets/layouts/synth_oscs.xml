@@ -15,13 +15,13 @@
     <Layout name="master_amp_slider" type="NORMAL">
       <x>STACK 15</x>
       <y>REL 22</y>
-      <w>REL 200</w>
+      <w>REL 160</w>
       <h>REL 23</h>
       <children>
       </children>
     </Layout>
     <Layout name="master_pan_label" type="NORMAL">
-      <x>REL 340</x>
+      <x>STACK 26</x>
       <y>REL 22</y>
       <w>REL 50</w>
       <h>REL 23</h>
@@ -35,6 +35,20 @@
       <h>REL 23</h>
       <children>
       </children>
+    </Layout>
+    <Layout name="sync_phase_label" type="NORMAL">
+      <x>STACK 26</x>
+      <y>REL 22</y>
+      <w>REL 100</w>
+      <h>REL 23</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="sync_phase_toggle" type="NORMAL">
+      <x>STACK 15</x>
+      <y>REL 22</y>
+      <w>REL 23</w>
+      <h>REL 23</h>
     </Layout>
     <Layout name="osc1_panel" type="NORMAL">
       <x>REL 48</x>

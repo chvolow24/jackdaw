@@ -17,6 +17,7 @@ extern Symbol *SYMBOL_TABLE[];
 static void add_osc_page(TabView *tv, Track *track);
 static void add_filter_page(TabView *tv, Track *track);
 static void add_amp_env_page(TabView *tv, Track *track);
+static void add_noise_page(TabView *tv, Track *track);
 
 void osc_bckgrnd_draw(void *arg1, void *arg2);
 
@@ -35,6 +36,7 @@ TabView *synth_tabview_create(Track *track)
     
     add_osc_page(tv, track);
     add_amp_env_page(tv, track);
+    add_noise_page(tv, track);
     add_filter_page(tv, track);
     return tv;
 }
@@ -174,7 +176,8 @@ static void add_osc_page(TabView *tv, Track *track)
     page_el_params_slider_from_ep(&p, &s->pan_ep);
     page_add_el(page,EL_SLIDER,p,"master_pan_slider","master_pan_slider");
 
-    
+    p.toggle_p.ep = &s->sync_phase_ep;
+    page_add_el(page,EL_TOGGLE,p,"sync_phase_toggle","sync_phase_toggle");
     
     p.textbox_p.font = main_win->mono_bold_font;
     p.textbox_p.text_size = 14;
@@ -185,6 +188,9 @@ static void add_osc_page(TabView *tv, Track *track)
     
     p.textbox_p.set_str = "Pan:";
     page_add_el(page,EL_TEXTBOX,p,"","master_pan_label");
+
+    p.textbox_p.set_str = "Sync phase:";
+    page_add_el(page,EL_TEXTBOX,p,"","sync_phase_label");
 
     p.textbox_p.font = main_win->mono_font;
     p.textbox_p.set_str = "Osc 1";
@@ -696,6 +702,71 @@ static void add_amp_env_page(TabView *tv, Track *track)
     page_add_el(page,EL_SLIDER,p,"ramp_exp_slider","ramp_exp_slider");
 
     page_reset(page);
+
+}
+
+static void add_noise_page(TabView *tv, Track *track)
+{
+    Synth *s = track->synth;
+    static SDL_Color noise_bckgrnd = {100, 90, 120, 255};
+    Page *page = tabview_add_page(tv, "Noise", SYNTH_NOISE_LT_PATH, &noise_bckgrnd, &colors.black, main_win);
+
+    PageElParams p;
+    p.textbox_p.font = main_win->mono_bold_font;
+    p.textbox_p.text_size = 16;
+    p.textbox_p.win = main_win;
+
+    p.textbox_p.set_str = "Amount:";
+    page_add_el(page, EL_TEXTBOX, p, "", "noise_amt_label");
+
+    p.textbox_p.set_str = "Apply env:";
+    page_add_el(page, EL_TEXTBOX, p, "", "apply_envelope_label");
+
+    p.textbox_p.set_str = "Attack:";
+    page_add_el(page,EL_TEXTBOX,p,"","attack_label");
+
+    p.textbox_p.set_str = "Decay:";
+    page_add_el(page,EL_TEXTBOX,p,"","decay_label");
+
+    p.textbox_p.set_str = "Sustain:";
+    page_add_el(page,EL_TEXTBOX,p,"","sustain_label");
+
+    p.textbox_p.set_str = "Release:";
+    page_add_el(page,EL_TEXTBOX,p,"","release_label");
+
+    p.textbox_p.set_str = "Ramp exponent:";
+    page_add_el(page,EL_TEXTBOX,p,"","ramp_exp_label");
+
+    p.slider_p.orientation = SLIDER_HORIZONTAL;
+    p.slider_p.style = SLIDER_TICK;
+
+    page_el_params_slider_from_ep(&p, &s->noise_amt_ep);
+    page_add_el(page, EL_SLIDER, p, "", "noise_amt_slider");
+
+
+    p.toggle_p.ep = &s->noise_apply_env_ep;
+    page_add_el(page,EL_TOGGLE,p,"apply_envelope_toggle","apply_envelope_toggle");
+
+    p.slider_p.orientation = SLIDER_HORIZONTAL;
+    p.slider_p.style = SLIDER_TICK;
+
+    page_el_params_slider_from_ep(&p, &s->noise_amt_env.a_ep);	
+    page_add_el(page,EL_SLIDER,p,"attack_slider","attack_slider");
+
+    page_el_params_slider_from_ep(&p, &s->noise_amt_env.d_ep);	
+    page_add_el(page,EL_SLIDER,p,"decay_slider","decay_slider");
+
+    p.slider_p.style = SLIDER_FILL;
+    page_el_params_slider_from_ep(&p, &s->noise_amt_env.s_ep);	
+    page_add_el(page,EL_SLIDER,p,"sustain_slider","sustain_slider");
+
+    p.slider_p.style = SLIDER_TICK;
+    page_el_params_slider_from_ep(&p, &s->noise_amt_env.r_ep);	
+    page_add_el(page,EL_SLIDER,p,"release_slider","release_slider");
+
+    page_el_params_slider_from_ep(&p, &s->noise_amt_env.ramp_exp_ep);	
+    page_add_el(page,EL_SLIDER,p,"ramp_exp_slider","ramp_exp_slider");
+
 
 }
 

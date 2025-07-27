@@ -67,6 +67,7 @@ extern Project *proj;
 
 TabView *synth_tabview_create(Track *track);
 void user_global_quit(void *);
+void timeline_add_jlily();
 
 void loop_project_main()
 {
@@ -182,7 +183,7 @@ void loop_project_main()
 
 		switch (e.key.keysym.scancode) {
 		case SDL_SCANCODE_2: {
-		    synth_save_preset();
+		    /* synth_save_preset(); */
 		/*     Timeline *tl = ACTIVE_TL; */
 		/*     Track *t = timeline_selected_track(tl); */
 		/*     if (t && t->synth) */
@@ -194,7 +195,7 @@ void loop_project_main()
 		}
 		    break;
 		case SDL_SCANCODE_3: {
-		    synth_open_preset();
+		    /* synth_open_preset(); */
 		/*     Timeline *tl = ACTIVE_TL; */
 		/*     Track *t = timeline_selected_track(tl); */
 		/*     if (t && t->synth) */
@@ -224,6 +225,8 @@ void loop_project_main()
 		/* } */
 		/*     break; */
 		case SDL_SCANCODE_5: {
+		    timeline_add_jlily();
+		    break;
 		    Timeline *tl = ACTIVE_TL;
 		    ClickSegment *s = click_segment_active_at_cursor(tl);
 		    /* Get dur of first beat */
@@ -235,12 +238,21 @@ void loop_project_main()
 			/* First beat dur */
 			int32_t beat_dur = s->cfg.dur_sframes / num_subdivs * s->cfg.beat_subdiv_lens[0];
 			fprintf(stderr, "BEAT DUR BPM: %f\n", (double)session_get()->proj.sample_rate / (double)beat_dur * 60.0);
+			Track *t = timeline_selected_track(tl);
+			if (!t) break;
 			ClipRef *cr = clipref_at_cursor();
-			if (!cr) break;
-			if (cr->type == CLIP_AUDIO) break;
-			MIDIClip *mclip = cr->source_clip;
+			MIDIClip *mclip;
+			if (!cr) {
+			    mclip = midi_clip_create(NULL, t);
+			    cr = clipref_create(t, tl->play_pos_sframes, CLIP_MIDI, mclip);
+			} else {
+			    if (cr->type == CLIP_AUDIO) break;
+			    mclip = cr->source_clip;
+			}
 			int32_t pos_rel = tl->play_pos_sframes - cr->tl_pos + cr->start_in_clip;
-			jlily_string_to_mclip("a4 b c d a' b, c d a16 g f g a f g f g", (double)beat_dur, pos_rel, mclip);
+			jlily_string_to_mclip("b'8 r b gis r b r b r ais r fis fis'8. fis16 r8 dis", (double)beat_dur, pos_rel, mclip);
+			mclip->len_sframes = mclip->notes[mclip->num_notes - 1].end_rel + 1;
+			
 		    } else {
 			fprintf(stderr, "NO CLICK SEGMENT\n");
 		    }
@@ -281,7 +293,7 @@ void loop_project_main()
 			for (int i=25; i<25 + 80; i+=interval) {
 			    interval += rand() % 4 - 2;
 			    if (interval <= 0) interval += rand() %4 + 1;
-			    midi_clip_add_note(mclip, i, 0, velocity, start, start + dur);
+			    midi_clip_add_note(mclip, 0, i, velocity, start, start + dur);
 			    start += t_interval;
 			    /* end += 3000; */
 			    /* mclip->len_sframes += t_interval; */

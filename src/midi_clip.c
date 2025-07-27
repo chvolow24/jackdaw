@@ -84,6 +84,7 @@ void midi_clip_add_note(MIDIClip *mc, int channel, int note_val, int velocity, i
     if (mc->num_notes == mc->notes_alloc_len) {
 	mc->notes_alloc_len *= 2;
 	mc->notes = realloc(mc->notes, mc->notes_alloc_len * sizeof(Note));
+	fprintf(stderr, "REALLOC LEN %d, PTR? %p\n", mc->notes_alloc_len, mc->notes);
     }
     
     Note *note = mc->notes + mc->num_notes;
@@ -115,6 +116,8 @@ void midi_clip_add_controller_change(MIDIClip *mclip, PmEvent e, int32_t pos)
 
 void midi_clip_add_pitch_bend(MIDIClip *mclip, PmEvent e, int32_t pos)
 {
+    breakfn();
+    exit(1);
     uint8_t status = Pm_MessageStatus(e.message);
     uint8_t channel = status & 0x0F;
     uint8_t value1 = Pm_MessageData1(e.message);
@@ -559,6 +562,7 @@ uint32_t midi_clip_get_events(
     int32_t note_trunc_pos,
     MIDIEventRingBuf *rb)
 {
+    /* fprintf(stderr, "%d - %d\n", start_pos, end_pos); */
     uint32_t alloc_len = 128;
     uint32_t num_events = 0;
     *dst = malloc(alloc_len * sizeof(PmEvent));
@@ -573,6 +577,7 @@ uint32_t midi_clip_get_events(
 	    0x90 + note->channel,
 	    note->key,
 	    note->velocity);
+	/* Insert Note ON */
 	event_buf_insert(dst, &alloc_len, &num_events, note_on);
 	if (note->end_rel > note_trunc_pos) {
 	    note_off.timestamp = note_trunc_pos;
@@ -583,6 +588,8 @@ uint32_t midi_clip_get_events(
 	    0x80 + note->channel,
 	    note->key,
 	    note->velocity);
+	
+	/* Insert Note OFF or queue if ring buffer provided */
 	if (rb) {
 	    midi_event_ring_buf_insert(rb, note_off);
 	} else {
@@ -591,7 +598,7 @@ uint32_t midi_clip_get_events(
     }
     PmEvent *note_off;
     if (rb) {
-	while ((note_off = midi_event_ring_buf_pop(rb, end_pos))) {
+	while ((note_off = midi_event_ring_buf_pop(rb, end_pos - 1 /* sample at end pos belongs to NEXT chunk */))) {
 	    event_buf_insert(dst, &alloc_len, &num_events, *note_off);
 	}
     }
@@ -606,6 +613,8 @@ uint32_t midi_clip_get_events(
 	}
     }
     for (uint16_t i=0; i<mclip->pitch_bend.num_changes; i++) {
+	breakfn();
+	exit(1);
 	PmEvent e = pitch_bend_make_event(&mclip->pitch_bend, i);
 	if (e.timestamp < start_pos) continue;
 	if (e.timestamp >= end_pos) break;
@@ -634,7 +643,7 @@ uint32_t midi_clip_get_all_events(MIDIClip *mclip, PmEvent **dst)
 	dst,
 	0,
 	mclip->len_sframes,
-	mclip->len_sframes,
+	mclip->len_sframes - 1, /* Send note off before clip is closed */
 	NULL);
     return num_events;
 }
@@ -670,6 +679,13 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
     free(dyn_events);
     for (int i=0; i<num_events; i++) {
 	event_buf[i].timestamp += cr->tl_pos - cr->start_in_clip;
+        #ifdef TESTBUILD
+	if (event_buf[i].timestamp < chunk_tl_start || event_buf[i].timestamp >= chunk_tl_end) {
+	    breakfn();
+	    fprintf(stderr, "CRITICAL ERROR: outputting events not in chunk!! Event index %d, status %x, ts %d (chunk %d - %d)\n", i, Pm_MessageStatus(event_buf[i].message), event_buf[i].timestamp, chunk_tl_start, chunk_tl_end);
+	    exit(1);
+	}
+	#endif
     }
 
     return num_events;

@@ -3,10 +3,14 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include "clipref.h"
 #include "midi_clip.h"
+#include "project.h"
+#include "session.h"
 
 #define MAX_CHORD_NOTES 128
 #define MAX_NOTES 32
+#define MAX_JLILY_BUFLEN 1024
 
 enum token_type {
     JLILY_NONE,
@@ -306,3 +310,76 @@ int jlily_string_to_mclip(
     }
     return num_notes;
 }
+
+#include "color.h"
+#include "modal.h"
+extern Window *main_win;
+extern struct colors colors;
+
+static int add_jlily_modalfn(void *mod_v, void *target)
+{
+
+    Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
+    Track *t = timeline_selected_track(tl);
+    ClickSegment *s = click_segment_active_at_cursor(tl);
+    int32_t beat_dur;
+    if (s) {
+	beat_dur = s->cfg.dur_sframes / s->cfg.num_atoms * s->cfg.beat_subdiv_lens[0];
+    } else {
+	beat_dur = (double)session->proj.sample_rate / 120.0 * 60.0;
+    }
+
+    ClipRef *cr = clipref_at_cursor();
+    MIDIClip *mclip;
+    if (!cr) {
+	mclip = midi_clip_create(NULL, t);
+	cr = clipref_create(t, tl->play_pos_sframes, CLIP_MIDI, mclip);
+    } else {
+	if (cr->type == CLIP_AUDIO) return -1;
+	mclip = cr->source_clip;
+    }
+    int32_t pos_rel = tl->play_pos_sframes - cr->tl_pos + cr->start_in_clip;
+    
+    jlily_string_to_mclip(target, (double)beat_dur, pos_rel, mclip);
+    mclip->len_sframes = mclip->notes[mclip->num_notes - 1].end_rel + 1;
+    clipref_reset(cr, true);
+    tl->needs_redraw = true;
+    window_pop_modal(main_win);
+    return 0;
+
+}
+
+void timeline_add_jlily()
+{
+    static const int MAX_BUFLEN = 1024;
+    Layout *mod_lt = layout_add_child(main_win->layout);
+    layout_set_default_dims(mod_lt);
+    Modal *m = modal_create(mod_lt);
+    modal_add_header(m, "Insert JLily notes (LilyPond)", &colors.light_grey, 5);
+    static char buf[MAX_BUFLEN];
+    static bool buf_initialized = false;
+    if (!buf_initialized) {
+	snprintf(buf, MAX_BUFLEN, "Insert JLily string");
+	buf_initialized = true;
+    }
+    modal_add_textentry(
+	m,
+        buf,
+	MAX_BUFLEN,
+	NULL,
+	NULL,
+	NULL);
+    m->stashed_obj = buf;
+
+
+    modal_add_button(m, "Insert", add_jlily_modalfn);
+    /* button->target = buf; */
+    m->submit_form = add_jlily_modalfn;
+    window_push_modal(main_win, m);
+    modal_reset(m);
+    /* fprintf(stdout, "about to call move onto\n"); */
+    modal_move_onto(m);
+
+} 
+

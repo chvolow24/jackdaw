@@ -244,7 +244,7 @@ void adsr_start_release(ADSRState *s, int32_t after)
 /* Fill a foat buffer with envelope values and return the end state */
 enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_len)
 {
-    fprintf(stderr, "GET CHUNK state %p, STAGE: %d, ENV_R: %d, REL_AFTER: %d\n", s, s->current_stage, s->env_remaining, s->start_release_after);
+    /* fprintf(stderr, "GET CHUNK state %p, STAGE: %d, ENV_R: %d, REL_AFTER: %d\n", s, s->current_stage, s->env_remaining, s->start_release_after); */
     /* const char *thread = get_thread_name(); */
     /* fprintf(stderr, "\tget chunk CALL ON THREAD %s\n", thread); */
     /* fprintf(stderr, "\t\tint %p\n", s); */

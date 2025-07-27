@@ -751,6 +751,7 @@ void timeline_click_track_set_tempo_at_cursor(Timeline *tl)
 	mod,
 	"Submit",
 	set_tempo_submit_form);
+    ((Button *)el->obj)->target = s;
 
     layout_reset(mod->layout);
     layout_center_agnostic(el->layout, true, false);

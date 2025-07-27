@@ -558,8 +558,9 @@ void modal_select(Modal *modal)
 	txt_edit(((TextEntry *)current_el->obj)->tb->text, project_draw);
 	modal_next_escape(modal);
 	break;
-    case MODAL_EL_BUTTON:
-	((Button *)(current_el->obj))->action(modal, NULL);
+    case MODAL_EL_BUTTON: {
+	((Button *)(current_el->obj))->action(modal, modal->stashed_obj);
+    }
 	break;
     case MODAL_EL_RADIO:
 	modal_next_escape(modal);
@@ -613,7 +614,7 @@ bool modal_triage_mouse(Modal *modal, SDL_Point *mousep, bool click)
 	    }
 	    switch (el->type) {
 	    case MODAL_EL_BUTTON:
-		((Button *)(el->obj))->action(modal, NULL);
+		((Button *)(el->obj))->action(modal, modal->stashed_obj);
 		break;
 	    case MODAL_EL_DIRNAV:
 		dirnav_triage_click(el->obj, mousep);

@@ -10,6 +10,7 @@
 
 enum token_type {
     JLILY_NONE,
+    JLILY_WHITESPACE,
     JLILY_NOTE,
     JLILY_REST,
     JLILY_DURATION,
@@ -18,7 +19,7 @@ enum token_type {
     JLILY_OCTAVE,
     JLILY_CHORD_OPEN,
     JLILY_CHORD_CLOSE,
-    JLILY_WHITESPACE
+    JLILY_VELOCITY
 };
 
 typedef struct jlily_note {
@@ -76,11 +77,16 @@ static int handle_next_token(const char *text, int index, enum token_type type, 
     switch (type) {
     case JLILY_NONE:
 	return -1;
+    case JLILY_WHITESPACE:
+	current_note->closed = true;
+	break;
     case JLILY_NOTE: {
-	current_note++;
+	if (num_notes != 0) 
+	    current_note++;
 	num_notes++;
 	/* fprintf(stderr, "SETTING JLilyNote index %lu\n", current_note - notes); */
 	current_note->name = text[index];
+	current_note->dur = current_dur_sframes;
 	int accidental = 0;
 	int subindex = index + 1;
 	while (subindex < max_i) {
@@ -115,8 +121,10 @@ static int handle_next_token(const char *text, int index, enum token_type type, 
 	    current_note->pitch -= 12;
 	    /* fprintf(stderr, "\t\tDROP to %d\n", current_note->pitch); */
 	}
-	fprintf(stderr, "JLilyNote %d ts: %f\n", num_notes, ts);
+	/* fprintf(stderr, "JLilyNote %d ts: %f\n", num_notes, ts); */
 	current_note->ts = ts;
+	/* fprintf(stderr, "SET NOTE %d VEL %d\n", num_notes, velocity); */
+	current_note->velocity = velocity;
 	/* fprintf(stderr, "\tSetting ts %d, incr %d\n", ts, current_dur); */
 	if (!chord_open) {
 	    ts += current_dur_sframes;
@@ -145,24 +153,31 @@ static int handle_next_token(const char *text, int index, enum token_type type, 
 	    tok_len++;
 	    subindex++;
 	}
-	fprintf(stderr, "DOTS: %d\n", dots);
-	double dur_predot = beat_dur_sframes / dur_literal;
+	/* fprintf(stderr, "DOTS: %d, dur literal %d\n", dots, dur_literal); */
+	double dur_predot = beat_dur_sframes / (dur_literal / 4.0);
 	double dur = dur_predot;
 	for (int i=0; i<dots; i++) {
 	    dur_predot /= 2;
 	    dur += dur_predot;
 	}
-	fprintf(stderr, "DUR: %f (beat dur %f, dur_literal %d)\n", dur, beat_dur_sframes, dur_literal);
-	
-	/* current_note->ts -= current_dur; */
+	/* fprintf(stderr, "DUR: %f (beat dur %f, dur_literal %d)\n", dur, beat_dur_sframes, dur_literal); */
+	/* if (fabs(dur) < 1e-9) { */
+	/*     fprintf(stderr, "chars? %c %c\n", char1, char2); */
+	/*     exit(0); */
+	/* } */
+
 	ts -= current_dur_sframes;
+	current_note->dur -= current_dur_sframes;
+	
 	current_dur_sframes = dur;
+	
 	ts += current_dur_sframes;
+	current_note->dur += current_dur_sframes;
 	/* current_note->ts += current_dur; */
 	/* fprintf(stderr, "Dur: %d current: %d\n", dur, current_dur); */
     }
 	break;
-  case JLILY_SHARP:
+    case JLILY_SHARP:
 	break;
     case JLILY_FLAT:
 	break;
@@ -180,9 +195,29 @@ static int handle_next_token(const char *text, int index, enum token_type type, 
 	chord_open = false;
 	ts += current_dur_sframes;
 	break;
-    case JLILY_WHITESPACE:
-	current_note->closed = true;
+    case JLILY_VELOCITY: {
+	int subindex = index + 1;
+	int velocity_loc = 0;
+	while (subindex < max_i) {
+	    char c = text[subindex];
+	    if (c == '=') {
+		subindex++;
+		tok_len++;
+	    } else if (c >= '0' && c <= '9') {
+		/* fprintf(stderr, "\t\t(%c): loc*10 = %d;  + %d\n", c, velocity_loc * 10, c- '0'); */
+		velocity_loc = (velocity_loc * 10) + c - '0';
+		subindex++;
+		tok_len++;
+	    } else {
+		break;
+	    }
+	}
+	/* fprintf(stderr, "Set vel from loc: %d\n", velocity_loc); */
+	velocity = velocity_loc > 127 ? 127 : velocity_loc;
+	/* fprintf(stderr, "VEL: %d\n", velocity); */
+    }
 	break;
+	
     }
     last_token_type = type;
     return tok_len;
@@ -192,6 +227,7 @@ int do_next_token(const char *text, int index, int max_i)
 {
     enum token_type type;
     char c = text[index];
+    /* fprintf(stderr, "CHAR: %c, GLOB VEL: %d\n", c, velocity); */
     if (c >= 'a' && c <= 'g') {
 	type = JLILY_NOTE;
     } else if (c == 'r') {
@@ -208,38 +244,38 @@ int do_next_token(const char *text, int index, int max_i)
 	type = JLILY_CHORD_CLOSE;
     } else if (c == ' ') {
 	type = JLILY_WHITESPACE;
+    } else if (c == 'v') {
+	type = JLILY_VELOCITY;
     } else {
 	fprintf(stderr, "Parse error, char %c\n", c);
-	exit(0);
+	return 0;
     }
     return handle_next_token(text, index, type, max_i);
 }
 
 /* Translation unit entrypoint; sets globals
    Returns num notes */
-int lilypond_string_to_mclip(
+int jlily_string_to_mclip(
     const char *str,
-    int32_t beat_dur_sframes_loc,
+    double beat_dur_sframes_loc,
     int32_t pos_offset,
     MIDIClip *mclip)
 {
-    
-    beat_dur_sframes = 0.0;
-    ts = 0.0;
-    current_dur_sframes = 0.0;
-    velocity = 100;;
 
-    current_note = notes - 1;
+    /* fprintf(stderr, "ARGS? %p, %f, %d, %p\n", str, beat_dur_sframes_loc, pos_offset, mclip); */
+    beat_dur_sframes = beat_dur_sframes_loc;
+    /* fprintf(stderr, "BEAT DUR SFRAMES? %f LOC? %f\n", beat_dur_sframes, beat_dur_sframes_loc); */
+    ts = 0.0;
+    current_dur_sframes = beat_dur_sframes_loc / 4.0;
+    velocity = 100;
+    current_note = notes;
     num_notes = 0;
     chord_open = false;
     last_token_type = JLILY_NONE;
 
-    beat_dur_sframes = (double)beat_dur_sframes_loc;
     int str_index = 0;
     int max_i = strlen(str);
-    num_notes = 0;
-    ts = 0.0;
-    velocity = 100;
+
     while (str_index < max_i) {
 	int incr = do_next_token(str, str_index, max_i);
 	if (incr <= 0) {
@@ -249,17 +285,24 @@ int lilypond_string_to_mclip(
 	    str_index += incr;
 	}
     }
-    
-    for (int i=0; i<num_notes; i++) {
-	JLilyNote *jnote = notes + i;
-	midi_clip_add_note(
-	    mclip,
-	    0,
-	    jnote->pitch,
-	    jnote->velocity,
-	    (int32_t)jnote->ts + pos_offset,
-	    (int32_t)jnote->ts + pos_offset + jnote->dur);
+    if (mclip) {
+	for (int i=0; i<num_notes; i++) {
+	    JLilyNote *jnote = notes + i;
+	    fprintf(stderr, "ADDING note at pos %f, dur %d\n", jnote->ts+pos_offset,jnote->dur); 
+	    midi_clip_add_note(
+		mclip,
+		0,
+		jnote->pitch,
+		jnote->velocity,
+		(int32_t)jnote->ts + pos_offset,
+		(int32_t)jnote->ts + pos_offset + jnote->dur);
+		/* (int32_t)jnote->ts + pos_offset + 1000); */
+	}
+    } else {
+	for (int i=0; i<num_notes; i++) {
+	    JLilyNote *jnote = notes + i;
+	    fprintf(stderr, "(%d) pitch %d vel %d\n", (int32_t)jnote->ts + pos_offset, jnote->pitch, jnote->velocity);
+	}
     }
-    
     return num_notes;
 }

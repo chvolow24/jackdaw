@@ -161,7 +161,7 @@ void adsr_reset_env_remaining(ADSRParams *p, enum adsr_stage stage, int32_t delt
 	    /* fprintf(stderr, "p %p STAGE %d delta %d %d->%d\n", p, stage, delta, s->env_remaining, s->env_remaining + delta); */
 	    s->env_remaining += delta;
 	    if (s->env_remaining < 0) {
-		/* fprintf(stderr, "\t\tWarn!\n"); */
+		fprintf(stderr, "\t\tWarn!\n");
 		s->env_remaining = 0;
 	    }
 	}
@@ -220,6 +220,11 @@ void adsr_init(ADSRState *s, int32_t after)
     s->start_release_after = -1;
     s->release_start_env = 0.0;
     s->s_time = 0;
+    #ifdef TESTBUILD
+    if (after < 0) {
+	breakfn();
+    }
+    #endif
     /* s->env_remaining = s->params->a; */
 }
 
@@ -227,6 +232,11 @@ void adsr_start_release(ADSRState *s, int32_t after)
 {
     /* fprintf(stderr, "\t\t\tADSR %p start release after : %d\n", s, after); */
     s->start_release_after = after;
+    #ifdef TESTBUILD
+    if (after < 0) {
+	breakfn();
+    }
+    #endif
 }
 
 /* int Id=0; */
@@ -234,6 +244,7 @@ void adsr_start_release(ADSRState *s, int32_t after)
 /* Fill a foat buffer with envelope values and return the end state */
 enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_len)
 {
+    fprintf(stderr, "GET CHUNK state %p, STAGE: %d, ENV_R: %d, REL_AFTER: %d\n", s, s->current_stage, s->env_remaining, s->start_release_after);
     /* const char *thread = get_thread_name(); */
     /* fprintf(stderr, "\tget chunk CALL ON THREAD %s\n", thread); */
     /* fprintf(stderr, "\t\tint %p\n", s); */
@@ -242,6 +253,9 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
     bool skip_to_release = false;
     while (buf_i < buf_len) {
 	/* fprintf(stderr, "\t\t\t\tbuf i: %d; stage %d; env_rem: %d; release_after: %d\n", buf_i, s->current_stage, s->env_remaining, s->start_release_after); */
+	if (buf_i > buf_len || buf_i < 0) {
+	    breakfn();
+	}
 	int32_t stage_len = s->env_remaining < buf_len - buf_i ? s->env_remaining : buf_len - buf_i;
 	if (s->start_release_after >= 0 && s->start_release_after < stage_len) {
 	    stage_len = s->start_release_after;
@@ -254,6 +268,9 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
 	case ADSR_UNINIT:
 	    memset(buf + buf_i, '\0', sizeof(float) * stage_len);
 	    s->env_remaining -= stage_len;
+	    #ifdef TESTBUILD
+	    if (s->env_remaining < 0) breakfn();
+	    #endif
 	    break;
 	case ADSR_A:
 	    memcpy(buf + buf_i, s->params->a_ramp + s->params->a - s->env_remaining, stage_len * sizeof(float));
@@ -347,7 +364,9 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
 		return ADSR_UNINIT;
 	    }
 	}
-	s->start_release_after -= stage_len;
+	if (s->start_release_after > 0) {
+	    s->start_release_after -= stage_len;
+	}
 	buf_i += stage_len;
     }
     /* for (int i=0; i<buf_len; i++) { */

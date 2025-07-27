@@ -1523,11 +1523,7 @@ void click_track_mouse_motion(ClickSegment *s, Window *win)
     }
     endpoint_write(&s->start_pos_ep, (Value){.int32_v = tl_pos}, true, true, true, false);
 
-}
-   
-
-
-
+}   
 
 void click_segment_fprint(FILE *f, ClickSegment *s)
 {
@@ -1564,3 +1560,32 @@ void click_track_fprint(FILE *f, ClickTrack *tt)
 	s = s->next;
     }
 }
+
+ClickTrack *click_track_active_at_cursor(Timeline *tl)
+{
+    ClickTrack *ct = NULL;
+    for (int i=tl->num_click_tracks - 1; i>=0; i--) {
+	if (tl->click_tracks[i]->layout->index <= tl->layout_selector) {
+	    ct = tl->click_tracks[i];
+	    break;
+	}
+    }
+    return ct;
+}
+
+ClickSegment *click_segment_active_at_cursor(Timeline *tl)
+{
+    ClickTrack *ct = click_track_active_at_cursor(tl);
+    if (!ct) return NULL;
+    for (int i=tl->num_click_tracks - 1; i>=0; i--) {
+	if (tl->click_tracks[i]->layout->index <= tl->layout_selector) {
+	    ct = tl->click_tracks[i];
+	    break;
+	}
+    }
+    ClickSegment *ret;
+    click_track_bar_beat_subdiv(ct, tl->play_pos_sframes, NULL, NULL, NULL, &ret, false);
+    return ret;
+}
+
+

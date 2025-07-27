@@ -1243,7 +1243,7 @@ void synth_feed_midi(
 			}
 		    }
 		    if (oldest) { /* steal the oldest voice */
-			int32_t start_rel = send_immediate ? 0 : tl_start - e.timestamp;
+			int32_t start_rel = send_immediate ? 0 : e.timestamp - tl_start;
 			synth_voice_assign_note(oldest, note_val, velocity, start_rel);
 			note_assigned = true;
 		    }

@@ -26,6 +26,7 @@
 #include "fir_filter.h"
 #include "function_lookup.h"
 #include "input.h"
+#include "jlily.h"
 #include "layout.h"
 #include "midi_clip.h"
 #include "mouse.h"
@@ -222,6 +223,29 @@ void loop_project_main()
 
 		/* } */
 		/*     break; */
+		case SDL_SCANCODE_5: {
+		    Timeline *tl = ACTIVE_TL;
+		    ClickSegment *s = click_segment_active_at_cursor(tl);
+		    /* Get dur of first beat */
+		    if (s) {
+			int num_subdivs = 0;
+			for (int i=0; i<s->cfg.num_beats; i++) {
+			    num_subdivs += s->cfg.beat_subdiv_lens[i];
+			}
+			/* First beat dur */
+			int32_t beat_dur = s->cfg.dur_sframes / num_subdivs * s->cfg.beat_subdiv_lens[0];
+			fprintf(stderr, "BEAT DUR BPM: %f\n", (double)session_get()->proj.sample_rate / (double)beat_dur * 60.0);
+			ClipRef *cr = clipref_at_cursor();
+			if (!cr) break;
+			if (cr->type == CLIP_AUDIO) break;
+			MIDIClip *mclip = cr->source_clip;
+			int32_t pos_rel = tl->play_pos_sframes - cr->tl_pos + cr->start_in_clip;
+			jlily_string_to_mclip("a4 b c d a' b, c d a16 g f g a f g f g", (double)beat_dur, pos_rel, mclip);
+		    } else {
+			fprintf(stderr, "NO CLICK SEGMENT\n");
+		    }
+		}
+		    break;
 		case SDL_SCANCODE_6: {
 		    Timeline *tl = ACTIVE_TL;
 		    Track *track = timeline_selected_track(tl);
@@ -258,7 +282,7 @@ void loop_project_main()
 			    interval += rand() % 4 - 2;
 			    if (interval <= 0) interval += rand() %4 + 1;
 			    midi_clip_add_note(mclip, i, 0, velocity, start, start + dur);
-			    start += t_interval;;
+			    start += t_interval;
 			    /* end += 3000; */
 			    /* mclip->len_sframes += t_interval; */
 			    mclip->len_sframes += t_interval;

@@ -444,19 +444,11 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 	session->proj_reading = &new_proj;
 	int ret = jdaw_read_file(&new_proj, dp->path);
 	if (ret == 0) {
-	    /* project_deinit(&session->proj); */
-	    /* memcpy(&session->proj, &new_proj, sizeof(Project)); */
-	    /* session->proj = new_proj; */
-	    /* for (int i=0; i<session->proj.num_timelines; i++) { */
-	    /* 	session->proj.timelines[i]->proj = &session->proj; */
-	    /* } */
-	    /* timeline_reset_full(session->proj.timelines[0]); */
 	    session_set_proj(session, &new_proj);
-	    session->proj_initialized = true;
-	    session->proj_reading = NULL;
 	} else {
-	    status_set_errstr("Error opening jdaw project");
+	    status_set_errstr("Error opening jdaw project");	    
 	}
+	session->proj_reading = NULL;
     } else if (strncmp("mid", ext, 3) * strncmp("MID", ext, 3) == 0) {
 	midi_file_open(dp->path, false);
     }

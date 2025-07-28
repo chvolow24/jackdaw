@@ -133,7 +133,6 @@ static void panel_draw(Panel *p)
     textbox_draw(p->selector);
 }
 
-extern Window *main_win;
 void panel_area_draw(PanelArea *pa)
 {
     for (uint8_t i=0; i<pa->num_panels; i++) {
@@ -146,7 +145,6 @@ void panel_area_draw(PanelArea *pa)
 	/* int y = pa->panels[i]->content_layout->rect.y - PANEL_LABEL_DIVIDER_PAD; */
 	/* SDL_RenderDrawLine(pa->win->rend, rect.x, y, rect.x + rect.w, y); */
     }
-    layout_draw(main_win, pa->layout);
 }
 
 void panel_insert_page(PanelArea *pa, uint8_t dst_panel_i, uint8_t page_i)

@@ -953,7 +953,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
     bool solo_muted = uint8_deser(f);
     bool minimized = false;
 
-    if (!read_file_version_older_than("00.15")) {
+    if (!read_file_version_older_than("00.16")) {
 	minimized = uint8_deser(f);
     }
     
@@ -1244,7 +1244,6 @@ static int jdaw_read_compressor(FILE *f, Compressor *c)
 
 static int jdaw_read_clipref(FILE *f, Track *track)
 {
-
     char hdr_buffer[7];
     fread(hdr_buffer, 1, 7, f);
 

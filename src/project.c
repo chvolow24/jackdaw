@@ -112,6 +112,11 @@ uint8_t project_add_timeline(Project *proj, char *name)
     /* If loading a file, session proj will have > 0 timelines and we can't use the existing one */
     if (session->proj.num_timelines == 0) {
 	new_tl->track_area = layout_get_child_by_name_recursive(tl_lt, "tracks_area");
+	for (int i=0; i<new_tl->track_area->num_children; i++) {
+	    layout_destroy_no_offset(new_tl->track_area->children[i]);
+	}
+	new_tl->track_area->num_children = 0;
+
     } else {
 	Layout *track_area_copy = layout_copy(session->proj.timelines[0]->track_area, session->gui.timeline_lt);
 	track_area_copy->scroll_offset_h = 0;
@@ -365,9 +370,6 @@ int project_init(
 	fprintf(stderr, "Error: project name exceeds max len (%d)\n", MAX_NAMELENGTH);
 	return -1;
     }
-    
-
-
     
     strcpy(proj->name, name);
     char win_title_buf[MAX_NAMELENGTH];

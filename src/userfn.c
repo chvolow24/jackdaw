@@ -441,6 +441,7 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 	api_quit();
 	Project new_proj;
 	memset(&new_proj, '\0', sizeof(new_proj));
+	session->proj_reading = &new_proj;
 	int ret = jdaw_read_file(&new_proj, dp->path);
 	if (ret == 0) {
 	    /* project_deinit(&session->proj); */
@@ -451,6 +452,8 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 	    /* } */
 	    /* timeline_reset_full(session->proj.timelines[0]); */
 	    session_set_proj(session, &new_proj);
+	    session->proj_initialized = true;
+	    session->proj_reading = NULL;
 	} else {
 	    status_set_errstr("Error opening jdaw project");
 	}

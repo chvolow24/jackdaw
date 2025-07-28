@@ -684,7 +684,7 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name)
     /* track->buf_R_freq_mag = calloc(fr_len, sizeof(double)); */
     /* filter_init(&track->fir_filter, track, LOWPASS, ir_len, fr_len); */
 
-    /* delay_line_init(&track->delay_line, track, track->tl->session->proj.sample_rate); */
+    /* delay_line_init(&track->delay_line, track, track->tl->session_get_sample_rate()); */
 
 
 
@@ -2279,9 +2279,9 @@ void timeline_scroll_playhead(double dim)
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     if (main_win->i_state & I_STATE_CMDCTRL) {
-	dim *= session->proj.sample_rate * tl->sample_frames_per_pixel * PLAYHEAD_ADJUST_SCALAR_LARGE;
+	dim *= session_get_sample_rate() * tl->sample_frames_per_pixel * PLAYHEAD_ADJUST_SCALAR_LARGE;
     } else {
-	dim *= session->proj.sample_rate * tl->sample_frames_per_pixel * PLAYHEAD_ADJUST_SCALAR_SMALL;
+	dim *= session_get_sample_rate() * tl->sample_frames_per_pixel * PLAYHEAD_ADJUST_SCALAR_SMALL;
     }
     int32_t new_pos = tl->play_pos_sframes + dim;
     timeline_set_play_position(ACTIVE_TL, new_pos);

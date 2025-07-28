@@ -135,13 +135,13 @@ struct playback {
     bool playing;
 };
 
-struct audio_settings {
-    uint8_t channels;
-    uint32_t sample_rate; //samples per second
-    SDL_AudioFormat fmt;
-    uint16_t chunk_size_sframes; //sample_frames
-    uint16_t fourier_len_sframes;
-};
+/* struct audio_settings { */
+/*     uint8_t channels; */
+/*     uint32_t sample_rate; //samples per second */
+/*     SDL_AudioFormat fmt; */
+/*     uint16_t chunk_size_sframes; //sample_frames */
+/*     uint16_t fourier_len_sframes; */
+/* }; */
 
 /* All persistent "global" data not related to a Project or Window */
 typedef struct session {
@@ -169,7 +169,6 @@ typedef struct session {
 
     bool proj_initialized;
     Project *proj_reading;
-    struct audio_settings proj_reading_audio_settings;
     Project proj;
     
 } Session;

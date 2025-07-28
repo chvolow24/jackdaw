@@ -622,27 +622,7 @@ static int timeline_draw(Timeline *tl)
     }
     SDL_SetRenderDrawColor(main_win->rend, 255, 255, 0, 255);
 
-    /* Layout *tracks_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area"); */
-    /* if (tracks_area) { */
-    /* 	Layout *selected_lt = tracks_area->children[tl->layout_selector]; */
-    /* 	if (selected_lt) { */
-    /* 	    fprintf(stderr, "SELECTOR: %d, %s\n", tl->layout_selector, selected_lt->name); */
-    /* 	    SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255); */
-    /* 	    SDL_RenderDrawRect(main_win->rend, &selected_lt->rect); */
-    /* 	} else { */
-    /* 	    fprintf(stderr, "NONE\n"); */
-    /* 	} */
-    /* } else { */
-    /* 	fprintf(stderr, "No track and automations\n"); */
-    /* } */
     return 1;
-
-
-
-
-    
-    /* tl->needs_redraw = false; */
-
 }
 
 

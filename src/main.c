@@ -224,7 +224,6 @@ int main(int argc, char **argv)
 	/* int ret = jdaw_read_file(&session->proj, file_to_open); */
 	if (ret == 0) {
 	    session_set_proj(session, &new_proj);
-	    session->proj_reading = NULL;
 	    session->proj_initialized = true;
 	    /* TODO: handle audio format disagreements more elegantly */
 	    AudioConn *output = session->audio_io.playback_conn;
@@ -236,6 +235,7 @@ int main(int argc, char **argv)
 	    session->proj_initialized = false;
 	    memset(&session->proj, '\0', sizeof(Project));
 	}
+	session->proj_reading = NULL;
     }
     if (session->proj_initialized) {
 	char *realpath_ret;
@@ -259,6 +259,7 @@ int main(int argc, char **argv)
 	    "project.jdaw",
 	    DEFAULT_PROJ_AUDIO_SETTINGS,
 	    true);
+	session_init_panels(session);
 	session->proj_initialized = true;
 	if (ret != 0) {
 	    fprintf(stderr, "Error: unable to open project \"%s\".\n", file_to_open);
@@ -267,7 +268,7 @@ int main(int argc, char **argv)
     }
     fprintf(stderr, "\t...done\n");
 
-    session_init_panels(session);
+
     if (invoke_open_wav_file) {
 	Track *track = timeline_add_track(session->proj.timelines[0]);
 	wav_load_to_track(track, file_to_open, 0);

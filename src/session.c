@@ -240,13 +240,10 @@ void session_set_proj(Session *session, Project *new_proj)
     project_deinit(&session->proj);
     session_deinit_panels(session);
     memcpy(&session->proj, new_proj, sizeof(Project));
-    /* session->proj = *new_proj; */
-    /* layout_reset_from_window(session->gui.layout, main_win); */
-    session_init_panels(session);
-
     for (int i=0; i<session->proj.num_timelines; i++) {
 	session->proj.timelines[i]->proj = &session->proj;
     }
+    session_init_panels(session);
     layout_force_reset(session->gui.layout);
     timeline_switch(0);
     timeline_reset_full(session->proj.timelines[0]);
@@ -254,13 +251,23 @@ void session_set_proj(Session *session, Project *new_proj)
 
 uint32_t session_get_sample_rate()
 {
+    uint32_t ret;
     if (session->proj_reading) {
-	return session->proj_reading_audio_settings.sample_rate;
+	ret =  session->proj_reading->sample_rate;
     } else if (session->proj_initialized) {
-	return session->proj.sample_rate;
+	ret = session->proj.sample_rate;
     } else {
-	return DEFAULT_SAMPLE_RATE;
+	#ifdef TESTBUILD
+	fprintf(stderr, "ERROR: falling back to default sample rate\n");
+	breakfn();
+	#endif
+	ret = DEFAULT_SAMPLE_RATE;
     }
+    if (ret <= 0) {
+	fprintf(stderr, "ERROR: sample rate is %d\n", ret);
+	breakfn();
+    }
+    return ret;
 }
 
 

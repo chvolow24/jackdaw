@@ -400,7 +400,7 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 		/* exit(0); */
 		double us_per_tick = (double)tempo_us_per_quarter / (double)file_info.division_fmt.ticks_per_quarter;
 		Session *session = session_get();		
-		double frames_per_tic = us_per_tick * session->proj.sample_rate / 1000000.0;
+		double frames_per_tic = us_per_tick * session_get_sample_rate() / 1000000.0;
 		file_info.division_fmt.sample_frames_per_division = frames_per_tic;
 		fprintf(stderr, "US_PER_QUARTER: %ud, FRAMES PER TICK: %f\n", tempo_us_per_quarter, frames_per_tic);
 		/* exit(0); */
@@ -625,7 +625,7 @@ int midi_file_open(const char *filepath, bool automatically_add_tracks)//, MIDIC
 	uint32_t tempo_us_per_quarter = 500000;
 	double us_per_tick = (double)tempo_us_per_quarter / (double)file_info.division_fmt.ticks_per_quarter;
 	Session *session = session_get();		
-	double frames_per_tic = us_per_tick * session->proj.sample_rate / 1000000.0;
+	double frames_per_tic = us_per_tick * session_get_sample_rate() / 1000000.0;
 	file_info.division_fmt.sample_frames_per_division = frames_per_tic;
     }
     int num_dst_tracks;
@@ -740,7 +740,7 @@ int midi_file_open(const char *filepath, bool automatically_add_tracks)//, MIDIC
 		    memcpy(mclip->name, mclip->primary_instrument_name, strlen(mclip->primary_instrument_name) + 1);
 		}
 
-		mclip->len_sframes = mclip->notes[mclip->num_notes - 1].end_rel;
+		mclip->len_sframes = mclip->notes[mclip->num_notes - 1].end_rel + 1;
 		ClipRef *cr = clipref_create(dst_tracks[i], tl->play_pos_sframes, CLIP_MIDI, mclip);
 		clipref_reset(cr, true);
 		Track *t = dst_tracks[i];

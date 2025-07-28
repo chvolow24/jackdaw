@@ -16,7 +16,6 @@ SDL_Color textbox_default_border_clr = (SDL_Color) {100, 100, 100, 255};
 
 extern struct colors colors;
 
-
 #ifndef LAYOUT_BUILD
 extern volatile bool CANCEL_THREADS;
 #endif

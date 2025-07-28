@@ -231,7 +231,7 @@ int32_t wav_load(const char *filename, float **L, float **R)
     if (session->proj_initialized) {
 	fmt = session->proj.fmt;
 	channels = session->proj.channels;
-	sample_rate = session->proj.sample_rate;
+	sample_rate = session_get_sample_rate();
     } else {
 	fmt = DEFAULT_SAMPLE_FORMAT;
 	channels = 2;

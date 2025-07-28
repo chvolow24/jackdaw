@@ -1514,12 +1514,11 @@ static int32_t click_segment_get_nearest_beat_pos(ClickTrack *ct, int32_t start_
 }
 void click_track_mouse_motion(ClickSegment *s, Window *win)
 {
-    Session *session = session_get();
     int32_t tl_pos = timeline_get_abspos_sframes(s->track->tl, win->mousep.x);
     if (!(main_win->i_state & I_STATE_SHIFT)) {
 	tl_pos = click_segment_get_nearest_beat_pos(s->track, tl_pos);
     }
-    if (tl_pos < 0 || (s->prev && tl_pos < s->prev->start_pos + session->proj.sample_rate / 100)) {
+    if (tl_pos < 0 || (s->prev && tl_pos < s->prev->start_pos + session_get_sample_rate() / 100)) {
 	return;
     }
     endpoint_write(&s->start_pos_ep, (Value){.int32_v = tl_pos}, true, true, true, false);

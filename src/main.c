@@ -259,8 +259,8 @@ int main(int argc, char **argv)
 	    "project.jdaw",
 	    DEFAULT_PROJ_AUDIO_SETTINGS,
 	    true);
-	session_init_panels(session);
 	session->proj_initialized = true;
+	session_init_panels(session);
 	if (ret != 0) {
 	    fprintf(stderr, "Error: unable to open project \"%s\".\n", file_to_open);
 	    exit(1);

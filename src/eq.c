@@ -544,9 +544,11 @@ void eq_create_freq_plot(EQ *eq, Layout *container)
     waveform_reset_freq_plot(eq->fp);
 
     eq->group.fp = eq->fp;
-    for (int i=0; i<eq->group.num_filters; i++) {
-	eq->group.filters[i].fp = eq->fp;
-    }
+
+    iir_group_add_freqplot(&eq->group, eq->fp);
+    /* for (int i=0; i<eq->group.num_filters; i++) { */
+    /* 	eq->group.filters[i].fp = eq->fp; */
+    /* } */
     iir_group_update_freq_resp(&eq->group);
     waveform_freq_plot_add_linear_plot(eq->fp, IIR_FREQPLOT_RESOLUTION, eq->group.freq_resp, &colors.white);
     eq->fp->linear_plot_ranges[0] = EQ_MAX_AMPLITUDE;

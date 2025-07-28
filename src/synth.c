@@ -148,30 +148,27 @@ Synth *synth_create(Track *track)
     s->noise_amt_env.d_msec = 200;
     s->noise_amt_env.s_ep_targ = 0.4;
     s->noise_amt_env.r_msec = 400;
-
-
     
-    Session *session = session_get();
     adsr_set_params(
 	&s->amp_env,
-	session->proj.sample_rate * s->amp_env.a_msec / 1000,
-	session->proj.sample_rate * s->amp_env.d_msec / 1000,
+	session_get_sample_rate() * s->amp_env.a_msec / 1000,
+	session_get_sample_rate() * s->amp_env.d_msec / 1000,
 	s->amp_env.s_ep_targ,
-	session->proj.sample_rate * s->amp_env.r_msec / 1000,
+	session_get_sample_rate() * s->amp_env.r_msec / 1000,
 	2.0);
     adsr_set_params(
 	&s->filter_env,
-	session->proj.sample_rate * s->filter_env.a_msec / 1000,
-	session->proj.sample_rate * s->filter_env.d_msec / 1000,
+	session_get_sample_rate() * s->filter_env.a_msec / 1000,
+	session_get_sample_rate() * s->filter_env.d_msec / 1000,
 	s->filter_env.s_ep_targ,
-	session->proj.sample_rate * s->filter_env.r_msec / 1000,
+	session_get_sample_rate() * s->filter_env.r_msec / 1000,
 	2.0);
     adsr_set_params(
 	&s->noise_amt_env,
-	session->proj.sample_rate * s->noise_amt_env.a_msec / 1000,
-	session->proj.sample_rate * s->noise_amt_env.d_msec / 1000,
+	session_get_sample_rate() * s->noise_amt_env.a_msec / 1000,
+	session_get_sample_rate() * s->noise_amt_env.d_msec / 1000,
 	s->noise_amt_env.s_ep_targ,
-	session->proj.sample_rate * s->noise_amt_env.r_msec / 1000,
+	session_get_sample_rate() * s->noise_amt_env.r_msec / 1000,
 	2.0);
 
 
@@ -795,7 +792,7 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 	/* fprintf(stderr, "\tFREEING VOICE %ld (env overrun)\n", v - v->synth->voices); */
 	/* return; */
     }
-    Session *session = session_get();
+    
     IIRFilter *f = &v->filter;
     float filter_env[len];
     float *filter_env_p = amp_env;
@@ -825,11 +822,11 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 		    /* + v->synth->vel_amt * (v->velocity / 127.0); */
 		double freq =
 		    (v->synth->base_cutoff
-		     + v->synth->pitch_amt * mtof_calc(v->note_val) / (float)session->proj.sample_rate
+		     + v->synth->pitch_amt * mtof_calc(v->note_val) / (float)session_get_sample_rate()
 			)
 		    * (1.0f + (v->synth->env_amt * filter_env_p[i]))
 		    * (1.0f - (v->synth->vel_amt * (1.0 - (float)v->velocity / 127.0f)));
-		/* double freq = mtof_calc(v->note_val) * v->synth->freq_scalar * filter_env_p[i] / session->proj.sample_rate; */
+		/* double freq = mtof_calc(v->note_val) * v->synth->freq_scalar * filter_env_p[i] / session_get_sample_rate(); */
 		/* double velocity_rel = 1.0 - v->synth->velocity_freq_scalar * (127.0 - (double)v->velocity) / 126.0; */
 		/* freq *= velocity_rel; */
 		/* fprintf(stderr, "Freq: %f", freq); */
@@ -841,7 +838,7 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 		/*     fprintf(stderr, "\t(skipped)\n"); */
 		}
 
-		/* iir_set_coeffs_lowpass_chebyshev(f, (mtof_calc(v->note_val) * 20 * amp_env[i] * amp_env[i] * amp_env[i]) / session->proj.sample_rate / 2.0f, 4.0); */
+		/* iir_set_coeffs_lowpass_chebyshev(f, (mtof_calc(v->note_val) * 20 * amp_env[i] * amp_env[i] * amp_env[i]) / session_get_sample_rate() / 2.0f, 4.0); */
 
 	    }
 	    osc_buf[i] = iir_sample(f, osc_buf[i], channel);
@@ -866,9 +863,8 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 
 static void osc_set_freq(Osc *osc, double freq_hz)
 {
-    Session *session = session_get();
     osc->freq = freq_hz;
-    osc->sample_phase_incr = freq_hz / session->proj.sample_rate;
+    osc->sample_phase_incr = freq_hz / session_get_sample_rate();
     /* osc->sample_phase_incr_addtl = 0; */
     /* fprintf(stderr, "OSC %p SFI: %f, ADDTL: %f\n", osc, osc->sample_phase_incr, osc->sample_phase_incr_addtl); */
 }
@@ -876,9 +872,8 @@ static void osc_set_freq(Osc *osc, double freq_hz)
 static void osc_set_pitch_bend(Osc *osc, double freq_rat)
 {
     /* fprintf(stderr, "SET PB\n"); */
-    Session *session = session_get();
     double bend_freq = osc->freq * freq_rat;
-    osc->sample_phase_incr_addtl = (bend_freq / session->proj.sample_rate) - osc->sample_phase_incr;
+    osc->sample_phase_incr_addtl = (bend_freq / session_get_sample_rate()) - osc->sample_phase_incr;
 }
 
 
@@ -1184,7 +1179,7 @@ void synth_feed_midi(
 
 	/* fprintf(stderr, "\t\tIN SYNTH msg%d/%d %x, %d, %d (%s)\n", i, s->num_events, status, note_val, velocity, msg_type == 0x80 ? "OFF" : msg_type == 0x90 ? "ON" : "ERROR"); */
 	/* if (i == 0) start = e.timestamp; */
-	/* int32_t pos_rel = ((double)e.timestamp - start) * (double)session->proj.sample_rate / 1000.0; */
+	/* int32_t pos_rel = ((double)e.timestamp - start) * (double)session_get_sample_rate() / 1000.0; */
 	/* fprintf(stderr, "EVENT %d/%d, timestamp: %d\n", i, num_events, e.timestamp); */
 	if (velocity == 0) msg_type = 8;
 	if (msg_type == 8) {

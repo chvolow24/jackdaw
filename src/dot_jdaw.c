@@ -560,7 +560,6 @@ int jdaw_read_file(Project *dst, const char *path)
     fprintf(stderr, "Project name: %s\n", project_name);
     if (read_file_version_older_than("00.15")) {
 	/* Extraneous nullterm in older versions */
-	fprintf(stderr, "Getting extra nullterm\n");
 	char c;
 	fread(&c, 1, 1, f);
     }
@@ -1194,7 +1193,6 @@ static int jdaw_read_delay(FILE *f, DelayLine *dl)
     len = int32_deser_le(f);
     amp = float_deser40_le(f);
     stereo_offset = float_deser40_le(f);
-    fprintf(stderr, "SET LEN: %d\n", len);
     delay_line_set_params(dl, amp, len);
     dl->stereo_offset = stereo_offset;
     dl->effect->active = delay_line_active;

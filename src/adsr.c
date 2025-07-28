@@ -160,7 +160,6 @@ void adsr_reset_env_remaining(ADSRParams *p, enum adsr_stage stage, int32_t delt
 	    /* fprintf(stderr, "p %p STAGE %d delta %d %d->%d\n", p, stage, delta, s->env_remaining, s->env_remaining + delta); */
 	    s->env_remaining += delta;
 	    if (s->env_remaining < 0) {
-		fprintf(stderr, "\t\tWarn!\n");
 		s->env_remaining = 0;
 	    }
 	}

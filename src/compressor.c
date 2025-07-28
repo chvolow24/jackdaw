@@ -175,7 +175,7 @@ void comp_times_dsp_cb(Endpoint *ep)
 {
     Session *session = session_get();
     Compressor *c = ep->xarg1;
-    compressor_set_times_msec(c, c->attack_time, c->release_time, session->proj.sample_rate);
+    compressor_set_times_msec(c, c->attack_time, c->release_time, session_get_sample_rate());
 }
 
 void comp_ratio_dsp_cb(Endpoint *ep)
@@ -200,7 +200,7 @@ void compressor_init(Compressor *c)
     c->attack_time = COMP_DEFAULT_ATTACK;
     c->release_time = COMP_DEFAULT_RELEASE;
     if (session->proj_initialized) {
-	compressor_set_times_msec(c, c->attack_time, c->release_time, session->proj.sample_rate);
+	compressor_set_times_msec(c, c->attack_time, c->release_time, session_get_sample_rate());
     } else {
 	compressor_set_times_msec(c, c->attack_time, c->release_time, DEFAULT_SAMPLE_RATE);
     }
@@ -299,4 +299,4 @@ void compressor_init(Compressor *c)
 }
 
 
-/* envelope_follower_set_times_msec(&ef, 10.0, 200.0, session->proj.sample_rate); */
+/* envelope_follower_set_times_msec(&ef, 10.0, 200.0, session_get_sample_rate()); */

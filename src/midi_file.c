@@ -399,7 +399,6 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 		click_segment_set_config(cs, -1, bpm, 4, subdivs, 0);
 		/* exit(0); */
 		double us_per_tick = (double)tempo_us_per_quarter / (double)file_info.division_fmt.ticks_per_quarter;
-		Session *session = session_get();		
 		double frames_per_tic = us_per_tick * session_get_sample_rate() / 1000000.0;
 		file_info.division_fmt.sample_frames_per_division = frames_per_tic;
 		fprintf(stderr, "US_PER_QUARTER: %ud, FRAMES PER TICK: %f\n", tempo_us_per_quarter, frames_per_tic);
@@ -624,7 +623,6 @@ int midi_file_open(const char *filepath, bool automatically_add_tracks)//, MIDIC
     if (!file_info.division_fmt.sample_frames_per_division) {
 	uint32_t tempo_us_per_quarter = 500000;
 	double us_per_tick = (double)tempo_us_per_quarter / (double)file_info.division_fmt.ticks_per_quarter;
-	Session *session = session_get();		
 	double frames_per_tic = us_per_tick * session_get_sample_rate() / 1000000.0;
 	file_info.division_fmt.sample_frames_per_division = frames_per_tic;
     }
@@ -770,7 +768,6 @@ static void midi_serialize_event(FILE *f, PmEvent event)
 void midi_serialize_events(FILE *f, PmEvent *events, uint32_t num_events)
 {
     uint32_ser_le(f, &num_events);
-    fprintf(stderr, "SER %d events\n", num_events);
     for (uint32_t i=0; i<num_events; i++) {
 	midi_serialize_event(f, events[i]);
     }
@@ -785,7 +782,6 @@ static void midi_deserialize_event(FILE *f, PmEvent *dst)
 uint32_t midi_deserialize_events(FILE *f, PmEvent **events)
 {
     uint32_t num_events = uint32_deser_le(f);
-    fprintf(stderr, "DESER %d events\n", num_events);
     *events = malloc(sizeof(PmEvent) * num_events);
     for (uint32_t i=0; i<num_events; i++) {
 	midi_deserialize_event(f, (*events) + i);

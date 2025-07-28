@@ -36,6 +36,12 @@ void iir_init(IIRFilter *f, int degree, int num_channels)
 	f->memOut[i] = calloc(degree, sizeof(double));
     }
     f->A[0] = 1;
+}
+
+void iir_add_freqplot(IIRFilter *f, struct freq_plot *fp)
+{
+    f->fp = fp;
+    f->freq_resp = malloc(sizeof(double) * IIR_FREQPLOT_RESOLUTION);
     for (int i=0; i<IIR_FREQPLOT_RESOLUTION; i++) {
 	f->freq_resp[i] = 1.0;
     }
@@ -61,6 +67,9 @@ void iir_deinit(IIRFilter *f)
 	f->memIn = NULL;
 	f->memOut = NULL;
     }
+    if (f->freq_resp) {
+	free(f->freq_resp);
+    }
 }
 
 void iir_set_coeffs(IIRFilter *f, double *A_in, double *B_in)
@@ -71,7 +80,6 @@ void iir_set_coeffs(IIRFilter *f, double *A_in, double *B_in)
 
 
 /* Apply the filter */
-void breakfn();
 double iir_sample(IIRFilter *f, double in, int channel)
 {
     double out = in * f->A[0];
@@ -659,6 +667,14 @@ double iir_group_sample(IIRGroup *group, double in, int channel)
 	in = iir_sample(group->filters + i, in, channel);
     }
     return in;
+}
+
+void iir_group_add_freqplot(IIRGroup *group, struct freq_plot *fp)
+{
+    for (int i=0; i<group->num_filters; i++) {
+	IIRFilter *f = group->filters + i;
+        iir_add_freqplot(f, fp);
+    }
 }
 
 void iir_group_update_freq_resp(IIRGroup *group)

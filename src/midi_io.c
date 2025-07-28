@@ -291,7 +291,7 @@ void midi_device_read(MIDIDevice *d)
     /* 	uint8_t msg_type = status >> 4; */
     /* 	/\* uint8_t channel = (status & 0xF); *\/ */
     /* 	/\* fprintf(stderr, "\t%s %d velocity %d channel %d\n", type_name, data1, data2, channel); *\/ */
-    /* 	int32_t pos_rel = ((double)e.timestamp - d->record_start) * (double)session->proj.sample_rate / 1000.0; */
+    /* 	int32_t pos_rel = ((double)e.timestamp - d->record_start) * (double)session_get_sample_rate() / 1000.0; */
     /* 	/\* fprintf(stderr, "EVENT %d/%d, timestamp: %d (rel %d) pos rel %d (record start %d)\n", i, num_read, e.timestamp, current_time - e.timestamp, pos_rel, d->record_start); *\/ */
     /* 	if (msg_type == 9 && d->current_clip) { */
     /* 	    Note *unclosed = d->unclosed_notes + note_val; */
@@ -325,7 +325,7 @@ void midi_device_record_chunk(MIDIDevice *d, enum midi_ts_type ts_type)
 	if (ts_type == MIDI_TS_SFRAMES) {
 	    pos_rel = e.timestamp;
 	} else if (ts_type == MIDI_TS_MSEC) { /* MSEC */
-	    pos_rel = ((double)e.timestamp - d->record_start) * (double)session->proj.sample_rate / 1000.0;
+	    pos_rel = ((double)e.timestamp - d->record_start) * (double)session_get_sample_rate() / 1000.0;
 	} else {
 	    return;
 	}

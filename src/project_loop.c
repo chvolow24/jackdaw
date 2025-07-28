@@ -695,14 +695,14 @@ void loop_project_main()
 	    if (elapsed_s > 0.05) {
 		goto end_frame;
 	    }
-	    int32_t play_pos_adj = tl->play_pos_sframes + elapsed_s * session->proj.sample_rate * session->playback.play_speed;
+	    int32_t play_pos_adj = tl->play_pos_sframes + elapsed_s * session_get_sample_rate() * session->playback.play_speed;
 	    for (uint8_t i=0; i<tl->num_tracks; i++) {
 		Track *track = tl->tracks[i];
 		for (uint8_t ai=0; ai<track->num_automations; ai++) {
 		    Automation *a = track->automations[ai];
 		    if (a->write) {
 			/* if (!a->current) a->current = automation_get_segment(a, play_pos_adj); */
-			int32_t frame_dur = session->proj.sample_rate * session->playback.play_speed / 30.0;
+			int32_t frame_dur = session_get_sample_rate() * session->playback.play_speed / 30.0;
 			Value val = endpoint_safe_read(a->endpoint, NULL);
 			/* fprintf(stderr, "READ FLOATVAL (%s): %f\n", a->endpoint->local_id, val.float_v); */
 			automation_do_write(a, val, play_pos_adj, play_pos_adj + frame_dur, session->playback.play_speed);

@@ -10,6 +10,7 @@
 
 #include "assets.h"
 #include "color.h"
+#include "consts.h"
 #include "endpoint_callbacks.h"
 #include "init_panels.h"
 #include "layout.h"
@@ -232,8 +233,9 @@ void session_set_proj(Session *session, Project *new_proj)
 {
     if (session->playback.recording) {
 	transport_stop_recording();
+    } else {
+	transport_stop_playback();
     }
-    transport_stop_playback();
     
     project_deinit(&session->proj);
     session_deinit_panels(session);
@@ -250,6 +252,16 @@ void session_set_proj(Session *session, Project *new_proj)
     timeline_reset_full(session->proj.timelines[0]);
 }
 
+uint32_t session_get_sample_rate()
+{
+    if (session->proj_reading) {
+	return session->proj_reading_audio_settings.sample_rate;
+    } else if (session->proj_initialized) {
+	return session->proj.sample_rate;
+    } else {
+	return DEFAULT_SAMPLE_RATE;
+    }
+}
 
 
 

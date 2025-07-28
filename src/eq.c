@@ -120,8 +120,8 @@ static void eq_gui_cb(Endpoint *ep)
 void eq_ctrl_label_fn(char *dst, size_t dstsize, Value val, ValType type)
 {
     /* label_freq_raw_to_hz(dst, dstsize, freq, JDAW_DOUBLE); */
-    Session *session = session_get();
-    int hz = val.double_pair_v[0] * session->proj.sample_rate / 2;
+    /* Session *session = session_get(); */
+    int hz = val.double_pair_v[0] * session_get_sample_rate() / 2;
     size_t written = snprintf(dst, dstsize, "%d Hz, ", hz);
     dstsize -= written;
     dst += written;

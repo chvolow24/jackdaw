@@ -164,6 +164,7 @@ int main(int argc, char **argv)
     bool invoke_open_jdaw_file = false;
     bool invoke_open_midi_file = false;
     if (argc > 2) {
+	fprintf(stderr, "Usage: jackdaw [file_to_open]");
         exit(1);
     } else if (argc == 2) {
 	if (strcmp(argv[1], "pd_test") == 0) {
@@ -214,11 +215,16 @@ int main(int argc, char **argv)
     /* Create project here */
 
     Session *session = session_create();
-
     if (invoke_open_jdaw_file) {
 	fprintf(stderr, "Opening \"%s\"...\n", file_to_open);
-	int ret = jdaw_read_file(&session->proj, file_to_open);
+	Project new_proj;
+	memset(&new_proj, '\0', sizeof(new_proj));
+	session->proj_reading = &new_proj;
+	int ret = jdaw_read_file(&new_proj, file_to_open);
+	/* int ret = jdaw_read_file(&session->proj, file_to_open); */
 	if (ret == 0) {
+	    session_set_proj(session, &new_proj);
+	    session->proj_reading = NULL;
 	    session->proj_initialized = true;
 	    /* TODO: handle audio format disagreements more elegantly */
 	    AudioConn *output = session->audio_io.playback_conn;
@@ -228,22 +234,23 @@ int main(int argc, char **argv)
 	    }
 	} else {
 	    session->proj_initialized = false;
+	    memset(&session->proj, '\0', sizeof(Project));
 	}
-	if (session->proj_initialized) {
-	    char *realpath_ret;
-	    if (!(realpath_ret = realpath(file_to_open, NULL))) {
-		perror("Error in realpath");
-	    } else {
-		char *last_slash_pos = strrchr(realpath_ret, '/');
-		if (last_slash_pos) {
-		    *last_slash_pos = '\0';
-		    strncpy(DIRPATH_SAVED_PROJ, realpath_ret, MAX_PATHLEN);
-		}
-		free(realpath_ret);
+    }
+    if (session->proj_initialized) {
+	char *realpath_ret;
+	if (!(realpath_ret = realpath(file_to_open, NULL))) {
+	    perror("Error in realpath");
+	} else {
+	    char *last_slash_pos = strrchr(realpath_ret, '/');
+	    if (last_slash_pos) {
+		*last_slash_pos = '\0';
+		strncpy(DIRPATH_SAVED_PROJ, realpath_ret, MAX_PATHLEN);
 	    }
-	    for (int i=0; i<session->proj.num_timelines; i++) {
-		timeline_reset_full(session->proj.timelines[i]);
-	    }
+	    free(realpath_ret);
+	}
+	for (int i=0; i<session->proj.num_timelines; i++) {
+	    timeline_reset_full(session->proj.timelines[i]);
 	}
     } else {
 	fprintf(stderr, "Creating new project...\n");

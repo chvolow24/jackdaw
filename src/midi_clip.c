@@ -84,7 +84,6 @@ void midi_clip_add_note(MIDIClip *mc, int channel, int note_val, int velocity, i
     if (mc->num_notes == mc->notes_alloc_len) {
 	mc->notes_alloc_len *= 2;
 	mc->notes = realloc(mc->notes, mc->notes_alloc_len * sizeof(Note));
-	fprintf(stderr, "REALLOC LEN %d, PTR? %p\n", mc->notes_alloc_len, mc->notes);
     }
     
     Note *note = mc->notes + mc->num_notes;
@@ -116,8 +115,6 @@ void midi_clip_add_controller_change(MIDIClip *mclip, PmEvent e, int32_t pos)
 
 void midi_clip_add_pitch_bend(MIDIClip *mclip, PmEvent e, int32_t pos)
 {
-    breakfn();
-    exit(1);
     uint8_t status = Pm_MessageStatus(e.message);
     uint8_t channel = status & 0x0F;
     uint8_t value1 = Pm_MessageData1(e.message);
@@ -492,7 +489,6 @@ void midi_clip_read_events(
     enum midi_ts_type ts_type,
     int32_t ts_offset)
 {
-    Session *session = session_get();
     Note unclosed_notes[128];
     for (uint32_t i=0; i<num_events; i++) {
 	PmEvent e = events[i];
@@ -505,7 +501,7 @@ void midi_clip_read_events(
 	if (ts_type == MIDI_TS_SFRAMES) {
 	    pos_rel = e.timestamp;
 	} else if (ts_type == MIDI_TS_MSEC) { /* MSEC */
-	    pos_rel = ((double)e.timestamp - ts_offset) * (double)session->proj.sample_rate / 1000.0;
+	    pos_rel = ((double)e.timestamp - ts_offset) * (double)session_get_sample_rate() / 1000.0;
 	} else {
 	    return;
 	}
@@ -613,8 +609,6 @@ uint32_t midi_clip_get_events(
 	}
     }
     for (uint16_t i=0; i<mclip->pitch_bend.num_changes; i++) {
-	breakfn();
-	exit(1);
 	PmEvent e = pitch_bend_make_event(&mclip->pitch_bend, i);
 	if (e.timestamp < start_pos) continue;
 	if (e.timestamp >= end_pos) break;
@@ -682,8 +676,8 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
         #ifdef TESTBUILD
 	if (event_buf[i].timestamp < chunk_tl_start || event_buf[i].timestamp >= chunk_tl_end) {
 	    breakfn();
-	    fprintf(stderr, "CRITICAL ERROR: outputting events not in chunk!! Event index %d, status %x, ts %d (chunk %d - %d)\n", i, Pm_MessageStatus(event_buf[i].message), event_buf[i].timestamp, chunk_tl_start, chunk_tl_end);
-	    exit(1);
+	    /* fprintf(stderr, "CRITICAL ERROR: outputting events not in chunk!! Event index %d, status %x, ts %d (chunk %d - %d)\n", i, Pm_MessageStatus(event_buf[i].message), event_buf[i].timestamp, chunk_tl_start, chunk_tl_end); */
+	    /* exit(1); */
 	}
 	#endif
     }

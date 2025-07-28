@@ -504,10 +504,12 @@ static Project *proj_reading;
 const char *get_fmt_str(SDL_AudioFormat f);
 int jdaw_read_file(Project *dst, const char *path)
 {
-    
+    /* Session *session_to_set_proj_reading = session_get(); */
+    /* session_to_set_proj_reading->proj_reading = dst; */
     FILE *f = fopen(path, "r");
     if (!f) {
         fprintf(stderr, "Error: could not find project file at path %s\n", path);
+	/* session_to_set_proj_reading->proj_reading = NULL; */
         return -1;
     }
     char hdr_buffer[9];
@@ -516,6 +518,7 @@ int jdaw_read_file(Project *dst, const char *path)
     if (strncmp(hdr_buffer, hdr_jdaw, 4) != 0) {
         fprintf(stderr, "Error: unable to read file. 'JDAW' specifier missing %s\n", path);
         /* free(proj); */
+	/* session_to_set_proj_reading->proj_reading = NULL; */
         return -1;
     }
 
@@ -526,6 +529,7 @@ int jdaw_read_file(Project *dst, const char *path)
     hdr_buffer[8] = '\0';
     if (strncmp(hdr_buffer, hdr_version, 8) != 0) {
 	fprintf(stderr, "Error: \"VERSION\" specifier missing in .jdaw file\n");
+	/* session_to_set_proj_reading->proj_reading = NULL; */
 	return -1;
     }
     fread(read_file_spec_version, 1, 5, f);
@@ -536,6 +540,7 @@ int jdaw_read_file(Project *dst, const char *path)
     if (read_file_version_older_than("00.10")) {
 	fprintf(stderr, "Error: .jdaw file version %s is not compatible with the current jackdaw version (%s). You may need to downgrade to open this file.\n", hdr_buffer, JACKDAW_VERSION);
         /* free(proj); */
+	/* session_to_set_proj_reading->proj_reading = NULL; */
 	return -1;
     }
 
@@ -639,6 +644,7 @@ int jdaw_read_file(Project *dst, const char *path)
     /* timeline_reset(proj->timelines[0]); */
     fclose(f);
     session_loading_screen_deinit();
+    /* session_to_set_proj_reading->proj_reading = NULL; */
     return 0;
     
 jdaw_parse_error:
@@ -646,7 +652,7 @@ jdaw_parse_error:
     fclose(f);
     fprintf(stderr, "Error parsing .jdaw file at %s, filespec version %s\n", path, read_file_spec_version);
     session_loading_screen_deinit();
-    /* project_destroy(proj_loc); */
+    /* session_to_set_proj_reading->proj_reading = NULL; */
     return -1;
     
 }

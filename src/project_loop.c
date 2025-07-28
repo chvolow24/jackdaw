@@ -237,7 +237,7 @@ void loop_project_main()
 			}
 			/* First beat dur */
 			int32_t beat_dur = s->cfg.dur_sframes / num_subdivs * s->cfg.beat_subdiv_lens[0];
-			fprintf(stderr, "BEAT DUR BPM: %f\n", (double)session_get()->proj.sample_rate / (double)beat_dur * 60.0);
+			fprintf(stderr, "BEAT DUR BPM: %f\n", (double)session_get_sample_rate() / (double)beat_dur * 60.0);
 			Track *t = timeline_selected_track(tl);
 			if (!t) break;
 			ClipRef *cr = clipref_at_cursor();

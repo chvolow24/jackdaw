@@ -395,7 +395,6 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 		fprintf(stderr, "BPM: %f\n", bpm);
 		ClickSegment *cs = click_track_cut_at(click_track, e.timestamp + tl_start_pos);
 		if (!cs) cs = click_track_get_segment_at_pos(click_track, e.timestamp + tl_start_pos);
-		/* if (!cs) exit(1); */
 		uint8_t subdivs[4] = {4, 4, 4, 4};
 		click_segment_set_config(cs, -1, bpm, 4, subdivs, 0);
 		/* exit(0); */

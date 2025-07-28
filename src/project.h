@@ -77,7 +77,9 @@
 
 #define MAX_ANIMATIONS 64
 
-#define ACTIVE_TL (session->proj.timelines[session->proj.active_tl_index])
+#define ACTIVE_TL ( \
+session->proj_reading ? session->proj_reading->timelines[session->proj_reading->active_tl_index] : \
+session->proj.timelines[session->proj.active_tl_index]) \
 
 typedef struct project Project;
 typedef struct timeline Timeline;

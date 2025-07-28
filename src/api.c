@@ -681,8 +681,11 @@ void api_node_deserialize(FILE *f, APINode *root)
 	/* } */
 	/* fprintf(stderr, "DESER %s == %s\n", route_buf, str_buf); */
 	Endpoint *ep = api_endpoint_get(route_buf);
-	if (ep)
+	if (ep) {
 	    endpoint_write(ep, v, true, true, true, false);
+	} else {
+	    fprintf(stderr, "ERROR: API route note \"%s\" not found!\n", route_buf);
+	}
 	/* jdaw_val_to_str(route_buf, MAX_ROUTE_LEN, v, t, 3); */
 	/* fprintf(stderr, "Write to %p, Val type %d == %s\n", ep, t, route_buf); */
 	fgetc(f);

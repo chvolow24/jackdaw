@@ -416,7 +416,7 @@ static void *transport_dsp_thread_fn(void *arg)
 
 	
 	double time = ((double)clock() - performance_timer) / CLOCKS_PER_SEC;
-	double alloc_time = (double)session->proj.fourier_len_sframes / session->proj.sample_rate;
+	double alloc_time = (double)session->proj.fourier_len_sframes / session_get_sample_rate();
 	double out = 0.9 * last_t + 0.1 * (time / alloc_time);
 	/* fprintf(stderr, "STRESS: %f\n", out); */
 	last_t = out;
@@ -468,7 +468,7 @@ void transport_start_playback()
 
     /* Set stack size */
     size_t orig_stack_size;
-    size_t desired_stack_size = 2 * sizeof(double) * session->proj.sample_rate;
+    size_t desired_stack_size = 2 * sizeof(double) * session_get_sample_rate();
     int page_size = getpagesize();
     int num_pages = desired_stack_size / page_size;
     desired_stack_size = num_pages * page_size;
@@ -495,7 +495,9 @@ void transport_start_playback()
 void transport_stop_playback()
 {
     Session *session = session_get();
+    if (!session->playback.playing) return;
     Timeline *tl = ACTIVE_TL;
+    if (!tl) return;
     audioconn_stop_playback(session->audio_io.playback_conn);
 
     pthread_cancel(*get_thread_addr(JDAW_THREAD_DSP));

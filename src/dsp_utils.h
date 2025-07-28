@@ -36,7 +36,11 @@ void get_real_component(double complex *restrict A, double *restrict B, int n);
 void get_real_componentf(double complex *restrict A, float *restrict B, int len);
 void get_magnitude(double complex *restrict A, double *restrict B, int len);
 double hamming(int x, int lenw);
+
+/* Input range 0:1. Return frequenct in Hz from 1 - Nyquist */
 double dsp_scale_freq_to_hz(double freq_unscaled);
+/* Input range 0:1. Return logscaled value 0:1, where 1 = Nyquist */
+double dsp_scale_freq(double freq_unscaled);
 
 
 void float_buf_add(float *restrict a, float *restrict b, int len);

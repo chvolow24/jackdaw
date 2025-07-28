@@ -258,78 +258,44 @@ void loop_project_main()
 		    }
 		}
 		    break;
-		case SDL_SCANCODE_6: {
-		    Timeline *tl = ACTIVE_TL;
-		    Track *track = timeline_selected_track(tl);
-		    if (!track) break;
-		    MIDIClip *mclip = midi_clip_create(NULL, track);
-		    /* midi_clip_init(mclip); */
-		    /* memset(mclip, '\0', sizeof(MIDIClip)); */
-		    /* if (!mclip->refs) { */
-		    /* 	mclip->refs_alloc_len = 6; */
-		    /* 	mclip->refs = calloc(6, sizeof(ClipRef *)); */
-		    /* } */
-		    /* sprintf(mclip->name, "mclip!"); */
-		    /* mclip->len_sframes = 96000; */
-
-		    /* midi_clip_add_note(&mclip, 94, 127, 10000, 19000); */
-		    /* midi_clip_add_note(&mclip, 60, 127, 1000, 10000); */
-		    /* midi_clip_add_note(&mclip, 64, 127, 10000, 20000); */
-		    /* midi_clip_add_note(&mclip, 67, 127, 20000, 30000); */
-		    /* midi_clip_add_note(&mclip, 60, 127, 30000, 80000); */
-		    /* midi_clip_add_note(&mclip, 64, 127, 30000, 80000); */
-		    /* midi_clip_add_note(&mclip, 67, 127, 30000, 80000); */
-
-		    int32_t start = 96000 * 5;
-		    /* int32_t end = 10000; */
-		    midi_clip_add_note(mclip, 0, 69, 108, 100, 100 + 96000);
-		    srand(time(NULL));
-		    mclip->len_sframes = 96000 * 5;
-		    for (int i=0; i<900; i++) {
-			int32_t dur = rand() % 30000;
-			int32_t interval = rand() % 11 + 1;
-			int32_t t_interval = rand() % 5000 + 1000;
-			uint8_t velocity = rand() % 128;
-			for (int i=25; i<25 + 80; i+=interval) {
-			    interval += rand() % 4 - 2;
-			    if (interval <= 0) interval += rand() %4 + 1;
-			    midi_clip_add_note(mclip, 0, i, velocity, start, start + dur);
-			    start += t_interval;
-			    /* end += 3000; */
-			    /* mclip->len_sframes += t_interval; */
-			    mclip->len_sframes += t_interval;
-			}
-		    }
-
-		    /* midi_clip_add_note(&mclip, 78, 127, 3, 1000); */
-		    /* midi_clip_add_note(&mclip, 85, 127, 3, 1000); */
-		    /* midi_clip_add_note(&mclip, 97, 127, 3, 1000); */
-		    /* midi_clip_add_note(&mclip, 96, 127, 1500, 6000); */
-		    /* midi_clip_add_note(&mclip, 95, 127, 6000, 10000); */
-
-		    clipref_create(
-			track,
-			tl->play_pos_sframes,
-			CLIP_MIDI,
-			mclip);
-			
-		}
-		    break;
-		/* case SDL_SCANCODE_6: { */
-		/*     do_interpolation = !do_interpolation; */
-		/* } */
-		/*     break; */
 		/* case SDL_SCANCODE_6: { */
 		/*     Timeline *tl = ACTIVE_TL; */
-		/*     Track* sel = timeline_selected_track(tl); */
-		/*     Effect *e = track_add_effect(sel, i); */
-		/*     fprintf(stderr, "Applying %s\n", effect_type_str(i)); */
-		/*     /\* Saturation *s = e->obj; *\/ */
-		/*     /\* s->active = true; *\/ */
-		/*     /\* saturation_set_gain(s, 20.0); *\/ */
-		/*     i++; */
-		/*     i%=4; */
-		    
+		/*     Track *track = timeline_selected_track(tl); */
+		/*     if (!track) break; */
+		/*     MIDIClip *mclip = midi_clip_create(NULL, track); */
+		/*     int32_t start = 96000 * 5; */
+		/*     /\* int32_t end = 10000; *\/ */
+		/*     midi_clip_add_note(mclip, 0, 69, 108, 100, 100 + 96000); */
+		/*     srand(time(NULL)); */
+		/*     mclip->len_sframes = 96000 * 5; */
+		/*     for (int i=0; i<900; i++) { */
+		/* 	int32_t dur = rand() % 30000; */
+		/* 	int32_t interval = rand() % 11 + 1; */
+		/* 	int32_t t_interval = rand() % 5000 + 1000; */
+		/* 	uint8_t velocity = rand() % 128; */
+		/* 	for (int i=25; i<25 + 80; i+=interval) { */
+		/* 	    interval += rand() % 4 - 2; */
+		/* 	    if (interval <= 0) interval += rand() %4 + 1; */
+		/* 	    midi_clip_add_note(mclip, 0, i, velocity, start, start + dur); */
+		/* 	    start += t_interval; */
+		/* 	    /\* end += 3000; *\/ */
+		/* 	    /\* mclip->len_sframes += t_interval; *\/ */
+		/* 	    mclip->len_sframes += t_interval; */
+		/* 	} */
+		/*     } */
+
+		/*     /\* midi_clip_add_note(&mclip, 78, 127, 3, 1000); *\/ */
+		/*     /\* midi_clip_add_note(&mclip, 85, 127, 3, 1000); *\/ */
+		/*     /\* midi_clip_add_note(&mclip, 97, 127, 3, 1000); *\/ */
+		/*     /\* midi_clip_add_note(&mclip, 96, 127, 1500, 6000); *\/ */
+		/*     /\* midi_clip_add_note(&mclip, 95, 127, 6000, 10000); *\/ */
+
+		/*     clipref_create( */
+		/* 	track, */
+		/* 	tl->play_pos_sframes, */
+		/* 	CLIP_MIDI, */
+		/* 	mclip); */
+			
 		/* } */
 		/*     break; */
 		/* case SDL_SCANCODE_6: { */

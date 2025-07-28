@@ -23,6 +23,16 @@ static void synth_osc_vol_dsp_cb(Endpoint *ep)
     else cfg->active = false;
 }
 
+static void base_cutoff_dsp_cb(Endpoint *ep)
+{
+    Synth *s = ep->xarg1;
+    Value cutoff = ep->last_write_val;
+    s->base_cutoff = dsp_scale_freq(cutoff.float_v);
+    fprintf(stderr, "FROM %f to %f\n", cutoff.float_v, s->base_cutoff);
+    /* double cutoff_hz = dsp_scale_freq_to_hz(cutoff.double_v); */
+
+}
+
 static void fmod_target_dsp_cb(Endpoint *ep)
 {
     OscCfg *cfg = ep->xarg1;
@@ -236,17 +246,17 @@ Synth *synth_create(Track *track)
 
     endpoint_init(
 	&s->base_cutoff_ep,
-	&s->base_cutoff,
+	&s->base_cutoff_unscaled,
 	JDAW_FLOAT,
 	"base_cutoff",
 	"Base cutoff",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, NULL,
-	NULL, NULL, &s->filter_page, "base_cutoff_slider");
-    endpoint_set_default_value(&s->base_cutoff_ep, (Value){.float_v = 0.01f});
-    endpoint_set_allowed_range(&s->base_cutoff_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 0.2f});
+	page_el_gui_cb, NULL, base_cutoff_dsp_cb,
+	s, NULL, &s->filter_page, "base_cutoff_slider");
+    endpoint_set_default_value(&s->base_cutoff_ep, (Value){.float_v = 0.1f});
+    endpoint_set_allowed_range(&s->base_cutoff_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
     api_endpoint_register(&s->base_cutoff_ep, &s->filter_node);
-    /* endpoint_set_label_fn(&s->base_cutoff_ep, label_freq_raw_to_hz); */
+    endpoint_set_label_fn(&s->base_cutoff_ep, label_freq_raw_to_hz);
 
     
     endpoint_init(
@@ -938,11 +948,12 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
 	for (int j=0; j<cfg->unison.num_voices; j++) {
 	    Osc *detune_voice = v->oscs + i + SYNTH_NUM_BASE_OSCS * (j + 1);
 	    detune_voice->type = cfg->type;
+	    double max_offset_cents = cfg->unison.detune_cents / 100.0f;
+	    double voice_offset = max_offset_cents / cfg->unison.num_voices * 2;
 	    double detune_midi_note =
 		j % 2 == 0 ?
-		base_midi_note - cfg->unison.detune_cents / 100.0f * (j + 1) :
-		base_midi_note + cfg->unison.detune_cents / 100.0f * (j + 1);
-	    /* fprintf(stderr, "DETUNE MIDI NOTE: %f (detune cents? %f /100? %f\n", detune_midi_note, cfg->unison.detune_cents, cfg->unison.detune_cents / 100.0f); */
+		base_midi_note - voice_offset * (j + 1):
+		base_midi_note + voice_offset * (j + 1);
 	    osc_set_freq(detune_voice, mtof_calc(detune_midi_note));
 	    detune_voice->amp = osc->amp * cfg->unison.relative_amp;
 	    detune_voice->pan =

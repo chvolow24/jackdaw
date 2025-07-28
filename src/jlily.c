@@ -292,7 +292,6 @@ int jlily_string_to_mclip(
     if (mclip) {
 	for (int i=0; i<num_notes; i++) {
 	    JLilyNote *jnote = notes + i;
-	    fprintf(stderr, "ADDING note at pos %f, dur %d\n", jnote->ts+pos_offset,jnote->dur); 
 	    midi_clip_add_note(
 		mclip,
 		0,

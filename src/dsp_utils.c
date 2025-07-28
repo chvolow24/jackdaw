@@ -222,12 +222,16 @@ double hamming(int x, int lenw)
     return 0.54 - 0.46 * cos(TAU * x / lenw);
 }
 
-extern Project *proj;
+double dsp_scale_freq(double freq_unscaled)
+{
+    double sample_rate = session_get_sample_rate();
+    return pow((sample_rate / 2.0), freq_unscaled - 1.0f);
+}
 double dsp_scale_freq_to_hz(double freq_unscaled)
 {
-    Session *session = session_get();
-    double sample_rate = session->proj_initialized ? session_get_sample_rate() : DEFAULT_SAMPLE_RATE;
-    return pow(10.0, log10(sample_rate / 2.0) * freq_unscaled);
+    double sample_rate = session_get_sample_rate();
+    /* return pow(10.0, log10(sample_rate / 2.0) * freq_unscaled); */
+    return  pow((sample_rate / 2.0), freq_unscaled);
 }
 
 

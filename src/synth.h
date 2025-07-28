@@ -176,6 +176,7 @@ typedef struct synth {
     /* Filter */
     bool filter_active;
     float resonance;
+    float base_cutoff_unscaled;
     float base_cutoff;
     float pitch_amt;
     float vel_amt;

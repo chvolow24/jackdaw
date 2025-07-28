@@ -17,8 +17,8 @@ extern double MTOF[];
 static void synth_osc_vol_dsp_cb(Endpoint *ep)
 {
     OscCfg *cfg = ep->xarg1;
-    float vol_unscaled = endpoint_safe_read(ep, NULL).float_v;
-    cfg->amp = pow(vol_unscaled, 2.0);
+    /* float vol_unscaled = endpoint_safe_read(ep, NULL).float_v; */
+    /* cfg->amp = pow(vol_unscaled, 2.0); */
     if (cfg->amp > 1e-9) cfg->active = true;
     else cfg->active = false;
 }
@@ -111,7 +111,7 @@ Synth *synth_create(Track *track)
     s->noise_apply_env = false;
     
     s->base_oscs[0].active = true;
-    s->base_oscs[0].amp_unscaled = 0.5;
+    /* s->base_oscs[0].amp_unscaled = 0.5; */
     s->base_oscs[0].amp = 0.25;
     s->base_oscs[0].type = WS_SAW;
 
@@ -498,15 +498,15 @@ Synth *synth_create(Track *track)
 
 	endpoint_init(
 	    &cfg->amp_ep,
-	    &cfg->amp_unscaled,
+	    &cfg->amp,
 	    JDAW_FLOAT,
 	    "vol",
 	    "Vol",
 	    JDAW_THREAD_DSP,
 	    page_el_gui_cb, NULL, synth_osc_vol_dsp_cb,
 	    cfg, NULL, &s->osc_page, cfg->amp_id);
-	endpoint_set_default_value(&cfg->amp_ep, (Value){.float_v = 0.5f});
-	endpoint_set_allowed_range(&cfg->amp_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 4.0f});
+	endpoint_set_default_value(&cfg->amp_ep, (Value){.float_v = 0.25f});
+	endpoint_set_allowed_range(&cfg->amp_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 2.0f});
 	api_endpoint_register(&cfg->amp_ep, &cfg->api_node);
 
 	endpoint_init(
@@ -746,7 +746,8 @@ static float osc_sample(Osc *osc, int channel, int num_channels, float step)
 	sample = 0.0;
     }
     if (osc->freq_modulator) {
-	float fmod_sample = osc_sample(osc->freq_modulator, channel, num_channels, step);
+	/* Raise fmod sample to 3 to get fmod values in more useful range */
+	float fmod_sample = pow(osc_sample(osc->freq_modulator, channel, num_channels, step), 3.0);
 	/* fprintf(stderr, "fmod sample in osc %p: %f\n", osc, fmod_sample); */
 	osc->phase[channel] += phase_incr * (step * (1.0f + fmod_sample));
     } else {

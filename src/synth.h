@@ -115,7 +115,7 @@ typedef struct osc_cfg {
     bool active;
     WaveShape type;
     float amp;
-    float amp_unscaled;
+    /* float amp_unscaled; */
     float pan;
     int octave;
     int tune_coarse; /* semitones */

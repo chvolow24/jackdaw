@@ -9,11 +9,13 @@
 #include "session.h"
 
 #define MAX_CHORD_NOTES 128
-#define MAX_NOTES 32
+#define MAX_NOTES 1024
 #define MAX_JLILY_BUFLEN 1024
+#define MAX_REPEAT_BLOCK_DEPTH 4
 
 enum token_type {
     JLILY_NONE,
+    JLILY_ESCAPE,
     JLILY_WHITESPACE,
     JLILY_NOTE,
     JLILY_REST,
@@ -23,11 +25,29 @@ enum token_type {
     JLILY_OCTAVE,
     JLILY_CHORD_OPEN,
     JLILY_CHORD_CLOSE,
+    JLILY_TIE,
+    JLILY_BARLINE,
+    JLILY_BLOCK_OPEN,
+    JLILY_BLOCK_CLOSE,
+};
+
+enum jlily_escape_type {
+    JLILY_REPEAT,
     JLILY_VELOCITY
 };
 
+
+typedef struct jlily_repeat_block {
+    int repeat_n_times;
+    double ts_start;
+    double ts_end;
+    int first_note_index;
+    int last_note_index;    
+} JLilyRepeatBlock;
+
 typedef struct jlily_note {
     bool closed;
+    bool tied;
     char name;
     int accidental;
     uint8_t pitch;
@@ -36,16 +56,23 @@ typedef struct jlily_note {
     int32_t dur;
 } JLilyNote;
 
-static double beat_dur_sframes;
-static double ts;
-static double current_dur_sframes;
-static uint8_t velocity;
 
-static JLilyNote notes[MAX_NOTES];
-static JLilyNote *current_note;
-static int num_notes;
-static bool chord_open;
-static enum token_type last_token_type;
+struct jlily_state {
+    double beat_dur_sframes;
+    double ts;
+    double current_dur_sframes;
+    uint8_t velocity;
+
+    JLilyNote notes[MAX_NOTES];
+    JLilyNote *current_note;
+    int num_notes;
+    bool chord_open;
+    enum token_type last_token_type;
+    int repeat_block_index;
+    JLilyRepeatBlock repeat_blocks[MAX_REPEAT_BLOCK_DEPTH];
+};
+
+struct jlily_state state;
 
 static int note_name_interval(char note1, char note2)
 {
@@ -68,6 +95,29 @@ static int note_name_interval(char note1, char note2)
     return interval;
 }
 
+void handle_repeat(JLilyRepeatBlock *block)
+{
+    int block_num_notes =  1 + block->last_note_index - block->first_note_index;
+    double ts_add = block->ts_end - block->ts_start;
+    fprintf(stderr, "\t\tHANDLE REPEAT: %d times, irange %d-%d, num_notes : %d\n", block->repeat_n_times, block->first_note_index, block->last_note_index, block_num_notes);
+    for (int i=1; i<block->repeat_n_times; i++) {
+	fprintf(stderr, "\t\t\tInsert %d notes; space remeaining? %d\n", block_num_notes, MAX_NOTES - state.num_notes);
+	if (block_num_notes + state.num_notes >= MAX_NOTES) {
+	    fprintf(stderr, "ERROR! Too many notes!\n");
+	    return;
+	}
+	memcpy(state.notes + state.num_notes, state.notes + block->first_note_index, block_num_notes * sizeof(JLilyNote));
+	for (int j=0; j<block_num_notes; j++) {
+	    JLilyNote *note = state.notes + state.num_notes;
+	    note->ts += (ts_add * i);
+	    state.num_notes++;
+	    state.current_note++;
+	}
+	state.ts += ts_add;
+    }
+}
+
+
 static int handle_next_token(const char *text, int index, enum token_type type, int max_i)
 {
     /* Token is at most 2 chars long */
@@ -81,16 +131,64 @@ static int handle_next_token(const char *text, int index, enum token_type type, 
     switch (type) {
     case JLILY_NONE:
 	return -1;
+    case JLILY_ESCAPE: {
+	char esc_word_buf[24];
+	int i=0;
+	char c;
+	while (i < 24 - 1 && i + index < max_i - 1 && (c = text[index + i + 1]) >= 'a' && c <= 'z') {
+	    tok_len++;
+	    esc_word_buf[i] = c;
+	    i++;
+	}
+	esc_word_buf[i] = '\0';
+	int value = 0;
+	int subindex = index + i + 1;
+	while (subindex < max_i) {
+	    char c = text[subindex];
+	    if (c == ' ') {
+		tok_len++;
+		subindex++;
+		continue;
+	    } else if (c >= '0' && c <= '9') {
+		tok_len++;
+		value  = (value * 10) + c - '0';				
+	    } else {
+		break;
+	    }
+	    subindex++;
+	}
+	if (strncmp(esc_word_buf, "repeat", 6) == 0) {
+	    state.repeat_block_index++;
+	    state.repeat_blocks[state.repeat_block_index].repeat_n_times = value;
+	    fprintf(stderr, "REPEAT!!!\n");
+	} else if (strncmp(esc_word_buf, "velocity", 8) == 0) {
+	    state.velocity = value > 127 ? 127 : value;
+	    fprintf(stderr, "VELOCITY!!! value %d\n", value);
+	}
+    }
+	break;
     case JLILY_WHITESPACE:
-	current_note->closed = true;
+	if (!state.current_note->closed) {
+	    fprintf(stderr, "CLOSING note %ld\n", state.current_note - state.notes);
+	    if (state.current_note > state.notes && (state.current_note - 1)->tied) {
+		(state.current_note - 1)->dur += state.current_note->dur;
+		fprintf(stderr, "\t actually tied\n");
+		memset(state.current_note, '\0', sizeof(JLilyNote));
+		state.current_note--;
+		state.current_note->tied = false;
+		state.num_notes--;
+	    }
+	    state.current_note->closed = true;
+	}
 	break;
     case JLILY_NOTE: {
-	if (num_notes != 0) 
-	    current_note++;
-	num_notes++;
-	/* fprintf(stderr, "SETTING JLilyNote index %lu\n", current_note - notes); */
-	current_note->name = text[index];
-	current_note->dur = current_dur_sframes;
+	if (state.num_notes != 0) { 
+	    state.current_note++;
+	}
+	state.num_notes++;
+	fprintf(stderr, "SETTING JLilyNote index %lu\n", state.current_note - state.notes);
+	state.current_note->name = text[index];
+	state.current_note->dur = state.current_dur_sframes;
 	int accidental = 0;
 	int subindex = index + 1;
 	while (subindex < max_i) {
@@ -106,40 +204,39 @@ static int handle_next_token(const char *text, int index, enum token_type type, 
 		break;
 	    }
 	}
-	current_note->accidental = accidental;
+	state.current_note->accidental = accidental;
 	char last_note_name = 'c';
 	int last_note_accidental = 0;
 	uint8_t  last_note_pitch = 60;
-	if (current_note - notes > 0) { /* Relative */
-	    JLilyNote *last_note = current_note - 1;
+	if (state.current_note - state.notes > 0) { /* Relative */
+	    JLilyNote *last_note = state.current_note - 1;
 	    last_note_name = last_note->name;
 	    last_note_accidental = last_note->accidental;
 	    last_note_pitch = last_note->pitch;
 	}
-	int interval = note_name_interval(last_note_name, current_note->name);
+	int interval = note_name_interval(last_note_name, state.current_note->name);
 	interval += accidental;
 	interval -= last_note_accidental;
 	/* fprintf(stderr, "Raw interval: %d (%d->%d) (accidentals: %d %d)\n", interval, last_note_pitch, last_note_pitch + interval, last_note_accidental, accidental); */
-	current_note->pitch = last_note_pitch + interval;
+	state.current_note->pitch = last_note_pitch + interval;
 	if (interval > 6) {
-	    current_note->pitch -= 12;
-	    /* fprintf(stderr, "\t\tDROP to %d\n", current_note->pitch); */
+	    state.current_note->pitch -= 12;
+	    /* fprintf(stderr, "\t\tDROP to %d\n", state.current_note->pitch); */
 	}
-	/* fprintf(stderr, "JLilyNote %d ts: %f\n", num_notes, ts); */
-	current_note->ts = ts;
-	/* fprintf(stderr, "SET NOTE %d VEL %d\n", num_notes, velocity); */
-	current_note->velocity = velocity;
+	/* fprintf(stderr, "JLilyNote %d ts: %f\n", state.num_notes, ts); */
+	state.current_note->ts = state.ts;
+	/* fprintf(stderr, "SET NOTE %d VEL %d\n", state.num_notes, state.velocity); */
+	state.current_note->velocity = state.velocity;
 	/* fprintf(stderr, "\tSetting ts %d, incr %d\n", ts, current_dur); */
-	if (!chord_open) {
-	    ts += current_dur_sframes;
+	if (!state.chord_open) {
+	    state.ts += state.current_dur_sframes;
 	}
     }
 	break;
     case JLILY_REST:
-	ts += current_dur_sframes;
+	state.ts += state.current_dur_sframes;
 	break;
     case JLILY_DURATION: {
-	/* fprintf(stderr, "SETTING duration\n"); */
 	int dur_literal;
 	int char1 = text[index] - '0';
 	int char2;
@@ -157,28 +254,31 @@ static int handle_next_token(const char *text, int index, enum token_type type, 
 	    tok_len++;
 	    subindex++;
 	}
-	/* fprintf(stderr, "DOTS: %d, dur literal %d\n", dots, dur_literal); */
-	double dur_predot = beat_dur_sframes / (dur_literal / 4.0);
+
+	double dur_predot = state.beat_dur_sframes / (dur_literal / 4.0);
 	double dur = dur_predot;
 	for (int i=0; i<dots; i++) {
 	    dur_predot /= 2;
 	    dur += dur_predot;
 	}
-	/* fprintf(stderr, "DUR: %f (beat dur %f, dur_literal %d)\n", dur, beat_dur_sframes, dur_literal); */
-	/* if (fabs(dur) < 1e-9) { */
-	/*     fprintf(stderr, "chars? %c %c\n", char1, char2); */
-	/*     exit(0); */
-	/* } */
 
-	ts -= current_dur_sframes;
-	current_note->dur -= current_dur_sframes;
+	state.ts -= state.current_dur_sframes;
 	
-	current_dur_sframes = dur;
+	double edit_ts = state.current_note->ts;
+	JLilyNote *n = state.current_note;
+	while (n > state.notes && fabs(n->ts - edit_ts) < 1e-9) {
+	    n->dur -= state.current_dur_sframes;
+	    n--;
+	}
+
+	state.current_dur_sframes = dur;
+	state.ts += state.current_dur_sframes;
 	
-	ts += current_dur_sframes;
-	current_note->dur += current_dur_sframes;
-	/* current_note->ts += current_dur; */
-	/* fprintf(stderr, "Dur: %d current: %d\n", dur, current_dur); */
+	n = state.current_note;
+	while (n > state.notes && fabs(n->ts - edit_ts) < 1e-9) {
+	    n->dur += state.current_dur_sframes;
+	    n--;
+	}
     }
 	break;
     case JLILY_SHARP:
@@ -187,43 +287,64 @@ static int handle_next_token(const char *text, int index, enum token_type type, 
 	break;
     case JLILY_OCTAVE:
 	if (text[index] == ',') {
-	    current_note->pitch -= 12;
+	    state.current_note->pitch -= 12;
 	} else if (text[index] == '\'') {
-	    current_note->pitch += 12;
+	    state.current_note->pitch += 12;
 	}
 	break;
     case JLILY_CHORD_OPEN:
-	chord_open = true;
+	state.chord_open = true;
 	break;
     case JLILY_CHORD_CLOSE:
-	chord_open = false;
-	ts += current_dur_sframes;
+	state.chord_open = false;
+	state.ts += state.current_dur_sframes;
 	break;
-    case JLILY_VELOCITY: {
-	int subindex = index + 1;
-	int velocity_loc = 0;
-	while (subindex < max_i) {
-	    char c = text[subindex];
-	    if (c == '=') {
-		subindex++;
-		tok_len++;
-	    } else if (c >= '0' && c <= '9') {
-		/* fprintf(stderr, "\t\t(%c): loc*10 = %d;  + %d\n", c, velocity_loc * 10, c- '0'); */
-		velocity_loc = (velocity_loc * 10) + c - '0';
-		subindex++;
-		tok_len++;
-	    } else {
-		break;
-	    }
-	}
-	/* fprintf(stderr, "Set vel from loc: %d\n", velocity_loc); */
-	velocity = velocity_loc > 127 ? 127 : velocity_loc;
-	/* fprintf(stderr, "VEL: %d\n", velocity); */
+    /* case JLILY_VELOCITY: { */
+    /* 	int subindex = index + 1; */
+    /* 	int velocity_loc = 0; */
+    /* 	while (subindex < max_i) { */
+    /* 	    char c = text[subindex]; */
+    /* 	    if (c == '=') { */
+    /* 		subindex++; */
+    /* 		tok_len++; */
+    /* 	    } else if (c >= '0' && c <= '9') { */
+    /* 		/\* fprintf(stderr, "\t\t(%c): loc*10 = %d;  + %d\n", c, velocity_loc * 10, c- '0'); *\/ */
+    /* 		velocity_loc = (velocity_loc * 10) + c - '0'; */
+    /* 		subindex++; */
+    /* 		tok_len++; */
+    /* 	    } else { */
+    /* 		break; */
+    /* 	    } */
+    /* 	} */
+    /* 	/\* fprintf(stderr, "Set vel from loc: %d\n", velocity_loc); *\/ */
+    /* 	state.velocity = velocity_loc > 127 ? 127 : velocity_loc; */
+    /* 	/\* fprintf(stderr, "VEL: %d\n", velocity); *\/ */
+    /* } */
+    /* 	break; */
+    case JLILY_TIE:
+	state.current_note->tied = true;
+	break;
+    case JLILY_BARLINE:
+	/* Ignore barlines; for input clarity only */
+	break;
+    case JLILY_BLOCK_OPEN: {
+	if (state.repeat_block_index < 0) break;
+	JLilyRepeatBlock *block = state.repeat_blocks + state.repeat_block_index;
+	block->first_note_index = state.num_notes <= 0 ? 0 : state.current_note + 1 - state.notes;
+	block->ts_start = state.ts;
     }
 	break;
-	
+    case JLILY_BLOCK_CLOSE: {
+	if (state.repeat_block_index < 0) break;
+	JLilyRepeatBlock *block = state.repeat_blocks + state.repeat_block_index;
+        block->last_note_index = state.current_note - state.notes;
+	block->ts_end = state.ts;
+	state.repeat_block_index--;
+	handle_repeat(block);
     }
-    last_token_type = type;
+	break;
+    }
+    state.last_token_type = type;
     return tok_len;
 }
 
@@ -231,7 +352,6 @@ int do_next_token(const char *text, int index, int max_i)
 {
     enum token_type type;
     char c = text[index];
-    /* fprintf(stderr, "CHAR: %c, GLOB VEL: %d\n", c, velocity); */
     if (c >= 'a' && c <= 'g') {
 	type = JLILY_NOTE;
     } else if (c == 'r') {
@@ -248,8 +368,16 @@ int do_next_token(const char *text, int index, int max_i)
 	type = JLILY_CHORD_CLOSE;
     } else if (c == ' ') {
 	type = JLILY_WHITESPACE;
-    } else if (c == 'v') {
-	type = JLILY_VELOCITY;
+    } else if (c == '~') {
+	type = JLILY_TIE;
+    } else if (c == '|') {
+	type = JLILY_BARLINE;
+    } else if (c == '{') {
+	type = JLILY_BLOCK_OPEN;
+    } else if (c == '}') {
+	type = JLILY_BLOCK_CLOSE;
+    } else if (c == '\\') {
+	type = JLILY_ESCAPE;
     } else {
 	fprintf(stderr, "Parse error, char %c\n", c);
 	return 0;
@@ -258,24 +386,20 @@ int do_next_token(const char *text, int index, int max_i)
 }
 
 /* Translation unit entrypoint; sets globals
-   Returns num notes */
+   Returns num state.notes */
 int jlily_string_to_mclip(
     const char *str,
     double beat_dur_sframes_loc,
     int32_t pos_offset,
     MIDIClip *mclip)
 {
-
-    /* fprintf(stderr, "ARGS? %p, %f, %d, %p\n", str, beat_dur_sframes_loc, pos_offset, mclip); */
-    beat_dur_sframes = beat_dur_sframes_loc;
-    /* fprintf(stderr, "BEAT DUR SFRAMES? %f LOC? %f\n", beat_dur_sframes, beat_dur_sframes_loc); */
-    ts = 0.0;
-    current_dur_sframes = beat_dur_sframes_loc / 4.0;
-    velocity = 100;
-    current_note = notes;
-    num_notes = 0;
-    chord_open = false;
-    last_token_type = JLILY_NONE;
+    memset(&state, '\0', sizeof(state));
+    state.beat_dur_sframes = beat_dur_sframes_loc;
+    state.current_dur_sframes = beat_dur_sframes_loc;
+    state.current_note = state.notes;
+    state.last_token_type = JLILY_NONE;
+    state.velocity = 100;
+    state.repeat_block_index = -1;
 
     int str_index = 0;
     int max_i = strlen(str);
@@ -290,8 +414,8 @@ int jlily_string_to_mclip(
 	}
     }
     if (mclip) {
-	for (int i=0; i<num_notes; i++) {
-	    JLilyNote *jnote = notes + i;
+	for (int i=0; i<state.num_notes; i++) {
+	    JLilyNote *jnote = state.notes + i;
 	    midi_clip_add_note(
 		mclip,
 		0,
@@ -302,12 +426,12 @@ int jlily_string_to_mclip(
 		/* (int32_t)jnote->ts + pos_offset + 1000); */
 	}
     } else {
-	for (int i=0; i<num_notes; i++) {
-	    JLilyNote *jnote = notes + i;
+	for (int i=0; i<state.num_notes; i++) {
+	    JLilyNote *jnote = state.notes + i;
 	    fprintf(stderr, "(%d) pitch %d vel %d\n", (int32_t)jnote->ts + pos_offset, jnote->pitch, jnote->velocity);
 	}
     }
-    return num_notes;
+    return state.num_notes;
 }
 
 #include "color.h"
@@ -341,7 +465,9 @@ static int add_jlily_modalfn(void *mod_v, void *target)
     int32_t pos_rel = tl->play_pos_sframes - cr->tl_pos + cr->start_in_clip;
     
     jlily_string_to_mclip(target, (double)beat_dur, pos_rel, mclip);
-    mclip->len_sframes = mclip->notes[mclip->num_notes - 1].end_rel + 1;
+    if (mclip->num_notes > 0) {
+	mclip->len_sframes = mclip->notes[mclip->num_notes - 1].end_rel + 1;
+    }
     clipref_reset(cr, true);
     tl->needs_redraw = true;
     window_pop_modal(main_win);
@@ -359,7 +485,7 @@ void timeline_add_jlily()
     static char buf[MAX_BUFLEN];
     static bool buf_initialized = false;
     if (!buf_initialized) {
-	snprintf(buf, MAX_BUFLEN, "Insert JLily string");
+	memset(buf, '\0', MAX_BUFLEN);
 	buf_initialized = true;
     }
     modal_add_textentry(

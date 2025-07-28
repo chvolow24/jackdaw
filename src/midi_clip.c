@@ -47,7 +47,6 @@ MIDIClip *midi_clip_create(MIDIDevice *device, Track *target)
 
     session->proj.midi_clips[session->proj.num_midi_clips] = mclip;
     session->proj.num_midi_clips++;
-    fprintf(stderr, "IN CREATE num midi clips = %d (ADDR VALUE: %p)\n", session->proj.num_midi_clips, &session->proj.num_midi_clips);
     return mclip;
 
 }

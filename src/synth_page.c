@@ -736,10 +736,10 @@ static void add_noise_page(TabView *tv, Track *track)
     page_add_el(page,EL_TEXTBOX,p,"","ramp_exp_label");
 
     p.slider_p.orientation = SLIDER_HORIZONTAL;
-    p.slider_p.style = SLIDER_TICK;
+    p.slider_p.style = SLIDER_FILL;
 
     page_el_params_slider_from_ep(&p, &s->noise_amt_ep);
-    page_add_el(page, EL_SLIDER, p, "", "noise_amt_slider");
+    page_add_el(page, EL_SLIDER, p, "noise_amt_slider", "noise_amt_slider");
 
 
     p.toggle_p.ep = &s->noise_apply_env_ep;
@@ -765,6 +765,7 @@ static void add_noise_page(TabView *tv, Track *track)
     page_el_params_slider_from_ep(&p, &s->noise_amt_env.ramp_exp_ep);	
     page_add_el(page,EL_SLIDER,p,"ramp_exp_slider","ramp_exp_slider");
 
+    s->noise_page = page;
 
 }
 

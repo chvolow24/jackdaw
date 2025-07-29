@@ -325,7 +325,6 @@ Synth *synth_create(Track *track)
     endpoint_set_allowed_range(&s->resonance_ep, (Value){.float_v = 1.0f}, (Value){.float_v = 50.0f});
     api_endpoint_register(&s->resonance_ep, &s->filter_node);
 
-
     endpoint_init(
 	&s->sync_phase_ep,
 	&s->sync_phase,
@@ -334,7 +333,7 @@ Synth *synth_create(Track *track)
 	"Sync phase",
 	JDAW_THREAD_DSP,
 	page_el_gui_cb, NULL, NULL,
-	NULL, NULL, &s->filter_page, "sync_phase_toggle");
+	NULL, NULL, &s->osc_page, "sync_phase_toggle");
     endpoint_set_default_value(&s->sync_phase_ep, (Value){.bool_v = true});
     api_endpoint_register(&s->sync_phase_ep, &s->api_node);
 
@@ -346,8 +345,9 @@ Synth *synth_create(Track *track)
 	"Noise amount",
 	JDAW_THREAD_DSP,
 	page_el_gui_cb, NULL, NULL,
-	NULL, NULL, &s->filter_page, "noise_amt_slider");
-    endpoint_set_default_value(&s->noise_amt_ep, (Value){.float_v = true});
+	NULL, NULL, &s->noise_page, "noise_amt_slider");
+    endpoint_set_default_value(&s->noise_amt_ep, (Value){.float_v = 0.0f});
+    endpoint_set_allowed_range(&s->noise_amt_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 2.0});
     api_endpoint_register(&s->noise_amt_ep, &s->noise_node);
 
     endpoint_init(
@@ -358,7 +358,7 @@ Synth *synth_create(Track *track)
 	"Apply noise envelope",
 	JDAW_THREAD_DSP,
 	page_el_gui_cb, NULL, NULL,
-	NULL, NULL, &s->filter_page, "noise_apply_env_toggle");
+	NULL, NULL, &s->noise_page, "noise_apply_env_toggle");
     endpoint_set_default_value(&s->noise_apply_env_ep, (Value){.bool_v = false});
     api_endpoint_register(&s->noise_apply_env_ep, &s->noise_node);
 

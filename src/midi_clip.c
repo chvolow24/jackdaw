@@ -661,7 +661,7 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 	&dyn_events,
 	start_in_clip,
 	end_in_clip,
-	cr->end_in_clip == 0 ? mclip->len_sframes : cr->end_in_clip,
+	cr->end_in_clip == 0 ? mclip->len_sframes - 1 : cr->end_in_clip - 1,
 	&cr->track->note_offs);
     if (num_events > event_buf_max_len) {
 	fprintf(stderr, "Error! Event buf full!\n");

@@ -323,10 +323,15 @@ ClipRef *clipref_before_cursor(int32_t *pos_dst)
     int32_t end = INT32_MIN;
     for (int i=0; i<track->num_clips; i++) {
 	ClipRef *cr = track->clips[i];
+	if (cr->grabbed && session->dragging) continue;
 	int32_t cr_end = cr->tl_pos + clipref_len(cr);
-	if (cr_end < tl->play_pos_sframes && cr_end >= end) {
+	if (cr_end <= tl->play_pos_sframes && cr_end >= end) {
 	    ret = cr;
-	    end = cr_end;
+	    if (cr_end == tl->play_pos_sframes) {
+		end = cr->tl_pos;
+	    } else {
+		end = cr_end;
+	    }
 	}
     }
     *pos_dst = end;
@@ -344,6 +349,7 @@ ClipRef *clipref_after_cursor(int32_t *pos_dst)
     int32_t start = INT32_MAX;
     for (int i=0; i<track->num_clips; i++) {
 	ClipRef *cr = track->clips[i];
+	if (cr->grabbed && session->dragging) continue;
 	int32_t cr_start = cr->tl_pos;
 	if (cr_start > tl->play_pos_sframes && cr_start <= start) {
 	    start = cr_start;

@@ -272,10 +272,6 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
 	    break;
 	case ADSR_A:
 	    memcpy(buf + buf_i, s->params->a_ramp + s->params->a - s->env_remaining, stage_len * sizeof(float));
-	    /* float_buf_mult( */
-	    /* 	buf + buf_i, */
-	    /* 	s->params->a_ramp + s->params->a - s->env_remaining, */
-	    /* 	stage_len); */
 	    s->env_remaining -= stage_len;
 	    break;
 	case ADSR_D:

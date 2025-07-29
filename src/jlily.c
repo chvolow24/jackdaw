@@ -263,21 +263,26 @@ static int handle_next_token(const char *text, int index, enum token_type type, 
 	}
 
 	state.ts -= state.current_dur_sframes;
-	
+
 	double edit_ts = state.current_note->ts;
 	JLilyNote *n = state.current_note;
-	while (n > state.notes && fabs(n->ts - edit_ts) < 1e-9) {
-	    n->dur -= state.current_dur_sframes;
-	    n--;
-	}
+	if (!state.current_note->closed) {
 
+	    JLilyNote *n = state.current_note;
+	    while (n >= state.notes && fabs(n->ts - edit_ts) < 1e-9) {
+		n->dur -= state.current_dur_sframes;
+		n--;
+	    }
+	}
 	state.current_dur_sframes = dur;
 	state.ts += state.current_dur_sframes;
-	
-	n = state.current_note;
-	while (n > state.notes && fabs(n->ts - edit_ts) < 1e-9) {
-	    n->dur += state.current_dur_sframes;
-	    n--;
+
+	if (!state.current_note->closed) { 
+	    n = state.current_note;
+	    while (n >= state.notes && fabs(n->ts - edit_ts) < 1e-9) {
+		n->dur += state.current_dur_sframes;
+		n--;
+	    }
 	}
     }
 	break;
@@ -465,8 +470,14 @@ static int add_jlily_modalfn(void *mod_v, void *target)
     int32_t pos_rel = tl->play_pos_sframes - cr->tl_pos + cr->start_in_clip;
     
     jlily_string_to_mclip(target, (double)beat_dur, pos_rel, mclip);
+    int32_t end_rest_dur = 0;
+    if (state.num_notes > 0) {
+	end_rest_dur = state.ts - state.notes[state.num_notes - 1].ts - state.notes[state.num_notes - 1].dur;
+    }
     if (mclip->num_notes > 0) {
-	mclip->len_sframes = mclip->notes[mclip->num_notes - 1].end_rel + 1;
+	mclip->len_sframes =  mclip->notes[mclip->num_notes - 1].end_rel + end_rest_dur + 1;
+    } else {
+	mclip->len_sframes = state.ts;
     }
     clipref_reset(cr, true);
     tl->needs_redraw = true;

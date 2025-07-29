@@ -132,6 +132,7 @@ static int handle_next_token(const char *text, int index, enum token_type type, 
     case JLILY_NONE:
 	return -1;
     case JLILY_ESCAPE: {
+	if (state.chord_open) break;
 	char esc_word_buf[24];
 	int i=0;
 	char c;
@@ -234,9 +235,11 @@ static int handle_next_token(const char *text, int index, enum token_type type, 
     }
 	break;
     case JLILY_REST:
+	if (state.chord_open) break;
 	state.ts += state.current_dur_sframes;
 	break;
     case JLILY_DURATION: {
+	if (state.chord_open) break;
 	int dur_literal;
 	int char1 = text[index] - '0';
 	int char2;
@@ -460,16 +463,28 @@ static int add_jlily_modalfn(void *mod_v, void *target)
 
     ClipRef *cr = clipref_at_cursor();
     MIDIClip *mclip;
+    bool clip_created = false;
     if (!cr) {
 	mclip = midi_clip_create(NULL, t);
-	cr = clipref_create(t, tl->play_pos_sframes, CLIP_MIDI, mclip);
+	cr = clipref_create(t, tl->play_pos_sframes, CLIP_MIDI, mclip); 
+	clip_created = true;
     } else {
 	if (cr->type == CLIP_AUDIO) return -1;
 	mclip = cr->source_clip;
     }
     int32_t pos_rel = tl->play_pos_sframes - cr->tl_pos + cr->start_in_clip;
-    
+
+    fprintf(stderr, "ADDING JLILY STRING: %s\n", (char *)target);
     jlily_string_to_mclip(target, (double)beat_dur, pos_rel, mclip);
+    if (clip_created) {
+	if (mclip->num_notes == 0) {
+	    midi_clip_destroy(mclip);
+	    goto pop_modal_and_exit;
+	} else {
+	    session->proj.active_clip_index++;
+	}
+    }
+    
     int32_t end_rest_dur = 0;
     if (state.num_notes > 0) {
 	end_rest_dur = state.ts - state.notes[state.num_notes - 1].ts - state.notes[state.num_notes - 1].dur;
@@ -479,7 +494,9 @@ static int add_jlily_modalfn(void *mod_v, void *target)
     } else {
 	mclip->len_sframes = state.ts;
     }
+
     clipref_reset(cr, true);
+pop_modal_and_exit:
     tl->needs_redraw = true;
     window_pop_modal(main_win);
     return 0;

@@ -293,7 +293,9 @@ static int dir_to_tline_filter_open(void *dp_v, void *dn_v)
 	    strncmp("mid", ext, 3) *
 	    strncmp("MID", ext, 3) *
 	    strncmp("midi", ext, 4) *
-	    strncmp("MIDI", ext, 4) == 0) {
+	    strncmp("MIDI", ext, 4) *
+	    strncmp("jsynth", ext, 6) *
+	    strncmp("JSYNTH", ext, 6) == 0) {
 	    return 1;
 	}
 	return 0;
@@ -451,6 +453,17 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 	session->proj_reading = NULL;
     } else if (strncmp("mid", ext, 3) * strncmp("MID", ext, 3) == 0) {
 	midi_file_open(dp->path, false);
+    } else if (strncmp("jsynth", ext, 6) * strncmp("JSYNTH", ext, 6) == 0) {
+	Timeline *tl = ACTIVE_TL;
+	Track *t = timeline_selected_track(tl);
+	if (t) {
+	    if (!t->synth) {
+		t->synth = synth_create(t);
+	    }
+	    synth_read_preset_file(dp->path, t->synth);
+	} else {
+	    status_set_errstr("Error: track not selected");
+	}
     }
     char *last_slash_pos = strrchr(dp->path, '/');
     if (last_slash_pos) {
@@ -1048,7 +1061,6 @@ void user_tl_goto_previous_clip_boundary(void *nullarg)
     }
 
 }
-
 
 void user_tl_goto_next_clip_boundary(void *nullarg)
 {

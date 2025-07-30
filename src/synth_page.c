@@ -8,6 +8,7 @@
 #include "project.h"
 #include "session.h"
 #include "synth.h"
+#include "text.h"
 
 extern Window *main_win;
 
@@ -108,6 +109,13 @@ static int amod_selector_fn(Dropdown *d, void *inner_arg)
 
 /* } */
 
+/* int fixed_note_completion(Text *txt, void *target) */
+/* { */
+/*     float value = atof(txt->display_value); */
+/*     Endpoint *targ_ep = target; */
+/*     endpoint_write(targ_ep, (Value){.float_v = value}, true, true, true, true); */
+/*     return 0; */
+/* } */
 
 static void panel_draw(void *layout_v, void *color_v)
 {
@@ -115,6 +123,8 @@ static void panel_draw(void *layout_v, void *color_v)
     SDL_Color *color = color_v;
     SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(color));
     geom_fill_rounded_rect(main_win->rend, &layout->rect, 8 * main_win->dpi_scale_factor);
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.grey));
+    geom_draw_rounded_rect(main_win->rend, &layout->rect, 8 * main_win->dpi_scale_factor);
     /* SDL_SetRenderDrawColor(main_win->rend, 100, 100, 100, 255); */
     /* geom_draw_rounded_rect(main_win->rend, &layout->rect, 8 * main_win->dpi_scale_factor); */
 }
@@ -192,7 +202,7 @@ static void add_osc_page(TabView *tv, Track *track)
     p.textbox_p.set_str = "Sync phase:";
     page_add_el(page,EL_TEXTBOX,p,"","sync_phase_label");
 
-    p.textbox_p.font = main_win->mono_font;
+    p.textbox_p.font = main_win->mono_bold_font;
     p.textbox_p.set_str = "Osc 1";
     page_add_el(page,EL_TEXTBOX,p,"","osc1_label");
 
@@ -205,6 +215,7 @@ static void add_osc_page(TabView *tv, Track *track)
     p.textbox_p.set_str = "Osc 4";
     page_add_el(page,EL_TEXTBOX,p,"","osc4_label");
 
+    p.textbox_p.font = main_win->mono_font;
     p.textbox_p.set_str = "Vol:";
     page_add_el(page,EL_TEXTBOX,p,"","1vol_label");
     page_add_el(page,EL_TEXTBOX,p,"","2vol_label");
@@ -213,17 +224,12 @@ static void add_osc_page(TabView *tv, Track *track)
 
     p.textbox_p.set_str = "Pan:";
     page_add_el(page,EL_TEXTBOX,p,"","1pan_label");
-    /* tb = el->component; */
-    /* textbox_set_trunc(tb, false); */
     page_add_el(page,EL_TEXTBOX,p,"","2pan_label");
-    /* tb = el->component; */
-    /* textbox_set_trunc(tb, false); */
     page_add_el(page,EL_TEXTBOX,p,"","3pan_label");
-    /* tb = el->component; */
-    /* textbox_set_trunc(tb, false); */
     page_add_el(page,EL_TEXTBOX,p,"","4pan_label");
-    /* tb = el->component; */
-    /* textbox_set_trunc(tb, false); */
+
+    p.textbox_p.set_str = "Fix:";
+    page_add_el(page,EL_TEXTBOX,p,"","1fix_label");
 
     p.textbox_p.set_str = "Octave:";
     el = page_add_el(page,EL_TEXTBOX,p,"","1octave_label");
@@ -341,7 +347,7 @@ static void add_osc_page(TabView *tv, Track *track)
     /* page_add_el(page,EL_SLIDER,p,"synth_pan_slider","master_pan_slider"); */
     /* for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) { */
     OscCfg *cfg = s->base_oscs;
-
+    
     p.sradio_p.align_horizontal = true;
     p.sradio_p.symbols = SYMBOL_TABLE + SYMBOL_SINE;
     p.sradio_p.num_items = 4;
@@ -360,6 +366,25 @@ static void add_osc_page(TabView *tv, Track *track)
     p.slider_p.style = SLIDER_TICK;
     page_el_params_slider_from_ep(&p, &cfg->pan_ep);
     page_add_el(page,EL_SLIDER,p,"1pan","1pan_slider");
+
+    /* p.slider_p.style = SL */
+
+    p.toggle_p.ep = &cfg->fix_freq_ep;
+    page_add_el(page,EL_TOGGLE,p,"1fix_freq","1fix_freq_toggle");
+    
+    page_el_params_slider_from_ep(&p, &cfg->fixed_freq_ep);
+    page_add_el(page,EL_SLIDER,p,"1fixed_freq","1fixed_freq_slider");
+
+
+    /* p.textentry_p.buf_len = 7; */
+    /* p.textentry_p.validation = txt_float_validation; */
+    /* p.textentry_p.font = main_win->mono_font; */
+    /* p.textentry_p.value_handle = cfg->fixed_note_buf; */
+    /* p.textentry_p.completion_target = &cfg->fixed_freq_ep; */
+    /* p.textentry_p.completion = fixed_note_completion; */
+    /* p.textentry_p.text_size = 12; */
+    /* page_add_el(page,EL_SLIDER,p,"1fixed_freq","1fixed_freq_slider"); */
+
     
     page_el_params_slider_from_ep(&p, &cfg->octave_ep);
     page_add_el(page,EL_SLIDER,p,"1octave","1octave_slider");
@@ -411,7 +436,6 @@ static void add_osc_page(TabView *tv, Track *track)
 
     p.slight_p.value = &cfg->amp_mod_by;
     page_add_el(page,EL_STATUS_LIGHT,p,"1amod_status_light","1amod_status_light");
-
     cfg++;
 
     p.sradio_p.align_horizontal = true;
@@ -708,7 +732,7 @@ static void add_noise_page(TabView *tv, Track *track)
     Synth *s = track->synth;
     static SDL_Color noise_bckgrnd = {90, 80, 110, 255};
     Page *page = tabview_add_page(tv, "Noise", SYNTH_NOISE_LT_PATH, &noise_bckgrnd, &colors.white, main_win);
-
+    s->noise_page = page;
     PageElParams p;
     p.textbox_p.font = main_win->mono_bold_font;
     p.textbox_p.text_size = 16;
@@ -741,7 +765,6 @@ static void add_noise_page(TabView *tv, Track *track)
     page_el_params_slider_from_ep(&p, &s->noise_amt_ep);
     page_add_el(page, EL_SLIDER, p, "noise_amt_slider", "noise_amt_slider");
 
-
     p.toggle_p.ep = &s->noise_apply_env_ep;
     page_add_el(page,EL_TOGGLE,p,"apply_envelope_toggle","apply_envelope_toggle");
 
@@ -764,8 +787,8 @@ static void add_noise_page(TabView *tv, Track *track)
 
     page_el_params_slider_from_ep(&p, &s->noise_amt_env.ramp_exp_ep);	
     page_add_el(page,EL_SLIDER,p,"ramp_exp_slider","ramp_exp_slider");
-
-    s->noise_page = page;
+    
+    page_reset(page);
 
 }
 

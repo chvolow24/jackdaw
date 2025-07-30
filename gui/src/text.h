@@ -265,5 +265,6 @@ void ttf_destroy_font(Font *font);
 
 int txt_name_validation(Text *txt, char input);
 int txt_integer_validation(Text *txt, char input);
+int txt_float_validation(Text *txt, char input);
 
 #endif

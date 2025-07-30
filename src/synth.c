@@ -9,6 +9,7 @@
 #include "iir.h"
 /* #include "test.h" */
 /* #include "modal.h" */
+#include "label.h"
 #include "synth.h"
 #include "session.h"
 
@@ -28,9 +29,13 @@ static void base_cutoff_dsp_cb(Endpoint *ep)
     Synth *s = ep->xarg1;
     Value cutoff = ep->last_write_val;
     s->base_cutoff = dsp_scale_freq(cutoff.float_v);
-    fprintf(stderr, "FROM %f to %f\n", cutoff.float_v, s->base_cutoff);
-    /* double cutoff_hz = dsp_scale_freq_to_hz(cutoff.double_v); */
+}
 
+static void fixed_freq_dsp_cb(Endpoint *ep)
+{
+    OscCfg *cfg = ep->xarg1;
+    float freq_unscaled = ep->last_write_val.float_v;
+    cfg->fixed_freq = dsp_scale_freq(freq_unscaled);
 }
 
 static void fmod_target_dsp_cb(Endpoint *ep)
@@ -115,6 +120,9 @@ Synth *synth_create(Track *track)
     s->base_oscs[0].amp = 0.25;
     s->base_oscs[0].type = WS_SAW;
 
+    s->base_oscs[0].fix_freq = true;
+    s->base_oscs[0].fixed_freq = 0.1;
+
     s->filter_active = true;
     s->base_cutoff = 0.01f;
     s->pitch_amt = 5.0f;
@@ -141,6 +149,14 @@ Synth *synth_create(Track *track)
 	iir_init(&v->filter, 2, 2);
 	v->synth = s;
 	v->available = true;
+
+	for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
+	    OscCfg *cfg = s->base_oscs + i;
+	    for (int j=0; j<SYNTHVOICE_NUM_OSCS; j+= SYNTH_NUM_BASE_OSCS) {
+		Osc *osc = v->oscs + i + j;
+		osc->cfg = cfg;
+	    }
+	}
 	/* v->amp_env[0].params = &s->amp_env; */
 	/* v->amp_env[1].params = &s->amp_env; */
     }
@@ -434,6 +450,16 @@ Synth *synth_create(Track *track)
 	cfg->tune_fine_id = malloc(len);
 	snprintf(cfg->tune_fine_id, len, fmt, i+1);
 
+	fmt = "%dfix_freq";
+	len = strlen(fmt);
+	cfg->fix_freq_id = malloc(len);
+	snprintf(cfg->fix_freq_id, len, fmt, i+1);
+
+	fmt = "%dfixed_freq";
+	len = strlen(fmt);
+	cfg->fixed_freq_id = malloc(len);
+	snprintf(cfg->fixed_freq_id, len, fmt, i+1);
+
 	fmt = "%dnum_voices";
 	len = strlen(fmt);
 	cfg->unison.num_voices_id = malloc(len);
@@ -521,6 +547,33 @@ Synth *synth_create(Track *track)
 	endpoint_set_default_value(&cfg->pan_ep, (Value){.float_v = 0.5f});
 	endpoint_set_allowed_range(&cfg->pan_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
 	api_endpoint_register(&cfg->pan_ep, &cfg->api_node);
+
+	endpoint_init(
+	    &cfg->fix_freq_ep,
+	    &cfg->fix_freq,
+	    JDAW_BOOL,
+	    "fix_freq",
+	    "Fix freq",
+	    JDAW_THREAD_DSP,
+	    page_el_gui_cb, NULL, NULL,
+	    NULL, NULL, &s->osc_page, cfg->fix_freq_id);
+	endpoint_set_default_value(&cfg->fix_freq_ep, (Value){.bool_v = false});
+	api_endpoint_register(&cfg->fix_freq_ep, &cfg->api_node);
+
+	endpoint_init(
+	    &cfg->fixed_freq_ep,
+	    &cfg->fixed_freq_unscaled,
+	    JDAW_FLOAT,
+	    "fixed_freq",
+	    "Fixed freq",
+	    JDAW_THREAD_DSP,
+	    page_el_gui_cb, NULL, fixed_freq_dsp_cb,
+	    cfg, NULL, &s->osc_page, cfg->fixed_freq_id);
+	endpoint_set_default_value(&cfg->fixed_freq_ep, (Value){.float_v = 0.1f});
+	endpoint_set_allowed_range(&cfg->fixed_freq_ep, (Value){.float_v = 0.0001f}, (Value){.float_v = 0.7f});
+	endpoint_set_label_fn(&cfg->fixed_freq_ep, label_freq_raw_to_hz);
+	api_endpoint_register(&cfg->fixed_freq_ep, &cfg->api_node);
+	    
 
 	endpoint_init(
 	    &cfg->octave_ep,
@@ -707,10 +760,23 @@ static float polyblep(float incr, float phase)
     return 0.0;
 }
 
-/* TODO: remove test global */
-/* bool do_blep = true; */
-static float osc_sample(Osc *osc, int channel, int num_channels, float step)
+
+static void osc_set_freq(Osc *osc, double freq_hz);
+FILE *freqlog = NULL;
+static inline float osc_sample(Osc *osc, int channel, int num_channels, float step)
 {
+    if (!freqlog) {
+	freqlog = fopen("freqlog.csv", "w");
+    }
+    if (osc->cfg->fix_freq) {
+	float f_raw = dsp_scale_freq_to_hz(osc->cfg->fixed_freq_unscaled);
+	float f = f_raw * 0.001 + osc->freq_last_sample[channel] * 0.999;
+	/* osc_set_freq(osc, dsp_scale_freq_to_hz(osc->cfg->fixed_freq_unscaled)); */
+	fprintf(stderr, "setting freq %f\n", f);
+	fprintf(freqlog, "%f\n", f);
+	osc_set_freq(osc, f);
+	osc->freq_last_sample[channel] = f;
+    }
     float sample;
     double phase_incr = osc->sample_phase_incr + osc->sample_phase_incr_addtl;
     switch(osc->type) {
@@ -929,7 +995,6 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
 	OscCfg *cfg = synth->base_oscs + i;
 	if (!cfg->active) continue;	
 	Osc *osc = v->oscs + i;
-	double base_midi_note = note + cfg->octave * 12 + cfg->tune_coarse + cfg->tune_fine / 100.0f;
 	osc->amp = cfg->amp;
 	osc->pan = cfg->pan;
 	osc->type = cfg->type;
@@ -942,9 +1007,13 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
 
 
 	
-	/* osc->freq_modulator = &LFO; */
-	/* osc_set_freq(v->oscs + i, MTOF[note_val]); */
-	osc_set_freq(osc, mtof_calc(base_midi_note));
+	double midi_note;
+	if (cfg->fix_freq) {
+	    midi_note = ftom_calc(dsp_scale_freq_to_hz(cfg->fixed_freq_unscaled));
+	} else {
+	    midi_note = note + cfg->octave * 12 + cfg->tune_coarse + cfg->tune_fine / 100.0f;
+	}
+	osc_set_freq(osc, mtof_calc(midi_note));
 	/* fprintf(stderr, "BASE NOTE: %f\n", base_midi_note); */
 	for (int j=0; j<cfg->unison.num_voices; j++) {
 	    Osc *detune_voice = v->oscs + i + SYNTH_NUM_BASE_OSCS * (j + 1);
@@ -953,8 +1022,8 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
 	    double voice_offset = max_offset_cents / cfg->unison.num_voices * 2;
 	    double detune_midi_note =
 		j % 2 == 0 ?
-		base_midi_note - voice_offset * (j + 1):
-		base_midi_note + voice_offset * (j + 1);
+		midi_note - voice_offset * (j + 1):
+		midi_note + voice_offset * (j + 1);
 	    osc_set_freq(detune_voice, mtof_calc(detune_midi_note));
 	    detune_voice->amp = osc->amp * cfg->unison.relative_amp;
 	    detune_voice->pan =

@@ -53,7 +53,9 @@ typedef enum wave_shape {
 float WAV_TABLES[NUM_WAVE_SHAPES];
 
 typedef struct osc Osc;
+typedef struct osc_cfg OscCfg;
 typedef struct osc {
+    OscCfg *cfg;
     WaveShape type;
     double phase[2];
     double sample_phase_incr;
@@ -62,6 +64,8 @@ typedef struct osc {
     float pan;
     Osc *freq_modulator;
     Osc *amp_modulator;
+
+    float freq_last_sample[2];
 
     double sample_phase_incr_addtl; /* pitch bend */
 
@@ -102,15 +106,11 @@ struct unison_cfg {
     Endpoint detune_cents_ep;
     Endpoint relative_amp_ep;
     Endpoint stereo_spread_ep;
-    
     char *num_voices_id;
     char *detune_cents_id;
     char *relative_amp_id;
     char *stereo_spread_id;
-
-
 };
-typedef struct osc_cfg OscCfg;
 typedef struct osc_cfg {
     bool active;
     WaveShape type;
@@ -120,6 +120,10 @@ typedef struct osc_cfg {
     int octave;
     int tune_coarse; /* semitones */
     float tune_fine; /* cents, -50-50 */
+    
+    bool fix_freq;
+    float fixed_freq;
+    float fixed_freq_unscaled;
 
     /* Detune info */
     struct unison_cfg unison;
@@ -135,6 +139,8 @@ typedef struct osc_cfg {
 
     Endpoint active_ep;
     Endpoint type_ep;
+    Endpoint fix_freq_ep;
+    Endpoint fixed_freq_ep;
     Endpoint amp_ep;
     Endpoint pan_ep;
     Endpoint octave_ep;
@@ -156,6 +162,8 @@ typedef struct osc_cfg {
     char *tune_fine_id;
     char *fmod_target_dropdown_id;
     char *amod_target_dropdown_id;
+    char *fix_freq_id;
+    char *fixed_freq_id;
     
     /* Endpoint  */    
     APINode api_node;

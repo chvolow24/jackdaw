@@ -204,10 +204,14 @@ PmEvent *midi_event_ring_buf_pop(MIDIEventRingBuf *rb, int32_t pop_if_before_or_
     return ret;
 }
 
-
 double mtof_calc(double m)
 {
     return 440.0 * pow(2.0, ((m - 69.0) / 12.0));
+}
+
+double ftom_calc(double f)
+{
+    return 12.0 * log2(f / 440.0) + 69.0;
 }
 
 const double MTOF[] = {

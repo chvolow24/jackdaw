@@ -905,13 +905,24 @@ int txt_name_validation(Text *txt, char input)
     return txt_check_len(txt, MAX_NAMELENGTH);
 }
 
+int txt_float_validation(Text *txt, char input)
+{
+    if ((input < '0' || input > '9') && input != '.') {
+	status_set_errstr("Only decimal inputs allowed");
+	return 1;
+    }
+    if (input == '.') {
+	for (int i=0; i<strlen(txt->display_value); i++) {
+	    if (txt->display_value[i] == '.') {
+		return 1;
+	    }
+	}
+    }
+    return 0;
+}
+
 int txt_integer_validation(Text *txt, char input)
 {
-    /* if (strlen(txt->display_value) - (txt->cursor_end_pos - txt->cursor_start_pos) >= txt->max_len - 1) { */
-    /* 	char buf[255]; */
-    /* 	snprintf(buf, 255, "Field cannot exceed %d characters", txt->max_len - 1); */
-    /* 	status_set_errstr(buf); */
-    /* 	return 1; */
     if (input < '0' || input > '9') {
 	status_set_errstr("Only integer values allowed");
 	return 1;

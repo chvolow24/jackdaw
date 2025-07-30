@@ -479,9 +479,10 @@ static int add_jlily_modalfn(void *mod_v, void *target)
     if (clip_created) {
 	if (mclip->num_notes == 0) {
 	    midi_clip_destroy(mclip);
+	    session->proj.num_midi_clips--;
 	    goto pop_modal_and_exit;
 	} else {
-	    session->proj.active_clip_index++;
+	    session->proj.active_midi_clip_index++;
 	}
     }
     

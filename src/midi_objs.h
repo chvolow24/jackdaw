@@ -123,5 +123,6 @@ void midi_event_ring_buf_init(struct midi_event_ring_buf *rb);
 
 
 double mtof_calc(double m);
+double ftom_calc(double f);
 
 #endif

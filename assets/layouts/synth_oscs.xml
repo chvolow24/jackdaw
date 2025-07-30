@@ -52,29 +52,53 @@
     </Layout>
     <Layout name="osc1_panel" type="NORMAL">
       <x>REL 48</x>
-      <y>REL 50</y>
+      <y>REL 54</y>
       <w>REL 349</w>
-      <h>REL 244</h>
+      <h>REL 235</h>
       <children>
         <Layout name="osc1_label" type="NORMAL">
-          <x>SCALE 0.036232</x>
+	  <x>SCALE 0.036232</x>
           <y>REL 11</y>
-          <w>SCALE 0.207246</w>
+          <w>REL 35</w>
           <h>REL 21</h>
           <children>
           </children>
         </Layout>
         <Layout name="1type_radio" type="NORMAL">
-          <x>SCALE 0.281159</x>
+          <x>STACK 14</x>
           <y>REL 11</y>
-          <w>SCALE 0.657971</w>
+          <w>REL 124</w>
+          <h>REL 21</h>
+          <children>
+          </children>
+        </Layout>
+	<Layout name="1fix_label" type="NORMAL">
+          <x>STACK 18</x>
+          <y>REL 11</y>
+          <w>REL 30</w>
+          <h>REL 21</h>
+          <children>
+          </children>
+        </Layout>
+	<Layout name="1fix_freq_toggle" type="NORMAL">
+          <x>STACK 10</x>
+          <y>REL 11</y>
+          <w>REL 21</w>
+          <h>REL 21</h>
+          <children>
+          </children>
+        </Layout>
+	<Layout name="1fixed_freq_slider" type="NORMAL">
+          <x>STACK 10</x>
+          <y>REL 11</y>
+          <w>REL 52</w>
           <h>REL 21</h>
           <children>
           </children>
         </Layout>
         <Layout name="vol_pan" type="NORMAL">
           <x>SCALE 0.036232</x>
-          <y>REL 42</y>
+          <y>REL 44</y>
           <w>SCALE 0.902899</w>
           <h>REL 21</h>
           <children>
@@ -148,9 +172,9 @@
     </Layout>
     <Layout name="osc2_panel" type="NORMAL">
       <x>REL 415</x>
-      <y>REL 50</y>
+      <y>REL 54</y>
       <w>REL 349</w>
-      <h>REL 244</h>
+      <h>REL 235</h>
       <children>
         <Layout name="osc2_label" type="NORMAL">
           <x>SCALE 0.036232</x>
@@ -244,9 +268,9 @@
     </Layout>
     <Layout name="osc3_panel" type="NORMAL">
       <x>REL 48</x>
-      <y>REL 300</y>
+      <y>REL 296</y>
       <w>REL 349</w>
-      <h>REL 244</h>
+      <h>REL 235</h>
       <children>
         <Layout name="osc3_label" type="NORMAL">
           <x>SCALE 0.036232</x>
@@ -340,9 +364,9 @@
     </Layout>
     <Layout name="osc4_panel" type="NORMAL">
       <x>REL 415</x>
-      <y>REL 300</y>
+      <y>REL 296</y>
       <w>REL 349</w>
-      <h>REL 244</h>
+      <h>REL 235</h>
       <children>
         <Layout name="osc4_label" type="NORMAL">
           <x>SCALE 0.036232</x>

@@ -183,7 +183,7 @@ void loop_project_main()
 
 		switch (e.key.keysym.scancode) {
 		case SDL_SCANCODE_2: {
-		    synth_save_preset();
+		    /* synth_save_preset(); */
 		/*     Timeline *tl = ACTIVE_TL; */
 		/*     Track *t = timeline_selected_track(tl); */
 		/*     if (t && t->synth) */
@@ -195,7 +195,7 @@ void loop_project_main()
 		}
 		    break;
 		case SDL_SCANCODE_3: {
-		    synth_open_preset();
+		    /* synth_open_preset(); */
 		/*     Timeline *tl = ACTIVE_TL; */
 		/*     Track *t = timeline_selected_track(tl); */
 		/*     if (t && t->synth) */

@@ -27,14 +27,14 @@ static void synth_osc_vol_dsp_cb(Endpoint *ep)
 static void base_cutoff_dsp_cb(Endpoint *ep)
 {
     Synth *s = ep->xarg1;
-    Value cutoff = ep->last_write_val;
+    Value cutoff = ep->current_write_val;
     s->base_cutoff = dsp_scale_freq(cutoff.float_v);
 }
 
 static void fixed_freq_dsp_cb(Endpoint *ep)
 {
     OscCfg *cfg = ep->xarg1;
-    float freq_unscaled = ep->last_write_val.float_v;
+    float freq_unscaled = ep->current_write_val.float_v;
     cfg->fixed_freq = dsp_scale_freq(freq_unscaled);
 }
 
@@ -271,8 +271,8 @@ Synth *synth_create(Track *track)
 	s, NULL, &s->filter_page, "base_cutoff_slider");
     endpoint_set_default_value(&s->base_cutoff_ep, (Value){.float_v = 0.1f});
     endpoint_set_allowed_range(&s->base_cutoff_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
-    api_endpoint_register(&s->base_cutoff_ep, &s->filter_node);
     endpoint_set_label_fn(&s->base_cutoff_ep, label_freq_raw_to_hz);
+    api_endpoint_register(&s->base_cutoff_ep, &s->filter_node);
 
     
     endpoint_init(
@@ -570,7 +570,7 @@ Synth *synth_create(Track *track)
 	    page_el_gui_cb, NULL, fixed_freq_dsp_cb,
 	    cfg, NULL, &s->osc_page, cfg->fixed_freq_id);
 	endpoint_set_default_value(&cfg->fixed_freq_ep, (Value){.float_v = 0.1f});
-	endpoint_set_allowed_range(&cfg->fixed_freq_ep, (Value){.float_v = 0.0001f}, (Value){.float_v = 0.7f});
+	endpoint_set_allowed_range(&cfg->fixed_freq_ep, (Value){.float_v = 0.0001f}, (Value){.float_v = 0.8f});
 	endpoint_set_label_fn(&cfg->fixed_freq_ep, label_freq_raw_to_hz);
 	api_endpoint_register(&cfg->fixed_freq_ep, &cfg->api_node);
 	    
@@ -762,18 +762,12 @@ static float polyblep(float incr, float phase)
 
 
 static void osc_set_freq(Osc *osc, double freq_hz);
-FILE *freqlog = NULL;
 static inline float osc_sample(Osc *osc, int channel, int num_channels, float step)
 {
-    if (!freqlog) {
-	freqlog = fopen("freqlog.csv", "w");
-    }
     if (osc->cfg->fix_freq) {
 	float f_raw = dsp_scale_freq_to_hz(osc->cfg->fixed_freq_unscaled);
 	float f = f_raw * 0.001 + osc->freq_last_sample[channel] * 0.999;
 	/* osc_set_freq(osc, dsp_scale_freq_to_hz(osc->cfg->fixed_freq_unscaled)); */
-	fprintf(stderr, "setting freq %f\n", f);
-	fprintf(freqlog, "%f\n", f);
 	osc_set_freq(osc, f);
 	osc->freq_last_sample[channel] = f;
     }

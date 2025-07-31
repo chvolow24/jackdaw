@@ -25,6 +25,7 @@
 #define SYNTH_AMP_ENV_LT_PATH LAYOUT_PATH "/synth_amp_env.xml"
 #define SYNTH_FILTER_LT_PATH LAYOUT_PATH "/synth_filter.xml"
 #define SYNTH_NOISE_LT_PATH LAYOUT_PATH "/synth_noise.xml"
+#define SYNTH_PRESETS_LT_PATH LAYOUT_PATH "/synth_presets.xml"
 
 #define TTF_PATH INSTALL_DIR "/assets/ttf/"
 #define OPEN_SANS_PATH TTF_PATH "OpenSans-Regular.ttf"

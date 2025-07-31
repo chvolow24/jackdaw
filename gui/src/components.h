@@ -17,6 +17,8 @@
 #define SLIDER_LABEL_H_PAD 4
 #define SLIDER_LABEL_V_PAD 2
 
+#define SLIDER_MAX_POINTS_OF_INTEREST 8
+
 /*****************************************/
 /************ Definitions ****************/
 /*****************************************/
@@ -120,6 +122,9 @@ typedef struct slider {
     /* ValType val_type; */
     /* void *value; */
     Value min, max;
+    Value points_of_interest[SLIDER_MAX_POINTS_OF_INTEREST];
+    int points_of_interest_draw_locs_pix[SLIDER_MAX_POINTS_OF_INTEREST];
+    uint8_t num_points_of_interest;
     enum slider_orientation orientation;
     enum slider_style style;
     Layout *bar_layout;
@@ -211,6 +216,7 @@ void slider_draw(Slider *s);
 bool slider_mouse_click(Slider *slider, Window *win);
 bool slider_mouse_motion(Slider *slider, Window *win);
 void slider_destroy(Slider *s);
+void slider_add_point_of_interest(Slider *s, Value p);
 
 
 void slider_std_labelmaker(char *dst, size_t dstsize, void *value, ValType type);

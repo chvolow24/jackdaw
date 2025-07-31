@@ -845,6 +845,7 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name)
 	SLIDER_FILL,
 	&label_amp_to_dbstr,
 	&session->dragged_component);
+    slider_add_point_of_interest(track->vol_ctrl, (Value){.float_v = 1.0});
     /* track->vol_ep.xarg1 = track->vol_ctrl; */
     /* track->vol_ctrl = slider_create( */
     /* 	vol_ctrl_lt, */
@@ -891,6 +892,7 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name)
 	SLIDER_TICK,
 	label_pan,
 	&session->dragged_component);
+    slider_add_point_of_interest(track->pan_ctrl, (Value){.float_v = 0.5});
     track->pan_ctrl->disallow_unsafe_mode = true;
     /* track->pan_ep.xarg1 = track->pan_ctrl; */
 

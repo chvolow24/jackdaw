@@ -8,7 +8,9 @@
 #include "project.h"
 #include "session.h"
 #include "synth.h"
+#include "synth_page.h"
 #include "text.h"
+#include "textbox.h"
 
 extern Window *main_win;
 
@@ -19,6 +21,7 @@ static void add_osc_page(TabView *tv, Track *track);
 static void add_filter_page(TabView *tv, Track *track);
 static void add_amp_env_page(TabView *tv, Track *track);
 static void add_noise_page(TabView *tv, Track *track);
+static void add_preset_page(TabView *tv, Track *track);
 
 void osc_bckgrnd_draw(void *arg1, void *arg2);
 
@@ -39,6 +42,7 @@ TabView *synth_tabview_create(Track *track)
     add_amp_env_page(tv, track);
     add_noise_page(tv, track);
     add_filter_page(tv, track);
+    add_preset_page(tv, track);
     return tv;
 }
 
@@ -894,14 +898,51 @@ static void add_filter_page(TabView *tv, Track *track)
     page_el_params_slider_from_ep(&p, &s->filter_env.ramp_exp_ep);	
     page_add_el(page,EL_SLIDER,p,"ramp_exp_slider","ramp_exp_slider");
 
-
-
-
     page_reset(page);
 
 }
 
+static int open_preset_action(void *self, void *target)
+{
+    synth_open_preset();
+    return 0;
+}
 
+static int save_preset_action(void *self, void *target)
+{
+    synth_save_preset();
+    return 0;
+}
+
+static void add_preset_page(TabView *tv, Track *track)
+{
+
+    Synth *s = track->synth;
+    static SDL_Color preset_bckgrnd = {50, 60, 60, 255};
+    Page *page = tabview_add_page(tv, "Filter", SYNTH_PRESETS_LT_PATH, &preset_bckgrnd, &colors.white, main_win);
+
+    PageElParams p;
+    p.button_p.font = main_win->std_font;
+    p.button_p.set_str = "Open preset...";
+    p.button_p.text_color = &colors.white;
+    p.button_p.background_color = &colors.grey;
+    p.button_p.text_size = 14;
+    p.button_p.target = &track->synth;
+    p.button_p.action = open_preset_action;
+
+    Button *b = page_add_el(page,EL_BUTTON,p,"","open_button")->component;
+    textbox_set_style(b->tb, BUTTON_DARK);
+    textbox_set_pad(b->tb, 5, 5);
+
+    p.button_p.set_str = "Save preset as...";
+    p.button_p.action = save_preset_action;
+
+    b = page_add_el(page,EL_BUTTON,p,"","save_button")->component;
+    textbox_set_style(b->tb, BUTTON_DARK);
+    textbox_set_pad(b->tb, 5, 5);
+
+    page_reset(page);
+}
 
 /* Garbage Function */
 static void page_fill_out_layout(Page *page)

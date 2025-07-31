@@ -146,6 +146,7 @@ int endpoint_write(
     if (!ep->write_has_occurred) {
 	ep->last_write_val = endpoint_safe_read(ep, NULL);
     }
+    ep->current_write_val = new_val;
     bool async_change_will_occur = false;
     /* Value change */
     /* fprintf(stderr, "Owner? %d.. on owner? %d !session->playback.playing && owner == JDAW_THREAD_DSP %d?\n", owner, on_thread(owner), !session->playback.playing && owner == JDAW_THREAD_DSP); */

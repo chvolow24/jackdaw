@@ -162,6 +162,15 @@ void slider_set_range(Slider *s, Value min, Value max)
 /*     s->max = max; */
 }
 
+void slider_add_point_of_interest(Slider *s, Value p)
+{
+    if (s->num_points_of_interest == SLIDER_MAX_POINTS_OF_INTEREST) {
+	return;
+    }
+    s->points_of_interest[s->num_points_of_interest] = p;
+    s->num_points_of_interest++;
+}
+
 static Value slider_val_from_coord(Slider *s, int coord_pix)
 {
     double proportion;
@@ -210,6 +219,20 @@ Value slider_reset(Slider *s)
 	    break;
 	}
     }
+    for (int i=0; i<s->num_points_of_interest; i++) {
+	Value left = jdaw_val_sub(s->points_of_interest[i], s->min, s->ep->val_type);
+	/* fprintf(stderr, "POI %d MIN %d sub? %d\n", s->points_of_interest[i].int16_v, s->min.int16_v, left.int16_v); */
+	double left_prop = jdaw_val_div_double(left, range, s->ep->val_type);
+	/* fprintf(stderr, "%d: %f\n", i, left_prop); */
+	switch (s->orientation) {
+	case SLIDER_HORIZONTAL:
+	    s->points_of_interest_draw_locs_pix[i] = s->layout->rect.x + s->layout->rect.w * left_prop;
+	    break;
+	case SLIDER_VERTICAL:
+	    s->points_of_interest_draw_locs_pix[i] = s->layout->rect.y + s->layout->rect.h - s->layout->rect.h * left_prop;
+	    break;
+	}
+    }
     layout_reset(s->layout);
     return slider_val;
 }    
@@ -220,9 +243,19 @@ void slider_draw(Slider *s)
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(slider_bckgrnd));
     SDL_RenderFillRect(main_win->rend, &s->layout->rect);
 
-
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(slider_bar_container_bckgrnd));
     SDL_RenderFillRect(main_win->rend, &s->layout->children[0]->rect);
+
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.grey));
+    if (s->orientation == SLIDER_VERTICAL) {
+	for (int i=0; i<s->num_points_of_interest; i++) {
+	    SDL_RenderDrawLine(main_win->rend, s->bar_layout->rect.x, s->points_of_interest_draw_locs_pix[i], s->bar_layout->rect.x + s->bar_layout->rect.w, s->points_of_interest_draw_locs_pix[i]);
+	}
+    } else {
+	for (int i=0; i<s->num_points_of_interest; i++) {
+	    SDL_RenderDrawLine(main_win->rend, s->points_of_interest_draw_locs_pix[i], s->bar_layout->rect.y, s->points_of_interest_draw_locs_pix[i], s->bar_layout->rect.y + s->bar_layout->rect.h);
+	}
+    }
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(slider_bar_color));
     SDL_RenderFillRect(main_win->rend, s->bar_rect);
 

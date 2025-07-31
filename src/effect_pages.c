@@ -437,6 +437,11 @@ Page *add_fir_filter_page(FIRFilter *f, Track *track, TabView *tv)
     return page;
 }
 
+static int16_t sframes_to_msec(int32_t sframes)
+{
+    return (double)sframes / (double)session_get_sample_rate() * 1000.0;
+}
+
 Page *add_delay_page(DelayLine *d, Track *track, TabView *tv)
 {
     Page *page = tabview_add_page(
@@ -494,8 +499,28 @@ Page *add_delay_page(DelayLine *d, Track *track, TabView *tv)
 
     Slider *sl = el->component;
     sl->disallow_unsafe_mode = true;
+
+    ClickSegment *s = click_segment_active_at_cursor(track->tl);
+    if (s) {
+	/* fprintf(stderr, "ADDING POINTS OF INTEREST\n"); */
+	int32_t measure_dur_sframes = s->cfg.dur_sframes;
+	int32_t beat_dur_sframes = measure_dur_sframes / s->cfg.num_atoms * s->cfg.beat_subdiv_lens[0];
+	int32_t subdiv_dur_sframes = beat_dur_sframes / s->cfg.beat_subdiv_lens[0];
+	int32_t subdiv_dur_msec = sframes_to_msec(subdiv_dur_sframes);
+	int16_t dur_msec = subdiv_dur_msec;
+	while (dur_msec < sl->max.int16_v) {
+	    slider_add_point_of_interest(sl, (Value){.int16_v = dur_msec});
+	    dur_msec += subdiv_dur_msec;
+	}
+	/* fprintf(stderr, "Measure, beat, subdiv? %d %d %d\n", measure_dur, beat_dur, subdiv_dur); */
+	
+	/* slider_add_point_of_interest(sl, (Value){.int16_v = sframes_to_msec(measure_dur_sframes)}); */
+	/* slider_add_point_of_interest(sl, (Value){.int16_v = sframes_to_msec(beat_dur_sframes)}); */
+	/* slider_add_point_of_interest(sl, (Value){.int16_v = sframes_to_msec(subdiv_dur_sframes)}); */
+    }
+
     slider_reset(sl);
-    
+
     p.slider_p.create_label_fn = NULL;
     p.slider_p.ep = &d->amp_ep;
     p.slider_p.min = (Value){.double_v = 0.0};

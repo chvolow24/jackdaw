@@ -324,6 +324,7 @@ static void jdaw_write_fir_filter(FILE *f, FIRFilter *filter)
 
 static void jdaw_write_delay(FILE *f, DelayLine *dl)
 {
+    /* fprintf(stderr, "WRITE Active? %d\nLen? %d\nAmp? */
     fwrite(&dl->effect->active, 1, 1, f);
     int32_ser_le(f, &dl->len);
     float_ser40_le(f, dl->stereo_offset);
@@ -1191,8 +1192,8 @@ static int jdaw_read_delay(FILE *f, DelayLine *dl)
     double amp;
     double stereo_offset;
     len = int32_deser_le(f);
-    amp = float_deser40_le(f);
     stereo_offset = float_deser40_le(f);
+    amp = float_deser40_le(f);
     delay_line_set_params(dl, amp, len);
     dl->stereo_offset = stereo_offset;
     dl->effect->active = delay_line_active;

@@ -1123,3 +1123,47 @@ size_t jdaw_val_type_size(ValType type)
 	break;
     }
 }
+
+void jdaw_val_set_default_incr(Value *vp, ValType vt)
+{
+    switch (vt) {
+    case JDAW_FLOAT:
+	vp->float_v = 0.01;
+	break;
+    case JDAW_DOUBLE:
+	vp->double_v = 0.01;
+	break;
+    case JDAW_INT:
+	vp->int_v = 1;
+	break;
+    case JDAW_UINT8:
+	vp->uint8_v = 1;
+	break;
+    case JDAW_UINT16:
+	vp->uint16_v = 1;
+	break;
+    case JDAW_UINT32:
+	vp->uint32_v = 1;
+	break;
+    case JDAW_INT8:
+	vp->int8_v = 1;
+	break;
+    case JDAW_INT16:
+	vp->int16_v = 1;
+	break;
+    case JDAW_INT32:
+	vp->int32_v = 1;
+	break;
+    case JDAW_BOOL:
+	vp->int32_v = true;
+	break;
+    case JDAW_DOUBLE_PAIR: {
+	vp->double_pair_v[0] = 0.01;
+	vp->double_pair_v[1] = 0.01;
+    }
+	break;
+    default:
+	break;
+    }
+}
+

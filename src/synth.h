@@ -54,8 +54,11 @@ float WAV_TABLES[NUM_WAVE_SHAPES];
 
 typedef struct osc Osc;
 typedef struct osc_cfg OscCfg;
+typedef struct synth_voice SynthVoice;
 typedef struct osc {
+    bool active;
     OscCfg *cfg;
+    SynthVoice *voice;
     WaveShape type;
     double phase[2];
     double sample_phase_incr;
@@ -65,6 +68,8 @@ typedef struct osc {
     Osc *freq_modulator;
     Osc *amp_modulator;
 
+    float detune_cents; /* Unison voice detune */
+    float tune_cents; /* Octave + coarse + fine */
     float freq_last_sample[2];
 
     double sample_phase_incr_addtl; /* pitch bend */

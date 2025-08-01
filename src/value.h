@@ -95,4 +95,7 @@ void jdaw_val_serialize_OLD(Value v, ValType type, FILE *f, uint8_t dstsize);
 Value jdaw_val_deserialize_OLD(FILE *f, uint8_t size, ValType type);
 
 size_t jdaw_val_type_size(ValType type);
+
+/* Set integer values to 1, floats to 0.01 */
+void jdaw_val_set_default_incr(Value *vp, ValType vt);
 #endif

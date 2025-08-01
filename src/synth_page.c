@@ -149,30 +149,21 @@ static void add_osc_page(TabView *tv, Track *track)
     union page_el_params p;
     PageEl *el = NULL;
 
-    static const SDL_Color osc_panel_colors[] = {
-	{54, 34, 43, 120},
-	{29, 36, 67, 120},
-	/* {49, 49, 49, 255}, */
-	{25, 64, 33, 120},
-	{83, 54, 44, 120}
-    };
+    static const SDL_Color osc_panel_color = {50, 60, 60, 255};
     p.canvas_p.draw_fn = panel_draw;
 
     Layout *osc1_panel = layout_get_child_by_name_recursive(page->layout, "osc1_panel");
     p.canvas_p.draw_arg1 = osc1_panel;
-    p.canvas_p.draw_arg2 = (void *)osc_panel_colors;
+    p.canvas_p.draw_arg2 = (void *)&osc_panel_color;
     page_add_el(page,EL_CANVAS,p,"","osc1_panel");
 
     p.canvas_p.draw_arg1 = layout_get_child_by_name_recursive(page->layout, "osc2_panel");
-    p.canvas_p.draw_arg2 = (void *)(osc_panel_colors + 1);
     page_add_el(page,EL_CANVAS,p,"","osc2_panel");
 
     p.canvas_p.draw_arg1 = layout_get_child_by_name_recursive(page->layout, "osc3_panel");
-    p.canvas_p.draw_arg2 = (void *)(osc_panel_colors + 2);
     page_add_el(page,EL_CANVAS,p,"","osc3_panel");
 
     p.canvas_p.draw_arg1 = layout_get_child_by_name_recursive(page->layout, "osc4_panel");
-    p.canvas_p.draw_arg2 = (void *)(osc_panel_colors + 3);
     page_add_el(page,EL_CANVAS,p,"","osc4_panel");
 
     /* p.canvas_p.draw_arg1 = layout_get_child_by_name_recursive(osc1_panel, "1tune_panel"); */
@@ -977,10 +968,10 @@ static void page_fill_out_layout(Page *page)
 	    /* slider_lt->w.type = SCALE; */
 	    /* slider_lt->w.value = 0.7; */
 	    slider_lt->h.type = SCALE;
-	    slider_lt->h.value = 0.525;
+	    slider_lt->h.value = 0.6;
 	    slider_lt->x.type = STACK;
 	    slider_lt->y.type = SCALE;
-	    slider_lt->y.value = 0.15;
+	    slider_lt->y.value = 0.2;
 	    snprintf(name, 255, "%d%s_slider", o+1, i==0 ? "octave" : i==1 ? "coarse" : "fine");
 	    layout_set_name(slider_lt, name);
 

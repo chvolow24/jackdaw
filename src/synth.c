@@ -38,6 +38,86 @@ static void fixed_freq_dsp_cb(Endpoint *ep)
     cfg->fixed_freq = dsp_scale_freq(freq_unscaled);
 }
 
+/* static void num_voices_cb(Endpoint *ep) */
+/* { */
+/*     int num_voices = ep->current_write_val.int_v; */
+
+/*     Synth *synth = ep->xarg1; */
+/*     OscCfg *cfg = ep->xarg2; */
+/*     int osc_i = cfg - synth->base_oscs; */
+
+/*     int unison_i = 0; */
+/*     while (osc_i < SYNTHVOICE_NUM_OSCS) { */
+/* 	for (int i=0; i<SYNTH_NUM_VOICES; i++) { */
+/* 	    SynthVoice *v = synth->voices + i; */
+/* 	    if (unison_i < num_voices) { */
+/* 		v->oscs[osc_i].active = true; */
+/* 	    } else { */
+/* 		v->oscs[osc_i].active = false; */
+/* 	    } */
+/* 	} */
+/* 	osc_i += SYNTH_NUM_BASE_OSCS; */
+/* 	unison_i++; */
+/*     } */    
+/* } */
+
+static void detune_cents_dsp_cb(Endpoint *ep)
+{
+    Synth *synth = ep->xarg1;
+    OscCfg *cfg = ep->xarg2;
+    int osc_i = cfg - synth->base_oscs;
+    float max_offset_cents = ep->current_write_val.float_v;
+    float voice_offset = max_offset_cents / cfg->unison.num_voices * 2;
+    
+
+    int unison_i = 0;
+    while (osc_i < SYNTHVOICE_NUM_OSCS) {
+	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+	    SynthVoice *v = synth->voices + i;
+	    float offset = voice_offset * unison_i;
+	    if (unison_i % 2 == 0) offset *= -1;
+	    v->oscs[osc_i].detune_cents = offset;
+	}
+	osc_i += SYNTH_NUM_BASE_OSCS;
+	unison_i++;
+    }
+}
+
+/* static void unison_vol_cb(Endpoint *ep) */
+/* { */
+/*     Synth *s = ep->xarg1; */
+/*     OscCfg *cfg = ep->xarg2; */
+/*     int osc_i = cfg - s->base_oscs; */
+/*     while (osc_i < SYNTHVOICE_NUM_OSCS) { */
+/* 	for (int i=0; i<SYNTH_NUM_VOICES; i++) { */
+/* 	    SynthVoice *v = s->voices + i; */
+/* 	    /\* v->unison_vol =  *\/ */
+/* 	} */
+/* 	osc_i += SYNTH_NUM_BASE_OSCS; */
+/* 	unison_i++; */
+/*     } */
+/* } */
+
+static void tuning_cb(Endpoint *ep)
+{
+    Synth *s = ep->xarg1;
+    OscCfg *cfg = ep->xarg2;
+    int octave = endpoint_safe_read(&cfg->octave_ep, NULL).int_v;
+    int coarse = endpoint_safe_read(&cfg->tune_coarse_ep, NULL).int_v;
+    float fine = endpoint_safe_read(&cfg->tune_fine_ep, NULL).float_v;
+    float tune_cents = octave * 1200 + coarse * 100 + fine;
+    /* fprintf(stderr, "TUNE CENTS: %f\n", tune_cents); */
+    int osc_i = cfg - s->base_oscs;
+    while (osc_i < SYNTHVOICE_NUM_OSCS) {
+	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+	    SynthVoice *v = s->voices + i;
+	    v->oscs[osc_i].tune_cents = tune_cents;
+	}
+	osc_i += SYNTH_NUM_BASE_OSCS;
+    }
+}
+
+
 static void fmod_target_dsp_cb(Endpoint *ep)
 {
     OscCfg *cfg = ep->xarg1;
@@ -155,6 +235,7 @@ Synth *synth_create(Track *track)
 	    for (int j=0; j<SYNTHVOICE_NUM_OSCS; j+= SYNTH_NUM_BASE_OSCS) {
 		Osc *osc = v->oscs + i + j;
 		osc->cfg = cfg;
+		osc->voice = v;
 	    }
 	}
 	/* v->amp_env[0].params = &s->amp_env; */
@@ -582,8 +663,8 @@ Synth *synth_create(Track *track)
 	    "octave",
 	    "Octave",
 	    JDAW_THREAD_DSP,
-	    page_el_gui_cb, NULL, NULL,
-	    NULL, NULL, &s->osc_page, cfg->octave_id);
+	    page_el_gui_cb, NULL, tuning_cb,
+	    s, cfg, &s->osc_page, cfg->octave_id);
 	endpoint_set_default_value(&cfg->octave_ep, (Value){.int_v = 0});
 	endpoint_set_allowed_range(&cfg->octave_ep, (Value){.int_v = -8}, (Value){.int_v = 8});
 	api_endpoint_register(&cfg->octave_ep, &cfg->api_node);
@@ -595,8 +676,8 @@ Synth *synth_create(Track *track)
 	    "tune_coarse",
 	    "Coarse tune",
 	    JDAW_THREAD_DSP,
-	    page_el_gui_cb, NULL, NULL,
-	    NULL, NULL, &s->osc_page, cfg->tune_coarse_id);
+	    page_el_gui_cb, NULL, tuning_cb,
+	    s, cfg, &s->osc_page, cfg->tune_coarse_id);
 	endpoint_set_default_value(&cfg->tune_coarse_ep, (Value){.int_v = 0});
 	endpoint_set_allowed_range(&cfg->tune_coarse_ep, (Value){.int_v = -11}, (Value){.int_v = 11});
 	api_endpoint_register(&cfg->tune_coarse_ep, &cfg->api_node);
@@ -608,8 +689,8 @@ Synth *synth_create(Track *track)
 	    "tune_fine",
 	    "Fine tune",
 	    JDAW_THREAD_DSP,
-	    page_el_gui_cb, NULL, NULL,
-	    NULL, NULL, &s->osc_page, cfg->tune_fine_id);
+	    page_el_gui_cb, NULL, tuning_cb,
+	    s, cfg, &s->osc_page, cfg->tune_fine_id);
 	endpoint_set_default_value(&cfg->tune_fine_ep, (Value){.float_v = 0.0f});
 	endpoint_set_allowed_range(&cfg->tune_fine_ep, (Value){.float_v = -100.0f}, (Value){.float_v = 100.0f});
 	api_endpoint_register(&cfg->tune_fine_ep, &cfg->api_node);
@@ -622,7 +703,7 @@ Synth *synth_create(Track *track)
 	    "Num unison voices",
 	    JDAW_THREAD_DSP,
 	    page_el_gui_cb, NULL, NULL,
-	    NULL, NULL, &s->osc_page, cfg->unison.num_voices_id);
+	    s, cfg, &s->osc_page, cfg->unison.num_voices_id);
 	endpoint_set_allowed_range(&cfg->unison.num_voices_ep, (Value){.int_v = 0}, (Value){.int_v = 4});
 	api_endpoint_register(&cfg->unison.num_voices_ep, &cfg->api_node);
 
@@ -633,8 +714,8 @@ Synth *synth_create(Track *track)
 	    "unison_detune_cents",
 	    "Unison detune cents",
 	    JDAW_THREAD_DSP,
-	    page_el_gui_cb, NULL, NULL,
-	    NULL, NULL, &s->osc_page, cfg->unison.detune_cents_id);
+	    page_el_gui_cb, NULL, detune_cents_dsp_cb,
+	    s, cfg, &s->osc_page, cfg->unison.detune_cents_id);
 	endpoint_set_allowed_range(&cfg->unison.detune_cents_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 50.0f});
 	endpoint_set_default_value(&cfg->unison.detune_cents_ep, (Value){.float_v = 5.0f});
 	api_endpoint_register(&cfg->unison.detune_cents_ep, &cfg->api_node);
@@ -764,12 +845,19 @@ static float polyblep(float incr, float phase)
 static void osc_set_freq(Osc *osc, double freq_hz);
 static inline float osc_sample(Osc *osc, int channel, int num_channels, float step)
 {
+    float amp = osc->amp;
     if (osc->cfg->fix_freq) {
+	/* Lowpass filter to control signal to smooth stairsteps */
 	float f_raw = dsp_scale_freq_to_hz(osc->cfg->fixed_freq_unscaled);
 	float f = f_raw * 0.001 + osc->freq_last_sample[channel] * 0.999;
-	/* osc_set_freq(osc, dsp_scale_freq_to_hz(osc->cfg->fixed_freq_unscaled)); */
 	osc_set_freq(osc, f);
 	osc->freq_last_sample[channel] = f;
+    } else {
+	float note = (float)osc->voice->note_val + (osc->detune_cents + osc->tune_cents) / 100.0f;
+	osc_set_freq(osc, mtof_calc(note));
+	if (osc - osc->voice->oscs > SYNTH_NUM_BASE_OSCS) {
+	    
+	}
     }
     float sample;
     double phase_incr = osc->sample_phase_incr + osc->sample_phase_incr_addtl;
@@ -1008,7 +1096,7 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
 	    midi_note = note + cfg->octave * 12 + cfg->tune_coarse + cfg->tune_fine / 100.0f;
 	}
 	osc_set_freq(osc, mtof_calc(midi_note));
-	/* fprintf(stderr, "BASE NOTE: %f\n", base_midi_note); */
+	/* fprintf(stdersynr, "BASE NOTE: %f\n", base_midi_note); */
 	for (int j=0; j<cfg->unison.num_voices; j++) {
 	    Osc *detune_voice = v->oscs + i + SYNTH_NUM_BASE_OSCS * (j + 1);
 	    detune_voice->type = cfg->type;

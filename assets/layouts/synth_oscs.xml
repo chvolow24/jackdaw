@@ -6,7 +6,7 @@
   <children>
     <Layout name="master_amp_label" type="NORMAL">
       <x>REL 48</x>
-      <y>REL 22</y>
+      <y>REL 26</y>
       <w>REL 50</w>
       <h>REL 23</h>
       <children>
@@ -14,7 +14,7 @@
     </Layout>
     <Layout name="master_amp_slider" type="NORMAL">
       <x>STACK 15</x>
-      <y>REL 22</y>
+      <y>REL 26</y>
       <w>REL 160</w>
       <h>REL 23</h>
       <children>
@@ -22,7 +22,7 @@
     </Layout>
     <Layout name="master_pan_label" type="NORMAL">
       <x>STACK 26</x>
-      <y>REL 22</y>
+      <y>REL 26</y>
       <w>REL 50</w>
       <h>REL 23</h>
       <children>
@@ -30,7 +30,7 @@
     </Layout>
     <Layout name="master_pan_slider" type="NORMAL">
       <x>STACK 15</x>
-      <y>REL 22</y>
+      <y>REL 26</y>
       <w>REL 200</w>
       <h>REL 23</h>
       <children>
@@ -38,7 +38,7 @@
     </Layout>
     <Layout name="sync_phase_label" type="NORMAL">
       <x>STACK 26</x>
-      <y>REL 22</y>
+      <y>REL 26</y>
       <w>REL 100</w>
       <h>REL 23</h>
       <children>
@@ -46,15 +46,15 @@
     </Layout>
     <Layout name="sync_phase_toggle" type="NORMAL">
       <x>STACK 15</x>
-      <y>REL 22</y>
+      <y>REL 26</y>
       <w>REL 23</w>
       <h>REL 23</h>
     </Layout>
     <Layout name="osc1_panel" type="NORMAL">
       <x>REL 48</x>
-      <y>REL 54</y>
+      <y>REL 65</y>
       <w>REL 349</w>
-      <h>REL 235</h>
+      <h>REL 220</h>
       <children>
         <Layout name="osc1_label" type="NORMAL">
 	  <x>SCALE 0.036232</x>
@@ -82,9 +82,9 @@
         </Layout>
 	<Layout name="1fix_freq_toggle" type="NORMAL">
           <x>STACK 10</x>
-          <y>REL 11</y>
-          <w>REL 21</w>
-          <h>REL 21</h>
+          <y>REL 13</y>
+          <w>REL 18</w>
+          <h>REL 18</h>
           <children>
           </children>
         </Layout>
@@ -140,7 +140,7 @@
           <x>SCALE 0.035061</x>
           <y>REL 70</y>
           <w>SCALE 0.417683</w>
-          <h>REL 102</h>
+          <h>REL 90</h>
           <children>
           </children>
         </Layout>
@@ -148,7 +148,7 @@
           <x>SCALE 0.486281</x>
           <y>REL 70</y>
           <w>SCALE 0.452744</w>
-          <h>REL 102</h>
+          <h>REL 90</h>
           <children>
           </children>
         </Layout>
@@ -172,9 +172,9 @@
     </Layout>
     <Layout name="osc2_panel" type="NORMAL">
       <x>REL 415</x>
-      <y>REL 54</y>
+      <y>REL 65</y>
       <w>REL 349</w>
-      <h>REL 235</h>
+      <h>REL 220</h>
       <children>
         <Layout name="osc2_label" type="NORMAL">
           <x>SCALE 0.036232</x>
@@ -236,7 +236,7 @@
           <x>SCALE 0.035061</x>
           <y>REL 70</y>
           <w>SCALE 0.417683</w>
-          <h>REL 102</h>
+          <h>REL 90</h>
           <children>
           </children>
         </Layout>
@@ -244,7 +244,7 @@
           <x>SCALE 0.486281</x>
           <y>REL 70</y>
           <w>SCALE 0.452744</w>
-          <h>REL 102</h>
+          <h>REL 90</h>
           <children>
           </children>
         </Layout>
@@ -268,9 +268,9 @@
     </Layout>
     <Layout name="osc3_panel" type="NORMAL">
       <x>REL 48</x>
-      <y>REL 296</y>
+      <y>REL 300</y>
       <w>REL 349</w>
-      <h>REL 235</h>
+      <h>REL 220</h>
       <children>
         <Layout name="osc3_label" type="NORMAL">
           <x>SCALE 0.036232</x>
@@ -332,7 +332,7 @@
           <x>SCALE 0.035061</x>
           <y>REL 70</y>
           <w>SCALE 0.417683</w>
-          <h>REL 102</h>
+          <h>REL 90</h>
           <children>
           </children>
         </Layout>
@@ -340,7 +340,7 @@
           <x>SCALE 0.486281</x>
           <y>REL 70</y>
           <w>SCALE 0.452744</w>
-          <h>REL 102</h>
+          <h>REL 90</h>
           <children>
           </children>
         </Layout>
@@ -364,9 +364,9 @@
     </Layout>
     <Layout name="osc4_panel" type="NORMAL">
       <x>REL 415</x>
-      <y>REL 296</y>
+      <y>REL 300</y>
       <w>REL 349</w>
-      <h>REL 235</h>
+      <h>REL 220</h>
       <children>
         <Layout name="osc4_label" type="NORMAL">
           <x>SCALE 0.036232</x>
@@ -428,7 +428,7 @@
           <x>SCALE 0.035061</x>
           <y>REL 70</y>
           <w>SCALE 0.417683</w>
-          <h>REL 102</h>
+          <h>REL 90</h>
           <children>
           </children>
         </Layout>
@@ -436,7 +436,7 @@
           <x>SCALE 0.486281</x>
           <y>REL 70</y>
           <w>SCALE 0.452744</w>
-          <h>REL 102</h>
+          <h>REL 90</h>
           <children>
           </children>
         </Layout>

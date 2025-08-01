@@ -61,7 +61,7 @@ enum linked_obj_type {
 };
 
 typedef struct page_element {
-    const char *id;
+    char *id; /* strdup the ID */
     PageElType type;
     void *component;
     Layout *layout;

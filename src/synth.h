@@ -70,6 +70,7 @@ typedef struct osc {
 
     float detune_cents; /* Unison voice detune */
     float tune_cents; /* Octave + coarse + fine */
+    float pan_offset; /* Unison stereo spread */
     float freq_last_sample[2];
 
     double sample_phase_incr_addtl; /* pitch bend */

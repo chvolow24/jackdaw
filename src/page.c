@@ -268,6 +268,7 @@ static void page_el_destroy(PageEl *el)
     default:
 	break;
     }
+    free(el->id);
     free(el);
 }
 void page_destroy(Page *page)
@@ -523,7 +524,7 @@ PageEl *page_add_el(
     const char *layout_name)
 {
     PageEl *el = calloc(1, sizeof(PageEl));
-    el->id = id;
+    el->id = strdup(id);
     el->type = type;
     if (layout_name) {
 	el->layout = layout_get_child_by_name_recursive(page->layout, layout_name);

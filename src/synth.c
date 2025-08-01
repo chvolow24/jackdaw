@@ -61,6 +61,43 @@ static void fixed_freq_dsp_cb(Endpoint *ep)
 /*     } */    
 /* } */
 
+static void type_cb(Endpoint *ep)
+{
+    Synth *synth = ep->xarg1;
+    OscCfg *cfg = ep->xarg2;
+    int osc_i = cfg - synth->base_oscs;
+    int type_i = ep->current_write_val.int_v;   
+    while (osc_i < SYNTHVOICE_NUM_OSCS) {
+	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+	    SynthVoice *v = synth->voices + i;
+	    v->oscs[osc_i].type = type_i;
+	}
+	osc_i += SYNTH_NUM_BASE_OSCS;
+    } 
+}
+
+static void unison_stereo_spread_dsp_cb(Endpoint *ep)
+{
+    Synth *synth = ep->xarg1;
+    OscCfg *cfg = ep->xarg2;
+    int osc_i = cfg - synth->base_oscs;
+    float max_offset = ep->current_write_val.float_v / 2.0;
+    float voice_offset = max_offset / SYNTH_NUM_BASE_OSCS;
+    int unison_i = 0;
+    while (osc_i < SYNTHVOICE_NUM_OSCS) {
+	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+	    SynthVoice *v = synth->voices + i;
+	    float offset = (unison_i + 1) * max_offset / 2.0f;
+	    if (unison_i % 2 == 0) {
+		offset *= -1;
+	    }
+	    v->oscs[osc_i].pan_offset = offset;
+	}
+	osc_i += SYNTH_NUM_BASE_OSCS;
+	unison_i++;
+    } 
+}
+
 static void detune_cents_dsp_cb(Endpoint *ep)
 {
     Synth *synth = ep->xarg1;
@@ -69,7 +106,6 @@ static void detune_cents_dsp_cb(Endpoint *ep)
     float max_offset_cents = ep->current_write_val.float_v;
     float voice_offset = max_offset_cents / cfg->unison.num_voices * 2;
     
-
     int unison_i = 0;
     while (osc_i < SYNTHVOICE_NUM_OSCS) {
 	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
@@ -510,6 +546,7 @@ Synth *synth_create(Track *track)
 	len = strlen(fmt);
 	cfg->amp_id = malloc(len);
 	snprintf(cfg->amp_id, len, fmt, i+1);
+	fprintf(stderr, "CFG %ld amp id == %s\n", cfg - s->base_oscs, cfg->amp_id);
 
 	fmt = "%dpan";
 	len = strlen(fmt);
@@ -541,22 +578,22 @@ Synth *synth_create(Track *track)
 	cfg->fixed_freq_id = malloc(len);
 	snprintf(cfg->fixed_freq_id, len, fmt, i+1);
 
-	fmt = "%dnum_voices";
+	fmt = "%dunison_num_voices";
 	len = strlen(fmt);
 	cfg->unison.num_voices_id = malloc(len);
 	snprintf(cfg->unison.num_voices_id, len, fmt, i+1);
 
-	fmt = "%ddetune_cents";
+	fmt = "%dunison_detune_cents";
 	len = strlen(fmt);
 	cfg->unison.detune_cents_id = malloc(len);
 	snprintf(cfg->unison.detune_cents_id, len, fmt, i+1);
 
-	fmt = "%drelative_amp";
+	fmt = "%dunison_relative_amp";
 	len = strlen(fmt);
 	cfg->unison.relative_amp_id = malloc(len);
 	snprintf(cfg->unison.relative_amp_id, len, fmt, i+1);
 
-	fmt = "%dstereo_spread";
+	fmt = "%dunison_stereo_spread";
 	len = strlen(fmt);
 	cfg->unison.stereo_spread_id = malloc(len);
 	snprintf(cfg->unison.stereo_spread_id, len, fmt, i+1);
@@ -596,8 +633,8 @@ Synth *synth_create(Track *track)
 	    "type",
 	    "Type",
 	    JDAW_THREAD_DSP,
-	    NULL, NULL, NULL,
-	    NULL, NULL, NULL, NULL);
+	    NULL, NULL, type_cb,
+	    s, cfg, NULL, NULL);
 	endpoint_set_default_value(&cfg->type_ep, (Value){.int_v = 0});
 	endpoint_set_allowed_range(&cfg->type_ep, (Value){.int_v = 0}, (Value){.int_v = 3});
 	api_endpoint_register(&cfg->type_ep, &cfg->api_node);
@@ -740,8 +777,8 @@ Synth *synth_create(Track *track)
 	    "unison_stereo_spread",
 	    "Unison stereo spread",
 	    JDAW_THREAD_DSP,
-	    page_el_gui_cb, NULL, NULL,
-	    NULL, NULL, &s->osc_page, cfg->unison.stereo_spread_id);
+	    page_el_gui_cb, NULL, unison_stereo_spread_dsp_cb,
+	    s, cfg, &s->osc_page, cfg->unison.stereo_spread_id);
 	endpoint_set_allowed_range(&cfg->unison.stereo_spread_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 2.0f});
 	endpoint_set_default_value(&cfg->unison.stereo_spread_ep, (Value){.float_v = 0.4f});
 	api_endpoint_register(&cfg->unison.stereo_spread_ep, &cfg->api_node);
@@ -845,18 +882,24 @@ static float polyblep(float incr, float phase)
 static void osc_set_freq(Osc *osc, double freq_hz);
 static inline float osc_sample(Osc *osc, int channel, int num_channels, float step)
 {
-    float amp = osc->amp;
-    if (osc->cfg->fix_freq) {
+    OscCfg *cfg = osc->cfg;
+    float amp = cfg->amp;
+    float pan = cfg->pan;
+    if (cfg->fix_freq) {
 	/* Lowpass filter to control signal to smooth stairsteps */
-	float f_raw = dsp_scale_freq_to_hz(osc->cfg->fixed_freq_unscaled);
+	float f_raw = dsp_scale_freq_to_hz(cfg->fixed_freq_unscaled);
 	float f = f_raw * 0.001 + osc->freq_last_sample[channel] * 0.999;
 	osc_set_freq(osc, f);
 	osc->freq_last_sample[channel] = f;
     } else {
 	float note = (float)osc->voice->note_val + (osc->detune_cents + osc->tune_cents) / 100.0f;
 	osc_set_freq(osc, mtof_calc(note));
-	if (osc - osc->voice->oscs > SYNTH_NUM_BASE_OSCS) {
-	    
+	int unison_index = (osc - osc->voice->oscs) / SYNTH_NUM_BASE_OSCS;
+	if (unison_index > 0) { /* UNISON VOL */
+	    amp *= cfg->unison.relative_amp;
+	    pan += osc->pan_offset;
+	    if (pan > 1.0) pan = 1.0;
+	    if (pan < 0.0) pan = 0.0;
 	}
     }
     float sample;
@@ -916,7 +959,7 @@ static inline float osc_sample(Osc *osc, int channel, int num_channels, float st
     /* } else { */
     /* 	pan_scale = osc->pan >= 0.5 ? 1.0 : osc->pan * 2.0f; */
     /* } */
-    return sample * osc->amp * pan_scale(osc->pan, channel);
+    return sample * amp * pan_scale(pan, channel);
 }
 
 static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int channel, float step)
@@ -1077,8 +1120,8 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
 	OscCfg *cfg = synth->base_oscs + i;
 	if (!cfg->active) continue;	
 	Osc *osc = v->oscs + i;
-	osc->amp = cfg->amp;
-	osc->pan = cfg->pan;
+	/* osc->amp = cfg->amp; */
+	/* osc->pan = cfg->pan; */
 	osc->type = cfg->type;
 
 	/* Reset phase every time? */
@@ -1089,36 +1132,36 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
 
 
 	
-	double midi_note;
-	if (cfg->fix_freq) {
-	    midi_note = ftom_calc(dsp_scale_freq_to_hz(cfg->fixed_freq_unscaled));
-	} else {
-	    midi_note = note + cfg->octave * 12 + cfg->tune_coarse + cfg->tune_fine / 100.0f;
-	}
-	osc_set_freq(osc, mtof_calc(midi_note));
+	/* double midi_note; */
+	/* if (cfg->fix_freq) { */
+	/*     midi_note = ftom_calc(dsp_scale_freq_to_hz(cfg->fixed_freq_unscaled)); */
+	/* } else { */
+	/*     midi_note = note + cfg->octave * 12 + cfg->tune_coarse + cfg->tune_fine / 100.0f; */
+	/* } */
+	/* osc_set_freq(osc, mtof_calc(midi_note)); */
 	/* fprintf(stdersynr, "BASE NOTE: %f\n", base_midi_note); */
-	for (int j=0; j<cfg->unison.num_voices; j++) {
-	    Osc *detune_voice = v->oscs + i + SYNTH_NUM_BASE_OSCS * (j + 1);
-	    detune_voice->type = cfg->type;
-	    double max_offset_cents = cfg->unison.detune_cents / 100.0f;
-	    double voice_offset = max_offset_cents / cfg->unison.num_voices * 2;
-	    double detune_midi_note =
-		j % 2 == 0 ?
-		midi_note - voice_offset * (j + 1):
-		midi_note + voice_offset * (j + 1);
-	    osc_set_freq(detune_voice, mtof_calc(detune_midi_note));
-	    detune_voice->amp = osc->amp * cfg->unison.relative_amp;
-	    detune_voice->pan =
-		j % 2 == 0 ?
-		osc->pan + (j + 1) * cfg->unison.stereo_spread / 2.0f / (float)cfg->unison.num_voices :
-		osc->pan - (j + 1) * cfg->unison.stereo_spread / 2.0f / (float)cfg->unison.num_voices;
-	    if (detune_voice->pan > 1.0) detune_voice->pan = 1.0;
-	    if (detune_voice->pan < 0.0) detune_voice->pan = 0.0;
-	    detune_voice->phase[0] = 0.0;
-	    detune_voice->phase[1] = 0.0;
-	    /* int randomized_pan_index = rand() % cfg->detune.num_voices; */	    
+	/* for (int j=0; j<cfg->unison.num_voices; j++) { */
+	/*     Osc *detune_voice = v->oscs + i + SYNTH_NUM_BASE_OSCS * (j + 1); */
+	/*     detune_voice->type = cfg->type; */
+	/*     double max_offset_cents = cfg->unison.detune_cents / 100.0f; */
+	/*     double voice_offset = max_offset_cents / cfg->unison.num_voices * 2; */
+	/*     double detune_midi_note = */
+	/* 	j % 2 == 0 ? */
+	/* 	midi_note - voice_offset * (j + 1): */
+	/* 	midi_note + voice_offset * (j + 1); */
+	/*     osc_set_freq(detune_voice, mtof_calc(detune_midi_note)); */
+	/*     detune_voice->amp = osc->amp * cfg->unison.relative_amp; */
+	/*     detune_voice->pan = */
+	/* 	j % 2 == 0 ? */
+	/* 	osc->pan + (j + 1) * cfg->unison.stereo_spread / 2.0f / (float)cfg->unison.num_voices : */
+	/* 	osc->pan - (j + 1) * cfg->unison.stereo_spread / 2.0f / (float)cfg->unison.num_voices; */
+	/*     if (detune_voice->pan > 1.0) detune_voice->pan = 1.0; */
+	/*     if (detune_voice->pan < 0.0) detune_voice->pan = 0.0; */
+	/*     detune_voice->phase[0] = 0.0; */
+	/*     detune_voice->phase[1] = 0.0; */
+	/*     /\* int randomized_pan_index = rand() % cfg->detune.num_voices; *\/	     */
 	    
-	}
+	/* } */
     }
     /* osc_set_freq(v->oscs + 1, mtof_calc((double)note + 0.02)); */
     /* fprintf(stderr, "OSC 1 %f OSC 2: %f\n", v->oscs[0].freq, v->oscs[1].freq); */

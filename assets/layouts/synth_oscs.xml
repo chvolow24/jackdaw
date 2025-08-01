@@ -7,37 +7,37 @@
     <Layout name="master_amp_label" type="NORMAL">
       <x>REL 48</x>
       <y>REL 26</y>
-      <w>REL 50</w>
+      <w>REL 30</w>
       <h>REL 23</h>
       <children>
       </children>
     </Layout>
     <Layout name="master_amp_slider" type="NORMAL">
-      <x>STACK 15</x>
+      <x>STACK 10</x>
       <y>REL 26</y>
-      <w>REL 160</w>
+      <w>REL 180</w>
       <h>REL 23</h>
       <children>
       </children>
     </Layout>
     <Layout name="master_pan_label" type="NORMAL">
-      <x>STACK 26</x>
+      <x>STACK 20</x>
       <y>REL 26</y>
-      <w>REL 50</w>
+      <w>REL 30</w>
       <h>REL 23</h>
       <children>
       </children>
     </Layout>
     <Layout name="master_pan_slider" type="NORMAL">
-      <x>STACK 15</x>
+      <x>STACK 10</x>
       <y>REL 26</y>
-      <w>REL 200</w>
+      <w>REL 180</w>
       <h>REL 23</h>
       <children>
       </children>
     </Layout>
     <Layout name="sync_phase_label" type="NORMAL">
-      <x>STACK 26</x>
+      <x>STACK 20</x>
       <y>REL 26</y>
       <w>REL 100</w>
       <h>REL 23</h>
@@ -45,7 +45,7 @@
       </children>
     </Layout>
     <Layout name="sync_phase_toggle" type="NORMAL">
-      <x>STACK 15</x>
+      <x>STACK 10</x>
       <y>REL 26</y>
       <w>REL 23</w>
       <h>REL 23</h>
@@ -80,7 +80,7 @@
           <children>
           </children>
         </Layout>
-	<Layout name="1fix_freq_toggle" type="NORMAL">
+	<Layout name="1fix_freq" type="NORMAL">
           <x>STACK 10</x>
           <y>REL 13</y>
           <w>REL 18</w>
@@ -88,7 +88,7 @@
           <children>
           </children>
         </Layout>
-	<Layout name="1fixed_freq_slider" type="NORMAL">
+	<Layout name="1fixed_freq" type="NORMAL">
           <x>STACK 10</x>
           <y>REL 11</y>
           <w>REL 52</w>
@@ -110,7 +110,7 @@
               <children>
               </children>
             </Layout>
-            <Layout name="1vol_slider" type="NORMAL">
+            <Layout name="1vol" type="NORMAL">
               <x>SCALE 0.117175</x>
               <y>REL 0</y>
               <w>SCALE 0.346709</w>
@@ -126,7 +126,7 @@
               <children>
               </children>
             </Layout>
-            <Layout name="1pan_slider" type="NORMAL">
+            <Layout name="1pan" type="NORMAL">
               <x>SCALE 0.605136</x>
               <y>REL 0</y>
               <w>SCALE 0.394864</w>
@@ -177,17 +177,41 @@
       <h>REL 220</h>
       <children>
         <Layout name="osc2_label" type="NORMAL">
-          <x>SCALE 0.036232</x>
+	  <x>SCALE 0.036232</x>
           <y>REL 11</y>
-          <w>SCALE 0.207246</w>
+          <w>REL 35</w>
           <h>REL 21</h>
           <children>
           </children>
         </Layout>
         <Layout name="2type_radio" type="NORMAL">
-          <x>SCALE 0.281159</x>
+          <x>STACK 14</x>
           <y>REL 11</y>
-          <w>SCALE 0.657971</w>
+          <w>REL 124</w>
+          <h>REL 21</h>
+          <children>
+          </children>
+        </Layout>
+	<Layout name="2fix_label" type="NORMAL">
+          <x>STACK 18</x>
+          <y>REL 11</y>
+          <w>REL 30</w>
+          <h>REL 21</h>
+          <children>
+          </children>
+        </Layout>
+	<Layout name="2fix_freq" type="NORMAL">
+          <x>STACK 10</x>
+          <y>REL 13</y>
+          <w>REL 18</w>
+          <h>REL 18</h>
+          <children>
+          </children>
+        </Layout>
+	<Layout name="2fixed_freq" type="NORMAL">
+          <x>STACK 10</x>
+          <y>REL 11</y>
+          <w>REL 52</w>
           <h>REL 21</h>
           <children>
           </children>
@@ -206,7 +230,7 @@
               <children>
               </children>
             </Layout>
-            <Layout name="2vol_slider" type="NORMAL">
+            <Layout name="2vol" type="NORMAL">
               <x>SCALE 0.117175</x>
               <y>REL 0</y>
               <w>SCALE 0.346709</w>
@@ -222,7 +246,7 @@
               <children>
               </children>
             </Layout>
-            <Layout name="2pan_slider" type="NORMAL">
+            <Layout name="2pan" type="NORMAL">
               <x>SCALE 0.605136</x>
               <y>REL 0</y>
               <w>SCALE 0.394864</w>
@@ -273,17 +297,41 @@
       <h>REL 220</h>
       <children>
         <Layout name="osc3_label" type="NORMAL">
-          <x>SCALE 0.036232</x>
+	  <x>SCALE 0.036232</x>
           <y>REL 11</y>
-          <w>SCALE 0.207246</w>
+          <w>REL 35</w>
           <h>REL 21</h>
           <children>
           </children>
         </Layout>
         <Layout name="3type_radio" type="NORMAL">
-          <x>SCALE 0.281159</x>
+          <x>STACK 14</x>
           <y>REL 11</y>
-          <w>SCALE 0.657971</w>
+          <w>REL 124</w>
+          <h>REL 21</h>
+          <children>
+          </children>
+        </Layout>
+	<Layout name="3fix_label" type="NORMAL">
+          <x>STACK 18</x>
+          <y>REL 11</y>
+          <w>REL 30</w>
+          <h>REL 21</h>
+          <children>
+          </children>
+        </Layout>
+	<Layout name="3fix_freq" type="NORMAL">
+          <x>STACK 10</x>
+          <y>REL 13</y>
+          <w>REL 18</w>
+          <h>REL 18</h>
+          <children>
+          </children>
+        </Layout>
+	<Layout name="3fixed_freq" type="NORMAL">
+          <x>STACK 10</x>
+          <y>REL 11</y>
+          <w>REL 52</w>
           <h>REL 21</h>
           <children>
           </children>
@@ -302,7 +350,7 @@
               <children>
               </children>
             </Layout>
-            <Layout name="3vol_slider" type="NORMAL">
+            <Layout name="3vol" type="NORMAL">
               <x>SCALE 0.117175</x>
               <y>REL 0</y>
               <w>SCALE 0.346709</w>
@@ -318,7 +366,7 @@
               <children>
               </children>
             </Layout>
-            <Layout name="3pan_slider" type="NORMAL">
+            <Layout name="3pan" type="NORMAL">
               <x>SCALE 0.605136</x>
               <y>REL 0</y>
               <w>SCALE 0.394864</w>
@@ -369,17 +417,41 @@
       <h>REL 220</h>
       <children>
         <Layout name="osc4_label" type="NORMAL">
-          <x>SCALE 0.036232</x>
+	  <x>SCALE 0.036232</x>
           <y>REL 11</y>
-          <w>SCALE 0.207246</w>
+          <w>REL 35</w>
           <h>REL 21</h>
           <children>
           </children>
         </Layout>
         <Layout name="4type_radio" type="NORMAL">
-          <x>SCALE 0.281159</x>
+          <x>STACK 14</x>
           <y>REL 11</y>
-          <w>SCALE 0.657971</w>
+          <w>REL 124</w>
+          <h>REL 21</h>
+          <children>
+          </children>
+        </Layout>
+	<Layout name="4fix_label" type="NORMAL">
+          <x>STACK 18</x>
+          <y>REL 11</y>
+          <w>REL 30</w>
+          <h>REL 21</h>
+          <children>
+          </children>
+        </Layout>
+	<Layout name="4fix_freq" type="NORMAL">
+          <x>STACK 10</x>
+          <y>REL 13</y>
+          <w>REL 18</w>
+          <h>REL 18</h>
+          <children>
+          </children>
+        </Layout>
+	<Layout name="4fixed_freq" type="NORMAL">
+          <x>STACK 10</x>
+          <y>REL 11</y>
+          <w>REL 52</w>
           <h>REL 21</h>
           <children>
           </children>
@@ -398,7 +470,7 @@
               <children>
               </children>
             </Layout>
-            <Layout name="4vol_slider" type="NORMAL">
+            <Layout name="4vol" type="NORMAL">
               <x>SCALE 0.117175</x>
               <y>REL 0</y>
               <w>SCALE 0.346709</w>
@@ -414,7 +486,7 @@
               <children>
               </children>
             </Layout>
-            <Layout name="4pan_slider" type="NORMAL">
+            <Layout name="4pan" type="NORMAL">
               <x>SCALE 0.605136</x>
               <y>REL 0</y>
               <w>SCALE 0.394864</w>

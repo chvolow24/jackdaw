@@ -45,7 +45,6 @@ static void dsp_cb_sustain(Endpoint *ep)
 
 static void dsp_cb_release(Endpoint *ep)
 {
-    breakfn();
     int msec_prev = ep->overwrite_val.int_v;
     int msec = endpoint_safe_read(ep, NULL).int_v;
     int32_t samples = msec * session_get_sample_rate() / 1000;

@@ -80,6 +80,7 @@ void iir_set_coeffs(IIRFilter *f, double *A_in, double *B_in)
 
 
 /* Apply the filter */
+void breakfn();
 double iir_sample(IIRFilter *f, double in, int channel)
 {
     double out = in * f->A[0];
@@ -90,6 +91,7 @@ double iir_sample(IIRFilter *f, double in, int channel)
 	int fc = -1;
 	if (fabs(out) > 5000.0 || ((fc = fpclassify(out)) != FP_ZERO && fc != FP_NORMAL)) {
 	    iir_clear(f);
+	    breakfn();
 	    fprintf(stderr, "IIR cleared! outsample: %f; fc: %d\n", out, fc);
 	    return 0.0;
 	}

@@ -80,21 +80,27 @@ static void unison_stereo_spread_dsp_cb(Endpoint *ep)
 {
     Synth *synth = ep->xarg1;
     OscCfg *cfg = ep->xarg2;
-    int osc_i = cfg - synth->base_oscs;
+    int osc_i = cfg - synth->base_oscs + SYNTH_NUM_BASE_OSCS;
     float max_offset = ep->current_write_val.float_v / 2.0;
-    float voice_offset = max_offset / SYNTH_NUM_BASE_OSCS;
-    int unison_i = 0;
+    int unison_i = 1;
+    int divisor = 1;
     while (osc_i < SYNTHVOICE_NUM_OSCS) {
 	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	    SynthVoice *v = synth->voices + i;
-	    float offset = (unison_i + 1) * max_offset / 2.0f;
+	    float offset = max_offset / divisor;
 	    if (unison_i % 2 == 0) {
 		offset *= -1;
+		if (i==0)
+		    divisor++;
 	    }
 	    v->oscs[osc_i].pan_offset = offset;
+	    if (i==0) {
+		fprintf(stderr, "Offset unison i %d (osc i %d) == %f\n", unison_i, osc_i, offset);
+	    }
 	}
 	osc_i += SYNTH_NUM_BASE_OSCS;
 	unison_i++;
+	/* divisor+=2; */
     } 
 }
 
@@ -102,16 +108,25 @@ static void detune_cents_dsp_cb(Endpoint *ep)
 {
     Synth *synth = ep->xarg1;
     OscCfg *cfg = ep->xarg2;
-    int osc_i = cfg - synth->base_oscs;
+    int osc_i = cfg - synth->base_oscs + SYNTH_NUM_BASE_OSCS;
     float max_offset_cents = ep->current_write_val.float_v;
-    float voice_offset = max_offset_cents / cfg->unison.num_voices * 2;
+    /* float voice_offset = max_offset_cents / (1 + cfg->unison.num_voices) * 2; */
     
     int unison_i = 0;
+    int divisor = 1;
     while (osc_i < SYNTHVOICE_NUM_OSCS) {
 	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	    SynthVoice *v = synth->voices + i;
-	    float offset = voice_offset * unison_i;
-	    if (unison_i % 2 == 0) offset *= -1;
+	    float offset = max_offset_cents / divisor;
+	    if (unison_i % 2 != 0) {
+		offset *= -1;
+		if (i==0)
+		    divisor++;
+	    }
+	    if (i==0) {
+		fprintf(stderr, "Voice %d, offset %f\n", unison_i, offset);
+	    }
+
 	    v->oscs[osc_i].detune_cents = offset;
 	}
 	osc_i += SYNTH_NUM_BASE_OSCS;
@@ -779,8 +794,8 @@ Synth *synth_create(Track *track)
 	    JDAW_THREAD_DSP,
 	    page_el_gui_cb, NULL, unison_stereo_spread_dsp_cb,
 	    s, cfg, &s->osc_page, cfg->unison.stereo_spread_id);
-	endpoint_set_allowed_range(&cfg->unison.stereo_spread_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 2.0f});
-	endpoint_set_default_value(&cfg->unison.stereo_spread_ep, (Value){.float_v = 0.4f});
+	endpoint_set_allowed_range(&cfg->unison.stereo_spread_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
+	endpoint_set_default_value(&cfg->unison.stereo_spread_ep, (Value){.float_v = 0.0f});
 	api_endpoint_register(&cfg->unison.stereo_spread_ep, &cfg->api_node);
 
 	endpoint_init(
@@ -883,8 +898,8 @@ static void osc_set_freq(Osc *osc, double freq_hz);
 static inline float osc_sample(Osc *osc, int channel, int num_channels, float step)
 {
     OscCfg *cfg = osc->cfg;
-    float amp = cfg->amp;
-    float pan = cfg->pan;
+    /* float amp = cfg->amp; */
+    /* float pan = cfg->pan; */
     if (cfg->fix_freq) {
 	/* Lowpass filter to control signal to smooth stairsteps */
 	float f_raw = dsp_scale_freq_to_hz(cfg->fixed_freq_unscaled);
@@ -892,15 +907,22 @@ static inline float osc_sample(Osc *osc, int channel, int num_channels, float st
 	osc_set_freq(osc, f);
 	osc->freq_last_sample[channel] = f;
     } else {
-	float note = (float)osc->voice->note_val + (osc->detune_cents + osc->tune_cents) / 100.0f;
-	osc_set_freq(osc, mtof_calc(note));
-	int unison_index = (osc - osc->voice->oscs) / SYNTH_NUM_BASE_OSCS;
-	if (unison_index > 0) { /* UNISON VOL */
-	    amp *= cfg->unison.relative_amp;
-	    pan += osc->pan_offset;
-	    if (pan > 1.0) pan = 1.0;
-	    if (pan < 0.0) pan = 0.0;
+	if (osc->reset_params_ctr[channel] <= 0) {
+	    osc->reset_params_ctr[channel] = 192; /* 2msec precision for 96kHz */
+	    float note = (float)osc->voice->note_val + (osc->detune_cents + osc->tune_cents) / 100.0f;
+	    osc_set_freq(osc, mtof_calc(note));
+	    int unison_index = (osc - osc->voice->oscs) / SYNTH_NUM_BASE_OSCS;
+	    if (unison_index > 0) { /* UNISON VOL */
+		osc->amp = cfg->amp * cfg->unison.relative_amp;
+		osc->pan = cfg->pan + osc->pan_offset;
+		if (osc->pan > 1.0f) osc->pan = 1.0f;
+		if (osc->pan < 0.0f) osc->pan = 0.0f;
+	    } else {
+		osc->amp = cfg->amp;
+		osc->pan = cfg->pan;
+	    }
 	}
+	osc->reset_params_ctr[channel]--;
     }
     float sample;
     double phase_incr = osc->sample_phase_incr + osc->sample_phase_incr_addtl;
@@ -959,7 +981,13 @@ static inline float osc_sample(Osc *osc, int channel, int num_channels, float st
     /* } else { */
     /* 	pan_scale = osc->pan >= 0.5 ? 1.0 : osc->pan * 2.0f; */
     /* } */
-    return sample * amp * pan_scale(pan, channel);
+    #ifdef TESTBUILD
+    if (fpclassify(sample * osc->amp * pan_scale(osc->pan, channel)) < 3) {
+	breakfn();
+    }
+    /* if (fpclassify(osc->sample_phase_incr,  */
+    #endif
+    return sample * osc->amp * pan_scale(osc->pan, channel);
 }
 
 static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int channel, float step)
@@ -1067,6 +1095,13 @@ static void osc_set_freq(Osc *osc, double freq_hz)
 {
     osc->freq = freq_hz;
     osc->sample_phase_incr = freq_hz / session_get_sample_rate();
+    #ifdef TESTBUILD
+    /* fprintf(stderr, "Osc %p, Freq hz %f, phase incr %f\n", osc, freq_hz, osc->sample_phase_incr); */
+    if (fpclassify(osc->sample_phase_incr) == FP_NAN) {
+	fprintf(stderr, "ERROR: phase incr not valid in osc_set_freq\n");
+	breakfn();
+    }
+    #endif
     /* osc->sample_phase_incr_addtl = 0; */
     /* fprintf(stderr, "OSC %p SFI: %f, ADDTL: %f\n", osc, osc->sample_phase_incr, osc->sample_phase_incr_addtl); */
 }
@@ -1119,16 +1154,25 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
     for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
 	OscCfg *cfg = synth->base_oscs + i;
 	if (!cfg->active) continue;	
-	Osc *osc = v->oscs + i;
-	/* osc->amp = cfg->amp; */
-	/* osc->pan = cfg->pan; */
-	osc->type = cfg->type;
-
-	/* Reset phase every time? */
-	if (synth->sync_phase) {
-	    osc->phase[0] = 0.0;
-	    osc->phase[1] = 0.0;
+	/* Osc *osc = v->oscs + i; */
+	for (int j=0; j<SYNTHVOICE_NUM_OSCS; j+=SYNTH_NUM_BASE_OSCS) {
+	    Osc *osc = v->oscs + i + j;
+	    osc->type = cfg->type;
+	    osc->reset_params_ctr[0] = 0;
+	    osc->reset_params_ctr[1] = 0;
+	    
+	    if (synth->sync_phase) {
+		osc->phase[0] = 0.0;
+		osc->phase[1] = 0.0;
+	    }
+	    /* osc-> */
 	}
+	/* osc->type = cfg->type; */
+	/* /\* Reset phase every time? *\/ */
+	/* if (synth->sync_phase) { */
+	/*     osc->phase[0] = 0.0; */
+	/*     osc->phase[1] = 0.0; */
+	/* } */
 
 
 	

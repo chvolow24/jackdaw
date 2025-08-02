@@ -34,7 +34,7 @@
 #include "midi_io.h"
 /* #include "consts.h" */
 
-#define SYNTH_NUM_VOICES 32
+#define SYNTH_NUM_VOICES 24
 #define SYNTH_NUM_BASE_OSCS 4
 #define SYNTH_MAX_UNISON_OSCS 5
 #define SYNTHVOICE_NUM_OSCS (SYNTH_NUM_BASE_OSCS * SYNTH_MAX_UNISON_OSCS) /* 4 base oscillators, up to 5 per base for detune */
@@ -67,7 +67,7 @@ typedef struct osc {
     float pan;
     Osc *freq_modulator;
     Osc *amp_modulator;
-
+    
     float detune_cents; /* Unison voice detune */
     float tune_cents; /* Octave + coarse + fine */
     float pan_offset; /* Unison stereo spread */
@@ -77,6 +77,8 @@ typedef struct osc {
 
     float last_out[2];
     float last_in[2];
+
+    int reset_params_ctr[2];
 } Osc;
 
 typedef struct synth Synth;

@@ -194,7 +194,11 @@ static void clipref_draw(ClipRef *cr)
 	clipref_draw_waveform(cr);
     }
 
-    int border = cr->grabbed ? 4 : 3;	
+    int border = cr->grabbed ? 4 : 3;
+    if (cr->track->minimized) {
+	border /= 2;
+    }
+	
 
     if (cr->type == CLIP_MIDI) {
 	static const int midi_piano_range = 88;

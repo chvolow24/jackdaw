@@ -939,10 +939,15 @@ static void osc_get_buf_preamp(Osc *restrict osc, float step, int len)
     if (osc->freq_modulator) {
 	fmod_samples = osc->freq_modulator->buf;
 	osc_get_buf_preamp(osc->freq_modulator, step, len);
+	float amp = osc->freq_modulator->amp;
+	float_buf_mult_const(fmod_samples, amp, len);
     }
     if (osc->amp_modulator) {
 	amod_samples = osc->amp_modulator->buf;
 	osc_get_buf_preamp(osc->amp_modulator, step, len);
+	float amp = osc->amp_modulator->amp;
+	float_buf_mult_const(amod_samples, amp, len);
+	
     }
     double phase_incr = osc->sample_phase_incr + osc->sample_phase_incr_addtl;
     double phase = osc->phase;
@@ -987,7 +992,7 @@ static void osc_get_buf_preamp(Osc *restrict osc, float step, int len)
 	    /* fprintf(stderr, "fmod sample in osc %p: %f\n", osc, fmod_sample); */
 	    phase += phase_incr * step * (1.0f + pow(fmod_samples[i], 3.0));
 	} else {
-	    phase += phase_incr;
+	    phase += phase_incr * step;
 	}
 	if (osc->amp_modulator) {
 	    sample *= 1.0 + amod_samples[i];
@@ -1134,6 +1139,10 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 	/* fprintf(stderr, "\t\tvoice %ld osc %d\n", v - v->synth->voices, i); */
 	Osc *osc = v->oscs + i;
 	osc_reset_params(osc);
+	if (osc->freq_modulator)
+	    osc_reset_params(osc->freq_modulator);
+	if (osc->amp_modulator)
+	    osc_reset_params(osc->amp_modulator);
 	float ind_osc_buf[len];
 	if (channel == 0) {
 	    osc_get_buf_preamp(osc, step, len);
@@ -1149,6 +1158,11 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 	for (int j=0; j<cfg->unison.num_voices; j++) {
 	    osc = v->oscs + i + SYNTH_NUM_BASE_OSCS * (j + 1);
 	    osc_reset_params(osc);
+	    if (osc->freq_modulator)
+		osc_reset_params(osc->freq_modulator);
+	    if (osc->amp_modulator)
+		osc_reset_params(osc->amp_modulator);
+
 	    if (channel == 0) {
 		osc_get_buf_preamp(osc, step, len);
 	    }
@@ -1189,7 +1203,7 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 	    if (v->synth->noise_apply_env) {
 		env = noise_env[i];
 	    }
-	    osc_buf[i] += env * ((float)(rand() % INT16_MAX) / INT16_MAX) * v->synth->noise_amt;
+	    osc_buf[i] += env * (((float)(rand() % INT16_MAX) / INT16_MAX) - 0.5) * 2.0 * v->synth->noise_amt;
 	}
 	if (v->synth->filter_active) {
 	    if (i%37 == 0) { /* Update filter every 37 sample frames */

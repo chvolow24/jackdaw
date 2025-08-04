@@ -82,13 +82,13 @@ static void unison_stereo_spread_dsp_cb(Endpoint *ep)
     OscCfg *cfg = ep->xarg2;
     int osc_i = cfg - synth->base_oscs + SYNTH_NUM_BASE_OSCS;
     float max_offset = ep->current_write_val.float_v / 2.0;
-    int unison_i = 1;
+    int unison_i = 0;
     int divisor = 1;
     while (osc_i < SYNTHVOICE_NUM_OSCS) {
 	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	    SynthVoice *v = synth->voices + i;
 	    float offset = max_offset / divisor;
-	    if (unison_i % 2 == 0) {
+	    if (unison_i % 2 != 0) {
 		offset *= -1;
 		if (i==0)
 		    divisor++;
@@ -114,19 +114,23 @@ static void detune_cents_dsp_cb(Endpoint *ep)
     
     int unison_i = 0;
     int divisor = 1;
+    int sign = -1;
     while (osc_i < SYNTHVOICE_NUM_OSCS) {
 	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	    SynthVoice *v = synth->voices + i;
 	    float offset = max_offset_cents / divisor;
-	    if (unison_i % 2 != 0) {
-		offset *= -1;
-		if (i==0)
+
+	    if (i==0) {
+		if (unison_i % 2 == 0) {
+		    sign *= -1;
+		} else {
 		    divisor++;
+		}
 	    }
+	    offset *= sign;
 	    if (i==0) {
 		fprintf(stderr, "Voice %d, offset %f\n", unison_i, offset);
 	    }
-
 	    v->oscs[osc_i].detune_cents = offset;
 	}
 	osc_i += SYNTH_NUM_BASE_OSCS;
@@ -251,8 +255,8 @@ Synth *synth_create(Track *track)
     s->base_oscs[0].amp = 0.25;
     s->base_oscs[0].type = WS_SAW;
 
-    s->base_oscs[0].fix_freq = true;
-    s->base_oscs[0].fixed_freq = 0.1;
+    /* s->base_oscs[0].fix_freq = true; */
+    /* s->base_oscs[0].fixed_freq = 0.1; */
 
     s->filter_active = true;
     s->base_cutoff = 0.01f;
@@ -265,6 +269,12 @@ Synth *synth_create(Track *track)
     double A[] = {1.0, -1.0};
     double B[] = {0.999};
     iir_set_coeffs(&s->dc_blocker, A, B);
+    for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
+	OscCfg *cfg = s->base_oscs + i;
+	cfg->unison.detune_cents = 10;
+	cfg->unison.stereo_spread = 0.1;
+    }
+
 
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	SynthVoice *v = s->voices + i;
@@ -756,8 +766,9 @@ Synth *synth_create(Track *track)
 	    JDAW_THREAD_DSP,
 	    page_el_gui_cb, NULL, NULL,
 	    s, cfg, &s->osc_page, cfg->unison.num_voices_id);
-	endpoint_set_allowed_range(&cfg->unison.num_voices_ep, (Value){.int_v = 0}, (Value){.int_v = 4});
+	endpoint_set_allowed_range(&cfg->unison.num_voices_ep, (Value){.int_v = 0}, (Value){.int_v = SYNTH_MAX_UNISON_OSCS - 1});
 	api_endpoint_register(&cfg->unison.num_voices_ep, &cfg->api_node);
+	endpoint_set_label_fn(&cfg->unison.num_voices_ep, label_int_plus_one);
 
 	endpoint_init(
 	    &cfg->unison.detune_cents_ep,
@@ -768,8 +779,8 @@ Synth *synth_create(Track *track)
 	    JDAW_THREAD_DSP,
 	    page_el_gui_cb, NULL, detune_cents_dsp_cb,
 	    s, cfg, &s->osc_page, cfg->unison.detune_cents_id);
-	endpoint_set_allowed_range(&cfg->unison.detune_cents_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 50.0f});
-	endpoint_set_default_value(&cfg->unison.detune_cents_ep, (Value){.float_v = 5.0f});
+	endpoint_set_allowed_range(&cfg->unison.detune_cents_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 100.0f});
+	endpoint_set_default_value(&cfg->unison.detune_cents_ep, (Value){.float_v = 10.0f});
 	api_endpoint_register(&cfg->unison.detune_cents_ep, &cfg->api_node);
 
 	endpoint_init(
@@ -893,102 +904,222 @@ static float polyblep(float incr, float phase)
     return 0.0;
 }
 
-
 static void osc_set_freq(Osc *osc, double freq_hz);
-static inline float osc_sample(Osc *osc, int channel, int num_channels, float step)
+bool do_blep = true;
+
+static void osc_reset_params(Osc *restrict osc)
 {
     OscCfg *cfg = osc->cfg;
-    /* float amp = cfg->amp; */
-    /* float pan = cfg->pan; */
-    if (cfg->fix_freq) {
-	/* Lowpass filter to control signal to smooth stairsteps */
-	float f_raw = dsp_scale_freq_to_hz(cfg->fixed_freq_unscaled);
-	float f = f_raw * 0.001 + osc->freq_last_sample[channel] * 0.999;
-	osc_set_freq(osc, f);
-	osc->freq_last_sample[channel] = f;
+    float note = (float)osc->voice->note_val + (osc->detune_cents + osc->tune_cents) / 100.0f;
+    osc_set_freq(osc, mtof_calc(note));
+    int unison_index = (osc - osc->voice->oscs) / SYNTH_NUM_BASE_OSCS;
+    if (unison_index > 0) { /* UNISON VOL */
+	osc->amp = cfg->amp * cfg->unison.relative_amp;
+	osc->pan = cfg->pan + osc->pan_offset;
+	if (osc->pan > 1.0f) osc->pan = 1.0f;
+	if (osc->pan < 0.0f) osc->pan = 0.0f;
     } else {
-	if (osc->reset_params_ctr[channel] <= 0) {
-	    osc->reset_params_ctr[channel] = 192; /* 2msec precision for 96kHz */
-	    float note = (float)osc->voice->note_val + (osc->detune_cents + osc->tune_cents) / 100.0f;
-	    osc_set_freq(osc, mtof_calc(note));
-	    int unison_index = (osc - osc->voice->oscs) / SYNTH_NUM_BASE_OSCS;
-	    if (unison_index > 0) { /* UNISON VOL */
-		osc->amp = cfg->amp * cfg->unison.relative_amp;
-		osc->pan = cfg->pan + osc->pan_offset;
-		if (osc->pan > 1.0f) osc->pan = 1.0f;
-		if (osc->pan < 0.0f) osc->pan = 0.0f;
-	    } else {
-		osc->amp = cfg->amp;
-		osc->pan = cfg->pan;
-	    }
-	}
-	osc->reset_params_ctr[channel]--;
+	osc->amp = cfg->amp;
+	osc->pan = cfg->pan;
     }
-    float sample;
-    double phase_incr = osc->sample_phase_incr + osc->sample_phase_incr_addtl;
-    switch(osc->type) {
-    case WS_SINE:
-	sample = sin(TAU * osc->phase[channel]);
-	break;
-    case WS_SQUARE:
-	sample = osc->phase[channel] < 0.5 ? 1.0 : -1.0;
-	/* if (do_blep) { */
-	/* BLEP */
-	sample += polyblep(phase_incr, osc->phase[channel]);
-	sample -= polyblep(phase_incr, fmod(osc->phase[channel] + 0.5, 1.0)); 
-	/* } */
-	break;
-    case WS_TRI:
-	sample =
-	    osc->phase[channel] <= 0.25 ?
-	        osc->phase[channel] * 4.0f :
-	    osc->phase[channel] <= 0.5f ?
-	        (0.5f - osc->phase[channel]) * 4.0 :
-	    osc->phase[channel] <= 0.75f ?
-	        (osc->phase[channel] - 0.5f) * -4.0 :
-	        (1.0f - osc->phase[channel]) * -4.0;
-        break;
-    case WS_SAW:
-	sample = 2.0f * osc->phase[channel] - 1.0;
-	/* if (do_blep) { */\
-	/* BLEP */
-	sample -= polyblep(phase_incr, osc->phase[channel]);
-	/* } */
-	break;
-    default:
-	sample = 0.0;
+}
+
+/* static void osc_get_buf_preamp(Osc *restrict osc, float step, float *restrict buf, int len); */
+static void osc_get_buf_preamp(Osc *restrict osc, float step, int len)
+{
+    if (len > MAX_OSC_BUF_LEN) {
+	fprintf(stderr, "Error: Synth Oscs cannot support buf size > %d (req size %d)\n", MAX_OSC_BUF_LEN, len);
+	#ifdef TESTBUILD
+	exit(1);
+	#endif
+	len = MAX_OSC_BUF_LEN;
     }
+    float *fmod_samples;
+    float *amod_samples;
     if (osc->freq_modulator) {
-	/* Raise fmod sample to 3 to get fmod values in more useful range */
-	float fmod_sample = pow(osc_sample(osc->freq_modulator, channel, num_channels, step), 3.0);
-	/* fprintf(stderr, "fmod sample in osc %p: %f\n", osc, fmod_sample); */
-	osc->phase[channel] += phase_incr * (step * (1.0f + fmod_sample));
-    } else {
-	osc->phase[channel] += phase_incr * step;
+	fmod_samples = osc->freq_modulator->buf;
+	osc_get_buf_preamp(osc->freq_modulator, step, len);
     }
     if (osc->amp_modulator) {
-	sample *= 1.0 + osc_sample(osc->amp_modulator, channel, num_channels, step);
+	amod_samples = osc->amp_modulator->buf;
+	osc_get_buf_preamp(osc->amp_modulator, step, len);
     }
-    if (osc->phase[channel] > 1.0) {
-	osc->phase[channel] = osc->phase[channel] - floor(osc->phase[channel]);
-    } else if (osc->phase[channel] < 0.0) {
-	osc->phase[channel] = 1.0 + osc->phase[channel] + ceil(osc->phase[channel]);
+    double phase_incr = osc->sample_phase_incr + osc->sample_phase_incr_addtl;
+    double phase = osc->phase;
+    for (int i=0; i<len; i++) {
+	float sample;
+	/* double phase_incr = osc->sample_phase_incr + osc->sample_phase_incr_addtl; */
+	switch(osc->type) {
+	case WS_SINE:
+	    sample = sinf(TAU * phase);
+	    break;
+	case WS_SQUARE:
+	    sample = phase < 0.5 ? 1.0 : -1.0;
+	    /* if (do_blep) { */
+	    /* BLEP */
+	    sample += polyblep(phase_incr, phase);
+	    sample -= polyblep(phase_incr, fmod(phase + 0.5, 1.0)); 
+	    /* } */
+	    break;
+	case WS_TRI:
+	    sample =
+		phase <= 0.25 ?
+	        phase * 4.0f :
+	    phase <= 0.5f ?
+	        (0.5f - phase) * 4.0 :
+	    phase <= 0.75f ?
+	        (phase - 0.5f) * -4.0 :
+	    (1.0f - phase) * -4.0;
+	    break;
+	case WS_SAW:
+	    sample = 2.0f * phase - 1.0;
+	    if (do_blep) {
+		/* BLEP */
+		sample -= polyblep(phase_incr, phase);
+	    }
+	    break;
+	default:
+	    sample = 0.0;
+	}
+	if (osc->freq_modulator) {
+	    /* Raise fmod sample to 3 to get fmod values in more useful range */
+	    /* float fmod_sample = pow(osc_sample(osc->freq_modulator, channel, num_channels, step, chunk_index), 3.0); */
+	    /* fprintf(stderr, "fmod sample in osc %p: %f\n", osc, fmod_sample); */
+	    phase += phase_incr * step * (1.0f + pow(fmod_samples[i], 3.0));
+	} else {
+	    phase += phase_incr;
+	}
+	if (osc->amp_modulator) {
+	    sample *= 1.0 + amod_samples[i];
+	    /* sample *= 1.0 + osc_sample(osc->amp_modulator, channel, num_channels, step, chunk_index); */
+	}
+	if (phase > 1.0) {
+	    phase = phase - floor(phase);
+	} else if (phase < 0.0) {
+	    phase = 1.0 + phase + ceil(phase);
+	}
+	osc->buf[i] = sample;
     }
-    /* fprintf(stderr, "Osc: %p phase: %f\n", osc, osc->phase[channel]); */
-    /* float pan_scale; */
-    /* if (channel == 0) { */
-    /* 	pan_scale = osc->pan <= 0.5 ? 1.0 : (1.0f - osc->pan) * 2.0f; */
-    /* } else { */
-    /* 	pan_scale = osc->pan >= 0.5 ? 1.0 : osc->pan * 2.0f; */
+    osc->phase = phase;
+    /* osc->phase_incr =  */
+    /* apply_amp_and_pan: */
+    /* 	(void)0; */
+    /* 	float bottom_sample; */
+    /* 	if (channel == 0) { */
+    /* 	    osc->saved_L_out[chunk_index] = sample; */
+    /* 	    bottom_sample = sample; */
+    /* 	} else { */
+    /* 	    bottom_sample = osc->saved_L_out[chunk_index]; */
+    /* 	} */
+    /* 	return bottom_sample * osc->amp * pan_scale(osc->pan, channel); */
     /* } */
-    #ifdef TESTBUILD
-    if (fpclassify(sample * osc->amp * pan_scale(osc->pan, channel)) < 3) {
-	breakfn();
-    }
-    /* if (fpclassify(osc->sample_phase_incr,  */
-    #endif
-    return sample * osc->amp * pan_scale(osc->pan, channel);
 }
+
+
+/* static float osc_sample(Osc *osc, int channel, int num_channels, float step, int chunk_index) */
+/* { */
+/*     if (channel != 0) goto apply_amp_and_pan; */
+/*     OscCfg *cfg = osc->cfg; */
+/*     /\* float amp = cfg->amp; *\/ */
+/*     /\* float pan = cfg->pan; *\/ */
+/*     if (cfg->fix_freq) { */
+/* 	/\* Lowpass filter to control signal to smooth stairsteps *\/ */
+/* 	float f_raw = dsp_scale_freq_to_hz(cfg->fixed_freq_unscaled); */
+/* 	float f = f_raw * 0.001 + osc->freq_last_sample[channel] * 0.999; */
+/* 	osc_set_freq(osc, f); */
+/* 	osc->freq_last_sample[channel] = f; */
+/*     } else { */
+/* 	if (osc->reset_params_ctr[channel] <= 0) { */
+/* 	    osc->reset_params_ctr[channel] = 192; /\* 2msec precision for 96kHz *\/ */
+/* 	    float note = (float)osc->voice->note_val + (osc->detune_cents + osc->tune_cents) / 100.0f; */
+/* 	    osc_set_freq(osc, mtof_calc(note)); */
+/* 	    int unison_index = (osc - osc->voice->oscs) / SYNTH_NUM_BASE_OSCS; */
+/* 	    if (unison_index > 0) { /\* UNISON VOL *\/ */
+/* 		osc->amp = cfg->amp * cfg->unison.relative_amp; */
+/* 		osc->pan = cfg->pan + osc->pan_offset; */
+/* 		if (osc->pan > 1.0f) osc->pan = 1.0f; */
+/* 		if (osc->pan < 0.0f) osc->pan = 0.0f; */
+/* 	    } else { */
+/* 		osc->amp = cfg->amp; */
+/* 		osc->pan = cfg->pan; */
+/* 	    } */
+/* 	} */
+/* 	osc->reset_params_ctr[channel]--; */
+/*     } */
+/*     float sample; */
+/*     double phase_incr = osc->sample_phase_incr + osc->sample_phase_incr_addtl; */
+/*     switch(osc->type) { */
+/*     case WS_SINE: */
+/* 	sample = sin(TAU * osc->phase[channel]); */
+/* 	break; */
+/*     case WS_SQUARE: */
+/* 	sample = osc->phase[channel] < 0.5 ? 1.0 : -1.0; */
+/* 	/\* if (do_blep) { *\/ */
+/* 	/\* BLEP *\/ */
+/* 	sample += polyblep(phase_incr, osc->phase[channel]); */
+/* 	sample -= polyblep(phase_incr, fmod(osc->phase[channel] + 0.5, 1.0));  */
+/* 	/\* } *\/ */
+/* 	break; */
+/*     case WS_TRI: */
+/* 	sample = */
+/* 	    osc->phase[channel] <= 0.25 ? */
+/* 	        osc->phase[channel] * 4.0f : */
+/* 	    osc->phase[channel] <= 0.5f ? */
+/* 	        (0.5f - osc->phase[channel]) * 4.0 : */
+/* 	    osc->phase[channel] <= 0.75f ? */
+/* 	        (osc->phase[channel] - 0.5f) * -4.0 : */
+/* 	        (1.0f - osc->phase[channel]) * -4.0; */
+/*         break; */
+/*     case WS_SAW: */
+/* 	sample = 2.0f * osc->phase[channel] - 1.0; */
+/* 	if (do_blep) { */
+/* 	/\* BLEP *\/ */
+/* 	    sample -= polyblep(phase_incr, osc->phase[channel]); */
+/* 	} */
+/* 	break; */
+/*     default: */
+/* 	sample = 0.0; */
+/*     } */
+/*     if (osc->freq_modulator) { */
+/* 	/\* Raise fmod sample to 3 to get fmod values in more useful range *\/ */
+/* 	float fmod_sample = pow(osc_sample(osc->freq_modulator, channel, num_channels, step, chunk_index), 3.0); */
+/* 	/\* fprintf(stderr, "fmod sample in osc %p: %f\n", osc, fmod_sample); *\/ */
+/* 	osc->phase[channel] += phase_incr * (step * (1.0f + fmod_sample)); */
+/*     } else { */
+/* 	osc->phase[channel] += phase_incr * step; */
+/*     } */
+/*     if (osc->amp_modulator) { */
+/* 	sample *= 1.0 + osc_sample(osc->amp_modulator, channel, num_channels, step, chunk_index); */
+/*     } */
+/*     if (osc->phase[channel] > 1.0) { */
+/* 	osc->phase[channel] = osc->phase[channel] - floor(osc->phase[channel]); */
+/*     } else if (osc->phase[channel] < 0.0) { */
+/* 	osc->phase[channel] = 1.0 + osc->phase[channel] + ceil(osc->phase[channel]); */
+/*     } */
+/*     /\* fprintf(stderr, "Osc: %p phase: %f\n", osc, osc->phase[channel]); *\/ */
+/*     /\* float pan_scale; *\/ */
+/*     /\* if (channel == 0) { *\/ */
+/*     /\* 	pan_scale = osc->pan <= 0.5 ? 1.0 : (1.0f - osc->pan) * 2.0f; *\/ */
+/*     /\* } else { *\/ */
+/*     /\* 	pan_scale = osc->pan >= 0.5 ? 1.0 : osc->pan * 2.0f; *\/ */
+/*     /\* } *\/ */
+/*     #ifdef TESTBUILD */
+/*     if (fpclassify(sample * osc->amp * pan_scale(osc->pan, channel)) < 3) { */
+/* 	breakfn(); */
+/*     } */
+/*     /\* if (fpclassify(osc->sample_phase_incr,  *\/ */
+/*     #endif */
+/* apply_amp_and_pan: */
+/*     (void)0; */
+/*     float bottom_sample; */
+/*     if (channel == 0) { */
+/* 	osc->saved_L_out[chunk_index] = sample; */
+/* 	bottom_sample = sample; */
+/*     } else { */
+/* 	bottom_sample = osc->saved_L_out[chunk_index]; */
+/*     } */
+/*     return bottom_sample * osc->amp * pan_scale(osc->pan, channel); */
+/* } */
 
 static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int channel, float step)
 {
@@ -1002,15 +1133,29 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 	if (cfg->mod_freq_of || cfg->mod_amp_of) continue;
 	/* fprintf(stderr, "\t\tvoice %ld osc %d\n", v - v->synth->voices, i); */
 	Osc *osc = v->oscs + i;
-	for (int i=0; i<len; i++) {
-	    osc_buf[i] += osc_sample(osc, channel, 2, step);
+	osc_reset_params(osc);
+	float ind_osc_buf[len];
+	if (channel == 0) {
+	    osc_get_buf_preamp(osc, step, len);
 	}
+	memcpy(ind_osc_buf, osc->buf, len * sizeof(float));
+	float amp = osc->amp * pan_scale(osc->pan, channel);
+        float_buf_mult_const(ind_osc_buf, amp, len);
+	float_buf_add(osc_buf, ind_osc_buf, len);
+	
+	/* for (int i=0; i<len; i++) { */
+	/*     osc_buf[i] += osc_sample(osc, channel, 2, step, i); */
+	/* } */
 	for (int j=0; j<cfg->unison.num_voices; j++) {
-	    Osc *detune_voice = v->oscs + i + SYNTH_NUM_BASE_OSCS * (j + 1);
-	    for (int i=0; i<len; i++) {
-		/* fprintf(stderr, "adding detune voice %d/%d, freq %f\n", j, cfg->detune.num_voices, detune_voice->freq); */
-		osc_buf[i] += osc_sample(detune_voice, channel, 2, step);
+	    osc = v->oscs + i + SYNTH_NUM_BASE_OSCS * (j + 1);
+	    osc_reset_params(osc);
+	    if (channel == 0) {
+		osc_get_buf_preamp(osc, step, len);
 	    }
+	    memcpy(ind_osc_buf, osc->buf, len * sizeof(float));
+	    amp = osc->amp * pan_scale(osc->pan, channel);
+	    float_buf_mult_const(ind_osc_buf, amp, len);
+	    float_buf_add(osc_buf, ind_osc_buf, len);
 	}
     }
 
@@ -1158,12 +1303,13 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
 	for (int j=0; j<SYNTHVOICE_NUM_OSCS; j+=SYNTH_NUM_BASE_OSCS) {
 	    Osc *osc = v->oscs + i + j;
 	    osc->type = cfg->type;
-	    osc->reset_params_ctr[0] = 0;
-	    osc->reset_params_ctr[1] = 0;
+	    /* osc->reset_params_ctr[0] = 0; */
+	    /* osc->reset_params_ctr[1] = 0; */
 	    
 	    if (synth->sync_phase) {
-		osc->phase[0] = 0.0;
-		osc->phase[1] = 0.0;
+		osc->phase = 0.0;
+		/* osc->phase[0] = 0.0; */
+		/* osc->phase[1] = 0.0; */
 	    }
 	    /* osc-> */
 	}

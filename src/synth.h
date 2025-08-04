@@ -36,8 +36,9 @@
 
 #define SYNTH_NUM_VOICES 24
 #define SYNTH_NUM_BASE_OSCS 4
-#define SYNTH_MAX_UNISON_OSCS 5
+#define SYNTH_MAX_UNISON_OSCS 9
 #define SYNTHVOICE_NUM_OSCS (SYNTH_NUM_BASE_OSCS * SYNTH_MAX_UNISON_OSCS) /* 4 base oscillators, up to 5 per base for detune */
+#define MAX_OSC_BUF_LEN 8192
 
 /* #define SYNTH_EVENT_BUF_SIZE 512 */
 
@@ -56,11 +57,12 @@ typedef struct osc Osc;
 typedef struct osc_cfg OscCfg;
 typedef struct synth_voice SynthVoice;
 typedef struct osc {
+    float buf[MAX_OSC_BUF_LEN];
     bool active;
     OscCfg *cfg;
     SynthVoice *voice;
     WaveShape type;
-    double phase[2];
+    double phase;
     double sample_phase_incr;
     double freq;
     float amp;
@@ -71,14 +73,14 @@ typedef struct osc {
     float detune_cents; /* Unison voice detune */
     float tune_cents; /* Octave + coarse + fine */
     float pan_offset; /* Unison stereo spread */
-    float freq_last_sample[2];
+    float freq_last_sample;
 
     double sample_phase_incr_addtl; /* pitch bend */
 
-    float last_out[2];
-    float last_in[2];
+    float last_out;
+    float last_in;
 
-    int reset_params_ctr[2];
+    /* int reset_params_ctr; */
 } Osc;
 
 typedef struct synth Synth;

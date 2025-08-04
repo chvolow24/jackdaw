@@ -210,6 +210,13 @@ void label_msec(char *dst, size_t dstsize, Value v, ValType t)
     strcat(dst, " ms");
 }
 
+void label_int_plus_one(char *dst, size_t dstsize, Value v, ValType t)
+{
+    int plusone = v.int_v + 1;
+    snprintf(dst, dstsize, "%d", plusone);
+    
+}
+
 /* void label_freq_raw_to_hz(char *dst, size_t dstsize, double raw) */
 /* { */
 /*     double hz = dsp_scale_freq_to_hz(raw); */

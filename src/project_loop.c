@@ -69,6 +69,7 @@ TabView *synth_tabview_create(Track *track);
 void user_global_quit(void *);
 void timeline_add_jlily();
 
+extern bool do_blep;
 void loop_project_main()
 {
     Session *session = session_get();
@@ -206,14 +207,14 @@ void loop_project_main()
 		/*     /\* fclose(f); *\/ */
 		}
 		    break;
-		/* case SDL_SCANCODE_4: */
-		/*     do_blep = !do_blep; */
-		/*     if (do_blep) { */
-		/* 	fprintf(stderr, "DOING BLEP!\n"); */
-		/*     } else { */
-		/* 	fprintf(stderr, "No blep...\n"); */
-		/*     } */
-		/*     break; */
+		case SDL_SCANCODE_4:
+		    do_blep = !do_blep;
+		    if (do_blep) {
+			fprintf(stderr, "DOING BLEP!\n");
+		    } else {
+			fprintf(stderr, "No blep...\n");
+		    }
+		    break;
 		/* case SDL_SCANCODE_5: { */
 		/*     breakfn(); */
 		/*     Timeline *tl = ACTIVE_TL; */

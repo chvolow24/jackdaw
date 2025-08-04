@@ -236,7 +236,7 @@ double dsp_scale_freq_to_hz(double freq_unscaled)
 
 
 
-float pan_scale(float pan, int channel)
+inline float pan_scale(float pan, int channel)
 {
     return
 	channel == 0 ?

@@ -47,6 +47,7 @@ void label_pan(char *dst, size_t dstsize, Value val, ValType t);
 /* void label_amp_to_dbstr(char *dst, size_t dstsize, float amp); */
 /* void label_pan(char *dst, size_t dstsize, float pan); */
 void label_msec(char *dst, size_t dstsize, Value v, ValType t);
+void label_int_plus_one(char *dst, size_t dstsize, Value v, ValType t);
 void label_freq_raw_to_hz(char *dst, size_t dstsize, Value v, ValType t);
 /* void label_freq_raw_to_hz(char *dst, size_t dstsize, double raw); */
 /* void label_time_samples_to_msec(char *dst, size_t dstsize, int32_t samples, int32_t sample_rate); */

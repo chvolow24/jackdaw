@@ -9,6 +9,7 @@
 #include "dot_jdaw.h"
 #include "endpoint.h"
 #include "function_lookup.h"
+#include "page.h"
 #include "session_endpoint_ops.h"
 #include "input.h"
 /* #include "loading */
@@ -27,6 +28,7 @@
 #include "effect_pages.h"
 #include "transport.h"
 #include "timeline.h"
+#include "userfn.h"
 #include "wav.h"
 
 #define MENU_MOVE_BY 40
@@ -1363,7 +1365,10 @@ void user_tl_track_selector_up(void *nullarg)
 	if ((tv = main_win->active_tabview)) {
 	    if (strcmp(tv->title, "Track Effects") == 0) {
 		settings_track_tabview_set_track(tv, selected);
+	    } else if (strcmp(tv->title, "Synth settings") == 0) {
+		user_tl_track_open_synth(NULL);
 	    }
+
 	}
     } else {
 	TabView *tv;
@@ -1445,6 +1450,8 @@ void user_tl_track_selector_down(void *nullarg)
 	if ((tv = main_win->active_tabview)) {
 	    if (strcmp(tv->title, "Track Effects") == 0) {
 		settings_track_tabview_set_track(tv, selected);
+	    } else if (strcmp(tv->title, "Synth settings") == 0) {
+		user_tl_track_open_synth(NULL);
 	    }
 	}
     } else {

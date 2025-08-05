@@ -1044,8 +1044,6 @@ void click_track_draw(ClickTrack *tt)
 
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
     SDL_RenderFillRect(main_win->rend, tt->console_rect);
-
-
     
     static SDL_Color line_colors[] =  {
 	{255, 250, 125, 255},
@@ -1117,7 +1115,8 @@ void click_track_draw(ClickTrack *tt)
     SDL_RenderFillRect(main_win->rend, tt->right_console_rect);
 
     /* Draw right console elements */
-    window_defer_draw(main_win, click_track_deferred_draw, tt);
+    click_track_deferred_draw(tt);
+    /* window_defer_draw(main_win, click_track_deferred_draw, tt); */
 
     /* Draw outline */
     SDL_SetRenderDrawColor(main_win->rend, 100, 100, 100, 255);

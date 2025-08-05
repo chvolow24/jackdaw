@@ -38,8 +38,10 @@ typedef struct iir_filter {
     int num_channels;
     double *A; /* input delay coeffs */
     double *B; /* output delay coeffs */
-    double **memIn;
-    double **memOut;
+    double **mem_in;
+    double **mem_out;
+    int mem_index[2];
+    /* int memOut_index; */
 
     struct freq_plot *fp;
     double *freq_resp;

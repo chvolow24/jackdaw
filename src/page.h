@@ -106,6 +106,9 @@ typedef struct tab_view {
     void (*swap_fn)(void *array, int swap_i, int swap_j);
     void *swap_fn_target;
     /* size_t related_array_el_size; */
+
+    char *label_str;
+    Textbox *label; /* Upper-right corner of screen */
 } TabView;
 
 struct slider_params {

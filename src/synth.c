@@ -1277,7 +1277,6 @@ static void osc_set_freq(Osc *osc, double freq_hz)
 	breakfn();
     }
     #endif
-    /* osc->sample_phase_incr_addtl = 0; */
     /* fprintf(stderr, "OSC %p SFI: %f, ADDTL: %f\n", osc, osc->sample_phase_incr, osc->sample_phase_incr_addtl); */
 }
 
@@ -1333,6 +1332,7 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
 	for (int j=0; j<SYNTHVOICE_NUM_OSCS; j+=SYNTH_NUM_BASE_OSCS) {
 	    Osc *osc = v->oscs + i + j;
 	    osc->type = cfg->type;
+	    /* osc->sample_phase_incr_addtl = 0; */
 	    /* osc->reset_params_ctr[0] = 0; */
 	    /* osc->reset_params_ctr[1] = 0; */
 	    

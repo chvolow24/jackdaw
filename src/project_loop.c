@@ -208,7 +208,7 @@ void loop_project_main()
 		}
 		    break;
 		case SDL_SCANCODE_4:
-		    do_blep = !do_blep;
+		/*     do_blep = !do_blep; */
 		    if (do_blep) {
 			fprintf(stderr, "DOING BLEP!\n");
 		    } else {
@@ -444,29 +444,12 @@ void loop_project_main()
 			    play_speed_scroll_recency = 0;
 			    if (!session->playback.playing) transport_start_playback();
 			    Value old_speed = endpoint_safe_read(&session->playback.play_speed_ep, NULL);
-			    fprintf(stderr, "CMDCTRL? %d META? %d\n", (main_win->i_state & I_STATE_CMDCTRL), main_win->i_state & I_STATE_META);
-			    if ((main_win->i_state & I_STATE_CMDCTRL) && (main_win->i_state & I_STATE_META)) {
-				float new_speed;
-				float mult = 2.0 / 12.0;
-				bool do_write = false;
-				if (e.wheel.preciseY > 10.0) {
-				    new_speed = old_speed.float_v * mult;
-				    do_write = true;
-				} else if (e.wheel.preciseY < -10.0) {
-				    new_speed = old_speed.float_v / mult;
-				    do_write = true;
-				}
-				fprintf(stderr, "SEMITONE mult %f\n", mult);
-				/* float new_speed = old_speed.float_v * e.wheel.preciseX >  ? 2.0 / 12.0 : (1.0/2.0)/12.0; */
-				if (do_write)
-				    endpoint_write(&session->playback.play_speed_ep, (Value){.float_v = new_speed}, true, true, true, false);
-				
-			    } else if ((main_win->i_state & I_STATE_META) && !(main_win->i_state & I_STATE_CMDCTRL)) {
-				float new_speed = (old_speed.float_v + e.wheel.preciseX / 20.0) / 2;
-				endpoint_write(&session->playback.play_speed_ep, (Value){.float_v = new_speed}, true, true, true, false);
-			    } else if (main_win->i_state & I_STATE_CMDCTRL) {
+			    if (main_win->i_state & I_STATE_CMDCTRL) {
 				float new_speed = (old_speed.float_v + e.wheel.preciseX) / 2;
 				endpoint_write(&session->playback.play_speed_ep, (Value){.float_v = new_speed}, true, true, true, false);
+			    } else if (main_win->i_state & I_STATE_META) {
+				float new_speed = (old_speed.float_v + e.wheel.preciseX / 20.0) / 2;
+				endpoint_write(&session->playback.play_speed_ep, (Value){.float_v = new_speed}, true, true, true, false);				
 			    } else {
 				float new_speed = (old_speed.float_v + e.wheel.preciseX / 3.0) / 2;
 				endpoint_write(&session->playback.play_speed_ep, (Value){.float_v = new_speed}, true, true, true, false);				

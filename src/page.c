@@ -182,6 +182,8 @@ void tabview_destroy(TabView *tv)
 	page_destroy(tv->tabs[i]);
 	textbox_destroy(tv->labels[i]);
     }
+    textbox_destroy(tv->label);
+    free(tv->label_str);
     free(tv);
 }
 /* void layout_write(FILE *f, Layout *lt); */
@@ -972,6 +974,9 @@ void tabview_draw(TabView *tv)
 	}
 	tabview_draw_inner(tv, i);
     }
+    textbox_reset_full(tv->label);
+    textbox_draw(tv->label);
+    layout_draw(main_win, tv->label->layout);
     /* layout_draw(main_win, tv->layout); */
 
     /* page = tv->tabs[tv->current_tab]; */
@@ -1034,8 +1039,39 @@ void tabview_activate(TabView *tv)
     if (win->active_tabview) {
 	tabview_destroy(win->active_tabview);
     }
+
+    Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
+    char *track_name;
+    Track *track = timeline_selected_track(tl);
+    if (track) {
+	track_name = track->name;
+    } else {
+	track_name = timeline_selected_click_track(tl)->name;
+    }
+    /* ClickTrack *ct; */
+    int label_str_len = strlen(tv->title) + strlen(track_name) + 4;
+    tv->label_str = malloc(label_str_len);
+    snprintf(tv->label_str, label_str_len, "%s - %s", tv->title, track_name);
+    Layout *label_lt = layout_add_child(main_win->layout);
+    label_lt->x.type = REVREL;
+    label_lt->y.type = ABS;
+    label_lt->h.value = 30.0;
+    label_lt->w.value = 400.0;
+    layout_reset(main_win->layout);
+    tv->label = textbox_create_from_str(
+	tv->label_str,
+	label_lt,
+	main_win->mono_bold_font,
+	18,
+	main_win);
+    fprintf(stderr, "LABEL STR: %s\n", tv->label_str);
+    textbox_set_background_color(tv->label, NULL);
+    textbox_set_text_color(tv->label, &colors.white);
+    textbox_reset_full(tv->label);
     
     win->active_tabview = tv;
+    layout_write(stderr, tv->label->layout, 0);
     window_push_mode(tv->win, TABVIEW);
     tv->tabs[tv->current_tab]->onscreen = true;
     tabview_select_el(tv);

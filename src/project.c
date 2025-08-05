@@ -2268,7 +2268,9 @@ void timeline_play_speed_adj(double dim)
 {
     Session *session = session_get();
     double new_speed = session->playback.play_speed;
-    if (main_win->i_state & I_STATE_CMDCTRL) {
+    if ((main_win->i_state & I_STATE_CMDCTRL) && (main_win->i_state & I_STATE_META)) {
+	new_speed *= dim < -0.5 ? pow(1.0/2.0, 1.0/12.0) : dim > 0.5 ? pow(1.0/2.0, -1.0/12.0) : 1.0;
+    } else if (main_win->i_state & I_STATE_CMDCTRL) {
 	new_speed += dim * PLAYSPEED_ADJUST_SCALAR_LARGE;
     } else if (main_win->i_state & I_STATE_META) {
 	new_speed += dim * PLAYSPEED_ADJUST_SCALAR_TINY;

@@ -18,8 +18,6 @@ extern double MTOF[];
 static void synth_osc_vol_dsp_cb(Endpoint *ep)
 {
     OscCfg *cfg = ep->xarg1;
-    /* float vol_unscaled = endpoint_safe_read(ep, NULL).float_v; */
-    /* cfg->amp = pow(vol_unscaled, 2.0); */
     if (cfg->amp > 1e-9) cfg->active = true;
     else cfg->active = false;
 }
@@ -114,20 +112,34 @@ static void detune_cents_dsp_cb(Endpoint *ep)
     
     int unison_i = 0;
     int divisor = 1;
-    int sign = -1;
+    /* int sign = -1; */
+    int pair_i = 0;
+    int pair_item = 0;
     while (osc_i < SYNTHVOICE_NUM_OSCS) {
 	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	    SynthVoice *v = synth->voices + i;
-	    float offset = max_offset_cents / divisor;
 
-	    if (i==0) {
+	    if (i==0 && unison_i != 0) {
 		if (unison_i % 2 == 0) {
-		    sign *= -1;
-		} else {
+		    pair_i++;
+		    pair_item = 0;
 		    divisor++;
 		}
 	    }
-	    offset *= sign;
+	    float offset = max_offset_cents / divisor;
+
+	    if (i==0) {
+		fprintf(stderr, "PAIR I: %d, item: %d\n", pair_i, pair_item);
+	    }
+	    if (pair_i % 2 == 0 && pair_item == 0) {
+		offset *= -1;
+	    } else if (pair_i % 2 != 0 && pair_item == 1) {
+		offset *= -1;
+	    }
+	    if (i ==0) {
+		pair_item++;
+	    }
+	    /* offset *= sign; */
 	    if (i==0) {
 		fprintf(stderr, "Voice %d, offset %f\n", unison_i, offset);
 	    }
@@ -259,8 +271,10 @@ Synth *synth_create(Track *track)
     /* s->base_oscs[0].fixed_freq = 0.1; */
 
     s->filter_active = true;
-    s->base_cutoff = 0.01f;
-    s->pitch_amt = 5.0f;
+    s->base_cutoff = 0.1f;
+    s->base_cutoff_unscaled = 0.1f;
+    s->base_cutoff = dsp_scale_freq(s->base_cutoff_unscaled);
+    s->pitch_amt = 3.0f;
     s->vel_amt = 0.75f;
     s->env_amt = 5.0f;
     s->resonance = 3.0;
@@ -304,8 +318,8 @@ Synth *synth_create(Track *track)
     }
     s->amp_env.a_msec = 4;
     s->amp_env.d_msec = 200;
-    s->amp_env.s_ep_targ = 0.4;
-    s->amp_env.r_msec = 400;
+    s->amp_env.s_ep_targ = 0.7;
+    s->amp_env.r_msec = 20;
     
     s->filter_env.a_msec = 4;
     s->filter_env.d_msec = 200;
@@ -910,7 +924,17 @@ bool do_blep = true;
 static void osc_reset_params(Osc *restrict osc)
 {
     OscCfg *cfg = osc->cfg;
-    float note = (float)osc->voice->note_val + (osc->detune_cents + osc->tune_cents) / 100.0f;
+    float note;
+    if (cfg->fix_freq) {
+	/* Lowpass filter to control signal to smooth stairsteps */
+	float f_raw = dsp_scale_freq_to_hz(cfg->fixed_freq_unscaled);
+	float f = f_raw * 0.01 + osc->freq_last_sample * 0.99;
+	note = ftom_calc(f);
+	osc->freq_last_sample = f;
+    } else {
+	note = (float)osc->voice->note_val;
+    }
+    note += (osc->detune_cents + osc->tune_cents) / 100.0f;
     osc_set_freq(osc, mtof_calc(note));
     int unison_index = (osc - osc->voice->oscs) / SYNTH_NUM_BASE_OSCS;
     if (unison_index > 0) { /* UNISON VOL */
@@ -953,6 +977,10 @@ static void osc_get_buf_preamp(Osc *restrict osc, float step, int len)
     double phase = osc->phase;
     for (int i=0; i<len; i++) {
 	float sample;
+	if (osc->cfg->fix_freq && i % 93 == 0) {
+	    /* fprintf(stderr, "resetting %d\n", i); */
+	    osc_reset_params(osc);
+	}
 	/* double phase_incr = osc->sample_phase_incr + osc->sample_phase_incr_addtl; */
 	switch(osc->type) {
 	case WS_SINE:
@@ -1234,21 +1262,9 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 	}
 	/* buf[i] += osc_buf[i] * (float)v->velocity / 127.0f; */
     }
-    /* if (v->synth->noise_amt > 1e-9) { */
-    /* 	float noise_buf[len]; */
-    /* 	for (int i=0; i<len; i++) { */
-    /* 	    noise_buf[i] = ((float)(rand() % INT16_MAX) / INT16_MAX) * v->synth->noise_amt; */
-    /* 	} */
-    /* 	float_buf_add(osc_buf, noise_buf, len); */
-    /* } */
     float_buf_mult(osc_buf, amp_env, len);
     float_buf_mult_const(osc_buf, (float)v->velocity / 127.0f, len);
-    float_buf_add(buf, osc_buf, len);
-
-    /* for (int i=0; i<len; i++) { */
-    /* 	buf[i] = tanh(buf[i]); */
-    /* } */
-}
+    float_buf_add(buf, osc_buf, len);}
 
 static void osc_set_freq(Osc *osc, double freq_hz)
 {
@@ -1294,7 +1310,7 @@ static void synth_voice_pitch_bend(SynthVoice *v, float cents)
 	/* OscCfg *cfg = v->synth->base_oscs + i; */
 	/* if (!cfg->active) continue; */
 	for (int j=0; j<SYNTHVOICE_NUM_OSCS; j+= SYNTH_NUM_BASE_OSCS) {
-	    Osc *voice = v->oscs + j;
+	    Osc *voice = v->oscs + i + j;
 	    osc_set_pitch_bend(voice, freq_rat);
 	}
     }

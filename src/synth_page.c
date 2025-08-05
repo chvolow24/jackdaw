@@ -1041,10 +1041,8 @@ static int save_preset_action(void *self, void *target)
 
 static void add_preset_page(TabView *tv, Track *track)
 {
-
-    Synth *s = track->synth;
     static SDL_Color preset_bckgrnd = {50, 60, 60, 255};
-    Page *page = tabview_add_page(tv, "Filter", SYNTH_PRESETS_LT_PATH, &preset_bckgrnd, &colors.white, main_win);
+    Page *page = tabview_add_page(tv, "Presets", SYNTH_PRESETS_LT_PATH, &preset_bckgrnd, &colors.white, main_win);
 
     PageElParams p;
     p.button_p.font = main_win->std_font;

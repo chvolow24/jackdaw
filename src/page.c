@@ -974,10 +974,7 @@ void tabview_draw(TabView *tv)
 	}
 	tabview_draw_inner(tv, i);
     }
-    textbox_reset_full(tv->label);
     textbox_draw(tv->label);
-    layout_draw(main_win, tv->label->layout);
-    /* layout_draw(main_win, tv->layout); */
 
     /* page = tv->tabs[tv->current_tab]; */
     /* tb = tv->labels[tv->current_tab]; */
@@ -1055,7 +1052,9 @@ void tabview_activate(TabView *tv)
     snprintf(tv->label_str, label_str_len, "%s - %s", tv->title, track_name);
     Layout *label_lt = layout_add_child(main_win->layout);
     label_lt->x.type = REVREL;
+    label_lt->x.value = 4.0;
     label_lt->y.type = ABS;
+    label_lt->y.value = 4.0;
     label_lt->h.value = 30.0;
     label_lt->w.value = 400.0;
     layout_reset(main_win->layout);
@@ -1065,10 +1064,11 @@ void tabview_activate(TabView *tv)
 	main_win->mono_bold_font,
 	18,
 	main_win);
-    fprintf(stderr, "LABEL STR: %s\n", tv->label_str);
+    /* fprintf(stderr, "LABEL STR: %s\n", tv->label_str); */
     textbox_set_background_color(tv->label, NULL);
     textbox_set_text_color(tv->label, &colors.white);
     textbox_reset_full(tv->label);
+    layout_size_to_fit_children_h(label_lt, false, 0);
     
     win->active_tabview = tv;
     layout_write(stderr, tv->label->layout, 0);

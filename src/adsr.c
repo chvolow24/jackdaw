@@ -338,7 +338,7 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
 		s->release_start_env = s->params->s;
 		s->current_stage = ADSR_R;
 		s->start_release_after = -1;
-		fprintf(stderr, "Error: env stage error: release started in stage %d\n", s->current_stage);
+		/* fprintf(stderr, "Error: env stage error: release started in stage %d\n", s->current_stage); */
 		break;
 	    }
 	    /* fprintf(stderr, "\nSET START OF RELEASE ENV from stage %d, env rem: %d, val: %f\n", s->current_stage, s->env_remaining, s->release_start_env); */

@@ -92,9 +92,6 @@ static void unison_stereo_spread_dsp_cb(Endpoint *ep)
 		    divisor++;
 	    }
 	    v->oscs[osc_i].pan_offset = offset;
-	    if (i==0) {
-		fprintf(stderr, "Offset unison i %d (osc i %d) == %f\n", unison_i, osc_i, offset);
-	    }
 	}
 	osc_i += SYNTH_NUM_BASE_OSCS;
 	unison_i++;
@@ -128,9 +125,6 @@ static void detune_cents_dsp_cb(Endpoint *ep)
 	    }
 	    float offset = max_offset_cents / divisor;
 
-	    if (i==0) {
-		fprintf(stderr, "PAIR I: %d, item: %d\n", pair_i, pair_item);
-	    }
 	    if (pair_i % 2 == 0 && pair_item == 0) {
 		offset *= -1;
 	    } else if (pair_i % 2 != 0 && pair_item == 1) {
@@ -139,10 +133,7 @@ static void detune_cents_dsp_cb(Endpoint *ep)
 	    if (i ==0) {
 		pair_item++;
 	    }
-	    /* offset *= sign; */
-	    if (i==0) {
-		fprintf(stderr, "Voice %d, offset %f\n", unison_i, offset);
-	    }
+	    
 	    v->oscs[osc_i].detune_cents = offset;
 	}
 	osc_i += SYNTH_NUM_BASE_OSCS;

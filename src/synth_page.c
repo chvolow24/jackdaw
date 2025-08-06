@@ -375,7 +375,6 @@ static void add_osc_page(TabView *tv, Track *track)
 	
 	page_el_params_slider_from_ep(&p, &cfg->amp_ep);
 	snprintf(name_buf + 1, 255, "vol");
-	fprintf(stderr, "ADDING EL WITH ID %s\n", name_buf);
 	page_add_el(page,EL_SLIDER,p,name_buf,name_buf);
 
 	p.slider_p.style = SLIDER_TICK;
@@ -1244,7 +1243,6 @@ static void synth_open_form(DirNav *dn, DirPath *dp)
     char *ext = dotpos + 1;
     /* fprintf(stdout, "ext char : %c\n", *ext); */
     if (strcmp("jsynth", ext) * strcmp("JSYNTH", ext) == 0) {
-	fprintf(stdout, "Wav file selected\n");
 	Track *track = timeline_selected_track(tl);
 	if (!track) goto pop_modal_and_exit;
 	if (!track->synth) goto pop_modal_and_exit;
@@ -1325,7 +1323,6 @@ static int synth_save_form(void *mod_v, void *target)
 	    full_path[offset] = '/';
 	    offset++;
 	    offset += snprintf(full_path + offset, MAX_NAMELENGTH - offset, "%s", name);
-	    fprintf(stderr, "NAME before call? %s\n", name);
 	    synth_write_preset_file(full_path, track->synth);
 	}
 	ret = 0;

@@ -1367,13 +1367,19 @@ void user_tl_track_selector_up(void *nullarg)
 		settings_track_tabview_set_track(tv, selected);
 	    } else if (strcmp(tv->title, "Synth settings") == 0) {
 		user_tl_track_open_synth(NULL);
+	    } else {
+		tabview_close(tv);
 	    }
 
 	}
     } else {
 	TabView *tv;
 	if ((tv = main_win->active_tabview)) {
-	    click_track_populate_settings_tabview(timeline_selected_click_track(tl), tv);
+	    if (strcmp(tv->title, "Click track settings") == 0) {
+		click_track_populate_settings_tabview(timeline_selected_click_track(tl), tv);
+	    } else {
+		tabview_close(tv);
+	    }
 	}
     }
 
@@ -1452,12 +1458,18 @@ void user_tl_track_selector_down(void *nullarg)
 		settings_track_tabview_set_track(tv, selected);
 	    } else if (strcmp(tv->title, "Synth settings") == 0) {
 		user_tl_track_open_synth(NULL);
+	    } else {
+		tabview_close(tv);
 	    }
 	}
     } else {
 	TabView *tv;
 	if ((tv = main_win->active_tabview)) {
-	    click_track_populate_settings_tabview(timeline_selected_click_track(tl), tv);
+	    if (strcmp(tv->title, "Click track settings") == 0) {
+		click_track_populate_settings_tabview(timeline_selected_click_track(tl), tv);
+	    } else {
+		tabview_close(tv);
+	    }
 	}
     }
 

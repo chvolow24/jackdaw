@@ -36,7 +36,7 @@
 
 #define SYNTH_NUM_VOICES 24
 #define SYNTH_NUM_BASE_OSCS 4
-#define SYNTH_MAX_UNISON_OSCS 9
+#define SYNTH_MAX_UNISON_OSCS 7
 #define SYNTHVOICE_NUM_OSCS (SYNTH_NUM_BASE_OSCS * SYNTH_MAX_UNISON_OSCS) /* 4 base oscillators, up to 5 per base for detune */
 #define MAX_OSC_BUF_LEN 8192
 

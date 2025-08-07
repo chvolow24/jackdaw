@@ -83,6 +83,21 @@ static void unison_stereo_spread_dsp_cb(Endpoint *ep)
     int unison_i = 0;
     int divisor = 1;
     while (osc_i < SYNTHVOICE_NUM_OSCS) {
+	float offset = max_offset / divisor;
+	if (unison_i % 2 != 0) {
+	    offset *= -1;
+	    divisor++;
+	}
+	/* fprintf(stderr, "OSC I %d, unison %d, offset %f\n", osc_i, unison_i, offset); */
+	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+	    SynthVoice *v = synth->voices + i;
+	    v->oscs[osc_i].pan_offset = offset;
+	}
+	osc_i += SYNTH_NUM_BASE_OSCS;
+	unison_i++;
+	/* divisor+=2; */
+    } 
+    while (osc_i < SYNTHVOICE_NUM_OSCS) {
 	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	    SynthVoice *v = synth->voices + i;
 	    float offset = max_offset / divisor;
@@ -113,32 +128,63 @@ static void detune_cents_dsp_cb(Endpoint *ep)
     int pair_i = 0;
     int pair_item = 0;
     while (osc_i < SYNTHVOICE_NUM_OSCS) {
+
+	if (unison_i != 0) {
+	    if (unison_i % 2 == 0) {
+		pair_i++;
+		pair_item = 0;
+		divisor++;
+	    }
+	}
+	float offset = max_offset_cents / divisor;
+
+	if (pair_i % 2 == 0 && pair_item == 0) {
+	    offset *= -1;
+	} else if (pair_i % 2 != 0 && pair_item == 1) {
+	    offset *= -1;
+	}
+
+	/* fprintf(stderr, "OSC I: %d, unison I: %d; pair i: %d item %d: offset %f\n", osc_i, unison_i, pair_i, pair_item, offset); */
 	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	    SynthVoice *v = synth->voices + i;
-
-	    if (i==0 && unison_i != 0) {
-		if (unison_i % 2 == 0) {
-		    pair_i++;
-		    pair_item = 0;
-		    divisor++;
-		}
-	    }
-	    float offset = max_offset_cents / divisor;
-
-	    if (pair_i % 2 == 0 && pair_item == 0) {
-		offset *= -1;
-	    } else if (pair_i % 2 != 0 && pair_item == 1) {
-		offset *= -1;
-	    }
-	    if (i ==0) {
-		pair_item++;
-	    }
-	    
 	    v->oscs[osc_i].detune_cents = offset;
 	}
+	pair_item++;
+
 	osc_i += SYNTH_NUM_BASE_OSCS;
 	unison_i++;
+
+
     }
+    
+    /* while (osc_i < SYNTHVOICE_NUM_OSCS) { */
+    /* 	for (int i=0; i<SYNTH_NUM_VOICES; i++) { */
+    /* 	    SynthVoice *v = synth->voices + i; */
+
+    /* 	    if (i==0 && unison_i != 0) { */
+    /* 		if (unison_i % 2 == 0) { */
+    /* 		    pair_i++; */
+    /* 		    pair_item = 0; */
+    /* 		    divisor++; */
+    /* 		} */
+    /* 	    } */
+    /* 	    float offset = max_offset_cents / divisor; */
+
+    /* 	    if (pair_i % 2 == 0 && pair_item == 0) { */
+    /* 		offset *= -1; */
+    /* 	    } else if (pair_i % 2 != 0 && pair_item == 1) { */
+    /* 		offset *= -1; */
+    /* 	    } */
+    /* 	    if (i ==0) { */
+    /* 		pair_item++; */
+    /* 	    } */
+	    
+    /* 	    v->oscs[osc_i].detune_cents = offset; */
+    /* 	    fprintf(stderr, "VOICE %d, pair i %d, offset? %f\n", i, pair_i, offset); */
+    /* 	} */
+    /* 	osc_i += SYNTH_NUM_BASE_OSCS; */
+    /* 	unison_i++; */
+    /* } */
 }
 
 /* static void unison_vol_cb(Endpoint *ep) */
@@ -576,7 +622,6 @@ Synth *synth_create(Track *track)
 	len = strlen(fmt);
 	cfg->amp_id = malloc(len);
 	snprintf(cfg->amp_id, len, fmt, i+1);
-	fprintf(stderr, "CFG %ld amp id == %s\n", cfg - s->base_oscs, cfg->amp_id);
 
 	fmt = "%dpan";
 	len = strlen(fmt);
@@ -966,6 +1011,7 @@ static void osc_get_buf_preamp(Osc *restrict osc, float step, int len)
     }
     double phase_incr = osc->sample_phase_incr + osc->sample_phase_incr_addtl;
     double phase = osc->phase;
+    int unison_i = (long)((osc - osc->voice->oscs) - (osc->cfg - osc->voice->synth->base_oscs)) / SYNTH_NUM_BASE_OSCS;
     for (int i=0; i<len; i++) {
 	float sample;
 	if (osc->cfg->fix_freq && i % 93 == 0) {
@@ -1021,6 +1067,11 @@ static void osc_get_buf_preamp(Osc *restrict osc, float step, int len)
 	    phase = phase - floor(phase);
 	} else if (phase < 0.0) {
 	    phase = 1.0 + phase + ceil(phase);
+	}
+	if (osc->cfg->unison.num_voices > 0 && !osc->cfg->mod_freq_of && !osc->cfg->mod_amp_of)
+	    sample *= 1.0 / (0.5 * osc->cfg->unison.num_voices * osc->cfg->unison.relative_amp + 1.0);
+	if (unison_i != 0 && unison_i % 3 == 0) {
+	    sample *= -1;
 	}
 	osc->buf[i] = sample;
     }
@@ -1329,8 +1380,6 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
 	    
 	    if (synth->sync_phase) {
 		osc->phase = 0.0;
-		/* osc->phase[0] = 0.0; */
-		/* osc->phase[1] = 0.0; */
 	    }
 	    /* osc-> */
 	}

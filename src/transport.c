@@ -122,14 +122,19 @@ static float *get_source_mode_chunk(uint8_t channel, float *chunk, uint32_t len_
      /* 	 fprintf(stderr, "Error: unable to allocate chunk from source clip\n"); */
      /* } */
      Session *session = session_get();
-     
-     float *src_buffer = session->source_mode.src_clip->channels == 1 ? session->source_mode.src_clip->L :
-	 channel == 0 ? session->source_mode.src_clip->L : session->source_mode.src_clip->R;
+     Clip *clip = NULL;
+     if (session->source_mode.src_clip_type == CLIP_AUDIO) {
+	 clip = session->source_mode.src_clip;
+     } else {
+	 return NULL; /* TODO: source mode for MIDI */
+     }
+     float *src_buffer = clip->channels == 1 ? clip->L :
+	 channel == 0 ? clip->L : clip->R;
 
 
      for (uint32_t i=0; i<len_sframes; i++) {
 	 int sample_i = (int) (i * step + start_pos_sframes);
-	 if (sample_i < session->source_mode.src_clip->len_sframes && sample_i > 0) {
+	 if (sample_i < clip->len_sframes && sample_i > 0) {
 	     chunk[i] = src_buffer[sample_i];
 	 } else {
 	     chunk[i] = 0;
@@ -230,13 +235,13 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     }
 
 
-    if (session->source_mode.source_mode) {
-	session->source_mode.src_play_pos_sframes += session->source_mode.src_play_speed * stream_len_samples / session->source_mode.src_clip->channels;
-	if (session->source_mode.src_play_pos_sframes < 0 || session->source_mode.src_play_pos_sframes > session->source_mode.src_clip->len_sframes) {
+    if (session->source_mode.source_mode && session->source_mode.src_clip_type == CLIP_AUDIO) {
+	Clip *clip = session->source_mode.src_clip;
+	session->source_mode.src_play_pos_sframes += session->source_mode.src_play_speed * stream_len_samples / clip->channels;
+	if (session->source_mode.src_play_pos_sframes < 0 || session->source_mode.src_play_pos_sframes > clip->len_sframes) {
 	    session->source_mode.src_play_pos_sframes = 0;
 	}
 	tl->needs_redraw = true;
-
     } else {
 	int32_t diff = tl->read_pos_sframes - tl->play_pos_sframes;
 	/* timeline_move_play_position(tl, session->playback.play_speed * stream_len_samples / proj->channels); */

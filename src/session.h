@@ -22,6 +22,7 @@
 #define JDAW_SESSION_H
 
 #include "audio_connection.h"
+#include "clipref.h"
 #include "loading.h"
 #include "midi_io.h"
 #include "panel.h"
@@ -116,7 +117,8 @@ struct queued_ops {
 
 struct source_mode {    
     bool source_mode;
-    Clip *src_clip;
+    ClipType src_clip_type;
+    void *src_clip;
     int32_t src_play_pos_sframes;
     int32_t src_in_sframes;
     int32_t src_out_sframes;

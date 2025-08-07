@@ -1193,6 +1193,9 @@ bool track_mute(Track *track)
     track->muted = !track->muted;
     if (track->muted) {
 	textbox_set_background_color(track->tb_mute_button, &mute_red);
+	if (track->synth) {
+	    synth_clear_all(track->synth);
+	}
     } else {
 	textbox_set_background_color(track->tb_mute_button, &color_mute_solo_grey);
     }
@@ -1222,6 +1225,8 @@ void track_solomute(Track *track)
 {
     track->solo_muted = true;
     textbox_set_background_color(track->tb_solo_button, &mute_red);
+    if (track->synth)
+	synth_clear_all(track->synth);
 }
 void track_unsolomute(Track *track)
 {

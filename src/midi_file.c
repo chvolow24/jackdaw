@@ -600,6 +600,7 @@ int midi_file_open(const char *filepath, bool automatically_add_tracks)//, MIDIC
     }
 
     click_track = timeline_add_click_track(tl);
+    click_track->muted = true;
    
     
     memset(&file_info, '\0', sizeof(struct midi_file));

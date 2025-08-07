@@ -503,78 +503,88 @@ struct source_area_draw_arg {
 };
 
 extern SDL_Color clip_ref_home_bckgrnd;
+extern SDL_Color midi_clipref_color;
 extern SDL_Color timeline_marked_bckgrnd;
 
 static void source_area_draw(void *arg1, void *arg2)
 {
+    Session *session = session_get();
     struct source_area_draw_arg *arg = (struct source_area_draw_arg *)arg1;
     SDL_Rect *source_clip_rect = arg->source_clip_rect;
-    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(source_mode_bckgrnd)); */
-    /* SDL_RenderFillRect(main_win->rend, source_rect); */
-    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.white)); */
-    /* SDL_RenderDrawRect(main_win->rend, source_rect); */
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_home_bckgrnd));
     SDL_RenderDrawRect(main_win->rend, source_clip_rect);
-    Session *session = session_get();
-    if (session->source_mode.src_clip) {
-	SDL_RenderFillRect(main_win->rend, source_clip_rect);
+    Clip *clip = NULL;
+    MIDIClip *mclip = NULL;
+    int32_t len_sframes;
+    if (!session->source_mode.src_clip) return;
+    if (session->source_mode.src_clip_type == CLIP_AUDIO ){
+	clip = session->source_mode.src_clip;
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_home_bckgrnd));
+	len_sframes = clip->len_sframes;
+    } else {
+	mclip = session->source_mode.src_clip;
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(midi_clipref_color));
+	len_sframes = mclip->len_sframes;
+    }
 
-	/* Draw src clip waveform */
+    SDL_RenderFillRect(main_win->rend, source_clip_rect);
+
+    if (clip) { /* Draw src clip waveform */
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
-	uint8_t num_channels = session->source_mode.src_clip->channels;
+	uint8_t num_channels = clip->channels;
 	float *channels[num_channels];
-	channels[0] = session->source_mode.src_clip->L;
+	channels[0] = clip->L;
 	if (num_channels > 1) {
-	    channels[1] = session->source_mode.src_clip->R;
+	    channels[1] = clip->R;
 	}
-	waveform_draw_all_channels(channels, num_channels, session->source_mode.src_clip->len_sframes, source_clip_rect);
-	/* draw_waveform_to_rect(session->src_clip->L, session->src_clip->len_sframes, session->source_clip_rect); */
+	waveform_draw_all_channels(channels, num_channels, len_sframes, source_clip_rect);
+    } else if (mclip) { /* Draw notes */
+	/* midi_clipref */
+    }
 	
-	/* Draw play head line */
-	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.white));
-	int ph_y = source_clip_rect->y;
-	/* int tri_y = tl->session->ruler_rect->y; */
-	int play_head_x = source_clip_rect->x + source_clip_rect->w * session->source_mode.src_play_pos_sframes / session->source_mode.src_clip->len_sframes;
-	SDL_RenderDrawLine(main_win->rend, play_head_x, ph_y, play_head_x, ph_y + source_clip_rect->h);
+    /* Draw play head line */
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.white));
+    int ph_y = source_clip_rect->y;
+    /* int tri_y = tl->session->ruler_rect->y; */
+    int play_head_x = source_clip_rect->x + source_clip_rect->w * (double)session->source_mode.src_play_pos_sframes / len_sframes;
+    SDL_RenderDrawLine(main_win->rend, play_head_x, ph_y, play_head_x, ph_y + source_clip_rect->h);
 
-	/* /\* Draw play head triangle *\/ */
-	int tri_x1 = play_head_x;
-	int tri_x2 = play_head_x;
-	/* int ph_y = tl->rect.y; */
-	for (int i=0; i<PLAYHEAD_TRI_H; i++) {
-	    SDL_RenderDrawLine(main_win->rend, tri_x1, ph_y, tri_x2, ph_y);
-	    ph_y -= 1;
-	    tri_x2 += 1;
-	    tri_x1 -= 1;
-	}
+    /* /\* Draw play head triangle *\/ */
+    int tri_x1 = play_head_x;
+    int tri_x2 = play_head_x;
+    /* int ph_y = tl->rect.y; */
+    for (int i=0; i<PLAYHEAD_TRI_H; i++) {
+	SDL_RenderDrawLine(main_win->rend, tri_x1, ph_y, tri_x2, ph_y);
+	ph_y -= 1;
+	tri_x2 += 1;
+	tri_x1 -= 1;
+    }
 
-	/* draw mark in */
-	int in_x, out_x = -1;
+    /* draw mark in */
+    int in_x, out_x = -1;
 
-	in_x = source_clip_rect->x + source_clip_rect->w * session->source_mode.src_in_sframes / session->source_mode.src_clip->len_sframes;
-	int i_tri_x2 = in_x;
-	ph_y = source_clip_rect->y;
-	for (int i=0; i<PLAYHEAD_TRI_H; i++) {
-	    SDL_RenderDrawLine(main_win->rend, in_x, ph_y, i_tri_x2, ph_y);
-	    ph_y -= 1;
-	    i_tri_x2 += 1;
-	}
+    in_x = source_clip_rect->x + source_clip_rect->w * (double)session->source_mode.src_in_sframes / len_sframes;
+    int i_tri_x2 = in_x;
+    ph_y = source_clip_rect->y;
+    for (int i=0; i<PLAYHEAD_TRI_H; i++) {
+	SDL_RenderDrawLine(main_win->rend, in_x, ph_y, i_tri_x2, ph_y);
+	ph_y -= 1;
+	i_tri_x2 += 1;
+    }
 
-	/* draw mark out */
-
-	out_x = source_clip_rect->x + source_clip_rect->w * session->source_mode.src_out_sframes / session->source_mode.src_clip->len_sframes;
-	int o_tri_x2 = out_x;
-	ph_y = source_clip_rect->y;
-	for (int i=0; i<PLAYHEAD_TRI_H; i++) {
-	    SDL_RenderDrawLine(main_win->rend, out_x, ph_y, o_tri_x2, ph_y);
-	    ph_y -= 1;
-	    o_tri_x2 -= 1;
-	}
-	if (in_x < out_x && out_x != 0) {
-	    SDL_Rect in_out = (SDL_Rect) {in_x, source_clip_rect->y, out_x - in_x, source_clip_rect->h};
-	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(timeline_marked_bckgrnd));
-	    SDL_RenderFillRect(main_win->rend, &(in_out));
-	}
+    /* draw mark out */
+    out_x = source_clip_rect->x + source_clip_rect->w * (double)session->source_mode.src_out_sframes / len_sframes;
+    int o_tri_x2 = out_x;
+    ph_y = source_clip_rect->y;
+    for (int i=0; i<PLAYHEAD_TRI_H; i++) {
+	SDL_RenderDrawLine(main_win->rend, out_x, ph_y, o_tri_x2, ph_y);
+	ph_y -= 1;
+	o_tri_x2 -= 1;
+    }
+    if (in_x < out_x && out_x != 0) {
+	SDL_Rect in_out = (SDL_Rect) {in_x, source_clip_rect->y, out_x - in_x, source_clip_rect->h};
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(timeline_marked_bckgrnd));
+	SDL_RenderFillRect(main_win->rend, &(in_out));
     }
 }
 

@@ -1365,7 +1365,7 @@ void user_tl_track_selector_up(void *nullarg)
 	if ((tv = main_win->active_tabview)) {
 	    if (strcmp(tv->title, "Track Effects") == 0) {
 		settings_track_tabview_set_track(tv, selected);
-	    } else if (strcmp(tv->title, "Synth settings") == 0) {
+	    } else if (strcmp(tv->title, "Synth") == 0) {
 		user_tl_track_open_synth(NULL);
 	    } else {
 		tabview_close(tv);
@@ -1456,7 +1456,7 @@ void user_tl_track_selector_down(void *nullarg)
 	if ((tv = main_win->active_tabview)) {
 	    if (strcmp(tv->title, "Track Effects") == 0) {
 		settings_track_tabview_set_track(tv, selected);
-	    } else if (strcmp(tv->title, "Synth settings") == 0) {
+	    } else if (strcmp(tv->title, "Synth") == 0) {
 		user_tl_track_open_synth(NULL);
 	    } else {
 		tabview_close(tv);
@@ -2225,9 +2225,23 @@ void user_tl_load_clip_at_cursor_to_src(void *nullarg)
     Session *session = session_get();
     /* Timeline *tl = ACTIVE_TL; */
     ClipRef *cr = clipref_at_cursor();
-    Clip *clip = NULL;
-    if (cr->type == CLIP_AUDIO) clip = cr->source_clip;
-    if (cr && clip && !clip->recording) {
+    void *clip = NULL;
+    bool clip_recording = false;
+    char *clip_name = NULL;
+    /* MIDIClip *mclip = NULL; */
+    if (cr->type == CLIP_AUDIO) {
+	clip = cr->source_clip;
+	clip_recording = ((Clip *)cr->source_clip)->recording;
+	clip_name = ((Clip *)cr->source_clip)->name;
+    } else if (cr->type == CLIP_MIDI) {
+	clip = cr->source_clip;
+	clip_recording = ((MIDIClip *)cr->source_clip)->recording;
+	clip_name = ((MIDIClip *)cr->source_clip)->name;
+    } else {
+	fprintf(stderr, "Error: unhandled clipref type (%d) in user_tl_laod_clip_at_cursor_to_src", cr->type);
+	return;
+    }
+    if (cr && clip && !clip_recording) {
 	session->source_mode.src_clip = clip;
 	session->source_mode.src_in_sframes = cr->start_in_clip;
 	session->source_mode.src_play_pos_sframes = 0;
@@ -2238,10 +2252,9 @@ void user_tl_load_clip_at_cursor_to_src(void *nullarg)
 	tl->needs_redraw = true;
 	PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_source_clip_name_tb");
 	Textbox *tb = (Textbox *)el->component;
-	textbox_set_value_handle(tb, clip->name);
+	textbox_set_value_handle(tb, clip_name);
 	panel_page_refocus(session->gui.panels, "Sample source", 1);
     }
-
 }
 
 void user_tl_activate_source_mode(void *nullarg)

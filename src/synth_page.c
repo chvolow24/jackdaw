@@ -29,7 +29,7 @@ TabView *synth_tabview_create(Track *track)
 {
     Session *session = session_get();
     TabView *tv = tabview_create(
-	"Synth settings",
+	"Synth",
 	session->gui.layout,
 	main_win);
 

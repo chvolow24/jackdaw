@@ -1,5 +1,12 @@
 This is an informal document tracking jackdaw version updates. 
 
+v0.7.0 ( )
+       - MIDI clips
+       - "Session" refactor
+       - Synth
+       - semitone pitch adj
+       - tabview labels
+       
 
 v0.6.0 (Wed May 21 15:24:21 MDT 2025)
 	- dynamic track effects chains

@@ -1783,6 +1783,16 @@ void synth_close_all_notes(Synth *s)
     }
 }
 
+void synth_clear_all(Synth *s)
+{
+    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+	SynthVoice *v = s->voices + i;
+	if (!v->available) {
+	    v->available = true;
+	}
+    }
+}
+
 void synth_write_preset_file(const char *filepath, Synth *s)
 {
     fprintf(stderr, "SAVING FILE AT %s\n", filepath);

@@ -315,11 +315,12 @@ Synth *synth_create(Track *track)
     s->vel_amt = 0.75f;
     s->env_amt = 5.0f;
     s->resonance = 3.0;
-    
+
+    double dc_block_coeff = exp(-1.0/(0.0025 * session_get_sample_rate()));
+    double DC_BLOCK_A[] = {1.0, -1.0};
+    double DC_BLOCK_B[] = {dc_block_coeff};
     iir_init(&s->dc_blocker, 1, 2);
-    double A[] = {1.0, -1.0};
-    double B[] = {0.999};
-    iir_set_coeffs(&s->dc_blocker, A, B);
+    iir_set_coeffs(&s->dc_blocker, DC_BLOCK_A, DC_BLOCK_B);
     for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
 	OscCfg *cfg = s->base_oscs + i;
 	cfg->unison.detune_cents = 10;
@@ -348,6 +349,9 @@ Synth *synth_create(Track *track)
 		Osc *osc = v->oscs + i + j;
 		osc->cfg = cfg;
 		osc->voice = v;
+		iir_init(&osc->tri_dc_blocker, 1, 1);
+		iir_set_coeffs(&osc->tri_dc_blocker, DC_BLOCK_A, DC_BLOCK_B);
+
 	    }
 	}
 	/* v->amp_env[0].params = &s->amp_env; */
@@ -994,6 +998,7 @@ static void osc_get_buf_preamp(Osc *restrict osc, float step, int len)
 	#endif
 	len = MAX_OSC_BUF_LEN;
     }
+    double sample_rate = session_get_sample_rate();
     float *fmod_samples;
     float *amod_samples;
     if (osc->freq_modulator) {
@@ -1025,21 +1030,30 @@ static void osc_get_buf_preamp(Osc *restrict osc, float step, int len)
 	    break;
 	case WS_SQUARE:
 	    sample = phase < 0.5 ? 1.0 : -1.0;
-	    /* if (do_blep) { */
-	    /* BLEP */
 	    sample += polyblep(phase_incr, phase);
 	    sample -= polyblep(phase_incr, fmod(phase + 0.5, 1.0)); 
-	    /* } */
 	    break;
 	case WS_TRI:
-	    sample =
-		phase <= 0.25 ?
-	        phase * 4.0f :
-	    phase <= 0.5f ?
-	        (0.5f - phase) * 4.0 :
-	    phase <= 0.75f ?
-	        (phase - 0.5f) * -4.0 :
-	    (1.0f - phase) * -4.0;
+	    if (do_blep) {
+		sample = phase < 0.5 ? 1.0 : -1.0;
+		sample += polyblep(phase_incr, phase);
+		sample -= polyblep(phase_incr, fmod(phase + 0.5, 1.0)); 
+
+		sample *= 4.0 * phase_incr;
+		sample += osc->last_out_tri;
+		osc->last_out_tri = sample;
+		sample = iir_sample(&osc->tri_dc_blocker, sample, 0);
+	    } else {
+		sample =
+		    phase <= 0.25 ?
+		    phase * 4.0f :
+		    phase <= 0.5f ?
+		    (0.5f - phase) * 4.0 :
+		    phase <= 0.75f ?
+		    (phase - 0.5f) * -4.0 :
+		    (1.0f - phase) * -4.0;
+	    }
+
 	    break;
 	case WS_SAW:
 	    sample = 2.0f * phase - 1.0;

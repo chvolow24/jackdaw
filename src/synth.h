@@ -77,9 +77,9 @@ typedef struct osc {
 
     double sample_phase_incr_addtl; /* pitch bend */
 
-    float last_out;
+    float last_out_tri;
     float last_in;
-
+    IIRFilter tri_dc_blocker;
     /* int reset_params_ctr; */
 } Osc;
 

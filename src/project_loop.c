@@ -208,7 +208,7 @@ void loop_project_main()
 		}
 		    break;
 		case SDL_SCANCODE_4:
-		/*     do_blep = !do_blep; */
+		    do_blep = !do_blep;
 		    if (do_blep) {
 			fprintf(stderr, "DOING BLEP!\n");
 		    } else {

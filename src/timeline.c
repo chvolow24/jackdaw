@@ -33,7 +33,7 @@
 
 #define TIMELINE_CATCHUP_W (main_win->w_pix / 2)
 
-/* extern Project *proj; */
+/* extern Project *proj;q */
 extern Window *main_win;
 /* extern pthread_t MAIN_THREAD_ID; */
 /* extern pthread_t DSP_THREAD_ID; */

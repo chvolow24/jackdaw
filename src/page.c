@@ -1071,7 +1071,7 @@ void tabview_activate(TabView *tv)
     layout_size_to_fit_children_h(label_lt, false, 0);
     
     win->active_tabview = tv;
-    layout_write(stderr, tv->label->layout, 0);
+    /* layout_write(stderr, tv->label->layout, 0); */
     window_push_mode(tv->win, TABVIEW);
     tv->tabs[tv->current_tab]->onscreen = true;
     tabview_select_el(tv);

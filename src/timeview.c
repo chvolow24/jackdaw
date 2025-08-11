@@ -51,7 +51,6 @@ static void timeview_rectify_scroll(TimeView *tv)
 	    tv->offset_left_sframes -= overshoot_right;
 	}
 	if (tv->offset_left_sframes < tv->view_min) {
-	    fprintf(stderr, "RESET\n");
 	    tv->offset_left_sframes = tv->view_min;
 	    tv->sample_frames_per_pixel = tv->max_sfpp;
 	}
@@ -117,4 +116,24 @@ void timeview_rescale(TimeView *tv, double sfpp_scale_factor, bool on_mouse, SDL
     tv->offset_left_sframes += (timeview_get_w_sframes(tv, offset_draw_delta));
     timeview_rectify_scroll(tv);
 }
+
+void timeview_catchup(TimeView *tv)
+{
+    /* Timeline *tl = ACTIVE_TL; */
+    if (!tv->play_pos) return;
+    /* uint32_t move_by_sframes; */
+    int catchup_w = tv->rect->w / 2;
+    /* while (catchup_w > session->gui.audio_rect->w / 2 && catchup_w > 10) { */
+    /* 	catchup_w /= 2; */
+    /* } */
+    int playhead_x = timeview_get_draw_x(tv, *tv->play_pos);
+    if (playhead_x > tv->rect->x + tv->rect->w) {
+	tv->offset_left_sframes = *tv->play_pos - timeview_get_w_sframes(tv, tv->rect->w - catchup_w);
+    }
+    else if (playhead_x < tv->rect->x) {
+	tv->offset_left_sframes = *tv->play_pos - timeview_get_w_sframes(tv, catchup_w);
+    }
+    timeview_rectify_scroll(tv);
+}
+
 

@@ -600,13 +600,15 @@ void loop_project_main()
 
 	}
 	
-	if (session->playback.play_speed != 0 && !session->source_mode.source_mode) {
+	if (fabs(session->playback.play_speed) > 1e-9 && !session->source_mode.source_mode) {
 	    timeline_catchup(tl);
 	    timeline_set_timecode(tl);
 	    for (int i=0; i<tl->num_click_tracks; i++) {
 		int bar, beat, subdiv;
 		click_track_bar_beat_subdiv(tl->click_tracks[i], tl->play_pos_sframes, &bar, &beat, &subdiv, NULL, true);
 	    }
+	} else if (session->source_mode.source_mode && fabs(session->source_mode.src_play_speed) > 1e-9) {
+	    timeview_catchup(&session->source_mode.timeview);
 	}
 
 	if (animate_step == 255) {

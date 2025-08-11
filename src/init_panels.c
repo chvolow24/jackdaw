@@ -11,6 +11,7 @@
 #include "audio_clip.h"
 #include "color.h"
 #include "consts.h"
+#include "geometry.h"
 #include "panel.h"
 #include "session.h"
 #include "timeview.h"
@@ -550,6 +551,9 @@ static void source_area_draw(void *arg1, void *arg2)
     int ph_y = source_clip_rect->y;
     /* int tri_y = tl->session->ruler_rect->y; */
     int play_head_x = timeview_get_draw_x(&session->source_mode.timeview, session->source_mode.src_play_pos_sframes);
+    if (!geom_x_in_rect(play_head_x, source_clip_rect, NULL)) {
+	goto draw_in_mark;
+    }
     /* int play_head_x = source_clip_rect->x + source_clip_rect->w * (double)session->source_mode.src_play_pos_sframes / len_sframes; */
     SDL_RenderDrawLine(main_win->rend, play_head_x, ph_y, play_head_x, ph_y + source_clip_rect->h);
 
@@ -568,7 +572,11 @@ static void source_area_draw(void *arg1, void *arg2)
     int in_x, out_x = -1;
 
     /* in_x = source_clip_rect->x + source_clip_rect->w * (double)session->source_mode.src_in_sframes / len_sframes; */
+draw_in_mark:
     in_x = timeview_get_draw_x(&session->source_mode.timeview, session->source_mode.src_in_sframes);
+    if (!geom_x_in_rect(in_x, source_clip_rect, &in_x)) {
+	goto draw_out_mark;
+    }
     int i_tri_x2 = in_x;
     ph_y = source_clip_rect->y;
     for (int i=0; i<PLAYHEAD_TRI_H; i++) {
@@ -579,7 +587,11 @@ static void source_area_draw(void *arg1, void *arg2)
 
     /* draw mark out */
     /* out_x = source_clip_rect->x + source_clip_rect->w * (double)session->source_mode.src_out_sframes / len_sframes; */
+draw_out_mark:
     out_x = timeview_get_draw_x(&session->source_mode.timeview, session->source_mode.src_out_sframes);
+    if (!geom_x_in_rect(out_x, source_clip_rect, &out_x)) {
+	goto draw_marked_box;
+    }
     int o_tri_x2 = out_x;
     ph_y = source_clip_rect->y;
     for (int i=0; i<PLAYHEAD_TRI_H; i++) {
@@ -587,6 +599,7 @@ static void source_area_draw(void *arg1, void *arg2)
 	ph_y -= 1;
 	o_tri_x2 -= 1;
     }
+draw_marked_box:
     if (in_x < out_x && out_x != 0) {
 	SDL_Rect in_out = (SDL_Rect) {in_x, source_clip_rect->y, out_x - in_x, source_clip_rect->h};
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(timeline_marked_bckgrnd));

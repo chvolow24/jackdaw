@@ -32,8 +32,9 @@ Session *session_get()
     return session;
 }
 
-static void session_hamburger_init(Session *session);
-static void session_status_bar_init(Session *session);
+static void session_init_hamburger(Session *session);
+static void session_init_status_bar(Session *session);
+static void session_init_source_mode(Session *session);
 
 Session *session_create()
 {
@@ -74,6 +75,7 @@ Session *session_create()
     textbox_set_align(session->gui.timeline_label, CENTER_LEFT);
 
 
+    session_init_source_mode(session);
     session_init_audio_conns(session);
     session_init_midi(session);
     session_init_metronomes(session);
@@ -81,7 +83,7 @@ Session *session_create()
     /* Init panels after proj initialized ! */
     /* session_init_panels(session); */
 
-    session_hamburger_init(session);
+    session_init_hamburger(session);
 
     int err;
 
@@ -109,13 +111,19 @@ Session *session_create()
 	NULL, NULL, NULL, NULL);
     
     api_endpoint_register(&session->playback.play_speed_ep, &session->server.api_root);
-    session_status_bar_init(session);
+    session_init_status_bar(session);
     
     return session;
 }
 
+static void session_init_source_mode(Session *session)
+{
+    session->source_mode.timeview.play_pos = &session->source_mode.src_play_pos_sframes;
+    session->source_mode.timeview.in_mark = &session->source_mode.src_in_sframes;
+    session->source_mode.timeview.out_mark = &session->source_mode.src_out_sframes;
+}
 
-static void session_hamburger_init(Session *session)
+static void session_init_hamburger(Session *session)
 {
     Layout *hamburger_lt = layout_get_child_by_name_recursive(session->gui.layout, "hamburger");
 
@@ -123,11 +131,10 @@ static void session_hamburger_init(Session *session)
     session->gui.bun_patty_bun[0] = &hamburger_lt->children[0]->children[0]->rect;
     session->gui.bun_patty_bun[1] = &hamburger_lt->children[1]->children[0]->rect;
     session->gui.bun_patty_bun[2] = &hamburger_lt->children[2]->children[0]->rect;
-
 }
 
 
-static void session_status_bar_init(Session *session)
+static void session_init_status_bar(Session *session)
 {
 
     Layout *status_bar_lt = layout_get_child_by_name_recursive(session->gui.layout, "status_bar");

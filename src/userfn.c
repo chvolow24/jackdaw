@@ -26,6 +26,7 @@
 #include "text.h"
 #include "textbox.h"
 #include "effect_pages.h"
+#include "timeview.h"
 #include "transport.h"
 #include "timeline.h"
 #include "userfn.h"
@@ -1023,7 +1024,7 @@ void user_tl_goto_zero(void *nullarg)
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     timeline_set_play_position(tl, 0);
-    tl->display_offset_sframes = 0;
+    tl->timeview.offset_left_sframes = 0;
     timeline_reset(tl, false);
 }
 
@@ -2223,20 +2224,31 @@ void user_tl_split_stereo_clipref(void *nullarg)
 void user_tl_load_clip_at_cursor_to_src(void *nullarg)
 {
     Session *session = session_get();
+    if (session->source_mode.source_mode) {
+	session->source_mode.source_mode = false;
+	window_pop_mode(main_win);
+	Timeline *tl = ACTIVE_TL;
+	tl->needs_redraw = true;
+	return;
+    }
     /* Timeline *tl = ACTIVE_TL; */
     ClipRef *cr = clipref_at_cursor();
+    if (!cr) return;
     void *clip = NULL;
     bool clip_recording = false;
     char *clip_name = NULL;
+    int32_t clip_len;
     /* MIDIClip *mclip = NULL; */
     if (cr->type == CLIP_AUDIO) {
 	clip = cr->source_clip;
 	clip_recording = ((Clip *)cr->source_clip)->recording;
 	clip_name = ((Clip *)cr->source_clip)->name;
+	clip_len = ((Clip *)cr->source_clip)->len_sframes;
     } else if (cr->type == CLIP_MIDI) {
 	clip = cr->source_clip;
 	clip_recording = ((MIDIClip *)cr->source_clip)->recording;
 	clip_name = ((MIDIClip *)cr->source_clip)->name;
+	clip_len = ((Clip *)cr->source_clip)->len_sframes;
     } else {
 	fprintf(stderr, "Error: unhandled clipref type (%d) in user_tl_laod_clip_at_cursor_to_src", cr->type);
 	return;
@@ -2246,8 +2258,16 @@ void user_tl_load_clip_at_cursor_to_src(void *nullarg)
 	session->source_mode.src_in_sframes = cr->start_in_clip;
 	session->source_mode.src_play_pos_sframes = 0;
 	session->source_mode.src_out_sframes = cr->end_in_clip;
+	session->source_mode.timeview.sample_frames_per_pixel =
+	    (double)clip_len / session->source_mode.timeview.rect->w;
+	session->source_mode.timeview.restrict_view = true;
+	session->source_mode.timeview.view_min = 0;
+	session->source_mode.timeview.view_max = clip_len - 1;
+	session->source_mode.timeview.offset_left_sframes = 0;
+	session->source_mode.timeview.max_sfpp = session->source_mode.timeview.sample_frames_per_pixel;
 	/* fprintf(stdout, "Src clip name? %s\n", session->source_mode.src_clip->name); */
 	/* txt_set_value_handle(proj->source_name_tb->text, session->source_mode.src_clip->name); */
+	/* fprintf(stderr, "SFPP: %f\n", session->source_mode.timeview.sample_frames_per_pixel); */
 	Timeline *tl = ACTIVE_TL;
 	tl->needs_redraw = true;
 	PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_source_clip_name_tb");
@@ -2720,6 +2740,40 @@ void user_source_set_out_mark(void *nullarg)
     Timeline *tl = ACTIVE_TL;
     transport_set_mark(tl, false);
 }
+
+void user_source_zoom_in(void *nullarg)
+{
+    Session *session = session_get();
+    timeview_rescale(&session->source_mode.timeview, 1.2, false, (SDL_Point){0});
+    ACTIVE_TL->needs_redraw = true;
+}
+
+void user_source_zoom_out(void *nullarg)
+{
+    Session *session = session_get();
+    timeview_rescale(&session->source_mode.timeview, 0.8, false, (SDL_Point){0});
+    ACTIVE_TL->needs_redraw = true;
+}
+
+void user_source_move_left(void *nullarg)
+{
+    Session *session = session_get();
+    timeview_scroll_horiz(&session->source_mode.timeview, TL_DEFAULT_XSCROLL * -1);
+    int rectify;
+    if ((rectify = session->source_mode.timeview.offset_left_sframes) < 0) {
+	timeview_scroll_horiz(&session->source_mode.timeview, rectify * -1);
+    }
+    ACTIVE_TL->needs_redraw = true;
+}
+
+void user_source_move_right(void *nullarg)
+{
+    Session *session = session_get();
+    TimeView *tv = &session->source_mode.timeview;
+    timeview_scroll_horiz(tv, TL_DEFAULT_XSCROLL);
+    ACTIVE_TL->needs_redraw = true;
+}
+
 
 void user_modal_next(void *nullarg)
 {

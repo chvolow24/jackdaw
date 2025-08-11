@@ -42,6 +42,7 @@
 #include "endpoint.h"
 #include "midi_clip.h"
 #include "tempo.h"
+#include "timeview.h"
 #include "saturation.h"
 #include "synth.h"
 #include "textbox.h"
@@ -346,9 +347,11 @@ typedef struct timeline {
     /* Layout *layout; */
     
     Layout *track_area;
-    int32_t display_offset_sframes; // in samples frames
-    int sample_frames_per_pixel;
-    int display_v_offset;
+
+    TimeView timeview;
+    /* int32_t display_offset_sframes; */
+    /* int sample_frames_per_pixel; */
+    /* int display_v_offset; */
 
     bool needs_redraw;
 

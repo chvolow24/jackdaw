@@ -13,6 +13,7 @@
 #include "consts.h"
 #include "panel.h"
 #include "session.h"
+#include "timeview.h"
 #include "waveform.h"
 #include "userfn.h"
 
@@ -529,15 +530,17 @@ static void source_area_draw(void *arg1, void *arg2)
 
     SDL_RenderFillRect(main_win->rend, source_clip_rect);
 
+    int32_t offset_left = session->source_mode.timeview.offset_left_sframes;
+    int32_t abs_w = timeview_get_w_sframes(&session->source_mode.timeview, source_clip_rect->w);
     if (clip) { /* Draw src clip waveform */
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
 	uint8_t num_channels = clip->channels;
 	float *channels[num_channels];
-	channels[0] = clip->L;
+	channels[0] = clip->L + offset_left;
 	if (num_channels > 1) {
-	    channels[1] = clip->R;
+	    channels[1] = clip->R + offset_left;
 	}
-	waveform_draw_all_channels(channels, num_channels, len_sframes, source_clip_rect);
+	waveform_draw_all_channels(channels, num_channels, abs_w, source_clip_rect);
     } else if (mclip) { /* Draw notes */
 	/* midi_clipref */
     }
@@ -546,7 +549,8 @@ static void source_area_draw(void *arg1, void *arg2)
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.white));
     int ph_y = source_clip_rect->y;
     /* int tri_y = tl->session->ruler_rect->y; */
-    int play_head_x = source_clip_rect->x + source_clip_rect->w * (double)session->source_mode.src_play_pos_sframes / len_sframes;
+    int play_head_x = timeview_get_draw_x(&session->source_mode.timeview, session->source_mode.src_play_pos_sframes);
+    /* int play_head_x = source_clip_rect->x + source_clip_rect->w * (double)session->source_mode.src_play_pos_sframes / len_sframes; */
     SDL_RenderDrawLine(main_win->rend, play_head_x, ph_y, play_head_x, ph_y + source_clip_rect->h);
 
     /* /\* Draw play head triangle *\/ */
@@ -563,7 +567,8 @@ static void source_area_draw(void *arg1, void *arg2)
     /* draw mark in */
     int in_x, out_x = -1;
 
-    in_x = source_clip_rect->x + source_clip_rect->w * (double)session->source_mode.src_in_sframes / len_sframes;
+    /* in_x = source_clip_rect->x + source_clip_rect->w * (double)session->source_mode.src_in_sframes / len_sframes; */
+    in_x = timeview_get_draw_x(&session->source_mode.timeview, session->source_mode.src_in_sframes);
     int i_tri_x2 = in_x;
     ph_y = source_clip_rect->y;
     for (int i=0; i<PLAYHEAD_TRI_H; i++) {
@@ -573,7 +578,8 @@ static void source_area_draw(void *arg1, void *arg2)
     }
 
     /* draw mark out */
-    out_x = source_clip_rect->x + source_clip_rect->w * (double)session->source_mode.src_out_sframes / len_sframes;
+    /* out_x = source_clip_rect->x + source_clip_rect->w * (double)session->source_mode.src_out_sframes / len_sframes; */
+    out_x = timeview_get_draw_x(&session->source_mode.timeview, session->source_mode.src_out_sframes);
     int o_tri_x2 = out_x;
     ph_y = source_clip_rect->y;
     for (int i=0; i<PLAYHEAD_TRI_H; i++) {
@@ -621,6 +627,7 @@ static inline void session_init_source_area(Page *source_area, Session *session)
 	"source_area");
     Layout *source_area_lt = el->layout;
     Layout *clip_lt = layout_get_child_by_name_recursive(source_area_lt, "source_clip");
+    session->source_mode.timeview.rect = &clip_lt->rect;
     draw_arg.source_area_rect = &source_area_lt->rect;
     draw_arg.source_clip_rect = &clip_lt->rect;
 

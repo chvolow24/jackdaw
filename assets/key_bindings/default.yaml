@@ -179,6 +179,10 @@
   - o		: source_set_out_mark
   - S-i		: source_set_in_mark
   - S-o		: source_set_out_mark
+  - ,		: source_zoom_out
+  - .		: source_zoom_in
+  - h		: source_move_left
+  - ;		: source_move_right
 - modal:
   - n		: modal_next
   - p		: modal_previous

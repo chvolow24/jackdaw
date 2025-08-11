@@ -30,6 +30,7 @@
 #include "status.h"
 /* #include "synth.h" */
 #include "tempo.h"
+#include "timeview.h"
 #include "user_event.h"
 
 #define MAX_SESSION_AUDIO_CONNS 32
@@ -123,6 +124,8 @@ struct source_mode {
     int32_t src_in_sframes;
     int32_t src_out_sframes;
     float src_play_speed;
+
+    TimeView timeview;
 
     struct drop_save saved_drops[5];
     uint8_t num_dropped;

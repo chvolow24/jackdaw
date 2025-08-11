@@ -27,6 +27,7 @@
 #include "tempo.h"
 #include "thread_safety.h"
 #include "timeline.h"
+#include "timeview.h"
 #include "transport.h"
 
 #define MAX_SFPP 80000
@@ -43,71 +44,79 @@ extern Window *main_win;
 /* Get the timeline position value -- in sample frames -- from a draw x coordinate  */
 int32_t timeline_get_abspos_sframes(Timeline *tl, int draw_x)
 {
-    Session *session = session_get();
-    /* Timeline *tl = ACTIVE_TL; */
-    return (draw_x - session->gui.audio_rect->x) * tl->sample_frames_per_pixel + tl->display_offset_sframes;
+    return timeview_get_pos_sframes(&tl->timeview, draw_x);
+    /* Session *session = session_get(); */
+    /* /\* Timeline *tl = ACTIVE_TL; *\/ */
+    /* return (draw_x - session->gui.audio_rect->x) * tl->sample_frames_per_pixel + tl->display_offset_sframes; */
 }
 
 /* Get the current draw x coordinate for a given timeline offset value (sample frames) */
 int timeline_get_draw_x(Timeline *tl, int32_t abs_x)
 {
+    return timeview_get_draw_x(&tl->timeview, abs_x);
     /* Timeline *tl = ACTIVE_TL; */
-    Session *session = session_get();
-    if (tl->sample_frames_per_pixel != 0) {
-        double precise = (double)session->gui.audio_rect->x + ((double)abs_x - (double)tl->display_offset_sframes) / (double)tl->sample_frames_per_pixel;
-        return (int) round(precise);
-    } else {
-        fprintf(stderr, "Error: proj tl sfpp value 0\n");
-	exit(1);
-        /* return 0; */
-    }
+    /* Session *session = session_get(); */
+    /* if (tl->sample_frames_per_pixel != 0) { */
+    /*     double precise = (double)session->gui.audio_rect->x + ((double)abs_x - (double)tl->display_offset_sframes) / (double)tl->sample_frames_per_pixel; */
+    /*     return (int) round(precise); */
+    /* } else { */
+    /*     fprintf(stderr, "Error: proj tl sfpp value 0\n"); */
+    /* 	exit(1); */
+    /*     /\* return 0; *\/ */
+    /* } */
 }
 
 /* Get a draw width from a given length in sample frames */
 int timeline_get_draw_w(Timeline *tl, int32_t abs_w)
 {
+    return timeview_get_draw_w(&tl->timeview, abs_w);
     /* Timeline *tl = ACTIVE_TL; */
-    if (tl->sample_frames_per_pixel != 0) {
-        return abs_w / tl->sample_frames_per_pixel;
-    } else {
-        fprintf(stderr, "Error: proj tl sfpp value 0\n");
-        return 0;
-    }
+    /* if (tl->sample_frames_per_pixel != 0) { */
+    /*     return abs_w / tl->sample_frames_per_pixel; */
+    /* } else { */
+    /*     fprintf(stderr, "Error: proj tl sfpp value 0\n"); */
+    /*     return 0; */
+    /* } */
 }
 
-static double timeline_get_draw_w_precise(Timeline *tl, int32_t abs_w)
-{
-    /* Timeline *tl = ACTIVE_TL; */
-    if (tl->sample_frames_per_pixel != 0) {
-	return (double) abs_w / tl->sample_frames_per_pixel;
-    }
-    return 0.0;
-}
+/* static double timeline_get_draw_w_precise(Timeline *tl, int32_t abs_w) */
+/* { */
+/*     return timeview_get_draw_w_precise(&tl->timeview, abs_w); */
+/*     /\* /\\* Timeline *tl = ACTIVE_TL; *\\/ *\/ */
+/*     /\* if (tl->sample_frames_per_pixel != 0) { *\/ */
+/*     /\* 	return (double) abs_w / tl->sample_frames_per_pixel; *\/ */
+/*     /\* } *\/ */
+/*     /\* return 0.0; *\/ */
+/* } */
  
 /* Get a length in sample frames from a given draw width */
 int32_t timeline_get_abs_w_sframes(Timeline *tl, int draw_w)
 {
     /* Timeline *tl = ACTIVE_TL; */
-    return draw_w * tl->sample_frames_per_pixel;
+    /* return draw_w * tl->sample_frames_per_pixel; */
+    return timeview_get_w_sframes(&tl->timeview, draw_w);
 }
 
 void timeline_scroll_horiz(Timeline *tl, int scroll_by)
 {
     /* Timeline *tl = ACTIVE_TL; */
-    int32_t new_offset = tl->display_offset_sframes + timeline_get_abs_w_sframes(tl, scroll_by);
-    tl->display_offset_sframes = new_offset;
+    /* int32_t new_offset = tl->display_offset_sframes + timeline_get_abs_w_sframes(tl, scroll_by); */
+    /* tl->display_offset_sframes = new_offset; */
+    timeview_scroll_horiz(&tl->timeview, scroll_by);
     timeline_reset(tl, false);
 }
 
 double timeline_get_leftmost_seconds(Timeline *tl)
 {
     /* Timeline *tl = ACTIVE_TL; */
-    return (double) tl->display_offset_sframes / tl->proj->sample_rate;
+    /* return (double) tl->display_offset_sframes / tl->proj->sample_rate; */
+    return (double)(tl->timeview.offset_left_sframes) / tl->proj->sample_rate;
 }
 
 double timeline_get_second_w(Timeline *tl)
 {
-    return timeline_get_draw_w_precise(tl, tl->proj->sample_rate);
+    return timeview_get_draw_w_precise(&tl->timeview, tl->proj->sample_rate);
+    /* return timeline_get_draw_w_precise(tl, tl->proj->sample_rate); */
     /* return ret <= 0 ? 1 : ret; */
 }
 
@@ -122,33 +131,34 @@ double timeline_first_second_tick_x(Timeline *tl, int *first_second)
 
 void timeline_rescale(Timeline *tl, double sfpp_scale_factor, bool on_mouse)
 {
-   if (sfpp_scale_factor == 1.0f) return;
-    /* Timeline *tl = ACTIVE_TL; */
-    int32_t center_abs_pos = 0;
-    if (on_mouse) {
-	center_abs_pos = timeline_get_abspos_sframes(tl, main_win->mousep.x);
-    } else {
-	center_abs_pos = tl->play_pos_sframes;
-    }
-    if (sfpp_scale_factor == 0) {
-        fprintf(stderr, "Warning! Scale factor 0 in rescale_timeline\n");
-        return;
-    }
-    int init_draw_pos = timeline_get_draw_x(tl, center_abs_pos);
-    double new_sfpp = tl->sample_frames_per_pixel / sfpp_scale_factor;
-    if (new_sfpp < 1 || new_sfpp > MAX_SFPP) {
-        return;
-    }
-    if ((int)new_sfpp == tl->sample_frames_per_pixel) {
-        tl->sample_frames_per_pixel += sfpp_scale_factor <= 1.0f ? 1 : -1;
-	if (tl->sample_frames_per_pixel < 1) tl->sample_frames_per_pixel = 1;
-    } else {
-        tl->sample_frames_per_pixel = new_sfpp;
-    }
+    if (sfpp_scale_factor == 1.0f) return;
+    timeview_rescale(&tl->timeview, sfpp_scale_factor, on_mouse, main_win->mousep);
+    /* /\* Timeline *tl = ACTIVE_TL; *\/ */
+    /* int32_t center_abs_pos = 0; */
+    /* if (on_mouse) { */
+    /* 	center_abs_pos = timeline_get_abspos_sframes(tl, main_win->mousep.x); */
+    /* } else { */
+    /* 	center_abs_pos = tl->play_pos_sframes; */
+    /* } */
+    /* if (sfpp_scale_factor == 0) { */
+    /*     fprintf(stderr, "Warning! Scale factor 0 in rescale_timeline\n"); */
+    /*     return; */
+    /* } */
+    /* int init_draw_pos = timeline_get_draw_x(tl, center_abs_pos); */
+    /* double new_sfpp = tl->sample_frames_per_pixel / sfpp_scale_factor; */
+    /* if (new_sfpp < 1 || new_sfpp > MAX_SFPP) { */
+    /*     return; */
+    /* } */
+    /* if ((int)new_sfpp == tl->sample_frames_per_pixel) { */
+    /*     tl->sample_frames_per_pixel += sfpp_scale_factor <= 1.0f ? 1 : -1; */
+    /* 	if (tl->sample_frames_per_pixel < 1) tl->sample_frames_per_pixel = 1; */
+    /* } else { */
+    /*     tl->sample_frames_per_pixel = new_sfpp; */
+    /* } */
 
-    int new_draw_pos = timeline_get_draw_x(tl, center_abs_pos);
-    int offset_draw_delta = new_draw_pos - init_draw_pos;
-    tl->display_offset_sframes += (timeline_get_abs_w_sframes(tl, offset_draw_delta));
+    /* int new_draw_pos = timeline_get_draw_x(tl, center_abs_pos); */
+    /* int offset_draw_delta = new_draw_pos - init_draw_pos; */
+    /* tl->display_offset_sframes += (timeline_get_abs_w_sframes(tl, offset_draw_delta)); */
 
     timeline_reset(tl, true);
     /* Track *track = NULL; */
@@ -240,7 +250,7 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes)
     SDL_Rect *audio_rect = session->gui.audio_rect;
     if (x < audio_rect->x || x > audio_rect->x + audio_rect->w) {
 	int diff = x - (audio_rect->x + audio_rect->w / 2);
-	tl->display_offset_sframes += timeline_get_abs_w_sframes(tl, diff);
+	tl->timeview.offset_left_sframes += timeline_get_abs_w_sframes(tl, diff);
     }
     for (uint8_t i=0; i<tl->num_tracks; i++) {
 	track_handle_playhead_jump(tl->tracks[i]);
@@ -313,11 +323,11 @@ void timeline_catchup(Timeline *tl)
     /* 	catchup_w /= 2; */
     /* } */
     if ((tl_draw_x = timeline_get_draw_x(tl, tl->play_pos_sframes)) > session->gui.audio_rect->x + session->gui.audio_rect->w) {
-	tl->display_offset_sframes = tl->play_pos_sframes - timeline_get_abs_w_sframes(tl, session->gui.audio_rect->w - catchup_w);
+	tl->timeview.offset_left_sframes = tl->play_pos_sframes - timeline_get_abs_w_sframes(tl, session->gui.audio_rect->w - catchup_w);
 	timeline_reset(tl, false);
     }
     else if (tl_draw_x < session->gui.audio_rect->x) {
-	tl->display_offset_sframes = tl->play_pos_sframes - timeline_get_abs_w_sframes(tl, catchup_w);
+	tl->timeview.offset_left_sframes = tl->play_pos_sframes - timeline_get_abs_w_sframes(tl, catchup_w);
 	timeline_reset(tl, false);
     }
 }

@@ -169,7 +169,13 @@ uint8_t project_add_timeline(Project *proj, char *name)
     
     /* new_tl->layout = layout_get_child_by_name_recursive(session->gui.layout, "timeline"); */
     
-    new_tl->sample_frames_per_pixel = DEFAULT_SFPP;
+    new_tl->timeview.sample_frames_per_pixel = DEFAULT_SFPP;
+    new_tl->timeview.rect = session->gui.audio_rect;
+    new_tl->timeview.play_pos = &new_tl->play_pos_sframes;
+    new_tl->timeview.in_mark = &new_tl->in_mark_sframes;
+    new_tl->timeview.out_mark = &new_tl->out_mark_sframes;
+    new_tl->timeview.offset_left_sframes = 0;
+    
     strcpy(new_tl->timecode.str, "+00:00:00:00000");
     Layout *tc_lt = layout_get_child_by_name_recursive(tl_lt, "timecode");
     if (!session->gui.timecode_tb) {
@@ -2290,9 +2296,9 @@ void timeline_scroll_playhead(double dim)
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     if (main_win->i_state & I_STATE_CMDCTRL) {
-	dim *= session_get_sample_rate() * tl->sample_frames_per_pixel * PLAYHEAD_ADJUST_SCALAR_LARGE;
+	dim *= session_get_sample_rate() * tl->timeview.sample_frames_per_pixel * PLAYHEAD_ADJUST_SCALAR_LARGE;
     } else {
-	dim *= session_get_sample_rate() * tl->sample_frames_per_pixel * PLAYHEAD_ADJUST_SCALAR_SMALL;
+	dim *= session_get_sample_rate() * tl->timeview.sample_frames_per_pixel * PLAYHEAD_ADJUST_SCALAR_SMALL;
     }
     int32_t new_pos = tl->play_pos_sframes + dim;
     timeline_set_play_position(ACTIVE_TL, new_pos);

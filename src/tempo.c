@@ -1053,7 +1053,7 @@ void click_track_draw(ClickTrack *tt)
 	{100, 100, 100, 255}
     };
 
-    int32_t pos = tt->tl->display_offset_sframes;
+    int32_t pos = tt->tl->timeview.offset_left_sframes;
     enum beat_prominence bp;
     click_track_get_next_pos(tt, true, pos, &pos, &bp);
     int x = timeline_get_draw_x(tl, pos);

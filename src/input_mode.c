@@ -996,8 +996,31 @@ static void mode_load_source()
     fn = create_user_fn(
 	"source_set_out_mark",
 	"Set Out Mark (source)",
-        user_source_set_out_mark
-	);
+        user_source_set_out_mark);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"source_zoom_in",
+	"Zoom in (source)",
+	user_source_zoom_in);
+    mode_subcat_add_fn(sc, fn);
+    
+    fn = create_user_fn(
+	"source_zoom_out",
+	"Zoom out (source)",
+	user_source_zoom_out);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"source_move_left",
+	"Move left (source)",
+	user_source_move_left);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"source_move_right",
+	"Move right (source)",
+	user_source_move_right);
     mode_subcat_add_fn(sc, fn);
 
 }

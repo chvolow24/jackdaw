@@ -161,6 +161,10 @@ void user_source_play_slow(void *nullarg);
 void user_source_rewind_slow(void *nullarg);
 void user_source_set_in_mark(void *nullarg);
 void user_source_set_out_mark(void *nullarg);
+void user_source_zoom_in(void *nullarg);
+void user_source_zoom_out(void *nullarg);
+void user_source_move_left(void *nullarg);
+void user_source_move_right(void *nullarg);
 
 void user_modal_next(void *nullarg);
 void user_modal_previous(void *nullarg);

@@ -399,7 +399,7 @@ void clipref_draw_waveform(ClipRef *cr)
 	/* breakfn(); */
 	/* return; */
     }
-    double sfpp = cr->track->tl->sample_frames_per_pixel;
+    double sfpp = cr->track->tl->timeview.sample_frames_per_pixel;
     SDL_Rect onscreen_rect = cr->layout->rect;
     if (onscreen_rect.x > main_win->w_pix) return;
     if (onscreen_rect.x + onscreen_rect.w < 0) return;
@@ -544,7 +544,7 @@ static int timeline_draw(Timeline *tl)
     SDL_Rect tctbrect = session->gui.timecode_tb->layout->rect;
     SDL_RenderDrawLine(main_win->rend, tctbrect.x + tctbrect.w, tctbrect.y, tctbrect.x + tctbrect.w, tctbrect.y + tctbrect.h);
     /* Draw t=0 */
-    if (tl->display_offset_sframes < 0) {
+    if (tl->timeview.offset_left_sframes < 0) {
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
         int zero_x = timeline_get_draw_x(tl, 0);
         SDL_RenderDrawLine(main_win->rend, zero_x, session->gui.audio_rect->y, zero_x, session->gui.audio_rect->y + session->gui.audio_rect->h);
@@ -555,7 +555,7 @@ static int timeline_draw(Timeline *tl)
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.white));
     int ph_y = session->gui.ruler_rect->y + PLAYHEAD_TRI_H;
     /* int tri_y = session->gui.ruler_rect->y; */
-    if (tl->play_pos_sframes >= tl->display_offset_sframes) {
+    if (tl->play_pos_sframes >= tl->timeview.offset_left_sframes) {
         int play_head_x = timeline_get_draw_x(tl, tl->play_pos_sframes);
         SDL_RenderDrawLine(main_win->rend, play_head_x, ph_y, play_head_x, session->gui.audio_rect->y + session->gui.audio_rect->h);
 
@@ -574,7 +574,7 @@ static int timeline_draw(Timeline *tl)
     /* draw mark in */
     int in_x, out_x = -1;
 
-    if (tl->in_mark_sframes >= tl->display_offset_sframes && tl->in_mark_sframes < tl->display_offset_sframes + timeline_get_abs_w_sframes(tl, session->gui.audio_rect->w)) {
+    if (tl->in_mark_sframes >= tl->timeview.offset_left_sframes && tl->in_mark_sframes < tl->timeview.offset_left_sframes + timeline_get_abs_w_sframes(tl, session->gui.audio_rect->w)) {
         in_x = timeline_get_draw_x(tl, tl->in_mark_sframes);
         int i_tri_x2 = in_x;
 	ph_y = session->gui.ruler_rect->y + PLAYHEAD_TRI_H;
@@ -584,14 +584,14 @@ static int timeline_draw(Timeline *tl)
             ph_y -= 1;
             i_tri_x2 += 1;
         }
-    } else if (tl->in_mark_sframes < tl->display_offset_sframes) {
+    } else if (tl->in_mark_sframes < tl->timeview.offset_left_sframes) {
         in_x = session->gui.audio_rect->x;
     } else {
 	in_x = session->gui.timeline_lt->rect.w;
     }
 
     /* draw mark out */
-    if (tl->out_mark_sframes > tl->display_offset_sframes && tl->out_mark_sframes < tl->display_offset_sframes + timeline_get_abs_w_sframes(tl, session->gui.audio_rect->w)) {
+    if (tl->out_mark_sframes > tl->timeview.offset_left_sframes && tl->out_mark_sframes < tl->timeview.offset_left_sframes + timeline_get_abs_w_sframes(tl, session->gui.audio_rect->w)) {
         out_x = timeline_get_draw_x(tl, tl->out_mark_sframes);
         int o_tri_x1 = out_x;
 	ph_y =  session->gui.ruler_rect->y + PLAYHEAD_TRI_H;
@@ -600,7 +600,7 @@ static int timeline_draw(Timeline *tl)
             ph_y -= 1;
             o_tri_x1 -= 1;
         }
-    } else if (tl->out_mark_sframes > tl->display_offset_sframes + timeline_get_abs_w_sframes(tl, session->gui.audio_rect->w)) {
+    } else if (tl->out_mark_sframes > tl->timeview.offset_left_sframes + timeline_get_abs_w_sframes(tl, session->gui.audio_rect->w)) {
         out_x = session->gui.audio_rect->x + session->gui.audio_rect->w;
     }
 

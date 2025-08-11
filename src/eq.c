@@ -373,9 +373,12 @@ void eq_toggle_selected_filter_active(EQ *eq)
     *b = eq->selected_filter_active;
     /* eq->selected_filter_active = *b; */
     if (!*b) {
+	eq->group.filters[eq->selected_ctrl].bypass = true;
 	iir_set_neutral_freq_resp(eq->group.filters + eq->selected_ctrl);
     } else {
-	eq_set_filter_from_ctrl(eq, eq->selected_ctrl);
+	/* eq_set_filter_from_ctrl(eq, eq->selected_ctrl); */
+	eq->group.filters[eq->selected_ctrl].bypass = false;
+	eq->group.filters[eq->selected_ctrl].freq_resp_stale = true;
     }
     iir_group_update_freq_resp(&eq->group);
 }
@@ -391,9 +394,11 @@ void eq_set_filter_from_ctrl(EQ *eq, int index)
     static const double epsilon = 1e-9;
     if (fabs(amp_raw - 1.0) < epsilon) {
 	eq->ctrls[index].filter_active = false;
+	eq->selected_filter_active = false;
 	/* eq_select_ctrl(eq, index); */
     } else {
 	eq->ctrls[index].filter_active = true;
+	eq->selected_filter_active = true;
 	/* eq_select_ctrl(eq, index); */
     }
 
@@ -558,7 +563,9 @@ void eq_create_freq_plot(EQ *eq, Layout *container)
     eq->fp->linear_plot_ranges[1] = EQ_MAX_AMPLITUDE;
     eq->fp->linear_plot_mins[1] = 0.0;
 
+    /* TODO: investigate duplicate call */
     iir_group_update_freq_resp(&eq->group);
+    
     for (int i=0; i<EQ_DEFAULT_NUM_FILTERS; i++) {
 	eq->ctrls[i].x = waveform_freq_plot_x_abs_from_freq(eq->fp, eq->ctrls[i].freq_amp_raw[0]);
 	eq->ctrls[i].y = waveform_freq_plot_y_abs_from_amp(eq->fp, eq->ctrls[i].freq_amp_raw[1], 0, true);

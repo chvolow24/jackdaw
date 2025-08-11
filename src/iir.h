@@ -41,6 +41,8 @@ typedef struct iir_filter {
     double **mem_in;
     double **mem_out;
     int mem_index[2];
+
+    bool bypass;
     /* int memOut_index; */
 
     struct freq_plot *fp;

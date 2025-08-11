@@ -44,6 +44,7 @@ void iir_add_freqplot(IIRFilter *f, struct freq_plot *fp)
 {
     f->fp = fp;
     f->freq_resp = malloc(sizeof(double) * IIR_FREQPLOT_RESOLUTION);
+    f->freq_resp_stale = true;
     for (int i=0; i<IIR_FREQPLOT_RESOLUTION; i++) {
 	f->freq_resp[i] = 1.0;
     }
@@ -691,7 +692,7 @@ void iir_group_update_freq_resp(IIRGroup *group)
 {
     if (!group->fp) return;
     for (int i=0; i<group->num_filters; i++) {
-	if (group->filters[i].freq_resp_stale) {
+	if (!group->filters[i].bypass && group->filters[i].freq_resp_stale) {
 	    iir_reset_freq_resp(group->filters + i);
 	}
     }

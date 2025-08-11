@@ -227,8 +227,10 @@ Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
     /* p.toggle_p.action = filter_active_toggle; */
     /* p.toggle_p.target = eq; */
     /* p.toggle_p.value = &eq->selected_filter_active; */
+    eq->selected_filter_active = eq->ctrls[eq->selected_ctrl].filter_active;
     p.toggle_p.ep = &eq->selected_filter_active_ep;
     page_add_el(page, EL_TOGGLE, p, "", "filter_active_toggle");
+    /* fprintf(stderr, "SELECTED FILTER ACTIVE STATE: %d\n", eq->selected_filter_active); */
 
     p.textbox_p.font = main_win->mono_font;
     p.textbox_p.text_size = 14;

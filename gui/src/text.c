@@ -202,7 +202,6 @@ void txt_set_value(Text *txt, char *set_str)
 /*     return 0; */
 /* } */
 
-
 Text *txt_create_from_str(
     char *set_str,
     int max_len,
@@ -558,7 +557,7 @@ void ttf_destroy_font(Font *font)
 }
     
 
-TTF_Font *ttf_get_font_at_size(Font *font, int size)
+TTF_Font *ttf_get_font_at_size(const Font *font, int size)
 {
     int i = 0;
     int sizes[] = STD_FONT_SIZES;
@@ -928,6 +927,27 @@ int txt_integer_validation(Text *txt, char input)
 	return 1;
     }
     return 0;
+}
+
+SDL_Texture *txt_create_texture(const char *str, SDL_Color color, const Font *font, int font_size, int *w, int *h)
+{
+    TTF_Font *ttf_font = ttf_get_font_at_size(font, font_size);
+    SDL_Surface *surface = TTF_RenderUTF8_Blended(ttf_font, str, color);
+    /* SDL_Surface *surface = TTF_RenderUTF8_Blended(font, test_str, txt->color); */
+    if (!surface) {
+        fprintf(stderr, "Error: TTF_RenderText_Blended failed: %s\n", TTF_GetError());
+        return NULL;
+    }
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(main_win->rend, surface);
+    if (!texture) {
+        fprintf(stderr, "Error: SDL_CreateTextureFromSurface failed: %s\n", TTF_GetError());
+        return NULL;
+    }
+    SDL_FreeSurface(surface);
+    if (w || h) {
+	SDL_QueryTexture(texture, NULL, NULL, w, h);
+    }
+    return texture;
 }
 
 #endif

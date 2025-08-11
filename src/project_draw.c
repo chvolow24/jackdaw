@@ -237,7 +237,6 @@ static void clipref_draw(ClipRef *cr)
     if (cr->label) {
 	textbox_draw(cr->label);
     }
-    /* layout_draw(main_win, cr->layout); */
 }
 
 static void draw_selected_track_rect(Layout *selected_layout)

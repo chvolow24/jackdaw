@@ -47,7 +47,6 @@ Session *session_create()
     session->gui.audio_rect = &(layout_get_child_by_name_recursive(session->gui.layout, "audio_rect")->rect);
     session->gui.console_column_rect = &(layout_get_child_by_name_recursive(session->gui.layout, "console_column")->rect);
 
-
     Layout *control_bar_layout = layout_get_child_by_name_recursive(session->gui.layout, "control_bar");
 
     static const SDL_Color timeline_label_txt_color = {0, 200, 100, 255};
@@ -74,6 +73,8 @@ Session *session_create()
     textbox_set_background_color(session->gui.timeline_label, &colors.clear);
     textbox_set_align(session->gui.timeline_label, CENTER_LEFT);
 
+    session->gui.right_arrow_texture = txt_create_texture("→", colors.white, main_win->mono_bold_font, 12, NULL, NULL);
+    session->gui.left_arrow_texture = txt_create_texture("←", colors.white, main_win->mono_bold_font, 12, NULL, NULL);
 
     session_init_source_mode(session);
     session_init_audio_conns(session);
@@ -214,6 +215,9 @@ void session_destroy()
     textbox_destroy(session->gui.timeline_label);
     textbox_destroy(session->gui.timecode_tb);
     textbox_destroy(session->gui.loop_play_lemniscate);
+
+    SDL_DestroyTexture(session->gui.right_arrow_texture);
+    SDL_DestroyTexture(session->gui.left_arrow_texture);
     
     session_deinit_panels(session);
     

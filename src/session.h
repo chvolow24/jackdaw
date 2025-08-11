@@ -66,6 +66,10 @@ struct session_gui {
 
     bool panels_initialized;
     PanelArea *panels;
+
+    SDL_Texture *left_arrow_texture;
+    SDL_Texture *right_arrow_texture;
+    
 };
 
 struct playhead_scroll {

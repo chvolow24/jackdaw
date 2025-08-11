@@ -34,7 +34,7 @@ int32_t timeview_get_w_sframes(TimeView *tv, int draw_w_pix)
 {
     return (int32_t)round(timeview_get_w_sframes_precise(tv, draw_w_pix));
 }
-static int32_t timeview_rightmost_pos(TimeView *tv)
+int32_t timeview_rightmost_pos(TimeView *tv)
 {
     return (int32_t)((double)tv->offset_left_sframes + timeview_get_w_sframes_precise(tv, tv->rect->w));
 }
@@ -55,7 +55,6 @@ static void timeview_rectify_scroll(TimeView *tv)
 	    tv->sample_frames_per_pixel = tv->max_sfpp;
 	}
     }
-
 }
 
 void timeview_scroll_horiz(TimeView *tv, int scroll_by)

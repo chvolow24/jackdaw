@@ -605,6 +605,32 @@ draw_marked_box:
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(timeline_marked_bckgrnd));
 	SDL_RenderFillRect(main_win->rend, &(in_out));
     }
+    
+    /* Draw arrows */
+    const int arrow_pad = -2;
+    if (session->source_mode.timeview.offset_left_sframes > 0) {
+	int y = source_clip_rect->y;
+	int arrow_h;
+	int arrow_w;    
+	SDL_QueryTexture(session->gui.left_arrow_texture, NULL, NULL, &arrow_w, &arrow_h);
+	/* fprintf(stderr, "Y: %d arrow h: %d\n", y, arrow_h); */
+	while (y + arrow_h <= source_clip_rect->y + source_clip_rect->h) {
+	    SDL_Rect dst = {source_clip_rect->x, y, arrow_w, arrow_h};
+	    SDL_RenderCopy(main_win->rend, session->gui.left_arrow_texture, NULL, &dst);
+	    y += arrow_h + arrow_pad;
+	}
+    }
+    if (timeview_rightmost_pos(&session->source_mode.timeview) < len_sframes - 1) {
+	int y = source_clip_rect->y;
+	int arrow_h;
+	int arrow_w;    
+	SDL_QueryTexture(session->gui.right_arrow_texture, NULL, NULL, &arrow_w, &arrow_h);
+	while (y + arrow_h <= source_clip_rect->y + source_clip_rect->h) {
+	    SDL_Rect dst = {source_clip_rect->x + source_clip_rect->w - arrow_w, y, arrow_w, arrow_h};
+	    SDL_RenderCopy(main_win->rend, session->gui.right_arrow_texture, NULL, &dst);
+	    y += arrow_h + arrow_pad;
+	}
+    }
 }
 
 

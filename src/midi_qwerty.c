@@ -12,6 +12,7 @@ struct mqwert_state {
     uint8_t velocity;
     bool live; /* Live mode handles keyups */
     MIDIDevice v_device; /* Virtual device */
+    int key_note_table[96]; /* Held notes; table indices are ASCII printable characters */
 };
 
 static struct mqwert_state state = {
@@ -102,20 +103,28 @@ void mqwert_transpose(int incr)
     state.transpose += incr;
 }
 
-void mqwert_handle_note(int note_raw, bool is_note_off)
+void mqwert_handle_key(char key, bool is_keyup)
 {
-    int note = note_transpose(note_raw);
-    /* fprintf(stderr, "Note raw: %d note: %d\n", note_raw, note); */
-    Note *unclosed = state.v_device.unclosed_notes + note;
+    int note;
     
-    /* No restrikes! */
-    if (unclosed->unclosed && !is_note_off) return;
+
+    if (!is_keyup) {
+	if (state.key_note_table[key - ' '] != -1) { /* Key is occupied */
+	    return; /* No restrikes! */
+	}
+	note = note_transpose(raw_note_from_key(key));
+	state.key_note_table[key - ' '] = note;
+    } else {
+	note = state.key_note_table[key - ' '];
+	state.key_note_table[key - ' '] = -1;
+    }
+
+    /* Note *unclosed = state.v_device.unclosed_notes + note; */
     
-    /* PmTimestamp t = Pt_Time(); */
     PmEvent e;
     e.timestamp = Pt_Time();
     /* Default to MIDI channel 0 */
-    uint8_t type = is_note_off ? 0x80 : 0x90;
+    uint8_t type = is_keyup ? 0x80 : 0x90;
 
     e.message = Pm_Message(
 	type,
@@ -126,22 +135,22 @@ void mqwert_handle_note(int note_raw, bool is_note_off)
     if (midi_device_add_event(&state.v_device, e) == 0) {
 	fprintf(stderr, "Error in midi_qwert_handle_note: device event buf full\n");
     }
-    if (!is_note_off) {
-	unclosed->unclosed = true;
-	unclosed->key = note;
-	unclosed->channel = 0;
-	unclosed->start_rel = e.timestamp;
-	unclosed->velocity = state.velocity;
-    } else {
-	unclosed->unclosed = false;
-    }
+    /* if (!is_keyup) { */
+    /* 	unclosed->unclosed = true; */
+    /* 	unclosed->key = note; */
+    /* 	unclosed->channel = 0; */
+    /* 	unclosed->start_rel = e.timestamp; */
+    /* 	unclosed->velocity = state.velocity; */
+    /* } else { */
+    /* 	unclosed->unclosed = false; */
+    /* } */
 }
 
-void mqwert_handle_keyup(char key)
-{
-    int note = raw_note_from_key(key);
-    mqwert_handle_note(note, true);
-}
+/* void mqwert_handle_keyup(char key) */
+/* { */
+/*     /\* int note = raw_note_from_key(key); *\/ */
+/*     mqwert_handle_key(key, true); */
+/* } */
 
 
 void mqwert_get_current_notes(MIDIDevice *dst_device)

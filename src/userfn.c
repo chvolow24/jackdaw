@@ -2851,6 +2851,8 @@ void user_text_edit_escape(void *nullarg)
     Session *session = session_get();
     if (main_win->txt_editing) {
 	txt_stop_editing(main_win->txt_editing);
+    } else {
+	window_pop_mode(main_win);
     }
     Timeline *tl = ACTIVE_TL;
     timeline_reset(tl, false);
@@ -3106,99 +3108,99 @@ void user_midi_qwerty_transpose_down(void *nullarg)
 
 
 /* NOTE FUNCTIONS */
-static void mqwert_note(int note_raw)
+static void mqwert_key(char key)
 {
-    mqwert_handle_note(note_raw, false);
+    mqwert_handle_key(key, false);
 }
 
 void user_midi_qwerty_c1(void *nullarg)
 {
-    mqwert_note(60);
+    mqwert_key('a');
 }
 
 void user_midi_qwerty_cis1(void *nullarg)
 {
-    mqwert_note(61);
+    mqwert_key('w');
 }
 
 void user_midi_qwerty_d1(void *nullarg)
 {
-    mqwert_note(62);
+    mqwert_key('s');
 }
 
 void user_midi_qwerty_dis(void *nullarg)
 {
-    mqwert_note(63);
+    mqwert_key('e');
 }
 
 void user_midi_qwerty_e(void *nullarg)
 {
-    mqwert_note(64);
+    mqwert_key('d');
 }
 
 void user_midi_qwerty_f(void *nullarg)
 {
-    mqwert_note(65);
+    mqwert_key('f');
 }
 
 void user_midi_qwerty_fis(void *nullarg)
 {
-    mqwert_note(66);
+    mqwert_key('t');
 }
 
 void user_midi_qwerty_g(void *nullarg)
 {
-    mqwert_note(67);
+    mqwert_key('g');
 }
 
 void user_midi_qwerty_gis(void *nullarg)
 {
-    mqwert_note(68);
+    mqwert_key('y');
 }
 
 void user_midi_qwerty_a(void *nullarg)
 {
-    mqwert_note(69);
+    mqwert_key('h');
 }
 
 void user_midi_qwerty_ais(void *nullarg)
 {
-    mqwert_note(70);
+    mqwert_key('u');
 }
 
 void user_midi_qwerty_b(void *nullarg)
 {
-    mqwert_note(71);
+    mqwert_key('j');
 }
 
 void user_midi_qwerty_c2(void *nullarg)
 {
-    mqwert_note(72);
+    mqwert_key('k');
 }
 
 void user_midi_qwerty_cis2(void *nullarg)
 {
-    mqwert_note(73);
+    mqwert_key('o');
 }
 
 void user_midi_qwerty_d2(void *nullarg)
 {
-    mqwert_note(74);
+    mqwert_key('l');
 }
 
 void user_midi_qwerty_dis2(void *nullarg)
 {
-    mqwert_note(75);
+    mqwert_key('p');
 }
 
 void user_midi_qwerty_e2(void *nullarg)
 {
-    mqwert_note(76);
+    mqwert_key(';');
 }
 
 void user_midi_qwerty_f2(void *nullarg)
 {
-    mqwert_note(77);
+    mqwert_key('\'');
 }
 
 

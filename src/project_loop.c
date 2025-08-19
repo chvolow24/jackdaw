@@ -357,7 +357,7 @@ void loop_project_main()
 		scrolling_lt = NULL;
 		temp_scrolling_lt = NULL;
 		if (session->midi_qwerty) {
-		    mqwert_handle_keyup(e.key.keysym.sym);
+		    mqwert_handle_key(e.key.keysym.sym, true);
 		}
 		switch (e.key.keysym.scancode) {
 		case SDL_SCANCODE_LGUI:

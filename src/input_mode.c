@@ -1333,6 +1333,21 @@ static void mode_load_midi_qwerty()
 	"midi_qwerty_d2",
 	user_midi_qwerty_d2);
     mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_dis2",
+	"midi_qwerty_dis2",
+	user_midi_qwerty_dis2);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_e2",
+	"midi_qwerty_e2",
+	user_midi_qwerty_e2);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_f2",
+	"midi_qwerty_f2",
+	user_midi_qwerty_f2);
+    mode_subcat_add_fn(sc, fn);
 }
 
 

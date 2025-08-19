@@ -220,5 +220,8 @@ void user_midi_qwerty_b(void *nullarg);
 void user_midi_qwerty_c2(void *nullarg);
 void user_midi_qwerty_cis2(void *nullarg);
 void user_midi_qwerty_d2(void *nullarg);
+void user_midi_qwerty_dis2(void *nullarg);
+void user_midi_qwerty_e2(void *nullarg);
+void user_midi_qwerty_f2(void *nullarg);
 
 #endif

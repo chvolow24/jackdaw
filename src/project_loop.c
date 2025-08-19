@@ -331,10 +331,12 @@ void loop_project_main()
 		    main_win->i_state |= I_STATE_META;
 		    break;
 	        case SDL_SCANCODE_K:
-		    if (main_win->i_state & I_STATE_K) {
-			break;
-		    } else {
-			set_i_state_k = true;
+		    if (TOP_MODE != MIDI_QWERTY) {
+			if (main_win->i_state & I_STATE_K) {
+			    break;
+			} else {
+			    set_i_state_k = true;
+			}
 		    }
 		    /* No break */
 		default:

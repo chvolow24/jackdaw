@@ -267,3 +267,6 @@
   - k		: midi_qwerty_c2
   - o		: midi_qwerty_cis2
   - l		: midi_qwerty_d2
+  - p		: midi_qwerty_dis2
+  - ;		: midi_qwerty_e2
+  - '		: midi_qwerty_f2

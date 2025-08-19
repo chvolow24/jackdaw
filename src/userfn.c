@@ -3025,6 +3025,8 @@ void user_tabview_escape(void *nullarg)
 	tabview_close(main_win->active_tabview);
 	tl->needs_redraw = true;
 	return;
+    } else {
+	window_pop_mode(main_win);
     }
 }
 
@@ -3182,6 +3184,21 @@ void user_midi_qwerty_cis2(void *nullarg)
 void user_midi_qwerty_d2(void *nullarg)
 {
     mqwert_note(74);
+}
+
+void user_midi_qwerty_dis2(void *nullarg)
+{
+    mqwert_note(75);
+}
+
+void user_midi_qwerty_e2(void *nullarg)
+{
+    mqwert_note(76);
+}
+
+void user_midi_qwerty_f2(void *nullarg)
+{
+    mqwert_note(77);
 }
 
 

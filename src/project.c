@@ -2245,9 +2245,7 @@ bool timeline_refocus_track(Timeline *tl, Track *track, bool at_bottom)
 	inner = track->layout;
     }
     return refocus_track_lt(tl, lt, inner, at_bottom);
-
 }
-
 
 void timeline_play_speed_set(double new_speed)
 {

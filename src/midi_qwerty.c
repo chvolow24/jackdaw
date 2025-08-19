@@ -51,6 +51,12 @@ static int raw_note_from_key(char key)
 	return 73;
     case 'l':
 	return 74;
+    case 'p':
+	return 75;
+    case ';':
+	return 76;
+    case '\'':
+	return 77;
     default:
 	return 0;
     }
@@ -61,6 +67,8 @@ static int note_transpose(int note_raw)
     int note = note_raw;
     note += 12 * state.octave;
     note += state.transpose;
+    if (note < 0) return 0;
+    if (note > 127) return 127;
     return note;
 }
 

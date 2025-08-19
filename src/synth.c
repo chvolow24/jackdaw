@@ -535,7 +535,7 @@ Synth *synth_create(Track *track)
 	page_el_gui_cb, NULL, NULL,
 	NULL, NULL, &s->filter_page, "resonance_slider");
     endpoint_set_default_value(&s->resonance_ep, (Value){.float_v = 5.0f});
-    endpoint_set_allowed_range(&s->resonance_ep, (Value){.float_v = 1.0f}, (Value){.float_v = 50.0f});
+    endpoint_set_allowed_range(&s->resonance_ep, (Value){.float_v = 1.0f}, (Value){.float_v = 15.0f});
     api_endpoint_register(&s->resonance_ep, &s->filter_node);
 
     endpoint_init(
@@ -998,7 +998,6 @@ static void osc_get_buf_preamp(Osc *restrict osc, float step, int len)
 	#endif
 	len = MAX_OSC_BUF_LEN;
     }
-    double sample_rate = session_get_sample_rate();
     float *fmod_samples;
     float *amod_samples;
     if (osc->freq_modulator) {

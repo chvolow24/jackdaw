@@ -247,3 +247,23 @@
   - C-p		: autocomplete_previous
   - <ret>	: autocomplete_select
   - <esc>	: autocomplete_escape
+- midi_qwerty:
+  - z		: midi_qwerty_octave_down
+  - x		: midi_qwerty_octave_up
+  - ,		: midi_qwerty_transpose_down
+  - .		: midi_qwerty_transpose_up
+  - a		: midi_qwerty_c1
+  - w		: midi_qwerty_cis1
+  - s		: midi_qwerty_d1
+  - e		: midi_qwerty_dis
+  - d		: midi_qwerty_e
+  - f		: midi_qwerty_f
+  - t		: midi_qwerty_fis
+  - g		: midi_qwerty_g
+  - y		: midi_qwerty_gis
+  - h		: midi_qwerty_a
+  - u		: midi_qwerty_ais
+  - j		: midi_qwerty_b
+  - k		: midi_qwerty_c2
+  - o		: midi_qwerty_cis2
+  - l		: midi_qwerty_d2

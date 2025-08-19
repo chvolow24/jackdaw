@@ -31,17 +31,19 @@
 
 typedef enum input_mode {
 /* typedef enum input_mode : uint8_t { */
-    GLOBAL=0,
-    MENU_NAV=1,
-    TIMELINE=2,
-    SOURCE=3,
-    MODAL=4,
-    TEXT_EDIT=5,
-    TABVIEW=6,
-    AUTOCOMPLETE_LIST=7
+    GLOBAL,
+    MENU_NAV,
+    TIMELINE,
+    SOURCE,
+    MODAL,
+    TEXT_EDIT,
+    TABVIEW,
+    AUTOCOMPLETE_LIST,
+    MIDI_QWERTY,
+    NUM_INPUT_MODES
 } InputMode;
 
-#define NUM_INPUT_MODES 8
+/* #define NUM_INPUT_MODES 8 */
 
 #define TOP_MODE (main_win->modes[main_win->num_modes - 1])
 

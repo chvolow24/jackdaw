@@ -26,9 +26,9 @@
 #include "fir_filter.h"
 #include "function_lookup.h"
 #include "input.h"
-#include "jlily.h"
 #include "layout.h"
 #include "midi_clip.h"
+#include "midi_qwerty.h"
 #include "mouse.h"
 #include "project.h"
 #include "project_draw.h"
@@ -36,7 +36,6 @@
 #include "session_endpoint_ops.h"
 #include "session.h"
 #include "settings.h"
-#include "synth_page.h"
 #include "tempo.h"
 #include "timeline.h"
 #include "transport.h"
@@ -227,36 +226,6 @@ void loop_project_main()
 		/*     break; */
 		case SDL_SCANCODE_5: {
 		    timeline_add_jlily();
-		    break;
-		    Timeline *tl = ACTIVE_TL;
-		    ClickSegment *s = click_segment_active_at_cursor(tl);
-		    /* Get dur of first beat */
-		    if (s) {
-			int num_subdivs = 0;
-			for (int i=0; i<s->cfg.num_beats; i++) {
-			    num_subdivs += s->cfg.beat_subdiv_lens[i];
-			}
-			/* First beat dur */
-			int32_t beat_dur = s->cfg.dur_sframes / num_subdivs * s->cfg.beat_subdiv_lens[0];
-			fprintf(stderr, "BEAT DUR BPM: %f\n", (double)session_get_sample_rate() / (double)beat_dur * 60.0);
-			Track *t = timeline_selected_track(tl);
-			if (!t) break;
-			ClipRef *cr = clipref_at_cursor();
-			MIDIClip *mclip;
-			if (!cr) {
-			    mclip = midi_clip_create(NULL, t);
-			    cr = clipref_create(t, tl->play_pos_sframes, CLIP_MIDI, mclip);
-			} else {
-			    if (cr->type == CLIP_AUDIO) break;
-			    mclip = cr->source_clip;
-			}
-			int32_t pos_rel = tl->play_pos_sframes - cr->tl_pos + cr->start_in_clip;
-			jlily_string_to_mclip("b'8 r b gis r b r b r ais r fis fis'8. fis16 r8 dis", (double)beat_dur, pos_rel, mclip);
-			mclip->len_sframes = mclip->notes[mclip->num_notes - 1].end_rel + 1;
-			
-		    } else {
-			fprintf(stderr, "NO CLICK SEGMENT\n");
-		    }
 		}
 		    break;
 		/* case SDL_SCANCODE_6: { */
@@ -385,6 +354,9 @@ void loop_project_main()
 	    case SDL_KEYUP:
 		scrolling_lt = NULL;
 		temp_scrolling_lt = NULL;
+		if (session->midi_qwerty) {
+		    mqwert_handle_keyup(e.key.keysym.sym);
+		}
 		switch (e.key.keysym.scancode) {
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:

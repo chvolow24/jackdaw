@@ -12,6 +12,7 @@
 #include <stdbool.h>
 
 #include "input.h"
+#include "input_mode.h"
 #include "layout.h"
 #include "menu.h"
 
@@ -50,8 +51,10 @@ UserFn *input_get(uint16_t i_state, SDL_Keycode keycode)
 {    
     int hash = input_hash(i_state, keycode);
     int win_mode_i = main_win->num_modes - 1;
-    InputMode mode = main_win->modes[win_mode_i];
+    /* fprintf(stderr, "Main win num modes = %d (starting %d)\n", main_win->num_modes, win_mode_i); */
     while (win_mode_i >= -1) {
+	InputMode mode = main_win->modes[win_mode_i];
+	/* fprintf(stderr, "\tCHECKING INPUT mode %d (%s)\n", mode, input_mode_str(mode)); */
 	KeybNode *init_node = INPUT_HASH_TABLE[hash];
 	KeybNode *node = init_node;
 	if (!node) {
@@ -561,10 +564,10 @@ void input_load_keybinding_config(const char *filepath)
 	}
     }
 }
-
+#define MAX_KEYB_BLOCKS 64
 bool input_function_is_accessible(UserFn *fn, Window *win)
 {
-    InputMode keyb_blocks[16];
+    InputMode keyb_blocks[MAX_KEYB_BLOCKS];
     int num_keyb_blocks = 0;
     for (int i=0; i<fn->num_keybindings; i++) {
 	Keybinding *kb = fn->key_bindings[i];
@@ -573,6 +576,11 @@ bool input_function_is_accessible(UserFn *fn, Window *win)
 	KeybNode *kn = INPUT_HASH_TABLE[hash];
 	while (kn) {
 	    if (kn->kb != kb && kn->kb->i_state == kb->i_state && kn->kb->keycode == kb->keycode) {
+		if (num_keyb_blocks == 64) {
+		    fprintf(stderr, "ERROR: %d keyb blocks in input_function_is_accessible\n", MAX_KEYB_BLOCKS);
+		    return false;
+		}
+				
 		keyb_blocks[num_keyb_blocks] = kn->kb->fn->mode->im;
 		num_keyb_blocks++;
 	    }

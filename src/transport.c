@@ -25,6 +25,7 @@
 #include "dsp_utils.h"
 #include "midi_clip.h"
 #include "midi_io.h"
+#include "midi_qwerty.h"
 #include "user_event.h"
 #include "mixdown.h"
 #include "porttime.h"
@@ -207,17 +208,10 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     MIDIDevice *d = session->midi_io.monitor_device;
     Synth *s = session->midi_io.monitor_synth;
     if (d && s) {
-	/* fprintf(stderr, "DOING CHUNK\n"); */
 	midi_device_read(d);
-	/* if (d->num_unconsumed_events > 0) { */
-	/*     fprintf(stderr, "%d unconsumed!\n", d->num_unconsumed_events); */
-	/* } */
-	/* memcpy(s->events, d->buffer, d->num_unconsumed_events * sizeof(PmEvent)); */
-	/* s->num_events = d->num_unconsumed_events; */
 	synth_feed_midi(s, d->buffer, d->num_unconsumed_events, 0, true);
-	/* fprintf(stderr, "Current clip: %p, recording? %d\n", d->current_clip, d->current_clip->recording); */
 	if (d->current_clip && d->current_clip->recording) {
-	    midi_device_record_chunk(d, 1);
+	    midi_device_output_chunk_to_clip(d, 1);
 	    d->current_clip->len_sframes += len_sframes;
 	}
 	d->num_unconsumed_events = 0;
@@ -554,6 +548,7 @@ void transport_start_recording()
     Timeline *tl = ACTIVE_TL;
     tl->record_from_sframes = tl->play_pos_sframes;
     AudioConn *conn;
+    bool activate_mqwert = false;
     /* for (int i=0; i<proj->num_record_conns; i++) { */
     /* 	if ((dev = proj->record_conns[i]) && dev->active) { */
     /* 	    conn_open(proj, dev); */
@@ -595,6 +590,9 @@ void transport_start_recording()
 		mdevice->recording = true;
 		fprintf(stderr, "Opening midi device...\n");
 		midi_device_open(mdevice);
+		if (mdevice->type == MIDI_QWERTY) {
+		    activate_mqwert = true;
+		}
 		MIDIClip *mclip = midi_clip_create(mdevice, track);
 		mdevice->record_start = Pt_Time();
 		fprintf(stderr, "Setting record start? %d\n", mdevice->record_start);
@@ -638,6 +636,10 @@ void transport_start_recording()
 	} else if (track->input_type == MIDI_DEVICE) {
 	    MIDIDevice *mdevice = track->input;
 	    midi_device_open(mdevice);
+	    fprintf(stderr, "Device type??? %d\n", mdevice->type);
+	    if (mdevice->type == MIDI_DEVICE_QWERTY) {
+		activate_mqwert = true;
+	    }
 	    MIDIClip *mclip = midi_clip_create(mdevice, track);
 	    mclip->recording = true;
 	    mdevice->current_clip = mclip;
@@ -664,6 +666,10 @@ void transport_start_recording()
     }
     session->playback.recording = true;
 
+    if (activate_mqwert) {
+	fprintf(stderr, "ACTIVATE\n");
+	mqwert_activate();
+    }
 
     PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_record");
     Textbox *record_button = ((Button *)el->component)->tb;
@@ -865,6 +871,7 @@ void transport_stop_recording()
 	MIDIClip *mclip = session->proj.midi_clips[session->proj.active_midi_clip_index];
 	mclip->recording = false;
 	mclip->recorded_from->recording = false;
+	midi_device_close_all_notes(mclip->recorded_from);
 	session->proj.active_midi_clip_index++;
     }
 
@@ -872,6 +879,8 @@ void transport_stop_recording()
     while (num_conns_to_close > 0) {
 	audioconn_close(conns_to_close[--num_conns_to_close]);
     }
+
+    mqwert_deactivate();
     /* for (int i=0; i<session->midi_io.num_inputs; i++) { */
     /* 	MIDIDevice *d = session->midi_io.inputs + i; */
     /* 	if (!d->info->is_virtual) { */

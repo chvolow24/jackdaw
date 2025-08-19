@@ -784,7 +784,7 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name)
     const char *track_in_name;
     switch (track->input_type) {
     case MIDI_DEVICE:
-	track_in_name = ((MIDIDevice *)track->input)->info->name;
+	track_in_name = ((MIDIDevice *)track->input)->name;
 	break;
     case AUDIO_CONN:
 	track_in_name = ((AudioConn *)track->input)->name;
@@ -1499,7 +1499,7 @@ static void track_set_in_onclick(void *void_arg)
 	MIDIDevice *device = arg->obj;
 	midi_device_open(device);
 	arg->track->input = arg->obj;
-	textbox_set_value_handle(arg->track->tb_input_name, device->info->name);
+	textbox_set_value_handle(arg->track->tb_input_name, device->name);
 	timeline_check_set_midi_monitoring();
 	window_pop_menu(main_win);
 	Timeline *tl = ACTIVE_TL;
@@ -1531,7 +1531,7 @@ void track_set_midi_out(Track *track)
 
 	MenuItem *item = menu_item_add(
 	    sc,
-	    d->info->name,
+	    d->name,
 	    "(device)",
 	    track_set_midi_out_onclick,
 	    /* track_set_in_onclick, */
@@ -1598,7 +1598,7 @@ void track_set_input(Track *track)
 	arg->track = track;
 	MenuItem *item = menu_item_add(
 	    sc,
-	    device->info->name,
+	    device->name,
 	    "(MIDI)",
 	    track_set_in_onclick,
 	    arg);

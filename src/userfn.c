@@ -15,6 +15,7 @@
 /* #include "loading */
 #include "menu.h"
 #include "midi_file.h"
+#include "midi_qwerty.h"
 #include "modal.h"
 #include "panel.h"
 #include "project.h"
@@ -3073,4 +3074,122 @@ void user_autocomplete_select(void *nullarg)
     Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;
 }
+
+void user_midi_qwerty_escape(void *nullarg)
+{
+    mqwert_deactivate();
+    window_pop_mode(main_win);
+    Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
+    tl->needs_redraw = true;
+}
+
+void user_midi_qwerty_octave_up(void *nullarg)
+{
+    mqwert_octave(1);
+}
+void user_midi_qwerty_octave_down(void *nullarg)
+{
+    mqwert_octave(-1);
+}
+void user_midi_qwerty_transpose_up(void *nullarg)
+{
+    mqwert_transpose(1);
+}
+void user_midi_qwerty_transpose_down(void *nullarg)
+{
+    mqwert_transpose(-1);
+}
+
+
+
+/* NOTE FUNCTIONS */
+static void mqwert_note(int note_raw)
+{
+    mqwert_handle_note(note_raw, false);
+}
+
+void user_midi_qwerty_c1(void *nullarg)
+{
+    mqwert_note(60);
+}
+
+void user_midi_qwerty_cis1(void *nullarg)
+{
+    mqwert_note(61);
+}
+
+void user_midi_qwerty_d1(void *nullarg)
+{
+    mqwert_note(62);
+}
+
+void user_midi_qwerty_dis(void *nullarg)
+{
+    mqwert_note(63);
+}
+
+void user_midi_qwerty_e(void *nullarg)
+{
+    mqwert_note(64);
+}
+
+void user_midi_qwerty_f(void *nullarg)
+{
+    mqwert_note(65);
+}
+
+void user_midi_qwerty_fis(void *nullarg)
+{
+    mqwert_note(66);
+}
+
+void user_midi_qwerty_g(void *nullarg)
+{
+    mqwert_note(67);
+}
+
+void user_midi_qwerty_gis(void *nullarg)
+{
+    mqwert_note(68);
+}
+
+void user_midi_qwerty_a(void *nullarg)
+{
+    mqwert_note(69);
+}
+
+void user_midi_qwerty_ais(void *nullarg)
+{
+    mqwert_note(70);
+}
+
+void user_midi_qwerty_b(void *nullarg)
+{
+    mqwert_note(71);
+}
+
+void user_midi_qwerty_c2(void *nullarg)
+{
+    mqwert_note(72);
+}
+
+void user_midi_qwerty_cis2(void *nullarg)
+{
+    mqwert_note(73);
+}
+
+void user_midi_qwerty_d2(void *nullarg)
+{
+    mqwert_note(74);
+}
+
+
+
+
+
+
+
+
+
 

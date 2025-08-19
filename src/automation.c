@@ -1185,7 +1185,6 @@ static Keyframe *automation_insert_maybe(
     float direction)
 {
     if (direction < 0.0) return NULL;
-    Session *session = session_get();
 
     /* fprintf(stderr, "INSERT maybe\n"); */
     /* Check for insersection with kclips and exit early if intersect */

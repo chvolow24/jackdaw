@@ -440,12 +440,17 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 		break;
 	    }
 	    e.message = Pm_Message(status, note, velocity);
-	    v_device[clip_index].buffer[v_device[clip_index].num_unconsumed_events] = e;
-	    v_device[clip_index].num_unconsumed_events++;
-	    if (v_device[clip_index].num_unconsumed_events == PM_EVENT_BUF_NUM_EVENTS) {
-		midi_device_record_chunk(&v_device[clip_index], 0);
+	    if (midi_device_add_event(v_device + clip_index, e) == PM_EVENT_BUF_NUM_EVENTS) {
+		midi_device_output_chunk_to_clip(v_device + clip_index, 0);
 		v_device[clip_index].num_unconsumed_events = 0;
+		
 	    }
+	    /* v_device[clip_index].buffer[v_device[clip_index].num_unconsumed_events] = e; */
+	    /* v_device[clip_index].num_unconsumed_events++; */
+	    /* if (v_device[clip_index].num_unconsumed_events == PM_EVENT_BUF_NUM_EVENTS) { */
+	    /* 	midi_device_record_chunk(&v_device[clip_index], 0); */
+	    /* 	v_device[clip_index].num_unconsumed_events = 0; */
+	    /* } */
 
 	} else if ((status & 0xF0) == 0x90) { /* NOTE ON */
 	    uint8_t note = fgetc(f);
@@ -465,12 +470,18 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 		}
 		/* Convert type to note off for internal use */
 		e.message = Pm_Message(0x80 + channel, note, velocity);
-		v_device[clip_index].buffer[v_device[clip_index].num_unconsumed_events] = e;
-		v_device[clip_index].num_unconsumed_events++;
-		if (v_device[clip_index].num_unconsumed_events == PM_EVENT_BUF_NUM_EVENTS) {
-		    midi_device_record_chunk(&v_device[clip_index], 0);
+		if (midi_device_add_event(v_device + clip_index, e) == PM_EVENT_BUF_NUM_EVENTS) {
+		    midi_device_output_chunk_to_clip(v_device + clip_index, 0);
 		    v_device[clip_index].num_unconsumed_events = 0;
+		
 		}
+
+		/* v_device[clip_index].buffer[v_device[clip_index].num_unconsumed_events] = e; */
+		/* v_device[clip_index].num_unconsumed_events++; */
+		/* if (v_device[clip_index].num_unconsumed_events == PM_EVENT_BUF_NUM_EVENTS) { */
+		/*     midi_device_record_chunk(&v_device[clip_index], 0); */
+		/*     v_device[clip_index].num_unconsumed_events = 0; */
+		/* } */
 	    } else { /* Authentic note on */
 		num_note_ons[channel]++;
 		uint8_t clip_index = file_info.format == 0 ? channel : track_index - 1;
@@ -481,12 +492,18 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 		}
 
 		e.message = Pm_Message(status, note, velocity);
-		v_device[clip_index].buffer[v_device[clip_index].num_unconsumed_events] = e;
-		v_device[clip_index].num_unconsumed_events++;
-		if (v_device[clip_index].num_unconsumed_events == PM_EVENT_BUF_NUM_EVENTS) {
-		    midi_device_record_chunk(&v_device[clip_index], 0);
+		if (midi_device_add_event(v_device + clip_index, e) == PM_EVENT_BUF_NUM_EVENTS) {
+		    midi_device_output_chunk_to_clip(v_device + clip_index, 0);
 		    v_device[clip_index].num_unconsumed_events = 0;
+		
 		}
+
+		/* v_device[clip_index].buffer[v_device[clip_index].num_unconsumed_events] = e; */
+		/* v_device[clip_index].num_unconsumed_events++; */
+		/* if (v_device[clip_index].num_unconsumed_events == PM_EVENT_BUF_NUM_EVENTS) { */
+		/*     midi_device_record_chunk(&v_device[clip_index], 0); */
+		/*     v_device[clip_index].num_unconsumed_events = 0; */
+		/* } */
 	    }
 	} else {
 	    /* fprintf(stderr, "IN SWITCH x 0xF0: %x\n", status & 0xF0); */
@@ -516,7 +533,7 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 		v_device[clip_index].buffer[v_device[clip_index].num_unconsumed_events] = e;
 		v_device[clip_index].num_unconsumed_events++;
 		if (v_device[clip_index].num_unconsumed_events == PM_EVENT_BUF_NUM_EVENTS) {
-		    midi_device_record_chunk(&v_device[clip_index], 0);
+		    midi_device_output_chunk_to_clip(&v_device[clip_index], 0);
 		    v_device[clip_index].num_unconsumed_events = 0;
 		}
 
@@ -720,7 +737,7 @@ int midi_file_open(const char *filepath, bool automatically_add_tracks)//, MIDIC
 	for (int i=0; i<num_clips; i++) {
 	    
 	    /* Get the rest of the notes */
-	    midi_device_record_chunk(&v_device[i], 0);
+	    midi_device_output_chunk_to_clip(&v_device[i], 0);
 	    
 	    MIDIClip *mclip = mclips[i];
 	    if (mclip->num_notes == 0) {

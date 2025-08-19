@@ -168,6 +168,7 @@ typedef struct session {
     Animation *animations;
     struct api_server server;
     struct queued_ops queued_ops;
+    bool midi_qwerty;
     bool do_tests;
     Draggable dragged_component;
     bool dragging;

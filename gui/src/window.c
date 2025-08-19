@@ -390,6 +390,9 @@ void window_push_mode(Window *win, InputMode im)
 {
     /* if (im == TEXT_EDIT) */
     /* 	SDL_StartTextInput(); */
+
+    /* fprintf(stderr, "\nWINDOW PUSH MODE %d (%s)\n\n", im, input_mode_str(im)); */
+    /* if (im == MIDI_QWERTY) breakfn(); */
     if (win->num_modes < WINDOW_MAX_MODES) {
 	win->modes[win->num_modes] = im;
 	win->num_modes++;

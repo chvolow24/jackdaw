@@ -26,7 +26,8 @@ static const char *input_mode_strs[] = {
     "modal",
     "text_edit",
     "tabview",
-    "autocomplete_list"
+    "autocomplete_list",
+    "midi_qwerty"
 };
 
 const char *input_mode_str(InputMode im)
@@ -56,6 +57,8 @@ InputMode input_mode_from_str(char *str)
 	return TABVIEW;
     } else if (strcmp(str, "autocomplete_list") == 0) {
 	return AUTOCOMPLETE_LIST;
+    } else if (strcmp(str, "midi_qwerty") == 0) {
+	return MIDI_QWERTY;
     } else {
 	return -1;
     }
@@ -1221,6 +1224,117 @@ static void mode_load_autocomplete_list()
     mode_subcat_add_fn(sc, fn);
 }
 
+static void mode_load_midi_qwerty()
+{
+    Mode *mode = mode_create(MIDI_QWERTY);
+    ModeSubcat *sc = mode_add_subcat(mode, "");
+
+    UserFn *fn = create_user_fn(
+	"midi_qwerty_escape",
+	"Escape MIDI QWERTY",
+	user_midi_qwerty_escape);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"midi_qwerty_octave_up",
+	"Octave up",
+	user_midi_qwerty_octave_up);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_octave_down",
+	"Octave down",
+	user_midi_qwerty_octave_down);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_transpose_up",
+	"Transpose up",
+	user_midi_qwerty_transpose_up);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_transpose_down",
+	"Transpose down",
+	user_midi_qwerty_transpose_down);
+    mode_subcat_add_fn(sc, fn);
+
+
+    
+    fn = create_user_fn(
+	"midi_qwerty_c1",
+	"midi_qwerty_c1",
+	user_midi_qwerty_c1);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_cis1",
+	"midi_qwerty_cis1",
+	user_midi_qwerty_cis1);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_d1",
+	"midi_qwerty_d1",
+	user_midi_qwerty_d1);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_dis",
+	"midi_qwerty_dis",
+	user_midi_qwerty_dis);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_e",
+	"midi_qwerty_e",
+	user_midi_qwerty_e);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_f",
+	"midi_qwerty_f",
+	user_midi_qwerty_f);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_fis",
+	"midi_qwerty_fis",
+	user_midi_qwerty_fis);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_g",
+	"midi_qwerty_g",
+	user_midi_qwerty_g);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_gis",
+	"midi_qwerty_gis",
+	user_midi_qwerty_gis);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_a",
+	"midi_qwerty_a",
+	user_midi_qwerty_a);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_ais",
+	"midi_qwerty_ais",
+	user_midi_qwerty_ais);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_b",
+	"midi_qwerty_b",
+	user_midi_qwerty_b);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_c2",
+	"midi_qwerty_c2",
+	user_midi_qwerty_c2);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_cis2",
+	"midi_qwerty_cis2",
+	user_midi_qwerty_cis2);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_d2",
+	"midi_qwerty_d2",
+	user_midi_qwerty_d2);
+    mode_subcat_add_fn(sc, fn);
+}
+
 
 void mode_load_all()
 {
@@ -1232,4 +1346,5 @@ void mode_load_all()
     mode_load_text_edit();
     mode_load_tabview();
     mode_load_autocomplete_list();
+    mode_load_midi_qwerty();
 }

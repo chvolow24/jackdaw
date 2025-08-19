@@ -173,7 +173,6 @@ void compressor_draw(Compressor *c, SDL_Rect *target)
 extern Project *proj;
 void comp_times_dsp_cb(Endpoint *ep)
 {
-    Session *session = session_get();
     Compressor *c = ep->xarg1;
     compressor_set_times_msec(c, c->attack_time, c->release_time, session_get_sample_rate());
 }

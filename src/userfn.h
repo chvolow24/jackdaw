@@ -200,5 +200,25 @@ void user_autocomplete_previous(void *nullarg);
 void user_autocomplete_select(void *nullarg);
 void user_autocomplete_escape(void *nullarg);
 
+void user_midi_qwerty_escape(void *nullarg);
+void user_midi_qwerty_octave_up(void *nullarg);
+void user_midi_qwerty_octave_down(void *nullarg);
+void user_midi_qwerty_transpose_up(void *nullarg);
+void user_midi_qwerty_transpose_down(void *nullarg);
+void user_midi_qwerty_c1(void *nullarg);
+void user_midi_qwerty_cis1(void *nullarg);
+void user_midi_qwerty_d1(void *nullarg);
+void user_midi_qwerty_dis(void *nullarg);
+void user_midi_qwerty_e(void *nullarg);
+void user_midi_qwerty_f(void *nullarg);
+void user_midi_qwerty_fis(void *nullarg);
+void user_midi_qwerty_g(void *nullarg);
+void user_midi_qwerty_gis(void *nullarg);
+void user_midi_qwerty_a(void *nullarg);
+void user_midi_qwerty_ais(void *nullarg);
+void user_midi_qwerty_b(void *nullarg);
+void user_midi_qwerty_c2(void *nullarg);
+void user_midi_qwerty_cis2(void *nullarg);
+void user_midi_qwerty_d2(void *nullarg);
 
 #endif

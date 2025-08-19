@@ -15,7 +15,6 @@ static void dsp_cb_attack(Endpoint *ep)
 {
     int msec_prev = ep->overwrite_val.int_v;
     int msec = endpoint_safe_read(ep, NULL).int_v;
-    Session *session = session_get();
     int32_t samples_prev = (double)msec_prev * (double)session_get_sample_rate() / 1000.0;
     int32_t samples = (double)msec * (double)session_get_sample_rate() / 1000.0;
     

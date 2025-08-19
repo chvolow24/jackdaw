@@ -37,7 +37,7 @@ MIDIClip *midi_clip_create(MIDIDevice *device, Track *target)
     
 
     if (!target && device) {
-	snprintf(mclip->name, sizeof(mclip->name), "%s_rec_%d", device->info->name, session->proj.num_clips); /* TODO: Fix this */
+	snprintf(mclip->name, sizeof(mclip->name), "%s_rec_%d", device->name, session->proj.num_clips); /* TODO: Fix this */
     } else if (target) {
 	snprintf(mclip->name, sizeof(mclip->name), "%s take %d", target->name, target->num_takes + 1);
 	target->num_takes++;

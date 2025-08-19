@@ -885,7 +885,6 @@ static int next_track(void *self_v, void *target)
 
 static double unscale_freq(double scaled)
 {
-    Session *session = session_get();
     return log(scaled * session_get_sample_rate()) / log(session_get_sample_rate());
 }
 

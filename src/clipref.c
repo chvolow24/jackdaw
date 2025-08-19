@@ -523,10 +523,10 @@ void clipref_destroy_no_displace(ClipRef *cr)
 	    }
 	}
 	mclip->num_refs--;
+	
 	if (mclip->num_refs == 0) {
 	    midi_clip_destroy(mclip);
 	}
-
 	
     }
     /* TODO: keep clips around */

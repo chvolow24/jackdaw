@@ -12,11 +12,11 @@ struct mqwert_state {
     uint8_t velocity;
     bool live; /* Live mode handles keyups */
     MIDIDevice v_device; /* Virtual device */
-    int key_note_table[96]; /* Held notes; table indices are ASCII printable characters */
+    uint8_t key_note_table[96]; /* Held notes; table indices are ASCII printable characters */
 };
 
 static struct mqwert_state state = {
-    0, 0, 100, false, {0}
+    0, 0, 100, false, {0}, {0}
 };
 
 static int raw_note_from_key(char key)
@@ -68,7 +68,7 @@ static int note_transpose(int note_raw)
     int note = note_raw;
     note += 12 * state.octave;
     note += state.transpose;
-    if (note < 0) return 0;
+    if (note < 1) return 1; /* Zero has special meaning in note-key map */
     if (note > 127) return 127;
     return note;
 }
@@ -96,6 +96,8 @@ void mqwert_deactivate()
 void mqwert_octave(int incr)
 {
     state.octave += incr;
+    if (state.octave > 4) state.octave = 4;
+    else if (state.octave < -4) state.octave = -4;
 }
 
 void mqwert_transpose(int incr)
@@ -109,14 +111,14 @@ void mqwert_handle_key(char key, bool is_keyup)
     
 
     if (!is_keyup) {
-	if (state.key_note_table[key - ' '] != -1) { /* Key is occupied */
+	if (state.key_note_table[key - ' '] != 0) { /* Key is occupied */
 	    return; /* No restrikes! */
 	}
 	note = note_transpose(raw_note_from_key(key));
 	state.key_note_table[key - ' '] = note;
     } else {
 	note = state.key_note_table[key - ' '];
-	state.key_note_table[key - ' '] = -1;
+	state.key_note_table[key - ' '] = 0;
     }
 
     /* Note *unclosed = state.v_device.unclosed_notes + note; */

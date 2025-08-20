@@ -16,6 +16,12 @@ void midi_clip_init(MIDIClip *mclip)
 
     mclip->refs_alloc_len = DEFAULT_REFS_ALLOC_LEN;
     mclip->refs = calloc(mclip->refs_alloc_len, sizeof(ClipRef *));
+
+    int err;
+    if ((err = pthread_mutex_init(&mclip->notes_arr_lock, NULL)) != 0) {
+	fprintf(stderr, "Error initializing mutex in 'midi_clip_init': %s\n", strerror(err));
+	exit(1);
+    }
 }
 
 MIDIClip *midi_clip_create(MIDIDevice *device, Track *target)
@@ -73,6 +79,7 @@ void midi_clip_destroy(MIDIClip *mc)
     proj->num_midi_clips--;
     proj->active_midi_clip_index = proj->num_midi_clips;
 
+    pthread_mutex_destroy(&mc->notes_arr_lock);
     free(mc->refs);
     free(mc);
 }
@@ -93,6 +100,7 @@ TEST_FN_DEF(check_note_order, {
 
 void midi_clip_add_note(MIDIClip *mc, int channel, int note_val, int velocity, int32_t start_rel, int32_t end_rel)
 {
+    pthread_mutex_lock(&mc->notes_arr_lock);
     if (!mc->notes) {
 	mc->notes_alloc_len = 32;
 	mc->notes = calloc(mc->notes_alloc_len, sizeof(Note));
@@ -101,6 +109,7 @@ void midi_clip_add_note(MIDIClip *mc, int channel, int note_val, int velocity, i
 	mc->notes_alloc_len *= 2;
 	mc->notes = realloc(mc->notes, mc->notes_alloc_len * sizeof(Note));
     }
+    pthread_mutex_unlock(&mc->notes_arr_lock);
     
     Note *note = mc->notes + mc->num_notes;
     while (note > mc->notes && start_rel < (note - 1)->start_rel) {

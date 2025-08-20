@@ -1083,7 +1083,7 @@ static void osc_get_buf_preamp(Osc *restrict osc, float step, int len)
 	}
 	if (osc->cfg->unison.num_voices > 0 && !osc->cfg->mod_freq_of && !osc->cfg->mod_amp_of)
 	    sample *= 1.0 / (0.5 * osc->cfg->unison.num_voices * osc->cfg->unison.relative_amp + 1.0);
-	if (unison_i != 0 && unison_i % 3 == 0) {
+	if (!osc->cfg->mod_freq_of && !osc->cfg->mod_amp_of && unison_i != 0 && unison_i % 3 == 0) {
 	    sample *= -1;
 	}
 	osc->buf[i] = sample;

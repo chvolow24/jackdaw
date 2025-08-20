@@ -1867,6 +1867,7 @@ void user_tl_track_open_synth(void *nullarg)
 	TabView *tv = synth_tabview_create(track);
 	tabview_activate(tv);
 	tl->needs_redraw = true;
+	timeline_check_set_midi_monitoring();
     } else {
 	status_set_errstr("Cannot open synth: no track");
     }

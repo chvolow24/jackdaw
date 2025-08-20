@@ -209,8 +209,10 @@ static void clipref_draw(ClipRef *cr)
 	if (true_note_height < 1.0) true_note_height = 1.0;
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.dark_brown));
 	MIDIClip *mclip = cr->source_clip;
+	pthread_mutex_lock(&mclip->notes_arr_lock);
 	int32_t first_note = midi_clipref_check_get_first_note(cr);
-	if (first_note<0) goto end_draw_notes;
+	if (first_note < 0) goto end_draw_notes;
+	
 	for (int32_t i=first_note; i<mclip->num_notes; i++) {
 	    Note *note = mclip->notes + i;
 	    /* SDL_SetRenderDrawColor(main_win->rend, colors.dark_brown.r, colors.dark_brown.g, colors.dark_brown.b, 255 * note->velocity / 128); */
@@ -227,8 +229,10 @@ static void clipref_draw(ClipRef *cr)
 	    /* fprintf(stderr, "\t->(rel): %d-%d\n", note->start_rel, note->end_rel); */
 	    SDL_RenderFillRect(main_win->rend, &note_rect);
 	}
-    }
     end_draw_notes:
+	pthread_mutex_unlock(&mclip->notes_arr_lock);
+    }
+
     
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
     geom_draw_rect_thick(main_win->rend, &cr->layout->rect, border, main_win->dpi_scale_factor);

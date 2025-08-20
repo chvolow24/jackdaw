@@ -1,0 +1,168 @@
+<Layout name="piano" type="NORMAL">
+  <x>REL 0</x>
+  <y>REL 0</y>
+  <w>SCALE 1.0</w>
+  <h>SCALE 1.0</h>
+  <children>
+    <Layout name="c" type="NORMAL">
+      <x>STACK 0</x>
+      <y>REL 0</y>
+      <w>SCALE 0.090909</w>
+      <h>SCALE 1.0</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="d" type="NORMAL">
+      <x>STACK 0</x>
+      <y>REL 0</y>
+      <w>SCALE 0.090909</w>
+      <h>SCALE 1.0</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="e" type="NORMAL">
+      <x>STACK 0</x>
+      <y>REL 0</y>
+      <w>SCALE 0.090909</w>
+      <h>SCALE 1.0</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="f" type="NORMAL">
+      <x>STACK 0</x>
+      <y>REL 0</y>
+      <w>SCALE 0.090909</w>
+      <h>SCALE 1.0</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="g" type="NORMAL">
+      <x>STACK 0</x>
+      <y>REL 0</y>
+      <w>SCALE 0.090909</w>
+      <h>SCALE 1.0</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="a" type="NORMAL">
+      <x>STACK 0</x>
+      <y>REL 0</y>
+      <w>SCALE 0.090909</w>
+      <h>SCALE 1.0</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="b" type="NORMAL">
+      <x>STACK 0</x>
+      <y>REL 0</y>
+      <w>SCALE 0.090909</w>
+      <h>SCALE 1.0</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="c2" type="NORMAL">
+      <x>STACK 0</x>
+      <y>REL 0</y>
+      <w>SCALE 0.090909</w>
+      <h>SCALE 1.0</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="d2" type="NORMAL">
+      <x>STACK 0</x>
+      <y>REL 0</y>
+      <w>SCALE 0.090909</w>
+      <h>SCALE 1.0</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="e2" type="NORMAL">
+      <x>STACK 0</x>
+      <y>REL 0</y>
+      <w>SCALE 0.090909</w>
+      <h>SCALE 1.0</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="f" type="NORMAL">
+      <x>STACK 0</x>
+      <y>REL 0</y>
+      <w>SCALE 0.090909</w>
+      <h>SCALE 1.0</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="black_key_parent" type="NORMAL">
+      <x>REL 0</x>
+      <y>REL 0</y>
+      <w>SCALE 1.0</w>
+      <h>SCALE 0.6</h>
+      <children>
+        <Layout name="cis" type="NORMAL">
+          <x>SCALE 0.060909</x>
+          <y>REL 0</y>
+          <w>SCALE 0.06</w>
+          <h>SCALE 1.0</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="dis" type="NORMAL">
+          <x>SCALE 0.151818181818</x>
+          <y>REL 0</y>
+          <w>SCALE 0.06</w>
+          <h>SCALE 1.0</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="fis" type="NORMAL">
+          <x>SCALE 0.333636363636</x>
+          <y>REL 0</y>
+          <w>SCALE 0.06</w>
+          <h>SCALE 1.0</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="gis" type="NORMAL">
+          <x>SCALE 0.424545454545</x>
+          <y>REL 0</y>
+          <w>SCALE 0.06</w>
+          <h>SCALE 1.0</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="ais" type="NORMAL">
+          <x>SCALE 0.515454545455</x>
+          <y>REL 0</y>
+          <w>SCALE 0.06</w>
+          <h>SCALE 1.0</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="cis2" type="NORMAL">
+          <x>SCALE 0.697272727273</x>
+          <y>REL 0</y>
+          <w>SCALE 0.06</w>
+          <h>SCALE 1.0</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="dis2" type="NORMAL">
+          <x>SCALE 0.788181818182</x>
+          <y>REL 0</y>
+          <w>SCALE 0.06</w>
+          <h>SCALE 1.0</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+    <Layout name="white_key_centers" type="NORMAL">
+      <x>REL 0</x>
+      <y>STACK 0</y>
+      <w>SCALE 1.0</w>
+      <h>COMPLEMENT 0</h>
+      <children>
+      </children>
+    </Layout>
+  </children>
+</Layout>

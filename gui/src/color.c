@@ -11,6 +11,9 @@ const struct colors colors = {
     .green = {0, 255, 0, 255},
     .blue = {0, 0, 255, 255},
     .yellow = {255, 255, 0, 255},
+    .burnt_umber = {138, 51, 36, 255},
+    .sea_green = {59, 122, 87, 255},
+    .amber = {255, 191, 0, 255},
 
     .quickref_button_blue = {35, 45, 55, 255},
     .quickref_button_pressed = {10, 20, 30, 255},
@@ -25,6 +28,7 @@ const struct colors colors = {
     .click_track = {10, 30, 25, 255},
     .freq_L = {130, 255, 255, 255},
     .freq_R = {255, 255, 130, 220},
+
 
 
 };

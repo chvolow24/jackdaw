@@ -1177,8 +1177,8 @@ void layout_reparent(Layout *child, Layout *parent)
 void layout_center_agnostic(Layout *lt, bool horizontal, bool vertical)
 {
     layout_force_reset(lt);
-    if (horizontal) lt->rect.x = lt->parent->rect.x + lt->parent->rect.w / 2 - lt->rect.w / 2;
-    if (vertical) lt->rect.y = lt->parent->rect.y + lt->parent->rect.h / 2 - lt->rect.h / 2;
+    if (horizontal) lt->rect.x = round((float)lt->parent->rect.x + (float)lt->parent->rect.w / 2.0f - (float)lt->rect.w / 2.0f);
+    if (vertical) lt->rect.y = round((float)lt->parent->rect.y + (float)lt->parent->rect.h / 2.0f - (float)lt->rect.h / 2.0f);
     layout_set_values_from_rect(lt);
 }
 
@@ -1607,7 +1607,6 @@ void reset_iterations(LayoutIterator *iter)
         iteration->rect.y = y;
         iteration->rect.w = w;
         iteration->rect.h = h;
-//        set_values_from_rect(iteration);
         switch (iter->type) {
             case VERTICAL:
 		iteration->rect.y -= scroll_offset;

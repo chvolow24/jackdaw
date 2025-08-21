@@ -1,3 +1,13 @@
+/*****************************************************************************************************************
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
+******************************************************************************************************************
+
+  Copyright (C) 2023-2025 Charlie Volow
+  
+  Jackdaw is licensed under the GNU General Public License.
+
+*****************************************************************************************************************/
+
 #include <stdint.h>
 #include <stdbool.h>
 #include "midi_io.h"
@@ -172,3 +182,9 @@ void mqwert_get_current_notes(MIDIDevice *dst_device)
     /* memset(&state.v_device, '\0', sizeof(state.v_device)); */
 }
 
+/* returns note if pressed, 0 if not */
+uint8_t mqwert_get_key_state(char key)
+{
+    if (key >= 'A' && key <= 'Z') key = 'a' + (key - 'A');
+    return state.key_note_table[key - ' '];
+}

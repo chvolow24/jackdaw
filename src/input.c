@@ -219,9 +219,38 @@ char *input_get_keycmd_str(uint16_t i_state, SDL_Keycode keycode)
     return ret;
 }
 
+
+void nullfn(void *arg){}
+
+/* typedef struct user_fn { */
+/*     const char *fn_id; */
+/*     const char *fn_display_name; */
+/*     char annotation[MAX_ANNOT_STRLEN]; */
+/*     bool is_toggle; */
+/*     void (*do_fn)(void *arg); */
+/*     Mode *mode; */
+
+/*     Keybinding *key_bindings[MAX_FN_KEYBS]; */
+/*     int num_keybindings; */
+/* } UserFn; */
+
+static UserFn null_userfn = {
+    "null",
+    "null (block)",
+    {0},
+    false,
+    nullfn,
+    NULL,
+    {0},
+    0
+};
+
 /* Returns null if no function found by that id */
 UserFn *input_get_fn_by_id(char *id, InputMode im)
 {
+    if (strncmp(id, "null", 4) == 0) {
+	return &null_userfn;
+    }
     Mode *mode = MODES[im];
     for (uint8_t s=0; s<mode->num_subcats; s++) {
 	ModeSubcat *sc = mode->subcats[s];

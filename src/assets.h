@@ -27,6 +27,8 @@
 #define SYNTH_NOISE_LT_PATH LAYOUT_PATH "/synth_noise.xml"
 #define SYNTH_PRESETS_LT_PATH LAYOUT_PATH "/synth_presets.xml"
 
+#define PIANO_LT_PATH LAYOUT_PATH "/piano.xml"
+
 #define TTF_PATH INSTALL_DIR "/assets/ttf/"
 #define OPEN_SANS_PATH TTF_PATH "OpenSans-Regular.ttf"
 #define OPEN_SANS_BOLD_PATH TTF_PATH "OpenSans-Bold.ttf"

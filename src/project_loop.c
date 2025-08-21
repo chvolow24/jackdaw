@@ -30,6 +30,7 @@
 #include "midi_clip.h"
 #include "midi_qwerty.h"
 #include "mouse.h"
+#include "piano.h"
 #include "project.h"
 #include "project_draw.h"
 #include "screenrecord.h"
@@ -67,6 +68,7 @@ extern Project *proj;
 TabView *synth_tabview_create(Track *track);
 void user_global_quit(void *);
 void timeline_add_jlily();
+Piano piano = {0};
 
 extern bool do_blep;
 void loop_project_main()
@@ -183,6 +185,17 @@ void loop_project_main()
 
 		switch (e.key.keysym.scancode) {
 		case SDL_SCANCODE_2: {
+		    Layout *lt = layout_add_child(main_win->layout);
+		    /* layout_set_default_dims(lt); */
+		    lt->w.type = SCALE;
+		    lt->h.type = SCALE;
+		    lt->w.value = 0.3;
+		    lt->h.value = 0.1;
+		    lt->x.type = SCALE;
+		    lt->y.type = SCALE;
+		    lt->x.value = 0.3;
+		    lt->y.value = 0.3;
+		    piano_init(&piano, lt);
 		    /* synth_save_preset(); */
 		/*     Timeline *tl = ACTIVE_TL; */
 		/*     Track *t = timeline_selected_track(tl); */

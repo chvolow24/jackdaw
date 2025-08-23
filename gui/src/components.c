@@ -1209,6 +1209,13 @@ bool button_click(Button *button, Window *win)
 	if (button->action) {
 	    button->action((void *)button, button->target);
 	}
+	if (button->bound_userfn) {
+	    button_press_color_change(
+		button,
+		button->pressed_color,
+		button->return_color);
+
+	}
 	return true;
     }
     return false;

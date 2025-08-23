@@ -250,6 +250,7 @@ static void session_init_quickref_panels(Page *quickref1, Page *quickref2)
 	"add_track",
 	create_quickref_button_lt);
     textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
+    button_bind_userfn(el->component, "tl_track_add", MODE_TIMELINE, &colors.quickref_button_pressed, &colors.quickref_button_blue);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
 
     p.button_p.action = quickref_record;
@@ -280,6 +281,7 @@ static void session_init_quickref_panels(Page *quickref1, Page *quickref2)
 	"left",
 	create_quickref_button_lt);
     textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
+    button_bind_userfn(el->component, "tl_move_left", MODE_TIMELINE, &colors.quickref_button_pressed, &colors.quickref_button_blue);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->left = create_button_from_params(button_lt, b); */
 
@@ -296,6 +298,7 @@ static void session_init_quickref_panels(Page *quickref1, Page *quickref2)
 	"rewind",
 	create_quickref_button_lt);
     textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
+    button_bind_userfn(el->component, "tl_rewind", MODE_TIMELINE, &colors.quickref_button_pressed, &colors.quickref_button_blue);
     
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->rewind = create_button_from_params(button_lt, b); */
@@ -312,6 +315,7 @@ static void session_init_quickref_panels(Page *quickref1, Page *quickref2)
 	"pause",
 	create_quickref_button_lt);
     textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
+    button_bind_userfn(el->component, "tl_pause", MODE_TIMELINE, &colors.quickref_button_pressed, &colors.quickref_button_blue);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->pause = create_button_from_params(button_lt, b); */
 
@@ -345,6 +349,7 @@ static void session_init_quickref_panels(Page *quickref1, Page *quickref2)
 	"right",
 	create_quickref_button_lt);
     textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
+    button_bind_userfn(el->component, "tl_move_right", MODE_TIMELINE, &colors.quickref_button_pressed, &colors.quickref_button_blue);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->right = create_button_from_params(button_lt, b); */
 
@@ -364,6 +369,7 @@ static void session_init_quickref_panels(Page *quickref1, Page *quickref2)
 	"next",
 	create_quickref_button_lt);
     textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
+    button_bind_userfn(el->component, "tl_track_selector_down", MODE_TIMELINE, &colors.quickref_button_pressed, &colors.quickref_button_blue);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->next = create_button_from_params(button_lt, b); */
 
@@ -380,6 +386,7 @@ static void session_init_quickref_panels(Page *quickref1, Page *quickref2)
 	"previous",
 	create_quickref_button_lt);
     textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
+    button_bind_userfn(el->component, "tl_track_selector_up", MODE_TIMELINE, &colors.quickref_button_pressed, &colors.quickref_button_blue);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->previous = create_button_from_params(button_lt, b); */
 
@@ -397,6 +404,7 @@ static void session_init_quickref_panels(Page *quickref1, Page *quickref2)
 	"zoom_out",
 	create_quickref_button_lt);
     textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
+    button_bind_userfn(el->component, "tl_zoom_out", MODE_TIMELINE, &colors.quickref_button_pressed, &colors.quickref_button_blue);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->zoom_out = create_button_from_params(button_lt, b); */
 
@@ -412,6 +420,7 @@ static void session_init_quickref_panels(Page *quickref1, Page *quickref2)
 	"zoom_in",
 	create_quickref_button_lt);
     textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
+    button_bind_userfn(el->component, "tl_zoom_in", MODE_TIMELINE, &colors.quickref_button_pressed, &colors.quickref_button_blue);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
 
     

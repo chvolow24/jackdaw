@@ -757,12 +757,12 @@ void user_tl_pause(void *nullarg)
     Timeline *tl = ACTIVE_TL;
     session->playback.play_speed = 0;
     transport_stop_playback();
-    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_pause");
-    Button *btn = (Button *)el->component;
-    button_press_color_change(
-	btn,
-	&colors.quickref_button_pressed,
-	&colors.quickref_button_blue);
+    /* PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_pause"); */
+    /* Button *btn = (Button *)el->component; */
+    /* button_press_color_change( */
+    /* 	btn, */
+    /* 	&colors.quickref_button_pressed, */
+    /* 	&colors.quickref_button_blue); */
     tl->needs_redraw = true;
     if (session->dragging && tl->num_grabbed_clips > 0) {
 	timeline_push_grabbed_clip_move_event(tl);
@@ -785,12 +785,12 @@ void user_tl_rewind(void *nullarg)
 	/* session->playback.play_speed *= 2.0f; */
 	/* status_stat_playspeed(); */
     }
-    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_rewind");
-    Button *btn = (Button *)el->component;
-    button_press_color_change(
-	btn,
-	&colors.quickref_button_pressed,
-	&colors.quickref_button_blue);
+    /* PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_rewind"); */
+    /* Button *btn = (Button *)el->component; */
+    /* button_press_color_change( */
+    /* 	btn, */
+    /* 	&colors.quickref_button_pressed, */
+    /* 	&colors.quickref_button_blue); */
 }
 
 void user_tl_play_slow(void *nullarg)
@@ -895,36 +895,36 @@ void user_tl_move_right(void *nullarg)
 {
     Session *session = session_get();
     timeline_scroll_horiz(ACTIVE_TL, TL_DEFAULT_XSCROLL);
-    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_right");
-    Button *btn = (Button *)el->component;
-    button_press_color_change(
-	btn,
-	&colors.quickref_button_pressed,
-	&colors.quickref_button_blue);
+    /* PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_right"); */
+    /* Button *btn = (Button *)el->component; */
+    /* button_press_color_change( */
+    /* 	btn, */
+    /* 	&colors.quickref_button_pressed, */
+    /* 	&colors.quickref_button_blue); */
 }
 
 void user_tl_move_left(void *nullarg)
 {
     Session *session = session_get();
     timeline_scroll_horiz(ACTIVE_TL, TL_DEFAULT_XSCROLL * -1);
-    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_left");
-    Button *btn = (Button *)el->component;
-    button_press_color_change(
-	btn,
-	&colors.quickref_button_pressed,
-	&colors.quickref_button_blue);
+    /* PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_left"); */
+    /* Button *btn = (Button *)el->component; */
+    /* button_press_color_change( */
+    /* 	btn, */
+    /* 	&colors.quickref_button_pressed, */
+    /* 	&colors.quickref_button_blue); */
 }
 
 void user_tl_zoom_in(void *nullarg)
 {
     Session *session = session_get();
     timeline_rescale(ACTIVE_TL, 1.2, false);
-    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_zoom_in");
-    Button *btn = (Button *)el->component;
-    button_press_color_change(
-	btn,
-	&colors.quickref_button_pressed,
-	&colors.quickref_button_blue);
+    /* PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_zoom_in"); */
+    /* Button *btn = (Button *)el->component; */
+    /* button_press_color_change( */
+    /* 	btn, */
+    /* 	&colors.quickref_button_pressed, */
+    /* 	&colors.quickref_button_blue); */
 }
 
 void user_tl_zoom_out(void *nullarg)
@@ -932,12 +932,12 @@ void user_tl_zoom_out(void *nullarg)
     Session *session = session_get();
     timeline_rescale(ACTIVE_TL, 0.8, false);
 
-    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_zoom_out");
-    Button *btn = (Button *)el->component;
-    button_press_color_change(
-	btn,
-	&colors.quickref_button_pressed,
-	&colors.quickref_button_blue);
+    /* PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_zoom_out"); */
+    /* Button *btn = (Button *)el->component; */
+    /* button_press_color_change( */
+    /* 	btn, */
+    /* 	&colors.quickref_button_pressed, */
+    /* 	&colors.quickref_button_blue); */
 }
 
 static NEW_EVENT_FN(undo_redo_set_mark, "undo/redo set mark")
@@ -1163,12 +1163,12 @@ void user_tl_add_track(void *nullarg)
     Timeline *tl = ACTIVE_TL;
     Track *track = timeline_add_track(tl);
     if (!track) return;
-    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_add_track");
-    Button *btn = (Button *)el->component;
-    button_press_color_change(
-	btn,
-	&colors.quickref_button_pressed,
-	&colors.quickref_button_blue);
+    /* PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_add_track"); */
+    /* Button *btn = (Button *)el->component; */
+    /* button_press_color_change( */
+    /* 	btn, */
+    /* 	&colors.quickref_button_pressed, */
+    /* 	&colors.quickref_button_blue); */
     tl->needs_redraw = true;
 
     Value nullval = {.int_v = 0};
@@ -1383,14 +1383,14 @@ button_animation_and_exit:
 
     tl->needs_redraw = true;
 
-    if (session->gui.panels_initialized) {
-	PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_previous");
-	Button *btn = (Button *)el->component;
-	button_press_color_change(
-	    btn,
-	    &colors.quickref_button_pressed,
-	    &colors.quickref_button_blue);
-    }
+    /* if (session->gui.panels_initialized) { */
+    /* 	PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_previous"); */
+    /* 	Button *btn = (Button *)el->component; */
+    /* 	button_press_color_change( */
+    /* 	    btn, */
+    /* 	    &colors.quickref_button_pressed, */
+    /* 	    &colors.quickref_button_blue); */
+    /* } */
     timeline_check_set_midi_monitoring();
 }
 
@@ -1474,14 +1474,14 @@ button_animation_and_exit:
     /* if (selected) timeline_refocus_track(tl, selected, true); */
     tl->needs_redraw = true;
 
-    if (session->gui.panels_initialized) {
-	PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_next");
-	Button *btn = (Button *)el->component;
-	button_press_color_change(
-	    btn,
-	    &colors.quickref_button_pressed,
-	    &colors.quickref_button_blue);
-    }
+    /* if (session->gui.panels_initialized) { */
+    /* 	PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_next"); */
+    /* 	Button *btn = (Button *)el->component; */
+    /* 	button_press_color_change( */
+    /* 	    btn, */
+    /* 	    &colors.quickref_button_pressed, */
+    /* 	    &colors.quickref_button_blue); */
+    /* } */
     timeline_check_set_midi_monitoring();
 }
 

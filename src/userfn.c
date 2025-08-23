@@ -55,14 +55,14 @@ extern char DIRPATH_SAVED_PROJ[MAX_PATHLEN];
 extern char DIRPATH_OPEN_FILE[MAX_PATHLEN];
 extern char DIRPATH_EXPORT[MAX_PATHLEN];
 
-int quickref_button_press_callback(void *self_v, void *target)
-{
-    /* Timeline *tl = ACTIVE_TL; */
-    Session *session = session_get();
-    Timeline *tl = ACTIVE_TL;
-    tl->needs_redraw = true;
-    return 0;
-}
+/* int quickref_button_press_callback(void *self_v, void *target) */
+/* { */
+/*     /\* Timeline *tl = ACTIVE_TL; *\/ */
+/*     Session *session = session_get(); */
+/*     Timeline *tl = ACTIVE_TL; */
+/*     tl->needs_redraw = true; */
+/*     return 0; */
+/* } */
 
 void jdaw_write_project(const char *path);
 
@@ -108,8 +108,8 @@ void user_global_escape(void *nullarg)
 	user_tl_activate_source_mode(NULL);
     } else if (main_win->num_modes > 1) {
 	window_pop_mode(main_win);
-    } else if (main_win->modes[0] != TIMELINE) {
-	main_win->modes[0] = TIMELINE;
+    } else if (main_win->modes[0] != MODE_TIMELINE) {
+	main_win->modes[0] = MODE_TIMELINE;
 	main_win->num_modes = 1;
     }
 }
@@ -762,10 +762,7 @@ void user_tl_pause(void *nullarg)
     button_press_color_change(
 	btn,
 	&colors.quickref_button_pressed,
-	&colors.quickref_button_blue,
-	quickref_button_press_callback,
-	NULL);
-
+	&colors.quickref_button_blue);
     tl->needs_redraw = true;
     if (session->dragging && tl->num_grabbed_clips > 0) {
 	timeline_push_grabbed_clip_move_event(tl);
@@ -793,9 +790,7 @@ void user_tl_rewind(void *nullarg)
     button_press_color_change(
 	btn,
 	&colors.quickref_button_pressed,
-	&colors.quickref_button_blue,
-	quickref_button_press_callback,
-	NULL);
+	&colors.quickref_button_blue);
 }
 
 void user_tl_play_slow(void *nullarg)
@@ -905,9 +900,7 @@ void user_tl_move_right(void *nullarg)
     button_press_color_change(
 	btn,
 	&colors.quickref_button_pressed,
-	&colors.quickref_button_blue,
-	quickref_button_press_callback,
-	NULL);
+	&colors.quickref_button_blue);
 }
 
 void user_tl_move_left(void *nullarg)
@@ -919,9 +912,7 @@ void user_tl_move_left(void *nullarg)
     button_press_color_change(
 	btn,
 	&colors.quickref_button_pressed,
-	&colors.quickref_button_blue,
-	quickref_button_press_callback,
-	NULL);
+	&colors.quickref_button_blue);
 }
 
 void user_tl_zoom_in(void *nullarg)
@@ -933,9 +924,7 @@ void user_tl_zoom_in(void *nullarg)
     button_press_color_change(
 	btn,
 	&colors.quickref_button_pressed,
-	&colors.quickref_button_blue,
-	quickref_button_press_callback,
-	NULL);
+	&colors.quickref_button_blue);
 }
 
 void user_tl_zoom_out(void *nullarg)
@@ -948,9 +937,7 @@ void user_tl_zoom_out(void *nullarg)
     button_press_color_change(
 	btn,
 	&colors.quickref_button_pressed,
-	&colors.quickref_button_blue,
-	quickref_button_press_callback,
-	NULL);
+	&colors.quickref_button_blue);
 }
 
 static NEW_EVENT_FN(undo_redo_set_mark, "undo/redo set mark")
@@ -1181,9 +1168,7 @@ void user_tl_add_track(void *nullarg)
     button_press_color_change(
 	btn,
 	&colors.quickref_button_pressed,
-	&colors.quickref_button_blue,
-	quickref_button_press_callback,
-	NULL);
+	&colors.quickref_button_blue);
     tl->needs_redraw = true;
 
     Value nullval = {.int_v = 0};
@@ -1404,9 +1389,7 @@ button_animation_and_exit:
 	button_press_color_change(
 	    btn,
 	    &colors.quickref_button_pressed,
-	    &colors.quickref_button_blue,
-	    quickref_button_press_callback,
-	    NULL);
+	    &colors.quickref_button_blue);
     }
     timeline_check_set_midi_monitoring();
 }
@@ -1497,9 +1480,7 @@ button_animation_and_exit:
 	button_press_color_change(
 	    btn,
 	    &colors.quickref_button_pressed,
-	    &colors.quickref_button_blue,
-	    quickref_button_press_callback,
-	    NULL);
+	    &colors.quickref_button_blue);
     }
     timeline_check_set_midi_monitoring();
 }
@@ -2285,7 +2266,7 @@ void user_tl_activate_source_mode(void *nullarg)
     if (!session->source_mode.source_mode) {
 	if (session->source_mode.src_clip) {
 	    session->source_mode.source_mode = true;
-	    window_push_mode(main_win, SOURCE);
+	    window_push_mode(main_win, MODE_SOURCE);
 	    panel_page_refocus(session->gui.panels, "Sample source", 1);
 	} else {
 	    status_set_errstr("Load a clip to source before activating source mode");
@@ -2860,7 +2841,7 @@ void user_text_edit_escape(void *nullarg)
 
     /* In modals / tabview, push a new tab keypress to move up or down through fields */
     /* fprintf(stderr, "ESCAPE TEXT EDIT!! TOP MODE: %d\n", TOP_MODE); */
-    if (TOP_MODE == MODAL || TOP_MODE == TABVIEW) {
+    if (TOP_MODE == MODE_MODAL || TOP_MODE == MODE_TABVIEW) {
 	/* fprintf(stderr, "PUSH\n"); */
 	SDL_Event e;
 	e.type = SDL_KEYDOWN;
@@ -3082,9 +3063,9 @@ void user_autocomplete_select(void *nullarg)
 
 void user_midi_qwerty_escape(void *nullarg)
 {
-    mqwert_deactivate();
-    window_pop_mode(main_win);
     Session *session = session_get();
+    if (session->playback.recording) transport_stop_recording();
+    mqwert_deactivate();
     Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;
 }

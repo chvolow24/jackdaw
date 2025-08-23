@@ -10,8 +10,10 @@
 
 #include "audio_clip.h"
 #include "color.h"
+#include "components.h"
 #include "consts.h"
 #include "geometry.h"
+#include "layout.h"
 #include "panel.h"
 #include "session.h"
 #include "timeview.h"
@@ -130,7 +132,7 @@ int set_output_compfn(void *self, void *target)
     session_set_default_out(NULL);
     return 0;
 }
-static inline void session_init_output_panel(Page *output, Session *session)
+static void session_init_output_panel(Page *output, Session *session)
 {
 
     PageElParams p;
@@ -220,7 +222,7 @@ static inline void session_init_output_panel(Page *output, Session *session)
 
 }
 
-static inline void session_init_quickref_panels(Page *quickref1, Page *quickref2)
+static void session_init_quickref_panels(Page *quickref1, Page *quickref2)
 {
     PageElParams p;
     /* Layout *quickref_lt = layout_read_from_xml(QUICKREF_LT_PATH); */
@@ -634,7 +636,7 @@ draw_marked_box:
 }
 
 
-static inline void session_init_source_area(Page *source_area, Session *session)
+static void session_init_source_area(Page *source_area, Session *session)
 {
     PageElParams p;
 
@@ -672,7 +674,7 @@ static inline void session_init_source_area(Page *source_area, Session *session)
 
 }
 
-static inline void session_init_output_spectrum(Page *output_spectrum, Session *session)
+static void session_init_output_spectrum(Page *output_spectrum, Session *session)
 {
     
     double *arrays[] = {
@@ -696,6 +698,171 @@ static inline void session_init_output_spectrum(Page *output_spectrum, Session *
 	"panel_output_freqplot",
 	"freqplot");
     /* proj=saved_glob_proj; /\* Not great *\/ */
+}
+PageEl *page_add_keybutton(
+    Page *page,
+    const char *set_str,
+    const char *name,
+    ComponentFn action,
+    void *target,
+    const char *parent_lt_name,
+    bool stack_x,
+    bool stack_y,
+    float x_val,
+    float y_val)
+{
+    Layout *parent = layout_get_child_by_name_recursive(page->layout, parent_lt_name);
+    Layout *lt = layout_add_child(parent);
+    if (stack_x)
+	lt->x.type = STACK;
+    else
+	lt->x.type = REL;
+    if (stack_y)
+	lt->y.type = STACK;
+    else
+	lt->y.type = REL;
+    lt->x.value = x_val;
+    lt->y.value = y_val;
+    lt->w.type = SCALE;
+    lt->h.type = SCALE;
+    lt->w.value = 1.0;
+    lt->h.value = 1.0;
+    layout_set_name(lt, name);
+    PageElParams p;
+    p.button_p.font = main_win->mono_bold_font;
+    p.button_p.text_size = 12;
+    p.button_p.background_color = NULL;
+    p.button_p.set_str = (char *)set_str;
+    p.button_p.win = main_win;
+    p.button_p.action = NULL;
+    p.button_p.target = NULL;
+    p.button_p.text_color = &colors.white;
+    PageEl *el = page_add_el(
+	page,
+	EL_BUTTON,
+	p,
+	name,
+	name);
+    Textbox *tb = ((Button* )el->component)->tb;
+    /* textbox_reset_full(tb); */
+    textbox_size_to_fit(tb, 4, 4);
+    /* tb->layout->rect.w = tb->layout->rect.h; */
+    /* layout_set_values_from_rect(tb->layout); */
+    /* layout_reset(tb->layout); */
+    /* layout_center_scale(tb->layout, true, true); */
+    textbox_set_border(tb, &colors.white, 3);
+    tb->corner_radius = 6;
+    layout_force_reset(parent);
+    textbox_reset_full(tb);
+    return el;
+}
+
+static void session_init_qwerty_piano(Page *page, Session *session)
+{
+    PageElParams p = {0};
+    layout_force_reset(page->layout);
+    page_add_el(
+	page,
+	EL_PIANO,
+	p,
+	"piano",
+	"piano");
+
+    Layout *octave_area = layout_get_child_by_name_recursive(page->layout, "octave");
+    Layout *label_lt = layout_add_child(octave_area);
+    label_lt->w.value = 10.0;
+    label_lt->h.type = SCALE; 
+    label_lt->h.value = 1.0;
+    layout_set_name(label_lt, "octave_label");
+    layout_reset(label_lt);
+    p.textbox_p.font = main_win->std_font;
+    p.textbox_p.text_size = 12;
+    p.textbox_p.set_str = "Octave:";
+    p.textbox_p.win = main_win;
+    PageEl *el = page_add_el(
+	page,
+	EL_TEXTBOX,
+	p,
+	"",
+	"octave_label");
+
+    Textbox *tb = el->component;
+    textbox_set_background_color(tb, NULL);
+    textbox_set_text_color(tb, &colors.light_grey);
+    layout_size_to_fit_children(tb->layout, true, 0);
+    layout_reset(octave_area);
+	
+
+    el = page_add_keybutton(
+	page,
+	"Z↓",
+	"octave_down",
+	NULL,
+	NULL,
+	"octave",
+	true,
+	false,
+	5.0,
+	0.0);
+    button_bind_userfn(
+	el->component,
+	"midi_qwerty_octave_down",
+	MODE_MIDI_QWERTY,
+	&colors.green,
+	NULL);
+
+    page_add_keybutton(
+	page,
+	"X↑",
+	"octave_up",
+	NULL,
+	NULL,
+	"octave",
+	true,
+	false,
+	5.0,
+	0.0);
+	
+    /* Layout *lt = layout_add_child(octave_area); */
+    /* lt->x.type = SCALE; */
+    /* lt->y.type = SCALE; */
+    /* lt->w.type = SCALE; */
+    /* lt->h.type = SCALE; */
+    /* lt->w.value = 1.0; */
+    /* lt->h.value = 1.0; */
+    /* layout_set_name(lt, "octave_up"); */
+    /* p.button_p.font = main_win->mono_bold_font; */
+    /* p.button_p.text_size = 12; */
+    /* p.button_p.background_color = NULL; */
+    /* p.button_p.set_str = "Z↓"; */
+    /* p.button_p.win = main_win; */
+    /* p.button_p.action = NULL; */
+    /* p.button_p.target = NULL; */
+    /* p.button_p.text_color = &colors.white; */
+    /* PageEl *el = page_add_el( */
+    /* 	page, */
+    /* 	EL_BUTTON, */
+    /* 	p, */
+    /* 	"octave_up", */
+    /* 	"octave_up"); */
+    /* Textbox *tb = ((Button* )el->component)->tb; */
+    /* /\* textbox_reset_full(tb); *\/ */
+    /* textbox_size_to_fit(tb, 4, 4); */
+    /* /\* tb->layout->rect.w = tb->layout->rect.h; *\/ */
+    /* /\* layout_set_values_from_rect(tb->layout); *\/ */
+    /* /\* layout_reset(tb->layout); *\/ */
+    /* /\* layout_center_scale(tb->layout, true, true); *\/ */
+    /* textbox_set_border(tb, &colors.white, 3); */
+    /* tb->corner_radius = 6; */
+    /* textbox_reset_full(tb); */
+
+    /* FILE *f = fopen("test.xml", "w"); */
+    /* layout_write(f, octave_area, 0); */
+    /* fclose(f); */
+    /* exit(1); */
+	
+	
+
 }
 
 
@@ -748,11 +915,19 @@ void session_init_panels(Session *session)
 	&colors.white,
 	main_win);
 
-
+    Page *qwerty_piano = panel_area_add_page(
+	pa,
+	"QWERTY piano",
+	QWERTY_PANEL_LT_PATH,
+	NULL,
+	&colors.white,
+	main_win);
+    
     session_init_quickref_panels(quickref1, quickref2);
     session_init_output_panel(output_panel, session);
     session_init_source_area(source_area, session);
     session_init_output_spectrum(output_spectrum, session);
+    session_init_qwerty_piano(qwerty_piano, session);
     panel_select_page(pa, 0, 0);
     panel_select_page(pa, 1, 1);
     panel_select_page(pa, 2, 2);

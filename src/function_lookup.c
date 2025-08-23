@@ -189,8 +189,8 @@ int fn_lookup_filter(void *current_item, void *x_arg)
 {
     struct autocompletion_item *item = (struct autocompletion_item *)current_item;
     UserFn *fn = item->obj;
-    if (fn->mode->im == AUTOCOMPLETE_LIST) return 0;
-    if (fn->mode->im == TEXT_EDIT) return 0;
+    if (fn->mode->im == MODE_AUTOCOMPLETE_LIST) return 0;
+    if (fn->mode->im == MODE_TEXT_EDIT) return 0;
     if (input_function_is_accessible(fn, main_win)) {
 	return 1;
     }
@@ -217,7 +217,7 @@ void function_lookup()
 	    fn_lookup_filter);
     }
     textentry_edit(main_win->ac.entry);
-    window_push_mode(main_win, AUTOCOMPLETE_LIST);
+    window_push_mode(main_win, MODE_AUTOCOMPLETE_LIST);
     main_win->ac_active = true;
 
 }

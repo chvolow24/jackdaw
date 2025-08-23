@@ -15,6 +15,7 @@
 #include "project.h"
 #include "layout.h"
 #include "layout_xml.h"
+#include "piano.h"
 #include "session.h"
 #include "textbox.h"
 #include "value.h"
@@ -267,6 +268,9 @@ static void page_el_destroy(PageEl *el)
     case EL_STATUS_LIGHT:
 	status_light_destroy(el->component);
 	break;
+    case EL_PIANO:
+	piano_destroy(el->component);
+	break;
     default:
 	break;
     }
@@ -511,7 +515,10 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	    el->layout,
 	    params.slight_p.value,
 	    params.slight_p.val_size);
-	break;	    
+	break;
+    case EL_PIANO:
+	el->component = piano_create(el->layout);
+	break;
     default:
 	break;
     }
@@ -870,6 +877,9 @@ static void page_el_draw(PageEl *el)
     case EL_STATUS_LIGHT:
 	status_light_draw(el->component);
 	break;
+    case EL_PIANO:
+	piano_draw(el->component);
+	break;
     default:
 	break;
     }
@@ -1072,7 +1082,7 @@ void tabview_activate(TabView *tv)
     
     win->active_tabview = tv;
     /* layout_write(stderr, tv->label->layout, 0); */
-    window_push_mode(tv->win, TABVIEW);
+    window_push_mode(tv->win, MODE_TABVIEW);
     tv->tabs[tv->current_tab]->onscreen = true;
     tabview_select_el(tv);
     /* Page *current = tv->tabs[tv->current_tab]; */

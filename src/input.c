@@ -63,7 +63,7 @@ UserFn *input_get(uint16_t i_state, SDL_Keycode keycode)
 	while (1) {
 	    /* if ((node->kb->mode == mode || node->kb->mode == GLOBAL) && node->kb->i_state == i_state && node->kb->keycode == keycode) { */
 	    if ((node->kb->mode == mode) && node->kb->i_state == i_state && node->kb->keycode == keycode) {
-		if (node->kb->mode == GLOBAL && mode == TEXT_EDIT) {
+		if (node->kb->mode == MODE_GLOBAL && mode == MODE_TEXT_EDIT) {
 		    txt_stop_editing(main_win->txt_editing);
 		}
 		return node->kb->fn;
@@ -73,10 +73,10 @@ UserFn *input_get(uint16_t i_state, SDL_Keycode keycode)
 		break;
 	    }
 	}
-	if (mode == TEXT_EDIT) return NULL; /* No "sieve" for text edit mode */
+	if (mode == MODE_TEXT_EDIT) return NULL; /* No "sieve" for text edit mode */
 	win_mode_i--;
 	if (win_mode_i < 0) {
-	    mode = GLOBAL;
+	    mode = MODE_GLOBAL;
 	} else {
 	    mode = main_win->modes[win_mode_i];
 	}
@@ -84,12 +84,12 @@ UserFn *input_get(uint16_t i_state, SDL_Keycode keycode)
     return NULL;
 }
 
+
 /* char *input_state_str(uint16_t i_state) */
 /* { */
     
 
 /* } */
-
 
 static void input_read_keycmd(char *keycmd, uint16_t *i_state, SDL_Keycode *key)
 {
@@ -443,12 +443,12 @@ Menu *input_create_master_menu()
     for (uint8_t i=0; i<main_win->num_modes + 1; i++) {
 	InputMode im;
 	if (i == 0) {
-	    im = GLOBAL;
+	    im = MODE_GLOBAL;
 	} else {
 	    im = main_win->modes[i - 1];
 
 	}
-	if (im == MENU_NAV) continue;
+	if (im == MODE_MENU_NAV) continue;
 	Mode *mode = MODES[im];
 	if (!mode) {
 	    fprintf(stderr, "Error: mode %s not initialized\n", input_mode_str(im));
@@ -618,9 +618,9 @@ bool input_function_is_accessible(UserFn *fn, Window *win)
     }
     for (int i=win->num_modes-1; i>=-1; i--) {
 	InputMode im;
-	if (i == -1) im = GLOBAL;
+	if (i == -1) im = MODE_GLOBAL;
 	else im = win->modes[i];
-	if (im == TEXT_EDIT) continue;
+	if (im == MODE_TEXT_EDIT) continue;
 	if (fn->mode->im == im) return true;
 	else {
 	    for (int i=0; i<num_keyb_blocks; i++) {
@@ -723,6 +723,5 @@ void input_create_function_reference()
 	    }
 	}
     }
-
     fclose(f);
 }

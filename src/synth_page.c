@@ -24,6 +24,8 @@ static void add_noise_page(TabView *tv, Track *track);
 static void add_preset_page(TabView *tv, Track *track);
 
 void osc_bckgrnd_draw(void *arg1, void *arg2);
+static const SDL_Color osc_panel_color_on = {50, 60, 60, 255};
+static const SDL_Color osc_panel_color_off = {40, 40, 40, 255};
 
 TabView *synth_tabview_create(Track *track)
 {
@@ -119,10 +121,12 @@ static int amod_selector_fn(Dropdown *d, void *inner_arg)
 /*     return 0; */
 /* } */
 
-static void panel_draw(void *layout_v, void *color_v)
+static void panel_draw(void *layout_v, void *cfg_v)
 {
+    OscCfg *cfg = cfg_v;
     Layout *layout = layout_v;
-    SDL_Color *color = color_v;
+    const SDL_Color *color = cfg->active ? &osc_panel_color_on : &osc_panel_color_off;
+    /* SDL_Color *color = color_v; */
     SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(color));
     geom_fill_rounded_rect(main_win->rend, &layout->rect, 8 * main_win->dpi_scale_factor);
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.grey));
@@ -156,20 +160,24 @@ static void add_osc_page(TabView *tv, Track *track)
     union page_el_params p;
     PageEl *el = NULL;
 
-    static const SDL_Color osc_panel_color = {50, 60, 60, 255};
+    /* static const SDL_Color osc_panel_color = {50, 60, 60, 255}; */
     p.canvas_p.draw_fn = panel_draw;
 
     Layout *osc1_panel = layout_get_child_by_name_recursive(page->layout, "osc1_panel");
     p.canvas_p.draw_arg1 = osc1_panel;
-    p.canvas_p.draw_arg2 = (void *)&osc_panel_color;
+    p.canvas_p.draw_arg2 = s->base_oscs;
+    /* p.canvas_p.draw_arg2 = (void *)&osc_panel_color; */
     page_add_el(page,EL_CANVAS,p,"","osc1_panel");
 
+    p.canvas_p.draw_arg2 = s->base_oscs + 1;
     p.canvas_p.draw_arg1 = layout_get_child_by_name_recursive(page->layout, "osc2_panel");
     page_add_el(page,EL_CANVAS,p,"","osc2_panel");
 
+    p.canvas_p.draw_arg2 = s->base_oscs + 2;
     p.canvas_p.draw_arg1 = layout_get_child_by_name_recursive(page->layout, "osc3_panel");
     page_add_el(page,EL_CANVAS,p,"","osc3_panel");
 
+    p.canvas_p.draw_arg2 = s->base_oscs + 3;
     p.canvas_p.draw_arg1 = layout_get_child_by_name_recursive(page->layout, "osc4_panel");
     page_add_el(page,EL_CANVAS,p,"","osc4_panel");
 
@@ -372,7 +380,8 @@ static void add_osc_page(TabView *tv, Track *track)
 	page_el_params_slider_from_ep(&p, &cfg->fixed_freq_ep);
 	snprintf(name_buf + 1, 255, "fixed_freq");
 	page_add_el(page,EL_SLIDER,p,name_buf,name_buf);
-	
+
+	p.slider_p.style = SLIDER_FILL;
 	page_el_params_slider_from_ep(&p, &cfg->amp_ep);
 	snprintf(name_buf + 1, 255, "vol");
 	page_add_el(page,EL_SLIDER,p,name_buf,name_buf);
@@ -470,337 +479,7 @@ static void add_osc_page(TabView *tv, Track *track)
 	page_add_el(page,EL_STATUS_LIGHT,p,name_buf, name_buf);
 	
     }
-    page_reset(page);
-    return;
-    
-    OscCfg *cfg = s->base_oscs;
-    
-    p.sradio_p.align_horizontal = true;
-    p.sradio_p.symbols = SYMBOL_TABLE + SYMBOL_SINE;
-    p.sradio_p.num_items = 4;
-    p.sradio_p.padding = 7;
-    p.sradio_p.unsel_color = &colors.clear;
-    p.sradio_p.sel_color = &sel_color;
-    p.sradio_p.ep = &cfg->type_ep;
-    page_add_el(page,EL_SYMBOL_RADIO,p, "1type_radio","1type_radio");
-
-    p.toggle_p.ep = &cfg->fix_freq_ep;
-    page_add_el(page,EL_TOGGLE,p,"1fix_freq","1fix_freq_toggle");
-
-    p.slider_p.orientation = SLIDER_HORIZONTAL;
-    p.slider_p.style = SLIDER_TICK;
-
-    page_el_params_slider_from_ep(&p, &cfg->fixed_freq_ep);
-    page_add_el(page,EL_SLIDER,p,"1fixed_freq","1fixed_freq_slider");
-	
-    page_el_params_slider_from_ep(&p, &cfg->amp_ep);	
-    page_add_el(page,EL_SLIDER,p,"1vol","1vol_slider");
-
-    p.slider_p.style = SLIDER_TICK;
-    page_el_params_slider_from_ep(&p, &cfg->pan_ep);
-    page_add_el(page,EL_SLIDER,p,"1pan","1pan_slider");
-
-    /* p.slider_p.style = SL */
-
-
-
-    /* p.textentry_p.buf_len = 7; */
-    /* p.textentry_p.validation = txt_float_validation; */
-    /* p.textentry_p.font = main_win->mono_font; */
-    /* p.textentry_p.value_handle = cfg->fixed_note_buf; */
-    /* p.textentry_p.completion_target = &cfg->fixed_freq_ep; */
-    /* p.textentry_p.completion = fixed_note_completion; */
-    /* p.textentry_p.text_size = 12; */
-    /* page_add_el(page,EL_SLIDER,p,"1fixed_freq","1fixed_freq_slider"); */
-
-    
-    page_el_params_slider_from_ep(&p, &cfg->octave_ep);
-    page_add_el(page,EL_SLIDER,p,"1octave","1octave_slider");
-
-    page_el_params_slider_from_ep(&p, &cfg->tune_coarse_ep);
-    page_add_el(page,EL_SLIDER,p,"1tune_coarse","1coarse_slider");
-
-    page_el_params_slider_from_ep(&p, &cfg->tune_fine_ep);
-    page_add_el(page,EL_SLIDER,p,"1tune_fine","1fine_slider");
-
-    p.slider_p.style = SLIDER_FILL;
-    page_el_params_slider_from_ep(&p, &cfg->unison.num_voices_ep);
-    page_add_el(page,EL_SLIDER,p,"1num_voices","1unison_num_voices_slider");
-
-    page_el_params_slider_from_ep(&p, &cfg->unison.detune_cents_ep);
-    page_add_el(page,EL_SLIDER,p,"1detune_cents","1unison_detune_cents_slider");
-    
-    page_el_params_slider_from_ep(&p, &cfg->unison.relative_amp_ep);
-    page_add_el(page,EL_SLIDER,p,"1relative_amp","1unison_relative_amp_slider");
-
-    page_el_params_slider_from_ep(&p, &cfg->unison.stereo_spread_ep);
-    page_add_el(page,EL_SLIDER,p,"1stereo_spread","1unison_stereo_spread_slider");
-
-    char *osc_names[] = {"(none)", "Osc2", "Osc3", "Osc4"};
-    void *dropdown_args[4];
-    for (int i=0; i<4; i++) {
-	dropdown_args[i] = (void *)((long)1 << 8);
-    }
-    dropdown_args[0] += 0; /* "none" */
-    dropdown_args[1] += 2; /* osc1 */
-    dropdown_args[2] += 3; /* osc2 */
-    dropdown_args[3] += 4; /* osc3 */
-    p.dropdown_p.header = NULL;
-    p.dropdown_p.item_names = osc_names;
-    p.dropdown_p.item_annotations = NULL;
-    p.dropdown_p.item_args = dropdown_args;
-    p.dropdown_p.num_items = 4;
-    p.dropdown_p.reset_from = &cfg->fmod_dropdown_reset;
-    p.dropdown_p.selection_fn = fmod_selector_fn;
-    page_add_el(page,EL_DROPDOWN,p,"1fmod_dropdown","1fmod_dropdown");
-    
-    p.dropdown_p.reset_from = &cfg->amod_dropdown_reset;
-    p.dropdown_p.selection_fn = amod_selector_fn;
-    page_add_el(page,EL_DROPDOWN,p,"1amod_dropdown","1amod_dropdown");
-
-    p.slight_p.value = &cfg->freq_mod_by;
-    p.slight_p.val_size = sizeof(void *);
-    page_add_el(page,EL_STATUS_LIGHT,p,"1fmod_status_light","1fmod_status_light");
-
-    p.slight_p.value = &cfg->amp_mod_by;
-    page_add_el(page,EL_STATUS_LIGHT,p,"1amod_status_light","1amod_status_light");
-    cfg++;
-
-    p.sradio_p.align_horizontal = true;
-    p.sradio_p.symbols = SYMBOL_TABLE + SYMBOL_SINE;
-    p.sradio_p.num_items = 4;
-    p.sradio_p.padding = 7;
-    p.sradio_p.unsel_color = &colors.clear;
-    p.sradio_p.sel_color = &sel_color;
-    p.sradio_p.ep = &cfg->type_ep;
-    page_add_el(page,EL_SYMBOL_RADIO,p, "2type_radio","2type_radio");
-
-    p.slider_p.orientation = SLIDER_HORIZONTAL;
-    p.slider_p.style = SLIDER_FILL;
-
-    page_el_params_slider_from_ep(&p, &cfg->amp_ep);	
-    page_add_el(page,EL_SLIDER,p,"2vol","2vol_slider");
-
-    p.slider_p.style = SLIDER_TICK;
-    page_el_params_slider_from_ep(&p, &cfg->pan_ep);
-    page_add_el(page,EL_SLIDER,p,"2pan","2pan_slider");
-    
-    page_el_params_slider_from_ep(&p, &cfg->octave_ep);
-    page_add_el(page,EL_SLIDER,p,"2octave","2octave_slider");
-
-    page_el_params_slider_from_ep(&p, &cfg->tune_coarse_ep);
-    page_add_el(page,EL_SLIDER,p,"2tune_coarse","2coarse_slider");
-
-    page_el_params_slider_from_ep(&p, &cfg->tune_fine_ep);
-    page_add_el(page,EL_SLIDER,p,"2tune_fine","2fine_slider");
-
-    p.slider_p.style = SLIDER_FILL;
-    page_el_params_slider_from_ep(&p, &cfg->unison.num_voices_ep);
-    page_add_el(page,EL_SLIDER,p,"2num_voices","2unison_num_voices_slider");
-
-    page_el_params_slider_from_ep(&p, &cfg->unison.detune_cents_ep);
-    page_add_el(page,EL_SLIDER,p,"2detune_cents","2unison_detune_cents_slider");
-
-    page_el_params_slider_from_ep(&p, &cfg->unison.relative_amp_ep);
-    page_add_el(page,EL_SLIDER,p,"2relative_amp","2unison_relative_amp_slider");
-
-    page_el_params_slider_from_ep(&p, &cfg->unison.stereo_spread_ep);
-    page_add_el(page,EL_SLIDER,p,"2stereo_spread","2unison_stereo_spread_slider");
-
-
-    osc_names[1] = "Osc1";
-    for (int i=0; i<4; i++) {
-	dropdown_args[i] = (void *)((long)2 << 8);
-    }
-    dropdown_args[0] += 0; /* "none" */
-    dropdown_args[1] += 1; /* osc1 */
-    dropdown_args[2] += 3; /* osc2 */
-    dropdown_args[3] += 4; /* osc3 */
-    p.dropdown_p.header = NULL;
-    p.dropdown_p.item_names = osc_names;
-    p.dropdown_p.item_annotations = NULL;
-    p.dropdown_p.item_args = dropdown_args;
-    p.dropdown_p.num_items = 4;
-    p.dropdown_p.reset_from = &cfg->fmod_dropdown_reset;
-    p.dropdown_p.selection_fn = fmod_selector_fn;
-    page_add_el(page,EL_DROPDOWN,p,"2fmod_dropdown","2fmod_dropdown");
-
-    p.dropdown_p.reset_from = &cfg->amod_dropdown_reset;
-    p.dropdown_p.selection_fn = amod_selector_fn;
-    page_add_el(page,EL_DROPDOWN,p,"2amod_dropdown","2amod_dropdown");
-
-    p.slight_p.value = &cfg->freq_mod_by;
-    p.slight_p.val_size = sizeof(void *);
-    page_add_el(page,EL_STATUS_LIGHT,p,"2fmod_status_light","2fmod_status_light");
-
-    p.slight_p.value = &cfg->amp_mod_by;
-    page_add_el(page,EL_STATUS_LIGHT,p,"2amod_status_light","2amod_status_light");
-
-
-
-    cfg++;
-
-    p.sradio_p.align_horizontal = true;
-    p.sradio_p.symbols = SYMBOL_TABLE + SYMBOL_SINE;
-    p.sradio_p.num_items = 4;
-    p.sradio_p.padding = 7;
-    p.sradio_p.unsel_color = &colors.clear;
-    p.sradio_p.sel_color = &sel_color;
-    p.sradio_p.ep = &cfg->type_ep;
-    page_add_el(page,EL_SYMBOL_RADIO,p, "3type_radio","3type_radio");
-    
-    p.slider_p.orientation = SLIDER_HORIZONTAL;
-    p.slider_p.style = SLIDER_FILL;
-
-    page_el_params_slider_from_ep(&p, &cfg->amp_ep);	
-    page_add_el(page,EL_SLIDER,p,"3vol","3vol_slider");
-
-    p.slider_p.style = SLIDER_TICK;
-    page_el_params_slider_from_ep(&p, &cfg->pan_ep);
-    page_add_el(page,EL_SLIDER,p,"3pan","3pan_slider");
-    
-    page_el_params_slider_from_ep(&p, &cfg->octave_ep);
-    page_add_el(page,EL_SLIDER,p,"3octave","3octave_slider");
-
-    page_el_params_slider_from_ep(&p, &cfg->tune_coarse_ep);
-    page_add_el(page,EL_SLIDER,p,"3tune_coarse","3coarse_slider");
-
-    page_el_params_slider_from_ep(&p, &cfg->tune_fine_ep);
-    page_add_el(page,EL_SLIDER,p,"3tune_fine","3fine_slider");
-
-    p.slider_p.style = SLIDER_FILL;
-    page_el_params_slider_from_ep(&p, &cfg->unison.num_voices_ep);
-    page_add_el(page,EL_SLIDER,p,"3num_voices","3unison_num_voices_slider");
-
-    page_el_params_slider_from_ep(&p, &cfg->unison.detune_cents_ep);
-    page_add_el(page,EL_SLIDER,p,"3detune_cents","3unison_detune_cents_slider");
-
-    page_el_params_slider_from_ep(&p, &cfg->unison.relative_amp_ep);
-    page_add_el(page,EL_SLIDER,p,"3relative_amp","3unison_relative_amp_slider");
-
-    page_el_params_slider_from_ep(&p, &cfg->unison.stereo_spread_ep);
-    page_add_el(page,EL_SLIDER,p,"3stereo_spread","3unison_stereo_spread_slider");
-
-    
-    osc_names[2] = "Osc2";
-    for (int i=0; i<4; i++) {
-	dropdown_args[i] = (void *)((long)3 << 8);
-    }
-    dropdown_args[0] += 0; /* "none" */
-    dropdown_args[1] += 1; /* osc1 */
-    dropdown_args[2] += 2; /* osc2 */
-    dropdown_args[3] += 4; /* osc3 */
-    p.dropdown_p.header = NULL;
-    p.dropdown_p.item_names = osc_names;
-    p.dropdown_p.item_annotations = NULL;
-    p.dropdown_p.item_args = dropdown_args;
-    p.dropdown_p.num_items = 4;
-    p.dropdown_p.reset_from = &cfg->fmod_dropdown_reset;
-    p.dropdown_p.selection_fn = fmod_selector_fn;
-    page_add_el(page,EL_DROPDOWN,p,"3fmod_dropdown","3fmod_dropdown");
-
-    p.dropdown_p.reset_from = &cfg->amod_dropdown_reset;
-    p.dropdown_p.selection_fn = amod_selector_fn;
-    page_add_el(page,EL_DROPDOWN,p,"3amod_dropdown","3amod_dropdown");
-
-
-    p.slight_p.value = &cfg->freq_mod_by;
-    p.slight_p.val_size = sizeof(void *);
-    page_add_el(page,EL_STATUS_LIGHT,p,"3fmod_status_light","3fmod_status_light");
-
-    p.slight_p.value = &cfg->amp_mod_by;
-    page_add_el(page,EL_STATUS_LIGHT,p,"3amod_status_light","3amod_status_light");
-
-
-
-    cfg++;
-
-    p.sradio_p.align_horizontal = true;
-    p.sradio_p.symbols = SYMBOL_TABLE + SYMBOL_SINE;
-    p.sradio_p.num_items = 4;
-    p.sradio_p.padding = 7;
-    p.sradio_p.unsel_color = &colors.clear;
-    p.sradio_p.sel_color = &sel_color;
-    p.sradio_p.ep = &cfg->type_ep;
-    page_add_el(page,EL_SYMBOL_RADIO,p, "4type_radio","4type_radio");
-
-
-    p.slider_p.orientation = SLIDER_HORIZONTAL;
-    p.slider_p.style = SLIDER_FILL;
-
-    page_el_params_slider_from_ep(&p, &cfg->amp_ep);	
-    page_add_el(page,EL_SLIDER,p,"4vol","4vol_slider");
-
-    p.slider_p.style = SLIDER_TICK;
-    page_el_params_slider_from_ep(&p, &cfg->pan_ep);
-    page_add_el(page,EL_SLIDER,p,"4pan","4pan_slider");
-    
-    page_el_params_slider_from_ep(&p, &cfg->octave_ep);
-    page_add_el(page,EL_SLIDER,p,"4octave","4octave_slider");
-
-    page_el_params_slider_from_ep(&p, &cfg->tune_coarse_ep);
-    page_add_el(page,EL_SLIDER,p,"4tune_coarse","4coarse_slider");
-
-    page_el_params_slider_from_ep(&p, &cfg->tune_fine_ep);
-    page_add_el(page,EL_SLIDER,p,"4tune_fine","4fine_slider");
-
-    
-    p.slider_p.style = SLIDER_FILL;
-    page_el_params_slider_from_ep(&p, &cfg->unison.num_voices_ep);
-    page_add_el(page,EL_SLIDER,p,"4num_voices","4unison_num_voices_slider");
-
-    page_el_params_slider_from_ep(&p, &cfg->unison.detune_cents_ep);
-    page_add_el(page,EL_SLIDER,p,"4detune_cents","4unison_detune_cents_slider");
-
-    page_el_params_slider_from_ep(&p, &cfg->unison.relative_amp_ep);
-    page_add_el(page,EL_SLIDER,p,"4relative_amp","4unison_relative_amp_slider");
-
-    page_el_params_slider_from_ep(&p, &cfg->unison.stereo_spread_ep);
-    page_add_el(page,EL_SLIDER,p,"4stereo_spread","4unison_stereo_spread_slider");
-
-
-
-    /* p.sradio_p.align_horizontal = true; */
-    /* p.sradio_p.symbols = SYMBOL_TABLE + SYMBOL_SINE; */
-    /* p.sradio_p.num_items = 4; */
-    /* p.sradio_p.padding = 7; */
-    /* p.sradio_p.unsel_color = &colors.clear; */
-    /* p.sradio_p.sel_color = &sel_color; */
-    /* p.sradio_p.ep = &cfg->type_ep; */
-    /* page_add_el(page,EL_SYMBOL_RADIO,p,"4type_radio","4type_radio"); */
-    /* /\* } *\/ */
-
-  
-    osc_names[3] = "Osc3";
-    for (int i=0; i<4; i++) {
-	dropdown_args[i] = (void *)((long)4 << 8);
-    }
-    dropdown_args[0] += 0; /* "none" */
-    dropdown_args[1] += 1; /* osc1 */
-    dropdown_args[2] += 2; /* osc2 */
-    dropdown_args[3] += 3; /* osc3 */
-    p.dropdown_p.header = NULL;
-    p.dropdown_p.item_names = osc_names;
-    p.dropdown_p.item_annotations = NULL;
-    p.dropdown_p.item_args = dropdown_args;
-    p.dropdown_p.num_items = 4;
-    p.dropdown_p.reset_from = &cfg->fmod_dropdown_reset;
-    p.dropdown_p.selection_fn = fmod_selector_fn;
-    page_add_el(page,EL_DROPDOWN,p,"4fmod_dropdown","4fmod_dropdown");
-
-    p.dropdown_p.reset_from = &cfg->amod_dropdown_reset;
-    p.dropdown_p.selection_fn = amod_selector_fn;
-    page_add_el(page,EL_DROPDOWN,p,"4amod_dropdown","4amod_dropdown");
-
-    p.slight_p.value = &cfg->freq_mod_by;
-    p.slight_p.val_size = sizeof(void *);
-    page_add_el(page,EL_STATUS_LIGHT,p,"4fmod_status_light","4fmod_status_light");
-
-    p.slight_p.value = &cfg->amp_mod_by;
-    page_add_el(page,EL_STATUS_LIGHT,p,"4amod_status_light","4amod_status_light");
-    
-    page_reset(page);
-	
+    page_reset(page);	
 }
 
 static void add_amp_env_page(TabView *tv, Track *track)

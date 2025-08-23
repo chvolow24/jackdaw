@@ -31,11 +31,18 @@ typedef struct piano {
     SDL_Rect *key_rects[PIANO_NUM_KEYS];
 } Piano;
 
+typedef struct piano_area {
+    Layout *container;
+    Layout *layout;
+    Piano piano;
+} PianoArea;
+
 /* Initializes members, allocates textboxes */
 void piano_init(Piano *piano, Layout *container);
 
 /* Allocates space for piano and inits */
 Piano *piano_create(Layout *container);
+void piano_destroy(Piano *piano);
 
 void piano_draw(Piano *piano);
 

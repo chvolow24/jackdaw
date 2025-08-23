@@ -4,6 +4,7 @@
 #include "eq.h"
 #include "geometry.h"
 #include "input.h"
+#include "input_mode.h"
 #include "layout.h"
 #include "menu.h"
 #include "status.h"
@@ -493,11 +494,39 @@ void symbol_button_draw(SymbolButton *sbutton)
 
 void button_destroy(Button *button)
 {
+    /* Unbind the UserFn */
+    if (button->bound_userfn) {
+	button->bound_userfn->bound_button = NULL;
+    }
     if (button->animation) {
 	session_dequeue_animation(button->animation);
     }
     textbox_destroy(button->tb);
     free(button);
+}
+
+
+/* bckgrnd_color is optional; the existing textbox color will be used otherwise */
+void button_bind_userfn(
+    Button *button,
+    char *fn_id,
+    InputMode im,
+    SDL_Color *pressed_color,
+    SDL_Color *bckgrnd_color)
+{
+    UserFn *userfn = input_get_fn_by_id(fn_id, im);
+    if (!userfn) {
+	fprintf(stderr, "Error: no function \"%s\" found in mode \"%s\".\n", fn_id, input_mode_str(im));
+	return;
+    }
+    userfn->bound_button = button;
+    button->bound_userfn = userfn;
+    if (pressed_color) button->pressed_color = pressed_color;
+    if (bckgrnd_color)
+	button->return_color = bckgrnd_color;
+    else
+	button->return_color = button->tb->bckgrnd_clr;
+    
 }
 
 void symbol_button_destroy(SymbolButton *sbutton)
@@ -518,14 +547,10 @@ static void button_end_animation(void *arg1, void *arg2)
 void button_press_color_change(
     Button *button,
     SDL_Color *temp_color,
-    SDL_Color *return_color,
-    ComponentFn callback,
-    void *callback_target)
+    SDL_Color *return_color)
 {
     textbox_set_background_color(button->tb, temp_color);
-    
     button->animation = session_queue_animation(NULL, button_end_animation, (void *)button, (void *)return_color, BUTTON_COLOR_CHANGE_STD_DELAY);
-    /* textbox_schedule_color_change(button->tb, BUTTON_COLOR_CHANGE_STD_DELAY, return_color, false, callback, callback_target); */
 }
 
 
@@ -1181,8 +1206,9 @@ bool toggle_click(Toggle *toggle, Window *win)
 bool button_click(Button *button, Window *win)
 {
     if (SDL_PointInRect(&main_win->mousep, &button->tb->layout->rect)) {
-	if (button->action) 
+	if (button->action) {
 	    button->action((void *)button, button->target);
+	}
 	return true;
     }
     return false;

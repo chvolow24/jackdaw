@@ -91,7 +91,7 @@ void loop_project_main()
     uint8_t animate_step = 0;
     bool set_i_state_k = false;
 
-    window_push_mode(main_win, TIMELINE);
+    window_push_mode(main_win, MODE_TIMELINE);
 
     bool first_frame = true;
     int wheel_event_recency = 0;
@@ -123,20 +123,20 @@ void loop_project_main()
 		window_set_mouse_point(main_win, e.motion.x, e.motion.y);		
 
 		switch (TOP_MODE) {
-		case MODAL:
+		case MODE_MODAL:
 		    mouse_triage_motion_modal();
 		    break;
-		case MENU_NAV:
+		case MODE_MENU_NAV:
 		    mouse_triage_motion_menu();
 		    break;
-		case AUTOCOMPLETE_LIST:
+		case MODE_AUTOCOMPLETE_LIST:
 		    mouse_triage_motion_autocompletion();
 		    break;
-		case TIMELINE:
+		case MODE_TIMELINE:
 		    if (!mouse_triage_motion_page() && !mouse_triage_motion_tabview()) {
 			mouse_triage_motion_timeline(e.motion.xrel, e.motion.yrel);
 		    }
-		case TABVIEW:
+		case MODE_TABVIEW:
 		    if (!mouse_triage_motion_tabview())
 			mouse_triage_motion_page();
 		    break;
@@ -185,6 +185,7 @@ void loop_project_main()
 
 		switch (e.key.keysym.scancode) {
 		case SDL_SCANCODE_2: {
+		    break;
 		    Layout *lt = layout_add_child(main_win->layout);
 		    /* layout_set_default_dims(lt); */
 		    lt->w.type = SCALE;
@@ -208,6 +209,7 @@ void loop_project_main()
 		}
 		    break;
 		case SDL_SCANCODE_3: {
+		    break;
 		    /* synth_open_preset(); */
 		/*     Timeline *tl = ACTIVE_TL; */
 		/*     Track *t = timeline_selected_track(tl); */
@@ -220,6 +222,7 @@ void loop_project_main()
 		}
 		    break;
 		case SDL_SCANCODE_4:
+		    break;
 		    do_blep = !do_blep;
 		    if (do_blep) {
 			fprintf(stderr, "DOING BLEP!\n");
@@ -238,6 +241,7 @@ void loop_project_main()
 		/* } */
 		/*     break; */
 		case SDL_SCANCODE_5: {
+		    break;
 		    timeline_add_jlily();
 		}
 		    break;
@@ -344,7 +348,7 @@ void loop_project_main()
 		    main_win->i_state |= I_STATE_META;
 		    break;
 	        case SDL_SCANCODE_K:
-		    if (TOP_MODE != MIDI_QWERTY) {
+		    if (TOP_MODE != MODE_MIDI_QWERTY) {
 			if (main_win->i_state & I_STATE_K) {
 			    break;
 			} else {
@@ -361,6 +365,13 @@ void loop_project_main()
 			status_cat_callstr(" : ");
 			status_cat_callstr(input_fn->fn_display_name);
 			input_fn->do_fn(NULL);
+			if (input_fn->bound_button) {
+			    button_press_color_change(
+				input_fn->bound_button,
+				input_fn->bound_button->pressed_color,
+				input_fn->bound_button->return_color);
+
+			}
 			/* timeline_reset(ACTIVE_TL); */
 		    }
 		    break;
@@ -421,7 +432,7 @@ void loop_project_main()
 		Layout *modal_scrollable = NULL;
 		if ((modal_scrollable = mouse_triage_wheel(e.wheel.x * TL_SCROLL_STEP_H, e.wheel.y * TL_SCROLL_STEP_V, fingersdown))) {
 		    temp_scrolling_lt = modal_scrollable;
-		} else if (main_win->modes[main_win->num_modes - 1] == TIMELINE || main_win->modes[main_win->num_modes - 1] == TABVIEW) {
+		} else if (main_win->modes[main_win->num_modes - 1] == MODE_TIMELINE || main_win->modes[main_win->num_modes - 1] == MODE_TABVIEW) {
 		    if (main_win->i_state & I_STATE_SHIFT) {
 			if (fabs(e.wheel.preciseY) > fabs(e.wheel.preciseX)) {
 			    scrub_block = true;
@@ -474,29 +485,29 @@ void loop_project_main()
 		}
 	    escaped_text_edit:
 		switch(TOP_MODE) {
-		case TIMELINE:
+		case MODE_TIMELINE:
 		    /* if (!mouse_triage_click_page() && !mouse_triage_click_tabview()) */
 			mouse_triage_click_project(e.button.button);
 		    break;
-		case MENU_NAV:
+		case MODE_MENU_NAV:
 		    mouse_triage_click_menu(e.button.button);
 		    break;
-		case MODAL:
+		case MODE_MODAL:
 		    mouse_triage_click_modal(e.button.button);
 		    break;
-		case AUTOCOMPLETE_LIST:
+		case MODE_AUTOCOMPLETE_LIST:
 		    mouse_triage_click_autocompletion();
 		    break;
-		case TEXT_EDIT:
+		case MODE_TEXT_EDIT:
 		    if (!mouse_triage_click_text_edit(e.button.button)) {
-			if (TOP_MODE == TEXT_EDIT) {
+			if (TOP_MODE == MODE_TEXT_EDIT) {
 			    fprintf(stderr, "Error: text edit escaped improperly");
 			    window_pop_mode(main_win);
 			}
 			goto escaped_text_edit;
 		    }
 		    break;
-		case TABVIEW:
+		case MODE_TABVIEW:
 		    if (!mouse_triage_click_tabview())
 			mouse_triage_click_page();
 		    break;

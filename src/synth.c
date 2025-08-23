@@ -1000,16 +1000,17 @@ static void osc_get_buf_preamp(Osc *restrict osc, float step, int len)
     }
     float *fmod_samples;
     float *amod_samples;
+    float fmod_amp;
     if (osc->freq_modulator) {
 	fmod_samples = osc->freq_modulator->buf;
 	osc_get_buf_preamp(osc->freq_modulator, step, len);
-	float amp = osc->freq_modulator->amp;
-	float_buf_mult_const(fmod_samples, amp, len);
+	fmod_amp = powf(osc->freq_modulator->cfg->amp, 3.0f);
+	float_buf_mult_const(fmod_samples, fmod_amp, len);
     }
     if (osc->amp_modulator) {
 	amod_samples = osc->amp_modulator->buf;
 	osc_get_buf_preamp(osc->amp_modulator, step, len);
-	float amp = osc->amp_modulator->amp;
+	float amp = osc->amp_modulator->cfg->amp;
 	float_buf_mult_const(amod_samples, amp, len);
 	
     }
@@ -1068,7 +1069,7 @@ static void osc_get_buf_preamp(Osc *restrict osc, float step, int len)
 	    /* Raise fmod sample to 3 to get fmod values in more useful range */
 	    /* float fmod_sample = pow(osc_sample(osc->freq_modulator, channel, num_channels, step, chunk_index), 3.0); */
 	    /* fprintf(stderr, "fmod sample in osc %p: %f\n", osc, fmod_sample); */
-	    phase += phase_incr * step * (1.0f + pow(fmod_samples[i], 3.0));
+	    phase += phase_incr * step * (1.0 - fmod_samples[i]);
 	} else {
 	    phase += phase_incr * step;
 	}
@@ -1214,18 +1215,22 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
     if (v->available) return;
     float osc_buf[len];
     memset(osc_buf, '\0', len * sizeof(float));
+    for (int i=0; i<SYNTHVOICE_NUM_OSCS; i++) {
+	osc_reset_params(v->oscs + i);
+    }
     /* fprintf(stderr, "\tvoice %ld has data\n", v - v->synth->voices); */
     for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
 	OscCfg *cfg = v->synth->base_oscs + i;
-	if (!cfg->active) continue;
-	if (cfg->mod_freq_of || cfg->mod_amp_of) continue;
 	/* fprintf(stderr, "\t\tvoice %ld osc %d\n", v - v->synth->voices, i); */
 	Osc *osc = v->oscs + i;
-	osc_reset_params(osc);
-	if (osc->freq_modulator)
-	    osc_reset_params(osc->freq_modulator);
-	if (osc->amp_modulator)
-	    osc_reset_params(osc->amp_modulator);
+	/* osc_reset_params(osc); */
+	if (!cfg->active) continue;
+	if (cfg->mod_freq_of || cfg->mod_amp_of) continue;
+
+	/* if (osc->freq_modulator) */
+	/*     osc_reset_params(osc->freq_modulator); */
+	/* if (osc->amp_modulator) */
+	/*     osc_reset_params(osc->amp_modulator); */
 	float ind_osc_buf[len];
 	if (channel == 0) {
 	    osc_get_buf_preamp(osc, step, len);
@@ -1240,11 +1245,11 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 	/* } */
 	for (int j=0; j<cfg->unison.num_voices; j++) {
 	    osc = v->oscs + i + SYNTH_NUM_BASE_OSCS * (j + 1);
-	    osc_reset_params(osc);
-	    if (osc->freq_modulator)
-		osc_reset_params(osc->freq_modulator);
-	    if (osc->amp_modulator)
-		osc_reset_params(osc->amp_modulator);
+	    /* osc_reset_params(osc); */
+	    /* if (osc->freq_modulator) */
+	    /* 	osc_reset_params(osc->freq_modulator); */
+	    /* if (osc->amp_modulator) */
+	    /* 	osc_reset_params(osc->amp_modulator); */
 
 	    if (channel == 0) {
 		osc_get_buf_preamp(osc, step, len);

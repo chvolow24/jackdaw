@@ -31,15 +31,15 @@
 
 typedef enum input_mode {
 /* typedef enum input_mode : uint8_t { */
-    GLOBAL,
-    MENU_NAV,
-    TIMELINE,
-    SOURCE,
-    MODAL,
-    TEXT_EDIT,
-    TABVIEW,
-    AUTOCOMPLETE_LIST,
-    MIDI_QWERTY,
+    MODE_GLOBAL,
+    MODE_MENU_NAV,
+    MODE_TIMELINE,
+    MODE_SOURCE,
+    MODE_MODAL,
+    MODE_TEXT_EDIT,
+    MODE_TABVIEW,
+    MODE_AUTOCOMPLETE_LIST,
+    MODE_MIDI_QWERTY,
     NUM_INPUT_MODES
 } InputMode;
 
@@ -49,6 +49,7 @@ typedef enum input_mode {
 
 typedef struct mode Mode;
 typedef struct keybinding Keybinding;
+typedef struct button Button;
 typedef struct user_fn {
     const char *fn_id;
     const char *fn_display_name;
@@ -64,6 +65,7 @@ typedef struct user_fn {
     /* uint16_t i_states[MAX_FN_KEYBS]; */
     /* SDL_Keycode keycodes[MAX_FN_KEYBS]; */
     /* int num_hashes; */
+    Button *bound_button;
 } UserFn;
 
 typedef struct mode_subcat {

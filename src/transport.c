@@ -590,7 +590,7 @@ void transport_start_recording()
 		mdevice->recording = true;
 		fprintf(stderr, "Opening midi device...\n");
 		midi_device_open(mdevice);
-		if (mdevice->type == MIDI_QWERTY) {
+		if (mdevice->type == MODE_MIDI_QWERTY) {
 		    activate_mqwert = true;
 		}
 		MIDIClip *mclip = midi_clip_create(mdevice, track);
@@ -880,7 +880,7 @@ void transport_stop_recording()
 	audioconn_close(conns_to_close[--num_conns_to_close]);
     }
 
-    mqwert_deactivate();
+    /* mqwert_deactivate(); */
     /* for (int i=0; i<session->midi_io.num_inputs; i++) { */
     /* 	MIDIDevice *d = session->midi_io.inputs + i; */
     /* 	if (!d->info->is_virtual) { */

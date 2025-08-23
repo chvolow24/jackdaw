@@ -329,7 +329,7 @@ void txt_edit(Text *txt, void (*draw_fn) (void))
     txt_reset_display_value(txt);
     txt->cursor_start_pos = 0;
     txt->cursor_end_pos = txt->len;
-    window_push_mode(main_win, TEXT_EDIT);
+    window_push_mode(main_win, MODE_TEXT_EDIT);
     main_win->txt_editing = txt;
     if (txt->cached_value) {
 	free(txt->cached_value);
@@ -585,6 +585,9 @@ void ttf_reset_dpi_scale_factor(Font *font)
 
 void txt_set_color(Text *txt, const SDL_Color *clr)
 {
+    SDL_Color new = *clr;
+    /* If color hasn't changed, don't reset the drawable */
+    if (memcmp(&txt->color, &new, sizeof(SDL_Color)) == 0) return;
     txt->color = *clr;
     txt_reset_drawable(txt);
 }

@@ -122,7 +122,6 @@ void page_el_gui_cb(Endpoint *ep)
 	return;
     }
     const char *el_id = ep->xarg4;
-    fprintf(stderr, "ID in callback: %s\n", el_id);
 
     PageEl *el = page_get_el_by_id(page, el_id);
     if (!el) {

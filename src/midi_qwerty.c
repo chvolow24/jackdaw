@@ -87,20 +87,23 @@ void mqwert_activate()
 {
     Session *session = session_get();
     if (session->midi_qwerty) return; /* already activated */
-    window_push_mode(main_win, MIDI_QWERTY);
+    window_push_mode(main_win, MODE_MIDI_QWERTY);
     session->midi_qwerty = true;
 }
 
 void mqwert_deactivate()
 {
-    if (TOP_MODE != MIDI_QWERTY) {
+    fprintf(stderr, "TOP MODE? %s\n", input_mode_str(TOP_MODE));
+    if (TOP_MODE != MODE_MIDI_QWERTY) {
 	fprintf(stderr, "Error: call to mqwert_deactivate, top mode not MIDI_QWERTY\n");
     } else {
 	window_pop_mode(main_win);
+	fprintf(stderr, "After pop TOP MODE? %s\n", input_mode_str(TOP_MODE));
     }
     Session *session = session_get();
     session->midi_qwerty = false;
     midi_device_close_all_notes(&state.v_device);
+    memset(state.key_note_table, '\0', sizeof(state.key_note_table));
 }
 
 void mqwert_octave(int incr)

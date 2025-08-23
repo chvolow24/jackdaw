@@ -42,23 +42,23 @@ const char *input_mode_str(InputMode im)
 InputMode input_mode_from_str(char *str)
 {
     if (strcmp(str, "global") == 0) {
-	return GLOBAL;
+	return MODE_GLOBAL;
     } else if (strcmp(str, "menu_nav") == 0) {
-	return MENU_NAV;
+	return MODE_MENU_NAV;
     } else if (strcmp(str, "timeline") == 0) {
-	return TIMELINE;
+	return MODE_TIMELINE;
     } else if (strcmp(str, "source") == 0) {
-	return SOURCE;
+	return MODE_SOURCE;
     } else if (strcmp(str, "modal") == 0) {
-	return MODAL;
+	return MODE_MODAL;
     } else if (strcmp(str, "text_edit") == 0) {
-	return TEXT_EDIT;
+	return MODE_TEXT_EDIT;
     } else if (strcmp(str, "tabview") == 0) {
-	return TABVIEW;
+	return MODE_TABVIEW;
     } else if (strcmp(str, "autocomplete_list") == 0) {
-	return AUTOCOMPLETE_LIST;
+	return MODE_AUTOCOMPLETE_LIST;
     } else if (strcmp(str, "midi_qwerty") == 0) {
-	return MIDI_QWERTY;
+	return MODE_MIDI_QWERTY;
     } else {
 	return -1;
     }
@@ -129,7 +129,7 @@ static UserFn *create_user_fn(
 
 static void mode_load_global()
 {
-    Mode *mode = mode_create(GLOBAL);
+    Mode *mode = mode_create(MODE_GLOBAL);
     ModeSubcat *mc = mode_add_subcat(mode, "");
     if (!mc) {
 	return;
@@ -221,7 +221,7 @@ static void mode_load_global()
 static void mode_load_menu_nav()
 {
     
-    Mode *mode = mode_create(MENU_NAV);
+    Mode *mode = mode_create(MODE_MENU_NAV);
     ModeSubcat *mc = mode_add_subcat(mode, "");
     UserFn *fn;
     fn = create_user_fn(
@@ -301,7 +301,7 @@ static void mode_load_menu_nav()
 
 static void mode_load_timeline()
 {
-    Mode *mode = mode_create(TIMELINE);
+    Mode *mode = mode_create(MODE_TIMELINE);
     /* ModeSubcat *sc= mode_add_subcat(mode, "Timeline Navigation"); */
     UserFn *fn;
 
@@ -955,7 +955,7 @@ static void mode_load_timeline()
 
 static void mode_load_source()
 {
-    Mode *mode = mode_create(SOURCE);
+    Mode *mode = mode_create(MODE_SOURCE);
     ModeSubcat *sc= mode_add_subcat(mode, "");
     UserFn *fn;
 
@@ -1030,7 +1030,7 @@ static void mode_load_source()
 
 static void mode_load_modal()
 {
-    Mode *mode = mode_create(MODAL);
+    Mode *mode = mode_create(MODE_MODAL);
     ModeSubcat *sc= mode_add_subcat(mode, "");
     UserFn *fn;   
 
@@ -1080,7 +1080,7 @@ static void mode_load_modal()
 
 static void mode_load_text_edit()
 {
-    Mode *mode = mode_create(TEXT_EDIT);
+    Mode *mode = mode_create(MODE_TEXT_EDIT);
     /* MODES[TEXT_EDIT] = mode; */
 
     ModeSubcat *sc = mode_add_subcat(mode, "");
@@ -1124,7 +1124,7 @@ static void mode_load_text_edit()
 
 static void mode_load_tabview()
 {
-    Mode *mode = mode_create(TABVIEW);
+    Mode *mode = mode_create(MODE_TABVIEW);
     /* modes[TABVIEW] = mode; */
 
     ModeSubcat *sc = mode_add_subcat(mode, "");
@@ -1196,7 +1196,7 @@ static void mode_load_tabview()
 
 static void mode_load_autocomplete_list()
 {
-    Mode *mode = mode_create(AUTOCOMPLETE_LIST);
+    Mode *mode = mode_create(MODE_AUTOCOMPLETE_LIST);
     ModeSubcat *sc = mode_add_subcat(mode, "");
 
     UserFn *fn = create_user_fn(
@@ -1226,7 +1226,7 @@ static void mode_load_autocomplete_list()
 
 static void mode_load_midi_qwerty()
 {
-    Mode *mode = mode_create(MIDI_QWERTY);
+    Mode *mode = mode_create(MODE_MIDI_QWERTY);
     ModeSubcat *sc = mode_add_subcat(mode, "");
 
     UserFn *fn = create_user_fn(
@@ -1234,7 +1234,6 @@ static void mode_load_midi_qwerty()
 	"Escape MIDI QWERTY",
 	user_midi_qwerty_escape);
     mode_subcat_add_fn(sc, fn);
-
     fn = create_user_fn(
 	"midi_qwerty_octave_up",
 	"Octave up",

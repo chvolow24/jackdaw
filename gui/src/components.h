@@ -31,6 +31,10 @@ typedef struct button {
     ComponentFn action;
     void *target;
     Animation *animation;
+
+    SDL_Color *pressed_color;
+    SDL_Color *return_color;
+    UserFn *bound_userfn;
 } Button;
 
 typedef struct symbol_button {
@@ -245,10 +249,7 @@ void button_destroy(Button *button);
 void button_press_color_change(
     Button *button,
     SDL_Color *temp_color,
-    SDL_Color *return_color,
-    ComponentFn callback,
-    void *callback_target);
-
+    SDL_Color *return_color);
 
 /* Symbol button */
 
@@ -265,6 +266,14 @@ void button_draw(Button *button);
 void symbol_button_draw(SymbolButton *sbutton);
 void symbol_button_destroy(SymbolButton *sbutton);
 bool symbol_button_click(SymbolButton *sbutton, Window *win);
+
+/* Button animation will run whenever userfn triggered */
+void button_bind_userfn(
+    Button *button,
+    char *fn_id,
+    InputMode im,
+    SDL_Color *pressed_color,
+    SDL_Color *bckgrnd_color);
 
 /* Textentry */
 

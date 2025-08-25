@@ -216,6 +216,11 @@ void textbox_draw(Textbox *tb)
 
     
     SDL_SetRenderDrawColor(rend, txtclr->r, txtclr->g, txtclr->b, txtclr->a);
+    if (tb->live) {
+	if (strncmp(tb->text->display_value, tb->text->value_handle, tb->text->max_len) != 0) {
+	    txt_reset_display_value(tb->text);
+	}
+    }
     txt_draw(tb->text);
 }
 

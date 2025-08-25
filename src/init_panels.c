@@ -14,6 +14,7 @@
 #include "consts.h"
 #include "geometry.h"
 #include "layout.h"
+#include "midi_qwerty.h"
 #include "panel.h"
 #include "session.h"
 #include "timeview.h"
@@ -760,7 +761,8 @@ PageEl *page_add_keybutton(
     /* layout_reset(tb->layout); */
     /* layout_center_scale(tb->layout, true, true); */
     textbox_set_border(tb, &colors.white, 3);
-    tb->corner_radius = 6;
+    tb->corner_radius = 4;
+    layout_center_agnostic(lt, false, true);
     layout_force_reset(parent);
     textbox_reset_full(tb);
     return el;
@@ -777,9 +779,11 @@ static void session_init_qwerty_piano(Page *page, Session *session)
 	"piano",
 	"piano");
 
-    Layout *octave_area = layout_get_child_by_name_recursive(page->layout, "octave");
-    Layout *label_lt = layout_add_child(octave_area);
-    label_lt->w.value = 10.0;
+    Layout *ctrls = layout_get_child_by_name_recursive(page->layout, "ctrls");
+    Layout *ctrl_labels = layout_get_child_by_name_recursive(page->layout, "ctrl_labels");
+    
+    Layout *label_lt = layout_add_child(ctrl_labels);
+    label_lt->w.value = 100.0;
     label_lt->h.type = SCALE; 
     label_lt->h.value = 1.0;
     layout_set_name(label_lt, "octave_label");
@@ -798,39 +802,241 @@ static void session_init_qwerty_piano(Page *page, Session *session)
     Textbox *tb = el->component;
     textbox_set_background_color(tb, NULL);
     textbox_set_text_color(tb, &colors.light_grey);
-    layout_size_to_fit_children(tb->layout, true, 0);
-    layout_reset(octave_area);
-	
+    /* layout_size_to_fit_children(tb->layout, true, 0); */
+    layout_center_agnostic(tb->layout, false, true);
 
+        
+    label_lt = layout_add_child(ctrl_labels);
+    label_lt->x.type = STACK;
+    label_lt->w.value = 100.0;
+    label_lt->h.type = SCALE; 
+    label_lt->h.value = 1.0;
+    layout_set_name(label_lt, "velocity_label");
+    layout_reset(label_lt);
+    p.textbox_p.font = main_win->std_font;
+    p.textbox_p.text_size = 12;
+    p.textbox_p.set_str = "Velocity:";
+    p.textbox_p.win = main_win;
+    el = page_add_el(
+	page,
+	EL_TEXTBOX,
+	p,
+	"",
+	"velocity_label");
+
+    tb = el->component;
+    textbox_set_background_color(tb, NULL);
+    textbox_set_text_color(tb, &colors.light_grey);
+    /* layout_size_to_fit_children(tb->layout, true, 0); */
+    layout_center_agnostic(tb->layout, false, true);
+
+    label_lt = layout_add_child(ctrl_labels);
+    label_lt->x.type = STACK;
+    label_lt->w.value = 100.0;
+    label_lt->h.type = SCALE; 
+    label_lt->h.value = 1.0;
+    layout_set_name(label_lt, "transpose_label");
+    layout_reset(label_lt);
+    p.textbox_p.font = main_win->std_font;
+    p.textbox_p.text_size = 12;
+    p.textbox_p.set_str = "Transpose:";
+    p.textbox_p.win = main_win;
+    el = page_add_el(
+	page,
+	EL_TEXTBOX,
+	p,
+	"",
+	"transpose_label");
+
+    tb = el->component;
+    textbox_set_background_color(tb, NULL);
+    textbox_set_text_color(tb, &colors.light_grey);
+    /* layout_size_to_fit_children(tb->layout, true, 0); */
+    layout_center_agnostic(tb->layout, false, true);
+    
+    /* layout_reset(ctrls); */
+	
     el = page_add_keybutton(
 	page,
 	"Z↓",
 	"octave_down",
 	NULL,
 	NULL,
-	"octave",
+	"ctrls",
+	true,
+	false,
+	0.0,
+	0.0);
+    button_bind_userfn(
+	el->component,
+	"midi_qwerty_octave_down",
+	MODE_MIDI_QWERTY,
+	&colors.burnt_umber,
+	NULL);
+
+    el = page_add_keybutton(
+	page,
+	"X↑",
+	"octave_up",
+	NULL,
+	NULL,
+	"ctrls",
 	true,
 	false,
 	5.0,
 	0.0);
     button_bind_userfn(
 	el->component,
-	"midi_qwerty_octave_down",
+	"midi_qwerty_octave_up",
 	MODE_MIDI_QWERTY,
-	&colors.green,
+	&colors.burnt_umber,
 	NULL);
 
-    page_add_keybutton(
+    Layout *indicator_lt = layout_add_child(ctrls);
+
+    indicator_lt->x.type = STACK;
+    indicator_lt->x.value = 5.0;
+    indicator_lt->w.type = REL;
+    indicator_lt->w.value = 20.0;
+    indicator_lt->h.type = SCALE;
+    indicator_lt->h.value = 1.0;
+    layout_force_reset(ctrls);
+    layout_set_name(indicator_lt, "octave_ind");
+
+    p.textbox_p.set_str = mqwert_get_octave_str();
+    p.textbox_p.font = main_win->mono_bold_font;
+    p.textbox_p.text_size = 14;
+    p.textbox_p.win = main_win;
+    el = page_add_el(page,EL_TEXTBOX,p,"","octave_ind");
+    tb = el->component;
+    tb->live = true;
+    /* textbox_size_to_fit(tb, 4, 4); */
+    layout_center_agnostic(tb->layout, false, true);
+    layout_reset(tb->layout);
+
+    el = page_add_keybutton(
 	page,
-	"X↑",
-	"octave_up",
+	"C↓",
+	"velocity_down",
 	NULL,
 	NULL,
-	"octave",
+	"ctrls",
+	false,
+	false,
+	100.0,
+	0.0);
+    button_bind_userfn(
+	el->component,
+	"midi_qwerty_velocity_down",
+	MODE_MIDI_QWERTY,
+	&colors.burnt_umber,
+	NULL);
+
+    el = page_add_keybutton(
+	page,
+	"V↑",
+	"velocity_up",
+	NULL,
+	NULL,
+	"ctrls",
 	true,
 	false,
 	5.0,
 	0.0);
+    button_bind_userfn(
+	el->component,
+	"midi_qwerty_velocity_up",
+	MODE_MIDI_QWERTY,
+	&colors.burnt_umber,
+	NULL);
+
+    indicator_lt = layout_add_child(ctrls);
+
+    indicator_lt->x.type = STACK;
+    indicator_lt->x.value = 5.0;
+    indicator_lt->w.type = REL;
+    indicator_lt->w.value = 20.0;
+    indicator_lt->h.type = SCALE;
+    indicator_lt->h.value = 1.0;
+    layout_force_reset(ctrls);
+    layout_set_name(indicator_lt, "velocity_ind");
+
+    p.textbox_p.set_str = mqwert_get_velocity_str();
+    p.textbox_p.font = main_win->mono_bold_font;
+    p.textbox_p.text_size = 14;
+    p.textbox_p.win = main_win;
+    el = page_add_el(page,EL_TEXTBOX,p,"","velocity_ind");
+    tb = el->component;
+    tb->live = true;
+    /* textbox_size_to_fit(tb, 4, 4); */
+    layout_center_agnostic(tb->layout, false, true);
+    layout_reset(tb->layout);
+
+
+
+    el = page_add_keybutton(
+	page,
+	",↓",
+	"tranpose_down",
+	NULL,
+	NULL,
+	"ctrls",
+	false,
+	false,
+	200.0,
+	0.0);
+    button_bind_userfn(
+	el->component,
+	"midi_qwerty_transpose_down",
+	MODE_MIDI_QWERTY,
+	&colors.burnt_umber,
+	NULL);
+
+    el = page_add_keybutton(
+	page,
+	".↑",
+	"transpose_up",
+	NULL,
+	NULL,
+	"ctrls",
+	true,
+	false,
+	5.0,
+	0.0);
+    button_bind_userfn(
+	el->component,
+	"midi_qwerty_transpose_up",
+	MODE_MIDI_QWERTY,
+	&colors.burnt_umber,
+	NULL);
+
+    indicator_lt = layout_add_child(ctrls);
+
+    indicator_lt->x.type = STACK;
+    indicator_lt->x.value = 5.0;
+    indicator_lt->w.type = REL;
+    indicator_lt->w.value = 20.0;
+    indicator_lt->h.type = SCALE;
+    indicator_lt->h.value = 1.0;
+    layout_force_reset(ctrls);
+    layout_set_name(indicator_lt, "transpose_ind");
+
+    p.textbox_p.set_str = mqwert_get_transpose_str();
+    p.textbox_p.font = main_win->mono_bold_font;
+    p.textbox_p.text_size = 14;
+    p.textbox_p.win = main_win;
+    el = page_add_el(page,EL_TEXTBOX,p,"","transpose_ind");
+    tb = el->component;
+    tb->live = true;
+    /* textbox_size_to_fit(tb, 4, 4); */
+    layout_center_agnostic(tb->layout, false, true);
+    layout_reset(tb->layout);
+
+
+
+    
+    
+
 	
     /* Layout *lt = layout_add_child(octave_area); */
     /* lt->x.type = SCALE; */

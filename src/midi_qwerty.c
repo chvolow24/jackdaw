@@ -14,19 +14,25 @@
 #include "porttime.h"
 #include "session.h"
 
+#define VELOCITY_INCR_AMT 9
+
 extern Window *main_win;
 
 struct mqwert_state {
     int octave;
     int transpose;
-    uint8_t velocity;
+    int velocity;
     bool live; /* Live mode handles keyups */
     MIDIDevice v_device; /* Virtual device */
     uint8_t key_note_table[96]; /* Held notes; table indices are ASCII printable characters */
+    char octave_str[3];
+    char transpose_str[4];
+    char velocity_str[4];
+    
 };
 
 static struct mqwert_state state = {
-    0, 0, 100, false, {0}, {0}
+    0, 0, 100, false, {0}, {0}, "+0", "+0", "100"
 };
 
 static int raw_note_from_key(char key)
@@ -89,6 +95,7 @@ void mqwert_activate()
     if (session->midi_qwerty) return; /* already activated */
     window_push_mode(main_win, MODE_MIDI_QWERTY);
     session->midi_qwerty = true;
+    snprintf(state.octave_str, 3, "%s%d", state.octave >= 0 ? "+" : "-", state.octave);
 }
 
 void mqwert_deactivate()
@@ -111,11 +118,23 @@ void mqwert_octave(int incr)
     state.octave += incr;
     if (state.octave > 4) state.octave = 4;
     else if (state.octave < -4) state.octave = -4;
+    snprintf(state.octave_str, 3, "%s%d", state.octave >= 0 ? "+" : "", state.octave);
 }
 
 void mqwert_transpose(int incr)
 {
     state.transpose += incr;
+    if (state.transpose > 11) state.transpose = 11;
+    if (state.transpose < -11) state.transpose = -11;
+    snprintf(state.transpose_str, 4, "%s%d", state.transpose >= 0 ? "+" : "", state.transpose);
+}
+
+void mqwert_velocity(int incr)
+{
+    state.velocity += incr * VELOCITY_INCR_AMT;
+    if (state.velocity < 0) state.velocity = 1; /* from 100, decr 9, min = 1 */
+    else if (state.velocity > 127) state.velocity = 127;
+    snprintf(state.velocity_str, 4, "%d", state.velocity);
 }
 
 void mqwert_handle_key(char key, bool is_keyup)
@@ -191,3 +210,17 @@ uint8_t mqwert_get_key_state(char key)
     if (key >= 'A' && key <= 'Z') key = 'a' + (key - 'A');
     return state.key_note_table[key - ' '];
 }
+
+char *mqwert_get_octave_str()
+{
+    return state.octave_str;
+}
+char *mqwert_get_transpose_str()
+{
+    return state.transpose_str;
+}
+char *mqwert_get_velocity_str()
+{
+    return state.velocity_str;
+}
+

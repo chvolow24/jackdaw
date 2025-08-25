@@ -3086,6 +3086,14 @@ void user_midi_qwerty_transpose_down(void *nullarg)
 {
     mqwert_transpose(-1);
 }
+void user_midi_qwerty_velocity_up(void *nullarg)
+{
+    mqwert_velocity(1);
+}
+void user_midi_qwerty_velocity_down(void *nullarg)
+{
+    mqwert_velocity(-1);
+}
 
 
 

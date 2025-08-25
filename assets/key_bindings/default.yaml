@@ -252,6 +252,8 @@
   - x		: midi_qwerty_octave_up
   - ,		: midi_qwerty_transpose_down
   - .		: midi_qwerty_transpose_up
+  - c		: midi_qwerty_velocity_down
+  - v		: midi_qwerty_velocity_up
   - a		: midi_qwerty_c1
   - w		: midi_qwerty_cis1
   - s		: midi_qwerty_d1

@@ -28,6 +28,7 @@
 #include "layout.h"
 #include "layout_xml.h"
 #include "menu.h"
+#include "midi_io.h"
 #include "midi_objs.h"
 #include "project.h"
 #include "session.h"
@@ -1502,6 +1503,10 @@ static void track_set_in_onclick(void *void_arg)
 	textbox_set_value_handle(arg->track->tb_input_name, device->name);
 	timeline_check_set_midi_monitoring();
 	window_pop_menu(main_win);
+	if (device->type == MIDI_DEVICE_QWERTY) {
+	    panel_page_refocus(session->gui.panels, "QWERTY piano", 1);
+	}
+
 	Timeline *tl = ACTIVE_TL;
 	tl->needs_redraw = true;
 

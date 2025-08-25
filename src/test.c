@@ -1,5 +1,3 @@
-#include "SDL.h"
-#include "SDL_events.h"
 #include "input.h"
 #include "test.h"
 
@@ -74,14 +72,14 @@ TEST_FN_DEF(
 	    /* free(keycmd_str); */
 	}
 	/* fprintf(stderr, "\n\n\n\n"); */
-	if (main_win->modes[main_win->num_modes - 1] == TEXT_EDIT) {
+	if (main_win->modes[main_win->num_modes - 1] == MODE_TEXT_EDIT) {
 	    if (text_edit_chars >= MAX_TEXT_EDIT_CHARS) {
 		user_text_edit_escape(NULL);
 		text_edit_chars = 0;
 	    } else {
 		text_edit_chars += num_events;
 	    }
-	} else if (main_win->modes[main_win->num_modes - 1] == AUTOCOMPLETE_LIST) {
+	} else if (main_win->modes[main_win->num_modes - 1] == MODE_AUTOCOMPLETE_LIST) {
 	   user_autocomplete_escape(NULL);
 	}
 	return 0;

@@ -205,6 +205,8 @@ void user_midi_qwerty_octave_up(void *nullarg);
 void user_midi_qwerty_octave_down(void *nullarg);
 void user_midi_qwerty_transpose_up(void *nullarg);
 void user_midi_qwerty_transpose_down(void *nullarg);
+void user_midi_qwerty_velocity_up(void *nullarg);
+void user_midi_qwerty_velocity_down(void *nullarg);
 void user_midi_qwerty_c1(void *nullarg);
 void user_midi_qwerty_cis1(void *nullarg);
 void user_midi_qwerty_d1(void *nullarg);

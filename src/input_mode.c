@@ -1254,6 +1254,17 @@ static void mode_load_midi_qwerty()
 	"Transpose down",
 	user_midi_qwerty_transpose_down);
     mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_velocity_up",
+	"Velocity up",
+	user_midi_qwerty_velocity_up);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_velocity_down",
+	"Velocity down",
+	user_midi_qwerty_velocity_down);
+    mode_subcat_add_fn(sc, fn);
+
 
 
     

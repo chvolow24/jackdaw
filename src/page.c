@@ -836,7 +836,7 @@ static void page_el_draw(PageEl *el)
 	txt_area_draw((TextArea *)el->component);
 	break;
     case EL_TEXTBOX:
-	textbox_draw((Textbox *)el->component);
+	layout_draw(main_win, el->layout);
 	break;
     case EL_TEXTENTRY:
 	textentry_draw((TextEntry *)el->component);

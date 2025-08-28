@@ -517,21 +517,20 @@ pop_modal_and_exit:
 
 void timeline_add_jlily()
 {
-    static const int MAX_BUFLEN = 1024;
     Layout *mod_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(mod_lt);
     Modal *m = modal_create(mod_lt);
     modal_add_header(m, "Insert JLily notes (LilyPond)", &colors.light_grey, 5);
-    static char buf[MAX_BUFLEN];
+    static char buf[MAX_JLILY_BUFLEN];
     static bool buf_initialized = false;
     if (!buf_initialized) {
-	memset(buf, '\0', MAX_BUFLEN);
+	memset(buf, '\0', MAX_JLILY_BUFLEN);
 	buf_initialized = true;
     }
     modal_add_textentry(
 	m,
         buf,
-	MAX_BUFLEN,
+	MAX_JLILY_BUFLEN,
 	NULL,
 	NULL,
 	NULL);

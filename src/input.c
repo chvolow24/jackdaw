@@ -245,6 +245,11 @@ static UserFn null_userfn = {
     0
 };
 
+bool is_null_userfn(UserFn *fn)
+{
+    return fn == &null_userfn;
+}
+
 /* Returns null if no function found by that id */
 UserFn *input_get_fn_by_id(char *id, InputMode im)
 {
@@ -609,9 +614,11 @@ bool input_function_is_accessible(UserFn *fn, Window *win)
 		    fprintf(stderr, "ERROR: %d keyb blocks in input_function_is_accessible\n", MAX_KEYB_BLOCKS);
 		    return false;
 		}
-				
-		keyb_blocks[num_keyb_blocks] = kn->kb->fn->mode->im;
-		num_keyb_blocks++;
+
+		if (!is_null_userfn(kn->kb->fn)) {
+		    keyb_blocks[num_keyb_blocks] = kn->kb->fn->mode->im;
+		    num_keyb_blocks++;
+		}
 	    }
 	    kn = kn->next;
 	}

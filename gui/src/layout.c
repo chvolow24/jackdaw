@@ -1164,6 +1164,20 @@ Layout *layout_add_complementary_child(Layout *parent, RectMem comp_rm)
     
 }
 
+void layout_reparent_all(Layout *old_parent, Layout *new_parent)
+{
+    for (int i=0; i<old_parent->num_children; i++) {
+	Layout *child = old_parent->children[i];
+	child->parent = new_parent;
+	layout_realloc_children_maybe(new_parent);
+	new_parent->children[new_parent->num_children] = child;
+	child->index = new_parent->num_children;
+	new_parent->num_children++;
+    }
+    old_parent->num_children = 0;
+    layout_reset(new_parent);
+}
+
 void layout_reparent(Layout *child, Layout *parent)
 {
     child->parent = parent;

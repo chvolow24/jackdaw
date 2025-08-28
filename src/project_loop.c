@@ -184,19 +184,19 @@ void loop_project_main()
 		/* } */
 
 		switch (e.key.keysym.scancode) {
-		case SDL_SCANCODE_2: {
-		    break;
-		    Layout *lt = layout_add_child(main_win->layout);
-		    /* layout_set_default_dims(lt); */
-		    lt->w.type = SCALE;
-		    lt->h.type = SCALE;
-		    lt->w.value = 0.3;
-		    lt->h.value = 0.1;
-		    lt->x.type = SCALE;
-		    lt->y.type = SCALE;
-		    lt->x.value = 0.3;
-		    lt->y.value = 0.3;
-		    piano_init(&piano, lt);
+		/* case SDL_SCANCODE_2: { */
+		/*     break; */
+		/*     Layout *lt = layout_add_child(main_win->layout); */
+		/*     /\* layout_set_default_dims(lt); *\/ */
+		/*     lt->w.type = SCALE; */
+		/*     lt->h.type = SCALE; */
+		/*     lt->w.value = 0.3; */
+		/*     lt->h.value = 0.1; */
+		/*     lt->x.type = SCALE; */
+		/*     lt->y.type = SCALE; */
+		/*     lt->x.value = 0.3; */
+		/*     lt->y.value = 0.3; */
+		/*     piano_init(&piano, lt); */
 		    /* synth_save_preset(); */
 		/*     Timeline *tl = ACTIVE_TL; */
 		/*     Track *t = timeline_selected_track(tl); */
@@ -206,10 +206,10 @@ void loop_project_main()
 		/*     /\* api_node_serialize(f, &session->proj.timelines[0]->api_node); *\/ */
 		/*     /\* fclose(f); *\/ */
 
-		}
-		    break;
-		case SDL_SCANCODE_3: {
-		    break;
+		/* } */
+		/*     break; */
+		/* case SDL_SCANCODE_3: { */
+		/*     break; */
 		    /* synth_open_preset(); */
 		/*     Timeline *tl = ACTIVE_TL; */
 		/*     Track *t = timeline_selected_track(tl); */
@@ -219,17 +219,17 @@ void loop_project_main()
 		/*     /\* FILE *f = fopen("test_ser.txt", "r"); *\/ */
 		/*     /\* api_node_deserialize(f, &session->proj.timelines[0]->api_node); *\/ */
 		/*     /\* fclose(f); *\/ */
-		}
-		    break;
-		case SDL_SCANCODE_4:
-		    break;
-		    do_blep = !do_blep;
-		    if (do_blep) {
-			fprintf(stderr, "DOING BLEP!\n");
-		    } else {
-			fprintf(stderr, "No blep...\n");
-		    }
-		    break;
+		/* } */
+		/*     break; */
+		/* case SDL_SCANCODE_4: */
+		/*     break; */
+		/*     do_blep = !do_blep; */
+		/*     if (do_blep) { */
+		/* 	fprintf(stderr, "DOING BLEP!\n"); */
+		/*     } else { */
+		/* 	fprintf(stderr, "No blep...\n"); */
+		/*     } */
+		/*     break; */
 		/* case SDL_SCANCODE_5: { */
 		/*     breakfn(); */
 		/*     Timeline *tl = ACTIVE_TL; */
@@ -240,11 +240,11 @@ void loop_project_main()
 
 		/* } */
 		/*     break; */
-		case SDL_SCANCODE_5: {
-		    break;
-		    timeline_add_jlily();
-		}
-		    break;
+		/* case SDL_SCANCODE_5: { */
+		/*     break; */
+		/*     timeline_add_jlily(); */
+		/* } */
+		/*     break; */
 		/* case SDL_SCANCODE_6: { */
 		/*     Timeline *tl = ACTIVE_TL; */
 		/*     Track *track = timeline_selected_track(tl); */

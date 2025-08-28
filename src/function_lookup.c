@@ -51,6 +51,7 @@ static void add_fn_to_list(FnList *fnl, UserFn *fn)
 
 void fn_lookup_index_fn(UserFn *fn)
 {
+    if (is_null_userfn(fn)) return;
     char *to_free = strdup(fn->fn_display_name);
     char *word = to_free;
     char *cursor = word;
@@ -62,12 +63,10 @@ void fn_lookup_index_fn(UserFn *fn)
 	    void *obj = trie_lookup_word(&FN_TRIE, word);
 	    if (obj) {
 		FnList *fnl = (FnList *)obj;
-		/* fprintf(stderr, "ADDING WORD TO LIST: %s\n", word); */
 		add_fn_to_list(fnl, fn);
 	    } else {
 		FnList *fnl = create_fn_list();
 		add_fn_to_list(fnl, fn);
-		/* fprintf(stderr, "INSERTING WORD: %s\n", word); */
 		if (!trie_insert_word(&FN_TRIE, word, fnl)) {
 		    free(fnl->fns);
 		    free(fnl);
@@ -205,21 +204,26 @@ int fn_lookup_filter(void *current_item, void *x_arg)
 
 void function_lookup()
 {
-    Layout *ac_lt = layout_add_child(main_win->layout);
-    layout_set_default_dims(ac_lt);
-    ac_lt->h.value = 60.0;
-    layout_force_reset(ac_lt);
+    fprintf(stderr, "Do init???\n");
     if (!main_win->ac.outer_layout) {
+	Layout *ac_lt = layout_add_child(main_win->layout);
+	layout_set_default_dims(ac_lt);
+	ac_lt->h.value = 60.0;
+	layout_force_reset(ac_lt);
+	fprintf(stderr, "INITING\n");
 	autocompletion_init(
 	    &main_win->ac,
 	    ac_lt,
 	    update_records_fn,
 	    fn_lookup_filter);
+    } else {
+	layout_set_default_dims(main_win->ac.outer_layout);
+	layout_force_reset(main_win->ac.outer_layout);
+	layout_size_to_fit_children_v(main_win->ac.outer_layout, true, 20);
     }
     textentry_edit(main_win->ac.entry);
     window_push_mode(main_win, MODE_AUTOCOMPLETE_LIST);
     main_win->ac_active = true;
-
 }
 /* UserFn *fn_lookup_search_fn() */
 /* { */

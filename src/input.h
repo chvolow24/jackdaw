@@ -94,6 +94,7 @@ void input_quit();
 void input_create_function_reference();
 
 bool input_function_is_accessible(UserFn *fn, Window *win);
+bool is_null_userfn(UserFn *fn);
 
 #endif
 

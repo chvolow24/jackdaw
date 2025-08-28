@@ -352,5 +352,6 @@ void page_select_el_by_id(Page *page, const char *id);
 
 void page_el_reset(PageEl *el);
 void page_el_params_slider_from_ep(union page_el_params *p, Endpoint *ep);
+void page_center_contents(Page *page);
 
 #endif

@@ -307,14 +307,13 @@ Synth *synth_create(Track *track)
     /* s->base_oscs[0].fix_freq = true; */
     /* s->base_oscs[0].fixed_freq = 0.1; */
 
-    s->filter_active = true;
-    s->base_cutoff = 0.1f;
+    s->filter_active = false;
     s->base_cutoff_unscaled = 0.1f;
     s->base_cutoff = dsp_scale_freq(s->base_cutoff_unscaled);
-    s->pitch_amt = 3.0f;
+    s->pitch_amt = 2.0f;
     s->vel_amt = 0.75f;
     s->env_amt = 5.0f;
-    s->resonance = 3.0;
+    s->resonance = 2.0;
 
     double dc_block_coeff = exp(-1.0/(0.0025 * session_get_sample_rate()));
     double DC_BLOCK_A[] = {1.0, -1.0};
@@ -443,7 +442,7 @@ Synth *synth_create(Track *track)
 
     /* adsr_params_init(&s->amp_env); */
 
-    s->filter_active = true;
+    /* s->filter_active = true; */
     endpoint_init(
 	&s->filter_active_ep,
 	&s->filter_active,
@@ -453,7 +452,7 @@ Synth *synth_create(Track *track)
 	JDAW_THREAD_DSP,
 	page_el_gui_cb, NULL, NULL,
 	NULL, NULL, &s->filter_page, "filter_active_toggle");
-    endpoint_set_default_value(&s->filter_active_ep, (Value){.bool_v = true});
+    endpoint_set_default_value(&s->filter_active_ep, (Value){.bool_v = false});
     api_endpoint_register(&s->filter_active_ep, &s->filter_node);
 
 

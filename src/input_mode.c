@@ -1270,92 +1270,92 @@ static void mode_load_midi_qwerty()
     
     fn = create_user_fn(
 	"midi_qwerty_c1",
-	"midi_qwerty_c1",
+	"midi qwerty c1",
 	user_midi_qwerty_c1);
     mode_subcat_add_fn(sc, fn);
     fn = create_user_fn(
 	"midi_qwerty_cis1",
-	"midi_qwerty_cis1",
+	"midi qwerty cis1",
 	user_midi_qwerty_cis1);
     mode_subcat_add_fn(sc, fn);
     fn = create_user_fn(
 	"midi_qwerty_d1",
-	"midi_qwerty_d1",
+	"midi qwerty d1",
 	user_midi_qwerty_d1);
     mode_subcat_add_fn(sc, fn);
     fn = create_user_fn(
 	"midi_qwerty_dis",
-	"midi_qwerty_dis",
+	"midi qwerty dis",
 	user_midi_qwerty_dis);
     mode_subcat_add_fn(sc, fn);
     fn = create_user_fn(
 	"midi_qwerty_e",
-	"midi_qwerty_e",
+	"midi qwerty e",
 	user_midi_qwerty_e);
     mode_subcat_add_fn(sc, fn);
     fn = create_user_fn(
 	"midi_qwerty_f",
-	"midi_qwerty_f",
+	"midi qwerty f",
 	user_midi_qwerty_f);
     mode_subcat_add_fn(sc, fn);
     fn = create_user_fn(
 	"midi_qwerty_fis",
-	"midi_qwerty_fis",
+	"midi qwerty fis",
 	user_midi_qwerty_fis);
     mode_subcat_add_fn(sc, fn);
     fn = create_user_fn(
 	"midi_qwerty_g",
-	"midi_qwerty_g",
+	"midi qwerty g",
 	user_midi_qwerty_g);
     mode_subcat_add_fn(sc, fn);
     fn = create_user_fn(
 	"midi_qwerty_gis",
-	"midi_qwerty_gis",
+	"midi qwerty gis",
 	user_midi_qwerty_gis);
     mode_subcat_add_fn(sc, fn);
     fn = create_user_fn(
 	"midi_qwerty_a",
-	"midi_qwerty_a",
+	"midi qwerty a",
 	user_midi_qwerty_a);
     mode_subcat_add_fn(sc, fn);
     fn = create_user_fn(
 	"midi_qwerty_ais",
-	"midi_qwerty_ais",
+	"midi qwerty ais",
 	user_midi_qwerty_ais);
     mode_subcat_add_fn(sc, fn);
     fn = create_user_fn(
 	"midi_qwerty_b",
-	"midi_qwerty_b",
+	"midi qwerty b",
 	user_midi_qwerty_b);
     mode_subcat_add_fn(sc, fn);
     fn = create_user_fn(
 	"midi_qwerty_c2",
-	"midi_qwerty_c2",
+	"midi qwerty c2",
 	user_midi_qwerty_c2);
     mode_subcat_add_fn(sc, fn);
     fn = create_user_fn(
 	"midi_qwerty_cis2",
-	"midi_qwerty_cis2",
+	"midi qwerty cis2",
 	user_midi_qwerty_cis2);
     mode_subcat_add_fn(sc, fn);
     fn = create_user_fn(
 	"midi_qwerty_d2",
-	"midi_qwerty_d2",
+	"midi qwerty d2",
 	user_midi_qwerty_d2);
     mode_subcat_add_fn(sc, fn);
     fn = create_user_fn(
 	"midi_qwerty_dis2",
-	"midi_qwerty_dis2",
+	"midi qwerty dis2",
 	user_midi_qwerty_dis2);
     mode_subcat_add_fn(sc, fn);
     fn = create_user_fn(
 	"midi_qwerty_e2",
-	"midi_qwerty_e2",
+	"midi qwerty e2",
 	user_midi_qwerty_e2);
     mode_subcat_add_fn(sc, fn);
     fn = create_user_fn(
 	"midi_qwerty_f2",
-	"midi_qwerty_f2",
+	"midi qwerty f2",
 	user_midi_qwerty_f2);
     mode_subcat_add_fn(sc, fn);
 }

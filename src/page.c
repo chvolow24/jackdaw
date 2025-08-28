@@ -574,7 +574,6 @@ PageEl *page_add_el_custom_layout(
 	new_layout_name);
 }
 
-
 void page_reset(Page *page)
 {
     layout_force_reset(page->layout);
@@ -836,7 +835,8 @@ static void page_el_draw(PageEl *el)
 	txt_area_draw((TextArea *)el->component);
 	break;
     case EL_TEXTBOX:
-	layout_draw(main_win, el->layout);
+	textbox_draw((Textbox *)el->component);
+	/* layout_draw(main_win, el->layout); */
 	break;
     case EL_TEXTENTRY:
 	textentry_draw((TextEntry *)el->component);
@@ -917,7 +917,7 @@ void page_draw(Page *page)
     /* if (strcmp(page->title, "Oscillators") == 0) { */
     /* 	FILE *f = fopen("t.xml", "w"); */
 	
-    /* 	layout_draw(page->win, page->layout); */
+    /* layout_draw(page->win, page->layout); */
     /* 	layout_write(f, page->layout, 0); */
     /* 	exit(1); */
     /* } */
@@ -1378,6 +1378,29 @@ void page_el_params_slider_from_ep(union page_el_params *p, Endpoint *ep)
     p->slider_p.min = ep->min;
     p->slider_p.max = ep->max;
     p->slider_p.create_label_fn = ep->label_fn;
+}
+
+void page_center_contents(Page *page)
+{
+    /* Layout *inner = layout_add_child(page->layout); */
+    Layout *inner = layout_create();
+    inner->x.type = SCALE;
+    inner->y.type = SCALE;
+    inner->w.type = SCALE;
+    inner->h.type = SCALE;
+    inner->w.value = 1.0;
+    inner->h.value = 1.0;
+
+    layout_reparent_all(page->layout, inner);
+    layout_reparent(inner, page->layout);
+    /* layout_write(stderr, page->layout, 0); */
+    /* for (int i=0; i<page->layout->num_children; i++) { */
+    /* 	layout_reparent(page->layout->children[i], inner); */
+    /* } */
+
+    layout_size_to_fit_children(inner, false, 0);
+    layout_center_agnostic(inner, true, true);
+    layout_force_reset(inner);
 }
 
 

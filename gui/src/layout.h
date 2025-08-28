@@ -156,6 +156,7 @@ void layout_translate(Layout *lt, int translate_x, int translate_y, bool block_s
 void layout_resize(Layout *lt, int resize_w, int resize_h, bool block_snap);
 void layout_set_default_dims(Layout *lt);
 void layout_reparent(Layout *child, Layout *parent);
+void layout_reparent_all(Layout *old_parent, Layout *new_parent);
 // Layout *read_layout(FILE *f, long endrange);
 Layout *layout_copy(Layout *to_copy, Layout *parent);
 

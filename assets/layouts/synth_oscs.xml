@@ -5,40 +5,40 @@
   <h>SCALE 1.000000</h>
   <children>
     <Layout name="master_amp_label" type="NORMAL">
-      <x>REL 48</x>
-      <y>REL 26</y>
+      <x>REL 0</x>
+      <y>REL 0</y>
       <w>REL 30</w>
       <h>REL 23</h>
       <children>
       </children>
     </Layout>
     <Layout name="master_amp_slider" type="NORMAL">
-      <x>STACK 10</x>
-      <y>REL 26</y>
+      <x>STACK 18</x>
+      <y>REL 0</y>
       <w>REL 180</w>
       <h>REL 23</h>
       <children>
       </children>
     </Layout>
     <Layout name="master_pan_label" type="NORMAL">
-      <x>STACK 20</x>
-      <y>REL 26</y>
+      <x>STACK 23</x>
+      <y>REL 0</y>
       <w>REL 30</w>
       <h>REL 23</h>
       <children>
       </children>
     </Layout>
     <Layout name="master_pan_slider" type="NORMAL">
-      <x>STACK 10</x>
-      <y>REL 26</y>
+      <x>STACK 11</x>
+      <y>REL 0</y>
       <w>REL 180</w>
       <h>REL 23</h>
       <children>
       </children>
     </Layout>
     <Layout name="sync_phase_label" type="NORMAL">
-      <x>STACK 20</x>
-      <y>REL 26</y>
+      <x>STACK 14</x>
+      <y>REL 0</y>
       <w>REL 100</w>
       <h>REL 23</h>
       <children>
@@ -46,18 +46,20 @@
     </Layout>
     <Layout name="sync_phase_toggle" type="NORMAL">
       <x>STACK 10</x>
-      <y>REL 26</y>
+      <y>REL 0</y>
       <w>REL 23</w>
       <h>REL 23</h>
+      <children>
+      </children>
     </Layout>
     <Layout name="osc1_panel" type="NORMAL">
-      <x>REL 48</x>
-      <y>REL 65</y>
+      <x>REL 2</x>
+      <y>REL 38</y>
       <w>REL 349</w>
       <h>REL 220</h>
       <children>
         <Layout name="osc1_label" type="NORMAL">
-	  <x>SCALE 0.036232</x>
+          <x>SCALE 0.036232</x>
           <y>REL 11</y>
           <w>REL 35</w>
           <h>REL 21</h>
@@ -72,7 +74,7 @@
           <children>
           </children>
         </Layout>
-	<Layout name="1fix_label" type="NORMAL">
+        <Layout name="1fix_label" type="NORMAL">
           <x>STACK 18</x>
           <y>REL 11</y>
           <w>REL 30</w>
@@ -80,7 +82,7 @@
           <children>
           </children>
         </Layout>
-	<Layout name="1fix_freq" type="NORMAL">
+        <Layout name="1fix_freq" type="NORMAL">
           <x>STACK 10</x>
           <y>REL 13</y>
           <w>REL 18</w>
@@ -88,7 +90,7 @@
           <children>
           </children>
         </Layout>
-	<Layout name="1fixed_freq" type="NORMAL">
+        <Layout name="1fixed_freq" type="NORMAL">
           <x>STACK 10</x>
           <y>REL 11</y>
           <w>REL 52</w>
@@ -171,13 +173,13 @@
       </children>
     </Layout>
     <Layout name="osc2_panel" type="NORMAL">
-      <x>REL 415</x>
-      <y>REL 65</y>
+      <x>REL 372</x>
+      <y>REL 38</y>
       <w>REL 349</w>
       <h>REL 220</h>
       <children>
         <Layout name="osc2_label" type="NORMAL">
-	  <x>SCALE 0.036232</x>
+          <x>SCALE 0.036232</x>
           <y>REL 11</y>
           <w>REL 35</w>
           <h>REL 21</h>
@@ -192,7 +194,7 @@
           <children>
           </children>
         </Layout>
-	<Layout name="2fix_label" type="NORMAL">
+        <Layout name="2fix_label" type="NORMAL">
           <x>STACK 18</x>
           <y>REL 11</y>
           <w>REL 30</w>
@@ -200,7 +202,7 @@
           <children>
           </children>
         </Layout>
-	<Layout name="2fix_freq" type="NORMAL">
+        <Layout name="2fix_freq" type="NORMAL">
           <x>STACK 10</x>
           <y>REL 13</y>
           <w>REL 18</w>
@@ -208,7 +210,7 @@
           <children>
           </children>
         </Layout>
-	<Layout name="2fixed_freq" type="NORMAL">
+        <Layout name="2fixed_freq" type="NORMAL">
           <x>STACK 10</x>
           <y>REL 11</y>
           <w>REL 52</w>
@@ -291,13 +293,13 @@
       </children>
     </Layout>
     <Layout name="osc3_panel" type="NORMAL">
-      <x>REL 48</x>
-      <y>REL 300</y>
+      <x>REL 2</x>
+      <y>REL 273</y>
       <w>REL 349</w>
       <h>REL 220</h>
       <children>
         <Layout name="osc3_label" type="NORMAL">
-	  <x>SCALE 0.036232</x>
+          <x>SCALE 0.036232</x>
           <y>REL 11</y>
           <w>REL 35</w>
           <h>REL 21</h>
@@ -312,7 +314,7 @@
           <children>
           </children>
         </Layout>
-	<Layout name="3fix_label" type="NORMAL">
+        <Layout name="3fix_label" type="NORMAL">
           <x>STACK 18</x>
           <y>REL 11</y>
           <w>REL 30</w>
@@ -320,7 +322,7 @@
           <children>
           </children>
         </Layout>
-	<Layout name="3fix_freq" type="NORMAL">
+        <Layout name="3fix_freq" type="NORMAL">
           <x>STACK 10</x>
           <y>REL 13</y>
           <w>REL 18</w>
@@ -328,7 +330,7 @@
           <children>
           </children>
         </Layout>
-	<Layout name="3fixed_freq" type="NORMAL">
+        <Layout name="3fixed_freq" type="NORMAL">
           <x>STACK 10</x>
           <y>REL 11</y>
           <w>REL 52</w>
@@ -411,13 +413,13 @@
       </children>
     </Layout>
     <Layout name="osc4_panel" type="NORMAL">
-      <x>REL 415</x>
-      <y>REL 300</y>
+      <x>REL 372</x>
+      <y>REL 273</y>
       <w>REL 349</w>
       <h>REL 220</h>
       <children>
         <Layout name="osc4_label" type="NORMAL">
-	  <x>SCALE 0.036232</x>
+          <x>SCALE 0.036232</x>
           <y>REL 11</y>
           <w>REL 35</w>
           <h>REL 21</h>
@@ -432,7 +434,7 @@
           <children>
           </children>
         </Layout>
-	<Layout name="4fix_label" type="NORMAL">
+        <Layout name="4fix_label" type="NORMAL">
           <x>STACK 18</x>
           <y>REL 11</y>
           <w>REL 30</w>
@@ -440,7 +442,7 @@
           <children>
           </children>
         </Layout>
-	<Layout name="4fix_freq" type="NORMAL">
+        <Layout name="4fix_freq" type="NORMAL">
           <x>STACK 10</x>
           <y>REL 13</y>
           <w>REL 18</w>
@@ -448,7 +450,7 @@
           <children>
           </children>
         </Layout>
-	<Layout name="4fixed_freq" type="NORMAL">
+        <Layout name="4fixed_freq" type="NORMAL">
           <x>STACK 10</x>
           <y>REL 11</y>
           <w>REL 52</w>

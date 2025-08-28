@@ -479,7 +479,8 @@ static void add_osc_page(TabView *tv, Track *track)
 	page_add_el(page,EL_STATUS_LIGHT,p,name_buf, name_buf);
 	
     }
-    page_reset(page);	
+    page_reset(page);
+    page_center_contents(page);
 }
 
 static void add_amp_env_page(TabView *tv, Track *track)

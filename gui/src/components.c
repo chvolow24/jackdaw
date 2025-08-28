@@ -1206,15 +1206,14 @@ bool toggle_click(Toggle *toggle, Window *win)
 bool button_click(Button *button, Window *win)
 {
     if (SDL_PointInRect(&main_win->mousep, &button->tb->layout->rect)) {
-	if (button->action) {
-	    button->action((void *)button, button->target);
-	}
 	if (button->bound_userfn) {
 	    button_press_color_change(
 		button,
 		button->pressed_color,
 		button->return_color);
-
+	}
+	if (button->action) {
+	    button->action((void *)button, button->target);
 	}
 	return true;
     }

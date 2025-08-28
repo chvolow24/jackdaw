@@ -51,7 +51,7 @@ typedef enum wave_shape {
     NUM_WAVE_SHAPES
 } WaveShape;
 
-float WAV_TABLES[NUM_WAVE_SHAPES];
+/* float WAV_TABLES[NUM_WAVE_SHAPES]; */
 
 typedef struct osc Osc;
 typedef struct osc_cfg OscCfg;

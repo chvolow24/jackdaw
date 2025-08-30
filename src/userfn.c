@@ -13,6 +13,7 @@
 #include "session_endpoint_ops.h"
 #include "input.h"
 /* #include "loading */
+#include "jlily.h"
 #include "menu.h"
 #include "midi_file.h"
 #include "midi_qwerty.h"
@@ -2661,6 +2662,15 @@ void user_tl_delete_generic(void *nullarg)
 	}
     }
     tl->needs_redraw = true;
+}
+
+void user_tl_activate_mqwert(void *nullarg)
+{
+    mqwert_activate();
+}
+void user_tl_insert_jlily(void *nullarg)
+{
+    timeline_add_jlily();
 }
 
 /* source mode */

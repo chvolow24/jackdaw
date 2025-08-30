@@ -109,9 +109,7 @@ void handle_repeat(JLilyRepeatBlock *block)
 {
     int block_num_notes =  1 + block->last_note_index - block->first_note_index;
     double ts_add = block->ts_end - block->ts_start;
-    fprintf(stderr, "\t\tHANDLE REPEAT: %d times, irange %d-%d, num_notes : %d\n", block->repeat_n_times, block->first_note_index, block->last_note_index, block_num_notes);
     for (int i=1; i<block->repeat_n_times; i++) {
-	fprintf(stderr, "\t\t\tInsert %d notes; space remeaining? %d\n", block_num_notes, MAX_NOTES - state.num_notes);
 	if (block_num_notes + state.num_notes >= MAX_NOTES) {
 	    fprintf(stderr, "ERROR! Too many notes!\n");
 	    return;
@@ -171,19 +169,15 @@ static int handle_next_token(const char *text, int index, enum token_type type, 
 	if (strncmp(esc_word_buf, "repeat", 6) == 0) {
 	    state.repeat_block_index++;
 	    state.repeat_blocks[state.repeat_block_index].repeat_n_times = value;
-	    fprintf(stderr, "REPEAT!!!\n");
 	} else if (strncmp(esc_word_buf, "velocity", 8) == 0) {
 	    state.velocity = value > 127 ? 127 : value;
-	    fprintf(stderr, "VELOCITY!!! value %d\n", value);
 	}
     }
 	break;
     case JLILY_WHITESPACE:
 	if (!state.current_note->closed) {
-	    fprintf(stderr, "CLOSING note %ld\n", state.current_note - state.notes);
 	    if (state.current_note > state.notes && (state.current_note - 1)->tied) {
 		(state.current_note - 1)->dur += state.current_note->dur;
-		fprintf(stderr, "\t actually tied\n");
 		memset(state.current_note, '\0', sizeof(JLilyNote));
 		state.current_note--;
 		state.current_note->tied = false;
@@ -197,7 +191,6 @@ static int handle_next_token(const char *text, int index, enum token_type type, 
 	    state.current_note++;
 	}
 	state.num_notes++;
-	fprintf(stderr, "SETTING JLilyNote index %lu\n", state.current_note - state.notes);
 	state.current_note->name = text[index];
 	state.current_note->dur = state.current_dur_sframes;
 	int accidental = 0;

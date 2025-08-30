@@ -166,6 +166,7 @@
   - A-<del>	: tl_delete_timeline
   - C-e		: tl_write_mixdown_to_wav
   - S-w		: tl_write_mixdown_to_wav
+  - S-q		: tl_activate_qwerty_piano
 - source:
   - l		: source_play
   - k		: source_pause
@@ -279,3 +280,4 @@
   - [		: null
   - ]		: null
   - <esc>	: midi_qwerty_escape
+  - S-q		: midi_qwerty_escape

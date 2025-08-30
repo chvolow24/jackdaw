@@ -32,8 +32,13 @@
        e.g.        "c4 g8. g16 aes4 g r b c"
    - octave indicators
        e.g.        "c4 g8. g16 aes4 g r b c c,"
+   - repeats
+       e.g.        "\repeat 4 { c16, c' }"
+                    (repeat ^ times)
+   - nested repeats
+       e.g.        "\repeat 16 { \repeat 4 {c, c'} \repeat 4 {g, g'} }"
    - set velocity (JLILY ONLY, not standard lilypond)
-       e.g.        "!v=80 c4 g8. g16 aes4 g r !v=127 b c c,"
+       e.g.        "\velocity 100 c c e g \velocity 90 g e c"
 
 */
 
@@ -48,5 +53,7 @@ int jlily_string_to_mclip(
     double beat_dur_sframes_loc,
     int32_t pos_offset,
     MIDIClip *mclip);
+
+void timeline_add_jlily();
 
 #endif

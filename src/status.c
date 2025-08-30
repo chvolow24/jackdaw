@@ -125,12 +125,33 @@ static void status_set_dragstr(char *dragstr)
 {
     Session *session = session_get();
     strcpy(session->status_bar.dragstr, dragstr);
+    textbox_set_text_color(session->status_bar.dragstat, &colors.green);
+
     textbox_size_to_fit(session->status_bar.dragstat, 0, 0);
     layout_center_agnostic(session->status_bar.dragstat->layout, false, true);
     /* layout_center_agnostic(session->status_bar.dragstat->layout, false, true); */
     textbox_reset_full(session->status_bar.dragstat);
     layout_reset(session->status_bar.layout);
     /* fprintf(stdout, "w: %d\n", session->status_bar.dragstat->layout->rect.w); */
+}
+
+void status_set_alert_str(char *alert_str)
+{
+    Session *session = session_get();
+    if (!alert_str) {
+        session->status_bar.dragstat->layout->w.value = 0.0f;
+	layout_reset(session->status_bar.layout);
+	status_stat_drag();
+	return;
+    }
+    strcpy(session->status_bar.dragstr, alert_str);
+    textbox_set_text_color(session->status_bar.dragstat, &colors.alert_orange);
+    textbox_reset_full(session->status_bar.dragstat);
+    textbox_size_to_fit(session->status_bar.dragstat, 0, 0);
+    layout_center_agnostic(session->status_bar.dragstat->layout, false, true);
+    /* textbox_reset_full(session->status_bar.dragstat, 0, ); */
+    textbox_reset_full(session->status_bar.dragstat);
+    layout_reset(session->status_bar.layout);
 }
 
 

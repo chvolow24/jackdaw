@@ -66,7 +66,7 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
 	clock_gettime(CLOCK_MONOTONIC, &now);
 
 	/* TODO
-
+	   
 	   These latency estimates, used for latency compensation, are
 	   spurious. I can more precisely estimate latency if/when I switch
 	   from SDL to PortAudio (or a similar, more audio-focused library

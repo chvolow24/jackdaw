@@ -67,10 +67,10 @@ extern Project *proj;
 
 TabView *synth_tabview_create(Track *track);
 void user_global_quit(void *);
-void timeline_add_jlily();
-Piano piano = {0};
+/* void timeline_add_jlily(); */
+/* Piano piano = {0}; */
 
-extern bool do_blep;
+/* extern bool do_blep; */
 void loop_project_main()
 {
     Session *session = session_get();
@@ -184,10 +184,10 @@ void loop_project_main()
 		/* } */
 
 		switch (e.key.keysym.scancode) {
-		case SDL_SCANCODE_2:
-		    mqwert_activate();
+		/* case SDL_SCANCODE_2: */
+		/*     mqwert_activate(); */
 		/*     timeline_check_set_midi_monitoring(); */
-		    break;
+		    /* break; */
 		/* case SDL_SCANCODE_2: { */
 		/*     break; */
 		/*     Layout *lt = layout_add_child(main_win->layout); */
@@ -246,7 +246,7 @@ void loop_project_main()
 		/*     break; */
 		/* case SDL_SCANCODE_5: { */
 		/*     break; */
-		/*     timeline_add_jlily(); */
+		    /* timeline_add_jlily(); */
 		/* } */
 		/*     break; */
 		/* case SDL_SCANCODE_6: { */

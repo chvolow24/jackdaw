@@ -780,12 +780,6 @@ static void mode_load_timeline()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
-	"tl_track_set_midi_out",
-	"Set track MIDI out",
-	user_tl_track_set_midi_out);
-    mode_subcat_add_fn(sc, fn);
-
-    fn = create_user_fn(
 	"tl_track_show_hide_automations",
 	"Show or hide all track automations",
 	user_tl_track_show_hide_automations);
@@ -944,6 +938,26 @@ static void mode_load_timeline()
 	"Write mixdown to .wav file",
 	user_tl_write_mixdown_to_wav);
     mode_subcat_add_fn(sc, fn);
+
+    
+    sc = mode_add_subcat(mode, "MIDI I/O");
+    fn = create_user_fn(
+	"tl_track_set_midi_out",
+	"Set track MIDI out",
+	user_tl_track_set_midi_out);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_activate_qwerty_piano",
+	"Activate QWERTY piano",
+	user_tl_activate_mqwert);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"tl_insert_jlily",
+	"Insert Jlily (LilyPond) notes",
+	user_tl_insert_jlily);
+    mode_subcat_add_fn(sc, fn);
+
 
     /* fn = create_user_fn( */
     /* 	"tl_cliprefs_destroy", */
@@ -1119,6 +1133,7 @@ static void mode_load_text_edit()
 	"Select all",
 	user_text_edit_select_all);
     mode_subcat_add_fn(sc, fn);
+
 }
 
 

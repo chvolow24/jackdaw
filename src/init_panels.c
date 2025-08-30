@@ -747,7 +747,7 @@ PageEl *page_add_keybutton(
     p.button_p.win = main_win;
     p.button_p.action = NULL;
     p.button_p.target = NULL;
-    p.button_p.text_color = &colors.white;
+    p.button_p.text_color = &colors.light_grey;
     PageEl *el = page_add_el(
 	page,
 	EL_BUTTON,
@@ -761,7 +761,7 @@ PageEl *page_add_keybutton(
     /* layout_set_values_from_rect(tb->layout); */
     /* layout_reset(tb->layout); */
     /* layout_center_scale(tb->layout, true, true); */
-    textbox_set_border(tb, &colors.white, 3);
+    textbox_set_border(tb, &colors.light_grey, 3);
     tb->corner_radius = 4;
     layout_center_agnostic(lt, false, true);
     layout_force_reset(parent);

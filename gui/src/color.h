@@ -36,6 +36,7 @@ struct colors {
     SDL_Color cerulean;
     SDL_Color cerulean_pale;
     SDL_Color dark_brown;
+    SDL_Color alert_orange;
 
 
     SDL_Color dropdown_green;

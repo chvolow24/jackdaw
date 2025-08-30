@@ -1,8 +1,8 @@
 <Layout name="qwerty_panel" type="NORMAL">
   <x>REL 0</x>
   <y>REL 0</y>
-  <w>REL 440</w>
-  <h>REL 148</h>
+  <w>ABS 440</w>
+  <h>ABS 148</h>
   <children>
     <Layout name="piano" type="NORMAL">
       <x>REVREL 5</x>
@@ -15,13 +15,13 @@
     <Layout name="active_label" type="NORMAL">
       <x>REL 8</x>
       <y>REL 7</y>
-      <w>REL 52</w>
+      <w>REL 47</w>
       <h>REL 18</h>
       <children>
       </children>
     </Layout>
     <Layout name="active_toggle" type="NORMAL">
-      <x>REL 66</x>
+      <x>REL 61</x>
       <y>REL 7</y>
       <w>REL 18</w>
       <h>REL 18</h>
@@ -46,9 +46,9 @@
     </Layout>
     <Layout name="monitor_device_label" type="NORMAL">
       <x>REL 8</x>
-      <y>REL 31</y>
+      <y>REL 30</y>
       <w>REL 87</w>
-      <h>REL 17</h>
+      <h>REL 13</h>
       <children>
       </children>
     </Layout>

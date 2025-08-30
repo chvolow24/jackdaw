@@ -1633,19 +1633,28 @@ bool timeline_check_set_midi_monitoring()
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     Track *track = timeline_selected_track(tl);
-    if (track && /*track->input_type == MIDI_DEVICE && */ track->midi_out && track->midi_out_type == MIDI_OUT_SYNTH) {
-	session->midi_io.monitor_synth = track->midi_out;
-	if (session->midi_qwerty) {
-	    session->midi_io.monitor_device = session->midi_io.midi_qwerty;
+    if (track) {
+	if (track->midi_out && track->midi_out_type == MIDI_OUT_SYNTH) {
 	    char out_device_name[MAX_NAMELENGTH];
 	    /* TODO: use actual device names, not literal 'synth' */
 	    snprintf(out_device_name, MAX_NAMELENGTH, "%s:%s", track->name, "synth");
 	    mqwert_set_monitor_device_name(out_device_name);
+
+	} else {
+	    mqwert_set_monitor_device_name("(none)");
+	}
+    }
+
+    if (track && /*track->input_type == MIDI_DEVICE && */ track->midi_out && track->midi_out_type == MIDI_OUT_SYNTH) {
+	session->midi_io.monitor_synth = track->midi_out;
+	if (session->midi_qwerty) {
+	    session->midi_io.monitor_device = session->midi_io.midi_qwerty;
 	} else if (track->input_type == MIDI_DEVICE) {
 	    session->midi_io.monitor_device = track->input;
 	} else {
 	    goto no_monitor;
 	}
+
 	MIDIDevice *d = session->midi_io.monitor_device;
 
 	/* Clear notes in system device buffer */

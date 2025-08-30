@@ -30,7 +30,6 @@
 
 extern Window *main_win;
 extern struct colors colors;
-extern Piano piano;
 
 /******************** DARKER ********************/
 /* SDL_Color track_bckgrnd = {90, 100, 110, 255}; */
@@ -691,7 +690,7 @@ void project_draw()
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
     SDL_RenderFillRect(main_win->rend, &session->status_bar.layout->rect);
     textbox_draw(session->status_bar.error);
-    if (session->dragging) {
+    if (session->dragging || session->midi_qwerty) {
 	textbox_draw(session->status_bar.dragstat);
     }
     textbox_draw(session->status_bar.call);
@@ -761,11 +760,6 @@ void project_draw()
 	
     /* } */
     /* draw_i++ ; */
-
-    
-    if (piano.container) {
-	piano_draw(&piano);
-    }
 
     window_end_draw(main_win);
 }

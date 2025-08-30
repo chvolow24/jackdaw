@@ -154,6 +154,9 @@ void user_tl_delete_timeline(void *nullarg);
 
 void user_tl_write_mixdown_to_wav(void *nullarg);
 
+void user_tl_activate_mqwert(void *nullarg);
+void user_tl_insert_jlily(void *nullarg);
+
 void user_source_play(void *nullarg);
 void user_source_pause(void *nullarg);
 void user_source_rewind(void *nullarg);

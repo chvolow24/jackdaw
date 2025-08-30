@@ -14,6 +14,7 @@
 #include "midi_io.h"
 #include "porttime.h"
 #include "session.h"
+#include "status.h"
 
 #define VELOCITY_INCR_AMT 9
 
@@ -130,12 +131,14 @@ void mqwert_activate()
 	mqwert_deactivate();
 	return;
     }
+    status_set_alert_str("QWERTY Piano active; ESC to exit");
     panel_page_refocus(session->gui.panels, "QWERTY piano", 1);
     ACTIVE_TL->needs_redraw = true;
 }
 
 void mqwert_deactivate()
 {
+    status_set_alert_str(NULL);
     state.active = false;
     if (TOP_MODE != MODE_MIDI_QWERTY) {
 	fprintf(stderr, "Error: call to mqwert_deactivate, top mode not MIDI_QWERTY\n");
@@ -261,7 +264,9 @@ char *mqwert_get_velocity_str()
 
 void mqwert_set_monitor_device_name(const char *device_name)
 {
-    memcpy(state.monitor_device_name, device_name, MAX_NAMELENGTH);
+    int cpy_len = strlen(device_name) + 1;
+    if (cpy_len > MAX_NAMELENGTH) cpy_len = MAX_NAMELENGTH;
+    memcpy(state.monitor_device_name, device_name, cpy_len);
     fprintf(stderr, "NAME: %s\n", device_name);
 }
 

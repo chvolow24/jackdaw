@@ -22,6 +22,7 @@ const struct colors colors = {
     .cerulean = {100, 190, 255, 255},
     .cerulean_pale = {100, 190, 255, 100},
     .dark_brown = {20, 20, 0, 255},
+    .alert_orange = {255, 99, 0, 255},
     .dropdown_green = {20, 100, 40, 255},
     .x_red = {200, 0, 0, 255},
     .min_yellow = {200, 90, 0, 255},

@@ -745,8 +745,8 @@ PageEl *page_add_keybutton(
     p.button_p.background_color = NULL;
     p.button_p.set_str = (char *)set_str;
     p.button_p.win = main_win;
-    p.button_p.action = NULL;
-    p.button_p.target = NULL;
+    p.button_p.action = action;
+    p.button_p.target = target;
     p.button_p.text_color = &colors.light_grey;
     PageEl *el = page_add_el(
 	page,
@@ -768,6 +768,41 @@ PageEl *page_add_keybutton(
     textbox_reset_full(tb);
     return el;
 }
+
+int octave_down_componentfn(void *nullarg, void *nullarg2)
+{
+    mqwert_octave(-1);
+    return 0;
+}
+int octave_up_componentfn(void *nullarg, void *nullarg2)
+{
+    mqwert_octave(1);
+    return 0;
+}
+
+int velocity_down_componentfn(void *nullarg, void *nullarg2)
+{
+    mqwert_velocity(-1);
+    return 0;
+}
+int velocity_up_componentfn(void *nullarg, void *nullarg2)
+{
+    mqwert_velocity(1);
+    return 0;
+}
+
+int transpose_down_componentfn(void *nullarg, void *nullarg2)
+{
+    mqwert_transpose(-1);
+    return 0;
+}
+int transpose_up_componentfn(void *nullarg, void *nullarg2)
+{
+    mqwert_transpose(1);
+    return 0;
+}
+
+
 
 static void session_init_qwerty_piano(Page *page, Session *session)
 {
@@ -861,7 +896,7 @@ static void session_init_qwerty_piano(Page *page, Session *session)
 	page,
 	"Z↓",
 	"octave_down",
-	NULL,
+	octave_down_componentfn,
 	NULL,
 	"ctrls",
 	true,
@@ -879,7 +914,7 @@ static void session_init_qwerty_piano(Page *page, Session *session)
 	page,
 	"X↑",
 	"octave_up",
-	NULL,
+	octave_up_componentfn,
 	NULL,
 	"ctrls",
 	true,
@@ -919,7 +954,7 @@ static void session_init_qwerty_piano(Page *page, Session *session)
 	page,
 	"C↓",
 	"velocity_down",
-	NULL,
+	velocity_down_componentfn,
 	NULL,
 	"ctrls",
 	false,
@@ -937,7 +972,7 @@ static void session_init_qwerty_piano(Page *page, Session *session)
 	page,
 	"V↑",
 	"velocity_up",
-	NULL,
+	velocity_up_componentfn,
 	NULL,
 	"ctrls",
 	true,
@@ -978,8 +1013,8 @@ static void session_init_qwerty_piano(Page *page, Session *session)
     el = page_add_keybutton(
 	page,
 	",↓",
-	"tranpose_down",
-	NULL,
+	"transpose_down",
+	transpose_down_componentfn,
 	NULL,
 	"ctrls",
 	false,
@@ -997,7 +1032,7 @@ static void session_init_qwerty_piano(Page *page, Session *session)
 	page,
 	".↑",
 	"transpose_up",
-	NULL,
+	transpose_up_componentfn,
 	NULL,
 	"ctrls",
 	true,

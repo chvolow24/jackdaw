@@ -92,6 +92,7 @@ struct midi_io {
 
     /* Synth *synths[MAX_SYNTHS]; */
     /* uint8_t num_synths; */
+    MIDIDevice *midi_qwerty;
 
     Synth *monitor_synth;
     MIDIDevice *monitor_device;

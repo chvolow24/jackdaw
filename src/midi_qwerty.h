@@ -22,6 +22,9 @@
 #include <stdbool.h>
 #include "midi_io.h"
 
+typedef struct endpoint Endpoint;
+
+void mqwert_init(void);
 void mqwert_octave(int incr);
 void mqwert_transpose(int incr);
 void mqwert_velocity(int incr);
@@ -34,9 +37,13 @@ void mqwert_deactivate();
 char *mqwert_get_octave_str();
 char *mqwert_get_transpose_str();
 char *mqwert_get_velocity_str();
-
+char *mqwert_get_monitor_device_str();
+Endpoint *mqwert_get_active_ep();
 
 uint8_t mqwert_get_key_state(char key);
+
+void mqwert_set_monitor_device_name(const char *device_name);
+
 
 
 #endif

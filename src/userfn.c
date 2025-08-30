@@ -104,7 +104,9 @@ void user_tl_activate_source_mode(void *nullarg);
 void user_global_escape(void *nullarg)
 {
     Session *session = session_get();
-    if (session->source_mode.source_mode) {
+    if (session->playback.recording) {
+	transport_stop_recording();
+    } else if (session->source_mode.source_mode) {
 	user_tl_activate_source_mode(NULL);
     } else if (main_win->num_modes > 1) {
 	window_pop_mode(main_win);

@@ -1,7 +1,7 @@
 <Layout name="qwerty_panel" type="NORMAL">
   <x>REL 0</x>
   <y>REL 0</y>
-  <w>REL 397</w>
+  <w>REL 440</w>
   <h>REL 148</h>
   <children>
     <Layout name="piano" type="NORMAL">
@@ -13,8 +13,8 @@
       </children>
     </Layout>
     <Layout name="active_label" type="NORMAL">
-      <x>REL 7</x>
-      <y>REL 28</y>
+      <x>REL 8</x>
+      <y>REL 7</y>
       <w>REL 52</w>
       <h>REL 18</h>
       <children>
@@ -22,40 +22,40 @@
     </Layout>
     <Layout name="active_toggle" type="NORMAL">
       <x>REL 66</x>
-      <y>REL 28</y>
+      <y>REL 7</y>
       <w>REL 18</w>
       <h>REL 18</h>
       <children>
       </children>
     </Layout>
     <Layout name="ctrl_labels" type="NORMAL">
-      <x>REL 91</x>
+      <x>REL 102</x>
       <y>REL 66</y>
-      <w>REL 301</w>
+      <w>REL 297</w>
       <h>REL 22</h>
       <children>
       </children>
     </Layout>
     <Layout name="ctrls" type="NORMAL">
-      <x>REL 91</x>
+      <x>REL 102</x>
       <y>STACK 0</y>
-      <w>REL 301</w>
+      <w>REL 297</w>
       <h>REL 21</h>
       <children>
       </children>
     </Layout>
-    <Layout name="monitoring_label" type="NORMAL">
+    <Layout name="monitor_device_label" type="NORMAL">
       <x>REL 8</x>
-      <y>REL 59</y>
-      <w>REL 51</w>
-      <h>REL 18</h>
+      <y>REL 31</y>
+      <w>REL 87</w>
+      <h>REL 17</h>
       <children>
       </children>
     </Layout>
-    <Layout name="monitoring_status_light" type="NORMAL">
-      <x>REL 66</x>
-      <y>REL 59</y>
-      <w>REL 18</w>
+    <Layout name="monitor_device_name" type="NORMAL">
+      <x>REL 8</x>
+      <y>REL 48</y>
+      <w>REL 80</w>
       <h>REL 18</h>
       <children>
       </children>

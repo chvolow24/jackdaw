@@ -181,8 +181,11 @@ void session_populate_midi_device_lists(Session *session)
 	    MIDIDevice *device = devices + i;
 	    if (device->input) {
 		session->midi_io.inputs[session->midi_io.num_inputs] = *device;
-		if (device->type == MIDI_DEVICE_PM)
+		if (device->type == MIDI_DEVICE_PM) {
 		    midi_device_open(session->midi_io.inputs + session->midi_io.num_inputs);
+		} else if (device->type == MIDI_DEVICE_QWERTY) {
+		    session->midi_io.midi_qwerty = session->midi_io.inputs + session->midi_io.num_inputs;
+		}
 		session->midi_io.num_inputs++;
 	    } else {
 		session->midi_io.outputs[session->midi_io.num_outputs] = *device;

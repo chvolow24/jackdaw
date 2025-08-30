@@ -184,6 +184,10 @@ void loop_project_main()
 		/* } */
 
 		switch (e.key.keysym.scancode) {
+		case SDL_SCANCODE_2:
+		    mqwert_activate();
+		/*     timeline_check_set_midi_monitoring(); */
+		    break;
 		/* case SDL_SCANCODE_2: { */
 		/*     break; */
 		/*     Layout *lt = layout_add_child(main_win->layout); */
@@ -485,9 +489,10 @@ void loop_project_main()
 		}
 	    escaped_text_edit:
 		switch(TOP_MODE) {
+		case MODE_MIDI_QWERTY:
 		case MODE_TIMELINE:
 		    /* if (!mouse_triage_click_page() && !mouse_triage_click_tabview()) */
-			mouse_triage_click_project(e.button.button);
+		    mouse_triage_click_project(e.button.button);
 		    break;
 		case MODE_MENU_NAV:
 		    mouse_triage_click_menu(e.button.button);

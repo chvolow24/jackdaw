@@ -34,6 +34,7 @@
 #include "input.h"
 #include "midi_io.h"
 #include "midi_file.h"
+#include "midi_qwerty.h"
 #include "project.h"
 #include "pure_data.h"
 #include "session.h"
@@ -107,6 +108,7 @@ static void init()
     input_init_hash_table();
     input_init_mode_load_all();
     input_load_keybinding_config(DEFAULT_KEYBIND_CFG_PATH);
+    mqwert_init();
     pd_jackdaw_shm_init();
     char *realpath_ret;
     if (!(realpath_ret = realpath(".", NULL))) {

@@ -30,6 +30,7 @@
 #include "menu.h"
 #include "midi_io.h"
 #include "midi_objs.h"
+#include "midi_qwerty.h"
 #include "project.h"
 #include "session.h"
 #include "status.h"
@@ -566,6 +567,14 @@ Track *timeline_selected_track(Timeline *tl)
     } else {
 	return tl->tracks[tl->track_selector];
     }
+}
+
+void timeline_select_track(Track *track)
+{
+    Timeline *tl = track->tl;
+    tl->track_selector = track->tl_rank;
+    tl->layout_selector = track->layout->index;
+    tl->needs_redraw = true;
 }
 
 ClickTrack *timeline_selected_click_track(Timeline *tl)
@@ -1619,14 +1628,24 @@ void track_set_input(Track *track)
 }
 
 /* Use on the selected track to set session monitoring info */
-void timeline_check_set_midi_monitoring()
+bool timeline_check_set_midi_monitoring()
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     Track *track = timeline_selected_track(tl);
-    if (track && track->input_type == MIDI_DEVICE && track->midi_out && track->midi_out_type == MIDI_OUT_SYNTH) {
+    if (track && /*track->input_type == MIDI_DEVICE && */ track->midi_out && track->midi_out_type == MIDI_OUT_SYNTH) {
 	session->midi_io.monitor_synth = track->midi_out;
-	session->midi_io.monitor_device = track->input;
+	if (session->midi_qwerty) {
+	    session->midi_io.monitor_device = session->midi_io.midi_qwerty;
+	    char out_device_name[MAX_NAMELENGTH];
+	    /* TODO: use actual device names, not literal 'synth' */
+	    snprintf(out_device_name, MAX_NAMELENGTH, "%s:%s", track->name, "synth");
+	    mqwert_set_monitor_device_name(out_device_name);
+	} else if (track->input_type == MIDI_DEVICE) {
+	    session->midi_io.monitor_device = track->input;
+	} else {
+	    goto no_monitor;
+	}
 	MIDIDevice *d = session->midi_io.monitor_device;
 
 	/* Clear notes in system device buffer */
@@ -1635,12 +1654,13 @@ void timeline_check_set_midi_monitoring()
 
 	/* Clear notes in synth if present */
 	Synth *synth = session->midi_io.monitor_synth;
-	synth_close_all_notes(synth);
-	
+	synth_close_all_notes(synth);	
 	api_node_set_owner(&track->synth->api_node, JDAW_THREAD_PLAYBACK);
 	audioconn_start_playback(session->audio_io.playback_conn);
 	fprintf(stderr, "monitoring!!\n");
+	return true;
     } else {
+    no_monitor:
 	session->midi_io.monitor_synth = NULL;
 	session->midi_io.monitor_device = NULL;
 	/* Only close output audio device if project is not playing from timeline */
@@ -1651,6 +1671,7 @@ void timeline_check_set_midi_monitoring()
 	    api_node_set_owner(&track->synth->api_node, JDAW_THREAD_DSP);
 	}
 	fprintf(stderr, "NO Monitor\n");
+	return false;
     }
 }
 

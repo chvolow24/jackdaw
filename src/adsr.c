@@ -207,7 +207,6 @@ void adsr_set_params(
     }
 }
 
-
 void adsr_init(ADSRState *s, int32_t after)
 {
     /* fprintf(stderr, "\n\n\nNOTE INIT %p\n", s); */

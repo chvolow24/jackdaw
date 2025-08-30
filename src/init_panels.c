@@ -17,6 +17,7 @@
 #include "midi_qwerty.h"
 #include "panel.h"
 #include "session.h"
+#include "textbox.h"
 #include "timeview.h"
 #include "waveform.h"
 #include "userfn.h"
@@ -1031,6 +1032,48 @@ static void session_init_qwerty_piano(Page *page, Session *session)
     /* textbox_size_to_fit(tb, 4, 4); */
     layout_center_agnostic(tb->layout, false, true);
     layout_reset(tb->layout);
+
+
+    p.textbox_p.font = main_win->std_font;
+    p.textbox_p.text_size = 12;
+    p.textbox_p.set_str = "Active:";
+    p.textbox_p.win = main_win;
+    el = page_add_el(
+	page,
+	EL_TEXTBOX,
+	p,
+	"",
+	"active_label");
+
+    p.textbox_p.set_str = "Instrument:";
+    page_add_el(
+	page,
+	EL_TEXTBOX,
+	p,
+	"",
+        "monitor_device_label");
+
+    p.textbox_p.set_str = mqwert_get_monitor_device_str();
+    p.textbox_p.font = main_win->mono_font;
+    el = page_add_el(
+	page,
+	EL_TEXTBOX,
+	p,
+	"",
+	"monitor_device_name");
+    tb = el->component;
+    tb->live = true;
+    /* textbox_set_text_color(tb, &colors.amber); */
+    textbox_set_align(tb, CENTER);
+    textbox_set_border(tb, &colors.dark_grey, 1);
+    textbox_set_pad(tb, 1, 2);
+    tb->corner_radius = 2;
+    textbox_set_trunc(tb, true);
+    textbox_reset_full(tb);
+
+    p.toggle_p.ep = mqwert_get_active_ep();
+
+    page_add_el(page,EL_TOGGLE,p,"","active_toggle");
 
 
 

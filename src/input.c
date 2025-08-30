@@ -599,6 +599,7 @@ void input_load_keybinding_config(const char *filepath)
     }
 }
 #define MAX_KEYB_BLOCKS 64
+
 bool input_function_is_accessible(UserFn *fn, Window *win)
 {
     InputMode keyb_blocks[MAX_KEYB_BLOCKS];
@@ -623,7 +624,8 @@ bool input_function_is_accessible(UserFn *fn, Window *win)
 	    kn = kn->next;
 	}
     }
-    for (int i=win->num_modes-1; i>=-1; i--) {
+    /* Don't check AUTOCOMPLETE LIST, hence -2 not -1 */
+    for (int i=win->num_modes-2; i>=-1; i--) {
 	InputMode im;
 	if (i == -1) im = MODE_GLOBAL;
 	else im = win->modes[i];

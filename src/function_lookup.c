@@ -46,6 +46,10 @@ static void add_fn_to_list(FnList *fnl, UserFn *fn)
     }
     fnl->fns[fnl->num_fns] = fn;
     fnl->num_fns++;
+    /* fprintf(stderr, "List len %d\n", fnl->num_fns); */
+    /* for (int i=0; i<fnl->num_fns; i++) { */
+    /* 	fprintf(stderr, "\t%d: %s\n", i, fnl->fns[i]->fn_display_name); */
+    /* } */
 }
 
 
@@ -53,6 +57,7 @@ void fn_lookup_index_fn(UserFn *fn)
 {
     if (is_null_userfn(fn)) return;
     char *to_free = strdup(fn->fn_display_name);
+    /* fprintf(stderr, "Indexfn: %s\n", to_free); */
     char *word = to_free;
     char *cursor = word;
     char c;
@@ -67,6 +72,7 @@ void fn_lookup_index_fn(UserFn *fn)
 	    } else {
 		FnList *fnl = create_fn_list();
 		add_fn_to_list(fnl, fn);
+		/* fprintf(stderr, "\tADD Word: %s\n", word); */
 		if (!trie_insert_word(&FN_TRIE, word, fnl)) {
 		    free(fnl->fns);
 		    free(fnl);
@@ -136,7 +142,6 @@ static int update_records_fn(AutoCompletion *ac, struct autocompletion_item **it
 		    items_loc[num_fns] = item;
 		    /* fnlist[num_fns] = fnl->fns[i]; */
 		    num_fns++;
-		    /* fprintf(stderr, "FN: %s\n", fnl->fns[i]->fn_display_name); */
 		}
 
 	    }
@@ -204,13 +209,11 @@ int fn_lookup_filter(void *current_item, void *x_arg)
 
 void function_lookup()
 {
-    fprintf(stderr, "Do init???\n");
     if (!main_win->ac.outer_layout) {
 	Layout *ac_lt = layout_add_child(main_win->layout);
 	layout_set_default_dims(ac_lt);
 	ac_lt->h.value = 60.0;
 	layout_force_reset(ac_lt);
-	fprintf(stderr, "INITING\n");
 	autocompletion_init(
 	    &main_win->ac,
 	    ac_lt,

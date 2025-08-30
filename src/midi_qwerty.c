@@ -10,6 +10,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "endpoint.h"
 #include "midi_io.h"
 #include "porttime.h"
 #include "session.h"
@@ -19,6 +20,7 @@
 extern Window *main_win;
 
 struct mqwert_state {
+    bool active;
     int octave;
     int transpose;
     int velocity;
@@ -28,12 +30,38 @@ struct mqwert_state {
     char octave_str[3];
     char transpose_str[4];
     char velocity_str[4];
-    
+    char monitor_device_name[MAX_NAMELENGTH];
+    Endpoint active_ep;
 };
 
 static struct mqwert_state state = {
-    0, 0, 100, false, {0}, {0}, "+0", "+0", "100"
+    false, 0, 0, 100, false, {0}, {0}, "+0", "+0", "100", "(none)", {0}
 };
+
+void mqwert_activate();
+void mqwert_deactivate();
+
+void mqwert_active_cb(Endpoint *ep)
+{
+    if (ep->current_write_val.bool_v) {
+	mqwert_activate();
+    } else {
+	mqwert_deactivate();
+    }
+}
+
+void mqwert_init()
+{
+    endpoint_init(
+	&state.active_ep,
+	&state.active,
+	JDAW_BOOL,
+	"",
+	"",
+	JDAW_THREAD_MAIN,
+	NULL, mqwert_active_cb, NULL,
+	NULL, NULL, NULL, NULL);
+}
 
 static int raw_note_from_key(char key)
 {
@@ -91,21 +119,28 @@ static int note_transpose(int note_raw)
 
 void mqwert_activate()
 {
+    state.active = true;
     Session *session = session_get();
     if (session->midi_qwerty) return; /* already activated */
     window_push_mode(main_win, MODE_MIDI_QWERTY);
     session->midi_qwerty = true;
-    snprintf(state.octave_str, 3, "%s%d", state.octave >= 0 ? "+" : "-", state.octave);
+    snprintf(state.octave_str, 3, "%s%d", state.octave >= 0 ? "+" : "", state.octave);
+    if (!timeline_check_set_midi_monitoring()) {
+	status_set_errstr("Error: no instrument is active. Add synth to selected track with S-s");
+	mqwert_deactivate();
+	return;
+    }
+    panel_page_refocus(session->gui.panels, "QWERTY piano", 1);
+    ACTIVE_TL->needs_redraw = true;
 }
 
 void mqwert_deactivate()
 {
-    fprintf(stderr, "TOP MODE? %s\n", input_mode_str(TOP_MODE));
+    state.active = false;
     if (TOP_MODE != MODE_MIDI_QWERTY) {
 	fprintf(stderr, "Error: call to mqwert_deactivate, top mode not MIDI_QWERTY\n");
     } else {
 	window_pop_mode(main_win);
-	fprintf(stderr, "After pop TOP MODE? %s\n", input_mode_str(TOP_MODE));
     }
     Session *session = session_get();
     session->midi_qwerty = false;
@@ -224,3 +259,18 @@ char *mqwert_get_velocity_str()
     return state.velocity_str;
 }
 
+void mqwert_set_monitor_device_name(const char *device_name)
+{
+    memcpy(state.monitor_device_name, device_name, MAX_NAMELENGTH);
+    fprintf(stderr, "NAME: %s\n", device_name);
+}
+
+char *mqwert_get_monitor_device_str()
+{
+    return state.monitor_device_name;
+}
+
+Endpoint *mqwert_get_active_ep()
+{
+    return &state.active_ep;
+}

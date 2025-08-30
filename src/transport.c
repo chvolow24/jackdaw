@@ -73,7 +73,8 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
 	   that can report on ADC and DAC time in a callback).
 
 	*/
-	double est_latency_mult = 60.0f;
+	/* double est_latency_mult = 60.0f; */
+	double est_latency_mult = 0.0f;
 	double record_latency_ms = (double)1000.0f * 64.0 / proj->sample_rate;
 	double playback_latency_ms = est_latency_mult * record_latency_ms;
 
@@ -153,6 +154,7 @@ static inline float clip(float f)
     return f;
 }
 
+/* int DEBUG_MOD = 0; */
 void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 {
     Session *session = session_get();
@@ -207,9 +209,16 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     /* Check for monitor synth */
     MIDIDevice *d = session->midi_io.monitor_device;
     Synth *s = session->midi_io.monitor_synth;
+    /* fprintf(stderr, "d & s: %p %p\n", d, s); */
     if (d && s) {
 	midi_device_read(d);
 	synth_feed_midi(s, d->buffer, d->num_unconsumed_events, 0, true);
+	/* if (DEBUG_MOD > 500) { */
+	/*     fprintf(stderr, "Device %p (%s) current clip: %p\n", d, d->name, d->current_clip); */
+	/*     DEBUG_MOD=0;	     */
+	/* } */
+	/* DEBUG_MOD++; */
+	/* exit(1); */
 	if (d->current_clip && d->current_clip->recording) {
 	    midi_device_output_chunk_to_clip(d, 1);
 	    d->current_clip->len_sframes += len_sframes;
@@ -597,6 +606,8 @@ void transport_start_recording()
 		mdevice->record_start = Pt_Time();
 		fprintf(stderr, "Setting record start? %d\n", mdevice->record_start);
 		mclip->recording = true;
+		fprintf(stderr, "TRACK INPUT: %p (%s)\n", track->input, mdevice->name);
+		fprintf(stderr, "SETTING CLIP %p recording true\n", mclip);
 		/* mclilen_sframesp-> */
 		mdevice->current_clip = mclip;
 		/* conn->current_clip_repositioned = false; */
@@ -643,6 +654,7 @@ void transport_start_recording()
 	    MIDIClip *mclip = midi_clip_create(mdevice, track);
 	    mclip->recording = true;
 	    mdevice->current_clip = mclip;
+	    fprintf(stderr, "DEVICE %p NAME: %s\n", track->input, mdevice->name);
 	    mdevice->record_start = Pt_Time();
 	    fprintf(stderr, "Setting record start? %d\n", mdevice->record_start);
 

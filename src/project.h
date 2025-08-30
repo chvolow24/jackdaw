@@ -413,6 +413,7 @@ Track *timeline_add_track(Timeline *tl);
 Track *timeline_add_track_with_name(Timeline *tl, const char *track_name);
 
 Track *timeline_selected_track(Timeline *tl);
+void timeline_select_track(Track *track);
 ClickTrack *timeline_selected_click_track(Timeline *tl);
 Layout *timeline_selected_layout(Timeline *tl);
 
@@ -477,7 +478,7 @@ void timeline_cut_at_cursor(Timeline *tl);
 /* void timeline_move_track(Timeline *tl, Track *track, int direction, bool from_undo); */
 void timeline_switch(uint8_t new_tl_index);
 
-void timeline_check_set_midi_monitoring();
+bool timeline_check_set_midi_monitoring();
 void project_deinit(Project *proj);
 
 void session_set_default_out(void *nullarg);

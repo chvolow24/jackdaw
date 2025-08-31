@@ -42,6 +42,7 @@
 #include "endpoint.h"
 #include "midi_clip.h"
 #include "tempo.h"
+#include "timeview.h"
 #include "saturation.h"
 #include "synth.h"
 #include "textbox.h"
@@ -77,7 +78,9 @@
 
 #define MAX_ANIMATIONS 64
 
-#define ACTIVE_TL (session->proj.timelines[session->proj.active_tl_index])
+#define ACTIVE_TL ( \
+session->proj_reading ? session->proj_reading->timelines[session->proj_reading->active_tl_index] : \
+session->proj.timelines[session->proj.active_tl_index]) \
 
 typedef struct project Project;
 typedef struct timeline Timeline;
@@ -96,13 +99,6 @@ enum track_in_type {
 enum midi_out_type {
     MIDI_OUT_DEVICE,
     MIDI_OUT_SYNTH
-};
-
-struct midi_event_ring_buf {
-    int size;
-    int read_i;
-    int num_queued;
-    PmEvent *buf;
 };
 
 typedef struct track {
@@ -140,12 +136,7 @@ typedef struct track {
     enum midi_out_type midi_out_type;
     Synth *synth; /* Pointer will be duplicated in midi_out */
 
-    struct midi_event_ring_buf note_offs;
-    /* PmEvent note_offs[128]; */
-    /* uint8_t note_offs_write_i; */
-    /* uint8_t note_offs_read_i; */
-
-
+    MIDIEventRingBuf note_offs;
 
     float vol; /* 0.0 - 1.0 attenuation only */
     float pan; /* 0.0 pan left; 0.5 center; 1.0 pan right */
@@ -222,10 +213,8 @@ typedef struct track {
     uint8_t num_bus_ins;
 
     const char* added_from_midi_filepath;
-    // SDL_Rect *vol_bar;
-    // SDL_Rect *pan_bar;
-    // SDL_Rect *in_bar;
 } Track;
+
 
 /* typedef struct clip_ref { */
 /*     char name[MAX_NAMELENGTH]; */
@@ -328,7 +317,6 @@ typedef struct timeline {
     
 
     Timecode timecode;
-    Textbox *timecode_tb;
     
     Project *proj;
 
@@ -353,12 +341,17 @@ typedef struct timeline {
     Value dragging_kf_cache_val;
 
     /* GUI members */
-    Layout *layout;
+
+    /* DEPRECATE Timeline-level layout;
+       it is too complicated to swap this out when swapping projects */
+    /* Layout *layout; */
+    
     Layout *track_area;
-    int32_t display_offset_sframes; // in samples frames
-    int sample_frames_per_pixel;
-    int display_v_offset;
-    Textbox *loop_play_lemniscate;
+
+    TimeView timeview;
+    /* int32_t display_offset_sframes; */
+    /* int sample_frames_per_pixel; */
+    /* int display_v_offset; */
 
     bool needs_redraw;
 
@@ -408,7 +401,8 @@ int project_init(
     uint32_t sample_rate,
     SDL_AudioFormat fmt,
     uint16_t chunk_size_sframes,
-    uint16_t fourier_len_sframes
+    uint16_t fourier_len_sframes,
+    bool create_empty_timeline
     );
 
 /* Return the index of a timeline to switch to (new one if success) */
@@ -416,8 +410,10 @@ uint8_t project_add_timeline(Project *proj, char *name);
 void project_reset_tl_label(Project *proj);
 void project_set_chunk_size(uint16_t new_chunk_size);
 Track *timeline_add_track(Timeline *tl);
+Track *timeline_add_track_with_name(Timeline *tl, const char *track_name);
 
 Track *timeline_selected_track(Timeline *tl);
+void timeline_select_track(Track *track);
 ClickTrack *timeline_selected_click_track(Timeline *tl);
 Layout *timeline_selected_layout(Timeline *tl);
 
@@ -482,7 +478,7 @@ void timeline_cut_at_cursor(Timeline *tl);
 /* void timeline_move_track(Timeline *tl, Track *track, int direction, bool from_undo); */
 void timeline_switch(uint8_t new_tl_index);
 
-void timeline_check_set_midi_monitoring();
+bool timeline_check_set_midi_monitoring();
 void project_deinit(Project *proj);
 
 void session_set_default_out(void *nullarg);

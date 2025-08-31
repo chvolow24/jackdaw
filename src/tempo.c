@@ -467,7 +467,8 @@ ClickTrack *timeline_add_click_track(Timeline *tl)
 
 
     
-    Layout *click_tracks_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area");
+    /* Layout *click_tracks_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area"); */
+    Layout *click_tracks_area = tl->track_area;
     if (!click_tracks_area) {
 	fprintf(stderr, "Error: no tempo tracks area\n");
 	exit(1);
@@ -482,7 +483,7 @@ ClickTrack *timeline_add_click_track(Timeline *tl)
 
     t->layout = lt;
     layout_size_to_fit_children_v(click_tracks_area, true, 0);
-    layout_reset(tl->layout);
+    layout_reset(tl->track_area);
     tl->needs_redraw = true;
 
     layout_force_reset(lt);
@@ -750,6 +751,7 @@ void timeline_click_track_set_tempo_at_cursor(Timeline *tl)
 	mod,
 	"Submit",
 	set_tempo_submit_form);
+    ((Button *)el->obj)->target = s;
 
     layout_reset(mod->layout);
     layout_center_agnostic(el->layout, true, false);
@@ -1024,7 +1026,7 @@ static void click_track_deferred_draw(void *click_track_v)
     /* SDL_Rect cliprect = *audio_rect; */
     /* cliprect.w += cliprect.x; */
     /* cliprect.x = 0; */
-    if (audio_rect->y + audio_rect->h > tt->tl->layout->rect.y) {
+    if (audio_rect->y + audio_rect->h > tt->tl->track_area->rect.y) {
 	SDL_RenderSetClipRect(main_win->rend, audio_rect);
 	textbox_draw(tt->metronome_button);
 	slider_draw(tt->metronome_vol_slider);
@@ -1042,8 +1044,6 @@ void click_track_draw(ClickTrack *tt)
 
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
     SDL_RenderFillRect(main_win->rend, tt->console_rect);
-
-
     
     static SDL_Color line_colors[] =  {
 	{255, 250, 125, 255},
@@ -1053,7 +1053,7 @@ void click_track_draw(ClickTrack *tt)
 	{100, 100, 100, 255}
     };
 
-    int32_t pos = tt->tl->display_offset_sframes;
+    int32_t pos = tt->tl->timeview.offset_left_sframes;
     enum beat_prominence bp;
     click_track_get_next_pos(tt, true, pos, &pos, &bp);
     int x = timeline_get_draw_x(tl, pos);
@@ -1115,7 +1115,8 @@ void click_track_draw(ClickTrack *tt)
     SDL_RenderFillRect(main_win->rend, tt->right_console_rect);
 
     /* Draw right console elements */
-    window_defer_draw(main_win, click_track_deferred_draw, tt);
+    click_track_deferred_draw(tt);
+    /* window_defer_draw(main_win, click_track_deferred_draw, tt); */
 
     /* Draw outline */
     SDL_SetRenderDrawColor(main_win->rend, 100, 100, 100, 255);
@@ -1161,9 +1162,9 @@ int32_t click_track_bar_beat_subdiv(ClickTrack *tt, int32_t pos, int *bar_p, int
     /* int32_t prev_pos = prev_positions[tt->index]; */
     int32_t beat_pos = 0;
     
-    #ifdef TESTBUILD
+    /* #ifdef TESTBUILD */
     int ops = 0;
-    #endif
+    /* #endif */
     
     int32_t remainder = 0;
     /* if (debug) { */
@@ -1175,7 +1176,7 @@ int32_t click_track_bar_beat_subdiv(ClickTrack *tt, int32_t pos, int *bar_p, int
 	beat_pos = get_beat_pos(s, measure, beat, subdiv);
 	remainder = pos - beat_pos;
 
-	#ifdef TESTBUILD
+	/* #ifdef TESTBUILD */
 	ops++;
 	if (ops > 1000000 - 5) {
 	    if (ops > 1000000 - 3) breakfn();
@@ -1191,7 +1192,7 @@ int32_t click_track_bar_beat_subdiv(ClickTrack *tt, int32_t pos, int *bar_p, int
 		/* exit(1); */
 	    }
 	}
-	#endif
+	/* #endif */
 	
 	/* if (debug) { */
 	/*     /\* fprintf(stderr, "\t\t\tremainder: (%d - %d) %d cmp dur approx: %d\n", pos, beat_pos, remainder, s->cfg.atom_dur_approx); *\/ */
@@ -1218,9 +1219,9 @@ int32_t click_track_bar_beat_subdiv(ClickTrack *tt, int32_t pos, int *bar_p, int
 
 
     /* Set destination pointer values */
-    #ifdef TESTBUILD
+    /* #ifdef TESTBUILD */
 set_dst_values:
-    #endif
+    /* #endif */
     if (bar_p && beat_p && subdiv_p) {
 	*bar_p = measure;
 	*beat_p = beat;
@@ -1512,21 +1513,16 @@ static int32_t click_segment_get_nearest_beat_pos(ClickTrack *ct, int32_t start_
 }
 void click_track_mouse_motion(ClickSegment *s, Window *win)
 {
-    Session *session = session_get();
     int32_t tl_pos = timeline_get_abspos_sframes(s->track->tl, win->mousep.x);
     if (!(main_win->i_state & I_STATE_SHIFT)) {
 	tl_pos = click_segment_get_nearest_beat_pos(s->track, tl_pos);
     }
-    if (tl_pos < 0 || (s->prev && tl_pos < s->prev->start_pos + session->proj.sample_rate / 100)) {
+    if (tl_pos < 0 || (s->prev && tl_pos < s->prev->start_pos + session_get_sample_rate() / 100)) {
 	return;
     }
     endpoint_write(&s->start_pos_ep, (Value){.int32_v = tl_pos}, true, true, true, false);
 
-}
-   
-
-
-
+}   
 
 void click_segment_fprint(FILE *f, ClickSegment *s)
 {
@@ -1563,3 +1559,32 @@ void click_track_fprint(FILE *f, ClickTrack *tt)
 	s = s->next;
     }
 }
+
+ClickTrack *click_track_active_at_cursor(Timeline *tl)
+{
+    ClickTrack *ct = NULL;
+    for (int i=tl->num_click_tracks - 1; i>=0; i--) {
+	if (tl->click_tracks[i]->layout->index <= tl->layout_selector) {
+	    ct = tl->click_tracks[i];
+	    break;
+	}
+    }
+    return ct;
+}
+
+ClickSegment *click_segment_active_at_cursor(Timeline *tl)
+{
+    ClickTrack *ct = click_track_active_at_cursor(tl);
+    if (!ct) return NULL;
+    for (int i=tl->num_click_tracks - 1; i>=0; i--) {
+	if (tl->click_tracks[i]->layout->index <= tl->layout_selector) {
+	    ct = tl->click_tracks[i];
+	    break;
+	}
+    }
+    ClickSegment *ret;
+    click_track_bar_beat_subdiv(ct, tl->play_pos_sframes, NULL, NULL, NULL, &ret, false);
+    return ret;
+}
+
+

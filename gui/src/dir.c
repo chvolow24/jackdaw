@@ -14,7 +14,7 @@ extern Window *main_win;
 extern struct colors colors;
 
 SDL_Color color_dir = (SDL_Color) {10, 255, 100, 255};
-SDL_Color color_file = (SDL_Color) {10, 100, 255, 255};
+SDL_Color color_file = (SDL_Color) {100, 200, 255, 255};
 SDL_Color color_dir_unavailable = (SDL_Color) {10, 255, 100, 150};
 SDL_Color color_file_unavailable = (SDL_Color) {10, 100, 255, 150};
 SDL_Color color_dir_selected = (SDL_Color) {100, 255, 190, 255};

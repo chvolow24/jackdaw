@@ -25,6 +25,10 @@ struct colors {
     SDL_Color green;
     SDL_Color blue;
     SDL_Color yellow;
+    SDL_Color burnt_umber;
+    SDL_Color sea_green;
+    SDL_Color amber;
+    
     SDL_Color quickref_button_blue;
     SDL_Color quickref_button_pressed;
     SDL_Color play_green;
@@ -32,6 +36,7 @@ struct colors {
     SDL_Color cerulean;
     SDL_Color cerulean_pale;
     SDL_Color dark_brown;
+    SDL_Color alert_orange;
 
 
     SDL_Color dropdown_green;
@@ -41,7 +46,6 @@ struct colors {
 
     SDL_Color freq_L;
     SDL_Color freq_R;
-
 };
 
 

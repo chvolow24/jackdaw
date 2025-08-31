@@ -44,7 +44,6 @@ int prompt_user(const char *header, const char *description, int num_options, co
     modal->x = NULL;
     window_end_draw(main_win);
     SDL_Event e;
-    bool shift_down = false;
     int i=10000;
     int sel = 0;
     while (i > 0) {
@@ -80,16 +79,6 @@ int prompt_user(const char *header, const char *description, int num_options, co
 		}
 		break;
 	    }
-	    case SDL_KEYUP:
-		switch (e.key.keysym.scancode) {
-		case SDL_SCANCODE_LSHIFT:
-		case SDL_SCANCODE_RSHIFT:
-		    shift_down = false;
-		    break;
-		default:
-		    break;
-		}
-		break;
 	    case SDL_MOUSEBUTTONUP:
 	    case SDL_AUDIODEVICEADDED:
 	    case SDL_AUDIODEVICEREMOVED:

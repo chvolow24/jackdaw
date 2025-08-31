@@ -16,7 +16,6 @@ SDL_Color textbox_default_border_clr = (SDL_Color) {100, 100, 100, 255};
 
 extern struct colors colors;
 
-
 #ifndef LAYOUT_BUILD
 extern volatile bool CANCEL_THREADS;
 #endif
@@ -217,6 +216,11 @@ void textbox_draw(Textbox *tb)
 
     
     SDL_SetRenderDrawColor(rend, txtclr->r, txtclr->g, txtclr->b, txtclr->a);
+    if (tb->live) {
+	if (strncmp(tb->text->display_value, tb->text->value_handle, tb->text->max_len) != 0) {
+	    txt_reset_display_value(tb->text);
+	}
+    }
     txt_draw(tb->text);
 }
 
@@ -269,7 +273,7 @@ void textbox_set_trunc(Textbox *tb, bool trunc)
 
 void textbox_set_text_color(Textbox *tb, const SDL_Color *clr)
 {
-    /* txt_set_color also resets the text drawables */
+    /* txt_set_color also resets the text drawables if new clr */
     txt_set_color(tb->text, clr);
 }
 

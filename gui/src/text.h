@@ -154,7 +154,6 @@ typedef struct text {
     /* pthread_mutex_t draw_lock; */
 } Text;
 
-
 typedef struct font {
     const char *path;
     TTF_Font *ttf_array[STD_FONT_ARRLEN];
@@ -236,7 +235,7 @@ Font *ttf_init_font(const char *path, Window *win, int style);
 void ttf_reset_dpi_scale_factor(Font *font);
 
 /* Given an existing Font object, get the actual TTF_Font at a given size */
-TTF_Font *ttf_get_font_at_size(Font *font, int size);
+TTF_Font *ttf_get_font_at_size(const Font *font, int size);
 
 /* Set a text color and refresh the drawable elements */
 void txt_set_color(Text *txt, const SDL_Color *clr);
@@ -265,5 +264,7 @@ void ttf_destroy_font(Font *font);
 
 int txt_name_validation(Text *txt, char input);
 int txt_integer_validation(Text *txt, char input);
+int txt_float_validation(Text *txt, char input);
+SDL_Texture *txt_create_texture(const char *str, SDL_Color color, const Font *font, int font_size, int *w, int *h);
 
 #endif

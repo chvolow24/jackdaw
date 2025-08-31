@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include "SDL.h"
 
 #define RT2_OVER_2 0.70710678118;
@@ -374,4 +375,18 @@ void geom_fill_tab(SDL_Renderer *rend, SDL_Rect *rect, int r, double dpi_scale_f
     temp.w = rect->w;
     temp.h = rect->h - r;
     SDL_RenderFillRect(rend, &temp);
+}
+
+/* if x_ptr provided, it is set to be in the bounding box */
+bool geom_x_in_rect(int x, SDL_Rect *rect, int *x_ptr)
+{
+    if (x < rect->x) {
+	if (x_ptr) *x_ptr = rect->x;
+	return false;
+    }
+    if (x >= rect->x + rect->w) {
+	if (x_ptr) *x_ptr = rect->x + rect->w - 1;
+	return false;
+    }
+    return true;
 }

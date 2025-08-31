@@ -201,7 +201,6 @@ void label_freq_raw_to_hz(char *dst, size_t dstsize, Value v, ValType t)
     double raw = t == JDAW_FLOAT ? v.float_v : v.double_v;
     double hz = dsp_scale_freq_to_hz(raw);
     snprintf(dst, dstsize, "%.0f Hz", hz);
-    /* snprintf(dst, dstsize, "hi"); */
     dst[dstsize - 1] = '\0';
 }
 
@@ -209,6 +208,13 @@ void label_msec(char *dst, size_t dstsize, Value v, ValType t)
 {
     jdaw_val_to_str(dst, dstsize, v, t, 2);
     strcat(dst, " ms");
+}
+
+void label_int_plus_one(char *dst, size_t dstsize, Value v, ValType t)
+{
+    int plusone = v.int_v + 1;
+    snprintf(dst, dstsize, "%d", plusone);
+    
 }
 
 /* void label_freq_raw_to_hz(char *dst, size_t dstsize, double raw) */

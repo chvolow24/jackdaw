@@ -227,8 +227,10 @@ Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
     /* p.toggle_p.action = filter_active_toggle; */
     /* p.toggle_p.target = eq; */
     /* p.toggle_p.value = &eq->selected_filter_active; */
+    eq->selected_filter_active = eq->ctrls[eq->selected_ctrl].filter_active;
     p.toggle_p.ep = &eq->selected_filter_active_ep;
     page_add_el(page, EL_TOGGLE, p, "", "filter_active_toggle");
+    /* fprintf(stderr, "SELECTED FILTER ACTIVE STATE: %d\n", eq->selected_filter_active); */
 
     p.textbox_p.font = main_win->mono_font;
     p.textbox_p.text_size = 14;
@@ -437,6 +439,11 @@ Page *add_fir_filter_page(FIRFilter *f, Track *track, TabView *tv)
     return page;
 }
 
+static int16_t sframes_to_msec(int32_t sframes)
+{
+    return (double)sframes / (double)session_get_sample_rate() * 1000.0;
+}
+
 Page *add_delay_page(DelayLine *d, Track *track, TabView *tv)
 {
     Page *page = tabview_add_page(
@@ -494,8 +501,28 @@ Page *add_delay_page(DelayLine *d, Track *track, TabView *tv)
 
     Slider *sl = el->component;
     sl->disallow_unsafe_mode = true;
+
+    ClickSegment *s = click_segment_active_at_cursor(track->tl);
+    if (s) {
+	/* fprintf(stderr, "ADDING POINTS OF INTEREST\n"); */
+	int32_t measure_dur_sframes = s->cfg.dur_sframes;
+	int32_t beat_dur_sframes = measure_dur_sframes / s->cfg.num_atoms * s->cfg.beat_subdiv_lens[0];
+	int32_t subdiv_dur_sframes = beat_dur_sframes / s->cfg.beat_subdiv_lens[0];
+	int32_t subdiv_dur_msec = sframes_to_msec(subdiv_dur_sframes);
+	int16_t dur_msec = subdiv_dur_msec;
+	while (dur_msec < sl->max.int16_v) {
+	    slider_add_point_of_interest(sl, (Value){.int16_v = dur_msec});
+	    dur_msec += subdiv_dur_msec;
+	}
+	/* fprintf(stderr, "Measure, beat, subdiv? %d %d %d\n", measure_dur, beat_dur, subdiv_dur); */
+	
+	/* slider_add_point_of_interest(sl, (Value){.int16_v = sframes_to_msec(measure_dur_sframes)}); */
+	/* slider_add_point_of_interest(sl, (Value){.int16_v = sframes_to_msec(beat_dur_sframes)}); */
+	/* slider_add_point_of_interest(sl, (Value){.int16_v = sframes_to_msec(subdiv_dur_sframes)}); */
+    }
+
     slider_reset(sl);
-    
+
     p.slider_p.create_label_fn = NULL;
     p.slider_p.ep = &d->amp_ep;
     p.slider_p.min = (Value){.double_v = 0.0};
@@ -858,8 +885,7 @@ static int next_track(void *self_v, void *target)
 
 static double unscale_freq(double scaled)
 {
-    Session *session = session_get();
-    return log(scaled * session->proj.sample_rate) / log(session->proj.sample_rate);
+    return log(scaled * session_get_sample_rate()) / log(session_get_sample_rate());
 }
 
 

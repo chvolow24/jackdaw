@@ -6,6 +6,7 @@
 #include "adsr.h"
 #include "endpoint_callbacks.h"
 #include "session.h"
+#include <math.h>
 /* #include "color.h" */
 
 
@@ -14,9 +15,8 @@ static void dsp_cb_attack(Endpoint *ep)
 {
     int msec_prev = ep->overwrite_val.int_v;
     int msec = endpoint_safe_read(ep, NULL).int_v;
-    Session *session = session_get();
-    int32_t samples_prev = (double)msec_prev * (double)session->proj.sample_rate / 1000.0;
-    int32_t samples = (double)msec * (double)session->proj.sample_rate / 1000.0;
+    int32_t samples_prev = (double)msec_prev * (double)session_get_sample_rate() / 1000.0;
+    int32_t samples = (double)msec * (double)session_get_sample_rate() / 1000.0;
     
     ADSRParams *p = ep->xarg1;
     adsr_reset_env_remaining(p, ADSR_A, samples - samples_prev);
@@ -27,9 +27,8 @@ static void dsp_cb_decay(Endpoint *ep)
 {
     int msec_prev = ep->overwrite_val.int_v;
     int msec = endpoint_safe_read(ep, NULL).int_v;
-    Session *session = session_get();
-    int32_t samples_prev = msec_prev * session->proj.sample_rate / 1000;
-    int32_t samples = msec * session->proj.sample_rate / 1000;
+    int32_t samples_prev = msec_prev * session_get_sample_rate() / 1000;
+    int32_t samples = msec * session_get_sample_rate() / 1000;
     ADSRParams *p = ep->xarg1;
     adsr_reset_env_remaining(p, ADSR_D, samples - samples_prev);
     adsr_set_params(p, p->a, samples, p->s_ep_targ, p->r, p->ramp_exp);
@@ -47,9 +46,8 @@ static void dsp_cb_release(Endpoint *ep)
 {
     int msec_prev = ep->overwrite_val.int_v;
     int msec = endpoint_safe_read(ep, NULL).int_v;
-    Session *session = session_get();
-    int32_t samples = msec * session->proj.sample_rate / 1000;
-    int32_t samples_prev = msec_prev * session->proj.sample_rate / 1000;
+    int32_t samples = msec * session_get_sample_rate() / 1000;
+    int32_t samples_prev = msec_prev * session_get_sample_rate() / 1000;
     ADSRParams *p = ep->xarg1;
     adsr_reset_env_remaining(p, ADSR_R, samples - samples_prev);
     adsr_set_params(p, p->a, p->d, p->s_ep_targ, samples, p->ramp_exp);
@@ -160,7 +158,6 @@ void adsr_reset_env_remaining(ADSRParams *p, enum adsr_stage stage, int32_t delt
 	    /* fprintf(stderr, "p %p STAGE %d delta %d %d->%d\n", p, stage, delta, s->env_remaining, s->env_remaining + delta); */
 	    s->env_remaining += delta;
 	    if (s->env_remaining < 0) {
-		/* fprintf(stderr, "\t\tWarn!\n"); */
 		s->env_remaining = 0;
 	    }
 	}
@@ -210,7 +207,6 @@ void adsr_set_params(
     }
 }
 
-
 void adsr_init(ADSRState *s, int32_t after)
 {
     /* fprintf(stderr, "\n\n\nNOTE INIT %p\n", s); */
@@ -219,12 +215,23 @@ void adsr_init(ADSRState *s, int32_t after)
     s->start_release_after = -1;
     s->release_start_env = 0.0;
     s->s_time = 0;
+    #ifdef TESTBUILD
+    if (after < 0) {
+	breakfn();
+    }
+    #endif
     /* s->env_remaining = s->params->a; */
 }
 
 void adsr_start_release(ADSRState *s, int32_t after)
 {
+    /* fprintf(stderr, "\t\t\tADSR %p start release after : %d\n", s, after); */
     s->start_release_after = after;
+    #ifdef TESTBUILD
+    if (after < 0) {
+	breakfn();
+    }
+    #endif
 }
 
 /* int Id=0; */
@@ -232,15 +239,18 @@ void adsr_start_release(ADSRState *s, int32_t after)
 /* Fill a foat buffer with envelope values and return the end state */
 enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_len)
 {
+    /* fprintf(stderr, "GET CHUNK state %p, STAGE: %d, ENV_R: %d, REL_AFTER: %d\n", s, s->current_stage, s->env_remaining, s->start_release_after); */
     /* const char *thread = get_thread_name(); */
     /* fprintf(stderr, "\tget chunk CALL ON THREAD %s\n", thread); */
     /* fprintf(stderr, "\t\tint %p\n", s); */
-    /* fprintf(stderr, "BUF APPLY len %d\n", buf_len); */
     /* fprintf(stderr, "\t\t\tadsr buf apply\n"); */
     int32_t buf_i = 0;
     bool skip_to_release = false;
     while (buf_i < buf_len) {
 	/* fprintf(stderr, "\t\t\t\tbuf i: %d; stage %d; env_rem: %d; release_after: %d\n", buf_i, s->current_stage, s->env_remaining, s->start_release_after); */
+	if (buf_i > buf_len || buf_i < 0) {
+	    breakfn();
+	}
 	int32_t stage_len = s->env_remaining < buf_len - buf_i ? s->env_remaining : buf_len - buf_i;
 	if (s->start_release_after >= 0 && s->start_release_after < stage_len) {
 	    stage_len = s->start_release_after;
@@ -253,13 +263,12 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
 	case ADSR_UNINIT:
 	    memset(buf + buf_i, '\0', sizeof(float) * stage_len);
 	    s->env_remaining -= stage_len;
+	    #ifdef TESTBUILD
+	    if (s->env_remaining < 0) breakfn();
+	    #endif
 	    break;
 	case ADSR_A:
 	    memcpy(buf + buf_i, s->params->a_ramp + s->params->a - s->env_remaining, stage_len * sizeof(float));
-	    /* float_buf_mult( */
-	    /* 	buf + buf_i, */
-	    /* 	s->params->a_ramp + s->params->a - s->env_remaining, */
-	    /* 	stage_len); */
 	    s->env_remaining -= stage_len;
 	    break;
 	case ADSR_D:
@@ -286,7 +295,7 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
 	    for (int i=0; i<stage_len; i++) {
 		float env_norm = (double)s->env_remaining / (double)s->params->r;
 		float env = s->release_start_env * pow(env_norm, s->params->ramp_exp);
-		buf[i] = env;
+		buf[i + buf_i] = env;
 		s->env_remaining--;
 	    }
 	}
@@ -324,8 +333,11 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
 		s->start_release_after = -1;
 		break;
 	    default:
-		fprintf(stderr, "Error: env stage error: release started in stage %d\n", s->current_stage);
-		break;	
+		s->release_start_env = s->params->s;
+		s->current_stage = ADSR_R;
+		s->start_release_after = -1;
+		/* fprintf(stderr, "Error: env stage error: release started in stage %d\n", s->current_stage); */
+		break;
 	    }
 	    /* fprintf(stderr, "\nSET START OF RELEASE ENV from stage %d, env rem: %d, val: %f\n", s->current_stage, s->env_remaining, s->release_start_env); */
 	    skip_to_release = false;
@@ -343,9 +355,19 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
 		return ADSR_UNINIT;
 	    }
 	}
-	s->start_release_after -= stage_len;
+	if (s->start_release_after > 0) {
+	    s->start_release_after -= stage_len;
+	}
 	buf_i += stage_len;
     }
+    /* for (int i=0; i<buf_len; i++) { */
+    /* 	int fc = fpclassify(buf[i]); */
+    /* 	if (fc < FP_ZERO || fabs(buf[i]) > 10.0f) { */
+    /* 	    fprintf(stderr, "i %d == %f\n", i, buf[i]); */
+    /* 	    exit(1); */
+    /* 	} */
+    /* } */
+    /* fprintf(stderr, "\t\t\t\t%p current stage %d\n", s, s->current_stage); */
     return s->current_stage;
 }
 

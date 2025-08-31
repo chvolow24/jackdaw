@@ -319,10 +319,10 @@ Automation *track_add_automation(Track *track, AutomationType type)
     /* 	break; */
 	
     /* case AUTO_DEL_TIME: */
-    /* 	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line, track, track->tl->session->proj.sample_rate); */
+    /* 	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line, track, track->tl->session_get_sample_rate()); */
     /* 	a->val_type = JDAW_INT16; */
     /* 	a->min.int16_v = 1; */
-    /* 	a->max.int16_v = DELAY_LINE_MAX_LEN_S * 1000;//track->tl->session->proj.sample_rate * DELAY_LINE_MAX_LEN_S; */
+    /* 	a->max.int16_v = DELAY_LINE_MAX_LEN_S * 1000;//track->tl->session_get_sample_rate() * DELAY_LINE_MAX_LEN_S; */
     /* 	a->range.int16_v = a->max.int16_v - 1; */
     /* 	a->target_val = &track->delay_line.len_msec; */
     /* 	base_kf_val.int16_v = 100; */
@@ -332,7 +332,7 @@ Automation *track_add_automation(Track *track, AutomationType type)
 
     /* 	break; */
     /* case AUTO_DEL_AMP: */
-    /* 	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line, track, track->tl->session->proj.sample_rate); */
+    /* 	if (!track->delay_line.buf_L) delay_line_init(&track->delay_line, track, track->tl->session_get_sample_rate()); */
     /* 	a->val_type = JDAW_DOUBLE; */
     /* 	a->target_val = &track->delay_line.amp; */
     /* 	a->min.double_v = 0.0; */
@@ -1185,7 +1185,6 @@ static Keyframe *automation_insert_maybe(
     float direction)
 {
     if (direction < 0.0) return NULL;
-    Session *session = session_get();
 
     /* fprintf(stderr, "INSERT maybe\n"); */
     /* Check for insersection with kclips and exit early if intersect */
@@ -1203,7 +1202,7 @@ static Keyframe *automation_insert_maybe(
     static const double diff_prop_thresh = 1e-15;
     /* static const double m_prop_thresh = 0.05; */
     static const double m_prop_thresh = 4.0;
-    /* double m_prop_thresh = m_prop_thresh_unscaled / ((double)session->proj.sample_rate / 96000.0); */
+    /* double m_prop_thresh = m_prop_thresh_unscaled / ((double)session_get_sample_rate() / 96000.0); */
 
 
     /* Calculate deviance from predicted value */
@@ -1282,12 +1281,12 @@ static Keyframe *automation_insert_maybe(
 		/* Value pm = jdaw_val_scale(val_diff, 1000.0f / (pos - a->current->pos), a->val_type); */
 		/* fprintf(stderr, "\tpos - current_pos: %d; pp_m_fwd_dx: %d\n", pos - a->current->pos, pp->m_fwd.dx); */
 		/* Divide dx by sample rate to get dx in seconds */
-		/* double pp_dx_s = (double)pp->m_fwd.dx / session->proj.sample_rate; */
-		/* double p_dx_s = (double)(pos - a->current->pos) / session->proj.sample_rate; */
+		/* double pp_dx_s = (double)pp->m_fwd.dx / session_get_sample_rate(); */
+		/* double p_dx_s = (double)(pos - a->current->pos) / session_get_sample_rate(); */
 		/* /\* fprintf(stderr, "\tppdx pdx s: %f, %f\n", pp_dx_s, p_dx_s); *\/ */
 		/* fprintf(stderr, "\tppdy, pdy: %f, %f\n",  */
-		Value ppm = jdaw_val_scale(pp->m_fwd.dy, (double)session->proj.sample_rate / pp->m_fwd.dx, a->val_type);
-		Value pm = jdaw_val_scale(val_diff, (double)session->proj.sample_rate / (double)(pos - a->current->pos), a->val_type);
+		Value ppm = jdaw_val_scale(pp->m_fwd.dy, (double)session_get_sample_rate() / pp->m_fwd.dx, a->val_type);
+		Value pm = jdaw_val_scale(val_diff, (double)session_get_sample_rate() / (double)(pos - a->current->pos), a->val_type);
 
 		/* fprintf(stderr, "\tpm, ppm: %f, %f\n", pm.float_v, ppm.float_v); */
 		diff = jdaw_val_sub(ppm, pm, a->val_type);
@@ -1839,7 +1838,7 @@ void user_tl_pause(void *nullarg);
 /* { */
 /*     if (end_pos <= start_pos) return NULL; */
 
-/*     end_pos += session->proj.sample_rate / 60.0; */
+/*     end_pos += session_get_sample_rate() / 60.0; */
 /*     Keyframe *first = automation_get_segment(a, start_pos); */
 /*     if (!first) first = a->keyframes; */
 /*     if (first < a->keyframes + a->num_keyframes) first++; else return NULL; */

@@ -10,7 +10,10 @@
 
 #include "assets.h"
 #include "color.h"
+#include "consts.h"
 #include "endpoint_callbacks.h"
+#include "init_panels.h"
+#include "layout.h"
 #include "layout_xml.h"
 #include "session.h"
 #include "transport.h"
@@ -29,8 +32,9 @@ Session *session_get()
     return session;
 }
 
-static void session_hamburger_init(Session *session);
-static void session_status_bar_init(Session *session);
+static void session_init_hamburger(Session *session);
+static void session_init_status_bar(Session *session);
+static void session_init_source_mode(Session *session);
 
 Session *session_create()
 {
@@ -39,16 +43,16 @@ Session *session_create()
     layout_read_xml_to_lt(main_win->layout, MAIN_LT_PATH);
 
     session->gui.layout = main_win->layout;
+    session->gui.timeline_lt = layout_get_child_by_name_recursive(session->gui.layout, "timeline");
     session->gui.audio_rect = &(layout_get_child_by_name_recursive(session->gui.layout, "audio_rect")->rect);
     session->gui.console_column_rect = &(layout_get_child_by_name_recursive(session->gui.layout, "console_column")->rect);
-
 
     Layout *control_bar_layout = layout_get_child_by_name_recursive(session->gui.layout, "control_bar");
 
     static const SDL_Color timeline_label_txt_color = {0, 200, 100, 255};
     /* sessionect_init_quickref(session, control_bar_layout); */
     session->gui.control_bar_rect = &control_bar_layout->rect;
-    session->gui.ruler_rect = &(layout_get_child_by_name_recursive(session->gui.layout, "ruler")->rect);
+    session->gui.ruler_rect = &(layout_get_child_by_name_recursive(session->gui.timeline_lt, "ruler")->rect);
     Layout *timeline_label_lt = layout_get_child_by_name_recursive(session->gui.layout, "timeline_label");
     /* strcpy(session->gui.timeline_label_str, "Timeline 1: \"Main\""); */
     session->gui.timeline_label = textbox_create_from_str(
@@ -58,11 +62,21 @@ Session *session_create()
 	12,
 	main_win
 	);
+    /* session->gui.timecode_tb = textbox_create_from_str( */
+    /* 	NULL, */
+    /* 	tc_lt, */
+    /* 	main_win->mono_bold_font, */
+    /* 	16, */
+    /* 	main_win); */
+
     textbox_set_text_color(session->gui.timeline_label, &timeline_label_txt_color);
     textbox_set_background_color(session->gui.timeline_label, &colors.clear);
     textbox_set_align(session->gui.timeline_label, CENTER_LEFT);
 
+    session->gui.right_arrow_texture = txt_create_texture("→", colors.white, main_win->mono_bold_font, 12, NULL, NULL);
+    session->gui.left_arrow_texture = txt_create_texture("←", colors.white, main_win->mono_bold_font, 12, NULL, NULL);
 
+    session_init_source_mode(session);
     session_init_audio_conns(session);
     session_init_midi(session);
     session_init_metronomes(session);
@@ -70,7 +84,7 @@ Session *session_create()
     /* Init panels after proj initialized ! */
     /* session_init_panels(session); */
 
-    session_hamburger_init(session);
+    session_init_hamburger(session);
 
     int err;
 
@@ -98,13 +112,19 @@ Session *session_create()
 	NULL, NULL, NULL, NULL);
     
     api_endpoint_register(&session->playback.play_speed_ep, &session->server.api_root);
-    session_status_bar_init(session);
+    session_init_status_bar(session);
     
     return session;
 }
 
+static void session_init_source_mode(Session *session)
+{
+    session->source_mode.timeview.play_pos = &session->source_mode.src_play_pos_sframes;
+    session->source_mode.timeview.in_mark = &session->source_mode.src_in_sframes;
+    session->source_mode.timeview.out_mark = &session->source_mode.src_out_sframes;
+}
 
-static void session_hamburger_init(Session *session)
+static void session_init_hamburger(Session *session)
 {
     Layout *hamburger_lt = layout_get_child_by_name_recursive(session->gui.layout, "hamburger");
 
@@ -112,11 +132,10 @@ static void session_hamburger_init(Session *session)
     session->gui.bun_patty_bun[0] = &hamburger_lt->children[0]->children[0]->rect;
     session->gui.bun_patty_bun[1] = &hamburger_lt->children[1]->children[0]->rect;
     session->gui.bun_patty_bun[2] = &hamburger_lt->children[2]->children[0]->rect;
-
 }
 
 
-static void session_status_bar_init(Session *session)
+static void session_init_status_bar(Session *session)
 {
 
     Layout *status_bar_lt = layout_get_child_by_name_recursive(session->gui.layout, "status_bar");
@@ -194,8 +213,13 @@ void session_destroy()
     }
 
     textbox_destroy(session->gui.timeline_label);
+    textbox_destroy(session->gui.timecode_tb);
+    textbox_destroy(session->gui.loop_play_lemniscate);
+
+    SDL_DestroyTexture(session->gui.right_arrow_texture);
+    SDL_DestroyTexture(session->gui.left_arrow_texture);
     
-    if (session->gui.panels) panel_area_destroy(session->gui.panels);
+    session_deinit_panels(session);
     
     if (session->status_bar.call) textbox_destroy(session->status_bar.call);
     if (session->status_bar.dragstat) textbox_destroy(session->status_bar.dragstat);
@@ -216,6 +240,46 @@ void session_destroy()
 
 }
 
+void session_set_proj(Session *session, Project *new_proj)
+{
+    if (session->playback.recording) {
+	transport_stop_recording();
+    } else {
+	transport_stop_playback();
+    }
+    
+    project_deinit(&session->proj);
+    session_deinit_panels(session);
+    memcpy(&session->proj, new_proj, sizeof(Project));
+    for (int i=0; i<session->proj.num_timelines; i++) {
+	session->proj.timelines[i]->proj = &session->proj;
+    }
+    session_init_panels(session);
+    layout_force_reset(session->gui.layout);
+    timeline_switch(0);
+    timeline_reset_full(session->proj.timelines[0]);
+}
+
+uint32_t session_get_sample_rate()
+{
+    uint32_t ret;
+    if (session->proj_reading) {
+	ret =  session->proj_reading->sample_rate;
+    } else if (session->proj_initialized) {
+	ret = session->proj.sample_rate;
+    } else {
+	#ifdef TESTBUILD
+	fprintf(stderr, "ERROR: falling back to default sample rate\n");
+	breakfn();
+	#endif
+	ret = DEFAULT_SAMPLE_RATE;
+    }
+    if (ret <= 0) {
+	fprintf(stderr, "ERROR: sample rate is %d\n", ret);
+	breakfn();
+    }
+    return ret;
+}
 
 
 

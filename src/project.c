@@ -28,7 +28,9 @@
 #include "layout.h"
 #include "layout_xml.h"
 #include "menu.h"
-/* #include "midi_note.h" */
+#include "midi_io.h"
+#include "midi_objs.h"
+#include "midi_qwerty.h"
 #include "project.h"
 #include "session.h"
 #include "status.h"
@@ -88,6 +90,7 @@ SDL_Color track_colors[7] = {
 
 uint8_t project_add_timeline(Project *proj, char *name)
 {
+
     if (proj->num_timelines == MAX_PROJ_TIMELINES) {
 	fprintf(stderr, "Error: project has max num timlines\n:");
 	return proj->active_tl_index;
@@ -105,43 +108,91 @@ uint8_t project_add_timeline(Project *proj, char *name)
     new_tl->proj = proj;
     new_tl->index = proj->num_timelines;
     Session *session = session_get();
-    Layout *tl_lt = layout_get_child_by_name_recursive(session->gui.layout, "timeline");
-    if (new_tl->index != 0) {
-	Layout *main_lt_fresh = layout_read_from_xml(MAIN_LT_PATH);
-	Layout *new_tl_lt = layout_get_child_by_name_recursive(main_lt_fresh, "timeline");
-	Layout *cpy = layout_copy(new_tl_lt, tl_lt->parent);
-	layout_destroy(main_lt_fresh);
-	/* Layout *cpy = layout_copy(tl_lt, tl_lt->parent); */
-	new_tl->layout = cpy;
-    } else {
-	new_tl->layout = tl_lt;
-    }
-    layout_reset(new_tl->layout);
-    new_tl->track_area = layout_get_child_by_name_recursive(new_tl->layout, "tracks_area");
+    /* Layout *tl_lt = layout_get_child_by_name_recursive(session->gui.layout, "timeline"); */
+    Layout *tl_lt = session->gui.timeline_lt;
 
-    /* Clear tracks in old timeline layout before copying */
-    for (int i=0; i<new_tl->track_area->num_children; i++) {
-	layout_destroy_no_offset(new_tl->track_area->children[i]);
+    /* If loading a file, session proj will have > 0 timelines and we can't use the existing one */
+    if (session->proj.num_timelines == 0) {
+	new_tl->track_area = layout_get_child_by_name_recursive(tl_lt, "tracks_area");
+	for (int i=0; i<new_tl->track_area->num_children; i++) {
+	    layout_destroy_no_offset(new_tl->track_area->children[i]);
+	}
+	new_tl->track_area->num_children = 0;
+
+    } else {
+	Layout *track_area_copy = layout_copy(session->proj.timelines[0]->track_area, session->gui.timeline_lt);
+	track_area_copy->scroll_offset_h = 0;
+	track_area_copy->scroll_offset_v = 0;
+	track_area_copy->scroll_momentum_h = 0;
+	track_area_copy->scroll_momentum_v = 0;
+	/* layout_write(stderr, track_area_copy, 0); */
+	for (int i=0; i<track_area_copy->num_children; i++) {
+	    layout_destroy_no_offset(track_area_copy->children[i]);
+	}
+	track_area_copy->num_children = 0;
+	new_tl->track_area = track_area_copy;
+	timeline_rectify_track_area(new_tl);
+	/* layout_write(stderr, track_area_copy, 0); */
+
     }
-    new_tl->track_area->num_children = 0;
+
+
+    /* TODO:
+
+       FIX NEW TIMELINE LAYOUT LOGIC
+
+    */
+
+
+
+       
+    /* /\* if (new_tl->index != 0) { *\/ */
+    /* 	Layout *main_lt_fresh = layout_read_from_xml(MAIN_LT_PATH); */
+    /* 	Layout *new_tl_lt = layout_get_child_by_name_recursive(main_lt_fresh, "timeline"); */
+    /* 	Layout *cpy = layout_copy(new_tl_lt, tl_lt->parent); */
+    /* 	layout_destroy(main_lt_fresh); */
+    /* 	/\* Layout *cpy = layout_copy(tl_lt, tl_lt->parent); *\/ */
+    /* 	/\* new_tl->layout = cpy; *\/ */
+    /* /\* } else { *\/ */
+    /* 	/\* new_tl->layout = tl_lt; *\/ */
+    /* /\* } *\/ */
+    /* 	breakfn(); */
+    /* 	/\* layout_destroy(tl_lt); *\/ */
+	
+    /* /\* layout_reset(new_tl->layout); *\/ */
+    /* new_tl->track_area = layout_get_child_by_name_recursive(new_tl->layout, "tracks_area"); */
+
+    /* /\* Clear tracks in old timeline layout before copying *\/ */
+    /* for (int i=0; i<new_tl->track_area->num_children; i++) { */
+    /* 	layout_destroy_no_offset(new_tl->track_area->children[i]); */
+    /* } */
+    /* new_tl->track_area->num_children = 0; */
 
     
     /* new_tl->layout = layout_get_child_by_name_recursive(session->gui.layout, "timeline"); */
     
-    new_tl->sample_frames_per_pixel = DEFAULT_SFPP;
+    new_tl->timeview.sample_frames_per_pixel = DEFAULT_SFPP;
+    new_tl->timeview.rect = session->gui.audio_rect;
+    new_tl->timeview.play_pos = &new_tl->play_pos_sframes;
+    new_tl->timeview.in_mark = &new_tl->in_mark_sframes;
+    new_tl->timeview.out_mark = &new_tl->out_mark_sframes;
+    new_tl->timeview.offset_left_sframes = 0;
+    
     strcpy(new_tl->timecode.str, "+00:00:00:00000");
-    Layout *tc_lt = layout_get_child_by_name_recursive(new_tl->layout, "timecode");
-    new_tl->timecode_tb = textbox_create_from_str(
-	new_tl->timecode.str,
-	tc_lt,
-	main_win->mono_bold_font,
-	16,
-	main_win);
-    textbox_set_background_color(new_tl->timecode_tb, &colors.black);
-    textbox_set_text_color(new_tl->timecode_tb, &colors.white);
-    textbox_set_trunc(new_tl->timecode_tb, false);
+    Layout *tc_lt = layout_get_child_by_name_recursive(tl_lt, "timecode");
+    if (!session->gui.timecode_tb) {
+	session->gui.timecode_tb = textbox_create_from_str(
+	    new_tl->timecode.str,
+	    tc_lt,
+	    main_win->mono_bold_font,
+	    16,
+	    main_win);
+	textbox_set_background_color(session->gui.timecode_tb, &colors.black);
+	textbox_set_text_color(session->gui.timecode_tb, &colors.white);
+	textbox_set_trunc(session->gui.timecode_tb, false);
+    }
 
-    Layout *ruler_lt = layout_get_child_by_name_recursive(new_tl->layout, "ruler");
+    Layout *ruler_lt = layout_get_child_by_name_recursive(tl_lt, "ruler");
     Layout *lemniscate_lt = layout_add_child(ruler_lt);
     lemniscate_lt->h.type = SCALE;
     lemniscate_lt->h.value = 1.0;
@@ -150,15 +201,17 @@ uint8_t project_add_timeline(Project *proj, char *name)
     lemniscate_lt->x.type = ABS;
     lemniscate_lt->x.value = 0.0;
     layout_force_reset(lemniscate_lt);
-    new_tl->loop_play_lemniscate = textbox_create_from_str(
-	"∞",
-	lemniscate_lt,
-	main_win->std_font,
-	24,
-	main_win);
-    textbox_set_background_color(new_tl->loop_play_lemniscate, &colors.clear);
-    textbox_set_text_color(new_tl->loop_play_lemniscate, &colors.white);
-    textbox_reset_full(new_tl->loop_play_lemniscate);
+    if (!session->gui.loop_play_lemniscate) {
+	session->gui.loop_play_lemniscate = textbox_create_from_str(
+	    "∞",
+	    lemniscate_lt,
+	    main_win->std_font,
+	    24,
+	    main_win);
+	textbox_set_background_color(session->gui.loop_play_lemniscate, &colors.clear);
+	textbox_set_text_color(session->gui.loop_play_lemniscate, &colors.white);
+	textbox_reset_full(session->gui.loop_play_lemniscate);
+    }
     
     new_tl->buf_L = calloc(1, sizeof(float) * proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS);
     new_tl->buf_R = calloc(1, sizeof(float) * proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS);
@@ -250,8 +303,8 @@ static void timeline_destroy(Timeline *tl, bool displace_in_proj)
     if (tl->buf_L) free(tl->buf_L);
     if (tl->buf_R) free(tl->buf_R);
 
-    if (tl->timecode_tb) textbox_destroy(tl->timecode_tb);
-    if (tl->loop_play_lemniscate) textbox_destroy(tl->loop_play_lemniscate);
+    /* if (tl->timecode_tb) textbox_destroy(tl->timecode_tb); */
+    /* if (tl->loop_play_lemniscate) textbox_destroy(tl->loop_play_lemniscate); */
 
     if (sem_close(tl->unpause_sem) != 0) perror("Sem close");
     if (sem_close(tl->writable_chunks) != 0) perror("Sem close");
@@ -271,7 +324,8 @@ static void timeline_destroy(Timeline *tl, bool displace_in_proj)
 	perror("Error in sem unlink");
     }
 
-    layout_destroy(tl->layout);
+    /* layout_destroy(tl->layout); */
+    layout_destroy(tl->track_area);
     free(tl);
 }
 
@@ -315,7 +369,8 @@ int project_init(
     uint32_t sample_rate,
     SDL_AudioFormat fmt,
     uint16_t chunk_size_sframes,
-    uint16_t fourier_len_sframes
+    uint16_t fourier_len_sframes,
+    bool create_empty_timeline
     )
 {
     /* Project *proj = calloc(1, sizeof(Project)); */
@@ -323,9 +378,6 @@ int project_init(
 	fprintf(stderr, "Error: project name exceeds max len (%d)\n", MAX_NAMELENGTH);
 	return -1;
     }
-    
-
-
     
     strcpy(proj->name, name);
     char win_title_buf[MAX_NAMELENGTH];
@@ -354,8 +406,10 @@ int project_init(
     /* textbox_set_background_color(proj->source_name_tb, &colors.clear); */
     /* textbox_set_text_color(proj->source_name_tb, &colors.white); */
 
-    project_add_timeline(proj, "Main");
-    project_reset_tl_label(proj);
+    if (create_empty_timeline) {
+	project_add_timeline(proj, "Main");
+	project_reset_tl_label(proj);
+    }
     /* Initialize output */
     /* proj->output_len = chunk_size_sframes; */
 
@@ -515,6 +569,14 @@ Track *timeline_selected_track(Timeline *tl)
     }
 }
 
+void timeline_select_track(Track *track)
+{
+    Timeline *tl = track->tl;
+    tl->track_selector = track->tl_rank;
+    tl->layout_selector = track->layout->index;
+    tl->needs_redraw = true;
+}
+
 ClickTrack *timeline_selected_click_track(Timeline *tl)
 {
     if (tl->num_click_tracks == 0 || tl->click_track_selector < 0) {
@@ -556,15 +618,14 @@ static int auto_dropdown_action(void *self, void *xarg)
     }
     return 0;
 }
-
-Track *timeline_add_track(Timeline *tl)
+Track *timeline_add_track_with_name(Timeline *tl, const char *track_name)
 {
     if (tl->num_tracks == MAX_TRACKS) return NULL;
     Track *track = calloc(1, sizeof(Track));
     tl->tracks[tl->num_tracks] = track;
     track->tl_rank = tl->num_tracks++;
     track->tl = tl;
-    snprintf(track->name, sizeof(track->name), "Track %d", track->tl_rank + 1);
+    strncpy(track->name, track_name, MAX_NAMELENGTH);
 
     track->channels = tl->proj->channels;
 
@@ -585,11 +646,9 @@ Track *timeline_add_track(Timeline *tl)
 	fprintf(stderr, "Error initializing effect chain lock: %s\n", strerror(err));
     }
 
-    track->note_offs.size = 128;
-    track->note_offs.buf = calloc(track->note_offs.size, sizeof(PmEvent));
-    
+    midi_event_ring_buf_init(&track->note_offs);
+   
     api_node_register(&track->api_node, &track->tl->api_node, track->name);
-
         
     endpoint_init(
 	&track->vol_ep,
@@ -643,7 +702,7 @@ Track *timeline_add_track(Timeline *tl)
     /* track->buf_R_freq_mag = calloc(fr_len, sizeof(double)); */
     /* filter_init(&track->fir_filter, track, LOWPASS, ir_len, fr_len); */
 
-    /* delay_line_init(&track->delay_line, track, track->tl->session->proj.sample_rate); */
+    /* delay_line_init(&track->delay_line, track, track->tl->session_get_sample_rate()); */
 
 
 
@@ -735,7 +794,7 @@ Track *timeline_add_track(Timeline *tl)
     const char *track_in_name;
     switch (track->input_type) {
     case MIDI_DEVICE:
-	track_in_name = ((MIDIDevice *)track->input)->info->name;
+	track_in_name = ((MIDIDevice *)track->input)->name;
 	break;
     case AUDIO_CONN:
 	track_in_name = ((AudioConn *)track->input)->name;
@@ -802,6 +861,7 @@ Track *timeline_add_track(Timeline *tl)
 	SLIDER_FILL,
 	&label_amp_to_dbstr,
 	&session->dragged_component);
+    slider_add_point_of_interest(track->vol_ctrl, (Value){.float_v = 1.0});
     /* track->vol_ep.xarg1 = track->vol_ctrl; */
     /* track->vol_ctrl = slider_create( */
     /* 	vol_ctrl_lt, */
@@ -848,6 +908,7 @@ Track *timeline_add_track(Timeline *tl)
 	SLIDER_TICK,
 	label_pan,
 	&session->dragged_component);
+    slider_add_point_of_interest(track->pan_ctrl, (Value){.float_v = 0.5});
     track->pan_ctrl->disallow_unsafe_mode = true;
     /* track->pan_ep.xarg1 = track->pan_ctrl; */
 
@@ -878,6 +939,16 @@ Track *timeline_add_track(Timeline *tl)
     /* api_endpoint_register(&track->saturation.gain_ep, &track->saturation.track->api_node); */
 
     return track;
+
+}
+
+Track *timeline_add_track(Timeline *tl)
+{
+    if (tl->num_tracks == MAX_TRACKS) return NULL;
+    char name[MAX_NAMELENGTH];
+    snprintf(name, sizeof(name), "Track %d", tl->num_tracks + 1);
+
+    return timeline_add_track_with_name(tl, name);
 }
 
 
@@ -1039,14 +1110,16 @@ void track_reset(Track *track, bool rescaled)
 void timeline_reset_loop_play_lemniscate(Timeline *tl)
 {
     if (tl->in_mark_sframes >= tl->out_mark_sframes) return;
+
+    Session *session = session_get();
     int in_x = timeline_get_draw_x(tl, tl->in_mark_sframes);
     int out_x = timeline_get_draw_x(tl, tl->out_mark_sframes);
-    layout_reset(tl->loop_play_lemniscate->layout);
+    layout_reset(session->gui.loop_play_lemniscate->layout);
 
-    tl->loop_play_lemniscate->layout->rect.x = in_x;
-    tl->loop_play_lemniscate->layout->rect.w = out_x - in_x;
-    layout_set_values_from_rect(tl->loop_play_lemniscate->layout);
-    textbox_reset(tl->loop_play_lemniscate);
+    session->gui.loop_play_lemniscate->layout->rect.x = in_x;
+    session->gui.loop_play_lemniscate->layout->rect.w = out_x - in_x;
+    layout_set_values_from_rect(session->gui.loop_play_lemniscate->layout);
+    textbox_reset(session->gui.loop_play_lemniscate);
     tl->needs_redraw = true;
     
 }
@@ -1058,7 +1131,7 @@ void timeline_reset_full(Timeline *tl)
     }
 
     Session *session = session_get();
-    layout_reset(tl->layout);
+    layout_reset(session->gui.layout);
     if (session->playback.loop_play) {
 	timeline_reset_loop_play_lemniscate(tl);
     }
@@ -1069,13 +1142,11 @@ void timeline_reset_full(Timeline *tl)
 
 void timeline_reset(Timeline *tl, bool rescaled)
 {
-    layout_reset(tl->layout);
+    Session *session = session_get();
+    layout_reset(session->gui.layout);
     for (int i=0; i<tl->num_tracks; i++) {
 	track_reset(tl->tracks[i], rescaled);
     }
-
-    layout_reset(tl->layout);
-    Session *session = session_get();
     if (session->playback.loop_play) {
 	timeline_reset_loop_play_lemniscate(tl);
     }
@@ -1138,6 +1209,9 @@ bool track_mute(Track *track)
     track->muted = !track->muted;
     if (track->muted) {
 	textbox_set_background_color(track->tb_mute_button, &mute_red);
+	if (track->synth) {
+	    synth_clear_all(track->synth);
+	}
     } else {
 	textbox_set_background_color(track->tb_mute_button, &color_mute_solo_grey);
     }
@@ -1167,6 +1241,8 @@ void track_solomute(Track *track)
 {
     track->solo_muted = true;
     textbox_set_background_color(track->tb_solo_button, &mute_red);
+    if (track->synth)
+	synth_clear_all(track->synth);
 }
 void track_unsolomute(Track *track)
 {
@@ -1433,9 +1509,13 @@ static void track_set_in_onclick(void *void_arg)
 	MIDIDevice *device = arg->obj;
 	midi_device_open(device);
 	arg->track->input = arg->obj;
-	textbox_set_value_handle(arg->track->tb_input_name, device->info->name);
+	textbox_set_value_handle(arg->track->tb_input_name, device->name);
 	timeline_check_set_midi_monitoring();
 	window_pop_menu(main_win);
+	if (device->type == MIDI_DEVICE_QWERTY) {
+	    panel_page_refocus(session->gui.panels, "QWERTY piano", 1);
+	}
+
 	Timeline *tl = ACTIVE_TL;
 	tl->needs_redraw = true;
 
@@ -1465,7 +1545,7 @@ void track_set_midi_out(Track *track)
 
 	MenuItem *item = menu_item_add(
 	    sc,
-	    d->info->name,
+	    d->name,
 	    "(device)",
 	    track_set_midi_out_onclick,
 	    /* track_set_in_onclick, */
@@ -1532,7 +1612,7 @@ void track_set_input(Track *track)
 	arg->track = track;
 	MenuItem *item = menu_item_add(
 	    sc,
-	    device->info->name,
+	    device->name,
 	    "(MIDI)",
 	    track_set_in_onclick,
 	    arg);
@@ -1548,14 +1628,33 @@ void track_set_input(Track *track)
 }
 
 /* Use on the selected track to set session monitoring info */
-void timeline_check_set_midi_monitoring()
+bool timeline_check_set_midi_monitoring()
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     Track *track = timeline_selected_track(tl);
-    if (track && track->input_type == MIDI_DEVICE && track->midi_out && track->midi_out_type == MIDI_OUT_SYNTH) {
+    if (track) {
+	if (track->midi_out && track->midi_out_type == MIDI_OUT_SYNTH) {
+	    char out_device_name[MAX_NAMELENGTH];
+	    /* TODO: use actual device names, not literal 'synth' */
+	    snprintf(out_device_name, MAX_NAMELENGTH, "%s:%s", track->name, "synth");
+	    mqwert_set_monitor_device_name(out_device_name);
+
+	} else {
+	    mqwert_set_monitor_device_name("(none)");
+	}
+    }
+
+    if (track && /*track->input_type == MIDI_DEVICE && */ track->midi_out && track->midi_out_type == MIDI_OUT_SYNTH) {
 	session->midi_io.monitor_synth = track->midi_out;
-	session->midi_io.monitor_device = track->input;
+	if (session->midi_qwerty) {
+	    session->midi_io.monitor_device = session->midi_io.midi_qwerty;
+	} else if (track->input_type == MIDI_DEVICE) {
+	    session->midi_io.monitor_device = track->input;
+	} else {
+	    goto no_monitor;
+	}
+
 	MIDIDevice *d = session->midi_io.monitor_device;
 
 	/* Clear notes in system device buffer */
@@ -1564,12 +1663,13 @@ void timeline_check_set_midi_monitoring()
 
 	/* Clear notes in synth if present */
 	Synth *synth = session->midi_io.monitor_synth;
-	synth_close_all_notes(synth);
-	
+	synth_close_all_notes(synth);	
 	api_node_set_owner(&track->synth->api_node, JDAW_THREAD_PLAYBACK);
 	audioconn_start_playback(session->audio_io.playback_conn);
 	fprintf(stderr, "monitoring!!\n");
+	return true;
     } else {
+    no_monitor:
 	session->midi_io.monitor_synth = NULL;
 	session->midi_io.monitor_device = NULL;
 	/* Only close output audio device if project is not playing from timeline */
@@ -1580,6 +1680,7 @@ void timeline_check_set_midi_monitoring()
 	    api_node_set_owner(&track->synth->api_node, JDAW_THREAD_DSP);
 	}
 	fprintf(stderr, "NO Monitor\n");
+	return false;
     }
 }
 
@@ -1719,7 +1820,10 @@ void track_destroy(Track *track, bool displace)
     for (int i=0; i<track->num_effects; i++) {
 	effect_destroy(track->effects[i]);
     }
-    free(track->note_offs.buf);
+
+    midi_event_ring_buf_deinit(&track->note_offs);
+
+    
     slider_destroy(track->vol_ctrl);
     slider_destroy(track->pan_ctrl);
     textentry_destroy(track->tb_name);
@@ -1803,15 +1907,17 @@ void timeline_switch(uint8_t new_tl_index)
 {
     Session *session = session_get();
     Timeline *current = ACTIVE_TL;
-    current->layout->hidden = true;
+    current->track_area->hidden = true;
 
     session->proj.active_tl_index = new_tl_index;
     Timeline *new = session->proj.timelines[new_tl_index];
-    new->layout->hidden = false;
+    new->track_area->hidden = false;
+
+    textbox_set_value_handle(session->gui.timecode_tb, new->timecode.str);
     
-    /* Concession to bad design */
-    session->gui.audio_rect = &(layout_get_child_by_name_recursive(new->layout, "audio_rect")->rect);
-    session->gui.ruler_rect = &(layout_get_child_by_name_recursive(new->layout, "ruler")->rect);
+    /* /\* Concession to bad design *\/ */
+    /* session->gui.audio_rect = &(layout_get_child_by_name_recursive(new->track_area->parent, "audio_rect")->rect); */
+    /* session->gui.ruler_rect = &(layout_get_child_by_name_recursive(new->track_area->parent, "ruler")->rect); */
     
     new->needs_redraw = true;
     project_reset_tl_label(new->proj);
@@ -2174,9 +2280,7 @@ bool timeline_refocus_track(Timeline *tl, Track *track, bool at_bottom)
 	inner = track->layout;
     }
     return refocus_track_lt(tl, lt, inner, at_bottom);
-
 }
-
 
 void timeline_play_speed_set(double new_speed)
 {
@@ -2208,7 +2312,9 @@ void timeline_play_speed_adj(double dim)
 {
     Session *session = session_get();
     double new_speed = session->playback.play_speed;
-    if (main_win->i_state & I_STATE_CMDCTRL) {
+    if ((main_win->i_state & I_STATE_CMDCTRL) && (main_win->i_state & I_STATE_META)) {
+	new_speed *= dim < -0.5 ? pow(1.0/2.0, 1.0/12.0) : dim > 0.5 ? pow(1.0/2.0, -1.0/12.0) : 1.0;
+    } else if (main_win->i_state & I_STATE_CMDCTRL) {
 	new_speed += dim * PLAYSPEED_ADJUST_SCALAR_LARGE;
     } else if (main_win->i_state & I_STATE_META) {
 	new_speed += dim * PLAYSPEED_ADJUST_SCALAR_TINY;
@@ -2223,9 +2329,9 @@ void timeline_scroll_playhead(double dim)
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     if (main_win->i_state & I_STATE_CMDCTRL) {
-	dim *= session->proj.sample_rate * tl->sample_frames_per_pixel * PLAYHEAD_ADJUST_SCALAR_LARGE;
+	dim *= session_get_sample_rate() * tl->timeview.sample_frames_per_pixel * PLAYHEAD_ADJUST_SCALAR_LARGE;
     } else {
-	dim *= session->proj.sample_rate * tl->sample_frames_per_pixel * PLAYHEAD_ADJUST_SCALAR_SMALL;
+	dim *= session_get_sample_rate() * tl->timeview.sample_frames_per_pixel * PLAYHEAD_ADJUST_SCALAR_SMALL;
     }
     int32_t new_pos = tl->play_pos_sframes + dim;
     timeline_set_play_position(ACTIVE_TL, new_pos);

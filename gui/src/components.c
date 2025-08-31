@@ -4,6 +4,7 @@
 #include "eq.h"
 #include "geometry.h"
 #include "input.h"
+#include "input_mode.h"
 #include "layout.h"
 #include "menu.h"
 #include "status.h"
@@ -21,7 +22,7 @@ extern Symbol *SYMBOL_TABLE[];
 #define RADIO_BUTTON_LEFT_COL_W 10
 #define SLIDER_MAX_LABEL_COUNTDOWN 80
 #define SLIDER_NUDGE_PROP 0.01
-#define BUTTON_COLOR_CHANGE_STD_DELAY 20
+#define BUTTON_COLOR_CHANGE_STD_DELAY 8
 
 #define TEXTENTRY_V_PAD 4
 #define TEXTENTRY_H_PAD 8
@@ -162,6 +163,15 @@ void slider_set_range(Slider *s, Value min, Value max)
 /*     s->max = max; */
 }
 
+void slider_add_point_of_interest(Slider *s, Value p)
+{
+    if (s->num_points_of_interest == SLIDER_MAX_POINTS_OF_INTEREST) {
+	return;
+    }
+    s->points_of_interest[s->num_points_of_interest] = p;
+    s->num_points_of_interest++;
+}
+
 static Value slider_val_from_coord(Slider *s, int coord_pix)
 {
     double proportion;
@@ -210,6 +220,20 @@ Value slider_reset(Slider *s)
 	    break;
 	}
     }
+    for (int i=0; i<s->num_points_of_interest; i++) {
+	Value left = jdaw_val_sub(s->points_of_interest[i], s->min, s->ep->val_type);
+	/* fprintf(stderr, "POI %d MIN %d sub? %d\n", s->points_of_interest[i].int16_v, s->min.int16_v, left.int16_v); */
+	double left_prop = jdaw_val_div_double(left, range, s->ep->val_type);
+	/* fprintf(stderr, "%d: %f\n", i, left_prop); */
+	switch (s->orientation) {
+	case SLIDER_HORIZONTAL:
+	    s->points_of_interest_draw_locs_pix[i] = s->layout->rect.x + s->layout->rect.w * left_prop;
+	    break;
+	case SLIDER_VERTICAL:
+	    s->points_of_interest_draw_locs_pix[i] = s->layout->rect.y + s->layout->rect.h - s->layout->rect.h * left_prop;
+	    break;
+	}
+    }
     layout_reset(s->layout);
     return slider_val;
 }    
@@ -220,9 +244,19 @@ void slider_draw(Slider *s)
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(slider_bckgrnd));
     SDL_RenderFillRect(main_win->rend, &s->layout->rect);
 
-
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(slider_bar_container_bckgrnd));
     SDL_RenderFillRect(main_win->rend, &s->layout->children[0]->rect);
+
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.grey));
+    if (s->orientation == SLIDER_VERTICAL) {
+	for (int i=0; i<s->num_points_of_interest; i++) {
+	    SDL_RenderDrawLine(main_win->rend, s->bar_layout->rect.x, s->points_of_interest_draw_locs_pix[i], s->bar_layout->rect.x + s->bar_layout->rect.w, s->points_of_interest_draw_locs_pix[i]);
+	}
+    } else {
+	for (int i=0; i<s->num_points_of_interest; i++) {
+	    SDL_RenderDrawLine(main_win->rend, s->points_of_interest_draw_locs_pix[i], s->bar_layout->rect.y, s->points_of_interest_draw_locs_pix[i], s->bar_layout->rect.y + s->bar_layout->rect.h);
+	}
+    }
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(slider_bar_color));
     SDL_RenderFillRect(main_win->rend, s->bar_rect);
 
@@ -319,8 +353,11 @@ bool slider_mouse_motion(Slider *slider, Window *win)
 void slider_nudge_right(Slider *slider)
 {
     Value range = jdaw_val_sub(slider->max, slider->min, slider->ep->val_type);
-    static const double slider_nudge_prop = SLIDER_NUDGE_PROP;
-    Value nudge_amt = jdaw_val_scale(range, slider_nudge_prop, slider->ep->val_type);
+    /* static const double slider_nudge_prop = SLIDER_NUDGE_PROP; */
+    Value nudge_amt = jdaw_val_scale(range, SLIDER_NUDGE_PROP, slider->ep->val_type);
+    if (jdaw_val_is_zero(nudge_amt, slider->ep->val_type)) {
+	jdaw_val_set_default_incr(&nudge_amt, slider->ep->val_type);
+    }
     Value val = endpoint_safe_read(slider->ep, NULL);
     val = jdaw_val_add(val, nudge_amt, slider->ep->val_type);
     if (jdaw_val_less_than(slider->max, val, slider->ep->val_type)) {
@@ -334,6 +371,9 @@ void slider_nudge_left(Slider *slider)
     Value range = jdaw_val_sub(slider->max, slider->min, slider->ep->val_type);
     static const double slider_nudge_prop = SLIDER_NUDGE_PROP;
     Value nudge_amt = jdaw_val_scale(range, slider_nudge_prop, slider->ep->val_type);
+    if (jdaw_val_is_zero(nudge_amt, slider->ep->val_type)) {
+	jdaw_val_set_default_incr(&nudge_amt, slider->ep->val_type);
+    }	
     Value val = endpoint_safe_read(slider->ep, NULL);
     val = jdaw_val_sub(val, nudge_amt, slider->ep->val_type);
     if (jdaw_val_less_than(slider->max, val, slider->ep->val_type)) {
@@ -454,11 +494,39 @@ void symbol_button_draw(SymbolButton *sbutton)
 
 void button_destroy(Button *button)
 {
+    /* Unbind the UserFn */
+    if (button->bound_userfn) {
+	button->bound_userfn->bound_button = NULL;
+    }
     if (button->animation) {
 	session_dequeue_animation(button->animation);
     }
     textbox_destroy(button->tb);
     free(button);
+}
+
+
+/* bckgrnd_color is optional; the existing textbox color will be used otherwise */
+void button_bind_userfn(
+    Button *button,
+    char *fn_id,
+    InputMode im,
+    SDL_Color *pressed_color,
+    SDL_Color *bckgrnd_color)
+{
+    UserFn *userfn = input_get_fn_by_id(fn_id, im);
+    if (!userfn) {
+	fprintf(stderr, "Error: no function \"%s\" found in mode \"%s\".\n", fn_id, input_mode_str(im));
+	return;
+    }
+    userfn->bound_button = button;
+    button->bound_userfn = userfn;
+    if (pressed_color) button->pressed_color = pressed_color;
+    if (bckgrnd_color)
+	button->return_color = bckgrnd_color;
+    else
+	button->return_color = button->tb->bckgrnd_clr;
+    
 }
 
 void symbol_button_destroy(SymbolButton *sbutton)
@@ -479,14 +547,10 @@ static void button_end_animation(void *arg1, void *arg2)
 void button_press_color_change(
     Button *button,
     SDL_Color *temp_color,
-    SDL_Color *return_color,
-    ComponentFn callback,
-    void *callback_target)
+    SDL_Color *return_color)
 {
     textbox_set_background_color(button->tb, temp_color);
-    
     button->animation = session_queue_animation(NULL, button_end_animation, (void *)button, (void *)return_color, BUTTON_COLOR_CHANGE_STD_DELAY);
-    /* textbox_schedule_color_change(button->tb, BUTTON_COLOR_CHANGE_STD_DELAY, return_color, false, callback, callback_target); */
 }
 
 
@@ -1142,8 +1206,15 @@ bool toggle_click(Toggle *toggle, Window *win)
 bool button_click(Button *button, Window *win)
 {
     if (SDL_PointInRect(&main_win->mousep, &button->tb->layout->rect)) {
-	if (button->action) 
+	if (button->bound_userfn) {
+	    button_press_color_change(
+		button,
+		button->pressed_color,
+		button->return_color);
+	}
+	if (button->action) {
 	    button->action((void *)button, button->target);
+	}
 	return true;
     }
     return false;

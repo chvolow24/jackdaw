@@ -38,11 +38,16 @@ typedef struct iir_filter {
     int num_channels;
     double *A; /* input delay coeffs */
     double *B; /* output delay coeffs */
-    double **memIn;
-    double **memOut;
+    double **mem_in;
+    double **mem_out;
+    int mem_index[2];
+
+    bool bypass;
+    /* int memOut_index; */
 
     struct freq_plot *fp;
-    double freq_resp[IIR_FREQPLOT_RESOLUTION];
+    double *freq_resp;
+    /* double freq_resp[IIR_FREQPLOT_RESOLUTION]; */
 
     bool freq_resp_stale;
     /* double complex pole_zero[2]; */
@@ -84,6 +89,7 @@ void iir_group_deinit(IIRGroup *group);
 double iir_group_sample(IIRGroup *group, double in, int channel);
 void iir_group_update_freq_resp(IIRGroup *group);
 void iir_group_clear(IIRGroup *group);
+void iir_group_add_freqplot(IIRGroup *group, struct freq_plot *fp);
 void iir_advance(IIRFilter *f, int channel);
 void iir_clear(IIRFilter *f);
 

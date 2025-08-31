@@ -291,13 +291,12 @@ void window_end_draw(Window *win)
     SDL_RenderCopy(win->rend, win->canvas, &win->canvas_src, NULL);
     SDL_RenderPresent(win->rend);
 }
-
 void window_set_layout(Window *win, Layout *layout)
 {
     layout->x.value = 0.0f;
     layout->y.value = 0.0f;
-    layout->w.value = win->w_pix;
-    layout->h.value = win->h_pix;
+    layout->w.value = win->w_pix / win->dpi_scale_factor;
+    layout->h.value = win->h_pix / win->dpi_scale_factor;
     layout_reset(layout);
     win->layout = layout;
 }
@@ -351,7 +350,7 @@ void window_pop_menu(Window *win)
 	menu_destroy(win->menus[win->num_menus - 1]);
 	win->num_menus--;
     }
-    if (win->num_menus == 0 && win->modes[win->num_modes - 1] == MENU_NAV)  {
+    if (win->num_menus == 0 && win->modes[win->num_modes - 1] == MODE_MENU_NAV)  {
 	window_pop_mode(win);
     }
 }
@@ -363,8 +362,8 @@ void window_add_menu(Window *win, Menu *menu)
     if (win->num_menus < MAX_WINDOW_MENUS) {
 	win->menus[win->num_menus] = menu;
 	win->num_menus++;
-	if (win->modes[win->num_modes - 1] != MENU_NAV) {
-	    window_push_mode(win, MENU_NAV);
+	if (win->modes[win->num_modes - 1] != MODE_MENU_NAV) {
+	    window_push_mode(win, MODE_MENU_NAV);
 	}
 	menu->sel_col = 0;
 	menu->columns[0]->sel_sctn = 0;
@@ -391,6 +390,9 @@ void window_push_mode(Window *win, InputMode im)
 {
     /* if (im == TEXT_EDIT) */
     /* 	SDL_StartTextInput(); */
+
+    /* fprintf(stderr, "\nWINDOW PUSH MODE %d (%s)\n\n", im, input_mode_str(im)); */
+    /* if (im == MIDI_QWERTY) breakfn(); */
     if (win->num_modes < WINDOW_MAX_MODES) {
 	win->modes[win->num_modes] = im;
 	win->num_modes++;
@@ -436,15 +438,15 @@ void window_push_modal(Window *win, Modal *modal)
     while (win->num_menus > 0) {
 	window_pop_menu(win);
     }
-    if (win->modes[win->num_modes - 1] == MENU_NAV) {
+    if (win->modes[win->num_modes - 1] == MODE_MENU_NAV) {
 	window_pop_mode(win);
     }
     if (win->num_modals < WINDOW_MAX_MODALS) {
 	win->modals[win->num_modals] = modal;
 	win->num_modals++;
 	/* layout_center_agnostic(modal->layout, true, true); */
-	if (win->modes[win->num_modes - 1] != MODAL) {
-	    window_push_mode(win, MODAL);
+	if (win->modes[win->num_modes - 1] != MODE_MODAL) {
+	    window_push_mode(win, MODE_MODAL);
 	}
     } else {
 	fprintf(stderr, "Error: window already has maximum number of modals\n");

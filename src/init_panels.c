@@ -10,9 +10,15 @@
 
 #include "audio_clip.h"
 #include "color.h"
+#include "components.h"
 #include "consts.h"
+#include "geometry.h"
+#include "layout.h"
+#include "midi_qwerty.h"
 #include "panel.h"
 #include "session.h"
+#include "textbox.h"
+#include "timeview.h"
 #include "waveform.h"
 #include "userfn.h"
 
@@ -128,7 +134,7 @@ int set_output_compfn(void *self, void *target)
     session_set_default_out(NULL);
     return 0;
 }
-static inline void session_init_output_panel(Page *output, Session *session)
+static void session_init_output_panel(Page *output, Session *session)
 {
 
     PageElParams p;
@@ -218,7 +224,7 @@ static inline void session_init_output_panel(Page *output, Session *session)
 
 }
 
-static inline void session_init_quickref_panels(Page *quickref1, Page *quickref2)
+static void session_init_quickref_panels(Page *quickref1, Page *quickref2)
 {
     PageElParams p;
     /* Layout *quickref_lt = layout_read_from_xml(QUICKREF_LT_PATH); */
@@ -246,6 +252,7 @@ static inline void session_init_quickref_panels(Page *quickref1, Page *quickref2
 	"add_track",
 	create_quickref_button_lt);
     textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
+    button_bind_userfn(el->component, "tl_track_add", MODE_TIMELINE, &colors.quickref_button_pressed, &colors.quickref_button_blue);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
 
     p.button_p.action = quickref_record;
@@ -276,6 +283,7 @@ static inline void session_init_quickref_panels(Page *quickref1, Page *quickref2
 	"left",
 	create_quickref_button_lt);
     textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
+    button_bind_userfn(el->component, "tl_move_left", MODE_TIMELINE, &colors.quickref_button_pressed, &colors.quickref_button_blue);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->left = create_button_from_params(button_lt, b); */
 
@@ -292,6 +300,7 @@ static inline void session_init_quickref_panels(Page *quickref1, Page *quickref2
 	"rewind",
 	create_quickref_button_lt);
     textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
+    button_bind_userfn(el->component, "tl_rewind", MODE_TIMELINE, &colors.quickref_button_pressed, &colors.quickref_button_blue);
     
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->rewind = create_button_from_params(button_lt, b); */
@@ -308,6 +317,7 @@ static inline void session_init_quickref_panels(Page *quickref1, Page *quickref2
 	"pause",
 	create_quickref_button_lt);
     textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
+    button_bind_userfn(el->component, "tl_pause", MODE_TIMELINE, &colors.quickref_button_pressed, &colors.quickref_button_blue);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->pause = create_button_from_params(button_lt, b); */
 
@@ -341,6 +351,7 @@ static inline void session_init_quickref_panels(Page *quickref1, Page *quickref2
 	"right",
 	create_quickref_button_lt);
     textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
+    button_bind_userfn(el->component, "tl_move_right", MODE_TIMELINE, &colors.quickref_button_pressed, &colors.quickref_button_blue);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->right = create_button_from_params(button_lt, b); */
 
@@ -360,6 +371,7 @@ static inline void session_init_quickref_panels(Page *quickref1, Page *quickref2
 	"next",
 	create_quickref_button_lt);
     textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
+    button_bind_userfn(el->component, "tl_track_selector_down", MODE_TIMELINE, &colors.quickref_button_pressed, &colors.quickref_button_blue);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->next = create_button_from_params(button_lt, b); */
 
@@ -376,6 +388,7 @@ static inline void session_init_quickref_panels(Page *quickref1, Page *quickref2
 	"previous",
 	create_quickref_button_lt);
     textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
+    button_bind_userfn(el->component, "tl_track_selector_up", MODE_TIMELINE, &colors.quickref_button_pressed, &colors.quickref_button_blue);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->previous = create_button_from_params(button_lt, b); */
 
@@ -393,6 +406,7 @@ static inline void session_init_quickref_panels(Page *quickref1, Page *quickref2
 	"zoom_out",
 	create_quickref_button_lt);
     textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
+    button_bind_userfn(el->component, "tl_zoom_out", MODE_TIMELINE, &colors.quickref_button_pressed, &colors.quickref_button_blue);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->zoom_out = create_button_from_params(button_lt, b); */
 
@@ -408,6 +422,7 @@ static inline void session_init_quickref_panels(Page *quickref1, Page *quickref2
 	"zoom_in",
 	create_quickref_button_lt);
     textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
+    button_bind_userfn(el->component, "tl_zoom_in", MODE_TIMELINE, &colors.quickref_button_pressed, &colors.quickref_button_blue);
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
 
     
@@ -503,83 +518,136 @@ struct source_area_draw_arg {
 };
 
 extern SDL_Color clip_ref_home_bckgrnd;
+extern SDL_Color midi_clipref_color;
 extern SDL_Color timeline_marked_bckgrnd;
 
 static void source_area_draw(void *arg1, void *arg2)
 {
+    Session *session = session_get();
     struct source_area_draw_arg *arg = (struct source_area_draw_arg *)arg1;
     SDL_Rect *source_clip_rect = arg->source_clip_rect;
-    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(source_mode_bckgrnd)); */
-    /* SDL_RenderFillRect(main_win->rend, source_rect); */
-    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.white)); */
-    /* SDL_RenderDrawRect(main_win->rend, source_rect); */
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_home_bckgrnd));
     SDL_RenderDrawRect(main_win->rend, source_clip_rect);
-    Session *session = session_get();
-    if (session->source_mode.src_clip) {
-	SDL_RenderFillRect(main_win->rend, source_clip_rect);
+    Clip *clip = NULL;
+    MIDIClip *mclip = NULL;
+    int32_t len_sframes;
+    if (!session->source_mode.src_clip) return;
+    if (session->source_mode.src_clip_type == CLIP_AUDIO ){
+	clip = session->source_mode.src_clip;
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_home_bckgrnd));
+	len_sframes = clip->len_sframes;
+    } else {
+	mclip = session->source_mode.src_clip;
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(midi_clipref_color));
+	len_sframes = mclip->len_sframes;
+    }
 
-	/* Draw src clip waveform */
+    SDL_RenderFillRect(main_win->rend, source_clip_rect);
+
+    int32_t offset_left = session->source_mode.timeview.offset_left_sframes;
+    int32_t abs_w = timeview_get_w_sframes(&session->source_mode.timeview, source_clip_rect->w);
+    if (clip) { /* Draw src clip waveform */
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
-	uint8_t num_channels = session->source_mode.src_clip->channels;
+	uint8_t num_channels = clip->channels;
 	float *channels[num_channels];
-	channels[0] = session->source_mode.src_clip->L;
+	channels[0] = clip->L + offset_left;
 	if (num_channels > 1) {
-	    channels[1] = session->source_mode.src_clip->R;
+	    channels[1] = clip->R + offset_left;
 	}
-	waveform_draw_all_channels(channels, num_channels, session->source_mode.src_clip->len_sframes, source_clip_rect);
-	/* draw_waveform_to_rect(session->src_clip->L, session->src_clip->len_sframes, session->source_clip_rect); */
+	waveform_draw_all_channels(channels, num_channels, abs_w, source_clip_rect);
+    } else if (mclip) { /* Draw notes */
+	/* midi_clipref */
+    }
 	
-	/* Draw play head line */
-	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.white));
-	int ph_y = source_clip_rect->y;
-	/* int tri_y = tl->session->ruler_rect->y; */
-	int play_head_x = source_clip_rect->x + source_clip_rect->w * session->source_mode.src_play_pos_sframes / session->source_mode.src_clip->len_sframes;
-	SDL_RenderDrawLine(main_win->rend, play_head_x, ph_y, play_head_x, ph_y + source_clip_rect->h);
+    /* Draw play head line */
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.white));
+    int ph_y = source_clip_rect->y;
+    /* int tri_y = tl->session->ruler_rect->y; */
+    int play_head_x = timeview_get_draw_x(&session->source_mode.timeview, session->source_mode.src_play_pos_sframes);
+    if (!geom_x_in_rect(play_head_x, source_clip_rect, NULL)) {
+	goto draw_in_mark;
+    }
+    /* int play_head_x = source_clip_rect->x + source_clip_rect->w * (double)session->source_mode.src_play_pos_sframes / len_sframes; */
+    SDL_RenderDrawLine(main_win->rend, play_head_x, ph_y, play_head_x, ph_y + source_clip_rect->h);
 
-	/* /\* Draw play head triangle *\/ */
-	int tri_x1 = play_head_x;
-	int tri_x2 = play_head_x;
-	/* int ph_y = tl->rect.y; */
-	for (int i=0; i<PLAYHEAD_TRI_H; i++) {
-	    SDL_RenderDrawLine(main_win->rend, tri_x1, ph_y, tri_x2, ph_y);
-	    ph_y -= 1;
-	    tri_x2 += 1;
-	    tri_x1 -= 1;
+    /* /\* Draw play head triangle *\/ */
+    int tri_x1 = play_head_x;
+    int tri_x2 = play_head_x;
+    /* int ph_y = tl->rect.y; */
+    for (int i=0; i<PLAYHEAD_TRI_H; i++) {
+	SDL_RenderDrawLine(main_win->rend, tri_x1, ph_y, tri_x2, ph_y);
+	ph_y -= 1;
+	tri_x2 += 1;
+	tri_x1 -= 1;
+    }
+
+    /* draw mark in */
+    int in_x, out_x = -1;
+
+    /* in_x = source_clip_rect->x + source_clip_rect->w * (double)session->source_mode.src_in_sframes / len_sframes; */
+draw_in_mark:
+    in_x = timeview_get_draw_x(&session->source_mode.timeview, session->source_mode.src_in_sframes);
+    if (!geom_x_in_rect(in_x, source_clip_rect, &in_x)) {
+	goto draw_out_mark;
+    }
+    int i_tri_x2 = in_x;
+    ph_y = source_clip_rect->y;
+    for (int i=0; i<PLAYHEAD_TRI_H; i++) {
+	SDL_RenderDrawLine(main_win->rend, in_x, ph_y, i_tri_x2, ph_y);
+	ph_y -= 1;
+	i_tri_x2 += 1;
+    }
+
+    /* draw mark out */
+    /* out_x = source_clip_rect->x + source_clip_rect->w * (double)session->source_mode.src_out_sframes / len_sframes; */
+draw_out_mark:
+    out_x = timeview_get_draw_x(&session->source_mode.timeview, session->source_mode.src_out_sframes);
+    if (!geom_x_in_rect(out_x, source_clip_rect, &out_x)) {
+	goto draw_marked_box;
+    }
+    int o_tri_x2 = out_x;
+    ph_y = source_clip_rect->y;
+    for (int i=0; i<PLAYHEAD_TRI_H; i++) {
+	SDL_RenderDrawLine(main_win->rend, out_x, ph_y, o_tri_x2, ph_y);
+	ph_y -= 1;
+	o_tri_x2 -= 1;
+    }
+draw_marked_box:
+    if (in_x < out_x && out_x != 0) {
+	SDL_Rect in_out = (SDL_Rect) {in_x, source_clip_rect->y, out_x - in_x, source_clip_rect->h};
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(timeline_marked_bckgrnd));
+	SDL_RenderFillRect(main_win->rend, &(in_out));
+    }
+    
+    /* Draw arrows */
+    const int arrow_pad = -2;
+    if (session->source_mode.timeview.offset_left_sframes > 0) {
+	int y = source_clip_rect->y;
+	int arrow_h;
+	int arrow_w;    
+	SDL_QueryTexture(session->gui.left_arrow_texture, NULL, NULL, &arrow_w, &arrow_h);
+	/* fprintf(stderr, "Y: %d arrow h: %d\n", y, arrow_h); */
+	while (y + arrow_h <= source_clip_rect->y + source_clip_rect->h) {
+	    SDL_Rect dst = {source_clip_rect->x, y, arrow_w, arrow_h};
+	    SDL_RenderCopy(main_win->rend, session->gui.left_arrow_texture, NULL, &dst);
+	    y += arrow_h + arrow_pad;
 	}
-
-	/* draw mark in */
-	int in_x, out_x = -1;
-
-	in_x = source_clip_rect->x + source_clip_rect->w * session->source_mode.src_in_sframes / session->source_mode.src_clip->len_sframes;
-	int i_tri_x2 = in_x;
-	ph_y = source_clip_rect->y;
-	for (int i=0; i<PLAYHEAD_TRI_H; i++) {
-	    SDL_RenderDrawLine(main_win->rend, in_x, ph_y, i_tri_x2, ph_y);
-	    ph_y -= 1;
-	    i_tri_x2 += 1;
-	}
-
-	/* draw mark out */
-
-	out_x = source_clip_rect->x + source_clip_rect->w * session->source_mode.src_out_sframes / session->source_mode.src_clip->len_sframes;
-	int o_tri_x2 = out_x;
-	ph_y = source_clip_rect->y;
-	for (int i=0; i<PLAYHEAD_TRI_H; i++) {
-	    SDL_RenderDrawLine(main_win->rend, out_x, ph_y, o_tri_x2, ph_y);
-	    ph_y -= 1;
-	    o_tri_x2 -= 1;
-	}
-	if (in_x < out_x && out_x != 0) {
-	    SDL_Rect in_out = (SDL_Rect) {in_x, source_clip_rect->y, out_x - in_x, source_clip_rect->h};
-	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(timeline_marked_bckgrnd));
-	    SDL_RenderFillRect(main_win->rend, &(in_out));
+    }
+    if (timeview_rightmost_pos(&session->source_mode.timeview) < len_sframes - 1) {
+	int y = source_clip_rect->y;
+	int arrow_h;
+	int arrow_w;    
+	SDL_QueryTexture(session->gui.right_arrow_texture, NULL, NULL, &arrow_w, &arrow_h);
+	while (y + arrow_h <= source_clip_rect->y + source_clip_rect->h) {
+	    SDL_Rect dst = {source_clip_rect->x + source_clip_rect->w - arrow_w, y, arrow_w, arrow_h};
+	    SDL_RenderCopy(main_win->rend, session->gui.right_arrow_texture, NULL, &dst);
+	    y += arrow_h + arrow_pad;
 	}
     }
 }
 
 
-static inline void session_init_source_area(Page *source_area, Session *session)
+static void session_init_source_area(Page *source_area, Session *session)
 {
     PageElParams p;
 
@@ -611,12 +679,13 @@ static inline void session_init_source_area(Page *source_area, Session *session)
 	"source_area");
     Layout *source_area_lt = el->layout;
     Layout *clip_lt = layout_get_child_by_name_recursive(source_area_lt, "source_clip");
+    session->source_mode.timeview.rect = &clip_lt->rect;
     draw_arg.source_area_rect = &source_area_lt->rect;
     draw_arg.source_clip_rect = &clip_lt->rect;
 
 }
 
-static inline void session_init_output_spectrum(Page *output_spectrum, Session *session)
+static void session_init_output_spectrum(Page *output_spectrum, Session *session)
 {
     
     double *arrays[] = {
@@ -641,11 +710,458 @@ static inline void session_init_output_spectrum(Page *output_spectrum, Session *
 	"freqplot");
     /* proj=saved_glob_proj; /\* Not great *\/ */
 }
+PageEl *page_add_keybutton(
+    Page *page,
+    const char *set_str,
+    const char *name,
+    ComponentFn action,
+    void *target,
+    const char *parent_lt_name,
+    bool stack_x,
+    bool stack_y,
+    float x_val,
+    float y_val)
+{
+    Layout *parent = layout_get_child_by_name_recursive(page->layout, parent_lt_name);
+    Layout *lt = layout_add_child(parent);
+    if (stack_x)
+	lt->x.type = STACK;
+    else
+	lt->x.type = REL;
+    if (stack_y)
+	lt->y.type = STACK;
+    else
+	lt->y.type = REL;
+    lt->x.value = x_val;
+    lt->y.value = y_val;
+    lt->w.type = SCALE;
+    lt->h.type = SCALE;
+    lt->w.value = 1.0;
+    lt->h.value = 1.0;
+    layout_set_name(lt, name);
+    PageElParams p;
+    p.button_p.font = main_win->mono_bold_font;
+    p.button_p.text_size = 12;
+    p.button_p.background_color = NULL;
+    p.button_p.set_str = (char *)set_str;
+    p.button_p.win = main_win;
+    p.button_p.action = action;
+    p.button_p.target = target;
+    p.button_p.text_color = &colors.light_grey;
+    PageEl *el = page_add_el(
+	page,
+	EL_BUTTON,
+	p,
+	name,
+	name);
+    Textbox *tb = ((Button* )el->component)->tb;
+    /* textbox_reset_full(tb); */
+    textbox_size_to_fit(tb, 4, 4);
+    /* tb->layout->rect.w = tb->layout->rect.h; */
+    /* layout_set_values_from_rect(tb->layout); */
+    /* layout_reset(tb->layout); */
+    /* layout_center_scale(tb->layout, true, true); */
+    textbox_set_border(tb, &colors.light_grey, 3);
+    tb->corner_radius = 4;
+    layout_center_agnostic(lt, false, true);
+    layout_force_reset(parent);
+    textbox_reset_full(tb);
+    return el;
+}
+
+int octave_down_componentfn(void *nullarg, void *nullarg2)
+{
+    mqwert_octave(-1);
+    return 0;
+}
+int octave_up_componentfn(void *nullarg, void *nullarg2)
+{
+    mqwert_octave(1);
+    return 0;
+}
+
+int velocity_down_componentfn(void *nullarg, void *nullarg2)
+{
+    mqwert_velocity(-1);
+    return 0;
+}
+int velocity_up_componentfn(void *nullarg, void *nullarg2)
+{
+    mqwert_velocity(1);
+    return 0;
+}
+
+int transpose_down_componentfn(void *nullarg, void *nullarg2)
+{
+    mqwert_transpose(-1);
+    return 0;
+}
+int transpose_up_componentfn(void *nullarg, void *nullarg2)
+{
+    mqwert_transpose(1);
+    return 0;
+}
+
+
+
+static void session_init_qwerty_piano(Page *page, Session *session)
+{
+    PageElParams p = {0};
+    layout_force_reset(page->layout);
+    page_add_el(
+	page,
+	EL_PIANO,
+	p,
+	"piano",
+	"piano");
+
+    Layout *ctrls = layout_get_child_by_name_recursive(page->layout, "ctrls");
+    Layout *ctrl_labels = layout_get_child_by_name_recursive(page->layout, "ctrl_labels");
+    
+    Layout *label_lt = layout_add_child(ctrl_labels);
+    label_lt->w.value = 100.0;
+    label_lt->h.type = SCALE; 
+    label_lt->h.value = 1.0;
+    layout_set_name(label_lt, "octave_label");
+    layout_reset(label_lt);
+    p.textbox_p.font = main_win->std_font;
+    p.textbox_p.text_size = 12;
+    p.textbox_p.set_str = "Octave:";
+    p.textbox_p.win = main_win;
+    PageEl *el = page_add_el(
+	page,
+	EL_TEXTBOX,
+	p,
+	"",
+	"octave_label");
+
+    Textbox *tb = el->component;
+    textbox_set_background_color(tb, NULL);
+    textbox_set_text_color(tb, &colors.light_grey);
+    /* layout_size_to_fit_children(tb->layout, true, 0); */
+    layout_center_agnostic(tb->layout, false, true);
+
+        
+    label_lt = layout_add_child(ctrl_labels);
+    label_lt->x.type = STACK;
+    label_lt->w.value = 100.0;
+    label_lt->h.type = SCALE; 
+    label_lt->h.value = 1.0;
+    layout_set_name(label_lt, "velocity_label");
+    layout_reset(label_lt);
+    p.textbox_p.font = main_win->std_font;
+    p.textbox_p.text_size = 12;
+    p.textbox_p.set_str = "Velocity:";
+    p.textbox_p.win = main_win;
+    el = page_add_el(
+	page,
+	EL_TEXTBOX,
+	p,
+	"",
+	"velocity_label");
+
+    tb = el->component;
+    textbox_set_background_color(tb, NULL);
+    textbox_set_text_color(tb, &colors.light_grey);
+    /* layout_size_to_fit_children(tb->layout, true, 0); */
+    layout_center_agnostic(tb->layout, false, true);
+
+    label_lt = layout_add_child(ctrl_labels);
+    label_lt->x.type = STACK;
+    label_lt->w.value = 100.0;
+    label_lt->h.type = SCALE; 
+    label_lt->h.value = 1.0;
+    layout_set_name(label_lt, "transpose_label");
+    layout_reset(label_lt);
+    p.textbox_p.font = main_win->std_font;
+    p.textbox_p.text_size = 12;
+    p.textbox_p.set_str = "Transpose:";
+    p.textbox_p.win = main_win;
+    el = page_add_el(
+	page,
+	EL_TEXTBOX,
+	p,
+	"",
+	"transpose_label");
+
+    tb = el->component;
+    textbox_set_background_color(tb, NULL);
+    textbox_set_text_color(tb, &colors.light_grey);
+    /* layout_size_to_fit_children(tb->layout, true, 0); */
+    layout_center_agnostic(tb->layout, false, true);
+    
+    /* layout_reset(ctrls); */
+	
+    el = page_add_keybutton(
+	page,
+	"Z↓",
+	"octave_down",
+	octave_down_componentfn,
+	NULL,
+	"ctrls",
+	true,
+	false,
+	0.0,
+	0.0);
+    button_bind_userfn(
+	el->component,
+	"midi_qwerty_octave_down",
+	MODE_MIDI_QWERTY,
+	&colors.burnt_umber,
+	NULL);
+
+    el = page_add_keybutton(
+	page,
+	"X↑",
+	"octave_up",
+	octave_up_componentfn,
+	NULL,
+	"ctrls",
+	true,
+	false,
+	5.0,
+	0.0);
+    button_bind_userfn(
+	el->component,
+	"midi_qwerty_octave_up",
+	MODE_MIDI_QWERTY,
+	&colors.burnt_umber,
+	NULL);
+
+    Layout *indicator_lt = layout_add_child(ctrls);
+
+    indicator_lt->x.type = STACK;
+    indicator_lt->x.value = 5.0;
+    indicator_lt->w.type = REL;
+    indicator_lt->w.value = 20.0;
+    indicator_lt->h.type = SCALE;
+    indicator_lt->h.value = 1.0;
+    layout_force_reset(ctrls);
+    layout_set_name(indicator_lt, "octave_ind");
+
+    p.textbox_p.set_str = mqwert_get_octave_str();
+    p.textbox_p.font = main_win->mono_bold_font;
+    p.textbox_p.text_size = 14;
+    p.textbox_p.win = main_win;
+    el = page_add_el(page,EL_TEXTBOX,p,"","octave_ind");
+    tb = el->component;
+    tb->live = true;
+    /* textbox_size_to_fit(tb, 4, 4); */
+    layout_center_agnostic(tb->layout, false, true);
+    layout_reset(tb->layout);
+
+    el = page_add_keybutton(
+	page,
+	"C↓",
+	"velocity_down",
+	velocity_down_componentfn,
+	NULL,
+	"ctrls",
+	false,
+	false,
+	100.0,
+	0.0);
+    button_bind_userfn(
+	el->component,
+	"midi_qwerty_velocity_down",
+	MODE_MIDI_QWERTY,
+	&colors.burnt_umber,
+	NULL);
+
+    el = page_add_keybutton(
+	page,
+	"V↑",
+	"velocity_up",
+	velocity_up_componentfn,
+	NULL,
+	"ctrls",
+	true,
+	false,
+	5.0,
+	0.0);
+    button_bind_userfn(
+	el->component,
+	"midi_qwerty_velocity_up",
+	MODE_MIDI_QWERTY,
+	&colors.burnt_umber,
+	NULL);
+
+    indicator_lt = layout_add_child(ctrls);
+
+    indicator_lt->x.type = STACK;
+    indicator_lt->x.value = 5.0;
+    indicator_lt->w.type = REL;
+    indicator_lt->w.value = 20.0;
+    indicator_lt->h.type = SCALE;
+    indicator_lt->h.value = 1.0;
+    layout_force_reset(ctrls);
+    layout_set_name(indicator_lt, "velocity_ind");
+
+    p.textbox_p.set_str = mqwert_get_velocity_str();
+    p.textbox_p.font = main_win->mono_bold_font;
+    p.textbox_p.text_size = 14;
+    p.textbox_p.win = main_win;
+    el = page_add_el(page,EL_TEXTBOX,p,"","velocity_ind");
+    tb = el->component;
+    tb->live = true;
+    /* textbox_size_to_fit(tb, 4, 4); */
+    layout_center_agnostic(tb->layout, false, true);
+    layout_reset(tb->layout);
+
+
+
+    el = page_add_keybutton(
+	page,
+	",↓",
+	"transpose_down",
+	transpose_down_componentfn,
+	NULL,
+	"ctrls",
+	false,
+	false,
+	200.0,
+	0.0);
+    button_bind_userfn(
+	el->component,
+	"midi_qwerty_transpose_down",
+	MODE_MIDI_QWERTY,
+	&colors.burnt_umber,
+	NULL);
+
+    el = page_add_keybutton(
+	page,
+	".↑",
+	"transpose_up",
+	transpose_up_componentfn,
+	NULL,
+	"ctrls",
+	true,
+	false,
+	5.0,
+	0.0);
+    button_bind_userfn(
+	el->component,
+	"midi_qwerty_transpose_up",
+	MODE_MIDI_QWERTY,
+	&colors.burnt_umber,
+	NULL);
+
+    indicator_lt = layout_add_child(ctrls);
+
+    indicator_lt->x.type = STACK;
+    indicator_lt->x.value = 5.0;
+    indicator_lt->w.type = REL;
+    indicator_lt->w.value = 20.0;
+    indicator_lt->h.type = SCALE;
+    indicator_lt->h.value = 1.0;
+    layout_force_reset(ctrls);
+    layout_set_name(indicator_lt, "transpose_ind");
+
+    p.textbox_p.set_str = mqwert_get_transpose_str();
+    p.textbox_p.font = main_win->mono_bold_font;
+    p.textbox_p.text_size = 14;
+    p.textbox_p.win = main_win;
+    el = page_add_el(page,EL_TEXTBOX,p,"","transpose_ind");
+    tb = el->component;
+    tb->live = true;
+    /* textbox_size_to_fit(tb, 4, 4); */
+    layout_center_agnostic(tb->layout, false, true);
+    layout_reset(tb->layout);
+
+
+    p.textbox_p.font = main_win->std_font;
+    p.textbox_p.text_size = 12;
+    p.textbox_p.set_str = "Active:";
+    p.textbox_p.win = main_win;
+    el = page_add_el(
+	page,
+	EL_TEXTBOX,
+	p,
+	"",
+	"active_label");
+
+    p.textbox_p.set_str = "Instrument:";
+    page_add_el(
+	page,
+	EL_TEXTBOX,
+	p,
+	"",
+        "monitor_device_label");
+
+    p.textbox_p.set_str = mqwert_get_monitor_device_str();
+    p.textbox_p.font = main_win->mono_font;
+    el = page_add_el(
+	page,
+	EL_TEXTBOX,
+	p,
+	"",
+	"monitor_device_name");
+    tb = el->component;
+    tb->live = true;
+    /* textbox_set_text_color(tb, &colors.amber); */
+    textbox_set_align(tb, CENTER);
+    textbox_set_border(tb, &colors.dark_grey, 1);
+    textbox_set_pad(tb, 1, 2);
+    tb->corner_radius = 2;
+    textbox_set_trunc(tb, true);
+    textbox_reset_full(tb);
+
+    p.toggle_p.ep = mqwert_get_active_ep();
+
+    page_add_el(page,EL_TOGGLE,p,"","active_toggle");
+
+
+
+    
+    
+
+	
+    /* Layout *lt = layout_add_child(octave_area); */
+    /* lt->x.type = SCALE; */
+    /* lt->y.type = SCALE; */
+    /* lt->w.type = SCALE; */
+    /* lt->h.type = SCALE; */
+    /* lt->w.value = 1.0; */
+    /* lt->h.value = 1.0; */
+    /* layout_set_name(lt, "octave_up"); */
+    /* p.button_p.font = main_win->mono_bold_font; */
+    /* p.button_p.text_size = 12; */
+    /* p.button_p.background_color = NULL; */
+    /* p.button_p.set_str = "Z↓"; */
+    /* p.button_p.win = main_win; */
+    /* p.button_p.action = NULL; */
+    /* p.button_p.target = NULL; */
+    /* p.button_p.text_color = &colors.white; */
+    /* PageEl *el = page_add_el( */
+    /* 	page, */
+    /* 	EL_BUTTON, */
+    /* 	p, */
+    /* 	"octave_up", */
+    /* 	"octave_up"); */
+    /* Textbox *tb = ((Button* )el->component)->tb; */
+    /* /\* textbox_reset_full(tb); *\/ */
+    /* textbox_size_to_fit(tb, 4, 4); */
+    /* /\* tb->layout->rect.w = tb->layout->rect.h; *\/ */
+    /* /\* layout_set_values_from_rect(tb->layout); *\/ */
+    /* /\* layout_reset(tb->layout); *\/ */
+    /* /\* layout_center_scale(tb->layout, true, true); *\/ */
+    /* textbox_set_border(tb, &colors.white, 3); */
+    /* tb->corner_radius = 6; */
+    /* textbox_reset_full(tb); */
+
+    /* FILE *f = fopen("test.xml", "w"); */
+    /* layout_write(f, octave_area, 0); */
+    /* fclose(f); */
+    /* exit(1); */
+	
+	
+
+}
 
 
 void session_init_panels(Session *session)
 {
-    Layout *lt = layout_get_child_by_name_recursive(session->gui.layout, "panel_area");  
+    Layout *lt = layout_get_child_by_name_recursive(session->gui.layout, "panel_area");
     PanelArea *pa = panel_area_create(lt, main_win);
     session->gui.panels = pa;
     panel_area_add_panel(pa);
@@ -692,15 +1208,28 @@ void session_init_panels(Session *session)
 	&colors.white,
 	main_win);
 
-
+    Page *qwerty_piano = panel_area_add_page(
+	pa,
+	"QWERTY piano",
+	QWERTY_PANEL_LT_PATH,
+	NULL,
+	&colors.white,
+	main_win);
+    
     session_init_quickref_panels(quickref1, quickref2);
     session_init_output_panel(output_panel, session);
     session_init_source_area(source_area, session);
     session_init_output_spectrum(output_spectrum, session);
+    session_init_qwerty_piano(qwerty_piano, session);
     panel_select_page(pa, 0, 0);
     panel_select_page(pa, 1, 1);
     panel_select_page(pa, 2, 2);
     panel_select_page(pa, 3, 3);
     session->gui.panels_initialized = true;
+}
+
+void session_deinit_panels(Session *session)
+{
+    if (session->gui.panels) panel_area_destroy(session->gui.panels);
 }
 

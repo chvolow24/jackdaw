@@ -154,6 +154,9 @@ void user_tl_delete_timeline(void *nullarg);
 
 void user_tl_write_mixdown_to_wav(void *nullarg);
 
+void user_tl_activate_mqwert(void *nullarg);
+void user_tl_insert_jlily(void *nullarg);
+
 void user_source_play(void *nullarg);
 void user_source_pause(void *nullarg);
 void user_source_rewind(void *nullarg);
@@ -161,6 +164,10 @@ void user_source_play_slow(void *nullarg);
 void user_source_rewind_slow(void *nullarg);
 void user_source_set_in_mark(void *nullarg);
 void user_source_set_out_mark(void *nullarg);
+void user_source_zoom_in(void *nullarg);
+void user_source_zoom_out(void *nullarg);
+void user_source_move_left(void *nullarg);
+void user_source_move_right(void *nullarg);
 
 void user_modal_next(void *nullarg);
 void user_modal_previous(void *nullarg);
@@ -196,5 +203,30 @@ void user_autocomplete_previous(void *nullarg);
 void user_autocomplete_select(void *nullarg);
 void user_autocomplete_escape(void *nullarg);
 
+void user_midi_qwerty_escape(void *nullarg);
+void user_midi_qwerty_octave_up(void *nullarg);
+void user_midi_qwerty_octave_down(void *nullarg);
+void user_midi_qwerty_transpose_up(void *nullarg);
+void user_midi_qwerty_transpose_down(void *nullarg);
+void user_midi_qwerty_velocity_up(void *nullarg);
+void user_midi_qwerty_velocity_down(void *nullarg);
+void user_midi_qwerty_c1(void *nullarg);
+void user_midi_qwerty_cis1(void *nullarg);
+void user_midi_qwerty_d1(void *nullarg);
+void user_midi_qwerty_dis(void *nullarg);
+void user_midi_qwerty_e(void *nullarg);
+void user_midi_qwerty_f(void *nullarg);
+void user_midi_qwerty_fis(void *nullarg);
+void user_midi_qwerty_g(void *nullarg);
+void user_midi_qwerty_gis(void *nullarg);
+void user_midi_qwerty_a(void *nullarg);
+void user_midi_qwerty_ais(void *nullarg);
+void user_midi_qwerty_b(void *nullarg);
+void user_midi_qwerty_c2(void *nullarg);
+void user_midi_qwerty_cis2(void *nullarg);
+void user_midi_qwerty_d2(void *nullarg);
+void user_midi_qwerty_dis2(void *nullarg);
+void user_midi_qwerty_e2(void *nullarg);
+void user_midi_qwerty_f2(void *nullarg);
 
 #endif

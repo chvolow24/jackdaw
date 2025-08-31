@@ -528,7 +528,7 @@ void timeline_click_track_edit(Timeline *tl)
     ClickTrack *tt = timeline_selected_click_track(tl);
     if (!tt) return;
 
-    TabView *tv = tabview_create("Track Settings", session->gui.layout, main_win);
+    TabView *tv = tabview_create("Click track settings", session->gui.layout, main_win);
     click_track_populate_settings_tabview(tt, tv);
 
     tabview_activate(tv);

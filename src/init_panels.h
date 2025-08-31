@@ -22,5 +22,6 @@ typedef struct session Session;
 typedef struct layout Layout;
 
 void session_init_panels(Session *session);
+void session_deinit_panels(Session *session);
 
 #endif

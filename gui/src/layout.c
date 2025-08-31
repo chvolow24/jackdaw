@@ -1164,6 +1164,20 @@ Layout *layout_add_complementary_child(Layout *parent, RectMem comp_rm)
     
 }
 
+void layout_reparent_all(Layout *old_parent, Layout *new_parent)
+{
+    for (int i=0; i<old_parent->num_children; i++) {
+	Layout *child = old_parent->children[i];
+	child->parent = new_parent;
+	layout_realloc_children_maybe(new_parent);
+	new_parent->children[new_parent->num_children] = child;
+	child->index = new_parent->num_children;
+	new_parent->num_children++;
+    }
+    old_parent->num_children = 0;
+    layout_reset(new_parent);
+}
+
 void layout_reparent(Layout *child, Layout *parent)
 {
     child->parent = parent;
@@ -1177,8 +1191,8 @@ void layout_reparent(Layout *child, Layout *parent)
 void layout_center_agnostic(Layout *lt, bool horizontal, bool vertical)
 {
     layout_force_reset(lt);
-    if (horizontal) lt->rect.x = lt->parent->rect.x + lt->parent->rect.w / 2 - lt->rect.w / 2;
-    if (vertical) lt->rect.y = lt->parent->rect.y + lt->parent->rect.h / 2 - lt->rect.h / 2;
+    if (horizontal) lt->rect.x = round((float)lt->parent->rect.x + (float)lt->parent->rect.w / 2.0f - (float)lt->rect.w / 2.0f);
+    if (vertical) lt->rect.y = round((float)lt->parent->rect.y + (float)lt->parent->rect.h / 2.0f - (float)lt->rect.h / 2.0f);
     layout_set_values_from_rect(lt);
 }
 
@@ -1362,6 +1376,11 @@ void layout_size_to_fit_children_h(Layout *lt, bool fixed_origin, int padding)
 
 void layout_size_to_fit_children_v(Layout *lt, bool fixed_origin, int padding)
 {
+    if (lt->num_children == 0) {
+	lt->rect.h = 0;
+	layout_set_values_from_rect(lt);
+	return;
+    }
     int min_y = INT_MAX;
     int max_y = INT_MIN;
     int bottom;
@@ -1602,7 +1621,6 @@ void reset_iterations(LayoutIterator *iter)
         iteration->rect.y = y;
         iteration->rect.w = w;
         iteration->rect.h = h;
-//        set_values_from_rect(iteration);
         switch (iter->type) {
             case VERTICAL:
 		iteration->rect.y -= scroll_offset;

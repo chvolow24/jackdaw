@@ -27,17 +27,16 @@
 #include "function_lookup.h"
 #include "input.h"
 #include "layout.h"
-#include "midi_file.h"
 #include "midi_clip.h"
+#include "midi_qwerty.h"
 #include "mouse.h"
+#include "piano.h"
 #include "project.h"
 #include "project_draw.h"
-#include "prompt_user.h"
 #include "screenrecord.h"
 #include "session_endpoint_ops.h"
 #include "session.h"
 #include "settings.h"
-#include "synth_page.h"
 #include "tempo.h"
 #include "timeline.h"
 #include "transport.h"
@@ -68,7 +67,10 @@ extern Project *proj;
 
 TabView *synth_tabview_create(Track *track);
 void user_global_quit(void *);
+/* void timeline_add_jlily(); */
+/* Piano piano = {0}; */
 
+/* extern bool do_blep; */
 void loop_project_main()
 {
     Session *session = session_get();
@@ -89,7 +91,7 @@ void loop_project_main()
     uint8_t animate_step = 0;
     bool set_i_state_k = false;
 
-    window_push_mode(main_win, TIMELINE);
+    window_push_mode(main_win, MODE_TIMELINE);
 
     bool first_frame = true;
     int wheel_event_recency = 0;
@@ -121,20 +123,20 @@ void loop_project_main()
 		window_set_mouse_point(main_win, e.motion.x, e.motion.y);		
 
 		switch (TOP_MODE) {
-		case MODAL:
+		case MODE_MODAL:
 		    mouse_triage_motion_modal();
 		    break;
-		case MENU_NAV:
+		case MODE_MENU_NAV:
 		    mouse_triage_motion_menu();
 		    break;
-		case AUTOCOMPLETE_LIST:
+		case MODE_AUTOCOMPLETE_LIST:
 		    mouse_triage_motion_autocompletion();
 		    break;
-		case TIMELINE:
+		case MODE_TIMELINE:
 		    if (!mouse_triage_motion_page() && !mouse_triage_motion_tabview()) {
 			mouse_triage_motion_timeline(e.motion.xrel, e.motion.yrel);
 		    }
-		case TABVIEW:
+		case MODE_TABVIEW:
 		    if (!mouse_triage_motion_tabview())
 			mouse_triage_motion_page();
 		    break;
@@ -182,8 +184,24 @@ void loop_project_main()
 		/* } */
 
 		switch (e.key.keysym.scancode) {
-		case SDL_SCANCODE_2: {
-		    synth_save_preset();
+		/* case SDL_SCANCODE_2: */
+		/*     mqwert_activate(); */
+		/*     timeline_check_set_midi_monitoring(); */
+		    /* break; */
+		/* case SDL_SCANCODE_2: { */
+		/*     break; */
+		/*     Layout *lt = layout_add_child(main_win->layout); */
+		/*     /\* layout_set_default_dims(lt); *\/ */
+		/*     lt->w.type = SCALE; */
+		/*     lt->h.type = SCALE; */
+		/*     lt->w.value = 0.3; */
+		/*     lt->h.value = 0.1; */
+		/*     lt->x.type = SCALE; */
+		/*     lt->y.type = SCALE; */
+		/*     lt->x.value = 0.3; */
+		/*     lt->y.value = 0.3; */
+		/*     piano_init(&piano, lt); */
+		    /* synth_save_preset(); */
 		/*     Timeline *tl = ACTIVE_TL; */
 		/*     Track *t = timeline_selected_track(tl); */
 		/*     if (t && t->synth) */
@@ -192,10 +210,11 @@ void loop_project_main()
 		/*     /\* api_node_serialize(f, &session->proj.timelines[0]->api_node); *\/ */
 		/*     /\* fclose(f); *\/ */
 
-		}
-		    break;
-		case SDL_SCANCODE_3: {
-		    synth_open_preset();
+		/* } */
+		/*     break; */
+		/* case SDL_SCANCODE_3: { */
+		/*     break; */
+		    /* synth_open_preset(); */
 		/*     Timeline *tl = ACTIVE_TL; */
 		/*     Track *t = timeline_selected_track(tl); */
 		/*     if (t && t->synth) */
@@ -204,9 +223,10 @@ void loop_project_main()
 		/*     /\* FILE *f = fopen("test_ser.txt", "r"); *\/ */
 		/*     /\* api_node_deserialize(f, &session->proj.timelines[0]->api_node); *\/ */
 		/*     /\* fclose(f); *\/ */
-		}
-		    break;
+		/* } */
+		/*     break; */
 		/* case SDL_SCANCODE_4: */
+		/*     break; */
 		/*     do_blep = !do_blep; */
 		/*     if (do_blep) { */
 		/* 	fprintf(stderr, "DOING BLEP!\n"); */
@@ -224,78 +244,49 @@ void loop_project_main()
 
 		/* } */
 		/*     break; */
-		case SDL_SCANCODE_6: {
-		    Timeline *tl = ACTIVE_TL;
-		    Track *track = timeline_selected_track(tl);
-		    if (!track) break;
-		    MIDIClip *mclip = midi_clip_create(NULL, track);
-		    /* midi_clip_init(mclip); */
-		    /* memset(mclip, '\0', sizeof(MIDIClip)); */
-		    /* if (!mclip->refs) { */
-		    /* 	mclip->refs_alloc_len = 6; */
-		    /* 	mclip->refs = calloc(6, sizeof(ClipRef *)); */
-		    /* } */
-		    /* sprintf(mclip->name, "mclip!"); */
-		    /* mclip->len_sframes = 96000; */
-
-		    /* midi_clip_add_note(&mclip, 94, 127, 10000, 19000); */
-		    /* midi_clip_add_note(&mclip, 60, 127, 1000, 10000); */
-		    /* midi_clip_add_note(&mclip, 64, 127, 10000, 20000); */
-		    /* midi_clip_add_note(&mclip, 67, 127, 20000, 30000); */
-		    /* midi_clip_add_note(&mclip, 60, 127, 30000, 80000); */
-		    /* midi_clip_add_note(&mclip, 64, 127, 30000, 80000); */
-		    /* midi_clip_add_note(&mclip, 67, 127, 30000, 80000); */
-
-		    int32_t start = 96000 * 5;
-		    /* int32_t end = 10000; */
-		    midi_clip_add_note(mclip, 69, 108, 100, 100 + 96000);
-		    srand(time(NULL));
-		    mclip->len_sframes = 96000 * 5;
-		    for (int i=0; i<900; i++) {
-			int32_t dur = rand() % 30000;
-			int32_t interval = rand() % 11 + 1;
-			int32_t t_interval = rand() % 5000 + 1000;
-			uint8_t velocity = rand() % 128;
-			for (int i=25; i<25 + 80; i+=interval) {
-			    interval += rand() % 4 - 2;
-			    if (interval <= 0) interval += rand() %4 + 1;
-			    midi_clip_add_note(mclip, i, velocity, start, start + dur);
-			    start += t_interval;;
-			    /* end += 3000; */
-			    /* mclip->len_sframes += t_interval; */
-			    mclip->len_sframes += t_interval;
-			}
-		    }
-
-		    /* midi_clip_add_note(&mclip, 78, 127, 3, 1000); */
-		    /* midi_clip_add_note(&mclip, 85, 127, 3, 1000); */
-		    /* midi_clip_add_note(&mclip, 97, 127, 3, 1000); */
-		    /* midi_clip_add_note(&mclip, 96, 127, 1500, 6000); */
-		    /* midi_clip_add_note(&mclip, 95, 127, 6000, 10000); */
-
-		    clipref_create(
-			track,
-			tl->play_pos_sframes,
-			CLIP_MIDI,
-			mclip);
-			
-		}
-		    break;
-		/* case SDL_SCANCODE_6: { */
-		/*     do_interpolation = !do_interpolation; */
+		/* case SDL_SCANCODE_5: { */
+		/*     break; */
+		    /* timeline_add_jlily(); */
 		/* } */
 		/*     break; */
 		/* case SDL_SCANCODE_6: { */
 		/*     Timeline *tl = ACTIVE_TL; */
-		/*     Track* sel = timeline_selected_track(tl); */
-		/*     Effect *e = track_add_effect(sel, i); */
-		/*     fprintf(stderr, "Applying %s\n", effect_type_str(i)); */
-		/*     /\* Saturation *s = e->obj; *\/ */
-		/*     /\* s->active = true; *\/ */
-		/*     /\* saturation_set_gain(s, 20.0); *\/ */
-		/*     i++; */
-		/*     i%=4; */
-		    
+		/*     Track *track = timeline_selected_track(tl); */
+		/*     if (!track) break; */
+		/*     MIDIClip *mclip = midi_clip_create(NULL, track); */
+		/*     int32_t start = 96000 * 5; */
+		/*     /\* int32_t end = 10000; *\/ */
+		/*     midi_clip_add_note(mclip, 0, 69, 108, 100, 100 + 96000); */
+		/*     srand(time(NULL)); */
+		/*     mclip->len_sframes = 96000 * 5; */
+		/*     for (int i=0; i<900; i++) { */
+		/* 	int32_t dur = rand() % 30000; */
+		/* 	int32_t interval = rand() % 11 + 1; */
+		/* 	int32_t t_interval = rand() % 5000 + 1000; */
+		/* 	uint8_t velocity = rand() % 128; */
+		/* 	for (int i=25; i<25 + 80; i+=interval) { */
+		/* 	    interval += rand() % 4 - 2; */
+		/* 	    if (interval <= 0) interval += rand() %4 + 1; */
+		/* 	    midi_clip_add_note(mclip, 0, i, velocity, start, start + dur); */
+		/* 	    start += t_interval; */
+		/* 	    /\* end += 3000; *\/ */
+		/* 	    /\* mclip->len_sframes += t_interval; *\/ */
+		/* 	    mclip->len_sframes += t_interval; */
+		/* 	} */
+		/*     } */
+
+		/*     /\* midi_clip_add_note(&mclip, 78, 127, 3, 1000); *\/ */
+		/*     /\* midi_clip_add_note(&mclip, 85, 127, 3, 1000); *\/ */
+		/*     /\* midi_clip_add_note(&mclip, 97, 127, 3, 1000); *\/ */
+		/*     /\* midi_clip_add_note(&mclip, 96, 127, 1500, 6000); *\/ */
+		/*     /\* midi_clip_add_note(&mclip, 95, 127, 6000, 10000); *\/ */
+
+		/*     clipref_create( */
+		/* 	track, */
+		/* 	tl->play_pos_sframes, */
+		/* 	CLIP_MIDI, */
+		/* 	mclip); */
+			
 		/* } */
 		/*     break; */
 		/* case SDL_SCANCODE_6: { */
@@ -361,10 +352,12 @@ void loop_project_main()
 		    main_win->i_state |= I_STATE_META;
 		    break;
 	        case SDL_SCANCODE_K:
-		    if (main_win->i_state & I_STATE_K) {
-			break;
-		    } else {
-			set_i_state_k = true;
+		    if (TOP_MODE != MODE_MIDI_QWERTY) {
+			if (main_win->i_state & I_STATE_K) {
+			    break;
+			} else {
+			    set_i_state_k = true;
+			}
 		    }
 		    /* No break */
 		default:
@@ -376,6 +369,13 @@ void loop_project_main()
 			status_cat_callstr(" : ");
 			status_cat_callstr(input_fn->fn_display_name);
 			input_fn->do_fn(NULL);
+			if (input_fn->bound_button) {
+			    button_press_color_change(
+				input_fn->bound_button,
+				input_fn->bound_button->pressed_color,
+				input_fn->bound_button->return_color);
+
+			}
 			/* timeline_reset(ACTIVE_TL); */
 		    }
 		    break;
@@ -384,6 +384,9 @@ void loop_project_main()
 	    case SDL_KEYUP:
 		scrolling_lt = NULL;
 		temp_scrolling_lt = NULL;
+		if (session->midi_qwerty) {
+		    mqwert_handle_key(e.key.keysym.sym, true);
+		}
 		switch (e.key.keysym.scancode) {
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
@@ -433,7 +436,7 @@ void loop_project_main()
 		Layout *modal_scrollable = NULL;
 		if ((modal_scrollable = mouse_triage_wheel(e.wheel.x * TL_SCROLL_STEP_H, e.wheel.y * TL_SCROLL_STEP_V, fingersdown))) {
 		    temp_scrolling_lt = modal_scrollable;
-		} else if (main_win->modes[main_win->num_modes - 1] == TIMELINE || main_win->modes[main_win->num_modes - 1] == TABVIEW) {
+		} else if (main_win->modes[main_win->num_modes - 1] == MODE_TIMELINE || main_win->modes[main_win->num_modes - 1] == MODE_TABVIEW) {
 		    if (main_win->i_state & I_STATE_SHIFT) {
 			if (fabs(e.wheel.preciseY) > fabs(e.wheel.preciseX)) {
 			    scrub_block = true;
@@ -486,29 +489,30 @@ void loop_project_main()
 		}
 	    escaped_text_edit:
 		switch(TOP_MODE) {
-		case TIMELINE:
+		case MODE_MIDI_QWERTY:
+		case MODE_TIMELINE:
 		    /* if (!mouse_triage_click_page() && !mouse_triage_click_tabview()) */
-			mouse_triage_click_project(e.button.button);
+		    mouse_triage_click_project(e.button.button);
 		    break;
-		case MENU_NAV:
+		case MODE_MENU_NAV:
 		    mouse_triage_click_menu(e.button.button);
 		    break;
-		case MODAL:
+		case MODE_MODAL:
 		    mouse_triage_click_modal(e.button.button);
 		    break;
-		case AUTOCOMPLETE_LIST:
+		case MODE_AUTOCOMPLETE_LIST:
 		    mouse_triage_click_autocompletion();
 		    break;
-		case TEXT_EDIT:
+		case MODE_TEXT_EDIT:
 		    if (!mouse_triage_click_text_edit(e.button.button)) {
-			if (TOP_MODE == TEXT_EDIT) {
+			if (TOP_MODE == MODE_TEXT_EDIT) {
 			    fprintf(stderr, "Error: text edit escaped improperly");
 			    window_pop_mode(main_win);
 			}
 			goto escaped_text_edit;
 		    }
 		    break;
-		case TABVIEW:
+		case MODE_TABVIEW:
 		    if (!mouse_triage_click_tabview())
 			mouse_triage_click_page();
 		    break;
@@ -599,13 +603,15 @@ void loop_project_main()
 
 	}
 	
-	if (session->playback.play_speed != 0 && !session->source_mode.source_mode) {
+	if (fabs(session->playback.play_speed) > 1e-9 && !session->source_mode.source_mode) {
 	    timeline_catchup(tl);
 	    timeline_set_timecode(tl);
 	    for (int i=0; i<tl->num_click_tracks; i++) {
 		int bar, beat, subdiv;
 		click_track_bar_beat_subdiv(tl->click_tracks[i], tl->play_pos_sframes, &bar, &beat, &subdiv, NULL, true);
 	    }
+	} else if (session->source_mode.source_mode && fabs(session->source_mode.src_play_speed) > 1e-9) {
+	    timeview_catchup(&session->source_mode.timeview);
 	}
 
 	if (animate_step == 255) {
@@ -661,14 +667,14 @@ void loop_project_main()
 	    if (elapsed_s > 0.05) {
 		goto end_frame;
 	    }
-	    int32_t play_pos_adj = tl->play_pos_sframes + elapsed_s * session->proj.sample_rate * session->playback.play_speed;
+	    int32_t play_pos_adj = tl->play_pos_sframes + elapsed_s * session_get_sample_rate() * session->playback.play_speed;
 	    for (uint8_t i=0; i<tl->num_tracks; i++) {
 		Track *track = tl->tracks[i];
 		for (uint8_t ai=0; ai<track->num_automations; ai++) {
 		    Automation *a = track->automations[ai];
 		    if (a->write) {
 			/* if (!a->current) a->current = automation_get_segment(a, play_pos_adj); */
-			int32_t frame_dur = session->proj.sample_rate * session->playback.play_speed / 30.0;
+			int32_t frame_dur = session_get_sample_rate() * session->playback.play_speed / 30.0;
 			Value val = endpoint_safe_read(a->endpoint, NULL);
 			/* fprintf(stderr, "READ FLOATVAL (%s): %f\n", a->endpoint->local_id, val.float_v); */
 			automation_do_write(a, val, play_pos_adj, play_pos_adj + frame_dur, session->playback.play_speed);

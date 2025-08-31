@@ -101,7 +101,7 @@ void clip_destroy(Clip *clip)
     for (uint16_t i=0; i<proj->num_clips; i++) {
 	if (proj->clips[i] == clip) {
 	    /* fprintf(stdout, "\tFOUND clip at pos %d\n", i); */
-	    displace=true;
+	    displace = true;
 	} else if (displace && i > 0) {
 	    /* fprintf(stdout, "\tmoving clip %p from pos %d to %d\n", proj->clips[i], i, i-1); */
 	    proj->clips[i-1] = proj->clips[i];
@@ -120,7 +120,7 @@ void clip_destroy(Clip *clip)
 	    *dropped_clip = NULL;
 	}
     }
-
+    free(clip->refs);
     free(clip);
 }
 

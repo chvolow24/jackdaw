@@ -9,24 +9,41 @@
 *****************************************************************************************************************/
 
 /*****************************************************************************************************************
-    note.h
+    piano.h
 
-    * Notes as represented on a piano roll
-    * Can be translated to MIDI messages
+    * drawable 18-key piano keyboard
+    * includes labels for QWERTY piano emulator (see midi_qwerty.h)
+
 *****************************************************************************************************************/
 
-#ifndef JDAW_NOTE_H
-#define JDAW_NOTE_H
+#ifndef JDAW_PIANO_H
+#define JDAW_PIANO_H
 
-#include <stdint.h>
+#include "layout.h"
+#include "textbox.h"
 
-typedef struct note {
-    uint8_t note;
-    uint8_t velocity;
-    int32_t start_rel; /* sample frames from clip start */
-    int32_t end_rel; /* sample frames from clip start */
-} Note;
+#define PIANO_NUM_KEYS 18
 
-double mtof_calc(double m);
+typedef struct piano {
+    Layout *container;
+    Layout *layout;
+    Textbox *key_labels[PIANO_NUM_KEYS];
+    SDL_Rect *key_rects[PIANO_NUM_KEYS];
+} Piano;
+
+typedef struct piano_area {
+    Layout *container;
+    Layout *layout;
+    Piano piano;
+} PianoArea;
+
+/* Initializes members, allocates textboxes */
+void piano_init(Piano *piano, Layout *container);
+
+/* Allocates space for piano and inits */
+Piano *piano_create(Layout *container);
+void piano_destroy(Piano *piano);
+
+void piano_draw(Piano *piano);
 
 #endif

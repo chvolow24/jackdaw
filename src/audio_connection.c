@@ -144,7 +144,7 @@ int audioconn_open(Session *session, AudioConn *conn)
 	if (session->proj_initialized) {
 	    device->spec.format = session->proj.fmt;
 	    device->spec.samples = session->proj.chunk_size_sframes;
-	    device->spec.freq = session->proj.sample_rate;
+	    device->spec.freq = session_get_sample_rate();
 	    device->spec.channels = session->proj.channels;
 	} else {
 	    device->spec.format = DEFAULT_SAMPLE_FORMAT;
@@ -173,7 +173,7 @@ int audioconn_open(Session *session, AudioConn *conn)
 	if (conn->iscapture) {
 	    /* fprintf(stdout, "Dev %s\n:ch %d, freq %d, format %d (== %d)\n", device->name, obtained.channels, obtained.freq, obtained.format, AUDIO_S16LSB); */
 	    /* exit(1); */
-	    /* device->rec_buf_len_samples = session->proj.sample_rate * DEVICE_BUFLEN_SECONDS * device->spec.channels; */
+	    /* device->rec_buf_len_samples = session_get_sample_rate() * DEVICE_BUFLEN_SECONDS * device->spec.channels; */
 	    device->rec_buf_len_samples = DEVICE_BUFLEN_CHUNKS * session->proj.chunk_size_sframes * session->proj.channels;
 	    uint32_t device_buf_len_bytes = device->rec_buf_len_samples * sizeof(int16_t);
 	    if (!device->rec_buffer) {

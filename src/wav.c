@@ -87,6 +87,7 @@ static void write_wav_header(FILE *f, uint32_t num_samples, uint16_t bits_per_sa
     fwrite(&bits_per_sample, 2, 1, f);
     fwrite(chunk_id, 1, 4, f);
     fwrite(&chunk_size, 4, 1, f);
+    
 }
 
 static void write_wav(const char *fname, int16_t *samples, uint32_t num_samples, uint16_t bits_per_sample, uint8_t channels)
@@ -230,7 +231,7 @@ int32_t wav_load(const char *filename, float **L, float **R)
     if (session->proj_initialized) {
 	fmt = session->proj.fmt;
 	channels = session->proj.channels;
-	sample_rate = session->proj.sample_rate;
+	sample_rate = session_get_sample_rate();
     } else {
 	fmt = DEFAULT_SAMPLE_FORMAT;
 	channels = 2;

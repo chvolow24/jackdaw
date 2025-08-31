@@ -202,7 +202,6 @@ void txt_set_value(Text *txt, char *set_str)
 /*     return 0; */
 /* } */
 
-
 Text *txt_create_from_str(
     char *set_str,
     int max_len,
@@ -330,7 +329,7 @@ void txt_edit(Text *txt, void (*draw_fn) (void))
     txt_reset_display_value(txt);
     txt->cursor_start_pos = 0;
     txt->cursor_end_pos = txt->len;
-    window_push_mode(main_win, TEXT_EDIT);
+    window_push_mode(main_win, MODE_TEXT_EDIT);
     main_win->txt_editing = txt;
     if (txt->cached_value) {
 	free(txt->cached_value);
@@ -558,7 +557,7 @@ void ttf_destroy_font(Font *font)
 }
     
 
-TTF_Font *ttf_get_font_at_size(Font *font, int size)
+TTF_Font *ttf_get_font_at_size(const Font *font, int size)
 {
     int i = 0;
     int sizes[] = STD_FONT_SIZES;
@@ -586,6 +585,9 @@ void ttf_reset_dpi_scale_factor(Font *font)
 
 void txt_set_color(Text *txt, const SDL_Color *clr)
 {
+    SDL_Color new = *clr;
+    /* If color hasn't changed, don't reset the drawable */
+    if (memcmp(&txt->color, &new, sizeof(SDL_Color)) == 0) return;
     txt->color = *clr;
     txt_reset_drawable(txt);
 }
@@ -905,18 +907,50 @@ int txt_name_validation(Text *txt, char input)
     return txt_check_len(txt, MAX_NAMELENGTH);
 }
 
+int txt_float_validation(Text *txt, char input)
+{
+    if ((input < '0' || input > '9') && input != '.') {
+	status_set_errstr("Only decimal inputs allowed");
+	return 1;
+    }
+    if (input == '.') {
+	for (int i=0; i<strlen(txt->display_value); i++) {
+	    if (txt->display_value[i] == '.') {
+		return 1;
+	    }
+	}
+    }
+    return 0;
+}
+
 int txt_integer_validation(Text *txt, char input)
 {
-    /* if (strlen(txt->display_value) - (txt->cursor_end_pos - txt->cursor_start_pos) >= txt->max_len - 1) { */
-    /* 	char buf[255]; */
-    /* 	snprintf(buf, 255, "Field cannot exceed %d characters", txt->max_len - 1); */
-    /* 	status_set_errstr(buf); */
-    /* 	return 1; */
     if (input < '0' || input > '9') {
 	status_set_errstr("Only integer values allowed");
 	return 1;
     }
     return 0;
+}
+
+SDL_Texture *txt_create_texture(const char *str, SDL_Color color, const Font *font, int font_size, int *w, int *h)
+{
+    TTF_Font *ttf_font = ttf_get_font_at_size(font, font_size);
+    SDL_Surface *surface = TTF_RenderUTF8_Blended(ttf_font, str, color);
+    /* SDL_Surface *surface = TTF_RenderUTF8_Blended(font, test_str, txt->color); */
+    if (!surface) {
+        fprintf(stderr, "Error: TTF_RenderText_Blended failed: %s\n", TTF_GetError());
+        return NULL;
+    }
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(main_win->rend, surface);
+    if (!texture) {
+        fprintf(stderr, "Error: SDL_CreateTextureFromSurface failed: %s\n", TTF_GetError());
+        return NULL;
+    }
+    SDL_FreeSurface(surface);
+    if (w || h) {
+	SDL_QueryTexture(texture, NULL, NULL, w, h);
+    }
+    return texture;
 }
 
 #endif

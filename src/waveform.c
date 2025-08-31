@@ -117,7 +117,6 @@ void waveform_draw_freq_domain(struct logscale *la)
 
 void waveform_reset_freq_plot(struct freq_plot *fp)
 {
-    Session *session = session_get();
     for (int i=0; i<fp->num_plots; i++) {
 	struct logscale *ls;
 	if ((ls = fp->plots[i])) waveform_destroy_logscale(ls);
@@ -128,7 +127,7 @@ void waveform_reset_freq_plot(struct freq_plot *fp)
     }
     int tics[FREQ_PLOT_MAX_TICS];
     int num_tics = 0;
-    double nyquist = (double)session->proj.sample_rate / 2;
+    double nyquist = (double)session_get_sample_rate() / 2;
     double lognyq  = log(nyquist);
     int left_x = fp->container->rect.x;
     int w = fp->container->rect.w;

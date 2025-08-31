@@ -25,6 +25,7 @@
 #include "dsp_utils.h"
 #include "midi_clip.h"
 #include "midi_io.h"
+#include "midi_qwerty.h"
 #include "user_event.h"
 #include "mixdown.h"
 #include "porttime.h"
@@ -65,14 +66,15 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
 	clock_gettime(CLOCK_MONOTONIC, &now);
 
 	/* TODO
-
+	   
 	   These latency estimates, used for latency compensation, are
 	   spurious. I can more precisely estimate latency if/when I switch
 	   from SDL to PortAudio (or a similar, more audio-focused library
 	   that can report on ADC and DAC time in a callback).
 
 	*/
-	double est_latency_mult = 60.0f;
+	/* double est_latency_mult = 60.0f; */
+	double est_latency_mult = 0.0f;
 	double record_latency_ms = (double)1000.0f * 64.0 / proj->sample_rate;
 	double playback_latency_ms = est_latency_mult * record_latency_ms;
 
@@ -122,14 +124,19 @@ static float *get_source_mode_chunk(uint8_t channel, float *chunk, uint32_t len_
      /* 	 fprintf(stderr, "Error: unable to allocate chunk from source clip\n"); */
      /* } */
      Session *session = session_get();
-     
-     float *src_buffer = session->source_mode.src_clip->channels == 1 ? session->source_mode.src_clip->L :
-	 channel == 0 ? session->source_mode.src_clip->L : session->source_mode.src_clip->R;
+     Clip *clip = NULL;
+     if (session->source_mode.src_clip_type == CLIP_AUDIO) {
+	 clip = session->source_mode.src_clip;
+     } else {
+	 return NULL; /* TODO: source mode for MIDI */
+     }
+     float *src_buffer = clip->channels == 1 ? clip->L :
+	 channel == 0 ? clip->L : clip->R;
 
 
      for (uint32_t i=0; i<len_sframes; i++) {
 	 int sample_i = (int) (i * step + start_pos_sframes);
-	 if (sample_i < session->source_mode.src_clip->len_sframes && sample_i > 0) {
+	 if (sample_i < clip->len_sframes && sample_i > 0) {
 	     chunk[i] = src_buffer[sample_i];
 	 } else {
 	     chunk[i] = 0;
@@ -147,6 +154,7 @@ static inline float clip(float f)
     return f;
 }
 
+/* int DEBUG_MOD = 0; */
 void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 {
     Session *session = session_get();
@@ -201,18 +209,18 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     /* Check for monitor synth */
     MIDIDevice *d = session->midi_io.monitor_device;
     Synth *s = session->midi_io.monitor_synth;
+    /* fprintf(stderr, "d & s: %p %p\n", d, s); */
     if (d && s) {
-	/* fprintf(stderr, "DOING CHUNK\n"); */
 	midi_device_read(d);
-	/* if (d->num_unconsumed_events > 0) { */
-	/*     fprintf(stderr, "%d unconsumed!\n", d->num_unconsumed_events); */
-	/* } */
-	/* memcpy(s->events, d->buffer, d->num_unconsumed_events * sizeof(PmEvent)); */
-	/* s->num_events = d->num_unconsumed_events; */
 	synth_feed_midi(s, d->buffer, d->num_unconsumed_events, 0, true);
-	/* fprintf(stderr, "Current clip: %p, recording? %d\n", d->current_clip, d->current_clip->recording); */
+	/* if (DEBUG_MOD > 500) { */
+	/*     fprintf(stderr, "Device %p (%s) current clip: %p\n", d, d->name, d->current_clip); */
+	/*     DEBUG_MOD=0;	     */
+	/* } */
+	/* DEBUG_MOD++; */
+	/* exit(1); */
 	if (d->current_clip && d->current_clip->recording) {
-	    midi_device_record_chunk(d, 1);
+	    midi_device_output_chunk_to_clip(d, 1);
 	    d->current_clip->len_sframes += len_sframes;
 	}
 	d->num_unconsumed_events = 0;
@@ -230,13 +238,13 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     }
 
 
-    if (session->source_mode.source_mode) {
-	session->source_mode.src_play_pos_sframes += session->source_mode.src_play_speed * stream_len_samples / session->source_mode.src_clip->channels;
-	if (session->source_mode.src_play_pos_sframes < 0 || session->source_mode.src_play_pos_sframes > session->source_mode.src_clip->len_sframes) {
+    if (session->source_mode.source_mode && session->source_mode.src_clip_type == CLIP_AUDIO) {
+	Clip *clip = session->source_mode.src_clip;
+	session->source_mode.src_play_pos_sframes += session->source_mode.src_play_speed * stream_len_samples / clip->channels;
+	if (session->source_mode.src_play_pos_sframes < 0 || session->source_mode.src_play_pos_sframes > clip->len_sframes) {
 	    session->source_mode.src_play_pos_sframes = 0;
 	}
 	tl->needs_redraw = true;
-
     } else {
 	int32_t diff = tl->read_pos_sframes - tl->play_pos_sframes;
 	/* timeline_move_play_position(tl, session->playback.play_speed * stream_len_samples / proj->channels); */
@@ -416,7 +424,7 @@ static void *transport_dsp_thread_fn(void *arg)
 
 	
 	double time = ((double)clock() - performance_timer) / CLOCKS_PER_SEC;
-	double alloc_time = (double)session->proj.fourier_len_sframes / session->proj.sample_rate;
+	double alloc_time = (double)session->proj.fourier_len_sframes / session_get_sample_rate();
 	double out = 0.9 * last_t + 0.1 * (time / alloc_time);
 	/* fprintf(stderr, "STRESS: %f\n", out); */
 	last_t = out;
@@ -468,7 +476,7 @@ void transport_start_playback()
 
     /* Set stack size */
     size_t orig_stack_size;
-    size_t desired_stack_size = 2 * sizeof(double) * session->proj.sample_rate;
+    size_t desired_stack_size = 2 * sizeof(double) * session_get_sample_rate();
     int page_size = getpagesize();
     int num_pages = desired_stack_size / page_size;
     desired_stack_size = num_pages * page_size;
@@ -495,7 +503,9 @@ void transport_start_playback()
 void transport_stop_playback()
 {
     Session *session = session_get();
+    if (!session->playback.playing) return;
     Timeline *tl = ACTIVE_TL;
+    if (!tl) return;
     audioconn_stop_playback(session->audio_io.playback_conn);
 
     pthread_cancel(*get_thread_addr(JDAW_THREAD_DSP));
@@ -547,6 +557,7 @@ void transport_start_recording()
     Timeline *tl = ACTIVE_TL;
     tl->record_from_sframes = tl->play_pos_sframes;
     AudioConn *conn;
+    bool activate_mqwert = false;
     /* for (int i=0; i<proj->num_record_conns; i++) { */
     /* 	if ((dev = proj->record_conns[i]) && dev->active) { */
     /* 	    conn_open(proj, dev); */
@@ -588,10 +599,15 @@ void transport_start_recording()
 		mdevice->recording = true;
 		fprintf(stderr, "Opening midi device...\n");
 		midi_device_open(mdevice);
+		if (mdevice->type == MODE_MIDI_QWERTY) {
+		    activate_mqwert = true;
+		}
 		MIDIClip *mclip = midi_clip_create(mdevice, track);
 		mdevice->record_start = Pt_Time();
 		fprintf(stderr, "Setting record start? %d\n", mdevice->record_start);
 		mclip->recording = true;
+		fprintf(stderr, "TRACK INPUT: %p (%s)\n", track->input, mdevice->name);
+		fprintf(stderr, "SETTING CLIP %p recording true\n", mclip);
 		/* mclilen_sframesp-> */
 		mdevice->current_clip = mclip;
 		/* conn->current_clip_repositioned = false; */
@@ -631,9 +647,14 @@ void transport_start_recording()
 	} else if (track->input_type == MIDI_DEVICE) {
 	    MIDIDevice *mdevice = track->input;
 	    midi_device_open(mdevice);
+	    fprintf(stderr, "Device type??? %d\n", mdevice->type);
+	    if (mdevice->type == MIDI_DEVICE_QWERTY) {
+		activate_mqwert = true;
+	    }
 	    MIDIClip *mclip = midi_clip_create(mdevice, track);
 	    mclip->recording = true;
 	    mdevice->current_clip = mclip;
+	    fprintf(stderr, "DEVICE %p NAME: %s\n", track->input, mdevice->name);
 	    mdevice->record_start = Pt_Time();
 	    fprintf(stderr, "Setting record start? %d\n", mdevice->record_start);
 
@@ -657,6 +678,10 @@ void transport_start_recording()
     }
     session->playback.recording = true;
 
+    if (activate_mqwert) {
+	fprintf(stderr, "ACTIVATE\n");
+	mqwert_activate();
+    }
 
     PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_record");
     Textbox *record_button = ((Button *)el->component)->tb;
@@ -858,6 +883,7 @@ void transport_stop_recording()
 	MIDIClip *mclip = session->proj.midi_clips[session->proj.active_midi_clip_index];
 	mclip->recording = false;
 	mclip->recorded_from->recording = false;
+	midi_device_close_all_notes(mclip->recorded_from);
 	session->proj.active_midi_clip_index++;
     }
 
@@ -865,6 +891,8 @@ void transport_stop_recording()
     while (num_conns_to_close > 0) {
 	audioconn_close(conns_to_close[--num_conns_to_close]);
     }
+
+    /* mqwert_deactivate(); */
     /* for (int i=0; i<session->midi_io.num_inputs; i++) { */
     /* 	MIDIDevice *d = session->midi_io.inputs + i; */
     /* 	if (!d->info->is_virtual) { */

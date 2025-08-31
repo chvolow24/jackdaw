@@ -18,6 +18,7 @@
 #include "layout.h"
 #include "midi_clip.h"
 #include "page.h"
+#include "piano.h"
 #include "project.h"
 #include "session.h"
 #include "symbol.h"
@@ -29,7 +30,6 @@
 
 extern Window *main_win;
 extern struct colors colors;
-
 
 /******************** DARKER ********************/
 /* SDL_Color track_bckgrnd = {90, 100, 110, 255}; */
@@ -54,7 +54,7 @@ SDL_Color ruler_bckgrnd = {10, 10, 10, 255};
 SDL_Color control_bar_bckgrnd = {22, 28, 34, 255};
 SDL_Color track_selector_color = {100, 190, 255, 255};
 
-SDL_Color grey_mask = {30, 30, 30, 190};
+SDL_Color grey_mask = {30, 30, 30, 210};
 
 SDL_Color clip_ref_bckgrnd = {20, 200, 120, 200};
 SDL_Color clip_ref_grabbed_bckgrnd = {50, 230, 150, 230};
@@ -194,7 +194,11 @@ static void clipref_draw(ClipRef *cr)
 	clipref_draw_waveform(cr);
     }
 
-    int border = cr->grabbed ? 4 : 3;	
+    int border = cr->grabbed ? 4 : 3;
+    if (cr->track->minimized) {
+	border /= 2;
+    }
+	
 
     if (cr->type == CLIP_MIDI) {
 	static const int midi_piano_range = 88;
@@ -202,15 +206,18 @@ static void clipref_draw(ClipRef *cr)
 	float cr_h = cr->layout->rect.h - (border *main_win->dpi_scale_factor * 2);
 	float note_height_nominal = cr_h / midi_piano_range;
 	float true_note_height = note_height_nominal * 2;
+	if (true_note_height < 1.0) true_note_height = 1.0;
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.dark_brown));
 	MIDIClip *mclip = cr->source_clip;
+	pthread_mutex_lock(&mclip->notes_arr_lock);
 	int32_t first_note = midi_clipref_check_get_first_note(cr);
-	if (first_note<0) goto end_draw_notes;
+	if (first_note < 0) goto end_draw_notes;
+	
 	for (int32_t i=first_note; i<mclip->num_notes; i++) {
 	    Note *note = mclip->notes + i;
 	    /* SDL_SetRenderDrawColor(main_win->rend, colors.dark_brown.r, colors.dark_brown.g, colors.dark_brown.b, 255 * note->velocity / 128); */
 	    if (cr->end_in_clip && note->start_rel > cr->end_in_clip) break;
-	    int piano_note = note->note - 21;
+	    int piano_note = note->key - 21;
 	    if (piano_note < 0 || piano_note > midi_piano_range) continue;
 	    int32_t note_start = note->start_rel - cr->start_in_clip + cr->tl_pos;
 	    int32_t note_end = note->end_rel - cr->start_in_clip + cr->tl_pos;
@@ -218,13 +225,14 @@ static void clipref_draw(ClipRef *cr)
 	    float w = timeline_get_draw_x(cr->track->tl, note_end) - x;
 	    float y = top_y + (midi_piano_range - piano_note) * note_height_nominal;
 	    SDL_Rect note_rect = {x, y - true_note_height / 2, w, true_note_height};
-	    /* fprintf(stderr, "Note %d val %d rect: %d %d %d %d\n", i, note->note, note_rect.x, note_rect.y, note_rect.w, note_rect.h); */
 	    /* fprintf(stderr, "\t->start->end: %d-%d\n", note_start, note_end); */
 	    /* fprintf(stderr, "\t->(rel): %d-%d\n", note->start_rel, note->end_rel); */
 	    SDL_RenderFillRect(main_win->rend, &note_rect);
 	}
-    }
     end_draw_notes:
+	pthread_mutex_unlock(&mclip->notes_arr_lock);
+    }
+
     
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
     geom_draw_rect_thick(main_win->rend, &cr->layout->rect, border, main_win->dpi_scale_factor);
@@ -233,7 +241,6 @@ static void clipref_draw(ClipRef *cr)
     if (cr->label) {
 	textbox_draw(cr->label);
     }
-    /* layout_draw(main_win, cr->layout); */
 }
 
 static void draw_selected_track_rect(Layout *selected_layout)
@@ -359,7 +366,7 @@ static void ruler_draw(Timeline *tl)
 	    } else {
 		line_len = 5;
 	    }
-	    SDL_RenderDrawLine(main_win->rend, round(x), tl->layout->rect.y, round(x), tl->layout->rect.y + line_len);
+	    SDL_RenderDrawLine(main_win->rend, round(x), session->gui.timeline_lt->rect.y, round(x), session->gui.timeline_lt->rect.y + line_len);
         }
         x += sw;
 	second++;
@@ -395,7 +402,7 @@ void clipref_draw_waveform(ClipRef *cr)
 	/* breakfn(); */
 	/* return; */
     }
-    double sfpp = cr->track->tl->sample_frames_per_pixel;
+    double sfpp = cr->track->tl->timeview.sample_frames_per_pixel;
     SDL_Rect onscreen_rect = cr->layout->rect;
     if (onscreen_rect.x > main_win->w_pix) return;
     if (onscreen_rect.x + onscreen_rect.w < 0) return;
@@ -504,12 +511,12 @@ static int timeline_draw(Timeline *tl)
     
     /* Draw the timeline background */
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(timeline_bckgrnd));
-    SDL_RenderFillRect(main_win->rend, &tl->layout->rect);
+    SDL_RenderFillRect(main_win->rend, &session->gui.timeline_lt->rect);
 
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(console_column_bckgrnd));
     SDL_RenderFillRect(main_win->rend, session->gui.console_column_rect);
     /* Draw tracks */
-    SDL_RenderSetClipRect(main_win->rend, &tl->layout->rect);
+    SDL_RenderSetClipRect(main_win->rend, &session->gui.timeline_lt->rect);
     for (uint8_t i=0; i<tl->num_tracks; i++) {
 	track_draw(tl->tracks[i]);
     }
@@ -528,19 +535,19 @@ static int timeline_draw(Timeline *tl)
     
     /* Draw ruler */
     ruler_draw(tl);
-    if (tl->timecode_tb) {
-	textbox_draw(tl->timecode_tb);
+    if (session->gui.timecode_tb) {
+	textbox_draw(session->gui.timecode_tb);
     }
     if (session->playback.loop_play && tl->out_mark_sframes > tl->in_mark_sframes) {
-	textbox_draw(tl->loop_play_lemniscate);
+	textbox_draw(session->gui.loop_play_lemniscate);
 	/* layout_draw(main_win, tl->loop_play_lemniscate->layout); */
     }
     
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.grey));
-    SDL_Rect tctbrect = tl->timecode_tb->layout->rect;
+    SDL_Rect tctbrect = session->gui.timecode_tb->layout->rect;
     SDL_RenderDrawLine(main_win->rend, tctbrect.x + tctbrect.w, tctbrect.y, tctbrect.x + tctbrect.w, tctbrect.y + tctbrect.h);
     /* Draw t=0 */
-    if (tl->display_offset_sframes < 0) {
+    if (tl->timeview.offset_left_sframes < 0) {
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
         int zero_x = timeline_get_draw_x(tl, 0);
         SDL_RenderDrawLine(main_win->rend, zero_x, session->gui.audio_rect->y, zero_x, session->gui.audio_rect->y + session->gui.audio_rect->h);
@@ -551,7 +558,7 @@ static int timeline_draw(Timeline *tl)
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.white));
     int ph_y = session->gui.ruler_rect->y + PLAYHEAD_TRI_H;
     /* int tri_y = session->gui.ruler_rect->y; */
-    if (tl->play_pos_sframes >= tl->display_offset_sframes) {
+    if (tl->play_pos_sframes >= tl->timeview.offset_left_sframes) {
         int play_head_x = timeline_get_draw_x(tl, tl->play_pos_sframes);
         SDL_RenderDrawLine(main_win->rend, play_head_x, ph_y, play_head_x, session->gui.audio_rect->y + session->gui.audio_rect->h);
 
@@ -570,7 +577,7 @@ static int timeline_draw(Timeline *tl)
     /* draw mark in */
     int in_x, out_x = -1;
 
-    if (tl->in_mark_sframes >= tl->display_offset_sframes && tl->in_mark_sframes < tl->display_offset_sframes + timeline_get_abs_w_sframes(tl, session->gui.audio_rect->w)) {
+    if (tl->in_mark_sframes >= tl->timeview.offset_left_sframes && tl->in_mark_sframes < tl->timeview.offset_left_sframes + timeline_get_abs_w_sframes(tl, session->gui.audio_rect->w)) {
         in_x = timeline_get_draw_x(tl, tl->in_mark_sframes);
         int i_tri_x2 = in_x;
 	ph_y = session->gui.ruler_rect->y + PLAYHEAD_TRI_H;
@@ -580,14 +587,14 @@ static int timeline_draw(Timeline *tl)
             ph_y -= 1;
             i_tri_x2 += 1;
         }
-    } else if (tl->in_mark_sframes < tl->display_offset_sframes) {
+    } else if (tl->in_mark_sframes < tl->timeview.offset_left_sframes) {
         in_x = session->gui.audio_rect->x;
     } else {
-	in_x = tl->layout->rect.w;
+	in_x = session->gui.timeline_lt->rect.w;
     }
 
     /* draw mark out */
-    if (tl->out_mark_sframes > tl->display_offset_sframes && tl->out_mark_sframes < tl->display_offset_sframes + timeline_get_abs_w_sframes(tl, session->gui.audio_rect->w)) {
+    if (tl->out_mark_sframes > tl->timeview.offset_left_sframes && tl->out_mark_sframes < tl->timeview.offset_left_sframes + timeline_get_abs_w_sframes(tl, session->gui.audio_rect->w)) {
         out_x = timeline_get_draw_x(tl, tl->out_mark_sframes);
         int o_tri_x1 = out_x;
 	ph_y =  session->gui.ruler_rect->y + PLAYHEAD_TRI_H;
@@ -596,12 +603,12 @@ static int timeline_draw(Timeline *tl)
             ph_y -= 1;
             o_tri_x1 -= 1;
         }
-    } else if (tl->out_mark_sframes > tl->display_offset_sframes + timeline_get_abs_w_sframes(tl, session->gui.audio_rect->w)) {
+    } else if (tl->out_mark_sframes > tl->timeview.offset_left_sframes + timeline_get_abs_w_sframes(tl, session->gui.audio_rect->w)) {
         out_x = session->gui.audio_rect->x + session->gui.audio_rect->w;
     }
 
     /* draw marked region */
-    if (in_x < out_x && out_x > 0 && in_x < tl->layout->rect.w) {
+    if (in_x < out_x && out_x > 0 && in_x < session->gui.timeline_lt->rect.w) {
         SDL_Rect in_out = (SDL_Rect) {in_x, session->gui.audio_rect->y, out_x - in_x, session->gui.audio_rect->h};
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(timeline_marked_bckgrnd));
         SDL_RenderFillRect(main_win->rend, &(in_out));
@@ -609,7 +616,7 @@ static int timeline_draw(Timeline *tl)
 
     if (session->source_mode.source_mode) {
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(grey_mask));
-	SDL_RenderFillRect(main_win->rend, &tl->layout->rect);
+	SDL_RenderFillRect(main_win->rend, &session->gui.timeline_lt->rect);
     }
     /* SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 10); */
     /* SDL_RenderFillRect(main_win->rend, &tl->track_area->rect); */
@@ -620,28 +627,8 @@ static int timeline_draw(Timeline *tl)
     } else {
 	tl->needs_redraw = false;
     }
-
-    /* Layout *tracks_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area"); */
-    /* if (tracks_area) { */
-    /* 	Layout *selected_lt = tracks_area->children[tl->layout_selector]; */
-    /* 	if (selected_lt) { */
-    /* 	    fprintf(stderr, "SELECTOR: %d, %s\n", tl->layout_selector, selected_lt->name); */
-    /* 	    SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255); */
-    /* 	    SDL_RenderDrawRect(main_win->rend, &selected_lt->rect); */
-    /* 	} else { */
-    /* 	    fprintf(stderr, "NONE\n"); */
-    /* 	} */
-    /* } else { */
-    /* 	fprintf(stderr, "No track and automations\n"); */
-    /* } */
+    /* SDL_SetRenderDrawColor(main_win->rend, 255, 255, 0, 255); */
     return 1;
-
-
-
-
-    
-    /* tl->needs_redraw = false; */
-
 }
 
 
@@ -703,7 +690,7 @@ void project_draw()
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
     SDL_RenderFillRect(main_win->rend, &session->status_bar.layout->rect);
     textbox_draw(session->status_bar.error);
-    if (session->dragging) {
+    if (session->dragging || session->midi_qwerty) {
 	textbox_draw(session->status_bar.dragstat);
     }
     textbox_draw(session->status_bar.call);

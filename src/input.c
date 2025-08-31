@@ -12,6 +12,7 @@
 #include <stdbool.h>
 
 #include "input.h"
+#include "input_mode.h"
 #include "layout.h"
 #include "menu.h"
 
@@ -50,8 +51,10 @@ UserFn *input_get(uint16_t i_state, SDL_Keycode keycode)
 {    
     int hash = input_hash(i_state, keycode);
     int win_mode_i = main_win->num_modes - 1;
-    InputMode mode = main_win->modes[win_mode_i];
+    /* fprintf(stderr, "Main win num modes = %d (starting %d)\n", main_win->num_modes, win_mode_i); */
     while (win_mode_i >= -1) {
+	InputMode mode = main_win->modes[win_mode_i];
+	/* fprintf(stderr, "\tCHECKING INPUT mode %d (%s)\n", mode, input_mode_str(mode)); */
 	KeybNode *init_node = INPUT_HASH_TABLE[hash];
 	KeybNode *node = init_node;
 	if (!node) {
@@ -60,7 +63,7 @@ UserFn *input_get(uint16_t i_state, SDL_Keycode keycode)
 	while (1) {
 	    /* if ((node->kb->mode == mode || node->kb->mode == GLOBAL) && node->kb->i_state == i_state && node->kb->keycode == keycode) { */
 	    if ((node->kb->mode == mode) && node->kb->i_state == i_state && node->kb->keycode == keycode) {
-		if (node->kb->mode == GLOBAL && mode == TEXT_EDIT) {
+		if (node->kb->mode == MODE_GLOBAL && mode == MODE_TEXT_EDIT) {
 		    txt_stop_editing(main_win->txt_editing);
 		}
 		return node->kb->fn;
@@ -70,10 +73,10 @@ UserFn *input_get(uint16_t i_state, SDL_Keycode keycode)
 		break;
 	    }
 	}
-	if (mode == TEXT_EDIT) return NULL; /* No "sieve" for text edit mode */
+	if (mode == MODE_TEXT_EDIT) return NULL; /* No "sieve" for text edit mode */
 	win_mode_i--;
 	if (win_mode_i < 0) {
-	    mode = GLOBAL;
+	    mode = MODE_GLOBAL;
 	} else {
 	    mode = main_win->modes[win_mode_i];
 	}
@@ -81,12 +84,12 @@ UserFn *input_get(uint16_t i_state, SDL_Keycode keycode)
     return NULL;
 }
 
+
 /* char *input_state_str(uint16_t i_state) */
 /* { */
     
 
 /* } */
-
 
 static void input_read_keycmd(char *keycmd, uint16_t *i_state, SDL_Keycode *key)
 {
@@ -216,9 +219,43 @@ char *input_get_keycmd_str(uint16_t i_state, SDL_Keycode keycode)
     return ret;
 }
 
+
+void nullfn(void *arg){}
+
+/* typedef struct user_fn { */
+/*     const char *fn_id; */
+/*     const char *fn_display_name; */
+/*     char annotation[MAX_ANNOT_STRLEN]; */
+/*     bool is_toggle; */
+/*     void (*do_fn)(void *arg); */
+/*     Mode *mode; */
+
+/*     Keybinding *key_bindings[MAX_FN_KEYBS]; */
+/*     int num_keybindings; */
+/* } UserFn; */
+
+static UserFn null_userfn = {
+    "null",
+    "null (block)",
+    {0},
+    false,
+    nullfn,
+    NULL,
+    {0},
+    0
+};
+
+bool is_null_userfn(UserFn *fn)
+{
+    return fn == &null_userfn;
+}
+
 /* Returns null if no function found by that id */
 UserFn *input_get_fn_by_id(char *id, InputMode im)
 {
+    if (strncmp(id, "null", 4) == 0) {
+	return &null_userfn;
+    }
     Mode *mode = MODES[im];
     for (uint8_t s=0; s<mode->num_subcats; s++) {
 	ModeSubcat *sc = mode->subcats[s];
@@ -411,12 +448,12 @@ Menu *input_create_master_menu()
     for (uint8_t i=0; i<main_win->num_modes + 1; i++) {
 	InputMode im;
 	if (i == 0) {
-	    im = GLOBAL;
+	    im = MODE_GLOBAL;
 	} else {
 	    im = main_win->modes[i - 1];
 
 	}
-	if (im == MENU_NAV) continue;
+	if (im == MODE_MENU_NAV) continue;
 	Mode *mode = MODES[im];
 	if (!mode) {
 	    fprintf(stderr, "Error: mode %s not initialized\n", input_mode_str(im));
@@ -561,10 +598,11 @@ void input_load_keybinding_config(const char *filepath)
 	}
     }
 }
+#define MAX_KEYB_BLOCKS 64
 
 bool input_function_is_accessible(UserFn *fn, Window *win)
 {
-    InputMode keyb_blocks[16];
+    InputMode keyb_blocks[MAX_KEYB_BLOCKS];
     int num_keyb_blocks = 0;
     for (int i=0; i<fn->num_keybindings; i++) {
 	Keybinding *kb = fn->key_bindings[i];
@@ -573,17 +611,25 @@ bool input_function_is_accessible(UserFn *fn, Window *win)
 	KeybNode *kn = INPUT_HASH_TABLE[hash];
 	while (kn) {
 	    if (kn->kb != kb && kn->kb->i_state == kb->i_state && kn->kb->keycode == kb->keycode) {
-		keyb_blocks[num_keyb_blocks] = kn->kb->fn->mode->im;
-		num_keyb_blocks++;
+		if (num_keyb_blocks == 64) {
+		    fprintf(stderr, "ERROR: %d keyb blocks in input_function_is_accessible\n", MAX_KEYB_BLOCKS);
+		    return false;
+		}
+
+		if (!is_null_userfn(kn->kb->fn)) {
+		    keyb_blocks[num_keyb_blocks] = kn->kb->fn->mode->im;
+		    num_keyb_blocks++;
+		}
 	    }
 	    kn = kn->next;
 	}
     }
-    for (int i=win->num_modes-1; i>=-1; i--) {
+    /* Don't check AUTOCOMPLETE LIST, hence -2 not -1 */
+    for (int i=win->num_modes-2; i>=-1; i--) {
 	InputMode im;
-	if (i == -1) im = GLOBAL;
+	if (i == -1) im = MODE_GLOBAL;
 	else im = win->modes[i];
-	if (im == TEXT_EDIT) continue;
+	if (im == MODE_TEXT_EDIT) continue;
 	if (fn->mode->im == im) return true;
 	else {
 	    for (int i=0; i<num_keyb_blocks; i++) {
@@ -686,6 +732,5 @@ void input_create_function_reference()
 	    }
 	}
     }
-
     fclose(f);
 }

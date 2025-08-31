@@ -129,6 +129,7 @@ int endpoint_write(
     bool run_dsp_cb,
     bool undoable)
 {
+    enum jdaw_thread owner = endpoint_get_owner(ep);
     ep->overwrite_val = endpoint_safe_read(ep, NULL);
     Session *session = session_get();
     /* fprintf(stderr, "\n\nWRITE %s, intval %d\n", ep->local_id, new_val.int_v); */
@@ -145,11 +146,11 @@ int endpoint_write(
     if (!ep->write_has_occurred) {
 	ep->last_write_val = endpoint_safe_read(ep, NULL);
     }
+    ep->current_write_val = new_val;
     bool async_change_will_occur = false;
     /* Value change */
-    enum jdaw_thread owner = endpoint_get_owner(ep);
     /* fprintf(stderr, "Owner? %d.. on owner? %d !session->playback.playing && owner == JDAW_THREAD_DSP %d?\n", owner, on_thread(owner), !session->playback.playing && owner == JDAW_THREAD_DSP); */
-    if (on_thread(owner) || (!session->playback.playing && owner == JDAW_THREAD_DSP)) {
+    if (on_thread(owner) || (!session->playback.playing && (owner == JDAW_THREAD_DSP || owner == JDAW_THREAD_PLAYBACK))) {
 	pthread_mutex_lock(&ep->val_lock);
 	jdaw_val_set_ptr(ep->val, ep->val_type, new_val);
 	if (ep->automation && ep->automation->write) {
@@ -173,10 +174,10 @@ int endpoint_write(
 	} else {
 	    if (session->playback.playing) {
 		/* If ep owner assigned to playback thread, run DSP callbacks on that thread */
-		enum jdaw_thread dst_thread = ep->owner_thread == JDAW_THREAD_PLAYBACK ? JDAW_THREAD_PLAYBACK : JDAW_THREAD_DSP;
+		enum jdaw_thread dst_thread = owner == JDAW_THREAD_PLAYBACK ? JDAW_THREAD_PLAYBACK : JDAW_THREAD_DSP;
 		session_queue_callback(session, ep, ep->dsp_callback, dst_thread);
 		async_change_will_occur = true;
-	    } else if (session->midi_io.monitor_synth && ep->owner_thread == JDAW_THREAD_PLAYBACK) {
+	    } else if (session->midi_io.monitor_synth && owner == JDAW_THREAD_PLAYBACK) {
 		session_queue_callback(session, ep, ep->dsp_callback, JDAW_THREAD_PLAYBACK);
 		async_change_will_occur = true;
 	    } else {

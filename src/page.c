@@ -15,6 +15,7 @@
 #include "project.h"
 #include "layout.h"
 #include "layout_xml.h"
+#include "piano.h"
 #include "session.h"
 #include "textbox.h"
 #include "value.h"
@@ -182,6 +183,8 @@ void tabview_destroy(TabView *tv)
 	page_destroy(tv->tabs[i]);
 	textbox_destroy(tv->labels[i]);
     }
+    textbox_destroy(tv->label);
+    free(tv->label_str);
     free(tv);
 }
 /* void layout_write(FILE *f, Layout *lt); */
@@ -265,9 +268,13 @@ static void page_el_destroy(PageEl *el)
     case EL_STATUS_LIGHT:
 	status_light_destroy(el->component);
 	break;
+    case EL_PIANO:
+	piano_destroy(el->component);
+	break;
     default:
 	break;
     }
+    free(el->id);
     free(el);
 }
 void page_destroy(Page *page)
@@ -508,7 +515,10 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	    el->layout,
 	    params.slight_p.value,
 	    params.slight_p.val_size);
-	break;	    
+	break;
+    case EL_PIANO:
+	el->component = piano_create(el->layout);
+	break;
     default:
 	break;
     }
@@ -523,7 +533,7 @@ PageEl *page_add_el(
     const char *layout_name)
 {
     PageEl *el = calloc(1, sizeof(PageEl));
-    el->id = id;
+    el->id = strdup(id);
     el->type = type;
     if (layout_name) {
 	el->layout = layout_get_child_by_name_recursive(page->layout, layout_name);
@@ -563,7 +573,6 @@ PageEl *page_add_el_custom_layout(
 	id,
 	new_layout_name);
 }
-
 
 void page_reset(Page *page)
 {
@@ -827,6 +836,7 @@ static void page_el_draw(PageEl *el)
 	break;
     case EL_TEXTBOX:
 	textbox_draw((Textbox *)el->component);
+	/* layout_draw(main_win, el->layout); */
 	break;
     case EL_TEXTENTRY:
 	textentry_draw((TextEntry *)el->component);
@@ -867,6 +877,9 @@ static void page_el_draw(PageEl *el)
     case EL_STATUS_LIGHT:
 	status_light_draw(el->component);
 	break;
+    case EL_PIANO:
+	piano_draw(el->component);
+	break;
     default:
 	break;
     }
@@ -904,7 +917,7 @@ void page_draw(Page *page)
     /* if (strcmp(page->title, "Oscillators") == 0) { */
     /* 	FILE *f = fopen("t.xml", "w"); */
 	
-    /* 	layout_draw(page->win, page->layout); */
+    /* layout_draw(page->win, page->layout); */
     /* 	layout_write(f, page->layout, 0); */
     /* 	exit(1); */
     /* } */
@@ -971,7 +984,7 @@ void tabview_draw(TabView *tv)
 	}
 	tabview_draw_inner(tv, i);
     }
-    /* layout_draw(main_win, tv->layout); */
+    textbox_draw(tv->label);
 
     /* page = tv->tabs[tv->current_tab]; */
     /* tb = tv->labels[tv->current_tab]; */
@@ -1033,9 +1046,43 @@ void tabview_activate(TabView *tv)
     if (win->active_tabview) {
 	tabview_destroy(win->active_tabview);
     }
+
+    Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
+    char *track_name;
+    Track *track = timeline_selected_track(tl);
+    if (track) {
+	track_name = track->name;
+    } else {
+	track_name = timeline_selected_click_track(tl)->name;
+    }
+    /* ClickTrack *ct; */
+    int label_str_len = strlen(tv->title) + strlen(track_name) + 4;
+    tv->label_str = malloc(label_str_len);
+    snprintf(tv->label_str, label_str_len, "%s - %s", tv->title, track_name);
+    Layout *label_lt = layout_add_child(main_win->layout);
+    label_lt->x.type = REVREL;
+    label_lt->x.value = 4.0;
+    label_lt->y.type = ABS;
+    label_lt->y.value = 4.0;
+    label_lt->h.value = 30.0;
+    label_lt->w.value = 400.0;
+    layout_reset(main_win->layout);
+    tv->label = textbox_create_from_str(
+	tv->label_str,
+	label_lt,
+	main_win->mono_bold_font,
+	18,
+	main_win);
+    /* fprintf(stderr, "LABEL STR: %s\n", tv->label_str); */
+    textbox_set_background_color(tv->label, NULL);
+    textbox_set_text_color(tv->label, &colors.white);
+    textbox_reset_full(tv->label);
+    layout_size_to_fit_children_h(label_lt, false, 0);
     
     win->active_tabview = tv;
-    window_push_mode(tv->win, TABVIEW);
+    /* layout_write(stderr, tv->label->layout, 0); */
+    window_push_mode(tv->win, MODE_TABVIEW);
     tv->tabs[tv->current_tab]->onscreen = true;
     tabview_select_el(tv);
     /* Page *current = tv->tabs[tv->current_tab]; */
@@ -1331,6 +1378,29 @@ void page_el_params_slider_from_ep(union page_el_params *p, Endpoint *ep)
     p->slider_p.min = ep->min;
     p->slider_p.max = ep->max;
     p->slider_p.create_label_fn = ep->label_fn;
+}
+
+void page_center_contents(Page *page)
+{
+    /* Layout *inner = layout_add_child(page->layout); */
+    Layout *inner = layout_create();
+    inner->x.type = SCALE;
+    inner->y.type = SCALE;
+    inner->w.type = SCALE;
+    inner->h.type = SCALE;
+    inner->w.value = 1.0;
+    inner->h.value = 1.0;
+
+    layout_reparent_all(page->layout, inner);
+    layout_reparent(inner, page->layout);
+    /* layout_write(stderr, page->layout, 0); */
+    /* for (int i=0; i<page->layout->num_children; i++) { */
+    /* 	layout_reparent(page->layout->children[i], inner); */
+    /* } */
+
+    layout_size_to_fit_children(inner, false, 0);
+    layout_center_agnostic(inner, true, true);
+    layout_force_reset(inner);
 }
 
 

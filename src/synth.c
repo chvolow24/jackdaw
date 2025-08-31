@@ -18,10 +18,209 @@ extern double MTOF[];
 static void synth_osc_vol_dsp_cb(Endpoint *ep)
 {
     OscCfg *cfg = ep->xarg1;
-    float vol = endpoint_safe_read(ep, NULL).float_v;
-    if (vol > 1e-9) cfg->active = true;
+    if (cfg->amp > 1e-9) cfg->active = true;
     else cfg->active = false;
 }
+
+static void base_cutoff_dsp_cb(Endpoint *ep)
+{
+    Synth *s = ep->xarg1;
+    Value cutoff = ep->current_write_val;
+    s->base_cutoff = dsp_scale_freq(cutoff.float_v);
+}
+
+static void fixed_freq_dsp_cb(Endpoint *ep)
+{
+    OscCfg *cfg = ep->xarg1;
+    float freq_unscaled = ep->current_write_val.float_v;
+    cfg->fixed_freq = dsp_scale_freq(freq_unscaled);
+}
+
+/* static void num_voices_cb(Endpoint *ep) */
+/* { */
+/*     int num_voices = ep->current_write_val.int_v; */
+
+/*     Synth *synth = ep->xarg1; */
+/*     OscCfg *cfg = ep->xarg2; */
+/*     int osc_i = cfg - synth->base_oscs; */
+
+/*     int unison_i = 0; */
+/*     while (osc_i < SYNTHVOICE_NUM_OSCS) { */
+/* 	for (int i=0; i<SYNTH_NUM_VOICES; i++) { */
+/* 	    SynthVoice *v = synth->voices + i; */
+/* 	    if (unison_i < num_voices) { */
+/* 		v->oscs[osc_i].active = true; */
+/* 	    } else { */
+/* 		v->oscs[osc_i].active = false; */
+/* 	    } */
+/* 	} */
+/* 	osc_i += SYNTH_NUM_BASE_OSCS; */
+/* 	unison_i++; */
+/*     } */    
+/* } */
+
+static void type_cb(Endpoint *ep)
+{
+    Synth *synth = ep->xarg1;
+    OscCfg *cfg = ep->xarg2;
+    int osc_i = cfg - synth->base_oscs;
+    int type_i = ep->current_write_val.int_v;   
+    while (osc_i < SYNTHVOICE_NUM_OSCS) {
+	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+	    SynthVoice *v = synth->voices + i;
+	    v->oscs[osc_i].type = type_i;
+	}
+	osc_i += SYNTH_NUM_BASE_OSCS;
+    } 
+}
+
+static void unison_stereo_spread_dsp_cb(Endpoint *ep)
+{
+    Synth *synth = ep->xarg1;
+    OscCfg *cfg = ep->xarg2;
+    int osc_i = cfg - synth->base_oscs + SYNTH_NUM_BASE_OSCS;
+    float max_offset = ep->current_write_val.float_v / 2.0;
+    int unison_i = 0;
+    int divisor = 1;
+    while (osc_i < SYNTHVOICE_NUM_OSCS) {
+	float offset = max_offset / divisor;
+	if (unison_i % 2 != 0) {
+	    offset *= -1;
+	    divisor++;
+	}
+	/* fprintf(stderr, "OSC I %d, unison %d, offset %f\n", osc_i, unison_i, offset); */
+	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+	    SynthVoice *v = synth->voices + i;
+	    v->oscs[osc_i].pan_offset = offset;
+	}
+	osc_i += SYNTH_NUM_BASE_OSCS;
+	unison_i++;
+	/* divisor+=2; */
+    } 
+    while (osc_i < SYNTHVOICE_NUM_OSCS) {
+	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+	    SynthVoice *v = synth->voices + i;
+	    float offset = max_offset / divisor;
+	    if (unison_i % 2 != 0) {
+		offset *= -1;
+		if (i==0)
+		    divisor++;
+	    }
+	    v->oscs[osc_i].pan_offset = offset;
+	}
+	osc_i += SYNTH_NUM_BASE_OSCS;
+	unison_i++;
+	/* divisor+=2; */
+    } 
+}
+
+static void detune_cents_dsp_cb(Endpoint *ep)
+{
+    Synth *synth = ep->xarg1;
+    OscCfg *cfg = ep->xarg2;
+    int osc_i = cfg - synth->base_oscs + SYNTH_NUM_BASE_OSCS;
+    float max_offset_cents = ep->current_write_val.float_v;
+    /* float voice_offset = max_offset_cents / (1 + cfg->unison.num_voices) * 2; */
+    
+    int unison_i = 0;
+    int divisor = 1;
+    /* int sign = -1; */
+    int pair_i = 0;
+    int pair_item = 0;
+    while (osc_i < SYNTHVOICE_NUM_OSCS) {
+
+	if (unison_i != 0) {
+	    if (unison_i % 2 == 0) {
+		pair_i++;
+		pair_item = 0;
+		divisor++;
+	    }
+	}
+	float offset = max_offset_cents / divisor;
+
+	if (pair_i % 2 == 0 && pair_item == 0) {
+	    offset *= -1;
+	} else if (pair_i % 2 != 0 && pair_item == 1) {
+	    offset *= -1;
+	}
+
+	/* fprintf(stderr, "OSC I: %d, unison I: %d; pair i: %d item %d: offset %f\n", osc_i, unison_i, pair_i, pair_item, offset); */
+	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+	    SynthVoice *v = synth->voices + i;
+	    v->oscs[osc_i].detune_cents = offset;
+	}
+	pair_item++;
+
+	osc_i += SYNTH_NUM_BASE_OSCS;
+	unison_i++;
+
+
+    }
+    
+    /* while (osc_i < SYNTHVOICE_NUM_OSCS) { */
+    /* 	for (int i=0; i<SYNTH_NUM_VOICES; i++) { */
+    /* 	    SynthVoice *v = synth->voices + i; */
+
+    /* 	    if (i==0 && unison_i != 0) { */
+    /* 		if (unison_i % 2 == 0) { */
+    /* 		    pair_i++; */
+    /* 		    pair_item = 0; */
+    /* 		    divisor++; */
+    /* 		} */
+    /* 	    } */
+    /* 	    float offset = max_offset_cents / divisor; */
+
+    /* 	    if (pair_i % 2 == 0 && pair_item == 0) { */
+    /* 		offset *= -1; */
+    /* 	    } else if (pair_i % 2 != 0 && pair_item == 1) { */
+    /* 		offset *= -1; */
+    /* 	    } */
+    /* 	    if (i ==0) { */
+    /* 		pair_item++; */
+    /* 	    } */
+	    
+    /* 	    v->oscs[osc_i].detune_cents = offset; */
+    /* 	    fprintf(stderr, "VOICE %d, pair i %d, offset? %f\n", i, pair_i, offset); */
+    /* 	} */
+    /* 	osc_i += SYNTH_NUM_BASE_OSCS; */
+    /* 	unison_i++; */
+    /* } */
+}
+
+/* static void unison_vol_cb(Endpoint *ep) */
+/* { */
+/*     Synth *s = ep->xarg1; */
+/*     OscCfg *cfg = ep->xarg2; */
+/*     int osc_i = cfg - s->base_oscs; */
+/*     while (osc_i < SYNTHVOICE_NUM_OSCS) { */
+/* 	for (int i=0; i<SYNTH_NUM_VOICES; i++) { */
+/* 	    SynthVoice *v = s->voices + i; */
+/* 	    /\* v->unison_vol =  *\/ */
+/* 	} */
+/* 	osc_i += SYNTH_NUM_BASE_OSCS; */
+/* 	unison_i++; */
+/*     } */
+/* } */
+
+static void tuning_cb(Endpoint *ep)
+{
+    Synth *s = ep->xarg1;
+    OscCfg *cfg = ep->xarg2;
+    int octave = endpoint_safe_read(&cfg->octave_ep, NULL).int_v;
+    int coarse = endpoint_safe_read(&cfg->tune_coarse_ep, NULL).int_v;
+    float fine = endpoint_safe_read(&cfg->tune_fine_ep, NULL).float_v;
+    float tune_cents = octave * 1200 + coarse * 100 + fine;
+    /* fprintf(stderr, "TUNE CENTS: %f\n", tune_cents); */
+    int osc_i = cfg - s->base_oscs;
+    while (osc_i < SYNTHVOICE_NUM_OSCS) {
+	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+	    SynthVoice *v = s->voices + i;
+	    v->oscs[osc_i].tune_cents = tune_cents;
+	}
+	osc_i += SYNTH_NUM_BASE_OSCS;
+    }
+}
+
 
 static void fmod_target_dsp_cb(Endpoint *ep)
 {
@@ -96,22 +295,37 @@ Synth *synth_create(Track *track)
 
     s->vol = 1.0;
     s->pan = 0.5;
+    s->sync_phase = true;
+    s->noise_amt = 0.0f;
+    s->noise_apply_env = false;
     
     s->base_oscs[0].active = true;
-    s->base_oscs[0].amp = 0.2;
+    /* s->base_oscs[0].amp_unscaled = 0.5; */
+    s->base_oscs[0].amp = 0.25;
     s->base_oscs[0].type = WS_SAW;
 
-    s->filter_active = true;
-    s->base_cutoff = 0.1f;
-    s->pitch_amt = 10.0f;
+    /* s->base_oscs[0].fix_freq = true; */
+    /* s->base_oscs[0].fixed_freq = 0.1; */
+
+    s->filter_active = false;
+    s->base_cutoff_unscaled = 0.1f;
+    s->base_cutoff = dsp_scale_freq(s->base_cutoff_unscaled);
+    s->pitch_amt = 2.0f;
     s->vel_amt = 0.75f;
-    s->env_amt = 1.0f;
-    s->resonance = 3.0;
-    
+    s->env_amt = 5.0f;
+    s->resonance = 2.0;
+
+    double dc_block_coeff = exp(-1.0/(0.0025 * session_get_sample_rate()));
+    double DC_BLOCK_A[] = {1.0, -1.0};
+    double DC_BLOCK_B[] = {dc_block_coeff};
     iir_init(&s->dc_blocker, 1, 2);
-    double A[] = {1.0, -1.0};
-    double B[] = {0.999};
-    iir_set_coeffs(&s->dc_blocker, A, B);
+    iir_set_coeffs(&s->dc_blocker, DC_BLOCK_A, DC_BLOCK_B);
+    for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
+	OscCfg *cfg = s->base_oscs + i;
+	cfg->unison.detune_cents = 10;
+	cfg->unison.stereo_spread = 0.1;
+    }
+
 
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	SynthVoice *v = s->voices + i;
@@ -120,38 +334,65 @@ Synth *synth_create(Track *track)
 	
 	adsr_params_add_follower(&s->filter_env, &v->filter_env[0]);
 	adsr_params_add_follower(&s->filter_env, &v->filter_env[1]);
+	
+	adsr_params_add_follower(&s->noise_amt_env, &v->noise_amt_env[0]);
+	adsr_params_add_follower(&s->noise_amt_env, &v->noise_amt_env[1]);
 
 	iir_init(&v->filter, 2, 2);
 	v->synth = s;
 	v->available = true;
+
+	for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
+	    OscCfg *cfg = s->base_oscs + i;
+	    for (int j=0; j<SYNTHVOICE_NUM_OSCS; j+= SYNTH_NUM_BASE_OSCS) {
+		Osc *osc = v->oscs + i + j;
+		osc->cfg = cfg;
+		osc->voice = v;
+		iir_init(&osc->tri_dc_blocker, 1, 1);
+		iir_set_coeffs(&osc->tri_dc_blocker, DC_BLOCK_A, DC_BLOCK_B);
+
+	    }
+	}
 	/* v->amp_env[0].params = &s->amp_env; */
 	/* v->amp_env[1].params = &s->amp_env; */
     }
     s->amp_env.a_msec = 4;
     s->amp_env.d_msec = 200;
-    s->amp_env.s_ep_targ = 0.4;
-    s->amp_env.r_msec = 400;
+    s->amp_env.s_ep_targ = 0.7;
+    s->amp_env.r_msec = 20;
     
     s->filter_env.a_msec = 4;
     s->filter_env.d_msec = 200;
     s->filter_env.s_ep_targ = 0.4;
     s->filter_env.r_msec = 400;
+
+    s->noise_amt_env.a_msec = 4;
+    s->noise_amt_env.d_msec = 200;
+    s->noise_amt_env.s_ep_targ = 0.4;
+    s->noise_amt_env.r_msec = 400;
     
-    Session *session = session_get();
     adsr_set_params(
 	&s->amp_env,
-	session->proj.sample_rate * s->amp_env.a_msec / 1000,
-	session->proj.sample_rate * s->amp_env.d_msec / 1000,
+	session_get_sample_rate() * s->amp_env.a_msec / 1000,
+	session_get_sample_rate() * s->amp_env.d_msec / 1000,
 	s->amp_env.s_ep_targ,
-	session->proj.sample_rate * s->amp_env.r_msec / 1000,
+	session_get_sample_rate() * s->amp_env.r_msec / 1000,
 	2.0);
     adsr_set_params(
 	&s->filter_env,
-	session->proj.sample_rate * s->filter_env.a_msec / 1000,
-	session->proj.sample_rate * s->filter_env.d_msec / 1000,
+	session_get_sample_rate() * s->filter_env.a_msec / 1000,
+	session_get_sample_rate() * s->filter_env.d_msec / 1000,
 	s->filter_env.s_ep_targ,
-	session->proj.sample_rate * s->filter_env.r_msec / 1000,
+	session_get_sample_rate() * s->filter_env.r_msec / 1000,
 	2.0);
+    adsr_set_params(
+	&s->noise_amt_env,
+	session_get_sample_rate() * s->noise_amt_env.a_msec / 1000,
+	session_get_sample_rate() * s->noise_amt_env.d_msec / 1000,
+	s->noise_amt_env.s_ep_targ,
+	session_get_sample_rate() * s->noise_amt_env.r_msec / 1000,
+	2.0);
+
 
     s->monitor = true;
     s->allow_voice_stealing = true;
@@ -193,14 +434,15 @@ Synth *synth_create(Track *track)
 
     
     adsr_endpoints_init(&s->amp_env, &s->amp_env_page, &s->api_node, "Amp envelope");
-    /* api_node_register(&s->amp_env.api_node, &s->api_node, "Amp envelope"); */
     api_node_register(&s->filter_node, &s->api_node, "Filter");
+    api_node_register(&s->noise_node, &s->api_node, "Noise");
     adsr_endpoints_init(&s->filter_env, &s->filter_page, &s->filter_node, "Filter envelope");
+    adsr_endpoints_init(&s->noise_amt_env, &s->noise_page, &s->noise_node, "Noise envelope");
     /* api_node_register(&s->filter_env.api_node, &s->filter_node, "Filter envelope"); */
 
     /* adsr_params_init(&s->amp_env); */
 
-    s->filter_active = true;
+    /* s->filter_active = true; */
     endpoint_init(
 	&s->filter_active_ep,
 	&s->filter_active,
@@ -210,23 +452,23 @@ Synth *synth_create(Track *track)
 	JDAW_THREAD_DSP,
 	page_el_gui_cb, NULL, NULL,
 	NULL, NULL, &s->filter_page, "filter_active_toggle");
-    endpoint_set_default_value(&s->filter_active_ep, (Value){.bool_v = true});
+    endpoint_set_default_value(&s->filter_active_ep, (Value){.bool_v = false});
     api_endpoint_register(&s->filter_active_ep, &s->filter_node);
 
 
     endpoint_init(
 	&s->base_cutoff_ep,
-	&s->base_cutoff,
+	&s->base_cutoff_unscaled,
 	JDAW_FLOAT,
 	"base_cutoff",
 	"Base cutoff",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, NULL,
-	NULL, NULL, &s->filter_page, "base_cutoff_slider");
-    endpoint_set_default_value(&s->base_cutoff_ep, (Value){.float_v = 0.01f});
-    endpoint_set_allowed_range(&s->base_cutoff_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 0.2});
-    api_endpoint_register(&s->base_cutoff_ep, &s->filter_node);
+	page_el_gui_cb, NULL, base_cutoff_dsp_cb,
+	s, NULL, &s->filter_page, "base_cutoff_slider");
+    endpoint_set_default_value(&s->base_cutoff_ep, (Value){.float_v = 0.1f});
+    endpoint_set_allowed_range(&s->base_cutoff_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
     endpoint_set_label_fn(&s->base_cutoff_ep, label_freq_raw_to_hz);
+    api_endpoint_register(&s->base_cutoff_ep, &s->filter_node);
 
     
     endpoint_init(
@@ -238,7 +480,7 @@ Synth *synth_create(Track *track)
 	JDAW_THREAD_DSP,
 	page_el_gui_cb, NULL, NULL,
 	NULL, NULL, &s->filter_page, "pitch_amt_slider");
-    endpoint_set_default_value(&s->pitch_amt_ep, (Value){.float_v = 10.0f});
+    endpoint_set_default_value(&s->pitch_amt_ep, (Value){.float_v = 5.0f});
     endpoint_set_allowed_range(&s->pitch_amt_ep, (Value){.float_v = 0.00}, (Value){.float_v = 50.0});
     api_endpoint_register(&s->pitch_amt_ep, &s->filter_node);
 
@@ -264,7 +506,7 @@ Synth *synth_create(Track *track)
 	JDAW_THREAD_DSP,
 	page_el_gui_cb, NULL, NULL,
 	NULL, NULL, &s->filter_page, "env_amt_slider");
-    endpoint_set_default_value(&s->env_amt_ep, (Value){.float_v = 0.75f});
+    endpoint_set_default_value(&s->env_amt_ep, (Value){.float_v = 5.0f});
     endpoint_set_allowed_range(&s->env_amt_ep, (Value){.float_v = 0.00}, (Value){.float_v = 50.0});
     api_endpoint_register(&s->env_amt_ep, &s->filter_node);
 
@@ -292,8 +534,46 @@ Synth *synth_create(Track *track)
 	page_el_gui_cb, NULL, NULL,
 	NULL, NULL, &s->filter_page, "resonance_slider");
     endpoint_set_default_value(&s->resonance_ep, (Value){.float_v = 5.0f});
-    endpoint_set_allowed_range(&s->resonance_ep, (Value){.float_v = 1.0f}, (Value){.float_v = 50.0f});
+    endpoint_set_allowed_range(&s->resonance_ep, (Value){.float_v = 1.0f}, (Value){.float_v = 15.0f});
     api_endpoint_register(&s->resonance_ep, &s->filter_node);
+
+    endpoint_init(
+	&s->sync_phase_ep,
+	&s->sync_phase,
+	JDAW_BOOL,
+	"sync_phase",
+	"Sync phase",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, NULL,
+	NULL, NULL, &s->osc_page, "sync_phase_toggle");
+    endpoint_set_default_value(&s->sync_phase_ep, (Value){.bool_v = true});
+    api_endpoint_register(&s->sync_phase_ep, &s->api_node);
+
+    endpoint_init(
+	&s->noise_amt_ep,
+	&s->noise_amt,
+	JDAW_FLOAT,
+	"noise_amt",
+	"Noise amount",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, NULL,
+	NULL, NULL, &s->noise_page, "noise_amt_slider");
+    endpoint_set_default_value(&s->noise_amt_ep, (Value){.float_v = 0.0f});
+    endpoint_set_allowed_range(&s->noise_amt_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 2.0});
+    api_endpoint_register(&s->noise_amt_ep, &s->noise_node);
+
+    endpoint_init(
+	&s->noise_apply_env_ep,
+	&s->noise_apply_env,
+	JDAW_BOOL,
+	"noise_apply_env",
+	"Apply noise envelope",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, NULL,
+	NULL, NULL, &s->noise_page, "noise_apply_env_toggle");
+    endpoint_set_default_value(&s->noise_apply_env_ep, (Value){.bool_v = false});
+    api_endpoint_register(&s->noise_apply_env_ep, &s->noise_node);
+
 
     /* s->velocity_freq_scalar = 0.5; */
     /* endpoint_init( */
@@ -366,22 +646,32 @@ Synth *synth_create(Track *track)
 	cfg->tune_fine_id = malloc(len);
 	snprintf(cfg->tune_fine_id, len, fmt, i+1);
 
-	fmt = "%dnum_voices";
+	fmt = "%dfix_freq";
+	len = strlen(fmt);
+	cfg->fix_freq_id = malloc(len);
+	snprintf(cfg->fix_freq_id, len, fmt, i+1);
+
+	fmt = "%dfixed_freq";
+	len = strlen(fmt);
+	cfg->fixed_freq_id = malloc(len);
+	snprintf(cfg->fixed_freq_id, len, fmt, i+1);
+
+	fmt = "%dunison_num_voices";
 	len = strlen(fmt);
 	cfg->unison.num_voices_id = malloc(len);
 	snprintf(cfg->unison.num_voices_id, len, fmt, i+1);
 
-	fmt = "%ddetune_cents";
+	fmt = "%dunison_detune_cents";
 	len = strlen(fmt);
 	cfg->unison.detune_cents_id = malloc(len);
 	snprintf(cfg->unison.detune_cents_id, len, fmt, i+1);
 
-	fmt = "%drelative_amp";
+	fmt = "%dunison_relative_amp";
 	len = strlen(fmt);
 	cfg->unison.relative_amp_id = malloc(len);
 	snprintf(cfg->unison.relative_amp_id, len, fmt, i+1);
 
-	fmt = "%dstereo_spread";
+	fmt = "%dunison_stereo_spread";
 	len = strlen(fmt);
 	cfg->unison.stereo_spread_id = malloc(len);
 	snprintf(cfg->unison.stereo_spread_id, len, fmt, i+1);
@@ -421,8 +711,8 @@ Synth *synth_create(Track *track)
 	    "type",
 	    "Type",
 	    JDAW_THREAD_DSP,
-	    NULL, NULL, NULL,
-	    NULL, NULL, NULL, NULL);
+	    NULL, NULL, type_cb,
+	    s, cfg, NULL, NULL);
 	endpoint_set_default_value(&cfg->type_ep, (Value){.int_v = 0});
 	endpoint_set_allowed_range(&cfg->type_ep, (Value){.int_v = 0}, (Value){.int_v = 3});
 	api_endpoint_register(&cfg->type_ep, &cfg->api_node);
@@ -437,8 +727,8 @@ Synth *synth_create(Track *track)
 	    JDAW_THREAD_DSP,
 	    page_el_gui_cb, NULL, synth_osc_vol_dsp_cb,
 	    cfg, NULL, &s->osc_page, cfg->amp_id);
-	endpoint_set_default_value(&cfg->amp_ep, (Value){.float_v = 0.5f});
-	endpoint_set_allowed_range(&cfg->amp_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
+	endpoint_set_default_value(&cfg->amp_ep, (Value){.float_v = 0.25f});
+	endpoint_set_allowed_range(&cfg->amp_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 2.0f});
 	api_endpoint_register(&cfg->amp_ep, &cfg->api_node);
 
 	endpoint_init(
@@ -455,14 +745,41 @@ Synth *synth_create(Track *track)
 	api_endpoint_register(&cfg->pan_ep, &cfg->api_node);
 
 	endpoint_init(
+	    &cfg->fix_freq_ep,
+	    &cfg->fix_freq,
+	    JDAW_BOOL,
+	    "fix_freq",
+	    "Fix freq",
+	    JDAW_THREAD_DSP,
+	    page_el_gui_cb, NULL, NULL,
+	    NULL, NULL, &s->osc_page, cfg->fix_freq_id);
+	endpoint_set_default_value(&cfg->fix_freq_ep, (Value){.bool_v = false});
+	api_endpoint_register(&cfg->fix_freq_ep, &cfg->api_node);
+
+	endpoint_init(
+	    &cfg->fixed_freq_ep,
+	    &cfg->fixed_freq_unscaled,
+	    JDAW_FLOAT,
+	    "fixed_freq",
+	    "Fixed freq",
+	    JDAW_THREAD_DSP,
+	    page_el_gui_cb, NULL, fixed_freq_dsp_cb,
+	    cfg, NULL, &s->osc_page, cfg->fixed_freq_id);
+	endpoint_set_default_value(&cfg->fixed_freq_ep, (Value){.float_v = 0.1f});
+	endpoint_set_allowed_range(&cfg->fixed_freq_ep, (Value){.float_v = 0.0001f}, (Value){.float_v = 0.8f});
+	endpoint_set_label_fn(&cfg->fixed_freq_ep, label_freq_raw_to_hz);
+	api_endpoint_register(&cfg->fixed_freq_ep, &cfg->api_node);
+	    
+
+	endpoint_init(
 	    &cfg->octave_ep,
 	    &cfg->octave,
 	    JDAW_INT,
 	    "octave",
 	    "Octave",
 	    JDAW_THREAD_DSP,
-	    page_el_gui_cb, NULL, NULL,
-	    NULL, NULL, &s->osc_page, cfg->octave_id);
+	    page_el_gui_cb, NULL, tuning_cb,
+	    s, cfg, &s->osc_page, cfg->octave_id);
 	endpoint_set_default_value(&cfg->octave_ep, (Value){.int_v = 0});
 	endpoint_set_allowed_range(&cfg->octave_ep, (Value){.int_v = -8}, (Value){.int_v = 8});
 	api_endpoint_register(&cfg->octave_ep, &cfg->api_node);
@@ -474,8 +791,8 @@ Synth *synth_create(Track *track)
 	    "tune_coarse",
 	    "Coarse tune",
 	    JDAW_THREAD_DSP,
-	    page_el_gui_cb, NULL, NULL,
-	    NULL, NULL, &s->osc_page, cfg->tune_coarse_id);
+	    page_el_gui_cb, NULL, tuning_cb,
+	    s, cfg, &s->osc_page, cfg->tune_coarse_id);
 	endpoint_set_default_value(&cfg->tune_coarse_ep, (Value){.int_v = 0});
 	endpoint_set_allowed_range(&cfg->tune_coarse_ep, (Value){.int_v = -11}, (Value){.int_v = 11});
 	api_endpoint_register(&cfg->tune_coarse_ep, &cfg->api_node);
@@ -487,8 +804,8 @@ Synth *synth_create(Track *track)
 	    "tune_fine",
 	    "Fine tune",
 	    JDAW_THREAD_DSP,
-	    page_el_gui_cb, NULL, NULL,
-	    NULL, NULL, &s->osc_page, cfg->tune_fine_id);
+	    page_el_gui_cb, NULL, tuning_cb,
+	    s, cfg, &s->osc_page, cfg->tune_fine_id);
 	endpoint_set_default_value(&cfg->tune_fine_ep, (Value){.float_v = 0.0f});
 	endpoint_set_allowed_range(&cfg->tune_fine_ep, (Value){.float_v = -100.0f}, (Value){.float_v = 100.0f});
 	api_endpoint_register(&cfg->tune_fine_ep, &cfg->api_node);
@@ -501,9 +818,10 @@ Synth *synth_create(Track *track)
 	    "Num unison voices",
 	    JDAW_THREAD_DSP,
 	    page_el_gui_cb, NULL, NULL,
-	    NULL, NULL, &s->osc_page, cfg->unison.num_voices_id);
-	endpoint_set_allowed_range(&cfg->unison.num_voices_ep, (Value){.int_v = 0}, (Value){.int_v = 4});
+	    s, cfg, &s->osc_page, cfg->unison.num_voices_id);
+	endpoint_set_allowed_range(&cfg->unison.num_voices_ep, (Value){.int_v = 0}, (Value){.int_v = SYNTH_MAX_UNISON_OSCS - 1});
 	api_endpoint_register(&cfg->unison.num_voices_ep, &cfg->api_node);
+	endpoint_set_label_fn(&cfg->unison.num_voices_ep, label_int_plus_one);
 
 	endpoint_init(
 	    &cfg->unison.detune_cents_ep,
@@ -512,10 +830,10 @@ Synth *synth_create(Track *track)
 	    "unison_detune_cents",
 	    "Unison detune cents",
 	    JDAW_THREAD_DSP,
-	    page_el_gui_cb, NULL, NULL,
-	    NULL, NULL, &s->osc_page, cfg->unison.detune_cents_id);
-	endpoint_set_allowed_range(&cfg->unison.detune_cents_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 50.0f});
-	endpoint_set_default_value(&cfg->unison.detune_cents_ep, (Value){.float_v = 5.0f});
+	    page_el_gui_cb, NULL, detune_cents_dsp_cb,
+	    s, cfg, &s->osc_page, cfg->unison.detune_cents_id);
+	endpoint_set_allowed_range(&cfg->unison.detune_cents_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 100.0f});
+	endpoint_set_default_value(&cfg->unison.detune_cents_ep, (Value){.float_v = 10.0f});
 	api_endpoint_register(&cfg->unison.detune_cents_ep, &cfg->api_node);
 
 	endpoint_init(
@@ -538,10 +856,10 @@ Synth *synth_create(Track *track)
 	    "unison_stereo_spread",
 	    "Unison stereo spread",
 	    JDAW_THREAD_DSP,
-	    page_el_gui_cb, NULL, NULL,
-	    NULL, NULL, &s->osc_page, cfg->unison.stereo_spread_id);
-	endpoint_set_allowed_range(&cfg->unison.stereo_spread_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 2.0f});
-	endpoint_set_default_value(&cfg->unison.stereo_spread_ep, (Value){.float_v = 0.4f});
+	    page_el_gui_cb, NULL, unison_stereo_spread_dsp_cb,
+	    s, cfg, &s->osc_page, cfg->unison.stereo_spread_id);
+	endpoint_set_allowed_range(&cfg->unison.stereo_spread_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
+	endpoint_set_default_value(&cfg->unison.stereo_spread_ep, (Value){.float_v = 0.0f});
 	api_endpoint_register(&cfg->unison.stereo_spread_ep, &cfg->api_node);
 
 	endpoint_init(
@@ -639,86 +957,306 @@ static float polyblep(float incr, float phase)
     return 0.0;
 }
 
-/* TODO: remove test global */
-/* bool do_blep = true; */
-static float osc_sample(Osc *osc, int channel, int num_channels, float step)
+static void osc_set_freq(Osc *osc, double freq_hz);
+bool do_blep = true;
+
+static void osc_reset_params(Osc *restrict osc)
 {
-    float sample;
-    switch(osc->type) {
-    case WS_SINE:
-	sample = sin(TAU * osc->phase[channel]);
-	break;
-    case WS_SQUARE:
-	sample = osc->phase[channel] < 0.5 ? 1.0 : -1.0;
-	/* if (do_blep) { */
-	/* BLEP */
-	sample += polyblep(osc->sample_phase_incr, osc->phase[channel]);
-	sample -= polyblep(osc->sample_phase_incr, fmod(osc->phase[channel] + 0.5, 1.0)); 
-	/* } */
-	break;
-    case WS_TRI:
-	sample =
-	    osc->phase[channel] <= 0.25 ?
-	        osc->phase[channel] * 4.0f :
-	    osc->phase[channel] <= 0.5f ?
-	        (0.5f - osc->phase[channel]) * 4.0 :
-	    osc->phase[channel] <= 0.75f ?
-	        (osc->phase[channel] - 0.5f) * -4.0 :
-	        (1.0f - osc->phase[channel]) * -4.0;
-        break;
-    case WS_SAW:
-	sample = 2.0f * osc->phase[channel] - 1.0;
-	/* if (do_blep) { */\
-	/* BLEP */
-	sample -= polyblep(osc->sample_phase_incr, osc->phase[channel]);
-	/* } */
-	break;
-    default:
-	sample = 0.0;
-    }
-    if (osc->freq_modulator) {
-	float fmod_sample = osc_sample(osc->freq_modulator, channel, num_channels, step);
-	osc->phase[channel] += osc->sample_phase_incr * (step * (1.0f + fmod_sample));
+    OscCfg *cfg = osc->cfg;
+    float note;
+    if (cfg->fix_freq) {
+	/* Lowpass filter to control signal to smooth stairsteps */
+	float f_raw = dsp_scale_freq_to_hz(cfg->fixed_freq_unscaled);
+	float f = f_raw * 0.01 + osc->freq_last_sample * 0.99;
+	note = ftom_calc(f);
+	osc->freq_last_sample = f;
     } else {
-	osc->phase[channel] += osc->sample_phase_incr * step;
+	note = (float)osc->voice->note_val;
     }
-    if (osc->amp_modulator) {
-	sample *= 1.0 + osc_sample(osc->amp_modulator, channel, num_channels, step);
+    note += (osc->detune_cents + osc->tune_cents) / 100.0f;
+    osc_set_freq(osc, mtof_calc(note));
+    int unison_index = (osc - osc->voice->oscs) / SYNTH_NUM_BASE_OSCS;
+    if (unison_index > 0) { /* UNISON VOL */
+	osc->amp = cfg->amp * cfg->unison.relative_amp;
+	osc->pan = cfg->pan + osc->pan_offset;
+	if (osc->pan > 1.0f) osc->pan = 1.0f;
+	if (osc->pan < 0.0f) osc->pan = 0.0f;
+    } else {
+	osc->amp = cfg->amp;
+	osc->pan = cfg->pan;
     }
-    if (osc->phase[channel] > 1.0) {
-	osc->phase[channel] -= 1.0;
-    }
-    /* float pan_scale; */
-    /* if (channel == 0) { */
-    /* 	pan_scale = osc->pan <= 0.5 ? 1.0 : (1.0f - osc->pan) * 2.0f; */
-    /* } else { */
-    /* 	pan_scale = osc->pan >= 0.5 ? 1.0 : osc->pan * 2.0f; */
-    /* } */
-    return sample * osc->amp * pan_scale(osc->pan, channel);
 }
 
+/* static void osc_get_buf_preamp(Osc *restrict osc, float step, float *restrict buf, int len); */
+static void osc_get_buf_preamp(Osc *restrict osc, float step, int len)
+{
+    if (len > MAX_OSC_BUF_LEN) {
+	fprintf(stderr, "Error: Synth Oscs cannot support buf size > %d (req size %d)\n", MAX_OSC_BUF_LEN, len);
+	#ifdef TESTBUILD
+	exit(1);
+	#endif
+	len = MAX_OSC_BUF_LEN;
+    }
+    float *fmod_samples;
+    float *amod_samples;
+    float fmod_amp;
+    if (osc->freq_modulator) {
+	fmod_samples = osc->freq_modulator->buf;
+	osc_get_buf_preamp(osc->freq_modulator, step, len);
+	fmod_amp = powf(osc->freq_modulator->cfg->amp, 3.0f);
+	float_buf_mult_const(fmod_samples, fmod_amp, len);
+    }
+    if (osc->amp_modulator) {
+	amod_samples = osc->amp_modulator->buf;
+	osc_get_buf_preamp(osc->amp_modulator, step, len);
+	float amp = osc->amp_modulator->cfg->amp;
+	float_buf_mult_const(amod_samples, amp, len);
+	
+    }
+    double phase_incr = osc->sample_phase_incr + osc->sample_phase_incr_addtl;
+    double phase = osc->phase;
+    int unison_i = (long)((osc - osc->voice->oscs) - (osc->cfg - osc->voice->synth->base_oscs)) / SYNTH_NUM_BASE_OSCS;
+    for (int i=0; i<len; i++) {
+	float sample;
+	if (osc->cfg->fix_freq && i % 93 == 0) {
+	    /* fprintf(stderr, "resetting %d\n", i); */
+	    osc_reset_params(osc);
+	}
+	/* double phase_incr = osc->sample_phase_incr + osc->sample_phase_incr_addtl; */
+	switch(osc->type) {
+	case WS_SINE:
+	    sample = sinf(TAU * phase);
+	    break;
+	case WS_SQUARE:
+	    sample = phase < 0.5 ? 1.0 : -1.0;
+	    sample += polyblep(phase_incr, phase);
+	    sample -= polyblep(phase_incr, fmod(phase + 0.5, 1.0)); 
+	    break;
+	case WS_TRI:
+	    if (do_blep) {
+		sample = phase < 0.5 ? 1.0 : -1.0;
+		sample += polyblep(phase_incr, phase);
+		sample -= polyblep(phase_incr, fmod(phase + 0.5, 1.0)); 
+
+		sample *= 4.0 * phase_incr;
+		sample += osc->last_out_tri;
+		osc->last_out_tri = sample;
+		sample = iir_sample(&osc->tri_dc_blocker, sample, 0);
+	    } else {
+		sample =
+		    phase <= 0.25 ?
+		    phase * 4.0f :
+		    phase <= 0.5f ?
+		    (0.5f - phase) * 4.0 :
+		    phase <= 0.75f ?
+		    (phase - 0.5f) * -4.0 :
+		    (1.0f - phase) * -4.0;
+	    }
+
+	    break;
+	case WS_SAW:
+	    sample = 2.0f * phase - 1.0;
+	    if (do_blep) {
+		/* BLEP */
+		sample -= polyblep(phase_incr, phase);
+	    }
+	    break;
+	default:
+	    sample = 0.0;
+	}
+	if (osc->freq_modulator) {
+	    /* Raise fmod sample to 3 to get fmod values in more useful range */
+	    /* float fmod_sample = pow(osc_sample(osc->freq_modulator, channel, num_channels, step, chunk_index), 3.0); */
+	    /* fprintf(stderr, "fmod sample in osc %p: %f\n", osc, fmod_sample); */
+	    phase += phase_incr * step * (1.0 - fmod_samples[i]);
+	} else {
+	    phase += phase_incr * step;
+	}
+	if (osc->amp_modulator) {
+	    sample *= 1.0 + amod_samples[i];
+	    /* sample *= 1.0 + osc_sample(osc->amp_modulator, channel, num_channels, step, chunk_index); */
+	}
+	if (phase > 1.0) {
+	    phase = phase - floor(phase);
+	} else if (phase < 0.0) {
+	    phase = 1.0 + phase + ceil(phase);
+	}
+	if (osc->cfg->unison.num_voices > 0 && !osc->cfg->mod_freq_of && !osc->cfg->mod_amp_of)
+	    sample *= 1.0 / (0.5 * osc->cfg->unison.num_voices * osc->cfg->unison.relative_amp + 1.0);
+	if (!osc->cfg->mod_freq_of && !osc->cfg->mod_amp_of && unison_i != 0 && unison_i % 3 == 0) {
+	    sample *= -1;
+	}
+	osc->buf[i] = sample;
+    }
+    osc->phase = phase;
+    /* osc->phase_incr =  */
+    /* apply_amp_and_pan: */
+    /* 	(void)0; */
+    /* 	float bottom_sample; */
+    /* 	if (channel == 0) { */
+    /* 	    osc->saved_L_out[chunk_index] = sample; */
+    /* 	    bottom_sample = sample; */
+    /* 	} else { */
+    /* 	    bottom_sample = osc->saved_L_out[chunk_index]; */
+    /* 	} */
+    /* 	return bottom_sample * osc->amp * pan_scale(osc->pan, channel); */
+    /* } */
+}
+
+
+/* static float osc_sample(Osc *osc, int channel, int num_channels, float step, int chunk_index) */
+/* { */
+/*     if (channel != 0) goto apply_amp_and_pan; */
+/*     OscCfg *cfg = osc->cfg; */
+/*     /\* float amp = cfg->amp; *\/ */
+/*     /\* float pan = cfg->pan; *\/ */
+/*     if (cfg->fix_freq) { */
+/* 	/\* Lowpass filter to control signal to smooth stairsteps *\/ */
+/* 	float f_raw = dsp_scale_freq_to_hz(cfg->fixed_freq_unscaled); */
+/* 	float f = f_raw * 0.001 + osc->freq_last_sample[channel] * 0.999; */
+/* 	osc_set_freq(osc, f); */
+/* 	osc->freq_last_sample[channel] = f; */
+/*     } else { */
+/* 	if (osc->reset_params_ctr[channel] <= 0) { */
+/* 	    osc->reset_params_ctr[channel] = 192; /\* 2msec precision for 96kHz *\/ */
+/* 	    float note = (float)osc->voice->note_val + (osc->detune_cents + osc->tune_cents) / 100.0f; */
+/* 	    osc_set_freq(osc, mtof_calc(note)); */
+/* 	    int unison_index = (osc - osc->voice->oscs) / SYNTH_NUM_BASE_OSCS; */
+/* 	    if (unison_index > 0) { /\* UNISON VOL *\/ */
+/* 		osc->amp = cfg->amp * cfg->unison.relative_amp; */
+/* 		osc->pan = cfg->pan + osc->pan_offset; */
+/* 		if (osc->pan > 1.0f) osc->pan = 1.0f; */
+/* 		if (osc->pan < 0.0f) osc->pan = 0.0f; */
+/* 	    } else { */
+/* 		osc->amp = cfg->amp; */
+/* 		osc->pan = cfg->pan; */
+/* 	    } */
+/* 	} */
+/* 	osc->reset_params_ctr[channel]--; */
+/*     } */
+/*     float sample; */
+/*     double phase_incr = osc->sample_phase_incr + osc->sample_phase_incr_addtl; */
+/*     switch(osc->type) { */
+/*     case WS_SINE: */
+/* 	sample = sin(TAU * osc->phase[channel]); */
+/* 	break; */
+/*     case WS_SQUARE: */
+/* 	sample = osc->phase[channel] < 0.5 ? 1.0 : -1.0; */
+/* 	/\* if (do_blep) { *\/ */
+/* 	/\* BLEP *\/ */
+/* 	sample += polyblep(phase_incr, osc->phase[channel]); */
+/* 	sample -= polyblep(phase_incr, fmod(osc->phase[channel] + 0.5, 1.0));  */
+/* 	/\* } *\/ */
+/* 	break; */
+/*     case WS_TRI: */
+/* 	sample = */
+/* 	    osc->phase[channel] <= 0.25 ? */
+/* 	        osc->phase[channel] * 4.0f : */
+/* 	    osc->phase[channel] <= 0.5f ? */
+/* 	        (0.5f - osc->phase[channel]) * 4.0 : */
+/* 	    osc->phase[channel] <= 0.75f ? */
+/* 	        (osc->phase[channel] - 0.5f) * -4.0 : */
+/* 	        (1.0f - osc->phase[channel]) * -4.0; */
+/*         break; */
+/*     case WS_SAW: */
+/* 	sample = 2.0f * osc->phase[channel] - 1.0; */
+/* 	if (do_blep) { */
+/* 	/\* BLEP *\/ */
+/* 	    sample -= polyblep(phase_incr, osc->phase[channel]); */
+/* 	} */
+/* 	break; */
+/*     default: */
+/* 	sample = 0.0; */
+/*     } */
+/*     if (osc->freq_modulator) { */
+/* 	/\* Raise fmod sample to 3 to get fmod values in more useful range *\/ */
+/* 	float fmod_sample = pow(osc_sample(osc->freq_modulator, channel, num_channels, step, chunk_index), 3.0); */
+/* 	/\* fprintf(stderr, "fmod sample in osc %p: %f\n", osc, fmod_sample); *\/ */
+/* 	osc->phase[channel] += phase_incr * (step * (1.0f + fmod_sample)); */
+/*     } else { */
+/* 	osc->phase[channel] += phase_incr * step; */
+/*     } */
+/*     if (osc->amp_modulator) { */
+/* 	sample *= 1.0 + osc_sample(osc->amp_modulator, channel, num_channels, step, chunk_index); */
+/*     } */
+/*     if (osc->phase[channel] > 1.0) { */
+/* 	osc->phase[channel] = osc->phase[channel] - floor(osc->phase[channel]); */
+/*     } else if (osc->phase[channel] < 0.0) { */
+/* 	osc->phase[channel] = 1.0 + osc->phase[channel] + ceil(osc->phase[channel]); */
+/*     } */
+/*     /\* fprintf(stderr, "Osc: %p phase: %f\n", osc, osc->phase[channel]); *\/ */
+/*     /\* float pan_scale; *\/ */
+/*     /\* if (channel == 0) { *\/ */
+/*     /\* 	pan_scale = osc->pan <= 0.5 ? 1.0 : (1.0f - osc->pan) * 2.0f; *\/ */
+/*     /\* } else { *\/ */
+/*     /\* 	pan_scale = osc->pan >= 0.5 ? 1.0 : osc->pan * 2.0f; *\/ */
+/*     /\* } *\/ */
+/*     #ifdef TESTBUILD */
+/*     if (fpclassify(sample * osc->amp * pan_scale(osc->pan, channel)) < 3) { */
+/* 	breakfn(); */
+/*     } */
+/*     /\* if (fpclassify(osc->sample_phase_incr,  *\/ */
+/*     #endif */
+/* apply_amp_and_pan: */
+/*     (void)0; */
+/*     float bottom_sample; */
+/*     if (channel == 0) { */
+/* 	osc->saved_L_out[chunk_index] = sample; */
+/* 	bottom_sample = sample; */
+/*     } else { */
+/* 	bottom_sample = osc->saved_L_out[chunk_index]; */
+/*     } */
+/*     return bottom_sample * osc->amp * pan_scale(osc->pan, channel); */
+/* } */
 
 static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int channel, float step)
 {
     if (v->available) return;
     float osc_buf[len];
     memset(osc_buf, '\0', len * sizeof(float));
+    for (int i=0; i<SYNTHVOICE_NUM_OSCS; i++) {
+	osc_reset_params(v->oscs + i);
+    }
     /* fprintf(stderr, "\tvoice %ld has data\n", v - v->synth->voices); */
     for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
 	OscCfg *cfg = v->synth->base_oscs + i;
-	if (!cfg->active) continue;
-	if (cfg->mod_freq_of || cfg->mod_amp_of) continue;
 	/* fprintf(stderr, "\t\tvoice %ld osc %d\n", v - v->synth->voices, i); */
 	Osc *osc = v->oscs + i;
-	for (int i=0; i<len; i++) {
-	    osc_buf[i] += osc_sample(osc, channel, 2, step);
+	/* osc_reset_params(osc); */
+	if (!cfg->active) continue;
+	if (cfg->mod_freq_of || cfg->mod_amp_of) continue;
+
+	/* if (osc->freq_modulator) */
+	/*     osc_reset_params(osc->freq_modulator); */
+	/* if (osc->amp_modulator) */
+	/*     osc_reset_params(osc->amp_modulator); */
+	float ind_osc_buf[len];
+	if (channel == 0) {
+	    osc_get_buf_preamp(osc, step, len);
 	}
+	memcpy(ind_osc_buf, osc->buf, len * sizeof(float));
+	float amp = osc->amp * pan_scale(osc->pan, channel);
+        float_buf_mult_const(ind_osc_buf, amp, len);
+	float_buf_add(osc_buf, ind_osc_buf, len);
+	
+	/* for (int i=0; i<len; i++) { */
+	/*     osc_buf[i] += osc_sample(osc, channel, 2, step, i); */
+	/* } */
 	for (int j=0; j<cfg->unison.num_voices; j++) {
-	    Osc *detune_voice = v->oscs + i + SYNTH_NUM_BASE_OSCS * (j + 1);
-	    for (int i=0; i<len; i++) {
-		/* fprintf(stderr, "adding detune voice %d/%d, freq %f\n", j, cfg->detune.num_voices, detune_voice->freq); */
-		osc_buf[i] += osc_sample(detune_voice, channel, 2, step);
+	    osc = v->oscs + i + SYNTH_NUM_BASE_OSCS * (j + 1);
+	    /* osc_reset_params(osc); */
+	    /* if (osc->freq_modulator) */
+	    /* 	osc_reset_params(osc->freq_modulator); */
+	    /* if (osc->amp_modulator) */
+	    /* 	osc_reset_params(osc->amp_modulator); */
+
+	    if (channel == 0) {
+		osc_get_buf_preamp(osc, step, len);
 	    }
+	    memcpy(ind_osc_buf, osc->buf, len * sizeof(float));
+	    amp = osc->amp * pan_scale(osc->pan, channel);
+	    float_buf_mult_const(ind_osc_buf, amp, len);
+	    float_buf_add(osc_buf, ind_osc_buf, len);
 	}
     }
 
@@ -730,7 +1268,7 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 	/* fprintf(stderr, "\tFREEING VOICE %ld (env overrun)\n", v - v->synth->voices); */
 	/* return; */
     }
-    Session *session = session_get();
+    
     IIRFilter *f = &v->filter;
     float filter_env[len];
     float *filter_env_p = amp_env;
@@ -738,30 +1276,45 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 	adsr_get_chunk(&v->filter_env[channel], filter_env, len);
 	filter_env_p = filter_env;
     }
+    bool do_noise = false;
+    float noise_env[len];
+    if (v->synth->noise_amt > 1e-9) {
+	do_noise = true;
+	if (v->synth->noise_apply_env) {
+	    adsr_get_chunk(&v->noise_amt_env[channel], noise_env, len);
+	}
+    }
     for (int i=0; i<len; i++) {
+	if (do_noise) {
+	    float env = 1.0;
+	    if (v->synth->noise_apply_env) {
+		env = noise_env[i];
+	    }
+	    osc_buf[i] += env * (((float)(rand() % INT16_MAX) / INT16_MAX) - 0.5) * 2.0 * v->synth->noise_amt;
+	}
 	if (v->synth->filter_active) {
 	    if (i%37 == 0) { /* Update filter every 37 sample frames */
 		    
 		    /* + v->synth->vel_amt * (v->velocity / 127.0); */
 		double freq =
 		    (v->synth->base_cutoff
-		     + v->synth->pitch_amt * mtof_calc(v->note_val) / (float)session->proj.sample_rate
+		     + v->synth->pitch_amt * mtof_calc(v->note_val) / (float)session_get_sample_rate()
 			)
 		    * (1.0f + (v->synth->env_amt * filter_env_p[i]))
 		    * (1.0f - (v->synth->vel_amt * (1.0 - (float)v->velocity / 127.0f)));
-		/* double freq = mtof_calc(v->note_val) * v->synth->freq_scalar * filter_env_p[i] / session->proj.sample_rate; */
+		/* double freq = mtof_calc(v->note_val) * v->synth->freq_scalar * filter_env_p[i] / session_get_sample_rate(); */
 		/* double velocity_rel = 1.0 - v->synth->velocity_freq_scalar * (127.0 - (double)v->velocity) / 126.0; */
 		/* freq *= velocity_rel; */
 		/* fprintf(stderr, "Freq: %f", freq); */
 		if (freq > 0.99f) freq = 0.99f;
 		if (freq > 1e-3) {
-		    /* fprintf(stderr, "\t(set)\n"); */
+		    /* fprintf(stderr, "\t(set freq %f)\n", freq); */
 		    iir_set_coeffs_lowpass_chebyshev(f, freq, v->synth->resonance);
 		/* } else { */
 		/*     fprintf(stderr, "\t(skipped)\n"); */
 		}
 
-		/* iir_set_coeffs_lowpass_chebyshev(f, (mtof_calc(v->note_val) * 20 * amp_env[i] * amp_env[i] * amp_env[i]) / session->proj.sample_rate / 2.0f, 4.0); */
+		/* iir_set_coeffs_lowpass_chebyshev(f, (mtof_calc(v->note_val) * 20 * amp_env[i] * amp_env[i] * amp_env[i]) / session_get_sample_rate() / 2.0f, 4.0); */
 
 	    }
 	    osc_buf[i] = iir_sample(f, osc_buf[i], channel);
@@ -770,20 +1323,31 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
     }
     float_buf_mult(osc_buf, amp_env, len);
     float_buf_mult_const(osc_buf, (float)v->velocity / 127.0f, len);
-    float_buf_add(buf, osc_buf, len);
-
-
-    /* for (int i=0; i<len; i++) { */
-    /* 	buf[i] = tanh(buf[i]); */
-    /* } */
-}
+    float_buf_add(buf, osc_buf, len);}
 
 static void osc_set_freq(Osc *osc, double freq_hz)
 {
-    Session *session = session_get();
     osc->freq = freq_hz;
-    osc->sample_phase_incr = freq_hz / session->proj.sample_rate;    
+    osc->sample_phase_incr = freq_hz / session_get_sample_rate();
+    #ifdef TESTBUILD
+    /* fprintf(stderr, "Osc %p, Freq hz %f, phase incr %f\n", osc, freq_hz, osc->sample_phase_incr); */
+    if (fpclassify(osc->sample_phase_incr) == FP_NAN) {
+	fprintf(stderr, "ERROR: phase incr not valid in osc_set_freq\n");
+	breakfn();
+    }
+    #endif
+    /* fprintf(stderr, "OSC %p SFI: %f, ADDTL: %f\n", osc, osc->sample_phase_incr, osc->sample_phase_incr_addtl); */
 }
+
+static void osc_set_pitch_bend(Osc *osc, double freq_rat)
+{
+    /* fprintf(stderr, "SET PB\n"); */
+    double bend_freq = osc->freq * freq_rat;
+    osc->sample_phase_incr_addtl = (bend_freq / session_get_sample_rate()) - osc->sample_phase_incr;
+}
+
+
+
 /* static void synth_voice_set_note(SynthVoice *v, uint8_t note_val, uint8_t velocity) */
 /* { */
 /*     v->note_val = note_val; */
@@ -795,6 +1359,20 @@ static void osc_set_freq(Osc *osc, double freq_hz)
 /*     /\* fprintf(stderr, "OSC 1 %f OSC 2: %f\n", v->oscs[0].freq, v->oscs[1].freq); *\/ */
 /*     v->velocity = velocity; */
 /* } */
+
+static void synth_voice_pitch_bend(SynthVoice *v, float cents)
+{
+    double freq_rat = pow(2.0, cents / 1200.0);
+    /* fprintf(stderr, "FREQ RAT: %f\n", freq_rat); */
+    for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
+	/* OscCfg *cfg = v->synth->base_oscs + i; */
+	/* if (!cfg->active) continue; */
+	for (int j=0; j<SYNTHVOICE_NUM_OSCS; j+= SYNTH_NUM_BASE_OSCS) {
+	    Osc *voice = v->oscs + i + j;
+	    osc_set_pitch_bend(voice, freq_rat);
+	}
+    }
+}
 
 static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, int32_t start_rel)
 {
@@ -809,38 +1387,58 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
     for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
 	OscCfg *cfg = synth->base_oscs + i;
 	if (!cfg->active) continue;	
-	Osc *osc = v->oscs + i;
-	double base_midi_note = note + cfg->octave * 12 + cfg->tune_coarse + cfg->tune_fine / 100.0f;
-	osc->amp = cfg->amp;
-	osc->pan = cfg->pan;
-	osc->type = cfg->type;
-	osc->phase[0] = 0.0;
-	osc->phase[1] = 0.0;
-	/* osc->freq_modulator = &LFO; */
-	/* osc_set_freq(v->oscs + i, MTOF[note_val]); */
-	osc_set_freq(osc, mtof_calc(base_midi_note));
-	/* fprintf(stderr, "BASE NOTE: %f\n", base_midi_note); */
-	for (int j=0; j<cfg->unison.num_voices; j++) {
-	    Osc *detune_voice = v->oscs + i + SYNTH_NUM_BASE_OSCS * (j + 1);
-	    detune_voice->type = cfg->type;
-	    double detune_midi_note =
-		j % 2 == 0 ?
-		base_midi_note - cfg->unison.detune_cents / 100.0f * (j + 1) :
-		base_midi_note + cfg->unison.detune_cents / 100.0f * (j + 1);
-	    /* fprintf(stderr, "DETUNE MIDI NOTE: %f (detune cents? %f /100? %f\n", detune_midi_note, cfg->unison.detune_cents, cfg->unison.detune_cents / 100.0f); */
-	    osc_set_freq(detune_voice, mtof_calc(detune_midi_note));
-	    detune_voice->amp = osc->amp * cfg->unison.relative_amp;
-	    detune_voice->pan =
-		j % 2 == 0 ?
-		osc->pan + (j + 1) * cfg->unison.stereo_spread / 2.0f / (float)cfg->unison.num_voices :
-		osc->pan - (j + 1) * cfg->unison.stereo_spread / 2.0f / (float)cfg->unison.num_voices;
-	    if (detune_voice->pan > 1.0) detune_voice->pan = 1.0;
-	    if (detune_voice->pan < 0.0) detune_voice->pan = 0.0;
-	    detune_voice->phase[0] = 0.0;
-	    detune_voice->phase[1] = 0.0;
-	    /* int randomized_pan_index = rand() % cfg->detune.num_voices; */	    
+	/* Osc *osc = v->oscs + i; */
+	for (int j=0; j<SYNTHVOICE_NUM_OSCS; j+=SYNTH_NUM_BASE_OSCS) {
+	    Osc *osc = v->oscs + i + j;
+	    osc->type = cfg->type;
+	    /* osc->sample_phase_incr_addtl = 0; */
+	    /* osc->reset_params_ctr[0] = 0; */
+	    /* osc->reset_params_ctr[1] = 0; */
 	    
+	    if (synth->sync_phase) {
+		osc->phase = 0.0;
+	    }
+	    /* osc-> */
 	}
+	/* osc->type = cfg->type; */
+	/* /\* Reset phase every time? *\/ */
+	/* if (synth->sync_phase) { */
+	/*     osc->phase[0] = 0.0; */
+	/*     osc->phase[1] = 0.0; */
+	/* } */
+
+
+	
+	/* double midi_note; */
+	/* if (cfg->fix_freq) { */
+	/*     midi_note = ftom_calc(dsp_scale_freq_to_hz(cfg->fixed_freq_unscaled)); */
+	/* } else { */
+	/*     midi_note = note + cfg->octave * 12 + cfg->tune_coarse + cfg->tune_fine / 100.0f; */
+	/* } */
+	/* osc_set_freq(osc, mtof_calc(midi_note)); */
+	/* fprintf(stdersynr, "BASE NOTE: %f\n", base_midi_note); */
+	/* for (int j=0; j<cfg->unison.num_voices; j++) { */
+	/*     Osc *detune_voice = v->oscs + i + SYNTH_NUM_BASE_OSCS * (j + 1); */
+	/*     detune_voice->type = cfg->type; */
+	/*     double max_offset_cents = cfg->unison.detune_cents / 100.0f; */
+	/*     double voice_offset = max_offset_cents / cfg->unison.num_voices * 2; */
+	/*     double detune_midi_note = */
+	/* 	j % 2 == 0 ? */
+	/* 	midi_note - voice_offset * (j + 1): */
+	/* 	midi_note + voice_offset * (j + 1); */
+	/*     osc_set_freq(detune_voice, mtof_calc(detune_midi_note)); */
+	/*     detune_voice->amp = osc->amp * cfg->unison.relative_amp; */
+	/*     detune_voice->pan = */
+	/* 	j % 2 == 0 ? */
+	/* 	osc->pan + (j + 1) * cfg->unison.stereo_spread / 2.0f / (float)cfg->unison.num_voices : */
+	/* 	osc->pan - (j + 1) * cfg->unison.stereo_spread / 2.0f / (float)cfg->unison.num_voices; */
+	/*     if (detune_voice->pan > 1.0) detune_voice->pan = 1.0; */
+	/*     if (detune_voice->pan < 0.0) detune_voice->pan = 0.0; */
+	/*     detune_voice->phase[0] = 0.0; */
+	/*     detune_voice->phase[1] = 0.0; */
+	/*     /\* int randomized_pan_index = rand() % cfg->detune.num_voices; *\/	     */
+	    
+	/* } */
     }
     /* osc_set_freq(v->oscs + 1, mtof_calc((double)note + 0.02)); */
     /* fprintf(stderr, "OSC 1 %f OSC 2: %f\n", v->oscs[0].freq, v->oscs[1].freq); */
@@ -851,11 +1449,16 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
     /* v->note_end_rel[0] = INT32_MIN; */
     /* v->note_end_rel[1] = INT32_MIN; */
     v->available = false;
+    
     adsr_init(v->amp_env, start_rel);
     adsr_init(v->amp_env + 1, start_rel);
-    /* if (!v->synth->use_amp_env) { */
+
     adsr_init(v->filter_env, start_rel);
     adsr_init(v->filter_env + 1, start_rel);
+
+    adsr_init(v->noise_amt_env, start_rel);
+    adsr_init(v->noise_amt_env + 1, start_rel);
+
     /* } */
 
     /* v->amp_env_stage[0] = 0; */
@@ -1017,50 +1620,87 @@ int synth_set_amp_mod_pair(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg)
     return 0;
 }
 
-void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start, bool send_immediate)
+void synth_voice_start_release(SynthVoice *v, int32_t after)
+{
+    adsr_start_release(v->amp_env, after);
+    adsr_start_release(v->amp_env + 1, after);
+    adsr_start_release(v->filter_env, after);
+    adsr_start_release(v->filter_env + 1, after);
+    adsr_start_release(v->noise_amt_env, after);
+    adsr_start_release(v->noise_amt_env + 1, after);
+
+}
+
+
+void synth_feed_midi(
+    Synth *s,
+    PmEvent *events,
+    int num_events,
+    int32_t tl_start,
+    bool send_immediate)
 {
     /* fprintf(stderr, "\n\nSYNTH FEED MIDI %d events tl start start: %d send immediate %d\n", num_events, tl_start, send_immediate); */
     /* FIRST: Update synth state from available MIDI data */
+    /* fprintf(stderr, "SYNTH FEED MIDI tl start: %d\n", tl_start); */
     for (int i=0; i<num_events; i++) {
 	/* PmEvent e = s->device.buffer[i]; */
 	PmEvent e = events[i];
-	/* PmTimestamp ts = e.timestamp; */
 	uint8_t status = Pm_MessageStatus(e.message);
 	uint8_t note_val = Pm_MessageData1(e.message);
 	uint8_t velocity = Pm_MessageData2(e.message);
 	uint8_t msg_type = status >> 4;
-	uint8_t channel = status & 0x0F;
+
+	/* fprintf(stderr, "\tIN SYNTH:(%d) %s, pitch %d vel %d\n", */
+	/* 	e.timestamp, */
+	/* 	msg_type == 8 ? "note OFF" : */
+	/* 	msg_type == 9 ? "note ON" : */
+	/* 	"unknown", */
+	/* 	Pm_MessageData1(e.message), */
+	/* 	Pm_MessageData2(e.message)); */
+
+	/* uint8_t channel = status & 0x0F; */
 
 	/* fprintf(stderr, "\t\tIN SYNTH msg%d/%d %x, %d, %d (%s)\n", i, s->num_events, status, note_val, velocity, msg_type == 0x80 ? "OFF" : msg_type == 0x90 ? "ON" : "ERROR"); */
 	/* if (i == 0) start = e.timestamp; */
-	/* int32_t pos_rel = ((double)e.timestamp - start) * (double)session->proj.sample_rate / 1000.0; */
+	/* int32_t pos_rel = ((double)e.timestamp - start) * (double)session_get_sample_rate() / 1000.0; */
 	/* fprintf(stderr, "EVENT %d/%d, timestamp: %d\n", i, num_events, e.timestamp); */
 	if (velocity == 0) msg_type = 8;
 	if (msg_type == 8) {
 	    /* HANDLE NOTE OFF */
-	    /* fprintf(stderr, "NOTE OFF val: %d pos %d\n", note_val, e.timestamp); */
+	    /* fprintf(stderr, "\t\tNOTE OFF val: %d pos %d\n", note_val, e.timestamp); */
 	    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 		SynthVoice *v = s->voices + i;
 		if (!v->available && v->note_val == note_val) {
-		    /* v->note_end_rel[0] = 0; */
-		    /* v->note_end_rel[1] = 0; */
-		    /* fprintf(stderr, "START RELEASE ON VOICE %d\n", i); */
-		    int32_t end_rel = send_immediate ? 0 : tl_start - e.timestamp;
-		    adsr_start_release(v->amp_env, end_rel);
-		    adsr_start_release(v->amp_env + 1, end_rel);
-		    adsr_start_release(v->filter_env, end_rel);
-		    adsr_start_release(v->filter_env + 1, end_rel);
-
+		    /* fprintf(stderr, "Voice %ld\n", v - s->voices); */
+		    /* if (v->note_off_deferred) { */
+		    /* 	fprintf(stderr, "\t(already deferred)\n"); */
+		    /* } */
+		    if (s->pedal_depressed) {
+			if (!v->note_off_deferred) {
+			    /* fprintf(stderr, "NUM DEFERRED OFFS: %d\n", s->num_deferred_offs); */
+			    v->note_off_deferred = true;
+			    if (s->num_deferred_offs < SYNTH_NUM_VOICES) {
+				s->deferred_offs[s->num_deferred_offs] = v;
+				s->num_deferred_offs++;
+			    } else {
+				fprintf(stderr, "ERROR: no room to defer note off\n");
+			    }
+			}
+		    } else {
+			int32_t end_rel = send_immediate ? 0 : e.timestamp - tl_start;
+			/* fprintf(stderr, "\t\tStart release voice %d, end rel %d\n", i, end_rel); */
+			synth_voice_start_release(v, end_rel);
+		    }
 		}
 	    }
 	} else if (msg_type == 9) { /* Handle note on */
-	    /* fprintf(stderr, "NOTE ON val: %d chan %d pos %d\n", note_val, channel, e.timestamp); */
+	    /* fprintf(stderr, "\t\tNOTE ON val: %d pos %d\n", note_val, e.timestamp); */
 	    bool note_assigned = false;
 	    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 		SynthVoice *v = s->voices + i;
 		if (v->available) {
-		    /* fprintf(stderr, "ASSIGN VOICE %d\n", i); */
-		    int32_t start_rel = send_immediate ? 0 : tl_start - e.timestamp;
+		    int32_t start_rel = send_immediate ? 0 : e.timestamp - tl_start;
+		    /* fprintf(stderr, "\t\tASSIGN VOICE %d, start rel %d\n", i, start_rel); */
 		    synth_voice_assign_note(v, note_val, velocity, start_rel);
 		    note_assigned = true;
 		    break;
@@ -1081,18 +1721,52 @@ void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start
 			}
 		    }
 		    if (oldest) { /* steal the oldest voice */
-			int32_t start_rel = send_immediate ? 0 : tl_start - e.timestamp;
+			int32_t start_rel = send_immediate ? 0 : e.timestamp - tl_start;
 			synth_voice_assign_note(oldest, note_val, velocity, start_rel);
 			note_assigned = true;
 		    }
 		}
 	    }
+	} else if (msg_type == 0xE) { /* Pitch Bend */
+	    float pb = midi_pitch_bend_float_from_event(&e);
+	    /* fprintf(stderr, "REC'd PITCH BEND! amt: %f, normalized: %f, normalized incorrect: %f\n", pb, pb - 0.5, pb - 1.0); */
+	    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+		SynthVoice *v = s->voices + i;
+		synth_voice_pitch_bend(v, 2.0f * (pb - 0.5) * 200.0);
+		/* if (!v->available) { */
+		/*     enum adsr_stage stage = v->amp_env[0].current_stage; */
+		/*     if (stage > ADSR_UNINIT) { */
+		/*     } */
+		/* } */
+	    }
+	} else if (msg_type == 0xB) { /* Control change */
+	    uint8_t type = Pm_MessageData1(e.message);
+	    uint8_t value = Pm_MessageData2(e.message);
+	    /* MIDICC cc = midi_cc_from_event(&e, 0); */
+	    /* fprintf(stderr, "REC'd contrl change type %d val %d\n", cc.type, cc.value); */
+	    if (type == 64) {
+		s->pedal_depressed = value >= 64;
+		if (!s->pedal_depressed) {
+		    int32_t end_rel = send_immediate ? 0 : e.timestamp - tl_start;
+		    for (int i=0; i<s->num_deferred_offs; i++) {
+			synth_voice_start_release(s->deferred_offs[i], end_rel);
+			/* fprintf(stderr, "----RElease Voice %ld\n", s->deferred_offs[i] - s->voices); */
+			s->deferred_offs[i]->note_off_deferred = false;
+			s->deferred_offs[i] = NULL;
+			/* adsr_start_release(s->deferred_offs[i], end_rel); */
+		    }
+		    s->num_deferred_offs = 0;
+		}
+		/* fprintf(stderr, "DEPR? %d\n", s->pedal_depressed); */
+	    }
+
 	}
     }
 }
 
 void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step)
 {
+    /* fprintf(stderr, "PED? %d\n", s->pedal_depressed); */
     /* if (channel != 0) return; */
     /* fprintf(stderr, "ADD BUF\n"); */
     if (step < 0.0) step *= -1;
@@ -1115,11 +1789,23 @@ void synth_close_all_notes(Synth *s)
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	SynthVoice *v = s->voices + i;
 	if (!v->available) {
+	    synth_voice_pitch_bend(v, 0.0);
 	    adsr_start_release(v->amp_env, 0);
 	    adsr_start_release(v->amp_env + 1, 0);
 	    adsr_start_release(v->filter_env, 0);
 	    adsr_start_release(v->filter_env + 1, 0);
+	    adsr_start_release(v->noise_amt_env, 0);
+	    adsr_start_release(v->noise_amt_env + 1, 0);
+	}
+    }
+}
 
+void synth_clear_all(Synth *s)
+{
+    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+	SynthVoice *v = s->voices + i;
+	if (!v->available) {
+	    v->available = true;
 	}
     }
 }

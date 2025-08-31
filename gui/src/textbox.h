@@ -36,6 +36,10 @@ typedef struct textbox {
     int corner_radius;
     Window *window;
 
+    /* 'live' textboxes check value at every draw frame
+       to determine if redraw necessary */
+    bool live;
+
     /* COLOR CHANGE CALLBACKS: DEPRECATED AND REPLACED WITH animation.c */
     
     /* int color_change_timer; */

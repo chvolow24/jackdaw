@@ -17,6 +17,8 @@
 #define SLIDER_LABEL_H_PAD 4
 #define SLIDER_LABEL_V_PAD 2
 
+#define SLIDER_MAX_POINTS_OF_INTEREST 8
+
 /*****************************************/
 /************ Definitions ****************/
 /*****************************************/
@@ -29,6 +31,10 @@ typedef struct button {
     ComponentFn action;
     void *target;
     Animation *animation;
+
+    SDL_Color *pressed_color;
+    SDL_Color *return_color;
+    UserFn *bound_userfn;
 } Button;
 
 typedef struct symbol_button {
@@ -120,6 +126,9 @@ typedef struct slider {
     /* ValType val_type; */
     /* void *value; */
     Value min, max;
+    Value points_of_interest[SLIDER_MAX_POINTS_OF_INTEREST];
+    int points_of_interest_draw_locs_pix[SLIDER_MAX_POINTS_OF_INTEREST];
+    uint8_t num_points_of_interest;
     enum slider_orientation orientation;
     enum slider_style style;
     Layout *bar_layout;
@@ -211,6 +220,7 @@ void slider_draw(Slider *s);
 bool slider_mouse_click(Slider *slider, Window *win);
 bool slider_mouse_motion(Slider *slider, Window *win);
 void slider_destroy(Slider *s);
+void slider_add_point_of_interest(Slider *s, Value p);
 
 
 void slider_std_labelmaker(char *dst, size_t dstsize, void *value, ValType type);
@@ -239,10 +249,7 @@ void button_destroy(Button *button);
 void button_press_color_change(
     Button *button,
     SDL_Color *temp_color,
-    SDL_Color *return_color,
-    ComponentFn callback,
-    void *callback_target);
-
+    SDL_Color *return_color);
 
 /* Symbol button */
 
@@ -259,6 +266,14 @@ void button_draw(Button *button);
 void symbol_button_draw(SymbolButton *sbutton);
 void symbol_button_destroy(SymbolButton *sbutton);
 bool symbol_button_click(SymbolButton *sbutton, Window *win);
+
+/* Button animation will run whenever userfn triggered */
+void button_bind_userfn(
+    Button *button,
+    char *fn_id,
+    InputMode im,
+    SDL_Color *pressed_color,
+    SDL_Color *bckgrnd_color);
 
 /* Textentry */
 

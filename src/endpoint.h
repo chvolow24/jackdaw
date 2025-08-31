@@ -76,6 +76,7 @@ typedef struct endpoint {
     
     void *val;
     ValType val_type;
+    Value current_write_val; /* Set at start of write operation */
     Value last_write_val; /* Set at end of write operation */
     Value overwrite_val; /* Set at start of write operation */
     bool write_has_occurred;

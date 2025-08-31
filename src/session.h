@@ -22,6 +22,7 @@
 #define JDAW_SESSION_H
 
 #include "audio_connection.h"
+#include "clipref.h"
 #include "loading.h"
 #include "midi_io.h"
 #include "panel.h"
@@ -29,6 +30,7 @@
 #include "status.h"
 /* #include "synth.h" */
 #include "tempo.h"
+#include "timeview.h"
 #include "user_event.h"
 
 #define MAX_SESSION_AUDIO_CONNS 32
@@ -50,6 +52,7 @@ struct session_gui {
 
     struct freq_plot *freq_domain_plot;
     Layout *layout;
+    Layout *timeline_lt;
     SDL_Rect *audio_rect;
     SDL_Rect *control_bar_rect;
     SDL_Rect *ruler_rect;
@@ -58,8 +61,15 @@ struct session_gui {
     SDL_Rect *bun_patty_bun[3];
     Textbox *source_name_tb;
 
+    Textbox *timecode_tb;
+    Textbox *loop_play_lemniscate;
+
     bool panels_initialized;
     PanelArea *panels;
+
+    SDL_Texture *left_arrow_texture;
+    SDL_Texture *right_arrow_texture;
+    
 };
 
 struct playhead_scroll {
@@ -112,11 +122,14 @@ struct queued_ops {
 
 struct source_mode {    
     bool source_mode;
-    Clip *src_clip;
+    ClipType src_clip_type;
+    void *src_clip;
     int32_t src_play_pos_sframes;
     int32_t src_in_sframes;
     int32_t src_out_sframes;
     float src_play_speed;
+
+    TimeView timeview;
 
     struct drop_save saved_drops[5];
     uint8_t num_dropped;
@@ -130,6 +143,14 @@ struct playback {
     bool recording;
     bool playing;
 };
+
+/* struct audio_settings { */
+/*     uint8_t channels; */
+/*     uint32_t sample_rate; //samples per second */
+/*     SDL_AudioFormat fmt; */
+/*     uint16_t chunk_size_sframes; //sample_frames */
+/*     uint16_t fourier_len_sframes; */
+/* }; */
 
 /* All persistent "global" data not related to a Project or Window */
 typedef struct session {
@@ -147,6 +168,7 @@ typedef struct session {
     Animation *animations;
     struct api_server server;
     struct queued_ops queued_ops;
+    bool midi_qwerty;
     bool do_tests;
     Draggable dragged_component;
     bool dragging;
@@ -156,6 +178,7 @@ typedef struct session {
     struct playback playback;
 
     bool proj_initialized;
+    Project *proj_reading;
     Project proj;
     
 } Session;
@@ -164,5 +187,7 @@ typedef struct session {
 Session *session_create();
 Session *session_get();
 void session_destroy();
+void session_set_proj(Session *session, Project *new_proj);
+uint32_t session_get_sample_rate();
 
 #endif

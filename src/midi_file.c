@@ -1,13 +1,16 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "clipref.h"
 #include "midi_clip.h"
 #include "midi_io.h"
+#include "midi_objs.h"
 #include "portmidi.h"
 #include "prompt_user.h"
 #include "session.h"
 #include "tempo.h"
+#include "type_serialize.h"
 
 
 /* Spec at https://drive.google.com/file/d/1t4jcCCKoi5HMi7YJ6skvZfKcefLhhOgU/view?u */
@@ -301,7 +304,7 @@ static void get_midi_hdr(FILE *f)
     file_info.division_fmt.fmt_bit = division_msb;
     
     uint16_t rest = division & 0x7FFF;
-    fprintf(stderr, "\tmsb == %d\n", division_msb);
+    /* fprintf(stderr, "\tmsb == %d\n", division_msb); */
     if (division_msb == 0) {
 	file_info.division_fmt.ticks_per_quarter = rest;	
     } else { /* SMPTE */
@@ -312,7 +315,7 @@ static void get_midi_hdr(FILE *f)
     }
 }
 
-/* Assumes already read MTrk and length value */
+/* Assumes already read "MTrk" and length value */
 static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mclips, int num_clips, int32_t tl_start_pos)
 {
     fprintf(stderr, "\n\n\n");
@@ -328,18 +331,14 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 
 	running_ts += delta_time * (uint32_t)file_info.division_fmt.sample_frames_per_division;
 	e.timestamp = running_ts;
-	if (e.timestamp < 0) {
-	    fprintf(stderr, "TS: %d\n", e.timestamp);
-	    exit(1);
-	}
 	len -= num_bytes;	
 	uint8_t status = fgetc(f);
 	len--;
 	static uint8_t prev_status;
     done_get_status:
-	fprintf(stderr, "STATUS: %x, timestamp: %d\n", status, e.timestamp);
-
-	if (status == 0xFF) {
+	(void)0;
+	uint8_t channel = status & 0x0F;
+	if (status == 0xFF) { /* META EVENT */
 	    uint8_t type = fgetc(f);
 	    uint32_t length = get_variable_length(f, &num_bytes);
 	    char *buf = malloc(length + 1);
@@ -396,13 +395,11 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 		fprintf(stderr, "BPM: %f\n", bpm);
 		ClickSegment *cs = click_track_cut_at(click_track, e.timestamp + tl_start_pos);
 		if (!cs) cs = click_track_get_segment_at_pos(click_track, e.timestamp + tl_start_pos);
-		/* if (!cs) exit(1); */
 		uint8_t subdivs[4] = {4, 4, 4, 4};
 		click_segment_set_config(cs, -1, bpm, 4, subdivs, 0);
 		/* exit(0); */
 		double us_per_tick = (double)tempo_us_per_quarter / (double)file_info.division_fmt.ticks_per_quarter;
-		Session *session = session_get();		
-		double frames_per_tic = us_per_tick * session->proj.sample_rate / 1000000.0;
+		double frames_per_tic = us_per_tick * session_get_sample_rate() / 1000000.0;
 		file_info.division_fmt.sample_frames_per_division = frames_per_tic;
 		fprintf(stderr, "US_PER_QUARTER: %ud, FRAMES PER TICK: %f\n", tempo_us_per_quarter, frames_per_tic);
 		/* exit(0); */
@@ -423,19 +420,18 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 	    }
 		break;
 	    default:
-		fprintf(stderr, "Ignore meta event type %x (length %d)\n", type, length);		
+		/* fprintf(stderr, "Ignore meta event type %x (length %d)\n", type, length);		 */
 		fseek(f, length, SEEK_CUR); /* IGNORE META EVENT */				    
 	    }
 	    free(buf);
 	    len -= (num_bytes + length + 1);
 	    
 	} else if ((status & 0xF0) == 0x80) { /* NOTE OFF */
-	    uint8_t note, velocity, channel;
-	note_off:
-	    note = fgetc(f);
-	    velocity = fgetc(f);
-	    channel = status & 0x0F;
-	    fprintf(stderr, "\t\tHANDLE NOTE OFF stat 0x%x -- %d %d %d ts %d\n", status, note, velocity, channel, e.timestamp);
+	    uint8_t note = fgetc(f);
+	    uint8_t velocity = fgetc(f);
+	    if (channel == 3) {
+		fprintf(stderr, "(%d) NOTE OFF (%d, vel %d)\n", e.timestamp, note, velocity);
+	    }
 	    num_note_offs[channel]++;
 	    uint8_t clip_index = file_info.format == 0 ? channel : track_index - 1;
 	    /* fprintf(stderr, "\t\t(off) Channel %d note %d vel %d\n", channel, note, velocity); */
@@ -443,43 +439,71 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 	    if (clip_index >= num_clips) {
 		break;
 	    }
-
 	    e.message = Pm_Message(status, note, velocity);
-	    v_device[clip_index].buffer[v_device[clip_index].num_unconsumed_events] = e;
-	    v_device[clip_index].num_unconsumed_events++;
-
-	    if (v_device[clip_index].num_unconsumed_events == PM_EVENT_BUF_NUM_EVENTS) {
-		midi_device_record_chunk(&v_device[clip_index], 0);
+	    if (midi_device_add_event(v_device + clip_index, e) == PM_EVENT_BUF_NUM_EVENTS) {
+		midi_device_output_chunk_to_clip(v_device + clip_index, 0);
 		v_device[clip_index].num_unconsumed_events = 0;
+		
 	    }
+	    /* v_device[clip_index].buffer[v_device[clip_index].num_unconsumed_events] = e; */
+	    /* v_device[clip_index].num_unconsumed_events++; */
+	    /* if (v_device[clip_index].num_unconsumed_events == PM_EVENT_BUF_NUM_EVENTS) { */
+	    /* 	midi_device_record_chunk(&v_device[clip_index], 0); */
+	    /* 	v_device[clip_index].num_unconsumed_events = 0; */
+	    /* } */
 
 	} else if ((status & 0xF0) == 0x90) { /* NOTE ON */
 	    uint8_t note = fgetc(f);
 	    uint8_t velocity = fgetc(f);
-	    uint8_t channel = status & 0x0F;
-	    if (velocity == 0) {
-		ungetc(velocity, f);
-		ungetc(note, f);
-		status =  0x80 + channel; /* Convert to Note-off */
-		fprintf(stderr, "GOING TO NOTE OFF! %d %d %d ts %d\n", note, velocity, status & 0x0F, e.timestamp);
-		goto note_off;
-		/* continue; */
-		/* goto note_off; */
+	    if (channel == 3) {
+		fprintf(stderr, "(%d) NOTE ON (%d)\n", e.timestamp, note);
+		if (velocity == 0) {
+		    fprintf(stderr, "\t\t(go note off)\n");
+		}
 	    }
-	    num_note_ons[channel]++;
-	    uint8_t clip_index = file_info.format == 0 ? channel : track_index - 1;
-	    len -= 2;
-	    /* fprintf(stderr, "\t\tChannel %d note %d vel %d\n", channel, note, velocity); */
-	    if (clip_index >= num_clips) {
-		break;
-	    }
+	    if (velocity == 0) { /* Actually a note off */
+		num_note_offs[channel]++;
+		uint8_t clip_index = file_info.format == 0 ? channel : track_index - 1;
+		len -= 2;
+		if (clip_index >= num_clips) {
+		    break;
+		}
+		/* Convert type to note off for internal use */
+		e.message = Pm_Message(0x80 + channel, note, velocity);
+		if (midi_device_add_event(v_device + clip_index, e) == PM_EVENT_BUF_NUM_EVENTS) {
+		    midi_device_output_chunk_to_clip(v_device + clip_index, 0);
+		    v_device[clip_index].num_unconsumed_events = 0;
+		
+		}
 
-	    e.message = Pm_Message(status, note, velocity);
-	    v_device[clip_index].buffer[v_device[clip_index].num_unconsumed_events] = e;
-	    v_device[clip_index].num_unconsumed_events++;
-	    if (v_device[clip_index].num_unconsumed_events == PM_EVENT_BUF_NUM_EVENTS) {
-		midi_device_record_chunk(&v_device[clip_index], 0);
-		v_device[clip_index].num_unconsumed_events = 0;
+		/* v_device[clip_index].buffer[v_device[clip_index].num_unconsumed_events] = e; */
+		/* v_device[clip_index].num_unconsumed_events++; */
+		/* if (v_device[clip_index].num_unconsumed_events == PM_EVENT_BUF_NUM_EVENTS) { */
+		/*     midi_device_record_chunk(&v_device[clip_index], 0); */
+		/*     v_device[clip_index].num_unconsumed_events = 0; */
+		/* } */
+	    } else { /* Authentic note on */
+		num_note_ons[channel]++;
+		uint8_t clip_index = file_info.format == 0 ? channel : track_index - 1;
+		/* fprintf(stderr, "\t\tChannel %d note %d vel %d\n", channel, note, velocity); */
+		len -= 2;
+		if (clip_index >= num_clips) {
+		    break;
+		}
+
+		e.message = Pm_Message(status, note, velocity);
+		if (midi_device_add_event(v_device + clip_index, e) == PM_EVENT_BUF_NUM_EVENTS) {
+		    midi_device_output_chunk_to_clip(v_device + clip_index, 0);
+		    v_device[clip_index].num_unconsumed_events = 0;
+		
+		}
+
+		/* v_device[clip_index].buffer[v_device[clip_index].num_unconsumed_events] = e; */
+		/* v_device[clip_index].num_unconsumed_events++; */
+		/* if (v_device[clip_index].num_unconsumed_events == PM_EVENT_BUF_NUM_EVENTS) { */
+		/*     midi_device_record_chunk(&v_device[clip_index], 0); */
+		/*     v_device[clip_index].num_unconsumed_events = 0; */
+		/* } */
 	    }
 	} else {
 	    /* fprintf(stderr, "IN SWITCH x 0xF0: %x\n", status & 0xF0); */
@@ -488,15 +512,34 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 		fgetc(f); fgetc(f);
 		len -= 2;
 		break;
-	    case 0xB0: // Controller
-		/* fgetc(f); fgetc(f); */
+	    case 0xB0: { /* Controller */
+		uint8_t data1 = fgetc(f);
+		uint8_t data2 = fgetc(f);
+		if (data1 == 0) {
+		    fprintf(stderr, "(%llu) BANK SELECT channel %d DATA: %d\n", running_ts, channel, data2);
+		}
 		len -= 2;
-		fprintf(stderr, "CONTROL: %d %d\n", fgetc(f), fgetc(f));
+		/* fprintf(stderr, "CONTROL: %d %d\n", fgetc(f), fgetc(f)); */
+	    }
 		break;
 
-	    case 0xE0: // Pitch bend
-		fgetc(f); fgetc(f);
+	    case 0xE0: {// Pitch bend
+		uint8_t lsb = fgetc(f);
+		uint8_t msb = fgetc(f);
+		/* float floatval = (float)val / 16384.0f; */
+		/* MIDIPitchBend pb = midi_pitch_bend_from_event(&e, 0); */
+		uint8_t clip_index = file_info.format == 0 ? channel : track_index - 1;
+		e.message = Pm_Message(status, lsb, msb);
+		v_device[clip_index].buffer[v_device[clip_index].num_unconsumed_events] = e;
+		v_device[clip_index].num_unconsumed_events++;
+		if (v_device[clip_index].num_unconsumed_events == PM_EVENT_BUF_NUM_EVENTS) {
+		    midi_device_output_chunk_to_clip(&v_device[clip_index], 0);
+		    v_device[clip_index].num_unconsumed_events = 0;
+		}
+
+		/* fgetc(f); fgetc(f); */
 		len -= 2;
+	    }
 		break;
 	    case 0xC0: { // Program change
 		int pc_data = fgetc(f);
@@ -508,11 +551,11 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 			    mclip->primary_instrument_name = MIDI_PC_INSTRUMENT_NAMES[pc_data];
 			}
 		    } else if (file_info.format == 0) {
-			int channel = status & 0x0F;
+			/* int channel = status & 0x0F; */
 			/* if (channel_instruments_index < 16) { */
 			channel_instruments[channel] = pc_data;
 			    /* channel;_instruments_index++; */
-			fprintf(stderr, "PRGRM CHNGE %d, instrument %s\n", pc_data, MIDI_PC_INSTRUMENT_NAMES[pc_data]);
+			fprintf(stderr, "\tPRGRM CHNGE channel %d, data %d, instrument %s\n", channel, pc_data, MIDI_PC_INSTRUMENT_NAMES[pc_data]);
 		    }
 		} else {
 		    fprintf(stderr, "UNKNOWN PROGRAM CHANGE: %d\n", pc_data);
@@ -539,7 +582,6 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 	    default:
 		// Handle running status
 		if (status < 0x80) {
-		    fprintf(stderr, "\t...running status, ungetting %d\n", status);
 		    ungetc(status, f);
 		    len++;
 		    status = prev_status;
@@ -567,7 +609,6 @@ int midi_file_open(const char *filepath, bool automatically_add_tracks)//, MIDIC
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    /* if (!mclip) exit(1); */
     FILE *f = fopen(filepath, "r");
     if (!f) {
 	fprintf(stderr, "Unable to open MIDI file at %s:", filepath);
@@ -576,6 +617,7 @@ int midi_file_open(const char *filepath, bool automatically_add_tracks)//, MIDIC
     }
 
     click_track = timeline_add_click_track(tl);
+    click_track->muted = true;
    
     
     memset(&file_info, '\0', sizeof(struct midi_file));
@@ -599,8 +641,7 @@ int midi_file_open(const char *filepath, bool automatically_add_tracks)//, MIDIC
     if (!file_info.division_fmt.sample_frames_per_division) {
 	uint32_t tempo_us_per_quarter = 500000;
 	double us_per_tick = (double)tempo_us_per_quarter / (double)file_info.division_fmt.ticks_per_quarter;
-	Session *session = session_get();		
-	double frames_per_tic = us_per_tick * session->proj.sample_rate / 1000000.0;
+	double frames_per_tic = us_per_tick * session_get_sample_rate() / 1000000.0;
 	file_info.division_fmt.sample_frames_per_division = frames_per_tic;
     }
     int num_dst_tracks;
@@ -696,7 +737,7 @@ int midi_file_open(const char *filepath, bool automatically_add_tracks)//, MIDIC
 	for (int i=0; i<num_clips; i++) {
 	    
 	    /* Get the rest of the notes */
-	    midi_device_record_chunk(&v_device[i], 0);
+	    midi_device_output_chunk_to_clip(&v_device[i], 0);
 	    
 	    MIDIClip *mclip = mclips[i];
 	    if (mclip->num_notes == 0) {
@@ -715,7 +756,7 @@ int midi_file_open(const char *filepath, bool automatically_add_tracks)//, MIDIC
 		    memcpy(mclip->name, mclip->primary_instrument_name, strlen(mclip->primary_instrument_name) + 1);
 		}
 
-		mclip->len_sframes = mclip->notes[mclip->num_notes - 1].end_rel;
+		mclip->len_sframes = mclip->notes[mclip->num_notes - 1].end_rel + 1;
 		ClipRef *cr = clipref_create(dst_tracks[i], tl->play_pos_sframes, CLIP_MIDI, mclip);
 		clipref_reset(cr, true);
 		Track *t = dst_tracks[i];
@@ -727,8 +768,42 @@ int midi_file_open(const char *filepath, bool automatically_add_tracks)//, MIDIC
 	    }
 	}
 	tl->needs_redraw = true;
-    }    
+    }
+    session->proj.active_midi_clip_index += num_clips;
     free(v_device);
     fclose(f);
     return 0;    
 }
+
+
+static void midi_serialize_event(FILE *f, PmEvent event)
+{    
+    int32_ser_le(f, &event.timestamp);
+    uint32_ser_le(f, &event.message);
+	  
+}
+
+void midi_serialize_events(FILE *f, PmEvent *events, uint32_t num_events)
+{
+    uint32_ser_le(f, &num_events);
+    for (uint32_t i=0; i<num_events; i++) {
+	midi_serialize_event(f, events[i]);
+    }
+}
+
+static void midi_deserialize_event(FILE *f, PmEvent *dst)
+{
+    dst->timestamp = int32_deser_le(f);
+    dst->message = uint32_deser_le(f);
+}
+
+uint32_t midi_deserialize_events(FILE *f, PmEvent **events)
+{
+    uint32_t num_events = uint32_deser_le(f);
+    *events = malloc(sizeof(PmEvent) * num_events);
+    for (uint32_t i=0; i<num_events; i++) {
+	midi_deserialize_event(f, (*events) + i);
+    }
+    return num_events;
+}
+

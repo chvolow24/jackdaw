@@ -132,6 +132,10 @@ void timeline_click_track_set_tempo_at_cursor(Timeline *tl);
 void timeline_click_track_edit(Timeline *tl);
 bool timeline_click_track_delete(Timeline *tl);
 
+ClickTrack *click_track_active_at_cursor(Timeline *tl);
+ClickSegment *click_segment_active_at_cursor(Timeline *tl);
+
+
 
 /* Required in settings.c */
 ClickSegment *click_track_get_segment_at_pos(ClickTrack *t, int32_t pos);

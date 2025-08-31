@@ -52,7 +52,8 @@ typedef enum page_el_type {
     EL_SYMBOL_BUTTON,
     EL_SYMBOL_RADIO,
     EL_DROPDOWN,
-    EL_STATUS_LIGHT
+    EL_STATUS_LIGHT,
+    EL_PIANO
     /* EL_TOGGLE_EP */
 } PageElType;
 
@@ -61,7 +62,7 @@ enum linked_obj_type {
 };
 
 typedef struct page_element {
-    const char *id;
+    char *id; /* strdup the ID */
     PageElType type;
     void *component;
     Layout *layout;
@@ -106,6 +107,9 @@ typedef struct tab_view {
     void (*swap_fn)(void *array, int swap_i, int swap_j);
     void *swap_fn_target;
     /* size_t related_array_el_size; */
+
+    char *label_str;
+    Textbox *label; /* Upper-right corner of screen */
 } TabView;
 
 struct slider_params {
@@ -237,7 +241,6 @@ struct status_light_params {
     void *value;
     size_t val_size;
 };
-
 typedef union page_el_params {
     struct slider_params slider_p;
     struct textbox_params textbox_p;
@@ -349,5 +352,6 @@ void page_select_el_by_id(Page *page, const char *id);
 
 void page_el_reset(PageEl *el);
 void page_el_params_slider_from_ep(union page_el_params *p, Endpoint *ep);
+void page_center_contents(Page *page);
 
 #endif

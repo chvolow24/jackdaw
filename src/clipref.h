@@ -17,21 +17,19 @@
 
 #ifndef JDAW_CLIPREF_H
 #define JDAW_CLIPREF_H
-
-#include "note.h"
 #include "textbox.h"
 
-enum clip_type {
+typedef enum clip_type {
     CLIP_AUDIO,
     CLIP_MIDI
-};
+} ClipType;
 
 typedef struct timeline Timeline;
 typedef struct track Track;
 
 typedef struct clip_ref {
     char name[MAX_NAMELENGTH];
-    enum clip_type type;
+    ClipType type;
     void *source_clip;
     bool deleted;
     bool grabbed;
@@ -52,14 +50,16 @@ typedef struct clip_ref {
     bool waveform_redraw;
 
     /* MIDI only */
-    int32_t first_note; /* index of the first note in clip, or -1 if invalid */
+    int32_t first_note; /* index of the first note in clipref, or -1 if invalid */
+    int32_t first_cc; /* index of first control change */
+    int32_t first_pb; /* index of first pitch bend */
 } ClipRef;
 
 
 ClipRef *clipref_create(
     Track *track,
     int32_t tl_pos,
-    enum clip_type type,
+    ClipType type,
     void *source_clip /* an audio or MIDI clip */
     );
 void clipref_reset(ClipRef *tc, bool rescaled);

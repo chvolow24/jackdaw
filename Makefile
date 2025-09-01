@@ -7,14 +7,21 @@ GUI_BUILD_DIR := gui/build
 # Dependencies
 
 SDL_PATH := $(PWD)/SDL
-SDL_LIB_PATH := $(SDL_PATH)/build/.libs
+SDL_LIB := $(SDL_PATH)/build/.libs/libSDL2.a
 SDL_INCLUDE_PATH := $(SDL_PATH)/include
+
+PORTMIDI_PATH := $(PWD)/portmidi
+PORTMIDI_LIB := $(PORTMIDI_PATH)/build/libportmidi.a
+
+SDL_TTF_PATH := $(PWD)/SDL_ttf
+SDL_TTF_LIB := $(SDL_TTF_PATH)/.libs/libSDL2_ttf.a
 
 
 SDL_FLAGS_MACOS_ONLY := -framework AudioToolBox \
 	-framework Cocoa \
 	-framework CoreAudio \
 	-framework CoreFoundation \
+	-framework CoreMIDI \
 	-framework CoreHaptics \
 	-framework CoreVideo \
 	-framework IOKit \
@@ -28,22 +35,25 @@ SDL_FLAGS_MACOS_ONLY := -framework AudioToolBox \
 
 UNAME_S := $(shell uname -s)
 
-SDL_FLAGS_ALL := $(SDL_LIB_PATH)/libSDL2.a -I$(SDL_INCLUDE_PATH)
+SDL_FLAGS_ALL := -I$(SDL_INCLUDE_PATH)
 ifeq ($(UNAME_S),Darwin)
 SDL_FLAGS := $(SDL_FLAGS_MACOS_ONLY) $(SDL_FLAGS_ALL)
 else
 SDL_FLAGS := $(SDL_FLAGS_ALL)
 endif
 
+SDL_TTF_FLAGS := $(PWD)/sdl_ttf/.libs/libSDL2_ttf.a
+PORTMIDI_FLAGS := $(PWD)/portmidi/build/libportmidi.a
+
+
+
+LIBS := $(SDL_LIB) $(SDL_TTF_LIB) $(PORTMIDI_LIB)
+
 CFLAGS := -Wall -Wno-unused-command-line-argument -I$(SRC_DIR) -I$(GUI_SRC_DIR) \
-	-lSDL2_ttf \
-	-lpthread -lm -DINSTALL_DIR=\"`pwd`\" \
+	-lpthread -lm \
 	-Iportmidi/porttime \
 	-Iportmidi/pm_common \
-	-Lportmidi/build -lportmidi \
-	-Wl,-rpath,./portmidi/build \
-	-I/opt/homebrew/include/SDL2 \
-	-L/opt/homebrew/lib \
+	-ISDL_ttf \
 	$(SDL_FLAGS)
 
 CFLAGS_JDAW_ONLY := -DLT_DEV_MODE=0
@@ -73,18 +83,43 @@ LT_EXEC := layout
 
 all: $(EXEC)
 
-.PHONY: portmidi_target
-portmidi_target:
+$(SDL_LIB):
+	cd sdl && \
+	make
+
+$(SDL_TTF_LIB):
+	cd sdl_ttf && \
+	export PKG_CONFIG_PATH=../freetype:../harfbuzz/src:$PKG_CONFIG_PATH && \
+	./configure --disable-shared --enable-static --prefix=$(pwd)/build && \
+	make
+
+$(PORTMIDI_LIB):
 	cd portmidi && \
 	mkdir -p build && \
 	cd build && \
-	cmake .. -DCMAKE_BUILD_TYPE=Release && \
+	cmake .. -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release && \
 	make
 
-.PHONY: sdl_target
-sdl_target:
-	cd sdl && \
-	make
+
+# .PHONY: sdl2_ttf_target
+# sdl2_ttf_target:
+# 	cd sdl_ttf && \
+# 	export PKG_CONFIG_PATH=../freetype:../harfbuzz/src:$PKG_CONFIG_PATH && \
+# 	./configure --disable-shared --enable-static --prefix=$(pwd)/build && \
+# 	make
+
+# .PHONY: portmidi_target
+# portmidi_target:
+# 	cd portmidi && \
+# 	mkdir -p build && \
+# 	cd build && \
+# 	cmake .. -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release && \
+# 	make
+
+# .PHONY: sdl_target
+# sdl_target:
+# 	cd sdl && \
+# 	make
 
 .PHONY: debug
 
@@ -101,21 +136,21 @@ ifeq ($(MAKECMDGOALS),layout)
 endif
 
 
-$(EXEC): portmidi_target sdl_target $(OBJS) $(GUI_OBJS)
-	$(CC) -o $@  $(filter-out %_target,$^) $(CFLAGS) $(CFLAGS_ADDTL) $(CFLAGS_JDAW_ONLY) $(SDL_FLAGS)
+$(EXEC): $(OBJS) $(GUI_OBJS)
+	$(CC) -o $@  $(filter-out %_target,$^) $(CFLAGS) $(CFLAGS_ADDTL) $(CFLAGS_JDAW_ONLY) $(SDL_FLAGS) $(LIBS)
 
 debug: $(OBJS) $(GUI_OBJS)
-	$(CC) -o $(EXEC) $^ $(CFLAGS) $(CFLAGS_ADDTL) $(SDL_FLAGS)
+	$(CC) -o $(EXEC) $^ $(CFLAGS) $(CFLAGS_ADDTL) $(SDL_FLAGS) $(LIBS)
 
 # $(LT_EXEC): CFLAGS_ADDTL := $(CFLAGS_LT_ONLY)
 $(LT_EXEC): $(LT_OBJS)
-	$(CC) -o $@ $^ $(CFLAGS) $(CFLAGS_ADDTL) $(CFLAGS_LT_ONLY)
+	$(CC) -o $@ $^ $(CFLAGS) $(CFLAGS_ADDTL) $(CFLAGS_LT_ONLY) $(LIBS)
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
-	$(CC) $(CFLAGS) $(CFLAGS_ADDTL) $(SDL_FLAGS) -c $< -o $@ 
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(LIBS)
+	$(CC) $(CFLAGS) $(CFLAGS_ADDTL) $(SDL_FLAGS) $(LIBS) -c $< -o $@ 
 
-$(GUI_BUILD_DIR)/%.o: $(GUI_SRC_DIR)/%.c 
-	$(CC) $(CFLAGS) $(CFLAGS_ADDTL) $(SDL_FLAGS) -c $< -o $@
+$(GUI_BUILD_DIR)/%.o: $(GUI_SRC_DIR)/%.c $(LIBS)
+	$(CC) $(CFLAGS) $(CFLAGS_ADDTL) $(SDL_FLAGS) $(LIBS) -c $< -o $@
 
 # .PHONY: $(BUILD_DIR)
 # $(BUILD_DIR):
@@ -127,3 +162,11 @@ clean:
 	@[ -n "${BUILD_DIR}" ] || { echo "BUILD_DIR unset or null"; exit 127; }
 	@[ -n "${GUI_BUILD_DIR}" ] || { echo "GUI_BUILD_DIR unset or null"; exit 127; }
 	rm -rf $(BUILD_DIR)/* $(GUI_BUILD_DIR)/*
+
+cleanall:
+	@[ -n "${BUILD_DIR}" ] || { echo "BUILD_DIR unset or null"; exit 127; }
+	@[ -n "${GUI_BUILD_DIR}" ] || { echo "GUI_BUILD_DIR unset or null"; exit 127; }
+	rm -rf $(BUILD_DIR)/* $(GUI_BUILD_DIR)/*
+	cd $(SDL_PATH) && make clean
+	cd $(PORTMIDI_PATH) && rm -rf build/*
+	cd $(SDL_TTF_PATH) && make clean

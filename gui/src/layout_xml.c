@@ -307,6 +307,7 @@ static Layout *read_layout(FILE *f, long endrange)
 
 Layout *layout_read_from_xml(const char *filename)
 {
+    fprintf(stderr, "READING LAYOUT AT %s\n", filename);
     FILE *f = fopen(filename, "r");
     if (!f) {
         fprintf(stderr, "Error: unable to open file at %s\n", filename);

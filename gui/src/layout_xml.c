@@ -10,6 +10,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "assets.h"
 #include "layout.h"
 #include "parse_xml.h"
 
@@ -305,12 +306,11 @@ static Layout *read_layout(FILE *f, long endrange)
     return lt;
 }
 
-Layout *layout_read_from_xml(const char *filename)
+Layout *layout_read_from_xml(const char *asset_path)
 {
-    fprintf(stderr, "READING LAYOUT AT %s\n", filename);
-    FILE *f = fopen(filename, "r");
+    FILE *f = asset_open(asset_path, "r");
     if (!f) {
-        fprintf(stderr, "Error: unable to open file at %s\n", filename);
+        fprintf(stderr, "Error: unable to open asset at %s\n", asset_path);
 	perror("(Error in fopen)");
         return NULL;
     }

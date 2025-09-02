@@ -16,6 +16,7 @@
 /* a chatbot did most of this for me */
 char *asset_get_abs_path_macos(const char *relative_path)
 {
+    fprintf(stderr, "CALL TO ASSET GET PATH MACOS\n");
     CFBundleRef mainBundle = CFBundleGetMainBundle();
     if (!mainBundle) {
 	return NULL;
@@ -36,6 +37,7 @@ char *asset_get_abs_path_macos(const char *relative_path)
     }
     
     CFRelease(resourceURL);
+    fprintf(stderr, "\t\t====> The abs path is %s\n", absolutePath);
     return strdup(absolutePath);    
 }
 #endif
@@ -55,7 +57,7 @@ char *asset_get_abs_path_linux(const char *relative_path)
 /* Return the absolute path of a resource, depending on OS.
  The returned string must be freed */
 
-static char *asset_get_abs_path(const char *relative_path)
+char *asset_get_abs_path(const char *relative_path)
 {
     char *ret;
     #ifdef TESTBUILD
@@ -82,7 +84,7 @@ dev_build:
     return strdup(path);
 }
 
-FILE *open_asset(const char *relative_path, char *mode_str)
+FILE *asset_open(const char *relative_path, char *mode_str)
 {
     char *path = asset_get_abs_path(relative_path);
     if (!path) {

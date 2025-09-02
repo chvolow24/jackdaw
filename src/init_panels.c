@@ -1149,7 +1149,6 @@ static void session_init_qwerty_piano(Page *page, Session *session)
     /* tb->corner_radius = 6; */
     /* textbox_reset_full(tb); */
 
-    /* FILE *f = fopen("test.xml", "w"); */
     /* layout_write(f, octave_area, 0); */
     /* fclose(f); */
     /* exit(1); */

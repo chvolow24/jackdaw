@@ -11,6 +11,7 @@
 #include <string.h>
 #include <stdbool.h>
 
+#include "assets.h"
 #include "input.h"
 #include "input_mode.h"
 #include "layout.h"
@@ -493,11 +494,12 @@ Menu *input_create_master_menu()
     return m;
 }
 
-void input_load_keybinding_config(const char *filepath)
+void input_load_keybinding_config(const char *asset_path)
 {
-    FILE *f = fopen(filepath, "r");
+    FILE *f = asset_open(asset_path, "r");
+    /* FILE *f = fopen(filepath, "r"); */
     if (!f) {
-	fprintf(stderr, "Error: failed to open file at %s\n", filepath);
+	fprintf(stderr, "Error: failed to open asset at %s\n", asset_path);
 	return;
     }
     char c;

@@ -99,8 +99,8 @@ static void init_SDL()
 
 static void init()
 {
-    FILE *test = open_asset("layouts/jackdaw_main_layout.xml", "r");
-    exit(0);
+    /* FILE *test = open_asset("layouts/jackdaw_main_layout.xml", "r"); */
+    /* exit(0); */
     fprintf(stderr, "Initializing SDL and subsystems...\n");
     set_thread_id(JDAW_THREAD_MAIN);
     /* MAIN_THREAD_ID = pthread_self(); */

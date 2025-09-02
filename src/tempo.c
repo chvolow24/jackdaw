@@ -45,9 +45,10 @@ void session_init_metronomes(Session *session)
 {
     Metronome *m = &session->metronomes[0];
     m->name = "standard";
-
-    float *L, *R;    
-    int32_t buf_len = wav_load(METRONOME_STD_HIGH_PATH, &L, &R);
+    float *L, *R;
+    char *real_path = asset_get_abs_path(METRONOME_STD_HIGH_PATH);
+    int32_t buf_len = wav_load(real_path, &L, &R);
+    free(real_path);
     if (buf_len == 0) {
 	fprintf(stderr, "Error: unable to load metronome buffer at %s\n", METRONOME_STD_LOW_PATH);
 	exit(1);
@@ -57,8 +58,9 @@ void session_init_metronomes(Session *session)
 
     m->buffers[0] = L;
     m->buf_lens[0] = buf_len;
-    
-    buf_len = wav_load(METRONOME_STD_LOW_PATH, &L, &R);
+    real_path = asset_get_abs_path(METRONOME_STD_LOW_PATH);
+    buf_len = wav_load(real_path, &L, &R);
+    free(real_path);
     if (buf_len == 0) {
 	fprintf(stderr, "Error: unable to load metronome buffer at %s\n", METRONOME_STD_LOW_PATH);
 	exit(1);

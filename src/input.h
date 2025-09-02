@@ -74,7 +74,7 @@ void input_bind_fn(UserFn *fn, uint16_t i_state, SDL_Keycode keycode, InputMode 
 UserFn *input_get_fn_by_id(char *id, InputMode im);
 
 /* Load a keybinding config file and assign keybindings accordingly */
-void input_load_keybinding_config(const char *filepath);
+void input_load_keybinding_config(const char *asset_path);
 
 /* Must be run at start time to initialize all modes and user fns */
 void input_init_mode_load_all();

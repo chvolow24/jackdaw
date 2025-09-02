@@ -79,18 +79,16 @@ LT_OBJS := $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(LT_SRCS_ALL))
 EXEC := jackdaw
 LT_EXEC := layout
 
-# PORTMIDI_LIB = portmidi/build/libportmidi
-
 all: $(EXEC)
 
 $(SDL_LIB):
 	cd SDL && \
+	./configure --enable-static --disable-shared && \
 	make
 
 $(SDL_TTF_LIB):
 	cd SDL_ttf && \
-	export PKG_CONFIG_PATH=../freetype:../harfbuzz/src:$PKG_CONFIG_PATH && \
-	./configure --disable-shared --enable-static --prefix=$(pwd)/build && \
+	./configure --disable-shared --enable-static && \
 	make
 
 $(PORTMIDI_LIB):
@@ -99,27 +97,6 @@ $(PORTMIDI_LIB):
 	cd build && \
 	cmake .. -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release && \
 	make
-
-
-# .PHONY: sdl2_ttf_target
-# sdl2_ttf_target:
-# 	cd sdl_ttf && \
-# 	export PKG_CONFIG_PATH=../freetype:../harfbuzz/src:$PKG_CONFIG_PATH && \
-# 	./configure --disable-shared --enable-static --prefix=$(pwd)/build && \
-# 	make
-
-# .PHONY: portmidi_target
-# portmidi_target:
-# 	cd portmidi && \
-# 	mkdir -p build && \
-# 	cd build && \
-# 	cmake .. -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release && \
-# 	make
-
-# .PHONY: sdl_target
-# sdl_target:
-# 	cd sdl && \
-# 	make
 
 .PHONY: debug
 
@@ -146,18 +123,18 @@ debug: $(OBJS) $(GUI_OBJS)
 $(LT_EXEC): $(LT_OBJS)
 	$(CC) -o $@ $^ $(CFLAGS) $(CFLAGS_ADDTL) $(CFLAGS_LT_ONLY) $(LIBS)
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(LIBS)
+$(BUILD_DIR):
+	mkdir $(BUILD_DIR)
+
+$(GUI_BUILD_DIR):
+	mkdir -p $(GUI_BUILD_DIR)
+
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(LIBS) | $(BUILD_DIR)
 	$(CC) $(CFLAGS) $(CFLAGS_ADDTL) $(SDL_FLAGS) $(LIBS) -c $< -o $@ 
 
-$(GUI_BUILD_DIR)/%.o: $(GUI_SRC_DIR)/%.c $(LIBS)
+$(GUI_BUILD_DIR)/%.o: $(GUI_SRC_DIR)/%.c $(LIBS) | $(GUI_BUILD_DIR)
 	$(CC) $(CFLAGS) $(CFLAGS_ADDTL) $(SDL_FLAGS) $(LIBS) -c $< -o $@
 
-# .PHONY: $(BUILD_DIR)
-# $(BUILD_DIR):
-# 	@test -d $(BUILD_DIR) || mkdir -p $(BUILD_DIR)
-# .PHONY: $(GUI_BUILD_DIR)
-# $(GUI_BUILD_DIR):
-# 	@test -d $(GUI_BUILD_DIR) || mkdir -p $(GUI_BUILD_DIR)
 clean:
 	@[ -n "${BUILD_DIR}" ] || { echo "BUILD_DIR unset or null"; exit 127; }
 	@[ -n "${GUI_BUILD_DIR}" ] || { echo "GUI_BUILD_DIR unset or null"; exit 127; }

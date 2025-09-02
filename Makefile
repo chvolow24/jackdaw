@@ -42,7 +42,7 @@ else
 SDL_FLAGS := $(SDL_FLAGS_ALL)
 endif
 
-SDL_TTF_FLAGS := $(PWD)/sdl_ttf/.libs/libSDL2_ttf.a
+SDL_TTF_FLAGS := $(PWD)/SDL_ttf/.libs/libSDL2_ttf.a
 PORTMIDI_FLAGS := $(PWD)/portmidi/build/libportmidi.a
 
 
@@ -84,11 +84,11 @@ LT_EXEC := layout
 all: $(EXEC)
 
 $(SDL_LIB):
-	cd sdl && \
+	cd SDL && \
 	make
 
 $(SDL_TTF_LIB):
-	cd sdl_ttf && \
+	cd SDL_ttf && \
 	export PKG_CONFIG_PATH=../freetype:../harfbuzz/src:$PKG_CONFIG_PATH && \
 	./configure --disable-shared --enable-static --prefix=$(pwd)/build && \
 	make

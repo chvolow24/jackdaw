@@ -54,6 +54,7 @@ CFLAGS := -Wall -Wno-unused-command-line-argument -I$(SRC_DIR) -I$(GUI_SRC_DIR) 
 	-Iportmidi/porttime \
 	-Iportmidi/pm_common \
 	-ISDL_ttf \
+	-Lasound \
 	$(SDL_FLAGS)
 
 CFLAGS_JDAW_ONLY := -DLT_DEV_MODE=0

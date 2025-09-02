@@ -36,10 +36,14 @@ SDL_FLAGS_MACOS_ONLY := -framework AudioToolBox \
 UNAME_S := $(shell uname -s)
 
 SDL_FLAGS_ALL := -I$(SDL_INCLUDE_PATH)
+LINK_ASOUND :=
+
+# Operation system checks
 ifeq ($(UNAME_S),Darwin)
 SDL_FLAGS := $(SDL_FLAGS_MACOS_ONLY) $(SDL_FLAGS_ALL)
 else
 SDL_FLAGS := $(SDL_FLAGS_ALL)
+LINK_ASOUND := -lasound
 endif
 
 SDL_TTF_FLAGS := $(PWD)/SDL_ttf/.libs/libSDL2_ttf.a
@@ -54,7 +58,6 @@ CFLAGS := -Wall -Wno-unused-command-line-argument -I$(SRC_DIR) -I$(GUI_SRC_DIR) 
 	-Iportmidi/porttime \
 	-Iportmidi/pm_common \
 	-ISDL_ttf \
-	-Lasound \
 	$(SDL_FLAGS)
 
 CFLAGS_JDAW_ONLY := -DLT_DEV_MODE=0
@@ -116,10 +119,10 @@ endif
 
 
 $(EXEC): $(OBJS) $(GUI_OBJS)
-	$(CC) -o $@  $(filter-out %_target,$^) $(CFLAGS) $(CFLAGS_ADDTL) $(CFLAGS_JDAW_ONLY) $(SDL_FLAGS) $(LIBS)
+	$(CC) -o $@  $(filter-out %_target,$^) $(CFLAGS) $(CFLAGS_ADDTL) $(CFLAGS_JDAW_ONLY) $(SDL_FLAGS) $(LIBS) $(LINK_ASOUND)
 
 debug: $(OBJS) $(GUI_OBJS)
-	$(CC) -o $(EXEC) $^ $(CFLAGS) $(CFLAGS_ADDTL) $(SDL_FLAGS) $(LIBS)
+	$(CC) -o $(EXEC) $^ $(CFLAGS) $(CFLAGS_ADDTL) $(SDL_FLAGS) $(LIBS) $(LINK_ASOUND)
 
 # $(LT_EXEC): CFLAGS_ADDTL := $(CFLAGS_LT_ONLY)
 $(LT_EXEC): $(LT_OBJS)

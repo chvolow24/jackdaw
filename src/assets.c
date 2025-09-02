@@ -1,4 +1,6 @@
 #include "assets.h"
+#include <stdlib.h>
+#include <string.h>
 
 #if defined(__linux__)
     #include <dirent.h>
@@ -66,7 +68,6 @@ static char *asset_get_abs_path(const char *relative_path)
     DIR* dir = opendir(LINUX_ASSET_DIR);
     if (!dir) goto dev_build;
     return asset_get_abs_path_linux(relative_path);
-    else return ret;
     #else
     fprintf(stderr, "Error: unsupported os!\n");
     return NULL;

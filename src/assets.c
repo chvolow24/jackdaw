@@ -1,9 +1,10 @@
-#include <CoreFoundation/CoreFoundation.h>
 #include "assets.h"
 
 #if defined(__linux__)
     #include <dirent.h>
     #include <errno.h>
+#elif defined(__APPLE__) && defined (__MACH__)
+#include <CoreFoundation/CoreFoundation.h>
 #endif
 
 #define LINUX_ASSET_DIR "/usr/local/share/jackdaw" /* Must be created at install time */

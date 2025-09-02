@@ -88,6 +88,7 @@ $(SDL_LIB):
 
 $(SDL_TTF_LIB):
 	cd SDL_ttf && \
+	git switch SDL2 && \
 	./configure --disable-shared --enable-static && \
 	make
 

@@ -1,6 +1,8 @@
 #ifndef JDAW_ASSETS_H
 #define JDAW_ASSETS_H
 
+#include <stdio.h>
+
 #ifndef INSTALL_DIR
 #define INSTALL_DIR "."
 #endif
@@ -54,5 +56,6 @@
 #define OPENFILE_LT_PATH INSTALL_DIR "/gui/template_lts/openfile.xml"
 
 
+FILE *open_asset(const char *relative_path, char *mode_str);
 
 #endif

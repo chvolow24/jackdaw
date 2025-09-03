@@ -1,7 +1,7 @@
 # Jackdaw (WIP)
 A free, open-source, keyboard-focused digital audio workstation (DAW). Written in C, using SDL (https://libsdl.org/).
 
-<img src="assets/readme_imgs/main_new_short.gif" width="75%" />
+<img src="readme_imgs/main_new_short.gif" width="75%" />
 
 ## Table of Contents
 1. [Disclaimer](#disclaimer)
@@ -194,8 +194,8 @@ The first thing you'll probably want to do upon opening jackdaw is to **add a tr
 <kbd>C-t</kbd>
 
 (Hold down <kbd>cmd</kbd> or <kbd>ctrl</kbd> and hit <kbd>t</kbd>).
-<!-- ![add_track.gif](assets/readme_imgs/add_track.gif) -->
-<img src="assets/readme_imgs/add_track2.gif" width="75%" />
+<!-- ![add_track.gif](readme_imgs/add_track.gif) -->
+<img src="readme_imgs/add_track2.gif" width="75%" />
 
 The track input will be set to the default system audio input device, but you can **change the current track input** if you like with <kbd>C-S-i</kbd> (ctrl-shift-i or cmd-shift-i). A list of available input devices will appear. Use <kbd>n</kbd> (for 'next') to go to the next item in the list, and <kbd>p</kbd> (for 'previous') to go to the previous. (These keys will be used a lot). Hit <kbd>\<ret\></kbd> to choose the currently-highlighted device.
 
@@ -208,7 +208,7 @@ The track input will be set to the default system audio input device, but you ca
 
 Once you have selected an appropriate audio input device, you can **start recording audio** into jackdaw with <kbd>r</kbd>. After making some noise at your computer or microphone, **stop recording** with <kbd>r</kbd>.
 
-<img src="assets/readme_imgs/record2.gif" width="75%" />
+<img src="readme_imgs/record2.gif" width="75%" />
 
 
 ### 3. Playback
@@ -225,7 +225,7 @@ If you tap <kbd>l</kbd> or <kbd>j</kbd> multiple times, the playback speed will 
 
 The clip you recorded landed on the first track by default. You can again use the <kbd>n</kbd> and <kbd>p</kbd> keys to **move the track selector** up and down. Try rewinding back to the beginning of the recording you made, selecting a different track, and recording some new audio.
 
-<img src="assets/readme_imgs/record_other_track2.gif" width="75%" />
+<img src="readme_imgs/record_other_track2.gif" width="75%" />
 
 ### 5. Exporting a .wav file
 
@@ -235,7 +235,7 @@ First you'll need to place "in" and "out" marks on your timeline with <kbd>i</kb
 
 You will be prompted to type a file name. Hit <kbd>tab</kbd> or <kbd>\<ret\></kbd> to apply the current name, and move down to the directory navigation pane. Then, use <kbd>n</kbd> and <kbd>p</kbd> to navigate through the filesystem to the directory where you want to save the file. Subdirectories are displayed in green. The double dots ("..") will bring you up one directory. Finally, use <kbd>\<tab\></kbd> to move down to the "Save" button, and then <kbd>\<ret\></kbd> to save the file with the current name, in the currently open directory. (Or, use <kbd>C-\<ret\></kbd> to "submit the form" and save the file.)
 
-<img src="assets/readme_imgs/export_wav2.gif" width="75%" />
+<img src="readme_imgs/export_wav2.gif" width="75%" />
 
 ### 6. Saving your project
 
@@ -251,7 +251,7 @@ Jackdaw's user interface is built around keyboard commands, but you don't need t
 
 Each entry in the list includes the display name of the command on the left, and the bound keyboard command on the right. (See "[Keyboard command shorthand](#keyboard-command-shorthand)" above if these confuse you.)
 
-<img src="assets/readme_imgs/function_lookup.gif" width="75%" />
+<img src="readme_imgs/function_lookup.gif" width="75%" />
 
 ## Menus
 
@@ -351,7 +351,7 @@ You can play back a marked section of the timelines (see [section](#marks-and-ju
 
 <kbd>C-8</kbd> : **Enable / disable loop playback**<br>
 
-<img src="assets/readme_imgs/loop_playback.gif" width="75%" />
+<img src="readme_imgs/loop_playback.gif" width="75%" />
 
 Future versions of jackdaw will include more sophisticated looping mechanisms.
 
@@ -421,7 +421,7 @@ If you hold down shift while moving the track selector up or down, the selected 
 <kbd>S-n</kbd> : **Move selected track down**<br>
 <kbd>S-p</kbd> : **Move selected track up**<br>
 
-<img src="assets/readme_imgs/move_track.gif" width="75%" />
+<img src="readme_imgs/move_track.gif" width="75%" />
 
 ### Minimizing tracks
 
@@ -486,7 +486,7 @@ A clip can also be "grabbed" with <kbd>C-\<click\></kbd>.
 
 If clip dragging is enabled, an indication will appear in the status bar at the bottom of the screen indicating how many clips are currently grabbed.
 
-<img src="assets/readme_imgs/drag_clips.gif" width="75%" />
+<img src="readme_imgs/drag_clips.gif" width="75%" />
 
 Moving the track selector will pull all currently-dragging clips along with it.
 
@@ -498,7 +498,7 @@ If you need to grab or otherwise alter a clip that is buried under an overlappin
 
 <kbd>S-z</kbd> : **Bring rear clip at cursor to front**<br>
 
-<img src="assets/readme_imgs/bring_clip_to_front.gif" width="75%" />
+<img src="readme_imgs/bring_clip_to_front.gif" width="75%" />
 
 ### Cutting clips
 
@@ -506,7 +506,7 @@ If you need to grab or otherwise alter a clip that is buried under an overlappin
 
 This will cut any clips on the currently selected track at the current playhead position in two, so that you can independently move or otherwise modify each part.
 
-<img src="assets/readme_imgs/cut_clip.gif" width="75%" />
+<img src="readme_imgs/cut_clip.gif" width="75%" />
 
 ### Renaming clips
 
@@ -526,7 +526,7 @@ Click tracks fundamentally comprise a series of one or more *segments*, each of 
 
 Edit the click track and segment at cursor with <kbd>S-t</kbd>, or by clicking the pencil icon on the left of the track.
 
-<img src="assets/readme_imgs/click_track_add.gif" width="75%" />
+<img src="readme_imgs/click_track_add.gif" width="75%" />
 
 Then, <kbd>\<tab\></kbd> through the fields to modify any of the track parameters and "Submit" to confirm your changes to the time signature and tempo. (Changes to the track name do not need to be submitted.
 
@@ -536,7 +536,7 @@ Jackdaw doesn't use conventional time signatures because they're confusing and l
 
 It is therefore very easy to define additive meters, like the Bulgarian Gankino horo (4 + 3 + 4):
 
-<img src="assets/readme_imgs/additive_meter.gif" width="75%" />
+<img src="readme_imgs/additive_meter.gif" width="75%" />
 
 
 ### Click track segments
@@ -545,13 +545,13 @@ If you need to change tempo or time signature partway through a song, you can do
 
 To do so, **cut** the click track with <kbd>S-c</kbd>. (Note that this is the same function you would use to cut a clip, but if a click track is selected, it will cut the click track instead.
 
-<img src="assets/readme_imgs/cut_click_track.gif" width="75%" />
+<img src="readme_imgs/cut_click_track.gif" width="75%" />
 
 Now, you can modify each of the segments individually. When editing a segment, you can specify whether you want the end position to remain fixed, or the number of measures. If the number of measures is fixed, the end position of the segment may move, and all the segments to the right will move with it.
 
 You can click and drag the boundaries between click track segments to reposition them, and you can delete a segment with <kbd>\<del\></kbd>
 
-<img src="assets/readme_imgs/edit_segment_bounds.gif" width="75%" />
+<img src="readme_imgs/edit_segment_bounds.gif" width="75%" />
 
 While dragging, the segment boundary will automatically snap to the previous segment's subdivisions. Hold <kbd>\<shift\></kbd> to disable the snapping.
 
@@ -563,7 +563,7 @@ Each click track has a metronome which is on by default. You can mute the click 
 
 You can quickly set the tempo of the click segment at cursor with <kbd>t</kbd>
 
-<img src="assets/readme_imgs/set_tempo.gif" width="75%" />
+<img src="readme_imgs/set_tempo.gif" width="75%" />
 
 ### Grid navigation
 
@@ -580,7 +580,7 @@ All of the audio tracks directly *below* a given click track are governed by tha
 <kbd>A-S-j</kbd> : **Go to previous measure**<br>
 <kbd>A-S-k</kbd> : **Go to next measure**<br>
 
-<img src="assets/readme_imgs/click_track_navigation.gif" width="75%" />
+<img src="readme_imgs/click_track_navigation.gif" width="75%" />
 
 
 ## Sample mode / Source mode
@@ -599,7 +599,7 @@ In source, you can play back, scrub through, and set marks in the clip that has 
 
 This creates a new clip reference on your timeline, at the current playhead position, on the currently-selected track.
 
-<img src="assets/readme_imgs/source_mode.gif" width="75%" />
+<img src="readme_imgs/source_mode.gif" width="75%" />
 
 Every time you drop a clip into a timeline from the source area, jackdaw will save information about that drop. If you then drop something else into your timeline (either a different clip or the same clip with different marks) with <kbd>b</kbd>, you will be able to once again drop the previously-dropped clip with <kbd>v</kbd>. Another new drop will move the clip stored at <kbd>v</kbd> to <kbd>c</kbd>, so that you have unique clips that you can drop into your timeline with any of those three keys. Etc. for subsequent drops and <kbd>x</kbd> and <kbd>z</kbd>.
 
@@ -636,7 +636,7 @@ It can also be done during runtime.
 
 If a `.wav` file is opened, it will be loaded as a clip to the currently-selected track, starting at the current playhead position. If a `.jdaw` file is opened, the current project will be closed and replaced with the project saved in the `.jdaw` file.
 
-<img src="assets/readme_imgs/openwav.gif" width="75%" />
+<img src="readme_imgs/openwav.gif" width="75%" />
 
 ### Saving a project
 
@@ -648,7 +648,7 @@ You will be prompted first to edit the current project file name. The file exten
 
 Like everything else about jackdaw, the `.jdaw` file format is open and is described in the `jdaw_filespec` directory. (The current version as of writing is described in `jdaw_filespec/00.13`). 
 
-<img src="assets/readme_imgs/save_project.gif" width="75%" />
+<img src="readme_imgs/save_project.gif" width="75%" />
 
 ## Track effects
 
@@ -681,7 +681,7 @@ And reorder the tabs:
 <kbd>C-S-j</kbd> : **Move current tab left**<br>
 <kbd>C-S-l</kbd> : **Move current tab right**<br>
 
-<img src="assets/readme_imgs/add_reorder_effects.gif" width="75%" />
+<img src="readme_imgs/add_reorder_effects.gif" width="75%" />
 
 You can also click the tabs, and click and drag to reorder them.
 
@@ -699,7 +699,7 @@ The leftmost filter is low-shelf by default, the rightmost is high-shelf, and th
 
 The filter frequencies and amplitudes are modified by clicking and dragging the nodes on the spectral display:
 
-<img src="assets/readme_imgs/eq_adj_filters.gif" width="75%" />
+<img src="readme_imgs/eq_adj_filters.gif" width="75%" />
 
 The bandwidth of a peak-notch filter can be adjusted by holding down `cmd` or `ctrl` and dragging the mouse up or down.
 
@@ -716,7 +716,7 @@ The FIR ("finite impulse response") filter is an FFT-based "[windowed-sinc](http
 
 The frequency response of the filter is shown. When the filter is active, and playback is occurring, the frequency domain of the filtered audio track is also shown.
 
-<img src="assets/readme_imgs/fir_filter.gif" width="75%" />
+<img src="readme_imgs/fir_filter.gif" width="75%" />
 
 
 ### Delay line
@@ -737,7 +737,7 @@ A standard digital peak-sensing compressor. Details of dynamic range compression
 
 In the visualization, the x position of the blue dot represents the current amplitude envelope value, and the y position represents the corresponding output amplitude (before make-up gain is applied). The color gradient reflects the amount of gain reduction currently applied by the compressor.
 
-<img src="assets/readme_imgs/comp.gif" width="75%" />
+<img src="readme_imgs/comp.gif" width="75%" />
 
 ## Automation
 
@@ -746,7 +746,7 @@ Mix automation is available for the track volume and pan, as well as most parame
 <kbd>C-a</kbd> : **Add automation to track**<br>
 <kbd>a</kbd> : **Show / hide track automations**<br>
 
-<img src="assets/readme_imgs/add_automation.gif" width="75%" />
+<img src="readme_imgs/add_automation.gif" width="75%" />
 
 (Note that <kbd>n</kbd> and <kbd>p</kbd> (or <kbd>f</kbd> and <kbd>d</kbd>) can be used to cycle through the radio button options, and <kbd>\<tab\></kbd> and <kbd>S-\<tab\></kbd> can be used to move between the selector and the "add" button. The mouse is available but optional.)
 
@@ -754,7 +754,7 @@ Mix automation is available for the track volume and pan, as well as most parame
 
 Use <kbd>C-\<click\></kbd> to add a keyframe to an automation track. You can then drag the keyframe to the desired position. If you release cmd/ctrl and hold shift, the keyframe will will snap to the same vertical position as the previous keyframe, creating a flat segment. If you hold cmd or ctrl AND shift, the keyframe will snap to the position immediately after the previous keyframe, creating a near-vertical segment.
 
-<img src="assets/readme_imgs/insert_keyframes.gif" width="75%" />
+<img src="readme_imgs/insert_keyframes.gif" width="75%" />
 
 ### Writing (adding keyframes automatically)
 
@@ -764,7 +764,7 @@ The easiest way to accomplish this is to "record" on the automation track exactl
 
 <kbd>r</kbd> : **Start / stop recording automation** (when automation track selected)<br>
 
-<img src="assets/readme_imgs/automation_write.gif" width="75%" />
+<img src="readme_imgs/automation_write.gif" width="75%" />
 
 ### Deleting keyframes
 
@@ -772,7 +772,7 @@ When an automation track is selected, you can delete a range of keyframes by mar
 
 <kbd>del</kbd> : **Delete keyframes in->out** (when automation track selected)<br>
 
-<img src="assets/readme_imgs/delete_keyframes.gif" width="75%" />
+<img src="readme_imgs/delete_keyframes.gif" width="75%" />
 
 ## Undo / redo
 
@@ -798,7 +798,7 @@ Jackdaw is capable of using its own audio output as an audio input. This makes i
 > [!NOTE]
 > This is an experimental feature and is not yet reliable.
 
-<img src="assets/readme_imgs/pd_jackdaw.png"/>
+<img src="readme_imgs/pd_jackdaw.png"/>
 
 [Pure data](https://puredata.info/) (often "Pd") is a graphical audio programming environment developed by Miller Puckette. It is very similar to Max, which was also developed by Puckette, but unlike Max, is free to download and use. Pure data can be used to create things like synthesizers and drum machines, as well as sound production programs that are too unusual to be designated as such.
 

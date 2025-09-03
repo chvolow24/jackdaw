@@ -988,7 +988,7 @@ static void osc_reset_params(Osc *restrict osc)
 }
 
 /* static void osc_get_buf_preamp(Osc *restrict osc, float step, float *restrict buf, int len); */
-static void osc_get_buf_preamp(Osc *restrict osc, float step, int len)
+static void osc_get_buf_preamp(Osc *restrict osc, float step, int len, int after)
 {
     if (len > MAX_OSC_BUF_LEN) {
 	fprintf(stderr, "Error: Synth Oscs cannot support buf size > %d (req size %d)\n", MAX_OSC_BUF_LEN, len);
@@ -1002,13 +1002,13 @@ static void osc_get_buf_preamp(Osc *restrict osc, float step, int len)
     float fmod_amp;
     if (osc->freq_modulator) {
 	fmod_samples = osc->freq_modulator->buf;
-	osc_get_buf_preamp(osc->freq_modulator, step, len);
+	osc_get_buf_preamp(osc->freq_modulator, step, len, after);
 	fmod_amp = powf(osc->freq_modulator->cfg->amp, 3.0f);
 	float_buf_mult_const(fmod_samples, fmod_amp, len);
     }
     if (osc->amp_modulator) {
 	amod_samples = osc->amp_modulator->buf;
-	osc_get_buf_preamp(osc->amp_modulator, step, len);
+	osc_get_buf_preamp(osc->amp_modulator, step, len, after);
 	float amp = osc->amp_modulator->cfg->amp;
 	float_buf_mult_const(amod_samples, amp, len);
 	
@@ -1016,7 +1016,8 @@ static void osc_get_buf_preamp(Osc *restrict osc, float step, int len)
     double phase_incr = osc->sample_phase_incr + osc->sample_phase_incr_addtl;
     double phase = osc->phase;
     int unison_i = (long)((osc - osc->voice->oscs) - (osc->cfg - osc->voice->synth->base_oscs)) / SYNTH_NUM_BASE_OSCS;
-    for (int i=0; i<len; i++) {
+    memset(osc->buf, '\0', after * sizeof(int));
+    for (int i=after; i<len; i++) {
 	float sample;
 	if (osc->cfg->fix_freq && i % 93 == 0) {
 	    /* fprintf(stderr, "resetting %d\n", i); */
@@ -1217,6 +1218,7 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
     for (int i=0; i<SYNTHVOICE_NUM_OSCS; i++) {
 	osc_reset_params(v->oscs + i);
     }
+    int after = v->amp_env->current_stage == ADSR_UNINIT ? v->amp_env->env_remaining : 0;
     /* fprintf(stderr, "\tvoice %ld has data\n", v - v->synth->voices); */
     for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
 	OscCfg *cfg = v->synth->base_oscs + i;
@@ -1232,7 +1234,7 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 	/*     osc_reset_params(osc->amp_modulator); */
 	float ind_osc_buf[len];
 	if (channel == 0) {
-	    osc_get_buf_preamp(osc, step, len);
+	    osc_get_buf_preamp(osc, step, len, after);
 	}
 	memcpy(ind_osc_buf, osc->buf, len * sizeof(float));
 	float amp = osc->amp * pan_scale(osc->pan, channel);
@@ -1251,7 +1253,7 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 	    /* 	osc_reset_params(osc->amp_modulator); */
 
 	    if (channel == 0) {
-		osc_get_buf_preamp(osc, step, len);
+		osc_get_buf_preamp(osc, step, len, after);
 	    }
 	    memcpy(ind_osc_buf, osc->buf, len * sizeof(float));
 	    amp = osc->amp * pan_scale(osc->pan, channel);

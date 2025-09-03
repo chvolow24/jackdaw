@@ -46,11 +46,6 @@ SDL_FLAGS := $(SDL_FLAGS_ALL)
 LINK_ASOUND := -lasound
 endif
 
-SDL_TTF_FLAGS := $(PWD)/SDL_ttf/.libs/libSDL2_ttf.a
-PORTMIDI_FLAGS := $(PWD)/portmidi/build/libportmidi.a
-
-
-
 LIBS := $(SDL_LIB) $(SDL_TTF_LIB) $(PORTMIDI_LIB)
 
 CFLAGS := -Wall -Wno-unused-command-line-argument -I$(SRC_DIR) -I$(GUI_SRC_DIR) \

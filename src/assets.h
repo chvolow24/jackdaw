@@ -25,6 +25,7 @@
 #define COMPRESSOR_LT_PATH LAYOUT_PATH "track_settings_compressor.xml"
 #define CLICK_TRACK_SETTINGS_LT_PATH LAYOUT_PATH "click_track_settings.xml"
 #define LOADING_SCREEN_LT_PATH LAYOUT_PATH "loading_screen.xml"
+#define AUTOMATION_LT_PATH LAYOUT_PATH "track_automation.xml"
 
 #define SYNTH_OSCS_LT_PATH LAYOUT_PATH "synth_oscs.xml"
 #define SYNTH_AMP_ENV_LT_PATH LAYOUT_PATH "synth_amp_env.xml"

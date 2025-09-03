@@ -16,6 +16,7 @@
 #include <pthread.h>
 #include <stdlib.h>
 
+#include "assets.h"
 #include "automation.h"
 #include "color.h"
 #include "endpoint.h"
@@ -39,7 +40,7 @@
 #define INSTALL_DIR "."
 #endif
 
-#define AUTOMATION_LT_FILEPATH INSTALL_DIR "/assets/layouts/track_automation.xml"
+/* #define AUTOMATION_LT_FILEPATH INSTALL_DIR "/assets/layouts/track_automation.xml" */
 
 extern Window *main_win;
 extern struct colors colors;
@@ -570,7 +571,7 @@ void automation_show(Automation *a)
 {
     a->shown = true;
     if (!a->layout) {
-	Layout *lt = layout_read_from_xml(AUTOMATION_LT_FILEPATH);
+	Layout *lt = layout_read_from_xml(AUTOMATION_LT_PATH);
 	a->layout = lt;
 	Layout *console = layout_get_child_by_name_recursive(lt, "automation_console");
 	a->console_rect = &console->rect;

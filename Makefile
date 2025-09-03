@@ -86,22 +86,27 @@ LT_EXEC := layout
 all: $(EXEC)
 
 $(SDL_LIB):
-	cd SDL && \
-	./configure --enable-static --disable-shared && \
-	make
+	@echo "\nConfiguring and building SDL2. This may take several minutes. (Logs in sdl_build.log)..."
+	@cd SDL && \
+	./configure --enable-static --disable-shared &>../sdl_build.log && \
+	make >>../sdl_build.log 2>&1
+	@echo "...SDL build complete"
 
 $(SDL_TTF_LIB):
-	cd SDL_ttf && \
-	git switch SDL2 && \
-	./configure --disable-shared --enable-static && \
-	make
+	@echo "\nConfiguring and building SDL2_ttf. This may take several minutes. (Logs in sdl_ttf_build.log)..."
+	@cd SDL_ttf && \
+	./configure --disable-shared --enable-static &>../sdl_ttf_build.log && \
+	make >>../sdl_ttf_build.log 2>&1
+	@echo "...SDL_ttf build complete."
 
 $(PORTMIDI_LIB):
-	cd portmidi && \
+	@echo "\nConfiguring and building portmidi (logs in portmidi_build.log)..."
+	@cd portmidi && \
 	mkdir -p build && \
 	cd build && \
-	cmake .. -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release && \
-	make
+	cmake .. -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release &>../../portmidi_build.log && \
+	make >>../../portmidi_build.log 2>&1
+	@echo "...portmidi build complete."
 
 .PHONY: debug
 
@@ -121,12 +126,12 @@ endif
 $(EXEC): $(OBJS) $(GUI_OBJS)
 	$(CC) -o $@  $(filter-out %_target,$^) $(CFLAGS) $(CFLAGS_ADDTL) $(CFLAGS_JDAW_ONLY) $(SDL_FLAGS) $(LIBS) $(LINK_ASOUND)
 
-debug: $(OBJS) $(GUI_OBJS)
-	$(CC) -o $(EXEC) $^ $(CFLAGS) $(CFLAGS_ADDTL) $(SDL_FLAGS) $(LIBS) $(LINK_ASOUND)
+debug: $(EXEC)
 
 # $(LT_EXEC): CFLAGS_ADDTL := $(CFLAGS_LT_ONLY)
 $(LT_EXEC): $(LT_OBJS)
 	$(CC) -o $@ $^ $(CFLAGS) $(CFLAGS_ADDTL) $(CFLAGS_LT_ONLY) $(LIBS)
+
 
 $(BUILD_DIR):
 	mkdir $(BUILD_DIR)
@@ -134,8 +139,9 @@ $(BUILD_DIR):
 $(GUI_BUILD_DIR):
 	mkdir -p $(GUI_BUILD_DIR)
 
+
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(LIBS) | $(BUILD_DIR)
-	$(CC) $(CFLAGS) $(CFLAGS_ADDTL) $(SDL_FLAGS) $(LIBS) -c $< -o $@ 
+	$(CC) $(CFLAGS) $(CFLAGS_ADDTL) $(SDL_FLAGS) $(LIBS) -c $< -o $@
 
 $(GUI_BUILD_DIR)/%.o: $(GUI_SRC_DIR)/%.c $(LIBS) | $(GUI_BUILD_DIR)
 	$(CC) $(CFLAGS) $(CFLAGS_ADDTL) $(SDL_FLAGS) $(LIBS) -c $< -o $@

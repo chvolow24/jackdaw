@@ -4,6 +4,8 @@
 [submodule "SDL"]
 	path = SDL
 	url = https://github.com/libsdl-org/SDL.git
+	branch = SDL2
 [submodule "SDL_ttf"]
 	path = SDL_ttf
 	url = https://github.com/libsdl-org/SDL_ttf.git
+	branch = SDL2

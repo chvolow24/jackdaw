@@ -83,14 +83,15 @@ all: $(EXEC)
 $(SDL_LIB):
 	@echo "\nConfiguring and building SDL2. This may take several minutes. (Logs in sdl_build.log)..."
 	@cd SDL && \
-	./configure --enable-static --disable-shared &>../sdl_build.log && \
-	make >>../sdl_build.log 2>&1
+	./configure --enable-static --prefix=$(PWD)/SDL/installation >>../sdl_build.log 2>&1 && \
+	make >>../sdl_build.log 2>&1 && \
+	make install >>../sdl_build.log 2>&1
 	@echo "...SDL build complete"
 
 $(SDL_TTF_LIB):
 	@echo "\nConfiguring and building SDL2_ttf. This may take several minutes. (Logs in sdl_ttf_build.log)..."
 	@cd SDL_ttf && \
-	./configure --disable-shared --enable-static &>../sdl_ttf_build.log && \
+	./configure --disable-shared --enable-static --with-sdl-prefix=$(PWD)/SDL/installation --disable-sdltest >>../sdl_ttf_build.log 2>&1 && \
 	make >>../sdl_ttf_build.log 2>&1
 	@echo "...SDL_ttf build complete."
 

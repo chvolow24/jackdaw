@@ -96,12 +96,8 @@ $(SDL_TTF_LIB):
 	@echo "...SDL_ttf build complete."
 
 $(PORTMIDI_LIB):
-	@echo "\nConfiguring and building portmidi (logs in portmidi_build.log)..."
-	@cd portmidi && \
-	mkdir -p build && \
-	cd build && \
-	cmake .. -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release &>../../portmidi_build.log && \
-	make >>../../portmidi_build.log 2>&1
+	@echo "\nConfiguring and building portmidi..."
+	(cd portmidi && mkdir -p build && chmod 755 build && cd build && cmake .. -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release && make)
 	@echo "...portmidi build complete."
 
 .PHONY: debug

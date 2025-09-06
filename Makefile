@@ -3,6 +3,7 @@ SRC_DIR := src
 BUILD_DIR := build
 GUI_SRC_DIR := gui/src
 GUI_BUILD_DIR := gui/build
+DEPFLAGS = -MMD -MP -MF $(@:.o=.d)
 
 # Dependencies
 
@@ -72,8 +73,10 @@ LT_SRCS_ALL := $(filter-out $(JACKDAW_ONLY_SRCS), $(GUI_SRCS_ALL))
 
 OBJS := $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(SRCS))
 GUI_OBJS := $(patsubst $(GUI_SRC_DIR)/%.c, $(GUI_BUILD_DIR)/%.o, $(GUI_SRCS))
-
 LT_OBJS := $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(LT_SRCS_ALL))
+
+DEPS := $(OBJS:.o=.d)
+GUI_DEPS := $(GUI_OBJS:.o=.d)
 
 EXEC := jackdaw
 LT_EXEC := layout
@@ -100,8 +103,6 @@ $(PORTMIDI_LIB):
 	(cd portmidi && mkdir -p build && chmod 755 build && cd build && cmake .. -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release && make)
 	@echo "...portmidi build complete."
 
-.PHONY: debug
-
 # Default to production flags
 CFLAGS_ADDTL := $(CFLAGS_PROD)
 
@@ -114,16 +115,14 @@ ifeq ($(MAKECMDGOALS),layout)
     CFLAGS_ADDTL := $(CFLAGS_DEBUG)
 endif
 
-
 $(EXEC): $(OBJS) $(GUI_OBJS)
 	$(CC) -o $@  $(filter-out %_target,$^) $(CFLAGS) $(CFLAGS_ADDTL) $(CFLAGS_JDAW_ONLY) $(SDL_FLAGS) $(LIBS) $(LINK_ASOUND)
 
+.PHONY: debug
 debug: $(EXEC)
 
-# $(LT_EXEC): CFLAGS_ADDTL := $(CFLAGS_LT_ONLY)
 $(LT_EXEC): $(LT_OBJS)
 	$(CC) -o $@ $^ $(CFLAGS) $(CFLAGS_ADDTL) $(CFLAGS_LT_ONLY) $(LIBS)
-
 
 $(BUILD_DIR):
 	mkdir $(BUILD_DIR)
@@ -131,12 +130,16 @@ $(BUILD_DIR):
 $(GUI_BUILD_DIR):
 	mkdir -p $(GUI_BUILD_DIR)
 
-
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(LIBS) | $(BUILD_DIR)
-	$(CC) $(CFLAGS) $(CFLAGS_ADDTL) $(SDL_FLAGS) $(LIBS) -c $< -o $@
+	$(CC) $(CFLAGS) $(CFLAGS_ADDTL) $(SDL_FLAGS) $(LIBS) $(DEPFLAGS) -c $< -o $@
 
 $(GUI_BUILD_DIR)/%.o: $(GUI_SRC_DIR)/%.c $(LIBS) | $(GUI_BUILD_DIR)
-	$(CC) $(CFLAGS) $(CFLAGS_ADDTL) $(SDL_FLAGS) $(LIBS) -c $< -o $@
+	$(CC) $(CFLAGS) $(CFLAGS_ADDTL) $(SDL_FLAGS) $(LIBS) $(DEPFLAGS) -c $< -o $@
+
+-include ${DEPS}
+-include ${GUI_DEPS}
+
+
 
 clean:
 	@[ -n "${BUILD_DIR}" ] || { echo "BUILD_DIR unset or null"; exit 127; }

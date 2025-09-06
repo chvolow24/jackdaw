@@ -6,7 +6,7 @@
   <index>0</index>
   <children>
     <Layout name="default_out" type="NORMAL">
-      <x>REL 0</x>
+      <x>REL 15</x>
       <y>REL 0</y>
       <w>REL 186</w>
       <h>REL 20</h>
@@ -34,18 +34,18 @@
     </Layout>
     <Layout name="out_waveform_right" type="NORMAL">
       <x>REL 111</x>
-      <y>REL 35</y>
+      <y>REL 30</y>
       <w>REL 90</w>
-      <h>REL 45</h>
+      <h>REL 55</h>
       <index>2</index>
       <children>
       </children>
     </Layout>
     <Layout name="out_waveform_left" type="NORMAL">
       <x>REL 15</x>
-      <y>REL 35</y>
+      <y>REL 30</y>
       <w>REL 90</w>
-      <h>REL 45</h>
+      <h>REL 55</h>
       <index>4</index>
       <children>
       </children>

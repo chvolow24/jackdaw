@@ -517,9 +517,13 @@ TTF_Font *ttf_open_font(const char* path, int size, Window *win)
 {
     size *= win->dpi_scale_factor;
     size *= TTF_SPEC_ADJUST;
+    #ifdef LAYOUT_BUILD
+    TTF_Font *font = TTF_OpenFont(path, size * GLOBAL_TEXT_SCALE);
+    #else
     char *abs_path = asset_get_abs_path(path);
     TTF_Font *font = TTF_OpenFont(abs_path, size * GLOBAL_TEXT_SCALE);
     free(abs_path);
+    #endif
     if (!font) {
         fprintf(stderr, "\nError: failed to open font: %s", TTF_GetError());
         exit(1);

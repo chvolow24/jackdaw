@@ -35,8 +35,11 @@
 
 #define PIANO_LT_PATH LAYOUT_PATH "piano.xml"
 
-
+#ifdef LAYOUT_BUILD
+#define TTF_PATH "assets/ttf/"
+#else
 #define TTF_PATH "ttf/"
+#endif
 #define OPEN_SANS_PATH TTF_PATH "OpenSans-Regular.ttf"
 #define OPEN_SANS_BOLD_PATH TTF_PATH "OpenSans-Bold.ttf"
 

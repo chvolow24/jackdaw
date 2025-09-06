@@ -308,7 +308,11 @@ static Layout *read_layout(FILE *f, long endrange)
 
 Layout *layout_read_from_xml(const char *asset_path)
 {
+    #ifdef LAYOUT_BUILD
+    FILE *f = fopen(asset_path, "r");
+    #else
     FILE *f = asset_open(asset_path, "r");
+    #endif
     if (!f) {
         fprintf(stderr, "Error: unable to open asset at %s\n", asset_path);
 	perror("(Error in fopen)");

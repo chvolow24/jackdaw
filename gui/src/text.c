@@ -11,6 +11,7 @@
 #include <string.h>
 
 /* #include "draw.h" */
+#include "SDL_ttf.h"
 #include "text.h"
 #include "textbox.h"
 #include "layout.h"
@@ -584,7 +585,8 @@ TTF_Font *ttf_get_font_at_size(const Font *font, int size)
 void ttf_reset_dpi_scale_factor(Font *font)
 {
     int sizes[] = STD_FONT_SIZES;
-    for (int i=0; i<STD_FONT_ARRLEN; i++) {;
+    for (int i=0; i<STD_FONT_ARRLEN; i++) {
+	TTF_CloseFont(font->ttf_array[i]);
 	font->ttf_array[i] = ttf_open_font(font->path, sizes[i], main_win); //TODO: Replace "main_win"
     }	
 }

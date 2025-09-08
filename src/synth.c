@@ -1376,6 +1376,14 @@ static void synth_voice_pitch_bend(SynthVoice *v, float cents)
     }
 }
 
+void synth_pitch_bend(Synth *s, float cents)
+{
+    s->pitch_bend_cents += cents;
+    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+	synth_voice_pitch_bend(s->voices + i, s->pitch_bend_cents);
+    }
+}
+
 static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, int32_t start_rel)
 {
     /* srand(time(NULL)); */

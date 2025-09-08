@@ -39,6 +39,7 @@ char *mqwert_get_transpose_str();
 char *mqwert_get_velocity_str();
 char *mqwert_get_monitor_device_str();
 Endpoint *mqwert_get_active_ep();
+void mqwert_pitch_bend(float cents);
 
 uint8_t mqwert_get_key_state(char key);
 

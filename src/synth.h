@@ -235,6 +235,8 @@ typedef struct synth {
     /* bool deferred_note_offs[128]; */
 
     IIRFilter dc_blocker; /* internal use only */
+
+    float pitch_bend_cents;
 } Synth;
 
 /* int synth_create_virtual_device(Synth *s); */
@@ -252,6 +254,8 @@ int synth_set_freq_mod_pair(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg
 
 /* Return 0 for success, 1 for unset (carrier NULL), < 0 for error */
 int synth_set_amp_mod_pair(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg);
+
+void synth_pitch_bend(Synth *s, float cents);
 
 void synth_destroy(Synth *s);
 

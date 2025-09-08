@@ -33,6 +33,8 @@ struct mqwert_state {
     char velocity_str[4];
     char monitor_device_name[MAX_NAMELENGTH];
     Endpoint active_ep;
+
+    float pitch_bend_cents;
 };
 
 static struct mqwert_state state = {
@@ -216,6 +218,35 @@ void mqwert_handle_key(char key, bool is_keyup)
     /* } else { */
     /* 	unclosed->unclosed = false; */
     /* } */
+}
+
+void mqwert_pitch_bend(float cents)
+{
+    state.pitch_bend_cents += cents;
+    cents = state.pitch_bend_cents;
+    if (cents > 200) cents = 200;
+    else if (cents < -200) cents = -200;
+    state.pitch_bend_cents = cents;
+    fprintf(stderr, "CENTS: %f\n", cents);
+    PmEvent e;
+    e.timestamp = Pt_Time();
+    /* Default to MIDI channel 0 */
+    uint8_t type = 0xE0;
+    uint16_t raw_val = 16384.0f * (cents + 200) / 200.0f;
+
+    uint8_t lsb = raw_val & 0xFF;
+    uint8_t msb = raw_val >> 8;
+
+    e.message = Pm_Message(
+	type,
+	lsb,
+	msb
+    );
+    
+    if (midi_device_add_event(&state.v_device, e) == 0) {
+	fprintf(stderr, "Error in midi_qwert_handle_note: device event buf full\n");
+    }
+
 }
 
 /* void mqwert_handle_keyup(char key) */

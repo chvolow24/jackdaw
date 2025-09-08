@@ -29,3 +29,13 @@ todo.org
 *.bak
 license_extract.py
 projects/
+presentation.org
+macos_bundle/
+jprod
+*.dmg
+*.zip
+build/
+gui/build/
+*.org
+*.log
+presets/

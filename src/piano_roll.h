@@ -19,6 +19,10 @@ enum note_dur {
 
 void piano_roll_draw();
 void piano_roll_activate(ClipRef *cr);
+void piano_roll_zoom_in();
+void piano_roll_zoom_out();
+void piano_roll_move_view_left();
+void piano_roll_move_view_right();
 
 #endif
 

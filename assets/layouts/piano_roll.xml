@@ -4,12 +4,28 @@
   <w>SCALE 1.000000</w>
   <h>SCALE 1.000000</h>
   <children>
-    <Layout name="piano" type="NORMAL">
-      <x>REVREL 0</x>
+    <Layout name="note_piano_container" type="NORMAL">
+      <x>REL 0</x>
       <y>REL 0</y>
-      <w>ABS 30</w>
-      <h>SCALE 1.000000</h>
+      <w>REVREL 0</w>
+      <h>REVREL 0</h>
       <children>
+        <Layout name="note_canvas" type="NORMAL">
+          <x>REL 0</x>
+          <y>REL 0</y>
+          <w>REVREL 44</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="piano" type="NORMAL">
+          <x>REVREL 0</x>
+          <y>REL 0</y>
+          <w>REL 44</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
       </children>
     </Layout>
   </children>

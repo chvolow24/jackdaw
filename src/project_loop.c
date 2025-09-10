@@ -372,7 +372,7 @@ void loop_project_main()
 		    }
 		    /* No break */
 		default:
-		    input_fn  = input_get(main_win->i_state, e.key.keysym.sym);
+		    input_fn = input_get(main_win->i_state, e.key.keysym.sym);
 		    if (input_fn && input_fn->do_fn) {
 			char *keycmd_str = input_get_keycmd_str(main_win->i_state, e.key.keysym.sym);
 			status_set_callstr(keycmd_str);

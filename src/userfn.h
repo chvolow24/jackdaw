@@ -229,4 +229,9 @@ void user_midi_qwerty_dis2(void *nullarg);
 void user_midi_qwerty_e2(void *nullarg);
 void user_midi_qwerty_f2(void *nullarg);
 
+void user_piano_roll_zoom_in(void *nullarg);
+void user_piano_roll_zoom_out(void *nullarg);
+void user_piano_roll_move_left(void *nullarg);
+void user_piano_roll_move_right(void *nullarg);
+
 #endif

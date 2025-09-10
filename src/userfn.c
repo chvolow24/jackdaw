@@ -19,6 +19,7 @@
 #include "midi_qwerty.h"
 #include "modal.h"
 #include "panel.h"
+#include "piano_roll.h"
 #include "project.h"
 #include "session.h"
 #include "settings.h"
@@ -3206,11 +3207,24 @@ void user_midi_qwerty_f2(void *nullarg)
 }
 
 
+/* Piano Roll */
 
+void user_piano_roll_zoom_in(void *nullarg)
+{
+    piano_roll_zoom_in();
+}
 
+void user_piano_roll_zoom_out(void *nullarg)
+{
+    piano_roll_zoom_out();
+}
 
+void user_piano_roll_move_left(void *nullarg)
+{
+    piano_roll_move_view_left();
+}
 
-
-
-
-
+void user_piano_roll_move_right(void *nullarg)
+{
+    piano_roll_move_view_right();
+}

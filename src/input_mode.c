@@ -27,7 +27,8 @@ static const char *input_mode_strs[] = {
     "text_edit",
     "tabview",
     "autocomplete_list",
-    "midi_qwerty"
+    "midi_qwerty",
+    "piano_roll"
 };
 
 const char *input_mode_str(InputMode im)
@@ -59,6 +60,8 @@ InputMode input_mode_from_str(char *str)
 	return MODE_AUTOCOMPLETE_LIST;
     } else if (strcmp(str, "midi_qwerty") == 0) {
 	return MODE_MIDI_QWERTY;
+    } else if (strcmp(str, "piano_roll") == 0) {
+	return MODE_PIANO_ROLL;
     } else {
 	return -1;
     }
@@ -1375,6 +1378,37 @@ static void mode_load_midi_qwerty()
     mode_subcat_add_fn(sc, fn);
 }
 
+void mode_load_piano_roll()
+{
+    Mode *mode = mode_create(MODE_PIANO_ROLL);
+    ModeSubcat *sc = mode_add_subcat(mode, "");
+
+    UserFn *fn = create_user_fn(
+	"piano_roll_zoom_in",
+	"Zoom in (piano roll)",
+	user_piano_roll_zoom_in);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_zoom_out",
+	"Zoom out (piano roll)",
+	user_piano_roll_zoom_out);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_move_left",
+	"Move view left (piano roll)",
+	user_piano_roll_move_left);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_move_right",
+	"Move view right (piano roll)",
+	user_piano_roll_move_right);
+    mode_subcat_add_fn(sc, fn);
+
+
+}
 
 void mode_load_all()
 {
@@ -1387,4 +1421,5 @@ void mode_load_all()
     mode_load_tabview();
     mode_load_autocomplete_list();
     mode_load_midi_qwerty();
+    mode_load_piano_roll();
 }

@@ -1,12 +1,13 @@
 #include "assets.h"
 #include "clipref.h"
 #include "color.h"
+#include "geometry.h"
 #include "layout_xml.h"
 #include "piano_roll.h"
 #include "project.h"
 #include "session.h"
+#include "timeview.h"
 
-#define PIANO_LT_W 44
 
 extern Window *main_win;
 extern struct colors colors;
@@ -21,6 +22,8 @@ struct piano_roll_state {
     enum note_dur current_dur;
     int num_dots;
     Layout *layout;
+    Layout *note_piano_container;
+    Layout *note_canvas_lt;
     Layout *piano_lt;
 };
 
@@ -55,7 +58,7 @@ static void piano_roll_draw_notes()
 {
     static const int midi_piano_range = 88;
     MIDIClip *mclip = state.clip;
-    SDL_Rect rect = state.layout->rect;
+    SDL_Rect rect = state.note_canvas_lt->rect;
     
     float note_height_nominal = (float)rect.h / midi_piano_range;
     float true_note_height = note_height_nominal;
@@ -83,10 +86,12 @@ static void piano_roll_draw_notes()
 
     SDL_SetRenderDrawColor(main_win->rend, 100, 100, 100, 50);
     for (int i=0; i<88; i++) {
-	int y = state.layout->rect.y + round((double)i * (double)state.layout->rect.h / 88.0);
-	SDL_RenderDrawLine(main_win->rend, state.layout->rect.x, y, state.layout->rect.x + state.layout->rect.w, y);
+	int y = state.note_canvas_lt->rect.y + round((double)i * (double)state.note_canvas_lt->rect.h / 88.0);
+	SDL_RenderDrawLine(main_win->rend, state.note_canvas_lt->rect.x, y, state.note_canvas_lt->rect.x + state.note_canvas_lt->rect.w, y);
     }
-
+    int playhead_x = timeview_get_draw_x(&state.tv, *state.tv.play_pos);
+    SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255);
+    SDL_RenderDrawLine(main_win->rend, playhead_x, state.note_canvas_lt->rect.y, playhead_x, state.note_canvas_lt->rect.y + state.note_canvas_lt->rect.h);
 
 }
 
@@ -95,9 +100,13 @@ void piano_roll_draw()
     if (!state.clip) return;
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.tl_background_grey));
     /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.midi_clip_pink)); */
-    SDL_RenderFillRect(main_win->rend, &state.layout->rect);
+    SDL_RenderFillRect(main_win->rend, &state.note_canvas_lt->rect);
     piano_roll_draw_notes();
     piano_draw();
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.sea_green));
+
+    SDL_RenderDrawRect(main_win->rend, &state.note_piano_container->rect);
+    /* geom_draw_rect_thick(main_win->rend, &state.note_piano_container->rect, 2, main_win->dpi_scale_factor); */
 }
 
 static void piano_roll_init_layout(Session *session)
@@ -107,11 +116,11 @@ static void piano_roll_init_layout(Session *session)
     Layout *lt = layout_add_child(session->gui.layout);
     layout_read_xml_to_lt(lt, PIANO_ROLL_LT_PATH);
     Layout *piano_container = layout_get_child_by_name_recursive(lt, "piano");
-    piano_container->w.value = PIANO_LT_W;
     Layout *piano_lt = layout_read_xml_to_lt(piano_container, PIANO_88_VERTICAL_LT_PATH);
     state.piano_lt = piano_lt;
-
-
+    Layout *note_canvas = layout_get_child_by_name_recursive(lt, "note_canvas");
+    state.note_canvas_lt = note_canvas;
+    state.note_piano_container = layout_get_child_by_name_recursive(lt, "note_piano_container");
     lt->x.value = audio_rect->rect.x / main_win->dpi_scale_factor;
     lt->y.value = audio_rect->rect.y / main_win->dpi_scale_factor;;
     lt->w.type = REVREL;
@@ -126,11 +135,29 @@ static void piano_roll_init_layout(Session *session)
     /* layout_read_xml_to_lt(state.piano_lt, PIANO_88_VERTICAL_LT_PATH); */
     layout_force_reset(lt);
     state.layout = lt;
-    timeview_init(&state.tv, &lt->rect, 600, 0, NULL, NULL, NULL);
+    timeview_init(&state.tv, &note_canvas->rect, 600, 0, &session->proj.timelines[0]->play_pos_sframes, NULL, NULL);
 }
 void piano_roll_activate(ClipRef *cr)
 {
+    window_push_mode(main_win, MODE_PIANO_ROLL);
     state.cr = cr;
     state.clip = cr->source_clip;
     if (!state.layout) piano_roll_init_layout(session_get());
+}
+
+void piano_roll_zoom_in()
+{
+    timeview_rescale(&state.tv, 1.2, false, (SDL_Point){0});
+}
+void piano_roll_zoom_out()
+{
+    timeview_rescale(&state.tv, 0.8, false, (SDL_Point){0});
+}
+void piano_roll_move_view_left()
+{
+    timeview_scroll_horiz(&state.tv, -60);
+}
+void piano_roll_move_view_right()
+{
+    timeview_scroll_horiz(&state.tv, 60);
 }

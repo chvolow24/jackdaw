@@ -40,6 +40,7 @@ typedef enum input_mode {
     MODE_TABVIEW,
     MODE_AUTOCOMPLETE_LIST,
     MODE_MIDI_QWERTY,
+    MODE_PIANO_ROLL,
     NUM_INPUT_MODES
 } InputMode;
 

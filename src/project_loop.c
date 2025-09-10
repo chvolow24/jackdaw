@@ -30,6 +30,7 @@
 #include "midi_clip.h"
 #include "midi_qwerty.h"
 #include "mouse.h"
+#include "piano_roll.h"
 #include "project.h"
 #include "project_draw.h"
 #include "screenrecord.h"
@@ -187,6 +188,11 @@ void loop_project_main()
 		    break;
 		case SDL_SCANCODE_2: {
 		    mqwert_pitch_bend(25);
+		}
+		    break;
+		case SDL_SCANCODE_3: {
+		    ClipRef *cr = clipref_at_cursor();
+		    if (cr) piano_roll_activate(cr);
 		}
 		    break;
 		/* case SDL_SCANCODE_2: */

@@ -237,7 +237,6 @@ void layout_set_wh_from_rect(Layout *lt)
 	    lt->h.value = (float)lt->rect.h / main_win->dpi_scale_factor;
 	}
 	break;
-
     case COMPLEMENT:
 	break;
     case STACK:

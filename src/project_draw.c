@@ -18,6 +18,7 @@
 #include "layout.h"
 #include "midi_clip.h"
 #include "page.h"
+#include "piano_roll.h"
 #include "project.h"
 #include "session.h"
 #include "symbol.h"
@@ -45,7 +46,7 @@ SDL_Color console_bckgrnd = {140, 140, 140, 255};
 /* SDL_Color console_bckgrnd_selector = {210, 180, 100, 255}; */
 /* SDL_Color console_bckgrnd_selector = {230, 190, 100, 255}; */
 SDL_Color console_bckgrnd_selector = {210, 190, 140, 255};
-SDL_Color timeline_bckgrnd =  {50, 52, 55, 255};
+
 SDL_Color console_column_bckgrnd = {45, 50, 55, 255};
 SDL_Color timeline_marked_bckgrnd = {255, 255, 255, 30};
 SDL_Color ruler_bckgrnd = {10, 10, 10, 255};
@@ -273,7 +274,7 @@ static void track_draw(Track *track)
     
     /* Left mask */
     SDL_Rect l_mask = {0, track->layout->rect.y, track->console_rect->x, track->layout->rect.h};
-    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(timeline_bckgrnd));
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.tl_background_grey));
     SDL_RenderFillRect(main_win->rend, &l_mask);
     /* SDL_RenderSetClipRect(main_win->rend, &main_win->layout->rect); */
 
@@ -509,7 +510,7 @@ static int timeline_draw(Timeline *tl)
     /* i%=200; */
     
     /* Draw the timeline background */
-    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(timeline_bckgrnd));
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.tl_background_grey));
     SDL_RenderFillRect(main_win->rend, &session->gui.timeline_lt->rect);
 
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(console_column_bckgrnd));
@@ -686,6 +687,8 @@ void project_draw()
 	tabview_draw(main_win->active_tabview);
     }
 
+    piano_roll_draw();
+    
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
     SDL_RenderFillRect(main_win->rend, &session->status_bar.layout->rect);
     textbox_draw(session->status_bar.error);

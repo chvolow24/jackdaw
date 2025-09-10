@@ -135,4 +135,14 @@ void timeview_catchup(TimeView *tv)
     timeview_rectify_scroll(tv);
 }
 
+void timeview_init(TimeView *tv, SDL_Rect *rect, double sfpp, int32_t offset_left, int32_t *play_pos, int32_t *in, int32_t *out)
+{
+    tv->rect = rect;
+    tv->sample_frames_per_pixel = sfpp;
+    tv->offset_left_sframes = offset_left;
+    tv->play_pos = play_pos;
+    tv->in_mark = in;
+    tv->out_mark = out;    
+}
+
 

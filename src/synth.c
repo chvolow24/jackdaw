@@ -960,7 +960,7 @@ static float polyblep(float incr, float phase)
 static void osc_set_freq(Osc *osc, double freq_hz);
 bool do_blep = true;
 
-static void osc_reset_params(Osc *restrict osc)
+static void osc_reset_params(Osc *osc)
 {
     OscCfg *cfg = osc->cfg;
     float note;
@@ -987,8 +987,7 @@ static void osc_reset_params(Osc *restrict osc)
     }
 }
 
-/* static void osc_get_buf_preamp(Osc *restrict osc, float step, float *restrict buf, int len); */
-static void osc_get_buf_preamp(Osc *restrict osc, float step, int len, int after)
+static void osc_get_buf_preamp(Osc *osc, float step, int len, int after)
 {
     if (len > MAX_OSC_BUF_LEN) {
 	fprintf(stderr, "Error: Synth Oscs cannot support buf size > %d (req size %d)\n", MAX_OSC_BUF_LEN, len);
@@ -1016,7 +1015,8 @@ static void osc_get_buf_preamp(Osc *restrict osc, float step, int len, int after
     double phase_incr = osc->sample_phase_incr + osc->sample_phase_incr_addtl;
     double phase = osc->phase;
     int unison_i = (long)((osc - osc->voice->oscs) - (osc->cfg - osc->voice->synth->base_oscs)) / SYNTH_NUM_BASE_OSCS;
-    memset(osc->buf, '\0', after * sizeof(int));
+    size_t zeroset_len = after > len ? len * sizeof(int) : after *sizeof(int);
+    memset(osc->buf, '\0', zeroset_len);
     for (int i=after; i<len; i++) {
 	float sample;
 	if (osc->cfg->fix_freq && i % 93 == 0) {

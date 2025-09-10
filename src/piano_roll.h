@@ -17,6 +17,8 @@ enum note_dur {
     THIRTY_SECOND
 };
 
+void piano_roll_draw();
+void piano_roll_activate(ClipRef *cr);
 
 #endif
 

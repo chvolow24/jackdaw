@@ -168,7 +168,8 @@ typedef struct session {
     Animation *animations;
     struct api_server server;
     struct queued_ops queued_ops;
-    bool midi_qwerty;
+    bool midi_qwerty; // if true, midi qwerty mode is active (local state in midi_qwerty.c)
+    bool piano_roll; // if true, piano roll visible (local state in piano_roll.c)
     bool do_tests;
     Draggable dragged_component;
     bool dragging;

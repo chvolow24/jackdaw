@@ -39,10 +39,13 @@ struct colors {
     SDL_Color alert_orange;
 
 
+    SDL_Color tl_background_grey;
     SDL_Color dropdown_green;
     SDL_Color x_red;
     SDL_Color min_yellow;
     SDL_Color click_track;
+    SDL_Color midi_clip_pink;
+    SDL_Color midi_clip_grabbed_pink;
 
     SDL_Color freq_L;
     SDL_Color freq_R;

@@ -38,6 +38,9 @@ typedef struct {
     double max_sfpp;
 } TimeView;
 
+
+void timeview_init(TimeView *tv, SDL_Rect *rect, double sfpp, int32_t offset_left, int32_t *play_pos, int32_t *in, int32_t *out);
+
 int32_t timeview_get_pos_sframes(TimeView *tv, int draw_x);
 
 double timeview_get_draw_x_precise(TimeView *tv, int32_t pos);
@@ -52,6 +55,7 @@ void timeview_scroll_horiz(TimeView *tl, int scroll_by_pix);
 void timeview_rescale(TimeView *tv, double sfpp_scale_factor, bool on_mouse, SDL_Point mousep);
 void timeview_catchup(TimeView *tv);
 int32_t timeview_rightmost_pos(TimeView *tv);
+
 
 
 #endif

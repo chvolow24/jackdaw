@@ -18,7 +18,6 @@
 #include "layout.h"
 #include "midi_clip.h"
 #include "page.h"
-#include "piano.h"
 #include "project.h"
 #include "session.h"
 #include "symbol.h"
@@ -31,7 +30,6 @@
 extern Window *main_win;
 extern struct colors colors;
 
-extern Layout *piano_lt;
 /******************** DARKER ********************/
 /* SDL_Color track_bckgrnd = {90, 100, 110, 255}; */
 /* SDL_Color track_bckgrnd_active = {120, 130, 150, 255}; */
@@ -761,21 +759,6 @@ void project_draw()
 	
     /* } */
     /* draw_i++ ; */
-    if (piano_lt) {
-	SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255);
-	SDL_RenderFillRect(main_win->rend, &piano_lt->rect);
-	SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
-	for (int i=0; i<piano_lt->num_children; i++) {
-	    Layout *lt = piano_lt->children[i];
-	    if (lt->name[1] == 'b') {
-
-		SDL_RenderFillRect(main_win->rend, &lt->rect);
-	    } else {
-		SDL_RenderDrawLine(main_win->rend, lt->rect.x, lt->rect.y, lt->rect.x + lt->rect.w, lt->rect.y);
-		/* SDL_RenderDrawRect(main_win->rend, &lt->rect); */
-	    }
-	}
-    }
     
     window_end_draw(main_win);
 }

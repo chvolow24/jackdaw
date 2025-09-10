@@ -27,11 +27,9 @@
 #include "function_lookup.h"
 #include "input.h"
 #include "layout.h"
-#include "layout_xml.h"
 #include "midi_clip.h"
 #include "midi_qwerty.h"
 #include "mouse.h"
-#include "piano.h"
 #include "project.h"
 #include "project_draw.h"
 #include "screenrecord.h"
@@ -68,31 +66,11 @@ extern Project *proj;
 
 TabView *synth_tabview_create(Track *track);
 void user_global_quit(void *);
-/* void timeline_add_jlily(); */
-/* Piano piano = {0}; */
 
-/* extern bool do_blep; */
-
-Layout *piano_lt = NULL;
 
 void loop_project_main()
 {
     Session *session = session_get();
-    piano_lt = layout_add_child(session->gui.layout);
-
-    piano_lt->h.type = SCALE;
-    piano_lt->h.value = 0.6;
-
-    piano_lt->x.type = REVREL;
-    piano_lt->x.value = 0;
-    piano_lt->w.value = 60;
-    piano_lt->y.type = ABS;
-    piano_lt->y.value = session->gui.audio_rect->y / main_win->dpi_scale_factor;
-    piano_lt->h.type = REL;
-    piano_lt->h.value = (session->gui.audio_rect->h - session->status_bar.layout->rect.h) / main_win->dpi_scale_factor ;
-    layout_reset(piano_lt);
-    piano_lt = layout_read_xml_to_lt(piano_lt, "layouts/piano_88_vertical.xml");
-    
     /* clock_t start, end; */
     /* uint8_t frame_ctr = 0; */
     /* float fps = 0; */

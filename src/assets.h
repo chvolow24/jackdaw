@@ -34,6 +34,8 @@
 #define SYNTH_PRESETS_LT_PATH LAYOUT_PATH "synth_presets.xml"
 
 #define PIANO_LT_PATH LAYOUT_PATH "piano.xml"
+#define PIANO_88_VERTICAL_LT_PATH LAYOUT_PATH "piano_88_vertical.xml"
+#define PIANO_ROLL_LT_PATH LAYOUT_PATH "piano_roll.xml"
 
 #ifdef LAYOUT_BUILD
 #define TTF_PATH "assets/ttf/"

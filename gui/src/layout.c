@@ -181,7 +181,6 @@ void layout_set_wh_from_rect(Layout *lt)
     switch (lt->w.type) {
     case ABS:
     case REL:
-    case REVREL:
 	lt->w.value = (float)lt->rect.w / main_win->dpi_scale_factor;
 	/* lt->w.value.intval = round((float)lt->rect.w / main_win->dpi_scale_factor); */
 	break;
@@ -196,6 +195,14 @@ void layout_set_wh_from_rect(Layout *lt)
 	    return;
 	}
 	break;
+    case REVREL:
+	if (lt->parent) {
+	    int pix_diff = (lt->parent->rect.x + lt->parent->rect.w) - (lt->rect.x + lt->rect.w);
+	    lt->w.value = pix_diff / main_win->dpi_scale_factor;
+	} else {
+	    lt->w.value = (float)lt->rect.w / main_win->dpi_scale_factor;
+	}
+	break;
     case COMPLEMENT:
 	break; /* Vales are irrelevant for COMPLEMENT */
     case STACK:
@@ -208,7 +215,6 @@ void layout_set_wh_from_rect(Layout *lt)
     switch (lt->h.type) {
     case ABS:
     case REL:
-    case REVREL:
 	lt->h.value = (float)lt->rect.h / main_win->dpi_scale_factor;
 	/* lt->h.value.intval = round( (float)lt->rect.h / main_win->dpi_scale_factor); */
 	break;
@@ -223,6 +229,15 @@ void layout_set_wh_from_rect(Layout *lt)
 	    // exit(1);
 	}
 	break;
+    case REVREL:
+	if (lt->parent) {
+	    int pix_diff = (lt->parent->rect.y + lt->parent->rect.h) - (lt->rect.y + lt->rect.h);
+	    lt->h.value = pix_diff / main_win->dpi_scale_factor;
+	} else {
+	    lt->h.value = (float)lt->rect.h / main_win->dpi_scale_factor;
+	}
+	break;
+
     case COMPLEMENT:
 	break;
     case STACK:
@@ -817,7 +832,6 @@ int set_rect_wh(Layout *lt)
     switch (lt->w.type) {
     case ABS:
     case REL:
-    case REVREL:
 	lt->rect.w = lt->w.value * main_win->dpi_scale_factor;
 	break;
     case SCALE:
@@ -841,6 +855,15 @@ int set_rect_wh(Layout *lt)
 	/* } */
 	break;
     }
+    case REVREL: {
+	if (!lt->parent) break;
+	// x + w = parent_rect_right - DIM * scale_f
+	// w = parent_rect_right - DIM * scale_f - x
+	set_rect_xy(lt);
+	int parent_rect_right_x = lt->parent->rect.x + lt->parent->rect.w;
+	lt->rect.w = parent_rect_right_x - lt->rect.x - lt->w.value * main_win->dpi_scale_factor;
+    }
+	break;
     case STACK:
 	break;
     case PAD:
@@ -853,7 +876,6 @@ int set_rect_wh(Layout *lt)
     switch (lt->h.type) {
     case ABS:
     case REL:
-    case REVREL:
 	lt->rect.h = lt->h.value * main_win->dpi_scale_factor;
 	break;
     case SCALE:
@@ -874,6 +896,13 @@ int set_rect_wh(Layout *lt)
 	lt->rect.h = lt->parent->rect.h - last_sibling->rect.h;
 	break;
     }
+    case REVREL: {
+	if (!lt->parent) break;
+	set_rect_xy(lt);
+	int parent_rect_bottom_y = lt->parent->rect.y + lt->parent->rect.h;
+	lt->rect.h = parent_rect_bottom_y - lt->rect.y - lt->h.value * main_win->dpi_scale_factor;
+    }
+	break;
     case STACK:
 	break;
     case PAD:

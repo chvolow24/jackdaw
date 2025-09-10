@@ -227,7 +227,6 @@ void mqwert_pitch_bend(float cents)
     if (cents > 200) cents = 200;
     else if (cents < -200) cents = -200;
     state.pitch_bend_cents = cents;
-    fprintf(stderr, "CENTS: %f\n", cents);
     PmEvent e;
     e.timestamp = Pt_Time();
     /* Default to MIDI channel 0 */

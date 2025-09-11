@@ -401,13 +401,15 @@ void window_push_mode(Window *win, InputMode im)
     }
 }
 
-void window_pop_mode(Window *win)
+InputMode window_pop_mode(Window *win)
 {
     /* if (win->modes[win->num_modes] == TEXT_EDIT) */
     /* 	SDL_StopTextInput(); */
     if (win->num_modes > 0) {
 	win->num_modes--;
+	return win->modes[win->num_modes];
     }
+    return MODE_GLOBAL;
 }
 
 #ifndef LAYOUT_BUILD

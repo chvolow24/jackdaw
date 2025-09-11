@@ -2208,6 +2208,16 @@ void user_tl_split_stereo_clipref(void *nullarg)
     }
 }
 
+void user_tl_edit_clip_at_cursor(void *nullarg)
+{
+    ClipRef *cr = clipref_at_cursor();
+    if (cr && cr->type == CLIP_MIDI) {
+	piano_roll_activate(cr);
+    } else {
+	/* Edit Audio clip ? */
+    }
+}
+
 void user_tl_load_clip_at_cursor_to_src(void *nullarg)
 {
     Session *session = session_get();
@@ -2263,7 +2273,6 @@ void user_tl_load_clip_at_cursor_to_src(void *nullarg)
 	panel_page_refocus(session->gui.panels, "Sample source", 1);
     }
 }
-
 void user_tl_activate_source_mode(void *nullarg)
 {
     Session *session = session_get();
@@ -3209,6 +3218,12 @@ void user_midi_qwerty_f2(void *nullarg)
 
 /* Piano Roll */
 
+
+void user_piano_roll_escape(void *nullarg)
+{
+    piano_roll_deactivate();
+}
+
 void user_piano_roll_zoom_in(void *nullarg)
 {
     piano_roll_zoom_in();
@@ -3228,3 +3243,26 @@ void user_piano_roll_move_right(void *nullarg)
 {
     piano_roll_move_view_right();
 }
+
+void user_piano_roll_note_up(void *nullarg)
+{
+    piano_roll_note_up();
+}
+
+void user_piano_roll_note_down(void *nullarg)
+{
+    piano_roll_note_down();
+}
+
+void user_piano_roll_next_note(void *nullarg)
+{
+    piano_roll_next_note();
+}
+
+void user_piano_roll_prev_note(void *nullarg)
+{
+    piano_roll_prev_note();
+}
+
+
+

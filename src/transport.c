@@ -212,20 +212,16 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     /* fprintf(stderr, "d & s: %p %p\n", d, s); */
     if (d && s) {
 	midi_device_read(d);
+	float playspeed = session->playback.play_speed;
 	synth_feed_midi(s, d->buffer, d->num_unconsumed_events, 0, true);
-	/* if (DEBUG_MOD > 500) { */
-	/*     fprintf(stderr, "Device %p (%s) current clip: %p\n", d, d->name, d->current_clip); */
-	/*     DEBUG_MOD=0;	     */
-	/* } */
-	/* DEBUG_MOD++; */
-	/* exit(1); */
 	if (d->current_clip && d->current_clip->recording) {
 	    midi_device_output_chunk_to_clip(d, 1);
 	    d->current_clip->len_sframes += len_sframes;
 	}
 	d->num_unconsumed_events = 0;
-	synth_add_buf(s, chunk_L, 0, len_sframes, 1.0); /* TL Pos ignored */
-	synth_add_buf(s, chunk_R, 1, len_sframes, 1.0); /* TL Pos ignored */
+	if (fabs(playspeed) < 1e-6) playspeed = 1.0f;
+	synth_add_buf(s, chunk_L, 0, len_sframes, playspeed); /* TL Pos ignored */
+	synth_add_buf(s, chunk_R, 1, len_sframes, playspeed); /* TL Pos ignored */
     }
 
     int16_t *stream_fmt = (int16_t *)stream;

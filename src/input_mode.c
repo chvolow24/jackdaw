@@ -856,6 +856,12 @@ static void mode_load_timeline()
 	"Delete",
 	user_tl_delete_generic);
     mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_edit_clip_at_cursor",
+	"Edit clip at cursor",
+	user_tl_edit_clip_at_cursor);
+    mode_subcat_add_fn(sc, fn);
     
 
     /* Sample mode */
@@ -1384,6 +1390,15 @@ void mode_load_piano_roll()
     ModeSubcat *sc = mode_add_subcat(mode, "");
 
     UserFn *fn = create_user_fn(
+	"piano_roll_escape",
+	"Escape / exit piano roll",
+
+	user_piano_roll_escape);
+
+    mode_subcat_add_fn(sc, fn);
+
+
+    fn = create_user_fn(
 	"piano_roll_zoom_in",
 	"Zoom in (piano roll)",
 	user_piano_roll_zoom_in);
@@ -1404,9 +1419,31 @@ void mode_load_piano_roll()
     fn = create_user_fn(
 	"piano_roll_move_right",
 	"Move view right (piano roll)",
-	user_piano_roll_move_right);
+	user_piano_roll_note_down);
     mode_subcat_add_fn(sc, fn);
 
+    fn = create_user_fn(
+	"piano_roll_note_down",
+	"Note selector down",
+	user_piano_roll_note_down);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"piano_roll_note_up",
+	"Note selector up",
+	user_piano_roll_note_up);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_next_note",
+	"Go to next note",
+	user_piano_roll_next_note);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_prev_note",
+	"Go to previous note",
+	user_piano_roll_prev_note);
+    mode_subcat_add_fn(sc, fn);
 
 }
 

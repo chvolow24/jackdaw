@@ -120,7 +120,7 @@ Menu *window_top_menu(Window *win);
 void window_draw_menus(Window *win);
 
 void window_push_mode(Window *win, InputMode im);
-void window_pop_mode(Window *win);
+InputMode window_pop_mode(Window *win);
 
 void window_push_modal(Window *win, Modal *modal);
 void window_pop_modal(Window *win);

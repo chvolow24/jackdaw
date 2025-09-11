@@ -1,11 +1,12 @@
 #include "assets.h"
 #include "clipref.h"
 #include "color.h"
-#include "geometry.h"
 #include "layout_xml.h"
+#include "midi_clip.h"
 #include "piano_roll.h"
 #include "project.h"
 #include "session.h"
+#include "timeline.h"
 #include "timeview.h"
 
 
@@ -14,7 +15,8 @@ extern struct colors colors;
 
 struct piano_roll_state {
     bool active;
-    TimeView tv;
+    /* TimeView tv; */
+    TimeView *tl_tv;
     MIDIClip *clip;
     ClipRef *cr;
     ClickTrack *ct;
@@ -25,6 +27,7 @@ struct piano_roll_state {
     Layout *note_piano_container;
     Layout *note_canvas_lt;
     Layout *piano_lt;
+    int selected_piano_note;
 };
 
 struct piano_roll_state state;
@@ -72,12 +75,12 @@ static void piano_roll_draw_notes()
 	Note *note = mclip->notes + i;
 	/* SDL_SetRenderDrawColor(main_win->rend, colors.dark_brown.r, colors.dark_brown.g, colors.dark_brown.b, 255 * note->velocity / 128); */
 	if (state.cr->end_in_clip && note->start_rel > state.cr->end_in_clip) break;
-	int piano_note = note->key - 21;
+	int piano_note = note->key - 20;
 	if (piano_note < 0 || piano_note > midi_piano_range) continue;
 	int32_t note_start = note->start_rel - state.cr->start_in_clip + state.cr->tl_pos;
 	int32_t note_end = note->end_rel - state.cr->start_in_clip + state.cr->tl_pos;
-	float x = timeview_get_draw_x(&state.tv, note_start);
-	float w = timeview_get_draw_x(&state.tv, note_end) - x;
+	float x = timeview_get_draw_x(state.tl_tv, note_start);
+	float w = timeview_get_draw_x(state.tl_tv, note_end) - x;
 	float y = rect.y + round((float)(midi_piano_range - piano_note) * note_height_nominal);
 	SDL_Rect note_rect = {x, y, w, true_note_height};
 	SDL_RenderFillRect(main_win->rend, &note_rect);
@@ -88,8 +91,14 @@ static void piano_roll_draw_notes()
     for (int i=0; i<88; i++) {
 	int y = state.note_canvas_lt->rect.y + round((double)i * (double)state.note_canvas_lt->rect.h / 88.0);
 	SDL_RenderDrawLine(main_win->rend, state.note_canvas_lt->rect.x, y, state.note_canvas_lt->rect.x + state.note_canvas_lt->rect.w, y);
+	if (88 - i == state.selected_piano_note) {
+	    SDL_SetRenderDrawColor(main_win->rend, 255, 100, 0, 30);
+	    SDL_Rect barrect = {state.note_canvas_lt->rect.x, y, state.note_canvas_lt->rect.w, note_height_nominal};
+	    SDL_RenderFillRect(main_win->rend, &barrect);
+	    SDL_SetRenderDrawColor(main_win->rend, 100, 100, 100, 50);
+	}
     }
-    int playhead_x = timeview_get_draw_x(&state.tv, *state.tv.play_pos);
+    int playhead_x = timeview_get_draw_x(state.tl_tv, *state.tl_tv->play_pos);
     SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255);
     SDL_RenderDrawLine(main_win->rend, playhead_x, state.note_canvas_lt->rect.y, playhead_x, state.note_canvas_lt->rect.y + state.note_canvas_lt->rect.h);
 
@@ -135,29 +144,76 @@ static void piano_roll_init_layout(Session *session)
     /* layout_read_xml_to_lt(state.piano_lt, PIANO_88_VERTICAL_LT_PATH); */
     layout_force_reset(lt);
     state.layout = lt;
-    timeview_init(&state.tv, &note_canvas->rect, 600, 0, &session->proj.timelines[0]->play_pos_sframes, NULL, NULL);
+    /* timeview_init(state.tl_tv, &note_canvas->rect, 600, 0, &session->proj.timelines[0]->play_pos_sframes, NULL, NULL); */
 }
 void piano_roll_activate(ClipRef *cr)
 {
+    Session *session = session_get();
     window_push_mode(main_win, MODE_PIANO_ROLL);
+    session->piano_roll = true;
     state.cr = cr;
     state.clip = cr->source_clip;
+    state.tl_tv = &ACTIVE_TL->timeview;
     if (!state.layout) piano_roll_init_layout(session_get());
+}
+void piano_roll_deactivate()
+{
+    state.clip = NULL;
+    InputMode im = window_pop_mode(main_win);
+    if (im != MODE_PIANO_ROLL) {
+	fprintf(stderr, "Error: deactivating piano roll, top mode %s\n", input_mode_str(im));
+    }
+    Session *session = session_get();
+    session->piano_roll = false;
+    timeline_reset_full(ACTIVE_TL);
+    
 }
 
 void piano_roll_zoom_in()
 {
-    timeview_rescale(&state.tv, 1.2, false, (SDL_Point){0});
+    timeview_rescale(state.tl_tv, 1.2, false, (SDL_Point){0});
 }
 void piano_roll_zoom_out()
 {
-    timeview_rescale(&state.tv, 0.8, false, (SDL_Point){0});
+    timeview_rescale(state.tl_tv, 0.8, false, (SDL_Point){0});
 }
 void piano_roll_move_view_left()
 {
-    timeview_scroll_horiz(&state.tv, -60);
+    timeview_scroll_horiz(state.tl_tv, -60);
 }
 void piano_roll_move_view_right()
 {
-    timeview_scroll_horiz(&state.tv, 60);
+    timeview_scroll_horiz(state.tl_tv, 60);
 }
+
+void piano_roll_note_up()
+{
+    state.selected_piano_note++;
+    if (state.selected_piano_note > 88) state.selected_piano_note = 88;
+}
+void piano_roll_note_down()
+{
+    state.selected_piano_note--;
+    if (state.selected_piano_note < 0) state.selected_piano_note = 0;
+}
+
+void piano_roll_next_note()
+{
+    Session *session = session_get();
+    int32_t pos = ACTIVE_TL->play_pos_sframes;
+    Note *note = midi_clipref_get_next_note(state.cr, pos, &pos);
+    if (note) {
+	timeline_set_play_position(ACTIVE_TL, pos);
+    }
+}
+
+void piano_roll_prev_note()
+{
+    Session *session = session_get();
+    int32_t pos = ACTIVE_TL->play_pos_sframes;
+    Note *note = midi_clipref_get_prev_note(state.cr, pos, &pos);
+    if (note) {
+	timeline_set_play_position(ACTIVE_TL, pos);
+    }
+}
+

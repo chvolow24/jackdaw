@@ -674,10 +674,24 @@ void project_draw()
     Session *session = session_get();
     window_start_draw(main_win, NULL);
     Timeline *tl = ACTIVE_TL;
-    int timeline_redrawn = timeline_draw(tl);
-    if (timeline_redrawn) {
-	control_bar_draw();
-	textbox_draw(session->gui.timeline_label);
+    int timeline_redrawn = 0;
+    if (session->piano_roll) {
+	piano_roll_draw();
+	/* TODO: better abstraction for TL draw operations needed here */
+	ruler_draw(tl);
+	if (session->gui.timecode_tb) {
+	    textbox_draw(session->gui.timecode_tb);
+	}
+	if (session->playback.loop_play && tl->out_mark_sframes > tl->in_mark_sframes) {
+	    textbox_draw(session->gui.loop_play_lemniscate);
+	    /* layout_draw(main_win, tl->loop_play_lemniscate->layout); */
+	}
+    } else {
+	timeline_redrawn = timeline_draw(tl);
+	if (timeline_redrawn) {
+	    control_bar_draw();
+	    textbox_draw(session->gui.timeline_label);
+	}
     }
     if (main_win->active_tabview) {
 	if (timeline_redrawn) {
@@ -687,7 +701,7 @@ void project_draw()
 	tabview_draw(main_win->active_tabview);
     }
 
-    piano_roll_draw();
+    /* piano_roll_draw(); */
     
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
     SDL_RenderFillRect(main_win->rend, &session->status_bar.layout->rect);

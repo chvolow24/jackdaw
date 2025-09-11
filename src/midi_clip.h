@@ -97,6 +97,7 @@ void midi_clip_init(MIDIClip *mclip);
 
 void midi_clip_add_note(MIDIClip *mc, int channel, int note_val, int velocity, int32_t start_rel, int32_t end_rel);
 int32_t midi_clipref_check_get_first_note(ClipRef *cr);
+int32_t midi_clipref_check_get_last_note(ClipRef *cr);
 
 void midi_clip_add_controller_change(MIDIClip *mclip, PmEvent e, int32_t pos);
 void midi_clip_add_pitch_bend(MIDIClip *mclip, PmEvent e, int32_t pos);
@@ -116,4 +117,9 @@ uint32_t midi_clip_get_all_events(MIDIClip *mclip, PmEvent **dst);
 
 /* Add notes etc. */
 void midi_clip_read_events(MIDIClip *mclip, PmEvent *events, uint32_t num_events, enum midi_ts_type, int32_t ts_offset);
+
+/* Returns the timeline position of the next note */
+Note *midi_clipref_get_next_note(ClipRef *cr, int32_t from, int32_t *pos_dst);
+Note *midi_clipref_get_prev_note(ClipRef *cr, int32_t from, int32_t *pos_dst);
+
 #endif

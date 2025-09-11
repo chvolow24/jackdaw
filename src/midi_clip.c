@@ -207,6 +207,22 @@ int32_t midi_clipref_check_get_first_note(ClipRef *cr)
     return cr->first_note;
 }
 
+int32_t midi_clipref_check_get_last_note(ClipRef *cr)
+{
+    MIDIClip *clip = cr->source_clip;
+
+    if (cr->last_note == -1) cr->last_note = clip->num_notes - 1;
+    while (cr->last_note < clip->num_notes - 1 && clip->notes[cr->last_note].start_rel < cr->end_in_clip) {
+	cr->last_note++;
+    }
+    while (cr->last_note > 0 && clip->notes[cr->last_note].start_rel > cr->end_in_clip) {
+	cr->last_note--;
+    }
+    if (cr->last_note == clip->num_notes) cr->last_note = -1;
+    return cr->last_note;
+}
+
+
 /* /\* Return -1 if clip has no ccs; otherwise, first cc index *\/ */
 /* int32_t midi_clipref_check_get_first_cc(ClipRef *cr) */
 /* { */
@@ -709,8 +725,48 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 
     return num_events;
 }
-    
-    
+
+Note *midi_clipref_get_next_note(ClipRef *cr, int32_t from, int32_t *pos_dst)
+{
+    MIDIClip *mclip = cr->source_clip;
+    int32_t pos = from;
+    Note *ret = NULL;
+    int32_t note_i = midi_clipref_check_get_first_note(cr);
+    do {
+	Note *note = mclip->notes + note_i;
+	int32_t note_tl_pos = note_tl_start_pos(note, cr);
+	if (note_tl_pos > from) {
+	    ret = note;
+	    pos = note_tl_pos;
+	    break;
+	}
+	note_i++;
+    } while (note_i < mclip->num_notes);
+    if (ret)
+	*pos_dst = pos;
+    return ret;
+}
+
+Note *midi_clipref_get_prev_note(ClipRef *cr, int32_t from, int32_t *pos_dst)
+{
+    MIDIClip *mclip = cr->source_clip;
+    int32_t pos = from;
+    Note *ret = NULL;
+    int32_t note_i = midi_clipref_check_get_last_note(cr);
+    do {
+	Note *note = mclip->notes + note_i;
+	int32_t note_tl_pos = note_tl_start_pos(note, cr);
+	if (note_tl_pos < from) {
+	    ret = note;
+	    pos = note_tl_pos;
+	    break;
+	}
+	note_i--;
+    } while (note_i >= 0);
+    if (ret)
+	*pos_dst = pos;
+    return ret;
+}
 
 /*     struct midi_event_ring_buf *rb = &cr->track->note_offs; */
 
@@ -1049,4 +1105,3 @@ int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max
 /*     #endif */
 /*     return event_buf_index; */
 /* } */
-

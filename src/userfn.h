@@ -139,6 +139,7 @@ void user_tl_rename_clip_at_cursor(void *nullarg);
 void user_tl_delete_generic(void *nullarg);
 
 void user_tl_load_clip_at_cursor_to_src(void *nullarg);
+void user_tl_edit_clip_at_cursor(void *nullarg);
 void user_tl_activate_source_mode(void *nullarg);
 void user_tl_drop_from_source(void *nullarg);
 
@@ -229,9 +230,14 @@ void user_midi_qwerty_dis2(void *nullarg);
 void user_midi_qwerty_e2(void *nullarg);
 void user_midi_qwerty_f2(void *nullarg);
 
+void user_piano_roll_escape(void *nullarg);
 void user_piano_roll_zoom_in(void *nullarg);
 void user_piano_roll_zoom_out(void *nullarg);
 void user_piano_roll_move_left(void *nullarg);
 void user_piano_roll_move_right(void *nullarg);
+void user_piano_roll_note_up(void *nullarg);
+void user_piano_roll_note_down(void *nullarg);
+void user_piano_roll_next_note(void *nullarg);
+void user_piano_roll_prev_note(void *nullarg);
 
 #endif

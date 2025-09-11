@@ -589,6 +589,19 @@ ClickTrack *timeline_selected_click_track(Timeline *tl)
     }
 }
 
+/* A click track "governs" all tracks situated below it until another click track appears */
+ClickTrack *timeline_governing_click_track(Timeline *tl)
+{
+    ClickTrack *ct = NULL;
+    for (int i=tl->num_click_tracks - 1; i>=0; i--) {
+	if (tl->click_tracks[i]->layout->index <= tl->layout_selector) {
+	    ct = tl->click_tracks[i];
+	    break;
+	}
+    }
+    return ct;
+}
+
 Layout *timeline_selected_layout(Timeline *tl)
 {
     if (tl->layout_selector >= 0 && tl->layout_selector < tl->track_area->num_children) {

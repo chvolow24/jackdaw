@@ -1838,6 +1838,12 @@ void synth_read_preset_file(const char *filepath, Synth *s)
 
 void synth_destroy(Synth *s)
 {
+    Session *session = session_get();
+    if (session->midi_io.monitor_synth == s) {
+	session->midi_io.monitor_device = NULL;
+	session->midi_io.monitor_synth = NULL;
+	
+    }
     for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
 	OscCfg *cfg = s->base_oscs + i;
 	free(cfg->active_id);

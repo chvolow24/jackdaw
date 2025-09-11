@@ -1419,7 +1419,7 @@ void mode_load_piano_roll()
     fn = create_user_fn(
 	"piano_roll_move_right",
 	"Move view right (piano roll)",
-	user_piano_roll_note_down);
+	user_piano_roll_move_right);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(

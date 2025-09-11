@@ -40,6 +40,7 @@ struct colors {
 
 
     SDL_Color tl_background_grey;
+    SDL_Color control_bar_background_grey;
     SDL_Color dropdown_green;
     SDL_Color x_red;
     SDL_Color min_yellow;

@@ -24,6 +24,7 @@ const struct colors colors = {
     .alert_orange = {255, 99, 0, 255},
 
     .tl_background_grey =  {50, 52, 55, 255},
+    .control_bar_background_grey = {22, 28, 34, 255},
     .dropdown_green = {20, 100, 40, 255},
     .x_red = {200, 0, 0, 255},
     .min_yellow = {200, 90, 0, 255},

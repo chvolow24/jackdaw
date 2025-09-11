@@ -5,7 +5,7 @@
   <h>SCALE 1.000000</h>
   <children>
     <Layout name="note_piano_container" type="NORMAL">
-      <x>REL 0</x>
+      <x>REL 200</x>
       <y>REL 0</y>
       <w>REVREL 0</w>
       <h>REVREL 0</h>
@@ -26,6 +26,110 @@
           <children>
           </children>
         </Layout>
+      </children>
+    </Layout>
+    <Layout name="piano_roll_console" type="NORMAL">
+      <x>REL 0</x>
+      <y>REL 0</y>
+      <w>REL 200</w>
+      <h>SCALE 1.000000</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="piano_roll_console" type="NORMAL">
+      <x>REL 0</x>
+      <y>REL 0</y>
+      <w>REL 200</w>
+      <h>SCALE 1.000000</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="piano_roll_console" type="NORMAL">
+      <x>REL 0</x>
+      <y>REL 0</y>
+      <w>REL 200</w>
+      <h>SCALE 1.000000</h>
+      <children>
+        <Layout name="console_padded" type="NORMAL">
+          <x>REL 10</x>
+          <y>REL 10</y>
+          <w>PAD 1</w>
+          <h>PAD 1</h>
+          <children>
+            <Layout name="track_info" type="NORMAL">
+              <x>REL 0</x>
+              <y>REL 0</y>
+              <w>REL 180</w>
+              <h>REL 102</h>
+              <children>
+                <Layout name="track_name" type="NORMAL">
+                  <x>REL 10</x>
+                  <y>REL 10</y>
+                  <w>SCALE 0.722222</w>
+                  <h>REL 20</h>
+                  <children>
+                  </children>
+                </Layout>
+                <Layout name="solo" type="NORMAL">
+                  <x>STACK 10</x>
+                  <y>REL 10</y>
+                  <w>REL 20</w>
+                  <h>REL 20</h>
+                  <children>
+                  </children>
+                </Layout>
+                <Layout name="clip_name" type="NORMAL">
+                  <x>REL 64</x>
+                  <y>REL 40</y>
+                  <w>REVREL 10</w>
+                  <h>REL 20</h>
+                  <children>
+                  </children>
+                </Layout>
+		<Layout name="clip_label" type="NORMAL">
+                  <x>REL 10</x>
+                  <y>REL 40</y>
+                  <w>REL 46</w>
+                  <h>REL 21</h>
+                  <children>
+                  </children>
+                </Layout>
+                <Layout name="in_label" type="NORMAL">
+                  <x>REL 10</x>
+                  <y>REL 70</y>
+                  <w>REL 46</w>
+                  <h>REL 20</h>
+                  <children>
+                  </children>
+                </Layout>
+                <Layout name="in_name" type="NORMAL">
+                  <x>REL 64</x>
+                  <y>REL 70</y>
+                  <w>REVREL 10</w>
+                  <h>REL 20</h>
+                  <children>
+                  </children>
+                </Layout>
+              </children>
+            </Layout>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+    <Layout name="piano_roll_console" type="NORMAL">
+      <x>REL 0</x>
+      <y>REL 0</y>
+      <w>REL 200</w>
+      <h>SCALE 1.000000</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="piano_roll_console" type="NORMAL">
+      <x>REL 0</x>
+      <y>REL 0</y>
+      <w>REL 200</w>
+      <h>SCALE 1.000000</h>
+      <children>
       </children>
     </Layout>
   </children>

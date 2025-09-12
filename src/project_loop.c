@@ -68,7 +68,7 @@ extern Project *proj;
 TabView *synth_tabview_create(Track *track);
 void user_global_quit(void *);
 
-
+extern bool do_blep;
 void loop_project_main()
 {
     Session *session = session_get();
@@ -237,7 +237,6 @@ void loop_project_main()
 		/* } */
 		/*     break; */
 		/* case SDL_SCANCODE_4: */
-		/*     break; */
 		/*     do_blep = !do_blep; */
 		/*     if (do_blep) { */
 		/* 	fprintf(stderr, "DOING BLEP!\n"); */

@@ -315,7 +315,8 @@ Synth *synth_create(Track *track)
     s->env_amt = 5.0f;
     s->resonance = 2.0;
 
-    double dc_block_coeff = exp(-1.0/(0.0025 * session_get_sample_rate()));
+    /* double dc_block_coeff = exp(-1.0/(0.0025 * session_get_sample_rate())); */
+    double dc_block_coeff = exp(-1.0/(0.002 * session_get_sample_rate()));
     double DC_BLOCK_A[] = {1.0, -1.0};
     double DC_BLOCK_B[] = {dc_block_coeff};
     iir_init(&s->dc_blocker, 1, 2);
@@ -1017,79 +1018,83 @@ static void osc_get_buf_preamp(Osc *osc, float step, int len, int after)
     int unison_i = (long)((osc - osc->voice->oscs) - (osc->cfg - osc->voice->synth->base_oscs)) / SYNTH_NUM_BASE_OSCS;
     size_t zeroset_len = after > len ? len * sizeof(int) : after *sizeof(int);
     memset(osc->buf, '\0', zeroset_len);
-    for (int i=after; i<len; i++) {
-	float sample;
-	if (osc->cfg->fix_freq && i % 93 == 0) {
-	    /* fprintf(stderr, "resetting %d\n", i); */
-	    osc_reset_params(osc);
-	}
-	/* double phase_incr = osc->sample_phase_incr + osc->sample_phase_incr_addtl; */
-	switch(osc->type) {
-	case WS_SINE:
-	    sample = sinf(TAU * phase);
-	    break;
-	case WS_SQUARE:
-	    sample = phase < 0.5 ? 1.0 : -1.0;
-	    sample += polyblep(phase_incr, phase);
-	    sample -= polyblep(phase_incr, fmod(phase + 0.5, 1.0)); 
-	    break;
-	case WS_TRI:
-	    if (do_blep) {
+    if (phase_incr > 0.4) { /* Nearing nyquist */
+	memset(osc->buf, '\0', sizeof(float) * len);
+    } else {
+	for (int i=after; i<len; i++) {
+	    float sample;
+	    if (osc->cfg->fix_freq && i % 93 == 0) {
+		/* fprintf(stderr, "resetting %d\n", i); */
+		osc_reset_params(osc);
+	    }
+	    /* double phase_incr = osc->sample_phase_incr + osc->sample_phase_incr_addtl; */
+	    switch(osc->type) {
+	    case WS_SINE:
+		sample = sinf(TAU * phase);
+		break;
+	    case WS_SQUARE:
 		sample = phase < 0.5 ? 1.0 : -1.0;
 		sample += polyblep(phase_incr, phase);
 		sample -= polyblep(phase_incr, fmod(phase + 0.5, 1.0)); 
+		break;
+	    case WS_TRI:
+		if (do_blep) {
+		    sample = phase < 0.5 ? 1.0 : -1.0;
+		    sample += polyblep(phase_incr, phase);
+		    sample -= polyblep(phase_incr, fmod(phase + 0.5, 1.0)); 
 
-		sample *= 4.0 * phase_incr;
-		sample += osc->last_out_tri;
-		osc->last_out_tri = sample;
-		sample = iir_sample(&osc->tri_dc_blocker, sample, 0);
+		    sample *= 4.0 * phase_incr;
+		    sample += osc->last_out_tri;
+		    osc->last_out_tri = sample;
+		    sample = iir_sample(&osc->tri_dc_blocker, sample, 0);
+		} else {
+		    sample =
+			phase <= 0.25 ?
+			phase * 4.0f :
+			phase <= 0.5f ?
+			(0.5f - phase) * 4.0 :
+			phase <= 0.75f ?
+			(phase - 0.5f) * -4.0 :
+			(1.0f - phase) * -4.0;
+		}
+
+		break;
+	    case WS_SAW:
+		sample = 2.0f * phase - 1.0;
+		if (do_blep) {
+		    /* BLEP */
+		    sample -= polyblep(phase_incr, phase);
+		}
+		break;
+	    default:
+		sample = 0.0;
+	    }
+	    if (osc->freq_modulator) {
+		/* Raise fmod sample to 3 to get fmod values in more useful range */
+		/* float fmod_sample = pow(osc_sample(osc->freq_modulator, channel, num_channels, step, chunk_index), 3.0); */
+		/* fprintf(stderr, "fmod sample in osc %p: %f\n", osc, fmod_sample); */
+		phase += phase_incr * step * (1.0 - fmod_samples[i]);
 	    } else {
-		sample =
-		    phase <= 0.25 ?
-		    phase * 4.0f :
-		    phase <= 0.5f ?
-		    (0.5f - phase) * 4.0 :
-		    phase <= 0.75f ?
-		    (phase - 0.5f) * -4.0 :
-		    (1.0f - phase) * -4.0;
+		phase += phase_incr * step;
 	    }
-
-	    break;
-	case WS_SAW:
-	    sample = 2.0f * phase - 1.0;
-	    if (do_blep) {
-		/* BLEP */
-		sample -= polyblep(phase_incr, phase);
+	    if (osc->amp_modulator) {
+		sample *= 1.0 + amod_samples[i];
+		/* sample *= 1.0 + osc_sample(osc->amp_modulator, channel, num_channels, step, chunk_index); */
 	    }
-	    break;
-	default:
-	    sample = 0.0;
+	    if (phase > 1.0) {
+		phase = phase - floor(phase);
+	    } else if (phase < 0.0) {
+		phase = 1.0 + phase + ceil(phase);
+	    }
+	    if (osc->cfg->unison.num_voices > 0 && !osc->cfg->mod_freq_of && !osc->cfg->mod_amp_of)
+		sample *= 1.0 / (0.5 * osc->cfg->unison.num_voices * osc->cfg->unison.relative_amp + 1.0);
+	    if (!osc->cfg->mod_freq_of && !osc->cfg->mod_amp_of && unison_i != 0 && unison_i % 3 == 0) {
+		sample *= -1;
+	    }
+	    osc->buf[i] = sample;
 	}
-	if (osc->freq_modulator) {
-	    /* Raise fmod sample to 3 to get fmod values in more useful range */
-	    /* float fmod_sample = pow(osc_sample(osc->freq_modulator, channel, num_channels, step, chunk_index), 3.0); */
-	    /* fprintf(stderr, "fmod sample in osc %p: %f\n", osc, fmod_sample); */
-	    phase += phase_incr * step * (1.0 - fmod_samples[i]);
-	} else {
-	    phase += phase_incr * step;
-	}
-	if (osc->amp_modulator) {
-	    sample *= 1.0 + amod_samples[i];
-	    /* sample *= 1.0 + osc_sample(osc->amp_modulator, channel, num_channels, step, chunk_index); */
-	}
-	if (phase > 1.0) {
-	    phase = phase - floor(phase);
-	} else if (phase < 0.0) {
-	    phase = 1.0 + phase + ceil(phase);
-	}
-	if (osc->cfg->unison.num_voices > 0 && !osc->cfg->mod_freq_of && !osc->cfg->mod_amp_of)
-	    sample *= 1.0 / (0.5 * osc->cfg->unison.num_voices * osc->cfg->unison.relative_amp + 1.0);
-	if (!osc->cfg->mod_freq_of && !osc->cfg->mod_amp_of && unison_i != 0 && unison_i % 3 == 0) {
-	    sample *= -1;
-	}
-	osc->buf[i] = sample;
+	osc->phase = phase;
     }
-    osc->phase = phase;
     /* osc->phase_incr =  */
     /* apply_amp_and_pan: */
     /* 	(void)0; */
@@ -1773,6 +1778,7 @@ void synth_feed_midi(
 	}
     }
 }
+void synth_silence(Synth *s);
 
 void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step)
 {
@@ -1780,6 +1786,11 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step)
     /* if (channel != 0) return; */
     /* fprintf(stderr, "ADD BUF\n"); */
     if (step < 0.0) step *= -1;
+    if (step > 5.0) {
+	synth_silence(s);
+	memset(buf, '\0', len * sizeof(float));
+	return;
+    }
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	SynthVoice *v = s->voices + i;
 	synth_voice_add_buf(v, buf, len, channel, step);
@@ -1809,7 +1820,14 @@ void synth_close_all_notes(Synth *s)
 	}
     }
 }
-
+void synth_silence(Synth *s)
+{
+    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+	SynthVoice *v = s->voices + i;
+	v->available = true;
+	v->amp_env->current_stage = ADSR_OVERRUN;
+    }
+}
 void synth_clear_all(Synth *s)
 {
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {

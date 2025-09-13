@@ -34,7 +34,7 @@ Clip *clip_create(AudioConn *conn, Track *target)
 	clip->recorded_from = conn;
 	if (conn->type == DEVICE) {
 	    if (conn->c.device.select_channels) {
-		clip->channels = conn->c.device.channel_max - conn->c.device.channel_min;
+		clip->channels = conn->c.device.channel_max - conn->c.device.channel_min + 1;
 	    } else {
 		clip->channels = conn->c.device.spec.channels;
 	    }

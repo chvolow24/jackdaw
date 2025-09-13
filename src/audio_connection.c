@@ -209,7 +209,7 @@ int audioconn_open(Session *session, AudioConn *conn)
 	if ((device->id = SDL_OpenAudioDevice(conn->c.device.name, conn->iscapture, &(device->spec), &(obtained), 0)) > 0) {
 	    device->spec = obtained;
 	    conn->open = true;
-	    fprintf(stderr, "Successfully opened device %s, with id: %d, chunk size %d, %d channels\n", conn->name, device->id, obtained.samples, obtained.channels);
+	    fprintf(stderr, "Successfully opened device %s, with id: %d, chunk size %d, %d channels, sample rate %d (vs proj %d)\n", conn->name, device->id, obtained.samples, obtained.channels, obtained.freq, session->proj.sample_rate);
 	} else {
 	    conn->open = false;
 	    fprintf(stderr, "Error opening audio device %s : %s\n", conn->name, SDL_GetError());

@@ -47,6 +47,11 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
     AudioConn *conn = (AudioConn *)user_data;
     AudioDevice *dev = &conn->c.device;
 
+    Session *session = session_get();
+    Project *proj = &session->proj;
+
+
+    fprintf(stderr, "CALLBACK device \"%s\":\n\tchannels (spec): %d\n\tlen/chunk size/channels (expect 2 for int16): %d\n\tsel range: %d-%d\n", conn->name, dev->spec.channels, len / session->proj.chunk_size_sframes / dev->spec.channels, dev->channel_min, dev->channel_max);
     /* double time_diff = 1000.0f * ((double)conn->callback_clock.clock - session->audio_io.playback_conn->callback_clock.clock) / CLOCKS_PER_SEC; */
     /* fprintf(stdout, "TIME DIFF ms: %f\n", time_diff); */
 
@@ -58,8 +63,6 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
     /* 	    conn->callback_clock.clock, */
     /* 	    conn->callback_clock.timeline_pos); */
 
-    Session *session = session_get();
-    Project *proj = &session->proj;
 
     if (!conn->current_clip_repositioned) {
         struct timespec now;
@@ -122,6 +125,7 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
 	    memcpy(dev->rec_buffer, stream, len);
 	    dev->write_bufpos_samples = stream_len_samples;
 	} else {
+	    dev->write_bufpos_samples = 0;
 	    int16_t *stream_fmt = (int16_t *)stream;
 	    for (int i=0; i<stream_len_samples; i++) {
 		int sample_channel = i % dev->spec.channels;

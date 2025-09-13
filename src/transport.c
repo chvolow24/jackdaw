@@ -95,8 +95,19 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
 
     if (dev->write_bufpos_samples + stream_len_samples < dev->rec_buf_len_samples) {
 	/* fprintf(stdout, "Fits! bufpos: %d\n", dev->write_bufpos_samples); */
-        memcpy(dev->rec_buffer + dev->write_bufpos_samples, stream, len);
-	dev->write_bufpos_samples += stream_len_samples;
+	if (!dev->select_channels) {
+	    memcpy(dev->rec_buffer + dev->write_bufpos_samples, stream, len);
+	    dev->write_bufpos_samples += stream_len_samples;
+	} else {
+	    int16_t *stream_fmt = (int16_t *)stream;
+	    for (int i=0; i<stream_len_samples; i++) {
+		int sample_channel = i % dev->spec.channels;
+		if (sample_channel >= dev->channel_min && sample_channel <= dev->channel_max) {
+		    dev->rec_buffer[dev->write_bufpos_samples] = stream_fmt[i];
+		    dev->write_bufpos_samples++;
+		}
+	    }
+	}
     } else {
 	/* fprintf(stdout, "Leftover: %d\n", dev->rec_buf_len_samples - (dev->write_bufpos_samples + stream_len_samples)); */
 	for (int i=proj->active_clip_index; i<proj->num_clips; i++) {
@@ -107,8 +118,20 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
 	    }
 	     /* clip->write_bufpos_sframes += dev->write_bufpos_samples / clip->channels; */
 	 }
-	 memcpy(dev->rec_buffer, stream, len);
-	 dev->write_bufpos_samples = stream_len_samples;
+	if (!dev->select_channels) {
+	    memcpy(dev->rec_buffer, stream, len);
+	    dev->write_bufpos_samples = stream_len_samples;
+	} else {
+	    int16_t *stream_fmt = (int16_t *)stream;
+	    for (int i=0; i<stream_len_samples; i++) {
+		int sample_channel = i % dev->spec.channels;
+		if (sample_channel >= dev->channel_min && sample_channel <= dev->channel_max) {
+		    dev->rec_buffer[dev->write_bufpos_samples] = stream_fmt[i];
+		    dev->write_bufpos_samples++;
+		}
+	    }
+
+	}
 	 /* dev->write_bufpos_samples = 0; */
 	 /* device_stop_recording(dev); */
 	 /* fprintf(stderr, "ERROR: overwriting audio buffer of device: %s\n", dev->name); */
@@ -733,9 +756,11 @@ void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type)
 	create_clip_buffers(clip, clip->len_sframes);
 	for (int i=0; i<clip->recorded_from->c.device.write_bufpos_samples; i+=clip->channels) {
 	    float sample_L = (float) clip->recorded_from->c.device.rec_buffer[i] / INT16_MAX;
-	    float sample_R = (float) clip->recorded_from->c.device.rec_buffer[i+1] / INT16_MAX;
 	    clip->L[clip->write_bufpos_sframes + i/clip->channels] = sample_L;
-	    clip->R[clip->write_bufpos_sframes + i/clip->channels] = sample_R;;
+	    if (clip->channels > 1) {
+		float sample_R = (float) clip->recorded_from->c.device.rec_buffer[i+1] / INT16_MAX;
+		clip->R[clip->write_bufpos_sframes + i/clip->channels] = sample_R;;
+	    }
 	}
 	clip->write_bufpos_sframes = clip->len_sframes;
 

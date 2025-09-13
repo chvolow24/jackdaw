@@ -24,7 +24,7 @@
 #include <time.h>
 #include "SDL.h"
 
-#define MAX_CONN_NAMELENGTH 64
+#define MAX_CONN_NAMELENGTH 128
 /* #include "project.h" */
 
 /* typedef struct project Project; */
@@ -37,11 +37,15 @@ typedef struct audio_device{
     /* const char *name; */
     /* bool open; /\* true if the device has been opened (SDL_OpenAudioDevice) *\/ */
     /* bool iscapture; /\* true if device is a recording device, not a playback device *\/ */
+    char name[MAX_CONN_NAMELENGTH];
     SDL_AudioDeviceID id;
     SDL_AudioSpec spec;
     int16_t *rec_buffer;
     uint32_t rec_buf_len_samples;
     int32_t write_bufpos_samples;
+    bool select_channels;
+    int channel_min;
+    int channel_max;
     /* bool active; */
 } AudioDevice;
 

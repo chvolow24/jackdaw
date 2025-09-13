@@ -33,9 +33,12 @@ Clip *clip_create(AudioConn *conn, Track *target)
     if (conn) {
 	clip->recorded_from = conn;
 	if (conn->type == DEVICE) {
-	    clip->channels = conn->c.device.spec.channels;
+	    if (conn->c.device.select_channels) {
+		clip->channels = conn->c.device.channel_max - conn->c.device.channel_min;
+	    } else {
+		clip->channels = conn->c.device.spec.channels;
+	    }
 	}
-
     }
     if (target) {
 	/* fprintf(stdout, "\t->target? %p\n", clip->target); */

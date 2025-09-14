@@ -34,7 +34,7 @@ struct piano_roll_state {
     int selected_note; /* midi value */
 };
 
-struct piano_roll_state state;
+static struct piano_roll_state state;
 
 
 /* void piano_roll_load_layout() */

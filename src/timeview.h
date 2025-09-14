@@ -52,6 +52,7 @@ int timeview_get_draw_w(TimeView *tv, int32_t abs_w);
 
 int32_t timeview_get_w_sframes(TimeView *tv, int draw_w_pix);
 void timeview_scroll_horiz(TimeView *tl, int scroll_by_pix);
+void timeview_scroll_sframes(TimeView *tv, int32_t scroll_by);
 void timeview_rescale(TimeView *tv, double sfpp_scale_factor, bool on_mouse, SDL_Point mousep);
 void timeview_catchup(TimeView *tv);
 int32_t timeview_rightmost_pos(TimeView *tv);

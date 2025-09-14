@@ -50,8 +50,6 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
     Session *session = session_get();
     Project *proj = &session->proj;
 
-
-    fprintf(stderr, "CALLBACK device \"%s\":\n\tchannels (spec): %d\n\tlen/chunk size/channels (expect 2 for int16): %d\n\tsel range: %d-%d\n", conn->name, dev->spec.channels, len / session->proj.chunk_size_sframes / dev->spec.channels, dev->channel_min, dev->channel_max);
     /* double time_diff = 1000.0f * ((double)conn->callback_clock.clock - session->audio_io.playback_conn->callback_clock.clock) / CLOCKS_PER_SEC; */
     /* fprintf(stdout, "TIME DIFF ms: %f\n", time_diff); */
 

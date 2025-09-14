@@ -142,6 +142,7 @@ struct playback {
     bool dragging;
     bool recording;
     bool playing;
+    bool lock_view_to_playhead;
 };
 
 /* struct audio_settings { */

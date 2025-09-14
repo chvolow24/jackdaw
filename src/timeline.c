@@ -305,6 +305,10 @@ void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes)
 	    }
 	}
     }
+    if (session->playback.lock_view_to_playhead) {
+	timeview_scroll_sframes(&tl->timeview, move_by_sframes);
+	tl->needs_reset = true;
+    }
     tl->needs_redraw = true;
 }
 

@@ -183,18 +183,23 @@ void loop_project_main()
 
 		switch (e.key.keysym.scancode) {
 		case SDL_SCANCODE_1: {
-		    mqwert_pitch_bend(-25);
+		    Session *session = session_get();
+		    session->playback.lock_view_to_playhead = !session->playback.lock_view_to_playhead;
 		}
 		    break;
-		case SDL_SCANCODE_2: {
-		    mqwert_pitch_bend(25);
-		}
-		    break;
-		case SDL_SCANCODE_3: {
-		    ClipRef *cr = clipref_at_cursor();
-		    if (cr) piano_roll_activate(cr);
-		}
-		    break;
+		/* case SDL_SCANCODE_1: { */
+		/*     mqwert_pitch_bend(-25); */
+		/* } */
+		/*     break; */
+		/* case SDL_SCANCODE_2: { */
+		/*     mqwert_pitch_bend(25); */
+		/* } */
+		/*     break; */
+		/* case SDL_SCANCODE_3: { */
+		/*     ClipRef *cr = clipref_at_cursor(); */
+		/*     if (cr) piano_roll_activate(cr); */
+		/* } */
+		/*     break; */
 		/* case SDL_SCANCODE_2: */
 		/*     mqwert_activate(); */
 		/*     timeline_check_set_midi_monitoring(); */
@@ -578,6 +583,12 @@ void loop_project_main()
 
 	
 	Timeline *tl = ACTIVE_TL;
+
+	if (tl->needs_reset) {
+	    timeline_reset(tl, false);
+	    tl->needs_reset = false;
+	}
+	
 	wheel_event_recency++;
 	if (wheel_event_recency == INT_MAX)
 	    wheel_event_recency = 0;

@@ -57,6 +57,12 @@ static void timeview_rectify_scroll(TimeView *tv)
     }
 }
 
+void timeview_scroll_sframes(TimeView *tv, int32_t scroll_by)
+{
+    tv->offset_left_sframes += scroll_by;
+    timeview_rectify_scroll(tv);
+}
+
 void timeview_scroll_horiz(TimeView *tv, int scroll_by)
 {
     /* Timeline *tl = ACTIVE_TL; */

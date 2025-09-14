@@ -82,7 +82,7 @@ struct jlily_state {
     JLilyRepeatBlock repeat_blocks[MAX_REPEAT_BLOCK_DEPTH];
 };
 
-struct jlily_state state;
+static struct jlily_state state;
 
 static int note_name_interval(char note1, char note2)
 {

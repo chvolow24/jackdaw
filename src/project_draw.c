@@ -379,7 +379,7 @@ static void ruler_draw(Timeline *tl)
 void fill_quadrant(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad);
 void fill_quadrant_complement(SDL_Renderer *rend, int xinit, int yinit, int r, const register uint8_t quad);
 
-#define MAX_WF_FRAME_DRAW_TIME 0.01
+#define MAX_WF_FRAME_DRAW_TIME 0.02
 static double FRAME_WF_DRAW_TIME = 0.0;
 static bool internal_tl_needs_redraw = false;
 

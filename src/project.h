@@ -354,6 +354,7 @@ typedef struct timeline {
     /* int display_v_offset; */
 
     bool needs_redraw;
+    bool needs_reset; /* trigger reset from another thread */
 
     /* API */
 

@@ -187,6 +187,12 @@ void loop_project_main()
 		    session->playback.lock_view_to_playhead = !session->playback.lock_view_to_playhead;
 		}
 		    break;
+		case SDL_SCANCODE_2:
+		    piano_roll_dur_down();
+		    break;
+		case SDL_SCANCODE_3:
+		    piano_roll_dur_up();
+		    break;
 		/* case SDL_SCANCODE_1: { */
 		/*     mqwert_pitch_bend(-25); */
 		/* } */

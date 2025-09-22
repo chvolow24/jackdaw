@@ -34,22 +34,6 @@
       <w>REL 200</w>
       <h>SCALE 1.000000</h>
       <children>
-      </children>
-    </Layout>
-    <Layout name="piano_roll_console" type="NORMAL">
-      <x>REL 0</x>
-      <y>REL 0</y>
-      <w>REL 200</w>
-      <h>SCALE 1.000000</h>
-      <children>
-      </children>
-    </Layout>
-    <Layout name="piano_roll_console" type="NORMAL">
-      <x>REL 0</x>
-      <y>REL 0</y>
-      <w>REL 200</w>
-      <h>SCALE 1.000000</h>
-      <children>
         <Layout name="console_padded" type="NORMAL">
           <x>REL 10</x>
           <y>REL 10</y>
@@ -58,7 +42,7 @@
           <children>
             <Layout name="track_info" type="NORMAL">
               <x>REL 0</x>
-              <y>REL 0</y>
+              <y>STACK 0</y>
               <w>REL 180</w>
               <h>REL 102</h>
               <children>
@@ -86,7 +70,7 @@
                   <children>
                   </children>
                 </Layout>
-		<Layout name="clip_label" type="NORMAL">
+                <Layout name="clip_label" type="NORMAL">
                   <x>REL 10</x>
                   <y>REL 40</y>
                   <w>REL 46</w>
@@ -108,6 +92,46 @@
                   <w>REVREL 10</w>
                   <h>REL 20</h>
                   <children>
+                  </children>
+                </Layout>
+              </children>
+            </Layout>
+            <Layout name="insertion_info" type="NORMAL">
+              <x>REL 0</x>
+              <y>STACK 21</y>
+              <w>REL 180</w>
+              <h>REL 241</h>
+              <children>
+                <Layout name="current_dur" type="NORMAL">
+                  <x>REL 112</x>
+                  <y>REL 10</y>
+                  <w>REL 50</w>
+                  <h>REL 50</h>
+                  <children>
+                  </children>
+                </Layout>
+                <Layout name="dur_buttons" type="NORMAL">
+                  <x>REL 10</x>
+                  <y>REL 10</y>
+                  <w>REL 90</w>
+                  <h>REL 50</h>
+                  <children>
+                    <Layout name="dur_down_button" type="NORMAL">
+                      <x>STACK 8</x>
+                      <y>REL 8</y>
+                      <w>REL 32</w>
+                      <h>REL 32</h>
+                      <children>
+                      </children>
+                    </Layout>
+                    <Layout name="dur_down_button" type="NORMAL">
+                      <x>STACK 8</x>
+                      <y>REL 8</y>
+                      <w>REL 32</w>
+                      <h>REL 32</h>
+                      <children>
+                      </children>
+                    </Layout>
                   </children>
                 </Layout>
               </children>

@@ -87,12 +87,13 @@ typedef enum textalign {
 } TextAlign;
 
 typedef enum font_type {
-    REG,
-    BOLD,
-    MONO,
-    MONO_BOLD,
-    SYMBOLIC,
-    MATHEMATICAL
+    FONT_REG,
+    FONT_BOLD,
+    FONT_MONO,
+    FONT_MONO_BOLD,
+    FONT_SYMBOLIC,
+    FONT_MATHEMATICAL,
+    FONT_MUSIC
 } FontType;
 
 

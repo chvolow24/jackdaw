@@ -118,25 +118,29 @@ void window_assign_font(Window *win, const char *font_path, FontType type)
 
     int style = TTF_STYLE_NORMAL;
     switch (type) {
-    case REG:
+    case FONT_REG:
 	font_to_init = &win->std_font;
 	break;
-    case BOLD:
+    case FONT_BOLD:
 	font_to_init = &win->bold_font;
 	style = TTF_STYLE_BOLD;
 	break;
-    case MONO:
+    case FONT_MONO:
         font_to_init = &win->mono_font;
 	break;
-    case MONO_BOLD:
+    case FONT_MONO_BOLD:
 	font_to_init = &win->mono_bold_font;
 	break;
-    case SYMBOLIC:
+    case FONT_SYMBOLIC:
 	font_to_init = &win->symbolic_font;
 	break;
-    case MATHEMATICAL:
+    case FONT_MATHEMATICAL:
 	font_to_init = &win->mathematical_font;
 	break;
+    case FONT_MUSIC:
+	font_to_init = &win->music_font;
+	break;
+	
     }
     *font_to_init = ttf_init_font(font_path, win, style);
     if (!(*font_to_init)) {

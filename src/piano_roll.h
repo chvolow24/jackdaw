@@ -6,16 +6,6 @@
 #include "tempo.h"
 #include "timeview.h"
 
-#define MAX_GRABBED_NOTES 128
-
-enum note_dur {
-    WHOLE,
-    HALF,
-    QUARTER,
-    EIGHTH,
-    SIXTEENTH,
-    THIRTY_SECOND
-};
 
 void piano_roll_deactivate();
 void piano_roll_draw();
@@ -28,6 +18,8 @@ void piano_roll_note_up();
 void piano_roll_note_down();
 void piano_roll_next_note();
 void piano_roll_prev_note();
+void piano_roll_dur_up();
+void piano_roll_dur_down();
 
 #endif
 

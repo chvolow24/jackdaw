@@ -52,6 +52,7 @@
 #define LTSUPERIOR_BOLD_PATH TTF_PATH "LTSuperiorMono-Bold.otf"
 #define NOTO_SANS_SYMBOLS2_PATH TTF_PATH "NotoSansSymbols2-Regular.ttf"
 #define NOTO_SANS_MATH_PATH TTF_PATH "NotoSansMath-Regular.ttf"
+#define NOTO_MUSIC_PATH TTF_PATH "NotoMusic-Regular.ttf"
 
 #define METRONOME_PATH "metronome/"
 #define METRONOME_STD_HIGH_PATH METRONOME_PATH "std_high.wav"

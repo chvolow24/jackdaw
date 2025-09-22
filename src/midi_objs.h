@@ -30,6 +30,9 @@ typedef struct note {
     int32_t start_rel; /* sample frames from clip start */
     int32_t end_rel; /* sample frames from clip start */
     bool unclosed; /* used in midi_device_record_chunk */
+
+    /* Piano roll */
+    bool grabbed;
 } Note;
 
 typedef struct {

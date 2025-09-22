@@ -85,6 +85,7 @@ int query_audio_connections(Session *session, int iscapture)
             fprintf(stderr, "Error getting device spec: %s\n", SDL_GetError());
         };
 	int channel_i = 0;
+	if (!iscapture && spec.channels > 2) spec.channels = 2;
 	while (channel_i + 1 <= spec.channels) {
 	    AudioConn *conn = calloc(sizeof(AudioConn), 1);
 	    AudioDevice *dev = &conn->c.device;

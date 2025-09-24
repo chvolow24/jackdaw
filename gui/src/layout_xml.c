@@ -17,6 +17,9 @@
 #define MAX_TOKLEN 255
 #define LT_TAGNAME "Layout"
 
+#define OPENED_LAYOUTS_HASH_TABLE_SIZE 1024
+Layout *OPENED_LAYOUTS_HASH_TABLE[1024];
+
 
 static void write_dimension(FILE *f, Dimension *dim, char dimchar, int indent)
 {

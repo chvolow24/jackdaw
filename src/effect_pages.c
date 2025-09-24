@@ -217,7 +217,7 @@ Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
 	    "",
 	    lt_name);
 	Textbox *tab_tb = el->component;
-	textbox_set_border(tab_tb, EQ_CTRL_COLORS + i, 2);
+	textbox_set_border(tab_tb, EQ_CTRL_COLORS + i, 2, 0);
 	textbox_set_align(tab_tb, CENTER);
 	textbox_reset_full(tab_tb);
 

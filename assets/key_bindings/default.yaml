@@ -284,6 +284,7 @@
   - S-q		: midi_qwerty_escape
 - piano_roll:
   - <esc>	: piano_roll_escape
+  - C-S-e	: piano_roll_escape
   - ,		: piano_roll_zoom_out
   - .		: piano_roll_zoom_in
   - h		: piano_roll_move_left

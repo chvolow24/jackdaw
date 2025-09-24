@@ -8,7 +8,7 @@
 #define MAX_MENU_SECTIONS 16
 #define MAX_MENU_COLUMNS 8
 #define MAX_ADDTL_TBS 16
-#define BUTTON_CORNER_RADIUS 6;
+#define BUTTON_CORNER_RADIUS 6
 
 #define MAX_NAMELENGTH 64
 
@@ -72,6 +72,7 @@ typedef struct text_lines {
 
 Textbox *textbox_create();
 void textbox_destroy(Textbox *);
+void textbox_destroy_keep_lt(Textbox *tb);
 Textbox *textbox_create_from_str(
     const char *set_str,
     Layout *lt,
@@ -80,6 +81,15 @@ Textbox *textbox_create_from_str(
     uint8_t text_size,
     Window *win
     );
+
+/* Sets all parameters and resets text drawable */
+void textbox_style(
+    Textbox *tb,
+    TextAlign align,
+    bool trunc,
+    SDL_Color *background_color,
+    SDL_Color *text_color);
+
 
 /* WARNING: deprecated. Use 'textbox_size_to_fit' instead */
 void textbox_pad(Textbox *tb, int pad);
@@ -93,7 +103,7 @@ void textbox_set_trunc(Textbox *tb, bool trunc);
 /* void textbox_set_text_color(Textbox *tb, SDL_Color *clr); */
 void textbox_set_background_color(Textbox *tb, SDL_Color *clr);
 void textbox_set_border_color(Textbox *tb, SDL_Color *clr);
-void textbox_set_border(Textbox *tb, SDL_Color *color, int thickness);
+void textbox_set_border(Textbox *tb, SDL_Color *color, int thickness, int corner_radius);
 void textbox_set_align(Textbox *tb, TextAlign align);
 
 /* Reset drawable only. For full reset, use textbox_reset_full */

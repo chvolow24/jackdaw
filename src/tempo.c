@@ -523,8 +523,7 @@ ClickTrack *timeline_add_click_track(Timeline *tl)
     textbox_set_text_color(t->edit_button, &colors.white);
     textbox_set_background_color(t->edit_button, &colors.quickref_button_blue);
     /* textbox_set_border(t->edit_button, &colors.black, 1); */
-    t->edit_button->corner_radius = BUTTON_CORNER_RADIUS;
-    textbox_set_border(t->edit_button, &colors.white, 1);
+    textbox_set_border(t->edit_button, &colors.white, 1, BUTTON_CORNER_RADIUS);
     
     Layout *metro_button_lt = layout_get_child_by_name_recursive(t->layout, "metronome_button");
     t->metronome_button = textbox_create_from_str(
@@ -534,8 +533,7 @@ ClickTrack *timeline_add_click_track(Timeline *tl)
 	14,
 	main_win);
     textbox_set_background_color(t->metronome_button, &colors.play_green);
-    t->metronome_button->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
-    textbox_set_border(t->metronome_button, &colors.black, 1);
+    textbox_set_border(t->metronome_button, &colors.black, 1, MUTE_SOLO_BUTTON_CORNER_RADIUS);
     /* textbox_set_background_color(track->tb_mute_button, &color_mute_solo_grey); */
 
 

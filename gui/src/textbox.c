@@ -143,6 +143,14 @@ void textbox_destroy(Textbox *tb)
     free(tb);
 }
 
+void textbox_destroy_keep_lt(Textbox *tb)
+{
+    if (tb->text) {
+	txt_destroy(tb->text);
+    }
+    free(tb);
+}
+
 void textbox_draw(Textbox *tb)
 {
     int rad = tb->corner_radius * tb->window->dpi_scale_factor;
@@ -277,6 +285,7 @@ void textbox_set_text_color(Textbox *tb, const SDL_Color *clr)
     txt_set_color(tb->text, clr);
 }
 
+
 void textbox_set_background_color(Textbox *tb, SDL_Color *clr)
 {
     tb->bckgrnd_clr = clr;
@@ -287,12 +296,13 @@ void textbox_set_border_color(Textbox *tb, SDL_Color *clr)
     tb->border_clr = clr;
 }
 
-void textbox_set_border(Textbox *tb, SDL_Color *color, int thickness)
+void textbox_set_border(Textbox *tb, SDL_Color *color, int thickness, int radius)
 {
     if (color) {
 	tb->border_clr = color;
     }
     tb->border_thickness = thickness;
+    tb->corner_radius = radius;
 }
 
 void textbox_set_align(Textbox *tb, TextAlign align)
@@ -325,6 +335,22 @@ void textbox_set_value_handle(Textbox *tb, const char *new_value)
     txt_set_value_handle(tb->text, (char *) new_value);
 }
 
+/* Convenience function, used in tandem with textbox_create_from_str */
+void textbox_style(
+    Textbox *tb,
+    TextAlign align,
+    bool trunc,
+    SDL_Color *background_color,
+    SDL_Color *text_color)
+{
+    tb->text->align = align;
+    tb->text->truncate = trunc;
+    tb->bckgrnd_clr = background_color;
+    txt_set_color_no_reset(tb->text, text_color);
+    textbox_reset_full(tb);
+}
+    
+    
 
 /* Chunky buttons -- save for later, maybe */
 void textbox_set_style(Textbox *tb, enum textbox_style style)
@@ -340,7 +366,7 @@ void textbox_set_style(Textbox *tb, enum textbox_style style)
     case BUTTON_DARK:
 	tb->corner_radius = BUTTON_CORNER_RADIUS;
 	/* textbox_set_trunc(tb, false); */
-	textbox_set_border(tb, &colors.dark_grey, 1);
+	textbox_set_border(tb, &colors.dark_grey, 1, BUTTON_CORNER_RADIUS);
 	/* textbox_set_style(tb, BUTTON_CLASSIC); */
 	textbox_set_text_color(tb, &colors.white);
 	textbox_set_background_color(tb, &colors.quickref_button_blue);

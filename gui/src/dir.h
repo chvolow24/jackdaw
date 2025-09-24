@@ -26,6 +26,7 @@ typedef struct dirnav DirNav;
 typedef struct dirnav {
     DirPath *dirpath;
     Layout *layout;
+    Layout *inner_layout; /* Lines container */
     /* bool show_dirs; */
     /* bool show_files; */
     Textbox *instruction;

@@ -174,7 +174,7 @@ static ModalEl *modal_add_text(Modal *modal, Font *font, int font_size, SDL_Colo
     ModalEl *el = modal_add_el(modal);
     el->type = MODAL_EL_TEXT;
     Textbox *tb = textbox_create_from_str(text, el->layout, font, font_size, main_win);
-    textbox_set_border(tb, &colors.clear, 0);
+    /* textbox_set_border(tb, &colors.clear, 0, 0); */
     textbox_set_background_color(tb, &colors.clear);
     textbox_set_text_color(tb, color);
     textbox_set_align(tb, align);

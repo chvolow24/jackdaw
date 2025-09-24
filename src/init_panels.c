@@ -761,8 +761,7 @@ PageEl *page_add_keybutton(
     /* layout_set_values_from_rect(tb->layout); */
     /* layout_reset(tb->layout); */
     /* layout_center_scale(tb->layout, true, true); */
-    textbox_set_border(tb, &colors.light_grey, 3);
-    tb->corner_radius = 4;
+    textbox_set_border(tb, &colors.light_grey, 3, 4);
     layout_center_agnostic(lt, false, true);
     layout_force_reset(parent);
     textbox_reset_full(tb);
@@ -1100,9 +1099,8 @@ static void session_init_qwerty_piano(Page *page, Session *session)
     tb->live = true;
     /* textbox_set_text_color(tb, &colors.amber); */
     textbox_set_align(tb, CENTER);
-    textbox_set_border(tb, &colors.dark_grey, 1);
+    textbox_set_border(tb, &colors.dark_grey, 1, 2);
     textbox_set_pad(tb, 1, 2);
-    tb->corner_radius = 2;
     textbox_set_trunc(tb, true);
     textbox_reset_full(tb);
 

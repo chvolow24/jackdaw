@@ -786,7 +786,7 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name)
 
     textbox_set_align(track_tb, CENTER_LEFT);
     textbox_set_pad(track_tb, 4, 0);
-    textbox_set_border(track_tb, &colors.black, 1);
+    textbox_set_border(track_tb, &colors.black, 1, 0);
     textbox_set_trunc(track->tb_vol_label, false);
     /* textbox_reset_full(track->tb_name); */
     /* track->tb_name->text->validation = txt_name_validation; */
@@ -825,7 +825,7 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name)
     /* textbox_size_to_fit(track->tb_input_name, 10, 0); */
     /* textbox_set_trunc(track->tb_input_name, true); */
     /* textbox_set_fixed_w(track->tb_input_name, saved_w); */
-    textbox_set_border(track->tb_input_name, &colors.black, 1);
+    textbox_set_border(track->tb_input_name, &colors.black, 1, BUBBLE_CORNER_RADIUS);
     /* textbox_set_style(track->tb_input_name, BUTTON_CLASSIC); */
 
     
@@ -835,8 +835,7 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name)
 	main_win->bold_font,
 	14,
 	main_win);
-    track->tb_mute_button->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
-    textbox_set_border(track->tb_mute_button, &colors.black, 1);
+    textbox_set_border(track->tb_mute_button, &colors.black, 1, MUTE_SOLO_BUTTON_CORNER_RADIUS);
     textbox_set_background_color(track->tb_mute_button, &color_mute_solo_grey);
     /* textbox_set_style(track->tb_mute_button, BUTTON_CLASSIC); */
     /* textbox_reset_full(track->tb_mute_button); */
@@ -847,8 +846,7 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name)
 	main_win->bold_font,
 	14,
 	main_win);
-    track->tb_solo_button->corner_radius = MUTE_SOLO_BUTTON_CORNER_RADIUS;
-    textbox_set_border(track->tb_solo_button, &colors.black, 1);
+    textbox_set_border(track->tb_solo_button, &colors.black, 1, MUTE_SOLO_BUTTON_CORNER_RADIUS);
     textbox_set_background_color(track->tb_solo_button, &color_mute_solo_grey);
     /* textbox_set_style(track->tb_solo_button, BUTTON_CLASSIC); */
     /* textbox_reset_full(track->tb_solo_button); */

@@ -241,6 +241,9 @@ TTF_Font *ttf_get_font_at_size(const Font *font, int size);
 /* Set a text color and refresh the drawable elements */
 void txt_set_color(Text *txt, const SDL_Color *clr);
 
+/* Set color, but do not redraw; for use in textbox */
+void txt_set_color_no_reset(Text *txt, const SDL_Color *clr);
+
 /* Set text pad values and refresh drawable elements */
 void txt_set_pad(Text *txt, int h_pad, int v_pad);
 

@@ -591,6 +591,11 @@ void ttf_reset_dpi_scale_factor(Font *font)
     }	
 }
 
+void txt_set_color_no_reset(Text *txt, const SDL_Color *clr)
+{
+   txt->color = *clr;
+}
+
 void txt_set_color(Text *txt, const SDL_Color *clr)
 {
     SDL_Color new = *clr;

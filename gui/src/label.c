@@ -40,7 +40,7 @@ Label *label_create(
     l->countdown_max = LABEL_COUNTDOWN_MAX;
     l->val_type = t;
 
-    textbox_set_border(l->tb, &colors.black, 2);
+    textbox_set_border(l->tb, &colors.black, 2, 0);
     textbox_set_trunc(l->tb, false);
     textbox_size_to_fit(l->tb, LABEL_H_PAD, LABEL_V_PAD);
 

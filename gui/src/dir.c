@@ -342,6 +342,7 @@ DirNav *dirnav_create(
     dn->layout = lt;
     strcpy(lt->name, "dirnav_lt");
     Layout *inner = layout_add_child(lt);
+    dn->inner_layout = inner;
     strcpy(inner->name, "dirnav_lines_container");
     inner->x.value = 5;
     inner->y.value = 5;
@@ -434,8 +435,8 @@ void dirnav_draw(DirNav *dn)
 {
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
     SDL_RenderFillRect(main_win->rend, &dn->layout->rect);
-    
-    Layout *inner = layout_get_child_by_name_recursive(dn->layout, "dirnav_lines_container");
+    Layout *inner = dn->inner_layout;
+    /* Layout *inner = layout_get_child_by_name_recursive(dn->layout, "dirnav_lines_container"); */
     SDL_RenderSetClipRect(main_win->rend, &inner->rect);
     textlines_draw(dn->lines);
     /* for (uint8_t i=0; i<dn->lines->num_items; i++) { */
@@ -490,7 +491,8 @@ void dirnav_next(DirNav *dn)
 {
     TLinesItem *current = dirnav_select_item(dn, dn->current_line + 1);
     if (current) {
-	Layout *inner = layout_get_child_by_name_recursive(dn->layout, "dirnav_lines_container");
+	/* Layout *inner = layout_get_child_by_name_recursive(dn->layout, "dirnav_lines_container"); */
+	Layout *inner = dn->inner_layout;
 	/* TLinesItem *current = dn->lines-> */
 	if (current->tb->layout->rect.y + current->tb->layout->rect.h > inner->rect.y + inner->rect.h - SCROLL_TRIGGER_PAD) {
 	    int item_abs_y = current->tb->layout->rect.y;
@@ -504,7 +506,8 @@ void dirnav_previous(DirNav *dn)
 {
     TLinesItem *current = dirnav_select_item(dn, dn->current_line - 1);
     if (current) {
-	Layout *inner = layout_get_child_by_name_recursive(dn->layout, "dirnav_lines_container");
+	Layout *inner = dn->inner_layout;
+	/* Layout *inner = layout_get_child_by_name_recursive(dn->layout, "dirnav_lines_container"); */
 	if (current->tb->layout->rect.y < inner->rect.y + SCROLL_TRIGGER_PAD && dn->lines->container->scroll_offset_v < 0) {
 	    int item_abs_y = current->tb->layout->rect.y;
 	    int item_desired_y = inner->rect.y + SCROLL_PAD;

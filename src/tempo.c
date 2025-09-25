@@ -34,8 +34,8 @@ extern Window *main_win;
 extern struct colors colors;
 
 
-extern SDL_Color control_bar_bckgrnd;
-extern SDL_Color mute_red;
+/* extern SDL_Color control_bar_bckgrnd; */
+/* extern SDL_Color mute_red; */
 
 /* extern SDL_Color color_button_light_text; */
 
@@ -1111,7 +1111,7 @@ void click_track_draw(ClickTrack *tt)
     textbox_draw(tt->edit_button);	
 
     /* Fill right console */
-    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.control_bar_background_grey));
     SDL_RenderFillRect(main_win->rend, tt->right_console_rect);
 
     /* Draw right console elements */
@@ -1352,7 +1352,7 @@ void click_track_mute_unmute(ClickTrack *t)
 {
     t->muted = !t->muted;
     if (t->muted) {
-	textbox_set_background_color(t->metronome_button, &mute_red);
+	textbox_set_background_color(t->metronome_button, &colors.mute_red);
     } else {
 	textbox_set_background_color(t->metronome_button, &colors.play_green);
     }

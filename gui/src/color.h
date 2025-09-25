@@ -37,6 +37,9 @@ struct colors {
     SDL_Color cerulean_pale;
     SDL_Color dark_brown;
     SDL_Color alert_orange;
+    SDL_Color mute_red;
+    SDL_Color solo_yellow;
+    SDL_Color mute_solo_grey;
 
 
     SDL_Color tl_background_grey;

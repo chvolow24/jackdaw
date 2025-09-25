@@ -41,7 +41,14 @@ double timeline_get_leftmost_seconds(Timeline *tl);
 double timeline_get_second_w(Timeline *tl);
 double timeline_first_second_tick_x(Timeline *tl, int *first_second);
 void timeline_rescale(Timeline *tl, double sfpp_scale_factor, bool on_mouse);
+
+/* Invalidates continuous-play-dependent caches.
+   Use this any time a "jump" occurs.
+   MAIN (GUI) THREAD ONLY */
 void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes);
+
+/* Use this for continuous playback incrementation.
+   SDL AUDIO THREAD ONLY */
 void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes);
 
 void timeline_set_timecode(Timeline *tl);

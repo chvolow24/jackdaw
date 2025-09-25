@@ -778,7 +778,7 @@ static int jdaw_read_midi_note(FILE *f, MIDIClip *mclip)
     velocity = uint8_deser(f);
     start_rel = int32_deser_le(f);
     end_rel = int32_deser_le(f);
-    midi_clip_add_note(mclip, 0, note, velocity, start_rel, end_rel);
+    midi_clip_insert_note(mclip, 0, note, velocity, start_rel, end_rel);
     return 0;
 }
 

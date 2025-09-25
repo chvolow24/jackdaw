@@ -9,6 +9,7 @@
 #include "dot_jdaw.h"
 #include "endpoint.h"
 #include "function_lookup.h"
+#include "midi_clip.h"
 #include "page.h"
 #include "session_endpoint_ops.h"
 #include "input.h"
@@ -2217,11 +2218,22 @@ void user_tl_split_stereo_clipref(void *nullarg)
 
 void user_tl_edit_clip_at_cursor(void *nullarg)
 {
+
     ClipRef *cr = clipref_at_cursor();
     if (cr && cr->type == CLIP_MIDI) {
 	piano_roll_activate(cr);
-    } else {
+    } else if (cr && cr->type == CLIP_AUDIO) {
 	/* Edit Audio clip ? */
+    } else { /* Create clip */
+	Session *session = session_get();
+	Timeline *tl = ACTIVE_TL;
+	Track *track = timeline_selected_track(tl);
+	if (!track) return;
+	MIDIClip *mclip = midi_clip_create(NULL, track);
+	mclip->len_sframes = session->proj.sample_rate; /* initialize clip len to 1s */
+	ClipRef *cr = clipref_create(track, tl->play_pos_sframes, CLIP_MIDI, mclip);
+	session->proj.active_midi_clip_index++;
+	piano_roll_activate(cr);
     }
 }
 
@@ -3261,12 +3273,12 @@ void user_piano_roll_move_right(void *nullarg)
 
 void user_piano_roll_note_up(void *nullarg)
 {
-    piano_roll_note_up();
+    piano_roll_move_note_selector(1);
 }
 
 void user_piano_roll_note_down(void *nullarg)
 {
-    piano_roll_note_down();
+    piano_roll_move_note_selector(-1);
 }
 
 void user_piano_roll_next_note(void *nullarg)

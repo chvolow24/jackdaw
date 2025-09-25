@@ -22,6 +22,9 @@ const struct colors colors = {
     .cerulean_pale = {100, 190, 255, 100},
     .dark_brown = {20, 20, 0, 255},
     .alert_orange = {255, 99, 0, 255},
+    .mute_red = {240, 80, 80, 255},
+    .solo_yellow = {255, 200, 50, 255},
+    .mute_solo_grey = {210, 210, 210, 255},
 
     .tl_background_grey =  {50, 52, 55, 255},
     .control_bar_background_grey = {22, 28, 34, 255},

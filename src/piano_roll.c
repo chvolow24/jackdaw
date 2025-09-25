@@ -7,6 +7,7 @@
 #include "piano_roll.h"
 #include "project.h"
 #include "session.h"
+#include "tempo.h"
 #include "textbox.h"
 #include "timeline.h"
 #include "timeview.h"
@@ -21,13 +22,13 @@ extern struct colors colors;
 #define MAX_TIED_NOTES 24
 
 enum note_dur {
-    WHOLE,
-    HALF,
-    QUARTER,
-    EIGHTH,
-    SIXTEENTH,
-    THIRTY_SECOND,
-    SIXTY_FOURTH,
+    DUR_WHOLE,
+    DUR_HALF,
+    DUR_QUARTER,
+    DUR_EIGHTH,
+    DUR_SIXTEENTH,
+    DUR_THIRTY_SECOND,
+    DUR_SIXTY_FOURTH,
 };
 #define MAX_DUR 0
 #define MIN_DUR 6
@@ -42,11 +43,6 @@ const char *dur_strs[] = {
     "𝅘𝅥𝅱"
 };
 
-enum chord_mode {
-    CHORD_MODE_AUTO,
-    CHORD_MODE_MONO,
-    CHORD_MODE_CHORD
-};
 
 #define NUM_PIANO_ROLL_CONSOLE_PANELS 3
 
@@ -82,9 +78,8 @@ struct piano_roll_state {
 
     /* Insertion params */
     enum note_dur current_dur;
-    enum chord_mode chord_mode;
+    bool chord_mode;
     bool tie;
-    bool chord_auto; /* Time insertions and make chord if diff < some constant */
     Note *tied_notes[MAX_TIED_NOTES];
 
     struct piano_roll_gui gui;
@@ -104,6 +99,28 @@ static struct piano_roll_state state;
 /*     layout_read_xml_to_lt(main_lt, PIANO_88_VERTICAL_LT_PATH); */
 
 /* } */
+
+static int32_t get_input_dur_samples()
+{
+    Session *session = session_get();
+    int32_t sample_rate = session->proj.sample_rate;
+    double beat_dur;
+    if (!state.ct) { /* No click track; assume 120bmp 4/4 */
+	beat_dur = (double)sample_rate / 120.0 * 60.0;
+    } else {
+	ClickSegment *s = click_track_get_segment_at_pos(state.ct, ACTIVE_TL->play_pos_sframes);
+	beat_dur = (double)s->cfg.dur_sframes / s->cfg.num_atoms * s->cfg.beat_subdiv_lens[0];
+    }
+    int exp = 2 /* quarter */ - state.current_dur;
+    /*
+      WHOLE (0): beat_dur * 4        2 ^ 2
+      HALF  (1):  beat_dur * 2       2 ^ 1
+      QUAR  (2):  beat_dur * 1       2 ^ 0
+      EIGH  (3):  beat_dur * (1/2)   2 ^ -1
+      SIXT  (4):  beat_dur * (1/4)   2 ^ -2
+     */
+    return (int32_t)(beat_dur * pow(2.0, exp));
+}
 static void piano_roll_init_layout(Session *session)
 {
     if (state.layout) return; /* Already init'd */
@@ -143,7 +160,7 @@ void piano_roll_init_gui()
     Layout *lt = layout_get_child_by_name_recursive(state.console_lt, "current_dur");
     state.gui.dur_tb = textbox_create_from_str(
 	/* "TEST", */
-	dur_strs[QUARTER],
+	dur_strs[DUR_QUARTER],
 	lt,
 	main_win->music_font,
 	30,
@@ -164,7 +181,11 @@ void piano_roll_init_gui()
 	14,
 	main_win);
     textbox_set_border(state.gui.solo_button, &colors.black, 1, MUTE_SOLO_BUTTON_CORNER_RADIUS);
-    textbox_set_background_color(state.gui.solo_button, &colors.light_grey);
+    if (state.cr->track->solo) {
+	textbox_set_background_color(state.gui.solo_button, &colors.solo_yellow);
+    } else {
+	textbox_set_background_color(state.gui.solo_button, &colors.light_grey);
+    }
 
 
     /* textbox_set_background_color(state.gui.dur_tb, NULL); */
@@ -222,6 +243,10 @@ void piano_roll_activate(ClipRef *cr)
     state.clip = cr->source_clip;
     state.tl_tv = &ACTIVE_TL->timeview;
     state.selected_note = 60;
+
+    state.current_dur = DUR_QUARTER;
+    state.ct = timeline_governing_click_track(ACTIVE_TL);
+    
     piano_roll_init_layout(session_get());
     piano_roll_init_gui();
 
@@ -307,16 +332,23 @@ void piano_roll_move_view_right()
     timeview_scroll_horiz(state.tl_tv, 60);
 }
 
-void piano_roll_note_up()
+
+void piano_roll_move_note_selector(int by)
 {
-    state.selected_note++;
+    state.selected_note += by;
     if (state.selected_note > PIANO_TOP_NOTE) state.selected_note = PIANO_TOP_NOTE;
+    else if (state.selected_note < PIANO_BOTTOM_NOTE) state.selected_note = PIANO_BOTTOM_NOTE;
 }
-void piano_roll_note_down()
-{
-    state.selected_note--;
-    if (state.selected_note < PIANO_BOTTOM_NOTE) state.selected_note = PIANO_BOTTOM_NOTE;
-}
+/* void piano_roll_note_up(int count) */
+/* { */
+/*     state.selected_note += count; */
+/*     if (state.selected_note > PIANO_TOP_NOTE) state.selected_note = PIANO_TOP_NOTE; */
+/* } */
+/* void piano_roll_note_down(int count) */
+/* { */
+/*     state.selected_note -= count; */
+/*     if (state.selected_note < PIANO_BOTTOM_NOTE) state.selected_note = PIANO_BOTTOM_NOTE; */
+/* } */
 
 void piano_roll_next_note()
 {
@@ -364,6 +396,15 @@ void piano_roll_dur_shorter()
 
 void piano_roll_insert_note()
 {
+    Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
+    int32_t clip_note_pos = tl->play_pos_sframes - state.cr->tl_pos + state.cr->start_in_clip;
+    int32_t end_pos = clip_note_pos + get_input_dur_samples();
+    Note *note = midi_clip_insert_note(state.clip, 0, state.selected_note, 100, clip_note_pos, end_pos);
+    midi_clip_rectify_length(state.clip);
+    if (!state.chord_mode) {
+	timeline_set_play_position(tl, note_tl_end_pos(note, state.cr));
+    }
 }
 
 void piano_roll_insert_rest()
@@ -408,7 +449,10 @@ static void piano_roll_draw_notes()
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.midi_clip_pink));
     pthread_mutex_lock(&mclip->notes_arr_lock);
     int32_t first_note = midi_clipref_check_get_first_note(state.cr);
-    if (first_note < 0) return;
+    if (first_note < 0) {
+	goto end_draw_notes;
+	
+    }
 	
     for (int32_t i=first_note; i<mclip->num_notes; i++) {
 	Note *note = mclip->notes + i;
@@ -424,6 +468,7 @@ static void piano_roll_draw_notes()
 	SDL_Rect note_rect = {x, y, w, true_note_height};
 	SDL_RenderFillRect(main_win->rend, &note_rect);
     }
+end_draw_notes:
     pthread_mutex_unlock(&mclip->notes_arr_lock);
 
     int sel_piano_note = state.selected_note - PIANO_BOTTOM_NOTE;

@@ -35,15 +35,15 @@
       <h>SCALE 1.000000</h>
       <children>
         <Layout name="console_padded" type="NORMAL">
-          <x>REL 10</x>
-          <y>REL 10</y>
+          <x>REL 6</x>
+          <y>REL 6</y>
           <w>PAD 1</w>
           <h>PAD 1</h>
           <children>
             <Layout name="track_info" type="NORMAL">
               <x>REL 0</x>
               <y>STACK 0</y>
-              <w>REL 180</w>
+              <w>SCALE 1.000000</w>
               <h>REL 102</h>
               <children>
                 <Layout name="track_name" type="NORMAL">
@@ -98,8 +98,8 @@
             </Layout>
             <Layout name="insertion_info" type="NORMAL">
               <x>REL 0</x>
-              <y>STACK 21</y>
-              <w>REL 180</w>
+              <y>STACK 6</y>
+              <w>SCALE 1.000000</w>
               <h>REL 241</h>
               <children>
                 <Layout name="current_dur" type="NORMAL">
@@ -116,7 +116,7 @@
                   <w>REL 90</w>
                   <h>REL 50</h>
                   <children>
-                    <Layout name="dur_down_button" type="NORMAL">
+                    <Layout name="dur_longer_button" type="NORMAL">
                       <x>STACK 8</x>
                       <y>REL 8</y>
                       <w>REL 32</w>
@@ -124,7 +124,7 @@
                       <children>
                       </children>
                     </Layout>
-                    <Layout name="dur_down_button" type="NORMAL">
+                    <Layout name="dur_shorter_button" type="NORMAL">
                       <x>STACK 8</x>
                       <y>REL 8</y>
                       <w>REL 32</w>
@@ -132,6 +132,22 @@
                       <children>
                       </children>
                     </Layout>
+                  </children>
+                </Layout>
+                <Layout name="tie" type="NORMAL">
+                  <x>REL 40</x>
+                  <y>STACK 10</y>
+                  <w>PAD 1</w>
+                  <h>REL 22</h>
+                  <children>
+                  </children>
+                </Layout>
+                <Layout name="chord" type="NORMAL">
+                  <x>REL 40</x>
+                  <y>STACK 10</y>
+                  <w>PAD 1</w>
+                  <h>REL 22</h>
+                  <children>
                   </children>
                 </Layout>
               </children>

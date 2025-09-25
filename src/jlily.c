@@ -428,7 +428,7 @@ int jlily_string_to_mclip(
 	for (int i=0; i<state.num_notes; i++) {
 	    JLilyNote *jnote = state.notes + i;
 	    if (jnote->pitch > 127) jnote->pitch -= 12;
-	    midi_clip_add_note(
+	    midi_clip_insert_note(
 		mclip,
 		0,
 		jnote->pitch,

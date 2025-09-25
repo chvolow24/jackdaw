@@ -182,11 +182,9 @@ void loop_project_main()
 		/* } */
 
 		switch (e.key.keysym.scancode) {
-		/* case SDL_SCANCODE_1: { */
-		/*     Session *session = session_get(); */
-		/*     session->playback.lock_view_to_playhead = !session->playback.lock_view_to_playhead; */
-		/* } */
-		/*     break; */
+		case SDL_SCANCODE_1:
+		    piano_roll_insert_note();
+		    break;
 		/* case SDL_SCANCODE_2: */
 		/*     piano_roll_dur_down(); */
 		/*     break; */
@@ -496,6 +494,8 @@ void loop_project_main()
 			    }
 			}
 		    }
+	        } else if (session->piano_roll) {
+		    piano_roll_move_note_selector(e.wheel.preciseY < 0.0 ? floor(e.wheel.preciseY) : ceil(e.wheel.preciseY));
 		}
 	    }
 		break;

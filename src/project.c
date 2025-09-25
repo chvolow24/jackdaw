@@ -72,7 +72,7 @@ extern struct colors colors;
 
 extern Symbol *SYMBOL_TABLE[];
 
-SDL_Color color_mute_solo_grey = {210, 210, 210, 255};
+/* SDL_Color color_mute_solo_grey = {210, 210, 210, 255}; */
 
 
 /* Alternating bright colors to easily distinguish tracks */
@@ -837,7 +837,7 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name)
 	14,
 	main_win);
     textbox_set_border(track->tb_mute_button, &colors.black, 1, MUTE_SOLO_BUTTON_CORNER_RADIUS);
-    textbox_set_background_color(track->tb_mute_button, &color_mute_solo_grey);
+    textbox_set_background_color(track->tb_mute_button, &colors.mute_solo_grey);
     /* textbox_set_style(track->tb_mute_button, BUTTON_CLASSIC); */
     /* textbox_reset_full(track->tb_mute_button); */
 
@@ -848,7 +848,7 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name)
 	14,
 	main_win);
     textbox_set_border(track->tb_solo_button, &colors.black, 1, MUTE_SOLO_BUTTON_CORNER_RADIUS);
-    textbox_set_background_color(track->tb_solo_button, &color_mute_solo_grey);
+    textbox_set_background_color(track->tb_solo_button, &colors.mute_solo_grey);
     /* textbox_set_style(track->tb_solo_button, BUTTON_CLASSIC); */
     /* textbox_reset_full(track->tb_solo_button); */
 
@@ -1206,13 +1206,13 @@ void track_decrement_pan(Track *track)
 }
 
 /* SDL_Color mute_red = {255, 0, 0, 100}; */
-/* SDL_Color solo_yellow = {255, 200, 0, 130}; */
+/* SDL_Color colors.solo_yellow = {255, 200, 0, 130}; */
 
 /* SDL_Color mute_red = {255, 0, 0, 130}; */
 /* SDL_Color solo_yellow = {255, 200, 0, 130}; */
 
-SDL_Color mute_red = {240, 80, 80, 255};
-SDL_Color solo_yellow = {255, 200, 50, 255};
+/* SDL_Color mute_red = {240, 80, 80, 255}; */
+/* SDL_Color solo_yellow = {255, 200, 50, 255}; */
 
 extern SDL_Color textbox_default_bckgrnd_clr;
 
@@ -1220,12 +1220,12 @@ bool track_mute(Track *track)
 {
     track->muted = !track->muted;
     if (track->muted) {
-	textbox_set_background_color(track->tb_mute_button, &mute_red);
+	textbox_set_background_color(track->tb_mute_button, &colors.mute_red);
 	if (track->synth) {
 	    synth_clear_all(track->synth);
 	}
     } else {
-	textbox_set_background_color(track->tb_mute_button, &color_mute_solo_grey);
+	textbox_set_background_color(track->tb_mute_button, &colors.mute_solo_grey);
     }
     track->tl->needs_redraw = true;
     return track->muted;
@@ -1239,14 +1239,14 @@ bool track_solo(Track *track)
     if (track->solo) {
 	if (track->muted) {
 	    track->muted = false;
-	    textbox_set_background_color(track->tb_mute_button, &color_mute_solo_grey);
+	    textbox_set_background_color(track->tb_mute_button, &colors.mute_solo_grey);
 	}
 	track->solo_muted = false;
-	textbox_set_background_color(track->tb_solo_button, &solo_yellow);
-	if (piano_roll_solo_button) textbox_set_background_color(piano_roll_solo_button, &solo_yellow);
+	textbox_set_background_color(track->tb_solo_button, &colors.solo_yellow);
+	if (piano_roll_solo_button) textbox_set_background_color(piano_roll_solo_button, &colors.solo_yellow);
     } else {
-	textbox_set_background_color(track->tb_solo_button, &color_mute_solo_grey);
-	if (piano_roll_solo_button) textbox_set_background_color(piano_roll_solo_button, &color_mute_solo_grey);
+	textbox_set_background_color(track->tb_solo_button, &colors.mute_solo_grey);
+	if (piano_roll_solo_button) textbox_set_background_color(piano_roll_solo_button, &colors.mute_solo_grey);
 
     }
     track->tl->needs_redraw = true;
@@ -1256,14 +1256,14 @@ bool track_solo(Track *track)
 void track_solomute(Track *track)
 {
     track->solo_muted = true;
-    textbox_set_background_color(track->tb_solo_button, &mute_red);
+    textbox_set_background_color(track->tb_solo_button, &colors.mute_red);
     if (track->synth)
 	synth_clear_all(track->synth);
 }
 void track_unsolomute(Track *track)
 {
     track->solo_muted = false;
-    textbox_set_background_color(track->tb_solo_button, &color_mute_solo_grey);
+    textbox_set_background_color(track->tb_solo_button, &colors.mute_solo_grey);
 }
 
 

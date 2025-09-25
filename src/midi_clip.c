@@ -85,7 +85,7 @@ void midi_clip_destroy(MIDIClip *mc)
 }
 
 TEST_FN_DEF(check_note_order, {
-	int32_t start_rel = 0;
+	int32_t start_rel = INT32_MIN;
 	for (int i=0; i<mclip->num_notes; i++) {
 	    Note *note = mclip->notes + i;
 	    if (note->start_rel < start_rel) {
@@ -98,7 +98,7 @@ TEST_FN_DEF(check_note_order, {
 	return 0;
     }, MIDIClip *mclip);
 
-void midi_clip_add_note(MIDIClip *mc, int channel, int note_val, int velocity, int32_t start_rel, int32_t end_rel)
+Note *midi_clip_insert_note(MIDIClip *mc, int channel, int note_val, int velocity, int32_t start_rel, int32_t end_rel)
 {
     pthread_mutex_lock(&mc->notes_arr_lock);
     if (!mc->notes) {
@@ -122,7 +122,20 @@ void midi_clip_add_note(MIDIClip *mc, int channel, int note_val, int velocity, i
     note->start_rel = start_rel;
     note->end_rel = end_rel;
     mc->num_notes++;
+    if (note->start_rel < 0 && note - mc->notes == 0) {
+	int32_t adj = note->start_rel * -1;
+	for (int i=0; i<mc->num_notes; i++) {
+	    Note *note = mc->notes + i;
+	    note->start_rel += adj;
+	    note->end_rel += adj;
+	}
+	for (int i=0; i<mc->num_refs; i++) {
+	    ClipRef *cr = mc->refs[i];
+	    cr->tl_pos -= adj;
+	}
+    }
     TEST_FN_CALL(check_note_order, mc);
+    return note;
 }
 
 void midi_clip_add_controller_change(MIDIClip *mclip, PmEvent e, int32_t pos)
@@ -261,7 +274,14 @@ int32_t note_tl_start_pos(Note *note, ClipRef *cr)
 
 int32_t note_tl_end_pos(Note *note, ClipRef *cr)
 {
+    /* fprintf(stderr, "END REL: %d, tl pos: %d, start in clip: %d\n", note->end_rel, cr->tl_pos, cr->start_in_clip); */
     return note->end_rel + cr->tl_pos - cr->start_in_clip;
+}
+
+void midi_clip_rectify_length(MIDIClip *mclip)
+{
+    if (mclip->num_notes == 0) return;
+    mclip->len_sframes = mclip->notes[mclip->num_notes - 1].end_rel;
 }
 
 
@@ -557,7 +577,7 @@ void midi_clip_read_events(
 	    Note *unclosed = unclosed_notes + note_val;
 	    /* if (d->current_clip) */
 	    if (unclosed->unclosed) {
-		midi_clip_add_note(mclip, channel, note_val, unclosed->velocity, unclosed->start_rel, pos_rel);
+		midi_clip_insert_note(mclip, channel, note_val, unclosed->velocity, unclosed->start_rel, pos_rel);
 		unclosed->unclosed = false;
 	    }
 	} else if (msg_type == 0xB) { /* Controller */

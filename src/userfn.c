@@ -755,6 +755,13 @@ void user_tl_play(void *nullarg)
     /* 	NULL); */
 }
 
+void user_tl_play_pause(void *nullarg)
+{
+    Session *session = session_get();
+    if (session->playback.playing) user_tl_pause(NULL);
+    else user_tl_play(NULL);
+}
+
 void user_tl_pause(void *nullarg)
 {
     Session *session = session_get();
@@ -2683,6 +2690,14 @@ void user_tl_insert_jlily(void *nullarg)
     timeline_add_jlily();
 }
 
+void user_tl_lock_view_to_playhead(void *nullarg)
+{
+    Session *session = session_get();
+    session->playback.lock_view_to_playhead = !session->playback.lock_view_to_playhead;
+}
+
+/* END TL */
+
 /* source mode */
 
 void user_source_play(void *nullarg)
@@ -3263,6 +3278,18 @@ void user_piano_roll_prev_note(void *nullarg)
 {
     piano_roll_prev_note();
 }
+
+void user_piano_roll_dur_shorter(void *nullarg)
+{
+    piano_roll_dur_shorter();
+}
+
+void user_piano_roll_dur_longer(void *nullarg)
+{
+    piano_roll_dur_longer();
+}
+
+
 
 
 

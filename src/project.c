@@ -31,6 +31,7 @@
 #include "midi_io.h"
 #include "midi_objs.h"
 #include "midi_qwerty.h"
+#include "piano_roll.h"
 #include "project.h"
 #include "session.h"
 #include "status.h"
@@ -1233,6 +1234,8 @@ bool track_mute(Track *track)
 bool track_solo(Track *track)
 {
     track->solo = !track->solo;
+    Textbox *piano_roll_solo_button = piano_roll_get_solo_button();
+    fprintf(stderr, "TRACK SOLO ptr %p\n", piano_roll_solo_button);
     if (track->solo) {
 	if (track->muted) {
 	    track->muted = false;
@@ -1240,8 +1243,10 @@ bool track_solo(Track *track)
 	}
 	track->solo_muted = false;
 	textbox_set_background_color(track->tb_solo_button, &solo_yellow);
+	if (piano_roll_solo_button) textbox_set_background_color(piano_roll_solo_button, &solo_yellow);
     } else {
 	textbox_set_background_color(track->tb_solo_button, &color_mute_solo_grey);
+	if (piano_roll_solo_button) textbox_set_background_color(piano_roll_solo_button, &color_mute_solo_grey);
 
     }
     track->tl->needs_redraw = true;

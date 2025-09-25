@@ -1272,10 +1272,10 @@ Layout *layout_get_child_by_name(Layout *lt, const char *name)
     return NULL;
 }
 
-static int TEST_count_recursive_calls = 0;
+/* static int TEST_count_recursive_calls = 0; */
 Layout *layout_get_child_by_name_recursive_internal(Layout *lt, const char *name)
 {
-    TEST_count_recursive_calls++;
+    /* TEST_count_recursive_calls++; */
     Layout *ret = NULL;
     if (strcmp(lt->name, name) == 0) {
         ret = lt;
@@ -1292,9 +1292,9 @@ Layout *layout_get_child_by_name_recursive_internal(Layout *lt, const char *name
 
 Layout *layout_get_child_by_name_recursive(Layout *lt, const char *name)
 {
-    TEST_count_recursive_calls = 0;
+    /* TEST_count_recursive_calls = 0; */
     Layout *ret = layout_get_child_by_name_recursive_internal(lt, name);
-    fprintf(stderr, "Get \"%s\"\n\tCalls: %d\n", name, TEST_count_recursive_calls);
+    /* fprintf(stderr, "Get \"%s\"\n\tCalls: %d\n", name, TEST_count_recursive_calls); */
     #ifdef TESTBUILD
     if (!ret) {
 	fprintf(stderr, "FATAL ERROR: layout \"%s\" has no child named \"%s\"\n", lt->name, name);

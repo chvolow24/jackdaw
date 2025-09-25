@@ -318,15 +318,23 @@ static void mode_load_timeline()
 	"Play",
 	user_tl_play);
     mode_subcat_add_fn(sc, fn);
+    
     fn = create_user_fn(
 	"tl_pause",
 	"Pause",
 	user_tl_pause);
     mode_subcat_add_fn(sc, fn);
+    
     fn = create_user_fn(
 	"tl_rewind",
 	"Rewind",
 	user_tl_rewind);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_play_pause",
+	"Play/pause",
+	user_tl_play_pause);
     mode_subcat_add_fn(sc, fn);
 
     fn=create_user_fn(
@@ -470,6 +478,12 @@ static void mode_load_timeline()
 	"tl_zoom_in",
 	"Zoom in",
 	user_tl_zoom_in);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_lock_view_to_playhead",
+	"Lock view to playhead",
+	user_tl_lock_view_to_playhead);
     mode_subcat_add_fn(sc, fn);
 
     /* fn = create_user_fn( */
@@ -1445,6 +1459,17 @@ void mode_load_piano_roll()
 	user_piano_roll_prev_note);
     mode_subcat_add_fn(sc, fn);
 
+    fn = create_user_fn(
+	"piano_roll_dur_longer",
+	"Longer note duration",
+	user_piano_roll_dur_longer);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_dur_shorter",
+	"Shorter note duration",
+	user_piano_roll_dur_shorter);
+    mode_subcat_add_fn(sc, fn);
 }
 
 void mode_load_all()

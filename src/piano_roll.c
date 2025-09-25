@@ -48,13 +48,19 @@ enum chord_mode {
     CHORD_MODE_CHORD
 };
 
+#define NUM_PIANO_ROLL_CONSOLE_PANELS 3
+
 struct piano_roll_gui {
     Textbox *track_name;
+    Textbox *solo_button;
     Textbox *clip_label;
     Textbox *clip_name;
     Textbox *in_label;
     Textbox *in_name;
     Textbox *dur_tb;
+
+    SDL_Rect *info_panel;
+    SDL_Rect *input_panel;
     /* Textbox * */
     /* Textbox *dur_tb; */
 };
@@ -106,6 +112,10 @@ static void piano_roll_init_layout(Session *session)
     layout_read_xml_to_lt(lt, PIANO_ROLL_LT_PATH);
     state.console_lt = layout_get_child_by_name_recursive(lt, "piano_roll_console");
     Layout *piano_container = layout_get_child_by_name_recursive(lt, "piano");
+
+    state.gui.info_panel = &layout_get_child_by_name_recursive(lt, "track_info")->rect;
+    state.gui.input_panel = &layout_get_child_by_name_recursive(lt, "insertion_info")->rect;
+    
     Layout *piano_lt = layout_read_xml_to_lt(piano_container, PIANO_88_VERTICAL_LT_PATH);
     state.piano_lt = piano_lt;
     Layout *note_canvas = layout_get_child_by_name_recursive(lt, "note_canvas");
@@ -145,6 +155,18 @@ void piano_roll_init_gui()
 	false,
 	NULL,
 	&colors.white);
+
+    lt = layout_get_child_by_name_recursive(state.console_lt, "solo");
+    state.gui.solo_button = textbox_create_from_str(
+	"S",
+	lt,
+	main_win->bold_font,
+	14,
+	main_win);
+    textbox_set_border(state.gui.solo_button, &colors.black, 1, MUTE_SOLO_BUTTON_CORNER_RADIUS);
+    textbox_set_background_color(state.gui.solo_button, &colors.light_grey);
+
+
     /* textbox_set_background_color(state.gui.dur_tb, NULL); */
     /* textbox_set_text_color(state.gui.dur_tb, &colors.white); */
     /* textbox_set_trunc(state.gui.dur_tb, false); */
@@ -182,6 +204,7 @@ void piano_roll_init_gui()
 void piano_roll_deinit_gui()
 {
     textbox_destroy_keep_lt(state.gui.track_name);
+    textbox_destroy_keep_lt(state.gui.solo_button);
     textbox_destroy_keep_lt(state.gui.clip_label);
     textbox_destroy_keep_lt(state.gui.clip_name);
     textbox_destroy_keep_lt(state.gui.in_label);
@@ -194,6 +217,7 @@ void piano_roll_activate(ClipRef *cr)
     Session *session = session_get();
     window_push_mode(main_win, MODE_PIANO_ROLL);
     session->piano_roll = true;
+    state.active = true;
     state.cr = cr;
     state.clip = cr->source_clip;
     state.tl_tv = &ACTIVE_TL->timeview;
@@ -204,7 +228,7 @@ void piano_roll_activate(ClipRef *cr)
     state.gui.track_name = textbox_create_from_str(
 	cr->track->name,
 	layout_get_child_by_name_recursive(state.console_lt, "track_name"),
-	main_win->bold_font,
+	main_win->mono_bold_font,
 	16,
 	main_win);
     /* textbox_set_border(state.gui.track_name, &colors.grey, 1, 0); */
@@ -260,6 +284,7 @@ void piano_roll_deactivate()
     piano_roll_deinit_gui();
     Session *session = session_get();
     session->piano_roll = false;
+    state.active = false;
     timeline_reset_full(ACTIVE_TL);
     /* layout_destroy(state.layout); */
     
@@ -322,14 +347,14 @@ static void reset_dur_str()
 	state.gui.dur_tb,
 	dur_strs[state.current_dur]);
 }
-void piano_roll_dur_up()
+void piano_roll_dur_longer()
 {
     state.current_dur--;
     if ((int)state.current_dur < (int)MAX_DUR) state.current_dur = MAX_DUR;
     reset_dur_str();
 }
 
-void piano_roll_dur_down()
+void piano_roll_dur_shorter()
 {
     /* Indexing reversed */
     state.current_dur++;
@@ -438,10 +463,29 @@ void piano_roll_draw()
 
 
     /* Draw console */
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.control_bar_background_grey));
+    SDL_RenderFillRect(main_win->rend, state.gui.info_panel);
+    SDL_RenderFillRect(main_win->rend, state.gui.input_panel);
+
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.grey));
+    SDL_RenderDrawRect(main_win->rend, state.gui.info_panel);
+    SDL_RenderDrawRect(main_win->rend, state.gui.input_panel);
+    
     textbox_draw(state.gui.track_name);
+    textbox_draw(state.gui.solo_button);
     textbox_draw(state.gui.clip_label);
     textbox_draw(state.gui.clip_name);
     textbox_draw(state.gui.in_label);
     textbox_draw(state.gui.in_name);
     textbox_draw(state.gui.dur_tb);
+}
+
+
+/* Getters */
+
+Textbox *piano_roll_get_solo_button()
+{
+    if (state.active)
+	return state.gui.solo_button;
+    else return NULL;
 }

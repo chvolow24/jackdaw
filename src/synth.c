@@ -1665,13 +1665,14 @@ void synth_feed_midi(
 	uint8_t velocity = Pm_MessageData2(e.message);
 	uint8_t msg_type = status >> 4;
 
-	/* fprintf(stderr, "\tIN SYNTH:(%d) %s, pitch %d vel %d\n", */
+	/* fprintf(stderr, "IN SYNTH:(%d) %s, pitch %d vel %d\n", */
 	/* 	e.timestamp, */
 	/* 	msg_type == 8 ? "note OFF" : */
 	/* 	msg_type == 9 ? "note ON" : */
 	/* 	"unknown", */
 	/* 	Pm_MessageData1(e.message), */
 	/* 	Pm_MessageData2(e.message)); */
+	/* fprintf(stderr, "\ttype %d vals %d %d, channel %d\n", msg_type, note_val, velocity, status & 0x0F); */
 
 	/* uint8_t channel = status & 0x0F; */
 
@@ -1679,7 +1680,7 @@ void synth_feed_midi(
 	/* if (i == 0) start = e.timestamp; */
 	/* int32_t pos_rel = ((double)e.timestamp - start) * (double)session_get_sample_rate() / 1000.0; */
 	/* fprintf(stderr, "EVENT %d/%d, timestamp: %d\n", i, num_events, e.timestamp); */
-	if (velocity == 0) msg_type = 8;
+	if (msg_type == 9 && velocity == 0) msg_type = 8;
 	if (msg_type == 8) {
 	    /* HANDLE NOTE OFF */
 	    /* fprintf(stderr, "\t\tNOTE OFF val: %d pos %d\n", note_val, e.timestamp); */

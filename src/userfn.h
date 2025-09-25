@@ -1,8 +1,6 @@
 #ifndef JDAW_GUI_USERFN_H
 #define JDAW_GUI_USERFN_H
 
-#include "test.h"
-
 void user_global_menu(void *nullarg);
 void user_global_escape(void *nullarg);
 void user_global_quit(void *nullarg);
@@ -35,6 +33,7 @@ void user_menu_dismiss(void *nullarg);
 
 
 void user_tl_play(void *nullarg);
+void user_tl_play_pause(void *nullarg);
 void user_tl_pause(void *nullarg);
 void user_tl_rewind(void *nullarg);
 void user_tl_play_slow(void *nullarg);
@@ -51,6 +50,7 @@ void user_tl_one_sample_left(void *nullarg);
 void user_tl_one_sample_right(void *nullarg);
 void user_tl_move_right(void *nullarg);
 void user_tl_move_left(void *nullarg);
+void user_tl_lock_view_to_playhead(void *nullarg);
 void user_tl_zoom_in(void *nullarg);
 void user_tl_zoom_out(void *nullarg);
 void user_tl_set_mark_out(void *nullarg);
@@ -239,5 +239,7 @@ void user_piano_roll_note_up(void *nullarg);
 void user_piano_roll_note_down(void *nullarg);
 void user_piano_roll_next_note(void *nullarg);
 void user_piano_roll_prev_note(void *nullarg);
+void user_piano_roll_dur_shorter(void *nullarg);
+void user_piano_roll_dur_longer(void *nullarg);
 
 #endif

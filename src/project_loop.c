@@ -182,9 +182,6 @@ void loop_project_main()
 		/* } */
 
 		switch (e.key.keysym.scancode) {
-		case SDL_SCANCODE_1:
-		    piano_roll_insert_note();
-		    break;
 		/* case SDL_SCANCODE_2: */
 		/*     piano_roll_dur_down(); */
 		/*     break; */

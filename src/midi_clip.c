@@ -224,11 +224,11 @@ int32_t midi_clipref_check_get_last_note(ClipRef *cr)
 {
     MIDIClip *clip = cr->source_clip;
 
-    if (cr->last_note == -1) cr->last_note = clip->num_notes - 1;
+    if (cr->last_note <= 0) cr->last_note = clip->num_notes - 1;
     while (cr->last_note < clip->num_notes - 1 && clip->notes[cr->last_note].start_rel < cr->end_in_clip) {
 	cr->last_note++;
     }
-    while (cr->last_note > 0 && clip->notes[cr->last_note].start_rel > cr->end_in_clip) {
+    while (cr->last_note > 0 && clip->notes[cr->last_note].start_rel < cr->end_in_clip) {
 	cr->last_note--;
     }
     if (cr->last_note == clip->num_notes) cr->last_note = -1;
@@ -773,6 +773,7 @@ Note *midi_clipref_get_prev_note(ClipRef *cr, int32_t from, int32_t *pos_dst)
     int32_t pos = from;
     Note *ret = NULL;
     int32_t note_i = midi_clipref_check_get_last_note(cr);
+    /* fprintf(stderr, "Note start i: %d\n", note_i); */
     do {
 	Note *note = mclip->notes + note_i;
 	int32_t note_tl_pos = note_tl_start_pos(note, cr);

@@ -53,6 +53,8 @@ struct piano_roll_gui {
     Textbox *clip_name;
     Textbox *in_label;
     Textbox *in_name;
+    Textbox *dur_longer_button;
+    Textbox *dur_shorter_button;
     Textbox *dur_tb;
 
     SDL_Rect *info_panel;
@@ -219,7 +221,39 @@ void piano_roll_init_gui()
 	CENTER_LEFT,
 	false,
 	NULL,
-	&colors.white);	
+	&colors.white);
+
+    lt = layout_get_child_by_name_recursive(state.console_lt, "dur_longer_button");
+    state.gui.dur_longer_button = textbox_create_from_str(
+	"1↓",
+	lt,
+	main_win->mono_font,
+	16,
+	main_win);	
+    textbox_set_border(state.gui.dur_longer_button, &colors.grey, 1, BUTTON_CORNER_RADIUS);
+    textbox_style(
+	state.gui.dur_longer_button,
+	CENTER,
+	false,
+	&colors.quickref_button_blue,
+	&colors.white);
+
+    lt = layout_get_child_by_name_recursive(state.console_lt, "dur_shorter_button");
+    state.gui.dur_shorter_button = textbox_create_from_str(
+	"2↑",
+	lt,
+	main_win->mono_font,
+	16,
+	main_win);
+    textbox_set_border(state.gui.dur_shorter_button, &colors.grey, 1, BUTTON_CORNER_RADIUS);
+    textbox_style(
+	state.gui.dur_shorter_button,
+	CENTER,
+	false,
+	&colors.quickref_button_blue,
+	&colors.white);
+
+
 }
 
 void piano_roll_deinit_gui()
@@ -231,6 +265,8 @@ void piano_roll_deinit_gui()
     textbox_destroy_keep_lt(state.gui.in_label);
     textbox_destroy_keep_lt(state.gui.in_name);
     textbox_destroy_keep_lt(state.gui.dur_tb);
+    textbox_destroy_keep_lt(state.gui.dur_longer_button);
+    textbox_destroy_keep_lt(state.gui.dur_shorter_button);
 }
 
 void piano_roll_activate(ClipRef *cr)
@@ -339,6 +375,7 @@ void piano_roll_move_note_selector(int by)
     if (state.selected_note > PIANO_TOP_NOTE) state.selected_note = PIANO_TOP_NOTE;
     else if (state.selected_note < PIANO_BOTTOM_NOTE) state.selected_note = PIANO_BOTTOM_NOTE;
 }
+
 /* void piano_roll_note_up(int count) */
 /* { */
 /*     state.selected_note += count; */
@@ -401,15 +438,27 @@ void piano_roll_insert_note()
     int32_t clip_note_pos = tl->play_pos_sframes - state.cr->tl_pos + state.cr->start_in_clip;
     int32_t end_pos = clip_note_pos + get_input_dur_samples();
     Note *note = midi_clip_insert_note(state.clip, 0, state.selected_note, 100, clip_note_pos, end_pos);
+    /* int32_t note_tl_start = note_tl_start_pos(note, state.cr); */
+    int32_t note_tl_end = note_tl_end_pos(note, state.cr);
     midi_clip_rectify_length(state.clip);
     if (!state.chord_mode) {
-	timeline_set_play_position(tl, note_tl_end_pos(note, state.cr));
+	timeline_set_play_position(tl, note_tl_end);
     }
+
+    /* This needs some work... */
+    /* PmEvent events[8]; */
+    /* int num_events = midi_clipref_output_chunk(state.cr, events, 8, note_tl_start, note_tl_end); */
+    /* fprintf(stderr, "SENDING %d events to synth\n", num_events); */
+    /* synth_feed_midi(state.cr->track->synth, events, num_events, num_events, false); */
 }
 
 void piano_roll_insert_rest()
 {
-
+    Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
+    int32_t dur = get_input_dur_samples();
+    timeline_set_play_position(tl, tl->play_pos_sframes + dur);
+    
 }
 
 void piano_roll_grab_ungrab()
@@ -523,6 +572,8 @@ void piano_roll_draw()
     textbox_draw(state.gui.in_label);
     textbox_draw(state.gui.in_name);
     textbox_draw(state.gui.dur_tb);
+    textbox_draw(state.gui.dur_longer_button);
+    textbox_draw(state.gui.dur_shorter_button);
 }
 
 

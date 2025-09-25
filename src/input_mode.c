@@ -1470,6 +1470,18 @@ void mode_load_piano_roll()
 	"Shorter note duration",
 	user_piano_roll_dur_shorter);
     mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_insert_note",
+	"Insert note at current position",
+	user_piano_roll_insert_note);
+    mode_subcat_add_fn(sc, fn);
+    
+    fn = create_user_fn(
+	"piano_roll_insert_rest",
+	"Insert rest at current position",
+	user_piano_roll_insert_rest);
+    mode_subcat_add_fn(sc, fn);	
 }
 
 void mode_load_all()

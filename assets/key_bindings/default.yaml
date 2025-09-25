@@ -299,3 +299,5 @@
   - <up>	: piano_roll_dur_shorter
   - 1		: piano_roll_dur_longer
   - 2		: piano_roll_dur_shorter
+  - <ret>	: piano_roll_insert_note
+  - <spc>	: piano_roll_insert_rest

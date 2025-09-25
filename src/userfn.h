@@ -241,5 +241,7 @@ void user_piano_roll_next_note(void *nullarg);
 void user_piano_roll_prev_note(void *nullarg);
 void user_piano_roll_dur_shorter(void *nullarg);
 void user_piano_roll_dur_longer(void *nullarg);
+void user_piano_roll_insert_note(void *nullarg);
+void user_piano_roll_insert_rest(void *nullarg);
 
 #endif

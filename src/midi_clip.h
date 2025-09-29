@@ -11,7 +11,7 @@
 /*****************************************************************************************************************
     midi_clip.h
 
-    * collections of MIDI Notes (note.h)
+    * collections of MIDI Notes (midi_objs.h)
     * referenced on timeline as ClipRef (see clipref.h)
     * can be recorded directly from a MIDI device (midi_io.h)
     * audio counterpart in audio_clip.h

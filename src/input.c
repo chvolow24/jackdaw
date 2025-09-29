@@ -114,7 +114,7 @@ static void input_read_keycmd(char *keycmd, uint16_t *i_state, SDL_Keycode *key)
     } else if (strncmp("A-", keycmd, 2) == 0) {
 	*i_state =  I_STATE_META;
 	keycmd += 2;
-    } else if (strncmp("K-", keycmd, 2) == 0) {
+    } else if (strncmp("k-", keycmd, 2) == 0) {
 	*i_state = I_STATE_K;
 	keycmd += 2;
     } else {
@@ -175,7 +175,7 @@ char *input_get_keycmd_str(uint16_t i_state, SDL_Keycode keycode)
 	mod = "C-A-";
 	break;
     case (I_STATE_K):
-	mod = "K-";
+	mod = "k-";
 	break;
     default:
 	mod = "";

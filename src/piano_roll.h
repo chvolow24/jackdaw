@@ -19,6 +19,7 @@ void piano_roll_dur_longer();
 void piano_roll_dur_shorter();
 void piano_roll_insert_note();
 void piano_roll_insert_rest();
+void piano_roll_grab_ungrab();
 
 
 /* externalize state */

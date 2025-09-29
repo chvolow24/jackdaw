@@ -1481,7 +1481,14 @@ void mode_load_piano_roll()
 	"piano_roll_insert_rest",
 	"Insert rest at current position",
 	user_piano_roll_insert_rest);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_grab_ungrab",
+	"Grab/ungrab notes",
+	user_piano_roll_grab_ungrab);
     mode_subcat_add_fn(sc, fn);	
+
 }
 
 void mode_load_all()

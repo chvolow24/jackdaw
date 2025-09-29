@@ -20,7 +20,6 @@
 #   ...
 
 
-
 ---
 - global:
   - C-m		: menu
@@ -69,8 +68,8 @@
   - w		: tl_pause
   - q		: tl_rewind
   - <spc>	: tl_play_pause
-  - K-l		: tl_play_slow
-  - K-j		: tl_rewind_slow
+  - k-l		: tl_play_slow
+  - k-j		: tl_rewind_slow
   - S-k		: tl_pause
   - [		: tl_move_playhead_left
   - ]		: tl_move_playhead_right
@@ -177,8 +176,8 @@
   - S-l		: source_play_slow
   - S-j		: source_rewind_slow
   - S-k		: source_pause
-  - K-l		: source_play_slow
-  - K-j		: source_rewind_slow
+  - k-l		: source_play_slow
+  - k-j		: source_rewind_slow
   - i		: source_set_in_mark
   - o		: source_set_out_mark
   - S-i		: source_set_in_mark
@@ -301,3 +300,4 @@
   - 2		: piano_roll_dur_shorter
   - <ret>	: piano_roll_insert_note
   - <spc>	: piano_roll_insert_rest
+  - g		: piano_roll_grab_ungrab

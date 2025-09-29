@@ -88,6 +88,7 @@ void loop_project_main()
     
     uint8_t animate_step = 0;
     bool set_i_state_k = false;
+    bool set_i_state_g = false;
 
     window_push_mode(main_win, MODE_TIMELINE);
 
@@ -367,6 +368,7 @@ void loop_project_main()
 		case SDL_SCANCODE_RALT:
 		    main_win->i_state |= I_STATE_META;
 		    break;
+		/* K and G fall through to default input handling */
 	        case SDL_SCANCODE_K:
 		    if (TOP_MODE != MODE_MIDI_QWERTY) {
 			if (main_win->i_state & I_STATE_K) {
@@ -375,7 +377,16 @@ void loop_project_main()
 			    set_i_state_k = true;
 			}
 		    }
-		    /* No break */
+		    /* No break! */
+		case SDL_SCANCODE_G:
+		    if (!set_i_state_k && TOP_MODE != MODE_MIDI_QWERTY) {
+			if (main_win->i_state & I_STATE_G) {
+			    break;
+			} else {
+			    set_i_state_g = true;
+			}
+		    }
+		    /* No break! */
 		default:
 		    input_fn = input_get(main_win->i_state, e.key.keysym.sym);
 		    if (input_fn && input_fn->do_fn) {
@@ -423,6 +434,9 @@ void loop_project_main()
 		    /* session->playback.play_speed = 0; */
 		    /* session->source_mode.src_play_speed = 0; */
 		    /* transport_stop_playback(); */
+		    break;
+		case SDL_SCANCODE_G:
+		    main_win->i_state &= ~I_STATE_G;
 		    break;
 		case SDL_SCANCODE_J:
 		case SDL_SCANCODE_L:
@@ -575,6 +589,10 @@ void loop_project_main()
 		main_win->i_state |= I_STATE_K;
 		set_i_state_k = false;
 	    }
+	    if (set_i_state_g) {
+		main_win->i_state |= I_STATE_G;
+		set_i_state_g = false;
+	    }
 		
 	} /* End event handling */
 
@@ -583,7 +601,6 @@ void loop_project_main()
 	} else {
 	    frames_since_event++;
 	}
-
 	
 	Timeline *tl = ACTIVE_TL;
 

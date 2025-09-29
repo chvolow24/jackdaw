@@ -230,7 +230,7 @@ void piano_roll_init_gui()
 	main_win->mono_font,
 	16,
 	main_win);	
-    textbox_set_border(state.gui.dur_longer_button, &colors.grey, 1, BUTTON_CORNER_RADIUS);
+    textbox_set_border(state.gui.dur_longer_button, &colors.grey, 4, BUTTON_CORNER_RADIUS);
     textbox_style(
 	state.gui.dur_longer_button,
 	CENTER,
@@ -245,7 +245,7 @@ void piano_roll_init_gui()
 	main_win->mono_font,
 	16,
 	main_win);
-    textbox_set_border(state.gui.dur_shorter_button, &colors.grey, 1, BUTTON_CORNER_RADIUS);
+    textbox_set_border(state.gui.dur_shorter_button, &colors.grey, 4, BUTTON_CORNER_RADIUS);
     textbox_style(
 	state.gui.dur_shorter_button,
 	CENTER,
@@ -461,9 +461,31 @@ void piano_roll_insert_rest()
     
 }
 
+static Note *note_at_cursor()
+{
+    int32_t note_i = midi_clipref_check_get_first_note(state.cr);
+    int32_t last_note = midi_clipref_check_get_last_note(state.cr);
+    int32_t playhead = state.cr->track->tl->play_pos_sframes;
+    while (note_i <= last_note) {
+	Note *note = state.clip->notes + note_i;
+	int32_t tl_start = note_tl_start_pos(note, state.cr);
+	int32_t tl_end = note_tl_end_pos(note, state.cr);	
+	if (note->key == state.selected_note
+	    && playhead >= tl_start
+	    && playhead <= tl_end) {
+	    return note;
+	}
+	note_i++;
+    }
+    return NULL;
+}
+
 void piano_roll_grab_ungrab()
 {
-    
+    Note *note = note_at_cursor();
+    if (note) {
+	note->grabbed = !note->grabbed;
+    }
 }
 
 
@@ -495,18 +517,18 @@ static void piano_roll_draw_notes()
     float note_height_nominal = (float)rect.h / midi_piano_range;
     float true_note_height = note_height_nominal;
     if (true_note_height < 1.0) true_note_height = 1.0;
-    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.midi_clip_pink));
+    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.midi_clip_pink)); */
     pthread_mutex_lock(&mclip->notes_arr_lock);
     int32_t first_note = midi_clipref_check_get_first_note(state.cr);
     if (first_note < 0) {
-	goto end_draw_notes;
-	
+	goto end_draw_notes;	
     }
-	
-    for (int32_t i=first_note; i<mclip->num_notes; i++) {
+
+    int32_t last_note = midi_clipref_check_get_last_note(state.cr);
+    for (int32_t i=first_note; i<=last_note; i++) {
 	Note *note = mclip->notes + i;
 	/* SDL_SetRenderDrawColor(main_win->rend, colors.dark_brown.r, colors.dark_brown.g, colors.dark_brown.b, 255 * note->velocity / 128); */
-	if (state.cr->end_in_clip && note->start_rel > state.cr->end_in_clip) break;
+	/* if (state.cr->end_in_clip && note->start_rel > state.cr->end_in_clip) break; */
 	int piano_note = note->key - 20;
 	if (piano_note < 0 || piano_note > midi_piano_range) continue;
 	int32_t note_start = note->start_rel - state.cr->start_in_clip + state.cr->tl_pos;
@@ -515,6 +537,11 @@ static void piano_roll_draw_notes()
 	float w = timeview_get_draw_x(state.tl_tv, note_end) - x;
 	float y = rect.y + round((float)(midi_piano_range - piano_note) * note_height_nominal);
 	SDL_Rect note_rect = {x, y, w, true_note_height};
+	if (note->grabbed) {
+	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.yellow));
+	} else {
+	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.midi_clip_pink));
+	}
 	SDL_RenderFillRect(main_win->rend, &note_rect);
     }
 end_draw_notes:

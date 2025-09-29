@@ -223,12 +223,12 @@ int32_t midi_clipref_check_get_first_note(ClipRef *cr)
 int32_t midi_clipref_check_get_last_note(ClipRef *cr)
 {
     MIDIClip *clip = cr->source_clip;
-
+    int32_t end_in_clip = cr->end_in_clip <= cr->start_in_clip ? clip->len_sframes : cr->end_in_clip;
     if (cr->last_note <= 0) cr->last_note = clip->num_notes - 1;
-    while (cr->last_note < clip->num_notes - 1 && clip->notes[cr->last_note].start_rel < cr->end_in_clip) {
+    while (cr->last_note < clip->num_notes - 1 && clip->notes[cr->last_note].start_rel < end_in_clip) {
 	cr->last_note++;
     }
-    while (cr->last_note > 0 && clip->notes[cr->last_note].start_rel < cr->end_in_clip) {
+    while (cr->last_note > 0 && clip->notes[cr->last_note].start_rel > end_in_clip) {
 	cr->last_note--;
     }
     if (cr->last_note == clip->num_notes) cr->last_note = -1;

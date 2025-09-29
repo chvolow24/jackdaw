@@ -936,8 +936,8 @@ Most applications for the API will involve sending UDP messages over localhost, 
 - Play : <kbd>l</kbd>, <kbd>e</kbd>
 - Pause : <kbd>k</kbd>, <kbd>w</kbd>, <kbd>S-k</kbd>
 - Rewind : <kbd>j</kbd>, <kbd>q</kbd>
-- Play slow : <kbd>K-l</kbd>
-- Rewind slow : <kbd>K-j</kbd>
+- Play slow : <kbd>k-l</kbd>
+- Rewind slow : <kbd>k-j</kbd>
 - Move playhead left : <kbd>[</kbd>
 - Move playhead right : <kbd>]</kbd>
 - Move playhead left (slow) : <kbd>S-[</kbd>
@@ -1037,8 +1037,8 @@ Most applications for the API will involve sending UDP messages over localhost, 
 - Play (source) : <kbd>l</kbd>
 - Pause (source) : <kbd>k</kbd>, <kbd>S-k</kbd>
 - Rewind (source) : <kbd>j</kbd>
-- Play slow (source) : <kbd>S-l</kbd>, <kbd>K-l</kbd>
-- Rewind slow (source : <kbd>S-j</kbd>, <kbd>K-j</kbd>
+- Play slow (source) : <kbd>S-l</kbd>, <kbd>k-l</kbd>
+- Rewind slow (source : <kbd>S-j</kbd>, <kbd>k-j</kbd>
 - Set In Mark (source) : <kbd>i</kbd>, <kbd>S-i</kbd>
 - Set Out Mark (source) : <kbd>o</kbd>, <kbd>S-o</kbd>
 ### modal mode

@@ -29,15 +29,16 @@
 #define INPUT_KEYUP_HASH_SIZE 128
 
 /* Input state bitmasks */
-#define I_STATE_QUIT 0x01
-#define I_STATE_SHIFT 0x02
-#define I_STATE_CMDCTRL 0x04
-#define I_STATE_META 0x08
+#define I_STATE_QUIT 0x1
+#define I_STATE_SHIFT 0x2
+#define I_STATE_CMDCTRL 0x4
+#define I_STATE_META 0x8
 #define I_STATE_MOUSE_L 0x10
 #define I_STATE_MOUSE_R 0x20
 #define I_STATE_MOUSE_M 0x40
 #define I_STATE_C_X 0x80
 #define I_STATE_K 0x100
+#define I_STATE_G 0x200
 
 
 

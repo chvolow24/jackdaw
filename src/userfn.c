@@ -3311,6 +3311,11 @@ void user_piano_roll_insert_rest(void *nullarg)
     piano_roll_insert_rest();
 }
 
+void user_piano_roll_grab_ungrab(void *nullarg)
+{
+    piano_roll_grab_ungrab();
+}
+
 
 
 

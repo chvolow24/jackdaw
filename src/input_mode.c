@@ -824,6 +824,25 @@ static void mode_load_timeline()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
+	"tl_grab_clips_left_edge",
+	"Grab left edge of clips",
+	user_tl_clipref_grab_left_edge);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_grab_clips_right_edge",
+	"Grab right edge of clips",
+	user_tl_clipref_grab_right_edge);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_ungrab_clip_edge",
+	"Ungrab clip edge",
+	user_tl_clipref_ungrab_edge);
+    mode_subcat_add_fn(sc, fn);
+
+
+    fn = create_user_fn(
 	"tl_grab_marked_range",
 	"Grab clips in marked range",
 	user_tl_grab_marked_range);

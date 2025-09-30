@@ -2124,6 +2124,7 @@ void timeline_ungrab_all_cliprefs(Timeline *tl)
 {
     for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
 	tl->grabbed_clips[i]->grabbed = false;
+	tl->grabbed_clips[i]->grabbed_edge = CLIPREF_EDGE_NONE;
     }
     tl->num_grabbed_clips = 0;
 }

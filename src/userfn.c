@@ -2034,6 +2034,7 @@ void user_tl_clipref_grab_ungrab(void *nullarg)
 	for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
 	    cr = tl->grabbed_clips[i];
 	    cr->grabbed = false;
+	    cr->grabbed_edge = CLIPREF_EDGE_NONE;
 	}
 	tl->num_grabbed_clips = 0;
     }
@@ -2071,6 +2072,39 @@ void user_tl_clipref_grab_ungrab(void *nullarg)
     /* } */
     /* tl->needs_redraw = true; */
 }
+
+void user_tl_clipref_grab_left_edge(void *nullarg)
+{
+    ClipRef *cr = clipref_at_cursor();
+    if (cr) {
+	clipref_grab_left(cr);
+    }
+    Session *session = session_get();
+    ACTIVE_TL->needs_redraw = true;
+}
+
+void user_tl_clipref_grab_right_edge(void *nullarg)
+{
+    ClipRef *cr = clipref_at_cursor();
+    if (cr) {
+	clipref_grab_right(cr);
+    }
+    Session *session = session_get();
+    ACTIVE_TL->needs_redraw = true;
+}
+
+void user_tl_clipref_ungrab_edge(void *nullarg)
+{
+    ClipRef *cr = clipref_at_cursor();
+    if (cr) {
+	clipref_grab(cr);
+	cr->grabbed_edge = CLIPREF_EDGE_NONE;
+    }
+    Session *session = session_get();
+    ACTIVE_TL->needs_redraw = true;
+
+}
+
 
 void user_tl_grab_marked_range(void *nullarg)
 {

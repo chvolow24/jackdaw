@@ -24,6 +24,12 @@ typedef enum clip_type {
     CLIP_MIDI
 } ClipType;
 
+enum clipref_edge {
+    CLIPREF_EDGE_NONE,
+    CLIPREF_EDGE_RIGHT,
+    CLIPREF_EDGE_LEFT
+};
+
 typedef struct timeline Timeline;
 typedef struct track Track;
 
@@ -33,7 +39,9 @@ typedef struct clip_ref {
     void *source_clip;
     bool deleted;
     bool grabbed;
+    enum clipref_edge grabbed_edge;
     bool home;
+    
     int32_t tl_pos;
     int32_t start_in_clip;
     int32_t end_in_clip;
@@ -66,6 +74,8 @@ ClipRef *clipref_create(
 void clipref_reset(ClipRef *tc, bool rescaled);
 void clipref_grab(ClipRef *cr);
 void clipref_ungrab(ClipRef *tc);
+void clipref_grab_left(ClipRef *cr);
+void clipref_grab_right(ClipRef *cr);
 void clipref_delete(ClipRef *cr);
 void clipref_undelete(ClipRef *cr);
 void clipref_destroy(ClipRef *cr, bool displace_in_clip);

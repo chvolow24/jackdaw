@@ -257,9 +257,20 @@ void clipref_ungrab(ClipRef *cr)
 	}
     }
     cr->grabbed = false;
+    cr->grabbed_edge = CLIPREF_EDGE_NONE;
     tl->num_grabbed_clips--;
     status_stat_drag();
+}
 
+void clipref_grab_left(ClipRef *cr)
+{
+    if (!cr->grabbed) clipref_grab(cr);
+    cr->grabbed_edge = CLIPREF_EDGE_LEFT;
+}
+void clipref_grab_right(ClipRef *cr)
+{
+    if (!cr->grabbed) clipref_grab(cr);
+    cr->grabbed_edge = CLIPREF_EDGE_RIGHT;
 }
 
 void clipref_bring_to_front()

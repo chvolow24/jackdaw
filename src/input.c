@@ -49,7 +49,10 @@ static int input_hash(uint16_t i_state, SDL_Keycode key)
 char *input_get_keycmd_str(uint16_t i_state, SDL_Keycode keycode);
 
 UserFn *input_get(uint16_t i_state, SDL_Keycode keycode)
-{    
+{
+    char *keycmd_str = input_get_keycmd_str(i_state, keycode);
+    fprintf(stderr, "KEYCMD: %s\n", keycmd_str);
+    free(keycmd_str);
     int hash = input_hash(i_state, keycode);
     int win_mode_i = main_win->num_modes - 1;
     /* fprintf(stderr, "Main win num modes = %d (starting %d)\n", main_win->num_modes, win_mode_i); */
@@ -117,6 +120,9 @@ static void input_read_keycmd(char *keycmd, uint16_t *i_state, SDL_Keycode *key)
     } else if (strncmp("k-", keycmd, 2) == 0) {
 	*i_state = I_STATE_K;
 	keycmd += 2;
+    } else if (strncmp("g-", keycmd, 2) == 0) {
+	*i_state = I_STATE_G;
+	keycmd += 2;
     } else {
 	*i_state =  0;
     }
@@ -174,8 +180,11 @@ char *input_get_keycmd_str(uint16_t i_state, SDL_Keycode keycode)
     case (I_STATE_META | I_STATE_CMDCTRL):
 	mod = "C-A-";
 	break;
-    case (I_STATE_K):
+    case I_STATE_K:
 	mod = "k-";
+	break;
+    case I_STATE_G:
+	mod = "g-";
 	break;
     default:
 	mod = "";

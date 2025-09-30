@@ -19,6 +19,7 @@
 #include <stdint.h>
 #include <time.h>
 #include "consts.h"
+#include "audio_clip.h"
 #include "clipref.h"
 #include "midi_io.h"
 #include "project.h"
@@ -300,7 +301,35 @@ void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes)
 	if (session->dragging) {
 	    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
 		ClipRef *cr = tl->grabbed_clips[i];
-		cr->tl_pos += move_by_sframes;
+		int32_t clip_len = cr->type == CLIP_AUDIO ? ((Clip *)cr->source_clip)->len_sframes : ((MIDIClip *)cr->source_clip)->len_sframes;
+		switch (cr->grabbed_edge) {
+		case CLIPREF_EDGE_NONE:
+		    cr->tl_pos += move_by_sframes;
+		    break;
+		case CLIPREF_EDGE_LEFT:
+		    cr->start_in_clip += move_by_sframes;
+		    if (cr->start_in_clip < 0) cr->start_in_clip = 0;
+		    if (cr->start_in_clip > clip_len) cr->start_in_clip = clip_len - 2;
+		    if (cr->start_in_clip > cr->end_in_clip) {
+			cr->end_in_clip = cr->start_in_clip;
+		    }
+		    cr->tl_pos += move_by_sframes;
+		    break;
+		case CLIPREF_EDGE_RIGHT:
+		    cr->end_in_clip += move_by_sframes;
+		    if (cr->end_in_clip <= 0) cr->end_in_clip = 1;
+		    if (cr->end_in_clip > clip_len) cr->end_in_clip = clip_len;
+		    if (cr->end_in_clip < cr->start_in_clip) {
+			cr->end_in_clip = cr->start_in_clip;
+		    }
+		    break;
+		    
+		}
+		/* if (cr->grabbed_edge == CLIPREF_EDGE_NONE) { */
+		/*     cr->tl_pos += move_by_sframes; */
+		/* } else if ({ */
+
+		/* } */
 		/* clipref_reset(cr); */
 	    }
 	}

@@ -142,6 +142,9 @@
   - m		: tl_mute
   - s		: tl_solo
   - g		: tl_grab_clips_at_cursor
+  - g-j		: tl_grab_clips_left_edge
+  - g-l		: tl_grab_clips_right_edge
+  - g-k		: tl_ungrab_clip_edge
   - S-g		: tl_grab_marked_range
   - C-c		: tl_copy_grabbed_clips
   - C-v		: tl_paste_grabbed_clips

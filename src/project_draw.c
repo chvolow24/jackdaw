@@ -238,6 +238,26 @@ static void clipref_draw(ClipRef *cr)
     geom_draw_rect_thick(main_win->rend, &cr->layout->rect, border, main_win->dpi_scale_factor);
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.white));    
     geom_draw_rect_thick(main_win->rend, &cr->layout->rect, border / 2, main_win->dpi_scale_factor);
+
+    static const int bumper_w = 8;
+    static const int bumper_pad_h = 3;
+    static const int bumper_pad_v = 12;
+    static const int bumper_corner_r = 6;
+    if (cr->grabbed_edge == CLIPREF_EDGE_LEFT) {
+	SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 200);
+	SDL_Rect bumper = {cr->layout->rect.x - bumper_w, cr->layout->rect.y + bumper_pad_v, bumper_w, cr->layout->rect.h - bumper_pad_v * 2};
+	geom_fill_rounded_rect(main_win->rend, &bumper, bumper_corner_r);
+	bumper.x += bumper_w + bumper_pad_h;
+	geom_fill_rounded_rect(main_win->rend, &bumper, bumper_corner_r);
+    } else if (cr->grabbed_edge == CLIPREF_EDGE_RIGHT) {
+	SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 200);
+	SDL_Rect bumper = {cr->layout->rect.x + cr->layout->rect.w, cr->layout->rect.y + bumper_pad_v, bumper_w, cr->layout->rect.h - bumper_pad_v * 2};
+	geom_fill_rounded_rect(main_win->rend, &bumper, bumper_corner_r);
+	bumper.x -= bumper_w + bumper_pad_h;
+	geom_fill_rounded_rect(main_win->rend, &bumper, bumper_corner_r);
+
+    }
+    
     if (cr->label) {
 	textbox_draw(cr->label);
     }

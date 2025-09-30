@@ -1989,7 +1989,7 @@ void user_tl_clipref_grab_ungrab(void *nullarg)
     
     bool clip_grabbed = false;
     bool had_active_track = false;
-    for (uint8_t i=0; i<tl->num_tracks; i++) {
+    for (int i=0; i<tl->num_tracks; i++) {
 	track = tl->tracks[i];
 	if (track->active) {
 	    had_active_track = true;
@@ -2232,6 +2232,7 @@ void user_tl_toggle_drag(void *nullarg)
 	    timeline_push_grabbed_clip_move_event(tl);
 	}
     }
+    tl->needs_redraw = true;
 }
 
 void user_tl_cut_clipref(void *nullarg)

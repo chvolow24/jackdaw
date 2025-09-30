@@ -37,6 +37,8 @@
 #define SESSION_NUM_METRONOMES 1
 #define MAX_QUEUED_OPS 255
 
+#define DRAG_COLOR_PULSE_PHASE_MAX 30
+
 struct audio_io {
     AudioConn *record_conns[MAX_SESSION_AUDIO_CONNS];
     uint8_t num_record_conns;
@@ -174,6 +176,7 @@ typedef struct session {
     bool do_tests;
     Draggable dragged_component;
     bool dragging;
+    int drag_color_pulse_phase;
     struct source_mode source_mode;
     Automation *automation_recording;
     struct session_gui gui;

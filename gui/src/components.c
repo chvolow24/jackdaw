@@ -981,7 +981,7 @@ void waveform_draw(Waveform *w)
     SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(w->background_color));
     SDL_RenderFillRect(main_win->rend, &w->layout->rect);
     SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(w->plot_color));
-    waveform_draw_all_channels_generic(w->channels, w->type, w->num_channels, w->len, &w->layout->rect, 0, main_win->w_pix);
+    waveform_draw_all_channels_generic(w->channels, w->type, w->num_channels, w->len, &w->layout->rect, 0, main_win->w_pix, (double)w->len / w->layout->rect.w);
 }
 
 /* Canvas */

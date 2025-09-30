@@ -17,7 +17,6 @@
  *****************************************************************************************************************/
 
 #include "color.h"
-#include "project.h"
 #include "session.h"
 #include "textbox.h"
 #include "waveform.h"
@@ -519,14 +518,16 @@ static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, 
 
 
 /* TODO: rename function and deprecate old one */
-static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t buflen, int start_x, int w, int amp_h_max, int center_y, int min_x, int max_x)
+static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t buflen, int start_x, int w, int amp_h_max, int center_y, int min_x, int max_x, double sfpp)
 {
-    float sfpp = (double) buflen / w;
+    /* float sfpp = (double) buflen / w; */
     if (sfpp <= 0) {
 	fprintf(stderr, "Error in waveform_draw_channel: sfpp<=0\n");
 	breakfn();
 	return;
     }
+    /* Session *session = session_get(); */
+    /* sfpp = ACTIVE_TL->timeview.sample_frames_per_pixel; */
 
     if (sfpp > SFPP_THRESHOLD) {
 	float max_amp_neg, max_amp_pos;
@@ -534,9 +535,16 @@ static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t
 	/* int amp_y = center_y; */
 	/* float sample_i = 0.0f; */
 	double sample_i = 0.0;
+	/* fprintf(stderr, "OVER THRESH, sfpp = %f, start x  = %d\n", sfpp, start_x); */
+	/* int iters = -1; */
 	while (x < start_x + w && sample_i + sfpp < buflen) {
-	    sample_i = buflen * ((double)(x - start_x) / w);
-	    /* sample_i = buflen * ((double)x / w); */
+	    /* N.B.: the below v computation of the sample index was designed to
+	       avoid cumulative fp error resulting from repeatedly incrementing
+	       the index by sfpp. However, this resulted in waveforms that morphed
+	       oddly as the clip end bound changed (or when cutting a clip, etc.)
+	    */
+	    /* sample_i = buflen * ((double)(x - start_x) / w); */
+	    
 	    /* Early exit conditions (offscreen) */
 	    if (x < min_x) {
 		sample_i+=sfpp*(0-x);
@@ -550,6 +558,11 @@ static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t
 	    max_amp_pos = 0;
 	    
 	    int sfpp_safe = round(sfpp) < SFPP_SAFE ? round(sfpp) : SFPP_SAFE;
+	    /* iters++; */
+	    /* if (iters < 3) { */
+	    /* 	fprintf(stderr, "\tsample_i: %f, sfpp safe %d\n", sample_i, sfpp_safe); */
+	    /* } */
+
 	    for (int i=0; i<sfpp_safe; i++) {
 		int sample_i_rounded = (int)round(sample_i) + i;
 		if (sample_i_rounded >= buflen) {
@@ -657,12 +670,12 @@ void waveform_draw_all_channels(float **channels, uint8_t num_channels, uint32_t
 }
 
 /* TODO: rename and deprecate old function */
-void waveform_draw_all_channels_generic(void **channels, ValType type, uint8_t num_channels, uint32_t buflen, SDL_Rect *rect, int min_x, int max_x)
+void waveform_draw_all_channels_generic(void **channels, ValType type, uint8_t num_channels, uint32_t buflen, SDL_Rect *rect, int min_x, int max_x, double sfpp)
 {
     int channel_h = rect->h / num_channels;
     int center_y = rect->y + channel_h / 2;
     for (uint8_t i=0; i<num_channels; i++) {
-	waveform_draw_channel_generic(channels[i], type,  buflen, rect->x, rect->w, channel_h / 2, center_y, min_x, max_x);
+	waveform_draw_channel_generic(channels[i], type,  buflen, rect->x, rect->w, channel_h / 2, center_y, min_x, max_x, sfpp);
 	center_y += channel_h;
     }
 }

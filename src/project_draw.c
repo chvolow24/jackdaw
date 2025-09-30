@@ -11,6 +11,7 @@
 #include "audio_clip.h"
 #include "autocompletion.h"
 #include "color.h"
+#include "consts.h"
 #include "clipref.h"
 /* #include "dsp.h" */
 #include "geometry.h"
@@ -153,6 +154,8 @@ extern Symbol *SYMBOL_TABLE[];
 /* } */
 
 void clipref_draw_waveform(ClipRef *cr);
+
+
 static void clipref_draw(ClipRef *cr)
 {
     /* clipref_reset(cr); */
@@ -168,16 +171,45 @@ static void clipref_draw(ClipRef *cr)
 	return;
     }
 
+    static SDL_Color grab_diff = {0};
+    if (grab_diff.r == 0) {
+	grab_diff.r = clip_ref_home_grabbed_bckgrnd.r - clip_ref_home_bckgrnd.r;
+	grab_diff.g = clip_ref_home_grabbed_bckgrnd.g - clip_ref_home_bckgrnd.g;
+	grab_diff.b = clip_ref_home_grabbed_bckgrnd.b - clip_ref_home_bckgrnd.b;
+	grab_diff.a = clip_ref_home_grabbed_bckgrnd.a - clip_ref_home_bckgrnd.a;
+    }
     if (cr->type == CLIP_AUDIO) {
 	if (cr->home) {
 	    if (cr->grabbed) {
-		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_home_grabbed_bckgrnd));
+		if (session->dragging) {
+		    SDL_Color pulse_color;
+		    double prop = (sin(TAU * (double)session->drag_color_pulse_phase / DRAG_COLOR_PULSE_PHASE_MAX) + 1.0) / 2.0;
+		    pulse_color.r = clip_ref_home_bckgrnd.r + grab_diff.r * prop;
+		    pulse_color.g = clip_ref_home_bckgrnd.g + grab_diff.g * prop;
+		    pulse_color.b = clip_ref_home_bckgrnd.b + grab_diff.b * prop;
+		    pulse_color.a = clip_ref_home_bckgrnd.a + grab_diff.a * prop;
+		    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(pulse_color));
+		    /* fprintf(stderr, "gd r: %d; pulse r: %d (prop %f)\n", grab_diff.r, pulse_color.r, prop); */
+		} else {
+		    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_home_grabbed_bckgrnd));
+		}
+
 	    } else {
 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_home_bckgrnd));
 	    }
 	} else {
 	    if (cr->grabbed) {
-		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_grabbed_bckgrnd));
+		if (session->dragging) {
+		    SDL_Color pulse_color;
+		    double prop = (sin(TAU * (double)session->drag_color_pulse_phase / DRAG_COLOR_PULSE_PHASE_MAX) + 1.0) / 2.0;
+		    pulse_color.r = clip_ref_bckgrnd.r + grab_diff.r * prop;
+		    pulse_color.g = clip_ref_bckgrnd.g + grab_diff.g * prop;
+		    pulse_color.b = clip_ref_bckgrnd.b + grab_diff.b * prop;
+		    pulse_color.a = clip_ref_bckgrnd.a + grab_diff.a * prop;
+		    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(pulse_color));
+		} else {
+		    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_grabbed_bckgrnd));
+		}
 	    } else {
 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_bckgrnd));
 	    }
@@ -240,20 +272,20 @@ static void clipref_draw(ClipRef *cr)
     geom_draw_rect_thick(main_win->rend, &cr->layout->rect, border / 2, main_win->dpi_scale_factor);
 
     static const int bumper_w = 8;
-    static const int bumper_pad_h = 3;
+    static const int bumper_pad_h = 2;
     static const int bumper_pad_v = 12;
     static const int bumper_corner_r = 6;
     if (cr->grabbed_edge == CLIPREF_EDGE_LEFT) {
 	SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 200);
-	SDL_Rect bumper = {cr->layout->rect.x - bumper_w, cr->layout->rect.y + bumper_pad_v, bumper_w, cr->layout->rect.h - bumper_pad_v * 2};
+	SDL_Rect bumper = {cr->layout->rect.x - bumper_w - bumper_pad_h, cr->layout->rect.y + bumper_pad_v, bumper_w, cr->layout->rect.h - bumper_pad_v * 2};
 	geom_fill_rounded_rect(main_win->rend, &bumper, bumper_corner_r);
-	bumper.x += bumper_w + bumper_pad_h;
+	bumper.x += bumper_w + bumper_pad_h * 2;
 	geom_fill_rounded_rect(main_win->rend, &bumper, bumper_corner_r);
     } else if (cr->grabbed_edge == CLIPREF_EDGE_RIGHT) {
 	SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 200);
-	SDL_Rect bumper = {cr->layout->rect.x + cr->layout->rect.w, cr->layout->rect.y + bumper_pad_v, bumper_w, cr->layout->rect.h - bumper_pad_v * 2};
+	SDL_Rect bumper = {cr->layout->rect.x + cr->layout->rect.w + bumper_pad_h, cr->layout->rect.y + bumper_pad_v, bumper_w, cr->layout->rect.h - bumper_pad_v * 2};
 	geom_fill_rounded_rect(main_win->rend, &bumper, bumper_corner_r);
-	bumper.x -= bumper_w + bumper_pad_h;
+	bumper.x -= bumper_w + bumper_pad_h * 2;
 	geom_fill_rounded_rect(main_win->rend, &bumper, bumper_corner_r);
 
     }
@@ -496,7 +528,7 @@ void clipref_draw_waveform(ClipRef *cr)
 	/* fprintf(stderr, "\t%f\n", FRAME_WF_DRAW_TIME); */
 
 	clock_t c = clock();
-	waveform_draw_all_channels_generic((void **)channels, JDAW_FLOAT, num_channels, end_pos - start_pos, &waveform_container, 0, onscreen_rect.w);
+	waveform_draw_all_channels_generic((void **)channels, JDAW_FLOAT, num_channels, end_pos - start_pos, &waveform_container, 0, onscreen_rect.w, cr->track->tl->timeview.sample_frames_per_pixel);
 	FRAME_WF_DRAW_TIME += ((double)clock() - c) / CLOCKS_PER_SEC;
 	    /* fprintf(stderr, "WF: %fms\n", FRAME_WF_DRAW_TIME * 1000); */
 	/* T_draw_waveform += ((double)clock() - c)/CLOCKS_PER_SEC; */

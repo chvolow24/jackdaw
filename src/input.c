@@ -50,9 +50,6 @@ char *input_get_keycmd_str(uint16_t i_state, SDL_Keycode keycode);
 
 UserFn *input_get(uint16_t i_state, SDL_Keycode keycode)
 {
-    char *keycmd_str = input_get_keycmd_str(i_state, keycode);
-    fprintf(stderr, "KEYCMD: %s\n", keycmd_str);
-    free(keycmd_str);
     int hash = input_hash(i_state, keycode);
     int win_mode_i = main_win->num_modes - 1;
     /* fprintf(stderr, "Main win num modes = %d (starting %d)\n", main_win->num_modes, win_mode_i); */

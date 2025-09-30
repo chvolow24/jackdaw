@@ -45,7 +45,7 @@
 #define MAX_MODES 8
 #define STICK_DELAY_MS 500
 
-#define IDLE_AFTER_N_FRAMES 100
+#define IDLE_AFTER_N_FRAMES 1000
 
 extern Window *main_win;
 
@@ -661,6 +661,11 @@ void loop_project_main()
 	    animate_step++;
 	}
         session_animations_do_frame();
+	if (session->dragging) {
+	    session->drag_color_pulse_phase++;
+	    session->drag_color_pulse_phase %= DRAG_COLOR_PULSE_PHASE_MAX;
+	    tl->needs_redraw = true;
+	}
 
 	if (session->playhead_scroll.playhead_do_incr) {
 	    timeline_scroll_playhead(session->playhead_scroll.playhead_frame_incr);

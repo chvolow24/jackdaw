@@ -172,24 +172,35 @@ static void clipref_draw(ClipRef *cr)
     }
 
     static SDL_Color grab_diff = {0};
+    static SDL_Color midi_grab_diff = {0};
     if (grab_diff.r == 0) {
 	grab_diff.r = clip_ref_home_grabbed_bckgrnd.r - clip_ref_home_bckgrnd.r;
 	grab_diff.g = clip_ref_home_grabbed_bckgrnd.g - clip_ref_home_bckgrnd.g;
 	grab_diff.b = clip_ref_home_grabbed_bckgrnd.b - clip_ref_home_bckgrnd.b;
 	grab_diff.a = clip_ref_home_grabbed_bckgrnd.a - clip_ref_home_bckgrnd.a;
     }
+    if (midi_grab_diff.r == 0) {
+	midi_grab_diff.r = midi_clipref_color_grabbed.r - midi_clipref_color.r;
+	midi_grab_diff.g = midi_clipref_color_grabbed.g - midi_clipref_color.g;
+	midi_grab_diff.b = midi_clipref_color_grabbed.b - midi_clipref_color.b;
+	midi_grab_diff.a = midi_clipref_color_grabbed.a - midi_clipref_color.a;
+    }
+    double pulse_prop;
+    if (session->dragging) {
+	pulse_prop = (sin(TAU * (double)session->drag_color_pulse_phase / DRAG_COLOR_PULSE_PHASE_MAX) + 1.0) / 2.0;
+    }
+
     if (cr->type == CLIP_AUDIO) {
 	if (cr->home) {
-	    if (cr->grabbed) {
+	    if (cr->grabbed && cr->grabbed_edge == CLIPREF_EDGE_NONE) {
 		if (session->dragging) {
 		    SDL_Color pulse_color;
-		    double prop = (sin(TAU * (double)session->drag_color_pulse_phase / DRAG_COLOR_PULSE_PHASE_MAX) + 1.0) / 2.0;
-		    pulse_color.r = clip_ref_home_bckgrnd.r + grab_diff.r * prop;
-		    pulse_color.g = clip_ref_home_bckgrnd.g + grab_diff.g * prop;
-		    pulse_color.b = clip_ref_home_bckgrnd.b + grab_diff.b * prop;
-		    pulse_color.a = clip_ref_home_bckgrnd.a + grab_diff.a * prop;
+		    pulse_color.r = clip_ref_home_bckgrnd.r + grab_diff.r * pulse_prop;
+		    pulse_color.g = clip_ref_home_bckgrnd.g + grab_diff.g * pulse_prop;
+		    pulse_color.b = clip_ref_home_bckgrnd.b + grab_diff.b * pulse_prop;
+		    pulse_color.a = clip_ref_home_bckgrnd.a + grab_diff.a * pulse_prop;
 		    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(pulse_color));
-		    /* fprintf(stderr, "gd r: %d; pulse r: %d (prop %f)\n", grab_diff.r, pulse_color.r, prop); */
+		    /* fprintf(stderr, "gd r: %d; pulse r: %d (pulse_prop %f)\n", grab_diff.r, pulse_color.r, pulse_prop); */
 		} else {
 		    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_home_grabbed_bckgrnd));
 		}
@@ -201,11 +212,10 @@ static void clipref_draw(ClipRef *cr)
 	    if (cr->grabbed) {
 		if (session->dragging) {
 		    SDL_Color pulse_color;
-		    double prop = (sin(TAU * (double)session->drag_color_pulse_phase / DRAG_COLOR_PULSE_PHASE_MAX) + 1.0) / 2.0;
-		    pulse_color.r = clip_ref_bckgrnd.r + grab_diff.r * prop;
-		    pulse_color.g = clip_ref_bckgrnd.g + grab_diff.g * prop;
-		    pulse_color.b = clip_ref_bckgrnd.b + grab_diff.b * prop;
-		    pulse_color.a = clip_ref_bckgrnd.a + grab_diff.a * prop;
+		    pulse_color.r = clip_ref_bckgrnd.r + grab_diff.r * pulse_prop;
+		    pulse_color.g = clip_ref_bckgrnd.g + grab_diff.g * pulse_prop;
+		    pulse_color.b = clip_ref_bckgrnd.b + grab_diff.b * pulse_prop;
+		    pulse_color.a = clip_ref_bckgrnd.a + grab_diff.a * pulse_prop;
 		    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(pulse_color));
 		} else {
 		    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_grabbed_bckgrnd));
@@ -215,8 +225,17 @@ static void clipref_draw(ClipRef *cr)
 	    }
 	}
     } else {
-	if (cr->grabbed) {
-	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(midi_clipref_color_grabbed));
+	if (cr->grabbed && cr->grabbed_edge == CLIPREF_EDGE_NONE) {
+	    if (session->dragging) {
+		SDL_Color pulse_color;
+		pulse_color.r = midi_clipref_color.r + midi_grab_diff.r * pulse_prop;
+		pulse_color.g = midi_clipref_color.g + midi_grab_diff.g * pulse_prop;
+		pulse_color.b = midi_clipref_color.b + midi_grab_diff.b * pulse_prop;
+		pulse_color.a = midi_clipref_color.a + midi_grab_diff.a * pulse_prop;
+		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(pulse_color));
+	    } else {
+		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(midi_clipref_color_grabbed));
+	    }
 	} else {
 	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(midi_clipref_color));
 	}
@@ -275,14 +294,18 @@ static void clipref_draw(ClipRef *cr)
     static const int bumper_pad_h = 2;
     static const int bumper_pad_v = 12;
     static const int bumper_corner_r = 6;
+    int bumper_gb = 0;
+    if (session->dragging) {
+	bumper_gb = 200 * pulse_prop;
+    }
     if (cr->grabbed_edge == CLIPREF_EDGE_LEFT) {
-	SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 200);
+	SDL_SetRenderDrawColor(main_win->rend, 255, bumper_gb, bumper_gb, 200);
 	SDL_Rect bumper = {cr->layout->rect.x - bumper_w - bumper_pad_h, cr->layout->rect.y + bumper_pad_v, bumper_w, cr->layout->rect.h - bumper_pad_v * 2};
 	geom_fill_rounded_rect(main_win->rend, &bumper, bumper_corner_r);
 	bumper.x += bumper_w + bumper_pad_h * 2;
 	geom_fill_rounded_rect(main_win->rend, &bumper, bumper_corner_r);
     } else if (cr->grabbed_edge == CLIPREF_EDGE_RIGHT) {
-	SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 200);
+	SDL_SetRenderDrawColor(main_win->rend, 255, bumper_gb, bumper_gb, 200);
 	SDL_Rect bumper = {cr->layout->rect.x + cr->layout->rect.w + bumper_pad_h, cr->layout->rect.y + bumper_pad_v, bumper_w, cr->layout->rect.h - bumper_pad_v * 2};
 	geom_fill_rounded_rect(main_win->rend, &bumper, bumper_corner_r);
 	bumper.x -= bumper_w + bumper_pad_h * 2;

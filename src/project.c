@@ -1714,7 +1714,8 @@ static void timeline_remove_track(Track *track)
     for (uint16_t i=0; i<track->num_clips; i++) {
 	ClipRef *clip = track->clips[i];
 	if (clip->grabbed) {
-	    clipref_ungrab(clip);
+	    timeline_clipref_ungrab(clip);
+	    /* clipref_ungrab(clip); */
 	}
     }
     Session *session = session_get();
@@ -1975,94 +1976,94 @@ void timeline_delete(Timeline *tl, bool from_undo)
 }
 
 
-void timeline_push_grabbed_clip_move_event(Timeline *tl);
-void timeline_cache_grabbed_clip_offsets(Timeline *tl)
-{
-    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
-	tl->grabbed_clip_pos_cache[i].track_offset = tl->grabbed_clips[i]->track->tl_rank - tl->track_selector;
-    }
-}
+/* void timeline_push_grabbed_clip_move_event(Timeline *tl); */
+/* void timeline_cache_grabbed_clip_offsets(Timeline *tl) */
+/* { */
+/*     for (uint8_t i=0; i<tl->num_grabbed_clips; i++) { */
+/* 	tl->grabbed_clip_info_cache[i].track_offset = tl->grabbed_clips[i]->track->tl_rank - tl->track_selector; */
+/*     } */
+/* } */
 
-void timeline_cache_grabbed_clip_positions(Timeline *tl)
-{
-    if (!tl->grabbed_clip_cache_initialized) {
-	tl->grabbed_clip_cache_initialized = true;
-    } else if (!tl->grabbed_clip_cache_pushed) {
-	timeline_push_grabbed_clip_move_event(tl);
-    }
-    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
-	tl->grabbed_clip_pos_cache[i].track = tl->grabbed_clips[i]->track;
-	tl->grabbed_clip_pos_cache[i].pos = tl->grabbed_clips[i]->tl_pos;
-	/* tl->grabbed_clip_pos_cache[i].track_offset = tl->grabbed_clips[i]->track->tl_rank - tl->track_selector; */
-    }
-    tl->grabbed_clip_cache_pushed = false;
-}
+/* void timeline_cache_grabbed_clip_positions(Timeline *tl) */
+/* { */
+/*     if (!tl->grabbed_clip_cache_initialized) { */
+/* 	tl->grabbed_clip_cache_initialized = true; */
+/*     } else if (!tl->grabbed_clip_cache_pushed) { */
+/* 	timeline_push_grabbed_clip_move_event(tl); */
+/*     } */
+/*     for (uint8_t i=0; i<tl->num_grabbed_clips; i++) { */
+/* 	tl->grabbed_clip_info_cache[i].track = tl->grabbed_clips[i]->track; */
+/* 	tl->grabbed_clip_info_cache[i].pos = tl->grabbed_clips[i]->tl_pos; */
+/* 	/\* tl->grabbed_clip_pos_cache[i].track_offset = tl->grabbed_clips[i]->track->tl_rank - tl->track_selector; *\/ */
+/*     } */
+/*     tl->grabbed_clip_cache_pushed = false; */
+/* } */
 
-static NEW_EVENT_FN(undo_move_clips, "undo move clips")
-    ClipRef **cliprefs = (ClipRef **)obj1;
-    struct track_and_pos *positions = (struct track_and_pos *)obj2;
-    uint8_t num = val1.uint8_v;
-    if (num == 0) return;
-    for (uint8_t i = 0; i<num; i++) {
-	if (!positions[i].track) break;
-	clipref_move_to_track(cliprefs[i], positions[i].track);
-	cliprefs[i]->tl_pos = positions[i].pos;
-	clipref_reset(cliprefs[i], false);
-    }
-    Timeline *tl = cliprefs[0]->track->tl;
-    tl->needs_redraw = true;
-}
+/* static NEW_EVENT_FN(undo_move_clips, "undo move clips") */
+/*     ClipRef **cliprefs = (ClipRef **)obj1; */
+/*     struct grabbed_clip_info *positions = (struct grabbed_clip_info *)obj2; */
+/*     uint8_t num = val1.uint8_v; */
+/*     if (num == 0) return; */
+/*     for (uint8_t i = 0; i<num; i++) { */
+/* 	if (!positions[i].track) break; */
+/* 	clipref_move_to_track(cliprefs[i], positions[i].track); */
+/* 	cliprefs[i]->tl_pos = positions[i].pos; */
+/* 	clipref_reset(cliprefs[i], false); */
+/*     } */
+/*     Timeline *tl = cliprefs[0]->track->tl; */
+/*     tl->needs_redraw = true; */
+/* } */
 
-static NEW_EVENT_FN(redo_move_clips, "redo move clips")
-    ClipRef **cliprefs = (ClipRef **)obj1;
-    struct track_and_pos *positions = (struct track_and_pos *)obj2;
-    uint8_t num = val1.uint8_v;
-    if (num == 0) return;
-    for (uint8_t i = 0; i<num; i++) {
-	if (!positions[i].track) break;
-	clipref_move_to_track(cliprefs[i], positions[i + num].track);
-	cliprefs[i]->tl_pos = positions[i + num].pos;
-	clipref_reset(cliprefs[i], false);
-    }
-    Timeline *tl = cliprefs[0]->track->tl;
-    tl->needs_redraw = true;
-}
-void timeline_push_grabbed_clip_move_event(Timeline *tl)
-{
-    /* fprintf(stdout, "PUSH\n"); */
-    ClipRef **cliprefs = calloc(tl->num_grabbed_clips, sizeof(ClipRef *));
-    /* int32_t *positions = calloc(tl->num_grabbed_clips * 2, sizeof(ClipRef *)); */
+/* static NEW_EVENT_FN(redo_move_clips, "redo move clips") */
+/*     ClipRef **cliprefs = (ClipRef **)obj1; */
+/*     struct grabbed_clip_info *positions = (struct grabbed_clip_info *)obj2; */
+/*     uint8_t num = val1.uint8_v; */
+/*     if (num == 0) return; */
+/*     for (uint8_t i = 0; i<num; i++) { */
+/* 	if (!positions[i].track) break; */
+/* 	clipref_move_to_track(cliprefs[i], positions[i + num].track); */
+/* 	cliprefs[i]->tl_pos = positions[i + num].pos; */
+/* 	clipref_reset(cliprefs[i], false); */
+/*     } */
+/*     Timeline *tl = cliprefs[0]->track->tl; */
+/*     tl->needs_redraw = true; */
+/* } */
+/* void timeline_push_grabbed_clip_move_event(Timeline *tl) */
+/* { */
+/*     /\* fprintf(stdout, "PUSH\n"); *\/ */
+/*     ClipRef **cliprefs = calloc(tl->num_grabbed_clips, sizeof(ClipRef *)); */
+/*     /\* int32_t *positions = calloc(tl->num_grabbed_clips * 2, sizeof(ClipRef *)); *\/ */
 
-    struct track_and_pos {
-	Track *track;
-	int32_t pos;
-    };
-    struct track_and_pos *positions = calloc(tl->num_grabbed_clips * 2, sizeof(struct track_and_pos));
+/*     struct track_and_pos { */
+/* 	Track *track; */
+/* 	int32_t pos; */
+/*     }; */
+/*     struct track_and_pos *positions = calloc(tl->num_grabbed_clips * 2, sizeof(struct track_and_pos)); */
 
-    /* Undo positions in first half of array; redo in second half */
-    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
-	clipref_reset(tl->grabbed_clips[i], false);
-	cliprefs[i] = tl->grabbed_clips[i];
-	/* undo pos */
-	positions[i].track = tl->grabbed_clip_pos_cache[i].track;
-	positions[i].pos = tl->grabbed_clip_pos_cache[i].pos;
-	/* redo pos */
-	positions[i + tl->num_grabbed_clips].track = cliprefs[i]->track;
-	positions[i + tl->num_grabbed_clips].pos = cliprefs[i]->tl_pos;
-    }
-    Value num = {.uint8_v = tl->num_grabbed_clips};
+/*     /\* Undo positions in first half of array; redo in second half *\/ */
+/*     for (uint8_t i=0; i<tl->num_grabbed_clips; i++) { */
+/* 	clipref_reset(tl->grabbed_clips[i], false); */
+/* 	cliprefs[i] = tl->grabbed_clips[i]; */
+/* 	/\* undo pos *\/ */
+/* 	positions[i].track = tl->grabbed_clip_info_cache[i].track; */
+/* 	positions[i].pos = tl->grabbed_clip_info_cache[i].pos; */
+/* 	/\* redo pos *\/ */
+/* 	positions[i + tl->num_grabbed_clips].track = cliprefs[i]->track; */
+/* 	positions[i + tl->num_grabbed_clips].pos = cliprefs[i]->tl_pos; */
+/*     } */
+/*     Value num = {.uint8_v = tl->num_grabbed_clips}; */
 
-    user_event_push(
-	undo_move_clips,
-	redo_move_clips,
-	NULL,
-	NULL,
-	(void *)cliprefs,
-	(void *)positions,
-	num,num,num,num,
-	0,0,true,true);
-    tl->grabbed_clip_cache_pushed = true;
-}
+/*     user_event_push( */
+/* 	undo_move_clips, */
+/* 	redo_move_clips, */
+/* 	NULL, */
+/* 	NULL, */
+/* 	(void *)cliprefs, */
+/* 	(void *)positions, */
+/* 	num,num,num,num, */
+/* 	0,0,true,true); */
+/*     tl->grabbed_clip_cache_pushed = true; */
+/* } */
 
 /* Deprecated; replaced by timeline_delete_grabbed_cliprefs */
 void timeline_destroy_grabbed_cliprefs(Timeline *tl)
@@ -2120,14 +2121,14 @@ void timeline_delete_grabbed_cliprefs(Timeline *tl)
     tl->num_grabbed_clips = 0;
 }
 
-void timeline_ungrab_all_cliprefs(Timeline *tl)
-{
-    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
-	tl->grabbed_clips[i]->grabbed = false;
-	tl->grabbed_clips[i]->grabbed_edge = CLIPREF_EDGE_NONE;
-    }
-    tl->num_grabbed_clips = 0;
-}
+/* void timeline_ungrab_all_cliprefs(Timeline *tl) */
+/* { */
+/*     for (uint8_t i=0; i<tl->num_grabbed_clips; i++) { */
+/* 	tl->grabbed_clips[i]->grabbed = false; */
+/* 	tl->grabbed_clips[i]->grabbed_edge = CLIPREF_EDGE_NONE; */
+/*     } */
+/*     tl->num_grabbed_clips = 0; */
+/* } */
 
 static void track_move_automation(Automation *a, int direction, bool from_undo);
 NEW_EVENT_FN(undo_redo_move_automation, "undo/redo move automation")

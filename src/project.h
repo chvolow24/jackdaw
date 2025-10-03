@@ -15,16 +15,6 @@
     * and related interfaces
 *****************************************************************************************************************/
 
-/*
-	Type rules:
-		* All sample or sframe (sample fram) elengths in uint32_t
-		* All sample or sframe positions in int32_t
-			-> Timeline includes negative positions
-			-> In positive range at 96000 (maximum) sample rate, room for 372.827 minutes or 6.2138 hours
-		* List lengths in smallest unsigned int type that will fit maximum lengths (usually uint8_t)
-		* Draw coordinates are regular "int"s
-*/
-
 #ifndef JDAW_PROJECT_H
 #define JDAW_PROJECT_H
 
@@ -39,6 +29,7 @@
 #include "effect.h"
 #include "eq.h"
 #include "endpoint.h"
+#include "grab.h"
 #include "midi_clip.h"
 #include "tempo.h"
 #include "timeview.h"
@@ -273,9 +264,12 @@ typedef struct timecode {
     char str[16]; // e.g. "+00:00:00:96000"
 } Timecode;
 
-struct track_and_pos {
+struct grabbed_clip_info {
     Track *track;
     int32_t pos;
+    int32_t start_in_clip;
+    int32_t end_in_clip;
+    ClipRefEdge grabbed_edge;
     int track_offset;
 };
 
@@ -322,7 +316,7 @@ typedef struct timeline {
     /* ClipRef *grabbed_clips[MAX_GRABBED_CLIPS]; */
     ClipRef *grabbed_clips[MAX_GRABBED_CLIPS];
     uint8_t num_grabbed_clips;
-    struct track_and_pos grabbed_clip_pos_cache[MAX_GRABBED_CLIPS];
+    struct grabbed_clip_info grabbed_clip_info_cache[MAX_GRABBED_CLIPS];
     bool grabbed_clip_cache_initialized;
     bool grabbed_clip_cache_pushed;
 
@@ -390,8 +384,6 @@ typedef struct project {
     float *output_R;
     double *output_L_freq;
     double *output_R_freq;
-    
-
 } Project;
 
 int project_init(
@@ -467,10 +459,10 @@ void track_or_tracks_mute(Timeline *tl);
 /* void clipref_undelete(ClipRef *cr); */
 /* void clip_destroy(Clip *clip); */
 void timeline_delete(Timeline *tl, bool from_undo);
-void timeline_cache_grabbed_clip_offsets(Timeline *tl);
-void timeline_cache_grabbed_clip_positions(Timeline *tl);
-void timeline_push_grabbed_clip_move_event(Timeline *tl);
-void timeline_ungrab_all_cliprefs(Timeline *tl);
+/* void timeline_cache_grabbed_clip_offsets(Timeline *tl); */
+/* void timeline_cache_grabbed_clip_positions(Timeline *tl); */
+/* void timeline_push_grabbed_clip_move_event(Timeline *tl); */
+/* void timeline_ungrab_all_cliprefs(Timeline *tl); */
 /* Deprecated; replaced by timeline_delete_grabbed_cliprefs */
 void timeline_destroy_grabbed_cliprefs(Timeline *tl);
 void timeline_delete_grabbed_cliprefs(Timeline *tl);

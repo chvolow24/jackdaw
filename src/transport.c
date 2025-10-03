@@ -834,7 +834,7 @@ void transport_stop_recording()
 	Clip *clip = session->proj.clips[i];
 	if (clip->len_sframes == 0) {
 	    for (int i=0; i<clip->num_refs; i++) {
-		if (clip->refs[i]->grabbed) clipref_ungrab(clip->refs[i]);
+		if (clip->refs[i]->grabbed) timeline_clipref_ungrab(clip->refs[i]);
 	    }
 	    clip_destroy(clip);
 	} else {

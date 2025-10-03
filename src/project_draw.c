@@ -22,7 +22,6 @@
 #include "piano_roll.h"
 #include "project.h"
 #include "session.h"
-#include "symbol.h"
 #include "textbox.h"
 #include "timeline.h"
 #include "waveform.h"
@@ -75,86 +74,7 @@ SDL_Color midi_clipref_color_grabbed = {255,219,249,230};
 
 extern SDL_Color timeline_label_txt_color;
 
-
-extern Symbol *SYMBOL_TABLE[];
-
-/* static void draw_waveform(ClipRef *cr) */
-/* { */
-/*     SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255); */
-/*     uint8_t num_channels = cr->clip->channels; */
-/*     float *channels[num_channels]; */
-/*     uint32_t cr_len_sframes = clipref_len(cr); */
-
-/*     if (!cr->clip->L) { */
-/* 	return; */
-/*     } */
-/*     channels[0] = cr->clip->L + cr->in_mark_sframes; */
-/*     if (num_channels > 1) { */
-/* 	channels[1] = cr->clip->R + cr->in_mark_sframes; */
-/*     } */
-/*     waveform_draw_all_channels(channels, num_channels, cr_len_sframes, &cr->layout->rect); */
-/*     return; */
-
-    
-/*     /\* old code below *\/ */
-/*     /\* int32_t cr_len = clipref_len(cr); *\/ */
-/*     /\* if (cr->clip->channels == 1) { *\/ */
-/*     /\*     int wav_x = cr->rect.x; *\/ */
-/*     /\*     int wav_y = cr->rect.y + cr->rect.h / 2; *\/ */
-/*     /\*     SDL_SetRenderDrawColor(main_win->rend, 5, 5, 60, 255); *\/ */
-/*     /\*     float sample = 0; *\/ */
-/*     /\*     int last_sample_y = wav_y; *\/ */
-/*     /\*     int sample_y = wav_y; *\/ */
-/*     /\*     for (int i=0; i<cr_len-1; i+=cr->track->tl->sample_frames_per_pixel) { *\/ */
-/*     /\*         if (wav_x > session->gui.audio_rect->x) { *\/ */
-/*     /\*             if (wav_x >= session->gui.audio_rect->x + session->gui.audio_rect->w) { *\/ */
-/*     /\*                 break; *\/ */
-/*     /\*             } *\/ */
-/*     /\*             sample = cr->clip->L[i + cr->in_mark_sframes]; *\/ */
-/*     /\*             sample_y = wav_y - sample * cr->rect.h / 2; *\/ */
-/*     /\*             // SDL_RenderDrawLine(proj->jwin->rend, wav_x, wav_y, wav_x, sample_y); *\/ */
-/*     /\*             SDL_RenderDrawLine(main_win->rend, wav_x, last_sample_y, wav_x + 1, sample_y); *\/ */
-/*     /\*             last_sample_y = sample_y; *\/ */
-/*     /\*         } *\/ */
-/*     /\*         wav_x++; *\/ */
-/*     /\*     } *\/ */
-/*     /\* } else if (cr->clip->channels == 2) { *\/ */
-/*     /\*     int wav_x = cr->rect.x; *\/ */
-/*     /\*     int wav_y_l = cr->rect.y + cr->rect.h / 4; *\/ */
-/*     /\*     int wav_y_r = cr->rect.y + 3 * cr->rect.h / 4; *\/ */
-/*     /\* 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black)); *\/ */
-/*     /\*     SDL_SetRenderDrawColor(main_win->rend, 5, 5, 60, 255); *\/ */
-/*     /\*     float sample_l = 0; *\/ */
-/*     /\*     float sample_r = 0; *\/ */
-/*     /\*     int last_sample_y_l = wav_y_l; *\/ */
-/*     /\*     int last_sample_y_r = wav_y_r; *\/ */
-/*     /\*     int sample_y_l = wav_y_l; *\/ */
-/*     /\*     int sample_y_r = wav_y_r; *\/ */
-
-/*     /\*     int i=0; *\/ */
-/*     /\*     while (i<cr_len) { *\/ */
-/*     /\*         if (wav_x > session->gui.audio_rect->x && wav_x < session->gui.audio_rect->x + session->gui.audio_rect->w) { *\/ */
-/*     /\*             sample_l = cr->clip->L[i + cr->in_mark_sframes]; *\/ */
-/*     /\*             sample_r = cr->clip->R[i + cr->in_mark_sframes]; *\/ */
-/*     /\*             sample_y_l = wav_y_l + sample_l * cr->rect.h / 4; *\/ */
-/*     /\*             sample_y_r = wav_y_r + sample_r * cr->rect.h / 4; *\/ */
-/*     /\*             SDL_RenderDrawLine(main_win->rend, wav_x, last_sample_y_l, wav_x + 1, sample_y_l); *\/ */
-/*     /\*             SDL_RenderDrawLine(main_win->rend, wav_x, last_sample_y_r, wav_x + 1, sample_y_r); *\/ */
-
-/*     /\*             last_sample_y_l = sample_y_l; *\/ */
-/*     /\*             last_sample_y_r = sample_y_r; *\/ */
-/*     /\*             i+= cr->track->tl->sample_frames_per_pixel; *\/ */
-                
-/*     /\*         } else { *\/ */
-/*     /\*             i += cr->track->tl->sample_frames_per_pixel; *\/ */
-/*     /\*         } *\/ */
-/*     /\*         wav_x++; *\/ */
-/*     /\*     } *\/ */
-/*     /\* } *\/ */
-/* } */
-
 void clipref_draw_waveform(ClipRef *cr);
-
 
 static void clipref_draw(ClipRef *cr)
 {
@@ -200,7 +120,6 @@ static void clipref_draw(ClipRef *cr)
 		    pulse_color.b = clip_ref_home_bckgrnd.b + grab_diff.b * pulse_prop;
 		    pulse_color.a = clip_ref_home_bckgrnd.a + grab_diff.a * pulse_prop;
 		    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(pulse_color));
-		    /* fprintf(stderr, "gd r: %d; pulse r: %d (pulse_prop %f)\n", grab_diff.r, pulse_color.r, pulse_prop); */
 		} else {
 		    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_home_grabbed_bckgrnd));
 		}
@@ -209,7 +128,7 @@ static void clipref_draw(ClipRef *cr)
 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_home_bckgrnd));
 	    }
 	} else {
-	    if (cr->grabbed) {
+	    if (cr->grabbed && cr->grabbed_edge == CLIPREF_EDGE_NONE) {
 		if (session->dragging) {
 		    SDL_Color pulse_color;
 		    pulse_color.r = clip_ref_bckgrnd.r + grab_diff.r * pulse_prop;

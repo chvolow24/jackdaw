@@ -9,6 +9,7 @@
 #include "dot_jdaw.h"
 #include "endpoint.h"
 #include "function_lookup.h"
+#include "grab.h"
 #include "midi_clip.h"
 #include "page.h"
 #include "session_endpoint_ops.h"
@@ -1347,7 +1348,7 @@ void user_tl_track_selector_up(void *nullarg)
 	    timeline_cache_grabbed_clip_positions(tl);
 	    bool some_clip_moved = false;
 	    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
-		int offset = tl->grabbed_clip_pos_cache[i].track_offset;
+		int offset = tl->grabbed_clip_info_cache[i].track_offset;
 		int new_index = tl->track_selector + offset;
 		if (new_index >=0 && new_index < tl->num_tracks) {
 		    some_clip_moved = true;
@@ -1440,7 +1441,7 @@ void user_tl_track_selector_down(void *nullarg)
 	if (session->dragging && tl->num_grabbed_clips > 0) {
 	    timeline_cache_grabbed_clip_positions(tl);
 	    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
-		int offset = tl->grabbed_clip_pos_cache[i].track_offset;
+		int offset = tl->grabbed_clip_info_cache[i].track_offset;
 		int new_index = tl->track_selector + offset;
 		if (new_index >=0 && new_index < tl->num_tracks) {
 		    ClipRef *cr = tl->grabbed_clips[i];
@@ -1978,126 +1979,28 @@ void user_tl_click_track_set_tempo(void *nullarg)
 void user_tl_clipref_grab_ungrab(void *nullarg)
 {
     Session *session = session_get();
-    Timeline *tl = ACTIVE_TL;
-    tl->needs_redraw = true;
-    if (tl->num_tracks == 0) return;
-    Track *track = NULL;
-    ClipRef *cr =  NULL;
-    
-    ClipRef *clips_to_grab[MAX_GRABBED_CLIPS];
-    uint8_t num_clips = 0;
-    
-    bool clip_grabbed = false;
-    bool had_active_track = false;
-    for (int i=0; i<tl->num_tracks; i++) {
-	track = tl->tracks[i];
-	if (track->active) {
-	    had_active_track = true;
-	    cr = clipref_at_cursor_in_track(track);
-	    if (cr && !cr->grabbed) {
-		clips_to_grab[num_clips] = cr;
-		num_clips++;
-		/* clipref_grab(cr); */
-		clip_grabbed = true;
-		
-		/* undo_crs[num_undo_crs] = cr; */
-		/* num_undo_crs++; */
-	    }
-	}
-    }
-    track = timeline_selected_track(tl);
-    if (!had_active_track && track) {
-	track = timeline_selected_track(tl);
-	cr = clipref_at_cursor_in_track(track);
-	if (cr && !cr->grabbed) {
-	    /* clipref_grab(cr); */
-	    clips_to_grab[num_clips] = cr;
-	    num_clips++;
-	    clip_grabbed = true;
-
-	    /* undo_crs[num_undo_crs] = cr; */
-	    /* num_undo_crs++; */
-	}
-    }
-
-    if (clip_grabbed) {
-	for (uint8_t i=0; i<num_clips; i++) {
-	    clipref_grab(clips_to_grab[i]);
-	}
-	if (session->dragging && session->playback.playing) {
-	    timeline_cache_grabbed_clip_positions(tl);
-	}
-    } else {
-	if (session->dragging && session->playback.playing) {
-	    timeline_push_grabbed_clip_move_event(tl);
-	}
-	for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
-	    cr = tl->grabbed_clips[i];
-	    cr->grabbed = false;
-	    cr->grabbed_edge = CLIPREF_EDGE_NONE;
-	}
-	tl->num_grabbed_clips = 0;
-    }
-    
-    if (session->dragging) {
-	status_stat_drag();
-    }
-    
-    /* timeline_cache_grabbed_clip_positions(tl); */
-    /* if (num_undo_crs > 0) { */
-    /* 	ClipRef **clips = calloc(num_undo_crs, sizeof(ClipRef *)); */
-    /* 	memcpy(clips, undo_crs, num_undo_crs * sizeof(ClipRef *)); */
-    /* 	Value num = {.uint8_v = num_undo_crs}; */
-    /* 	user_event_push( */
-    /* 	     */
-    /* 	    undo_redo_grab_clips, */
-    /* 	    undo_redo_grab_clips, */
-    /* 	    NULL, */
-    /* 	    clips, */
-    /* 	    NULL, */
-    /* 	    num, */
-    /* 	    num, */
-    /* 	    num, */
-    /* 	    num, */
-    /* 	    0, */
-    /* 	    0, */
-    /* 	    true, */
-    /* 	    false); */
-    /* } */
-    
-    /* if (tl->num_grabbed_clips > 0) { */
-
-    /* 	if (session->playback.playing && session->dragging) */
-    /* 	    timeline_push_grabbed_clip_move_event(tl); */
-    /* } */
-    /* tl->needs_redraw = true; */
+    timeline_grab_ungrab(ACTIVE_TL);
 }
 
 void user_tl_clipref_grab_left_edge(void *nullarg)
 {
-    ClipRef *cr = clipref_at_cursor();
-    if (cr) {
-	clipref_grab_left(cr);
-    }
     Session *session = session_get();
-    ACTIVE_TL->needs_redraw = true;
+    timeline_grab_left_edge(ACTIVE_TL);
+    /* timeline_grab_ungrab(ACTIVE_TL, CLIPREF_EDGE_LEFT); */
 }
 
 void user_tl_clipref_grab_right_edge(void *nullarg)
 {
-    ClipRef *cr = clipref_at_cursor();
-    if (cr) {
-	clipref_grab_right(cr);
-    }
     Session *session = session_get();
-    ACTIVE_TL->needs_redraw = true;
+    timeline_grab_right_edge(ACTIVE_TL);
+    /* timeline_grab_ungrab(ACTIVE_TL, CLIPREF_EDGE_RIGHT); */
 }
 
 void user_tl_clipref_ungrab_edge(void *nullarg)
 {
     ClipRef *cr = clipref_at_cursor();
     if (cr) {
-	clipref_grab(cr);
+	/* clipref_grab(cr); */
 	cr->grabbed_edge = CLIPREF_EDGE_NONE;
     }
     Session *session = session_get();
@@ -2118,7 +2021,7 @@ void user_tl_grab_marked_range(void *nullarg)
 	    for (int i=0; i<t->num_clips; i++) {
 		ClipRef *cr = t->clips[i];
 		if (clipref_marked(tl, cr) && !cr->grabbed) {
-		    clipref_grab(cr);
+		    /* clipref_grab(cr); */
 		}
 	    }
 	}
@@ -2129,7 +2032,7 @@ void user_tl_grab_marked_range(void *nullarg)
 	for (int i=0; i<t->num_clips; i++) {
 	    ClipRef *cr = t->clips[i];
 	    if (clipref_marked(tl, cr) && !cr->grabbed) {
-		clipref_grab(cr);
+		/* clipref_grab(cr); */
 	    }
 	}
     }
@@ -2201,7 +2104,7 @@ void user_tl_paste_grabbed_clips(void *nullarg)
 	    copy->end_in_clip = cr->end_in_clip;
 	    /* copy->start_ramp_len = cr->start_ramp_len; */
 	    /* copy->end_ramp_len = cr->end_ramp_len; */
-	    clipref_grab(copy);
+	    timeline_clipref_grab(copy, CLIPREF_EDGE_NONE);
 	    undo_cache[actual_num] = copy;
 	    actual_num++;
 	}	    

@@ -229,49 +229,49 @@ void clipref_move_to_track(ClipRef *cr, Track *target)
     timeline_reset(tl, false);
 }
 
-void clipref_grab(ClipRef *cr)
-{
-    Timeline *tl = cr->track->tl;
-    if (tl->num_grabbed_clips == MAX_GRABBED_CLIPS) {
-	char errstr[MAX_STATUS_STRLEN];
-	snprintf(errstr, MAX_STATUS_STRLEN, "Cannot grab >%d clips", MAX_GRABBED_CLIPS);
-	status_set_errstr(errstr);
-	return;
-    }
+/* void clipref_grab(ClipRef *cr) */
+/* { */
+/*     Timeline *tl = cr->track->tl; */
+/*     if (tl->num_grabbed_clips == MAX_GRABBED_CLIPS) { */
+/* 	char errstr[MAX_STATUS_STRLEN]; */
+/* 	snprintf(errstr, MAX_STATUS_STRLEN, "Cannot grab >%d clips", MAX_GRABBED_CLIPS); */
+/* 	status_set_errstr(errstr); */
+/* 	return; */
+/*     } */
 
-    tl->grabbed_clips[tl->num_grabbed_clips] = cr;
-    tl->num_grabbed_clips++;
-    cr->grabbed = true;
-}
+/*     tl->grabbed_clips[tl->num_grabbed_clips] = cr; */
+/*     tl->num_grabbed_clips++; */
+/*     cr->grabbed = true; */
+/* } */
 
 
-void clipref_ungrab(ClipRef *cr)
-{
-    Timeline *tl = cr->track->tl;
-    bool displace = false;
-    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
-	if (displace) {
-	    tl->grabbed_clips[i - 1] = tl->grabbed_clips[i];
-	} else if (cr == tl->grabbed_clips[i]) {
-	    displace = true;
-	}
-    }
-    cr->grabbed = false;
-    cr->grabbed_edge = CLIPREF_EDGE_NONE;
-    tl->num_grabbed_clips--;
-    status_stat_drag();
-}
+/* void clipref_ungrab(ClipRef *cr) */
+/* { */
+/*     Timeline *tl = cr->track->tl; */
+/*     bool displace = false; */
+/*     for (uint8_t i=0; i<tl->num_grabbed_clips; i++) { */
+/* 	if (displace) { */
+/* 	    tl->grabbed_clips[i - 1] = tl->grabbed_clips[i]; */
+/* 	} else if (cr == tl->grabbed_clips[i]) { */
+/* 	    displace = true; */
+/* 	} */
+/*     } */
+/*     cr->grabbed = false; */
+/*     cr->grabbed_edge = CLIPREF_EDGE_NONE; */
+/*     tl->num_grabbed_clips--; */
+/*     status_stat_drag(); */
+/* } */
 
-void clipref_grab_left(ClipRef *cr)
-{
-    if (!cr->grabbed) clipref_grab(cr);
-    cr->grabbed_edge = CLIPREF_EDGE_LEFT;
-}
-void clipref_grab_right(ClipRef *cr)
-{
-    if (!cr->grabbed) clipref_grab(cr);
-    cr->grabbed_edge = CLIPREF_EDGE_RIGHT;
-}
+/* void clipref_grab_left(ClipRef *cr) */
+/* { */
+/*     if (!cr->grabbed) clipref_grab(cr); */
+/*     cr->grabbed_edge = CLIPREF_EDGE_LEFT; */
+/* } */
+/* void clipref_grab_right(ClipRef *cr) */
+/* { */
+/*     if (!cr->grabbed) clipref_grab(cr); */
+/*     cr->grabbed_edge = CLIPREF_EDGE_RIGHT; */
+/* } */
 
 void clipref_bring_to_front()
 {
@@ -374,7 +374,7 @@ ClipRef *clipref_after_cursor(int32_t *pos_dst)
 void clipref_delete(ClipRef *cr)
 {
     if (cr->grabbed) {
-	clipref_ungrab(cr);
+	timeline_clipref_ungrab(cr);
     }
     cr->track->tl->needs_redraw = true;
     cr->deleted = true;

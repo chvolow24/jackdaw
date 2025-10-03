@@ -17,6 +17,8 @@
 
 #ifndef JDAW_CLIPREF_H
 #define JDAW_CLIPREF_H
+
+#include "grab.h"
 #include "textbox.h"
 
 typedef enum clip_type {
@@ -24,11 +26,6 @@ typedef enum clip_type {
     CLIP_MIDI
 } ClipType;
 
-enum clipref_edge {
-    CLIPREF_EDGE_NONE,
-    CLIPREF_EDGE_RIGHT,
-    CLIPREF_EDGE_LEFT
-};
 
 typedef struct timeline Timeline;
 typedef struct track Track;
@@ -39,7 +36,7 @@ typedef struct clip_ref {
     void *source_clip;
     bool deleted;
     bool grabbed;
-    enum clipref_edge grabbed_edge;
+    ClipRefEdge grabbed_edge;
     bool home;
     
     int32_t tl_pos;
@@ -72,10 +69,10 @@ ClipRef *clipref_create(
     void *source_clip /* an audio or MIDI clip */
     );
 void clipref_reset(ClipRef *tc, bool rescaled);
-void clipref_grab(ClipRef *cr);
-void clipref_ungrab(ClipRef *tc);
-void clipref_grab_left(ClipRef *cr);
-void clipref_grab_right(ClipRef *cr);
+/* void clipref_grab(ClipRef *cr); */
+/* void clipref_ungrab(ClipRef *tc); */
+/* void clipref_grab_left(ClipRef *cr); */
+/* void clipref_grab_right(ClipRef *cr); */
 void clipref_delete(ClipRef *cr);
 void clipref_undelete(ClipRef *cr);
 void clipref_destroy(ClipRef *cr, bool displace_in_clip);

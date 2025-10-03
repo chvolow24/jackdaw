@@ -106,7 +106,8 @@ static void mouse_triage_click_audiorect(Timeline *tl, uint8_t button)
 		    if (cr->grabbed) {
 			timeline_ungrab_all_cliprefs(tl);
 		    } else {
-			clipref_grab(cr);
+			timeline_clipref_grab(cr, CLIPREF_EDGE_NONE);
+			/* clipref_grab(cr); */
 		    }
 		}
 	    }

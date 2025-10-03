@@ -209,8 +209,8 @@ static void clipref_draw(ClipRef *cr)
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.white));    
     geom_draw_rect_thick(main_win->rend, &cr->layout->rect, border / 2, main_win->dpi_scale_factor);
 
-    static const int bumper_w = 8;
-    static const int bumper_pad_h = 2;
+    static const int bumper_w = 10;
+    static const int bumper_pad_h = 1;
     static const int bumper_pad_v = 12;
     static const int bumper_corner_r = 6;
     int bumper_gb = 0;
@@ -219,15 +219,17 @@ static void clipref_draw(ClipRef *cr)
     }
     if (cr->grabbed_edge == CLIPREF_EDGE_LEFT) {
 	SDL_SetRenderDrawColor(main_win->rend, 255, bumper_gb, bumper_gb, 200);
-	SDL_Rect bumper = {cr->layout->rect.x - bumper_w - bumper_pad_h, cr->layout->rect.y + bumper_pad_v, bumper_w, cr->layout->rect.h - bumper_pad_v * 2};
+	/* SDL_Rect bumper = {cr->layout->rect.x - bumper_w - bumper_pad_h, cr->layout->rect.y + bumper_pad_v, bumper_w, cr->layout->rect.h - bumper_pad_v * 2}; */
+	SDL_Rect bumper = {cr->layout->rect.x + bumper_pad_h, cr->layout->rect.y + bumper_pad_v, bumper_w, cr->layout->rect.h - bumper_pad_v * 2};
 	geom_fill_rounded_rect(main_win->rend, &bumper, bumper_corner_r);
-	bumper.x += bumper_w + bumper_pad_h * 2;
-	geom_fill_rounded_rect(main_win->rend, &bumper, bumper_corner_r);
+	/* bumper.x += bumper_w + bumper_pad_h * 2; */
+	/* geom_fill_rounded_rect(main_win->rend, &bumper, bumper_corner_r); */
     } else if (cr->grabbed_edge == CLIPREF_EDGE_RIGHT) {
 	SDL_SetRenderDrawColor(main_win->rend, 255, bumper_gb, bumper_gb, 200);
-	SDL_Rect bumper = {cr->layout->rect.x + cr->layout->rect.w + bumper_pad_h, cr->layout->rect.y + bumper_pad_v, bumper_w, cr->layout->rect.h - bumper_pad_v * 2};
-	geom_fill_rounded_rect(main_win->rend, &bumper, bumper_corner_r);
-	bumper.x -= bumper_w + bumper_pad_h * 2;
+	/* SDL_Rect bumper = {cr->layout->rect.x + cr->layout->rect.w + bumper_pad_h, cr->layout->rect.y + bumper_pad_v, bumper_w, cr->layout->rect.h - bumper_pad_v * 2}; */
+	/* geom_fill_rounded_rect(main_win->rend, &bumper, bumper_corner_r); */
+	/* bumper.x -= bumper_w + bumper_pad_h * 2; */
+	SDL_Rect bumper = {cr->layout->rect.x + cr->layout->rect.w - bumper_w - bumper_pad_h, cr->layout->rect.y + bumper_pad_v, bumper_w, cr->layout->rect.h - bumper_pad_v * 2};
 	geom_fill_rounded_rect(main_win->rend, &bumper, bumper_corner_r);
 
     }
@@ -431,6 +433,8 @@ void clipref_draw_waveform(ClipRef *cr)
     /* static double T_copy = 0.0; */
     /* clock_t c; */
     if (!cr->waveform_texture) {
+	int32_t start_in_clip = cr->start_in_clip;
+	int32_t end_in_clip = cr->end_in_clip;
 	if (FRAME_WF_DRAW_TIME > MAX_WF_FRAME_DRAW_TIME) {
 	    internal_tl_needs_redraw = true;
 	    return;
@@ -460,9 +464,17 @@ void clipref_draw_waveform(ClipRef *cr)
 	if (!clip->L) {
 	    return;
 	}
-	channels[0] = clip->L + cr->start_in_clip + start_pos;
+	channels[0] = clip->L + start_in_clip + start_pos;
 	if (num_channels > 1) {
-	    channels[1] = clip->R + cr->start_in_clip + start_pos;
+	    channels[1] = clip->R + start_in_clip + start_pos;
+	}
+	/* MAKE CLIP ARRAY ACCESS SAFE
+	   - race conditions can occur based on the fact that clip bounds
+	     are altered on the audio thread
+	   - these race conditions can result in waveform_draw_all_channels_generic overrunning the clip array */
+	int32_t wf_len = end_pos - start_pos;
+	if (wf_len + start_in_clip > clip->len_sframes) {
+	    wf_len = clip->len_sframes - start_in_clip;
 	}
 	SDL_Rect waveform_container = {0, 0, onscreen_rect.w, onscreen_rect.h};
 	/* T_other_ops += ((double)clock() - c)/CLOCKS_PER_SEC; */
@@ -470,7 +482,7 @@ void clipref_draw_waveform(ClipRef *cr)
 	/* fprintf(stderr, "\t%f\n", FRAME_WF_DRAW_TIME); */
 
 	clock_t c = clock();
-	waveform_draw_all_channels_generic((void **)channels, JDAW_FLOAT, num_channels, end_pos - start_pos, &waveform_container, 0, onscreen_rect.w, cr->track->tl->timeview.sample_frames_per_pixel);
+	waveform_draw_all_channels_generic((void **)channels, JDAW_FLOAT, num_channels, wf_len, &waveform_container, 0, onscreen_rect.w, cr->track->tl->timeview.sample_frames_per_pixel);
 	FRAME_WF_DRAW_TIME += ((double)clock() - c) / CLOCKS_PER_SEC;
 	    /* fprintf(stderr, "WF: %fms\n", FRAME_WF_DRAW_TIME * 1000); */
 	/* T_draw_waveform += ((double)clock() - c)/CLOCKS_PER_SEC; */

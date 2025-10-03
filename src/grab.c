@@ -52,7 +52,7 @@ void timeline_cache_grabbed_clip_offsets(Timeline *tl)
     }
 }
 
-static NEW_EVENT_FN(undo_move_clips, "undo move clips")
+static NEW_EVENT_FN(undo_move_clips, "undo move clips / adj clip bounds")
     ClipRef **cliprefs = (ClipRef **)obj1;
     struct grabbed_clip_info *positions = (struct grabbed_clip_info *)obj2;
     uint8_t num = val1.uint8_v;
@@ -71,7 +71,7 @@ static NEW_EVENT_FN(undo_move_clips, "undo move clips")
     tl->needs_redraw = true;
 }
 
-static NEW_EVENT_FN(redo_move_clips, "redo move clips")
+static NEW_EVENT_FN(redo_move_clips, "redo move clips / adj clip bounds")
     ClipRef **cliprefs = (ClipRef **)obj1;
     struct grabbed_clip_info *positions = (struct grabbed_clip_info *)obj2;
     uint8_t num = val1.uint8_v;
@@ -262,6 +262,7 @@ void timeline_grab_ungrab(Timeline *tl)
 void timeline_grab_left_edge(Timeline *tl)
 {
     ClipRef *cr = clipref_at_cursor();
+    if (!cr) return;
     timeline_clipref_grab(cr, CLIPREF_EDGE_LEFT);
     tl->needs_redraw = true;
 }
@@ -270,8 +271,23 @@ void timeline_grab_left_edge(Timeline *tl)
 void timeline_grab_right_edge(Timeline *tl)
 {
     ClipRef *cr = clipref_at_cursor();
+    if (!cr) return;
     timeline_clipref_grab(cr, CLIPREF_EDGE_RIGHT);
     tl->needs_redraw = true;
+}
+
+void timeline_grab_no_edge(Timeline *tl)
+{
+    ClipRef *cr = clipref_at_cursor();
+    if (!cr) return;
+    if (!cr->grabbed) {
+	timeline_clipref_grab(cr, CLIPREF_EDGE_NONE);
+    }
+    cr->grabbed_edge = CLIPREF_EDGE_NONE;
+
+    Session *session = session_get();
+    ACTIVE_TL->needs_redraw = true;
+
 }
 
 void timeline_delete_grabbed_cliprefs(Timeline *tl);

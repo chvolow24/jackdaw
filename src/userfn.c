@@ -1998,16 +1998,9 @@ void user_tl_clipref_grab_right_edge(void *nullarg)
 
 void user_tl_clipref_ungrab_edge(void *nullarg)
 {
-    ClipRef *cr = clipref_at_cursor();
-    if (cr) {
-	/* clipref_grab(cr); */
-	cr->grabbed_edge = CLIPREF_EDGE_NONE;
-    }
     Session *session = session_get();
-    ACTIVE_TL->needs_redraw = true;
-
+    timeline_grab_no_edge(ACTIVE_TL);
 }
-
 
 void user_tl_grab_marked_range(void *nullarg)
 {

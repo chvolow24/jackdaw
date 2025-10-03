@@ -46,6 +46,9 @@ void timeline_grab_left_edge(Timeline *tl);
 /* Grab right edge of clip at cursor */
 void timeline_grab_right_edge(Timeline *tl);
 
+/* Ungrab the edge if grabbed, and grab the clip */
+void timeline_grab_no_edge(Timeline *tl);
+
 /* Triggered if a "delete" action occurs on the timeline, not on a click track */
 void timeline_delete_grabbed_cliprefs(Timeline *tl);
 

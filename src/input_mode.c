@@ -868,9 +868,16 @@ static void mode_load_timeline()
 
     fn = create_user_fn(
 	"tl_cut_clipref",
-	"Cut",
+	"Cut at cursor (clip or click track)",
 	user_tl_cut_clipref);
     mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_cut_clipref_and_grab_edges",
+	"Cut clip at cursor and grab edges",
+	user_tl_cut_clipref_and_grab_edges);
+    mode_subcat_add_fn(sc, fn);
+
 
     fn = create_user_fn(
 	"tl_split_stereo_clipref",

@@ -88,4 +88,7 @@ void clipref_rename(ClipRef *cr);
 bool clipref_marked(Timeline *tl, ClipRef *cr);
 int clipref_split_stereo_to_mono(ClipRef *cr, ClipRef **new_L_dst, ClipRef **new_R_dst);
 
+void timeline_cut_at_cursor(Timeline *tl);
+void timeline_cut_at_cursor_and_grab_edges(Timeline *tl);
+
 #endif

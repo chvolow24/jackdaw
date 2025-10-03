@@ -83,6 +83,7 @@
   - C-S-<right>	: tl_one_sample_right
   - C-k		: tl_toggle_drag
   - S-c		: tl_cut_clipref
+  - g-c		: tl_cut_clipref_and_grab_edges
   - ;		: tl_move_right
   - h		: tl_move_left
   - ,		: tl_zoom_out

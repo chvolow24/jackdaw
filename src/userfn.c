@@ -2139,6 +2139,14 @@ void user_tl_cut_clipref(void *nullarg)
     tl->needs_redraw = true;
 }
 
+void user_tl_cut_clipref_and_grab_edges(void *nullarg)
+{
+    Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
+    timeline_cut_at_cursor_and_grab_edges(tl);
+    tl->needs_redraw = true;
+}
+
 void user_tl_split_stereo_clipref(void *nullarg)
 {
     ClipRef *cr = clipref_at_cursor();

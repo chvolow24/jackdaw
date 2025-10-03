@@ -116,7 +116,7 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	if (!cr) {
 	    continue;
 	}
-	if (session->dragging && cr->grabbed) {
+	if (session->dragging && cr->grabbed && cr->grabbed_edge == CLIPREF_EDGE_NONE) {
 	    continue;
 	}
 	Clip *clip = NULL;

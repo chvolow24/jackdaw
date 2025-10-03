@@ -77,6 +77,7 @@ void user_tl_bring_rear_clip_to_front(void *nullarg);
 /* void user_tl_pause_drag(void *nullarg); */
 void user_tl_toggle_drag(void *nullarg);
 void user_tl_cut_clipref(void *nullarg);
+void user_tl_cut_clipref_and_grab_edges(void *nullarg);
 void user_tl_set_default_out(void *nullarg);
 void user_tl_add_track(void *nullarg);
 

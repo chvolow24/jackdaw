@@ -466,7 +466,6 @@ void timeline_delete(Timeline *tl, bool from_undo);
 /* Deprecated; replaced by timeline_delete_grabbed_cliprefs */
 void timeline_destroy_grabbed_cliprefs(Timeline *tl);
 void timeline_delete_grabbed_cliprefs(Timeline *tl);
-void timeline_cut_at_cursor(Timeline *tl);
 /* void timeline_move_track(Timeline *tl, Track *track, int direction, bool from_undo); */
 void timeline_switch(uint8_t new_tl_index);
 

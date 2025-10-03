@@ -231,7 +231,6 @@ static void clipref_draw(ClipRef *cr)
 	/* bumper.x -= bumper_w + bumper_pad_h * 2; */
 	SDL_Rect bumper = {cr->layout->rect.x + cr->layout->rect.w - bumper_w - bumper_pad_h, cr->layout->rect.y + bumper_pad_v, bumper_w, cr->layout->rect.h - bumper_pad_v * 2};
 	geom_fill_rounded_rect(main_win->rend, &bumper, bumper_corner_r);
-
     }
     
     if (cr->label) {

@@ -579,7 +579,6 @@ static ClipRef *clipref_cut(ClipRef *cr, int32_t cut_pos_rel)
 	cr, new,
 	cut_pos, orig_end_pos, cut_pos, orig_end_pos,
 	0, 0, false, false);
-
     return new;
 }
 
@@ -604,6 +603,27 @@ void timeline_cut_at_cursor(Timeline *tl)
 }
 
 
+void timeline_cut_at_cursor_and_grab_edges(Timeline *tl)
+{
+    Track *track = timeline_selected_track(tl);
+    if (!track) return;
+    if (track) {
+	status_cat_callstr(" clipref at cursor");
+	/* TrackClip *cr = clipref_at_cursor(); */
+	ClipRef *cr = clipref_at_cursor();
+	if (!cr) {
+	    status_set_errstr("Error: no clip at cursor");
+	    return;
+	}
+	if (tl->play_pos_sframes > cr->tl_pos && tl->play_pos_sframes < cr->tl_pos + clipref_len(cr)) {
+	    ClipRef *new = clipref_cut(cr, tl->play_pos_sframes - cr->tl_pos);
+	    if (new) {
+		timeline_clipref_grab(new, CLIPREF_EDGE_LEFT);
+		timeline_clipref_grab(cr, CLIPREF_EDGE_RIGHT);
+	    }
+	}
+    }
+}
 
 NEW_EVENT_FN(undo_split_cr, "undo split stereo clip to mono")
     ClipRef **crs = (ClipRef **)obj1;

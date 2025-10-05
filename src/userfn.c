@@ -35,7 +35,9 @@
 #include "transport.h"
 #include "timeline.h"
 #include "userfn.h"
+#include "waveform.h"
 #include "wav.h"
+
 
 #define MENU_MOVE_BY 40
 #define TL_DEFAULT_XSCROLL 60
@@ -820,7 +822,11 @@ void user_tl_play(void *nullarg)
     bool started = false;
     if (session->playback.play_speed <= 0.0f) {
 	/* session->playback.play_speed = 1.0f; */
-	timeline_play_speed_set(1.0);
+	if (ACTIVE_TL->timeview.sample_frames_per_pixel < SFPP_THRESHOLD) {
+	    timeline_play_speed_set(ACTIVE_TL->timeview.sample_frames_per_pixel / 100);
+	} else {
+	    timeline_play_speed_set(1.0);
+	}
     } else if (!started) {
 	timeline_play_speed_mult(2.0);
 	/* /\* session->playback.play_speed *= 2.0f; *\/ */
@@ -874,7 +880,13 @@ void user_tl_rewind(void *nullarg)
 	timeline_cache_grabbed_clip_positions(tl);
     }
     if (session->playback.play_speed >= 0.0f) {
-	timeline_play_speed_set(-1.0);
+	if (ACTIVE_TL->timeview.sample_frames_per_pixel < SFPP_THRESHOLD) {
+	    timeline_play_speed_set(-1 * ACTIVE_TL->timeview.sample_frames_per_pixel / 100);
+	} else {
+	    timeline_play_speed_set(-1.0);
+	}
+
+	/* timeline_play_speed_set(-1.0); */
 	/* session->playback.play_speed = -1.0f; */
 	transport_start_playback();
     } else {
@@ -897,7 +909,11 @@ void user_tl_play_slow(void *nullarg)
     if (session->dragging && !session->playback.playing && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
-    timeline_play_speed_set(SLOW_PLAYBACK_SPEED);
+    if (tl->timeview.sample_frames_per_pixel < SFPP_THRESHOLD) {
+	timeline_play_speed_set(SLOW_PLAYBACK_SPEED * tl->timeview.sample_frames_per_pixel / 50);
+    } else {
+	timeline_play_speed_set(SLOW_PLAYBACK_SPEED);
+    }
     /* session->playback.play_speed = SLOW_PLAYBACK_SPEED; */
     /* status_stat_playspeed(); */
     transport_start_playback();
@@ -910,7 +926,13 @@ void user_tl_rewind_slow(void *nullarg)
     if (session->dragging && !session->playback.playing && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
-    timeline_play_speed_set(-1 * SLOW_PLAYBACK_SPEED);
+    if (tl->timeview.sample_frames_per_pixel < SFPP_THRESHOLD) {
+	timeline_play_speed_set(-1 * SLOW_PLAYBACK_SPEED * tl->timeview.sample_frames_per_pixel / 50);
+    } else {
+	timeline_play_speed_set(-1 * SLOW_PLAYBACK_SPEED);
+    }
+
+    /* timeline_play_speed_set(-1 * SLOW_PLAYBACK_SPEED); */
     /* session->playback.play_speed = -1 * SLOW_PLAYBACK_SPEED; */
     /* status_stat_playspeed(); */
     transport_start_playback();

@@ -21,10 +21,10 @@
 #define JDAW_WAVEFORM_H
 
 #define MAX_LINEAR_PLOTS 10
+#define SFPP_THRESHOLD 15.5
 
 #include "textbox.h"
 #include "value.h"
-#include "window.h"
 
 struct logscale {
     double *array;

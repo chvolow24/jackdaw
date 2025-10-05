@@ -902,6 +902,9 @@ void transport_stop_recording()
 	}
 	/* fprintf(stderr, "SETTING %s rec to false\n", clip->name); */
 	clip->recording = false;
+	for (int i=0; i<clip->num_refs; i++) {
+	    clip->refs[i]->end_in_clip = clip->len_sframes;
+	}
 	session->proj.active_clip_index++;
     }
     while (session->proj.active_midi_clip_index < session->proj.num_midi_clips) {

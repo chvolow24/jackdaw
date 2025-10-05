@@ -56,8 +56,10 @@ SDL_Color track_selector_color = {100, 190, 255, 255};
 
 SDL_Color grey_mask = {30, 30, 30, 210};
 
-SDL_Color clip_ref_bckgrnd = {20, 200, 120, 200};
-SDL_Color clip_ref_grabbed_bckgrnd = {50, 230, 150, 230};
+/* SDL_Color clip_ref_bckgrnd = {20, 200, 120, 200}; */
+SDL_Color clip_ref_bckgrnd = {40, 170, 150, 200};
+/* SDL_Color clip_ref_grabbed_bckgrnd = {50, 230, 150, 230}; */
+SDL_Color clip_ref_grabbed_bckgrnd = {70, 200, 180, 230};
 SDL_Color clip_ref_home_bckgrnd = {90, 180, 245, 200};
 SDL_Color clip_ref_home_grabbed_bckgrnd = {120, 210, 255, 230};
 
@@ -75,6 +77,7 @@ SDL_Color midi_clipref_color_grabbed = {255,219,249,230};
 extern SDL_Color timeline_label_txt_color;
 
 void clipref_draw_waveform(ClipRef *cr);
+void draw_continuation_arrows(int x, int top_y, int h, bool point_left);
 
 static void clipref_draw(ClipRef *cr)
 {
@@ -110,13 +113,13 @@ static void clipref_draw(ClipRef *cr)
     /* SDL_Color midi_clipref_color = cr->track->color; */
     /* clip_ref_home_bckgrnd.a -= 100; */
     /* midi_clipref_color.a -= 100; */
-    SDL_Color clip_ref_bckgrnd = clip_ref_home_bckgrnd;
     double pulse_prop;
     if (session->dragging) {
 	pulse_prop = (sin(TAU * (double)session->drag_color_pulse_phase / DRAG_COLOR_PULSE_PHASE_MAX) + 1.0) / 2.0;
     }
-
+    int32_t clip_len;
     if (cr->type == CLIP_AUDIO) {
+	clip_len = ((Clip *)cr->source_clip)->len_sframes;
 	if (cr->home) {
 	    if (cr->grabbed && cr->grabbed_edge == CLIPREF_EDGE_NONE) {
 		if (session->dragging) {
@@ -177,6 +180,7 @@ static void clipref_draw(ClipRef *cr)
 	
 
     if (cr->type == CLIP_MIDI) {
+	clip_len = ((MIDIClip *)cr->source_clip)->len_sframes;
 	static const int midi_piano_range = 88;
 	float top_y = cr->layout->rect.y + border * main_win->dpi_scale_factor;
 	float cr_h = cr->layout->rect.h - (border *main_win->dpi_scale_factor * 2);
@@ -198,7 +202,11 @@ static void clipref_draw(ClipRef *cr)
 	    int32_t note_start = note->start_rel - cr->start_in_clip + cr->tl_pos;
 	    int32_t note_end = note->end_rel - cr->start_in_clip + cr->tl_pos;
 	    float x = timeline_get_draw_x(cr->track->tl, note_start);
-	    float w = timeline_get_draw_x(cr->track->tl, note_end) - x;
+	    float note_end_draw_pos = timeline_get_draw_x(cr->track->tl, note_end);
+	    if (note_end_draw_pos > cr->layout->rect.x + cr->layout->rect.w) {
+		note_end_draw_pos = cr->layout->rect.x + cr->layout->rect.w;
+	    }
+	    float w = note_end_draw_pos - x;
 	    float y = top_y + (midi_piano_range - piano_note) * note_height_nominal;
 	    SDL_Rect note_rect = {x, y - true_note_height / 2, w, true_note_height};
 	    /* fprintf(stderr, "\t->start->end: %d-%d\n", note_start, note_end); */
@@ -238,10 +246,20 @@ static void clipref_draw(ClipRef *cr)
 	SDL_Rect bumper = {cr->layout->rect.x + cr->layout->rect.w - bumper_w - bumper_pad_h, cr->layout->rect.y + bumper_pad_v, bumper_w, cr->layout->rect.h - bumper_pad_v * 2};
 	geom_fill_rounded_rect(main_win->rend, &bumper, bumper_corner_r);
     }
+    if (cr->grabbed) {
+	if (cr->start_in_clip > 0) {
+	    draw_continuation_arrows(cr->layout->rect.x + 5, cr->layout->rect.y + 50, cr->layout->rect.h - 100, true);
+	}
+	if (cr->end_in_clip < clip_len) {
+	    draw_continuation_arrows(cr->layout->rect.x + cr->layout->rect.w - 5, cr->layout->rect.y + 50, cr->layout->rect.h - 100, false);
+	}
+    }
     
     if (cr->label) {
 	textbox_draw(cr->label);
     }
+
+
 }
 
 static void draw_selected_track_rect(Layout *selected_layout)
@@ -788,4 +806,27 @@ void project_draw()
     /* draw_i++ ; */
     
     window_end_draw(main_win);
+}
+
+
+void draw_continuation_arrows(int x, int top_y, int h, bool point_left)
+{
+    Session *session = session_get();
+    const int arrow_pad = -2;
+
+    int y = top_y;
+    int arrow_h;
+    int arrow_w;    
+    SDL_QueryTexture(session->gui.left_arrow_texture, NULL, NULL, &arrow_w, &arrow_h);
+    /* fprintf(stderr, "Y: %d arrow h: %d\n", y, arrow_h); */
+    while (y + arrow_h <= top_y + h) {
+	SDL_Rect dst = {x, y, arrow_w, arrow_h};
+	if (!point_left) dst.x -= arrow_w;
+	if (point_left) {
+	    SDL_RenderCopy(main_win->rend, session->gui.left_arrow_texture, NULL, &dst);
+	} else {
+	    SDL_RenderCopy(main_win->rend, session->gui.right_arrow_texture, NULL, &dst);
+	}
+	y += arrow_h + arrow_pad;
+    }
 }

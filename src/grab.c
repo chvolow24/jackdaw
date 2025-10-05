@@ -8,6 +8,7 @@
 
 *****************************************************************************************************************/
 
+#include "audio_clip.h"
 #include "clipref.h"
 #include "grab.h"
 #include "project.h"
@@ -193,6 +194,10 @@ void timeline_ungrab_all_cliprefs(Timeline *tl)
 
 /* END MID-LEVEL INTERFACE */
 
+/* HIGH-LEVEL INTERFACE
+   - functions accessible more or less directly from userfn.c
+   - grab/ungrab, grab edge, and delete grabbed clips
+*/
 
 /* Main entrypoint from userfn.c -- triggered by 'g' key */
 void timeline_grab_ungrab(Timeline *tl)
@@ -264,7 +269,12 @@ void timeline_grab_left_edge(Timeline *tl)
     ClipRef *cr = clipref_at_cursor();
     if (!cr) return;
     timeline_clipref_grab(cr, CLIPREF_EDGE_LEFT);
+    if (session_get()->dragging) {
+	status_stat_drag();
+    }    
+
     tl->needs_redraw = true;
+
 }
 
 /* Grab right edge of clip at cursor */
@@ -273,6 +283,10 @@ void timeline_grab_right_edge(Timeline *tl)
     ClipRef *cr = clipref_at_cursor();
     if (!cr) return;
     timeline_clipref_grab(cr, CLIPREF_EDGE_RIGHT);
+    if (session_get()->dragging) {
+	status_stat_drag();
+    }    
+
     tl->needs_redraw = true;
 }
 
@@ -284,11 +298,131 @@ void timeline_grab_no_edge(Timeline *tl)
 	timeline_clipref_grab(cr, CLIPREF_EDGE_NONE);
     }
     cr->grabbed_edge = CLIPREF_EDGE_NONE;
-
     Session *session = session_get();
+    if (session_get()->dragging) {
+	status_stat_drag();
+    }    
+
     ACTIVE_TL->needs_redraw = true;
 
 }
 
-void timeline_delete_grabbed_cliprefs(Timeline *tl);
 
+static NEW_EVENT_FN(undo_delete_clips, "undo delete clips")
+    ClipRef **clips = (ClipRef **)obj1;
+    uint8_t num = val1.uint8_v;
+    for (uint8_t i=0; i<num; i++) {
+	clipref_undelete(clips[i]);
+    }
+}
+static NEW_EVENT_FN(redo_delete_clips, "redo delete clips")
+    ClipRef **clips = (ClipRef **)obj1;
+    uint8_t num = val1.uint8_v;
+    for (uint8_t i=0; i<num; i++) {
+	clipref_delete(clips[i]);
+    }
+}
+static NEW_EVENT_FN(dispose_delete_clips, "")
+    ClipRef **clips = (ClipRef **)obj1;
+    uint8_t num = val1.uint8_v;
+    for (uint8_t i=0; i<num; i++) {
+	clipref_destroy_no_displace(clips[i]);
+    }
+}
+
+void timeline_delete_grabbed_cliprefs(Timeline *tl)
+{
+    ClipRef **deleted_cliprefs = calloc(tl->num_grabbed_clips, sizeof(ClipRef *));
+    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
+	ClipRef *cr = tl->grabbed_clips[i];
+	loc_clipref_ungrab(cr);
+	/* cr->grabbed = false; */
+	clipref_delete(cr);
+	deleted_cliprefs[i] = cr;
+    }
+    Value num = {.uint8_v = tl->num_grabbed_clips};
+    user_event_push(
+	undo_delete_clips,
+	redo_delete_clips,
+	dispose_delete_clips,
+	NULL,
+	(void *)deleted_cliprefs,
+	NULL,
+	num,
+	num,
+	num,
+	num,
+	0, 0, true, false);
+    tl->num_grabbed_clips = 0;
+}
+
+void timeline_grab_marked_range(Timeline *tl, ClipRefEdge edge)
+{
+    bool had_active_track = false;
+    for (int i=0; i<tl->num_tracks; i++) {
+	Track *t = tl->tracks[i];
+	if (t->active) {
+	    had_active_track = true;
+	    for (int i=0; i<t->num_clips; i++) {
+		ClipRef *cr = t->clips[i];
+		if (clipref_marked(tl, cr)) {
+		    timeline_clipref_grab(cr, edge);
+		}
+	    }
+	}
+    }
+    Track *t = timeline_selected_track(tl);
+    if (!had_active_track && t) {
+	/* Track *t = timeline_selected_track(tl); */
+	for (int i=0; i<t->num_clips; i++) {
+	    ClipRef *cr = t->clips[i];
+	    if (clipref_marked(tl, cr)) {
+		timeline_clipref_grab(cr, edge);
+	    }
+	}
+    }
+    if (session_get()->dragging) {
+	status_stat_drag();
+    }    
+
+    tl->needs_redraw = true;
+}
+
+
+/* Use this function every time the playhead moves while clips are grabbed */
+void timeline_grabbed_clips_move(Timeline *tl, int32_t move_by_sframes)
+{
+    for (int i=0; i<tl->num_grabbed_clips; i++) {
+	ClipRef *cr = tl->grabbed_clips[i];
+	int32_t clip_len;
+	switch (cr->type) {
+	case CLIP_AUDIO:
+	    clip_len = ((Clip *)cr->source_clip)->len_sframes;
+	    break;
+	case CLIP_MIDI:
+	    clip_len = ((MIDIClip *)cr->source_clip)->len_sframes;
+	    break;
+	}
+	switch(cr->grabbed_edge) {
+	case CLIPREF_EDGE_LEFT: {
+	    int32_t new_start = cr->start_in_clip + move_by_sframes;
+	    if (new_start < 0) new_start = 0;
+	    if (new_start >= cr->end_in_clip) new_start = cr->end_in_clip - 1;
+	    cr->tl_pos += new_start - cr->start_in_clip;
+	    cr->start_in_clip = new_start;
+	}
+	    break;
+	case CLIPREF_EDGE_RIGHT: {
+	    int32_t new_end = cr->end_in_clip + move_by_sframes;
+	    if (new_end <= cr->start_in_clip) new_end = cr->start_in_clip + 1;
+	    if (new_end > clip_len) new_end = clip_len;
+	    cr->end_in_clip = new_end;
+	}
+	    break;
+	case CLIPREF_EDGE_NONE:
+	    cr->tl_pos += move_by_sframes;
+	    break;
+	}
+	/* clipref_reset(cr, false); */
+    }
+}

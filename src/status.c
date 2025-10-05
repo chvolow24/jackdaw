@@ -174,6 +174,6 @@ void status_stat_drag()
     }
     Timeline *tl = ACTIVE_TL;
     char buf[64];
-    snprintf(buf, sizeof(buf), "Dragging %d clips\n", tl->num_grabbed_clips);
+    snprintf(buf, sizeof(buf), "Dragging %d clips", tl->num_grabbed_clips);
     status_set_dragstr(buf);
 }

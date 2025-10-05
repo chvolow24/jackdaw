@@ -849,6 +849,18 @@ static void mode_load_timeline()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
+	"tl_grab_marked_range_left_edge",
+	"Grab left edge of clips in marked range",
+	user_tl_grab_marked_range_left_edge);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_grab_marked_range_right_edge",
+	"Grab right edge of clips in marked range",
+	user_tl_grab_marked_range_right_edge);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
 	"tl_copy_grabbed_clips",
 	"Copy grabbed clips",
 	user_tl_copy_grabbed_clips);

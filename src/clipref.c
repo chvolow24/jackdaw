@@ -58,6 +58,7 @@ ClipRef *clipref_create(
 	} else {
 	    snprintf(cr->name, MAX_NAMELENGTH, "%s", aclip->name);
 	}
+	cr->end_in_clip = aclip->len_sframes;
 	
     }
 	break;
@@ -77,6 +78,7 @@ ClipRef *clipref_create(
 	} else {
 	    snprintf(cr->name, MAX_NAMELENGTH, "%s", mclip->name);
 	}
+	cr->end_in_clip = mclip->len_sframes;
     }
 	break;
     }

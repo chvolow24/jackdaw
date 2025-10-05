@@ -108,6 +108,9 @@ static void input_read_keycmd(char *keycmd, uint16_t *i_state, SDL_Keycode *key)
     } else if (strncmp("C-", keycmd, 2) == 0) {
 	*i_state =  I_STATE_CMDCTRL;
 	keycmd += 2;
+    } else if (strncmp("S-g-", keycmd, 4) == 0) {
+	*i_state = I_STATE_SHIFT | I_STATE_G;
+	keycmd += 4;
     } else if (strncmp("S-", keycmd, 2) == 0) {
 	*i_state =  I_STATE_SHIFT;
 	keycmd += 2;
@@ -182,6 +185,9 @@ char *input_get_keycmd_str(uint16_t i_state, SDL_Keycode keycode)
 	break;
     case I_STATE_G:
 	mod = "g-";
+	break;
+    case (I_STATE_SHIFT | I_STATE_G):
+	mod = "S-g-";
 	break;
     default:
 	mod = "";

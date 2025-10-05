@@ -155,6 +155,8 @@ static float *get_source_mode_chunk(uint8_t channel, float *chunk, uint32_t len_
      } else {
 	 return NULL; /* TODO: source mode for MIDI */
      }
+     if (!clip) return NULL; /* band-aid for a rare bug */
+     
      float *src_buffer = clip->channels == 1 ? clip->L :
 	 channel == 0 ? clip->L : clip->R;
 

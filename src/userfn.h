@@ -135,10 +135,12 @@ void user_tl_clipref_grab_left_edge(void *nullarg);
 void user_tl_clipref_grab_right_edge(void *nullarg);
 void user_tl_clipref_ungrab_edge(void *nullarg);
 void user_tl_grab_marked_range(void *nullarg);
+void user_tl_grab_marked_range_left_edge(void *nullarg);
+void user_tl_grab_marked_range_right_edge(void *nullarg);
 void user_tl_copy_grabbed_clips(void *nullarg);
 void user_tl_paste_grabbed_clips(void *nullarg);
 /* Deprecated; use user_tl_cliprefs_delete */
-void user_tl_cliprefs_destroy(void *nullarg);
+/* void user_tl_cliprefs_destroy(void *nullarg); */
 void user_tl_rename_clip_at_cursor(void *nullarg);
 void user_tl_delete_generic(void *nullarg);
 

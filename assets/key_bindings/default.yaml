@@ -147,6 +147,8 @@
   - g-l		: tl_grab_clips_right_edge
   - g-k		: tl_ungrab_clip_edge
   - S-g		: tl_grab_marked_range
+  - S-g-j	: tl_grab_marked_range_left_edge
+  - S-g-l	: tl_grab_marked_range_right_edge
   - C-c		: tl_copy_grabbed_clips
   - C-v		: tl_paste_grabbed_clips
   - C-S-r	: tl_rename_clip_at_cursor

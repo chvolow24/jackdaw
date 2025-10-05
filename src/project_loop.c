@@ -18,6 +18,7 @@
 
 
 #include <time.h>
+#include "SDL_events.h"
 #include "audio_connection.h"
 #include "audio_clip.h"
 #include "automation.h"
@@ -67,6 +68,8 @@ extern Project *proj;
 
 TabView *synth_tabview_create(Track *track);
 void user_global_quit(void *);
+
+extern void open_file(const char *filepath);
 
 extern bool do_blep;
 void loop_project_main()
@@ -581,7 +584,10 @@ void loop_project_main()
 		    scrolling_lt = NULL;
 		}
 		break;
-
+	    case SDL_DROPFILE:
+		open_file(e.drop.file);
+		SDL_free(e.drop.file);
+		break;		
 	    default:
 		break;
 	    }

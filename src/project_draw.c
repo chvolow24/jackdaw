@@ -105,6 +105,12 @@ static void clipref_draw(ClipRef *cr)
 	midi_grab_diff.b = midi_clipref_color_grabbed.b - midi_clipref_color.b;
 	midi_grab_diff.a = midi_clipref_color_grabbed.a - midi_clipref_color.a;
     }
+
+    /* SDL_Color clip_ref_home_bckgrnd = cr->track->color; */
+    /* SDL_Color midi_clipref_color = cr->track->color; */
+    /* clip_ref_home_bckgrnd.a -= 100; */
+    /* midi_clipref_color.a -= 100; */
+    SDL_Color clip_ref_bckgrnd = clip_ref_home_bckgrnd;
     double pulse_prop;
     if (session->dragging) {
 	pulse_prop = (sin(TAU * (double)session->drag_color_pulse_phase / DRAG_COLOR_PULSE_PHASE_MAX) + 1.0) / 2.0;
@@ -433,7 +439,6 @@ void clipref_draw_waveform(ClipRef *cr)
     /* clock_t c; */
     if (!cr->waveform_texture) {
 	int32_t start_in_clip = cr->start_in_clip;
-	int32_t end_in_clip = cr->end_in_clip;
 	if (FRAME_WF_DRAW_TIME > MAX_WF_FRAME_DRAW_TIME) {
 	    internal_tl_needs_redraw = true;
 	    return;

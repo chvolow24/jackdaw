@@ -21,6 +21,8 @@
 #ifndef JDAW_GRAB_H
 #define JDAW_GRAB_H
 
+#include <stdint.h>
+
 typedef enum clipref_edge {
     CLIPREF_EDGE_NONE,
     CLIPREF_EDGE_RIGHT,
@@ -52,7 +54,9 @@ void timeline_grab_no_edge(Timeline *tl);
 /* Triggered if a "delete" action occurs on the timeline, not on a click track */
 void timeline_delete_grabbed_cliprefs(Timeline *tl);
 
-/****** END MID-LEVEL INTERFACE ******/
+void timeline_grab_marked_range(Timeline *tl, ClipRefEdge edge);
+
+/****** END HIGH-LEVEL INTERFACE ******/
 
 /* MID-LEVEL INTERFACE
  - clips may be individually ungrabbed incidentally, e.g. when deleted
@@ -70,7 +74,10 @@ void timeline_clipref_grab(ClipRef *cr, ClipRefEdge edge);
    Ungrabs clipref AND manages timeline grab state. */
 void timeline_clipref_ungrab(ClipRef *cr);
 
-/****** END HIGH-LEVEL INTERFACE ******/
+/* Use anytime the playhead moves while clips are grabbed and dragging */
+void timeline_grabbed_clips_move(Timeline *tl, int32_t move_by_sframes);
+
+/****** END MID-LEVEL INTERFACE ******/
 
 /* POSITION CACHEING, UNDO/REDO:
    - CACHE: grabbed clipref positions, edges, and track offsets need to be cached

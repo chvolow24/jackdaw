@@ -11,9 +11,7 @@
 #include "audio_clip.h"
 #include "autocompletion.h"
 #include "color.h"
-#include "consts.h"
 #include "clipref.h"
-/* #include "dsp.h" */
 #include "geometry.h"
 #include "input.h"
 #include "layout.h"
@@ -63,8 +61,8 @@ SDL_Color clip_ref_grabbed_bckgrnd = {70, 200, 180, 230};
 SDL_Color clip_ref_home_bckgrnd = {90, 180, 245, 200};
 SDL_Color clip_ref_home_grabbed_bckgrnd = {120, 210, 255, 230};
 
-SDL_Color midi_clipref_color = {237,204,232,200};
-SDL_Color midi_clipref_color_grabbed = {255,219,249,230};
+/* SDL_Color midi_clipref_color = {237,204,232,200}; */
+/* SDL_Color midi_clipref_color_grabbed = {255,219,249,230}; */
 
 
 /******************** DARKER ********************/
@@ -103,20 +101,20 @@ static void clipref_draw(ClipRef *cr)
 	grab_diff.a = clip_ref_home_grabbed_bckgrnd.a - clip_ref_home_bckgrnd.a;
     }
     if (midi_grab_diff.r == 0) {
-	midi_grab_diff.r = midi_clipref_color_grabbed.r - midi_clipref_color.r;
-	midi_grab_diff.g = midi_clipref_color_grabbed.g - midi_clipref_color.g;
-	midi_grab_diff.b = midi_clipref_color_grabbed.b - midi_clipref_color.b;
-	midi_grab_diff.a = midi_clipref_color_grabbed.a - midi_clipref_color.a;
+	midi_grab_diff.r = colors.midi_clip_pink_grabbed.r - colors.midi_clip_pink.r;
+	midi_grab_diff.g = colors.midi_clip_pink_grabbed.g - colors.midi_clip_pink.g;
+	midi_grab_diff.b = colors.midi_clip_pink_grabbed.b - colors.midi_clip_pink.b;
+	midi_grab_diff.a = colors.midi_clip_pink_grabbed.a - colors.midi_clip_pink.a;
     }
 
     /* SDL_Color clip_ref_home_bckgrnd = cr->track->color; */
     /* SDL_Color midi_clipref_color = cr->track->color; */
     /* clip_ref_home_bckgrnd.a -= 100; */
     /* midi_clipref_color.a -= 100; */
-    double pulse_prop;
-    if (session->dragging) {
-	pulse_prop = (sin(TAU * (double)session->drag_color_pulse_phase / DRAG_COLOR_PULSE_PHASE_MAX) + 1.0) / 2.0;
-    }
+    /* double pulse_prop; */
+    /* if (session->dragging) { */
+    /* 	pulse_prop = (sin(TAU * (double)session->drag_color_pulse_phase / DRAG_COLOR_PULSE_PHASE_MAX) + 1.0) / 2.0; */
+    /* } */
     int32_t clip_len;
     if (cr->type == CLIP_AUDIO) {
 	clip_len = ((Clip *)cr->source_clip)->len_sframes;
@@ -124,10 +122,10 @@ static void clipref_draw(ClipRef *cr)
 	    if (cr->grabbed && cr->grabbed_edge == CLIPREF_EDGE_NONE) {
 		if (session->dragging) {
 		    SDL_Color pulse_color;
-		    pulse_color.r = clip_ref_home_bckgrnd.r + grab_diff.r * pulse_prop;
-		    pulse_color.g = clip_ref_home_bckgrnd.g + grab_diff.g * pulse_prop;
-		    pulse_color.b = clip_ref_home_bckgrnd.b + grab_diff.b * pulse_prop;
-		    pulse_color.a = clip_ref_home_bckgrnd.a + grab_diff.a * pulse_prop;
+		    pulse_color.r = clip_ref_home_bckgrnd.r + grab_diff.r * session->drag_color_pulse_prop;
+		    pulse_color.g = clip_ref_home_bckgrnd.g + grab_diff.g * session->drag_color_pulse_prop;
+		    pulse_color.b = clip_ref_home_bckgrnd.b + grab_diff.b * session->drag_color_pulse_prop;
+		    pulse_color.a = clip_ref_home_bckgrnd.a + grab_diff.a * session->drag_color_pulse_prop;
 		    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(pulse_color));
 		} else {
 		    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_home_grabbed_bckgrnd));
@@ -140,10 +138,10 @@ static void clipref_draw(ClipRef *cr)
 	    if (cr->grabbed && cr->grabbed_edge == CLIPREF_EDGE_NONE) {
 		if (session->dragging) {
 		    SDL_Color pulse_color;
-		    pulse_color.r = clip_ref_bckgrnd.r + grab_diff.r * pulse_prop;
-		    pulse_color.g = clip_ref_bckgrnd.g + grab_diff.g * pulse_prop;
-		    pulse_color.b = clip_ref_bckgrnd.b + grab_diff.b * pulse_prop;
-		    pulse_color.a = clip_ref_bckgrnd.a + grab_diff.a * pulse_prop;
+		    pulse_color.r = clip_ref_bckgrnd.r + grab_diff.r * session->drag_color_pulse_prop;
+		    pulse_color.g = clip_ref_bckgrnd.g + grab_diff.g * session->drag_color_pulse_prop;
+		    pulse_color.b = clip_ref_bckgrnd.b + grab_diff.b * session->drag_color_pulse_prop;
+		    pulse_color.a = clip_ref_bckgrnd.a + grab_diff.a * session->drag_color_pulse_prop;
 		    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(pulse_color));
 		} else {
 		    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(clip_ref_grabbed_bckgrnd));
@@ -156,16 +154,16 @@ static void clipref_draw(ClipRef *cr)
 	if (cr->grabbed && cr->grabbed_edge == CLIPREF_EDGE_NONE) {
 	    if (session->dragging) {
 		SDL_Color pulse_color;
-		pulse_color.r = midi_clipref_color.r + midi_grab_diff.r * pulse_prop;
-		pulse_color.g = midi_clipref_color.g + midi_grab_diff.g * pulse_prop;
-		pulse_color.b = midi_clipref_color.b + midi_grab_diff.b * pulse_prop;
-		pulse_color.a = midi_clipref_color.a + midi_grab_diff.a * pulse_prop;
+		pulse_color.r = colors.midi_clip_pink.r + midi_grab_diff.r * session->drag_color_pulse_prop;
+		pulse_color.g = colors.midi_clip_pink.g + midi_grab_diff.g * session->drag_color_pulse_prop;
+		pulse_color.b = colors.midi_clip_pink.b + midi_grab_diff.b * session->drag_color_pulse_prop;
+		pulse_color.a = colors.midi_clip_pink.a + midi_grab_diff.a * session->drag_color_pulse_prop;
 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(pulse_color));
 	    } else {
-		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(midi_clipref_color_grabbed));
+		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.midi_clip_pink_grabbed));
 	    }
 	} else {
-	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(midi_clipref_color));
+	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.midi_clip_pink));
 	}
     }
     SDL_RenderFillRect(main_win->rend, &cr->layout->rect);
@@ -229,7 +227,7 @@ static void clipref_draw(ClipRef *cr)
     static const int bumper_corner_r = 6;
     int bumper_gb = 0;
     if (session->dragging) {
-	bumper_gb = 200 * pulse_prop;
+	bumper_gb = 200 * session->drag_color_pulse_prop;
     }
     if (cr->grabbed_edge == CLIPREF_EDGE_LEFT) {
 	SDL_SetRenderDrawColor(main_win->rend, 255, bumper_gb, bumper_gb, 200);
@@ -706,14 +704,14 @@ void project_draw()
     if (session->piano_roll) {
 	piano_roll_draw();
 	/* TODO: better abstraction for TL draw operations needed here */
-	ruler_draw(tl);
-	if (session->gui.timecode_tb) {
-	    textbox_draw(session->gui.timecode_tb);
-	}
-	if (session->playback.loop_play && tl->out_mark_sframes > tl->in_mark_sframes) {
-	    textbox_draw(session->gui.loop_play_lemniscate);
-	    /* layout_draw(main_win, tl->loop_play_lemniscate->layout); */
-	}
+	/* ruler_draw(tl); */
+	/* if (session->gui.timecode_tb) { */
+	/*     textbox_draw(session->gui.timecode_tb); */
+	/* } */
+	/* if (session->playback.loop_play && tl->out_mark_sframes > tl->in_mark_sframes) { */
+	/*     textbox_draw(session->gui.loop_play_lemniscate); */
+	/*     /\* layout_draw(main_win, tl->loop_play_lemniscate->layout); *\/ */
+	/* } */
     } else {
 	timeline_redrawn = timeline_draw(tl);
 	if (timeline_redrawn) {

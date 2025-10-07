@@ -108,6 +108,8 @@ Note *midi_clip_insert_note(MIDIClip *mc, int channel, int note_val, int velocit
     if (mc->num_notes == mc->notes_alloc_len) {
 	mc->notes_alloc_len *= 2;
 	mc->notes = realloc(mc->notes, mc->notes_alloc_len * sizeof(Note));
+	memset(mc->notes + mc->num_notes, 0, sizeof(Note) * (mc->notes_alloc_len - mc->num_notes));
+	      
     }
     pthread_mutex_unlock(&mc->notes_arr_lock);
     
@@ -786,6 +788,72 @@ Note *midi_clipref_get_prev_note(ClipRef *cr, int32_t from, int32_t *pos_dst)
     } while (note_i >= 0);
     if (ret)
 	*pos_dst = pos;
+    return ret;
+}
+
+/* If dst ptr is provided, its contents must be freed */
+int midi_clipref_notes_intersecting_point(ClipRef *cr, int32_t tl_pos, Note ***dst)
+{
+    Note *intersecting_notes[128];
+    int num_intersecting_notes = 0;
+    int32_t note_i = midi_clipref_check_get_first_note(cr);
+    MIDIClip *mclip = cr->source_clip;
+    while (note_i < mclip->num_notes) {
+	Note *note = mclip->notes + note_i;
+	int32_t start_pos = note_tl_start_pos(note, cr);
+	if (start_pos <= tl_pos && note_tl_end_pos(note, cr) > tl_pos) {
+	    intersecting_notes[num_intersecting_notes] = note;
+	    num_intersecting_notes++;
+	    if (num_intersecting_notes == 128) break;
+	} else if (start_pos > tl_pos) {
+	    break;
+	}
+	note_i++;
+    }
+    if (dst && num_intersecting_notes > 0) {
+	*dst = malloc(sizeof(Note *) * num_intersecting_notes);
+	memcpy(*dst, intersecting_notes, sizeof(Note *) * num_intersecting_notes);
+    }
+    return num_intersecting_notes;
+}
+
+Note *midi_clipref_up_note_at_cursor(ClipRef *cr, int32_t cursor, int sel_key)
+{
+    Note **intersecting_notes = NULL;
+    int num_intersecting_notes = midi_clipref_notes_intersecting_point(cr, cursor, &intersecting_notes);
+    Note *ret = NULL;
+    if (num_intersecting_notes > 0 && intersecting_notes) {
+	int diff = 128;
+	for (int i=0; i<num_intersecting_notes; i++) {
+	    Note *check = intersecting_notes[i];
+	    int diff_loc = check->key - sel_key;
+	    if (diff_loc > 0 && diff_loc < diff) {
+		ret = check;
+		diff = diff_loc;
+	    }
+	}
+	free(intersecting_notes);
+    }
+    return ret;
+}
+
+Note *midi_clipref_down_note_at_cursor(ClipRef *cr, int32_t cursor, int sel_key)
+{
+    Note **intersecting_notes = NULL;
+    int num_intersecting_notes = midi_clipref_notes_intersecting_point(cr, cursor, &intersecting_notes);
+    Note *ret = NULL;
+    if (num_intersecting_notes > 0 && intersecting_notes) {
+	int diff = 128;
+	for (int i=0; i<num_intersecting_notes; i++) {
+	    Note *check = intersecting_notes[i];
+	    int diff_loc = sel_key - check->key;
+	    if (diff_loc > 0 && diff_loc < diff) {
+		ret = check;
+		diff = diff_loc;
+	    }
+	}
+	free(intersecting_notes);
+    }
     return ret;
 }
 

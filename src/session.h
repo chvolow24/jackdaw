@@ -177,6 +177,7 @@ typedef struct session {
     Draggable dragged_component;
     bool dragging;
     int drag_color_pulse_phase;
+    double drag_color_pulse_prop;
     struct source_mode source_mode;
     Automation *automation_recording;
     struct session_gui gui;

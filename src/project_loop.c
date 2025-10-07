@@ -23,6 +23,7 @@
 #include "audio_clip.h"
 #include "automation.h"
 #include "clipref.h"
+#include "consts.h"
 #include "eq.h"
 #include "fir_filter.h"
 #include "function_lookup.h"
@@ -101,7 +102,9 @@ void loop_project_main()
     bool scrub_block = false;
     int frames_since_event = 0;
     main_win->current_event = &e;
+    Timeline *tl;
     while (!(main_win->i_state & I_STATE_QUIT)) {
+	tl = ACTIVE_TL;
 	while (SDL_PollEvent(&e)) {
 	    frames_since_event = 0;
 	    switch (e.type) {
@@ -111,7 +114,7 @@ void loop_project_main()
 	    case SDL_WINDOWEVENT:
 		if (e.window.event == SDL_WINDOWEVENT_RESIZED) {
 		    window_resize_passive(main_win, e.window.data1, e.window.data2);
-		    ACTIVE_TL->needs_redraw = true;
+		    tl->needs_redraw = true;
 		}
 		break;
 	    case SDL_AUDIODEVICEADDED:
@@ -459,7 +462,6 @@ void loop_project_main()
 		}
 		break;
 	    case SDL_MOUSEWHEEL: {
-		Timeline *tl = ACTIVE_TL;
 		tl->needs_redraw = true;
 		if (session->dragged_component.component) {
 		    draggable_handle_scroll(&session->dragged_component, e.wheel.x, e.wheel.y);
@@ -561,7 +563,7 @@ void loop_project_main()
 		if (e.button.button == SDL_BUTTON_LEFT) {
 		    main_win->i_state &= ~I_STATE_MOUSE_L;
 		    session->dragged_component.component = NULL;
-		    automation_unset_dragging_kf(ACTIVE_TL);
+		    automation_unset_dragging_kf(tl);
 		} else if (e.button.button == SDL_BUTTON_RIGHT) {
 		    main_win->i_state &= ~I_STATE_MOUSE_R;
 		}
@@ -606,9 +608,7 @@ void loop_project_main()
 	    goto end_frame;
 	} else {
 	    frames_since_event++;
-	}
-	
-	Timeline *tl = ACTIVE_TL;
+	}	
 
 	if (tl->needs_reset) {
 	    timeline_reset(tl, false);
@@ -670,6 +670,7 @@ void loop_project_main()
 	if (session->dragging) {
 	    session->drag_color_pulse_phase++;
 	    session->drag_color_pulse_phase %= DRAG_COLOR_PULSE_PHASE_MAX;
+	    session->drag_color_pulse_prop = (sin(TAU * (double)session->drag_color_pulse_phase / DRAG_COLOR_PULSE_PHASE_MAX) + 1.0) / 2.0;
 	    tl->needs_redraw = true;
 	}
 

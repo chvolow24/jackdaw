@@ -233,7 +233,7 @@ static void track_handle_playhead_jump(Track *track)
 
 /* Invalidates continuous-play-dependent caches.
    Use this any time a "jump" occurs */
-void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes)
+void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes, bool move_grabbed_clips)
 {
     MAIN_THREAD_ONLY("timeline_set_play_position");
     Session *session = session_get();
@@ -261,7 +261,7 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes)
     for (int i=0; i<tl->num_click_tracks; i++) {	
 	click_track_bar_beat_subdiv(tl->click_tracks[i], tl->play_pos_sframes, NULL, NULL, NULL, NULL, true);
     }
-    if (session->dragging && tl->num_grabbed_clips > 0) {
+    if (move_grabbed_clips && session->dragging && tl->num_grabbed_clips > 0) {
 	timeline_grabbed_clips_move(tl, pos_diff);
 	/* for (int i=0; i<tl->num_grabbed_clips; i++) { */
 	/*     tl->grabbed_clips[i]->tl_pos += pos_diff; */
@@ -271,8 +271,9 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes)
 
     timeline_flush_unclosed_midi_notes();
     timeline_reset(tl, false);
-
 }
+
+
 
 void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes)
 {

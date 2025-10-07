@@ -87,6 +87,7 @@ static void animation_end_op(void *arg1, void *arg2)
     Label *l = (Label *)arg1;
     if (l->countdown_timer <= 0) {
 	l->animation_running = false;
+	/* l->animation->label = NULL; */
 	Timeline *tl = ACTIVE_TL;
 	tl->needs_redraw = true;
     } else {
@@ -120,6 +121,7 @@ void label_reset(Label *label, Value v)
 	    (void *)label, NULL,
 	    label->countdown_max);
 	label->animation_running = true;
+	label->animation->label = label;
 
     }
     textbox_reset_full(label->tb);
@@ -129,7 +131,10 @@ void label_destroy(Label *label)
 {
     if (label->animation_running) {
 	Animation *a = label->animation;
-	session_dequeue_animation(a);
+	if (a) {
+	    a->label = NULL;
+	    session_dequeue_animation(a);
+	}
     }
     free(label->str);
     textbox_destroy(label->tb);

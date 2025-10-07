@@ -518,7 +518,6 @@ struct source_area_draw_arg {
 };
 
 extern SDL_Color clip_ref_home_bckgrnd;
-extern SDL_Color midi_clipref_color;
 extern SDL_Color timeline_marked_bckgrnd;
 
 static void source_area_draw(void *arg1, void *arg2)
@@ -538,7 +537,7 @@ static void source_area_draw(void *arg1, void *arg2)
 	len_sframes = clip->len_sframes;
     } else {
 	mclip = session->source_mode.src_clip;
-	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(midi_clipref_color));
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.midi_clip_pink));
 	len_sframes = mclip->len_sframes;
     }
 

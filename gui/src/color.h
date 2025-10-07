@@ -14,6 +14,13 @@
 /*     SDL_Color clone; */
 /* } ColorTheme; */
 
+typedef struct color_diff { /* Signed values */
+    int r;
+    int g;
+    int b;
+    int a;
+} ColorDiff;
+
 struct colors {
     SDL_Color white;
     SDL_Color black;
@@ -49,11 +56,14 @@ struct colors {
     SDL_Color min_yellow;
     SDL_Color click_track;
     SDL_Color midi_clip_pink;
-    SDL_Color midi_clip_grabbed_pink;
+    SDL_Color midi_clip_pink_grabbed;
 
     SDL_Color freq_L;
     SDL_Color freq_R;
 };
+
+void color_diff_set(ColorDiff *diff, SDL_Color a, SDL_Color b);
+void color_diff_apply(const ColorDiff *diff, SDL_Color orig, double prop, SDL_Color *dst);
 
 
 #endif

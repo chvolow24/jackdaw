@@ -11,6 +11,7 @@
 #include "color.h"
 #include "layout.h"
 /* #include "project.h" */
+#include "piano_roll.h"
 #include "session.h"
 
 #define ERR_TIMER_MAX 100
@@ -174,6 +175,10 @@ void status_stat_drag()
     }
     Timeline *tl = ACTIVE_TL;
     char buf[64];
-    snprintf(buf, sizeof(buf), "Dragging %d clips", tl->num_grabbed_clips);
+    if (session->piano_roll) {
+	snprintf(buf, sizeof(buf), "Dragging %d notes", piano_roll_get_num_grabbed_notes());
+    } else {
+	snprintf(buf, sizeof(buf), "Dragging %d clips", tl->num_grabbed_clips);
+    }
     status_set_dragstr(buf);
 }

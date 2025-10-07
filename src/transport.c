@@ -852,8 +852,7 @@ void transport_stop_recording()
     }
     created_clips = realloc(created_clips, num_created * sizeof(ClipRef *));
     Value num_created_v = {.uint8_v = num_created};
-    user_event_push(
-	
+    user_event_push(	
 	undo_record_new_clips,
 	redo_record_new_clips,
 	NULL,
@@ -974,9 +973,9 @@ void transport_set_mark_to(Timeline *tl, int32_t pos, bool in)
 void transport_goto_mark(Timeline *tl, bool in)
 {
     if (in) {
-	timeline_set_play_position(tl, tl->in_mark_sframes);
+	timeline_set_play_position(tl, tl->in_mark_sframes, true);
     } else {
-	timeline_set_play_position(tl, tl->out_mark_sframes);
+	timeline_set_play_position(tl, tl->out_mark_sframes, true);
     }
 }
 

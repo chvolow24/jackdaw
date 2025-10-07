@@ -981,7 +981,7 @@ void click_track_goto_prox_beat(ClickTrack *tt, int direction, enum beat_promine
 	pos = s->next->start_pos;
     }
 
-    timeline_set_play_position(tl, pos);
+    timeline_set_play_position(tl, pos, true);
 }
 
 /* static enum beat_prominence timeline_get_beat_pos_range(Timeline *tl, int32_t *pos) */

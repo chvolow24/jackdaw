@@ -972,42 +972,42 @@ void user_tl_nudge_left(void *nullarg)
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    timeline_set_play_position(tl, tl->play_pos_sframes - 500);
+    timeline_set_play_position(tl, tl->play_pos_sframes - 500, true);
 }
 
 void user_tl_nudge_right(void *nullarg)
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    timeline_set_play_position(tl, tl->play_pos_sframes + 500);
+    timeline_set_play_position(tl, tl->play_pos_sframes + 500, true);
 }
 
 void user_tl_small_nudge_left(void *nullarg)
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    timeline_set_play_position(tl, tl->play_pos_sframes - 100);
+    timeline_set_play_position(tl, tl->play_pos_sframes - 100, true);
 }
 
 void user_tl_small_nudge_right(void *nullarg)
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    timeline_set_play_position(tl, tl->play_pos_sframes + 100);
+    timeline_set_play_position(tl, tl->play_pos_sframes + 100, true);
 }
 
 void user_tl_one_sample_left(void *nullarg)
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    timeline_set_play_position(tl, tl->play_pos_sframes - 1);
+    timeline_set_play_position(tl, tl->play_pos_sframes - 1, true);
 }
 
 void user_tl_one_sample_right(void *nullarg)
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    timeline_set_play_position(tl, tl->play_pos_sframes + 1);
+    timeline_set_play_position(tl, tl->play_pos_sframes + 1, true);
 }
 
 void user_tl_move_right(void *nullarg)
@@ -1130,7 +1130,7 @@ void user_tl_goto_zero(void *nullarg)
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    timeline_set_play_position(tl, 0);
+    timeline_set_play_position(tl, 0, true);
     tl->timeview.offset_left_sframes = 0;
     timeline_reset(tl, false);
 }
@@ -1152,12 +1152,12 @@ void user_tl_goto_previous_clip_boundary(void *nullarg)
 	    if (cr->tl_pos == tl->play_pos_sframes) {
 		goto goto_previous_clip;
 	    }
-	    timeline_set_play_position(tl, cr->tl_pos);
+	    timeline_set_play_position(tl, cr->tl_pos, true);
 	    timeline_reset(tl, false);
 	} else {
 	goto_previous_clip:
 	    if (clipref_before_cursor(&pos)) {
-		timeline_set_play_position(tl, pos);
+		timeline_set_play_position(tl, pos, true);
 		timeline_reset(tl, false);
 	    } else {
 		status_set_errstr("No previous clip on selected track");
@@ -1183,12 +1183,12 @@ void user_tl_goto_next_clip_boundary(void *nullarg)
 	    if (cr->tl_pos + clipref_len(cr) == tl->play_pos_sframes) {
 		goto goto_next_clip;
 	    }
-	    timeline_set_play_position(tl, cr->tl_pos + clipref_len(cr));
+	    timeline_set_play_position(tl, cr->tl_pos + clipref_len(cr), true);
 	    timeline_reset(tl, false);
 	} else {
 	goto_next_clip:
 	    if (clipref_after_cursor(&pos)) {
-		timeline_set_play_position(tl, pos);
+		timeline_set_play_position(tl, pos, true);
 		timeline_reset(tl, false);
 	    } else {
 		status_set_errstr("No subsequent clip on selected track");
@@ -3327,6 +3327,16 @@ void user_piano_roll_next_note(void *nullarg)
 void user_piano_roll_prev_note(void *nullarg)
 {
     piano_roll_prev_note();
+}
+
+void user_piano_roll_up_note(void *nullarg)
+{
+    piano_roll_up_note();
+}
+
+void user_piano_roll_down_note(void *nullarg)
+{
+    piano_roll_down_note();
 }
 
 void user_piano_roll_dur_shorter(void *nullarg)

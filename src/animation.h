@@ -23,6 +23,7 @@ typedef struct session Session;
 typedef void (*FrameOp)(void *arg1, void *arg2);
 typedef void (*EndOp)(void *arg, void *arg2);
 typedef struct animation Animation;
+typedef struct label Label;
 
 typedef struct animation {
     FrameOp frame_op;
@@ -34,6 +35,8 @@ typedef struct animation {
     /* Linked list */
     Animation *next;
     Animation *prev;
+
+    Label *label; /* non-null when label->animation_running */
 } Animation;
 
 Animation *session_queue_animation(

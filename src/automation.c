@@ -782,6 +782,7 @@ static long keyframe_arr_resize(Automation *a)
     Keyframe *old_base_ptr = a->keyframes;
     a->keyframe_arrlen *= 2;
     a->keyframes = realloc(a->keyframes, a->keyframe_arrlen * sizeof(Keyframe));
+    memset(a->keyframes + a->num_keyframes, 0, sizeof(Keyframe) * (a->keyframe_arrlen - a->num_keyframes));
     long int migration_bytes = (char *)(a->keyframes) - (char *)old_base_ptr;
     /* fprintf(stderr, "Reallocing kf array new len: %d\n", a->keyframe_arrlen); */
     if (a->current) a->current = (Keyframe *)((char *)a->current +  migration_bytes);

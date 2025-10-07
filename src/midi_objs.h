@@ -23,6 +23,12 @@
 #include <stdint.h>
 #include "portmidi.h"
 
+typedef enum note_edge {
+    NOTE_EDGE_NONE,
+    NOTE_EDGE_LEFT,
+    NOTE_EDGE_RIGHT
+} NoteEdge;
+
 typedef struct note {
     uint8_t channel;
     uint8_t key;
@@ -33,6 +39,9 @@ typedef struct note {
 
     /* Piano roll */
     bool grabbed;
+    NoteEdge grabbed_edge;
+    int32_t cached_start_rel;
+    int32_t cached_end_rel;
 } Note;
 
 typedef struct {

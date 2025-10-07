@@ -161,6 +161,9 @@ void session_dequeue_animation(Animation *a)
     if (a->next) {
 	a->next->prev = a->prev;
     }
+    if (a->label) {
+	a->label->animation_running = false;
+    }
     animation_destroy(a);
 
 }

@@ -1,6 +1,7 @@
 #include "assets.h"
 #include "clipref.h"
 #include "color.h"
+#include "consts.h"
 #include "layout.h"
 #include "layout_xml.h"
 #include "midi_clip.h"
@@ -18,7 +19,7 @@ extern struct colors colors;
 
 #define PIANO_TOP_NOTE 108
 #define PIANO_BOTTOM_NOTE 21
-#define MAX_GRABBED_NOTES 128
+#define MAX_GRABBED_NOTES 256
 #define MAX_TIED_NOTES 24
 
 enum note_dur {
@@ -30,6 +31,7 @@ enum note_dur {
     DUR_THIRTY_SECOND,
     DUR_SIXTY_FOURTH,
 };
+
 #define MAX_DUR 0
 #define MIN_DUR 6
 
@@ -70,7 +72,8 @@ struct piano_roll_state {
     MIDIClip *clip;
     ClipRef *cr;
     ClickTrack *ct;
-    Note *grabbed_notes[MAX_GRABBED_NOTES];    
+    Note *grabbed_notes[MAX_GRABBED_NOTES];
+    int num_grabbed_notes;
     Layout *layout;
     Layout *note_piano_container;
     Layout *note_canvas_lt;
@@ -141,7 +144,8 @@ static void piano_roll_init_layout(Session *session)
     state.note_canvas_lt = note_canvas;
     state.note_piano_container = layout_get_child_by_name_recursive(lt, "note_piano_container");
     /* lt->x.value = audio_rect->rect.x / main_win->dpi_scale_factor; */
-    lt->y.value = audio_rect->rect.y / main_win->dpi_scale_factor;;
+    lt->y.value = 0;
+    /* lt->y.value = audio_rect->rect.y / main_win->dpi_scale_factor;; */
     lt->w.type = REVREL;
     lt->w.value = 0; // hug the right edge
     lt->h.type = REVREL;
@@ -393,7 +397,7 @@ void piano_roll_next_note()
     int32_t pos = ACTIVE_TL->play_pos_sframes;
     Note *note = midi_clipref_get_next_note(state.cr, pos, &pos);
     if (note) {
-	timeline_set_play_position(ACTIVE_TL, pos);
+	timeline_set_play_position(ACTIVE_TL, pos, false);
 	state.selected_note = note->key;
     }
 }
@@ -404,10 +408,33 @@ void piano_roll_prev_note()
     int32_t pos = ACTIVE_TL->play_pos_sframes;
     Note *note = midi_clipref_get_prev_note(state.cr, pos, &pos);
     if (note) {
-	timeline_set_play_position(ACTIVE_TL, pos);
+	timeline_set_play_position(ACTIVE_TL, pos, false);
 	state.selected_note = note->key;
     }
 }
+
+void piano_roll_up_note()
+{
+    Session *session = session_get();
+    int32_t pos = ACTIVE_TL->play_pos_sframes;
+    Note *note = midi_clipref_up_note_at_cursor(state.cr, pos, state.selected_note);
+    if (note) {
+	timeline_set_play_position(ACTIVE_TL, pos, false);
+	state.selected_note = note->key;
+    }
+}
+
+void piano_roll_down_note()
+{
+    Session *session = session_get();
+    int32_t pos = ACTIVE_TL->play_pos_sframes;
+    Note *note = midi_clipref_down_note_at_cursor(state.cr, pos, state.selected_note);
+    if (note) {
+	timeline_set_play_position(ACTIVE_TL, pos, false);
+	state.selected_note = note->key;
+    }
+}
+
 
 
 static void reset_dur_str()
@@ -442,7 +469,7 @@ void piano_roll_insert_note()
     int32_t note_tl_end = note_tl_end_pos(note, state.cr);
     midi_clip_rectify_length(state.clip);
     if (!state.chord_mode) {
-	timeline_set_play_position(tl, note_tl_end);
+	timeline_set_play_position(tl, note_tl_end, true);
     }
 
     /* This needs some work... */
@@ -457,7 +484,7 @@ void piano_roll_insert_rest()
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     int32_t dur = get_input_dur_samples();
-    timeline_set_play_position(tl, tl->play_pos_sframes + dur);
+    timeline_set_play_position(tl, tl->play_pos_sframes + dur, false);
     
 }
 
@@ -472,7 +499,7 @@ static Note *note_at_cursor()
 	int32_t tl_end = note_tl_end_pos(note, state.cr);	
 	if (note->key == state.selected_note
 	    && playhead >= tl_start
-	    && playhead <= tl_end) {
+	    && playhead < tl_end) {
 	    return note;
 	}
 	note_i++;
@@ -480,11 +507,28 @@ static Note *note_at_cursor()
     return NULL;
 }
 
+
+/* NOTE GRAB INTERFACE */
 void piano_roll_grab_ungrab()
 {
     Note *note = note_at_cursor();
-    if (note) {
-	note->grabbed = !note->grabbed;
+    if (note && !note->grabbed) {
+	if (state.num_grabbed_notes == MAX_GRABBED_NOTES) {
+	    char msg[128];
+	    snprintf(msg, 128, "Cannot grab more than %d notes", MAX_GRABBED_NOTES);
+	    status_set_errstr(msg);
+	    return;
+	}
+	note->grabbed = true;
+	note->grabbed_edge = NOTE_EDGE_NONE;
+	state.grabbed_notes[state.num_grabbed_notes] = note;
+	state.num_grabbed_notes++;
+    } else {
+	for (int i=0; i<state.num_grabbed_notes; i++) {
+	    state.grabbed_notes[i]->grabbed = false;
+	    state.grabbed_notes[i]->grabbed_edge = false;
+	}
+	state.num_grabbed_notes = 0;
     }
 }
 
@@ -510,7 +554,14 @@ static void piano_draw()
 
 static void piano_roll_draw_notes()
 {
+    Session *session = session_get();
+
     static const int midi_piano_range = 88;
+    static ColorDiff grab_diff = {0};
+    /* static SDL_Color grab_diff = {0}; */
+    if (grab_diff.r == 0) {
+	color_diff_set(&grab_diff, colors.cerulean, colors.midi_clip_pink);
+    }
     MIDIClip *mclip = state.clip;
     SDL_Rect rect = state.note_canvas_lt->rect;
     
@@ -537,12 +588,24 @@ static void piano_roll_draw_notes()
 	float w = timeview_get_draw_x(state.tl_tv, note_end) - x;
 	float y = rect.y + round((float)(midi_piano_range - piano_note) * note_height_nominal);
 	SDL_Rect note_rect = {x, y, w, true_note_height};
-	if (note->grabbed) {
-	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.yellow));
+	if (note->grabbed && note->grabbed_edge == NOTE_EDGE_NONE) {
+	    if (session->dragging) {
+		SDL_Color pulse_color;
+		color_diff_apply(&grab_diff, colors.midi_clip_pink, session->drag_color_pulse_prop, &pulse_color);
+		/* pulse_color.r = colors.midi_clip_pink.r + grab_diff.r * session->drag_color_pulse_prop; */
+		/* pulse_color.g = colors.midi_clip_pink.g + grab_diff.g * session->drag_color_pulse_prop; */
+		/* pulse_color.b = colors.midi_clip_pink.b + grab_diff.b * session->drag_color_pulse_prop; */
+		/* pulse_color.a = colors.midi_clip_pink.a + grab_diff.a * session->drag_color_pulse_prop; */
+		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(pulse_color));
+	    } else {
+		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.cerulean));
+	    }
 	} else {
 	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.midi_clip_pink));
 	}
 	SDL_RenderFillRect(main_win->rend, &note_rect);
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
+	SDL_RenderDrawRect(main_win->rend, &note_rect);
     }
 end_draw_notes:
     pthread_mutex_unlock(&mclip->notes_arr_lock);
@@ -611,4 +674,9 @@ Textbox *piano_roll_get_solo_button()
     if (state.active)
 	return state.gui.solo_button;
     else return NULL;
+}
+
+int piano_roll_get_num_grabbed_notes()
+{
+    return state.num_grabbed_notes;
 }

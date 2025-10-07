@@ -120,8 +120,18 @@ uint32_t midi_clip_get_all_events(MIDIClip *mclip, PmEvent **dst);
 void midi_clip_read_events(MIDIClip *mclip, PmEvent *events, uint32_t num_events, enum midi_ts_type, int32_t ts_offset);
 
 /* Returns the timeline position of the next note */
+/* Note *midi_clipref_get_next_note(ClipRef *cr, int32_t from, int32_t *pos_dst); */
+
+/* Get the next note *after* "from" */
 Note *midi_clipref_get_next_note(ClipRef *cr, int32_t from, int32_t *pos_dst);
+
+/* Get the previous note *before* "from" */
 Note *midi_clipref_get_prev_note(ClipRef *cr, int32_t from, int32_t *pos_dst);
+
+/* Return the first note intersecting "cursor" with a pitch higher than "sel_key" */
+Note *midi_clipref_up_note_at_cursor(ClipRef *cr, int32_t cursor, int sel_key);
+/* Return the last note intersectig "cursor" with a pitch below "sel_key" */
+Note *midi_clipref_down_note_at_cursor(ClipRef *cr, int32_t cursor, int sel_key);
 
 int32_t note_tl_start_pos(Note *note, ClipRef *cr);
 int32_t note_tl_end_pos(Note *note, ClipRef *cr);

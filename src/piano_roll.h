@@ -15,6 +15,8 @@ void piano_roll_move_view_right();
 void piano_roll_move_note_selector(int by);
 void piano_roll_next_note();
 void piano_roll_prev_note();
+void piano_roll_up_note();
+void piano_roll_down_note();
 void piano_roll_dur_longer();
 void piano_roll_dur_shorter();
 void piano_roll_insert_note();
@@ -24,6 +26,7 @@ void piano_roll_grab_ungrab();
 
 /* externalize state */
 Textbox *piano_roll_get_solo_button();
+int piano_roll_get_num_grabbed_notes();
 
 #endif
 

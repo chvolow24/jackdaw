@@ -2151,7 +2151,7 @@ void timeline_play_speed_set(double new_speed)
     
     /* If speed crosses the zero line, need to invalidate direction-dependent caches */
     if (session->playback.play_speed * old_speed < 0.0) {
-	timeline_set_play_position(tl, tl->play_pos_sframes);
+	timeline_set_play_position(tl, tl->play_pos_sframes, false);
     }
     
     status_stat_playspeed();
@@ -2194,7 +2194,7 @@ void timeline_scroll_playhead(double dim)
 	dim *= session_get_sample_rate() * tl->timeview.sample_frames_per_pixel * PLAYHEAD_ADJUST_SCALAR_SMALL;
     }
     int32_t new_pos = tl->play_pos_sframes + dim;
-    timeline_set_play_position(ACTIVE_TL, new_pos);
+    timeline_set_play_position(ACTIVE_TL, new_pos, true);
 }
 
 

@@ -1498,6 +1498,18 @@ void mode_load_piano_roll()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
+	"piano_roll_up_note",
+	"Go to next note up",
+	user_piano_roll_up_note);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_down_note",
+	"Go to next note down",
+	user_piano_roll_down_note);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
 	"piano_roll_dur_longer",
 	"Longer note duration",
 	user_piano_roll_dur_longer);

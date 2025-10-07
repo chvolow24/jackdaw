@@ -14,6 +14,7 @@
 #include "project.h"
 #include "session.h"
 #include "status.h"
+#include "timeline.h"
 #include "user_event.h"
 
 
@@ -268,6 +269,7 @@ void timeline_grab_left_edge(Timeline *tl)
 {
     ClipRef *cr = clipref_at_cursor();
     if (!cr) return;
+    timeline_set_play_position(cr->track->tl, cr->tl_pos, false);
     timeline_clipref_grab(cr, CLIPREF_EDGE_LEFT);
     if (session_get()->dragging) {
 	status_stat_drag();
@@ -282,6 +284,7 @@ void timeline_grab_right_edge(Timeline *tl)
 {
     ClipRef *cr = clipref_at_cursor();
     if (!cr) return;
+    timeline_set_play_position(cr->track->tl, cr->tl_pos + clipref_len(cr), false);
     timeline_clipref_grab(cr, CLIPREF_EDGE_RIGHT);
     if (session_get()->dragging) {
 	status_stat_drag();
@@ -332,6 +335,9 @@ static NEW_EVENT_FN(dispose_delete_clips, "")
 
 void timeline_delete_grabbed_cliprefs(Timeline *tl)
 {
+    if (session_get()->dragging) {
+	timeline_push_grabbed_clip_move_event(tl);
+    }
     ClipRef **deleted_cliprefs = calloc(tl->num_grabbed_clips, sizeof(ClipRef *));
     for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
 	ClipRef *cr = tl->grabbed_clips[i];

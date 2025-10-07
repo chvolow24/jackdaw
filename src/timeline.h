@@ -45,7 +45,8 @@ void timeline_rescale(Timeline *tl, double sfpp_scale_factor, bool on_mouse);
 /* Invalidates continuous-play-dependent caches.
    Use this any time a "jump" occurs.
    MAIN (GUI) THREAD ONLY */
-void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes);
+/* void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes); */
+void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes, bool move_grabbed_clips);
 
 /* Use this for continuous playback incrementation.
    SDL AUDIO THREAD ONLY */

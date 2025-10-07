@@ -33,15 +33,37 @@ const struct colors colors = {
     .min_yellow = {200, 90, 0, 255},
     .click_track = {10, 30, 25, 255},
 
-    .midi_clip_pink = {237,204,232,255},
-    .midi_clip_grabbed_pink = {255,219,249,255},
+    /* .midi_clip_pink = {237,204,232,255}, */
+    .midi_clip_pink = {242, 188, 223, 230},
+    /* .midi_clip_pink = {224, 142, 74, 255}, */
+    .midi_clip_pink_grabbed = {255, 218, 243, 255},
+
     
     .freq_L = {130, 255, 255, 255},
     .freq_R = {255, 255, 130, 220},
-
-
-
 };
+
+void color_diff_set(ColorDiff *diff, SDL_Color a, SDL_Color b)
+{
+    diff->r = (int)a.r - b.r;
+    diff->g = (int)a.g - b.g;
+    diff->b = (int)a.b - b.b;
+    diff->a = (int)a.a - b.a;
+}
+
+void color_diff_apply(const ColorDiff *diff, SDL_Color orig, double prop, SDL_Color *dst)
+{
+    ColorDiff ret;
+    ret.r = orig.r + prop * diff->r;
+    ret.g = orig.g + prop * diff->g;
+    ret.b = orig.b + prop * diff->b;
+    ret.a = orig.a + prop * diff->a;
+
+    dst->r = ret.r < 0 ? 0 : ret.r > 255 ? 255 : ret.r;
+    dst->g = ret.g < 0 ? 0 : ret.g > 255 ? 255 : ret.g;
+    dst->b = ret.b < 0 ? 0 : ret.b > 255 ? 255 : ret.b;
+    dst->a = ret.a < 0 ? 0 : ret.a > 255 ? 255 : ret.a;
+}
 
 /* SDL_Color color_global_white = {255, 255, 255, 255}; */
 /* SDL_Color color_global_black = {0, 0, 0, 255}; */

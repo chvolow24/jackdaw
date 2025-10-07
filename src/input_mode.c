@@ -1537,7 +1537,21 @@ void mode_load_piano_roll()
 	"piano_roll_grab_ungrab",
 	"Grab/ungrab notes",
 	user_piano_roll_grab_ungrab);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_grab_note_left_edge",
+	"Grab left edge of note",
+	user_piano_roll_grab_note_left_edge);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_grab_note_right_edge",
+	"Grab right edge of note",
+	user_piano_roll_grab_note_right_edge);
     mode_subcat_add_fn(sc, fn);	
+
+
 
 }
 

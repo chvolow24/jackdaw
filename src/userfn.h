@@ -252,5 +252,7 @@ void user_piano_roll_dur_longer(void *nullarg);
 void user_piano_roll_insert_note(void *nullarg);
 void user_piano_roll_insert_rest(void *nullarg);
 void user_piano_roll_grab_ungrab(void *nullarg);
+void user_piano_roll_grab_note_left_edge(void *nullarg);
+void user_piano_roll_grab_note_right_edge(void *nullarg);
 
 #endif

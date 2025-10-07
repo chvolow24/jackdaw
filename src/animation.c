@@ -162,7 +162,7 @@ void session_dequeue_animation(Animation *a)
 	a->next->prev = a->prev;
     }
     if (a->label) {
-	a->label->animation_running = false;
+	a->label->animation = NULL;
     }
     animation_destroy(a);
 
@@ -195,8 +195,7 @@ void session_animations_do_frame()
 	    Animation *next  = a->next;
 	    session_dequeue_animation(a);
 	    /* animation_destroy(a); */
-	    a = next;
-	    
+	    a = next;	    
 	} else {
 	    a = a->next;
 	}

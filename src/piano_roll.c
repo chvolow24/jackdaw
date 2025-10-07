@@ -1,7 +1,7 @@
 #include "assets.h"
 #include "clipref.h"
 #include "color.h"
-#include "consts.h"
+#include "geometry.h"
 #include "layout.h"
 #include "layout_xml.h"
 #include "midi_clip.h"
@@ -509,28 +509,75 @@ static Note *note_at_cursor()
 
 
 /* NOTE GRAB INTERFACE */
+
+/* Utility fns */
+
+void grab_note(Note *note, NoteEdge edge)
+{
+    if (note->grabbed) {
+	note->grabbed_edge = edge;
+	return;
+    }
+    if (state.num_grabbed_notes == MAX_GRABBED_NOTES) {
+	char msg[128];
+	snprintf(msg, 128, "Cannot grab more than %d notes", MAX_GRABBED_NOTES);
+	status_set_errstr(msg);
+	return;
+    }
+    note->grabbed = true;
+    note->grabbed_edge = edge;
+    state.grabbed_notes[state.num_grabbed_notes] = note;
+    state.num_grabbed_notes++;
+}
+
+void ungrab_all()
+{
+    for (int i=0; i<state.num_grabbed_notes; i++) {
+	Note *note = state.grabbed_notes[i];
+	note->grabbed = false;
+	note->grabbed_edge = NOTE_EDGE_NONE;
+    }
+    state.num_grabbed_notes = 0;
+}
+
+/* HIGH-LEVEL INTERFACE */
 void piano_roll_grab_ungrab()
 {
     Note *note = note_at_cursor();
     if (note && !note->grabbed) {
-	if (state.num_grabbed_notes == MAX_GRABBED_NOTES) {
-	    char msg[128];
-	    snprintf(msg, 128, "Cannot grab more than %d notes", MAX_GRABBED_NOTES);
-	    status_set_errstr(msg);
-	    return;
-	}
-	note->grabbed = true;
-	note->grabbed_edge = NOTE_EDGE_NONE;
-	state.grabbed_notes[state.num_grabbed_notes] = note;
-	state.num_grabbed_notes++;
+	grab_note(note, NOTE_EDGE_NONE);
     } else {
-	for (int i=0; i<state.num_grabbed_notes; i++) {
-	    state.grabbed_notes[i]->grabbed = false;
-	    state.grabbed_notes[i]->grabbed_edge = false;
-	}
-	state.num_grabbed_notes = 0;
+	ungrab_all();
     }
+    if (session_get()->dragging) {
+	status_stat_drag();
+    }    
 }
+
+void piano_roll_grab_left_edge()
+{
+    Session *session = session_get();
+    Note *note = note_at_cursor();
+    if (!note) return;
+    timeline_set_play_position(ACTIVE_TL, note_tl_start_pos(note, state.cr), false);
+    grab_note(note, NOTE_EDGE_LEFT);
+    if (session_get()->dragging) {
+	status_stat_drag();
+    }    
+}
+
+void piano_roll_grab_right_edge()
+{
+    Session *session = session_get();
+    Note *note = note_at_cursor();
+    if (!note) return;
+    timeline_set_play_position(ACTIVE_TL, note_tl_end_pos(note, state.cr), false);
+    grab_note(note, NOTE_EDGE_RIGHT);
+    if (session_get()->dragging) {
+	status_stat_drag();
+    }    
+}
+
 
 
 
@@ -560,7 +607,7 @@ static void piano_roll_draw_notes()
     static ColorDiff grab_diff = {0};
     /* static SDL_Color grab_diff = {0}; */
     if (grab_diff.r == 0) {
-	color_diff_set(&grab_diff, colors.cerulean, colors.midi_clip_pink);
+	color_diff_set(&grab_diff, colors.midi_note_orange_grabbed, colors.midi_note_orange);
     }
     MIDIClip *mclip = state.clip;
     SDL_Rect rect = state.note_canvas_lt->rect;
@@ -568,7 +615,7 @@ static void piano_roll_draw_notes()
     float note_height_nominal = (float)rect.h / midi_piano_range;
     float true_note_height = note_height_nominal;
     if (true_note_height < 1.0) true_note_height = 1.0;
-    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.midi_clip_pink)); */
+    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.midi_note_orange)); */
     pthread_mutex_lock(&mclip->notes_arr_lock);
     int32_t first_note = midi_clipref_check_get_first_note(state.cr);
     if (first_note < 0) {
@@ -591,21 +638,41 @@ static void piano_roll_draw_notes()
 	if (note->grabbed && note->grabbed_edge == NOTE_EDGE_NONE) {
 	    if (session->dragging) {
 		SDL_Color pulse_color;
-		color_diff_apply(&grab_diff, colors.midi_clip_pink, session->drag_color_pulse_prop, &pulse_color);
-		/* pulse_color.r = colors.midi_clip_pink.r + grab_diff.r * session->drag_color_pulse_prop; */
-		/* pulse_color.g = colors.midi_clip_pink.g + grab_diff.g * session->drag_color_pulse_prop; */
-		/* pulse_color.b = colors.midi_clip_pink.b + grab_diff.b * session->drag_color_pulse_prop; */
-		/* pulse_color.a = colors.midi_clip_pink.a + grab_diff.a * session->drag_color_pulse_prop; */
+		color_diff_apply(&grab_diff, colors.midi_note_orange, session->drag_color_pulse_prop, &pulse_color);
+		/* pulse_color.r = colors.midi_note_orange...r + grab_diff.r * session->drag_color_pulse_prop; */
+		/* pulse_color.g = colors.midi_note_orange.g + grab_diff.g * session->drag_color_pulse_prop; */
+		/* pulse_color.b = colors.midi_note_orange.b + grab_diff.b * session->drag_color_pulse_prop; */
+		/* pulse_color.a = colors.midi_note_orange.a + grab_diff.a * session->drag_color_pulse_prop; */
 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(pulse_color));
 	    } else {
-		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.cerulean));
+		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.midi_note_orange_grabbed));
 	    }
 	} else {
-	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.midi_clip_pink));
+	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.midi_note_orange));
 	}
 	SDL_RenderFillRect(main_win->rend, &note_rect);
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
 	SDL_RenderDrawRect(main_win->rend, &note_rect);
+
+	/* DRAW BUMPERS */
+	
+	static const int bumper_w = 10;
+	static const int bumper_pad_h = 1;
+	static const int bumper_pad_v = -4;
+	static const int bumper_corner_r = 6;
+	int bumper_gb = 0;
+	if (session->dragging) {
+	    bumper_gb = 200 * session->drag_color_pulse_prop;
+	}
+	if (note->grabbed_edge == NOTE_EDGE_LEFT) {
+	    SDL_SetRenderDrawColor(main_win->rend, 255, bumper_gb, bumper_gb, 200);
+	    SDL_Rect bumper = {note_rect.x + bumper_pad_h, note_rect.y + bumper_pad_v, bumper_w, note_rect.h - bumper_pad_v * 2};
+	    geom_fill_rounded_rect(main_win->rend, &bumper, bumper_corner_r);	
+	} else if (note->grabbed_edge == NOTE_EDGE_RIGHT) {
+	    SDL_SetRenderDrawColor(main_win->rend, 255, bumper_gb, bumper_gb, 200);
+	    SDL_Rect bumper = {note_rect.x + note_rect.w - bumper_pad_h - bumper_w, note_rect.y + bumper_pad_v, bumper_w, note_rect.h - bumper_pad_v * 2};
+	    geom_fill_rounded_rect(main_win->rend, &bumper, bumper_corner_r);	
+	}
     }
 end_draw_notes:
     pthread_mutex_unlock(&mclip->notes_arr_lock);
@@ -633,7 +700,7 @@ void piano_roll_draw()
 {
     if (!state.clip) return;
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.control_bar_background_grey));
-    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.midi_clip_pink)); */
+    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.midi_note_orange)); */
     SDL_RenderFillRect(main_win->rend, &state.note_canvas_lt->rect);
     piano_roll_draw_notes();
     piano_draw();

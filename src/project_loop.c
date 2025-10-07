@@ -102,9 +102,7 @@ void loop_project_main()
     bool scrub_block = false;
     int frames_since_event = 0;
     main_win->current_event = &e;
-    Timeline *tl;
     while (!(main_win->i_state & I_STATE_QUIT)) {
-	tl = ACTIVE_TL;
 	while (SDL_PollEvent(&e)) {
 	    frames_since_event = 0;
 	    switch (e.type) {
@@ -114,7 +112,7 @@ void loop_project_main()
 	    case SDL_WINDOWEVENT:
 		if (e.window.event == SDL_WINDOWEVENT_RESIZED) {
 		    window_resize_passive(main_win, e.window.data1, e.window.data2);
-		    tl->needs_redraw = true;
+		    ACTIVE_TL->needs_redraw = true;
 		}
 		break;
 	    case SDL_AUDIODEVICEADDED:
@@ -226,8 +224,8 @@ void loop_project_main()
 		/*     lt->y.value = 0.3; */
 		/*     piano_init(&piano, lt); */
 		    /* synth_save_preset(); */
-		/*     Timeline *tl = ACTIVE_TL; */
-		/*     Track *t = timeline_selected_track(tl); */
+		/*     Timeline *ACTIVE_TL = ACTIVE_ACTIVE_TL; */
+		/*     Track *t = timeline_selected_track(ACTIVE_TL); */
 		/*     if (t && t->synth) */
 		/* 	synth_write_preset_file("synth_preset.jsynth", t->synth); */
 		/*     /\* FILE *f = fopen("test_ser.txt", "w"); *\/ */
@@ -462,6 +460,7 @@ void loop_project_main()
 		}
 		break;
 	    case SDL_MOUSEWHEEL: {
+		Timeline *tl = ACTIVE_TL;
 		tl->needs_redraw = true;
 		if (session->dragged_component.component) {
 		    draggable_handle_scroll(&session->dragged_component, e.wheel.x, e.wheel.y);
@@ -563,7 +562,7 @@ void loop_project_main()
 		if (e.button.button == SDL_BUTTON_LEFT) {
 		    main_win->i_state &= ~I_STATE_MOUSE_L;
 		    session->dragged_component.component = NULL;
-		    automation_unset_dragging_kf(tl);
+		    automation_unset_dragging_kf(ACTIVE_TL);
 		} else if (e.button.button == SDL_BUTTON_RIGHT) {
 		    main_win->i_state &= ~I_STATE_MOUSE_R;
 		}
@@ -604,6 +603,7 @@ void loop_project_main()
 		
 	} /* End event handling */
 
+	Timeline *tl = ACTIVE_TL;
 	if (!session->playback.playing && frames_since_event >= IDLE_AFTER_N_FRAMES) {
 	    goto end_frame;
 	} else {

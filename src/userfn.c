@@ -3364,6 +3364,17 @@ void user_piano_roll_grab_ungrab(void *nullarg)
     piano_roll_grab_ungrab();
 }
 
+void user_piano_roll_grab_note_left_edge(void *nullarg)
+{
+    piano_roll_grab_left_edge();
+}
+
+void user_piano_roll_grab_note_right_edge(void *nullarg)
+{
+    piano_roll_grab_right_edge();
+}
+
+
 
 
 

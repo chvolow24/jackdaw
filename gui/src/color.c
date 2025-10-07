@@ -38,6 +38,9 @@ const struct colors colors = {
     /* .midi_clip_pink = {224, 142, 74, 255}, */
     .midi_clip_pink_grabbed = {255, 218, 243, 255},
 
+    .midi_note_orange = {200, 120, 100, 255},
+    .midi_note_orange_grabbed = {255, 215, 100, 255},
+
     
     .freq_L = {130, 255, 255, 255},
     .freq_R = {255, 255, 130, 220},

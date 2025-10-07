@@ -78,24 +78,26 @@ extern Project *proj;
 static void animation_frame_op(void *arg1, void *arg2)
 {
     Label *l = (Label *)arg1;
-    if (l->countdown_timer > 0) 
+    if (l->countdown_timer >= 0) {
 	l->countdown_timer--;
+    }
 }
 static void animation_end_op(void *arg1, void *arg2)
 {
     Session *session = session_get();
     Label *l = (Label *)arg1;
     if (l->countdown_timer <= 0) {
-	l->animation_running = false;
-	/* l->animation->label = NULL; */
+	l->animation = NULL;
 	Timeline *tl = ACTIVE_TL;
 	tl->needs_redraw = true;
     } else {
+	l->animation->label = NULL;
 	l->animation = session_queue_animation(
 	    animation_frame_op, animation_end_op,
 	    (void *)l, NULL,
 	    l->countdown_timer);
-
+	/* l->animation_running = true; */
+	l->animation->label = l;
     }
 }
 
@@ -115,12 +117,12 @@ void label_reset(Label *label, Value v)
 	layout_set_values_from_rect(label->tb->layout);
     }
     label->countdown_timer = label->countdown_max;
-    if (!label->animation_running) {
+    if (!label->animation) {
 	label->animation = session_queue_animation(
 	    animation_frame_op, animation_end_op,
 	    (void *)label, NULL,
 	    label->countdown_max);
-	label->animation_running = true;
+	/* label->animation_running = true; */
 	label->animation->label = label;
 
     }
@@ -129,12 +131,9 @@ void label_reset(Label *label, Value v)
 
 void label_destroy(Label *label)
 {
-    if (label->animation_running) {
-	Animation *a = label->animation;
-	if (a) {
-	    a->label = NULL;
-	    session_dequeue_animation(a);
-	}
+    if (label->animation) {
+	label->animation->label = NULL;
+	session_dequeue_animation(label->animation);
     }
     free(label->str);
     textbox_destroy(label->tb);

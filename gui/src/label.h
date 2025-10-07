@@ -18,7 +18,7 @@ typedef struct label {
     char *str;
     int max_len;
     Textbox *tb;
-    bool animation_running;
+    /* bool animation_running; */
     int countdown_timer;
     int countdown_max;
     ValType val_type;

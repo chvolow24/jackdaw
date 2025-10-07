@@ -276,7 +276,6 @@ void timeline_grab_left_edge(Timeline *tl)
     }    
 
     tl->needs_redraw = true;
-
 }
 
 /* Grab right edge of clip at cursor */

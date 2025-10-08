@@ -242,7 +242,7 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes, bool move
     
     int32_t pos_diff = abs_pos_sframes - tl->play_pos_sframes;
     
-    if (session->dragging && tl->num_grabbed_clips > 0) {
+    if (session->dragging) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
 
@@ -261,7 +261,7 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes, bool move
     for (int i=0; i<tl->num_click_tracks; i++) {	
 	click_track_bar_beat_subdiv(tl->click_tracks[i], tl->play_pos_sframes, NULL, NULL, NULL, NULL, true);
     }
-    if (move_grabbed_clips && session->dragging && tl->num_grabbed_clips > 0) {
+    if (move_grabbed_clips && session->dragging) {
 	timeline_grabbed_clips_move(tl, pos_diff);
 	/* for (int i=0; i<tl->num_grabbed_clips; i++) { */
 	/*     tl->grabbed_clips[i]->tl_pos += pos_diff; */
@@ -303,39 +303,6 @@ void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes)
 	clock_gettime(CLOCK_MONOTONIC, &tl->play_pos_moved_at);
 	if (session->dragging) {
 	    timeline_grabbed_clips_move(tl, move_by_sframes);
-	    /* for (uint8_t i=0; i<tl->num_grabbed_clips; i++) { */
-	    /* 	ClipRef *cr = tl->grabbed_clips[i]; */
-	    /* 	int32_t clip_len = cr->type == CLIP_AUDIO ? ((Clip *)cr->source_clip)->len_sframes : ((MIDIClip *)cr->source_clip)->len_sframes; */
-	    /* 	switch (cr->grabbed_edge) { */
-	    /* 	case CLIPREF_EDGE_NONE: */
-	    /* 	    cr->tl_pos += move_by_sframes; */
-	    /* 	    break; */
-	    /* 	case CLIPREF_EDGE_LEFT: */
-	    /* 	    cr->start_in_clip += move_by_sframes; */
-	    /* 	    if (cr->start_in_clip < 0) cr->start_in_clip = 0; */
-	    /* 	    if (cr->start_in_clip > clip_len) cr->start_in_clip = clip_len - 2; */
-	    /* 	    if (cr->start_in_clip > cr->end_in_clip) { */
-	    /* 		cr->end_in_clip = cr->start_in_clip; */
-	    /* 	    } */
-	    /* 	    cr->tl_pos += move_by_sframes; */
-	    /* 	    break; */
-	    /* 	case CLIPREF_EDGE_RIGHT: */
-	    /* 	    cr->end_in_clip += move_by_sframes; */
-	    /* 	    if (cr->end_in_clip <= 0) cr->end_in_clip = 1; */
-	    /* 	    if (cr->end_in_clip > clip_len) cr->end_in_clip = clip_len; */
-	    /* 	    if (cr->end_in_clip < cr->start_in_clip) { */
-	    /* 		cr->end_in_clip = cr->start_in_clip; */
-	    /* 	    } */
-	    /* 	    break; */
-		    
-	    /* 	} */
-	    /* 	/\* if (cr->grabbed_edge == CLIPREF_EDGE_NONE) { *\/ */
-	    /* 	/\*     cr->tl_pos += move_by_sframes; *\/ */
-	    /* 	/\* } else if ({ *\/ */
-
-	    /* 	/\* } *\/ */
-	    /* 	/\* clipref_reset(cr); *\/ */
-	    /* } */
 	}
     }
     if (session->playback.lock_view_to_playhead) {

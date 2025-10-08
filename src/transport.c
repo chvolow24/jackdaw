@@ -271,7 +271,9 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     } else {
 	int32_t diff = tl->read_pos_sframes - tl->play_pos_sframes;
 	/* timeline_move_play_position(tl, session->playback.play_speed * stream_len_samples / proj->channels); */
-	timeline_move_play_position(tl, diff);
+	if (diff != 0) {
+	    timeline_move_play_position(tl, diff);
+	}
     }
     session_do_ongoing_changes(session, JDAW_THREAD_PLAYBACK);
     session_flush_val_changes(session, JDAW_THREAD_PLAYBACK);
@@ -550,6 +552,11 @@ void transport_stop_playback()
     }
     tl->buf_read_pos = 0;
     tl->buf_write_pos = 0;
+
+    /* TODO: MAYBE */
+    /* tl->read_pos_sframes = tl->play_pos_sframes; */
+
+    
     session->playback.playing = false;
     /* pthread_kill(proj->dsp_thread, SIGINT); */
     /* fprintf(stdout, "Cancelled!\n"); */

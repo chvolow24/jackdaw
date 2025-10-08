@@ -26,6 +26,8 @@ void piano_roll_grab_ungrab();
 void piano_roll_grab_left_edge();
 void piano_roll_grab_right_edge();
 
+void piano_roll_grabbed_notes_move(int32_t move_by_sframes);
+
 
 /* externalize state */
 Textbox *piano_roll_get_solo_button();

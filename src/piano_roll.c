@@ -129,7 +129,6 @@ static int32_t get_input_dur_samples()
 static void piano_roll_init_layout(Session *session)
 {
     if (state.layout) return; /* Already init'd */
-    Layout *audio_rect = layout_get_child_by_name_recursive(session->gui.layout, "audio_rect");
     Layout *lt = layout_add_child(session->gui.layout);
     layout_read_xml_to_lt(lt, PIANO_ROLL_LT_PATH);
     state.console_lt = layout_get_child_by_name_recursive(lt, "piano_roll_console");
@@ -373,11 +372,15 @@ void piano_roll_move_view_right()
 }
 
 
+
+void piano_roll_grabbed_notes_move_vertical(int move_by);
 void piano_roll_move_note_selector(int by)
 {
+    int orig = state.selected_note;
     state.selected_note += by;
     if (state.selected_note > PIANO_TOP_NOTE) state.selected_note = PIANO_TOP_NOTE;
     else if (state.selected_note < PIANO_BOTTOM_NOTE) state.selected_note = PIANO_BOTTOM_NOTE;
+    piano_roll_grabbed_notes_move_vertical(state.selected_note - orig);
 }
 
 /* void piano_roll_note_up(int count) */
@@ -512,32 +515,50 @@ static Note *note_at_cursor()
 
 /* Utility fns */
 
-void grab_note(Note *note, NoteEdge edge)
+/* void grab_note(Note *note, NoteEdge edge) */
+/* { */
+/*     if (note->grabbed) { */
+/* 	note->grabbed_edge = edge; */
+/* 	return; */
+/*     } */
+/*     if (state.num_grabbed_notes == MAX_GRABBED_NOTES) { */
+/* 	char msg[128]; */
+/* 	snprintf(msg, 128, "Cannot grab more than %d notes", MAX_GRABBED_NOTES); */
+/* 	status_set_errstr(msg); */
+/* 	return; */
+/*     } */
+/*     note->grabbed = true; */
+/*     note->grabbed_edge = edge; */
+/*     state.grabbed_notes[state.num_grabbed_notes] = note; */
+/*     state.num_grabbed_notes++; */
+/* } */
+
+/* void ungrab_all() */
+/* { */
+/*     for (int i=0; i<state.num_grabbed_notes; i++) { */
+/* 	Note *note = state.grabbed_notes[i]; */
+/* 	note->grabbed = false; */
+/* 	note->grabbed_edge = NOTE_EDGE_NONE; */
+/*     } */
+/*     state.num_grabbed_notes = 0; */
+/* } */
+void piano_roll_grabbed_notes_move_vertical(int move_by)
 {
-    if (note->grabbed) {
-	note->grabbed_edge = edge;
-	return;
+    if (session_get()->dragging) {
+	for (int i=0; i<state.clip->num_grabbed_notes; i++) {
+	    Note *note = state.clip->grabbed_notes[i];
+	    if ((int)note->key + move_by < 0) note->key = 0;
+	    else if ((int)note->key + move_by > 127) note->key = 127;
+	    else note->key += move_by;
+	}
     }
-    if (state.num_grabbed_notes == MAX_GRABBED_NOTES) {
-	char msg[128];
-	snprintf(msg, 128, "Cannot grab more than %d notes", MAX_GRABBED_NOTES);
-	status_set_errstr(msg);
-	return;
-    }
-    note->grabbed = true;
-    note->grabbed_edge = edge;
-    state.grabbed_notes[state.num_grabbed_notes] = note;
-    state.num_grabbed_notes++;
 }
 
-void ungrab_all()
+TEST_FN_DECL(check_note_order, MIDIClip *mclip);
+
+void piano_roll_grabbed_notes_move(int32_t move_by)
 {
-    for (int i=0; i<state.num_grabbed_notes; i++) {
-	Note *note = state.grabbed_notes[i];
-	note->grabbed = false;
-	note->grabbed_edge = NOTE_EDGE_NONE;
-    }
-    state.num_grabbed_notes = 0;
+    midi_clip_grabbed_notes_move(state.clip, move_by);
 }
 
 /* HIGH-LEVEL INTERFACE */
@@ -545,9 +566,10 @@ void piano_roll_grab_ungrab()
 {
     Note *note = note_at_cursor();
     if (note && !note->grabbed) {
-	grab_note(note, NOTE_EDGE_NONE);
+	/* grab_note(note, NOTE_EDGE_NONE); */
+	midi_clip_grab_note(state.clip, note, NOTE_EDGE_NONE);
     } else {
-	ungrab_all();
+	midi_clip_ungrab_all(state.clip);
     }
     if (session_get()->dragging) {
 	status_stat_drag();
@@ -560,10 +582,11 @@ void piano_roll_grab_left_edge()
     Note *note = note_at_cursor();
     if (!note) return;
     timeline_set_play_position(ACTIVE_TL, note_tl_start_pos(note, state.cr), false);
-    grab_note(note, NOTE_EDGE_LEFT);
+    midi_clip_grab_note(state.clip, note, NOTE_EDGE_LEFT);
+    /* grab_note(note, NOTE_EDGE_RIGHT); */
     if (session_get()->dragging) {
 	status_stat_drag();
-    }    
+    }
 }
 
 void piano_roll_grab_right_edge()
@@ -572,7 +595,8 @@ void piano_roll_grab_right_edge()
     Note *note = note_at_cursor();
     if (!note) return;
     timeline_set_play_position(ACTIVE_TL, note_tl_end_pos(note, state.cr), false);
-    grab_note(note, NOTE_EDGE_RIGHT);
+    midi_clip_grab_note(state.clip, note, NOTE_EDGE_RIGHT);
+    /* grab_note(note, NOTE_EDGE_RIGHT); */
     if (session_get()->dragging) {
 	status_stat_drag();
     }    
@@ -747,3 +771,5 @@ int piano_roll_get_num_grabbed_notes()
 {
     return state.num_grabbed_notes;
 }
+
+

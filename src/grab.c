@@ -11,6 +11,7 @@
 #include "audio_clip.h"
 #include "clipref.h"
 #include "grab.h"
+#include "piano_roll.h"
 #include "project.h"
 #include "session.h"
 #include "status.h"
@@ -397,6 +398,11 @@ void timeline_grab_marked_range(Timeline *tl, ClipRefEdge edge)
 /* Use this function every time the playhead moves while clips are grabbed */
 void timeline_grabbed_clips_move(Timeline *tl, int32_t move_by_sframes)
 {
+    Session *session = session_get();
+    if (session->piano_roll) {
+	piano_roll_grabbed_notes_move(move_by_sframes);
+	return;
+    }
     for (int i=0; i<tl->num_grabbed_clips; i++) {
 	ClipRef *cr = tl->grabbed_clips[i];
 	int32_t clip_len;

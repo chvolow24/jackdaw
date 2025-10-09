@@ -313,3 +313,4 @@
   - g-j		: piano_roll_grab_note_left_edge
   - g-l		: piano_roll_grab_note_right_edge
   - g-k		: piano_roll_grab_no_edge
+  - S-g		: piano_roll_grab_marked_range

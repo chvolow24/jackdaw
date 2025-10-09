@@ -3375,6 +3375,12 @@ void user_piano_roll_grab_note_right_edge(void *nullarg)
 }
 
 
+void user_piano_roll_grab_marked_range(void *nullarg)
+{
+    piano_roll_grab_marked_range();
+}
+
+
 
 
 

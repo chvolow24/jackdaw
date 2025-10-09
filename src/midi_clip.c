@@ -620,6 +620,35 @@ int midi_clipref_notes_intersecting_point(ClipRef *cr, int32_t tl_pos, Note ***d
     return num_intersecting_notes;
 }
 
+int midi_clipref_notes_intersecting_area(ClipRef *cr, int32_t range_start, int32_t range_end, int bottom_note, int top_note, Note ***dst)
+{
+    const int max_intersecting_notes = 4096;
+    Note **intersecting_notes = malloc(max_intersecting_notes * sizeof(Note *));
+    int num_intersecting_notes = 0;
+    int32_t note_i = midi_clipref_check_get_first_note(cr);
+    MIDIClip *mclip = cr->source_clip;
+    while (note_i < mclip->num_notes) {
+	Note *note = mclip->notes + note_i;
+	if (note->key < bottom_note || note->key > top_note) continue;
+	int32_t note_start = note_tl_start_pos(note, cr);
+	int32_t note_end = note_tl_end_pos(note, cr);
+	if (note_start < range_end && note_end > range_start) {
+	    intersecting_notes[num_intersecting_notes] = note;
+	    num_intersecting_notes++;
+	    if (num_intersecting_notes == max_intersecting_notes) break;
+	} else if (note_start > range_end) {
+	    break;
+	}
+	note_i++;
+    }
+    if (dst && num_intersecting_notes > 0) {
+	*dst = malloc(sizeof(Note *) * num_intersecting_notes);
+	memcpy(*dst, intersecting_notes, sizeof(Note *) * num_intersecting_notes);
+    }
+    free(intersecting_notes);
+    return num_intersecting_notes;
+}
+
 Note *midi_clipref_up_note_at_cursor(ClipRef *cr, int32_t cursor, int sel_key)
 {
     Note **intersecting_notes = NULL;
@@ -724,6 +753,17 @@ void midi_clip_ungrab_all(MIDIClip *mclip)
 	note->grabbed_edge = NOTE_EDGE_NONE;
     }
     mclip->num_grabbed_notes = 0;
+}
+
+void midi_clipref_grab_range(ClipRef *cr, int32_t tl_start, int32_t tl_end)
+{
+    MIDIClip *mclip = cr->source_clip;
+    Note **intersecting;
+    int num_intersecting = midi_clipref_notes_intersecting_area(cr, tl_start, tl_end, 0, 127, &intersecting);
+    for (int i=0; i<num_intersecting; i++) {
+	midi_clip_grab_note(mclip, intersecting[i], NOTE_EDGE_NONE);
+    }
+    free(intersecting);
 }
 
 void midi_clip_grabbed_notes_move(MIDIClip *mclip, int32_t move_by)

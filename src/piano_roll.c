@@ -602,6 +602,12 @@ void piano_roll_grab_right_edge()
     }    
 }
 
+void piano_roll_grab_marked_range()
+{
+    Timeline *tl = state.cr->track->tl;
+    midi_clipref_grab_range(state.cr, tl->in_mark_sframes, tl->out_mark_sframes);
+}
+
 
 
 

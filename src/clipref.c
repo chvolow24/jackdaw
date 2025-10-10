@@ -351,7 +351,8 @@ ClipRef *clipref_before_cursor(int32_t *pos_dst)
 	    }
 	}
     }
-    *pos_dst = end;
+    if (pos_dst)
+	*pos_dst = end;
     return ret;
 }
 
@@ -370,8 +371,10 @@ ClipRef *clipref_after_cursor(int32_t *pos_dst)
 	int32_t cr_start = cr->tl_pos;
 	if (cr_start > tl->play_pos_sframes && cr_start <= start) {
 	    start = cr_start;
-	    *pos_dst = cr_start;
+	    if (pos_dst)
+		*pos_dst = cr_start;
 	    ret = cr;
+	    break;
 	}
     }
     return ret;

@@ -37,6 +37,10 @@ void piano_roll_toggle_chord_mode();
 Textbox *piano_roll_get_solo_button();
 int piano_roll_get_num_grabbed_notes();
 
+void piano_roll_mouse_click(SDL_Point mousep);
+void piano_roll_mouse_motion(SDL_Point mousep);
+void piano_roll_mouse_up(SDL_Point mousep);
+
 #endif
 
 

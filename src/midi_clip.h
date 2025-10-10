@@ -144,6 +144,7 @@ int32_t note_tl_end_pos(Note *note, ClipRef *cr);
 void midi_clip_grab_note(MIDIClip *mclip, Note *note, NoteEdge edge);
 void midi_clip_ungrab_all(MIDIClip *mclip);
 void midi_clipref_grab_range(ClipRef *cr, int32_t tl_start, int32_t tl_end);
+void midi_clipref_grab_area(ClipRef *cr, int32_t tl_start, int32_t tl_end, int bottom_note, int top_note);
 void midi_clip_grabbed_notes_move(MIDIClip *mclip, int32_t move_by);
 
 void midi_clip_check_reset_bounds(MIDIClip *mc);

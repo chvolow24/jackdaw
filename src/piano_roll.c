@@ -2,6 +2,7 @@
 #include "clipref.h"
 #include "color.h"
 #include "geometry.h"
+#include "input.h"
 #include "layout.h"
 #include "layout_xml.h"
 #include "midi_clip.h"
@@ -90,7 +91,10 @@ struct piano_roll_state {
     /* Note *tied_notes[MAX_TIED_NOTES]; */
 
     struct piano_roll_gui gui;
-    
+
+    bool mouse_sel_rect_active;
+    SDL_Rect mouse_sel_rect;
+    SDL_Point mouse_sel_rect_origin;
 };
 
 
@@ -432,26 +436,78 @@ void piano_roll_move_note_selector(int by)
 /*     if (state.selected_note < PIANO_BOTTOM_NOTE) state.selected_note = PIANO_BOTTOM_NOTE; */
 /* } */
 
+
 void piano_roll_next_note()
 {
     Session *session = session_get();
-    int32_t pos = ACTIVE_TL->play_pos_sframes;
-    Note *note = midi_clipref_get_next_note(state.cr, pos, &pos);
-    if (note) {
-	timeline_set_play_position(ACTIVE_TL, pos, false);
-	state.selected_note = note->key;
+    int32_t play_pos_rel = ACTIVE_TL->play_pos_sframes - state.cr->tl_pos + state.cr->start_in_clip;
+    /* Note *note = midi_clipref_get_next_note(state.cr, pos, &pos); */
+    int32_t note_i = midi_clipref_check_get_first_note(state.cr);
+    int32_t last_note_i = midi_clipref_check_get_last_note(state.cr);
+    int32_t diff_min = INT32_MAX;
+    int32_t set_pos;
+    Note *sel_note = NULL;
+    while (note_i <= last_note_i) {
+	Note *note = state.clip->notes + note_i;
+	int32_t diff = note->start_rel - play_pos_rel;
+	if (diff > 0 && diff < diff_min) {
+	    diff_min = diff;
+	    set_pos = note_tl_start_pos(note, state.cr);
+	    sel_note = note;
+	    /* ret = note; */
+	}
+	diff = note->end_rel - play_pos_rel;
+	if (diff > 0 && diff < diff_min) {
+	    diff_min = diff;
+	    set_pos = note_tl_end_pos(note, state.cr);
+	    sel_note = note;
+	}
+	note_i++;
+    }
+    if (sel_note) {
+	timeline_set_play_position(ACTIVE_TL, set_pos, false);
+	state.selected_note = sel_note->key;
     }
 }
 
 void piano_roll_prev_note()
 {
     Session *session = session_get();
-    int32_t pos = ACTIVE_TL->play_pos_sframes;
-    Note *note = midi_clipref_get_prev_note(state.cr, pos, &pos);
-    if (note) {
-	timeline_set_play_position(ACTIVE_TL, pos, false);
-	state.selected_note = note->key;
+    int32_t play_pos_rel = ACTIVE_TL->play_pos_sframes - state.cr->tl_pos + state.cr->start_in_clip;
+    /* Note *note = midi_clipref_get_next_note(state.cr, pos, &pos); */
+    int32_t note_i = midi_clipref_check_get_first_note(state.cr);
+    int32_t last_note_i = midi_clipref_check_get_last_note(state.cr);
+    int32_t diff_min = INT32_MAX;
+    int32_t set_pos;
+    Note *sel_note = NULL;
+    while (note_i <= last_note_i) {
+	Note *note = state.clip->notes + note_i;
+	int32_t diff = play_pos_rel - note->start_rel;
+	if (diff > 0 && diff < diff_min) {
+	    diff_min = diff;
+	    set_pos = note_tl_start_pos(note, state.cr);
+	    sel_note = note;
+	    /* ret = note; */
+	}
+	diff = play_pos_rel - note->end_rel;
+	if (diff > 0 && diff < diff_min) {
+	    diff_min = diff;
+	    set_pos = note_tl_end_pos(note, state.cr);
+	    sel_note = note;
+	}
+	note_i++;
     }
+    if (sel_note) {
+	timeline_set_play_position(ACTIVE_TL, set_pos, false);
+	state.selected_note = sel_note->key;
+    }
+    /* Session *session = session_get(); */
+    /* int32_t pos = ACTIVE_TL->play_pos_sframes; */
+    /* Note *note = midi_clipref_get_prev_note(state.cr, pos, &pos); */
+    /* if (note) { */
+    /* 	timeline_set_play_position(ACTIVE_TL, pos, false); */
+    /* 	state.selected_note = note->key; */
+    /* } */
 }
 
 void piano_roll_up_note()
@@ -537,8 +593,6 @@ void piano_roll_insert_note()
     /* midi_clip_rectify_length(state.clip); */
     if (!state.chord_mode) {
 	timeline_set_play_position(tl, note_tl_end, false);
-    } else {
-	piano_roll_toggle_chord_mode();
     }
     /* if (state.tie) { */
     /* 	if (state.clip->num_grabbed_notes == 0) { */
@@ -882,6 +936,13 @@ void piano_roll_draw()
     textbox_draw(state.gui.dur_shorter_button);
     textbox_draw(state.gui.tie_button);
     textbox_draw(state.gui.chord_button);
+
+    if (state.mouse_sel_rect_active) {
+	SDL_SetRenderDrawColor(main_win->rend, 200, 200, 255, 30);
+	SDL_RenderFillRect(main_win->rend, &state.mouse_sel_rect);
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.grey));
+	SDL_RenderDrawRect(main_win->rend, &state.mouse_sel_rect);
+    }
 }
 
 
@@ -900,3 +961,62 @@ int piano_roll_get_num_grabbed_notes()
 }
 
 
+
+
+/* Mouse functions */
+
+static void reset_mouse_sel_rect(SDL_Point mousep)
+{
+    SDL_Point true_orig = state.mouse_sel_rect_origin;
+    int w;
+    int h;
+    if (mousep.x < true_orig.x) {
+	w = true_orig.x - mousep.x;
+	true_orig.x = mousep.x;
+    } else {
+	w = mousep.x - true_orig.x;
+    }
+    if (mousep.y < true_orig.y) {
+	h = true_orig.y - mousep.y;
+	true_orig.y = mousep.y;
+    } else {
+	h = mousep.y - true_orig.y;
+    }
+    state.mouse_sel_rect = (SDL_Rect){true_orig.x, true_orig.y, w, h};
+}
+
+static bool mouse_motion_occurred = false;
+void piano_roll_mouse_click(SDL_Point mousep)
+{
+    state.mouse_sel_rect_active = true;
+    state.mouse_sel_rect_origin = mousep;
+    reset_mouse_sel_rect(mousep);
+    mouse_motion_occurred = false;
+}
+
+void piano_roll_mouse_motion(SDL_Point mousep)
+{
+    if (main_win->i_state & I_STATE_MOUSE_L) {
+	reset_mouse_sel_rect(mousep);
+    }
+    mouse_motion_occurred = true;
+}
+
+void piano_roll_mouse_up(SDL_Point mousep)
+{
+    if (!mouse_motion_occurred) {
+	timeline_set_play_position(state.cr->track->tl, timeview_get_pos_sframes(state.tl_tv, mousep.x), false);
+	return;
+    }
+    mouse_motion_occurred = false;
+    midi_clip_ungrab_all(state.clip);
+    state.mouse_sel_rect_active = false;
+    int sel_piano_note_top = 88 - 88 * (state.mouse_sel_rect.y - state.layout->rect.y) / state.layout->rect.h;
+    int sel_piano_note_bottom = 88 - 88 * (state.mouse_sel_rect.y + state.mouse_sel_rect.h - state.layout->rect.y) / state.layout->rect.h;
+    midi_clipref_grab_area(
+	state.cr,
+	timeview_get_pos_sframes(state.tl_tv, state.mouse_sel_rect.x),
+	timeview_get_pos_sframes(state.tl_tv, state.mouse_sel_rect.x + state.mouse_sel_rect.w),
+	sel_piano_note_bottom + 20,
+	sel_piano_note_top + 20);
+}

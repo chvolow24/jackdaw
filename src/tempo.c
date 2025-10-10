@@ -1050,7 +1050,6 @@ void click_track_draw_segments(ClickTrack *tt, TimeView *tv, SDL_Rect draw_rect)
     int32_t pos = tv->offset_left_sframes;
     enum beat_prominence bp;
     click_track_get_next_pos(tt, true, pos, &pos, &bp);
-    fprintf(stderr, "START pos %d\n", pos);
     int x = timeview_get_draw_x(&tl->timeview, pos);
     int top_y = draw_rect.y;
     int h = draw_rect.h;

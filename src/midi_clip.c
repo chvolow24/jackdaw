@@ -595,6 +595,23 @@ Note *midi_clipref_get_prev_note(ClipRef *cr, int32_t from, int32_t *pos_dst)
     return ret;
 }
 
+Note *midi_clipref_note_at_pos(ClipRef *cr, int32_t pos)
+{
+    int32_t note_i = midi_clipref_check_get_last_note(cr);
+    int32_t first_note = midi_clipref_check_get_first_note(cr);
+    MIDIClip *mclip = cr->source_clip;
+    while (note_i >= first_note) {
+	Note *note = mclip->notes + note_i;
+	int32_t note_tl_start = note_tl_start_pos(note, cr);
+	int32_t note_tl_end = note_tl_end_pos(note, cr);
+	if (note_tl_start <= pos && note_tl_end >= pos) {
+	    return note;
+	}	    
+	note_i--;
+    }
+    return NULL;
+}
+
 /* If dst ptr is provided, its contents must be freed */
 int midi_clipref_notes_intersecting_point(ClipRef *cr, int32_t tl_pos, Note ***dst)
 {
@@ -630,7 +647,10 @@ int midi_clipref_notes_intersecting_area(ClipRef *cr, int32_t range_start, int32
     MIDIClip *mclip = cr->source_clip;
     while (note_i < mclip->num_notes) {
 	Note *note = mclip->notes + note_i;
-	if (note->key < bottom_note || note->key > top_note) continue;
+	if (note->key < bottom_note || note->key > top_note) {
+	    note_i++;
+	    continue;
+	}
 	int32_t note_start = note_tl_start_pos(note, cr);
 	int32_t note_end = note_tl_end_pos(note, cr);
 	if (note_start < range_end && note_end > range_start) {
@@ -765,6 +785,24 @@ void midi_clipref_grab_range(ClipRef *cr, int32_t tl_start, int32_t tl_end)
 	midi_clip_grab_note(mclip, intersecting[i], NOTE_EDGE_NONE);
     }
     if (intersecting) free(intersecting);
+}
+
+void midi_clipref_grab_area(ClipRef *cr, int32_t tl_start, int32_t tl_end, int bottom_note, int top_note)
+{
+    Note **intersecting = NULL;
+    int num_intersecting = midi_clipref_notes_intersecting_area(
+	cr,
+	tl_start,
+	tl_end,
+	bottom_note,
+	top_note,
+	&intersecting);
+    fprintf(stderr, "(%d) TL: %d-%d; notes %d-%d\n", num_intersecting, tl_start, tl_end, bottom_note, top_note);
+    for (int i=0; i<num_intersecting; i++) {
+	midi_clip_grab_note(cr->source_clip, intersecting[i], NOTE_EDGE_NONE);
+    }
+    if (intersecting) free(intersecting);
+
 }
 
 void midi_clip_grabbed_notes_move(MIDIClip *mclip, int32_t move_by)

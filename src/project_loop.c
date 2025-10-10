@@ -143,6 +143,9 @@ void loop_project_main()
 		    if (!mouse_triage_motion_tabview())
 			mouse_triage_motion_page();
 		    break;
+		case MODE_PIANO_ROLL:
+		    piano_roll_mouse_motion(main_win->mousep);
+		    break;
 		default:
 		    break;
 		}
@@ -552,6 +555,9 @@ void loop_project_main()
 		    if (!mouse_triage_click_tabview())
 			mouse_triage_click_page();
 		    break;
+		case MODE_PIANO_ROLL:
+		    piano_roll_mouse_click(main_win->mousep);
+		    break;
 		default:
 		    break;
 		}
@@ -568,6 +574,9 @@ void loop_project_main()
 		}
 		session_flush_ongoing_changes(session, JDAW_THREAD_MAIN);
 		session_flush_ongoing_changes(session, JDAW_THREAD_DSP);
+		if (session->piano_roll) {
+		    piano_roll_mouse_up(main_win->mousep);
+		}
 		break;
 	    case SDL_FINGERUP:
 		fingersdown = SDL_GetNumTouchFingers(-1);

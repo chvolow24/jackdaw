@@ -558,6 +558,7 @@ void piano_roll_dur_shorter()
 void piano_roll_insert_note()
 {
     Session *session = session_get();
+    fprintf(stderr, "INSERT NUM NOTES BEFORE: %d (%d grabbed)\n", state.clip->num_notes, state.clip->num_grabbed_notes);
     Timeline *tl = ACTIVE_TL;
     int32_t clip_note_pos = tl->play_pos_sframes - state.cr->tl_pos + state.cr->start_in_clip;
     int32_t input_dur = get_input_dur_samples();
@@ -594,6 +595,7 @@ void piano_roll_insert_note()
     if (!state.chord_mode) {
 	timeline_set_play_position(tl, note_tl_end, false);
     }
+    fprintf(stderr, "INSERT NUM NOTES AFTER: %d (grabbed %d)\n", state.clip->num_notes, state.clip->num_grabbed_notes);
     /* if (state.tie) { */
     /* 	if (state.clip->num_grabbed_notes == 0) { */
     /* 	    midi_clip_grab_note(state.clip, note, NOTE_EDGE_RIGHT); */
@@ -749,6 +751,16 @@ void piano_roll_grab_marked_range()
     midi_clipref_grab_range(state.cr, tl->in_mark_sframes, tl->out_mark_sframes);
 }
 
+
+void piano_roll_delete_grabbed_notes()
+{
+    midi_clip_grabbed_notes_delete(state.clip);
+}
+
+
+
+/* INSERTIONS */
+
 void piano_roll_toggle_tie()
 {
     state.tie = !state.tie;
@@ -773,7 +785,6 @@ void piano_roll_toggle_chord_mode()
 	textbox_set_background_color(state.gui.chord_button, &colors.grey);
     }
 }
-
 
 
 /* Draw fns */

@@ -3390,6 +3390,11 @@ void user_piano_roll_toggle_chord_mode(void *nullarg)
     piano_roll_toggle_chord_mode();
 }
 
+void user_piano_roll_delete_grabbed_notes(void *nullarg)
+{
+    piano_roll_delete_grabbed_notes();
+}
+
 
 
 

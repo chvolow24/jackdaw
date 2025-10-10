@@ -146,4 +146,6 @@ void midi_clip_ungrab_all(MIDIClip *mclip);
 void midi_clipref_grab_range(ClipRef *cr, int32_t tl_start, int32_t tl_end);
 void midi_clip_grabbed_notes_move(MIDIClip *mclip, int32_t move_by);
 
+void midi_clip_check_reset_bounds(MIDIClip *mc);
+
 #endif

@@ -23,6 +23,7 @@
 #include "endpoint.h"
 #include "layout.h"
 #include "textbox.h"
+#include "timeview.h"
 
 #define MAX_BEATS_PER_BAR 13
 #define MAX_CLICK_TRACKS 16
@@ -145,6 +146,7 @@ void click_segment_destroy(ClickSegment *s);
 void click_segment_fprint(FILE *f, ClickSegment *s);
 
 int32_t click_track_bar_beat_subdiv(ClickTrack *tt, int32_t pos, int *bar_p, int *beat_p, int *subdiv_p, ClickSegment **segment_p, bool set_readout);
+void click_track_draw_segments(ClickTrack *tt, TimeView *tv, SDL_Rect draw_rect);
 void click_track_draw(ClickTrack *tt);
 
 typedef struct project Project;

@@ -143,9 +143,13 @@ int32_t clipref_len(ClipRef *cr)
     if (cr->end_in_clip == 0) {
 	switch(cr->type) {
 	case CLIP_AUDIO:
-	    return ((Clip *)(cr->source_clip))->len_sframes;
+	    cr->end_in_clip = ((Clip *)cr->source_clip)->len_sframes;
+	    /* return ((Clip *)(cr->source_clip))->len_sframes; */
+	    break;
 	case CLIP_MIDI:
-	    return ((MIDIClip *)cr->source_clip)->len_sframes;
+	    cr->end_in_clip = ((MIDIClip *)cr->source_clip)->len_sframes;
+	    /* return ((MIDIClip *)cr->source_clip)->len_sframes; */
+	    break;
 	}
     } else {
 	return cr->end_in_clip - cr->start_in_clip;

@@ -919,6 +919,9 @@ void transport_stop_recording()
 	mclip->recorded_from->recording = false;
 	midi_device_close_all_notes(mclip->recorded_from);
 	session->proj.active_midi_clip_index++;
+	for (int i=0; i<mclip->num_refs; i++) {
+	    mclip->refs[i]->end_in_clip = mclip->len_sframes;
+	}
     }
 
 

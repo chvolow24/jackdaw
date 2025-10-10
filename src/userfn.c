@@ -3380,6 +3380,16 @@ void user_piano_roll_grab_marked_range(void *nullarg)
     piano_roll_grab_marked_range();
 }
 
+void user_piano_roll_toggle_tie(void *nullarg)
+{
+    piano_roll_toggle_tie();
+}
+
+void user_piano_roll_toggle_chord_mode(void *nullarg)
+{
+    piano_roll_toggle_chord_mode();
+}
+
 
 
 

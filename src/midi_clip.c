@@ -103,9 +103,9 @@ static void grabbed_notes_rebase(MIDIClip *mclip, Note *new_head);
 static void grabbed_notes_incr(MIDIClip *mclip, int32_t from_i, int32_t until_i, int by);
 
 
-static void midi_clip_note_check_reset_bounds(MIDIClip *mc, Note *note)
+void midi_clip_note_check_reset_bounds(MIDIClip *mc, Note *note)
 {
-    if (note->start_rel < 0 && note - mc->notes == 0) {
+    if (note->start_rel < 0 && note == mc->notes) {
 	int32_t adj = note->start_rel * -1;
 	for (int i=0; i<mc->num_notes; i++) {
 	    Note *note = mc->notes + i;
@@ -126,7 +126,7 @@ static void midi_clip_note_check_reset_bounds(MIDIClip *mc, Note *note)
     }
 }
 
-static void midi_clip_check_reset_bounds(MIDIClip *mc)
+void midi_clip_check_reset_bounds(MIDIClip *mc)
 {
     midi_clip_note_check_reset_bounds(mc, mc->notes); /* first note */
     Note *last = NULL;
@@ -169,25 +169,26 @@ Note *midi_clip_insert_note(MIDIClip *mc, int channel, int note_val, int velocit
     note->end_rel = end_rel;
     mc->num_notes++;
     grabbed_notes_incr(mc, note - mc->notes + 1, mc->num_notes, 1);
-    if (note->start_rel < 0 && note - mc->notes == 0) {
-	int32_t adj = note->start_rel * -1;
-	for (int i=0; i<mc->num_notes; i++) {
-	    Note *note = mc->notes + i;
-	    note->start_rel += adj;
-	    note->end_rel += adj;
-	}
-	for (int i=0; i<mc->num_refs; i++) {
-	    ClipRef *cr = mc->refs[i];
-	    cr->tl_pos -= adj;
-	}
-    } else if (note->end_rel > mc->len_sframes) {
-	for (int i=0; i<mc->num_refs; i++) {
-	    if (mc->refs[i]->end_in_clip == mc->len_sframes) {
-		mc->refs[i]->end_in_clip = note->end_rel;
-	    }
-	}
-	mc->len_sframes = note->end_rel;
-    }
+    midi_clip_note_check_reset_bounds(mc, note);
+    /* if (note->start_rel < 0 && note - mc->notes == 0) { */
+    /* 	int32_t adj = note->start_rel * -1; */
+    /* 	for (int i=0; i<mc->num_notes; i++) { */
+    /* 	    Note *note = mc->notes + i; */
+    /* 	    note->start_rel += adj; */
+    /* 	    note->end_rel += adj; */
+    /* 	} */
+    /* 	for (int i=0; i<mc->num_refs; i++) { */
+    /* 	    ClipRef *cr = mc->refs[i]; */
+    /* 	    cr->tl_pos -= adj; */
+    /* 	} */
+    /* } else if (note->end_rel > mc->len_sframes) { */
+    /* 	for (int i=0; i<mc->num_refs; i++) { */
+    /* 	    if (mc->refs[i]->end_in_clip == mc->len_sframes) { */
+    /* 		mc->refs[i]->end_in_clip = note->end_rel; */
+    /* 	    } */
+    /* 	} */
+    /* 	mc->len_sframes = note->end_rel; */
+    /* } */
     TEST_FN_CALL(check_note_order, mc);
     return note;
 }
@@ -758,12 +759,12 @@ void midi_clip_ungrab_all(MIDIClip *mclip)
 void midi_clipref_grab_range(ClipRef *cr, int32_t tl_start, int32_t tl_end)
 {
     MIDIClip *mclip = cr->source_clip;
-    Note **intersecting;
+    Note **intersecting = NULL;
     int num_intersecting = midi_clipref_notes_intersecting_area(cr, tl_start, tl_end, 0, 127, &intersecting);
     for (int i=0; i<num_intersecting; i++) {
 	midi_clip_grab_note(mclip, intersecting[i], NOTE_EDGE_NONE);
     }
-    free(intersecting);
+    if (intersecting) free(intersecting);
 }
 
 void midi_clip_grabbed_notes_move(MIDIClip *mclip, int32_t move_by)
@@ -778,9 +779,11 @@ void midi_clip_grabbed_notes_move(MIDIClip *mclip, int32_t move_by)
 	    break;
 	case NOTE_EDGE_LEFT:
 	    note->start_rel += move_by;
+	    if (note->start_rel > note->end_rel) note->start_rel = note->end_rel;
 	    break;
 	case NOTE_EDGE_RIGHT:
 	    note->end_rel += move_by;
+	    if (note->end_rel < note->start_rel) note->end_rel = note->start_rel;
 	    break;
 	}
 	/* while (note > mclip->notes && note->start_rel < (note - 1)->start_rel) { */

@@ -1557,9 +1557,17 @@ void mode_load_piano_roll()
 	user_piano_roll_grab_marked_range);
     mode_subcat_add_fn(sc, fn);
 
-
-
-
+    fn = create_user_fn(
+	"piano_roll_toggle_tie",
+	"Toggle tie mode",
+	user_piano_roll_toggle_tie);
+    mode_subcat_add_fn(sc, fn);
+    
+    fn = create_user_fn(
+	"piano_roll_toggle_chord_mode",
+	"Toggle chord mode",
+	user_piano_roll_toggle_chord_mode);
+    mode_subcat_add_fn(sc, fn);
 }
 
 void mode_load_all()

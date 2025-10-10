@@ -1034,6 +1034,59 @@ static void click_track_deferred_draw(void *click_track_v)
     }
 }
 
+/* not-DRY code for piano roll */
+void click_track_draw_segments(ClickTrack *tt, TimeView *tv, SDL_Rect draw_rect)
+{
+
+    static const SDL_Color line_colors[] =  {
+	{255, 250, 125, 70},
+	{255, 255, 255, 70},
+	{170, 170, 170, 70},
+	{130, 130, 130, 70},
+	{100, 100, 100, 70}
+    };
+
+    Timeline *tl = tt->tl;
+    int32_t pos = tv->offset_left_sframes;
+    enum beat_prominence bp;
+    click_track_get_next_pos(tt, true, pos, &pos, &bp);
+    fprintf(stderr, "START pos %d\n", pos);
+    int x = timeview_get_draw_x(&tl->timeview, pos);
+    int top_y = draw_rect.y;
+    int h = draw_rect.h;
+    int bottom_y = top_y + h;
+    while (1) {
+	click_track_get_next_pos(tt, false, tv->offset_left_sframes, &pos, &bp);
+	/* int prev_x = x; */
+	x = timeline_get_draw_x(tl, pos);
+	if (x > draw_rect.x + draw_rect.w) break;
+	/* int x_diff; */
+	/* if (draw_beats && (x_diff = x - prev_x) <= draw_beat_thresh) { */
+	/*     draw_beats = false; */
+	/*     draw_subdivs = false; */
+	/* } else if (draw_subdivs && x_diff <= draw_subdiv_thresh) { */
+	/*     draw_subdivs = false; */
+	/* } */
+	/* if (!draw_subdivs && (bp >= BP_SUBDIV)) continue; */
+	/* if (!draw_beats && (bp >= BP_BEAT)) continue; */
+	/* top_y = main_top_y + h * (int)bp / 5; */
+	/* top_y = main_top_y + h / (1 + (int)bp); */
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(line_colors[(int)bp]));
+	double dpi = main_win->dpi_scale_factor;
+	if (bp == BP_SEGMENT) {
+	    SDL_Rect seg = {x - dpi, top_y, dpi * 2, h};
+	    SDL_RenderFillRect(main_win->rend, &seg);
+
+	    /* double dpi = main_win->dpi_scale_factor; */
+	    /* SDL_RenderDrawLine(main_win->rend, x-dpi, top_y, x-dpi, bttm_y); */
+	    /* SDL_RenderDrawLine(main_win->rend, x+dpi, top_y, x+dpi, bttm_y); */
+	} else {
+	    SDL_RenderDrawLine(main_win->rend, x, top_y, x, bottom_y);
+	}
+    }
+
+}
+
 void click_track_draw(ClickTrack *tt)
 {
     Timeline *tl = tt->tl;
@@ -1261,7 +1314,7 @@ set_dst_values:
     return remainder;
 }
 
-int send_message_udp(char *message, int port);
+/* int send_message_udp(char *message, int port); */
 
 void click_track_mix_metronome(ClickTrack *tt, float *mixdown_buf, int32_t mixdown_buf_len, int32_t tl_start_pos_sframes, int32_t tl_end_pos_sframes, float step)
 {

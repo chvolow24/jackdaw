@@ -584,6 +584,7 @@ void piano_roll_insert_note()
     } else {
 	midi_clip_ungrab_all(state.clip);
 	Note *note = midi_clip_insert_note(state.clip, 0, state.selected_note, 100, clip_note_pos, end_pos);
+	fprintf(stderr, "Fresh note %d, grabbed? %d\n",note->key, note->grabbed);
 	/* int32_t note_tl_start = note_tl_start_pos(note, state.cr); */
 	note_tl_end = note_tl_end_pos(note, state.cr);
 	/* if (state.tie) { */

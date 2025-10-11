@@ -163,6 +163,7 @@ Note *midi_clip_insert_note(MIDIClip *mc, int channel, int note_val, int velocit
 	*note = *(note - 1);
 	note--;
     }
+    memset(note, '\0', sizeof(Note));
     note->channel = channel;
     note->key = note_val;
     note->velocity = velocity;
@@ -747,7 +748,9 @@ static void grabbed_notes_reset(MIDIClip *mclip)
 
 void midi_clip_grab_note(MIDIClip *mclip, Note *note, NoteEdge edge)
 {
+    fprintf(stderr, "GRAB note %d\n", note->key);
     if (note->grabbed) {
+	fprintf(stderr, "\t->already grabbed, grabbing edge %d\n", edge);
 	note->grabbed_edge = edge;
 	return;
     }
@@ -769,6 +772,7 @@ static int notecmp(const void *a, const void *b)
 }
 void midi_clip_ungrab_all(MIDIClip *mclip)
 {
+    fprintf(stderr, "UNGRAB ALL (%d)\n", mclip->num_grabbed_notes);
     for (int i=0; i<mclip->num_grabbed_notes; i++) {
 	Note *note = mclip->grabbed_notes[i];
 	note->grabbed = false;
@@ -846,39 +850,130 @@ void midi_clip_grabbed_notes_move(MIDIClip *mclip, int32_t move_by)
     TEST_FN_CALL(check_note_order, mclip);
 }
 
-NEW_EVENT_FN(undo_delete_grabbed_note, "undo delete grabbed notes")
-    
+
+static void midi_clip_reinsert_notes(MIDIClip *mclip, Note *notes, int num_notes)
+{
+    for (int i=0; i<num_notes; i++) {
+	Note *note = notes + i;
+	midi_clip_insert_note(
+	    mclip,
+	    note->channel,
+	    note->key,
+	    note->velocity,
+	    note->start_rel,
+	    note->end_rel);	    
+    }
+}
+
+static Note *find_note(MIDIClip *mclip, int32_t start_rel, int key, int velocity)
+{
+    Note *note = mclip->notes;
+    while (note - mclip->notes < mclip->num_notes && note->start_rel < start_rel) note++;
+    while (note - mclip->notes < mclip->num_notes) {
+	if (note->start_rel == start_rel
+	    && note->key == key
+	    && note->velocity == velocity) {
+	    return note;
+	}
+	note++;
+    }
+    return NULL;
+}
+NEW_EVENT_FN(undo_delete_grabbed_notes, "undo delete grabbed notes")
+    MIDIClip *clip = obj1;
+    Note *notes = obj2;
+    int num_notes = val1.int_v;
+fprintf(stderr, "RESTORING %d notes\n", num_notes);
+    midi_clip_reinsert_notes(clip, notes, num_notes);
+}
+
+static void midi_clip_grabbed_notes_delete_internal(MIDIClip *mclip, bool from_undo);
+
+NEW_EVENT_FN(redo_delete_grabbed_notes, "undo delete grabbed notes")
+    MIDIClip *clip = obj1;
+    midi_clip_ungrab_all(clip);
+    Note *notes = obj2;
+    int num_notes = val1.int_v;
+    fprintf(stderr, "RE-DELETING %d notes\n", num_notes);
+    for (int i=0; i<num_notes; i++) {
+	Note *note = find_note(clip, notes[i].start_rel, notes[i].key, notes[i].velocity);
+	if (!note) fprintf(stderr, "ERROR: note not found!\n");
+	midi_clip_grab_note(clip, note, NOTE_EDGE_NONE);
+    }
+    midi_clip_grabbed_notes_delete_internal(clip, true);
 }
 
 
-NEW_EVENT_FN(redo_delete_grabbed_note, "undo delete grabbed notes")
-    
+static void midi_clip_grabbed_notes_delete_internal(MIDIClip *mclip, bool from_undo)
+{
+    Note *grabbed_note_info = calloc(mclip->num_grabbed_notes, sizeof(Note));
+    /* for (int i=0; i<mclip->num_grabbed_notes; i++) { */
+    int grabbed_note_i = 0;
+    for (int i=0; i<mclip->num_grabbed_notes; i++) {
+	Note *note = mclip->grabbed_notes[i];
+	int32_t note_i = note - mclip->notes;
+	grabbed_note_info[grabbed_note_i] = *note;
+	grabbed_note_i++;
+	if (mclip->num_notes > 1 && note_i < mclip->num_notes - 1) {
+	    memmove(mclip->notes + note_i, mclip->notes + note_i + 1, (mclip->num_notes - note_i - 1) * sizeof(Note));
+	    grabbed_notes_incr(mclip, note_i, mclip->num_notes, -1);
+	}
+	mclip->num_notes--;
+    }
+    mclip->num_grabbed_notes = 0;
+    if (!from_undo) {
+	user_event_push(
+	    undo_delete_grabbed_notes,
+	    redo_delete_grabbed_notes,
+	    NULL,
+	    NULL,
+	    mclip,
+	    grabbed_note_info,
+	    (Value){.int_v = grabbed_note_i},
+	    (Value){0},
+	    (Value){.int_v = grabbed_note_i},
+	    (Value){0},
+	    0, 0, false, true);	    
+    }
+
 }
 
 
 void midi_clip_grabbed_notes_delete(MIDIClip *mclip)
 {
-    Note *grabbed_note_info = calloc(mclip->num_grabbed_notes, sizeof(Note));
+    midi_clip_grabbed_notes_delete_internal(mclip, false);
+    /* Note *grabbed_note_info = calloc(mclip->num_grabbed_notes, sizeof(Note)); */
+    /* /\* for (int i=0; i<mclip->num_grabbed_notes; i++) { *\/ */
+    /* int grabbed_note_i = 0; */
     /* for (int i=0; i<mclip->num_grabbed_notes; i++) { */
-    int grabbed_note_i = 0;
-    fprintf(stderr, "\n\nDELETE num grabbed? %d\n", mclip->num_grabbed_notes);
-    while (mclip->num_grabbed_notes > 0) {
-	Note *note = mclip->grabbed_notes[0];
-	int32_t note_i = note - mclip->notes;
-	grabbed_note_info[grabbed_note_i] = *note;
-	grabbed_note_i++;
-	fprintf(stderr, "REMOVING note at index %d. MOVING %d notes from %p to %p (%d - %d)\n", note_i, mclip->num_notes - note_i - 1, mclip->notes + note_i + 1, mclip->notes + note_i, note_i + 1 , note_i);
-	memmove(mclip->notes + note_i, mclip->notes + note_i + 1, (mclip->num_notes - note_i - 1) * sizeof(Note));
-	mclip->num_notes--;
-	fprintf(stderr, "NOTES NOW:\n");
-	for (int32_t i=0; i<mclip->num_notes; i++) {
-	    fprintf(stderr, "\t%d == %d, grabbed? %d\n", i, mclip->notes[i].key, mclip->notes[i].grabbed);
-	}
-
-	/* grabbed_notes_incr(mclip, note_i, mclip->num_notes, -1); */
-	grabbed_notes_reset(mclip);
-	fprintf(stderr, "\t->numgrabbed after reset: %d\n", mclip->num_grabbed_notes);
-    }
+    /* 	Note *note = mclip->grabbed_notes[i]; */
+    /* 	int32_t note_i = note - mclip->notes; */
+    /* 	grabbed_note_info[grabbed_note_i] = *note; */
+    /* 	grabbed_note_i++; */
+    /* 	if (mclip->num_notes > 1 && note_i < mclip->num_notes - 1) { */
+    /* 	    memmove(mclip->notes + note_i, mclip->notes + note_i + 1, (mclip->num_notes - note_i - 1) * sizeof(Note)); */
+    /* 	    grabbed_notes_incr(mclip, note_i, mclip->num_notes, -1); */
+    /* 	} */
+    /* 	mclip->num_notes--; */
+    /* } */
     /* mclip->num_grabbed_notes = 0; */
-    free(grabbed_note_info);
+    /* /\* while (mclip->num_grabbed_notes > 0) { *\/ */
+    /* /\* 	Note *note = mclip->grabbed_notes[0]; *\/ */
+    /* /\* 	int32_t note_i = note - mclip->notes; *\/ */
+    /* /\* 	grabbed_note_info[grabbed_note_i] = *note; *\/ */
+    /* /\* 	grabbed_note_i++; *\/ */
+    /* /\* 	fprintf(stderr, "REMOVING note at index %d. MOVING %d notes from %p to %p (%d - %d)\n", note_i, mclip->num_notes - note_i - 1, mclip->notes + note_i + 1, mclip->notes + note_i, note_i + 1 , note_i); *\/ */
+    /* /\* 	memmove(mclip->notes + note_i, mclip->notes + note_i + 1, (mclip->num_notes - note_i - 1) * sizeof(Note)); *\/ */
+    /* /\* 	mclip->num_notes--; *\/ */
+    /* /\* 	fprintf(stderr, "NOTES NOW:\n"); *\/ */
+    /* /\* 	for (int32_t i=0; i<mclip->num_notes; i++) { *\/ */
+    /* /\* 	    fprintf(stderr, "\t%d == %d, grabbed? %d\n", i, mclip->notes[i].key, mclip->notes[i].grabbed); *\/ */
+    /* /\* 	} *\/ */
+
+    /* /\* 	/\\* grabbed_notes_incr(mclip, note_i, mclip->num_notes, -1); *\\/ *\/ */
+    /* /\* 	grabbed_notes_reset(mclip); *\/ */
+    /* /\* 	fprintf(stderr, "\t->numgrabbed after reset: %d\n", mclip->num_grabbed_notes); *\/ */
+    /* /\* } *\/ */
+    /* /\* mclip->num_grabbed_notes = 0; *\/ */
+    /* free(grabbed_note_info); */
 }

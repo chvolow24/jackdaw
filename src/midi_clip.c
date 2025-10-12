@@ -748,9 +748,9 @@ static void grabbed_notes_reset(MIDIClip *mclip)
 
 void midi_clip_grab_note(MIDIClip *mclip, Note *note, NoteEdge edge)
 {
-    fprintf(stderr, "GRAB note %d\n", note->key);
+    /* fprintf(stderr, "GRAB note %d\n", note->key); */
     if (note->grabbed) {
-	fprintf(stderr, "\t->already grabbed, grabbing edge %d\n", edge);
+	/* fprintf(stderr, "\t->already grabbed, grabbing edge %d\n", edge); */
 	note->grabbed_edge = edge;
 	return;
     }
@@ -772,7 +772,7 @@ static int notecmp(const void *a, const void *b)
 }
 void midi_clip_ungrab_all(MIDIClip *mclip)
 {
-    fprintf(stderr, "UNGRAB ALL (%d)\n", mclip->num_grabbed_notes);
+    /* fprintf(stderr, "UNGRAB ALL (%d)\n", mclip->num_grabbed_notes); */
     for (int i=0; i<mclip->num_grabbed_notes; i++) {
 	Note *note = mclip->grabbed_notes[i];
 	note->grabbed = false;
@@ -802,7 +802,7 @@ void midi_clipref_grab_area(ClipRef *cr, int32_t tl_start, int32_t tl_end, int b
 	bottom_note,
 	top_note,
 	&intersecting);
-    fprintf(stderr, "(%d) TL: %d-%d; notes %d-%d\n", num_intersecting, tl_start, tl_end, bottom_note, top_note);
+    /* fprintf(stderr, "(%d) TL: %d-%d; notes %d-%d\n", num_intersecting, tl_start, tl_end, bottom_note, top_note); */
     for (int i=0; i<num_intersecting; i++) {
 	midi_clip_grab_note(cr->source_clip, intersecting[i], NOTE_EDGE_NONE);
     }
@@ -883,7 +883,7 @@ NEW_EVENT_FN(undo_delete_grabbed_notes, "undo delete grabbed notes")
     MIDIClip *clip = obj1;
     Note *notes = obj2;
     int num_notes = val1.int_v;
-fprintf(stderr, "RESTORING %d notes\n", num_notes);
+/* fprintf(stderr, "RESTORING %d notes\n", num_notes); */
     midi_clip_reinsert_notes(clip, notes, num_notes);
 }
 
@@ -894,7 +894,7 @@ NEW_EVENT_FN(redo_delete_grabbed_notes, "undo delete grabbed notes")
     midi_clip_ungrab_all(clip);
     Note *notes = obj2;
     int num_notes = val1.int_v;
-    fprintf(stderr, "RE-DELETING %d notes\n", num_notes);
+    /* fprintf(stderr, "RE-DELETING %d notes\n", num_notes); */
     for (int i=0; i<num_notes; i++) {
 	Note *note = find_note(clip, notes[i].start_rel, notes[i].key, notes[i].velocity);
 	if (!note) fprintf(stderr, "ERROR: note not found!\n");

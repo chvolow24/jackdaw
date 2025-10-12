@@ -32,7 +32,7 @@
 #define MAX_NUM_NOTES (INT32_MAX - 1)
 #define MIDI_NUM_CONTROLLERS 120
 
-#define MAX_GRABBED_NOTES 256
+#define MAX_GRABBED_NOTES 4096
 
 typedef struct track Track;
 /* typedef struct midi_clip_ref MIDIClipRef; */

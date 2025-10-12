@@ -450,7 +450,7 @@ void piano_roll_next_note()
     while (note_i <= last_note_i) {
 	Note *note = state.clip->notes + note_i;
 	int32_t diff = note->start_rel - play_pos_rel;
-	if (diff > 0 && diff < diff_min) {
+	if (diff > 0 && diff <= diff_min) { /* <= bc prioritize start pos over end pos */
 	    diff_min = diff;
 	    set_pos = note_tl_start_pos(note, state.cr);
 	    sel_note = note;
@@ -483,7 +483,7 @@ void piano_roll_prev_note()
     while (note_i <= last_note_i) {
 	Note *note = state.clip->notes + note_i;
 	int32_t diff = play_pos_rel - note->start_rel;
-	if (diff > 0 && diff < diff_min) {
+	if (diff > 0 && diff <= diff_min) { /* <= bc prioritize start pos over end pos */
 	    diff_min = diff;
 	    set_pos = note_tl_start_pos(note, state.cr);
 	    sel_note = note;
@@ -643,7 +643,7 @@ static Note *note_at_cursor(bool include_end)
     while (note_i >= first_note) {
 	Note *note = state.clip->notes + note_i;
 	int32_t tl_start = note_tl_start_pos(note, state.cr);
-	int32_t tl_end = note_tl_end_pos(note, state.cr);	
+	int32_t tl_end = note_tl_end_pos(note, state.cr);
 	if (note->key == state.selected_note
 	    && playhead >= tl_start
 	    && (include_end ? playhead <= tl_end : playhead < tl_end)) {

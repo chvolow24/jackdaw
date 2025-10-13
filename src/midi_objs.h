@@ -42,6 +42,7 @@ typedef struct note {
     NoteEdge grabbed_edge;
     int32_t cached_start_rel;
     int32_t cached_end_rel;
+    uint8_t cached_key;
 } Note;
 
 typedef struct {

@@ -32,7 +32,7 @@
 #define MAX_NUM_NOTES (INT32_MAX - 1)
 #define MIDI_NUM_CONTROLLERS 120
 
-#define MAX_GRABBED_NOTES 4096
+/* #define MAX_GRABBED_NOTES 4096 */
 
 typedef struct track Track;
 /* typedef struct midi_clip_ref MIDIClipRef; */
@@ -75,8 +75,11 @@ typedef struct midi_clip {
 
     MIDIDevice *recorded_from;
 
-    Note *grabbed_notes[MAX_GRABBED_NOTES];
-    int num_grabbed_notes;
+    int32_t num_grabbed_notes;
+    int32_t first_grabbed_note;
+    int32_t last_grabbed_note;
+
+    bool note_move_in_progress;
 } MIDIClip;
 
 /* typedef struct midi_clip_ref { */
@@ -147,8 +150,14 @@ void midi_clipref_grab_range(ClipRef *cr, int32_t tl_start, int32_t tl_end);
 void midi_clipref_grab_area(ClipRef *cr, int32_t tl_start, int32_t tl_end, int bottom_note, int top_note);
 void midi_clip_grabbed_notes_move(MIDIClip *mclip, int32_t move_by);
 void midi_clip_grabbed_notes_delete(MIDIClip *mclip);
+void midi_clip_remove_note_at(MIDIClip *mclip, int32_t note_i);
+
+void midi_clip_push_grabbed_note_move_event(MIDIClip *mclip);
+void midi_clip_cache_grabbed_note_info(MIDIClip *mclip);
 
 void midi_clip_check_reset_bounds(MIDIClip *mc);
+
+
 
 
 #endif

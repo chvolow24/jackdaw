@@ -23,6 +23,7 @@
 #include "clipref.h"
 #include "grab.h"
 #include "midi_io.h"
+#include "piano_roll.h"
 #include "project.h"
 #include "session_endpoint_ops.h"
 #include "session.h"
@@ -241,9 +242,13 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes, bool move
     /* if (tl->play_pos_sframes == abs_pos_sframes) return; */
     
     int32_t pos_diff = abs_pos_sframes - tl->play_pos_sframes;
-    
-    if (session->dragging) {
-	timeline_cache_grabbed_clip_positions(tl);
+
+    if (move_grabbed_clips) {
+	if (session->piano_roll && session->dragging) {
+	    piano_roll_start_moving();
+	} else if (session->dragging) {
+	    timeline_cache_grabbed_clip_positions(tl);
+	}
     }
 
     tl->play_pos_sframes = abs_pos_sframes;
@@ -261,13 +266,17 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes, bool move
     for (int i=0; i<tl->num_click_tracks; i++) {	
 	click_track_bar_beat_subdiv(tl->click_tracks[i], tl->play_pos_sframes, NULL, NULL, NULL, NULL, true);
     }
-    if (move_grabbed_clips && session->dragging) {
-	timeline_grabbed_clips_move(tl, pos_diff);
-	/* for (int i=0; i<tl->num_grabbed_clips; i++) { */
-	/*     tl->grabbed_clips[i]->tl_pos += pos_diff; */
-	/* } */
-	timeline_push_grabbed_clip_move_event(tl);
+    if (move_grabbed_clips) {
+	if (session->piano_roll) {
+	    piano_roll_grabbed_notes_move(pos_diff);
+	    piano_roll_stop_moving();
+	} else if (session->dragging) {
+	    timeline_grabbed_clips_move(tl, pos_diff);
+	    timeline_push_grabbed_clip_move_event(tl);
+	}
     }
+
+
 
     timeline_flush_unclosed_midi_notes();
     timeline_reset(tl, false);

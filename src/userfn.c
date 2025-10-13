@@ -816,7 +816,9 @@ void user_tl_play(void *nullarg)
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    if (session->dragging && !session->playback.playing && tl->num_grabbed_clips > 0) {
+    if (session->piano_roll && !session->playback.playing) {
+	piano_roll_start_moving();
+    } else if (session->dragging && !session->playback.playing && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
     bool started = false;
@@ -867,7 +869,9 @@ void user_tl_pause(void *nullarg)
     /* 	&colors.quickref_button_pressed, */
     /* 	&colors.quickref_button_blue); */
     tl->needs_redraw = true;
-    if (session->dragging && tl->num_grabbed_clips > 0) {
+    if (session->piano_roll) {
+	piano_roll_stop_moving();
+    } else if (session->dragging && tl->num_grabbed_clips > 0) {
 	timeline_push_grabbed_clip_move_event(tl);
     }
 }
@@ -876,7 +880,9 @@ void user_tl_rewind(void *nullarg)
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    if (session->dragging && !session->playback.playing && tl->num_grabbed_clips > 0) {
+    if (session->piano_roll) {
+	piano_roll_start_moving();
+    } else if (session->dragging && !session->playback.playing && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
     if (session->playback.play_speed >= 0.0f) {
@@ -906,7 +912,9 @@ void user_tl_play_slow(void *nullarg)
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    if (session->dragging && !session->playback.playing && tl->num_grabbed_clips > 0) {
+    if (session->piano_roll) {
+	piano_roll_start_moving();
+    } else if (session->dragging && !session->playback.playing && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
     if (tl->timeview.sample_frames_per_pixel < SFPP_THRESHOLD) {
@@ -923,7 +931,9 @@ void user_tl_rewind_slow(void *nullarg)
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    if (session->dragging && !session->playback.playing && tl->num_grabbed_clips > 0) {
+    if (session->piano_roll) {
+	piano_roll_start_moving();
+    } else if (session->dragging && !session->playback.playing && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
     if (tl->timeview.sample_frames_per_pixel < SFPP_THRESHOLD) {
@@ -2221,7 +2231,13 @@ void user_tl_toggle_drag(void *nullarg)
     status_stat_drag();
     Timeline *tl = ACTIVE_TL;
     if (session->playback.playing) {
-	if (session->dragging) {
+	if (session->piano_roll) {
+	    if (session->dragging) {
+		piano_roll_start_moving();
+	    } else {
+		piano_roll_stop_dragging();
+	    }
+	} else if (session->dragging) {
 	    timeline_cache_grabbed_clip_positions(tl);
 	} else {
 	    timeline_push_grabbed_clip_move_event(tl);

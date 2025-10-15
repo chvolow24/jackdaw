@@ -153,10 +153,11 @@ void midi_clip_grabbed_notes_move(MIDIClip *mclip, int32_t move_by);
 void midi_clip_grabbed_notes_delete(MIDIClip *mclip);
 void midi_clip_remove_note_at(MIDIClip *mclip, int32_t note_i);
 
-void midi_clip_push_grabbed_note_move_event(MIDIClip *mclip);
-void midi_clip_cache_grabbed_note_info(MIDIClip *mclip);
+void midi_clipref_push_grabbed_note_move_event(ClipRef *cr);
+void midi_clipref_cache_grabbed_note_info(ClipRef *cr);
 
 void midi_clip_check_reset_bounds(MIDIClip *mc);
+int32_t midi_clip_get_note_by_id(MIDIClip *mclip, uint32_t id);
 
 
 

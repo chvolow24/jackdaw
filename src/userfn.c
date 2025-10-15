@@ -880,7 +880,7 @@ void user_tl_rewind(void *nullarg)
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    if (session->piano_roll) {
+    if (session->piano_roll && !session->playback.playing) {
 	piano_roll_start_moving();
     } else if (session->dragging && !session->playback.playing && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
@@ -912,7 +912,7 @@ void user_tl_play_slow(void *nullarg)
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    if (session->piano_roll) {
+    if (session->piano_roll && !session->playback.playing) {
 	piano_roll_start_moving();
     } else if (session->dragging && !session->playback.playing && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
@@ -931,7 +931,7 @@ void user_tl_rewind_slow(void *nullarg)
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    if (session->piano_roll) {
+    if (session->piano_roll && !session->playback.playing) {
 	piano_roll_start_moving();
     } else if (session->dragging && !session->playback.playing && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);

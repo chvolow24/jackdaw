@@ -41,8 +41,8 @@ typedef struct note {
     /* Piano roll */
     bool grabbed;
     NoteEdge grabbed_edge;
-    int32_t cached_start_rel;
-    int32_t cached_end_rel;
+    int32_t cached_start_tl_pos;
+    int32_t cached_end_tl_pos;
     uint8_t cached_key;
 } Note;
 

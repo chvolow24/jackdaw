@@ -40,6 +40,8 @@
 #endif
 
 void breakfn();
+void print_backtrace();
+
 TEST_FN_DECL(chaotic_user, bool *run_tests, uint64_t max_num_frames);
 
 #endif

@@ -266,11 +266,11 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes, bool move
     for (int i=0; i<tl->num_click_tracks; i++) {	
 	click_track_bar_beat_subdiv(tl->click_tracks[i], tl->play_pos_sframes, NULL, NULL, NULL, NULL, true);
     }
-    if (move_grabbed_clips) {
+    if (move_grabbed_clips && session->dragging) {
 	if (session->piano_roll) {
 	    piano_roll_grabbed_notes_move(pos_diff);
 	    piano_roll_stop_moving();
-	} else if (session->dragging) {
+	} else {
 	    timeline_grabbed_clips_move(tl, pos_diff);
 	    timeline_push_grabbed_clip_move_event(tl);
 	}

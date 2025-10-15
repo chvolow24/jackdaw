@@ -449,6 +449,11 @@ void piano_roll_next_note()
     Note *sel_note = NULL;
     while (note_i <= last_note_i) {
 	Note *note = state.clip->notes + note_i;
+	if (note->grabbed && session->dragging) {
+	    note_i++;
+	    continue;
+	}
+
 	int32_t diff = note->start_rel - play_pos_rel;
 	if (diff > 0 && diff <= diff_min) { /* <= bc prioritize start pos over end pos */
 	    diff_min = diff;
@@ -465,8 +470,10 @@ void piano_roll_next_note()
 	note_i++;
     }
     if (sel_note) {
-	timeline_set_play_position(ACTIVE_TL, set_pos, false);
-	state.selected_note = sel_note->key;
+	timeline_set_play_position(ACTIVE_TL, set_pos, true);
+	if (!(session->dragging && state.clip->num_grabbed_notes > 0)) {
+	    state.selected_note = sel_note->key;
+	}
     }
 }
 
@@ -482,6 +489,10 @@ void piano_roll_prev_note()
     Note *sel_note = NULL;
     while (note_i <= last_note_i) {
 	Note *note = state.clip->notes + note_i;
+	if (note->grabbed && session->dragging) {
+	    note_i++;
+	    continue;
+	}
 	int32_t diff = play_pos_rel - note->start_rel;
 	if (diff > 0 && diff <= diff_min) { /* <= bc prioritize start pos over end pos */
 	    diff_min = diff;
@@ -498,8 +509,10 @@ void piano_roll_prev_note()
 	note_i++;
     }
     if (sel_note) {
-	timeline_set_play_position(ACTIVE_TL, set_pos, false);
-	state.selected_note = sel_note->key;
+	timeline_set_play_position(ACTIVE_TL, set_pos, true);
+	if (!(session->dragging && state.clip->num_grabbed_notes > 0)) {
+	    state.selected_note = sel_note->key;
+	}
     }
     /* Session *session = session_get(); */
     /* int32_t pos = ACTIVE_TL->play_pos_sframes; */
@@ -569,10 +582,11 @@ NEW_EVENT_FN(redo_insert_note, "redo insert note")
     ClipRef *cr = obj1;
     MIDIClip *mclip = cr->source_clip;
     Note *note = obj2;
-    midi_clip_insert_note(mclip, note->channel, note->key, note->velocity, note->start_rel, note->end_rel);
+    Note *new = midi_clip_insert_note(mclip, note->channel, note->key, note->velocity, note->start_rel, note->end_rel);
     if (state.active) {
 	timeline_set_play_position(state.cr->track->tl, val2.int32_v, false);
     }
+    new->id = note->id;
 }
 
 NEW_EVENT_FN(undo_redo_extend_tied_note, "undo/redo extend tied note")
@@ -938,7 +952,7 @@ static void piano_roll_draw_notes()
     }
 
     int32_t last_note = midi_clipref_check_get_last_note(state.cr);
-    for (int32_t i=first_note; i<=last_note; i++) {
+    for (int32_t i=0; i<=last_note; i++) {
 	Note *note = mclip->notes + i;
 	/* SDL_SetRenderDrawColor(main_win->rend, colors.dark_brown.r, colors.dark_brown.g, colors.dark_brown.b, 255 * note->velocity / 128); */
 	/* if (state.cr->end_in_clip && note->start_rel > state.cr->end_in_clip) break; */
@@ -963,7 +977,11 @@ static void piano_roll_draw_notes()
 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.midi_note_orange_grabbed));
 	    }
 	} else {
-	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.midi_note_orange));
+	    if (i < first_note) {
+		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.grey));
+	    } else {
+		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.midi_note_orange));
+	    }
 	}
 	SDL_RenderFillRect(main_win->rend, &note_rect);
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));

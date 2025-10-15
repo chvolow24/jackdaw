@@ -1,10 +1,23 @@
+#include <execinfo.h>
 #include "input.h"
 #include "test.h"
+
 
 #define MAX_TEXT_EDIT_CHARS 24
 
 void breakfn()
 {
+}
+void print_backtrace()
+{
+    const int max = 32;
+    void **results = malloc(max * sizeof(void *));
+    int len = backtrace(results, max);
+    char **symbols = backtrace_symbols(results, len);
+    for (int i=0; i<len; i++) {
+	fprintf(stderr, "%s\n",symbols[i]);
+    }
+    free(symbols);
 }
 
 extern Window *main_win;

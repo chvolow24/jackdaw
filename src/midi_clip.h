@@ -53,6 +53,7 @@ typedef struct midi_clip {
     uint32_t num_notes;
     uint32_t notes_alloc_len;
     pthread_mutex_t notes_arr_lock;
+    uint32_t note_id;
 
     Controller controllers[MIDI_NUM_CONTROLLERS];
     PitchBend pitch_bend;

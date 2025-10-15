@@ -160,6 +160,4 @@ void midi_clip_check_reset_bounds(MIDIClip *mc);
 int32_t midi_clip_get_note_by_id(MIDIClip *mclip, uint32_t id);
 
 
-
-
 #endif

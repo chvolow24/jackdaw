@@ -1133,7 +1133,7 @@ void midi_clipref_cache_grabbed_note_info(ClipRef *cr)
 	/* note->cached_start_rel = note->start_rel; */
 	/* note->cached_end_rel = note->end_rel; */
 	note->cached_key = note->key;
-	fprintf(stderr, "CACHED note %d\n", i);
+	/* fprintf(stderr, "CACHED note %d\n", i); */
     }
     mclip->note_move_in_progress = true;
 

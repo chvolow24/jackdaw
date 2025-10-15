@@ -1643,7 +1643,6 @@ void synth_voice_start_release(SynthVoice *v, int32_t after)
     adsr_start_release(v->filter_env + 1, after);
     adsr_start_release(v->noise_amt_env, after);
     adsr_start_release(v->noise_amt_env + 1, after);
-
 }
 
 
@@ -1654,6 +1653,7 @@ void synth_feed_midi(
     int32_t tl_start,
     bool send_immediate)
 {
+    if (num_events == 0) return;
     /* fprintf(stderr, "\n\nSYNTH FEED MIDI %d events tl start start: %d send immediate %d\n", num_events, tl_start, send_immediate); */
     /* FIRST: Update synth state from available MIDI data */
     /* fprintf(stderr, "SYNTH FEED MIDI tl start: %d\n", tl_start); */
@@ -1683,7 +1683,6 @@ void synth_feed_midi(
 	if (msg_type == 9 && velocity == 0) msg_type = 8;
 	if (msg_type == 8) {
 	    /* HANDLE NOTE OFF */
-	    /* fprintf(stderr, "\t\tNOTE OFF val: %d pos %d\n", note_val, e.timestamp); */
 	    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 		SynthVoice *v = s->voices + i;
 		if (!v->available && v->note_val == note_val) {

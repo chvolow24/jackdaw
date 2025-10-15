@@ -45,6 +45,11 @@ void piano_roll_mouse_click(SDL_Point mousep);
 void piano_roll_mouse_motion(SDL_Point mousep);
 void piano_roll_mouse_up(SDL_Point mousep);
 
+
+/* MIDI I/O */
+void piano_roll_feed_midi(const PmEvent *events, int num_events);
+void piano_roll_execute_queued_insertions();
+
 #endif
 
 

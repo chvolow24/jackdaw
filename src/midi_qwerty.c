@@ -180,8 +180,7 @@ void mqwert_velocity(int incr)
 void mqwert_handle_key(char key, bool is_keyup)
 {
     int note;
-    
-
+    /* fprintf(stderr, "\tmqwert %s: %d\n", is_keyup ? "key UP" : "key DOWN", key); */
     if (!is_keyup) {
 	if (state.key_note_table[key - ' '] != 0) { /* Key is occupied */
 	    return; /* No restrikes! */
@@ -260,16 +259,6 @@ void mqwert_get_current_notes(MIDIDevice *dst_device)
     dst_device->num_unconsumed_events = state.v_device.num_unconsumed_events;
     memcpy(&dst_device->buffer, &state.v_device.buffer, dst_device->num_unconsumed_events * sizeof(PmEvent));
     state.v_device.num_unconsumed_events = 0;
-    /* for (int i=0; i<128; i++) { */
-    /* 	Note *unclosed_src = state.v_device.unclosed_notes + i; */
-    /* 	if (unclosed_src->unclosed) { */
-    /* 	    Note *unclosed_dst = dst_device->unclosed_notes + i; */
-    /* 	    *unclosed_dst = *unclosed_src; */
-    /* 	    memset(unclosed_src, '\0', sizeof(Note)); */
-    /* 	} */
-    /* } */
-    /* memcpy(&dst_device->unclosed_notes, &state.v_device.unclosed_notes, sizeof(state.v_device.unclosed_notes)); */
-    /* memset(&state.v_device, '\0', sizeof(state.v_device)); */
 }
 
 /* returns note if pressed, 0 if not */
@@ -297,7 +286,6 @@ void mqwert_set_monitor_device_name(const char *device_name)
     int cpy_len = strlen(device_name) + 1;
     if (cpy_len > MAX_NAMELENGTH) cpy_len = MAX_NAMELENGTH;
     memcpy(state.monitor_device_name, device_name, cpy_len);
-    fprintf(stderr, "NAME: %s\n", device_name);
 }
 
 char *mqwert_get_monitor_device_str()

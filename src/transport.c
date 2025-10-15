@@ -28,6 +28,7 @@
 #include "midi_qwerty.h"
 #include "user_event.h"
 #include "mixdown.h"
+#include "piano_roll.h"
 #include "porttime.h"
 #include "project.h"
 #include "session_endpoint_ops.h"
@@ -181,7 +182,6 @@ static inline float clip(float f)
     return f;
 }
 
-/* int DEBUG_MOD = 0; */
 void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 {
     Session *session = session_get();
@@ -240,6 +240,9 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     if (d && s) {
 	midi_device_read(d);
 	float playspeed = session->playback.play_speed;
+	if (session->piano_roll) {
+	    piano_roll_feed_midi(d->buffer, d->num_unconsumed_events);
+	}
 	synth_feed_midi(s, d->buffer, d->num_unconsumed_events, 0, true);
 	if (d->current_clip && d->current_clip->recording) {
 	    midi_device_output_chunk_to_clip(d, 1);

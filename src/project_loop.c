@@ -687,6 +687,10 @@ void loop_project_main()
 	    timeline_scroll_playhead(session->playhead_scroll.playhead_frame_incr);
 	}
 
+	if (session->piano_roll) {
+	    piano_roll_execute_queued_insertions();
+	}
+
 	/* update_track_vol_pan(); */
 
 	if (main_win->txt_editing) {

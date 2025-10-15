@@ -21,6 +21,7 @@ extern struct colors colors;
 #define PIANO_TOP_NOTE 108
 #define PIANO_BOTTOM_NOTE 21
 #define MAX_GRABBED_NOTES 256
+#define MAX_QUEUED_EVENTS 64
 /* #define MAX_TIED_NOTES 24 */
 
 enum note_dur {
@@ -95,6 +96,13 @@ struct piano_roll_state {
     bool mouse_sel_rect_active;
     SDL_Rect mouse_sel_rect;
     SDL_Point mouse_sel_rect_origin;
+
+
+    /* Insertion Queue */
+    PmEvent event_queue[MAX_QUEUED_EVENTS];
+    int num_queued_events;
+    pthread_mutex_t event_queue_lock;
+    
 };
 
 
@@ -323,6 +331,11 @@ void piano_roll_activate(ClipRef *cr)
 
     state.current_dur = DUR_QUARTER;
     state.ct = timeline_governing_click_track(ACTIVE_TL);
+
+    int err = pthread_mutex_init(&state.event_queue_lock, NULL);
+    if (err != 0) {
+	fprintf(stderr, "Error initializing piano roll event queue lock: %s\n", strerror(err));
+    }
     
     piano_roll_init_layout(session_get());
     piano_roll_init_gui();
@@ -434,6 +447,7 @@ void piano_roll_move_note_selector(int by)
 
 void piano_roll_next_note()
 {
+    if (state.clip->num_notes == 0) return;
     Session *session = session_get();
     int32_t play_pos_rel = ACTIVE_TL->play_pos_sframes - state.cr->tl_pos + state.cr->start_in_clip;
     /* Note *note = midi_clipref_get_next_note(state.cr, pos, &pos); */
@@ -474,6 +488,7 @@ void piano_roll_next_note()
 
 void piano_roll_prev_note()
 {
+    if (state.clip->num_notes == 0) return;
     Session *session = session_get();
     int32_t play_pos_rel = ACTIVE_TL->play_pos_sframes - state.cr->tl_pos + state.cr->start_in_clip;
     /* Note *note = midi_clipref_get_next_note(state.cr, pos, &pos); */
@@ -513,6 +528,7 @@ void piano_roll_prev_note()
 
 void piano_roll_up_note()
 {
+    if (state.clip->num_notes == 0) return;
     Session *session = session_get();
     int32_t pos = ACTIVE_TL->play_pos_sframes;
     Note *note = midi_clipref_up_note_at_cursor(state.cr, pos, state.selected_note);
@@ -524,6 +540,7 @@ void piano_roll_up_note()
 
 void piano_roll_down_note()
 {
+    if (state.clip->num_notes == 0) return;
     Session *session = session_get();
     int32_t pos = ACTIVE_TL->play_pos_sframes;
     Note *note = midi_clipref_down_note_at_cursor(state.cr, pos, state.selected_note);
@@ -681,16 +698,10 @@ void piano_roll_insert_note()
     }
 }
 
-void test()
-{
-int ok = 0;
-		    fprintf(stderr, "Ok: %d\n", ok);
-    
-}
-/* NEW_EVENT_FN(undo_redo_insert_rest, "undo insert rest") */
-/*      Timeline *tl = obj1; */
-/*      timeline_set_play_position(tl, val1.int32_v, false); */
-/*  }  */
+NEW_EVENT_FN(undo_redo_insert_rest, "undo insert rest")
+     Timeline *tl = obj1;
+     timeline_set_play_position(tl, val1.int32_v, false);
+ }
 
 
 void piano_roll_insert_rest()
@@ -710,24 +721,21 @@ void piano_roll_insert_rest()
     if (state.chord_mode) {
 	piano_roll_toggle_chord_mode();
     }
-    /* user_event_push( */
-    /* 	undo_redo_insert_rest, */
-    /* 	undo_redo_insert_rest, */
-    /* 	NULL, NULL, */
-    /* 	tl, NULL, */
-    /* 	(Value){.int32_v = old_pos}, */
-    /* 	(Value){0}, */
-    /* 	(Value){.int32_v = tl->play_pos_sframes}, */
-    /* 	(Value){0}, */
-    /* 	0, 0, false, false); */
-}
-	
-	
-    
+    user_event_push(
+	undo_redo_insert_rest,
+	undo_redo_insert_rest,
+	NULL, NULL,
+	tl, NULL,
+	(Value){.int32_v = old_pos},
+	(Value){0},
+	(Value){.int32_v = tl->play_pos_sframes},
+	(Value){0},
+	0, 0, false, false);
 }
 
 static Note *note_at_cursor(bool include_end)
 {
+    if (state.clip->num_notes == 0) return NULL;
     int32_t note_i = midi_clipref_check_get_last_note(state.cr);
     int32_t first_note = midi_clipref_check_get_first_note(state.cr);
     int32_t playhead = state.cr->track->tl->play_pos_sframes;
@@ -1157,6 +1165,52 @@ void piano_roll_mouse_up(SDL_Point mousep)
 	timeview_get_pos_sframes(state.tl_tv, state.mouse_sel_rect.x + state.mouse_sel_rect.w),
 	sel_piano_note_bottom + 20,
 	sel_piano_note_top + 20);
+}
+
+
+
+/* MIDI Device input */
+
+/* called in project_loop.c on main thread */
+void piano_roll_execute_queued_insertions()
+{
+    int err = pthread_mutex_lock(&state.event_queue_lock);
+    if (err != 0) {
+	fprintf(stderr, "Error locking piano roll event queue lock from main thread: %s\n", strerror(err));
+    }
+    for (int i=0; i<state.num_queued_events; i++) {
+	/* PmEvent e = s->device.buffer[i]; */
+	PmEvent e = state.event_queue[i];
+	uint8_t status = Pm_MessageStatus(e.message);
+	uint8_t note_val = Pm_MessageData1(e.message);
+	uint8_t velocity = Pm_MessageData2(e.message);
+	uint8_t msg_type = status >> 4;
+
+	if (msg_type == 9 && velocity == 0) msg_type = 8;
+        if (msg_type == 9) {
+	    state.selected_note = note_val;
+	    piano_roll_insert_note();
+	}
+    }
+    state.num_queued_events = 0;
+    pthread_mutex_unlock(&state.event_queue_lock);
+}
+
+/* Called on audio thread */
+void piano_roll_feed_midi(const PmEvent *events, int num_events)
+{
+    if (num_events == 0) return;
+    int err = pthread_mutex_lock(&state.event_queue_lock);
+    if (err != 0) {
+	fprintf(stderr, "Error locking piano roll event queue lock from audio thread: %s\n", strerror(err));
+    }
+    if (num_events > MAX_QUEUED_EVENTS) {
+	fprintf(stderr, "Error: cannot queue more than %d events (%d requested)\n", MAX_QUEUED_EVENTS, num_events);
+	num_events = MAX_QUEUED_EVENTS;
+    }
+    memcpy(state.event_queue, events, num_events * sizeof(PmEvent));
+    state.num_queued_events = num_events;
+    pthread_mutex_unlock(&state.event_queue_lock);
 }
 
 

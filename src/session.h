@@ -120,6 +120,9 @@ struct queued_ops {
     uint8_t num_ongoing_changes[NUM_JDAW_THREADS];
     pthread_mutex_t ongoing_changes_lock;
 
+    PmEvent piano_roll_queued_events[MAX_QUEUED_OPS];
+    pthread_mutex_t piano_roll_insertion_lock;
+
 };
 
 struct source_mode {    

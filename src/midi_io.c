@@ -454,6 +454,7 @@ static void track_flush_unclosed_midi_notes(Track *track)
 void timeline_flush_unclosed_midi_notes()
 {
     Session *session = session_get();
+    if (!session->playback.playing) return;
     Timeline *tl = ACTIVE_TL;
     for (int i=0; i<tl->num_tracks; i++) {
 	Track *track = tl->tracks[i];

@@ -19,7 +19,7 @@ void piano_roll_up_note();
 void piano_roll_down_note();
 void piano_roll_dur_longer();
 void piano_roll_dur_shorter();
-void piano_roll_insert_note();
+Note *piano_roll_insert_note();
 void piano_roll_insert_rest();
 
 void piano_roll_grab_ungrab();
@@ -48,7 +48,7 @@ void piano_roll_mouse_up(SDL_Point mousep);
 
 /* MIDI I/O */
 void piano_roll_feed_midi(const PmEvent *events, int num_events);
-void piano_roll_execute_queued_insertions();
+int piano_roll_execute_queued_insertions();
 
 #endif
 

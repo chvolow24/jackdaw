@@ -688,7 +688,9 @@ void loop_project_main()
 	}
 
 	if (session->piano_roll) {
-	    piano_roll_execute_queued_insertions();
+	    if (piano_roll_execute_queued_insertions()) {
+		frames_since_event = 0;
+	    }
 	}
 
 	/* update_track_vol_pan(); */

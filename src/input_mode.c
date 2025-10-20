@@ -1558,11 +1558,10 @@ void mode_load_piano_roll()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
-	"piano_roll_delete_grabbed_notes",
-	"Delete grabbed notes",
-	user_piano_roll_delete_grabbed_notes);
+	"piano_roll_delete",
+	"Undo last insertion or delete grabbed notes",
+	user_piano_roll_delete);
     mode_subcat_add_fn(sc, fn);
-
 
     fn = create_user_fn(
 	"piano_roll_toggle_tie",

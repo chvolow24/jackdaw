@@ -40,9 +40,24 @@ int user_event_do_undo(UserEventHistory *history)
     } else {
 	history->next_undo = NULL;
     }
-    return 0;
-    
+    return 0;   
 }
+
+/* Only do undo if undo fn is in known list */
+void user_event_do_undo_selective(EventFn options[], int num_options)
+{
+    Session *session = session_get();
+    UserEvent *e = session->history.next_undo;
+    if (!e) return;
+    fprintf(stderr, "undo selective!\n");
+    for (int i=0; i<num_options; i++) {
+	if (e->undo == options[i]) {
+	    user_event_do_undo(&session->history);
+	}
+    }
+
+}
+
 
 /* Returns 0 if action completed; 1 if no action available */
 int user_event_do_redo(UserEventHistory *history)
@@ -301,3 +316,4 @@ void user_event_redo_set_value(
 	break;
     }
 }
+

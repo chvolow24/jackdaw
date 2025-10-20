@@ -103,6 +103,9 @@ struct piano_roll_state {
     PmEvent event_queue[MAX_QUEUED_EVENTS];
     int num_queued_events;
     pthread_mutex_t event_queue_lock;
+
+    /* int32_t last_inserted_note_ids[128]; */
+    /* int num_last_inserted_notes; */
     
 };
 
@@ -391,6 +394,7 @@ void piano_roll_activate(ClipRef *cr)
 
 void piano_roll_deactivate()
 {
+    midi_clip_ungrab_all(state.clip);
     state.clip = NULL;
     InputMode im = window_pop_mode(main_win);
     if (im != MODE_PIANO_ROLL) {
@@ -618,87 +622,87 @@ NEW_EVENT_FN(undo_redo_extend_tied_note, "undo/redo extend tied note")
     }
 }
 
-static void piano_roll_insert_chord(int *notes, int num_notes)
-{
-    Session *session = session_get();
-    /* fprintf(stderr, "INSERT NUM NOTES BEFORE: %d (%d grabbed)\n", state.clip->num_notes, state.clip->num_grabbed_notes); */
-    Timeline *tl = ACTIVE_TL;
-    int32_t clip_chord_pos = tl->play_pos_sframes - state.cr->tl_pos + state.cr->start_in_clip;
-    int32_t input_dur = get_input_dur_samples();
-    int32_t end_pos = clip_chord_pos + input_dur;
+/* static void piano_roll_insert_chord(int *notes, int num_notes) */
+/* { */
+/*     Session *session = session_get(); */
+/*     /\* fprintf(stderr, "INSERT NUM NOTES BEFORE: %d (%d grabbed)\n", state.clip->num_notes, state.clip->num_grabbed_notes); *\/ */
+/*     Timeline *tl = ACTIVE_TL; */
+/*     int32_t clip_chord_pos = tl->play_pos_sframes - state.cr->tl_pos + state.cr->start_in_clip; */
+/*     int32_t input_dur = get_input_dur_samples(); */
+/*     int32_t end_pos = clip_chord_pos + input_dur; */
 
-    Note *tied_notes[num_notes];
-    int num_tied = 0;
-    int32_t chord_tl_end;
-    if (state.tie && state.clip->num_grabbed_notes > 0) {
-	for (int32_t i=state.clip->first_grabbed_note; i<=state.clip->last_grabbed_note; i++) {
-	    Note *note = state.clip->notes + i;
-	    if (note->grabbed && note->grabbed_edge == NOTE_EDGE_RIGHT && note_tl_end_pos(note, state.cr) == tl->play_pos_sframes) {
-		for (int i=0; i<num_notes; i++) {
-		    if (note->key == notes[i]) {
-			tied_notes[num_tied] = note;
-			num_tied++;
-		    }
-		}
-		break;
-	    }
-	}
-    }
-    if (num_tied > 0) {
-	int32_t old_end_rel = tied_notes[0]->end_rel;
-	for (int i=0; i<num_tied; i++) {
-	    tied_notes[i]->end_rel += input_dur;
-	}
-	chord_tl_end = note_tl_end_pos(tied_notes[0], state.cr);
+/*     Note *tied_notes[num_notes]; */
+/*     int num_tied = 0; */
+/*     int32_t chord_tl_end; */
+/*     if (state.tie && state.clip->num_grabbed_notes > 0) { */
+/* 	for (int32_t i=state.clip->first_grabbed_note; i<=state.clip->last_grabbed_note; i++) { */
+/* 	    Note *note = state.clip->notes + i; */
+/* 	    if (note->grabbed && note->grabbed_edge == NOTE_EDGE_RIGHT && note_tl_end_pos(note, state.cr) == tl->play_pos_sframes) { */
+/* 		for (int i=0; i<num_notes; i++) { */
+/* 		    if (note->key == notes[i]) { */
+/* 			tied_notes[num_tied] = note; */
+/* 			num_tied++; */
+/* 		    } */
+/* 		} */
+/* 		break; */
+/* 	    } */
+/* 	} */
+/*     } */
+/*     if (num_tied > 0) { */
+/* 	int32_t old_end_rel = tied_notes[0]->end_rel; */
+/* 	for (int i=0; i<num_tied; i++) { */
+/* 	    tied_notes[i]->end_rel += input_dur; */
+/* 	} */
+/* 	chord_tl_end = note_tl_end_pos(tied_notes[0], state.cr); */
 
-	/* TODO: Undo tied CHORD */
-	/* user_event_push( */
-	/*     undo_redo_extend_tied_note, */
-	/*     undo_redo_extend_tied_note, */
-	/*     NULL, NULL, */
-	/*     state.cr, */
-	/*     NULL, */
-	/*     (Value){.int32_v = tied_note->id}, */
-	/*     (Value){.int32_v = old_end_rel}, */
-	/*     (Value){.int32_v = tied_note->id}, */
-	/*     (Value){.int32_v = tied_note->end_rel}, */
-	/*     0, 0, false, false); */
+/* 	/\* TODO: Undo tied CHORD *\/ */
+/* 	/\* user_event_push( *\/ */
+/* 	/\*     undo_redo_extend_tied_note, *\/ */
+/* 	/\*     undo_redo_extend_tied_note, *\/ */
+/* 	/\*     NULL, NULL, *\/ */
+/* 	/\*     state.cr, *\/ */
+/* 	/\*     NULL, *\/ */
+/* 	/\*     (Value){.int32_v = tied_note->id}, *\/ */
+/* 	/\*     (Value){.int32_v = old_end_rel}, *\/ */
+/* 	/\*     (Value){.int32_v = tied_note->id}, *\/ */
+/* 	/\*     (Value){.int32_v = tied_note->end_rel}, *\/ */
+/* 	/\*     0, 0, false, false); *\/ */
 	    
-	/* midi_clip_rectify_length(state.clip); */
-    } else {
-	midi_clip_ungrab_all(state.clip);
-	Note *note;
-	for (int i=0; i<num_notes; i++) {
-	    note = midi_clip_insert_note(state.clip, 0, notes[i], 100, clip_chord_pos, end_pos);
-	    midi_clip_grab_note(state.clip, note, NOTE_EDGE_RIGHT);
-	}
-	chord_tl_end = note_tl_end_pos(note, state.cr);
+/* 	/\* midi_clip_rectify_length(state.clip); *\/ */
+/*     } else { */
+/* 	midi_clip_ungrab_all(state.clip); */
+/* 	Note *note; */
+/* 	for (int i=0; i<num_notes; i++) { */
+/* 	    note = midi_clip_insert_note(state.clip, 0, notes[i], 100, clip_chord_pos, end_pos); */
+/* 	    midi_clip_grab_note(state.clip, note, NOTE_EDGE_RIGHT); */
+/* 	} */
+/* 	chord_tl_end = note_tl_end_pos(note, state.cr); */
 
-	/* struct insert_note_info *info = malloc(sizeof(struct insert_note_info)); */
-	/* info->id = note->id; */
-	/* info->key = note->key; */
-	/* info->channel = note->channel; */
-	/* info->velocity = note->velocity; */
-	/* info->start_tl_pos = note_tl_start_pos(note, state.cr); */
-	/* info->end_tl_pos = note_tl_end; */
-	/* user_event_push( */
-	/*     undo_insert_note, */
-	/*     redo_insert_note, */
-	/*     NULL, NULL, */
-	/*     state.cr, info, */
-	/*     (Value){.int32_v = note->id}, */
-	/*     (Value){.int32_v = note_tl_start_pos(note, state.cr)}, */
-	/*     (Value){.int32_v = note - state.clip->notes}, */
-	/*     (Value){.int32_v = note_tl_end_pos(note, state.cr)}, */
-	/*     0, 0, false, true); */
+/* 	/\* struct insert_note_info *info = malloc(sizeof(struct insert_note_info)); *\/ */
+/* 	/\* info->id = note->id; *\/ */
+/* 	/\* info->key = note->key; *\/ */
+/* 	/\* info->channel = note->channel; *\/ */
+/* 	/\* info->velocity = note->velocity; *\/ */
+/* 	/\* info->start_tl_pos = note_tl_start_pos(note, state.cr); *\/ */
+/* 	/\* info->end_tl_pos = note_tl_end; *\/ */
+/* 	/\* user_event_push( *\/ */
+/* 	/\*     undo_insert_note, *\/ */
+/* 	/\*     redo_insert_note, *\/ */
+/* 	/\*     NULL, NULL, *\/ */
+/* 	/\*     state.cr, info, *\/ */
+/* 	/\*     (Value){.int32_v = note->id}, *\/ */
+/* 	/\*     (Value){.int32_v = note_tl_start_pos(note, state.cr)}, *\/ */
+/* 	/\*     (Value){.int32_v = note - state.clip->notes}, *\/ */
+/* 	/\*     (Value){.int32_v = note_tl_end_pos(note, state.cr)}, *\/ */
+/* 	/\*     0, 0, false, true); *\/ */
 
-    }
-    midi_clip_check_reset_bounds(state.clip);
-    /* midi_clip_rectify_length(state.clip); */
-    if (!state.chord_mode) {
-	timeline_set_play_position(tl, chord_tl_end, false);
-    }
-}
+/*     } */
+/*     midi_clip_check_reset_bounds(state.clip); */
+/*     /\* midi_clip_rectify_length(state.clip); *\/ */
+/*     if (!state.chord_mode) { */
+/* 	timeline_set_play_position(tl, chord_tl_end, false); */
+/*     } */
+/* } */
 
 Note *piano_roll_insert_note()
 {
@@ -724,7 +728,6 @@ Note *piano_roll_insert_note()
 		    tied_note = note;
 		    break;
 		}
-		
 	    }
 	}
     }
@@ -951,9 +954,30 @@ void piano_roll_grab_marked_range()
 }
 
 
-void piano_roll_delete_grabbed_notes()
+void piano_roll_delete()
 {
-    midi_clip_grabbed_notes_delete(state.clip);
+    if (state.clip->num_grabbed_notes > 0) {
+	midi_clip_grabbed_notes_delete(state.clip);
+    } else {
+	Note **intersecting = NULL;
+	int32_t play_pos_sframes = state.cr->track->tl->play_pos_sframes;
+	int32_t start_pos = 0;
+	int num_intersecting = midi_clipref_notes_ending_at_pos(state.cr, play_pos_sframes, &intersecting, &start_pos);
+	for (int i=0; i<num_intersecting; i++) {
+	    Note *note = intersecting[i];
+	    midi_clip_grab_note(state.clip, note, NOTE_EDGE_NONE);
+	}
+	midi_clip_grabbed_notes_delete(state.clip);
+	if (num_intersecting > 0) {
+	    fprintf(stderr, "SETTING play pos to start pos : %d\n", start_pos);
+	    timeline_set_play_position(state.cr->track->tl, start_pos, false);
+	}
+	/* EventFn undo_options[2] = { */
+	/*     undo_insert_note, */
+	/*     undo_redo_insert_rest */
+	/* }; */
+	/* user_event_do_undo_selective(undo_options, 2); */
+    }
 }
 
 void piano_roll_start_moving()

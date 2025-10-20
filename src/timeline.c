@@ -276,6 +276,10 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes, bool move
 	}
     }
 
+    if (session->playback.lock_view_to_playhead) {
+	timeview_scroll_sframes(&tl->timeview, pos_diff);
+	tl->needs_reset = true;
+    }
 
 
     timeline_flush_unclosed_midi_notes();

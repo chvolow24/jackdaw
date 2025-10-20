@@ -314,6 +314,6 @@
   - g-l		: piano_roll_grab_note_right_edge
   - g-k		: piano_roll_grab_no_edge
   - S-g		: piano_roll_grab_marked_range
-  - <del>	: piano_roll_delete_grabbed_notes
+  - <del>	: piano_roll_delete
   - S-t		: piano_roll_toggle_tie
   - S-h		: piano_roll_toggle_chord_mode

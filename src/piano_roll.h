@@ -26,7 +26,7 @@ void piano_roll_grab_ungrab();
 void piano_roll_grab_left_edge();
 void piano_roll_grab_right_edge();
 void piano_roll_grab_marked_range();
-void piano_roll_delete_grabbed_notes();
+void piano_roll_delete();
 /* void piano_roll_delete_grabbed_notes(); */
 void piano_roll_stop_moving();
 void piano_roll_start_moving();

@@ -676,11 +676,12 @@ int midi_clipref_notes_intersecting_area(ClipRef *cr, int32_t range_start, int32
     return num_intersecting_notes;
 }
 
-int midi_clipref_notes_ending_at_pos(ClipRef *cr, int32_t tl_pos, Note ***dst, int32_t *start_pos_dst)
+int midi_clipref_notes_ending_at_pos(ClipRef *cr, int32_t tl_pos, Note ***dst, bool latest_start_time, int32_t *start_pos_dst)
 {
     MIDIClip *mclip = cr->source_clip;
     int32_t note_i = midi_clipref_check_get_first_note(cr);
     int32_t last_i = midi_clipref_check_get_last_note(cr);
+    if (note_i == -1) return 0;
     Note **intersecting = malloc(MAX_INTERSECTING_NOTES * sizeof(Note *));
     int num_intersecting = 0;
     while (note_i <= last_i) {
@@ -694,22 +695,29 @@ int midi_clipref_notes_ending_at_pos(ClipRef *cr, int32_t tl_pos, Note ***dst, i
 	}
 	note_i++;
     }
-    int32_t max_start_pos = INT32_MIN;
-    for (int i=0; i<num_intersecting; i++) {
-	int32_t start_pos = note_tl_start_pos(intersecting[i], cr);
-	if (start_pos > max_start_pos) max_start_pos = start_pos;
-    }
-    *dst = malloc(num_intersecting * sizeof(Note *));
     int num_returned = 0;
-    for (int i=0; i<num_intersecting; i++) {
-	int32_t start_pos = note_tl_start_pos(intersecting[i], cr);
-	if (start_pos == max_start_pos) {
-	    (*dst)[num_returned] = intersecting[i];
-	    num_returned++;
+    if (latest_start_time) {
+	int32_t max_start_pos = INT32_MIN;
+	for (int i=0; i<num_intersecting; i++) {
+	    int32_t start_pos = note_tl_start_pos(intersecting[i], cr);
+	    if (start_pos > max_start_pos) max_start_pos = start_pos;
 	}
+	*dst = malloc(num_intersecting * sizeof(Note *));
+	for (int i=0; i<num_intersecting; i++) {
+	    int32_t start_pos = note_tl_start_pos(intersecting[i], cr);
+	    if (start_pos == max_start_pos) {
+		(*dst)[num_returned] = intersecting[i];
+		num_returned++;
+	    }
+	}
+	*start_pos_dst = max_start_pos;
+	*dst = realloc(*dst, num_returned * sizeof(Note *));
+    } else {
+	*dst = malloc(num_intersecting * sizeof(Note *));
+	memcpy(*dst, intersecting, num_intersecting * sizeof(Note *));
+	num_returned = num_intersecting;
     }
-    *start_pos_dst = max_start_pos;
-    *dst = realloc(*dst, num_returned * sizeof(Note *));
+    free(intersecting);
     return num_returned;
 }
 
@@ -797,6 +805,16 @@ void midi_clip_grab_note(MIDIClip *mclip, Note *note, NoteEdge edge)
     note->grabbed = true;
     note->grabbed_edge = edge;
     int32_t note_i = note - mclip->notes;
+    mclip->first_grabbed_note = mclip->num_notes - 1;
+    for (int32_t i=0; i<mclip->num_notes; i++) {
+	if (mclip->notes[i].grabbed) {
+	    if (i < mclip->first_grabbed_note) {
+		mclip->first_grabbed_note = i;
+	    } else if (i > mclip->last_grabbed_note) {
+		mclip->last_grabbed_note = i;
+	    }
+	} 
+    }
     if (note_i < mclip->first_grabbed_note) mclip->first_grabbed_note = note_i;
     else if (note_i > mclip->last_grabbed_note) mclip->last_grabbed_note = note_i;
     mclip->num_grabbed_notes++;
@@ -813,6 +831,8 @@ void midi_clip_ungrab_all(MIDIClip *mclip)
 	    note->grabbed = false;
 	}
     }
+    mclip->first_grabbed_note = 0;
+    mclip->last_grabbed_note = 0;
     mclip->num_grabbed_notes = 0;
 }
 
@@ -1060,6 +1080,7 @@ NEW_EVENT_FN(undo_move_grabbed_notes, "undo move grabbed notes")
 	int32_t note_i = midi_clip_get_note_by_id(mclip, info[i].note_id);
 	Note *note = mclip->notes + note_i;
 	note->start_rel = info[i].start_tl_before - cr->tl_pos + cr->start_in_clip;
+	fprintf(stderr, "Note index %d ID %d: start_tl_before = %d start_rel = %d\n", i, info[i].note_id, info[i].start_tl_before, note->start_rel);
 	note->end_rel = info[i].end_tl_before - cr->tl_pos + cr->start_in_clip;;
 	note->key = info[i].key_before;
     }
@@ -1101,6 +1122,7 @@ NEW_EVENT_FN(redo_move_grabbed_notes, "redo move grabbed notes")
 void midi_clipref_push_grabbed_note_move_event(ClipRef *cr)
 {
     MIDIClip *mclip = cr->source_clip;
+    /* fprintf(stderr, "Push! note move in progress? %d num grabbed? %d\n", mclip->note_move_in_progress, mclip->num_grabbed_notes); */
     if (mclip->num_grabbed_notes == 0) return;
     if (!mclip->note_move_in_progress) return;
     mclip->note_move_in_progress = false;

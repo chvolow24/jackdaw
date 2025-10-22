@@ -85,6 +85,7 @@ struct piano_roll_state {
     Layout *piano_lt;
     Layout *console_lt;
     int selected_note; /* midi value */
+    int insert_velocity;
 
     /* Insertion params */
     enum note_dur current_dur;
@@ -717,19 +718,30 @@ Note *piano_roll_insert_note()
     Note *tied_note = NULL;
     int32_t note_tl_end;
     if (state.tie) {
-	if (state.clip->num_grabbed_notes > 0) {
-	    for (int32_t i=state.clip->first_grabbed_note; i<=state.clip->last_grabbed_note; i++) {
-		Note *note = state.clip->notes + i;
-		if (note->grabbed
-		    && note->key == state.selected_note
-		    && note->grabbed_edge == NOTE_EDGE_RIGHT
-		    && note_tl_end_pos(note, state.cr) == tl->play_pos_sframes)
-		{
-		    tied_note = note;
-		    break;
-		}
+	Note **tied_notes = NULL;
+	int num_tied = midi_clipref_notes_ending_at_pos(state.cr, tl->play_pos_sframes, &tied_notes, false, NULL);
+	for (int i=0; i<num_tied; i++) {
+	    if (tied_notes[i]->key == state.selected_note) {
+		tied_note = tied_notes[i];
+		break;
 	    }
 	}
+	if (num_tied > 0)
+	    free(tied_notes);
+	
+	/* if (state.clip->num_grabbed_notes > 0) { */
+	/*     for (int32_t i=state.clip->first_grabbed_note; i<=state.clip->last_grabbed_note; i++) { */
+	/* 	Note *note = state.clip->notes + i; */
+	/* 	if (note->grabbed */
+	/* 	    && note->key == state.selected_note */
+	/* 	    && note->grabbed_edge == NOTE_EDGE_RIGHT */
+	/* 	    && note_tl_end_pos(note, state.cr) == tl->play_pos_sframes) */
+	/* 	{ */
+	/* 	    tied_note = note; */
+	/* 	    break; */
+	/* 	} */
+	/*     } */
+	/* } */
     }
     if (tied_note) {
 	int32_t old_end_rel = tied_note->end_rel;
@@ -751,12 +763,12 @@ Note *piano_roll_insert_note()
 	/* midi_clip_rectify_length(state.clip); */
     } else {
 	midi_clip_ungrab_all(state.clip);
-	Note *note = midi_clip_insert_note(state.clip, 0, state.selected_note, 100, clip_note_pos, end_pos);
+	Note *note = midi_clip_insert_note(state.clip, 0, state.selected_note, state.insert_velocity, clip_note_pos, end_pos);
 	/* fprintf(stderr, "Fresh note %d, grabbed? %d\n",note->key, note->grabbed); */
 	/* int32_t note_tl_start = note_tl_start_pos(note, state.cr); */
 	note_tl_end = note_tl_end_pos(note, state.cr);
 	/* if (state.tie) { */
-	midi_clip_grab_note(state.clip, note, NOTE_EDGE_RIGHT);
+	/* midi_clip_grab_note(state.clip, note, NOTE_EDGE_RIGHT); */
 
 	struct insert_note_info *info = malloc(sizeof(struct insert_note_info));
 	info->id = note->id;
@@ -911,10 +923,10 @@ void piano_roll_grab_ungrab()
 	    midi_clipref_cache_grabbed_note_info(state.cr);
 	}
     } else {
-	midi_clip_ungrab_all(state.clip);
 	if (session_get()->dragging) {
 	    midi_clipref_push_grabbed_note_move_event(state.cr);
 	}
+	midi_clip_ungrab_all(state.clip);
     }
     if (session_get()->dragging) {
 	status_stat_drag();
@@ -962,15 +974,16 @@ void piano_roll_delete()
 	Note **intersecting = NULL;
 	int32_t play_pos_sframes = state.cr->track->tl->play_pos_sframes;
 	int32_t start_pos = 0;
-	int num_intersecting = midi_clipref_notes_ending_at_pos(state.cr, play_pos_sframes, &intersecting, &start_pos);
+	int num_intersecting = midi_clipref_notes_ending_at_pos(state.cr, play_pos_sframes, &intersecting, true, &start_pos);
 	for (int i=0; i<num_intersecting; i++) {
 	    Note *note = intersecting[i];
 	    midi_clip_grab_note(state.clip, note, NOTE_EDGE_NONE);
 	}
 	midi_clip_grabbed_notes_delete(state.clip);
 	if (num_intersecting > 0) {
-	    fprintf(stderr, "SETTING play pos to start pos : %d\n", start_pos);
 	    timeline_set_play_position(state.cr->track->tl, start_pos, false);
+	} else {
+	    piano_roll_prev_note();
 	}
 	/* EventFn undo_options[2] = { */
 	/*     undo_insert_note, */
@@ -1005,10 +1018,10 @@ void piano_roll_toggle_tie()
     state.tie = !state.tie;
     if (state.tie) {
 	textbox_set_background_color(state.gui.tie_button, &colors.green);
-	Note *note = note_at_cursor(true);
-	if (note && note_tl_end_pos(note, state.cr) == state.cr->track->tl->play_pos_sframes) {
-	    midi_clip_grab_note(state.clip, note, NOTE_EDGE_RIGHT);
-	}
+	/* Note *note = note_at_cursor(true); */
+	/* if (note && note_tl_end_pos(note, state.cr) == state.cr->track->tl->play_pos_sframes) { */
+	/*     midi_clip_grab_note(state.clip, note, NOTE_EDGE_RIGHT); */
+	/* } */
     } else {
 	textbox_set_background_color(state.gui.tie_button, &colors.grey);
 	midi_clip_ungrab_all(state.clip);
@@ -1263,6 +1276,9 @@ void piano_roll_mouse_up(SDL_Point mousep)
 	return;
     }
     mouse_motion_occurred = false;
+    if (state.clip->num_grabbed_notes > 0 && session_get()->dragging) {
+	midi_clipref_push_grabbed_note_move_event(state.cr);
+    }
     midi_clip_ungrab_all(state.clip);
     state.mouse_sel_rect_active = false;
     int sel_piano_note_top = 88 - 88 * (state.mouse_sel_rect.y - state.layout->rect.y) / state.layout->rect.h;
@@ -1273,6 +1289,11 @@ void piano_roll_mouse_up(SDL_Point mousep)
 	timeview_get_pos_sframes(state.tl_tv, state.mouse_sel_rect.x + state.mouse_sel_rect.w),
 	sel_piano_note_bottom + 20,
 	sel_piano_note_top + 20);
+    if (session_get()->dragging) {
+	midi_clipref_cache_grabbed_note_info(state.cr);
+    }
+
+
 }
 
 
@@ -1288,10 +1309,11 @@ int piano_roll_execute_queued_insertions()
     }
     static int32_t last_insert_ts = INT32_MIN;
     static int32_t last_insert_note_id = -1;
+    static int32_t last_insert_tl_pos = 0;
 
     if (state.num_queued_events !=0 ){
 	/* fprintf(stderr, "\n"); */
-	fprintf(stderr, "\nDEQUEUEING %d events\n", state.num_queued_events);
+	/* fprintf(stderr, "\nDEQUEUEING %d events\n", state.num_queued_events); */
     }
     for (int i=0; i<state.num_queued_events; i++) {
 	/* PmEvent e = s->device.buffer[i]; */
@@ -1300,29 +1322,31 @@ int piano_roll_execute_queued_insertions()
 	uint8_t note_val = Pm_MessageData1(e.message);
 	uint8_t velocity = Pm_MessageData2(e.message);
 	uint8_t msg_type = status >> 4;
-	fprintf(stderr, "\t%d: type %d note %d vel %d", i, msg_type, note_val, velocity);
         if (msg_type == 9) {
+	    /* fprintf(stderr, "\t%d: type %d note %d vel %d\tchord diff %d, last insert id: %d", i, msg_type, note_val, velocity, e.timestamp - last_insert_ts, last_insert_note_id); */
 	    state.selected_note = note_val;
+	    state.insert_velocity = velocity;
 	    if (e.timestamp - last_insert_ts < CHORD_THRESHOLD_MSEC && last_insert_note_id >= 0) {
-		/* fprintf(stderr, "CHORD time diff: %d\n", e.timestamp - last_insert_ts); */
-		int32_t last_insert_note_i = midi_clip_get_note_by_id(state.clip, last_insert_note_id);
-	        if (last_insert_note_i < 0) {
-		    fprintf(stderr, "Error forming chord: could not find note by id %d\n", last_insert_note_id);
-		} else {
-		    timeline_set_play_position(state.cr->track->tl, note_tl_start_pos(state.clip->notes + last_insert_note_i, state.cr), false);
-		}
+		/* fprintf(stderr, "\tCHORD time diff: %d", e.timestamp - last_insert_ts); */
+		/* int32_t last_insert_note_i = midi_clip_get_note_by_id(state.clip, last_insert_note_id); */
+	        /* if (last_insert_note_i < 0) { */
+		    /* fprintf(stderr, "Error forming chord: could not find note by id %d\n", last_insert_note_id); */
+		/* } else { */
+		    /* timeline_set_play_position(state.cr->track->tl, note_tl_start_pos(state.clip->notes + last_insert_note_i, state.cr), false); */
+		/* fprintf(stderr, "\tGOTO %d", last_insert_tl_pos); */
+		timeline_set_play_position(state.cr->track->tl, last_insert_tl_pos, false);
+		/* } */
 	    }
-	    fprintf(stderr, "\tINSERT %d\n", state.selected_note);
+	    last_insert_tl_pos = state.cr->track->tl->play_pos_sframes;
+	    /* fprintf(stderr, "\tINSERT %d, SET last tl pos %d\n", state.selected_note, last_insert_tl_pos); */
 	    Note *new = piano_roll_insert_note();
 	    last_insert_ts = e.timestamp;
 	    if (new) {
 		last_insert_note_id = new->id;
 		/* fprintf(stderr, "SET LAST insert id %d\n", new->id); */
-	    } else {
-		last_insert_note_id = -1;
 	    }
 	} else {
-	    fprintf(stderr, "\n");
+	    /* fprintf(stderr, "\n"); */
 	}
     }
     int ret = state.num_queued_events;

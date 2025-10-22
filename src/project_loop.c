@@ -473,7 +473,7 @@ void loop_project_main()
 		Layout *modal_scrollable = NULL;
 		if ((modal_scrollable = mouse_triage_wheel(e.wheel.x * TL_SCROLL_STEP_H, e.wheel.y * TL_SCROLL_STEP_V, fingersdown))) {
 		    temp_scrolling_lt = modal_scrollable;
-		} else if (main_win->modes[main_win->num_modes - 1] == MODE_TIMELINE || main_win->modes[main_win->num_modes - 1] == MODE_TABVIEW) {
+		} else if (TOP_MODE == MODE_TIMELINE || TOP_MODE == MODE_TABVIEW || TOP_MODE == MODE_PIANO_ROLL) {
 		    if (main_win->i_state & I_STATE_SHIFT) {
 			if (fabs(e.wheel.preciseY) > fabs(e.wheel.preciseX)) {
 			    scrub_block = true;

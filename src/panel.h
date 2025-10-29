@@ -61,6 +61,7 @@ bool panel_area_mouse_motion(PanelArea *pa);
 void panel_area_destroy(PanelArea *pa);
 
 PageEl *panel_area_get_el_by_id(PanelArea *pa, const char *id);
+Page *panel_area_get_page_by_title(PanelArea *pa, const char *id);
 void panel_page_refocus(PanelArea *pa, const char *page_title, uint8_t refocus_panel);
 
 #endif

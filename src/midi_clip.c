@@ -4,6 +4,7 @@
 #include "midi_objs.h"
 #include "test.h"
 #include "session.h"
+#include "timeline.h"
 #include "user_event.h"
 
 #define DEFAULT_NOTES_ALLOC_LEN 16
@@ -956,27 +957,41 @@ static Note *find_note(MIDIClip *mclip, int32_t start_rel, int key, int velocity
     return NULL;
 }
 NEW_EVENT_FN(undo_delete_grabbed_notes, "undo delete grabbed notes")
-    MIDIClip *clip = obj1;
+    ClipRef *cr = obj1;
+    MIDIClip *clip = cr->source_clip;
     Note *notes = obj2;
     int32_t num_notes = val1.int32_v;
-/* fprintf(stderr, "RESTORING %d notes\n", num_notes); */
     midi_clip_reinsert_notes(clip, notes, num_notes);
+    if (session_get()->piano_roll) {
+	int32_t max_end = INT32_MIN;
+        for (int i=0; i<num_notes; i++) {
+	    int32_t tl_end = note_tl_end_pos(notes + i, cr);
+	    if (tl_end > max_end) max_end = tl_end;
+	}
+	if (max_end != INT32_MIN) timeline_set_play_position(cr->track->tl, max_end, false);
+    }
 }
+static void midi_clipref_grabbed_notes_delete_internal(ClipRef *cr, bool from_undo);
 
-static void midi_clip_grabbed_notes_delete_internal(MIDIClip *mclip, bool from_undo);
-
-NEW_EVENT_FN(redo_delete_grabbed_notes, "undo delete grabbed notes")
-    MIDIClip *clip = obj1;
+NEW_EVENT_FN(redo_delete_grabbed_notes, "redo delete grabbed notes")
+    ClipRef *cr = obj1;
+    MIDIClip *clip = cr->source_clip;
     midi_clip_ungrab_all(clip);
     Note *notes = obj2;
     int32_t num_notes = val1.int32_v;
     /* fprintf(stderr, "RE-DELETING %d notes\n", num_notes); */
+    int32_t min_start = INT32_MAX;
     for (int i=0; i<num_notes; i++) {
 	Note *note = find_note(clip, notes[i].start_rel, notes[i].key, notes[i].velocity);
 	if (!note) fprintf(stderr, "ERROR: note not found!\n");
+	int32_t tl_start = note_tl_start_pos(note, cr);
+	if (tl_start < min_start) min_start = tl_start;
 	midi_clip_grab_note(clip, note, NOTE_EDGE_NONE);
     }
-    midi_clip_grabbed_notes_delete_internal(clip, true);
+    if (min_start < INT32_MAX && session_get()->piano_roll) {
+	timeline_set_play_position(cr->track->tl, min_start, false);
+    }
+    midi_clipref_grabbed_notes_delete_internal(cr, true);
 }
 
 void midi_clip_remove_note_at(MIDIClip *mclip, int32_t note_i)
@@ -992,13 +1007,13 @@ void midi_clip_remove_note_at(MIDIClip *mclip, int32_t note_i)
     mclip->num_notes--;
 }
 
-static void midi_clip_grabbed_notes_delete_internal(MIDIClip *mclip, bool from_undo)
+static void midi_clipref_grabbed_notes_delete_internal(ClipRef *cr, bool from_undo)
 {
+    MIDIClip *mclip = cr->source_clip;
     Note *grabbed_note_info = calloc(mclip->num_grabbed_notes, sizeof(Note));
     /* for (int i=0; i<mclip->num_grabbed_notes; i++) { */
     int32_t grabbed_note_i = 0;
     if (mclip->num_grabbed_notes == 0) return;
-    fprintf(stderr, "DELETE INTERNAL: grabbed indices %d-%d; num_notes %d\n", mclip->first_grabbed_note, mclip->last_grabbed_note, mclip->num_notes);
     for (int32_t note_i=mclip->first_grabbed_note; note_i<=mclip->last_grabbed_note; note_i++) {
 	Note *note = mclip->notes + note_i;
 	if (!note->grabbed) continue;
@@ -1024,7 +1039,7 @@ static void midi_clip_grabbed_notes_delete_internal(MIDIClip *mclip, bool from_u
 	    redo_delete_grabbed_notes,
 	    NULL,
 	    NULL,
-	    mclip,
+	    cr,
 	    grabbed_note_info,
 	    (Value){.int32_v = grabbed_note_i},
 	    (Value){0},
@@ -1036,9 +1051,9 @@ static void midi_clip_grabbed_notes_delete_internal(MIDIClip *mclip, bool from_u
 }
 
 
-void midi_clip_grabbed_notes_delete(MIDIClip *mclip)
+void midi_clipref_grabbed_notes_delete(ClipRef *cr)
 {
-    midi_clip_grabbed_notes_delete_internal(mclip, false);
+    midi_clipref_grabbed_notes_delete_internal(cr, false);
 }
 
 

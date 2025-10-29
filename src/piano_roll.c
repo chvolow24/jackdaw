@@ -184,7 +184,7 @@ void piano_roll_init_gui()
     Layout *lt = layout_get_child_by_name_recursive(state.console_lt, "current_dur");
     state.gui.dur_tb = textbox_create_from_str(
 	/* "TEST", */
-	dur_strs[DUR_QUARTER],
+	dur_strs[state.current_dur],
 	lt,
 	main_win->music_font,
 	30,
@@ -333,8 +333,9 @@ void piano_roll_activate(ClipRef *cr)
     state.clip = cr->source_clip;
     state.tl_tv = &ACTIVE_TL->timeview;
     state.selected_note = 60;
+    state.insert_velocity = 100;
 
-    state.current_dur = DUR_QUARTER;
+    state.current_dur = DUR_EIGHTH;
     state.ct = timeline_governing_click_track(ACTIVE_TL);
 
     int err = pthread_mutex_init(&state.event_queue_lock, NULL);
@@ -437,6 +438,18 @@ void piano_roll_move_note_selector(int by)
     if (state.selected_note > PIANO_TOP_NOTE) state.selected_note = PIANO_TOP_NOTE;
     else if (state.selected_note < PIANO_BOTTOM_NOTE) state.selected_note = PIANO_BOTTOM_NOTE;
     piano_roll_grabbed_notes_move_vertical(state.selected_note - orig);
+}
+
+void piano_roll_forward_dur()
+{
+    int32_t dur_sframes = get_input_dur_samples();
+    timeline_set_play_position(state.cr->track->tl, state.cr->track->tl->play_pos_sframes + dur_sframes, true);
+}
+
+void piano_roll_back_dur()
+{
+    int32_t dur_sframes = get_input_dur_samples();
+    timeline_set_play_position(state.cr->track->tl, state.cr->track->tl->play_pos_sframes - dur_sframes, true);
 }
 
 /* void piano_roll_note_up(int count) */
@@ -619,7 +632,7 @@ NEW_EVENT_FN(undo_redo_extend_tied_note, "undo/redo extend tied note")
     note->end_rel = val2.int32_v;
     if (state.active) {
 	timeline_set_play_position(state.cr->track->tl, note_tl_end_pos(note, cr), false);
-	midi_clip_grab_note(mclip, note, NOTE_EDGE_RIGHT);
+	/* midi_clip_grab_note(mclip, note, NOTE_EDGE_RIGHT); */
     }
 }
 
@@ -963,13 +976,16 @@ void piano_roll_grab_marked_range()
 {
     Timeline *tl = state.cr->track->tl;
     midi_clipref_grab_range(state.cr, tl->in_mark_sframes, tl->out_mark_sframes);
+    if (session_get()->dragging) {
+	midi_clipref_cache_grabbed_note_info(state.cr);
+    }
 }
 
 
 void piano_roll_delete()
 {
     if (state.clip->num_grabbed_notes > 0) {
-	midi_clip_grabbed_notes_delete(state.clip);
+	midi_clipref_grabbed_notes_delete(state.cr);
     } else {
 	Note **intersecting = NULL;
 	int32_t play_pos_sframes = state.cr->track->tl->play_pos_sframes;
@@ -979,7 +995,7 @@ void piano_roll_delete()
 	    Note *note = intersecting[i];
 	    midi_clip_grab_note(state.clip, note, NOTE_EDGE_NONE);
 	}
-	midi_clip_grabbed_notes_delete(state.clip);
+	midi_clipref_grabbed_notes_delete(state.cr);
 	if (num_intersecting > 0) {
 	    timeline_set_play_position(state.cr->track->tl, start_pos, false);
 	} else {
@@ -1210,6 +1226,12 @@ void piano_roll_draw()
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.grey));
 	SDL_RenderDrawRect(main_win->rend, &state.mouse_sel_rect);
     }
+
+    Session *session = session_get();
+    if (session->midi_qwerty) {
+	Page *midi_qwerty = panel_area_get_page_by_title(session->gui.panels, "QWERTY piano");
+	page_draw(midi_qwerty);
+    }
 }
 
 
@@ -1315,6 +1337,7 @@ int piano_roll_execute_queued_insertions()
 	/* fprintf(stderr, "\n"); */
 	/* fprintf(stderr, "\nDEQUEUEING %d events\n", state.num_queued_events); */
     }
+    int saved_vel = state.insert_velocity;
     for (int i=0; i<state.num_queued_events; i++) {
 	/* PmEvent e = s->device.buffer[i]; */
 	PmEvent e = state.event_queue[i];
@@ -1325,6 +1348,7 @@ int piano_roll_execute_queued_insertions()
         if (msg_type == 9) {
 	    /* fprintf(stderr, "\t%d: type %d note %d vel %d\tchord diff %d, last insert id: %d", i, msg_type, note_val, velocity, e.timestamp - last_insert_ts, last_insert_note_id); */
 	    state.selected_note = note_val;
+	    
 	    state.insert_velocity = velocity;
 	    if (e.timestamp - last_insert_ts < CHORD_THRESHOLD_MSEC && last_insert_note_id >= 0) {
 		/* fprintf(stderr, "\tCHORD time diff: %d", e.timestamp - last_insert_ts); */
@@ -1349,6 +1373,7 @@ int piano_roll_execute_queued_insertions()
 	    /* fprintf(stderr, "\n"); */
 	}
     }
+    state.insert_velocity = saved_vel;
     int ret = state.num_queued_events;
     state.num_queued_events = 0;
     pthread_mutex_unlock(&state.event_queue_lock);

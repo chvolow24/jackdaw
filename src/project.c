@@ -1485,6 +1485,16 @@ struct midi_out_arg {
     enum midi_out_type type;
 };
 
+void track_set_out_builtin_synth(Track *track)
+{
+    if (!track->synth) {
+	track->synth = synth_create(track);
+    }
+    track->midi_out_type = MIDI_OUT_SYNTH;
+    track->midi_out = track->synth;
+    timeline_check_set_midi_monitoring();
+}
+
 static void track_set_midi_out_onclick(void *arg_v)
 {
     Session *session = session_get();

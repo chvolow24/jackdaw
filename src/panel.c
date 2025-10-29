@@ -292,6 +292,17 @@ PageEl *panel_area_get_el_by_id(PanelArea *pa, const char *id)
     return el;
 }
 
+Page *panel_area_get_page_by_title(PanelArea *pa, const char *id)
+{
+    for (int i=0; i<pa->num_pages; i++) {
+	Page *p = pa->pages[i];
+	if (strcmp(p->title, id) == 0) {
+	    return p;
+	}
+    }
+    return NULL;
+}
+
 void panel_page_refocus(PanelArea *pa, const char *page_title, uint8_t refocus_panel)
 {
     Page *p = NULL;

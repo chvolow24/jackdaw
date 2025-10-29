@@ -3335,6 +3335,16 @@ void user_piano_roll_note_down(void *nullarg)
     piano_roll_move_note_selector(-1);
 }
 
+void user_piano_roll_forward_dur(void *nullarg)
+{
+    piano_roll_forward_dur();
+}
+
+void user_piano_roll_back_dur(void *nullarg)
+{
+    piano_roll_back_dur();
+}
+
 void user_piano_roll_next_note(void *nullarg)
 {
     piano_roll_next_note();

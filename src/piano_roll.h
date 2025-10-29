@@ -13,6 +13,8 @@ void piano_roll_move_view_right();
 /* void piano_roll_note_up(); */
 /* void piano_roll_note_down(); */
 void piano_roll_move_note_selector(int by);
+void piano_roll_forward_dur();
+void piano_roll_back_dur();
 void piano_roll_next_note();
 void piano_roll_prev_note();
 void piano_roll_up_note();

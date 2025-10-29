@@ -1486,6 +1486,18 @@ void mode_load_piano_roll()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
+	"piano_roll_forward_dur",
+	"Move forward by current dur",
+	user_piano_roll_forward_dur);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_back_dur",
+	"Move back by current dur",
+	user_piano_roll_back_dur);
+    mode_subcat_add_fn(sc, fn);    
+
+    fn = create_user_fn(
 	"piano_roll_next_note",
 	"Go to next note",
 	user_piano_roll_next_note);

@@ -13,6 +13,7 @@
 #include "endpoint.h"
 #include "midi_io.h"
 #include "porttime.h"
+#include "project.h"
 #include "session.h"
 #include "status.h"
 
@@ -129,9 +130,17 @@ void mqwert_activate()
     session->midi_qwerty = true;
     snprintf(state.octave_str, 3, "%s%d", state.octave >= 0 ? "+" : "", state.octave);
     if (!timeline_check_set_midi_monitoring()) {
-	status_set_errstr("Error: no instrument is active. Add synth to selected track with S-s");
-	mqwert_deactivate();
-	return;
+	Track *track = timeline_selected_track(ACTIVE_TL);
+	if (track) {
+	    track_set_out_builtin_synth(track);
+	} else {
+	    status_set_errstr("Error: no track. Add with C-t");
+	    mqwert_deactivate();
+	    return;
+	}
+	/* status_set_errstr("Error: no instrument is active. Add synth to selected track with S-s"); */
+	/* mqwert_deactivate(); */
+	/* return; */
     }
     status_set_alert_str("QWERTY Piano active; ESC to exit");
     panel_page_refocus(session->gui.panels, "QWERTY piano", 1);

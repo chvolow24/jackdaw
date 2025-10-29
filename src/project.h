@@ -434,6 +434,7 @@ bool track_solo(Track *track);
 void track_solomute(Track *track);
 void track_unsolomute(Track *track);
 void track_set_input(Track *track);
+void track_set_out_builtin_synth(Track *track);
 void track_set_midi_out(Track *track);
 void track_rename(Track *track);
 void track_set_bus_out(Track *track, Track *bus_out);

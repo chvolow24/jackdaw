@@ -127,22 +127,44 @@ static int32_t get_input_dur_samples()
 {
     Session *session = session_get();
     int32_t sample_rate = session->proj.sample_rate;
+    double measure_dur;
     double beat_dur;
+    double subdiv_dur;
     if (!state.ct) { /* No click track; assume 120bmp 4/4 */
 	beat_dur = (double)sample_rate / 120.0 * 60.0;
+	measure_dur = beat_dur * 4.0;
+	subdiv_dur = beat_dur / 2.0;
+
     } else {
 	ClickSegment *s = click_track_get_segment_at_pos(state.ct, ACTIVE_TL->play_pos_sframes);
+	measure_dur = s->cfg.dur_sframes;
 	beat_dur = (double)s->cfg.dur_sframes / s->cfg.num_atoms * s->cfg.beat_subdiv_lens[0];
+	subdiv_dur = beat_dur / s->cfg.beat_subdiv_lens[0];
     }
-    int exp = 2 /* quarter */ - state.current_dur;
-    /*
-      WHOLE (0): beat_dur * 4        2 ^ 2
-      HALF  (1):  beat_dur * 2       2 ^ 1
-      QUAR  (2):  beat_dur * 1       2 ^ 0
-      EIGH  (3):  beat_dur * (1/2)   2 ^ -1
-      SIXT  (4):  beat_dur * (1/4)   2 ^ -2
-     */
-    return (int32_t)(beat_dur * pow(2.0, exp));
+    switch (state.current_dur) {
+    case DUR_WHOLE:
+	return measure_dur;
+    case DUR_HALF:
+	return beat_dur * 2;
+    case DUR_QUARTER:
+	return beat_dur;
+    default:
+	return (int32_t)(subdiv_dur * pow(2.0, (double)((int)DUR_EIGHTH - (int)state.current_dur)));
+    }
+    /* if (state.current_dur == 0) { */
+    /* 	return measure_dur; */
+    /* } else if (state.current_dur == 1) { */
+    /* 	return beat_dur * 2; */
+    /* } */
+    /* int exp = 2 /\* quarter *\/ - state.current_dur; */
+    /* /\* */
+    /*   WHOLE (0): beat_dur * 4        2 ^ 2 */
+    /*   HALF  (1):  beat_dur * 2       2 ^ 1 */
+    /*   QUAR  (2):  beat_dur * 1       2 ^ 0 */
+    /*   EIGH  (3):  beat_dur * (1/2)   2 ^ -1 */
+    /*   SIXT  (4):  beat_dur * (1/4)   2 ^ -2 */
+    /*  *\/ */
+    /* return (int32_t)(beat_dur * pow(2.0, exp)); */
 }
 static void piano_roll_init_layout(Session *session)
 {
@@ -728,6 +750,7 @@ Note *piano_roll_insert_note()
     Timeline *tl = ACTIVE_TL;
     int32_t clip_note_pos = tl->play_pos_sframes - state.cr->tl_pos + state.cr->start_in_clip;
     int32_t input_dur = get_input_dur_samples();
+    fprintf(stderr, "INSERT NOTE, input dur: %d\n", input_dur);
     int32_t end_pos = clip_note_pos + input_dur;
 
     Note *ret = NULL;

@@ -58,7 +58,6 @@ void user_event_do_undo_selective(EventFn options[], int num_options)
 
 }
 
-
 /* Returns 0 if action completed; 1 if no action available */
 int user_event_do_redo(UserEventHistory *history)
 {
@@ -92,7 +91,8 @@ static void user_event_destroy(UserEvent *e)
     free(e);
 }
 
-void user_event_history_destroy(UserEventHistory *history)
+/* Call when closing down session OR opening a new project */
+void user_event_history_clear(UserEventHistory *history)
 {
     UserEvent *test = history->oldest;
     UserEvent *delete;
@@ -113,6 +113,9 @@ void user_event_history_destroy(UserEventHistory *history)
 	}
 	user_event_destroy(delete);
     }
+    history->oldest = NULL;
+    history->next_undo = NULL;
+    history->len = 0;
 }
 
 UserEvent *user_event_push(

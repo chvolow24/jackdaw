@@ -110,7 +110,7 @@ void user_event_redo_set_value(
     Value new_value,
     ValType type);
 
-void user_event_history_destroy(UserEventHistory *history);
+void user_event_history_clear(UserEventHistory *history);
 void user_event_do_undo_selective(EventFn options[], int num_options);
 
 #endif

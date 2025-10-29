@@ -270,6 +270,7 @@ int main(int argc, char **argv)
 	    fprintf(stderr, "Error: unable to open project \"%s\".\n", file_to_open);
 	    exit(1);
 	}
+	timeline_add_track(session->proj.timelines[0]);
     }
     fprintf(stderr, "\t...done\n");
 

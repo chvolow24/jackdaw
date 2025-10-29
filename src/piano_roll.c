@@ -14,7 +14,6 @@
 #include "timeline.h"
 #include "timeview.h"
 
-
 extern Window *main_win;
 extern struct colors colors;
 
@@ -392,6 +391,8 @@ void piano_roll_activate(ClipRef *cr)
 	true,
 	&colors.quickref_button_blue,
 	&colors.white);
+
+    state.tl_tv->rect = &state.note_canvas_lt->rect;
 }
 
 void piano_roll_deactivate()
@@ -403,7 +404,9 @@ void piano_roll_deactivate()
 	fprintf(stderr, "Error: deactivating piano roll, top mode %s\n", input_mode_str(im));
     }
     piano_roll_deinit_gui();
+
     Session *session = session_get();
+    state.tl_tv->rect = session->gui.audio_rect;
     session->piano_roll = false;
     state.active = false;
     timeline_reset_full(ACTIVE_TL);

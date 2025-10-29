@@ -332,18 +332,17 @@ void timeline_catchup(Timeline *tl)
     int tl_draw_x;
     /* uint32_t move_by_sframes; */
     int catchup_w = TIMELINE_CATCHUP_W;
-    Session *session = session_get();
-    if (session->gui.audio_rect->w <= 0) {
+    if (tl->timeview.rect->w <= 0) {
 	return;
     }
-    /* while (catchup_w > session->gui.audio_rect->w / 2 && catchup_w > 10) { */
+    /* while (catchup_w > tl->timeview.rect->w / 2 && catchup_w > 10) { */
     /* 	catchup_w /= 2; */
     /* } */
-    if ((tl_draw_x = timeline_get_draw_x(tl, tl->play_pos_sframes)) > session->gui.audio_rect->x + session->gui.audio_rect->w) {
-	tl->timeview.offset_left_sframes = tl->play_pos_sframes - timeline_get_abs_w_sframes(tl, session->gui.audio_rect->w - catchup_w);
+    if ((tl_draw_x = timeline_get_draw_x(tl, tl->play_pos_sframes)) > tl->timeview.rect->x + tl->timeview.rect->w) {
+	tl->timeview.offset_left_sframes = tl->play_pos_sframes - timeline_get_abs_w_sframes(tl, tl->timeview.rect->w - catchup_w);
 	timeline_reset(tl, false);
     }
-    else if (tl_draw_x < session->gui.audio_rect->x) {
+    else if (tl_draw_x < tl->timeview.rect->x) {
 	tl->timeview.offset_left_sframes = tl->play_pos_sframes - timeline_get_abs_w_sframes(tl, catchup_w);
 	timeline_reset(tl, false);
     }

@@ -231,7 +231,7 @@ void session_destroy()
     session_deinit_midi(session);
 
 
-    user_event_history_destroy(&session->history);
+    user_event_history_clear(&session->history);
     if (session->proj_initialized) {
 	project_deinit(&session->proj);
     }
@@ -247,6 +247,9 @@ void session_set_proj(Session *session, Project *new_proj)
     } else {
 	transport_stop_playback();
     }
+
+    /* Call must occur before de-init project */
+    user_event_history_clear(&session->history);
     
     project_deinit(&session->proj);
     session_deinit_panels(session);

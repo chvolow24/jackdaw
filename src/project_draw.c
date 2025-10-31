@@ -22,6 +22,7 @@
 #include "session.h"
 #include "textbox.h"
 #include "timeline.h"
+#include "timeview.h"
 #include "waveform.h"
 
 /* #define BACKGROUND_ACTIVE */
@@ -518,6 +519,52 @@ void clipref_draw_waveform(ClipRef *cr)
     /* } */
 }
 
+void timeline_draw_marks(Timeline *tl, int top_y, SDL_Color mark_color, SDL_Color marked_background)
+{
+     /* draw mark in */
+    /* Session *session = session_get(); */
+    int in_x, out_x = -1;
+    int ph_y;
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(mark_color));
+    if (tl->in_mark_sframes >= tl->timeview.offset_left_sframes && tl->in_mark_sframes < tl->timeview.offset_left_sframes + timeview_get_w_sframes(&tl->timeview, tl->timeview.rect->w)) {
+        in_x = timeview_get_draw_x(&tl->timeview, tl->in_mark_sframes);
+        int i_tri_x2 = in_x;
+	ph_y = top_y + PLAYHEAD_TRI_H;
+        /* ph_y = tl->layout->rect.y; */
+        for (int i=0; i<PLAYHEAD_TRI_H; i++) {
+            SDL_RenderDrawLine(main_win->rend, in_x, ph_y, i_tri_x2, ph_y);
+            ph_y -= 1;
+            i_tri_x2 += 1;
+        }
+    /* } else if (tl->in_mark_sframes < tl->timeview.offset_left_sframes) { */
+    /*     in_x = tl->timeview.rect->x; */
+    } else {
+	in_x = tl->timeview.rect->x;
+    }
+
+    /* draw mark out */
+    if (tl->out_mark_sframes > tl->timeview.offset_left_sframes && tl->out_mark_sframes < tl->timeview.offset_left_sframes + timeview_get_w_sframes(&tl->timeview, tl->timeview.rect->w)) {
+        out_x = timeline_get_draw_x(tl, tl->out_mark_sframes);
+        int o_tri_x1 = out_x;
+	ph_y =  top_y + PLAYHEAD_TRI_H;
+        for (int i=0; i<PLAYHEAD_TRI_H; i++) {
+            SDL_RenderDrawLine(main_win->rend, o_tri_x1, ph_y, out_x, ph_y);
+            ph_y -= 1;
+            o_tri_x1 -= 1;
+        }
+    } else if (tl->out_mark_sframes > tl->timeview.offset_left_sframes + timeview_get_w_sframes(&tl->timeview, tl->timeview.rect->w)) {
+        out_x = tl->timeview.rect->x + tl->timeview.rect->w;
+    }
+
+    /* draw marked region */
+    if (in_x < out_x && out_x > 0 && in_x < tl->timeview.rect->w) {
+        SDL_Rect in_out = (SDL_Rect) {in_x, tl->timeview.rect->y, out_x - in_x, tl->timeview.rect->h};
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(marked_background));
+        SDL_RenderFillRect(main_win->rend, &(in_out));
+    }
+   
+}
+
 
 static int timeline_draw(Timeline *tl)
 {
@@ -603,7 +650,7 @@ static int timeline_draw(Timeline *tl)
     /* draw mark in */
     int in_x, out_x = -1;
 
-    if (tl->in_mark_sframes >= tl->timeview.offset_left_sframes && tl->in_mark_sframes < tl->timeview.offset_left_sframes + timeline_get_abs_w_sframes(tl, session->gui.audio_rect->w)) {
+    if (tl->in_mark_sframes >= tl->timeview.offset_left_sframes && tl->in_mark_sframes < tl->timeview.offset_left_sframes + timeview_get_w_sframes(&tl->timeview, session->gui.audio_rect->w)) {
         in_x = timeline_get_draw_x(tl, tl->in_mark_sframes);
         int i_tri_x2 = in_x;
 	ph_y = session->gui.ruler_rect->y + PLAYHEAD_TRI_H;
@@ -620,7 +667,7 @@ static int timeline_draw(Timeline *tl)
     }
 
     /* draw mark out */
-    if (tl->out_mark_sframes > tl->timeview.offset_left_sframes && tl->out_mark_sframes < tl->timeview.offset_left_sframes + timeline_get_abs_w_sframes(tl, session->gui.audio_rect->w)) {
+    if (tl->out_mark_sframes > tl->timeview.offset_left_sframes && tl->out_mark_sframes < tl->timeview.offset_left_sframes + timeview_get_w_sframes(&tl->timeview, session->gui.audio_rect->w)) {
         out_x = timeline_get_draw_x(tl, tl->out_mark_sframes);
         int o_tri_x1 = out_x;
 	ph_y =  session->gui.ruler_rect->y + PLAYHEAD_TRI_H;
@@ -629,7 +676,7 @@ static int timeline_draw(Timeline *tl)
             ph_y -= 1;
             o_tri_x1 -= 1;
         }
-    } else if (tl->out_mark_sframes > tl->timeview.offset_left_sframes + timeline_get_abs_w_sframes(tl, session->gui.audio_rect->w)) {
+    } else if (tl->out_mark_sframes > tl->timeview.offset_left_sframes + timeview_get_w_sframes(&tl->timeview, session->gui.audio_rect->w)) {
         out_x = session->gui.audio_rect->x + session->gui.audio_rect->w;
     }
 

@@ -20,9 +20,13 @@
 #define JDAW_PROJECT_DRAW_H
 
 #include <stdbool.h>
+#include "SDL.h"
+
+typedef struct timeline Timeline;
 
 void project_draw();
 
 void draw_continuation_arrows(int x, int top_y, int h, bool point_left);
+void timeline_draw_marks(Timeline *tl, int top_y, SDL_Color mark_color, SDL_Color marked_background);
 
 #endif

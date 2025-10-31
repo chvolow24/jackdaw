@@ -151,20 +151,6 @@ static int32_t get_input_dur_samples()
     default:
 	return (int32_t)(subdiv_dur * pow(2.0, (double)((int)DUR_EIGHTH - (int)state.current_dur)));
     }
-    /* if (state.current_dur == 0) { */
-    /* 	return measure_dur; */
-    /* } else if (state.current_dur == 1) { */
-    /* 	return beat_dur * 2; */
-    /* } */
-    /* int exp = 2 /\* quarter *\/ - state.current_dur; */
-    /* /\* */
-    /*   WHOLE (0): beat_dur * 4        2 ^ 2 */
-    /*   HALF  (1):  beat_dur * 2       2 ^ 1 */
-    /*   QUAR  (2):  beat_dur * 1       2 ^ 0 */
-    /*   EIGH  (3):  beat_dur * (1/2)   2 ^ -1 */
-    /*   SIXT  (4):  beat_dur * (1/4)   2 ^ -2 */
-    /*  *\/ */
-    /* return (int32_t)(beat_dur * pow(2.0, exp)); */
 }
 static void piano_roll_init_layout(Session *session)
 {
@@ -1200,6 +1186,7 @@ end_draw_notes:
 
 }
 
+#include "project_draw.h"
 void piano_roll_draw()
 {
     if (!state.clip) return;
@@ -1221,9 +1208,11 @@ void piano_roll_draw()
 
     SDL_RenderDrawRect(main_win->rend, &state.note_piano_container->rect);
 
-
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.tl_background_grey));
     SDL_RenderFillRect(main_win->rend, &state.console_lt->rect);
+
+    static const SDL_Color marked_background = {255, 255, 255, 6};
+    timeline_draw_marks(state.cr->track->tl, 0, colors.white, marked_background);
 
     /* Draw console */
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.control_bar_background_grey));

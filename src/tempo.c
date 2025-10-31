@@ -166,6 +166,7 @@ static void set_beat_prominence(ClickSegment *s, enum beat_prominence *bp, int m
     }
 }
 
+
 /* Stateful function, repeated calls to which will get the next beat or subdiv position on a tempo track */
 static bool click_track_get_next_pos(ClickTrack *t, bool start, int32_t start_from, int32_t *pos, enum beat_prominence *bp)
 {
@@ -1054,11 +1055,34 @@ void click_track_draw_segments(ClickTrack *tt, TimeView *tv, SDL_Rect draw_rect)
     int top_y = draw_rect.y;
     int h = draw_rect.h;
     int bottom_y = top_y + h;
+    int prev_draw_x = -100;
+    const int subdiv_draw_thresh = 10;
+    const int beat_draw_thresh = 4;
+    int max_bp = 5;
     while (1) {
 	click_track_get_next_pos(tt, false, tv->offset_left_sframes, &pos, &bp);
 	/* int prev_x = x; */
+
 	x = timeline_get_draw_x(tl, pos);
 	if (x > draw_rect.x + draw_rect.w) break;
+	if (bp >= max_bp) {
+	    continue;
+	}
+	    
+	if (max_bp > BP_BEAT) {
+	    /* fprintf(stderr, "DIFF: %d\n", x - prev_draw_x); */
+	    if (x - prev_draw_x < beat_draw_thresh) {
+		max_bp = BP_BEAT;
+	    } else if (x - prev_draw_x < subdiv_draw_thresh) {
+		max_bp = BP_SUBDIV;
+	    }
+	    /* fprintf(stderr, "x %d->%d (max bp %d)\n", prev_draw_x, x, max_bp); */
+	    prev_draw_x = x;
+	    if (bp >= max_bp) {
+		continue;
+	    }
+
+	}
 	/* int x_diff; */
 	/* if (draw_beats && (x_diff = x - prev_x) <= draw_beat_thresh) { */
 	/*     draw_beats = false; */

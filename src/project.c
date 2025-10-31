@@ -43,6 +43,7 @@
 #include "window.h"
 
 #define DEFAULT_SFPP 600
+#define MAX_SFPP 96000
 #define CR_RECT_V_PAD (4 * main_win->dpi_scale_factor)
 #define NUM_TRACK_COLORS 7
 
@@ -178,6 +179,10 @@ uint8_t project_add_timeline(Project *proj, char *name)
     new_tl->timeview.in_mark = &new_tl->in_mark_sframes;
     new_tl->timeview.out_mark = &new_tl->out_mark_sframes;
     new_tl->timeview.offset_left_sframes = 0;
+    new_tl->timeview.restrict_view = true;
+    new_tl->timeview.view_min = INT32_MIN + 1;
+    new_tl->timeview.view_max = INT32_MAX - 1;
+    new_tl->timeview.max_sfpp = MAX_SFPP;
     
     strcpy(new_tl->timecode.str, "+00:00:00:00000");
     Layout *tc_lt = layout_get_child_by_name_recursive(tl_lt, "timecode");

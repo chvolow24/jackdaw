@@ -736,7 +736,6 @@ Note *piano_roll_insert_note()
     Timeline *tl = ACTIVE_TL;
     int32_t clip_note_pos = tl->play_pos_sframes - state.cr->tl_pos + state.cr->start_in_clip;
     int32_t input_dur = get_input_dur_samples();
-    fprintf(stderr, "INSERT NOTE, input dur: %d\n", input_dur);
     int32_t end_pos = clip_note_pos + input_dur;
 
     Note *ret = NULL;

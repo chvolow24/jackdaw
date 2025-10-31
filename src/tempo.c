@@ -1062,7 +1062,6 @@ void click_track_draw_segments(ClickTrack *tt, TimeView *tv, SDL_Rect draw_rect)
     while (1) {
 	click_track_get_next_pos(tt, false, tv->offset_left_sframes, &pos, &bp);
 	/* int prev_x = x; */
-
 	x = timeline_get_draw_x(tl, pos);
 	if (x > draw_rect.x + draw_rect.w) break;
 	if (bp >= max_bp) {

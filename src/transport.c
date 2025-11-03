@@ -15,13 +15,13 @@
     * Playback and recording
  *****************************************************************************************************************/
 
-#include <unistd.h>
+#include <string.h>
+#include "porttime.h"
 #include "audio_clip.h"
 #include "audio_connection.h"
 #include "clipref.h"
 #include "color.h"
 #include "consts.h"
-#include "dsp_utils.h"
 #include "dsp_utils.h"
 #include "midi_clip.h"
 #include "midi_io.h"
@@ -29,12 +29,10 @@
 #include "user_event.h"
 #include "mixdown.h"
 #include "piano_roll.h"
-#include "porttime.h"
 #include "project.h"
-#include "session_endpoint_ops.h"
 #include "pure_data.h"
 #include "session.h"
-#include "synth.h"
+#include "session_endpoint_ops.h"
 #include "timeline.h"
 #include "transport.h"
 
@@ -53,8 +51,6 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
 
     /* double time_diff = 1000.0f * ((double)conn->callback_clock.clock - session->audio_io.playback_conn->callback_clock.clock) / CLOCKS_PER_SEC; */
     /* fprintf(stdout, "TIME DIFF ms: %f\n", time_diff); */
-
-
     
     /* fprintf(stdout, "Playback: %ld, %d; Record: %ld, %d\n", */
     /* 	    session->audio_io.playback_conn->callback_clock.clock, */
@@ -178,18 +174,89 @@ void transport_recording_update_cliprects();
 static inline float clip(float f)
 {
     if (f > 1.0) return 1.0;
-    if (f < -1.0) return 1.0;
+    if (f < -1.0) return -1.0;
     return f;
+}
+
+#define MAX_QUEUED_BUFS 64
+struct transport_buf_queue {
+    int num_queued;
+    QueuedBuf queue[MAX_QUEUED_BUFS];
+};
+
+static struct transport_buf_queue queue_loc;
+
+static void loc_dequeue_buf(int index)
+{
+    if (queue_loc.queue[index].free_when_done) {
+	free(queue_loc.queue[index].buf[0]);
+	if (queue_loc.queue[index].channels > 1) {
+	    free(queue_loc.queue[index].buf[1]);
+	}
+    }
+    if (index < queue_loc.num_queued - 1) {
+	memmove(queue_loc.queue + index, queue_loc.queue + index + 1, (queue_loc.num_queued - index - 1) * sizeof(QueuedBuf));
+    }
+    queue_loc.num_queued--;
+}
+
+static void loc_queue_bufs(QueuedBuf *qb, int num_bufs)
+{
+    if (queue_loc.num_queued + num_bufs > MAX_QUEUED_BUFS) {
+	fprintf(stderr, "Error: reached max num queued bufs\n");
+	return;
+    }
+    memcpy(queue_loc.queue + queue_loc.num_queued, qb, num_bufs * sizeof(QueuedBuf));
+    queue_loc.num_queued += num_bufs;
+}
+
+static void loc_queued_bufs_add(float *chunk_L, float *chunk_R, int len_sframes)
+{
+    fprintf(stderr, "ADDING %d queued bufs\n", queue_loc.num_queued);
+    for (int i=0; i<queue_loc.num_queued; i++) {
+	int chunk_start = 0;
+	QueuedBuf *qb = queue_loc.queue + i;
+	if (qb->play_after_sframes > len_sframes) {
+	    qb->play_after_sframes -= len_sframes;
+	    continue;
+	} else if (qb->play_after_sframes > 0) {
+	    chunk_start = qb->play_after_sframes;
+	    qb->play_after_sframes = 0;
+	}
+	int len_rem = qb->len_sframes - qb->play_index;
+	int add_len = len_rem < len_sframes - chunk_start ? len_rem : len_sframes - chunk_start;
+	fprintf(stderr, "\tAdding to chunk L + %d, add len %d, from %d\n", chunk_start, add_len, qb->play_index);
+	float_buf_add(chunk_L + chunk_start, qb->buf[0] + qb->play_index, add_len);
+	if (qb->channels > 1) {
+	    float_buf_add(chunk_R + chunk_start, qb->buf[1] + qb->play_index, add_len);
+	} else {
+	    float_buf_add(chunk_R + chunk_start, qb->buf[0] + qb->play_index, add_len);
+	}
+	qb->play_index += add_len;
+	/* Buf is finished; remove from queue and decrement i to avoid skipping anything */
+	if (qb->play_index >= qb->len_sframes) {
+	    loc_dequeue_buf(i);
+	    i--;
+	}
+    }
 }
 
 void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 {
     Session *session = session_get();
     set_thread_id(JDAW_THREAD_PLAYBACK);
-    /* session->playback_thread = pthread_self(); */
-    /* fprintf(stdout, "\nSTART cb\n"); */
-    /* clock_t a,b; */
-    /* a = clock(); */
+
+    /* Take care of queued audio bufs */
+    int err;
+    if ((err = pthread_mutex_lock(&session->queued_ops.queued_audio_buf_lock)) != 0) {
+	fprintf(stderr, "Error locking queued audio buf lock (in playback cb): %s\n", strerror(err));
+    }
+    loc_queue_bufs(session->queued_ops.queued_audio_bufs, session->queued_ops.num_queued_audio_bufs);
+    session->queued_ops.num_queued_audio_bufs = 0;
+    if ((err = pthread_mutex_unlock(&session->queued_ops.queued_audio_buf_lock)) != 0) {
+	fprintf(stderr, "Error unlocking queued audio buf lock (in playback cb): %s\n", strerror(err));
+    }
+
     Project *proj = &session->proj;
     Timeline *tl = ACTIVE_TL;
     AudioConn *conn = (AudioConn *)user_data;
@@ -203,6 +270,13 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     float chunk_R[len_sframes];
     memset(chunk_L, '\0', sizeof(chunk_L));
     memset(chunk_R, '\0', sizeof(chunk_L));
+
+    /* Shutdown the audio device */
+    if (conn->c.device.request_close) {
+	SDL_PauseAudioDevice(conn->c.device.id, 1);
+	conn->c.device.request_close = false;
+	return;
+    }
     
     /* Gather data from timeline, generated in DSP threadfn */
     if (session->playback.playing) {
@@ -233,7 +307,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	}
     }
 
-    /* Check for monitor synth */
+    /* Check for monitor synth and add buf to chunk_L and chunk_R */
     MIDIDevice *d = session->midi_io.monitor_device;
     Synth *s = session->midi_io.monitor_synth;
     /* fprintf(stderr, "d & s: %p %p\n", d, s); */
@@ -254,6 +328,9 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	synth_add_buf(s, chunk_R, 1, len_sframes, playspeed); /* TL Pos ignored */
     }
 
+    /* Check for queued bufs and add to chunk_L and chunk_R */
+    loc_queued_bufs_add(chunk_L, chunk_R, len_sframes);
+    
     int16_t *stream_fmt = (int16_t *)stream;
     for (uint32_t i=0; i<stream_len_samples; i+=2)
     {
@@ -537,6 +614,7 @@ void transport_stop_playback()
     audioconn_stop_playback(session->audio_io.playback_conn);
 
     pthread_cancel(*get_thread_addr(JDAW_THREAD_DSP));
+    
     /* Unblock DSP thread */
     for (int i=0; i<512; i++) {
 	sem_post(tl->writable_chunks);

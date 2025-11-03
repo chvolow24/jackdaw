@@ -1040,32 +1040,34 @@ void click_track_draw_segments(ClickTrack *tt, TimeView *tv, SDL_Rect draw_rect)
 {
 
     static const SDL_Color line_colors[] =  {
-	{255, 250, 125, 70},
-	{255, 255, 255, 70},
-	{170, 170, 170, 70},
-	{130, 130, 130, 70},
-	{100, 100, 100, 70}
+	{255, 250, 125, 90},
+	{255, 255, 255, 90},
+	{170, 170, 170, 90},
+	{130, 130, 130, 90},
+	{100, 100, 100, 90}
     };
 
     Timeline *tl = tt->tl;
     int32_t pos = tv->offset_left_sframes;
     enum beat_prominence bp;
     click_track_get_next_pos(tt, true, pos, &pos, &bp);
-    int x = timeview_get_draw_x(&tl->timeview, pos);
+    int x;
     int top_y = draw_rect.y;
     int h = draw_rect.h;
     int bottom_y = top_y + h;
     int prev_draw_x = -100;
     const int subdiv_draw_thresh = 10;
     const int beat_draw_thresh = 4;
-    int max_bp = 5;
+    int max_bp = BP_NONE;
+    
     while (1) {
-	click_track_get_next_pos(tt, false, tv->offset_left_sframes, &pos, &bp);
+
+	if (bp == BP_SEGMENT) prev_draw_x = -100;
 	/* int prev_x = x; */
 	x = timeline_get_draw_x(tl, pos);
 	if (x > draw_rect.x + draw_rect.w) break;
 	if (bp >= max_bp) {
-	    continue;
+	    goto reset_pos_and_bp;
 	}
 	    
 	if (max_bp > BP_BEAT) {
@@ -1078,9 +1080,8 @@ void click_track_draw_segments(ClickTrack *tt, TimeView *tv, SDL_Rect draw_rect)
 	    /* fprintf(stderr, "x %d->%d (max bp %d)\n", prev_draw_x, x, max_bp); */
 	    prev_draw_x = x;
 	    if (bp >= max_bp) {
-		continue;
+		goto reset_pos_and_bp;
 	    }
-
 	}
 	/* int x_diff; */
 	/* if (draw_beats && (x_diff = x - prev_x) <= draw_beat_thresh) { */
@@ -1105,6 +1106,8 @@ void click_track_draw_segments(ClickTrack *tt, TimeView *tv, SDL_Rect draw_rect)
 	} else {
 	    SDL_RenderDrawLine(main_win->rend, x, top_y, x, bottom_y);
 	}
+    reset_pos_and_bp:
+	click_track_get_next_pos(tt, false, tv->offset_left_sframes, &pos, &bp);
     }
 
 }

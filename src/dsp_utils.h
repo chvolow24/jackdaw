@@ -43,11 +43,22 @@ double dsp_scale_freq_to_hz(double freq_unscaled);
 double dsp_scale_freq(double freq_unscaled);
 
 
+/* Add "b" into "a" */
 void float_buf_add(float *restrict a, float *restrict b, int len);
+
+/* Add "a" and "b" into "sum" */
 void float_buf_add_to(float *restrict a, float *restrict b, float *restrict sum, int len);
+
+/* Multiply "b" into "a" */
 void float_buf_mult(float *restrict a, float *restrict b, int len);
+
+/* Multiply all elments of "a" by "by" */
 void float_buf_mult_const(float *restrict a, float by, int len);
+
+/* Multiply "a" and "b" into "product" */
 void float_buf_mult_to(float *restrict a, float *restrict b, float *restrict product, int len);
 
+/* Convert a linear pan parameter value into a multiplier, depending on channel */
 float pan_scale(float pan, int channel);
+
 #endif

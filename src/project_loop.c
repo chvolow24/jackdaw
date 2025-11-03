@@ -190,6 +190,18 @@ void loop_project_main()
 		/* } */
 
 		switch (e.key.keysym.scancode) {
+		case SDL_SCANCODE_2: {
+		    int len = 96000;
+		    int freq = rand() % 5000 + 500;
+		    float *buf = malloc(sizeof(float) * len);
+		    for (int i=0; i<len; i++) {
+			float amp = i<len/2 ? (float)i/((float)len / 2) : (float)(len - i)/((float)len/2);
+			buf[i] = 0.5 * amp * sinf(freq * (float)i/len);
+		    }
+		    session_queue_audio(1, buf, NULL, len, 0, true);
+		}
+		    break;
+		    
 		/* case SDL_SCANCODE_2: */
 		/*     piano_roll_dur_down(); */
 		/*     break; */

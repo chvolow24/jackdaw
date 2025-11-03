@@ -31,6 +31,7 @@
 /* #include "synth.h" */
 #include "tempo.h"
 #include "timeview.h"
+#include "transport.h"
 #include "user_event.h"
 
 #define MAX_SESSION_AUDIO_CONNS 32
@@ -106,7 +107,11 @@ struct status_bar {
     int err_timer;
 };
 
+#define MAX_QUEUED_BUFS 64
+
 struct queued_ops {
+    
+    /* Endpoint-related */
     struct queued_val_change queued_val_changes[NUM_JDAW_THREADS][MAX_QUEUED_OPS];
     uint8_t num_queued_val_changes[NUM_JDAW_THREADS];
     pthread_mutex_t queued_val_changes_lock;
@@ -120,9 +125,14 @@ struct queued_ops {
     uint8_t num_ongoing_changes[NUM_JDAW_THREADS];
     pthread_mutex_t ongoing_changes_lock;
 
+    /* Piano roll */
     PmEvent piano_roll_queued_events[MAX_QUEUED_OPS];
     pthread_mutex_t piano_roll_insertion_lock;
 
+    /* Transport */
+    QueuedBuf queued_audio_bufs[MAX_QUEUED_BUFS];
+    int num_queued_audio_bufs;
+    pthread_mutex_t queued_audio_buf_lock;
 };
 
 struct source_mode {    
@@ -198,5 +208,6 @@ Session *session_get();
 void session_destroy();
 void session_set_proj(Session *session, Project *new_proj);
 uint32_t session_get_sample_rate();
+void session_queue_audio(int channels, float *c1, float *c2, int32_t len, int32_t delay, bool free_when_done);
 
 #endif

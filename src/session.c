@@ -100,6 +100,10 @@ Session *session_create()
 	fprintf(stderr, "Error initializing ongoing changes mutex: %s\n", strerror(err));
 	exit(1);
     }
+    if ((err = pthread_mutex_init(&session->queued_ops.queued_audio_buf_lock, NULL)) != 0) {
+	fprintf(stderr, "Error initializing queued audio buf mutex: %s\n", strerror(err));
+	exit(1);
+    }
 
     endpoint_init(
 	&session->playback.play_speed_ep,
@@ -284,6 +288,32 @@ uint32_t session_get_sample_rate()
     return ret;
 }
 
+/* Call from any thread to queue audio data for immediate or delayed playback */
+void session_queue_audio(int channels, float *c1, float *c2, int32_t len, int32_t delay, bool free_when_done)
+{
+    int err;
+    if ((err = pthread_mutex_lock(&session->queued_ops.queued_audio_buf_lock)) != 0) {
+	fprintf(stderr, "Error locking queued audio buf lock (in session_queue_audio): %s\n", strerror(err));
+    }
+
+    Session *session = session_get();
+    if (session->queued_ops.num_queued_audio_bufs == MAX_QUEUED_BUFS) goto unlock_and_exit;
+    
+    QueuedBuf *qb = session->queued_ops.queued_audio_bufs + session->queued_ops.num_queued_audio_bufs;
+    qb->channels = channels;
+    qb->buf[0] = c1;
+    qb->buf[1] = c2;
+    qb->len_sframes = len;
+    qb->play_index = 0;
+    qb->play_after_sframes = delay;
+    qb->free_when_done = free_when_done;
+    session->queued_ops.num_queued_audio_bufs++;
+unlock_and_exit:
+    if ((err = pthread_mutex_unlock(&session->queued_ops.queued_audio_buf_lock)) != 0) {
+	fprintf(stderr, "Error unlocking queued audio buf lock (in session_queue_audio): %s\n", strerror(err));
+    }
+
+}
 
 
 

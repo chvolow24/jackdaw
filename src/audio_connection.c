@@ -390,7 +390,8 @@ void audioconn_start_playback(AudioConn *conn)
 
 static void device_stop_playback(AudioDevice *dev)
 {
-    SDL_PauseAudioDevice(dev->id, 1);
+    dev->request_close = true;
+    /* SDL_PauseAudioDevice(dev->id, 1); */
 }
 
 void audioconn_stop_playback(AudioConn *conn)

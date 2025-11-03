@@ -46,6 +46,7 @@ typedef struct audio_device{
     bool select_channels;
     int channel_min;
     int channel_max;
+    bool request_close;
     /* bool active; */
 } AudioDevice;
 

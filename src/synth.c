@@ -1224,7 +1224,6 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 	osc_reset_params(v->oscs + i);
     }
     int after = v->amp_env->current_stage == ADSR_UNINIT ? v->amp_env->env_remaining : 0;
-    /* fprintf(stderr, "\tvoice %ld has data\n", v - v->synth->voices); */
     for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
 	OscCfg *cfg = v->synth->base_oscs + i;
 	/* fprintf(stderr, "\t\tvoice %ld osc %d\n", v - v->synth->voices, i); */
@@ -1643,8 +1642,7 @@ void synth_voice_start_release(SynthVoice *v, int32_t after)
     adsr_start_release(v->filter_env + 1, after);
     adsr_start_release(v->noise_amt_env, after);
     adsr_start_release(v->noise_amt_env + 1, after);
-}
-
+}    
 
 void synth_feed_midi(
     Synth *s,
@@ -1778,30 +1776,91 @@ void synth_feed_midi(
 	}
     }
 }
+
+/* void synth_feed_note( */
+/*     Synth *s, */
+/*     int pitch, */
+/*     int velocity, */
+/*     int32_t dur) */
+/* { */
+/*     Session *session = session_get(); */
+/*     PmEvent events[2]; */
+/*     events[0].timestamp = Pt_Time(); */
+/*     events[0].message = Pm_Message(0x90, (uint8_t)pitch, (uint8_t)velocity); */
+/*     events[1].timestamp = Pt_Time() + dur / session_get_sample_rate(); */
+/*     events[1].message = Pm_Message(0x80, (uint8_t)pitch, (uint8_t)velocity); */
+/*     synth_feed_midi(s, events, 2, ACTIVE_TL->play_pos_sframes, false); */
+/* } */
+
+
+
 void synth_silence(Synth *s);
 
 void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step)
 {
     /* fprintf(stderr, "PED? %d\n", s->pedal_depressed); */
     /* if (channel != 0) return; */
-    /* fprintf(stderr, "ADD BUF\n"); */
     if (step < 0.0) step *= -1;
     if (step > 5.0) {
 	synth_silence(s);
 	memset(buf, '\0', len * sizeof(float));
 	return;
     }
+    float internal_buf[len];
+    memset(internal_buf, 0, sizeof(internal_buf));
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	SynthVoice *v = s->voices + i;
-	synth_voice_add_buf(v, buf, len, channel, step);
+	synth_voice_add_buf(v, internal_buf, len, channel, step);
     }
     for (int i=0; i<len; i++) {
 	buf[i] = tanh(
-	    iir_sample(&s->dc_blocker, buf[i], channel)
+	    iir_sample(&s->dc_blocker, internal_buf[i], channel)
 	    * s->vol
 	    * pan_scale(s->pan, channel)
 	    );
     }
+}
+
+int32_t synth_make_note(Synth *s, int pitch, int velocity, float **buf_L_dst, float **buf_R_dst)
+{
+    Session *session = session_get();
+    bool reset_monitor_synth = false;
+    if (session->midi_io.monitor_synth == s) {
+	session->midi_io.monitor_synth = NULL;
+	reset_monitor_synth = true;
+    }
+    int32_t sr = session_get_sample_rate();
+    int32_t len = 0;
+    int32_t alloc_len = sr;
+    float *buf_L = malloc(alloc_len * sizeof(float));
+    float *buf_R = malloc(alloc_len * sizeof(float));
+    synth_silence(s);
+    synth_voice_assign_note(s->voices, pitch, velocity, 0);
+    int32_t incr_len = 4096;
+    while (!s->voices[0].available) {
+	if (len + incr_len >= alloc_len) {
+	    alloc_len *= 2;
+	    buf_L = realloc(buf_L, alloc_len * sizeof(float));
+	    buf_R = realloc(buf_R, alloc_len * sizeof(float));
+	}
+	synth_add_buf(s, buf_L + len, 0, incr_len, 1.0);
+	synth_add_buf(s, buf_R + len, 1, incr_len, 1.0);
+	len += incr_len;
+	
+	/* Quarter-second sustain time */
+	if (len >= (sr / 4)) {
+	    synth_voice_start_release(s->voices, 0);
+	}
+    }
+    buf_L = realloc(buf_L, len * sizeof(float));
+    buf_R = realloc(buf_R, len * sizeof(float));
+    *buf_L_dst = buf_L;
+    *buf_R_dst = buf_R;
+    if (reset_monitor_synth) {
+	session->midi_io.monitor_synth = s;
+    }
+
+    return len;
 }
 
 

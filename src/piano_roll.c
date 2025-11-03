@@ -729,7 +729,7 @@ NEW_EVENT_FN(undo_redo_extend_tied_note, "undo/redo extend tied note")
 /*     } */
 /* } */
 
-Note *piano_roll_insert_note()
+Note *piano_roll_insert_note(bool make_synth_note)
 {
     Session *session = session_get();
     /* fprintf(stderr, "INSERT NUM NOTES BEFORE: %d (%d grabbed)\n", state.clip->num_notes, state.clip->num_grabbed_notes); */
@@ -814,6 +814,11 @@ Note *piano_roll_insert_note()
 	ret = note;
     }
     midi_clip_check_reset_bounds(state.clip);
+    if (make_synth_note) {
+	float *buf_L, *buf_R;
+	int32_t buf_len = synth_make_note(state.cr->track->synth, state.selected_note, state.insert_velocity, &buf_L, &buf_R);
+	session_queue_audio(2, buf_L, buf_R, buf_len, 0, true);
+    }
     /* midi_clip_rectify_length(state.clip); */
     if (!state.chord_mode) {
 	timeline_set_play_position(tl, note_tl_end, false);
@@ -1377,7 +1382,7 @@ int piano_roll_execute_queued_insertions()
 	    }
 	    last_insert_tl_pos = state.cr->track->tl->play_pos_sframes;
 	    /* fprintf(stderr, "\tINSERT %d, SET last tl pos %d\n", state.selected_note, last_insert_tl_pos); */
-	    Note *new = piano_roll_insert_note();
+	    Note *new = piano_roll_insert_note(false);
 	    last_insert_ts = e.timestamp;
 	    if (new) {
 		last_insert_note_id = new->id;

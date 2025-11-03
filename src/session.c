@@ -9,6 +9,7 @@
 *****************************************************************************************************************/
 
 #include "assets.h"
+#include "audio_connection.h"
 #include "color.h"
 #include "consts.h"
 #include "endpoint_callbacks.h"
@@ -308,6 +309,9 @@ void session_queue_audio(int channels, float *c1, float *c2, int32_t len, int32_
     qb->play_after_sframes = delay;
     qb->free_when_done = free_when_done;
     session->queued_ops.num_queued_audio_bufs++;
+    if (!session->audio_io.playback_conn->playing) {
+	audioconn_start_playback(session->audio_io.playback_conn);
+    }
 unlock_and_exit:
     if ((err = pthread_mutex_unlock(&session->queued_ops.queued_audio_buf_lock)) != 0) {
 	fprintf(stderr, "Error unlocking queued audio buf lock (in session_queue_audio): %s\n", strerror(err));

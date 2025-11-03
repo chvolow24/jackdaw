@@ -3377,7 +3377,7 @@ void user_piano_roll_dur_longer(void *nullarg)
 
 void user_piano_roll_insert_note(void *nullarg)
 {
-    piano_roll_insert_note();
+    piano_roll_insert_note(true);
 }
 
 void user_piano_roll_insert_rest(void *nullarg)

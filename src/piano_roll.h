@@ -21,7 +21,7 @@ void piano_roll_up_note();
 void piano_roll_down_note();
 void piano_roll_dur_longer();
 void piano_roll_dur_shorter();
-Note *piano_roll_insert_note();
+Note *piano_roll_insert_note(bool synth_make_note);
 void piano_roll_insert_rest();
 
 void piano_roll_grab_ungrab();

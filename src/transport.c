@@ -212,7 +212,6 @@ static void loc_queue_bufs(QueuedBuf *qb, int num_bufs)
 
 static void loc_queued_bufs_add(float *chunk_L, float *chunk_R, int len_sframes)
 {
-    fprintf(stderr, "ADDING %d queued bufs\n", queue_loc.num_queued);
     for (int i=0; i<queue_loc.num_queued; i++) {
 	int chunk_start = 0;
 	QueuedBuf *qb = queue_loc.queue + i;
@@ -225,7 +224,6 @@ static void loc_queued_bufs_add(float *chunk_L, float *chunk_R, int len_sframes)
 	}
 	int len_rem = qb->len_sframes - qb->play_index;
 	int add_len = len_rem < len_sframes - chunk_start ? len_rem : len_sframes - chunk_start;
-	fprintf(stderr, "\tAdding to chunk L + %d, add len %d, from %d\n", chunk_start, add_len, qb->play_index);
 	float_buf_add(chunk_L + chunk_start, qb->buf[0] + qb->play_index, add_len);
 	if (qb->channels > 1) {
 	    float_buf_add(chunk_R + chunk_start, qb->buf[1] + qb->play_index, add_len);

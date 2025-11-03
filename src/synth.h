@@ -182,7 +182,7 @@ typedef struct osc_cfg {
 
 typedef struct synth {
     char preset_name[MAX_NAMELENGTH];
-    SynthVoice voices[SYNTH_NUM_VOICES];    
+    SynthVoice voices[SYNTH_NUM_VOICES];
     OscCfg base_oscs[SYNTH_NUM_BASE_OSCS];
     APINode api_node;
     ADSRParams amp_env;
@@ -244,6 +244,7 @@ typedef struct synth {
 Synth *synth_create(Track *track);
 /* void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, int32_t tl_start); */
 /* void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, int32_t tl_start, bool send_immediate, float step); */
+/* void synth_feed_note(Synth *s, int pitch, int velocity, int32_t dur); */
 void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start, bool send_immediate);
 void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step);
 void synth_close_all_notes(Synth *s);
@@ -261,5 +262,10 @@ void synth_destroy(Synth *s);
 
 void synth_write_preset_file(const char *filepath, Synth *s);
 void synth_read_preset_file(const char *filepath, Synth *s);
+
+/* Swap pitch/velocity for stereo audio buffers and return the length.
+ The buffers returned to buf_L_dst and buf_R_dst must be freed.
+ This function also clears the synth state, preventing simultaneous monitoring or timeline playback. */
+int32_t synth_make_note(Synth *s, int pitch, int velocity, float **buf_L_dst, float **buf_R_dst);
 
 #endif

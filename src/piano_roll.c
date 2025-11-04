@@ -1214,7 +1214,11 @@ static void piano_draw()
 	    continue;
 	} else {
 	    int piano_note = 87 - i;
-	    if (lit_notes[piano_note]) {
+	    if (piano_note + PIANO_BOTTOM_NOTE == state.selected_note) {
+		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.solo_yellow));
+		SDL_RenderFillRect(main_win->rend, &lt->rect);
+		SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
+	    } else if (lit_notes[piano_note]) {
 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.cerulean));
 		SDL_RenderFillRect(main_win->rend, &lt->rect);
 		SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
@@ -1227,8 +1231,13 @@ static void piano_draw()
 	SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
 	if (lt->name[1] == 'b') {
 	    int piano_note = 87 - i;
-	    if (lit_notes[piano_note]) {
+	    if (piano_note + PIANO_BOTTOM_NOTE == state.selected_note) {
 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.solo_yellow));
+		SDL_RenderFillRect(main_win->rend, &lt->rect);
+		SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
+		SDL_RenderDrawRect(main_win->rend, &lt->rect);
+	    } else if (lit_notes[piano_note]) {
+		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.midi_note_orange));
 		SDL_RenderFillRect(main_win->rend, &lt->rect);
 		SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
 		SDL_RenderDrawRect(main_win->rend, &lt->rect);

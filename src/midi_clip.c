@@ -803,7 +803,6 @@ void midi_clip_grab_note(MIDIClip *mclip, Note *note, NoteEdge edge)
 	note->grabbed_edge = edge;
 	return;
     }
-    fprintf(stderr, "GRABBING NOTE id %d\n", note->id);
     note->grabbed = true;
     note->grabbed_edge = edge;
     int32_t note_i = note - mclip->notes;

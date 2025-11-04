@@ -1191,17 +1191,53 @@ void piano_roll_toggle_chord_mode()
 
 static void piano_draw()
 {
+    Session *session = session_get();
+    static bool lit_notes[88] = {0};
+    static int32_t last_draw_tl_pos = INT32_MIN;
+    if (ACTIVE_TL->play_pos_sframes != last_draw_tl_pos) {
+	memset(lit_notes, 0, sizeof(lit_notes));
+	Note **notes_at_cursor = NULL;
+	int num_notes = midi_clipref_notes_intersecting_point(state.cr, ACTIVE_TL->play_pos_sframes, &notes_at_cursor);
+	for (int i=0; i<num_notes; i++) {
+	    lit_notes[notes_at_cursor[i]->key - PIANO_BOTTOM_NOTE] = true;
+	}
+	if (notes_at_cursor) free(notes_at_cursor);
+    }
+    last_draw_tl_pos = ACTIVE_TL->play_pos_sframes;
+
     SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255);
     SDL_RenderFillRect(main_win->rend, &state.piano_lt->rect);
     SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
     for (int i=0; i<state.piano_lt->num_children; i++) {
 	Layout *lt = state.piano_lt->children[i];
 	if (lt->name[1] == 'b') {
-	    SDL_RenderFillRect(main_win->rend, &lt->rect);
+	    continue;
 	} else {
+	    int piano_note = 87 - i;
+	    if (lit_notes[piano_note]) {
+		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.cerulean));
+		SDL_RenderFillRect(main_win->rend, &lt->rect);
+		SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
+	    }
 	    SDL_RenderDrawLine(main_win->rend, lt->rect.x, lt->rect.y, lt->rect.x + lt->rect.w, lt->rect.y);
 	}
     }
+    for (int i=0; i<state.piano_lt->num_children; i++) {
+	Layout *lt = state.piano_lt->children[i];
+	SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
+	if (lt->name[1] == 'b') {
+	    int piano_note = 87 - i;
+	    if (lit_notes[piano_note]) {
+		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.solo_yellow));
+		SDL_RenderFillRect(main_win->rend, &lt->rect);
+		SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
+		SDL_RenderDrawRect(main_win->rend, &lt->rect);
+	    } else {
+		SDL_RenderFillRect(main_win->rend, &lt->rect);
+	    }
+	}
+    }
+
 }
 
 static void piano_roll_draw_notes()
@@ -1244,10 +1280,6 @@ static void piano_roll_draw_notes()
 	    if (session->dragging) {
 		SDL_Color pulse_color;
 		color_diff_apply(&grab_diff, colors.midi_note_orange, session->drag_color_pulse_prop, &pulse_color);
-		/* pulse_color.r = colors.midi_note_orange...r + grab_diff.r * session->drag_color_pulse_prop; */
-		/* pulse_color.g = colors.midi_note_orange.g + grab_diff.g * session->drag_color_pulse_prop; */
-		/* pulse_color.b = colors.midi_note_orange.b + grab_diff.b * session->drag_color_pulse_prop; */
-		/* pulse_color.a = colors.midi_note_orange.a + grab_diff.a * session->drag_color_pulse_prop; */
 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(pulse_color));
 	    } else {
 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.midi_note_orange_grabbed));

@@ -145,6 +145,8 @@ Note *midi_clipref_down_note_at_cursor(ClipRef *cr, int32_t cursor, int sel_key)
 int32_t note_tl_start_pos(Note *note, ClipRef *cr);
 int32_t note_tl_end_pos(Note *note, ClipRef *cr);
 
+
+
 void midi_clip_grab_note(MIDIClip *mclip, Note *note, NoteEdge edge);
 void midi_clip_ungrab_all(MIDIClip *mclip);
 void midi_clipref_grab_range(ClipRef *cr, int32_t tl_start, int32_t tl_end);
@@ -158,6 +160,7 @@ void midi_clip_reinsert_notes(MIDIClip *mclip, Note *notes, int num_notes);
 void midi_clipref_push_grabbed_note_move_event(ClipRef *cr);
 void midi_clipref_cache_grabbed_note_info(ClipRef *cr);
 
+int midi_clipref_notes_intersecting_point(ClipRef *cr, int32_t tl_pos, Note ***dst);
 void midi_clip_check_reset_bounds(MIDIClip *mc);
 int32_t midi_clip_get_note_by_id(MIDIClip *mclip, uint32_t id);
 /* int midi_clipref_notes_intersecting_area(ClipRef *cr, int32_t range_start, int32_t range_end, int bottom_note, int top_note, Note ***dst); */

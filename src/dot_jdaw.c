@@ -1111,6 +1111,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 	    if (!read_file_version_older_than("00.18")) {
 		uint8_t has_synth = uint8_deser(f);
 		if (has_synth) {
+		    fprintf(stderr, "Track \"%s\" has synth\n", track->name);
 		    /* track->synth = synth_create(track); */
 		    track->midi_out = track->synth;
 		    track->midi_out_type = MIDI_OUT_SYNTH;
@@ -1120,6 +1121,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 			fprintf(stderr, "Error: \"SYNTH\" header not found\n");
 			return 1;
 		    }
+		    fprintf(stderr, "\t->deserializing synth\n");
 		    api_node_deserialize(f, &track->synth->api_node);
 		}
 	    }

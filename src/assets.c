@@ -16,7 +16,6 @@
 /* a chatbot did most of this for me */
 char *asset_get_abs_path_macos(const char *relative_path)
 {
-    fprintf(stderr, "CALL TO ASSET GET PATH MACOS\n");
     CFBundleRef mainBundle = CFBundleGetMainBundle();
     if (!mainBundle) {
 	return NULL;
@@ -37,7 +36,6 @@ char *asset_get_abs_path_macos(const char *relative_path)
     }
     
     CFRelease(resourceURL);
-    fprintf(stderr, "\t\t====> The abs path is %s\n", absolutePath);
     return strdup(absolutePath);    
 }
 #endif
@@ -91,7 +89,6 @@ FILE *asset_open(const char *relative_path, char *mode_str)
 	fprintf(stderr, "Error retrieving absolute path for asset at \"%s\"\n", relative_path);
 	return NULL;
     }
-    fprintf(stderr, "opening asset at %s\n", path);
     FILE *f = fopen(path, "r");
     if (!f) fprintf(stderr, "Error opening asset at \"%s\" (abs path \"%s\"): \n", relative_path, path);
     return f;

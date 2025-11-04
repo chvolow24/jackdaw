@@ -887,11 +887,14 @@ Synth *synth_create(Track *track)
 	    cfg, s, &s->osc_page, cfg->amod_target_dropdown_id);
 	endpoint_set_allowed_range(&cfg->amod_target_ep, (Value){.int_v=0}, (Value){.int_v=5});
 	cfg->amod_target_ep.automatable = false;
-	api_endpoint_register(&cfg->amod_target_ep, &cfg->api_node);
-
-	    
+	api_endpoint_register(&cfg->amod_target_ep, &cfg->api_node);	    
     }
 
+    int err = pthread_mutex_init(&s->audio_proc_lock, NULL);
+    if (err != 0) {
+	fprintf(stderr, "Error: unable to init synth audio proc lock: %s\n", strerror(err));
+	exit(1);
+    }
     return s;
 }
 
@@ -1806,6 +1809,7 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step)
 	memset(buf, '\0', len * sizeof(float));
 	return;
     }
+    pthread_mutex_lock(&s->audio_proc_lock);
     float internal_buf[len];
     memset(internal_buf, 0, sizeof(internal_buf));
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
@@ -1813,29 +1817,31 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step)
 	synth_voice_add_buf(v, internal_buf, len, channel, step);
     }
     for (int i=0; i<len; i++) {
-	buf[i] = tanh(
+	buf[i] += tanh(
 	    iir_sample(&s->dc_blocker, internal_buf[i], channel)
 	    * s->vol
 	    * pan_scale(s->pan, channel)
 	    );
     }
+    pthread_mutex_unlock(&s->audio_proc_lock);
 }
 
-int32_t synth_make_note(Synth *s, int pitch, int velocity, float **buf_L_dst, float **buf_R_dst)
+int32_t synth_make_notes(Synth *s, int *pitches, int *velocities, int num_pitches, float **buf_L_dst, float **buf_R_dst)
 {
-    Session *session = session_get();
-    bool reset_monitor_synth = false;
-    if (session->midi_io.monitor_synth == s) {
-	session->midi_io.monitor_synth = NULL;
-	reset_monitor_synth = true;
-    }
+    /* Session *session = session_get(); */
+    /* if (session->midi_io.monitor_synth == s) { */
+    /* 	session->midi_io.monitor_synth = NULL; */
+    /* 	reset_monitor_synth = true; */
+    /* } */
     int32_t sr = session_get_sample_rate();
     int32_t len = 0;
     int32_t alloc_len = sr;
     float *buf_L = malloc(alloc_len * sizeof(float));
     float *buf_R = malloc(alloc_len * sizeof(float));
     synth_silence(s);
-    synth_voice_assign_note(s->voices, pitch, velocity, 0);
+    for (int i=0; i<num_pitches; i++) {
+	synth_voice_assign_note(s->voices + i, pitches[i], velocities[i], 0);
+    }
     int32_t incr_len = 4096;
     while (!s->voices[0].available) {
 	if (len + incr_len >= alloc_len) {
@@ -1856,9 +1862,9 @@ int32_t synth_make_note(Synth *s, int pitch, int velocity, float **buf_L_dst, fl
     buf_R = realloc(buf_R, len * sizeof(float));
     *buf_L_dst = buf_L;
     *buf_R_dst = buf_R;
-    if (reset_monitor_synth) {
-	session->midi_io.monitor_synth = s;
-    }
+    /* if (reset_monitor_synth) { */
+    /* 	session->midi_io.monitor_synth = s; */
+    /* } */
 
     return len;
 }

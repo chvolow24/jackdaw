@@ -315,7 +315,11 @@ void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes)
 	tl->play_pos_sframes = new_pos;
 	clock_gettime(CLOCK_MONOTONIC, &tl->play_pos_moved_at);
 	if (session->dragging) {
-	    timeline_grabbed_clips_move(tl, move_by_sframes);
+	    if (session->piano_roll) {
+		piano_roll_grabbed_notes_move(move_by_sframes);
+	    } else {
+		timeline_grabbed_clips_move(tl, move_by_sframes);
+	    }
 	}
     }
     if (session->playback.lock_view_to_playhead) {

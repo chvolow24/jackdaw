@@ -346,7 +346,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	    session->source_mode.src_play_pos_sframes = 0;
 	}
 	tl->needs_redraw = true;
-    } else {
+    } else if (session->playback.playing) {
 	int32_t diff = tl->read_pos_sframes - tl->play_pos_sframes;
 	/* timeline_move_play_position(tl, session->playback.play_speed * stream_len_samples / proj->channels); */
 	if (diff != 0) {

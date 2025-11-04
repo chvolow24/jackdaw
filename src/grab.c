@@ -400,7 +400,7 @@ void timeline_grabbed_clips_move(Timeline *tl, int32_t move_by_sframes)
 {
     Session *session = session_get();
     if (session->piano_roll) {
-	piano_roll_grabbed_notes_move(move_by_sframes);
+    /* 	piano_roll_grabbed_notes_move(move_by_sframes); */
 	return;
     }
     for (int i=0; i<tl->num_grabbed_clips; i++) {

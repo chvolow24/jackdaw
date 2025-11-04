@@ -69,6 +69,11 @@ struct piano_roll_gui {
     /* Textbox *dur_tb; */
 };
 
+struct note_clipboard {
+    Note *notes;
+    int32_t num_notes;
+};
+
 struct piano_roll_state {
     bool active;
     /* TimeView tv; */
@@ -103,6 +108,8 @@ struct piano_roll_state {
     PmEvent event_queue[MAX_QUEUED_EVENTS];
     int num_queued_events;
     pthread_mutex_t event_queue_lock;
+
+    struct note_clipboard clipboard;
 
     /* int32_t last_inserted_note_ids[128]; */
     /* int num_last_inserted_notes; */
@@ -1084,6 +1091,69 @@ void piano_roll_stop_moving()
 void piano_roll_stop_dragging()
 {
     midi_clipref_push_grabbed_note_move_event(state.cr);
+}
+
+
+void piano_roll_copy_grabbed_notes()
+{
+    MIDIClip *clip = state.cr->source_clip;
+    if (state.clipboard.notes) free(state.clipboard.notes);
+    state.clipboard.notes = malloc(clip->num_grabbed_notes * sizeof(Note));
+    state.clipboard.num_notes = 0;
+    int32_t first_note_start_rel = clip->notes[clip->first_grabbed_note].start_rel;
+    for (int32_t i=clip->first_grabbed_note; i<=clip->last_grabbed_note; i++) {
+	Note *note = clip->notes + i;
+	if (note->grabbed) {
+	    state.clipboard.notes[state.clipboard.num_notes] = *note;
+	    state.clipboard.notes[state.clipboard.num_notes].start_rel = note->start_rel - first_note_start_rel;
+	    state.clipboard.notes[state.clipboard.num_notes].end_rel = note->end_rel - first_note_start_rel;
+	    state.clipboard.num_notes++;
+	}
+    }
+}
+
+NEW_EVENT_FN(undo_paste_grabbed_notes, "undo paste grabbed notes")
+    ClipRef *cr = obj1;
+    Note *pasted = obj2;
+    int32_t num_pasted = val1.int32_v;
+    midi_clip_remove_notes_by_id(cr->source_clip, pasted, num_pasted);
+
+}
+
+NEW_EVENT_FN(redo_paste_grabbed_notes, "redo paste grabbed notes")
+    ClipRef *cr = obj1;
+    Note *pasted = obj2;
+    int32_t num_pasted = val1.int32_v;
+    midi_clip_reinsert_notes(cr->source_clip, pasted, num_pasted);
+}
+
+void piano_roll_paste_grabbed_notes()
+{
+    if (!state.clipboard.notes) return;
+    midi_clip_ungrab_all(state.cr->source_clip);
+    Session *session = session_get();
+    int32_t tl_pos_rel = ACTIVE_TL->play_pos_sframes - state.cr->tl_pos + state.cr->start_in_clip;
+    Note *pasted_notes = malloc(state.clipboard.num_notes * sizeof(Note));
+    for (int32_t i=0; i<state.clipboard.num_notes; i++) {
+	Note *note = state.clipboard.notes + i;
+	note = midi_clip_insert_note(state.cr->source_clip, note->channel, note->key, note->velocity, tl_pos_rel + note->start_rel, tl_pos_rel + note->end_rel);
+	pasted_notes[i] = *note;
+	midi_clip_grab_note(state.cr->source_clip, note, NOTE_EDGE_NONE);
+    }
+
+    
+
+    user_event_push(
+	undo_paste_grabbed_notes,
+	redo_paste_grabbed_notes,
+        NULL,
+	NULL,
+	state.cr,
+	pasted_notes,
+	(Value){.int32_v=state.clipboard.num_notes}, (Value){0},
+	(Value){.int32_v=state.clipboard.num_notes}, (Value){0},
+	0, 0,
+	false, true);
 }
 
 

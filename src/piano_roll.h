@@ -36,6 +36,9 @@ void piano_roll_stop_dragging();
 
 void piano_roll_grabbed_notes_move(int32_t move_by_sframes);
 
+void piano_roll_copy_grabbed_notes();
+void piano_roll_paste_grabbed_notes();
+
 void piano_roll_toggle_tie();
 void piano_roll_toggle_chord_mode();
 

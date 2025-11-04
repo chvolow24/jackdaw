@@ -2144,6 +2144,10 @@ void user_tl_grab_marked_range_right_edge(void *nullarg)
 void user_tl_copy_grabbed_clips(void *nullarg)
 {
     Session *session = session_get();
+    if (session->piano_roll) {
+	piano_roll_copy_grabbed_notes();
+	return;
+    }
     Timeline *tl = ACTIVE_TL;
     memcpy(tl->clipboard, tl->grabbed_clips, sizeof(ClipRef *) * tl->num_grabbed_clips);
     tl->num_clips_in_clipboard = tl->num_grabbed_clips;
@@ -2176,6 +2180,10 @@ NEW_EVENT_FN(dispose_forward_paste_grabbed_clips, "redo paste grabbed clips")
 void user_tl_paste_grabbed_clips(void *nullarg)
 {
     Session *session = session_get();
+    if (session->piano_roll) {
+	piano_roll_paste_grabbed_notes();
+	return;
+    }
     Timeline *tl = ACTIVE_TL;
     timeline_ungrab_all_cliprefs(tl);
     if (tl->num_clips_in_clipboard == 0) {

@@ -803,6 +803,7 @@ void midi_clip_grab_note(MIDIClip *mclip, Note *note, NoteEdge edge)
 	note->grabbed_edge = edge;
 	return;
     }
+    fprintf(stderr, "GRABBING NOTE id %d\n", note->id);
     note->grabbed = true;
     note->grabbed_edge = edge;
     int32_t note_i = note - mclip->notes;
@@ -927,7 +928,7 @@ void midi_clip_grabbed_notes_move(MIDIClip *mclip, int32_t move_by)
 }
 
 
-static void midi_clip_reinsert_notes(MIDIClip *mclip, Note *notes, int num_notes)
+void midi_clip_reinsert_notes(MIDIClip *mclip, Note *notes, int num_notes)
 {
     for (int i=0; i<num_notes; i++) {
 	Note *note = notes + i;
@@ -939,6 +940,32 @@ static void midi_clip_reinsert_notes(MIDIClip *mclip, Note *notes, int num_notes
 	    note->start_rel,
 	    note->end_rel);
 	new->id = note->id;
+    }
+}
+
+static bool note_in_list(const Note *note, Note *list, int list_len)
+{
+    for (int i=0; i<list_len; i++) {
+	if (list[i].id == note->id) {
+	    /* if (i < list_len - 1) { */
+	    /* 	memmove(list + i, list + i + 1, sizeof(Note) * (list_len - i - 1)); */
+	    /* } */
+	    return true;
+	}
+    }
+    return false;
+}
+
+void midi_clip_remove_notes_by_id(MIDIClip *mclip, Note *notes, int num_notes)
+{
+    for (int32_t note_i=0; note_i<mclip->num_notes; note_i++) {
+	/* If the note is in the list of IDs */
+	if (note_in_list(mclip->notes + note_i, notes, num_notes)) {
+	    /* num_notes--; /\* Search list has been reduced *\/ */
+	    memmove(mclip->notes + note_i, mclip->notes + note_i + 1, sizeof(Note) * (mclip->num_notes - note_i - 1));
+	    mclip->num_notes--;
+	    note_i--;
+	}
     }
 }
 
@@ -1095,7 +1122,6 @@ NEW_EVENT_FN(undo_move_grabbed_notes, "undo move grabbed notes")
 	int32_t note_i = midi_clip_get_note_by_id(mclip, info[i].note_id);
 	Note *note = mclip->notes + note_i;
 	note->start_rel = info[i].start_tl_before - cr->tl_pos + cr->start_in_clip;
-	fprintf(stderr, "Note index %d ID %d: start_tl_before = %d start_rel = %d\n", i, info[i].note_id, info[i].start_tl_before, note->start_rel);
 	note->end_rel = info[i].end_tl_before - cr->tl_pos + cr->start_in_clip;;
 	note->key = info[i].key_before;
     }

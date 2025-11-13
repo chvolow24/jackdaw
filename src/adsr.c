@@ -209,7 +209,6 @@ void adsr_set_params(
 
 void adsr_init(ADSRState *s, int32_t after)
 {
-    /* fprintf(stderr, "\n\n\nNOTE INIT %p\n", s); */
     s->current_stage = ADSR_UNINIT;
     s->env_remaining = after;
     s->start_release_after = -1;

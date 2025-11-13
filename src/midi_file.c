@@ -295,7 +295,7 @@ static int8_t decode_smpte_fps(uint8_t raw)
 static void get_midi_hdr(FILE *f)
 {
     file_info.format = get_16(f);
-    
+    fprintf(stderr, "MIDI FILE FORMAT: %d\n", file_info.format);
     file_info.num_tracks = get_16(f);
     uint16_t division = get_16(f);
     file_info.division_raw = division;
@@ -312,6 +312,7 @@ static void get_midi_hdr(FILE *f)
 	uint8_t smpte_byte = rest >> 8;
 	file_info.division_fmt.smpte_fmt = decode_smpte_fps(smpte_byte);
 	file_info.division_fmt.ticks_per_frame = rest & 0xFF;
+	fprintf(stderr, "Division fmt ticks per frame: %d\n", file_info.division_fmt.ticks_per_frame);
     }
 }
 
@@ -337,6 +338,7 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 	static uint8_t prev_status;
     done_get_status:
 	(void)0;
+	fprintf(stderr, "\t\tEvent status %x, rem len: %d, running_ts: %llu\n", status, len, running_ts);
 	uint8_t channel = status & 0x0F;
 	if (status == 0xFF) { /* META EVENT */
 	    uint8_t type = fgetc(f);
@@ -362,9 +364,10 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 	    case 0x03:
 		fread(buf, 1, length, f);
 		buf[length] = '\0';
-		if (file_info.format == 1 && track_index > 0) {
-		    mclips[track_index - 1]->midi_track_name = strndup(buf, MAX_NAMELENGTH);
-		    fprintf(stderr, "ASSIGNING Track name to clip index %d: \"%s\"\n", track_index - 1, buf);
+		uint8_t clip_index = file_info.format == 0 ? channel : track_index - 1;
+		if (clip_index > 0 && clip_index < num_clips) {
+		    mclips[clip_index]->midi_track_name = strndup(buf, MAX_NAMELENGTH);
+		    fprintf(stderr, "ASSIGNING Track name to clip index %d: \"%s\"\n", clip_index, buf);
 		}
 		break;
 	    case 0x04: {
@@ -401,7 +404,7 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 		double us_per_tick = (double)tempo_us_per_quarter / (double)file_info.division_fmt.ticks_per_quarter;
 		double frames_per_tic = us_per_tick * session_get_sample_rate() / 1000000.0;
 		file_info.division_fmt.sample_frames_per_division = frames_per_tic;
-		fprintf(stderr, "US_PER_QUARTER: %ud, FRAMES PER TICK: %f\n", tempo_us_per_quarter, frames_per_tic);
+		fprintf(stderr, "US_PER_QUARTER: %u, FRAMES PER TICK: %f\n", tempo_us_per_quarter, frames_per_tic);
 		/* exit(0); */
 	    }
 		break;
@@ -519,7 +522,6 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 		    fprintf(stderr, "(%llu) BANK SELECT channel %d DATA: %d\n", running_ts, channel, data2);
 		}
 		len -= 2;
-		/* fprintf(stderr, "CONTROL: %d %d\n", fgetc(f), fgetc(f)); */
 	    }
 		break;
 
@@ -544,7 +546,7 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 	    case 0xC0: { // Program change
 		int pc_data = fgetc(f);
 		if (pc_data < sizeof(MIDI_PC_INSTRUMENT_NAMES) / sizeof(char *)) {
-		    if (file_info.format == 1) {
+		    if (file_info.format == 1 && track_index > 0) {
 			MIDIClip *mclip = mclips[track_index - 1];
 			if (mclip && !mclip->primary_instrument_name) {
 			    mclip->primary_instrument = pc_data;

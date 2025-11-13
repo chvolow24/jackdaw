@@ -151,7 +151,7 @@ static void do_decrement(ClickSegment *s, int *measure, int *beat, int *subdiv)
 }
 
 
-static void set_beat_prominence(ClickSegment *s, enum beat_prominence *bp, int measure, int beat, int subdiv)
+static void get_beat_prominence(ClickSegment *s, enum beat_prominence *bp, int measure, int beat, int subdiv)
 {
     if (measure == s->first_measure_index && beat == 0 && subdiv == 0) {
 	*bp = BP_SEGMENT;
@@ -206,7 +206,7 @@ static bool click_track_get_next_pos(ClickTrack *t, bool start, int32_t start_fr
 	}
     }
 set_prominence_and_exit:
-    set_beat_prominence(s, bp, measure, beat, subdiv);
+    get_beat_prominence(s, bp, measure, beat, subdiv);
     /* if (measure == s->first_measure_index && beat == 0 && subdiv == 0) { */
     /* 	*bp = BP_SEGMENT; */
     /* } else if (subdiv == 0 && beat == 0) { */
@@ -925,6 +925,44 @@ void timeline_increment_click_at_cursor(Timeline *tl, int inc_by)
     tl->needs_redraw = true;
 }
 
+void click_track_get_prox_beats(ClickTrack *ct, int32_t pos, enum beat_prominence bp, int32_t *prev_pos_dst, int32_t *next_pos_dst)
+{
+    Timeline *tl = ct->tl;
+    ClickSegment *s;
+    
+    int bar, beat, subdiv;
+    int safety = 0;
+    click_track_bar_beat_subdiv(ct, pos, &bar, &beat, &subdiv, &s, false);
+    int32_t prev_pos = get_beat_pos(s, bar, beat, subdiv);
+    do_increment(s, &bar, &beat, &subdiv);
+    int32_t next_pos = get_beat_pos(s, bar, beat, subdiv);
+    *prev_pos_dst = prev_pos;
+    *next_pos_dst = next_pos;
+    return;
+    /* enum beat_prominence bp_test; */
+    /* get_beat_prominence(s, &bp_test, bar, beat, subdiv); */
+    
+    /* while (safety < 10000 && bp_test > bp) { */
+    /* 	if (direction > 0) { */
+    /* 	    do_increment(s, &bar, &beat, &subdiv); */
+    /* 	} else { */
+    /* 	    do_decrement(s, &bar, &beat, &subdiv); */
+    /* 	} */
+    /* 	pos = get_beat_pos(s, bar, beat, subdiv); */
+    /* 	get_beat_prominence(s, &bp_test, bar, beat, subdiv); */
+    /* } */
+    /* if (safety > 9999) { */
+    /* 	fprintf(stderr, "SAFETY ISSUE\n"); */
+    /* } */
+    /* if (pos < s->start_pos) { */
+    /* 	pos = s->start_pos; */
+    /* } else if (s->next && pos > s->next->start_pos) { */
+    /* 	pos = s->next->start_pos; */
+    /* } */
+
+
+}
+
 void click_track_goto_prox_beat(ClickTrack *tt, int direction, enum beat_prominence bp)
 {
 
@@ -947,7 +985,7 @@ void click_track_goto_prox_beat(ClickTrack *tt, int direction, enum beat_promine
     }
     pos = get_beat_pos(s, bar, beat, subdiv);
     enum beat_prominence bp_test;
-    set_beat_prominence(s, &bp_test, bar, beat, subdiv);
+    get_beat_prominence(s, &bp_test, bar, beat, subdiv);
     
     while (safety < 10000 && bp_test > bp) {
 	if (direction > 0) {
@@ -956,7 +994,7 @@ void click_track_goto_prox_beat(ClickTrack *tt, int direction, enum beat_promine
 	    do_decrement(s, &bar, &beat, &subdiv);
 	}
 	pos = get_beat_pos(s, bar, beat, subdiv);
-	set_beat_prominence(s, &bp_test, bar, beat, subdiv);
+	get_beat_prominence(s, &bp_test, bar, beat, subdiv);
 	/* if (bp_test <= bp) { */
 	/*     timeline_set_play_position(tl, pos);  */
 	/*     return; */
@@ -1379,7 +1417,7 @@ void click_track_mix_metronome(ClickTrack *tt, float *mixdown_buf, int32_t mixdo
 	if (tick_start_in_chunk > mixdown_buf_len) {
 	    goto previous_beat;
 	}
-	set_beat_prominence(s, &bp, bar, beat, subdiv);
+	get_beat_prominence(s, &bp, bar, beat, subdiv);
 	
 	/* UDP -> Pd testing */
 	/* if (tick_start_in_chunk > 0) { */

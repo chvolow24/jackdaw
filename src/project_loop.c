@@ -190,12 +190,9 @@ void loop_project_main()
 		/* } */
 
 		switch (e.key.keysym.scancode) {
-		/* case SDL_SCANCODE_2: */
-		/*     piano_roll_dur_down(); */
-		/*     break; */
-		/* case SDL_SCANCODE_3: */
-		/*     piano_roll_dur_up(); */
-		/*     break; */
+		case SDL_SCANCODE_6:
+		    piano_roll_quantize_notes_in_marked_range();
+		    break;
 		/* case SDL_SCANCODE_1: { */
 		/*     mqwert_pitch_bend(-25); */
 		/* } */

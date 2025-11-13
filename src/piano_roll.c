@@ -1186,6 +1186,44 @@ void piano_roll_toggle_chord_mode()
 }
 
 
+void piano_roll_quantize_notes_in_marked_range()
+{
+    if (!state.ct) {
+	status_set_errstr("Add a click track (C-t in Timeline view) before quantizing");
+	return;
+    }
+    Note **intersecting;
+    Timeline *tl = state.cr->track->tl;
+    int num_intersecting = midi_clipref_notes_intersecting_area(state.cr, tl->in_mark_sframes, tl->out_mark_sframes, 0, 127, &intersecting);
+    for (int i=0; i<num_intersecting; i++) {
+	int32_t tl_start = note_tl_start_pos(intersecting[i], state.cr);
+	int32_t tl_end = note_tl_end_pos(intersecting[i], state.cr);
+	int32_t prev_beat, next_beat;
+	
+	click_track_get_prox_beats(state.ct, tl_start, BP_SUBDIV, &prev_beat, &next_beat);
+	int32_t diff_prev = tl_start - prev_beat;
+	int32_t diff_next = next_beat - tl_start;
+	if (diff_prev < diff_next) {
+	    intersecting[i]->start_rel = prev_beat - state.cr->tl_pos + state.cr->start_in_clip;
+	} else if (diff_next < diff_prev) {
+	    intersecting[i]->start_rel = next_beat - state.cr->tl_pos + state.cr->start_in_clip;	    
+	}
+
+	click_track_get_prox_beats(state.ct, tl_end, BP_SUBDIV, &prev_beat, &next_beat);
+	diff_prev = tl_end - prev_beat;
+	diff_next = next_beat - tl_end;
+	if (diff_prev < diff_next) {
+	    intersecting[i]->end_rel = prev_beat - state.cr->tl_pos + state.cr->start_in_clip;
+	} else if (diff_next < diff_prev) {
+	    intersecting[i]->end_rel = next_beat - state.cr->tl_pos + state.cr->start_in_clip;
+	}
+	if (intersecting[i]->end_rel == intersecting[i]->start_rel) {
+	    intersecting[i]->end_rel += (state.ct->segments + state.ct->current_segment)->cfg.atom_dur_approx;
+	}
+
+    }
+}
+
 /* Draw fns */
 
 
@@ -1237,7 +1275,7 @@ static void piano_draw()
 		SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
 		SDL_RenderDrawRect(main_win->rend, &lt->rect);
 	    } else if (lit_notes[piano_note]) {
-		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.midi_note_orange));
+		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.cerulean));
 		SDL_RenderFillRect(main_win->rend, &lt->rect);
 		SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
 		SDL_RenderDrawRect(main_win->rend, &lt->rect);

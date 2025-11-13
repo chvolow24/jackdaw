@@ -42,6 +42,8 @@ void piano_roll_paste_grabbed_notes();
 void piano_roll_toggle_tie();
 void piano_roll_toggle_chord_mode();
 
+void piano_roll_quantize_notes_in_marked_range();
+
 /* externalize state */
 Textbox *piano_roll_get_solo_button();
 int piano_roll_get_num_grabbed_notes();

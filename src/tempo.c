@@ -151,7 +151,7 @@ static void do_decrement(ClickSegment *s, int *measure, int *beat, int *subdiv)
 }
 
 
-static void get_beat_prominence(ClickSegment *s, enum beat_prominence *bp, int measure, int beat, int subdiv)
+static void get_beat_prominence(ClickSegment *s, BeatProminence *bp, int measure, int beat, int subdiv)
 {
     if (measure == s->first_measure_index && beat == 0 && subdiv == 0) {
 	*bp = BP_SEGMENT;
@@ -168,7 +168,7 @@ static void get_beat_prominence(ClickSegment *s, enum beat_prominence *bp, int m
 
 
 /* Stateful function, repeated calls to which will get the next beat or subdiv position on a tempo track */
-static bool click_track_get_next_pos(ClickTrack *t, bool start, int32_t start_from, int32_t *pos, enum beat_prominence *bp)
+static bool click_track_get_next_pos(ClickTrack *t, bool start, int32_t start_from, int32_t *pos, BeatProminence *bp)
 {
     static JDAW_THREAD_LOCAL ClickSegment *s;
     static JDAW_THREAD_LOCAL int beat = 0;
@@ -925,7 +925,7 @@ void timeline_increment_click_at_cursor(Timeline *tl, int inc_by)
     tl->needs_redraw = true;
 }
 
-void click_track_get_prox_beats(ClickTrack *ct, int32_t pos, enum beat_prominence bp, int32_t *prev_pos_dst, int32_t *next_pos_dst)
+void click_track_get_prox_beats(ClickTrack *ct, int32_t pos, BeatProminence bp, int32_t *prev_pos_dst, int32_t *next_pos_dst)
 {
     Timeline *tl = ct->tl;
     ClickSegment *s;
@@ -939,7 +939,7 @@ void click_track_get_prox_beats(ClickTrack *ct, int32_t pos, enum beat_prominenc
     *prev_pos_dst = prev_pos;
     *next_pos_dst = next_pos;
     return;
-    /* enum beat_prominence bp_test; */
+    /* BeatProminence bp_test; */
     /* get_beat_prominence(s, &bp_test, bar, beat, subdiv); */
     
     /* while (safety < 10000 && bp_test > bp) { */
@@ -963,7 +963,7 @@ void click_track_get_prox_beats(ClickTrack *ct, int32_t pos, enum beat_prominenc
 
 }
 
-void click_track_goto_prox_beat(ClickTrack *tt, int direction, enum beat_prominence bp)
+void click_track_goto_prox_beat(ClickTrack *tt, int direction, BeatProminence bp)
 {
 
     Timeline *tl = tt->tl;
@@ -984,7 +984,7 @@ void click_track_goto_prox_beat(ClickTrack *tt, int direction, enum beat_promine
 	do_decrement(s, &bar, &beat, &subdiv);
     }
     pos = get_beat_pos(s, bar, beat, subdiv);
-    enum beat_prominence bp_test;
+    BeatProminence bp_test;
     get_beat_prominence(s, &bp_test, bar, beat, subdiv);
     
     while (safety < 10000 && bp_test > bp) {
@@ -1023,7 +1023,7 @@ void click_track_goto_prox_beat(ClickTrack *tt, int direction, enum beat_promine
     timeline_set_play_position(tl, pos, true);
 }
 
-/* static enum beat_prominence timeline_get_beat_pos_range(Timeline *tl, int32_t *pos) */
+/* static BeatProminence timeline_get_beat_pos_range(Timeline *tl, int32_t *pos) */
 /* { */
 /*     ClickTrack *tt = timeline_selected_click_track(tl); */
 /*     if (!tt) return BP_NONE; */
@@ -1033,7 +1033,7 @@ void click_track_goto_prox_beat(ClickTrack *tt, int direction, enum beat_promine
 /*     while ((pos_m = pos_n + s->cfg.dur_sframes) >= *pos) { */
 /* 	pos_n = pos_m; */
 /*     } */
-/*     enum beat_prominence bp; */
+/*     BeatProminence bp; */
 /*     int bar, beat, subdiv; */
 /*     bar = beat = subdiv = 0; */
 /*     set_beat_prominence(s, &bp, bar, beat, subdiv); */
@@ -1087,7 +1087,7 @@ void click_track_draw_segments(ClickTrack *tt, TimeView *tv, SDL_Rect draw_rect)
 
     Timeline *tl = tt->tl;
     int32_t pos = tv->offset_left_sframes;
-    enum beat_prominence bp;
+    BeatProminence bp;
     click_track_get_next_pos(tt, true, pos, &pos, &bp);
     int x;
     int top_y = draw_rect.y;
@@ -1170,7 +1170,7 @@ void click_track_draw(ClickTrack *tt)
     };
 
     int32_t pos = tt->tl->timeview.offset_left_sframes;
-    enum beat_prominence bp;
+    BeatProminence bp;
     click_track_get_next_pos(tt, true, pos, &pos, &bp);
     int x = timeline_get_draw_x(tl, pos);
     int main_top_y = tt->layout->rect.y;
@@ -1391,7 +1391,7 @@ void click_track_mix_metronome(ClickTrack *tt, float *mixdown_buf, int32_t mixdo
     float *buf = NULL;
     int32_t buf_len;
     int32_t tl_chunk_len = tl_end_pos_sframes - tl_start_pos_sframes;
-    enum beat_prominence bp;
+    BeatProminence bp;
     /* clock_t c; */
     /* c = clock(); */
     int32_t remainder = click_track_bar_beat_subdiv(tt, tl_end_pos_sframes, &bar, &beat, &subdiv, &s, false);

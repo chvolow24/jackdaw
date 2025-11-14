@@ -25,6 +25,7 @@
 #include <stdint.h>
 #include "midi_io.h"
 #include "midi_objs.h"
+#include "tempo.h"
 #include "textbox.h"
 
 #define INIT_NUM_NOTES 16
@@ -151,7 +152,7 @@ void midi_clip_grab_note(MIDIClip *mclip, Note *note, NoteEdge edge);
 void midi_clip_ungrab_all(MIDIClip *mclip);
 void midi_clipref_grab_range(ClipRef *cr, int32_t tl_start, int32_t tl_end);
 void midi_clipref_grab_area(ClipRef *cr, int32_t tl_start, int32_t tl_end, int bottom_note, int top_note);
-int midi_clipref_notes_intersecting_area(ClipRef *cr, int32_t range_start, int32_t range_end, int bottom_note, int top_note, Note ***dst);
+/* int midi_clipref_notes_intersecting_area(ClipRef *cr, int32_t range_start, int32_t range_end, int bottom_note, int top_note, Note ***dst); */
 void midi_clip_grabbed_notes_move(MIDIClip *mclip, int32_t move_by);
 void midi_clipref_grabbed_notes_delete(ClipRef *cr);
 void midi_clip_remove_note_at(MIDIClip *mclip, int32_t note_i);
@@ -167,6 +168,7 @@ int32_t midi_clip_get_note_by_id(MIDIClip *mclip, uint32_t id);
 /* int midi_clipref_notes_intersecting_area(ClipRef *cr, int32_t range_start, int32_t range_end, int bottom_note, int top_note, Note ***dst); */
 /* int midi_clipref_notes_ending_at_pos(ClipRef *cr, int32_t tl_pos, Note ***dst, int32_t *start_pos_dst); */
 int midi_clipref_notes_ending_at_pos(ClipRef *cr, int32_t tl_pos, Note ***dst, bool latest_start_time, int32_t *start_pos_dst);
+void midi_clipref_quantize_notes_in_range(ClipRef *cr, float amount, BeatProminence resolution, bool quantize_note_offs);
 
 
 #endif

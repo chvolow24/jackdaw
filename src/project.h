@@ -489,7 +489,12 @@ void timeline_scroll_playhead(double dim);
 void timeline_reset_loop_play_lemniscate(Timeline *tl);
 bool track_minimize(Track *t);
 void timeline_minimize_track_or_tracks(Timeline *tl);
+
+/* Last click track above selected track */
 ClickTrack *timeline_governing_click_track(Timeline *tl);
+
+/* Last click track above track "t" */
+ClickTrack *track_governing_click_track(Track *t);
 
 /* Completion function for renameable proj objects */
 int project_obj_name_completion(Text *txt, void *obj);

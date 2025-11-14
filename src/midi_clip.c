@@ -2,6 +2,7 @@
 #include "midi_clip.h"
 #include "midi_io.h"
 #include "midi_objs.h"
+#include "project.h"
 #include "test.h"
 #include "session.h"
 #include "timeline.h"
@@ -646,7 +647,7 @@ int midi_clipref_notes_intersecting_point(ClipRef *cr, int32_t tl_pos, Note ***d
     return num_intersecting_notes;
 }
 
-int midi_clipref_notes_intersecting_area(ClipRef *cr, int32_t range_start, int32_t range_end, int bottom_note, int top_note, Note ***dst)
+static int midi_clipref_notes_intersecting_area(ClipRef *cr, int32_t range_start, int32_t range_end, int bottom_note, int top_note, Note ***dst)
 {
     Note **intersecting_notes = malloc(MAX_INTERSECTING_NOTES * sizeof(Note *));
     int num_intersecting_notes = 0;
@@ -1240,6 +1241,54 @@ void midi_clipref_cache_grabbed_note_info(ClipRef *cr)
 	/* fprintf(stderr, "CACHED note %d\n", i); */
     }
     mclip->note_move_in_progress = true;
+}
 
+
+/* Amt 0.0-1.0 describes how close to the note gets to the beat */
+void midi_clipref_quantize_notes_in_range(ClipRef *cr, float amount, BeatProminence resolution, bool quantize_note_offs)
+{
+    Timeline *tl = cr->track->tl;
+    ClickTrack *ct = track_governing_click_track(cr->track);
+    if (!ct) {
+	status_set_errstr("Add a click track (C-t) before quantizing");
+	return;
+    }
+    
+    Note **intersecting;
+    int num_intersecting = midi_clipref_notes_intersecting_area(cr, tl->in_mark_sframes, tl->out_mark_sframes, 0, 127, &intersecting);
+    for (int i=0; i<num_intersecting; i++) {
+	int32_t tl_start = note_tl_start_pos(intersecting[i], cr);
+	int32_t tl_end = note_tl_end_pos(intersecting[i], cr);
+	int32_t prev_beat, next_beat;
+	
+	click_track_get_prox_beats(ct, tl_start, BP_SUBDIV, &prev_beat, &next_beat);
+	int32_t diff_prev = tl_start - prev_beat;
+	int32_t diff_next = next_beat - tl_start;
+	if (diff_prev < diff_next) {
+	    diff_prev *= amount;
+	    /* intersecting[i]->start_rel = prev_beat - cr->tl_pos + cr->start_in_clip; */
+	    intersecting[i]->start_rel -= diff_prev;
+	} else if (diff_next < diff_prev) {
+	    diff_next *= amount;
+	    /* intersecting[i]->start_rel = next_beat - cr->tl_pos + cr->start_in_clip;	     */
+	    intersecting[i]->start_rel += diff_next;
+	}
+	click_track_get_prox_beats(ct, tl_end, BP_SUBDIV, &prev_beat, &next_beat);
+	diff_prev = tl_end - prev_beat;
+	diff_next = next_beat - tl_end;
+	if (diff_prev < diff_next) {
+	    diff_prev *= amount;
+	    /* intersecting[i]->end_rel = prev_beat - cr->tl_pos + cr->start_in_clip; */
+	    intersecting[i]->end_rel -= diff_prev;
+	} else if (diff_next < diff_prev) {
+	    diff_next *= amount;
+	    /* intersecting[i]->end_rel = next_beat - cr->tl_pos + cr->start_in_clip; */
+	    intersecting[i]->end_rel += diff_next;
+	}
+	if (intersecting[i]->end_rel == intersecting[i]->start_rel) {
+	    intersecting[i]->end_rel += (ct->segments + ct->current_segment)->cfg.atom_dur_approx;
+	}
+    }
+    if (num_intersecting > 0) free(intersecting);
 }
 

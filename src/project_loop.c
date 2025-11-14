@@ -190,8 +190,11 @@ void loop_project_main()
 		/* } */
 
 		switch (e.key.keysym.scancode) {
-		case SDL_SCANCODE_6:
-		    piano_roll_quantize_notes_in_marked_range();
+		case SDL_SCANCODE_6: {
+		    ClipRef *cr = clipref_at_cursor();
+		    midi_clipref_quantize_notes_in_range(cr, 0.5, 0, true);
+		    /* piano_roll_quantize_notes_in_marked_range(); */
+		}
 		    break;
 		/* case SDL_SCANCODE_1: { */
 		/*     mqwert_pitch_bend(-25); */

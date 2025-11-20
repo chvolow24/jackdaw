@@ -873,7 +873,7 @@ void piano_roll_insert_rest()
 	0, 0, false, false);
 }
 
-static Note *note_at_cursor(bool include_end)
+Note *piano_roll_note_at_cursor(bool include_end)
 {
     if (state.clip->num_notes == 0) return NULL;
     int32_t note_i = midi_clipref_check_get_last_note(state.cr);
@@ -974,7 +974,7 @@ void piano_roll_grabbed_notes_move(int32_t move_by)
 /* HIGH-LEVEL INTERFACE */
 void piano_roll_grab_ungrab()
 {
-    Note *note = note_at_cursor(true);
+    Note *note = piano_roll_note_at_cursor(true);
     if (note && !note->grabbed) {
 	/* grab_note(note, NOTE_EDGE_NONE); */
 	midi_clip_grab_note(state.clip, note, NOTE_EDGE_NONE);
@@ -1017,7 +1017,7 @@ void piano_roll_grab_ungrab()
 void piano_roll_grab_left_edge()
 {
     Session *session = session_get();
-    Note *note = note_at_cursor(true);
+    Note *note = piano_roll_note_at_cursor(true);
     if (!note) return;
     timeline_set_play_position(ACTIVE_TL, note_tl_start_pos(note, state.cr), false);
     midi_clip_grab_note(state.clip, note, NOTE_EDGE_LEFT);
@@ -1030,7 +1030,7 @@ void piano_roll_grab_left_edge()
 void piano_roll_grab_right_edge()
 {
     Session *session = session_get();
-    Note *note = note_at_cursor(true);
+    Note *note = piano_roll_note_at_cursor(true);
     if (!note) return;
     timeline_set_play_position(ACTIVE_TL, note_tl_end_pos(note, state.cr), false);
     midi_clip_grab_note(state.clip, note, NOTE_EDGE_RIGHT);
@@ -1285,6 +1285,23 @@ static void piano_draw()
 	}
     }
 
+}
+
+SDL_Rect piano_roll_get_note_rect(Note *note)
+{
+    static const int midi_piano_range = 88;
+    int piano_note = note->key - 20;
+    if (piano_note < 0 || piano_note > midi_piano_range) return (SDL_Rect){0, 0, 0, 0};
+    SDL_Rect rect = state.note_canvas_lt->rect;
+    float note_height_nominal = (float)rect.h / midi_piano_range;
+    float true_note_height = note_height_nominal;
+
+    int32_t note_start = note->start_rel - state.cr->start_in_clip + state.cr->tl_pos;
+    int32_t note_end = note->end_rel - state.cr->start_in_clip + state.cr->tl_pos;
+    float x = timeview_get_draw_x(state.tl_tv, note_start);
+    float w = timeview_get_draw_x(state.tl_tv, note_end) - x;
+    float y = rect.y + round((float)(midi_piano_range - piano_note) * note_height_nominal);
+    return (SDL_Rect){x, y, w, true_note_height};
 }
 
 static void piano_roll_draw_notes()

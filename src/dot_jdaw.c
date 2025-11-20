@@ -1197,6 +1197,7 @@ static int jdaw_read_delay(FILE *f, DelayLine *dl)
     stereo_offset = float_deser40_le(f);
     amp = float_deser40_le(f);
     delay_line_set_params(dl, amp, len);
+    dl->len_msec = 1000 * len / session_get_sample_rate();
     dl->stereo_offset = stereo_offset;
     dl->effect->active = delay_line_active;
     return 0;

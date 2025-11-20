@@ -119,23 +119,8 @@ static inline void del_read_into_buffer_resize(DelayLine *dl, double *read_from,
 
 void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
 {
-    /* fprintf(stderr, "Set line len: %d\n", len); */
-    /* if (!dl->buf_L) { */
-    /* 	delay_line_init(dl, sample_rate); */
-    /* } */
-    /* pthread_mutex_lock(&dl->lock); */
-    /* if (len > session_get_sample_rate()) { */
-    /* 	fprintf(stderr, "UH OH: len = %d\n", len); */
-    /* 	exit(1); */
-    /* 	return; */
-    /* } */
     if (dl->len != len) {
-	/* fprintf(stderr, "\t->new len %d\n", len); */
-	/* breakfn(); */
-	/* double new_buf[len]; */
 	double *new_buf = dl->cpy_buf;
-	/* double read_step = (double)dl->len / len; */
-	/* double read_step = 1.0; */
 	del_read_into_buffer_resize(dl, dl->buf_L, new_buf,  &dl->pos_L, len);
 	memcpy(dl->buf_L, new_buf, len * sizeof(double));
 	del_read_into_buffer_resize(dl, dl->buf_R, new_buf, &dl->pos_R, len);

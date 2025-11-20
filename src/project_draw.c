@@ -19,6 +19,7 @@
 #include "page.h"
 #include "piano_roll.h"
 #include "project.h"
+#include "select_rect.h"
 #include "session.h"
 #include "textbox.h"
 #include "timeline.h"
@@ -257,8 +258,6 @@ static void clipref_draw(ClipRef *cr)
     if (cr->label) {
 	textbox_draw(cr->label);
     }
-
-
 }
 
 static void draw_selected_track_rect(Layout *selected_layout)
@@ -739,9 +738,6 @@ static void control_bar_draw()
     }
 }
 
-/* #include "compressor.h" */
-/* extern Compressor comp_L; */
-/* static int draw_i = 0; */
 void project_draw()
 {
     Session *session = session_get();
@@ -849,7 +845,55 @@ void project_draw()
 	
     /* } */
     /* draw_i++ ; */
-    
+
+    /* static bool initd = false; */
+    /* static SelectRect sr; */
+    /* if (!initd) { */
+    /* 	sr.rect = (SDL_Rect){100, 100, 500, 500}; */
+    /* 	sr.speed = 3; */
+    /* 	sr.phase = 0; */
+    /* 	initd = true; */
+    /* } */
+    /* select_rect_draw(sr.rect, sr.speed); */
+/*     if (TOP_MODE == MODE_TIMELINE) { */
+/* 	ClipRef *cr = clipref_at_cursor(); */
+/* 	if (cr) { */
+/* 	    SDL_Rect r = cr->layout->rect; */
+/* 	    if (r.x > main_win->w_pix) goto end_draw; */
+/* 	    if (r.x + r.w < 0) goto end_draw; */
+/* 	    if (r.x < 0) r.x = 0; */
+/* 	    if (r.x + r.w > main_win->w_pix) { */
+/* 		r.w -= r.x + r.w - main_win->w_pix; */
+/* 	    } */
+/* 	    select_rect_draw(r, 2); */
+/* 	    r.x += 1; */
+/* 	    r.y += 1; */
+/* 	    r.w -= 2; */
+/* 	    r.h -= 2; */
+/* 	    select_rect_draw(r, 2); */
+/* 	} */
+/*     } else if (TOP_MODE == MODE_PIANO_ROLL) { */
+/* 	Note *note = piano_roll_note_at_cursor(true); */
+/* 	if (note) { */
+	    
+/* 	    SDL_Rect r = piano_roll_get_note_rect(note); */
+/* 	    if (r.x > main_win->w_pix) goto end_draw; */
+/* 	    if (r.x + r.w < 0) goto end_draw; */
+/* 	    if (r.x < 0) r.x = 0; */
+/* 	    if (r.x + r.w > main_win->w_pix) { */
+/* 		r.w -= r.x + r.w - main_win->w_pix; */
+/* 	    } */
+/* 	    select_rect_draw(r, 2); */
+/* 	    r.x += 1; */
+/* 	    r.y += 1; */
+/* 	    r.w -= 2; */
+/* 	    r.h -= 2; */
+/* 	    select_rect_draw(r, 2); */
+
+/* 	    /\* select_rect_draw(note->rel, 1); *\/ */
+/* 	} */
+/*     } */
+/* end_draw: */
     window_end_draw(main_win);
 }
 

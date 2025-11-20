@@ -927,40 +927,28 @@ void timeline_increment_click_at_cursor(Timeline *tl, int inc_by)
 
 void click_track_get_prox_beats(ClickTrack *ct, int32_t pos, BeatProminence bp, int32_t *prev_pos_dst, int32_t *next_pos_dst)
 {
-    Timeline *tl = ct->tl;
-    ClickSegment *s;
-    
+    ClickSegment *s;    
     int bar, beat, subdiv;
-    int safety = 0;
+    BeatProminence bp_test = bp + 1;
     click_track_bar_beat_subdiv(ct, pos, &bar, &beat, &subdiv, &s, false);
+    do {
+	get_beat_prominence(s, &bp_test, bar, beat, subdiv);
+	do_decrement(s, &bar, &beat, &subdiv);
+    } while (bp_test > bp);
+    do_increment(s, &bar, &beat, &subdiv);
+    
     int32_t prev_pos = get_beat_pos(s, bar, beat, subdiv);
     do_increment(s, &bar, &beat, &subdiv);
+    do {
+	get_beat_prominence(s, &bp_test, bar, beat, subdiv);
+	do_increment(s, &bar, &beat, &subdiv);
+    } while (bp_test > bp);
+    do_decrement(s, &bar, &beat, &subdiv);
+
     int32_t next_pos = get_beat_pos(s, bar, beat, subdiv);
     *prev_pos_dst = prev_pos;
     *next_pos_dst = next_pos;
     return;
-    /* BeatProminence bp_test; */
-    /* get_beat_prominence(s, &bp_test, bar, beat, subdiv); */
-    
-    /* while (safety < 10000 && bp_test > bp) { */
-    /* 	if (direction > 0) { */
-    /* 	    do_increment(s, &bar, &beat, &subdiv); */
-    /* 	} else { */
-    /* 	    do_decrement(s, &bar, &beat, &subdiv); */
-    /* 	} */
-    /* 	pos = get_beat_pos(s, bar, beat, subdiv); */
-    /* 	get_beat_prominence(s, &bp_test, bar, beat, subdiv); */
-    /* } */
-    /* if (safety > 9999) { */
-    /* 	fprintf(stderr, "SAFETY ISSUE\n"); */
-    /* } */
-    /* if (pos < s->start_pos) { */
-    /* 	pos = s->start_pos; */
-    /* } else if (s->next && pos > s->next->start_pos) { */
-    /* 	pos = s->next->start_pos; */
-    /* } */
-
-
 }
 
 void click_track_goto_prox_beat(ClickTrack *tt, int direction, BeatProminence bp)

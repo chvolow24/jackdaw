@@ -192,7 +192,7 @@ void loop_project_main()
 		switch (e.key.keysym.scancode) {
 		case SDL_SCANCODE_6: {
 		    ClipRef *cr = clipref_at_cursor();
-		    midi_clipref_quantize_notes_in_range(cr, 0.5, 0, true);
+		    midi_clipref_quantize_notes_in_range(cr, 1.0, BP_SUBDIV2, true);
 		    /* piano_roll_quantize_notes_in_marked_range(); */
 		}
 		    break;

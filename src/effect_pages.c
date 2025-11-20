@@ -490,7 +490,7 @@ Page *add_delay_page(DelayLine *d, Track *track, TabView *tv)
 
     p.slider_p.style = SLIDER_TICK;
     p.slider_p.orientation = SLIDER_HORIZONTAL;
-    
+
     page_el_params_slider_from_ep(&p, &d->len_ep);
     /* p.slider_p.create_label_fn = NULL; */
     /* p.slider_p.ep = &d->len_ep; */

@@ -1247,6 +1247,7 @@ void midi_clipref_cache_grabbed_note_info(ClipRef *cr)
 /* Amt 0.0-1.0 describes how close to the note gets to the beat */
 void midi_clipref_quantize_notes_in_range(ClipRef *cr, float amount, BeatProminence resolution, bool quantize_note_offs)
 {
+    if (!cr) return;
     Timeline *tl = cr->track->tl;
     ClickTrack *ct = track_governing_click_track(cr->track);
     if (!ct) {
@@ -1260,30 +1261,39 @@ void midi_clipref_quantize_notes_in_range(ClipRef *cr, float amount, BeatPromine
 	int32_t tl_start = note_tl_start_pos(intersecting[i], cr);
 	int32_t tl_end = note_tl_end_pos(intersecting[i], cr);
 	int32_t prev_beat, next_beat;
-	
-	click_track_get_prox_beats(ct, tl_start, BP_SUBDIV, &prev_beat, &next_beat);
+	int32_t start_dst_beat;
+	click_track_get_prox_beats(ct, tl_start, resolution, &prev_beat, &next_beat);
 	int32_t diff_prev = tl_start - prev_beat;
 	int32_t diff_next = next_beat - tl_start;
+	int32_t start_diff;
 	if (diff_prev < diff_next) {
+	    start_dst_beat = prev_beat;
 	    diff_prev *= amount;
-	    /* intersecting[i]->start_rel = prev_beat - cr->tl_pos + cr->start_in_clip; */
-	    intersecting[i]->start_rel -= diff_prev;
+	    start_diff = -diff_prev;
 	} else if (diff_next < diff_prev) {
+	    start_dst_beat = next_beat;
 	    diff_next *= amount;
-	    /* intersecting[i]->start_rel = next_beat - cr->tl_pos + cr->start_in_clip;	     */
-	    intersecting[i]->start_rel += diff_next;
+	    start_diff = diff_next;
+	} else { /* Note falls exactly in the middle; allow to stay */
+	    start_dst_beat = tl_start;
+	    start_diff = 0;
 	}
-	click_track_get_prox_beats(ct, tl_end, BP_SUBDIV, &prev_beat, &next_beat);
+	intersecting[i]->start_rel += start_diff;
+	click_track_get_prox_beats(ct, tl_end, resolution, &prev_beat, &next_beat);
 	diff_prev = tl_end - prev_beat;
 	diff_next = next_beat - tl_end;
-	if (diff_prev < diff_next) {
+	/* For setting note end pos, check that the destination end beat is not the same as the start destination;
+	   if the destinations match (which would result in progressively shorter note durs for amount <1.0), maintain dur */
+	if (diff_prev < diff_next && prev_beat != start_dst_beat) {	    
 	    diff_prev *= amount;
 	    /* intersecting[i]->end_rel = prev_beat - cr->tl_pos + cr->start_in_clip; */
 	    intersecting[i]->end_rel -= diff_prev;
-	} else if (diff_next < diff_prev) {
+	} else if (diff_next < diff_prev && next_beat != start_dst_beat) {
 	    diff_next *= amount;
 	    /* intersecting[i]->end_rel = next_beat - cr->tl_pos + cr->start_in_clip; */
 	    intersecting[i]->end_rel += diff_next;
+	} else {
+	    intersecting[i]->end_rel += start_diff;
 	}
 	if (intersecting[i]->end_rel == intersecting[i]->start_rel) {
 	    intersecting[i]->end_rel += (ct->segments + ct->current_segment)->cfg.atom_dur_approx;

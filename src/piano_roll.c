@@ -450,6 +450,32 @@ void piano_roll_move_view_right()
 }
 
 
+static void play_all_grabbed_notes()
+{
+    const int MAX_PLAYBACK_NOTES = 8;
+    int notes_to_play[MAX_PLAYBACK_NOTES];
+    int velocities[MAX_PLAYBACK_NOTES];
+    bool used_pitches[128] = {0};
+    int note_to_play_i = 0;
+    for (int32_t i=state.clip->first_grabbed_note; i<=state.clip->last_grabbed_note; i++) {
+	Note *note = state.clip->notes + i;
+	if (!note->grabbed) continue;
+	/* Prepare note info to send to MIDI out */
+	if (note_to_play_i < MAX_PLAYBACK_NOTES && !used_pitches[note->key]) {
+	    notes_to_play[note_to_play_i] = note->key;
+	    used_pitches[note->key] = true;
+	    velocities[note_to_play_i] = note->velocity;
+	    note_to_play_i++;
+	}
+    }
+    if (note_to_play_i > 0) {
+	float *buf_L;
+	float *buf_R;
+	int32_t buf_len = synth_make_notes(state.cr->track->synth, notes_to_play, velocities, note_to_play_i, &buf_L, &buf_R);
+	session_queue_audio(2, buf_L, buf_R, buf_len, 0, true);
+    }
+}
+
 
 void piano_roll_grabbed_notes_move_vertical(int move_by);
 void piano_roll_move_note_selector(int by)
@@ -958,6 +984,7 @@ void piano_roll_grabbed_notes_move_vertical(int move_by)
 	/*     session_queue_audio(2, buf_L, buf_R, buf_len, 0, true); */
 	/* } */
 
+	play_all_grabbed_notes();
 	if (!session->playback.playing) {
 	    midi_clipref_push_grabbed_note_move_event(state.cr);
 	}
@@ -978,28 +1005,6 @@ void piano_roll_grab_ungrab()
     if (note && !note->grabbed) {
 	/* grab_note(note, NOTE_EDGE_NONE); */
 	midi_clip_grab_note(state.clip, note, NOTE_EDGE_NONE);
-	/* Play all grabbed notes */
-	int notes_to_play[16];
-	int velocities[16];
-	int note_to_play_i = 0;
-	for (int32_t i=state.clip->first_grabbed_note; i<=state.clip->last_grabbed_note; i++) {
-	    Note *note = state.clip->notes + i;
-	    if (!note->grabbed) continue;
-	    /* Prepare note info to send to MIDI out */
-	    if (note_to_play_i < 16) {
-		notes_to_play[note_to_play_i] = note->key;
-		velocities[note_to_play_i] = note->velocity;
-		note_to_play_i++;
-	    }
-	}
-	if (note_to_play_i > 0) {
-	    float *buf_L;
-	    float *buf_R;
-	    int32_t buf_len = synth_make_notes(state.cr->track->synth, notes_to_play, velocities, note_to_play_i, &buf_L, &buf_R);
-	    session_queue_audio(2, buf_L, buf_R, buf_len, 0, true);
-	}
-
-	
 	if (session_get()->dragging) {
 	    midi_clipref_cache_grabbed_note_info(state.cr);
 	}
@@ -1011,7 +1016,8 @@ void piano_roll_grab_ungrab()
     }
     if (session_get()->dragging) {
 	status_stat_drag();
-    }    
+    }
+    play_all_grabbed_notes();
 }
 
 void piano_roll_grab_left_edge()

@@ -1845,19 +1845,28 @@ int32_t synth_make_notes(Synth *s, int *pitches, int *velocities, int num_pitche
 	synth_voice_assign_note(s->voices + i, pitches[i], velocities[i], 0);
     }
     int32_t incr_len = 4096;
+    fprintf(stderr, "SYNTH ASSIGNED %d voices\n", num_pitches);
+    bool release_started = false;
     while (!s->voices[0].available) {
 	if (len + incr_len >= alloc_len) {
 	    alloc_len *= 2;
 	    buf_L = realloc(buf_L, alloc_len * sizeof(float));
 	    buf_R = realloc(buf_R, alloc_len * sizeof(float));
+	    memset(buf_L + alloc_len / 2, '\0', alloc_len * sizeof(float) / 2);
+	    memset(buf_R + alloc_len / 2, '\0', alloc_len * sizeof(float) / 2);
 	}
 	synth_add_buf(s, buf_L + len, 0, incr_len, 1.0);
 	synth_add_buf(s, buf_R + len, 1, incr_len, 1.0);
+	fprintf(stderr, "\tAdding buf at index %d\n", len);
 	len += incr_len;
 	
 	/* Quarter-second sustain time */
-	if (len >= (sr / 4)) {
-	    synth_voice_start_release(s->voices, 0);
+	if (!release_started && len >= (sr / 4)) {
+	    for (int i=0; i<num_pitches; i++) {
+		/* fprintf(stderr, "\t\tStarting release for voice %d\n", i); */
+		synth_voice_start_release(s->voices + i, 0);
+	    }
+	    release_started = true;
 	}
     }
     buf_L = realloc(buf_L, len * sizeof(float));

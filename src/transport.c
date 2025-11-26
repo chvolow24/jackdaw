@@ -215,6 +215,7 @@ static void loc_queued_bufs_add(float *chunk_L, float *chunk_R, int len_sframes)
     for (int i=0; i<queue_loc.num_queued; i++) {
 	int chunk_start = 0;
 	QueuedBuf *qb = queue_loc.queue + i;
+	/* fprintf(stderr, "\t%d: play after: %d\n", i, qb->play_after_sframes); */
 	if (qb->play_after_sframes > len_sframes) {
 	    qb->play_after_sframes -= len_sframes;
 	    continue;

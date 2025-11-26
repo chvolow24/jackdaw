@@ -1479,10 +1479,23 @@ void mode_load_piano_roll()
 	"Note selector down",
 	user_piano_roll_note_down);
     mode_subcat_add_fn(sc, fn);
+    
     fn = create_user_fn(
 	"piano_roll_note_up",
 	"Note selector up",
 	user_piano_roll_note_up);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_vel_down",
+	"Velocity down",
+	user_piano_roll_vel_down);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_vel_up",
+	"Velocity down",
+	user_piano_roll_vel_up);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
@@ -1574,6 +1587,14 @@ void mode_load_piano_roll()
 	"Undo last insertion or delete grabbed notes",
 	user_piano_roll_delete);
     mode_subcat_add_fn(sc, fn);
+
+    
+    fn = create_user_fn(
+	"piano_roll_play_grabbed_notes",
+	"Play grabbed notes",
+	user_piano_roll_play_grabbed_notes);
+    mode_subcat_add_fn(sc, fn);
+
 
     fn = create_user_fn(
 	"piano_roll_toggle_tie",

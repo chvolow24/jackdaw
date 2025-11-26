@@ -41,6 +41,7 @@ const struct colors colors = {
     /* .midi_note_orange = {200, 120, 100, 255}, */
     .midi_note_orange = {220, 100, 80, 255},
     .midi_note_orange_grabbed = {255, 225, 100, 255},
+    .label_text_blue = {110, 170, 255, 255},
     
     .freq_L = {130, 255, 255, 255},
     .freq_R = {255, 255, 130, 220},

@@ -274,7 +274,7 @@ ModalEl *modal_add_button(Modal *modal, char *text, ComponentFn action)
     modal->selectable_indices[modal->num_selectable] = modal->num_els - 1;
     modal->num_selectable++;
     el->layout->w.type = ABS;
-    Button *button = button_create(el->layout, text, action, NULL, main_win->std_font, 14,  &colors.black, &modal_button_color);
+    Button *button = button_create(el->layout, text, action, NULL, main_win->std_font, 14,  &colors.black, &modal_button_color, true);
     layout_center_agnostic(el->layout, true, false);
     textbox_reset_full(button->tb);
     el->obj = (void *)button;

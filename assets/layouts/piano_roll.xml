@@ -44,7 +44,7 @@
               <x>REL 0</x>
               <y>STACK 0</y>
               <w>SCALE 1.000000</w>
-              <h>REL 102</h>
+              <h>REL 70</h>
               <children>
                 <Layout name="track_name" type="NORMAL">
                   <x>REL 10</x>
@@ -78,19 +78,43 @@
                   <children>
                   </children>
                 </Layout>
+              </children>
+            </Layout>
+            <Layout name="device_info" type="NORMAL">
+              <x>REL 0</x>
+              <y>STACK 6</y>
+              <w>SCALE 1.000000</w>
+              <h>REL 74</h>
+              <children>
                 <Layout name="in_label" type="NORMAL">
                   <x>REL 10</x>
-                  <y>REL 70</y>
-                  <w>REL 46</w>
-                  <h>REL 20</h>
+                  <y>STACK 10</y>
+                  <w>REL 56</w>
+                  <h>REL 21</h>
                   <children>
                   </children>
                 </Layout>
-                <Layout name="in_name" type="NORMAL">
-                  <x>REL 64</x>
-                  <y>REL 70</y>
+                <Layout name="device_name" type="NORMAL">
+                  <x>STACK 6</x>
+                  <y>REL 10</y>
                   <w>REVREL 10</w>
-                  <h>REL 20</h>
+                  <h>REL 21</h>
+                  <children>
+                  </children>
+                </Layout>
+                <Layout name="active_label" type="NORMAL">
+                  <x>REL 10</x>
+                  <y>STACK 10</y>
+                  <w>REL 56</w>
+                  <h>REL 21</h>
+                  <children>
+                  </children>
+                </Layout>
+                <Layout name="active_slight" type="NORMAL">
+                  <x>STACK 6</x>
+                  <y>REL 41</y>
+                  <w>REVREL 10</w>
+                  <h>REL 21</h>
                   <children>
                   </children>
                 </Layout>
@@ -102,51 +126,139 @@
               <w>SCALE 1.000000</w>
               <h>REL 241</h>
               <children>
-                <Layout name="current_dur" type="NORMAL">
-                  <x>REL 112</x>
-                  <y>REL 10</y>
-                  <w>REL 50</w>
-                  <h>REL 50</h>
+                <Layout name="pitch_head" type="NORMAL">
+                  <x>REL 10</x>
+                  <y>STACK 8</y>
+                  <w>REVREL 10</w>
+                  <h>REL 16</h>
                   <children>
                   </children>
                 </Layout>
-                <Layout name="dur_buttons" type="NORMAL">
+                <Layout name="pitch_info" type="NORMAL">
                   <x>REL 10</x>
-                  <y>REL 10</y>
-                  <w>REL 90</w>
-                  <h>REL 50</h>
+                  <y>STACK 4</y>
+                  <w>REVREL 10</w>
+                  <h>REL 26</h>
                   <children>
-                    <Layout name="dur_longer_button" type="NORMAL">
-                      <x>STACK 8</x>
-                      <y>REL 8</y>
-                      <w>REL 32</w>
-                      <h>REL 32</h>
+                    <Layout name="pitch_val" type="NORMAL">
+                      <x>STACK 5</x>
+                      <y>REL 0</y>
+                      <w>REL 94</w>
+                      <h>REL 26</h>
                       <children>
                       </children>
                     </Layout>
-                    <Layout name="dur_shorter_button" type="NORMAL">
-                      <x>STACK 8</x>
-                      <y>REL 8</y>
-                      <w>REL 32</w>
-                      <h>REL 32</h>
+                    <Layout name="pitch_down" type="NORMAL">
+                      <x>STACK 10</x>
+                      <y>REL 0</y>
+                      <w>REL 26</w>
+                      <h>REL 26</h>
+                      <children>
+                      </children>
+                    </Layout>
+                    <Layout name="pitch_up" type="NORMAL">
+                      <x>STACK 5</x>
+                      <y>REL 0</y>
+                      <w>REL 26</w>
+                      <h>REL 26</h>
+                      <children>
+                      </children>
+                    </Layout>
+                  </children>
+                </Layout>
+                <Layout name="vel_head" type="NORMAL">
+                  <x>REL 10</x>
+                  <y>STACK 8</y>
+                  <w>REVREL 10</w>
+                  <h>REL 16</h>
+                  <children>
+                  </children>
+                </Layout>
+                <Layout name="vel_info" type="NORMAL">
+                  <x>REL 10</x>
+                  <y>STACK 4</y>
+                  <w>REVREL 10</w>
+                  <h>REL 26</h>
+                  <children>
+                    <Layout name="vel_val" type="NORMAL">
+                      <x>STACK 5</x>
+                      <y>REL 0</y>
+                      <w>REL 94</w>
+                      <h>REL 26</h>
+                      <children>
+                      </children>
+                    </Layout>
+                    <Layout name="vel_down" type="NORMAL">
+                      <x>STACK 10</x>
+                      <y>REL 0</y>
+                      <w>REL 26</w>
+                      <h>REL 26</h>
+                      <children>
+                      </children>
+                    </Layout>
+                    <Layout name="vel_up" type="NORMAL">
+                      <x>STACK 5</x>
+                      <y>REL 0</y>
+                      <w>REL 26</w>
+                      <h>REL 26</h>
+                      <children>
+                      </children>
+                    </Layout>
+                  </children>
+                </Layout>
+                <Layout name="dur_head" type="NORMAL">
+                  <x>REL 10</x>
+                  <y>STACK 8</y>
+                  <w>REVREL 10</w>
+                  <h>REL 16</h>
+                  <children>
+                  </children>
+                </Layout>
+                <Layout name="dur_info" type="NORMAL">
+                  <x>REL 10</x>
+                  <y>STACK 4</y>
+                  <w>REVREL 10</w>
+                  <h>REL 26</h>
+                  <children>
+                    <Layout name="dur_val" type="NORMAL">
+                      <x>STACK 23</x>
+                      <y>REL 0</y>
+                      <w>REL 40</w>
+                      <h>REL 40</h>
+                      <children>
+                      </children>
+                    </Layout>
+                    <Layout name="dur_down" type="NORMAL">
+                      <x>REL 109</x>
+                      <y>REL 0</y>
+                      <w>REL 26</w>
+                      <h>REL 26</h>
+                      <children>
+                      </children>
+                    </Layout>
+                    <Layout name="dur_up" type="NORMAL">
+                      <x>STACK 5</x>
+                      <y>REL 0</y>
+                      <w>REL 26</w>
+                      <h>REL 26</h>
                       <children>
                       </children>
                     </Layout>
                   </children>
                 </Layout>
                 <Layout name="tie" type="NORMAL">
-                  <x>REL 40</x>
-                  <y>STACK 10</y>
-                  <w>PAD 1</w>
-                  <h>REL 22</h>
+                  <x>REL 10</x>
+                  <y>STACK 20</y>
+                  <w>SCALE 0.450000</w>
+                  <h>REL 26</h>
                   <children>
                   </children>
                 </Layout>
                 <Layout name="chord" type="NORMAL">
-                  <x>REL 40</x>
-                  <y>STACK 10</y>
-                  <w>PAD 1</w>
-                  <h>REL 22</h>
+                  <x>STACK 5</x>
+                  <y>STACK -26</y>
+                  <w>SCALE 0.450000</w>
+                  <h>REL 26</h>
                   <children>
                   </children>
                 </Layout>

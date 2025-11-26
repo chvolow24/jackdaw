@@ -444,7 +444,8 @@ Button *button_create(
     Font *font,
     int text_size,
     SDL_Color *text_color,
-    SDL_Color *background_color)
+    SDL_Color *background_color,
+    bool size_to_fit)
 {
     Button *button = calloc(1, sizeof(Button));
     button->action = action;
@@ -456,7 +457,8 @@ Button *button_create(
     textbox_set_text_color(button->tb, text_color);
     textbox_set_background_color(button->tb, background_color);
     textbox_set_align(button->tb, CENTER);
-    textbox_size_to_fit(button->tb, 6, 2);
+    if (size_to_fit)
+	textbox_size_to_fit(button->tb, 6, 2);
     textbox_reset_full(button->tb);
     return button;
 }

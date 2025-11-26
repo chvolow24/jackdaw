@@ -3343,6 +3343,17 @@ void user_piano_roll_note_down(void *nullarg)
     piano_roll_move_note_selector(-1);
 }
 
+void user_piano_roll_vel_up(void *nullarg)
+{
+    piano_roll_adj_velocity(9);
+}
+
+void user_piano_roll_vel_down(void *nullarg)
+{
+    piano_roll_adj_velocity(-9);
+}
+
+
 void user_piano_roll_forward_dur(void *nullarg)
 {
     piano_roll_forward_dur();
@@ -3427,6 +3438,11 @@ void user_piano_roll_toggle_chord_mode(void *nullarg)
 void user_piano_roll_delete(void *nullarg)
 {
     piano_roll_delete();
+}
+
+void user_piano_roll_play_grabbed_notes(void *nullarg)
+{
+    piano_roll_play_grabbed_notes();
 }
 
 

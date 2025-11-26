@@ -256,6 +256,7 @@
   - C-p		: autocomplete_previous
   - <ret>	: autocomplete_select
   - <esc>	: autocomplete_escape
+  - /		: autocomplete_escape
 - midi_qwerty:
   - z		: midi_qwerty_octave_down
   - x		: midi_qwerty_octave_up
@@ -299,6 +300,8 @@
   - ;		: piano_roll_move_right
   - n		: piano_roll_note_down
   - p		: piano_roll_note_up
+  - c		: piano_roll_vel_down
+  - v		: piano_roll_vel_up
   - <right>	: piano_roll_forward_dur
   - <left>	: piano_roll_back_dur
   - S-l		: piano_roll_next_note
@@ -317,5 +320,6 @@
   - g-k		: piano_roll_grab_no_edge
   - S-g		: piano_roll_grab_marked_range
   - <del>	: piano_roll_delete
+  - S-<spc>	: piano_roll_play_grabbed_notes
   - S-t		: piano_roll_toggle_tie
   - S-h		: piano_roll_toggle_chord_mode

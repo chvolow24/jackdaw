@@ -243,7 +243,8 @@ Button *button_create(
     Font *font,
     int text_size,
     SDL_Color *text_color,
-    SDL_Color *background_color);
+    SDL_Color *background_color,
+    bool size_to_fit);
 void button_draw(Button *button);
 void button_destroy(Button *button);
 void button_press_color_change(

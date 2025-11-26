@@ -59,6 +59,7 @@ struct colors {
     SDL_Color midi_clip_pink_grabbed;
     SDL_Color midi_note_orange;
     SDL_Color midi_note_orange_grabbed;
+    SDL_Color label_text_blue;
 
     SDL_Color freq_L;
     SDL_Color freq_R;

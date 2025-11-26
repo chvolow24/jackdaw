@@ -615,8 +615,8 @@ void automation_show(Automation *a)
 	    main_win->mono_bold_font,
 	    12,
 	    &colors.white,
-	    &colors.play_green
-	    );
+	    &colors.play_green,
+	    true);
         textbox_set_border(button->tb, &colors.black, 1, MUTE_SOLO_BUTTON_CORNER_RADIUS);
 	textbox_set_style(button->tb, BUTTON_DARK);
 	a->read_button = button;
@@ -631,8 +631,8 @@ void automation_show(Automation *a)
 	    main_win->mono_bold_font,
 	    12,
 	    &colors.white,
-	    &colors.grey
-	    );
+	    &colors.grey,
+	    true);
 	textbox_set_border(button->tb, &colors.black, 1, MUTE_SOLO_BUTTON_CORNER_RADIUS);
 	textbox_set_style(button->tb, BUTTON_DARK);
 	a->write_button = button;

@@ -463,7 +463,8 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	    params.button_p.font,
 	    params.button_p.text_size,
 	    params.button_p.text_color,
-	    params.button_p.background_color);
+	    params.button_p.background_color,
+	    true);
 	break;
     case EL_CANVAS:
 	el->component = (void *)canvas_create(

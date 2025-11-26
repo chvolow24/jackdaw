@@ -49,21 +49,41 @@ const char *dur_strs[] = {
 
 
 #define NUM_PIANO_ROLL_CONSOLE_PANELS 3
+#define MAX_LABELS 32
+
+#define PITCH_STR_LEN 24
+#define VEL_STR_LEN 4
 
 struct piano_roll_gui {
+    Textbox *labels[MAX_LABELS];
+    int num_labels;
     Textbox *track_name;
     Textbox *solo_button;
     Textbox *clip_label;
     Textbox *clip_name;
-    Textbox *in_label;
+    /* Textbox *in_label; */
     Textbox *in_name;
-    Textbox *dur_longer_button;
-    Textbox *dur_shorter_button;
     Textbox *dur_tb;
     Textbox *tie_button;
     Textbox *chord_button;
 
-    SDL_Rect *info_panel;
+    char pitch_str[PITCH_STR_LEN];
+    Textbox *pitch_val;
+    char vel_str[VEL_STR_LEN];
+    Textbox *velocity_val;
+
+    /* Textbox *dur_longer_button; */
+    /* Textbox *dur_shorter_button; */
+    Button *pitch_down;
+    Button *pitch_up;
+    Button *vel_down;
+    Button *vel_up;
+    Button *dur_longer;
+    Button *dur_shorter;
+
+
+    SDL_Rect *track_info_panel;
+    SDL_Rect *device_panel;
     SDL_Rect *input_panel;
     /* Textbox * */
     /* Textbox *dur_tb; */
@@ -167,7 +187,9 @@ static void piano_roll_init_layout(Session *session)
     state.console_lt = layout_get_child_by_name_recursive(lt, "piano_roll_console");
     Layout *piano_container = layout_get_child_by_name_recursive(lt, "piano");
 
-    state.gui.info_panel = &layout_get_child_by_name_recursive(lt, "track_info")->rect;
+    state.gui.track_info_panel = &layout_get_child_by_name_recursive(lt, "track_info")->rect;
+    /* state.gui. */
+    state.gui.device_panel = &layout_get_child_by_name_recursive(lt, "device_info")->rect;
     state.gui.input_panel = &layout_get_child_by_name_recursive(lt, "insertion_info")->rect;
     
     Layout *piano_lt = layout_read_xml_to_lt(piano_container, PIANO_88_VERTICAL_LT_PATH);
@@ -193,9 +215,53 @@ static void piano_roll_init_layout(Session *session)
     /* timeview_init(state.tl_tv, &note_canvas->rect, 600, 0, &session->proj.timelines[0]->play_pos_sframes, NULL, NULL); */
 }
 
+static Textbox *piano_roll_add_label(
+    const char *str,
+    const char *layout_name,
+    Font *font,
+    int size,
+    TextAlign align,
+    SDL_Color *background_color,
+    SDL_Color *text_color)
+{
+    Layout *layout = layout_get_child_by_name_recursive(state.console_lt, layout_name);
+    Textbox *tb = textbox_create_from_str(str, layout, font, size, main_win);
+    textbox_style(tb, align, false, background_color, text_color);
+    state.gui.labels[state.gui.num_labels] = tb;
+    state.gui.num_labels++;
+    return tb;
+}
+/*button_create(
+    Layout *layout,
+    char *text,
+    ComponentFn action,
+    void *target,
+    Font *font,
+    int text_size,
+    SDL_Color *text_color,
+    SDL_Color *background_color);*/
+static Button *piano_roll_create_std_button(
+    char *label,
+    const char *lt_name,
+    ComponentFn action,
+    void *target)
+{
+    Layout *lt = layout_get_child_by_name_recursive(state.console_lt, lt_name);
+    Button *button = button_create(
+	lt, label, action, target, main_win->mono_font, 16, &colors.white, &colors.quickref_button_blue, false);
+    textbox_set_border(button->tb, &colors.grey, 4, BUTTON_CORNER_RADIUS);
+    return button;
+}
+
 void piano_roll_init_gui()
 {
-    Layout *lt = layout_get_child_by_name_recursive(state.console_lt, "current_dur");
+    piano_roll_add_label("In dev:", "in_label", main_win->mono_font, 14, CENTER_LEFT, NULL, &colors.label_text_blue);
+    piano_roll_add_label("Active:", "active_label", main_win->mono_font, 14, CENTER_LEFT, NULL, &colors.label_text_blue);
+    piano_roll_add_label("Pitch", "pitch_head", main_win->mono_font, 14, CENTER_LEFT, NULL, &colors.label_text_blue);
+    piano_roll_add_label("Velocity", "vel_head", main_win->mono_font, 14, CENTER_LEFT, NULL, &colors.label_text_blue);
+    piano_roll_add_label("Duration", "dur_head", main_win->mono_font, 14, CENTER_LEFT, NULL, &colors.label_text_blue);
+
+    Layout *lt = layout_get_child_by_name_recursive(state.console_lt, "dur_val");
     state.gui.dur_tb = textbox_create_from_str(
 	/* "TEST", */
 	dur_strs[state.current_dur],
@@ -211,6 +277,14 @@ void piano_roll_init_gui()
 	NULL,
 	&colors.white);
 
+    lt = layout_get_child_by_name_recursive(state.console_lt, "pitch_val");
+    state.gui.pitch_val = textbox_create_from_str(state.gui.pitch_str, lt, main_win->std_font, 14, main_win);
+    textbox_style(state.gui.pitch_val, CENTER_LEFT, false, NULL, &colors.white);
+
+    lt = layout_get_child_by_name_recursive(state.console_lt, "vel_val");
+    state.gui.velocity_val = textbox_create_from_str(state.gui.vel_str, lt, main_win->std_font, 14, main_win);
+    textbox_style(state.gui.velocity_val, CENTER_LEFT, false, NULL, &colors.white);
+
     lt = layout_get_child_by_name_recursive(state.console_lt, "solo");
     state.gui.solo_button = textbox_create_from_str(
 	"S",
@@ -225,6 +299,7 @@ void piano_roll_init_gui()
 	textbox_set_background_color(state.gui.solo_button, &colors.light_grey);
     }
 
+    
 
     /* textbox_set_background_color(state.gui.dur_tb, NULL); */
     /* textbox_set_text_color(state.gui.dur_tb, &colors.white); */
@@ -245,56 +320,88 @@ void piano_roll_init_gui()
 	NULL,
 	&colors.white);
 
-    lt = layout_get_child_by_name_recursive(state.console_lt, "in_label");
-    state.gui.in_label = textbox_create_from_str(
-	"Input:",
-	lt,
-	main_win->mono_font,
-	14,
-	main_win);
-    textbox_style(
-	state.gui.in_label,
-	CENTER_LEFT,
-	false,
+    /* lt = layout_get_child_by_name_recursive(state.console_lt, "in_label"); */
+    /* state.gui.in_label = textbox_create_from_str( */
+    /* 	"Input:", */
+    /* 	lt, */
+    /* 	main_win->mono_font, */
+    /* 	14, */
+    /* 	main_win); */
+    /* textbox_style( */
+    /* 	state.gui.in_label, */
+    /* 	CENTER_LEFT, */
+    /* 	false, */
+    /* 	NULL, */
+    /* 	&colors.white); */
+
+    state.gui.pitch_down = piano_roll_create_std_button(
+	"n↓",
+	"pitch_down",
 	NULL,
-	&colors.white);
+	NULL);
+    state.gui.pitch_up = piano_roll_create_std_button(
+	"p↑",
+	"pitch_up",
+	NULL,
+	NULL);
 
-    lt = layout_get_child_by_name_recursive(state.console_lt, "dur_longer_button");
-    state.gui.dur_longer_button = textbox_create_from_str(
+    state.gui.vel_down = piano_roll_create_std_button(
+	"c↓",
+	"vel_down",
+	NULL,
+	NULL);
+    state.gui.vel_up = piano_roll_create_std_button(
+	"v↑",
+	"vel_up",
+	NULL,
+	NULL);
+    
+    state.gui.dur_longer = piano_roll_create_std_button(
 	"1↓",
-	lt,
-	main_win->mono_font,
-	16,
-	main_win);	
-    textbox_set_border(state.gui.dur_longer_button, &colors.grey, 4, BUTTON_CORNER_RADIUS);
-    textbox_style(
-	state.gui.dur_longer_button,
-	CENTER,
-	false,
-	&colors.quickref_button_blue,
-	&colors.white);
-
-    lt = layout_get_child_by_name_recursive(state.console_lt, "dur_shorter_button");
-    state.gui.dur_shorter_button = textbox_create_from_str(
+	"dur_down",
+	NULL,
+	NULL);
+    state.gui.dur_shorter = piano_roll_create_std_button(
 	"2↑",
-	lt,
-	main_win->mono_font,
-	16,
-	main_win);
-    textbox_set_border(state.gui.dur_shorter_button, &colors.grey, 4, BUTTON_CORNER_RADIUS);
-    textbox_style(
-	state.gui.dur_shorter_button,
-	CENTER,
-	false,
-	&colors.quickref_button_blue,
-	&colors.white);
+	"dur_up",
+	NULL,
+	NULL);
+    /* lt = layout_get_child_by_name_recursive(state.console_lt, "dur_down"); */
+    /* state.gui.dur_longer_button = textbox_create_from_str( */
+    /* 	"1↓", */
+    /* 	lt, */
+    /* 	main_win->mono_font, */
+    /* 	16, */
+    /* 	main_win);	 */
+    /* textbox_set_border(state.gui.dur_longer_button, &colors.grey, 4, BUTTON_CORNER_RADIUS); */
+    /* textbox_style( */
+    /* 	state.gui.dur_longer_button, */
+    /* 	CENTER, */
+    /* 	false, */
+    /* 	&colors.quickref_button_blue, */
+    /* 	&colors.white); */
+
+    /* lt = layout_get_child_by_name_recursive(state.console_lt, "dur_up"); */
+    /* state.gui.dur_shorter_button = textbox_create_from_str( */
+    /* 	"2↑", */
+    /* 	lt, */
+    /* 	main_win->mono_font, */
+    /* 	16, */
+    /* 	main_win); */
+    /* textbox_set_border(state.gui.dur_shorter_button, &colors.grey, 4, BUTTON_CORNER_RADIUS); */
+    /* textbox_style( */
+    /* 	state.gui.dur_shorter_button, */
+    /* 	CENTER, */
+    /* 	false, */
+    /* 	&colors.quickref_button_blue, */
+    /* 	&colors.white); */
 
     lt = layout_get_child_by_name_recursive(state.console_lt, "tie");
     state.gui.tie_button = textbox_create_from_str(
 	"Tie (S-t)",
 	lt,
 	main_win->mono_bold_font,
-	14,
+	12,
 	main_win);
     textbox_set_border(state.gui.tie_button, &colors.black, 1, BUTTON_CORNER_RADIUS);
     textbox_style(
@@ -310,7 +417,7 @@ void piano_roll_init_gui()
 	"Chord (S-h)",
 	lt,
 	main_win->mono_bold_font,
-	14,
+	12,
 	main_win);
     textbox_set_border(state.gui.chord_button, &colors.black, 1, BUTTON_CORNER_RADIUS);
     textbox_style(
@@ -323,18 +430,38 @@ void piano_roll_init_gui()
 
 void piano_roll_deinit_gui()
 {
+    for (int i=0; i<state.gui.num_labels; i++) {
+	textbox_destroy_keep_lt(state.gui.labels[i]);
+    }
+    state.gui.num_labels = 0;
     textbox_destroy_keep_lt(state.gui.track_name);
     textbox_destroy_keep_lt(state.gui.solo_button);
     textbox_destroy_keep_lt(state.gui.clip_label);
     textbox_destroy_keep_lt(state.gui.clip_name);
-    textbox_destroy_keep_lt(state.gui.in_label);
+    /* textbox_destroy_keep_lt(state.gui.in_label); */
     textbox_destroy_keep_lt(state.gui.in_name);
     textbox_destroy_keep_lt(state.gui.dur_tb);
-    textbox_destroy_keep_lt(state.gui.dur_longer_button);
-    textbox_destroy_keep_lt(state.gui.dur_shorter_button);
+    
+    button_destroy(state.gui.dur_longer);
+    button_destroy(state.gui.dur_shorter);
+
+    button_destroy(state.gui.pitch_down);
+    button_destroy(state.gui.pitch_up);
+
+    button_destroy(state.gui.vel_down);
+    button_destroy(state.gui.vel_up);
+    
+    
+    /* textbox_destroy_keep_lt(state.gui.dur_longer_button); */
+    /* textbox_destroy_keep_lt(state.gui.dur_shorter_button); */
     textbox_destroy_keep_lt(state.gui.tie_button);
     textbox_destroy_keep_lt(state.gui.chord_button);
+    textbox_destroy_keep_lt(state.gui.pitch_val);
+    textbox_destroy_keep_lt(state.gui.velocity_val);
 }
+
+static void reset_pitch_str();
+static void reset_vel_str();
 
 void piano_roll_activate(ClipRef *cr)
 {
@@ -362,6 +489,8 @@ void piano_roll_activate(ClipRef *cr)
     
     piano_roll_init_layout(session_get());
     piano_roll_init_gui();
+    reset_pitch_str();
+    reset_vel_str();
 
     state.gui.track_name = textbox_create_from_str(
 	cr->track->name,
@@ -398,7 +527,7 @@ void piano_roll_activate(ClipRef *cr)
     const char *in_name = cr->track->input_type == MIDI_DEVICE ? ((MIDIDevice *)cr->track->input)->name : "(none)";
     state.gui.in_name = textbox_create_from_str(
 	in_name,
-	layout_get_child_by_name_recursive(state.console_lt, "in_name"),
+	layout_get_child_by_name_recursive(state.console_lt, "device_name"),
 	main_win->std_font,
 	14,
 	main_win);
@@ -450,18 +579,17 @@ void piano_roll_move_view_right()
 }
 
 
-static void play_all_grabbed_notes()
+static void play_grabbed_notes(int max_playback_notes)
 {
-    const int MAX_PLAYBACK_NOTES = 8;
-    int notes_to_play[MAX_PLAYBACK_NOTES];
-    int velocities[MAX_PLAYBACK_NOTES];
+    int notes_to_play[max_playback_notes];
+    int velocities[max_playback_notes];
     bool used_pitches[128] = {0};
     int note_to_play_i = 0;
     for (int32_t i=state.clip->first_grabbed_note; i<=state.clip->last_grabbed_note; i++) {
 	Note *note = state.clip->notes + i;
 	if (!note->grabbed) continue;
 	/* Prepare note info to send to MIDI out */
-	if (note_to_play_i < MAX_PLAYBACK_NOTES && !used_pitches[note->key]) {
+	if (note_to_play_i < max_playback_notes && !used_pitches[note->key]) {
 	    notes_to_play[note_to_play_i] = note->key;
 	    used_pitches[note->key] = true;
 	    velocities[note_to_play_i] = note->velocity;
@@ -477,6 +605,21 @@ static void play_all_grabbed_notes()
 }
 
 
+static void reset_pitch_str()
+{
+    static const char *note_names[] = {"C", "C#/Db", "D", "D#/Eb", "E", "F", "F#/Gb", "G", "G#/Ab", "A", "A#/Bb", "B", "C"};
+    const char *note_name = note_names[state.selected_note % 12];
+    int octave = (state.selected_note + 1 - 60) / 12 + 3;
+    snprintf(state.gui.pitch_str, PITCH_STR_LEN, "%s%d (%d)", note_name, octave, state.selected_note);
+    textbox_reset_full(state.gui.pitch_val);
+}
+
+static void reset_vel_str()
+{
+    snprintf(state.gui.vel_str, VEL_STR_LEN, "%d", state.insert_velocity);
+    textbox_reset_full(state.gui.velocity_val);
+}
+
 void piano_roll_grabbed_notes_move_vertical(int move_by);
 void piano_roll_move_note_selector(int by)
 {
@@ -485,6 +628,15 @@ void piano_roll_move_note_selector(int by)
     if (state.selected_note > PIANO_TOP_NOTE) state.selected_note = PIANO_TOP_NOTE;
     else if (state.selected_note < PIANO_BOTTOM_NOTE) state.selected_note = PIANO_BOTTOM_NOTE;
     piano_roll_grabbed_notes_move_vertical(state.selected_note - orig);
+    reset_pitch_str();
+}
+
+void piano_roll_adj_velocity(int by)
+{
+    state.insert_velocity += by;
+    if (state.insert_velocity > 127) state.insert_velocity = 127;
+    else if (state.insert_velocity < 0) state.insert_velocity = 0;
+    reset_vel_str();
 }
 
 void piano_roll_forward_dur()
@@ -977,14 +1129,9 @@ void piano_roll_grabbed_notes_move_vertical(int move_by)
 	    /* } */
 
 	}
-	/* if (note_to_play_i > 0) { */
-	/*     float *buf_L; */
-	/*     float *buf_R; */
-	/*     int32_t buf_len = synth_make_notes(state.cr->track->synth, notes_to_play, velocities, note_to_play_i, &buf_L, &buf_R); */
-	/*     session_queue_audio(2, buf_L, buf_R, buf_len, 0, true); */
-	/* } */
 
-	play_all_grabbed_notes();
+	/* Play at most 8 distinct pitches */
+	/* play_grabbed_notes(8); */
 	if (!session->playback.playing) {
 	    midi_clipref_push_grabbed_note_move_event(state.cr);
 	}
@@ -1017,7 +1164,7 @@ void piano_roll_grab_ungrab()
     if (session_get()->dragging) {
 	status_stat_drag();
     }
-    play_all_grabbed_notes();
+    /* play_all_grabbed_notes(); */
 }
 
 void piano_roll_grab_left_edge()
@@ -1081,6 +1228,12 @@ void piano_roll_delete()
 	/* }; */
 	/* user_event_do_undo_selective(undo_options, 2); */
     }
+}
+
+void piano_roll_play_grabbed_notes()
+{
+    /* Play up to 16 pitches */
+    play_grabbed_notes(16);
 }
 
 void piano_roll_start_moving()
@@ -1188,6 +1341,7 @@ void piano_roll_toggle_chord_mode()
 	textbox_set_background_color(state.gui.chord_button, &colors.solo_yellow);
     } else {
 	textbox_set_background_color(state.gui.chord_button, &colors.grey);
+	piano_roll_next_note();
     }
 }
 
@@ -1437,24 +1591,42 @@ void piano_roll_draw()
 
     /* Draw console */
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.control_bar_background_grey));
-    SDL_RenderFillRect(main_win->rend, state.gui.info_panel);
+    SDL_RenderFillRect(main_win->rend, state.gui.track_info_panel);
+    SDL_RenderFillRect(main_win->rend, state.gui.device_panel);
     SDL_RenderFillRect(main_win->rend, state.gui.input_panel);
 
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.grey));
-    SDL_RenderDrawRect(main_win->rend, state.gui.info_panel);
+    SDL_RenderDrawRect(main_win->rend, state.gui.track_info_panel);
+    SDL_RenderDrawRect(main_win->rend, state.gui.device_panel);
     SDL_RenderDrawRect(main_win->rend, state.gui.input_panel);
-    
+
+    for (int i=0; i<state.gui.num_labels; i++) {
+	textbox_draw(state.gui.labels[i]);
+    }
     textbox_draw(state.gui.track_name);
     textbox_draw(state.gui.solo_button);
     textbox_draw(state.gui.clip_label);
     textbox_draw(state.gui.clip_name);
-    textbox_draw(state.gui.in_label);
+    /* textbox_draw(state.gui.in_label); */
     textbox_draw(state.gui.in_name);
     textbox_draw(state.gui.dur_tb);
-    textbox_draw(state.gui.dur_longer_button);
-    textbox_draw(state.gui.dur_shorter_button);
+    button_draw(state.gui.dur_longer);
+    button_draw(state.gui.dur_shorter);
+
+    button_draw(state.gui.pitch_down);
+    button_draw(state.gui.pitch_up);
+
+    button_draw(state.gui.vel_down);
+    button_draw(state.gui.vel_up);
+
+
+    /* textbox_draw(state.gui.dur_longer_button); */
+    /* textbox_draw(state.gui.dur_shorter_button); */
     textbox_draw(state.gui.tie_button);
     textbox_draw(state.gui.chord_button);
+
+    textbox_draw(state.gui.pitch_val);
+    textbox_draw(state.gui.velocity_val);
 
     if (state.mouse_sel_rect_active) {
 	SDL_SetRenderDrawColor(main_win->rend, 200, 200, 255, 30);

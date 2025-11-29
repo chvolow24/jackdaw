@@ -753,6 +753,8 @@ void piano_roll_up_note()
     if (note) {
 	timeline_set_play_position(ACTIVE_TL, pos, false);
 	state.selected_note = note->key;
+    } else {
+	piano_roll_move_note_selector(12);
     }
 }
 
@@ -765,6 +767,8 @@ void piano_roll_down_note()
     if (note) {
 	timeline_set_play_position(ACTIVE_TL, pos, false);
 	state.selected_note = note->key;
+    } else {
+	piano_roll_move_note_selector(-12);
     }
 }
 

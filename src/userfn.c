@@ -3343,6 +3343,17 @@ void user_piano_roll_note_down(void *nullarg)
     piano_roll_move_note_selector(-1);
 }
 
+void user_piano_roll_note_up_octave(void *nullarg)
+{
+    piano_roll_move_note_selector(12);
+}
+
+void user_piano_roll_note_down_octave(void *nullarg)
+{
+    piano_roll_move_note_selector(-12);
+}
+
+
 void user_piano_roll_vel_up(void *nullarg)
 {
     piano_roll_adj_velocity(9);

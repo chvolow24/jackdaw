@@ -243,6 +243,8 @@ void user_piano_roll_move_left(void *nullarg);
 void user_piano_roll_move_right(void *nullarg);
 void user_piano_roll_note_up(void *nullarg);
 void user_piano_roll_note_down(void *nullarg);
+void user_piano_roll_note_down_octave(void *nullarg);
+void user_piano_roll_note_up_octave(void *nullarg);
 void user_piano_roll_vel_down(void *nullarg);
 void user_piano_roll_vel_up(void *nullarg);
 void user_piano_roll_forward_dur(void *nullarg);

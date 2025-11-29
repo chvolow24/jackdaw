@@ -1487,6 +1487,18 @@ void mode_load_piano_roll()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
+	"piano_roll_note_down_octave",
+	"Note selector down octave",
+	user_piano_roll_note_down_octave);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_note_up_octave",
+	"Note selector up octave",
+	user_piano_roll_note_up_octave);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
 	"piano_roll_vel_down",
 	"Velocity down",
 	user_piano_roll_vel_down);

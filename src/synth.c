@@ -1618,7 +1618,7 @@ int synth_set_amp_mod_pair(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg)
     }
 
     if (modulator_cfg->mod_amp_of) {
-	fmod_carrier_unlink(s, modulator_cfg->mod_amp_of);
+	amod_carrier_unlink(s, modulator_cfg->mod_amp_of);
     }
     int carrier_i = carrier_cfg - s->base_oscs;
 

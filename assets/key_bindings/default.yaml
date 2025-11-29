@@ -300,6 +300,8 @@
   - ;		: piano_roll_move_right
   - n		: piano_roll_note_down
   - p		: piano_roll_note_up
+  - C-n		: piano_roll_note_down_octave
+  - C-p		: piano_roll_note_up_octave
   - c		: piano_roll_vel_down
   - v		: piano_roll_vel_up
   - <right>	: piano_roll_forward_dur

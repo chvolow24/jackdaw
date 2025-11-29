@@ -132,7 +132,6 @@ int endpoint_write(
     enum jdaw_thread owner = endpoint_get_owner(ep);
     ep->overwrite_val = endpoint_safe_read(ep, NULL);
     Session *session = session_get();
-    /* fprintf(stderr, "\n\nWRITE %s, intval %d\n", ep->local_id, new_val.int_v); */
     int ret = 0;
     if (ep->restrict_range) {
 	if (jdaw_val_less_than(new_val, ep->min, ep->val_type)) {

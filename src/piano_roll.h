@@ -49,9 +49,12 @@ void piano_roll_toggle_chord_mode();
 
 /* void piano_roll_quantize_notes_in_marked_range(); */
 
+void piano_roll_set_in();
+
 /* externalize state */
 Textbox *piano_roll_get_solo_button();
 int piano_roll_get_num_grabbed_notes();
+SDL_Rect *piano_roll_get_device_name_rect();
 
 void piano_roll_mouse_click(SDL_Point mousep);
 void piano_roll_mouse_motion(SDL_Point mousep);

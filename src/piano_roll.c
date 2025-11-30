@@ -72,8 +72,13 @@ struct piano_roll_gui {
     char vel_str[VEL_STR_LEN];
     Textbox *velocity_val;
 
+    char in_name_str[MAX_NAMELENGTH];
+
     /* Textbox *dur_longer_button; */
     /* Textbox *dur_shorter_button; */
+
+    StatusLight *device_active;
+    
     Button *pitch_down;
     Button *pitch_up;
     Button *vel_down;
@@ -462,6 +467,20 @@ void piano_roll_deinit_gui()
 
 static void reset_pitch_str();
 static void reset_vel_str();
+static void reset_in_name_str(bool reset_textbox)
+{
+    if (state.cr->track->input_type == MIDI_DEVICE) {
+	if (reset_textbox) 
+	    textbox_set_text_color(state.gui.in_name, &colors.white);
+	snprintf(state.gui.in_name_str, MAX_NAMELENGTH, "%s", ((MIDIDevice *)state.cr->track->input)->name);
+    } else {
+	if (reset_textbox)
+	    textbox_set_text_color(state.gui.in_name, &colors.grey);
+	snprintf(state.gui.in_name_str, MAX_NAMELENGTH, "(none)");
+    }
+    if (reset_textbox)
+	textbox_reset_full(state.gui.in_name);
+}
 
 void piano_roll_activate(ClipRef *cr)
 {
@@ -523,10 +542,10 @@ void piano_roll_activate(ClipRef *cr)
 	&colors.white);
     textbox_set_border(state.gui.clip_name, &colors.grey, 1, MUTE_SOLO_BUTTON_CORNER_RADIUS);
 
-
-    const char *in_name = cr->track->input_type == MIDI_DEVICE ? ((MIDIDevice *)cr->track->input)->name : "(none)";
+    /* reset_in_name_str(false); */
+    /* const char *in_name = cr->track->input_type == MIDI_DEVICE ? ((MIDIDevice *)cr->track->input)->name : "(none)"; */
     state.gui.in_name = textbox_create_from_str(
-	in_name,
+	state.gui.in_name_str,
 	layout_get_child_by_name_recursive(state.console_lt, "device_name"),
 	main_win->std_font,
 	14,
@@ -538,6 +557,13 @@ void piano_roll_activate(ClipRef *cr)
 	true,
 	&colors.quickref_button_blue,
 	&colors.white);
+    /* if (strncmp(state. */
+    reset_in_name_str(true);
+
+    state.gui.device_active = status_light_create(
+	layout_get_child_by_name_recursive(state.console_lt, "active_slight"),
+	&session->midi_io.monitor_device,
+	sizeof(MIDIDevice *));
 
     state.tl_tv->rect = &state.note_canvas_lt->rect;
 }
@@ -1623,6 +1649,8 @@ void piano_roll_draw()
     button_draw(state.gui.vel_down);
     button_draw(state.gui.vel_up);
 
+    status_light_draw(state.gui.device_active);
+
 
     /* textbox_draw(state.gui.dur_longer_button); */
     /* textbox_draw(state.gui.dur_shorter_button); */
@@ -1647,6 +1675,12 @@ void piano_roll_draw()
 }
 
 
+void piano_roll_set_in()
+{
+    reset_in_name_str(true);
+}
+
+
 /* Getters */
 
 Textbox *piano_roll_get_solo_button()
@@ -1659,6 +1693,12 @@ Textbox *piano_roll_get_solo_button()
 int piano_roll_get_num_grabbed_notes()
 {
     return state.clip->num_grabbed_notes;
+}
+
+SDL_Rect *piano_roll_get_device_name_rect()
+{
+    return &state.gui.in_name->layout->rect;
+
 }
 
 

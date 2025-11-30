@@ -1554,11 +1554,11 @@ static void track_set_in_onclick(void *void_arg)
 	midi_device_open(device);
 	arg->track->input = arg->obj;
 	textbox_set_value_handle(arg->track->tb_input_name, device->name);
-	timeline_check_set_midi_monitoring();
 	window_pop_menu(main_win);
 	if (device->type == MIDI_DEVICE_QWERTY) {
 	    panel_page_refocus(session->gui.panels, "QWERTY piano", 1);
 	}
+
 
 	Timeline *tl = ACTIVE_TL;
 	tl->needs_redraw = true;
@@ -1566,7 +1566,10 @@ static void track_set_in_onclick(void *void_arg)
     }
 	break;
     }
-    /* window_pop_mode(main_win); */
+    timeline_check_set_midi_monitoring();
+    if (session->piano_roll) {
+	piano_roll_set_in();
+    }
 }
 
 void track_set_midi_out(Track *track)
@@ -1624,9 +1627,13 @@ void track_set_input(Track *track)
     /* Refresh device list: skip for now :( */
     /* session_populate_midi_device_lists(session_get()); */
 
-    
-    SDL_Rect *rect = &(track->tb_input_name->layout->rect);
-    int y = rect->y;
+    SDL_Rect *rect;
+    if (session->piano_roll) {
+	rect = piano_roll_get_device_name_rect();
+    } else {
+	rect = &(track->tb_input_name->layout->rect);
+    }
+    /* int y = rect->y; */
     Menu *menu = menu_create_at_point(rect->x, rect->y);
     MenuColumn *c = menu_column_add(menu, "");
     MenuSection *sc = menu_section_add(c, "");
@@ -1665,10 +1672,10 @@ void track_set_input(Track *track)
     }
     menu_add_header(menu,"", "Select track input");
     window_add_menu(main_win, menu);
-    int move_by_y = 0;
-    if ((move_by_y = y + menu->layout->rect.h - main_win->layout->rect.h) > 0) {
-	menu_translate(menu, 0, -1 * move_by_y / main_win->dpi_scale_factor);
-    }
+    /* int move_by_y = 0; */
+    /* if ((move_by_y = y + menu->layout->rect.h - main_win->layout->rect.h) > 0) { */
+    /* 	menu_translate(menu, 0, -1 * move_by_y / main_win->dpi_scale_factor); */
+    /* } */
 }
 
 /* Use on the selected track to set session monitoring info */

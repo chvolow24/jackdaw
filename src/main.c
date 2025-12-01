@@ -205,13 +205,7 @@ int main(int argc, char **argv)
 
     /* Create a window, assign a std_font, and set a main layout */
     main_win = window_create(WINDOW_DEFAULT_W, WINDOW_DEFAULT_H, "Jackdaw");
-    window_assign_font(main_win, OPEN_SANS_PATH, FONT_REG);
-    window_assign_font(main_win, OPEN_SANS_BOLD_PATH, FONT_BOLD);
-    window_assign_font(main_win, LTSUPERIOR_PATH, FONT_MONO);
-    window_assign_font(main_win, LTSUPERIOR_BOLD_PATH, FONT_MONO_BOLD);
-    window_assign_font(main_win, NOTO_SANS_SYMBOLS2_PATH, FONT_SYMBOLIC);
-    window_assign_font(main_win, NOTO_SANS_MATH_PATH, FONT_MATHEMATICAL);
-    window_assign_font(main_win, NOTO_MUSIC_PATH, FONT_MUSIC);
+    window_assign_fonts(main_win);
     init_symbol_table(main_win);
 
 

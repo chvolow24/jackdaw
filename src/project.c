@@ -947,13 +947,13 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name)
     Layout *auto_dropdown_lt = layout_get_child_by_name_recursive(track->inner_layout, "automation_dropdown");
     track->automation_dropdown = symbol_button_create(
 	auto_dropdown_lt,
-	SYMBOL_TABLE[SYMBOL_DROPDOWN],
+	SYMBOL_DROPDOWN,
 	auto_dropdown_action,
 	(void *)track,
 	NULL);
     track->automation_dropdown->background_color = &colors.grey;
-    auto_dropdown_lt->w.value = (float)track->automation_dropdown->symbol->x_dim_pix / main_win->dpi_scale_factor;
-    auto_dropdown_lt->h.value = (float)track->automation_dropdown->symbol->y_dim_pix / main_win->dpi_scale_factor;
+    auto_dropdown_lt->w.value = (float)SYMBOL_TABLE[track->automation_dropdown->symbol_index]->x_dim_pix / main_win->dpi_scale_factor;
+    auto_dropdown_lt->h.value = (float)SYMBOL_TABLE[track->automation_dropdown->symbol_index]->y_dim_pix / main_win->dpi_scale_factor;
     auto_dropdown_lt->x.value += 4.0f;
     layout_reset(auto_dropdown_lt);
     

@@ -39,6 +39,7 @@
 #include "session_endpoint_ops.h"
 #include "session.h"
 #include "settings.h"
+#include "symbol.h"
 #include "tempo.h"
 #include "timeline.h"
 #include "transport.h"
@@ -113,6 +114,25 @@ void loop_project_main()
 		if (e.window.event == SDL_WINDOWEVENT_RESIZED) {
 		    window_resize_passive(main_win, e.window.data1, e.window.data2);
 		    ACTIVE_TL->needs_redraw = true;
+		} else if (e.window.event == SDL_WINDOWEVENT_DISPLAY_CHANGED) {
+		    fprintf(stderr, "WINDOW DISPLAY CHANGED\n");
+		    int rw = 0, rh = 0, ww = 0, wh = 0;
+		    SDL_GetWindowSize(main_win->win, &ww, &wh);
+		    SDL_GetRendererOutputSize(main_win->rend, &rw, &rh);
+
+		    double new_dpi = (double) rw / ww;
+		    main_win->dpi_scale_factor = new_dpi;
+		    fprintf(stderr, "NEW DPI: %f\n", new_dpi);
+
+		    window_check_monitor_dpi(main_win);
+		    /* Reinit fonts */
+		    /* window_destroy_fonts(main_win); */
+		    /* window_assign_fonts(main_win); */
+
+		    /* /\* Reinit symbols *\/ */
+		    /* symbol_quit(main_win); */
+		    /* init_symbol_table(main_win); */
+    
 		}
 		break;
 	    case SDL_AUDIODEVICEADDED:

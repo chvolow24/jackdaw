@@ -109,10 +109,20 @@ void window_check_monitor_dpi(Window *win)
         exit(1);
     }
     ttf_reset_dpi_scale_factor(win->std_font);
+    ttf_reset_dpi_scale_factor(win->bold_font);
+    ttf_reset_dpi_scale_factor(win->mono_font);
+    ttf_reset_dpi_scale_factor(win->mono_bold_font);
+    ttf_reset_dpi_scale_factor(win->symbolic_font);
+    ttf_reset_dpi_scale_factor(win->mathematical_font);
+    ttf_reset_dpi_scale_factor(win->music_font);
+
+    symbol_quit(win);
+    init_symbol_table(win);
+
 
 }
 
-void window_assign_font(Window *win, const char *font_path, FontType type)
+static void window_assign_font(Window *win, const char *font_path, FontType type)
 {
     Font **font_to_init;
 
@@ -307,15 +317,20 @@ void window_set_layout(Window *win, Layout *layout)
 
 Layout *layout_create_from_window(Window *win);
 
-
-
-void layout_destroy(Layout *lt);
-void window_destroy(Window *win)
+void window_assign_fonts(Window *win)
 {
-    /* if (win->ac_active) { */
-    #ifndef LAYOUT_BUILD
-    autocompletion_deinit(&win->ac);
-    #endif
+    window_assign_font(win, OPEN_SANS_PATH, FONT_REG);
+    window_assign_font(win, OPEN_SANS_BOLD_PATH, FONT_BOLD);
+    window_assign_font(win, LTSUPERIOR_PATH, FONT_MONO);
+    window_assign_font(win, LTSUPERIOR_BOLD_PATH, FONT_MONO_BOLD);
+    window_assign_font(win, NOTO_SANS_SYMBOLS2_PATH, FONT_SYMBOLIC);
+    window_assign_font(win, NOTO_SANS_MATH_PATH, FONT_MATHEMATICAL);
+    window_assign_font(win, NOTO_MUSIC_PATH, FONT_MUSIC);
+
+}
+
+void window_destroy_fonts(Window *win)
+{
     /* } */
     if (win->std_font) {
 	ttf_destroy_font(win->std_font);
@@ -335,6 +350,17 @@ void window_destroy(Window *win)
     if (win->mathematical_font) {
 	ttf_destroy_font(win->mathematical_font);
     }
+
+}
+
+void layout_destroy(Layout *lt);
+void window_destroy(Window *win)
+{
+    /* if (win->ac_active) { */
+    #ifndef LAYOUT_BUILD
+    autocompletion_deinit(&win->ac);
+    #endif
+    window_destroy_fonts(win);
     if (win->rend) {
 	SDL_DestroyRenderer(win->rend);
     }

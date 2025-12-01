@@ -82,7 +82,7 @@ Modal *modal_create(Layout *lt)
     
 	modal->x = symbol_button_create(
 	    x_lt,
-	    SYMBOL_TABLE[SYMBOL_X],
+	    SYMBOL_X,
 	    modal_x_action,
 	    NULL,
 	    &colors.red);

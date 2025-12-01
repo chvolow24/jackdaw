@@ -267,7 +267,7 @@ Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
     layout_reset(button_lt);
     p.sbutton_p.action = filter_type_button_action;
     p.sbutton_p.target = eq;
-    p.sbutton_p.s = SYMBOL_TABLE[SYMBOL_LOWSHELF];
+    p.sbutton_p.symbol_index = SYMBOL_LOWSHELF;
     p.sbutton_p.background_color = NULL;
     el = page_add_el(
 	page,
@@ -287,7 +287,7 @@ Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
     layout_reset(button_lt);
     p.sbutton_p.action = filter_type_button_action;
     p.sbutton_p.target = eq;
-    p.sbutton_p.s = SYMBOL_TABLE[SYMBOL_PEAKNOTCH];
+    p.sbutton_p.symbol_index = SYMBOL_PEAKNOTCH;
     p.sbutton_p.background_color = NULL;
     el = page_add_el(
 	page,
@@ -308,7 +308,7 @@ Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
     layout_reset(button_lt);
     p.sbutton_p.action = filter_type_button_action;
     p.sbutton_p.target = eq;
-    p.sbutton_p.s = SYMBOL_TABLE[SYMBOL_HIGHSHELF];
+    p.sbutton_p.symbol_index = SYMBOL_HIGHSHELF;
     p.sbutton_p.background_color = NULL;
     el = page_add_el(
 	page,

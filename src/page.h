@@ -211,7 +211,8 @@ struct eq_plot_params {
 };
 
 struct symbol_button_params {
-    Symbol *s;
+    int symbol_index;
+    /* Symbol *s; */
     ComponentFn action;
     void *target;
     SDL_Color *background_color;

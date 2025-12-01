@@ -24,6 +24,15 @@
 
 #include <stdint.h>
 
+typedef struct lop_delay {
+    float *mem;
+    int32_t len;
+    float delay_coeff;
+    float lop_coeff;
+    float lop_mem_out;
+    int32_t mem_index;
+} LopDelay;
+
 typedef struct allpass {
     float *mem;
     int32_t len;
@@ -42,5 +51,8 @@ float allpass_sample(Allpass *ap, float in);
 
 void allpass_group_init_schroeder(AllpassGroup *ag);
 float allpass_group_sample(AllpassGroup *ag, float in);
+
+float lop_delay_sample(LopDelay *ld, float in);
+void lop_delay_init(LopDelay *ld, int32_t len, float delay_coeff, float lop_coeff);
 
 #endif

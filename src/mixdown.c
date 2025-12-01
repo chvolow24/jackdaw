@@ -10,6 +10,7 @@
 
 #include <math.h>
 #include <pthread.h>
+#include "allpass.h"
 #include "audio_clip.h"
 #include "automation.h"
 #include "clipref.h"
@@ -264,6 +265,7 @@ should be collected from the in mark rather than from the play head.
 /* Compressor comp_L; */
 /* Compressor comp_R; */
 
+
 float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t len_sframes, int32_t start_pos_sframes, float step)
 {
 
@@ -282,6 +284,21 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 	ClickTrack *tt = tl->click_tracks[i];
 	click_track_mix_metronome(tt, mixdown, len_sframes, start_pos_sframes, end_pos_sframes, step);
     }
+
+    static AllpassGroup diffuser[2];
+    static bool diffuser_init = false;
+
+    static LopDelay lop_delay[2];
+    if (!diffuser_init) {
+	memset(diffuser, 0, sizeof(AllpassGroup) * 2);
+	fprintf(stderr, "INITIALIZING FILTERS.\n");
+	allpass_group_init_schroeder(diffuser);
+	allpass_group_init_schroeder(diffuser + 1);
+	diffuser_init = true;
+
+	lop_delay_init(lop_delay, 20000, 0.99, 0.2);
+	lop_delay_init(lop_delay + 1, 20000, 0.99, 0.2);
+    }
     
     for (uint8_t t=0; t<tl->num_tracks; t++) {
 	bool audio_in_track = false;
@@ -295,6 +312,20 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 	float track_chunk[len_sframes];
 
         float track_chunk_amp = get_track_channel_chunk(track, track_chunk, channel, start_pos_sframes, len_sframes, step);
+
+	if (t==0) {
+	    for (int i=0; i<len_sframes; i++) {
+		track_chunk[i] = allpass_group_sample(diffuser + channel, track_chunk[i]);
+	    }
+	    track_chunk_amp = 1.0;
+	}
+	if (t==1) {
+	    for (int i=0; i<len_sframes; i++) {
+		track_chunk[i] = lop_delay_sample(lop_delay + channel, track_chunk[i]);
+	    }
+	    track_chunk_amp = 1.0;
+	}
+	    
 	
 	if (track_chunk_amp > AMP_EPSILON) { /* Checks if any clip audio available */
 	    audio_in_track = true;

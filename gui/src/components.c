@@ -465,7 +465,8 @@ Button *button_create(
 
 SymbolButton *symbol_button_create(
     Layout *lt,
-    Symbol *symbol,
+    int symbol_index,
+    /* Symbol *symbol, */
     ComponentFn action,
     void *target,
     SDL_Color *background_color)
@@ -473,7 +474,8 @@ SymbolButton *symbol_button_create(
     SymbolButton *button = calloc(1, sizeof(SymbolButton));
     button->action = action;
     button->target = target;
-    button->symbol = symbol;
+    button->symbol_index = symbol_index;
+    /* button->symbol = symbol; */
     button->layout = lt;
     button->background_color = background_color;
     return button;
@@ -487,9 +489,9 @@ void button_draw(Button *button)
 void symbol_button_draw(SymbolButton *sbutton)
 {
     if (sbutton->background_color) {
-	symbol_draw_w_bckgrnd(sbutton->symbol, &sbutton->layout->rect, sbutton->background_color);
+	symbol_draw_w_bckgrnd(SYMBOL_TABLE[sbutton->symbol_index], &sbutton->layout->rect, sbutton->background_color);
     } else {
-	symbol_draw(sbutton->symbol, &sbutton->layout->rect);
+	symbol_draw(SYMBOL_TABLE[sbutton->symbol_index], &sbutton->layout->rect);
     }
 }
 

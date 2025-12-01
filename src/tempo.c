@@ -1066,11 +1066,11 @@ void click_track_draw_segments(ClickTrack *tt, TimeView *tv, SDL_Rect draw_rect)
 {
 
     static const SDL_Color line_colors[] =  {
-	{255, 250, 125, 90},
-	{255, 255, 255, 90},
-	{170, 170, 170, 90},
-	{130, 130, 130, 90},
-	{100, 100, 100, 90}
+	{255, 250, 125, 40},
+	{255, 255, 255, 40},
+	{170, 170, 170, 40},
+	{130, 130, 130, 40},
+	{100, 100, 100, 40}
     };
 
     Timeline *tl = tt->tl;

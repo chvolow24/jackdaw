@@ -514,8 +514,9 @@ void txt_destroy(Text *txt)
     free(txt);
 }
 
-TTF_Font *ttf_open_font(const char* path, int size, Window *win)
+TTF_Font *ttf_open_font(const char* path, int size_int, Window *win)
 {
+    double size = size_int;
     size *= win->dpi_scale_factor;
     size *= TTF_SPEC_ADJUST;
     #ifdef LAYOUT_BUILD

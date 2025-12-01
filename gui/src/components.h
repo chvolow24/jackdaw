@@ -38,7 +38,8 @@ typedef struct button {
 } Button;
 
 typedef struct symbol_button {
-    Symbol *symbol;
+    /* Symbol *symbol; */
+    int symbol_index;
     ComponentFn action;
     void *target;
     Layout *layout;
@@ -257,7 +258,8 @@ void button_press_color_change(
 
 SymbolButton *symbol_button_create(
     Layout *lt,
-    Symbol *symbol,
+    int symbol_index,
+    /* Symbol *symbol, */
     ComponentFn action,
     void *target,
     SDL_Color *background_color);

@@ -147,7 +147,7 @@ void automation_remove(Automation *a)
     }
     if (track->num_automations == 0) {
 	track->selected_automation = -1;
-	track->automation_dropdown->symbol = SYMBOL_TABLE[SYMBOL_DROPDOWN];
+	track->automation_dropdown->symbol_index = SYMBOL_DROPDOWN;
     } else if (track->selected_automation > track->num_automations - 1) {
 	track->selected_automation = track->selected_automation - 1;
     }
@@ -656,7 +656,7 @@ void track_automations_show_all(Track *track)
 	automation_show(track->automations[i]);
     }
     track->some_automations_shown = true;
-    track->automation_dropdown->symbol = SYMBOL_TABLE[SYMBOL_DROPUP];
+    track->automation_dropdown->symbol_index = SYMBOL_DROPUP;
     timeline_reset(track->tl, false);
 }
 
@@ -673,7 +673,7 @@ void track_automations_hide_all(Track *track)
 	}
     }
     track->selected_automation = -1;
-    track->automation_dropdown->symbol = SYMBOL_TABLE[SYMBOL_DROPDOWN];
+    track->automation_dropdown->symbol_index = SYMBOL_DROPDOWN;
     layout_size_to_fit_children_v(track->layout, true, 0);
     timeline_reset(track->tl, false);
 }

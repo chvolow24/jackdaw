@@ -1546,8 +1546,10 @@ static void piano_roll_draw_notes()
 	    }
 	}
 	SDL_RenderFillRect(main_win->rend, &note_rect);
-	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
-	SDL_RenderDrawRect(main_win->rend, &note_rect);
+	if (note_rect.w > 3) {
+	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
+	    SDL_RenderDrawRect(main_win->rend, &note_rect);
+	}
 
 	/* DRAW BUMPERS */
 	

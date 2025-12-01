@@ -84,7 +84,13 @@ void window_check_monitor_dpi(Window *win);
 void window_destroy(Window *win);
 
 /* Create a Font object, open TTF Fonts, and assign to window */
-void window_assign_font(Window *win, const char *font_path, FontType type);
+/* void window_assign_font(Window *win, const char *font_path, FontType type); */
+
+/* Allocate/assign all standard fonts to the window */
+void window_assign_fonts(Window *win);
+
+/* Free all fonts assigned to a window, either on shutdown or when re-assigning (as when switching to a new monitor with a different DPI) */
+void window_destroy_fonts(Window *win);
 
 /* Reset the values of the w and h members of a Window struct based on current window dimensions */
 void window_auto_resize(Window *window);

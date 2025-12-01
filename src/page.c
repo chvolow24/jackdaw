@@ -484,7 +484,7 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
     case EL_SYMBOL_BUTTON:
 	el->component = (void *)symbol_button_create(
 	    el->layout,
-	    params.sbutton_p.s,
+	    params.sbutton_p.symbol_index,
 	    params.sbutton_p.action,
 	    params.sbutton_p.target,
 	    params.sbutton_p.background_color);

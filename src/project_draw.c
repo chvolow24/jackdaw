@@ -19,7 +19,7 @@
 #include "page.h"
 #include "piano_roll.h"
 #include "project.h"
-#include "select_rect.h"
+/* #include "select_rect.h" */
 #include "session.h"
 #include "textbox.h"
 #include "timeline.h"
@@ -219,11 +219,11 @@ static void clipref_draw(ClipRef *cr)
 
     
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
-    geom_draw_rect_thick(main_win->rend, &cr->layout->rect, border, main_win->dpi_scale_factor);
+    geom_draw_rect_thick(main_win->rend, &cr->layout->rect, border * main_win->dpi_scale_factor); 
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.white));    
-    geom_draw_rect_thick(main_win->rend, &cr->layout->rect, border / 2, main_win->dpi_scale_factor);
+    geom_draw_rect_thick(main_win->rend, &cr->layout->rect, (float)border / 2.0f * main_win->dpi_scale_factor);
 
-    static const int bumper_w = 10;
+    int bumper_w = 5 * main_win->dpi_scale_factor;
     static const int bumper_pad_h = 1;
     static const int bumper_pad_v = 12;
     static const int bumper_corner_r = 6;
@@ -263,9 +263,9 @@ static void clipref_draw(ClipRef *cr)
 static void draw_selected_track_rect(Layout *selected_layout)
 {
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
-	geom_draw_rect_thick(main_win->rend, &selected_layout->rect, 3, main_win->dpi_scale_factor);
+	geom_draw_rect_thick(main_win->rend, &selected_layout->rect, 3 * main_win->dpi_scale_factor);
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(track_selector_color));
-	geom_draw_rect_thick(main_win->rend, &selected_layout->rect, 1, main_win->dpi_scale_factor);
+	geom_draw_rect_thick(main_win->rend, &selected_layout->rect, 1 * main_win->dpi_scale_factor);
 }
 
 static void track_draw(Track *track)
@@ -354,6 +354,10 @@ automations_draw:
     }
     if (track->tl->track_selector == track->tl_rank && track->selected_automation < 0) {
 	draw_selected_track_rect(track->layout);
+    } else {
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
+	/* SDL_RenderDrawRect(main_win->rend, &track->layout->rect); */
+	SDL_RenderDrawRect(main_win->rend, &track->inner_layout->rect);
     }
 }
 

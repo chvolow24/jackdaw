@@ -472,7 +472,7 @@ void modal_draw(Modal *modal)
     }
     if (modal->num_selectable > 0) {
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(modal_color_border_selected));
-	geom_draw_rect_thick(main_win->rend, &modal->els[modal->selectable_indices[modal->selected_i]]->layout->rect, 2, main_win->dpi_scale_factor);
+	geom_draw_rect_thick(main_win->rend, &modal->els[modal->selectable_indices[modal->selected_i]]->layout->rect, 2 * main_win->dpi_scale_factor);
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.light_grey));
 	SDL_RenderDrawRect(main_win->rend, &modal->els[modal->selectable_indices[modal->selected_i]]->layout->rect);
 	/* SDL_Rect r = modal->els[modal->selectable_indices[modal->selected_i]]->layout->rect; */

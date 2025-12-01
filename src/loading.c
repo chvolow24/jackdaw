@@ -126,7 +126,7 @@ static void loading_screen_draw(LoadingScreen *ls)
 	SDL_RenderFillRect(main_win->rend, &progress);
 	
 	SDL_SetRenderDrawColor(main_win->rend, 100, 100, 100, 255);
-	geom_draw_rect_thick(main_win->rend, ls->progress_bar_rect, 2, main_win->dpi_scale_factor);
+	geom_draw_rect_thick(main_win->rend, ls->progress_bar_rect, 2 * main_win->dpi_scale_factor);
     }
 
     window_end_draw(main_win);

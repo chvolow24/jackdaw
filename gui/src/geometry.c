@@ -267,9 +267,9 @@ void geom_fill_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r)
 }
 
 
-void geom_draw_rect_thick(SDL_Renderer *rend, SDL_Rect *rect, int thickness, double dpi_scale_factor)
+void geom_draw_rect_thick(SDL_Renderer *rend, SDL_Rect *rect, int thickness)
 {
-    thickness *= dpi_scale_factor;
+    /* thickness *= dpi_scale_factor; */
     SDL_Rect temprect = *rect;
     for (int i=0; i<thickness; i++) {
 
@@ -281,9 +281,9 @@ void geom_draw_rect_thick(SDL_Renderer *rend, SDL_Rect *rect, int thickness, dou
     }
 }
 
-void geom_draw_rounded_rect_thick(SDL_Renderer *rend, SDL_Rect *rect, int thickness, int r, double dpi_scale_factor)
+void geom_draw_rounded_rect_thick(SDL_Renderer *rend, SDL_Rect *rect, int thickness, int r)
 {
-    thickness *= dpi_scale_factor;
+    /* thickness *= dpi_scale_factor; */
     SDL_Rect temprect = *rect;
     for (int i=0; i<thickness; i++) {
 	geom_draw_rounded_rect(rend, &temprect, r);
@@ -297,9 +297,8 @@ void geom_draw_rounded_rect_thick(SDL_Renderer *rend, SDL_Rect *rect, int thickn
 }
 
 
-void geom_draw_tab(SDL_Renderer *rend, SDL_Rect *rect, int r, double dpi_scale_factor)
+void geom_draw_tab(SDL_Renderer *rend, SDL_Rect *rect, int r)
 {
-    r *= dpi_scale_factor;
 
     /* Lower left */
     int center_x = rect->x - r;
@@ -336,10 +335,8 @@ void geom_draw_tab(SDL_Renderer *rend, SDL_Rect *rect, int r, double dpi_scale_f
     SDL_RenderDrawLine(rend, x2, y1, x2, y2);
 }
 
-void geom_fill_tab(SDL_Renderer *rend, SDL_Rect *rect, int r, double dpi_scale_factor)
+void geom_fill_tab(SDL_Renderer *rend, SDL_Rect *rect, int r)
 {
-    r *= dpi_scale_factor;
-
     /* Lower left */
     int center_x = rect->x - r;
     int center_y = rect->y + rect->h - r;

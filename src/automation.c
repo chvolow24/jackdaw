@@ -63,7 +63,8 @@ extern SDL_Color color_mute_solo_grey;
 /* SDL_Color automation_console_bckgrnd = {90, 100, 120, 255}; */
 
 SDL_Color automation_console_bckgrnd = {90, 100, 110, 255};
-SDL_Color automation_bckgrnd = {70, 80, 90, 255};
+/* SDL_Color automation_bckgrnd = {70, 80, 90, 255}; */
+SDL_Color automation_bckgrnd = {50, 60, 70, 255};
 
 
 const char *AUTOMATION_LABELS[] = {
@@ -1415,7 +1416,8 @@ void automation_draw(Automation *a)
     /* } */
 
     
-    SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255);
+    /* SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255); */
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.light_grey));
     /* Keyframe *k = a->first; */
     int h = a->layout->rect.h;
     int last_y = 0;
@@ -1482,17 +1484,17 @@ void automation_draw(Automation *a)
     button_draw(a->write_button);
     label_draw(a->keyframe_label);
 
-    /* SDL_RenderSetClipRect(main_win->rend, NULL); */
-
-    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.grey));
+    SDL_RenderSetClipRect(main_win->rend, NULL);
+    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.grey)); */
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
     SDL_Rect ltrect = a->layout->rect;
     ltrect.x = a->console_rect->x;
     SDL_RenderDrawRect(main_win->rend, &ltrect);
-    ltrect.x += 1;
-    ltrect.y += 1;
-    ltrect.h -= 2;
-    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
-    SDL_RenderDrawRect(main_win->rend, &ltrect);
+    /* ltrect.x += 1; */
+    /* ltrect.y += 1; */
+    /* ltrect.h -= 2; */
+    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black)); */
+    /* SDL_RenderDrawRect(main_win->rend, &ltrect); */
 		     
 }
 

@@ -149,7 +149,7 @@ void piano_draw(Piano *piano)
 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.white));
 	    }
 	}
-	geom_draw_rounded_rect_thick(main_win->rend, &piano->key_labels[i]->layout->rect, 2, 6, main_win->dpi_scale_factor);
+	geom_draw_rounded_rect_thick(main_win->rend, &piano->key_labels[i]->layout->rect, 2, 6 * main_win->dpi_scale_factor);
 	textbox_draw(piano->key_labels[i]);
     }
 }

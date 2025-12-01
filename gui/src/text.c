@@ -120,6 +120,11 @@ void txt_reset_drawable(Text *txt)
     }
     SDL_FreeSurface(surface);
     SDL_QueryTexture(txt->texture, NULL, NULL, &(txt->text_lt->rect.w), &(txt->text_lt->rect.h));
+
+    
+    int w = txt->text_lt->rect.w;
+    int h = txt->text_lt->rect.h;
+    
     switch (txt->align) {
     case CENTER:
 	txt->text_lt->rect.x = txt->container->rect.x + (int) round((float)txt->container->rect.w / 2.0 - (float) txt->text_lt->rect.w / 2.0);
@@ -153,7 +158,10 @@ void txt_reset_drawable(Text *txt)
 	break;
 
     }
+
+
     layout_set_values_from_rect(txt->text_lt);
+    fprintf(stderr, "w: %d->%d, h %d->%d\n", w, txt->text_lt->rect.w, h, txt->text_lt->rect.h);
 
 }
 

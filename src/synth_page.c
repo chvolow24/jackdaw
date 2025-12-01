@@ -361,7 +361,8 @@ static void add_osc_page(TabView *tv, Track *track)
 	OscCfg *cfg = s->base_oscs + cfg_i;
     
 	p.sradio_p.align_horizontal = true;
-	p.sradio_p.symbols = SYMBOL_TABLE + SYMBOL_SINE;
+	int symbol_indices[] = {SYMBOL_SINE, SYMBOL_SQUARE, SYMBOL_TRI, SYMBOL_SAW};
+	p.sradio_p.symbol_indices = symbol_indices;
 	p.sradio_p.num_items = 4;
 	p.sradio_p.padding = 7;
 	p.sradio_p.unsel_color = &colors.clear;

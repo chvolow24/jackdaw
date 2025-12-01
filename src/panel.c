@@ -93,7 +93,7 @@ Page *panel_select_page(PanelArea *pa, uint8_t panel_i, uint8_t new_selection)
 {
     Panel *panel = pa->panels[panel_i];
     Layout *old_page_layout = pa->pages[panel->current_page]->layout;
-    if (old_page_layout->parent) {
+    if (old_page_layout->parent == panel->content_layout) {
 	layout_remove_child(old_page_layout);
     }
     panel->current_page = new_selection;
@@ -101,6 +101,7 @@ Page *panel_select_page(PanelArea *pa, uint8_t panel_i, uint8_t new_selection)
     if (page->layout->parent) {
 	layout_remove_child(page->layout);
     }
+    if (panel_i == 0) breakfn();
     layout_reparent(page->layout, panel->content_layout);
     static char name[MAX_NAMELENGTH];
     snprintf(name, MAX_NAMELENGTH, "%s    ∨", page->title);
@@ -109,6 +110,9 @@ Page *panel_select_page(PanelArea *pa, uint8_t panel_i, uint8_t new_selection)
     textbox_set_background_color(panel->selector, NULL);
     textbox_set_text_color(panel->selector, &colors.cerulean);
     textbox_reset_full(panel->selector);
+
+
+    /* BELOW IS SUSPECT for monitor bug */
 
     layout_force_reset(pa->layout);
     layout_size_to_fit_children_h(panel->content_layout->children[0], true, 0);
@@ -131,6 +135,21 @@ static void panel_draw(Panel *p)
     Page *page = pa->pages[p->current_page];
     page_draw(page);
     textbox_draw(p->selector);
+    /* layout_draw(p->area->win, page->layout); */
+    /* fprintf(stderr, "Panel %s, layout y, parent_name: %d, %s\n", , p->layout->rect.y, p->layout->parent->name); */
+    /* fprintf(stderr, "PANEL %s\n", p->area->pages[p->current_page]->title); */
+    /* fprintf(stderr, "\t->content ltrect y, h: %d, %d\n", p->content_layout->rect.y, p->content_layout->rect.h); */
+    /* fprintf(stderr, "\t->page paren content? (%p child %p) %d\n", page->layout, p->content_layout, page->layout->parent == p->content_layout); */
+    /* fprintf(stderr, "\t->WTELF is the page parent? %p (should be %p)\n", page->layout->parent, p->content_layout); */
+    /* if (!page->layout->parent) breakfn(); */
+    /* fprintf(stderr, "WTF WTF WTF WTF %p\n", page->layout->parent); */
+    /* page_reset(page); */
+    layout_force_reset(page->layout);
+    /* fprintf(stderr, "\t->page y, h: %d, %d\n", page->layout->rect.y, page->layout->rect.h); */
+    /* fprintf(stderr, "\t->page layout y: %f, type %d\n", page->layout->y.value, page->layout->y.type); */
+						     
+						     
+    /* layout_write(stderr, p->layout, 0); */
 }
 
 void panel_area_draw(PanelArea *pa)

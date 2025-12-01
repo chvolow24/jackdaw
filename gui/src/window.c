@@ -121,7 +121,18 @@ void window_check_monitor_dpi(Window *win)
 
     layout_force_reset(win->layout);
     txt_reset_all();
+    Session *session = session_get();
+    for (int i=0; i<session->gui.panels->num_pages; i++) {
+	page_reset(session->gui.panels->pages[i]);
+    }
+    for (int i=0; i<session->gui.panels->num_panels; i++) {
+	layout_force_reset(session->gui.panels->panels[i]->layout);
+    }
+
+
     layout_force_reset(win->layout);
+
+    
 
 
 }

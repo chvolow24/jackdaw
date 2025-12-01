@@ -219,7 +219,8 @@ struct symbol_button_params {
 };
 
 struct symbol_radio_params {
-    Symbol **symbols;
+    int *symbol_indices;
+    /* Symbol **symbols; */
     uint8_t num_items;
     Endpoint *ep;
     bool align_horizontal;

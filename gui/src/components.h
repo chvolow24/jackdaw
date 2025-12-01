@@ -103,7 +103,8 @@ typedef struct radio_button {
 
 typedef struct symbol_radio {
     Layout *layout;
-    Symbol *symbols[RADIO_BUTTON_MAX_ITEMS];
+    int symbol_indices[RADIO_BUTTON_MAX_ITEMS];
+    /* Symbol *symbols[RADIO_BUTTON_MAX_ITEMS]; */
     Endpoint *ep;
     uint8_t num_items;
     uint8_t selected_item;
@@ -321,7 +322,7 @@ void radio_cycle_back(RadioButton *rb);
 
 SymbolRadio *symbol_radio_create(
     Layout *lt,
-    Symbol **symbols,
+    int *symbol_indices,
     uint8_t num_items,
     Endpoint *ep,
     bool align_horizontal,

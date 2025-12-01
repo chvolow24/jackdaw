@@ -271,8 +271,6 @@ static void page_el_destroy(PageEl *el)
     case EL_PIANO:
 	piano_destroy(el->component);
 	break;
-    default:
-	break;
     }
     free(el->id);
     free(el);
@@ -492,7 +490,7 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
     case EL_SYMBOL_RADIO:
 	el->component = symbol_radio_create(
 	    el->layout,
-	    params.sradio_p.symbols,
+	    params.sradio_p.symbol_indices,
 	    params.sradio_p.num_items,
 	    params.sradio_p.ep,
 	    params.sradio_p.align_horizontal,

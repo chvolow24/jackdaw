@@ -854,7 +854,8 @@ void radio_destroy(RadioButton *rb)
 
 SymbolRadio *symbol_radio_create(
     Layout *lt,
-    Symbol **symbols,
+    int *symbol_indices,
+    /* Symbol **symbols, */
     uint8_t num_items,
     Endpoint *ep,
     bool align_horizontal,
@@ -869,8 +870,8 @@ SymbolRadio *symbol_radio_create(
     sr->ep = ep;
     sr->sel_color = sel_color;
     sr->unsel_color = unsel_color;
-    memcpy(sr->symbols, symbols, num_items * sizeof(Symbol *));
-
+    /* memcpy(sr->symbols, symbols, num_items * sizeof(Symbol *)); */
+    memcpy(sr->symbol_indices, symbol_indices, num_items * sizeof(int));
     for (int i=0; i<num_items; i++) {
 	Layout *item_lt = layout_add_child(lt);
 	if (align_horizontal) {
@@ -882,8 +883,8 @@ SymbolRadio *symbol_radio_create(
 	    item_lt->y.type = STACK;
 	    item_lt->y.value = padding;
 	}
-	item_lt->w.value = symbols[i]->x_dim_pix / main_win->dpi_scale_factor;
-	item_lt->h.value = symbols[i]->y_dim_pix / main_win->dpi_scale_factor;	
+	item_lt->w.value = SYMBOL_TABLE[symbol_indices[i]]->x_dim_pix / main_win->dpi_scale_factor;
+	item_lt->h.value = SYMBOL_TABLE[symbol_indices[i]]->y_dim_pix / main_win->dpi_scale_factor;	
     }
     return sr;
 
@@ -901,9 +902,9 @@ void symbol_radio_draw(SymbolRadio *sr)
 	Layout *lt = sr->layout->children[i];
 
 	if (i==sr->selected_item)
-	    symbol_draw_w_bckgrnd(sr->symbols[i], &lt->rect, sr->sel_color);
+	    symbol_draw_w_bckgrnd(SYMBOL_TABLE[sr->symbol_indices[i]], &lt->rect, sr->sel_color);
 	else
-	    symbol_draw_w_bckgrnd(sr->symbols[i], &lt->rect, sr->unsel_color);
+	    symbol_draw_w_bckgrnd(SYMBOL_TABLE[sr->symbol_indices[i]], &lt->rect, sr->unsel_color);
     }
 }
 
@@ -1069,6 +1070,7 @@ void dropdown_draw(Dropdown *d)
 
 void dropdown_destroy(Dropdown *d)
 {
+    textbox_destroy(d->tb);
     free(d->item_names);
     if (d->item_annotations) free(d->item_annotations);
     if (d->item_args) free(d->item_args);

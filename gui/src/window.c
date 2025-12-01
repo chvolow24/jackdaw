@@ -119,6 +119,10 @@ void window_check_monitor_dpi(Window *win)
     symbol_quit(win);
     init_symbol_table(win);
 
+    layout_force_reset(win->layout);
+    txt_reset_all();
+    layout_force_reset(win->layout);
+
 
 }
 

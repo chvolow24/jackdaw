@@ -188,9 +188,6 @@ void textbox_draw(Textbox *tb)
 	    SDL_RenderFillRect(rend, &tb_rect);
 	if (brdrclr) {
 	    SDL_SetRenderDrawColor(rend, brdrclr->r, brdrclr->g, brdrclr->b, brdrclr->a);
-	    /* below: too much for low dpi, too little for high */
-	    /* 1.0 -- bring down */
-	    /* 2.0 -- keep same */
 	    for (int i=0; i<tb->border_thickness; i++) {
 		SDL_RenderDrawRect(rend, &tb_rect);
 		tb_rect.x += 1;

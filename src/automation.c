@@ -599,8 +599,9 @@ void automation_show(Automation *a)
 	textbox_set_trunc(a->label, false);
 	textbox_set_background_color(a->label,  &colors.quickref_button_blue);
 	textbox_set_text_color(a->label, &colors.white);
+	textbox_set_border(a->label, &colors.dark_grey, 1, BUTTON_CORNER_RADIUS);
 	/* textbox_set_border(a->label, &colors.white, 1); */
-	a->label->corner_radius = BUTTON_CORNER_RADIUS;
+	/* a->label->corner_radius = BUTTON_CORNER_RADIUS; */
 	textbox_size_to_fit(a->label, 10, 3);
 	/* textbox_set_align(a->label, CENTER_LEFT); */
 	/* textbox_set_pad(a->label, 4, 0); */

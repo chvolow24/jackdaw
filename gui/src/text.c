@@ -29,6 +29,21 @@ extern Window *main_win;
 
 SDL_Color highlight = {0, 0, 255, 80};
 
+typedef struct txt_hash_node TxtHashNode;
+typedef struct txt_hash_node {
+    Text *text;
+    bool deleted;
+} TxtHashNode;
+
+#define TXT_HASH_TABLE_SIZE 4096
+TxtHashNode TXT_HASH_TABLE[TXT_HASH_TABLE_SIZE] = {0};
+
+static int txt_hash(Text *text)
+{
+    long ptr_index = ((long)text) / 64;
+    return ptr_index % TXT_HASH_TABLE_SIZE;
+}
+
 
 static void init_empty_text(
     Text *txt,
@@ -71,6 +86,48 @@ static void init_empty_text(
     txt->completion = NULL;
 }
 
+static void txt_insert_into_hash_table(Text *txt)
+{
+    int hash = txt_hash(txt);
+    if (!TXT_HASH_TABLE[hash].text || TXT_HASH_TABLE[hash].deleted) {
+	TXT_HASH_TABLE[hash].text = txt;
+	TXT_HASH_TABLE[hash].deleted = false;
+    } else {
+	int lookup_i = hash + 1;
+	while (1) {
+	    if (!TXT_HASH_TABLE[lookup_i].text || TXT_HASH_TABLE[lookup_i].deleted) {
+		TXT_HASH_TABLE[lookup_i].text = txt;
+		TXT_HASH_TABLE[lookup_i].deleted = false;
+		break;
+	    }
+	    lookup_i++;
+	    if (lookup_i >= TXT_HASH_TABLE_SIZE) lookup_i = 0;
+	    if (lookup_i == hash) {
+		fprintf(stderr, "ERROR IN TXT HASH TABLE Insert: No free slots!\n");
+		/* exit(1); */
+		return;
+	    }
+	}
+    }
+}
+
+static void txt_remove_from_hash_table(Text *txt)
+{
+    int hash = txt_hash(txt);
+    int lookup_i = hash;
+    while ((TXT_HASH_TABLE[lookup_i].text || TXT_HASH_TABLE[lookup_i].deleted) && TXT_HASH_TABLE[lookup_i].text != txt) {
+	lookup_i++;
+	if (lookup_i >= TXT_HASH_TABLE_SIZE) lookup_i = 0;
+	if (lookup_i == hash) {
+	    return;
+	}
+    }
+    if (TXT_HASH_TABLE[lookup_i].text == txt) {
+	TXT_HASH_TABLE[lookup_i].text = NULL;
+	TXT_HASH_TABLE[lookup_i].deleted = true;
+    }
+}
+
 static Text *create_empty_text(
     /* SDL_Rect *container, */
     Layout *container,
@@ -85,6 +142,8 @@ static Text *create_empty_text(
 {
 
     Text *txt = calloc(1, sizeof(Text));
+    txt_insert_into_hash_table(txt);
+    
     init_empty_text(txt, container, font, text_size, txt_clr, align, truncate, win);
     return txt;
 }
@@ -120,10 +179,6 @@ void txt_reset_drawable(Text *txt)
     }
     SDL_FreeSurface(surface);
     SDL_QueryTexture(txt->texture, NULL, NULL, &(txt->text_lt->rect.w), &(txt->text_lt->rect.h));
-
-    
-    int w = txt->text_lt->rect.w;
-    int h = txt->text_lt->rect.h;
     
     switch (txt->align) {
     case CENTER:
@@ -158,12 +213,18 @@ void txt_reset_drawable(Text *txt)
 	break;
 
     }
-
-
     layout_set_values_from_rect(txt->text_lt);
-    fprintf(stderr, "w: %d->%d, h %d->%d\n", w, txt->text_lt->rect.w, h, txt->text_lt->rect.h);
-
 }
+
+void txt_reset_all()
+{
+    for (int i=0; i<TXT_HASH_TABLE_SIZE; i++) {
+	if (TXT_HASH_TABLE[i].text && !TXT_HASH_TABLE[i].deleted) {
+	    txt_reset_drawable(TXT_HASH_TABLE[i].text);
+	}
+    }
+}
+
 
 void txt_reset_display_value(Text *txt) 
 {
@@ -188,6 +249,8 @@ void txt_reset_display_value(Text *txt)
     }
     txt_reset_drawable(txt);
 }
+
+
 void txt_set_value_handle(Text *txt, char *set_str)
 {
     txt->value_handle = set_str;
@@ -510,6 +573,7 @@ void txt_edit(Text *txt, void (*draw_fn) (void))
 
 void txt_destroy(Text *txt)
 {
+    txt_remove_from_hash_table(txt);
     if (txt->texture) {
         SDL_DestroyTexture(txt->texture);
     }

@@ -247,6 +247,12 @@ void txt_set_color_no_reset(Text *txt, const SDL_Color *clr);
 /* Set text pad values and refresh drawable elements */
 void txt_set_pad(Text *txt, int h_pad, int v_pad);
 
+/*
+  All Texts are stored in a hash table; this resets all drawables.
+  For use when Window DPI has changed, e.g.
+*/
+void txt_reset_all();
+
 
 TextArea *txt_area_create(
     const char *value,

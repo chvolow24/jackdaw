@@ -763,7 +763,7 @@ void project_draw()
 	/* } */
     } else {
 	timeline_redrawn = timeline_draw(tl);
-	if (timeline_redrawn) {
+	if (timeline_redrawn || TOP_MODE == MODE_MIDI_QWERTY) {
 	    control_bar_draw();
 	    textbox_draw(session->gui.timeline_label);
 	}

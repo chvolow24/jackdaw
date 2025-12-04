@@ -2332,7 +2332,7 @@ TEST_FN_DEF(automation_index, {
 
 TEST_FN_DEF(layout_num_children, {
 	int ret = 0;
-	for (uint8_t i=0; i<lt->num_children; i++) {
+	for (int64_t i=0; i<lt->num_children; i++) {
 	    Layout *child = lt->children[i];
 	    if (!child) {
 		fprintf(stderr, "EXCESS children on layout %s: %lld\n", lt->name, lt->num_children);

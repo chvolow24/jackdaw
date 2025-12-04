@@ -1,7 +1,7 @@
 <Layout name="output_panel" type="NORMAL">
   <x>REL 0</x>
   <y>REL 0</y>
-  <w>REL 400</w>
+  <w>ABS 400</w>
   <h>SCALE 1.000000</h>
   <children>
     <Layout name="default_out" type="NORMAL">
@@ -47,7 +47,7 @@
     <Layout name="output_vu" type="NORMAL">
       <x>REL 213</x>
       <y>REL 0</y>
-      <w>REL 56</w>
+      <w>REL 44</w>
       <h>REL 85</h>
       <children>
       </children>

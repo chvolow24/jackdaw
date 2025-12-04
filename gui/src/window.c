@@ -414,7 +414,7 @@ void window_add_menu(Window *win, Menu *menu)
 	menu->columns[0]->sel_sctn = 0;
 	menu->columns[0]->sections[0]->sel_item = 0;
 	menu->columns[0]->sections[0]->items[0]->selected = true;
-	
+	menu_reset_layout(menu);
 	
     } else {
 	fprintf(stderr, "Error: window already has maximum number of menus (%d)\n", win->num_menus);

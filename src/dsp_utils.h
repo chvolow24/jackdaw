@@ -61,4 +61,8 @@ void float_buf_mult_to(float *restrict a, float *restrict b, float *restrict pro
 /* Convert a linear pan parameter value into a multiplier, depending on channel */
 float pan_scale(float pan, int channel);
 
+/* db FS */
+float amp_to_db(float amp);
+float db_to_amp(float db);
+
 #endif

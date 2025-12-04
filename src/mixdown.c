@@ -265,6 +265,39 @@ should be collected from the in mark rather than from the play head.
 /* Compressor comp_L; */
 /* Compressor comp_R; */
 
+float gate_test_fn(float in_signed, int channel)
+{
+    static EnvelopeFollower envs[2];
+    static bool env_init = false;
+    if (!env_init) {
+	envelope_follower_set_times(envs, 0, 20000);
+	envelope_follower_set_times(envs + 1, 0, 20000);
+	env_init = true;
+    }
+    float env_sample = envelope_follower_sample(envs + channel, in_signed);
+    const float thresh = 0.2f;
+    const float steepness_exp = 3.0f;
+
+    /* Method 1: only attenuate below the threshold, never all the way */
+    /* if (env_sample < thresh) { */
+    /* 	float multiplier = powf(env_sample / thresh, steepness_exp); */
+    /* 	return multiplier * in_signed; */
+    /* } else return in_signed; */
+    /* if (fabs(in_signed) < 0.5 */
+
+    /* Method 2: attenuate absolutely below the threshold, and roll off above it */
+    /* const float steepness_mult = 4.0f; */
+    /* if (env_sample < thresh) { */
+    /* 	return 0.0f; */
+    /* } else { */
+    /* 	return in_signed * tanhf(steepness_mult * (env_sample - thresh)); */
+    /* } */
+
+    /* Method 3: attenuate continuously according to tanh */
+    const float sharpness = 7.0f;
+    return in_signed * (tanh(sharpness * (env_sample - thresh)) / 2.0f + 0.5f);
+
+}
 
 float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t len_sframes, int32_t start_pos_sframes, float step)
 {
@@ -285,6 +318,7 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 	click_track_mix_metronome(tt, mixdown, len_sframes, start_pos_sframes, end_pos_sframes, step);
     }
 
+    
     /* static AllpassGroup diffuser[2]; */
     /* static bool diffuser_init = false; */
 
@@ -313,6 +347,11 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 
         float track_chunk_amp = get_track_channel_chunk(track, track_chunk, channel, start_pos_sframes, len_sframes, step);
 
+	if (t==0) {
+	    for (int i=0; i<len_sframes; i++) {
+		track_chunk[i] = gate_test_fn(track_chunk[i], channel);
+	    }
+	}
 	/* if (t==0) { */
 	/*     for (int i=0; i<len_sframes; i++) { */
 	/* 	track_chunk[i] = allpass_group_sample(diffuser + channel, track_chunk[i]); */

@@ -243,3 +243,14 @@ inline float pan_scale(float pan, int channel)
 	pan <= 0.5 ? 1.0f : (1.0f - pan) * 2.0f :
 	pan >= 0.5 ? 1.0 : pan * 2.0f;    
 }
+
+
+float amp_to_db(float amp)
+{
+    return 20.0f * log10(amp);
+}
+
+float db_to_amp(float db)
+{
+    return powf(10.0f, db / 20.0f);
+}

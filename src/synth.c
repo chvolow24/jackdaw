@@ -427,6 +427,7 @@ Synth *synth_create(Track *track)
 	NULL, NULL, &s->osc_page, "master_pan_slider");
     endpoint_set_default_value(&s->pan_ep, (Value){.float_v = 0.5});
     endpoint_set_allowed_range(&s->pan_ep, (Value){.float_v = 0.0}, (Value){.float_v = 1.0});
+    endpoint_set_label_fn(&s->pan_ep, label_pan);
     api_endpoint_register(&s->pan_ep, &s->api_node);
 
 

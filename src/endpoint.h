@@ -91,6 +91,8 @@ typedef struct endpoint {
     EndptCb proj_callback; /* Main thread -- update project state outside target parameter */
     EndptCb gui_callback; /* Main thread -- update GUI state */
     EndptCb dsp_callback; /* DSP thread */
+
+    bool display_label; /* Set in endpoint write based on "undoable" -- used in gui cbs */
     
     pthread_mutex_t val_lock;
     pthread_mutex_t owner_lock;

@@ -26,7 +26,9 @@ void track_slider_cb(Endpoint *ep)
 {
     Slider *s = *((Slider **)ep->xarg1);
     Value val = slider_reset(s);
-    label_reset(s->label, val);
+    if (ep->display_label) {
+	label_reset(s->label, val);
+    }
     Timeline *tl = (Timeline *)ep->xarg2;
     tl->needs_redraw = true;
 }

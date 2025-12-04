@@ -12,10 +12,13 @@
 #include "audio_connection.h"
 #include "color.h"
 #include "consts.h"
+#include "endpoint.h"
 #include "endpoint_callbacks.h"
 #include "init_panels.h"
+#include "label.h"
 #include "layout.h"
 #include "layout_xml.h"
+#include "page.h"
 #include "session.h"
 #include "transport.h"
 /* #include "window.h" */
@@ -105,7 +108,7 @@ Session *session_create()
 	fprintf(stderr, "Error initializing queued audio buf mutex: %s\n", strerror(err));
 	exit(1);
     }
-
+    
     endpoint_init(
 	&session->playback.play_speed_ep,
 	&session->playback.play_speed,
@@ -118,6 +121,24 @@ Session *session_create()
     
     api_endpoint_register(&session->playback.play_speed_ep, &session->server.api_root);
     session_init_status_bar(session);
+
+    session->playback.output_vol = 1.0f;
+    endpoint_init(
+	&session->playback.output_vol_ep,
+	&session->playback.output_vol,
+	JDAW_FLOAT,
+	"output_vol",
+	"Output vol",
+	JDAW_THREAD_PLAYBACK,
+	page_el_gui_cb, NULL, NULL, /* page el args initialized in panel */
+	NULL, NULL, NULL, NULL);
+    endpoint_set_allowed_range(&session->playback.output_vol_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
+    endpoint_set_default_value(&session->playback.output_vol_ep, (Value){.float_v = 1.0f});
+    endpoint_set_label_fn(&session->playback.output_vol_ep, label_amp_to_dbstr);
+    api_endpoint_register(&session->playback.output_vol_ep, &session->server.api_root);
+    session_init_status_bar(session);
+
+	
     
     return session;
 }

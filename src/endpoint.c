@@ -148,6 +148,7 @@ int endpoint_write(
     ep->current_write_val = new_val;
     bool async_change_will_occur = false;
     /* Value change */
+    ep->display_label = undoable || ep->changing; /* heuristic, ok */
     /* fprintf(stderr, "Owner? %d.. on owner? %d !session->playback.playing && owner == JDAW_THREAD_DSP %d?\n", owner, on_thread(owner), !session->playback.playing && owner == JDAW_THREAD_DSP); */
     if (on_thread(owner) || (!session->playback.playing && (owner == JDAW_THREAD_DSP || owner == JDAW_THREAD_PLAYBACK))) {
 	pthread_mutex_lock(&ep->val_lock);

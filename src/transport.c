@@ -329,7 +329,9 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 
     /* Check for queued bufs and add to chunk_L and chunk_R */
     loc_queued_bufs_add(chunk_L, chunk_R, len_sframes);
-    
+
+    float_buf_mult_const(chunk_L, session->playback.output_vol, len_sframes);
+    float_buf_mult_const(chunk_R, session->playback.output_vol, len_sframes);
     int16_t *stream_fmt = (int16_t *)stream;
     for (uint32_t i=0; i<stream_len_samples; i+=2)
     {

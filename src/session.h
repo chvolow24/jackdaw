@@ -158,6 +158,8 @@ struct playback {
     bool recording;
     bool playing;
     bool lock_view_to_playhead;
+    float output_vol;
+    Endpoint output_vol_ep;
 };
 
 /* struct audio_settings { */

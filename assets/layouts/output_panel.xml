@@ -45,9 +45,17 @@
       </children>
     </Layout>
     <Layout name="output_vu" type="NORMAL">
-      <x>REL 213</x>
+      <x>REL 212</x>
       <y>REL 0</y>
       <w>REL 44</w>
+      <h>REL 85</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="vol_slider" type="NORMAL">
+      <x>REL 261</x>
+      <y>REL 0</y>
+      <w>REL 15</w>
       <h>REL 85</h>
       <children>
       </children>

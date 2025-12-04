@@ -15,6 +15,7 @@
 #include "geometry.h"
 #include "layout.h"
 #include "midi_qwerty.h"
+#include "page.h"
 #include "panel.h"
 #include "session.h"
 #include "textbox.h"
@@ -219,6 +220,19 @@ static void session_init_output_panel(Page *output, Session *session)
 	p,
 	"output_vu",
 	"output_vu");
+
+    session->playback.output_vol_ep.xarg3 = output;
+    session->playback.output_vol_ep.xarg4 = "vol_slider";
+    page_el_params_slider_from_ep(&p, &session->playback.output_vol_ep);
+    p.slider_p.orientation = SLIDER_VERTICAL;
+    p.slider_p.style = SLIDER_FILL;
+    page_add_el(
+	output,
+	EL_SLIDER,
+	p,
+	"vol_slider",
+	"vol_slider");
+	
     
     
     /* proj->tb_out_value = textbox_create_from_str( */

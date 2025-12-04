@@ -104,8 +104,10 @@ static void eq_gui_cb(Endpoint *ep)
 	ctrl->x = waveform_freq_plot_x_abs_from_freq(eq->fp, ctrl->freq_amp_raw[0]);
 	ctrl->y = waveform_freq_plot_y_abs_from_amp(eq->fp, ctrl->freq_amp_raw[1], 0, true);
 	Value v = {.double_pair_v = {ctrl->freq_amp_raw[0], ctrl->freq_amp_raw[1]}};
-	label_move(ctrl->label, ctrl->x + 10 * main_win->dpi_scale_factor, ctrl->y - 10 * main_win->dpi_scale_factor);
-	label_reset(ctrl->label, v);
+	if (ep->display_label) {
+	    label_move(ctrl->label, ctrl->x + 10 * main_win->dpi_scale_factor, ctrl->y - 10 * main_win->dpi_scale_factor);
+	    label_reset(ctrl->label, v);
+	}
     }
     iir_group_update_freq_resp(&eq->group);
 }

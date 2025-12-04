@@ -227,15 +227,15 @@ int32_t wav_load(const char *filename, float **L, float **R)
     SDL_AudioCVT wav_cvt;
 
     SDL_AudioFormat fmt;
-    int channels;
+    int channels = wav_spec.channels;
     int sample_rate;
     if (session->proj_initialized) {
 	fmt = session->proj.fmt;
-	channels = session->proj.channels;
+	/* channels = session->proj.channels; */
 	sample_rate = session_get_sample_rate();
     } else {
 	fmt = DEFAULT_SAMPLE_FORMAT;
-	channels = 2;
+	/* channels = 2; */
 	sample_rate = DEFAULT_SAMPLE_RATE;
     }
     
@@ -325,13 +325,15 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
         fprintf(stderr, "Error loading wav %s: %s", filename, SDL_GetError());
         return NULL;
     }
+    int channels = wav_spec.channels;
     /* write_wav("TEST_WAV.wav", audio_buf, audio_len_bytes / 2, 16, 2); */
     /* exit(0); */
 
     session_set_loading_screen("Importing WAV...", NULL, true);
 
     SDL_AudioCVT wav_cvt;
-    int ret = SDL_BuildAudioCVT(&wav_cvt, wav_spec.format, wav_spec.channels, wav_spec.freq, proj->fmt, proj->channels, proj->sample_rate);
+    fprintf(stderr, "LOAD WAV CHANNELS %d\n", wav_spec.channels);
+    int ret = SDL_BuildAudioCVT(&wav_cvt, wav_spec.format, channels, wav_spec.freq, proj->fmt, wav_spec.channels, proj->sample_rate);
     uint8_t *final_buffer = NULL;
     int final_buffer_len;
     if (ret < 0) {
@@ -408,8 +410,9 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
     
     if (!session->playback.recording)
 	proj->active_clip_index++;
-    
-    clip->len_sframes = buf_len_samples / track->channels;
+
+    clip->channels = channels;
+    clip->len_sframes = buf_len_samples / channels;
     create_clip_buffers(clip, clip->len_sframes);
 
     int16_t *src_buf = (int16_t *)final_buffer;
@@ -426,8 +429,12 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
 	    }
 	}
 
-        clip->L[i/2] = (float) src_buf[i] / INT16_MAX;
-        clip->R[i/2] = (float) src_buf[i+1] / INT16_MAX;
+	if (channels == 2) {
+	    clip->L[i/2] = (float)src_buf[i] / INT16_MAX;
+	    clip->R[i/2] = (float)src_buf[i+1] / INT16_MAX;
+	} else if (channels == 1) {
+	    clip->L[i] = (float)src_buf[i] / INT16_MAX;
+	}
     }
     free(final_buffer);
     final_buffer = NULL;

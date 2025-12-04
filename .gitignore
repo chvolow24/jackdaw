@@ -38,4 +38,8 @@ build/
 gui/build/
 *.org
 *.log
+*select_rect*
+src/factors.py
+pianolt.py
+*feedback.txt
 presets/

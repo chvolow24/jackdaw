@@ -18,6 +18,9 @@
 #ifndef JDAW_ENVELOPE_FOLLOWER_H
 #define JDAW_ENVELOPE_FOLLOWER_H
 
+#define ENV_F_STD_ATTACK_MSEC 0
+#define ENV_F_STD_RELEASE_MSEC 200
+
 #include <math.h>
 #include <stdint.h>
 

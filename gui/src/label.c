@@ -1,5 +1,6 @@
 #include "animation.h"
 #include "color.h"
+#include "dsp_utils.h"
 #include "label.h"
 #include "layout.h"
 #include "session.h"
@@ -145,10 +146,10 @@ void label_destroy(Label *label)
 
 /* LABELMAKING UTILITIES */
 
-static float amp_to_db(float amp)
-{
-    return (20.0f * log10(amp));
-}
+/* static float amp_to_db(float amp) */
+/* { */
+/*     return (20.0f * log10(amp)); */
+/* } */
 
 void label_amp_to_dbstr(char *dst, size_t dstsize, Value val, ValType t)
 {

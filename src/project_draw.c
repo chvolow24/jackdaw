@@ -24,6 +24,7 @@
 #include "textbox.h"
 #include "timeline.h"
 #include "timeview.h"
+/* #include "vu_meter.h" */
 #include "waveform.h"
 
 /* #define BACKGROUND_ACTIVE */
@@ -741,7 +742,8 @@ static void control_bar_draw()
 	SDL_RenderFillRect(main_win->rend, session->gui.bun_patty_bun[i]);
     }
 }
-
+extern EnvelopeFollower track_1_ef;
+extern bool track_1_ef_init;
 void project_draw()
 {
     Session *session = session_get();
@@ -793,110 +795,18 @@ void project_draw()
 	autocompletion_draw(&main_win->ac);
     }
 
-
-    /* if (!glob_eq.fp) { */
-    /* 	eq_tests_create(); */
+    /* static VUMeter *vu_meter = NULL; */
+    /* if (!vu_meter && track_1_ef_init) { */
+    /* 	Layout *container = layout_add_child(main_win->layout); */
+    /* 	layout_set_default_dims(container); */
+    /* 	layout_reset(container); */
+    /* 	container->w.value = 40; */
+    /* 	container->h.value = 240; */
+    /* 	vu_meter = vu_meter_create(container, false, &track_1_ef, NULL); */
     /* } */
-    /* waveform_draw_freq_plot(glob_eq.fp); */
-    /* eq_draw(&glob_eq); */
-
-    
-    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.white)); */
-    /* for (int i=0; i<freq_resp_len; i++) { */
-    /* 	int x = main_win->w_pix * i / freq_resp_len; */
-    /* 	int y = main_win->h_pix - (main_win->h_pix * (freq_resp[i]) / 20); */
-    /* 	SDL_RenderDrawPoint(main_win->rend, x, y); */
+    /* if (vu_meter) { */
+    /* 	vu_meter_draw(vu_meter); */
     /* } */
-    /* if (eqfp) { */
-    /* 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black)); */
-    /* 	SDL_RenderFillRect(main_win->rend, &eqfp->container->rect); */
-    /* 	waveform_draw_freq_plot(eqfp); */
-    /* 	/\* SDL_SetRenderDrawColor(main_win->rend, 0, 255, 0, 255); *\/ */
-    /* 	/\* for (int x=eqfp->container->rect.x; x<eqfp->container->rect.x + eqfp->container->rect.w; x++) { *\/ */
-    /* 	/\*     double freq_raw = waveform_freq_plot_freq_from_x_abs(eqfp, x); *\/ */
-    /* 	/\*     double complex pole1 = pole_zero[0]; *\/ */
-    /* 	/\*     double complex pole2 = conj(pole1); *\/ */
-    /* 	/\*     double complex zero1 = pole_zero[1]; *\/ */
-    /* 	/\*     double complex zero2 = conj(zero1); *\/ */
-
-    /* 	/\*     double theta = PI * freq_raw;  *\/ */
-    /* 	/\*     double complex z = cos(theta) + I * sin(theta); *\/ */
-    /* 	/\*     double magnitude = ((zero1 - z) * (zero2 - z)) / ((pole1 - z) * (pole2 - z)); *\/ */
-    /* 	/\*     fprintf(stderr, "FREQ: %f, theta %f, z: %f+%fi, X: %d, mag: %f\n", freq_raw, theta, creal(z), cimag(z), x, magnitude); *\/ */
-    /* 	/\*     SDL_RenderDrawPoint(main_win->rend, x, eqfp->container->rect.y + eqfp->container->rect.h - magnitude * eqfp->container->rect.h); *\/ */
-    /* 	/\* } *\/ */
-    /* } */
-
-    /* SDL_Rect env_rect = {1000, 500, 500, 500}; */
-
-    /* compressor_draw(&comp_L, &env_rect); */
-    /* float env_global = comp_L.gain_reduction; */
-    /* SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 90); */
-    /* SDL_RenderDrawRect(main_win->rend, &env_rect); */
-    /* int chg = 500 - env_global * 500; */
-    /* env_rect.y+= chg; */
-    /* env_rect.h-= chg; */
-    /* SDL_RenderFillRect(main_win->rend, &env_rect); */
-    
-    /* if ((draw_i / 100) %2 == 0) { */
-    /* 	Symbol *s = SYMBOL_TABLE[SYMBOL_STATUS_ON]; */
-    /* 	SDL_Rect symbol_rect = {500, 500, s->x_dim_pix, s->y_dim_pix}; */
-    /* 	symbol_draw(s, &symbol_rect); */
-    /* } else { */
-    /* 	Symbol *s = SYMBOL_TABLE[SYMBOL_STATUS_OFF]; */
-    /* 	SDL_Rect symbol_rect = {500, 500, s->x_dim_pix, s->y_dim_pix}; */
-    /* 	symbol_draw(s, &symbol_rect); */
-	
-    /* } */
-    /* draw_i++ ; */
-
-    /* static bool initd = false; */
-    /* static SelectRect sr; */
-    /* if (!initd) { */
-    /* 	sr.rect = (SDL_Rect){100, 100, 500, 500}; */
-    /* 	sr.speed = 3; */
-    /* 	sr.phase = 0; */
-    /* 	initd = true; */
-    /* } */
-    /* select_rect_draw(sr.rect, sr.speed); */
-/*     if (TOP_MODE == MODE_TIMELINE) { */
-/* 	ClipRef *cr = clipref_at_cursor(); */
-/* 	if (cr) { */
-/* 	    SDL_Rect r = cr->layout->rect; */
-/* 	    if (r.x > main_win->w_pix) goto end_draw; */
-/* 	    if (r.x + r.w < 0) goto end_draw; */
-/* 	    if (r.x < 0) r.x = 0; */
-/* 	    if (r.x + r.w > main_win->w_pix) { */
-/* 		r.w -= r.x + r.w - main_win->w_pix; */
-/* 	    } */
-/* 	    select_rect_draw(r, 2); */
-/* 	    r.x += 1; */
-/* 	    r.y += 1; */
-/* 	    r.w -= 2; */
-/* 	    r.h -= 2; */
-/* 	    select_rect_draw(r, 2); */
-/* 	} */
-/*     } else if (TOP_MODE == MODE_PIANO_ROLL) { */
-/* 	Note *note = piano_roll_note_at_cursor(true); */
-/* 	if (note) { */
-	    
-/* 	    SDL_Rect r = piano_roll_get_note_rect(note); */
-/* 	    if (r.x > main_win->w_pix) goto end_draw; */
-/* 	    if (r.x + r.w < 0) goto end_draw; */
-/* 	    if (r.x < 0) r.x = 0; */
-/* 	    if (r.x + r.w > main_win->w_pix) { */
-/* 		r.w -= r.x + r.w - main_win->w_pix; */
-/* 	    } */
-/* 	    select_rect_draw(r, 2); */
-/* 	    r.x += 1; */
-/* 	    r.y += 1; */
-/* 	    r.w -= 2; */
-/* 	    r.h -= 2; */
-/* 	    select_rect_draw(r, 2); */
-
-/* 	    /\* select_rect_draw(note->rel, 1); *\/ */
-/* 	} */
-/*     } */
 /* end_draw: */
     window_end_draw(main_win);
 }

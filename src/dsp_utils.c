@@ -254,3 +254,11 @@ float db_to_amp(float db)
 {
     return powf(10.0f, db / 20.0f);
 }
+
+
+float clip_float_sample(float f)
+{
+    if (f > 1.0) return 1.0;
+    if (f < -1.0) return -1.0;
+    return f;
+}

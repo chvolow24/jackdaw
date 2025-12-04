@@ -39,6 +39,7 @@ Positions	Sample Value	    Description
 #include "clipref.h"
 #include "consts.h"
 #include "dir.h"
+#include "dsp_utils.h"
 #include "project.h"
 #include "mixdown.h"
 #include "transport.h"
@@ -197,8 +198,8 @@ void wav_write_mixdown(const char *filepath)
 	get_mixdown_chunk(tl, samples_L, 0, remainder_sframes, tl->in_mark_sframes + done_len_sframes, 1);
 	get_mixdown_chunk(tl, samples_R, 1, remainder_sframes, tl->in_mark_sframes + done_len_sframes, 1);
 	for (uint32_t i=0; i<remainder_sframes * proj->channels; i+=2) {
-	    samples[done_len_samples + i] = samples_L[i/2] * INT16_MAX;
-	    samples[done_len_samples + i + 1] = samples_R[i/2] * INT16_MAX;
+	    samples[done_len_samples + i] = clip_float_sample(samples_L[i/2]) * INT16_MAX;
+	    samples[done_len_samples + i + 1] = clip_float_sample(samples_R[i/2]) * INT16_MAX;
 	}
     }
     

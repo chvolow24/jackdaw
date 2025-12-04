@@ -36,6 +36,7 @@
 #include "saturation.h"
 #include "synth.h"
 #include "textbox.h"
+#include "vu_meter.h"
 
 #define MAX_TRACKS 255
 #define MAX_TRACK_CLIPS 2048
@@ -384,6 +385,8 @@ typedef struct project {
     float *output_R;
     double *output_L_freq;
     double *output_R_freq;
+    EnvelopeFollower output_L_ef;
+    EnvelopeFollower output_R_ef;
 } Project;
 
 int project_init(

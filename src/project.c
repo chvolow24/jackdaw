@@ -427,6 +427,8 @@ int project_init(
     memset(proj->output_L, '\0', sizeof(float) * fourier_len_sframes);
     memset(proj->output_R, '\0', sizeof(float) * fourier_len_sframes);
 
+    envelope_follower_set_times_msec(&proj->output_L_ef, ENV_F_STD_ATTACK_MSEC, ENV_F_STD_RELEASE_MSEC, sample_rate);
+    envelope_follower_set_times_msec(&proj->output_R_ef, ENV_F_STD_ATTACK_MSEC, ENV_F_STD_RELEASE_MSEC, sample_rate);
 
     
 

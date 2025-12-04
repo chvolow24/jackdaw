@@ -171,12 +171,12 @@ static float *get_source_mode_chunk(uint8_t channel, float *chunk, uint32_t len_
 
 void transport_recording_update_cliprects();
 
-static inline float clip(float f)
-{
-    if (f > 1.0) return 1.0;
-    if (f < -1.0) return -1.0;
-    return f;
-}
+/* static inline float clip(float f) */
+/* { */
+/*     if (f > 1.0) return 1.0; */
+/*     if (f < -1.0) return -1.0; */
+/*     return f; */
+/* } */
 
 #define MAX_QUEUED_BUFS 64
 struct transport_buf_queue {
@@ -335,8 +335,10 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     {
 	float val_L = chunk_L[i/2];
 	float val_R = chunk_R[i/2];
-	stream_fmt[i] = (int16_t)(clip(val_L) * INT16_MAX);
-	stream_fmt[i+1] = (int16_t)(clip(val_R) * INT16_MAX);
+	envelope_follower_sample(&session->proj.output_L_ef, val_L);
+	envelope_follower_sample(&session->proj.output_R_ef, val_R);
+	stream_fmt[i] = (int16_t)(clip_float_sample(val_L) * INT16_MAX);
+	stream_fmt[i+1] = (int16_t)(clip_float_sample(val_R) * INT16_MAX);
     }
 
 
@@ -413,9 +415,9 @@ static void *transport_dsp_thread_fn(void *arg)
 	FFTf(dL, lfreq, len);
 	FFTf(dR, rfreq, len);
 
-
 	get_magnitude(lfreq, tl->proj->output_L_freq, len);
 	get_magnitude(rfreq, tl->proj->output_R_freq, len);
+
 
 	/* timed = (((double)clock() - cd)/CLOCKS_PER_SEC); */
 	/* fprintf(stderr, "DSP: %f\n", timed * 1000); */

@@ -3,21 +3,18 @@
   <y>REL 0</y>
   <w>REL 400</w>
   <h>SCALE 1.000000</h>
-  <index>0</index>
   <children>
     <Layout name="default_out" type="NORMAL">
       <x>REL 15</x>
       <y>REL 0</y>
       <w>REL 186</w>
       <h>REL 20</h>
-      <index>0</index>
       <children>
         <Layout name="default_out_label" type="NORMAL">
           <x>REL 0</x>
           <y>REL 0</y>
           <w>REL 80</w>
           <h>SCALE 1.000000</h>
-          <index>0</index>
           <children>
           </children>
         </Layout>
@@ -26,7 +23,6 @@
           <y>REL 0</y>
           <w>COMPLEMENT 0</w>
           <h>SCALE 1.000000</h>
-          <index>1</index>
           <children>
           </children>
         </Layout>
@@ -37,7 +33,6 @@
       <y>REL 30</y>
       <w>REL 90</w>
       <h>REL 55</h>
-      <index>2</index>
       <children>
       </children>
     </Layout>
@@ -46,7 +41,14 @@
       <y>REL 30</y>
       <w>REL 90</w>
       <h>REL 55</h>
-      <index>4</index>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="output_vu" type="NORMAL">
+      <x>REL 213</x>
+      <y>REL 0</y>
+      <w>REL 56</w>
+      <h>REL 85</h>
       <children>
       </children>
     </Layout>

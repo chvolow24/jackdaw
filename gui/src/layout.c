@@ -1426,7 +1426,6 @@ void layout_size_to_fit_children_v(Layout *lt, bool fixed_origin, int padding)
     lt->rect.h = max_y - lt->rect.y + padding * main_win->dpi_scale_factor;
     layout_set_values_from_rect(lt);
     /* layout_reset(lt); */
-
 }
 
 

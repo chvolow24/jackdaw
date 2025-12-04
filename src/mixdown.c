@@ -18,6 +18,7 @@
 /* #include "dsp.h" */
 #include "effect.h"
 /* #include "eq.h" */
+#include "envelope_follower.h"
 #include "midi_io.h"
 #include "project.h"
 #include "session.h"
@@ -270,12 +271,12 @@ float gate_test_fn(float in_signed, int channel)
     static EnvelopeFollower envs[2];
     static bool env_init = false;
     if (!env_init) {
-	envelope_follower_set_times(envs, 0, 20000);
-	envelope_follower_set_times(envs + 1, 0, 20000);
+	envelope_follower_set_times(envs, 0, 30000);
+	envelope_follower_set_times(envs + 1, 0, 30000);
 	env_init = true;
     }
     float env_sample = envelope_follower_sample(envs + channel, in_signed);
-    const float thresh = 0.2f;
+    const float thresh = 0.05f;
     const float steepness_exp = 3.0f;
 
     /* Method 1: only attenuate below the threshold, never all the way */
@@ -294,10 +295,13 @@ float gate_test_fn(float in_signed, int channel)
     /* } */
 
     /* Method 3: attenuate continuously according to tanh */
-    const float sharpness = 7.0f;
-    return in_signed * (tanh(sharpness * (env_sample - thresh)) / 2.0f + 0.5f);
+    const float sharpness = 1.0f;
+    return in_signed * (tanh(powf(sharpness + 1.0f, 8.0) * (env_sample - thresh)) / 2.0f + 0.5f);
 
 }
+
+EnvelopeFollower track_1_ef = {0};
+bool track_1_ef_init = false;
 
 float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t len_sframes, int32_t start_pos_sframes, float step)
 {
@@ -346,12 +350,21 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 	float track_chunk[len_sframes];
 
         float track_chunk_amp = get_track_channel_chunk(track, track_chunk, channel, start_pos_sframes, len_sframes, step);
-
+	
 	if (t==0) {
-	    for (int i=0; i<len_sframes; i++) {
-		track_chunk[i] = gate_test_fn(track_chunk[i], channel);
+	    if (!track_1_ef_init) {
+		envelope_follower_set_times(&track_1_ef, 0, 70000);
+		track_1_ef_init = true;
 	    }
+	    for (int i=0; i<len_sframes; i++) {
+		envelope_follower_sample(&track_1_ef, track_chunk[i]);
+	    }
+			
+	    /* for (int i=0; i<len_sframes; i++) { */
+	    /* 	track_chunk[i] = gate_test_fn(track_chunk[i], channel); */
+	    /* } */
 	}
+	
 	/* if (t==0) { */
 	/*     for (int i=0; i<len_sframes; i++) { */
 	/* 	track_chunk[i] = allpass_group_sample(diffuser + channel, track_chunk[i]); */
@@ -402,13 +415,13 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 
     
 
-    for (uint32_t i=0; i<len_sframes; i++) {
-	if (mixdown[i] > 1.0f) {
-	    mixdown[i] = 1.0f;
-	} else if (mixdown[i] < -1.0f) {
-	    mixdown[i] = -1.0f;
-	}
-    }
+    /* for (uint32_t i=0; i<len_sframes; i++) { */
+    /* 	if (mixdown[i] > 1.0f) { */
+    /* 	    mixdown[i] = 1.0f; */
+    /* 	} else if (mixdown[i] < -1.0f) { */
+    /* 	    mixdown[i] = -1.0f; */
+    /* 	} */
+    /* } */
 
     return mixdown;
     /* fprintf(stderr, "MIXDOWN TOTAL DUR: %f\n", 1000 * ((double)clock() - start)/ CLOCKS_PER_SEC); */

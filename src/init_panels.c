@@ -21,6 +21,7 @@
 #include "timeview.h"
 #include "waveform.h"
 #include "userfn.h"
+#include "vu_meter.h"
 
 extern Window *main_win;
 extern struct colors colors;
@@ -134,6 +135,14 @@ int set_output_compfn(void *self, void *target)
     session_set_default_out(NULL);
     return 0;
 }
+
+static VUMeter *output_vu = NULL;
+
+void vu_meter_draw_loc(void *arg1, void *arg2)
+{
+    vu_meter_draw(output_vu);
+}
+
 static void session_init_output_panel(Page *output, Session *session)
 {
 
@@ -150,9 +159,8 @@ static void session_init_output_panel(Page *output, Session *session)
 	"panel_out_label",
 	"default_out_label");
     /* textbox_set_align(proj->tb_out_label, CENTER_LEFT); */
-    /* textbox_set_background_color(proj->tb_out_label, &colors.clear); */
-    /* textbox_set_text_color(proj->tb_out_label, &colors.white); */
-
+    /* textbox_set_background_color(proj->tb_out_label, &colors.clear); */    /* textbox_set_text_color(proj->tb_out_label, &colors.white); */
+    
     textbox_set_align((Textbox *)el->component, CENTER_LEFT);
     p.button_p.text_color = &colors.white;
     p.button_p.background_color = &colors.quickref_button_blue;
@@ -194,12 +202,24 @@ static void session_init_output_panel(Page *output, Session *session)
 	p,
 	"panel_out_wav_right",
 	"out_waveform_right");
-    
-    
         /* textbox_size_to_fit(proj->tb_out_value, 2, 1); */
     /* textbox_set_fixed_w(proj->tb_out_value, saved_w - 10); */
     /* textbox_set_border(proj->tb_out_value, &colors.black, 1); */
 
+    Layout *vu_layout = layout_get_child_by_name_recursive(output->layout, "output_vu");
+    if (!output_vu) {
+	output_vu = vu_meter_create(vu_layout, false, &session->proj.output_L_ef, &session->proj.output_R_ef);
+    }
+    p.canvas_p.draw_fn = vu_meter_draw_loc;
+    p.canvas_p.draw_arg1 = NULL;
+    p.canvas_p.draw_arg2 = NULL;
+    page_add_el(
+	output,
+	EL_CANVAS,
+	p,
+	"output_vu",
+	"output_vu");
+    
     
     /* proj->tb_out_value = textbox_create_from_str( */
     /* 	(char *)session->audio_io.playback_conn->name, */

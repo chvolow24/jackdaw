@@ -65,4 +65,9 @@ float pan_scale(float pan, int channel);
 float amp_to_db(float amp);
 float db_to_amp(float db);
 
+float clip_float_sample(float f);
+
+
+
+
 #endif

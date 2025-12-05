@@ -102,6 +102,22 @@ void piano_init(Piano *piano, Layout *container)
     }
 }
 
+void piano_reset(Piano *piano)
+{
+    for (int i=0; i<PIANO_NUM_KEYS; i++) {
+	textbox_size_to_fit(piano->key_labels[i], 0, 2);
+	piano->key_labels[i]->layout->rect.w = piano->key_labels[i]->layout->rect.h;
+	layout_set_values_from_rect(piano->key_labels[i]->layout);
+	layout_reset(piano->key_labels[i]->layout);
+	layout_center_scale(piano->key_labels[i]->layout, true, true);
+	if (i < NUM_WHITE_KEYS) {
+	    piano->key_labels[i]->layout->y.value = 0.65;
+	    layout_reset(piano->key_labels[i]->layout);
+	}
+	textbox_reset_full(piano->key_labels[i]);
+    }
+}
+
 void piano_draw(Piano *piano)
 {
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.white));

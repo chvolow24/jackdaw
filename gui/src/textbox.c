@@ -54,6 +54,8 @@ Textbox *textbox_create_from_str(
 
 void textbox_size_to_fit(Textbox *tb, int h_pad, int v_pad)
 {
+    int h_pad_unscaled = h_pad;
+    int v_pad_unscaled = v_pad;
     h_pad *= tb->window->dpi_scale_factor;
     v_pad *= tb->window->dpi_scale_factor;
     SDL_Rect *text_rect = &tb->text->text_lt->rect;
@@ -61,7 +63,7 @@ void textbox_size_to_fit(Textbox *tb, int h_pad, int v_pad)
     bool save_trunc = tb->text->truncate;
     
     tb->text->truncate = false;
-    txt_set_pad(tb->text, h_pad, v_pad);
+    txt_set_pad(tb->text, h_pad_unscaled, v_pad_unscaled);
     txt_reset_display_value(tb->text);
     layout_rect->w = text_rect->w + h_pad * 2;
     layout_rect->h = text_rect->h + v_pad * 2;

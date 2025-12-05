@@ -327,6 +327,9 @@ void page_el_reset(PageEl *el)
     case EL_DROPDOWN:
 	dropdown_reset(el->component);
 	break;
+    case EL_PIANO:
+	piano_reset(el->component);
+	break;
     default:
 	break;
     }

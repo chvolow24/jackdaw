@@ -46,4 +46,6 @@ void piano_destroy(Piano *piano);
 
 void piano_draw(Piano *piano);
 
+void piano_reset(Piano *piano);
+
 #endif

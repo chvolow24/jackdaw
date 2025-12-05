@@ -803,6 +803,9 @@ bool timeline_click_track_delete(Timeline *tl)
 {
     ClickTrack *tt = timeline_selected_click_track(tl);
     if (!tt) return false;
+    if (tt == tl->click_tracks[0] && tl->click_track_frozen) {
+	check_unfreeze_click_track(tl);
+    }
     click_track_delete(tt, false);
     timeline_reset(tl, false);
     return true;

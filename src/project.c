@@ -526,7 +526,12 @@ void timeline_rectify_track_indices(Timeline *tl)
     
     Track *track_stack[tl->num_tracks];
     ClickTrack *click_track_stack[tl->num_click_tracks];
-    
+
+    if (tl->click_track_frozen) {
+	click_track_stack[click_track_index] = tl->click_tracks[0];
+	click_track_index++;
+    }
+
     for (int i=0; i<tl->track_area->num_children; i++) {
 	Layout *lt = tl->track_area->children[i];
 	bool is_selected_lt = i == tl->layout_selector;
@@ -543,7 +548,7 @@ void timeline_rectify_track_indices(Timeline *tl)
 		break;
 	    }
 	}
-	for (uint8_t j=0; j<tl->num_click_tracks; j++) {
+	for (int j=0; j<tl->num_click_tracks; j++) {
 	    ClickTrack *tt = tl->click_tracks[j];
 	    if (tt->layout == lt) {
 		click_track_stack[click_track_index] = tt;
@@ -567,6 +572,7 @@ void timeline_rectify_track_indices(Timeline *tl)
 
 Track *timeline_selected_track(Timeline *tl)
 {
+    if (tl->layout_selector < 0) return NULL; /* frozen CT */
     if (tl->num_tracks == 0 || tl->track_selector < 0) {
 	return NULL;
     } else if (tl->track_selector > tl->num_tracks - 1) {
@@ -587,6 +593,8 @@ void timeline_select_track(Track *track)
 
 ClickTrack *timeline_selected_click_track(Timeline *tl)
 {
+    if (tl->layout_selector < 0 && tl->click_track_frozen)
+	return tl->click_tracks[0];
     if (tl->num_click_tracks == 0 || tl->click_track_selector < 0) {
 	return NULL;
     } else if (tl->click_track_selector > tl->num_click_tracks - 1) {
@@ -606,6 +614,7 @@ ClickTrack *track_governing_click_track(Track *t)
 	    break;
 	}
     }
+    if (!ct && t->tl->click_track_frozen) return t->tl->click_tracks[0];
     return ct;
 
 }
@@ -620,6 +629,8 @@ ClickTrack *timeline_governing_click_track(Timeline *tl)
 	    break;
 	}
     }
+    if (!ct && tl->click_track_frozen) return tl->click_tracks[0];
+
     return ct;
 }
 
@@ -2095,6 +2106,49 @@ static void timeline_move_track_at_index(Timeline *tl, int index, int direction,
     /* } */
 }
 
+static Dimension cached_frozen_ct_y;
+static void check_freeze_click_track(Timeline * tl)
+{
+    if (tl->click_track_frozen) return;
+    ClickTrack *ct = timeline_selected_click_track(tl);
+    if (ct) {
+	tl->click_track_frozen = true;
+	cached_frozen_ct_y = ct->layout->y;
+	ct->layout->y.type = REL;
+	ct->layout->y.value = 0;
+	Layout *new_parent = ct->layout->parent->parent;
+	layout_remove_child(ct->layout);
+	layout_reparent(ct->layout, new_parent);
+	/* ct->rect.y */
+	/* tl->track_area->rect.y -= session_get()->gui.ruler_rect->h; */
+	/* layout_set_values_from_rect(tl->track_area); */
+	layout_reset(tl->track_area);
+	tl->layout_selector = -1;
+	tl->click_track_selector = 0;
+	tl->track_selector = -1;
+	tl->needs_redraw = true;
+    }
+}
+
+bool check_unfreeze_click_track(Timeline *tl)
+{
+    if (!tl->click_track_frozen) return false;
+    ClickTrack *ct = timeline_selected_click_track(tl);
+    if (ct) {
+	layout_remove_child(ct->layout);
+	layout_insert_child_at(ct->layout, tl->track_area, 0);
+	ct->layout->y = cached_frozen_ct_y;
+	tl->click_track_frozen = false;
+	layout_reset(tl->track_area);
+	tl->needs_redraw = true;
+	tl->layout_selector = 0;
+	tl->click_track_selector = 0;
+	tl->track_selector = -1;
+	return true;	
+    }
+    return false;
+}
+
 void timeline_move_track_or_automation(Timeline *tl, int direction)
 {
     
@@ -2103,9 +2157,15 @@ void timeline_move_track_or_automation(Timeline *tl, int direction)
 	track_move_automation(t->automations[t->selected_automation], direction, false);
 	return;
     }
-    int new_pos;
-    if ((new_pos = tl->layout_selector + direction) < 0 || new_pos > tl->track_area->num_children - 1)
+    int new_pos = tl->layout_selector + direction;
+    if (new_pos >= tl->track_area->num_children) return;
+    if (new_pos < 0) {
+	check_freeze_click_track(tl);
 	return;
+    }
+    if (tl->layout_selector == -1) {
+	if (check_unfreeze_click_track(tl)) return;
+    }
     timeline_move_track_at_index(tl, tl->layout_selector, direction, false);
     tl->layout_selector += direction;
     timeline_rectify_track_indices(tl);

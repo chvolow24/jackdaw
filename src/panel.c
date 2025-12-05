@@ -101,7 +101,7 @@ Page *panel_select_page(PanelArea *pa, uint8_t panel_i, uint8_t new_selection)
     if (page->layout->parent) {
 	layout_remove_child(page->layout);
     }
-    if (panel_i == 0) breakfn();
+    /* if (panel_i == 0) breakfn(); */
     layout_reparent(page->layout, panel->content_layout);
     static char name[MAX_NAMELENGTH];
     snprintf(name, MAX_NAMELENGTH, "%s    ∨", page->title);

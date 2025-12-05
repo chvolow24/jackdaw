@@ -263,10 +263,10 @@ static void clipref_draw(ClipRef *cr)
 
 static void draw_selected_track_rect(Layout *selected_layout)
 {
-	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
-	geom_draw_rect_thick(main_win->rend, &selected_layout->rect, 3 * main_win->dpi_scale_factor);
-	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(track_selector_color));
-	geom_draw_rect_thick(main_win->rend, &selected_layout->rect, 1 * main_win->dpi_scale_factor);
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
+    geom_draw_rect_thick(main_win->rend, &selected_layout->rect, 3 * main_win->dpi_scale_factor);
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(track_selector_color));
+    geom_draw_rect_thick(main_win->rend, &selected_layout->rect, 1 * main_win->dpi_scale_factor);
 }
 
 static void track_draw(Track *track)
@@ -598,6 +598,7 @@ static int timeline_draw(Timeline *tl)
 	track_draw(tl->tracks[i]);
     }
     for (int i=0; i<tl->num_click_tracks; i++) {
+	if (i==0 && tl->click_track_frozen) continue;
 	click_track_draw(tl->click_tracks[i]);
 	if (i==tl->click_track_selector) {
 	    draw_selected_track_rect(tl->click_tracks[i]->layout);
@@ -611,9 +612,16 @@ static int timeline_draw(Timeline *tl)
     SDL_RenderSetClipRect(main_win->rend, &main_win->layout->rect);
     
     /* Draw ruler */
-    ruler_draw(tl);
-    if (session->gui.timecode_tb) {
-	textbox_draw(session->gui.timecode_tb);
+    if (tl->click_track_frozen) {
+	click_track_draw(tl->click_tracks[0]);
+	if (tl->layout_selector == -1) {
+	    draw_selected_track_rect(tl->click_tracks[0]->layout);
+	}
+    } else {
+	ruler_draw(tl);
+	if (session->gui.timecode_tb) {
+	    textbox_draw(session->gui.timecode_tb);
+	}
     }
     if (session->playback.loop_play && tl->out_mark_sframes > tl->in_mark_sframes) {
 	textbox_draw(session->gui.loop_play_lemniscate);

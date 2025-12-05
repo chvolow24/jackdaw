@@ -302,13 +302,14 @@ typedef struct timeline {
 
     ClickTrack *click_tracks[MAX_CLICK_TRACKS];
     uint8_t num_click_tracks;
+    
     // uint8_t active_track_indices[MAX_ACTIVE_TRACKS];
     // uint8_t num_active_tracks;
 
     int layout_selector; /* Agnostic of track "type"; selects audio OR tempo track */
     int track_selector; /* Index of selected track, or -1 if N/A */
     int click_track_selector; /* Index of selected tempo track */
-    
+    bool click_track_frozen;
 
     Timecode timecode;
     
@@ -447,6 +448,8 @@ void track_destroy(Track *track, bool displace);
 
 void track_or_tracks_solo(Timeline *tl, Track *opt_track);
 void track_or_tracks_mute(Timeline *tl);
+
+bool check_unfreeze_click_track(Timeline *tl);
 
 /* ClipRef *clipref_at_cursor(); */
 /* ClipRef *clipref_at_cursor_in_track(Track *track); */

@@ -1448,7 +1448,12 @@ void user_tl_track_selector_up(void *nullarg)
 	timeline_cache_grabbed_clip_offsets(tl);
     }
     Track *prev_selected = selected;
-    if (tl->layout_selector > 0) {
+    if (tl->click_track_frozen && tl->layout_selector <= 0) {
+	tl->layout_selector = -1; /* Select the frozen click track */
+	tl->needs_redraw = true;
+	return;
+    }
+    else if (tl->layout_selector > 0) {
 	tl->layout_selector--;
     }
     timeline_rectify_track_indices(tl);

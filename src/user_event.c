@@ -96,19 +96,19 @@ void user_event_history_clear(UserEventHistory *history)
 {
     UserEvent *test = history->oldest;
     UserEvent *delete;
-    bool undoable = true;
+    /* bool undoable = true; */
     bool redoable = false;
     while (test) {
 	delete = test;
 	test = test->next;
-	if (undoable && delete->dispose) {
-	    delete->dispose(delete, delete->obj1, delete->obj2, delete->undo_val1, delete->undo_val2, delete->type1, delete->type2);
-	}
+	/* if (undoable && delete->dispose) { */
+	/*     delete->dispose(delete, delete->obj1, delete->obj2, delete->undo_val1, delete->undo_val2, delete->type1, delete->type2); */
+	/* } */
 	if (redoable && delete->dispose_forward) {
 	    delete->dispose_forward(delete, delete->obj1, delete->obj2, delete->undo_val1, delete->undo_val2, delete->type1, delete->type2);
 	}
 	if (delete == history->next_undo) {
-	    undoable = false;
+	    /* undoable = false; */
 	    redoable = true;
 	}
 	user_event_destroy(delete);

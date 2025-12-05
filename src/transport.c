@@ -619,7 +619,10 @@ void transport_stop_playback()
     audioconn_stop_playback(session->audio_io.playback_conn);
 
     /* TODO: inspect this thoroughly */
+    /* int test = 0; */
     while (session->audio_io.playback_conn->c.device.request_close) {
+	/* test++; */
+	/* if (test > 5000) exit(1); */
     }
 
     pthread_cancel(*get_thread_addr(JDAW_THREAD_DSP));

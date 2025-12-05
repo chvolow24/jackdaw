@@ -1223,6 +1223,8 @@ static void tl_goto_prox_click(Timeline *tl, int direction, enum beat_prominence
     }
     if (ct) {
 	click_track_goto_prox_beat(ct, direction, bp);
+    } else if (tl->click_track_frozen) {
+	click_track_goto_prox_beat(tl->click_tracks[0], direction, bp);
     }
 }
 

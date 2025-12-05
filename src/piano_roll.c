@@ -52,7 +52,7 @@ const char *dur_strs[] = {
 #define MAX_LABELS 32
 
 #define PITCH_STR_LEN 24
-#define VEL_STR_LEN 4
+#define VEL_STR_LEN 8
 
 struct piano_roll_gui {
     Textbox *labels[MAX_LABELS];
@@ -71,6 +71,11 @@ struct piano_roll_gui {
     Textbox *pitch_val;
     char vel_str[VEL_STR_LEN];
     Textbox *velocity_val;
+
+    char grabbed_pitch_str[PITCH_STR_LEN];
+    Textbox *grabbed_pitch_val;
+    char grabbed_vel_str[VEL_STR_LEN];
+    Textbox *grabbed_vel_val;
 
     char in_name_str[MAX_NAMELENGTH];
 
@@ -305,6 +310,17 @@ void piano_roll_init_gui()
     state.gui.velocity_val = textbox_create_from_str(state.gui.vel_str, lt, main_win->std_font, 14, main_win);
     textbox_style(state.gui.velocity_val, CENTER_LEFT, false, NULL, &colors.white);
 
+    lt = layout_get_child_by_name_recursive(state.console_lt, "grabbed_pitch_val");
+    state.gui.grabbed_pitch_val = textbox_create_from_str(state.gui.grabbed_pitch_str, lt, main_win->std_font, 14, main_win);
+    textbox_style(state.gui.grabbed_pitch_val, CENTER_LEFT, false, NULL, &colors.white);
+
+    lt = layout_get_child_by_name_recursive(state.console_lt, "grabbed_vel_val");
+    state.gui.grabbed_vel_val = textbox_create_from_str(state.gui.grabbed_vel_str, lt, main_win->std_font, 14, main_win);
+    textbox_style(state.gui.grabbed_vel_val, CENTER_LEFT, false, NULL, &colors.white);
+
+    
+
+
     lt = layout_get_child_by_name_recursive(state.console_lt, "solo");
     state.gui.solo_button = textbox_create_from_str(
 	"S",
@@ -492,6 +508,13 @@ void piano_roll_deinit_gui()
 
     button_destroy(state.gui.vel_down);
     button_destroy(state.gui.vel_up);
+
+    button_destroy(state.gui.grabbed_note_pitch_down);
+    button_destroy(state.gui.grabbed_note_pitch_up);
+
+    button_destroy(state.gui.grabbed_note_vel_down);
+    button_destroy(state.gui.grabbed_note_vel_up);
+
     
     
     /* textbox_destroy_keep_lt(state.gui.dur_longer_button); */
@@ -500,10 +523,15 @@ void piano_roll_deinit_gui()
     textbox_destroy_keep_lt(state.gui.chord_button);
     textbox_destroy_keep_lt(state.gui.pitch_val);
     textbox_destroy_keep_lt(state.gui.velocity_val);
+    textbox_destroy_keep_lt(state.gui.grabbed_pitch_val);
+    textbox_destroy_keep_lt(state.gui.grabbed_vel_val);
+
 }
 
 static void reset_pitch_str();
 static void reset_vel_str();
+static void reset_grabbed_pitch_str();
+static void reset_grabbed_vel_str();
 static void reset_in_name_str(bool reset_textbox)
 {
     if (state.cr->track->input_type == MIDI_DEVICE) {
@@ -547,6 +575,8 @@ void piano_roll_activate(ClipRef *cr)
     piano_roll_init_gui();
     reset_pitch_str();
     reset_vel_str();
+    reset_grabbed_pitch_str();
+    reset_grabbed_vel_str();
 
     state.gui.track_name = textbox_create_from_str(
 	cr->track->name,
@@ -668,9 +698,9 @@ static void play_grabbed_notes(int max_playback_notes)
 }
 
 
+static const char *note_names[] = {"C", "C#/Db", "D", "D#/Eb", "E", "F", "F#/Gb", "G", "G#/Ab", "A", "A#/Bb", "B", "C"};
 static void reset_pitch_str()
 {
-    static const char *note_names[] = {"C", "C#/Db", "D", "D#/Eb", "E", "F", "F#/Gb", "G", "G#/Ab", "A", "A#/Bb", "B", "C"};
     const char *note_name = note_names[state.selected_note % 12];
     int octave = (state.selected_note + 1 - 60) / 12 + 3;
     snprintf(state.gui.pitch_str, PITCH_STR_LEN, "%s%d (%d)", note_name, octave, state.selected_note);
@@ -681,6 +711,38 @@ static void reset_vel_str()
 {
     snprintf(state.gui.vel_str, VEL_STR_LEN, "%d", state.insert_velocity);
     textbox_reset_full(state.gui.velocity_val);
+}
+
+static void reset_grabbed_pitch_str()
+{
+    if (state.clip->num_grabbed_notes == 0) {
+	snprintf(state.gui.grabbed_pitch_str, PITCH_STR_LEN, "-");
+    } else {
+	int min, max;
+	midi_clip_grabbed_pitch_range(state.clip, &min, &max);
+	if (min != max) {
+	    snprintf(state.gui.grabbed_pitch_str, PITCH_STR_LEN, "%d-%d", min, max);
+	} else {
+	    snprintf(state.gui.grabbed_pitch_str, PITCH_STR_LEN, "%d", min);
+	}
+    }
+    textbox_reset_full(state.gui.grabbed_pitch_val);
+}
+
+static void reset_grabbed_vel_str()
+{
+    if (state.clip->num_grabbed_notes == 0) {
+	snprintf(state.gui.grabbed_vel_str, VEL_STR_LEN, "-");
+    } else {
+	int min, max;
+	midi_clip_grabbed_vel_range(state.clip, &min, &max);
+	if (min != max) {
+	    snprintf(state.gui.grabbed_vel_str, VEL_STR_LEN, "%d-%d", min, max);
+	} else {
+	    snprintf(state.gui.grabbed_vel_str, VEL_STR_LEN, "%d", min);
+	}
+    }
+    textbox_reset_full(state.gui.grabbed_vel_val);
 }
 
 void piano_roll_grabbed_notes_move_vertical(int move_by);
@@ -696,6 +758,11 @@ void piano_roll_move_note_selector(int by)
 
 void piano_roll_adj_velocity(int by)
 {
+    if (session_get()->dragging && state.clip->num_grabbed_notes > 0) {
+	midi_clip_adj_grabbed_velocities(state.clip, by);
+	reset_grabbed_vel_str();
+	return;
+    }
     state.insert_velocity += by;
     if (state.insert_velocity > 127) state.insert_velocity = 127;
     else if (state.insert_velocity < 0) state.insert_velocity = 0;
@@ -1203,6 +1270,7 @@ void piano_roll_grabbed_notes_move_vertical(int move_by)
 	    midi_clipref_push_grabbed_note_move_event(state.cr);
 	}
     }
+    reset_grabbed_pitch_str();
 }
 
 TEST_FN_DECL(check_note_order, MIDIClip *mclip);
@@ -1231,6 +1299,8 @@ void piano_roll_grab_ungrab()
     if (session_get()->dragging) {
 	status_stat_drag();
     }
+    reset_grabbed_vel_str();
+    reset_grabbed_pitch_str();
     /* play_all_grabbed_notes(); */
 }
 
@@ -1267,6 +1337,8 @@ void piano_roll_grab_marked_range()
     if (session_get()->dragging) {
 	midi_clipref_cache_grabbed_note_info(state.cr);
     }
+    reset_grabbed_pitch_str();
+    reset_grabbed_vel_str();
 }
 
 
@@ -1708,6 +1780,10 @@ void piano_roll_draw()
     textbox_draw(state.gui.pitch_val);
     textbox_draw(state.gui.velocity_val);
 
+    textbox_draw(state.gui.grabbed_pitch_val);
+    textbox_draw(state.gui.grabbed_vel_val);
+
+
     if (state.mouse_sel_rect_active) {
 	SDL_SetRenderDrawColor(main_win->rend, 200, 200, 255, 30);
 	SDL_RenderFillRect(main_win->rend, &state.mouse_sel_rect);
@@ -1811,6 +1887,9 @@ void piano_roll_mouse_up(SDL_Point mousep)
 	timeview_get_pos_sframes(state.tl_tv, state.mouse_sel_rect.x + state.mouse_sel_rect.w),
 	sel_piano_note_bottom + 20,
 	sel_piano_note_top + 20);
+    reset_grabbed_pitch_str();
+    reset_grabbed_vel_str();
+
     if (session_get()->dragging) {
 	midi_clipref_cache_grabbed_note_info(state.cr);
     }

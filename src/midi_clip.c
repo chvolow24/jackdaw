@@ -1302,3 +1302,56 @@ void midi_clipref_quantize_notes_in_range(ClipRef *cr, float amount, BeatPromine
     if (num_intersecting > 0) free(intersecting);
 }
 
+
+
+/* Assumes at least one note grabbed */
+void midi_clip_grabbed_pitch_range(MIDIClip *mclip, int *min_dst, int *max_dst)
+{
+    /* MIDIClip *mclip = cr->source_clip; */
+    int min = 127;
+    int max = 0;
+    for (int32_t i=mclip->first_grabbed_note; i<=mclip->last_grabbed_note; i++) {
+	Note *note = mclip->notes + i;
+	if (!note->grabbed) continue;
+	if (note->key < min) {
+	    min = note->key;
+	}
+	if (note->key > max) {
+	    max = note->key;
+	}
+    }
+    *min_dst = min;
+    *max_dst = max;
+}
+void midi_clip_grabbed_vel_range(MIDIClip *mclip, int *min_dst, int *max_dst)
+{
+    /* MIDIClip *mclip = cr->source_clip; */
+    int min = 127;
+    int max = 0;
+    for (int32_t i=mclip->first_grabbed_note; i<=mclip->last_grabbed_note; i++) {
+	Note *note = mclip->notes + i;
+	if (!note->grabbed) continue;
+	if (note->velocity < min) {
+	    min = note->velocity;
+	}
+	if (note->velocity > max) {
+	    max = note->velocity;
+	}
+    }
+    *min_dst = min;
+    *max_dst = max;
+}
+
+void midi_clip_adj_grabbed_velocities(MIDIClip *mclip, int by)
+{
+    for (int32_t i=mclip->first_grabbed_note; i<=mclip->last_grabbed_note; i++) {
+	Note *note = mclip->notes + i;
+	if (!note->grabbed) continue;
+	int new_vel = note->velocity + by;
+	if (new_vel > 127) new_vel = 127;
+	else if (new_vel < 0) new_vel = 0;
+	note->velocity = new_vel;
+    }
+}
+
+

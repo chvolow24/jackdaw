@@ -135,6 +135,7 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
 	 /* device_stop_recording(dev); */
 	 /* fprintf(stderr, "ERROR: overwriting audio buffer of device: %s\n", dev->name); */
      }
+    /* fprintf(stderr, "\tREC cb exit\n"); */
 
 
  }
@@ -274,7 +275,9 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     if (conn->c.device.request_close) {
 	SDL_PauseAudioDevice(conn->c.device.id, 1);
 	conn->c.device.request_close = false;
-	return;
+
+	/* TODO: do I really want to return ? */
+	/* return; */
     }
     
     /* Gather data from timeline, generated in DSP threadfn */
@@ -361,7 +364,6 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     session_do_ongoing_changes(session, JDAW_THREAD_PLAYBACK);
     session_flush_val_changes(session, JDAW_THREAD_PLAYBACK);
     session_flush_callbacks(session, JDAW_THREAD_PLAYBACK);
-
 }
 
 static void *transport_dsp_thread_fn(void *arg)
@@ -615,6 +617,10 @@ void transport_stop_playback()
     Timeline *tl = ACTIVE_TL;
     if (!tl) return;
     audioconn_stop_playback(session->audio_io.playback_conn);
+
+    /* TODO: inspect this thoroughly */
+    while (session->audio_io.playback_conn->c.device.request_close) {
+    }
 
     pthread_cancel(*get_thread_addr(JDAW_THREAD_DSP));
     

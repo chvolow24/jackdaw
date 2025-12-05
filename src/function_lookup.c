@@ -57,6 +57,7 @@ void fn_lookup_index_fn(UserFn *fn)
 {
     if (is_null_userfn(fn)) return;
     char *to_free = strdup(fn->fn_display_name);
+    
     /* fprintf(stderr, "Indexfn: %s\n", to_free); */
     char *word = to_free;
     char *cursor = word;
@@ -213,10 +214,12 @@ void function_lookup()
 	Layout *ac_lt = layout_add_child(main_win->layout);
 	layout_set_default_dims(ac_lt);
 	ac_lt->h.value = 60.0;
+	/* ac_lt->y.value -= 10.0; */
 	layout_force_reset(ac_lt);
 	autocompletion_init(
 	    &main_win->ac,
 	    ac_lt,
+	    "Command lookup",
 	    update_records_fn,
 	    fn_lookup_filter);
     } else {

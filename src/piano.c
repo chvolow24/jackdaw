@@ -132,12 +132,12 @@ void piano_draw(Piano *piano)
         if (key_states[i]) {
 	    if (i < NUM_WHITE_KEYS) {
 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.yellow));
-		geom_fill_rounded_rect(main_win->rend, &piano->key_labels[i]->layout->rect, 6);
+		geom_fill_rounded_rect(main_win->rend, &piano->key_labels[i]->layout->rect, 6 * main_win->dpi_scale_factor);
 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.grey));
 	    } else {
 		textbox_set_text_color(piano->key_labels[i], &colors.black);
 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.amber));
-		geom_fill_rounded_rect(main_win->rend, &piano->key_labels[i]->layout->rect, 6);
+		geom_fill_rounded_rect(main_win->rend, &piano->key_labels[i]->layout->rect, 6 * main_win->dpi_scale_factor);
 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.dark_grey));
 	    }
 

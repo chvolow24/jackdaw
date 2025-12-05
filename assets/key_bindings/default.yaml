@@ -27,6 +27,7 @@
   - <esc>	: escape
   - C-q		: quit
   - C-z		: undo
+  - C-/		: undo
   - C-y		: redo
   - C-S-z	: redo
   - C-s		: save_project

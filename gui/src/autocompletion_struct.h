@@ -14,11 +14,13 @@ typedef struct text_entry TextEntry;
 typedef struct text_lines TextLines;
 typedef struct autocompletion AutoCompletion;
 typedef int (*TlinesFilter)(void *, void *);
+typedef struct textbox Textbox;
 
 typedef struct autocompletion {
     Layout *outer_layout;
     Layout *inner_layout;
     char entry_buf[AUTOCOMPLETE_ENTRY_BUFLEN];
+    Textbox *label;
     TextEntry *entry;
     TextLines *lines;
     int (*update_records)(AutoCompletion *self, struct autocompletion_item **items_arr_p);

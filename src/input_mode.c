@@ -911,9 +911,10 @@ static void mode_load_timeline()
 
     fn = create_user_fn(
 	"tl_edit_clip_at_cursor",
-	"Edit clip at cursor",
+	"Edit clip at cursor / open piano roll",
 	user_tl_edit_clip_at_cursor);
     mode_subcat_add_fn(sc, fn);
+
     
 
     /* Sample mode */

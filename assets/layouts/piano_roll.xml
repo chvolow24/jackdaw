@@ -124,8 +124,16 @@
               <x>REL 0</x>
               <y>STACK 6</y>
               <w>SCALE 1.000000</w>
-              <h>REL 241</h>
+              <h>REL 250</h>
               <children>
+		<Layout name="insertion_head" type="NORMAL">
+                  <x>REL 10</x>
+                  <y>STACK 8</y>
+                  <w>REVREL 10</w>
+                  <h>REL 20</h>
+                  <children>
+                  </children>
+                </Layout>
                 <Layout name="pitch_head" type="NORMAL">
                   <x>REL 10</x>
                   <y>STACK 8</y>
@@ -260,6 +268,102 @@
                   <w>SCALE 0.450000</w>
                   <h>REL 26</h>
                   <children>
+                  </children>
+                </Layout>
+              </children>
+            </Layout>
+            <Layout name="grabbed_info" type="NORMAL">
+              <x>REL 0</x>
+              <y>STACK 6</y>
+              <w>SCALE 1.000000</w>
+              <h>REL 150</h>
+              <children>
+		<Layout name="grabbed_head" type="NORMAL">
+                  <x>REL 10</x>
+                  <y>STACK 8</y>
+                  <w>REVREL 10</w>
+                  <h>REL 20</h>
+                  <children>
+                  </children>
+                </Layout>
+                <Layout name="grabbed_pitch_head" type="NORMAL">
+                  <x>REL 10</x>
+                  <y>STACK 8</y>
+                  <w>REVREL 10</w>
+                  <h>REL 16</h>
+                  <children>
+                  </children>
+                </Layout>
+                <Layout name="grabbed_pitch_info" type="NORMAL">
+                  <x>REL 10</x>
+                  <y>STACK 4</y>
+                  <w>REVREL 10</w>
+                  <h>REL 26</h>
+                  <children>
+                    <Layout name="grabbed_pitch_val" type="NORMAL">
+                      <x>STACK 5</x>
+                      <y>REL 0</y>
+                      <w>REL 94</w>
+                      <h>REL 26</h>
+                      <children>
+                      </children>
+                    </Layout>
+                    <Layout name="grabbed_pitch_down" type="NORMAL">
+                      <x>STACK 10</x>
+                      <y>REL 0</y>
+                      <w>REL 26</w>
+                      <h>REL 26</h>
+                      <children>
+                      </children>
+                    </Layout>
+                    <Layout name="grabbed_pitch_up" type="NORMAL">
+                      <x>STACK 5</x>
+                      <y>REL 0</y>
+                      <w>REL 26</w>
+                      <h>REL 26</h>
+                      <children>
+                      </children>
+                    </Layout>
+                  </children>
+                </Layout>
+                <Layout name="grabbed_vel_head" type="NORMAL">
+                  <x>REL 10</x>
+                  <y>STACK 8</y>
+                  <w>REVREL 10</w>
+                  <h>REL 16</h>
+                  <children>
+                  </children>
+                </Layout>
+                <Layout name="grabbed_vel_info" type="NORMAL">
+                  <x>REL 10</x>
+                  <y>STACK 4</y>
+                  <w>REVREL 10</w>
+                  <h>REL 26</h>
+                  <children>
+                    <Layout name="grabbed_vel_val" type="NORMAL">
+                      <x>STACK 5</x>
+                      <y>REL 0</y>
+                      <w>REL 94</w>
+                      <h>REL 26</h>
+                      <children>
+                      </children>
+                    </Layout>
+                    <Layout name="grabbed_vel_down" type="NORMAL">
+                      <x>STACK 10</x>
+                      <y>REL 0</y>
+                      <w>REL 26</w>
+                      <h>REL 26</h>
+                      <children>
+                      </children>
+                    </Layout>
+                    <Layout name="grabbed_vel_up" type="NORMAL">
+                      <x>STACK 5</x>
+                      <y>REL 0</y>
+                      <w>REL 26</w>
+                      <h>REL 26</h>
+                      <children>
+                      </children>
+                    </Layout>
                   </children>
                 </Layout>
               </children>

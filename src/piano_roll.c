@@ -86,10 +86,19 @@ struct piano_roll_gui {
     Button *dur_longer;
     Button *dur_shorter;
 
+    Button *grabbed_note_pitch_down;
+    Button *grabbed_note_pitch_up;
+    Button *grabbed_note_vel_down;
+    Button *grabbed_note_vel_up;
+
+
+    
+
 
     SDL_Rect *track_info_panel;
     SDL_Rect *device_panel;
     SDL_Rect *input_panel;
+    SDL_Rect *grabbed_note_panel;
     /* Textbox * */
     /* Textbox *dur_tb; */
 };
@@ -196,6 +205,7 @@ static void piano_roll_init_layout(Session *session)
     /* state.gui. */
     state.gui.device_panel = &layout_get_child_by_name_recursive(lt, "device_info")->rect;
     state.gui.input_panel = &layout_get_child_by_name_recursive(lt, "insertion_info")->rect;
+    state.gui.grabbed_note_panel = &layout_get_child_by_name_recursive(lt, "grabbed_info")->rect;
     
     Layout *piano_lt = layout_read_xml_to_lt(piano_container, PIANO_88_VERTICAL_LT_PATH);
     state.piano_lt = piano_lt;
@@ -265,6 +275,11 @@ void piano_roll_init_gui()
     piano_roll_add_label("Pitch", "pitch_head", main_win->mono_font, 14, CENTER_LEFT, NULL, &colors.label_text_blue);
     piano_roll_add_label("Velocity", "vel_head", main_win->mono_font, 14, CENTER_LEFT, NULL, &colors.label_text_blue);
     piano_roll_add_label("Duration", "dur_head", main_win->mono_font, 14, CENTER_LEFT, NULL, &colors.label_text_blue);
+    piano_roll_add_label("Pitch", "grabbed_pitch_head", main_win->mono_font, 14, CENTER_LEFT, NULL, &colors.label_text_blue);
+    piano_roll_add_label("Vel", "grabbed_vel_head", main_win->mono_font, 14, CENTER_LEFT, NULL, &colors.label_text_blue);
+
+    piano_roll_add_label("Insertion", "insertion_head", main_win->mono_bold_font, 16, CENTER, NULL, &colors.light_grey);
+    piano_roll_add_label("Grabbed note(s)", "grabbed_head", main_win->mono_bold_font, 16, CENTER, NULL, &colors.light_grey);
 
     Layout *lt = layout_get_child_by_name_recursive(state.console_lt, "dur_val");
     state.gui.dur_tb = textbox_create_from_str(
@@ -369,6 +384,28 @@ void piano_roll_init_gui()
     state.gui.dur_shorter = piano_roll_create_std_button(
 	"2↑",
 	"dur_up",
+	NULL,
+	NULL);
+
+    state.gui.grabbed_note_pitch_down = piano_roll_create_std_button(
+	"n↓",
+	"grabbed_pitch_down",
+	NULL,
+	NULL);
+    state.gui.grabbed_note_pitch_up = piano_roll_create_std_button(
+	"p↑",
+	"grabbed_pitch_up",
+	NULL,
+	NULL);
+
+    state.gui.grabbed_note_vel_down = piano_roll_create_std_button(
+	"c↓",
+	"grabbed_vel_down",
+	NULL,
+	NULL);
+    state.gui.grabbed_note_vel_up = piano_roll_create_std_button(
+	"v↑",
+	"grabbed_vel_up",
 	NULL,
 	NULL);
     /* lt = layout_get_child_by_name_recursive(state.console_lt, "dur_down"); */
@@ -1626,11 +1663,13 @@ void piano_roll_draw()
     SDL_RenderFillRect(main_win->rend, state.gui.track_info_panel);
     SDL_RenderFillRect(main_win->rend, state.gui.device_panel);
     SDL_RenderFillRect(main_win->rend, state.gui.input_panel);
+    SDL_RenderFillRect(main_win->rend, state.gui.grabbed_note_panel);
 
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.grey));
     SDL_RenderDrawRect(main_win->rend, state.gui.track_info_panel);
     SDL_RenderDrawRect(main_win->rend, state.gui.device_panel);
     SDL_RenderDrawRect(main_win->rend, state.gui.input_panel);
+    SDL_RenderDrawRect(main_win->rend, state.gui.grabbed_note_panel);
 
     for (int i=0; i<state.gui.num_labels; i++) {
 	textbox_draw(state.gui.labels[i]);
@@ -1650,6 +1689,13 @@ void piano_roll_draw()
 
     button_draw(state.gui.vel_down);
     button_draw(state.gui.vel_up);
+    
+    button_draw(state.gui.grabbed_note_pitch_down);
+    button_draw(state.gui.grabbed_note_pitch_up);
+
+    button_draw(state.gui.grabbed_note_vel_down);
+    button_draw(state.gui.grabbed_note_vel_up);
+
 
     status_light_draw(state.gui.device_active);
 

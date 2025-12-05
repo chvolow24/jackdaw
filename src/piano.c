@@ -152,6 +152,7 @@ void piano_draw(Piano *piano)
 	geom_draw_rounded_rect_thick(main_win->rend, &piano->key_labels[i]->layout->rect, 2, 6 * main_win->dpi_scale_factor);
 	textbox_draw(piano->key_labels[i]);
     }
+    /* layout_draw(main_win, piano->layout); */
 }
 
 Piano *piano_create(Layout *container)

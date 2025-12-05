@@ -155,7 +155,7 @@ void textbox_draw(Textbox *tb)
 {
     int rad = tb->corner_radius * tb->window->dpi_scale_factor;
     int thickness = tb->border_thickness;
-    if (tb->window->dpi_scale_factor < 1.9) {
+    if (tb->window->dpi_scale_factor < 1.9 && thickness > 1.1) {
 	thickness /= (tb->window->dpi_scale_factor * 2.0);
     }
     /* TODO: consider whether this is bad and if rend needs to be on textbox as well */
@@ -174,14 +174,15 @@ void textbox_draw(Textbox *tb)
 	if (bckgrnd)
 	    geom_fill_rounded_rect(rend, &tb_rect, rad);
 	SDL_SetRenderDrawColor(rend, brdrclr->r, brdrclr->g, brdrclr->b, brdrclr->a);
-	for (int i=0; i<thickness; i++) {	    
-	    geom_draw_rounded_rect(rend, &tb_rect, rad);
-	    tb_rect.x += 1;
-	    tb_rect.y += 1;
-	    tb_rect.w -= 2;
-	    tb_rect.h -= 2;
-	    rad -= 1;
-	}
+	geom_draw_rounded_rect_thick(rend, &tb_rect, thickness, rad);
+	/* for (int i=0; i<thickness; i++) {	     */
+	/*     geom_draw_rounded_rect(rend, &tb_rect, rad); */
+	/*     tb_rect.x += 1; */
+	/*     tb_rect.y += 1; */
+	/*     tb_rect.w -= 2; */
+	/*     tb_rect.h -= 2; */
+	/*     rad -= 1; */
+	/* } */
 	    
     } else {
 	if (bckgrnd)

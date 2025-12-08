@@ -517,7 +517,7 @@ static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, 
 
 
 /* TODO: rename function and deprecate old one */
-static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t buflen, int start_x, int w, int amp_h_max, int center_y, int min_x, int max_x, double sfpp)
+static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t buflen, int start_x, int w, int amp_h_max, int center_y, int min_x, int max_x, double sfpp, SDL_Color *color)
 {
     /* float sfpp = (double) buflen / w; */
     if (sfpp <= 0) {
@@ -528,6 +528,7 @@ static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t
     /* Session *session = session_get(); */
     /* sfpp = ACTIVE_TL->timeview.sample_frames_per_pixel; */
 
+    SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(color));
     if (sfpp > SFPP_THRESHOLD) {
 	float max_amp_neg, max_amp_pos;
 	int x = start_x;
@@ -594,7 +595,8 @@ static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t
 	    if (max_amp_neg < -1.0f || max_amp_pos > 1.0f) {
 		SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255);
 		SDL_RenderDrawLine(main_win->rend, x, center_y - amp_h_max, x, center_y + amp_h_max);
-		SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
+		SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(color));
+		/* SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255); */
 	    } else {
 		int y_offset_pos = max_amp_pos * amp_h_max;
 		int y_offset_neg = max_amp_neg * amp_h_max;
@@ -631,13 +633,15 @@ static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t
 	    } else {
 		avg_amp = channel[(int)round(sample_i)];
 	    }
-	    int sample_y = center_y + avg_amp * amp_h_max;
+	    int sample_y;
 	    if (x == start_x) {last_sample_y = sample_y;}
 	    if (fabs(avg_amp) > 1.0f) {
+		int sample_y = center_y + avg_amp * amp_h_max;
 		SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255);
 		SDL_RenderDrawLine(main_win->rend, x-1, center_y - amp_h_max, x-1, center_y + amp_h_max);
 		SDL_RenderDrawLine(main_win->rend, x, center_y - amp_h_max, x, center_y + amp_h_max);
-		SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
+		SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(color));
+		/* SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255); */
 		last_sample_y = avg_amp > 0 ? center_y + amp_h_max : center_y - amp_h_max;
 	    } else {
 		/* if (channel == proj->output_L && sample_i < 10) { */
@@ -669,12 +673,12 @@ void waveform_draw_all_channels(float **channels, uint8_t num_channels, uint32_t
 }
 
 /* TODO: rename and deprecate old function */
-void waveform_draw_all_channels_generic(void **channels, ValType type, uint8_t num_channels, uint32_t buflen, SDL_Rect *rect, int min_x, int max_x, double sfpp)
+void waveform_draw_all_channels_generic(void **channels, ValType type, uint8_t num_channels, uint32_t buflen, SDL_Rect *rect, int min_x, int max_x, double sfpp, SDL_Color *color)
 {
     int channel_h = rect->h / num_channels;
     int center_y = rect->y + channel_h / 2;
     for (uint8_t i=0; i<num_channels; i++) {
-	waveform_draw_channel_generic(channels[i], type,  buflen, rect->x, rect->w, channel_h / 2, center_y, min_x, max_x, sfpp);
+	waveform_draw_channel_generic(channels[i], type,  buflen, rect->x, rect->w, channel_h / 2, center_y, min_x, max_x, sfpp, color);
 	center_y += channel_h;
     }
 }

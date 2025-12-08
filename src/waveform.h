@@ -61,6 +61,7 @@ struct freq_plot {
     pthread_mutex_t *related_obj_lock;
 };
 
+/* DEPRECATED: use "waveform_draw_all_channels_generic" instead */
 void waveform_draw_all_channels(float **channels, uint8_t num_channels, uint32_t buflen, SDL_Rect *rect);
 void waveform_draw_freq_domain(struct logscale *la);
 /* struct logscale *waveform_create_logscale(double *array, int num_items, SDL_Rect *container, SDL_Color *color); */
@@ -79,7 +80,7 @@ void waveform_destroy_freq_plot(struct freq_plot *fp);
 void waveform_draw_freq_plot(struct freq_plot *fp);
 /* void waveform_draw_all_channels_generic(void **channels, ValType type, uint8_t num_channels, uint32_t buflen, SDL_Rect *rect); */
 /* void waveform_draw_all_channels_generic(void **channels, ValType type, uint8_t num_channels, uint32_t buflen, SDL_Rect *rect, int min_x, int max_x); */
-void waveform_draw_all_channels_generic(void **channels, ValType type, uint8_t num_channels, uint32_t buflen, SDL_Rect *rect, int min_x, int max_x, double sfpp);
+void waveform_draw_all_channels_generic(void **channels, ValType type, uint8_t num_channels, uint32_t buflen, SDL_Rect *rect, int min_x, int max_x, double sfpp, SDL_Color *color);
 
 int waveform_freq_plot_x_abs_from_freq(struct freq_plot *fp, double freq_raw);
 double waveform_freq_plot_freq_from_x_abs(struct freq_plot *fp, int abs_x);

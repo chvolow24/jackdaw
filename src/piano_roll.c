@@ -95,11 +95,7 @@ struct piano_roll_gui {
     Button *grabbed_note_pitch_up;
     Button *grabbed_note_vel_down;
     Button *grabbed_note_vel_up;
-
-
     
-
-
     SDL_Rect *track_info_panel;
     SDL_Rect *device_panel;
     SDL_Rect *input_panel;
@@ -484,6 +480,28 @@ void piano_roll_init_gui()
 	false,
 	&colors.grey,
 	&colors.black);
+
+    /* Layout *insertion_box_lt = layout_add_child(state.layout); */
+    /* layout_set_default_dims(insertion_box_lt); */
+    /* state.gui.insertion_box = textbox_create_from_str( */
+    /* 	"<ret>", */
+    /* 	insertion_box_lt, */
+    /* 	main_win->std_font, */
+    /* 	6, */
+    /* 	main_win); */
+    /* textbox_set_border( */
+    /* 	state.gui.insertion_box, */
+    /* 	&colors.grey, */
+    /* 	1, */
+    /* 	0);	 */
+    /* textbox_style( */
+    /* 	state.gui.insertion_box, */
+    /* 	CENTER, */
+    /* 	true, */
+    /* 	NULL, */
+    /* 	&colors.grey); */
+
+	
 }
 
 void piano_roll_deinit_gui()
@@ -525,6 +543,8 @@ void piano_roll_deinit_gui()
     textbox_destroy_keep_lt(state.gui.velocity_val);
     textbox_destroy_keep_lt(state.gui.grabbed_pitch_val);
     textbox_destroy_keep_lt(state.gui.grabbed_vel_val);
+
+    /* textbox_destroy(state.gui.insertion_box); */
 
 }
 
@@ -1684,6 +1704,7 @@ end_draw_notes:
     pthread_mutex_unlock(&mclip->notes_arr_lock);
 
     int sel_piano_note = state.selected_note - PIANO_BOTTOM_NOTE;
+    SDL_Rect sel_note_bar;
     for (int i=0; i<88; i++) {
 	if (i % 12 == 1) SDL_SetRenderDrawColor(main_win->rend, 100, 100, 100, 100);
 	else SDL_SetRenderDrawColor(main_win->rend, 100, 100, 100, 50);
@@ -1691,14 +1712,28 @@ end_draw_notes:
 	SDL_RenderDrawLine(main_win->rend, state.note_canvas_lt->rect.x, y, state.note_canvas_lt->rect.x + state.note_canvas_lt->rect.w, y);
 	if (88 - i - 1 == sel_piano_note) {
 	    SDL_SetRenderDrawColor(main_win->rend, 255, 100, 0, 30);
-	    SDL_Rect barrect = {state.note_canvas_lt->rect.x, y, state.note_canvas_lt->rect.w, note_height_nominal};
-	    SDL_RenderFillRect(main_win->rend, &barrect);
+	    sel_note_bar = (SDL_Rect){state.note_canvas_lt->rect.x, y, state.note_canvas_lt->rect.w, note_height_nominal};
+	    SDL_RenderFillRect(main_win->rend, &sel_note_bar);
 	    /* SDL_SetRenderDrawColor(main_win->rend, 100, 100, 100, 50); */
 	}
     }
+
     int playhead_x = timeview_get_draw_x(state.tl_tv, *state.tl_tv->play_pos);
+
+    /* Draw insertion box */
+    SDL_Rect insertion_box;
+    insertion_box.x = playhead_x;
+    int insertion_w = timeview_get_draw_w_precise(state.tl_tv, get_input_dur_samples());
+    insertion_box.w = insertion_w;
+    insertion_box.y = sel_note_bar.y;
+    insertion_box.h = sel_note_bar.h;
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.grey));
+    SDL_RenderDrawRect(main_win->rend, &insertion_box);
+    
+    /* Draw playhead */
     SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255);
     SDL_RenderDrawLine(main_win->rend, playhead_x, state.note_canvas_lt->rect.y, playhead_x, state.note_canvas_lt->rect.y + state.note_canvas_lt->rect.h);
+
 
 }
 

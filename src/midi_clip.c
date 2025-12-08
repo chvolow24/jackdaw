@@ -1342,16 +1342,67 @@ void midi_clip_grabbed_vel_range(MIDIClip *mclip, int *min_dst, int *max_dst)
     *max_dst = max;
 }
 
+
+struct note_id_vel {
+    uint32_t note_id;
+    uint8_t prev_vel;
+    uint8_t new_vel;
+};
+
+NEW_EVENT_FN(undo_adj_grabbed_note_velocities, "undo adj note velocity")
+    MIDIClip *mclip = obj1;
+    struct note_id_vel *info = obj2;
+    int32_t num_notes = val1.int32_v;
+    for (int32_t i=0; i<num_notes; i++) {
+	Note *note = mclip->notes + midi_clip_get_note_by_id(mclip, info[i].note_id);
+	note->velocity = info[i].prev_vel;
+    }
+}
+
+NEW_EVENT_FN(redo_adj_grabbed_note_velocities, "redo adj note velocity")
+    MIDIClip *mclip = obj1;
+    struct note_id_vel *info = obj2;
+    int32_t num_notes = val1.int32_v;
+    for (int32_t i=0; i<num_notes; i++) {
+	Note *note = mclip->notes + midi_clip_get_note_by_id(mclip, info[i].note_id);
+	note->velocity = info[i].new_vel;
+    }
+}
+
+
+
 void midi_clip_adj_grabbed_velocities(MIDIClip *mclip, int by)
 {
+    
+    struct note_id_vel *undo_info = calloc(mclip->num_grabbed_notes, sizeof(struct note_id_vel));
+    int32_t undo_info_index = 0;
     for (int32_t i=mclip->first_grabbed_note; i<=mclip->last_grabbed_note; i++) {
 	Note *note = mclip->notes + i;
 	if (!note->grabbed) continue;
+	undo_info[undo_info_index].note_id = note->id;
+	undo_info[undo_info_index].prev_vel = note->velocity;	
 	int new_vel = note->velocity + by;
 	if (new_vel > 127) new_vel = 127;
 	else if (new_vel < 0) new_vel = 0;
 	note->velocity = new_vel;
+	undo_info[undo_info_index].prev_vel = note->velocity;
+	undo_info_index++;
     }
+
+    user_event_push(
+	undo_adj_grabbed_note_velocities,
+	redo_adj_grabbed_note_velocities,
+	NULL, NULL,
+	mclip,
+	undo_info,
+	(Value){.int32_v = undo_info_index},
+	(Value){0},
+	(Value){.int32_v = undo_info_index},
+	(Value){0},
+	0, 0, false, true);	
 }
 
+
+/* 	user_event_push(EventFn undo_fn, EventFn redo_fn, EventFn dispose_fn, EventFn dispose_forward_fn, void *obj1, void *obj2, Value undo_val1, Value undo_val2, Value redo_val1, Value redo_val2, ValType type1, ValType type2, bool free_obj1, bool free_obj2) -> UserEvent * */
+/* clang [expected_expression]: Expected expression */
 

@@ -119,8 +119,6 @@ void user_event_history_clear(UserEventHistory *history)
 }
 
 UserEvent *user_event_push(
-    
-    /* UserEventHistory *history, */
     EventFn undo_fn,
     EventFn redo_fn,
     EventFn dispose_fn,

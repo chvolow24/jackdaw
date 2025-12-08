@@ -1783,6 +1783,14 @@ void piano_roll_draw()
     textbox_draw(state.gui.grabbed_pitch_val);
     textbox_draw(state.gui.grabbed_vel_val);
 
+    SDL_SetRenderDrawColor(main_win->rend, 50, 50, 50, 100);
+    if (state.clip->num_grabbed_notes == 0) {
+	SDL_RenderFillRect(main_win->rend, state.gui.grabbed_note_panel);
+    } else {
+	SDL_RenderFillRect(main_win->rend, state.gui.input_panel);
+    }
+
+
 
     if (state.mouse_sel_rect_active) {
 	SDL_SetRenderDrawColor(main_win->rend, 200, 200, 255, 30);

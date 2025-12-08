@@ -1312,22 +1312,20 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 			)
 		    * (1.0f + (v->synth->env_amt * filter_env_p[i]))
 		    * (1.0f - (v->synth->vel_amt * (1.0 - (float)v->velocity / 127.0f)));
-		/* double freq = mtof_calc(v->note_val) * v->synth->freq_scalar * filter_env_p[i] / session_get_sample_rate(); */
-		/* double velocity_rel = 1.0 - v->synth->velocity_freq_scalar * (127.0 - (double)v->velocity) / 126.0; */
-		/* freq *= velocity_rel; */
-		/* fprintf(stderr, "Freq: %f", freq); */
 		if (freq > 0.99f) freq = 0.99f;
-		if (freq > 1e-3) {
-		    /* fprintf(stderr, "\t(set freq %f)\n", freq); */
-		    iir_set_coeffs_lowpass_chebyshev(f, freq, v->synth->resonance);
-		/* } else { */
-		/*     fprintf(stderr, "\t(skipped)\n"); */
-		}
-
-		/* iir_set_coeffs_lowpass_chebyshev(f, (mtof_calc(v->note_val) * 20 * amp_env[i] * amp_env[i] * amp_env[i]) / session_get_sample_rate() / 2.0f, 4.0); */
-
+		if (freq < 1e-3) freq = 1e-3;
+		/* if (freq > 1e-3) { */
+		iir_set_coeffs_lowpass_chebyshev(f, freq, v->synth->resonance);
+		/* } */
 	    }
+	    /* float pre_filter = osc_buf[i]; */
 	    osc_buf[i] = iir_sample(f, osc_buf[i], channel);
+	    /* if (fabs(osc_buf[i]) > 5.0) { */
+	    /* 	fprintf(stderr, "Err post filter %f (pre %f)\n", osc_buf[i], pre_filter); */
+	    /* 	fprintf(stderr, "\tLast set freq: %f (%fHz), coeffs A: %f %f %f, B: %f %f\n", last_set_freq, dsp_scale_freq_to_hz(last_set_freq),   f->A[0], f->A[1], f->A[2], f->B[0], f->B[1]); */
+	    /* 	fprintf(stderr, "\tPol loc %f+%fi, rad %f\n", creal(f->poles[0]), cimag(f->poles[0]), cabs(f->poles[0])); */
+	    /* 	exit(0); */
+	    /* } */
 	}
 	/* buf[i] += osc_buf[i] * (float)v->velocity / 127.0f; */
     }

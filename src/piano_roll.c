@@ -778,7 +778,7 @@ void piano_roll_move_note_selector(int by)
 
 void piano_roll_adj_velocity(int by)
 {
-    if (session_get()->dragging && state.clip->num_grabbed_notes > 0) {
+    if (state.clip->num_grabbed_notes > 0) {
 	midi_clip_adj_grabbed_velocities(state.clip, by);
 	reset_grabbed_vel_str();
 	return;

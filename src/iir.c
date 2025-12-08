@@ -93,7 +93,7 @@ double iir_sample(IIRFilter *f, double in, int channel)
 	out += f->B[i] * f->mem_out[channel][mem_index];
 	#ifdef TESTBUILD
 	int fc = -1;
-	if (fabs(out) > 5000.0 || ((fc = fpclassify(out)) != FP_ZERO && fc != FP_NORMAL)) {
+	if (fabs(out) > 5000.0 || ((fc = fpclassify(out)) != FP_ZERO && fc != FP_NORMAL && fc != FP_SUBNORMAL)) {
 	    iir_clear(f);
 	    breakfn();
 	    fprintf(stderr, "IIR cleared! outsample: %f; fc: %d\n", out, fc);

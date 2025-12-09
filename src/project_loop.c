@@ -518,7 +518,8 @@ void loop_project_main()
 			bool allow_scroll = true;
 			double scroll_x = e.wheel.preciseX * LAYOUT_SCROLL_SCALAR;
 			double scroll_y = e.wheel.preciseY * LAYOUT_SCROLL_SCALAR;
-			if (SDL_PointInRect(&main_win->mousep, session->gui.audio_rect)) {
+			if (SDL_PointInRect(&main_win->mousep, &tl->track_area->rect)) {
+			/* if (SDL_PointInRect(&main_win->mousep, session->gui.audio_rect)) { */
 			    if (main_win->i_state & I_STATE_CMDCTRL) {
 				double scale_factor = pow(SFPP_STEP, e.wheel.y);
 				timeline_rescale(tl, scale_factor, true);

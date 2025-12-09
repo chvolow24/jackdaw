@@ -25,12 +25,12 @@
 
 /* Number of threads on which endpoint ops can occur;
    restricted to main, dsp, and playback threads */
-#define NUM_JDAW_THREADS 3
+/* #define NUM_JDAW_THREADS 3 */
 enum jdaw_thread {
     JDAW_THREAD_MAIN,
     JDAW_THREAD_DSP,
     JDAW_THREAD_PLAYBACK,
-    JDAW_THREAD_OTHER
+    NUM_JDAW_THREADS
 };
 
 /* extern pthread_t MAIN_THREAD_ID; */

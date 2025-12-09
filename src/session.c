@@ -274,6 +274,8 @@ void session_set_proj(Session *session, Project *new_proj)
 	transport_stop_playback();
     }
 
+    session_clear_all_queues();
+    
     /* Call must occur before de-init project */
     user_event_history_clear(&session->history);
     
@@ -338,6 +340,51 @@ unlock_and_exit:
 	fprintf(stderr, "Error unlocking queued audio buf lock (in session_queue_audio): %s\n", strerror(err));
     }
 
+}
+void session_flush_callbacks(Session *session, enum jdaw_thread thread);
+void session_flush_ongoing_changes(Session *session, enum jdaw_thread thread);
+
+#define check_queued_ops_lock(name) \
+    if ((err = pthread_mutex_lock(&session->queued_ops.name))) {	\
+	fprintf(stderr, "Error locking " #name " (in session_clear_all_queues)\n");\
+    } \
+
+#define check_queued_ops_unlock(name) \
+    if ((err = pthread_mutex_unlock(&session->queued_ops.name))) {	\
+	fprintf(stderr, "Error locking " #name " (in session_clear_all_queues)\n");\
+    } \
+
+
+void session_clear_all_queues()
+{
+    /* Clear audio bufs */
+    int err;
+    check_queued_ops_lock(queued_audio_buf_lock);
+    for (int i=0; i<session->queued_ops.num_queued_audio_bufs; i++) {
+        QueuedBuf *qb = session->queued_ops.queued_audio_bufs + i;
+	if (qb->free_when_done) {
+	    free(qb->buf[0]);
+	    if (qb->channels > 1) free(qb->buf[1]);
+	}
+    }
+    session->queued_ops.num_queued_audio_bufs = 0;
+    check_queued_ops_unlock(queued_audio_buf_lock);
+
+
+    /* Clear ongoing changes */
+    /* check_queued_ops_lock(ongoing_changes_lock); */
+    for (int i=0; i<NUM_JDAW_THREADS; i++) {
+	session_flush_ongoing_changes(session, i);
+    }
+    /* check_queued_ops_unlock(ongoing_changes_lock); */
+
+
+    /* Clear callbacks */
+    /* check_queued_ops_lock(queued_callback_lock); */
+    for (int i=0; i<NUM_JDAW_THREADS; i++) {
+	session_flush_callbacks(session, i);
+    }
+    /* check_queued_ops_unlock(queued_callback_lock); */
 }
 
 

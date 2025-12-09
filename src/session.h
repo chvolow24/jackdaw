@@ -72,7 +72,6 @@ struct session_gui {
 
     SDL_Texture *left_arrow_texture;
     SDL_Texture *right_arrow_texture;
-    
 };
 
 struct playhead_scroll {
@@ -125,9 +124,9 @@ struct queued_ops {
     uint8_t num_ongoing_changes[NUM_JDAW_THREADS];
     pthread_mutex_t ongoing_changes_lock;
 
-    /* Piano roll */
-    PmEvent piano_roll_queued_events[MAX_QUEUED_OPS];
-    pthread_mutex_t piano_roll_insertion_lock;
+    /* /\* Piano roll *\/ */
+    /* PmEvent piano_roll_queued_events[MAX_QUEUED_OPS]; */
+    /* pthread_mutex_t piano_roll_insertion_lock; */
 
     /* Transport */
     QueuedBuf queued_audio_bufs[MAX_QUEUED_BUFS];
@@ -211,5 +210,8 @@ void session_destroy();
 void session_set_proj(Session *session, Project *new_proj);
 uint32_t session_get_sample_rate();
 void session_queue_audio(int channels, float *c1, float *c2, int32_t len, int32_t delay, bool free_when_done);
+
+/* Call when de-initing project */
+void session_clear_all_queues();
 
 #endif

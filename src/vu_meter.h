@@ -15,6 +15,7 @@ typedef struct vu_meter {
 
 
 VUMeter *vu_meter_create(Layout *container, bool horizontal, EnvelopeFollower *ef_L, EnvelopeFollower *ef_R);
+void vu_meter_destroy(VUMeter *vu);
 void vu_meter_draw(VUMeter *vu);
 
 #endif

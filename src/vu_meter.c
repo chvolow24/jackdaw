@@ -9,6 +9,13 @@ extern struct colors colors;
 
 extern Window *main_win;
 
+void vu_meter_destroy(VUMeter *vu)
+{
+    for (int i=0; i<NUM_DB_LABELS; i++) {
+	textbox_destroy(vu->db_labels[i]);
+    }
+    free(vu);
+}
 
 VUMeter *vu_meter_create(Layout *container, bool horizontal, EnvelopeFollower *ef_L, EnvelopeFollower *ef_R)
 {
@@ -172,7 +179,4 @@ void vu_meter_draw(VUMeter *vu)
 	int x = bar_layout->rect.x + bar_layout->rect.w / 2;
 	SDL_RenderDrawLine(main_win->rend, x, bar_layout->rect.y + 1, x, bar_layout->rect.y + bar_layout->rect.h - 1);
     }
-
-
-
 }

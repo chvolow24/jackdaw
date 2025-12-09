@@ -1260,6 +1260,10 @@ void session_init_panels(Session *session)
 
 void session_deinit_panels(Session *session)
 {
+    if (output_vu) {
+	vu_meter_destroy(output_vu);
+	output_vu = NULL;
+    }
     if (session->gui.panels) panel_area_destroy(session->gui.panels);
 }
 

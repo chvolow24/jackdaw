@@ -1721,14 +1721,16 @@ end_draw_notes:
     int playhead_x = timeview_get_draw_x(state.tl_tv, *state.tl_tv->play_pos);
 
     /* Draw insertion box */
-    SDL_Rect insertion_box;
-    insertion_box.x = playhead_x;
-    int insertion_w = timeview_get_draw_w_precise(state.tl_tv, get_input_dur_samples());
-    insertion_box.w = insertion_w;
-    insertion_box.y = sel_note_bar.y;
-    insertion_box.h = sel_note_bar.h;
-    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.grey));
-    SDL_RenderDrawRect(main_win->rend, &insertion_box);
+    if (state.clip->num_grabbed_notes == 0) {
+	SDL_Rect insertion_box;
+	insertion_box.x = playhead_x;
+	int insertion_w = timeview_get_draw_w_precise(state.tl_tv, get_input_dur_samples());
+	insertion_box.w = insertion_w;
+	insertion_box.y = sel_note_bar.y;
+	insertion_box.h = sel_note_bar.h;
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.grey));
+	SDL_RenderDrawRect(main_win->rend, &insertion_box);
+    }
     
     /* Draw playhead */
     SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255);

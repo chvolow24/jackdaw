@@ -633,10 +633,10 @@ static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t
 	    } else {
 		avg_amp = channel[(int)round(sample_i)];
 	    }
-	    int sample_y;
+	    int sample_y = center_y + avg_amp * amp_h_max;
+	    /* int sample_y; */
 	    if (x == start_x) {last_sample_y = sample_y;}
 	    if (fabs(avg_amp) > 1.0f) {
-		int sample_y = center_y + avg_amp * amp_h_max;
 		SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255);
 		SDL_RenderDrawLine(main_win->rend, x-1, center_y - amp_h_max, x-1, center_y + amp_h_max);
 		SDL_RenderDrawLine(main_win->rend, x, center_y - amp_h_max, x, center_y + amp_h_max);

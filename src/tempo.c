@@ -1676,6 +1676,9 @@ ClickTrack *click_track_active_at_cursor(Timeline *tl)
 	    break;
 	}
     }
+    if (!ct && tl->click_track_frozen) {
+	ct = tl->click_tracks[0];
+    }
     return ct;
 }
 

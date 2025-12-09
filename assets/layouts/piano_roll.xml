@@ -124,9 +124,9 @@
               <x>REL 0</x>
               <y>STACK 6</y>
               <w>SCALE 1.000000</w>
-              <h>REL 250</h>
+              <h>REL 247</h>
               <children>
-		<Layout name="insertion_head" type="NORMAL">
+                <Layout name="insertion_head" type="NORMAL">
                   <x>REL 10</x>
                   <y>STACK 8</y>
                   <w>REVREL 10</w>
@@ -255,15 +255,15 @@
                   </children>
                 </Layout>
                 <Layout name="tie" type="NORMAL">
-                  <x>REL 10</x>
+                  <x>REL 6</x>
                   <y>STACK 20</y>
-                  <w>SCALE 0.450000</w>
+                  <w>SCALE 0.449468</w>
                   <h>REL 26</h>
                   <children>
                   </children>
                 </Layout>
                 <Layout name="chord" type="NORMAL">
-                  <x>STACK 5</x>
+                  <x>STACK 6</x>
                   <y>STACK -26</y>
                   <w>SCALE 0.450000</w>
                   <h>REL 26</h>
@@ -278,7 +278,7 @@
               <w>SCALE 1.000000</w>
               <h>REL 150</h>
               <children>
-		<Layout name="grabbed_head" type="NORMAL">
+                <Layout name="grabbed_head" type="NORMAL">
                   <x>REL 10</x>
                   <y>STACK 8</y>
                   <w>REVREL 10</w>

@@ -66,6 +66,8 @@ struct piano_roll_gui {
     Textbox *dur_tb;
     Textbox *tie_button;
     Textbox *chord_button;
+    /* Textbox *insert_note_button; */
+    /* Textbox *insert_rest_button; */
 
     char pitch_str[PITCH_STR_LEN];
     Textbox *pitch_val;
@@ -457,13 +459,13 @@ void piano_roll_init_gui()
 	main_win->mono_bold_font,
 	12,
 	main_win);
-    textbox_set_border(state.gui.tie_button, &colors.black, 1, BUTTON_CORNER_RADIUS);
+    textbox_set_border(state.gui.tie_button, &colors.grey, 1, BUTTON_CORNER_RADIUS);
     textbox_style(
 	state.gui.tie_button,
 	CENTER,
 	false,
-	&colors.grey,
-	&colors.black);
+	&colors.quickref_button_blue,
+	&colors.light_grey);
 
 
     lt = layout_get_child_by_name_recursive(state.console_lt, "chord");
@@ -473,13 +475,47 @@ void piano_roll_init_gui()
 	main_win->mono_bold_font,
 	12,
 	main_win);
-    textbox_set_border(state.gui.chord_button, &colors.black, 1, BUTTON_CORNER_RADIUS);
+    textbox_set_border(state.gui.chord_button, &colors.grey, 1, BUTTON_CORNER_RADIUS);
     textbox_style(
 	state.gui.chord_button,
 	CENTER,
 	false,
-	&colors.grey,
-	&colors.black);
+	&colors.quickref_button_blue,
+	&colors.light_grey);
+
+    /* lt = layout_get_child_by_name_recursive(state.console_lt, "insert_note"); */
+    /* state.gui.insert_note_button = textbox_create_from_str( */
+    /* 	"Note <ret>", */
+    /* 	lt, */
+    /* 	main_win->mono_bold_font, */
+    /* 	12, */
+    /* 	main_win); */
+    /* textbox_set_border(state.gui.insert_note_button, &colors.grey, 1, BUTTON_CORNER_RADIUS); */
+    /* textbox_style( */
+    /* 	state.gui.insert_note_button, */
+    /* 	CENTER, */
+    /* 	false, */
+    /* 	&colors.quickref_button_blue, */
+    /* 	&colors.light_grey); */
+
+    /* lt = layout_get_child_by_name_recursive(state.console_lt, "insert_rest"); */
+    /* state.gui.insert_rest_button = textbox_create_from_str( */
+    /* 	"Rest <spc>", */
+    /* 	lt, */
+    /* 	main_win->mono_bold_font, */
+    /* 	12, */
+    /* 	main_win); */
+    /* textbox_set_border(state.gui.insert_rest_button, &colors.grey, 1, BUTTON_CORNER_RADIUS); */
+    /* textbox_style( */
+    /* 	state.gui.insert_rest_button, */
+    /* 	CENTER, */
+    /* 	false, */
+    /* 	&colors.quickref_button_blue, */
+    /* 	&colors.light_grey); */
+
+
+
+    
 
     /* Layout *insertion_box_lt = layout_add_child(state.layout); */
     /* layout_set_default_dims(insertion_box_lt); */
@@ -539,6 +575,8 @@ void piano_roll_deinit_gui()
     /* textbox_destroy_keep_lt(state.gui.dur_shorter_button); */
     textbox_destroy_keep_lt(state.gui.tie_button);
     textbox_destroy_keep_lt(state.gui.chord_button);
+    /* textbox_destroy_keep_lt(state.gui.insert_note_button); */
+    /* textbox_destroy_keep_lt(state.gui.insert_rest_button); */
     textbox_destroy_keep_lt(state.gui.pitch_val);
     textbox_destroy_keep_lt(state.gui.velocity_val);
     textbox_destroy_keep_lt(state.gui.grabbed_pitch_val);
@@ -1482,13 +1520,15 @@ void piano_roll_toggle_tie()
 {
     state.tie = !state.tie;
     if (state.tie) {
-	textbox_set_background_color(state.gui.tie_button, &colors.green);
+	textbox_set_background_color(state.gui.tie_button, &colors.play_green);
+	textbox_set_text_color(state.gui.tie_button, &colors.black);
 	/* Note *note = note_at_cursor(true); */
 	/* if (note && note_tl_end_pos(note, state.cr) == state.cr->track->tl->play_pos_sframes) { */
 	/*     midi_clip_grab_note(state.clip, note, NOTE_EDGE_RIGHT); */
 	/* } */
     } else {
-	textbox_set_background_color(state.gui.tie_button, &colors.grey);
+	textbox_set_background_color(state.gui.tie_button, &colors.quickref_button_blue);
+	textbox_set_text_color(state.gui.tie_button, &colors.light_grey);
 	midi_clip_ungrab_all(state.clip);
     }
 }
@@ -1498,8 +1538,10 @@ void piano_roll_toggle_chord_mode()
     state.chord_mode = !state.chord_mode;
     if (state.chord_mode) {
 	textbox_set_background_color(state.gui.chord_button, &colors.solo_yellow);
+	textbox_set_text_color(state.gui.chord_button, &colors.black);
     } else {
-	textbox_set_background_color(state.gui.chord_button, &colors.grey);
+	textbox_set_background_color(state.gui.chord_button, &colors.quickref_button_blue);
+	textbox_set_text_color(state.gui.chord_button, &colors.light_grey);
 	piano_roll_next_note();
     }
 }
@@ -1813,6 +1855,8 @@ void piano_roll_draw()
     /* textbox_draw(state.gui.dur_shorter_button); */
     textbox_draw(state.gui.tie_button);
     textbox_draw(state.gui.chord_button);
+    /* textbox_draw(state.gui.insert_note_button); */
+    /* textbox_draw(state.gui.insert_rest_button); */
 
     textbox_draw(state.gui.pitch_val);
     textbox_draw(state.gui.velocity_val);

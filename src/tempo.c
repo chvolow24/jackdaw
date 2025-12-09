@@ -1057,10 +1057,10 @@ static void click_track_deferred_draw(void *click_track_v)
     /* cliprect.w += cliprect.x; */
     /* cliprect.x = 0; */
     if (audio_rect->y + audio_rect->h > tt->tl->track_area->rect.y) {
-	SDL_RenderSetClipRect(main_win->rend, audio_rect);
+	/* SDL_RenderSetClipRect(main_win->rend, audio_rect); */
 	textbox_draw(tt->metronome_button);
 	slider_draw(tt->metronome_vol_slider);
-	SDL_RenderSetClipRect(main_win->rend, NULL);
+	/* SDL_RenderSetClipRect(main_win->rend, NULL); */
     }
 }
 

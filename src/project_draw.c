@@ -507,7 +507,7 @@ void clipref_draw_waveform(ClipRef *cr)
 	/* fprintf(stderr, "\t%f\n", FRAME_WF_DRAW_TIME); */
 
 	clock_t c = clock();
-	waveform_draw_all_channels_generic((void **)channels, JDAW_FLOAT, num_channels, wf_len, &waveform_container, 0, onscreen_rect.w, cr->track->tl->timeview.sample_frames_per_pixel, &colors.black);
+	waveform_draw_all_channels_generic((void **)channels, JDAW_FLOAT, num_channels, wf_len, &waveform_container, 0, onscreen_rect.w, cr->track->tl->timeview.sample_frames_per_pixel, &colors.black, cr->gain);
 	FRAME_WF_DRAW_TIME += ((double)clock() - c) / CLOCKS_PER_SEC;
 	    /* fprintf(stderr, "WF: %fms\n", FRAME_WF_DRAW_TIME * 1000); */
 	/* T_draw_waveform += ((double)clock() - c)/CLOCKS_PER_SEC; */

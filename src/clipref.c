@@ -37,6 +37,7 @@ ClipRef *clipref_create(
     cr->tl_pos = tl_pos;
     cr->type = type;
     cr->source_clip = source_clip;
+    cr->gain = 1.0;
     /* ClipRef *cr = NULL; */
     /* MIDIClipRef *mcr = NULL; */
     switch (type) {

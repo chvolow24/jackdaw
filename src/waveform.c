@@ -517,7 +517,7 @@ static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, 
 
 
 /* TODO: rename function and deprecate old one */
-static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t buflen, int start_x, int w, int amp_h_max, int center_y, int min_x, int max_x, double sfpp, SDL_Color *color)
+static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t buflen, int start_x, int w, int amp_h_max, int center_y, int min_x, int max_x, double sfpp, SDL_Color *color, float gain)
 {
     /* float sfpp = (double) buflen / w; */
     if (sfpp <= 0) {
@@ -568,7 +568,7 @@ static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t
 		if (sample_i_rounded >= buflen) {
 		    break;
 		}
-		float sample = channel[sample_i_rounded];
+		float sample = gain * channel[sample_i_rounded];
 		if (sample > max_amp_pos) {
 		    max_amp_pos = sample;
 		} else if (sample < max_amp_neg) {
@@ -633,6 +633,7 @@ static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t
 	    } else {
 		avg_amp = channel[(int)round(sample_i)];
 	    }
+	    avg_amp *= gain;
 	    int sample_y = center_y + avg_amp * amp_h_max;
 	    /* int sample_y; */
 	    if (x == start_x) {last_sample_y = sample_y;}
@@ -673,12 +674,12 @@ void waveform_draw_all_channels(float **channels, uint8_t num_channels, uint32_t
 }
 
 /* TODO: rename and deprecate old function */
-void waveform_draw_all_channels_generic(void **channels, ValType type, uint8_t num_channels, uint32_t buflen, SDL_Rect *rect, int min_x, int max_x, double sfpp, SDL_Color *color)
+void waveform_draw_all_channels_generic(void **channels, ValType type, uint8_t num_channels, uint32_t buflen, SDL_Rect *rect, int min_x, int max_x, double sfpp, SDL_Color *color, float gain)
 {
     int channel_h = rect->h / num_channels;
     int center_y = rect->y + channel_h / 2;
     for (uint8_t i=0; i<num_channels; i++) {
-	waveform_draw_channel_generic(channels[i], type,  buflen, rect->x, rect->w, channel_h / 2, center_y, min_x, max_x, sfpp, color);
+	waveform_draw_channel_generic(channels[i], type,  buflen, rect->x, rect->w, channel_h / 2, center_y, min_x, max_x, sfpp, color, gain);
 	center_y += channel_h;
     }
 }

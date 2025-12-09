@@ -194,6 +194,7 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 		    } else {
 			sample = clip_buf[(int)clip_index_f];
 		    }
+		    sample *= cr->gain;
 		    chunk[chunk_i] += sample;
 		    total_amp += fabs(chunk[chunk_i]);
 		}

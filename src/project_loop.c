@@ -210,6 +210,27 @@ void loop_project_main()
 		/* } */
 
 		switch (e.key.keysym.scancode) {
+		case SDL_SCANCODE_4: {
+		    ClipRef *cr = clipref_at_cursor();
+		    if (cr) {
+		        cr->gain -= 0.1;
+			clipref_reset(cr, false);
+			ACTIVE_TL->needs_redraw = true;
+		    }
+		    
+		}
+		    break;
+		case SDL_SCANCODE_5: {
+		    ClipRef *cr = clipref_at_cursor();
+		    if (cr) {
+			cr->gain += 0.1;
+			clipref_reset(cr, false);
+			ACTIVE_TL->needs_redraw = true;
+		    }
+		    
+		}
+		    break;
+
 		case SDL_SCANCODE_6: {
 		    ClipRef *cr = clipref_at_cursor();
 		    midi_clipref_quantize_notes_in_range(cr, 1.0, BP_SUBDIV2, true);

@@ -45,7 +45,6 @@ typedef struct clip {
     Track *target;
     bool recording;
     AudioConn *recorded_from;
-    
 } Clip;
 
 

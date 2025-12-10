@@ -11,6 +11,8 @@
 #include "audio_clip.h"
 #include "clipref.h"
 #include "color.h"
+#include "endpoint.h"
+#include "label.h"
 #include "midi_clip.h"
 /* #include "project.h" */
 #include "session.h"
@@ -20,10 +22,21 @@
 #define CLIPREF_NAMELABEL_H_PAD 8
 #define CLIPREF_NAMELABEL_V_PAD 2
 
+#define CLIPREF_GAIN_ADJ_SCALAR 0.05
+
 #define CR_RECT_V_PAD (4 * main_win->dpi_scale_factor)
 
 extern Window *main_win;
 extern struct colors colors;
+
+void clipref_gain_gui_cb(Endpoint *ep)
+{
+    ClipRef *cr = ep->xarg1;
+    clipref_reset(cr, false);
+    cr->track->tl->needs_redraw = true;
+    label_move(cr->gain_label, main_win->mousep.x, cr->layout->rect.y + cr->layout->rect.h / 2);
+    label_reset(cr->gain_label, ep->current_write_val);
+}
 
 ClipRef *clipref_create(
     Track *track,
@@ -37,7 +50,7 @@ ClipRef *clipref_create(
     cr->tl_pos = tl_pos;
     cr->type = type;
     cr->source_clip = source_clip;
-    cr->gain = 1.0;
+		  
     /* ClipRef *cr = NULL; */
     /* MIDIClipRef *mcr = NULL; */
     switch (type) {
@@ -96,6 +109,21 @@ ClipRef *clipref_create(
     /* cr->clip = clip; */
     /* cr->track = track; */
     /* cr->home = home; */
+
+    cr->gain = 1.0;
+    cr->gain_label = label_create(0, cr->layout, label_amp_to_dbstr, &cr->gain, JDAW_FLOAT, main_win);
+    endpoint_init(
+	&cr->gain_ep,
+	&cr->gain,
+	JDAW_FLOAT,
+	"gain",
+	"Gain",
+	JDAW_THREAD_DSP,
+	clipref_gain_gui_cb, NULL, NULL,
+	cr, NULL, NULL, NULL);
+    endpoint_set_default_value(&cr->gain_ep, (Value){.float_v = 1.0f});
+    endpoint_set_label_fn(&cr->gain_ep, label_amp_to_dbstr);
+
 
     Layout *label_lt = layout_add_child(cr->layout);
     label_lt->x.value = CLIPREF_NAMELABEL_H_PAD;
@@ -454,7 +482,8 @@ void clipref_destroy(ClipRef *cr, bool displace_in_clip)
     }
 
     clipref_check_and_remove_from_clipboard(cr);
-
+    label_destroy(cr->gain_label);
+    
     bool displace = false;
     for (uint16_t i=0; i<track->num_clips; i++) {
 	if (track->clips[i] == cr) {
@@ -573,6 +602,7 @@ static ClipRef *clipref_cut(ClipRef *cr, int32_t cut_pos_rel)
     if (!new) {
 	return NULL;
     }
+    new->gain = cr->gain;
     if (cut_pos_rel < 0) return NULL;
     new->start_in_clip = cr->start_in_clip + cut_pos_rel;
     new->end_in_clip = cr->end_in_clip == 0 ? clipref_len(cr) : cr->end_in_clip;
@@ -744,3 +774,9 @@ void clipref_rename(ClipRef *cr)
     main_win->i_state = 0;
 }
 
+
+void clipref_gain_drag(ClipRef *cr, Window *win)
+{
+    float new_gain = endpoint_safe_read(&cr->gain_ep, NULL).float_v - (float)win->current_event->motion.yrel * CLIPREF_GAIN_ADJ_SCALAR;
+    endpoint_write(&cr->gain_ep, (Value){.float_v = new_gain}, true, true, true, false);
+}

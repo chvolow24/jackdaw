@@ -154,11 +154,16 @@ void label_destroy(Label *label)
 void label_amp_to_dbstr(char *dst, size_t dstsize, Value val, ValType t)
 {
     float amp = t == JDAW_FLOAT ? val.float_v : val.double_v;
-    float db = amp_to_db(amp);
-    
-    snprintf(dst, dstsize - 4, "%.*f", 2, db);
-    /* jdaw_val_set_str(dst, dstsize - 4, val, t, 2); */
-    strcat(dst, " dB");
+    if (amp < 0.0f) {
+	float db = amp_to_db(-1 * amp);
+	snprintf(dst, dstsize - 4, "Ø %.*f", 2, db);
+	strcat(dst, " dB");
+
+    } else {
+	float db = amp_to_db(amp);
+	snprintf(dst, dstsize - 4, "%.*f", 2, db);
+	strcat(dst, " dB");
+    }
 }
 
 void label_pan(char *dst, size_t dstsize, Value val, ValType t)

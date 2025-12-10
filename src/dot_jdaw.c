@@ -51,7 +51,7 @@ const static char hdr_click_segm[] = {'C', 'T', 'S', 'G'};
 const static char hdr_trck_efct[] = {'E', 'F', 'C', 'T'};
 const static char hdr_trck_synth[] = {'S','Y','N','T','H'};
 
-const static char current_file_spec_version[] = {'0','0','.','1','9'};
+const static char current_file_spec_version[] = {'0','0','.','2','0'};
 
 static char read_file_spec_version[6];
 bool read_file_version_older_than(const char *cmp_version)
@@ -449,6 +449,7 @@ static void jdaw_write_clipref(FILE *f, ClipRef *cr)
     uint32_t null_ramp_val = 0;
     uint32_ser_le(f, &null_ramp_val);
     uint32_ser_le(f, &null_ramp_val);
+    float_ser40_le(f, cr->gain);
 }
 
 static void jdaw_write_auto_keyframe(FILE *f, Keyframe *k);
@@ -1301,6 +1302,10 @@ static int jdaw_read_clipref(FILE *f, Track *track)
     cr->end_in_clip = uint32_deser_le(f);
     uint32_deser_le(f); /* start ramp len */
     uint32_deser_le(f); /* end ramp len */
+
+    if (!read_file_version_older_than("00.20")) {
+	cr->gain = float_deser40_le(f);
+    }
 
     return 0;
 }

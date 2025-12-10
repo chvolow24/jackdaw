@@ -1,8 +1,8 @@
-/**************************** .JDAW VERSION 00.19 FILE SPEC ***********************************
+/**************************** .JDAW VERSION 00.20 FILE SPEC ***********************************
 
    =========================================================
-    DIFF (new since 00.18)
-	- MIDI clips use array of events (note Notes)
+    DIFF (new since 00.19)
+	- serialize clipref gain
    =========================================================
 
     ALL INTEGERS SERIALIZED IN LITTLE-ENDIAN BYTE ORDER
@@ -136,6 +136,7 @@ CLIP_REF      4                 int32_t                   start in clip (sframes
 CLIP_REF      4			int32_t		  	  end in clip (sframes)
 CLIP_REF      4                 uint32_t                  clipref start ramp len (sframes)
 CLIP_REF      4                 uint32_t                  clipref end ramp len (sframes)
+CLIP_REF      5			float			  clipref gain
 
 [MULTIPLE PER TRACK]
 TRCK_AUTO     4			char[4]			  "AUTO"

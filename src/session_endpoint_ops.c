@@ -179,6 +179,10 @@ void session_do_ongoing_changes(Session *session, enum jdaw_thread thread)
     pthread_mutex_unlock(&session->queued_ops.ongoing_changes_lock);
 }
 
+/*
+  For now: keyup or mousebuttonup by default flush all ongoing changes (e.g. from holding key or dragging mouse)
+  called in project_loop.c
+ */
 void session_flush_ongoing_changes(Session *session, enum jdaw_thread thread)
 {
     pthread_mutex_lock(&session->queued_ops.ongoing_changes_lock);

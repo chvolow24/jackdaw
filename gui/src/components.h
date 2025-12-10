@@ -80,7 +80,8 @@ enum drag_comp_type {
     DRAG_SLIDER,
     DRAG_CLICK_SEG_BOUND,
     DRAG_EQ_FILTER_NODE,
-    DRAG_TABVIEW_TAB
+    DRAG_TABVIEW_TAB,
+    DRAG_CLIPREF_GAIN
 };
 
 typedef struct draggable {

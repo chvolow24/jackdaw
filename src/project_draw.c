@@ -259,6 +259,9 @@ static void clipref_draw(ClipRef *cr)
     if (cr->label) {
 	textbox_draw(cr->label);
     }
+    if (cr->gain_label) {
+	label_draw(cr->gain_label);
+    }
 }
 
 static void draw_selected_track_rect(Layout *selected_layout)

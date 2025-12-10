@@ -2216,6 +2216,7 @@ void user_tl_paste_grabbed_clips(void *nullarg)
 		tl->play_pos_sframes + offset,
 		cr->type,
 		cr->source_clip);
+	    copy->gain = cr->gain;
 	    if (!copy) continue;
 	    snprintf(copy->name, MAX_NAMELENGTH, "%s copy", cr->name);
 	    copy->start_in_clip = cr->start_in_clip;

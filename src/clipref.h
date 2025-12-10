@@ -18,6 +18,7 @@
 #ifndef JDAW_CLIPREF_H
 #define JDAW_CLIPREF_H
 
+#include "endpoint.h"
 #include "grab.h"
 #include "textbox.h"
 
@@ -60,7 +61,10 @@ typedef struct clip_ref {
     int32_t first_cc; /* index of first control change */
     int32_t first_pb; /* index of first pitch bend */
 
+    /* Gain */
+    Label *gain_label;
     float gain;
+    Endpoint gain_ep;
 } ClipRef;
 
 

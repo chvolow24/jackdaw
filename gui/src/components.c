@@ -1181,6 +1181,8 @@ void status_light_destroy(StatusLight *sl)
 typedef struct click_segment ClickSegment;
 bool click_track_mouse_motion(ClickSegment *s, Window *win);
 void tabview_tab_drag(TabView *tv, Window *win);
+typedef struct clip_ref ClipRef;
+void clipref_gain_drag(ClipRef *cr, Window *win);
 bool draggable_mouse_motion(Draggable *draggable, Window *win)
 {
     switch (draggable->type) {
@@ -1194,6 +1196,9 @@ bool draggable_mouse_motion(Draggable *draggable, Window *win)
 	return true;
     case DRAG_TABVIEW_TAB:
 	tabview_tab_drag((TabView *)draggable->component, win);
+	return true;
+    case DRAG_CLIPREF_GAIN:
+	clipref_gain_drag((ClipRef *)draggable->component, win);
 	return true;
     }
     return false;

@@ -307,6 +307,7 @@ void endpoint_continuous_change_do_incr(Endpoint *ep)
     endpoint_write(ep, new_val, true, true, true, false);
 }
 
+/* Called in session_endpoint_ops.c : session_flush_ongoing_changes() */
 void endpoint_stop_continuous_change(Endpoint *ep)
 {
     /* endpoint_set_owner(ep, ep->cached_owner); */

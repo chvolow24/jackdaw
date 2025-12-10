@@ -405,8 +405,8 @@ int project_init(
 uint8_t project_add_timeline(Project *proj, char *name);
 void project_reset_tl_label(Project *proj);
 void project_set_chunk_size(uint16_t new_chunk_size);
-Track *timeline_add_track(Timeline *tl);
-Track *timeline_add_track_with_name(Timeline *tl, const char *track_name);
+Track *timeline_add_track(Timeline *tl, int at);
+Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at);
 
 Track *timeline_selected_track(Timeline *tl);
 void timeline_select_track(Track *track);

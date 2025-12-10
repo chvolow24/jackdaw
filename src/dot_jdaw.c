@@ -933,7 +933,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 	fread(&c, 1, 1, f);
     }
     name[track_namelen] = '\0';
-    Track *track = timeline_add_track_with_name(tl, name);
+    Track *track = timeline_add_track_with_name(tl, name, -1);
     /* Track *track = tl->tracks[tl->num_tracks - 1]; */
     fread(&track->color, 1, 4, f);
 

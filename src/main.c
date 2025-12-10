@@ -264,13 +264,13 @@ int main(int argc, char **argv)
 	    fprintf(stderr, "Error: unable to open project \"%s\".\n", file_to_open);
 	    exit(1);
 	}
-	timeline_add_track(session->proj.timelines[0]);
+	timeline_add_track(session->proj.timelines[0], -1);
     }
     fprintf(stderr, "\t...done\n");
 
 
     if (invoke_open_wav_file) {
-	Track *track = timeline_add_track(session->proj.timelines[0]);
+	Track *track = timeline_add_track(session->proj.timelines[0], -1);
 	wav_load_to_track(track, file_to_open, 0);
 	char *filepath = realpath(file_to_open, NULL);
 	if (!filepath) {

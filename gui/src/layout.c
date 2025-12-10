@@ -1603,6 +1603,34 @@ void layout_swap_children(Layout *child1, Layout *child2)
     child2->index = saved_ind;
 }
 
+void layout_displace_child(Layout *child, int by)
+{
+    if (!child->parent) return;
+    Layout **tmp = calloc(child->parent->num_children, sizeof(Layout *));
+    int new_dst_loc = child->index + by;
+    if (new_dst_loc < 0 || new_dst_loc >= child->parent->num_children) {
+	fprintf(stderr, "Error: call to displace child outside of parent->children bounds.\n");
+	return;
+    }
+    int insertion_i = 0;
+    for (int i=0; i<child->parent->num_children; i++) {
+	if (insertion_i == new_dst_loc) {
+	    tmp[insertion_i] = child;
+	    insertion_i++;
+	    i--;
+	} else if (i == child->index) {
+	    continue;
+	} else {
+	    tmp[insertion_i] = child->parent->children[i];
+	    tmp[insertion_i]->index = insertion_i;
+	    insertion_i++;
+	}	
+    }
+    memcpy(child->parent->children, tmp, sizeof(Layout *) * child->parent->num_children);
+    child->index += by;
+    free(tmp);
+}
+
 Layout *layout_add_iter(Layout *lt, IteratorType type, bool scrollable)
 {
     if (!(lt->iterator)) {

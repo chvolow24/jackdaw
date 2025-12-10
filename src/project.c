@@ -663,7 +663,7 @@ static int auto_dropdown_action(void *self, void *xarg)
     }
     return 0;
 }
-Track *timeline_add_track_with_name(Timeline *tl, const char *track_name)
+Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at)
 {
     if (tl->num_tracks == MAX_TRACKS) return NULL;
     Track *track = calloc(1, sizeof(Track));
@@ -757,9 +757,14 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name)
     /* Layout *track_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area"); */
     Layout *track_template = layout_read_xml_to_lt(tl->track_area, TRACK_LT_PATH);
     track->layout = track_template;
-    
+
+    if (at > -1) {
+	layout_displace_child(track->layout, at - tl->track_area->num_children + 1);
+    }
+        
     track->inner_layout = track_template->children[0];
     timeline_rectify_track_area(tl);
+    timeline_rectify_track_indices(tl);
     /* fprintf(stdout, "tracks area h: %d/%d\n", tl->track_area->h.value.intval, tl->track_area->rect.h); */
     Layout *name, *mute, *solo, *vol_label, *pan_label, *in_label, *in_value;
 
@@ -976,22 +981,21 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name)
 
 
     track_reset_full(track);
-    if (tl->layout_selector < 0) tl->layout_selector = 0;
+    if (tl->layout_selector < 0) tl->layout_selector = 0;    
     timeline_rectify_track_indices(tl);
 
     /* api_endpoint_register(&track->saturation.gain_ep, &track->saturation.track->api_node); */
-
     return track;
 
 }
 
-Track *timeline_add_track(Timeline *tl)
+Track *timeline_add_track(Timeline *tl, int at)
 {
     if (tl->num_tracks == MAX_TRACKS) return NULL;
     char name[MAX_NAMELENGTH];
     snprintf(name, sizeof(name), "Track %d", tl->num_tracks + 1);
 
-    return timeline_add_track_with_name(tl, name);
+    return timeline_add_track_with_name(tl, name, at);
 }
 
 

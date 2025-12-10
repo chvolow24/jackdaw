@@ -675,7 +675,7 @@ int midi_file_open(const char *filepath, bool automatically_add_tracks)//, MIDIC
 	    }
 	    if (automatically_add_tracks) {
 		while (tl->num_tracks - sel_track_i < num_dst_tracks) {
-		    Track *t = timeline_add_track(tl);
+		    Track *t = timeline_add_track(tl, -1);
 		    t->added_from_midi_filepath = filepath;
 		}
 	    } else {
@@ -690,7 +690,7 @@ int midi_file_open(const char *filepath, bool automatically_add_tracks)//, MIDIC
 	    }
 	    if (automatically_add_tracks) {
 		while (tl->num_tracks - sel_track_i < num_dst_tracks)  {
-		    Track *t = timeline_add_track(tl);
+		    Track *t = timeline_add_track(tl, -1);
 		    t->added_from_midi_filepath = filepath;
 		}
 		num_clips = 16;

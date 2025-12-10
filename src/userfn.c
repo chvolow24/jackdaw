@@ -1292,8 +1292,9 @@ void user_tl_add_track(void *nullarg)
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    Track *track = timeline_add_track(tl);
+    Track *track = timeline_add_track(tl, tl->layout_selector + 1);
     if (!track) return;
+    timeline_select_track(track);
     /* PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_add_track"); */
     /* Button *btn = (Button *)el->component; */
     /* button_press_color_change( */

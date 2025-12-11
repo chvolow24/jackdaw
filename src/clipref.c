@@ -22,7 +22,7 @@
 #define CLIPREF_NAMELABEL_H_PAD 8
 #define CLIPREF_NAMELABEL_V_PAD 2
 
-#define CLIPREF_GAIN_ADJ_SCALAR 0.05
+#define CLIPREF_GAIN_ADJ_SCALAR 0.02
 
 #define CR_RECT_V_PAD (4 * main_win->dpi_scale_factor)
 

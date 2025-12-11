@@ -1279,6 +1279,80 @@ NEW_EVENT_FN(redo_quantize_notes, "redo quantize notes")
 
 }
 
+static void midi_clipref_quantize_notes(ClipRef *cr, Note **notes, int num, ClickTrack *ct, float amount, BeatProminence resolution, bool quantize_note_offs)
+{
+    struct quantize_undo_info *undo_info = malloc(sizeof(struct quantize_undo_info) * num);
+    for (int i=0; i<num; i++) {
+	undo_info[i].note_id = notes[i]->id;
+	undo_info[i].old_info = notes[i]->quantize_info;
+	notes[i]->quantize_info.quantized = true;
+	notes[i]->quantize_info.start_rel_before = notes[i]->start_rel;
+	notes[i]->quantize_info.end_rel_before = notes[i]->end_rel;
+	notes[i]->quantize_info.amt = amount;
+	int32_t tl_start = note_tl_start_pos(notes[i], cr);
+	int32_t tl_end = note_tl_end_pos(notes[i], cr);
+	int32_t prev_beat, next_beat;
+	int32_t start_dst_beat;
+	click_track_get_prox_beats(ct, tl_start, resolution, &prev_beat, &next_beat);
+	int32_t diff_prev = tl_start - prev_beat;
+	int32_t diff_next = next_beat - tl_start;
+	int32_t start_diff;
+	if (diff_prev < diff_next) {
+	    start_dst_beat = prev_beat;
+	    notes[i]->quantize_info.start_diff = -diff_prev;
+	    diff_prev *= amount;
+	    start_diff = -diff_prev;
+	} else if (diff_next < diff_prev) {
+	    notes[i]->quantize_info.start_diff = diff_next;
+	    start_dst_beat = next_beat;
+	    diff_next *= amount;
+	    start_diff = diff_next;
+	} else { /* Note falls exactly in the middle; allow to stay */
+	    notes[i]->quantize_info.start_diff = 0;
+	    start_dst_beat = tl_start;
+	    start_diff = 0;
+	}
+	notes[i]->start_rel += start_diff;
+	click_track_get_prox_beats(ct, tl_end, resolution, &prev_beat, &next_beat);
+	diff_prev = tl_end - prev_beat;
+	diff_next = next_beat - tl_end;
+	/* For setting note end pos, check that the destination end beat is not the same as the start destination;
+	   if the destinations match (which would result in progressively shorter note durs for amount <1.0), maintain dur */
+	if (diff_prev < diff_next && prev_beat != start_dst_beat) {
+	    notes[i]->quantize_info.end_diff = -diff_prev;
+	    diff_prev *= amount;
+	    /* notes[i]->end_rel = prev_beat - cr->tl_pos + cr->start_in_clip; */
+	    notes[i]->end_rel -= diff_prev;
+	    /* notes[i]->end_quantize_diff = -1 * diff_prev; */
+	} else if (diff_next < diff_prev && next_beat != start_dst_beat) {
+	    notes[i]->quantize_info.end_diff = diff_next;
+	    diff_next *= amount;
+	    notes[i]->end_rel += diff_next;
+	} else {
+	    /* Move start by same amount as end */
+	    notes[i]->quantize_info.end_diff = notes[i]->quantize_info.start_diff;
+	    notes[i]->end_rel += start_diff;
+	}
+	if (notes[i]->end_rel == notes[i]->start_rel) {
+	    notes[i]->end_rel += (ct->segments + ct->current_segment)->cfg.atom_dur_approx;
+	    notes[i]->quantize_info.end_diff += (ct->segments + ct->current_segment)->cfg.atom_dur_approx;
+	    /* notes[i]->end_quantize_diff += (ct->segments + ct->current_segment)->cfg.atom_dur_approx; */
+	}
+	undo_info[i].new_info = notes[i]->quantize_info;
+    }
+    user_event_push(
+	undo_quantize_notes,
+	redo_quantize_notes,
+	NULL, NULL,
+	cr,
+	undo_info,
+	(Value){.int32_v = num},
+	(Value){0},
+	(Value){.int32_v = num},
+	(Value){0},
+	0, 0, false, true);
+}
+
 
 /* Amt 0.0 - 1.0 describes how close to the note gets to the beat */
 void midi_clipref_quantize_notes_in_range(ClipRef *cr, float amount, BeatProminence resolution, bool quantize_note_offs)
@@ -1292,84 +1366,74 @@ void midi_clipref_quantize_notes_in_range(ClipRef *cr, float amount, BeatPromine
     }
     
     Note **intersecting;
-    int num_intersecting = midi_clipref_notes_intersecting_area(cr, tl->in_mark_sframes, tl->out_mark_sframes, 0, 127, &intersecting);
-    if (num_intersecting == 0) return;
-    /* uint32_t *note_ids = malloc(sizeof(uint32_t) * num_intersecting);; */
-    struct quantize_undo_info *undo_info = malloc(sizeof(struct quantize_undo_info) * num_intersecting);
-    for (int i=0; i<num_intersecting; i++) {
-	undo_info[i].note_id = intersecting[i]->id;
-	undo_info[i].old_info = intersecting[i]->quantize_info;
-	intersecting[i]->quantize_info.quantized = true;
-	intersecting[i]->quantize_info.start_rel_before = intersecting[i]->start_rel;
-	intersecting[i]->quantize_info.end_rel_before = intersecting[i]->end_rel;
-	intersecting[i]->quantize_info.amt = amount;
-	int32_t tl_start = note_tl_start_pos(intersecting[i], cr);
-	int32_t tl_end = note_tl_end_pos(intersecting[i], cr);
-	int32_t prev_beat, next_beat;
-	int32_t start_dst_beat;
-	click_track_get_prox_beats(ct, tl_start, resolution, &prev_beat, &next_beat);
-	int32_t diff_prev = tl_start - prev_beat;
-	int32_t diff_next = next_beat - tl_start;
-	int32_t start_diff;
-	if (diff_prev < diff_next) {
-	    start_dst_beat = prev_beat;
-	    intersecting[i]->quantize_info.start_diff = -diff_prev;
-	    diff_prev *= amount;
-	    start_diff = -diff_prev;
-	} else if (diff_next < diff_prev) {
-	    intersecting[i]->quantize_info.start_diff = diff_next;
-	    start_dst_beat = next_beat;
-	    diff_next *= amount;
-	    start_diff = diff_next;
-	} else { /* Note falls exactly in the middle; allow to stay */
-	    intersecting[i]->quantize_info.start_diff = 0;
-	    start_dst_beat = tl_start;
-	    start_diff = 0;
-	}
-	intersecting[i]->start_rel += start_diff;
-	click_track_get_prox_beats(ct, tl_end, resolution, &prev_beat, &next_beat);
-	diff_prev = tl_end - prev_beat;
-	diff_next = next_beat - tl_end;
-	/* For setting note end pos, check that the destination end beat is not the same as the start destination;
-	   if the destinations match (which would result in progressively shorter note durs for amount <1.0), maintain dur */
-	if (diff_prev < diff_next && prev_beat != start_dst_beat) {
-	    intersecting[i]->quantize_info.end_diff = -diff_prev;
-	    diff_prev *= amount;
-	    /* intersecting[i]->end_rel = prev_beat - cr->tl_pos + cr->start_in_clip; */
-	    intersecting[i]->end_rel -= diff_prev;
-	    /* intersecting[i]->end_quantize_diff = -1 * diff_prev; */
-	} else if (diff_next < diff_prev && next_beat != start_dst_beat) {
-	    intersecting[i]->quantize_info.end_diff = diff_next;
-	    diff_next *= amount;
-	    intersecting[i]->end_rel += diff_next;
-	} else {
-	    /* Move start by same amount as end */
-	    intersecting[i]->quantize_info.end_diff = intersecting[i]->quantize_info.start_diff;
-	    intersecting[i]->end_rel += start_diff;
-	}
-	if (intersecting[i]->end_rel == intersecting[i]->start_rel) {
-	    intersecting[i]->end_rel += (ct->segments + ct->current_segment)->cfg.atom_dur_approx;
-	    intersecting[i]->quantize_info.end_diff += (ct->segments + ct->current_segment)->cfg.atom_dur_approx;
-	    /* intersecting[i]->end_quantize_diff += (ct->segments + ct->current_segment)->cfg.atom_dur_approx; */
-	}
-	undo_info[i].new_info = intersecting[i]->quantize_info;
-    }
+    int num = midi_clipref_notes_intersecting_area(cr, tl->in_mark_sframes, tl->out_mark_sframes, 0, 127, &intersecting);
+    if (num == 0) return;
+    midi_clipref_quantize_notes(cr, intersecting, num, ct, amount, resolution, quantize_note_offs);
+    /* uint32_t *note_ids = malloc(sizeof(uint32_t) * num);; */
     free(intersecting);
+}
 
-    user_event_push(
-	undo_quantize_notes,
-	redo_quantize_notes,
-	NULL, NULL,
-	cr,
-	undo_info,
-	(Value){.int32_v = num_intersecting},
-	(Value){0},
-	(Value){.int32_v = num_intersecting},
-	(Value){0},
-	0, 0, false, true);
-	
-	
-    
+struct note_quant_amt {
+    uint32_t note_id;
+    float undo_amt;
+};
+
+static void midi_clipref_notes_adj_quantize_amount(ClipRef *cr, Note **notes, int32_t num, float new_amount, bool from_undo);
+NEW_EVENT_FN(undo_adj_quantize_amt, "undo adj quantize amount")
+    ClipRef *cr = obj1;
+    MIDIClip *mclip = cr->source_clip;
+    struct note_quant_amt *info = obj2;
+    int32_t num = val1.int32_v;
+    Note *note;
+    for (int32_t i=0; i<num; i++) {
+        note = mclip->notes + midi_clip_get_note_by_id(mclip, info[i].note_id);
+	midi_clipref_notes_adj_quantize_amount(cr, &note, 1, info[i].undo_amt, true);
+    }
+}
+
+NEW_EVENT_FN(redo_adj_quantize_amt, "redo adj quantize amount")
+    ClipRef *cr = obj1;
+    MIDIClip *mclip = cr->source_clip;
+    struct note_quant_amt *info = obj2;
+    int32_t num = val1.int32_v;
+    Note **notes = malloc(num * sizeof(Note *));
+    for (int32_t i=0; i<num; i++) {
+        notes[i] = mclip->notes + midi_clip_get_note_by_id(mclip, info[i].note_id);
+    }
+    midi_clipref_notes_adj_quantize_amount(cr, notes, num, val2.float_v, true);
+    free(notes);
+}
+
+
+
+static void midi_clipref_notes_adj_quantize_amount(ClipRef *cr, Note **notes, int32_t num, float new_amount, bool from_undo)
+{
+    struct note_quant_amt *undo_info;
+    if (!from_undo) {
+	undo_info = malloc(num * sizeof(struct note_quant_amt));
+    }
+    for (int32_t i=0; i<num; i++) {
+	undo_info[i].undo_amt = notes[i]->quantize_info.amt;
+	undo_info[i].note_id = notes[i]->id;
+	if (!notes[i]->quantize_info.quantized) continue;
+	notes[i]->start_rel = notes[i]->quantize_info.start_rel_before + notes[i]->quantize_info.start_diff * new_amount;
+	notes[i]->end_rel = notes[i]->quantize_info.end_rel_before + new_amount * notes[i]->quantize_info.end_diff * new_amount;
+	notes[i]->quantize_info.amt = new_amount;
+    }
+    if (!from_undo) {
+	user_event_push(
+	    undo_adj_quantize_amt,
+	    redo_adj_quantize_amt,
+	    NULL, NULL,
+	    cr, undo_info,
+	    (Value){.int32_v = num},
+	    (Value){0},
+	    (Value){.int32_v = num},
+	    (Value){.float_v = new_amount},
+	    0, 0, false, true);
+	    
+	    
+    }
 }
 
 void midi_clipref_notes_in_range_adj_quantize_amount(ClipRef *cr, float new_amount)
@@ -1378,12 +1442,7 @@ void midi_clipref_notes_in_range_adj_quantize_amount(ClipRef *cr, float new_amou
     Timeline *tl = cr->track->tl;    
     Note **intersecting;
     int num_intersecting = midi_clipref_notes_intersecting_area(cr, tl->in_mark_sframes, tl->out_mark_sframes, 0, 127, &intersecting);
-    for (int i=0; i<num_intersecting; i++) {
-	if (!intersecting[i]->quantize_info.quantized) continue;
-	intersecting[i]->start_rel = intersecting[i]->quantize_info.start_rel_before + intersecting[i]->quantize_info.start_diff * new_amount;
-	intersecting[i]->end_rel = intersecting[i]->quantize_info.end_rel_before + new_amount * intersecting[i]->quantize_info.end_diff * new_amount;
-	intersecting[i]->quantize_info.amt = new_amount;
-    }
+    midi_clipref_notes_adj_quantize_amount(cr, intersecting, num_intersecting, new_amount, false);
     if (num_intersecting > 0) free(intersecting);
 }
 

@@ -252,6 +252,15 @@ void loop_project_main()
 		}
 		    break;
 
+		case SDL_SCANCODE_9: {
+		    ClipRef *cr = clipref_at_cursor();
+		    midi_clipref_notes_in_range_adj_quantize_amount(cr, 0.0);
+		    /* midi_clipref_quantize_notes_in_range(cr, 1, BP_SUBDIV2, true); */
+		    /* piano_roll_quantize_notes_in_marked_range(); */
+		}
+		    break;
+
+
 
 		/* case SDL_SCANCODE_1: { */
 		/*     mqwert_pitch_bend(-25); */

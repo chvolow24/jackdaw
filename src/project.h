@@ -129,6 +129,7 @@ typedef struct track {
 
     MIDIEventRingBuf note_offs;
 
+    float vol_ctrl_val; /* Before scaling */
     float vol; /* 0.0 - 1.0 attenuation only */
     float pan; /* 0.0 pan left; 0.5 center; 1.0 pan right */
     Slider *vol_ctrl;

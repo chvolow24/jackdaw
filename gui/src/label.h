@@ -43,6 +43,8 @@ void label_draw(Label *label);
 void label_destroy(Label *label);
 
 void label_amp_to_dbstr(char *dst, size_t dstsize, Value val, ValType t);
+/* Use "precubic" when the ctrl value is scaled ( pow(ctrl, 3.0) ) before being applied */
+void label_amp_precubic_to_dbstr(char *dst, size_t dstsize, Value val, ValType t);
 void label_pan(char *dst, size_t dstsize, Value val, ValType t);
 /* void label_amp_to_dbstr(char *dst, size_t dstsize, float amp); */
 /* void label_pan(char *dst, size_t dstsize, float pan); */

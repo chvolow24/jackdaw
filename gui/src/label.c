@@ -151,6 +151,22 @@ void label_destroy(Label *label)
 /*     return (20.0f * log10(amp)); */
 /* } */
 
+void label_amp_precubic_to_dbstr(char *dst, size_t dstsize, Value val, ValType t)
+{
+    float amp = t == JDAW_FLOAT ? val.float_v : val.double_v;
+    amp = pow(amp, 3.0);
+    if (amp < 0.0f) {
+	float db = amp_to_db(-1 * amp);
+	snprintf(dst, dstsize - 4, "Ø %.*f", 2, db);
+	strcat(dst, " dB");
+
+    } else {
+	float db = amp_to_db(amp);
+	snprintf(dst, dstsize - 4, "%.*f", 2, db);
+	strcat(dst, " dB");
+    }
+}
+
 void label_amp_to_dbstr(char *dst, size_t dstsize, Value val, ValType t)
 {
     float amp = t == JDAW_FLOAT ? val.float_v : val.double_v;

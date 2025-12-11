@@ -663,6 +663,14 @@ static int auto_dropdown_action(void *self, void *xarg)
     }
     return 0;
 }
+
+static void vol_dsp_cb(Endpoint *ep)
+{
+    Track *track = ep->xarg3;
+    float new_ctrl_val = ep->current_write_val.float_v;
+    track->vol = pow(new_ctrl_val, 3.0);
+    fprintf(stderr, "Ctrl: %f => %f\n", new_ctrl_val, track->vol);
+}
 Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at)
 {
     if (tl->num_tracks == MAX_TRACKS) return NULL;
@@ -697,22 +705,20 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at
         
     endpoint_init(
 	&track->vol_ep,
-	&track->vol,
+	&track->vol_ctrl_val,
 	JDAW_FLOAT,
 	"vol",
 	"Vol",
 	JDAW_THREAD_DSP,
-	track_slider_cb,
-	NULL, NULL,
-	&track->vol_ctrl, track->tl,
-	NULL, NULL);
+	track_slider_cb, NULL, vol_dsp_cb,
+	&track->vol_ctrl, track->tl, track, NULL);
     endpoint_set_allowed_range(
 	&track->vol_ep,
 	(Value){.float_v=0.0},
 	(Value){.float_v=TRACK_VOL_MAX});
 
     endpoint_set_default_value(&track->vol_ep, (Value){.float_v = 1.0});
-    endpoint_set_label_fn(&track->vol_ep, label_amp_to_dbstr);
+    endpoint_set_label_fn(&track->vol_ep, label_amp_precubic_to_dbstr);
     api_endpoint_register(&track->vol_ep, &track->api_node);
 
         endpoint_init(
@@ -899,6 +905,7 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at
     /* vol_ctrl_lt->h.value.intval = vol_ctrl_row->h.value.intval - TRACK_CTRL_SLIDER_V_PAD * 2; */
     /* layout_set_values_from_rect(vol_ctrl_lt); */
     track->vol = 1.0f;
+    track->vol_ctrl_val = 1.0f;
 
     track->vol_ctrl = slider_create(
 	vol_ctrl_lt,
@@ -907,7 +914,7 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at
 	(Value){.float_v = TRACK_VOL_MAX},
 	SLIDER_HORIZONTAL,
 	SLIDER_FILL,
-	&label_amp_to_dbstr,
+	&label_amp_precubic_to_dbstr,
 	&session->dragged_component);
     slider_add_point_of_interest(track->vol_ctrl, (Value){.float_v = 1.0});
     /* track->vol_ep.xarg1 = track->vol_ctrl; */

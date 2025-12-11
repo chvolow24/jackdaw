@@ -64,6 +64,7 @@ typedef struct clip_ref {
     /* Gain */
     Label *gain_label;
     float gain;
+    float gain_ctrl; /* before exponent applied */
     Endpoint gain_ep;
 } ClipRef;
 

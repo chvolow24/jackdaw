@@ -14,6 +14,7 @@
 #include "audio_clip.h"
 #include "automation.h"
 #include "clipref.h"
+#include "consts.h"
 #include "dsp_utils.h"
 /* #include "dsp.h" */
 #include "effect.h"
@@ -86,12 +87,13 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
     if (vol_auto && !vol_auto->write && vol_auto->read) {
 	automation_get_range(vol_auto, vol_vals, output_chunk_len_sframes, start_pos_sframes, step);
 	for (int i=0; i<output_chunk_len_sframes; i++) {
-	    vol_vals[i] *= playspeed_rolloff;
+	    vol_vals[i] = pow(vol_vals[i], VOL_EXP) * playspeed_rolloff;
 	}
     } else {
-	Value vol_val = endpoint_safe_read(&track->vol_ep, NULL);
+	/* Value vol_val = endpoint_safe_read(&track->vol_ep, NULL); */
+	/* float vol_val = track-> */
 	for (int i=0; i<output_chunk_len_sframes; i++) {
-	    vol_vals[i] = vol_val.float_v * playspeed_rolloff;;
+	    vol_vals[i] = pow(track->vol, VOL_EXP) * playspeed_rolloff;;
 	}
     }
 
@@ -278,7 +280,7 @@ float gate_test_fn(float in_signed, int channel)
     }
     float env_sample = envelope_follower_sample(envs + channel, in_signed);
     const float thresh = 0.05f;
-    const float steepness_exp = 3.0f;
+    /* const float steepness_exp = 3.0f; */
 
     /* Method 1: only attenuate below the threshold, never all the way */
     /* if (env_sample < thresh) { */

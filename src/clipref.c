@@ -11,6 +11,7 @@
 #include "audio_clip.h"
 #include "clipref.h"
 #include "color.h"
+#include "consts.h"
 #include "endpoint.h"
 #include "label.h"
 #include "midi_clip.h"
@@ -36,6 +37,13 @@ void clipref_gain_gui_cb(Endpoint *ep)
     cr->track->tl->needs_redraw = true;
     label_move(cr->gain_label, main_win->mousep.x, cr->layout->rect.y + cr->layout->rect.h / 2);
     label_reset(cr->gain_label, ep->current_write_val);
+}
+
+void clipref_gain_dsp_cb(Endpoint *ep)
+{
+    ClipRef *cr = ep->xarg1;
+    int sign = cr->gain_ctrl / (fabs(cr->gain_ctrl));
+    cr->gain = sign * pow(fabs(cr->gain_ctrl), VOL_EXP);
 }
 
 ClipRef *clipref_create(
@@ -110,19 +118,20 @@ ClipRef *clipref_create(
     /* cr->track = track; */
     /* cr->home = home; */
 
-    cr->gain = 1.0;
-    cr->gain_label = label_create(0, cr->layout, label_amp_to_dbstr, &cr->gain, JDAW_FLOAT, main_win);
+    cr->gain = 1.0f;
+    cr->gain_ctrl = 1.0f;
+    cr->gain_label = label_create(0, cr->layout, label_amp_pre_exp_to_dbstr, &cr->gain, JDAW_FLOAT, main_win);
     endpoint_init(
 	&cr->gain_ep,
-	&cr->gain,
+	&cr->gain_ctrl,
 	JDAW_FLOAT,
 	"gain",
 	"Gain",
 	JDAW_THREAD_DSP,
-	clipref_gain_gui_cb, NULL, NULL,
+	clipref_gain_gui_cb, NULL, clipref_gain_dsp_cb,
 	cr, NULL, NULL, NULL);
     endpoint_set_default_value(&cr->gain_ep, (Value){.float_v = 1.0f});
-    endpoint_set_label_fn(&cr->gain_ep, label_amp_to_dbstr);
+    endpoint_set_label_fn(&cr->gain_ep, label_amp_pre_exp_to_dbstr);
 
 
     Layout *label_lt = layout_add_child(cr->layout);

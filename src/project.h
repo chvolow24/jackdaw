@@ -57,6 +57,7 @@
 #define TRACK_VOL_STEP 0.03f
 #define TRACK_PAN_STEP 0.01f
 #define TRACK_VOL_MAX 3.0f
+#define TRACK_VOL_MAX_PRE_EXP (pow(TRACK_VOL_MAX, (1.0 / VOL_EXP)))
 
 #define MAX_PLAY_SPEED 4096.0
 

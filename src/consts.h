@@ -15,5 +15,7 @@
 
 #define HAMMING_SCALAR 1.851852
 
+#define VOL_EXP 2.0
+
 
 #endif

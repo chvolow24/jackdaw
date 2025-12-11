@@ -1,5 +1,6 @@
 #include "animation.h"
 #include "color.h"
+#include "consts.h"
 #include "dsp_utils.h"
 #include "label.h"
 #include "layout.h"
@@ -151,16 +152,17 @@ void label_destroy(Label *label)
 /*     return (20.0f * log10(amp)); */
 /* } */
 
-void label_amp_precubic_to_dbstr(char *dst, size_t dstsize, Value val, ValType t)
+void label_amp_pre_exp_to_dbstr(char *dst, size_t dstsize, Value val, ValType t)
 {
     float amp = t == JDAW_FLOAT ? val.float_v : val.double_v;
-    amp = pow(amp, 3.0);
     if (amp < 0.0f) {
-	float db = amp_to_db(-1 * amp);
+	amp = pow(fabs(amp), VOL_EXP);
+	float db = amp_to_db(amp);
 	snprintf(dst, dstsize - 4, "Ø %.*f", 2, db);
 	strcat(dst, " dB");
 
     } else {
+	amp = pow(amp, VOL_EXP);
 	float db = amp_to_db(amp);
 	snprintf(dst, dstsize - 4, "%.*f", 2, db);
 	strcat(dst, " dB");

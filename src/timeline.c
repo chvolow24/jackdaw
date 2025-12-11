@@ -254,10 +254,12 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes, bool move
     tl->play_pos_sframes = abs_pos_sframes;
     tl->read_pos_sframes = abs_pos_sframes;
     int x = timeline_get_draw_x(tl, tl->play_pos_sframes);
-    SDL_Rect *audio_rect = session->gui.audio_rect;
-    if (x < audio_rect->x || x > audio_rect->x + audio_rect->w) {
-	int diff = x - (audio_rect->x + audio_rect->w / 2);
-	tl->timeview.offset_left_sframes += timeline_get_abs_w_sframes(tl, diff);
+    if (!session->playback.lock_view_to_playhead) {
+	SDL_Rect *audio_rect = session->gui.audio_rect;
+	if (x < audio_rect->x || x > audio_rect->x + audio_rect->w) {
+	    int diff = x - (audio_rect->x + audio_rect->w / 2);
+	    tl->timeview.offset_left_sframes += timeline_get_abs_w_sframes(tl, diff);
+	}
     }
     for (uint8_t i=0; i<tl->num_tracks; i++) {
 	track_handle_playhead_jump(tl->tracks[i]);

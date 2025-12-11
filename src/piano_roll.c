@@ -1721,6 +1721,14 @@ static void piano_roll_draw_notes()
 	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
 	    SDL_RenderDrawRect(main_win->rend, &note_rect);
 	}
+	/* Draw quantize lines */
+	if (note->quantize_info.amt > 1e-9) {
+	    /* int og_x = note_rect.x + timeview_get_draw_w(state.tl_tv, note->start_rel_before_quantize - note->start_rel); */
+	    int og_x = note_rect.x + timeview_get_draw_w(state.tl_tv, note->quantize_info.start_rel_before - note->start_rel);
+	    SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255);
+	    SDL_RenderDrawLine(main_win->rend, og_x, note_rect.y, og_x, note_rect.y + note_rect.h - 1);
+	    
+	}
 
 	/* DRAW BUMPERS */
 	

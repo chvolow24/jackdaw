@@ -29,6 +29,15 @@ typedef enum note_edge {
     NOTE_EDGE_RIGHT
 } NoteEdge;
 
+struct note_quantize_info {
+    bool quantized;
+    int32_t start_rel_before; /* original note pos */
+    int32_t end_rel_before; /* original note pos */
+    int32_t start_diff; /* The amount moved when quantizing (if amount=1.0) */
+    int32_t end_diff; /* The amount moved when quantizing (if amount=1.0) */
+    float amt; /* 0.0f - 1.0f */    
+};
+
 typedef struct note {
     uint8_t channel;
     uint8_t key;
@@ -37,6 +46,7 @@ typedef struct note {
     int32_t end_rel; /* sample frames from clip start */
     bool unclosed; /* used in midi_device_record_chunk */
     uint32_t id; /* set in "midi_clip_insert_note", always incremented */
+    struct note_quantize_info quantize_info;;
 
     /* Piano roll */
     bool grabbed;

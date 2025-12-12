@@ -84,6 +84,8 @@ void modal_previous(Modal *modal);
 void modal_next_escape(Modal *modal);
 void modal_previous_escape(Modal *modal);
 void modal_select(Modal *modal);
+void modal_left(Modal *modal);
+void modal_right(Modal *modal);
 void modal_move_onto(Modal *modal);
 void modal_submit_form(Modal *modal);
 bool modal_triage_mouse(Modal *modal, SDL_Point *mousep, bool click);

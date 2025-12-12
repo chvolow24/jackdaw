@@ -209,8 +209,9 @@
   - S-<down>	: modal_next_escape
   - S-<up>	: modal_previous_escape
   - <ret>	: modal_select
+  - h		: modal_left
+  - ;		: modal_right
   - m		: modal_dismiss
-  - h		: modal_dismiss
   - g		: modal_dismiss
   - <esc>	: modal_dismiss
   - C-<ret>	: modal_submit_form

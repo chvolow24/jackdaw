@@ -438,9 +438,12 @@ static void modal_el_reset(ModalEl *el)
     case MODAL_EL_SLIDER:
 	slider_reset(el->obj);
 	break;
+    case MODAL_EL_RADIO: {
+	RadioButton *rb = el->obj;
+	if (rb->ep) radio_button_reset_from_endpoint(rb);
+    }
     case MODAL_EL_DIRNAV:
     case MODAL_EL_BUTTON:
-    case MODAL_EL_RADIO:
 	break;
     }
 }
@@ -615,6 +618,31 @@ void modal_select(Modal *modal)
 	break;
     }
 }
+
+void modal_left(Modal *modal)
+{
+    ModalEl *current_el = modal->els[modal->selectable_indices[modal->selected_i]];
+    switch (current_el->type) {
+    case MODAL_EL_SLIDER:
+	slider_nudge_left(current_el->obj);
+	break;
+    default:
+	break;
+    }
+}
+
+void modal_right(Modal *modal)
+{
+    ModalEl *current_el = modal->els[modal->selectable_indices[modal->selected_i]];
+    switch (current_el->type) {
+    case MODAL_EL_SLIDER:
+	slider_nudge_right(current_el->obj);
+	break;
+    default:
+	break;
+    }
+}
+
 
 void modal_submit_form(Modal *modal)
 {

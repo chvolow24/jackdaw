@@ -181,6 +181,8 @@ void user_modal_previous(void *nullarg);
 void user_modal_next_escape(void *nullarg);
 void user_modal_previous_escape(void *nullarg);
 void user_modal_select(void *nullarg);
+void user_modal_left(void *nullarg);
+void user_modal_right(void *nullarg);
 void user_modal_dismiss(void *nullarg);
 void user_modal_submit_form(void *nullarg);
 
@@ -266,6 +268,4 @@ void user_piano_roll_play_grabbed_notes(void *nullarg);
 
 void user_piano_roll_toggle_tie(void *nullarg);
 void user_piano_roll_toggle_chord_mode(void *nullarg);
-
-void user_piano_roll_quantize(void *nullarg);
 #endif

@@ -1142,6 +1142,19 @@ static void mode_load_modal()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
+	"modal_left",
+	"Modal left (nudge slider)",
+	user_modal_left);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"modal_right",
+	"Modal right (nudge slider)",
+	user_modal_right);
+    mode_subcat_add_fn(sc, fn);
+
+
+    fn = create_user_fn(
 	"modal_dismiss",
 	"Dismiss modal window",
 	user_modal_dismiss);

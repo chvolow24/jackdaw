@@ -948,6 +948,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
     	track->vol = float_deser40_le(f);
 	track->pan = float_deser40_le(f);
     }
+    track->vol_ctrl_val = pow(track->vol, 1.0 / VOL_EXP);
     
     bool muted = uint8_deser(f);
     bool solo = uint8_deser(f);
@@ -1305,6 +1306,7 @@ static int jdaw_read_clipref(FILE *f, Track *track)
 
     if (!read_file_version_older_than("00.20")) {
 	cr->gain = float_deser40_le(f);
+	cr->gain_ctrl = pow(cr->gain, 1.0 / VOL_EXP);
     }
 
     return 0;

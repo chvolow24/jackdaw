@@ -2925,6 +2925,26 @@ void user_modal_select(void *nullarg)
     modal_select(modal);
 }
 
+void user_modal_left(void *nullarg)
+{
+    if (main_win->num_modals == 0) {
+	return;
+    }
+    Modal *modal = main_win->modals[main_win->num_modals - 1];
+    modal_left(modal);
+}
+
+void user_modal_right(void *nullarg)
+{
+    if (main_win->num_modals == 0) {
+	return;
+    }
+    Modal *modal = main_win->modals[main_win->num_modals - 1];
+    modal_right(modal);
+}
+
+
+
 void user_modal_dismiss(void *nullarg)
 {
     Session *session = session_get();
@@ -3470,16 +3490,18 @@ enum quantize_behavior_options {
     QUANTIZE_MARKED_RANGE=0,
     QUANTIZE_ENTIRE_CLIP=1
 };
-static int quantize_behavior_option = 0;
+static int quantize_note_selection_behavior = 0;
+static int quantize_beat_prominence = 3;
 static float quantize_amount = 1.0;
 
 int quantize_form_submit(void *modal_v, void *stashed_obj)
 {
     ClipRef *cr = clipref_at_cursor();
     Modal *modal = modal_v;
-    switch (quantize_behavior_option) {
+    BeatProminence bp = quantize_beat_prominence + 1;
+    switch (quantize_note_selection_behavior) {
     case QUANTIZE_MARKED_RANGE:
-	midi_clipref_quantize_notes_in_range(cr, quantize_amount, BP_SUBDIV2, true);
+	midi_clipref_quantize_notes_in_range(cr, quantize_amount, bp, true);
 	break;
     case QUANTIZE_ENTIRE_CLIP:
 	/* midi_clipref_quantize_ */
@@ -3492,27 +3514,46 @@ int quantize_form_submit(void *modal_v, void *stashed_obj)
     
 }
 
+static void quantize_amt_gui_cb(Endpoint *ep)
+{
+    Slider *s = ep->xarg1;
+    slider_reset(s);
+}
+
 void user_piano_roll_quantize(void *nullarg)
 {
     Session *session = session_get();    
     Layout *mod_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(mod_lt);
     Modal *mod = modal_create(mod_lt);
-    modal_add_header(mod, "Quantize notes in marked range", &colors.light_grey, 3);
+    modal_add_header(mod, "Quantize notes", &colors.light_grey, 3);
     modal_add_p(mod, "This function will re-quantize any affected notes. To change the quantization amount instead, use [APPROPRIATE_FUNCTION_NAME] instead.", &colors.light_grey);
-    static Endpoint behavior_ep = {0};
+    static Endpoint note_selection_behavior_ep = {0};
     static Endpoint amount_ep = {0};
-    if (behavior_ep.local_id == NULL) {
+    static Endpoint beat_prominence_ep = {0};
+    if (beat_prominence_ep.local_id == NULL) {
 	endpoint_init(
-	    &behavior_ep,
-	    &quantize_behavior_option,
+	    &beat_prominence_ep,
+	    &quantize_beat_prominence,
+	    JDAW_INT,
+	    "",
+	    "",
+	    JDAW_THREAD_MAIN,
+	    NULL, NULL, NULL,
+	    NULL, NULL, NULL, NULL);
+	beat_prominence_ep.block_undo = true;
+    }
+    if (note_selection_behavior_ep.local_id == NULL) {
+	endpoint_init(
+	    &note_selection_behavior_ep,
+	    &quantize_note_selection_behavior,
 	    JDAW_INT,
 	    "",
 	    "",
 	    JDAW_THREAD_MAIN,
 	    NULL, NULL, NULL,
 	    NULL, NULL,NULL,NULL);
-	behavior_ep.block_undo = true;
+	note_selection_behavior_ep.block_undo = true;
     }
     if (amount_ep.local_id == NULL) {
 	endpoint_init(
@@ -3522,7 +3563,7 @@ void user_piano_roll_quantize(void *nullarg)
 	    "",
 	    "",
 	    JDAW_THREAD_MAIN,
-	    NULL, NULL, NULL,
+	    quantize_amt_gui_cb, NULL, NULL,
 	    NULL, NULL,NULL,NULL);
 	endpoint_set_allowed_range(&amount_ep, (Value){.float_v = 0.0}, (Value){.float_v = 1.0});
 	endpoint_set_default_value(&amount_ep, (Value){.float_v = 1.0});
@@ -3530,15 +3571,29 @@ void user_piano_roll_quantize(void *nullarg)
     }
 
 
-    static const char *radio_options[] = {
+    static const char *note_selection_radio_options[] = {
 	"Marked range",
 	"Entire clip at cursor"
     };
-    modal_add_header(mod, "Amount:", &colors.light_grey, 5);
-    modal_add_slider(mod, &amount_ep, SLIDER_HORIZONTAL, SLIDER_FILL);
 
-    modal_add_radio(mod, &colors.light_grey, &behavior_ep, radio_options, 2);
+    static const char *beat_prominence_radio_options[] = {
+	"Measure",
+	"Beat (e.g. quarter)",
+	"Subdiv (e.g. eighth)",
+	"Subdiv2 (e.g. sixteenth)"
+    };
+    modal_add_radio(mod, &colors.light_grey, &note_selection_behavior_ep, note_selection_radio_options, 2);
+
+    modal_add_header(mod, "Resolution:", &colors.light_grey, 5);
+    ModalEl *el = modal_add_radio(mod, &colors.light_grey, &beat_prominence_ep, beat_prominence_radio_options, 4);
+    el->layout->y.value -= 15;
+    /* layout_reset(el->layout); */
+    /* layout_reset(el->layout); */
     /* modal_add_button(mod, "Create", new_tl_submit_form); */
+    modal_add_header(mod, "Amount:", &colors.light_grey, 5);
+    el = modal_add_slider(mod, &amount_ep, SLIDER_HORIZONTAL, SLIDER_FILL);
+    amount_ep.xarg1 = el->obj;
+
     modal_add_button(mod, "Quantize", quantize_form_submit);
     mod->submit_form = quantize_form_submit;
     window_push_modal(main_win, mod);

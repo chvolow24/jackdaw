@@ -369,6 +369,7 @@ void slider_nudge_right(Slider *slider)
     if (jdaw_val_less_than(slider->max, val, slider->ep->val_type)) {
 	val = slider->max;
     }
+    label_reset(slider->label, val);
     endpoint_write(slider->ep, val, true, true, true, true);
 }
 
@@ -385,6 +386,7 @@ void slider_nudge_left(Slider *slider)
     if (jdaw_val_less_than(slider->max, val, slider->ep->val_type)) {
 	val = slider->max;
     }
+    label_reset(slider->label, val);
     endpoint_write(slider->ep, val, true, true, true, true);
 }
 

@@ -267,4 +267,5 @@ void user_piano_roll_play_grabbed_notes(void *nullarg);
 void user_piano_roll_toggle_tie(void *nullarg);
 void user_piano_roll_toggle_chord_mode(void *nullarg);
 
+void user_piano_roll_quantize(void *nullarg);
 #endif

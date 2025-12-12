@@ -1,7 +1,10 @@
 #include "color.h"
+#include "components.h"
 #include "dir.h"
+#include "endpoint.h"
 #include "geometry.h"
 #include "modal.h"
+#include "session.h"
 #include "textbox.h"
 
 #define MODAL_X_PADDING 15
@@ -129,6 +132,9 @@ static void modal_el_destroy(ModalEl *el)
 	case MODAL_EL_RADIO:
 	    radio_destroy((RadioButton *)el->obj);
 	    break;
+	case MODAL_EL_SLIDER:
+	    slider_destroy(el->obj);
+	    break;
 	    
 	}
     }
@@ -144,7 +150,7 @@ void modal_destroy(Modal *modal)
     free(modal);
 
 }
-void breakfn();
+
 static ModalEl *modal_add_el(Modal *modal)
 {
     layout_reset(modal->layout);
@@ -189,7 +195,7 @@ static void layout_size_to_fit_text_v(ModalEl *el)
 	return;
     }
     Textbox *tb = (Textbox *)el->obj;
-    textbox_size_to_fit(tb, MODAL_V_PADDING, MODAL_V_PADDING);
+    textbox_size_to_fit_v(tb, MODAL_V_PADDING);
 }
 
 
@@ -221,9 +227,9 @@ ModalEl *modal_add_header(Modal *modal, const char *text, SDL_Color *color, int 
     el = modal_add_text(modal, main_win->bold_font, fontsize, color, (char *)text, ta, false);
     el->layout->y.value = MODAL_V_PADDING_TIGHT;
     layout_size_to_fit_text_v(el);
-    if (level == 5) {
-	el->layout->x.value = 0;
-    }
+    /* if (level == 5) { */
+    /* 	el->layout->x.value = 0; */
+    /* } */
     layout_force_reset(modal->layout);
 
     return el;
@@ -274,6 +280,7 @@ ModalEl *modal_add_button(Modal *modal, char *text, ComponentFn action)
     modal->selectable_indices[modal->num_selectable] = modal->num_els - 1;
     modal->num_selectable++;
     el->layout->w.type = ABS;
+    /* No target, but when button is clicked or <ret>'d, modal passes itself and its stashed obj */
     Button *button = button_create(el->layout, text, action, NULL, main_win->std_font, 14,  &colors.black, &modal_button_color, true);
     layout_center_agnostic(el->layout, true, false);
     textbox_reset_full(button->tb);
@@ -353,6 +360,39 @@ ModalEl *modal_add_radio(
     return el;
 }
 
+
+ModalEl *modal_add_slider(
+    Modal *modal,
+    Endpoint *ep,
+    enum slider_orientation orientation,
+    enum slider_style style)
+{
+    ModalEl *el = modal_add_el(modal);
+    modal->selectable_indices[modal->num_selectable] = modal->num_els - 1;
+    modal->num_selectable++;
+    el->type = MODAL_EL_SLIDER;
+    el->layout->y.value -= 10;
+    el->layout->h.value = 20;
+    layout_reset(el->layout);
+    Session *session = session_get();
+    el->obj = (void *)slider_create(
+	el->layout,
+	ep,
+	ep->min,
+	ep->max,
+	orientation,
+	style,
+	NULL,
+	&session->dragged_component);
+    /* layout_size_to_fit_children_v(el->layout, true, 0); */
+    /* layout_force_reset(el->layout); */
+    slider_reset(el->obj);
+    return el;
+
+}
+
+
+
 /* static void modal_add_x(Modal *modal) */
 /* { */
 /*     Layout *x_lt = layout_add_child(modal->layout); */
@@ -394,6 +434,9 @@ static void modal_el_reset(ModalEl *el)
 	/* fprintf(stdout, "Reseting Textbox %s to lt %d %d %d %d\n", ((Textbox *)el->obj)->text->value_handle, ((Textbox *)el->obj)->layout->rect.x, ((Textbox *)el->obj)->layout->rect.y, ((Textbox *)el->obj)->layout->rect.w, ((Textbox *)el->obj)->layout->rect.h); */
 	layout_size_to_fit_children_v(el->layout, 0, 0);
 	layout_reset(el->layout->parent);
+	break;
+    case MODAL_EL_SLIDER:
+	slider_reset(el->obj);
 	break;
     case MODAL_EL_DIRNAV:
     case MODAL_EL_BUTTON:
@@ -441,6 +484,9 @@ static void modal_el_draw(ModalEl *el)
 	break;
     case MODAL_EL_RADIO:
 	radio_button_draw((RadioButton *)el->obj);
+	break;
+    case MODAL_EL_SLIDER:
+	slider_draw((Slider *)el->obj);
 	break;
     }
 }
@@ -624,6 +670,9 @@ bool modal_triage_mouse(Modal *modal, SDL_Point *mousep, bool click)
 		break;
 	    case MODAL_EL_TEXTENTRY:
 		textentry_edit((TextEntry *)el->obj);
+		break;
+	    case MODAL_EL_SLIDER:
+		slider_mouse_click(el->obj, main_win);
 		break;
 	    default:
 		break;	

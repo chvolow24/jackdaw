@@ -102,7 +102,7 @@ static void mouse_triage_click_audiorect(Timeline *tl, uint8_t button)
 	    Track *track = tl->tracks[i];
 	    if (SDL_PointInRect(&main_win->mousep, &track->inner_layout->rect)) {
 		ClipRef *cr = clipref_at_cursor_in_track(track);
-		if (cr) {
+		if (cr && cr->type == CLIP_AUDIO) {
 		    session_get()->dragged_component.component = cr;
 		    session_get()->dragged_component.type = DRAG_CLIPREF_GAIN;
 		    endpoint_start_continuous_change(&cr->gain_ep, false, (Value){0}, JDAW_THREAD_DSP, endpoint_safe_read(&cr->gain_ep, NULL));

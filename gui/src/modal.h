@@ -13,7 +13,8 @@ enum mod_s_type {
     MODAL_EL_TEXT,
     MODAL_EL_DIRNAV,
     MODAL_EL_BUTTON,
-    MODAL_EL_RADIO
+    MODAL_EL_RADIO,
+    MODAL_EL_SLIDER
 };
 
 typedef struct ModalEl {
@@ -67,6 +68,13 @@ ModalEl *modal_add_radio(
     /* ComponentFn action, */
     const char **item_names,
     uint8_t num_items);
+
+ModalEl *modal_add_slider(
+    Modal *modal,
+    Endpoint *ep,
+    enum slider_orientation orientation,
+    enum slider_style style);
+
 
 void modal_reset(Modal *modal);
 void modal_draw(Modal *modal);

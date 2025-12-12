@@ -72,6 +72,7 @@ TabView *synth_tabview_create(Track *track);
 void user_global_quit(void *);
 
 extern void open_file(const char *filepath);
+void user_piano_roll_quantize(void *nullarg);
 
 extern bool do_blep;
 void loop_project_main()
@@ -147,7 +148,11 @@ void loop_project_main()
 
 		switch (TOP_MODE) {
 		case MODE_MODAL:
-		    mouse_triage_motion_modal();
+		    if (session->dragged_component.component) {
+			draggable_mouse_motion(&session->dragged_component, main_win);
+		    } else {
+			mouse_triage_motion_modal();
+		    }
 		    break;
 		case MODE_MENU_NAV:
 		    mouse_triage_motion_menu();
@@ -232,6 +237,8 @@ void loop_project_main()
 		    break;
 
 		case SDL_SCANCODE_6: {
+		    user_piano_roll_quantize(NULL);
+		    break;
 		    ClipRef *cr = clipref_at_cursor();
 		    midi_clipref_quantize_notes_in_range(cr, 1.0, BP_SUBDIV2, true);
 		    /* piano_roll_quantize_notes_in_marked_range(); */

@@ -3466,8 +3466,85 @@ void user_piano_roll_play_grabbed_notes(void *nullarg)
     piano_roll_play_grabbed_notes();
 }
 
+enum quantize_behavior_options {
+    QUANTIZE_MARKED_RANGE=0,
+    QUANTIZE_ENTIRE_CLIP=1
+};
+static int quantize_behavior_option = 0;
+static float quantize_amount = 1.0;
+
+int quantize_form_submit(void *modal_v, void *stashed_obj)
+{
+    ClipRef *cr = clipref_at_cursor();
+    Modal *modal = modal_v;
+    switch (quantize_behavior_option) {
+    case QUANTIZE_MARKED_RANGE:
+	midi_clipref_quantize_notes_in_range(cr, quantize_amount, BP_SUBDIV2, true);
+	break;
+    case QUANTIZE_ENTIRE_CLIP:
+	/* midi_clipref_quantize_ */
+	break;
+    }
+    window_pop_modal(main_win);
+    Session *session = session_get();
+    ACTIVE_TL->needs_redraw = true;
+    return 0;
+    
+}
+
+void user_piano_roll_quantize(void *nullarg)
+{
+    Session *session = session_get();    
+    Layout *mod_lt = layout_add_child(main_win->layout);
+    layout_set_default_dims(mod_lt);
+    Modal *mod = modal_create(mod_lt);
+    modal_add_header(mod, "Quantize notes in marked range", &colors.light_grey, 3);
+    modal_add_p(mod, "This function will re-quantize any affected notes. To change the quantization amount instead, use [APPROPRIATE_FUNCTION_NAME] instead.", &colors.light_grey);
+    static Endpoint behavior_ep = {0};
+    static Endpoint amount_ep = {0};
+    if (behavior_ep.local_id == NULL) {
+	endpoint_init(
+	    &behavior_ep,
+	    &quantize_behavior_option,
+	    JDAW_INT,
+	    "",
+	    "",
+	    JDAW_THREAD_MAIN,
+	    NULL, NULL, NULL,
+	    NULL, NULL,NULL,NULL);
+	behavior_ep.block_undo = true;
+    }
+    if (amount_ep.local_id == NULL) {
+	endpoint_init(
+	    &amount_ep,
+	    &quantize_amount,
+	    JDAW_FLOAT,
+	    "",
+	    "",
+	    JDAW_THREAD_MAIN,
+	    NULL, NULL, NULL,
+	    NULL, NULL,NULL,NULL);
+	endpoint_set_allowed_range(&amount_ep, (Value){.float_v = 0.0}, (Value){.float_v = 1.0});
+	endpoint_set_default_value(&amount_ep, (Value){.float_v = 1.0});
+	amount_ep.block_undo = true;
+    }
 
 
+    static const char *radio_options[] = {
+	"Marked range",
+	"Entire clip at cursor"
+    };
+    modal_add_header(mod, "Amount:", &colors.light_grey, 5);
+    modal_add_slider(mod, &amount_ep, SLIDER_HORIZONTAL, SLIDER_FILL);
 
+    modal_add_radio(mod, &colors.light_grey, &behavior_ep, radio_options, 2);
+    /* modal_add_button(mod, "Create", new_tl_submit_form); */
+    modal_add_button(mod, "Quantize", quantize_form_submit);
+    mod->submit_form = quantize_form_submit;
+    window_push_modal(main_win, mod);
+    modal_reset(mod);
+    modal_move_onto(mod);
+    ACTIVE_TL->needs_redraw = true;
 
+}
 

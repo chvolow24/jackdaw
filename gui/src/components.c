@@ -95,7 +95,13 @@ Slider *slider_create(
     /* bar_container->y.value.intval = SLIDER_INNER_PAD; */
     /* bar_container->w.value.intval = (layout->rect.w - (SLIDER_INNER_PAD * main_win->dpi_scale_factor * 2)) / main_win->dpi_scale_factor; */
     /* bar_container->h.value.intval = (layout->rect.h - (SLIDER_INNER_PAD * main_win->dpi_scale_factor * 2)) / main_win->dpi_scale_factor; */
-    layout_pad(bar_container, SLIDER_INNER_PAD, SLIDER_INNER_PAD);
+    bar_container->x.value = SLIDER_INNER_PAD;
+    bar_container->y.value = SLIDER_INNER_PAD;
+    bar_container->w.type = REVREL;
+    bar_container->h.type = REVREL;
+    bar_container->w.value = SLIDER_INNER_PAD;
+    bar_container->h.value = SLIDER_INNER_PAD;    
+    /* layout_pad(bar_container, SLIDER_INNER_PAD, SLIDER_INNER_PAD); */
     Layout *bar = layout_add_child(bar_container);
     s->bar_layout = bar;
     layout_set_name(bar, "bar");

@@ -68,6 +68,15 @@ typedef struct click_segment {
 
 typedef struct timeline Timeline;
 
+typedef struct click_track_pos {
+    ClickSegment *seg;
+    int measure;
+    int beat;
+    int subdiv;
+    int32_t remainder;
+} ClickTrackPos;
+
+
 typedef struct metronome {
     const char *name;
     /* const char *buffer_filenames[2]; */

@@ -43,7 +43,6 @@ static void make_pan_chunk(float *pan_vals, int32_t len_sframes, uint8_t channel
 
 float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32_t start_pos_sframes, uint32_t output_chunk_len_sframes, float step)
 {
-
     Session *session = session_get();
     uint32_t chunk_bytelen = sizeof(float) * output_chunk_len_sframes;
     memset(chunk, '\0', chunk_bytelen);

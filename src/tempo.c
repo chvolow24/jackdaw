@@ -24,6 +24,7 @@
 #include "session.h"
 #include "tempo.h"
 #include "timeline.h"
+#include "timeview.h"
 #include "user_event.h"
 #include "wav.h"
 
@@ -1233,6 +1234,31 @@ void click_track_draw(ClickTrack *tt)
 
 }
 
+/* Simple stateless version of click_track_bar_beat_subdiv() */
+ClickTrackPos click_track_get_pos(ClickTrack *ct, int32_t tl_pos)
+{
+    ClickSegment *seg = click_track_get_segment_at_pos(ct, tl_pos);
+    int32_t pos_in_seg = tl_pos - seg->start_pos;
+    int measure = (pos_in_seg / seg->cfg.dur_sframes) + seg->first_measure_index;
+    int beat = 0;
+    int subdiv = 0;
+    int32_t beat_pos;
+    do {
+	beat_pos = get_beat_pos(seg, measure, beat, subdiv);
+	do_increment(seg, &measure, &beat, &subdiv);
+    } while (beat_pos < tl_pos);
+    do_decrement(seg, &measure, &beat, &subdiv);
+    if (beat_pos > tl_pos) 
+	do_decrement(seg, &measure, &beat, &subdiv);
+    ClickTrackPos ret;
+    ret.seg = seg;
+    ret.measure = measure;
+    ret.beat = beat;
+    ret.subdiv = subdiv;
+    ret.remainder = get_beat_pos(seg, measure, beat, subdiv) - tl_pos;
+    return ret;
+}
+
 /* sets bar, beat, and pos; returns remainder in sframes */
 int32_t click_track_bar_beat_subdiv(ClickTrack *tt, int32_t pos, int *bar_p, int *beat_p, int *subdiv_p, ClickSegment **segment_p, bool set_readout)
 {
@@ -1385,7 +1411,25 @@ void click_track_mix_metronome(ClickTrack *tt, float *mixdown_buf, int32_t mixdo
     BeatProminence bp;
     /* clock_t c; */
     /* c = clock(); */
+    /* struct timespec ts_start, ts_end; */
+    /* static int runs = 0; */
+    /* static double dur_old = 0.0, dur_new = 0.0; */
+    /* clock_gettime(CLOCK_MONOTONIC, &ts_start); */
     int32_t remainder = click_track_bar_beat_subdiv(tt, tl_end_pos_sframes, &bar, &beat, &subdiv, &s, false);
+    /* clock_gettime(CLOCK_MONOTONIC, &ts_end); */
+    /* dur_old += timespec_diff_msec(&ts_start, &ts_end); */
+
+    /* clock_gettime(CLOCK_MONOTONIC, &ts_start); */
+    /* ClickTrackPos checkpos = click_track_get_pos(tt, tl_end_pos_sframes); */
+    /* clock_gettime(CLOCK_MONOTONIC, &ts_end); */
+    /* dur_new += timespec_diff_msec(&ts_start, &ts_end); */
+    /* runs++; */
+    /* if (runs == 100) { */
+    /* 	fprintf(stderr, "\n%d %d %d + %d\n%d %d %d + %d\n", bar, beat, subdiv, remainder, checkpos.measure, checkpos.beat, checkpos.subdiv, checkpos.remainder); */
+    /* 	fprintf(stderr, "DURS: %f, %f, %s advantage %f\n", dur_old, dur_new, dur_old < dur_new ? "OLD" : "NEW", dur_old < dur_new ? dur_new - dur_old : dur_old - dur_new); */
+    /* 	dur_new = dur_old = 0.0; */
+    /* 	runs = 0; */
+    /* } */
     /* double dur = ((double)clock() - c)/CLOCKS_PER_SEC; */
     /* fprintf(stderr, "Remainder dur msec: %f\n", dur * 1000); */
     
@@ -1551,7 +1595,24 @@ static void timeline_select_click_track(Timeline *tl, ClickTrack *ct)
     timeline_rectify_track_indices(tl);
 }
 
-/* Mouse click */
+/* Mouse */
+
+static ClickTrackPos dragging_pos;
+static int32_t clicked_tl_pos;
+void click_track_drag_pos(ClickSegment *s, Window *win)
+{
+    Session *session = session_get();
+    int32_t tl_pos = timeview_get_pos_sframes(&ACTIVE_TL->timeview, win->mousep.x);
+    int32_t og_dur = clicked_tl_pos - s->start_pos;
+    int32_t new_dur = tl_pos - s->start_pos;
+    double prop = (double)og_dur / new_dur;
+    int new_tempo = round(s->cfg.bpm * prop);
+    if (new_tempo > 0) {
+	click_segment_set_tempo(s, round(s->cfg.bpm * prop), SEGMENT_FIXED_END_POS, true);
+	clicked_tl_pos = tl_pos;
+    }
+}
+
 bool click_track_triage_click(uint8_t button, ClickTrack *t)
 {
     Session *session = session_get();
@@ -1577,26 +1638,37 @@ bool click_track_triage_click(uint8_t button, ClickTrack *t)
 	}
 	return true;
     }
-    ClickSegment *final = NULL;
-    ClickSegment *s = t->segments;
-    const int xdst_init = 5 * main_win->dpi_scale_factor;
-    int xdst = xdst_init;
-    while (s) {
-	int xdst_test = abs(main_win->mousep.x - timeline_get_draw_x(s->track->tl, s->start_pos));
-	if (xdst_test < xdst) {
-	    final = s;
-	    xdst = xdst_test;
-	} else if (final) {
-	    break;
-	}
-	s = s->next;
-    }
-    if (final) {
-	session->dragged_component.component = final;
-	session->dragged_component.type = DRAG_CLICK_SEG_BOUND;
-	Value current_val = endpoint_safe_read(&final->start_pos_ep, NULL);
-	endpoint_start_continuous_change(&final->start_pos_ep, false, (Value)0, JDAW_THREAD_MAIN, current_val);
+    if (main_win->i_state & I_STATE_CMDCTRL) {
+	Session *session = session_get();
+	int32_t tl_pos = timeview_get_pos_sframes(&ACTIVE_TL->timeview, main_win->mousep.x);
+	clicked_tl_pos = tl_pos;
+	dragging_pos = click_track_get_pos(t, tl_pos);
+	session->dragged_component.component = dragging_pos.seg;
+	session->dragged_component.type = DRAG_CLICK_TRACK_POS;
 	return true;
+    } else {
+
+	ClickSegment *final = NULL;
+	ClickSegment *s = t->segments;
+	const int xdst_init = 5 * main_win->dpi_scale_factor;
+	int xdst = xdst_init;
+	while (s) {
+	    int xdst_test = abs(main_win->mousep.x - timeline_get_draw_x(s->track->tl, s->start_pos));
+	    if (xdst_test < xdst) {
+		final = s;
+		xdst = xdst_test;
+	    } else if (final) {
+		break;
+	    }
+	    s = s->next;
+	}
+	if (final) {
+	    session->dragged_component.component = final;
+	    session->dragged_component.type = DRAG_CLICK_SEG_BOUND;
+	    Value current_val = endpoint_safe_read(&final->start_pos_ep, NULL);
+	    endpoint_start_continuous_change(&final->start_pos_ep, false, (Value)0, JDAW_THREAD_MAIN, current_val);
+	    return true;
+	}
     }
 
     
@@ -1618,6 +1690,11 @@ static int32_t click_segment_get_nearest_beat_pos(ClickTrack *ct, int32_t start_
     }
     
 }
+
+void click_track_drag_beat(ClickSegment *s, Window *win)
+{
+    Session *session = session_get();
+}
 void click_track_mouse_motion(ClickSegment *s, Window *win)
 {
     int32_t tl_pos = timeline_get_abspos_sframes(s->track->tl, win->mousep.x);
@@ -1628,8 +1705,7 @@ void click_track_mouse_motion(ClickSegment *s, Window *win)
 	return;
     }
     endpoint_write(&s->start_pos_ep, (Value){.int32_v = tl_pos}, true, true, true, false);
-
-}   
+}
 
 void click_segment_fprint(FILE *f, ClickSegment *s)
 {

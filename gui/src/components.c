@@ -1191,6 +1191,7 @@ bool click_track_mouse_motion(ClickSegment *s, Window *win);
 void tabview_tab_drag(TabView *tv, Window *win);
 typedef struct clip_ref ClipRef;
 void clipref_gain_drag(ClipRef *cr, Window *win);
+void click_track_drag_pos(ClickSegment *s, Window *win);
 bool draggable_mouse_motion(Draggable *draggable, Window *win)
 {
     switch (draggable->type) {
@@ -1207,6 +1208,9 @@ bool draggable_mouse_motion(Draggable *draggable, Window *win)
 	return true;
     case DRAG_CLIPREF_GAIN:
 	clipref_gain_drag((ClipRef *)draggable->component, win);
+	return true;
+    case DRAG_CLICK_TRACK_POS:
+	click_track_drag_pos((ClickSegment *)draggable->component, win);
 	return true;
     }
     return false;

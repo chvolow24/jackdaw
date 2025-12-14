@@ -366,6 +366,13 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     session_flush_callbacks(session, JDAW_THREAD_PLAYBACK);
 }
 
+/* double timespec_diff_msec(struct timespec *start, struct timespec *end) { */
+/*     int64_t sec_diff = (int64_t)end->tv_sec - (int64_t)start->tv_sec; */
+/*     int64_t nsec_diff = (int64_t)end->tv_nsec - (int64_t)start->tv_nsec; */
+/*     double msec_diff = sec_diff * 1000LL + (double)nsec_diff / 1000000.0; */
+/*     return msec_diff; */
+/* } */
+
 static void *transport_dsp_thread_fn(void *arg)
 {
     Session *session = session_get();
@@ -389,11 +396,13 @@ static void *transport_dsp_thread_fn(void *arg)
     int N = len / tl->proj->chunk_size_sframes;
     bool init = true;
 
-    clock_t performance_timer;
-    double last_t;
     while (1) {
-	/* clock_t cd = clock(); */
-	performance_timer = clock();
+	/* Performance timer */
+	/* struct timespec tspec_start; */
+	/* struct timespec tspec_end; */
+	/* double running_elapsed = 0; */
+	/* clock_gettime(CLOCK_THREAD_CPUTIME_ID, &tspec_start); */
+
 	pthread_testcancel();
 	float play_speed = session->playback.play_speed;
 
@@ -457,10 +466,14 @@ static void *transport_dsp_thread_fn(void *arg)
 	/*     } */
 	/* } */
 
+
+	/* clock_gettime(CLOCK_MONOTONIC, &tspec_end); */
+	/* running_elapsed += timespec_diff_msec(&tspec_start, &tspec_end); */
 	/* Copy buffer */	
 	for (int i=0; i<N; i++) {
 	    sem_wait(tl->writable_chunks);
 	}
+	/* clock_gettime(CLOCK_MONOTONIC, &tspec_start); */
 	/* timed = (((double)clock() - cd)/CLOCKS_PER_SEC); */
 	/* fprintf(stderr, "sem: %f\n", timed * 1000); */
 	/* cd = clock(); */
@@ -528,17 +541,11 @@ static void *transport_dsp_thread_fn(void *arg)
 	session_flush_val_changes(session, JDAW_THREAD_DSP);
 	session_flush_callbacks(session, JDAW_THREAD_DSP);
 
-	/* timed = (((double)clock() - cd)/CLOCKS_PER_SEC); */
-	/* fprintf(stderr, "ongoing: %f\n", timed * 1000); */
-	/* cd = clock(); */
-
 	
-	double time = ((double)clock() - performance_timer) / CLOCKS_PER_SEC;
-	double alloc_time = (double)session->proj.fourier_len_sframes / session_get_sample_rate();
-	double out = 0.9 * last_t + 0.1 * (time / alloc_time);
-	/* fprintf(stderr, "STRESS: %f\n", out); */
-	last_t = out;
-	
+	/* clock_gettime(CLOCK_THREAD_CPUTIME_ID, &tspec_end); */
+	/* running_elapsed += timespec_diff_msec(&tspec_start, &tspec_end); */
+	/* double alloced_msec = 1000.0 * (double)session->proj.fourier_len_sframes / session_get_sample_rate(); */
+	/* fprintf(stderr, "Stress: %f/%f == \t%f\n", running_elapsed, alloced_msec, (double)running_elapsed / alloced_msec); */	
     }
 
     return NULL;

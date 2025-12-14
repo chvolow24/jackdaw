@@ -275,6 +275,10 @@ void ttf_destroy_font(Font *font);
 int txt_name_validation(Text *txt, char input);
 int txt_integer_validation(Text *txt, char input);
 int txt_float_validation(Text *txt, char input);
+
+/* No input error handling; use AFTER txt_float_validation */
+double txt_float_from_str(char *str);
+
 SDL_Texture *txt_create_texture(const char *str, SDL_Color color, const Font *font, int font_size, int *w, int *h);
 
 #endif

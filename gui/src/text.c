@@ -1009,6 +1009,28 @@ int txt_float_validation(Text *txt, char input)
     return 0;
 }
 
+/* No input error handling; use AFTER txt_float_validation */
+double txt_float_from_str(char *str)
+{
+    double ret = 0.0;
+    char c = '\0';
+    while ((c = *str) && c != '.') {
+	ret *= 10;
+	ret += c - '0';
+	str++;
+    }
+    int divisor = 10;
+    if (c == '.') {
+	str++;
+	while ((c = *str)) {
+	    ret += (double)(c - '0') / divisor;
+	    divisor *= 10;
+	    str++;
+	}
+    }
+    return ret;
+}
+
 int txt_integer_validation(Text *txt, char input)
 {
     if (input < '0' || input > '9') {

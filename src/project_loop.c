@@ -144,7 +144,10 @@ void loop_project_main()
 		break;
 	    case SDL_MOUSEMOTION: {
 		window_set_mouse_point(main_win, e.motion.x, e.motion.y);		
-
+		if (session->dragged_component.component) {
+		    draggable_mouse_motion(&session->dragged_component, main_win);
+		    break;
+		}
 		switch (TOP_MODE) {
 		case MODE_MODAL:
 		    if (session->dragged_component.component) {

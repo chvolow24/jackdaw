@@ -40,7 +40,7 @@ typedef enum beat_prominence {
 } BeatProminence;
 
 typedef struct measure_config {
-    int bpm;
+    double bpm;
     int32_t dur_sframes;
     uint8_t num_beats;
     uint8_t beat_subdiv_lens[MAX_BEATS_PER_BAR];
@@ -150,7 +150,7 @@ ClickSegment *click_segment_active_at_cursor(Timeline *tl);
 
 /* Required in settings.c */
 ClickSegment *click_track_get_segment_at_pos(ClickTrack *t, int32_t pos);
-void click_segment_set_config(ClickSegment *s, int num_measures, int bpm, uint8_t num_beats, uint8_t *subdivs, enum ts_end_bound_behavior ebb);
+void click_segment_set_config(ClickSegment *s, int num_measures, double bpm, uint8_t num_beats, uint8_t *subdivs, enum ts_end_bound_behavior ebb);
 void click_segment_destroy(ClickSegment *s);
 
 void click_segment_fprint(FILE *f, ClickSegment *s);
@@ -176,7 +176,7 @@ bool click_track_triage_click(uint8_t button, ClickTrack *t);
 void click_track_fprint(FILE *f, ClickTrack *tt);
 void click_segment_at_cursor_fprint(FILE *f, Timeline *tl);
 
-ClickSegment *click_track_add_segment(ClickTrack *t, int32_t start_pos, int16_t num_measures, int bpm, uint8_t num_beats, uint8_t *subdiv_lens);
+ClickSegment *click_track_add_segment(ClickTrack *t, int32_t start_pos, int16_t num_measures, double bpm, uint8_t num_beats, uint8_t *subdiv_lens);
 
 /* Required in MIDI file reads */
 ClickSegment *click_track_cut_at(ClickTrack *tt, int32_t at);

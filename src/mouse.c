@@ -188,10 +188,10 @@ void mouse_triage_click_project(uint8_t button)
 void mouse_triage_motion_timeline(int xrel, int yrel)
 {
     Session *session = session_get();
-    if (session->dragged_component.component) {
-	draggable_mouse_motion(&session->dragged_component, main_win);
-	return;
-    }
+    /* if (session->dragged_component.component) { */
+    /* 	draggable_mouse_motion(&session->dragged_component, main_win); */
+    /* 	return; */
+    /* } */
     Timeline *tl = ACTIVE_TL;
     if (automations_triage_motion(tl, xrel, yrel)) return;
     if (SDL_PointInRect(&main_win->mousep, session->gui.audio_rect)) {
@@ -288,10 +288,10 @@ bool mouse_triage_motion_page()
 {
     Session *session = session_get();
     Page *page;
-    if (session->dragged_component.component) {
-	draggable_mouse_motion(&session->dragged_component, main_win);
-	return true;
-    }
+    /* if (session->dragged_component.component) { */
+    /* 	draggable_mouse_motion(&session->dragged_component, main_win); */
+    /* 	return true; */
+    /* } */
     if ((page = main_win->active_page)) {
 	return page_mouse_motion(page, main_win);
     }
@@ -320,12 +320,12 @@ bool mouse_triage_click_tabview()
 }
 bool mouse_triage_motion_tabview()
 {
-    Session *session = session_get();
+    /* Session *session = session_get(); */
     TabView *tv;
-    if (session->dragged_component.component) {
-	draggable_mouse_motion(&session->dragged_component, main_win);
-	return true;
-    }
+    /* if (session->dragged_component.component) { */
+    /* 	draggable_mouse_motion(&session->dragged_component, main_win); */
+    /* 	return true; */
+    /* } */
     if ((tv = main_win->active_tabview)) {
 	return tabview_mouse_motion(tv);
     }

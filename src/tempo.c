@@ -28,6 +28,9 @@
 #include "user_event.h"
 #include "wav.h"
 
+#define MAX_BPM 999.0
+#define MIN_BPM 1.0
+
 extern Window *main_win;
 
 
@@ -225,7 +228,7 @@ set_prominence_and_exit:
 
 void click_segment_set_start_pos(ClickSegment *s, int32_t new_end_pos);
 
-void click_segment_set_config(ClickSegment *s, int num_measures, int bpm, uint8_t num_beats, uint8_t *subdivs, enum ts_end_bound_behavior ebb)
+void click_segment_set_config(ClickSegment *s, int num_measures, double bpm, uint8_t num_beats, uint8_t *subdivs, enum ts_end_bound_behavior ebb)
 {
     if (num_beats > MAX_BEATS_PER_BAR) {
 	fprintf(stderr, "Error: num_beats exceeds maximum per bar (%d)\n", MAX_BEATS_PER_BAR);
@@ -261,7 +264,7 @@ void click_segment_set_config(ClickSegment *s, int num_measures, int bpm, uint8_
 	s->num_measures = -1;
     } else {
 	if (ebb == SEGMENT_FIXED_NUM_MEASURES) {
-	    float num_measures_f = ((float)s->next->start_pos - s->start_pos)/old_dur_sframes;
+	    double num_measures_f = (double)(s->next->start_pos - s->start_pos)/old_dur_sframes;
 	    int32_t end_pos = s->start_pos + num_measures_f * s->cfg.dur_sframes;
 	    click_segment_set_start_pos(s->next, end_pos);
 	} else {
@@ -313,7 +316,7 @@ void click_segment_set_start_pos(ClickSegment *s, int32_t new_start_pos)
     }
 }
 
-ClickSegment *click_track_add_segment(ClickTrack *t, int32_t start_pos, int16_t num_measures, int bpm, uint8_t num_beats, uint8_t *subdiv_lens)
+ClickSegment *click_track_add_segment(ClickTrack *t, int32_t start_pos, int16_t num_measures, double bpm, uint8_t num_beats, uint8_t *subdiv_lens)
 {
     ClickSegment *s = calloc(1, sizeof(ClickSegment));
     s->track = t;
@@ -619,22 +622,31 @@ void click_track_destroy(ClickTrack *tt)
 
 /* utility functions */
 /* static void click_segment_set_tempo(ClickSegment *s, unsigned int new_tempo, bool from_undo); */
-static void click_segment_set_tempo(ClickSegment *s, unsigned int new_tempo, enum ts_end_bound_behavior ebb,  bool from_undo);
+static void click_segment_set_tempo(ClickSegment *s, double new_tempo, enum ts_end_bound_behavior ebb,  bool from_undo);
 
 NEW_EVENT_FN(undo_redo_set_tempo, "undo/redo set tempo")
     ClickSegment *s = (ClickSegment *)obj1;
-    int tempo = val1.int_v;
+    double tempo = val1.double_v;
     enum ts_end_bound_behavior ebb = (enum ts_end_bound_behavior)val2.int_v;
     click_segment_set_tempo(s, tempo, ebb, true);
 }
 
 
-static void click_segment_set_tempo(ClickSegment *s, unsigned int new_tempo, enum ts_end_bound_behavior ebb,  bool from_undo)
+static void click_segment_set_tempo(ClickSegment *s, double new_tempo, enum ts_end_bound_behavior ebb,  bool from_undo)
 {
-    if (new_tempo == 0) {
-	status_set_errstr("Tempo cannot be 0 bpm");
+    if (new_tempo < MIN_BPM) {
+	char errstr[64];
+	snprintf(errstr, 64, "Tempo cannot be < %.1f bpm", MIN_BPM);
+	status_set_errstr(errstr);
+	return;
     }
-    int old_tempo = s->cfg.bpm;
+    if (new_tempo > MAX_BPM) {
+	char errstr[64];
+	snprintf(errstr, 64, "Tempo cannot be > %.1f bpm", MAX_BPM);
+	status_set_errstr(errstr);
+	return;
+    }
+    double old_tempo = s->cfg.bpm;
     /* float num_measures; */
     /* if (s->next && ebb == SEGMENT_FIXED_NUM_MEASURES) { */
     /* 	if (s->cfg.dur_sframes * s->num_measures == s->end_pos - s->start_pos) { */
@@ -654,8 +666,8 @@ static void click_segment_set_tempo(ClickSegment *s, unsigned int new_tempo, enu
     
     s->track->tl->needs_redraw = true;
     if (!from_undo) {
-	Value old_val = {.int_v = old_tempo};
-	Value new_val = {.int_v = new_tempo};
+	Value old_val = {.double_v = old_tempo};
+	Value new_val = {.double_v = new_tempo};
 	Value ebb = {.int_v = (int)(s->track->end_bound_behavior)};
 	user_event_push(
 	    undo_redo_set_tempo,
@@ -680,7 +692,9 @@ static int set_tempo_submit_form(void *mod_v, void *target)
 	ModalEl *el = mod->els[i];
 	if (el->type == MODAL_EL_TEXTENTRY) {
 	    char *value = ((TextEntry *)el->obj)->tb->text->value_handle;
-	    int tempo = atoi(value);
+	    /* TODO: FIX THIS */
+	    /* float tempo = atoi(value); */
+	    double tempo = txt_float_from_str(value);
 	    click_segment_set_tempo(s, tempo, s->track->end_bound_behavior, false);
 	    break;
 	}
@@ -690,7 +704,7 @@ static int set_tempo_submit_form(void *mod_v, void *target)
 }
 
 
-#define TEMPO_STRLEN 5
+#define TEMPO_STRLEN 8
 void timeline_click_track_set_tempo_at_cursor(Timeline *tl)
 {
     ClickTrack *tt = timeline_selected_click_track(tl);
@@ -703,13 +717,14 @@ void timeline_click_track_set_tempo_at_cursor(Timeline *tl)
     layout_set_default_dims(mod_lt);
     Modal *mod = modal_create(mod_lt);
     static char tempo_str[TEMPO_STRLEN];
-    snprintf(tempo_str, TEMPO_STRLEN, "%d", s->cfg.bpm);
+    snprintf(tempo_str, TEMPO_STRLEN, "%f", s->cfg.bpm);
     modal_add_header(mod, "Set tempo:", &colors.light_grey, 4);
     ModalEl *el = modal_add_textentry(
 	mod,
 	tempo_str,
 	TEMPO_STRLEN,
-	txt_integer_validation,
+	txt_float_validation,
+	/* txt_integer_validation, */
 	NULL, NULL);
     el->layout->y.value += 15.0;
     TextEntry *te = (TextEntry *)el->obj;
@@ -1606,9 +1621,11 @@ void click_track_drag_pos(ClickSegment *s, Window *win)
     int32_t og_dur = clicked_tl_pos - s->start_pos;
     int32_t new_dur = tl_pos - s->start_pos;
     double prop = (double)og_dur / new_dur;
-    int new_tempo = round(s->cfg.bpm * prop);
-    if (new_tempo > 0) {
-	click_segment_set_tempo(s, round(s->cfg.bpm * prop), SEGMENT_FIXED_END_POS, true);
+    double new_tempo = s->cfg.bpm * prop;
+    fprintf(stderr, "Diff %d, propr %f, new tempo %f\n", tl_pos - clicked_tl_pos, prop, new_tempo);
+    fprintf(stderr, "\t%f * %f = %f\n", s->cfg.bpm, prop, s->cfg.bpm * prop);
+    if (new_tempo > 0.0) {
+	click_segment_set_tempo(s, new_tempo, SEGMENT_FIXED_END_POS, true);
 	clicked_tl_pos = tl_pos;
     }
 }
@@ -1691,10 +1708,6 @@ static int32_t click_segment_get_nearest_beat_pos(ClickTrack *ct, int32_t start_
     
 }
 
-void click_track_drag_beat(ClickSegment *s, Window *win)
-{
-    Session *session = session_get();
-}
 void click_track_mouse_motion(ClickSegment *s, Window *win)
 {
     int32_t tl_pos = timeline_get_abspos_sframes(s->track->tl, win->mousep.x);
@@ -1710,7 +1723,7 @@ void click_track_mouse_motion(ClickSegment *s, Window *win)
 void click_segment_fprint(FILE *f, ClickSegment *s)
 {
     fprintf(f, "\nSegment at %p start: %d (%fs)\n", s, s->start_pos, (float)s->start_pos / s->track->tl->proj->sample_rate);
-    fprintf(f, "Segment tempo (bpm): %d\n", s->cfg.bpm);
+    fprintf(f, "Segment tempo (bpm): %f\n", s->cfg.bpm);
     fprintf(stderr, "Segment measure start i: %d; num measures: %d\n", s->first_measure_index, s->num_measures);
     fprintf(f, "\tCfg beats: %d\n", s->cfg.num_beats);
     fprintf(f, "\tCfg beat subdiv lengths:\n");

@@ -585,7 +585,7 @@ double jdaw_val_div_double(Value a, Value b, ValType vt)
 /*     dst[dstsize - 1] = '\0'; */
 /* } */
 
-void jdaw_val_to_str(char *dst, size_t dstsize, Value v, ValType type, int decimal_places);
+int jdaw_val_to_str(char *dst, size_t dstsize, Value v, ValType type, int decimal_places);
 void jdaw_valptr_to_str(char *dst, size_t dstsize, void *value, ValType type, int decimal_places)
 {
 
@@ -906,46 +906,49 @@ void jdaw_val_serialize_OLD(Value v, ValType type, FILE *f, uint8_t dstsize)
     fwrite(dst, 1, dstsize, f);
 }
 
-
-void jdaw_val_to_str(char *dst, size_t dstsize, Value v, ValType type, int decimal_places)
+/* Returns number of characters written (from snprintf) */
+int jdaw_val_to_str(char *dst, size_t dstsize, Value v, ValType type, int decimal_places)
 {
+    int ret;
     switch (type) {
     case JDAW_FLOAT:
-	snprintf(dst, dstsize, "%.*f", decimal_places, v.float_v);
+	ret = snprintf(dst, dstsize, "%.*f", decimal_places, v.float_v);
 	break;
     case JDAW_DOUBLE:
-	snprintf(dst, dstsize, "%.*f", decimal_places, v.double_v);
+	ret = snprintf(dst, dstsize, "%.*f", decimal_places, v.double_v);
 	break;
     case JDAW_INT:
-	snprintf(dst, dstsize, "%d", v.int_v);
+	ret = snprintf(dst, dstsize, "%d", v.int_v);
 	break;
     case JDAW_UINT8:
-	snprintf(dst, dstsize, "%d", v.uint8_v);
+	ret = snprintf(dst, dstsize, "%d", v.uint8_v);
 	break;
     case JDAW_UINT16:
-	snprintf(dst, dstsize, "%d", v.uint16_v);
+	ret = snprintf(dst, dstsize, "%d", v.uint16_v);
 	break;
     case JDAW_UINT32:
-	snprintf(dst, dstsize, "%d", v.uint32_v);
+	ret = snprintf(dst, dstsize, "%d", v.uint32_v);
 	break;
     case JDAW_INT8:
-	snprintf(dst, dstsize, "%d", v.int8_v);
+	ret = snprintf(dst, dstsize, "%d", v.int8_v);
 	break;
     case JDAW_INT16:
-	snprintf(dst, dstsize, "%d", v.int16_v);
+	ret = snprintf(dst, dstsize, "%d", v.int16_v);
 	break;
     case JDAW_INT32:
-	snprintf(dst, dstsize, "%d", v.int32_v);
+	ret = snprintf(dst, dstsize, "%d", v.int32_v);
 	break;
     case JDAW_BOOL:
-	snprintf(dst, dstsize, "%d", v.bool_v);
+	ret = snprintf(dst, dstsize, "%d", v.bool_v);
 	break;
     case JDAW_DOUBLE_PAIR:
-	snprintf(dst, dstsize, "[%f,%f]", v.double_pair_v[0], v.double_pair_v[1]);
+	ret = snprintf(dst, dstsize, "[%f,%f]", v.double_pair_v[0], v.double_pair_v[1]);
 	break;
     default:
+	ret = 0;
 	break;
     }
+    return ret;
 }
 
 Value jdaw_val_from_str(const char *str, ValType type)

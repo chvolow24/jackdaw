@@ -64,6 +64,7 @@ typedef struct click_segment {
 
     int32_t start_pos_internal;
     Endpoint start_pos_ep;
+    Endpoint bpm_ep;
 } ClickSegment;
 
 typedef struct timeline Timeline;

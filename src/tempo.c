@@ -28,22 +28,13 @@
 #include "user_event.h"
 #include "wav.h"
 
-#define MAX_BPM 999.0
-#define MIN_BPM 1.0
+#define MAX_BPM 999.0f
+#define MIN_BPM 1.0f
+#define DEFAULT_BPM 120.0f
 
 extern Window *main_win;
 
-
-
 extern struct colors colors;
-
-
-/* extern SDL_Color control_bar_bckgrnd; */
-/* extern SDL_Color mute_red; */
-
-/* extern SDL_Color color_button_light_text; */
-
-/* extern pthread_t MAIN_THREAD_ID; */
 
 void session_init_metronomes(Session *session)
 {
@@ -211,17 +202,6 @@ static bool click_track_get_next_pos(ClickTrack *t, bool start, int32_t start_fr
     }
 set_prominence_and_exit:
     get_beat_prominence(s, bp, measure, beat, subdiv);
-    /* if (measure == s->first_measure_index && beat == 0 && subdiv == 0) { */
-    /* 	*bp = BP_SEGMENT; */
-    /* } else if (subdiv == 0 && beat == 0) { */
-    /* 	*bp = BP_MEASURE; */
-    /* } else if (subdiv == 0 && beat != 0) { */
-    /* 	*bp = BP_BEAT; */
-    /* } else if (s->cfg.beat_subdiv_lens[beat] %2 == 0 && subdiv % 2 == 0) { */
-    /* 	*bp = BP_SUBDIV; */
-    /* } else { */
-    /* 	*bp = BP_SUBDIV2; */
-    /* } */
     return true;
 }
 
@@ -301,6 +281,12 @@ void click_segment_set_config(ClickSegment *s, int num_measures, float bpm, uint
 /*     } */
 /* } */
 
+static void bpm_proj_cb(Endpoint *ep)
+{
+    ClickSegment *s = ep->xarg1;
+    click_segment_set_config(s, s->num_measures, ep->current_write_val.float_v, s->cfg.num_beats, s->cfg.beat_subdiv_lens, s->track->end_bound_behavior);
+}
+
 void click_segment_set_start_pos(ClickSegment *s, int32_t new_start_pos)
 {
     int32_t diff = new_start_pos - s->start_pos;
@@ -332,6 +318,18 @@ ClickSegment *click_track_add_segment(ClickTrack *t, int32_t start_pos, int16_t 
 	JDAW_THREAD_MAIN,
 	NULL, click_segment_bound_proj_cb, NULL,
 	(void *)s, NULL, NULL, NULL);
+    endpoint_init(
+	&s->bpm_ep,
+	&s->cfg.bpm,
+	JDAW_FLOAT,
+	"bpm",
+	"BPM",
+	JDAW_THREAD_MAIN,
+	NULL, bpm_proj_cb, NULL,
+	s, NULL, NULL, NULL);
+    endpoint_set_default_value(&s->bpm_ep, (Value){.float_v = DEFAULT_BPM});
+    endpoint_set_allowed_range(&s->bpm_ep, (Value){.float_v = MIN_BPM}, (Value){.float_v=MAX_BPM});
+	
 	
     if (!t->segments) {
 	t->segments = s;
@@ -462,7 +460,7 @@ ClickTrack *timeline_add_click_track(Timeline *tl)
 	&t->end_bound_behavior,
 	JDAW_INT,
 	"segment_end_bound_behavior",
-	"undo/redo set tempo track end bound behavior",
+	"click track segment end-bound behavior",
 	JDAW_THREAD_MAIN,
         click_track_ebb_gui_cb, NULL, NULL,
 	NULL, NULL, NULL, NULL);
@@ -568,7 +566,7 @@ ClickTrack *timeline_add_click_track(Timeline *tl)
     /* slider_reset(t->metronome_vol_slider); */
 
     uint8_t subdivs[] = {4, 4, 4, 4};
-    click_track_add_segment(t, 0, -1, 120, 4, subdivs);
+    click_track_add_segment(t, 0, -1, DEFAULT_BPM, 4, subdivs);
     
     tl->click_tracks[tl->num_click_tracks] = t;
     t->index = tl->num_click_tracks;
@@ -622,63 +620,63 @@ void click_track_destroy(ClickTrack *tt)
 
 /* utility functions */
 /* static void click_segment_set_tempo(ClickSegment *s, unsigned int new_tempo, bool from_undo); */
-static void click_segment_set_tempo(ClickSegment *s, double new_tempo, enum ts_end_bound_behavior ebb,  bool from_undo);
+/* static void click_segment_set_tempo(ClickSegment *s, double new_tempo, enum ts_end_bound_behavior ebb,  bool from_undo); */
 
-NEW_EVENT_FN(undo_redo_set_tempo, "undo/redo set tempo")
-    ClickSegment *s = (ClickSegment *)obj1;
-    double tempo = val1.double_v;
-    enum ts_end_bound_behavior ebb = (enum ts_end_bound_behavior)val2.int_v;
-    click_segment_set_tempo(s, tempo, ebb, true);
-}
+/* NEW_EVENT_FN(undo_redo_set_tempo, "undo/redo set tempo") */
+/*     ClickSegment *s = (ClickSegment *)obj1; */
+/*     double tempo = val1.double_v; */
+/*     enum ts_end_bound_behavior ebb = (enum ts_end_bound_behavior)val2.int_v; */
+/*     click_segment_set_tempo(s, tempo, ebb, true); */
+/* } */
 
 
-static void click_segment_set_tempo(ClickSegment *s, double new_tempo, enum ts_end_bound_behavior ebb,  bool from_undo)
-{
-    if (new_tempo < MIN_BPM) {
-	char errstr[64];
-	snprintf(errstr, 64, "Tempo cannot be < %.1f bpm", MIN_BPM);
-	status_set_errstr(errstr);
-	return;
-    }
-    if (new_tempo > MAX_BPM) {
-	char errstr[64];
-	snprintf(errstr, 64, "Tempo cannot be > %.1f bpm", MAX_BPM);
-	status_set_errstr(errstr);
-	return;
-    }
-    double old_tempo = s->cfg.bpm;
-    /* float num_measures; */
-    /* if (s->next && ebb == SEGMENT_FIXED_NUM_MEASURES) { */
-    /* 	if (s->cfg.dur_sframes * s->num_measures == s->end_pos - s->start_pos) { */
-    /* 	    num_measures = s->num_measures; */
-    /* 	} else { */
-    /* 	    num_measures = ((float)s->end_pos - s->start_pos) / s->cfg.dur_sframes; */
-    /* 	} */
+/* static void click_segment_set_tempo(ClickSegment *s, double new_tempo, enum ts_end_bound_behavior ebb,  bool from_undo) */
+/* { */
+/*     if (new_tempo < MIN_BPM) { */
+/* 	char errstr[64]; */
+/* 	snprintf(errstr, 64, "Tempo cannot be < %.1f bpm", MIN_BPM); */
+/* 	status_set_errstr(errstr); */
+/* 	return; */
+/*     } */
+/*     if (new_tempo > MAX_BPM) { */
+/* 	char errstr[64]; */
+/* 	snprintf(errstr, 64, "Tempo cannot be > %.1f bpm", MAX_BPM); */
+/* 	status_set_errstr(errstr); */
+/* 	return; */
+/*     } */
+/*     double old_tempo = s->cfg.bpm; */
+/*     /\* float num_measures; *\/ */
+/*     /\* if (s->next && ebb == SEGMENT_FIXED_NUM_MEASURES) { *\/ */
+/*     /\* 	if (s->cfg.dur_sframes * s->num_measures == s->end_pos - s->start_pos) { *\/ */
+/*     /\* 	    num_measures = s->num_measures; *\/ */
+/*     /\* 	} else { *\/ */
+/*     /\* 	    num_measures = ((float)s->end_pos - s->start_pos) / s->cfg.dur_sframes; *\/ */
+/*     /\* 	} *\/ */
 
-    /* } */
-    uint8_t subdiv_lens[s->cfg.num_beats];
-    memcpy(subdiv_lens, s->cfg.beat_subdiv_lens, s->cfg.num_beats * sizeof(uint8_t));
-    click_segment_set_config(s, s->num_measures, new_tempo, s->cfg.num_beats, subdiv_lens, ebb);
+/*     /\* } *\/ */
+/*     uint8_t subdiv_lens[s->cfg.num_beats]; */
+/*     memcpy(subdiv_lens, s->cfg.beat_subdiv_lens, s->cfg.num_beats * sizeof(uint8_t)); */
+/*     click_segment_set_config(s, s->num_measures, new_tempo, s->cfg.num_beats, subdiv_lens, ebb); */
 
-    /* if (s->next && ebb == SEGMENT_FIXED_NUM_MEASURES) { */
-    /* 	click_segment_set_end_pos(s, s->start_pos + num_measures * s->cfg.dur_sframes); */
-    /* } */
+/*     /\* if (s->next && ebb == SEGMENT_FIXED_NUM_MEASURES) { *\/ */
+/*     /\* 	click_segment_set_end_pos(s, s->start_pos + num_measures * s->cfg.dur_sframes); *\/ */
+/*     /\* } *\/ */
     
-    s->track->tl->needs_redraw = true;
-    if (!from_undo) {
-	Value old_val = {.double_v = old_tempo};
-	Value new_val = {.double_v = new_tempo};
-	Value ebb = {.int_v = (int)(s->track->end_bound_behavior)};
-	user_event_push(
-	    undo_redo_set_tempo,
-	    undo_redo_set_tempo,
-	    NULL, NULL,
-	    (void *)s, NULL,
-	    old_val, ebb,
-	    new_val, ebb,
-	    0, 0, false, false);
-    }
-}
+/*     s->track->tl->needs_redraw = true; */
+/*     if (!from_undo) { */
+/* 	Value old_val = {.double_v = old_tempo}; */
+/* 	Value new_val = {.double_v = new_tempo}; */
+/* 	Value ebb = {.int_v = (int)(s->track->end_bound_behavior)}; */
+/* 	user_event_push( */
+/* 	    undo_redo_set_tempo, */
+/* 	    undo_redo_set_tempo, */
+/* 	    NULL, NULL, */
+/* 	    (void *)s, NULL, */
+/* 	    old_val, ebb, */
+/* 	    new_val, ebb, */
+/* 	    0, 0, false, false); */
+/*     } */
+/* } */
 
 	
 
@@ -694,12 +692,15 @@ static int set_tempo_submit_form(void *mod_v, void *target)
 	    char *value = ((TextEntry *)el->obj)->tb->text->value_handle;
 	    /* TODO: FIX THIS */
 	    /* float tempo = atoi(value); */
-	    double tempo = txt_float_from_str(value);
-	    click_segment_set_tempo(s, tempo, s->track->end_bound_behavior, false);
+	    float tempo = txt_float_from_str(value);
+	    endpoint_write(&s->bpm_ep, (Value){.float_v = tempo}, true, true, true, true);
+	    /* click_segment_set_tempo(s, tempo, s->track->end_bound_behavior, false); */
 	    break;
 	}
     }
     window_pop_modal(main_win);
+    Session *session = session_get();
+    ACTIVE_TL->needs_redraw = true;
     return 0;
 }
 
@@ -1621,11 +1622,10 @@ void click_track_drag_pos(ClickSegment *s, Window *win)
     int32_t og_dur = clicked_tl_pos - s->start_pos;
     int32_t new_dur = tl_pos - s->start_pos;
     double prop = (double)og_dur / new_dur;
-    double new_tempo = s->cfg.bpm * prop;
-    fprintf(stderr, "Diff %d, propr %f, new tempo %f\n", tl_pos - clicked_tl_pos, prop, new_tempo);
-    fprintf(stderr, "\t%f * %f = %f\n", s->cfg.bpm, prop, s->cfg.bpm * prop);
+    float new_tempo = s->cfg.bpm * prop;
     if (new_tempo > 0.0) {
-	click_segment_set_tempo(s, new_tempo, SEGMENT_FIXED_END_POS, true);
+	endpoint_write(&s->bpm_ep, (Value){.float_v=new_tempo}, true, true, true, false);
+	/* click_segment_set_tempo(s, new_tempo, SEGMENT_FIXED_END_POS, true); */
 	clicked_tl_pos = tl_pos;
     }
 }
@@ -1662,6 +1662,7 @@ bool click_track_triage_click(uint8_t button, ClickTrack *t)
 	dragging_pos = click_track_get_pos(t, tl_pos);
 	session->dragged_component.component = dragging_pos.seg;
 	session->dragged_component.type = DRAG_CLICK_TRACK_POS;
+	endpoint_start_continuous_change(&dragging_pos.seg->bpm_ep, false, (Value){0}, JDAW_THREAD_MAIN, endpoint_safe_read(&dragging_pos.seg->bpm_ep, NULL));
 	return true;
     } else {
 

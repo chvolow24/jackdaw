@@ -133,12 +133,24 @@ int endpoint_write(
     ep->overwrite_val = endpoint_safe_read(ep, NULL);
     Session *session = session_get();
     int ret = 0;
+    bool range_violation = false;
     if (ep->restrict_range) {
 	if (jdaw_val_less_than(new_val, ep->min, ep->val_type)) {
 	    new_val = ep->min;
+	    range_violation = true;
 	} else if (jdaw_val_less_than(ep->max, new_val, ep->val_type)) {
 	    new_val = ep->max;
+	    range_violation = true;
 	}
+    }
+    if (range_violation) {
+	const static int errstr_len = 32;
+	char errstr[errstr_len];
+	int index = 0;
+	index += jdaw_val_to_str(errstr, errstr_len, ep->min, ep->val_type, 2);
+	index += snprintf(errstr + index, errstr_len - index, " <= %s <= ", ep->local_id);
+	index += jdaw_val_to_str(errstr + index, errstr_len - index, ep->max, ep->val_type, 2);
+	status_set_errstr(errstr);
     }
     bool val_changed = !jdaw_val_equal(ep->last_write_val, new_val, ep->val_type);
     if (!val_changed && ep->write_has_occurred) return 0;

@@ -51,7 +51,7 @@ const static char hdr_click_segm[] = {'C', 'T', 'S', 'G'};
 const static char hdr_trck_efct[] = {'E', 'F', 'C', 'T'};
 const static char hdr_trck_synth[] = {'S','Y','N','T','H'};
 
-const static char current_file_spec_version[] = {'0','0','.','2','0'};
+const static char current_file_spec_version[] = {'0','0','.','2','1'};
 
 static char read_file_spec_version[6];
 bool read_file_version_older_than(const char *cmp_version)
@@ -1461,7 +1461,12 @@ static int jdaw_read_click_segment(FILE *f, ClickTrack *ct, bool *more_segments)
     int32_deser_le(f); /* End pos:  unusued */
     int16_deser_le(f); /* First measure index:  unused */
     int32_t num_measures = int32_deser_le(f);
-    int16_t tempo = int16_deser_le(f);
+    float tempo;
+    if (read_file_version_older_than("00.21")) {
+	tempo = (float)int16_deser_le(f);;
+    } else {
+	tempo = float_deser40_le(f);
+    }
     uint8_t num_beats = uint8_deser(f);
     uint8_t beat_subdivs[num_beats];
     fread(beat_subdivs, 1, num_beats, f);

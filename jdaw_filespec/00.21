@@ -1,8 +1,10 @@
-/**************************** .JDAW VERSION 00.20 FILE SPEC ***********************************
+/**************************** .JDAW VERSION 00.21 FILE SPEC ***********************************
 
    =========================================================
     DIFF (new since 00.19)
 	- serialize clipref gain
+    DIFF (new since 00.20)
+        - tempo (bpm) serialized as float
    =========================================================
 
     ALL INTEGERS SERIALIZED IN LITTLE-ENDIAN BYTE ORDER
@@ -114,7 +116,7 @@ CLICK_SEG     4			int32_t			  start pos
 CLICK_SEG     4			int32_t			  end pos
 CLICK_SEG     2			int16_t			  first measure index
 CLICK_SEG     4			int32_t			  num measures
-CLICK_SEG     2			int16_t			  tempo (bpm)
+CLICK_SEG     5			float			  tempo (bpm)
 CLICK_SEG     1			uint8_t			  num beats
 CLICK_SEG     1-13		uint8_t[]	 	  beat subdiv lens
 CLICK_SEG     1			bool			  more segments

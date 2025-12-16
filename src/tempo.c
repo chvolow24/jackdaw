@@ -228,7 +228,7 @@ set_prominence_and_exit:
 
 void click_segment_set_start_pos(ClickSegment *s, int32_t new_end_pos);
 
-void click_segment_set_config(ClickSegment *s, int num_measures, double bpm, uint8_t num_beats, uint8_t *subdivs, enum ts_end_bound_behavior ebb)
+void click_segment_set_config(ClickSegment *s, int num_measures, float bpm, uint8_t num_beats, uint8_t *subdivs, enum ts_end_bound_behavior ebb)
 {
     if (num_beats > MAX_BEATS_PER_BAR) {
 	fprintf(stderr, "Error: num_beats exceeds maximum per bar (%d)\n", MAX_BEATS_PER_BAR);
@@ -316,7 +316,7 @@ void click_segment_set_start_pos(ClickSegment *s, int32_t new_start_pos)
     }
 }
 
-ClickSegment *click_track_add_segment(ClickTrack *t, int32_t start_pos, int16_t num_measures, double bpm, uint8_t num_beats, uint8_t *subdiv_lens)
+ClickSegment *click_track_add_segment(ClickTrack *t, int32_t start_pos, int16_t num_measures, float bpm, uint8_t num_beats, uint8_t *subdiv_lens)
 {
     ClickSegment *s = calloc(1, sizeof(ClickSegment));
     s->track = t;

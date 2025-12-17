@@ -86,7 +86,15 @@ void api_node_serialize(FILE *f, APINode *node);
 /* void api_node_deserialize(FILE *f); */
 void api_node_deserialize(FILE *f, APINode *root);
 void api_table_print();
+void api_clear_all();
 void api_quit();
+
+/* Before swapping project, make room in session for new api structure */
+void api_stash_current();
+/* If proj read fails, use stashed info to reset api */
+void api_reset_from_stash_and_discard();
+/* Else if proj read successful, discard old api info */
+void api_discard_stash();
 /* void api_hash_table_destroy(); */
 
 /* void api_node_renamed(APINode *api); */

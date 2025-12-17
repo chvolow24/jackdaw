@@ -116,9 +116,18 @@ NEW_EVENT_FN(undo_redo_endpoint_write, "")
     status_set_undostr(statstr_fmt);
 }
 
+#define EP_WRITE_SAME_THREAD 0
+#define EP_WRITE_OTHER_THREAD 1
+#define EP_WRITE_NO_CHANGE 2
+#define EP_WRITE_RANGE_VIOLATION_SAME_THREAD 10
+#define EP_WRITE_RANGE_VIOLATION_OTHER_THREAD 11
+#define EP_WRITE_ERROR_UNDO -1
+
 /* Return value is one of:
    0: value written synchronously
    1: value change scheduled other thread
+   2: no change
+   +10: range violation
    -1: ERROR: undo action can't be pushed on current thread
 */
 int endpoint_write(
@@ -134,7 +143,11 @@ int endpoint_write(
     Session *session = session_get();
     int ret = 0;
     bool range_violation = false;
+    /* Value range_violation_write_val = new_val; */
     if (ep->restrict_range) {
+	/* char ep_route[256]; */
+	/* api_endpoint_get_route(ep, ep_route, 256); */
+	/* fprintf(stderr, "Testing double range %f < %f < %f\t<=== %s\n", ep->min.double_v, new_val.double_v, ep->max.double_v, ep_route); */
 	if (jdaw_val_less_than(new_val, ep->min, ep->val_type)) {
 	    new_val = ep->min;
 	    range_violation = true;
@@ -144,16 +157,22 @@ int endpoint_write(
 	}
     }
     if (range_violation) {
+	ret += 10;
 	const static int errstr_len = 32;
 	char errstr[errstr_len];
 	int index = 0;
 	index += jdaw_val_to_str(errstr, errstr_len, ep->min, ep->val_type, 2);
 	index += snprintf(errstr + index, errstr_len - index, " <= %s <= ", ep->local_id);
 	index += jdaw_val_to_str(errstr + index, errstr_len - index, ep->max, ep->val_type, 2);
+	/* fprintf(stderr, "Writing range violation from %s, ep %s: \"%s\"\n", get_thread_name(), ep->local_id, errstr); */
+	/* char rv[32] = {0}; */
+	/* jdaw_val_to_str(rv, 32, range_violation_write_val, ep->val_type, 5); */
+	/* fprintf(stderr, "\t->%s\n", rv); */
+	/* breakfn(); */
 	status_set_errstr(errstr);
     }
     bool val_changed = !jdaw_val_equal(ep->last_write_val, new_val, ep->val_type);
-    if (!val_changed && ep->write_has_occurred) return 0;
+    if (!val_changed && ep->write_has_occurred) return EP_WRITE_NO_CHANGE;
     if (!ep->write_has_occurred) {
 	ep->last_write_val = endpoint_safe_read(ep, NULL);
     }
@@ -174,7 +193,7 @@ int endpoint_write(
     } else {
 	session_queue_val_change(session, ep, new_val, run_gui_cb);
 	async_change_will_occur = true;
-	ret = 1;
+	ret += EP_WRITE_OTHER_THREAD;
 	/* } */
     }
 
@@ -224,7 +243,7 @@ int endpoint_write(
     if (undoable && !ep->block_undo) {
 	if (!on_main) {
 	    fprintf(stderr, "UH OH can't push event fn on thread that is not main\n");
-	    return -1;
+	    return EP_WRITE_ERROR_UNDO;
 	}
 	/* if (!jdaw_val_equal(old_val, new_val, ep->val_type)) { */
 	    uint8_t callback_bitfield = 0;

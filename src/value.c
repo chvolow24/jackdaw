@@ -1,8 +1,9 @@
-#include "type_serialize.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "consts.h"
+#include "type_serialize.h"
 #include "value.h"
 
 /* Set the value pointed to by vp based on the current value stored at valptr */
@@ -637,9 +638,11 @@ bool jdaw_val_less_than(Value a, Value b, ValType type)
 {
     switch (type) {
     case JDAW_FLOAT:
-	return a.float_v < b.float_v;
+	return b.float_v - a.float_v > CMP_EPSILON_FLOAT;
+	/* return a.float_v < b.float_v; */
     case JDAW_DOUBLE:
-	return a.double_v < b.double_v;
+	return b.double_v - a.double_v > CMP_EPSILON_DOUBLE;
+	/* return a.double_v < b.double_v; */
     case JDAW_INT:
 	return a.int_v < b.int_v;
     case JDAW_UINT8:
@@ -666,12 +669,11 @@ bool jdaw_val_less_than(Value a, Value b, ValType type)
 
 bool jdaw_val_is_zero(Value a, ValType type)
 {
-    double epsilon = 1e-9;
     switch (type) {
     case JDAW_FLOAT:
-	return fabs(a.float_v) < epsilon;
+	return fabs(a.float_v) < CMP_EPSILON_FLOAT;
     case JDAW_DOUBLE:
-	return fabs(a.double_v) < epsilon;
+	return fabs(a.double_v) < CMP_EPSILON_DOUBLE;
     case JDAW_INT:
 	return a.int_v == 0;
     case JDAW_UINT8:
@@ -690,8 +692,8 @@ bool jdaw_val_is_zero(Value a, ValType type)
 	return a.bool_v == false;
     case JDAW_DOUBLE_PAIR:
 	return
-	    fabs(a.double_pair_v[0]) < epsilon &&
-	    fabs(a.double_pair_v[1]) < epsilon;
+	    fabs(a.double_pair_v[0]) < CMP_EPSILON_DOUBLE &&
+	    fabs(a.double_pair_v[1]) < CMP_EPSILON_FLOAT;
     default:
 	return 0;
 	break;
@@ -700,12 +702,11 @@ bool jdaw_val_is_zero(Value a, ValType type)
 
 bool jdaw_val_equal(Value a, Value b, ValType type)
 {
-    double epsilon = 1e-9;
     switch (type) {
     case JDAW_FLOAT:
-	return fabs(a.float_v - b.float_v) < epsilon;
+	return fabs(a.float_v - b.float_v) < CMP_EPSILON_FLOAT;
     case JDAW_DOUBLE:
-	return fabs(a.double_v - b.double_v) < epsilon;
+	return fabs(a.double_v - b.double_v) < CMP_EPSILON_DOUBLE;
     case JDAW_INT:
 	return a.int_v == b.int_v;
     case JDAW_UINT8:
@@ -724,8 +725,8 @@ bool jdaw_val_equal(Value a, Value b, ValType type)
 	return a.bool_v == b.bool_v;
     case JDAW_DOUBLE_PAIR:
         return
-	    fabs(a.double_pair_v[0] - b.double_pair_v[1]) < epsilon &&
-	    fabs(a.double_pair_v[1] - b.double_pair_v[1]) < epsilon;
+	    fabs(a.double_pair_v[0] - b.double_pair_v[1]) < CMP_EPSILON_DOUBLE &&
+	    fabs(a.double_pair_v[1] - b.double_pair_v[1]) < CMP_EPSILON_DOUBLE;
 	break;
     default:
 	return 0;

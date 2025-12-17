@@ -163,7 +163,7 @@ static void get_beat_prominence(ClickSegment *s, BeatProminence *bp, int measure
 
 
 /* Stateful function, repeated calls to which will get the next beat or subdiv position on a tempo track */
-static bool click_track_get_next_pos(ClickTrack *t, bool start, int32_t start_from, int32_t *pos, BeatProminence *bp)
+static bool click_track_get_next_pos(ClickTrack *t, bool start, int32_t start_from, int32_t *pos, BeatProminence *bp, ClickSegment **seg_dst)
 {
     static JDAW_THREAD_LOCAL ClickSegment *s;
     static JDAW_THREAD_LOCAL int beat = 0;
@@ -201,6 +201,9 @@ static bool click_track_get_next_pos(ClickTrack *t, bool start, int32_t start_fr
 	}
     }
 set_prominence_and_exit:
+    if (seg_dst) {
+	*seg_dst = s;
+    }
     get_beat_prominence(s, bp, measure, beat, subdiv);
     return true;
 }
@@ -285,6 +288,10 @@ static void bpm_proj_cb(Endpoint *ep)
 {
     ClickSegment *s = ep->xarg1;
     click_segment_set_config(s, s->num_measures, ep->current_write_val.float_v, s->cfg.num_beats, s->cfg.beat_subdiv_lens, s->track->end_bound_behavior);
+    if (session_get()->dragged_component.component == s) {
+	label_move(s->bpm_label, main_win->mousep.x, s->track->layout->rect.y - 20);
+    }
+    label_reset(s->bpm_label, ep->current_write_val);
 }
 
 void click_segment_set_start_pos(ClickSegment *s, int32_t new_start_pos)
@@ -330,7 +337,8 @@ ClickSegment *click_track_add_segment(ClickTrack *t, int32_t start_pos, int16_t 
     endpoint_set_default_value(&s->bpm_ep, (Value){.float_v = DEFAULT_BPM});
     endpoint_set_allowed_range(&s->bpm_ep, (Value){.float_v = MIN_BPM}, (Value){.float_v=MAX_BPM});
 	
-	
+
+    s->bpm_label = label_create(BPM_STRLEN, t->layout, label_bpm, &s->cfg.bpm, JDAW_FLOAT, main_win);
     if (!t->segments) {
 	t->segments = s;
 	/* s->end_pos = s->start_pos; */
@@ -470,7 +478,6 @@ ClickTrack *timeline_add_click_track(Timeline *tl)
 	(Value){.int_v = 0},
 	(Value){.int_v = 1});
 
-
     
     /* Layout *click_tracks_area = layout_get_child_by_name_recursive(tl->layout, "tracks_area"); */
     Layout *click_tracks_area = tl->track_area;
@@ -574,6 +581,8 @@ ClickTrack *timeline_add_click_track(Timeline *tl)
     snprintf(t->name, MAX_NAMELENGTH, "Click track %d\n", t->index + 1);
 
     timeline_rectify_track_indices(tl);
+    timeline_rectify_track_area(tl);
+    
     /* timeline_reset(tl, false); */
     /* layout_force_reset(tl->layout); */
     /* layout_reset(lt); */
@@ -587,7 +596,6 @@ ClickTrack *timeline_add_click_track(Timeline *tl)
 	nullval, nullval,
 	nullval, nullval,
 	0, 0, false, false);
-    timeline_rectify_track_area(tl);
 
 
     /* timeline_reset(tl, false); */
@@ -598,6 +606,7 @@ ClickTrack *timeline_add_click_track(Timeline *tl)
 
 void click_segment_destroy(ClickSegment *s)
 {
+    label_destroy(s->bpm_label);
     free(s);
 }
 
@@ -606,7 +615,6 @@ void click_track_destroy(ClickTrack *tt)
     textbox_destroy(tt->metronome_button);
     textbox_destroy(tt->edit_button);
     slider_destroy(tt->metronome_vol_slider);
-    layout_destroy(tt->layout);
     
     ClickSegment *s = tt->segments;
     while (s) {
@@ -614,6 +622,7 @@ void click_track_destroy(ClickTrack *tt)
 	click_segment_destroy(s);
 	s = next;
     }
+    layout_destroy(tt->layout);
 }
 
 
@@ -1096,7 +1105,7 @@ void click_track_draw_segments(ClickTrack *tt, TimeView *tv, SDL_Rect draw_rect)
     Timeline *tl = tt->tl;
     int32_t pos = tv->offset_left_sframes;
     BeatProminence bp;
-    click_track_get_next_pos(tt, true, pos, &pos, &bp);
+    click_track_get_next_pos(tt, true, pos, &pos, &bp, NULL);
     int x;
     int top_y = draw_rect.y;
     int h = draw_rect.h;
@@ -1153,7 +1162,7 @@ void click_track_draw_segments(ClickTrack *tt, TimeView *tv, SDL_Rect draw_rect)
 	    SDL_RenderDrawLine(main_win->rend, x, top_y, x, bottom_y);
 	}
     reset_pos_and_bp:
-	click_track_get_next_pos(tt, false, tv->offset_left_sframes, &pos, &bp);
+	click_track_get_next_pos(tt, false, tv->offset_left_sframes, &pos, &bp, NULL);
     }
 
 }
@@ -1179,7 +1188,15 @@ void click_track_draw(ClickTrack *tt)
 
     int32_t pos = tt->tl->timeview.offset_left_sframes;
     BeatProminence bp;
-    click_track_get_next_pos(tt, true, pos, &pos, &bp);
+    ClickSegment *s;
+    const static int MAX_BPM_LABELS_TO_DRAW = 64;
+    Label *bpm_labels_to_draw[128];
+    int num_bpm_labels_to_draw = 0;
+
+    click_track_get_next_pos(tt, true, pos, &pos, &bp, &s);
+    bpm_labels_to_draw[num_bpm_labels_to_draw] = s->bpm_label;
+    num_bpm_labels_to_draw++;
+
     int x = timeline_get_draw_x(tl, pos);
     int main_top_y = tt->layout->rect.y;
     int bttm_y = main_top_y + tt->layout->rect.h - 1; /* TODO: figure out why decremet to bttm_y is necessary */
@@ -1203,8 +1220,9 @@ void click_track_draw(ClickTrack *tt)
     /* const int draw_beat_thresh = 1; */
     /* bool draw_subdivs = true; */
     /* bool draw_beats = true; */
+    
     while (x > 0) {
-	click_track_get_next_pos(tt, false, 0, &pos, &bp);
+	click_track_get_next_pos(tt, false, 0, &pos, &bp, &s);
 	/* int prev_x = x; */
 	x = timeline_get_draw_x(tl, pos);
 	if (x > tt->right_console_rect->x) break;
@@ -1223,6 +1241,10 @@ void click_track_draw(ClickTrack *tt)
 	if (bp == BP_SEGMENT) {
 	    SDL_Rect seg = {x - dpi, top_y, dpi * 2, h};
 	    SDL_RenderFillRect(main_win->rend, &seg);
+	    if (num_bpm_labels_to_draw < MAX_BPM_LABELS_TO_DRAW) {
+		bpm_labels_to_draw[num_bpm_labels_to_draw] = s->bpm_label;
+		num_bpm_labels_to_draw++;
+	    }
 
 	    /* double dpi = main_win->dpi_scale_factor; */
 	    /* SDL_RenderDrawLine(main_win->rend, x-dpi, top_y, x-dpi, bttm_y); */
@@ -1247,6 +1269,10 @@ void click_track_draw(ClickTrack *tt)
     SDL_RenderDrawRect(main_win->rend, &ttr);
     SDL_RenderFillRect(main_win->rend, tt->colorbar_rect);
     SDL_RenderFillRect(main_win->rend, tt->right_colorbar_rect);
+
+    for (int i=0; i<num_bpm_labels_to_draw; i++) {
+	label_draw(bpm_labels_to_draw[i]);
+    }
 
 }
 
@@ -1614,6 +1640,7 @@ static void timeline_select_click_track(Timeline *tl, ClickTrack *ct)
 /* Mouse */
 
 static ClickTrackPos dragging_pos;
+static float original_bpm;
 static int32_t clicked_tl_pos;
 void click_track_drag_pos(ClickSegment *s, Window *win)
 {
@@ -1622,12 +1649,8 @@ void click_track_drag_pos(ClickSegment *s, Window *win)
     int32_t og_dur = clicked_tl_pos - s->start_pos;
     int32_t new_dur = tl_pos - s->start_pos;
     double prop = (double)og_dur / new_dur;
-    float new_tempo = s->cfg.bpm * prop;
-    if (new_tempo > 0.0) {
-	endpoint_write(&s->bpm_ep, (Value){.float_v=new_tempo}, true, true, true, false);
-	/* click_segment_set_tempo(s, new_tempo, SEGMENT_FIXED_END_POS, true); */
-	clicked_tl_pos = tl_pos;
-    }
+    float new_tempo = original_bpm * prop;
+    endpoint_write(&s->bpm_ep, (Value){.float_v=new_tempo}, true, true, true, false);
 }
 
 bool click_track_triage_click(uint8_t button, ClickTrack *t)
@@ -1660,9 +1683,14 @@ bool click_track_triage_click(uint8_t button, ClickTrack *t)
 	int32_t tl_pos = timeview_get_pos_sframes(&ACTIVE_TL->timeview, main_win->mousep.x);
 	clicked_tl_pos = tl_pos;
 	dragging_pos = click_track_get_pos(t, tl_pos);
+	original_bpm = dragging_pos.seg->cfg.bpm;
 	session->dragged_component.component = dragging_pos.seg;
 	session->dragged_component.type = DRAG_CLICK_TRACK_POS;
-	endpoint_start_continuous_change(&dragging_pos.seg->bpm_ep, false, (Value){0}, JDAW_THREAD_MAIN, endpoint_safe_read(&dragging_pos.seg->bpm_ep, NULL));
+	Value cur_val = endpoint_safe_read(&dragging_pos.seg->bpm_ep, NULL);
+	endpoint_start_continuous_change(&dragging_pos.seg->bpm_ep, false, (Value){0}, JDAW_THREAD_MAIN, cur_val);
+	label_move(dragging_pos.seg->bpm_label, main_win->mousep.x, dragging_pos.seg->track->layout->rect.y - 20);
+	label_reset(dragging_pos.seg->bpm_label, cur_val);
+	/* textbox_reset(dragging_pos.seg->bpm_label->tb); */
 	return true;
     } else {
 

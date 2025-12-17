@@ -451,15 +451,18 @@ void open_file(const char *filepath)
 	fprintf(stdout, "Jdaw file selected\n");
 	if (session->playback.recording) transport_stop_recording();
 	else if (session->playback.playing) transport_stop_playback();
-	api_quit();
+	/* api_quit(); */
+	api_stash_current();
 	Project new_proj;
 	memset(&new_proj, '\0', sizeof(new_proj));
 	session->proj_reading = &new_proj;
 	int ret = jdaw_read_file(&new_proj, filepath);
 	if (ret == 0) {
 	    session_set_proj(session, &new_proj);
+	    api_discard_stash();
 	} else {
-	    status_set_errstr("Error opening jdaw project");	    
+	    status_set_errstr("Error opening jdaw project");
+	    api_reset_from_stash_and_discard();
 	}
 	session->proj_reading = NULL;
     } else if (strncmp("mid", ext, 3) * strncmp("MID", ext, 3) == 0) {
@@ -3497,7 +3500,6 @@ static float quantize_amount = 1.0;
 int quantize_form_submit(void *modal_v, void *stashed_obj)
 {
     ClipRef *cr = clipref_at_cursor();
-    Modal *modal = modal_v;
     BeatProminence bp = quantize_beat_prominence + 1;
     switch (quantize_note_selection_behavior) {
     case QUANTIZE_MARKED_RANGE:

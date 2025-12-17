@@ -17,5 +17,8 @@
 
 #define VOL_EXP 2.0
 
+#define CMP_EPSILON_FLOAT 1e-9f
+#define CMP_EPSILON_DOUBLE 1e-9
+
 
 #endif

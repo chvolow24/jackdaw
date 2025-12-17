@@ -30,6 +30,8 @@
 #define CLICK_POS_STR_LEN 32
 #define BARS_FOR_NOTHING 2
 
+#define BPM_STRLEN 16
+
 typedef enum beat_prominence {
     BP_SEGMENT=0,
     BP_MEASURE=1,
@@ -65,6 +67,8 @@ typedef struct click_segment {
     int32_t start_pos_internal;
     Endpoint start_pos_ep;
     Endpoint bpm_ep;
+
+    Label *bpm_label;
 } ClickSegment;
 
 typedef struct timeline Timeline;
@@ -96,6 +100,7 @@ typedef struct click_track {
     uint8_t index;
     /* uint8_t num_segments; */
     uint8_t current_segment;
+    char bpm_str[BPM_STRLEN];
 
     Metronome *metronome;
     float metronome_vol;

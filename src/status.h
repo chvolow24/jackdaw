@@ -28,6 +28,7 @@
 
 void status_frame();
 void status_set_statstr(const char *statstr);
+/* Thread-safe */
 void status_set_errstr(const char *errstr);
 void status_set_undostr(const char *undostr);
 void status_set_callstr(const char *callstr);

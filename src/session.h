@@ -94,6 +94,7 @@ struct queued_val_change {
 };
 
 struct status_bar {
+    pthread_mutex_t errstr_lock;
     Layout *layout;
     char errstr[MAX_STATUS_STRLEN];
     char callstr[MAX_STATUS_STRLEN];

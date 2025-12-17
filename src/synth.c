@@ -771,7 +771,8 @@ Synth *synth_create(Track *track)
 	endpoint_set_allowed_range(&cfg->fixed_freq_ep, (Value){.float_v = 0.0001f}, (Value){.float_v = 0.8f});
 	endpoint_set_label_fn(&cfg->fixed_freq_ep, label_freq_raw_to_hz);
 	api_endpoint_register(&cfg->fixed_freq_ep, &cfg->api_node);
-	    
+	cfg->fixed_freq_unscaled = 0.1f;
+	cfg->fixed_freq = dsp_scale_freq(cfg->fixed_freq_unscaled);
 
 	endpoint_init(
 	    &cfg->octave_ep,

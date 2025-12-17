@@ -20,6 +20,8 @@
 
 extern struct colors colors;
 
+static const char *queued_errstr = NULL;
+
 void status_frame()
 {
     Session *session = session_get();
@@ -27,6 +29,12 @@ void status_frame()
 	session->status_bar.stat_timer--;
 	return;
     }
+    pthread_mutex_unlock(&session->status_bar.errstr_lock);
+    if (queued_errstr) {
+	status_set_errstr(queued_errstr);
+	queued_errstr = NULL;
+    } 
+    pthread_mutex_lock(&session->status_bar.errstr_lock);
     
     uint8_t *alpha = &(session->status_bar.error->text->color.a);
     if (session->status_bar.err_timer > 0) {
@@ -47,9 +55,18 @@ void status_frame()
     }
 }
 
+
+
 void status_set_errstr(const char *errstr)
 {
     Session *session = session_get();
+    if (!on_thread(JDAW_THREAD_MAIN)) {
+	/* pthread_mutex_lock(&session->status_bar.errstr_lock); */
+	/* queued_errstr = errstr; */
+	/* pthread_mutex_unlock(&session->status_bar.errstr_lock); */
+	return;
+    }
+
     strcpy(session->status_bar.errstr, errstr);
     /* textbox_set_text_color(session->status_bar.error, &colors.red); */
     textbox_size_to_fit(session->status_bar.error, 0, 0);
@@ -182,3 +199,4 @@ void status_stat_drag()
     }
     status_set_dragstr(buf);
 }
+

@@ -32,7 +32,7 @@ Label *label_create(
     }
     l->str = calloc(l->max_len, sizeof(char));
     Layout *lt = layout_add_child(parent_lt);
-    l->tb = textbox_create_from_str(l->str, lt, win->mono_font, 12, win);
+    l->tb = textbox_create_from_str(l->str, lt, win->mono_bold_font, 14, win);
     if (set_str_fn) {
 	l->set_str_fn = set_str_fn;
     } else {
@@ -151,6 +151,12 @@ void label_destroy(Label *label)
 /* { */
 /*     return (20.0f * log10(amp)); */
 /* } */
+
+void label_bpm(char *dst, size_t dstsize, Value val, ValType t)
+{
+    int offset = jdaw_val_to_str(dst, dstsize, val, t, 3);
+    snprintf(dst + offset, dstsize - offset, " bpm");
+}
 
 void label_amp_pre_exp_to_dbstr(char *dst, size_t dstsize, Value val, ValType t)
 {

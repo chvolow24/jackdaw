@@ -18,7 +18,6 @@
 #include "label.h"
 #include "layout.h"
 #include "layout_xml.h"
-#include "page.h"
 #include "session.h"
 #include "transport.h"
 /* #include "window.h" */
@@ -164,6 +163,7 @@ static void session_init_hamburger(Session *session)
 static void session_init_status_bar(Session *session)
 {
 
+    pthread_mutex_init(&session->status_bar.errstr_lock, NULL);
     Layout *status_bar_lt = layout_get_child_by_name_recursive(session->gui.layout, "status_bar");
     Layout *draglt = layout_add_child(status_bar_lt);
     Layout *calllt = layout_add_child(status_bar_lt);
@@ -217,6 +217,15 @@ static void session_init_status_bar(Session *session)
 
 }
 
+static void session_deinit_status_bar(Session *session)
+{
+    pthread_mutex_destroy(&session->status_bar.errstr_lock);
+    if (session->status_bar.call) textbox_destroy(session->status_bar.call);
+    if (session->status_bar.dragstat) textbox_destroy(session->status_bar.dragstat);
+    if (session->status_bar.error) textbox_destroy(session->status_bar.error);
+
+}
+
 void session_destroy()
 {
     if (!session) {
@@ -246,10 +255,7 @@ void session_destroy()
     SDL_DestroyTexture(session->gui.left_arrow_texture);
     
     session_deinit_panels(session);
-    
-    if (session->status_bar.call) textbox_destroy(session->status_bar.call);
-    if (session->status_bar.dragstat) textbox_destroy(session->status_bar.dragstat);
-    if (session->status_bar.error) textbox_destroy(session->status_bar.error);
+    session_deinit_status_bar(session);
 
     session_destroy_animations(session);
     session_destroy_metronomes(session);

@@ -286,7 +286,6 @@ bool mouse_triage_click_text_edit(uint8_t button)
 
 bool mouse_triage_motion_page()
 {
-    Session *session = session_get();
     Page *page;
     /* if (session->dragged_component.component) { */
     /* 	draggable_mouse_motion(&session->dragged_component, main_win); */

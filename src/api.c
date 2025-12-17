@@ -23,6 +23,9 @@
 extern volatile bool CANCEL_THREADS;
 
 static struct api_hash_node *api_hash_table[API_HASH_TABLE_SIZE] = {0};
+static struct api_hash_node **stashed_api_hash_table = NULL;
+static APINode stashed_api_root = {0};
+
 
 static unsigned long api_hash_route(const char *route);
 int api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size);
@@ -562,6 +565,34 @@ static void api_teardown_server()
     fprintf(stderr, "\t..done.\n");
     
 }
+
+
+void api_stash_current()
+{
+    stashed_api_hash_table = malloc(sizeof(api_hash_table));
+    memcpy(stashed_api_hash_table, api_hash_table, sizeof(api_hash_table));
+    stashed_api_root = session_get()->server.api_root;
+    memset(&session_get()->server.api_root, 0, sizeof(APINode));
+}
+
+void api_reset_from_stash_and_discard()
+{
+    memcpy(api_hash_table, stashed_api_hash_table, sizeof(api_hash_table));
+    session_get()->server.api_root = stashed_api_root;
+    free(stashed_api_hash_table);
+}
+
+void api_discard_stash()
+{
+    free(stashed_api_hash_table);
+}
+/* Use to remove all nodes and endpoints from the API */
+/* void api_clear_all() */
+/* { */
+/*     memset(&session_get()->server.api_root, 0, sizeof(APINode)); */
+/*     api_hash_table_destroy(); */
+
+/* } */
 
 void api_quit()
 {

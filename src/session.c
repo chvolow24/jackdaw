@@ -279,6 +279,11 @@ void session_set_proj(Session *session, Project *new_proj)
     } else {
 	transport_stop_playback();
     }
+    bool reopen_playback_conn;
+    if (session->audio_io.playback_conn->open) {
+	audioconn_close(session->audio_io.playback_conn);
+	reopen_playback_conn = true;
+    }
 
     session_clear_all_queues();
     
@@ -295,6 +300,9 @@ void session_set_proj(Session *session, Project *new_proj)
     layout_force_reset(session->gui.layout);
     timeline_switch(0);
     timeline_reset_full(session->proj.timelines[0]);
+    if (reopen_playback_conn) {
+	audioconn_open(session, session->audio_io.playback_conn);
+    }
 }
 
 uint32_t session_get_sample_rate()

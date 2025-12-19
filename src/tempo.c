@@ -254,44 +254,61 @@ void click_segment_set_config(ClickSegment *s, int num_measures, float bpm, uint
 	    click_segment_set_start_pos(s->next, s->next->start_pos);
 	}
     }
-    /* if (s->track->end_bound_behavior == SEGMENT_FIXED_NUM_MEASURES) { */
-	
-    /* 	click_segment_set_end_pos(s, s->start_pos + measure_dur * s->num_measures); */
-    /* } else { */
-    /* 	if (num_measures > 0 && s->next) { */
-    /* 	    s->end_pos = s->start_pos + num_measures * s->cfg.dur_sframes; */
-    /* 	} else { */
-    /* 	    s->end_pos = s->start_pos; */
-    /* 	} */
-    /* 	if (s->next) { */
-    /* 	    click_segment_set_end_pos(s, s->next->start_pos); */
-    /* 	} */
-    /* } */
 }
 
-/* Calculates the new segment dur in measures and sets the first measure index of the next segment */
-/* void click_segment_set_end_pos(ClickSegment *s, int32_t new_end_pos) */
-/* { */
-/*     int32_t segment_dur = new_end_pos - s->start_pos; */
-/*     double num_measures = (double)segment_dur / s->cfg.dur_sframes; */
-/*     s->num_measures = floor(0.9999999 + num_measures); */
-/*     /\* s->end_pos = new_end_pos; *\/ */
-/*     /\* s->end_pos_internal = new_end_pos; *\/ */
-/*     if (s->next) { */
-/* 	int32_t diff = new_end_pos - s->next->start_pos; */
-/* 	s->next->start_pos = new_end_pos; */
-/* 	click_segment_set_end_pos(s->next, s->next->start_pos + diff);  */
-/*     } */
-/* } */
+ClickTrackPos click_track_get_pos(ClickTrack *ct, int32_t tl_pos);
+int32_t click_track_pos_to_tl_pos(ClickTrackPos *ctp);
+struct clip_and_pos {
+    ClipRef *cr;
+    ClickTrackPos clip_pos;
+};
+
+static struct clip_and_pos *clip_positions;
+static int num_clips = 0;
+
+static void stash_all_object_positions_track(Track *track, ClickTrack *ct)
+{
+    if (clip_positions) free(clip_positions);
+    clip_positions = malloc(sizeof(struct clip_and_pos) * track->num_clips);
+    num_clips = track->num_clips;
+    for (int i=0; i<track->num_clips; i++) {
+	ClipRef *cr = track->clips[i];
+	ClickTrackPos clip_pos = click_track_get_pos(ct, track->clips[i]->tl_pos);
+	clip_positions[i].cr = cr;
+	clip_positions[i].clip_pos = clip_pos;
+    }
+}
+static void stash_all_object_positions(ClickTrack *ct)
+{
+    for (int i=0; i<ct->tl->num_tracks; i++) {
+	Track *track = ct->tl->tracks[i];
+	if (track_governing_click_track(track) != ct) continue;
+	stash_all_object_positions_track(track, ct);
+    }
+}
+
+static void reposition_from_cache()
+{
+    for (int i=0; i<num_clips; i++) {
+	ClipRef *cr = clip_positions[i].cr;
+	cr->tl_pos = click_track_pos_to_tl_pos(&clip_positions[i].clip_pos);
+	clipref_reset(cr, false);
+    }
+    if (num_clips > 0) {
+	clip_positions[0].cr->track->tl->needs_redraw = true;
+    }
+}
 
 static void bpm_proj_cb(Endpoint *ep)
 {
     ClickSegment *s = ep->xarg1;
+    stash_all_object_positions(s->track);
     click_segment_set_config(s, s->num_measures, ep->current_write_val.float_v, s->cfg.num_beats, s->cfg.beat_subdiv_lens, s->track->end_bound_behavior);
     if (session_get()->dragged_component.component == s) {
 	label_move(s->bpm_label, main_win->mousep.x, s->track->layout->rect.y - 20);
     }
     label_reset(s->bpm_label, ep->current_write_val);
+    reposition_from_cache();
 }
 
 void click_segment_set_start_pos(ClickSegment *s, int32_t new_start_pos)
@@ -625,67 +642,6 @@ void click_track_destroy(ClickTrack *tt)
     layout_destroy(tt->layout);
 }
 
-
-
-/* utility functions */
-/* static void click_segment_set_tempo(ClickSegment *s, unsigned int new_tempo, bool from_undo); */
-/* static void click_segment_set_tempo(ClickSegment *s, double new_tempo, enum ts_end_bound_behavior ebb,  bool from_undo); */
-
-/* NEW_EVENT_FN(undo_redo_set_tempo, "undo/redo set tempo") */
-/*     ClickSegment *s = (ClickSegment *)obj1; */
-/*     double tempo = val1.double_v; */
-/*     enum ts_end_bound_behavior ebb = (enum ts_end_bound_behavior)val2.int_v; */
-/*     click_segment_set_tempo(s, tempo, ebb, true); */
-/* } */
-
-
-/* static void click_segment_set_tempo(ClickSegment *s, double new_tempo, enum ts_end_bound_behavior ebb,  bool from_undo) */
-/* { */
-/*     if (new_tempo < MIN_BPM) { */
-/* 	char errstr[64]; */
-/* 	snprintf(errstr, 64, "Tempo cannot be < %.1f bpm", MIN_BPM); */
-/* 	status_set_errstr(errstr); */
-/* 	return; */
-/*     } */
-/*     if (new_tempo > MAX_BPM) { */
-/* 	char errstr[64]; */
-/* 	snprintf(errstr, 64, "Tempo cannot be > %.1f bpm", MAX_BPM); */
-/* 	status_set_errstr(errstr); */
-/* 	return; */
-/*     } */
-/*     double old_tempo = s->cfg.bpm; */
-/*     /\* float num_measures; *\/ */
-/*     /\* if (s->next && ebb == SEGMENT_FIXED_NUM_MEASURES) { *\/ */
-/*     /\* 	if (s->cfg.dur_sframes * s->num_measures == s->end_pos - s->start_pos) { *\/ */
-/*     /\* 	    num_measures = s->num_measures; *\/ */
-/*     /\* 	} else { *\/ */
-/*     /\* 	    num_measures = ((float)s->end_pos - s->start_pos) / s->cfg.dur_sframes; *\/ */
-/*     /\* 	} *\/ */
-
-/*     /\* } *\/ */
-/*     uint8_t subdiv_lens[s->cfg.num_beats]; */
-/*     memcpy(subdiv_lens, s->cfg.beat_subdiv_lens, s->cfg.num_beats * sizeof(uint8_t)); */
-/*     click_segment_set_config(s, s->num_measures, new_tempo, s->cfg.num_beats, subdiv_lens, ebb); */
-
-/*     /\* if (s->next && ebb == SEGMENT_FIXED_NUM_MEASURES) { *\/ */
-/*     /\* 	click_segment_set_end_pos(s, s->start_pos + num_measures * s->cfg.dur_sframes); *\/ */
-/*     /\* } *\/ */
-    
-/*     s->track->tl->needs_redraw = true; */
-/*     if (!from_undo) { */
-/* 	Value old_val = {.double_v = old_tempo}; */
-/* 	Value new_val = {.double_v = new_tempo}; */
-/* 	Value ebb = {.int_v = (int)(s->track->end_bound_behavior)}; */
-/* 	user_event_push( */
-/* 	    undo_redo_set_tempo, */
-/* 	    undo_redo_set_tempo, */
-/* 	    NULL, NULL, */
-/* 	    (void *)s, NULL, */
-/* 	    old_val, ebb, */
-/* 	    new_val, ebb, */
-/* 	    0, 0, false, false); */
-/*     } */
-/* } */
 
 	
 
@@ -1297,8 +1253,13 @@ ClickTrackPos click_track_get_pos(ClickTrack *ct, int32_t tl_pos)
     ret.measure = measure;
     ret.beat = beat;
     ret.subdiv = subdiv;
-    ret.remainder = get_beat_pos(seg, measure, beat, subdiv) - tl_pos;
+    ret.remainder = tl_pos - get_beat_pos(seg, measure, beat, subdiv);
     return ret;
+}
+/* Convert ClickTrackPos to raw tl pos (sframes) (for repositioning elements on tempo change, e.g.) */
+int32_t click_track_pos_to_tl_pos(ClickTrackPos *ctp)
+{
+    return ctp->remainder + get_beat_pos(ctp->seg, ctp->measure, ctp->beat, ctp->subdiv);
 }
 
 /* sets bar, beat, and pos; returns remainder in sframes */

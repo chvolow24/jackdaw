@@ -571,6 +571,7 @@ void api_stash_current()
 {
     stashed_api_hash_table = malloc(sizeof(api_hash_table));
     memcpy(stashed_api_hash_table, api_hash_table, sizeof(api_hash_table));
+    memset(api_hash_table, 0, sizeof(api_hash_table));
     stashed_api_root = session_get()->server.api_root;
     memset(&session_get()->server.api_root, 0, sizeof(APINode));
 }

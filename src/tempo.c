@@ -10,6 +10,7 @@
  */
 
 #include "endpoint_callbacks.h"
+#include "midi_objs.h"
 #include "text.h"
 #include "thread_safety.h"
 #include "assets.h"
@@ -457,8 +458,14 @@ struct note_clip_id {
     uint32_t note_id;
 };
 
+struct pitch_bend_id {
+    ClipRef *cr;
+    int32_t index;
+};
+
 union moved_obj_id {
     struct note_clip_id note;
+    struct pitch_bend_id pb;
     void *obj;
 };
 
@@ -539,7 +546,14 @@ static void reset_obj_position(struct moved_obj *obj)
 	midi_clip_check_reset_bounds(mclip);
     }	
 	break;
-    case MOV_OBJ_MIDI_PB:
+    case MOV_OBJ_MIDI_PB: {
+	struct pitch_bend_id id = obj->id.pb;
+	ClipRef *cr = id.cr;
+	MIDIClip *mclip = cr->source_clip;
+	MEvent16bit *e = mclip->pitch_bend.changes + id.index;
+	/* fprintf(stderr, "RESET pb %d pos %d->%d\n", id.index, e->pos_rel, tl_pos ); */
+	e->pos_rel = tl_pos - cr->tl_pos + cr->start_in_clip;
+    }
 	break;
     case MOV_OBJ_MIDI_CC:
 	break;
@@ -568,6 +582,7 @@ static void stash_all_object_positions_track(Track *track, ClickTrack *ct)
 	if (cr->type == CLIP_MIDI) {
 	    MIDIClip *mclip = cr->source_clip;
 	    int32_t first_note = midi_clipref_check_get_first_note(cr);
+	    if (first_note == -1) continue;
 	    int32_t last_note = midi_clipref_check_get_last_note(cr);
 	    for (int32_t i=first_note; i<=last_note; i++) {
 		Note *note = mclip->notes + i;
@@ -575,6 +590,17 @@ static void stash_all_object_positions_track(Track *track, ClickTrack *ct)
 		ClickTrackPos note_start = click_track_get_pos(ct, note_tl_start_pos(note, cr));
 		ClickTrackPos note_end = click_track_get_pos(ct, note_tl_end_pos(note, cr));
 		stash_obj(id, note_start, note_end, MOV_OBJ_MIDI_NOTE);
+	    }
+	    for (int32_t i=0; i<mclip->pitch_bend.num_changes; i++) {
+		MEvent16bit *event = mclip->pitch_bend.changes + i;
+		if (event->pos_rel >= cr->start_in_clip && event->pos_rel <= cr->end_in_clip) {
+		    struct pitch_bend_id pb_id;
+		    pb_id.cr = cr;
+		    pb_id.index = i;
+		    union moved_obj_id id = {.pb = pb_id};
+		    ClickTrackPos pos = click_track_get_pos(ct, event->pos_rel + cr->tl_pos - cr->start_in_clip);
+		    stash_obj(id, pos, (ClickTrackPos){0}, MOV_OBJ_MIDI_PB);
+		}
 	    }
 	}
     }

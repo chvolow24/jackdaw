@@ -1780,7 +1780,6 @@ end_draw_notes:
     if (mclip->pitch_bend.num_changes > 0) {
 	static const int pitch_bend_label_pad = 7;
 	SDL_Rect pitch_bend_lane;
-	fprintf(stderr, "top drawn note: %d\n", top_drawn_note);
 	if (top_drawn_note > 75) {
 	    pitch_bend_lane = (SDL_Rect){state.note_canvas_lt->rect.x, state.note_canvas_lt->rect.y + state.note_canvas_lt->rect.h - note_height_nominal * 13, state.note_canvas_lt->rect.w, note_height_nominal * 12};
 	} else {

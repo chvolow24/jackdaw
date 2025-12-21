@@ -9,6 +9,7 @@
 #include "piano_roll.h"
 #include "project.h"
 #include "session.h"
+#include "symbol.h"
 #include "tempo.h"
 #include "textbox.h"
 #include "timeline.h"
@@ -16,6 +17,7 @@
 
 extern Window *main_win;
 extern struct colors colors;
+extern Symbol *SYMBOL_TABLE[];
 
 #define PIANO_TOP_NOTE 108
 #define PIANO_BOTTOM_NOTE 21
@@ -66,6 +68,7 @@ struct piano_roll_gui {
     Textbox *dur_tb;
     Textbox *tie_button;
     Textbox *chord_button;
+    Textbox *pitch_bend_label;
     /* Textbox *insert_note_button; */
     /* Textbox *insert_rest_button; */
 
@@ -283,7 +286,7 @@ void piano_roll_init_gui()
 
     piano_roll_add_label("Insertion", "insertion_head", main_win->mono_bold_font, 16, CENTER, NULL, &colors.light_grey);
     piano_roll_add_label("Grabbed note(s)", "grabbed_head", main_win->mono_bold_font, 16, CENTER, NULL, &colors.light_grey);
-
+    
     Layout *lt = layout_get_child_by_name_recursive(state.console_lt, "dur_val");
     state.gui.dur_tb = textbox_create_from_str(
 	/* "TEST", */
@@ -483,6 +486,19 @@ void piano_roll_init_gui()
 	&colors.quickref_button_blue,
 	&colors.light_grey);
 
+    lt = layout_add_child(state.layout);
+    layout_set_default_dims(lt);
+    layout_reset(lt);
+    state.gui.pitch_bend_label = textbox_create_from_str(
+	"Pitch bend",
+	lt,
+	main_win->mono_bold_font,
+	12,
+	main_win);
+    textbox_style(state.gui.pitch_bend_label, TOP_LEFT, false, NULL, &colors.light_grey);
+    
+    
+
     /* lt = layout_get_child_by_name_recursive(state.console_lt, "insert_note"); */
     /* state.gui.insert_note_button = textbox_create_from_str( */
     /* 	"Note <ret>", */
@@ -553,6 +569,7 @@ void piano_roll_deinit_gui()
     /* textbox_destroy_keep_lt(state.gui.in_label); */
     textbox_destroy_keep_lt(state.gui.in_name);
     textbox_destroy_keep_lt(state.gui.dur_tb);
+    textbox_destroy_keep_lt(state.gui.pitch_bend_label);
     
     button_destroy(state.gui.dur_longer);
     button_destroy(state.gui.dur_shorter);
@@ -1689,6 +1706,7 @@ static void piano_roll_draw_notes()
     }
 
     int32_t last_note = midi_clipref_check_get_last_note(state.cr);
+    int top_drawn_note = -1; /* used to determine least-instrusive location for pitch bend lane */
     for (int32_t i=0; i<=last_note; i++) {
 	Note *note = mclip->notes + i;
 	/* SDL_SetRenderDrawColor(main_win->rend, colors.dark_brown.r, colors.dark_brown.g, colors.dark_brown.b, 255 * note->velocity / 128); */
@@ -1697,6 +1715,11 @@ static void piano_roll_draw_notes()
 	if (piano_note < 0 || piano_note > midi_piano_range) continue;
 	int32_t note_start = note->start_rel - state.cr->start_in_clip + state.cr->tl_pos;
 	int32_t note_end = note->end_rel - state.cr->start_in_clip + state.cr->tl_pos;
+	if (note_end < state.tl_tv->offset_left_sframes || note_start > timeview_get_pos_sframes(state.tl_tv, state.note_canvas_lt->rect.x + state.note_canvas_lt->rect.w)) {
+	    continue;
+	}
+	if (piano_note > top_drawn_note) top_drawn_note = piano_note;
+	/* if (piano_note < bottom_drawn_note) bottom_drawn_note = piano_note; */
 	float x = timeview_get_draw_x(state.tl_tv, note_start);
 	float w = timeview_get_draw_x(state.tl_tv, note_end) - x;
 	float y = rect.y + round((float)(midi_piano_range - piano_note) * note_height_nominal);
@@ -1752,6 +1775,49 @@ static void piano_roll_draw_notes()
     }
 end_draw_notes:
     pthread_mutex_unlock(&mclip->notes_arr_lock);
+
+    /* Draw pitch bend */
+    if (mclip->pitch_bend.num_changes > 0) {
+	static const int pitch_bend_label_pad = 7;
+	SDL_Rect pitch_bend_lane;
+	fprintf(stderr, "top drawn note: %d\n", top_drawn_note);
+	if (top_drawn_note > 75) {
+	    pitch_bend_lane = (SDL_Rect){state.note_canvas_lt->rect.x, state.note_canvas_lt->rect.y + state.note_canvas_lt->rect.h - note_height_nominal * 13, state.note_canvas_lt->rect.w, note_height_nominal * 12};
+	} else {
+	    pitch_bend_lane = (SDL_Rect){state.note_canvas_lt->rect.x, state.note_canvas_lt->rect.y + note_height_nominal, state.note_canvas_lt->rect.w, note_height_nominal * 12};
+	}
+	if (state.gui.pitch_bend_label->layout->rect.y != pitch_bend_lane.y + pitch_bend_label_pad) {
+	    state.gui.pitch_bend_label->layout->rect.x = pitch_bend_lane.x + pitch_bend_label_pad * 2;
+	    state.gui.pitch_bend_label->layout->rect.y = pitch_bend_lane.y + pitch_bend_label_pad;
+	    layout_set_values_from_rect(state.gui.pitch_bend_label->layout);
+	    layout_reset(state.gui.pitch_bend_label->layout);
+	}
+	/* layout_draw(main_win, state.gui.pitch_bend_label->layout); */
+	/* textbox_reset(state.gui.pitch_bend_label); */
+	int center_y = pitch_bend_lane.y + pitch_bend_lane.h / 2;
+	SDL_SetRenderDrawColor(main_win->rend, 0, 100, 100, 20);
+	SDL_RenderFillRect(main_win->rend, &pitch_bend_lane);
+	SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 60);
+	SDL_RenderDrawLine(main_win->rend, pitch_bend_lane.x, pitch_bend_lane.y, pitch_bend_lane.x + pitch_bend_lane.w, pitch_bend_lane.y);
+	SDL_RenderDrawLine(main_win->rend, pitch_bend_lane.x, center_y, pitch_bend_lane.x + pitch_bend_lane.w, center_y);
+	SDL_RenderDrawLine(main_win->rend, pitch_bend_lane.x, pitch_bend_lane.y + pitch_bend_lane.h, pitch_bend_lane.x + pitch_bend_lane.w, pitch_bend_lane.y + pitch_bend_lane.h);
+	for (int32_t i=0; i<mclip->pitch_bend.num_changes; i++) {
+	    MEvent16bit change = mclip->pitch_bend.changes[i];
+	    if (change.pos_rel <= state.cr->end_in_clip && change.pos_rel >= state.cr->start_in_clip) {
+		int pb_x = timeview_get_draw_x(state.tl_tv, state.cr->tl_pos + change.pos_rel - state.cr->start_in_clip);
+		if (pb_x >= state.note_canvas_lt->rect.x && pb_x <= state.note_canvas_lt->rect.x + state.note_canvas_lt->rect.w) {
+		    /* fprintf(stderr, "pb %d: floatval %f\n", i, change.floatval); */
+		    int y = center_y - pitch_bend_lane.h * (change.floatval - 0.5);
+		    /* SDL_Rect dst = {pb_x, y - (SYMBOL_STD_DIM / 2), SYMBOL_STD_DIM, SYMBOL_STD_DIM}; */
+		    SDL_Rect dst = {pb_x, y - 2, 4, 4};
+		    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.grey));
+		    SDL_RenderFillRect(main_win->rend, &dst);
+		    /* symbol_draw(SYMBOL_TABLE[SYMBOL_KEYFRAME], &dst); */
+		}
+	    }
+	}
+	textbox_draw(state.gui.pitch_bend_label);
+    }
 
     int sel_piano_note = state.selected_note - PIANO_BOTTOM_NOTE;
     SDL_Rect sel_note_bar;

@@ -441,12 +441,14 @@ void click_segment_set_config(ClickSegment *s, int num_measures, float bpm, uint
     }
 }
 
-/*------ bpm change and supporting object moves ----------------------*/
+/*------ stash obj ct positions, and reset from stash ----------------*/
 
 enum moved_obj_type {
     MOV_OBJ_AUDIO_CLIP,
     MOV_OBJ_MIDI_CLIP,
     MOV_OBJ_MIDI_NOTE,
+    MOV_OBJ_MIDI_PB,
+    MOV_OBJ_MIDI_CC,
     MOV_OBJ_AUTOMATION_KF
 };
 
@@ -474,10 +476,10 @@ struct move_stash {
     struct moved_obj *objs;
 };
 
-
 struct move_stash move_stash;
 
 #define MOVE_STASH_INIT_ALLOC_LEN 64
+
 static void clear_move_stash()
 {
     if (move_stash.objs) {
@@ -487,7 +489,6 @@ static void clear_move_stash()
     move_stash.alloc_len = MOVE_STASH_INIT_ALLOC_LEN;
     move_stash.num_objs = 0;
 }
-
 
 static void init_move_stash()
 {
@@ -538,6 +539,10 @@ static void reset_obj_position(struct moved_obj *obj)
 	midi_clip_check_reset_bounds(mclip);
     }	
 	break;
+    case MOV_OBJ_MIDI_PB:
+	break;
+    case MOV_OBJ_MIDI_CC:
+	break;
     case MOV_OBJ_AUTOMATION_KF:
 	break;	
     }
@@ -585,6 +590,9 @@ static void stash_all_object_positions(ClickTrack *ct)
     }
     fprintf(stderr, "STASH DONE: %d objs\n", move_stash.num_objs);
 }
+
+/*------ bpm endpoint callback ---------------------------------------*/
+
 static void bpm_proj_cb(Endpoint *ep)
 {
     ClickSegment *s = ep->xarg1;

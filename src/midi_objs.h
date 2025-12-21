@@ -85,7 +85,6 @@ typedef struct {
     MEvent16bit *changes;
     uint16_t num_changes;
     uint16_t changes_alloc_len;
-
 } PitchBend;
 
 typedef struct midi_event_ring_buf {

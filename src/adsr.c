@@ -251,7 +251,7 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
 	    breakfn();
 	}
 	int32_t stage_len = s->env_remaining < buf_len - buf_i ? s->env_remaining : buf_len - buf_i;
-	if (s->start_release_after >= 0 && s->start_release_after < stage_len) {
+	if (s->current_stage < ADSR_R && s->start_release_after >= 0 && s->start_release_after < stage_len) {
 	    stage_len = s->start_release_after;
 	    skip_to_release = true;
 	    if (s->start_release_after == 0) {

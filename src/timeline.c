@@ -223,11 +223,17 @@ void timeline_set_timecode(Timeline *tl)
 	textbox_reset_full(session->gui.timecode_tb);
     }
 }
+
+void synth_silence(Synth *s);
 static void track_handle_playhead_jump(Track *track)
 {
     for (uint8_t i =0; i<track->num_automations; i++) {
 	Automation *a = track->automations[i];
 	automation_clear_cache(a);
+    }
+    if (track->synth) {
+	synth_close_all_notes(track->synth);
+	/* synth_silence(track->synth); */
     }
     /* eq_clear(&track->eq); */
 }

@@ -41,6 +41,8 @@ static void make_pan_chunk(float *pan_vals, int32_t len_sframes, uint8_t channel
     }
 }
 
+
+/* double timespec_elapsed_ms(const struct timespec *start, const struct timespec *end); */
 float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32_t start_pos_sframes, uint32_t output_chunk_len_sframes, float step)
 {
     Session *session = session_get();
@@ -114,6 +116,9 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
     float total_amp = 0.0f;
 
     /* Get data from clip sources */
+    /* struct timespec tspec_start; */
+    /* struct timespec tspec_end; */
+    /* clock_gettime(CLOCK_REALTIME, &tspec_start); */
     for (uint16_t i=0; i<track->num_clips; i++) {
 	ClipRef *cr = track->clips[i];
 	if (!cr) {
@@ -153,10 +158,10 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	int num_events = 0;
 	if (channel == 0 && mclip && step > 0.0 && fabs(step) < 50.0) {
 
+	    /* clock_gettime(CLOCK_REALTIME, &tspec_start); */
 	    PmEvent events[256];
 	    num_events = midi_clipref_output_chunk(cr, events, 256, start_pos_sframes, start_pos_sframes + (float)output_chunk_len_sframes * step);
 	    /* fprintf(stderr, "Output %d events in mixdown, cr %s, start_pos %d\n", num_events, cr->name, start_pos_sframes); */
-	    
 	    if (track->midi_out && step > 0.0) {
 		switch(track->midi_out_type) {
 		case MIDI_OUT_SYNTH: {
@@ -175,7 +180,6 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 		    break;
 		}
 	    }
-
 	    /* fprintf(stderr, "%d events sent! (%d-%d)\n", num_events, start_pos_sframes, (int32_t)((float)start_pos_sframes + output_chunk_len_sframes * step)); */
 	}
 	if (clip) {
@@ -205,6 +209,12 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	}
 	pthread_mutex_unlock(&cr->lock);
     }
+    /* clock_gettime(CLOCK_REALTIME, &tspec_end); */
+    /* double elapsed_ms = timespec_elapsed_ms(&tspec_start, &tspec_end); */
+    /* if (elapsed_ms > 0.04) { */
+    /* 	fprintf(stderr, "%f %s\n", timespec_elapsed_ms(&tspec_start, &tspec_end), track->name); */
+    /* } */
+    /* clock_gettime(CLOCK_REALTIME, &tspec_start); */
     if (track->midi_out && track->midi_out != session->midi_io.monitor_synth) {
     /* if (track->midi_out && !session->playback.recording) { */
 	switch(track->midi_out_type) {
@@ -219,6 +229,12 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	    break;
 	}
     }
+    /* if (strcmp(track->name, "Track 6") == 0) { */
+    /* 	clock_gettime(CLOCK_REALTIME, &tspec_end); */
+    /* 	double elapsed_ms = timespec_elapsed_ms(&tspec_start, &tspec_end); */
+    /* 	fprintf(stderr, "\tSynth %f\n", elapsed_ms); */
+    /* } */
+
 
 
     float bus_buf[output_chunk_len_sframes];

@@ -187,14 +187,15 @@ ClickTrackPos click_track_get_pos(ClickTrack *ct, int32_t tl_pos)
     ret.measure = measure;
     ret.beat = beat;
     ret.subdiv = subdiv;
-    ret.remainder = tl_pos - get_beat_pos(seg, measure, beat, subdiv);
+    ret.remainder = (double)seg->cfg.num_atoms * (tl_pos - get_beat_pos(seg, measure, beat, subdiv)) / seg->cfg.dur_sframes; 
+    /* ret.remainder = tl_pos - get_beat_pos(seg, measure, beat, subdiv); */
     return ret;
 }
 
 /* Convert ClickTrackPos to raw tl pos (sframes) (for repositioning elements on tempo change, e.g.) */
 int32_t click_track_pos_to_tl_pos(ClickTrackPos *ctp)
 {
-    return ctp->remainder + get_beat_pos(ctp->seg, ctp->measure, ctp->beat, ctp->subdiv);
+    return ctp->remainder * ctp->seg->cfg.dur_sframes / ctp->seg->cfg.num_atoms + get_beat_pos(ctp->seg, ctp->measure, ctp->beat, ctp->subdiv);
 }
 
 /* sets bar, beat, and pos; returns remainder in sframes */
@@ -481,9 +482,12 @@ struct move_stash {
     uint32_t num_objs;
     uint32_t alloc_len;
     struct moved_obj *objs;
+    double len_prop;
+    MIDIClip *midi_clips_resized[MAX_PROJ_MIDI_CLIPS];
+    uint16_t num_midi_clips_resized;
 };
 
-struct move_stash move_stash;
+static struct move_stash move_stash;
 
 #define MOVE_STASH_INIT_ALLOC_LEN 64
 
@@ -502,6 +506,7 @@ static void init_move_stash()
     clear_move_stash();
     move_stash.alloc_len = MOVE_STASH_INIT_ALLOC_LEN;
     move_stash.objs = malloc(move_stash.alloc_len * sizeof(struct moved_obj));
+    move_stash.num_midi_clips_resized = 0;
 }
 
 static void stash_obj(union moved_obj_id obj_id, ClickTrackPos pos, ClickTrackPos opt_end_pos, enum moved_obj_type type)
@@ -532,6 +537,23 @@ static void reset_obj_position(struct moved_obj *obj)
     case MOV_OBJ_MIDI_CLIP: {
 	ClipRef *cr = obj->id.obj;
 	cr->tl_pos = tl_pos;
+	cr->start_in_clip *= move_stash.len_prop;
+	cr->end_in_clip *= move_stash.len_prop;
+	MIDIClip *mclip = cr->source_clip;
+	bool midi_clip_resized = false;
+	for (int i=0; i<move_stash.num_midi_clips_resized; i++) {
+	    if (move_stash.midi_clips_resized[i] == mclip) {
+		midi_clip_resized = true;
+		break;
+	    }
+	}
+	if (!midi_clip_resized) {
+	    mclip->len_sframes *= move_stash.len_prop;
+	    move_stash.midi_clips_resized[move_stash.num_midi_clips_resized] = mclip;
+	    move_stash.num_midi_clips_resized++;
+	}
+	/* cr->start_in_clip += start_move_by; */
+	/* cr->end_in_clip += end_move_by; */
 	clipref_reset(cr, false);
     }
 	break;
@@ -557,22 +579,26 @@ static void reset_obj_position(struct moved_obj *obj)
 	break;
     case MOV_OBJ_MIDI_CC:
 	break;
-    case MOV_OBJ_AUTOMATION_KF:
+    case MOV_OBJ_AUTOMATION_KF: {
+	Keyframe *kf = obj->id.obj;
+	automation_keyframe_reset_pos(kf, tl_pos);
+	if (kf->pos != tl_pos) exit(1);
+    }
 	break;	
     }
 }
     
 static void reset_positions_from_stash()
 {
-    fprintf(stderr, "RESETTING POSITIONS: %d objs\n", move_stash.num_objs);
     for (uint32_t i=0; i<move_stash.num_objs; i++) {
 	reset_obj_position(move_stash.objs + i);
     }
     clear_move_stash();
 }
 
-static void stash_all_object_positions_track(Track *track, ClickTrack *ct)
-{    
+static void stash_all_object_positions_track(Track *track, ClickSegment *seg)
+{
+    ClickTrack *ct = seg->track;
     for (int i=0; i<track->num_clips; i++) {
 	ClipRef *cr = track->clips[i];
 	ClickTrackPos clip_pos = click_track_get_pos(ct, track->clips[i]->tl_pos);
@@ -604,17 +630,31 @@ static void stash_all_object_positions_track(Track *track, ClickTrack *ct)
 	    }
 	}
     }
+    for (int i=0; i<track->num_automations; i++) {
+	Automation *a = track->automations[i];
+	for (int i=0; i<a->num_keyframes; i++) {
+	    Keyframe *k = a->keyframes + i;
+	    /* if (k->pos >= seg->start_pos && */
+	    /* 	(!seg->next || k->pos <= seg->next->start_pos)) { */
+		union moved_obj_id id;
+		ClickTrackPos ct_pos = click_track_get_pos(ct, k->pos);
+		id.obj = k;
+		stash_obj(id, ct_pos, (ClickTrackPos){0}, MOV_OBJ_AUTOMATION_KF);
+	    /* } */
+	}
+    }
 }
 
-static void stash_all_object_positions(ClickTrack *ct)
+static void stash_all_object_positions(ClickSegment *seg, double len_prop)
 {
+    ClickTrack *ct = seg->track;
     init_move_stash();
+    move_stash.len_prop = len_prop;
     for (int i=0; i<ct->tl->num_tracks; i++) {
 	Track *track = ct->tl->tracks[i];
 	if (track_governing_click_track(track) != ct) continue;
-	stash_all_object_positions_track(track, ct);
+	stash_all_object_positions_track(track, seg);
     }
-    fprintf(stderr, "STASH DONE: %d objs\n", move_stash.num_objs);
 }
 
 /*------ bpm endpoint callback ---------------------------------------*/
@@ -622,7 +662,8 @@ static void stash_all_object_positions(ClickTrack *ct)
 static void bpm_proj_cb(Endpoint *ep)
 {
     ClickSegment *s = ep->xarg1;
-    stash_all_object_positions(s->track);
+    double len_prop = ep->last_write_val.float_v / ep->current_write_val.float_v;
+    stash_all_object_positions(s, len_prop);
     click_segment_set_config(s, s->num_measures, ep->current_write_val.float_v, s->cfg.num_beats, s->cfg.beat_subdiv_lens, s->track->end_bound_behavior);
     if (session_get()->dragged_component.component == s) {
 	label_move(s->bpm_label, main_win->mousep.x, s->track->layout->rect.y - 20);

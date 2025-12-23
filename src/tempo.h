@@ -78,7 +78,8 @@ typedef struct click_track_pos {
     int measure;
     int beat;
     int subdiv;
-    int32_t remainder;
+    double remainder; /* as fraction of subdiv len */
+    /* int32_t remainder; */
 } ClickTrackPos;
 
 

@@ -366,12 +366,11 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     session_flush_callbacks(session, JDAW_THREAD_PLAYBACK);
 }
 
-/* double timespec_diff_msec(struct timespec *start, struct timespec *end) { */
-/*     int64_t sec_diff = (int64_t)end->tv_sec - (int64_t)start->tv_sec; */
-/*     int64_t nsec_diff = (int64_t)end->tv_nsec - (int64_t)start->tv_nsec; */
-/*     double msec_diff = sec_diff * 1000LL + (double)nsec_diff / 1000000.0; */
-/*     return msec_diff; */
-/* } */
+double timespec_elapsed_ms(const struct timespec *start, const struct timespec *end) {
+    long sec_diff = end->tv_sec - start->tv_sec;
+    long nsec_diff = end->tv_nsec - start->tv_nsec;
+    return (sec_diff * 1e3) + (nsec_diff * 1e-6);
+}
 
 static void *transport_dsp_thread_fn(void *arg)
 {
@@ -543,9 +542,9 @@ static void *transport_dsp_thread_fn(void *arg)
 
 	
 	/* clock_gettime(CLOCK_THREAD_CPUTIME_ID, &tspec_end); */
-	/* running_elapsed += timespec_diff_msec(&tspec_start, &tspec_end); */
+	/* running_elapsed += timespec_elapsed_ms(&tspec_start, &tspec_end); */
 	/* double alloced_msec = 1000.0 * (double)session->proj.fourier_len_sframes / session_get_sample_rate(); */
-	/* fprintf(stderr, "Stress: %f/%f == \t%f\n", running_elapsed, alloced_msec, (double)running_elapsed / alloced_msec); */	
+	/* fprintf(stderr, "Stress: %f/%f == \t%f\n", running_elapsed, alloced_msec, (double)running_elapsed / alloced_msec);	 */
     }
 
     return NULL;

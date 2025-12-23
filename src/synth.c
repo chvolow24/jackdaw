@@ -1223,6 +1223,11 @@ static void osc_get_buf_preamp(Osc *osc, float step, int len, int after)
 static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int channel, float step)
 {
     if (v->available) return;
+    /* if (strcmp(v->synth->track->name, "Track 6") == 0) { */
+    /* 	fprintf(stderr, "\t\tVoice %ld\n", v - v->synth->voices); */
+    /* 	fprintf(stderr, "\t\t\tADSR stage: %d (%d remaining)\n", v->amp_env->current_stage, v->amp_env->env_remaining); */
+    /* } */
+
     float osc_buf[len];
     memset(osc_buf, '\0', len * sizeof(float));
     for (int i=0; i<SYNTHVOICE_NUM_OSCS; i++) {
@@ -1639,6 +1644,7 @@ int synth_set_amp_mod_pair(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg)
 
 void synth_voice_start_release(SynthVoice *v, int32_t after)
 {
+    if (after < 0) after = 0;
     adsr_start_release(v->amp_env, after);
     adsr_start_release(v->amp_env + 1, after);
     adsr_start_release(v->filter_env, after);

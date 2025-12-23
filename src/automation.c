@@ -709,6 +709,17 @@ static void keyframe_set_y_prop(Automation *a, uint16_t insert_i)
     }
 }
 
+/* Used for tempo change replacement. Resets slope of *previous* keyframe */
+void automation_keyframe_reset_pos(Keyframe *k, int32_t new_pos)
+{
+    k->pos = new_pos;
+    if (k != k->automation->keyframes) {
+	keyframe_recalculate_m(k->automation, k - k->automation->keyframes - 1);
+    }
+    k->draw_x = timeline_get_draw_x(k->automation->track->tl, new_pos);
+}
+
+
 static void keyframe_move(Keyframe *k, int32_t new_pos, Value new_value)
 {
     Automation *a = k->automation;

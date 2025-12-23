@@ -129,7 +129,7 @@ typedef struct click_track {
 
     /* Settings GUI objs */
     char num_beats_str[3];
-    char tempo_str[5];
+    char tempo_str[BPM_STRLEN];
     char subdiv_len_strs[MAX_BEATS_PER_BAR][2];
 
     /* API */

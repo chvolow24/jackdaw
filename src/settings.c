@@ -230,9 +230,6 @@ static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv,
     PageElParams p;
     PageEl *el;
     Textbox *tb;
-
-
-    
     p.textbox_p.font = main_win->mono_font;
     p.textbox_p.text_size = 14;
     p.textbox_p.win = page->win;
@@ -278,8 +275,6 @@ static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv,
     }
     p.textentry_p.font = main_win->mono_bold_font;
     p.textentry_p.text_size = 14;
-
-
     p.textentry_p.value_handle = tt->name;
     p.textentry_p.validation = NULL;
     p.textentry_p.completion = NULL;
@@ -289,7 +284,6 @@ static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv,
     /* layout_size_to_fit_children_v(name_lt, false, 1); */
     /* layout_center_agnostic(name_lt, false, true); */
     textentry_reset(el->component);
-
     
     p.textentry_p.value_handle = tt->num_beats_str;
     p.textentry_p.buf_len = 3;    
@@ -378,12 +372,12 @@ static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv,
 
 
     /* Add tempo */
-    snprintf(tt->tempo_str, 5, "%d", s->cfg.bpm);
+    snprintf(tt->tempo_str, BPM_STRLEN, "%f", s->cfg.bpm);
     p.textentry_p.font = main_win->mono_bold_font;
     p.textentry_p.text_size = 14;
     p.textentry_p.value_handle = tt->tempo_str;
-    p.textentry_p.buf_len = 5;
-    p.textentry_p.validation = txt_integer_validation;
+    p.textentry_p.buf_len = BPM_STRLEN;
+    p.textentry_p.validation = txt_float_validation;
     p.textentry_p.completion = NULL;
     /* p.textentry_p.completion = num_beats_completion; */
     /* p.textentry_p.completion_target = (void *)s; */

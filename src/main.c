@@ -270,8 +270,8 @@ int main(int argc, char **argv)
 
 
     if (invoke_open_wav_file) {
-	Track *track = timeline_add_track(session->proj.timelines[0], -1);
-	wav_load_to_track(track, file_to_open, 0);
+	/* Track *track = timeline_add_track(session->proj.timelines[0], -1); */
+	wav_load_to_track(session->proj.timelines[0]->tracks[0], file_to_open, 0);
 	char *filepath = realpath(file_to_open, NULL);
 	if (!filepath) {
 	    perror("Error in realpath");

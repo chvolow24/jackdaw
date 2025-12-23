@@ -189,9 +189,8 @@ int32_t clipref_len(ClipRef *cr)
 	    /* return ((MIDIClip *)cr->source_clip)->len_sframes; */
 	    break;
 	}
-    } else {
-	return cr->end_in_clip - cr->start_in_clip;
     }
+    return cr->end_in_clip - cr->start_in_clip;
 }
 
 void clipref_reset(ClipRef *cr, bool rescaled)

@@ -335,7 +335,7 @@ static int file_ext_completion_wav(Text *txt, void *obj)
 	txt->cursor_end_pos = txt->len;
 	txt_reset_drawable(txt);
 	retval = 0;
-    } else if (strcmp(dotpos, ".wav") != 0 && (strcmp(dotpos, ".wav") != 0)) {
+    } else if (strcmp(dotpos, ".wav") != 0 && (strcmp(dotpos, ".WAV") != 0)) {
 	retval = 1;
     }
     if (retval == 1) {
@@ -2624,7 +2624,7 @@ static int submit_save_wav_form(void *mod_v, void *target)
     for (uint8_t i=0; i<modal->num_els; i++) {
 	switch ((el = modal->els[i])->type) {
 	case MODAL_EL_TEXTENTRY:
-	    name = ((TextEntry *)el->obj)->tb->text->value_handle;
+	    name = ((TextEntry *)el->obj)->tb->text->display_value;
 	    break;
 	case MODAL_EL_DIRNAV: {
 	    DirNav *dn = (DirNav *)el->obj;

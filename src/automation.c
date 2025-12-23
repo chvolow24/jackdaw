@@ -29,6 +29,7 @@
 #include "status.h"
 #include "symbol.h"
 #include "test.h"
+#include "textbox.h"
 #include "timeline.h"
 #include "value.h"
 
@@ -621,6 +622,7 @@ void automation_show(Automation *a)
 	    true);
         textbox_set_border(button->tb, &colors.black, 1, MUTE_SOLO_BUTTON_CORNER_RADIUS);
 	textbox_set_style(button->tb, BUTTON_DARK);
+	/* textbox_set_background_color(a->read_button->tb, &colors.play_green); */
 	a->read_button = button;
 	
 	tb_lt = layout_get_child_by_name_recursive(lt, "write");
@@ -643,6 +645,9 @@ void automation_show(Automation *a)
     } else {
 	a->layout->h.value = AUTOMATION_LT_H;
 	a->layout->y.value = AUTOMATION_LT_Y;
+    }
+    if (a->read) {
+	textbox_set_background_color(a->read_button->tb, &colors.play_green);
     }
     layout_reset(a->layout);
     layout_size_to_fit_children_v(a->track->layout, true, 0);

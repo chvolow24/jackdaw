@@ -589,6 +589,7 @@ void timeline_select_track(Track *track)
     Timeline *tl = track->tl;
     tl->track_selector = track->tl_rank;
     tl->layout_selector = track->layout->index;
+    tl->click_track_selector = -1;
     tl->needs_redraw = true;
 }
 

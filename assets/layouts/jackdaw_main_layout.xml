@@ -106,7 +106,7 @@
                     <x>REL 0</x>
                     <y>REL 0</y>
                     <w>SCALE 1.000000</w>
-                    <h>REL 28</h>
+                    <h>REL 32</h>
                     <index>0</index>
                     <children>
                         <Layout name="timecode" type="NORMAL">
@@ -140,7 +140,7 @@
 		</Layout>
                 <Layout name="tracks_area" type="NORMAL">
                     <x>REL 0</x>
-                    <y>REL 28</y>
+                    <y>REL 32</y>
                     <w>SCALE 1.000000</w>
                     <h>REL 0</h>
                     <index>2</index>

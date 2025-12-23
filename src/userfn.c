@@ -1456,6 +1456,7 @@ void user_tl_track_selector_up(void *nullarg)
     Track *prev_selected = selected;
     if (tl->click_track_frozen && tl->layout_selector <= 0) {
 	tl->layout_selector = -1; /* Select the frozen click track */
+	tl->click_track_selector = -1;
 	tl->needs_redraw = true;
 	return;
     }

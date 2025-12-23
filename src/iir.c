@@ -91,7 +91,7 @@ double iir_sample(IIRFilter *f, double in, int channel)
 	int mem_index = (f->mem_index[channel] + i) % f->degree;
 	out += f->A[i + 1] * f->mem_in[channel][mem_index];
 	out += f->B[i] * f->mem_out[channel][mem_index];
-	#ifdef TESTBUILD
+	/* #ifdef TESTBUILD */
 	int fc = -1;
 	if (fabs(out) > 5000.0 || ((fc = fpclassify(out)) != FP_ZERO && fc != FP_NORMAL && fc != FP_SUBNORMAL)) {
 	    iir_clear(f);
@@ -99,7 +99,7 @@ double iir_sample(IIRFilter *f, double in, int channel)
 	    fprintf(stderr, "IIR cleared! outsample: %f; fc: %d\n", out, fc);
 	    return 0.0;
 	}
-	#endif	
+	/* #endif	 */
     }
 
     /* memmove(f->mem_in[channel] + 1, f->mem_in[channel], sizeof(double) * (f->degree - 1)); */

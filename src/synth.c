@@ -97,21 +97,21 @@ static void unison_stereo_spread_dsp_cb(Endpoint *ep)
 	unison_i++;
 	/* divisor+=2; */
     } 
-    while (osc_i < SYNTHVOICE_NUM_OSCS) {
-	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
-	    SynthVoice *v = synth->voices + i;
-	    float offset = max_offset / divisor;
-	    if (unison_i % 2 != 0) {
-		offset *= -1;
-		if (i==0)
-		    divisor++;
-	    }
-	    v->oscs[osc_i].pan_offset = offset;
-	}
-	osc_i += SYNTH_NUM_BASE_OSCS;
-	unison_i++;
-	/* divisor+=2; */
-    } 
+    /* while (osc_i < SYNTHVOICE_NUM_OSCS) { */
+    /* 	for (int i=0; i<SYNTH_NUM_VOICES; i++) { */
+    /* 	    SynthVoice *v = synth->voices + i; */
+    /* 	    float offset = max_offset / divisor; */
+    /* 	    if (unison_i % 2 != 0) { */
+    /* 		offset *= -1; */
+    /* 		if (i==0) */
+    /* 		    divisor++; */
+    /* 	    } */
+    /* 	    v->oscs[osc_i].pan_offset = offset; */
+    /* 	} */
+    /* 	osc_i += SYNTH_NUM_BASE_OSCS; */
+    /* 	unison_i++; */
+    /* 	/\* divisor+=2; *\/ */
+    /* }  */
 }
 
 static void detune_cents_dsp_cb(Endpoint *ep)
@@ -1093,9 +1093,12 @@ static void osc_get_buf_preamp(Osc *osc, float step, int len, int after)
 	    }
 	    if (osc->cfg->unison.num_voices > 0 && !osc->cfg->mod_freq_of && !osc->cfg->mod_amp_of)
 		sample *= 1.0 / (0.2 * osc->cfg->unison.num_voices * osc->cfg->unison.relative_amp + 1.0);
-	    if (!osc->cfg->mod_freq_of && !osc->cfg->mod_amp_of && unison_i != 0 && unison_i % 3 == 0) {
-		sample *= -1;
-	    }
+
+	    /* Reverse polarity on some voices:
+	       ignore for now */
+	    /* if (!osc->cfg->mod_freq_of && !osc->cfg->mod_amp_of && unison_i != 0 && unison_i % 3 == 0) { */
+		/* sample *= -1; */
+	    /* } */
 	    osc->buf[i] = sample;
 	}
 	osc->phase = phase;
@@ -1227,7 +1230,7 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
     /* 	fprintf(stderr, "\t\tVoice %ld\n", v - v->synth->voices); */
     /* 	fprintf(stderr, "\t\t\tADSR stage: %d (%d remaining)\n", v->amp_env->current_stage, v->amp_env->env_remaining); */
     /* } */
-
+    /* fprintf(stderr, "\tadding voice %ld\n", v - v->synth->voices); */
     float osc_buf[len];
     memset(osc_buf, '\0', len * sizeof(float));
     for (int i=0; i<SYNTHVOICE_NUM_OSCS; i++) {
@@ -1337,7 +1340,8 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
     }
     float_buf_mult(osc_buf, amp_env, len);
     float_buf_mult_const(osc_buf, (float)v->velocity / 127.0f, len);
-    float_buf_add(buf, osc_buf, len);}
+    float_buf_add(buf, osc_buf, len);
+}
 
 static void osc_set_freq(Osc *osc, double freq_hz)
 {
@@ -1809,6 +1813,7 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step)
 {
     /* fprintf(stderr, "PED? %d\n", s->pedal_depressed); */
     /* if (channel != 0) return; */
+    /* fprintf(stderr, "SYNTH add buf %s (%s) channel %d step %f\n", s->preset_name, s->track->name, channel, step); */
     if (step < 0.0) step *= -1;
     if (step > 5.0) {
 	synth_silence(s);
@@ -1822,13 +1827,24 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step)
 	SynthVoice *v = s->voices + i;
 	synth_voice_add_buf(v, internal_buf, len, channel, step);
     }
+    /* float sum = 0.0f; */
+    /* for (int i=0; i<len; i++) { */
+    /* 	sum += fabs(internal_buf[i]); */
+    /* } */
+    /* fprintf(stderr, "\tInternal buf tot %f\n", sum); */
+    /* fprintf(stderr, "\tvol: %f pan scale: %f\n", s->vol, pan_scale(s->pan, channel)); */
+    /* sum = 0.0f; */
     for (int i=0; i<len; i++) {
+	/* float dc_blocked = iir_sample(&s->dc_blocker, internal_buf[i], channel); */
+	/* sum += fabs(dc_blocked); */
 	buf[i] += tanh(
+	    /* dc_blocked */
 	    iir_sample(&s->dc_blocker, internal_buf[i], channel)
 	    * s->vol
 	    * pan_scale(s->pan, channel)
 	    );
     }
+    /* fprintf(stderr, "\tdc blocked sum %f\n", sum); */
     pthread_mutex_unlock(&s->audio_proc_lock);
 }
 
@@ -1851,7 +1867,7 @@ int32_t synth_make_notes(Synth *s, int *pitches, int *velocities, int num_pitche
 	synth_voice_assign_note(s->voices + i, pitches[i], velocities[i], 0);
     }
     int32_t incr_len = 4096;
-    fprintf(stderr, "SYNTH ASSIGNED %d voices\n", num_pitches);
+    /* fprintf(stderr, "SYNTH ASSIGNED %d voices\n", num_pitches); */
     bool release_started = false;
     while (!s->voices[0].available) {
 	if (len + incr_len >= alloc_len) {
@@ -1863,7 +1879,7 @@ int32_t synth_make_notes(Synth *s, int *pitches, int *velocities, int num_pitche
 	}
 	synth_add_buf(s, buf_L + len, 0, incr_len, 1.0);
 	synth_add_buf(s, buf_R + len, 1, incr_len, 1.0);
-	fprintf(stderr, "\tAdding buf at index %d\n", len);
+	/* fprintf(stderr, "\tAdding buf at index %d\n", len); */
 	len += incr_len;
 	
 	/* Quarter-second sustain time */

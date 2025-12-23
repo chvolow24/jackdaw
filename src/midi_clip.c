@@ -453,7 +453,7 @@ uint32_t midi_clip_get_events(
 	/* Insert Note ON */
 	event_buf_insert(dst, &alloc_len, &num_events, note_on);
 	if (note->end_rel > note_trunc_pos_rel) {
-	    note_off.timestamp = note_trunc_pos_rel;
+	    note_off.timestamp = note_trunc_pos_rel + tl_start;
 	} else {
 	    note_off.timestamp = note->end_rel + tl_start;
 	}

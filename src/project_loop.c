@@ -594,6 +594,7 @@ void loop_project_main()
 		break;
 	    }
 	    case SDL_MOUSEBUTTONDOWN:
+		fprintf(stderr, "MOUSE DOWN\n");
 		scrolling_lt = NULL;
 		temp_scrolling_lt = NULL;
 		if (e.button.button == SDL_BUTTON_LEFT) {
@@ -638,10 +639,12 @@ void loop_project_main()
 		}
 		break;
 	    case SDL_MOUSEBUTTONUP:
+		fprintf(stderr, "MOUSEBUTTONUP\n");
 		scrolling_lt = NULL;
 		temp_scrolling_lt = NULL;
 		if (e.button.button == SDL_BUTTON_LEFT) {
 		    main_win->i_state &= ~I_STATE_MOUSE_L;
+		    fprintf(stderr, "\t=>UNSET MOUSE BUTTON L I STATE\n");
 		    session->dragged_component.component = NULL;
 		    automation_unset_dragging_kf(ACTIVE_TL);
 		} else if (e.button.button == SDL_BUTTON_RIGHT) {

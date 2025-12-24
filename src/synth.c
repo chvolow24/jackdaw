@@ -1020,7 +1020,7 @@ static void osc_get_buf_preamp(Osc *osc, float step, int len, int after)
     }
     double phase_incr = osc->sample_phase_incr + osc->sample_phase_incr_addtl;
     double phase = osc->phase;
-    int unison_i = (long)((osc - osc->voice->oscs) - (osc->cfg - osc->voice->synth->base_oscs)) / SYNTH_NUM_BASE_OSCS;
+    /* int unison_i = (long)((osc - osc->voice->oscs) - (osc->cfg - osc->voice->synth->base_oscs)) / SYNTH_NUM_BASE_OSCS; */
     size_t zeroset_len = after > len ? len * sizeof(int) : after *sizeof(int);
     memset(osc->buf, '\0', zeroset_len);
     if (phase_incr > 0.4) { /* Nearing nyquist */

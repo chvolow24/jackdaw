@@ -1085,7 +1085,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 		uint8_t num_filters = uint8_deser(f);
 		for (int i=0; i<num_filters; i++) {
 		    EQFilterCtrl *ctrl = eq->ctrls + i;
-		    fprintf(stderr, "Reading filter %d/%d, ctrl %p\n", i,num_filters, ctrl);
+		    /* fprintf(stderr, "Reading filter %d/%d, ctrl %p\n", i,num_filters, ctrl); */
 		    ctrl->filter_active = uint8_deser(f);
 		    IIRFilterType t = (int)uint8_deser(f);
 		    eq->group.filters[i].type = t;
@@ -1178,8 +1178,10 @@ static int jdaw_read_effect(FILE *f, Track *track)
     default:
 	break;
     }
-    memcpy(e->name, name, namelen + 1);
-    api_node_renamed(&e->api_node);
+    if (!read_file_version_older_than("00.22")) {
+	memcpy(e->name, name, namelen + 1);
+	api_node_renamed(&e->api_node);
+    }
 
     return 0;
 }

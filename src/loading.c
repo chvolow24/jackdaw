@@ -8,11 +8,14 @@
 
 *****************************************************************************************************************/
 
+#include "SDL_events.h"
 #include "color.h"
 #include "geometry.h"
 #include "layout_xml.h"
 #include "session.h"
 #include "textbox.h"
+
+#define MAX_EVENTS_TO_PUSH 32
 
 extern Window *main_win;
 
@@ -151,6 +154,8 @@ int session_loading_screen_update(
     
     SDL_Event e;
 
+    int num_events_to_push = 0;
+    SDL_Event events_to_push[MAX_EVENTS_TO_PUSH];
     while (SDL_PollEvent(&e)) {
 	switch (e.type) {
 	case SDL_QUIT:
@@ -163,7 +168,15 @@ int session_loading_screen_update(
 	    default:
 		break;
 	    }
+	default:
+	    if (num_events_to_push < MAX_EVENTS_TO_PUSH) {
+		events_to_push[num_events_to_push] = e;
+		num_events_to_push++;
+	    }
 	}
+    }
+    for (int i=0; i<num_events_to_push; i++) {
+	SDL_PushEvent(events_to_push + i);
     }
     return 0;
 }

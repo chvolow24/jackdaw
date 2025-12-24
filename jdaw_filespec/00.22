@@ -1,10 +1,13 @@
-/**************************** .JDAW VERSION 00.21 FILE SPEC ***********************************
+/**************************** .JDAW VERSION 00.22 FILE SPEC ***********************************
 
    =========================================================
     DIFF (new since 00.19)
 	- serialize clipref gain
-    DIFF (new since 00.20)
+    (new since 00.20)
         - tempo (bpm) serialized as float
+    (new since 00.21)
+        - serialize effect name
+   
    =========================================================
 
     ALL INTEGERS SERIALIZED IN LITTLE-ENDIAN BYTE ORDER
@@ -162,6 +165,8 @@ AUTO_KF	      1-64		Value			  value
 
 TRCK_FX	      4	    	      	char[4]			  "EFCT"	    	      	
 TRCK_FX	      1			uint8_t			  effect type
+TRCK_FX	      1			uint8_t			  effect name length
+TRCK_FX	      1-255		char[]			  effect name
 
 ONE OF:
 FIR_FILTER    1			bool			  fir filter active

@@ -1726,7 +1726,6 @@ void synth_feed_midi(
 		SynthVoice *v = s->voices + i;
 		if (v->available) {
 		    int32_t start_rel = send_immediate ? 0 : e.timestamp - tl_start;
-		    /* fprintf(stderr, "\t\tASSIGN VOICE %d, start rel %d\n", i, start_rel); */
 		    synth_voice_assign_note(v, note_val, velocity, start_rel);
 		    note_assigned = true;
 		    break;
@@ -1813,7 +1812,6 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step)
 {
     /* fprintf(stderr, "PED? %d\n", s->pedal_depressed); */
     /* if (channel != 0) return; */
-    /* fprintf(stderr, "SYNTH add buf %s (%s) channel %d step %f\n", s->preset_name, s->track->name, channel, step); */
     if (step < 0.0) step *= -1;
     if (step > 5.0) {
 	synth_silence(s);

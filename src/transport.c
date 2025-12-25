@@ -355,11 +355,37 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	}
 	tl->needs_redraw = true;
     } else if (session->playback.playing) {
-	int32_t diff = tl->read_pos_sframes - tl->play_pos_sframes;
-	/* timeline_move_play_position(tl, session->playback.play_speed * stream_len_samples / proj->channels); */
-	if (diff != 0) {
-	    timeline_move_play_position(tl, diff);
+	/* int32_t diff = tl->read_pos_sframes - tl->play_pos_sframes; */
+	/* fprintf(stderr, "PLAYPOS - WRITEPOS: %d\n", tl->play_pos_sframes - (tl->read_pos_sframes - proj->fourier_len_sframes)); */
+	int32_t ring_buf_len = RING_BUF_LEN_FFT_CHUNKS * proj->fourier_len_sframes;
+	/* int32_t remaining_in_ring_buf = (tl->buf_write_pos - tl->buf_read_pos) % ring_buf_len; */
+	static float last_read_playspeed_loc = 0.0f;
+	if (last_read_playspeed_loc / tl->last_read_playspeed < 0.0f) { /* Sign switch! */
+	    last_read_playspeed_loc = tl->last_read_playspeed;
+	} else {
+	    last_read_playspeed_loc = 0.001 * tl->last_read_playspeed + 0.999 * last_read_playspeed_loc;
 	}
+	int32_t remaining_in_ring_buf = tl->buf_write_pos > tl->buf_read_pos ? tl->buf_write_pos - tl->buf_read_pos : ring_buf_len - tl->buf_read_pos + tl->buf_write_pos;
+	/* int chunks_behind READ: 255200 START: 255200 PLAY: 255200= remaining_in_ring_buf / tl->proj->chunk_size_sframes; */
+	/* if (tl->last_read_playspeed != last_read_playspeed_loc) { /\* Playspeed has changed *\/ */
+	    
+	/* } */
+	
+	/* fprintf(stderr, "LRPL: %f, CHUNKS BEHIND: %d\n", last_read_playspeed_loc, remaining_in_ring_buf / tl->proj->chunk_size_sframes); */
+	if (fabs(tl->last_read_playspeed) > 1e-9) {
+	    int32_t new_play_pos = tl->read_pos_sframes - remaining_in_ring_buf * last_read_playspeed_loc;
+	    /* fprintf(stderr, "Read %d, Write %d, dsppos: %d (rem %d)\n", tl->buf_read_pos, tl->buf_write_pos, tl->read_pos_sframes, remaining_in_ring_buf); */
+	    timeline_move_play_position(tl, new_play_pos - tl->play_pos_sframes);
+	} else {
+	    /* fprintf(stderr, "PAUSED! Do not move!\n"); */
+	}
+	
+	/* timeline_move_play_position(tl, session->playback.play_speed * stream_len_samples / proj->channels); */
+	/* fprintf(stderr, "ERROR: %d\n", tl->play_pos_sframes - new_play_pos); */
+	/* timeline_move_play_position(tl, new_play_pos - tl->play_pos_sframes); */
+	/* if (diff != 0) { */
+	/*     timeline_move_play_position(tl, diff); */
+	/* } */
     }
     session_do_ongoing_changes(session, JDAW_THREAD_PLAYBACK);
     session_flush_val_changes(session, JDAW_THREAD_PLAYBACK);
@@ -404,7 +430,9 @@ static void *transport_dsp_thread_fn(void *arg)
 
 	pthread_testcancel();
 	float play_speed = session->playback.play_speed;
-
+	tl->last_read_playspeed = play_speed;
+	/* tl->current_dsp_chunk_start = tl->read_pos_sframes; */
+	
 	/* GET MIXDOWN */
 	get_mixdown_chunk(tl, buf_L, 0, len, tl->read_pos_sframes, session->playback.play_speed);
 	get_mixdown_chunk(tl, buf_R, 1, len, tl->read_pos_sframes, session->playback.play_speed);
@@ -436,21 +464,6 @@ static void *transport_dsp_thread_fn(void *arg)
 	/* cd = clock(); */
 	
 
-	/* Move the read (DSP) pos */
-	tl->read_pos_sframes += len * play_speed;
-
-	if (session->playback.loop_play) {
-	    int32_t loop_len = tl->out_mark_sframes - tl->in_mark_sframes;
-	    if (loop_len > 0) {
-		int64_t remainder = tl->read_pos_sframes - tl->out_mark_sframes;
-		/* int32_t remainder = tl->read_pos_sframes - tl->out_mark_sframes; */
-		if (remainder > 0) {
-		    if (remainder > loop_len) remainder = 0;
-		    tl->read_pos_sframes = tl->in_mark_sframes + remainder;
-		    timeline_flush_unclosed_midi_notes();
-		}
-	    }
-	}
 	/* timed = (((double)clock() - cd)/CLOCKS_PER_SEC); */
 	/* fprintf(stderr, "loop: %f\n", timed * 1000); */
 	/* cd = clock(); */
@@ -524,6 +537,24 @@ static void *transport_dsp_thread_fn(void *arg)
 	if (tl->buf_write_pos >= len * RING_BUF_LEN_FFT_CHUNKS) {
 	    tl->buf_write_pos = 0;
 	}
+
+
+	/* Move the read (DSP) pos */
+	tl->read_pos_sframes += len * play_speed;
+
+	if (session->playback.loop_play) {
+	    int32_t loop_len = tl->out_mark_sframes - tl->in_mark_sframes;
+	    if (loop_len > 0) {
+		int64_t remainder = tl->read_pos_sframes - tl->out_mark_sframes;
+		/* int32_t remainder = tl->read_pos_sframes - tl->out_mark_sframes; */
+		if (remainder > 0) {
+		    if (remainder > loop_len) remainder = 0;
+		    tl->read_pos_sframes = tl->in_mark_sframes + remainder;
+		    timeline_flush_unclosed_midi_notes();
+		}
+	    }
+	}
+	
 	for (int i=0; i<N; i++) {
 	    sem_post(tl->readable_chunks);
 	}
@@ -531,6 +562,8 @@ static void *transport_dsp_thread_fn(void *arg)
 	    sem_post(tl->unpause_sem);
 	    init = false;
 	}
+
+
 	/* timed = (((double)clock() - cd)/CLOCKS_PER_SEC); */
 	/* fprintf(stderr, "cleanup: %f\n", timed * 1000); */
 	/* cd = clock(); */
@@ -624,8 +657,7 @@ void transport_stop_playback()
     if (!tl) return;
     audioconn_stop_playback(session->audio_io.playback_conn);
 
-    /* TODO: inspect this thoroughly */
-    /* int test = 0; */
+    /* Busy waiting */
     while (session->audio_io.playback_conn->c.device.request_close) {
 	/* test++; */
 	/* if (test > 5000) exit(1); */
@@ -653,7 +685,7 @@ void transport_stop_playback()
     tl->buf_write_pos = 0;
 
     /* TODO: MAYBE */
-    /* tl->read_pos_sframes = tl->play_pos_sframes; */
+    tl->read_pos_sframes = tl->play_pos_sframes;
 
     
     session->playback.playing = false;

@@ -161,17 +161,26 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	    /* clock_gettime(CLOCK_REALTIME, &tspec_start); */
 	    PmEvent events[256];
 	    num_events = midi_clipref_output_chunk(cr, events, 256, start_pos_sframes, start_pos_sframes + (float)output_chunk_len_sframes * step);
-	    /* fprintf(stderr, "Output %d events in mixdown, cr %s, start_pos %d\n", num_events, cr->name, start_pos_sframes); */
 	    if (track->midi_out && step > 0.0) {
 		switch(track->midi_out_type) {
 		case MIDI_OUT_SYNTH: {
 		    Synth *synth = track->midi_out;
-		    synth_feed_midi(
-			synth,
-			events,
-			num_events,
-			start_pos_sframes,
-			false);
+		    if (session->midi_io.monitor_synth == synth) {
+			/* int32_t remaining_to_process = track->tl->read_pos_sframes - track->tl->play_pos_sframes; */
+			synth_feed_midi(
+			    synth,
+			    events,
+			    num_events,
+			    track->tl->play_pos_sframes,
+			    false);
+		    } else {
+			synth_feed_midi( 
+			    synth,
+			    events,
+			    num_events,
+			    start_pos_sframes,
+			    false);
+		    }
 		    /* memcpy(synth->events, events, sizeof(PmEvent) * num_events); */
 		    /* synth->num_events = num_events; */
 		}

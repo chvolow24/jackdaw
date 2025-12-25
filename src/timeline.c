@@ -244,6 +244,12 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes, bool move
 {
     MAIN_THREAD_ONLY("timeline_set_play_position");
     Session *session = session_get();
+    bool restart_playback = false;
+    float playspeed = session->playback.play_speed;
+    if (session->playback.playing) {
+	transport_stop_playback();
+	restart_playback = true;
+    }
 
     /* if (tl->play_pos_sframes == abs_pos_sframes) return; */
     
@@ -258,7 +264,6 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes, bool move
     }
 
     tl->play_pos_sframes = abs_pos_sframes;
-    tl->read_pos_sframes = abs_pos_sframes;
     int x = timeline_get_draw_x(tl, tl->play_pos_sframes);
     if (!session->playback.lock_view_to_playhead) {
 	SDL_Rect *audio_rect = session->gui.audio_rect;
@@ -292,6 +297,10 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes, bool move
 
     timeline_flush_unclosed_midi_notes();
     timeline_reset(tl, false);
+    if (restart_playback) {
+	transport_start_playback();
+	session->playback.play_speed = playspeed;
+    }
 }
 
 
@@ -299,7 +308,7 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes, bool move
 void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes)
 {
     RESTRICT_NOT_DSP("timeline_move_play_position");
-    RESTRICT_NOT_MAIN("timeline_move_play_position");
+    /* RESTRICT_NOT_MAIN("timeline_move_play_position"); */
     Session *session = session_get();
 
     static const int32_t end_tl_buffer = DEFAULT_SAMPLE_RATE * 30; /* 30 seconds at dmax sample rate*/

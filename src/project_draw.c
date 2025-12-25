@@ -647,9 +647,28 @@ static int timeline_draw(Timeline *tl)
     int ph_y = session->gui.ruler_rect->y + PLAYHEAD_TRI_H;
     /* int tri_y = session->gui.ruler_rect->y; */
     if (tl->play_pos_sframes >= tl->timeview.offset_left_sframes) {
-        int play_head_x = timeline_get_draw_x(tl, tl->play_pos_sframes);
+	static int32_t fixed_playhead = 0;
+	/* fprintf(stderr, "RAW %d FIXED %d\n", tl->play_pos_sframes, fixed_playhead); */
+	/* if (session->playback.playing) { */
+	/*     fixed_playhead = 0.6 * tl->play_pos_sframes + 0.4 * fixed_playhead; */
+	/* } else { */
+	    fixed_playhead = tl->play_pos_sframes;
+	/* } */
+	/* int32_t ring_buf_len = RING_BUF_LEN_FFT_CHUNKS * tl->proj->fourier_len_sframes; */
+	/* int32_t remaining_in_ring_buf = (tl->buf_write_pos - tl->buf_read_pos) % ring_buf_len; */
+	/* int32_t new_play_pos = tl->read_pos_sframes - remaining_in_ring_buf * session->playback.play_speed; */
+	/* timeline_move_play_position(tl, new_play_pos - tl->play_pos_sframes); */
+	/* fixed_playhead = new_play_pos; */
+	/* fprintf(stderr, "NEW: %d\n", new_play_pos); */
+        int play_head_x = timeline_get_draw_x(tl, fixed_playhead);
         SDL_RenderDrawLine(main_win->rend, play_head_x, ph_y, play_head_x, session->gui.audio_rect->y + session->gui.audio_rect->h);
 
+	/* Draw end of buffered range */
+	int read_pos_x = timeline_get_draw_x(tl, tl->read_pos_sframes);
+	SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 100);
+	SDL_RenderDrawLine(main_win->rend, read_pos_x, ph_y, read_pos_x, session->gui.audio_rect->y + session->gui.audio_rect->h);
+	SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255);
+	
         /* Draw play head triangle */
         int tri_x1 = play_head_x;
         int tri_x2 = play_head_x;

@@ -282,6 +282,7 @@ typedef struct timeline {
     uint8_t index;
     int32_t play_pos_sframes; /* Incremented in AUDIO DEVICE thread (small chunks) */
     int32_t read_pos_sframes; /* Incremented in DSP thread (large chunks) */
+    float last_read_playspeed;
     int32_t in_mark_sframes;
     int32_t out_mark_sframes;
     int32_t record_from_sframes;

@@ -689,11 +689,12 @@ void api_node_serialize(FILE *f, APINode *root)
     fputc('\0', f);
 }
 
-void api_node_deserialize(FILE *f, APINode *root)
+/* Returns 0 on success, else error */
+int api_node_deserialize(FILE *f, APINode *root)
 {
     char route_buf[MAX_ROUTE_LEN];
     int partial_route_len = api_node_get_route(root, route_buf, MAX_ROUTE_LEN);
-
+    int ret = 0;
     /* char val_buf[128]; */
     while (1) {
 	int c;
@@ -716,6 +717,7 @@ void api_node_deserialize(FILE *f, APINode *root)
 	if (ep) {
 	    endpoint_write(ep, v, true, true, true, false);
 	} else {
+	    ret++;
 	    fprintf(stderr, "ERROR: API route note \"%s\" not found!\n", route_buf);
 	}
 	/* jdaw_val_to_str(route_buf, MAX_ROUTE_LEN, v, t, 3); */
@@ -729,9 +731,10 @@ void api_node_deserialize(FILE *f, APINode *root)
 	    /* buf[3] = fgetc(f); */
 	    /* buf[4] = '\0'; */
 	    /* fprintf(stderr, "done! next bytes: %s\n", buf); */
-	    return;
+	    return ret;
 	} else {
 	    ungetc(c, f);
 	}
     }
+    return ret;
 }

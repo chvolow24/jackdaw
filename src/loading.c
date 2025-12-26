@@ -169,7 +169,6 @@ int session_loading_screen_update(
 		break;
 	    }
 	default:
-	    fprintf(stderr, "LOADING SCREEN pushing event type %x (%d/%d)\n", e.type, num_events_to_push, MAX_EVENTS_TO_PUSH);
 	    if (num_events_to_push < MAX_EVENTS_TO_PUSH) {
 		events_to_push[num_events_to_push] = e;
 		num_events_to_push++;

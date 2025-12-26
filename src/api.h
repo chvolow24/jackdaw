@@ -84,7 +84,10 @@ void api_node_print_all_routes(APINode *node);
 void api_node_print_routes_with_values(APINode *node);
 void api_node_serialize(FILE *f, APINode *node);
 /* void api_node_deserialize(FILE *f); */
-void api_node_deserialize(FILE *f, APINode *root);
+
+/* Returns 0 on success, else error */
+int api_node_deserialize(FILE *f, APINode *root);
+
 void api_table_print();
 void api_clear_all();
 void api_quit();

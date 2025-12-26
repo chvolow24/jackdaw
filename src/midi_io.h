@@ -28,8 +28,8 @@
 #define PM_EVENT_BUF_NUM_EVENTS 64
 #define MAX_MIDI_DEVICES 16
 #define MIDI_OUTPUT_LATENCY 0
-
-#define MAX_SYNTHS 16
+ 
+#define MIDI_MONITOR_STRLEN 32
 
 #if defined(__APPLE__) && defined(__MACH__)
 #define MIDI_INTERFACE_NAME "CoreMIDI"
@@ -96,6 +96,9 @@ struct midi_io {
 
     Synth *monitor_synth;
     MIDIDevice *monitor_device;
+    bool monitoring;
+    char monitor_in_text[MIDI_MONITOR_STRLEN];
+    char monitor_out_text[MIDI_MONITOR_STRLEN];
 };
 
 

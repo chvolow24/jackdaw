@@ -1943,10 +1943,28 @@ void synth_write_preset_file(const char *filepath, Synth *s)
 }
 
 void synth_read_preset_file(const char *filepath, Synth *s)
-{
-    fprintf(stderr, "OPENING FILE AT %s\n", filepath);
+{    
     FILE *f = fopen(filepath, "r");
-    api_node_deserialize(f, &s->api_node);
+    if (!f) {
+	status_set_errstr("File does not exist or could not be opened.");
+	return;
+    }
+    if (api_node_deserialize(f, &s->api_node) == 0) {
+	char buf[256];
+	snprintf(buf, 256, "%s", filepath);
+	const char *last_slash_pos = buf;
+	char *ptr = buf;
+	while (*ptr) {
+	    if (*ptr == '/') {
+		last_slash_pos = ptr;
+	    }
+	    ptr++;
+	    if (*ptr == '.') *ptr = '\0';
+	}
+	if (last_slash_pos != buf) last_slash_pos++;
+	snprintf(s->preset_name, 64, "%s", last_slash_pos);
+	
+    }
     fclose(f);
 }
 

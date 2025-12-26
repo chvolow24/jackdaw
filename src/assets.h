@@ -17,6 +17,7 @@
 #define OUTPUT_PANEL_LT_PATH LAYOUT_PATH "output_panel.xml"
 #define OUTPUT_SPECTRUM_LT_PATH LAYOUT_PATH "output_spectrum.xml"
 #define QWERTY_PANEL_LT_PATH LAYOUT_PATH "qwerty_panel.xml"
+#define MIDI_MONITOR_PANEL_LT_PATH LAYOUT_PATH "midi_monitor_panel.xml"
 #define CLICK_TRACK_LT_PATH LAYOUT_PATH "click_track_template.xml"
 #define FIR_FILTER_LT_PATH LAYOUT_PATH "track_settings_fir_filter.xml"
 #define DELAY_LINE_LT_PATH LAYOUT_PATH "track_settings_delay_line.xml"

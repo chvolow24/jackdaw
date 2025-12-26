@@ -32,6 +32,8 @@
 #include "midi_io.h"
 #include "midi_objs.h"
 #include "midi_qwerty.h"
+#include "page.h"
+#include "panel.h"
 #include "piano_roll.h"
 #include "project.h"
 #include "session.h"
@@ -1710,14 +1712,20 @@ bool timeline_check_set_midi_monitoring()
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     Track *track = timeline_selected_track(tl);
+    bool was_monitoring = session->midi_io.monitoring;
     if (track) {
 	if (track->midi_out && track->midi_out_type == MIDI_OUT_SYNTH) {
 	    char out_device_name[MAX_NAMELENGTH];
 	    /* TODO: use actual device names, not literal 'synth' */
 	    snprintf(out_device_name, MAX_NAMELENGTH, "%s:%s", track->name, "synth");
+	    /* snprintf(session->midi_io.monitor_out_text, MIDI_MONITOR_STRLEN, "%s:%s", track->name, "synth"); */
+	    snprintf(session->midi_io.monitor_out_text, MIDI_MONITOR_STRLEN, "%s", track->synth->preset_name);
+	    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "midi_monitor_out_name");
+	    Textbox *tb = el->component;
+	    textbox_reset_full(tb);
 	    mqwert_set_monitor_device_name(out_device_name);
-
 	} else {
+	    snprintf(session->midi_io.monitor_out_text, MIDI_MONITOR_STRLEN, "%s", "(none)");
 	    mqwert_set_monitor_device_name("(none)");
 	}
     }
@@ -1726,9 +1734,23 @@ bool timeline_check_set_midi_monitoring()
 	session->midi_io.monitor_synth = track->midi_out;
 	if (session->midi_qwerty) {
 	    session->midi_io.monitor_device = session->midi_io.midi_qwerty;
+	    snprintf(session->midi_io.monitor_in_text, MIDI_MONITOR_STRLEN, "%s", "QWERTY");
+	    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "midi_monitor_in_name");
+	    Textbox *tb = el->component;
+	    textbox_reset_full(tb);
+
 	} else if (track->input_type == MIDI_DEVICE) {
 	    session->midi_io.monitor_device = track->input;
+	    snprintf(session->midi_io.monitor_in_text, MIDI_MONITOR_STRLEN, "%s", ((MIDIDevice *)track->input)->name);
+	    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "midi_monitor_in_name");
+	    Textbox *tb = el->component;
+	    textbox_reset_full(tb);
 	} else {
+	    snprintf(session->midi_io.monitor_in_text, MIDI_MONITOR_STRLEN, "%s", "(none)");
+	    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "midi_monitor_in_name");
+	    Textbox *tb = el->component;
+	    textbox_reset_full(tb);
+
 	    goto no_monitor;
 	}
 
@@ -1743,7 +1765,10 @@ bool timeline_check_set_midi_monitoring()
 	synth_close_all_notes(synth);	
 	api_node_set_owner(&track->synth->api_node, JDAW_THREAD_PLAYBACK);
 	audioconn_start_playback(session->audio_io.playback_conn);
-	fprintf(stderr, "monitoring!!\n");
+	session->midi_io.monitoring = true;
+	if (!was_monitoring) {
+	    panel_page_refocus(session->gui.panels, "MIDI monitoring", 2);
+	}
 	return true;
     } else {
     no_monitor:
@@ -1756,7 +1781,12 @@ bool timeline_check_set_midi_monitoring()
 	if (track && track->synth) {
 	    api_node_set_owner(&track->synth->api_node, JDAW_THREAD_DSP);
 	}
-	fprintf(stderr, "NO Monitor\n");
+	session->midi_io.monitoring = false;
+	/* fprintf(stderr, "NO Monitor\n"); */
+	if (was_monitoring) {
+	    panel_page_refocus(session->gui.panels, "MIDI monitoring", 1);
+	}
+
 	return false;
     }
 }

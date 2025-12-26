@@ -1140,54 +1140,41 @@ static void session_init_qwerty_piano(Page *page, Session *session)
     p.toggle_p.ep = mqwert_get_active_ep();
 
     page_add_el(page,EL_TOGGLE,p,"","active_toggle");
-
-
-
-    
-    
-
-	
-    /* Layout *lt = layout_add_child(octave_area); */
-    /* lt->x.type = SCALE; */
-    /* lt->y.type = SCALE; */
-    /* lt->w.type = SCALE; */
-    /* lt->h.type = SCALE; */
-    /* lt->w.value = 1.0; */
-    /* lt->h.value = 1.0; */
-    /* layout_set_name(lt, "octave_up"); */
-    /* p.button_p.font = main_win->mono_bold_font; */
-    /* p.button_p.text_size = 12; */
-    /* p.button_p.background_color = NULL; */
-    /* p.button_p.set_str = "Z↓"; */
-    /* p.button_p.win = main_win; */
-    /* p.button_p.action = NULL; */
-    /* p.button_p.target = NULL; */
-    /* p.button_p.text_color = &colors.white; */
-    /* PageEl *el = page_add_el( */
-    /* 	page, */
-    /* 	EL_BUTTON, */
-    /* 	p, */
-    /* 	"octave_up", */
-    /* 	"octave_up"); */
-    /* Textbox *tb = ((Button* )el->component)->tb; */
-    /* /\* textbox_reset_full(tb); *\/ */
-    /* textbox_size_to_fit(tb, 4, 4); */
-    /* /\* tb->layout->rect.w = tb->layout->rect.h; *\/ */
-    /* /\* layout_set_values_from_rect(tb->layout); *\/ */
-    /* /\* layout_reset(tb->layout); *\/ */
-    /* /\* layout_center_scale(tb->layout, true, true); *\/ */
-    /* textbox_set_border(tb, &colors.white, 3); */
-    /* tb->corner_radius = 6; */
-    /* textbox_reset_full(tb); */
-
-    /* layout_write(f, octave_area, 0); */
-    /* fclose(f); */
-    /* exit(1); */
-	
-	
-
 }
 
+static void session_init_midi_monitor_panel(Page *page, Session *session)
+{
+    PageElParams p = {0};
+    layout_force_reset(page->layout);
+    p.textbox_p.font = main_win->mono_font;
+    p.textbox_p.text_size = 14;
+    p.textbox_p.set_str = "Active:";
+    p.textbox_p.win = main_win;
+    PageEl *el = page_add_el(page, EL_TEXTBOX, p, "", "monitoring_label");
+    /* textbox_set_align(el->component, CENTER); */
+    p.textbox_p.set_str = "→";
+    el = page_add_el(page, EL_TEXTBOX, p, "", "arrow");
+
+    p.slight_p.value = &session->midi_io.monitoring;
+    p.slight_p.val_size = sizeof(bool);
+    page_add_el(page, EL_STATUS_LIGHT, p, "", "monitoring_slight");
+
+    p.textbox_p.font = main_win->std_font;
+    p.textbox_p.text_size = 12;
+    p.textbox_p.set_str = session->midi_io.monitor_in_text;
+    p.textbox_p.win = main_win;
+    el = page_add_el(page, EL_TEXTBOX, p, "midi_monitor_in_name", "input");
+    textbox_set_border(el->component, &colors.grey, 1, 5);
+    textbox_style(el->component, CENTER, true, NULL, &colors.light_grey);
+    
+    p.textbox_p.font = main_win->std_font;
+    p.textbox_p.text_size = 12;
+    p.textbox_p.set_str = session->midi_io.monitor_out_text;
+    p.textbox_p.win = main_win;
+    el = page_add_el(page, EL_TEXTBOX, p, "midi_monitor_out_name", "output");
+    textbox_set_border(el->component, &colors.grey, 1, 5);
+    textbox_style(el->component, CENTER, true, NULL, &colors.light_grey);
+}
 
 void session_init_panels(Session *session)
 {
@@ -1245,12 +1232,21 @@ void session_init_panels(Session *session)
 	NULL,
 	&colors.white,
 	main_win);
+
+    Page *midi_monitor = panel_area_add_page(
+	pa,
+	"MIDI monitoring",
+	MIDI_MONITOR_PANEL_LT_PATH,
+	NULL,
+	&colors.white,
+	main_win);
     
     session_init_quickref_panels(quickref1, quickref2);
     session_init_output_panel(output_panel, session);
     session_init_source_area(source_area, session);
     session_init_output_spectrum(output_spectrum, session);
     session_init_qwerty_piano(qwerty_piano, session);
+    session_init_midi_monitor_panel(midi_monitor, session);
     panel_select_page(pa, 0, 0);
     panel_select_page(pa, 1, 1);
     panel_select_page(pa, 2, 2);

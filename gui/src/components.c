@@ -1070,8 +1070,10 @@ Dropdown *dropdown_create(
 
 void dropdown_reset(Dropdown *d)
 {
+    MAIN_THREAD_ONLY("dropdown_reset");
     if (d->reset_from)
 	d->selected_item = *d->reset_from;
+    /* fprintf(stderr, "Selected item: %d\n", d->selected_item); */
     textbox_set_value_handle(d->tb, d->item_names[d->selected_item]);
 }
 

@@ -296,7 +296,8 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes, bool move
 
 
     timeline_flush_unclosed_midi_notes();
-    timeline_reset(tl, false);
+    /* timeline_reset(tl, false); */
+    tl->needs_redraw = true;
     if (restart_playback) {
 	transport_start_playback();
 	session->playback.play_speed = playspeed;

@@ -72,7 +72,9 @@ void session_flush_val_changes(Session *session, enum jdaw_thread thread)
     Timeline *tl = ACTIVE_TL;
     int32_t tl_now = timeline_get_play_pos_now(tl);
     pthread_mutex_lock(&session->queued_ops.queued_val_changes_lock);
-    /* fprintf(stderr, "Flush %d val changes on thread %s\n", session->num_queued_val_changes[thread], thread==JDAW_THREAD_DSP ? "DSP" : "Main"); */
+    /* if (session->queued_ops.num_queued_val_changes[thread] > 0) { */
+    /* 	fprintf(stderr, "Flush %d val changes on thread %s\n", session->queued_ops.num_queued_val_changes[thread], get_current_thread_name()); */
+    /* } */
     for (int i=0; i<session->queued_ops.num_queued_val_changes[thread]; i++) {
 	/* if (i==0)     fprintf(stderr, "FLUSHING THREAD %s\n", get_thread_name()); */
 	struct queued_val_change *qvc = &session->queued_ops.queued_val_changes[thread][i];
@@ -144,6 +146,9 @@ void session_flush_callbacks(Session *session, enum jdaw_thread thread)
     EndptCb *cb_arr = session->queued_ops.queued_callbacks[thread];
     Endpoint **arg_arr = session->queued_ops.queued_callback_args[thread];
     uint8_t num = session->queued_ops.num_queued_callbacks[thread];
+    /* if (num > 0) { */
+    /* 	fprintf(stderr, "Flush %d callbacks on thread %s\n", session->queued_ops.num_queued_callbacks[thread], get_current_thread_name()); */
+    /* } */
     for (int i=0; i<num; i++) {
 	/* if (i==0)     fprintf(stderr, "FLUSHING %d Callbacks thread %s\n", num, get_thread_name()); */
 	/* fprintf(stderr, "\tCB flush \"%s\"\n", arg_arr[i]->local_id); */

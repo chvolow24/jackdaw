@@ -59,9 +59,9 @@ static int fmod_selector_fn(Dropdown *d, void *inner_arg)
     OscCfg *modulator = synth_glob->base_oscs + modulator_i - 1;
 
     int target_i = carrier_i;
-    
-    endpoint_write(&modulator->fmod_target_ep, (Value){.int_v = target_i}, true, true, true, true);
 
+    fprintf(stderr, "MODULATOR: %d (%p); target %d\n", modulator_i, modulator,target_i); 
+    endpoint_write(&modulator->fmod_target_ep, (Value){.int_v = target_i}, true, true, true, true);
     return 0;
 
 
@@ -83,7 +83,6 @@ static int amod_selector_fn(Dropdown *d, void *inner_arg)
     /* fprintf(stderr, "WRITING INT PAIR: %d %d\n ", modulator - synth_glob->base_oscs + 1, carrier_i); */
     
     endpoint_write(&modulator->amod_target_ep, (Value){.int_v = target_i}, true, true, true, true);
-
     return 0;
 
 

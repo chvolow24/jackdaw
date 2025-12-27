@@ -1362,6 +1362,23 @@ PageEl *page_get_el_by_id(Page *page, const char *id)
     return el;
 }
 
+PageEl *tabview_get_el_by_id(TabView *tv, const char *page_title, const char *id)
+{
+    PageEl *el = NULL;
+    for (uint8_t i=0; i<tv->num_tabs; i++) {
+	Page *page = tv->tabs[i];
+	/* fprintf(stderr, "CMP page \"%s\" == \"%s\"?\n", page->title, page_title); */
+	if (page_title && strcmp(page_title, page->title) == 0) {
+	    return page_get_el_by_id(page, id);
+	} else if (!page_title) {
+	    el = page_get_el_by_id(page, id);
+	    if (el) return el;
+	}
+    }
+    return el;
+    
+}
+
 void page_select_el_by_id(Page *page, const char *id)
 {
     if (page->num_selectable == 0) return;

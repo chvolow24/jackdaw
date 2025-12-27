@@ -51,7 +51,24 @@ pthread_t *get_thread_addr(enum jdaw_thread index)
     }
 }
 
-const char *get_thread_name()
+const char *get_thread_name(enum jdaw_thread thread)
+{
+    switch (thread) {
+    case JDAW_THREAD_MAIN:
+	return "main";
+	break;
+    case JDAW_THREAD_DSP:
+	return "dsp";
+	break;
+    case JDAW_THREAD_PLAYBACK:
+	return "playback";
+	break;
+    default:
+	return "other";
+    }
+}
+
+const char *get_current_thread_name()
 {
 
     if (CURRENT_THREAD_ID == PLAYBACK_THREAD_ID) {

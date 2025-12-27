@@ -221,6 +221,7 @@ static void tuning_cb(Endpoint *ep)
     }
 }
 
+extern Window *main_win;
 
 static void fmod_target_dsp_cb(Endpoint *ep)
 {
@@ -398,7 +399,7 @@ Synth *synth_create(Track *track)
     s->monitor = true;
     s->allow_voice_stealing = true;
 
-    api_node_register(&s->api_node, &track->api_node, "Synth");
+    api_node_register(&s->api_node, &track->api_node, s->preset_name);
 
     /* fprintf(stderr, "REGISTERING synth node to parent %p, name %s\n", &track->api_node, track->api_node.obj_name); */
 
@@ -1963,6 +1964,7 @@ void synth_read_preset_file(const char *filepath, Synth *s)
 	}
 	if (last_slash_pos != buf) last_slash_pos++;
 	snprintf(s->preset_name, 64, "%s", last_slash_pos);
+	timeline_check_set_midi_monitoring();
 	
     }
     fclose(f);

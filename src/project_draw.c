@@ -664,10 +664,10 @@ static int timeline_draw(Timeline *tl)
         SDL_RenderDrawLine(main_win->rend, play_head_x, ph_y, play_head_x, session->gui.audio_rect->y + session->gui.audio_rect->h);
 
 	/* Draw end of buffered range */
-	int read_pos_x = timeline_get_draw_x(tl, tl->read_pos_sframes);
-	SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 100);
-	SDL_RenderDrawLine(main_win->rend, read_pos_x, ph_y, read_pos_x, session->gui.audio_rect->y + session->gui.audio_rect->h);
-	SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255);
+	/* int read_pos_x = timeline_get_draw_x(tl, tl->read_pos_sframes); */
+	/* SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 100); */
+	/* SDL_RenderDrawLine(main_win->rend, read_pos_x, ph_y, read_pos_x, session->gui.audio_rect->y + session->gui.audio_rect->h); */
+	/* SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255); */
 	
         /* Draw play head triangle */
         int tri_x1 = play_head_x;

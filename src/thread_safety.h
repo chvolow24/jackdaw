@@ -105,6 +105,7 @@ enum jdaw_thread {
 
 void set_thread_id(enum jdaw_thread index);
 pthread_t *get_thread_addr(enum jdaw_thread index);
-const char *get_thread_name();
+const char *get_current_thread_name();
+const char *get_thread_name(enum jdaw_thread thread);
 bool on_thread(enum jdaw_thread thread_index);
 #endif

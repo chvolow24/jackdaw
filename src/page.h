@@ -350,6 +350,8 @@ void page_left(Page *page);
 void page_enter(Page *page);
 
 PageEl *page_get_el_by_id(Page *page, const char *id);
+PageEl *tabview_get_el_by_id(TabView *tv, const char *page_title, const char *id);
+
 void page_select_el_by_id(Page *page, const char *id);
 
 void page_el_reset(PageEl *el);

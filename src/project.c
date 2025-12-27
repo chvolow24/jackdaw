@@ -1767,7 +1767,7 @@ bool timeline_check_set_midi_monitoring()
 	audioconn_start_playback(session->audio_io.playback_conn);
 	session->midi_io.monitoring = true;
 	if (!was_monitoring) {
-	    panel_page_refocus(session->gui.panels, "MIDI monitoring", 2);
+	    panel_page_refocus(session->gui.panels, "MIDI monitoring", 1);
 	}
 	return true;
     } else {

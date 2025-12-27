@@ -13,6 +13,7 @@
 #include "endpoint.h"
 #include "session.h"
 #include "string.h"
+#include "type_serialize.h"
 #include "value.h"
 
 
@@ -662,7 +663,7 @@ void api_table_print()
 }
 
 static void api_node_serialize_recursive(FILE *f, APINode *root, APINode *node)
-{
+{    
     char buf[MAX_ROUTE_LEN];
     /* fprintf(stderr, "NODE %p, parent name? %s name %s, ep: %d, children: %d\n", node, node->parent->obj_name, node->obj_name, node->num_children, node->num_endpoints); */
     for (int i=0; i<node->num_endpoints; i++) {
@@ -684,7 +685,14 @@ static void api_node_serialize_recursive(FILE *f, APINode *root, APINode *node)
 }
 void api_node_serialize(FILE *f, APINode *root)
 {
-    /* fprintf(stderr, "Serialize node at addr %p\n", root); */
+    /* Only serialize the root node name (only one name per serialized obj) */
+    if (root->obj_name) {
+	fprintf(f, "NAME");
+	int16_t len = strlen(root->obj_name);
+	int16_ser_le(f, &len);
+	fprintf(f, "%s\n", root->obj_name);
+    }
+
     api_node_serialize_recursive(f, root, root);
     fputc('\0', f);
 }
@@ -692,6 +700,28 @@ void api_node_serialize(FILE *f, APINode *root)
 /* Returns 0 on success, else error */
 int api_node_deserialize(FILE *f, APINode *root)
 {
+    
+    char keywd[4] = {0};
+    fread(keywd, 1, 4, f);
+    if (strncmp(keywd, "NAME", 4) == 0) {
+	int16_t len = int16_deser_le(f);
+	char name_buf[len + 1];
+	fread(name_buf, 1, len, f);
+	name_buf[len] = '\0';
+	if (!root->obj_name) {
+	    fprintf(stderr, "Error: deserializing node named \"%s\", but root has no name ptr\n", name_buf);
+	    exit(1);
+	}
+	memcpy(root->obj_name, name_buf, len + 1);
+	char c;
+	fread(&c, 1, 1, f); /* Read the newline */
+	if (c != '\n') {
+	    fprintf(stderr, "Error: newline not present after API node name\n");
+	    exit(1);
+	}
+	api_node_renamed(root);
+    }
+    
     char route_buf[MAX_ROUTE_LEN];
     int partial_route_len = api_node_get_route(root, route_buf, MAX_ROUTE_LEN);
     int ret = 0;

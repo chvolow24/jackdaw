@@ -208,7 +208,7 @@ void eq_init(EQ *eq)
 
 	snprintf(api_ctrl_node_names[i], 12, "Filter %d", i + 1);
 
-	api_node_register(&ctrl->api_node, &eq->effect->api_node, api_ctrl_node_names[i]);
+	api_node_register(&ctrl->api_node, &eq->effect->api_node, NULL, api_ctrl_node_names[i]);
 
 	    
 	endpoint_init(

@@ -75,7 +75,7 @@ void api_endpoint_register(Endpoint *ep, APINode *parent)
 }
 
 
-void api_node_register(APINode *node, APINode *parent, char *obj_name)
+void api_node_register(APINode *node, APINode *parent, char *obj_name, const char *fixed_name)
 {
     if (parent->num_children == MAX_API_NODE_CHILDREN) {
 	fprintf(stderr, "API setup error: node \"%s\" max num children\n", parent->obj_name);
@@ -84,6 +84,7 @@ void api_node_register(APINode *node, APINode *parent, char *obj_name)
     parent->children[parent->num_children] = node;
     parent->num_children++;
     node->obj_name = obj_name;
+    node->fixed_name = fixed_name;
     node->parent = parent;
 }
 
@@ -203,7 +204,7 @@ int api_node_get_route(APINode *node, char *dst, size_t dst_size)
     int num_components = 0;
 
     while (node && node->parent) {
-	components[num_components] = node->obj_name;
+	components[num_components] = node->fixed_name ? (char *)node->fixed_name : node->obj_name;
 	num_components++;
 	node = node->parent;
     }
@@ -232,7 +233,7 @@ int api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size)
     num_components++;
     APINode *node = ep->parent;
     while (node && node->parent) {
-	components[num_components] = node->obj_name;
+	components[num_components] = node->fixed_name ? (char *)node->fixed_name : node->obj_name;
 	num_components++;
 	node = node->parent;
     }
@@ -262,7 +263,7 @@ int api_endpoint_get_route_until(Endpoint *ep, char *dst, size_t dst_size, APINo
     num_components++;
     APINode *node = ep->parent;
     while (node && node->parent && node != until) {
-	components[num_components] = node->obj_name;
+	components[num_components] = node->fixed_name ? (char *)node->fixed_name : node->obj_name;
 	num_components++;
 	node = node->parent;
     }
@@ -291,7 +292,7 @@ int api_endpoint_get_display_route_until(Endpoint *ep, char *dst, size_t dst_siz
     num_components++;
     APINode *node = ep->parent;
     while (node && node->parent && node != until) {
-	components[num_components] = node->obj_name;
+	components[num_components] = node->fixed_name ? (char *)node->fixed_name : node->obj_name;
 	num_components++;
 	node = node->parent;
     }
@@ -377,6 +378,10 @@ static void api_hash_node_destroy(APIHashNode *ahn);
    that the completion_target is the api node */
 void api_node_renamed(APINode *an)
 {
+    /* Do not rename any API elements if node already has a fixed name (e.g. "Synth") */
+    if (an->fixed_name) {
+	return;
+    }
     for (int i=0; i<an->num_endpoints; i++) {
 	Endpoint *ep = an->endpoints[i];
 	APIHashNode *to_delete = ep->hash_node;
@@ -700,7 +705,6 @@ void api_node_serialize(FILE *f, APINode *root)
 /* Returns 0 on success, else error */
 int api_node_deserialize(FILE *f, APINode *root)
 {
-    
     char keywd[4] = {0};
     fread(keywd, 1, 4, f);
     if (strncmp(keywd, "NAME", 4) == 0) {
@@ -719,7 +723,11 @@ int api_node_deserialize(FILE *f, APINode *root)
 	    fprintf(stderr, "Error: newline not present after API node name\n");
 	    exit(1);
 	}
-	api_node_renamed(root);
+	if (!root->fixed_name) {
+	    api_node_renamed(root);
+	}
+    } else {
+	fseek(f, -4, SEEK_CUR);
     }
     
     char route_buf[MAX_ROUTE_LEN];
@@ -729,7 +737,9 @@ int api_node_deserialize(FILE *f, APINode *root)
     while (1) {
 	int c;
 	int i=partial_route_len;
-	while ((c = fgetc(f)) != ' ' && c != '\0') {
+	route_buf[i] = '\0';
+	while ((c = fgetc(f)) != ' ' && c != '\0' && c != '\n') {
+	    /* fprintf(stderr, "\tNEXT CHAR: %c\n", c); */
 	    route_buf[i] = c;
 	    i++;
 	}
@@ -748,7 +758,8 @@ int api_node_deserialize(FILE *f, APINode *root)
 	    endpoint_write(ep, v, true, true, true, false);
 	} else {
 	    ret++;
-	    fprintf(stderr, "ERROR: API route note \"%s\" not found!\n", route_buf);
+	    fprintf(stderr, "ERROR: API route node \"%s\" not found!\n", route_buf);
+	    breakfn();
 	}
 	/* jdaw_val_to_str(route_buf, MAX_ROUTE_LEN, v, t, 3); */
 	/* fprintf(stderr, "Write to %p, Val type %d == %s\n", ep, t, route_buf); */

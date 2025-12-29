@@ -863,8 +863,12 @@ void user_tl_pause(void *nullarg)
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    session->playback.play_speed = 0;
-    transport_stop_playback();
+    if (session->playback.playing) {
+	session->playback.play_speed = 0;
+	transport_stop_playback();
+    } else {
+	timeline_full_pause(tl);
+    }
     /* PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_pause"); */
     /* Button *btn = (Button *)el->component; */
     /* button_press_color_change( */

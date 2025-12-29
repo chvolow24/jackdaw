@@ -294,8 +294,8 @@ typedef struct timeline {
     */
     float *buf_L;
     float *buf_R;
-    uint16_t buf_read_pos;
-    uint16_t buf_write_pos;
+    uint32_t buf_read_pos;
+    uint32_t buf_write_pos;
     sem_t *readable_chunks;
     sem_t *writable_chunks;
     sem_t *unpause_sem;

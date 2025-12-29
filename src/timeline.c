@@ -238,18 +238,41 @@ static void track_handle_playhead_jump(Track *track)
     /* eq_clear(&track->eq); */
 }
 
+static void track_full_pause(Track *track)
+{
+    if (track->synth) {
+	/* synth_close_all_notes(track->synth); */
+	synth_silence(track->synth);
+    }
+}
+
+void timeline_full_pause(Timeline *tl)
+{
+    for (uint8_t i=0; i<tl->num_tracks; i++) {
+	track_full_pause(tl->tracks[i]);
+    }    
+}
+
+void timeline_handle_playhead_jump(Timeline *tl)
+{
+    for (uint8_t i=0; i<tl->num_tracks; i++) {
+	track_handle_playhead_jump(tl->tracks[i]);
+    }
+}
+
 /* Invalidates continuous-play-dependent caches.
    Use this any time a "jump" occurs */
 void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes, bool move_grabbed_clips)
 {
     MAIN_THREAD_ONLY("timeline_set_play_position");
+    /* fprintf(stderr, "SET PLAY POSITION\n"); */
     Session *session = session_get();
-    bool restart_playback = false;
-    float playspeed = session->playback.play_speed;
-    if (session->playback.playing) {
-	transport_stop_playback();
-	restart_playback = true;
-    }
+    /* bool restart_playback = false; */
+    /* float playspeed = session->playback.play_speed; */
+    /* if (session->playback.playing) { */
+    /* 	transport_stop_playback(); */
+    /* 	restart_playback = true; */
+    /* } */
 
     /* if (tl->play_pos_sframes == abs_pos_sframes) return; */
     
@@ -263,18 +286,18 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes, bool move
 	}
     }
 
-    tl->play_pos_sframes = abs_pos_sframes;
+    transport_handle_playhead_jump(tl, abs_pos_sframes);
+    /* tl->play_pos_sframes = abs_pos_sframes; */
     int x = timeline_get_draw_x(tl, tl->play_pos_sframes);
     if (!session->playback.lock_view_to_playhead) {
 	SDL_Rect *audio_rect = session->gui.audio_rect;
 	if (x < audio_rect->x || x > audio_rect->x + audio_rect->w) {
 	    int diff = x - (audio_rect->x + audio_rect->w / 2);
 	    tl->timeview.offset_left_sframes += timeline_get_abs_w_sframes(tl, diff);
+	    timeline_reset(tl, false);
 	}
     }
-    for (uint8_t i=0; i<tl->num_tracks; i++) {
-	track_handle_playhead_jump(tl->tracks[i]);
-    }
+    timeline_handle_playhead_jump(tl);
     timeline_set_timecode(tl);
     for (int i=0; i<tl->num_click_tracks; i++) {	
 	click_track_bar_beat_subdiv(tl->click_tracks[i], tl->play_pos_sframes, NULL, NULL, NULL, NULL, true);
@@ -298,10 +321,10 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes, bool move
     timeline_flush_unclosed_midi_notes();
     /* timeline_reset(tl, false); */
     tl->needs_redraw = true;
-    if (restart_playback) {
-	transport_start_playback();
-	session->playback.play_speed = playspeed;
-    }
+    /* if (restart_playback) { */
+    /* 	transport_start_playback(); */
+    /* 	session->playback.play_speed = playspeed; */
+    /* } */
 }
 
 

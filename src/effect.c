@@ -70,7 +70,7 @@ Effect *track_add_effect(Track *track, EffectType type)
     track->num_effects_per_type[type]++;
     /* fprintf(stderr, "Effect name: %s\n", e->name); */
     
-    api_node_register(&e->api_node, &track->api_node, e->name);
+    api_node_register(&e->api_node, &track->api_node, e->name, NULL);
     
     switch(type) {
     case EFFECT_EQ:

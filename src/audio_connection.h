@@ -96,6 +96,9 @@ typedef struct audio_conn {
     struct realtime_tick callback_time;
     enum audio_conn_type type;
     union audio_conn_substruct c;
+
+    bool request_playhead_reset;
+    int32_t request_playhead_pos;
 } AudioConn;
 
 

@@ -470,7 +470,8 @@ static void track_add_automation_from_api_node(Track *track, APINode *node)
     }
     for (int i=0; i<node->num_children; i++) {
 	items[node->num_endpoints + i] = node->children[i];
-	int num_chars_printed = snprintf(child_node_item, 64, "%s...", node->children[i]->obj_name);
+	char *node_name = node->children[i]->fixed_name ? (char *)node->children[i]->fixed_name : node->children[i]->obj_name;
+	int num_chars_printed = snprintf(child_node_item, 64, "%s...", node_name);
 	child_node_item[num_chars_printed] = '\0';
 	item_labels[node->num_endpoints + i] = child_node_item;
 	child_node_item += num_chars_printed + 1;

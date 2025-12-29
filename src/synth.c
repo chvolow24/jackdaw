@@ -395,14 +395,10 @@ Synth *synth_create(Track *track)
 	session_get_sample_rate() * s->noise_amt_env.r_msec / 1000,
 	2.0);
 
-
     s->monitor = true;
     s->allow_voice_stealing = true;
 
-    api_node_register(&s->api_node, &track->api_node, s->preset_name);
-
-    /* fprintf(stderr, "REGISTERING synth node to parent %p, name %s\n", &track->api_node, track->api_node.obj_name); */
-
+    api_node_register(&s->api_node, &track->api_node, s->preset_name, "Synth");
 
     endpoint_init(
 	&s->vol_ep,
@@ -437,8 +433,8 @@ Synth *synth_create(Track *track)
 
     
     adsr_endpoints_init(&s->amp_env, &s->amp_env_page, &s->api_node, "Amp envelope");
-    api_node_register(&s->filter_node, &s->api_node, "Filter");
-    api_node_register(&s->noise_node, &s->api_node, "Noise");
+    api_node_register(&s->filter_node, &s->api_node, NULL, "Filter");
+    api_node_register(&s->noise_node, &s->api_node, NULL, "Noise");
     adsr_endpoints_init(&s->filter_env, &s->filter_page, &s->filter_node, "Filter envelope");
     adsr_endpoints_init(&s->noise_amt_env, &s->noise_page, &s->noise_node, "Noise envelope");
     /* api_node_register(&s->filter_env.api_node, &s->filter_node, "Filter envelope"); */
@@ -691,7 +687,7 @@ Synth *synth_create(Track *track)
 
 	
 	snprintf(synth_osc_names[i], 6, "Osc %d", i+1);
-	api_node_register(&cfg->api_node, &s->api_node, synth_osc_names[i]);
+	api_node_register(&cfg->api_node, &s->api_node, NULL, synth_osc_names[i]);
 	endpoint_init(
 	    &cfg->active_ep,
 	    &cfg->active,
@@ -1022,8 +1018,15 @@ static void osc_get_buf_preamp(Osc *osc, float step, int len, int after)
     double phase_incr = osc->sample_phase_incr + osc->sample_phase_incr_addtl;
     double phase = osc->phase;
     /* int unison_i = (long)((osc - osc->voice->oscs) - (osc->cfg - osc->voice->synth->base_oscs)) / SYNTH_NUM_BASE_OSCS; */
-    size_t zeroset_len = after > len ? len * sizeof(int) : after *sizeof(int);
+    size_t zeroset_len = after > len ? len * sizeof(int) : after * sizeof(int);
     memset(osc->buf, '\0', zeroset_len);
+    bool do_unison_compensation = false;
+    float unison_compensation = 1.0f;
+    if (osc->cfg->unison.num_voices > 0 && !osc->cfg->mod_freq_of && !osc->cfg->mod_amp_of) {
+	unison_compensation =  1.0 / (0.2 * osc->cfg->unison.num_voices * osc->cfg->unison.relative_amp + 1.0);
+	do_unison_compensation = true;
+    }
+
     if (phase_incr > 0.4) { /* Nearing nyquist */
 	memset(osc->buf, '\0', sizeof(float) * len);
     } else {
@@ -1092,15 +1095,15 @@ static void osc_get_buf_preamp(Osc *osc, float step, int len, int after)
 	    } else if (phase < 0.0) {
 		phase = 1.0 + phase + ceil(phase);
 	    }
-	    if (osc->cfg->unison.num_voices > 0 && !osc->cfg->mod_freq_of && !osc->cfg->mod_amp_of)
-		sample *= 1.0 / (0.2 * osc->cfg->unison.num_voices * osc->cfg->unison.relative_amp + 1.0);
-
 	    /* Reverse polarity on some voices:
 	       ignore for now */
 	    /* if (!osc->cfg->mod_freq_of && !osc->cfg->mod_amp_of && unison_i != 0 && unison_i % 3 == 0) { */
 		/* sample *= -1; */
 	    /* } */
 	    osc->buf[i] = sample;
+	}
+	if (do_unison_compensation) {
+	    float_buf_mult_const(osc->buf + after, unison_compensation, len - after);
 	}
 	osc->phase = phase;
     }
@@ -1721,11 +1724,12 @@ void synth_feed_midi(
 		}
 	    }
 	} else if (msg_type == 9) { /* Handle note on */
-	    /* fprintf(stderr, "\t\tNOTE ON val: %d pos %d\n", note_val, e.timestamp); */
+	    /* fprintf(stderr, "NOTE ON val: %d pos %d\n", note_val, e.timestamp); */
 	    bool note_assigned = false;
 	    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 		SynthVoice *v = s->voices + i;
 		if (v->available) {
+		    /* fprintf(stderr, "\t=>assigned to voice %d\n", i); */
 		    int32_t start_rel = send_immediate ? 0 : e.timestamp - tl_start;
 		    synth_voice_assign_note(v, note_val, velocity, start_rel);
 		    note_assigned = true;
@@ -1809,8 +1813,20 @@ void synth_feed_midi(
 
 void synth_silence(Synth *s);
 
+void synth_debug_summary(Synth *s, int channel, int32_t len, float step)
+{
+    fprintf(stderr, "Synth debug summary channel %d, len %d step %f:\n", channel, len, step);
+    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+	SynthVoice *v = s->voices + i;
+	if (v->available) continue;
+	fprintf(stderr, "\tVoice %d: note %d, vel %d\n", i, v->note_val, v->velocity);
+	fprintf(stderr, "\t\tAMP ENV stage %d, rem %d, start release after %d\n", s->amp_env.followers[0]->current_stage, s->amp_env.followers[0]->env_remaining, s->amp_env.followers[0]->start_release_after);
+    }
+}
+
 void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step)
 {
+    /* synth_debug_summary(s, channel, len, step); */
     /* fprintf(stderr, "PED? %d\n", s->pedal_depressed); */
     /* if (channel != 0) return; */
     if (step < 0.0) step *= -1;
@@ -1832,7 +1848,7 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step)
     /* } */
     /* fprintf(stderr, "\tInternal buf tot %f\n", sum); */
     /* fprintf(stderr, "\tvol: %f pan scale: %f\n", s->vol, pan_scale(s->pan, channel)); */
-    /* sum = 0.0f; */
+    float sum = 0.0f;
     for (int i=0; i<len; i++) {
 	/* float dc_blocked = iir_sample(&s->dc_blocker, internal_buf[i], channel); */
 	/* sum += fabs(dc_blocked); */
@@ -1842,7 +1858,14 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step)
 	    * s->vol
 	    * pan_scale(s->pan, channel)
 	    );
+	sum += fabs(buf[i]);
+	
     }
+    /* fprintf(stderr, "\t=>end synth buf, avg amp %f\n", sum / len); */
+    /* if (sum / len > 0.25) { */
+    /* 	fprintf(stderr, "AMP VIOLATION\n"); */
+    /* 	exit(1); */
+    /* } */
     /* fprintf(stderr, "\tdc blocked sum %f\n", sum); */
     pthread_mutex_unlock(&s->audio_proc_lock);
 }
@@ -1904,9 +1927,11 @@ int32_t synth_make_notes(Synth *s, int *pitches, int *velocities, int num_pitche
 
 void synth_close_all_notes(Synth *s)
 {
+    /* fprintf(stderr, "CLOSE ALL NOTES\n"); */
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	SynthVoice *v = s->voices + i;
 	if (!v->available) {
+	    /* fprintf(stderr, "\tkill voice %d\n", i); */
 	    synth_voice_pitch_bend(v, 0.0);
 	    adsr_start_release(v->amp_env, 0);
 	    adsr_start_release(v->amp_env + 1, 0);
@@ -1919,6 +1944,8 @@ void synth_close_all_notes(Synth *s)
 }
 void synth_silence(Synth *s)
 {
+    /* fprintf(stderr, "CALL TO SYNTH SILENCE\n"); */
+    /* exit(1); */
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	SynthVoice *v = s->voices + i;
 	v->available = true;
@@ -1937,7 +1964,7 @@ void synth_clear_all(Synth *s)
 
 void synth_write_preset_file(const char *filepath, Synth *s)
 {
-    fprintf(stderr, "SAVING FILE AT %s\n", filepath);
+    /* fprintf(stderr, "SAVING FILE AT %s\n", filepath); */
     FILE *f = fopen(filepath, "w");
     api_node_serialize(f, &s->api_node);
     fclose(f);

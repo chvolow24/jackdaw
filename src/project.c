@@ -283,7 +283,7 @@ retry3:
     proj->timelines[proj->num_timelines] = new_tl;
     proj->num_timelines++;
 
-    api_node_register(&new_tl->api_node, &session->server.api_root, new_tl->name);
+    api_node_register(&new_tl->api_node, &session->server.api_root, new_tl->name, NULL);
     
     return proj->num_timelines - 1; /* Return the new timeline index */
 }
@@ -705,7 +705,7 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at
 
     midi_event_ring_buf_init(&track->note_offs);
    
-    api_node_register(&track->api_node, &track->tl->api_node, track->name);
+    api_node_register(&track->api_node, &track->tl->api_node, track->name, NULL);
         
     endpoint_init(
 	&track->vol_ep,

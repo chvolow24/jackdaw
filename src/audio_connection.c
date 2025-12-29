@@ -46,6 +46,11 @@ int query_audio_connections(Session *session, int iscapture)
 	SDL_free(name);
 	default_conn->name[MAX_CONN_NAMELENGTH - 1] = '\0';
 	fprintf(stdout, "Found default %s device: \"%s\"\n", iscapture ? "capture" : "playback", default_conn->name);
+	if (default_dev->spec.channels > 2) {
+	    default_dev->select_channels = true;
+	    default_dev->channel_min = 0;
+	    default_dev->channel_max = 1;
+	}
 	default_conn->open = false;
 	/* default_conn->playing = false; */
 	default_conn->active = false;

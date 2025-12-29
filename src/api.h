@@ -44,6 +44,7 @@ typedef struct api_node {
     Endpoint *endpoints[MAX_API_NODE_ENDPOINTS];
     uint8_t num_endpoints;
     char *obj_name;
+    const char *fixed_name;
 } APINode;
 
 struct api_server {
@@ -71,7 +72,8 @@ int api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size);
 int api_node_get_route(APINode *node, char *dst, size_t dst_size);
 int api_endpoint_get_route_until(Endpoint *ep, char *dst, size_t dst_size, APINode *until);
 int api_endpoint_get_display_route_until(Endpoint *ep, char *dst, size_t dst_size, APINode *until);
-void api_node_register(APINode *node, APINode *parent, char *obj_name);
+void api_node_register(APINode *node, APINode *parent, char *obj_name, const char *fixed_name);
+/* void api_node_register(APINode *node, APINode *parent, char *obj_name); */
 void api_node_deregister(APINode *node);
 void api_node_reregister(APINode *node);
 /* void api_node_deregister(APINode *node); */

@@ -332,7 +332,6 @@ bool track_1_ef_init = false;
 
 float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t len_sframes, int32_t start_pos_sframes, float step)
 {
-
     /* start = clock(); */
     /* clock_t start = clock(); */
     uint32_t chunk_len_bytes = sizeof(float) * len_sframes;

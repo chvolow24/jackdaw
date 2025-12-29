@@ -60,7 +60,6 @@ static int fmod_selector_fn(Dropdown *d, void *inner_arg)
 
     int target_i = carrier_i;
 
-    fprintf(stderr, "MODULATOR: %d (%p); target %d\n", modulator_i, modulator,target_i); 
     endpoint_write(&modulator->fmod_target_ep, (Value){.int_v = target_i}, true, true, true, true);
     return 0;
 

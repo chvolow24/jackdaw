@@ -60,7 +60,7 @@ static void dsp_cb_ramp_exp(Endpoint *ep)
 
 void adsr_endpoints_init(ADSRParams *p, Page **cb_page, APINode *parent_node, char *node_name)
 {
-    api_node_register(&p->api_node, parent_node, node_name);
+    api_node_register(&p->api_node, parent_node, node_name, NULL);
     endpoint_init(
 	&p->a_ep,
 	&p->a_msec,
@@ -246,12 +246,12 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
     int32_t buf_i = 0;
     bool skip_to_release = false;
     while (buf_i < buf_len) {
-	/* fprintf(stderr, "\t\t\t\tbuf i: %d; stage %d; env_rem: %d; release_after: %d\n", buf_i, s->current_stage, s->env_remaining, s->start_release_after); */
 	if (buf_i > buf_len || buf_i < 0) {
 	    breakfn();
 	}
 	int32_t stage_len = s->env_remaining < buf_len - buf_i ? s->env_remaining : buf_len - buf_i;
-	if (s->current_stage < ADSR_R && s->start_release_after >= 0 && s->start_release_after < stage_len) {
+	/* fprintf(stderr, "\t\t\t\tADSR buf i: %d/%d; stage %d; env_rem: %d; release_after: %d; stage len %d\n", buf_i, buf_len, s->current_stage, s->env_remaining, s->start_release_after, stage_len); */
+	if (s->current_stage < ADSR_R && s->start_release_after >= 0 && s->start_release_after <= stage_len) {
 	    stage_len = s->start_release_after;
 	    skip_to_release = true;
 	    if (s->start_release_after == 0) {

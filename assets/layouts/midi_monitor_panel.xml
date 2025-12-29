@@ -1,0 +1,48 @@
+<Layout name="midi_monitor_panel" type="NORMAL">
+  <x>REL 0</x>
+  <y>REL 0</y>
+  <w>ABS 139</w>
+  <h>SCALE 1.000000</h>
+  <children>
+    <Layout name="monitoring_label" type="NORMAL">
+      <x>REL 5</x>
+      <y>REL 5</y>
+      <w>REL 100</w>
+      <h>REL 14</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="monitoring_slight" type="NORMAL">
+      <x>REL 112</x>
+      <y>REL 5</y>
+      <w>REL 14</w>
+      <h>REL 14</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="input" type="NORMAL">
+      <x>REL 5</x>
+      <y>STACK 10</y>
+      <w>REVREL 10</w>
+      <h>REL 20</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="arrow" type="NORMAL">
+      <x>REL 5</x>
+      <y>STACK 5</y>
+      <w>REL 10</w>
+      <h>REL 20</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="output" type="NORMAL">
+      <x>STACK 5</x>
+      <y>REL 54</y>
+      <w>REVREL 10</w>
+      <h>REL 20</h>
+      <children>
+      </children>
+    </Layout>
+  </children>
+</Layout>

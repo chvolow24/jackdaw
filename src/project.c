@@ -725,7 +725,7 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at
     endpoint_set_label_fn(&track->vol_ep, label_amp_pre_exp_to_dbstr);
     api_endpoint_register(&track->vol_ep, &track->api_node);
 
-        endpoint_init(
+    endpoint_init(
 	&track->pan_ep,
 	&track->pan,
 	JDAW_FLOAT,

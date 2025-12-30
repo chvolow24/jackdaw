@@ -240,6 +240,10 @@ Value slider_reset(Slider *s)
 	    break;
 	}
     }
+    if (s->ep->display_label) {
+	label_reset(s->label, slider_val);
+    }
+
     layout_reset(s->layout);
     return slider_val;
 }    

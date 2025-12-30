@@ -126,10 +126,11 @@ void iir_buf_apply(IIRFilter *f, float *buf, int len, int channel)
 
 void iir_advance(IIRFilter *f, int channel)
 {
-    memmove(f->mem_in[channel] + 1, f->mem_in[channel], sizeof(double) * (f->degree - 1));
-    memmove(f->mem_out[channel] + 1, f->mem_out[channel], sizeof(double) * (f->degree - 1));
-    f->mem_in[channel][0] = 0.0;
-    f->mem_out[channel][0] = 0.0;
+    iir_sample(f, 0, channel);
+    /* memmove(f->mem_in[channel] + 1, f->mem_in[channel], sizeof(double) * (f->degree - 1)); */
+    /* memmove(f->mem_out[channel] + 1, f->mem_out[channel], sizeof(double) * (f->degree - 1)); */
+    /* f->mem_in[channel][0] = 0.0; */
+    /* f->mem_out[channel][0] = 0.0; */
 }
 
 void iir_clear(IIRFilter *f)

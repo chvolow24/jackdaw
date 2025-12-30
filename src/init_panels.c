@@ -220,18 +220,20 @@ static void session_init_output_panel(Page *output, Session *session)
 	p,
 	"output_vu",
 	"output_vu");
-
-    session->playback.output_vol_ep.xarg3 = output;
+    static Page *output_page_const;
+    output_page_const = output;
+    session->playback.output_vol_ep.xarg3 = &output_page_const;
     session->playback.output_vol_ep.xarg4 = "vol_slider";
     page_el_params_slider_from_ep(&p, &session->playback.output_vol_ep);
     p.slider_p.orientation = SLIDER_VERTICAL;
     p.slider_p.style = SLIDER_FILL;
-    page_add_el(
+    el = page_add_el(
 	output,
 	EL_SLIDER,
 	p,
 	"vol_slider",
 	"vol_slider");
+
 	
     
     

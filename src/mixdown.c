@@ -167,11 +167,13 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 		    Synth *synth = track->midi_out;
 		    if (session->midi_io.monitor_synth == synth) {
 			/* int32_t remaining_to_process = track->tl->read_pos_sframes - track->tl->play_pos_sframes; */
+			int32_t loc_start_pos = track->tl->play_pos_sframes < start_pos_sframes ? track->tl->play_pos_sframes : start_pos_sframes;
 			synth_feed_midi(
 			    synth,
 			    events,
 			    num_events,
-			    track->tl->play_pos_sframes,
+			    loc_start_pos,
+			    /* track->tl->play_pos_sframes, */
 			    false);
 		    } else {
 			synth_feed_midi( 

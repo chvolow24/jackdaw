@@ -172,6 +172,7 @@ int endpoint_write(
 	status_set_errstr(errstr);
     }
     bool val_changed = !jdaw_val_equal(ep->last_write_val, new_val, ep->val_type);
+    /* fprintf(stderr, "\tval changed? %d\n", val_changed); */
     if (!val_changed && ep->write_has_occurred) return EP_WRITE_NO_CHANGE;
     if (!ep->write_has_occurred) {
 	ep->last_write_val = endpoint_safe_read(ep, NULL);
@@ -180,8 +181,11 @@ int endpoint_write(
     bool async_change_will_occur = false;
     /* Value change */
     ep->display_label = undoable || ep->changing; /* heuristic, ok */
-    /* fprintf(stderr, "Owner? %d.. on owner? %d !session->playback.playing && owner == JDAW_THREAD_DSP %d?\n", owner, on_thread(owner), !session->playback.playing && owner == JDAW_THREAD_DSP); */
-    if (on_thread(owner) || (!session->playback.playing && (owner == JDAW_THREAD_DSP))) {// || owner == JDAW_THREAD_PLAYBACK))) {
+    /* fprintf(stderr, "Owner? %s.. on owner? %d. Audio conn open? %d\n", get_thread_name(owner), on_thread(owner), session->audio_io.playback_conn->playing); */
+    if (
+	on_thread(owner)
+	|| (owner == JDAW_THREAD_DSP && !session->playback.playing)
+	|| (owner == JDAW_THREAD_PLAYBACK && !session->audio_io.playback_conn->playing)) {
 	pthread_mutex_lock(&ep->val_lock);
 	jdaw_val_set_ptr(ep->val, ep->val_type, new_val);
 	if (ep->automation && ep->automation->write) {

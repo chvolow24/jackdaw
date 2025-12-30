@@ -286,7 +286,7 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes, bool move
 	}
     }
 
-    transport_handle_playhead_jump(tl, abs_pos_sframes);
+    transport_execute_playhead_jump(tl, abs_pos_sframes);
     /* tl->play_pos_sframes = abs_pos_sframes; */
     int x = timeline_get_draw_x(tl, tl->play_pos_sframes);
     if (!session->playback.lock_view_to_playhead) {
@@ -297,7 +297,9 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes, bool move
 	    timeline_reset(tl, false);
 	}
     }
-    timeline_handle_playhead_jump(tl);
+    if (session->playback.playing) {
+	timeline_handle_playhead_jump(tl);
+    }
     timeline_set_timecode(tl);
     for (int i=0; i<tl->num_click_tracks; i++) {	
 	click_track_bar_beat_subdiv(tl->click_tracks[i], tl->play_pos_sframes, NULL, NULL, NULL, NULL, true);

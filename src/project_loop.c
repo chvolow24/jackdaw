@@ -41,6 +41,7 @@
 #include "settings.h"
 #include "symbol.h"
 #include "tempo.h"
+#include "thread_safety.h"
 #include "timeline.h"
 #include "transport.h"
 #include "window.h"
@@ -531,6 +532,7 @@ void loop_project_main()
 		default:
 		    session_flush_ongoing_changes(session, JDAW_THREAD_MAIN);
 		    session_flush_ongoing_changes(session, JDAW_THREAD_DSP);
+		    session_flush_ongoing_changes(session, JDAW_THREAD_PLAYBACK);
 
 		    session->playhead_scroll.playhead_do_incr = false;
 		    /* stop_update_track_vol_pan(); */
@@ -649,6 +651,7 @@ void loop_project_main()
 		}
 		session_flush_ongoing_changes(session, JDAW_THREAD_MAIN);
 		session_flush_ongoing_changes(session, JDAW_THREAD_DSP);
+		session_flush_ongoing_changes(session, JDAW_THREAD_PLAYBACK);
 		if (session->piano_roll) {
 		    piano_roll_mouse_up(main_win->mousep);
 		}

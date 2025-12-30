@@ -190,8 +190,12 @@ void session_do_ongoing_changes(Session *session, enum jdaw_thread thread)
  */
 void session_flush_ongoing_changes(Session *session, enum jdaw_thread thread)
 {
+    /* fprintf(stderr, "(%s) Flushing %d changed...\n", get_thread_name(thread), *current_num); */
+    /* fprintf(stderr, "(%s) unlocking!\n", get_thread_name(thread)); */
     pthread_mutex_lock(&session->queued_ops.ongoing_changes_lock);
+    /* fprintf(stderr, "\t->(%s) unlock done!\n", get_thread_name(thread)); */
     uint8_t *current_num = session->queued_ops.num_ongoing_changes + thread;
+    /* fprintf(stderr, "(%s) Flushing %d changed...\n", get_thread_name(thread), *current_num); */
     for (int i=0; i<*current_num; i++) {
 	Endpoint *ep = session->queued_ops.ongoing_changes[thread][i];
 	endpoint_stop_continuous_change(ep);

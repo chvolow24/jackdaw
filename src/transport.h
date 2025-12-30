@@ -26,7 +26,7 @@ void transport_start_recording();
 void transport_stop_recording();
 
 /* Account for continuous-playback ramifications of calls to timeline_set_play_position(); */
-void transport_handle_playhead_jump(Timeline *tl, int32_t new_pos);
+void transport_execute_playhead_jump(Timeline *tl, int32_t new_pos);
 
 void transport_set_mark(Timeline *tl, bool in);
 void transport_goto_mark(Timeline *tl, bool in);

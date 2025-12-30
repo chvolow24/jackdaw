@@ -1285,10 +1285,10 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 
     float amp_env[len];
     enum adsr_stage amp_stage = adsr_get_chunk(&v->amp_env[channel], amp_env, len);
-    /* fprintf(stderr, "GET CHUNK channel %d (env %p), end stage %d\n", channel, &v->amp_env[channel], amp_stage); */
+    /* fprintf(stderr, "\t\tGot amp chunk channel %d (env %p), end stage %d\n", channel, &v->amp_env[channel], amp_stage); */
     if (amp_stage == ADSR_OVERRUN && channel == 1) {
 	v->available = true;
-	/* fprintf(stderr, "\tFREEING VOICE %ld (env overrun)\n", v - v->synth->voices); */
+	/* fprintf(stderr, "\t\t\tFREEING VOICE %ld (env overrun)\n", v - v->synth->voices); */
 	/* return; */
     }
     
@@ -1698,6 +1698,7 @@ void synth_feed_midi(
 	if (msg_type == 9 && velocity == 0) msg_type = 8;
 	if (msg_type == 8) {
 	    /* HANDLE NOTE OFF */
+	    /* fprintf(stderr, "NOTE OFF val: %d pos %d\n", note_val, e.timestamp); */
 	    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 		SynthVoice *v = s->voices + i;
 		if (!v->available && v->note_val == note_val) {
@@ -1901,7 +1902,6 @@ int32_t synth_make_notes(Synth *s, int *pitches, int *velocities, int num_pitche
 	}
 	synth_add_buf(s, buf_L + len, 0, incr_len, 1.0);
 	synth_add_buf(s, buf_R + len, 1, incr_len, 1.0);
-	/* fprintf(stderr, "\tAdding buf at index %d\n", len); */
 	len += incr_len;
 	
 	/* Quarter-second sustain time */
@@ -1944,7 +1944,6 @@ void synth_close_all_notes(Synth *s)
 }
 void synth_silence(Synth *s)
 {
-    /* fprintf(stderr, "CALL TO SYNTH SILENCE\n"); */
     /* exit(1); */
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	SynthVoice *v = s->voices + i;

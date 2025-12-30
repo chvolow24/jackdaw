@@ -224,7 +224,6 @@ void adsr_init(ADSRState *s, int32_t after)
 
 void adsr_start_release(ADSRState *s, int32_t after)
 {
-    /* fprintf(stderr, "\t\t\tADSR %p start release after : %d\n", s, after); */
     s->start_release_after = after;
     #ifdef TESTBUILD
     if (after < 0) {
@@ -260,6 +259,10 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
 	}
 	switch(s->current_stage) {
 	case ADSR_UNINIT:
+	    if (stage_len < 0) {
+		fprintf(stderr, "Error: negative stage len\n");
+		breakfn();
+	    }
 	    memset(buf + buf_i, '\0', sizeof(float) * stage_len);
 	    s->env_remaining -= stage_len;
 	    #ifdef TESTBUILD
@@ -302,11 +305,18 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
 	case ADSR_OVERRUN:
 	    /* Fill remainder of buffer with silence and exit */
 	    memset(buf + buf_i, '\0', sizeof(float) * (buf_len - buf_i));
+	    s->start_release_after = -1;
 	    return ADSR_OVERRUN;
 	}
     reset_stage:
 	if (skip_to_release) {
 	    switch(s->current_stage) {
+	    case ADSR_UNINIT:
+		s->release_start_env = s->params->s;
+		s->current_stage = ADSR_R;
+		s->env_remaining = s->params->r;
+		s->start_release_after = -1;
+		break;
 	    case ADSR_A:
 		s->release_start_env = s->params->a_ramp[s->params->a - s->env_remaining];
 		s->current_stage = ADSR_R;

@@ -325,7 +325,8 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	    d->current_clip->len_sframes += len_sframes;
 	}
 	d->num_unconsumed_events = 0;
-	if (fabs(playspeed) < 1e-6) playspeed = 1.0f;
+	if (fabs(playspeed) < 1e-6 || !session->playback.playing) playspeed = 1.0f;
+	/* fprintf(stderr, "Adding buf %p len %d playspeed %f\n", chunk_L, len, playspeed); */
 	synth_add_buf(s, chunk_L, 0, len_sframes, playspeed); /* TL Pos ignored */
 	synth_add_buf(s, chunk_R, 1, len_sframes, playspeed); /* TL Pos ignored */
     }
@@ -664,7 +665,7 @@ void transport_start_playback()
 }
 
 /* Account for continuous-playback ramifications of calls to timeline_set_play_position(); */
-void transport_handle_playhead_jump(Timeline *tl, int32_t new_pos)
+void transport_execute_playhead_jump(Timeline *tl, int32_t new_pos)
 {
     /* WOULD LIKE to invalidate the playback buffer */    
     Session *session = session_get();

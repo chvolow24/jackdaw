@@ -1848,7 +1848,7 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step)
     /* } */
     /* fprintf(stderr, "\tInternal buf tot %f\n", sum); */
     /* fprintf(stderr, "\tvol: %f pan scale: %f\n", s->vol, pan_scale(s->pan, channel)); */
-    float sum = 0.0f;
+    /* float sum = 0.0f; */
     for (int i=0; i<len; i++) {
 	/* float dc_blocked = iir_sample(&s->dc_blocker, internal_buf[i], channel); */
 	/* sum += fabs(dc_blocked); */
@@ -1858,7 +1858,7 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step)
 	    * s->vol
 	    * pan_scale(s->pan, channel)
 	    );
-	sum += fabs(buf[i]);
+	/* sum += fabs(buf[i]); */
 	
     }
     /* fprintf(stderr, "\t=>end synth buf, avg amp %f\n", sum / len); */
@@ -2003,7 +2003,6 @@ void synth_destroy(Synth *s)
     if (session->midi_io.monitor_synth == s) {
 	session->midi_io.monitor_device = NULL;
 	session->midi_io.monitor_synth = NULL;
-	
     }
     for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
 	OscCfg *cfg = s->base_oscs + i;
@@ -2017,5 +2016,16 @@ void synth_destroy(Synth *s)
 	free(cfg->fmod_target_dropdown_id);
 	free(cfg->amod_target_dropdown_id);
     }
+    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+	iir_deinit(&s->voices[i].filter);
+	for (int j=0; j<SYNTHVOICE_NUM_OSCS; j++) {
+	    Osc *osc = s->voices[i].oscs + j;
+	    iir_deinit(&osc->tri_dc_blocker);
+	}
+    }
+    iir_deinit(&s->dc_blocker);
+    adsr_params_deinit(&s->amp_env);
+    adsr_params_deinit(&s->noise_amt_env);
+    adsr_params_deinit(&s->filter_env);
     free(s);
 }

@@ -461,3 +461,16 @@ int32_t adsr_query_position(ADSRState *s)
     }
     return pos;
 }
+
+void adsr_params_deinit(ADSRParams *p)
+{
+    if (p->a_ramp) free(p->a_ramp);
+    p->a_ramp = NULL;
+    if (p->d_ramp) free(p->d_ramp);
+    p->d_ramp = NULL;
+    if (p->followers) {
+	free(p->followers);
+	p->followers = NULL;
+	p->followers_arrlen = 0;	    
+    }
+}

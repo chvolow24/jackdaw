@@ -74,4 +74,6 @@ int32_t adsr_query_position(ADSRState *s);
 void adsr_params_add_follower(ADSRParams *p, ADSRState *follower);
 
 
+void adsr_params_deinit(ADSRParams *p);
+
 #endif

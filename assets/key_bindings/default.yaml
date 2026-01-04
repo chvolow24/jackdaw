@@ -71,6 +71,7 @@
   - <spc>	: tl_play_pause
   - k-l		: tl_play_slow
   - k-j		: tl_rewind_slow
+  - A-k		: tl_halve_playspeed
   - [		: tl_move_playhead_left
   - ]		: tl_move_playhead_right
   - S-[		: tl_move_playhead_left_slow

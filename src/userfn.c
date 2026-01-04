@@ -871,6 +871,26 @@ void user_tl_play(void *nullarg)
     /* 	NULL); */
 }
 
+void user_tl_halve_playspeed(void *nullarg)
+{
+    Session *session = session_get();
+    if (session->playback.playing) {
+	timeline_play_speed_mult(0.5);
+    }    
+}
+
+/* void user_tl_halve_playspeed_rewind(void *nullarg) */
+/* { */
+/*     Session *session = session_get(); */
+/*     if (session->playback.playing) { */
+/* 	if (session->playback.play_speed < 0.0f) { */
+/* 	    timeline_play_speed_adj(0.5); */
+/* 	} else { */
+/* 	    timeline_play_speed_adj(-0.5); */
+/* 	} */
+/*     }     */
+/* } */
+
 void user_tl_play_pause(void *nullarg)
 {
     Session *session = session_get();

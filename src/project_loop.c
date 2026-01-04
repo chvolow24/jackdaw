@@ -808,13 +808,14 @@ void loop_project_main()
 	static const int zero_playspeed_count_thresh = 20;
         static int zero_playspeed_count = 0;
 	if (session->playback.playing) {
-	    if (fabs(session->playback.play_speed) < 1e-6) {
+	    if (fabs(session->playback.play_speed) < 1e-3f) {
 		zero_playspeed_count++;
 	    } else {
 		zero_playspeed_count = 0;
 	    }
 	    if (zero_playspeed_count > zero_playspeed_count_thresh) {
 		transport_stop_playback();
+		timeline_play_speed_set(0.0f);
 	    }
 	    
 	    struct timespec now;

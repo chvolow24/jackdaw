@@ -157,6 +157,7 @@ char *input_get_keycmd_str(uint16_t i_state, SDL_Keycode keycode)
 {
     char buf[32];
     memset(buf, '\0', 32);
+    /* fprintf(stderr, "GET KEYCMD i state %x, keycode %c\n", i_state, keycode); */
     const char *mod;
     switch (i_state) {
     case (0):

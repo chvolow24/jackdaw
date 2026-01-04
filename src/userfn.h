@@ -38,6 +38,8 @@ void user_tl_pause(void *nullarg);
 void user_tl_rewind(void *nullarg);
 void user_tl_play_slow(void *nullarg);
 void user_tl_rewind_slow(void *nullarg);
+void user_tl_halve_playspeed(void *nullarg);
+/* void user_tl_halve_playspeed_rewind(void *nullarg); */
 void user_tl_move_playhead_left(void *nullarg);
 void user_tl_move_playhead_right(void *nullarg);
 void user_tl_move_playhead_left_slow(void *nullarg);

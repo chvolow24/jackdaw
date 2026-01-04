@@ -350,6 +350,18 @@ static void mode_load_timeline()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
+	"tl_halve_playspeed",
+	"Halve playspeed",
+	user_tl_halve_playspeed);
+    mode_subcat_add_fn(sc, fn);
+
+    /* fn = create_user_fn( */
+    /* 	"tl_halve_playspeed", */
+    /* 	"Halve playspeed (rewind)", */
+    /* 	user_tl_halve_playspeed_rewind); */
+    /* mode_subcat_add_fn(sc, fn); */
+
+    fn = create_user_fn(
 	"tl_move_playhead_left",
 	"Move playhead left",
 	user_tl_move_playhead_left);

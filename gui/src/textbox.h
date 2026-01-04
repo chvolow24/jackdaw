@@ -36,6 +36,11 @@ typedef struct textbox {
     int corner_radius;
     Window *window;
 
+    bool dynamic_resize_h; /* Resizes to match text if true */
+    bool dynamic_resize_v; /* Resizes to match text if true */
+    int dynamic_h_pad; /* unscaled (not pix) */
+    int dynamic_v_pad; /* unscaled (not pix) */
+
     /* 'live' textboxes check value at every draw frame
        to determine if redraw necessary */
     bool live;
@@ -73,6 +78,9 @@ typedef struct text_lines {
 Textbox *textbox_create();
 void textbox_destroy(Textbox *);
 void textbox_destroy_keep_lt(Textbox *tb);
+
+    
+
 Textbox *textbox_create_from_str(
     const char *set_str,
     Layout *lt,
@@ -93,10 +101,25 @@ void textbox_style(
 
 /* WARNING: deprecated. Use 'textbox_size_to_fit' instead */
 void textbox_pad(Textbox *tb, int pad);
+
+
+
 void textbox_draw(Textbox *tb);
+
+
 void textbox_size_to_fit(Textbox *tb, int w_pad, int v_pad);
 void textbox_size_to_fit_v(Textbox *tb, int v_pad);
 void textbox_size_to_fit_h(Textbox *tb, int h_pad);
+
+/* If set, textbox is resized every time text is updated */
+void textbox_set_dynamic_resize(
+    Textbox *tb,
+    bool dynamic_resize_h,
+    bool dynamic_resize_v,
+    int h_pad_unscaled,
+    int v_pad_unscaled);
+
+
 void textbox_set_fixed_w(Textbox *tb, int fixed_w);
 void textbox_set_text_color(Textbox *tb, const SDL_Color *clr);
 void textbox_set_trunc(Textbox *tb, bool trunc);

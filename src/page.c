@@ -860,6 +860,7 @@ static void page_el_draw(PageEl *el)
 	break;
     case EL_BUTTON:
 	button_draw((Button *)el->component);
+	/* layout_draw(main_win, el->layout); */
 	break;
     case EL_CANVAS:
 	canvas_draw((Canvas *)el->component);

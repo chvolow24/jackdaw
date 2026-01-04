@@ -411,6 +411,7 @@ static NEW_EVENT_FN(dispose_forward_load_wav, "")
 void open_file(const char *filepath)
 {
     Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
     char *dotpos = strrchr(filepath, '.');
     if (!dotpos) {
 	status_set_errstr("Cannot open file without a .jdaw or .wav extension");
@@ -419,9 +420,9 @@ void open_file(const char *filepath)
     }
     char *ext = dotpos + 1;
     /* fprintf(stdout, "ext char : %c\n", *ext); */
+    bool activate_synth_preset_tab_on_exit = false;
     if (strcmp("wav", ext) * strcmp("WAV", ext) == 0) {
 	fprintf(stdout, "Wav file selected\n");
-	Timeline *tl = ACTIVE_TL;
 	if (!tl) return;
 	Track *track = timeline_selected_track(tl);
 	if (!track) {
@@ -475,6 +476,15 @@ void open_file(const char *filepath)
 		t->synth = synth_create(t);
 	    }
 	    synth_read_preset_file(filepath, t->synth);
+	    activate_synth_preset_tab_on_exit = true;
+	    /* if (!main_win->active_tabview) { */
+	    /* 	TabView *tv = synth_tabview_create(t); */
+	    /* 	tabview_activate(tv); */
+	    /* 	tl->needs_redraw = true; */
+	    /* 	timeline_check_set_midi_monitoring(); */
+	    /* 	tabview_select_tab(tv, 4); */
+	    /* } */
+
 	} else {
 	    status_set_errstr("Error: track not selected");
 	}
@@ -492,6 +502,15 @@ void open_file(const char *filepath)
 	    free(realpath_ret);
 	}
     }
+
+    if (activate_synth_preset_tab_on_exit) {
+	TabView *tv = synth_tabview_create(timeline_selected_track(tl));
+	tabview_activate(tv);
+	tl->needs_redraw = true;
+	timeline_check_set_midi_monitoring();
+	tabview_select_tab(tv, 4);
+    }
+
 }
 
 

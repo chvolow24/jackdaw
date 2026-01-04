@@ -114,8 +114,22 @@ void textbox_size_to_fit_h(Textbox *tb, int h_pad)
     tb->text->truncate = save_trunc;
     layout_set_wh_from_rect(tb->layout);
     layout_reset(tb->layout);
-
 }
+
+
+void textbox_set_dynamic_resize(
+    Textbox *tb,
+    bool dynamic_resize_h,
+    bool dynamic_resize_v,
+    int h_pad_unscaled,
+    int v_pad_unscaled)
+{
+    tb->dynamic_resize_h = dynamic_resize_h;
+    tb->dynamic_resize_v = dynamic_resize_v;
+    tb->dynamic_h_pad = h_pad_unscaled;
+    tb->dynamic_v_pad = v_pad_unscaled;
+}
+
 /* Pad a textbox on all sides. Modifies the dimensions of the layout */
 void textbox_pad(Textbox *tb, int pad)
 {
@@ -322,6 +336,16 @@ void textbox_set_align(Textbox *tb, TextAlign align)
 void textbox_reset_full(Textbox *tb)
 {
     txt_reset_display_value(tb->text);
+    if (tb->dynamic_resize_h) {
+	if (tb->dynamic_resize_v) {
+	    textbox_size_to_fit(tb, tb->dynamic_h_pad, tb->dynamic_v_pad);
+	} else {
+	    textbox_size_to_fit_h(tb, tb->dynamic_h_pad);
+	}
+    } else if (tb->dynamic_resize_v) {
+	textbox_size_to_fit_v(tb, tb->dynamic_v_pad);
+    }
+
 }
 
 
@@ -329,6 +353,15 @@ void textbox_reset(Textbox *tb)
 {
     /* txt_reset_display_value(tb->text); */
     txt_reset_drawable(tb->text);
+    /* if (tb->dynamic_resize_h) { */
+    /* 	if (tb->dynamic_resize_v) { */
+    /* 	    textbox_size_to_fit(tb, tb->dynamic_h_pad, tb->dynamic_v_pad); */
+    /* 	} else { */
+    /* 	    textbox_size_to_fit_h(tb, tb->dynamic_h_pad); */
+    /* 	} */
+    /* } else if (tb->dynamic_resize_v) { */
+    /* 	textbox_size_to_fit_v(tb, tb->dynamic_v_pad); */
+    /* } */
 }
 
 void textbox_set_pad(Textbox *tb, int h_pad, int v_pad)

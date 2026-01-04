@@ -719,29 +719,87 @@ static int save_preset_action(void *self, void *target)
 
 static void add_preset_page(TabView *tv, Track *track)
 {
-    static SDL_Color preset_bckgrnd = {50, 60, 60, 255};
+    static SDL_Color preset_bckgrnd = {50, 80, 80, 255};
     Page *page = tabview_add_page(tv, "Presets", SYNTH_PRESETS_LT_PATH, &preset_bckgrnd, &colors.white, main_win);
 
     PageElParams p;
+
     p.button_p.font = main_win->std_font;
-    p.button_p.set_str = "Open preset...";
     p.button_p.text_color = &colors.white;
     p.button_p.background_color = &colors.grey;
     p.button_p.text_size = 14;
     p.button_p.target = &track->synth;
+    p.button_p.set_str = "Open preset...";
     p.button_p.action = open_preset_action;
-
     Button *b = page_add_el(page,EL_BUTTON,p,"","open_button")->component;
-    textbox_set_style(b->tb, BUTTON_DARK);
-    textbox_set_pad(b->tb, 5, 5);
+
+    textbox_set_dynamic_resize(b->tb, true, true, 14, 8);
+    textbox_set_border(
+	b->tb,
+	&colors.grey,
+	1,
+        STD_CORNER_RAD);
+    textbox_style(
+	b->tb,
+	CENTER,
+	false,
+	&colors.quickref_button_blue,
+	&colors.light_grey);
+
 
     p.button_p.set_str = "Save preset as...";
     p.button_p.action = save_preset_action;
-
     b = page_add_el(page,EL_BUTTON,p,"","save_button")->component;
-    textbox_set_style(b->tb, BUTTON_DARK);
-    textbox_set_pad(b->tb, 5, 5);
+    textbox_set_dynamic_resize(b->tb, true, true, 14, 8);
+    /* textbox_set_style(b->tb, BUTTON_DARK); */
+    textbox_set_border(
+	b->tb,
+	&colors.grey,
+	1,
+        STD_CORNER_RAD);
+    textbox_style(
+	b->tb,
+	CENTER,
+	false,
+	&colors.quickref_button_blue,
+	&colors.light_grey);
 
+
+    p.textbox_p.font = main_win->std_font;
+    p.textbox_p.text_size = 14;
+    p.textbox_p.win = main_win;
+    p.textbox_p.set_str = "Preset name:";
+    page_add_el(page, EL_TEXTBOX, p, "", "preset_name_label");
+
+    p.textentry_p.value_handle = track->synth->preset_name;
+    p.textentry_p.completion = NULL;
+    p.textentry_p.validation = NULL;
+    p.textentry_p.font = main_win->bold_font;
+    p.textentry_p.text_size = 14;
+    p.textentry_p.completion_target = NULL;
+    p.textentry_p.buf_len = MAX_NAMELENGTH;
+    page_add_el(page, EL_TEXTENTRY, p, "", "preset_name");
+    
+    
+
+
+
+    /* textbox_set_bordEr( */
+    /* 	b->tb, */
+    /* 	&colors.grey, */
+    /* 	1, */
+    /*     STD_CORNER_RAD); */
+    /* textbox_style( */
+    /* 	b->tb, */
+    /* 	CENTER, */
+    /* 	false, */
+    /* 	&colors.quickref_button_blue, */
+    /* 	&colors.light_grey); */
+    /* b->tb->text->h_pad = 100; */
+
+    /* textbox_set_style(b->tb, BUTTON_DARK); */
+
+    page_center_contents(page);
     page_reset(page);
 }
 
@@ -934,6 +992,16 @@ static void synth_open_form(DirNav *dn, DirPath *dp)
 pop_modal_and_exit:
     window_pop_modal(main_win);
     tl->needs_redraw = true;
+    Track *track = timeline_selected_track(tl);
+    if (track) {
+	if (!main_win->active_tabview) {
+	    TabView *tv = synth_tabview_create(track);
+	    tabview_activate(tv);
+	    tl->needs_redraw = true;
+	    timeline_check_set_midi_monitoring();
+	    tabview_select_tab(tv, 4);
+	}
+    }
 }
 
 /* static int synth_open_form(void *mod_v, void *target) */
@@ -1033,9 +1101,7 @@ void synth_open_preset()
     window_push_modal(main_win, modal);
     modal_reset(modal);
     /* fprintf(stdout, "about to call move onto\n"); */
-    modal_move_onto(modal);
-
-    
+    modal_move_onto(modal);    
 }
 
 static int file_ext_completion_jsynth(Text *txt, void *obj)

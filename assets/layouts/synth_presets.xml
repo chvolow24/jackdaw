@@ -1,22 +1,38 @@
 <Layout name="synth_presets" type="NORMAL">
   <x>REL 0</x>
   <y>REL 0</y>
-  <w>SCALE 1.0</w>
-  <h>SCALE 1.0</h>
+  <w>SCALE 1.000000</w>
+  <h>SCALE 1.000000</h>
   <children>
     <Layout name="open_button" type="NORMAL">
-      <x>SCALE 0.100000</x>
-      <y>STACK 50</y>
+      <x>STACK 0</x>
+      <y>REL 0</y>
       <w>REL 129</w>
       <h>REL 34</h>
       <children>
       </children>
     </Layout>
     <Layout name="save_button" type="NORMAL">
-      <x>SCALE 0.100000</x>
-      <y>STACK 50</y>
+      <x>REL 0</x>
+      <y>STACK 20</y>
       <w>REL 129</w>
       <h>REL 34</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="preset_name_label" type="NORMAL">
+      <x>STACK 50</x>
+      <y>REL 0</y>
+      <w>REL 128</w>
+      <h>REL 24</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="preset_name" type="NORMAL">
+      <x>STACK -128</x>
+      <y>STACK 5</y>
+      <w>REL 278</w>
+      <h>REL 24</h>
       <children>
       </children>
     </Layout>

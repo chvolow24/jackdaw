@@ -10,22 +10,16 @@
 
 #include <math.h>
 #include <pthread.h>
-#include "SDL_events.h"
-#include "allpass.h"
 #include "audio_clip.h"
 #include "automation.h"
 #include "clipref.h"
 #include "consts.h"
 #include "dsp_utils.h"
-/* #include "dsp.h" */
 #include "effect.h"
-/* #include "eq.h" */
-#include "envelope_follower.h"
 #include "midi_io.h"
 #include "project.h"
 #include "session.h"
 #include "synth.h"
-/* #include "iir.h" */
 
 #define AMP_EPSILON 1e-7f
 
@@ -285,48 +279,6 @@ extern Window *main_win;
 Sum track samples over a chunk of timeline and return an array of samples. from_mark_in indicates that samples
 should be collected from the in mark rather than from the play head.
 */
-
-/* #include "compressor.h" */
-/* Compressor comp_L; */
-/* Compressor comp_R; */
-
-float gate_test_fn(float in_signed, int channel)
-{
-    static EnvelopeFollower envs[2];
-    static bool env_init = false;
-    if (!env_init) {
-	envelope_follower_set_times(envs, 0, 30000);
-	envelope_follower_set_times(envs + 1, 0, 30000);
-	env_init = true;
-    }
-    float env_sample = envelope_follower_sample(envs + channel, in_signed);
-    const float thresh = 0.05f;
-    /* const float steepness_exp = 3.0f; */
-
-    /* Method 1: only attenuate below the threshold, never all the way */
-    /* if (env_sample < thresh) { */
-    /* 	float multiplier = powf(env_sample / thresh, steepness_exp); */
-    /* 	return multiplier * in_signed; */
-    /* } else return in_signed; */
-    /* if (fabs(in_signed) < 0.5 */
-
-    /* Method 2: attenuate absolutely below the threshold, and roll off above it */
-    /* const float steepness_mult = 4.0f; */
-    /* if (env_sample < thresh) { */
-    /* 	return 0.0f; */
-    /* } else { */
-    /* 	return in_signed * tanhf(steepness_mult * (env_sample - thresh)); */
-    /* } */
-
-    /* Method 3: attenuate continuously according to tanh */
-    const float sharpness = 1.0f;
-    return in_signed * (tanh(powf(sharpness + 1.0f, 8.0) * (env_sample - thresh)) / 2.0f + 0.5f);
-
-}
-
-EnvelopeFollower track_1_ef = {0};
-bool track_1_ef_init = false;
-
 float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t len_sframes, int32_t start_pos_sframes, float step)
 {
     /* start = clock(); */
@@ -373,89 +325,35 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 	float track_chunk[len_sframes];
 
         float track_chunk_amp = get_track_channel_chunk(track, track_chunk, channel, start_pos_sframes, len_sframes, step);
-	
-	if (t==0) {
-	    if (!track_1_ef_init) {
-		envelope_follower_set_times(&track_1_ef, 0, 70000);
-		track_1_ef_init = true;
-	    }
-	    for (int i=0; i<len_sframes; i++) {
-		envelope_follower_sample(&track_1_ef, track_chunk[i]);
-	    }
-			
-	    /* for (int i=0; i<len_sframes; i++) { */
-	    /* 	track_chunk[i] = gate_test_fn(track_chunk[i], channel); */
-	    /* } */
-	}
-	
-	/* if (t==0) { */
-	/*     for (int i=0; i<len_sframes; i++) { */
-	/* 	track_chunk[i] = allpass_group_sample(diffuser + channel, track_chunk[i]); */
-	/*     } */
-	/*     track_chunk_amp = 1.0; */
-	/* } */
-	/* if (t==1) { */
-	/*     for (int i=0; i<len_sframes; i++) { */
-	/* 	track_chunk[i] = lop_delay_sample(lop_delay + channel, track_chunk[i]); */
-	/*     } */
-	/*     track_chunk_amp = 1.0; */
-	/* } */
-	    
-	
+	    	
 	if (track_chunk_amp > AMP_EPSILON) { /* Checks if any clip audio available */
 	    audio_in_track = true;
 	}
 	if (audio_in_track) {
 	    float_buf_add(mixdown, track_chunk, len_sframes);
 	}
-	/* if (audio_in_track */
-	/*     && timeline_selected_track(track->tl) == track */
-	/*     && main_win->active_tabview) { */
-	/*     /\* fprintf(stderr, "TRACK %d doing FFT on track output... %d\n", track->tl_rank, i); *\/ */
-	/*     float input[len_sframes * 2]; */
-	/*     memset(input + len_sframes, '\0', len_sframes * sizeof(float)); */
-	/*     memcpy(input, track_chunk, len_sframes * sizeof(float)); */
-	    
-	/*     double complex freq[len_sframes * 2]; */
-
-
-	/*     for (int i=0; i<len_sframes; i++) { */
-	/* 	input[i] *= 2.0 * hamming(i, len_sframes); */
-	/*     } */
-	/*     FFTf(input, freq, len_sframes * 2); */
-
-	/*     double **dst_buf = channel == 0 ? &track->buf_L_freq_mag : &track->buf_R_freq_mag; */
-	/*     if (!*dst_buf) *dst_buf = malloc(len_sframes * 2 * sizeof(double)); */
-	    
-	/*     get_magnitude(freq, *dst_buf, len_sframes * 2); */
-	/*     /\* i++; *\/ */
-	/*     /\* get_magnitude(freqR, track->buf_R_freq_mag, len_sframes); *\/ */
-	/* } */
-
-	/* after_track += ((double)clock() - start) / CLOCKS_PER_SEC; */
-
     }
 
-    
-
-    /* for (uint32_t i=0; i<len_sframes; i++) { */
-    /* 	if (mixdown[i] > 1.0f) { */
-    /* 	    mixdown[i] = 1.0f; */
-    /* 	} else if (mixdown[i] < -1.0f) { */
-    /* 	    mixdown[i] = -1.0f; */
-    /* 	} */
-    /* } */
-
+    /* PLAYSPEED ROLLOFF:
+       
+       If playspeed drops below threshold, attenuate volume linearly
+       based on previous rolloff value. Attenuating volume mitigates
+       large DC offsets at extremely slow playspeeds, and linear ramps
+       prevent pops at mixdown chunk boundaries when playspeed adjusted
+       continuously
+     */
     float fabs_playspeed = fabs(step);
     const float playspeed_thresh = 0.2;
     static float playspeed_rolloff[2] = {1.0f, 1.0f};
+    
+
     if (fabs_playspeed < playspeed_thresh) {
 	/* float playspeed_rolloff = pow(fabs_playspeed / playspeed_thresh, VOL_EXP * 2);	 */
 	float new_playspeed_rolloff = tanh(4.0f * fabs_playspeed / playspeed_thresh);
 	double m = (new_playspeed_rolloff - playspeed_rolloff[channel]) / len_sframes;
 	float rolloff_buf[len_sframes];
 	/* memset(rolloff_buf, 0, sizeof(rolloff_buf)); */
-	float start = playspeed_rolloff[channel];
+	/* float start = playspeed_rolloff[channel]; */
 	float val = playspeed_rolloff[channel];
 	for (int i=0; i<len_sframes; i++) {
 	    rolloff_buf[i] = val;
@@ -463,17 +361,10 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
 	    if (val < 0.0f) val = 0.0f;
 	    else if (val > 1.0f) val = 1.0f;
 	}
+
 	playspeed_rolloff[channel] = new_playspeed_rolloff;
-	fprintf(stderr, "\tROLLOFF: %f => %f (=%f) (m %e)\n", start, val, new_playspeed_rolloff, m);
-	/* float_buf_mult_const(mixdown, playspeed_rolloff, len_sframes); */
 	float_buf_mult(mixdown, rolloff_buf, len_sframes);
     }
-    float total_amp = 0.0f;
-    for (int i=0;i<len_sframes; i++) {
-	total_amp += fabs(mixdown[i]);
-    }
-    fprintf(stderr, "PS %f START %d TOTAL AMP: %f\n", step, start_pos_sframes, total_amp);
 
     return mixdown;
-    /* fprintf(stderr, "MIXDOWN TOTAL DUR: %f\n", 1000 * ((double)clock() - start)/ CLOCKS_PER_SEC); */
 }

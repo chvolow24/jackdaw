@@ -805,9 +805,18 @@ void loop_project_main()
 	/***** Debug only *****/
 	/* layout_draw(main_win, main_win->layout); */
 	/**********************/
-
+	static const int zero_playspeed_count_thresh = 20;
+        static int zero_playspeed_count = 0;
 	if (session->playback.playing) {
-	    /* Timeline *tl = ACTIVE_TL; */
+	    if (fabs(session->playback.play_speed) < 1e-6) {
+		zero_playspeed_count++;
+	    } else {
+		zero_playspeed_count = 0;
+	    }
+	    if (zero_playspeed_count > zero_playspeed_count_thresh) {
+		transport_stop_playback();
+	    }
+	    
 	    struct timespec now;
 	    clock_gettime(CLOCK_MONOTONIC, &now);
 	    double elapsed_s = now.tv_sec + ((double)now.tv_nsec / 1e9) - tl->play_pos_moved_at.tv_sec - ((double)tl->play_pos_moved_at.tv_nsec / 1e9);

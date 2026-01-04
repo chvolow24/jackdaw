@@ -43,7 +43,7 @@ extern struct colors colors;
 /* static bool do_quit_internal; */
 struct dsp_chunk_info {
     int32_t tl_start;
-    int32_t ring_buf_start;
+    /* int32_t ring_buf_start; */
     float playspeed;
     int elapsed_playback_chunks;
 };
@@ -584,7 +584,7 @@ static void *transport_dsp_thread_fn(void *arg)
 	struct dsp_chunk_info *chunk_info = tl->dsp_chunks_info + tl->dsp_chunks_info_write_i;
 	chunk_info->elapsed_playback_chunks = 0;
 	chunk_info->tl_start = tl->read_pos_sframes;
-	chunk_info->ring_buf_start = tl->buf_write_pos;
+	/* chunk_info->ring_buf_start = tl->buf_write_pos; */
 	chunk_info->playspeed = play_speed;
 	tl->dsp_chunks_info_write_i++;
 	if (tl->dsp_chunks_info_write_i >= RING_BUF_LEN_FFT_CHUNKS) tl->dsp_chunks_info_write_i = 0;

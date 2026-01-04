@@ -282,7 +282,7 @@ typedef struct timeline {
     uint8_t index;
     int32_t play_pos_sframes; /* Incremented in AUDIO DEVICE thread (small chunks) */
     int32_t read_pos_sframes; /* Incremented in DSP thread (large chunks) */
-    float last_read_playspeed;
+    /* float last_read_playspeed; */
     int32_t in_mark_sframes;
     int32_t out_mark_sframes;
     int32_t record_from_sframes;
@@ -299,6 +299,13 @@ typedef struct timeline {
     sem_t *readable_chunks;
     sem_t *writable_chunks;
     sem_t *unpause_sem;
+    /* dsp_chunks_info records information about buffered fourier-length
+       chunks, which is used in the playback callback to reset the playhead
+       position correctly */
+    struct dsp_chunk_info *dsp_chunks_info;
+    int dsp_chunks_info_read_i;
+    int dsp_chunks_info_write_i;
+    
     
     Track *tracks[MAX_TRACKS];  
     uint8_t num_tracks;

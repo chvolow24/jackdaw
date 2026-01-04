@@ -727,13 +727,13 @@ void loop_project_main()
 	if (!scrub_block && fingersdown > 0 && play_speed_scroll_recency > 4 && play_speed_scroll_recency < 20) {
 	    Value old_speed = endpoint_safe_read(&session->playback.play_speed_ep, NULL);
 	    float new_speed = old_speed.float_v / 3.0;
-	    if (fabs(new_speed) < 1E-6) {
-		transport_stop_playback();
-		play_speed_scroll_recency = 20;
+	    /* if (fabs(new_speed) < 1E-6) { */
+	    /* 	transport_stop_playback(); */
+	    /* 	play_speed_scroll_recency = 20; */
 		
-	    } else {
+	    /* } else { */
 		endpoint_write(&session->playback.play_speed_ep, (Value){.float_v = new_speed}, true, true, true, false);
-	    }
+	    /* } */
 
 	}
 	

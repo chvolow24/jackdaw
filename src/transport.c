@@ -40,6 +40,14 @@
 /* extern pthread_t CURRENT_THREAD_ID; */
 extern struct colors colors;
 
+/* static bool do_quit_internal; */
+struct dsp_chunk_info {
+    int32_t tl_start;
+    int32_t ring_buf_start;
+    float playspeed;
+    int elapsed_playback_chunks;
+};
+
 void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type);
 void transport_record_callback(void* user_data, uint8_t *stream, int len)
 {
@@ -57,8 +65,7 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
     /* 	    session->audio_io.playback_conn->callback_clock.timeline_pos, */
     /* 	    conn->callback_clock.clock, */
     /* 	    conn->callback_clock.timeline_pos); */
-
-
+    
     if (!conn->current_clip_repositioned) {
         struct timespec now;
 	clock_gettime(CLOCK_MONOTONIC, &now);
@@ -293,7 +300,6 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	    }
 	    memcpy(chunk_L, tl->buf_L + tl->buf_read_pos, sizeof(float) * len_sframes);
 	    memcpy(chunk_R, tl->buf_R + tl->buf_read_pos, sizeof(float) * len_sframes);
-	    sem_post(tl->writable_chunks);
 	    /* for (int i=0; i<session->midi_io.num_synths; i++) { */
 	    /* 	Synth *s = session->midi_io.synths[i]; */
 	    /* 	if (s->monitor) { */
@@ -356,21 +362,38 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	}
 	tl->needs_redraw = true;
     } else if (session->playback.playing) {
-	int32_t ring_buf_len = RING_BUF_LEN_FFT_CHUNKS * proj->fourier_len_sframes;
-	static float last_read_playspeed_loc = 0.0f;
-	if (last_read_playspeed_loc / tl->last_read_playspeed < 0.0f) { /* Sign switch! */
-	    last_read_playspeed_loc = tl->last_read_playspeed;
-	} else {
-	    last_read_playspeed_loc = 0.001 * tl->last_read_playspeed + 0.999 * last_read_playspeed_loc;
+
+	struct dsp_chunk_info *chunk_info = tl->dsp_chunks_info + tl->dsp_chunks_info_read_i;
+	chunk_info->elapsed_playback_chunks++;
+	int32_t new_play_pos = chunk_info->tl_start + proj->chunk_size_sframes * chunk_info->elapsed_playback_chunks * chunk_info->playspeed;
+	timeline_move_play_position(tl, new_play_pos - tl->play_pos_sframes);
+	int N = proj->fourier_len_sframes / proj->chunk_size_sframes;
+	if (chunk_info->elapsed_playback_chunks >= N) {
+	    tl->dsp_chunks_info_read_i++;
+	    if (tl->dsp_chunks_info_read_i >= RING_BUF_LEN_FFT_CHUNKS) {
+		tl->dsp_chunks_info_read_i = 0;
+	    }
 	}
-	int32_t remaining_in_ring_buf = tl->buf_write_pos > tl->buf_read_pos ? tl->buf_write_pos - tl->buf_read_pos : ring_buf_len - tl->buf_read_pos + tl->buf_write_pos;
-	if (fabs(tl->last_read_playspeed) > 1e-9) {
-	    int32_t new_play_pos = tl->read_pos_sframes - remaining_in_ring_buf * last_read_playspeed_loc;
-	    timeline_move_play_position(tl, new_play_pos - tl->play_pos_sframes);
-	} else {
-	    /* fprintf(stderr, "PAUSED! Do not move!\n"); */
-	}
+	sem_post(tl->writable_chunks);
 	
+	/* Newer old code here */
+	/* int32_t ring_buf_len = RING_BUF_LEN_FFT_CHUNKS * proj->fourier_len_sframes; */
+	/* static float last_read_playspeed_loc = 0.0f; */
+	/* if (last_read_playspeed_loc / tl->last_read_playspeed < 0.0f) { /\* Sign switch! *\/ */
+	/*     last_read_playspeed_loc = tl->last_read_playspeed; */
+	/* } else { */
+	/*     last_read_playspeed_loc = 0.001 * tl->last_read_playspeed + 0.999 * last_read_playspeed_loc; */
+	/* } */
+	/* int32_t remaining_in_ring_buf = tl->buf_write_pos > tl->buf_read_pos ? tl->buf_write_pos - tl->buf_read_pos : ring_buf_len - tl->buf_read_pos + tl->buf_write_pos; */
+	/* if (fabs(tl->last_read_playspeed) > 1e-9) { */
+	/*     int32_t new_play_pos = tl->read_pos_sframes - remaining_in_ring_buf * last_read_playspeed_loc; */
+	/*     timeline_move_play_position(tl, new_play_pos - tl->play_pos_sframes); */
+	/* } else { */
+	/*     /\* fprintf(stderr, "PAUSED! Do not move!\n"); *\/ */
+	/* } */
+	
+
+	/* old code here */
 	/* timeline_move_play_position(tl, session->playback.play_speed * stream_len_samples / proj->channels); */
 	/* fprintf(stderr, "ERROR: %d\n", tl->play_pos_sframes - new_play_pos); */
 	/* timeline_move_play_position(tl, new_play_pos - tl->play_pos_sframes); */
@@ -392,7 +415,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	while (tl->buf_read_pos != saved_write_pos) {
 	    int semret = sem_trywait(tl->readable_chunks);
 	    if (semret != 0) {
-		fprintf(stderr, "ERROR: unable to wait on readable chunks!\n");
+		fprintf(stderr, "ERROR: unable to wait on readable chunks! sem_trywait: %s\n", strerror(semret));
 		exit(1);
 	    }
 	    tl->buf_read_pos += len_sframes;
@@ -400,7 +423,12 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	    if (tl->buf_read_pos >= proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS) {
 		tl->buf_read_pos = 0;
 	    }
-	}	
+	}
+
+	/* Reset the dsp chunks info indices */
+	tl->dsp_chunks_info_read_i = 0;
+	tl->dsp_chunks_info_write_i = 0;
+
 	conn->request_playhead_reset = false;
 
     }
@@ -435,6 +463,12 @@ static void *transport_dsp_thread_fn(void *arg)
     int N = len / tl->proj->chunk_size_sframes;
     bool init = true;
 
+    if (!tl->dsp_chunks_info) {
+	tl->dsp_chunks_info = calloc(RING_BUF_LEN_FFT_CHUNKS, sizeof(struct dsp_chunk_info));
+	tl->dsp_chunks_info_read_i = 0;
+	tl->dsp_chunks_info_write_i = 0;
+    }
+    
     while (1) {
 	/* Performance timer */
 	/* struct timespec tspec_start; */
@@ -444,12 +478,12 @@ static void *transport_dsp_thread_fn(void *arg)
 
 	pthread_testcancel();
 	float play_speed = session->playback.play_speed;
-	tl->last_read_playspeed = play_speed;
+	/* tl->last_read_playspeed = play_speed; */
 	/* tl->current_dsp_chunk_start = tl->read_pos_sframes; */
 	
 	/* GET MIXDOWN */
-	get_mixdown_chunk(tl, buf_L, 0, len, tl->read_pos_sframes, session->playback.play_speed);
-	get_mixdown_chunk(tl, buf_R, 1, len, tl->read_pos_sframes, session->playback.play_speed);
+	get_mixdown_chunk(tl, buf_L, 0, len, tl->read_pos_sframes, play_speed);
+	get_mixdown_chunk(tl, buf_R, 1, len, tl->read_pos_sframes, play_speed);
 	
 	/* double timed = (((double)clock() - cd)/CLOCKS_PER_SEC); */
 	/* fprintf(stderr, "Mixdown: %f\n", timed * 1000); */
@@ -546,16 +580,25 @@ static void *transport_dsp_thread_fn(void *arg)
 	/* } */
 
 
+	/* Log chunk info for playback */
+	struct dsp_chunk_info *chunk_info = tl->dsp_chunks_info + tl->dsp_chunks_info_write_i;
+	chunk_info->elapsed_playback_chunks = 0;
+	chunk_info->tl_start = tl->read_pos_sframes;
+	chunk_info->ring_buf_start = tl->buf_write_pos;
+	chunk_info->playspeed = play_speed;
+	tl->dsp_chunks_info_write_i++;
+	if (tl->dsp_chunks_info_write_i >= RING_BUF_LEN_FFT_CHUNKS) tl->dsp_chunks_info_write_i = 0;
 
 
+	/* Increment the playback ring buffer write pos */
 	tl->buf_write_pos += len;
 	if (tl->buf_write_pos >= len * RING_BUF_LEN_FFT_CHUNKS) {
 	    tl->buf_write_pos = 0;
 	}
-
-
+	
 	/* Move the read (DSP) pos */
 	tl->read_pos_sframes += len * play_speed;
+
 
 	if (session->playback.loop_play) {
 	    int32_t loop_len = tl->out_mark_sframes - tl->in_mark_sframes;
@@ -735,6 +778,8 @@ void transport_stop_playback()
     }
     tl->buf_read_pos = 0;
     tl->buf_write_pos = 0;
+    tl->dsp_chunks_info_read_i = 0;
+    tl->dsp_chunks_info_write_i = 0;
 
     /* TODO: MAYBE */
     tl->read_pos_sframes = tl->play_pos_sframes;

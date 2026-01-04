@@ -10,6 +10,7 @@
 
 #include <math.h>
 #include <pthread.h>
+#include "SDL_events.h"
 #include "allpass.h"
 #include "audio_clip.h"
 #include "automation.h"
@@ -77,24 +78,18 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
     float vol_vals[output_chunk_len_sframes];
     float pan_vals[output_chunk_len_sframes];
 
-    float playspeed_rolloff = 1.0;
-    float fabs_playspeed = fabs(session->playback.play_speed);
-    
-    if (session->playback.playing && fabs(session->playback.play_speed) < 0.01) {
-	playspeed_rolloff = fabs_playspeed * 100.0f;
-    }
 
     /* Construct volume buffer for linear scaling */
     if (vol_auto && !vol_auto->write && vol_auto->read) {
 	automation_get_range(vol_auto, vol_vals, output_chunk_len_sframes, start_pos_sframes, step);
 	for (int i=0; i<output_chunk_len_sframes; i++) {
-	    vol_vals[i] = pow(vol_vals[i], VOL_EXP) * playspeed_rolloff;
+	    vol_vals[i] = pow(vol_vals[i], VOL_EXP);
 	}
     } else {
 	/* Value vol_val = endpoint_safe_read(&track->vol_ep, NULL); */
 	/* float vol_val = track-> */
 	for (int i=0; i<output_chunk_len_sframes; i++) {
-	    vol_vals[i] = pow(track->vol, VOL_EXP) * playspeed_rolloff;;
+	    vol_vals[i] = pow(track->vol, VOL_EXP);
 	}
     }
 
@@ -450,6 +445,34 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
     /* 	    mixdown[i] = -1.0f; */
     /* 	} */
     /* } */
+
+    float fabs_playspeed = fabs(step);
+    const float playspeed_thresh = 0.2;
+    static float playspeed_rolloff[2] = {1.0f, 1.0f};
+    if (fabs_playspeed < playspeed_thresh) {
+	/* float playspeed_rolloff = pow(fabs_playspeed / playspeed_thresh, VOL_EXP * 2);	 */
+	float new_playspeed_rolloff = tanh(4.0f * fabs_playspeed / playspeed_thresh);
+	double m = (new_playspeed_rolloff - playspeed_rolloff[channel]) / len_sframes;
+	float rolloff_buf[len_sframes];
+	/* memset(rolloff_buf, 0, sizeof(rolloff_buf)); */
+	float start = playspeed_rolloff[channel];
+	float val = playspeed_rolloff[channel];
+	for (int i=0; i<len_sframes; i++) {
+	    rolloff_buf[i] = val;
+	    val += m;
+	    if (val < 0.0f) val = 0.0f;
+	    else if (val > 1.0f) val = 1.0f;
+	}
+	playspeed_rolloff[channel] = new_playspeed_rolloff;
+	fprintf(stderr, "\tROLLOFF: %f => %f (=%f) (m %e)\n", start, val, new_playspeed_rolloff, m);
+	/* float_buf_mult_const(mixdown, playspeed_rolloff, len_sframes); */
+	float_buf_mult(mixdown, rolloff_buf, len_sframes);
+    }
+    float total_amp = 0.0f;
+    for (int i=0;i<len_sframes; i++) {
+	total_amp += fabs(mixdown[i]);
+    }
+    fprintf(stderr, "PS %f START %d TOTAL AMP: %f\n", step, start_pos_sframes, total_amp);
 
     return mixdown;
     /* fprintf(stderr, "MIXDOWN TOTAL DUR: %f\n", 1000 * ((double)clock() - start)/ CLOCKS_PER_SEC); */

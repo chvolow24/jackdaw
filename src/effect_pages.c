@@ -506,8 +506,8 @@ Page *add_delay_page(DelayLine *d, Track *track, TabView *tv)
     if (s) {
 	/* fprintf(stderr, "ADDING POINTS OF INTEREST\n"); */
 	int32_t measure_dur_sframes = s->cfg.dur_sframes;
-	int32_t beat_dur_sframes = measure_dur_sframes / s->cfg.num_atoms * s->cfg.beat_subdiv_lens[0];
-	int32_t subdiv_dur_sframes = beat_dur_sframes / s->cfg.beat_subdiv_lens[0];
+	int32_t beat_dur_sframes = measure_dur_sframes / s->cfg.num_atoms * s->cfg.beat_len_atoms[0];
+	int32_t subdiv_dur_sframes = beat_dur_sframes / s->cfg.beat_len_atoms[0];
 	int32_t subdiv_dur_msec = sframes_to_msec(subdiv_dur_sframes);
 	int16_t dur_msec = subdiv_dur_msec;
 	while (dur_msec < sl->max.int16_v) {

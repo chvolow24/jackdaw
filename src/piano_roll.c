@@ -185,8 +185,8 @@ static int32_t get_input_dur_samples()
     } else {
 	ClickSegment *s = click_track_get_segment_at_pos(state.ct, ACTIVE_TL->play_pos_sframes);
 	measure_dur = s->cfg.dur_sframes;
-	beat_dur = (double)s->cfg.dur_sframes / s->cfg.num_atoms * s->cfg.beat_subdiv_lens[0];
-	subdiv_dur = beat_dur / s->cfg.beat_subdiv_lens[0];
+	beat_dur = (double)s->cfg.dur_sframes / s->cfg.num_atoms * s->cfg.beat_len_atoms[0];
+	subdiv_dur = beat_dur / s->cfg.beat_len_atoms[0];
     }
     switch (state.current_dur) {
     case DUR_WHOLE:

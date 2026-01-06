@@ -101,7 +101,7 @@ NEW_EVENT_FN(undo_redo_set_segment_params, "undo/redo edit click segment")
     enum ts_end_bound_behavior ebb = val1.int_v;
 
     ClickSegment *redo_cpy = click_segment_copy(s);
-    click_segment_set_config(s, -1, cpy->cfg.bpm, cpy->cfg.num_beats, cpy->cfg.beat_subdiv_lens, ebb);
+    click_segment_set_config(s, -1, cpy->cfg.bpm, cpy->cfg.num_beats, cpy->cfg.beat_len_atoms, ebb);
     click_segment_destroy(cpy);
     self->obj2 = redo_cpy;
     s->track->tl->needs_redraw = true;
@@ -303,7 +303,7 @@ static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv,
     for (int i=0; i<num_beats; i++) {
 	int subdivs;
 	if (set_from_cfg) {
-	    subdivs = s->cfg.beat_subdiv_lens[i];
+	    subdivs = s->cfg.beat_len_atoms[i];
 	} else {
 	    subdivs = atoi(tt->subdiv_len_strs[i]);
 	}

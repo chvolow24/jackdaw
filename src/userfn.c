@@ -1289,13 +1289,13 @@ void user_tl_goto_prev_beat(void *nullarg)
 void user_tl_goto_next_subdiv(void *nullarg)
 {
     Session *session = session_get();
-    tl_goto_prox_click(ACTIVE_TL, 1, BP_SUBDIV2);
+    tl_goto_prox_click(ACTIVE_TL, 1, BP_SSD);
 }
 
 void user_tl_goto_prev_subdiv(void *nullarg)
 {
     Session *session = session_get();
-    tl_goto_prox_click(ACTIVE_TL, -1, BP_SUBDIV2);
+    tl_goto_prox_click(ACTIVE_TL, -1, BP_SSD);
 }
 
 void user_tl_goto_next_measure(void *nullarg)

@@ -460,7 +460,7 @@ static int add_jlily_modalfn(void *mod_v, void *target)
     ClickSegment *s = click_segment_active_at_cursor(tl);
     int32_t beat_dur;
     if (s) {
-	beat_dur = s->cfg.dur_sframes / s->cfg.num_atoms * s->cfg.beat_subdiv_lens[0];
+	beat_dur = s->cfg.dur_sframes / s->cfg.num_atoms * s->cfg.beat_len_atoms[0];
     } else {
 	beat_dur = (double)session->proj.sample_rate / 120.0 * 60.0;
     }

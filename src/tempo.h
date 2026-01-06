@@ -163,7 +163,8 @@ bool timeline_click_track_delete(Timeline *tl);
 ClickTrack *click_track_active_at_cursor(Timeline *tl);
 ClickSegment *click_segment_active_at_cursor(Timeline *tl);
 
-
+/* Reset the on-screen bar.beat.subdiv:sample indicator */
+void click_track_set_readout(ClickTrack *ct, int32_t tl_pos);
 
 /* Required in settings.c */
 ClickSegment *click_track_get_segment_at_pos(ClickTrack *t, int32_t pos);
@@ -172,7 +173,7 @@ void click_segment_destroy(ClickSegment *s);
 
 void click_segment_fprint(FILE *f, ClickSegment *s);
 
-int32_t click_track_bar_beat_subdiv(ClickTrack *tt, int32_t pos, int *bar_p, int *beat_p, int *subdiv_p, ClickSegment **segment_p, bool set_readout);
+/* int32_t click_track_bar_beat_subdiv(ClickTrack *tt, int32_t pos, int *bar_p, int *beat_p, int *subdiv_p, ClickSegment **segment_p, bool set_readout); */
 void click_track_draw_segments(ClickTrack *tt, TimeView *tv, SDL_Rect draw_rect);
 void click_track_draw(ClickTrack *tt);
 

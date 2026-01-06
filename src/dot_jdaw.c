@@ -402,7 +402,7 @@ static void jdaw_write_click_segment(FILE *f, ClickSegment *s)
     int32_ser_le(f, &s->num_measures);
     float_ser40_le(f, s->cfg.bpm);
     uint8_ser(f, &s->cfg.num_beats);
-    fwrite(&s->cfg.beat_subdiv_lens, 1, s->cfg.num_beats, f);
+    fwrite(&s->cfg.beat_len_atoms, 1, s->cfg.num_beats, f);
     uint8_t more_segments = s->next != NULL;
     uint8_ser(f, &more_segments);    
 }

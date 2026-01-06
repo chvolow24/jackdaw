@@ -39,7 +39,6 @@
 #include "session_endpoint_ops.h"
 #include "session.h"
 #include "settings.h"
-#include "symbol.h"
 #include "tempo.h"
 #include "thread_safety.h"
 #include "timeline.h"
@@ -243,7 +242,7 @@ void loop_project_main()
 		    user_piano_roll_quantize(NULL);
 		    break;
 		    ClipRef *cr = clipref_at_cursor();
-		    midi_clipref_quantize_notes_in_range(cr, 1.0, BP_SUBDIV2, true);
+		    midi_clipref_quantize_notes_in_range(cr, 1.0, BP_SSD, true);
 		    /* piano_roll_quantize_notes_in_marked_range(); */
 		}
 		    break;
@@ -737,13 +736,12 @@ void loop_project_main()
 
 	}
 	
-	if (fabs(session->playback.play_speed) > 1e-9 && !session->source_mode.source_mode) {
+	if (session->playback.playing && !session->source_mode.source_mode) {
 	    timeline_catchup(tl);
 	    timeline_set_timecode(tl);
 	    /* Set click track clock displays */
 	    for (int i=0; i<tl->num_click_tracks; i++) {
-		int bar, beat, subdiv;
-		click_track_bar_beat_subdiv(tl->click_tracks[i], tl->play_pos_sframes, &bar, &beat, &subdiv, NULL, true);
+		click_track_set_readout(tl->click_tracks[i], tl->play_pos_sframes);
 	    }
 	} else if (session->source_mode.source_mode && fabs(session->source_mode.src_play_speed) > 1e-9) {
 	    timeview_catchup(&session->source_mode.timeview);

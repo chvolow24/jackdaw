@@ -301,8 +301,9 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes, bool move
 	timeline_handle_playhead_jump(tl);
     }
     timeline_set_timecode(tl);
-    for (int i=0; i<tl->num_click_tracks; i++) {	
-	click_track_bar_beat_subdiv(tl->click_tracks[i], tl->play_pos_sframes, NULL, NULL, NULL, NULL, true);
+    for (int i=0; i<tl->num_click_tracks; i++) {
+	click_track_set_readout(tl->click_tracks[i], tl->play_pos_sframes);
+	/* click_track_bar_beat_subdiv(tl->click_tracks[i], tl->play_pos_sframes, NULL, NULL, NULL, NULL, true); */
     }
     if (move_grabbed_clips && session->dragging) {
 	if (session->piano_roll) {

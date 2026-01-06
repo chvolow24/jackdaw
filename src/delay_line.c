@@ -102,14 +102,30 @@ void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate)
     - read every <1 sample
  */
 
+
+static inline double linear_interp(double *buf, double index)
+{
+    int32_t i_left = floor(index);
+    double diff_left = index - i_left;
+    return buf[i_left] + diff_left * (buf[i_left + 1] - buf[i_left]);    
+}
+
+
 static inline void del_read_into_buffer_resize(DelayLine *dl, double *read_from, double *read_to, int32_t *read_pos, int32_t len)
 {
     for (int32_t i=0; i<len; i++) {
 	/* double read_pos_d = (double)*read_pos; */
 	double read_pos_d = dl->len * ((double)i / len);
-	int32_t read_i = (int32_t)(round(read_pos_d));
-	if (read_i < 0) read_i = 0;
-	read_to[i] = read_from[read_i];
+	/* int32_t read_i = (int32_t)(round(read_pos_d)); */
+	/* if (read_i < 0) read_i = 0; */
+	/* read_to[i] = read_from[read_i]; */
+	if (read_pos_d <= 0.0) {
+	    read_to[i] = read_from[0];
+	} else if (read_pos_d >= dl->len) {
+	    read_to[i] = read_from[dl->len - 1];
+	} else {
+	    read_to[i] = linear_interp(read_from, read_pos_d);
+	}
 	/* read_pos_d += read_step; */
 	if (read_pos_d > dl->len) {
 	    read_pos_d -= dl->len;

@@ -6,8 +6,7 @@
   
   Jackdaw is licensed under the GNU General Public License.
 
- ****************************************************************************************************************
- */
+*****************************************************************************************************************/
 
 #include "endpoint_callbacks.h"
 #include "midi_objs.h"
@@ -110,273 +109,372 @@ ClickSegment *click_track_get_segment_at_pos(ClickTrack *t, int32_t pos)
 
 /*------ internal utils & tl pos <> ct pos translation ---------------*/
 
-static int32_t get_beat_pos(ClickSegment *s, int measure, int beat, int subdiv)
+/* TODO: finer subdivs */
+/* static int32_t get_beat_pos(ClickSegment *s, int measure, int beat, int subdiv) */
+/* {     */
+/*     int32_t pos = s->start_pos + (measure - s->first_measure_index) * s->cfg.dur_sframes; */
+/*     for (int i=0; i<beat; i++) { */
+/* 	pos += s->cfg.dur_sframes * s->cfg.beat_subdiv_lens[i] / s->cfg.num_atoms; */
+/*     } */
+/*     pos += s->cfg.dur_sframes * subdiv / s->cfg.num_atoms; */
+/*     return pos; */
+/* } */
+
+static inline int32_t atom_len(ClickSegment *s)
 {
-    
-    int32_t pos = s->start_pos + (measure - s->first_measure_index) * s->cfg.dur_sframes;
-    for (int i=0; i<beat; i++) {
-	pos += s->cfg.dur_sframes * s->cfg.beat_subdiv_lens[i] / s->cfg.num_atoms;
-    }
-    pos += s->cfg.dur_sframes * subdiv / s->cfg.num_atoms;
-    return pos;
+    return s->cfg.dur_sframes / s->cfg.num_atoms;
 }
 
-static void do_increment(ClickSegment *s, int *measure, int *beat, int *subdiv)
+static inline int32_t get_sd_len(ClickSegment *s, int beat)
 {
-    if (*subdiv == s->cfg.beat_subdiv_lens[*beat] - 1) {
-	if (*beat == s->cfg.num_beats - 1) {
-	    *beat = 0;
-	    *subdiv = 0;
-	    (*measure)++;
-	} else {
-	    (*beat)++;
-	    *subdiv = 0;
+    int atoms = s->cfg.beat_len_atoms[beat];
+    if (atoms > 2 && atoms % 2 == 0) {
+	return 2;
+    } else {
+	return 1;
+    }
+}
+
+static inline int beat_len_subdivs(ClickSegment *s, int beat)
+{
+    int atoms = s->cfg.beat_len_atoms[beat];
+    if (atoms > 2 && atoms % 2 == 0) {
+	return atom_len(s) * 2;
+    } else {
+	return atom_len(s);
+    }
+}
+
+/* TODO: redundant with to/from ctpos functions */
+static int32_t get_beat_pos(ClickTrackPos ct_pos)
+{
+    ClickSegment *seg = ct_pos.seg;
+    int32_t pos = seg->start_pos + (ct_pos.measure - seg->first_measure_index) * seg->cfg.dur_sframes;
+    for (int i=0; i<ct_pos.beat; i++) {
+	pos += seg->cfg.dur_sframes * seg->cfg.beat_len_atoms[i] / seg->cfg.num_atoms;	
+    }
+    int32_t sd_len = get_sd_len(seg, ct_pos.beat);
+    pos += ct_pos.sd * sd_len;
+    pos += ct_pos.ssd * sd_len / 2;
+    pos += ct_pos.sssd * sd_len / 4;
+    return pos + ct_pos.remainder * sd_len;
+}
+
+static void do_increment(ClickTrackPos *ctp, BeatProminence bp)
+{
+    switch (bp) {
+    case BP_MEASURE:
+	ctp->measure++;
+	break;
+    case BP_BEAT:
+	ctp->beat++;
+	break;
+    case BP_SD:
+	ctp->sd++;
+	break;
+    case BP_SSD:
+	ctp->ssd++;
+	break;
+    case BP_SSSD:
+	ctp->sssd++;
+	break;
+    default:
+	return;
+    }
+    /* Do wrapping. no breaks */
+    switch (bp) {
+    case BP_SSSD:
+	if (ctp->sssd >= 2) {
+	    ctp->sssd = 0;
+	    ctp->ssd++;
 	}
-    } else {
-	(*subdiv)++;
-    }
+    case BP_SSD:
+	if (ctp->ssd >= 2) {
+	    ctp->ssd = 0;
+	    ctp->sd++;
+	}
+    case BP_SD:
+	if (ctp->sd >= beat_len_subdivs(ctp->seg, ctp->beat)) {
+	    ctp->sd = 0;
+	    ctp->beat++;
+	}
+    case BP_BEAT:
+	if (ctp->beat >= ctp->seg->cfg.num_beats) {
+	    ctp->beat = 0;
+	    ctp->measure++;
+	}
+    case BP_MEASURE:
+	if (ctp->measure > ctp->seg->num_measures - ctp->seg->first_measure_index) {
+	    /* no need to set measure to zero, bc measure offset always measured relative to timeline (not segment) */
+	    ctp->seg = ctp->seg->next;
+	}
+    default:
+	return;
+    }	
 }
 
-static void do_decrement(ClickSegment *s, int *measure, int *beat, int *subdiv)
+static void do_decrement(ClickTrackPos *ctp, BeatProminence bp)
 {
-    if (*subdiv > 0) {
-	(*subdiv)--;
-    } else if (*beat > 0) {
-	(*beat)--;
-	(*subdiv) = s->cfg.beat_subdiv_lens[*beat] - 1;
-    } else {
-	(*measure)--;
-	(*beat) = s->cfg.num_beats - 1;
-	(*subdiv) = s->cfg.beat_subdiv_lens[*beat] - 1;
+    switch (bp) {
+    case BP_MEASURE:
+	ctp->measure--;
+	break;
+    case BP_BEAT:
+	ctp->beat--;
+	break;
+    case BP_SD:
+	ctp->sd--;
+	break;
+    case BP_SSD:
+	ctp->ssd--;
+	break;
+    case BP_SSSD:
+	ctp->sssd--;
+	break;
+    default:
+	return;
     }
+    /* Do wrapping. no breaks */
+    switch (bp) {
+    case BP_SSSD:
+	if (ctp->sssd < 0) {
+	    ctp->sssd = 1;
+	    ctp->ssd--;
+	}
+    case BP_SSD:
+	if (ctp->ssd < 0) {
+	    ctp->ssd = 1;
+	    ctp->sd--;
+	}
+    case BP_SD:
+	if (ctp->sd < 0) {// beat_len_subdivs(ctp->seg, ctp->beat)) {
+	    ctp->beat--;
+	    ctp->sd = beat_len_subdivs(ctp->seg, ctp->beat) - 1;
+	}
+    case BP_BEAT:
+	if (ctp->beat < 0) {
+	    ctp->beat = 0;
+	    ctp->measure--;
+	}
+    case BP_MEASURE:
+	if (ctp->measure < ctp->seg->first_measure_index) {
+	    if (ctp->seg->prev) {
+		ctp->seg = ctp->seg->prev;
+	    } else {
+		fprintf(stderr, "Error: attempting to decrement past earliest segment\n");
+		TESTBREAK
+	    }
+	}
+    default:
+	return;
+    }	
+
 }
 
-static void get_beat_prominence(ClickSegment *s, BeatProminence *bp, int measure, int beat, int subdiv)
+static BeatProminence get_beat_prominence(ClickTrackPos ctp)
 {
-    if (measure == s->first_measure_index && beat == 0 && subdiv == 0) {
-	*bp = BP_SEGMENT;
-    } else if (subdiv == 0 && beat == 0) {
-	*bp = BP_MEASURE;
-    } else if (subdiv == 0 && beat != 0) {
-	*bp = BP_BEAT;
-    } else if (s->cfg.beat_subdiv_lens[beat] %2 == 0 && subdiv % 2 == 0) {
-	*bp = BP_SUBDIV;
-    } else {
-	*bp = BP_SUBDIV2;
-    }
+    if (ctp.remainder != 0) return BP_NONE;
+    if (ctp.sssd != 0) return BP_SSSD;
+    if (ctp.ssd != 0) return BP_SSD;
+    if (ctp.sd != 0) return BP_SD;
+    if (ctp.beat != 0) return BP_BEAT;
+    if (ctp.measure != ctp.seg->first_measure_index) return BP_MEASURE;
+    else return BP_SEGMENT;    
 }
+
 
 /* Simple stateless version of click_track_bar_beat_subdiv() */
 ClickTrackPos click_track_get_pos(ClickTrack *ct, int32_t tl_pos)
 {
-    ClickSegment *seg = click_track_get_segment_at_pos(ct, tl_pos);
-    int32_t pos_in_seg = tl_pos - seg->start_pos;
-    int measure = (pos_in_seg / seg->cfg.dur_sframes) + seg->first_measure_index;
-    int beat = 0;
-    int subdiv = 0;
+    ClickTrackPos ret = {0};
+    ret.seg = click_track_get_segment_at_pos(ct, tl_pos);
+    int32_t pos_in_seg = tl_pos - ret.seg->start_pos;
+    ret.measure = (pos_in_seg / ret.seg->cfg.dur_sframes) + ret.seg->first_measure_index;
     int32_t beat_pos;
     do {
-	beat_pos = get_beat_pos(seg, measure, beat, subdiv);
-	do_increment(seg, &measure, &beat, &subdiv);
+	beat_pos = get_beat_pos(ret);
+	do_increment(&ret, BP_SSSD);
     } while (beat_pos < tl_pos);
-    do_decrement(seg, &measure, &beat, &subdiv);
-    if (beat_pos > tl_pos) 
-	do_decrement(seg, &measure, &beat, &subdiv);
-    ClickTrackPos ret;
-    ret.seg = seg;
-    ret.measure = measure;
-    ret.beat = beat;
-    ret.subdiv = subdiv;
-    ret.remainder = (double)seg->cfg.num_atoms * (tl_pos - get_beat_pos(seg, measure, beat, subdiv)) / seg->cfg.dur_sframes; 
-    /* ret.remainder = tl_pos - get_beat_pos(seg, measure, beat, subdiv); */
+    do_decrement(&ret, BP_SSSD);
+    if (beat_pos > tl_pos)
+	do_decrement(&ret, BP_SSSD);
+    beat_pos = get_beat_pos(ret);
+    ret.remainder = (double)(tl_pos - beat_pos) / get_sd_len(ret.seg, ret.beat);
     return ret;
 }
 
 /* Convert ClickTrackPos to raw tl pos (sframes) (for repositioning elements on tempo change, e.g.) */
 int32_t click_track_pos_to_tl_pos(ClickTrackPos *ctp)
 {
-    return ctp->remainder * ctp->seg->cfg.dur_sframes / ctp->seg->cfg.num_atoms + get_beat_pos(ctp->seg, ctp->measure, ctp->beat, ctp->subdiv);
+    /* return ctp->remainder * ctp->seg->cfg.dur_sframes / ctp->seg->cfg.num_atoms + get_beat_pos(ctp->seg, ctp->measure, ctp->beat, ctp->subdiv); */
+    return get_beat_pos(*ctp);
 }
 
 /* sets bar, beat, and pos; returns remainder in sframes */
-int32_t click_track_bar_beat_subdiv(ClickTrack *tt, int32_t pos, int *bar_p, int *beat_p, int *subdiv_p, ClickSegment **segment_p, bool set_readout)
+/* int32_t click_track_bar_beat_subdiv(ClickTrack *tt, int32_t pos, int *bar_p, int *beat_p, int *subdiv_p, ClickSegment **segment_p, bool set_readout) */
+/* { */
+/*     /\* bool debug = false; *\/ */
+/*     /\* if (strcmp(get_thread_name(), "main") == 0) { *\/ */
+/*     /\* 	debug = true; *\/ */
+/*     /\* } *\/ */
+/*     /\* fprintf(stderr, "CALL TO bar beat subdiv in thread %s\n", get_thread_name()); *\/ */
+/*     static JDAW_THREAD_LOCAL int measures[MAX_CLICK_TRACKS] = {0}; */
+/*     static JDAW_THREAD_LOCAL int beats[MAX_CLICK_TRACKS] = {0}; */
+/*     static JDAW_THREAD_LOCAL int subdivs[MAX_CLICK_TRACKS] = {0}; */
+/*     /\* static JDAW_THREAD_LOCAL int32_t prev_positions[MAX_CLICK_TRACKS]; *\/ */
+    
+/*     int measure = measures[tt->index]; */
+/*     int beat = beats[tt->index]; */
+/*     int subdiv = subdivs[tt->index]; */
+
+/*     ClickSegment *s = click_track_get_segment_at_pos(tt, pos); */
+/*     if (measure < s->first_measure_index) { */
+/* 	/\* fprintf(stderr, "Cache invalid MEASURE %d (s num: %d)\n", measure, s->num_measures); *\/ */
+/* 	measure = s->first_measure_index; */
+/* 	beat = 0; */
+/* 	subdiv = 0; */
+/*     } else if (beat > s->cfg.num_beats -1) { */
+/* 	/\* fprintf(stderr, "Cache invalid BEAT\n"); *\/ */
+/* 	beat = 0; */
+/* 	subdiv = 0; */
+/*     } else if (subdiv > s->cfg.beat_len_atoms[beat] - 1) { */
+/* 	/\* fprintf(stderr, "Cache invalid SUBDIV\n"); *\/ */
+/* 	subdiv = 0; */
+/*     } */
+    
+/*     /\* if (measure == 0) measure = s->first_measure_index; *\/ */
+/*     /\* int32_t prev_pos = prev_positions[tt->index]; *\/ */
+/*     int32_t beat_pos = 0; */
+    
+/*     /\* #ifdef TESTBUILD *\/ */
+/*     int ops = 0; */
+/*     /\* #endif *\/ */
+    
+/*     int32_t remainder = 0; */
+/*     /\* if (debug) { *\/ */
+/*     /\* 	/\\* fprintf(stderr, "\t\tSTART loop\n"); *\\/ *\/ */
+/*     /\* } *\/ */
+/*     while (1) { */
+	
+	
+/* 	beat_pos = get_beat_pos(s, measure, beat, subdiv); */
+/* 	remainder = pos - beat_pos; */
+
+/* 	/\* #ifdef TESTBUILD *\/ */
+/* 	ops++; */
+/* 	if (ops > 1000000 - 5) { */
+/* 	    if (ops > 1000000 - 3) breakfn(); */
+/* 	    fprintf(stderr, "ABORTING soon... ops = %d\n", ops); */
+/* 	    fprintf(stderr, "Segment start: %d\n", s->start_pos); */
+/* 	    fprintf(stderr, "Beat pos: %d\n", beat_pos); */
+/* 	    fprintf(stderr, "Pos: %d\n", pos); */
+/* 	    if (ops > 1000000) { */
+/* 		fprintf(stderr, "ABORT\n"); */
+/* 		click_track_fprint(stderr, tt); */
+/* 		goto set_dst_values; */
+/* 		/\* return 0; *\/ */
+/* 		/\* exit(1); *\/ */
+/* 	    } */
+/* 	} */
+/* 	/\* #endif *\/ */
+	
+/* 	/\* if (debug) { *\/ */
+/* 	/\*     /\\* fprintf(stderr, "\t\t\tremainder: (%d - %d) %d cmp dur approx: %d\n", pos, beat_pos, remainder, s->cfg.atom_dur_approx); *\\/ *\/ */
+/* 	/\* } *\/ */
+/* 	if (remainder < 0) { */
+/* 	    do_decrement(s, &measure, &beat, &subdiv); */
+/* 	} else { */
+/* 	    if (remainder < s->cfg.atom_dur_approx) { */
+/* 		break; */
+/* 	    } */
+/* 	    do_increment(s, &measure, &beat, &subdiv); */
+/* 	    /\* prev_pos = beat_pos; *\/ */
+/* 	} */
+
+/*     } */
+/*     /\* if (debug) { *\/ */
+/*     /\* 	/\\* fprintf(stderr, "\t\t->exit loop, ops %d\n", ops); *\\/ *\/ */
+/*     /\* } *\/ */
+/*     /\* v_positions[tt->index] = pos; *\/ */
+    
+/*     /\* do_decrement(s, &measure, &beat, &subdiv); *\/ */
+/*     /\* double dur = ((double)clock() - c) / CLOCKS_PER_SEC; *\/ */
+/*     /\* fprintf(stderr, "Ops; %d, time msec: %f\n", ops, dur * 1000); *\/ */
+
+
+/*     /\* Set destination pointer values *\/ */
+/*     /\* #ifdef TESTBUILD *\/ */
+/* set_dst_values: */
+/*     /\* #endif *\/ */
+/*     if (bar_p && beat_p && subdiv_p) { */
+/* 	*bar_p = measure; */
+/* 	*beat_p = beat; */
+/* 	*subdiv_p = subdiv; */
+/*     } */
+/*     if (segment_p) { */
+/* 	*segment_p = s; */
+/*     } */
+
+/*     /\* Set cache values *\/ */
+/*     measures[tt->index] = measure; */
+/*     beats[tt->index] = beat; */
+/*     subdivs[tt->index] = subdiv; */
+    
+/*     /\* Translate from zero-indexed for readout *\/ */
+/*     measure = measure >= 0 ? measure + 1 : measure; */
+/*     beat++; */
+/*     subdiv++; */
+    
+/*     /\* remainder = pos - prev_pos; *\/ */
+/*     /\* fprintf(stderr, "AT %d:\t%d, %d, %d\n", pos, measure, beat, subdiv); *\/ */
+/*     if (set_readout) { */
+/* 	static const int sample_str_len = 7; */
+/* 	char sample_str[sample_str_len]; */
+/* 	if (remainder < -99999) { */
+/* 	    snprintf(sample_str, sample_str_len, "%s", "-∞"); */
+/* 	} else if (remainder > 999999) { */
+/* 	    snprintf(sample_str, sample_str_len, "%s", "∞"); */
+/* 	} else { */
+/* 	    snprintf(sample_str, sample_str_len, "%d", remainder); */
+/* 	} */
+/* 	/\* fprintf(stderr, "MEASURE RAW: %d\n", measure); *\/ */
+/* 	snprintf(tt->pos_str, CLICK_POS_STR_LEN, "%d.%d.%d:%s", measure, beat, subdiv, sample_str); */
+/* 	textbox_reset_full(tt->readout); */
+/*     /\* fprintf(stderr, "%s\n", tt->pos_str); *\/ */
+/*     } */
+/*     return remainder; */
+/* } */
+
+void click_track_set_readout(ClickTrack *ct, ClickTrackPos ctp)
 {
-    /* bool debug = false; */
-    /* if (strcmp(get_thread_name(), "main") == 0) { */
-    /* 	debug = true; */
+    static const int sample_str_len = 7;
+    char sample_str[sample_str_len];
+    /* if (remainder < -99999) { */
+    /* 	snprintf(sample_str, sample_str_len, "%s", "-∞"); */
+    /* } else if (remainder > 999999) { */
+    /* 	snprintf(sample_str, sample_str_len, "%s", "∞"); */
+    /* } else { */
+    snprintf(sample_str, sample_str_len, "%d", (int32_t)(ctp.remainder * get_sd_len(ctp.seg, ctp.beat)));
     /* } */
-    /* fprintf(stderr, "CALL TO bar beat subdiv in thread %s\n", get_thread_name()); */
-    static JDAW_THREAD_LOCAL int measures[MAX_CLICK_TRACKS] = {0};
-    static JDAW_THREAD_LOCAL int beats[MAX_CLICK_TRACKS] = {0};
-    static JDAW_THREAD_LOCAL int subdivs[MAX_CLICK_TRACKS] = {0};
-    /* static JDAW_THREAD_LOCAL int32_t prev_positions[MAX_CLICK_TRACKS]; */
-    
-    int measure = measures[tt->index];
-    int beat = beats[tt->index];
-    int subdiv = subdivs[tt->index];
-
-    ClickSegment *s = click_track_get_segment_at_pos(tt, pos);
-    if (measure < s->first_measure_index) {
-	/* fprintf(stderr, "Cache invalid MEASURE %d (s num: %d)\n", measure, s->num_measures); */
-	measure = s->first_measure_index;
-	beat = 0;
-	subdiv = 0;
-    } else if (beat > s->cfg.num_beats -1) {
-	/* fprintf(stderr, "Cache invalid BEAT\n"); */
-	beat = 0;
-	subdiv = 0;
-    } else if (subdiv > s->cfg.beat_subdiv_lens[beat] - 1) {
-	/* fprintf(stderr, "Cache invalid SUBDIV\n"); */
-	subdiv = 0;
-    }
-    
-    /* if (measure == 0) measure = s->first_measure_index; */
-    /* int32_t prev_pos = prev_positions[tt->index]; */
-    int32_t beat_pos = 0;
-    
-    /* #ifdef TESTBUILD */
-    int ops = 0;
-    /* #endif */
-    
-    int32_t remainder = 0;
-    /* if (debug) { */
-    /* 	/\* fprintf(stderr, "\t\tSTART loop\n"); *\/ */
-    /* } */
-    while (1) {
-	
-	
-	beat_pos = get_beat_pos(s, measure, beat, subdiv);
-	remainder = pos - beat_pos;
-
-	/* #ifdef TESTBUILD */
-	ops++;
-	if (ops > 1000000 - 5) {
-	    if (ops > 1000000 - 3) breakfn();
-	    fprintf(stderr, "ABORTING soon... ops = %d\n", ops);
-	    fprintf(stderr, "Segment start: %d\n", s->start_pos);
-	    fprintf(stderr, "Beat pos: %d\n", beat_pos);
-	    fprintf(stderr, "Pos: %d\n", pos);
-	    if (ops > 1000000) {
-		fprintf(stderr, "ABORT\n");
-		click_track_fprint(stderr, tt);
-		goto set_dst_values;
-		/* return 0; */
-		/* exit(1); */
-	    }
-	}
-	/* #endif */
-	
-	/* if (debug) { */
-	/*     /\* fprintf(stderr, "\t\t\tremainder: (%d - %d) %d cmp dur approx: %d\n", pos, beat_pos, remainder, s->cfg.atom_dur_approx); *\/ */
-	/* } */
-	if (remainder < 0) {
-	    do_decrement(s, &measure, &beat, &subdiv);
-	} else {
-	    if (remainder < s->cfg.atom_dur_approx) {
-		break;
-	    }
-	    do_increment(s, &measure, &beat, &subdiv);
-	    /* prev_pos = beat_pos; */
-	}
-
-    }
-    /* if (debug) { */
-    /* 	/\* fprintf(stderr, "\t\t->exit loop, ops %d\n", ops); *\/ */
-    /* } */
-    /* v_positions[tt->index] = pos; */
-    
-    /* do_decrement(s, &measure, &beat, &subdiv); */
-    /* double dur = ((double)clock() - c) / CLOCKS_PER_SEC; */
-    /* fprintf(stderr, "Ops; %d, time msec: %f\n", ops, dur * 1000); */
-
-
-    /* Set destination pointer values */
-    /* #ifdef TESTBUILD */
-set_dst_values:
-    /* #endif */
-    if (bar_p && beat_p && subdiv_p) {
-	*bar_p = measure;
-	*beat_p = beat;
-	*subdiv_p = subdiv;
-    }
-    if (segment_p) {
-	*segment_p = s;
-    }
-
-    /* Set cache values */
-    measures[tt->index] = measure;
-    beats[tt->index] = beat;
-    subdivs[tt->index] = subdiv;
-    
-    /* Translate from zero-indexed for readout */
-    measure = measure >= 0 ? measure + 1 : measure;
-    beat++;
-    subdiv++;
-    
-    /* remainder = pos - prev_pos; */
-    /* fprintf(stderr, "AT %d:\t%d, %d, %d\n", pos, measure, beat, subdiv); */
-    if (set_readout) {
-	static const int sample_str_len = 7;
-	char sample_str[sample_str_len];
-	if (remainder < -99999) {
-	    snprintf(sample_str, sample_str_len, "%s", "-∞");
-	} else if (remainder > 999999) {
-	    snprintf(sample_str, sample_str_len, "%s", "∞");
-	} else {
-	    snprintf(sample_str, sample_str_len, "%d", remainder);
-	}
-	/* fprintf(stderr, "MEASURE RAW: %d\n", measure); */
-	snprintf(tt->pos_str, CLICK_POS_STR_LEN, "%d.%d.%d:%s", measure, beat, subdiv, sample_str);
-	textbox_reset_full(tt->readout);
-    /* fprintf(stderr, "%s\n", tt->pos_str); */
-    }
-    return remainder;
+    snprintf(ct->pos_str, CLICK_POS_STR_LEN, "%d.%d.%d:%s", ctp.measure, ctp.beat, ctp.sd, sample_str);
+    textbox_reset_full(ct->readout);
 }
 
-/* Stateful function, repeated calls to which will get the next beat or subdiv position on a tempo track */
-static bool click_track_get_next_pos(ClickTrack *t, bool start, int32_t start_from, int32_t *pos, BeatProminence *bp, ClickSegment **seg_dst)
+/* Quickly increment over subdivs positions on a track (BP_SSD) */
+static void click_track_get_next_pos(ClickTrack *t, bool start, int32_t start_from, int32_t *pos, BeatProminence *bp, ClickSegment **seg_dst)
 {
-    static JDAW_THREAD_LOCAL ClickSegment *s;
-    static JDAW_THREAD_LOCAL int beat = 0;
-    static JDAW_THREAD_LOCAL int subdiv = 0;
-    static JDAW_THREAD_LOCAL int measure = 0;
+    static JDAW_THREAD_LOCAL ClickTrackPos ctp = {0};
     if (start) {
-	s = click_track_get_segment_at_pos(t, start_from);
-	int32_t current_pos = s->start_pos;
-	measure = s->first_measure_index;
-	beat = 0;
-	subdiv = 0;
-	while (1) {
-	    current_pos = get_beat_pos(s, measure, beat, subdiv);
-	    if (current_pos >= start_from) {
-		*pos = current_pos;
-		goto set_prominence_and_exit;
-	    }
-
-	    do_increment(s, &measure, &beat, &subdiv);
-	}
+	ctp = click_track_get_pos(t, start_from);
     } else {
-	do_increment(s, &measure, &beat, &subdiv);
-	*pos = get_beat_pos(s, measure, beat, subdiv);
-	/* If segment is not last */
-	if (s->next && *pos >= s->next->start_pos) {
-	    s = s->next;
-	    if (!s) {
-		fprintf(stderr, "Fatal error: no tempo track segment where expected\n");
-		exit(1);
-	    }
-	    *pos = s->start_pos;
-	    measure = s->first_measure_index;
-	    beat = 0;
-	    subdiv = 0;
-	}
+	do_increment(&ctp, BP_SSD);
     }
-set_prominence_and_exit:
     if (seg_dst) {
-	*seg_dst = s;
+	*seg_dst = ctp.seg;
     }
-    get_beat_prominence(s, bp, measure, beat, subdiv);
-    return true;
+    if (bp) {
+	*bp = get_beat_prominence(ctp);
+    }
 }
 
 
@@ -414,15 +512,15 @@ void click_segment_set_config(ClickSegment *s, int num_measures, float bpm, uint
     for (int i=0; i<num_beats; i++) {
 	int subdiv_len_atoms = subdivs[i];
 	/* int subdiv_len_atoms = va_arg(subdivs, int); */
-	s->cfg.beat_subdiv_lens[i] = subdiv_len_atoms;
+	s->cfg.beat_len_atoms[i] = subdiv_len_atoms;
 	s->cfg.num_atoms += subdiv_len_atoms;
-	if (i == 0 || s->cfg.beat_subdiv_lens[i] < min_subdiv_len_atoms) {
-	    min_subdiv_len_atoms = s->cfg.beat_subdiv_lens[i];
+	if (i == 0 || s->cfg.beat_len_atoms[i] < min_subdiv_len_atoms) {
+	    min_subdiv_len_atoms = s->cfg.beat_len_atoms[i];
 	}
     }
     double measure_dur = 0;
     for (int i=0; i<num_beats; i++) {
-	measure_dur += beat_dur * s->cfg.beat_subdiv_lens[i] / min_subdiv_len_atoms;
+	measure_dur += beat_dur * s->cfg.beat_len_atoms[i] / min_subdiv_len_atoms;
     }
 				   
     s->cfg.dur_sframes = (int32_t)(round(measure_dur));
@@ -664,7 +762,7 @@ static void bpm_proj_cb(Endpoint *ep)
     ClickSegment *s = ep->xarg1;
     double len_prop = ep->last_write_val.float_v / ep->current_write_val.float_v;
     stash_all_object_positions(s, len_prop);
-    click_segment_set_config(s, s->num_measures, ep->current_write_val.float_v, s->cfg.num_beats, s->cfg.beat_subdiv_lens, s->track->end_bound_behavior);
+    click_segment_set_config(s, s->num_measures, ep->current_write_val.float_v, s->cfg.num_beats, s->cfg.beat_len_atoms, s->track->end_bound_behavior);
     if (session_get()->dragged_component.component == s) {
 	label_move(s->bpm_label, main_win->mousep.x, s->track->layout->rect.y - 20);
     }
@@ -1173,7 +1271,7 @@ ClickSegment *click_track_cut_at(ClickTrack *tt, int32_t at)
 {
     ClickSegment *s = click_track_get_segment_at_pos(tt, at);
     uint8_t subdiv_lens[s->cfg.num_beats];
-    memcpy(subdiv_lens, s->cfg.beat_subdiv_lens, s->cfg.num_beats * sizeof(uint8_t));
+    memcpy(subdiv_lens, s->cfg.beat_len_atoms, s->cfg.num_beats * sizeof(uint8_t));
     return click_track_add_segment(tt, at, -1, s->cfg.bpm, s->cfg.num_beats, subdiv_lens);
 }
 
@@ -1229,7 +1327,7 @@ void timeline_increment_click_at_cursor(Timeline *tl, int inc_by)
     ClickSegment *s = click_track_get_segment_at_pos(tt, tl->play_pos_sframes);
     int new_tempo = s->cfg.bpm + inc_by;
     uint8_t subdiv_lens[s->cfg.num_beats];
-    memcpy(subdiv_lens, s->cfg.beat_subdiv_lens, s->cfg.num_beats * sizeof(uint8_t));
+    memcpy(subdiv_lens, s->cfg.beat_len_atoms, s->cfg.num_beats * sizeof(uint8_t));
     click_segment_set_config(s, s->num_measures, new_tempo, s->cfg.num_beats, subdiv_lens, tt->end_bound_behavior);
     tl->needs_redraw = true;
 }
@@ -1845,7 +1943,7 @@ void click_segment_fprint(FILE *f, ClickSegment *s)
     fprintf(f, "\tCfg beats: %d\n", s->cfg.num_beats);
     fprintf(f, "\tCfg beat subdiv lengths:\n");
     for (int i=0; i<s->cfg.num_beats; i++) {
-	fprintf(f, "\t\t%d: %d\n", i, s->cfg.beat_subdiv_lens[i]);
+	fprintf(f, "\t\t%d: %d\n", i, s->cfg.beat_len_atoms[i]);
     }
     fprintf(f, "\tCfg num atoms: %d\n", s->cfg.num_atoms);
     fprintf(f, "\tCfg measure dur: %d\n", s->cfg.dur_sframes);

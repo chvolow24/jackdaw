@@ -32,20 +32,30 @@
 
 #define BPM_STRLEN 16
 
+/* typedef enum beat_prominence { */
+/*     BP_SEGMENT=0, */
+/*     BP_MEASURE=1, */
+/*     BP_BEAT=2, */
+/*     BP_SUBDIV=3, */
+/*     BP_SUBDIV2=4, */
+/*     BP_NONE=5 */
+/* } BeatProminence; */
+
 typedef enum beat_prominence {
-    BP_SEGMENT=0,
-    BP_MEASURE=1,
-    BP_BEAT=2,
-    BP_SUBDIV=3,
-    BP_SUBDIV2=4,
-    BP_NONE=5
+    BP_SEGMENT,
+    BP_MEASURE,
+    BP_BEAT,
+    BP_SD,
+    BP_SSD,
+    BP_SSSD,
+    BP_NONE
 } BeatProminence;
 
 typedef struct measure_config {
     float bpm;
     int32_t dur_sframes;
     uint8_t num_beats;
-    uint8_t beat_subdiv_lens[MAX_BEATS_PER_BAR];
+    uint8_t beat_len_atoms[MAX_BEATS_PER_BAR];
     uint8_t num_atoms;
     int32_t atom_dur_approx; /* Not to be used for precise calculations */
 } MeasureConfig;
@@ -76,12 +86,12 @@ typedef struct timeline Timeline;
 typedef struct click_track_pos {
     ClickSegment *seg;
     int measure;
-    int beat;
-    int subdiv;
-    double remainder; /* as fraction of subdiv len */
-    /* int32_t remainder; */
+    int beat; /* (e.g. quarter) */
+    int sd; /* subdiv (e.g. eighth) */
+    int ssd; /* sub-subdiv (e.g. sixteenth) */
+    int sssd; /* sub-sub-subdiv (e.g. thirty-second) */
+    double remainder; /* as a fraction of sd len */
 } ClickTrackPos;
-
 
 typedef struct metronome {
     const char *name;

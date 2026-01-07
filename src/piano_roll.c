@@ -164,7 +164,7 @@ static struct piano_roll_state state;
 /* { */
 /*     Layout *main_lt = layout_read_from_xml(PIANO_ROLL_LT_PATH); */
 /*     state.layout = main_lt; */
-/*     Layout *piano_lt = layout_get_child_by_name_recursive(main_lt, "piano"); */
+/*     Layout *piano_lt = layout_get_cemhild_by_name_recursive(main_lt, "piano"); */
 /*     state.piano_lt = piano_lt; */
 /*     layout_read_xml_to_lt(main_lt, PIANO_88_VERTICAL_LT_PATH); */
 
@@ -174,19 +174,17 @@ static int32_t get_input_dur_samples()
 {
     Session *session = session_get();
     int32_t sample_rate = session->proj.sample_rate;
-    double measure_dur;
-    double beat_dur;
-    double subdiv_dur;
+    int32_t measure_dur;
+    int32_t beat_dur;
+    int32_t subdiv_dur;
     if (!state.ct) { /* No click track; assume 120bmp 4/4 */
 	beat_dur = (double)sample_rate / 120.0 * 60.0;
 	measure_dur = beat_dur * 4.0;
 	subdiv_dur = beat_dur / 2.0;
 
     } else {
-	ClickSegment *s = click_track_get_segment_at_pos(state.ct, ACTIVE_TL->play_pos_sframes);
-	measure_dur = s->cfg.dur_sframes;
-	beat_dur = (double)s->cfg.dur_sframes / s->cfg.num_atoms * s->cfg.beat_len_atoms[0];
-	subdiv_dur = beat_dur / s->cfg.beat_len_atoms[0];
+	/* ClickSegment *s = click_track_get_segment_at_pos(state.ct, ACTIVE_TL->play_pos_sframes); */
+	click_segment_get_durs_at(state.ct, ACTIVE_TL->play_pos_sframes, &measure_dur, &beat_dur, &subdiv_dur);
     }
     switch (state.current_dur) {
     case DUR_WHOLE:

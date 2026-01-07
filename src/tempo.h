@@ -171,6 +171,10 @@ ClickSegment *click_track_get_segment_at_pos(ClickTrack *t, int32_t pos);
 void click_segment_set_config(ClickSegment *s, int num_measures, float bpm, uint8_t num_beats, uint8_t *subdivs, enum ts_end_bound_behavior ebb);
 void click_segment_destroy(ClickSegment *s);
 
+
+/* For piano roll and JLily */
+void click_segment_get_durs_at(ClickTrack *ct, int32_t at, int32_t *measure_dur, int32_t *beat_dur, int32_t *subdiv_dur);
+
 void click_segment_fprint(FILE *f, ClickSegment *s);
 
 /* int32_t click_track_bar_beat_subdiv(ClickTrack *tt, int32_t pos, int *bar_p, int *beat_p, int *subdiv_p, ClickSegment **segment_p, bool set_readout); */

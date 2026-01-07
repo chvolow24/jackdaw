@@ -140,6 +140,24 @@ static inline int32_t get_sd_len(ClickSegment *s, int beat)
     }
 }
 
+static ClickTrackPos click_track_get_pos(ClickTrack *ct, int32_t tl_pos);
+
+/* public for piano roll, jlily */
+
+void click_segment_get_durs_at(ClickTrack *ct, int32_t at, int32_t *measure_dur, int32_t *beat_dur, int32_t *subdiv_dur)
+{
+    ClickTrackPos ctp = click_track_get_pos(ct, at);
+    if (measure_dur) {
+	*measure_dur = ctp.seg->cfg.dur_sframes;
+    }
+    if (beat_dur) {
+	*beat_dur = ctp.seg->cfg.dur_sframes / ctp.seg->cfg.num_atoms * ctp.seg->cfg.beat_len_atoms[ctp.beat];
+    }
+    if (subdiv_dur) {
+	*subdiv_dur = get_sd_len(ctp.seg, ctp.beat);
+    }
+}
+
 static inline int beat_len_subdivs(ClickSegment *s, int beat)
 {
     int atoms = s->cfg.beat_len_atoms[beat];
@@ -177,7 +195,7 @@ static void do_increment(ClickTrackPos *ctp, BeatProminence bp)
 	TESTBREAK;
 	exit(1);
     }
-    ClickTrackPos start = *ctp;
+    /* ClickTrackPos start = *ctp; */
     switch (bp) {
     case BP_MEASURE:
 	ctp->measure++;
@@ -305,7 +323,7 @@ static BeatProminence get_beat_prominence(ClickTrackPos ctp)
 
 
 /* Simple stateless version of click_track_bar_beat_subdiv() */
-ClickTrackPos click_track_get_pos(ClickTrack *ct, int32_t tl_pos)
+static ClickTrackPos click_track_get_pos(ClickTrack *ct, int32_t tl_pos)
 {
     ClickTrackPos ret = {0};
     ret.seg = click_track_get_segment_at_pos(ct, tl_pos);
@@ -498,26 +516,42 @@ static void click_track_get_next_pos(ClickTrack *t, bool start, int32_t start_fr
 {
     static JDAW_THREAD_LOCAL ClickTrackPos ctp = {0};
 
-    /* if (start) fprintf(stderr, "GET NEXT POS START: %d\n", start); */
-    /* else { */
-    /* 	fprintf(stderr, "Get next pos not start \t"); */
-    /* 	click_track_pos_fprint(stderr, ctp); */
-    /* } */
+    int32_t beat_pos;
     if (start) {
 	ctp = click_track_get_pos(t, start_from);
 	if (!ctp.seg) {
 	    ctp.seg = t->segments;
 	    ctp.measure = ctp.seg->first_measure_index;
 	}
-	if (ctp.remainder) ctp.remainder = 0;
-	if (ctp.sssd) ctp.sssd = 0;
-	do_increment(&ctp, BP_SSD);
-
+	bool on_beat = true;
+	if (ctp.remainder) {
+	    ctp.remainder = 0;
+	    on_beat = false;
+	}
+	if (ctp.sssd) {
+	    ctp.sssd = 0;
+	    on_beat = false;
+	}
+	if (!on_beat) {
+	    do_increment(&ctp, BP_SSD);
+	}
+	beat_pos = get_beat_pos(ctp);
     } else {
 	do_increment(&ctp, BP_SSD);
+	beat_pos = get_beat_pos(ctp);
+	if (ctp.seg && ctp.seg->next && beat_pos >= ctp.seg->next->start_pos) {
+	    ctp.seg = ctp.seg->next;
+	    ctp.measure = ctp.seg->first_measure_index;
+	    ctp.beat = 0;
+	    ctp.sd = 0;
+	    ctp.ssd = 0;
+	    ctp.sssd = 0;
+	    ctp.remainder = 0.0;
+	    beat_pos = ctp.seg->start_pos;
+	}
     }
     if (pos_dst) {
-	*pos_dst = get_beat_pos(ctp);
+	*pos_dst = beat_pos;
     }
     if (seg_dst) {
 	*seg_dst = ctp.seg;
@@ -525,6 +559,10 @@ static void click_track_get_next_pos(ClickTrack *t, bool start, int32_t start_fr
     if (bp) {
 	*bp = get_beat_prominence(ctp);
     }
+    /* if (start) { */
+    /* 	fprintf(stderr, "Got next pos from %d\t", start_from); */
+    /* 	click_track_pos_fprint(stderr, ctp); */
+    /* } */
 }
 
 
@@ -1408,7 +1446,7 @@ void timeline_increment_click_at_cursor(Timeline *tl, int inc_by)
 void click_track_get_prox_beats(ClickTrack *ct, int32_t pos, BeatProminence bp, int32_t *prev_pos_dst, int32_t *next_pos_dst)
 {
     ClickTrackPos ctp = click_track_get_pos(ct, pos);
-    click_track_pos_fprint(stderr, ctp);
+    /* click_track_pos_fprint(stderr, ctp); */
     switch (bp) {
     case BP_SEGMENT:
 	ctp.measure = ctp.seg->first_measure_index;
@@ -1482,11 +1520,11 @@ void click_track_draw_segments(ClickTrack *tt, TimeView *tv, SDL_Rect draw_rect)
 {
 
     static const SDL_Color line_colors[] =  {
-	{255, 250, 125, 40},
-	{255, 255, 255, 40},
-	{170, 170, 170, 40},
-	{130, 130, 130, 40},
-	{100, 100, 100, 40},
+	{255, 250, 125, 60},
+	{255, 255, 255, 60},
+	{170, 170, 170, 60},
+	{130, 130, 130, 60},
+	{100, 100, 100, 60},
     };
 
     Timeline *tl = tt->tl;
@@ -1501,9 +1539,7 @@ void click_track_draw_segments(ClickTrack *tt, TimeView *tv, SDL_Rect draw_rect)
     const int subdiv_draw_thresh = 10;
     const int beat_draw_thresh = 4;
     int max_bp = BP_NONE;
-    
     while (1) {
-
 	if (bp == BP_SEGMENT) prev_draw_x = -100;
 	/* int prev_x = x; */
 	x = timeline_get_draw_x(tl, pos);
@@ -1601,6 +1637,7 @@ void click_track_draw(ClickTrack *tt)
     num_bpm_labels_to_draw++;
 
     int x = timeline_get_draw_x(tl, pos);
+    /* fprintf(stderr, "IN DRAW first pos %d bp %d, x %d\n", pos, bp, x); */
     int main_top_y = tt->layout->rect.y;
     int bttm_y = main_top_y + tt->layout->rect.h - 1; /* TODO: figure out why decremet to bttm_y is necessary */
     int h = tt->layout->rect.h;
@@ -1630,7 +1667,6 @@ void click_track_draw(ClickTrack *tt)
     /* bool draw_beats = true; */
     
     while (x > 0) {
-	click_track_get_next_pos(tt, false, 0, &pos, &bp, &s);
 	x = timeline_get_draw_x(tl, pos);
 	/* fprintf(stderr, "IN DRAW, pos %d, x %d, bp %d\n", pos, x, bp); */
 	if (x > tt->right_console_rect->x) break;
@@ -1660,6 +1696,7 @@ void click_track_draw(ClickTrack *tt)
 	} else {
 	    SDL_RenderDrawLine(main_win->rend, x, top_y, x, bttm_y);
 	}
+	click_track_get_next_pos(tt, false, 0, &pos, &bp, &s);
     }
     textbox_draw(tt->readout);
     textbox_draw(tt->edit_button);	
@@ -1975,6 +2012,7 @@ static int32_t click_segment_get_nearest_beat_pos(ClickTrack *ct, int32_t start_
 {
     int32_t next, prev;
     click_track_get_prox_beats(ct, start_pos, BP_SSD, &prev, &next);
+    fprintf(stderr, "Prev cur next: %d, %d, %d (%d %d)\n", prev, start_pos, next, start_pos - prev, next - start_pos);
     if (start_pos - prev < next - start_pos) {
 	return prev;
     } else {

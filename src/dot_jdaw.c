@@ -378,7 +378,7 @@ static void jdaw_write_click_track(FILE *f, ClickTrack *ct)
     uint8_t namelen = strlen(ct->name);
     uint8_ser(f, &namelen);
     fwrite(ct->name, 1, namelen, f);
-    float_ser40_le(f, ct->metronome_vol);
+    float_ser40_le(f, ct->metronome.vol);
     uint8_ser(f, (uint8_t *)&ct->muted);
     ClickSegment *s = ct->segments;
     while (s) {
@@ -1452,7 +1452,7 @@ static int jdaw_read_click_track(FILE *f, Timeline *tl)
     bool muted = (bool)uint8_deser(f);
 
     if (muted) click_track_mute_unmute(ct);
-    endpoint_write(&ct->metronome_vol_ep, (Value){.float_v = metronome_vol}, false, false, false, false);
+    endpoint_write(&ct->metronome.vol_ep, (Value){.float_v = metronome_vol}, false, false, false, false);
     
     bool more_segments = true;
     while (more_segments) {

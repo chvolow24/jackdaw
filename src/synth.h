@@ -88,6 +88,11 @@ typedef struct synth Synth;
 typedef struct synth_voice {
     Osc oscs[SYNTHVOICE_NUM_OSCS];
     uint8_t note_val;
+    bool do_portamento;
+    uint8_t portamento_from;
+    int portamento_len_bufs;
+    int portamento_elapsed;
+    /* float *portamento_ramp; */
     uint8_t velocity;
     Synth *synth;
     bool available;

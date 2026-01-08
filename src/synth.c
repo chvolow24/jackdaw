@@ -974,7 +974,13 @@ static void osc_reset_params(Osc *osc)
 	note = ftom_calc(f);
 	osc->freq_last_sample = f;
     } else {
-	note = (float)osc->voice->note_val;
+	if (osc->voice->do_portamento) {
+	    float portamento_incr = (float)(osc->voice->note_val - osc->voice->portamento_from) / osc->voice->portamento_len_bufs;
+	    note = (float)osc->voice->portamento_from + portamento_incr * osc->voice->portamento_elapsed;
+	    /* if (osc->voice */
+	} else {
+	    note = (float)osc->voice->note_val;
+	}
     }
     note += (osc->detune_cents + osc->tune_cents) / 100.0f;
     osc_set_freq(osc, mtof_calc(note));
@@ -1342,6 +1348,10 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 	}
 	/* buf[i] += osc_buf[i] * (float)v->velocity / 127.0f; */
     }
+    if (v->do_portamento && v->portamento_elapsed < v->portamento_len_bufs) {
+	v->portamento_elapsed++;
+    }
+
     float_buf_mult(osc_buf, amp_env, len);
     float_buf_mult_const(osc_buf, (float)v->velocity / 127.0f, len);
     float_buf_add(buf, osc_buf, len);
@@ -1409,6 +1419,12 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
     /* srand(time(NULL)); */
     Synth *synth = v->synth;
     v->note_val = note;
+    int port_adj = rand() % 24 -12;
+    /* port_adj = +15; */
+    v->portamento_from = note - port_adj;
+    v->portamento_len_bufs = 500;
+    v->portamento_elapsed = 0;
+    v->do_portamento = true;
     iir_clear(&v->filter);
     /* memset(v->filter.memIn[0], '\0', sizeof(float) * v->filter.degree); */
     /* memset(v->filter.memIn[1], '\0', sizeof(float) * v->filter.degree); */

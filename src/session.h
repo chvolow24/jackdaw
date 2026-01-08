@@ -35,7 +35,7 @@
 #include "user_event.h"
 
 #define MAX_SESSION_AUDIO_CONNS 32
-#define SESSION_NUM_METRONOMES 1
+#define SESSION_MAX_METRONOME_BUFFERS 16
 #define MAX_QUEUED_OPS 255
 
 #define DRAG_COLOR_PULSE_PHASE_MAX 30
@@ -180,7 +180,9 @@ typedef struct session {
     UserEventHistory history;
     struct playhead_scroll playhead_scroll;
     int quit_count;
-    Metronome metronomes[SESSION_NUM_METRONOMES];
+    MetronomeBuffer metronome_buffers[SESSION_MAX_METRONOME_BUFFERS];
+    int num_metronome_buffers;
+    /* Metronome metronomes[SESSION_NUM_METRONOMES]; */
     struct status_bar status_bar;
     LoadingScreen loading_screen;
     Animation *animations;

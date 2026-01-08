@@ -8,6 +8,7 @@
 
 *****************************************************************************************************************/
 
+#include "dsp_utils.h"
 #include "endpoint_callbacks.h"
 #include "midi_objs.h"
 #include "text.h"
@@ -44,45 +45,73 @@ static void click_track_pos_fprint(FILE *f, ClickTrackPos pos)
 
 /*------ init/deinit metronomes --------------------------------------*/
 
+#define MAX_METRONOME_LEN_MSEC
+#define METRONOME_STD_HIGH_INDEX 0
+#define METRONOME_STD_LOW_INDEX 1
+#define METRONOME_SNAP_INDEX 2
+#define METRONOME_SNAP_WET_INDEX 3
+
+static MetronomeBuffer *session_add_metronome(const char *filepath)
+{
+    Session *session = session_get();
+    if (session->num_metronome_buffers >= SESSION_MAX_METRONOME_BUFFERS) {
+	return NULL;
+    }
+    float *buf;
+    int32_t buf_len = wav_load(filepath, &buf, NULL);
+    MetronomeBuffer *mb = session->metronome_buffers + session->num_metronome_buffers;
+    mb->buf_len = buf_len;
+    mb->buf = buf;
+    mb->filepath = filepath;
+    mb->used_in = 0;
+    mb->name = mb->filepath;
+    const char *last_slash_pos = NULL;
+    while (mb->name[0] != '\0') {
+	if (mb->name[0] == '/') last_slash_pos = mb->name;
+	mb->name++;
+    }
+    if (last_slash_pos) mb->name = last_slash_pos + 1;
+    session->num_metronome_buffers++;
+    return mb;
+}
+
 void session_init_metronomes(Session *session)
 {
-    Metronome *m = &session->metronomes[0];
-    m->name = "standard";
-    float *L, *R;
-    char *real_path = asset_get_abs_path(METRONOME_STD_HIGH_PATH);
-    int32_t buf_len = wav_load(real_path, &L, &R);
-    free(real_path);
-    if (buf_len == 0) {
-	fprintf(stderr, "Error: unable to load metronome buffer at %s\n", METRONOME_STD_LOW_PATH);
-	exit(1);
+    /* Load std high */
+    const char *real_path = asset_get_abs_path(METRONOME_STD_HIGH_PATH);
+    if (!session_add_metronome(real_path)) {
+	fprintf(stderr, "Error: unable to init metronome");
     }
-
-    free(R);
-
-    m->buffers[0] = L;
-    m->buf_lens[0] = buf_len;
     real_path = asset_get_abs_path(METRONOME_STD_LOW_PATH);
-    buf_len = wav_load(real_path, &L, &R);
-    free(real_path);
-    if (buf_len == 0) {
-	fprintf(stderr, "Error: unable to load metronome buffer at %s\n", METRONOME_STD_LOW_PATH);
-	exit(1);
-    }
-    free(R);
-
-    m->buffers[1] = L;
-    m->buf_lens[1] = buf_len;
+    session_add_metronome(real_path);
+    session_add_metronome(asset_get_abs_path("metronome/snap_TEST.wav"));
+    session_add_metronome(asset_get_abs_path("metronome/snap_WET.wav"));
+    session_add_metronome(real_path);
+    
 }
 
 void session_destroy_metronomes(Session *session)
 {
-    for (int i=0; i<PROJ_NUM_METRONOMES; i++) {
-	Metronome *m = session->metronomes + i;
-	if (m->buffers[0])
-	    free(m->buffers[0]);
-	if (m->buffers[1])
-	    free(m->buffers[1]);
+    for (int i=0; i<session->num_metronome_buffers; i++) {
+	/* Metronome *m = session->metronomes + i; */
+	MetronomeBuffer *mb = session->metronome_buffers + i;
+	if (mb->buf) free(mb->buf);
+	mb->buf = NULL;
+	mb->used_in = 0;
     }
+}
+
+static void click_track_set_metronome_config(
+    ClickTrack *ct,
+    MetronomeBuffer *bp_measure_buf,
+    MetronomeBuffer *bp_beat_buf,
+    MetronomeBuffer *bp_offbeat_buf,
+    MetronomeBuffer *bp_subdiv_buf)
+{
+    ct->metronome.bp_measure_buf = bp_measure_buf;
+    ct->metronome.bp_beat_buf = bp_beat_buf;
+    ct->metronome.bp_offbeat_buf = bp_offbeat_buf;
+    ct->metronome.bp_subdiv_buf = bp_subdiv_buf;
 }
 
 /*------ get segment at pos ------------------------------------------*/
@@ -124,7 +153,7 @@ ClickSegment *click_track_get_segment_at_pos(ClickTrack *t, int32_t pos)
 /*     return pos; */
 /* } */
 
-static inline int32_t atom_len(ClickSegment *s)
+static inline int32_t get_atom_len(ClickSegment *s)
 {
     return s->cfg.dur_sframes / s->cfg.num_atoms;
 }
@@ -132,7 +161,7 @@ static inline int32_t atom_len(ClickSegment *s)
 static inline int32_t get_sd_len(ClickSegment *s, int beat)
 {
     int atoms = s->cfg.beat_len_atoms[beat];
-    int32_t atom_len_s = atom_len(s);
+    int32_t atom_len_s = get_atom_len(s);
     if (atoms > 2 && atoms % 2 == 0) {
 	return 2 * atom_len_s;
     } else {
@@ -166,6 +195,32 @@ static inline int beat_len_subdivs(ClickSegment *s, int beat)
     } else {
 	return atoms;
     }
+}
+
+static int32_t click_track_pos_get_remainder_samples(ClickTrackPos ctp, BeatProminence from)
+{
+    int32_t sd_len = get_sd_len(ctp.seg, ctp.beat);
+    int32_t rem = ctp.remainder * sd_len;
+    int32_t atom_len = get_atom_len(ctp.seg);
+    switch (from) {
+    case BP_SEGMENT:
+	rem += (ctp.measure - ctp.seg->first_measure_index) * ctp.seg->cfg.dur_sframes;
+    case BP_MEASURE:
+	for (int i=0; i<ctp.beat; i++) {
+	    rem += atom_len * ctp.seg->cfg.beat_len_atoms[i];
+	}
+    case BP_BEAT:
+	rem += ctp.sd * sd_len;
+    case BP_SD:
+	rem += ctp.ssd * sd_len / 2;
+    case BP_SSD:
+	rem += ctp.sssd * sd_len / 4;
+    case BP_SSSD:
+	break;
+    case BP_NONE:
+	break;
+    }
+    return rem;
 }
 
 /* TODO: redundant with to/from ctpos functions */
@@ -312,6 +367,7 @@ static void do_decrement(ClickTrackPos *ctp, BeatProminence bp)
 
 static BeatProminence get_beat_prominence(ClickTrackPos ctp)
 {
+    if (!ctp.seg) return BP_NONE;
     if (ctp.remainder != 0) return BP_NONE;
     if (ctp.sssd != 0) return BP_SSSD;
     if (ctp.ssd != 0) return BP_SSD;
@@ -1019,15 +1075,27 @@ ClickTrack *timeline_add_click_track(Timeline *tl)
     snprintf(t->name, MAX_NAMELENGTH, "click_track_%d", tl->num_click_tracks + 1);
     t->tl = tl;
     Session *session = session_get();
-    t->metronome = &session->metronomes[0];
+
+    click_track_set_metronome_config(
+	t,
+	/* session->metronome_buffers + METRONOME_STD_HIGH_INDEX, */
+	/* session->metronome_buffers + METRONOME_STD_LOW_INDEX, */
+	/* session->metronome_buffers + METRONOME_SNAP_WET_INDEX, */
+	NULL,
+	NULL,
+	session->metronome_buffers + METRONOME_SNAP_WET_INDEX,
+	NULL);
+	
+				     
+    /* t->metronome = &session->metronomes[0]; */
     snprintf(t->num_beats_str, 3, "4");
     for (int i=0; i<MAX_BEATS_PER_BAR; i++) {
 	snprintf(t->subdiv_len_strs[i], 2, "4");
     }    
 
     endpoint_init(
-	&t->metronome_vol_ep,
-	&t->metronome_vol,
+	&t->metronome.vol_ep,
+	&t->metronome.vol,
 	JDAW_FLOAT,
 	"metro_vol",
 	"undo/redo adj metronome vol",
@@ -1035,7 +1103,7 @@ ClickTrack *timeline_add_click_track(Timeline *tl)
 	track_slider_cb, NULL, NULL,
 	(void *)&t->metronome_vol_slider, (void *)tl, NULL, NULL);
     endpoint_set_allowed_range(
-	&t->metronome_vol_ep,
+	&t->metronome.vol_ep,
 	(Value){.float_v = 0.0f},
 	(Value){.float_v = TRACK_VOL_MAX});
 
@@ -1124,12 +1192,12 @@ ClickTrack *timeline_add_click_track(Timeline *tl)
 
 
 
-    t->metronome_vol = 1.0f;
+    t->metronome.vol = 1.0f;
 	
     Layout *vol_lt = layout_get_child_by_name_recursive(t->layout, "metronome_vol_slider");
     t->metronome_vol_slider = slider_create(
 	vol_lt,
-	&t->metronome_vol_ep,
+	&t->metronome.vol_ep,
 	(Value){.float_v = 0.0f},
 	(Value){.float_v = TRACK_VOL_MAX},
 	SLIDER_HORIZONTAL,
@@ -1724,54 +1792,121 @@ void click_track_draw(ClickTrack *tt)
 
 /* int send_message_udp(char *message, int port); */
 
-void click_track_mix_metronome(ClickTrack *tt, float *mixdown_buf, int32_t mixdown_buf_len, int32_t tl_start_pos_sframes, int32_t tl_end_pos_sframes, float step)
+void click_track_mix_metronome(ClickTrack *ct, float *mixdown_buf, int32_t mixdown_buf_len, int32_t tl_start_pos_sframes, int32_t tl_end_pos_sframes, float step, int channel)
 {
-    /* if (tt->muted) return; */
-    /* if (step < 0.0) return; */
-    /* /\* if (step > 10.0) return; *\/ */
-    /* /\* fprintf(stderr, "TEMPO TRACK MIX METRONOME\n"); *\/ */
-    /* /\* clock_t start = clock(); *\/ */
-    /* int bar, beat, subdiv; */
-    /* ClickSegment *s; */
+    /* fprintf(stderr, "MIX METRONOME start %d\n", tl_start_pos_sframes); */
+    /* static float *ct->metronome_buf; */
+    /* static int32_t ct->metronome_buf_len; */
+    if (!ct->metronome_buf || ct->metronome_buf_len != mixdown_buf_len) {
+	if (ct->metronome_buf) free(ct->metronome_buf);
+	ct->metronome_buf_len = mixdown_buf_len;
+	ct->metronome_buf = calloc(ct->metronome_buf_len, sizeof(float));
+    }
+    
+    if (ct->muted) return;
+    if (step < 0.0) {
+	return;
+    }
+    if (channel != 0) {
+	goto add_metronome_buf;
+	/* return; */
+    }
+    memset(ct->metronome_buf, 0, ct->metronome_buf_len * sizeof(float));
+    int32_t start_right = tl_end_pos_sframes - 1;
+    /* ClickTrackPos ctp = click_track_get_pos(ct, tl_start_pos_sframes); */
+    ClickTrackPos start_right_ctp = click_track_get_pos(ct, start_right);
+    ClickTrackPos ctp = start_right_ctp;
+    ctp.remainder = 0;
+    ctp.sssd = 0;
+    ctp.ssd = 0;
+    if (!ctp.seg) return;
+    /* do_decrement(&ctp, BP_SD); */
+    /* TODO: refine ! */
+    for (int i=0; i<32; i++) {
+	int32_t beat_pos = get_beat_pos(ctp);
+	BeatProminence bp = get_beat_prominence(ctp);
+	/* int32_t elapsed_since_beat = tl_start_pos_sframes - beat_pos; */
+	int32_t beat_start_in_chunk = beat_pos - tl_start_pos_sframes;
+	beat_start_in_chunk /= step;
+	/* int32_t available_buf = mixdown_buf_len - start_in_buf; */
+	/* fprintf(stderr, "\tbeat_pos: %d\n\telapsed: %d\n\tstart in buf: %d\n", beat_pos, elapsed_since_beat, beat_start_in_buf); */
+	/* First get the appropriate metronome buffer */
+	MetronomeBuffer *mb;
+	switch (bp) {
+	case BP_SEGMENT:
+	case BP_MEASURE:
+	    mb = ct->metronome.bp_measure_buf;
+	    break;
+	case BP_BEAT:
+	    if (ct->metronome.bp_offbeat_buf && ctp.beat % 2 != 0) {
+		mb = ct->metronome.bp_offbeat_buf;
+	    } else {
+		mb = ct->metronome.bp_beat_buf;
+	    }
+	    break;
+	case BP_SD:
+	    mb = ct->metronome.bp_subdiv_buf;
+	    break;
+	default:
+	    fprintf(stderr, "Error: beat prominence %d not allowed in metronome code\n", bp);
+	    exit(1);
+	    break;
+	}
+	if (mb) {
+	    int32_t adj_buf_len = mb->buf_len / step;
+	    if (beat_start_in_chunk < mixdown_buf_len && beat_start_in_chunk + adj_buf_len > 0) {
+		if (fabs(step - 1.0) < 1e-6) {
+		    int32_t copy_to_start, copy_from_start, copy_len;
+		    if (beat_start_in_chunk < 0) {
+			copy_to_start = 0;
+			copy_from_start = -1 * beat_start_in_chunk;
+			copy_len = mb->buf_len - copy_from_start;
+			if (copy_len > mixdown_buf_len) copy_len = mixdown_buf_len;
+		    } else {
+			copy_to_start = beat_start_in_chunk;
+			copy_from_start = 0;
+			copy_len = mixdown_buf_len - copy_to_start;
+			if (copy_len > mb->buf_len) copy_len = mb->buf_len;
+		    }
+		    float_buf_add(ct->metronome_buf + copy_to_start, mb->buf + copy_from_start, copy_len);
+		    /* float_buf_add(mixdown_buf + copy_to_start, mb->buf + copy_from_start, copy_len); */
+		} else {
+		    double src_i = beat_start_in_chunk > 0 ? 0 : -1 * beat_start_in_chunk * step;
+		    int32_t dst_i = beat_start_in_chunk > 0 ? beat_start_in_chunk : 0;
+		    while (dst_i < mixdown_buf_len && (int32_t)round(src_i) < mb->buf_len) {
+			ct->metronome_buf[dst_i] += mb->buf[(int32_t)round(src_i)];
+			dst_i++;
+			src_i += step;
+		    }
+		}
+	    } else { /* If one buffer is overrun, consider all overrun (i.e. assume similar lengths) */
+		break;
+	    }
+	}
+	do_decrement(&ctp, BP_SD);
+	if (!ctp.seg) break;
+
+    }
+    float_buf_mult_const(ct->metronome_buf, endpoint_safe_read(&ct->metronome.vol_ep, NULL).float_v, ct->metronome_buf_len);
+add_metronome_buf:
+    float_buf_add(mixdown_buf, ct->metronome_buf, mixdown_buf_len);
+}
+    
+    
+    
+/* int bar, beat, subdiv; */
+    /* ClickTrackPos ctp = {0}; */
     /* float *buf = NULL; */
     /* int32_t buf_len; */
     /* int32_t tl_chunk_len = tl_end_pos_sframes - tl_start_pos_sframes; */
     /* BeatProminence bp; */
-    /* /\* clock_t c; *\/ */
-    /* /\* c = clock(); *\/ */
-    /* /\* struct timespec ts_start, ts_end; *\/ */
-    /* /\* static int runs = 0; *\/ */
-    /* /\* static double dur_old = 0.0, dur_new = 0.0; *\/ */
-    /* /\* clock_gettime(CLOCK_MONOTONIC, &ts_start); *\/ */
-    /* int32_t remainder = click_track_bar_beat_subdiv(tt, tl_end_pos_sframes, &bar, &beat, &subdiv, &s, false); */
-    /* /\* clock_gettime(CLOCK_MONOTONIC, &ts_end); *\/ */
-    /* /\* dur_old += timespec_diff_msec(&ts_start, &ts_end); *\/ */
-
-    /* /\* clock_gettime(CLOCK_MONOTONIC, &ts_start); *\/ */
-    /* /\* ClickTrackPos checkpos = click_track_get_pos(tt, tl_end_pos_sframes); *\/ */
-    /* /\* clock_gettime(CLOCK_MONOTONIC, &ts_end); *\/ */
-    /* /\* dur_new += timespec_diff_msec(&ts_start, &ts_end); *\/ */
-    /* /\* runs++; *\/ */
-    /* /\* if (runs == 100) { *\/ */
-    /* /\* 	fprintf(stderr, "\n%d %d %d + %d\n%d %d %d + %d\n", bar, beat, subdiv, remainder, checkpos.measure, checkpos.beat, checkpos.subdiv, checkpos.remainder); *\/ */
-    /* /\* 	fprintf(stderr, "DURS: %f, %f, %s advantage %f\n", dur_old, dur_new, dur_old < dur_new ? "OLD" : "NEW", dur_old < dur_new ? dur_new - dur_old : dur_old - dur_new); *\/ */
-    /* /\* 	dur_new = dur_old = 0.0; *\/ */
-    /* /\* 	runs = 0; *\/ */
-    /* /\* } *\/ */
-    /* /\* double dur = ((double)clock() - c)/CLOCKS_PER_SEC; *\/ */
-    /* /\* fprintf(stderr, "Remainder dur msec: %f\n", dur * 1000); *\/ */
-    
+    /* ctp = click_track_get_pos(tt, tl_end_pos_sframes); */
+    /* int32_t remainder = click_track_pos_get_remainder_samples(ctp, BP_BEAT); */
     /* remainder -= tl_chunk_len; */
     /* int i=0; */
-    /* /\* int outer_ops = 0; *\/ */
-    /* /\* int inner_ops = 0; *\/ */
     /* while (1) { */
-    /* 	/\* outer_ops++; *\/ */
     /* 	i++; */
     /* 	if (i>10) { */
-    /* 	    /\* fprintf(stderr, "Throttle\n"); *\/ */
-    /* 	    /\* fprintf(stderr, "OPS outer: %d inner: %d\n", outer_ops, inner_ops); *\/ */
-    /* 	    /\* fprintf(stderr, "->EXIT metro\n"); *\/ */
     /* 	    return; */
     /* 	} */
 
@@ -1780,7 +1915,8 @@ void click_track_mix_metronome(ClickTrack *tt, float *mixdown_buf, int32_t mixdo
     /* 	if (tick_start_in_chunk > mixdown_buf_len) { */
     /* 	    goto previous_beat; */
     /* 	} */
-    /* 	get_beat_prominence(s, &bp, bar, beat, subdiv); */
+    /* 	bp = get_beat_prominence(ctp); */
+    /* 	/\* get_beat_prominence(s, &bp, bar, beat, subdiv); *\/ */
 	
     /* 	/\* UDP -> Pd testing *\/ */
     /* 	/\* if (tick_start_in_chunk > 0) { *\/ */
@@ -1821,11 +1957,13 @@ void click_track_mix_metronome(ClickTrack *tt, float *mixdown_buf, int32_t mixdo
     /* 	    /\* inner_ops++; *\/ */
     /* 	} */
     /* previous_beat: */
-    /* 	do_decrement(s, &bar, &beat, &subdiv); */
+    /* 	do_decrement(&ctp, BP_BEAT); */
+    /* 	/\* do_decrement(s, &bar, &beat, &subdiv); *\/ */
     /* 	/\* c = clock(); *\/ */
-    /* 	remainder = (tl_start_pos_sframes - get_beat_pos(s, bar, beat, subdiv)); */
+    /* 	remainder = tl_start_pos_sframes - get_beat_pos(ctp); */
+    /* 	/\* remainder = (tl_start_pos_sframes - get_beat_pos(s, bar, beat, subdiv)); *\/ */
     /* } */
-}
+/* } */
 
 void click_track_mute_unmute(ClickTrack *t)
 {
@@ -1850,9 +1988,9 @@ void click_track_mute_unmute(ClickTrack *t)
 
 void click_track_increment_vol(ClickTrack *tt)
 {
-    tt->metronome_vol += TRACK_VOL_STEP;
-    if (tt->metronome_vol > tt->metronome_vol_slider->max.float_v) {
-	tt->metronome_vol = tt->metronome_vol_slider->max.float_v;
+    tt->metronome.vol += TRACK_VOL_STEP;
+    if (tt->metronome.vol > tt->metronome_vol_slider->max.float_v) {
+	tt->metronome.vol = tt->metronome_vol_slider->max.float_v;
     }
     /* slider_edit_made(tt->metronome_vol_slider); */
     slider_reset(tt->metronome_vol_slider);
@@ -1861,9 +1999,9 @@ void click_track_increment_vol(ClickTrack *tt)
 
 void click_track_decrement_vol(ClickTrack *tt)
 {
-    tt->metronome_vol -= TRACK_VOL_STEP;
-    if (tt->metronome_vol < 0.0f) {
-	tt->metronome_vol = 0.0f;
+    tt->metronome.vol -= TRACK_VOL_STEP;
+    if (tt->metronome.vol < 0.0f) {
+	tt->metronome.vol = 0.0f;
     }
     /* slider_edit_made(tt->metronome_vol_slider); */
     slider_reset(tt->metronome_vol_slider);

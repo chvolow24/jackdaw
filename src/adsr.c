@@ -318,14 +318,14 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
 		s->start_release_after = -1;
 		break;
 	    case ADSR_A:
-		s->release_start_env = s->params->a_ramp[s->params->a - s->env_remaining];
+		s->release_start_env = s->params->a_ramp[s->params->a - s->env_remaining - 1];
 		s->current_stage = ADSR_R;
 		s->env_remaining = s->params->r;
 		s->start_release_after = -1;
 
 		break;
 	    case ADSR_D:
-		s->release_start_env = s->params->d_ramp[s->params->d - s->env_remaining];
+		s->release_start_env = s->params->d_ramp[s->params->d - s->env_remaining - 1];
 		s->current_stage = ADSR_R;
 		s->env_remaining = s->params->r;
 		s->start_release_after = -1;

@@ -301,14 +301,26 @@ int32_t wav_load(const char *filename, float **L, float **R)
 	status_set_errstr("Error reading wav file.");
 	return 0;
     }
-
     *L = malloc(buf_len_sframes * sizeof(float));
-    *R = malloc(buf_len_sframes * sizeof(float));
     int16_t *src_buf = (int16_t *)final_buffer;
-    for (uint32_t i=0; i<buf_len_sframes; i++) {
-	(*L)[i] = (float)src_buf[i*2] / INT16_MAX;
-	(*R)[i] = (float)src_buf[i*2+1] / INT16_MAX;
-    }
+    if (channels >= 2) {
+	if (R) {
+	    *R = malloc(buf_len_sframes * sizeof(float));
+	    for (uint32_t i=0; i<buf_len_sframes; i++) {
+		(*L)[i] = (float)src_buf[i*2] / INT16_MAX;
+		(*R)[i] = (float)src_buf[i*2+1] / INT16_MAX;
+	    }
+	} else {
+	    for (uint32_t i=0; i<buf_len_sframes; i++) {
+		(*L)[i] = (float)src_buf[i*2] / INT16_MAX;
+		/* (*L)[i] = ((float)src_buf[i*2] + (float)src_buf[i*2+1]) / 2.0f / INT16_MAX; */
+	    }
+	}
+    } else {
+	for (uint32_t i=0; i<buf_len_sframes; i++) {
+	    (*L)[i] = (float)src_buf[i] / INT16_MAX;
+	}
+    } 
     free(final_buffer);
     return buf_len_sframes;
 }

@@ -20,6 +20,14 @@ void print_backtrace()
     free(symbols);
 }
 
+
+void err_exit(const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    vprintf(fmt, args);
+    va_end(args);
+}
+
 extern Window *main_win;
 void user_text_edit_escape(void *nullarg);
 void user_autocomplete_escape(void *nullarg);
@@ -97,3 +105,5 @@ TEST_FN_DEF(
 	}
 	return 0;
     } , bool *run_tests, uint64_t max_num_frames);
+
+

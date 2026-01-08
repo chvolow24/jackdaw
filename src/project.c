@@ -93,6 +93,7 @@ SDL_Color track_colors[7] = {
     {60, 200, 150, 255}
 };
 
+#include "dsp_utils.h"
 uint8_t project_add_timeline(Project *proj, char *name)
 {
 

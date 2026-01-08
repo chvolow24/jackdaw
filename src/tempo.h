@@ -93,12 +93,22 @@ typedef struct click_track_pos {
     double remainder; /* as a fraction of sd len */
 } ClickTrackPos;
 
-typedef struct metronome {
+typedef struct metronome_buffer {
+    const char *filepath;
     const char *name;
-    /* const char *buffer_filenames[2]; */
-    float *buffers[2];
-    int32_t buf_lens[2];
-} Metronome;
+    float *buf;
+    int32_t buf_len;
+    int used_in; /* Reference counter */
+} MetronomeBuffer;
+
+typedef struct metronome_config {
+    MetronomeBuffer *bp_measure_buf;
+    MetronomeBuffer *bp_beat_buf;
+    MetronomeBuffer *bp_offbeat_buf;
+    MetronomeBuffer *bp_subdiv_buf;
+    float vol;
+    Endpoint vol_ep;
+} MetronomeConfig;
 
 
 enum ts_end_bound_behavior {
@@ -113,8 +123,10 @@ typedef struct click_track {
     uint8_t current_segment;
     char bpm_str[BPM_STRLEN];
 
-    Metronome *metronome;
-    float metronome_vol;
+    /* Metronome *metronome; */
+    MetronomeConfig metronome;
+    float *metronome_buf;
+    int32_t metronome_buf_len;
     /* Button *metronome_button; */
     Textbox *metronome_button;
     Textbox *edit_button;
@@ -144,7 +156,6 @@ typedef struct click_track {
 
     /* API */
     APINode api_node;
-    Endpoint metronome_vol_ep;
     Endpoint end_bound_behavior_ep;
     
 } ClickTrack;
@@ -191,7 +202,7 @@ void click_track_delete_segment_at_cursor(ClickTrack *ct);
 /* void project_init_metronomes(Project *proj); */
 void session_init_metronomes(Session *session);
 void session_destroy_metronomes(Session *session);
-void click_track_mix_metronome(ClickTrack *tt, float *mixdown_buf, int32_t mixdown_buf_len, int32_t tl_start_pos_sframes, int32_t tl_end_pos_sframes, float step);
+void click_track_mix_metronome(ClickTrack *tt, float *mixdown_buf, int32_t mixdown_buf_len, int32_t tl_start_pos_sframes, int32_t tl_end_pos_sframes, float step, int channel);
 bool click_track_triage_click(uint8_t button, ClickTrack *t);
 
 

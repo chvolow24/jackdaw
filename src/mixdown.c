@@ -294,7 +294,7 @@ float *get_mixdown_chunk(Timeline* tl, float *mixdown, uint8_t channel, uint32_t
     int32_t end_pos_sframes = start_pos_sframes + len_sframes * step;
     for (uint8_t i=0; i<tl->num_click_tracks; i++) {
 	ClickTrack *tt = tl->click_tracks[i];
-	click_track_mix_metronome(tt, mixdown, len_sframes, start_pos_sframes, end_pos_sframes, step);
+	click_track_mix_metronome(tt, mixdown, len_sframes, start_pos_sframes, end_pos_sframes, step, channel);
     }
 
     

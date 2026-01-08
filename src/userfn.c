@@ -1873,7 +1873,7 @@ void user_tl_track_vol_up(void *nullarg)
 	} else {
 	    ClickTrack *tt = timeline_selected_click_track(tl);
 	    if (tt) {
-		endpoint_start_continuous_change(&tt->metronome_vol_ep, true, vol_incr, JDAW_THREAD_MAIN, endpoint_safe_read(&tt->metronome_vol_ep, NULL));
+		endpoint_start_continuous_change(&tt->metronome.vol_ep, true, vol_incr, JDAW_THREAD_MAIN, endpoint_safe_read(&tt->metronome.vol_ep, NULL));
 	    }
 	}
 
@@ -1913,7 +1913,7 @@ void user_tl_track_vol_down(void *nullarg)
 	} else {
 	    ClickTrack *tt = timeline_selected_click_track(tl);
 	    if (tt) {
-		endpoint_start_continuous_change(&tt->metronome_vol_ep, true, vol_decr, JDAW_THREAD_MAIN, endpoint_safe_read(&tt->metronome_vol_ep, NULL));
+		endpoint_start_continuous_change(&tt->metronome.vol_ep, true, vol_decr, JDAW_THREAD_MAIN, endpoint_safe_read(&tt->metronome.vol_ep, NULL));
 	    }
 	}
     }

@@ -1199,6 +1199,11 @@ static int jdaw_read_fir_filter(FILE *f, FIRFilter *filter)
     cutoff_freq = float_deser40_le(f);
     bandwidth = float_deser40_le(f);
     impulse_response_len = uint16_deser_le(f);
+    if (impulse_response_len > proj_reading->fourier_len_sframes) {
+	fprintf(stderr, "IR LEN: %d fourier: %d\n", impulse_response_len, proj_reading->fourier_len_sframes);
+	impulse_response_len = proj_reading->fourier_len_sframes;
+    }
+
     filter_set_impulse_response_len(filter, impulse_response_len);
     filter_set_params(filter, type, cutoff_freq, bandwidth);
     return 0;

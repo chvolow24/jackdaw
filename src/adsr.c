@@ -4,12 +4,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include "adsr.h"
+#include "dsp_utils.h"
 #include "endpoint_callbacks.h"
 #include "session.h"
 #include <math.h>
 /* #include "color.h" */
-
-
 
 static void dsp_cb_attack(Endpoint *ep)
 {
@@ -212,6 +211,7 @@ void adsr_init(ADSRState *s, int32_t after)
     s->current_stage = ADSR_UNINIT;
     s->env_remaining = after;
     s->start_release_after = -1;
+    s->reinit_after = -1;
     s->release_start_env = 0.0;
     s->s_time = 0;
     #ifdef TESTBUILD
@@ -219,8 +219,14 @@ void adsr_init(ADSRState *s, int32_t after)
 	breakfn();
     }
     #endif
-    /* s->env_remaining = s->params->a; */
 }
+
+/* For, e.g., monophonic voice stealing/portamento. Resets to the correct part of the attack ramp */
+void adsr_reinit(ADSRState *s, int32_t after)
+{
+    s->reinit_after = after;
+}
+
 
 void adsr_start_release(ADSRState *s, int32_t after)
 {
@@ -232,21 +238,71 @@ void adsr_start_release(ADSRState *s, int32_t after)
     #endif
 }
 
+
+static inline float safe_get_ramp(float *ramp, int32_t len, int32_t env_remaining)
+{
+    if (env_remaining == 0) {
+	return ramp[len - 1];
+    } else {
+	return ramp[len - env_remaining];
+    }
+}
 /* int Id=0; */
 
 /* Fill a foat buffer with envelope values and return the end state */
 enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_len)
 {
-    /* fprintf(stderr, "GET CHUNK state %p, STAGE: %d, ENV_R: %d, REL_AFTER: %d\n", s, s->current_stage, s->env_remaining, s->start_release_after); */
+    /* fprintf(stderr, "GET CHUNK state %p, STAGE: %d, ENV_R: %d, REL_AFTER: %d, REINIT_AFTER: %d\n", s, s->current_stage, s->env_remaining, s->start_release_after, s->reinit_after); */
     /* const char *thread = get_thread_name(); */
     /* fprintf(stderr, "\tget chunk CALL ON THREAD %s\n", thread); */
     /* fprintf(stderr, "\t\tint %p\n", s); */
     /* fprintf(stderr, "\t\t\tadsr buf apply\n"); */
+
     int32_t buf_i = 0;
     bool skip_to_release = false;
     while (buf_i < buf_len) {
 	if (buf_i > buf_len || buf_i < 0) {
 	    breakfn();
+	}
+	if (s->reinit_after == 0) {
+	    float current_env;
+	    switch (s->current_stage) {
+	    case ADSR_UNINIT:
+		s->current_stage = ADSR_A;
+		s->env_remaining = s->params->a;
+		break;
+	    case ADSR_A:
+		break;
+	    case ADSR_D:
+		s->current_stage = ADSR_A;
+		current_env = safe_get_ramp(s->params->d_ramp, s->params->d, s->env_remaining);
+		/* current_env = s->params->d_ramp[s->params->d - s->env_remaining]; */
+		s->env_remaining = s->params->a;
+		while (s->env_remaining > 0 && safe_get_ramp(s->params->a_ramp, s->params->a, s->env_remaining) < current_env) {
+		    s->env_remaining--;
+		}
+		break;
+	    case ADSR_S:
+		s->current_stage = ADSR_A;
+		current_env = s->params->s;
+		s->env_remaining = s->params->a;
+		while (s->env_remaining > 0 && safe_get_ramp(s->params->a_ramp, s->params->a, s->env_remaining) < current_env) {
+		    s->env_remaining--;
+		}
+		break;
+	    case ADSR_R:
+		s->current_stage = ADSR_A;
+		current_env = s->env_remaining == s->params->r ? s->release_start_env : s->last_release_env;
+		s->env_remaining = s->params->a;
+		while (s->env_remaining > 0 && safe_get_ramp(s->params->a_ramp, s->params->a, s->env_remaining) < current_env) {
+		    s->env_remaining--;
+		}
+		break;
+	    case ADSR_OVERRUN:
+		s->current_stage = ADSR_A;
+		s->env_remaining = s->params->a;
+	    }
+	    s->reinit_after = -1;
 	}
 	int32_t stage_len = s->env_remaining < buf_len - buf_i ? s->env_remaining : buf_len - buf_i;
 	/* fprintf(stderr, "\t\t\t\tADSR buf i: %d/%d; stage %d; env_rem: %d; release_after: %d; stage len %d\n", buf_i, buf_len, s->current_stage, s->env_remaining, s->start_release_after, stage_len); */
@@ -256,6 +312,12 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
 	    if (s->start_release_after == 0) {
 		goto reset_stage;
 	    }
+	}
+	if (s->reinit_after > 0 && s->reinit_after < stage_len) {
+	    stage_len = s->reinit_after;
+	}
+	if (s->current_stage < ADSR_OVERRUN && stage_len == 0) {
+	    goto reset_stage;
 	}
 	switch(s->current_stage) {
 	case ADSR_UNINIT:
@@ -297,6 +359,7 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
 	    for (int i=0; i<stage_len; i++) {
 		float env_norm = (double)s->env_remaining / (double)s->params->r;
 		float env = s->release_start_env * pow(env_norm, s->params->ramp_exp);
+		s->last_release_env = env;
 		buf[i + buf_i] = env;
 		s->env_remaining--;
 	    }
@@ -318,14 +381,22 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
 		s->start_release_after = -1;
 		break;
 	    case ADSR_A:
-		s->release_start_env = s->params->a_ramp[s->params->a - s->env_remaining - 1];
+		if (s->params->a == 0) {
+		    s->release_start_env = 1.0f;
+		} else {
+		    s->release_start_env = safe_get_ramp(s->params->a_ramp, s->params->a, s->env_remaining);
+		}
 		s->current_stage = ADSR_R;
 		s->env_remaining = s->params->r;
 		s->start_release_after = -1;
 
 		break;
 	    case ADSR_D:
-		s->release_start_env = s->params->d_ramp[s->params->d - s->env_remaining - 1];
+		if (s->params->d == 0) {
+		    s->release_start_env = 1.0f;
+		} else {
+		    s->release_start_env = safe_get_ramp(s->params->d_ramp, s->params->d, s->env_remaining);
+		}
 		s->current_stage = ADSR_R;
 		s->env_remaining = s->params->r;
 		s->start_release_after = -1;
@@ -366,6 +437,9 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
 	}
 	if (s->start_release_after > 0) {
 	    s->start_release_after -= stage_len;
+	}
+	if (s->reinit_after > 0) {
+	    s->reinit_after -= stage_len;
 	}
 	buf_i += stage_len;
     }

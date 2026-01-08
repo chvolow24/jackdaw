@@ -2030,6 +2030,7 @@ NEW_EVENT_FN(dispose_delete_click_segment, "")
 static void click_track_delete_segment_at(ClickTrack *ct, int32_t at, bool from_undo)
 {
     ClickSegment *s = click_track_get_segment_at_pos(ct, at);
+    if (!s) return;
     int32_t start_pos = s->start_pos;
     int32_t segment_dur = s->next ? s->next->start_pos - s->start_pos : -1;
     simple_click_segment_remove(s);

@@ -51,9 +51,11 @@ typedef struct adsr_state {
     enum adsr_stage current_stage;
     int32_t env_remaining;
     float release_start_env;
+    float last_release_env;
     ADSRParams *params;
     int32_t start_release_after;
     int32_t s_time;
+    int32_t reinit_after;
     /* bool has_release_start; */
     /* int32_t samples_before_release_start; */
 } ADSRState;
@@ -65,6 +67,10 @@ void adsr_reset_env_remaining(ADSRParams *p, enum adsr_stage stage, int32_t delt
 /* void adsr_get_chunk(ADSRState *adsr, float *dst, int dst_len); */
 /* void adsr_apply_chunk(ADSRState *adsr, float *buf, int buf_len); */
 void adsr_init(ADSRState *s, int32_t after);
+
+/* For, e.g., monophonic voice stealing/portamento. Resets to the correct part of the attack ramp */
+void adsr_reinit(ADSRState *s, int32_t after);
+
 void adsr_start_release(ADSRState *s, int32_t after);
 float adsr_sample(ADSRState *s, bool *is_finished);
 /* enum adsr_stage adsr_buf_apply(ADSRState *s, float *buf, int32_t buf_len); */

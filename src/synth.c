@@ -250,6 +250,9 @@ static void fmod_target_dsp_cb(Endpoint *ep)
 	} else {
 	    cfg->fmod_dropdown_reset = carrier_i + 1;
 	}
+	if (cfg->fmod_dropdown_reset > 3) {
+	    TESTBREAK;
+	}
     } else if (ret == 1) { /* carrier cfg is null */
 	cfg->fmod_dropdown_reset = 0;
     }
@@ -299,6 +302,8 @@ Synth *synth_create(Track *track)
     s->sync_phase = true;
     s->noise_amt = 0.0f;
     s->noise_apply_env = false;
+
+    s->mono_mode = true;
     
     s->base_oscs[0].active = true;
     /* s->base_oscs[0].amp_unscaled = 0.5; */
@@ -963,7 +968,7 @@ static float polyblep(float incr, float phase)
 static void osc_set_freq(Osc *osc, double freq_hz);
 bool do_blep = true;
 
-static void osc_reset_params(Osc *osc)
+static void osc_reset_params(Osc *osc, int32_t chunk_len)
 {
     OscCfg *cfg = osc->cfg;
     float note;
@@ -975,8 +980,8 @@ static void osc_reset_params(Osc *osc)
 	osc->freq_last_sample = f;
     } else {
 	if (osc->voice->do_portamento) {
-	    float portamento_incr = (float)(osc->voice->note_val - osc->voice->portamento_from) / osc->voice->portamento_len_bufs;
-	    note = (float)osc->voice->portamento_from + portamento_incr * osc->voice->portamento_elapsed;
+	    /* float portamento_incr = (float)(osc->voice->note_val - osc->voice->portamento_from) / osc->voice->portamento_len_bufs; */
+	    note = (float)osc->voice->portamento_from + ((double)osc->voice->portamento_elapsed_sframes * (osc->voice->note_val - osc->voice->portamento_from) / osc->voice->portamento_len_sframes);
 	    /* if (osc->voice */
 	} else {
 	    note = (float)osc->voice->note_val;
@@ -1040,7 +1045,7 @@ static void osc_get_buf_preamp(Osc *osc, float step, int len, int after)
 	    float sample;
 	    if (osc->cfg->fix_freq && i % 93 == 0) {
 		/* fprintf(stderr, "resetting %d\n", i); */
-		osc_reset_params(osc);
+		osc_reset_params(osc, 0);
 	    }
 	    /* double phase_incr = osc->sample_phase_incr + osc->sample_phase_incr_addtl; */
 	    switch(osc->type) {
@@ -1244,7 +1249,7 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
     float osc_buf[len];
     memset(osc_buf, '\0', len * sizeof(float));
     for (int i=0; i<SYNTHVOICE_NUM_OSCS; i++) {
-	osc_reset_params(v->oscs + i);
+	osc_reset_params(v->oscs + i, len);
     }
     int after = v->amp_env->current_stage == ADSR_UNINIT ? v->amp_env->env_remaining : 0;
     for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
@@ -1348,8 +1353,10 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 	}
 	/* buf[i] += osc_buf[i] * (float)v->velocity / 127.0f; */
     }
-    if (v->do_portamento && v->portamento_elapsed < v->portamento_len_bufs) {
-	v->portamento_elapsed++;
+    if (v->do_portamento && v->portamento_elapsed_sframes < v->portamento_len_sframes) {
+	v->portamento_elapsed_sframes += len * step;
+	if (v->portamento_elapsed_sframes > v->portamento_len_sframes)
+	    v->portamento_elapsed_sframes = v->portamento_len_sframes;
     }
 
     float_buf_mult(osc_buf, amp_env, len);
@@ -1418,14 +1425,24 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
 {
     /* srand(time(NULL)); */
     Synth *synth = v->synth;
+
+    fprintf(stderr, "ASSIGN %f, current %d\n", note, v->note_val);
+    bool portamento = false;
+    if (!v->available) {
+	v->portamento_from = v->note_val;
+	v->portamento_len_sframes = 10000;
+	v->portamento_elapsed_sframes = 0;
+	v->do_portamento = true;
+	portamento = true;
+	fprintf(stderr, "INIT portamento on voice %ld notes %d->%d\n", v - v->synth->voices, v->portamento_from, v->note_val);
+    } else {
+	iir_clear(&v->filter);
+	v->do_portamento = false;
+	/* portamento = true; */
+	
+    }
+
     v->note_val = note;
-    int port_adj = rand() % 24 -12;
-    /* port_adj = +15; */
-    v->portamento_from = note - port_adj;
-    v->portamento_len_bufs = 500;
-    v->portamento_elapsed = 0;
-    v->do_portamento = true;
-    iir_clear(&v->filter);
     /* memset(v->filter.memIn[0], '\0', sizeof(float) * v->filter.degree); */
     /* memset(v->filter.memIn[1], '\0', sizeof(float) * v->filter.degree); */
     /* memset(v->filter.memOut[0], '\0', sizeof(float) * v->filter.degree); */
@@ -1441,85 +1458,33 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
 	    /* osc->reset_params_ctr[0] = 0; */
 	    /* osc->reset_params_ctr[1] = 0; */
 	    
-	    if (synth->sync_phase) {
+	    if (synth->sync_phase && !portamento) {
 		osc->phase = 0.0;
 	    }
-	    /* osc-> */
 	}
-	/* osc->type = cfg->type; */
-	/* /\* Reset phase every time? *\/ */
-	/* if (synth->sync_phase) { */
-	/*     osc->phase[0] = 0.0; */
-	/*     osc->phase[1] = 0.0; */
-	/* } */
-
-
-	
-	/* double midi_note; */
-	/* if (cfg->fix_freq) { */
-	/*     midi_note = ftom_calc(dsp_scale_freq_to_hz(cfg->fixed_freq_unscaled)); */
-	/* } else { */
-	/*     midi_note = note + cfg->octave * 12 + cfg->tune_coarse + cfg->tune_fine / 100.0f; */
-	/* } */
-	/* osc_set_freq(osc, mtof_calc(midi_note)); */
-	/* fprintf(stdersynr, "BASE NOTE: %f\n", base_midi_note); */
-	/* for (int j=0; j<cfg->unison.num_voices; j++) { */
-	/*     Osc *detune_voice = v->oscs + i + SYNTH_NUM_BASE_OSCS * (j + 1); */
-	/*     detune_voice->type = cfg->type; */
-	/*     double max_offset_cents = cfg->unison.detune_cents / 100.0f; */
-	/*     double voice_offset = max_offset_cents / cfg->unison.num_voices * 2; */
-	/*     double detune_midi_note = */
-	/* 	j % 2 == 0 ? */
-	/* 	midi_note - voice_offset * (j + 1): */
-	/* 	midi_note + voice_offset * (j + 1); */
-	/*     osc_set_freq(detune_voice, mtof_calc(detune_midi_note)); */
-	/*     detune_voice->amp = osc->amp * cfg->unison.relative_amp; */
-	/*     detune_voice->pan = */
-	/* 	j % 2 == 0 ? */
-	/* 	osc->pan + (j + 1) * cfg->unison.stereo_spread / 2.0f / (float)cfg->unison.num_voices : */
-	/* 	osc->pan - (j + 1) * cfg->unison.stereo_spread / 2.0f / (float)cfg->unison.num_voices; */
-	/*     if (detune_voice->pan > 1.0) detune_voice->pan = 1.0; */
-	/*     if (detune_voice->pan < 0.0) detune_voice->pan = 0.0; */
-	/*     detune_voice->phase[0] = 0.0; */
-	/*     detune_voice->phase[1] = 0.0; */
-	/*     /\* int randomized_pan_index = rand() % cfg->detune.num_voices; *\/	     */
-	    
-	/* } */
     }
-    /* osc_set_freq(v->oscs + 1, mtof_calc((double)note + 0.02)); */
-    /* fprintf(stderr, "OSC 1 %f OSC 2: %f\n", v->oscs[0].freq, v->oscs[1].freq); */
     v->velocity = velocity;
-
-    /* v->note_start_rel[0] = start_rel; */
-    /* v->note_start_rel[1] = start_rel; */
-    /* v->note_end_rel[0] = INT32_MIN; */
-    /* v->note_end_rel[1] = INT32_MIN; */
     v->available = false;
-    
-    adsr_init(v->amp_env, start_rel);
-    adsr_init(v->amp_env + 1, start_rel);
 
-    adsr_init(v->filter_env, start_rel);
-    adsr_init(v->filter_env + 1, start_rel);
+    if (portamento) {
+	adsr_reinit(v->amp_env, start_rel);
+	adsr_reinit(v->amp_env + 1, start_rel);
 
-    adsr_init(v->noise_amt_env, start_rel);
-    adsr_init(v->noise_amt_env + 1, start_rel);
+	adsr_reinit(v->filter_env, start_rel);
+	adsr_reinit(v->filter_env + 1, start_rel);
 
-    /* } */
+	adsr_reinit(v->noise_amt_env, start_rel);
+	adsr_reinit(v->noise_amt_env + 1, start_rel);
+    } else {
+	adsr_init(v->amp_env, start_rel);
+	adsr_init(v->amp_env + 1, start_rel);
 
-    /* v->amp_env_stage[0] = 0; */
-    /* v->amp_env_stage[1] = 0; */
-    /* v->env_remaining[0] = v->synth->amp_env.a; */
-    /* v->env_remaining[1] = v->synth->amp_env.a; */
-    /* v->oscs[0].phase[0] = 0.0; */
-    /* v->oscs[0].phase[1] = 0.0; */
-    /* v->oscs[1].phase[0] = 0.0; */
-    /* v->oscs[1].phase[0] = 0.0; */
-    
-    /* v->oscs[0].pan = 0.4; */
-    /* v->oscs[1].pan = 0.6; */
-    
+	adsr_init(v->filter_env, start_rel);
+	adsr_init(v->filter_env + 1, start_rel);
 
+	adsr_init(v->noise_amt_env, start_rel);
+	adsr_init(v->noise_amt_env + 1, start_rel);
+    }
 }
 
 static void fmod_carrier_unlink(Synth *s, OscCfg *carrier)
@@ -1745,7 +1710,7 @@ void synth_feed_midi(
 	    bool note_assigned = false;
 	    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 		SynthVoice *v = s->voices + i;
-		if (v->available) {
+		if (v->available || s->mono_mode) {
 		    /* fprintf(stderr, "\t=>assigned to voice %d\n", i); */
 		    int32_t start_rel = send_immediate ? 0 : e.timestamp - tl_start;
 		    synth_voice_assign_note(v, note_val, velocity, start_rel);
@@ -1946,9 +1911,9 @@ void synth_close_all_notes(Synth *s)
     /* fprintf(stderr, "CLOSE ALL NOTES\n"); */
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	SynthVoice *v = s->voices + i;
+	synth_voice_pitch_bend(v, 0.0);
 	if (!v->available) {
 	    /* fprintf(stderr, "\tkill voice %d\n", i); */
-	    synth_voice_pitch_bend(v, 0.0);
 	    adsr_start_release(v->amp_env, 0);
 	    adsr_start_release(v->amp_env + 1, 0);
 	    adsr_start_release(v->filter_env, 0);

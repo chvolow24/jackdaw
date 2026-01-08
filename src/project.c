@@ -150,7 +150,6 @@ uint8_t project_add_timeline(Project *proj, char *name)
     */
 
 
-
        
     /* /\* if (new_tl->index != 0) { *\/ */
     /* 	Layout *main_lt_fresh = layout_read_from_xml(MAIN_LT_PATH); */

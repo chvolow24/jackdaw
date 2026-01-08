@@ -90,8 +90,9 @@ typedef struct synth_voice {
     uint8_t note_val;
     bool do_portamento;
     uint8_t portamento_from;
-    int portamento_len_bufs;
-    int portamento_elapsed;
+/* buf_len    float portamento_len_bufs; */
+    int32_t portamento_len_sframes;
+    int32_t portamento_elapsed_sframes;
     /* float *portamento_ramp; */
     uint8_t velocity;
     Synth *synth;
@@ -220,6 +221,7 @@ typedef struct synth {
     Endpoint noise_apply_env_ep;
     
     bool monitor;
+    bool mono_mode;
     bool allow_voice_stealing;
     Page *osc_page; /* For GUI callback targeting */
     Page *amp_env_page;

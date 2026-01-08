@@ -1075,8 +1075,14 @@ Dropdown *dropdown_create(
 void dropdown_reset(Dropdown *d)
 {
     MAIN_THREAD_ONLY("dropdown_reset");
-    if (d->reset_from)
-	d->selected_item = *d->reset_from;
+    if (d->reset_from) {
+	int reset = *d->reset_from;
+	if (reset >= d->num_items || reset < 0) {
+	    fprintf(stderr, "Error in dropdown reset: 'reset_from' value is %d (allowed range 0-%d)\n", reset, d->num_items);
+	} else {
+	    d->selected_item = *d->reset_from;
+	}
+    }
     /* fprintf(stderr, "Selected item: %d\n", d->selected_item); */
     textbox_set_value_handle(d->tb, d->item_names[d->selected_item]);
 }

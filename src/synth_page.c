@@ -571,7 +571,7 @@ static void add_noise_page(TabView *tv, Track *track)
 
     page_el_params_slider_from_ep(&p, &s->noise_amt_ep);
     page_add_el(page, EL_SLIDER, p, "noise_amt_slider", "noise_amt_slider");
-
+    
     p.toggle_p.ep = &s->noise_apply_env_ep;
     page_add_el(page,EL_TOGGLE,p,"apply_envelope_toggle","apply_envelope_toggle");
 

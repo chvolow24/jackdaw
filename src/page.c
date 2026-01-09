@@ -271,6 +271,8 @@ static void page_el_destroy(PageEl *el)
     case EL_PIANO:
 	piano_destroy(el->component);
 	break;
+    case EL_DIVIDER:
+	break;
     }
     free(el->id);
     free(el);
@@ -520,6 +522,9 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	break;
     case EL_PIANO:
 	el->component = piano_create(el->layout);
+	break;
+    case EL_DIVIDER: 
+	el->component = params.divider_p.color; /* no component -- just use color */
 	break;
     default:
 	break;
@@ -882,6 +887,16 @@ static void page_el_draw(PageEl *el)
 	break;
     case EL_PIANO:
 	piano_draw(el->component);
+	break;
+    case EL_DIVIDER: {
+	SDL_Color *color = el->component;
+	SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(color));
+	if (el->layout->rect.w != 0) { /* horizontal divider */
+	    SDL_RenderDrawLine(main_win->rend, el->layout->rect.x, el->layout->rect.y, el->layout->rect.x + el->layout->rect.w, el->layout->rect.y);
+	} else if (el->layout->rect.h != 0) { /* vertical divider */
+	    SDL_RenderDrawLine(main_win->rend, el->layout->rect.x, el->layout->rect.y, el->layout->rect.x, el->layout->rect.y + el->layout->rect.h);
+	}
+    }
 	break;
     default:
 	break;

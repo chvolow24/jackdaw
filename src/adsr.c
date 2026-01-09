@@ -225,6 +225,7 @@ void adsr_init(ADSRState *s, int32_t after)
 void adsr_reinit(ADSRState *s, int32_t after)
 {
     s->reinit_after = after;
+    s->start_release_after = -1;
 }
 
 
@@ -302,6 +303,7 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
 		s->current_stage = ADSR_A;
 		s->env_remaining = s->params->a;
 	    }
+	    /* fprintf(stderr, "REINIT with env rem %d/%d\n", s->env_remaining, s->params->a); */
 	    s->reinit_after = -1;
 	}
 	int32_t stage_len = s->env_remaining < buf_len - buf_i ? s->env_remaining : buf_len - buf_i;

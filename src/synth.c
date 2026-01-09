@@ -302,8 +302,6 @@ Synth *synth_create(Track *track)
     s->sync_phase = true;
     s->noise_amt = 0.0f;
     s->noise_apply_env = false;
-
-    s->mono_mode = true;
     
     s->base_oscs[0].active = true;
     /* s->base_oscs[0].amp_unscaled = 0.5; */
@@ -332,8 +330,7 @@ Synth *synth_create(Track *track)
 	cfg->unison.detune_cents = 10;
 	cfg->unison.stereo_spread = 0.1;
     }
-
-
+	
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	SynthVoice *v = s->voices + i;
 	adsr_params_add_follower(&s->amp_env, &v->amp_env[0]);
@@ -401,7 +398,6 @@ Synth *synth_create(Track *track)
 	2.0);
 
     s->monitor = true;
-    s->allow_voice_stealing = true;
 
     api_node_register(&s->api_node, &track->api_node, s->preset_name, "Synth");
 
@@ -606,7 +602,61 @@ Synth *synth_create(Track *track)
     endpoint_set_default_value(&s->use_amp_env_ep, (Value){.bool_v = true});
     api_endpoint_register(&s->use_amp_env_ep, &s->filter_node);
 
-	
+
+    s->num_voices = SYNTH_NUM_VOICES;
+    endpoint_init(
+	&s->num_voices_ep,
+	&s->num_voices,
+	JDAW_INT,
+	"num_voices",
+	"Num voices",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, NULL,
+	NULL, NULL, &s->polyphony_page, "num_voices_slider");
+    endpoint_set_default_value(&s->num_voices_ep, (Value){.int_v = SYNTH_NUM_VOICES});
+    endpoint_set_allowed_range(&s->num_voices_ep, (Value){.int_v = 2}, (Value){.int_v = SYNTH_NUM_VOICES});
+    api_endpoint_register(&s->num_voices_ep, &s->api_node);
+    
+    s->allow_voice_stealing = true;
+    endpoint_init(
+	&s->allow_voice_stealing_ep,
+	&s->allow_voice_stealing,
+	JDAW_BOOL,
+	"allow_voice_stealing",
+	"Allow voice stealing",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, NULL,
+	NULL, NULL, &s->polyphony_page, "allow_voice_stealing_toggle");
+    endpoint_set_default_value(&s->allow_voice_stealing_ep, (Value){.bool_v = true});
+    api_endpoint_register(&s->allow_voice_stealing_ep, &s->api_node);    
+    
+    s->mono_mode = false;
+    endpoint_init(
+	&s->mono_mode_ep,
+	&s->mono_mode,
+	JDAW_BOOL,
+	"mono_mode",
+	"Mono mode",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, NULL,
+	NULL, NULL, NULL/* &s->mono_page */, "mono_mode_toggle");
+    endpoint_set_default_value(&s->mono_mode_ep, (Value){.bool_v=false});
+    api_endpoint_register(&s->mono_mode_ep, &s->api_node);
+
+    static const int portamento_default_len_msec = 100;
+    
+    s->portamento_len_msec = portamento_default_len_msec;
+    endpoint_init(
+	&s->portamento_len_msec_ep,
+	&s->portamento_len_msec,
+	JDAW_INT,
+	"portamento_len_msec", "Portamento len msec",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, NULL,
+	NULL, NULL, NULL/* &s->mono_page */, "portamento_len_slider");
+    endpoint_set_default_value(&s->portamento_len_msec_ep, (Value){.int_v = portamento_default_len_msec});
+    endpoint_set_allowed_range(&s->portamento_len_msec_ep, (Value){.int_v = 0}, (Value){.int_v = 1000});
+    api_endpoint_register(&s->portamento_len_msec_ep, &s->api_node);
 
        
     static char synth_osc_names[SYNTH_NUM_BASE_OSCS][6];
@@ -979,7 +1029,7 @@ static void osc_reset_params(Osc *osc, int32_t chunk_len)
 	note = ftom_calc(f);
 	osc->freq_last_sample = f;
     } else {
-	if (osc->voice->do_portamento) {
+	if (osc->voice->do_portamento && osc->voice->portamento_len_sframes > 0) {
 	    /* float portamento_incr = (float)(osc->voice->note_val - osc->voice->portamento_from) / osc->voice->portamento_len_bufs; */
 	    note = (float)osc->voice->portamento_from + ((double)osc->voice->portamento_elapsed_sframes * (osc->voice->note_val - osc->voice->portamento_from) / osc->voice->portamento_len_sframes);
 	    /* if (osc->voice */
@@ -1426,20 +1476,20 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
     /* srand(time(NULL)); */
     Synth *synth = v->synth;
 
-    fprintf(stderr, "ASSIGN %f, current %d\n", note, v->note_val);
     bool portamento = false;
+    bool stolen = false;
     if (!v->available) {
-	v->portamento_from = v->note_val;
-	v->portamento_len_sframes = 10000;
-	v->portamento_elapsed_sframes = 0;
-	v->do_portamento = true;
-	portamento = true;
-	fprintf(stderr, "INIT portamento on voice %ld notes %d->%d\n", v - v->synth->voices, v->portamento_from, v->note_val);
+	stolen = true;
+	if (v->synth->mono_mode) {
+	    v->portamento_from = v->note_val;
+	    v->portamento_len_sframes = (double)endpoint_safe_read(&synth->portamento_len_msec_ep, NULL).int_v / 1000.0 * session_get_sample_rate();
+	    v->portamento_elapsed_sframes = 0;
+	    v->do_portamento = true;
+	    portamento = true;
+	}
     } else {
 	iir_clear(&v->filter);
 	v->do_portamento = false;
-	/* portamento = true; */
-	
     }
 
     v->note_val = note;
@@ -1466,7 +1516,7 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
     v->velocity = velocity;
     v->available = false;
 
-    if (portamento) {
+    if (portamento || stolen) {
 	adsr_reinit(v->amp_env, start_rel);
 	adsr_reinit(v->amp_env + 1, start_rel);
 
@@ -1708,7 +1758,7 @@ void synth_feed_midi(
 	} else if (msg_type == 9) { /* Handle note on */
 	    /* fprintf(stderr, "NOTE ON val: %d pos %d\n", note_val, e.timestamp); */
 	    bool note_assigned = false;
-	    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+	    for (int i=0; i<s->num_voices; i++) {
 		SynthVoice *v = s->voices + i;
 		if (v->available || s->mono_mode) {
 		    /* fprintf(stderr, "\t=>assigned to voice %d\n", i); */
@@ -1722,7 +1772,7 @@ void synth_feed_midi(
 		if (s->allow_voice_stealing) { /* check amp env for oldest voice */
 		    int32_t oldest_dur = 0;
 		    SynthVoice *oldest = NULL;
-		    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+		    for (int i=0; i<s->num_voices; i++) {
 			SynthVoice *v = s->voices + i;
 			if (!v->available) {
 			    int32_t dur = adsr_query_position(v->amp_env);

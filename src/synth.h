@@ -221,12 +221,24 @@ typedef struct synth {
     Endpoint noise_apply_env_ep;
     
     bool monitor;
-    bool mono_mode;
+
+    /* Polyphony */
+    int num_voices;
+    Endpoint num_voices_ep;
     bool allow_voice_stealing;
+    Endpoint allow_voice_stealing_ep;
+    
+    bool mono_mode;
+    Endpoint mono_mode_ep;
+    int portamento_len_msec;
+    Endpoint portamento_len_msec_ep;
+    
+    
     Page *osc_page; /* For GUI callback targeting */
     Page *amp_env_page;
     Page *filter_page;
     Page *noise_page;
+    Page *polyphony_page;
 
     Track *track;
 

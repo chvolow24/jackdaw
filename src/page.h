@@ -53,7 +53,8 @@ typedef enum page_el_type {
     EL_SYMBOL_RADIO,
     EL_DROPDOWN,
     EL_STATUS_LIGHT,
-    EL_PIANO
+    EL_PIANO,
+    EL_DIVIDER
     /* EL_TOGGLE_EP */
 } PageElType;
 
@@ -243,6 +244,11 @@ struct status_light_params {
     void *value;
     size_t val_size;
 };
+
+struct divider_params {
+    SDL_Color *color;
+};
+
 typedef union page_el_params {
     struct slider_params slider_p;
     struct textbox_params textbox_p;
@@ -260,6 +266,7 @@ typedef union page_el_params {
     struct symbol_radio_params sradio_p;
     struct dropdown_params dropdown_p;
     struct status_light_params slight_p;
+    struct divider_params divider_p;
 } PageElParams;
 
 

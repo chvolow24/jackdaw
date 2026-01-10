@@ -639,7 +639,7 @@ Synth *synth_create(Track *track)
 	"Mono mode",
 	JDAW_THREAD_DSP,
 	page_el_gui_cb, NULL, NULL,
-	NULL, NULL, NULL/* &s->mono_page */, "mono_mode_toggle");
+	NULL, NULL, &s->polyphony_page, "mono_mode_toggle");
     endpoint_set_default_value(&s->mono_mode_ep, (Value){.bool_v=false});
     api_endpoint_register(&s->mono_mode_ep, &s->api_node);
 
@@ -653,7 +653,7 @@ Synth *synth_create(Track *track)
 	"portamento_len_msec", "Portamento len msec",
 	JDAW_THREAD_DSP,
 	page_el_gui_cb, NULL, NULL,
-	NULL, NULL, NULL/* &s->mono_page */, "portamento_len_slider");
+	NULL, NULL, &s->polyphony_page, "portamento_len_slider");
     endpoint_set_default_value(&s->portamento_len_msec_ep, (Value){.int_v = portamento_default_len_msec});
     endpoint_set_allowed_range(&s->portamento_len_msec_ep, (Value){.int_v = 0}, (Value){.int_v = 1000});
     api_endpoint_register(&s->portamento_len_msec_ep, &s->api_node);

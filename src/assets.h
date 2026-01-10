@@ -32,6 +32,7 @@
 #define SYNTH_AMP_ENV_LT_PATH LAYOUT_PATH "synth_amp_env.xml"
 #define SYNTH_FILTER_LT_PATH LAYOUT_PATH "synth_filter.xml"
 #define SYNTH_NOISE_LT_PATH LAYOUT_PATH "synth_noise.xml"
+#define SYNTH_POLYPHONY_LT_PATH LAYOUT_PATH "synth_polyphony.xml"
 #define SYNTH_PRESETS_LT_PATH LAYOUT_PATH "synth_presets.xml"
 
 #define PIANO_LT_PATH LAYOUT_PATH "piano.xml"

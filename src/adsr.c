@@ -195,7 +195,7 @@ void adsr_set_params(
     p->a_ramp = malloc(sizeof(float) * a);
     p->d_ramp = malloc(sizeof(float) * d);
     for (int32_t i=0; i<a; i++) {
-	p->a_ramp[i] = pow((double)i / a, ramp_exp);
+	p->a_ramp[i] = pow((double)i / a, 1 / ramp_exp);
     }
     for (int32_t i=0; i<d; i++) {
 	float norm = (float)(d - i) / d;

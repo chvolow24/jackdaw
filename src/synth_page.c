@@ -21,6 +21,7 @@ static void add_osc_page(TabView *tv, Track *track);
 static void add_filter_page(TabView *tv, Track *track);
 static void add_amp_env_page(TabView *tv, Track *track);
 static void add_noise_page(TabView *tv, Track *track);
+static void add_polyphony_page(TabView *tv, Track *track);
 static void add_preset_page(TabView *tv, Track *track);
 
 void osc_bckgrnd_draw(void *arg1, void *arg2);
@@ -44,6 +45,7 @@ TabView *synth_tabview_create(Track *track)
     add_amp_env_page(tv, track);
     add_noise_page(tv, track);
     add_filter_page(tv, track);
+    add_polyphony_page(tv, track);
     add_preset_page(tv, track);
     return tv;
 }
@@ -680,7 +682,6 @@ static void add_filter_page(TabView *tv, Track *track)
     page_add_el(page,EL_TOGGLE,p,"use_amp_env_toggle","use_amp_env_toggle");
 
 
-
     p.slider_p.orientation = SLIDER_HORIZONTAL;
     p.slider_p.style = SLIDER_TICK;
 
@@ -716,6 +717,53 @@ static int save_preset_action(void *self, void *target)
     synth_save_preset();
     return 0;
 }
+
+static void add_polyphony_page(TabView *tv, Track *track)
+{
+
+    Synth *synth = track->synth;
+    static SDL_Color polyphony_bckgrnd = {60, 60, 100, 255};
+    Page *page = tabview_add_page(tv, "Polyphony", SYNTH_POLYPHONY_LT_PATH, &polyphony_bckgrnd, &colors.white, main_win);
+
+    synth->polyphony_page = page;
+    PageElParams p;
+    p.textbox_p.font = main_win->mono_bold_font;
+    p.textbox_p.text_size = 16;
+    p.textbox_p.win = main_win;
+
+    p.textbox_p.set_str = "Num voices:";
+    page_add_el(page,EL_TEXTBOX,p,"","num_voices_label");
+
+    p.textbox_p.set_str = "Allow voices stealing:";
+    page_add_el(page,EL_TEXTBOX,p,"","allow_voice_stealing_label");
+
+    p.textbox_p.set_str = "Mono mode:";
+    page_add_el(page,EL_TEXTBOX,p,"","mono_mode_label");
+
+    p.textbox_p.set_str = "Portamento len msec";
+    page_add_el(page,EL_TEXTBOX,p,"","portamento_len_label");
+
+    p.slider_p.orientation = SLIDER_HORIZONTAL;
+    p.slider_p.style = SLIDER_FILL;
+
+    page_el_params_slider_from_ep(&p, &synth->num_voices_ep);
+    page_add_el(page,EL_SLIDER,p,"num_voices_slider","num_voices_slider");
+
+    p.toggle_p.ep = &synth->allow_voice_stealing_ep;
+    page_add_el(page,EL_TOGGLE,p,"allow_voice_stealing_toggle","allow_voice_stealing_toggle");
+
+    p.toggle_p.ep = &synth->mono_mode_ep;
+    page_add_el(page,EL_TOGGLE,p,"mono_mode_toggle","mono_mode_toggle");
+    
+    p.slider_p.orientation = SLIDER_HORIZONTAL;
+    p.slider_p.style = SLIDER_FILL;
+
+    page_el_params_slider_from_ep(&p, &synth->portamento_len_msec_ep);
+    page_add_el(page,EL_SLIDER,p,"portamento_len_slider","portamento_len_slider");
+    
+
+}
+
 
 static void add_preset_page(TabView *tv, Track *track)
 {
@@ -802,6 +850,7 @@ static void add_preset_page(TabView *tv, Track *track)
     page_center_contents(page);
     page_reset(page);
 }
+
 
 /* Garbage Function */
 static void page_fill_out_layout(Page *page)

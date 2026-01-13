@@ -126,7 +126,6 @@ Effect *track_add_effect(Track *track, EffectType type)
     api_endpoint_register(&e->active_ep, &e->api_node);
 
     user_event_push(
-	
 	undo_add_effect, redo_add_effect,
 	NULL, dispose_forward_add_effect,
 	e, NULL,

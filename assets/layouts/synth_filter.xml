@@ -150,6 +150,14 @@
         </Layout>
       </children>
     </Layout>
+    <Layout name="divider" type="NORMAL">
+      <x>SCALE 0.046667</x>
+      <y>STACK 18</y>
+      <w>SCALE 0.864167</w>
+      <h>ABS 0</h>
+      <children>
+      </children>
+    </Layout>
     <Layout name="row_use_amp_env" type="NORMAL">
       <x>SCALE 0.046667</x>
       <y>STACK 18</y>

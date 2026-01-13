@@ -36,7 +36,6 @@
 #include "saturation.h"
 #include "synth.h"
 #include "textbox.h"
-#include "vu_meter.h"
 
 #define MAX_TRACKS 255
 #define MAX_TRACK_CLIPS 2048

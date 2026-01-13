@@ -678,6 +678,9 @@ static void add_filter_page(TabView *tv, Track *track)
     page_el_params_slider_from_ep(&p, &s->resonance_ep);
     page_add_el(page,EL_SLIDER,p,"resonance_slider","resonance_slider");
 
+    p.divider_p.color = &colors.grey;
+    page_add_el(page,EL_DIVIDER,p,"","divider");
+    
     p.toggle_p.ep = &s->use_amp_env_ep;
     page_add_el(page,EL_TOGGLE,p,"use_amp_env_toggle","use_amp_env_toggle");
 
@@ -731,11 +734,11 @@ static void add_polyphony_page(TabView *tv, Track *track)
     p.textbox_p.text_size = 16;
     p.textbox_p.win = main_win;
 
-    p.textbox_p.set_str = "Num voices:";
-    page_add_el(page,EL_TEXTBOX,p,"","num_voices_label");
-
     p.textbox_p.set_str = "Allow voices stealing:";
     page_add_el(page,EL_TEXTBOX,p,"","allow_voice_stealing_label");
+    
+    p.textbox_p.set_str = "Num voices:";
+    page_add_el(page,EL_TEXTBOX,p,"","num_voices_label");
 
     p.textbox_p.set_str = "Mono mode:";
     page_add_el(page,EL_TEXTBOX,p,"","mono_mode_label");
@@ -743,14 +746,14 @@ static void add_polyphony_page(TabView *tv, Track *track)
     p.textbox_p.set_str = "Portamento len msec";
     page_add_el(page,EL_TEXTBOX,p,"","portamento_len_label");
 
+    p.toggle_p.ep = &synth->allow_voice_stealing_ep;
+    page_add_el(page,EL_TOGGLE,p,"allow_voice_stealing_toggle","allow_voice_stealing_toggle");
+    
     p.slider_p.orientation = SLIDER_HORIZONTAL;
     p.slider_p.style = SLIDER_FILL;
 
     page_el_params_slider_from_ep(&p, &synth->num_voices_ep);
     page_add_el(page,EL_SLIDER,p,"num_voices_slider","num_voices_slider");
-
-    p.toggle_p.ep = &synth->allow_voice_stealing_ep;
-    page_add_el(page,EL_TOGGLE,p,"allow_voice_stealing_toggle","allow_voice_stealing_toggle");
 
     p.toggle_p.ep = &synth->mono_mode_ep;
     page_add_el(page,EL_TOGGLE,p,"mono_mode_toggle","mono_mode_toggle");
@@ -760,7 +763,9 @@ static void add_polyphony_page(TabView *tv, Track *track)
 
     page_el_params_slider_from_ep(&p, &synth->portamento_len_msec_ep);
     page_add_el(page,EL_SLIDER,p,"portamento_len_slider","portamento_len_slider");
-    
+
+    p.divider_p.color = &colors.grey;
+    page_add_el(page,EL_DIVIDER,p,"","divider");
 
 }
 

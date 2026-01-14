@@ -51,7 +51,8 @@ typedef struct adsr_state {
     enum adsr_stage current_stage;
     int32_t env_remaining;
     float release_start_env;
-    float last_release_env;
+    /* float last_release_env; */
+    float last_env_value;
     ADSRParams *params;
     int32_t start_release_after;
     int32_t s_time;

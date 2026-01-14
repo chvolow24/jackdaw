@@ -1389,6 +1389,7 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 		if (freq > 0.99f) freq = 0.99f;
 		if (freq < 1e-3) freq = 1e-3;
 		/* if (freq > 1e-3) { */
+		/* fprintf(stderr, "SET filter freq %f (env %f, stage %d), res %f\n", freq, filter_env_p[i], v->filter_env[channel].current_stage, v->synth->resonance); */
 		iir_set_coeffs_lowpass_chebyshev(f, freq, v->synth->resonance);
 		/* } */
 	    }
@@ -1517,6 +1518,7 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
     v->available = false;
 
     if (portamento || stolen) {
+	/* fprintf(stderr, "SYNTH VOICE %ld reinit!\n", v - v->synth->voices); */
 	adsr_reinit(v->amp_env, start_rel);
 	adsr_reinit(v->amp_env + 1, start_rel);
 

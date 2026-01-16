@@ -290,6 +290,33 @@ static void amod_target_dsp_cb(Endpoint *ep)
     }
 }
 
+#define PORTAMENTO_EXP 1.5
+static int portamento_scale(int unscaled)
+{
+    return round(pow((double)unscaled, PORTAMENTO_EXP));
+}
+
+static int portamento_unscale(int scaled)
+{
+    return round(pow((double)scaled, 1.0 / PORTAMENTO_EXP));
+}
+
+/* typedef void (*LabelStrFn)(char *dst, size_t dstsize, Value val, ValType type); */
+static void portamento_labelfn(char *dst, size_t dstsize, Value val, ValType type)
+{
+    int unscaled = val.int_v;
+    int scaled = portamento_scale(unscaled);
+    snprintf(dst, dstsize, "%d ms", scaled);
+}
+
+static void portamento_len_dsp_cb(Endpoint *ep)
+{
+    Synth *synth = ep->xarg1;
+    int unscaled = ep->current_write_val.int_v;
+    synth->portamento_len_msec = portamento_scale(unscaled);
+    fprintf(stderr, "UNSCALED: %d, lenmsec: %d\n", unscaled, synth->portamento_len_msec);
+}
+
 Synth *synth_create(Track *track)
 {
     Synth *s = calloc(1, sizeof(Synth));
@@ -646,16 +673,18 @@ Synth *synth_create(Track *track)
     static const int portamento_default_len_msec = 100;
     
     s->portamento_len_msec = portamento_default_len_msec;
+    s->portamento_len_unscaled = portamento_unscale(portamento_default_len_msec);
     endpoint_init(
 	&s->portamento_len_msec_ep,
-	&s->portamento_len_msec,
+	&s->portamento_len_unscaled,
 	JDAW_INT,
 	"portamento_len_msec", "Portamento len msec",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, NULL,
-	NULL, NULL, &s->polyphony_page, "portamento_len_slider");
-    endpoint_set_default_value(&s->portamento_len_msec_ep, (Value){.int_v = portamento_default_len_msec});
-    endpoint_set_allowed_range(&s->portamento_len_msec_ep, (Value){.int_v = 0}, (Value){.int_v = 1000});
+	page_el_gui_cb, NULL, portamento_len_dsp_cb,
+	s, NULL, &s->polyphony_page, "portamento_len_slider");
+    endpoint_set_default_value(&s->portamento_len_msec_ep, (Value){.int_v = s->portamento_len_unscaled});
+    endpoint_set_allowed_range(&s->portamento_len_msec_ep, (Value){.int_v = 0}, (Value){.int_v = portamento_unscale(8000)});
+    endpoint_set_label_fn(&s->portamento_len_msec_ep, portamento_labelfn);
     api_endpoint_register(&s->portamento_len_msec_ep, &s->api_node);
 
        
@@ -1032,7 +1061,6 @@ static void osc_reset_params(Osc *osc, int32_t chunk_len)
 	if (osc->voice->do_portamento && osc->voice->portamento_len_sframes > 0) {
 	    /* float portamento_incr = (float)(osc->voice->note_val - osc->voice->portamento_from) / osc->voice->portamento_len_bufs; */
 	    note = (float)osc->voice->portamento_from + ((double)osc->voice->portamento_elapsed_sframes * (osc->voice->note_val - osc->voice->portamento_from) / osc->voice->portamento_len_sframes);
-	    /* if (osc->voice */
 	} else {
 	    note = (float)osc->voice->note_val;
 	}
@@ -1380,9 +1408,17 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 	    if (i%37 == 0) { /* Update filter every 37 sample frames */
 		    
 		    /* + v->synth->vel_amt * (v->velocity / 127.0); */
+		float note;
+		if (v->do_portamento && v->portamento_len_sframes > 0) {
+		    /* float portamento_incr = (float)(osc->voice->note_val - osc->voice->portamento_from) / osc->voice->portamento_len_bufs; */
+		    note = (float)v->portamento_from + ((double)v->portamento_elapsed_sframes * (v->note_val - v->portamento_from) / v->portamento_len_sframes);
+		} else {
+		    note = v->note_val;
+		}
+	    
 		double freq =
 		    (v->synth->base_cutoff
-		     + v->synth->pitch_amt * mtof_calc(v->note_val) / (float)session_get_sample_rate()
+		     + v->synth->pitch_amt * mtof_calc(note) / (float)session_get_sample_rate()
 			)
 		    * (1.0f + (v->synth->env_amt * filter_env_p[i]))
 		    * (1.0f - (v->synth->vel_amt * (1.0 - (float)v->velocity / 127.0f)));
@@ -1483,7 +1519,7 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
 	stolen = true;
 	if (v->synth->mono_mode) {
 	    v->portamento_from = v->note_val;
-	    v->portamento_len_sframes = (double)endpoint_safe_read(&synth->portamento_len_msec_ep, NULL).int_v / 1000.0 * session_get_sample_rate();
+	    v->portamento_len_sframes = synth->portamento_len_msec / 1000.0 * session_get_sample_rate();
 	    v->portamento_elapsed_sframes = 0;
 	    v->do_portamento = true;
 	    portamento = true;

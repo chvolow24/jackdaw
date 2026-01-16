@@ -157,7 +157,7 @@ Page *tabview_select_tab(TabView *tv, int i)
     tv->current_tab = i;
     Page *p = tv->tabs[i];
     p->onscreen = true;
-    tabview_select_el(tv);
+    /* tabview_select_el(tv); */
     if (tv->ellipsis_right_inserted && i > tv->rightmost_index) {
 	tabview_reset(tv, tv->rightmost_index + 1);
     } else if (tv->ellipsis_left_inserted && i < tv->leftmost_index) {
@@ -1102,7 +1102,8 @@ void tabview_activate(TabView *tv)
     /* layout_write(stderr, tv->label->layout, 0); */
     window_push_mode(tv->win, MODE_TABVIEW);
     tv->tabs[tv->current_tab]->onscreen = true;
-    tabview_select_el(tv);
+    /* tabview_select_el(tv); */
+    
     /* Page *current = tv->tabs[tv->current_tab]; */
     /* page_el_select(current->selectable_els[current->selected_i]); */
 }
@@ -1315,6 +1316,9 @@ void page_enter(Page *page)
 	break;
     }
     case EL_TEXTENTRY:
+	if (!page->win->txt_editing) {
+	    textentry_edit(el->component);
+	}
 	break;
     case EL_SYMBOL_BUTTON: {
 	SymbolButton *sb = (SymbolButton *)el->component;

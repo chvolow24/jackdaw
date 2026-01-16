@@ -101,7 +101,7 @@ void session_destroy_metronomes(Session *session)
     }
 }
 
-static void click_track_set_metronome_config(
+static void click_track_configure_metronome(
     ClickTrack *ct,
     MetronomeBuffer *bp_measure_buf,
     MetronomeBuffer *bp_beat_buf,
@@ -175,6 +175,23 @@ static ClickTrackPos click_track_get_pos(ClickTrack *ct, int32_t tl_pos);
 
 void click_segment_get_durs_at(ClickTrack *ct, int32_t at, int32_t *measure_dur, int32_t *beat_dur, int32_t *subdiv_dur)
 {
+    if (!ct) { /* Default to 120bpm, 4/4 */
+	int32_t measure_dur_sframes = 4 * 60 * session_get_sample_rate() / 120;
+	/* int32_t beat_dur_sframes = measure_dur_sframes / 4; */
+	if (measure_dur) {
+	    *measure_dur = measure_dur_sframes;
+	}
+	if (beat_dur) {
+	    *beat_dur = measure_dur_sframes / 4;
+	}
+	if (subdiv_dur) {
+	    *subdiv_dur = measure_dur_sframes / 8;
+	}
+	return;
+    }
+    if (at < ct->segments->start_pos) {
+	at = ct->segments->start_pos;
+    }
     ClickTrackPos ctp = click_track_get_pos(ct, at);
     if (measure_dur) {
 	*measure_dur = ctp.seg->cfg.dur_sframes;
@@ -406,141 +423,6 @@ int32_t click_track_pos_to_tl_pos(ClickTrackPos *ctp)
     /* return ctp->remainder * ctp->seg->cfg.dur_sframes / ctp->seg->cfg.num_atoms + get_beat_pos(ctp->seg, ctp->measure, ctp->beat, ctp->subdiv); */
     return get_beat_pos(*ctp);
 }
-
-/* sets bar, beat, and pos; returns remainder in sframes */
-/* int32_t click_track_bar_beat_subdiv(ClickTrack *tt, int32_t pos, int *bar_p, int *beat_p, int *subdiv_p, ClickSegment **segment_p, bool set_readout) */
-/* { */
-/*     /\* bool debug = false; *\/ */
-/*     /\* if (strcmp(get_thread_name(), "main") == 0) { *\/ */
-/*     /\* 	debug = true; *\/ */
-/*     /\* } *\/ */
-/*     /\* fprintf(stderr, "CALL TO bar beat subdiv in thread %s\n", get_thread_name()); *\/ */
-/*     static JDAW_THREAD_LOCAL int measures[MAX_CLICK_TRACKS] = {0}; */
-/*     static JDAW_THREAD_LOCAL int beats[MAX_CLICK_TRACKS] = {0}; */
-/*     static JDAW_THREAD_LOCAL int subdivs[MAX_CLICK_TRACKS] = {0}; */
-/*     /\* static JDAW_THREAD_LOCAL int32_t prev_positions[MAX_CLICK_TRACKS]; *\/ */
-    
-/*     int measure = measures[tt->index]; */
-/*     int beat = beats[tt->index]; */
-/*     int subdiv = subdivs[tt->index]; */
-
-/*     ClickSegment *s = click_track_get_segment_at_pos(tt, pos); */
-/*     if (measure < s->first_measure_index) { */
-/* 	/\* fprintf(stderr, "Cache invalid MEASURE %d (s num: %d)\n", measure, s->num_measures); *\/ */
-/* 	measure = s->first_measure_index; */
-/* 	beat = 0; */
-/* 	subdiv = 0; */
-/*     } else if (beat > s->cfg.num_beats -1) { */
-/* 	/\* fprintf(stderr, "Cache invalid BEAT\n"); *\/ */
-/* 	beat = 0; */
-/* 	subdiv = 0; */
-/*     } else if (subdiv > s->cfg.beat_len_atoms[beat] - 1) { */
-/* 	/\* fprintf(stderr, "Cache invalid SUBDIV\n"); *\/ */
-/* 	subdiv = 0; */
-/*     } */
-    
-/*     /\* if (measure == 0) measure = s->first_measure_index; *\/ */
-/*     /\* int32_t prev_pos = prev_positions[tt->index]; *\/ */
-/*     int32_t beat_pos = 0; */
-    
-/*     /\* #ifdef TESTBUILD *\/ */
-/*     int ops = 0; */
-/*     /\* #endif *\/ */
-    
-/*     int32_t remainder = 0; */
-/*     /\* if (debug) { *\/ */
-/*     /\* 	/\\* fprintf(stderr, "\t\tSTART loop\n"); *\\/ *\/ */
-/*     /\* } *\/ */
-/*     while (1) { */
-	
-	
-/* 	beat_pos = get_beat_pos(s, measure, beat, subdiv); */
-/* 	remainder = pos - beat_pos; */
-
-/* 	/\* #ifdef TESTBUILD *\/ */
-/* 	ops++; */
-/* 	if (ops > 1000000 - 5) { */
-/* 	    if (ops > 1000000 - 3) breakfn(); */
-/* 	    fprintf(stderr, "ABORTING soon... ops = %d\n", ops); */
-/* 	    fprintf(stderr, "Segment start: %d\n", s->start_pos); */
-/* 	    fprintf(stderr, "Beat pos: %d\n", beat_pos); */
-/* 	    fprintf(stderr, "Pos: %d\n", pos); */
-/* 	    if (ops > 1000000) { */
-/* 		fprintf(stderr, "ABORT\n"); */
-/* 		click_track_fprint(stderr, tt); */
-/* 		goto set_dst_values; */
-/* 		/\* return 0; *\/ */
-/* 		/\* exit(1); *\/ */
-/* 	    } */
-/* 	} */
-/* 	/\* #endif *\/ */
-	
-/* 	/\* if (debug) { *\/ */
-/* 	/\*     /\\* fprintf(stderr, "\t\t\tremainder: (%d - %d) %d cmp dur approx: %d\n", pos, beat_pos, remainder, s->cfg.atom_dur_approx); *\\/ *\/ */
-/* 	/\* } *\/ */
-/* 	if (remainder < 0) { */
-/* 	    do_decrement(s, &measure, &beat, &subdiv); */
-/* 	} else { */
-/* 	    if (remainder < s->cfg.atom_dur_approx) { */
-/* 		break; */
-/* 	    } */
-/* 	    do_increment(s, &measure, &beat, &subdiv); */
-/* 	    /\* prev_pos = beat_pos; *\/ */
-/* 	} */
-
-/*     } */
-/*     /\* if (debug) { *\/ */
-/*     /\* 	/\\* fprintf(stderr, "\t\t->exit loop, ops %d\n", ops); *\\/ *\/ */
-/*     /\* } *\/ */
-/*     /\* v_positions[tt->index] = pos; *\/ */
-    
-/*     /\* do_decrement(s, &measure, &beat, &subdiv); *\/ */
-/*     /\* double dur = ((double)clock() - c) / CLOCKS_PER_SEC; *\/ */
-/*     /\* fprintf(stderr, "Ops; %d, time msec: %f\n", ops, dur * 1000); *\/ */
-
-
-/*     /\* Set destination pointer values *\/ */
-/*     /\* #ifdef TESTBUILD *\/ */
-/* set_dst_values: */
-/*     /\* #endif *\/ */
-/*     if (bar_p && beat_p && subdiv_p) { */
-/* 	*bar_p = measure; */
-/* 	*beat_p = beat; */
-/* 	*subdiv_p = subdiv; */
-/*     } */
-/*     if (segment_p) { */
-/* 	*segment_p = s; */
-/*     } */
-
-/*     /\* Set cache values *\/ */
-/*     measures[tt->index] = measure; */
-/*     beats[tt->index] = beat; */
-/*     subdivs[tt->index] = subdiv; */
-    
-/*     /\* Translate from zero-indexed for readout *\/ */
-/*     measure = measure >= 0 ? measure + 1 : measure; */
-/*     beat++; */
-/*     subdiv++; */
-    
-/*     /\* remainder = pos - prev_pos; *\/ */
-/*     /\* fprintf(stderr, "AT %d:\t%d, %d, %d\n", pos, measure, beat, subdiv); *\/ */
-/*     if (set_readout) { */
-/* 	static const int sample_str_len = 7; */
-/* 	char sample_str[sample_str_len]; */
-/* 	if (remainder < -99999) { */
-/* 	    snprintf(sample_str, sample_str_len, "%s", "-∞"); */
-/* 	} else if (remainder > 999999) { */
-/* 	    snprintf(sample_str, sample_str_len, "%s", "∞"); */
-/* 	} else { */
-/* 	    snprintf(sample_str, sample_str_len, "%d", remainder); */
-/* 	} */
-/* 	/\* fprintf(stderr, "MEASURE RAW: %d\n", measure); *\/ */
-/* 	snprintf(tt->pos_str, CLICK_POS_STR_LEN, "%d.%d.%d:%s", measure, beat, subdiv, sample_str); */
-/* 	textbox_reset_full(tt->readout); */
-/*     /\* fprintf(stderr, "%s\n", tt->pos_str); *\/ */
-/*     } */
-/*     return remainder; */
-/* } */
 
 static void click_track_set_readout_ctp(ClickTrack *ct, ClickTrackPos ctp)
 {
@@ -857,10 +739,12 @@ static void reset_positions_from_stash()
 
 static void stash_all_object_positions_track(Track *track, ClickSegment *seg)
 {
+    
     ClickTrack *ct = seg->track;
     for (int i=0; i<track->num_clips; i++) {
 	ClipRef *cr = track->clips[i];
 	ClickTrackPos clip_pos = click_track_get_pos(ct, track->clips[i]->tl_pos);
+	if (!clip_pos.seg) continue;
 	union moved_obj_id id = {.obj = cr};
 	enum moved_obj_type type = cr->type == CLIP_AUDIO ? MOV_OBJ_AUDIO_CLIP : MOV_OBJ_MIDI_CLIP;
 	stash_obj(id, clip_pos, (ClickTrackPos){0}, type);
@@ -888,6 +772,7 @@ static void stash_all_object_positions_track(Track *track, ClickSegment *seg)
 		}
 	    }
 	}
+
     }
     for (int i=0; i<track->num_automations; i++) {
 	Automation *a = track->automations[i];
@@ -895,10 +780,11 @@ static void stash_all_object_positions_track(Track *track, ClickSegment *seg)
 	    Keyframe *k = a->keyframes + i;
 	    /* if (k->pos >= seg->start_pos && */
 	    /* 	(!seg->next || k->pos <= seg->next->start_pos)) { */
-		union moved_obj_id id;
-		ClickTrackPos ct_pos = click_track_get_pos(ct, k->pos);
-		id.obj = k;
-		stash_obj(id, ct_pos, (ClickTrackPos){0}, MOV_OBJ_AUTOMATION_KF);
+	    union moved_obj_id id;
+	    ClickTrackPos ct_pos = click_track_get_pos(ct, k->pos);
+	    if (!ct_pos.seg) continue;
+	    id.obj = k;
+	    stash_obj(id, ct_pos, (ClickTrackPos){0}, MOV_OBJ_AUTOMATION_KF);
 	    /* } */
 	}
     }
@@ -1076,15 +962,11 @@ ClickTrack *timeline_add_click_track(Timeline *tl)
     t->tl = tl;
     Session *session = session_get();
 
-    click_track_set_metronome_config(
+    click_track_configure_metronome(
 	t,
-	/* session->metronome_buffers + METRONOME_STD_HIGH_INDEX, */
-	/* session->metronome_buffers + METRONOME_STD_LOW_INDEX, */
-	/* session->metronome_buffers + METRONOME_SNAP_WET_INDEX, */
-	NULL,
-	NULL,
-	session->metronome_buffers + METRONOME_SNAP_WET_INDEX,
-	NULL);
+	session->metronome_buffers + METRONOME_STD_HIGH_INDEX,
+	session->metronome_buffers + METRONOME_STD_LOW_INDEX,
+	NULL, NULL);
 	
 				     
     /* t->metronome = &session->metronomes[0]; */
@@ -2071,6 +1953,7 @@ void click_track_drag_pos(ClickSegment *s, Window *win)
 {
     Session *session = session_get();
     int32_t tl_pos = timeview_get_pos_sframes(&ACTIVE_TL->timeview, win->mousep.x);
+    if (tl_pos <= s->start_pos) return;
     int32_t og_dur = clicked_tl_pos - s->start_pos;
     int32_t new_dur = tl_pos - s->start_pos;
     double prop = (double)og_dur / new_dur;

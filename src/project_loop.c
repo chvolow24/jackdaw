@@ -217,57 +217,57 @@ void loop_project_main()
 		/* } */
 
 		switch (e.key.keysym.scancode) {
-		case SDL_SCANCODE_4: {
-		    ClipRef *cr = clipref_at_cursor();
-		    if (cr) {
-		        cr->gain -= 0.1;
-			clipref_reset(cr, false);
-			ACTIVE_TL->needs_redraw = true;
-		    }
+		/* case SDL_SCANCODE_4: { */
+		/*     ClipRef *cr = clipref_at_cursor(); */
+		/*     if (cr) { */
+		/*         cr->gain -= 0.1; */
+		/* 	clipref_reset(cr, false); */
+		/* 	ACTIVE_TL->needs_redraw = true; */
+		/*     } */
 		    
-		}
-		    break;
-		case SDL_SCANCODE_5: {
-		    ClipRef *cr = clipref_at_cursor();
-		    if (cr) {
-			cr->gain += 0.1;
-			clipref_reset(cr, false);
-			ACTIVE_TL->needs_redraw = true;
-		    }
+		/* } */
+		/*     break; */
+		/* case SDL_SCANCODE_5: { */
+		/*     ClipRef *cr = clipref_at_cursor(); */
+		/*     if (cr) { */
+		/* 	cr->gain += 0.1; */
+		/* 	clipref_reset(cr, false); */
+		/* 	ACTIVE_TL->needs_redraw = true; */
+		/*     } */
 		    
-		}
-		    break;
+		/* } */
+		/*     break; */
 
-		case SDL_SCANCODE_6: {
-		    user_piano_roll_quantize(NULL);
-		    break;
-		    ClipRef *cr = clipref_at_cursor();
-		    midi_clipref_quantize_notes_in_range(cr, 1.0, BP_SSD, true);
-		    /* piano_roll_quantize_notes_in_marked_range(); */
-		}
-		    break;
-		case SDL_SCANCODE_7: {
-		    ClipRef *cr = clipref_at_cursor();
-		    midi_clipref_notes_in_range_adj_quantize_amount(cr, 0.5);
-		    /* midi_clipref_quantize_notes_in_range(cr, 1.0, BP_SUBDIV2, true); */
-		    /* piano_roll_quantize_notes_in_marked_range(); */
-		}
-		    break;
-		case SDL_SCANCODE_8: {
-		    ClipRef *cr = clipref_at_cursor();
-		    midi_clipref_notes_in_range_adj_quantize_amount(cr, 1.0);
-		    /* midi_clipref_quantize_notes_in_range(cr, 1, BP_SUBDIV2, true); */
-		    /* piano_roll_quantize_notes_in_marked_range(); */
-		}
-		    break;
+		/* case SDL_SCANCODE_6: { */
+		/*     user_piano_roll_quantize(NULL); */
+		/*     break; */
+		/*     ClipRef *cr = clipref_at_cursor(); */
+		/*     midi_clipref_quantize_notes_in_range(cr, 1.0, BP_SSD, true); */
+		/*     /\* piano_roll_quantize_notes_in_marked_range(); *\/ */
+		/* } */
+		/*     break; */
+		/* case SDL_SCANCODE_7: { */
+		/*     ClipRef *cr = clipref_at_cursor(); */
+		/*     midi_clipref_notes_in_range_adj_quantize_amount(cr, 0.5); */
+		/*     /\* midi_clipref_quantize_notes_in_range(cr, 1.0, BP_SUBDIV2, true); *\/ */
+		/*     /\* piano_roll_quantize_notes_in_marked_range(); *\/ */
+		/* } */
+		/*     break; */
+		/* case SDL_SCANCODE_8: { */
+		/*     ClipRef *cr = clipref_at_cursor(); */
+		/*     midi_clipref_notes_in_range_adj_quantize_amount(cr, 1.0); */
+		/*     /\* midi_clipref_quantize_notes_in_range(cr, 1, BP_SUBDIV2, true); *\/ */
+		/*     /\* piano_roll_quantize_notes_in_marked_range(); *\/ */
+		/* } */
+		/*     break; */
 
-		case SDL_SCANCODE_9: {
-		    ClipRef *cr = clipref_at_cursor();
-		    midi_clipref_notes_in_range_adj_quantize_amount(cr, 0.0);
-		    /* midi_clipref_quantize_notes_in_range(cr, 1, BP_SUBDIV2, true); */
-		    /* piano_roll_quantize_notes_in_marked_range(); */
-		}
-		    break;
+		/* case SDL_SCANCODE_9: { */
+		/*     ClipRef *cr = clipref_at_cursor(); */
+		/*     midi_clipref_notes_in_range_adj_quantize_amount(cr, 0.0); */
+		/*     /\* midi_clipref_quantize_notes_in_range(cr, 1, BP_SUBDIV2, true); *\/ */
+		/*     /\* piano_roll_quantize_notes_in_marked_range(); *\/ */
+		/* } */
+		/*     break; */
 
 
 

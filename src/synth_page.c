@@ -240,6 +240,9 @@ static void add_osc_page(TabView *tv, Track *track)
 
     p.textbox_p.set_str = "Fix:";
     page_add_el(page,EL_TEXTBOX,p,"","1fix_label");
+    page_add_el(page,EL_TEXTBOX,p,"","2fix_label");
+    page_add_el(page,EL_TEXTBOX,p,"","3fix_label");
+    page_add_el(page,EL_TEXTBOX,p,"","4fix_label");
 
     p.textbox_p.set_str = "Octave:";
     el = page_add_el(page,EL_TEXTBOX,p,"","1octave_label");
@@ -759,7 +762,7 @@ static void add_polyphony_page(TabView *tv, Track *track)
     page_add_el(page,EL_TOGGLE,p,"mono_mode_toggle","mono_mode_toggle");
     
     p.slider_p.orientation = SLIDER_HORIZONTAL;
-    p.slider_p.style = SLIDER_FILL;
+    p.slider_p.style = SLIDER_TICK;
 
     page_el_params_slider_from_ep(&p, &synth->portamento_len_msec_ep);
     page_add_el(page,EL_SLIDER,p,"portamento_len_slider","portamento_len_slider");

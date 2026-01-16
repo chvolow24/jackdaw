@@ -1,0 +1,104 @@
+<Layout name="metronome_page" type="NORMAL">
+  <x>REL 0</x>
+  <y>REL 0</y>
+  <w>SCALE 1.0</w>
+  <h>SCALE 1.0</h>
+  <children>
+    <Layout name="row" type="NORMAL">
+      <x>SCALE 0.046667</x>
+      <y>STACK 32</y>
+      <w>PAD 1</w>
+      <h>REL 24</h>
+      <children>
+        <Layout name="measure_label" type="NORMAL">
+          <x>STACK 0</x>
+          <y>REL 0</y>
+          <w>REL 350</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="measure_value" type="NORMAL">
+          <x>STACK 0</x>
+          <y>REL 0</y>
+          <w>REVREL 0</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+    <Layout name="row" type="NORMAL">
+      <x>SCALE 0.046667</x>
+      <y>STACK 20</y>
+      <w>PAD 1</w>
+      <h>REL 24</h>
+      <children>
+        <Layout name="beat_label" type="NORMAL">
+          <x>STACK 0</x>
+          <y>REL 0</y>
+          <w>REL 350</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="beat_value" type="NORMAL">
+          <x>STACK 0</x>
+          <y>REL 0</y>
+          <w>REVREL 0</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+    <Layout name="row" type="NORMAL">
+      <x>SCALE 0.046667</x>
+      <y>STACK 20</y>
+      <w>PAD 1</w>
+      <h>REL 24</h>
+      <children>
+        <Layout name="offbeat_label" type="NORMAL">
+          <x>STACK 0</x>
+          <y>REL 0</y>
+          <w>REL 350</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="offbeat_value" type="NORMAL">
+          <x>STACK 0</x>
+          <y>REL 0</y>
+          <w>REVREL 0</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+    <Layout name="row" type="NORMAL">
+      <x>SCALE 0.046667</x>
+      <y>STACK 20</y>
+      <w>PAD 1</w>
+      <h>REL 24</h>
+      <children>
+        <Layout name="subdiv_label" type="NORMAL">
+          <x>STACK 0</x>
+          <y>REL 0</y>
+          <w>REL 350</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="subdiv_value" type="NORMAL">
+          <x>STACK 0</x>
+          <y>REL 0</y>
+          <w>REVREL 0</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+  </children>
+</Layout>

@@ -62,15 +62,19 @@ typedef struct jlily_note {
     int accidental;
     uint8_t pitch;
     uint8_t velocity;
-    double ts;
+    /* double ts; */
+    int32_t ts;
     int32_t dur;
 } JLilyNote;
 
 
 struct jlily_state {
-    double beat_dur_sframes;
+    ClickTrack *ct;
+    /* double beat_dur_sframes; */
     double ts;
-    double current_dur_sframes;
+    /* int32_t current_dur_sframes; */
+    int dur_literal; /* e.g. '8' for eighth note */
+    int dots;
     uint8_t velocity;
 
     JLilyNote notes[MAX_NOTES];
@@ -103,6 +107,43 @@ static int note_name_interval(char note1, char note2)
 	}
     }
     return interval;
+}
+
+static int32_t get_current_dur_sframes()
+{
+    int32_t measure_dur, beat_dur, subdiv_dur;
+    int32_t check_ts = state.ts;
+    click_segment_get_durs_at(state.ct, state.ts, &measure_dur, &beat_dur, &subdiv_dur);
+    int32_t dur_predot;
+    switch (state.dur_literal) {
+    case 1:
+	dur_predot = measure_dur;
+	break;
+    case 2:
+	dur_predot = 2 * beat_dur;
+	break;
+    case 3:
+    case 4:
+	dur_predot = beat_dur;
+	break;
+    case 5:
+    case 6:
+    case 7:
+    case 8:
+	dur_predot = subdiv_dur;
+	break;
+    default:
+	dur_predot = subdiv_dur / (state.dur_literal / 8.0);
+	break;
+    }
+    /* fprintf(stderr, "Dur predot: %f\n", dur_predot); */
+    /* double dur_predot = beat_dur / (state.dur_literal / 4.0); */
+    int32_t dur = dur_predot;
+    for (int i=0; i<state.dots; i++) {
+	dur_predot /= 2;
+	dur += dur_predot;
+    }
+    return dur;    
 }
 
 void handle_repeat(JLilyRepeatBlock *block)
@@ -192,7 +233,7 @@ static int handle_next_token(const char *text, int index, enum token_type type, 
 	}
 	state.num_notes++;
 	state.current_note->name = text[index];
-	state.current_note->dur = state.current_dur_sframes;
+	state.current_note->dur = get_current_dur_sframes();
 	int accidental = 0;
 	int subindex = index + 1;
 	while (subindex < max_i) {
@@ -233,16 +274,18 @@ static int handle_next_token(const char *text, int index, enum token_type type, 
 	state.current_note->velocity = state.velocity;
 	/* fprintf(stderr, "\tSetting ts %d, incr %d\n", ts, current_dur); */
 	if (!state.chord_open) {
-	    state.ts += state.current_dur_sframes;
+	    state.ts += state.current_note->dur;
 	}
     }
 	break;
     case JLILY_REST:
 	if (state.chord_open) break;
-	state.ts += state.current_dur_sframes;
+	state.ts += get_current_dur_sframes();
 	break;
     case JLILY_DURATION: {
 	if (state.chord_open) break;
+	int32_t previously_advanced = get_current_dur_sframes();
+	
 	int dur_literal;
 	int char1 = text[index] - '0';
 	int char2;
@@ -254,39 +297,35 @@ static int handle_next_token(const char *text, int index, enum token_type type, 
 	} else {
 	    dur_literal = char1;
 	}
+	state.dur_literal = dur_literal;
 	int dots = 0;
 	while (subindex < max_i && text[subindex] == '.') {
 	    dots++;
 	    tok_len++;
 	    subindex++;
 	}
+	state.dots = dots;
+	/* state. */
 
-	double dur_predot = state.beat_dur_sframes / (dur_literal / 4.0);
-	double dur = dur_predot;
-	for (int i=0; i<dots; i++) {
-	    dur_predot /= 2;
-	    dur += dur_predot;
-	}
+	state.ts -= previously_advanced;
+	/* state.ts -= state.current_dur_sframes; */
 
-	state.ts -= state.current_dur_sframes;
-
-	double edit_ts = state.current_note->ts;
+	int32_t edit_ts = state.current_note->ts;
 	JLilyNote *n = state.current_note;
 	if (!state.current_note->closed) {
-
 	    JLilyNote *n = state.current_note;
-	    while (n >= state.notes && fabs(n->ts - edit_ts) < 1e-9) {
-		n->dur -= state.current_dur_sframes;
+	    while (n >= state.notes && abs(n->ts - edit_ts) < 1e-9) {
+		n->dur -= previously_advanced;
 		n--;
 	    }
 	}
-	state.current_dur_sframes = dur;
-	state.ts += state.current_dur_sframes;
+	/* state.current_dur_sframes = dur; */
+	state.ts += get_current_dur_sframes();;
 
 	if (!state.current_note->closed) { 
 	    n = state.current_note;
-	    while (n >= state.notes && fabs(n->ts - edit_ts) < 1e-9) {
-		n->dur += state.current_dur_sframes;
+	    while (n >= state.notes && abs(n->ts - edit_ts) < 1e-9) {
+		n->dur += get_current_dur_sframes();
 		n--;
 	    }
 	}
@@ -308,7 +347,7 @@ static int handle_next_token(const char *text, int index, enum token_type type, 
 	break;
     case JLILY_CHORD_CLOSE:
 	state.chord_open = false;
-	state.ts += state.current_dur_sframes;
+	state.ts += get_current_dur_sframes();
 	break;
     /* case JLILY_VELOCITY: { */
     /* 	int subindex = index + 1; */
@@ -400,13 +439,27 @@ int do_next_token(const char *text, int index, int max_i)
    Returns num state.notes */
 int jlily_string_to_mclip(
     const char *str,
-    double beat_dur_sframes_loc,
-    int32_t pos_offset,
+    ClickTrack *ct,
+    /* double beat_dur_sframes_loc, */
+    int32_t tl_pos,
     MIDIClip *mclip)
 {
     memset(&state, '\0', sizeof(state));
-    state.beat_dur_sframes = beat_dur_sframes_loc;
-    state.current_dur_sframes = beat_dur_sframes_loc;
+    /* state.beat_dur_sframes = beat_dur_sframes_loc; */
+    /* state.current_dur_sframes = beat_dur_sframes_loc; */
+    state.ts = tl_pos;
+    /* state.ts = pos_offset; */
+    /* if (!ct) { */
+    /* 	state.current_dur_sframes = 60 * session_get_sample_rate() / 120; */
+    /* } else { */
+    /* 	int32_t beat_dur; */
+    /* 	click_segment_get_durs_at(ct, (int32_t)state.ts, NULL, &beat_dur, NULL); */
+    /* 	state.current_dur_sframes = beat_dur; */
+    /* } */
+    state.dur_literal = 4;
+    state.dots = 0;
+
+    state.ct = ct;
     state.current_note = state.notes;
     state.last_token_type = JLILY_NONE;
     state.velocity = 100;
@@ -433,14 +486,14 @@ int jlily_string_to_mclip(
 		0,
 		jnote->pitch,
 		jnote->velocity,
-		(int32_t)jnote->ts + pos_offset,
-		(int32_t)jnote->ts + pos_offset + jnote->dur);
+		(int32_t)jnote->ts - tl_pos,
+		(int32_t)jnote->ts - tl_pos + jnote->dur);
 		/* (int32_t)jnote->ts + pos_offset + 1000); */
 	}
     } else {
 	for (int i=0; i<state.num_notes; i++) {
 	    JLilyNote *jnote = state.notes + i;
-	    fprintf(stderr, "(%d) pitch %d vel %d\n", (int32_t)jnote->ts + pos_offset, jnote->pitch, jnote->velocity);
+	    /* fprintf(stderr, "(%d) pitch %d vel %d\n", (int32_t)jnote->ts + pos_offset, jnote->pitch, jnote->velocity); */
 	}
     }
     return state.num_notes;
@@ -458,14 +511,17 @@ static int add_jlily_modalfn(void *mod_v, void *target)
     Timeline *tl = ACTIVE_TL;
     Track *t = timeline_selected_track(tl);
     ClickSegment *s = click_segment_active_at_cursor(tl);
-    int32_t beat_dur;
-    if (s) {
-	beat_dur = s->cfg.dur_sframes / s->cfg.num_atoms * s->cfg.beat_len_atoms[0];
-    } else {
-	beat_dur = (double)session->proj.sample_rate / 120.0 * 60.0;
-    }
+    ClickTrack *ct = NULL;
+    if (s) ct = s->track;
+    /* int32_t beat_dur; */
+    /* if (s) { */
+    /* 	beat_dur = s->cfg.dur_sframes / s->cfg.num_atoms * s->cfg.beat_len_atoms[0]; */
+    /* } else { */
+    /* 	beat_dur = (double)session->proj.sample_rate / 120.0 * 60.0; */
+    /* } */
 
-    ClipRef *cr = clipref_at_cursor();
+    /* ClipRef *cr = clipref_at_cursor(); */
+    ClipRef *cr = NULL;
     MIDIClip *mclip;
     bool clip_created = false;
     if (!cr) {
@@ -476,10 +532,11 @@ static int add_jlily_modalfn(void *mod_v, void *target)
 	if (cr->type == CLIP_AUDIO) return -1;
 	mclip = cr->source_clip;
     }
-    int32_t pos_rel = tl->play_pos_sframes - cr->tl_pos + cr->start_in_clip;
+    /* int32_t pos_rel = tl->play_pos_sframes - cr->tl_pos + cr->start_in_clip; */
 
     fprintf(stderr, "ADDING JLILY STRING: %s\n", (char *)target);
-    jlily_string_to_mclip(target, (double)beat_dur, pos_rel, mclip);
+    /* jlily_string_to_mclip(target, (double)beat_dur, pos_rel, mclip); */
+    jlily_string_to_mclip(target, ct, tl->play_pos_sframes, mclip);
     if (clip_created) {
 	if (mclip->num_notes == 0) {
 	    midi_clip_destroy(mclip);

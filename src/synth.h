@@ -93,6 +93,7 @@ typedef struct synth_voice {
 /* buf_len    float portamento_len_bufs; */
     int32_t portamento_len_sframes;
     int32_t portamento_elapsed_sframes;
+    /* float portamento_note_current; */
     /* float *portamento_ramp; */
     uint8_t velocity;
     Synth *synth;
@@ -230,6 +231,7 @@ typedef struct synth {
     
     bool mono_mode;
     Endpoint mono_mode_ep;
+    int portamento_len_unscaled;
     int portamento_len_msec;
     Endpoint portamento_len_msec_ep;
     

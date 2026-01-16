@@ -12,13 +12,16 @@
 #include "assets.h"
 #include "color.h"
 #include "eq.h"
+#include "geometry.h"
 #include "layout.h"
+#include "menu.h"
 #include "page.h"
 #include "project.h"
 #include "session.h"
 #include "textbox.h"
 #include "timeline.h"
 #include "userfn.h"
+#include "window.h"
 
 #ifndef INSTALL_DIR
 #define INSTALL_DIR "."
@@ -200,6 +203,61 @@ static int segment_prev_action(void *self, void *targ)
     return 0;
 }
 
+struct metronome_buf_menu_item_data {
+    MetronomeBuffer **buf_dst;
+    int sel_i;
+    Button *button_to_reset;
+};
+
+void metronome_buf_menu_item_onclick(void *target)
+{
+    Session *session = session_get();
+    struct metronome_buf_menu_item_data *data = target;
+    if (data->sel_i < 0) {
+	*(data->buf_dst) = NULL;
+	textbox_set_value_handle(data->button_to_reset->tb, "(none)");
+	textbox_size_to_fit(data->button_to_reset->tb, 6, 2);
+	textbox_reset_full(data->button_to_reset->tb);
+    } else {
+	*(data->buf_dst) = session->metronome_buffers + data->sel_i;
+	textbox_set_value_handle(data->button_to_reset->tb, (*(data->buf_dst))->name);
+	textbox_size_to_fit(data->button_to_reset->tb, 6, 2);
+	textbox_reset_full(data->button_to_reset->tb);
+    }
+    window_pop_menu(main_win);
+}
+
+static int metronome_buf_button_action(void *self_v, void *target_v)
+{
+    Button *b = self_v;
+    Menu *m = menu_create_at_point(b->tb->layout->rect.x + b->tb->layout->rect.w, b->tb->layout->rect.y + b->tb->layout->rect.h);
+    MenuColumn *mc = menu_column_add(m, NULL);
+    MenuSection *ms = menu_section_add(mc, NULL);
+
+    MetronomeBuffer **dst = target_v;
+    
+    Session *session = session_get();
+    for (int i=0; i<session->num_metronome_buffers; i++) {
+	struct metronome_buf_menu_item_data *data = malloc(sizeof(struct metronome_buf_menu_item_data));
+	data->buf_dst = dst;
+	data->sel_i = i;
+	data->button_to_reset = b;
+	MenuItem *item = menu_item_add(ms, session->metronome_buffers[i].name, NULL, metronome_buf_menu_item_onclick, data);
+	item->free_target_on_destroy = true;
+    }
+
+    struct metronome_buf_menu_item_data *data = malloc(sizeof(struct metronome_buf_menu_item_data));
+    data->buf_dst = dst;
+    data->sel_i = -1;
+    data->button_to_reset = b;
+    MenuItem *item = menu_item_add(ms, "(none)", NULL, metronome_buf_menu_item_onclick, data);
+    item->free_target_on_destroy = true;
+
+    
+    window_add_menu(main_win, m);
+    return 0;
+}
+
 static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv, bool set_from_cfg)
 {
 
@@ -231,7 +289,7 @@ static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv,
     PageEl *el;
     Textbox *tb;
     p.textbox_p.font = main_win->mono_font;
-    p.textbox_p.text_size = 14;
+    p.textbox_p.text_size = 16;
     p.textbox_p.win = page->win;
 
     p.textbox_p.set_str = "Track name:";
@@ -490,24 +548,80 @@ static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv,
 	p.button_p.win = page->win;
 	p.button_p.target = NULL;
 	p.button_p.text_color = &colors.white;
-	p.button_p.text_size = 14;
+	p.button_p.text_size = 18;
 	p.button_p.background_color = &colors.quickref_button_blue;
 	p.button_p.target = s;
-
     }
     if (s->prev) {
 	p.button_p.set_str = "←";
 	p.button_p.action = segment_prev_action;
-	page_add_el(page, EL_BUTTON, p, "segment_left", "segment_left");
+	el = page_add_el(page, EL_BUTTON, p, "segment_left", "segment_left");
+	Textbox *tb = ((Button *)el->component)->tb;
+	textbox_set_border(tb, &colors.grey, 1, 4);
 
     }
     if (s->next) {
 	p.button_p.set_str = "→";
 	p.button_p.action = segment_next_action;
-	page_add_el(page, EL_BUTTON, p, "segment_right", "segment_right");
+	el = page_add_el(page, EL_BUTTON, p, "segment_right", "segment_right");
+	Textbox *tb = ((Button *)el->component)->tb;
+	textbox_set_border(tb, &colors.grey, 1, 4);
+
     }
-    
     page_reset(page);
+
+/*------ metronome page ----------------------------------------------*/
+    
+    page = tabview_add_page(
+	tv,
+	"Metronome",
+	METRONOME_PAGE_LT_PATH,
+	page_colors,
+	&colors.white,
+	main_win);
+
+    p.textbox_p.font = main_win->mono_bold_font;
+    p.textbox_p.text_size = 16;
+    p.textbox_p.win = main_win;
+    p.textbox_p.set_str = "Measure:";
+    page_add_el(page, EL_TEXTBOX, p, "", "measure_label");
+
+    p.textbox_p.set_str = "Beat:";
+    page_add_el(page, EL_TEXTBOX, p, "", "beat_label");
+
+    p.textbox_p.set_str = "Offbeat (2 & 4):";
+    page_add_el(page, EL_TEXTBOX, p, "", "offbeat_label");
+
+    p.textbox_p.set_str = "Subdiv (8ths):";
+    page_add_el(page, EL_TEXTBOX, p, "", "subdiv_label");
+
+    p.button_p.action = metronome_buf_button_action;
+    p.button_p.background_color = &colors.light_grey;
+    p.button_p.text_color = &colors.black;
+    p.button_p.text_size = 16;
+
+    MetronomeBuffer **mb = &tt->metronome.bp_measure_buf;
+    p.button_p.target = mb;
+    p.button_p.set_str = *mb ? (char *)(*mb)->name : "(none)";
+    page_add_el(page, EL_BUTTON, p, "", "measure_value");
+
+    mb = &tt->metronome.bp_beat_buf;
+    p.button_p.target = mb;
+    p.button_p.set_str = *mb ? (char *)(*mb)->name : "(none)";
+    page_add_el(page, EL_BUTTON, p, "", "beat_value");
+
+    mb = &tt->metronome.bp_offbeat_buf;
+    p.button_p.target = mb;
+    p.button_p.set_str = *mb ? (char *)(*mb)->name : "(none)";
+    page_add_el(page, EL_BUTTON, p, "", "offbeat_value");
+
+    mb = &tt->metronome.bp_subdiv_buf;
+    p.button_p.target = mb;
+    p.button_p.set_str = *mb ? (char *)(*mb)->name : "(none)";    
+    page_add_el(page, EL_BUTTON, p, "", "subdiv_value");
+
+    page_reset(page);
+
 }
 
 void click_track_populate_settings_tabview(ClickTrack *tt, TabView *tv)

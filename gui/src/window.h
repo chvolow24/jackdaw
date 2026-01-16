@@ -130,6 +130,9 @@ void window_draw_menus(Window *win);
 void window_push_mode(Window *win, InputMode im);
 InputMode window_pop_mode(Window *win);
 
+/* Clear out everything over timeline mode, taking care to avoid recursion */
+void window_clear_higher_modes(Window *win, InputMode called_from_mode);
+
 void window_push_modal(Window *win, Modal *modal);
 void window_pop_modal(Window *win);
 void window_draw_modals(Window *win);

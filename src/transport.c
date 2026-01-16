@@ -88,12 +88,13 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
 
 	int32_t tl_pos_now = pb_cb_tick.timeline_pos + (int32_t)(elapsed_pb_chunk_ms * proj->sample_rate / 1000.0f);
 	int32_t tl_pos_rec_chunk = tl_pos_now - (record_latency_ms * proj->sample_rate / 1000);
-	
-	for (uint16_t i=0; i<conn->current_clip->num_refs; i++) {
-	    ClipRef *cr = conn->current_clip->refs[i];
-	    cr->tl_pos = tl_pos_rec_chunk;
+	if (conn->current_clip) {
+	    for (uint16_t i=0; i<conn->current_clip->num_refs; i++) {
+		ClipRef *cr = conn->current_clip->refs[i];
+		cr->tl_pos = tl_pos_rec_chunk;
+	    }
+	    conn->current_clip_repositioned = true;
 	}
-	conn->current_clip_repositioned = true;
     }
     
     uint32_t stream_len_samples = len / sizeof(int16_t);
@@ -753,9 +754,15 @@ void transport_stop_playback()
     audioconn_stop_playback(session->audio_io.playback_conn);
 
     /* Busy waiting */
+    uint32_t test = 0;
     while (session->audio_io.playback_conn->c.device.request_close) {
-	/* test++; */
-	/* if (test > 5000) exit(1); */
+	test++;
+	if (test > 2e8) {
+	    fprintf(stderr, "Error: audio device \"%s\" requested close, but has not closed\n", session->audio_io.playback_conn->name);
+	    TESTBREAK;
+	    break;
+	    /* exit(1); */
+	}
     }
 
     pthread_cancel(*get_thread_addr(JDAW_THREAD_DSP));
@@ -1072,6 +1079,12 @@ void transport_stop_recording()
 	if (clip->len_sframes == 0) {
 	    for (int i=0; i<clip->num_refs; i++) {
 		if (clip->refs[i]->grabbed) timeline_clipref_ungrab(clip->refs[i]);
+	    }
+	    for (int i=0; i<session->audio_io.num_record_conns; i++) {
+		AudioConn *conn = session->audio_io.record_conns[i];
+		if (conn->current_clip == clip) {
+		    conn->current_clip = NULL;
+		}
 	    }
 	    clip_destroy(clip);
 	} else {

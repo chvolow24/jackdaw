@@ -14,6 +14,7 @@
 #include "textbox.h"
 #include "timeline.h"
 #include "timeview.h"
+#include "window.h"
 
 extern Window *main_win;
 extern struct colors colors;
@@ -710,12 +711,14 @@ void piano_roll_activate(ClipRef *cr)
 
 void piano_roll_deactivate()
 {
+    piano_roll_stop_moving();
     midi_clip_ungrab_all(state.clip);
     state.clip = NULL;
-    InputMode im = window_pop_mode(main_win);
-    if (im != MODE_PIANO_ROLL) {
-	fprintf(stderr, "Error: deactivating piano roll, top mode %s\n", input_mode_str(im));
-    }
+    /* InputMode im = window_pop_mode(main_win); */
+    /* if (im != MODE_PIANO_ROLL) { */
+    /* 	fprintf(stderr, "Error: deactivating piano roll, top mode %s\n", input_mode_str(im)); */
+    /* } */
+    window_clear_higher_modes(main_win, MODE_PIANO_ROLL);
     piano_roll_deinit_gui();
 
     Session *session = session_get();
@@ -1350,7 +1353,9 @@ TEST_FN_DECL(check_note_order, MIDIClip *mclip);
 
 void piano_roll_grabbed_notes_move(int32_t move_by)
 {
-    midi_clip_grabbed_notes_move(state.clip, move_by);
+    MIDIClip *mclip = state.clip;
+    if (!mclip) return;
+    midi_clip_grabbed_notes_move(mclip, move_by);
 }
 
 /* HIGH-LEVEL INTERFACE */
@@ -1613,7 +1618,11 @@ static void piano_draw()
 	Note **notes_at_cursor = NULL;
 	int num_notes = midi_clipref_notes_intersecting_point(state.cr, ACTIVE_TL->play_pos_sframes, &notes_at_cursor);
 	for (int i=0; i<num_notes; i++) {
-	    lit_notes[notes_at_cursor[i]->key - PIANO_BOTTOM_NOTE] = true;
+	    /* if (notes_at_cursor[i]->key - PIANO_B */
+	    int piano_note = notes_at_cursor[i]->key - PIANO_BOTTOM_NOTE;
+	    if (piano_note >= 0 && piano_note < 88) {
+		lit_notes[piano_note] = true;
+	    }
 	}
 	if (notes_at_cursor) free(notes_at_cursor);
     }

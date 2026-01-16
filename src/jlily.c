@@ -506,21 +506,12 @@ extern struct colors colors;
 
 static int add_jlily_modalfn(void *mod_v, void *target)
 {
-
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     Track *t = timeline_selected_track(tl);
     ClickSegment *s = click_segment_active_at_cursor(tl);
     ClickTrack *ct = NULL;
     if (s) ct = s->track;
-    /* int32_t beat_dur; */
-    /* if (s) { */
-    /* 	beat_dur = s->cfg.dur_sframes / s->cfg.num_atoms * s->cfg.beat_len_atoms[0]; */
-    /* } else { */
-    /* 	beat_dur = (double)session->proj.sample_rate / 120.0 * 60.0; */
-    /* } */
-
-    /* ClipRef *cr = clipref_at_cursor(); */
     ClipRef *cr = NULL;
     MIDIClip *mclip;
     bool clip_created = false;

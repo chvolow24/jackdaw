@@ -314,7 +314,6 @@ static void portamento_len_dsp_cb(Endpoint *ep)
     Synth *synth = ep->xarg1;
     int unscaled = ep->current_write_val.int_v;
     synth->portamento_len_msec = portamento_scale(unscaled);
-    fprintf(stderr, "UNSCALED: %d, lenmsec: %d\n", unscaled, synth->portamento_len_msec);
 }
 
 Synth *synth_create(Track *track)

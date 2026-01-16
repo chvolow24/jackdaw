@@ -11,10 +11,11 @@
 #include <pthread.h>
 #include "assets.h"
 #include "color.h"
+#include "dir.h"
 #include "eq.h"
-#include "geometry.h"
 #include "layout.h"
 #include "menu.h"
+#include "modal.h"
 #include "page.h"
 #include "project.h"
 #include "session.h"
@@ -252,7 +253,6 @@ static int metronome_buf_button_action(void *self_v, void *target_v)
     data->button_to_reset = b;
     MenuItem *item = menu_item_add(ms, "(none)", NULL, metronome_buf_menu_item_onclick, data);
     item->free_target_on_destroy = true;
-
     
     window_add_menu(main_win, m);
     return 0;
@@ -627,6 +627,7 @@ static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv,
 void click_track_populate_settings_tabview(ClickTrack *tt, TabView *tv)
 {
     ClickSegment *s = click_track_get_segment_at_pos(tt, tt->tl->play_pos_sframes);
+    if (!s) s = tt->segments;
     click_track_populate_settings_internal(s, tv, true);
 }
 

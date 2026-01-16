@@ -11,6 +11,7 @@
 #include "SDL_render.h"
 #include "autocompletion.h"
 #include "color.h"
+#include "input_mode.h"
 #include "layout.h"
 #include "menu.h"
 #include "session.h"
@@ -443,6 +444,55 @@ void window_push_mode(Window *win, InputMode im)
 	win->num_modes++;
     } else {
 	fprintf(stderr, "Error: window already has maximum number of modes\n");
+    }
+}
+
+#define TOP_MODE_LOC(window) (window->modes[window->num_modes - 1])
+
+void mqwert_deactivate(void);
+void piano_roll_deactivate(void);
+void source_mode_deactivate(void);
+
+/* Clear out everything over timeline mode, taking care to avoid recursion */
+void window_clear_higher_modes(Window *win, InputMode called_from_mode)
+{
+    InputMode top;
+    while ((top = TOP_MODE_LOC(win)) != MODE_TIMELINE) {
+	if (top == called_from_mode) {
+	    window_pop_mode(win);
+	    fprintf(stderr, "Clearing mode (Current!), %s\n", input_mode_str(top));
+	} else {
+	    fprintf(stderr, "Clearing mode: %s\n", input_mode_str(top));
+	    switch (top) {
+	    case MODE_TEXT_EDIT:
+		txt_stop_editing(win->txt_editing);	    
+		break;
+	    case MODE_MIDI_QWERTY:
+		mqwert_deactivate();
+		break;
+	    case MODE_PIANO_ROLL:
+		piano_roll_deactivate();
+		break;
+	    case MODE_MENU_NAV:
+		window_pop_menu(win);
+		break;
+	    case MODE_MODAL:
+		window_pop_modal(win);
+		break;
+	    case MODE_TABVIEW:
+		tabview_close(win->active_tabview);
+		break;
+	    case MODE_SOURCE:
+		source_mode_deactivate();
+		break;
+	    case MODE_AUTOCOMPLETE_LIST:
+		autocompletion_escape();
+		break;
+	    default:
+		break;
+		
+	    }
+	}
     }
 }
 

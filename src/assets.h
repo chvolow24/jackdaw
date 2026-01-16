@@ -58,6 +58,8 @@
 #define METRONOME_PATH "metronome/"
 #define METRONOME_STD_HIGH_PATH METRONOME_PATH "std_high.wav"
 #define METRONOME_STD_LOW_PATH METRONOME_PATH "std_low.wav"
+#define METRONOME_SNAP_PATH METRONOME_PATH "snap.wav"
+#define METRONOME_SNAP_CLOSE_PATH METRONOME_PATH "snap_close.wav"
 
 /* #define DEFAULT_KEYB_PATH INSTALL_DIR "/assets/key_bindings/default.yaml" */
 #define DEFAULT_KEYBIND_CFG_PATH "key_bindings/default.yaml"

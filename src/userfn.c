@@ -508,7 +508,7 @@ void open_file(const char *filepath)
 	tabview_activate(tv);
 	tl->needs_redraw = true;
 	timeline_check_set_midi_monitoring();
-	tabview_select_tab(tv, 4);
+	/* tabview_select_tab(tv, 0); */
     }
 
 }
@@ -2388,7 +2388,7 @@ void user_tl_load_clip_at_cursor_to_src(void *nullarg)
 	fprintf(stderr, "Error: unhandled clipref type (%d) in user_tl_laod_clip_at_cursor_to_src", cr->type);
 	return;
     }
-    if (cr && clip && !clip_recording) {
+    if (cr && clip && !clip_recording && clip_len > 10) {
 	session->source_mode.src_clip = clip;
 	session->source_mode.src_in_sframes = cr->start_in_clip;
 	session->source_mode.src_play_pos_sframes = 0;
@@ -2411,6 +2411,14 @@ void user_tl_load_clip_at_cursor_to_src(void *nullarg)
 	panel_page_refocus(session->gui.panels, "Sample source", 1);
     }
 }
+
+void source_mode_deactivate()
+{
+    Session *session = session_get();
+    session->source_mode.source_mode = false;
+    window_pop_mode(main_win);
+}
+
 void user_tl_activate_source_mode(void *nullarg)
 {
     Session *session = session_get();

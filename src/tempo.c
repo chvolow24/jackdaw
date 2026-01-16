@@ -49,7 +49,7 @@ static void click_track_pos_fprint(FILE *f, ClickTrackPos pos)
 #define METRONOME_STD_HIGH_INDEX 0
 #define METRONOME_STD_LOW_INDEX 1
 #define METRONOME_SNAP_INDEX 2
-#define METRONOME_SNAP_WET_INDEX 3
+#define METRONOME_SNAP_CLOSE_INDEX 3
 
 static MetronomeBuffer *session_add_metronome(const char *filepath)
 {
@@ -77,17 +77,10 @@ static MetronomeBuffer *session_add_metronome(const char *filepath)
 
 void session_init_metronomes(Session *session)
 {
-    /* Load std high */
-    const char *real_path = asset_get_abs_path(METRONOME_STD_HIGH_PATH);
-    if (!session_add_metronome(real_path)) {
-	fprintf(stderr, "Error: unable to init metronome");
-    }
-    real_path = asset_get_abs_path(METRONOME_STD_LOW_PATH);
-    session_add_metronome(real_path);
-    session_add_metronome(asset_get_abs_path("metronome/snap_TEST.wav"));
-    session_add_metronome(asset_get_abs_path("metronome/snap_WET.wav"));
-    session_add_metronome(real_path);
-    
+    session_add_metronome(asset_get_abs_path(METRONOME_STD_HIGH_PATH));
+    session_add_metronome(asset_get_abs_path(METRONOME_STD_LOW_PATH));
+    session_add_metronome(asset_get_abs_path(METRONOME_SNAP_PATH));
+    session_add_metronome(asset_get_abs_path(METRONOME_SNAP_CLOSE_PATH));    
 }
 
 void session_destroy_metronomes(Session *session)
@@ -372,8 +365,6 @@ static void do_decrement(ClickTrackPos *ctp, BeatProminence bp)
 		ctp->seg = ctp->seg->prev;
 	    } else {
 		ctp->seg = NULL;
-		fprintf(stderr, "Error: attempting to decrement past earliest segment\n");
-		TESTBREAK
 	    }
 	}
     default:
@@ -1184,6 +1175,9 @@ void timeline_click_track_set_tempo_at_cursor(Timeline *tl)
 	return;
     }
     ClickSegment *s = click_track_get_segment_at_pos(tt, tl->play_pos_sframes);
+    if (!s) {
+	s = tt->segments;
+    }
     Layout *mod_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(mod_lt);
     Modal *mod = modal_create(mod_lt);

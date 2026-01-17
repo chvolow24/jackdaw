@@ -396,8 +396,9 @@ void window_pop_menu(Window *win)
 	menu_destroy(win->menus[win->num_menus - 1]);
 	win->num_menus--;
     }
-    if (win->num_menus == 0 && win->modes[win->num_modes - 1] == MODE_MENU_NAV)  {
-	window_pop_mode(win);
+    if (win->num_menus == 0) {//&& win->modes[win->num_modes - 1] == MODE_MENU_NAV)  {
+	/* window_pop_mode(win); */
+	window_extract_mode(win, MODE_MENU_NAV);
     }
 }
 #endif
@@ -447,6 +448,29 @@ void window_push_mode(Window *win, InputMode im)
     }
 }
 
+/* 'static' bc deprecated for public use */
+static InputMode window_pop_mode(Window *win)
+{
+    /* if (win->modes[win->num_modes] == TEXT_EDIT) */
+    /* 	SDL_StopTextInput(); */
+    if (win->num_modes > 0) {
+	win->num_modes--;
+	return win->modes[win->num_modes];
+    }
+    return MODE_GLOBAL;
+}
+
+void window_extract_mode(Window *win, InputMode mode)
+{
+    for (int i=win->num_modes - 1; i>=0; i--) {
+	if (win->modes[i] == mode) {
+	    memmove(win->modes + i, win->modes + i + 1, (win->num_modes - 1 - 1) * sizeof(InputMode));
+	    win->num_modes--;
+	}
+    }
+}
+
+
 #define TOP_MODE_LOC(window) (window->modes[window->num_modes - 1])
 
 void mqwert_deactivate(void);
@@ -494,17 +518,6 @@ void window_clear_higher_modes(Window *win, InputMode called_from_mode)
 	    }
 	}
     }
-}
-
-InputMode window_pop_mode(Window *win)
-{
-    /* if (win->modes[win->num_modes] == TEXT_EDIT) */
-    /* 	SDL_StopTextInput(); */
-    if (win->num_modes > 0) {
-	win->num_modes--;
-	return win->modes[win->num_modes];
-    }
-    return MODE_GLOBAL;
 }
 
 #ifndef LAYOUT_BUILD

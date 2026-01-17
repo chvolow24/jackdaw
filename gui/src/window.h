@@ -128,7 +128,10 @@ Menu *window_top_menu(Window *win);
 void window_draw_menus(Window *win);
 
 void window_push_mode(Window *win, InputMode im);
-InputMode window_pop_mode(Window *win);
+
+/* Safe alternative to window_pop_mode. Removed the designated mode from the stack */
+void window_extract_mode(Window *win, InputMode mode);
+/* InputMode window_pop_mode(Window *win); */
 
 /* Clear out everything over timeline mode, taking care to avoid recursion */
 void window_clear_higher_modes(Window *win, InputMode called_from_mode);

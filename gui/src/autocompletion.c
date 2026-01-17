@@ -18,6 +18,7 @@
 #include "SDL_rect.h"
 #include "color.h"
 #include "geometry.h"
+#include "input_mode.h"
 
 #define AUTOCOMPLETE_LINE_SPACING 3
 
@@ -323,7 +324,8 @@ void autocompletion_reset_selection(AutoCompletion *ac, int new_sel)
 void autocompletion_escape()
 {
     main_win->ac_active = false;
-    window_pop_mode(main_win);
+    window_extract_mode(main_win, MODE_AUTOCOMPLETE_LIST);
+    /* window_pop_mode(main_win); */
     txt_stop_editing(main_win->txt_editing);
 }
 

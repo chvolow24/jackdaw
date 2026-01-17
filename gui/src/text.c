@@ -12,6 +12,7 @@
 
 /* #include "draw.h" */
 #include "SDL_ttf.h"
+#include "input_mode.h"
 #include "text.h"
 #include "textbox.h"
 #include "layout.h"
@@ -420,7 +421,8 @@ void txt_stop_editing(Text *txt)
     txt_set_value(txt, txt->display_value);
     /* main_win->txt_editing = NULL; */
     SDL_StopTextInput();
-    window_pop_mode(main_win);
+    /* window_pop_mode(main_win); */
+    window_extract_mode(main_win, MODE_TEXT_EDIT);
     if (txt->completion && txt->completion(txt, txt->completion_target) != 0) {
 	return;
     }

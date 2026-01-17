@@ -16,6 +16,7 @@
 #include "project.h"
 #include "session.h"
 #include "status.h"
+#include "window.h"
 
 #define VELOCITY_INCR_AMT 9
 
@@ -154,7 +155,8 @@ void mqwert_deactivate()
     if (TOP_MODE != MODE_MIDI_QWERTY) {
 	fprintf(stderr, "Error: call to mqwert_deactivate, top mode not MIDI_QWERTY\n");
     } else {
-	window_pop_mode(main_win);
+	window_extract_mode(main_win, MODE_MIDI_QWERTY);
+	/* window_pop_mode(main_win); */
     }
     Session *session = session_get();
     session->midi_qwerty = false;

@@ -1119,7 +1119,8 @@ void tabview_close(TabView *tv)
     while (tv->win->num_menus > 0) {
 	window_pop_menu(tv->win);
     }
-    window_pop_mode(tv->win);
+    window_extract_mode(tv->win, MODE_TABVIEW);
+    /* window_pop_mode(tv->win); */
     tv->win->active_tabview = NULL;
     tabview_destroy(tv);
 }

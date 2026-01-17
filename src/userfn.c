@@ -10,6 +10,7 @@
 #include "endpoint.h"
 #include "function_lookup.h"
 #include "grab.h"
+#include "input_mode.h"
 #include "midi_clip.h"
 #include "page.h"
 #include "session_endpoint_ops.h"
@@ -37,6 +38,7 @@
 #include "userfn.h"
 #include "waveform.h"
 #include "wav.h"
+#include "window.h"
 
 
 #define MENU_MOVE_BY 40
@@ -115,7 +117,8 @@ void user_global_escape(void *nullarg)
     } else if (session->source_mode.source_mode) {
 	user_tl_activate_source_mode(NULL);
     } else if (main_win->num_modes > 1) {
-	window_pop_mode(main_win);
+	window_clear_higher_modes(main_win, MODE_GLOBAL);
+	/* window_pop_mode(main_win); */
     } else if (main_win->modes[0] != MODE_TIMELINE) {
 	main_win->modes[0] = MODE_TIMELINE;
 	main_win->num_modes = 1;
@@ -644,7 +647,9 @@ static void menu_nav_mode_error()
 {
     fprintf(stderr, "ERROR: in mode menu_nav, no menu on main window");
     breakfn();
-    window_pop_mode(main_win);
+    window_extract_mode(main_win, MODE_MENU_NAV);
+    /* window_clear_higher_modes(main_win, MODE_MENU_NAV); */
+    /* window_pop_mode(main_win); */
 }
 
 void user_menu_nav_next_item(void *nullarg)
@@ -2361,7 +2366,8 @@ void user_tl_load_clip_at_cursor_to_src(void *nullarg)
     Session *session = session_get();
     if (session->source_mode.source_mode) {
 	session->source_mode.source_mode = false;
-	window_pop_mode(main_win);
+	window_extract_mode(main_win, MODE_SOURCE);
+	/* window_pop_mode(main_win); */
 	Timeline *tl = ACTIVE_TL;
 	tl->needs_redraw = true;
 	return;
@@ -2416,7 +2422,8 @@ void source_mode_deactivate()
 {
     Session *session = session_get();
     session->source_mode.source_mode = false;
-    window_pop_mode(main_win);
+    window_extract_mode(main_win, MODE_SOURCE);
+    /* window_pop_mode(main_win); */
 }
 
 void user_tl_activate_source_mode(void *nullarg)
@@ -2432,7 +2439,8 @@ void user_tl_activate_source_mode(void *nullarg)
 	}
     } else {
 	session->source_mode.source_mode = false;
-	window_pop_mode(main_win);
+	window_extract_mode(main_win, MODE_SOURCE);
+	/* window_pop_mode(main_win); */
     }
     Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;
@@ -3030,7 +3038,8 @@ void user_text_edit_escape(void *nullarg)
     if (main_win->txt_editing) {
 	txt_stop_editing(main_win->txt_editing);
     } else {
-	window_pop_mode(main_win);
+	window_extract_mode(main_win, MODE_TEXT_EDIT);
+	/* window_pop_mode(main_win); */
     }
     Timeline *tl = ACTIVE_TL;
     timeline_reset(tl, false);
@@ -3206,7 +3215,8 @@ void user_tabview_escape(void *nullarg)
 	tl->needs_redraw = true;
 	return;
     } else {
-	window_pop_mode(main_win);
+	window_extract_mode(main_win, MODE_TABVIEW);
+	/* window_pop_mode(main_win); */
     }
 }
 
@@ -3214,7 +3224,8 @@ void user_autocomplete_next(void *nullarg)
 {
     if (!main_win->ac_active) {
 	fprintf(stderr, "Error: in AC mode without active ac\n");
-	window_pop_mode(main_win);
+	window_extract_mode(main_win, MODE_AUTOCOMPLETE_LIST);
+	/* window_pop_mode(main_win); */
 	return;
     }
 
@@ -3225,7 +3236,8 @@ void user_autocomplete_previous(void *nullarg)
 {
     if (!main_win->ac_active) {
 	fprintf(stderr, "Error: in AC mode without active ac\n");
-	window_pop_mode(main_win);
+	window_extract_mode(main_win, MODE_AUTOCOMPLETE_LIST);
+	/* window_pop_mode(main_win); */
 	return;
     }
 
@@ -3247,7 +3259,8 @@ void user_autocomplete_select(void *nullarg)
     Session *session = session_get();
     if (!main_win->ac_active) {
 	fprintf(stderr, "Error: in AC mode without active ac\n");
-	window_pop_mode(main_win);
+	window_extract_mode(main_win, MODE_AUTOCOMPLETE_LIST);
+	/* window_pop_mode(main_win); */
 	return;
     }
     /* user_autocomplete_escape(NULL); */

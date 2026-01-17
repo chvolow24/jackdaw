@@ -807,7 +807,7 @@ void loop_project_main()
 	static const int zero_playspeed_count_thresh = 20;
         static int zero_playspeed_count = 0;
 	if (session->playback.playing) {
-	    if (fabs(session->playback.play_speed) < 1e-3f) {
+	    if (!session->source_mode.source_mode && fabs(session->playback.play_speed) < 1e-3f) {
 		zero_playspeed_count++;
 	    } else {
 		zero_playspeed_count = 0;

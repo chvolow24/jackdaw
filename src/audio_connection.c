@@ -401,6 +401,7 @@ static void device_stop_playback(AudioDevice *dev)
 
 void audioconn_stop_playback(AudioConn *conn)
 {
+    breakfn();
     if (!conn->playing) return;
     switch (conn->type) {
     case DEVICE:

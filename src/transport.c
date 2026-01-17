@@ -281,6 +281,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 
     /* Shutdown the audio device */
     if (conn->c.device.request_close) {
+	/* breakfn(); */
 	SDL_PauseAudioDevice(conn->c.device.id, 1);
 	conn->c.device.request_close = false;
 
@@ -357,9 +358,14 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 
     if (session->source_mode.source_mode && session->source_mode.src_clip_type == CLIP_AUDIO) {
 	Clip *clip = session->source_mode.src_clip;
-	session->source_mode.src_play_pos_sframes += session->source_mode.src_play_speed * stream_len_samples / clip->channels;
-	if (session->source_mode.src_play_pos_sframes < 0 || session->source_mode.src_play_pos_sframes > clip->len_sframes) {
-	    session->source_mode.src_play_pos_sframes = 0;
+	/* fprintf(stderr, "Source mode clip? %p\n", clip); */
+	if (clip) {
+	    session->source_mode.src_play_pos_sframes += session->source_mode.src_play_speed * stream_len_samples / clip->channels;	    
+	    if (session->source_mode.src_play_pos_sframes < 0) {
+		session->source_mode.src_play_pos_sframes = 0;
+	    } else if (session->source_mode.src_play_pos_sframes >= clip->len_sframes) {
+		session->source_mode.src_play_pos_sframes = clip->len_sframes - 1;
+	    }
 	}
 	tl->needs_redraw = true;
     } else if (session->playback.playing) {

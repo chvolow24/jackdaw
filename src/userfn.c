@@ -839,6 +839,15 @@ void user_menu_dismiss(void *nullarg)
     /* window_pop_mode(main_win); */
 }
 
+static float playspeed_at_zoom(TimeView *tv, float input)
+{
+    if (tv->sample_frames_per_pixel < SFPP_THRESHOLD) {
+	return input * tv->sample_frames_per_pixel / 100;
+    } else {
+	return input;
+    }    
+}
+
 void user_tl_play(void *nullarg)
 {
     Session *session = session_get();
@@ -851,11 +860,12 @@ void user_tl_play(void *nullarg)
     bool started = false;
     if (session->playback.play_speed <= 0.0f) {
 	/* session->playback.play_speed = 1.0f; */
-	if (ACTIVE_TL->timeview.sample_frames_per_pixel < SFPP_THRESHOLD) {
-	    timeline_play_speed_set(ACTIVE_TL->timeview.sample_frames_per_pixel / 100);
-	} else {
-	    timeline_play_speed_set(1.0);
-	}
+	timeline_play_speed_set(playspeed_at_zoom(&ACTIVE_TL->timeview, 1.0));
+	/* if (ACTIVE_TL->timeview.sample_frames_per_pixel < SFPP_THRESHOLD) { */
+	/*     timeline_play_speed_set(ACTIVE_TL->timeview.sample_frames_per_pixel / 100); */
+	/* } else { */
+	/*     timeline_play_speed_set(1.0); */
+	/* } */
     } else if (!started) {
 	timeline_play_speed_mult(2.0);
 	/* /\* session->playback.play_speed *= 2.0f; *\/ */
@@ -900,7 +910,10 @@ void user_tl_play_pause(void *nullarg)
 {
     Session *session = session_get();
     if (session->playback.playing) user_tl_pause(NULL);
-    else user_tl_play(NULL);
+    else {
+	user_tl_play(NULL);
+	timeline_play_speed_set(1.0);
+    }
 }
 
 void user_tl_pause(void *nullarg)
@@ -937,11 +950,12 @@ void user_tl_rewind(void *nullarg)
 	timeline_cache_grabbed_clip_positions(tl);
     }
     if (session->playback.play_speed >= 0.0f) {
-	if (ACTIVE_TL->timeview.sample_frames_per_pixel < SFPP_THRESHOLD) {
-	    timeline_play_speed_set(-1 * ACTIVE_TL->timeview.sample_frames_per_pixel / 100);
-	} else {
-	    timeline_play_speed_set(-1.0);
-	}
+	timeline_play_speed_set(playspeed_at_zoom(&ACTIVE_TL->timeview, -1.0));
+	/* if (ACTIVE_TL->timeview.sample_frames_per_pixel < SFPP_THRESHOLD) { */
+	/*     timeline_play_speed_set(-1 * ACTIVE_TL->timeview.sample_frames_per_pixel / 100); */
+	/* } else { */
+	/*     timeline_play_speed_set(-1.0); */
+	/* } */
 
 	/* timeline_play_speed_set(-1.0); */
 	/* session->playback.play_speed = -1.0f; */
@@ -968,11 +982,12 @@ void user_tl_play_slow(void *nullarg)
     } else if (session->dragging && !session->playback.playing && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
-    if (tl->timeview.sample_frames_per_pixel < SFPP_THRESHOLD) {
-	timeline_play_speed_set(SLOW_PLAYBACK_SPEED * tl->timeview.sample_frames_per_pixel / 50);
-    } else {
-	timeline_play_speed_set(SLOW_PLAYBACK_SPEED);
-    }
+    timeline_play_speed_set(playspeed_at_zoom(&ACTIVE_TL->timeview, SLOW_PLAYBACK_SPEED));
+    /* if (tl->timeview.sample_frames_per_pixel < SFPP_THRESHOLD) { */
+    /* 	timeline_play_speed_set(SLOW_PLAYBACK_SPEED * tl->timeview.sample_frames_per_pixel / 50); */
+    /* } else { */
+    /* 	timeline_play_speed_set(SLOW_PLAYBACK_SPEED); */
+    /* } */
     /* session->playback.play_speed = SLOW_PLAYBACK_SPEED; */
     /* status_stat_playspeed(); */
     transport_start_playback();
@@ -2851,7 +2866,15 @@ void user_source_play(void *nullarg)
 {
     Session *session = session_get();
     if (session->source_mode.src_play_speed <= 0.0f) {
-	session->source_mode.src_play_speed = 1.0f;
+	float playspeed = playspeed_at_zoom(&session->source_mode.timeview, 1.0);
+	/* if (session->source_mode.timeview.sample_frames_per_pixel < SFPP_THRESHOLD) { */
+	/*     timeline_play_speed_set(session->source_mode.timeview.sample_frames_per_pixel / 100); */
+	/* } else { */
+	/*     timeline_play_speed_set(1.0); */
+	/* } */
+	/* timeline_play_speed_set(playspeed); */
+	/* session->source_mode.src_play_speed = 1.0f; */
+	session->source_mode.src_play_speed = playspeed;
 	transport_start_playback();
     } else {
 	session->source_mode.src_play_speed *= 2.0f;
@@ -2870,7 +2893,8 @@ void user_source_rewind(void *nullarg)
 {
     Session *session = session_get();
     if (session->source_mode.src_play_speed >= 0.0f) {
-	session->source_mode.src_play_speed = -1.0f;
+	float playspeed = playspeed_at_zoom(&session->source_mode.timeview, -1.0);
+	session->source_mode.src_play_speed = playspeed;
 	transport_start_playback();
     } else {
 	session->source_mode.src_play_speed *= 2.0f;
@@ -2881,7 +2905,9 @@ void user_source_rewind(void *nullarg)
 void user_source_play_slow(void *nullarg)
 {
     Session *session = session_get();
-    session->source_mode.src_play_speed = SLOW_PLAYBACK_SPEED;
+    float playspeed = playspeed_at_zoom(&session->source_mode.timeview, SLOW_PLAYBACK_SPEED);
+    session->source_mode.src_play_speed = playspeed;
+    /* fprintf(stderr, "Src playspeed: %f\n", playspeed); */
     status_stat_playspeed();
     transport_start_playback();
 }
@@ -2889,7 +2915,10 @@ void user_source_play_slow(void *nullarg)
 void user_source_rewind_slow(void *nullarg)
 {
     Session *session = session_get();
-    session->source_mode.src_play_speed = -1 * SLOW_PLAYBACK_SPEED;
+    /* session->source_mode.src_play_speed = -1 * SLOW_PLAYBACK_SPEED; */
+    float playspeed = playspeed_at_zoom(&session->source_mode.timeview, -SLOW_PLAYBACK_SPEED);
+    session->source_mode.src_play_speed = playspeed;
+    /* fprintf(stderr, "Src playspeed (rewind): %f\n", playspeed); */
     status_stat_playspeed();
     transport_start_playback();
 }

@@ -70,7 +70,6 @@ const char *get_thread_name(enum jdaw_thread thread)
 
 const char *get_current_thread_name()
 {
-
     if (CURRENT_THREAD_ID == PLAYBACK_THREAD_ID) {
 	return "playback";
     }
@@ -122,14 +121,16 @@ bool on_thread(enum jdaw_thread thread_index)
 	return false;
 }
 
-/* enum jdaw_thread jdaw_current_thread() */
-/* { */
-/*     pthread_t id = pthread_self(); */
-/*     if (id == MAIN_THREAD_ID) { */
-/* 	return JDAW_THREAD_MAIN; */
-/*     } else if (id == DSP_THREAD_ID) { */
-/* 	return JDAW_THREAD_DSP; */
-/*     } else { */
-/* 	return JDAW_THREAD_OTHER; */
-/*     } */
-/* } */
+enum jdaw_thread current_thread()
+{
+    pthread_t id = pthread_self();
+    if (id == MAIN_THREAD_ID) {
+	return JDAW_THREAD_MAIN;
+    } else if (id == DSP_THREAD_ID) {
+	return JDAW_THREAD_DSP;
+    }else if (id == PLAYBACK_THREAD_ID) {
+	return JDAW_THREAD_PLAYBACK;
+    } else {
+	return NUM_JDAW_THREADS;
+    }
+}

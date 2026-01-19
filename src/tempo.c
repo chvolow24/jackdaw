@@ -1572,7 +1572,9 @@ void click_track_draw(ClickTrack *tt)
     int32_t pos = tt->tl->timeview.offset_left_sframes;
     BeatProminence bp;
     ClickSegment *s;
-    const static int MAX_BPM_LABELS_TO_DRAW = 64;
+
+    /* Problem: labels can be freed elsewhere */
+    const int MAX_BPM_LABELS_TO_DRAW = 64;
     Label *bpm_labels_to_draw[128];
     int num_bpm_labels_to_draw = 0;
 

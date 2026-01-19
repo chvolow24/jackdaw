@@ -23,6 +23,7 @@
 #include "color.h"
 #include "consts.h"
 #include "dsp_utils.h"
+#include "log.h"
 #include "midi_clip.h"
 #include "midi_io.h"
 #include "midi_qwerty.h"
@@ -281,6 +282,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 
     /* Shutdown the audio device */
     if (conn->c.device.request_close) {
+	log_tmp(INFO, "Closing audio device\n");
 	/* breakfn(); */
 	SDL_PauseAudioDevice(conn->c.device.id, 1);
 	conn->c.device.request_close = false;
@@ -358,9 +360,8 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 
     if (session->source_mode.source_mode && session->source_mode.src_clip_type == CLIP_AUDIO) {
 	Clip *clip = session->source_mode.src_clip;
-	/* fprintf(stderr, "Source mode clip? %p\n", clip); */
 	if (clip) {
-	    session->source_mode.src_play_pos_sframes += session->source_mode.src_play_speed * stream_len_samples / clip->channels;	    
+	    session->source_mode.src_play_pos_sframes += round(session->source_mode.src_play_speed * stream_len_samples / clip->channels);	    
 	    if (session->source_mode.src_play_pos_sframes < 0) {
 		session->source_mode.src_play_pos_sframes = 0;
 	    } else if (session->source_mode.src_play_pos_sframes >= clip->len_sframes) {
@@ -447,8 +448,11 @@ double timespec_elapsed_ms(const struct timespec *start, const struct timespec *
     return (sec_diff * 1e3) + (nsec_diff * 1e-6);
 }
 
+static volatile bool cancel_dsp_thread = false;
+
 static void *transport_dsp_thread_fn(void *arg)
 {
+    log_tmp(INFO, "DSP thread init\n");
     Session *session = session_get();
     set_thread_id(JDAW_THREAD_DSP);
     /* session->dsp_thread = pthread_self(); */
@@ -457,10 +461,10 @@ static void *transport_dsp_thread_fn(void *arg)
     
     Timeline *tl = (Timeline *)arg;
     
-    if (pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL) != 0) {
-	perror("pthread set cancel state");
-	exit(1);
-    }
+    /* if (pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL) != 0) { */
+    /* 	perror("pthread set cancel state"); */
+    /* 	exit(1); */
+    /* } */
 
     int len = tl->proj->fourier_len_sframes;
     /* pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL); */
@@ -476,14 +480,15 @@ static void *transport_dsp_thread_fn(void *arg)
 	tl->dsp_chunks_info_write_i = 0;
     }
     
-    while (1) {
+    cancel_dsp_thread = false;
+    while (!cancel_dsp_thread) {
 	/* Performance timer */
 	/* struct timespec tspec_start; */
 	/* struct timespec tspec_end; */
 	/* double running_elapsed = 0; */
 	/* clock_gettime(CLOCK_THREAD_CPUTIME_ID, &tspec_start); */
 
-	pthread_testcancel();
+	/* pthread_testcancel(); */
 	float play_speed = session->playback.play_speed;
 	/* tl->last_read_playspeed = play_speed; */
 	/* tl->current_dsp_chunk_start = tl->read_pos_sframes; */
@@ -644,6 +649,7 @@ static void *transport_dsp_thread_fn(void *arg)
 	/* double alloced_msec = 1000.0 * (double)session->proj.fourier_len_sframes / session_get_sample_rate(); */
 	/* fprintf(stderr, "Stress: %f/%f == \t%f\n", running_elapsed, alloced_msec, (double)running_elapsed / alloced_msec);	 */
     }
+    log_tmp(INFO, "DSP thread exit\n");
 
     return NULL;
 }
@@ -771,7 +777,8 @@ void transport_stop_playback()
 	}
     }
 
-    pthread_cancel(*get_thread_addr(JDAW_THREAD_DSP));
+    cancel_dsp_thread = true;
+    /* pthread_cancel(*get_thread_addr(JDAW_THREAD_DSP)); */
     
     /* Unblock DSP thread */
     for (int i=0; i<512; i++) {

@@ -97,6 +97,12 @@ static ClickSegment *click_segment_copy(ClickSegment *s)
     return cpy;
 }
 
+/* Do not free bpm label or any other copied pointers */
+static void click_segment_destroy_copy(ClickSegment *s)
+{
+    free(s);
+}
+
 NEW_EVENT_FN(undo_redo_set_segment_params, "undo/redo edit click segment")
     ClickSegment *s = (ClickSegment *)obj1;
     s = click_track_get_segment_at_pos(s->track, s->start_pos);
@@ -106,7 +112,7 @@ NEW_EVENT_FN(undo_redo_set_segment_params, "undo/redo edit click segment")
 
     ClickSegment *redo_cpy = click_segment_copy(s);
     click_segment_set_config(s, -1, cpy->cfg.bpm, cpy->cfg.num_beats, cpy->cfg.beat_len_atoms, ebb);
-    click_segment_destroy(cpy);
+    click_segment_destroy_copy(cpy);
     self->obj2 = redo_cpy;
     s->track->tl->needs_redraw = true;
 }

@@ -74,8 +74,7 @@ enum audio_conn_type {
 union audio_conn_substruct {
     AudioDevice device;
     PdConn pd;
-    JDAWConn jdaw;
-    
+    JDAWConn jdaw;   
 };
 
 struct realtime_tick {

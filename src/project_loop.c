@@ -29,6 +29,7 @@
 #include "function_lookup.h"
 #include "input.h"
 #include "layout.h"
+#include "log.h"
 #include "midi_clip.h"
 #include "midi_qwerty.h"
 #include "mouse.h"
@@ -217,225 +218,9 @@ void loop_project_main()
 		/* } */
 
 		switch (e.key.keysym.scancode) {
-		/* case SDL_SCANCODE_4: { */
-		/*     ClipRef *cr = clipref_at_cursor(); */
-		/*     if (cr) { */
-		/*         cr->gain -= 0.1; */
-		/* 	clipref_reset(cr, false); */
-		/* 	ACTIVE_TL->needs_redraw = true; */
-		/*     } */
-		    
-		/* } */
-		/*     break; */
-		/* case SDL_SCANCODE_5: { */
-		/*     ClipRef *cr = clipref_at_cursor(); */
-		/*     if (cr) { */
-		/* 	cr->gain += 0.1; */
-		/* 	clipref_reset(cr, false); */
-		/* 	ACTIVE_TL->needs_redraw = true; */
-		/*     } */
-		    
-		/* } */
-		/*     break; */
-
-		/* case SDL_SCANCODE_6: { */
-		/*     user_piano_roll_quantize(NULL); */
-		/*     break; */
-		/*     ClipRef *cr = clipref_at_cursor(); */
-		/*     midi_clipref_quantize_notes_in_range(cr, 1.0, BP_SSD, true); */
-		/*     /\* piano_roll_quantize_notes_in_marked_range(); *\/ */
-		/* } */
-		/*     break; */
-		/* case SDL_SCANCODE_7: { */
-		/*     ClipRef *cr = clipref_at_cursor(); */
-		/*     midi_clipref_notes_in_range_adj_quantize_amount(cr, 0.5); */
-		/*     /\* midi_clipref_quantize_notes_in_range(cr, 1.0, BP_SUBDIV2, true); *\/ */
-		/*     /\* piano_roll_quantize_notes_in_marked_range(); *\/ */
-		/* } */
-		/*     break; */
-		/* case SDL_SCANCODE_8: { */
-		/*     ClipRef *cr = clipref_at_cursor(); */
-		/*     midi_clipref_notes_in_range_adj_quantize_amount(cr, 1.0); */
-		/*     /\* midi_clipref_quantize_notes_in_range(cr, 1, BP_SUBDIV2, true); *\/ */
-		/*     /\* piano_roll_quantize_notes_in_marked_range(); *\/ */
-		/* } */
-		/*     break; */
-
-		/* case SDL_SCANCODE_9: { */
-		/*     ClipRef *cr = clipref_at_cursor(); */
-		/*     midi_clipref_notes_in_range_adj_quantize_amount(cr, 0.0); */
-		/*     /\* midi_clipref_quantize_notes_in_range(cr, 1, BP_SUBDIV2, true); *\/ */
-		/*     /\* piano_roll_quantize_notes_in_marked_range(); *\/ */
-		/* } */
-		/*     break; */
-
-
-
-		/* case SDL_SCANCODE_1: { */
-		/*     mqwert_pitch_bend(-25); */
-		/* } */
-		/*     break; */
-		/* case SDL_SCANCODE_2: { */
-		/*     mqwert_pitch_bend(25); */
-		/* } */
-		/*     break; */
-		/* case SDL_SCANCODE_3: { */
-		/*     ClipRef *cr = clipref_at_cursor(); */
-		/*     if (cr) piano_roll_activate(cr); */
-		/* } */
-		/*     break; */
-		/* case SDL_SCANCODE_2: */
-		/*     mqwert_activate(); */
-		/*     timeline_check_set_midi_monitoring(); */
-		    /* break; */
-		/* case SDL_SCANCODE_2: { */
-		/*     break; */
-		/*     Layout *lt = layout_add_child(main_win->layout); */
-		/*     /\* layout_set_default_dims(lt); *\/ */
-		/*     lt->w.type = SCALE; */
-		/*     lt->h.type = SCALE; */
-		/*     lt->w.value = 0.3; */
-		/*     lt->h.value = 0.1; */
-		/*     lt->x.type = SCALE; */
-		/*     lt->y.type = SCALE; */
-		/*     lt->x.value = 0.3; */
-		/*     lt->y.value = 0.3; */
-		/*     piano_init(&piano, lt); */
-		    /* synth_save_preset(); */
-		/*     Timeline *ACTIVE_TL = ACTIVE_ACTIVE_TL; */
-		/*     Track *t = timeline_selected_track(ACTIVE_TL); */
-		/*     if (t && t->synth) */
-		/* 	synth_write_preset_file("synth_preset.jsynth", t->synth); */
-		/*     /\* FILE *f = fopen("test_ser.txt", "w"); *\/ */
-		/*     /\* api_node_serialize(f, &session->proj.timelines[0]->api_node); *\/ */
-		/*     /\* fclose(f); *\/ */
-
-		/* } */
-		/*     break; */
-		/* case SDL_SCANCODE_3: { */
-		/*     break; */
-		    /* synth_open_preset(); */
-		/*     Timeline *tl = ACTIVE_TL; */
-		/*     Track *t = timeline_selected_track(tl); */
-		/*     if (t && t->synth) */
-		/* 	synth_read_preset_file("synth_preset.jsynth", t->synth); */
-
-		/*     /\* FILE *f = fopen("test_ser.txt", "r"); *\/ */
-		/*     /\* api_node_deserialize(f, &session->proj.timelines[0]->api_node); *\/ */
-		/*     /\* fclose(f); *\/ */
-		/* } */
-		/*     break; */
-		/* case SDL_SCANCODE_4: */
-		/*     do_blep = !do_blep; */
-		/*     if (do_blep) { */
-		/* 	fprintf(stderr, "DOING BLEP!\n"); */
-		/*     } else { */
-		/* 	fprintf(stderr, "No blep...\n"); */
-		/*     } */
-		/*     break; */
-		/* case SDL_SCANCODE_5: { */
-		/*     breakfn(); */
-		/*     Timeline *tl = ACTIVE_TL; */
-		/*     Track *t = timeline_selected_track(tl); */
-		/*     if (!t->synth) t->synth = synth_create(t); */
-		/*     TabView *tv = synth_tabview_create(t); */
-		/*     tabview_activate(tv); */
-
-		/* } */
-		/*     break; */
-		/* case SDL_SCANCODE_5: { */
-		/*     break; */
-		    /* timeline_add_jlily(); */
-		/* } */
-		/*     break; */
-		/* case SDL_SCANCODE_6: { */
-		/*     Timeline *tl = ACTIVE_TL; */
-		/*     Track *track = timeline_selected_track(tl); */
-		/*     if (!track) break; */
-		/*     MIDIClip *mclip = midi_clip_create(NULL, track); */
-		/*     int32_t start = 96000 * 5; */
-		/*     /\* int32_t end = 10000; *\/ */
-		/*     midi_clip_add_note(mclip, 0, 69, 108, 100, 100 + 96000); */
-		/*     srand(time(NULL)); */
-		/*     mclip->len_sframes = 96000 * 5; */
-		/*     for (int i=0; i<900; i++) { */
-		/* 	int32_t dur = rand() % 30000; */
-		/* 	int32_t interval = rand() % 11 + 1; */
-		/* 	int32_t t_interval = rand() % 5000 + 1000; */
-		/* 	uint8_t velocity = rand() % 128; */
-		/* 	for (int i=25; i<25 + 80; i+=interval) { */
-		/* 	    interval += rand() % 4 - 2; */
-		/* 	    if (interval <= 0) interval += rand() %4 + 1; */
-		/* 	    midi_clip_add_note(mclip, 0, i, velocity, start, start + dur); */
-		/* 	    start += t_interval; */
-		/* 	    /\* end += 3000; *\/ */
-		/* 	    /\* mclip->len_sframes += t_interval; *\/ */
-		/* 	    mclip->len_sframes += t_interval; */
-		/* 	} */
-		/*     } */
-
-		/*     /\* midi_clip_add_note(&mclip, 78, 127, 3, 1000); *\/ */
-		/*     /\* midi_clip_add_note(&mclip, 85, 127, 3, 1000); *\/ */
-		/*     /\* midi_clip_add_note(&mclip, 97, 127, 3, 1000); *\/ */
-		/*     /\* midi_clip_add_note(&mclip, 96, 127, 1500, 6000); *\/ */
-		/*     /\* midi_clip_add_note(&mclip, 95, 127, 6000, 10000); *\/ */
-
-		/*     clipref_create( */
-		/* 	track, */
-		/* 	tl->play_pos_sframes, */
-		/* 	CLIP_MIDI, */
-		/* 	mclip); */
-			
-		/* } */
-		/*     break; */
-		/* case SDL_SCANCODE_6: { */
-		/*     Timeline *tl = ACTIVE_TL; */
-		/*     Track* sel = timeline_selected_track(tl); */
-		/*     track_set_bus_out(sel, tl->tracks[0]); */
-		/* } */
-		/*     break; */
-		/* case SDL_SCANCODE_6: { */
-		/*     filter_selector++; */
-		/*     filter_selector %=4; */
-		/* } */
-		    /* break; */
-		/* case SDL_SCANCODE_6: { */
-		/*     ClipRef *cr = clipref_at_cursor(); */
-		/*     if (cr) { */
-		/* 	FIRFilter *f = cr->track->effects[0]->obj; */
-		/* 	Clip *c = cr->source_clip; */
-		/* 	int32_t pos = cr->track->tl->play_pos_sframes - cr->tl_pos; */
-		/* 	filter_set_arbitrary_IR(f, c->L + pos, 2048); */
-		/*     } */
-		/* } */
-		/*     break; */
-		/* case SDL_SCANCODE_6: { */
-		/*     create_global_ac(); */
-		    /* const char *words[] = {"a", "b", "c"}; */
-		    /* static int word_i = 0; */
-
-		    /* TEST_lookup_print_all_matches(words[word_i]); */
-		    
-		    /* word_i++; */
-		    /* word_i %= 3; */
-		/* } */
-		/*     break;    */
-
-		/* case SDL_SCANCODE_6: { */
-		/*     Timeline *tl = ACTIVE_TL; */
-		/*     ClipRef *cr = clipref_at_cursor(); */
-		/*     if (cr) { */
-		/* 	ClipRef *new1, *new2; */
-		/* 	clipref_split_stereo_to_mono(cr, &new1, &new2); */
-		/* 	/\* cr->clip->channels = 1; *\/ */
-		/* 	/\* Clip *c = cr->clip; *\/ */
-		/* 	/\* free(c->R); *\/ */
-		/* 	/\* c->R = malloc(sizeof(float) * c->len_sframes); *\/ */
-		/* 	/\* memcpy(c->R, c->L, sizeof(float) * c->len_sframes); *\/ */
-		/* 	timeline_reset_full(tl); */
-		/*     } */
-		/* } */
-		/*     break; */
+		case SDL_SCANCODE_6:
+		    log_printall();
+		    break;
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LCTRL:
@@ -473,6 +258,7 @@ void loop_project_main()
 		    input_fn = input_get(main_win->i_state, e.key.keysym.sym);
 		    if (input_fn && input_fn->do_fn) {
 			char *keycmd_str = input_get_keycmd_str(main_win->i_state, e.key.keysym.sym);
+			log_tmp(INFO, "USERFN %s (%s)\n", input_fn->fn_id, keycmd_str);
 			status_set_callstr(keycmd_str);
 			free(keycmd_str);
 			status_cat_callstr(" : ");

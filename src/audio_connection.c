@@ -374,8 +374,7 @@ static void device_start_playback(AudioDevice *dev)
 
 
 void audioconn_start_playback(AudioConn *conn)
-{
-    
+{    
     if (!conn->available) {
 	status_set_errstr("No audio can be played through this device.");
 	return;

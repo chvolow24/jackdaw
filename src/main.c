@@ -32,6 +32,7 @@
 #include "function_lookup.h"
 #include "init_panels.h"
 #include "input.h"
+#include "log.h"
 #include "midi_io.h"
 #include "midi_file.h"
 #include "midi_qwerty.h"
@@ -105,6 +106,7 @@ static void init()
     set_thread_id(JDAW_THREAD_MAIN);
     /* MAIN_THREAD_ID = pthread_self(); */
     /* CURRENT_THREAD_ID = MAIN_THREAD_ID; */
+    log_init();
     init_SDL();
     get_native_byte_order();
     input_init_hash_table();
@@ -147,6 +149,7 @@ static void quit()
     input_quit();
     midi_io_deinit();
     SDL_Quit();
+    log_quit();
 }
 
 void loop_project_main();

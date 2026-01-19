@@ -66,6 +66,8 @@ void piano_roll_feed_midi(const PmEvent *events, int num_events);
 int piano_roll_execute_queued_insertions();
 
 
+ClipRef *piano_roll_get_clipref();
+
 #endif
 
 

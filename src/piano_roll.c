@@ -2147,3 +2147,9 @@ void piano_roll_feed_midi(const PmEvent *events, int num_events)
 }
 
 
+/*------ externalize state -------------------------------------------*/
+
+ClipRef *piano_roll_get_clipref()
+{
+    return state.cr;
+}

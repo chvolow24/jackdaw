@@ -17,6 +17,7 @@
 #include "input.h"
 /* #include "loading */
 #include "jlily.h"
+#include "log.h"
 #include "menu.h"
 #include "midi_file.h"
 #include "midi_qwerty.h"
@@ -208,10 +209,7 @@ void user_global_start_server(void *nullarg)
     modal_reset(m);
     /* fprintf(stdout, "about to call move onto\n"); */
     modal_move_onto(m);
-
-
 }
-
 
 int path_updir_name(char *pathname);
 static int submit_save_as_form(void *mod_v, void *target)
@@ -643,9 +641,15 @@ void user_global_api_print_all_routes(void *nullarg)
     api_node_print_all_routes(&session->server.api_root);
 }
 
+void user_global_dump_logs(void *nullarg)
+{
+    log_printall();
+}
+
+
 static void menu_nav_mode_error()
 {
-    fprintf(stderr, "ERROR: in mode menu_nav, no menu on main window");
+    log_tmp(LOG_ERROR, "In mode menu_nav, no menu on main window\n");
     breakfn();
     window_extract_mode(main_win, MODE_MENU_NAV);
     /* window_clear_higher_modes(main_win, MODE_MENU_NAV); */
@@ -759,8 +763,8 @@ void user_menu_nav_choose_item(void *nullarg)
 {
     Menu *m = window_top_menu(main_win);
     if (!m) {
-	fprintf(stderr, "No menu on main window\n");	
-	exit(1);
+	menu_nav_mode_error();
+	return;
     }
     if (m->sel_col < m->num_columns) {
 	MenuColumn *col = m->columns[m->sel_col];

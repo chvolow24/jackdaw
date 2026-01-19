@@ -29,6 +29,7 @@
 #include "dir.h"
 #include "dot_jdaw.h"
 #include "dsp_utils.h"
+#include "error.h"
 #include "function_lookup.h"
 #include "init_panels.h"
 #include "input.h"
@@ -106,6 +107,7 @@ static void init()
     set_thread_id(JDAW_THREAD_MAIN);
     /* MAIN_THREAD_ID = pthread_self(); */
     /* CURRENT_THREAD_ID = MAIN_THREAD_ID; */
+    error_register_signal_handlers();
     log_init();
     init_SDL();
     get_native_byte_order();

@@ -218,9 +218,9 @@ void loop_project_main()
 		/* } */
 
 		switch (e.key.keysym.scancode) {
-		case SDL_SCANCODE_6:
-		    log_printall();
-		    break;
+		/* case SDL_SCANCODE_6: */
+		/*     log_printall(); */
+		/*     break; */
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LCTRL:
@@ -258,7 +258,7 @@ void loop_project_main()
 		    input_fn = input_get(main_win->i_state, e.key.keysym.sym);
 		    if (input_fn && input_fn->do_fn) {
 			char *keycmd_str = input_get_keycmd_str(main_win->i_state, e.key.keysym.sym);
-			log_tmp(INFO, "USERFN %s (%s)\n", input_fn->fn_id, keycmd_str);
+			log_tmp(LOG_INFO, "USERFN %s (%s)\n", input_fn->fn_id, keycmd_str);
 			status_set_callstr(keycmd_str);
 			free(keycmd_str);
 			status_cat_callstr(" : ");

@@ -452,7 +452,11 @@ static NEW_EVENT_FN(redo_cut_clipref, "redo cut clip")
     /* clipref_reset(cr2); */
 }
 
-static void clipref_check_and_remove_from_clipboard(ClipRef *cr)
+
+ClipRef *piano_roll_get_clipref();
+void piano_roll_deactivate();
+
+static void clipref_check_and_remove_from_clipboard_and_piano_roll(ClipRef *cr)
 {
     /* fprintf(stderr, "handling destruction CHECK AND REMOVE\n"); */
     Timeline *tl = cr->track->tl;
@@ -469,6 +473,10 @@ static void clipref_check_and_remove_from_clipboard(ClipRef *cr)
     if (displace) {
 	tl->num_clips_in_clipboard--;
 	/* fprintf(stderr, "removed!\n"); */
+    }
+    Session *session = session_get();
+    if (session->piano_roll && cr == piano_roll_get_clipref()) {
+	piano_roll_deactivate();
     }
 }
 
@@ -489,7 +497,7 @@ void clipref_destroy(ClipRef *cr, bool displace_in_clip)
 	break;
     }
 
-    clipref_check_and_remove_from_clipboard(cr);
+    clipref_check_and_remove_from_clipboard_and_piano_roll(cr);
     label_destroy(cr->gain_label);
     
     bool displace = false;
@@ -544,7 +552,7 @@ void clipref_destroy(ClipRef *cr, bool displace_in_clip)
 }
 void clipref_destroy_no_displace(ClipRef *cr)
 {
-    clipref_check_and_remove_from_clipboard(cr);
+    clipref_check_and_remove_from_clipboard_and_piano_roll(cr);
     Clip *clip = NULL;
     MIDIClip *mclip = NULL;
     switch (cr->type) {

@@ -282,7 +282,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 
     /* Shutdown the audio device */
     if (conn->c.device.request_close) {
-	log_tmp(INFO, "Closing audio device\n");
+	log_tmp(LOG_INFO, "Closing audio device\n");
 	/* breakfn(); */
 	SDL_PauseAudioDevice(conn->c.device.id, 1);
 	conn->c.device.request_close = false;
@@ -452,7 +452,7 @@ static volatile bool cancel_dsp_thread = false;
 
 static void *transport_dsp_thread_fn(void *arg)
 {
-    log_tmp(INFO, "DSP thread init\n");
+    log_tmp(LOG_INFO, "DSP thread init\n");
     Session *session = session_get();
     set_thread_id(JDAW_THREAD_DSP);
     /* session->dsp_thread = pthread_self(); */
@@ -649,7 +649,7 @@ static void *transport_dsp_thread_fn(void *arg)
 	/* double alloced_msec = 1000.0 * (double)session->proj.fourier_len_sframes / session_get_sample_rate(); */
 	/* fprintf(stderr, "Stress: %f/%f == \t%f\n", running_elapsed, alloced_msec, (double)running_elapsed / alloced_msec);	 */
     }
-    log_tmp(INFO, "DSP thread exit\n");
+    log_tmp(LOG_INFO, "DSP thread exit\n");
 
     return NULL;
 }
@@ -770,7 +770,7 @@ void transport_stop_playback()
     while (session->audio_io.playback_conn->c.device.request_close) {
 	test++;
 	if (test > 2e8) {
-	    fprintf(stderr, "Error: audio device \"%s\" requested close, but has not closed\n", session->audio_io.playback_conn->name);
+	    log_tmp(LOG_ERROR, "Audio device \"%s\" requested close, but has not closed\n", session->audio_io.playback_conn->name);
 	    TESTBREAK;
 	    break;
 	    /* exit(1); */

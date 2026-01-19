@@ -11,8 +11,10 @@
 #include "SDL_render.h"
 #include "autocompletion.h"
 #include "color.h"
+#include "error.h"
 #include "input_mode.h"
 #include "layout.h"
+#include "log.h"
 #include "menu.h"
 #include "session.h"
 #include "text.h"
@@ -442,9 +444,11 @@ void window_push_mode(Window *win, InputMode im)
     /* if (im == MIDI_QWERTY) breakfn(); */
     if (win->num_modes < WINDOW_MAX_MODES) {
 	win->modes[win->num_modes] = im;
+	log_tmp(LOG_DEBUG, "Push mode %s at %d\n", input_mode_str(im), win->num_modes);
 	win->num_modes++;
     } else {
-	fprintf(stderr, "Error: window already has maximum number of modes\n");
+	error_exit("Error: window already has maximum number of modes\n");
+	/* fprintf(stderr,  */
     }
 }
 
@@ -453,8 +457,10 @@ static InputMode window_pop_mode(Window *win)
 {
     /* if (win->modes[win->num_modes] == TEXT_EDIT) */
     /* 	SDL_StopTextInput(); */
+    
     if (win->num_modes > 0) {
 	win->num_modes--;
+	log_tmp(LOG_DEBUG, "Pop mode %s at %d\n", input_mode_str(win->modes[win->num_modes]), win->num_modes);
 	return win->modes[win->num_modes];
     }
     return MODE_GLOBAL;
@@ -462,12 +468,15 @@ static InputMode window_pop_mode(Window *win)
 
 void window_extract_mode(Window *win, InputMode mode)
 {
+    log_tmp(LOG_DEBUG, "Extract mode %s\n", input_mode_str(mode));
     for (int i=win->num_modes - 1; i>=0; i--) {
 	if (win->modes[i] == mode) {
 	    memmove(win->modes + i, win->modes + i + 1, (win->num_modes - 1 - 1) * sizeof(InputMode));
 	    win->num_modes--;
+	    return;
 	}
     }
+    log_tmp(LOG_ERROR, "Mode not found in extract (num modes %d)\n", win->num_modes);   
 }
 
 

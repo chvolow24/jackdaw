@@ -16,15 +16,18 @@ static char logfile_path[NUM_JDAW_THREADS][1024];
 const char *log_level_str(enum log_level level)
 {
     switch (level) {
-    case FATAL:
+    case LOG_FATAL:
 	return "FATAL";
-    case ERROR:
+    case LOG_ERROR:
 	return "ERROR";
-    case WARN:
+    case LOG_WARN:
 	return "WARN";
-    case INFO:
+    case LOG_INFO:
 	return "INFO";
+    case LOG_DEBUG:
+	return "DEBUG";
     }
+    return NULL;
 }
 
 const char* system_tmp_dir() {
@@ -51,7 +54,7 @@ const char* system_tmp_dir() {
 void log_init()
 {
     for (int i=0; i<NUM_JDAW_THREADS; i++) {
-	snprintf(logfile_path[i], sizeof(logfile_path), "%s/jackdaw_exec_%s.log", system_tmp_dir(), get_thread_name(i));
+	snprintf(logfile_path[i], sizeof(logfile_path[i]), "%s/jackdaw_exec_%s.log", system_tmp_dir(), get_thread_name(i));
 	logfile[i] = fopen(logfile_path[i], "w");
 	
 	if (!logfile[i]) {
@@ -79,7 +82,8 @@ const char *timestamp()
   struct tm *timeinfo;
   gettimeofday(&tv, NULL);
   timeinfo = localtime(&tv.tv_sec);
-  static char buf[64] = {0};
+  /* enum jdaw_thread thread = current_thread(); */
+  JDAW_THREAD_LOCAL static char buf[64] = {0};
   char *ms_loc = buf + strftime(buf, 64, "%Y-%m-%d %H:%M:%S", timeinfo);
   snprintf(ms_loc, sizeof(buf) - (ms_loc - buf), ".%04d", tv.tv_usec / 100);
   return buf;
@@ -87,6 +91,9 @@ const char *timestamp()
 
 void log_tmp(enum log_level level, char *fmt, ...)
 {
+    #ifndef TESTBUILD
+    if (level == LOG_DEBUG) return;
+    #endif
     enum jdaw_thread thread = current_thread();
     fprintf(logfile[thread], "(%s) %s [%s]: ", log_level_str(level), timestamp(), get_thread_name(thread));
     va_list ap;
@@ -110,8 +117,6 @@ void log_print_current_thread()
 }
 
 
-#define MAX_LINES 8192
-
 static int line_cmp(const void *v1, const void *v2)
 {
     /* 1994-04-25 10:03:21.2222 */
@@ -125,12 +130,12 @@ static int line_cmp(const void *v1, const void *v2)
     return strncmp(str1, str2, ts_fmt_len);
 }
 
-
 /* Merges all thread logs and prints in order */
 void log_printall()
 {
-    char *lines[MAX_LINES];
+    int lines_cap = 512;
     int num_lines = 0;
+    char **lines = malloc(lines_cap * sizeof(char *));
     /* FILE *logfiles[NUM_JDAW_THREADS]; */
     /* bool more_lines[NUM_JDAW_THREADS]; */
     /* char *line_queued[NUM_JDAW_THREADS]; */
@@ -147,6 +152,10 @@ void log_printall()
 	    if (linelen <= 0) break;
 	    lines[num_lines] = line;
 	    num_lines++;
+	    if (num_lines == lines_cap) {
+		lines_cap *= 2;
+		lines = realloc(lines, lines_cap * sizeof(char *));
+	    }
 	}
 	fclose(readfile);
     }
@@ -157,6 +166,7 @@ void log_printall()
 	fprintf(stderr, "%s", lines[i]);
 	free(lines[i]);
     }
+    free(lines);
 
     fprintf(stderr, "... done printing %d lines\n", num_lines);    
 }

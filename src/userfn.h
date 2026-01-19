@@ -14,6 +14,7 @@ void user_global_function_lookup(void *nullarg);
 void user_global_start_or_stop_screenrecording(void *nullarg);
 void user_global_chaotic_user_test(void *nullarg);
 void user_global_api_print_all_routes(void *nullarg);
+void user_global_dump_logs(void *nullarg);
 
 
 void user_menu_nav_next_item(void *nullarg);

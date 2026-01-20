@@ -108,6 +108,7 @@ typedef struct tab_view {
     void (*swap_fn)(void *array, int swap_i, int swap_j);
     void *swap_fn_target;
     /* size_t related_array_el_size; */
+    void *connected_obj; /* When the obj is freed, tabview will be closed */
 
     char *label_str;
     Textbox *label; /* Upper-right corner of screen */
@@ -275,7 +276,7 @@ typedef union page_el_params {
 
 TabView *tabview_create(const char *title, Layout *parent_lt, Window *win);
 void tabview_destroy(TabView *tv);
-void tabview_activate(TabView *tv);
+void tabview_activate(TabView *tv, void *connected_obj);
 void tabview_close(TabView *tv);
 Page *tabview_add_page(
     TabView *tv,

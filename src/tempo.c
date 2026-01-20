@@ -1129,6 +1129,9 @@ void click_segment_destroy(ClickSegment *s)
 
 void click_track_destroy(ClickTrack *tt)
 {
+    if (main_win->active_tabview && main_win->active_tabview->connected_obj == tt) {
+	tabview_close(main_win->active_tabview);
+    }
     textbox_destroy(tt->metronome_button);
     textbox_destroy(tt->edit_button);
     slider_destroy(tt->metronome_vol_slider);

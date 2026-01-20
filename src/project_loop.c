@@ -218,9 +218,12 @@ void loop_project_main()
 		/* } */
 
 		switch (e.key.keysym.scancode) {
-		/* case SDL_SCANCODE_6: */
-		/*     log_printall(); */
+ 		/* case SDL_SCANCODE_6: { */
+		/*     int test[3] = {0, 1, 2}; */
+		/*     int r = rand() % 1000; */
+		/*     fprintf(stderr, "%d\n", test[r]); */
 		/*     break; */
+		/* } */
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LCTRL:

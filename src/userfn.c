@@ -505,8 +505,9 @@ void open_file(const char *filepath)
     }
 
     if (activate_synth_preset_tab_on_exit) {
-	TabView *tv = synth_tabview_create(timeline_selected_track(tl));
-	tabview_activate(tv);
+	Track *track = timeline_selected_track(tl);
+	TabView *tv = synth_tabview_create(track);
+	tabview_activate(tv, track);
 	tl->needs_redraw = true;
 	timeline_check_set_midi_monitoring();
 	/* tabview_select_tab(tv, 0); */
@@ -1354,6 +1355,7 @@ static NEW_EVENT_FN(add_track_redo, "redo add track")
 }
 
 static NEW_EVENT_FN(add_track_dispose_forward, "")
+fprintf(stderr, "Add track dispose forward...\n");
     Track *track = (Track *)obj1;
     track_destroy(track, false);
 }
@@ -2030,9 +2032,8 @@ void user_tl_track_open_settings(void *nullarg)
 	    user_tl_track_add_effect(NULL);
 	    return;
 	}
-
 	TabView *tv = track_effects_tabview_create(track);
-	tabview_activate(tv);
+	tabview_activate(tv, track);
 	tl->needs_redraw = true;
     } else {
 	timeline_click_track_edit(tl);
@@ -2046,7 +2047,6 @@ void user_tl_track_open_synth(void *nullarg)
 	if (strcmp(main_win->active_tabview->title, "Track Synth") == 0) {
 	    early_exit = true;
 	}
-
 	tabview_close(main_win->active_tabview);
 	if (early_exit)	return;
     }
@@ -2055,7 +2055,7 @@ void user_tl_track_open_synth(void *nullarg)
     Track *track = timeline_selected_track(tl);
     if (track) {
 	TabView *tv = synth_tabview_create(track);
-	tabview_activate(tv);
+	tabview_activate(tv, track);
 	tl->needs_redraw = true;
 	timeline_check_set_midi_monitoring();
     } else {

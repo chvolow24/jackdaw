@@ -154,15 +154,22 @@ UserEvent *user_event_push(
     e->type2 = type2;
     e->free_obj1 = free_obj1;
     e->free_obj2 = free_obj2;
-
-
-
+    
     /* First case: history initialized, but we're all the way back */
     if (history->oldest && !history->next_undo) {
 	UserEvent *iter = history->oldest;
 	UserEvent *next = iter->next;
 	while (iter) {
 	    next = iter->next;
+	    if (iter->dispose_forward) {
+		iter->dispose_forward(
+		    iter,
+		    iter->obj1,
+		    iter->obj2,
+		    iter->redo_val1,
+		    iter->redo_val2,
+		    iter->type1, iter->type2);
+	    }
 	    user_event_destroy(iter);
 	    iter = next;
 	    history->len--;

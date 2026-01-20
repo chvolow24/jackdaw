@@ -1052,8 +1052,9 @@ void page_activate(Page *page)
     win->active_page = page;
 }
 
-void tabview_activate(TabView *tv)
+void tabview_activate(TabView *tv, void *connected_obj)
 {
+    tv->connected_obj = connected_obj;
     Window *win = tv->win;
     if (win->num_modals  > 0) {
 	window_pop_modal(win);

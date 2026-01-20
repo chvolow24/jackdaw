@@ -13,6 +13,7 @@
 /* #include "draw.h" */
 #include "SDL_ttf.h"
 #include "input_mode.h"
+#include "log.h"
 #include "text.h"
 #include "textbox.h"
 #include "layout.h"
@@ -414,7 +415,9 @@ void txt_edit(Text *txt, void (*draw_fn) (void))
 
 void txt_stop_editing(Text *txt)
 {
+    
     if (!main_win->txt_editing) return;
+    log_tmp(LOG_INFO, "Text stop editing (%p)\n", txt);
     main_win->txt_editing = NULL; /* Set this FIRST to avoid infinite loop in completion */
     txt->show_cursor = false;
     /* txt->truncate = save_truncate; */
@@ -564,6 +567,8 @@ void txt_edit(Text *txt, void (*draw_fn) (void))
         SDL_Delay(1);
 
     }
+    /* log_tmp(LOG_INFO, "Text edit: handle char \'%c\'\n", e->text.text[0]); */
+    log_tmp(LOG_INFO, "Text edit: exit normal\n");
     SDL_StopTextInput();
     txt->show_cursor = false;
     txt->truncate = save_truncate;

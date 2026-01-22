@@ -21,7 +21,7 @@
 
 
 /* #define DEVICE_BUFLEN_SECONDS 2 /\* TODO: reduce, and write to clip during recording *\/ */
-#define DEVICE_BUFLEN_CHUNKS 1024
+#define DEVICE_BUFLEN_CHUNKS 128
 
 #define PD_BUFLEN_CHUNKS 1024
 
@@ -96,12 +96,20 @@ int audio_io_get_connections(Session *session, int iscapture)
 		conn->channel_cfg.R_src = channel_i + 1;
 		dev->channel_dsts[channel_i] = (struct channel_dst){conn, 0};
 		dev->channel_dsts[channel_i + 1] = (struct channel_dst){conn, 1};
-		snprintf(conn->name, MAX_CONN_NAMELENGTH, "%s (ch. %d, %d)", dev->name, channel_i + 1, channel_i + 2);
+		if (channel_i == 0 && dev->spec.channels == 2) {
+		    snprintf(conn->name, MAX_CONN_NAMELENGTH, "%s", dev->name);
+		} else {
+		    snprintf(conn->name, MAX_CONN_NAMELENGTH, "%s (ch. %d, %d)", dev->name, channel_i + 1, channel_i + 2);
+		}
 	    } else {
 		conn->channel_cfg.L_src = channel_i;
 		conn->channel_cfg.R_src = -1;
 		dev->channel_dsts[channel_i] = (struct channel_dst){conn, 0};
-		snprintf(conn->name, MAX_CONN_NAMELENGTH, "%s (ch. %d)", dev->name, channel_i + 1);
+		if (channel_i == 0 && dev->spec.channels == 1) {
+		    snprintf(conn->name, MAX_CONN_NAMELENGTH, "%s", dev->name);
+		} else {
+		    snprintf(conn->name, MAX_CONN_NAMELENGTH, "%s (ch. %d)", dev->name, channel_i + 1);
+		}
 	    }
 	    conn->obj = dev;
 	    conn->available = true;
@@ -133,7 +141,7 @@ int audio_io_get_connections(Session *session, int iscapture)
 	jdaw->index = num_devices;
 	jdaw->iscapture = iscapture;
 	jdaw->available = true;
-	pd->obj = &session->audio_io.jdaw_conn;
+	jdaw->obj = &session->audio_io.jdaw_conn;
 	conn_list[*conn_index] = jdaw;
 	(*conn_index)++;
     }
@@ -383,7 +391,6 @@ void audioconn_stop_playback(AudioConn *conn)
 
 static void device_stop_recording(AudioDevice *dev)
 {
-    fprintf(stderr, "STOP RECORDING DEVICE: %s\n", dev->name);
     SDL_PauseAudioDevice(dev->id, 1);
     /* dev->write_bufpos_samples = 0; */
     /* device_close(dev); */
@@ -391,7 +398,6 @@ static void device_stop_recording(AudioDevice *dev)
 
 void audioconn_stop_recording(AudioConn *conn)
 {
-    fprintf(stderr, "AUDIOCONN STOP RECORDING: %s\n", conn->name);
     switch (conn->type) {
     case DEVICE:
 	device_stop_recording(conn->obj);
@@ -443,11 +449,26 @@ void audioconn_reset_chunk_size(AudioConn *c, uint16_t new_chunk_size)
     }
 }
 
+static void init_jdaw_conn(Session *session)
+{
+    session->audio_io.jdaw_conn.rec_buffer_L = NULL;
+    session->audio_io.jdaw_conn.rec_buffer_R = NULL;
+}
+static void init_pd_conn(Session *session)
+{
+    session->audio_io.pd_conn.rec_buffer_L = NULL;
+    session->audio_io.pd_conn.rec_buffer_R = NULL;
+}
+
 void session_init_audio_conns(Session *session)
 {
     /* session->audio_io.num_playback_conns = audio_io_get_connections(session, 0); */
     /* session->audio_io.num_record_conns = audio_io_get_connections(session, 1); */
     /* session->audio_io.playback_conn = session->audio_io.playback_conns[0]; */
+
+    init_jdaw_conn(session);
+    init_pd_conn(session);
+    
     audio_io_get_connections(session, 0);
     audio_io_get_connections(session, 1);
     /* session->audio_io.playback_conn =  */

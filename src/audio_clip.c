@@ -17,6 +17,7 @@
 /* mandatory after alloc */
 void clip_init(Clip *clip)
 {
+    pthread_mutex_init(&clip->buf_realloc_lock, NULL);
     clip->refs_alloc_len = DEFAULT_REFS_ALLOC_LEN;
     clip->refs = calloc(clip->refs_alloc_len, sizeof(ClipRef *));
 }
@@ -59,6 +60,7 @@ Clip *clip_create(AudioConn *conn, Track *target)
 
 void clip_destroy_no_displace(Clip *clip)
 {
+    pthread_mutex_destroy(&clip->buf_realloc_lock);
     for (uint16_t i=0; i<clip->num_refs; i++) {
 	ClipRef *cr = clip->refs[i];
 	clipref_destroy(cr, false);
@@ -83,6 +85,7 @@ void clip_destroy_no_displace(Clip *clip)
 
 void clip_destroy(Clip *clip)
 {
+    pthread_mutex_destroy(&clip->buf_realloc_lock);
     /* fprintf(stdout, "CLIP DESTROY %s, num refs: %d\n", clip->name,  clip->num_refs); */
     /* fprintf(stdout, "DESTROYING CLIP %p, num: %d\n", clip, proj->num_clips); */
     for (uint16_t i=0; i<clip->num_refs; i++) {

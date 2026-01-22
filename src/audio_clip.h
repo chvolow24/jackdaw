@@ -37,7 +37,8 @@ typedef struct clip {
     ClipRef **refs;
     uint16_t num_refs;
     uint16_t refs_alloc_len;
-    
+
+    pthread_mutex_t buf_realloc_lock;
     float *L;
     float *R;
     uint32_t write_bufpos_sframes;

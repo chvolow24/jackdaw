@@ -16,6 +16,7 @@
  *****************************************************************************************************************/
 
 #include <string.h>
+#include <sys/errno.h>
 #include "porttime.h"
 #include "audio_clip.h"
 #include "audio_connection.h"
@@ -314,8 +315,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	while (tl->buf_read_pos != saved_write_pos) {
 	    int semret = sem_trywait(tl->readable_chunks);
 	    if (semret != 0) {
-		fprintf(stderr, "ERROR: unable to wait on readable chunks! sem_trywait: %s\n", strerror(semret));
-		exit(1);
+		error_exit("ERROR: unable to wait on readable chunks! sem_trywait: %s", strerror(errno));
 	    }
 	    tl->buf_read_pos += len_sframes;
 	    sem_post(tl->writable_chunks);
@@ -660,7 +660,7 @@ void transport_start_recording()
 	    if (track->input_type == AUDIO_CONN) {
 		Clip *clip = NULL;
 		AudioConn *conn = track->input;
-		if (!conn->active) {
+		if (!conn->active || !conn->current_clip) {
 		    /* TODO: should this be here? bug if removed */
 		    conn->active = true; 
 		    conns_to_activate[num_conns_to_activate] = conn;
@@ -781,6 +781,7 @@ void create_clip_buffers(Clip *clip, uint32_t len_sframes)
     /* 	exit(1); */
     /* } */
     /* fprintf(stdout, "CREATING CLIP BUFFERS %d\n", len_sframes); */
+    pthread_mutex_lock(&clip->buf_realloc_lock);
     uint32_t buf_len_bytes = sizeof(float) * len_sframes;
     if (!clip->L) {
 	clip->L = malloc(buf_len_bytes);
@@ -802,6 +803,7 @@ void create_clip_buffers(Clip *clip, uint32_t len_sframes)
 	    exit(1);
 	}
     }
+    pthread_mutex_unlock(&clip->buf_realloc_lock);
 }
 
 /* void copy_pd_buf_to_clip(Clip *clip) */
@@ -816,6 +818,8 @@ static void copy_device_buf_to_clips(AudioDevice *dev)
 {
     Clip *clips[dev->spec.channels];
     float *buffers[dev->spec.channels];
+    memset(clips, 0, sizeof(clips));
+    memset(buffers, 0, sizeof(buffers));
     Session *session = session_get();
     int32_t play_pos = ACTIVE_TL->play_pos_sframes;
     for (int c=0; c<dev->spec.channels; c++) {
@@ -827,17 +831,21 @@ static void copy_device_buf_to_clips(AudioDevice *dev)
 		break;
 	    }
 	}
-	if (!clip_redundant) {
+	if (!clip_redundant && clips[c]) {
 	    clips[c]->len_sframes = clips[c]->write_bufpos_sframes + dev->write_bufpos_samples / clips[c]->channels;
 	    create_clip_buffers(clips[c], clips[c]->len_sframes);
-	    for (int r=0; r<clips[c]->num_refs; r++) {
-		ClipRef *cr = clips[c]->refs[r];
-		cr->tl_pos = play_pos - clips[c]->len_sframes;
+	    if (!clips[c]->recorded_from->current_clip_repositioned) {
+		for (int r=0; r<clips[c]->num_refs; r++) {
+		    ClipRef *cr = clips[c]->refs[r];
+		    cr->tl_pos = play_pos - clips[c]->len_sframes;
+		}
+		clips[c]->recorded_from->current_clip_repositioned = true;
 	    }
 	}
 
     }
     for (int c=0; c<dev->spec.channels; c++) {
+	if (!clips[c]) continue;
 	if (dev->channel_dsts[c].channel == 0) {
 	    clips[c] = dev->channel_dsts[c].conn->current_clip;
 	    buffers[c] = clips[c]->L + clips[c]->write_bufpos_sframes;
@@ -847,12 +855,15 @@ static void copy_device_buf_to_clips(AudioDevice *dev)
 	}
 
     }
-    fprintf(stderr, "COPYING DEVICE BUF to %d channels\n", dev->spec.channels);
     for (int i=0; i<dev->write_bufpos_samples; i++) {
-	buffers[i % dev->spec.channels][i / dev->spec.channels] = (double)dev->rec_buffer[i] / INT16_MAX;
+	if (buffers[i % dev->spec.channels]) {
+	    buffers[i % dev->spec.channels][i / dev->spec.channels] = (double)dev->rec_buffer[i] / INT16_MAX;
+	}
     }
     for (int c=0; c<dev->spec.channels; c++) {
-	clips[c]->write_bufpos_sframes = clips[c]->len_sframes;
+	if (clips[c]) {
+	    clips[c]->write_bufpos_sframes = clips[c]->len_sframes;
+	}
     }
 }
 

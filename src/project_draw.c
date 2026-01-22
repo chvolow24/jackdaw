@@ -170,7 +170,7 @@ static void clipref_draw(ClipRef *cr)
 	}
     }
     SDL_RenderFillRect(main_win->rend, &cr->layout->rect);
-    if (cr->type == CLIP_AUDIO && !((Clip *)cr->source_clip)->recording) {
+    if (cr->type == CLIP_AUDIO) {// && !((Clip *)cr->source_clip)->recording) {
 	clipref_draw_waveform(cr);
     }
 
@@ -411,6 +411,9 @@ static bool internal_tl_needs_redraw = false;
 void clipref_draw_waveform(ClipRef *cr)
 {
     Clip *clip = cr->source_clip;
+    if (clip->recording) {
+	pthread_mutex_lock(&clip->buf_realloc_lock);
+    }
     if (cr->waveform_redraw && cr->waveform_texture) {
 	SDL_DestroyTexture(cr->waveform_texture);
 	cr->waveform_texture = NULL;
@@ -419,7 +422,10 @@ void clipref_draw_waveform(ClipRef *cr)
     int32_t cr_len = clipref_len(cr);
     int32_t start_pos = 0;
     int32_t end_pos = cr_len;
-    if (end_pos - start_pos == 0) {
+    if (clip->recording) {
+	end_pos = clip->write_bufpos_sframes - 1;
+	cr_len = end_pos;
+    } else if (end_pos - start_pos == 0) {
 	cr->end_in_clip = clip->len_sframes;
 	cr_len = clipref_len(cr);
 	end_pos = cr_len;
@@ -429,8 +435,11 @@ void clipref_draw_waveform(ClipRef *cr)
     }
     double sfpp = cr->track->tl->timeview.sample_frames_per_pixel;
     SDL_Rect onscreen_rect = cr->layout->rect;
-    if (onscreen_rect.x > main_win->w_pix) return;
-    if (onscreen_rect.x + onscreen_rect.w < 0) return;
+    if (clip->recording) {
+	onscreen_rect.w = timeview_get_draw_w(&cr->track->tl->timeview, cr_len);
+    }
+    if (onscreen_rect.x > main_win->w_pix) goto unlock_and_exit;
+    if (onscreen_rect.x + onscreen_rect.w < 0) goto unlock_and_exit;
     if (onscreen_rect.x < 0) {
 	start_pos = sfpp * -1 * onscreen_rect.x;
 	if (start_pos < 0 || start_pos > clipref_len(cr)) {
@@ -438,7 +447,7 @@ void clipref_draw_waveform(ClipRef *cr)
 	    fprintf(stderr, "vs len: %d\n", start_pos - cr_len);
 	    fprintf(stderr, "Clipref: %s\n", cr->name);
 	    breakfn();
-	    return;
+	    goto unlock_and_exit;
 	    /* exit(1); */
 	}
 	onscreen_rect.w += onscreen_rect.x;
@@ -449,13 +458,15 @@ void clipref_draw_waveform(ClipRef *cr)
 	if (end_pos <= start_pos || end_pos > cr_len) {
 	    fprintf(stderr, "ERROR: end pos is %d\n", end_pos);
 	    breakfn();
-	    return;
+	    goto unlock_and_exit;
 	}
 	onscreen_rect.w = main_win->w_pix - onscreen_rect.x;
 	end_pos = start_pos + sfpp * onscreen_rect.w;
 	
     }
-    if (onscreen_rect.w <= 0) return;
+    if (onscreen_rect.w <= 0) {
+	goto unlock_and_exit;
+    }
     /* static double T_create_texture = 0.0; */
     /* static double T_other_ops = 0.0; */
     /* static double T_draw_waveform = 0.0; */
@@ -465,7 +476,7 @@ void clipref_draw_waveform(ClipRef *cr)
 	int32_t start_in_clip = cr->start_in_clip;
 	if (FRAME_WF_DRAW_TIME > MAX_WF_FRAME_DRAW_TIME) {
 	    internal_tl_needs_redraw = true;
-	    return;
+	    goto unlock_and_exit;
 	}
 	SDL_Texture *saved_targ = SDL_GetRenderTarget(main_win->rend);
 	/* SDL_Rect onscreen_rect = cr->layout->rect; */
@@ -490,7 +501,7 @@ void clipref_draw_waveform(ClipRef *cr)
 	float *channels[num_channels];
 	/* uint32_t cr_len_sframes = clipref_len(cr); */
 	if (!clip->L) {
-	    return;
+	    goto unlock_and_exit;
 	}
 	channels[0] = clip->L + start_in_clip + start_pos;
 	if (num_channels > 1) {
@@ -516,8 +527,10 @@ void clipref_draw_waveform(ClipRef *cr)
 	/* T_draw_waveform += ((double)clock() - c)/CLOCKS_PER_SEC; */
 	SDL_SetRenderTarget(main_win->rend, saved_targ);
     }
-    /* c = clock(); */
     SDL_RenderCopy(main_win->rend, cr->waveform_texture, NULL, &onscreen_rect);
+unlock_and_exit:
+    pthread_mutex_unlock(&clip->buf_realloc_lock);
+    /* c = clock(); */
     /* T_copy += ((double)clock() - c)/CLOCKS_PER_SEC; */
 
     /* if (T_draw_waveform > 10.00) { */

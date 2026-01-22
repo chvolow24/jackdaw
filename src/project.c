@@ -1915,7 +1915,6 @@ void track_undelete(Track *track)
 
 void track_destroy(Track *track, bool displace)
 {
-    fprintf(stderr, "Destroy track \"%s\"\n", track->name);
     if (main_win->active_tabview && main_win->active_tabview->connected_obj == track) {
 	tabview_close(main_win->active_tabview);
     }

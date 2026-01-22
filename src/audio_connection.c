@@ -43,7 +43,7 @@ int audio_io_get_devices(Session *session, int iscapture)
 	session->audio_io.num_playback_devices = num_devices;
 	dst_list = session->audio_io.playback_devices;
     }
-    
+
     for (int i=0; i<num_devices; i++) {
 	SDL_AudioSpec spec = {0};
 	AudioDevice *dev = calloc(1, sizeof(AudioDevice));
@@ -56,6 +56,7 @@ int audio_io_get_devices(Session *session, int iscapture)
 	    dev->is_default = true;
 	    spec = default_dev_spec;
 	} else {
+	    dev->is_default = false;
 	    if (SDL_GetAudioDeviceSpec(i, iscapture, &spec) != 0) {
 		error_exit("Unable to get %s audio device spec at index %d\n", iscapture ? "record" : "playback", i);
 	    }

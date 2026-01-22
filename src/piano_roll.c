@@ -711,6 +711,11 @@ void piano_roll_activate(ClipRef *cr)
 
 void piano_roll_deactivate()
 {
+    Session *session = session_get();
+    state.tl_tv->rect = session->gui.audio_rect;
+    session->piano_roll = false;
+    state.active = false;
+
     piano_roll_stop_moving();
     midi_clip_ungrab_all(state.clip);
     state.clip = NULL;
@@ -721,10 +726,6 @@ void piano_roll_deactivate()
     window_clear_higher_modes(main_win, MODE_PIANO_ROLL);
     piano_roll_deinit_gui();
 
-    Session *session = session_get();
-    state.tl_tv->rect = session->gui.audio_rect;
-    session->piano_roll = false;
-    state.active = false;
     timeline_reset_full(ACTIVE_TL);
     /* layout_destroy(state.layout); */
     

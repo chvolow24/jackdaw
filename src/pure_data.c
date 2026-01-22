@@ -242,7 +242,7 @@ int pd_jackdaw_shm_init()
     
 }
 
-extern Project *proj;
+void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type);
 void *pd_jackdaw_record_on_thread(void *arg)
 {
 
@@ -264,7 +264,7 @@ void *pd_jackdaw_record_on_thread(void *arg)
 	fprintf(stdout, "PD BLOCKSIZE: %d\n", pd_blocksize);
     }
 
-    PdConn *pdconn = &conn->c.pd;
+    PdConn *pdconn = conn->obj;
     while (1) {
 	/* fprintf(stdout, "about to check proj rec\n"); */
 	if (!session->playback.recording) {

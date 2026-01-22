@@ -461,6 +461,10 @@ static InputMode window_pop_mode(Window *win)
     if (win->num_modes > 0) {
 	win->num_modes--;
 	log_tmp(LOG_DEBUG, "Pop mode %s at %d\n", input_mode_str(win->modes[win->num_modes]), win->num_modes);
+	if (win->num_modes == 0) {
+	    log_tmp(LOG_FATAL, "Window num modes == 0\n");
+	    error_exit("Window num modes == 0");
+	}
 	return win->modes[win->num_modes];
     }
     return MODE_GLOBAL;
@@ -469,10 +473,14 @@ static InputMode window_pop_mode(Window *win)
 void window_extract_mode(Window *win, InputMode mode)
 {
     log_tmp(LOG_DEBUG, "Extract mode %s\n", input_mode_str(mode));
-    for (int i=win->num_modes - 1; i>=0; i--) {
+    for (int i=win->num_modes - 1; i>0; i--) {
 	if (win->modes[i] == mode) {
-	    memmove(win->modes + i, win->modes + i + 1, (win->num_modes - 1 - 1) * sizeof(InputMode));
+	    memmove(win->modes + i, win->modes + i + 1, (win->num_modes - i - 1) * sizeof(InputMode));
 	    win->num_modes--;
+	    if (win->num_modes == 0) {
+		log_tmp(LOG_FATAL, "Window num modes == 0\n");
+		error_exit("Window num modes == 0");
+	    }
 	    return;
 	}
     }

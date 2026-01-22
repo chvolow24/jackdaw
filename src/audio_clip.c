@@ -28,20 +28,16 @@ Clip *clip_create(AudioConn *conn, Track *target)
 	return NULL;
     }
     Clip *clip = calloc(1, sizeof(Clip));
-    
-    clip->channels = 2;
+
     if (conn) {
 	clip->recorded_from = conn;
 	if (conn->type == DEVICE) {
-	    if (conn->c.device.select_channels) {
-		clip->channels = conn->c.device.channel_max - conn->c.device.channel_min + 1;
-	    } else {
-		clip->channels = conn->c.device.spec.channels;
-	    }
+	    clip->channels = conn->channel_cfg.R_src >= 0 ? 2 : 1; /* If R src specified, clip is stereo; else mono */
+	} else {
+	    clip->channels = 2;
 	}
     }
     if (target) {
-	/* fprintf(stdout, "\t->target? %p\n", clip->target); */
 	clip->target = target;
     }
 

@@ -35,18 +35,41 @@
 #include "user_event.h"
 
 #define MAX_SESSION_AUDIO_CONNS 32
+#define MAX_SESSION_AUDIO_DEVICES 32
 #define SESSION_MAX_METRONOME_BUFFERS 16
 #define MAX_QUEUED_OPS 255
 
 #define DRAG_COLOR_PULSE_PHASE_MAX 30
 
 struct audio_io {
-    AudioConn *record_conns[MAX_SESSION_AUDIO_CONNS];
-    uint8_t num_record_conns;
+    
+    /* Devices are actual audio devices reported by SDL */
+    int num_playback_devices;
+    AudioDevice *playback_devices[MAX_SESSION_AUDIO_DEVICES];
+    int num_record_devices;
+    AudioDevice *record_devices[MAX_SESSION_AUDIO_DEVICES];
+
+    /* Conns are abstractions over devices, accounting for
+       special types (e.g. 'Jackdaw out' resampler) and channel
+       configuration (e.g. 4-channel interface split between
+       2 conns) */
+    int num_playback_conns;
     AudioConn *playback_conns[MAX_SESSION_AUDIO_CONNS];
-    uint8_t num_playback_conns;
+    int num_record_conns;
+    AudioConn *record_conns[MAX_SESSION_AUDIO_CONNS];
+
+    /* System default devices as reported by SDL */
+    int default_playback_conn_index;
+    int default_record_conn_index;
+
+    /* Currently, only one global output set for playback */
     AudioConn *playback_conn;
-    /* uint8_t playback_conn_index; */
+    
+    /* Special conn types, references in the above lists,
+     but memory stored here */
+    PdConn pd_conn;
+    JDAWConn jdaw_conn;
+    
 };
 
 struct session_gui {

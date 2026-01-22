@@ -152,12 +152,7 @@ void mqwert_deactivate()
 {
     status_set_alert_str(NULL);
     state.active = false;
-    if (TOP_MODE != MODE_MIDI_QWERTY) {
-	fprintf(stderr, "Error: call to mqwert_deactivate, top mode not MIDI_QWERTY\n");
-    } else {
-	window_extract_mode(main_win, MODE_MIDI_QWERTY);
-	/* window_pop_mode(main_win); */
-    }
+    window_extract_mode(main_win, MODE_MIDI_QWERTY);
     Session *session = session_get();
     session->midi_qwerty = false;
     midi_device_close_all_notes(&state.v_device);

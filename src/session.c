@@ -232,6 +232,7 @@ void session_destroy()
 	fprintf(stderr, "Error: no session to destroy\n");
 	return;
     }
+    window_clear_higher_modes(main_win, MODE_GLOBAL);
     if (session->playback.recording) {
 	transport_stop_recording();
     } else {
@@ -240,12 +241,19 @@ void session_destroy()
 
     /* api_quit(proj); */
 
-    for (uint8_t i=0; i<session->audio_io.num_record_conns; i++) {
+    for (int i=0; i<session->audio_io.num_record_conns; i++) {
 	audioconn_destroy(session->audio_io.record_conns[i]);
     }
-    for (uint8_t i=0; i<session->audio_io.num_playback_conns; i++) {
+    for (int i=0; i<session->audio_io.num_playback_conns; i++) {
 	audioconn_destroy(session->audio_io.playback_conns[i]);
     }
+    for (int i=0; i<session->audio_io.num_record_devices; i++) {
+	audio_device_destroy(session->audio_io.record_devices[i]);
+    }
+    for (int i=0; i<session->audio_io.num_playback_devices; i++) {
+	audio_device_destroy(session->audio_io.playback_devices[i]);
+    }    
+
 
     textbox_destroy(session->gui.timeline_label);
     textbox_destroy(session->gui.timecode_tb);

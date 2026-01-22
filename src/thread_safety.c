@@ -10,6 +10,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "log.h"
 #include "thread_safety.h"
 
 static pthread_t MAIN_THREAD_ID = 0;
@@ -21,20 +22,23 @@ static JDAW_THREAD_LOCAL pthread_t CURRENT_THREAD_ID = 0;
 void set_thread_id(enum jdaw_thread index)
 {
     pthread_t self = pthread_self();
-    switch(index) {
-    case JDAW_THREAD_MAIN:
-	MAIN_THREAD_ID = self;
-	break;
-    case JDAW_THREAD_DSP:
-	DSP_THREAD_ID = self;
-	break;
-    case JDAW_THREAD_PLAYBACK:
-	PLAYBACK_THREAD_ID = self;
-	break;
-    default:
-	break;
+    if (CURRENT_THREAD_ID != self) {
+	switch(index) {
+	case JDAW_THREAD_MAIN:
+	    MAIN_THREAD_ID = self;
+	    break;
+	case JDAW_THREAD_DSP:
+	    DSP_THREAD_ID = self;
+	    break;
+	case JDAW_THREAD_PLAYBACK:
+	    PLAYBACK_THREAD_ID = self;
+		break;
+	default:
+	    break;
+	}
+	CURRENT_THREAD_ID = self;
+	log_tmp(LOG_DEBUG, "Set thread id for %s: %p\n", get_thread_name(index), self);
     }
-    CURRENT_THREAD_ID = self;
 }
 
 pthread_t *get_thread_addr(enum jdaw_thread index)

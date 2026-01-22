@@ -95,12 +95,16 @@ void log_tmp(enum log_level level, char *fmt, ...)
     if (level == LOG_DEBUG) return;
     #endif
     enum jdaw_thread thread = current_thread();
-    fprintf(logfile[thread], "(%s) %s [%s]: ", log_level_str(level), timestamp(), get_thread_name(thread));
-    va_list ap;
-    va_start(ap, fmt);
-    vfprintf(logfile[thread], fmt, ap);
-    /* fflush(logfile); */
-    va_end(ap);
+    if (logfile[thread]) {
+	fprintf(logfile[thread], "(%s) %s [%s]: ", log_level_str(level), timestamp(), get_thread_name(thread));
+	va_list ap;
+	va_start(ap, fmt);
+	vfprintf(logfile[thread], fmt, ap);
+	/* fflush(logfile); */
+	va_end(ap);
+    } else {
+	fprintf(stderr, "Thread \"%s\" logfile not yet created or unset\n", get_thread_name(thread));
+    }
     /* pthread_mutex_unlock(&log_mutex); */
 }
 

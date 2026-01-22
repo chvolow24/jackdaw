@@ -266,7 +266,6 @@
   - <ret>	: autocomplete_select
   - <esc>	: autocomplete_escape
   - /		: autocomplete_escape
-  - <del>	: autocomplete_escape
   - C-<del>	: autocomplete_escape
   - S-<del>	: autocomplete_escape
 - midi_qwerty:

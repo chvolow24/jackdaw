@@ -394,11 +394,13 @@ static void handle_backspace(Text *txt)
 }
 
 #ifndef LAYOUT_BUILD
+#include "test.h"
 void txt_edit(Text *txt, void (*draw_fn) (void))
 {
     /* fprintf(stdout, "NEW txt edit\n"); */
     /* txt->truncate = false; */
     /* txt_reset_display_value(txt); */
+    TESTBREAK;
     txt->show_cursor = true;
     txt_reset_display_value(txt);
     txt->cursor_start_pos = 0;

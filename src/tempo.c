@@ -1429,13 +1429,11 @@ void click_track_goto_prox_beat(ClickTrack *ct, int direction, BeatProminence bp
 
     int32_t prev, next;
     click_track_get_prox_beats(ct, pos, bp, &prev, &next);
-    fprintf(stderr, "PROX %d < %d < %d (%d, %d)\n", prev, pos, next, pos - prev, next - pos);
     if (direction > 0) {
 	timeline_set_play_position(tl, next, true);
     } else {
 	if (prev > INT32_MIN && prev == pos) {
 	    click_track_get_prox_beats(ct, pos - 1, bp, &prev, &next);
-	    fprintf(stderr, "\tPROX %d < %d < %d (%d, %d)\n", prev, pos, next, pos - prev, next - pos);
 	}
 	if (prev == INT32_MIN) {
 	    status_set_errstr("No earlier beats");

@@ -1281,7 +1281,6 @@ bool track_solo(Track *track)
 {
     track->solo = !track->solo;
     Textbox *piano_roll_solo_button = piano_roll_get_solo_button();
-    fprintf(stderr, "TRACK SOLO ptr %p\n", piano_roll_solo_button);
     if (track->solo) {
 	if (track->muted) {
 	    track->muted = false;

@@ -51,6 +51,7 @@ typedef struct clip_ref {
 
     /* Audio only */
     SDL_Texture *waveform_texture;
+    SDL_Texture *old_texture;
     pthread_mutex_t waveform_texture_lock;
     pthread_mutex_t lock;
     bool waveform_redraw;

@@ -596,6 +596,10 @@ void loop_project_main()
 	static const int zero_playspeed_count_thresh = 20;
         static int zero_playspeed_count = 0;
 	if (session->playback.playing) {
+	    if (tl->read_pos_sframes <= TL_MIN_SFRAMES || tl->read_pos_sframes >= TL_MAX_SFRAMES) {
+		status_set_errstr("Reached end of timeline. S-u to return to t=0");
+		transport_stop_playback();
+	    }
 	    if (!session->source_mode.source_mode && fabs(session->playback.play_speed) < 1e-3f) {
 		zero_playspeed_count++;
 	    } else {

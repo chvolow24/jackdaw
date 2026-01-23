@@ -20,5 +20,8 @@
 #define CMP_EPSILON_FLOAT 1e-9f
 #define CMP_EPSILON_DOUBLE 1e-9
 
+#define TL_MIN_SFRAMES (INT32_MIN + 9600 * 60 * 10)
+#define TL_MAX_SFRAMES (INT32_MAX - 96000 * 60 * 10)
+
 
 #endif

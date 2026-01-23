@@ -38,7 +38,7 @@ extern struct colors colors;
 /****************************************************/
 
 SDL_Color track_bckgrnd = {120, 130, 150, 255};
-SDL_Color track_bckgrnd_active = {190, 190, 180, 255};
+SDL_Color track_bckgrnd_active = {160, 160, 160, 255};
 
 SDL_Color source_mode_bckgrnd = {0, 20, 40, 255};
 /* SDL_Color track_bckgrnd_active = {170, 130, 130, 255}; */
@@ -47,6 +47,8 @@ SDL_Color console_bckgrnd = {140, 140, 140, 255};
 /* SDL_Color console_bckgrnd_selector = {210, 180, 100, 255}; */
 /* SDL_Color console_bckgrnd_selector = {230, 190, 100, 255}; */
 SDL_Color console_bckgrnd_selector = {210, 190, 140, 255};
+SDL_Color console_bckgrnd_active = {98, 142, 181, 255};
+SDL_Color console_bckgrnd_active_selector = {125, 164, 197, 255};
 
 SDL_Color console_column_bckgrnd = {45, 50, 55, 255};
 SDL_Color timeline_marked_bckgrnd = {255, 255, 255, 30};
@@ -74,6 +76,7 @@ SDL_Color clip_ref_home_grabbed_bckgrnd = {120, 210, 255, 230};
 /* SDL_Color clip_ref_home_bckgrnd = {45, 135, 200, 200}; */
 /* SDL_Color clip_ref_home_grabbed_bckgrnd = {75, 165, 210, 230}; */
 /****************************************************/
+
 
 extern SDL_Color timeline_label_txt_color;
 
@@ -300,12 +303,20 @@ static void track_draw(Track *track)
     /* SDL_RenderSetClipRect(main_win->rend, &main_win->layout->rect); */
 
     if (track->tl->track_selector == track->tl_rank) {
-	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(console_bckgrnd_selector));
+	if (track->active) {
+	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(console_bckgrnd_active_selector));
+	} else {
+	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(console_bckgrnd_selector));
+	}
 	SDL_RenderFillRect(main_win->rend, track->console_rect);
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
 	SDL_RenderDrawRect(main_win->rend, track->console_rect);
     } else {
-	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(console_bckgrnd));
+	if (track->active) {
+	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(console_bckgrnd_active));
+	} else {
+	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(console_bckgrnd));
+	}
 	SDL_RenderFillRect(main_win->rend, track->console_rect);
     }
 
@@ -408,14 +419,30 @@ void fill_quadrant_complement(SDL_Renderer *rend, int xinit, int yinit, int r, c
 static double FRAME_WF_DRAW_TIME = 0.0;
 static bool internal_tl_needs_redraw = false;
 
+/* void condpr(ClipRef *cr, const char *fmt, ...) */
+/* { */
+/*     va_list ap; */
+/*     va_start(ap, fmt); */
+/*     if (strcmp(cr->name, "TEST") == 0) { */
+/* 	vfprintf(stderr, fmt, ap); */
+/*     } */
+/*     va_end(ap); */
+/* } */
+
 void clipref_draw_waveform(ClipRef *cr)
 {
+    /* condpr(cr, "\nCall to cr wf draw. Redraw? %d Texture? %p\n", cr->waveform_redraw, cr->waveform_texture); */
     Clip *clip = cr->source_clip;
     if (clip->recording) {
 	pthread_mutex_lock(&clip->buf_realloc_lock);
     }
     if (cr->waveform_redraw && cr->waveform_texture) {
-	SDL_DestroyTexture(cr->waveform_texture);
+	if (cr->old_texture) {
+	    SDL_DestroyTexture(cr->old_texture);
+	}
+	/* condpr(cr, "Setting old texture\n"); */
+	cr->old_texture = cr->waveform_texture;
+	/* SDL_DestroyTexture(cr->waveform_texture); */
 	cr->waveform_texture = NULL;
 	cr->waveform_redraw = false;
     }
@@ -465,6 +492,7 @@ void clipref_draw_waveform(ClipRef *cr)
 	
     }
     if (onscreen_rect.w <= 0) {
+	fprintf(stderr, "Error: onscreen rect w %d\n", onscreen_rect.w);
 	goto unlock_and_exit;
     }
 
@@ -472,7 +500,7 @@ void clipref_draw_waveform(ClipRef *cr)
 	int32_t start_in_clip = cr->start_in_clip;
 	if (FRAME_WF_DRAW_TIME > MAX_WF_FRAME_DRAW_TIME) {
 	    internal_tl_needs_redraw = true;
-	    goto unlock_and_exit;
+	    goto copy_texture_unlock_and_exit;
 	}
 	SDL_Texture *saved_targ = SDL_GetRenderTarget(main_win->rend);
 	/* SDL_Rect onscreen_rect = cr->layout->rect; */
@@ -517,9 +545,24 @@ void clipref_draw_waveform(ClipRef *cr)
 	waveform_draw_all_channels_generic((void **)channels, JDAW_FLOAT, num_channels, wf_len, &waveform_container, 0, onscreen_rect.w, cr->track->tl->timeview.sample_frames_per_pixel, &colors.black, cr->gain);
 	FRAME_WF_DRAW_TIME += ((double)clock() - c) / CLOCKS_PER_SEC;
 	SDL_SetRenderTarget(main_win->rend, saved_targ);
+	/* condpr(cr, "Drew wf fresh\n"); */
     }
-    SDL_RenderCopy(main_win->rend, cr->waveform_texture, NULL, &onscreen_rect);
+copy_texture_unlock_and_exit:
+    if (!cr->waveform_texture) {
+	/* condpr(cr, "No wf texture, old? %p\n", cr->old_texture); */
+	if (cr->old_texture) {
+	    SDL_RenderCopy(main_win->rend, cr->old_texture, NULL, &onscreen_rect);
+	    /* condpr(cr, "Copy OLD texture %p to %d,%d,%d,%d\n", cr->old_texture, onscreen_rect.x, onscreen_rect.y, onscreen_rect.w, onscreen_rect.h); */
+	    /* condpr(cr, "(wh: %d %d)\n", w, h); */
+	}
+    } else {
+	/* condpr(cr, "Copy texture %p to %d,%d,%d,%d\n", cr->waveform_texture, onscreen_rect.x, onscreen_rect.y, onscreen_rect.w, onscreen_rect.h); */
+	/* condpr(cr, "(wh: %d %d)\n", w, h); */
+
+	SDL_RenderCopy(main_win->rend, cr->waveform_texture, NULL, &onscreen_rect);
+    }
 unlock_and_exit:
+    /* condpr(cr, "Exit\n"); */
     pthread_mutex_unlock(&clip->buf_realloc_lock);
     /* c = clock(); */
     /* T_copy += ((double)clock() - c)/CLOCKS_PER_SEC; */

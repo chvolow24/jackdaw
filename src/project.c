@@ -183,8 +183,8 @@ uint8_t project_add_timeline(Project *proj, char *name)
     new_tl->timeview.out_mark = &new_tl->out_mark_sframes;
     new_tl->timeview.offset_left_sframes = 0;
     new_tl->timeview.restrict_view = true;
-    new_tl->timeview.view_min = INT32_MIN + 1;
-    new_tl->timeview.view_max = INT32_MAX - 1;
+    new_tl->timeview.view_min = TL_MIN_SFRAMES;
+    new_tl->timeview.view_max = TL_MAX_SFRAMES;
     new_tl->timeview.max_sfpp = MAX_SFPP;
     
     strcpy(new_tl->timecode.str, "+00:00:00:00000");

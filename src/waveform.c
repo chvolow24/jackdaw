@@ -24,7 +24,11 @@
 
 /* Non-integral so that individual channel draws on a timeline fall
    reliably to one side or the other, despite float error */
-#define SFPP_SAFE 200
+#ifdef TESTBUILD
+#define SFPP_SAFE 400
+#else
+#define SFPP_SAFE 1000
+#endif
 
 #define FREQ_PLOT_MAX_TICS 255
 
@@ -558,6 +562,7 @@ static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t
 	    max_amp_pos = 0;
 	    
 	    int sfpp_safe = round(sfpp) < SFPP_SAFE ? round(sfpp) : SFPP_SAFE;
+	    /* int sfpp_safe = round(sfpp); */
 	    /* iters++; */
 	    /* if (iters < 3) { */
 	    /* 	fprintf(stderr, "\tsample_i: %f, sfpp safe %d\n", sample_i, sfpp_safe); */

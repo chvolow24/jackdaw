@@ -337,8 +337,6 @@ void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes)
     RESTRICT_NOT_DSP("timeline_move_play_position");
     /* RESTRICT_NOT_MAIN("timeline_move_play_position"); */
     Session *session = session_get();
-
-    static const int32_t end_tl_buffer = DEFAULT_SAMPLE_RATE * 30; /* 30 seconds at dmax sample rate*/
     
     int64_t new_pos = (int64_t)tl->play_pos_sframes + move_by_sframes;
     if (session->playback.loop_play) {
@@ -350,20 +348,20 @@ void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes)
 		new_pos = tl->in_mark_sframes + remainder;
 	    }
 	}
-    }
-    if (new_pos > INT32_MAX - end_tl_buffer || new_pos < INT32_MIN + end_tl_buffer) {
-	/* fprintf(stderr, "CMPS (to %d, %d) %d %d\n", INT32_MAX, INT32_MIN, new_pos > INT32_MAX, new_pos < INT32_MIN); */
-	if (session->playback.playing) transport_stop_playback();
+ }
+    if (new_pos > TL_MAX_SFRAMES || new_pos < TL_MIN_SFRAMES) {
+	/* TODO: exit playback safely from playback thread ? */
 	status_set_errstr("reached end of timeline");
-    } else {
-	tl->play_pos_sframes = new_pos;
-	clock_gettime(CLOCK_MONOTONIC, &tl->play_pos_moved_at);
-	if (session->dragging) {
-	    if (session->piano_roll) {
-		piano_roll_grabbed_notes_move(move_by_sframes);
-	    } else {
-		timeline_grabbed_clips_move(tl, move_by_sframes);
-	    }
+	new_pos = tl->play_pos_sframes;
+	move_by_sframes = 0;
+    }
+    tl->play_pos_sframes = new_pos;
+    clock_gettime(CLOCK_MONOTONIC, &tl->play_pos_moved_at);
+    if (session->dragging) {
+	if (session->piano_roll) {
+	    piano_roll_grabbed_notes_move(move_by_sframes);
+	} else {
+	    timeline_grabbed_clips_move(tl, move_by_sframes);
 	}
     }
     if (session->playback.lock_view_to_playhead) {

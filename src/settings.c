@@ -333,9 +333,7 @@ static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv,
     if (num_beats > MAX_BEATS_PER_BAR) {
 	num_beats = MAX_BEATS_PER_BAR;
 	snprintf(tt->num_beats_str, 3, "%d", num_beats);
-	char errstr[128];
-	snprintf(errstr, 128, "Cannot exceed %d beats per bar", num_beats);
-	status_set_errstr(errstr);
+	status_set_errstr("Cannot exceed %d beats per bar", num_beats);
     }
     p.textentry_p.font = main_win->mono_bold_font;
     p.textentry_p.text_size = 14;

@@ -337,6 +337,24 @@ void clipref_bring_to_front()
     }
     tl->needs_redraw = true;
 }
+ClipRef *clipref_at_cursor_not_dragging()
+{
+    Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
+    Track *track = timeline_selected_track(tl);
+    if (!track) return NULL;
+    
+    /* Reverse iter to ensure top-most clip is returned in case of overlap */
+    for (int i=track->num_clips -1; i>=0; i--) {
+	ClipRef *cr = track->clips[i];
+	if (session->dragging && cr->grabbed) continue;
+	if (cr->tl_pos <= tl->play_pos_sframes && cr->tl_pos + clipref_len(cr) >= tl->play_pos_sframes) {
+	    return cr;
+	}
+    }
+    return NULL;
+
+}
 
 ClipRef *clipref_at_cursor()
 {

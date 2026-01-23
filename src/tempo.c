@@ -907,6 +907,9 @@ ClickSegment *click_track_add_segment_at_measure(ClickTrack *t, int16_t measure,
 static void click_track_remove(ClickTrack *tt)
 {
     Timeline *tl = tt->tl;
+    if (tl->click_track_frozen && tt == tl->click_tracks[0]) {
+	check_unfreeze_click_track(tl);
+    }
     for (int i=tt->index; i<tl->num_click_tracks - 1; i++) {
 	tl->click_tracks[i] = tl->click_tracks[i+1];
     }

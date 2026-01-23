@@ -42,9 +42,7 @@
 		err = true;						\
 	    }								\
 	    if (err) {							\
-	        char buf[255];						\
-		snprintf(buf, 255, "Allowed range: %d - %d", minval, maxval); \
-		status_set_errstr(buf);					\
+		status_set_errstr("Allowed range: %d - %d", minval, maxval);\
 		return 1;						\
 	    }							        \
 	     return 0;							\

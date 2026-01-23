@@ -88,6 +88,7 @@ int32_t clipref_len(ClipRef *cr);
 void clipref_move_to_track(ClipRef *cr, Track *target);
 void clipref_destroy_no_displace(ClipRef *cr);
 ClipRef *clipref_at_cursor();
+ClipRef *clipref_at_cursor_not_dragging();
 ClipRef *clipref_before_cursor(int32_t *pos_dst);
 ClipRef *clipref_after_cursor(int32_t *pos_dst);
 ClipRef *clipref_at_cursor_in_track(Track *track);

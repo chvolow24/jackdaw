@@ -21,6 +21,7 @@
 #define JDAW_AUDIO_DEVICE_H
 
 #include "SDL.h"
+#include <semaphore.h>
 #include <stdbool.h>
 #include <time.h>
 
@@ -52,7 +53,8 @@ typedef struct audio_device{
     int32_t write_bufpos_samples;
     bool open;
     bool playing; /* i.e., "unpaused," has callback running */
-    volatile bool request_close;
+    /* bool request_close; */
+    /* sem_t *request_close; */
 
     bool is_default;
     bool has_channel_cfg;
@@ -124,12 +126,14 @@ typedef struct session Session;
 int audio_io_get_connections(Session *session, int iscapture);
 int audioconn_open(Session *session, AudioConn *conn);
 void audioconn_close(AudioConn *conn);
-void audioconn_start_playback(AudioConn *conn);
+/* Returns 0 on success; 1 on harmless error (redundancy); -1 on fatal error (device not open) */
+int audioconn_start_playback(AudioConn *conn);
 void audioconn_stop_playback(AudioConn *conn);
 void audioconn_start_recording(AudioConn *conn);
 void audioconn_stop_recording(AudioConn *conn);
 
 void audioconn_handle_connection_event(int index, int iscapture, int event_type);
+void audioconn_handle_disconnection_event(int id, int iscapture, int event_type);
 
 /* Free audio connection, not including linked device(s). List invalidated. */
 void audioconn_destroy(AudioConn *conn);

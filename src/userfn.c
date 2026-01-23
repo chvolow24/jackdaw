@@ -1227,9 +1227,9 @@ void user_tl_goto_previous_clip_boundary(void *nullarg)
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     if (timeline_selected_track(tl)) {
-	ClipRef *cr = clipref_at_cursor();
+	ClipRef *cr = clipref_at_cursor_not_dragging();
 	int32_t pos;
-	if (cr && !(cr->grabbed && session->dragging)) {
+	if (cr) {
 	    if (cr->tl_pos == tl->play_pos_sframes) {
 		goto goto_previous_clip;
 	    }
@@ -1258,9 +1258,9 @@ void user_tl_goto_next_clip_boundary(void *nullarg)
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     if (timeline_selected_track(tl)) {
-	ClipRef *cr = clipref_at_cursor();
+	ClipRef *cr = clipref_at_cursor_not_dragging();
 	int32_t pos;
-	if (cr && !(cr->grabbed && session->dragging)) {
+	if (cr) {
 	    if (cr->tl_pos + clipref_len(cr) == tl->play_pos_sframes) {
 		goto goto_next_clip;
 	    }

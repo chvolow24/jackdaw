@@ -989,9 +989,9 @@ void txt_area_draw(TextArea *txtarea)
 static int txt_check_len(Text *txt, int len)
 {
     if (strlen(txt->display_value) - (txt->cursor_end_pos - txt->cursor_start_pos) >= len - 1) {
-	char buf[255];
-	snprintf(buf, 255, "Field cannot exceed %d characters", len - 1);
-	status_set_errstr(buf);
+	/* char buf[255]; */
+	/* snprintf(buf, 255, "Field cannot exceed %d characters", len - 1); */
+	status_set_errstr("Field cannot exceed %d characters", len - 1);
 	return 1;
     }
     return 0;

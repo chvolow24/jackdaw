@@ -85,7 +85,7 @@ const char *timestamp()
   /* enum jdaw_thread thread = current_thread(); */
   JDAW_THREAD_LOCAL static char buf[64] = {0};
   char *ms_loc = buf + strftime(buf, 64, "%Y-%m-%d %H:%M:%S", timeinfo);
-  snprintf(ms_loc, sizeof(buf) - (ms_loc - buf), ".%04d", tv.tv_usec / 100);
+  snprintf(ms_loc, sizeof(buf) - (ms_loc - buf), ".%05d", tv.tv_usec);
   return buf;
 }
 

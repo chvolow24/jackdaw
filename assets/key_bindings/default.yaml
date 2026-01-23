@@ -310,8 +310,12 @@
   - ;		: piano_roll_move_right
   - n		: piano_roll_note_down
   - p		: piano_roll_note_up
+  - f		: piano_roll_note_down
+  - d		: piano_roll_note_up
   - C-n		: piano_roll_note_down_octave
   - C-p		: piano_roll_note_up_octave
+  - C-f		: piano_roll_note_down_octave
+  - C-d		: piano_roll_note_up_octave
   - c		: piano_roll_vel_down
   - v		: piano_roll_vel_up
   - <right>	: piano_roll_forward_dur
@@ -320,6 +324,8 @@
   - S-j		: piano_roll_prev_note
   - S-p		: piano_roll_up_note
   - S-n		: piano_roll_down_note
+  - S-d		: piano_roll_up_note
+  - S-f		: piano_roll_down_note
   - <down>	: piano_roll_dur_longer
   - <up>	: piano_roll_dur_shorter
   - 1		: piano_roll_dur_longer

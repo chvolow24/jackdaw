@@ -162,9 +162,7 @@ void timeline_clipref_grab(ClipRef *cr, enum clipref_edge edge)
 	return;
     }
     if (cr->track->tl->num_grabbed_clips == MAX_GRABBED_CLIPS) {
-	char buf[128];
-	snprintf(buf, 128, "Cannot grab more than %d clips", MAX_GRABBED_CLIPS);
-	status_set_errstr(buf);
+	status_set_errstr("Cannot grab more than %d clips", MAX_GRABBED_CLIPS);
 	return;
     }
     Timeline *tl = cr->track->tl;

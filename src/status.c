@@ -57,8 +57,10 @@ void status_frame()
 
 
 
-void status_set_errstr(const char *errstr)
+void status_set_errstr(const char *fmt, ...)
 {
+    va_list ap;
+    va_start(ap, fmt);
     Session *session = session_get();
     if (!on_thread(JDAW_THREAD_MAIN)) {
 	/* pthread_mutex_lock(&session->status_bar.errstr_lock); */
@@ -66,8 +68,8 @@ void status_set_errstr(const char *errstr)
 	/* pthread_mutex_unlock(&session->status_bar.errstr_lock); */
 	return;
     }
-
-    strcpy(session->status_bar.errstr, errstr);
+    vsnprintf(session->status_bar.errstr, MAX_STATUS_STRLEN, fmt, ap);
+    /* strcpy(session->status_bar.errstr, errstr); */
     /* textbox_set_text_color(session->status_bar.error, &colors.red); */
     textbox_size_to_fit(session->status_bar.error, 0, 0);
     textbox_set_text_color(session->status_bar.error, &colors.red);

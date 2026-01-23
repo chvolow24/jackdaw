@@ -137,10 +137,18 @@ void loop_project_main()
 		}
 		break;
 	    case SDL_AUDIODEVICEADDED:
+		if (!first_frame) {
+		    audioconn_handle_connection_event(e.adevice.which, e.adevice.iscapture, e.adevice.type);
+		}
+		break;
 	    case SDL_AUDIODEVICEREMOVED:
 		if (!first_frame) {
-		    if (session->playback.recording) transport_stop_recording();
-		    audioconn_handle_connection_event(e.adevice.which, e.adevice.iscapture, e.adevice.type);
+		    /*
+		      'which' is the id for AUDIODEVICEREMOVED, which makes it impossible
+		      to determine which device removed when it has not been opened/
+		      https://discourse.libsdl.org/t/sdl-audiodeviceevent-cant-determine-which-removed-sdl2/51613
+		    */
+		    audioconn_handle_disconnection_event(e.adevice.which, e.adevice.iscapture, e.adevice.type);
 		}
 		break;
 	    case SDL_MOUSEMOTION: {

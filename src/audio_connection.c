@@ -9,6 +9,7 @@
 *****************************************************************************************************************/
 
 #include <pthread.h>
+#include <sys/errno.h>
 /* #include <semaphore.h> */
 #include "audio_connection.h"
 #include "consts.h"
@@ -64,6 +65,12 @@ int audio_io_get_devices(Session *session, int iscapture)
 	snprintf(dev->name, MAX_DEV_NAMELENGTH, "%s", name);
 	dev->index = i;
 	dev->spec = spec;
+	/* char buf[128] = {0}; */
+	/* snprintf(buf, 128, "/%s_dev_%d", iscapture ? "rec" : "pb", i); */
+	/* if ((dev->request_close = sem_open(buf, O_CREAT, 0666, 0)) == SEM_FAILED) { */
+	/*     error_exit("Error opening device unpause sem \"%s\": %s\n", buf, strerror(errno)); */
+	/* } */
+	/* fprintf(stderr, "OPENED SEM on dev %p, %p\n", dev, dev->request_close); */
 	
     }
     if (default_dev_name) {
@@ -199,7 +206,7 @@ int audioconn_open(Session *session, AudioConn *conn)
 	    conn->open = false;
 	    device->open = false;
 	    log_tmp(LOG_ERROR, "Could not open audio device \"%s\": (SDL:) %s\n", device->name, SDL_GetError());
-	    return 1;
+	    return -1;
 	}
 
 	if (conn->iscapture) {
@@ -281,6 +288,9 @@ void audioconn_destroy(AudioConn *conn)
 
 void audio_device_destroy(AudioDevice *dev)
 {
+    /* if (sem_close(dev->request_close) != 0) { */
+    /* 	error_exit("Error closing device sem: %s\n", strerror(errno)); */
+    /* } */
     if (dev->rec_buffer) {
 	free(dev->rec_buffer);
     }
@@ -349,13 +359,17 @@ static void device_start_playback(AudioDevice *dev)
 }
 
 
-void audioconn_start_playback(AudioConn *conn)
+int audioconn_start_playback(AudioConn *conn)
 {    
     if (!conn->available) {
 	status_set_errstr("No audio can be played through this device.");
-	return;
+	return -1;
     }
-    if (conn->playing) return;
+    if (conn->playing) return 1;
+    if (!conn->open) {
+	log_tmp(LOG_ERROR, "Cannot start playback on audio connection \"%s\"; connection not open.\n", conn->name);
+	return -1;
+    }
     switch (conn->type) {
     case DEVICE:
 	device_start_playback(conn->obj);
@@ -366,11 +380,19 @@ void audioconn_start_playback(AudioConn *conn)
 	break;
     }
     conn->playing = true;
+    return 0;
 }
 
 static void device_stop_playback(AudioDevice *dev)
 {
-    dev->request_close = true;
+    SDL_PauseAudioDevice(dev->id, 1);
+    dev->playing = false;
+    /* log_tmp(LOG_DEBUG, "Requesting close on device %p\n", dev); */
+    /* if (sem_post(dev->request_close) != 0) { */
+    /* 	error_exit("Unable to post to dev \"%s\" sem. Error: %s\n", dev->name, strerror(errno)); */
+    /* } */
+    /* /\* dev->request_close = true; *\/ */
+    /* log_tmp(LOG_DEBUG, "\t%p request close == %d\n", dev, dev->request_close); */
     /* SDL_PauseAudioDevice(dev->id, 1); */
 }
 
@@ -430,9 +452,92 @@ void audioconn_start_recording(AudioConn *conn)
     }
 }
 
+static void audioconn_remove(AudioConn *conn);
+static void session_set_out_conn(Session *session, AudioConn *conn, bool from_remove)
+{
+    session->audio_io.playback_conn = conn;
+    if (audioconn_open(session, session->audio_io.playback_conn) != 0) {
+	if (!from_remove) {
+	    audioconn_remove(session->audio_io.playback_conn);
+	}
+	status_set_errstr("Error: failed to open default audio connection. Try a different device.");
+    }
+    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_out_value");
+    textbox_set_value_handle(((Button *)el->component)->tb, session->audio_io.playback_conn->name);
+
+}
+
 void audioconn_handle_connection_event(int index_or_id, int iscapture, int event_type)
 {
+    
     /* Requires full rewrite */
+}
+
+static void audio_device_remove(AudioDevice *dev, int iscapture)
+{
+    Session *session = session_get();
+    AudioDevice **dev_list;
+    int *num_devs;
+    if (iscapture) {
+	dev_list = session->audio_io.record_devices;
+	num_devs = &session->audio_io.num_record_devices;
+    } else {
+	dev_list = session->audio_io.playback_devices;
+	num_devs = &session->audio_io.num_playback_devices;
+    }
+    for (int i=0; i<*num_devs; i++) {
+	if (dev_list[i] == dev) {
+	    memmove(dev_list + i, dev_list + i + 1, (*num_devs - i - 1) * sizeof(AudioDevice *));
+	    (*num_devs)--;
+	    break;
+	}
+    }
+}
+
+static void audioconn_remove(AudioConn *conn)
+{
+    Session *session = session_get();
+    audioconn_close(session->audio_io.playback_conn);
+    AudioConn **conn_list;
+    int *num_conns;
+    if (conn->iscapture) {
+	conn_list = session->audio_io.record_conns;
+	num_conns = &session->audio_io.num_record_conns;
+    } else {
+	conn_list = session->audio_io.playback_conns;
+	num_conns = &session->audio_io.num_playback_conns;
+    }    
+    for (int i=0; i<*num_conns; i++) {
+	if (conn_list[i] == conn) {
+	    memmove(conn_list + i, conn_list + i + 1, (*num_conns - i - 1) * sizeof(AudioConn *));
+	    (*num_conns)--;
+	    break;
+	}
+    }
+    for (int i=0; i<*num_conns; i++) {
+	conn_list[i]->index = i;
+    }
+
+    if (conn->type == DEVICE) {
+	audio_device_remove(conn->obj, conn->iscapture);
+    }
+    if (!conn->iscapture) {
+	if (session->audio_io.playback_conn == conn) {
+	    /* session->audio_io.playback_conn = session->audio_io.playback_conns[0]; */
+	    session_set_out_conn(session, session->audio_io.playback_conns[0], false);
+	}
+    }
+}
+
+void audioconn_handle_disconnection_event(int id, int iscapture, int event_type)
+{
+    Session *session = session_get();
+    AudioDevice *playback_device = session->audio_io.playback_conn->obj;
+    log_tmp(LOG_INFO, "Audio %s device disconnection event: id %d\n", iscapture ? "record" : "playback", id);
+    if (!iscapture && id == playback_device->id) {
+	transport_stop_playback();
+	audioconn_remove(session->audio_io.playback_conn);
+    }
 }
 
 void audioconn_reset_chunk_size(AudioConn *c, uint16_t new_chunk_size)
@@ -491,13 +596,7 @@ static void select_out_onclick(void *arg)
 	timeline_play_speed_set(0.0);
     }
     audioconn_close(session->audio_io.playback_conn);
-    session->audio_io.playback_conn = session->audio_io.playback_conns[index];
-    if (audioconn_open(session, session->audio_io.playback_conn) != 0) {
-	fprintf(stderr, "Error: failed to open default audio conn \"%s\". More info: %s\n", session->audio_io.playback_conn->name, SDL_GetError());
-	status_set_errstr("Error: failed to open default audio conn \"%s\"");
-    }
-    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_out_value");
-    textbox_set_value_handle(((Button *)el->component)->tb, session->audio_io.playback_conn->name);
+    session_set_out_conn(session, session->audio_io.playback_conns[index], false);
     window_pop_menu(main_win);
     Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;

@@ -194,7 +194,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 {
     Session *session = session_get();
     set_thread_id(JDAW_THREAD_PLAYBACK);
-
+    /* log_tmp(LOG_DEBUG, "pb cb enter\n"); */
     /* Take care of queued audio bufs */
     int err;
     if ((err = pthread_mutex_lock(&session->queued_ops.queued_audio_buf_lock)) != 0) {
@@ -209,6 +209,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     Project *proj = &session->proj;
     Timeline *tl = ACTIVE_TL;
     AudioDevice *dev = (AudioDevice *)user_data;
+    /* log_tmp(LOG_DEBUG, "\trequest close on %p? %d\n", dev, dev->request_close); */
     /* clock_gettime(CLOCK_MONOTONIC, &(conn->callback_time.ts)); */
     /* conn->callback_time.timeline_pos = tl->play_pos_sframes + (tl->buf_read_pos % (proj->fourier_len_sframes / proj->chunk_size_sframes)); */
 
@@ -221,16 +222,18 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     memset(chunk_R, '\0', sizeof(chunk_L));
 
     /* Shutdown the audio device */
-    bool log_fn_exit = false;
-    if (dev->request_close) {
-	log_fn_exit = true;
-	log_tmp(LOG_INFO, "Closing audio device \"%s\"\n", dev->name);
-	log_tmp(LOG_DEBUG, "(will log when callback fn exits)\n");
-	/* breakfn(); */
-	SDL_PauseAudioDevice(dev->id, 1);
-	dev->request_close = false;
-	dev->playing = false;
-    }
+    /* bool log_fn_exit = false; */
+    /* if (sem_trywait(dev->request_close) == 0) { */
+    /* 	log_fn_exit = true; */
+    /* 	log_tmp(LOG_INFO, "Closing audio device \"%s\"\n", dev->name); */
+    /* 	log_tmp(LOG_DEBUG, "(will log when callback fn exits)\n"); */
+    /* 	/\* breakfn(); *\/ */
+    /* 	SDL_PauseAudioDevice(dev->id, 1); */
+    /* 	log_tmp(LOG_DEBUG, "Setting %p request close to false\n", dev); */
+    /* 	/\* fprintf(stderr, "SETTING %p request close to false! \n", dev); *\/ */
+    /* 	/\* dev->request_close = false; *\/ */
+    /* 	dev->playing = false; */
+    /* } */
     
     /* Gather data from timeline, generated in DSP threadfn */
     if (session->playback.playing) {
@@ -342,9 +345,10 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 
 	dev->channel_dsts[0].conn->request_playhead_reset = false;
     }
-    if (log_fn_exit) {
-	log_tmp(LOG_DEBUG, "Exiting playback callback\n");
-    }
+    /* if (log_fn_exit) { */
+    /* 	log_tmp(LOG_DEBUG, "Exiting playback callback\n"); */
+    /* } */
+    /* log_tmp(LOG_DEBUG, "pb cb exit\n"); */
 }
 
 double timespec_elapsed_ms(const struct timespec *start, const struct timespec *end) {
@@ -502,6 +506,7 @@ static void *transport_dsp_thread_fn(void *arg)
 /* extern int16_t del_line_len; */
 void transport_start_playback()
 {
+
     Session *session = session_get();
     if (session->playback.playing) return;
     session->playback.playing = true;
@@ -556,7 +561,11 @@ void transport_start_playback()
     }
 
     sem_wait(tl->unpause_sem);
-    audioconn_start_playback(session->audio_io.playback_conn);
+    if (audioconn_start_playback(session->audio_io.playback_conn) < 0) {
+	log_tmp(LOG_ERROR, "In start playback, audio connection could not be opened; stopping playback.\n");
+	transport_stop_playback();
+	return;
+    }
 
     PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_play");
     Textbox *play_button = ((Button *)el->component)->tb;
@@ -587,18 +596,18 @@ void transport_stop_playback()
     audioconn_stop_playback(session->audio_io.playback_conn);
 
     /* Busy waiting */
-    uint32_t test = 0;
-    AudioDevice *dev = session->audio_io.playback_conn->obj;
-    while (dev->request_close) {
-	test++;
-	if (test > 2e8) {
-	    log_tmp(LOG_ERROR, "Audio device \"%s\" requested close, but has not closed. Closing from DSP thread.\n", session->audio_io.playback_conn->name);
-	    SDL_PauseAudioDevice(dev->id, 1);
-	    dev->playing = false;
-	    TESTBREAK;
-	    break;
-	}
-    }
+    /* uint32_t test = 0; */
+    /* AudioDevice *dev = session->audio_io.playback_conn->obj; */
+    /* while (dev->request_close) { */
+    /* 	test++; */
+    /* 	if (test > 2e8) { */
+    /* 	    log_tmp(LOG_ERROR, "Audio device \"%s\" requested close, but has not closed. Closing from DSP thread.\n", session->audio_io.playback_conn->name); */
+    /* 	    SDL_PauseAudioDevice(dev->id, 1); */
+    /* 	    dev->playing = false; */
+    /* 	    TESTBREAK; */
+    /* 	    break; */
+    /* 	} */
+    /* } */
 
     cancel_dsp_thread = true;
     /* pthread_cancel(*get_thread_addr(JDAW_THREAD_DSP)); */
@@ -659,6 +668,7 @@ void transport_start_recording()
     AudioConn *conn;
     bool activate_mqwert = false;
     bool no_tracks_active = true;
+    TESTBREAK;
     
     /* Iterate through tracks to check for active ones (else use selected track) */
     for (uint8_t i=0; i<tl->num_tracks; i++) {
@@ -671,13 +681,15 @@ void transport_start_recording()
 		Clip *clip = NULL;
 		AudioConn *conn = track->input;
 		if (!conn->active || !conn->current_clip) {
+		    if (audioconn_open(session, conn) < 0) {
+			log_tmp(LOG_WARN, "Error opening audio conn \"%s\" for recording; device may have already been opened\n", conn->name);
+			continue;
+		    }
 		    /* setting conn->active here accounts for redundancy */
 		    conn->active = true; 
 		    conns_to_activate[num_conns_to_activate] = conn;
 		    num_conns_to_activate++;
-		    if (audioconn_open(session, conn) != 0) {
-			log_tmp(LOG_WARN, "Error opening audio conn \"%s\" for recording; device may have already been opened\n", conn->name);
-		    }
+
 		    clip = clip_create(conn, track); /* Sets clip num channels */
 		    clip->recording = true;
 		    conn->current_clip = clip;
@@ -715,13 +727,13 @@ void transport_start_recording()
 	    conn = track->input;
 	    Clip *clip = NULL;
 	    if (!(conn->active)) {
+		if (audioconn_open(session, conn) < 0) {
+		    log_tmp(LOG_WARN, "Error opening audio conn \"%s\" for recording; device may have already been opened\n", conn->name);
+		    goto end_get_conns;
+		}
 		conn->active = true;
 		conns_to_activate[num_conns_to_activate] = conn;
 		num_conns_to_activate++;
-		if (audioconn_open(session, conn) != 0) {
-		    fprintf(stderr, "Error opening audio device to record\n");
-		    exit(1);
-		}
 		clip = clip_create(conn, track);
 		clip->recording = true;
 		/* home = true; */
@@ -749,15 +761,15 @@ void transport_start_recording()
 	    clipref_create(track, tl->record_from_sframes, CLIP_MIDI, mclip);
 	}
     }
-
+end_get_conns:
     for (uint8_t i=0; i<num_conns_to_activate; i++) {
 	conn = conns_to_activate[i];
 	audioconn_open(session, conn);
 
 	/* TODO: why is this here? move to audioconn_open ? */
-	if (conn->type == DEVICE) {
-	    ((AudioDevice *)conn->obj)->write_bufpos_samples = 0;
-	}
+	/* if (conn->type == DEVICE) { */
+	/*     ((AudioDevice *)conn->obj)->write_bufpos_samples = 0; */
+	/* } */
     }
     for (uint8_t i=0; i<num_conns_to_activate; i++) {
 	conn = conns_to_activate[i];
@@ -927,6 +939,7 @@ static NEW_EVENT_FN(dispose_forward_record_new_clips, "")
 
 void transport_stop_recording()
 {
+    log_printall();
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
 
@@ -956,7 +969,9 @@ void transport_stop_recording()
 		}
 		if (!included) {
 		    devices_to_dump[num_devices_to_dump] = conn->obj;
-		    devices_to_dump[num_devices_to_dump]->request_close = true;
+		    /* device_stop_recording(devices_to_dump[num_devices_to_dump]); */
+		    /* sem_post(devices_to_dump[num_devices_to_dump]->request_close); */
+		    /* devices_to_dump[num_devices_to_dump]->request_close = true; */
 		    num_devices_to_dump++;
 		}
 	    }

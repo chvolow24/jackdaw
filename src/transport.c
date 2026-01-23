@@ -56,14 +56,26 @@ void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type);
 					 
 void transport_record_callback(void* user_data, uint8_t *stream, int len)
 {
-    AudioDevice *dev = user_data;
-
-    Session *session = session_get();
-    Project *proj = &session->proj;
-
-    /* Latency comp removed 2026-01-21, pending switch to PortAudio */
-    
+    AudioDevice *dev = user_data;    
     uint32_t stream_len_samples = len / sizeof(int16_t);
+
+    /* Simple latency compensation */
+    /* if (!session->playback.new_cliprefs_repositioned) { */
+    /* 	/\* TODO: real latency compensation (probably with PortAudio *\/ */
+    /* 	int32_t playback_latency_sframes = session->proj.chunk_size_sframes * 5; */
+    /* 	int32_t recorded_chunk_tl_pos = ACTIVE_TL->play_pos_sframes - playback_latency_sframes - stream_len_samples / dev->spec.channels; */
+    /* 	for (uint16_t i = session->proj.active_clip_index; i<session->proj.num_clips; i++) { */
+    /* 	    Clip *clip = session->proj.clips[i]; */
+    /* 	    if (!clip->recording) break; */
+    /* 	    for (int i=0; i<clip->num_refs; i++) { */
+    /* 		ClipRef *cr = clip->refs[i]; */
+    /* 		fprintf(stderr, "Tl pos %d->%d\n", cr->tl_pos, recorded_chunk_tl_pos); */
+    /* 		cr->tl_pos = recorded_chunk_tl_pos; */
+    /* 	    } */
+    /* 	} */
+    /* 	session->playback.new_cliprefs_repositioned = true; */
+    /* } */
+
 
     /* If there's room in the device record buffer, copy directly to that */
     if (dev->write_bufpos_samples + stream_len_samples < dev->rec_buf_len_samples) {
@@ -107,7 +119,7 @@ static float *get_source_mode_chunk(uint8_t channel, float *chunk, uint32_t len_
      return chunk;
  }
 
-void transport_recording_update_cliprects();
+/* void transport_recording_update_cliprects(); */
 
 /* static inline float clip(float f) */
 /* { */
@@ -637,12 +649,10 @@ void transport_start_recording()
 {
     transport_stop_playback();
     /* session->playback.play_speed = 1.0f; */
-    timeline_play_speed_set(1.0);
-    transport_start_playback();
-
     AudioConn *conns_to_activate[MAX_PROJ_AUDIO_CONNS];
     uint8_t num_conns_to_activate = 0;
     Session *session = session_get();
+    session->playback.new_cliprefs_repositioned = false;
     Timeline *tl = ACTIVE_TL;
     tl->record_from_sframes = tl->play_pos_sframes;
     
@@ -661,13 +671,12 @@ void transport_start_recording()
 		Clip *clip = NULL;
 		AudioConn *conn = track->input;
 		if (!conn->active || !conn->current_clip) {
-		    /* TODO: should this be here? bug if removed */
+		    /* setting conn->active here accounts for redundancy */
 		    conn->active = true; 
 		    conns_to_activate[num_conns_to_activate] = conn;
 		    num_conns_to_activate++;
 		    if (audioconn_open(session, conn) != 0) {
-			log_tmp(LOG_ERROR, "Error opening audio conn \"%s\" for recording\n", conn->name);
-			return;
+			log_tmp(LOG_WARN, "Error opening audio conn \"%s\" for recording; device may have already been opened\n", conn->name);
 		    }
 		    clip = clip_create(conn, track); /* Sets clip num channels */
 		    clip->recording = true;
@@ -681,17 +690,13 @@ void transport_start_recording()
 	    } else if (track->input_type == MIDI_DEVICE) {
 		MIDIDevice *mdevice = track->input;
 		mdevice->recording = true;
-		fprintf(stderr, "Opening midi device...\n");
 		midi_device_open(mdevice);
 		if (mdevice->type == MODE_MIDI_QWERTY) {
 		    activate_mqwert = true;
 		}
 		MIDIClip *mclip = midi_clip_create(mdevice, track);
 		mdevice->record_start = Pt_Time();
-		fprintf(stderr, "Setting record start? %d\n", mdevice->record_start);
 		mclip->recording = true;
-		fprintf(stderr, "TRACK INPUT: %p (%s)\n", track->input, mdevice->name);
-		fprintf(stderr, "SETTING CLIP %p recording true\n", mclip);
 		/* mclilen_sframesp-> */
 		mdevice->current_clip = mclip;
 		/* conn->current_clip_repositioned = false; */
@@ -738,9 +743,7 @@ void transport_start_recording()
 	    MIDIClip *mclip = midi_clip_create(mdevice, track);
 	    mclip->recording = true;
 	    mdevice->current_clip = mclip;
-	    fprintf(stderr, "DEVICE %p NAME: %s\n", track->input, mdevice->name);
 	    mdevice->record_start = Pt_Time();
-	    fprintf(stderr, "Setting record start? %d\n", mdevice->record_start);
 
 	    /* conn->current_clip_repositioned = false; */
 	    clipref_create(track, tl->record_from_sframes, CLIP_MIDI, mclip);
@@ -769,6 +772,11 @@ void transport_start_recording()
     PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_record");
     Textbox *record_button = ((Button *)el->component)->tb;
     textbox_set_background_color(record_button, &colors.red);
+
+
+    timeline_play_speed_set(1.0);
+    transport_start_playback();
+
     /* pd_jackdaw_record_get_block(); */
 
 }
@@ -804,6 +812,7 @@ void create_clip_buffers(Clip *clip, uint32_t len_sframes)
 	}
     }
     pthread_mutex_unlock(&clip->buf_realloc_lock);
+    
 }
 
 /* void copy_pd_buf_to_clip(Clip *clip) */
@@ -820,8 +829,7 @@ static void copy_device_buf_to_clips(AudioDevice *dev)
     float *buffers[dev->spec.channels];
     memset(clips, 0, sizeof(clips));
     memset(buffers, 0, sizeof(buffers));
-    Session *session = session_get();
-    int32_t play_pos = ACTIVE_TL->play_pos_sframes;
+    /* int32_t read_pos = ACTIVE_TL->read_pos_sframes; */
     for (int c=0; c<dev->spec.channels; c++) {
 	clips[c] = dev->channel_dsts[c].conn->current_clip;
 	bool clip_redundant = false;
@@ -832,15 +840,8 @@ static void copy_device_buf_to_clips(AudioDevice *dev)
 	    }
 	}
 	if (!clip_redundant && clips[c]) {
-	    clips[c]->len_sframes = clips[c]->write_bufpos_sframes + dev->write_bufpos_samples / clips[c]->channels;
+	    clips[c]->len_sframes = clips[c]->write_bufpos_sframes + dev->write_bufpos_samples / dev->spec.channels;
 	    create_clip_buffers(clips[c], clips[c]->len_sframes);
-	    if (!clips[c]->recorded_from->current_clip_repositioned) {
-		for (int r=0; r<clips[c]->num_refs; r++) {
-		    ClipRef *cr = clips[c]->refs[r];
-		    cr->tl_pos = play_pos - clips[c]->len_sframes;
-		}
-		clips[c]->recorded_from->current_clip_repositioned = true;
-	    }
 	}
 
     }
@@ -928,47 +929,11 @@ void transport_stop_recording()
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    tl->needs_redraw = true;
-    ClipRef **created_clips = calloc(tl->num_tracks * 2, sizeof(ClipRef *));
-    uint16_t num_created = 0;
-    for (uint16_t i=session->proj.active_clip_index; i<session->proj.num_clips; i++) {
-	Clip *clip = session->proj.clips[i];
-	if (clip->len_sframes == 0) {
-	    for (int i=0; i<clip->num_refs; i++) {
-		if (clip->refs[i]->grabbed) timeline_clipref_ungrab(clip->refs[i]);
-	    }
-	    for (int i=0; i<session->audio_io.num_record_conns; i++) {
-		AudioConn *conn = session->audio_io.record_conns[i];
-		if (conn->current_clip == clip) {
-		    conn->current_clip = NULL;
-		}
-	    }
-	    clip_destroy(clip);
-	} else {
-	    for (uint16_t j=0; j<clip->num_refs; j++) {
-		ClipRef *ref = clip->refs[j];
-		if (num_created >= tl->num_tracks * 2 - 1) {
-		    created_clips = realloc(created_clips, num_created * 2 * sizeof(ClipRef *));
-		}
-		created_clips[num_created] = ref;
-		num_created++;
-	    }
-	}
-    }
-    created_clips = realloc(created_clips, num_created * sizeof(ClipRef *));
-    Value num_created_v = {.uint8_v = num_created};
-    user_event_push(	
-	undo_record_new_clips,
-	redo_record_new_clips,
-	NULL,
-	dispose_forward_record_new_clips,
-	(void *)created_clips,
-	NULL,
-	num_created_v,num_created_v,num_created_v,num_created_v,
-	0, 0, true, false);
-	    
 
     transport_stop_playback();
+    timeline_play_speed_set(0.0);
+    
+    /* First, stop audio devices and copy remaining data */
     AudioConn *conn;
     AudioConn *conns_to_close[MAX_SESSION_AUDIO_CONNS];
     int num_conns_to_close = 0;
@@ -998,10 +963,56 @@ void transport_stop_recording()
 
 	}
     }
+
     for (int i=0; i<num_devices_to_dump; i++) {
 	copy_device_buf_to_clips(devices_to_dump[i]);
     }
     session->playback.recording = false;
+
+    while (num_conns_to_close > 0) {
+	audioconn_close(conns_to_close[--num_conns_to_close]);
+    }
+
+    ClipRef **created_clips = calloc(tl->num_tracks * 2, sizeof(ClipRef *));
+    uint16_t num_created = 0;
+    for (uint16_t i=session->proj.active_clip_index; i<session->proj.num_clips; i++) {
+	Clip *clip = session->proj.clips[i];
+	if (clip->len_sframes == 0) {
+	    for (int i=0; i<clip->num_refs; i++) {
+		if (clip->refs[i]->grabbed) timeline_clipref_ungrab(clip->refs[i]);
+	    }
+	    for (int i=0; i<session->audio_io.num_record_conns; i++) {
+		AudioConn *conn = session->audio_io.record_conns[i];
+		if (conn->current_clip == clip) {
+		    conn->current_clip = NULL;
+		}
+	    }
+	    clip_destroy(clip);
+	} else {
+	    for (uint16_t j=0; j<clip->num_refs; j++) {
+		ClipRef *ref = clip->refs[j];
+		if (num_created >= tl->num_tracks * 2 - 1) {
+		    created_clips = realloc(created_clips, num_created * 2 * sizeof(ClipRef *));
+		}
+		created_clips[num_created] = ref;
+		num_created++;
+		clipref_reset(ref, true);
+	    }
+	}
+    }
+    created_clips = realloc(created_clips, num_created * sizeof(ClipRef *));
+    Value num_created_v = {.uint8_v = num_created};
+    user_event_push(	
+	undo_record_new_clips,
+	redo_record_new_clips,
+	NULL,
+	dispose_forward_record_new_clips,
+	(void *)created_clips,
+	NULL,
+	num_created_v,num_created_v,num_created_v,num_created_v,
+	0, 0, true, false);
+	    
+
     
     while (session->proj.active_clip_index < session->proj.num_clips) {
 	Clip *clip = session->proj.clips[session->proj.active_clip_index];
@@ -1044,9 +1055,6 @@ void transport_stop_recording()
     }
 
 
-    while (num_conns_to_close > 0) {
-	audioconn_close(conns_to_close[--num_conns_to_close]);
-    }
 
     /* mqwert_deactivate(); */
     /* for (int i=0; i<session->midi_io.num_inputs; i++) { */
@@ -1058,7 +1066,8 @@ void transport_stop_recording()
     PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_record");
     Textbox *record_button = ((Button *)el->component)->tb;
     textbox_set_background_color(record_button, &colors.quickref_button_blue );
-    timeline_play_speed_set(0.0);
+
+    tl->needs_redraw = true;
 }
 
 void transport_set_mark(Timeline *tl, bool in)
@@ -1117,11 +1126,14 @@ void transport_recording_update_cliprects()
     for (int i=session->proj.active_clip_index; i<session->proj.num_clips; i++) {
 	/* fprintf(stdout, "updating %d/%d\n", i, proj->num_clips); */
 	Clip *clip = session->proj.clips[i];
+	int32_t orig_len = clip->len_sframes;
 
 	if (!clip->recorded_from) continue; /* E.g. wav loaded during recording */
 	switch(clip->recorded_from->type) {
 	case DEVICE:
-	    clip->len_sframes = ((AudioDevice *)clip->recorded_from->obj)->write_bufpos_samples / clip->channels + clip->write_bufpos_sframes;
+	    /* Handled in buf to clip */
+	    clip->len_sframes = ((AudioDevice *)clip->recorded_from->obj)->write_bufpos_samples / ((AudioDevice *)clip->recorded_from->obj)->spec.channels + clip->write_bufpos_sframes;
+	    /* fprintf(stderr, "Reset clip len in MAIN: %d\n", clip->len_sframes); */
 	    break;
 	case PURE_DATA:
 	    clip->len_sframes = ((PdConn *)clip->recorded_from->obj)->write_bufpos_sframes + clip->write_bufpos_sframes;
@@ -1136,6 +1148,7 @@ void transport_recording_update_cliprects()
 	    cr->end_in_clip = clip->len_sframes;
 	    clipref_reset(cr, false);
 	}
+	clip->len_sframes = orig_len;
     }
     for (int i=session->proj.active_midi_clip_index; i<session->proj.num_midi_clips; i++) {
 	/* fprintf(stdout, "updating %d/%d\n", i, proj->num_clips); */

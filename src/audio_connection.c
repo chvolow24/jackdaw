@@ -21,7 +21,7 @@
 
 
 /* #define DEVICE_BUFLEN_SECONDS 2 /\* TODO: reduce, and write to clip during recording *\/ */
-#define DEVICE_BUFLEN_CHUNKS 128
+#define DEVICE_BUFLEN_CHUNKS 256
 
 #define PD_BUFLEN_CHUNKS 1024
 

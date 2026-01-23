@@ -179,6 +179,7 @@ struct playback {
     bool loop_play;
     bool dragging;
     bool recording;
+    bool new_cliprefs_repositioned;
     bool playing;
     bool lock_view_to_playhead;
     float output_vol;

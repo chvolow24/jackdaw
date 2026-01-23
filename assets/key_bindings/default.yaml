@@ -253,7 +253,6 @@
   - C-S-;	: tabview_move_current_tab_right
   - g		: tabview_escape
   - <esc>	: tabview_escape
-  - <del>	: tabview_escape
   - C-<del>	: tabview_escape
   - S-<del>	: tabview_escape
 - autocomplete_list:

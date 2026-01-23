@@ -20,9 +20,9 @@
 #ifndef JDAW_AUDIO_DEVICE_H
 #define JDAW_AUDIO_DEVICE_H
 
+#include "SDL.h"
 #include <stdbool.h>
 #include <time.h>
-#include "SDL.h"
 
 #define MAX_CONN_NAMELENGTH 128
 #define MAX_DEV_NAMELENGTH MAX_CONN_NAMELENGTH

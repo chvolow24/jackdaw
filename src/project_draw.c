@@ -423,7 +423,7 @@ void clipref_draw_waveform(ClipRef *cr)
     int32_t start_pos = 0;
     int32_t end_pos = cr_len;
     if (clip->recording) {
-	end_pos = clip->write_bufpos_sframes - 1;
+	end_pos = clip->write_bufpos_sframes;
 	cr_len = end_pos;
     } else if (end_pos - start_pos == 0) {
 	cr->end_in_clip = clip->len_sframes;
@@ -435,6 +435,7 @@ void clipref_draw_waveform(ClipRef *cr)
     }
     double sfpp = cr->track->tl->timeview.sample_frames_per_pixel;
     SDL_Rect onscreen_rect = cr->layout->rect;
+
     if (clip->recording) {
 	onscreen_rect.w = timeview_get_draw_w(&cr->track->tl->timeview, cr_len);
     }
@@ -453,8 +454,7 @@ void clipref_draw_waveform(ClipRef *cr)
 	onscreen_rect.w += onscreen_rect.x;
 	onscreen_rect.x = 0;
     }
-    if (onscreen_rect.x + onscreen_rect.w > main_win->w_pix) {
-	
+    if (onscreen_rect.x + onscreen_rect.w > main_win->w_pix) {	
 	if (end_pos <= start_pos || end_pos > cr_len) {
 	    fprintf(stderr, "ERROR: end pos is %d\n", end_pos);
 	    breakfn();
@@ -467,11 +467,7 @@ void clipref_draw_waveform(ClipRef *cr)
     if (onscreen_rect.w <= 0) {
 	goto unlock_and_exit;
     }
-    /* static double T_create_texture = 0.0; */
-    /* static double T_other_ops = 0.0; */
-    /* static double T_draw_waveform = 0.0; */
-    /* static double T_copy = 0.0; */
-    /* clock_t c; */
+
     if (!cr->waveform_texture) {
 	int32_t start_in_clip = cr->start_in_clip;
 	if (FRAME_WF_DRAW_TIME > MAX_WF_FRAME_DRAW_TIME) {
@@ -512,19 +508,14 @@ void clipref_draw_waveform(ClipRef *cr)
 	     are altered on the audio thread
 	   - these race conditions can result in waveform_draw_all_channels_generic overrunning the clip array */
 	int32_t wf_len = end_pos - start_pos;
-	if (wf_len + start_in_clip > clip->len_sframes) {
+	if (!clip->recording && wf_len + start_in_clip > clip->len_sframes) {
 	    wf_len = clip->len_sframes - start_in_clip;
 	}
 	SDL_Rect waveform_container = {0, 0, onscreen_rect.w, onscreen_rect.h};
-	/* T_other_ops += ((double)clock() - c)/CLOCKS_PER_SEC; */
-	/* c= clock(); */
-	/* fprintf(stderr, "\t%f\n", FRAME_WF_DRAW_TIME); */
 
 	clock_t c = clock();
 	waveform_draw_all_channels_generic((void **)channels, JDAW_FLOAT, num_channels, wf_len, &waveform_container, 0, onscreen_rect.w, cr->track->tl->timeview.sample_frames_per_pixel, &colors.black, cr->gain);
 	FRAME_WF_DRAW_TIME += ((double)clock() - c) / CLOCKS_PER_SEC;
-	    /* fprintf(stderr, "WF: %fms\n", FRAME_WF_DRAW_TIME * 1000); */
-	/* T_draw_waveform += ((double)clock() - c)/CLOCKS_PER_SEC; */
 	SDL_SetRenderTarget(main_win->rend, saved_targ);
     }
     SDL_RenderCopy(main_win->rend, cr->waveform_texture, NULL, &onscreen_rect);

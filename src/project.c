@@ -28,6 +28,7 @@
 #include "input.h"
 #include "layout.h"
 #include "layout_xml.h"
+#include "log.h"
 #include "menu.h"
 #include "midi_io.h"
 #include "midi_objs.h"
@@ -1707,6 +1708,7 @@ void track_set_input(Track *track)
 /* Use on the selected track to set session monitoring info */
 bool timeline_check_set_midi_monitoring()
 {
+    log_tmp(LOG_DEBUG, "Checking/setting midi monitoring...\n");
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     Track *track = timeline_selected_track(tl);
@@ -1751,7 +1753,7 @@ bool timeline_check_set_midi_monitoring()
 
 	    goto no_monitor;
 	}
-
+	log_tmp(LOG_DEBUG, "\tMonitoring!\n");
 	MIDIDevice *d = session->midi_io.monitor_device;
 
 	/* Clear notes in system device buffer */
@@ -1770,6 +1772,7 @@ bool timeline_check_set_midi_monitoring()
 	return true;
     } else {
     no_monitor:
+	log_tmp(LOG_DEBUG, "\tNo monitor\n");
 	session->midi_io.monitor_synth = NULL;
 	session->midi_io.monitor_device = NULL;
 	/* Only close output audio device if project is not playing from timeline */

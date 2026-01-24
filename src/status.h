@@ -29,12 +29,11 @@
 void status_frame();
 void status_set_statstr(const char *fmt, ...);
 /* Thread-safe */
-/* void status_set_errstr(const char *errstr); */
 void status_set_errstr(const char *fmt, ...);
 void status_set_undostr(const char *undostr);
 void status_set_callstr(const char *callstr);
 void status_cat_callstr(const char *catstr);
-void status_set_alert_str(char *alert_str);
+void status_set_alert_str(const char *fmt, ...);
 void status_stat_playspeed();
 void status_stat_drag();
 

@@ -395,6 +395,9 @@ void audioconn_close(AudioConn *conn)
 	return;
     }
     log_tmp(LOG_INFO, "Call to close AudioConn \"%s\"\n", conn->name);
+    if (conn->playing) {
+	audioconn_stop_playback(conn);
+    }
     conn->open = false;
     switch (conn->type) {
     case DEVICE:
@@ -410,6 +413,7 @@ void audioconn_close(AudioConn *conn)
 
 static void device_start_playback(AudioDevice *dev)
 {
+    log_tmp(LOG_DEBUG, "Device start playback (\"%s\", playing? %d)\n", dev->name, dev->playing);
     if (!dev->playing) {
 	SDL_PauseAudioDevice(dev->id, 0);
 	dev->playing = true;
@@ -418,12 +422,17 @@ static void device_start_playback(AudioDevice *dev)
 
 
 int audioconn_start_playback(AudioConn *conn)
-{    
+{
+    log_tmp(LOG_DEBUG, "Request start playback on conn \"%s\"\n", conn->name);
     if (!conn->available) {
+	log_tmp(LOG_ERROR, "Audio connection \"%s\" is 'unavailable'.\n", conn->name);
 	status_set_errstr("No audio can be played through this device.");
 	return -1;
     }
-    if (conn->playing) return 1;
+    if (conn->playing) {
+	log_tmp(LOG_DEBUG, "Connection is already playing, purportedly\n");
+	return 1;
+    }
     if (!conn->open) {
 	if (audioconn_open(session_get(), conn) < 0) {
 	    log_tmp(LOG_ERROR, "Cannot start playback on audio connection \"%s\"; connection not open.\n", conn->name);
@@ -460,6 +469,7 @@ static void device_stop_playback(AudioDevice *dev)
 void audioconn_stop_playback(AudioConn *conn)
 {
     if (!conn->playing) return;
+    log_tmp(LOG_DEBUG, "Stop playback on conn: \"%s\"\n", conn->name);
     switch (conn->type) {
     case DEVICE:
 	device_stop_playback(conn->obj);
@@ -516,6 +526,11 @@ void audioconn_start_recording(AudioConn *conn)
 void audioconn_remove(AudioConn *conn);
 static void session_set_out_conn(Session *session, AudioConn *conn, bool from_remove)
 {
+    if (session->audio_io.playback_conn == conn) {
+	log_tmp(LOG_WARN, "Request to set output conn to same (current) value (\"%s\")\n", conn->name);
+	return;
+    }
+    audioconn_close(session->audio_io.playback_conn);
     session->audio_io.playback_conn = conn;
     if (audioconn_open(session, session->audio_io.playback_conn) < 0) {
 	if (!from_remove) {
@@ -523,6 +538,7 @@ static void session_set_out_conn(Session *session, AudioConn *conn, bool from_re
 	}
 	status_set_errstr("Error: failed to open default audio connection. Try a different device.");
     }
+    timeline_check_set_midi_monitoring();
     PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_out_value");
     textbox_set_value_handle(((Button *)el->component)->tb, session->audio_io.playback_conn->name);
 
@@ -582,14 +598,6 @@ void audioconn_remove(AudioConn *conn)
     }
     set_default_index(session, conn->iscapture);
 
-    /*------ debug -------------------------------------------------------*/
-    fprintf(stderr, "NEW CONN LIST (capture %d)\n", conn->iscapture);
-    for (int i=0; i<*num_conns; i++) {
-	fprintf(stderr, "\t%d: %s%s\n", i, conn_list[i]->name, conn_list[i]->is_default ? "DEFAULT" : "");
-    }
-    /*------ end debug ---------------------------------------------------*/
-
-
     for (int i=0; i<*num_conns; i++) {
 	conn_list[i]->index = i;
     }
@@ -609,7 +617,7 @@ void audioconn_remove(AudioConn *conn)
 	    for (int i=0; i<tl->num_tracks; i++) {
 		Track *track = tl->tracks[i];
 		if (track->input == conn) {
-		    track_set_input_to(track, AUDIO_CONN, session->audio_io.record_conns[0]);
+		    track_set_input_to(track, AUDIO_CONN, session->audio_io.record_conns[session->audio_io.default_record_conn_index]);
 		}
 	    }
 	}
@@ -618,15 +626,12 @@ void audioconn_remove(AudioConn *conn)
 
 void audioconn_handle_disconnection_event(int id, int iscapture, int event_type)
 {
-    fprintf(stderr, "DISCONNECTION EVENT id == %d, iscapture == %d\n", id, iscapture);
     Session *session = session_get();
     AudioDevice *playback_device = session->audio_io.playback_conn->obj;
     log_tmp(LOG_INFO, "Audio %s device disconnection event: id %d\n", iscapture ? "record" : "playback", id);
     if (id == 0) return; /* Device has not been opened! */
     if (!iscapture && id == playback_device->id) {
 	transport_stop_playback();
-	fprintf(stderr, "ID == %d, plaback device id == %d\n", id, playback_device->id);
-	/* audio_device_remove(session->audio_io.playback_conn->obj, iscapture); */
 	status_set_errstr("Audio device \"%s\" disconnected", session->audio_io.playback_conn->name);
 	audioconn_remove(session->audio_io.playback_conn);
     } else if (iscapture) {

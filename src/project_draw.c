@@ -38,7 +38,7 @@ extern struct colors colors;
 /****************************************************/
 
 SDL_Color track_bckgrnd = {120, 130, 150, 255};
-SDL_Color track_bckgrnd_active = {160, 160, 160, 255};
+SDL_Color track_bckgrnd_active = {150, 150, 160, 255};
 
 SDL_Color source_mode_bckgrnd = {0, 20, 40, 255};
 /* SDL_Color track_bckgrnd_active = {170, 130, 130, 255}; */
@@ -492,7 +492,6 @@ void clipref_draw_waveform(ClipRef *cr)
 	
     }
     if (onscreen_rect.w <= 0) {
-	fprintf(stderr, "Error: onscreen rect w %d\n", onscreen_rect.w);
 	goto unlock_and_exit;
     }
 

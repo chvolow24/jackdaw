@@ -135,6 +135,9 @@ void audioconn_stop_recording(AudioConn *conn);
 void audioconn_handle_connection_event(int index, int iscapture, int event_type);
 void audioconn_handle_disconnection_event(int id, int iscapture, int event_type);
 
+/* Remove and audio connection from the list */
+void audioconn_remove(AudioConn *conn);
+
 /* Free audio connection, not including linked device(s). List invalidated. */
 void audioconn_destroy(AudioConn *conn);
 /* Free audio device, not including linked conn(s). List invalidated. */

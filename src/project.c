@@ -1560,36 +1560,26 @@ static void track_set_midi_out_onclick(void *arg_v)
     tl->needs_redraw = true;
 }
 
-static void track_set_in_onclick(void *void_arg)
+void track_set_input_to(Track *track, enum track_in_type type, void *obj)
 {
     Session *session = session_get();
-    struct track_in_arg *arg = (struct track_in_arg *)void_arg;
-    switch (arg->type) {
+    switch (type) {
     case AUDIO_CONN: {
-	arg->track->input_type = AUDIO_CONN;
-	AudioConn *conn = arg->obj;
-	arg->track->input = conn;
-	textbox_set_value_handle(arg->track->tb_input_name, conn->name);
-	window_pop_menu(main_win);
-	Timeline *tl = ACTIVE_TL;
-	tl->needs_redraw = true;
+	track->input_type = AUDIO_CONN;
+	AudioConn *conn = obj;
+	track->input = conn;
+	textbox_set_value_handle(track->tb_input_name, conn->name);
     }
 	break;
     case MIDI_DEVICE: {
-	arg->track->input_type = MIDI_DEVICE;
-	MIDIDevice *device = arg->obj;
+	track->input_type = MIDI_DEVICE;
+	MIDIDevice *device = obj;
 	midi_device_open(device);
-	arg->track->input = arg->obj;
-	textbox_set_value_handle(arg->track->tb_input_name, device->name);
-	window_pop_menu(main_win);
+	track->input = obj;
+	textbox_set_value_handle(track->tb_input_name, device->name);
 	if (device->type == MIDI_DEVICE_QWERTY) {
 	    panel_page_refocus(session->gui.panels, "QWERTY piano", 1);
 	}
-
-
-	Timeline *tl = ACTIVE_TL;
-	tl->needs_redraw = true;
-
     }
 	break;
     }
@@ -1597,6 +1587,15 @@ static void track_set_in_onclick(void *void_arg)
     if (session->piano_roll) {
 	piano_roll_set_in();
     }
+}
+
+
+static void track_set_in_onclick(void *void_arg)
+{
+    struct track_in_arg *arg = (struct track_in_arg *)void_arg;
+    track_set_input_to(arg->track, arg->type, arg->obj);
+    arg->track->tl->needs_redraw = true;
+    window_pop_menu(main_win);
 }
 
 void track_set_midi_out(Track *track)

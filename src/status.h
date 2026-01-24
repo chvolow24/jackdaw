@@ -27,7 +27,7 @@
 #define MAX_STATUS_STRLEN 255
 
 void status_frame();
-void status_set_statstr(const char *statstr);
+void status_set_statstr(const char *fmt, ...);
 /* Thread-safe */
 /* void status_set_errstr(const char *errstr); */
 void status_set_errstr(const char *fmt, ...);

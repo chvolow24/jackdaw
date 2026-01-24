@@ -93,15 +93,20 @@ void status_set_undostr(const char *undostr)
     session->status_bar.error->text->color.a = 255;
 }
 
-void status_set_statstr(const char *statstr)
+void status_set_statstr(const char *fmt, ...)
 {
+    va_list ap;
+    va_start(ap, fmt);
     Session *session = session_get();
-    strcpy(session->status_bar.callstr, statstr);
+    vsnprintf(session->status_bar.callstr, MAX_STATUS_STRLEN, fmt, ap);
+    /* strcpy(session->status_bar.callstr, statstr); */
+    va_end(ap);
     textbox_set_text_color(session->status_bar.call, &colors.white);
     /* textbox_size_to_status);fit(session->status_bar.callor, 0, 0); */
     textbox_reset_full(session->status_bar.call);
     session->status_bar.stat_timer = STAT_TIMER_MAX;
     session->status_bar.call->text->color.a = 255;
+
 
 }
 

@@ -446,6 +446,11 @@ bool track_mute(Track *track);
 bool track_solo(Track *track);
 void track_solomute(Track *track);
 void track_unsolomute(Track *track);
+
+/* Explicitly provide an audio connection or MIDI device */
+void track_set_input_to(Track *track, enum track_in_type type, void *obj);
+
+/* Create menu to select input */
 void track_set_input(Track *track);
 void track_set_out_builtin_synth(Track *track);
 void track_set_midi_out(Track *track);

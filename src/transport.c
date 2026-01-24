@@ -348,7 +348,6 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     /* if (log_fn_exit) { */
     /* 	log_tmp(LOG_DEBUG, "Exiting playback callback\n"); */
     /* } */
-    /* log_tmp(LOG_DEBUG, "pb cb exit\n"); */
 }
 
 double timespec_elapsed_ms(const struct timespec *start, const struct timespec *end) {
@@ -668,7 +667,6 @@ void transport_start_recording()
     AudioConn *conn;
     bool activate_mqwert = false;
     bool no_tracks_active = true;
-    TESTBREAK;
     
     /* Iterate through tracks to check for active ones (else use selected track) */
     for (uint8_t i=0; i<tl->num_tracks; i++) {
@@ -683,6 +681,7 @@ void transport_start_recording()
 		if (!conn->active || !conn->current_clip) {
 		    if (audioconn_open(session, conn) < 0) {
 			log_tmp(LOG_WARN, "Error opening audio conn \"%s\" for recording; device may have already been opened\n", conn->name);
+			audioconn_remove(conn);
 			continue;
 		    }
 		    /* setting conn->active here accounts for redundancy */
@@ -729,6 +728,7 @@ void transport_start_recording()
 	    if (!(conn->active)) {
 		if (audioconn_open(session, conn) < 0) {
 		    log_tmp(LOG_WARN, "Error opening audio conn \"%s\" for recording; device may have already been opened\n", conn->name);
+		    audioconn_remove(conn);
 		    goto end_get_conns;
 		}
 		conn->active = true;
@@ -939,7 +939,6 @@ static NEW_EVENT_FN(dispose_forward_record_new_clips, "")
 
 void transport_stop_recording()
 {
-    log_printall();
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
 

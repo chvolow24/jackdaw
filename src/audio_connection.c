@@ -27,6 +27,94 @@
 #define PD_BUFLEN_CHUNKS 1024
 
 
+static void set_default_index(Session *session, int iscapture)
+{
+    char *name = NULL;
+    SDL_AudioSpec spec_unused;
+    if (SDL_GetDefaultAudioInfo(&name, &spec_unused, iscapture) == 0) {
+	AudioDevice **device_list = iscapture ? session->audio_io.record_devices : session->audio_io.playback_devices;
+	int num_devices = iscapture ? session->audio_io.num_record_devices : session->audio_io.num_playback_devices;
+	for (int i=0; i<num_devices; i++) {
+	    if (strcmp(device_list[i]->name, name) == 0) {
+		device_list[i]->is_default = true;
+	    }
+	}
+    } else {
+	return;
+    }
+    AudioConn **conn_list = iscapture ? session->audio_io.record_conns : session->audio_io.playback_conns;
+    int num_conns = iscapture ? session->audio_io.num_record_conns : session->audio_io.num_playback_conns;
+    int *default_index = iscapture ? &session->audio_io.default_record_conn_index : &session->audio_io.default_playback_conn_index;
+    for (int i=0; i<num_conns; i++) {
+	if (conn_list[i]->type == DEVICE && ((AudioDevice*)conn_list[i]->obj)->is_default && conn_list[i]->channel_cfg.L_src == 0) {
+	    conn_list[i]->is_default = true;
+	    *default_index = i;	    
+	}
+    }
+    if (name) free(name);
+}
+
+static AudioDevice *add_device_and_conns(Session *session, int index, int iscapture)
+{
+    SDL_AudioSpec spec = {0};
+    AudioDevice *dev = calloc(1, sizeof(AudioDevice));
+    /* dst_list[i] = dev; */
+    const char *name = SDL_GetAudioDeviceName(index, iscapture);
+    if (!name) {
+	error_exit("Unable to get %s audio device name at index %d\n", iscapture ? "record" : "playback", index);
+    }
+    if (SDL_GetAudioDeviceSpec(index, iscapture, &spec) != 0) {
+	error_exit("Unable to get %s audio device spec at index %d\n", iscapture ? "record" : "playback", index);
+    }
+    snprintf(dev->name, MAX_DEV_NAMELENGTH, "%s", name);
+    dev->index = index;
+    dev->spec = spec;
+    dev->id = -1;
+    if (iscapture) {
+	session->audio_io.record_devices[session->audio_io.num_record_devices] = dev;
+	session->audio_io.num_record_devices++;
+    } else {
+	session->audio_io.playback_devices[session->audio_io.num_playback_devices] = dev;
+	session->audio_io.num_playback_devices++;
+    }
+    /* Add conn (or conns) for device */
+    AudioConn **conn_list = iscapture ? session->audio_io.record_conns : session->audio_io.playback_conns;
+    int *conn_index = iscapture ? &session->audio_io.num_record_conns : &session->audio_io.num_playback_conns;
+
+    int channel_i = 0;
+    while (channel_i < dev->spec.channels) {
+	AudioConn *conn = calloc(sizeof(AudioConn), 1);
+	if (dev->spec.channels - channel_i >= 2) {
+	    conn->channel_cfg.L_src = channel_i;
+	    conn->channel_cfg.R_src = channel_i + 1;
+	    dev->channel_dsts[channel_i] = (struct channel_dst){conn, 0};
+	    dev->channel_dsts[channel_i + 1] = (struct channel_dst){conn, 1};
+	    if (channel_i == 0 && dev->spec.channels == 2) {
+		snprintf(conn->name, MAX_CONN_NAMELENGTH, "%s", dev->name);
+	    } else {
+		snprintf(conn->name, MAX_CONN_NAMELENGTH, "%s (ch. %d, %d)", dev->name, channel_i + 1, channel_i + 2);
+	    }
+	} else {
+	    conn->channel_cfg.L_src = channel_i;
+	    conn->channel_cfg.R_src = -1;
+	    dev->channel_dsts[channel_i] = (struct channel_dst){conn, 0};
+	    if (channel_i == 0 && dev->spec.channels == 1) {
+		snprintf(conn->name, MAX_CONN_NAMELENGTH, "%s", dev->name);
+	    } else {
+		snprintf(conn->name, MAX_CONN_NAMELENGTH, "%s (ch. %d)", dev->name, channel_i + 1);
+	    }
+	}
+	conn->obj = dev;
+	conn->available = true;
+	conn->iscapture = iscapture;
+	conn->index = *conn_index;
+	conn_list[*conn_index] = conn;
+	(*conn_index)++;
+	channel_i += 2;   
+    }
+    return dev;
+}
+
 int audio_io_get_devices(Session *session, int iscapture)
 {
     char *default_dev_name = NULL;
@@ -65,6 +153,7 @@ int audio_io_get_devices(Session *session, int iscapture)
 	snprintf(dev->name, MAX_DEV_NAMELENGTH, "%s", name);
 	dev->index = i;
 	dev->spec = spec;
+	dev->id = -1;
 	/* char buf[128] = {0}; */
 	/* snprintf(buf, 128, "/%s_dev_%d", iscapture ? "rec" : "pb", i); */
 	/* if ((dev->request_close = sem_open(buf, O_CREAT, 0666, 0)) == SEM_FAILED) { */
@@ -82,54 +171,19 @@ int audio_io_get_devices(Session *session, int iscapture)
 /* Creates audio conns with default settings and channel cfg */
 int audio_io_get_connections(Session *session, int iscapture)
 {
-    audio_io_get_devices(session, iscapture);
+    int num_devices = SDL_GetNumAudioDevices(iscapture);
+    for (int i=0; i<num_devices; i++) {
+	add_device_and_conns(session, i, iscapture);
+    }
     AudioConn **conn_list;
+    int *conn_index;
     if (iscapture) {
 	conn_list = session->audio_io.record_conns;
+	conn_index = &session->audio_io.num_record_conns;
     } else {
 	conn_list = session->audio_io.playback_conns;
+	conn_index = &session->audio_io.num_playback_conns;
     }
-    int num_devices = iscapture ? session->audio_io.num_record_devices : session->audio_io.num_playback_devices;
-    int *conn_index = iscapture ? &session->audio_io.num_record_conns : &session->audio_io.num_playback_conns;
-    int *default_conn_index = iscapture ? &session->audio_io.default_record_conn_index : &session->audio_io.default_playback_conn_index;
-    AudioDevice **device_list = iscapture ? session->audio_io.record_devices : session->audio_io.playback_devices;
-    for (int device_i=0; device_i<num_devices; device_i++) {
-	AudioDevice *dev = device_list[device_i];
-	int channel_i = 0;
-	while (channel_i < dev->spec.channels) {
-	    AudioConn *conn = calloc(sizeof(AudioConn), 1);
-	    if (dev->spec.channels - channel_i >= 2) {
-		conn->channel_cfg.L_src = channel_i;
-		conn->channel_cfg.R_src = channel_i + 1;
-		dev->channel_dsts[channel_i] = (struct channel_dst){conn, 0};
-		dev->channel_dsts[channel_i + 1] = (struct channel_dst){conn, 1};
-		if (channel_i == 0 && dev->spec.channels == 2) {
-		    snprintf(conn->name, MAX_CONN_NAMELENGTH, "%s", dev->name);
-		} else {
-		    snprintf(conn->name, MAX_CONN_NAMELENGTH, "%s (ch. %d, %d)", dev->name, channel_i + 1, channel_i + 2);
-		}
-	    } else {
-		conn->channel_cfg.L_src = channel_i;
-		conn->channel_cfg.R_src = -1;
-		dev->channel_dsts[channel_i] = (struct channel_dst){conn, 0};
-		if (channel_i == 0 && dev->spec.channels == 1) {
-		    snprintf(conn->name, MAX_CONN_NAMELENGTH, "%s", dev->name);
-		} else {
-		    snprintf(conn->name, MAX_CONN_NAMELENGTH, "%s (ch. %d)", dev->name, channel_i + 1);
-		}
-	    }
-	    conn->obj = dev;
-	    conn->available = true;
-	    conn->iscapture = iscapture;
-	    conn->index = *conn_index;
-	    if (dev->is_default && channel_i == 0) {
-		*default_conn_index = conn->index;
-	    }
-	    conn_list[*conn_index] = conn;
-	    (*conn_index)++;
-	    channel_i += 2;   
-	}
-    }	
 
     if (iscapture) {
 	AudioConn *pd = calloc(sizeof(AudioConn), 1);
@@ -152,6 +206,10 @@ int audio_io_get_connections(Session *session, int iscapture)
 	conn_list[*conn_index] = jdaw;
 	(*conn_index)++;
     }
+
+    set_default_index(session, 0);
+    set_default_index(session, 1);
+    session->audio_io.playback_conn = session->audio_io.playback_conns[session->audio_io.default_playback_conn_index];
     return (*conn_index);
 }
 
@@ -367,8 +425,10 @@ int audioconn_start_playback(AudioConn *conn)
     }
     if (conn->playing) return 1;
     if (!conn->open) {
-	log_tmp(LOG_ERROR, "Cannot start playback on audio connection \"%s\"; connection not open.\n", conn->name);
-	return -1;
+	if (audioconn_open(session_get(), conn) < 0) {
+	    log_tmp(LOG_ERROR, "Cannot start playback on audio connection \"%s\"; connection not open.\n", conn->name);
+	    return -1;
+	}
     }
     switch (conn->type) {
     case DEVICE:
@@ -386,6 +446,7 @@ int audioconn_start_playback(AudioConn *conn)
 static void device_stop_playback(AudioDevice *dev)
 {
     SDL_PauseAudioDevice(dev->id, 1);
+    log_tmp(LOG_DEBUG, "PauseAudioDevice returned on dev %p\n", dev);
     dev->playing = false;
     /* log_tmp(LOG_DEBUG, "Requesting close on device %p\n", dev); */
     /* if (sem_post(dev->request_close) != 0) { */
@@ -452,11 +513,11 @@ void audioconn_start_recording(AudioConn *conn)
     }
 }
 
-static void audioconn_remove(AudioConn *conn);
+void audioconn_remove(AudioConn *conn);
 static void session_set_out_conn(Session *session, AudioConn *conn, bool from_remove)
 {
     session->audio_io.playback_conn = conn;
-    if (audioconn_open(session, session->audio_io.playback_conn) != 0) {
+    if (audioconn_open(session, session->audio_io.playback_conn) < 0) {
 	if (!from_remove) {
 	    audioconn_remove(session->audio_io.playback_conn);
 	}
@@ -467,8 +528,13 @@ static void session_set_out_conn(Session *session, AudioConn *conn, bool from_re
 
 }
 
-void audioconn_handle_connection_event(int index_or_id, int iscapture, int event_type)
+void audioconn_handle_connection_event(int index, int iscapture, int event_type)
 {
+    AudioDevice *dev = add_device_and_conns(session_get(), index, iscapture);
+    status_set_statstr("Added %s device \"%s\"\n", iscapture ? "record" : "playback", dev->name);
+    /* status_set_ */
+    /* AudioDevice *dev = calloc(1, sizeof(AudioDevice)); */
+    /* SDL_GetAudioDeviceName(index, iscapture); */
     
     /* Requires full rewrite */
 }
@@ -494,7 +560,7 @@ static void audio_device_remove(AudioDevice *dev, int iscapture)
     }
 }
 
-static void audioconn_remove(AudioConn *conn)
+void audioconn_remove(AudioConn *conn)
 {
     Session *session = session_get();
     audioconn_close(session->audio_io.playback_conn);
@@ -514,6 +580,16 @@ static void audioconn_remove(AudioConn *conn)
 	    break;
 	}
     }
+    set_default_index(session, conn->iscapture);
+
+    /*------ debug -------------------------------------------------------*/
+    fprintf(stderr, "NEW CONN LIST (capture %d)\n", conn->iscapture);
+    for (int i=0; i<*num_conns; i++) {
+	fprintf(stderr, "\t%d: %s%s\n", i, conn_list[i]->name, conn_list[i]->is_default ? "DEFAULT" : "");
+    }
+    /*------ end debug ---------------------------------------------------*/
+
+
     for (int i=0; i<*num_conns; i++) {
 	conn_list[i]->index = i;
     }
@@ -524,20 +600,62 @@ static void audioconn_remove(AudioConn *conn)
     if (!conn->iscapture) {
 	if (session->audio_io.playback_conn == conn) {
 	    /* session->audio_io.playback_conn = session->audio_io.playback_conns[0]; */
-	    session_set_out_conn(session, session->audio_io.playback_conns[0], false);
+	    session_set_out_conn(session, session->audio_io.playback_conns[session->audio_io.default_playback_conn_index], true);
+	}
+    }
+    if (conn->iscapture) {
+	for (int t=0; t<session->proj.num_timelines; t++) {
+	    Timeline *tl = session->proj.timelines[t];
+	    for (int i=0; i<tl->num_tracks; i++) {
+		Track *track = tl->tracks[i];
+		if (track->input == conn) {
+		    track_set_input_to(track, AUDIO_CONN, session->audio_io.record_conns[0]);
+		}
+	    }
 	}
     }
 }
 
 void audioconn_handle_disconnection_event(int id, int iscapture, int event_type)
 {
+    fprintf(stderr, "DISCONNECTION EVENT id == %d, iscapture == %d\n", id, iscapture);
     Session *session = session_get();
     AudioDevice *playback_device = session->audio_io.playback_conn->obj;
     log_tmp(LOG_INFO, "Audio %s device disconnection event: id %d\n", iscapture ? "record" : "playback", id);
+    if (id == 0) return; /* Device has not been opened! */
     if (!iscapture && id == playback_device->id) {
 	transport_stop_playback();
+	fprintf(stderr, "ID == %d, plaback device id == %d\n", id, playback_device->id);
+	/* audio_device_remove(session->audio_io.playback_conn->obj, iscapture); */
+	status_set_errstr("Audio device \"%s\" disconnected", session->audio_io.playback_conn->name);
 	audioconn_remove(session->audio_io.playback_conn);
+    } else if (iscapture) {
+	for (int i=0; i<session->audio_io.num_record_devices; i++) {
+	    AudioDevice *dev = session->audio_io.record_devices[i];
+	    if (dev->id != id) continue;
+	    AudioConn *conns[dev->spec.channels];
+	    int num_conns = 0;
+	    for (int i=0; i<dev->spec.channels; i++) {
+		AudioConn *conn = dev->channel_dsts[i].conn;
+		bool add_conn = true;
+		for (int j=0; j<i; j++) {
+		    if (conns[j] == conn) {
+			add_conn = false;
+			break;
+		    }
+		}
+		if (add_conn) {
+		    conns[num_conns] = conn;
+		    num_conns++;
+		}
+	    }
+	    for (int i=0; i<num_conns; i++) {
+		audioconn_remove(conns[i]);
+	    }
+	    audio_device_remove(dev, true);
+	}
     }
+    
 }
 
 void audioconn_reset_chunk_size(AudioConn *c, uint16_t new_chunk_size)
@@ -595,7 +713,7 @@ static void select_out_onclick(void *arg)
 	transport_stop_playback();
 	timeline_play_speed_set(0.0);
     }
-    audioconn_close(session->audio_io.playback_conn);
+    /* audioconn_close(session->audio_io.playback_conn); */
     session_set_out_conn(session, session->audio_io.playback_conns[index], false);
     window_pop_menu(main_win);
     Timeline *tl = ACTIVE_TL;

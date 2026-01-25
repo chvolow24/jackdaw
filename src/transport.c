@@ -1046,6 +1046,7 @@ void transport_stop_recording()
     }
 
     /* MIDI */
+    TESTBREAK;
     while (session->proj.active_midi_clip_index < session->proj.num_midi_clips) {
 	MIDIClip *mclip = session->proj.midi_clips[session->proj.active_midi_clip_index];
 	mclip->recording = false;

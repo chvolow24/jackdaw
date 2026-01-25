@@ -70,6 +70,9 @@ MIDIClip *midi_clip_create(MIDIDevice *device, Track *target)
 
 void midi_clip_destroy(MIDIClip *mc)
 {
+    if (mc->recorded_from && mc->recorded_from->current_clip == mc) {
+	mc->recorded_from->current_clip = NULL;
+    }
     free(mc->notes);
     for (int i=0; i<mc->num_refs; i++) {
 	clipref_destroy(mc->refs[i], false);
@@ -1435,8 +1438,10 @@ static void midi_clipref_notes_adj_quantize_amount(ClipRef *cr, Note **notes, in
 	undo_info = malloc(num * sizeof(struct note_quant_amt));
     }
     for (int32_t i=0; i<num; i++) {
-	undo_info[i].undo_amt = notes[i]->quantize_info.amt;
-	undo_info[i].note_id = notes[i]->id;
+	if (!from_undo) {
+	    undo_info[i].undo_amt = notes[i]->quantize_info.amt;
+	    undo_info[i].note_id = notes[i]->id;
+	}
 	if (!notes[i]->quantize_info.quantized) continue;
 	notes[i]->quantize_info.amt = new_amount;
 	note_apply_quantize_amt(cr, notes[i]);
@@ -1578,7 +1583,7 @@ void midi_clipref_quantize(ClipRef *cr)
 	    "",
 	    JDAW_THREAD_MAIN,
 	    NULL, NULL, NULL,
-	    NULL, NULL,NULL,NULL);
+	    NULL, NULL, NULL, NULL);
 	note_selection_behavior_ep.block_undo = true;
     }
     if (amount_ep.local_id == NULL) {
@@ -1590,7 +1595,7 @@ void midi_clipref_quantize(ClipRef *cr)
 	    "",
 	    JDAW_THREAD_MAIN,
 	    quantize_amt_gui_cb, NULL, NULL,
-	    NULL, NULL,NULL,NULL);
+	    NULL, NULL, NULL, NULL);
 	endpoint_set_allowed_range(&amount_ep, (Value){.float_v = 0.0}, (Value){.float_v = 1.0});
 	endpoint_set_default_value(&amount_ep, (Value){.float_v = 1.0});
 	amount_ep.block_undo = true;

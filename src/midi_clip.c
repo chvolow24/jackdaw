@@ -1,8 +1,11 @@
 #include "clipref.h"
+#include "color.h"
 #include "midi_clip.h"
 #include "midi_io.h"
 #include "midi_objs.h"
+#include "modal.h"
 #include "project.h"
+#include "tempo.h"
 #include "test.h"
 #include "session.h"
 #include "timeline.h"
@@ -12,6 +15,9 @@
 #define DEFAULT_REFS_ALLOC_LEN 2
 
 #define MAX_INTERSECTING_NOTES 4096
+
+extern Window *main_win;
+extern struct colors colors;
 
 /* Mandatory initialization after allocating */
 void midi_clip_init(MIDIClip *mclip)
@@ -1250,12 +1256,40 @@ void midi_clipref_cache_grabbed_note_info(ClipRef *cr)
     mclip->note_move_in_progress = true;
 }
 
+/*------ Quantize internal implementation ----------------------------*/
 
 struct quantize_undo_info {
     uint32_t note_id;
     struct note_quantize_info old_info;
     struct note_quantize_info new_info;
 };
+
+/* Set note positions based on quantize info (and parent clipref) */
+static void note_apply_quantize_amt(ClipRef *cr, Note *note)
+{
+    int32_t tl_pos_orig = click_track_pos_to_tl_pos(&note->quantize_info.orig_start_pos);    
+    if (!note->quantize_info.quantized) {
+	note->start_rel = tl_pos_orig - cr->tl_pos + cr->start_in_clip;
+	tl_pos_orig = click_track_pos_to_tl_pos(&note->quantize_info.orig_end_pos);
+	note->end_rel = tl_pos_orig - cr->tl_pos + cr->start_in_clip;
+	return;
+    }
+    int32_t tl_pos_quantized = click_track_pos_to_tl_pos(&note->quantize_info.quantized_start_pos);
+    int32_t diff = tl_pos_quantized - tl_pos_orig;
+    int32_t dst_tl_pos = tl_pos_orig + diff * note->quantize_info.amt;
+    note->start_rel = dst_tl_pos - cr->tl_pos + cr->start_in_clip;
+    if (note->quantize_info.quantize_note_off) {
+	tl_pos_orig = click_track_pos_to_tl_pos(&note->quantize_info.orig_end_pos);
+	tl_pos_quantized = click_track_pos_to_tl_pos(&note->quantize_info.quantized_end_pos);
+	diff = tl_pos_quantized - tl_pos_orig;
+	dst_tl_pos = tl_pos_orig + diff * note->quantize_info.amt;
+	note->end_rel = dst_tl_pos - cr->tl_pos + cr->start_in_clip;
+    } else {
+	tl_pos_orig = click_track_pos_to_tl_pos(&note->quantize_info.orig_end_pos);
+	dst_tl_pos = tl_pos_orig + diff * note->quantize_info.amt;
+	note->end_rel = dst_tl_pos - cr->tl_pos + cr->start_in_clip;	
+    }
+}
 
 NEW_EVENT_FN(undo_quantize_notes, "undo quantize notes")
     ClipRef *cr = obj1;
@@ -1264,9 +1298,8 @@ NEW_EVENT_FN(undo_quantize_notes, "undo quantize notes")
     int32_t num_notes = val1.int32_v;
     for (int32_t i=0; i<num_notes; i++) {
 	Note *note = mclip->notes + midi_clip_get_note_by_id(cr->source_clip, info[i].note_id);
-	note->start_rel = info[i].new_info.start_rel_before;
-	note->end_rel = info[i].new_info.end_rel_before;
 	note->quantize_info = info[i].old_info;
+	note_apply_quantize_amt(cr, note);
     }
     cr->track->tl->needs_redraw = true;
 }
@@ -1278,73 +1311,35 @@ NEW_EVENT_FN(redo_quantize_notes, "redo quantize notes")
     int32_t num_notes = val1.int32_v;
     for (int32_t i=0; i<num_notes; i++) {
 	Note *note = mclip->notes + midi_clip_get_note_by_id(cr->source_clip, info[i].note_id);
-	note->start_rel = info[i].new_info.start_rel_before + info[i].new_info.start_diff * info[i].new_info.amt;
-	note->end_rel = info[i].new_info.end_rel_before + info[i].new_info.end_diff * info[i].new_info.amt;
 	note->quantize_info = info[i].new_info;
+	note_apply_quantize_amt(cr, note);
     }
     cr->track->tl->needs_redraw = true;
 
 }
+
+
 
 static void midi_clipref_quantize_notes(ClipRef *cr, Note **notes, int num, ClickTrack *ct, float amount, BeatProminence resolution, bool quantize_note_offs)
 {
     struct quantize_undo_info *undo_info = malloc(sizeof(struct quantize_undo_info) * num);
     for (int i=0; i<num; i++) {
 	undo_info[i].note_id = notes[i]->id;
+	notes[i]->quantize_info.orig_start_pos = click_track_get_pos(ct, note_tl_start_pos(notes[i], cr));
+	notes[i]->quantize_info.orig_end_pos = click_track_get_pos(ct, note_tl_end_pos(notes[i], cr));
 	undo_info[i].old_info = notes[i]->quantize_info;
-	notes[i]->quantize_info.quantized = true;
-	notes[i]->quantize_info.start_rel_before = notes[i]->start_rel;
-	notes[i]->quantize_info.end_rel_before = notes[i]->end_rel;
 	notes[i]->quantize_info.amt = amount;
-	int32_t tl_start = note_tl_start_pos(notes[i], cr);
-	int32_t tl_end = note_tl_end_pos(notes[i], cr);
-	int32_t prev_beat, next_beat;
-	int32_t start_dst_beat;
-	click_track_get_prox_beats(ct, tl_start, resolution, &prev_beat, &next_beat);
-	int32_t diff_prev = tl_start - prev_beat;
-	int32_t diff_next = next_beat - tl_start;
-	int32_t start_diff;
-	if (diff_prev < diff_next) {
-	    start_dst_beat = prev_beat;
-	    notes[i]->quantize_info.start_diff = -diff_prev;
-	    diff_prev *= amount;
-	    start_diff = -diff_prev;
-	} else if (diff_next < diff_prev) {
-	    notes[i]->quantize_info.start_diff = diff_next;
-	    start_dst_beat = next_beat;
-	    diff_next *= amount;
-	    start_diff = diff_next;
-	} else { /* Note falls exactly in the middle; allow to stay */
-	    notes[i]->quantize_info.start_diff = 0;
-	    start_dst_beat = tl_start;
-	    start_diff = 0;
+	notes[i]->quantize_info.quantized = true;
+	ClickTrackPos quantized_start = click_track_pos_round(notes[i]->quantize_info.orig_start_pos, resolution);
+	notes[i]->quantize_info.quantized_start_pos = quantized_start;
+	if ((notes[i]->quantize_info.quantize_note_off = quantize_note_offs)) {
+	    ClickTrackPos quantized_end = click_track_pos_round(notes[i]->quantize_info.orig_end_pos, resolution);
+	    if (memcmp(&quantized_start, &quantized_end, sizeof(ClickTrackPos)) == 0) {
+		quantized_end = click_track_pos_do_increment(quantized_end, resolution);
+	    }
+	    notes[i]->quantize_info.quantized_end_pos = quantized_end;
 	}
-	notes[i]->start_rel += start_diff;
-	click_track_get_prox_beats(ct, tl_end, resolution, &prev_beat, &next_beat);
-	diff_prev = tl_end - prev_beat;
-	diff_next = next_beat - tl_end;
-	/* For setting note end pos, check that the destination end beat is not the same as the start destination;
-	   if the destinations match (which would result in progressively shorter note durs for amount <1.0), maintain dur */
-	if (diff_prev < diff_next && prev_beat != start_dst_beat) {
-	    notes[i]->quantize_info.end_diff = -diff_prev;
-	    diff_prev *= amount;
-	    /* notes[i]->end_rel = prev_beat - cr->tl_pos + cr->start_in_clip; */
-	    notes[i]->end_rel -= diff_prev;
-	    /* notes[i]->end_quantize_diff = -1 * diff_prev; */
-	} else if (diff_next < diff_prev && next_beat != start_dst_beat) {
-	    notes[i]->quantize_info.end_diff = diff_next;
-	    diff_next *= amount;
-	    notes[i]->end_rel += diff_next;
-	} else {
-	    /* Move start by same amount as end */
-	    notes[i]->quantize_info.end_diff = notes[i]->quantize_info.start_diff;
-	    notes[i]->end_rel += start_diff;
-	}
-	if (notes[i]->end_rel == notes[i]->start_rel) {
-	    notes[i]->end_rel += (ct->segments + ct->current_segment)->cfg.atom_dur_approx;
-	    notes[i]->quantize_info.end_diff += (ct->segments + ct->current_segment)->cfg.atom_dur_approx;
-	    /* notes[i]->end_quantize_diff += (ct->segments + ct->current_segment)->cfg.atom_dur_approx; */
-	}
+	note_apply_quantize_amt(cr, notes[i]);
 	undo_info[i].new_info = notes[i]->quantize_info;
     }
     user_event_push(
@@ -1362,7 +1357,7 @@ static void midi_clipref_quantize_notes(ClipRef *cr, Note **notes, int num, Clic
 
 
 /* Amt 0.0 - 1.0 describes how close to the note gets to the beat */
-void midi_clipref_quantize_notes_in_range(ClipRef *cr, float amount, BeatProminence resolution, bool quantize_note_offs)
+static void midi_clipref_quantize_notes_in_range(ClipRef *cr, float amount, BeatProminence resolution, bool quantize_note_offs)
 {
     if (!cr) return;
     Timeline *tl = cr->track->tl;
@@ -1379,6 +1374,26 @@ void midi_clipref_quantize_notes_in_range(ClipRef *cr, float amount, BeatPromine
     /* uint32_t *note_ids = malloc(sizeof(uint32_t) * num);; */
     free(intersecting);
 }
+
+/* Amt 0.0 - 1.0 describes how close to the note gets to the beat */
+static void midi_clipref_quantize_all_notes(ClipRef *cr, float amount, BeatProminence resolution, bool quantize_note_offs)
+{
+    if (!cr) return;
+    Timeline *tl = cr->track->tl;
+    ClickTrack *ct = track_governing_click_track(cr->track);
+    if (!ct) {
+	status_set_errstr("Add a click track (C-t) before quantizing");
+	return;
+    }
+    
+    Note **intersecting;
+    int num = midi_clipref_notes_intersecting_area(cr, cr->tl_pos, cr->tl_pos + clipref_len(cr), 0, 127, &intersecting);
+    if (num == 0) return;
+    midi_clipref_quantize_notes(cr, intersecting, num, ct, amount, resolution, quantize_note_offs);
+    /* uint32_t *note_ids = malloc(sizeof(uint32_t) * num);; */
+    free(intersecting);
+}
+
 
 struct note_quant_amt {
     uint32_t note_id;
@@ -1423,9 +1438,10 @@ static void midi_clipref_notes_adj_quantize_amount(ClipRef *cr, Note **notes, in
 	undo_info[i].undo_amt = notes[i]->quantize_info.amt;
 	undo_info[i].note_id = notes[i]->id;
 	if (!notes[i]->quantize_info.quantized) continue;
-	notes[i]->start_rel = notes[i]->quantize_info.start_rel_before + notes[i]->quantize_info.start_diff * new_amount;
-	notes[i]->end_rel = notes[i]->quantize_info.end_rel_before + new_amount * notes[i]->quantize_info.end_diff * new_amount;
 	notes[i]->quantize_info.amt = new_amount;
+	note_apply_quantize_amt(cr, notes[i]);
+	/* notes[i]->start_rel = notes[i]->quantize_info.start_rel_before + notes[i]->quantize_info.start_diff * new_amount; */
+	/* notes[i]->end_rel = notes[i]->quantize_info.end_rel_before + new_amount * notes[i]->quantize_info.end_diff * new_amount; */
     }
     if (!from_undo) {
 	user_event_push(
@@ -1443,20 +1459,216 @@ static void midi_clipref_notes_adj_quantize_amount(ClipRef *cr, Note **notes, in
     }
 }
 
-void midi_clipref_notes_in_range_adj_quantize_amount(ClipRef *cr, float new_amount)
+static void midi_clipref_notes_in_range_adj_quantize_amount(ClipRef *cr, float new_amount, int32_t start_tl_pos, int32_t end_tl_pos)
 {
     if (!cr) return;
     Timeline *tl = cr->track->tl;    
     Note **intersecting;
-    int num_intersecting = midi_clipref_notes_intersecting_area(cr, tl->in_mark_sframes, tl->out_mark_sframes, 0, 127, &intersecting);
+    int num_intersecting = midi_clipref_notes_intersecting_area(cr, start_tl_pos, end_tl_pos, 0, 127, &intersecting);
     midi_clipref_notes_adj_quantize_amount(cr, intersecting, num_intersecting, new_amount, false);
     if (num_intersecting > 0) free(intersecting);
+}
+
+/*------ Quantize top-level interface --------------------------------*/
+
+enum quantize_behavior_options {
+    QUANTIZE_ENTIRE_CLIP=0,
+    QUANTIZE_MARKED_RANGE=1
+};
+static int quantize_note_selection_behavior = 0;
+static int quantize_beat_prominence = 1;
+static bool quantize_note_offs = true;
+static float quantize_amount = 1.0;
+
+static int quantize_form_submit(void *modal_v, void *stashed_obj)
+{
+    /* ClipRef *cr = clipref_at_cursor(); */
+    ClipRef *cr = stashed_obj;
+    BeatProminence bp = quantize_beat_prominence + 2;
+    /* bool quantize_note_offs =  */
+    fprintf(stderr, "Quantize submit form, bp %d\n", bp);
+    switch (quantize_note_selection_behavior) {
+    case QUANTIZE_MARKED_RANGE:
+	midi_clipref_quantize_notes_in_range(cr, quantize_amount, bp, quantize_note_offs);
+	break;
+    case QUANTIZE_ENTIRE_CLIP:
+	midi_clipref_quantize_all_notes(cr, quantize_amount, bp, quantize_note_offs);
+	/* midi_clipref_quantize_ */
+	break;
+    }
+    window_pop_modal(main_win);
+    Session *session = session_get();
+    ACTIVE_TL->needs_redraw = true;
+    return 0;    
+}
+
+static int quantize_amt_form_submit(void *modal_v, void *stashed_obj)
+{
+    /* ClipRef *cr = clipref_at_cursor(); */
+    Session *session = session_get();
+    ClipRef *cr = stashed_obj;
+    fprintf(stderr, "Quantize amt submit form\n");
+    switch (quantize_note_selection_behavior) {
+    case QUANTIZE_ENTIRE_CLIP:
+	midi_clipref_notes_in_range_adj_quantize_amount(cr, quantize_amount, cr->tl_pos, cr->tl_pos + clipref_len(cr));
+	/* midi_clipref_quantize_ */
+	break;
+    case QUANTIZE_MARKED_RANGE:
+	midi_clipref_notes_in_range_adj_quantize_amount(cr, quantize_amount, ACTIVE_TL->in_mark_sframes, ACTIVE_TL->out_mark_sframes);
+	/* midi_clipref_quantize_notes_in_range(cr, quantize_amount, bp, true); */
+	break;
+    }
+    window_pop_modal(main_win);
+    ACTIVE_TL->needs_redraw = true;
+    return 0;
+    
+}
+
+
+static void quantize_amt_gui_cb(Endpoint *ep)
+{
+    Slider *s = ep->xarg1;
+    slider_reset(s);
+}
+
+static Endpoint note_selection_behavior_ep = {0};
+static Endpoint amount_ep = {0};
+static Endpoint beat_prominence_ep = {0};
+static Endpoint quantize_note_offs_ep = {0};
+
+static const char *note_selection_radio_options[] = {
+    "Entire clip",
+    "Marked range"
+};
+
+static const char *beat_prominence_radio_options[] = {
+    "Beat (e.g. quarter)",
+    "Subdiv (e.g. eighth)",
+    "Subdiv 2 (e.g. sixteenth)",
+    "Subidv 3 (e.g. thirty-second)"
+};
+
+/* Creates modal for options; top-level interface */
+void midi_clipref_quantize(ClipRef *cr)
+{
+    Session *session = session_get();    
+    Layout *mod_lt = layout_add_child(main_win->layout);
+    layout_set_default_dims(mod_lt);
+    Modal *mod = modal_create(mod_lt);
+    modal_add_header(mod, "Quantize notes", &colors.light_grey, 3);
+    modal_add_p(mod, "This function will re-quantize any affected notes. To change the quantization amount instead, use \"adjust quantize amount\" instead.", &colors.light_grey);
+    if (beat_prominence_ep.local_id == NULL) {
+	endpoint_init(
+	    &beat_prominence_ep,
+	    &quantize_beat_prominence,
+	    JDAW_INT,
+	    "",
+	    "",
+	    JDAW_THREAD_MAIN,
+	    NULL, NULL, NULL,
+	    NULL, NULL, NULL, NULL);
+	beat_prominence_ep.block_undo = true;
+    }
+    if (note_selection_behavior_ep.local_id == NULL) {
+	endpoint_init(
+	    &note_selection_behavior_ep,
+	    &quantize_note_selection_behavior,
+	    JDAW_INT,
+	    "",
+	    "",
+	    JDAW_THREAD_MAIN,
+	    NULL, NULL, NULL,
+	    NULL, NULL,NULL,NULL);
+	note_selection_behavior_ep.block_undo = true;
+    }
+    if (amount_ep.local_id == NULL) {
+	endpoint_init(
+	    &amount_ep,
+	    &quantize_amount,
+	    JDAW_FLOAT,
+	    "",
+	    "",
+	    JDAW_THREAD_MAIN,
+	    quantize_amt_gui_cb, NULL, NULL,
+	    NULL, NULL,NULL,NULL);
+	endpoint_set_allowed_range(&amount_ep, (Value){.float_v = 0.0}, (Value){.float_v = 1.0});
+	endpoint_set_default_value(&amount_ep, (Value){.float_v = 1.0});
+	amount_ep.block_undo = true;
+    }
+    if (quantize_note_offs_ep.local_id == NULL) {
+	endpoint_init(
+	    &quantize_note_offs_ep,
+	    &quantize_note_offs,
+	    JDAW_BOOL,
+	    "",
+	    "",
+	    JDAW_THREAD_MAIN,
+	    NULL, NULL, NULL,
+	    NULL, NULL,NULL,NULL);
+	endpoint_set_default_value(&quantize_note_offs_ep, (Value){.bool_v = true});
+	quantize_note_offs_ep.block_undo = true;
+    }
+
+
+    modal_add_radio(mod, &colors.light_grey, &note_selection_behavior_ep, note_selection_radio_options, 2);
+
+    modal_add_header(mod, "Resolution:", &colors.light_grey, 5);
+    ModalEl *el = modal_add_radio(mod, &colors.light_grey, &beat_prominence_ep, beat_prominence_radio_options, 4);
+    el->layout->y.value -= 15;
+    /* layout_reset(el->layout); */
+    /* layout_reset(el->layout); */
+    /* modal_add_button(mod, "Create", new_tl_submit_form); */
+    modal_add_header(mod, "Amount:", &colors.light_grey, 5);
+    el = modal_add_slider(mod, &amount_ep, SLIDER_HORIZONTAL, SLIDER_FILL);
+    amount_ep.xarg1 = el->obj;
+
+    modal_add_header(mod, "Quantize note offs:", &colors.light_grey, 5);
+    el = modal_add_toggle(mod, &quantize_note_offs_ep);
+    
+    modal_add_button(mod, "Quantize", quantize_form_submit);
+    mod->stashed_obj = cr;
+    mod->submit_form = quantize_form_submit;
+    window_push_modal(main_win, mod);
+    modal_reset(mod);
+    modal_move_onto(mod);
+    ACTIVE_TL->needs_redraw = true;
+}
+
+void midi_clipref_adj_quantize_amt(ClipRef *cr)
+{
+    if (beat_prominence_ep.local_id == NULL) {
+	status_set_errstr("Cannot adjust quantize amount: no notes have been quantized. Quantize with A-q");
+	return;
+    }
+
+    Session *session = session_get();    
+    Layout *mod_lt = layout_add_child(main_win->layout);
+    layout_set_default_dims(mod_lt);
+    Modal *mod = modal_create(mod_lt);
+    modal_add_header(mod, "Adjust quantize amount", &colors.light_grey, 3);
+    modal_add_p(mod, "Adjust how close to move notes to their quantized position.", &colors.light_grey);
+
+    modal_add_radio(mod, &colors.light_grey, &note_selection_behavior_ep, note_selection_radio_options, 2);
+    modal_add_header(mod, "Amount:", &colors.light_grey, 5);
+    ModalEl *el = modal_add_slider(mod, &amount_ep, SLIDER_HORIZONTAL, SLIDER_FILL);
+    amount_ep.xarg1 = el->obj;
+
+    modal_add_button(mod, "Apply", quantize_amt_form_submit);
+    mod->stashed_obj = cr;
+    mod->submit_form = quantize_amt_form_submit;
+    window_push_modal(main_win, mod);
+    modal_reset(mod);
+    modal_move_onto(mod);
+    ACTIVE_TL->needs_redraw = true;
+
 }
 
 
 
 
-/* Assumes at least one note grabbed */
+/*------ grabbed note vel adj ----------------------------------------*/
+
+/* Assumes at least one note grabbed. Used in piano roll */
 void midi_clip_grabbed_pitch_range(MIDIClip *mclip, int *min_dst, int *max_dst)
 {
     /* MIDIClip *mclip = cr->source_clip; */
@@ -1475,6 +1687,7 @@ void midi_clip_grabbed_pitch_range(MIDIClip *mclip, int *min_dst, int *max_dst)
     *min_dst = min;
     *max_dst = max;
 }
+
 void midi_clip_grabbed_vel_range(MIDIClip *mclip, int *min_dst, int *max_dst)
 {
     /* MIDIClip *mclip = cr->source_clip; */

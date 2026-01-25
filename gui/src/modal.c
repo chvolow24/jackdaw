@@ -135,6 +135,9 @@ static void modal_el_destroy(ModalEl *el)
 	case MODAL_EL_SLIDER:
 	    slider_destroy(el->obj);
 	    break;
+	case MODAL_EL_TOGGLE:
+	    toggle_destroy(el->obj);
+	    break;
 	    
 	}
     }
@@ -388,8 +391,30 @@ ModalEl *modal_add_slider(
     /* layout_force_reset(el->layout); */
     slider_reset(el->obj);
     return el;
-
 }
+
+ModalEl *modal_add_toggle(
+    Modal *modal,
+    Endpoint *ep)
+{
+    ModalEl *el = modal_add_el(modal);
+    modal->selectable_indices[modal->num_selectable] = modal->num_els - 1;
+    modal->num_selectable++;
+    el->type = MODAL_EL_TOGGLE;
+    el->layout->y.value -= 10;
+    el->layout->w.type = REL;
+    el->layout->h.type = REL;
+    el->layout->w.value = 24;
+    el->layout->h.value = 24;
+    /* el->layout->y.value -= 10; */
+    /* el->layout->h.value = 20; */
+    layout_reset(el->layout);
+    el->obj = (void *)toggle_create_from_endpoint(
+	el->layout,
+	ep);
+    return el;
+}
+
 
 
 
@@ -442,6 +467,7 @@ static void modal_el_reset(ModalEl *el)
 	RadioButton *rb = el->obj;
 	if (rb->ep) radio_button_reset_from_endpoint(rb);
     }
+    case MODAL_EL_TOGGLE:
     case MODAL_EL_DIRNAV:
     case MODAL_EL_BUTTON:
 	break;
@@ -490,6 +516,9 @@ static void modal_el_draw(ModalEl *el)
 	break;
     case MODAL_EL_SLIDER:
 	slider_draw((Slider *)el->obj);
+	break;
+    case MODAL_EL_TOGGLE:
+	toggle_draw(el->obj);
 	break;
     }
 }
@@ -614,6 +643,9 @@ void modal_select(Modal *modal)
     case MODAL_EL_RADIO:
 	modal_next_escape(modal);
 	break;
+    case MODAL_EL_TOGGLE:
+	toggle_toggle(current_el->obj);
+	break;
     default:
 	break;
     }
@@ -701,6 +733,9 @@ bool modal_triage_mouse(Modal *modal, SDL_Point *mousep, bool click)
 		break;
 	    case MODAL_EL_SLIDER:
 		slider_mouse_click(el->obj, main_win);
+		break;
+	    case MODAL_EL_TOGGLE:
+		toggle_click(el->obj, main_win);
 		break;
 	    default:
 		break;	

@@ -68,6 +68,9 @@ int piano_roll_execute_queued_insertions();
 
 ClipRef *piano_roll_get_clipref();
 
+void piano_roll_quantize();
+void piano_roll_adj_quantize_amt();
+
 #endif
 
 

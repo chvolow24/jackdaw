@@ -169,9 +169,11 @@ int32_t midi_clip_get_note_by_id(MIDIClip *mclip, uint32_t id);
 /* int midi_clipref_notes_ending_at_pos(ClipRef *cr, int32_t tl_pos, Note ***dst, int32_t *start_pos_dst); */
 int midi_clipref_notes_ending_at_pos(ClipRef *cr, int32_t tl_pos, Note ***dst, bool latest_start_time, int32_t *start_pos_dst);
 
-void midi_clipref_quantize_notes_in_range(ClipRef *cr, float amount, BeatProminence resolution, bool quantize_note_offs);
-void midi_clipref_notes_in_range_adj_quantize_amount(ClipRef *cr, float new_amount);
+/*------ Quantize interface; creates modal for options ---------------*/
+void midi_clipref_quantize(ClipRef *cr);
+void midi_clipref_adj_quantize_amt(ClipRef *cr);
 
+/*------ utils for piano roll ----------------------------------------*/
 void midi_clip_grabbed_pitch_range(MIDIClip *mclip, int *min_dst, int *max_dst);
 void midi_clip_grabbed_vel_range(MIDIClip *mclip, int *min_dst, int *max_dst);
 void midi_clip_adj_grabbed_velocities(MIDIClip *mclip, int by);

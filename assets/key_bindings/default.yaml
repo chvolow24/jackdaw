@@ -160,6 +160,8 @@
   - C-1		: tl_load_clip_at_cursor_to_source
   - S-1		: tl_activate_source_mode
   - C-S-e	: tl_edit_clip_at_cursor
+  - A-q		: tl_quantize_notes
+  - A-S-q	: tl_adj_quantize_amt
   - b		: tl_drop_from_source
   - v		: tl_drop_saved1_from_source
   - c		: tl_drop_saved2_from_source
@@ -342,3 +344,5 @@
   - S-<spc>	: piano_roll_play_grabbed_notes
   - S-t		: piano_roll_toggle_tie
   - S-h		: piano_roll_toggle_chord_mode
+  - A-q		: piano_roll_quantize
+  - A-S-q	: piano_roll_adj_quantize_amt

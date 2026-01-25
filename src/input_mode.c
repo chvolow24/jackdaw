@@ -927,13 +927,27 @@ static void mode_load_timeline()
 	user_tl_delete_generic);
     mode_subcat_add_fn(sc, fn);
 
+
+    /* Piano roll / MIDI */
+
+    sc = mode_add_subcat(mode, "MIDI / piano roll");
     fn = create_user_fn(
 	"tl_edit_clip_at_cursor",
 	"Edit clip at cursor / open piano roll",
 	user_tl_edit_clip_at_cursor);
     mode_subcat_add_fn(sc, fn);
 
+    fn = create_user_fn(
+	"tl_quantize_notes",
+	"Quantize notes (clip at cursor)",
+	user_tl_quantize_notes);
+    mode_subcat_add_fn(sc, fn);
     
+    fn = create_user_fn(
+	"tl_adj_quantize_amt",
+	"Adjust quantize amount",
+	user_tl_adj_quantize_amt);
+    mode_subcat_add_fn(sc, fn);    
 
     /* Sample mode */
 
@@ -1639,7 +1653,6 @@ void mode_load_piano_roll()
 	user_piano_roll_play_grabbed_notes);
     mode_subcat_add_fn(sc, fn);
 
-
     fn = create_user_fn(
 	"piano_roll_toggle_tie",
 	"Toggle tie mode",
@@ -1651,6 +1664,19 @@ void mode_load_piano_roll()
 	"Toggle chord mode",
 	user_piano_roll_toggle_chord_mode);
     mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_quantize",
+	"Quantize notes",
+	user_piano_roll_quantize);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_adj_quantize_amt",
+	"Adjust quantize amount",
+	user_piano_roll_adj_quantize_amt);
+    mode_subcat_add_fn(sc, fn);
+
 }
 
 void mode_load_all()

@@ -1753,11 +1753,11 @@ static void piano_roll_draw_notes()
 	    SDL_RenderDrawRect(main_win->rend, &note_rect);
 	}
 	/* Draw quantize lines */
-	if (note->quantize_info.amt > 1e-9) {
+	if (note->quantize_info.quantized && note->quantize_info.amt > 1e-9) {
 	    /* int og_x = note_rect.x + timeview_get_draw_w(state.tl_tv, note->start_rel_before_quantize - note->start_rel); */
-	    int og_x = note_rect.x + timeview_get_draw_w(state.tl_tv, note->quantize_info.start_rel_before - note->start_rel);
-	    SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255);
-	    SDL_RenderDrawLine(main_win->rend, og_x, note_rect.y, og_x, note_rect.y + note_rect.h - 1);
+	    /* int og_x = note_rect.x + timeview_get_draw_w(state.tl_tv, note->quantize_info.start_rel_before - note->start_rel); */
+	    /* SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255); */
+	    /* SDL_RenderDrawLine(main_win->rend, og_x, note_rect.y, og_x, note_rect.y + note_rect.h - 1); */
 	    
 	}
 
@@ -2146,6 +2146,17 @@ void piano_roll_feed_midi(const PmEvent *events, int num_events)
     state.num_queued_events += num_events;
     pthread_mutex_unlock(&state.event_queue_lock);
 }
+
+void piano_roll_quantize()
+{
+    midi_clipref_quantize(state.cr);
+}
+
+void piano_roll_adj_quantize_amt()
+{
+    midi_clipref_adj_quantize_amt(state.cr);
+}
+
 
 
 /*------ externalize state -------------------------------------------*/

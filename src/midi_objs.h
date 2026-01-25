@@ -22,6 +22,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "portmidi.h"
+#include "tempo.h"
 
 typedef enum note_edge {
     NOTE_EDGE_NONE,
@@ -31,11 +32,17 @@ typedef enum note_edge {
 
 struct note_quantize_info {
     bool quantized;
-    int32_t start_rel_before; /* original note pos */
-    int32_t end_rel_before; /* original note pos */
-    int32_t start_diff; /* The amount moved when quantizing (if amount=1.0) */
-    int32_t end_diff; /* The amount moved when quantizing (if amount=1.0) */
-    float amt; /* 0.0f - 1.0f */    
+    ClickTrackPos orig_start_pos;
+    ClickTrackPos quantized_start_pos;
+    bool quantize_note_off;
+    ClickTrackPos orig_end_pos;
+    ClickTrackPos quantized_end_pos;
+    float amt;
+    /* int32_t start_rel_before; /\* original note pos *\/ */
+    /* int32_t end_rel_before; /\* original note pos *\/ */
+    /* int32_t start_diff; /\* The amount moved when quantizing (if amount=1.0) *\/ */
+    /* int32_t end_diff; /\* The amount moved when quantizing (if amount=1.0) *\/ */
+    /* float amt; /\* 0.0f - 1.0f *\/ */
 };
 
 typedef struct note {

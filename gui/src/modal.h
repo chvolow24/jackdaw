@@ -14,7 +14,8 @@ enum mod_s_type {
     MODAL_EL_DIRNAV,
     MODAL_EL_BUTTON,
     MODAL_EL_RADIO,
-    MODAL_EL_SLIDER
+    MODAL_EL_SLIDER,
+    MODAL_EL_TOGGLE
 };
 
 typedef struct ModalEl {
@@ -74,6 +75,10 @@ ModalEl *modal_add_slider(
     Endpoint *ep,
     enum slider_orientation orientation,
     enum slider_style style);
+
+ModalEl *modal_add_toggle(
+    Modal *modal,
+    Endpoint *ep);
 
 
 void modal_reset(Modal *modal);

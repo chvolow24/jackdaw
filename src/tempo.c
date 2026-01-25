@@ -38,7 +38,7 @@ extern struct colors colors;
 
 /*------ debug utils -------------------------------------------------*/
 
-static void click_track_pos_fprint(FILE *f, ClickTrackPos pos)
+ void click_track_pos_fprint(FILE *f, ClickTrackPos pos)
 {
     fprintf(f, "%p -- %d.%d.%d.%d.%d:%f\n", pos.seg, pos.measure, pos.beat, pos.sd, pos.ssd, pos.sssd, pos.remainder);
 }
@@ -135,17 +135,6 @@ ClickSegment *click_track_get_segment_at_pos(ClickTrack *t, int32_t pos)
 
 /*------ internal utils & tl pos <> ct pos translation ---------------*/
 
-/* TODO: finer subdivs */
-/* static int32_t get_beat_pos(ClickSegment *s, int measure, int beat, int subdiv) */
-/* {     */
-/*     int32_t pos = s->start_pos + (measure - s->first_measure_index) * s->cfg.dur_sframes; */
-/*     for (int i=0; i<beat; i++) { */
-/* 	pos += s->cfg.dur_sframes * s->cfg.beat_subdiv_lens[i] / s->cfg.num_atoms; */
-/*     } */
-/*     pos += s->cfg.dur_sframes * subdiv / s->cfg.num_atoms; */
-/*     return pos; */
-/* } */
-
 static inline int32_t get_atom_len(ClickSegment *s)
 {
     return s->cfg.dur_sframes / s->cfg.num_atoms;
@@ -162,10 +151,7 @@ static inline int32_t get_sd_len(ClickSegment *s, int beat)
     }
 }
 
-static ClickTrackPos click_track_get_pos(ClickTrack *ct, int32_t tl_pos);
-
 /* public for piano roll, jlily */
-
 void click_segment_get_durs_at(ClickTrack *ct, int32_t at, int32_t *measure_dur, int32_t *beat_dur, int32_t *subdiv_dur)
 {
     if (!ct) { /* Default to 120bpm, 4/4 */
@@ -207,7 +193,7 @@ static inline int beat_len_subdivs(ClickSegment *s, int beat)
     }
 }
 
-static int32_t click_track_pos_get_remainder_samples(ClickTrackPos ctp, BeatProminence from)
+static int32_t click_track_pos_get_remainder_sframes(ClickTrackPos ctp, BeatProminence from)
 {
     int32_t sd_len = get_sd_len(ctp.seg, ctp.beat);
     int32_t rem = ctp.remainder * sd_len;
@@ -387,7 +373,7 @@ static BeatProminence get_beat_prominence(ClickTrackPos ctp)
 
 
 /* Simple stateless version of click_track_bar_beat_subdiv() */
-static ClickTrackPos click_track_get_pos(ClickTrack *ct, int32_t tl_pos)
+ClickTrackPos click_track_get_pos(ClickTrack *ct, int32_t tl_pos)
 {
     ClickTrackPos ret = {0};
     ret.seg = click_track_get_segment_at_pos(ct, tl_pos);
@@ -409,11 +395,61 @@ static ClickTrackPos click_track_get_pos(ClickTrack *ct, int32_t tl_pos)
 }
 
 /* Convert ClickTrackPos to raw tl pos (sframes) (for repositioning elements on tempo change, e.g.) */
-int32_t click_track_pos_to_tl_pos(ClickTrackPos *ctp)
+int32_t click_track_pos_to_tl_pos(const ClickTrackPos *ctp)
 {
     /* return ctp->remainder * ctp->seg->cfg.dur_sframes / ctp->seg->cfg.num_atoms + get_beat_pos(ctp->seg, ctp->measure, ctp->beat, ctp->subdiv); */
     return get_beat_pos(*ctp);
 }
+
+ClickTrackPos click_track_pos_floor(ClickTrackPos in, BeatProminence bp)
+{
+    switch (bp) {
+    case BP_SEGMENT:
+	if (in.seg)
+	    in.measure = in.seg->first_measure_index;
+    case BP_MEASURE:
+	in.beat = 0;
+    case BP_BEAT:
+	in.sd = 0;
+    case BP_SD:
+	in.ssd = 0;
+    case BP_SSD:
+	in.sssd = 0;
+    case BP_SSSD:
+	in.remainder = 0;
+    case BP_NONE:
+	break;
+    }
+    return in;
+}
+
+ClickTrackPos click_track_pos_round(ClickTrackPos in, BeatProminence bp)
+{
+    int32_t pos = click_track_pos_to_tl_pos(&in);
+    int32_t remainder = click_track_pos_get_remainder_sframes(in, bp);
+    ClickTrackPos floor = click_track_pos_floor(in, bp);
+    ClickTrackPos ceil = floor;
+    do_increment(&ceil, bp);
+    int32_t ceil_pos = click_track_pos_to_tl_pos(&ceil);
+    if (ceil_pos - pos < remainder) {
+	return ceil;
+    } else {
+	return floor;
+    }
+}
+/* Public-facing alias for 'do_increment' */
+ClickTrackPos click_track_pos_do_increment(ClickTrackPos ctp, BeatProminence bp)
+{
+    do_increment(&ctp, bp);
+    return ctp;
+}
+ClickTrackPos click_track_pos_do_decrement(ClickTrackPos ctp, BeatProminence bp)
+{
+    do_decrement(&ctp, bp);
+    return ctp;
+}
+
+
 
 static void click_track_set_readout_ctp(ClickTrack *ct, ClickTrackPos ctp)
 {
@@ -2034,24 +2070,11 @@ static int32_t click_segment_get_nearest_beat_pos(ClickTrack *ct, int32_t start_
 {
     int32_t next, prev;
     click_track_get_prox_beats(ct, start_pos, BP_SSD, &prev, &next);
-    fprintf(stderr, "Prev cur next: %d, %d, %d (%d %d)\n", prev, start_pos, next, start_pos - prev, next - start_pos);
     if (start_pos - prev < next - start_pos) {
 	return prev;
     } else {
 	return next;
     }
-    /* int bar, beat, subdiv; */
-    /* ClickSegment *s; */
-    /* int32_t remainder = click_track_bar_beat_subdiv(ct, start_pos, &bar, &beat, &subdiv, &s, false); */
-    /* int32_t init = get_beat_pos(s, bar, beat, subdiv); */
-    /* do_increment(s, &bar, &beat, &subdiv); */
-    /* int32_t next = get_beat_pos(s, bar, beat, subdiv); */
-    /* if (next - start_pos < remainder) { */
-    /* 	return next; */
-    /* } else { */
-    /* 	return init; */
-    /* } */
-    
 }
 
 void click_track_mouse_motion(ClickSegment *s, Window *win)

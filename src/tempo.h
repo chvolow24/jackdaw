@@ -160,6 +160,14 @@ typedef struct click_track {
     
 } ClickTrack;
 
+/* Public utils */
+void click_track_pos_fprint(FILE *f, ClickTrackPos pos);
+ClickTrackPos click_track_pos_round(ClickTrackPos in, BeatProminence bp);
+ClickTrackPos click_track_get_pos(ClickTrack *ct, int32_t tl_pos);
+int32_t click_track_pos_to_tl_pos(const ClickTrackPos *ctp);
+ClickTrackPos click_track_pos_do_increment(ClickTrackPos ctp, BeatProminence bp);
+ClickTrackPos click_track_pos_do_decrement(ClickTrackPos ctp, BeatProminence bp);
+
 /* Timeline interface */
 ClickTrack *timeline_add_click_track(Timeline *tl);
 void timeline_cut_click_track_at_cursor(Timeline *tl);

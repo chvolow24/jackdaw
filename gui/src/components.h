@@ -366,7 +366,7 @@ bool toggle_click(Toggle *toggle, Window *win);
 
 /* Mouse functions */
 bool draggable_mouse_motion(Draggable *draggable, Window *win);
-bool toggle_mouse_click(Toggle *toggle, Window *win);
+/* bool toggle_mouse_click(Toggle *toggle, Window *win); */
 bool button_click(Button *button, Window *win);
 
 

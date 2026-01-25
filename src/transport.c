@@ -1013,20 +1013,7 @@ void transport_stop_recording()
 		clipref_reset(ref, true);
 	    }
 	}
-    }
-    created_clips = realloc(created_clips, num_created * sizeof(ClipRef *));
-    Value num_created_v = {.uint8_v = num_created};
-    user_event_push(	
-	undo_record_new_clips,
-	redo_record_new_clips,
-	NULL,
-	dispose_forward_record_new_clips,
-	(void *)created_clips,
-	NULL,
-	num_created_v,num_created_v,num_created_v,num_created_v,
-	0, 0, true, false);
-	    
-
+    }	    
     
     while (session->proj.active_clip_index < session->proj.num_clips) {
 	Clip *clip = session->proj.clips[session->proj.active_clip_index];
@@ -1057,6 +1044,8 @@ void transport_stop_recording()
 	}
 	session->proj.active_clip_index++;
     }
+
+    /* MIDI */
     while (session->proj.active_midi_clip_index < session->proj.num_midi_clips) {
 	MIDIClip *mclip = session->proj.midi_clips[session->proj.active_midi_clip_index];
 	mclip->recording = false;
@@ -1065,8 +1054,24 @@ void transport_stop_recording()
 	session->proj.active_midi_clip_index++;
 	for (int i=0; i<mclip->num_refs; i++) {
 	    mclip->refs[i]->end_in_clip = mclip->len_sframes;
+	    created_clips[num_created] = mclip->refs[i];
+	    num_created++;
 	}
     }
+
+    created_clips = realloc(created_clips, num_created * sizeof(ClipRef *));
+    Value num_created_v = {.uint8_v = num_created};
+    user_event_push(	
+	undo_record_new_clips,
+	redo_record_new_clips,
+	NULL,
+	dispose_forward_record_new_clips,
+	(void *)created_clips,
+	NULL,
+	num_created_v,num_created_v,num_created_v,num_created_v,
+	0, 0, true, false);
+
+    
 
 
 

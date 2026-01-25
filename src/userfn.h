@@ -147,6 +147,9 @@ void user_tl_paste_grabbed_clips(void *nullarg);
 void user_tl_rename_clip_at_cursor(void *nullarg);
 void user_tl_delete_generic(void *nullarg);
 
+void user_tl_quantize_notes(void *nullarg);
+void user_tl_adj_quantize_amt(void *nullarg);
+
 void user_tl_load_clip_at_cursor_to_src(void *nullarg);
 void user_tl_edit_clip_at_cursor(void *nullarg);
 void user_tl_activate_source_mode(void *nullarg);
@@ -271,4 +274,7 @@ void user_piano_roll_play_grabbed_notes(void *nullarg);
 
 void user_piano_roll_toggle_tie(void *nullarg);
 void user_piano_roll_toggle_chord_mode(void *nullarg);
+void user_piano_roll_quantize(void *nullarg);
+void user_piano_roll_adj_quantize_amt(void *nullarg);
+
 #endif

@@ -1304,6 +1304,7 @@ NEW_EVENT_FN(undo_quantize_notes, "undo quantize notes")
 	note->quantize_info = info[i].old_info;
 	note_apply_quantize_amt(cr, note);
     }
+    midi_clip_resort_notes(mclip);
     cr->track->tl->needs_redraw = true;
 }
 
@@ -1317,6 +1318,7 @@ NEW_EVENT_FN(redo_quantize_notes, "redo quantize notes")
 	note->quantize_info = info[i].new_info;
 	note_apply_quantize_amt(cr, note);
     }
+    midi_clip_resort_notes(mclip);
     cr->track->tl->needs_redraw = true;
 
 }
@@ -1356,6 +1358,7 @@ static void midi_clipref_quantize_notes(ClipRef *cr, Note **notes, int num, Clic
 	(Value){.int32_v = num},
 	(Value){0},
 	0, 0, false, true);
+    midi_clip_resort_notes(cr->source_clip);
 }
 
 
@@ -1382,7 +1385,6 @@ static void midi_clipref_quantize_notes_in_range(ClipRef *cr, float amount, Beat
 static void midi_clipref_quantize_all_notes(ClipRef *cr, float amount, BeatProminence resolution, bool quantize_note_offs)
 {
     if (!cr) return;
-    Timeline *tl = cr->track->tl;
     ClickTrack *ct = track_governing_click_track(cr->track);
     if (!ct) {
 	status_set_errstr("Add a click track (C-t) before quantizing");
@@ -1459,9 +1461,8 @@ static void midi_clipref_notes_adj_quantize_amount(ClipRef *cr, Note **notes, in
 	    (Value){.int32_v = num},
 	    (Value){.float_v = new_amount},
 	    0, 0, false, true);
-	    
-	    
     }
+    midi_clip_resort_notes(cr->source_clip);
 }
 
 static void midi_clipref_notes_in_range_adj_quantize_amount(ClipRef *cr, float new_amount, int32_t start_tl_pos, int32_t end_tl_pos)

@@ -1754,11 +1754,19 @@ static void piano_roll_draw_notes()
 	}
 	/* Draw quantize lines */
 	if (note->quantize_info.quantized && note->quantize_info.amt > 1e-9) {
+	    int og_x = timeview_get_draw_x(state.tl_tv, click_track_pos_to_tl_pos(&note->quantize_info.orig_start_pos));
+	    /* note_rect.w += note_rect.x - og_x; */
+	    note_rect.x = og_x;
+	    /* int og_end_x = note_rect.x */
 	    /* int og_x = note_rect.x + timeview_get_draw_w(state.tl_tv, note->start_rel_before_quantize - note->start_rel); */
 	    /* int og_x = note_rect.x + timeview_get_draw_w(state.tl_tv, note->quantize_info.start_rel_before - note->start_rel); */
-	    /* SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255); */
+	    if (note->quantize_info.quantize_note_off) {
+		int og_end_x = timeview_get_draw_x(state.tl_tv, click_track_pos_to_tl_pos(&note->quantize_info.orig_end_pos));
+		note_rect.w += og_end_x - (note_rect.x + note_rect.w);
+	    }
+	    SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 200);
+	    SDL_RenderDrawRect(main_win->rend, &note_rect);
 	    /* SDL_RenderDrawLine(main_win->rend, og_x, note_rect.y, og_x, note_rect.y + note_rect.h - 1); */
-	    
 	}
 
 	/* DRAW BUMPERS */
